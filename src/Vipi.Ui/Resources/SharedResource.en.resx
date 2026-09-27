@@ -2672,7 +2672,9 @@
   <data name="Swap_Btn" xml:space="preserve"><value>Copy and download ({0} profiles)</value></data>
   <data name="Swap_Busy" xml:space="preserve"><value>Building the zip…</value></data>
   <data name="Swap_OutputInfo" xml:space="preserve"><value>The output is a single .zip with {0} updated profiles.</value></data>
-  <data name="Swap_ErrTooBig" xml:space="preserve"><value>File “{0}” exceeds the {1} MB limit.</value></data>
+  <data name="Swap_ErrTooBig" xml:space="preserve"><value>File “{0}” exceeds the {1} KB limit: an Aurora profile is under 100 KB.</value></data>
+  <data name="Swap_ErrTooManyLines" xml:space="preserve"><value>File “{0}” has more than {1} lines: it does not look like an Aurora profile.</value></data>
+  <data name="Swap_ErrTooManyDests" xml:space="preserve"><value>At most {0} destination profiles at a time: {1} files were not loaded. Remove some to add others.</value></data>
   <data name="Swap_ErrRead" xml:space="preserve"><value>Could not read “{0}”: {1}</value></data>
   <data name="Swap_ErrSectionMissing" xml:space="preserve"><value>Section [{0}] is not present in the source profile: nothing was copied.</value></data>
   <data name="Swap_ErrSwap" xml:space="preserve"><value>Error while copying: {0}</value></data>

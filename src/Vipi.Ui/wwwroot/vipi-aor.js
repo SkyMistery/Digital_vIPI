@@ -57,6 +57,12 @@
         });
         return leafletPromise;
     }
+
+    // 🔴 U-020 (revisione totale 3): Leaflet scrive una stringa di tooltip con innerHTML, e il testo del tooltip
+    // è il nome del volume (KMZ importato, tabella degli spazi aerei). Tutto ciò che arriva dal DB e finisce in
+    // un tooltip o in un popup passa da qui, come nel 3D (`esc` in vipi-aor3d.js).
+    var esc = function (t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
     // Un colore che arriva dal DOM puo' essere un hex vero (override manuale dell'utente, che esce da
     // un <input type=color>) oppure il NOME di un token del tema (es. "--ivao-red"). Leaflet vuole un
     // colore vero: qui il token viene risolto una volta sola sul :root.
@@ -367,7 +373,7 @@
                 l._base = { weight: stile.weight, fillOpacity: stile.fillOpacity };
                 l._ref = (s.refs && s.refs[ri]) || null;
                 var tip = s.tips && s.tips[ri];
-                if (tip) l.bindTooltip(tip, { sticky: true, direction: 'top' });
+                if (tip) l.bindTooltip(esc(tip), { sticky: true, direction: 'top' });
                 if (l._ref) {
                     // Il poligono evidenzia la sua riga, e la riga il poligono: «quale spazio copre cosa».
                     l.on('mouseover', function () { evidenziaRiga(scope, l._ref, true); evidenziaLayer(l, true); });

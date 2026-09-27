@@ -2680,7 +2680,9 @@
   <data name="Swap_Btn" xml:space="preserve"><value>Copia e scarica ({0} profili)</value></data>
   <data name="Swap_Busy" xml:space="preserve"><value>Creazione dello zip…</value></data>
   <data name="Swap_OutputInfo" xml:space="preserve"><value>Esce un unico .zip con {0} profili aggiornati.</value></data>
-  <data name="Swap_ErrTooBig" xml:space="preserve"><value>Il file «{0}» supera il limite di {1} MB.</value></data>
+  <data name="Swap_ErrTooBig" xml:space="preserve"><value>Il file «{0}» supera il limite di {1} KB: un profilo Aurora sta sotto i 100 KB.</value></data>
+  <data name="Swap_ErrTooManyLines" xml:space="preserve"><value>Il file «{0}» ha più di {1} righe: non sembra un profilo Aurora.</value></data>
+  <data name="Swap_ErrTooManyDests" xml:space="preserve"><value>Al massimo {0} profili di destinazione per volta: {1} file non sono stati caricati. Toglierne qualcuno per aggiungerne altri.</value></data>
   <data name="Swap_ErrRead" xml:space="preserve"><value>Impossibile leggere «{0}»: {1}</value></data>
   <data name="Swap_ErrSectionMissing" xml:space="preserve"><value>La sezione [{0}] non è presente nel profilo sorgente: non è stato copiato nulla.</value></data>
   <data name="Swap_ErrSwap" xml:space="preserve"><value>Errore durante la copia: {0}</value></data>

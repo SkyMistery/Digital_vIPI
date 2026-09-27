@@ -382,5 +382,33 @@
     «resta» dal vSOP. «Hide» dal vSOP: 5 sezioni (METAR, quote, SID, regole piste, LVP), piste e STAR non toccate.
     «Dissolve»: prompt nuovo, a schermo «5 sections … visible again in the drafts», in archivio le 5 di nuovo
     visibili e le STAR nascoste in tutti e due. Zero `fail:`. U-052 non provato dal vivo.
+- ✅ **S18** lotto **L6 «Superficie pubblica»** della revisione 3 (via del committente il 27-set): U-001, U-020,
+  U-018 (U-237 era già in S13). Nessuna migrazione, niente codice comune, `wwwroot` sì (`vipi-aor.js`).
+  - **U-001**, Profile Swapper anonimo che esauriva memoria e CPU. Scelta del committente: **la pagina resta
+    pubblica**, niente login; bastano i tetti sul server. Tetti: 512 KB per file (era 4 MB), 10.000 righe per file
+    contate sui byte prima di spezzare il testo (un file di soli «\r» sta in pochi KB e diventava una riga per
+    carattere), **10 destinazioni in tutto** (erano 50 per selezione, senza tetto sul totale). Misura dei 26
+    profili veri dei test: il più grande è 74 KB e 1.517 righe. `GetMultipleFiles` ora chiede `FileCount`: col
+    numero fisso, un file in più faceva sollevare FUORI dal `try` e cadeva il circuito. `LineDiff` toglie testa e
+    coda comuni e costruisce la tabella LCS solo se il mezzo sta in 250.000 celle (1 MB); oltre, il mezzo è un
+    blocco sostituito, un diff giusto ma meno minimo. Il diff di una sezione per una destinazione si calcola una
+    volta (prima a ogni render: una spunta, un tasto nel filtro).
+  - **U-020**, XSS nel tooltip 2D dell'AoR: `vipi-aor.js` passava a `bindTooltip` il nome del volume, e Leaflet lo
+    scrive con `innerHTML`. Ora passa da `esc`, come il 3D.
+  - **U-018**, archivio `/vsop/api/v1/atc/sessions` aperto. Scelta del committente: **`Api:RichiediChiave` vale
+    `true` nel codice** se la configurazione non dice niente. ⚠️ Dal pacchetto che porta S18 l'archivio in
+    produzione risponde 401 a chi non ha chiave, anche senza toccare la configurazione: il validatore dei tour
+    deve avere la sua chiave prima, oppure la produzione scrive `Api__RichiediChiave=false` per il passaggio.
+  - **Test**: rossi sul codice di prima, poi verdi. `LineDiff_non_cresce_col_quadrato_delle_righe` (96 MB prima,
+    tetto 10 MB), la ricostruzione delle due sezioni su tre taglie, i tre tetti di pagina in bUnit (12 file → 10 e
+    il messaggio; 600 KB; 30.000 «\r»), il presidio sul testo di `vipi-aor.js` (ogni `bindTooltip`/`bindPopup`/
+    `setContent` passa da `esc`), E2E `Senza_configurazione_l_archivio_vuole_la_chiave`. Ui 1741 → **1750** (net8 e net10), E2E 422 →
+    **423**; suite intera verde.
+  - **Prova dal vivo** (copia del DB): archivio anonimo **401**. Editor APP di LIBA con il volume «AMENDOLA CTR
+    Z1» rinominato `<img src=x onerror=…>`: il tooltip mostra il testo, nessun `img`, niente eseguito;
+    controprova sulla stessa mappa con `bindTooltip` senza `esc`, come prima, e l'`onerror` gira. Swapper: 12
+    destinazioni → 10 e «At most 10 destination profiles…: 2 files were not loaded»; 600 KB → «exceeds the 512 KB
+    limit»; 30.000 «\r» → «more than 10000 lines», e il file buono della stessa selezione entra; anteprima del diff
+    giusta (`b=1` tolta, `b=2` aggiunta); circuito vivo per tutta la prova.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

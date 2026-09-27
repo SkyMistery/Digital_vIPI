@@ -105,6 +105,12 @@ Emettere, revocare e ogni chiamata rifiutata finiscono nell'**audit**, con il pr
 3. Il committente conferma che i client le mandano (l'`UltimoUsoUtc` lo dice senza chiedere a nessuno).
 4. **`Api:RichiediChiave = true`**: da lì le API non sono più anonime. Un cambio di configurazione, non un pacchetto.
 
+⚠️ **Dal 27 settembre 2026 il passo 4 è il default del codice** (U-018, revisione totale 3, decisione del
+committente): la produzione non aveva mai acceso l'interruttore e l'archivio rispondeva a chiunque (46 522 sessioni).
+Un sito che non scrive niente ha l'archivio chiuso; il periodo di passaggio si tiene solo scrivendo
+`Api:RichiediChiave=false`. Il pacchetto che porta questa modifica chiude l'archivio: la chiave al validatore dei
+tour va data prima.
+
 Il bridge, che nasce spento, quando si accende chiede la chiave da subito.
 
 ## 8. Le domande, e le risposte del committente (13 settembre 2026)

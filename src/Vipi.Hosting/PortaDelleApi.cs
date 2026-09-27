@@ -14,11 +14,15 @@ public sealed class ApiOptions
     public const string SectionName = "Api";
 
     /// <summary>
-    /// Se l'archivio ATC rifiuta chi non porta una chiave. <b>Default <c>false</c></b>: l'archivio resta aperto
-    /// finché i client esistenti non hanno la loro chiave (decisione del committente, §2.3); si accende con un
-    /// cambio di configurazione, non con un pacchetto. Il bridge la chiede <b>sempre</b>.
+    /// Se l'archivio ATC rifiuta chi non porta una chiave. Il bridge la chiede <b>sempre</b>.
+    ///
+    /// <para>🔴 <b>Default <c>true</c></b> dal 27 settembre 2026 (U-018, revisione totale 3; decisione del
+    /// committente): «le API non sono mai anonime» è una regola del CODICE. Fino a quel giorno il default era
+    /// <c>false</c> per il periodo di passaggio (§2.3 della carta), e la produzione, che non lo aveva mai acceso,
+    /// rispondeva a chiunque con 46 522 sessioni. Un sito che vuole ancora l'archivio aperto lo scrive:
+    /// <c>Api:RichiediChiave=false</c>.</para>
     /// </summary>
-    public bool RichiediChiave { get; set; }
+    public bool RichiediChiave { get; set; } = true;
 }
 
 /// <summary>

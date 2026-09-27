@@ -456,9 +456,9 @@ public static class VipiModuleExtensions
         // validatore dei tour) tenevano un archiviatore proprio sullo stesso whazzup.
         //
         // 🔴 Le API non sono mai anonime (committente, 13 settembre 2026; carta 2026-09-13-chiavi-api.md): qui
-        // si entra con una chiave. Finché `Api:RichiediChiave` è false l'archivio accetta ANCHE chi non ne
-        // porta, come prima, perché il validatore dei tour non si fermi prima di aver ricevuto la sua; una
-        // chiave presentata però si verifica sempre, e una chiave sbagliata è un 401 anche in quel periodo.
+        // si entra con una chiave. `Api:RichiediChiave` vale true se la configurazione non dice niente (U-018,
+        // 27 settembre 2026); solo scritto false l'archivio accetta ANCHE chi non ne porta, come nel periodo di
+        // passaggio. Una chiave presentata però si verifica sempre, e una chiave sbagliata è un 401 comunque.
         // Tetti con lo stesso limitatore del bridge, per chiave quando c'è: qui una richiesta costa una COUNT
         // e una pagina di righe, non un file.
         endpoints.MapGet("/vsop/api/v1/atc/sessions", async (
