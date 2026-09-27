@@ -38,9 +38,10 @@ public class VloaOrdineFrequenzeTests : IAsyncLifetime
 
     /// <summary>Il servizio è <c>internal</c> e si prende dal contenitore, come in produzione: la prova non
     /// allarga la superficie del modulo per potersi scrivere.</summary>
-    private IVloaDerivationService Servizio(IEditAuthorizationService authz)
+    private IVloaDerivationService Servizio(IEditAuthorizationService authz, bool lockMio = true)
     {
         var servizi = new ServiceCollection().AddVipiApplication();
+        servizi.AddSingleton<IDocumentLockGuard>(new LockFinto(lockMio));
         servizi.AddSingleton(_db);
         servizi.AddSingleton<IVloaDerivationRepository>(new EfVloaDerivationRepository(_db));
         servizi.AddSingleton<IAccDerivationRepository>(new EfAccDerivationRepository(_db));
@@ -137,6 +138,34 @@ public class VloaOrdineFrequenzeTests : IAsyncLifetime
             servizio.SaveFrequencyOrderAsync(_docId, new[] { new AppFreqOrderOverride("LIRR_EW_CTR", 0) }));
 
         Assert.Empty((await _profili.GetAsync(_docId)).FreqOrder);
+    }
+
+    /// <summary>
+    /// U-051 (revisione totale 3): ordine e «nascondi» della vLOA scrivevano il profilo del documento senza
+    /// chiedere il lock. Riprodotto: la pagina che l'aveva perso ha riscritto HiddenAorSectorsJson (vLOA 65)
+    /// sopra il lavoro di chi l'aveva preso dopo. Gemello di T-004 (APP, ACC, vSOP militare).
+    /// </summary>
+    [Fact]
+    public async Task Senza_il_lock_ordine_e_nascondi_non_si_scrivono()
+    {
+        var servizio = Servizio(new PermettiTutto(), lockMio: false);
+
+        await Assert.ThrowsAsync<EditConflictException>(() =>
+            servizio.SaveFrequencyOrderAsync(_docId, new[] { new AppFreqOrderOverride("LIRR_EW_CTR", 0) }));
+        await Assert.ThrowsAsync<EditConflictException>(() => servizio.ToggleAorSectorAsync(_docId, "LIRR_EW_CTR"));
+        await Assert.ThrowsAsync<EditConflictException>(() => servizio.ToggleFrequencyAsync(_docId, "LIRR_EW_CTR"));
+
+        _db.ChangeTracker.Clear();
+        Assert.Empty((await _profili.GetAsync(_docId)).FreqOrder);
+        var stato = await new EfVloaDerivationRepository(_db).LoadEditorialAsync(_docId);
+        Assert.Empty(stato.HiddenAorSectors);
+        Assert.Empty(stato.HiddenFrequencies);
+    }
+
+    private sealed class LockFinto(bool mio) : IDocumentLockGuard
+    {
+        public Task EnsureMineAsync(int documentId, CancellationToken ct = default) =>
+            mio ? Task.CompletedTask : throw new EditConflictException("lock di un altro");
     }
 
     private static string[] Lato(VloaFreqData dati, bool foreign) =>

@@ -104,11 +104,16 @@ internal sealed class VloaDerivationService : IVloaDerivationService
     /// prima — italiano per ACC/APP, inglese per la vLOA.</summary>
     private readonly ReadingLanguageContext? _lingua;
 
+    /// <summary>Il lock del documento come guardia delle scritture editoriali (U-051, gemello di T-004): vedi
+    /// <see cref="IDocumentLockGuard"/>.</summary>
+    private readonly IDocumentLockGuard _lock;
 
     public VloaDerivationService(IVloaDerivationRepository repo, IAccDerivationRepository accRepo, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IEditAuthorizationService authz, IOptions<NeighboursOptions> neighbours,
-        Airspace.ISectorShapeResolver forme, IDocumentProfileRepository docProfiles, ReadingLanguageContext? lingua = null)
+        Airspace.ISectorShapeResolver forme, IDocumentProfileRepository docProfiles, IDocumentLockGuard lockGuard,
+        ReadingLanguageContext? lingua = null)
     {
+        _lock = lockGuard;
         _repo = repo;
         _accRepo = accRepo;
         _docProfiles = docProfiles;
@@ -293,6 +298,7 @@ internal sealed class VloaDerivationService : IVloaDerivationService
         _ = await _repo.GetHomeAccCodeAsync(docId, ct)
             ?? throw new Aor.ValidationException(Lingua("vLOA inesistente.", "The vLOA does not exist."));
         _authz.EnsureAtLeast(VipiRole.Editor);
+        await _lock.EnsureMineAsync(docId, ct);   // U-051: chi ha perso il lock non riscrive l'ordine di chi l'ha preso
         await _docProfiles.SaveFreqOrderAsync(docId, overrides ?? Array.Empty<AppFreqOrderOverride>(), ct);
     }
 
@@ -303,6 +309,9 @@ internal sealed class VloaDerivationService : IVloaDerivationService
         var homeAcc = await _repo.GetHomeAccCodeAsync(docId, ct)
             ?? throw new Aor.ValidationException(Lingua("vLOA inesistente.", "The vLOA does not exist."));
         _authz.EnsureAtLeast(VipiRole.Editor);
+        // ⚠️ U-051: questi insiemi stanno nel profilo del documento, NON versionato, e fino al 27-set si scrivevano
+        // col solo ruolo — la pagina che aveva perso il lock riscriveva quelli di chi l'aveva preso dopo.
+        await _lock.EnsureMineAsync(docId, ct);
 
         var state = await _repo.LoadEditorialAsync(docId, ct);
         var hiddenAor = new HashSet<string>(state.HiddenAorSectors, StringComparer.OrdinalIgnoreCase);

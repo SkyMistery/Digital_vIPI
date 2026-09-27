@@ -1675,6 +1675,18 @@ else
         await (SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync));
     }
 
-    private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : _shell.FinishEditingAsync();
+    /// <summary>⚠️ Prima si chiede se una tabella è ferma su una riga a metà (U-010): uscire butterebbe anche
+    /// le correzioni valide alle altre righe, che quella riga tiene fuori dall'archivio.</summary>
+    private Task FineModifica()
+    {
+        if (PercheResta is { } perche) { _shell.Error = perche; return Task.CompletedTask; }
+        return SuFineModifica is not null ? SuFineModifica() : _shell.FinishEditingAsync();
+    }
+
+    /// <inheritdoc cref="IMembroEditor.PercheResta"/>
+    public string? PercheResta => _shell.IsEditing
+        && AirportSaveGate.Ferme(_tls, _rwys, _rules, _sids, _stars) is { Count: > 0 } ferme
+        ? L["Ape_FinishBlocked", string.Join(", ", ferme.Select(k => L[k].Value))].Value
+        : null;
 
 }

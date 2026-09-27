@@ -19,11 +19,13 @@ public sealed class EfPageIntroStore : IPageIntroStore
 {
     private readonly VipiDbContext _db;
     private readonly IEditAuthorizationService _authz;
+    private readonly IResourceLockService _locks;
 
-    public EfPageIntroStore(VipiDbContext db, IEditAuthorizationService authz)
+    public EfPageIntroStore(VipiDbContext db, IEditAuthorizationService authz, IResourceLockService locks)
     {
         _db = db;
         _authz = authz;
+        _locks = locks;
     }
 
     public async Task<IReadOnlyList<PageIntroSection>> LeggiAsync(string pagina, CancellationToken ct = default)
@@ -41,6 +43,9 @@ public sealed class EfPageIntroStore : IPageIntroStore
         CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
+        // ⚠️ Il lock si VERIFICA qui, non solo nella barra che lo prende (U-109, gemello di T-025): la riga si
+        // riscrive per intero, e chi l'ha perso coprirebbe il lavoro di chi ce l'ha adesso.
+        await _locks.EnsureHeldAsync(PageIntro.ChiaveLock(pagina), ct);
 
         var chiave = PageIntro.Chiave(pagina);
         var json = PageIntro.Serialize(sezioni);

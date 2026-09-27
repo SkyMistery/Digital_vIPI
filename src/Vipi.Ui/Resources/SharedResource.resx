@@ -2081,7 +2081,7 @@
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-importa da IVAO</value></data>
   <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Ri-scarica da IVAO tutto ciò che questo aeroporto prende dalla sorgente: piste, Transition Altitude, catalogo settori e procedure SID/STAR (rispetta la policy in «Sorgenti dati»)</value></data>
   <data name="Ape_HelpAria" xml:space="preserve"><value>Aiuto sull'editor aeroporto</value></data>
-  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;L'editor del profilo aeroporto: ogni sezione si apre e si chiude. I campi si scrivono solo dopo «Modifica», col lock tuo.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Ogni gesto scrive da solo&lt;/b&gt; nella &lt;b&gt;bozza&lt;/b&gt;: non c'è un tasto «Salva», e la testata dice «Salvato». Il pubblico vede solo dopo la pubblicazione, in «Versioni».&lt;/li&gt;&lt;li&gt;Una riga &lt;b&gt;incompleta&lt;/b&gt; non si salva: compare un avviso e resta l'ultimo stato valido.&lt;/li&gt;&lt;li&gt;Ciò che arriva dalla sorgente porta il lucchetto e non si tocca qui: la policy sta in «Sorgenti dati».&lt;/li&gt;&lt;/ul&gt;</value></data>
+  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;L'editor del profilo aeroporto: ogni sezione si apre e si chiude. I campi si scrivono solo dopo «Modifica», col lock tuo.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Ogni gesto scrive da solo&lt;/b&gt; nella &lt;b&gt;bozza&lt;/b&gt;: non c'è un tasto «Salva», e la testata dice «Salvato». Il pubblico vede solo dopo la pubblicazione, in «Versioni».&lt;/li&gt;&lt;li&gt;Una riga &lt;b&gt;incompleta&lt;/b&gt; ferma il salvataggio di tutta la sua tabella: compare un avviso, e «Fine modifica» non esce finché non la completi o la togli.&lt;/li&gt;&lt;li&gt;Ciò che arriva dalla sorgente porta il lucchetto e non si tocca qui: la policy sta in «Sorgenti dati».&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Ape_RwRulesHelpAria" xml:space="preserve"><value>Aiuto sulle regole di scelta pista</value></data>
   <data name="Ape_TlHelpAria" xml:space="preserve"><value>Aiuto sulle quote di transizione</value></data>
   <data name="Ape_TaFromSourceAria" xml:space="preserve"><value>Perché la Transition Altitude è in sola lettura</value></data>
@@ -3551,7 +3551,9 @@
   <data name="TrEd_Now_BrokenOne" xml:space="preserve"><value>⚠️ Una è tornata rotta e non è stata salvata: la rispedisce il prossimo giro.</value></data>
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>una vuole una persona</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>Una frase di questo documento non è ancora tradotta. La release NON la congela: si leggerà tradotta appena passa il giro, senza ripubblicare.</value></data>
-  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Riga incompleta: non ancora salvata</value></data>
+  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Riga incompleta: finché non la completi o la togli, le modifiche a questa tabella non si salvano</value></data>
+  <data name="Ape_FinishBlocked" xml:space="preserve"><value>Non puoi ancora uscire dalla modifica: {0} ha una riga incompleta, e finché c'è le modifiche a quella tabella non si salvano. Completala o toglila, poi «Fine modifica».</value></data>
+  <data name="Ape_TabStar" xml:space="preserve"><value>STAR</value></data>
   <data name="Rta_Toolbar" xml:space="preserve"><value>Formattazione del testo</value></data>
   <data name="Rta_Bold" xml:space="preserve"><value>Grassetto</value></data>
   <data name="Rta_BoldLetter" xml:space="preserve"><value>G</value></data>

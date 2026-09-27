@@ -193,6 +193,9 @@
     private static string Firma(IReadOnlyList<EditorTocItem> voci) =>
         string.Join('\u001F', voci.Select(v => $"{v.AnchorId}\u001E{v.Label}\u001E{v.GroupLabel}"));
 
+    /// <summary>Il primo membro che non deve ancora uscire dalla modifica, detto con le sue parole (U-010).</summary>
+    public string? PercheResta => _editor.Select(e => e.PercheResta).FirstOrDefault(p => p is not null);
+
     /// <summary>Molla il lock di tutti i membri. No-op su quelli che non erano suoi.</summary>
     public async Task RilasciaLockAsync()
     {

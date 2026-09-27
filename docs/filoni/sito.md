@@ -193,5 +193,37 @@
   - ⚠️ `tools/conta-test.sh` non si può lanciare da una chat: il cancello globale ne legge il contenuto e lo
     rifiuta («Comando annidato troppe volte»). I due file di `tests/conteggi/` sono scritti a mano dal log della
     corsa intera. Il confronto lo rifà la CI.
+- ✅ **S11** lotto **L2 «Scritture che si perdono o si sovrascrivono»** della revisione 3 (via del committente il
+  27-set): U-016, U-051, U-109, U-010, U-011. Ogni correzione è partita da una prova rossa. **Nessuna migrazione.**
+  ⚠️ **Codice in comune toccato**: `Vipi.Application` (`VloaDerivationService` prende `IDocumentLockGuard`).
+  - **U-016** (tetto SignalR a 32 KB, testo oltre ~16 KB perso in silenzio): `MaximumReceiveMessageSize` a
+    512 KB in `VipiStartup.AddHubOptions`, come il Lab. Test `TettoDelCircuitoTests` (E2E, legge l'opzione vera di
+    `ComponentHub`). Riga aggiunta anche in `docs/guide/integration.md`: l'host di ivao.it deve metterla lui.
+  - **U-051** (vLOA: nascondi AoR/frequenze e ordine delle frequenze scritti senza lock): `EnsureMineAsync` del
+    documento in `ToggleAsync` e `SaveFrequencyOrderAsync`. L'editor mostra già l'`EditConflictException`.
+  - **U-109** (intro di pagina salvata senza verificare `editor:page-intro:*`): `EfPageIntroStore.SalvaAsync`
+    chiama `IResourceLockService.EnsureHeldAsync`, e `PageIntroZone` mostra il rifiuto senza perdere il testo.
+  - **U-010** (una riga a metà ferma TUTTA la tabella, e «Fine modifica» buttava le correzioni valide): salvare
+    solo le righe complete non si può (i service sostituiscono la tabella intera: saltare una riga esistente che si
+    riscrive la cancellerebbe). Quindi `AirportSaveGate.Ferme` + `IMembroEditor.PercheResta`: «Fine modifica» non
+    esce e dice quale tabella è ferma, nell'editor aeroporto, nel vSOP militare e nelle tre pagine ospite dei
+    documenti uniti (chiede a tutti i membri PRIMA di mollare il primo lock). L'etichetta di riga e l'aiuto
+    dicono il vero: finché c'è la riga a metà, la tabella non si salva.
+  - **U-011** (prendere il lock non rileggeva: la prima scrittura riportava indietro il lavoro di un collega):
+    evento nuovo `EditLockBar.Acquired`, solo sul gesto «Inizia modifica» e PRIMA di `LockChanged` (all'apertura
+    la pagina sta ancora leggendo, e una seconda lettura sullo stesso DbContext lo farebbe saltare). Rileggono
+    Trasferimenti (e chiude pannello e caselle aperte), Struttura (albero e ripieghi), ACC, Aeroporti, Confinanti.
+  - **Non fatto** (resta per L3/L11): il lock di struttura è per UTENTE, quindi due schede dello stesso Admin sono
+    entrambe «in modifica» e la rilettura alla presa non le protegge; niente token di versione sulle clausole.
+  - **Test**: E2E 415 → **416**, Infrastructure 1626 → **1628**, Ui 1719 → **1733**. Le guardie sul sorgente
+    (`RigaIncompletaNonSiPerdeTests`, `PresaDelLockRileggeTests`) sono rosse sul codice di prima. Il comportamento
+    di `Acquired` (prima di `LockChanged`, mai all'apertura) è provato in bUnit.
+  - **Prova dal vivo** (copia del DB di sviluppo, :5199). LIRA, Quote di transizione: riga nuova col solo QNH,
+    FL90 → FL95 su un'altra → «Fine modifica» rifiuta e dice «Transition levels», FL95 NON è in archivio;
+    completata la riga, FL95 e la riga nuova vanno in archivio insieme. Trasferimenti LIBB aperto in sola
+    lettura, clausola 4 cambiata nel DB (140 → 370) → «Start editing» e la pagina mostra 370. Confinanti,
+    «Add a pair manually»: un poligono da 41 KB arriva al server («1500 vertices»), circuito su. Zero `fail:` nel
+    log. ⚠️ Un primo giro con eventi `change` sintetici da JS aveva «perso» FL90: era il mio evento, non il
+    codice. Con la battitura vera il salvataggio c'è.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

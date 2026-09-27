@@ -34,7 +34,32 @@ public class IntroDiPaginaTests : IAsyncLifetime
         await _conn.DisposeAsync();
     }
 
-    private EfPageIntroStore Deposito(VipiRole livello = VipiRole.Editor) => new(_db, new Authz(livello));
+    private EfPageIntroStore Deposito(VipiRole livello = VipiRole.Editor) =>
+        new(_db, new Authz(livello), LockDiRisorsaConcesso.Instance);
+
+    /// <summary>
+    /// U-109 (revisione totale 3): il deposito salvava col solo ruolo. Il lock <c>editor:page-intro:*</c> lo
+    /// prendeva e rinnovava solo la barra, e nessuno lo verificava: nei secondi fra uno «Sblocca comunque» e il
+    /// battito successivo la pagina che l'aveva perso poteva ancora salvare, e l'altro poi la copriva.
+    /// </summary>
+    [Fact]
+    public async Task Col_lock_di_un_altro_l_intro_non_si_salva()
+    {
+        var authz = new Authz(VipiRole.Editor);
+        _db.EditResourceLocks.Add(new Vipi.Domain.Entities.EditResourceLock
+        {
+            ResourceKey = PageIntro.ChiaveLock("mil"), LockedByUserId = 2, LockedByName = "collega",
+            LockedAtUtc = DateTime.UtcNow, LockExpiresUtc = DateTime.UtcNow.AddMinutes(3),
+        });
+        await _db.SaveChangesAsync();
+        var deposito = new EfPageIntroStore(_db, authz,
+            new ResourceLockService(new EfResourceLockRepository(_db), authz));
+
+        await Assert.ThrowsAsync<EditConflictException>(() =>
+            deposito.SalvaAsync("mil", Una("Titolo", "testo"), "Intro vSOP militari"));
+
+        Assert.Empty(await _db.SharedBlocks.AsNoTracking().ToListAsync());
+    }
 
     private static List<PageIntroSection> Una(string titolo, string testo) => new()
     {

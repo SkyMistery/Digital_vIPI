@@ -133,6 +133,13 @@ internal static class VipiStartup
                 // condiviso il picco è un'altra cosa). Trenta secondi tolgono di mezzo il caso in cui la prima
                 // visita della giornata fallisce e la seconda va.
                 o.HandshakeTimeout = TimeSpan.FromSeconds(30);
+
+                // 🔴 Il tetto di un messaggio dal browser: 32 KB di default, e blazor.web.js spedisce il valore
+                // di un campo DUE volte a ogni evento — la soglia vera era ~16 KB di testo. Oltre, il server
+                // chiudeva la connessione e l'evento si perdeva in silenzio: il DOM mostrava il testo, il server
+                // no (U-016: 44 KB di prosa mai salvati; il poligono di LAAA in Confinanti staccava il circuito
+                // a ogni tasto). Mezzo megabyte, come il Lab (ServerDelLab.TettoDelMessaggio).
+                o.MaximumReceiveMessageSize = 512 * 1024;
             });
 
         // Compressione asset di testo (CSS/JS/SignalR). NIENTE text/event-stream: la rotta SSE /vsop/live/atc

@@ -291,6 +291,12 @@ else
             // ⚠️ Si cattura l'eccezione dell'Application: senza, il circuito muore e la pagina sparisce.
             _errore = L["PageIntro_NotAllowed"].Value;
         }
+        catch (EditConflictException ex)
+        {
+            // Il lock non è più nostro (U-109): il deposito ora lo verifica e rifiuta. Il testo resta a schermo,
+            // sporco, finché la barra non se ne accorge e rilegge da archivio (OnLockChanged).
+            _errore = ex.Message;
+        }
         finally { _salvando = false; }
     }
 }

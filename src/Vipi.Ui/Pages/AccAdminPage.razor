@@ -77,7 +77,7 @@
             </LiveRegion>
             @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente. *@
             @* «Fine modifica» SALVA i limiti digitati e non ancora salvati: vedi SalvaPendentiAsync. *@
-            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged"
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" Acquired="RileggiAllaPresaAsync"
                          BeforeRelease="SalvaPendentiAsync" />
         }
     </div>
@@ -375,6 +375,11 @@
     private string? _ok;
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+
+    /// <summary>«Inizia modifica»: si rilegge PRIMA che i comandi si riaccendano (U-011, revisione totale 3).
+    /// La pagina aperta in sola lettura teneva la fotografia dell'apertura, e la prima scrittura riportava
+    /// indietro il lavoro fatto nel frattempo da chi il lock l'aveva tenuto.</summary>
+    private async Task RileggiAllaPresaAsync() => await ReloadAsync();
 
     private void ClearStatus() { _msg = null; _ok = null; }
 

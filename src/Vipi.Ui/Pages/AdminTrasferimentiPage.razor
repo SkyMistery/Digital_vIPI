@@ -56,7 +56,7 @@
         </HelpHint>
         @if (Authz.IsEditor)
         {
-            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" ExpiresChanged="OnLockExpiry" />
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" Acquired="RileggiAllaPresaAsync" ExpiresChanged="OnLockExpiry" />
         }
     </div>
 
@@ -526,6 +526,18 @@
     private bool _showPreviews = true;
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+
+    /// <summary>«Inizia modifica»: si rilegge PRIMA che i comandi si riaccendano (U-011, revisione totale 3).
+    /// La pagina aperta in sola lettura teneva la fotografia dell'apertura, e la prima scrittura riportava
+    /// indietro il lavoro fatto nel frattempo da chi il lock l'aveva tenuto.</summary>
+    private async Task RileggiAllaPresaAsync()
+    {
+        if (_acc is null) return;
+        await InFilaAsync(() => LoadAsync(withPreview: false));
+        // Pannello e caselle aperti portano una copia della clausola letta PRIMA (EditableCopy): si chiudono.
+        ClosePanel();
+        _newSectionFor = null; _editSectionId = null; _editHeaderId = null; _pasteSectionId = null;
+    }
 
     // Scadenza del lock: arriva a ogni battito (60s), che è anche la frequenza con cui l'avviso si aggiorna.
     private DateTime? _lockExpiresUtc;

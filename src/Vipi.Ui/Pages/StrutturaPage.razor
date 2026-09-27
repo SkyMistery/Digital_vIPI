@@ -61,7 +61,7 @@
             </LiveRegion>
             @* ⚠️ La EditLockBar sta QUI, in testata, e non come fascia a sé: i suoi margini di fascia si
                azzerano nel CSS di .st-head, non nel componente — newdoc la usa ancora come fascia. *@
-            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" Acquired="RileggiAllaPresaAsync" />
         }
     </div>
 
@@ -584,6 +584,15 @@
     private bool _canEdit;         // true = questa sessione tiene il lock di struttura (EditLockBar)
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+
+    /// <summary>«Inizia modifica»: si rilegge PRIMA che i comandi si riaccendano (U-011, revisione totale 3).
+    /// La pagina aperta in sola lettura teneva la fotografia dell'apertura, e la prima scrittura riportava
+    /// indietro il lavoro fatto nel frattempo da chi il lock l'aveva tenuto.</summary>
+    private async Task RileggiAllaPresaAsync()
+    {
+        await ReloadTreeAsync();
+        await CaricaRipieghiAsync();   // i ripieghi si riscrivono per intero (ReplaceAsync)
+    }
 
     // Etichetta orfani con pluralizzazione IT/EN gestita via chiavi singolare/plurale.
     private string OrphansLabel(int apt, int app)

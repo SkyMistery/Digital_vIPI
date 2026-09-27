@@ -2076,7 +2076,7 @@
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-import from IVAO</value></data>
   <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Re-fetch from IVAO everything this airport takes from the source: runways, Transition Altitude, the ATC sector catalogue and SID/STAR procedures (respects the «Data sources» policy)</value></data>
   <data name="Ape_HelpAria" xml:space="preserve"><value>Help on the airport editor</value></data>
-  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;The airport profile editor: every section opens and closes. Fields can be written only after «Edit», while you hold the lock.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Every change saves itself&lt;/b&gt; to the &lt;b&gt;draft&lt;/b&gt;: there is no «Save» button, and the header says «Saved». The public sees it only after publishing, in «Versions».&lt;/li&gt;&lt;li&gt;An &lt;b&gt;incomplete&lt;/b&gt; row is not saved: a warning appears and the last valid state stays.&lt;/li&gt;&lt;li&gt;Whatever comes from the source carries the lock and is not edited here: the policy lives in «Data sources».&lt;/li&gt;&lt;/ul&gt;</value></data>
+  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;The airport profile editor: every section opens and closes. Fields can be written only after «Edit», while you hold the lock.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Every change saves itself&lt;/b&gt; to the &lt;b&gt;draft&lt;/b&gt;: there is no «Save» button, and the header says «Saved». The public sees it only after publishing, in «Versions».&lt;/li&gt;&lt;li&gt;An &lt;b&gt;incomplete&lt;/b&gt; row holds back the whole table: a warning appears, and “Finish editing” does not leave until you complete or remove it.&lt;/li&gt;&lt;li&gt;Whatever comes from the source carries the lock and is not edited here: the policy lives in «Data sources».&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Ape_RwRulesHelpAria" xml:space="preserve"><value>Help on runway selection rules</value></data>
   <data name="Ape_TlHelpAria" xml:space="preserve"><value>Help on transition levels</value></data>
   <data name="Ape_TaFromSourceAria" xml:space="preserve"><value>Why the Transition Altitude is read-only</value></data>
@@ -3543,7 +3543,9 @@
   <data name="TrEd_Now_BrokenOne" xml:space="preserve"><value>⚠️ One came back broken and was not saved: the next round will send it again.</value></data>
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>one needs a person</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>One sentence of this document is not translated yet. The release does NOT freeze it: it will read translated as soon as the round has been through, without republishing.</value></data>
-  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Incomplete row: not saved yet</value></data>
+  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Incomplete row: until you complete or remove it, changes to this table are not saved</value></data>
+  <data name="Ape_FinishBlocked" xml:space="preserve"><value>You cannot leave editing yet: {0} has an incomplete row, and while it is there changes to that table are not saved. Complete or remove it, then “Finish editing”.</value></data>
+  <data name="Ape_TabStar" xml:space="preserve"><value>STAR</value></data>
   <data name="Rta_Toolbar" xml:space="preserve"><value>Text formatting</value></data>
   <data name="Rta_Bold" xml:space="preserve"><value>Bold</value></data>
   <data name="Rta_BoldLetter" xml:space="preserve"><value>B</value></data>
