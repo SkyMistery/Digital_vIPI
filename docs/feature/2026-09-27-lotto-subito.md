@@ -106,14 +106,42 @@ usa le schede, i gesti e le viste dell'ondata 1 e aggiunge solo quello che è de
   dell'ondata 2 c'è già un Lab che copre la gran parte dei file che gli AOD toccano ogni ciclo.
 - **R-7** (coordinate in una forma sola per `.vfi`/`.tfl`) e **R-8** (`LIMJ_APP`/`LIBB_APP`): rimandate.
 
-## §5 — Da decidere col committente
+## §5 — Decisioni del committente (27 settembre)
 
-1. **L'ordine dell'ondata 2**: proposto procedure → NAVAIDS → OTHER/PREFS → terra → settori → ACC e aerovie → MVA →
-   VFR (dai file che si toccano a ogni ciclo a quelli che cambiano di rado). Spostare?
-2. **Il punto della consegna agli AOD**: dopo quale slice il Lab è «presentabile»?
-3. **La prova dei tag con vIPI** nella slice 19: solo una lettura di prova (nessun cambio al sito), oppure si lascia
-   del tutto al momento in cui vIPI li leggerà davvero (F7)?
+1. **L'ordine dell'ondata 2** resta quello proposto: procedure → NAVAIDS → OTHER/PREFS → terra → settori → ACC e
+   aerovie → MVA → VFR.
+2. **Il punto della consegna agli AOD**: «vediamo lavorando» — si decide strada facendo.
+3. **La prova dei tag con vIPI** nella slice 19: **sì**, una lettura di prova (nessun cambio al sito).
+
+La carta è **approvata**: si parte dalla slice 0.
 
 ## §6 — Traccia
 
-(vuota: una riga per slice, con lo sha e le misure)
+**Slice 0 — misure di partenza (27 settembre, fork `8cf32c6`, motore di `lab/f3`).** `tools/Vipi.SectorfileProva`
+sull'albero `Include\IT`:
+
+- **Round-trip**: 701 file esatti, 0 diversi. **47 senza lettore**: 22 `.txt` (changelog), 15 `.cpr`, 4 `.datis`,
+  e uno ciascuno `.clr`, `.cpdlc`, `.cpdlcnames`, `.def` (`colors.def`), `.fds`, `.sym`. → Il lotto aggiunge i
+  lettori di `.cpr` (slice 11), `.cpdlc`/`.cpdlcnames` (11), `.sym` (17), `.datis`/`.fds` (18); `colors.def` e lo
+  schema `.clr` di Aurora servono già alla slice 4 (il `DefParser` c'è ma la prova non lo usa: da collegare).
+- **Righe opache** (il lettore le salta): 93, di cui 86 sono le righe `.geo` con lo spazio al posto del `;` (slice 2).
+- **Validatore oggi**: 125 errori, 382 avvisi — `SeparatoreSbagliato` 86, `NomeNonRisolto` 16, `FileCitatoAssente` 8,
+  `CoordinataFuoriCampo` 5 (`lovv.tfl:48` secondi 60), `NomeDuplicato` 5, `PoligonoConPochiVertici` 4,
+  `CoordinataIllegibile` 1 · avvisi: `NomeRipetuto` 285, `CoppiaDecimale` 40, `CopieDiverse` 29, `FrazioneAmbigua`
+  14, `DueNomiDiversi` 7, `FileMaiCitato` 6, `EmisferoMinuscolo` 1.
+- **Tag**: 2 782 record etichettati e ritrovati, 148 file su 148 identici senza le righe `//@`; **1 guasto**: in
+  `limf.sid` una SID col **nome vuoto** (la riga 28 senza `;`, P3) non si può dichiarare → slice 1: il Lab dice
+  perché non mette il tag; la correzione del dato è in R-10.
+- **Concordanza con vIPI**: 685 643 coordinate DMS, 0 discordi; punti 4 048, SID 1 516, STAR 863 concordi.
+- **Modello del motore**: ~20 tipi di record (`SidProcedure`, `StrRecord`, `Runway`, `Stand`, `MvaSector`, `RottaVfr`,
+  `AtcPosition`, `ElementoArtcc`, `FicSector`, `LabelPoint`, `StaticBoundaryGroup`, `Attesa`, `Vor`, fix/NDB, `.ap`,
+  `.geo`/`.pol`…): sono le descrizioni che la slice 3 deve scrivere, una per tipo.
+
+Cosa cambia nelle slice dopo, dalle misure:
+
+- **Commenti in coda: 713 avvisi** annegherebbero il pannello → nel pannello dei problemi **una riga per file** col
+  numero («`limm.mva`: 374 commenti in coda») e il gesto «sposta sopra» sul file intero (scelta dell'agente).
+- **Nomi in posizioni diverse**: la carta dice 24 (§12, fra file diversi), il validatore ne dà 5 come errore
+  (`NomeDuplicato`, stesso catalogo) → la slice 10 allinea le due misure prima di toccare la regola.
+- Le altre regole nuove hanno già la loro misura nella carta «file per file» (colonna «Uscita» qui sopra): nessuna
+  dà centinaia di avvisi falsi, salvo i 713 commenti in coda.
