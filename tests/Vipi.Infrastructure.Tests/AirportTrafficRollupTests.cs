@@ -61,6 +61,7 @@ public class AirportTrafficRollupTests : IAsyncLifetime
     {
         private readonly Dictionary<string, SourceAirportMovement[]> _per;
         public List<(string Icao, DateTimeOffset From, DateTimeOffset To)> Chieste { get; } = new();
+        public Dictionary<string, System.Net.HttpStatusCode> Rotto { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         public SorgenteFinta(Dictionary<string, SourceAirportMovement[]> per) => _per = per;
 
@@ -68,6 +69,8 @@ public class AirportTrafficRollupTests : IAsyncLifetime
             string icao, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
         {
             Chieste.Add((icao, from, to));
+            if (Rotto.TryGetValue(icao, out var status))
+                throw new HttpRequestException($"IVAO {(int)status} su traffics di {icao}", null, status);
             return Task.FromResult<IReadOnlyList<SourceAirportMovement>>(
                 _per.TryGetValue(icao, out var m) ? m : Array.Empty<SourceAirportMovement>());
         }
@@ -225,6 +228,42 @@ public class AirportTrafficRollupTests : IAsyncLifetime
 
         Assert.All((await q.ByAirportAsync(G0, G0, "LIMM")).Rows, r => Assert.Equal("LIMM", r.AccCode));
         Assert.Contains(await q.GroupsAsync(), g => g.Code == "LIRR" && g.Airports == 2);
+    }
+
+    // ---- U-027 (revisione totale 3): un blocco rifiutato non butta il giro ----
+
+    /// <summary>
+    /// 🔴 U-027: il ciclo sui blocchi non aveva catch. Uno scalo in archivio che IVAO non conosce (un ICAO sbagliato
+    /// creato a mano, un campo ritirato dall'anagrafica) rispondeva 404, il giro saliva e i giorni già calcolati in
+    /// memoria non arrivavano mai al salvataggio: il traffico di TUTTI gli aeroporti fermo per sempre, e il sito che
+    /// chiamava IVAO ogni ora per niente. Il 404 ora è «non disponibile»: lo scalo si salta per il resto del giro
+    /// (una chiamata sola, non una per giorno), gli altri si salvano, e il giro non è un guasto.
+    /// </summary>
+    [Fact]
+    public async Task Uno_scalo_che_la_sorgente_non_conosce_non_ferma_gli_altri()
+    {
+        var (uc, sorgente) = Caso(new() { ["LIRF"] = new[] { Arrivo("LIRF", 11) } });
+        sorgente.Rotto["LIRA"] = System.Net.HttpStatusCode.NotFound;
+
+        var esito = await uc.RunAsync(G0, G0.AddDays(2), max: 10, now: G0.AddDays(4));
+
+        Assert.Equal(3, await _db.AirportDayTraffic.CountAsync(r => r.Icao == "LIRF"));   // i tre giorni di Fiumicino
+        Assert.Single(sorgente.Chieste, c => c.Icao == "LIRA");                          // Ciampino: chiesto una volta
+        Assert.Equal(new[] { "LIRA" }, esito.NonDisponibili);
+    }
+
+    /// <summary>Un guasto che non è un 404 (5xx, 403) salva quel che si è letto e poi fa fallire il giro, col nome.</summary>
+    [Fact]
+    public async Task Un_guasto_salva_quel_che_si_e_letto_e_poi_risale_col_nome()
+    {
+        var (uc, sorgente) = Caso(new() { ["LIRF"] = new[] { Arrivo("LIRF", 11) } });
+        sorgente.Rotto["LIRA"] = System.Net.HttpStatusCode.ServiceUnavailable;
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            uc.RunAsync(G0, G0.AddDays(2), max: 10, now: G0.AddDays(4)));
+
+        Assert.Contains("LIRA", ex.Message);
+        Assert.Equal(3, await _db.AirportDayTraffic.CountAsync(r => r.Icao == "LIRF"));
     }
 }
 

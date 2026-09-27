@@ -38,7 +38,7 @@ internal sealed class IvaoAirportTrafficClient : IAirportTrafficSource
     public async Task<IReadOnlyList<SourceAirportMovement>> GetMovementsAsync(
         string icao, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
     {
-        var path = string.Format(CultureInfo.InvariantCulture, _opt.AirportTrafficsPathFormat, icao.ToUpperInvariant())
+        var path = string.Format(CultureInfo.InvariantCulture, _opt.AirportTrafficsPathFormat, Uri.EscapeDataString(icao.ToUpperInvariant()))
                    + $"?from={Iso(from)}&to={Iso(to)}";
 
         using var res = await _http.SendGetAsync(path, ct);

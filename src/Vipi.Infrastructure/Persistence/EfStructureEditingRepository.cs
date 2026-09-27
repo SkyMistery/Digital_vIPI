@@ -254,7 +254,9 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         // ⚠️ L'invariante, dai due lati (carta 2026-09-11-categorie-aeroporto.md). Senza presenza militare le tre
         // categorie militari non hanno senso; con la presenza, «Civile» non la sceglie una persona — la dice la
         // sorgente. Tacere e uscire lascerebbe a schermo una scelta che l'archivio non ha.
-        if (category != AirportCategory.Civil && !airport.HasMilitaryPresence)
+        // U-028: su una riga DIVERGENTE (categoria militare, presenza caduta per la sorgente) le militari restano
+        // sceglibili e «Civile» chiude la divergenza; la regola vale sulle righe che la sorgente dice civili.
+        if (category != AirportCategory.Civil && !airport.HasMilitaryPresence && airport.Category == AirportCategory.Civil)
             throw new InvalidOperationException(Lingua(
                 $"{airport.Icao} non ha presenza militare secondo la sorgente: resta «Civile».",
                 $"{airport.Icao} has no military presence according to the source: it stays «Civil»."));
@@ -356,11 +358,12 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             timbrati++;
 
             var before = (apt.HasMilitaryPresence, apt.Category, apt.Iata, apt.ElevationFt, apt.MagneticVariation);
-            apt.HasMilitaryPresence = src.HasMilitaryPresence;
-            // L'invariante della categoria: presenza caduta ⇒ Civile; presenza comparsa su un campo ancora
-            // Civile ⇒ il default (o «militare con presenza civile» se ha già un vSOP). Una scelta già fatta da
-            // una persona su un campo che resta militare NON si tocca. ⚠️ Stessa funzione della passata d'avvio:
-            // vedi AirportCategoryTransfer.
+            // 🔴 U-028 (revisione totale 3): un «military» ASSENTE dal JSON non è un fatto, e non si scrive.
+            if (src.MilitaryPresenceKnown) apt.HasMilitaryPresence = src.HasMilitaryPresence;
+            // La categoria: presenza comparsa su un campo ancora Civile ⇒ il default (o «militare con presenza
+            // civile» se ha già un vSOP). Presenza CADUTA ⇒ niente: dal 27 settembre 2026 una categoria militare non
+            // scende da sola (decisione del committente, U-028) — resta, divergente, e la chiude l'amministratore.
+            // ⚠️ Stessa funzione della passata d'avvio: vedi AirportCategoryTransfer.
             apt.Category = AirportCategoryTransfer.Attesa(apt);
             apt.Iata = src.Iata;
             apt.ElevationFt = src.ElevationFt;

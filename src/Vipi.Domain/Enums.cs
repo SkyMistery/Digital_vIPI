@@ -111,12 +111,19 @@ public static class AirportCategories
     public static bool AllowsMilitary(this AirportCategory c) =>
         c is AirportCategory.MilitaryOnly or AirportCategory.MilitaryWithCivilPresence;
 
-    /// <summary>La categoria come deve stare, data la presenza militare della sorgente: senza presenza è
-    /// <see cref="AirportCategory.Civil"/>; con presenza, una categoria ancora <c>Civil</c> prende il default.</summary>
+    /// <summary>La categoria come deve stare, data la presenza militare della sorgente: con presenza, una categoria
+    /// ancora <c>Civil</c> prende il default. Senza presenza <b>non cambia</b>: dal 27 settembre 2026 una categoria
+    /// militare non scende da sola a Civile (U-028, decisione del committente) — vedi <see cref="Divergente"/>.</summary>
     public static AirportCategory Normalize(bool hasMilitaryPresence, AirportCategory stored) =>
-        !hasMilitaryPresence ? AirportCategory.Civil
-        : stored == AirportCategory.Civil ? DefaultWithMilitaryPresence
-        : stored;
+        hasMilitaryPresence && stored == AirportCategory.Civil ? DefaultWithMilitaryPresence : stored;
+
+    /// <summary>
+    /// La sorgente non riconosce più la presenza militare, ma la categoria è militare: una scelta di una persona che
+    /// il giro non cancella (U-028). La pagina Aeroporti la mostra, e l'amministratore la chiude scegliendo
+    /// «Civile» — o la lascia, se sa che IVAO sbaglia.
+    /// </summary>
+    public static bool Divergente(bool hasMilitaryPresence, AirportCategory category) =>
+        !hasMilitaryPresence && category != AirportCategory.Civil;
 }
 
 /// <summary>Stato di un documento o di una sua versione.</summary>

@@ -234,11 +234,12 @@
                                                cestino OLTRE il bordo del pannello (misurato a 1600px). Quando chiedere conferma lo
                                                decide il componente; lo STATO esatto del documento (pubblicato? nascosto? unito?)
                                                è la domanda del rilievo in Diagnostica, che ha il dataset intero. *@
-                                            @if (a.HasMilitaryPresence)
+                                            @if (a.HasMilitaryPresence || AirportCategories.Divergente(a.HasMilitaryPresence, a.Category))
                                             {
                                                 <AirportCategoryPicker Icao="@a.Icao" Category="a.Category"
                                                                        HasCivilDocument="a.DocumentId is not null"
                                                                        HasMilitaryDocument="a.MilDocumentId is not null"
+                                                                       Divergente="AirportCategories.Divergente(a.HasMilitaryPresence, a.Category)"
                                                                        Disabled="@(_busy || !_canEdit)"
                                                                        OnChange="c => SetCategory(a, c)" />
                                             }
@@ -536,13 +537,27 @@
             ? Array.Empty<AirportAccDivergence>()
             : AirportAccDivergences.Trova(_assigned.Select(a => (a.Icao, a.Name, a.AccCode)), _ivao);
 
+    /// <summary>
+    /// La porta di ogni gesto: uno alla volta, e nessuna eccezione esce dal gestore. 🔴 U-029 (revisione totale 3):
+    /// «Assegna aeroporti noti» e l'import passano dalla sorgente, e un timeout, un token rifiutato, un JSON non valido
+    /// o una collisione col giro notturno (tipi che qui non si prendevano) facevano cadere il circuito. Dal 27
+    /// settembre 2026 gli elenchi della sorgente sollevano su ogni non-2xx (U-002): prima di quel giorno sarebbero stati
+    /// elenchi vuoti, ora sono un messaggio. La guardia `_busy` sta prima dell'await: il tasto spento arriva col
+    /// render, il secondo clic prima di lui.
+    /// </summary>
     private async Task Guarded(Func<Task> action)
     {
+        if (_busy) return;
         _busy = true; _msg = null; _ok = null;
         try { await action(); await ReloadAsync(); }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
+        catch (Exception ex)
+        {
+            _msg = L["Common_UnexpectedError"] + ex.Message;
+            Logger.LogError(ex, "Pagina Aeroporti: gesto fallito.");
+        }
         finally { _busy = false; }
     }
 

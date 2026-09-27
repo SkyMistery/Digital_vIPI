@@ -7,9 +7,13 @@ namespace Vipi.Application.Abstractions;
 /// sorgente dice davvero: il suo campo <c>military</c> e' vero anche per Linate, Pisa, Ciampino, Catania, Elmas,
 /// Lamezia e Rimini, che sono scali civili con sedime militare. La categoria dello scalo — solo militare, civile
 /// con presenza militare, militare con presenza civile — e' un giudizio che la sorgente non esprime, e sta
-/// sull'aeroporto in archivio (<c>Airport.Category</c>), deciso da un amministratore.</para></summary>
+/// sull'aeroporto in archivio (<c>Airport.Category</c>), deciso da un amministratore.</para>
+/// <para><paramref name="MilitaryPresenceKnown"/>: la sorgente ha DETTO qualcosa sulla presenza militare. Falso quando
+/// il campo <c>military</c> manca dal JSON (cambio di schema, risposta parziale): allora <paramref name="HasMilitaryPresence"/>
+/// non è un fatto, e il giro non tocca niente (U-028).</para></summary>
 public sealed record SourceAirport(string Icao, string Name, string? AccCode, string? City, int? TransitionAltitude = null,
-    bool HasMilitaryPresence = false, string? Iata = null, int? ElevationFt = null, double? MagneticVariation = null);
+    bool HasMilitaryPresence = false, string? Iata = null, int? ElevationFt = null, double? MagneticVariation = null,
+    bool MilitaryPresenceKnown = true);
 
 /// <summary>
 /// Porta verso l'anagrafica aeroporti della sorgente esterna, usata dall'editor struttura per scegliere

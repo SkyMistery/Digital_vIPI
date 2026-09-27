@@ -92,8 +92,14 @@ public class AirportSourceFieldsSyncTests : IAsyncLifetime
         Assert.Equal("Aviano", apt.Name);
     }
 
+    /// <summary>
+    /// 🔴 U-028 (revisione totale 3, decisione del committente del 27-set-2026): una notte in cui IVAO manda «military»
+    /// falso riportava a Civile ogni campo militare, e al ritorno della presenza la scelta dell'amministratore («Solo
+    /// militare») non tornava più. Ora la presenza segue la sorgente, la categoria no: resta, divergente, finché una
+    /// persona non la chiude; e se la presenza torna, torna tutto com'era.
+    /// </summary>
     [Fact]
-    public async Task Tolta_la_presenza_militare_lo_scalo_torna_Civile()
+    public async Task Tolta_la_presenza_militare_la_scelta_resta_e_al_ritorno_e_ancora_li()
     {
         await _repo.SyncAirportSourceFieldsAsync(new[]
         {
@@ -108,8 +114,35 @@ public class AirportSourceFieldsSyncTests : IAsyncLifetime
         });
 
         var apt = await LoadAsync("LIPA");
-        Assert.False(apt.HasMilitaryPresence);
-        Assert.Equal(AirportCategory.Civil, apt.Category);
+        Assert.False(apt.HasMilitaryPresence);                       // il fatto della sorgente
+        Assert.Equal(AirportCategory.MilitaryOnly, apt.Category);     // la scelta di una persona
+        Assert.True(AirportCategories.Divergente(apt.HasMilitaryPresence, apt.Category));
+
+        await _repo.SyncAirportSourceFieldsAsync(new[]
+        {
+            new SourceAirport("LIPA", "Aviano", "LIPP", null, null, HasMilitaryPresence: true),
+        });
+        Assert.Equal(AirportCategory.MilitaryOnly, (await LoadAsync("LIPA")).Category);
+    }
+
+    /// <summary>🔴 U-028: un «military» ASSENTE dal JSON (cambio di schema, risposta parziale) non è «nessuna presenza»:
+    /// il giro non tocca né la presenza né la categoria.</summary>
+    [Fact]
+    public async Task Un_military_assente_non_tocca_la_presenza()
+    {
+        await _repo.SyncAirportSourceFieldsAsync(new[]
+        {
+            new SourceAirport("LIPA", "Aviano", "LIPP", null, null, HasMilitaryPresence: true),
+        });
+
+        await _repo.SyncAirportSourceFieldsAsync(new[]
+        {
+            new SourceAirport("LIPA", "Aviano", "LIPP", null, null, HasMilitaryPresence: false, MilitaryPresenceKnown: false),
+        });
+
+        var apt = await LoadAsync("LIPA");
+        Assert.True(apt.HasMilitaryPresence);
+        Assert.Equal(AirportCategory.CivilWithMilitaryPresence, apt.Category);
     }
 
     /// <summary>La presenza militare che COMPARE porta lo scalo al default (decisione del committente dell'11

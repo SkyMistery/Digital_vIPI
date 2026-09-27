@@ -70,4 +70,28 @@ public class AccEsteroNasceSpentoTests : IAsyncLifetime
         var acc = await _db.Accs.SingleAsync(a => a.Code == "LDZO");
         Assert.True(acc.SpecialAreasEnabled);   // la scelta dell'admin sopravvive al giro periodico
     }
+
+    /// <summary>
+    /// 🔴 U-030 (revisione totale 3), gemello di T-007 nell'import dei confinanti: il client lascia la frequenza a null
+    /// quando il DETTAGLIO del subcenter non si legge (429/5xx anche dopo i ritentativi — e l'import dei confinanti fa
+    /// quelle GET in parallelo, quindi i 429 sono il caso atteso). La riga la copiava così com'era: il settore estero
+    /// perdeva la frequenza in catalogo e nella proiezione, nelle vLOA e nei punti di trasferimento della vista live.
+    /// </summary>
+    [Fact]
+    public async Task Un_dettaglio_estero_non_letto_non_azzera_la_frequenza()
+    {
+        var sut = new EfNeighbourRepository(_db, new Vipi.Domain.Services.AiracService());
+        await sut.PersistForeignCatalogAsync(new[]
+        {
+            new ForeignAccImport("LDZO", "Zagreb ACC", new[] { new SourceSubcenter("LDZO_CTR", "LDZO", "CTR", null, "134.150", null) }),
+        });
+
+        await sut.PersistForeignCatalogAsync(new[]
+        {
+            new ForeignAccImport("LDZO", "Zagreb ACC", new[] { new SourceSubcenter("LDZO_CTR", "LDZO", "CTR", null, null, null) }),
+        });
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal("134.150", (await _db.AccSectors.SingleAsync(s => s.ComposePosition == "LDZO_CTR")).Frequency);
+    }
 }

@@ -136,7 +136,9 @@ public sealed class EfNeighbourRepository : INeighbourRepository
                     row.Position = sub.Position;
                     row.MiddleIdentifier = sub.MiddleIdentifier;
                     row.AtcCallsign = sub.AtcCallsign;
-                    row.Frequency = sub.Frequency;
+                    // 🔴 U-030 (revisione totale 3), gemello di T-007: un dettaglio non letto (429/5xx, e qui le GET vanno
+                    // in parallelo) arriva con la frequenza null. Non è «non ha frequenza»: non si cancella.
+                    if (sub.Frequency is not null) row.Frequency = sub.Frequency;
                     // Solo una shape VERA sovrascrive: l'assenza non e' un ordine di cancellare.
                     if (!PolygonGeometry.IsEmptyShape(sub.RegionMapPolygon)) row.RegionMapPolygon = sub.RegionMapPolygon;
                     if (sub.LowerLimit is not null) row.LowerLimit = sub.LowerLimit;

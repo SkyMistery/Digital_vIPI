@@ -1468,6 +1468,8 @@
   <data name="Apt_CatTitle_CivilWithMilitaryPresence" xml:space="preserve"><value>Scalo civile che condivide il sedime con una base militare. Documenti: solo la vIPI. Lo decide un amministratore.</value></data>
   <data name="Apt_CatTitle_MilitaryWithCivilPresence" xml:space="preserve"><value>Campo militare aperto anche al traffico civile. Documenti: la vIPI e il vSOP militare. Lo decide un amministratore.</value></data>
   <data name="Apt_CatPickAria" xml:space="preserve"><value>Categoria di {0}</value></data>
+  <data name="Apt_CatDivergent" xml:space="preserve"><value>IVAO: senza presenza militare</value></data>
+  <data name="Apt_CatDivergentTitle" xml:space="preserve"><value>IVAO non riconosce più la presenza militare di {0}, ma la categoria scelta resta: non scende da sola a «Civile». Se IVAO ha ragione, scegli «Civile»; se sbaglia, lascia com'è.</value></data>
   <data name="Apt_CatConMil" xml:space="preserve"><value>{0} ha un vSOP militare, e la categoria «{1}» non lo prevede. Quel documento NON viene toccato: resta com'è, e se è pubblicato resta online. Va nascosto a parte — e se è unito alla vIPI, l'unione va sciolta.</value></data>
   <data name="Apt_CatConfirmYes" xml:space="preserve"><value>Sì, cambia categoria</value></data>
   <data name="Apt_ChipAssigned" xml:space="preserve"><value>già assegnati {0}</value></data>

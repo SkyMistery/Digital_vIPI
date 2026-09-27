@@ -58,6 +58,20 @@ public sealed class SpecialAreaImportUseCase : ISpecialAreaImportUseCase
         return new SpecialAreaImportResult(created, updated, removed, failures);
     }
 
+    /// <summary>
+    /// 🔴 U-130 (revisione totale 3): «Escludi aree» potava legami e cancellava le aree orfane senza aprire l'impatto
+    /// AreaGone che l'import apre per la stessa sparizione; le bozze le perdevano in silenzio, fuori da «Da rivedere»
+    /// (ImpactDriftUseCase non guarda le aree, nessun giro dopo lo recupera). Stesso corpo, stessa casella.
+    /// </summary>
+    public async Task<int> SpegniAccAsync(int accId, CancellationToken ct = default)
+    {
+        var prune = await _repo.SetSpecialAreasEnabledAsync(accId, false, ct);
+        if (_impacts is not null)
+            foreach (var a in prune.Gone)
+                await _impacts.RaiseForAreaAsync(ImpactKind.AreaGone, a.IvaoId, a.Name, ct);
+        return prune.Removed;
+    }
+
     public async Task<SpecialAreaImportResult> RunForAccAsync(string accCode, CancellationToken ct = default)
     {
         // Niente gate sul flag dell'ACC: è proprio l'atto con cui l'admin lo accende (il primo import di un estero).

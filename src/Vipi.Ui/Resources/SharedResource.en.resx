@@ -1463,6 +1463,8 @@
   <data name="Apt_CatTitle_CivilWithMilitaryPresence" xml:space="preserve"><value>Civil airport sharing its grounds with a military base. Documents: the vIPI only. Set by an administrator.</value></data>
   <data name="Apt_CatTitle_MilitaryWithCivilPresence" xml:space="preserve"><value>Military field also open to civil traffic. Documents: the vIPI and the military vSOP. Set by an administrator.</value></data>
   <data name="Apt_CatPickAria" xml:space="preserve"><value>Category of {0}</value></data>
+  <data name="Apt_CatDivergent" xml:space="preserve"><value>IVAO: no military presence</value></data>
+  <data name="Apt_CatDivergentTitle" xml:space="preserve"><value>IVAO no longer recognises a military presence at {0}, but the chosen category stays: it does not drop to «Civil» by itself. If IVAO is right, choose «Civil»; if it is wrong, leave it as it is.</value></data>
   <data name="Apt_CatConMil" xml:space="preserve"><value>{0} has a military vSOP, and the “{1}” category does not provide for one. That document is NOT touched: it stays as it is, and if it is published it stays online. Hide it separately — and if it is joined to the vIPI, dissolve the union.</value></data>
   <data name="Apt_CatConfirmYes" xml:space="preserve"><value>Yes, change category</value></data>
   <data name="Apt_ChipAssigned" xml:space="preserve"><value>already assigned {0}</value></data>

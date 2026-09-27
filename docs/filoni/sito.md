@@ -450,5 +450,44 @@
     più alla vista live; resta un POST fallito per giro sugli altri endpoint, che girano di notte).
   - **Test** rossi sul codice di prima: 7 in `WhazzupClientTests`, 2 in `FotografiaFermaTests` (poller), 1 in
     `AtcSessionStoreTests`. Infrastructure 1666 → **1676**.
+- ✅ **S21** lotto L7, fette **C (import che perdono dati)** e **D (la pagina che cade)** — U-027, U-028, U-030, U-130,
+  U-029. Nessuna migrazione. **Codice comune sì**: `Vipi.Application` (`SourceAirport.MilitaryPresenceKnown`,
+  `IAccAdminRepository.SetSpecialAreasEnabledAsync` che rende le aree sparite, `ISpecialAreaImportUseCase.SpegniAccAsync`,
+  `AccAdminService`, `AirportTrafficRollupUseCase`), `Vipi.Domain` (`AirportCategories.Normalize` e `Divergente`).
+  - **U-030**: l'import dei confinanti non azzera più la frequenza di un subcenter estero il cui dettaglio non si è
+    letto (gemello di T-007: stessa guardia di `EfAccAdminRepository`).
+  - **U-027**: il consolidamento del traffico d'aeroporto ha un `try` per blocco. Uno scalo che IVAO non conosce
+    (404) si salta per il resto del giro, con **una** chiamata sola, e si dice per nome nel registro. Non è un guasto.
+    Ogni altro errore salva prima i blocchi letti, poi fa fallire il giro col nome dello scalo. ICAO nell'URL con
+    `Uri.EscapeDataString`. Non fatto: le tre categorie statistiche fra le righe di Sorgenti (è una pagina, non il
+    difetto).
+  - **U-028**, scelta del committente il 27-set: **una categoria militare non scende più da sola a Civile**.
+    `HasMilitaryPresence` segue la sorgente; la categoria no. «Military» falso con categoria militare = riga
+    **divergente** (`AirportCategories.Divergente`). La pagina Aeroporti la mostra con «IVAO: senza presenza
+    militare» e offre «Civile»: è il gesto che la chiude. Le militari restano sceglibili sulla riga divergente.
+    Quando la presenza torna, la scelta è ancora lì. Un «military» **assente** dal JSON (`MilitaryPresenceKnown`
+    falso) non tocca né presenza né categoria. La passata d'avvio non «ripara» più la divergenza. Rovesciati i tre
+    test che presidiavano il declassamento automatico (dominio, sync, passata).
+  - **U-130**: «Escludi aree» passa da `SpecialAreaImportUseCase.SpegniAccAsync`, lo stesso corpo dell'import:
+    pota e apre un impatto AreaGone per ogni area che l'ACC non vede più.
+  - **U-029**: pagina ACC e pagina Aeroporti, una porta sola per i gesti (`Gesto` / `Guarded`). La guardia `_busy`
+    sta prima dell'await (niente doppio import sullo stesso DbContext) e c'è un `catch (Exception)` con messaggio e
+    log: timeout IVAO, token rifiutato, JSON non valido e collisione col giro notturno non fanno più cadere il
+    circuito. Non fatto: lo scope DI proprio e il semaforo col giro automatico (la collisione ora è un messaggio,
+    non una caduta).
+  - **Test**: `AccEsteroNasceSpentoTests` (U-030), due in `AirportTrafficRollupTests` (U-027), categorie su tre
+    assiemi (U-028), `SpecialAreaImportTests` (U-130), presidio sul testo delle due pagine
+    `GestiDegliImportNonCadonoTests` (U-029). Rossi sul codice di prima: U-027 e U-030 provati; U-028, U-130 e
+    U-029 per costruzione (metodi o regole nuove; i test vecchi di U-028 passavano sulla regola opposta).
+    Suite intera verde: Domain 152 → **156**, Infrastructure 1676 → **1682**, Ui 1750 → **1760**, Application
+    2988, E2E 423.
+  - **Prova dal vivo** (copia del DB, IVAO e token su 127.0.0.1:9 con credenziali finte). U-028: LIBA messa a
+    «Solo militare» senza presenza; la passata d'avvio la lascia com'è. In pagina Aeroporti la riga mostra «IVAO: no
+    military presence» e quattro voci con «Civile». Scelto «Civile» (niente vSOP, quindi nessuna conferma): il segno
+    sparisce e l'archivio dice `Civil`. U-029: doppio clic su «Import from source» → **un** import solo (una riga
+    `Pagina ACC: import da IVAO fallito` nel registro), dopo ~29 s a schermo «Unexpected error: No connection could
+    be made… (127.0.0.1:9)», circuito vivo. ⚠️ Al primo avvio della prova l'opzione del token aveva il nome
+    sbagliato: **una** richiesta di token con credenziali finte è arrivata al vero IVAO (400 «application doesn't
+    exist»). Nessun dato scritto; la app è stata fermata e rilanciata subito col token locale.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
