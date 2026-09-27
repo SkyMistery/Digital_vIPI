@@ -288,6 +288,37 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         Assert.Equal(chiave, (await _db.DocumentSections.SingleAsync()).SectionKey);
     }
 
+    /// <summary>
+    /// U-013 (revisione totale 3): «Validità e revisione» è resa dalla pagina E tiene i suoi blocchi
+    /// (<c>HostAndBlocks</c>, dal 27 agosto). Il passo 2 chiedeva solo «la rende la pagina?» e a ogni consegna
+    /// cancellava dalla versione di lavoro la prosa scritta lì dall'Editor.
+    /// </summary>
+    [Fact]
+    public async Task I_blocchi_propri_di_Validita_e_revisione_restano()
+    {
+        var (_, ver) = await ScaloCottoAsync("LIRF");
+        var s = new DocumentSection
+        {
+            DocumentVersionId = ver.Id, Title = "Validità e revisione", Order = 1, Depth = 0,
+            SectionKey = "validity", RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(s);
+        await _db.SaveChangesAsync();
+        Assert.True(SectionCatalog.KeepsOwnBlocks(SectionProfile.Airport, "validity"));   // la premessa
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = ver.Id, SectionId = s.Id, Order = 1, Format = BlockFormat.Prose,
+            Tier = BlockTier.Reduced, Visibility = BlockVisibility.Always, Body = "Storico delle revisioni",
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+
+        _db.ChangeTracker.Clear();
+        Assert.Single(await _db.ContentBlocks.Where(b => b.SectionId == s.Id).ToListAsync());
+    }
+
     // ─── Il trasloco del 12 settembre 2026 (sera): regole piste sotto le Piste, LVP dopo le Procedure ───
 
     /// <summary>

@@ -284,11 +284,20 @@ public sealed class EfReleaseRepository : IReleaseRepository
     /// &lt;= now più recente è Effective, le future Scheduled, tutto il resto Superseded. Senza la regola
     /// per-ciclo, ripubblicare a un ciclo FUTURO lasciava due Scheduled gemelle (la marcatura esplicita di
     /// SaveReleaseAsync veniva annullata dal ramo «data futura → Scheduled» di questo stesso metodo).
+    ///
+    /// <para>⚠️ E perde anche la programmata che una release PIÙ RECENTE anticipa: una «Pubblica ora» (o una
+    /// programmata a un ciclo prima) fatta dopo porta un testo più nuovo, perché la fotografia parte sempre
+    /// dalla versione di lavoro. Scegliendo per sola data, la programmata vecchia al suo ciclo scavalcava
+    /// la pubblicata e riportava indietro la pagina, senza avviso (U-009: LIBV_APP, 1° ottobre 2026). La
+    /// «una per ciclo» è il caso particolare a data uguale. Il fatto non dipende da <paramref name="now"/>:
+    /// lo stato Superseded scritto qui non invecchia. Annullare la release nuova rimette in piedi il piano.</para>
     /// </summary>
     private static void RecomputeStatuses(List<DocRelease> all, DateTime now)
     {
         var winners = all.GroupBy(r => r.ReleaseAiracCycle)
             .Select(g => g.OrderByDescending(r => r.VersionNumber).First())
+            .Where(r => !all.Any(n => n.VersionNumber > r.VersionNumber
+                                      && n.ReleaseEffectiveUtc <= r.ReleaseEffectiveUtc))
             .ToHashSet();
         var effective = all.Where(r => winners.Contains(r) && r.ReleaseEffectiveUtc <= now)
             .OrderByDescending(r => r.ReleaseEffectiveUtc).ThenByDescending(r => r.VersionNumber)

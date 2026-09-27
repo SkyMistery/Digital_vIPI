@@ -202,14 +202,19 @@ public sealed class EfEditingRepository : IEditingRepository
             var srcSections = await _db.DocumentSections.Where(s => s.DocumentVersionId == src).AsNoTracking().ToListAsync(ct);
             var srcBlocks = await _db.ContentBlocks.Where(b => b.DocumentVersionId == src).AsNoTracking().ToListAsync(ct);
 
+            // ⚠️ Si copia seguendo l'ALBERO, padre prima delle figlie, e la profondità si ricava dal padre
+            // copiato: la colonna `Depth` della sorgente può essere rimasta indietro (U-014: una passata d'avvio
+            // aveva spostato il VFR di Perugia Approach senza riscrivere le figlie). Ordinando per (Depth, Order)
+            // la figlia arrivava prima del padre e il dizionario esplodeva: «Crea bozza» impossibile.
             var map = new Dictionary<int, DocumentSection>();
-            foreach (var s in srcSections.OrderBy(s => s.Depth).ThenBy(s => s.Order))
+            foreach (var s in InOrdineDiAlbero(srcSections))
             {
+                var padre = s.ParentSectionId is int pid ? map[pid] : null;
                 var ns = new DocumentSection
                 {
                     DocumentVersion = draft,
-                    ParentSection = s.ParentSectionId is int pid ? map[pid] : null,
-                    Title = s.Title, Order = s.Order, Depth = s.Depth, SectionKey = s.SectionKey,
+                    ParentSection = padre,
+                    Title = s.Title, Order = s.Order, Depth = padre is null ? 0 : padre.Depth + 1, SectionKey = s.SectionKey,
                     // La copia deve portarsi dietro anche i flag per-sezione: senza, «crea bozza» resettava
                     // RenderMode a Frozen (doc 10) e ora azzererebbe pure IsHidden (doc 11 §3c).
                     RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition, Audience = s.Audience,
@@ -235,6 +240,32 @@ public sealed class EfEditingRepository : IEditingRepository
 
         await _db.SaveChangesAsync(ct);
         return draft.Id;
+    }
+
+    /// <summary>Le sezioni di una versione in ordine d'albero (a livelli, fratelli per <c>Order</c>): ogni padre
+    /// prima delle sue figlie, qualunque cosa dica la colonna <c>Depth</c>. Quelle che dall'albero non si
+    /// raggiungono (padre fuori dalla versione) vanno in coda: chi le copia se ne accorge, non le perde zitto.</summary>
+    private static List<DocumentSection> InOrdineDiAlbero(IReadOnlyCollection<DocumentSection> sezioni)
+    {
+        var ids = sezioni.Select(s => s.Id).ToHashSet();
+        var figlieDi = sezioni.Where(s => s.ParentSectionId is int p && ids.Contains(p))
+            .GroupBy(s => s.ParentSectionId!.Value)
+            .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Order).ThenBy(s => s.Id).ToList());
+        var ordine = new List<DocumentSection>(sezioni.Count);
+        var fila = new Queue<DocumentSection>(sezioni.Where(s => s.ParentSectionId is null)
+            .OrderBy(s => s.Order).ThenBy(s => s.Id));
+        while (fila.Count > 0)
+        {
+            var s = fila.Dequeue();
+            ordine.Add(s);
+            if (figlieDi.TryGetValue(s.Id, out var figlie)) foreach (var f in figlie) fila.Enqueue(f);
+        }
+        if (ordine.Count < sezioni.Count)
+        {
+            var visti = ordine.Select(s => s.Id).ToHashSet();
+            ordine.AddRange(sezioni.Where(s => !visti.Contains(s.Id)));
+        }
+        return ordine;
     }
 
     public async Task<int> CreateDocumentAsync(DocumentType type, string title, Language language,

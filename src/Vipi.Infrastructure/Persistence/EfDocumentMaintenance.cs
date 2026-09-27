@@ -267,6 +267,40 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         return stale.Count;
     }
 
+    /// <inheritdoc cref="IDocumentMaintenance.RiallineaProfonditaAsync"/>
+    public async Task<int> RiallineaProfonditaAsync(CancellationToken ct = default)
+    {
+        // Una lettura leggera di tutte le sezioni (tre colonne), poi si tracciano solo quelle da correggere:
+        // sulla copia del 26-set era UNA riga su migliaia (5720, Perugia Approach).
+        var righe = await _db.DocumentSections.AsNoTracking()
+            .Select(s => new { s.Id, s.ParentSectionId, s.Depth })
+            .ToListAsync(ct);
+        var perId = righe.ToDictionary(r => r.Id);
+        var giuste = new Dictionary<int, int>();
+
+        // La profondità vera = quanti padri si risalgono. ⚠️ Con un tetto: un ciclo nei dati (non dovrebbe
+        // esistere, ma questa passata gira all'avvio) non deve diventare un avvio che non finisce.
+        int Vera(int id)
+        {
+            if (giuste.TryGetValue(id, out var d)) return d;
+            var passi = 0;
+            for (var p = perId[id].ParentSectionId; p is int pid && perId.ContainsKey(pid); p = perId[pid].ParentSectionId)
+                if (++passi > 64) break;
+            return giuste[id] = passi;
+        }
+
+        var sbagliate = righe.Where(r => r.Depth != Vera(r.Id)).Select(r => r.Id).ToList();
+        if (sbagliate.Count == 0) return 0;
+
+        foreach (var s in await _db.DocumentSections.Where(s => sbagliate.Contains(s.Id)).ToListAsync(ct))
+        {
+            s.Depth = giuste[s.Id];
+            s.RowVersion = Guid.NewGuid().ToByteArray();
+        }
+        await _db.SaveChangesAsync(ct);
+        return sbagliate.Count;
+    }
+
     /// <inheritdoc cref="IDocumentMaintenance.RenameMinimaSectionsAsync"/>
     public async Task<int> RenameMinimaSectionsAsync(CancellationToken ct = default)
     {
@@ -1226,7 +1260,12 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             // Passo 2 — i blocchi. Vale per OGNI sezione il cui corpo lo produce ora la pagina, non solo per
             // quelle appena rinominate: «Frequencies» aveva la chiave giusta fin dall'inizio e la sua tabella
             // cotta dentro, e senza questo ramo resterebbe li' a raddoppiare la tabella derivata.
-            if (SectionCatalog.IsHostRendered(SectionProfile.Airport, s.SectionKey) && s.Blocks.Count > 0)
+            // ⚠️ «La rende la pagina» NON basta: dal 27-ago (8b749af6) `IsHostRendered` comprende anche le
+            // sezioni HostAndBlocks — «Validità e revisione» — che tengono i blocchi scritti dall'Editor. Questo
+            // passo non era stato aggiornato e a ogni consegna li cancellava dalla bozza (U-013).
+            if (SectionCatalog.IsHostRendered(SectionProfile.Airport, s.SectionKey)
+                && !SectionCatalog.KeepsOwnBlocks(SectionProfile.Airport, s.SectionKey)
+                && s.Blocks.Count > 0)
             {
                 // Rimossi dal CONTESTO, non solo dalla collezione: staccarli e basta lascerebbe a EF una riga
                 // con la chiave esterna da azzerare, che e' non-nullabile — e la SaveChanges morirebbe.

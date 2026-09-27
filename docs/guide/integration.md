@@ -75,7 +75,7 @@ builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: builder.En
 
 var app = builder.Build();
 app.MigrateVipiDatabase();          // crea/migra il DB del modulo — CRITICO: un guasto qui deve fermare l'avvio
-app.RunVipiStartupMaintenance();    // riconciliazioni/proiezione/release: idempotenti, isolate, non fatali
+app.RunVipiStartupMaintenance();    // promozioni/riconciliazioni/proiezione/unioni: idempotenti, isolate, non fatali
 
 app.UseAuthentication();            // l'auth dell'host PRIMA del modulo
 app.UseAuthorization();

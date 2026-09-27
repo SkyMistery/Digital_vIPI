@@ -757,7 +757,7 @@ public static class VipiModuleExtensions
     }
 
     /// <summary>
-    /// Esegue le CINQUE manutenzioni d'avvio <b>non critiche</b>, ognuna isolata dalle altre: se una
+    /// Esegue le QUATTRO manutenzioni d'avvio <b>non critiche</b>, ognuna isolata dalle altre: se una
     /// fallisce viene registrata e l'avvio prosegue con le successive.
     ///
     /// <para><b>Perché non basta lasciarle esplodere.</b> Sono passate idempotenti che rigirano a ogni
@@ -795,7 +795,8 @@ public static class VipiModuleExtensions
         Isolata(host, log, report, "promozioni a mano in memoria", h => h.LoadVipiRoleOverrides());
         Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments(timbroVersione));
         Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
-        Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
+        // ⚠️ Il backfill delle release NON c'è più (U-006, 27-set-2026): ripubblicava da solo la bozza di un
+        // documento a cui un Editor aveva annullato la release. Nessuna passata d'avvio pubblica.
         Isolata(host, log, report, "pulizia delle unioni di documenti", h => h.TidyVipiDocumentUnions());
         // ⚠️ La potatura delle release NON è più qui: dal 2 settembre 2026 la fa `ReleaseSweepHostedService`
         // ogni 24 ore (carta 2026-09-02-il-ciclo-entrante.md §AW4). All'avvio girava una volta sola, e gli
@@ -1068,6 +1069,15 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Rimossi {Count} blocchi placeholder dalle sezioni «minima».", minima);
 
+        // La colonna Depth riallineata all'albero (U-014, 27 settembre 2026). ⚠️ DOPO tutte le passate che
+        // spostano sezioni (parcheggi, regole piste, LVP, VFR): quelle scrivono la profondità della sola
+        // sezione mossa, e questa sistema le figlie — anche di una passata che verrà. È anche quella che
+        // corregge la riga già guasta in produzione (5720, «Note» di Perugia Approach).
+        var profondita = maintenance.RiallineaProfonditaAsync().GetAwaiter().GetResult();
+        if (profondita > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riallineata all'albero la profondità di {Count} sezioni.", profondita);
+
         // Aree regolamentate: appartenenza agli ACC dalla vecchia colonna singola alla tabella dei legami.
         var areas = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.ISpecialAreaMaintenance>();
         var links = areas.BackfillAreaCentersAsync().GetAwaiter().GetResult();
@@ -1099,8 +1109,10 @@ public static class VipiModuleExtensions
         // ⚠️ Best-effort anche qui: se la scrittura fallisce, l'unica conseguenza è che il prossimo avvio
         // rifà quel che ha appena fatto. Costa qualche centinaio di millisecondi; non merita un avvio in
         // meno.
-        var cambiamenti = keys + hidden + vloaKeys + airportKeys + parcheggi + scali + catalog + qra
-                        + pubblico + airacRighe + puntatori + mrva + minima + links + manuali + dropped;
+        // ⚠️ `traffico` mancava dal 15-set: lo si è visto il 27-set su una copia in cui il VFR si spostava
+        // e il log diceva «29 righe» invece di 31.
+        var cambiamenti = keys + hidden + vloaKeys + airportKeys + parcheggi + scali + traffico + catalog + qra
+                        + pubblico + airacRighe + puntatori + mrva + minima + profondita + links + manuali + dropped;
 
         if (chiaveTimbro is not null && stato is not null && cambiamenti == 0)
         {
@@ -1141,16 +1153,6 @@ public static class VipiModuleExtensions
         using var scope = host.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<Vipi.Application.Abstractions.ISectorProjectionService>()
             .SyncFromCatalogsAsync().GetAwaiter().GetResult();
-        return host;
-    }
-
-    /// <summary>Migrazione A (doc 10 §3f): backfilla una release effettiva per ogni documento pubblicato senza copia
-    /// congelata, così la visibilità pubblica = release effettiva non lascia buchi. Idempotente: sicuro a ogni avvio.</summary>
-    public static IHost BackfillVipiReleases(this IHost host)
-    {
-        using var scope = host.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
-            .BackfillMissingReleasesAsync().GetAwaiter().GetResult();
         return host;
     }
 

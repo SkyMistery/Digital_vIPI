@@ -1785,6 +1785,8 @@
   <data name="Rel_ShapeForce" xml:space="preserve"><value>Publish the new areas anyway</value></data>
   <data name="Rel_ShapeForceTitle" xml:space="preserve"><value>Turns on the override for these areas: the next publication carries the new boundary without waiting for the cycle.</value></data>
   <data name="Rel_ShapeForcedN" xml:space="preserve"><value>{0} areas forced: the next publication will carry the new boundary.</value></data>
+  <data name="Rel_NowReplacesScheduled" xml:space="preserve"><value>“Publish now” also replaces the scheduled release (AIRAC {0}): it carries older text than what you are publishing now.</value></data>
+  <data name="Rel_CycleReplacesScheduled" xml:space="preserve"><value>Scheduling at AIRAC {0} also replaces the scheduled release (AIRAC {1}).</value></data>
   <data name="Rel_Canceled" xml:space="preserve"><value>Release canceled.</value></data>
   <data name="Rel_Effective" xml:space="preserve"><value>Effective</value></data>
   <data name="Rel_Scheduled" xml:space="preserve"><value>Scheduled</value></data>

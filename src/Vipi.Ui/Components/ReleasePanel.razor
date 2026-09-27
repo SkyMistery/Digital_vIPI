@@ -193,6 +193,15 @@
         <button class="btn primary" disabled="@_busy" @onclick="PublishNow" title="@L["Rel_PublishNowTitle"]"><Icon Name="megaphone" /> @L["Rel_PublishNow"]</button>
         <button class="btn ghost" disabled="@_busy" @onclick="PublishAtCycle" title="@L["Rel_ScheduleTitle"]"><Icon Name="calendar" /> @L["Rel_ScheduleAtCycle"]</button>
     </div>
+    @* Una release nuova supera le programmate che anticipa (U-009): si dice PRIMA del gesto, non dopo. *@
+    @if (SostituiteDaOra() is { } ora)
+    {
+        <p class="help" style="margin:6px 0 0" data-sostituite="ora">@L["Rel_NowReplacesScheduled", ora]</p>
+    }
+    @if (SostituiteDalCiclo() is { } alCiclo)
+    {
+        <p class="help" style="margin:6px 0 0" data-sostituite="ciclo">@L["Rel_CycleReplacesScheduled", _cycle ?? "", alCiclo]</p>
+    }
 </div>
 
 @code {
@@ -479,7 +488,7 @@
 
     private async Task SalvaLingua(Vipi.Domain.Language lingua, bool bloccata)
     {
-        if (Admin is not { } admin) return;
+        if (Admin is not { } admin || _busy) return;   // sentinella: vedi Run
         _busy = true; _error = _ok = null;
         try
         {
@@ -577,6 +586,7 @@
     /// <summary>«Pubblicale lo stesso»: accende la forzatura sulle aree elencate nell'avviso.</summary>
     private async Task ForceShapes()
     {
+        if (_busy) return;   // sentinella: vedi Run
         _busy = true; _error = _ok = null;
         try
         {
@@ -586,6 +596,7 @@
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (Exception ex) { _error = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 
@@ -627,8 +638,14 @@
 
     // Esegue l'azione (che ritorna true=proceduta → mostra ok; false=annullata → nessun messaggio) con guardia busy/errori.
     // notify: avvisa l'host (Published) dopo aver ricaricato le release — solo per le azioni che pubblicano.
+    // ⚠️ `disabled="@_busy"` NON basta: il tasto si spegne dopo un giro di rete, e un vero doppio clic arriva
+    // prima. Il secondo gesto partiva sullo stesso DbContext del circuito («A second operation…») e, uscendo
+    // dal gestore, faceva cadere la pagina con la pubblicazione in volo (U-017, riprodotto il 26-set-2026).
+    // Da qui la sentinella in testa, e la rete generale: due schede che pubblicano insieme urtano l'indice
+    // unico con un DbUpdateException, che non è un'eccezione di dominio ma non deve costare il circuito.
     private async Task Run(Func<Task<bool>> action, string ok, bool notify = false)
     {
+        if (_busy) return;
         _busy = true; _error = _ok = null;
         try
         {
@@ -641,7 +658,26 @@
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (Exception ex) { _error = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
+    }
+
+    /// <summary>I cicli delle programmate che il gesto renderà superate: la release nuova ha il numero più alto,
+    /// e vince su ogni programmata che non entra in vigore prima di lei (regola in EfReleaseRepository.
+    /// RecomputeStatuses). Null = nessuna, e allora non si dice niente.</summary>
+    private string? SostituiteDaOra() => Cicli(_rels.Where(r => r.Status == ReleaseStatus.Scheduled));
+
+    private string? SostituiteDalCiclo()
+    {
+        var scelto = _upcoming.FirstOrDefault(c => c.Cycle == _cycle);
+        return scelto is null ? null : Cicli(_rels.Where(r => r.Status == ReleaseStatus.Scheduled
+                                                             && r.ReleaseEffectiveUtc >= scelto.EffectiveUtc));
+    }
+
+    private static string? Cicli(IEnumerable<ReleaseInfo> rels)
+    {
+        var cicli = rels.OrderBy(r => r.ReleaseEffectiveUtc).Select(r => r.ReleaseAiracCycle).Distinct().ToList();
+        return cicli.Count == 0 ? null : string.Join(", ", cicli);
     }
 
     private string Label(ReleaseInfo r) => r.IsEffectiveNow

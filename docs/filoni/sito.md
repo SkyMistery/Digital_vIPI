@@ -153,5 +153,45 @@
   - ⚠️ **U-009 ha una scadenza**: il 1-ott 00:00Z la release programmata #187 di LIBV_APP (9-set) sostituisce la
     #423 in vigore. Gesto in produzione prima di quella data (lotto L0 del registro).
   - Nessun codice cambiato: le correzioni vanno per lotti (L0…L11), col via del committente.
+- ✅ **S10** lotto **L1 «Pubblicazione e release»** della revisione 3 (via del committente il 27-set): U-009, U-006,
+  U-017, U-013, U-014. Ogni correzione è partita da una prova rossa. **Nessuna migrazione.** ⚠️ **Codice in comune
+  toccato**: `Vipi.Application` (`IReleaseService`/`ReleaseService` perdono il backfill, `IDocumentMaintenance`
+  guadagna `RiallineaProfonditaAsync`).
+  - **U-009** (programmata vecchia che torna al rollover): in `EfReleaseRepository.RecomputeStatuses` una
+    programmata perde anche contro una release **più recente** (numero più alto) che entra in vigore non dopo di
+    lei. «Una per ciclo» è il caso a data uguale. Annullare la release nuova rimette in piedi il piano. Lo stato
+    Superseded non dipende dall'ora, quindi non invecchia. In produzione la #187 di LIBV_APP diventa Superseded
+    al primo giro di `ReleaseSweepHostedService` (ricalcola gli stati di tutti i bersagli poco dopo l'avvio): ⚠️
+    **solo se il pacchetto entra prima del 1-ott**, altrimenti resta il gesto a mano di L0. Il pannello dice
+    PRIMA del gesto quali programmate saranno sostituite: `Rel_NowReplacesScheduled`, `Rel_CycleReplacesScheduled`.
+  - **U-006** (backfill d'avvio che ripubblica la bozza): **tolto** del tutto. Chiamata d'avvio,
+    `BackfillVipiReleases`, `BackfillMissingReleasesAsync` e il suo test. La migrazione A è finita a luglio, e
+    ormai l'ingresso lo aprivano solo casi sbagliati: l'annullo dell'unica release, un documento con la sola
+    programmata, uno scheletro di vLOA generato. Le manutenzioni d'avvio tornano **quattro**.
+  - **U-017** (doppio clic su «Pubblica ora»): sentinella `if (_busy) return` in `Run`, `ForceShapes`, `SalvaLingua`
+    e rete generale con «Errore imprevisto: …». `Releases` resta sul contesto del circuito, di proposito (la nota in
+    cima al pannello: il publish si compone con `BeforePublishAsync` della pagina).
+  - **U-013** («Validità e revisione» svuotata a ogni consegna): il passo 2 di `ReconcileCookedSections` salta le
+    sezioni `HostAndBlocks` (`KeepsOwnBlocks`).
+  - **U-014** (profondità rimasta indietro, «Crea bozza» che esplode): `CreateDraftAsync` copia seguendo l'albero e
+    ricava `Depth` dal padre. Passata nuova `RiallineaProfonditaAsync`, dopo tutte quelle che spostano: sistema la
+    riga 5720 di Perugia Approach e ogni spostamento futuro. Nel giro c'era anche un buco: la somma che decide il
+    timbro non contava `traffico` (lo spostamento del VFR). Aggiunto.
+  - **Test**: `Pubblica_ora_dopo_una_programmata_resta_in_vigore_al_rollover`,
+    `Programmata_dopo_una_pubblica_ora_entra_al_suo_ciclo`, `I_blocchi_propri_di_Validita_e_revisione_restano`,
+    `CreateDraft_Non_Si_Fida_Della_Colonna_Depth`, `La_passata_d_avvio_riallinea_la_profondita_all_albero`,
+    `Il_doppio_clic_su_Pubblica_ora_…`, `Un_guasto_imprevisto_resta_un_messaggio_nel_pannello`, due
+    sull'avviso delle sostituite. `StartupMaintenanceTests` vuole 4 passate e nessuna che pubblica. Tolto
+    `Backfill_Creates_…`. Infrastructure 1622 → **1626**, Ui 1715 → **1719**, net8 e net10.
+  - **Prova dal vivo** (copia del DB di sviluppo, SQLite, :5199, editor aeroporto LIBC): programmata al 2610 → il
+    pannello dice che «Publish now» la sostituisce. Doppio clic (del browser e sincrono da JS) → circuito su,
+    zero eccezioni, la 2610 è Superseded. ⚠️ Su SQLite i due clic escono come DUE pubblicazioni in fila, perché le
+    chiamate «async» del provider non cedono il turno. La corsa vera (secondo clic con la prima pubblicazione in
+    volo) la prova solo il bUnit: su MariaDB non l'ho rifatta.
+  - Resta, non toccato: `DocumentBirth.Semina` e `AggiungiPlaceholderSeServe` seminano un blocco tabella vuoto
+    anche nelle sezioni `HostAndBlocks` (la nota in fondo a U-013). Da guardare con L11.
+  - ⚠️ `tools/conta-test.sh` non si può lanciare da una chat: il cancello globale ne legge il contenuto e lo
+    rifiuta («Comando annidato troppe volte»). I due file di `tests/conteggi/` sono scritti a mano dal log della
+    corsa intera. Il confronto lo rifà la CI.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

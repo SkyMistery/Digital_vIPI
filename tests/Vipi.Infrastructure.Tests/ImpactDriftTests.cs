@@ -565,7 +565,6 @@ public class ImpactDriftTests : IAsyncLifetime
             Task.FromResult<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>>(Array.Empty<Vipi.Application.Content.BersaglioUnito>());
         public Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) => Task.CompletedTask;
         public Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => Task.FromResult(0);
         public Task CancelReleaseAsync(int releaseId, CancellationToken ct = default) => Task.CompletedTask;
         public Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default) => Task.FromResult(ReleaseDiff.Empty);
         public Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType, string expectedKey, CancellationToken ct = default) => Task.FromResult<ReleasePreview?>(null);

@@ -40,6 +40,61 @@ public class EditingRepositoryTests : IAsyncLifetime
     private async Task<int> AccDocIdAsync() =>
         await _db.Documents.Where(d => d.Type == DocumentType.Vipi).Select(d => d.Id).FirstAsync();
 
+    /// <summary>
+    /// Un albero la cui colonna <c>Depth</c> è rimasta indietro: il VFR spostato sotto «Gestione del traffico»
+    /// da una passata d'avvio, e la sua figlia «Note» ferma alla profondità di prima, con un Order più basso.
+    /// È la forma misurata su Perugia Approach (sezione 5720, versione 242). Serve a U-014.
+    /// </summary>
+    private async Task<(int DocId, int VersionId, int NoteId)> VersioneConProfonditaRimastaIndietroAsync()
+    {
+        var docId = await AccDocIdAsync();
+        var verId = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+        Vipi.Domain.Entities.DocumentSection Nuova(string titolo, int order, int depth, Vipi.Domain.Entities.DocumentSection? padre) => new()
+        {
+            DocumentVersionId = verId, ParentSection = padre, Title = titolo, Order = order, Depth = depth,
+            SectionKey = SectionKeys.NewCustom(), RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        var traffico = Nuova("Gestione del traffico", 90, 0, null);
+        var vfr = Nuova("VFR U-014", 2, 1, traffico);
+        var note = Nuova("Note U-014", 1, 1, vfr);   // ⚠️ dovrebbe essere 2
+        _db.DocumentSections.AddRange(traffico, vfr, note);
+        await _db.SaveChangesAsync();
+        return (docId, verId, note.Id);
+    }
+
+    /// <summary>U-014: «Crea bozza» copiava in ordine (Depth, Order) e cercava il padre in un dizionario
+    /// riempito man mano: la figlia rimasta indietro arrivava prima del suo padre → KeyNotFoundException.
+    /// La copia segue l'ALBERO, e ne esce con le profondità giuste.</summary>
+    [Fact]
+    public async Task CreateDraft_Non_Si_Fida_Della_Colonna_Depth()
+    {
+        var (docId, _, _) = await VersioneConProfonditaRimastaIndietroAsync();
+
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
+
+        var copia = await _db.DocumentSections.AsNoTracking().Where(s => s.DocumentVersionId == draftId).ToListAsync();
+        var note = copia.Single(s => s.Title == "Note U-014");
+        var vfr = copia.Single(s => s.Title == "VFR U-014");
+        Assert.Equal(vfr.Id, note.ParentSectionId);
+        Assert.Equal(2, note.Depth);
+    }
+
+    /// <summary>U-014: la riga già guasta in produzione la sistema una passata d'avvio, che riallinea la
+    /// profondità di tutto l'albero ed è idempotente.</summary>
+    [Fact]
+    public async Task La_passata_d_avvio_riallinea_la_profondita_all_albero()
+    {
+        var (_, _, noteId) = await VersioneConProfonditaRimastaIndietroAsync();
+        var manutenzione = new EfDocumentMaintenance(_db);
+
+        Assert.Equal(1, await manutenzione.RiallineaProfonditaAsync());
+        Assert.Equal(0, await manutenzione.RiallineaProfonditaAsync());
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal(2, (await _db.DocumentSections.SingleAsync(s => s.Id == noteId)).Depth);
+        Assert.False(await _db.DocumentSections.AnyAsync(s => s.ParentSectionId == null && s.Depth != 0));
+    }
+
     [Fact]
     public async Task CreateDraft_Clones_Sections_And_Blocks()
     {

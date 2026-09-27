@@ -50,12 +50,6 @@ public interface IReleaseService
     /// membro: le due semantiche restano diverse anche unite — la pianificata non promuove, questa sì.</para></summary>
     Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
 
-    /// <summary>Migrazione A (doc 10 §3f): per ogni documento <c>Published</c> e non nascosto SENZA release effettiva,
-    /// genera una copia statica al ciclo corrente (effettiva adesso), così togliere il fallback live pubblico (S6b) non
-    /// lascia buchi. Operazione di sistema (nessuna authz), idempotente: salta i bersagli già coperti e i documenti
-    /// senza contenuto. Ritorna il numero di release generate.</summary>
-    Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default);
-
     /// <summary>
     /// Annulla una release (per Id). Authz sull'ACC del bersaglio.
     ///
@@ -148,7 +142,7 @@ public interface IReleaseService
     /// <summary>Il ciclo AIRAC <b>entrante</b> con la sua data efficace: il primo che non è ancora in vigore.</summary>
     AiracCycleInfo NextCycle();
 
-    /// <summary>Sweep di retention su tutti i documenti gestiti (system op, come <see cref="BackfillMissingReleasesAsync"/>):
+    /// <summary>Sweep di retention su tutti i documenti gestiti (system op, nessuna authz):
     /// pota release Superseded oltre soglia e versioni Archived oltre N per ciascun bersaglio. Idempotente. Ritorna il
     /// numero di versioni archiviate rimosse.</summary>
     Task<int> PruneAllAsync(CancellationToken ct = default);
@@ -484,25 +478,12 @@ public sealed class ReleaseService : IReleaseService
                                             d.LockedByUserId, d.LockedByName))
             .ToList();
     }
-    public async Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default)
-    {
-        var now = DateTime.UtcNow;
-        var cycle = _airac.GetCycle(now);
-        var count = 0;
-        foreach (var d in await _admin.ListAsync(ct))
-        {
-            if (!d.IsPublished || d.IsHidden) continue;   // solo i pubblicati, non nascosti
-            if (await _repo.GetEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, now, ct) is not null) continue;   // già coperto → idempotente
-
-            // Riusa il path di cattura (§3d); tollera i documenti senza contenuto (null) senza esplodere.
-            var finalJson = await BuildSnapshotJsonAsync(d.ReleaseTarget, d.ReleaseKey, cycle, ct, conCollegamenti: true);
-            if (finalJson is null) continue;
-            await _repo.SaveReleaseAsync(d.ReleaseTarget, d.ReleaseKey, cycle, now,
-                finalJson, createdByUserId: 0, note: "backfill migrazione A (doc 10)", ct);
-            count++;
-        }
-        return count;
-    }
+    // ⚠️ Qui c'era `BackfillMissingReleasesAsync`, la «migrazione A» di luglio (doc 10 §3f): a OGNI avvio
+    // pubblicava, firmando «sistema», la versione di lavoro — BOZZA compresa — di ogni documento Published
+    // senza release in vigore. Finita la migrazione, quell'ingresso lo aprivano solo casi in cui pubblicare
+    // è sbagliato: l'Editor che annulla l'unica release (riprodotto: LIRA tornata pubblica con la bozza dopo
+    // un riavvio), il documento con la sola programmata, lo scheletro di vLOA generato (la 65 dell'8-set).
+    // Tolto il 27-set-2026 (U-006, revisione totale 3): una release la crea solo il gesto di un Editor.
 
     public async Task CancelReleaseAsync(int releaseId, CancellationToken ct = default)
     {

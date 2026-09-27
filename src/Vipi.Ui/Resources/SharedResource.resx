@@ -1790,6 +1790,8 @@
   <data name="Rel_ShapeForce" xml:space="preserve"><value>Pubblica comunque le aree nuove</value></data>
   <data name="Rel_ShapeForceTitle" xml:space="preserve"><value>Accende la forzatura su queste aree: la prossima pubblicazione porterà il confine nuovo, senza aspettare il ciclo.</value></data>
   <data name="Rel_ShapeForcedN" xml:space="preserve"><value>{0} aree forzate: la prossima pubblicazione porterà il confine nuovo.</value></data>
+  <data name="Rel_NowReplacesScheduled" xml:space="preserve"><value>«Pubblica ora» sostituisce anche la release programmata (AIRAC {0}): porta un testo più vecchio di quello che pubblichi adesso.</value></data>
+  <data name="Rel_CycleReplacesScheduled" xml:space="preserve"><value>Programmando all'AIRAC {0} sostituisci anche la release programmata (AIRAC {1}).</value></data>
   <data name="Rel_Canceled" xml:space="preserve"><value>Release annullata.</value></data>
   <data name="Rel_Effective" xml:space="preserve"><value>In vigore</value></data>
   <data name="Rel_Scheduled" xml:space="preserve"><value>Schedulata</value></data>

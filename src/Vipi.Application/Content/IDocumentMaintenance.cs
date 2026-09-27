@@ -37,6 +37,18 @@ public interface IDocumentMaintenance
     Task<int> RenameMinimaSectionsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Riallinea la colonna <c>Depth</c> all'albero: ogni sezione sta un livello sotto il suo padre, le radici
+    /// a zero. Ritorna le sezioni corrette.
+    ///
+    /// <para>⚠️ <c>Depth</c> è una COLONNA, non un calcolo. Lo spostamento dell'editor riscrive tutto il
+    /// sottoalbero; le passate d'avvio che spostano una sezione (VFR sotto «Gestione del traffico», parcheggi,
+    /// regole piste, LVP) scrivevano solo la sezione mossa, e le sue figlie restavano alla profondità di prima.
+    /// Il guasto si vede tardi: «Crea bozza» da una versione pubblicata così (U-014, Perugia Approach). Questa
+    /// passata gira DOPO tutte quelle che spostano: le corregge tutte, comprese quelle che verranno.</para>
+    /// </summary>
+    Task<int> RiallineaProfonditaAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Porta le vLOA esistenti sulle chiavi del catalogo (doc 13 §3c): le due sotto-sezioni dei coordinamenti
     /// smettono di ripetere la chiave del padre e prendono <c>coordination:out</c>/<c>coordination:in</c> secondo
     /// l'ordine (la prima è Home→vicino, come le semina il registro), e la sezione «Purpose» — che nasceva con una

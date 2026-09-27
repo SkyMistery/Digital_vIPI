@@ -273,6 +273,47 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.Contains(list, r => r.Status == ReleaseStatus.Superseded); // la prima superata
     }
 
+    /// <summary>
+    /// U-009 (revisione totale 3): una programmata fatta PRIMA di una «Pubblica ora» porta un testo più
+    /// vecchio, eppure al suo ciclo scavalcava la pubblicata perché la vincitrice si sceglieva per data. Sulla
+    /// copia del 26 settembre la LIBV_APP sarebbe tornata al 9 settembre il 1° ottobre, senza avviso.
+    /// </summary>
+    [Fact]
+    public async Task Pubblica_ora_dopo_una_programmata_resta_in_vigore_al_rollover()
+    {
+        var key = _docId.ToString();
+        var json = (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!;
+        var now = DateTime.UtcNow;
+
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2610", now.AddDays(4), json, 1, "programmata vecchia");
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2609", now, json, 1, "pubblica ora");
+
+        var eff = await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, now.AddDays(5));
+        Assert.Equal("pubblica ora", eff!.Note);
+        var list = await _repo.ListAsync(ReleaseTargetType.Vloa, key);
+        Assert.Contains(list, r => r.Note == "programmata vecchia" && r.Status == ReleaseStatus.Superseded);
+
+        // Annullare la «Pubblica ora» rimette in piedi il piano di prima.
+        await _repo.CancelAsync(list.Single(r => r.Note == "pubblica ora").Id);
+        eff = await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, now.AddDays(5));
+        Assert.Equal("programmata vecchia", eff!.Note);
+    }
+
+    /// <summary>La regola non tocca il caso buono: una programmata fatta DOPO resta la prossima.</summary>
+    [Fact]
+    public async Task Programmata_dopo_una_pubblica_ora_entra_al_suo_ciclo()
+    {
+        var key = _docId.ToString();
+        var json = (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!;
+        var now = DateTime.UtcNow;
+
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2609", now, json, 1, "pubblica ora");
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2610", now.AddDays(4), json, 1, "programmata");
+
+        Assert.Equal("pubblica ora", (await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, now))!.Note);
+        Assert.Equal("programmata", (await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, now.AddDays(5)))!.Note);
+    }
+
     [Fact]
     public async Task PruneReleases_RemovesOnlyOldSuperseded_KeepsEffectiveScheduledAndRecent_AndIsIdempotent()
     {
