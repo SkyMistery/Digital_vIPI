@@ -397,6 +397,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`history/audit-2026-09-06-revisione-totale.md`](history/audit-2026-09-06-revisione-totale.md) — Revisione totale del codice — aperta il 6 settembre 2026
 - [`history/audit-2026-09-12-prestazioni.md`](history/audit-2026-09-12-prestazioni.md) — Audit prestazioni — 12 settembre 2026, sera
 - [`history/audit-2026-09-13-revisione-totale-2.md`](history/audit-2026-09-13-revisione-totale-2.md) — Revisione totale, secondo giro — 13 settembre 2026 · 87 findings T-001…T-087
+- [`history/audit-2026-09-26-revisione-totale-3.md`](history/audit-2026-09-26-revisione-totale-3.md) — Revisione totale del codice, terzo giro — 26-27 settembre 2026
 - [`history/handoff-accordi-coordinamento.md`](history/handoff-accordi-coordinamento.md) — HANDOFF — Accordi di coordinamento (16-18 agosto 2026)
 - [`history/handoff-brand-atmosphere.md`](history/handoff-brand-atmosphere.md) — Handoff — il ramo del brand IVAO (22 agosto 2026)
 - [`history/handoff-coordinamenti-fasi-3-4.md`](history/handoff-coordinamenti-fasi-3-4.md) — HANDOFF — Coordinamenti/trasferimenti: Fasi 3-4 (resa documento)
@@ -405,6 +406,10 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`history/handoff-round5.md`](history/handoff-round5.md) — HANDOFF — Round 5: Fusione Settore/Posizione
 - [`history/piano-round20.md`](history/piano-round20.md) — PIANO Round 20 — Fonte unica dei settori (cataloghi) + gerarchia per callsign
 - [`history/review-flusso-gap.md`](history/review-flusso-gap.md) — Review del flusso utente e analisi dei gap — vIPI/vLOA Interactive
+- [`history/revisione-totale-3/allineamento-documenti.md`](history/revisione-totale-3/allineamento-documenti.md) — d16 — Allineamento delle sezioni fra documenti (terzo giro di revisione)
+- [`history/revisione-totale-3/design-responsive.md`](history/revisione-totale-3/design-responsive.md) — Revisione 3 · d12 — Pagine, CSS responsive: che cosa controllare dal vivo
+- [`history/revisione-totale-3/matrice-scritture.md`](history/revisione-totale-3/matrice-scritture.md) — Matrice delle scritture — revisione 3, dimensione d01 (identità e accesso)
+- [`history/revisione-totale-3/prove-di-rottura.md`](history/revisione-totale-3/prove-di-rottura.md) — Prove di rottura consigliate — tema «un utente può rompere il sito?» (rev3, d15)
 - [`history/rounds.md`](history/rounds.md) — Changelog dei round (cronologico)
 
 ### `(radice)`

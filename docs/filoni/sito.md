@@ -139,5 +139,19 @@
   CI verde su `sito/lavori` (corse 35973468894, 35974009415). Nessuna migrazione. Nel pacchetto: `Vipi.Ui.dll`
   (SearchPage). Resta all'integratore: fondere, la frase nuova in `deploy/atc-ivao/LEGGIMI-AGGIORNARE-VIA-FTP.md` e
   nel foglio del prossimo pacchetto, voce §A in `lavori-aperti.md`.
-- ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Nessun lavoro aperto noto nel filone; guardare `da-fare.md`.
+- ✅ **S9** revisione totale, terzo giro (chiesta dal committente il 26-set sera, chiusa il 27-set). Registro
+  [`docs/history/audit-2026-09-26-revisione-totale-3.md`](../history/audit-2026-09-26-revisione-totale-3.md) con gli
+  allegati in `docs/history/revisione-totale-3/`: **256 findings U-001…U-256, 0 S1, 18 S2**, 5 confutati.
+  - Base su `e24557e` (1.46.5): build 0 avvisi, 14 874 test verdi, nessun pacchetto vulnerabile; `sql_mode` di
+    produzione è strict (letto dalla Diagnostica).
+  - Workflow a 17 dimensioni + verificatori; tre stop sul limite di sessione, completato a pezzi: 6 dimensioni
+    senza verificatore (marcate NV, gli S2 riletti a mano).
+  - Dal vivo su due copie del DB di produzione (MariaDB locale, uscite spente), produzione in sola lettura:
+    riprodotti 9 S2 (backfill che ripubblica la bozza, schede che si sovrascrivono, riga incompleta, testo oltre
+    32 KB perso, doppio clic che uccide Struttura e «Pubblica ora», vista rapida FL100 → «10000 ft», archivio API
+    aperto). Design misurato a 375/768/1024 px.
+  - ⚠️ **U-009 ha una scadenza**: il 1-ott 00:00Z la release programmata #187 di LIBV_APP (9-set) sostituisce la
+    #423 in vigore. Gesto in produzione prima di quella data (lotto L0 del registro).
+  - Nessun codice cambiato: le correzioni vanno per lotti (L0…L11), col via del committente.
+- ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
