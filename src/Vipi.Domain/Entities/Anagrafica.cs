@@ -749,6 +749,15 @@ public class AirportProcedure
     /// dati si sono mossi. Il calcolo sta tutto in <c>SidStampCycle</c>.</para>
     /// </summary>
     public string? SourceAiracCycle { get; set; }
+    /// <summary>
+    /// Ciclo AIRAC (YYNN) <b>dal quale la riga non vale più</b>: null = vale finché la sorgente la manda.
+    /// <para>🔴 U-003 (revisione totale 3): quando la sorgente dichiara il ciclo nuovo e rivede o toglie una
+    /// procedura, la versione in vigore NON si cancella — resta, «sostituita dal» ciclo nuovo, fino a quel ciclo.
+    /// Prima spariva subito, e la nuova aspettava il suo ciclo: in mezzo, niente (LIMF, TOP1B, 25 settembre
+    /// 2026). La scrive solo l'import; <c>SidRow.IsPublicAt</c> la nasconde da quel ciclo in poi, e l'import la
+    /// toglie quando la sorgente dichiara un ciclo successivo.</para>
+    /// </summary>
+    public string? SupersededFromCycle { get; set; }
     /// <summary>Forzatura manuale della pubblicazione di una riga importata: scavalca l'attesa del ciclo d'entrata.</summary>
     public bool ForcePublished { get; set; }
     /// <summary>Fix non risolto automaticamente dal parser (prefisso troncato irregolare): da completare a mano.</summary>

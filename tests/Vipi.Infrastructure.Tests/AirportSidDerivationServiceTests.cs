@@ -41,6 +41,23 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     private static ImportedProcedure Imp(string name, string fix, string key) =>
         new(Runway: "07", Fix: fix, Name: name, Transition: null, Type: "RNAV", StableKey: key, NeedsFixReview: false);
 
+    /// <summary>
+    /// 🔴 U-003 (revisione totale 3), la prova scritta nella scheda: la TOP1B importata al 2609 e rivista dal
+    /// changelog del 2610. Fino al 27 settembre 2026 la tabella del 2609 restava VUOTA — la vecchia cancellata, la
+    /// nuova in attesa — e una release che congelava la sezione in quei giorni la congelava senza la procedura.
+    /// </summary>
+    [Fact]
+    public async Task Fra_il_changelog_e_il_ciclo_nuovo_la_procedura_rivista_non_sparisce()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid,
+            new[] { Imp("TOP1B", "TOPIS", "LIRF|TOP|B||07") }, "2609");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid,
+            new[] { Imp("TOP2B", "TOPIS", "LIRF|TOP|B||07") }, "2610");
+
+        Assert.Equal("TOP1B", Assert.Single((await _sut.DeriveAsync("LIRF", ProcedureKind.Sid, "2609")).Rows).Name);
+        Assert.Equal("TOP2B", Assert.Single((await _sut.DeriveAsync("LIRF", ProcedureKind.Sid, "2610")).Rows).Name);
+    }
+
     // --- I due versi: stessa derivazione, tabelle separate ---------------------------------------------
 
     [Fact]

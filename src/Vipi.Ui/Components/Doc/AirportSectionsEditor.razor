@@ -643,11 +643,13 @@ else
         // stessa proiezione andrebbero tenute allineate a mano per sempre.
         var cyc = Airac.GetCycle(DateTime.UtcNow);
         _sids = _data.Sids.Where(s => !s.IsImported).Select(s => Manuale(s, cyc)).ToList();
-        _imported = _data.Sids.Where(s => s.IsImported).OrderBy(s => s.Fix)
+        // ⚠️ Le versioni sostituite (U-003) no: valgono fino al ciclo nuovo sulla pagina pubblica, ma non si
+        // modifica una riga che sta per scadere — le decisioni si prendono sulla versione nuova.
+        _imported = _data.Sids.Where(s => s.IsImported && !s.IsSuperseded).OrderBy(s => s.Fix)
             .ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
             .Select(s => Importata(s, cyc)).ToList();
         _stars = _data.Stars.Where(s => !s.IsImported).Select(s => Manuale(s, cyc)).ToList();
-        _starsImported = _data.Stars.Where(s => s.IsImported).OrderBy(s => s.Fix)
+        _starsImported = _data.Stars.Where(s => s.IsImported && !s.IsSuperseded).OrderBy(s => s.Fix)
             .ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
             .Select(s => Importata(s, cyc)).ToList();
         // ⚠️ La selezione e le righe non salvate NON si azzerano qui: le possiede <AirportSidsEditor>, che

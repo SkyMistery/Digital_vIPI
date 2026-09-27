@@ -705,6 +705,10 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<string>("SupersededFromCycle")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<string>("Transition")
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");

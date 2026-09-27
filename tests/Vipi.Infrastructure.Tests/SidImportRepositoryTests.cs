@@ -60,12 +60,16 @@ public class SidImportRepositoryTests : IAsyncLifetime
             Imp("ALAX7J", "ALAXI", "LIRF|ALAXI|J|"),
         }, "2607");
 
-        var afterSecond = (await _repo.LoadAsync("LIRF"))!.Sids;
+        // La 7G resta come versione sostituita dal 2607 (U-003): le righe vive sono ancora tre.
+        var afterSecond = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => !s.IsSuperseded).ToList();
         Assert.Equal(3, afterSecond.Count);
+        Assert.Equal("ALAX7G", Assert.Single((await _repo.LoadAsync("LIRF"))!.Sids, s => s.IsSuperseded).Name);
         Assert.Single(afterSecond, s => !s.IsImported && s.Name == "OST7A");         // manuale intatta
         var g2 = afterSecond.Single(s => s.Name == "ALAX8G");
         Assert.Equal(1, g2.Priority);                                        // priorità mantenuta
-        Assert.True(g2.ForcePublished);                                      // forzatura mantenuta
+        // La forzatura no: la 7G resta in vigore fino al 2607 come sostituita, e la 8G forzata uscirebbe insieme a
+        // lei (U-003). La forzatura passa solo quando la vecchia non resta — vedi il test qui sotto.
+        Assert.False(g2.ForcePublished);
         Assert.Equal("2607", g2.SourceAiracCycle);
         var j2 = afterSecond.Single(s => s.Name == "ALAX7J");
         Assert.Null(j2.Priority);                                            // l'altra resta senza priorità
@@ -176,6 +180,131 @@ public class SidImportRepositoryTests : IAsyncLifetime
         Assert.Equal("4000", dopo.InitialClimb);
         Assert.Equal("M, H", dopo.Wtc);
         Assert.Equal("2606", dopo.SourceAiracCycle);
+    }
+
+    private static readonly Vipi.Domain.Services.AiracService Airac = new();
+
+    private async Task<List<SidRow>> Importate() =>
+        (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).ToList();
+
+    /// <summary>
+    /// 🔴 U-003 (revisione totale 3): fra il changelog del ciclo nuovo e la sua entrata in vigore, una procedura
+    /// rivista SPARIVA: la vecchia cancellata, la nuova in attesa del suo ciclo. Successo il 25 settembre 2026 a
+    /// LIMF con le TOP1B: fino al 1° ottobre il vSOP pubblico non le aveva. Ora la versione in vigore resta,
+    /// «sostituita dal ciclo» nuovo, e ognuna delle due si vede nel suo tratto.
+    /// </summary>
+    [Fact]
+    public async Task La_versione_in_vigore_resta_finche_non_entra_la_nuova()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            new ImportedProcedure("36", "TOPIS", "TOP1B-AST8L", "ASTIG", "RNAV", "LIRF|TOP|B|ASTIG|36", false),
+        }, "2609");
+
+        // Il changelog del 2610 rivede la SID: stessa chiave, contenuto nuovo, ciclo d'entrata futuro.
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            new ImportedProcedure("36", "TOPIS", "TOP2B-AST8L", "ASTIG", "RNAV", "LIRF|TOP|B|ASTIG|36", false),
+        }, "2610");
+
+        var righe = await Importate();
+        Assert.Equal(2, righe.Count);
+        var al2609 = Assert.Single(righe, s => s.IsPublicAt("2609", Airac));
+        Assert.Equal("TOP1B-AST8L", al2609.Name);
+        Assert.Equal("2610", al2609.SupersededFromCycle);
+        var al2610 = Assert.Single(righe, s => s.IsPublicAt("2610", Airac));
+        Assert.Equal("TOP2B-AST8L", al2610.Name);
+    }
+
+    /// <summary>
+    /// La forzatura passa alla revisione nuova solo quando la vecchia non resta: una correzione dentro lo stesso
+    /// ciclo sostituisce e basta, e la decisione dello staff vale per la riga che c'è.
+    /// </summary>
+    [Fact]
+    public async Task Correzione_dentro_il_ciclo_tiene_la_forzatura_e_non_lascia_la_vecchia()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+        var g = Assert.Single(await Importate());
+        await _repo.UpdateImportedSidAsync(g.Id, priority: null, forcePublished: true, resolvedFix: null,
+            initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX8G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+
+        var dopo = Assert.Single(await Importate());
+        Assert.Equal("ALAX8G", dopo.Name);
+        Assert.True(dopo.ForcePublished);
+    }
+
+    /// <summary>Una procedura che la sorgente del ciclo nuovo non ha più vale ancora fino a quel ciclo.</summary>
+    [Fact]
+    public async Task Una_procedura_tolta_dalla_sorgente_vale_fino_al_ciclo_nuovo()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07"), Imp("ALAX7J", "ALAXI", "LIRF|ALAX|J||07"),
+        }, "2609");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07"),
+        }, "2610");
+
+        var j = Assert.Single(await Importate(), s => s.Name == "ALAX7J");
+        Assert.Equal("2610", j.SupersededFromCycle);
+        Assert.True(j.IsPublicAt("2609", Airac));
+        Assert.False(j.IsPublicAt("2610", Airac));
+    }
+
+    /// <summary>
+    /// Se la riga era entrata nello STESSO ciclo che la sorgente dichiara adesso, era una correzione dentro il
+    /// ciclo: si toglie subito, come prima. E le sostituite si tolgono quando la sorgente dichiara un ciclo DOPO
+    /// quello da cui erano sostituite: a quel punto non servono più a nessun ciclo.
+    /// </summary>
+    [Fact]
+    public async Task Le_sostituite_scadute_si_tolgono()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7J", "ALAXI", "LIRF|ALAX|J||07") }, "2609");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+        Assert.Equal(2, (await Importate()).Count);
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+        Assert.Equal(2, (await Importate()).Count);   // stesso ciclo: la sostituita serve ancora
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2611");
+        Assert.Equal("ALAX7G", Assert.Single(await Importate()).Name);
+
+        // Correzione dentro il ciclo: una riga entrata al 2611 e tolta mentre la sorgente dichiara ancora il 2611
+        // non resta.
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07"), Imp("OST1E", "OST", "LIRF|OST|E||07"),
+        }, "2611");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2611");
+        Assert.Equal("ALAX7G", Assert.Single(await Importate()).Name);
+    }
+
+    /// <summary>
+    /// 🔴 Anche U-005: una riga malformata per un giro (TOP1B LAG2L, 25 settembre) spariva con tutti i suoi
+    /// arricchimenti. Ora resta come sostituita e, se la sorgente la rimanda, si riprende le sue decisioni.
+    /// </summary>
+    [Fact]
+    public async Task Una_riga_che_torna_si_riprende_le_sue_decisioni()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7J", "ALAXI", "LIRF|ALAX|J||07") }, "2609");
+        var j = Assert.Single(await Importate());
+        await _repo.UpdateImportedSidAsync(j.Id, priority: 2, forcePublished: false, resolvedFix: null,
+            initialClimb: "FL70", initialClimbByApp: false, cat: null, wtc: "L, M", condition: null);
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07"), Imp("ALAX7J", "ALAXI", "LIRF|ALAX|J||07"),
+        }, "2610");
+
+        var tornata = Assert.Single(await Importate(), s => s.Name == "ALAX7J");
+        Assert.Null(tornata.SupersededFromCycle);
+        Assert.Equal(2, tornata.Priority);
+        Assert.Equal("FL70", tornata.InitialClimb);
+        Assert.Equal("2609", tornata.SourceAiracCycle);
     }
 
     [Fact]

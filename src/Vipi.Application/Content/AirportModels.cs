@@ -61,8 +61,13 @@ public sealed record SidRow(int Id, string? Runway, string Fix, string Name, str
     bool IsImported = false, int? Priority = null, string? StableKey = null,
     string? SourceAiracCycle = null, bool ForcePublished = false, bool NeedsFixReview = false,
     bool InitialClimbByApp = false, bool IsHidden = false,
-    string? FixOverride = null, string? TransitionOverride = null)
+    string? FixOverride = null, string? TransitionOverride = null,
+    string? SupersededFromCycle = null)
 {
+    /// <summary>La versione vecchia di una procedura rivista o tolta dalla sorgente, che vale fino al ciclo nuovo
+    /// (U-003). Gli editor non la mostrano: non si modifica una riga che sta per scadere.</summary>
+    public bool IsSuperseded => !string.IsNullOrWhiteSpace(SupersededFromCycle);
+
     /// <summary>Il punto che si PUBBLICA: quello corretto a mano, se c'è, altrimenti quello di sorgente.</summary>
     public string EffectiveFix => string.IsNullOrWhiteSpace(FixOverride) ? Fix : FixOverride!.Trim();
 
@@ -85,6 +90,15 @@ public sealed record SidRow(int Id, string? Runway, string Fix, string Name, str
     /// </summary>
     public bool IsPublicAt(string currentCycle, Vipi.Domain.Services.IAiracService airac)
     {
+        // 🔴 Prima della forzatura: una versione sostituita dal ciclo nuovo non vale più, forzata o no (U-003).
+        if (IsImported && IsSuperseded)
+        {
+            try
+            {
+                if (airac.EffectiveUtcForCycle(currentCycle) >= airac.EffectiveUtcForCycle(SupersededFromCycle!)) return false;
+            }
+            catch (ArgumentException) { return false; }   // un ciclo illeggibile non tiene in vita una versione vecchia
+        }
         if (!IsImported || ForcePublished) return true;
         if (string.IsNullOrWhiteSpace(SourceAiracCycle)) return true;   // sicurezza: senza ciclo sorgente non nascondere
         try { return airac.EffectiveUtcForCycle(currentCycle) >= airac.EffectiveUtcForCycle(SourceAiracCycle); }

@@ -318,5 +318,32 @@
   - **Prova dal vivo** (copia del DB, :5199): migrazione applicata all'avvio; editor LICG, DOBI7C «fix da
     verificare» → battuto DOBIX, spuntato «alias», «Fine modifica» → in archivio l'alias `DOBI → DOBIX` con scalo
     `LICG`, la riga risolta; Sorgenti mostra la riga con la colonna Airport. Zero `fail:`.
+  - ⚠️ La CI di S15 è stata rossa per un **test mio di S12**, intermittente: `Due_clic_ravvicinati_sulle_righe_…`
+    (net10) cercava il tasto e poi cliccava, e in mezzo un render da un altro thread cambiava l'albero
+    («no event handler with ID»). Ricerca e clic ora stanno dentro `cut.InvokeAsync`, anche nei tre test della
+    Struttura, che avevano la stessa forma. Riverificati rossi sul codice di prima di L3. Correzione in S16.
+- ✅ **S16** lotto L4, fetta D: **U-003**, fra il changelog del ciclo nuovo e la sua entrata in vigore una procedura
+  rivista non sparisce più. **Migrazione sì** (`ProcedureSostituite`, SQLite e MySQL: una `AddColumn`). **Codice
+  comune toccato**: `Vipi.Domain` (`AirportProcedure.SupersededFromCycle`) e `Vipi.Application`
+  (`SidRow.SupersededFromCycle`, `IsSuperseded`, `IsPublicAt`).
+  - Prima: il reimport cancellava tutte le importate, la revisione nuova prendeva il ciclo dichiarato (spesso il
+    prossimo) e `IsPublicAt` la nascondeva fino ad allora. In mezzo, niente (LIMF, TOP1B, 25 settembre). Ora la
+    versione in vigore resta in archivio **sostituita dal** ciclo dichiarato, con tutte le sue decisioni; ognuna delle
+    due si vede nel suo tratto. Vale anche per le righe che la sorgente non manda più. Regole
+    (`EfAirportRepository.ConservaVersioneVecchia`): si tiene se era entrata PRIMA del ciclo dichiarato (entrata nello
+    stesso ciclo è una correzione dentro il ciclo, e si toglie come prima); una già sostituita si toglie quando la
+    sorgente dichiara un ciclo successivo. Una riga che la sorgente rimanda si riprende la sua versione sostituita,
+    con le decisioni (è anche l'altra metà di U-005: la TOP1B LAG2L malformata per un giro).
+  - ⚠️ **La forzatura non passa più** a una revisione nuova quando la vecchia resta: dal vivo, a LIRN, ALAX7G forzata
+    usciva insieme ad ALAX6G ancora in vigore (due SID dello stesso punto e pista). Passa ancora nella correzione
+    dentro il ciclo. Due test vecchi dicevano «la forzatura segue la revisione»: adeguati, e spiegato perché.
+  - Gli editor (aeroporto e vSOP militare) non mostrano le versioni sostituite: valgono solo sulla pagina pubblica.
+  - **Test**: Infrastructure 1636 → **1642**. Rossi con la conservazione spenta: versione in vigore fino al ciclo
+    nuovo (anche dalla scheda, come la prova scritta nella registro), riga tolta dalla sorgente, sostituite scadute,
+    riga che torna; più la forzatura nella correzione dentro il ciclo.
+  - **Prova dal vivo** (copia del DB, oggi ciclo 2609, sorgente che dichiara 2610): simulate a LIRF e LIRN una
+    revisione vecchia (XIB4A-OKU5R, ALAX6G) e una riga sparita dalla sorgente (ZZZZ1A). Dopo l'import: le due
+    vecchie «sostituite dal 2610», le nuove dal 2610, le altre 2354 righe identiche. Editor LIRF: solo XIB5A-OKU5R,
+    col WTC ereditato, «dal 2610». Pagina pubblica LIRN, pista 06: ALAX6G e ZZZZ1A sì, ALAX7G no. Zero `fail:`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

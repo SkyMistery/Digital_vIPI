@@ -621,11 +621,13 @@ else
         // Partenze e arrivi passano per le stesse due funzioni — e' la stessa riga, con un verso diverso.
         var ciclo = Airac.GetCycle(DateTime.UtcNow);
         _sids = dati.Sids.Where(x => !x.IsImported).Select(x => Manuale(x, ciclo)).ToList();
-        _sidsImportate = dati.Sids.Where(x => x.IsImported)
+        // ⚠️ Le versioni sostituite (U-003) restano fuori dall'editor: valgono solo sulla pagina pubblica, fino
+        // al ciclo nuovo.
+        _sidsImportate = dati.Sids.Where(x => x.IsImported && !x.IsSuperseded)
             .OrderBy(x => x.Fix).ThenBy(x => x.Priority ?? int.MaxValue).ThenBy(x => x.Name)
             .Select(x => Importata(x, ciclo)).ToList();
         _stars = dati.Stars.Where(x => !x.IsImported).Select(x => Manuale(x, ciclo)).ToList();
-        _starsImportate = dati.Stars.Where(x => x.IsImported)
+        _starsImportate = dati.Stars.Where(x => x.IsImported && !x.IsSuperseded)
             .OrderBy(x => x.Fix).ThenBy(x => x.Priority ?? int.MaxValue).ThenBy(x => x.Name)
             .Select(x => Importata(x, ciclo)).ToList();
     }
