@@ -975,6 +975,36 @@ public sealed class SessioneDelLab
     }
 
     /// <summary>
+    /// Scrive la correzione che il validatore propone per un problema (lotto «Subito» slice 2c: coordinate scritte male)
+    /// al posto della sua riga, come una riga scritta a mano. La riga si cerca nel file di ADESSO; se nel frattempo è
+    /// cambiata, la correzione non si scrive: era per quella di prima.
+    /// </summary>
+    public bool Correggi(ProblemaNelLab problema)
+    {
+        ArgumentNullException.ThrowIfNull(problema);
+        if (problema.Problema.Proposta is not { } proposta)
+        {
+            Rifiuto = "Per questo problema non c'è una correzione proposta.";
+            Avvisa();
+            return false;
+        }
+
+        int? riga = ProblemiDellAlbero.Contains(problema)
+            ? RigaDiAdesso(problema.File, problema.Problema.Riga)
+            : problema.Problema.Riga;
+        var adesso = RigheDiAdesso(problema.File);
+        if (riga is not { } numero || numero < 1 || numero > adesso.Count || adesso[numero - 1] != problema.Problema.Testo)
+        {
+            Rifiuto = $"La riga {problema.Problema.Riga} è già cambiata fra le modifiche in sospeso: la correzione era per quella di prima.";
+            Avvisa();
+            return false;
+        }
+
+        return NellaStoria($"riga {numero} di {NomeDelFile(problema.File)} corretta ({problema.Problema.Regola})",
+            () => CambiaRigaAManoAdesso(problema.File, numero, proposta));
+    }
+
+    /// <summary>
     /// Sposta sopra la sua riga il commento in coda (lotto «Subito» slice 2a, «file per file» §C): quello della riga
     /// <paramref name="riga"/> (da 1, nel file com'è adesso), o tutti quelli del file se è null. Una voce sola nelle
     /// modifiche, che si annulla come una riga scritta a mano.

@@ -127,7 +127,13 @@ foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDi
 Console.WriteLine($"<br> NEL MODELLO (record per nome e misti): {brNelleRighe} nelle righe, {brDalModello} dal modello, " +
     $"{recordConBrDiversi} record diversi");
 
-var opache = avvisi.Snapshot();
+// Solo i file dell'albero, una volta sola: le misure che rileggono un file (commenti spostati, slice 2a) o una sua
+// copia temporanea riportano gli stessi avvisi, e non sono righe opache in più.
+string cartellaTemporanea = Path.GetTempPath();
+var opache = avvisi.Snapshot()
+    .Where(a => !a.Source.StartsWith(cartellaTemporanea, StringComparison.OrdinalIgnoreCase))
+    .DistinctBy(a => (a.Source, a.LineNumber, a.Message))
+    .ToList();
 Console.WriteLine($"\nRIGHE OPACHE (avvisi del lettore): {opache.Count}");
 foreach (var gruppo in opache
     .GroupBy(a => $"{Path.GetExtension(a.Source),-8} {Regex.Replace(a.Message, "[0-9]+", "#")}")
@@ -362,6 +368,51 @@ Console.WriteLine("\nERRORI, uno per uno:");
 foreach (var p in problemiDelSector.Where(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore).Take(300))
 {
     Console.WriteLine($"  {p.File}:{p.Riga}  {p.Regola}  {p.Dettaglio}");
+}
+
+// Le correzioni proposte (lotto «Subito» slice 2c): applicate a una copia del file, le righe corrette non devono avere
+// più problemi di coordinate, e il lettore deve capirle tutte.
+var conProposta = problemiDelSector.Where(p => p.Proposta is not null).ToList();
+int righeCorrette = 0, righeAncoraStorte = 0;
+foreach (var perFile in conProposta.GroupBy(p => p.File))
+{
+    string originale = Path.Combine(cartellaSectorFiles, perFile.Key);
+    var lettura = SectorFileReader.Read(originale);
+    var righe = lettura.Lines.ToList();
+    var corrette = perFile.GroupBy(p => p.Riga).ToDictionary(g => g.Key, g => g.First().Proposta!);
+    foreach (var (riga, proposta) in corrette)
+    {
+        righe[riga - 1] = proposta;
+    }
+
+    string copia = Path.Combine(Path.GetTempPath(), "sectorfile-correzioni-" + Guid.NewGuid().ToString("N") + Path.GetExtension(originale));
+    try
+    {
+        File.WriteAllText(copia, string.Join(lettura.NewLine, righe) + (lettura.HasFinalNewLine ? lettura.NewLine : ""), lettura.Encoding);
+        var dopo = Vipi.Sectorfile.Validazione.Validatore.ValidaIlFile(copia, perFile.Key);
+        foreach (int riga in corrette.Keys)
+        {
+            bool storta = dopo.Any(p => p.Riga == riga && p.Regola is not (Vipi.Sectorfile.Validazione.Regola.CommentoInCoda
+                or Vipi.Sectorfile.Validazione.Regola.TagNonValido or Vipi.Sectorfile.Validazione.Regola.TagFuoriCatalogo));
+            righeCorrette += storta ? 0 : 1;
+            righeAncoraStorte += storta ? 1 : 0;
+            if (storta)
+            {
+                Console.WriteLine($"  ancora storta: {perFile.Key}:{riga} «{corrette[riga]}»");
+            }
+        }
+    }
+    finally
+    {
+        File.Delete(copia);
+    }
+}
+
+Console.WriteLine($"\nCORREZIONI PROPOSTE: {conProposta.Count} problemi con la proposta, su {conProposta.Select(p => (p.File, p.Riga)).Distinct().Count()} righe; " +
+    $"applicate a una copia, {righeCorrette} righe tornano pulite, {righeAncoraStorte} no");
+foreach (var gruppo in conProposta.GroupBy(p => p.Regola).OrderBy(g => g.Key))
+{
+    Console.WriteLine($"  {gruppo.Count(),5}  {gruppo.Key,-24} es. {gruppo.First().File}:{gruppo.First().Riga} «{gruppo.First().Testo.Trim()}» → «{gruppo.First().Proposta}»");
 }
 
 // I file e gli .isc (lotto «Subito» slice 2b): uno per uno, col dettaglio — sono pochi, e sono la lista per gli AOD.

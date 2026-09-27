@@ -73,9 +73,20 @@ public static partial class Validatore
             }
 
             int prima = problemi.Count;
+            // La correzione proposta (lotto «Subito» slice 2c): la riga con le coordinate scritte giuste, se si sa. Non
+            // per DMS e decimale mescolati (quale dei due vale?).
+            string? proposta = null;
+            bool calcolata = false;
             foreach (var (regola, dettaglio) in RegoleDeiCampi(righe[i], estensione))
             {
-                problemi.Add(new(regola, relativo, i + 1, righe[i], dettaglio));
+                if (!calcolata)
+                {
+                    proposta = CorrezioneDelleCoordinate.DellaRiga(righe[i], estensione);
+                    calcolata = true;
+                }
+
+                problemi.Add(new(regola, relativo, i + 1, righe[i], dettaglio,
+                    regola is Regola.DmsEDecimaleMescolati ? null : proposta));
             }
 
             if (problemi.Count > prima)
@@ -156,6 +167,33 @@ public static partial class Validatore
                 if (char.IsLower(c[0]))
                 {
                     yield return (Regola.EmisferoMinuscolo, $"«{c}»");
+                }
+
+                // La forma (lotto «Subito» slice 2c): dieci cifre nel compatto, tre nei gradi col punto. Il motore (e
+                // vIPI) legge il compatto da DESTRA: con una cifra in meno il valore è giusto solo se manca lo zero dei
+                // gradi (`E103441000` = E010.34.41); se i gradi ci sono tutti (`N041131620`, MIL.fix:14) manca una cifra
+                // in fondo, e si legge N004.11.31 — in Africa. Con una cifra in più si legge sempre altrove.
+                if (c[1..].All(char.IsAsciiDigit))
+                {
+                    string letta = char.ToUpperInvariant(c[0]) is 'N' or 'S'
+                        ? CoordinateConverter.LatitudeToDottedDms(CoordinateConverter.Parse(c).LatitudeDeg)
+                        : CoordinateConverter.LongitudeToDottedDms(CoordinateConverter.Parse(c).LongitudeDeg);
+                    if (c.Length - 1 < 10 && c[1] != '0')
+                    {
+                        yield return (Regola.CoordinataFuoriForma, $"«{c}»: {c.Length - 1} cifre invece di 10 (manca lo zero dei gradi): si legge {letta}");
+                    }
+                    else if (c.Length - 1 < 10)
+                    {
+                        yield return (Regola.CoordinataLettaAltrove, $"«{c}»: {c.Length - 1} cifre invece di 10 — i gradi ci sono, manca una cifra in fondo: si legge {letta}");
+                    }
+                    else if (c.Length - 1 > 10)
+                    {
+                        yield return (Regola.CoordinataLettaAltrove, $"«{c}»: {c.Length - 1} cifre invece di 10 — si legge {letta}, ma non si sa quale cifra è di troppo");
+                    }
+                }
+                else if (c[1..].Split('.')[0].Length < 3)
+                {
+                    yield return (Regola.CoordinataFuoriForma, $"«{c}»: gradi senza lo zero davanti");
                 }
 
                 string[] parti = c[1..].Split('.');

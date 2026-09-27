@@ -108,6 +108,20 @@ public enum Regola
 
     /// <summary>Un file senza una riga di dati (<c>ACC\test.artcc</c>, incluso da <c>ITALY.isc</c>: A9).</summary>
     FileVuoto,
+
+    /// <summary>
+    /// Una coordinata che si legge col suo valore ma non ha la forma giusta (lotto «Subito» slice 2c): gradi senza lo
+    /// zero davanti (<c>E12.30.18.200</c>), un compatto con una cifra in meno (<c>E103441000</c>). Con la proposta.
+    /// </summary>
+    CoordinataFuoriForma,
+
+    /// <summary>
+    /// Un compatto che il motore e vIPI leggono in un altro punto, perché lo leggono da destra (lotto «Subito» slice 2c):
+    /// con una cifra in più (<c>E01221856000</c> in <c>lirf.vfi</c> e <c>VFR_NASCOSTI.fix</c> = E122.18.56, in Asia; quale
+    /// cifra è di troppo non si sa, nessuna proposta), o con una in meno in fondo (<c>N041131620</c> in <c>MIL.fix</c> =
+    /// N004.11.31, in Africa; proposta N0411316200).
+    /// </summary>
+    CoordinataLettaAltrove,
 }
 
 public enum Gravita
@@ -116,8 +130,12 @@ public enum Gravita
     Avviso,
 }
 
-/// <summary>Un problema del sector: la regola, il file (relativo alla cartella del sector), la riga (da 1) e il suo testo.</summary>
-public sealed record ProblemaDelSector(Regola Regola, string File, int Riga, string Testo, string Dettaglio)
+/// <summary>
+/// Un problema del sector: la regola, il file (relativo alla cartella del sector), la riga (da 1) e il suo testo. La
+/// <paramref name="Proposta"/> è la riga corretta, quando il validatore la sa (lotto «Subito» slice 2c: le coordinate
+/// scritte male); il Lab la scrive solo se l'AOD la sceglie.
+/// </summary>
+public sealed record ProblemaDelSector(Regola Regola, string File, int Riga, string Testo, string Dettaglio, string? Proposta = null)
 {
     public Gravita Gravita => Regole.Gravita(Regola);
 }
@@ -130,7 +148,7 @@ public static class Regole
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
             or Regola.CopieDiverse or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
             or Regola.CommentoInCoda or Regola.FileCitatoAssente or Regola.FileInclusoDueVolte
-            or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto => Validazione.Gravita.Avviso,
+            or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

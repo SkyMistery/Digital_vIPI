@@ -23,9 +23,21 @@
         Sposta sopra i commenti di @Problema.Nome
     </button>
 }
+else if (Problema.Problema.Proposta is { } proposta)
+{
+    <div class="lab-gesto-del-problema" data-proposta="@Problema.Problema.Riga">
+        <code class="lab-riga-aggiunta">@proposta</code>
+        <button class="lab-tasto lab-tasto-tenue" @onclick="Correggi" data-tasto="correggi"
+                title="La riga diventa questa: una voce nelle modifiche, si annulla">
+            Correggi la riga
+        </button>
+    </div>
+}
 
 @code {
     [Parameter, EditorRequired] public ProblemaNelLab Problema { get; set; } = null!;
 
     private void SpostaSopra() => Lab.SpostaICommentiSopra(Problema.File);
+
+    private void Correggi() => Lab.Correggi(Problema);
 }

@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la **2a** e la **2b**; in corso la slice 2 (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); prossima la **slice 3** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -275,3 +275,34 @@ controllo degli `.isc` · **2c** coordinate scritte male con la correzione propo
   Albero: **117 errori** (−8: i percorsi sbagliati ora sono avvisi), **458 avvisi**. La prova sull'albero stampa ora
   «FILE E INCLUDE» uno per uno. Test rosso: con la gravità e le estensioni di prima 2 test nuovi su 5 cadono (gli
   altri tre sono regole nuove). Test: motore 587 → **592**, Lab **363**.
+- **2c (28 settembre)** — le coordinate scritte male e la **correzione proposta** (G3, L4, Q6, R3, F4). Misura prima
+  (forme dei token sul fork): il compatto giusto ha **10 cifre**; fuori forma sono 22 gradi a due cifre col punto
+  (`E12.30.18.200` 12 in `lirz.gts`, `N44.18.55.72` nei tre `.rw`, `lipz.str`, `lirn.vfi`), 14 frazioni di due o
+  quattro cifre, 4 compatti di lunghezza sbagliata, più i casi già segnalati (86 spazi al posto del `;`, trattino,
+  `n` minuscola, secondi a 60/72/75/99, 40 coppie decimali).
+  - Motore: `Validazione/CorrezioneDelleCoordinate.cs` (il token nella forma giusta; la riga intera con lo spazio
+    diventato `;` e la coppia decimale scritta in DMS, non nei `.txi`). Si propone solo quello che la riga dice già:
+    secondi a 60 → il minuto dopo (lo stesso punto), frazione arrotondata al millesimo, secondi a tre cifre col punto
+    scivolato (`E010.34.072.00` → `E010.34.07.200`); coi secondi a 75 o 99 niente. `ProblemaDelSector.Proposta` (la
+    riga corretta) su ogni problema di coordinate.
+  - 🔴 **Due punti letti altrove, in silenzio**: il motore e vIPI leggono il compatto **da destra** (concordanza 0
+    discordi: sbagliano uguale). `E01221856000` (`lirf.vfi:6` COLOMBO e `VFR_NASCOSTI.fix:399` RFS3, 11 cifre) si legge
+    **E122.18.56 — in Asia**; togliendo una cifra escono tre punti plausibili vicino a Fiumicino, quindi nessuna
+    proposta. `N041131620` (`MIL.fix:14` BV-VICTOR, 9 cifre coi gradi interi) si legge **N004.11.31 — in Africa**;
+    proposta `N0411316200` (N041.13.16.200). Regola nuova **`CoordinataLettaAltrove`, errore** (3 sul fork). Con 9
+    cifre senza lo zero davanti (`E103441000`, `lipx.vfi` GAZOLDO) il valore letto è giusto: **`CoordinataFuoriForma`,
+    avviso** (23 sul fork, coi gradi a due cifre), proposta la forma canonica.
+  - Lab: sotto la voce del pannello la riga proposta e **«Correggi la riga»** (`SessioneDelLab.Correggi`: la scrive come
+    una riga a mano, una voce, si annulla; se nel frattempo la riga è cambiata non la scrive).
+  - Prova sull'albero: **169 problemi con la proposta su 163 righe; applicate a una copia, 163 righe su 163 tornano
+    senza problemi**. Albero: **120 errori** (+3), **481 avvisi** (+23). Le righe opache della prova erano salite a 95:
+    la misura dei commenti spostati (2a) rileggeva il file e una sua copia col raccoglitore comune — ora la prova conta
+    solo i file dell'albero, una volta (93).
+  - Prova a schermo col banco (server del Lab su una copia di `SectorFiles`): voce di `MIL.fix:14` con la proposta in
+    verde, «Correggi la riga» → BV-VICTOR a N041.13.16.200, «riga 14 scritta a mano», nessun avviso introdotto.
+  - Test: motore 592 → **616**, Lab 363 → **366**. Rosso: le regole e la proposta sono nuove (il codice di prima non
+    compila i test); il rosso vero è sul fork — `E01221856000` e `N041131620` prima non davano nessun avviso.
+  - Resta di F4 (VFR, slice 16): la «riga con un campo in meno» di `lict.vfi` e la «forma diversa dal file» (R-7,
+    rimandata).
+
+**Slice 2 chiusa.** Da provare a mano (eseguibile ripubblicato): pannello, «Sposta sopra i commenti», «Correggi la riga».
