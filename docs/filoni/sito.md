@@ -345,5 +345,42 @@
     revisione vecchia (XIB4A-OKU5R, ALAX6G) e una riga sparita dalla sorgente (ZZZZ1A). Dopo l'import: le due
     vecchie «sostituite dal 2610», le nuove dal 2610, le altre 2354 righe identiche. Editor LIRF: solo XIB5A-OKU5R,
     col WTC ereditato, «dal 2610». Pagina pubblica LIRN, pista 06: ALAX6G e ZZZZ1A sì, ALAX7G no. Zero `fail:`.
+- ✅ **S17** lotto **L5 «Documenti uniti»** della revisione 3 (via del committente il 27-set): U-007, U-008, U-052.
+  **Nessuna migrazione**, niente `deploy/`. **Codice comune toccato**: `Vipi.Application` (`SezioniComuni`,
+  `EditingService`/`IEditingService.RimostraPrimaDiSeparareAsync`, `DocumentUnionService`: `SciogliAsync` e
+  `RimuoviMembroAsync` tornano `Task<int>`, costruttore con `IEditingService` facoltativo).
+  - **U-007** (la scheda «in comune» nascondeva nel vSOP sottoalberi che il civile non ha: procedure VFR/IFR,
+    soglie, carte militari): `SezioniComuni.Di` riceve il profilo di ogni documento; si propongono spuntate solo le
+    sezioni di DATI (`Host` nel catalogo e non nate nascoste). Le `HostAndBlocks` e quelle scritte a mano restano in
+    elenco, non spuntate. Una sezione si nasconde solo se tutto quel che ha sotto c'è anche in un documento che
+    resta; altrimenti resta visibile (e si rimostra, se la scheda di prima l'aveva nascosta: LIRP), e si nascondono
+    le sole figlie comuni. La scheda dice accanto alla voce «resta: ha sotto contenuti solo suoi» o «+N
+    sottosezioni con lei».
+  - Trovati dal vivo su LIBV e corretti nello stesso lavoro: (1) la scheda si apriva con **tutti e due** i documenti
+    spuntati, perché le STAR nate nascoste in entrambi contavano come «scheda già usata»: `DoveNascondere` ora
+    guarda solo l'impronta (nascosta qui, visibile là); (2) le STAR erano proposte spuntate, e «tenerle» nel civile le
+    MOSTRAVA: una sezione nata nascosta non è più proposta.
+  - **U-008** (sciogliere lasciava nascoste le sezioni comuni: LIRS e LIRL con tutte le radici nascoste, e il
+    prompt diceva «non si perde niente»): PRIMA di sciogliere, o quando esce uno della coppia vIPI/vSOP, si
+    rimettono visibili nelle bozze le sezioni nascoste in un documento e visibili nell'altro
+    (`SezioniComuni.DaRimostrare`). **Senza colonna nuova**, scelta mia: è l'impronta che lascia la scheda, vale anche
+    per le unioni fatte prima di oggi, e lascia stare le STAR nate nascoste e ciò che si è scelto di nascondere
+    dappertutto. Stessa porta di autorizzazione e lock della scheda: se manca un lock, l'unione resta in piedi.
+    Prompt di scioglimento e di uscita riscritti; a schermo il conto e «nelle pagine pubbliche tornano con la
+    prossima pubblicazione».
+  - **U-052** (un membro col lock di un collega riprovato a ogni render: prese, ricarichi, ridisegni in giro
+    continuo; non riprodotto dal vivo nemmeno dalla registro): `LockNegatiDeiMembri` ricorda i negati, che non si
+    riprovano fino a un gesto (Modifica, ricarico, un membro che entra o esce); l'ospite si avvisa solo se il
+    rifiuto è nuovo.
+  - **Test**: Application 2978 → **2986**, Ui 1737 → **1741** (net8 e net10). Rossi con le regole spente: il piano
+    dal catalogo vero (niente del vSOP sparisce se il civile non ce l'ha), la sezione con figlie solo sue, la
+    rimostrata di LIRP, le proposte solo di dati (e non le STAR), `DoveNascondere` con le STAR, `DaRimostrare`,
+    l'ordine nel servizio (si rimostra PRIMA di sciogliere, e l'uscita di un APP non tocca niente); il presidio su
+    `UnionMembersEditor` è rosso sul componente di prima.
+  - **Prova dal vivo** (copia del DB, unione 3 = vSOP e vIPI di LIBV): la scheda si apre con la sola vIPI spuntata;
+    STAR, frequenze, piste e le sezioni scritte a mano non spuntate; «Piste» dice «+1 sottosezioni» dal civile e
+    «resta» dal vSOP. «Hide» dal vSOP: 5 sezioni (METAR, quote, SID, regole piste, LVP), piste e STAR non toccate.
+    «Dissolve»: prompt nuovo, a schermo «5 sections … visible again in the drafts», in archivio le 5 di nuovo
+    visibili e le STAR nascoste in tutti e due. Zero `fail:`. U-052 non provato dal vivo.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

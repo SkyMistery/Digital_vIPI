@@ -271,6 +271,69 @@ public class DocumentUnionServiceTests
         Assert.Empty(vista.AltriDa(24));
     }
 
+    // ---- U-008 (revisione totale 3): separarsi rimette visibile quel che la scheda aveva nascosto --------------
+
+    /// <summary>Registra chi è stato chiamato a rimostrare, e se in quel momento l'unione c'era ancora.</summary>
+    public class EditingCheRimostra : System.Reflection.DispatchProxy
+    {
+        public RepoFintoPubblico? Repo { get; set; }
+        public List<(IReadOnlyList<int> Membri, bool UnioneAncoraLi)> Chiamate { get; } = new();
+
+        protected override object? Invoke(System.Reflection.MethodInfo? m, object?[]? a)
+        {
+            if (m!.Name != nameof(IEditingService.RimostraPrimaDiSeparareAsync))
+                throw new NotSupportedException(m.Name);
+            var membri = ((IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)>)a![0]!).Select(x => x.DocumentId).ToList();
+            Chiamate.Add((membri, Repo!.Righe().Count > 0));
+            return Task.FromResult(4);
+        }
+    }
+
+    /// <summary>La vista delle righe del repository finto, per un proxy pubblico.</summary>
+    public sealed class RepoFintoPubblico(Func<IReadOnlyList<UnionRow>> righe)
+    {
+        public IReadOnlyList<UnionRow> Righe() => righe();
+    }
+
+    private static (DocumentUnionService Servizio, RepoFinto Repo, EditingCheRimostra Editing) ConEditing(params ManagedDoc[] docs)
+    {
+        var authz = new AuthzFinta();
+        var repo = new RepoFinto { Authz = authz };
+        var editing = System.Reflection.DispatchProxy.Create<IEditingService, EditingCheRimostra>();
+        var e = (EditingCheRimostra)(object)editing;
+        e.Repo = new RepoFintoPubblico(() => repo.Righe.ToList());
+        return (new DocumentUnionService(repo, new DocsFinti(docs), authz, new BersagliFinti(docs), editing), repo, e);
+    }
+
+    [Fact]
+    public async Task Sciogliere_rimostra_PRIMA_e_dice_quante()
+    {
+        var (s, _, e) = ConEditing(Aeroporto(26, "LIRS"), VsopMil(24, "LIRS"));
+        var id = await s.UniscoAsync(26, 24);
+
+        Assert.Equal(4, await s.SciogliAsync(id));
+
+        var chiamata = Assert.Single(e.Chiamate);
+        Assert.Equal(new[] { 26, 24 }, chiamata.Membri);
+        Assert.True(chiamata.UnioneAncoraLi);   // prima: dopo non si saprebbe più chi erano i membri
+    }
+
+    [Fact]
+    public async Task Esce_uno_della_coppia_si_rimostra_esce_un_APP_no()
+    {
+        var (s, repo, e) = ConEditing(Aeroporto(26, "LIBV"), VsopMil(24, "LIBV"), App(3, "LIBV_APP"));
+        await s.UniscoAsync(26, 24);
+        await s.UniscoAsync(26, 3);
+
+        var app = repo.Righe.Single(r => r.DocumentId == 3).MemberId;
+        Assert.Equal(0, await s.RimuoviMembroAsync(app));
+        Assert.Empty(e.Chiamate);   // la coppia vIPI + vSOP resta: niente da rimostrare
+
+        var vsop = repo.Righe.Single(r => r.DocumentId == 24).MemberId;
+        Assert.Equal(4, await s.RimuoviMembroAsync(vsop));
+        Assert.Single(e.Chiamate);
+    }
+
     private static DocumentUnionService Servizio(out RepoFinto repo, params ManagedDoc[] docs) =>
         Servizio(out repo, new AuthzFinta(), docs);
 

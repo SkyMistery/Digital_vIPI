@@ -95,11 +95,13 @@ public interface IDocumentUnionService
     Task<int> UniscoAsync(int invitanteDocumentId, int invitatoDocumentId, CancellationToken ct = default);
 
     /// <summary>Toglie un membro. Se ne resta uno solo, l'unione si scioglie: unire un documento a sé stesso
-    /// non è uno stato che qualcuno abbia chiesto.</summary>
-    Task RimuoviMembroAsync(int memberId, CancellationToken ct = default);
+    /// non è uno stato che qualcuno abbia chiesto. Ritorna quante sezioni sono tornate visibili nelle bozze
+    /// (U-008): succede quando esce uno della coppia vIPI civile e vSOP militare.</summary>
+    Task<int> RimuoviMembroAsync(int memberId, CancellationToken ct = default);
 
-    /// <summary>Scioglie l'unione. I documenti tornano alle loro pagine, senza perdere niente.</summary>
-    Task SciogliAsync(int unionId, CancellationToken ct = default);
+    /// <summary>Scioglie l'unione. I documenti tornano alle loro pagine; le sezioni che la scheda delle comuni
+    /// aveva nascosto tornano visibili nelle bozze (U-008), e ne ritorna il numero.</summary>
+    Task<int> SciogliAsync(int unionId, CancellationToken ct = default);
 
     /// <summary>Sposta un membro di una posizione: <paramref name="delta"/> −1 su, +1 giù. Ai bordi non fa niente.</summary>
     Task SpostaAsync(int memberId, int delta, CancellationToken ct = default);
@@ -138,13 +140,19 @@ public sealed class DocumentUnionService : IDocumentUnionService
     private readonly IEditAuthorizationService _authz;
     private readonly IReleaseTargetRegistry _targets;
 
+    /// <summary>Chi rimette visibili le sezioni nascoste dalla scheda quando la coppia si separa (U-008).
+    /// Opzionale: senza, sciogliere fa quel che faceva prima.</summary>
+    private readonly IEditingService? _editing;
+
     public DocumentUnionService(IDocumentUnionRepository repo, IDocumentAdminRepository docs,
-                                IEditAuthorizationService authz, IReleaseTargetRegistry targets)
+                                IEditAuthorizationService authz, IReleaseTargetRegistry targets,
+                                IEditingService? editing = null)
     {
         _repo = repo;
         _docs = docs;
         _authz = authz;
         _targets = targets;
+        _editing = editing;
     }
 
     /// <summary>
@@ -240,20 +248,60 @@ public sealed class DocumentUnionService : IDocumentUnionService
                           .ConfigureAwait(false);
     }
 
-    public async Task RimuoviMembroAsync(int memberId, CancellationToken ct = default)
+    public async Task<int> RimuoviMembroAsync(int memberId, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
+
+        // Esce uno della coppia che si confronta (vIPI civile e vSOP militare): la coppia si rompe, e quel che la
+        // scheda aveva nascosto torna visibile in tutti e due. Esce un APP: la coppia resta, non si tocca niente.
+        var rimostrate = 0;
+        var tutte = await _repo.ListAsync(ct).ConfigureAwait(false);
+        if (tutte.FirstOrDefault(r => r.MemberId == memberId) is { } riga)
+        {
+            var membri = await FamiglieAsync(tutte.Where(r => r.UnionId == riga.UnionId).ToList(), ct).ConfigureAwait(false);
+            if (SezioniComuni.Confrontabili(membri).Contains(riga.DocumentId))
+                rimostrate = await RimostraAsync(membri, ct).ConfigureAwait(false);
+        }
+
         await _repo.RemoveMemberAsync(memberId, ct).ConfigureAwait(false);
         // ⚠️ «Un'unione con un membro solo non è un'unione»: se restasse, la pagina unita mostrerebbe un
         // documento sotto l'intestazione di un gruppo, e il redirect continuerebbe a esistere senza avere
         // dove mandare. La regola sta qui, nel dominio, non nella pagina che ha premuto il tasto.
         await _repo.TidyAsync(ct).ConfigureAwait(false);
+        return rimostrate;
     }
 
-    public async Task SciogliAsync(int unionId, CancellationToken ct = default)
+    public async Task<int> SciogliAsync(int unionId, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
+
+        // 🔴 U-008 (revisione totale 3): PRIMA di sciogliere, finché si sa chi erano i membri. Dopo, la pagina
+        // singola usciva monca — LIRS e LIRL avevano tutte le radici nascoste — e il prompt diceva «non si
+        // perde niente». Se il lock di un documento manca, qui si ferma tutto: meglio un'unione ancora in piedi
+        // che una pagina vuota.
+        var membri = await FamiglieAsync(await _repo.ByUnionAsync(unionId, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+        var rimostrate = await RimostraAsync(membri, ct).ConfigureAwait(false);
+
         await _repo.DissolveAsync(unionId, ct).ConfigureAwait(false);
+        return rimostrate;
+    }
+
+    private async Task<int> RimostraAsync(IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri,
+                                          CancellationToken ct) =>
+        _editing is null || SezioniComuni.Confrontabili(membri).Count == 0
+            ? 0
+            : await _editing.RimostraPrimaDiSeparareAsync(membri, ct).ConfigureAwait(false);
+
+    /// <summary>I membri con la loro famiglia, nell'ordine dell'unione: è quel che serve a dire chi si confronta.</summary>
+    private async Task<IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)>> FamiglieAsync(
+        IReadOnlyList<UnionRow> righe, CancellationToken ct)
+    {
+        if (righe.Count == 0) return Array.Empty<(int, ReleaseTargetType)>();
+        var descritti = await _docs.DescribeAsync(righe.Select(r => r.DocumentId).ToList(), ct).ConfigureAwait(false);
+        return righe.OrderBy(r => r.Order)
+            .Where(r => descritti.ContainsKey(r.DocumentId))
+            .Select(r => (r.DocumentId, descritti[r.DocumentId].ReleaseTarget))
+            .ToList();
     }
 
     public async Task SpostaAsync(int memberId, int delta, CancellationToken ct = default)

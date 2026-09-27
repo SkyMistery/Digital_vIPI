@@ -74,6 +74,16 @@ public interface IEditingService : IDocumentForReview
     Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn,
         IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri,
         IReadOnlyList<string> chiavi, CancellationToken ct = default);
+
+    /// <summary>
+    /// Prima che la coppia si separi (unione sciolta, o uno dei due che esce): rimette visibili, nelle bozze, le
+    /// sezioni che la scheda delle comuni aveva nascosto (<c>SezioniComuni.DaRimostrare</c>). Ritorna quante.
+    /// <para>🔴 U-008 (revisione totale 3): prima restavano nascoste, e la pagina singola usciva monca. Vuole il
+    /// <b>lock</b> di ogni documento toccato, come ogni scrittura; la pagina pubblica le mostra dopo la prossima
+    /// pubblicazione.</para>
+    /// </summary>
+    Task<int> RimostraPrimaDiSeparareAsync(IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri,
+        CancellationToken ct = default);
     /// <summary>Colloca una sotto-sezione PRIMA o dopo il corpo della sezione padre (doc 11 §3g): blocchi per una
     /// sezione editoriale, resa derivata per una strutturata. Fra loro le sotto-sezioni restano ordinate per Order.</summary>
     /// <summary>A chi si rivolge la sezione (carta vSOP militari §3). ⚠️ Non è controllo d'accesso: il

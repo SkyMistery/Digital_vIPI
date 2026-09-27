@@ -31,6 +31,7 @@ public abstract class EditingServiceStub : IEditingService
     public virtual Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionHiddenAsync));
     public virtual Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri, CancellationToken ct = default) => throw NonUsato(nameof(SezioniComuniAsync));
     public virtual Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri, IReadOnlyList<string> chiavi, CancellationToken ct = default) => throw NonUsato(nameof(ApplicaSezioniComuniAsync));
+    public virtual Task<int> RimostraPrimaDiSeparareAsync(IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri, CancellationToken ct = default) => throw NonUsato(nameof(RimostraPrimaDiSeparareAsync));
     public virtual Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionAudienceAsync));
     public virtual Task SetBodyOrderAsync(int sectionId, IReadOnlyList<VoceCorpo> fila, CancellationToken ct = default) => throw NonUsato(nameof(SetBodyOrderAsync));
     public virtual Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionLeadSentenceAsync));

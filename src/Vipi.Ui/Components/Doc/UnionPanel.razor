@@ -31,6 +31,11 @@
     @if (_unione is null)
     {
         <p class="muted">@Sito["Union_None"]</p>
+        @* Dopo uno scioglimento l'esito si legge QUI: il riquadro dell'unione non c'è più (U-008). *@
+        @if (_esito is { Length: > 0 })
+        {
+            <p class="help union-conta">@_esito</p>
+        }
     }
     else
     {
@@ -128,6 +133,17 @@
                                 @if (c.Presenze.Any(p => p.Nascosta))
                                 {
                                     <span class="pill neutral" title="@Sito["Union_Common_HiddenTitle"]">@Sito["Union_Common_Hidden"]</span>
+                                }
+                                @* U-007: la scheda mostrava solo i titoli. Nascondere una sezione si porta via il
+                                   sottoalbero, e quella che ha sotto contenuti solo suoi non si nasconde: tutt'e due
+                                   si dicono, con i documenti spuntati adesso. *@
+                                @if (_spuntate.Contains(chiave) && SezioniComuni.Trattenuta(_comuni, chiave, _nascondiIn))
+                                {
+                                    <span class="pill amber" title="@Sito["Union_Common_KeptTitle"]">@Sito["Union_Common_Kept"]</span>
+                                }
+                                else if (_spuntate.Contains(chiave) && SezioniComuni.Trascinate(_comuni, chiave, _nascondiIn) is > 0 and var n)
+                                {
+                                    <span class="muted" title="@Sito["Union_Common_DragsTitle"]">@string.Format(Sito["Union_Common_Drags"], n)</span>
                                 }
                             </li>
                         }
@@ -420,10 +436,20 @@
         EseguiAsync(() => _unioni.SpostaAsync(m.MemberId, delta));
 
     private Task Togli(UnionMemberView m) =>
-        EseguiAsync(() => _unioni.RimuoviMembroAsync(m.MemberId));
+        EseguiAsync(async () => DiRimostrate(await _unioni.RimuoviMembroAsync(m.MemberId)));
 
     private Task Sciogli() =>
-        EseguiAsync(() => _unione is null ? Task.CompletedTask : _unioni.SciogliAsync(_unione.Id));
+        EseguiAsync(async () =>
+        {
+            if (_unione is not null) DiRimostrate(await _unioni.SciogliAsync(_unione.Id));
+        });
+
+    /// <summary>U-008: quante sezioni nascoste dalla scheda sono tornate visibili nelle bozze, e che la pagina
+    /// pubblica le mostra solo dopo la prossima pubblicazione. Zero = niente da dire.</summary>
+    private void DiRimostrate(int n)
+    {
+        if (n > 0) _esito = n == 1 ? Sito["Union_Shown_One"] : Sito.Formatta("Union_Shown", n);
+    }
 
     /// <summary>
     /// Un gesto sull'unione: esegue, racconta l'esito, ricarica, e avvisa l'host.

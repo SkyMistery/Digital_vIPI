@@ -3452,7 +3452,7 @@
   <data name="Union_MoveUp" xml:space="preserve"><value>Move up</value></data>
   <data name="Union_MoveDown" xml:space="preserve"><value>Move down</value></data>
   <data name="Union_Remove" xml:space="preserve"><value>Remove from the union</value></data>
-  <data name="Union_RemovePrompt" xml:space="preserve"><value>This document goes back to its own page. If only one member is left, the union is dissolved.</value></data>
+  <data name="Union_RemovePrompt" xml:space="preserve"><value>This document goes back to its own page. If only one member is left, the union is dissolved. If the airport vIPI or the military vSOP leaves, the sections hidden by the «in common» panel become visible again in the drafts.</value></data>
   <data name="Union_RemoveYes" xml:space="preserve"><value>Remove</value></data>
   <data name="Union_Dissolve" xml:space="preserve"><value>Dissolve the union</value></data>
   <data name="Union_Common_Open" xml:space="preserve"><value>Shared sections…</value></data>
@@ -3465,8 +3465,14 @@
   <data name="Union_Common_Done" xml:space="preserve"><value>Done: {0} sections changed.</value></data>
   <data name="Union_Common_Done_One" xml:space="preserve"><value>Done: one section changed.</value></data>
   <data name="Union_Common_Hidden" xml:space="preserve"><value>already hidden</value></data>
+  <data name="Union_Shown" xml:space="preserve"><value>{0} sections that the «in common» panel had hidden are visible again in the drafts: on the public pages they come back with the next publication of each document.</value></data>
+  <data name="Union_Shown_One" xml:space="preserve"><value>One section that the «in common» panel had hidden is visible again in the draft: on the public page it comes back with the next publication.</value></data>
+  <data name="Union_Common_Kept" xml:space="preserve"><value>stays: it holds content of its own</value></data>
+  <data name="Union_Common_KeptTitle" xml:space="preserve"><value>This section has subsections that the other documents do not have: hiding it would take them away. It stays visible; only its children in common are hidden.</value></data>
+  <data name="Union_Common_Drags" xml:space="preserve"><value>+{0} subsections with it</value></data>
+  <data name="Union_Common_DragsTitle" xml:space="preserve"><value>Hiding a section also hides everything under it. These subsections are also in the documents that stay: nothing is lost.</value></data>
   <data name="Union_Common_HiddenTitle" xml:space="preserve"><value>In at least one of the documents this section is already hidden.</value></data>
-  <data name="Union_DissolvePrompt" xml:space="preserve"><value>The documents go back to their own pages and their own publications. Nothing that is written is lost.</value></data>
+  <data name="Union_DissolvePrompt" xml:space="preserve"><value>The documents go back to their own pages. The sections that the «in common» panel had hidden become visible again in the drafts: on the public pages they appear with the next publication of each document.</value></data>
   <data name="Union_DissolveYes" xml:space="preserve"><value>Dissolve</value></data>
   <data name="Union_EditToChange" xml:space="preserve"><value>To change the union, start editing.</value></data>
   <data name="Rel_UnionTitle" xml:space="preserve"><value>This document is joined to others: publishing publishes all {0}, at the same cycle.</value></data>

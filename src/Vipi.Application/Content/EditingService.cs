@@ -182,7 +182,10 @@ public sealed class EditingService : IEditingService
         var documentIds = SezioniComuni.Confrontabili(membri);
         if (documentIds.Count == 0) return Array.Empty<SezioneComune>();
 
-        var documenti = new List<(int, IReadOnlyList<EditableSection>)>();
+        // Col PROFILO di ognuno (U-007): dice quali sezioni sono solo dato e quali hanno contenuto proprio.
+        var profili = membri.GroupBy(m => m.DocumentId).ToDictionary(g => g.Key,
+            g => g.First().Famiglia == ReleaseTargetType.AirportMil ? SectionProfile.AirportMil : SectionProfile.Airport);
+        var documenti = new List<(int, SectionProfile, IReadOnlyList<EditableSection>)>();
         // ⚠️ In SEQUENZA: sono letture sullo stesso DbContext, e due catene insieme danno «A second operation
         // was started on this context instance». È la stessa ragione per cui i membri di un'unione si
         // caricano uno dopo l'altro nel viewer.
@@ -190,7 +193,7 @@ public sealed class EditingService : IEditingService
         {
             // Un documento senza versione di lavoro non ha sezioni da confrontare: si salta, invece di
             // rispondere «nessuna sezione in comune», che sarebbe una risposta e non è vero.
-            if (await _repo.LoadForEditAsync(id, ct) is { } doc) documenti.Add((id, doc.Sections));
+            if (await _repo.LoadForEditAsync(id, ct) is { } doc) documenti.Add((id, profili[id], doc.Sections));
         }
 
         return SezioniComuni.Di(documenti);
@@ -222,6 +225,24 @@ public sealed class EditingService : IEditingService
             await SetSectionHiddenAsync(sectionId, nascondi, ct);
 
         return piano.Count;
+    }
+
+    public async Task<int> RimostraPrimaDiSeparareAsync(
+        IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri, CancellationToken ct = default)
+    {
+        var sezioni = SezioniComuni.DaRimostrare(await SezioniComuniAsync(membri, ct));
+
+        // Stessa porta e stesso ordine di ApplicaSezioniComuniAsync (T-026): prima autorizzazione e lock di tutti
+        // i documenti toccati, poi le scritture.
+        var documenti = new HashSet<int>();
+        foreach (var sectionId in sezioni)
+            documenti.Add(await AuthorizeSectionAsync(sectionId, ct));
+        foreach (var docId in documenti)
+            await EnsureLockAsync(docId, ct);
+
+        foreach (var sectionId in sezioni)
+            await SetSectionHiddenAsync(sectionId, false, ct);
+        return sezioni.Count;
     }
 
     public async Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default)
