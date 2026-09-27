@@ -8,9 +8,16 @@ using Vipi.Sectorfile.Shared;
 namespace Vipi.SectorLab.Core.Ispezione;
 
 /// <summary>Un campo del record come si legge a schermo.</summary>
-/// <param name="Nome">Il nome del campo, com'è nel modello del motore.</param>
+/// <param name="Nome">Il nome del campo, com'è nel modello del motore: è la chiave (modifiche, <c>data-</c>).</param>
 /// <param name="Valore">Il valore già scritto per una persona: le coordinate in DMS puntato, i vuoti come «—».</param>
-public sealed record CampoDelRecord(string Nome, string Valore);
+/// <param name="Descrizione">Nome italiano, significato ed editor (slice 3); null = campo sconosciuto.</param>
+public sealed record CampoDelRecord(string Nome, string Valore, DescrizioneDelCampo? Descrizione = null)
+{
+    /// <summary>Il nome che legge l'AOD: quello della descrizione, o quello del modello per un campo sconosciuto.</summary>
+    public string NomeDaMostrare => Descrizione?.Nome ?? Nome;
+
+    public bool Sconosciuto => Descrizione is null;
+}
 
 /// <summary>Una riga del file com'è sul disco, col suo numero vero.</summary>
 /// <param name="Numero">Il numero di riga nel file, da 1: è quello che si cita a un AOD.</param>
@@ -18,6 +25,8 @@ public sealed record CampoDelRecord(string Nome, string Valore);
 public sealed record RigaGrezza(int Numero, string Testo, bool DelRecord);
 
 /// <summary>Un record intero, come lo mostra l'ispettore (carta F3 §2.2 passo 3).</summary>
+/// <param name="Tipo">Il tipo del modello del motore (<c>Fix</c>, <c>SidProcedure</c>).</param>
+/// <param name="NomeDelTipo">Il tipo come lo dice l'AOD («Fix», «SID», «Traccia (T)»); il nome del modello se non è descritto.</param>
 public sealed record SchedaDelRecord(
     string File,
     int Indice,
@@ -25,7 +34,8 @@ public sealed record SchedaDelRecord(
     string Etichetta,
     IReadOnlyList<CampoDelRecord> Campi,
     IReadOnlyList<RigaGrezza> Righe,
-    FormaDellaMappa? Forma);
+    FormaDellaMappa? Forma,
+    string NomeDelTipo = "");
 
 /// <summary>
 /// L'ispettore in lettura (slice 5): i campi di un record e le righe da cui è stato letto.
@@ -50,15 +60,17 @@ public static class Ispettore
 
         object record = conRecord.RecordDelModello[indice];
         var forma = Geometria.DelFile(file, catalogo).FirstOrDefault(f => f.Record == indice);
+        var descrizione = DescrizioniDeiCampi.Di(record, file.Relativo);
 
         return new SchedaDelRecord(
             file.Relativo,
             indice,
             record.GetType().Name,
             forma?.Etichetta is { Length: > 0 } etichetta ? etichetta : Etichetta(record),
-            Campi(record),
+            Campi(record, descrizione),
             Righe(file, indice),
-            forma);
+            forma,
+            descrizione?.Nome ?? record.GetType().Name);
     }
 
     /// <summary>
@@ -110,12 +122,16 @@ public static class Ispettore
     private static readonly string[] NomiCheFannoDaEtichetta =
         ["Name", "Nome", "Ident", "IcaoCode", "Designator", "Callsign", "Code", "Number", "Identifier", "Color"];
 
-    private static IReadOnlyList<CampoDelRecord> Campi(object record)
+    /// <summary>
+    /// I campi nell'ordine della descrizione (quello della riga del file), poi quelli che la descrizione non conosce:
+    /// si vedono lo stesso, per riflessione, e la scheda li dice «campo sconosciuto» (slice 3).
+    /// </summary>
+    internal static IReadOnlyList<CampoDelRecord> Campi(object record, DescrizioneDelTipo? descrizione)
     {
-        var campi = new List<CampoDelRecord>();
+        var letti = new List<(string Nome, string Valore)>();
         foreach (var proprieta in record.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
-            if (proprieta.GetIndexParameters().Length > 0)
+            if (proprieta.GetIndexParameters().Length > 0 || DescrizioniDeiCampi.Nascoste.Contains(proprieta.Name))
                 continue;
 
             object? valore;
@@ -129,9 +145,18 @@ public static class Ispettore
                 continue;
             }
 
-            campi.Add(new CampoDelRecord(proprieta.Name, Testo(valore)));
+            letti.Add((proprieta.Name, Testo(valore)));
         }
 
+        var campi = new List<CampoDelRecord>();
+        foreach (var campo in descrizione?.Campi ?? [])
+        {
+            if (letti.FindIndex(l => l.Nome == campo.Proprieta) is var i and >= 0)
+                campi.Add(new CampoDelRecord(campo.Proprieta, letti[i].Valore, campo));
+        }
+
+        var descritti = campi.Select(c => c.Nome).ToHashSet(StringComparer.Ordinal);
+        campi.AddRange(letti.Where(l => !descritti.Contains(l.Nome)).Select(l => new CampoDelRecord(l.Nome, l.Valore)));
         return campi;
     }
 

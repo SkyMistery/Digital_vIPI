@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); prossima la **slice 3** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); in corso la **slice 3** (3a fatta, §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -306,3 +306,33 @@ controllo degli `.isc` · **2c** coordinate scritte male con la correzione propo
     rimandata).
 
 **Slice 2 chiusa.** Da provare a mano (eseguibile ripubblicato): pannello, «Sposta sopra i commenti», «Correggi la riga».
+
+**Slice 3 — scheda tipizzata.** Divisa in passi, un commit ciascuno (scelta dell'agente, come le slice 1 e 2): **3a**
+le descrizioni dei campi e la scheda che le usa · **3b** gli editor (tipo fisso, sì/no, numero, quota, elenco) ·
+**3c** il punto coi suggerimenti dai NAVAIDS · **3d** i metadati del catalogo nella scheda · **3e** «+ Nuovo record»
+che chiede il tipo fisso.
+
+- **3a (28 settembre)** — `Ispezione/DescrizioniDeiCampi.cs` (Lab, nessun codice comune): per ognuno dei **24 tipi di
+  record** del motore i campi nell'ordine della riga, col nome dell'AOD, il significato dal manuale (carta «file per
+  file» §1-§22) e l'editor (`Testo`, `TipoFisso` coi valori e il loro significato, `Coordinate`, `Punto`, `Navaid`,
+  `Quota`, `Numero`, `Elenco` con la fonte — scali, piste, posizioni —, `Colore`, `SiNo`, `SolaLettura`). Le MVA hanno
+  due descrizioni: di ACC la quota in centinaia (5° campo della `L`), di scalo il 2° campo resta testo (sul fork è
+  una quota, `4000` o `110`, o il nome della zona, `RR US0`). Scelte dell'agente:
+  - **Nascoste** `Source`, `Sources`, `HasConflict`: non sono campi della riga (la testa della scheda e le righe
+    dicono già da dove viene il record).
+  - **Dove il manuale dà solo i valori non si inventa il significato**: la visibilità 0/1 dei VOR, il confine 0/1 dei
+    fix, l'opacità dei settori restano «0» e «1».
+  - Il 6° campo delle SID il motore lo chiama `DefaultVisible`: per il manuale è il **tipo** (0 SID, 1 transizione) e
+    così si chiama nella scheda; i nomi delle proprietà del motore non cambiano (sono il contratto).
+  - I colori dei settori sono `Colore` (testo finché la slice 4 non porta il selettore); i tipi dei `.geo` (H2) e i
+    riempimenti dei `.pol` sono tipo fisso: sono gli strati di Aurora.
+  La scheda (`Ispettore`): i campi descritti nell'ordine della riga, il nome italiano col significato al passaggio
+  del mouse, il tipo del record in italiano in testa («Fix · …», «Traccia (T) · …»); una proprietà che la
+  descrizione non conosce si vede lo stesso, per riflessione, in coda e con la scritta **«campo sconosciuto»**.
+  Prova sul fork (strumento fuori repo, `scratchpad/prova3`): **701 file, 118 505 record, 24 tipi, 0 campi
+  sconosciuti**; valori fuori dagli elenchi a tipo fisso: solo `COAST` come riempimento e bordo dell'orfano `limw.pol`
+  (i vuoti — 9 tipi dei fix, 10 dei `.geo` di `liap` — sono il valore «non scritto»). 🟡 Il `3:` di un fix il motore lo
+  legge **0**: la scheda mostra quello che legge il motore (la riga resta com'è finché non si tocca). Test: un test
+  cerca nel motore i tipi di record (i T dei lettori e i loro figli concreti: oggi 24) e vuole ogni proprietà
+  descritta; rosso provato togliendo la frequenza degli NDB (due test cadono, coi record dei campioni). Test: Lab
+  366 → **376**. Prova a schermo con la 3b (la 3a cambia solo i nomi nella tabella).

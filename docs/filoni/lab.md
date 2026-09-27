@@ -14,7 +14,8 @@ riga per record (1b), tag dei punti `//@@` in SID e STAR (1c), tag sui file a bl
 sopra», il lettore MVA che ne faceva scrivere 74), **2b** controllo degli `.isc` (file trovati per nome, inclusi
 due volte, sotto la sezione sbagliata, vuoti, orfani copia di un altro), **2c** coordinate scritte male con la
 correzione proposta e «Correggi la riga» (trovati due punti letti in Asia e in Africa). Test: motore **616**, Lab
-**366**. Slice 2 chiusa; prossima: **slice 3** (scheda tipizzata). Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
+**366**. Slice 2 chiusa. Slice 3 (scheda tipizzata) in corso: **3a** descrizioni dei campi per i 24 tipi di record
+(nome dell'AOD, significato, editor; 0 campi sconosciuti sul fork), Lab **376**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
 ## 27 settembre 2026 — revisione del giro dei file

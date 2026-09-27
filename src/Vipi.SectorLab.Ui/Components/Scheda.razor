@@ -11,7 +11,7 @@
     <div class="lab-ispettore" data-ispettore="@($"{scheda.File}#{scheda.Indice}")">
         <header>
             <p class="lab-etichetta">@scheda.Etichetta</p>
-            <p class="lab-nota">@scheda.Tipo · @scheda.File · record @scheda.Indice</p>
+            <p class="lab-nota" data-tipo-record="@scheda.Tipo">@scheda.NomeDelTipo · @scheda.File · record @scheda.Indice</p>
             <p class="lab-gesti-record">
                 @* Slice 8: il nuovo nasce copiando questo, così è già nella forma dei vicini. *@
                 <NuovoRecord File="@scheda.File" Modello="scheda.Indice" />
@@ -39,7 +39,15 @@
                 @foreach (var campo in scheda.Campi)
                 {
                     <tr data-campo-record="@campo.Nome" class="@(Toccato(scheda, campo.Nome) ? "lab-campo-toccato" : null)">
-                        <th>@campo.Nome</th>
+                        @* Slice 3: il nome dell'AOD e, al passaggio del mouse, il significato; una proprietà del motore che
+                           non ha descrizione si vede lo stesso, e lo dice. *@
+                        <th title="@campo.Descrizione?.Significato">
+                            @campo.NomeDaMostrare
+                            @if (campo.Sconosciuto)
+                            {
+                                <span class="lab-sconosciuto" data-sconosciuto="@campo.Nome">campo sconosciuto</span>
+                            }
+                        </th>
                         <td>
                             @if (Scrivibile(scheda, campo.Nome))
                             {

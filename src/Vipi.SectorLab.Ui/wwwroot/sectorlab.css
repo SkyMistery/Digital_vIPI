@@ -607,6 +607,18 @@ body.lab-trascina * {
     word-break: break-word;
 }
 
+/* Slice 3: il significato sta nel title; il cursore lo dice. Un campo senza descrizione lo scrive sotto il nome. */
+.lab-campi th[title] {
+    cursor: help;
+}
+
+.lab-sconosciuto {
+    display: block;
+    font-weight: 400;
+    font-size: .8em;
+    color: var(--lab-avviso);
+}
+
 .lab-righe {
     margin: 0;
     padding: .4rem;
