@@ -27,6 +27,27 @@ public class AccEsteroNasceSpentoTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
+    /// <summary>
+    /// U-078 (revisione totale 3): un bool con <c>HasDefaultValue(true)</c> e sentinella <c>false</c> — un
+    /// <c>false</c> in INSERT verrebbe omesso e il database scriverebbe il suo <c>true</c>. Si rilegge da un
+    /// SECONDO contesto, senza l'entità tracciata a mascherare il valore.
+    /// </summary>
+    [Fact]
+    public async Task Un_false_scritto_alla_nascita_arriva_nel_database()
+    {
+        _db.Accs.Add(Acc.NewForeign("LDZO", "Zagreb ACC"));
+        _db.ImportPolicies.Add(new ImportPolicy { ImportSids = false, ImportSpecialAreas = false, ImportAtcSessions = false, ImportNavaids = false });
+        await _db.SaveChangesAsync();
+
+        await using var altro = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
+        Assert.False((await altro.Accs.AsNoTracking().SingleAsync(a => a.Code == "LDZO")).SpecialAreasEnabled);
+        var policy = await altro.ImportPolicies.AsNoTracking().SingleAsync();
+        Assert.False(policy.ImportSids);
+        Assert.False(policy.ImportSpecialAreas);
+        Assert.False(policy.ImportAtcSessions);
+        Assert.False(policy.ImportNavaids);
+    }
+
     [Fact]
     public void La_fabbrica_spegne_le_aree_e_ricava_il_prefisso()
     {
@@ -69,5 +90,29 @@ public class AccEsteroNasceSpentoTests : IAsyncLifetime
 
         var acc = await _db.Accs.SingleAsync(a => a.Code == "LDZO");
         Assert.True(acc.SpecialAreasEnabled);   // la scelta dell'admin sopravvive al giro periodico
+    }
+
+    /// <summary>
+    /// 🔴 U-030 (revisione totale 3), gemello di T-007 nell'import dei confinanti: il client lascia la frequenza a null
+    /// quando il DETTAGLIO del subcenter non si legge (429/5xx anche dopo i ritentativi — e l'import dei confinanti fa
+    /// quelle GET in parallelo, quindi i 429 sono il caso atteso). La riga la copiava così com'era: il settore estero
+    /// perdeva la frequenza in catalogo e nella proiezione, nelle vLOA e nei punti di trasferimento della vista live.
+    /// </summary>
+    [Fact]
+    public async Task Un_dettaglio_estero_non_letto_non_azzera_la_frequenza()
+    {
+        var sut = new EfNeighbourRepository(_db, new Vipi.Domain.Services.AiracService());
+        await sut.PersistForeignCatalogAsync(new[]
+        {
+            new ForeignAccImport("LDZO", "Zagreb ACC", new[] { new SourceSubcenter("LDZO_CTR", "LDZO", "CTR", null, "134.150", null) }),
+        });
+
+        await sut.PersistForeignCatalogAsync(new[]
+        {
+            new ForeignAccImport("LDZO", "Zagreb ACC", new[] { new SourceSubcenter("LDZO_CTR", "LDZO", "CTR", null, null, null) }),
+        });
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal("134.150", (await _db.AccSectors.SingleAsync(s => s.ComposePosition == "LDZO_CTR")).Frequency);
     }
 }

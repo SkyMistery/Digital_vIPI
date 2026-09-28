@@ -57,6 +57,12 @@
         });
         return leafletPromise;
     }
+
+    // 🔴 U-020 (revisione totale 3): Leaflet scrive una stringa di tooltip con innerHTML, e il testo del tooltip
+    // è il nome del volume (KMZ importato, tabella degli spazi aerei). Tutto ciò che arriva dal DB e finisce in
+    // un tooltip o in un popup passa da qui, come nel 3D (`esc` in vipi-aor3d.js).
+    var esc = function (t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
     // Un colore che arriva dal DOM puo' essere un hex vero (override manuale dell'utente, che esce da
     // un <input type=color>) oppure il NOME di un token del tema (es. "--ivao-red"). Leaflet vuole un
     // colore vero: qui il token viene risolto una volta sola sul :root.
@@ -337,7 +343,12 @@
 
         el.dataset.init = '1';
         el.innerHTML = '';
-        var map = L.map(el, { scrollWheelZoom: false, zoomControl: true, attributionControl: true });
+        // ⚠️ `dragging` spento sul telefono e sul tablet (revisione 3, U-088): acceso, Leaflet mette
+        // `touch-action:none` sul riquadro, e un dito che parte sulla mappa — 340px su 375 di larghezza —
+        // spostava la mappa invece di scorrere la pagina. Spento, un dito scorre la pagina e due dita
+        // ingrandiscono e spostano la mappa (`touchZoom` resta). Il portatile col touch non e' `mobile`: li'
+        // il mouse trascina come prima.
+        var map = L.map(el, { scrollWheelZoom: false, dragging: !L.Browser.mobile, zoomControl: true, attributionControl: true });
         el._leafletMap = map;
         addBasemap(map);
 
@@ -367,7 +378,7 @@
                 l._base = { weight: stile.weight, fillOpacity: stile.fillOpacity };
                 l._ref = (s.refs && s.refs[ri]) || null;
                 var tip = s.tips && s.tips[ri];
-                if (tip) l.bindTooltip(tip, { sticky: true, direction: 'top' });
+                if (tip) l.bindTooltip(esc(tip), { sticky: true, direction: 'top' });
                 if (l._ref) {
                     // Il poligono evidenzia la sua riga, e la riga il poligono: «quale spazio copre cosa».
                     l.on('mouseover', function () { evidenziaRiga(scope, l._ref, true); evidenziaLayer(l, true); });
@@ -679,7 +690,8 @@
         el.dataset.init = '1';
         el.innerHTML = '';   // rimuove l'SVG di fallback
 
-        var map = L.map(el, { scrollWheelZoom: false, zoomControl: true, attributionControl: true });
+        // `dragging` spento sul telefono: vedi la prima mappa di questo file (U-088).
+        var map = L.map(el, { scrollWheelZoom: false, dragging: !L.Browser.mobile, zoomControl: true, attributionControl: true });
         el._leafletMap = map;
         // ⚠️ Passa da addBasemap, che è la funzione con quel nome due schermate più su: qui c'era una
         // COPIA della stessa tileLayer scritta a mano, e per questo le mappine restavano fuori dal

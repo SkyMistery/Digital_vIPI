@@ -137,6 +137,13 @@ public sealed class AzureOptions
     /// <summary>Quanti testi per chiamata. Azure ne accetta 100 (o 50.000 caratteri per richiesta).</summary>
     public int MaxTextsPerCall { get; set; } = 50;
 
+    /// <summary>
+    /// Quanti caratteri per chiamata (U-047, revisione totale 3). Azure ne accetta 50 000 per richiesta: il lotto
+    /// si chiude al primo dei due tetti, e un margine sotto il limite lascia posto a quel che il testo diventa nel
+    /// corpo JSON. Un testo da solo oltre il tetto parte da solo: è Azure a dire se lo accetta.
+    /// </summary>
+    public int MaxCaratteriPerChiamata { get; set; } = 45_000;
+
     /// <summary>Tetto di caratteri complessivi con questo motore. <c>0</c> = nessun tetto.</summary>
     public long MaxCaratteriTotali { get; set; }
 }

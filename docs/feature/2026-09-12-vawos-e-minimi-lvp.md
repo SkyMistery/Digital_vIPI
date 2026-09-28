@@ -206,6 +206,17 @@ dodici secondi, la velocità oscillava fra vento e raffica. Sembrava difendibile
 che il bollettino dichiara» — e non lo era: **il vento istantaneo non lo sappiamo**, e quel movimento era
 fabbricato. Restano `<SimDisclaimer />` e l'ora del bollettino.
 
+**Correzioni del 27 settembre 2026 (L8 della revisione totale 3, voce S22 di `docs/filoni/sito.md`):**
+- **Vento medio, non raffica** (U-091, decisione del committente): le soglie di coda e traverso delle regole piste
+  si confrontano col vento medio. PANS-ATM dice «including gusts»: qui è una scelta dichiarata, non una svista.
+- **RVR assente** (U-093/U-095, decisione del committente): `P2000` su ogni testata solo con visibilità ≥ 1500 m
+  (o CAVOK). Sotto, `///`: l'RVR sarebbe dovuto e manca.
+- **Età del bollettino** (U-092): si misura dall'ora del METAR (`ddhhmmZ` risolto in UTC), non dall'ultima
+  risposta. Oltre 90 minuti il quadro mostra il METAR ma non propone né LVP né pista.
+- **Cielo oscurato** (U-089): `VV///`, `BKN///`, `OVC///`, `//////` sono un soffitto ignoto, non un cielo
+  sgombro. Le LVP non si propongono da cancellare, e la riga delle nubi lo scrive.
+- **RVR tutti «P»** (U-090): la misura resta l'RVR, come limite inferiore. Prima si ricadeva sulla visibilità.
+
 **Le etichette sono in inglese e fisse** (decisione 4): DIR, SPEED, GUST, CROSS, TAIL, RVR TDZ/MID/END, QNH,
 TL, VISIBILITY, CLOUD, ATIS INFO. Sono sigle ICAO uguali in ogni torre del mondo, e tradurle sarebbe l'unico
 modo di renderle meno leggibili. Le uniche parole vere — i codici di tempo presente — passano da `WxText`, che
@@ -498,6 +509,12 @@ Il primo caso è il **percorso di scoperta normale** — la card dell'hub porta 
 che sceglie **sul DOM, non sull'indirizzo** — è scritto nella nota in testa a quella lista, e non l'avevo
 seguita. `vipiInitAwos` si chiama a ogni navigazione: se il quadro c'è si (ri)aggancia all'aeroporto che
 trova, se non c'è **spegne i timer**.
+
+⚠️ **Un file che non arriva si ritenta** (U-209, revisione 3, 29 settembre 2026). La macchina segnava il modulo
+come caricato prima di chiederlo e non aveva `onerror`: se `vipi-awos.js` non arrivava (Passenger che riparte)
+il quadro restava fermo fino a un ricarico completo. Ora il segno «arrivato» lo mette `onload`; `onerror` lo
+toglie e riprova da solo dopo 2 s, 4 s (anche ogni `enhancedload` riprova), fino a tre tentativi. Prova:
+`docs/history/revisione-totale-3/sim-boot.js`.
 
 ### 🟠 3. Le soglie di cancellazione erano inerti
 

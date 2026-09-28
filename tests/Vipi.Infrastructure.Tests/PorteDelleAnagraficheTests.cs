@@ -40,12 +40,20 @@ public class PorteDelleAnagraficheTests : IAsyncLifetime
 
     // ---- Radioassistenze --------------------------------------------------------------------------------
 
-    [Fact]
-    public async Task Radioassistenze_da_anonimo_non_si_scrive_niente()
+    /// <summary>
+    /// U-232 (revisione 3, S39): le porte si provavano solo da anonimo, e un cancello scritto un gradino più in basso
+    /// del dovuto (<c>DivisionStaff</c> invece di <c>Editor</c>) lasciava la suite verde. Ora anche dal livello
+    /// <b>subito sotto la soglia</b>.
+    /// </summary>
+    public static TheoryData<VipiRole> SottoEditor() => new() { VipiRole.User, VipiRole.DivisionStaff };
+
+    [Theory]
+    [MemberData(nameof(SottoEditor))]
+    public async Task Radioassistenze_sotto_l_editor_non_si_scrive_niente(VipiRole livello)
     {
         var riga = await new EfNavaidCatalog(_db, LivelloFisso.Editor).CreateAsync("MNL", NavaidRules.FamigliaVhf, 1);
         _db.ChangeTracker.Clear();
-        var porta = new EfNavaidCatalog(_db, Anonimo);
+        var porta = new EfNavaidCatalog(_db, new LivelloFisso(livello));
 
         await Assert.ThrowsAsync<EditNotAllowedException>(() => porta.CreateAsync("PRA", NavaidRules.FamigliaVhf, 0));
         await Assert.ThrowsAsync<EditNotAllowedException>(() => porta.DeleteAsync(riga.Id, 0));
@@ -60,11 +68,13 @@ public class PorteDelleAnagraficheTests : IAsyncLifetime
         Assert.Null(rimasta.Latitude);
     }
 
-    [Fact]
-    public async Task Il_tasto_rileggi_adesso_da_anonimo_non_parte_e_il_giro_dell_orologio_si()
+    [Theory]
+    [MemberData(nameof(SottoEditor))]
+    public async Task Il_tasto_rileggi_adesso_sotto_l_editor_non_parte_e_il_giro_dell_orologio_si(VipiRole livello)
     {
         var sorgente = new SorgenteFinta(new NavaidName("MNL", NavaidKind.Vor, 41.5476, 15.6898, "115.25", "99Y"));
-        var importatore = new NavaidImporter(sorgente, new EfNavaidCatalog(_db, Anonimo), new PolicyFinta(), Anonimo);
+        var chi = new LivelloFisso(livello);
+        var importatore = new NavaidImporter(sorgente, new EfNavaidCatalog(_db, chi), new PolicyFinta(), chi);
 
         await Assert.ThrowsAsync<EditNotAllowedException>(() => importatore.RunNowAsync());
         Assert.Equal(0, sorgente.Riletture);
@@ -78,10 +88,11 @@ public class PorteDelleAnagraficheTests : IAsyncLifetime
 
     // ---- Spazi aerei dell'AIP -----------------------------------------------------------------------------
 
-    [Fact]
-    public async Task Catalogo_spazi_aerei_da_anonimo_non_carica_non_mette_in_vigore_non_elimina()
+    [Theory]
+    [MemberData(nameof(SottoEditor))]
+    public async Task Catalogo_spazi_aerei_sotto_l_editor_non_carica_non_mette_in_vigore_non_elimina(VipiRole livello)
     {
-        var porta = new EfAirspaceCatalog(_db, Anonimo);
+        var porta = new EfAirspaceCatalog(_db, new LivelloFisso(livello));
 
         await Assert.ThrowsAsync<EditNotAllowedException>(() => porta.SaveAsync(null!, null!, DateTime.UtcNow));
         await Assert.ThrowsAsync<EditNotAllowedException>(() => porta.SetCurrentAsync(1));
@@ -90,10 +101,11 @@ public class PorteDelleAnagraficheTests : IAsyncLifetime
         Assert.Empty(await _db.AirspaceImports.AsNoTracking().ToListAsync());
     }
 
-    [Fact]
-    public async Task Agganci_ai_volumi_da_anonimo_non_si_scrivono()
+    [Theory]
+    [MemberData(nameof(SottoEditor))]
+    public async Task Agganci_ai_volumi_sotto_l_editor_non_si_scrivono(VipiRole livello)
     {
-        var porta = new EfSectorAirspaceBindings(_db, Anonimo);
+        var porta = new EfSectorAirspaceBindings(_db, new LivelloFisso(livello));
 
         await Assert.ThrowsAsync<EditNotAllowedException>(() => porta.SetAsync(
             SourceCatalog.Subcenter, 1, "LIRR_CTR", Array.Empty<AirspaceVolumeKey>(), null, null));
@@ -107,10 +119,12 @@ public class PorteDelleAnagraficheTests : IAsyncLifetime
     public async Task Alias_dei_fix_si_creano_da_editor_e_si_tolgono_solo_da_admin()
     {
         await Assert.ThrowsAsync<EditNotAllowedException>(() =>
-            new EfSidFixAliasRepository(_db, Anonimo).UpsertAsync("PAL", "PALAS"));
+            new EfSidFixAliasRepository(_db, Anonimo).UpsertAsync("LICJ", "PAL", "PALAS"));
+        await Assert.ThrowsAsync<EditNotAllowedException>(() =>
+            new EfSidFixAliasRepository(_db, new LivelloFisso(VipiRole.DivisionStaff)).UpsertAsync("LICJ", "PAL", "PALAS"));
         Assert.Empty(await _db.SidFixAliases.AsNoTracking().ToListAsync());
 
-        await new EfSidFixAliasRepository(_db, LivelloFisso.Editor).UpsertAsync("PAL", "PALAS");
+        await new EfSidFixAliasRepository(_db, LivelloFisso.Editor).UpsertAsync("LICJ", "PAL", "PALAS");
         var alias = Assert.Single(await _db.SidFixAliases.AsNoTracking().ToListAsync());
 
         // Toglierlo è della pagina Sorgenti, che è dell'Admin: un Editor non basta.
@@ -121,10 +135,11 @@ public class PorteDelleAnagraficheTests : IAsyncLifetime
 
     // ---- Glossario ------------------------------------------------------------------------------------------
 
-    [Fact]
-    public async Task Glossario_da_anonimo_non_si_scrive_e_la_semina_si()
+    [Theory]
+    [MemberData(nameof(SottoEditor))]
+    public async Task Glossario_sotto_l_editor_non_si_scrive_e_la_semina_si(VipiRole livello)
     {
-        var porta = new EfGlossaryStore(_db, Anonimo);
+        var porta = new EfGlossaryStore(_db, new LivelloFisso(livello));
 
         await Assert.ThrowsAsync<EditNotAllowedException>(() =>
             porta.UpsertAsync("it", "en", "riporta sottovento", "report downwind", null));
@@ -151,6 +166,15 @@ public class PorteDelleAnagraficheTests : IAsyncLifetime
         await Assert.ThrowsAsync<EditNotAllowedException>(() => porta.SaveAsync(true, 0));
 
         Assert.False((await porta.GetAsync()).PublicLeaderboard);
+    }
+
+    /// <summary>La controprova alla soglia: lo staff di divisione la accende (U-232).</summary>
+    [Fact]
+    public async Task Classifica_pubblica_lo_staff_di_divisione_la_accende()
+    {
+        var porta = new EfStatsSettingsStore(_db, new LivelloFisso(VipiRole.DivisionStaff));
+        await porta.SaveAsync(true, 1);
+        Assert.True((await porta.GetAsync()).PublicLeaderboard);
     }
 
     // ---- Finti ------------------------------------------------------------------------------------------------

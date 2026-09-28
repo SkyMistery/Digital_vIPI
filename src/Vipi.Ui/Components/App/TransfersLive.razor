@@ -26,7 +26,7 @@
 <div class="xl-bar">
     <div class="xl-filter">
         <span class="xl-fic"><Icon Name="search" Size="14" /></span>
-        <input type="text" list="xl-apt-list" value="@_filtro" @oninput="AlFiltro"
+        <CampoTesto type="text" list="xl-apt-list" Valore="@_filtro" OnInput="AlFiltro"
                placeholder="@L["Live_FilterApt"]" aria-label="@L["Live_FilterApt"]" />
         @if (filtro.Length > 0)
         {

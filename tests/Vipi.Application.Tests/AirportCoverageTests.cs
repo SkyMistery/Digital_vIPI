@@ -111,6 +111,44 @@ public class AirportCoverageTests
     }
 
     /// <summary>
+    /// 🔴 U-228: alla riconnessione il pilota deposita un piano di volo NUOVO. Lo stesso callsign sulla stessa
+    /// rotta, a pezzi vicini, è un volo solo — e l'arrivo conta all'ultimo pezzo, non alla caduta a metà volo.
+    /// </summary>
+    [Fact]
+    public void Una_riconnessione_con_piano_nuovo_conta_una()
+    {
+        var t = AirportCoverage.Tally(
+            new[] { Arrivo("AZA1430", 8, 9, fp: 900), Arrivo("AZA1430", 9.1, 10.5, fp: 901) },
+            Aperto(10, 11), H(0), H(24));
+
+        Assert.Equal(1, t.Inbound);
+        Assert.Equal(1, t.Covered);   // atterrato alle 10:30, con la torre aperta: non alla caduta delle 09
+    }
+
+    /// <summary>E la partenza conta al primo collegamento, anche se il piano nuovo arriva dopo.</summary>
+    [Fact]
+    public void Una_partenza_riconnessa_conta_al_primo_collegamento()
+    {
+        var t = AirportCoverage.Tally(
+            new[] { Partenza("AZA1431", 10.5, 11, fp: 902), Partenza("AZA1431", 8, 10.4, fp: 901) },
+            Aperto(7.5, 9), H(0), H(24));
+
+        Assert.Equal(1, t.Outbound);
+        Assert.Equal(1, t.Covered);
+    }
+
+    /// <summary>Guardia: lo stesso volo di linea a ore di distanza sono due voli.</summary>
+    [Fact]
+    public void Lo_stesso_callsign_a_ore_di_distanza_resta_due()
+    {
+        var t = AirportCoverage.Tally(
+            new[] { Arrivo("AZA1430", 1, 2.5, fp: 900), Arrivo("AZA1430", 14, 15.5, fp: 901) },
+            Aperto(0, 24), H(0), H(24));
+
+        Assert.Equal(2, t.Inbound);
+    }
+
+    /// <summary>
     /// ⚠️ Un LIRF→LIRF è una partenza <b>e</b> un arrivo dello stesso campo: due movimenti, non uno.
     /// Il verso fa parte dell'identità, o il circuito sparirebbe a metà.
     /// </summary>

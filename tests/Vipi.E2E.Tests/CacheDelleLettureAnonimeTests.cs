@@ -176,7 +176,9 @@ public sealed class CacheDelleLettureAnonimeTests : IClassFixture<SmokeTests.Vip
     public async Task La_risposta_tenuta_dichiara_che_varia_con_accept_language()
     {
         using var client = _factory.CreateClient();
-        using var resp = await client.GetAsync("/services/vsop/guide?t011v=" + Guid.NewGuid().ToString("N"));
+        // Un valore nuovo per non trovare la copia di un'altra prova, su una chiave che le pagine leggono: con una
+        // chiave sconosciuta la risposta non si tiene affatto (U-102), e non avrebbe niente da dichiarare.
+        using var resp = await client.GetAsync("/services/vsop/guide?p=" + Guid.NewGuid().ToString("N"));
 
         Assert.Contains("Accept-Language", string.Join(",", resp.Headers.Vary));
     }

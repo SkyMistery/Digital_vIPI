@@ -160,9 +160,9 @@
         {
             <h2 class="h-sect">@L["Stats_FindVid"]</h2>
             <div class="vid-find">
-                <input type="search" inputmode="numeric" list="vid-noti"
+                <CampoTesto type="search" inputmode="numeric" list="vid-noti"
                        placeholder="@L["Stats_FindVidPlaceholder"]" aria-label="@L["Stats_FindVid"]"
-                       value="@_cercato" @oninput="ScriveIlVid" @onkeydown="TastoNelCampo" />
+                       Valore="@_cercato" OnInput="ScriveIlVid" OnKeyDown="TastoNelCampo" />
                 @* I nomi li sa il roster, che raccoglie chi ha fatto login da NOI: è un aiuto per gli
                    staffisti, non un elenco di controllori — degli altri abbiamo il solo VID. *@
                 <datalist id="vid-noti">

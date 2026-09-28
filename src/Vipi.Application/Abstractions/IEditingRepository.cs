@@ -139,6 +139,14 @@ public interface IEditingRepository
     /// <summary>Elimina una sezione (ricorsivamente: figli + blocchi) da una bozza.</summary>
     Task DeleteSectionAsync(int sectionId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Il posto della sezione nel catalogo: la sua chiave e il profilo del documento (o del blocco della vIPI
+    /// ACC) in cui sta. Profilo null = un documento senza catalogo (la radice della vIPI ACC). null se la sezione
+    /// non c'è. Serve alla guardia delle sezioni fisse (U-147), che deve fare la stessa domanda degli editor.
+    /// </summary>
+    Task<(Vipi.Application.Content.SectionProfile? Profilo, string Chiave)?> GetSectionCatalogPlaceAsync(
+        int sectionId, CancellationToken ct = default);
+
     /// <summary>Sposta una sezione di un posto tra i fratelli (direction -1 = su, +1 = giù).</summary>
     Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default);
 

@@ -550,11 +550,31 @@
         }
 
         // Orbita manuale + zoom.
+        // ⚠️ Al tocco (revisione 3, U-088) lo zoom era SOLO a rotella: sul telefono non c'era modo di avvicinarsi.
+        // Due dita ora pizzicano: la distanza fra le dita scala il raggio. E lo stage non prende piu' tutto
+        // il tocco: `touch-action:pan-y` (vipi-aor3d.css) lascia alla pagina la passata verticale — il browser
+        // la tiene per se' e manda `pointercancel` — e al 3D la passata orizzontale, che gira la scena.
         var dragging = false, lx = 0, ly = 0;
-        stage.addEventListener('pointerdown', function (e) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add('grabbing'); try { stage.setPointerCapture(e.pointerId); } catch (_) { } }, uno);
-        stage.addEventListener('pointermove', function (e) { if (!dragging) return; theta -= (e.clientX - lx) * 0.006; phi = clamp(phi - (e.clientY - ly) * 0.006, 0.18, 1.45); lx = e.clientX; ly = e.clientY; updateCam(); }, uno);
-        stage.addEventListener('pointerup', function () { dragging = false; stage.classList.remove('grabbing'); }, uno);
-        stage.addEventListener('pointerleave', function () { dragging = false; stage.classList.remove('grabbing'); }, uno);
+        var dita = new Map(), pizzico0 = 0, raggio0 = 0;
+        function distanzaDita() { var p = Array.from(dita.values()); return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) || 1; }
+        function lascia(e) { dita.delete(e.pointerId); dragging = false; stage.classList.remove('grabbing'); }
+        stage.addEventListener('pointerdown', function (e) {
+            if (e.pointerType === 'touch') {
+                dita.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (dita.size === 2) { pizzico0 = distanzaDita(); raggio0 = radius; dragging = false; return; }
+            }
+            dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add('grabbing'); try { stage.setPointerCapture(e.pointerId); } catch (_) { }
+        }, uno);
+        stage.addEventListener('pointermove', function (e) {
+            if (dita.has(e.pointerId)) {
+                dita.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (dita.size >= 2) { radius = clamp(raggio0 * pizzico0 / distanzaDita(), 110, 620); updateCam(); return; }
+            }
+            if (!dragging) return; theta -= (e.clientX - lx) * 0.006; phi = clamp(phi - (e.clientY - ly) * 0.006, 0.18, 1.45); lx = e.clientX; ly = e.clientY; updateCam();
+        }, uno);
+        stage.addEventListener('pointerup', lascia, uno);
+        stage.addEventListener('pointercancel', lascia, uno);
+        stage.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'touch') lascia(e); }, uno);
         stage.addEventListener('wheel', function (e) { e.preventDefault(); radius = clamp(radius + e.deltaY * 0.14, 110, 620); updateCam(); }, { passive: false, signal: uno.signal });
 
         var rst = stage.parentElement && stage.parentElement.querySelector('.aor3d-reset');

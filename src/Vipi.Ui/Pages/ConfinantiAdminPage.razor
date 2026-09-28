@@ -94,7 +94,7 @@
             @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente.
                Questa pagina scrive settori esteri e genera documenti: prende lo stesso lock delle altre
                quattro pagine di struttura, che finora le mancava. *@
-            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" Acquired="RileggiAllaPresaAsync" />
         }
     </div>
 
@@ -119,7 +119,7 @@
                 {
                     var n = Counts();
                     <div class="struct-bar">
-                        <input class="htree-search" value="@_q" @oninput="OnSearchInput" placeholder="@L["Conf_SearchPlaceholder"]" />
+                        <CampoTesto class="htree-search" Valore="@_q" OnInput="OnSearchInput" placeholder="@L["Conf_SearchPlaceholder"]" />
                         @* I chip CONTANO: prima erano quattro etichette mute e lo stato dell'elenco si leggeva
                            solo scorrendo 33 righe. Stanno in gruppo, così la barra va a capo in un punto solo,
                            e ci sono sempre — spenti a zero, perché un chip che compare col contatore accorcia
@@ -231,7 +231,7 @@
                         <div class="field"><label>@L["Conf_LblRootCallsign"]</label><input @bind="_mCallsign" placeholder="@L["Conf_CallsignPh"]" /></div>
                         <div class="field">
                             <label>@L["Conf_LblPolyOptional"]</label>
-                            <textarea rows="3" class="mono-area" value="@_mPoly" @oninput="OnManualPolyInput"></textarea>
+                            <CampoTesto Multiriga="true" rows="3" class="mono-area" Valore="@_mPoly" OnInput="OnManualPolyInput" />
                             @* Opzionale: vuoto va bene, sbagliato no. Il chip lo dice prima del salva. *@
                             @if (!string.IsNullOrWhiteSpace(_mPoly))
                             {
@@ -327,8 +327,8 @@
                                stessa soglia del service (≥3 punti), letta dallo stesso parser. *@
                             <div class="field conf-form">
                                 <label>@((MarkupString)L["Conf_PolyLabel"].Value)</label>
-                                <textarea rows="4" class="mono-area" value="@_polyText" @oninput="OnPolyInput"
-                                          placeholder="[[7.5,43.7],[8.1,43.9],…]"></textarea>
+                                <CampoTesto Multiriga="true" rows="4" class="mono-area" Valore="@_polyText" OnInput="OnPolyInput"
+                                          placeholder="[[7.5,43.7],[8.1,43.9],…]" />
                                 <div class="conf-acts" style="margin-top:6px">
                                     <button class="btn primary" disabled="@(_busy || !_canEdit || !PolyReady)" @onclick="() => SavePolygon(sel.Id)">@L["Conf_SavePolygon"]</button>
                                     <button class="btn ghost" disabled="@_busy" @onclick="() => _polyOpen = false">@L["Common_Cancel"]</button>
@@ -438,6 +438,11 @@
     private bool _stopAsked;
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+
+    /// <summary>«Inizia modifica»: si rilegge PRIMA che i comandi si riaccendano (U-011, revisione totale 3).
+    /// La pagina aperta in sola lettura teneva la fotografia dell'apertura, e la prima scrittura riportava
+    /// indietro il lavoro fatto nel frattempo da chi il lock l'aveva tenuto.</summary>
+    private async Task RileggiAllaPresaAsync() => await ReloadAsync();
     private void ClearStatus() { _msg = null; _ok = null; }
 
     // Contatore onesto: «N di TOT» solo quando un filtro è attivo, il totale secco quando non lo è.

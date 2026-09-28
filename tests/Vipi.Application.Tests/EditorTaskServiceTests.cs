@@ -82,6 +82,19 @@ public class EditorTaskServiceTests
             servizio.CreateAsync(Incarico(assegnatario: Io, tipo: ReleaseTargetType.Airport, chiave: "LIRF")));
     }
 
+    /// <summary>
+    /// 🔴 U-019 (revisione totale 3): il contratto dice «Editor», e per un incarico senza documento il codice non
+    /// chiedeva nessun livello. Qualunque socio IVAO entrato creava incarichi a raffica per la bacheca admin.
+    /// </summary>
+    [Fact]
+    public async Task Chi_non_e_editor_non_crea_incarichi()
+    {
+        var (servizio, repo) = Servizio(admin: false, puoEditare: false);
+
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => servizio.CreateAsync(Incarico(assegnatario: Io)));
+        Assert.Empty(repo.Tasks);
+    }
+
     [Fact]
     public async Task Senza_identita_non_si_crea_niente()
     {
@@ -376,7 +389,8 @@ public class EditorTaskServiceTests
         public AuthzFinta(int? userId, bool admin, bool puo) { CurrentUserId = userId; IsAdmin = admin; _puo = puo; }
 
         public bool IsAdmin { get; }
-        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
+        // «Posso» è il livello Editor: chi non può scrivere è un socio qualunque (U-019).
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : _puo ? VipiRole.Editor : VipiRole.User;
         public int? CurrentUserId { get; }
         public string? CurrentName => CurrentUserId is null ? null : $"VID {CurrentUserId}";
         public void EnsureAdmin() { if (!IsAdmin) throw new EditNotAllowedException(); }

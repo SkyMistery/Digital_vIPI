@@ -19,6 +19,9 @@ public static class VloaStructureSeeder
 
     private static void AddSection(VipiDbContext db, DocumentVersion ver, VloaSectionSpec spec, DocumentSection? parent, int order)
     {
+        // ⚠️ I tre campi della nascita come in DocumentBirth (revisione 3, U-246): senza, la colonna dava Frozen a
+        // «Validity and Revision» — che è «sempre live» — e il pubblico e la nascosta del catalogo non arrivavano.
+        var desc = SectionCatalog.Find(SectionProfile.Vloa, spec.SectionKey);
         var section = new DocumentSection
         {
             DocumentVersion = ver,
@@ -28,7 +31,13 @@ public static class VloaStructureSeeder
             Depth = parent is null ? 0 : parent.Depth + 1,
             SectionKey = spec.SectionKey,
             RowVersion = Guid.NewGuid().ToByteArray(),
+            RenderMode = DocumentBirth.NasceLive(SectionProfile.Vloa)(spec.SectionKey) ? Domain.RenderMode.Live : Domain.RenderMode.Frozen,
         };
+        if (desc is not null)
+        {
+            section.Audience = desc.Audience;
+            section.IsHidden = desc.BornHidden;
+        }
         ver.Sections.Add(section);
         db.DocumentSections.Add(section);
 

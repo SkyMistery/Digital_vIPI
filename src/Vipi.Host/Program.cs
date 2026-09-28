@@ -22,11 +22,14 @@ catch (Exception ex) when (!ArrestoVolutoDaiTest(ex))
     throw;
 }
 
-// WebApplicationFactory<Program> avvia l'host chiamando questo stesso punto d'ingresso e lo interrompe
-// lanciando una StopTheHostException (tipo interno di Microsoft.Extensions.Hosting, non referenziabile:
-// si riconosce dal nome). Non è un guasto, è il modo normale in cui i test d'integrazione prendono l'host —
-// senza questo filtro ogni giro di test lascerebbe un avvio-errore.txt che non descrive niente.
-static bool ArrestoVolutoDaiTest(Exception ex) => ex.GetType().Name == "StopTheHostException";
+// Gli strumenti che risolvono l'host chiamando questo stesso punto d'ingresso — `dotnet ef` per le migrazioni —
+// lo interrompono appena costruito lanciando una HostAbortedException (pubblica da .NET 7; in .NET 6 era la
+// StopTheHostException interna, che si riconosceva dal nome). Non è un guasto: senza questo filtro ogni
+// `dotnet ef migrations add` lascerebbe un avvio-errore.txt che non descrive niente.
+// 🔴 U-235 (revisione totale 3): il commento diceva WebApplicationFactory, che da .NET 7 non lancia niente, e il
+// filtro guardava solo il nome vecchio, cioè non scattava mai.
+static bool ArrestoVolutoDaiTest(Exception ex) =>
+    ex is Microsoft.Extensions.Hosting.HostAbortedException || ex.GetType().Name == "StopTheHostException";
 
 // Punto d'ingresso esposto per i test d'integrazione in-process (WebApplicationFactory<Program>).
 // I top-level statement generano una classe Program internal: questa partial la rende raggiungibile dai test.

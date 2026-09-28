@@ -160,6 +160,14 @@
 
     private async Task FineModificaTutti()
     {
+        // ⚠️ PRIMA di mollare il primo lock (U-010): una tabella ferma su una riga a metà, in questo documento o
+        // in un membro, butterebbe all'uscita anche le correzioni valide alle altre righe.
+        _errore = null;
+        if (((_editor as IMembroEditor)?.PercheResta ?? _membri?.PercheResta) is { } perche)
+        {
+            _errore = perche;
+            return;
+        }
         if (_membri is not null) await _membri.RilasciaLockAsync();
         if (_editor is not null) await _editor.RilasciaLockAsync();
     }

@@ -46,6 +46,19 @@ public sealed class IvaoHttp
         return await _http.SendAsync(req, ct);
     }
 
+    /// <summary>
+    /// GET <b>senza</b> token, per gli endpoint pubblici (il whazzup).
+    /// <para>🔴 U-025 (revisione totale 3): il whazzup passava da <see cref="SendGetAsync"/>, che chiede il token
+    /// quando il ClientId c'è. Un segreto ruotato male o un token endpoint giù facevano fallire una GET che il token
+    /// non lo vuole: vista live e statistiche si spegnevano per tutti, e IVAO riceveva un POST di token fallito al
+    /// minuto.</para>
+    /// </summary>
+    public async Task<HttpResponseMessage> SendGetPubblicoAsync(string path, CancellationToken ct)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, Combine(path));
+        return await _http.SendAsync(req, ct);
+    }
+
     /// <summary>GET autorizzato che ritorna il body come stringa (null su 4xx/5xx). Best-effort.</summary>
     public async Task<string?> GetStringAsync(string path, CancellationToken ct)
     {
@@ -61,6 +74,36 @@ public sealed class IvaoHttp
         if (!res.IsSuccessStatusCode) return null;
         return await res.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
     }
+
+    /// <summary>
+    /// GET di un <b>elenco</b>: il body su 2xx, <c>null</c> su <b>404</b> (la sorgente dice che lì non c'è niente, ed
+    /// è una risposta), <see cref="HttpRequestException"/> con lo status su <b>ogni altro</b> non-2xx.
+    ///
+    /// <para>🔴 U-002 (revisione totale 3): gli elenchi passavano da <see cref="GetStringAsync"/>/<see cref="GetJsonAsync{T}"/>,
+    /// che fanno di ogni non-2xx un <c>null</c>. Un 401/403/429/5xx sulle postazioni d'aeroporto diventava «nessuna
+    /// postazione», il giro dei settori timbrava riuscito e dopo due notti cadeva la D8 dell'eliminazione. Un elenco
+    /// vuoto per sbaglio è peggio di un giro fallito: il secondo si ritenta, il primo si crede. I DETTAGLI per voce
+    /// restano best-effort sui metodi di sopra: un dettaglio non letto tiene i dati della lista.</para>
+    /// </summary>
+    public async Task<string?> GetElencoAsync(string path, CancellationToken ct)
+    {
+        using var res = await SendGetAsync(path, ct);
+        if (res.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        if (!res.IsSuccessStatusCode)
+            throw new HttpRequestException(
+                $"IVAO {(int)res.StatusCode} {res.StatusCode} su {path}: elenco non letto.", null, res.StatusCode);
+        return await res.Content.ReadAsStringAsync(ct);
+    }
+
+    /// <summary>Come <see cref="GetElencoAsync"/>, deserializzato.</summary>
+    public async Task<T?> GetElencoJsonAsync<T>(string path, CancellationToken ct) where T : class
+    {
+        var body = await GetElencoAsync(path, ct);
+        return body is null ? null : JsonSerializer.Deserialize<T>(body, JsonWeb);
+    }
+
+    // Stesse opzioni di ReadFromJsonAsync (nomi camelCase, numeri anche fra virgolette).
+    private static readonly JsonSerializerOptions JsonWeb = new(JsonSerializerDefaults.Web);
 
     // ---- Parser JSON tolleranti (i campi non noti/assenti diventano null/false). ----
 

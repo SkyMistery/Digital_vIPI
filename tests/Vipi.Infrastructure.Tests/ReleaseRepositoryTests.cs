@@ -146,6 +146,31 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.Contains("Settori di aerovia", json);
     }
 
+    /// <summary>
+    /// U-241 (revisione 3): per numerare e ricalcolare gli stati la pubblicazione caricava TUTTE le release del
+    /// bersaglio come entità intere, payload compresi. Ora legge quattro colonne: nel contesto, dopo, c'è solo la
+    /// release nuova — e gli stati delle vecchie sono comunque giusti.
+    /// </summary>
+    [Fact]
+    public async Task Salvare_una_release_non_carica_i_payload_delle_vecchie()
+    {
+        var key = _docId.ToString();
+        var json = (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!;
+        var now = DateTime.UtcNow;
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2605", now.AddDays(-40), json, 1, "prima");
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2606", now.AddDays(-2), json, 1, "seconda");
+        _db.ChangeTracker.Clear();
+
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2607", now.AddSeconds(-5), json, 1, "terza");
+
+        var seguite = _db.ChangeTracker.Entries<DocRelease>().Select(e => e.Entity).ToList();
+        Assert.Equal(new[] { "terza" }, seguite.Select(r => r.Note));
+
+        _db.ChangeTracker.Clear();
+        var stati = await _db.DocReleases.OrderBy(r => r.VersionNumber).Select(r => r.Status).ToListAsync();
+        Assert.Equal(new[] { ReleaseStatus.Superseded, ReleaseStatus.Superseded, ReleaseStatus.Effective }, stati);
+    }
+
     [Fact]
     public async Task Cancel_RemovesRelease_AndPromotesPrevious()
     {
@@ -245,6 +270,32 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.Equal(DocumentStatus.Published, (await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.Id == ver.Id)).Status);
     }
 
+    /// <summary>
+    /// 🔴 U-080 (revisione totale 3): la vLOA 65 in produzione è «Published» con la v1 «Published» e il
+    /// puntatore nullo (nata così da «ACC confinanti» prima di S27). La pubblicazione archiviava solo la versione
+    /// del puntatore: la v1 restava «Published» accanto alla nuova. Si archivia ogni altra pubblicata.
+    /// </summary>
+    [Fact]
+    public async Task PublishWorkingVersion_ArchivesEveryOtherPublishedVersion()
+    {
+        var acc = await _db.Accs.FirstAsync();
+        var doc = new Document { Type = DocumentType.Vipi, Title = "vIPI LIPY_APP", Language = Language.It, Status = DocumentStatus.Published, LastUpdatedAiracCycle = "2606" };
+        var v1 = new DocumentVersion { Document = doc, VersionNumber = 1, Status = DocumentStatus.Published, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
+        var v2 = new DocumentVersion { Document = doc, VersionNumber = 2, Status = DocumentStatus.Draft, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
+        doc.Versions.Add(v1);
+        doc.Versions.Add(v2);
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+        _db.Sectors.Add(new Sector { Acc = acc, Callsign = "LIPY_APP", Name = "Falconara APP", Type = SectorType.App, Kind = SectorKind.Airport, ApproachKind = ApproachKind.Standalone, IsActive = true, DocumentId = doc.Id, IsPrimary = true });
+        await _db.SaveChangesAsync();
+
+        await _repo.PublishWorkingVersionAsync(ReleaseTargetType.App, "LIPY_APP", 1, "2607");
+
+        var stati = await _db.DocumentVersions.AsNoTracking().Where(v => v.DocumentId == doc.Id)
+            .OrderBy(v => v.VersionNumber).Select(v => v.Status).ToListAsync();
+        Assert.Equal(new[] { DocumentStatus.Archived, DocumentStatus.Published }, stati);
+    }
+
     [Fact]
     public async Task PublishWorkingVersion_NoDraft_IsNoOp()
     {
@@ -271,6 +322,47 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         var list = await _repo.ListAsync(ReleaseTargetType.Vloa, key);
         Assert.Single(list, r => r.IsEffectiveNow);                       // una sola in vigore
         Assert.Contains(list, r => r.Status == ReleaseStatus.Superseded); // la prima superata
+    }
+
+    /// <summary>
+    /// U-009 (revisione totale 3): una programmata fatta PRIMA di una «Pubblica ora» porta un testo più
+    /// vecchio, eppure al suo ciclo scavalcava la pubblicata perché la vincitrice si sceglieva per data. Sulla
+    /// copia del 26 settembre la LIBV_APP sarebbe tornata al 9 settembre il 1° ottobre, senza avviso.
+    /// </summary>
+    [Fact]
+    public async Task Pubblica_ora_dopo_una_programmata_resta_in_vigore_al_rollover()
+    {
+        var key = _docId.ToString();
+        var json = (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!;
+        var now = DateTime.UtcNow;
+
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2610", now.AddDays(4), json, 1, "programmata vecchia");
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2609", now, json, 1, "pubblica ora");
+
+        var eff = await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, now.AddDays(5));
+        Assert.Equal("pubblica ora", eff!.Note);
+        var list = await _repo.ListAsync(ReleaseTargetType.Vloa, key);
+        Assert.Contains(list, r => r.Note == "programmata vecchia" && r.Status == ReleaseStatus.Superseded);
+
+        // Annullare la «Pubblica ora» rimette in piedi il piano di prima.
+        await _repo.CancelAsync(list.Single(r => r.Note == "pubblica ora").Id);
+        eff = await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, now.AddDays(5));
+        Assert.Equal("programmata vecchia", eff!.Note);
+    }
+
+    /// <summary>La regola non tocca il caso buono: una programmata fatta DOPO resta la prossima.</summary>
+    [Fact]
+    public async Task Programmata_dopo_una_pubblica_ora_entra_al_suo_ciclo()
+    {
+        var key = _docId.ToString();
+        var json = (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!;
+        var now = DateTime.UtcNow;
+
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2609", now, json, 1, "pubblica ora");
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2610", now.AddDays(4), json, 1, "programmata");
+
+        Assert.Equal("pubblica ora", (await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, now))!.Note);
+        Assert.Equal("programmata", (await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, now.AddDays(5)))!.Note);
     }
 
     [Fact]

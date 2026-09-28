@@ -25,6 +25,7 @@ public sealed class ProcedureImporter : IProcedureImporter
     private readonly IImportPolicyStore _policy;
     private readonly IAiracService _airac;
     private readonly Vipi.Application.Auth.IEditAuthorizationService _authz;
+    private readonly IAirportLockGuard _lockScalo;
 
     /// <summary>Che cosa dice di sé la sorgente. Opzionale: senza, il ciclo d'entrata scende ai ripieghi di
     /// <see cref="SidStampCycle"/> — cioè al comportamento di prima della carta §AW2.</summary>
@@ -34,7 +35,7 @@ public sealed class ProcedureImporter : IProcedureImporter
     private readonly IImportStateStore? _stati;
 
     public ProcedureImporter(IProcedureProvider provider, IAirportRepository repo, IImportPolicyStore policy,
-        IAiracService airac, Vipi.Application.Auth.IEditAuthorizationService authz,
+        IAiracService airac, Vipi.Application.Auth.IEditAuthorizationService authz, IAirportLockGuard lockScalo,
         ISidSourceRelease? sorgente = null, IImportStateStore? stati = null)
     {
         _provider = provider;
@@ -42,6 +43,7 @@ public sealed class ProcedureImporter : IProcedureImporter
         _policy = policy;
         _airac = airac;
         _authz = authz;
+        _lockScalo = lockScalo;
         _sorgente = sorgente;
         _stati = stati;
     }
@@ -53,6 +55,11 @@ public sealed class ProcedureImporter : IProcedureImporter
         var acc = await _repo.GetAccCodeByIcaoAsync(norm, ct)
             ?? throw new Vipi.Application.Aor.ValidationException(Lingua($"Aeroporto {norm} inesistente o senza ACC.", $"Airport {norm} does not exist, or has no ACC."));
         _authz.EnsureAtLeast(VipiRole.Editor);
+        // 🔴 U-111/U-161 (revisione totale 3): chiedeva solo il ruolo. Una pagina rimasta «in modifica» dopo aver
+        // perso il lock riscriveva le procedure sotto chi l'aveva preso. La guardia è quella del re-import completo,
+        // che sta nello stesso gesto: il lock non dev'essere di un altro. Il giro periodico (ImportAsync) resta
+        // senza, per disegno — e con le righe aggiornate sul posto non stacca più le modifiche di chi lavora.
+        await _lockScalo.EnsureNotOtherAsync(norm, ct);
         return await ImportAsync(norm, ct);
     }
 

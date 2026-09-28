@@ -275,6 +275,12 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
     /// che avessero qualcosa sotto. I poligoni invece ci sono tutti (153 su 153) e le coordinate le hanno
     /// 84 aeroporti su 93 — i 9 che mancano sono voci di FIR/TMA («Roma TMA», «Milano TMA») e sei campi
     /// minuscoli. Un elenco vuoto per metà della divisione sarebbe stato uno zero che sembra un dato.</para>
+    ///
+    /// <para>🔴 U-219 (revisione totale 3, scelta del committente del 28 settembre 2026): per un <c>_APP</c> (o
+    /// <c>_DEP</c>) il solo ICAO del callsign non basta — <c>LIBD_CS0_APP</c> copre anche Brindisi. Gli si accreditano
+    /// anche gli scali che nell'albero hanno lui come padre di copertura (<c>Airport.ParentCallsign</c>), l'albero
+    /// di <b>oggi</b> come per i poligoni d'area. ⚠️ Solo i figli diretti: è il campo che la Struttura compila.
+    /// Uno scalo non ancora collocato nell'albero resta fuori, e per l'APP vale il prefisso come prima.</para>
     /// </summary>
     public async Task<IReadOnlyList<StatsByKey>> ManagedAirportsAsync(
         int? userId, DateTimeOffset from, DateTimeOffset to, int limit = 15, CancellationToken ct = default)
@@ -286,12 +292,21 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
 
         // Due famiglie di sessioni, due modi di sapere qual è il campo. Chi non ricade in nessuna delle due
         // (un FSS senza poligono, un callsign storto) semplicemente non porta aeroporti.
-        var campoPerSessione = new Dictionary<long, string>();
+        var campoPerSessione = new Dictionary<long, HashSet<string>>();
         var areaPerSessione = new Dictionary<long, string>();
+        var figliPerApp = await ScaliSottoAsync(ct);
         foreach (var s in sessioni)
         {
-            if (TrafficStory.StationIcao(s.Callsign) is { } icao) campoPerSessione[s.SessionId] = icao;
-            else areaPerSessione[s.SessionId] = s.Callsign.Trim().ToUpperInvariant();
+            var callsign = s.Callsign.Trim().ToUpperInvariant();
+            if (TrafficStory.StationIcao(callsign) is { } icao)
+            {
+                var campi = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { icao };
+                if ((callsign.EndsWith("_APP", StringComparison.Ordinal) || callsign.EndsWith("_DEP", StringComparison.Ordinal))
+                    && figliPerApp.TryGetValue(callsign, out var figli))
+                    campi.UnionWith(figli);
+                campoPerSessione[s.SessionId] = campi;
+            }
+            else areaPerSessione[s.SessionId] = callsign;
         }
 
         var dentroPerSettore = await AeroportiPerSettoreAsync(areaPerSessione.Values.ToHashSet(StringComparer.OrdinalIgnoreCase), ct);
@@ -311,10 +326,11 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
             // lo stesso vale per un settore d’area che ha tutti e due i capi in casa.
             daAccreditare.Clear();
 
-            if (campoPerSessione.TryGetValue(t.SessionId, out var campo))
+            if (campoPerSessione.TryGetValue(t.SessionId, out var campi))
             {
                 // Da O per: un sorvolo vettorato mentre si copriva LIRF non è traffico «di» LIRF.
-                if (Uguale(t.DepIcao, campo) || Uguale(t.ArrIcao, campo)) daAccreditare.Add(campo);
+                if (Normale(t.DepIcao) is { } dep && campi.Contains(dep)) daAccreditare.Add(dep);
+                if (Normale(t.ArrIcao) is { } arr && campi.Contains(arr)) daAccreditare.Add(arr);
             }
             else if (areaPerSessione.TryGetValue(t.SessionId, out var settore)
                      && dentroPerSettore.TryGetValue(settore, out var dentro))
@@ -338,6 +354,20 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
             .ThenBy(r => r.Key, StringComparer.Ordinal)
             .Take(Math.Max(1, limit))
             .ToList();
+    }
+
+    /// <summary>Per ogni padre di copertura dell'albero (callsign in maiuscolo), gli ICAO degli scali che ha sotto.</summary>
+    private async Task<IReadOnlyDictionary<string, HashSet<string>>> ScaliSottoAsync(CancellationToken ct)
+    {
+        var righe = await _db.Airports.AsNoTracking()
+            .Where(a => a.ParentCallsign != null)
+            .Select(a => new { a.Icao, a.ParentCallsign })
+            .ToListAsync(ct);
+        return righe
+            .GroupBy(a => a.ParentCallsign!.Trim().ToUpperInvariant())
+            .ToDictionary(g => g.Key,
+                g => g.Select(a => a.Icao.Trim().ToUpperInvariant()).ToHashSet(StringComparer.OrdinalIgnoreCase),
+                StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -387,9 +417,6 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
 
     private static string? Normale(string? icao) =>
         string.IsNullOrWhiteSpace(icao) ? null : icao.Trim().ToUpperInvariant();
-
-    private static bool Uguale(string? a, string b) =>
-        !string.IsNullOrWhiteSpace(a) && string.Equals(a.Trim(), b, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Aeroporti o tipi del traffico gestito. Un volo LIRF→LIRN conta per <b>tutti e due</b> gli scali:

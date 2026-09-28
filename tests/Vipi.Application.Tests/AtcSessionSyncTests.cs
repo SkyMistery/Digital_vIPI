@@ -170,6 +170,30 @@ public class AtcSessionSyncTests
         Assert.Equal(101, nuova.ShiftKey);
     }
 
+    [Fact] // U-218: la nota aperta che non è più in frequenza si chiude in questo giro: la riconnessione è sua
+    public void Una_nota_aperta_che_non_e_piu_online_cede_il_turno_alla_riconnessione()
+    {
+        // La 100 era in frequenza da 30 minuti all'ultimo giro; la 101 parte 2 secondi prima di quell'avvistamento.
+        var known = new[] { Nota(100, T0, null, turno: 100) with { DurationSeconds = 1800 } };
+        var riconnessa = T0.AddSeconds(1798);
+
+        var p = AtcSessionSync.Plan(new[] { Conn(101, riconnessa, 60) }, known, riconnessa.AddMinutes(1));
+
+        Assert.Equal(100, p.Upserts.Single(u => u.SessionId == 101).ShiftKey);
+        Assert.Contains(p.Closures, c => c.SessionId == 100);
+    }
+
+    [Fact] // U-218: anche una nota già chiusa che si sovrappone di pochi secondi cede il turno
+    public void Una_nota_chiusa_che_si_sovrappone_di_pochi_secondi_cede_il_turno()
+    {
+        var known = new[] { Nota(100, T0, T0.AddMinutes(30), turno: 100) };
+        var riconnessa = T0.AddMinutes(30).AddSeconds(-3);
+
+        var p = AtcSessionSync.Plan(new[] { Conn(101, riconnessa, 60) }, known, riconnessa.AddMinutes(1));
+
+        Assert.Equal(100, p.Upserts.Single(u => u.SessionId == 101).ShiftKey);
+    }
+
     [Fact]
     public void Senza_nessuno_in_frequenza_e_senza_sessioni_aperte_non_si_scrive_niente()
     {

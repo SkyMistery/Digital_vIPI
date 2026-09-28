@@ -32,7 +32,7 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
             TimeSpan.FromHours(Math.Max(1, _opt.AirportSectorImportHours)), ImportOnceAsync, _log, stoppingToken,
             bootDelay: TimeSpan.FromSeconds(40));
 
-    private async Task<bool> ImportOnceAsync(IServiceProvider sp, CancellationToken ct)
+    internal async Task<bool> ImportOnceAsync(IServiceProvider sp, CancellationToken ct)
     {
         var repo = sp.GetRequiredService<IAirportSectorRepository>();
         var importer = sp.GetRequiredService<Vipi.Application.Content.IAirportSectorImporter>();
@@ -43,19 +43,48 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
         int created = 0, updated = 0, airports = 0;
         System.Runtime.ExceptionServices.ExceptionDispatchInfo? guastoDellaSorgente = null;
         var nonConfigurata = false;
+
+        // 🔴 U-024 (revisione totale 3): con «Settori» esclusa l'importatore non fa nulla per scelta, ma il giro
+        // ritornava true e GatedImportLoop timbrava. Quel timbro è il «penultimo giro» che DeletionService legge per
+        // la D8: gli ImportedAtUtc restavano fermi al giorno dell'esclusione, e dopo due notti ogni settore
+        // d'aeroporto risultava «non più mandato dalla sorgente» — eliminabile. Esclusa = non si legge e non si
+        // timbra, come la sorgente non configurata. Il ripiego delle shape gira lo stesso: lavora sul catalogo.
+        var esclusa = !(await sp.GetRequiredService<IImportPolicyStore>().GetAsync(ct)).IsImported(Vipi.Domain.ImportCategory.Sectors);
+        if (esclusa)
+            _log.LogInformation("Import settori aeroporto da sorgente saltato: categoria «Settori» esclusa in Sorgenti (nessun timbro).");
+        else
         try
         {
             var icaos = await repo.ListAirportIcaosAsync(ct);
+            // 🔴 U-002: un catch PER SCALO. Prima il primo scalo che non si leggeva fermava tutti quelli dopo di lui,
+            // ogni ora; ora gli altri si leggono, la proiezione si rifà, e alla fine il giro risulta fallito con i
+            // nomi di chi manca — è il testo che Sorgenti mostra come ultimo errore.
+            var falliti = new List<(string Icao, Exception Errore)>();
             foreach (var icao in icaos)
             {
-                var (c, u) = await importer.ImportAsync(icao, ct);
-                if (c == 0 && u == 0) continue;
-                created += c; updated += u; airports++;
+                try
+                {
+                    var (c, u) = await importer.ImportAsync(icao, ct);
+                    if (c == 0 && u == 0) continue;
+                    created += c; updated += u; airports++;
+                }
+                catch (SorgenteNonConfigurataException) { throw; }   // globale: nessuno scalo si può leggere
+                catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+                {
+                    falliti.Add((icao, ex));
+                }
             }
 
             // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
             var projection = sp.GetRequiredService<ISectorProjectionService>();
             await projection.SyncFromCatalogsAsync(ct);
+
+            if (falliti.Count > 0)
+                throw new HttpRequestException(
+                    $"Postazioni non lette per {falliti.Count} di {icaos.Count} aeroporti: " +
+                    string.Join(", ", falliti.Take(10).Select(f => $"{f.Icao} ({f.Errore.Message})")) +
+                    (falliti.Count > 10 ? $" e altri {falliti.Count - 10}" : "") + ".",
+                    falliti[0].Errore);
         }
         catch (SorgenteNonConfigurataException ex)
         {
@@ -133,7 +162,7 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
             atz?.Applied ?? 0, circles);
 
         guastoDellaSorgente?.Throw();
-        return !nonConfigurata;
+        return !nonConfigurata && !esclusa;
     }
 
     /// <summary>

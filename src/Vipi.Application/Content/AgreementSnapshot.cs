@@ -20,6 +20,30 @@ public sealed record AgreementClauseSnapshot(
 /// ricrearne l'intestazione per ospitarla sarebbe inventare un accordo che nessuno ha scritto.</param>
 public sealed record AgreementClauseRestore(int SectionId, AgreementClauseSnapshot Clause);
 
+/// <summary>
+/// La posizione che una clausola <b>rimasta</b> aveva nel gruppo di una clausola eliminata (U-061).
+/// <para>Eliminare una variante scioglie il gruppo rimasto di una: la superstite perde gruppo, profondità e «in
+/// ogni caso». La foto della sola clausola eliminata non basta a rimettere le cose com'erano — l'eccezione
+/// rientrerebbe a profondità 1 accanto a una capofila fuori dal gruppo. Il ripristino rimette questa posizione
+/// solo alle sorelle ancora fuori da ogni gruppo: una messa altrove nel frattempo non si tocca.</para>
+/// </summary>
+public sealed record AgreementOutlineRestore(int ClauseId, int VariantGroup, int VariantDepth, bool IsGroupWide)
+{
+    /// <summary>Le sorelle che restano quando si eliminano <paramref name="eliminate"/>: le clausole della stessa
+    /// sezione e dello stesso gruppo di una eliminata, che non sono eliminate a loro volta.</summary>
+    public static IReadOnlyList<AgreementOutlineRestore> SorelleDi(
+        IEnumerable<AgreementClauseRow> righe, IReadOnlyCollection<int> eliminate)
+    {
+        var tutte = righe.ToList();
+        var gruppi = tutte.Where(r => eliminate.Contains(r.Id) && r.VariantGroup is not null)
+            .Select(r => (r.SectionId, Gruppo: r.VariantGroup!.Value)).ToHashSet();
+        return tutte
+            .Where(r => r.VariantGroup is int g && gruppi.Contains((r.SectionId, g)) && !eliminate.Contains(r.Id))
+            .Select(r => new AgreementOutlineRestore(r.Id, r.VariantGroup!.Value, r.VariantDepth, r.IsGroupWide))
+            .ToList();
+    }
+}
+
 /// <summary>Una sezione com'era: la sua intestazione e tutte le sue clausole con la loro struttura.</summary>
 public sealed record AgreementSectionSnapshot(
     AgreementSectionInput Data, int Order, IReadOnlyList<AgreementClauseSnapshot> Clauses);

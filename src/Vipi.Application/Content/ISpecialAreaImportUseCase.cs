@@ -19,4 +19,10 @@ public interface ISpecialAreaImportUseCase
     /// accende un ente estero (da lì in poi entra nel giro periodico). La policy globale resta vincolante.
     /// </summary>
     Task<SpecialAreaImportResult> RunForAccAsync(string accCode, CancellationToken ct = default);
+
+    /// <summary>
+    /// Spegne le aree regolamentate di un ACC: toglie il flag, pota i legami e apre un impatto AreaGone per ogni area
+    /// che l'ACC non vede più — come fa l'import per la stessa sparizione (U-130). Ritorna quanti legami ha tolto.
+    /// </summary>
+    Task<int> SpegniAccAsync(int accId, CancellationToken ct = default);
 }

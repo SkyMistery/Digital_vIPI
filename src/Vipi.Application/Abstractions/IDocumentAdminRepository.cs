@@ -38,6 +38,16 @@ public interface IDocumentAdminRepository
     /// <summary>Codice ACC del documento (per l'autorizzazione ACC-scoped). null se non risolvibile.</summary>
     Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default);
 
+    /// <summary>
+    /// L'Id del documento: quello del riferimento, o risolto dalla chiave di release col descrittore. null se
+    /// non si risolve.
+    /// <para>⚠️ Il pannello di rilascio passa bersaglio e chiave, <b>senza</b> l'Id. Una guardia che guardasse
+    /// solo <c>doc.DocumentId</c> si spegnerebbe proprio lì, senza un errore (U-139, revisione 3).</para>
+    /// <para>Il corpo predefinito serve ai finti dei test, che l'Id lo hanno sempre nel riferimento.</para>
+    /// </summary>
+    Task<int?> ResolveDocumentIdAsync(ManagedDocRef doc, CancellationToken ct = default) =>
+        Task.FromResult(doc.DocumentId);
+
     /// <summary>La lingua del documento e se è <b>bloccata</b>; null se il documento non si risolve.</summary>
     Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default);
 

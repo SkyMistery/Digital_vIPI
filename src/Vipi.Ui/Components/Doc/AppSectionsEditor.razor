@@ -698,8 +698,8 @@ else
     private RenderFragment FreqLinkPicker() => __builder =>
     {
         <div class="app-linkpick">
-            <input class="app-in" placeholder="@L["App_LinkFreqPh"]" value="@_freqSearch"
-                   @oninput="e => _freqSearch = AsString(e.Value)" />
+            <CampoTesto class="app-in" placeholder="@L["App_LinkFreqPh"]" Valore="@_freqSearch"
+                   OnInput="e => _freqSearch = AsString(e.Value)" />
             @if (!string.IsNullOrWhiteSpace(_freqSearch))
             {
                 <div class="sector-pick">

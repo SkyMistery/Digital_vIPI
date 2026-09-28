@@ -22,6 +22,36 @@ public class AirportBackfillPlannerTests
             T0.AddMinutes(daMinuto), T0.AddMinutes(aMinuto));
     }
 
+    // ---- U-094 (revisione totale 3): per istante, non per finestra ----
+
+    [Fact]
+    public void La_finestra_coperta_da_due_torri_in_fila_e_tutta_d_altri_ma_con_un_buco_no()
+    {
+        var gnd = S(3, "LIRF_GND", 0, 120);
+        var inFila = new[] { gnd, S(1, "LIRF_TWR", 0, 70), S(2, "LIRF_TWR", 70, 120) };
+        var conBuco = new[] { gnd, S(1, "LIRF_TWR", 0, 60), S(2, "LIRF_TWR", 70, 120) };
+
+        Assert.True(AirportBackfillPlanner.CopertaDaAltri(gnd, inFila));
+        Assert.False(AirportBackfillPlanner.CopertaDaAltri(gnd, conBuco));
+    }
+
+    [Fact]
+    public void Il_movimento_e_di_chi_era_piu_titolato_in_quell_istante()
+    {
+        var gnd = S(2, "LIRF_GND", 0, 120);
+        var twr = S(1, "LIRF_TWR", 30, 90);
+        var tutte = new[] { gnd, twr };
+
+        Assert.True(AirportBackfillPlanner.Tiene(gnd, tutte, T0.AddMinutes(10)));
+        Assert.False(AirportBackfillPlanner.Tiene(twr, tutte, T0.AddMinutes(10)));
+        Assert.False(AirportBackfillPlanner.Tiene(gnd, tutte, T0.AddMinutes(60)));
+        Assert.True(AirportBackfillPlanner.Tiene(twr, tutte, T0.AddMinutes(60)));
+        // Istante fuori da tutte, o assente: la regola della finestra — uno solo lo prende.
+        Assert.NotEqual(AirportBackfillPlanner.Tiene(gnd, tutte, T0.AddMinutes(200)),
+                        AirportBackfillPlanner.Tiene(twr, tutte, T0.AddMinutes(200)));
+        Assert.NotEqual(AirportBackfillPlanner.Tiene(gnd, tutte, null), AirportBackfillPlanner.Tiene(twr, tutte, null));
+    }
+
     [Fact]
     public void Da_sola_una_posizione_si_prende_i_movimenti()
     {

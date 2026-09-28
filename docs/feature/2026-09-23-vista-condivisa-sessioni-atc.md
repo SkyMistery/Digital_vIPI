@@ -1,6 +1,6 @@
 # §A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026)
 
-> Stato: 🟡 **in PR, non in `main`, non in pacchetto.** Una migrazione MySQL di sola vista
+> Stato: ✅ **online dalla 1.43.0** (U-126 della revisione 3: la testata diceva ancora «in PR»). Una migrazione MySQL di sola vista
 > (`20260923100945_VistaCondivisaSessioniAtc`) e la copia del database che impara a portarla.
 > Il contratto l'ha deciso il committente il 14 settembre 2026, nella nota dell'hub
 > `docs/internal/decisions/2026-09-14-dati-condivisi-con-vipi.md` (repository dell'hub, non questo).

@@ -52,6 +52,18 @@ namespace Vipi.Ui;
 public static class MarkdownLite
 {
     /// <summary>
+    /// Il tempo massimo di ogni regex della riga. 🔴 U-240 (revisione totale 3): quantificatori pigri e sguardi
+    /// indietro, senza tetto, su una riga lunga piena di aperture spaiate (un testo incollato pieno di «__») possono
+    /// macinare CPU in modo più che lineare — e questa funzione gira a ogni lettura pubblica di un blocco di prosa.
+    /// Il tetto di T-023 su TabellaHtml è 2 s; qui 1 s, perché gira sulla lettura pubblica. ⚠️ Non 100 ms: la PRIMA
+    /// esecuzione di una regex compilata, con la macchina carica, li supera anche su «__a__» — visto nella suite
+    /// intera, dove il sottolineato più semplice usciva non formattato. ⚠️ Non <c>NonBacktracking</c>: non regge gli
+    /// sguardi indietro.
+    /// </summary>
+    // ⚠️ PRIMA delle regex che lo usano: i campi statici si inizializzano in ordine, e dopo varrebbe zero.
+    private static readonly TimeSpan Tempo = TimeSpan.FromSeconds(1);
+
+    /// <summary>
     /// Il link inline a un allegato: <c>[LoA Marseille](allegato:loa-lirr-lfmm)</c>.
     ///
     /// <para>Lo slug è vincolato alla sua forma — minuscole, cifre, trattini singoli — e non a «qualunque
@@ -62,10 +74,10 @@ public static class MarkdownLite
     /// diventato testo prima, e resta testo dentro l'ancora.</para>
     /// </summary>
     private static readonly Regex LinkAllegato = new(
-        AttachmentRules.LinkPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        AttachmentRules.LinkPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, Tempo);
 
     private static readonly Regex Grassetto = new(
-        @"\*\*(.+?)\*\*", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        @"\*\*(.+?)\*\*", RegexOptions.Compiled | RegexOptions.CultureInvariant, Tempo);
 
     /// <summary>
     /// Il sottolineato è <c>__testo__</c>. Nel Markdown di scuola <c>__</c> è un secondo modo di scrivere il
@@ -77,10 +89,10 @@ public static class MarkdownLite
     /// <c>__</c> oggi, quindi la sintassi non ruba niente a nessuno.</para>
     /// </summary>
     private static readonly Regex Sottolineato = new(
-        @"(?<!_)__(?=\S)(.+?)(?<=\S)__(?!_)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        @"(?<!_)__(?=\S)(.+?)(?<=\S)__(?!_)", RegexOptions.Compiled | RegexOptions.CultureInvariant, Tempo);
 
     private static readonly Regex Corsivo = new(
-        @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", RegexOptions.Compiled | RegexOptions.CultureInvariant, Tempo);
 
     /// <summary>Quanti livelli di elenco esistono: il numero sta in <see cref="VoceDiElenco"/>.</summary>
     public const int LivelliMassimi = VoceDiElenco.LivelliMassimi;
@@ -206,10 +218,18 @@ public static class MarkdownLite
     private static string Inline(string riga)
     {
         var html = WebUtility.HtmlEncode(riga);
-        html = Grassetto.Replace(html, "<strong>$1</strong>");
-        html = Sottolineato.Replace(html, "<u>$1</u>");
-        html = Corsivo.Replace(html, "<em>$1</em>");
-        return LinkAllegato.Replace(html, m =>
-            $"<a href=\"{AttachmentRules.UrlDi(m.Groups[2].Value)}\" target=\"_blank\" rel=\"noopener\">{m.Groups[1].Value}</a>");
+        try
+        {
+            html = Grassetto.Replace(html, "<strong>$1</strong>");
+            html = Sottolineato.Replace(html, "<u>$1</u>");
+            html = Corsivo.Replace(html, "<em>$1</em>");
+            return LinkAllegato.Replace(html, m =>
+                $"<a href=\"{AttachmentRules.UrlDi(m.Groups[2].Value)}\" target=\"_blank\" rel=\"noopener\">{m.Groups[1].Value}</a>");
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // Una riga che non si formatta in tempo si mostra com'è, codificata: meglio senza grassetti che ferma.
+            return WebUtility.HtmlEncode(riga);
+        }
     }
 }

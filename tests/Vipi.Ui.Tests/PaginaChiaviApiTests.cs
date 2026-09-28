@@ -41,7 +41,14 @@ public class PaginaChiaviApiTests : TestContext
     private sealed class ServizioFinto : IApiClientService
     {
         public int Letture { get; private set; }
+        public int Creazioni { get; private set; }
         public List<ApiClientRow> Righe { get; } = new();
+
+        /// <summary>Se c'è, la creazione aspetta che il test la lasci andare: così un secondo clic la trova in volo.</summary>
+        public TaskCompletionSource? Trattieni { get; set; }
+
+        /// <summary>Se c'è, la creazione lancia questo: un guasto che il servizio non traduce.</summary>
+        public Exception? Lancia { get; set; }
 
         public Task<IReadOnlyList<ApiClientRow>> ListAsync(CancellationToken ct = default)
         {
@@ -49,13 +56,16 @@ public class PaginaChiaviApiTests : TestContext
             return Task.FromResult<IReadOnlyList<ApiClientRow>>(Righe.ToList());
         }
 
-        public Task<ChiaveEmessa> CreaAsync(string nome, IReadOnlyCollection<string> endpoint, CancellationToken ct = default)
+        public async Task<ChiaveEmessa> CreaAsync(string nome, IReadOnlyCollection<string> endpoint, CancellationToken ct = default)
         {
+            Creazioni++;
+            if (Trattieni is not null) await Trattieni.Task;
+            if (Lancia is not null) throw Lancia;
             var chiave = ChiaveApi.Genera();
             var riga = new ApiClientRow(Righe.Count + 1, nome, ChiaveApi.Prefisso(chiave), endpoint.ToList(), 704798,
                 DateTime.UtcNow, null, null, null);
             Righe.Add(riga);
-            return Task.FromResult(new ChiaveEmessa(riga, chiave));
+            return new ChiaveEmessa(riga, chiave);
         }
 
         public Task<bool> RevocaAsync(int id, CancellationToken ct = default) => Task.FromResult(true);
@@ -101,5 +111,45 @@ public class PaginaChiaviApiTests : TestContext
         cut.FindAll("button").First(b => b.TextContent.Contains("ApiKeys_NewDone")).Click();
         Assert.DoesNotContain(chiave, cut.Markup);
         Assert.Contains(ChiaveApi.Prefisso(chiave) + "…", cut.Markup);
+    }
+
+    /// <summary>
+    /// 🔴 U-114/U-199 (revisione totale 3): un VERO doppio clic su «Crea» apriva due scritture sullo stesso
+    /// DbContext e il circuito cadeva. Il tasto si spegne solo dopo un giro di rete, e intanto il secondo clic parte.
+    /// </summary>
+    [Fact]
+    public async Task Il_doppio_clic_su_Crea_crea_una_chiave_e_non_fa_cadere_il_circuito()
+    {
+        var servizio = new ServizioFinto { Trattieni = new TaskCompletionSource() };
+        var cut = Render(puoEmettere: true, servizio);
+        cut.Find("#api-key-nome").Change("Validatore tour IT");
+        cut.Find("#api-key-ep-archivio").Change(true);
+        var tasto = cut.Find("button.perm-go");
+
+        var primo = tasto.ClickAsync(new());
+        var secondo = tasto.ClickAsync(new());   // lo stesso elemento: il clic arriva prima che il tasto si spenga
+        servizio.Trattieni.SetResult();
+        await Task.WhenAll(primo, secondo);
+
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
+        if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
+        Assert.Equal(1, servizio.Creazioni);
+        Assert.Single(servizio.Righe);
+    }
+
+    /// <summary>U-114: un guasto che il servizio non traduce resta un messaggio, non un circuito caduto.</summary>
+    [Fact]
+    public async Task Un_guasto_imprevisto_alla_creazione_resta_un_messaggio()
+    {
+        var servizio = new ServizioFinto { Lancia = new InvalidOperationException("database giù") };
+        var cut = Render(puoEmettere: true, servizio);
+        cut.Find("#api-key-nome").Change("Validatore tour IT");
+        cut.Find("#api-key-ep-archivio").Change(true);
+
+        await cut.Find("button.perm-go").ClickAsync(new());
+
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
+        if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
+        cut.WaitForAssertion(() => Assert.Contains("database giù", cut.Markup));
     }
 }

@@ -140,6 +140,7 @@
     // servire la sua copia, cioe' annullava il risparmio proprio dove doveva prodursi.
     // ⚠️ E non si vede: l'eta' del dato la calcola il quadro da un timbro ASSOLUTO dentro il payload, non da
     // quando e' arrivata la risposta. Una copia vecchia di un minuto dichiara la propria eta' vera.
+    // (Vero dal 27 settembre 2026, U-092: il timbro e' `metarObservedUtc`. Prima questa riga lo diceva e non lo era.)
     fetch(url, { headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
@@ -368,13 +369,23 @@
 
   // Il quadro INVECCHIA a vista. E' l'unica difesa contro la peggiore delle bugie:
   // numeri vecchi che sembrano di adesso perche' la pagina e' ancora aperta.
+  //
+  // 🔴 U-092 (revisione totale 3): l'eta' e' quella del METAR (l'ora di osservazione che il server risolve dal gruppo
+  // ddhhmmZ), non quella dell'ultima risposta. Prima il quadro diceva «12s» su un bollettino delle 05:50 letto alle
+  // 09:00, perche' misurava solo la lettura. Le due eta' contano entrambe: il METAR oltre un'ora e' «vecchio», oltre
+  // 90 minuti (o dichiarato scaduto dal server) e' «morto»; e un server che non risponde da 10 minuti fa morire il
+  // quadro qualunque sia l'eta' del bollettino.
   function eta() {
     var el = $('[data-awos-eta]');
     if (!el || !ultimoDato) return;
-    var s = Math.round((Date.now() - ultimoDato) / 1000);
+    var lettura = Math.round((Date.now() - ultimoDato) / 1000);
+    var oss = vista && vista.metarObservedUtc ? Date.parse(vista.metarObservedUtc) : NaN;
+    var s = isNaN(oss) ? lettura : Math.max(0, Math.round((Date.now() - oss) / 1000));
     testo(el, s < 90 ? s + 's' : Math.round(s / 60) + 'm');
-    el.classList.toggle('vecchio', s >= 150 && s < 600);
-    el.classList.toggle('morto', s >= 600);
+    var morto = lettura >= 600 || (!isNaN(oss) && (s >= 5400 || (vista && vista.metarStale)));
+    var vecchio = !morto && (isNaN(oss) ? lettura >= 150 : s >= 3600);
+    el.classList.toggle('vecchio', vecchio);
+    el.classList.toggle('morto', morto);
   }
 
   var segmento = 0;

@@ -77,7 +77,7 @@
             </LiveRegion>
             @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente. *@
             @* «Fine modifica» SALVA i limiti digitati e non ancora salvati: vedi SalvaPendentiAsync. *@
-            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged"
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" Acquired="RileggiAllaPresaAsync"
                          BeforeRelease="SalvaPendentiAsync" />
         }
     </div>
@@ -376,12 +376,24 @@
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
+    /// <summary>«Inizia modifica»: si rilegge PRIMA che i comandi si riaccendano (U-011, revisione totale 3).
+    /// La pagina aperta in sola lettura teneva la fotografia dell'apertura, e la prima scrittura riportava
+    /// indietro il lavoro fatto nel frattempo da chi il lock l'aveva tenuto.</summary>
+    private async Task RileggiAllaPresaAsync() => await ReloadAsync();
+
     private void ClearStatus() { _msg = null; _ok = null; }
 
     protected override async Task OnInitializedAsync()
     {
         if (!Authz.IsEditor) return;
-        await ReloadAsync();
+        // 🔴 U-174: un guasto alla prima lettura è ciclo di vita, e nessun gestore lo prende: senza questa rete
+        // la pagina nasceva morta.
+        try { await ReloadAsync(); }
+        catch (Exception ex)
+        {
+            _msg = L["Common_UnexpectedError"] + ex.Message;
+            Logger.LogError(ex, "Pagina ACC: prima lettura fallita.");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -474,15 +486,28 @@
     /// <summary>Clic su una riga ACC: qui sotto restano solo i suoi settori. Ricliccata la stessa riga, tornano
     /// tutti. Uno alla volta — è una scelta, non un insieme di spunte.
     /// Lo scorrimento si programma e si esegue dopo il render: adesso la tabella filtrata non esiste ancora.</summary>
+    ///
+    /// <para>🔴 U-174 (revisione totale 3): le aree si leggono dal DbContext del circuito, e la riga restava
+    /// cliccabile mentre un import scriveva. Stessa guardia della porta <see cref="Gesto"/>, ma senza toccare il
+    /// messaggio: scegliere una riga non cancella l'esito dell'ultimo gesto.</para>
     private async Task TogglePick(string accCode)
     {
+        if (_busy) return;
         var wasPicked = IsPicked(accCode);
         _pickedAcc = wasPicked ? null : accCode;
         _scrollToSubs = !wasPicked;
         // ⚠️ Scegliere un ACC vuol dire «fammi vedere i suoi settori»: se il riquadro è chiuso, lo scorrimento
         // porterebbe in vista un titolo e basta.
         if (_scrollToSubs) _settoriAperti = true;
-        await CaricaAreeAsync();
+        _busy = true;
+        try { await CaricaAreeAsync(); }
+        catch (Exception ex)
+        {
+            _aree = Array.Empty<SpecialAreaPick>();
+            _msg = L["Common_UnexpectedError"] + ex.Message;
+            Logger.LogError(ex, "Pagina ACC: aree di {Acc} non lette.", accCode);
+        }
+        finally { _busy = false; }
     }
 
     /// <summary>Le aree dell'ACC scelto. Si caricano al clic e non a ogni render: sono una query, e il
@@ -573,91 +598,73 @@
     private static string FmtLower(int? v) => (v ?? 0) == 0 ? "GND" : v!.Value.ToString();
     private static string FmtUpper(int? v) => v is null ? "UNL" : v.Value.ToString();
 
-    private async Task Import()
+    /// <summary>
+    /// La porta di ogni gesto della pagina: uno alla volta, e nessuna eccezione esce dal gestore.
+    ///
+    /// <para>🔴 U-029 (revisione totale 3): i gestori prendevano solo tre tipi di eccezione. Un timeout IVAO
+    /// (<c>TaskCanceledException</c>, 15 s su una delle centinaia di GET di dettaglio), un token rifiutato o la rete giù
+    /// (<c>HttpRequestException</c>), una pagina HTML con 200 (<c>JsonException</c>), una collisione col giro notturno
+    /// sullo stesso ACC (<c>DbUpdateException</c>): il circuito dell'Editor cadeva a metà import, con gli ACC salvati e
+    /// i subcenter no. E il doppio clic lanciava due import sullo stesso DbContext: il tasto spento arriva col render,
+    /// il secondo clic prima di lui — la guardia sta qui, prima dell'await.</para>
+    /// </summary>
+    private async Task Gesto(Func<Task> azione, string cosa)
     {
+        if (_busy) return;
         _busy = true; _msg = null; _ok = null;
-        try
-        {
-            var r = await Acc.ImportFromSourceAsync();
-            foreach (var f in r.SpecialAreaFailures)
-                Logger.LogWarning(f.Error, "Import aree speciali {Acc} saltato (import manuale).", f.AccCode);
-            await ReloadAsync();
-            _ok = L["AccAdmin_ImportOk", r.Acc.AccsCreated, r.Acc.AccsUpdated, r.Acc.SubcentersCreated, r.Acc.SubcentersUpdated]
-                  + (r.SpecialAreaFailures.Count > 0 ? L["AccAdmin_ImportSpecialFailures", r.SpecialAreaFailures.Count].Value : "");
-        }
+        try { await azione(); }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
-        catch (InvalidOperationException ex) { _msg = ex.Message; }
+        catch (ValidationException ex) { _msg = ex.Message; }
+        catch (InvalidOperationException ex) { _msg = ex.Message; }   // anche: credenziali sorgente assenti
+        catch (Exception ex)
+        {
+            _msg = L["Common_UnexpectedError"] + ex.Message;
+            Logger.LogError(ex, "Pagina ACC: {Cosa} fallito.", cosa);
+        }
         finally { _busy = false; }
     }
+
+    private Task Import() => Gesto(async () =>
+    {
+        var r = await Acc.ImportFromSourceAsync();
+        foreach (var f in r.SpecialAreaFailures)
+            Logger.LogWarning(f.Error, "Import aree speciali {Acc} saltato (import manuale).", f.AccCode);
+        await ReloadAsync();
+        _ok = L["AccAdmin_ImportOk", r.Acc.AccsCreated, r.Acc.AccsUpdated, r.Acc.SubcentersCreated, r.Acc.SubcentersUpdated]
+              + (r.SpecialAreaFailures.Count > 0 ? L["AccAdmin_ImportSpecialFailures", r.SpecialAreaFailures.Count].Value : "");
+    }, "import da IVAO");
 
     // Primo scarico manuale delle aree di un ACC: se porta a casa qualcosa, il service lo abilita al giro periodico.
-    private async Task ImportAreas(string accCode)
+    private Task ImportAreas(string accCode) => Gesto(async () =>
     {
-        _busy = true; _msg = null; _ok = null;
-        try
-        {
-            var r = await Acc.ImportSpecialAreasAsync(accCode);
-            foreach (var f in r.Failures)
-                Logger.LogWarning(f.Error, "Import aree speciali {Acc} fallito (import per-ACC).", f.AccCode);
-            await ReloadAsync();
-            _msg = r.Failures.Count > 0 ? L["AccAdmin_AreasImportFailed", accCode].Value : null;
-            if (_msg is null) _ok = L["AccAdmin_AreasImportOk", accCode, r.Created, r.Updated, r.Removed].Value;
-        }
-        catch (EditNotAllowedException ex) { _msg = ex.Message; }
-        catch (InvalidOperationException ex) { _msg = ex.Message; }   // credenziali sorgente assenti
-        finally { _busy = false; }
-    }
+        var r = await Acc.ImportSpecialAreasAsync(accCode);
+        foreach (var f in r.Failures)
+            Logger.LogWarning(f.Error, "Import aree speciali {Acc} fallito (import per-ACC).", f.AccCode);
+        await ReloadAsync();
+        _msg = r.Failures.Count > 0 ? L["AccAdmin_AreasImportFailed", accCode].Value : null;
+        if (_msg is null) _ok = L["AccAdmin_AreasImportOk", accCode, r.Created, r.Updated, r.Removed].Value;
+    }, "import aree");
 
-    private async Task SetAreasEnabled(int accId, bool enabled)
+    private Task SetAreasEnabled(int accId, bool enabled) => Gesto(async () =>
     {
-        _busy = true; _msg = null; _ok = null;
-        try
-        {
-            var freed = await Acc.SetSpecialAreasEnabledAsync(accId, enabled);
-            await ReloadAsync();
-            if (!enabled) _ok = L["AccAdmin_AreasDisabled", freed];
-        }
-        catch (EditNotAllowedException ex) { _msg = ex.Message; }
-        catch (InvalidOperationException ex) { _msg = ex.Message; }
-        finally { _busy = false; }
-    }
+        var freed = await Acc.SetSpecialAreasEnabledAsync(accId, enabled);
+        await ReloadAsync();
+        if (!enabled) _ok = L["AccAdmin_AreasDisabled", freed];
+    }, "aree accese/spente");
 
-    private async Task SetHidden(int accId, bool hidden)
-    {
-        _busy = true; _msg = null; _ok = null;
-        try { await Acc.SetHiddenAsync(accId, hidden); await ReloadAsync(); }
-        catch (EditNotAllowedException ex) { _msg = ex.Message; }
-        catch (ValidationException ex) { _msg = ex.Message; }
-        catch (InvalidOperationException ex) { _msg = ex.Message; }
-        catch (Exception ex) { _msg = L["Common_UnexpectedError"] + ex.Message; Logger.LogError(ex, "Nascondi ACC fallito"); }
-        finally { _busy = false; }
-    }
+    private Task SetHidden(int accId, bool hidden) =>
+        Gesto(async () => { await Acc.SetHiddenAsync(accId, hidden); await ReloadAsync(); }, "nascondi ACC");
 
-    private async Task SetSubHidden(int id, bool hidden)
-    {
-        _busy = true; _msg = null; _ok = null;
-        try { await Acc.SetSubcenterHiddenAsync(id, hidden); await ReloadAsync(); }
-        catch (EditNotAllowedException ex) { _msg = ex.Message; }
-        catch (ValidationException ex) { _msg = ex.Message; }
-        catch (InvalidOperationException ex) { _msg = ex.Message; }
-        catch (Exception ex) { _msg = L["Common_UnexpectedError"] + ex.Message; Logger.LogError(ex, "Nascondi settore fallito"); }
-        finally { _busy = false; }
-    }
+    private Task SetSubHidden(int id, bool hidden) =>
+        Gesto(async () => { await Acc.SetSubcenterHiddenAsync(id, hidden); await ReloadAsync(); }, "nascondi settore");
 
-    private async Task SaveLimits(int id)
+    private Task SaveLimits(int id) => Gesto(async () =>
     {
-        _busy = true; _msg = null; _ok = null;
-        try
-        {
-            await Acc.SetSubcenterLimitsAsync(id, _lower.GetValueOrDefault(id), _upper.GetValueOrDefault(id));
-            _dirtyLimits.Remove(id);   // prima del ricarico: è lui a decidere cosa resta pendente
-            await ReloadAsync();
-            _ok = L["AccAdmin_LimitsSaved"];
-        }
-        catch (EditNotAllowedException ex) { _msg = ex.Message; }
-        catch (InvalidOperationException ex) { _msg = ex.Message; }
-        finally { _busy = false; }
-    }
+        await Acc.SetSubcenterLimitsAsync(id, _lower.GetValueOrDefault(id), _upper.GetValueOrDefault(id));
+        _dirtyLimits.Remove(id);   // prima del ricarico: è lui a decidere cosa resta pendente
+        await ReloadAsync();
+        _ok = L["AccAdmin_LimitsSaved"];
+    }, "salva limiti");
 
     /// <summary>Salva in un giro tutti i limiti modificati. Una riga che fallisce non ferma le altre e RESTA
     /// pendente: sparire dal contatore senza essere stata scritta sarebbe la stessa perdita silenziosa di prima.</summary>
@@ -681,6 +688,9 @@
 
     private async Task SaveAllLimits()
     {
+        // 🔴 U-174: arriva anche da «Fine modifica» (SalvaPendentiAsync). Con un import in volo non parte: le righe
+        // restano pendenti, e il lock non si rilascia finché non si salvano.
+        if (_busy) return;
         _busy = true; _msg = null; _ok = null;
         var saved = 0;
         try
@@ -695,12 +705,25 @@
                 }
                 catch (EditNotAllowedException ex) { _msg = ex.Message; break; }
                 catch (InvalidOperationException ex) { _msg = ex.Message; }
+                // U-029: una riga che cade per altro (DbUpdateException, un giro notturno che scrive) resta pendente
+                // come le altre, e non porta giù il circuito.
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _msg = L["Common_UnexpectedError"] + ex.Message;
+                    Logger.LogError(ex, "Pagina ACC: salvataggio dei limiti del settore {Id} fallito.", id);
+                }
             }
             await ReloadAsync();
             // «1 settori salvati» è il genere di dettaglio che fa sembrare la pagina scritta da nessuno:
             // a uno solo vale il messaggio del salvataggio per riga, che è già la frase giusta.
             if (saved == 1) _ok = L["AccAdmin_LimitsSaved"];
             else if (saved > 1) _ok = string.Format(L["AccAdmin_LimitsSavedN"].Value, saved);
+        }
+        catch (Exception ex)
+        {
+            // Il ricarico dopo il giro: le righe salvate lo sono, quelle rimaste restano pendenti.
+            _msg = L["Common_UnexpectedError"] + ex.Message;
+            Logger.LogError(ex, "Pagina ACC: ricarico dopo il salvataggio dei limiti fallito.");
         }
         finally { _busy = false; }
     }

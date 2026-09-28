@@ -50,7 +50,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
         var g = afterFirst.Single(s => s.Name == "ALAX7G");
 
         // Priorità + forzatura su una importata.
-        await _repo.UpdateImportedSidAsync(g.Id, priority: 1, forcePublished: true, resolvedFix: null,
+        await _repo.UpdateImportedSidAsync("LIRF", g.Id, priority: 1, forcePublished: true, resolvedFix: null,
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         // Secondo import: il codice cambia revisione (7G→8G) ma la StableKey resta → priorità/forzatura preservate.
@@ -60,12 +60,16 @@ public class SidImportRepositoryTests : IAsyncLifetime
             Imp("ALAX7J", "ALAXI", "LIRF|ALAXI|J|"),
         }, "2607");
 
-        var afterSecond = (await _repo.LoadAsync("LIRF"))!.Sids;
+        // La 7G resta come versione sostituita dal 2607 (U-003): le righe vive sono ancora tre.
+        var afterSecond = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => !s.IsSuperseded).ToList();
         Assert.Equal(3, afterSecond.Count);
+        Assert.Equal("ALAX7G", Assert.Single((await _repo.LoadAsync("LIRF"))!.Sids, s => s.IsSuperseded).Name);
         Assert.Single(afterSecond, s => !s.IsImported && s.Name == "OST7A");         // manuale intatta
         var g2 = afterSecond.Single(s => s.Name == "ALAX8G");
         Assert.Equal(1, g2.Priority);                                        // priorità mantenuta
-        Assert.True(g2.ForcePublished);                                      // forzatura mantenuta
+        // La forzatura no: la 7G resta in vigore fino al 2607 come sostituita, e la 8G forzata uscirebbe insieme a
+        // lei (U-003). La forzatura passa solo quando la vecchia non resta — vedi il test qui sotto.
+        Assert.False(g2.ForcePublished);
         Assert.Equal("2607", g2.SourceAiracCycle);
         var j2 = afterSecond.Single(s => s.Name == "ALAX7J");
         Assert.Null(j2.Priority);                                            // l'altra resta senza priorità
@@ -94,8 +98,13 @@ public class SidImportRepositoryTests : IAsyncLifetime
         Assert.Equal(new[] { "ROBO1H", "ROBO2H" }, sids.Select(s => s.Name).OrderBy(n => n));
     }
 
+    /// <summary>
+    /// 🔴 U-004 (revisione totale 3): con la chiave condivisa vinceva la PRIMA riga, e le sue decisioni tornavano su
+    /// tutte. Ma le coppie vere non sono revisioni della stessa SID: sono procedure diverse che convivono
+    /// (ROBO1H/ROBO5H a LIBG, XIB5A-OKU5R/OKU6A a LIRF, VOG1K/VOG1S a LIME). Ognuna tiene le sue.
+    /// </summary>
     [Fact]
-    public async Task Con_Chiave_Duplicata_Gli_Arricchimenti_Si_Riapplicano_In_Modo_Deterministico()
+    public async Task Con_Chiave_Condivisa_Ogni_Riga_Tiene_Le_Sue_Decisioni()
     {
         var due = new[]
         {
@@ -104,20 +113,198 @@ public class SidImportRepositoryTests : IAsyncLifetime
         };
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2606");
 
-        // Arricchimento editoriale sulla prima riga della coppia.
-        var first = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).OrderBy(s => s.Id).First();
-        await _repo.UpdateImportedSidAsync(first.Id, priority: 3, forcePublished: true, resolvedFix: null,
+        // Arricchimento editoriale sulla seconda riga della coppia: è quella che il first-wins perdeva.
+        var seconda = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.Name == "ROBO2H");
+        await _repo.UpdateImportedSidAsync("LIRF", seconda.Id, priority: 3, forcePublished: true, resolvedFix: null,
             initialClimb: "5000ft", initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2607");
 
-        // Regola first-wins: l'arricchimento associato alla chiave torna su TUTTE le righe che la condividono.
-        // Non è ambiguo per l'utente — la chiave È l'identità editoriale, la revisione no.
         var sids = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).ToList();
         Assert.Equal(2, sids.Count);
-        Assert.All(sids, s => Assert.Equal(3, s.Priority));
-        Assert.All(sids, s => Assert.Equal("5000ft", s.InitialClimb));
-        Assert.All(sids, s => Assert.True(s.ForcePublished));
+        var r2 = sids.Single(s => s.Name == "ROBO2H");
+        Assert.Equal(3, r2.Priority);
+        Assert.Equal("5000ft", r2.InitialClimb);
+        Assert.True(r2.ForcePublished);
+        var r1 = sids.Single(s => s.Name == "ROBO1H");
+        Assert.Null(r1.Priority);
+        Assert.Null(r1.InitialClimb);
+        Assert.False(r1.ForcePublished);
+    }
+
+    /// <summary>
+    /// 🔴 U-004: la seconda riga della coppia si confrontava col NOME della prima, sempre diverso, quindi a ogni
+    /// giro prendeva il ciclo appena calcolato — col ciclo dichiarato avanti restava fuori dalla pagina pubblica
+    /// per dieci-dodici giorni a ogni ciclo (a LIRF mancava XIB5A-OKU6A).
+    /// </summary>
+    [Fact]
+    public async Task Con_Chiave_Condivisa_Nessuna_Riga_Si_Ritimbra()
+    {
+        var due = new[]
+        {
+            new ImportedProcedure("16L", "XIBIL", "XIB5A-OKU5R", "OKUDA", "RNAV", "LIRF|XIBIL|A|OKUDA|16L", false),
+            new ImportedProcedure("16L", "XIBIL", "XIB5A-OKU6A", "OKUDA", "RNAV", "LIRF|XIBIL|A|OKUDA|16L", false),
+        };
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2607");
+
+        var sids = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).ToList();
+        Assert.All(sids, s => Assert.Equal("2606", s.SourceAiracCycle));
+    }
+
+    /// <summary>
+    /// 🔴 U-005: il punto risolto in un altro modo (alias creato, catalogo cambiato) cambiava la chiave, e la riga
+    /// rinasceva nuda. Qui la stessa SID arriva prima «da verificare» col prefisso grezzo, poi risolta: priorità,
+    /// arricchimenti e ciclo d'entrata restano.
+    /// </summary>
+    [Fact]
+    public async Task Il_Punto_Risolto_In_Un_Altro_Modo_Non_Fa_Perdere_Le_Decisioni()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            new ImportedProcedure("25", "SOSA", "SOSA5A", null, "RNAV", "LIRF|SOSA|A||25", NeedsFixReview: true),
+        }, "2606");
+        var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        await _repo.UpdateImportedSidAsync("LIRF", imp.Id, priority: 1, forcePublished: false, resolvedFix: null,
+            initialClimb: "4000", initialClimbByApp: false, cat: null, wtc: "M, H", condition: null);
+
+        // La notte dopo qualcuno ha creato l'alias SOSA → SOSAK: il parser risolve, e la chiave vecchia era col fix.
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            new ImportedProcedure("25", "SOSAK", "SOSA5A", null, "RNAV", "LIRF|SOSAK|A||25", NeedsFixReview: false),
+        }, "2607");
+
+        var dopo = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        Assert.Equal("SOSAK", dopo.Fix);
+        Assert.Equal(1, dopo.Priority);
+        Assert.Equal("4000", dopo.InitialClimb);
+        Assert.Equal("M, H", dopo.Wtc);
+        Assert.Equal("2606", dopo.SourceAiracCycle);
+    }
+
+    private static readonly Vipi.Domain.Services.AiracService Airac = new();
+
+    private async Task<List<SidRow>> Importate() =>
+        (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).ToList();
+
+    /// <summary>
+    /// 🔴 U-003 (revisione totale 3): fra il changelog del ciclo nuovo e la sua entrata in vigore, una procedura
+    /// rivista SPARIVA: la vecchia cancellata, la nuova in attesa del suo ciclo. Successo il 25 settembre 2026 a
+    /// LIMF con le TOP1B: fino al 1° ottobre il vSOP pubblico non le aveva. Ora la versione in vigore resta,
+    /// «sostituita dal ciclo» nuovo, e ognuna delle due si vede nel suo tratto.
+    /// </summary>
+    [Fact]
+    public async Task La_versione_in_vigore_resta_finche_non_entra_la_nuova()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            new ImportedProcedure("36", "TOPIS", "TOP1B-AST8L", "ASTIG", "RNAV", "LIRF|TOP|B|ASTIG|36", false),
+        }, "2609");
+
+        // Il changelog del 2610 rivede la SID: stessa chiave, contenuto nuovo, ciclo d'entrata futuro.
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            new ImportedProcedure("36", "TOPIS", "TOP2B-AST8L", "ASTIG", "RNAV", "LIRF|TOP|B|ASTIG|36", false),
+        }, "2610");
+
+        var righe = await Importate();
+        Assert.Equal(2, righe.Count);
+        var al2609 = Assert.Single(righe, s => s.IsPublicAt("2609", Airac));
+        Assert.Equal("TOP1B-AST8L", al2609.Name);
+        Assert.Equal("2610", al2609.SupersededFromCycle);
+        var al2610 = Assert.Single(righe, s => s.IsPublicAt("2610", Airac));
+        Assert.Equal("TOP2B-AST8L", al2610.Name);
+    }
+
+    /// <summary>
+    /// La forzatura passa alla revisione nuova solo quando la vecchia non resta: una correzione dentro lo stesso
+    /// ciclo sostituisce e basta, e la decisione dello staff vale per la riga che c'è.
+    /// </summary>
+    [Fact]
+    public async Task Correzione_dentro_il_ciclo_tiene_la_forzatura_e_non_lascia_la_vecchia()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+        var g = Assert.Single(await Importate());
+        await _repo.UpdateImportedSidAsync("LIRF", g.Id, priority: null, forcePublished: true, resolvedFix: null,
+            initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX8G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+
+        var dopo = Assert.Single(await Importate());
+        Assert.Equal("ALAX8G", dopo.Name);
+        Assert.True(dopo.ForcePublished);
+    }
+
+    /// <summary>Una procedura che la sorgente del ciclo nuovo non ha più vale ancora fino a quel ciclo.</summary>
+    [Fact]
+    public async Task Una_procedura_tolta_dalla_sorgente_vale_fino_al_ciclo_nuovo()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07"), Imp("ALAX7J", "ALAXI", "LIRF|ALAX|J||07"),
+        }, "2609");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07"),
+        }, "2610");
+
+        var j = Assert.Single(await Importate(), s => s.Name == "ALAX7J");
+        Assert.Equal("2610", j.SupersededFromCycle);
+        Assert.True(j.IsPublicAt("2609", Airac));
+        Assert.False(j.IsPublicAt("2610", Airac));
+    }
+
+    /// <summary>
+    /// Se la riga era entrata nello STESSO ciclo che la sorgente dichiara adesso, era una correzione dentro il
+    /// ciclo: si toglie subito, come prima. E le sostituite si tolgono quando la sorgente dichiara un ciclo DOPO
+    /// quello da cui erano sostituite: a quel punto non servono più a nessun ciclo.
+    /// </summary>
+    [Fact]
+    public async Task Le_sostituite_scadute_si_tolgono()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7J", "ALAXI", "LIRF|ALAX|J||07") }, "2609");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+        Assert.Equal(2, (await Importate()).Count);
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+        Assert.Equal(2, (await Importate()).Count);   // stesso ciclo: la sostituita serve ancora
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2611");
+        Assert.Equal("ALAX7G", Assert.Single(await Importate()).Name);
+
+        // Correzione dentro il ciclo: una riga entrata al 2611 e tolta mentre la sorgente dichiara ancora il 2611
+        // non resta.
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07"), Imp("OST1E", "OST", "LIRF|OST|E||07"),
+        }, "2611");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2611");
+        Assert.Equal("ALAX7G", Assert.Single(await Importate()).Name);
+    }
+
+    /// <summary>
+    /// 🔴 Anche U-005: una riga malformata per un giro (TOP1B LAG2L, 25 settembre) spariva con tutti i suoi
+    /// arricchimenti. Ora resta come sostituita e, se la sorgente la rimanda, si riprende le sue decisioni.
+    /// </summary>
+    [Fact]
+    public async Task Una_riga_che_torna_si_riprende_le_sue_decisioni()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7J", "ALAXI", "LIRF|ALAX|J||07") }, "2609");
+        var j = Assert.Single(await Importate());
+        await _repo.UpdateImportedSidAsync("LIRF", j.Id, priority: 2, forcePublished: false, resolvedFix: null,
+            initialClimb: "FL70", initialClimbByApp: false, cat: null, wtc: "L, M", condition: null);
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07") }, "2610");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAX|G||07"), Imp("ALAX7J", "ALAXI", "LIRF|ALAX|J||07"),
+        }, "2610");
+
+        var tornata = Assert.Single(await Importate(), s => s.Name == "ALAX7J");
+        Assert.Null(tornata.SupersededFromCycle);
+        Assert.Equal(2, tornata.Priority);
+        Assert.Equal("FL70", tornata.InitialClimb);
+        Assert.Equal("2609", tornata.SourceAiracCycle);
     }
 
     [Fact]
@@ -146,7 +333,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
         Assert.True(imp.NeedsFixReview);
 
         // L'operatore risolve il fix a mano.
-        await _repo.UpdateImportedSidAsync(imp.Id, priority: null, forcePublished: false, resolvedFix: "ZAGRE",
+        await _repo.UpdateImportedSidAsync("LIRF", imp.Id, priority: null, forcePublished: false, resolvedFix: "ZAGRE",
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         // Reimport: la sorgente ripropone ancora il prefisso grezzo → la risoluzione manuale va conservata.
@@ -167,7 +354,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
         var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
 
         // L'operatore aggiunge gli arricchimenti editoriali che la sorgente non fornisce.
-        await _repo.UpdateImportedSidAsync(imp.Id, priority: null, forcePublished: false, resolvedFix: null,
+        await _repo.UpdateImportedSidAsync("LIRF", imp.Id, priority: null, forcePublished: false, resolvedFix: null,
             initialClimb: "5000", initialClimbByApp: true, cat: "C, D", wtc: "M, H", condition: "solo notte");
 
         var saved = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
@@ -234,6 +421,95 @@ public class SidImportRepositoryTests : IAsyncLifetime
 
         Assert.Equal(0, await _repo.SetImportedSidsHiddenAsync("LIRF", new[] { altra.Id }, hidden: true));
         Assert.False((await _repo.LoadAsync("LIRA"))!.Sids.Single().IsHidden);
+    }
+
+    /// <summary>
+    /// 🔴 U-035/U-064 (revisione totale 3): ogni giro cancellava e ricreava le importate, anche identiche, e tutti
+    /// gli Id cambiavano. L'editor già aperto scrive per Id: dopo il giro quotidiano (30 s dall'avvio, senza lock
+    /// per disegno) priorità, WTC, «Pubblica», «Nascondi» andavano nel vuoto sotto «Salvato». La riga che
+    /// continua ora si aggiorna sul posto: stesso Id, e la scrittura arriva.
+    /// </summary>
+    [Fact]
+    public async Task Un_Reimport_Non_Cambia_L_Id_Delle_Righe_Che_Continuano()
+    {
+        var righe = new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|"), Imp("ALAX7J", "ALAXI", "LIRF|ALAXI|J|") };
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, righe, "2606");
+        var prima = (await _repo.LoadAsync("LIRF"))!.Sids.ToDictionary(s => s.Name, s => s.Id);
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, righe, "2607");   // il giro dopo
+
+        var dopo = (await _repo.LoadAsync("LIRF"))!.Sids.ToDictionary(s => s.Name, s => s.Id);
+        Assert.Equal(prima, dopo);
+        Assert.True(await _repo.UpdateImportedSidAsync("LIRF", prima["ALAX7G"], priority: 5, forcePublished: false,
+            resolvedFix: null, initialClimb: null, initialClimbByApp: false, cat: null, wtc: "M", condition: null));
+        var g = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.Name == "ALAX7G");
+        Assert.Equal(5, g.Priority);
+        Assert.Equal("M", g.Wtc);
+    }
+
+    /// <summary>🔴 U-035/U-064: anche la revisione nuova continua la riga — l'Id resta a lei, la versione vecchia
+    /// che vale ancora fino al ciclo dichiarato è la copia (U-003).</summary>
+    [Fact]
+    public async Task La_Revisione_Nuova_Tiene_L_Id_E_La_Vecchia_Resta_Sostituita()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
+        var id = (await _repo.LoadAsync("LIRF"))!.Sids.Single().Id;
+
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX8G", "ALAXI", "LIRF|ALAXI|G|") }, "2607");
+
+        var sids = (await _repo.LoadAsync("LIRF"))!.Sids;
+        Assert.Equal(id, sids.Single(s => s.Name == "ALAX8G").Id);
+        var vecchia = sids.Single(s => s.Name == "ALAX7G");
+        Assert.True(vecchia.IsSuperseded);
+        Assert.NotEqual(id, vecchia.Id);
+    }
+
+    /// <summary>🔴 U-035/U-064: la riga che la sorgente non manda più (e non serve a nessun ciclo) sparisce, e chi
+    /// ci scrive sopra lo sa: falso, non un ritorno muto.</summary>
+    [Fact]
+    public async Task Scrivere_Su_Una_Riga_Tolta_Dal_Reimport_Dice_Falso()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|"), Imp("ALAX7J", "ALAXI", "LIRF|ALAXI|J|"),
+        }, "2606");
+        var g = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.Name == "ALAX7G").Id;
+
+        // Stesso ciclo: una correzione dentro il ciclo, la 7G non serve più a nessuno.
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7J", "ALAXI", "LIRF|ALAXI|J|") }, "2606");
+
+        Assert.False(await _repo.UpdateImportedSidAsync("LIRF", g, priority: 1, forcePublished: false, resolvedFix: null,
+            initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null));
+        Assert.False(await _repo.SetImportedSidOverridesAsync("LIRF", g, "SOSIV", null));
+    }
+
+    /// <summary>🔴 U-134 (revisione totale 3): a contenuto invariato il timbro è il ciclo più VICINO fra quello di
+    /// prima e quello calcolato. Se la sorgente dichiara un ciclo e poi torna indietro (2611.txt creato mentre si
+    /// lavorava al 2610, poi rinominato), il timbro lontano restava e le SID stavano fuori dalla pubblica un
+    /// ciclo intero.</summary>
+    [Fact]
+    public async Task Il_Timbro_Torna_Indietro_Se_Il_Ciclo_Dichiarato_Torna_Indietro()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2611");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2610");
+
+        Assert.Equal("2610", (await _repo.LoadAsync("LIRF"))!.Sids.Single().SourceAiracCycle);
+    }
+
+    /// <summary>🔴 U-173 (revisione totale 3): la riga si cercava solo per Id. Il lock controllato dal servizio è
+    /// quello di UNO scalo: un Id di un altro scalo non passa.</summary>
+    [Fact]
+    public async Task Aggiornare_Non_Tocca_Le_Righe_Di_Un_Altro_Scalo()
+    {
+        var acc = _db.Accs.Single();
+        _db.Airports.Add(new Airport { Icao = "LIRA", Name = "Ciampino", Acc = acc });
+        await _db.SaveChangesAsync();
+        await _repo.ReplaceImportedProceduresAsync("LIRA", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRA|ALAXI|G|") }, "2606");
+        var altra = (await _repo.LoadAsync("LIRA"))!.Sids.Single();
+
+        Assert.False(await _repo.UpdateImportedSidAsync("LIRF", altra.Id, priority: 9, forcePublished: true, resolvedFix: null,
+            initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null));
+        Assert.Null((await _repo.LoadAsync("LIRA"))!.Sids.Single().Priority);
     }
 
     [Fact]

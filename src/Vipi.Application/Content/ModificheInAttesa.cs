@@ -40,6 +40,13 @@ public interface IModificheInAttesa
     /// «della calma» non finirebbe mai, e la lista resterebbe indietro proprio quando si lavora di più.
     /// </summary>
     Task<FinestraDiModifiche> PrendiAsync(TimeSpan attesa, CancellationToken ct);
+
+    /// <summary>
+    /// Prende la finestra aperta <b>adesso</b>, senza aspettare; <c>null</c> se non ce n'è. Serve allo spegnimento
+    /// (U-236): la finestra vive solo in memoria, e se il processo si spegne prima che sia passata l'attesa la
+    /// causa delle righe «da ripubblicare» sparirebbe con lui.
+    /// </summary>
+    FinestraDiModifiche? PrendiSubito();
 }
 
 /// <inheritdoc cref="IModificheInAttesa"/>
@@ -60,6 +67,19 @@ public sealed class ModificheInAttesa : IModificheInAttesa
             _da ??= quandoUtc;
             foreach (var f in famiglie) _famiglie.Add(f);
             _arrivata.TrySetResult();
+        }
+    }
+
+    public FinestraDiModifiche? PrendiSubito()
+    {
+        lock (_lock)
+        {
+            if (_da is null) return null;
+            var finestra = new FinestraDiModifiche(_da.Value, _famiglie.ToList());
+            _da = null;
+            _famiglie.Clear();
+            _arrivata = Nuova();
+            return finestra;
         }
     }
 

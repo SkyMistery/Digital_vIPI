@@ -13,9 +13,11 @@ namespace Vipi.Application.Aor;
 /// disegnare un parallelepipedo unico dove il cielo vero ha due gradini — ed è il difetto che questa carta
 /// chiude (<c>docs/refactor/15-shape-del-settore-una-porta-sola.md</c>).</para>
 ///
-/// <para>⚠️ <b>Il datum si risolve qui</b>, e in nessun altro posto: <c>AGL</c> si tratta come <c>AMSL</c>,
-/// perché il terreno non ce l'abbiamo. Il testo della fonte resta visibile altrove (<c>BaseRaw</c>), quindi
-/// chi legge vede <c>7000 FT AMSL</c> anche dove il numero è stato normalizzato.</para>
+/// <para>⚠️ <b>Il datum si risolve con <see cref="ShapePart.QuoteAmsl"/></b>, la stessa regola dell'attribuzione del
+/// traffico: <c>AGL</c> si alza dell'elevazione dello scalo del settore (<see cref="SectorShape.ElevazioneFt"/>;
+/// U-217, revisione totale 3). Il terreno fuori dal campo non ce l'abbiamo, e un settore d'area senza scalo resta
+/// com'era. Il testo della fonte resta visibile altrove (<c>BaseRaw</c>), quindi chi legge vede
+/// <c>1500 FT AGL</c> anche dove il numero è stato normalizzato.</para>
 ///
 /// PURA: nessun I/O, deterministica, testabile da sola.
 /// </summary>
@@ -37,7 +39,8 @@ public static class AorShapeProjection
         {
             var proiettato = AorPolygonProjector.Project(p.PolygonJson);
             if (proiettato is null) continue;   // ⚠️ un anello rotto non porta via gli altri sei
-            var (bottom, top) = AorFlBand.ForSource(shape.Source, p.BaseFeet, p.TopFeet);   // T-046: l'AIP è in piedi
+            var (basso, alto) = p.QuoteAmsl(shape.ElevazioneFt);                           // U-217: AGL sul campo
+            var (bottom, top) = AorFlBand.ForSource(shape.Source, basso, alto);             // T-046: l'AIP è in piedi
             // `Ref` = la chiave del volume: lega il poligono alla sua riga nella tabella «spazi aerei», che lo
             // accende e lo spegne da sola (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md §6).
             poligoni.Add(proiettato with { LowerFl = bottom, UpperFl = top, Ref = p.SourceRef });

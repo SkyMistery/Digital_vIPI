@@ -79,7 +79,9 @@ public sealed class ScopeProprioDellePagineTests
     {
         "IStringLocalizer", "IEditAuthorizationService", "IJSRuntime", "NavigationManager", "EnglishStrings",
         "StringheDelSito", "ILogger", "IOptions", "IDocRoutesRegistry", "ICurrentUserProvider",
-        "ReadingLanguageContext", "IAiracService", "IProssimoAiracService",
+        "ReadingLanguageContext", "IAiracService",
+        // 🔴 U-198 (revisione totale 3): `IProssimoAiracService` stava qui, ed era sbagliato — legge i documenti e
+        // programma le release, cioè legge e SCRIVE il database. Versioni lo prendeva dal circuito, fuori dalla fila.
         // ⚠️ Questi tre non toccano il database, e il perché è la loro REGISTRAZIONE, non un'impressione:
         // `IOnlineAtcProvider` e `IWeatherProvider` sono SINGLETON (la cache whazzup e il client NOAA) — un
         // singleton non può tenersi un DbContext, o sarebbe una dipendenza prigioniera; `INavaidSource` è un

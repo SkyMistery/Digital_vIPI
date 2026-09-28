@@ -182,7 +182,7 @@ Domanda del committente. Rispondere ha cambiato il modello dati **prima** che ve
 |---|---|---|
 | **il pilota cade e rientra nello stesso volo** | ✅ già corretto: la riga è per callsign, non per id di sessione del pilota (che alla riconnessione cambia) | nessuno — ma è un effetto della chiave, non una guardia: va scritto o il prossimo che «ottimizza» la chiave lo rompe |
 | **il pilota fa più voli senza disconnettersi** | ❌ due movimenti contati come uno | `FlightLegResolver`: la **tratta** entra nella chiave — cambia `dep`/`arr` → tratta nuova; stessa rotta che riappare dopo 30 minuti di buco (navette, circuiti) → tratta nuova |
-| **l'ATC cade e rientra** | ❌ IVAO apre una sessione nuova, lo stesso aereo compare in tutt'e due e sommando si conta doppio | `AtcShiftGrouper`: il **turno** raccoglie le sessioni consecutive dello stesso VID sullo stesso callsign entro 15 minuti; i traffici si contano distinti per turno |
+| **l'ATC cade e rientra** | ❌ IVAO apre una sessione nuova, lo stesso aereo compare in tutt'e due e sommando si conta doppio | `AtcShiftGrouper`: il **turno** raccoglie le sessioni consecutive dello stesso VID sullo stesso callsign entro 15 minuti, e anche quelle che si **sovrappongono fino a 5 minuti** alla caduta (la sorgente chiude la sessione caduta in ritardo; revisione 3, U-218); i traffici si contano distinti per turno |
 
 Il turno **non è** una tabella nuova: è una colonna sulla sessione (`ShiftKey` = id della prima sessione del
 gruppo). La sessione resta l'unità di scrittura, perché è la chiave che IVAO ci dà; il turno è l'unità con
@@ -989,6 +989,11 @@ che accompagnano il permesso, e senza le quali non sarebbe stato fatto.
    F5: senza finestra, una consultazione diventava venti righe identiche a mezzo minuto l'una dall'altra, e
    un registro così non si legge — che è come non averlo. L'accorpamento è per **coppia** attore→soggetto:
    due staffisti che guardano la stessa persona restano due accessi da spiegare.
+   Vale anche per il **dettaglio di un turno** altrui (`StatsSessionPage`, `/services/stats/session/{id}`):
+   porta gli stessi orari, quindi stessa riga (stessa coppia, stessa finestra) e la sua fascia «Turno di un
+   altro controllore» con il collegamento alle statistiche della persona. Prima lo staff lo apriva per id
+   senza lasciare traccia (U-116, revisione 3; scelta del committente del 28 settembre 2026). L'archivio
+   mondiale no: vedi la sua carta, §8.
 
 Nell'enum `AuditAction` il valore è **additivo e senza migrazione**: gli enum sono salvati come stringa
 (§SPEC 6), quindi «View» non sposta nessun numero già scritto.

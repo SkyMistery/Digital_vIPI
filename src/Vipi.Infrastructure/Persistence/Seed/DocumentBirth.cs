@@ -47,6 +47,21 @@ public static class DocumentBirth
     /// possono congelare» (<see cref="SectionCatalog.IsAlwaysLive"/>); l'aeroporto ci aggiunge le SID.</param>
     /// <param name="conSegnaposto">Se le sezioni rese dalla pagina ricevono un blocco vuoto che le tiene
     /// visibili anche senza contenuto.</param>
+    /// <summary>
+    /// Quali sezioni nascono <see cref="RenderMode.Live"/> in un profilo: quelle che non si possono congelare
+    /// (<see cref="SectionCatalog.IsAlwaysLive"/>) e, nella vIPI d'aeroporto civile, le procedure — SID e STAR.
+    /// <para>⚠️ In un posto solo dal 28 settembre 2026 (revisione 3, U-245): stava dentro il repository
+    /// dell'aeroporto, e la manutenzione d'avvio — che aggiunge a un documento già scritto le sezioni di catalogo
+    /// che gli mancano — non la conosceva. Le 45 STAR portate così sulle vIPI civili sono nate Frozen accanto a
+    /// SID Live: due tabelle dello stesso scalo che, alla release, raccontano cicli diversi.</para>
+    /// </summary>
+    public static Func<string, bool> NasceLive(SectionProfile profile) =>
+        profile == SectionProfile.Airport
+            ? key => SectionCatalog.IsAlwaysLive(key)
+                     || string.Equals(key, "sids", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(key, "stars", StringComparison.OrdinalIgnoreCase)
+            : SectionCatalog.IsAlwaysLive;
+
     public static (Document Doc, DocumentVersion Version) Crea(
         VipiDbContext db, IAiracService airac, string title, Language language, SectionProfile profile,
         int authorUserId, Func<string, bool>? nasceLive = null, bool conSegnaposto = true)

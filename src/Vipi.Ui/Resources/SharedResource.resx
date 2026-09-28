@@ -201,6 +201,8 @@
   <data name="Aor_NoShapeBody" xml:space="preserve"><value>Nessun poligono per i settori del blocco (non ancora importati o non leggibili).</value></data>
   <data name="Minima_NoneTitle" xml:space="preserve"><value>Nessuna carta delle minime</value></data>
   <data name="Minima_NoneBody" xml:space="preserve"><value>Il sectorfile non ha un file MRVA per questo ente. Nella divisione italiana ce l'hanno 24 aeroporti e i quattro ACC: dove manca, non è un errore.</value></data>
+  <data name="Minima_SourceDownTitle" xml:space="preserve"><value>La carta delle minime non è arrivata</value></data>
+  <data name="Minima_SourceDownBody" xml:space="preserve"><value>Il sectorfile non risponde in questo momento, e una o più carte MRVA di questa sezione mancano. Non vuol dire che non esistano: riapri la pagina fra qualche minuto.</value></data>
   <data name="Minima_Hint" xml:space="preserve"><value>Carta riportata dal sectorfile Aurora così com'è: le quote sono le etichette originali, senza conversioni. Scegli il fondo sotto la carta — il rilievo mostra perché in quella zona la minima è quella.</value></data>
   <data name="Minima_AorHint" xml:space="preserve"><value>Accendi i settori AoR sopra la mappa per vedere come le minime si rapportano ai confini.</value></data>
   <data name="Minima_BaseLabel" xml:space="preserve"><value>Fondo mappa:</value></data>
@@ -308,6 +310,7 @@
   <data name="Live_NoCoord" xml:space="preserve"><value>Nessun coordinamento per questa ACC.</value></data>
   <data name="Live_NoDocTitle" xml:space="preserve"><value>Nessuna vIPI pubblicata per {0}</value></data>
   <data name="Live_NoDocBody" xml:space="preserve"><value>Trasferimenti, aree di responsabilità e frequenze qui sotto vengono dai cataloghi e restano validi. Dal documento manca solo il raggruppamento editoriale delle frequenze: &lt;a href="{0}"&gt;apri la vIPI&lt;/a&gt; e pubblicala.</value></data>
+  <data name="Live_NoDocBodyNoLink" xml:space="preserve"><value>Trasferimenti, aree di responsabilità e frequenze qui sotto vengono dai cataloghi e restano validi. Dal documento manca solo il raggruppamento editoriale delle frequenze: va pubblicata la vIPI.</value></data>
   <data name="Common_ConnectedAsN" xml:space="preserve"><value>Connesso come {0}</value></data>
   <data name="Common_Coordination" xml:space="preserve"><value>Coordinamenti</value></data>
   <data name="Common_AptQuickView" xml:space="preserve"><value>Vista rapida aeroporto</value></data>
@@ -750,7 +753,7 @@
   <data name="Diag_Severe" xml:space="preserve"><value>grave</value></data>
   <data name="Diag_Warning" xml:space="preserve"><value>avviso</value></data>
   <!-- Tutte le schermate (/vsop/screens) -->
-  <data name="Screens_Subtitle" xml:space="preserve"><value>Indice di navigazione — tutte le pagine del mockup v2 implementate</value></data>
+  <data name="Screens_Subtitle" xml:space="preserve"><value>Indice generato dalle rotte dell'applicazione: {0} indirizzi. Quelli con parametri non si aprono da qui.</value></data>
   <!-- Struttura (/vsop/admin/sectorstructure) -->
   <data name="Struct_PageTitle" xml:space="preserve"><value>Struttura (ACC, settori)</value></data>
   <data name="Struct_Title" xml:space="preserve"><value>Struttura</value></data>
@@ -815,6 +818,10 @@
   <data name="Struct_Fallback_Remove" xml:space="preserve"><value>Togli questa riga</value></data>
   <data name="Struct_Fallback_Suggested" xml:space="preserve"><value>Proposte dalla geometria:</value></data>
   <data name="Struct_Fallback_NoSuggestions" xml:space="preserve"><value>Nessuna proposta: nessun altro settore condivide quota con questo.</value></data>
+  <data name="Struct_Fallback_UnsavedSwitch" xml:space="preserve"><value>La catena di ripiego di {0} non è salvata.</value></data>
+  <data name="Struct_Fallback_DiscardSwitch" xml:space="preserve"><value>Scarta e cambia settore</value></data>
+  <data name="Struct_Fallback_Stay" xml:space="preserve"><value>Resta qui</value></data>
+  <data name="Struct_Fallback_UnsavedRelease" xml:space="preserve"><value>La catena di ripiego non è salvata: applicala o annullala prima di «Fine modifica».</value></data>
   <data name="Struct_Ciclo" xml:space="preserve"><value>ciclo</value></data>
   <data name="Struct_CicloTitle" xml:space="preserve"><value>Gerarchia ciclica: questo settore è antenato di sé stesso. La catena di ricaduta si interrompe qui. Assegnargli un padre valido, o toglierlo al figlio che lo cita.</value></data>
   <data name="Struct_InheritedTitle" xml:space="preserve"><value>Padre non scritto: dedotto dalla scaletta dell'aeroporto (DEL → GND → TWR → APP). Assegnane uno per fissarlo.</value></data>
@@ -1139,6 +1146,7 @@
   <data name="Nav_AddHint" xml:space="preserve"><value>Un codice che non esiste ancora si crea scrivendolo: la natura serve solo la prima volta.</value></data>
   <data name="Nav_Empty" xml:space="preserve"><value>Nessuna radioassistenza in questo documento.</value></data>
   <data name="Nav_SharedNote" xml:space="preserve"><value>Le radioassistenze sono un'anagrafica di divisione: quel che si scrive qui cambia la stessa radioassistenza in ogni altro documento che la cita. I campi che arrivano dal sectorfile non si modificano.</value></data>
+  <data name="Nav_FromSourceNext" xml:space="preserve"><value>dal sectorfile · valori nuovi dal ciclo {0}</value></data>
   <data name="Nav_FromSource" xml:space="preserve"><value>dal sectorfile</value></data>
   <data name="Nav_EditedAt" xml:space="preserve"><value>scritta il {0}</value></data>
   <data name="Nav_RemoveFromDoc" xml:space="preserve"><value>Toglie la riga da questo documento (la radioassistenza resta in anagrafica)</value></data>
@@ -1176,6 +1184,8 @@
   <data name="Nav_AdminImport" xml:space="preserve"><value>Importa dal sectorfile</value></data>
   <data name="Nav_AdminImportTitle" xml:space="preserve"><value>Rilegge il sectorfile adesso e aggiorna l&apos;anagrafica, senza aspettare il giro automatico</value></data>
   <data name="Nav_AdminImporting" xml:space="preserve"><value>Sto rileggendo il sectorfile…</value></data>
+  <data name="Nav_AdminDetachedOne" xml:space="preserve"><value>Una riga che il sectorfile non manda più è tornata modificabile a mano: se un documento la cita, va ripuntato sulla riga nuova.</value></data>
+  <data name="Nav_AdminDetached" xml:space="preserve"><value>{0} righe che il sectorfile non manda più sono tornate modificabili a mano: se un documento le cita, va ripuntato sulla riga nuova.</value></data>
   <data name="Nav_AdminImported" xml:space="preserve"><value>Import fatto: {0} create, {1} aggiornate, {2} invariate (su {3} righe dal sectorfile).</value></data>
   <data name="Nav_AdminImportExcluded" xml:space="preserve"><value>Import non eseguito: nelle Sorgenti le radioassistenze sono segnate come «manuali», quindi le gestisce una persona.</value></data>
   <data name="Nav_AdminImportMute" xml:space="preserve"><value>Import non eseguito: il sectorfile non ha risposto (repository spostato o rete giù). Niente è stato cambiato.</value></data>
@@ -1183,6 +1193,7 @@
   <data name="Nav_AdminNoTypeTitle" xml:space="preserve"><value>Le righe di cui nessuno ha ancora detto che tipo sono</value></data>
   <data name="Nav_AdminDeletePrompt" xml:space="preserve"><value>Eliminare «{0}» ({1}) dall&apos;anagrafica?</value></data>
   <data name="Nav_BadChannel" xml:space="preserve"><value>Non salvato: un canale è da una a tre cifre più X o Y (per esempio 99Y) — e se esiste già una riga con quel canale, va cambiata quella.</value></data>
+  <data name="Nav_ChannelCited" xml:space="preserve"><value>Non salvato: il canale fa parte dell'identità, e questa radioassistenza la cita un documento. Prima si toglie da quella tabella.</value></data>
   <data name="Div_Airports" xml:space="preserve"><value>Aeroporti</value></data>
   <data name="Div_Navaids" xml:space="preserve"><value>Radioassistenze</value></data>
   <data name="Div_Bearing" xml:space="preserve"><value>Rilevamento</value></data>
@@ -1234,6 +1245,7 @@
   <data name="Sorg_ProvSource" xml:space="preserve"><value>da sorgente (sola lettura)</value></data>
   <data name="Sorg_ProvManual" xml:space="preserve"><value>manuale</value></data>
   <data name="Sorg_Saved" xml:space="preserve"><value>Policy delle sorgenti salvata.</value></data>
+  <data name="Sorg_SavedKept" xml:space="preserve"><value>Policy salvata. Nel frattempo un altro amministratore aveva cambiato: {0}. Quelle restano come le aveva messe.</value></data>
   <data name="Sorg_HelpAria" xml:space="preserve"><value>Come funzionano le sorgenti dati</value></data>
   <data name="Sorg_Dirty" xml:space="preserve"><value>{0} modificate</value></data>
   <data name="Sorg_DirtyTitle" xml:space="preserve"><value>Categorie cambiate rispetto a quanto salvato</value></data>
@@ -1244,9 +1256,11 @@
   <data name="Sorg_ReloadNavaidsTitle" xml:space="preserve"><value>Riscarica subito dal sectorfile il catalogo di fix, VOR e NDB usato per suggerire i punti negli editor. Senza questo tasto si aggiorna da sé una volta al giorno.</value></data>
   <data name="Sorg_ReloadNavaidsOk" xml:space="preserve"><value>Catalogo dei punti ricaricato: {0} voci.</value></data>
   <data name="Sorg_AliasTitle" xml:space="preserve"><value>Alias dei fix</value></data>
-  <data name="Sorg_AliasHelp" xml:space="preserve"><value>Un alias corregge a mano un fix che il sectorfile lascia troncato dentro il codice di una SID (per esempio SIV → SOSIV). Vale per tutti gli aeroporti e vince sull'espansione automatica: finché c'è, l'import scrive quel nome. Si creano dalla casella «alias» nell'editor aeroporto; qui si vedono e si tolgono.</value></data>
+  <data name="Sorg_AliasHelp" xml:space="preserve"><value>Un alias corregge a mano un fix che il sectorfile lascia troncato dentro il codice di una SID (per esempio SIV → SOSIV). Vale per lo scalo da cui è nato e vince sull'espansione automatica: finché c'è, l'import di quello scalo scrive quel nome. Quelli senza scalo sono nati quando l'alias valeva per tutti, e valgono ancora per tutti. Si creano dalla casella «alias» nell'editor aeroporto; qui si vedono e si tolgono.</value></data>
   <data name="Sorg_AliasColPrefix" xml:space="preserve"><value>Prefisso</value></data>
   <data name="Sorg_AliasColFix" xml:space="preserve"><value>Fix</value></data>
+  <data name="Sorg_AliasColIcao" xml:space="preserve"><value>Scalo</value></data>
+  <data name="Sorg_AliasAll" xml:space="preserve"><value>tutti</value></data>
   <data name="Sorg_AliasNone" xml:space="preserve"><value>Nessun alias: tutti i fix si risolvono da sé.</value></data>
   <data name="Sorg_AliasUnknown" xml:space="preserve"><value>Questo alias punta a un punto che non risulta nel catalogo del sectorfile. Siccome l'alias vince sull'espansione automatica, l'import continuerà a scrivere questo nome finché l'alias resta.</value></data>
   <data name="Sorg_AliasDeleteTitle" xml:space="preserve"><value>Togli questo alias</value></data>
@@ -1466,6 +1480,8 @@
   <data name="Apt_CatTitle_CivilWithMilitaryPresence" xml:space="preserve"><value>Scalo civile che condivide il sedime con una base militare. Documenti: solo la vIPI. Lo decide un amministratore.</value></data>
   <data name="Apt_CatTitle_MilitaryWithCivilPresence" xml:space="preserve"><value>Campo militare aperto anche al traffico civile. Documenti: la vIPI e il vSOP militare. Lo decide un amministratore.</value></data>
   <data name="Apt_CatPickAria" xml:space="preserve"><value>Categoria di {0}</value></data>
+  <data name="Apt_CatDivergent" xml:space="preserve"><value>IVAO: senza presenza militare</value></data>
+  <data name="Apt_CatDivergentTitle" xml:space="preserve"><value>IVAO non riconosce più la presenza militare di {0}, ma la categoria scelta resta: non scende da sola a «Civile». Se IVAO ha ragione, scegli «Civile»; se sbaglia, lascia com'è.</value></data>
   <data name="Apt_CatConMil" xml:space="preserve"><value>{0} ha un vSOP militare, e la categoria «{1}» non lo prevede. Quel documento NON viene toccato: resta com'è, e se è pubblicato resta online. Va nascosto a parte — e se è unito alla vIPI, l'unione va sciolta.</value></data>
   <data name="Apt_CatConfirmYes" xml:space="preserve"><value>Sì, cambia categoria</value></data>
   <data name="Apt_ChipAssigned" xml:space="preserve"><value>già assegnati {0}</value></data>
@@ -1627,7 +1643,7 @@
   <data name="Lock_LockedByPrefix" xml:space="preserve"><value>In modifica da</value></data>
   <data name="Lock_AnotherEditor" xml:space="preserve"><value>un altro editor</value></data>
   <data name="Lock_LockedUntilSuffix" xml:space="preserve"><value> (fino alle {0})</value></data>
-  <data name="Lock_ForceTitle" xml:space="preserve"><value>Sblocca comunque e prendi il controllo (admin)</value></data>
+  <data name="Lock_ForceTitle" xml:space="preserve"><value>Sblocca comunque e prendi il controllo</value></data>
   <data name="Lock_ForceUnlock" xml:space="preserve"><value>Forza sblocco</value></data>
   <data name="Lock_ReadOnly" xml:space="preserve"><value>Sola lettura</value></data>
   <data name="Lock_StartEdit" xml:space="preserve"><value>Inizia modifica</value></data>
@@ -1778,18 +1794,23 @@
   <data name="Rel_ScheduleAtCycle" xml:space="preserve"><value>Programma al ciclo</value></data>
   <data name="Rel_PublishedAtCycle" xml:space="preserve"><value>Release pubblicata al ciclo AIRAC {0}.</value></data>
   <data name="Rel_PublishedNow" xml:space="preserve"><value>Release pubblicata subito (review).</value></data>
+  <data name="Rel_NothingNewToPublish" xml:space="preserve"><value>Niente di nuovo rispetto alla release in vigore: nessuna release creata, resta quella.</value></data>
     <data name="Rel_CancelPrompt" xml:space="preserve"><value>Annullare la release AIRAC {0}? Il pubblico tornerà alla precedente in vigore.</value></data>
   <data name="Rel_CancelPromptOld" xml:space="preserve"><value>Eliminare dalla storia la release superata AIRAC {0}? Il pubblico non vede alcuna differenza.</value></data>
   <data name="Rel_CancelTitleOld" xml:space="preserve"><value>Elimina questa release superata dalla storia</value></data>
   <data name="Common_SystemAuthor" xml:space="preserve"><value>sistema</value></data>
   <data name="Rel_CancelYes" xml:space="preserve"><value>Annulla la release</value></data>
   <data name="Rel_OlderN" xml:space="preserve"><value>Altre {0} release superate</value></data>
-  <data name="Rel_ShapeDeferredTitle" xml:space="preserve"><value>Aree nuove non ancora in vigore</value></data>
-  <data name="Rel_ShapeDeferredBody" xml:space="preserve"><value>{0} area/e di questo perimetro hanno un confine nuovo che entra in vigore più avanti: la release lo sa e pubblicherà quello PRECEDENTE. Se è una correzione urgente, forzala.</value></data>
+  <data name="Rel_ShapeDeferredTitle" xml:space="preserve"><value>Dati del sectorfile non ancora in vigore</value></data>
+  <data name="Rel_ShapeDeferredBody" xml:space="preserve"><value>{0} dati di questo documento (aree, radioassistenze, carte MRVA) hanno una versione nuova che entra in vigore più avanti: la release lo sa e pubblicherà quella PRECEDENTE. Se è una correzione urgente, forzala.</value></data>
+  <data name="Rel_DeferredNavaid" xml:space="preserve"><value>radioassistenza</value></data>
+  <data name="Rel_DeferredMva" xml:space="preserve"><value>carta MRVA</value></data>
   <data name="Rel_ShapeDeferredRow" xml:space="preserve"><value>in vigore dal ciclo {0}</value></data>
-  <data name="Rel_ShapeForce" xml:space="preserve"><value>Pubblica comunque le aree nuove</value></data>
-  <data name="Rel_ShapeForceTitle" xml:space="preserve"><value>Accende la forzatura su queste aree: la prossima pubblicazione porterà il confine nuovo, senza aspettare il ciclo.</value></data>
-  <data name="Rel_ShapeForcedN" xml:space="preserve"><value>{0} aree forzate: la prossima pubblicazione porterà il confine nuovo.</value></data>
+  <data name="Rel_ShapeForce" xml:space="preserve"><value>Pubblica comunque i dati nuovi</value></data>
+  <data name="Rel_ShapeForceTitle" xml:space="preserve"><value>Accende la forzatura su questi dati: la prossima pubblicazione porterà la versione nuova, senza aspettare il ciclo.</value></data>
+  <data name="Rel_ShapeForcedN" xml:space="preserve"><value>{0} dati forzati: la prossima pubblicazione porterà la versione nuova.</value></data>
+  <data name="Rel_NowReplacesScheduled" xml:space="preserve"><value>«Pubblica ora» sostituisce anche la release programmata (AIRAC {0}): porta un testo più vecchio di quello che pubblichi adesso.</value></data>
+  <data name="Rel_CycleReplacesScheduled" xml:space="preserve"><value>Programmando all'AIRAC {0} sostituisci anche la release programmata (AIRAC {1}).</value></data>
   <data name="Rel_Canceled" xml:space="preserve"><value>Release annullata.</value></data>
   <data name="Rel_Effective" xml:space="preserve"><value>In vigore</value></data>
   <data name="Rel_Scheduled" xml:space="preserve"><value>Schedulata</value></data>
@@ -1995,6 +2016,7 @@
   <data name="Ed_Edit" xml:space="preserve"><value>Modifica</value></data>
   <data name="Ver_UnionDraftsTogether" xml:space="preserve"><value>Documento unito: pubblicare o scartare questa bozza vale per le bozze di tutti e {0} i documenti dell'unione.</value></data>
   <data name="Ed_LockedByOtherRetry" xml:space="preserve"><value>In modifica da un altro editor, almeno all'apertura della pagina: premi per riprovare</value></data>
+  <data name="Ed_LockedByOtherNow" xml:space="preserve"><value>In modifica da {0}: riprova quando ha finito, o chiedi a un Editor di sbloccare.</value></data>
   <data name="Ed_LockedByOtherBody" xml:space="preserve"><value>Bloccata da {0}{1}. Non puoi salvare finché il lock è attivo.</value></data>
   <data name="Vle_UnknownAcc" xml:space="preserve"><value>ACC sconosciuto</value></data>
   <data name="Vle_EditorTitle" xml:space="preserve"><value>Editor vLOA</value></data>
@@ -2079,7 +2101,7 @@
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-importa da IVAO</value></data>
   <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Ri-scarica da IVAO tutto ciò che questo aeroporto prende dalla sorgente: piste, Transition Altitude, catalogo settori e procedure SID/STAR (rispetta la policy in «Sorgenti dati»)</value></data>
   <data name="Ape_HelpAria" xml:space="preserve"><value>Aiuto sull'editor aeroporto</value></data>
-  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;L'editor del profilo aeroporto: ogni sezione si apre e si chiude. I campi si scrivono solo dopo «Modifica», col lock tuo.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Ogni gesto scrive da solo&lt;/b&gt; nella &lt;b&gt;bozza&lt;/b&gt;: non c'è un tasto «Salva», e la testata dice «Salvato». Il pubblico vede solo dopo la pubblicazione, in «Versioni».&lt;/li&gt;&lt;li&gt;Una riga &lt;b&gt;incompleta&lt;/b&gt; non si salva: compare un avviso e resta l'ultimo stato valido.&lt;/li&gt;&lt;li&gt;Ciò che arriva dalla sorgente porta il lucchetto e non si tocca qui: la policy sta in «Sorgenti dati».&lt;/li&gt;&lt;/ul&gt;</value></data>
+  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;L'editor del profilo aeroporto: ogni sezione si apre e si chiude. I campi si scrivono solo dopo «Modifica», col lock tuo.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Ogni gesto scrive da solo&lt;/b&gt; nella &lt;b&gt;bozza&lt;/b&gt;: non c'è un tasto «Salva», e la testata dice «Salvato». Il pubblico vede solo dopo la pubblicazione, in «Versioni».&lt;/li&gt;&lt;li&gt;Una riga &lt;b&gt;incompleta&lt;/b&gt; ferma il salvataggio di tutta la sua tabella: compare un avviso, e «Fine modifica» non esce finché non la completi o la togli.&lt;/li&gt;&lt;li&gt;Ciò che arriva dalla sorgente porta il lucchetto e non si tocca qui: la policy sta in «Sorgenti dati».&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Ape_RwRulesHelpAria" xml:space="preserve"><value>Aiuto sulle regole di scelta pista</value></data>
   <data name="Ape_TlHelpAria" xml:space="preserve"><value>Aiuto sulle quote di transizione</value></data>
   <data name="Ape_TaFromSourceAria" xml:space="preserve"><value>Perché la Transition Altitude è in sola lettura</value></data>
@@ -2197,6 +2219,7 @@
   <data name="Ape_TestVerdictDay" xml:space="preserve"><value>giorno non incluso</value></data>
   <data name="Ape_TestVerdictParity" xml:space="preserve"><value>parità del giorno diversa</value></data>
   <data name="Ape_TestVerdictSeason" xml:space="preserve"><value>fuori dal periodo</value></data>
+  <data name="Ape_TestVerdictNoWind" xml:space="preserve"><value>vento non noto: nessuna regola decide</value></data>
   <data name="Ape_TestVerdictTail" xml:space="preserve"><value>tailwind {0} kt oltre il massimo di {1} kt</value></data>
   <data name="Ape_TestVerdictCross" xml:space="preserve"><value>vento traverso {0} kt oltre il massimo di {1} kt</value></data>
   <data name="Ape_NoUnitFound" xml:space="preserve"><value>Nessun ente trovato.</value></data>
@@ -2283,7 +2306,7 @@
   <data name="Ape_Priority" xml:space="preserve"><value>Priorità</value></data>
   <data name="Ape_FixToVerify" xml:space="preserve"><value>fix da verificare</value></data>
   <data name="Ape_PointUnknown" xml:space="preserve"><value>Questo punto non risulta nel catalogo del sectorfile: controlla la grafia.</value></data>
-  <data name="Ape_AliasTitle" xml:space="preserve"><value>Aggiungi l'alias {0} → per gli import futuri</value></data>
+  <data name="Ape_AliasTitle" xml:space="preserve"><value>Aggiungi l'alias {0} → per gli import futuri di questo scalo (gli altri scali non lo vedono)</value></data>
   <data name="Ape_Public" xml:space="preserve"><value>pubblica</value></data>
   <data name="Ape_AutoPublishTitle" xml:space="preserve"><value>pubblica automaticamente dal ciclo {0}</value></data>
   <data name="Ape_Now" xml:space="preserve"><value>ora</value></data>
@@ -2407,6 +2430,25 @@
   <data name="Aqp_ClearSearch" xml:space="preserve"><value>Togli la ricerca</value></data>
   <data name="Aqp_SidCount" xml:space="preserve"><value>{0} SID</value></data>
   <data name="Aqp_NoSidMatch" xml:space="preserve"><value>Nessuna SID per «{0}».</value></data>
+  <data name="Aqp_ColTransition" xml:space="preserve"><value>Transizione</value></data>
+  <data name="Aqp_NoSid" xml:space="preserve"><value>Nessuna SID.</value></data>
+  <data name="Aqp_NoSidRunway" xml:space="preserve"><value>Nessuna SID per la pista {0}.</value></data>
+  <data name="Tour_TocTitle" xml:space="preserve"><value>Indice del documento</value></data>
+  <data name="Tour_TocBody" xml:space="preserve"><value>Salta a una sezione. Non c'è un tasto «Salva»: dopo «Modifica» ogni gesto scrive da solo nella &lt;b&gt;bozza&lt;/b&gt;.</value></data>
+  <data name="Tour_PreviewTitle" xml:space="preserve"><value>Anteprima bozza</value></data>
+  <data name="Tour_PreviewBody" xml:space="preserve"><value>Apri il documento come apparirà. Controlla sempre qui &lt;b&gt;prima&lt;/b&gt; di pubblicare.</value></data>
+  <data name="Tour_ReleaseTitle" xml:space="preserve"><value>Pubblica</value></data>
+  <data name="Tour_ReleaseBody" xml:space="preserve"><value>Rendi la bozza pubblica con una &lt;b&gt;release AIRAC&lt;/b&gt;: subito o programmata a un ciclo.</value></data>
+  <data name="Tour_Close" xml:space="preserve"><value>Chiudi il tour</value></data>
+  <data name="Tour_CloseTitle" xml:space="preserve"><value>Chiudi (Esc)</value></data>
+  <data name="Tour_Skip" xml:space="preserve"><value>Salta</value></data>
+  <data name="Tour_Prev" xml:space="preserve"><value>Indietro</value></data>
+  <data name="Tour_Next" xml:space="preserve"><value>Avanti</value></data>
+  <data name="Tour_Done" xml:space="preserve"><value>Fine</value></data>
+  <data name="Tour_Step" xml:space="preserve"><value>Passo {0} di {1}</value></data>
+  <data name="Screens_GroupPublic" xml:space="preserve"><value>Consultazione</value></data>
+  <data name="Screens_GroupEditor" xml:space="preserve"><value>Editor</value></data>
+  <data name="Screens_GroupAdmin" xml:space="preserve"><value>Amministrazione</value></data>
   <data name="Apt_SelectRow" xml:space="preserve"><value>Seleziona {0}</value></data>
   <data name="Apt_SelectAll" xml:space="preserve"><value>Seleziona tutte le righe mostrate</value></data>
   <data name="Struct_ToggleNode" xml:space="preserve"><value>Espandi o richiudi {0}</value></data>
@@ -2488,6 +2530,11 @@
   <data name="Xfer_BulkArea" xml:space="preserve"><value>area attiva…</value></data>
   <data name="Xfer_BulkCustom" xml:space="preserve"><value>condizione libera…</value></data>
   <data name="Xfer_BulkApplyCondition" xml:space="preserve"><value>Applica condizione</value></data>
+  <data name="Xfer_BulkConditionEmpty" xml:space="preserve"><value>Scegli un'area o scrivi una condizione libera. Per svuotarle c'è «Togli condizione».</value></data>
+  <data name="Xfer_BulkRemoveCondition" xml:space="preserve"><value>Togli condizione</value></data>
+  <data name="Xfer_BulkRemoveConditionPrompt" xml:space="preserve"><value>Togliere area e condizione libera da {0} clausole? Si potrà annullare finché il messaggio resta a schermo.</value></data>
+  <data name="Xfer_BulkRemoveConditionYes" xml:space="preserve"><value>Sì, togli</value></data>
+  <data name="Xfer_CondRestored" xml:space="preserve"><value>Condizioni rimesse com'erano.</value></data>
   <data name="Xfer_BulkConditionTitle" xml:space="preserve"><value>Area e condizione libera. Le piste no: dipendono dall'aeroporto del gruppo</value></data>
   <data name="Xfer_BulkDeleteAria" xml:space="preserve"><value>Elimina le righe selezionate</value></data>
   <data name="Xfer_BulkDeletePrompt" xml:space="preserve"><value>Eliminare {0} clausole? Si potrà annullare finché il messaggio resta a schermo.</value></data>
@@ -2676,7 +2723,9 @@
   <data name="Swap_Btn" xml:space="preserve"><value>Copia e scarica ({0} profili)</value></data>
   <data name="Swap_Busy" xml:space="preserve"><value>Creazione dello zip…</value></data>
   <data name="Swap_OutputInfo" xml:space="preserve"><value>Esce un unico .zip con {0} profili aggiornati.</value></data>
-  <data name="Swap_ErrTooBig" xml:space="preserve"><value>Il file «{0}» supera il limite di {1} MB.</value></data>
+  <data name="Swap_ErrTooBig" xml:space="preserve"><value>Il file «{0}» supera il limite di {1} KB: un profilo Aurora sta sotto i 100 KB.</value></data>
+  <data name="Swap_ErrTooManyLines" xml:space="preserve"><value>Il file «{0}» ha più di {1} righe: non sembra un profilo Aurora.</value></data>
+  <data name="Swap_ErrTooManyDests" xml:space="preserve"><value>Al massimo {0} profili di destinazione per volta: {1} file non sono stati caricati. Toglierne qualcuno per aggiungerne altri.</value></data>
   <data name="Swap_ErrRead" xml:space="preserve"><value>Impossibile leggere «{0}»: {1}</value></data>
   <data name="Swap_ErrSectionMissing" xml:space="preserve"><value>La sezione [{0}] non è presente nel profilo sorgente: non è stato copiato nulla.</value></data>
   <data name="Swap_ErrSwap" xml:space="preserve"><value>Errore durante la copia: {0}</value></data>
@@ -2831,6 +2880,9 @@
   <data name="Stats_ProfileForbidden" xml:space="preserve"><value>Le statistiche personali di un altro controllore le può aprire solo lo staff di divisione.</value></data>
   <data name="Stats_StaffViewingTitle" xml:space="preserve"><value>Statistiche di un altro controllore</value></data>
   <data name="Stats_StaffViewingBody" xml:space="preserve"><value>Le stai vedendo perché sei staff di divisione. L'accesso resta scritto nel registro di audit.</value></data>
+  <data name="Stats_StaffViewingSessionTitle" xml:space="preserve"><value>Turno di un altro controllore</value></data>
+  <data name="Stats_StaffViewingSessionBody" xml:space="preserve"><value>Lo stai vedendo perché sei staff di divisione. L'accesso resta scritto nel registro di audit.</value></data>
+  <data name="Stats_StaffViewingSessionProfile" xml:space="preserve"><value>Le sue statistiche</value></data>
   <data name="Stats_BackToDivision" xml:space="preserve"><value>Torna alla classifica</value></data>
   <data name="Stats_OpenProfileTitle" xml:space="preserve"><value>Apri le statistiche del VID {0}</value></data>
   <data name="Audit_Cat_Statistiche" xml:space="preserve"><value>Statistiche</value></data>
@@ -3004,6 +3056,7 @@
   <data name="Gl_ErrDuplicate" xml:space="preserve"><value>Questa formula c'è già. Correggi quella invece di aggiungerne una seconda.</value></data>
   <data name="Gl_Saved" xml:space="preserve"><value>Voce salvata.</value></data>
   <data name="Gl_Deleted" xml:space="preserve"><value>Voce tolta.</value></data>
+  <data name="Gl_DeletePrompt" xml:space="preserve"><value>Togliere «{0}» dal glossario?</value></data>
   <data name="Gl_InMemory" xml:space="preserve"><value>{0} traduzioni automatiche già in memoria contengono questa formula, e restano come sono: il giro traduce solo quello che manca.</value></data>
   <data name="Gl_Redo" xml:space="preserve"><value>Falle rifare ({0})</value></data>
   <data name="Gl_RedoHint" xml:space="preserve"><value>Butta le traduzioni automatiche che contengono la formula, così il prossimo giro le rifà col glossario. Le correzioni scritte da una persona non si toccano. ⚠️ I caratteri si ripagano al motore.</value></data>
@@ -3208,6 +3261,8 @@
   <data name="Att_ErrSlug" xml:space="preserve"><value>Lo slug vuole minuscole, cifre e trattini singoli: «loa-lirr-lfmm».</value></data>
   <data name="Att_ErrSlugTaken" xml:space="preserve"><value>Lo slug «{0}» è già di un'altra voce, e due voci con lo stesso slug renderebbero ambiguo il link.</value></data>
   <data name="Att_ErrTitle" xml:space="preserve"><value>Manca il titolo: è quel che si legge dentro il documento.</value></data>
+  <data name="Att_ErrTitleLong" xml:space="preserve"><value>Il titolo è troppo lungo: al massimo {0} caratteri.</value></data>
+  <data name="Att_ErrNoteLong" xml:space="preserve"><value>La nota è troppo lunga: al massimo {0} caratteri.</value></data>
   <data name="Att_ErrLink" xml:space="preserve"><value>Da quel link non si ricava nessun id di file. Serve il link di condivisione di Drive.</value></data>
   <data name="Att_ErrScope" xml:space="preserve"><value>L'ambito e il suo codice non stanno insieme: la divisione non vuole un codice, un ACC o uno scalo lo pretendono.</value></data>
   <data name="AttKind_Loa" xml:space="preserve"><value>LoA</value></data>
@@ -3362,6 +3417,7 @@
   <data name="Conv_FromCatalog" xml:space="preserve"><value>Oppure prendi un'area dal catalogo</value></data>
   <data name="Conv_FromCatalogPick" xml:space="preserve"><value>Scegli un'area…</value></data>
   <data name="Asp_NavReport" xml:space="preserve"><value>Radioassistenze: AIP contro anagrafica</value></data>
+  <data name="Asp_NavUnreadable" xml:space="preserve"><value>Il file in vigore non si legge: il confronto con l'AIP non si può fare.</value></data>
   <data name="Asp_NavReportScope" xml:space="preserve"><value>Il confronto SEGNALA e basta: le correzioni si fanno nel sectorfile, e da lì si reimportano. Nessun valore dell'anagrafica viene toccato.</value></data>
   <data name="Asp_NavReportRun" xml:space="preserve"><value>Confronta con l'anagrafica</value></data>
   <data name="Asp_NavReportNone" xml:space="preserve"><value>Nessuna differenza: l'AIP e l'anagrafica dicono la stessa cosa.</value></data>
@@ -3456,7 +3512,7 @@
   <data name="Union_MoveUp" xml:space="preserve"><value>Sposta su</value></data>
   <data name="Union_MoveDown" xml:space="preserve"><value>Sposta giù</value></data>
   <data name="Union_Remove" xml:space="preserve"><value>Togli dall'unione</value></data>
-  <data name="Union_RemovePrompt" xml:space="preserve"><value>Questo documento torna alla sua pagina. Se nell'unione resta un membro solo, l'unione si scioglie.</value></data>
+  <data name="Union_RemovePrompt" xml:space="preserve"><value>Questo documento torna alla sua pagina. Se nell'unione resta un membro solo, l'unione si scioglie. Se esce la vIPI d'aeroporto o il vSOP militare, le sezioni nascoste dalla scheda «in comune» tornano visibili nelle bozze.</value></data>
   <data name="Union_RemoveYes" xml:space="preserve"><value>Togli</value></data>
   <data name="Union_Dissolve" xml:space="preserve"><value>Sciogli l'unione</value></data>
   <data name="Union_Common_Open" xml:space="preserve"><value>Sezioni in comune…</value></data>
@@ -3469,8 +3525,14 @@
   <data name="Union_Common_Done" xml:space="preserve"><value>Fatto: {0} sezioni cambiate.</value></data>
   <data name="Union_Common_Done_One" xml:space="preserve"><value>Fatto: una sezione cambiata.</value></data>
   <data name="Union_Common_Hidden" xml:space="preserve"><value>già nascosta</value></data>
+  <data name="Union_Shown" xml:space="preserve"><value>Rimesse visibili nelle bozze {0} sezioni che la scheda «in comune» aveva nascosto: nelle pagine pubbliche tornano con la prossima pubblicazione di ciascun documento.</value></data>
+  <data name="Union_Shown_One" xml:space="preserve"><value>Rimessa visibile nella bozza una sezione che la scheda «in comune» aveva nascosto: nella pagina pubblica torna con la prossima pubblicazione.</value></data>
+  <data name="Union_Common_Kept" xml:space="preserve"><value>resta: ha sotto contenuti solo suoi</value></data>
+  <data name="Union_Common_KeptTitle" xml:space="preserve"><value>Questa sezione ha sottosezioni che negli altri documenti non ci sono: nasconderla le porterebbe via. Resta visibile; delle sue figlie si nascondono solo quelle in comune.</value></data>
+  <data name="Union_Common_Drags" xml:space="preserve"><value>+{0} sottosezioni con lei</value></data>
+  <data name="Union_Common_DragsTitle" xml:space="preserve"><value>Nascondere una sezione nasconde anche tutto quel che ha sotto. Queste sottosezioni ci sono anche nei documenti che restano: non si perde niente.</value></data>
   <data name="Union_Common_HiddenTitle" xml:space="preserve"><value>In almeno uno dei documenti questa sezione è già nascosta.</value></data>
-  <data name="Union_DissolvePrompt" xml:space="preserve"><value>I documenti tornano alle loro pagine e alle loro pubblicazioni. Non si perde niente di quel che c'è scritto.</value></data>
+  <data name="Union_DissolvePrompt" xml:space="preserve"><value>I documenti tornano alle loro pagine. Le sezioni che la scheda «in comune» aveva nascosto tornano visibili nelle bozze: nelle pagine pubbliche compaiono con la prossima pubblicazione di ciascun documento.</value></data>
   <data name="Union_DissolveYes" xml:space="preserve"><value>Sciogli</value></data>
   <data name="Union_EditToChange" xml:space="preserve"><value>Per cambiare l'unione, entra in modifica.</value></data>
   <data name="Rel_UnionTitle" xml:space="preserve"><value>Questo documento e' unito ad altri: pubblicando si pubblicano tutti e {0}, allo stesso ciclo.</value></data>
@@ -3549,7 +3611,9 @@
   <data name="TrEd_Now_BrokenOne" xml:space="preserve"><value>⚠️ Una è tornata rotta e non è stata salvata: la rispedisce il prossimo giro.</value></data>
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>una vuole una persona</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>Una frase di questo documento non è ancora tradotta. La release NON la congela: si leggerà tradotta appena passa il giro, senza ripubblicare.</value></data>
-  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Riga incompleta: non ancora salvata</value></data>
+  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Riga incompleta: finché non la completi o la togli, le modifiche a questa tabella non si salvano</value></data>
+  <data name="Ape_FinishBlocked" xml:space="preserve"><value>Non puoi ancora uscire dalla modifica: {0} ha una riga incompleta, e finché c'è le modifiche a quella tabella non si salvano. Completala o toglila, poi «Fine modifica».</value></data>
+  <data name="Ape_TabStar" xml:space="preserve"><value>STAR</value></data>
   <data name="Rta_Toolbar" xml:space="preserve"><value>Formattazione del testo</value></data>
   <data name="Rta_Bold" xml:space="preserve"><value>Grassetto</value></data>
   <data name="Rta_BoldLetter" xml:space="preserve"><value>G</value></data>

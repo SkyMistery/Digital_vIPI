@@ -193,7 +193,7 @@ public class SpecialAreaImportTests : IAsyncLifetime
         var id = (await _repo.ListAccsAsync()).Single(a => a.Code == "LFMM").Id;
         var freed = await _repo.SetSpecialAreasEnabledAsync(id, false);
 
-        Assert.Equal(2, freed);                                            // due legami tolti a LFMM
+        Assert.Equal(2, freed.Removed);                                    // due legami tolti a LFMM
         var left = await _db.SpecialAreas.Select(a => a.IvaoId).ToListAsync();
         Assert.Equal(new[] { "condivisa" }, left);                         // la sua resta: LIRR la elenca ancora
     }
@@ -268,6 +268,31 @@ public class SpecialAreaImportTests : IAsyncLifetime
 
         var riga = Assert.Single(await impatti.ListOpenAsync(doc));
         Assert.Equal(Vipi.Domain.ImpactKind.AreaGone, riga.Kind);
+    }
+
+    /// <summary>
+    /// 🔴 U-130 (revisione totale 3): «Escludi aree» su un ACC potava legami e cancellava le aree orfane senza aprire
+    /// l'impatto AreaGone che l'import apre per la stessa sparizione. Le bozze che le citavano le perdevano in
+    /// silenzio, e non comparivano in «Da rivedere» (ImpactDriftUseCase non guarda le aree: nessun giro dopo lo
+    /// recupera). Ora lo spegnimento passa dallo stesso corpo dell'import.
+    /// </summary>
+    [Fact]
+    public async Task Escludere_le_aree_di_un_ACC_segnala_i_documenti_che_le_citano()
+    {
+        var doc = await DocumentoCheCitaAsync("77");
+        var dir = new FakeAccDirectory { Areas = { ["LIRR"] = new() { Area("77") } } };
+        var impatti = new EfDocumentImpactRepository(_db);
+        var uc = new SpecialAreaImportUseCase(_repo, dir, _policy,
+            new DocumentImpactService(impatti, new SempreSi()));
+        await uc.RunAsync();
+        var lirr = (await _repo.ListAccsAsync()).Single(a => a.Code == "LIRR").Id;
+
+        var tolte = await uc.SpegniAccAsync(lirr);
+
+        Assert.Equal(1, tolte);
+        var riga = Assert.Single(await impatti.ListOpenAsync(doc));
+        Assert.Equal(Vipi.Domain.ImpactKind.AreaGone, riga.Kind);
+        Assert.False((await _repo.ListAccsAsync()).Single(a => a.Code == "LIRR").SpecialAreasEnabled);
     }
 
     /// <summary>Un documento con una sezione «regulated» che cita l'area per id: la forma con cui la

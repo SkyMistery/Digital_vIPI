@@ -88,6 +88,110 @@ public class AgreementValidationTests : IAsyncLifetime
             new AgreementClauseInput { LevelUnit = Vipi.Domain.LevelUnit.Fl, LevelConstraint = Vipi.Domain.LevelConstraint.AtOrAbove, LevelValue = 240, Cops = "ELKAP", ConditionCustomLabel = new string('z', tetto) }) > 0);
     }
 
+    /// <summary>
+    /// U-187 (revisione 3): la condizione di PISTA non aveva tetto nel servizio, e la colonna è di 80 caratteri. Con
+    /// più scali ogni pista porta l'ICAO («LIRF 16L / LIRF 16R / …»): sei-otto piste scelte bastano, e in strict
+    /// l'errore del database arrivava grezzo.
+    /// </summary>
+    [Fact]
+    public async Task Una_condizione_di_pista_oltre_la_colonna_si_rifiuta_con_una_frase()
+    {
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+        var sezione = await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Overflight));
+        var tetto = Vipi.Domain.Entities.AgreementClauseLimits.Pista;
+        Assert.Equal(80, tetto);
+
+        var lunga = string.Join(" / ", Enumerable.Range(1, 9).Select(i => $"LIRF {i:00}L"));
+        Assert.True(lunga.Length > tetto);
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _svc.AddClauseAsync("LIRR", sezione,
+            new AgreementClauseInput { LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove, LevelValue = 240, Cops = "VALMA", ConditionLabel = lunga }));
+        Assert.Contains(tetto.ToString(), ex.Message);
+
+        Assert.True(await _svc.AddClauseAsync("LIRR", sezione,
+            new AgreementClauseInput { LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove, LevelValue = 240, Cops = "VALMA", ConditionLabel = new string('p', tetto) }) > 0);
+    }
+
+    /// <summary>
+    /// 🔴 U-178 (revisione totale 3): «Incolla tabella» scriveva le clausole una per una. Una riga rifiutata a metà
+    /// lasciava salvate le precedenti, che la pagina non mostrava (niente ricarico dopo un errore): al nuovo invio,
+    /// dopo aver corretto la riga, entravano due volte. Ora si validano tutte prima e si scrivono insieme.
+    /// </summary>
+    [Fact]
+    public async Task Incollare_con_una_riga_rifiutata_non_scrive_niente()
+    {
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+        var sezione = await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Overflight));
+        var tetto = Vipi.Domain.Entities.AgreementClauseLimits.Etichetta;
+        var righe = new[]
+        {
+            Clause("GISAM"),
+            new AgreementClauseInput { LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow, LevelValue = 130,
+                Cops = "VALMA", ConditionCustomLabel = new string('x', tetto + 1) },
+            Clause("ELKAP"),
+        };
+
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _svc.AddClausesAsync("LIRR", sezione, righe));
+        Assert.Contains("2", ex.Message);   // quale riga: chi corregge deve sapere dove
+        Assert.Equal(0, await _db.AgreementClauses.CountAsync(c => c.SectionId == sezione));
+
+        // Corretta la riga, il nuovo invio scrive le tre righe una volta sola.
+        righe[1] = Clause("VALMA");
+        Assert.Equal(3, await _svc.AddClausesAsync("LIRR", sezione, righe));
+        Assert.Equal(new[] { "GISAM", "VALMA", "ELKAP" },
+            await _db.AgreementClauses.Where(c => c.SectionId == sezione).OrderBy(c => c.Order).Select(c => c.Cops).ToListAsync());
+    }
+
+    /// <summary>
+    /// 🔴 U-154 (revisione totale 3): la barra «in blocco» scriveva la condizione senza il tetto delle colonne (su
+    /// MariaDB fuori da strict il testo si troncava in silenzio, in strict l'errore grezzo del database).
+    /// </summary>
+    [Fact]
+    public async Task La_condizione_in_blocco_oltre_il_tetto_si_rifiuta_con_una_frase()
+    {
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+        var sezione = await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Overflight));
+        var clausola = await _svc.AddClauseAsync("LIRR", sezione, Clause("GISAM"));
+        var etichetta = Vipi.Domain.Entities.AgreementClauseLimits.Etichetta;
+        var elenco = Vipi.Domain.Entities.AgreementClauseLimits.Elenco;
+
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _svc.SetConditionAsync(
+            "LIRR", [clausola], null, false, false, new string('x', etichetta + 1)));
+        Assert.Contains(etichetta.ToString(), ex.Message);
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _svc.SetConditionAsync(
+            "LIRR", [clausola], new string('A', elenco + 1), false, false, null));
+
+        Assert.Null(await _db.AgreementClauses.AsNoTracking().Where(c => c.Id == clausola)
+            .Select(c => c.ConditionCustomLabel).SingleAsync());
+        Assert.Equal(1, await _svc.SetConditionAsync("LIRR", [clausola], null, false, false, new string('y', etichetta)));
+    }
+
+    /// <summary>
+    /// 🔴 U-154: la clausola «in ogni caso» deve dire a quali condizioni vale (<c>ValidateClause</c>), ma la barra
+    /// in blocco poteva svuotarle la condizione e salvarla così: una riga che il pannello non riscriverebbe più.
+    /// </summary>
+    [Fact]
+    public async Task La_barra_in_blocco_non_svuota_la_condizione_di_una_clausola_in_ogni_caso()
+    {
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+        var sezione = await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Overflight));
+        var notte = Clause("GISAM") with { ConditionCustomLabel = "di notte" };
+        var clausola = await _svc.AddClauseAsync("LIRR", sezione, notte);
+        var altra = await _svc.AddAlternativeAsync("LIRR", clausola);
+        var riga = await _db.AgreementClauses.SingleAsync(c => c.Id == clausola);
+        riga.IsGroupWide = true;
+        await _db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _svc.SetConditionAsync(
+            "LIRR", [clausola, altra], null, false, false, null));
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal("di notte", await _db.AgreementClauses.Where(c => c.Id == clausola)
+            .Select(c => c.ConditionCustomLabel).SingleAsync());
+
+        // L'alternativa da sola si svuota: non scavalca niente, e la regola non la riguarda.
+        Assert.Equal(1, await _svc.SetConditionAsync("LIRR", [altra], null, false, false, null));
+    }
+
     [Fact]
     public async Task Con_i_due_capi_si_salva()
     {

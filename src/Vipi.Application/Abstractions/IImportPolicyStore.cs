@@ -25,6 +25,19 @@ public sealed record ImportPolicySnapshot(
         ImportCategory.Navaids => Navaids,
         _ => true,
     };
+
+    /// <summary>La stessa policy con una sola categoria cambiata.</summary>
+    public ImportPolicySnapshot With(ImportCategory category, bool imported) => category switch
+    {
+        ImportCategory.TransitionAltitude => this with { TransitionAltitude = imported },
+        ImportCategory.Runways => this with { Runways = imported },
+        ImportCategory.Sectors => this with { Sectors = imported },
+        ImportCategory.Sids => this with { Sids = imported },
+        ImportCategory.SpecialAreas => this with { SpecialAreas = imported },
+        ImportCategory.AtcSessions => this with { AtcSessions = imported },
+        ImportCategory.Navaids => this with { Navaids = imported },
+        _ => this,
+    };
 }
 
 /// <summary>

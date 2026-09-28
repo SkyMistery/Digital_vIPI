@@ -189,7 +189,7 @@ else
     {
         TafChangeKind.Base => "Base",
         TafChangeKind.Becmg => "BECMG",
-        TafChangeKind.Tempo => "TEMPO",
+        TafChangeKind.Tempo => s.Probability is int p ? $"PROB{p} TEMPO" : "TEMPO",
         TafChangeKind.From => "FM",
         TafChangeKind.Prob => $"PROB{s.Probability}",
         _ => s.Kind.ToString().ToUpperInvariant(),

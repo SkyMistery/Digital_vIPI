@@ -119,9 +119,10 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
 
     public async Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default)
     {
-        // vLOA: la chiave di release è il docId, ma la deriviamo dal DocumentId del ref (identico all'AuthAccCode del
-        // descrittore, che parte dalla chiave = docId). Gli altri tipi hanno chiave = release key.
-        var key = doc.Kind == ReleaseTargetType.Vloa ? doc.DocumentId?.ToString() ?? "" : doc.ReleaseKey;
+        // vLOA: la chiave di release è il docId; dall'elenco arriva nel DocumentId del ref, dal pannello di rilascio
+        // solo come chiave (Id nullo). Guardare il solo Id dava chiave vuota e «Documento inesistente»: la lingua di
+        // una vLOA non si salvava mai (U-054, revisione 3). Gli altri tipi hanno chiave = release key.
+        var key = doc.Kind == ReleaseTargetType.Vloa ? doc.DocumentId?.ToString() ?? doc.ReleaseKey : doc.ReleaseKey;
         return await _targets.For(doc.Kind).AuthAccCodeAsync(key, ct);
     }
 
@@ -131,8 +132,10 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
     /// l'Id: è così che è keyed in tutti e cinque gli editor. Chiedergli l'Id vorrebbe dire farlo passare a
     /// mano da cinque pagine, e la prima che se lo dimenticasse spegnerebbe il controllo senza un errore.</para>
     /// </summary>
-    private async Task<int?> IdDelDocumentoAsync(ManagedDocRef doc, CancellationToken ct) =>
+    public async Task<int?> ResolveDocumentIdAsync(ManagedDocRef doc, CancellationToken ct = default) =>
         doc.DocumentId ?? await _targets.For(doc.Kind).ResolveDocumentIdAsync(doc.ReleaseKey, ct);
+
+    private Task<int?> IdDelDocumentoAsync(ManagedDocRef doc, CancellationToken ct) => ResolveDocumentIdAsync(doc, ct);
 
     public async Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default)
     {

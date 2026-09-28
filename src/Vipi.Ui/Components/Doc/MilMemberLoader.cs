@@ -145,6 +145,10 @@ public sealed class MilMemberLoader
                 {
                     relCycle = pv.AiracCycle;
                     view = await _viewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended, ct);
+                    // 🔴 U-053 (revisione totale 3): le derivate dell'anteprima sono le congelate di QUESTA release
+                    // (vedi l'apertura sotto). Prima si derivavano live — e il commento sulle radioassistenze
+                    // diceva il contrario del codice.
+                    useFrozen = true;
                 }
                 else { mode = default; (view, useFrozen) = await PubblicaAsync(code, ct); }
                 break;
@@ -153,6 +157,8 @@ public sealed class MilMemberLoader
                 break;
         }
         if (view is null) return null;
+        using var congelateDellaRelease = mode.Kind == PreviewKind.Release
+            ? AnteprimaDiRelease.Apri(ReleaseTargetType.AirportMil, code, mode.ReleaseId) : null;
 
         // ---- In che lingua si legge QUESTO documento (carta 2026-08-31-lingua-bloccata.md §3-4) ---------
         // ⚠️ SUBITO: se è bloccato la lingua vale anche per le DERIVAZIONI che partono qui sotto, che
@@ -168,7 +174,9 @@ public sealed class MilMemberLoader
         var wx = await _weather.GetAsync(code, ct);
         var metar = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
         var taf = string.IsNullOrWhiteSpace(wx?.Taf) ? null : MetarParser.ParseTaf(wx!.Taf!);
-        var derivate = await _airportView.ResolveForViewAsync(code, useFrozen, ReleaseTargetType.AirportMil, ct: ct);
+        // Al ciclo dell'anteprima, come la vIPI civile: le sezioni vive che dipendono dal ciclo (SID) rispondono
+        // per quel ciclo e non per oggi.
+        var derivate = await _airportView.ResolveForViewAsync(code, useFrozen, ReleaseTargetType.AirportMil, relCycle, ct);
 
         // La pista in uso ADESSO, come nella vIPI d'aeroporto: si decide sulle regole CHE SI STANNO MOSTRANDO
         // — congelate in pubblica, vive in bozza — perché la sezione se le porta dietro (carta 2026-09-12). Il
@@ -179,10 +187,13 @@ public sealed class MilMemberLoader
         var windDir = metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : (int?)null;
         var windKt = metar?.Wind?.SpeedKt ?? 0;
         var regole = derivate.Rules.Regole;
-        var vive = regole is null ? (await _scalo.LoadForViewAsync(code, ct))?.Rules : null;
+        // ⚠️ L'anagrafica si legge sempre: le rotte vere delle testate non stanno nella sezione Piste (U-223).
+        var scaloVivo = await _scalo.LoadForViewAsync(code, ct);
+        var vive = regole is null ? scaloVivo?.Rules : null;
         var inUso = PistaInUso.Calcola(regole, derivate.Sids,
             derivate.Runways.Rows.Select(r => r.Ident).ToList(), windDir, windKt, metar, vive,
-            AirportRunwayRowView.Esclusioni(derivate.Runways.Rows));
+            AirportRunwayRowView.Esclusioni(derivate.Runways.Rows), RunwayRow.Rotte(scaloVivo?.Runways),
+            RunwaySuggestion.VentoNoto(metar?.Wind));
 
         // ⚠️ Gli id delle aree li porta il DOCUMENTO mostrato; shape e descrizioni vengono dai cataloghi
         // correnti — come nella vIPI ACC e nell'APP. Si legge PRIMA della traduzione: la sezione tradotta

@@ -10,6 +10,12 @@ militare*. Diventa una di **quattro categorie**, ognuna con i suoi documenti:
 | 3 | **Civile con presenza militare** | un amministratore | ✅ | ❌ |
 | 4 | **Militare con presenza civile** | un amministratore | ✅ | ✅ |
 
+> ⚠️ **Cambiato il 27 settembre 2026** (U-028, revisione totale 3, decisione del committente): quando la sorgente
+> toglie la presenza militare, una categoria militare **non scende più da sola** a «Civile». Una sola notte di
+> «military» falso cancellava per sempre la scelta di una persona. Ora la riga resta com'è ed è **divergente**
+> (`AirportCategories.Divergente`). La pagina Aeroporti la mostra («IVAO: senza presenza militare») e offre «Civile»,
+> che la chiude. Un «military» assente dal JSON non tocca niente. Storia in `docs/filoni/sito.md`, voce S21.
+
 Le categorie 2, 3 e 4 si possono scegliere **solo** dove la sorgente dice che c'è presenza militare
 (`HasMilitaryPresence`). E in **tutti** i documenti, per **tutti** gli aeroporti, compare la categoria —
 anche «Civile», che oggi non ha etichetta.

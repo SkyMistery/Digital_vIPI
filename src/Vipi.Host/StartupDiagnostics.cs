@@ -167,18 +167,29 @@ public static class StartupDiagnostics
     private static string Presenza(string? valore) =>
         string.IsNullOrWhiteSpace(valore) ? "VUOTO" : $"valorizzato ({valore.Length} caratteri)";
 
-    /// <summary>La connection string serve per diagnosticare host, porta e database: la password no.</summary>
-    private static string SenzaPassword(string? connectionString)
+    /// <summary>
+    /// La connection string serve per diagnosticare host, porta e database: la password no.
+    /// <para>🔴 U-125 (revisione totale 3): si spezzava su «;» senza guardare le virgolette, e con
+    /// <c>Password='ab;cd'</c> la coda «cd'» usciva in chiaro, in un file che si spedisce per email. Ora la legge
+    /// <see cref="System.Data.Common.DbConnectionStringBuilder"/>, che le virgolette le conosce; se non la sa
+    /// leggere, non si stampa niente.</para>
+    /// </summary>
+    internal static string SenzaPassword(string? connectionString)
     {
         if (string.IsNullOrWhiteSpace(connectionString)) return "assente ⇒ ricade su un file SQLite locale!";
 
-        var parti = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.TrimStart().StartsWith("Password", StringComparison.OrdinalIgnoreCase) ||
-                         p.TrimStart().StartsWith("Pwd", StringComparison.OrdinalIgnoreCase)
-                ? "Password=***"
-                : p.Trim());
-
-        return string.Join(";", parti);
+        try
+        {
+            var b = new System.Data.Common.DbConnectionStringBuilder { ConnectionString = connectionString };
+            foreach (var k in b.Keys.Cast<string>().ToList())
+                if (k.Equals("password", StringComparison.OrdinalIgnoreCase) || k.Equals("pwd", StringComparison.OrdinalIgnoreCase))
+                    b[k] = "***";
+            return b.ConnectionString;
+        }
+        catch (ArgumentException)
+        {
+            return "presente ma non leggibile (non si stampa: potrebbe contenere la password)";
+        }
     }
 
     /// <summary>

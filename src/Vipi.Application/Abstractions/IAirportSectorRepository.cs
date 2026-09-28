@@ -57,8 +57,12 @@ public interface IAirportSectorRepository
     Task SetSyntheticShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default);
 
     /// <summary>Scrive una shape REALE (IsShapeSynthetic=false) su un settore, dalla sorgente GitHub (twrs.tfl).
-    /// È un poligono vero (non un cerchio), quindi il fallback tondo non deve poi rimpiazzarlo.</summary>
-    Task SetRealShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default);
+    /// È un poligono vero (non un cerchio), quindi il fallback tondo non deve poi rimpiazzarlo.
+    /// <para>🔴 U-037: la scrive con la provenienza del sectorfile (<see cref="ShapeSource.Sectorfile"/>) e, se
+    /// cambia una shape già nostra, col differimento: <paramref name="inForce"/> resta in vigore fino al ciclo
+    /// <paramref name="fromCycle"/>. Senza i due, entra subito.</para></summary>
+    Task SetRealShapeAsync(int sectorId, string polygonJson, string? inForce = null, string? fromCycle = null,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Scrive la shape presa dall'<b>AIP</b> (l'ATZ di una torre): reale, non sintetica, e marcata
@@ -87,7 +91,10 @@ public interface IAirportSectorRepository
 
 /// <summary>Riga di lavoro per il fallback shape TWR: settore (+ callsign per il match GitHub) + coord aeroporto
 /// (null = ignote) + poligono grezzo attuale + se la shape attuale è sintetica (cerchio di ripiego).</summary>
-public sealed record TwrShapeRow(int SectorId, string ComposePosition, string AirportIcao, double? Latitude, double? Longitude, string? RawPolygon, bool IsShapeSynthetic, ShapeSource ShapeSource);
+/// <param name="RawPolygonInForce">La shape in vigore mentre la corrente aspetta il suo ciclo (U-037); null se
+/// la corrente è già in vigore.</param>
+public sealed record TwrShapeRow(int SectorId, string ComposePosition, string AirportIcao, double? Latitude, double? Longitude, string? RawPolygon, bool IsShapeSynthetic, ShapeSource ShapeSource,
+    string? RawPolygonInForce = null);
 
 /// <summary>Poligono grezzo di un settore d'aeroporto (per derivare un centro di ripiego).</summary>
 public sealed record AirportPolygonRow(string AirportIcao, string RawPolygon);

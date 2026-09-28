@@ -198,4 +198,31 @@ public class AirspaceKmlReaderTests
         Assert.Equal(AirspaceIssueKind.VolumeSenzaAnello, segnalazione.Kind);
         Assert.Equal("SENZA FORMA", segnalazione.Volume);
     }
+
+    /// <summary>
+    /// 🔴 U-119 (revisione totale 3): AirspaceConverter codifica gli apostrofi DUE volte (<c>&amp;amp;apos;</c>), e il
+    /// parser XML ne toglie una sola. 32 volumi su 1 536 si leggevano «VAL D&amp;apos;AOSTA»: così in pagina, e la
+    /// ricerca di «VAL D'AOSTA» non li trovava. La chiave naturale dei 32 volumi cambia: nessuno era agganciato.
+    /// </summary>
+    [Fact]
+    public void Un_apostrofo_codificato_due_volte_si_legge_apostrofo()
+    {
+        var kml = Scatola.Replace("<SimpleData name=\"Name\">PROVA CTR</SimpleData>",
+            "<SimpleData name=\"Name\">VAL D&amp;apos;AOSTA CTR</SimpleData>");
+
+        var volume = Assert.Single(AirspaceKmlReader.LeggiKml(kml).Volumes);
+
+        Assert.Equal("VAL D'AOSTA CTR", volume.Name);
+        Assert.DoesNotContain("&", volume.NaturalKey);
+    }
+
+    /// <summary>🔴 U-119: e una «&amp;» vera (codificata una volta sola, come vuole l'XML) resta una «&amp;».</summary>
+    [Fact]
+    public void Una_e_commerciale_vera_resta_tale()
+    {
+        var kml = Scatola.Replace("<SimpleData name=\"Name\">PROVA CTR</SimpleData>",
+            "<SimpleData name=\"Name\">A &amp; B CTR</SimpleData>");
+
+        Assert.Equal("A & B CTR", Assert.Single(AirspaceKmlReader.LeggiKml(kml).Volumes).Name);
+    }
 }

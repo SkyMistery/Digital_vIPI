@@ -1,6 +1,7 @@
 @* Vista rapida aeroporto (inline nella vista live ACC/APP). Mostra ESATTAMENTE ciò che è nel
    documento pubblico dell'aeroporto (release-aware), coerente con /services/vsop/{acc}/airports?icao=:
-   - TA / TL·QNH → dal DocumentView pubblico (BuildAirportVipiAsync live:false, rispetta la release del ciclo)
+   - TA / TL·QNH → dalla STESSA vista del documento pubblico (IAirportViewDerivationService, congelata o derivata:
+     U-015, la sezione «transition» è Host e nello snapshot non ha blocchi da leggere)
    - Piste suggerite → dal profilo strutturato (come /airports)
    - SID → dalla STESSA derivazione del documento completo (IAirportSidDerivationService): stesse colonne,
      stesso filtro AIRAC, stesse note. Qui c'era una seconda derivazione scritta a mano, e diceva una cosa
@@ -118,13 +119,16 @@ else
             <table class="res-table sid-table sid-quick">
                 <thead>
                     <tr>
-                        <th class="col-fix">Punto</th>
+                        @* Dal resx (revisione 3, U-253): erano scritte a mano, mezze in italiano («Punto», «Salita
+                           iniz.») e mezze in inglese («Transition», «Condition»), e restavano cosi' in tutte e
+                           due le lingue. *@
+                        <th class="col-fix">@L["Ape_PointFix"]</th>
                         <th class="col-sid">SID</th>
-                        <th class="col-trans">Transition</th>
-                        <th class="col-climb">Salita iniz.</th>
+                        <th class="col-trans">@L["Aqp_ColTransition"]</th>
+                        <th class="col-climb">@L["Ape_InitialClimb"]</th>
                         @if (showCat) { <th class="col-cat">Cat.</th> }
                         @if (showWtc) { <th class="col-wtc">WTC</th> }
-                        <th class="col-cond">Condition</th>
+                        <th class="col-cond">@L["Ape_Condition"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -150,7 +154,7 @@ else
         }
         else if (_runways.Count > 0)
         {
-            <p class="muted" style="font-size:13px;margin:0">Nessuna SID@(_selRwy == "all" ? "" : $" per la pista {_selRwy}").</p>
+            <p class="muted" style="font-size:13px;margin:0">@(_selRwy == "all" ? L["Aqp_NoSid"] : L["Aqp_NoSidRunway", _selRwy])</p>
         }
     </div>
 }
@@ -171,7 +175,7 @@ else
     private AirportData? _profile;           // profilo LIVE: fonte di piste/SID (come /airports)
     private PisteDecisive? _decisive;        // regole e soglie escluse del documento PUBBLICATO (come il vAWOS)
     private int? _ta;
-    private List<(string Range, string Level)> _tlRows = new();
+    private AirportTransitionView _transition = AirportTransitionView.Empty;
     private int? _qnh;
     private ParsedWind? _wind;
     private (string? Dep, string? Arr) _sugg;
@@ -199,9 +203,11 @@ else
     private IAirportEditingService AirportProfile = default!;
     private IAirportSidDerivationService SidView = default!;
     private IPisteDalPubblicato PisteDalPubblicato = default!;
+    private IAirportViewDerivationService AirportView = default!;
     protected override void OnInitialized()
     {
         PisteDalPubblicato = ScopedServices.GetRequiredService<IPisteDalPubblicato>();
+        AirportView = ScopedServices.GetRequiredService<IAirportViewDerivationService>();
         ViewService = ScopedServices.GetRequiredService<IVipiViewService>();
         AirportProfile = ScopedServices.GetRequiredService<IAirportEditingService>();
         SidView = ScopedServices.GetRequiredService<IAirportSidDerivationService>();
@@ -212,7 +218,7 @@ else
         if (string.Equals(_loadedIcao, Icao, StringComparison.OrdinalIgnoreCase)) return;
         _loadedIcao = Icao;
 
-        _view = null; _profile = null; _decisive = null; _ta = null; _tlRows = new();
+        _view = null; _profile = null; _decisive = null; _ta = null; _transition = AirportTransitionView.Empty;
         _qnh = null; _wind = null; _sugg = (null, null); _runways = new(); _selRwy = "all";
         _sids = Array.Empty<AirportSidRowView>(); Azzera();   // aeroporto diverso: il campo si svuota davvero
 
@@ -220,7 +226,12 @@ else
         _view = await ViewService.BuildAirportVipiAsync(Icao, BlockTier.Extended, live: false);
         if (_view is null) return;
 
-        ParseTransition(_view);                     // TA + tabella TL dal documento
+        // 🔴 U-015 (revisione totale 3): TA e fasce TL dalla STESSA vista del documento pubblico — congelata nella
+        // release o derivata, come la sezione che il documento completo mostra (AirportMemberLoader: pubblico =
+        // frozen). Prima si cercavano nei BLOCCHI della sezione «transition», che dalla carta del 26 agosto è Host e
+        // nello snapshot non ne ha: TA sempre «N/A», TL «—», initial climb in piedi sopra la TA.
+        _transition = (await AirportView.ResolveForViewAsync(Icao, useFrozen: true, ReleaseTargetType.Airport)).Transition;
+        _ta = _transition.TransitionAltitudeFt;
 
         _profile = await AirportProfile.LoadForViewAsync(Icao);
         _runways = _profile?.Runways.Select(r => r.Ident.Trim()).Where(s => s.Length > 0).Distinct().ToList() ?? new();
@@ -252,36 +263,8 @@ else
         return locali.Length == 0 ? $"{p.Covering.Callsign} (copre)" : $"{locali} — resto: {p.Covering.Callsign}";
     }
 
-    // ---- TA/TL dal documento pubblico (stessa logica di AeroportoPage.SplitSections/ParseTlTable) ----
-    private void ParseTransition(DocumentView view)
-    {
-        var sec = view.Sections.FirstOrDefault(s => s.Title.Contains("transi", StringComparison.OrdinalIgnoreCase));
-        if (sec is null) return;
-        foreach (var b in sec.Blocks)
-        {
-            if (b.Format == BlockFormat.Prose && b.Body is not null && _ta is null)
-            {
-                var m = Regex.Match(b.Body, @"Altitude[^0-9]*(\d{3,5})");
-                if (m.Success) _ta = int.Parse(m.Groups[1].Value);
-            }
-            else if (b.Format == BlockFormat.Table && b.BodyJson is not null && _tlRows.Count == 0)
-            {
-                // Qui servono solo le righe: le intestazioni le rende il documento completo, non il pannello.
-                _tlRows.AddRange(AirportViewFormat.ParseTransitionLevels(b.BodyJson).Rows);
-            }
-        }
-    }
-
-    private string TlNow()
-    {
-        if (_tlRows.Count == 0) return "—";
-        if (_qnh is int q)
-        {
-            var hit = _tlRows.FirstOrDefault(r => AirportViewFormat.QnhRowMatches(r.Range, q));
-            if (hit.Level is not null) return _ta is null ? "N/A" : hit.Level;
-        }
-        return _ta is null ? "N/A" : _tlRows[0].Level;
-    }
+    // TL «adesso»: la fascia che contiene il QNH, senza ripiegare sulla prima riga (U-015).
+    private string TlNow() => AirportViewFormat.TlAdesso(_transition, _qnh);
 
     // ---- Piste suggerite dal profilo (come AeroportoPage): regole se presenti, altrimenti miglior headwind ----
     private (string? Dep, string? Arr) SuggestRwy(ParsedMetar? m)
@@ -292,12 +275,13 @@ else
         if (_decisive.Regole.Count > 0)
         {
             var wet = (m?.HasRain ?? false) || (m?.HasSnow ?? false);
-            var rr = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(_decisive.Regole), windDir, windKt, wet, DateTime.UtcNow);
+            var rr = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(_decisive.Regole), windDir, windKt, wet, DateTime.UtcNow,
+                RunwayRow.Rotte(_profile.Runways), RunwaySuggestion.VentoNoto(m?.Wind));
             if (rr is not null) return (Norm(rr.Dep), Norm(rr.Arr));
         }
         if (_runways.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(_runways, windDir, windKt, _decisive.Escluse);
+            var s = RunwaySuggestion.Suggest(_runways, windDir, windKt, _decisive.Escluse, RunwayRow.Rotte(_profile.Runways));
             if (s.Best is not null) return (Norm(s.DepIdent), Norm(s.ArrIdent));   // un verso escluso resta vuoto
         }
         return (null, null);

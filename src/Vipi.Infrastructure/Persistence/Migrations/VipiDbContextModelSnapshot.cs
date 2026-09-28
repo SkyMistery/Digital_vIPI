@@ -15,7 +15,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.30");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.31");
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
@@ -602,6 +602,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("StableKey")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SupersededFromCycle")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Transition")
@@ -2235,6 +2238,42 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("MediaAssets");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.MvaChartState", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AiracCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ForcePublished")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TextInForce")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Path")
+                        .IsUnique();
+
+                    b.ToTable("MvaChartStates");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.NavReference", b =>
                 {
                     b.Property<int>("Id")
@@ -2287,6 +2326,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("FrequencyInForce")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("FrequencyOrigin")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -2302,13 +2345,26 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<double?>("Latitude")
                         .HasColumnType("REAL");
 
+                    b.Property<double?>("LatitudeInForce")
+                        .HasColumnType("REAL");
+
                     b.Property<double?>("Longitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("LongitudeInForce")
                         .HasColumnType("REAL");
 
                     b.Property<string>("NaturalKey")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceAiracCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("SourceForcePublished")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Type")
                         .HasMaxLength(16)
@@ -2792,13 +2848,17 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Icao")
+                        .HasMaxLength(4)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Prefix")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Prefix")
+                    b.HasIndex("Icao", "Prefix")
                         .IsUnique();
 
                     b.ToTable("SidFixAliases");

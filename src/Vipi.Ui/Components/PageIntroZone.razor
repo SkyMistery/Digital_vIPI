@@ -69,7 +69,7 @@ else
                     }
                 </LiveRegion>
                 @* «Fine modifica» SALVA, invece di buttare via. Vedi SalvaSeSporcoAsync. *@
-                <EditLockBar ResourceKey="@ChiaveLock" LockChanged="OnLockChanged" BeforeRelease="SalvaSeSporcoAsync" />
+                <EditLockBar ResourceKey="@ChiaveLock" Acquired="RileggiAllaPresaAsync" LockChanged="OnLockChanged" BeforeRelease="SalvaSeSporcoAsync" />
             </div>
         }
 
@@ -222,6 +222,17 @@ else
         return !_sporco;
     }
 
+    /// <summary>
+    /// U-117 (revisione 3): alla presa del lock si rilegge, PRIMA che i comandi si riaccendano. Chi aspettava sulla
+    /// pagina che il collega finisse aveva in mano l'intro letta all'apertura, e il suo salvataggio — che riscrive
+    /// il testo intero — cancellava in silenzio quello del collega. Stessa porta delle pagine di struttura (U-011).
+    /// </summary>
+    private async Task RileggiAllaPresaAsync()
+    {
+        _sporco = false;
+        await CaricaAsync();
+    }
+
     private async Task OnLockChanged(bool mio)
     {
         _modifica = mio;
@@ -290,6 +301,12 @@ else
         {
             // ⚠️ Si cattura l'eccezione dell'Application: senza, il circuito muore e la pagina sparisce.
             _errore = L["PageIntro_NotAllowed"].Value;
+        }
+        catch (EditConflictException ex)
+        {
+            // Il lock non è più nostro (U-109): il deposito ora lo verifica e rifiuta. Il testo resta a schermo,
+            // sporco, finché la barra non se ne accorge e rilegge da archivio (OnLockChanged).
+            _errore = ex.Message;
         }
         finally { _salvando = false; }
     }

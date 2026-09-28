@@ -96,6 +96,8 @@ public static class DependencyInjection
                         // altrove, rileggere quel file. (La copia di sicurezza ne apre una sua, ma su una
                         // connessione MySqlConnector propria, fuori da EF e dal retry: vedi MySqlDumpSource.)
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null))
+                    // DDL rieseguibili: una migrazione interrotta a metà si finisce all'avvio dopo (U-096).
+                    .ReplaceService<Microsoft.EntityFrameworkCore.Migrations.IMigrationsSqlGenerator, Persistence.MigrazioniRieseguibili>()
                     .AddInterceptors(Tracciante, Bump(sp), Segnala(sp)));
                 // La copia di sicurezza sa leggere solo questo provider: sugli altri non si registra, e
                 // IDatabaseBackup.IsSupported risponde di no (carta 2026-09-16-copia-del-database.md).
@@ -137,6 +139,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();
         services.AddScoped<Vipi.Application.Abstractions.INavaidCatalog, EfNavaidCatalog>();
+        // U-037: le carte MRVA ricordate col testo in vigore, per il cancello del ciclo AIRAC.
+        services.AddScoped<EfMvaChartStates>();
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentLibrary, EfAttachmentLibrary>();
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentTextSource, EfAttachmentTextSource>();
         services.AddScoped<Vipi.Application.Abstractions.IPageIntroStore, EfPageIntroStore>();
@@ -193,6 +197,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Content.ICallsignRenameService, EfCallsignRenameService>();
         services.AddScoped<Vipi.Application.Content.ISectorShapeRepository, EfSectorShapeRepository>();
         services.AddScoped<Vipi.Application.Content.IShapeGateRepository, EfShapeGateRepository>();
+        // U-037: radioassistenze e carte MRVA nell'avviso a chi pubblica, e la loro forzatura.
+        services.AddScoped<Vipi.Application.Content.ISectorfileGateRepository, EfSectorfileGateRepository>();
         // Il contesto del congelamento: SCOPED come il DbContext, quindi vale per una richiesta sola.
         services.AddScoped<Vipi.Application.Content.ShapeReleaseContext>();
         // In che lingua comporre la prosa GENERATA (frasi di coordinamento). Scoped come il contesto
@@ -201,6 +207,7 @@ public static class DependencyInjection
         // Statistiche ATC: archivio delle sessioni e delle tratte scritte dal poller, più la mappa dei
         // settori (albero proiettato + volumi dai cataloghi) su cui si attribuisce il traffico.
         services.AddScoped<Vipi.Application.Abstractions.IAtcSessionStore, EfAtcSessionStore>();
+        services.AddScoped<Vipi.Application.Stats.IStatsMaintenance, EfStatsMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IAtcTrafficStore, EfAtcTrafficStore>();
         services.AddScoped<Vipi.Application.Abstractions.ISectorVolumeCatalog, EfSectorVolumeCatalog>();
         services.AddScoped<Vipi.Application.Abstractions.IAtcStatsQueries, EfAtcStatsQueries>();

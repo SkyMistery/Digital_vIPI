@@ -11,6 +11,7 @@
 @inject ICurrentUserProvider Utenti
 @inject IEditAuthorizationService Authz
 @inject IOptions<DivisionOptions> Divisione
+@inject IStatsAccessLog RegistroAccessi
 @inject IStringLocalizer<SharedResource> L
 
 @* Il dettaglio di una sessione: quanto è durata, com'è andato il turno (la striscia) e quali aeroplani sono
@@ -51,6 +52,18 @@
                 </div>
             }
         </div>
+
+        @if (_altrui)
+        {
+            <div class="callout info" style="margin:10px 0 16px">
+                <span class="cic"><Icon Name="eye" Size="18" /></span>
+                <div>
+                    <p class="ct">@L["Stats_StaffViewingSessionTitle"]</p>
+                    @L["Stats_StaffViewingSessionBody"] ·
+                    <a href="/services/stats/user/@s.UserId">@L["Stats_StaffViewingSessionProfile"]</a>
+                </div>
+            </div>
+        }
 
         <div class="kpi-grid">
             <StatsKpi Valore="@s.MovementCount.ToString()" Etichetta="@L["Stats_Movements"].Value" />
@@ -151,6 +164,7 @@
 
     private StatsSessionDetail? _dettaglio;
     private bool _vietato;
+    private bool _altrui;
     private string? _icaoPostazione;
     private IReadOnlyList<string> _prefissi = Array.Empty<string>();
     private IReadOnlyList<StatsTrafficRow> _visibili = Array.Empty<StatsTrafficRow>();
@@ -169,6 +183,13 @@
             _vietato = true;
             return;
         }
+
+        // Il turno di un altro porta gli stessi orari della pagina profilo: la carta statistiche §14.2 vuole
+        // una riga di audit per consultazione anche qui (U-116, scelta del committente del 28-set). L'archivio
+        // mondiale invece resta senza: sono dati pubblici IVAO, e la pagina è chiusa per default.
+        _altrui = utente is not null && utente.UserId != dettaglio.Session.UserId;
+        if (_altrui)
+            await RegistroAccessi.RecordProfileViewAsync(utente!.UserId, dettaglio.Session.UserId);
 
         _dettaglio = dettaglio;
         _prefissi = Divisione.Value.IcaoPrefixes;

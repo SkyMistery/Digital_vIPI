@@ -54,6 +54,15 @@ public sealed class EfSectorShapeResolver : ISectorShapeResolver
         // del committente, «l'AIP solo se non ce l'hai» — mentre il cerchio ci sta SOTTO.
         var sintetiche = await SinteticheAsync(cercati, ct);
 
+        // U-217: il suolo da cui si misurano le quote AGL, per i settori che hanno uno scalo.
+        var elevazioni = await _db.Sectors.AsNoTracking()
+            .Where(s => cercati.Contains(s.Callsign) && s.Airport != null && s.Airport.ElevationFt != null)
+            .Select(s => new { s.Callsign, s.Airport!.ElevationFt })
+            .ToListAsync(ct);
+        var elevazionePer = elevazioni
+            .GroupBy(e => e.Callsign, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().ElevationFt, StringComparer.OrdinalIgnoreCase);
+
         foreach (var cs in cercati)
         {
             var scoperti = agganci.TryGetValue(cs, out var a)
@@ -74,7 +83,7 @@ public sealed class EfSectorShapeResolver : ISectorShapeResolver
                 ?? DaArchivio(cs, inArchivio, scoperti)
                 ?? DaCatalogo(cs, grezzi, limiti, scoperti, sintetica);
 
-            if (forma is not null) esito[cs] = forma;
+            if (forma is not null) esito[cs] = forma with { ElevazioneFt = elevazionePer.GetValueOrDefault(cs) };
         }
 
         return esito;

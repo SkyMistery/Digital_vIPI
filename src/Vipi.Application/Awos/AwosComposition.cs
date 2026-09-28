@@ -88,31 +88,24 @@ public static partial class AwosComposition
         return delta <= TolleranzaOppostaDeg;
     }
 
-    /// <summary>
-    /// Il Transition Level per il QNH corrente, dalla tabella dello scalo.
-    /// <para>⚠️ Dalla <b>tabella</b>, non da una formula a fasce come nel prototipo: il TL è dell'AIP di
-    /// quell'aeroporto, e quattro soglie cablate valgono per nessuno in particolare. Senza QNH o senza righe:
-    /// null, che si legge «non lo so» e non «FL70».</para>
-    /// </summary>
-    public static string? TransitionLevel(IEnumerable<TlRow> righe, int? qnh)
-    {
-        if (qnh is not int q) return null;
-        foreach (var r in righe)
-        {
-            if (r.QnhFrom is int da && q < da) continue;
-            if (r.QnhTo is int a && q > a) continue;
-            if (!string.IsNullOrWhiteSpace(r.Level)) return r.Level.Trim();
-        }
-        return null;
-    }
+    /// <summary>Oltre quest'età il METAR non guida più LVP e pista (U-092): i bollettini escono ogni 30-60 minuti.</summary>
+    public static readonly TimeSpan MetarScaduto = TimeSpan.FromMinutes(90);
 
     /// <summary>
-    /// Il QFE di una soglia: QNH meno l'altezza, con la regola di campo di 27 ft per hPa.
-    /// <para>È un'approssimazione — la stessa che usa il quadro del prototipo — e vale finché si parla di
-    /// aeroporti italiani, tutti sotto i 1 500 ft. Senza elevazione non si stima: null.</para>
+    /// 🔴 U-092 (revisione totale 3): il METAR è troppo vecchio per proporre LVP o una pista. Con NOAA, IVAO e VATSIM giù
+    /// il client ridava il bollettino delle 05:50, e alle 09:00 il quadro lo usava come fresco. Senza ora leggibile
+    /// non si dice che è vecchio: non lo si sa.
+    /// </summary>
+    public static bool MetarVecchio(DateTimeOffset? osservato, DateTimeOffset adesso) =>
+        osservato is { } o && adesso - o > MetarScaduto;
+
+    /// <summary>
+    /// Il QFE di una soglia: la pressione dell'atmosfera standard all'altezza della soglia, partendo dal QNH.
+    /// <para>La retta dei 27 ft per hPa andava bene in pianura ma sbagliava di 2–4 hPa sugli scali in quota
+    /// (U-226). Senza elevazione non si stima: null.</para>
     /// </summary>
     public static int? Qfe(int? qnh, int? elevazioneFt) =>
-        qnh is int q && elevazioneFt is int e ? (int)Math.Round(q - e / 27.0) : null;
+        qnh is int q && elevazioneFt is int e ? (int)Math.Round(q * Math.Pow(1 - 6.8756e-6 * e, 5.2559)) : null;
 
     /// <summary>
     /// La pista in uso e chi l'ha decisa: prima l'ATIS, poi le regole dello scalo, poi il vento.
@@ -126,7 +119,7 @@ public static partial class AwosComposition
     public static AwosActive PistaAttiva(
         IReadOnlyList<RunwayRuleRow> regole, IReadOnlyList<string> piste, ParsedMetar? metar,
         IReadOnlyList<string>? atisDep = null, IReadOnlyList<string>? atisArr = null, string? daChi = null,
-        RunwayExclusions? escluse = null)
+        RunwayExclusions? escluse = null, IReadOnlyDictionary<string, int>? rotte = null)
     {
         if (atisDep is { Count: > 0 } || atisArr is { Count: > 0 })
         {
@@ -145,7 +138,8 @@ public static partial class AwosComposition
         if (regole.Count > 0)
         {
             var bagnata = (metar?.HasRain ?? false) || (metar?.HasSnow ?? false);
-            var esito = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(regole), dir, kt, bagnata, DateTime.UtcNow);
+            var esito = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(regole), dir, kt, bagnata, DateTime.UtcNow, rotte,
+                RunwaySuggestion.VentoNoto(metar?.Wind));   // U-214: senza vento noto le regole non decidono
             if (esito is not null)
                 return new AwosActive(Spezza(esito.Dep), Spezza(esito.Arr), AwosRunwaySource.Regola,
                                       esito.RuleName ?? $"#{esito.RuleIndex + 1}");
@@ -153,7 +147,7 @@ public static partial class AwosComposition
 
         if (piste.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(piste, dir, kt, escluse);   // senza le soglie escluse per verso
+            var s = RunwaySuggestion.Suggest(piste, dir, kt, escluse, rotte);   // senza le soglie escluse per verso
             // ⚠️ Niente ripiego su Best: un verso senza soglie ammesse resta vuoto (carta pista-mai-usare).
             if (s.Best is not null)
                 return new AwosActive(s.DepIdent is { } pd ? new[] { pd } : Array.Empty<string>(),

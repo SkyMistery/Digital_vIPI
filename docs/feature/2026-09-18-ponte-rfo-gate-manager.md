@@ -80,6 +80,11 @@ comportamento:
 - **Storia** (facoltativa nel contratto, scelta dal committente): `rfo_shared_state_history`, una riga per ogni
   scrittura riuscita, **nella stessa transazione**. Chiave `id` propria: se il documento si svuota a mano la
   versione riparte da 1 e la storia tiene tutte e due le vite.
+  **Tetti (28 settembre 2026, revisione 3 U-104/U-121, scelta del committente):** per evento restano le ultime
+  100 versioni (le più vecchie si tolgono nella stessa transazione), e 30 giorni dopo l'ultima scrittura la storia
+  dell'evento si toglie tutta (giro notturno); il documento corrente resta. Le scritture di un evento sono al più
+  120 al minuto, riprove comprese; oltre, `429` con `Retry-After: 60`. Da un IP, oltre 30 rifiuti di chiave al
+  minuto, `429` senza verificare (U-099/U-239).
 
 ## 4. Le chiavi
 

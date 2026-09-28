@@ -228,9 +228,21 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         //    segnalazione avvisa; a recidere sarà l'admin, dalla sezione «Orfani» della Struttura, quando avrà
         //    deciso. Il motivo originale resta coperto: chi risolve un documento filtra su IsActive
         //    (EfAccDerivationRepository) o parte dall'aeroporto, e la rigenerazione riallinea solo gli attivi.
+        // 🔴 U-150 (revisione totale 3): un settore fuori dal giro ma ancora in catalogo (nascosto, o con l'ACC
+        //    nascosto) teneva la frequenza del giorno in cui era uscito, e la vIPI e le frequenze collegate degli
+        //    scali continuano a leggerla. Si aggiorna dal catalogo INTERO, senza riattivarlo; EF scrive solo se
+        //    cambia, e poi è la deriva a chiedere di ripubblicare.
+        var frequenzaDiCatalogo = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var x in accSectors) frequenzaDiCatalogo[x.ComposePosition] = x.Frequency;
+        foreach (var x in airportSectors) frequenzaDiCatalogo[x.ComposePosition] = x.Frequency;
+
         var spariti = new List<Sector>();
         foreach (var s in existing)
         {
+            if (s.IsProjected && !desired.ContainsKey(s.Callsign)
+                && frequenzaDiCatalogo.TryGetValue(s.Callsign, out var frequenza) && frequenza is not null)
+                s.DefaultFrequency = frequenza;
+
             if (s.IsProjected && !desired.ContainsKey(s.Callsign) && s.IsActive)
             {
                 s.IsActive = false;

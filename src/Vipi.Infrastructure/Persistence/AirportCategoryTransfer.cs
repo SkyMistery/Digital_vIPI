@@ -22,7 +22,11 @@ internal static class AirportCategoryTransfer
     /// <summary>La categoria attesa. Uguale a quella in archivio = niente da fare.</summary>
     public static AirportCategory Attesa(Airport a)
     {
-        if (!a.HasMilitaryPresence) return AirportCategory.Civil;
+        // 🔴 U-028 (decisione del committente del 27 settembre 2026): senza presenza la categoria NON scende a Civile da
+        // sola. Una notte di «military» falso riportava a Civile ogni campo militare, e la scelta di una persona non
+        // tornava più. Una categoria militare senza presenza è una divergenza (AirportCategories.Divergente) che la
+        // pagina Aeroporti mostra e l'amministratore chiude.
+        if (!a.HasMilitaryPresence) return a.Category;
         if (a.Category != AirportCategory.Civil) return a.Category;
 
         // Presenza militare su un campo ancora Civile: chi ha già un vSOP va in 4, gli altri prendono il default.

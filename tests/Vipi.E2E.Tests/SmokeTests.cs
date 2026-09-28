@@ -24,6 +24,21 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     private readonly VipiAppFactory _factory;
     public SmokeTests(VipiAppFactory factory) => _factory = factory;
 
+    /// <summary>
+    /// 🔴 U-231 (revisione totale 3): l'avvio VERO — migrazioni, riconciliazioni, proiezione, passate una tantum —
+    /// non lascia segnalazioni di manutenzione. Prima lo diceva il nome di un test che asseriva su un report vuoto
+    /// appena creato; e la sonda /vsop/health accetta Degraded, quindi una passata fallita passava inosservata.
+    /// </summary>
+    [Fact]
+    public async Task L_avvio_vero_non_lascia_segnalazioni_di_manutenzione()
+    {
+        (await _factory.CreateClient().GetAsync("/vsop/health")).EnsureSuccessStatusCode();   // l'host è su
+
+        var report = _factory.Services.GetRequiredService<Vipi.Application.Diagnostics.IStartupMaintenanceReport>();
+
+        Assert.Empty(report.Findings);
+    }
+
     [Fact]
     public async Task Health_endpoint_is_up()
     {

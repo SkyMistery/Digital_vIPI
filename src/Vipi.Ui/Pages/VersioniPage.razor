@@ -5,7 +5,6 @@
 @* ⚠️ OwningComponentBase per lo SCOPE: il servizio di editing (e il suo DbContext) non viene dal circuito. *@
 @inherits ScopeProprioCheAspetta
 @using Microsoft.Extensions.DependencyInjection
-@inject IProssimoAiracService ProssimoAirac
 @inject IEditAuthorizationService Authz
 @inject NavigationManager Nav
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
@@ -178,7 +177,7 @@
             @* --- SINISTRA: l'elenco dei documenti --- *@
             <div class="panel st-pane">
                 <div class="struct-bar">
-                    <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Ver_SearchPh"]" />
+                    <CampoTesto class="htree-search" Valore="@_q" OnInput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Ver_SearchPh"]" />
                     <select class="htree-select" aria-label="@L["Ver_KindLabel"]" title="@L["Ver_KindLabel"]"
                             @onchange="e => SetKind(ParseKind(e.Value?.ToString()))">
                         @foreach (var (k, lab) in KindFilters)
@@ -526,6 +525,9 @@
     private IDocumentImpactService Impacts = default!;
     private Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster = default!;
     private Vipi.Application.Translation.IStatoTraduzione StatoTraduzione = default!;
+    // 🔴 U-198 (revisione totale 3): legge i documenti e programma le release. Stava in `@@inject`, cioè sul
+    // DbContext del circuito e fuori dalla fila della pagina.
+    private IProssimoAiracService ProssimoAirac = default!;
     protected override async Task OnInitializedAsync()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
@@ -536,6 +538,7 @@
         Impacts = ScopedServices.GetRequiredService<IDocumentImpactService>();
         StaffRoster = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IStaffRosterRepository>();
         StatoTraduzione = ScopedServices.GetRequiredService<Vipi.Application.Translation.IStatoTraduzione>();
+        ProssimoAirac = ScopedServices.GetRequiredService<IProssimoAiracService>();
 
         // ⚠️ Fino al 29 agosto 2026 questa pagina non aveva un cancello, ed era una scelta: l'elenco si
         // leggeva e i tasti li abilitava la concessione. Con le concessioni morte quella scelta non ha più
@@ -552,6 +555,7 @@
     /// <summary>Ricarica l'elenco: i lock nascono e muoiono mentre la pagina sta aperta, e con essi i cicli release.</summary>
     private async Task ReloadAsync()
     {
+        if (_busy) return;
         _busy = true; _status = _error = _errorTitle = null;
         try { await LoadAsync(); await LeggiCicloEntranteAsync(); }
         finally { _busy = false; }
@@ -563,7 +567,7 @@
     /// </summary>
     private async Task LeggiCicloEntranteAsync()
     {
-        try { _airac = await ProssimoAirac.LeggiAsync(); }
+        try { await InFilaAsync(async () => _airac = await ProssimoAirac.LeggiAsync()); }
         catch { _airac = null; }
     }
 
@@ -574,13 +578,14 @@
     /// </summary>
     private async Task ProgrammaMancantiAsync()
     {
+        if (_busy) return;
         _busy = true; _status = _error = _errorTitle = null; _airacSaltati = new();
         try
         {
             // ⚠️ Nota NULL, e non una frase nostra: la nota di una release è testo che finisce in archivio e
             // si rilegge in timeline. Scritta qui, sarebbe nella lingua di chi ha premuto il tasto e ci
             // resterebbe per sempre — è la regola già pagata dagli impatti (le frasi restano chiave+argomenti).
-            var esito = await ProssimoAirac.ProgrammaMancantiAsync();
+            var esito = (await InFilaAsync(() => ProssimoAirac.ProgrammaMancantiAsync()))!;
             _airacSaltati = esito.Saltati.ToList();
             _status = string.Format(L["Airac_NextDone"].Value, esito.Programmati, _airac?.CicloEntrante ?? "");
             await LoadAsync();
@@ -1173,7 +1178,10 @@
     {
         var key = RowKey(d);
         _releases.Remove(key);
-        await Run(() => Releases.PublishNowAsync(d.ReleaseTarget, d.ReleaseKey, NoteOf(key)), L["Rel_PublishedNow"]);
+        var creata = true;
+        await Run(async () => creata = await Releases.PublishNowAsync(d.ReleaseTarget, d.ReleaseKey, NoteOf(key)), L["Rel_PublishedNow"]);
+        // U-241: contenuto identico alla release in vigore, nessuna release nuova. Lo si dice.
+        if (!creata && _status is not null) _status = L["Rel_NothingNewToPublish"];
         await LoadDetailAsync(key);
         await LoadAsync();   // i cicli release stanno nell'elenco: si rilegge quello, non un secondo riepilogo
     }
@@ -1243,6 +1251,9 @@
 
     private async Task Run(Func<Task> action, string ok)
     {
+        // 🔴 U-144 (revisione totale 3): la sentinella in testa, come ReleasePanel.Run (U-017). `disabled` spegne
+        // il tasto dopo un giro di rete, e un vero doppio clic arriva prima.
+        if (_busy) return;
         _busy = true; _status = _error = _errorTitle = null;
         // Anche i gesti passano dalla porta (T-039): stesso DbContext dello scope della pagina, e un gesto non
         // deve partire sopra il dettaglio che si sta leggendo.
@@ -1251,6 +1262,10 @@
         catch (EditConflictException ex) { _error = ex.Message; _errorTitle = L["Ver_LockedTitle"]; }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
         catch (InvalidOperationException ex) { _error = ex.Message; }
+        // 🔴 U-144: e la rete generale. Due pubblicazioni dello stesso bersaglio nello stesso istante urtano
+        // l'indice unico con una DbUpdateException, che non è di dominio: usciva dal gestore e abbatteva il
+        // circuito («Attempting to reconnect»). Il doppione lo ferma l'indice; qui si dice e si resta in piedi.
+        catch (Exception ex) { _error = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 

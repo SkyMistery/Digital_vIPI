@@ -160,4 +160,33 @@ public class GitHubSidSourceReleaseTests
         await sut.ReadAsync();
         Assert.Equal(4, h.Chiamate.Count);
     }
+
+    /// <summary>Un orologio che va avanti quando lo dice il test.</summary>
+    private sealed class Orologio : TimeProvider
+    {
+        public DateTimeOffset Adesso { get; set; } = new(2026, 9, 27, 12, 0, 0, TimeSpan.Zero);
+        public override DateTimeOffset GetUtcNow() => Adesso;
+    }
+
+    /// <summary>
+    /// 🔴 U-032 (revisione totale 3): il ciclo dichiarato restava in cache finché il giro automatico non la
+    /// svuotava — e il tasto «Reimporta» dell'editor non passa di lì. La divisione pubblica il changelog del ciclo
+    /// nuovo e le SID riviste, un editor preme il tasto prima del giro: le SID nuove prendevano il ciclo VECCHIO e
+    /// uscivano subito, e ci restavano (a contenuto invariato si conserva il primo timbro). Ora la risposta vale
+    /// pochi minuti: basta per un giro intero, non per un tasto premuto ore dopo.
+    /// </summary>
+    [Fact]
+    public async Task Il_ciclo_dichiarato_si_rilegge_dopo_pochi_minuti()
+    {
+        var orologio = new Orologio();
+        var cache = new SectorfileCache(orologio);
+        Assert.Equal("2608", (await Costruisci(Con((ChangelogUrl, HttpStatusCode.OK, ElencoChangelog)), cache).ReadAsync()).DeclaredCycle);
+
+        var conIlNuovo = ElencoChangelog.Replace("[{", """[{"name":"2609.txt","type":"file"},{""");
+        var dopo = Costruisci(Con((ChangelogUrl, HttpStatusCode.OK, conIlNuovo)), cache);
+        Assert.Equal("2608", (await dopo.ReadAsync()).DeclaredCycle);     // stesso giro: la stessa risposta
+
+        orologio.Adesso = orologio.Adesso.AddMinutes(6);
+        Assert.Equal("2609", (await dopo.ReadAsync()).DeclaredCycle);
+    }
 }

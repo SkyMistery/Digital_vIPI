@@ -57,9 +57,10 @@ public sealed class AirportTrafficBackfillUseCase
         {
             ct.ThrowIfCancellationRequested();
 
-            // Se in quella finestra c'era una posizione più titolata sullo stesso campo, i movimenti sono
-            // suoi: questa si marca come «provata» senza chiamare la sorgente, o li conteremmo due volte.
-            if (AirportBackfillPlanner.Owner(sessione, concorrenti) != sessione.SessionId)
+            // Una posizione non d'aeroporto, o una finestra coperta PER INTERO da posizioni più titolate dello stesso
+            // campo: ogni movimento è di un altro. Si marca «provata» senza chiamare la sorgente.
+            if (AirportBackfillPlanner.Competence(sessione.Type) == 0
+                || AirportBackfillPlanner.CopertaDaAltri(sessione, concorrenti))
             {
                 await _archivio.FillAirportMovementsAsync(
                     sessione.SessionId, Array.Empty<SourceAirportMovement>(), now, ct);
@@ -67,7 +68,12 @@ public sealed class AirportTrafficBackfillUseCase
                 continue;
             }
 
-            var mov = await _sorgente.GetMovementsAsync(sessione.Icao, sessione.StartUtc, sessione.EndUtc, ct);
+            // 🔴 U-094 (revisione totale 3): la sessione chiede la SUA finestra, e tiene i movimenti avvenuti quando in
+            // frequenza non c'era nessuno più titolato di lei. Prima una sovrapposizione anche breve le dava zero per
+            // l'intera sessione, e i movimenti fuori dall'intersezione non andavano a nessuno.
+            var mov = (await _sorgente.GetMovementsAsync(sessione.Icao, sessione.StartUtc, sessione.EndUtc, ct))
+                .Where(m => AirportBackfillPlanner.Tiene(sessione, concorrenti, AirportCoverage.Instant(m)))
+                .ToList();
             var scritte = await _archivio.FillAirportMovementsAsync(sessione.SessionId, mov, now, ct);
 
             riempite++;

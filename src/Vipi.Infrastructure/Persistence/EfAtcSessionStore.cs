@@ -47,7 +47,12 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
         var toccate = 0;
 
         // Le sessioni da aggiornare si caricano in un colpo: sono quelle in frequenza adesso (una manciata).
-        var ids = plan.Upserts.Where(u => !u.IsNew).Select(u => u.SessionId)
+        // 🔴 U-026 (revisione totale 3): anche le «nuove». Il piano decide IsNew su ciò che il poller rilegge (aperte
+        // o finite da meno di 15 minuti): una sessione chiusa all'ultimo avvistamento e ricomparsa con lo STESSO id
+        // dopo più di 15 minuti gli sembra nuova, e l'`Add` su una chiave già in archivio faceva cadere il
+        // `SaveChanges` unico — le righe di TUTTI, ogni minuto, finché quel controllore restava connesso. Trovata
+        // qui, la riga passa dal ramo che riapre, col turno suo.
+        var ids = plan.Upserts.Select(u => u.SessionId)
             .Concat(plan.Closures.Select(c => c.SessionId))
             .Distinct().ToList();
 
@@ -194,14 +199,25 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
         // (16L → 34R → 16L) è un cambio, e la sequenza deve raccontarlo.
         if (ultima is not null && ultima.Arrival == arrival && ultima.Departure == departure) return false;
 
-        _db.AtcSessionRunways.Add(new AtcSessionRunway
+        var riga = new AtcSessionRunway
         {
             SessionId = sessionId,
             FromUtc = atUtc.UtcDateTime,
             Arrival = arrival,
             Departure = departure,
-        });
-        await _db.SaveChangesAsync(ct);
+        };
+        _db.AtcSessionRunways.Add(riga);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // 🔴 U-079 (revisione totale 3): la riga resterebbe «Added» nel contesto del giro, e il salvataggio
+            // successivo dello stesso contesto — il traffico della divisione — la riproverebbe e cadrebbe con lei.
+            _db.Entry(riga).State = EntityState.Detached;
+            throw;
+        }
         return true;
     }
 

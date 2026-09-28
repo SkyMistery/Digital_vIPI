@@ -5,7 +5,10 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <summary>Su che cosa si decide la pista in uso di uno scalo: regole, minimi LVP e soglie escluse dal ripiego.</summary>
-public sealed record PisteDecisive(IReadOnlyList<RunwayRuleRow> Regole, LvpRow? Lvp, RunwayExclusions Escluse);
+/// <param name="Transizione">TA e fasce TL della sezione <b>congelata</b>; null = non c'è (nessun documento pubblicato,
+/// sezione in Live, release di prima): il chiamante proietta i vivi, come fa il documento (U-227).</param>
+public sealed record PisteDecisive(IReadOnlyList<RunwayRuleRow> Regole, LvpRow? Lvp, RunwayExclusions Escluse,
+    AirportTransitionView? Transizione = null);
 
 /// <summary>
 /// Regole di scelta pista, minimi LVP e soglie escluse dal ripiego su cui decidere <b>fuori dal documento</b> — vAWOS,
@@ -67,6 +70,8 @@ public sealed class PisteDalPubblicato : IPisteDalPubblicato
         var lvp = snapshot.Get<AirportLvpView>("lvp") is { } congelata ? congelata.Minimi : lvpVivi;
         var escluse = snapshot.Get<AirportRunwaysView>("runways") is { } piste
             ? AirportRunwayRowView.Esclusioni(piste.Rows) : escluseVive;
-        return new(regole, lvp, escluse);
+        // 🔴 U-227: anche TA e TL dal pubblicato — il vAWOS li prendeva dall'anagrafica viva mentre documento e vista
+        // rapida mostravano la sezione congelata.
+        return new(regole, lvp, escluse, snapshot.Get<AirportTransitionView>("transition"));
     }
 }

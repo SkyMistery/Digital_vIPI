@@ -235,6 +235,7 @@ public class VipiDbContext : DbContext
     /// <summary>L'anagrafica delle radioassistenze: una riga per codice+natura, condivisa da tutti i
     /// documenti che la citano (carta vSOP militari §12b).</summary>
     public DbSet<Navaid> Navaids => Set<Navaid>();
+    public DbSet<MvaChartState> MvaChartStates => Set<MvaChartState>();
 
     /// <summary>La biblioteca allegati: una riga per DOCUMENTO ESTERNO citabile, non per citazione
     /// (carta del 25 agosto 2026).</summary>
@@ -299,7 +300,11 @@ public class VipiDbContext : DbContext
         // autore e ora sono intatti, e il narratore la mostra nella famiglia «Altro».
         b.Entity<AuditLog>().Property(x => x.Action).HasConversion(v => v.ToString(), s => LeggiAzione(s));
 
-        b.Entity<SidFixAlias>().HasIndex(x => x.Prefix).IsUnique();   // un solo alias per prefisso
+        // Un solo alias per prefisso E SCALO (U-031): lo stesso prefisso vale un punto a LIBD e un altro a LIPE.
+        // ⚠️ L'indice vecchio (solo Prefix) su Postgres non lo toglie nessuna migrazione: vedi
+        // PostgresSchemaReconciler.IndiciRitirati.
+        b.Entity<SidFixAlias>().Property(x => x.Icao).HasMaxLength(4);
+        b.Entity<SidFixAlias>().HasIndex(x => new { x.Icao, x.Prefix }).IsUnique();
         b.Entity<ImportState>().HasKey(x => x.Category);               // una riga per categoria di import
 
         // Policy di import: i flag aggiunti DOPO la creazione della tabella devono nascere a `true`, altrimenti
@@ -556,7 +561,7 @@ public class VipiDbContext : DbContext
             // all'utente prima di arrivare al database — su MariaDB fuori da strict un testo troppo lungo non dava
             // errore, veniva troncato. ConditionLabel resta a 80: sono designatori di pista scelti da un elenco.
             e.Property(x => x.Cops).HasMaxLength(AgreementClauseLimits.Elenco);
-            e.Property(x => x.ConditionLabel).HasMaxLength(80);
+            e.Property(x => x.ConditionLabel).HasMaxLength(AgreementClauseLimits.Pista);
             e.Property(x => x.ConditionAreaLabel).HasMaxLength(AgreementClauseLimits.Elenco);
             e.Property(x => x.ConditionCustomLabel).HasMaxLength(AgreementClauseLimits.Etichetta);
             e.Property(x => x.HandoffLabel).HasMaxLength(AgreementClauseLimits.Etichetta);
@@ -663,7 +668,7 @@ public class VipiDbContext : DbContext
             // l'unicità è l'unico modo di dirlo al database invece che soltanto ai commenti.
             e.HasIndex(x => x.AirportId).IsUnique();
             e.HasOne(x => x.Airport).WithMany(a => a.LvpMinima).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
-            e.Property(x => x.Note).HasMaxLength(2000);
+            e.Property(x => x.Note).HasMaxLength(Vipi.Domain.Entities.AirportLvpMinima.NotaMassima);
         });
         b.Entity<AirportProcedure>(e =>
         {
@@ -906,6 +911,18 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Type).HasMaxLength(16);
             e.Property(x => x.Frequency).HasMaxLength(16);
             e.Property(x => x.Channel).HasMaxLength(8);
+            // U-037: i valori in vigore mentre quelli nuovi aspettano il loro ciclo.
+            e.Property(x => x.FrequencyInForce).HasMaxLength(16);
+            e.Property(x => x.SourceAiracCycle).HasMaxLength(8);
+        });
+
+        // U-037 (revisione totale 3): le carte MRVA del sectorfile con quella in vigore, per il ciclo AIRAC. Una riga
+        // per file; il percorso è l'identità, come la chiave della cache che la legge.
+        b.Entity<MvaChartState>(e =>
+        {
+            e.HasIndex(x => x.Path).IsUnique();
+            e.Property(x => x.Path).HasMaxLength(64);
+            e.Property(x => x.AiracCycle).HasMaxLength(8);
         });
 
         // --- Biblioteca allegati (carta del 25 agosto 2026) ---------------------------------------------
@@ -1018,8 +1035,8 @@ public class VipiDbContext : DbContext
 
             // Corte per definizione: «16L/16R» è il caso lungo. Dichiarate per tutti i provider, come il
             // resto delle statistiche: la tabella nasce adesso e non c'è nessun `text` da convertire.
-            e.Property(x => x.Arrival).HasMaxLength(32);
-            e.Property(x => x.Departure).HasMaxLength(32);
+            e.Property(x => x.Arrival).HasMaxLength(Vipi.Application.Stats.AtisRunways.MaxLunghezza);
+            e.Property(x => x.Departure).HasMaxLength(Vipi.Application.Stats.AtisRunways.MaxLunghezza);
         });
 
         b.Entity<AirportDayTraffic>(e =>

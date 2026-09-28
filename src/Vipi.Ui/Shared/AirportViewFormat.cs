@@ -42,24 +42,26 @@ public static class AirportViewFormat
     }
 
     /// <summary>
+    /// Il TL «adesso» della vista rapida, dalla STESSA vista del documento (<see cref="AirportTransitionView"/>, derivata o
+    /// congelata): il livello della fascia che contiene il QNH. Senza TA «N/A» (la tabella senza quota di transizione
+    /// non vale); senza QNH o senza una fascia che lo contenga «—».
+    /// <para>🔴 U-015 (revisione totale 3): il pannello cercava TA e righe nei BLOCCHI della sezione «transition» del
+    /// documento pubblicato, e dalla carta del 26 agosto quella sezione è Host, senza blocchi nello snapshot: TA
+    /// sempre «N/A», TL sempre «—», initial climb sopra la TA scritto in piedi («10000 ft» dove il documento dice
+    /// FL100). E senza QNH ripiegava sulla prima riga della tabella, che non è il livello di nessuno.</para>
+    /// </summary>
+    public static string TlAdesso(AirportTransitionView view, int? qnh)
+    {
+        if (view.TransitionAltitudeFt is null) return "N/A";
+        return LivelloDiTransizione.Adesso(view, qnh) ?? Dash;   // la stessa funzione del vAWOS (U-216/U-227)
+    }
+
+    /// <summary>
     /// Vero se <paramref name="qnh"/> ricade nell'intervallo testuale della riga TL. Formati riconosciuti:
     /// «1014 – 1030» (range), «≥ 1031» / «&gt;= 1031», «≤ 984» / «&lt;= 984», «&gt; 1031», «&lt; 984».
     /// Riga senza numeri ⇒ nessuna corrispondenza.
     /// </summary>
-    public static bool QnhRowMatches(string? range, int qnh)
-    {
-        var text = range ?? "";
-        var nums = Regex.Matches(text, @"\d+")
-            .Select(m => int.TryParse(m.Value, out var v) ? v : (int?)null)
-            .Where(v => v is not null).Select(v => v!.Value).ToList();
-        if (nums.Count == 0) return false;
-
-        if (text.Contains('≥') || text.Contains(">=")) return qnh >= nums[0];
-        if (text.Contains('≤') || text.Contains("<=")) return qnh <= nums[0];
-        if (text.Contains('>')) return qnh > nums[0];
-        if (text.Contains('<')) return qnh < nums[0];
-        return nums.Count >= 2 && qnh >= Math.Min(nums[0], nums[1]) && qnh <= Math.Max(nums[0], nums[1]);
-    }
+    public static bool QnhRowMatches(string? range, int qnh) => LivelloDiTransizione.FasciaContiene(range, qnh);
 
     /// <summary>Tabella dei livelli di transizione: intestazioni + righe (intervallo QNH, livello).</summary>
     public sealed record TransitionLevelTable(

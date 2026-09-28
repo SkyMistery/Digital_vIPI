@@ -6,7 +6,9 @@ namespace Vipi.Infrastructure.Ivao.Dtos;
 // (467 piloti, 71 ATC): vedi docs/feature/2026-08-24-servizio-statistiche-atc.md §3.
 
 internal sealed record WhazzupDto(
-    [property: JsonPropertyName("clients")] WhazzupClientsDto? Clients);
+    [property: JsonPropertyName("clients")] WhazzupClientsDto? Clients,
+    // Quando la sorgente ha GENERATO la fotografia (U-131): è la data della fotografia, non l'ora d'arrivo.
+    [property: JsonPropertyName("updatedAt")] DateTimeOffset? UpdatedAt = null);
 
 internal sealed record WhazzupClientsDto(
     [property: JsonPropertyName("atcs")] List<WhazzupAtcDto>? Atcs,

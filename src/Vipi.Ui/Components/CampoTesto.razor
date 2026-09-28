@@ -1,0 +1,67 @@
+@* 🔴 Un campo di testo che il server NON riscrive mentre si digita (U-084, revisione totale 3).
+
+   La forma `<input value="@x" @oninput="…">` in Blazor Server perde i tasti: ogni tasto va al server, che risponde
+   riscrivendo il `value` com'era un giro prima, e i caratteri appena cancellati ricompaiono (misurato il 5 settembre
+   2026 su LIRN: otto Backspace, tre caratteri sopravvissuti). Memoria [[campo-di-ricerca-non-riscrivere-il-value]].
+
+   Qui il testo lo tiene il browser. Il server lo scrive solo quando il valore cambia DA PARTE SUA — un ✕ che
+   svuota, una scelta da un elenco, un reset dei filtri — e allora:
+   - se il valore nuovo è diverso dall'ultimo scritto dal server, basta il diff di Blazor, e il fuoco resta;
+   - se è uguale (il server svuota, e anche l'ultima volta aveva scritto «»), il diff non vedrebbe niente mentre il
+     campo mostra quel che si è digitato: l'elemento si ricrea (`@key`).
+   ⚠️ Il chiamante assegna il suo campo PRIMA di ogni await nel gestore: il valore che torna qui deve essere quello
+   appena digitato, o sembrerebbe un cambio del server. E non lo trasforma (Trim, maiuscole): lo fa dove lo usa. *@
+
+@if (Multiriga)
+{
+    <textarea @key="_gen" value="@_seme" @oninput="Scrivi" @onkeydown="OnKeyDown" @onkeydown:stopPropagation="FermaTasti"
+              @onfocus="OnFocus" @onblur="OnBlur" @attributes="Altri"></textarea>
+}
+else
+{
+    <input @key="_gen" value="@_seme" @oninput="Scrivi" @onkeydown="OnKeyDown" @onkeydown:stopPropagation="FermaTasti"
+           @onfocus="OnFocus" @onblur="OnBlur" @attributes="Altri" />
+}
+
+@code {
+    /// <summary>Il valore che il chiamante tiene. Letto a ogni ridisegno, scritto nel campo solo se cambia da parte sua.</summary>
+    [Parameter] public string? Valore { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> OnInput { get; set; }
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+    [Parameter] public EventCallback<FocusEventArgs> OnFocus { get; set; }
+    [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
+    /// <summary>I tasti non risalgono agli antenati (una tendina aperta dentro una finestra modale).</summary>
+    [Parameter] public bool FermaTasti { get; set; }
+    [Parameter] public bool Multiriga { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Altri { get; set; }
+
+    private string _seme = "";          // l'ultimo testo scritto nel campo DAL SERVER
+    private string _nelCampo = "";      // quel che il campo mostra, per quanto ne sa il server
+    private string? _valorePrima;       // il parametro al giro prima
+    private int _gen;
+    private bool _primo = true;
+
+    protected override void OnParametersSet()
+    {
+        var v = Valore ?? "";
+        if (_primo)
+        {
+            _primo = false;
+            _seme = _nelCampo = v;
+        }
+        // Cambia da parte del server: il parametro è cambiato E non è quel che si è appena digitato. Un ridisegno
+        // del chiamante col valore di prima (parametro invariato) non tocca niente.
+        else if (v != _valorePrima && v != _nelCampo)
+        {
+            if (v == _seme) _gen++;     // il diff non lo vedrebbe: si ricrea l'elemento
+            _seme = _nelCampo = v;
+        }
+        _valorePrima = v;
+    }
+
+    private Task Scrivi(ChangeEventArgs e)
+    {
+        _nelCampo = e.Value?.ToString() ?? "";
+        return OnInput.InvokeAsync(e);
+    }
+}

@@ -8,7 +8,8 @@ namespace Vipi.Infrastructure.Ivao;
 
 /// <summary>
 /// Adapter IVAO v2 per i dettagli per-aeroporto: postazioni ATC, dettaglio postazione (shape/limiti) e piste.
-/// Best-effort (in errore la sezione resta da completare a mano). Implementa <see cref="IAirportDetailProvider"/>.
+/// I dettagli sono best-effort (in errore la sezione resta da completare a mano); gli ELENCHI (postazioni, piste)
+/// sollevano su ogni non-2xx che non sia 404 (U-002). Implementa <see cref="IAirportDetailProvider"/>.
 /// Doc refactor 01 §4.2.
 /// </summary>
 public sealed class IvaoAirportDetailClient : IAirportDetailProvider
@@ -26,7 +27,8 @@ public sealed class IvaoAirportDetailClient : IAirportDetailProvider
     public async Task<IReadOnlyList<SourceAtcPosition>> GetAtcPositionsAsync(string icao, CancellationToken ct = default)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
-        var raw = await _http.GetJsonAsync<List<AtcPositionDto>>($"/v2/airports/{Uri.EscapeDataString(icao)}/ATCPositions", ct)
+        // ⚠️ Elenco: 404 = nessuna postazione, ogni altro non-2xx solleva (U-002, vedi IvaoHttp.GetElencoAsync).
+        var raw = await _http.GetElencoJsonAsync<List<AtcPositionDto>>($"/v2/airports/{Uri.EscapeDataString(icao)}/ATCPositions", ct)
                   ?? new List<AtcPositionDto>();
         return raw
             .Select(p => new SourceAtcPosition(
@@ -82,7 +84,9 @@ public sealed class IvaoAirportDetailClient : IAirportDetailProvider
     public async Task<IReadOnlyList<SourceRunway>> GetRunwaysAsync(string icao, CancellationToken ct = default)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
-        var raw = await _http.GetJsonAsync<List<RunwayDto>>($"/v2/airports/{Uri.EscapeDataString(icao)}/runways", ct)
+        // ⚠️ Elenco: una lista vuota per sbaglio è «nessun cambio» nel merge, cioè un giro verde che non ha riletto
+        // niente (U-002/U-128). 404 = nessuna pista, ogni altro non-2xx solleva.
+        var raw = await _http.GetElencoJsonAsync<List<RunwayDto>>($"/v2/airports/{Uri.EscapeDataString(icao)}/runways", ct)
                   ?? new List<RunwayDto>();
         return raw
             .Select(r => new SourceRunway(

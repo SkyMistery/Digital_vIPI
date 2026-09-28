@@ -81,15 +81,26 @@ public sealed class AzureTranslationEngine : ITranslationEngine
 
         var risultato = new List<string>(testi.Count);
         var perChiamata = Math.Max(1, _opt.Azure.MaxTextsPerCall);
+        var caratteri = Math.Max(1, _opt.Azure.MaxCaratteriPerChiamata);
 
-        for (var i = 0; i < testi.Count; i += perChiamata)
+        for (var i = 0; i < testi.Count;)
         {
-            var lotto = testi.Skip(i).Take(perChiamata).ToList();
+            // 🔴 U-047 (revisione totale 3): il lotto si chiude al primo dei due tetti, testi O caratteri. Solo
+            // a testi, 50 testi lunghi superavano i 50 000 caratteri di Azure: un 400, guasto definitivo del giro.
+            var lotto = new List<string>();
+            var somma = 0;
+            while (i + lotto.Count < testi.Count && lotto.Count < perChiamata
+                   && (lotto.Count == 0 || somma + testi[i + lotto.Count].Length <= caratteri))
+            {
+                somma += testi[i + lotto.Count].Length;
+                lotto.Add(testi[i + lotto.Count]);
+            }
             var esito = await UnLottoAsync(lotto, sourceLang, targetLang, ct).ConfigureAwait(false);
             // T-045: i lotti già riusciti sono pagati — il conto esce anche con l'esito Ko.
             if (esito.Outcome != TranslationOutcome.Ok)
                 return esito with { BilledChars = testi.Take(i).Sum(t => (long)t.Length), BilledTexts = i };
             risultato.AddRange(esito.Texts!);
+            i += lotto.Count;
         }
 
         return TranslationBatch.Ok(risultato, Name);

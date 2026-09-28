@@ -135,6 +135,32 @@ public class AccDocumentAssemblerTests
         Assert.All(block.Sections, s => Assert.Null(s.Editorial));
     }
 
+    /// <summary>
+    /// 🔴 U-148 (revisione totale 3): una vIPI ACC pubblicata prima delle sezioni SCCAM/FIC non le ha nello
+    /// snapshot, e la vista rifiuta di derivarle (comparirebbero senza essere mai state pubblicate) — ma
+    /// l'assemblatore le accodava lo stesso, e la pagina pubblica mostrava due sezioni «Nessun settore». Dallo
+    /// snapshot non si accodano; nella bozza sì, come prima.
+    /// </summary>
+    [Fact]
+    public void Lo_snapshot_non_accoda_le_sezioni_che_la_vista_non_deriva()
+    {
+        var raw = new RawDocument
+        {
+            Title = "vIPI ACC", AiracCycle = "2609",
+            Roots = new[] { new RawSection { Id = 1, Title = "Aerovia", Depth = 0, SectionKey = "aerovia", Order = 1 } },
+        };
+
+        var chiavi = Assert.Single(AccDocumentAssembler.Assemble(raw)).Block.Sections.Select(s => s.Key).ToList();
+
+        Assert.DoesNotContain(SectionKeys.AorMil, chiavi);
+        Assert.DoesNotContain(SectionKeys.AorFss, chiavi);
+        Assert.Contains("frequencies", chiavi);   // le altre di catalogo restano: le deriva la vista
+
+        var bozza = Doc(Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new EditableSection[0]));
+        var inBozza = Assert.Single(AccDocumentAssembler.Assemble(bozza)).Block.Sections.Select(s => s.Key);
+        Assert.Contains(SectionKeys.AorMil, inBozza);
+    }
+
     [Fact]
     public void ExtraAorCallsigns_And_Colors_Read_From_Aor_Section_BodyJson()
     {

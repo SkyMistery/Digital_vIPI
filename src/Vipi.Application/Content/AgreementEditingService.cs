@@ -202,6 +202,23 @@ public sealed class AgreementService : IAgreementService
         return await _repo.AddClauseAsync(accCode, sectionId, ProceduraNeiPunti.Normalizza(input), ct);
     }
 
+    public async Task<int> AddClausesAsync(string accCode, int sectionId, IReadOnlyList<AgreementClauseInput> inputs,
+        CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        // 🔴 U-178: TUTTE le righe prima di scriverne una. Il rifiuto dice quale riga, perché chi incolla sa correggerla.
+        for (var r = 0; r < inputs.Count; r++)
+        {
+            try { ValidateClause(inputs[r]); }
+            catch (ValidationException ex)
+            {
+                throw new ValidationException(Lingua($"Riga {r + 1}: {ex.Message}", $"Row {r + 1}: {ex.Message}"));
+            }
+        }
+        return await _repo.AddClausesAsync(accCode, sectionId,
+            inputs.Select(ProceduraNeiPunti.Normalizza).ToList(), ct);
+    }
+
     public async Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
@@ -267,6 +284,9 @@ public sealed class AgreementService : IAgreementService
         bool areaNegated, bool areaAll, string? customLabel, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
+        // Gli stessi tetti di ValidateClause (U-154): la porta in blocco scrive le stesse colonne del pannello.
+        TroppoLungo(areaLabel, Vipi.Domain.Entities.AgreementClauseLimits.Elenco, "Le aree della condizione", "The condition areas");
+        TroppoLungo(customLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "La condizione", "The condition");
         return await _repo.SetConditionAsync(accCode, clauseIds, areaLabel, areaNegated, areaAll, customLabel, ct);
     }
 
@@ -288,10 +308,11 @@ public sealed class AgreementService : IAgreementService
         return await _repo.RestoreSectionAsync(accCode, section, ct);
     }
 
-    public async Task<int> RestoreClausesAsync(string accCode, IReadOnlyList<AgreementClauseRestore> clauses, CancellationToken ct = default)
+    public async Task<int> RestoreClausesAsync(string accCode, IReadOnlyList<AgreementClauseRestore> clauses,
+        IReadOnlyList<AgreementOutlineRestore>? sorelle = null, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        return await _repo.RestoreClausesAsync(accCode, clauses, ct);
+        return await _repo.RestoreClausesAsync(accCode, clauses, sorelle, ct);
     }
 
     // ---- validazione SOFT ---------------------------------------------------------------------------
@@ -370,6 +391,8 @@ public sealed class AgreementService : IAgreementService
         TroppoLungo(CopList.Format(CopList.Parse(i.Cops)), Vipi.Domain.Entities.AgreementClauseLimits.Elenco, "I punti", "The points");
         TroppoLungo(i.ConditionAreaLabel, Vipi.Domain.Entities.AgreementClauseLimits.Elenco, "Le aree della condizione", "The condition areas");
         TroppoLungo(i.ConditionCustomLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "La condizione", "The condition");
+        // U-187: con più scali ogni pista porta l'ICAO, e sei-otto piste scelte superano la colonna.
+        TroppoLungo(i.ConditionLabel, Vipi.Domain.Entities.AgreementClauseLimits.Pista, "Le piste della condizione", "The condition runways");
         TroppoLungo(i.HandoffLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "Il luogo del trasferimento", "The transfer location");
         TroppoLungo(i.CommsHandoffLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "Il luogo del passaggio comunicazioni", "The communications transfer location");
 

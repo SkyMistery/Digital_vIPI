@@ -183,7 +183,8 @@ public class MySqlMigrationsTests
     /// <summary>La riga della colonna dentro il <c>CREATE TABLE</c> della tabella, se la crea lì.</summary>
     private static string? InCreateTable(string sql, string tabella, string colonna)
     {
-        var inizio = sql.IndexOf($"CREATE TABLE `{tabella}` (", StringComparison.Ordinal);
+        // «IF NOT EXISTS» dal 28-set-2026: le DDL sono rieseguibili (MigrazioniRieseguibili, U-096).
+        var inizio = sql.IndexOf($"CREATE TABLE IF NOT EXISTS `{tabella}` (", StringComparison.Ordinal);
         if (inizio < 0) return null;
 
         // Il blocco finisce dove comincia il prossimo statement, non su una chiusura fissa: Pomelo chiude
@@ -200,5 +201,5 @@ public class MySqlMigrationsTests
     private static string? InAlterTableAdd(string sql, string tabella, string colonna) =>
         sql.Split('\n')
             .Select(r => r.Trim())
-            .FirstOrDefault(r => r.StartsWith($"ALTER TABLE `{tabella}` ADD `{colonna}` ", StringComparison.Ordinal));
+            .FirstOrDefault(r => r.StartsWith($"ALTER TABLE `{tabella}` ADD COLUMN IF NOT EXISTS `{colonna}` ", StringComparison.Ordinal));
 }

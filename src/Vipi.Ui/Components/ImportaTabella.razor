@@ -421,15 +421,26 @@
         else
             _intestazione = mappatura.Intestazione;
 
-        _proposta = await CostruttoreProposta.CostruisciAsync(_griglia, Spec, mappatura, _risolutore, ct);
+        _proposta = Mostrabile(await CostruttoreProposta.CostruisciAsync(_griglia, Spec, mappatura, _risolutore, ct));
     });
+
+    /// <summary>
+    /// 🔴 U-043/U-050 (revisione totale 3): una proposta oltre il tetto di celle non si mostra — era proprio l'anteprima
+    /// a esaurire la memoria. Il perché va al posto del guasto del file, dove chi ha caricato guarda già.
+    /// </summary>
+    private Proposta? Mostrabile(Proposta proposta)
+    {
+        if (proposta.Guasto is not { } guasto) return proposta;
+        _guasto = guasto;
+        return null;
+    }
 
     /// <summary>L'utente rimappa una colonna a mano: si ricostruisce senza rileggere il testo.</summary>
     private Task Rimappa(int colonnaSpec, string? valore) => InFila(async ct =>
     {
         if (_proposta is null || !int.TryParse(valore, out var g)) return;
-        _proposta = await CostruttoreProposta.CostruisciAsync(
-            _griglia, Spec, _proposta.Mappatura.Con(colonnaSpec, g), _risolutore, ct);
+        _proposta = Mostrabile(await CostruttoreProposta.CostruisciAsync(
+            _griglia, Spec, _proposta.Mappatura.Con(colonnaSpec, g), _risolutore, ct));
     });
 
     /// <summary>

@@ -167,11 +167,15 @@ public sealed class AirportMemberLoader
 
         var station = _stations.Airport(code);
 
-        // ⚠️ Le derivate si risolvono INSIEME al documento e con lo stesso criterio (doc 11 §3d): frozen solo
-        // in vista pubblica, live in bozza e in anteprima di release. Deciderlo sezione per sezione, o
-        // lasciare che un ramo di fallback dimenticasse il flag, renderebbe il congelamento AIRAC aggirabile
-        // da un `?as=` qualsiasi.
-        var useFrozen = mode.Kind is not (PreviewKind.Draft or PreviewKind.Release);
+        // ⚠️ Le derivate si risolvono INSIEME al documento e con lo stesso criterio (doc 11 §3d): live in bozza,
+        // congelate altrimenti. Deciderlo sezione per sezione, o lasciare che un ramo di fallback dimenticasse il
+        // flag, renderebbe il congelamento AIRAC aggirabile da un `?as=` qualsiasi.
+        // 🔴 U-053 (revisione totale 3): in anteprima di release si leggono le congelate di QUELLA release. Prima
+        // si derivavano live, e l'anteprima di una programmata mostrava la TORA corretta ieri, non quella che il
+        // pubblico vedrà al rollover. `mode` qui è già degradato se l'anteprima non era autorizzata.
+        var useFrozen = mode.Kind is not PreviewKind.Draft;
+        using var congelateDellaRelease = mode.Kind == PreviewKind.Release
+            ? AnteprimaDiRelease.Apri(ReleaseTargetType.Airport, code, mode.ReleaseId) : null;
         // ⚠️ In anteprima di release si guarda al CICLO DI QUELLA RELEASE, non a quello di oggi: le SID hanno
         // una regola che dipende dal ciclo, e chiedendo sempre «adesso» l'anteprima di una release programmata
         // mostrava la tabella di oggi e non quella che uscirà.
@@ -186,9 +190,13 @@ public sealed class AirportMemberLoader
         // la porta con sé (carta 2026-09-12). Solo una release scattata prima non le ha, e allora si ricade
         // sulle regole vive — il comportamento di prima — chiedendo l'anagrafica SOLO in quel caso.
         var regole = derived.Rules.Regole;
-        var vive = regole is null ? (await _profile.LoadForViewAsync(code, ct))?.Rules : null;
+        // ⚠️ L'anagrafica si legge sempre: le rotte vere delle testate sono un dato fisico, non contenuto del
+        // documento, e la sezione Piste non le porta (U-223: regole e ripiego misurano sulla rotta del vAWOS).
+        var scaloVivo = await _profile.LoadForViewAsync(code, ct);
+        var vive = regole is null ? scaloVivo?.Rules : null;
         var inUso = PistaInUso.Calcola(regole, derived.Sids, runways, windDir, windKt, metar, vive,
-            AirportRunwayRowView.Esclusioni(derived.Runways.Rows));
+            AirportRunwayRowView.Esclusioni(derived.Runways.Rows), RunwayRow.Rotte(scaloVivo?.Runways),
+            RunwaySuggestion.VentoNoto(metar?.Wind));
         var lvp = ValutaLvp(derived.Lvp, metar);
 
         // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------

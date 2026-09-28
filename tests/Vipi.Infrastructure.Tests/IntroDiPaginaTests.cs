@@ -34,7 +34,66 @@ public class IntroDiPaginaTests : IAsyncLifetime
         await _conn.DisposeAsync();
     }
 
-    private EfPageIntroStore Deposito(VipiRole livello = VipiRole.Editor) => new(_db, new Authz(livello));
+    private EfPageIntroStore Deposito(VipiRole livello = VipiRole.Editor) =>
+        new(_db, new Authz(livello), LockDiRisorsaConcesso.Instance);
+
+    /// <summary>
+    /// U-109 (revisione totale 3): il deposito salvava col solo ruolo. Il lock <c>editor:page-intro:*</c> lo
+    /// prendeva e rinnovava solo la barra, e nessuno lo verificava: nei secondi fra uno «Sblocca comunque» e il
+    /// battito successivo la pagina che l'aveva perso poteva ancora salvare, e l'altro poi la copriva.
+    /// </summary>
+    [Fact]
+    public async Task Col_lock_di_un_altro_l_intro_non_si_salva()
+    {
+        var authz = new Authz(VipiRole.Editor);
+        _db.EditResourceLocks.Add(new Vipi.Domain.Entities.EditResourceLock
+        {
+            ResourceKey = PageIntro.ChiaveLock("mil"), LockedByUserId = 2, LockedByName = "collega",
+            LockedAtUtc = DateTime.UtcNow, LockExpiresUtc = DateTime.UtcNow.AddMinutes(3),
+        });
+        await _db.SaveChangesAsync();
+        var deposito = new EfPageIntroStore(_db, authz,
+            new ResourceLockService(new EfResourceLockRepository(_db), authz));
+
+        await Assert.ThrowsAsync<EditConflictException>(() =>
+            deposito.SalvaAsync("mil", Una("Titolo", "testo"), "Intro vSOP militari"));
+
+        Assert.Empty(await _db.SharedBlocks.AsNoTracking().ToListAsync());
+    }
+
+    /// <summary>
+    /// 🔴 Gemello di U-137 (revisione totale 3): l'intro di pagina ospita anche immagini, e sostituirne o toglierne
+    /// una lasciava la vecchia nel deposito. Si libera come nei documenti (la pulizia ricontrolla tutti i posti).
+    /// </summary>
+    [Fact]
+    public async Task Togliere_l_immagine_dall_intro_la_libera_dal_deposito()
+    {
+        var sha = new string('a', 64);
+        _db.MediaAssets.Add(new Vipi.Domain.Entities.MediaAsset
+        {
+            Sha256 = sha, ContentType = "image/png", ByteSize = 3, Width = 1, Height = 1, Bytes = new byte[] { 1, 2, 3 },
+        });
+        await _db.SaveChangesAsync();
+        var deposito = new EfPageIntroStore(_db, new Authz(VipiRole.Editor), LockDiRisorsaConcesso.Instance,
+            new EfMediaMaintenance(_db));
+        var conFoto = new List<PageIntroSection>
+        {
+            new()
+            {
+                Title = "Titolo",
+                Blocks = new List<ExtraBlock>
+                {
+                    new() { Format = BlockFormat.Image, ImageJson = MediaRef.Serialize(new MediaRef(sha, "alt", 1, 1)) },
+                },
+            },
+        };
+
+        await deposito.SalvaAsync("mil", conFoto, "Intro");
+        Assert.True(await _db.MediaAssets.AnyAsync());
+
+        await deposito.SalvaAsync("mil", Una("Titolo", "solo testo"), "Intro");
+        Assert.False(await _db.MediaAssets.AnyAsync());
+    }
 
     private static List<PageIntroSection> Una(string titolo, string testo) => new()
     {

@@ -271,6 +271,131 @@ public class DocumentUnionServiceTests
         Assert.Empty(vista.AltriDa(24));
     }
 
+    // ---- U-008 (revisione totale 3): separarsi rimette visibile quel che la scheda aveva nascosto --------------
+
+    /// <summary>Registra chi è stato chiamato a rimostrare, e se in quel momento l'unione c'era ancora.</summary>
+    public class EditingCheRimostra : System.Reflection.DispatchProxy
+    {
+        public RepoFintoPubblico? Repo { get; set; }
+        public List<(IReadOnlyList<int> Membri, bool UnioneAncoraLi)> Chiamate { get; } = new();
+
+        protected override object? Invoke(System.Reflection.MethodInfo? m, object?[]? a)
+        {
+            if (m!.Name != nameof(IEditingService.RimostraPrimaDiSeparareAsync))
+                throw new NotSupportedException(m.Name);
+            var membri = ((IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)>)a![0]!).Select(x => x.DocumentId).ToList();
+            Chiamate.Add((membri, Repo!.Righe().Count > 0));
+            return Task.FromResult(4);
+        }
+    }
+
+    /// <summary>La vista delle righe del repository finto, per un proxy pubblico.</summary>
+    public sealed class RepoFintoPubblico(Func<IReadOnlyList<UnionRow>> righe)
+    {
+        public IReadOnlyList<UnionRow> Righe() => righe();
+    }
+
+    private static (DocumentUnionService Servizio, RepoFinto Repo, EditingCheRimostra Editing) ConEditing(params ManagedDoc[] docs)
+    {
+        var authz = new AuthzFinta();
+        var repo = new RepoFinto { Authz = authz };
+        var editing = System.Reflection.DispatchProxy.Create<IEditingService, EditingCheRimostra>();
+        var e = (EditingCheRimostra)(object)editing;
+        e.Repo = new RepoFintoPubblico(() => repo.Righe.ToList());
+        return (new DocumentUnionService(repo, new DocsFinti(docs), authz, new BersagliFinti(docs), editing), repo, e);
+    }
+
+    [Fact]
+    public async Task Sciogliere_rimostra_PRIMA_e_dice_quante()
+    {
+        var (s, _, e) = ConEditing(Aeroporto(26, "LIRS"), VsopMil(24, "LIRS"));
+        var id = await s.UniscoAsync(26, 24);
+
+        Assert.Equal(4, await s.SciogliAsync(id));
+
+        var chiamata = Assert.Single(e.Chiamate);
+        Assert.Equal(new[] { 26, 24 }, chiamata.Membri);
+        Assert.True(chiamata.UnioneAncoraLi);   // prima: dopo non si saprebbe più chi erano i membri
+    }
+
+    [Fact]
+    public async Task Esce_uno_della_coppia_si_rimostra_esce_un_APP_no()
+    {
+        var (s, repo, e) = ConEditing(Aeroporto(26, "LIBV"), VsopMil(24, "LIBV"), App(3, "LIBV_APP"));
+        await s.UniscoAsync(26, 24);
+        await s.UniscoAsync(26, 3);
+
+        var app = repo.Righe.Single(r => r.DocumentId == 3).MemberId;
+        Assert.Equal(0, await s.RimuoviMembroAsync(app));
+        Assert.Empty(e.Chiamate);   // la coppia vIPI + vSOP resta: niente da rimostrare
+
+        var vsop = repo.Righe.Single(r => r.DocumentId == 24).MemberId;
+        Assert.Equal(4, await s.RimuoviMembroAsync(vsop));
+        Assert.Single(e.Chiamate);
+    }
+
+    // ---- U-055 (revisione totale 3): unire, togliere, spostare e sciogliere guardano i lock ------------------
+
+    private static ManagedDoc InManoA(ManagedDoc d, int vid) =>
+        d with { LockedByUserId = vid, LockedByName = $"VID {vid}", LockExpiresUtc = DateTime.UtcNow.AddMinutes(20) };
+
+    /// <summary>
+    /// B scrive il vSOP; A unisce il vSOP alla sua vIPI. Prima riusciva, e B non poteva più pubblicare il suo
+    /// documento senza pubblicare anche quello di A. Il tasto spento nella pagina non era una guardia.
+    /// </summary>
+    [Fact]
+    public async Task Unire_un_documento_in_mano_a_un_collega_e_un_conflitto()
+    {
+        var s = Servizio(out var repo, Aeroporto(26, "LIMN"), InManoA(VsopMil(24, "LIMN"), 99));
+
+        var ex = await Assert.ThrowsAsync<EditConflictException>(() => s.UniscoAsync(26, 24));
+
+        Assert.Contains("VID 99", ex.Message);
+        Assert.Empty(repo.Righe);
+    }
+
+    [Fact]
+    public async Task Unire_a_un_unione_con_un_membro_in_mano_a_un_collega_e_un_conflitto()
+    {
+        var s = Servizio(out var repo, VsopMil(24, "LIBV"), App(3, "LIBV_APP"), App(5, "LIBV_G_APP"));
+        await s.UniscoAsync(24, 3);
+        var docs = new[] { VsopMil(24, "LIBV"), InManoA(App(3, "LIBV_APP"), 99), App(5, "LIBV_G_APP") };
+        var conLock = new DocumentUnionService(repo, new DocsFinti(docs), repo.Authz, new BersagliFinti(docs));
+
+        await Assert.ThrowsAsync<EditConflictException>(() => conLock.UniscoAsync(24, 5));
+        Assert.DoesNotContain(repo.Righe, r => r.DocumentId == 5);
+    }
+
+    [Fact]
+    public async Task Togliere_spostare_sciogliere_con_un_membro_in_mano_a_un_collega_sono_conflitti()
+    {
+        var s = Servizio(out var repo, VsopMil(24, "LIBV"), App(3, "LIBV_APP"), App(5, "LIBV_G_APP"));
+        var id = await s.UniscoAsync(24, 3);
+        await s.UniscoAsync(24, 5);
+        var docs = new[] { VsopMil(24, "LIBV"), App(3, "LIBV_APP"), InManoA(App(5, "LIBV_G_APP"), 99) };
+        var conLock = new DocumentUnionService(repo, new DocsFinti(docs), repo.Authz, new BersagliFinti(docs));
+        var prima = repo.Righe.OrderBy(r => r.MemberId).ToList();
+        var app3 = prima.Single(r => r.DocumentId == 3).MemberId;
+
+        await Assert.ThrowsAsync<EditConflictException>(() => conLock.RimuoviMembroAsync(app3));
+        await Assert.ThrowsAsync<EditConflictException>(() => conLock.SpostaAsync(app3, +1));
+        await Assert.ThrowsAsync<EditConflictException>(() => conLock.SciogliAsync(id));
+
+        Assert.Equal(prima, repo.Righe.OrderBy(r => r.MemberId).ToList());
+    }
+
+    /// <summary>Il proprio lock non è un ostacolo: chi sta scrivendo il documento lo unisce e lo scioglie.</summary>
+    [Fact]
+    public async Task Il_proprio_lock_non_ferma()
+    {
+        var s = Servizio(out var repo, InManoA(Aeroporto(26, "LIMN"), 42), InManoA(VsopMil(24, "LIMN"), 42));
+
+        var id = await s.UniscoAsync(26, 24);
+        await s.SciogliAsync(id);
+
+        Assert.Empty(repo.Righe);
+    }
+
     private static DocumentUnionService Servizio(out RepoFinto repo, params ManagedDoc[] docs) =>
         Servizio(out repo, new AuthzFinta(), docs);
 

@@ -91,5 +91,7 @@ public sealed class IvaoAirportClient : IAirportDirectory
         // normalizzazione in archivio finirebbero due modi diversi di dire «non ce l'ha».
         Iata: string.IsNullOrWhiteSpace(dto.Iata) ? null : dto.Iata.Trim().ToUpperInvariant(),
         ElevationFt: dto.Elevation,
-        MagneticVariation: dto.Magnetic);
+        MagneticVariation: dto.Magnetic,
+        // U-028: un «military» assente non è «nessuna presenza».
+        MilitaryPresenceKnown: dto.Military is not null);
 }

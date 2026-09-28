@@ -43,13 +43,21 @@ public sealed class IvaoWhazzupClient : IAtcActivitySource
 
     public async Task<NetworkSnapshot> GetSnapshotAsync(CancellationToken ct = default)
     {
-        using var res = await _http.SendGetAsync(_opt.WhazzupPath, ct);
+        // Pubblico: senza token (U-025, vedi IvaoHttp.SendGetPubblicoAsync).
+        using var res = await _http.SendGetPubblicoAsync(_opt.WhazzupPath, ct);
         res.EnsureSuccessStatusCode();
 
         var raw = await res.Content.ReadFromJsonAsync<WhazzupDto>(cancellationToken: ct);
-        var clients = raw?.Clients;
 
-        var atc = (clients?.Atcs ?? new List<WhazzupAtcDto>())
+        // 🔴 U-131 (revisione totale 3): una risposta senza gli elenchi non è «nessuno online», è un poll fallito.
+        // Prima valeva zero ATC: la cache si svuotava e il poller chiudeva in massa le sessioni aperte, che
+        // ricomparendo dopo 15 minuti facevano cadere la scrittura di tutte (U-026). Elenchi PRESENTI e vuoti,
+        // invece, sono una risposta: la rete può essere vuota davvero.
+        if (raw?.Clients is not { Atcs: not null, Pilots: not null } clients)
+            throw new InvalidDataException(
+                $"{_opt.WhazzupPath}: risposta senza clients.atcs/clients.pilots — poll fallito, non «nessuno online».");
+
+        var atc = clients.Atcs
             .Where(a => !string.IsNullOrWhiteSpace(a.Callsign))
             .Select(a => new SourceAtcConnection(
                 SessionId: a.Id,
@@ -64,7 +72,7 @@ public sealed class IvaoWhazzupClient : IAtcActivitySource
                 IsOutsideDivision: !MatchesDivision(a.Callsign!)))
             .ToList();
 
-        var pilots = (clients?.Pilots ?? new List<WhazzupPilotDto>())
+        var pilots = clients.Pilots
             .Where(p => !string.IsNullOrWhiteSpace(p.Callsign) && p.LastTrack is not null)
             .Select(p => new SourcePilotFix(
                 SessionId: p.Id,
@@ -83,7 +91,10 @@ public sealed class IvaoWhazzupClient : IAtcActivitySource
                 AircraftIcao: p.FlightPlan?.AircraftId))
             .ToList();
 
-        return new NetworkSnapshot { Atc = atc, Pilots = pilots, AsOf = DateTimeOffset.UtcNow };
+        // 🔴 U-131: la fotografia porta la data in cui la sorgente l'ha GENERATA. Datata all'arrivo, un whazzup fermo
+        // servito con 200 sembrava fresco: la scadenza della cache (T-034) non scattava e il poller la registrava a
+        // ogni giro. Senza `updatedAt` (forma vecchia) resta l'ora d'arrivo, come prima.
+        return new NetworkSnapshot { Atc = atc, Pilots = pilots, AsOf = raw.UpdatedAt ?? DateTimeOffset.UtcNow };
     }
 
     private bool MatchesDivision(string callsign) =>

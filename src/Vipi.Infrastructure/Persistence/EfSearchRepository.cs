@@ -33,8 +33,10 @@ public sealed class EfSearchRepository : ISearchRepository
 
     public async Task<IReadOnlyList<SearchHit>> SearchAsync(string query, SearchScope scope, int limit, CancellationToken ct = default)
     {
+        // ⚠️ Niente filtro su CurrentVersionId (U-057, revisione 3): il contenuto viene dallo snapshot della
+        // release in vigore (T-042), e un documento in vigore senza «Pubblica versione» — la vLOA 65, uno
+        // pubblicato solo con release programmata — ne resta senza. Il cancello sulla release basta.
         var docs = await _db.Documents
-            .Where(d => d.CurrentVersionId != null)
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             // L'aeroporto descritto: da qui il descrittore prende ICAO e ACC (vedi AirportReleaseTarget).
             .Include(d => d.Airport).ThenInclude(a => a!.Acc)

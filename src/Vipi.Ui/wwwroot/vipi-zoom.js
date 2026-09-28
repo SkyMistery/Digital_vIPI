@@ -24,8 +24,11 @@
     window.vipiApplyZoom = function () {
         var z = read();
         document.documentElement.style.zoom = z;
+        var pct = Math.round(z * 100) + '%';
         var el = document.getElementById('vipiZoomPct');
-        if (el) el.textContent = Math.round(z * 100) + '%';
+        if (el) el.textContent = pct;
+        // E la percentuale del menu «☰», che allo scaglione tb-4 e' l'unica a vedersi (revisione 3, U-085).
+        document.querySelectorAll('[data-zoom-pct]').forEach(function (n) { n.textContent = pct; });
         // Chi misura lo spazio disponibile (vipiFitViewport, vipiStickyOffset) deve rifare i conti: lo zoom
         // cambia quanta pagina ci sta, ma non fa scattare né un render Blazor né un `resize` di suo.
         try { window.dispatchEvent(new Event('resize')); } catch (e) { }

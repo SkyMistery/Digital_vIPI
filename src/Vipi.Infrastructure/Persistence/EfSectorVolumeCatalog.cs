@@ -60,7 +60,8 @@ public sealed class EfSectorVolumeCatalog : ISectorVolumeCatalog
                 AirportIcao: s.AirportIcao,
                 Parts: forma?.Parts ?? Array.Empty<Vipi.Application.Airspace.ShapePart>(),
                 Source: forma?.Source ?? ShapeSource.Source,
-                AccCode: s.AccCode);
+                AccCode: s.AccCode,
+                ElevazioneFt: forma?.ElevazioneFt);   // U-217: il suolo delle quote AGL, dalla porta unica
         }).ToList();
     }
 }

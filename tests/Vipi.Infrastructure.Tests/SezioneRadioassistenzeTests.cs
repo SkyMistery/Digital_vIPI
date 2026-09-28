@@ -195,6 +195,29 @@ public class SezioneRadioassistenzeTests : IAsyncLifetime
         Assert.Equal(NavaidDelete.Ok, await anagrafica.DeleteAsync(amd.Id, userId: 7));
     }
 
+    /// <summary>
+    /// 🔴 U-157 (revisione totale 3): il canale è nell'identità, e il documento cita per identità. Cambiarlo su
+    /// una riga citata la faceva sparire in silenzio dalle tabelle militari (il resolver scarta la chiave che non
+    /// trova). Come per l'eliminazione: prima si toglie di lì.
+    /// </summary>
+    [Fact]
+    public async Task Il_canale_di_una_riga_citata_non_si_cambia()
+    {
+        var m = Militari();
+        await m.CreaAsync("LIBA");
+        var anagrafica = Anagrafica();
+        var amd = await anagrafica.CreateAsync("AMD", "VHF", userId: 7);
+        await m.SaveNavaidsAsync("LIBA", new[] { amd.Key });
+
+        Assert.Equal(NavaidWrite.Citata, await anagrafica.SetChannelAsync(amd.Id, "25X", userId: 7));
+        Assert.Single(await m.GetNavaidsAsync("LIBA"));
+        Assert.Null((await anagrafica.ListAsync()).Single(n => n.Id == amd.Id).Channel);
+
+        // Tolta dal documento, il canale si scrive.
+        await m.SaveNavaidsAsync("LIBA", Array.Empty<NavaidKey>());
+        Assert.Equal(NavaidWrite.Ok, await anagrafica.SetChannelAsync(amd.Id, "25X", userId: 7));
+    }
+
     /// <summary>Vale anche per chi la cita da un <b>aeroporto alternato</b>: è l'altra tabella che le usa.</summary>
     [Fact]
     public async Task Anche_una_citazione_da_un_alternato_conta()
@@ -213,5 +236,45 @@ public class SezioneRadioassistenzeTests : IAsyncLifetime
         });
 
         Assert.Equal(NavaidDelete.Citata, await anagrafica.DeleteAsync(amd.Id, userId: 7));
+    }
+
+    /// <summary>Il 28 settembre 2026: ciclo corrente 2609, successivo 2610.</summary>
+    private sealed class Orologio : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(2026, 9, 28, 12, 0, 0, TimeSpan.Zero);
+    }
+
+    /// <summary>
+    /// 🔴 U-037, l'avviso a chi pubblica: una radioassistenza che il documento CITA, con un cambio della sorgente che
+    /// aspetta il ciclo, compare nell'avviso; «pubblica comunque» la forza, e da lì la release congela il valore nuovo.
+    /// Una radioassistenza che il documento non cita non c'entra.
+    /// </summary>
+    [Fact]
+    public async Task L_avviso_trova_le_radioassistenze_citate_in_attesa_e_la_forzatura_le_pubblica()
+    {
+        var m = Militari();
+        await m.CreaAsync("LIBA");
+        await m.SaveNavaidsAsync("LIBA", new[] { new NavaidKey("MNL", "VHF", "99Y") });
+        var docId = await _db.Documents.Select(d => d.Id).SingleAsync();
+
+        var cattura = new ShapeReleaseContext();
+        var an = new EfNavaidCatalog(_db, LivelloFisso.Editor, cattura, new AiracService(), new Orologio());
+        await an.ImportFromSourceAsync(new[]
+        {
+            new SourceNavaid("MNL", "VHF", "115.30", "99Y", 41.5476, 15.6898),   // cambia, ed è citata
+            new SourceNavaid("AEA", "VHF", "111.70", "54Y", 40.6382, 8.2918),    // cambia, non citata
+            new SourceNavaid("AVI", "NDB", "390.0", null, 45.9243, 12.4285),
+        });
+
+        var gate = new EfSectorfileGateRepository(_db);
+        var riga = Assert.Single(await gate.ListAsync(ReleaseTargetType.AirportMil, "LIBA", docId));
+        Assert.Equal((DeferredKind.Radioassistenza, "MNL VHF 99Y", "2610", false), (riga.Kind, riga.Label, riga.FromCycle, riga.Forced));
+
+        using (cattura.Capturing("2609"))
+            Assert.Equal("115.25", (await an.GetManyAsync(new[] { new NavaidKey("MNL", "VHF", "99Y") })).Single().Frequency);
+
+        Assert.Equal(1, await gate.ForceAsync(new[] { (riga.Kind, riga.Id) }));
+        using (cattura.Capturing("2609"))
+            Assert.Equal("115.30", (await an.GetManyAsync(new[] { new NavaidKey("MNL", "VHF", "99Y") })).Single().Frequency);
     }
 }

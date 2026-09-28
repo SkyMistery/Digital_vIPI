@@ -293,6 +293,56 @@ public class DocumentMaintenanceTests : IAsyncLifetime
         Assert.True(SectionKeys.IsCustom(_db.DocumentSections.Single(s => s.Id == vipiPurpose.Id).SectionKey));
     }
 
+    /// <summary>
+    /// 🔴 U-195 (revisione totale 3): la passata dava la chiave «purpose» a ogni radice libera intitolata
+    /// «Purpose», anche dove la sezione di catalogo c'era già: due sezioni con la stessa chiave di catalogo, a ogni
+    /// consegna. Una versione che ha già «purpose» non ne prende una seconda.
+    /// </summary>
+    [Fact]
+    public async Task Purpose_Does_Not_Get_A_Second_Catalog_Section()
+    {
+        var vloa = await SeedVloaVersionAsync();
+        var catalogo = Section(vloa, "purpose", 1);
+        catalogo.Title = "Purpose";
+        var libera = Section(vloa, SectionKeys.NewCustom(), 2);
+        libera.Title = "Purpose";
+        _db.DocumentSections.AddRange(catalogo, libera);
+        await _db.SaveChangesAsync();
+
+        await _maintenance.ReconcileVloaSectionKeysAsync();
+
+        Assert.Equal(1, _db.DocumentSections.Count(s => s.DocumentVersionId == vloa.Id && s.SectionKey == "purpose"));
+        Assert.True(SectionKeys.IsCustom(_db.DocumentSections.Single(s => s.Id == libera.Id).SectionKey));
+    }
+
+    /// <summary>
+    /// 🔴 U-080 (revisione totale 3), scelta del committente: la passata d'avvio rimette il puntatore ai documenti
+    /// «Published» che non l'hanno, se hanno UNA sola versione pubblicata (la vLOA 65 in produzione). Con due, non
+    /// indovina.
+    /// </summary>
+    [Fact]
+    public async Task A_Published_Document_Without_Pointer_Gets_Its_Only_Published_Version()
+    {
+        var sola = await SeedVloaVersionAsync();
+        sola.Status = DocumentStatus.Published;
+        sola.Document!.Status = DocumentStatus.Published;
+        var ambiguo = await SeedVersionAsync();
+        ambiguo.Status = DocumentStatus.Published;
+        ambiguo.Document!.Status = DocumentStatus.Published;
+        _db.DocumentVersions.Add(new DocumentVersion
+        {
+            Document = ambiguo.Document, VersionNumber = 2, Status = DocumentStatus.Published, AiracCycle = "2607",
+        });
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(1, await _maintenance.RestorePublishedCurrentVersionAsync());
+        Assert.Equal(0, await _maintenance.RestorePublishedCurrentVersionAsync());
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal(sola.Id, (await _db.Documents.SingleAsync(d => d.Id == sola.DocumentId)).CurrentVersionId);
+        Assert.Null((await _db.Documents.SingleAsync(d => d.Id == ambiguo.DocumentId)).CurrentVersionId);
+    }
+
     [Fact]
     public async Task Reconciling_Vloa_Keys_Is_Idempotent()
     {

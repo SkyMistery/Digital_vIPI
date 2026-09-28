@@ -202,6 +202,54 @@ public class LvpTests
         Assert.Equal(LvpStato.InVigore, e.Stato);
     }
 
+    // ---- L8 della revisione totale 3 ----
+
+    /// <summary>
+    /// 🔴 U-089: «VV///» (cielo oscurato, altezza non misurata) e gli strati con base «///» si buttavano: il soffitto
+    /// restava null come col cielo sgombro, T-009 lo trasformava in «sopra ogni soglia» appena c'era una visibilità,
+    /// e il quadro proponeva di CANCELLARE le LVP con la nebbia. Un soffitto ignoto non è un soffitto alto.
+    /// </summary>
+    [Theory]
+    [InlineData("LIMC 270620Z AUTO 00000KT 0900 FG VV/// 08/08 Q1025")]
+    [InlineData("LIMC 270620Z AUTO 00000KT 0900 FG OVC/// 08/08 Q1025")]
+    [InlineData("LIMC 270620Z AUTO 00000KT 0900 FG BKN/// 08/08 Q1025")]
+    [InlineData("LIMC 270620Z AUTO 00000KT 0900 FG ////// 08/08 Q1025")]
+    public void Un_cielo_oscurato_non_fa_cancellare_le_LVP(string raw)
+    {
+        var m = Vipi.Application.Weather.MetarParser.ParseMetar(raw);
+
+        Assert.True(m.CeilingUnknown);
+        Assert.NotEqual(LvpStato.Cancellabile, LvpValutatore.DaMetar(null, m, giaInVigore: true).Stato);
+    }
+
+    [Fact]
+    public void Un_cielo_sereno_fa_ancora_cancellare()
+    {
+        var m = Vipi.Application.Weather.MetarParser.ParseMetar("LIMC 270620Z 00000KT 0900 NSC 08/08 Q1025");
+
+        Assert.False(m.CeilingUnknown);
+        Assert.Equal(LvpStato.Cancellabile, LvpValutatore.DaMetar(null, m, giaInVigore: true).Stato);
+    }
+
+    /// <summary>
+    /// 🔴 U-090: con TUTTI i gruppi RVR «P» (sopra scala) la valutazione li scartava e ricadeva sulla visibilità —
+    /// «LVP» accese da 500 m di visibilità mentre ogni testata diceva «oltre 2000 m», e il titolo scriveva «no RVR
+    /// reported». P2000 è un limite inferiore, sopra ogni soglia: la misura resta l'RVR.
+    /// </summary>
+    [Fact]
+    public void RVR_tutti_sopra_scala_valgono_come_RVR_alto()
+    {
+        var m = Vipi.Application.Weather.MetarParser.ParseMetar(
+            "LIRF 270250Z 00000KT 0500 BCFG R16L/P2000N R16R/P2000N 08/08 Q1025");
+
+        var e = LvpValutatore.DaMetar(null, m);
+
+        Assert.Equal(LvpMisura.Rvr, e.Misura);
+        Assert.Equal(LvpStato.Nil, e.Stato);
+        Assert.True(e.RvrSopraScala);
+        Assert.Equal(2000, e.RvrM);
+    }
+
     [Fact] // un documento non ha memoria: passa false e la cancellazione non si presenta MAI
     public void Senza_Memoria_La_Cancellazione_Non_Esiste()
     {

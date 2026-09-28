@@ -177,8 +177,16 @@ li ricopia da `deploy/atc-ivao/`, che resta la sorgente — una copia sola invec
 > ⚠️ La stessa cosa sta in `publish_old/20260824-i/solo-4-file-i/`, del 24 agosto.
 >
 > 1. quel che sta nella cartella e **nessuno ha dichiarato** viene elencato e lasciato fuori;
-> 2. i file **di testo** dichiarati vengono guardati dentro: `ConnectionStrings`, `ClientSecret`,
->    `Password=`, `ApiKey`, una chiave privata → **il pacchetto si ferma**.
+> 2. i file **di testo** dichiarati, gli intrusi **e tutto il ramo `docs/`** vengono guardati dentro: una chiave
+>    nota (`ClientSecret`, `ApiKey`, `Chiave`, `Password`, `Pwd`, `Secret`, `Token`) **con un valore**, una
+>    `Password=` con un valore, una chiave del ponte RFO (`rfo_` + 40 caratteri), una chiave privata o un
+>    key-ring → **il pacchetto si ferma**. I segnaposto non contano: vuoto, «…», «<…>», tutto maiuscolo
+>    («LA-PASSWORD-VERA»), un carattere ripetuto («xxx»).
+>
+> ⚠️ Dal 29 settembre 2026 (U-123, revisione 3) si guardano i **valori** e non più i nomi. Cercando i nomi la
+> rete fermava sempre `appsettings.json` (nomi con valori vuoti: il caso del 2 settembre qui sotto) e lasciava
+> passare il file del ponte RFO, che nessuno di quei nomi lo contiene; e il ramo `docs/` non lo guardava
+> nessuno. Prova dei casi: `docs/history/revisione-totale-3/prova-rete-segreti.ps1`.
 >
 > ⚠️ La seconda rete guarda **solo i file di testo**, e non è pigrizia: la prima stesura leggeva ogni file
 > sotto il mezzo mega e accusava `Vipi.Host.dll`, dove «ClientSecret» compare perché è il **nome** di una

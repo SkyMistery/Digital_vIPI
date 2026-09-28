@@ -104,4 +104,39 @@ public class AirportCategoryUiTests : TestContext
         c.Find(".apt-cat-confirm .btn.primary").Click();
         Assert.Equal(AirportCategory.CivilWithMilitaryPresence, scritta);
     }
+
+    /// <summary>
+    /// 🔴 U-028 (decisione del committente del 27-set-2026): la categoria militare non scende più da sola quando IVAO
+    /// toglie la presenza. La riga lo dice, e offre «Civile»: è il gesto con cui l'amministratore chiude la divergenza.
+    /// Con un vSOP esistente la conferma scatta come per ogni altra scelta che lo lascia fuori.
+    /// </summary>
+    [Fact]
+    public void Sulla_riga_divergente_si_vede_il_segno_e_Civile_si_sceglie()
+    {
+        AirportCategory? scritta = null;
+        var c = RenderComponent<AirportCategoryPicker>(p => p
+            .Add(x => x.Icao, "LIPA")
+            .Add(x => x.Category, AirportCategory.MilitaryOnly)
+            .Add(x => x.Divergente, true)
+            .Add(x => x.HasMilitaryDocument, true)
+            .Add(x => x.OnChange, (AirportCategory v) => scritta = v));
+
+        Assert.NotNull(c.Find(".apt-cat-div"));
+        Assert.Equal(4, c.FindAll("option").Count);
+
+        c.Find("select").Change(nameof(AirportCategory.Civil));
+        c.Find(".apt-cat-confirm .btn.primary").Click();
+        Assert.Equal(AirportCategory.Civil, scritta);
+    }
+
+    [Fact]
+    public void Senza_divergenza_nessun_segno()
+    {
+        var c = RenderComponent<AirportCategoryPicker>(p => p
+            .Add(x => x.Icao, "LIPA")
+            .Add(x => x.Category, AirportCategory.MilitaryOnly));
+
+        Assert.Empty(c.FindAll(".apt-cat-div"));
+        Assert.Equal(3, c.FindAll("option").Count);
+    }
 }

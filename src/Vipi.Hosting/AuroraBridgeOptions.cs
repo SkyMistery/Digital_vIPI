@@ -150,6 +150,16 @@ public sealed class RequestRateLimiter
     /// minuto rispondevano 429 tutti i quadri vAWOS <i>e</i> l'archivio, e un IP che usava l'archivio si
     /// mangiava il tetto del bridge.</para>
     /// </summary>
+    /// <summary>
+    /// Vero se <paramref name="key"/> ha già esaurito la finestra in corso — <b>senza</b> consumarne un posto. Serve a
+    /// chi deve decidere prima di spendere qualcosa (una query) e contare solo dopo, se è andata male (U-243).
+    /// </summary>
+    public bool Esaurita(string key, int limitPerMinute)
+    {
+        if (limitPerMinute <= 0 || !_counters.TryGetValue(key, out var counter)) return false;
+        lock (counter) return DateTime.UtcNow - counter.WindowStart < Window && counter.Count >= limitPerMinute;
+    }
+
     public bool PassaITetti(string endpoint, string chiamante, int perChiamante, int totali, int chiamantiTracciati) =>
         TryAcquire(endpoint + ":" + chiamante, perChiamante, chiamantiTracciati)
         && TryAcquire(GlobalKey + ":" + endpoint, totali);

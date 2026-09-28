@@ -97,6 +97,13 @@ public sealed class AwosService : IAwosService
 
         var metar = string.IsNullOrWhiteSpace(raw) ? null : MetarParser.ParseMetar(raw!);
 
+        // 🔴 U-092: l'età del bollettino si misura dal METAR, non dalla risposta. Oltre 90 minuti il quadro lo mostra
+        // ma non ci decide sopra né LVP né pista. Il METAR di prova (staff) è per definizione «adesso».
+        var adesso = DateTimeOffset.UtcNow;
+        var osservato = metarDiProva is null ? MetarParser.OraOsservazione(metar?.TimeRaw, adesso) : null;
+        var vecchio = AwosComposition.MetarVecchio(osservato, adesso);
+        var perDecidere = vecchio ? null : metar;
+
         var piste = AwosComposition.Strisce(scalo.Runways);
         var identificativi = scalo.Runways
             .Select(r => (r.Ident ?? "").Trim())
@@ -107,10 +114,15 @@ public sealed class AwosService : IAwosService
         var atis = AwosGate.Atis(_online.GetCurrent().Details, id);
         // Regole, minimi LVP e soglie escluse: dal documento PUBBLICATO (la porta è condivisa con vista rapida ed
         // elenco aeroporti, vedi IPisteDalPubblicato).
-        var (regole, minimiLvp, escluse) = await _pubblicato.PerScaloAsync(id, scalo.Rules, scalo.Lvp, scalo.Runways,
+        var (regole, minimiLvp, escluse, transizioneCongelata) = await _pubblicato.PerScaloAsync(id, scalo.Rules, scalo.Lvp, scalo.Runways,
             await DocumentiAsync(ct), ct);
-        var attiva = AwosComposition.PistaAttiva(regole, identificativi, metar,
-            AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign, escluse);
+        var attiva = AwosComposition.PistaAttiva(regole, identificativi, perDecidere,
+            AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign, escluse,
+            RunwayRow.Rotte(scalo.Runways));   // la rotta del pannello vento, anche per regole e ripiego (U-223)
+
+        // 🔴 U-227: TA e TL dalla sezione pubblicata, come regole e LVP; senza, la proiezione dei vivi — la stessa del
+        // documento, e la stessa funzione per leggere la fascia.
+        var transizione = transizioneCongelata ?? AirportSectionProjection.Transition(scalo);
 
         return new AwosResult(new AwosView(
             Icao: id,
@@ -122,14 +134,16 @@ public sealed class AwosService : IAwosService
             MetarSource: metarDiProva is null ? bollettino?.MetarSource : null,
             MetarAsOf: metarDiProva is null ? bollettino?.AsOf : null,
             Metar: metar,
-            TransitionAltitudeFt: scalo.TransitionAltitudeFt,
-            TransitionLevel: AwosComposition.TransitionLevel(scalo.TransitionLevels, metar?.QnhHpa),
+            TransitionAltitudeFt: transizione.TransitionAltitudeFt,
+            TransitionLevel: LivelloDiTransizione.Adesso(transizione, metar?.QnhHpa),
             Piste: piste,
             Attiva: attiva,
             Atis: atis,
-            Lvp: ValutaLvp(minimiLvp, metar, giaInVigore),
-            AsOf: DateTimeOffset.UtcNow,
-            MetarStation: metarDiProva is null ? bollettino?.Stazione : null), AwosOutcome.Ok);
+            Lvp: ValutaLvp(minimiLvp, perDecidere, giaInVigore),
+            AsOf: adesso,
+            MetarStation: metarDiProva is null ? bollettino?.Stazione : null,
+            MetarObservedUtc: osservato,
+            MetarStale: vecchio), AwosOutcome.Ok);
     }
 
 

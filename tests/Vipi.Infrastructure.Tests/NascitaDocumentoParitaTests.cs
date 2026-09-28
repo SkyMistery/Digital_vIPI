@@ -89,6 +89,34 @@ public class NascitaDocumentoParitaTests : IAsyncLifetime
         await AssertNascePulito(id);
     }
 
+    /// <summary>
+    /// Revisione 3, U-246: i blocchi della vIPI ACC seminavano le figlie di catalogo col titolo italiano anche su un
+    /// documento in inglese, e senza pubblico e nascosta del catalogo. Ora nascono come in DocumentBirth.
+    /// </summary>
+    [Fact]
+    public async Task Porta_2_la_vIPI_ACC_in_inglese_nasce_coi_titoli_inglesi()
+    {
+        var settore = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
+        var blocchi = new[]
+        {
+            new Vipi.Application.Abstractions.VipiBlockSpec("aerovia", "Airway sectors", SectionProfile.AccAerovia),
+        };
+
+        var id = await Editing().EnsureVipiDocumentTreeAsync(settore, "vIPI ACC", Language.En, blocchi, authorUserId: 1);
+
+        var versione = await _db.DocumentVersions.Where(v => v.DocumentId == id).Select(v => v.Id).FirstAsync();
+        var figlie = await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.DocumentVersionId == versione && s.ParentSectionId != null).ToListAsync();
+        Assert.NotEmpty(figlie);
+        foreach (var f in figlie)
+        {
+            var desc = SectionCatalog.Find(SectionProfile.AccAerovia, f.SectionKey)!;
+            Assert.Equal(desc.TitleIn("en"), f.Title);
+            Assert.Equal(desc.Audience, f.Audience);
+            Assert.Equal(desc.BornHidden, f.IsHidden);
+        }
+    }
+
     [Fact]
     public async Task Porta_3_CreateDocument_nuovo_documento()
     {

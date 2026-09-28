@@ -253,6 +253,26 @@ public class ProcedureReferenceResolverTests
         Assert.Null(vive.Cicli[1]);   // la lettura: oggi
     }
 
+    /// <summary>
+    /// 🔴 U-151 (revisione totale 3): una release programmata al ciclo entrante congela la vIPI dentro
+    /// <see cref="ShapeReleaseContext.Capturing"/>, e le SID/STAR fra i punti degli accordi uscivano col nome
+    /// di OGGI — la tabella del ciclo della release diceva già quello nuovo. Fuori dalla cattura, oggi come prima.
+    /// </summary>
+    [Fact]
+    public async Task Dentro_un_congelamento_le_tabelle_dei_punti_si_chiedono_al_suo_ciclo()
+    {
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Star, "LIRN")] = Tabella("ERIK2A") } };
+        var contesto = new ShapeReleaseContext();
+        var resolver = new ProcedureReferenceResolver(vive, new Congelate(), ciclo: contesto);
+        var tabelle = new HashSet<(ProcedureKind, string)> { (ProcedureKind.Star, "LIRN") };
+
+        using (contesto.Capturing("2611"))
+            await resolver.PerTabelleAsync(tabelle);
+        await resolver.PerTabelleAsync(tabelle);
+
+        Assert.Equal(new[] { "2611", null }, vive.Cicli);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("LIR")]

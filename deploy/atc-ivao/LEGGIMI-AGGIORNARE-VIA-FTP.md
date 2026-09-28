@@ -218,6 +218,12 @@ cancellate non si rompe niente — ricomincia da capo, e si perde solo la storia
 
 Poi `restart.txt` in `tmp/` e riaprite il sito. Tornate esattamente alla situazione di prima.
 
+⚠️ **Tranne se il foglio del pacchetto dice «NON SI TORNA INDIETRO».** Quel pacchetto porta una migrazione che
+toglie o rinomina una colonna o una tabella: il database resta quello nuovo anche dopo le due rinomine, e il codice
+di prima non lo sa leggere — le pagine rispondono 500 invece di tornare a posto. Lì non fate il rollback:
+scriveteci. Per lo stesso motivo, un pacchetto così si carica quando nessuno sta editando (nel minuto dopo il
+carico il processo vecchio risponde ancora).
+
 ⚠️ **Tenete da parte i `.fallito`** e diteci che c'è stato un rollback: quei file, insieme a
 `diagnostica/avvio-errore.txt`, sono ciò che ci fa capire il guasto. Senza, si ricostruisce a indovinare —
 ed è quello che il 23 agosto è costato una serata.

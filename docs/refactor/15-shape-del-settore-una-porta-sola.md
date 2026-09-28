@@ -228,6 +228,11 @@ gradino nei numeri deve essere **spiegabile**, non misterioso.
 tratta come AMSL**, perché il terreno non ce l'abbiamo; sta scritto qui, e il testo della fonte resta visibile
 (`7000 FT AMSL`) accanto al numero.
 
+⚠️ **Cambiata il 28 settembre 2026** (revisione 3, U-217, scelta del committente): il terreno *del campo* ce
+l'abbiamo — `Airport.ElevationFt`. Il risolutore mette l'elevazione dello scalo del settore sulla forma
+(`SectorShape.ElevazioneFt`) e `ShapePart.QuoteAmsl` alza le quote AGL di quella, con **una regola sola** per
+l'attribuzione del traffico e per la mappa 3D. Un settore d'area senza scalo resta com'era (AGL = AMSL).
+
 ### 3j. Cosa NON cambia
 
 Gli import (ACC, aeroporti, sectorfile Aurora, GitHub) continuano a scrivere **la propria fonte**; la release

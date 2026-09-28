@@ -14,11 +14,15 @@ public sealed class ApiOptions
     public const string SectionName = "Api";
 
     /// <summary>
-    /// Se l'archivio ATC rifiuta chi non porta una chiave. <b>Default <c>false</c></b>: l'archivio resta aperto
-    /// finché i client esistenti non hanno la loro chiave (decisione del committente, §2.3); si accende con un
-    /// cambio di configurazione, non con un pacchetto. Il bridge la chiede <b>sempre</b>.
+    /// Se l'archivio ATC rifiuta chi non porta una chiave. Il bridge la chiede <b>sempre</b>.
+    ///
+    /// <para>🔴 <b>Default <c>true</c></b> dal 27 settembre 2026 (U-018, revisione totale 3; decisione del
+    /// committente): «le API non sono mai anonime» è una regola del CODICE. Fino a quel giorno il default era
+    /// <c>false</c> per il periodo di passaggio (§2.3 della carta), e la produzione, che non lo aveva mai acceso,
+    /// rispondeva a chiunque con 46 522 sessioni. Un sito che vuole ancora l'archivio aperto lo scrive:
+    /// <c>Api:RichiediChiave=false</c>.</para>
     /// </summary>
-    public bool RichiediChiave { get; set; }
+    public bool RichiediChiave { get; set; } = true;
 }
 
 /// <summary>
@@ -69,6 +73,18 @@ public static class PortaDelleApi
             return Tetti(ctx, limiter, endpoint, ip, perChiamante, totali, chiamantiTracciati);
         }
 
+        // 🔴 U-243 (revisione totale 3): una chiave ben formata ma falsa costa una query (impronta + ricerca), e il
+        // tetto per IP veniva DOPO. Chi prova chiavi a raffica ora si ferma prima di toccare il database: si contano
+        // le chiavi sbagliate di quell'IP, e oltre il tetto si risponde 429 senza verificare. Un contatore a parte, e
+        // non quello per IP delle richieste senza chiave: chi legge senza chiave dallo stesso indirizzo non deve
+        // chiudere la porta a chi ne ha una buona.
+        var sbagliate = endpoint + ":sbagliate:" + ip;
+        if (limiter.Esaurita(sbagliate, perChiamante))
+        {
+            ctx.Response.Headers.RetryAfter = "60";
+            return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+        }
+
         var verifica = await ctx.RequestServices.GetRequiredService<IVerificaChiaveApi>()
             .VerificaAsync(chiave, endpoint, ct).ConfigureAwait(false);
 
@@ -85,6 +101,7 @@ public static class PortaDelleApi
 
             default:
                 // Il tetto per IP vale anche per chi sbaglia chiave: chi le prova a raffica si ferma lì.
+                limiter.TryAcquire(sbagliate, perChiamante, chiamantiTracciati);
                 if (Tetti(ctx, limiter, endpoint, ip, perChiamante, totali, chiamantiTracciati) is { } troppe) return troppe;
                 Log(ctx).LogWarning("API {Endpoint}: chiave {Prefisso} sconosciuta o revocata, da {Ip}",
                     endpoint, verifica.Prefisso ?? "(malformata)", ip);

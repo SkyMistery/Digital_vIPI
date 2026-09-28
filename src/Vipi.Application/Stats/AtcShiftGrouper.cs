@@ -33,6 +33,14 @@ public static class AtcShiftGrouper
     public static readonly TimeSpan DefaultGap = TimeSpan.FromMinutes(15);
 
     /// <summary>
+    /// Quanto una riconnessione può <b>sovrapporsi</b> alla connessione caduta e restare lo stesso turno.
+    /// <para>🔴 U-218 (revisione totale 3): la sorgente chiude la sessione caduta qualche secondo dopo l'inizio di
+    /// quella nuova, e con «inizio ≥ fine» quei pezzi restavano due turni per sempre. Oltre questa soglia la
+    /// sovrapposizione è una doppia connessione, non una caduta.</para>
+    /// </summary>
+    public static readonly TimeSpan Sovrapposizione = TimeSpan.FromMinutes(5);
+
+    /// <summary>
     /// Assegna a ogni sessione la chiave del suo turno: l'id della <b>prima</b> sessione del gruppo.
     /// Il risultato è ordinato per (VID, callsign, inizio).
     /// </summary>
@@ -54,7 +62,7 @@ public static class AtcShiftGrouper
 
             foreach (var s in gruppo)
             {
-                var continua = corrente != 0 && fine is { } f && s.StartUtc - f <= soglia && s.StartUtc >= f;
+                var continua = corrente != 0 && fine is { } f && s.StartUtc - f <= soglia && f - s.StartUtc <= Sovrapposizione;
                 if (!continua) corrente = s.SessionId;
 
                 keys[s.SessionId] = corrente;

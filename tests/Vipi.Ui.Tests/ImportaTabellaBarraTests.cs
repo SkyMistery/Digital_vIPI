@@ -129,4 +129,21 @@ public class ImportaTabellaBarraTests : TestContext
         var aiuto = cut.Find(".imp-tabhint");
         Assert.Equal(aiuto.Id, casella.GetAttribute("aria-describedby"));
     }
+
+    /// <summary>
+    /// 🔴 U-043/U-050 (revisione totale 3): una tabella oltre il tetto di celle non si mostra — era proprio l'anteprima
+    /// a esaurire la memoria del processo — e si dice perché, dove si leggono i guasti del file.
+    /// </summary>
+    [Fact]
+    public async Task Una_tabella_oltre_il_tetto_dice_perche_e_non_si_mostra()
+    {
+        var cut = Barra();
+        var larga = string.Join("\t", Enumerable.Repeat("x", 20_001));
+        var testo = string.Join("\n", Enumerable.Repeat("a", 2001)) + "\n" + larga;
+
+        await cut.InvokeAsync(() => cut.Find("textarea").Change(testo));
+
+        cut.WaitForAssertion(() => Assert.Contains("200000", cut.Find(".pill.red").TextContent));
+        Assert.Empty(cut.FindAll("table"));
+    }
 }

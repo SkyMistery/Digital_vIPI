@@ -62,6 +62,14 @@ internal sealed class TrafficRetentionHostedService : BackgroundService
                 "Potatura delle sessioni ATC: {Tolte} riassunte nel mensile e tolte{Ancora}.",
                 sessioni.Removed, sessioni.MoreToGo ? ", altre ne restano" : "");
 
+        // La storia del ponte RFO degli eventi finiti (U-104/U-121, scelta del committente il 28 settembre 2026):
+        // RfoLimits.GiorniDiStoria giorni dopo l'ultima scrittura, via tutta. Nello stesso giro perché è la stessa
+        // domanda — «che cosa non serve più tenere» — e un giro in più sarebbe una categoria di stato in più.
+        var storia = await sp.GetRequiredService<IRfoSharedStateStore>()
+            .PotaStoriaAsync(DateTime.UtcNow.AddDays(-Vipi.Domain.Entities.RfoLimits.GiorniDiStoria), ct);
+        if (storia > 0)
+            _log.LogInformation("Potatura della storia del ponte RFO: {Tolte} righe di eventi finiti.", storia);
+
         return true;
     }
 }

@@ -10,7 +10,7 @@ public sealed record SourceProcedure(
     string Name,              // codice grezzo (es. "ALAX7G", "SOS5A-ESI8H", "ELKA3A")
     string? Transition,       // fix di transition (pieno), se presente
     string? Type,             // "RNAV" / "CONV"
-    string StableKey,         // identità stabile (ICAO|fix|lettera|transition|pista), esclusa la revisione numerica
+    string StableKey,         // identità stabile (ICAO|prefisso grezzo|lettera|transition|pista), esclusa la revisione: AuroraSectorfileParser.ChiaveStabile
     bool NeedsFixReview,      // fix non risolto automaticamente → da completare a mano
     ProcedureKind Kind = ProcedureKind.Sid);   // ⚠️ in coda e col default: le SID esistenti si costruiscono com'erano
 

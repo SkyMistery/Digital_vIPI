@@ -202,14 +202,19 @@ public sealed class EfEditingRepository : IEditingRepository
             var srcSections = await _db.DocumentSections.Where(s => s.DocumentVersionId == src).AsNoTracking().ToListAsync(ct);
             var srcBlocks = await _db.ContentBlocks.Where(b => b.DocumentVersionId == src).AsNoTracking().ToListAsync(ct);
 
+            // ⚠️ Si copia seguendo l'ALBERO, padre prima delle figlie, e la profondità si ricava dal padre
+            // copiato: la colonna `Depth` della sorgente può essere rimasta indietro (U-014: una passata d'avvio
+            // aveva spostato il VFR di Perugia Approach senza riscrivere le figlie). Ordinando per (Depth, Order)
+            // la figlia arrivava prima del padre e il dizionario esplodeva: «Crea bozza» impossibile.
             var map = new Dictionary<int, DocumentSection>();
-            foreach (var s in srcSections.OrderBy(s => s.Depth).ThenBy(s => s.Order))
+            foreach (var s in InOrdineDiAlbero(srcSections))
             {
+                var padre = s.ParentSectionId is int pid ? map[pid] : null;
                 var ns = new DocumentSection
                 {
                     DocumentVersion = draft,
-                    ParentSection = s.ParentSectionId is int pid ? map[pid] : null,
-                    Title = s.Title, Order = s.Order, Depth = s.Depth, SectionKey = s.SectionKey,
+                    ParentSection = padre,
+                    Title = s.Title, Order = s.Order, Depth = padre is null ? 0 : padre.Depth + 1, SectionKey = s.SectionKey,
                     // La copia deve portarsi dietro anche i flag per-sezione: senza, «crea bozza» resettava
                     // RenderMode a Frozen (doc 10) e ora azzererebbe pure IsHidden (doc 11 §3c).
                     RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition, Audience = s.Audience,
@@ -235,6 +240,32 @@ public sealed class EfEditingRepository : IEditingRepository
 
         await _db.SaveChangesAsync(ct);
         return draft.Id;
+    }
+
+    /// <summary>Le sezioni di una versione in ordine d'albero (a livelli, fratelli per <c>Order</c>): ogni padre
+    /// prima delle sue figlie, qualunque cosa dica la colonna <c>Depth</c>. Quelle che dall'albero non si
+    /// raggiungono (padre fuori dalla versione) vanno in coda: chi le copia se ne accorge, non le perde zitto.</summary>
+    private static List<DocumentSection> InOrdineDiAlbero(IReadOnlyCollection<DocumentSection> sezioni)
+    {
+        var ids = sezioni.Select(s => s.Id).ToHashSet();
+        var figlieDi = sezioni.Where(s => s.ParentSectionId is int p && ids.Contains(p))
+            .GroupBy(s => s.ParentSectionId!.Value)
+            .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Order).ThenBy(s => s.Id).ToList());
+        var ordine = new List<DocumentSection>(sezioni.Count);
+        var fila = new Queue<DocumentSection>(sezioni.Where(s => s.ParentSectionId is null)
+            .OrderBy(s => s.Order).ThenBy(s => s.Id));
+        while (fila.Count > 0)
+        {
+            var s = fila.Dequeue();
+            ordine.Add(s);
+            if (figlieDi.TryGetValue(s.Id, out var figlie)) foreach (var f in figlie) fila.Enqueue(f);
+        }
+        if (ordine.Count < sezioni.Count)
+        {
+            var visti = ordine.Select(s => s.Id).ToHashSet();
+            ordine.AddRange(sezioni.Where(s => !visti.Contains(s.Id)));
+        }
+        return ordine;
     }
 
     public async Task<int> CreateDocumentAsync(DocumentType type, string title, Language language,
@@ -382,8 +413,14 @@ public sealed class EfEditingRepository : IEditingRepository
     /// VFR dentro: prima nasceva solo il primo livello, e il contenitore sarebbe nato VUOTO. È la stessa lezione
     /// di <c>DocumentBirth.Semina</c> (28 agosto 2026), che però fa nascere un documento intero e non un blocco.</para>
     /// </summary>
+    /// <summary>
+    /// Semina le sezioni di catalogo sotto un blocco della vIPI ACC (nascita del documento e «+ gruppo APP»).
+    /// <para>⚠️ Con la lingua del documento, il pubblico e la nascosta del catalogo, come <c>DocumentBirth</c>
+    /// (revisione 3, U-246): scriveva sempre il titolo italiano, anche su una vIPI in inglese, e ignorava gli
+    /// altri due campi.</para>
+    /// </summary>
     private void SeminaFiglie(DocumentVersion version, DocumentSection padre, SectionProfile profile,
-        IReadOnlyList<SectionDescriptor> descrittori)
+        IReadOnlyList<SectionDescriptor> descrittori, string lingua)
     {
         var ordine = 1;
         foreach (var d in descrittori.OrderBy(d => d.Order))
@@ -392,16 +429,18 @@ public sealed class EfEditingRepository : IEditingRepository
             {
                 DocumentVersion = version,
                 ParentSection = padre,
-                Title = d.Title,
+                Title = d.TitleIn(lingua),
                 Order = ordine++,
                 Depth = padre.Depth + 1,
                 SectionKey = d.Key,
                 RowVersion = Guid.NewGuid().ToByteArray(),
                 RenderMode = ModoAllaNascita(d.Key),
+                Audience = d.Audience,
+                IsHidden = d.BornHidden,
             };
             _db.DocumentSections.Add(child);
             AggiungiPlaceholderSeServe(version, child, profile, d.Key);
-            if (d.Children is { Count: > 0 } figli) SeminaFiglie(version, child, profile, figli);
+            if (d.Children is { Count: > 0 } figli) SeminaFiglie(version, child, profile, figli, lingua);
         }
     }
 
@@ -460,7 +499,8 @@ public sealed class EfEditingRepository : IEditingRepository
             };
             _db.DocumentSections.Add(blockSection);
 
-            SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile));
+            SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile),
+                language == Language.En ? "en" : "it");
         }
         await _db.SaveChangesAsync(ct);
 
@@ -499,8 +539,9 @@ public sealed class EfEditingRepository : IEditingRepository
         };
         _db.DocumentSections.Add(blockSection);
 
-        var version = await _db.DocumentVersions.FirstAsync(v => v.Id == versionId, ct);
-        SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile));
+        var version = await _db.DocumentVersions.Include(v => v.Document).FirstAsync(v => v.Id == versionId, ct);
+        SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile),
+            version.Document!.Language == Language.En ? "en" : "it");
         await _db.SaveChangesAsync(ct);
         return blockSection.Id;
     }
@@ -668,6 +709,10 @@ public sealed class EfEditingRepository : IEditingRepository
         if (!string.IsNullOrEmpty(edit.RowVersion))
             _db.Entry(block).Property(b => b.RowVersion).OriginalValue = Convert.FromBase64String(edit.RowVersion);
 
+        // 🔴 U-137 (revisione totale 3): la foto che il blocco citava PRIMA. Sostituita o tolta, restava nel
+        // deposito, fuori dalla quota e mai ripulita; ora si libera come alla cancellazione del blocco.
+        var prima = ShaCitati(new[] { block });
+
         block.Tier = edit.Tier;
         block.Visibility = edit.Visibility;
         block.CalloutKind = edit.CalloutKind;
@@ -682,6 +727,8 @@ public sealed class EfEditingRepository : IEditingRepository
                 "Il blocco è stato modificato nel frattempo: ricarica l'editor prima di salvare.",
                 "The block has been changed in the meantime: reload the editor before saving."));
         }
+
+        await LiberaImmaginiAsync(prima.Except(ShaCitati(new[] { block }), StringComparer.Ordinal).ToList(), ct);
     }
 
     public async Task<int> AddBlockAsync(int sectionId, BlockFormat format, BlockTier tier, BlockVisibility visibility, CancellationToken ct = default)
@@ -861,6 +908,49 @@ public sealed class EfEditingRepository : IEditingRepository
         _db.DocumentSections.Add(section);
         await _db.SaveChangesAsync(ct);
         return section.Id;
+    }
+
+    public async Task<(SectionProfile? Profilo, string Chiave)?> GetSectionCatalogPlaceAsync(
+        int sectionId, CancellationToken ct = default)
+    {
+        var s = await _db.DocumentSections.AsNoTracking().Where(x => x.Id == sectionId)
+            .Select(x => new { x.SectionKey, x.DocumentVersionId, DocId = x.DocumentVersion!.DocumentId })
+            .FirstOrDefaultAsync(ct);
+        if (s is null) return null;
+
+        // Il profilo come lo sceglie l'editor che la disegna: la famiglia del documento, e per la vIPI ACC il
+        // blocco (Aerovia o gruppo APP) sotto cui la sezione sta.
+        var d = await _db.Documents.AsNoTracking().Where(x => x.Id == s.DocId)
+            .Select(x => new
+            {
+                x.Type, x.Edition,
+                Civile = x.Airport != null,
+                Militare = x.MilAirport != null,
+                App = x.Sectors.Any(z => z.IsPrimary && z.Type == SectorType.App && z.ApproachKind == ApproachKind.Standalone),
+            })
+            .FirstAsync(ct);
+
+        SectionProfile? profilo = d.Type == DocumentType.Vloa ? SectionProfile.Vloa
+            : d.Edition == DocumentEdition.Military ? (d.Militare ? SectionProfile.AirportMil : null)
+            : d.Civile ? SectionProfile.Airport
+            : d.App ? SectionProfile.App
+            : null;
+
+        if (profilo is null && d.Type == DocumentType.Vipi && d.Edition == DocumentEdition.Civil)
+        {
+            var righe = await _db.DocumentSections.AsNoTracking().Where(x => x.DocumentVersionId == s.DocumentVersionId)
+                .Select(x => new { x.Id, x.ParentSectionId, x.SectionKey }).ToDictionaryAsync(x => x.Id, ct);
+            var radice = righe[sectionId];
+            for (var passi = 0; radice.ParentSectionId is int p && righe.TryGetValue(p, out var padre) && passi < 64; passi++)
+                radice = padre;
+            if (radice.Id != sectionId)
+                profilo = string.Equals(radice.SectionKey, SectionKeys.AccBloccoAerovia, StringComparison.OrdinalIgnoreCase)
+                    ? SectionProfile.AccAerovia
+                    : string.Equals(radice.SectionKey, SectionKeys.AccBloccoApp, StringComparison.OrdinalIgnoreCase)
+                        ? SectionProfile.AccAppBlock
+                        : null;
+        }
+        return (profilo, s.SectionKey);
     }
 
     public async Task DeleteSectionAsync(int sectionId, CancellationToken ct = default)
@@ -1149,12 +1239,13 @@ public sealed class EfEditingRepository : IEditingRepository
         var doc = ver.Document!;
         var now = DateTime.UtcNow;
 
-        // Archivia la pubblicata precedente (se diversa).
-        if (doc.CurrentVersionId is int prevId && prevId != versionId)
-        {
-            var prev = await _db.DocumentVersions.FirstOrDefaultAsync(v => v.Id == prevId, ct);
-            if (prev is not null) prev.Status = DocumentStatus.Archived;
-        }
+        // Archivia OGNI altra pubblicata, non solo quella del puntatore (U-080, revisione totale 3): un documento
+        // «Published» senza puntatore — la vLOA generata prima di S27 — ne teneva una che restava «Published»
+        // accanto alla nuova.
+        foreach (var prev in await _db.DocumentVersions
+                     .Where(v => v.DocumentId == doc.Id && v.Id != versionId && v.Status == DocumentStatus.Published)
+                     .ToListAsync(ct))
+            prev.Status = DocumentStatus.Archived;
 
         ver.Status = DocumentStatus.Published;
         if (!string.IsNullOrWhiteSpace(note)) ver.Note = note;

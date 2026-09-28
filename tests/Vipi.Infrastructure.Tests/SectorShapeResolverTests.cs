@@ -92,6 +92,22 @@ public class SectorShapeResolverTests : IAsyncLifetime
 
     private async Task<SectorShape> RisolviAsync() => (await _risolutore.ResolveAsync(new[] { App }))[App];
 
+    /// <summary>🔴 U-217: la forma porta l'elevazione dello scalo del settore, il suolo delle quote AGL.</summary>
+    [Fact]
+    public async Task La_forma_porta_l_elevazione_dello_scalo_del_settore()
+    {
+        var scalo = await _db.Airports.Include(a => a.Acc).FirstAsync(a => a.Icao == "LICC");
+        scalo.ElevationFt = 39;
+        _db.Sectors.Add(new Sector
+        {
+            Callsign = App, Name = "Catania Approach", Acc = scalo.Acc, Type = SectorType.App,
+            Kind = SectorKind.Airport, Airport = scalo, AirportIcao = "LICC", IsProjected = true,
+        });
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(39, (await RisolviAsync()).ElevazioneFt);
+    }
+
     /// <summary>Senza niente addosso, la forma è quella del catalogo: un anello e le due quote di IVAO.</summary>
     [Fact]
     public async Task Senza_aggancio_e_senza_pezzi_vale_il_catalogo_di_ivao()

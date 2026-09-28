@@ -54,6 +54,16 @@
     /// <summary>Notifica la pagina ad ogni cambio: true = l'utente corrente tiene il lock (può modificare).</summary>
     [Parameter] public EventCallback<bool> LockChanged { get; set; }
 
+    /// <summary>
+    /// Il lock è appena stato PRESO con un gesto («Inizia modifica», anche dopo uno sblocco forzato). Chiamato
+    /// <b>prima</b> di <see cref="LockChanged"/>: è dove la pagina rilegge, così i comandi si riaccendono sui dati
+    /// di adesso e non su quelli dell'apertura (U-011, revisione totale 3). Additivo.
+    ///
+    /// <para>⚠️ Non all'apertura, anche se il lock è già nostro: lì la pagina sta ancora leggendo, e una seconda
+    /// lettura sullo stesso DbContext del circuito lo farebbe saltare. All'apertura i dati sono freschi comunque.</para>
+    /// </summary>
+    [Parameter] public EventCallback Acquired { get; set; }
+
     /// <summary>Quando scade il lock (UTC), a ogni battito. Serve alle pagine che vogliono avvisare prima della
     /// scadenza invece di lasciare che l'editing torni in sola lettura mentre si sta scrivendo. Additivo: chi non
     /// lo aggancia non cambia comportamento.</summary>
@@ -64,7 +74,7 @@
     /// ha in mano. Additivo — chi non lo aggancia non cambia di una virgola.
     ///
     /// <para>⚠️ <b>Solo sul tasto</b>, e non sulle altre strade che tolgono il lock: la scadenza e lo sblocco
-    /// forzato di un admin significano «questo lock non è più tuo», e salvare <i>lì</i> vorrebbe dire scrivere
+    /// forzato di un collega (ogni Editor può) significano «questo lock non è più tuo», e salvare <i>lì</i> vorrebbe dire scrivere
     /// sopra al lavoro di chi il lock ce l'ha adesso. Premere il tasto è l'unico caso in cui l'intenzione è
     /// dichiarata.</para>
     ///
@@ -106,6 +116,7 @@
     private async Task Acquire()
     {
         _lock = await Locks.AcquireAsync(ResourceKey);
+        if (_lock.IsMine) await Acquired.InvokeAsync();   // rilegge PRIMA di riaccendere i comandi (U-011)
         await NotifyAsync();
         if (_lock.IsMine) StartHeartbeat();
     }
@@ -124,7 +135,7 @@
 
     private async Task ForceUnlock()
     {
-        await Locks.ForceUnlockAsync(ResourceKey);   // admin: libera il lock altrui
+        await Locks.ForceUnlockAsync(ResourceKey);   // ogni Editor: libera il lock altrui (U-113)
         await Acquire();                              // e prendilo io
     }
 
@@ -237,8 +248,17 @@
         // NON si rilascia il lock qui: il teardown scatta anche navigando tra le pagine che CONDIVIDONO la stessa
         // risorsa (le 4 pagine di struttura), e rilasciare farebbe perdere il lock ad ogni cambio pagina. La chiusura
         // scheda è già gestita dal TTL corto: fermato l'heartbeat, il lock scade da sé in pochi minuti. Il rilascio
-        // immediato avviene solo su «Fine modifica» (esplicito) o «Forza sblocco» (admin).
-        StopHeartbeat();
+        // immediato avviene solo su «Fine modifica» (esplicito) o «Forza sblocco» (ogni Editor).
+        //
+        // 🔴 U-197 (revisione totale 3): lo scope di OwningComponentBase si chiude A MANO. Il renderer chiama solo
+        // DisposeAsync su un componente che lo implementa, mai il Dispose sincrono che chiude lo scope: senza questa
+        // riga ogni pagina di struttura visitata lasciava in piedi uno scope col suo DbContext.
+        try { StopHeartbeat(); }
+        finally
+        {
+            ((IDisposable)this).Dispose();
+            GC.SuppressFinalize(this);
+        }
         return ValueTask.CompletedTask;
     }
 }

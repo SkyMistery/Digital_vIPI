@@ -177,34 +177,18 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.False(diff.HasBaseline);
         Assert.Contains(diff.Rows, r => r.Label == "Sezione Fittizia");
 
-        // Seconda pubblicazione identica: la baseline è la release PRECEDENTE (non «l'effettiva ora», che
+        // Seconda pubblicazione a struttura identica: la baseline è la release PRECEDENTE (non «l'effettiva ora», che
         // per la release in vigore era se stessa → null → il diff fingeva una prima pubblicazione).
+        // ⚠️ Dal 28-set-2026 (U-241) una pubblicazione IDENTICA non crea una release: si cambia il titolo del
+        // documento, che la firma editoriale non guarda — la struttura resta la stessa, il payload no.
+        var documento = await _db.Documents.FirstAsync(d => d.Id == _docId);
+        documento.Title = "Documento Fittizio (rev)";
+        await _db.SaveChangesAsync();
         await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "bis");
         var rel2 = (await svc.ListAsync(FakeType, "qualsiasi-chiave")).First(r => r.IsEffectiveNow);
         var diff2 = await svc.DiffAsync(rel2.Id);
         Assert.True(diff2.HasBaseline);
         Assert.Empty(diff2.Rows);   // contenuto identico → nessuna differenza, non «tutto aggiunto»
-    }
-
-    [Fact]
-    public async Task Backfill_Creates_Effective_Release_For_Published_Without_One_And_Is_Idempotent()
-    {
-        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
-        var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
-            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
-
-        // Il doc fittizio è Published SENZA release → il backfill ne genera una effettiva ora.
-        Assert.Null(await repo.GetEffectiveAsync(FakeType, "fake-key", DateTime.UtcNow));
-        Assert.Equal(1, await svc.BackfillMissingReleasesAsync());
-
-        var eff = await repo.GetEffectiveAsync(FakeType, "fake-key", DateTime.UtcNow);
-        Assert.NotNull(eff);
-        Assert.Contains("Sezione Fittizia", eff!.PayloadJson);
-
-        // Idempotente: una seconda passata non crea nulla (già coperto).
-        Assert.Equal(0, await svc.BackfillMissingReleasesAsync());
     }
 
     [Fact]
@@ -274,7 +258,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     /// <param name="stati">Dove la pubblicazione lascia scritto com'è andata la riconciliazione. Null = come
     /// prima dell'8 settembre 2026, cioè un guasto che non lascia traccia da nessuna parte.</param>
     private (ReleaseService Servizio, DocumentImpactService Impatti, EfDocumentImpactRepository Repo) ConDeriva(
-        IImportStateStore? stati = null)
+        IImportStateStore? stati = null, IFrozenSectionProvider? congelate = null)
     {
         var impattiRepo = new EfDocumentImpactRepository(_db);
         var impatti = new DocumentImpactService(impattiRepo, new AllowAuthz());
@@ -287,7 +271,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
 
         svc = new ReleaseService(new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new AllowAuthz(),
             new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()),
+            new FrozenSectionRegistry(congelate is null ? Array.Empty<IFrozenSectionProvider>() : new[] { congelate }),
             new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)),
             Registry(), Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
@@ -394,6 +378,38 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.Null(await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
     }
 
+    /// <summary>
+    /// 🔴 U-053 (revisione totale 3): la firma della programmata contava i blocchi, e una derivata congelata
+    /// cambiata dopo aver programmato — una TORA, un minimo LVP — non cambia nessun conteggio. La programmata
+    /// continuava a coprire la riga «da ripubblicare» portando i valori vecchi.
+    /// </summary>
+    [Fact]
+    public async Task Una_Programmata_Con_Una_Derivata_Cambiata_Non_Copre_Piu()
+    {
+        var derivata = new DerivataFinta { Valore = "TORA 3000" };
+        var (svc, _, _) = ConDeriva(congelate: derivata);
+
+        await AddDraftAsync(2);
+        await svc.PublishAsync(FakeType, "fake-key", svc.NextCycle().Cycle, null);
+        Assert.NotNull(await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
+
+        derivata.Valore = "TORA 3100";
+
+        Assert.Null(await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
+    }
+
+    /// <summary>Una derivata congelata sulla prima sezione dello snapshot, col valore che il test decide.</summary>
+    private sealed class DerivataFinta : IFrozenSectionProvider
+    {
+        public string Valore { get; set; } = "";
+        public ReleaseTargetType Type => FakeType;
+        public Task<IReadOnlyDictionary<int, string>> CaptureFrozenAsync(string key, RawDocument doc, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>
+            {
+                [doc.Roots[0].Id] = System.Text.Json.JsonSerializer.Serialize(Valore),
+            });
+    }
+
     // ---- E se la riconciliazione salta? (8 settembre 2026) ------------------------------------------
 
     /// <summary>
@@ -496,6 +512,76 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>Una sezione con chiave e titolo scelti nell'ultima bozza.</summary>
+    private async Task SezioneNellaBozzaAsync(string chiave, string titolo)
+    {
+        var draft = await _db.DocumentVersions
+            .Where(v => v.DocumentId == _docId && v.Status == DocumentStatus.Draft)
+            .OrderByDescending(v => v.VersionNumber).FirstAsync();
+        _db.DocumentSections.Add(new DocumentSection
+        {
+            DocumentVersionId = draft.Id, Title = titolo, Order = 2, Depth = 0,
+            SectionKey = chiave, RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Revisione 3, U-249. Il titolo di una sezione di CATALOGO non è una scelta di chi scrive: lo risolve la chiave,
+    /// a view-time, e il DB lo tiene nella lingua di nascita. Una sua riscrittura (la riconciliazione dei titoli
+    /// d'aeroporto, il 21 settembre su LIRL) apriva una riga «da ripubblicare» — «Airport charts, Airport charts /
+    /// Aerodromo…» — che nessun lettore poteva vedere, perché a schermo non cambiava niente.
+    /// </summary>
+    [Fact]
+    public async Task Rinominare_una_sezione_di_catalogo_non_e_una_deriva()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneNellaBozzaAsync("frequencies", "Frequencies");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneNellaBozzaAsync("frequencies", "Frequenze");
+
+        Assert.Empty(await svc.DriftFromEffectiveAsync(FakeType, "fake-key"));
+    }
+
+    /// <summary>La metà che non deve cambiare: una sezione LIBERA rinominata è una modifica vera.</summary>
+    [Fact]
+    public async Task Rinominare_una_sezione_libera_resta_una_deriva()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneNellaBozzaAsync("custom:a1", "Note");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneNellaBozzaAsync("custom:a1", "Note operative");
+
+        var righe = await svc.DriftFromEffectiveAsync(FakeType, "fake-key");
+        Assert.Contains(righe, r => r.Change == ReleaseChangeKind.Added && r.Label == "Note operative");
+        Assert.Contains(righe, r => r.Change == ReleaseChangeKind.Removed && r.Label == "Note");
+    }
+
+    /// <summary>
+    /// La rete del passaggio all'identità per chiave: una release VECCHIA ha la stessa sezione con una chiave
+    /// libera (le sezioni «cotte» d'aeroporto prima della riconciliazione delle chiavi). Stesso titolo, chiave
+    /// cambiata: non è cambiato il documento, e non deve aprire righe su tutto l'archivio pubblicato.
+    /// </summary>
+    [Fact]
+    public async Task Una_chiave_diventata_di_catalogo_con_lo_stesso_titolo_non_e_una_deriva()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneNellaBozzaAsync("custom:cotta", "Carte aeroportuali");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneNellaBozzaAsync("charts", "Carte aeroportuali");
+
+        Assert.Empty(await svc.DriftFromEffectiveAsync(FakeType, "fake-key"));
+    }
+
     private Task<int> ArchivedCountAsync() =>
         _db.DocumentVersions.CountAsync(v => v.DocumentId == _docId && v.Status == DocumentStatus.Archived);
 
@@ -531,6 +617,67 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     }
 
     /// <summary>Il ReleaseService montato sul DbContext di prova, con authz permissivo.</summary>
+    /// <summary>
+    /// U-241 (revisione 3; scelta del committente del 28-set): «Pubblica ora» premuto senza modifiche scriveva ogni
+    /// volta una release completa (payload intero, tenuto 13 cicli). Se il contenuto è identico a quello in vigore
+    /// non si crea niente, e il servizio lo dice; la bozza si promuove comunque, come sempre.
+    /// </summary>
+    [Fact]
+    public async Task Pubblica_ora_senza_modifiche_non_crea_una_seconda_release()
+    {
+        var svc = Servizio();
+
+        Assert.True(await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "prima"));
+        Assert.False(await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "di nuovo"));
+
+        Assert.Single(await svc.ListAsync(FakeType, "qualsiasi-chiave"));
+    }
+
+    /// <summary>
+    /// U-241, il caso che NON si salta: con una programmata futura, «Pubblica ora» serve proprio a scavalcarla (la
+    /// release nuova ha il numero più alto e la supera, U-009). Saltarla perché uguale all'effettiva lascerebbe la
+    /// programmata a riportare indietro la pagina al suo ciclo.
+    /// </summary>
+    [Fact]
+    public async Task Pubblica_ora_identica_si_crea_lo_stesso_se_c_e_una_programmata()
+    {
+        var svc = Servizio();
+        await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "prima");
+        var futuro = new Vipi.Domain.Services.AiracService().NextCycles(DateTime.UtcNow, 3)[2].Cycle;
+        await svc.PublishAsync(FakeType, "qualsiasi-chiave", futuro, "programmata");
+
+        Assert.True(await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "scavalca"));
+
+        var righe = await svc.ListAsync(FakeType, "qualsiasi-chiave");
+        Assert.Equal(3, righe.Count);
+        Assert.DoesNotContain(righe, r => r.Status == ReleaseStatus.Scheduled);
+    }
+
+    /// <summary>Un testo cambiato dentro un blocco (la firma editoriale conta i blocchi, non il testo) è una modifica.</summary>
+    [Fact]
+    public async Task Pubblica_ora_con_un_testo_cambiato_crea_la_release()
+    {
+        var svc = Servizio();
+        var sezione = await _db.DocumentSections.FirstAsync();
+        var blocco = new ContentBlock
+        {
+            DocumentVersionId = sezione.DocumentVersionId, SectionId = sezione.Id, Order = 1, Format = BlockFormat.Prose,
+            Tier = BlockTier.Reduced, Visibility = BlockVisibility.Always, Body = "prima", RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.ContentBlocks.Add(blocco);
+        await _db.SaveChangesAsync();
+        await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", null);
+
+        // ⚠️ Riletto: la transazione della pubblicazione azzera il change-tracker (EfUnitOfWork), e l'istanza di
+        // prima non è più seguita — cambiarla non scriverebbe niente.
+        var riletto = await _db.ContentBlocks.SingleAsync(b => b.Id == blocco.Id);
+        riletto.Body = "dopo";
+        await _db.SaveChangesAsync();
+
+        Assert.True(await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", null));
+        Assert.Equal(2, (await svc.ListAsync(FakeType, "qualsiasi-chiave")).Count);
+    }
+
     private ReleaseService Servizio() =>
         new(new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new AllowAuthz(),
             new Vipi.Domain.Services.AiracService(),

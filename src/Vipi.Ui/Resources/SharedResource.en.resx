@@ -201,6 +201,8 @@
   <data name="Aor_NoShapeBody" xml:space="preserve"><value>No polygon for the block sectors (not imported yet, or not readable).</value></data>
   <data name="Minima_NoneTitle" xml:space="preserve"><value>No vectoring minima chart</value></data>
   <data name="Minima_NoneBody" xml:space="preserve"><value>The sectorfile has no MRVA file for this unit. In the Italian division 24 airports and the four ACCs have one: where it is missing, that is not an error.</value></data>
+  <data name="Minima_SourceDownTitle" xml:space="preserve"><value>The vectoring minima chart did not arrive</value></data>
+  <data name="Minima_SourceDownBody" xml:space="preserve"><value>The sectorfile is not answering right now, and one or more MRVA charts of this section are missing. It does not mean they do not exist: reopen the page in a few minutes.</value></data>
   <data name="Minima_Hint" xml:space="preserve"><value>Chart reproduced from the Aurora sectorfile as it is: altitudes are the original labels, unconverted. Pick the base map below the chart — the terrain layer shows why the minimum is what it is there.</value></data>
   <data name="Minima_AorHint" xml:space="preserve"><value>Toggle the AoR sectors above the map to see how the minima relate to the boundaries.</value></data>
   <data name="Minima_BaseLabel" xml:space="preserve"><value>Base map:</value></data>
@@ -308,6 +310,7 @@
   <data name="Live_NoCoord" xml:space="preserve"><value>No coordination for this ACC.</value></data>
   <data name="Live_NoDocTitle" xml:space="preserve"><value>No vIPI published for {0}</value></data>
   <data name="Live_NoDocBody" xml:space="preserve"><value>Transfers, areas of responsibility and the frequencies below come from the catalogues and are still valid. Only the editorial grouping of frequencies is missing: &lt;a href="{0}"&gt;open the vIPI&lt;/a&gt; and publish it.</value></data>
+  <data name="Live_NoDocBodyNoLink" xml:space="preserve"><value>Transfers, areas of responsibility and the frequencies below come from the catalogues and are still valid. Only the editorial grouping of frequencies is missing: the vIPI needs to be published.</value></data>
   <data name="Common_ConnectedAsN" xml:space="preserve"><value>Connected as {0}</value></data>
   <data name="Common_Coordination" xml:space="preserve"><value>Coordination</value></data>
   <data name="Common_AptQuickView" xml:space="preserve"><value>Airport quick view</value></data>
@@ -745,7 +748,7 @@
   <data name="Diag_Severe" xml:space="preserve"><value>severe</value></data>
   <data name="Diag_Warning" xml:space="preserve"><value>warning</value></data>
   <!-- All screens (/vsop/screens) -->
-  <data name="Screens_Subtitle" xml:space="preserve"><value>Navigation index — all implemented pages of mockup v2</value></data>
+  <data name="Screens_Subtitle" xml:space="preserve"><value>Generated from the application's routes: {0} addresses. Those with parameters cannot be opened from here.</value></data>
   <!-- Structure (/vsop/admin/sectorstructure) -->
   <data name="Struct_PageTitle" xml:space="preserve"><value>Structure (ACC, sectors)</value></data>
   <data name="Struct_Title" xml:space="preserve"><value>Structure</value></data>
@@ -810,6 +813,10 @@
   <data name="Struct_Fallback_Remove" xml:space="preserve"><value>Remove this row</value></data>
   <data name="Struct_Fallback_Suggested" xml:space="preserve"><value>Suggested by geometry:</value></data>
   <data name="Struct_Fallback_NoSuggestions" xml:space="preserve"><value>No suggestion: no other sector shares altitude with this one.</value></data>
+  <data name="Struct_Fallback_UnsavedSwitch" xml:space="preserve"><value>The fallback chain of {0} is not saved.</value></data>
+  <data name="Struct_Fallback_DiscardSwitch" xml:space="preserve"><value>Discard and switch sector</value></data>
+  <data name="Struct_Fallback_Stay" xml:space="preserve"><value>Stay here</value></data>
+  <data name="Struct_Fallback_UnsavedRelease" xml:space="preserve"><value>The fallback chain is not saved: apply or cancel it before «Finish editing».</value></data>
   <data name="Struct_Ciclo" xml:space="preserve"><value>cycle</value></data>
   <data name="Struct_CicloTitle" xml:space="preserve"><value>Cyclic hierarchy: this sector is its own ancestor. The fallback chain stops here. Give it a valid parent, or remove it from the child that points at it.</value></data>
   <data name="Struct_InheritedTitle" xml:space="preserve"><value>No parent set: derived from the airport ladder (DEL → GND → TWR → APP). Assign one to pin it.</value></data>
@@ -1134,6 +1141,7 @@
   <data name="Nav_AddHint" xml:space="preserve"><value>A code that does not exist yet is created by typing it: the nature is only needed the first time.</value></data>
   <data name="Nav_Empty" xml:space="preserve"><value>No navaids in this document.</value></data>
   <data name="Nav_SharedNote" xml:space="preserve"><value>Navaids are a division-wide catalogue: what you write here changes the same navaid in every other document that cites it. Fields coming from the sectorfile cannot be edited.</value></data>
+  <data name="Nav_FromSourceNext" xml:space="preserve"><value>from the sectorfile · new values from cycle {0}</value></data>
   <data name="Nav_FromSource" xml:space="preserve"><value>from the sectorfile</value></data>
   <data name="Nav_EditedAt" xml:space="preserve"><value>written on {0}</value></data>
   <data name="Nav_RemoveFromDoc" xml:space="preserve"><value>Removes the row from this document (the navaid stays in the catalogue)</value></data>
@@ -1171,6 +1179,8 @@
   <data name="Nav_AdminImport" xml:space="preserve"><value>Import from sectorfile</value></data>
   <data name="Nav_AdminImportTitle" xml:space="preserve"><value>Re-reads the sectorfile now and updates the catalogue, without waiting for the automatic run</value></data>
   <data name="Nav_AdminImporting" xml:space="preserve"><value>Re-reading the sectorfile…</value></data>
+  <data name="Nav_AdminDetachedOne" xml:space="preserve"><value>One row the sectorfile no longer sends is editable by hand again: if a document cites it, point it to the new row.</value></data>
+  <data name="Nav_AdminDetached" xml:space="preserve"><value>{0} rows the sectorfile no longer sends are editable by hand again: if a document cites them, point it to the new row.</value></data>
   <data name="Nav_AdminImported" xml:space="preserve"><value>Import done: {0} created, {1} updated, {2} unchanged (out of {3} rows from the sectorfile).</value></data>
   <data name="Nav_AdminImportExcluded" xml:space="preserve"><value>Import not run: in Sources, navaids are marked as “manual”, so a person looks after them.</value></data>
   <data name="Nav_AdminImportMute" xml:space="preserve"><value>Import not run: the sectorfile did not answer (repository moved, or the network is down). Nothing was changed.</value></data>
@@ -1178,6 +1188,7 @@
   <data name="Nav_AdminNoTypeTitle" xml:space="preserve"><value>The rows nobody has yet said the type of</value></data>
   <data name="Nav_AdminDeletePrompt" xml:space="preserve"><value>Delete “{0}” ({1}) from the catalogue?</value></data>
   <data name="Nav_BadChannel" xml:space="preserve"><value>Not saved: a channel is one to three digits plus X or Y (99Y, for instance) — and if a row with that channel already exists, that is the one to change.</value></data>
+  <data name="Nav_ChannelCited" xml:space="preserve"><value>Not saved: the channel is part of the identity, and a document cites this navaid. Remove it from that table first.</value></data>
   <data name="Div_Airports" xml:space="preserve"><value>Airports</value></data>
   <data name="Div_Navaids" xml:space="preserve"><value>Navaids</value></data>
   <data name="Div_Bearing" xml:space="preserve"><value>Bearing</value></data>
@@ -1229,6 +1240,7 @@
   <data name="Sorg_ProvSource" xml:space="preserve"><value>from source (read-only)</value></data>
   <data name="Sorg_ProvManual" xml:space="preserve"><value>manual</value></data>
   <data name="Sorg_Saved" xml:space="preserve"><value>Data source policy saved.</value></data>
+  <data name="Sorg_SavedKept" xml:space="preserve"><value>Policy saved. Meanwhile another administrator had changed: {0}. Those stay as they set them.</value></data>
   <data name="Sorg_HelpAria" xml:space="preserve"><value>How data sources work</value></data>
   <data name="Sorg_Dirty" xml:space="preserve"><value>{0} changed</value></data>
   <data name="Sorg_DirtyTitle" xml:space="preserve"><value>Categories changed since the last save</value></data>
@@ -1239,9 +1251,11 @@
   <data name="Sorg_ReloadNavaidsTitle" xml:space="preserve"><value>Fetch the fix/VOR/NDB catalogue from the sectorfile right now. Without this it refreshes on its own once a day.</value></data>
   <data name="Sorg_ReloadNavaidsOk" xml:space="preserve"><value>Point catalogue reloaded: {0} entries.</value></data>
   <data name="Sorg_AliasTitle" xml:space="preserve"><value>Fix aliases</value></data>
-  <data name="Sorg_AliasHelp" xml:space="preserve"><value>An alias fixes by hand a fix that the sectorfile leaves truncated inside a SID code (for example SIV → SOSIV). It applies to every airport and wins over automatic expansion: while it exists, the import writes that name. They are created from the «alias» box in the airport editor; here you can see and remove them.</value></data>
+  <data name="Sorg_AliasHelp" xml:space="preserve"><value>An alias fixes by hand a fix that the sectorfile leaves truncated inside a SID code (for example SIV → SOSIV). It applies to the airport it was created for and wins over automatic expansion: while it exists, that airport's import writes that name. Those without an airport were created when an alias applied everywhere, and still do. They are created from the «alias» box in the airport editor; here you can see and remove them.</value></data>
   <data name="Sorg_AliasColPrefix" xml:space="preserve"><value>Prefix</value></data>
   <data name="Sorg_AliasColFix" xml:space="preserve"><value>Fix</value></data>
+  <data name="Sorg_AliasColIcao" xml:space="preserve"><value>Airport</value></data>
+  <data name="Sorg_AliasAll" xml:space="preserve"><value>all</value></data>
   <data name="Sorg_AliasNone" xml:space="preserve"><value>No aliases: every fix resolves on its own.</value></data>
   <data name="Sorg_AliasUnknown" xml:space="preserve"><value>This alias points to a point that is not in the sectorfile catalogue. Since an alias wins over automatic expansion, the import will keep writing this name for as long as the alias exists.</value></data>
   <data name="Sorg_AliasDeleteTitle" xml:space="preserve"><value>Remove this alias</value></data>
@@ -1461,6 +1475,8 @@
   <data name="Apt_CatTitle_CivilWithMilitaryPresence" xml:space="preserve"><value>Civil airport sharing its grounds with a military base. Documents: the vIPI only. Set by an administrator.</value></data>
   <data name="Apt_CatTitle_MilitaryWithCivilPresence" xml:space="preserve"><value>Military field also open to civil traffic. Documents: the vIPI and the military vSOP. Set by an administrator.</value></data>
   <data name="Apt_CatPickAria" xml:space="preserve"><value>Category of {0}</value></data>
+  <data name="Apt_CatDivergent" xml:space="preserve"><value>IVAO: no military presence</value></data>
+  <data name="Apt_CatDivergentTitle" xml:space="preserve"><value>IVAO no longer recognises a military presence at {0}, but the chosen category stays: it does not drop to «Civil» by itself. If IVAO is right, choose «Civil»; if it is wrong, leave it as it is.</value></data>
   <data name="Apt_CatConMil" xml:space="preserve"><value>{0} has a military vSOP, and the “{1}” category does not provide for one. That document is NOT touched: it stays as it is, and if it is published it stays online. Hide it separately — and if it is joined to the vIPI, dissolve the union.</value></data>
   <data name="Apt_CatConfirmYes" xml:space="preserve"><value>Yes, change category</value></data>
   <data name="Apt_ChipAssigned" xml:space="preserve"><value>already assigned {0}</value></data>
@@ -1622,7 +1638,7 @@
   <data name="Lock_LockedByPrefix" xml:space="preserve"><value>Being edited by</value></data>
   <data name="Lock_AnotherEditor" xml:space="preserve"><value>another editor</value></data>
   <data name="Lock_LockedUntilSuffix" xml:space="preserve"><value> (until {0})</value></data>
-  <data name="Lock_ForceTitle" xml:space="preserve"><value>Unlock anyway and take control (admin)</value></data>
+  <data name="Lock_ForceTitle" xml:space="preserve"><value>Unlock anyway and take control</value></data>
   <data name="Lock_ForceUnlock" xml:space="preserve"><value>Force unlock</value></data>
   <data name="Lock_ReadOnly" xml:space="preserve"><value>Read-only</value></data>
   <data name="Lock_StartEdit" xml:space="preserve"><value>Start editing</value></data>
@@ -1773,18 +1789,23 @@
   <data name="Rel_ScheduleAtCycle" xml:space="preserve"><value>Schedule at cycle</value></data>
   <data name="Rel_PublishedAtCycle" xml:space="preserve"><value>Release published at AIRAC cycle {0}.</value></data>
   <data name="Rel_PublishedNow" xml:space="preserve"><value>Release published now (review).</value></data>
+  <data name="Rel_NothingNewToPublish" xml:space="preserve"><value>Nothing new compared with the release in force: no release created, that one stays.</value></data>
     <data name="Rel_CancelPrompt" xml:space="preserve"><value>Cancel the AIRAC {0} release? The public goes back to the previous effective one.</value></data>
   <data name="Rel_CancelPromptOld" xml:space="preserve"><value>Remove the superseded AIRAC {0} release from the history? The public sees no difference.</value></data>
   <data name="Rel_CancelTitleOld" xml:space="preserve"><value>Remove this superseded release from the history</value></data>
   <data name="Common_SystemAuthor" xml:space="preserve"><value>system</value></data>
   <data name="Rel_CancelYes" xml:space="preserve"><value>Cancel the release</value></data>
   <data name="Rel_OlderN" xml:space="preserve"><value>{0} more superseded releases</value></data>
-  <data name="Rel_ShapeDeferredTitle" xml:space="preserve"><value>New areas not yet effective</value></data>
-  <data name="Rel_ShapeDeferredBody" xml:space="preserve"><value>{0} area(s) in this scope have a new boundary that becomes effective later: the release knows it and will publish the PREVIOUS one. If this is an urgent fix, force it.</value></data>
+  <data name="Rel_ShapeDeferredTitle" xml:space="preserve"><value>Sectorfile data not yet effective</value></data>
+  <data name="Rel_ShapeDeferredBody" xml:space="preserve"><value>{0} item(s) in this document (areas, navaids, MRVA charts) have a new version that becomes effective later: the release knows it and will publish the PREVIOUS one. If this is an urgent fix, force it.</value></data>
+  <data name="Rel_DeferredNavaid" xml:space="preserve"><value>navaid</value></data>
+  <data name="Rel_DeferredMva" xml:space="preserve"><value>MRVA chart</value></data>
   <data name="Rel_ShapeDeferredRow" xml:space="preserve"><value>effective from cycle {0}</value></data>
-  <data name="Rel_ShapeForce" xml:space="preserve"><value>Publish the new areas anyway</value></data>
-  <data name="Rel_ShapeForceTitle" xml:space="preserve"><value>Turns on the override for these areas: the next publication carries the new boundary without waiting for the cycle.</value></data>
-  <data name="Rel_ShapeForcedN" xml:space="preserve"><value>{0} areas forced: the next publication will carry the new boundary.</value></data>
+  <data name="Rel_ShapeForce" xml:space="preserve"><value>Publish the new data anyway</value></data>
+  <data name="Rel_ShapeForceTitle" xml:space="preserve"><value>Turns on the override for these items: the next publication carries the new version without waiting for the cycle.</value></data>
+  <data name="Rel_ShapeForcedN" xml:space="preserve"><value>{0} items forced: the next publication will carry the new version.</value></data>
+  <data name="Rel_NowReplacesScheduled" xml:space="preserve"><value>“Publish now” also replaces the scheduled release (AIRAC {0}): it carries older text than what you are publishing now.</value></data>
+  <data name="Rel_CycleReplacesScheduled" xml:space="preserve"><value>Scheduling at AIRAC {0} also replaces the scheduled release (AIRAC {1}).</value></data>
   <data name="Rel_Canceled" xml:space="preserve"><value>Release canceled.</value></data>
   <data name="Rel_Effective" xml:space="preserve"><value>Effective</value></data>
   <data name="Rel_Scheduled" xml:space="preserve"><value>Scheduled</value></data>
@@ -1990,6 +2011,7 @@
   <data name="Ed_Edit" xml:space="preserve"><value>Edit</value></data>
   <data name="Ver_UnionDraftsTogether" xml:space="preserve"><value>Joined document: publishing or discarding this draft applies to the drafts of all {0} documents in the union.</value></data>
   <data name="Ed_LockedByOtherRetry" xml:space="preserve"><value>Being edited by another editor, at least when the page was opened: press to try again</value></data>
+  <data name="Ed_LockedByOtherNow" xml:space="preserve"><value>Being edited by {0}: try again when they are done, or ask an Editor to unlock.</value></data>
   <data name="Ed_LockedByOtherBody" xml:space="preserve"><value>Locked by {0}{1}. You cannot save while the lock is active.</value></data>
   <data name="Vle_UnknownAcc" xml:space="preserve"><value>Unknown ACC</value></data>
   <data name="Vle_EditorTitle" xml:space="preserve"><value>vLOA editor</value></data>
@@ -2074,7 +2096,7 @@
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-import from IVAO</value></data>
   <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Re-fetch from IVAO everything this airport takes from the source: runways, Transition Altitude, the ATC sector catalogue and SID/STAR procedures (respects the «Data sources» policy)</value></data>
   <data name="Ape_HelpAria" xml:space="preserve"><value>Help on the airport editor</value></data>
-  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;The airport profile editor: every section opens and closes. Fields can be written only after «Edit», while you hold the lock.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Every change saves itself&lt;/b&gt; to the &lt;b&gt;draft&lt;/b&gt;: there is no «Save» button, and the header says «Saved». The public sees it only after publishing, in «Versions».&lt;/li&gt;&lt;li&gt;An &lt;b&gt;incomplete&lt;/b&gt; row is not saved: a warning appears and the last valid state stays.&lt;/li&gt;&lt;li&gt;Whatever comes from the source carries the lock and is not edited here: the policy lives in «Data sources».&lt;/li&gt;&lt;/ul&gt;</value></data>
+  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;The airport profile editor: every section opens and closes. Fields can be written only after «Edit», while you hold the lock.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Every change saves itself&lt;/b&gt; to the &lt;b&gt;draft&lt;/b&gt;: there is no «Save» button, and the header says «Saved». The public sees it only after publishing, in «Versions».&lt;/li&gt;&lt;li&gt;An &lt;b&gt;incomplete&lt;/b&gt; row holds back the whole table: a warning appears, and “Finish editing” does not leave until you complete or remove it.&lt;/li&gt;&lt;li&gt;Whatever comes from the source carries the lock and is not edited here: the policy lives in «Data sources».&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Ape_RwRulesHelpAria" xml:space="preserve"><value>Help on runway selection rules</value></data>
   <data name="Ape_TlHelpAria" xml:space="preserve"><value>Help on transition levels</value></data>
   <data name="Ape_TaFromSourceAria" xml:space="preserve"><value>Why the Transition Altitude is read-only</value></data>
@@ -2192,6 +2214,7 @@
   <data name="Ape_TestVerdictDay" xml:space="preserve"><value>day not included</value></data>
   <data name="Ape_TestVerdictParity" xml:space="preserve"><value>day parity does not match</value></data>
   <data name="Ape_TestVerdictSeason" xml:space="preserve"><value>outside its date window</value></data>
+  <data name="Ape_TestVerdictNoWind" xml:space="preserve"><value>wind unknown: no rule decides</value></data>
   <data name="Ape_TestVerdictTail" xml:space="preserve"><value>tailwind {0} kt above the {1} kt maximum</value></data>
   <data name="Ape_TestVerdictCross" xml:space="preserve"><value>crosswind {0} kt above the {1} kt maximum</value></data>
   <data name="Ape_NoUnitFound" xml:space="preserve"><value>No unit found.</value></data>
@@ -2275,7 +2298,7 @@
   <data name="Ape_Priority" xml:space="preserve"><value>Priority</value></data>
   <data name="Ape_FixToVerify" xml:space="preserve"><value>fix to verify</value></data>
   <data name="Ape_PointUnknown" xml:space="preserve"><value>This point is not in the sectorfile catalogue: check the spelling.</value></data>
-  <data name="Ape_AliasTitle" xml:space="preserve"><value>Add the alias {0} → for future imports</value></data>
+  <data name="Ape_AliasTitle" xml:space="preserve"><value>Add the alias {0} → for future imports of this airport (other airports don't see it)</value></data>
   <data name="Ape_Public" xml:space="preserve"><value>public</value></data>
   <data name="Ape_AutoPublishTitle" xml:space="preserve"><value>publishes automatically from cycle {0}</value></data>
   <data name="Ape_Now" xml:space="preserve"><value>now</value></data>
@@ -2399,6 +2422,25 @@
   <data name="Aqp_ClearSearch" xml:space="preserve"><value>Clear the search</value></data>
   <data name="Aqp_SidCount" xml:space="preserve"><value>{0} SID</value></data>
   <data name="Aqp_NoSidMatch" xml:space="preserve"><value>No SID for “{0}”.</value></data>
+  <data name="Aqp_ColTransition" xml:space="preserve"><value>Transition</value></data>
+  <data name="Aqp_NoSid" xml:space="preserve"><value>No SID.</value></data>
+  <data name="Aqp_NoSidRunway" xml:space="preserve"><value>No SID for runway {0}.</value></data>
+  <data name="Tour_TocTitle" xml:space="preserve"><value>Document outline</value></data>
+  <data name="Tour_TocBody" xml:space="preserve"><value>Jump to a section. There is no “Save” button: after “Edit” every change is written to the &lt;b&gt;draft&lt;/b&gt; on its own.</value></data>
+  <data name="Tour_PreviewTitle" xml:space="preserve"><value>Draft preview</value></data>
+  <data name="Tour_PreviewBody" xml:space="preserve"><value>Open the document as it will look. Always check here &lt;b&gt;before&lt;/b&gt; publishing.</value></data>
+  <data name="Tour_ReleaseTitle" xml:space="preserve"><value>Publish</value></data>
+  <data name="Tour_ReleaseBody" xml:space="preserve"><value>Make the draft public with an &lt;b&gt;AIRAC release&lt;/b&gt;: now or scheduled for a cycle.</value></data>
+  <data name="Tour_Close" xml:space="preserve"><value>Close the tour</value></data>
+  <data name="Tour_CloseTitle" xml:space="preserve"><value>Close (Esc)</value></data>
+  <data name="Tour_Skip" xml:space="preserve"><value>Skip</value></data>
+  <data name="Tour_Prev" xml:space="preserve"><value>Back</value></data>
+  <data name="Tour_Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Tour_Done" xml:space="preserve"><value>Done</value></data>
+  <data name="Tour_Step" xml:space="preserve"><value>Step {0} of {1}</value></data>
+  <data name="Screens_GroupPublic" xml:space="preserve"><value>Reading</value></data>
+  <data name="Screens_GroupEditor" xml:space="preserve"><value>Editors</value></data>
+  <data name="Screens_GroupAdmin" xml:space="preserve"><value>Administration</value></data>
   <data name="Apt_SelectRow" xml:space="preserve"><value>Select {0}</value></data>
   <data name="Apt_SelectAll" xml:space="preserve"><value>Select all shown rows</value></data>
   <data name="Struct_ToggleNode" xml:space="preserve"><value>Expand or collapse {0}</value></data>
@@ -2480,6 +2522,11 @@
   <data name="Xfer_BulkArea" xml:space="preserve"><value>active area…</value></data>
   <data name="Xfer_BulkCustom" xml:space="preserve"><value>free condition…</value></data>
   <data name="Xfer_BulkApplyCondition" xml:space="preserve"><value>Apply condition</value></data>
+  <data name="Xfer_BulkConditionEmpty" xml:space="preserve"><value>Pick an area or write a free condition. To clear them there is «Remove condition».</value></data>
+  <data name="Xfer_BulkRemoveCondition" xml:space="preserve"><value>Remove condition</value></data>
+  <data name="Xfer_BulkRemoveConditionPrompt" xml:space="preserve"><value>Remove area and free condition from {0} clauses? You can undo while the message stays on screen.</value></data>
+  <data name="Xfer_BulkRemoveConditionYes" xml:space="preserve"><value>Yes, remove</value></data>
+  <data name="Xfer_CondRestored" xml:space="preserve"><value>Conditions put back as they were.</value></data>
   <data name="Xfer_BulkConditionTitle" xml:space="preserve"><value>Area and free condition. Not runways: those depend on the group's airport</value></data>
   <data name="Xfer_BulkDeleteAria" xml:space="preserve"><value>Delete the selected rows</value></data>
   <data name="Xfer_BulkDeletePrompt" xml:space="preserve"><value>Delete {0} clauses? You can undo while the message stays on screen.</value></data>
@@ -2668,7 +2715,9 @@
   <data name="Swap_Btn" xml:space="preserve"><value>Copy and download ({0} profiles)</value></data>
   <data name="Swap_Busy" xml:space="preserve"><value>Building the zip…</value></data>
   <data name="Swap_OutputInfo" xml:space="preserve"><value>The output is a single .zip with {0} updated profiles.</value></data>
-  <data name="Swap_ErrTooBig" xml:space="preserve"><value>File “{0}” exceeds the {1} MB limit.</value></data>
+  <data name="Swap_ErrTooBig" xml:space="preserve"><value>File “{0}” exceeds the {1} KB limit: an Aurora profile is under 100 KB.</value></data>
+  <data name="Swap_ErrTooManyLines" xml:space="preserve"><value>File “{0}” has more than {1} lines: it does not look like an Aurora profile.</value></data>
+  <data name="Swap_ErrTooManyDests" xml:space="preserve"><value>At most {0} destination profiles at a time: {1} files were not loaded. Remove some to add others.</value></data>
   <data name="Swap_ErrRead" xml:space="preserve"><value>Could not read “{0}”: {1}</value></data>
   <data name="Swap_ErrSectionMissing" xml:space="preserve"><value>Section [{0}] is not present in the source profile: nothing was copied.</value></data>
   <data name="Swap_ErrSwap" xml:space="preserve"><value>Error while copying: {0}</value></data>
@@ -2823,6 +2872,9 @@
   <data name="Stats_ProfileForbidden" xml:space="preserve"><value>Another controller's personal statistics can only be opened by division staff.</value></data>
   <data name="Stats_StaffViewingTitle" xml:space="preserve"><value>Another controller's statistics</value></data>
   <data name="Stats_StaffViewingBody" xml:space="preserve"><value>You can see them because you are division staff. The access is recorded in the audit log.</value></data>
+  <data name="Stats_StaffViewingSessionTitle" xml:space="preserve"><value>Another controller's shift</value></data>
+  <data name="Stats_StaffViewingSessionBody" xml:space="preserve"><value>You can see it because you are division staff. The access is recorded in the audit log.</value></data>
+  <data name="Stats_StaffViewingSessionProfile" xml:space="preserve"><value>Their statistics</value></data>
   <data name="Stats_BackToDivision" xml:space="preserve"><value>Back to the leaderboard</value></data>
   <data name="Stats_OpenProfileTitle" xml:space="preserve"><value>Open the statistics of VID {0}</value></data>
   <data name="Audit_Cat_Statistiche" xml:space="preserve"><value>Statistics</value></data>
@@ -2996,6 +3048,7 @@
   <data name="Gl_ErrDuplicate" xml:space="preserve"><value>This formula already exists. Correct that one instead of adding a second.</value></data>
   <data name="Gl_Saved" xml:space="preserve"><value>Entry saved.</value></data>
   <data name="Gl_Deleted" xml:space="preserve"><value>Entry removed.</value></data>
+  <data name="Gl_DeletePrompt" xml:space="preserve"><value>Remove «{0}» from the glossary?</value></data>
   <data name="Gl_InMemory" xml:space="preserve"><value>{0} machine translations already in memory contain this formula, and they stay as they are: the round only translates what is missing.</value></data>
   <data name="Gl_Redo" xml:space="preserve"><value>Have them redone ({0})</value></data>
   <data name="Gl_RedoHint" xml:space="preserve"><value>Throws away the machine translations containing the formula, so the next round redoes them with the glossary. Corrections written by a person are left alone. ⚠️ The characters are paid to the engine again.</value></data>
@@ -3200,6 +3253,8 @@
   <data name="Att_ErrSlug" xml:space="preserve"><value>A slug takes lowercase letters, digits and single hyphens: «loa-lirr-lfmm».</value></data>
   <data name="Att_ErrSlugTaken" xml:space="preserve"><value>The slug «{0}» already belongs to another entry, and two entries sharing a slug would make the link ambiguous.</value></data>
   <data name="Att_ErrTitle" xml:space="preserve"><value>The title is missing: it is what people read inside the document.</value></data>
+  <data name="Att_ErrTitleLong" xml:space="preserve"><value>The title is too long: at most {0} characters.</value></data>
+  <data name="Att_ErrNoteLong" xml:space="preserve"><value>The note is too long: at most {0} characters.</value></data>
   <data name="Att_ErrLink" xml:space="preserve"><value>No file id can be read from that link. A Drive sharing link is what is needed.</value></data>
   <data name="Att_ErrScope" xml:space="preserve"><value>The scope and its code do not go together: the division wants no code, an ACC or an airport requires one.</value></data>
   <data name="AttKind_Loa" xml:space="preserve"><value>LoA</value></data>
@@ -3354,6 +3409,7 @@
   <data name="Conv_FromCatalog" xml:space="preserve"><value>Or take an area from the catalogue</value></data>
   <data name="Conv_FromCatalogPick" xml:space="preserve"><value>Pick an area…</value></data>
   <data name="Asp_NavReport" xml:space="preserve"><value>Navaids: AIP against our register</value></data>
+  <data name="Asp_NavUnreadable" xml:space="preserve"><value>The file in force cannot be read: no comparison with the AIP is possible.</value></data>
   <data name="Asp_NavReportScope" xml:space="preserve"><value>The comparison only REPORTS: fixes go into the sectorfile, and are imported from there. No register value is touched.</value></data>
   <data name="Asp_NavReportRun" xml:space="preserve"><value>Compare with the register</value></data>
   <data name="Asp_NavReportNone" xml:space="preserve"><value>No differences: the AIP and the register say the same thing.</value></data>
@@ -3448,7 +3504,7 @@
   <data name="Union_MoveUp" xml:space="preserve"><value>Move up</value></data>
   <data name="Union_MoveDown" xml:space="preserve"><value>Move down</value></data>
   <data name="Union_Remove" xml:space="preserve"><value>Remove from the union</value></data>
-  <data name="Union_RemovePrompt" xml:space="preserve"><value>This document goes back to its own page. If only one member is left, the union is dissolved.</value></data>
+  <data name="Union_RemovePrompt" xml:space="preserve"><value>This document goes back to its own page. If only one member is left, the union is dissolved. If the airport vIPI or the military vSOP leaves, the sections hidden by the «in common» panel become visible again in the drafts.</value></data>
   <data name="Union_RemoveYes" xml:space="preserve"><value>Remove</value></data>
   <data name="Union_Dissolve" xml:space="preserve"><value>Dissolve the union</value></data>
   <data name="Union_Common_Open" xml:space="preserve"><value>Shared sections…</value></data>
@@ -3461,8 +3517,14 @@
   <data name="Union_Common_Done" xml:space="preserve"><value>Done: {0} sections changed.</value></data>
   <data name="Union_Common_Done_One" xml:space="preserve"><value>Done: one section changed.</value></data>
   <data name="Union_Common_Hidden" xml:space="preserve"><value>already hidden</value></data>
+  <data name="Union_Shown" xml:space="preserve"><value>{0} sections that the «in common» panel had hidden are visible again in the drafts: on the public pages they come back with the next publication of each document.</value></data>
+  <data name="Union_Shown_One" xml:space="preserve"><value>One section that the «in common» panel had hidden is visible again in the draft: on the public page it comes back with the next publication.</value></data>
+  <data name="Union_Common_Kept" xml:space="preserve"><value>stays: it holds content of its own</value></data>
+  <data name="Union_Common_KeptTitle" xml:space="preserve"><value>This section has subsections that the other documents do not have: hiding it would take them away. It stays visible; only its children in common are hidden.</value></data>
+  <data name="Union_Common_Drags" xml:space="preserve"><value>+{0} subsections with it</value></data>
+  <data name="Union_Common_DragsTitle" xml:space="preserve"><value>Hiding a section also hides everything under it. These subsections are also in the documents that stay: nothing is lost.</value></data>
   <data name="Union_Common_HiddenTitle" xml:space="preserve"><value>In at least one of the documents this section is already hidden.</value></data>
-  <data name="Union_DissolvePrompt" xml:space="preserve"><value>The documents go back to their own pages and their own publications. Nothing that is written is lost.</value></data>
+  <data name="Union_DissolvePrompt" xml:space="preserve"><value>The documents go back to their own pages. The sections that the «in common» panel had hidden become visible again in the drafts: on the public pages they appear with the next publication of each document.</value></data>
   <data name="Union_DissolveYes" xml:space="preserve"><value>Dissolve</value></data>
   <data name="Union_EditToChange" xml:space="preserve"><value>To change the union, start editing.</value></data>
   <data name="Rel_UnionTitle" xml:space="preserve"><value>This document is joined to others: publishing publishes all {0}, at the same cycle.</value></data>
@@ -3541,7 +3603,9 @@
   <data name="TrEd_Now_BrokenOne" xml:space="preserve"><value>⚠️ One came back broken and was not saved: the next round will send it again.</value></data>
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>one needs a person</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>One sentence of this document is not translated yet. The release does NOT freeze it: it will read translated as soon as the round has been through, without republishing.</value></data>
-  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Incomplete row: not saved yet</value></data>
+  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Incomplete row: until you complete or remove it, changes to this table are not saved</value></data>
+  <data name="Ape_FinishBlocked" xml:space="preserve"><value>You cannot leave editing yet: {0} has an incomplete row, and while it is there changes to that table are not saved. Complete or remove it, then “Finish editing”.</value></data>
+  <data name="Ape_TabStar" xml:space="preserve"><value>STAR</value></data>
   <data name="Rta_Toolbar" xml:space="preserve"><value>Text formatting</value></data>
   <data name="Rta_Bold" xml:space="preserve"><value>Bold</value></data>
   <data name="Rta_BoldLetter" xml:space="preserve"><value>B</value></data>

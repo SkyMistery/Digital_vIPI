@@ -9,6 +9,21 @@ namespace Vipi.Application.Tests;
 /// </summary>
 public class AtisRunwaysTests
 {
+    /// <summary>
+    /// 🔴 U-079 (revisione totale 3): la colonna è da 32 caratteri, e un ATIS con troppe piste (o un blocco di
+    /// cifre dopo «ARRIVAL RUNWAY») la superava: in strict mode il salvataggio cadeva a ogni giro. Oltre il tetto
+    /// non è una configurazione vera, e vale la regola del parser: meglio non dire niente che indovinare.
+    /// </summary>
+    [Fact]
+    public void Troppe_piste_per_la_colonna_non_si_dicono()
+    {
+        var r = AtisRunways.Leggi(new[] { "Arrival runway 01 02 03 04 05 06 07 08 09 10 11 12" });
+
+        Assert.Equal(RunwaysInUse.Nessuna, r);
+        Assert.True(AtisRunways.Leggi(new[] { "Arrival runway 01 02 03 04 05 06 07 08 09 10 11" }).Arrival.Length
+                    <= AtisRunways.MaxLunghezza);
+    }
+
     [Fact]
     public void Fiumicino_dichiara_arrivi_e_partenze_diverse()
     {

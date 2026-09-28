@@ -64,9 +64,9 @@
                 }
                 else
                 {
-                    <textarea class="conv-ta" rows="16" spellcheck="false"
+                    <CampoTesto Multiriga="true" class="conv-ta" rows="16" spellcheck="false"
                               placeholder="@L["Conv_InputHint"]"
-                              value="@_testo" @oninput="OnTesto" aria-label="@L["Conv_InputTitle"]"></textarea>
+                              Valore="@_testo" OnInput="OnTesto" aria-label="@L["Conv_InputTitle"]" />
 
                     @* La densità degli archi (carta F1 §4): compare SOLO se il testo ha archi o cerchi. Un campo
                        che non cambia niente di ciò che si vede non c'è — la regola di questa pagina. *@
@@ -157,7 +157,7 @@
                     {
                         <label class="conv-opt">
                             <span>@L["Conv_Type"]</span>
-                            <input value="@_tipo" @oninput="OnTipo" />
+                            <CampoTesto Valore="@_tipo" OnInput="OnTipo" />
                         </label>
                         @* Con PIÙ aree il nome non è uno solo: ognuna porta il suo, e un campo unico
                            scriverebbe lo stesso nome su tutte. Allora sparisce, come tipo e nome spariscono
@@ -166,7 +166,7 @@
                         {
                             <label class="conv-opt">
                                 <span>@L["Conv_Name"]</span>
-                                <input value="@NomeEffettivo" @oninput="OnNome" />
+                                <CampoTesto Valore="@NomeEffettivo" OnInput="OnNome" />
                             </label>
                         }
                         <label class="conv-opt conv-opt-check">

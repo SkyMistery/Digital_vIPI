@@ -24,7 +24,15 @@ public static class AccDocumentAssembler
     /// <summary>Assembla i blocchi da uno snapshot di release (RawDocument): mappa l'albero grezzo a EditableSection e
     /// riusa l'assemblaggio. Gli Id sezione dello snapshot non servono ai salvataggi (vista sola-lettura). Doc 08e-acc.</summary>
     public static IReadOnlyList<AccAssembledBlock> Assemble(RawDocument raw) =>
-        Assemble(raw.Roots.Select(ToEditable).ToList(), Codice(raw.Language));
+        Assemble(raw.Roots.Select(ToEditable).ToList(), Codice(raw.Language), daSnapshot: true);
+
+    /// <summary>
+    /// Le sezioni di catalogo che uno snapshot mostra <b>solo se le ha</b>: la vista le deriva dove la sezione
+    /// c'è (<c>AccViewDerivationService</c>), perché un documento pubblicato prima che esistessero non le ha mai
+    /// pubblicate. Accodate qui senza la vista, la pagina pubblica mostrava due sezioni «Nessun settore» (U-148).
+    /// </summary>
+    public static readonly IReadOnlySet<string> SoloSePubblicate =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { SectionKeys.AorMil, SectionKeys.AorFss };
 
     /// <summary>La lingua del documento come codice, per i titoli di catalogo delle sezioni mai scritte.
     /// Nulla → italiano, che è la lingua in cui nasce la vIPI ACC.</summary>
@@ -47,7 +55,10 @@ public static class AccDocumentAssembler
     /// <param name="lingua">La lingua del documento, per i titoli delle sezioni di catalogo che il documento
     /// non ha mai scritto: quelle non stanno nel documento, quindi non le tocca né il traduttore né
     /// l'editor.</param>
-    public static IReadOnlyList<AccAssembledBlock> Assemble(IReadOnlyList<EditableSection> roots, string lingua = "it")
+    /// <param name="daSnapshot">Vero per una release congelata: le sezioni di <see cref="SoloSePubblicate"/> che
+    /// lo snapshot non ha non si accodano.</param>
+    public static IReadOnlyList<AccAssembledBlock> Assemble(IReadOnlyList<EditableSection> roots, string lingua = "it",
+        bool daSnapshot = false)
     {
         var result = new List<AccAssembledBlock>();
         foreach (var blockSection in roots.OrderBy(s => s.Order).ThenBy(s => s.Id))
@@ -90,7 +101,7 @@ public static class AccDocumentAssembler
                 AorAirspaceEdits = aorCustom.AirspaceEdits ?? new(),
                 Regulated = regulated,
                 Separations = separations,
-                Sections = SectionsOf(blockSection, kind, lingua),
+                Sections = SectionsOf(blockSection, kind, lingua, daSnapshot),
             };
             result.Add(new AccAssembledBlock(blockSection.Id, block, childIds));
         }
@@ -100,7 +111,8 @@ public static class AccDocumentAssembler
     // Sezioni del blocco nell'ordine del documento (doc 11 §3b). Ogni voce porta anche la vista editoriale
     // (blocchi + sotto-sezioni) per la resa condivisa: prima le sezioni libere erano appiattite a sola prosa —
     // tabelle, callout e sotto-sezioni sparivano dal documento pubblicato.
-    private static List<AccBlockSection> SectionsOf(EditableSection blockSection, AccBlockKind kind, string lingua)
+    private static List<AccBlockSection> SectionsOf(EditableSection blockSection, AccBlockKind kind, string lingua,
+        bool daSnapshot)
     {
         var sections = blockSection.Children.OrderBy(c => c.Order).ThenBy(c => c.Id)
             .Select(c => new AccBlockSection(c.Id, c.SectionKey, c.Title, c.IsHidden, ToSectionView(c), c.Audience))
@@ -111,7 +123,7 @@ public static class AccDocumentAssembler
         var profile = SectionCatalog.ProfileOfAccBlock(kind);
         var present = sections.Select(s => s.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var desc in SectionCatalog.For(profile).OrderBy(d => d.Order))
-            if (!present.Contains(desc.Key))
+            if (!present.Contains(desc.Key) && !(daSnapshot && SoloSePubblicate.Contains(desc.Key)))
                 // Sezione di catalogo mai scritta: nasce «per tutti», come ogni sezione esistente.
                 sections.Add(new AccBlockSection(0, desc.Key, desc.TitleIn(lingua), false, null, SectionAudience.Both));
 

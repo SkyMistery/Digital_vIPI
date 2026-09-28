@@ -30,6 +30,7 @@ Tutto vive nel composition root dell'host (`Vipi.Host`), isolato:
 |---|---|
 | `src/Vipi.Host/Auth/VipiStandaloneAuthExtensions.cs` | `AddVipiStandaloneAuth()` + `MapVipiStandaloneAuth()` + `VipiAuthOptions` |
 | `src/Vipi.Host/Auth/IvaoOidcProtocolValidator.cs` | validator OIDC adattato a IVAO (nonce/userinfo lasco) |
+| `src/Vipi.Host/Auth/NonceNelloStato.cs` | il nonce anche nello `state`: recupero se il cookie non torna, diagnosi |
 | `src/Vipi.Host/Program.cs` | wiring condizionale (`authEnabled`) |
 | `src/Vipi.Host/appsettings.json` | sezione `VipiAuth` (default spenta) |
 | `src/Vipi.Ui/Shared/SopLayout.razor` | link Login/Logout nell'header |
@@ -160,6 +161,12 @@ in testata restino i tasti **Editor** e **Permessi**.
 
 Il **nonce** era spento (`IvaoOidcProtocolValidator`) perché si riteneva che IVAO non lo mandasse.
 Misurato il 22-ago-2026: è dentro l'id_token. Ora si valida — è la difesa contro il replay dell'id_token.
+
+Dal 28-set-2026 il nonce viaggia **anche nello `state`** (`NonceNelloStato`): se il suo cookie non torna,
+che è il guasto visto in produzione al primo login dopo un logout, e l'id_token porta proprio il nonce mandato,
+si valida con quello. Lo `state` è cifrato e vale solo col cookie di correlazione dello stesso browser, quindi
+il legame fra id_token e browser resta. Un nonce diverso resta fuori. La voce `login-*` del registro dice quale
+dei due casi era (riga **Nonce**).
 
 **`RequireState` deve restare `false`**, e non è una resa a IVAO. ASP.NET Core non popola mai
 `OpenIdConnectProtocolValidationContext.State`: alzando il flag il validator non trova il campo e lancia

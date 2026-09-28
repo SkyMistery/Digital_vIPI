@@ -58,8 +58,10 @@ public class StartupMaintenanceTests
         // con la pulizia delle unioni di documenti (carta 2026-09-03-documenti-uniti.md) — ed e' voluto che
         // aggiungerne o toglierne una faccia fallire questo test: e' il promemoria che una passata nuova va
         // anche isolata, o il suo guasto porterebbe giu' l'avvio. Questo test ha gia' fatto il suo mestiere
-        // QUATTRO volte.
-        Assert.Equal(5, report.Findings.Count);
+        // QUATTRO volte. Di nuovo quattro dal 27 settembre 2026: il backfill delle release e' stato tolto
+        // (U-006, revisione totale 3), perche' ripubblicava da solo la BOZZA di un documento a cui un Editor
+        // aveva annullato la release.
+        Assert.Equal(4, report.Findings.Count);
     }
 
     /// <summary>
@@ -83,13 +85,14 @@ public class StartupMaintenanceTests
 
         Assert.Contains(report.Findings, f => f.Entity.Contains("riconciliazioni", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(report.Findings, f => f.Entity.Contains("settori", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(report.Findings, f => f.Entity.Contains("release", StringComparison.OrdinalIgnoreCase));
+        // Nessuna passata d'avvio PUBBLICA: una release la crea solo un gesto di un Editor (U-006).
+        Assert.DoesNotContain(report.Findings, f => f.Entity.Contains("release", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(report.Findings, f => f.Entity.Contains("promozioni", StringComparison.OrdinalIgnoreCase));
     }
 
-    [Fact]
-    public void Un_avvio_intero_non_lascia_segnalazioni()
-        => Assert.Empty(new StartupMaintenanceReport().Findings);
+    // 🔴 U-231 (revisione totale 3): qui c'era «Un_avvio_intero_non_lascia_segnalazioni», che asseriva su un
+    // report nuovo e vuoto — non poteva fallire, e il nome prometteva il contrario. La prova vera sta ora
+    // nell'avvio intero: SmokeTests.L_avvio_vero_non_lascia_segnalazioni_di_manutenzione (Vipi.E2E.Tests).
 
     /// <summary>
     /// Il messaggio deve dire che la passata è idempotente e che un riavvio la rifà: è l'informazione che

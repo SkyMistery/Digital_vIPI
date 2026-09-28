@@ -290,6 +290,23 @@ public class PolygonContainsTests
         Assert.Equal(5, p.UpperFl);
     }
 
+    /// <summary>🔴 U-217: e sulla mappa 3D l'ATZ in AGL sta sopra il campo, non sopra il mare.</summary>
+    [Fact]
+    public void La_mappa_alza_un_pezzo_AGL_dell_elevazione_dello_scalo()
+    {
+        var forma = new Vipi.Application.Airspace.SectorShape("LIRP_TWR", Vipi.Domain.ShapeSource.Aip,
+            new[]
+            {
+                new Vipi.Application.Airspace.ShapePart(Z1, 0, 1500,
+                    Vipi.Domain.AirspaceDatum.Gnd, Vipi.Domain.AirspaceDatum.Agl, "GND", "1500 FT AGL"),
+            },
+            System.Array.Empty<string>(), ElevazioneFt: 1050);
+
+        var p = Vipi.Application.Aor.AorShapeProjection.Project(forma);
+
+        Assert.Equal(Vipi.Application.Aor.AorFlBand.FromFeet(0, 2550).Top, p.UpperFl);
+    }
+
     [Fact]
     public void Nessun_pezzo_parsabile_vuol_dire_nessuna_rivendicazione()
     {

@@ -168,6 +168,29 @@ public class ScopeDellEditingTests
     }
 
     /// <summary>
+    /// 🔴 U-197 (revisione totale 3): la stessa regola, per OGNI componente — non solo per quello che scrive
+    /// documenti. <c>EditLockBar</c> possedeva uno scope, era <c>IAsyncDisposable</c> e nel suo <c>DisposeAsync</c>
+    /// fermava il battito e basta: uno scope col suo <c>DbContext</c> lasciato in piedi a ogni pagina di struttura
+    /// visitata. Le pagine che derivano da <c>ScopeProprioCheAspetta</c> lo chiudono nella base, e qui non compaiono.
+    /// </summary>
+    [Fact]
+    public void Ogni_componente_async_disposable_con_uno_scope_proprio_lo_chiude()
+    {
+        var scoperti = new List<string>();
+        foreach (var file in Directory.EnumerateFiles(Radice(), "*.razor", SearchOption.AllDirectories))
+        {
+            var sorgente = File.ReadAllText(file);
+            if (!Regex.IsMatch(sorgente, @"^@inherits\s+OwningComponentBase\b", RegexOptions.Multiline)) continue;
+            if (!sorgente.Contains("IAsyncDisposable", StringComparison.Ordinal)) continue;
+            if (!sorgente.Contains("((IDisposable)this).Dispose();", StringComparison.Ordinal))
+                scoperti.Add(Path.GetRelativePath(Radice(), file));
+        }
+
+        Assert.True(scoperti.Count == 0,
+            "DisposeAsync che non chiude lo scope di OwningComponentBase: " + string.Join(", ", scoperti));
+    }
+
+    /// <summary>
     /// ⚠️ E una pagina che possiede uno scope non può avere un <c>public void Dispose()</c>:
     /// <c>OwningComponentBase</c> implementa <c>IDisposable</c> in modo <b>esplicito</b>, quindi quel metodo
     /// non lo chiamerebbe nessuno — la pulizia salta in silenzio. Si scrive

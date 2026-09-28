@@ -1,3 +1,8 @@
+# ⚠️ SUPERATO (28 settembre 2026, decisione del committente; U-122 della revisione 3): Render non si usa più, la
+# produzione è atc.it.ivao.aero. Il file resta come storia. Non riusarlo così: l'app gira in Production e in
+# Production si fida solo dei proxy su loopback (VipiStartup), quindi dietro il proxy di Render il login IVAO
+# costruirebbe il redirect_uri in http.
+#
 # Deploy vIPI su Render (web service free, Docker) con DB Postgres esterno su Neon.
 # Render legge questo file dalla root del repo (Blueprint). Segreti reali: impostati nella dashboard, NON qui.
 services:

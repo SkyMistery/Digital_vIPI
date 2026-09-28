@@ -16,9 +16,36 @@ public sealed record ShapeGateScope(string? AccCode, int? DocumentId, IReadOnlyL
     public static readonly ShapeGateScope Empty = new(null, null, Array.Empty<ShapeGateRow>());
 }
 
-/// <summary>Una riga d'avviso: quel settore, in questa release, porterebbe l'area <b>precedente</b>.</summary>
-/// <param name="FromCycle">Il ciclo dal quale l'area nuova entra in vigore.</param>
-public sealed record DeferredShapeNotice(string Callsign, string? Name, string FromCycle);
+/// <summary>Che cosa aspetta il suo ciclo: un'area di settore o di torre, una radioassistenza, una carta MRVA.</summary>
+public enum DeferredKind { Area, Radioassistenza, CartaMrva }
+
+/// <summary>Una riga d'avviso: quel dato, in questa release, porterebbe la versione <b>precedente</b>.</summary>
+/// <param name="Callsign">Chi è: il callsign del settore, l'identità della radioassistenza, il file della carta.</param>
+/// <param name="FromCycle">Il ciclo dal quale la versione nuova entra in vigore.</param>
+public sealed record DeferredShapeNotice(string Callsign, string? Name, string FromCycle,
+    DeferredKind Kind = DeferredKind.Area);
+
+/// <summary>
+/// Un dato del sectorfile che non è un'area — radioassistenza o carta MRVA — con un cambio che aspetta il suo ciclo
+/// (U-037). <paramref name="Id"/> è quello della sua tabella; serve alla forzatura.
+/// </summary>
+public sealed record SectorfileDeferral(DeferredKind Kind, int Id, string Label, string FromCycle, bool Forced);
+
+/// <summary>
+/// Radioassistenze e carte MRVA con un cambio in attesa, nel perimetro di un documento, e la loro forzatura.
+///
+/// <para>Il perimetro, come per le aree, è largo dalla parte giusta: le radioassistenze che il documento
+/// <b>cita</b> in una sua versione qualsiasi, le carte MRVA dell'ente (per una vIPI ACC l'enroute e quelle degli
+/// aeroporti della ACC, per un APP quella del suo aeroporto).</para>
+/// </summary>
+public interface ISectorfileGateRepository
+{
+    Task<IReadOnlyList<SectorfileDeferral>> ListAsync(
+        ReleaseTargetType target, string key, int? documentId, CancellationToken ct = default);
+
+    /// <summary>Accende la forzatura sulle righe indicate. Ritorna quante ne ha toccate.</summary>
+    Task<int> ForceAsync(IReadOnlyList<(DeferredKind Kind, int Id)> rows, CancellationToken ct = default);
+}
 
 /// <summary>I settori che un documento può disegnare, e la forzatura della loro shape.</summary>
 public interface IShapeGateRepository
@@ -69,38 +96,80 @@ public sealed class ShapeGateNoticeService : IShapeGateNoticeService
     private readonly IShapeGateRepository _repo;
     private readonly IAiracService _airac;
     private readonly Auth.IEditAuthorizationService _authz;
+    private readonly ISectorfileGateRepository? _altri;
+    private readonly Abstractions.IReleaseTargetRegistry? _targets;
 
+    /// <param name="altri">U-037: radioassistenze e carte MRVA, che dal 28 settembre 2026 aspettano il loro ciclo
+    /// come le aree. Senza, l'avviso parla delle sole aree — il comportamento di prima.</param>
+    /// <param name="targets">Per trovare il documento del bersaglio, cioè quali radioassistenze cita.</param>
     public ShapeGateNoticeService(
-        IShapeGateRepository repo, IAiracService airac, Auth.IEditAuthorizationService authz)
+        IShapeGateRepository repo, IAiracService airac, Auth.IEditAuthorizationService authz,
+        ISectorfileGateRepository? altri = null, Abstractions.IReleaseTargetRegistry? targets = null)
     {
         _repo = repo;
         _airac = airac;
         _authz = authz;
+        _altri = altri;
+        _targets = targets;
     }
 
     public async Task<IReadOnlyList<DeferredShapeNotice>> ListDeferredAsync(
         ReleaseTargetType target, string key, IReadOnlyList<string> cycles, CancellationToken ct = default)
     {
         var scope = await _repo.GetScopeAsync(target, key, ct);
-        return Differite(scope, cycles)
+        var aree = Differite(scope, cycles)
             .Select(r => new DeferredShapeNotice(r.Callsign, r.Name, r.Shape.FromCycle!))
-            .OrderBy(n => n.Callsign, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+            .OrderBy(n => n.Callsign, StringComparer.OrdinalIgnoreCase);
+        var altri = (await AltriDifferitiAsync(target, key, cycles, ct))
+            .Select(d => new DeferredShapeNotice(d.Label, null, d.FromCycle, d.Kind))
+            .OrderBy(n => n.Kind).ThenBy(n => n.Callsign, StringComparer.OrdinalIgnoreCase);
+        return aree.Concat(altri).ToList();
     }
 
     public async Task<int> ForcePublishAsync(
         ReleaseTargetType target, string key, IReadOnlyList<string> cycles, CancellationToken ct = default)
     {
         var scope = await _repo.GetScopeAsync(target, key, ct);
+        var docId = await DocumentoAsync(target, key, ct);
 
         // Il permesso è quello del documento che si sta pubblicando: forzare una shape è un atto editoriale,
         // non un'operazione di sistema. Chi non può pubblicare quel documento non può nemmeno forzarne le aree.
-        if (scope.AccCode is { Length: > 0 } acc) _authz.EnsureAtLeast(VipiRole.Editor);
-        else if (scope.DocumentId is { } docId) _authz.EnsureAtLeast(VipiRole.Editor);
+        if (scope.AccCode is { Length: > 0 } || scope.DocumentId is not null || docId is not null)
+            _authz.EnsureAtLeast(VipiRole.Editor);
         else return 0;   // perimetro sconosciuto: non si tocca niente
 
         var righe = Differite(scope, cycles).Select(r => (r.Catalog, r.Id)).ToList();
-        return righe.Count == 0 ? 0 : await _repo.SetForcePublishedAsync(righe, ct);
+        var forzate = righe.Count == 0 ? 0 : await _repo.SetForcePublishedAsync(righe, ct);
+
+        var altri = (await AltriDifferitiAsync(target, key, cycles, ct)).Select(d => (d.Kind, d.Id)).ToList();
+        if (altri.Count > 0 && _altri is not null) forzate += await _altri.ForceAsync(altri, ct);
+        return forzate;
+    }
+
+    /// <summary>
+    /// U-037: radioassistenze e carte MRVA del perimetro che a uno dei cicli in gioco porterebbero la versione di
+    /// prima. La domanda «è differita?» è la stessa delle aree (<see cref="ShapeAiracGate.IsDeferredAt"/>): se le
+    /// due divergessero, l'avviso mentirebbe.
+    /// </summary>
+    private async Task<IReadOnlyList<SectorfileDeferral>> AltriDifferitiAsync(
+        ReleaseTargetType target, string key, IReadOnlyList<string> cycles, CancellationToken ct)
+    {
+        if (_altri is null) return Array.Empty<SectorfileDeferral>();
+        var validi = cycles.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
+        if (validi.Count == 0) return Array.Empty<SectorfileDeferral>();
+
+        var righe = await _altri.ListAsync(target, key, await DocumentoAsync(target, key, ct), ct);
+        return righe.Where(d => validi.Any(c => ShapeAiracGate.IsDeferredAt(
+                // Una versione «in vigore» c'è sempre qui: è il motivo per cui la riga esiste.
+                new ShapeState("·", "·", d.FromCycle, ShapeSource.Sectorfile, d.Forced), c, _airac)))
+            .ToList();
+    }
+
+    private async Task<int?> DocumentoAsync(ReleaseTargetType target, string key, CancellationToken ct)
+    {
+        if (_targets is null) return null;
+        try { return await _targets.For(target).ResolveDocumentIdAsync(key, ct); }
+        catch (KeyNotFoundException) { return null; }   // tipo non registrato: nessun documento da guardare
     }
 
     /// <summary>

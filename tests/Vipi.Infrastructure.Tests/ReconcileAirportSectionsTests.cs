@@ -104,11 +104,13 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
             ("Runways", """{"columns":["Runway"],"rows":[]}"""),
             ("SID", null));
 
-        // Cinque toccate: tre rinominate, «Frequencies» che aveva la chiave giusta ma il titolo inglese e la
-        // tabella cotta dentro, e «SID» — che di suo aveva solo il titolo da allineare... e infatti il titolo
-        // di catalogo È «SID», quindi resta com'è. Quattro, allora: la quinta non ha niente da cambiare.
+        // Quattro toccate: tre rinominate, e «Frequencies», che aveva la chiave giusta e la tabella cotta dentro.
+        // «SID» non ha niente da cambiare.
         Assert.Equal(4, await _manutenzione.ReconcileAirportSectionKeysAsync());
-        Assert.Equal("Frequenze", (await _db.DocumentSections.SingleAsync(x => x.SectionKey == "frequencies")).Title);
+        // ⚠️ Il titolo di una sezione che la chiave giusta ce l'aveva già NON si riscrive più (revisione 3, U-249):
+        // lo risolve per chiave TitoliDiCatalogo, nel viewer, nell'editor e nella firma di deriva. Riscriverlo solo
+        // sulle radici lasciava le figlie nell'altra lingua e apriva righe «da ripubblicare» invisibili.
+        Assert.Equal("Frequencies", (await _db.DocumentSections.SingleAsync(x => x.SectionKey == "frequencies")).Title);
 
         var sezioni = await _db.DocumentSections.Include(s => s.Blocks).OrderBy(s => s.Order).ToListAsync();
         Assert.Equal(
@@ -288,6 +290,37 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         Assert.Equal(chiave, (await _db.DocumentSections.SingleAsync()).SectionKey);
     }
 
+    /// <summary>
+    /// U-013 (revisione totale 3): «Validità e revisione» è resa dalla pagina E tiene i suoi blocchi
+    /// (<c>HostAndBlocks</c>, dal 27 agosto). Il passo 2 chiedeva solo «la rende la pagina?» e a ogni consegna
+    /// cancellava dalla versione di lavoro la prosa scritta lì dall'Editor.
+    /// </summary>
+    [Fact]
+    public async Task I_blocchi_propri_di_Validita_e_revisione_restano()
+    {
+        var (_, ver) = await ScaloCottoAsync("LIRF");
+        var s = new DocumentSection
+        {
+            DocumentVersionId = ver.Id, Title = "Validità e revisione", Order = 1, Depth = 0,
+            SectionKey = "validity", RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(s);
+        await _db.SaveChangesAsync();
+        Assert.True(SectionCatalog.KeepsOwnBlocks(SectionProfile.Airport, "validity"));   // la premessa
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = ver.Id, SectionId = s.Id, Order = 1, Format = BlockFormat.Prose,
+            Tier = BlockTier.Reduced, Visibility = BlockVisibility.Always, Body = "Storico delle revisioni",
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+
+        _db.ChangeTracker.Clear();
+        Assert.Single(await _db.ContentBlocks.Where(b => b.SectionId == s.Id).ToListAsync());
+    }
+
     // ─── Il trasloco del 12 settembre 2026 (sera): regole piste sotto le Piste, LVP dopo le Procedure ───
 
     /// <summary>
@@ -340,6 +373,47 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         Assert.Equal(Enumerable.Range(1, ordini.Count), ordini);
     }
 
+    /// <summary>
+    /// U-062 (revisione 3): «già presente» si guardava sulle sole RADICI, e dal 12-set «Regole piste» è figlia di
+    /// «Piste». Una radice libera intitolata «Configurazioni pista» diventava a ogni consegna una seconda «Regole
+    /// piste» di catalogo e perdeva i suoi blocchi, anche su una versione pubblicata.
+    /// </summary>
+    [Fact]
+    public async Task Una_radice_libera_col_titolo_delle_regole_resta_libera_se_le_regole_ci_sono_gia()
+    {
+        var (_, ver) = await ScaloCottoAsync("LIRP", ("Runways", null));
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+        await _manutenzione.AddMissingCatalogSectionsAsync();
+        await _manutenzione.ReparentAirportSectionsAsync();
+
+        var libera = new DocumentSection
+        {
+            DocumentVersionId = ver.Id, Title = "Configurazioni pista", Depth = 0,
+            Order = await _db.DocumentSections.Where(x => x.DocumentVersionId == ver.Id && x.ParentSectionId == null).CountAsync() + 1,
+            SectionKey = SectionKeys.NewCustom(), RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(libera);
+        await _db.SaveChangesAsync();
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = ver.Id, SectionId = libera.Id, Order = 1, Format = BlockFormat.Prose,
+            Tier = BlockTier.Reduced, Visibility = BlockVisibility.Always, Body = "le configurazioni di LIRP",
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+        await _manutenzione.ReparentAirportSectionsAsync();
+        _db.ChangeTracker.Clear();
+
+        Assert.Equal(1, await _db.DocumentSections.CountAsync(x => x.DocumentVersionId == ver.Id && x.SectionKey == "runwayrules"));
+        var dopo = await _db.DocumentSections.Include(x => x.Blocks).SingleAsync(x => x.Id == libera.Id);
+        Assert.True(SectionKeys.IsCustom(dopo.SectionKey));
+        Assert.Equal("Configurazioni pista", dopo.Title);
+        Assert.Equal("le configurazioni di LIRP", Assert.Single(dopo.Blocks).Body);
+    }
+
     [Fact] // il passo è IDEMPOTENTE: al secondo avvio non c'è più niente da spostare
     public async Task Il_secondo_giro_non_sposta_niente()
     {
@@ -349,6 +423,36 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
 
         await _manutenzione.ReparentAirportSectionsAsync();
         Assert.Equal(0, await _manutenzione.ReparentAirportSectionsAsync());
+    }
+
+    /// <summary>
+    /// 🔴 U-076 (revisione totale 3): il passo delle LVP era un invariante («subito dopo le Procedure generali»)
+    /// e non un trasloco: a ogni consegna disfaceva il riordino fatto dall'editor, e da S24 anche nella versione
+    /// pubblicata. Le LVP si spostano solo insieme al trasloco delle regole piste, cioè sui documenti col vecchio
+    /// indice del 12 settembre; l'ordine delle radici poi è di chi scrive ([[ordine-sezioni-personalizzato]]).
+    /// </summary>
+    [Fact]
+    public async Task Le_lvp_riordinate_dall_editor_restano_dove_sono()
+    {
+        await ScaloCottoAsync("LIRF", ("Runways", null), ("SID", null));
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+        await _manutenzione.AddMissingCatalogSectionsAsync();
+        await _manutenzione.ReparentAirportSectionsAsync();
+
+        // L'editor porta le LVP in testa.
+        var radici = await _db.DocumentSections.Where(x => x.ParentSectionId == null).OrderBy(x => x.Order).ToListAsync();
+        var lvp = radici.Single(x => x.SectionKey == "lvp");
+        radici.Remove(lvp);
+        radici.Insert(0, lvp);
+        for (var i = 0; i < radici.Count; i++) radici[i].Order = i + 1;
+        await _db.SaveChangesAsync();
+        var prima = radici.Select(x => x.SectionKey).ToList();
+
+        Assert.Equal(0, await _manutenzione.ReparentAirportSectionsAsync());
+
+        var dopo = await _db.DocumentSections.Where(x => x.ParentSectionId == null).OrderBy(x => x.Order)
+            .Select(x => x.SectionKey).ToListAsync();
+        Assert.Equal(prima, dopo);
     }
 
     /// <summary>

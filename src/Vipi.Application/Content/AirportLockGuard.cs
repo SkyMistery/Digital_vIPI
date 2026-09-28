@@ -72,8 +72,16 @@ public sealed class AirportLockGuard : IAirportLockGuard
                 $"{Norm(icao)} non ha ancora un documento: apri il suo editor, che lo crea, prima di scriverne i dati.",
                 $"{Norm(icao)} has no document yet: open its editor, which creates one, before writing its data."));
 
-        var lk = await _editing.InspectLockAsync(docId, _authz.CurrentUserId ?? 0, ct);
-        if (lk is { Locked: true, IsMine: true }) return;
+        var uid = _authz.CurrentUserId ?? 0;
+        var lk = await _editing.InspectLockAsync(docId, uid, ct);
+        if (lk is { Locked: true, IsMine: true })
+        {
+            // Lavorare è restare in modifica, come in DocumentLockGuard e nella prosa. Fino a U-056 (revisione
+            // 3) qui non si rinnovava: chi lavorava solo su piste e SID perdeva il lock 30 minuti dopo la presa,
+            // mentre salvava, e un collega poteva prenderlo e pubblicare la bozza a metà.
+            await _editing.RenewLockAsync(docId, uid, DocumentLockGuard.LockTtlMinutes, ct);
+            return;
+        }
 
         throw new EditConflictException(lk.Locked
             ? Lingua($"{Norm(icao)} è in modifica da {Chi(lk)} fino alle {Quando(lk)} UTC.",

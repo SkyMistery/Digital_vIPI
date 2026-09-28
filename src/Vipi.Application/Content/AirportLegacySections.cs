@@ -98,9 +98,25 @@ public static class AirportLegacySections
         // «Carte aeroportuali», figlie dal 3 settembre e con lo stesso difetto, mai notato.
         // ⚠️ Una sotto-sezione LIBERA non è nel catalogo e resta esattamente com'è: il suo titolo è una
         // scelta di chi scrive.
-        SectionView Mappa(SectionView s)
+        // 🔴 U-071 (revisione 3): le chiavi di catalogo che l'albero ha GIÀ, a qualunque profondità, prima di
+        // riconoscere qualcosa per titolo. Prima si guardava solo l'ordine di visita: una figlia libera di «Piste»
+        // intitolata «Configurazioni pista», messa prima delle regole di catalogo, diventava una seconda «Regole
+        // piste» e perdeva il suo testo sulla pagina pubblica.
+        void Raccogli(IEnumerable<SectionView> livello)
         {
-            var cotta = SectionKeys.IsCustom(s.SectionKey) ? KeyForCookedTitle(s.Title) : null;
+            foreach (var x in livello)
+            {
+                if (!SectionKeys.IsCustom(x.SectionKey)) presenti.Add(x.SectionKey);
+                Raccogli(x.Children);
+            }
+        }
+        Raccogli(sections ?? Array.Empty<SectionView>());
+
+        SectionView Mappa(SectionView s, bool radice)
+        {
+            // ⚠️ Per titolo si riconoscono solo le RADICI: le sezioni cotte il builder le metteva tutte a primo
+            // livello, e una sottosezione libera col titolo giusto è una scelta di chi scrive.
+            var cotta = SectionKeys.IsCustom(s.SectionKey) && radice ? KeyForCookedTitle(s.Title) : null;
             var chiave = s.SectionKey;
 
             if (cotta is not null && presenti.Add(cotta)) chiave = cotta;
@@ -108,7 +124,7 @@ public static class AirportLegacySections
 
             var figlie = s.Children.Count == 0
                 ? s.Children
-                : s.Children.Select(Mappa).ToList();
+                : s.Children.Select(c => Mappa(c, radice: false)).ToList();
 
             if (SectionCatalog.Find(SectionProfile.Airport, chiave) is not { } desc)
             {
@@ -140,7 +156,7 @@ public static class AirportLegacySections
         }
 
         foreach (var s in sections ?? Array.Empty<SectionView>())
-            risultato.Add(Mappa(s));
+            risultato.Add(Mappa(s, radice: true));
 
         foreach (var d in SectionCatalog.For(SectionProfile.Airport)
                      .Where(d => SectionCatalog.IsAlwaysLive(d.Key) && !presenti.Contains(d.Key))

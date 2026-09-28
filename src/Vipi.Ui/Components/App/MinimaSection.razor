@@ -11,7 +11,18 @@
 @using Vipi.Application.Aor
 @inject IStringLocalizer<SharedResource> L
 
-@if (View.IsEmpty)
+@if (View.SorgenteNonRaggiungibile)
+{
+    @* 🔴 U-039: una carta che non arriva lo dice. «Nessuna carta» sarebbe un altro fatto — e falso. *@
+    <div class="callout warning" style="margin:0 0 10px">
+        <span class="cic"><Icon Name="warning" Size="18" /></span>
+        <div>
+            <p class="ct">@L["Minima_SourceDownTitle"]</p>
+            @L["Minima_SourceDownBody"]
+        </div>
+    </div>
+}
+@if (View.IsEmpty && !View.SorgenteNonRaggiungibile)
 {
     <div class="callout info" style="margin:0">
         <span class="cic"><Icon Name="map" Size="18" /></span>

@@ -48,7 +48,7 @@ public sealed class AuroraNavaidSource : INavaidSource
 
         return _cache.GetNavaidsAsync(async token =>
         {
-            var files = await ElencoFileAsync(token);
+            var (files, ripiego) = await ElencoFileAsync(token);
 
             var testi = new List<(NavaidKind Kind, string? Text)>();
             foreach (var (kind, rel) in files)
@@ -69,7 +69,10 @@ public sealed class AuroraNavaidSource : INavaidSource
                     catalog.Entries.Count(e => e.Kind == NavaidKind.Vor),
                     catalog.Entries.Count(e => e.Kind == NavaidKind.Ndb),
                     files.Count);
-            return catalog;
+
+            // ⚠️ Il ripiego si usa ma non si tiene (U-033): vedi SectorfileCache.GetNavaidsAsync. E nemmeno un
+            // catalogo vuoto — file spostati, repo rinominato — che al prossimo chiamante può essere tornato pieno.
+            return (catalog, !ripiego && catalog.Entries.Count > 0);
         }, ct);
     }
 
@@ -79,8 +82,9 @@ public sealed class AuroraNavaidSource : INavaidSource
         @"^\s*F\s*;\s*(NAVAIDS[\\/][A-Za-z0-9_.-]+\.(fix|vor|ndb))\s*$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
-    /// <summary>Quali file di punti leggere: dall'indice se c'è, altrimenti i tre di configurazione.</summary>
-    private async Task<IReadOnlyList<(NavaidKind Kind, string Path)>> ElencoFileAsync(CancellationToken ct)
+    /// <summary>Quali file di punti leggere: dall'indice se c'è, altrimenti i tre di configurazione — e se si è
+    /// ripiegati, perché quel catalogo sarà ridotto.</summary>
+    private async Task<(IReadOnlyList<(NavaidKind Kind, string Path)> Files, bool Ripiego)> ElencoFileAsync(CancellationToken ct)
     {
         if (!string.IsNullOrWhiteSpace(_opt.SectorIndexUrl))
         {
@@ -91,13 +95,14 @@ public sealed class AuroraNavaidSource : INavaidSource
             else
             {
                 var dall_indice = FileDiPunti(indice);
-                if (dall_indice.Count > 0) return dall_indice;
+                if (dall_indice.Count > 0) return (dall_indice, false);
                 _log.LogWarning("Catalogo punti: {Url} non cita nessun file di punti, si ripiega sui tre file di configurazione.",
                     _opt.SectorIndexUrl);
             }
         }
 
-        return Ripiego();
+        // Senza indice configurato i tre file SONO la configurazione, non un ripiego.
+        return (Ripiego(), !string.IsNullOrWhiteSpace(_opt.SectorIndexUrl));
     }
 
     /// <summary>I tre percorsi scritti in configurazione: quel che si leggeva prima dell'indice.</summary>

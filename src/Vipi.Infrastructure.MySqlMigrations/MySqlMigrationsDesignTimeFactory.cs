@@ -35,6 +35,9 @@ public sealed class MySqlMigrationsDesignTimeFactory : IDesignTimeDbContextFacto
                 // Senza questo le migrazioni finirebbero in Vipi.Infrastructure, insieme a quelle
                 // SQLite-flavored, ed EF le applicherebbe tutte insieme sul primo provider che incontra.
                 .MigrationsAssembly(typeof(MySqlMigrationsDesignTimeFactory).Assembly.GetName().Name))
+            // Lo stesso generatore dell'applicazione: `dotnet ef database update` (la CI) e `migrations script`
+            // devono scrivere la SQL che l'avvio esegue davvero, non un'altra (U-096).
+            .ReplaceService<Microsoft.EntityFrameworkCore.Migrations.IMigrationsSqlGenerator, MigrazioniRieseguibili>()
             .Options;
 
         return new VipiDbContext(options);

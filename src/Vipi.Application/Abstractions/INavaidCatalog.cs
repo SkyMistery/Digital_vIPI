@@ -11,7 +11,7 @@ public sealed record NavaidRow(
     int Id, string Code, string Kind, string? Type,
     string? Frequency, string? Channel, double? Latitude, double? Longitude,
     NavaidFieldOrigin FrequencyOrigin, NavaidFieldOrigin ChannelOrigin, NavaidFieldOrigin CoordinatesOrigin,
-    DateTime? UpdatedUtc, int? UpdatedByUserId)
+    DateTime? UpdatedUtc, int? UpdatedByUserId, string? SourceAiracCycle = null)
 {
     /// <summary>L'identità di questa riga, da citare in un documento.</summary>
     [JsonIgnore]
@@ -48,6 +48,12 @@ public enum NavaidWrite
     /// <summary>Niente da fare: il valore era già quello. ⚠️ Il non-evento non si scrive nel registro —
     /// altrimenti «modificata da X oggi» finirebbe sopra una decisione presa da un altro mesi fa.</summary>
     Invariato,
+
+    /// <summary>
+    /// Rifiutato: il campo è nell'<b>identità</b> (il canale) e la riga la cita almeno un documento, che cita per
+    /// identità. Cambiata, sparirebbe da sotto la tabella (U-157): prima si toglie di lì, come per eliminarla.
+    /// </summary>
+    Citata,
 }
 
 /// <summary>Esito del tentativo di eliminare una riga dall'anagrafica.</summary>
@@ -65,7 +71,9 @@ public enum NavaidDelete
 }
 
 /// <summary>Che cosa ha fatto un giro d'import delle radioassistenze.</summary>
-public sealed record NavaidImportOutcome(int Create, int Aggiornate, int Invariate);
+/// <param name="Staccate">Righe che la sorgente mandava e non manda più: restano, coi loro valori, ma tornano
+/// nostre — si correggono e si tolgono a mano (U-036). Se un documento le cita, va ripuntato.</param>
+public sealed record NavaidImportOutcome(int Create, int Aggiornate, int Invariate, int Staccate = 0);
 
 /// <summary>
 /// L'anagrafica delle radioassistenze di divisione (carta vSOP militari §12b): <b>scritta una volta, esce

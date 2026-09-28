@@ -140,6 +140,28 @@ public class AtcShiftGrouperTests
         Assert.Equal(1, g[2]);   // la chiave è la PRIMA sessione del gruppo
     }
 
+    [Fact] // U-218: la riconnessione che si sovrappone di pochi secondi alla caduta resta lo stesso turno
+    public void Una_sovrapposizione_di_pochi_secondi_resta_lo_stesso_turno()
+    {
+        var g = AtcShiftGrouper.Group(new[]
+        {
+            S(1, T0, T0.AddMinutes(30)),
+            S(2, T0.AddMinutes(30).AddSeconds(-2), T0.AddHours(1)),
+        });
+        Assert.Equal(1, g[2]);
+    }
+
+    [Fact] // U-218: una sovrapposizione lunga è una doppia connessione, non una caduta
+    public void Una_sovrapposizione_lunga_resta_un_turno_a_parte()
+    {
+        var g = AtcShiftGrouper.Group(new[]
+        {
+            S(1, T0, T0.AddHours(1)),
+            S(2, T0.AddMinutes(20), T0.AddHours(2)),
+        });
+        Assert.Equal(2, g[2]);
+    }
+
     [Fact]
     public void Dopo_una_pausa_lunga_e_un_turno_nuovo()
     {

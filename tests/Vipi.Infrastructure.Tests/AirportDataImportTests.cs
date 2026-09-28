@@ -146,6 +146,54 @@ public class AirportDataImportTests : IAsyncLifetime
         await Assert.ThrowsAsync<HttpRequestException>(() => Uso(new FakeDirectory(), det).RunAsync());
     }
 
+    // ---- U-128 (revisione totale 3): il «verde regalato» che restava possibile ----
+
+    /// <summary>
+    /// 🔴 U-128: un'anagrafica che non risponde era inghiottita per ogni aeroporto (la TA resta invariata), quindi
+    /// ogni aeroporto contava come toccato e il giro era verde: con lo scope perso Sorgenti ha mostrato «TA»
+    /// aggiornata alla data di oggi per settimane senza rileggerne una. Ora le piste si rileggono lo stesso — sono
+    /// l'altra metà del giro — ma alla fine il guasto risale e il giro si registra fallito.
+    /// </summary>
+    [Fact]
+    public async Task Un_anagrafica_che_non_risponde_non_e_una_TA_invariata()
+    {
+        var dir = new FakeDirectory { Fail = new InvalidOperationException("IVAO 403 Forbidden su /v2/airports") };
+        var det = new FakeDetails { Runways = { new SourceRunway("16L", 3902, 160) } };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Uso(dir, det).RunAsync());
+
+        // Le piste sono passate lo stesso, per tutti e due gli aeroporti.
+        Assert.Equal(2, det.RunwayCalls);
+        Assert.Equal(3902, Assert.Single((await _airports.LoadAsync("LIRF"))!.Runways).LengthM);
+        // L'anagrafica si chiede UNA volta per giro, non una per aeroporto.
+        Assert.Equal(1, dir.Calls);
+    }
+
+    /// <summary>
+    /// 🔴 U-128: senza credenziali l'anagrafica solleva <see cref="SorgenteNonConfigurataException"/>, ma il catch
+    /// della TA la inghiottiva, e il ramo «non configurata» del servizio (che salta SENZA timbrare) non scattava
+    /// mai. Ora risale col suo tipo, prima di chiamare le piste.
+    /// </summary>
+    [Fact]
+    public async Task Senza_credenziali_il_giro_lo_dice_col_suo_tipo()
+    {
+        var dir = new FakeDirectory { Fail = new SorgenteNonConfigurataException("Credenziali IVAO non configurate") };
+        var det = new FakeDetails { Runways = { new SourceRunway("16L", 3902, 160) } };
+
+        await Assert.ThrowsAsync<SorgenteNonConfigurataException>(() => Uso(dir, det).RunAsync());
+        Assert.Equal(0, det.RunwayCalls);
+    }
+
+    /// <summary>Con le piste escluse, un'anagrafica muta è tutto il giro che fallisce: risale subito.</summary>
+    [Fact]
+    public async Task Con_le_sole_TA_un_anagrafica_muta_fa_fallire_il_giro()
+    {
+        await _policy.SaveAsync(new ImportPolicySnapshot(TransitionAltitude: true, Runways: false, true, true, true), 1);
+        var dir = new FakeDirectory { Fail = new HttpRequestException("IVAO 503") };
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => Uso(dir, new FakeDetails()).RunAsync());
+    }
+
     private AirportDataImportUseCase Uso(FakeDirectory dir, FakeDetails det) =>
         new(_sectors, _airports, dir, det, _policy);
 
@@ -153,10 +201,12 @@ public class AirportDataImportTests : IAsyncLifetime
     {
         public List<SourceAirport> Airports { get; } = new();
         public int Calls;
+        public Exception? Fail { get; set; }
 
         public Task<IReadOnlyList<SourceAirport>> GetAirportsAsync(CancellationToken ct = default)
         {
             Calls++;
+            if (Fail is not null) throw Fail;
             return Task.FromResult((IReadOnlyList<SourceAirport>)Airports);
         }
 

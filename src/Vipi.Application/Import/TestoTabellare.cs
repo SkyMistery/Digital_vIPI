@@ -58,6 +58,10 @@ public static class TestoTabellare
             {
                 '\u2010' or '\u2011' or '\u2012' or '\u2013' or '\u2014' or '\u2015' or '\u2212' => '-',
                 '\u00A0' or '\u202F' or '\u2009' or '\t' => ' ',
+                // 🔴 U-044 (revisione totale 3): TUTTI gli spazi, non solo i quattro qui sopra. U+2002, U+3000 e gli
+                // altri restavano, e la regola delle ancore li provava in tempo circa cubico. L'a-capo resta: una
+                // cella di Excel scritta su due righe ce l'ha, e non e' uno spazio.
+                _ when c != '\n' && c != '\r' && char.IsWhiteSpace(c) => ' ',
                 _ => c,
             };
             if (ch == ' ')

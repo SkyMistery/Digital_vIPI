@@ -120,6 +120,56 @@ public class SectorfileCacheTests
         Assert.Equal(2, twrLoads);
     }
 
+    /// <summary>
+    /// 🔴 U-039 (revisione totale 3): un caricamento MRVA fallito non si ricordava, e ogni richiesta riprovava — in
+    /// fila su un semaforo solo per tutte le carte. Con GitHub giù tre editor che aprivano tre vIPI ACC aspettavano
+    /// 15, 30 e 45 secondi. Il guasto ora si ricorda per poco: chi arriva subito dopo lo sa senza aspettare.
+    /// </summary>
+    [Fact]
+    public async Task Mva_Un_Guasto_Si_Ricorda_Per_Poco()
+    {
+        var orologio = new Orologio();
+        var cache = new SectorfileCache(orologio);
+        var loads = 0;
+
+        Task<MvaChart> Rotto(CancellationToken _)
+        {
+            loads++;
+            throw new HttpRequestException("timeout");
+        }
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => cache.GetMvaChartAsync("ENRMVA/lirr.mva", Rotto));
+        await Assert.ThrowsAnyAsync<Exception>(() => cache.GetMvaChartAsync("ENRMVA/lirr.mva", Rotto));
+        Assert.Equal(1, loads);   // il secondo non ha riprovato
+
+        orologio.Adesso += SectorfileCache.DurataDelGuasto;
+        await Assert.ThrowsAsync<HttpRequestException>(() => cache.GetMvaChartAsync("ENRMVA/lirr.mva", Rotto));
+        Assert.Equal(2, loads);   // passato il tempo, si riprova
+    }
+
+    /// <summary>🔴 U-039: una carta che non arriva non tiene in fila le altre.</summary>
+    [Fact]
+    public async Task Mva_Una_Carta_Lenta_Non_Ferma_Le_Altre()
+    {
+        var cache = new SectorfileCache();
+        using var sblocca = new SemaphoreSlim(0);
+
+        async Task<MvaChart> Lenta(CancellationToken ct) { await sblocca.WaitAsync(ct); return MvaChart.Empty; }
+
+        var lenta = cache.GetMvaChartAsync("ENRMVA/lirr.mva", Lenta);
+        var altra = cache.GetMvaChartAsync("lirn.mva", _ => Task.FromResult(MvaChart.Empty));
+
+        Assert.Same(altra, await Task.WhenAny(altra, Task.Delay(TimeSpan.FromSeconds(5))));
+        sblocca.Release();
+        await lenta;
+    }
+
+    private sealed class Orologio : TimeProvider
+    {
+        public DateTimeOffset Adesso { get; set; } = new(2026, 9, 28, 12, 0, 0, TimeSpan.Zero);
+        public override DateTimeOffset GetUtcNow() => Adesso;
+    }
+
     private static NavaidCatalog Catalog(params string[] names) =>
         new(names.Select(n => new NavaidName(n, NavaidKind.Fix)));
 }

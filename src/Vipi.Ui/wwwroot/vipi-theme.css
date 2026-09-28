@@ -609,8 +609,12 @@
 /* ⚠️ Larghezza piena NON vuol dire tabelle stirate. Con quattro colonne su 2560px il numero finisce a mezzo
    metro dalla sua etichetta e l'occhio deve viaggiare: lo schermo largo deve mostrare PIÙ COSE, non le
    stesse allargate. Le tabelle corte (per postazione, per mese, classifica) si affiancano; quella lunga
-   delle sessioni resta sotto, a tutta larghezza. Sotto i ~900px tornano in colonna da sole. */
-:where(.vipi-root) .stats-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:0 28px;align-items:start}
+   delle sessioni resta sotto, a tutta larghezza. Sotto i ~900px tornano in colonna da sole.
+   ⚠️ `min(420px,100%)` e non 420 secco (revisione 3, U-107): una colonna non scende MAI sotto il suo minimo,
+   nemmeno quando e' una sola, e su un telefono da 375 il riquadro ne ha 343 — la pagina scorreva di 61px in
+   orizzontale e il telefono la rimpiccioliva tutta. Con `min()` il minimo e' 420 finche' ci sta, e la
+   larghezza del riquadro quando non ci sta. Stessa cura per `.choice-grid`, `#xl-cols`, `.red-top-grid`. */
+:where(.vipi-root) .stats-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:0 28px;align-items:start}
 :where(.vipi-root) .stats-cols>section{min-width:0}
 :where(.vipi-root) .stats-cols>section>h2{margin-top:0}
 
@@ -939,6 +943,15 @@
 :where(.vipi-root) .hero h1{color:var(--on-brand);margin-bottom:8px}
 :where(.vipi-root) .hero p{opacity:.85;margin:0;max-width:620px}
 :where(.vipi-root) .hero .airac{background:rgba(255,255,255,.16);color:var(--on-brand);border-color:rgba(255,255,255,.25);position:absolute;top:26px;right:30px}
+/* Nella testata blu `.muted` non vale: il suo grigio (#606282 nel tema chiaro) vinceva sul bianco e il
+   testo introduttivo dei vSOP militari stava a ~2:1 sul blu, cioe' illeggibile (revisione 3, U-205). */
+:where(.vipi-root) .hero .muted{color:var(--on-brand)}
+/* Sul telefono (revisione 3, U-211) la pastiglia AIRAC, appoggiata in alto a destra, copriva la fine del
+   titolo, e il titolo da 40px spezzava «documentation» a meta' parola. La pastiglia torna nel flusso, sopra
+   il titolo; il titolo scende a 30px. Scaglione del riquadro e non `@media`: lo zoom lo vedono solo loro. */
+:where(.vipi-root) .wrap.pw-900 .hero .airac{position:static;display:inline-flex;margin-bottom:12px}
+:where(.vipi-root) .wrap.pw-760 .hero{padding:24px 22px}
+:where(.vipi-root) .wrap.pw-760 .hero h1{font-size:30px}
 :where(.vipi-root) .searchbar{margin-top:22px;background:rgba(255,255,255,.95);border-radius:11px;display:flex;align-items:center;gap:10px;padding:11px 16px;max-width:480px}
 :where(.vipi-root) .searchbar input{border:0;outline:0;flex:1;font-family:var(--font-body);font-size:14px;background:transparent}
 /* ⚠️ Il campo azzera il proprio outline APPOSTA: la cornice che si vede e' il contenitore, e un anello
@@ -956,6 +969,9 @@
 :where(.vipi-root) .acc-card .code{font-family:var(--font-head);font-weight:800;font-size:30px;color:var(--brand-ink)}
 :where(.vipi-root) .acc-card .name{font-weight:500;margin:2px 0 14px}
 :where(.vipi-root) .acc-card .onl{position:absolute;top:18px;right:18px;font-size:11.5px;display:flex;align-items:center;gap:5px;color:var(--ok-ink);font-weight:600}
+/* Due schede per riga sul telefono sono 154px l'una: «N online», appoggiato in alto a destra, finiva sopra
+   il codice ACC da 30px. Torna nel flusso, sopra il codice — e' il primo nel sorgente apposta. */
+:where(.vipi-root) .wrap.pw-760 .acc-card .onl{position:static;margin-bottom:4px}
 :where(.vipi-root) .acc-card .onl .dot{width:8px;height:8px;border-radius:50%;background:var(--ivao-green)}
 :where(.vipi-root) .acc-card.off .onl{color:var(--ink-dim)}:where(.vipi-root) .acc-card.off .onl .dot{background:var(--grey-mid)}
 /* Card aeroporto (elenco /services/vsop/{acc}/airports): titolo ICAO + badge ATC online */
@@ -1049,7 +1065,7 @@
 :where(.vipi-root) .staff-sec>summary:hover :is(h2,h3){color:var(--brand-ink)}
 
 /* ---------- Screen 2: ACC landing ---------- */
-:where(.vipi-root) .choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px}
+:where(.vipi-root) .choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:18px}
 /* .choice è sempre un link-card (<a>): reset link centralizzato (U8, prima era inline su ogni <a>). */
 :where(.vipi-root) .choice{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);text-decoration:none;color:inherit}
 :where(.vipi-root) .choice :is(h2,h3,h4){margin:0 0 4px;display:flex;align-items:center;gap:9px}
@@ -1082,6 +1098,9 @@
 :where(.vipi-root) .linklist li{justify-content:flex-start}
 :where(.vipi-root) .linklist li.empty{cursor:default}
 :where(.vipi-root) .linklist li.empty:hover{background:transparent}
+/* U-210: la riga è un collegamento vero; il <a> occupa tutta la riga, così l'area del clic resta quella di prima. */
+:where(.vipi-root) .linklist li>a{display:flex;align-items:center;flex:1;margin:-9px -12px;padding:9px 12px;border-radius:inherit;color:inherit;text-decoration:none}
+:where(.vipi-root) .linklist li>a:focus-visible{outline:2px solid var(--brand-ink-2);outline-offset:-2px}
 :where(.vipi-root) .see-all{align-self:flex-start;margin-top:10px;font-size:12.5px;font-weight:600;color:var(--accent-ink);text-decoration:none}
 :where(.vipi-root) .see-all::after{content:" ›";font-weight:700}
 :where(.vipi-root) .see-all:hover{text-decoration:underline}
@@ -1787,7 +1806,7 @@
 :where(.vipi-root) .xl-bar .xl-help{margin-left:auto}
 
 /* le colonne */
-:where(.vipi-root) #xl-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;align-items:stretch}
+:where(.vipi-root) #xl-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px;align-items:stretch}
 :where(.vipi-root) .xl-kcol{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;
   max-height:var(--vipi-inner-h,none)}
 :where(.vipi-root) .xl-kcol-h{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;
@@ -1837,7 +1856,7 @@
    `.xl-changed` (0,1,0) lo sfondo a righe alterne (0,2,0) se la mangiava una volta su due. */
 :where(.vipi-root) .xl-line.xl-changed{box-shadow:inset 3px 0 0 var(--ivao-yellow);background:var(--tint-yellow-soft)}
 
-:where(.vipi-root) .red-top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;align-items:start;margin-bottom:12px}
+:where(.vipi-root) .red-top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr));gap:12px;align-items:start;margin-bottom:12px}
 :where(.vipi-root) .red-top-grid .acc-item{margin-bottom:0}
 /* Testata della vista live appiccicata sotto la topbar (62px): postazione, ATC online e orario Z restano
    leggibili mentre si scorre. Sfondo pieno perché ci passa sotto il contenuto. */
@@ -1848,7 +1867,14 @@
 /* Selettore di postazione (solo staff di divisione): sta nella riga della testata, quindi non deve portarsi
    dietro i margini del `.field` ne' allargarsi. La tendina la posiziona gia' `.sector-pick-wrap`. */
 :where(.vipi-root) .reduced-top .live-pick{flex:0 0 auto;width:190px;margin:0}
+/* ⚠️ Sul telefono la testata non si appiccica (revisione 3, U-087): va a capo su cinque o sei righe, e
+   appiccicata sotto la barra si mangiava 329px su 812 — il 40% dello schermo, quasi tutto in orizzontale.
+   Scorre via con la pagina. `max-height` per il telefono in orizzontale, dove anche un tablet e' basso. */
+:where(.vipi-root) .wrap.pw-760 .reduced-top{position:static}
+@media (max-height:520px){:where(.vipi-root) .reduced-top{position:static}}
 :where(.vipi-root) .reduced-top .live-pick input{margin-bottom:0;padding:4px 10px;font-size:12.5px}
+/* Il tasto «Compatta»: stava in uno `style` in linea, che nessuna regola del foglio puo' allargare al tocco. */
+:where(.vipi-root) .reduced-top .live-dense{padding:3px 10px;font-size:12.5px}
 
 /* Modalità compatta (persistita): la vista live vive spesso su un secondo monitor piccolo, dove servono
    più righe a schermo che aria. Tocca solo densità, mai contenuto. */
@@ -3768,6 +3794,7 @@
 :where(.vipi-root) .struct .sorg-alias td{padding:7px 10px;vertical-align:middle}
 :where(.vipi-root) .struct .sorg-alias .c-pfx{width:120px}
 :where(.vipi-root) .struct .sorg-alias .c-fix{width:auto}
+:where(.vipi-root) .struct .sorg-alias .c-apt{width:80px}
 :where(.vipi-root) .struct .sorg-alias .c-act{width:64px;text-align:right}
 
 
@@ -3816,7 +3843,9 @@
 :where(.vipi-root) .milarea-exp{appearance:none;background:none;border:0;padding:2px 3px;margin:0;cursor:pointer;
   color:var(--ink-soft);font-size:12px;line-height:1;border-radius:4px;transition:transform .12s ease,color .12s ease}
 :where(.vipi-root) .milarea-exp:hover{color:var(--ink)}
-:where(.vipi-root) .milarea-exp:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* ⚠️ `--ivao-blue` e non `--accent` (revisione 3, U-206): `--accent` lo definisce solo `.nav-card`, e fuori
+   la dichiarazione era invalida — l'anello di fuoco spariva, e chi usa la tastiera non sapeva dov'era. */
+:where(.vipi-root) .milarea-exp:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:1px}
 /* Il verso della freccetta lo decide `aria-expanded`, che e' gia' la verita' per chi ascolta: una classe in
    piu' sarebbe una seconda verita' da tenere allineata. Stesso gesto del `.chev` delle schede. */
 :where(.vipi-root) .milarea-exp[aria-expanded="true"]{transform:rotate(90deg);color:var(--ink)}
@@ -3860,7 +3889,7 @@
 :where(.vipi-root) .aorasp-vis{appearance:none;width:16px;height:16px;margin:0;padding:0;border-radius:4px;cursor:pointer;
   border:2px solid var(--sw);background:color-mix(in srgb,var(--sw) 45%,transparent);transition:background .12s ease,opacity .12s ease}
 :where(.vipi-root) .aorasp-vis[aria-pressed="false"]{background:transparent;opacity:.55}
-:where(.vipi-root) .aorasp-vis:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:where(.vipi-root) .aorasp-vis:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:2px}
 :where(.vipi-root) .aorasp-table tr.aorasp-off>td:not(.c-vis){opacity:.5}
 :where(.vipi-root) .aorasp-table tr.aorasp-hl>td{background:color-mix(in srgb,var(--ivao-lightblue) 12%,var(--surface))}
 /* Le righe dei poligoni di tiro. Tinta e barretta si COSTRUISCONO da `--wr`, non da un colore proprio: così
@@ -4455,13 +4484,17 @@
    calcolato restava quello di `.ver-row` — 11px 14px invece di 6px 10px. Vale la regola gia' scritta per le
    pagine di struttura: una regola nuova si verifica sul valore CALCOLATO, non sul fatto di averla scritta
    dopo. L'ancora del pannello e' un id, quindi la specificita' non e' in dubbio. */
-:where(.vipi-root) #p-release .rel-row{align-items:center;flex-wrap:nowrap;gap:10px;padding:5px 12px;margin-bottom:5px}
+/* ⚠️ `flex-wrap:wrap` con la meta a base 0 (revisione 3, U-251): la riga resta UNA finche' etichetta, numero
+   e tasti ci stanno — la meta cede per prima, come prima — ma quando non ci stanno i tasti vanno sotto invece
+   di uscire dal bordo. Con `nowrap` e i tasti `flex:none`, in un pannello da 181px (editor a 768, o zoom alto)
+   i tasti finivano 250px oltre il bordo destro. */
+:where(.vipi-root) #p-release .rel-row{align-items:center;flex-wrap:wrap;gap:6px 10px;padding:5px 12px;margin-bottom:5px}
 /* I tasti della riga sono il vero pavimento dell'altezza: 39px l'uno, non il testo (19-25px). */
 :where(.vipi-root) #p-release .rel-row .btn{padding:3px 9px;font-size:12.5px}
 :where(.vipi-root) #p-release .rel-row .rel-lbl{flex:none;white-space:nowrap;font-size:13.5px}
 /* La meta e' l'unica cosa elastica: e' prosa, e cede lei prima dei tasti (regola 111). */
-:where(.vipi-root) #p-release .rel-row .rel-meta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-:where(.vipi-root) #p-release .rel-row .vact{flex:none;margin-left:0;gap:5px}
+:where(.vipi-root) #p-release .rel-row .rel-meta{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:where(.vipi-root) #p-release .rel-row .vact{flex:none;max-width:100%;margin-left:0;gap:5px}
 :where(.vipi-root) #p-release .rel-row .vb{flex:none;min-width:0;font-size:13px}
 
 /* Le superate oltre le prime tre: presenti, contate, chiuse. */
@@ -4561,6 +4594,16 @@
 :where(.vipi-root) .topbar.tb-4 .tb-menu-tema button:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
 :where(.vipi-root) .topbar.tb-4 .tb-menu-tema button.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
 
+/* Lo zoom nel menu (revisione 3, U-085): stessa forma del tema. Fuori da tb-4 il menu non si vede, e
+   lo zoom sta nella barra. */
+:where(.vipi-root) .tb-menu-zoom{display:none}
+:where(.vipi-root) .topbar.tb-4 .tb-menu-zoom{display:flex;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
+  border-bottom:1px solid rgba(255,255,255,.18)}
+:where(.vipi-root) .topbar.tb-4 .tb-menu-zoom button{flex:1;border:0;cursor:pointer;color:var(--on-dark-soft);background:rgba(255,255,255,.1);
+  padding:9px 8px;border-radius:9px;font-family:var(--font-head);font-weight:700;font-size:15px;line-height:1}
+:where(.vipi-root) .topbar.tb-4 .tb-menu-zoom button.tb-zoom-pct{flex:2;font-size:13px;font-variant-numeric:tabular-nums}
+:where(.vipi-root) .topbar.tb-4 .tb-menu-zoom button:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
+
 /* La lingua nel menu: stessa forma delle tre del tema, ma sono LINK (vedi .lang-ctrl). */
 :where(.vipi-root) .topbar.tb-4 .tb-menu-lingua{display:flex;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
   border-bottom:1px solid rgba(255,255,255,.18)}
@@ -4629,7 +4672,20 @@
      Misurato: `/services/vsop/search` senza risultati stava in 375, con i risultati saltava a 569 — e nell'elenco di
      «chi sfora» non compariva NESSUNO, perche' una volta allargato il viewport le righe ci stanno dentro.
      Il colpevole si trova confrontando la pagina con e senza contenuto, non cercando chi sborda. */
-  :where(.vipi-root) .wrap .res-snip,:where(.vipi-root) .wrap .res-where,:where(.vipi-root) .wrap .prose,:where(.vipi-root) .wrap td,:where(.vipi-root) .wrap .vmeta{overflow-wrap:anywhere}
+  :where(.vipi-root) .wrap .res-snip,:where(.vipi-root) .wrap .res-where,:where(.vipi-root) .wrap .prose,:where(.vipi-root) .wrap .vmeta{overflow-wrap:anywhere}
+  /* 🔴 Ma NON sulle celle (revisione 3, U-106). Qui sopra la tabella diventa `display:block` e scorre dentro
+     di se', con i minimi dichiarati azzerati: la larghezza la decide il CONTENUTO. E `anywhere` azzera il
+     minimo del contenuto — la tabella non sforava mai, si stringeva, e le parole si spezzavano a meta':
+     misurato a 375, 106 parole spezzate sul viewer di LIBD («LIBD_CS0_/APP», «109./95»), 59 sul vSOP di LIBV;
+     a 768 la tabella SID spezzava «BANAV» e «RNAV». Con `break-word` una parola si spezza solo se da sola
+     non ci sta in NESSUNA riga, e il minimo resta la parola piu' lunga: la tabella e' larga quanto serve e
+     scorre. Il selettore ha una classe in piu' apposta: deve vincere anche sulle regole a tutta larghezza
+     che mettono `anywhere` sulle celle di una tabella precisa (`.sid-view`, `.mil-table`, `.cfg-table`…),
+     scritte per `table-layout:fixed` — che qui sotto, con la tabella a blocco, non vale piu'. */
+  :where(.vipi-root) .wrap table :is(td,th),:where(.vipi-root) .wrap .res-table :is(td,th){overflow-wrap:break-word}
+  /* Una tabella che scorre sta al suo minimo, e ogni cella va a capo a ogni spazio: «5000 ft» diventava
+     «5000» sopra e «ft» sotto. Il numero e la sua unita' sono un valore solo. */
+  :where(.vipi-root) .wrap td.col-climb{white-space:nowrap}
   /* ⚠️ L'indice, che su desktop sta di lato, su telefono finisce IN CIMA e si mangiava il 31% della prima
      schermata (260px su 844) — su un telefono piccolo quasi il 40%. Chi apre una vIPI dal telefono vuole
      vedere il documento, non il suo sommario: resta, si vede che c'e', e scorre dentro di se'.
@@ -4654,6 +4710,46 @@
      di ricerca misurava 569 su uno schermo da 375 pur non avendo UN SOLO elemento oltre il bordo — il
      documento non sforava, era il viewport a essere largo. Nessuna misura del contenuto lo trova. */
   :where(.vipi-root) .searchbar input,:where(.vipi-root) .top-search input,:where(.vipi-root) input.app-in,:where(.vipi-root) select.app-in,:where(.vipi-root) textarea.app-ta,:where(.vipi-root) .htree-search,:where(.vipi-root) .htree-select{font-size:16px}
+  /* ⚠️ E i campi delle pagine da telefono che l'elenco qui sopra non prendeva (revisione 3, U-212): filtro
+     dei trasferimenti e selettore di postazione della vista live, ricerca SID della vista rapida, filtri
+     dell'archivio, ricerca VID, convertitore. Tutti fra 12 e 13.5px: al tocco iOS ingrandiva la pagina e la
+     lasciava ingrandita. Il selettore del vAWOS sta nel suo foglio. */
+  :where(.vipi-root) .xl-filter input,:where(.vipi-root) .reduced-top .live-pick input,:where(.vipi-root) .sid-find input,
+  :where(.vipi-root) .arch-filtri input,:where(.vipi-root) .arch-filtri select,:where(.vipi-root) .vid-find input,
+  :where(.vipi-root) .wrap .conv-ta,:where(.vipi-root) .wrap .conv-opt select,:where(.vipi-root) .wrap .conv-opt input{font-size:16px}
+}
+
+/* ---- Al tocco: bersagli di almeno 24x24 (WCAG 2.5.8), senza spostare niente ----
+   Revisione 3, U-255: misurati sul telefono la lente delle statistiche 14x14, «vedi» di «Cosa e' cambiato»
+   46x20, i VID 47x18, le caselle 13x13, i «?» d'aiuto 13-15px, i tasti «tutti»/«togli» delle mappe 17x19.
+   Solo con `pointer:coarse`: col mouse la densita' resta quella scelta.
+   Due tecniche, e la scelta dipende dall'elemento:
+   - padding con margine negativo uguale: l'area cresce, il posto occupato no. Per un link IN RIGA il
+     padding verticale non tocca la riga e il margine verticale e' ignorato; per un elemento a blocco o in
+     flex il margine negativo restituisce quel che il padding prende. Stessa regola, esito giusto in tutti e due;
+   - un `::after` trasparente che sborda, dove un padding cambierebbe quel che si vede (la casella quadrata
+     dello spazio AIP, che e' un disegno di 16px). */
+@media (pointer:coarse){
+  :where(.vipi-root) .vid-link,:where(.vipi-root) .chg-link,:where(.vipi-root) .breadcrumb a,:where(.vipi-root) .wrap td a:not(.btn),
+  :where(.vipi-root) .lnk-mini{padding-top:4px;padding-bottom:4px;margin-top:-4px;margin-bottom:-4px}
+  /* I gruppi dell'indice: 17px d'altezza. Qui il margine negativo NO: la regola del gruppo ha il suo
+     margine (12px sopra), e questo selettore pesa di piu' — lo cancellerebbe. Crescono di 8px, e basta. */
+  :where(.vipi-root) .toc .toc-grp-d>summary.toc-grp{padding-top:4px;padding-bottom:4px}
+  :where(.vipi-root) .see-all{padding:4px 0;margin-top:6px;margin-bottom:-4px}
+  :where(.vipi-root) .stat-peek{padding:7px;margin:-7px -7px -7px 0}
+  /* «2 pezzi»: il dettaglio delle sessioni spezzate nelle statistiche, 20px d'altezza. */
+  :where(.vipi-root) .wrap.stats details>summary{padding-top:4px;padding-bottom:4px;margin-top:-4px;margin-bottom:-4px}
+  /* Tasti bassi (21-23px): «Compatta» e «mostra le N release» della vista live, i tre del pubblico. */
+  :where(.vipi-root) .reduced-top .btn,:where(.vipi-root) .xl-bar .btn{padding-top:5px;padding-bottom:5px}
+  :where(.vipi-root) .aud-chip.inline .btn{padding-top:4px;padding-bottom:4px}
+  :where(.vipi-root) .aor-chip-actions .aor-all,:where(.vipi-root) .aor-chip-actions .mva-all,:where(.vipi-root) .cfg-clear{padding:4px;margin:-4px}
+  :where(.vipi-root) .help-hint>summary{padding:6px;margin:-6px}
+  :where(.vipi-root) .milarea-exp{padding:4px 5px;margin:-2px -2px}
+  :where(.vipi-root) .xl-fclear{padding:5px;right:2px}
+  :where(.vipi-root) .aorasp-vis{position:relative}
+  :where(.vipi-root) .aorasp-vis::after{content:"";position:absolute;inset:-5px}
+  /* Le caselle a 24px: in una riga di filtri l'etichetta attorno e' bassa, e non basta a fare da bersaglio. */
+  :where(.vipi-root) .wrap input[type=checkbox],:where(.vipi-root) .arch-filtri label.riga input[type=checkbox]{width:24px;height:24px;flex:none}
 }
 
 /* ============================================================================================
@@ -4904,14 +5000,18 @@
    Due colonne — testo dentro, testo fuori — che si impilano allo scaglione misurato pw-900, non con una
    @media: le media query non vedono il nostro `zoom` (vedi il commento di pwFit in vipi-ui.js). */
 :where(.vipi-root) .conv-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
-:where(.vipi-root) .wrap.pw-900 .conv-cols{grid-template-columns:1fr}
+/* ⚠️ `minmax(0,1fr)` e non `1fr`, che vuol dire `minmax(auto,1fr)`: la colonna non scendeva sotto il suo
+   contenuto e su un telefono da 375 la pagina ne misurava 587 (revisione 3, L9). */
+:where(.vipi-root) .wrap.pw-900 .conv-cols{grid-template-columns:minmax(0,1fr)}
 :where(.vipi-root) .conv-ta{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:var(--surface);
   font-family:var(--font-mono,ui-monospace,SFMono-Regular,Consolas,monospace);font-size:12.5px;line-height:1.55;
   resize:vertical;white-space:pre;overflow-x:auto}
 :where(.vipi-root) .conv-out{background:var(--surface-soft);color:var(--ink)}
-:where(.vipi-root) .conv-drop{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px 11px;border:1px dashed var(--line);
+/* `flex-wrap`: sul telefono il tasto del file e la sua didascalia non stanno in una riga, e senza andare a
+   capo la didascalia finiva in colonna, una parola per riga. */
+:where(.vipi-root) .conv-drop{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px;padding:9px 11px;border:1px dashed var(--line);
   border-radius:8px;font-size:12.5px;color:var(--ink-soft)}
-:where(.vipi-root) .conv-drop input[type=file]{max-width:220px;font-size:12px}
+:where(.vipi-root) .conv-drop input[type=file]{max-width:min(220px,100%);font-size:12px}
 :where(.vipi-root) .conv-file{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;
   background:var(--surface-soft);margin-bottom:10px}
 :where(.vipi-root) .conv-file-n{flex:1;font-weight:600;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

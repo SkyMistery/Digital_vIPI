@@ -43,6 +43,14 @@ public interface IMembroEditor
     /// <summary>Molla il lock di questo membro. No-op se non era suo.</summary>
     Task RilasciaLockAsync();
 
+    /// <summary>
+    /// Perché questo membro non deve ancora uscire dalla modifica, detto a chi scrive; <c>null</c> = può uscire.
+    /// <para>⚠️ U-010 (revisione totale 3): una tabella d'aeroporto con una riga a metà non si salva PER INTERO,
+    /// e uscire buttava anche le correzioni valide alle altre righe. L'ospite lo chiede a tutti prima di mollare
+    /// il primo lock. Il default è «può uscire»: le famiglie che salvano ogni gesto non hanno niente di sospeso.</para>
+    /// </summary>
+    string? PercheResta => null;
+
     /// <summary>Ricarica questo membro: lo chiama l'ospite dopo un gesto che tocca tutti.</summary>
     Task RicaricaAsync();
 

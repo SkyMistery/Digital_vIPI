@@ -94,7 +94,9 @@ Conseguenze, scritte qui perché non si ridecidano a occhio:
    convertitore c'è già). Nome: `Area 1`, `Area 2` (gli identificativi tipo `LI R48` sono F6).
 5. **Geometria**: arco e cerchio sul **cerchio massimo** della sfera (punto a distanza e rotta dati), densità
    **regolabile**, di base **1 punto per grado** (decisione 13 della carta madre), raggio interpolato (§2.3).
-   Verso orario/antiorario dal testo. Un cerchio = anello chiuso di 360/densità punti.
+   Verso orario/antiorario dal testo, anche quando è scritto dopo il centro; un arco senza verso si disegna
+   orario e si segnala come arco incompleto («verso», U-230 della revisione 3). Un cerchio = anello chiuso di
+   360/densità punti.
 6. **Cosa NON si disegna, e si dice**: confine di stato, costa, fiume, «linea a 500 m dalla costa». Il lettore
    unisce i due capi con una **retta provvisoria** e lo segnala con la frase originale: la geometria vera sta in
    `GEO/itgeo.geo`, ed è lavoro del Lab (F6), non del sito.

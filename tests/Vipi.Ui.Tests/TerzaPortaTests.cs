@@ -51,7 +51,7 @@ public sealed class TerzaPortaTests
         "AppEditorPage", "AtcWorldArchivePage", "AttachmentBlockEditor", "CoordinateConverterPage",
         "DocumentSectionsEditor", "EditLockBar", "ImageBlockEditor", "ImportaTabella",
         "MediaCleanupCard", "MilEditorPage", "MilListPage", "NewDocumentPage", "PageIntroZone",
-        "UnionPanel", "VloaDocumentView",
+        "VloaDocumentView",
     };
 
     [Fact]

@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Translation;
+using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Infrastructure.Persistence;
 using Xunit;
@@ -37,6 +38,29 @@ public class GlossarioSuDatabaseTests : IAsyncLifetime
 
     private EfGlossaryStore Deposito() => new(_db, LivelloFisso.Editor);
     private EfTranslationMemory Memoria() => new(_db);
+
+    // ---- La traccia (U-179) -------------------------------------------------------------------------
+
+    /// <summary>
+    /// 🔴 U-179 (revisione totale 3): il cestino del glossario cancellava al primo clic e senza lasciare traccia. La
+    /// conferma sta nella pagina; qui la traccia: chi ha tolto quale voce, e chi l'ha scritta. Il seme resta muto.
+    /// </summary>
+    [Fact]
+    public async Task Scrivere_e_togliere_una_voce_lasciano_traccia_il_seme_no()
+    {
+        await Deposito().SeminaVoceAsync("it", "en", "riporta sottovento", "report downwind");
+        Assert.Equal(0, await _db.AuditLogs.CountAsync(a => a.EntityType == "GlossaryTerm"));
+
+        await Deposito().UpsertAsync("it", "en", "Mantieni la posizione", "Hold position", userId: 1);
+        var voce = (await Deposito().ListAsync("it", "en")).Single(v => v.SourceText == "Mantieni la posizione");
+        await Deposito().DeleteAsync(voce.Id);
+
+        var tracce = await _db.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityType == "GlossaryTerm").OrderBy(a => a.Id).ToListAsync();
+        Assert.Equal(new[] { AuditAction.Create, AuditAction.Delete }, tracce.Select(t => t.Action));
+        Assert.All(tracce, t => Assert.Equal(1, t.UserId));
+        Assert.Contains("Hold position", tracce[1].DetailsJson);
+    }
 
     // ---- Il seme -------------------------------------------------------------------------------------
 

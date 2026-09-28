@@ -267,4 +267,34 @@ public class ImportPropostaTests
         private static string Codice(string cella) =>
             cella.Split(' ')[0].ToUpperInvariant();
     }
+
+    /// <summary>
+    /// 🔴 U-043 (revisione totale 3): una sola riga lunga di separatori VUOTI (qualche migliaio di tabulazioni, 24 KB)
+    /// portava la proposta a righe × colonne della riga più lunga: 2000 × 20 001 celle, circa 1,4 GB. Le colonne vuote
+    /// in coda non contano.
+    /// </summary>
+    [Fact]
+    public async Task Una_riga_di_separatori_vuoti_non_gonfia_la_proposta()
+    {
+        var testo = string.Join("\n", Enumerable.Repeat("a\tb", 2001)) + "\na" + new string('\t', 20_000);
+
+        var proposta = await CostruttoreProposta.CostruisciAsync(Griglia.Leggi(testo), SpecImport.Generica());
+
+        Assert.Null(proposta.Guasto);
+        Assert.Equal(2, proposta.Colonne.Count);
+        Assert.True(proposta.Righe.Sum(r => r.Celle.Count) <= CostruttoreProposta.MaxCelle);
+    }
+
+    /// <summary>🔴 U-043: se le celle sono vere, oltre il tetto la proposta si rifiuta con un motivo leggibile, e vuota.</summary>
+    [Fact]
+    public async Task Troppe_celle_vere_si_rifiutano_con_un_motivo()
+    {
+        var larga = string.Join("\t", Enumerable.Repeat("x", 20_001));
+        var testo = string.Join("\n", Enumerable.Repeat("a", 2001)) + "\n" + larga;
+
+        var proposta = await CostruttoreProposta.CostruisciAsync(Griglia.Leggi(testo), SpecImport.Generica());
+
+        Assert.NotNull(proposta.Guasto);
+        Assert.Empty(proposta.Righe);
+    }
 }

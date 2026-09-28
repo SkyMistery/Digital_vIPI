@@ -424,7 +424,6 @@ else
     /// </summary>
     private Vipi.Application.Abstractions.INavaidCatalog Radioassistenze = default!;
     private IProcedureImporter ImportatoreSid = default!;
-    private ISidFixAliasRepository AliasSid = default!;
 
     /// <summary>Gli aeroporti noti, per gli alternati: <b>stesso scope</b>, e per la stessa ragione — si
     /// legge dentro <c>CaricaAlternatiAsync</c>, cioè nel caricamento della pagina.</summary>
@@ -459,7 +458,6 @@ else
         // ⚠️ Dallo scope PROPRIO come tutti gli altri: leggono e scrivono nel database dentro il
         // caricamento della pagina, cioè dentro il tornello. Vale parola per parola il blocco qui sopra.
         ImportatoreSid = ScopedServices.GetRequiredService<IProcedureImporter>();
-        AliasSid = ScopedServices.GetRequiredService<ISidFixAliasRepository>();
         Aeroporti = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IAirportNameLookup>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
@@ -621,11 +619,13 @@ else
         // Partenze e arrivi passano per le stesse due funzioni — e' la stessa riga, con un verso diverso.
         var ciclo = Airac.GetCycle(DateTime.UtcNow);
         _sids = dati.Sids.Where(x => !x.IsImported).Select(x => Manuale(x, ciclo)).ToList();
-        _sidsImportate = dati.Sids.Where(x => x.IsImported)
+        // ⚠️ Le versioni sostituite (U-003) restano fuori dall'editor: valgono solo sulla pagina pubblica, fino
+        // al ciclo nuovo.
+        _sidsImportate = dati.Sids.Where(x => x.IsImported && !x.IsSuperseded)
             .OrderBy(x => x.Fix).ThenBy(x => x.Priority ?? int.MaxValue).ThenBy(x => x.Name)
             .Select(x => Importata(x, ciclo)).ToList();
         _stars = dati.Stars.Where(x => !x.IsImported).Select(x => Manuale(x, ciclo)).ToList();
-        _starsImportate = dati.Stars.Where(x => x.IsImported)
+        _starsImportate = dati.Stars.Where(x => x.IsImported && !x.IsSuperseded)
             .OrderBy(x => x.Fix).ThenBy(x => x.Priority ?? int.MaxValue).ThenBy(x => x.Name)
             .Select(x => Importata(x, ciclo)).ToList();
     }
@@ -874,7 +874,7 @@ else
                l'editor civile e qui resta il rimando. Stesso componente, col suo banco di prova: chi scrive
                una regola vede subito quale pista sceglierebbe con un vento dato. *@
             case "runwayrules":
-                <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="IdentPiste()" Exclusions="RwEdit.Esclusioni(_rwys)"
+                <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="IdentPiste()" Exclusions="RwEdit.Esclusioni(_rwys)" Rotte="RwEdit.Rotte(_rwys)"
                                           Editing="_shell.IsEditing" RowsChanged="SalvaRegole"
                                           ConfirmRemove="ConfermaRimozioneRegola" />
                 break;
@@ -1026,13 +1026,15 @@ else
     private async Task ScriviSidImportata(ImportedSidEdit e)
     {
         string? fissato = null;
+        string? alias = null;
         if (e.NeedsReview && !string.IsNullOrWhiteSpace(e.FixOverride))
         {
             fissato = e.FixOverride!.Trim();
-            if (e.CreateAlias) await AliasSid.UpsertAsync(e.Fix, fissato);
+            if (e.CreateAlias) alias = e.Fix;   // vale per questo scalo (U-031)
         }
+        // 🔴 U-171: l'alias lo scrive il servizio, dopo il lock (vedi AirportSectionsEditor.PersistImported).
         await Scalo.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, fissato,
-            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
+            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition, alias);
         e.IsPublicNow = e.IsPublicNow || e.ForcePublished;
     }
 
@@ -1213,25 +1215,42 @@ else
 
     /// <summary>Toglie la riga dal DOCUMENTO. ⚠️ Non dall'anagrafica: quella radioassistenza la citano altri
     /// SOP, e cancellarla davvero sarebbe un atto su un dato di tutti preso dalla tabella di uno.</summary>
-    private Task TogliRadioassistenza(int indice) => _shell.GuardAsync(async () =>
+    ///
+    /// <para>🔴 U-066 (revisione totale 3): la riga si sceglie AL CLIC, per chiave. La ✕ passa l'indice, e l'elenco si
+    /// leggeva dentro la fila: il secondo clic di un doppio clic, arrivato il suo turno, trovava l'elenco già senza la
+    /// prima riga, e lo stesso indice toglieva quella DOPO. Per chiave, il secondo gesto non trova niente da togliere.</para>
+    private Task TogliRadioassistenza(int indice)
     {
-        var chiavi = ChiaviCorrenti();
-        if (indice < 0 || indice >= chiavi.Count) return;
-        chiavi.RemoveAt(indice);
-        await Militari.SaveNavaidsAsync(_icao, chiavi);
-        await CaricaRadioassistenzeAsync();
-    });
+        var alClic = ChiaviCorrenti();
+        if (indice < 0 || indice >= alClic.Count) return Task.CompletedTask;
+        var chiave = alClic[indice];
+        return _shell.GuardAsync(async () =>
+        {
+            var chiavi = ChiaviCorrenti();
+            if (!chiavi.Remove(chiave)) return;
+            await Militari.SaveNavaidsAsync(_icao, chiavi);
+            await CaricaRadioassistenzeAsync();
+        });
+    }
 
-    private Task SpostaRadioassistenza((int Indice, int Delta) m) => _shell.GuardAsync(async () =>
+    /// <summary>Sposta una riga di un posto. 🔴 U-066: come per la ✕, la riga si sceglie al clic e si ritrova per
+    /// chiave; il vicino è quello di ADESSO.</summary>
+    private Task SpostaRadioassistenza((int Indice, int Delta) m)
     {
-        var chiavi = ChiaviCorrenti();
-        var a = m.Indice;
-        var b = a + m.Delta;
-        if (a < 0 || a >= chiavi.Count || b < 0 || b >= chiavi.Count) return;
-        (chiavi[a], chiavi[b]) = (chiavi[b], chiavi[a]);
-        await Militari.SaveNavaidsAsync(_icao, chiavi);
-        await CaricaRadioassistenzeAsync();
-    });
+        var alClic = ChiaviCorrenti();
+        if (m.Indice < 0 || m.Indice >= alClic.Count) return Task.CompletedTask;
+        var chiave = alClic[m.Indice];
+        return _shell.GuardAsync(async () =>
+        {
+            var chiavi = ChiaviCorrenti();
+            var a = chiavi.IndexOf(chiave);
+            var b = a + m.Delta;
+            if (a < 0 || b < 0 || b >= chiavi.Count) return;
+            (chiavi[a], chiavi[b]) = (chiavi[b], chiavi[a]);
+            await Militari.SaveNavaidsAsync(_icao, chiavi);
+            await CaricaRadioassistenzeAsync();
+        });
+    }
 
     /// <summary>
     /// Scrive UN campo nell'anagrafica e torna l'esito a chi l'ha chiesto. ⚠️ L'esito serve: «la fonte vince»
@@ -1244,10 +1263,14 @@ else
     /// scritture partite insieme sullo stesso <c>DbContext</c>: «A second operation was started», poi il contesto
     /// smaltito e la pagina morta («Something went wrong»). Visto in produzione alle 10:09–10:14Z. In fila, la
     /// seconda trova il valore già scritto e torna «invariato».</para>
+    ///
+    /// <para>🔴 U-164 (revisione totale 3): in fila sì, ma fuori dal guardiano. Un'eccezione del servizio (il database,
+    /// un permesso scaduto) usciva dal gestore della cella e abbatteva il circuito: ora diventa il messaggio
+    /// dell'editor, come per ogni altro gesto.</para>
     private async Task<NavaidWrite> ScriviRadioassistenza(int navaidId, NavaidCampo campo, string? valore)
     {
         var esito = NavaidWrite.NonTrovata;
-        await _shell.InFilaAsync(async () =>
+        await _shell.GuardedAsync(async () =>
         {
             var utente = Authz.CurrentUserId ?? 0;
             esito = campo switch
@@ -1286,40 +1309,51 @@ else
     private List<MilDiversionPayload.Riga> RigheAlternati() =>
         _alternati.Select(MilDiversionPayload.Da).ToList();
 
-    private Task SalvaAlternati(List<MilDiversionPayload.Riga> righe) => _shell.GuardAsync(async () =>
+    /// <summary>
+    /// 🔴 U-063 (revisione 3): la modifica si applica DENTRO il tornello, sulle righe come sono dopo il salvataggio di
+    /// prima. Composte al momento del gesto, due gesti più veloci del giro salva+rilettura facevano cancellare il
+    /// primo al secondo. <paramref name="cambia"/> risponde <c>false</c> quando non c'è niente da scrivere.
+    /// </summary>
+    private Task SalvaAlternati(Func<List<MilDiversionPayload.Riga>, bool> cambia) => _shell.GuardAsync(async () =>
     {
+        var righe = RigheAlternati();
+        if (!cambia(righe)) return;
         await Militari.SaveDiversionsAsync(_icao, righe);
         await CaricaAlternatiAsync();
     });
 
-    private async Task AggiungiAlternato(string icao)
+    ///
+    /// <para>🔴 U-163 (revisione totale 3): la ricerca del nome sta DENTRO il guardiano. Prima girava fuori, e un
+    /// timeout di IVAO o una lettura in corso abbattevano il circuito. E l'avviso «ICAO sconosciuto» si scrive DOPO
+    /// il salvataggio: scritto prima, il guardiano lo cancellava entrando, e non si vedeva mai.</para>
+    private Task AggiungiAlternato(string icao) => _shell.GuardAsync(async () =>
     {
         // ⚠️ L'unica chiamata alla SORGENTE di tutta la sezione, e la fa una persona premendo un tasto: il
         // nome si salva nel documento, così la pagina pubblica non dipenderà mai da IVAO per stampare una cella.
         var trovato = await Aeroporti.FindAsync(icao);
-        if (trovato is null) _shell.Error = L["Div_UnknownIcao"].Value;
 
         var righe = RigheAlternati();
         righe.Add(new MilDiversionPayload.Riga { Icao = icao, Name = trovato?.Name });
-        await SalvaAlternati(righe);
-    }
+        await Militari.SaveDiversionsAsync(_icao, righe);
+        await CaricaAlternatiAsync();
 
-    private Task TogliAlternato(int i)
+        if (trovato is null) _shell.Error = L["Div_UnknownIcao"].Value;
+    });
+
+    private Task TogliAlternato(int i) => SalvaAlternati(righe =>
     {
-        var righe = RigheAlternati();
-        if (i < 0 || i >= righe.Count) return Task.CompletedTask;
+        if (i < 0 || i >= righe.Count) return false;
         righe.RemoveAt(i);
-        return SalvaAlternati(righe);
-    }
+        return true;
+    });
 
-    private Task SpostaAlternato((int Indice, int Delta) m)
+    private Task SpostaAlternato((int Indice, int Delta) m) => SalvaAlternati(righe =>
     {
-        var righe = RigheAlternati();
         var (a, b) = (m.Indice, m.Indice + m.Delta);
-        if (a < 0 || a >= righe.Count || b < 0 || b >= righe.Count) return Task.CompletedTask;
+        if (a < 0 || a >= righe.Count || b < 0 || b >= righe.Count) return false;
         (righe[a], righe[b]) = (righe[b], righe[a]);
-        return SalvaAlternati(righe);
-    }
+        return true;
+    });
 
     /// <summary>
     /// Cita una radioassistenza su una riga. ⚠️ Arriva l'<b>identità intera</b>, non il codice: quando il
@@ -1340,27 +1374,28 @@ else
             return;
         }
 
-        var righe = RigheAlternati();
-        if (x.Indice < 0 || x.Indice >= righe.Count) return;
-        var riga = righe[x.Indice];
-        if (riga.Navaids.Any(n => n.Code == scelta.Code && n.Kind == scelta.Kind
-                                  && n.Channel == scelta.Channel)) return;
-
-        righe[x.Indice] = new MilDiversionPayload.Riga
+        await SalvaAlternati(righe =>
         {
-            Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
-            Navaids = riga.Navaids.Append(new MilDiversionPayload.Nav
+            if (x.Indice < 0 || x.Indice >= righe.Count) return false;
+            var riga = righe[x.Indice];
+            if (riga.Navaids.Any(n => n.Code == scelta.Code && n.Kind == scelta.Kind
+                                      && n.Channel == scelta.Channel)) return false;
+
+            righe[x.Indice] = new MilDiversionPayload.Riga
             {
-                Code = scelta.Code, Kind = scelta.Kind, Channel = scelta.Channel,
-            }).ToList(),
-        };
-        await SalvaAlternati(righe);
+                Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
+                Navaids = riga.Navaids.Append(new MilDiversionPayload.Nav
+                {
+                    Code = scelta.Code, Kind = scelta.Kind, Channel = scelta.Channel,
+                }).ToList(),
+            };
+            return true;
+        });
     }
 
-    private Task TogliNavaidAlternato((int Indice, NavaidKey Chiave) x)
+    private Task TogliNavaidAlternato((int Indice, NavaidKey Chiave) x) => SalvaAlternati(righe =>
     {
-        var righe = RigheAlternati();
-        if (x.Indice < 0 || x.Indice >= righe.Count) return Task.CompletedTask;
+        if (x.Indice < 0 || x.Indice >= righe.Count) return false;
         var riga = righe[x.Indice];
         righe[x.Indice] = new MilDiversionPayload.Riga
         {
@@ -1369,8 +1404,8 @@ else
                 .Where(n => n.Code != x.Chiave.Code || n.Kind != x.Chiave.Kind || n.Channel != x.Chiave.Channel)
                 .ToList(),
         };
-        return SalvaAlternati(righe);
-    }
+        return true;
+    });
 
     private Task ScriviRilevamentoAlternato((int Indice, int? Gradi) x) =>
         ScriviNumeroAlternato(x.Indice, riga => new MilDiversionPayload.Riga
@@ -1428,8 +1463,12 @@ else
             });
         }
 
-        var righe = r.Sostituisci ? nuove : RigheAlternati().Concat(nuove).ToList();
-        return SalvaAlternati(righe);
+        return SalvaAlternati(righe =>
+        {
+            if (r.Sostituisci) righe.Clear();
+            righe.AddRange(nuove);
+            return true;
+        });
     }
 
     /// <summary>Il nome dentro «LIBA Amendola», senza il codice. Vuoto = nessun nome da tenere.</summary>
@@ -1441,13 +1480,13 @@ else
         return resto.Length > 0 ? resto : null;
     }
 
-    private Task ScriviNumeroAlternato(int indice, Func<MilDiversionPayload.Riga, MilDiversionPayload.Riga> cambia)
-    {
-        var righe = RigheAlternati();
-        if (indice < 0 || indice >= righe.Count) return Task.CompletedTask;
-        righe[indice] = cambia(righe[indice]);
-        return SalvaAlternati(righe);
-    }
+    private Task ScriviNumeroAlternato(int indice, Func<MilDiversionPayload.Riga, MilDiversionPayload.Riga> cambia) =>
+        SalvaAlternati(righe =>
+        {
+            if (indice < 0 || indice >= righe.Count) return false;
+            righe[indice] = cambia(righe[indice]);
+            return true;
+        });
 
     // ---- Nominativi e Parcheggi: tabelle a colonne fisse, tutto a mano (§12g) ---------------------------
     //
@@ -1468,10 +1507,13 @@ else
 
     /// <summary>Le due tabelle si comportano allo stesso modo: una sola funzione, e la sezione la sceglie il
     /// chiamante. Due copie divergerebbero al primo ritocco.</summary>
+    /// <remarks>U-063 (revisione 3): la modifica si applica dentro il tornello, sulla tabella ricaricata dal
+    /// salvataggio di prima, come gli alternati.</remarks>
     private Task SalvaTabella(string chiave, string variante, int colonne,
-        IReadOnlyList<IReadOnlyList<string>> righe) => _shell.GuardAsync(async () =>
+        Func<IReadOnlyList<IReadOnlyList<string>>, IReadOnlyList<IReadOnlyList<string>>> cambia) => _shell.GuardAsync(async () =>
     {
-        await Militari.SaveFixedTableAsync(_icao, chiave, variante, righe, colonne);
+        var attuali = chiave == "callsigns" ? _nominativi : _parcheggi;
+        await Militari.SaveFixedTableAsync(_icao, chiave, variante, cambia(attuali), colonne);
         await CaricaTabelleAsync();
     });
 
@@ -1516,22 +1558,22 @@ else
     }
 
     private Task AggiungiNominativo() =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, ConRigaVuota(_nominativi, ColNominativi));
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, t => ConRigaVuota(t, ColNominativi));
     private Task TogliNominativo(int i) =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, Senza(_nominativi, i));
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, t => Senza(t, i));
     private Task SpostaNominativo((int Indice, int Delta) m) =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, Spostata(_nominativi, m.Indice, m.Delta));
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, t => Spostata(t, m.Indice, m.Delta));
     private Task ScriviNominativo((int Riga, int Colonna, string Testo) c) =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, ConCella(_nominativi, c.Riga, c.Colonna, c.Testo));
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, t => ConCella(t, c.Riga, c.Colonna, c.Testo));
 
     private Task AggiungiParcheggio() =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConRigaVuota(_parcheggi, ColParcheggi));
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, t => ConRigaVuota(t, ColParcheggi));
     private Task TogliParcheggio(int i) =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Senza(_parcheggi, i));
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, t => Senza(t, i));
     private Task SpostaParcheggio((int Indice, int Delta) m) =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Spostata(_parcheggi, m.Indice, m.Delta));
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, t => Spostata(t, m.Indice, m.Delta));
     private Task ScriviParcheggio((int Riga, int Colonna, string Testo) c) =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConCella(_parcheggi, c.Riga, c.Colonna, c.Testo));
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, t => ConCella(t, c.Riga, c.Colonna, c.Testo));
 
     // ---- prendere una tabella da un ALTRO vSOP ---------------------------------------------------------
     //
@@ -1586,10 +1628,10 @@ else
     // «sostituisci»): la fusione l'ha gia' fatta l'anteprima, che e' l'unico posto dove chi importa ha visto
     // che cosa stava per succedere.
     private Task ImportaNominativi(IReadOnlyList<IReadOnlyList<string>> righe) =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, righe);
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, _ => righe);
 
     private Task ImportaParcheggi(IReadOnlyList<IReadOnlyList<string>> righe) =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, righe);
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, _ => righe);
 
     /// <summary>L'attività di UN'area (§12h): una alla volta, come i campi delle radioassistenze.</summary>
     private Task ScriviAttivitaArea((string AreaId, MilActivity Attivita) x) => _shell.GuardAsync(async () =>
@@ -1675,6 +1717,18 @@ else
         await (SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync));
     }
 
-    private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : _shell.FinishEditingAsync();
+    /// <summary>⚠️ Prima si chiede se una tabella è ferma su una riga a metà (U-010): uscire butterebbe anche
+    /// le correzioni valide alle altre righe, che quella riga tiene fuori dall'archivio.</summary>
+    private Task FineModifica()
+    {
+        if (PercheResta is { } perche) { _shell.Error = perche; return Task.CompletedTask; }
+        return SuFineModifica is not null ? SuFineModifica() : _shell.FinishEditingAsync();
+    }
+
+    /// <inheritdoc cref="IMembroEditor.PercheResta"/>
+    public string? PercheResta => _shell.IsEditing
+        && AirportSaveGate.Ferme(_tls, _rwys, _rules, _sids, _stars) is { Count: > 0 } ferme
+        ? L["Ape_FinishBlocked", string.Join(", ", ferme.Select(k => L[k].Value))].Value
+        : null;
 
 }

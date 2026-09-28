@@ -85,6 +85,12 @@ internal static class VipiStartup
         builder.Services.AddAntiforgery(o => o.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest);
         builder.Services.AddHsts(o => o.MaxAge = TimeSpan.FromDays(365));
 
+        // Il tetto dei circuiti anonimi aperti insieme (U-237): i trattenuti li limita la riga qui sotto, i connessi
+        // nessuno. Vedi TettoDeiCircuitiAnonimi.
+        builder.Services.AddSingleton(sp => new TettoDeiCircuitiAnonimi(
+            builder.Configuration.GetValue(TettoDeiCircuitiAnonimi.ChiaveConfigurazione, TettoDeiCircuitiAnonimi.TettoPredefinito),
+            sp.GetRequiredService<ILoggerFactory>().CreateLogger<TettoDeiCircuitiAnonimi>()));
+
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents(o =>
             {
@@ -94,7 +100,12 @@ internal static class VipiStartup
                 // tutto lo stato della pagina editor che aveva aperta.
                 // ⚠️ Numeri stimati sul traffico atteso (decine di persone, non migliaia): da rivedere dopo il primo
                 // ciclo AIRAC pubblicato dal server nuovo, quando ci sarà una misura al posto di una stima.
-                o.DisconnectedCircuitMaxRetained = 25;
+                // 🔴 Da 25 a 100 il 28 settembre 2026 (U-238, revisione totale 3): il posto è UNO per tutti, e lo
+                // occupano anche i circuiti dei lettori anonimi (isole meteo e SID, ricerca) staccati senza beacon,
+                // ognuno per cinque minuti. Una sera d'evento bastavano venticinque telefoni bloccati sulle pagine
+                // aeroporto: l'editor che perdeva la rete per un attimo veniva ricaricato, e perdeva quel che non
+                // aveva salvato. La misura c'è ora (MemoriaDelProcesso, ARRESTO): 251 MB su 29 GB, margine largo.
+                o.DisconnectedCircuitMaxRetained = CircuitiTrattenuti;
 
                 // ⚠️ Da 2 a 5 minuti il 31 agosto 2026, e la ragione è precisa: QUESTA finestra è l'unica cosa
                 // che distingue «mi si è staccato un attimo e ritrovo la pagina com'era» da «ricarico e riparto
@@ -133,6 +144,13 @@ internal static class VipiStartup
                 // condiviso il picco è un'altra cosa). Trenta secondi tolgono di mezzo il caso in cui la prima
                 // visita della giornata fallisce e la seconda va.
                 o.HandshakeTimeout = TimeSpan.FromSeconds(30);
+
+                // 🔴 Il tetto di un messaggio dal browser: 32 KB di default, e blazor.web.js spedisce il valore
+                // di un campo DUE volte a ogni evento — la soglia vera era ~16 KB di testo. Oltre, il server
+                // chiudeva la connessione e l'evento si perdeva in silenzio: il DOM mostrava il testo, il server
+                // no (U-016: 44 KB di prosa mai salvati; il poligono di LAAA in Confinanti staccava il circuito
+                // a ogni tasto). Mezzo megabyte, come il Lab (ServerDelLab.TettoDelMessaggio).
+                o.MaximumReceiveMessageSize = 512 * 1024;
             });
 
         // Compressione asset di testo (CSS/JS/SignalR). NIENTE text/event-stream: la rotta SSE /vsop/live/atc
@@ -272,8 +290,12 @@ internal static class VipiStartup
         // In sviluppo usa l'utente CH fittizio; in produzione l'identità è letta dal login del sito ospitante.
         // Se il login IVAO standalone è attivo, esso vince sul dev identity anche in sviluppo (si prova il login vero).
         var useDevIdentity = builder.Environment.IsDevelopment() && !authEnabled;
-        // Guardia di sicurezza (audit D1): mai identità dev fittizia (admin onnipotente) fuori da Development.
-        Vipi.Hosting.ProductionIdentityGuard.EnsureSafe(builder.Environment.IsDevelopment(), useDevIdentity);
+        // Guardia di sicurezza (audit D1): mai identità dev fittizia (admin onnipotente) fuori da Development — e,
+        // dal 28 settembre 2026 (U-112), nemmeno su un indirizzo non locale o sul MySQL di produzione: qui
+        // `useDevIdentity` implica già Development, e senza gli altri due controlli la guardia non scattava mai.
+        Vipi.Hosting.ProductionIdentityGuard.EnsureSafe(builder.Environment.IsDevelopment(), useDevIdentity,
+            builder.WebHost.GetSetting(Microsoft.AspNetCore.Hosting.WebHostDefaults.ServerUrlsKey),
+            builder.Configuration[Vipi.Infrastructure.Persistence.PersistenceProviderResolver.ProviderConfigKey]);
         builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: useDevIdentity);
 
         crono.Segna("registrazioni dei servizi");
@@ -298,9 +320,11 @@ internal static class VipiStartup
         // StartupDiagnostics.ShutdownFileName.
         app.Lifetime.ApplicationStarted.Register(StartupDiagnostics.SegnaAvvioRiuscito);
 
-        // Dietro il proxy TLS di Fly.io/Render (TLS al bordo, HTTP interno): fidati di X-Forwarded-Proto/For così
-        // UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. KnownIPNetworks/Proxies
-        // svuotati perché l'IP del proxy non è fisso. Innocuo in locale (gli header non arrivano).
+        // Dietro il proxy TLS (nginx sulla stessa macchina, su atc.it.ivao.aero): fidati di X-Forwarded-Proto/For così
+        // UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. Innocuo in locale (gli
+        // header non arrivano). 🔴 U-122 (revisione totale 3): il commento parlava di Fly.io/Render, che non si usano
+        // più (committente, 28 settembre 2026) — e su Render, che gira in Production, questa regola non avrebbe
+        // funzionato: lì il proxy non arriva da loopback.
         var forwardedOptions = new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
@@ -308,8 +332,8 @@ internal static class VipiStartup
 
         // KnownIPNetworks e non KnownNetworks: l'host è net10 dal salto di L13 (T-059), e il nome vecchio è obsoleto.
         //
-        // Svuotare entrambe significa «fidati di X-Forwarded-For da chiunque», ed è quel che serve su Render, dove
-        // l'IP del proxy non è fisso. Su atc.it.ivao.aero NON serve: nginx sta sulla stessa macchina e arriva da
+        // Svuotare entrambe significa «fidati di X-Forwarded-For da chiunque», ed era quel che serviva su Render (non
+        // più usato), dove l'IP del proxy non è fisso. Su atc.it.ivao.aero NON serve: nginx sta sulla stessa macchina e arriva da
         // loopback. Lasciarle vuote lì vorrebbe dire che l'IP del chiamante lo sceglie il chiamante — e su
         // quell'IP si regge il tetto per-IP del bridge Aurora, oltre a ogni riga di log che dice «da dove».
         //
@@ -418,8 +442,8 @@ internal static class VipiStartup
         app.MigrateVipiDatabase();
         crono.Segna("migrazione del database");
 
-        // Le cinque manutenzioni non critiche (promozioni a mano, riconciliazioni documentali, proiezione dei
-        // settori, backfill delle release, pulizia delle unioni), ognuna isolata dalle altre: un guasto viene
+        // Le quattro manutenzioni non critiche (promozioni a mano, riconciliazioni documentali, proiezione dei
+        // settori, pulizia delle unioni), ognuna isolata dalle altre: un guasto viene
         // registrato — log + diagnostica, quindi /vsop/health in Degraded — e l'avvio prosegue. Prima erano
         // cinque chiamate nude, e con Restart=always nel
         // servizio systemd un difetto in una di esse non era un degrado ma un ciclo di riavvii.
@@ -564,6 +588,11 @@ internal static class VipiStartup
             app.MapVipiStandaloneAuth();
         }
 
+        // Il tetto dei circuiti anonimi (U-237). DOPO UseAuthentication, perché chi è entrato col VID non si conta
+        // e non si ferma; prima dell'endpoint del circuito, che è chi apre il WebSocket.
+        var tettoDeiCircuiti = app.Services.GetRequiredService<TettoDeiCircuitiAnonimi>();
+        app.Use(tettoDeiCircuiti.PassaAsync);
+
         // DOPO UseAuthentication/UseAuthorization, come chiede la guida Blazor — e non prima, com'era fino
         // all'11 agosto 2026. Il token antiforgery va legato all'identità che lo chiede: girando prima, il
         // middleware lo emette quando l'utente non è ancora montato, e il token resta valido attraverso un
@@ -646,7 +675,10 @@ internal static class VipiStartup
         // La pagina d'errore. E' un endpoint e non un componente perche' deve reggere anche quando a lanciare
         // e' stato il layout condiviso — successo il 24 agosto 2026: una pagina d'errore che passasse di li'
         // lancerebbe una seconda volta. Il codice che mostra e' quello scritto in diagnostica/errori-richieste.txt.
-        app.MapGet("/Error", (HttpContext ctx) =>
+        // 🔴 Per TUTTI i metodi (U-234, revisione totale 3): UseExceptionHandler rifà la pipeline col metodo della
+        // richiesta morta. Con il solo GET un'eccezione nel PUT del ponte RFO o nel POST di transfers/resolve usciva
+        // come 405 vuoto — «errore di contratto» per chi chiama — invece che come 500, da ritentare.
+        app.Map("/Error", (HttpContext ctx) =>
         {
             var codice = System.Diagnostics.Activity.Current?.Id ?? ctx.TraceIdentifier;
 
@@ -672,6 +704,9 @@ internal static class VipiStartup
 
         app.Run();
     }
+
+    /// <summary>Quanti circuiti staccati si tengono per il riaggancio (vedi l'impostazione in AddInteractiveServerComponents).</summary>
+    internal const int CircuitiTrattenuti = 100;
 
     /// <summary>
     /// «vipi-fonts.css.br» → «vipi-fonts.css». Serve a decidere sul file VERO quando quello che si sta

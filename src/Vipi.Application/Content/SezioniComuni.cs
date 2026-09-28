@@ -6,7 +6,16 @@ namespace Vipi.Application.Content;
 /// <param name="DocumentId">Il documento che la porta.</param>
 /// <param name="SectionId">La sezione, nella sua versione di lavoro.</param>
 /// <param name="Nascosta">Com'è adesso: serve a dire a chi guarda che cosa cambierà davvero.</param>
-public sealed record PresenzaSezione(int DocumentId, int SectionId, bool Nascosta);
+/// <param name="Dati">Vero se in quel documento la sezione è solo DATO dell'anagrafica (<c>Host</c>): uguale per
+/// costruzione nei due documenti. Falso se ha blocchi propri o è scritta a mano (U-007).</param>
+/// <param name="Sotto">Le chiavi di tutto quel che la sezione ha sotto, in quel documento: nasconderla nasconde
+/// anche quelle (U-007).</param>
+public sealed record PresenzaSezione(int DocumentId, int SectionId, bool Nascosta,
+                                     bool Dati = true, IReadOnlyList<string>? Sotto = null)
+{
+    /// <summary>Le chiavi del sottoalbero, mai null.</summary>
+    public IReadOnlyList<string> ChiaviSotto => Sotto ?? Array.Empty<string>();
+}
 
 /// <summary>Una sezione che due o più documenti dell'unione hanno <b>tutti e due</b>.</summary>
 /// <param name="Proposta">Nasce spuntata nella scheda. Falso per la validità — vedi
@@ -99,13 +108,30 @@ public static class SezioniComuni
     /// troverebbe niente proprio nel caso per cui la scheda esiste.</para>
     /// </summary>
     public static IReadOnlyList<SezioneComune> Di(
-        IReadOnlyList<(int DocumentId, IReadOnlyList<EditableSection> Sezioni)> documenti)
+        IReadOnlyList<(int DocumentId, IReadOnlyList<EditableSection> Sezioni)> documenti) =>
+        Nucleo(documenti.Select(d => (d.DocumentId, (SectionProfile?)null, d.Sezioni)).ToList());
+
+    /// <summary>
+    /// Come sopra, col <b>profilo</b> di ogni documento: serve a sapere quali sezioni sono solo dato
+    /// dell'anagrafica e quali hanno contenuto proprio (U-007, revisione totale 3).
+    ///
+    /// <para>🔴 <b>Si propongono spuntate solo le sezioni di DATI</b> (<c>Host</c> nel catalogo di ognuno dei
+    /// documenti): METAR, quote di transizione, SID — lo stesso dato letto dalla stessa anagrafica. Una sezione
+    /// con blocchi propri (<c>HostAndBlocks</c>: le frequenze del vSOP portano CRC e AEW, le piste le loro note)
+    /// o scritta a mano non è una ripetizione: resta in elenco, ma chi la vuole nascondere lo deve dire.</para>
+    /// </summary>
+    public static IReadOnlyList<SezioneComune> Di(
+        IReadOnlyList<(int DocumentId, SectionProfile Profilo, IReadOnlyList<EditableSection> Sezioni)> documenti) =>
+        Nucleo(documenti.Select(d => (d.DocumentId, (SectionProfile?)d.Profilo, d.Sezioni)).ToList());
+
+    private static IReadOnlyList<SezioneComune> Nucleo(
+        IReadOnlyList<(int DocumentId, SectionProfile? Profilo, IReadOnlyList<EditableSection> Sezioni)> documenti)
     {
         var presenze = new Dictionary<string, List<PresenzaSezione>>(StringComparer.Ordinal);
         var titoli = new Dictionary<string, string>(StringComparer.Ordinal);
         var ordine = new List<string>();
 
-        foreach (var (documentId, sezioni) in documenti)
+        foreach (var (documentId, profilo, sezioni) in documenti)
             foreach (var s in Appiattisci(sezioni))
             {
                 if (SectionKeys.IsCustom(s.SectionKey) || string.IsNullOrWhiteSpace(s.SectionKey)) continue;
@@ -116,16 +142,61 @@ public static class SezioniComuni
                     titoli[s.SectionKey] = s.Title;
                     ordine.Add(s.SectionKey);
                 }
-                lista.Add(new PresenzaSezione(documentId, s.Id, s.IsHidden));
+                // Senza profilo non si sa: si considera dato, cioè la regola di prima.
+                // ⚠️ Nemmeno una sezione che il catalogo fa NASCERE nascosta (le STAR): spuntata, «tenerla» nel
+                // documento che resta voleva dire MOSTRARLA — la scheda le rendeva visibili nella vIPI civile, che
+                // è una decisione editoriale a parte (LIBV, prova dal vivo del 27 settembre 2026).
+                var dati = profilo is not { } pr
+                           || SectionCatalog.Find(pr, s.SectionKey) is { BodySource: SectionBodySource.Host, BornHidden: false };
+                var sotto = Appiattisci(s.Children).Select(x => x.SectionKey).ToList();
+                lista.Add(new PresenzaSezione(documentId, s.Id, s.IsHidden, dati, sotto));
             }
 
         return ordine
             // Due DOCUMENTI, non due righe: la stessa chiave due volte nello stesso documento non è una
             // ripetizione fra documenti, ed è la domanda a cui la scheda risponde.
             .Where(k => presenze[k].Select(p => p.DocumentId).Distinct().Count() > 1)
-            .Select(k => new SezioneComune(k, titoli[k], presenze[k], Proposta: k != ChiaveValidita))
+            .Select(k => new SezioneComune(k, titoli[k], presenze[k],
+                Proposta: k != ChiaveValidita && presenze[k].All(p => p.Dati)))
             .ToList();
     }
+
+    /// <summary>
+    /// Che cosa diventa ogni presenza delle chiavi scelte: nascosta o visibile.
+    ///
+    /// <para>🔴 <b>Una sezione si nasconde solo se tutto quel che ha sotto c'è anche in un documento che resta</b>
+    /// (U-007). <c>IsHidden</c> su una sezione si porta via il sottoalbero: nascondere le «Piste» del vSOP
+    /// nascondeva anche le coordinate delle soglie, che il civile non ha. Una sezione così resta visibile — e se
+    /// prima la scheda l'aveva nascosta, si <b>rimostra</b> (LIRP) — mentre le sue figlie comuni, che sono voci
+    /// loro nell'elenco, si nascondono per conto proprio.</para>
+    /// </summary>
+    private static IEnumerable<(PresenzaSezione Presenza, bool Nascondi)> Obiettivi(
+        IReadOnlyList<SezioneComune> comuni, IReadOnlyList<string> chiavi, IReadOnlyCollection<int> nascondiIn)
+    {
+        var scelte = new HashSet<string>(chiavi, StringComparer.Ordinal);
+        var da = new HashSet<int>(nascondiIn);
+
+        // Le chiavi che restano visibili da qualche parte: quelle che un documento non spuntato ha.
+        var restano = new HashSet<string>(
+            comuni.Where(c => c.Presenze.Any(p => !da.Contains(p.DocumentId))).Select(c => c.Chiave),
+            StringComparer.Ordinal);
+
+        return comuni
+            .Where(c => scelte.Contains(c.Chiave))
+            .SelectMany(c => c.Presenze)
+            .Select(p => (p, da.Contains(p.DocumentId) && p.ChiaviSotto.All(restano.Contains)));
+    }
+
+    /// <summary>Vero se, con questi documenti spuntati, la sezione resta visibile in almeno uno di essi perché ha
+    /// sotto contenuti che gli altri non hanno. La scheda lo dice accanto alla voce.</summary>
+    public static bool Trattenuta(IReadOnlyList<SezioneComune> comuni, string chiave, IReadOnlyCollection<int> nascondiIn) =>
+        Obiettivi(comuni, new[] { chiave }, nascondiIn)
+            .Any(x => nascondiIn.Contains(x.Presenza.DocumentId) && !x.Nascondi);
+
+    /// <summary>Quante sottosezioni sparirebbero INSIEME a questa, sommate sui documenti in cui si nasconde. La
+    /// scheda mostrava solo i titoli: chi spuntava «Piste» non sapeva di spuntare anche le soglie.</summary>
+    public static int Trascinate(IReadOnlyList<SezioneComune> comuni, string chiave, IReadOnlyCollection<int> nascondiIn) =>
+        Obiettivi(comuni, new[] { chiave }, nascondiIn).Where(x => x.Nascondi).Sum(x => x.Presenza.ChiaviSotto.Count);
 
     /// <summary>
     /// Che cosa scrivere davvero: le sezioni con queste chiavi si <b>nascondono</b> nei documenti scelti e
@@ -141,18 +212,11 @@ public static class SezioniComuni
     /// contrario — ed è esattamente il clic sbagliato che aspetta di succedere.</para>
     /// </summary>
     public static IReadOnlyList<(int SectionId, bool Nascondi)> Piano(
-        IReadOnlyList<SezioneComune> comuni, IReadOnlyList<string> chiavi, IReadOnlyCollection<int> nascondiIn)
-    {
-        var scelte = new HashSet<string>(chiavi, StringComparer.Ordinal);
-        var da = new HashSet<int>(nascondiIn);
-        return comuni
-            .Where(c => scelte.Contains(c.Chiave))
-            .SelectMany(c => c.Presenze)
-            .Select(p => (p.SectionId, Nascondi: da.Contains(p.DocumentId), p.Nascosta))
-            .Where(x => x.Nascondi != x.Nascosta)
-            .Select(x => (x.SectionId, x.Nascondi))
+        IReadOnlyList<SezioneComune> comuni, IReadOnlyList<string> chiavi, IReadOnlyCollection<int> nascondiIn) =>
+        Obiettivi(comuni, chiavi, nascondiIn)
+            .Where(x => x.Nascondi != x.Presenza.Nascosta)
+            .Select(x => (x.Presenza.SectionId, x.Nascondi))
             .ToList();
-    }
 
     /// <summary>
     /// Vero se, con queste scelte, almeno una sezione comune <b>sparirebbe da tutti</b> i documenti che la
@@ -162,10 +226,11 @@ public static class SezioniComuni
     public static bool SparisceDaTutti(IReadOnlyList<SezioneComune> comuni, IReadOnlyList<string> chiavi,
                                        IReadOnlyCollection<int> nascondiIn)
     {
+        // Con la stessa regola del piano: una presenza che resta perché ha contenuti solo suoi non sparisce.
+        // Il sottoalbero si valuta contro TUTTE le comuni, non contro la sola voce.
         var scelte = new HashSet<string>(chiavi, StringComparer.Ordinal);
-        var da = new HashSet<int>(nascondiIn);
         return comuni.Where(c => scelte.Contains(c.Chiave))
-                     .Any(c => c.Presenze.All(p => da.Contains(p.DocumentId)));
+                     .Any(c => Obiettivi(comuni, new[] { c.Chiave }, nascondiIn).All(x => x.Nascondi));
     }
 
     /// <summary>
@@ -185,12 +250,36 @@ public static class SezioniComuni
     {
         if (membriInOrdine.Count == 0) return Array.Empty<int>();
 
+        // ⚠️ Conta solo l'IMPRONTA della scheda: nascosta qui e visibile in un altro (vedi DaRimostrare). Le STAR
+        // nascono nascoste in tutti e due i profili, e contandole la scheda si apriva col civile E il vSOP
+        // spuntati — METAR, quote e SID proposti da nascondere dappertutto (LIBV, prova del 27 settembre 2026).
+        var impronte = DaRimostrare(comuni).ToHashSet();
         var conNascoste = membriInOrdine
-            .Where(id => comuni.Any(c => c.Presenze.Any(p => p.DocumentId == id && p.Nascosta)))
+            .Where(id => comuni.Any(c => c.Presenze.Any(p => p.DocumentId == id && impronte.Contains(p.SectionId))))
             .ToList();
 
         return conNascoste.Count > 0 ? conNascoste : membriInOrdine.Skip(1).ToList();
     }
+
+    /// <summary>
+    /// Le sezioni da rimettere visibili quando la coppia si separa — l'unione si scioglie, o uno dei due esce
+    /// (U-008, revisione totale 3): quelle nascoste in un documento mentre la stessa chiave è <b>visibile in un
+    /// altro</b>.
+    ///
+    /// <para>🔴 Sciogliere lasciava nascoste le sezioni «in comune», e la pagina singola usciva monca: nella copia
+    /// del database le vIPI civili LIRS e LIRL hanno TUTTE le radici nascoste. Il prompt diceva «non si perde
+    /// niente».</para>
+    ///
+    /// <para>⚠️ <b>Senza una colonna che ricordi chi ha nascosto</b>, apposta: «nascosta qui e visibile là» è
+    /// l'impronta che lascia la scheda (chi non è spuntato si MOSTRA, vedi <see cref="Piano"/>), e vale anche per le
+    /// unioni fatte prima di oggi. Quel che l'impronta non ha resta com'è: le STAR, nate nascoste in tutti e due
+    /// i profili, e una sezione che si è scelto di nascondere dappertutto.</para>
+    /// </summary>
+    public static IReadOnlyList<int> DaRimostrare(IReadOnlyList<SezioneComune> comuni) =>
+        comuni.Where(c => c.Presenze.Any(p => !p.Nascosta))
+              .SelectMany(c => c.Presenze.Where(p => p.Nascosta))
+              .Select(p => p.SectionId)
+              .ToList();
 
     /// <summary>L'albero delle sezioni letto per intero, padri e figli, nell'ordine in cui si legge.</summary>
     private static IEnumerable<EditableSection> Appiattisci(IReadOnlyList<EditableSection> sezioni)

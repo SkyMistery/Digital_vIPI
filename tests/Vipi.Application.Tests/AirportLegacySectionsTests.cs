@@ -212,4 +212,53 @@ public class AirportLegacySectionsTests
         Assert.Equal("Note della torre",
             resa.Single(x => x.SectionKey == "runways").Children.Single().Title);
     }
+
+    /// <summary>
+    /// U-071 (revisione 3): una sottosezione LIBERA di «Piste» intitolata come una sezione cotta («Configurazioni
+    /// pista») e messa prima delle regole di catalogo diventava una seconda «Regole piste» e perdeva il suo testo
+    /// sulla pagina pubblica. Le sezioni cotte erano radici, e la chiave di catalogo già presente nell'albero vince.
+    /// </summary>
+    [Fact]
+    public void Una_figlia_libera_col_titolo_di_una_cotta_resta_libera_e_tiene_i_blocchi()
+    {
+        var libera = Sez("s-3", SectionKeys.NewCustom(), "Configurazioni pista", "le configurazioni di LIRP");
+        var piste = new SectionView
+        {
+            Id = "s-1", SectionKey = "runways", Title = "Piste", Depth = 0, Blocks = Array.Empty<BlockView>(),
+            Children = new[]
+            {
+                libera,
+                new SectionView { Id = "s-2", SectionKey = "runwayrules", Title = "Regole piste", Depth = 1,
+                                  Blocks = Array.Empty<BlockView>(), Children = Array.Empty<SectionView>() },
+            },
+        };
+
+        var figlie = AirportLegacySections.ForView(new[] { piste }).Single(x => x.SectionKey == "runways").Children;
+
+        Assert.Single(figlie, x => x.SectionKey == "runwayrules");
+        var resa = figlie.Single(x => x.Id == "s-3");
+        Assert.Equal(libera.SectionKey, resa.SectionKey);
+        Assert.Equal("le configurazioni di LIRP", Assert.Single(resa.Blocks).Body);
+    }
+
+    /// <summary>U-071: anche da radice, se le regole di catalogo ci sono già (sotto «Piste»), una libera con quel
+    /// titolo resta libera.</summary>
+    [Fact]
+    public void Una_radice_libera_col_titolo_di_una_cotta_non_raddoppia_una_chiave_gia_presente()
+    {
+        var piste = new SectionView
+        {
+            Id = "s-1", SectionKey = "runways", Title = "Piste", Depth = 0, Blocks = Array.Empty<BlockView>(),
+            Children = new[]
+            {
+                new SectionView { Id = "s-2", SectionKey = "runwayrules", Title = "Regole piste", Depth = 1,
+                                  Blocks = Array.Empty<BlockView>(), Children = Array.Empty<SectionView>() },
+            },
+        };
+        var libera = Sez("s-3", SectionKeys.NewCustom(), "Regole piste", "testo mio");
+
+        var resa = AirportLegacySections.ForView(new[] { libera, piste });
+
+        Assert.Equal("testo mio", Assert.Single(resa.Single(x => x.Id == "s-3").Blocks).Body);
+    }
 }

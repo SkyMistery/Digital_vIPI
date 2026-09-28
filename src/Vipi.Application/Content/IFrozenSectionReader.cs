@@ -128,8 +128,9 @@ public sealed class FrozenSections
 /// </summary>
 public interface IFrozenSectionReader
 {
-    /// <summary>Le sezioni congelate della release effettiva di (<paramref name="type"/>,<paramref name="key"/>).
-    /// Mai null: senza release effettiva ritorna <see cref="FrozenSections.Empty"/>.</summary>
+    /// <summary>Le sezioni congelate della release effettiva di (<paramref name="type"/>,<paramref name="key"/>) —
+    /// o, dentro <see cref="AnteprimaDiRelease"/> aperta su quel bersaglio, di quella release.
+    /// Mai null: senza release ritorna <see cref="FrozenSections.Empty"/>.</summary>
     Task<FrozenSections> LoadAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 }
 
@@ -141,8 +142,12 @@ public sealed class FrozenSectionReader : IFrozenSectionReader
 
     public async Task<FrozenSections> LoadAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
     {
-        var rel = await _releases.GetEffectiveAsync(type, key, DateTime.UtcNow, ct);
-        if (rel is null) return FrozenSections.Empty;
+        // In anteprima di una release (U-053) si legge QUELLA: è il congelato che il pubblico vedrà al suo ciclo.
+        var rel = AnteprimaDiRelease.Corrente is { } anteprima && anteprima.Di(type, key)
+            ? await _releases.GetByIdAsync(anteprima.ReleaseId, ct)
+            : await _releases.GetEffectiveAsync(type, key, DateTime.UtcNow, ct);
+        if (rel is null || rel.TargetType != type
+            || !string.Equals(rel.TargetKey, key, StringComparison.OrdinalIgnoreCase)) return FrozenSections.Empty;
 
         DocReleasePayload? payload;
         try { payload = JsonSerializer.Deserialize<DocReleasePayload>(rel.PayloadJson); }

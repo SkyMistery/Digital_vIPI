@@ -69,6 +69,11 @@ internal sealed class NavaidImportHostedService : BackgroundService
         _log.LogInformation(
             "Import radioassistenze: {Create} create, {Aggiornate} aggiornate, {Invariate} invariate (su {Totale} dalla sorgente).",
             e.Create, e.Aggiornate, e.Invariate, r.DallaSorgente);
+        // U-036: una riga staccata dalla sorgente, se è citata, va ripuntata da una persona. Non lo fa nessuno se
+        // non lo dice nessuno.
+        if (e.Staccate > 0)
+            _log.LogWarning("Import radioassistenze: {Staccate} righe che la sorgente non manda più sono tornate modificabili a mano (/services/vsop/admin/navaids).",
+                e.Staccate);
         return true;
     }
 }

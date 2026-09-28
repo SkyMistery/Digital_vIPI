@@ -1,10 +1,21 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-> **🔀 Dal 23-set si lavora per FILONI** ([`docs/filoni/come-si-lavora-in-parallelo.md`](docs/filoni/come-si-lavora-in-parallelo.md)):
-> Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
-> e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
+> **🔀 Tre chat fisse dal 26-set** ([`docs/filoni/come-si-lavora-in-parallelo.md`](docs/filoni/come-si-lavora-in-parallelo.md)):
+> Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
+> filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 25 settembre 2026 notte
+> ## ▶ Il punto — 29 settembre 2026
+>
+> **Fusa in `main` la revisione totale 3** (`3b9389c4`, da `sito/lavori` @ `8d2308cb`, 82 commit, S9–S39): registro
+> `docs/history/audit-2026-09-26-revisione-totale-3.md`, lotti L1…L11 chiusi, più il login IVAO «nonce» (S29). Il
+> dettaglio voce per voce sta in [`docs/filoni/sito.md`](docs/filoni/sito.md) S9–S39. **Tre migrazioni additive**
+> (`AliasPerScalo`, `ProcedureSostituite`, `SectorfileDifferito`): il rollback a due rinomine resta valido.
+> **In `main` c'è codice fuori pacchetto**: 1.46.5 è ancora quella online. ▶ Prossimo: il pacchetto (un caricamento
+> unico, deciso dal committente) — ⚠️ U-009: se va online dopo il 1-ott 00:00Z, su LIBV_APP serve il gesto a mano
+> (annullare la #187 o ripubblicare al 2610). I gesti del committente dopo il caricamento li elenca il foglio del
+> pacchetto (cartellino di `riprendere-sito` del 29-set: `it.kmz`, LIRS/LIRL, LICT/TRP, U-105, U-094, 512 KB a ivao.it).
+>
+> ## Il punto — 25 settembre 2026 notte
 >
 > **✅ Online: 1.46.5** (§A129, timbro `1.46.5 · e24557e`, 7 file, zip `299776a8…`; timbro, `Schema 0` e Ricerca
 > confermati dal committente): chiude gli aperti **2** (nominativo doppio ATC) e **6** (Pubblica/Scarta per tutta
@@ -1686,7 +1697,8 @@ via del **pool** di SQLite invece che per via dell'interceptor, e che un `ClearA
 mezzo albero non compila e il totale cala di centinaia senza che il comando diventi rosso.
 ⚠️ **E non basta contare i «Failed!»**: se un progetto non compila non produce nessuna riga di esito, quindi
 zero falliti può voler dire zero eseguiti. Si costruisce PRIMA (`dotnet build Vipi.slnx -c Release`), e poi
-si contano i **progetti con esito: devono essere 15**.
+si contano i **progetti con esito**: il numero giusto non si scrive qui (invecchia a ogni progetto di test
+nuovo), si conta su `tests/conteggi/`, una riga per TFM, e lo verifica `tools/conta-test.sh`.
 
 🔵 **Quel che aspetta il committente sul codice: ripubblicare le quattro vLOA.** La correzione del ciclo
 AIRAC doppio **non arriva al pubblico da sola** — la pagina legge lo snapshot della release, e gli snapshot

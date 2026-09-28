@@ -83,7 +83,9 @@ public class PistaMaiUsareTests
     {
         var regole = new List<RunwayRuleRow> { new(0, "16", "16", "Sud", 10, null, RunwaySurface.Any, null) };
 
-        var attiva = AwosComposition.PistaAttiva(regole, new[] { "16", "34" }, null,
+        // Vento calmo e noto: senza METAR le regole non decidono (U-214), e la prova qui riguarda le esclusioni.
+        var calmo = MetarParser.ParseMetar("LIBP 171250Z 00000KT 9999 FEW030 20/10 Q1015");
+        var attiva = AwosComposition.PistaAttiva(regole, new[] { "16", "34" }, calmo,
             escluse: Escluse(dep: new[] { "16" }, arr: new[] { "16" }));
 
         Assert.Equal(AwosRunwaySource.Regola, attiva.Sorgente);

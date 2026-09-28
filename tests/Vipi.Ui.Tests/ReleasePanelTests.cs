@@ -55,11 +55,27 @@ public class ReleasePanelTests : TestContext
             return Task.CompletedTask;
         }
 
-        public Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
+        /// <summary>Che cosa risponde la pubblicazione: <c>false</c> = contenuto identico, nessuna release (U-241).</summary>
+        public bool Crea { get; set; } = true;
+
+        public async Task<bool> PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
         {
+            // Come il DbContext del circuito: una seconda operazione mentre la prima e' in volo esplode.
+            if (_inVolo) throw new InvalidOperationException("A second operation was started on this context instance");
+            if (Lancia is not null) throw Lancia;
             PublishedNow++; LastNote = note;
-            return Task.CompletedTask;
+            if (Trattieni is null) return Crea;
+            _inVolo = true;
+            try { await Trattieni.Task; }
+            finally { _inVolo = false; }
+            return Crea;
         }
+
+        /// <summary>Tiene in volo la pubblicazione finche' il test non la lascia andare.</summary>
+        public TaskCompletionSource? Trattieni { get; set; }
+        /// <summary>Un guasto che il servizio non traduce in messaggio (es. l'indice unico con due schede).</summary>
+        public Exception? Lancia { get; set; }
+        private bool _inVolo;
 
         /// <summary>I membri dell'unione di questo documento. Vuoto = documento solo, che e' il caso
         /// normale: `PublishAsync` e `PublishNowAsync` allora pubblicano lui e basta.</summary>
@@ -76,11 +92,20 @@ public class ReleasePanelTests : TestContext
             return Task.CompletedTask;
         }
 
-        public Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default)
+        public async Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default)
         {
+            // Come il DbContext del circuito: una seconda operazione mentre la prima e' in volo esplode.
+            if (_inVolo) throw new InvalidOperationException("A second operation was started on this context instance");
             DiffCalls++;
-            return Task.FromResult(Diff);
+            if (TrattieniDiff is null) return Diff;
+            _inVolo = true;
+            try { await TrattieniDiff.Task; }
+            finally { _inVolo = false; }
+            return Diff;
         }
+
+        /// <summary>Tiene in volo le differenze finche' il test non le lascia andare (U-065).</summary>
+        public TaskCompletionSource? TrattieniDiff { get; set; }
 
         public string CurrentCycle() => "2607";
 
@@ -91,7 +116,6 @@ public class ReleasePanelTests : TestContext
         };
 
         // Non usati dal pannello.
-        public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => Task.FromResult(0);
         public Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType, string expectedKey, CancellationToken ct = default) => Task.FromResult<ReleasePreview?>(null);
         public Task<ReleaseLocation?> GetLocationAsync(int releaseId, CancellationToken ct = default) => Task.FromResult<ReleaseLocation?>(null);
         public Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), ReleaseSummary>> SummariesAsync(
@@ -249,6 +273,43 @@ public class ReleasePanelTests : TestContext
         Assert.Equal(1, fake.DiffCalls);
     }
 
+    /// <summary>
+    /// 🔴 U-065/U-081 (revisione totale 3): «Differenze» non aveva sentinella né catch generale. Due «Differenze» su
+    /// righe diverse erano due letture sovrapposte sullo stesso DbContext del circuito, e l'eccezione usciva dal
+    /// gestore: circuito giù. U-017 aveva chiuso i gesti che passano da <c>Run</c>; questo no.
+    /// </summary>
+    [Fact]
+    public async Task Due_Differenze_ravvicinate_non_sovrappongono_due_letture()
+    {
+        var fake = Arrange(Rel(7), Rel(8, cycle: "2609"));
+        fake.TrattieniDiff = new TaskCompletionSource();
+        var cut = Render(showDiff: true);
+
+        var prima = cut.FindAll("button").Where(b => b.TextContent.Contains("Rel_Diff")).ElementAt(0).ClickAsync(new());
+        var seconda = cut.FindAll("button").Where(b => b.TextContent.Contains("Rel_Diff")).ElementAt(1).ClickAsync(new());
+        fake.TrattieniDiff.SetResult();
+        await Task.WhenAll(prima, seconda);
+
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
+        if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
+        Assert.Equal(1, fake.DiffCalls);
+    }
+
+    /// <summary>U-241: niente di nuovo rispetto alla release in vigore → nessuna release, e il pannello lo dice invece
+    /// di «Pubblicato» (che farebbe cercare nella storia una riga che non c'è).</summary>
+    [Fact]
+    public void Pubblica_ora_senza_niente_di_nuovo_lo_dice()
+    {
+        var fake = Arrange();
+        fake.Crea = false;
+        var cut = Render();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("PublishNow")).Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("Rel_NothingNewToPublish", cut.Markup));
+        Assert.DoesNotContain("Rel_PublishedNow", cut.Markup);
+    }
+
     [Fact]
     public void Pubblica_Ora_Invia_La_Nota_E_Ricarica()
     {
@@ -260,6 +321,70 @@ public class ReleasePanelTests : TestContext
 
         Assert.Equal(1, fake.PublishedNow);
         Assert.Equal("motivo della pubblicazione", fake.LastNote);
+    }
+
+    /// <summary>
+    /// U-017 (revisione totale 3): un VERO doppio clic su «Pubblica ora» faceva cadere il circuito. Il tasto
+    /// si spegne solo dopo un giro di rete, e intanto il secondo clic partiva sullo stesso DbContext.
+    /// </summary>
+    [Fact]
+    public async Task Il_doppio_clic_su_Pubblica_ora_pubblica_una_volta_e_non_fa_cadere_il_circuito()
+    {
+        var fake = Arrange();
+        fake.Trattieni = new TaskCompletionSource();
+        var cut = Render();
+        var tasto = cut.FindAll("button").First(b => b.TextContent.Contains("PublishNow"));
+
+        var primo = tasto.ClickAsync(new());
+        var secondo = tasto.ClickAsync(new());   // lo stesso elemento: il clic arriva prima che il tasto si spenga
+        fake.Trattieni.SetResult();
+        await Task.WhenAll(primo, secondo);
+
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
+        if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
+        Assert.Equal(1, fake.PublishedNow);
+        cut.WaitForAssertion(() => Assert.Contains("Rel_PublishedNow", cut.Markup));
+    }
+
+    /// <summary>U-017: un guasto che il servizio non traduce (l'indice unico urtato da due schede) resta un
+    /// messaggio nel pannello, non un circuito caduto.</summary>
+    [Fact]
+    public async Task Un_guasto_imprevisto_resta_un_messaggio_nel_pannello()
+    {
+        var fake = Arrange();
+        fake.Lancia = new InvalidOperationException("indice unico violato");
+        var cut = Render();
+
+        await cut.FindAll("button").First(b => b.TextContent.Contains("PublishNow")).ClickAsync(new());
+
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
+        if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
+        cut.WaitForAssertion(() => Assert.Contains("indice unico violato", cut.Markup));
+        Assert.False(cut.FindAll("button").First(b => b.TextContent.Contains("PublishNow")).HasAttribute("disabled"));
+    }
+
+    /// <summary>U-009: la release nuova supera le programmate che anticipa. Il pannello lo dice PRIMA del
+    /// gesto: «Pubblica ora» le supera tutte, «al ciclo» solo quelle che non entrano prima del ciclo scelto.</summary>
+    [Fact]
+    public void Il_pannello_dice_quali_programmate_il_gesto_sostituisce()
+    {
+        Arrange(Rel(1, status: ReleaseStatus.Scheduled, cycle: "2608"));   // in vigore dal 6 agosto
+        var cut = Render();
+
+        Assert.Contains("Rel_NowReplacesScheduled 2608", cut.Find("[data-sostituite=ora]").TextContent);
+        Assert.Contains("Rel_CycleReplacesScheduled 2608 2608", cut.Find("[data-sostituite=ciclo]").TextContent);
+
+        cut.Find("select.app-in").Change("2609");   // la programmata dell'8 entra PRIMA: resta
+        Assert.Empty(cut.FindAll("[data-sostituite=ciclo]"));
+        Assert.Single(cut.FindAll("[data-sostituite=ora]"));
+    }
+
+    [Fact]
+    public void Senza_programmate_il_pannello_non_avvisa_di_sostituzioni()
+    {
+        Arrange(Rel(1, effective: true, status: ReleaseStatus.Effective));
+        var cut = Render();
+        Assert.Empty(cut.FindAll("[data-sostituite]"));
     }
 
     [Fact]
@@ -462,6 +587,22 @@ public class ReleasePanelTests : TestContext
         var cicli = Assert.Single(_gate.CicliChiesti);
         Assert.Contains("2607", cicli);   // il corrente (FakeReleases.CurrentCycle)
         Assert.Contains("2608", cicli);   // il primo della tendina
+    }
+
+    /// <summary>🔴 U-037: nell'avviso ci sono anche radioassistenze e carte MRVA, e ognuna dice che cosa è — un
+    /// «MNL VHF 99Y» da solo, fra i callsign dei settori, non si legge.</summary>
+    [Fact]
+    public void L_avviso_dice_anche_radioassistenze_e_carte_e_che_cosa_sono()
+    {
+        Arrange();
+        _gate.Differite.Add(new DeferredShapeNotice("MNL VHF 99Y", null, "2609", DeferredKind.Radioassistenza));
+        _gate.Differite.Add(new DeferredShapeNotice("ENRMVA/lirr.mva", null, "2609", DeferredKind.CartaMrva));
+
+        var cut = Render();
+
+        Assert.Contains("Rel_DeferredNavaid", cut.Markup);
+        Assert.Contains("MNL VHF 99Y", cut.Markup);
+        Assert.Contains("Rel_DeferredMva", cut.Markup);
     }
 
     [Fact]
