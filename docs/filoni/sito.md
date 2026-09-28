@@ -1226,5 +1226,24 @@
     serve) ma si segnala come arco incompleto, «verso». Carta F1 §5 aggiornata.
   - **Test**: `AipGeometryReaderTests` (+4: arco senza verso, verso dopo il centro, due segnaposto a mano;
     tutti rossi sul codice di prima). Application 3066 → **3070**.
+  - **Gruppo 10** (statistiche, turni e movimenti, **codice comune** `Vipi.Application`, `Vipi.Infrastructure`,
+    `Vipi.Hosting` avvio): **U-218** (una riconnessione che si sovrapponeva di pochi secondi alla caduta — la
+    sorgente chiude la sessione in ritardo — restava un turno a parte per sempre; e dal vivo una nota ancora
+    aperta non più in frequenza non cedeva mai il turno) → `AtcShiftGrouper.Sovrapposizione` (5 minuti: oltre è
+    una doppia connessione), la stessa tolleranza in `AtcSessionSync`, e la nota aperta che non è più in
+    frequenza vale chiusa al suo ultimo avvistamento, come la chiude quel giro stesso. **U-228** (il
+    consolidamento giornaliero degli aeroporti riconosceva lo stesso volo dal piano di volo, e alla
+    riconnessione il pilota ne deposita uno nuovo: due arrivi; e del gruppo teneva il primo pezzo, per un
+    arrivo la caduta a metà volo) → identità callsign + partenza + arrivo + verso, a pezzi distanti meno di
+    3 ore; l'arrivo è il pezzo visto per ultimo, la partenza quello collegato per primo. Il riempimento a
+    posteriori (U-094) non usa questa funzione. **Storico** (scelta del committente): passata d'avvio una tantum
+    `IStatsMaintenance.RifaiStoricoAsync`, registro `StoricoStatistiche` — turni degli ultimi 400 giorni
+    ricalcolati, giorni aeroporto già consolidati **rimessi in coda** (non cancellati: `FetchedUtc` torna al
+    giorno stesso, e il consolidamento notturno li riprende dalla sorgente dal più recente, un blocco alla volta;
+    un giorno che la sorgente non dà più resta col conto di prima).
+  - **Test**: `AtcShiftGrouperTests` (+2), `AtcSessionSyncTests` (+2), `AirportCoverageTests` (+3); rossi sul
+    codice di prima tranne le due guardie (sovrapposizione lunga, stesso callsign a ore di distanza).
+    `StoricoStatisticheTests` (nuova, +1: turni ricuciti, giorno rimesso in coda con la riga intatta, seconda
+    volta niente). Application 3070 → **3077**, Infrastructure 1793 → **1794**, Hosting 68.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -65,6 +65,7 @@ public static class AtcSessionSync
         var perId = known.ToDictionary(k => k.SessionId);
         var upserts = new List<AtcSessionUpsert>(online.Count);
         var viste = new HashSet<long>();
+        var inLinea = online.Select(c => c.SessionId).ToHashSet();
 
         foreach (var c in online)
         {
@@ -82,7 +83,7 @@ public static class AtcSessionSync
                 DurationSeconds: c.ConnectedSeconds,
                 // Il turno si decide una volta sola: una sessione già in archivio si tiene il suo, o un
                 // riavvio dell'applicazione lo riscriverebbe a ogni giro.
-                ShiftKey: esiste ? precedente.ShiftKey : ShiftKeyFor(c, known),
+                ShiftKey: esiste ? precedente.ShiftKey : ShiftKeyFor(c, known, inLinea, now),
                 IsNew: !esiste,
                 IsOutsideDivision: c.IsOutsideDivision));
         }
@@ -114,10 +115,16 @@ public static class AtcSessionSync
     /// Turno a cui appartiene una connessione nuova: quello della connessione più recente dello stesso VID
     /// sullo stesso callsign, se è finita entro <see cref="ShiftGap"/> da questo inizio. Altrimenti la
     /// sessione apre un turno suo (chiave = il proprio id).
+    /// <para>🔴 U-218 (revisione totale 3): una fine fino a <see cref="AtcShiftGrouper.Sovrapposizione"/> DOPO
+    /// questo inizio vale ancora (la sorgente chiude la caduta qualche secondo in ritardo), e una nota ancora aperta
+    /// che non è più in frequenza si chiude in questo stesso giro al suo ultimo avvistamento: quello è la sua fine.
+    /// Prima i due casi aprivano un turno nuovo, e dal vivo nessuna sovrapposizione si ricuciva.</para>
     /// </summary>
-    private static long ShiftKeyFor(SourceAtcConnection c, IReadOnlyList<KnownAtcSession> known)
+    private static long ShiftKeyFor(SourceAtcConnection c, IReadOnlyList<KnownAtcSession> known,
+        IReadOnlySet<long> inLinea, DateTimeOffset now)
     {
         KnownAtcSession? migliore = null;
+        DateTimeOffset fineMigliore = default;
 
         foreach (var k in known)
         {
@@ -125,13 +132,16 @@ public static class AtcSessionSync
             if (!string.Equals(k.Callsign, c.Callsign, StringComparison.OrdinalIgnoreCase)) continue;
             if (k.SessionId == c.SessionId) continue;
 
-            // Una sessione ancora aperta non può aver ceduto il posto a questa: chiude il turno (se il
-            // poller l'ha persa, sarà la chiusura di questo stesso giro a sistemarla, non un'ipotesi qui).
-            if (k.EndUtc is not { } fine) continue;
-            if (fine > c.StartUtc) continue;
+            // Una sessione ancora in frequenza non può aver ceduto il posto a questa: è una doppia connessione.
+            // Una aperta che non è più in frequenza si chiude in questo giro, all'ultimo avvistamento.
+            DateTimeOffset fine;
+            if (k.EndUtc is { } chiusa) fine = chiusa;
+            else if (!inLinea.Contains(k.SessionId)) fine = UltimoAvvistamento(k, now);
+            else continue;
+            if (fine - c.StartUtc > AtcShiftGrouper.Sovrapposizione) continue;
             if (c.StartUtc - fine > ShiftGap) continue;
 
-            if (migliore is null || fine > migliore.Value.EndUtc) migliore = k;
+            if (migliore is null || fine > fineMigliore) { migliore = k; fineMigliore = fine; }
         }
 
         return migliore?.ShiftKey ?? c.SessionId;

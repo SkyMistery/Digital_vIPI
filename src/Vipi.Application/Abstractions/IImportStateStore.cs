@@ -231,6 +231,13 @@ public static class ImportCategories
     public const string PubblicoDiCatalogo = "PubblicoDiCatalogo";
 
     /// <summary>
+    /// NON è un import: il segnaposto «già fatta» della passata che rifà lo storico delle statistiche coi turni e
+    /// i movimenti corretti (<c>IStatsMaintenance.RifaiStoricoAsync</c>, revisione 3, U-218 e U-228). Senza,
+    /// ogni consegna rimetterebbe in coda un anno di giorni aeroporto.
+    /// </summary>
+    public const string StoricoStatistiche = "StoricoStatistiche";
+
+    /// <summary>
     /// Lo sweep delle release (<c>ReleaseSweepHostedService</c>, dal 2 settembre 2026): ricalcolo degli stati
     /// e potatura di quel che è scaduto. ⚠️ <b>Non è un import</b> e non compare in Sorgenti, come
     /// <see cref="ImpactDrift"/>: non interroga nessuna sorgente. Chiave sua perché il fatto che lo muove —

@@ -205,6 +205,7 @@ public static class DependencyInjection
         // Statistiche ATC: archivio delle sessioni e delle tratte scritte dal poller, più la mappa dei
         // settori (albero proiettato + volumi dai cataloghi) su cui si attribuisce il traffico.
         services.AddScoped<Vipi.Application.Abstractions.IAtcSessionStore, EfAtcSessionStore>();
+        services.AddScoped<Vipi.Application.Stats.IStatsMaintenance, EfStatsMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IAtcTrafficStore, EfAtcTrafficStore>();
         services.AddScoped<Vipi.Application.Abstractions.ISectorVolumeCatalog, EfSectorVolumeCatalog>();
         services.AddScoped<Vipi.Application.Abstractions.IAtcStatsQueries, EfAtcStatsQueries>();

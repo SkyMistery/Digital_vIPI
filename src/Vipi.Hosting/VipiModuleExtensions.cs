@@ -856,6 +856,7 @@ public static class VipiModuleExtensions
         // ⚠️ Il backfill delle release NON c'è più (U-006, 27-set-2026): ripubblicava da solo la bozza di un
         // documento a cui un Editor aveva annullato la release. Nessuna passata d'avvio pubblica.
         Isolata(host, log, report, "pulizia delle unioni di documenti", h => h.TidyVipiDocumentUnions());
+        Isolata(host, log, report, "storico delle statistiche (una tantum)", h => h.RifaiStoricoStatistiche());
         // ⚠️ La potatura delle release NON è più qui: dal 2 settembre 2026 la fa `ReleaseSweepHostedService`
         // ogni 24 ore (carta 2026-09-02-il-ciclo-entrante.md §AW4). All'avvio girava una volta sola, e gli
         // stati delle release invecchiano DA SOLI — al rollover AIRAC una schedulata entra in vigore senza
@@ -863,6 +864,26 @@ public static class VipiModuleExtensions
         // niente. Tenerla anche qui sarebbe lo stesso lavoro fatto da due parti: il giro copre l'avvio
         // (parte a 130s) e tutti i giorni dopo.
 
+        return host;
+    }
+
+    /// <summary>
+    /// Una volta sola: turni dell'ultimo anno ricalcolati e giorni aeroporto rimessi in coda con le regole corrette
+    /// dalla revisione totale 3 (U-218, U-228; scelta del committente del 28 settembre 2026). Il registro
+    /// <c>ImportCategories.StoricoStatistiche</c> la ferma dalla seconda volta.
+    /// </summary>
+    public static IHost RifaiStoricoStatistiche(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        var manutenzione = scope.ServiceProvider.GetService<Vipi.Application.Stats.IStatsMaintenance>();
+        if (manutenzione is null) return host;
+        var fatto = manutenzione.RifaiStoricoAsync().GetAwaiter().GetResult();
+        var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+            ?.CreateLogger("Vipi.StartupMaintenance");
+        if ((fatto.Turni > 0 || fatto.Giorni > 0) && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Storico delle statistiche rifatto (una tantum): {Turni} sessioni con il turno corretto, {Giorni} giorni aeroporto rimessi in coda al consolidamento.",
+                fatto.Turni, fatto.Giorni);
         return host;
     }
 
