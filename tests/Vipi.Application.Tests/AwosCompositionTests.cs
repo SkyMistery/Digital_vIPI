@@ -140,6 +140,13 @@ public class AwosCompositionTests
         Assert.Null(AwosComposition.Qfe(null, 81));
     }
 
+    [Fact] // U-226: sugli scali in quota la retta dei 27 ft/hPa sbaglia di 2–4 hPa; si segue l'atmosfera standard
+    public void Qfe_in_quota_segue_l_atmosfera_standard()
+    {
+        Assert.Equal(927, AwosComposition.Qfe(990, 1796));   // la retta darebbe 923
+        Assert.Equal(1013, AwosComposition.Qfe(1013, 0));
+    }
+
     // ─── Pista in uso ──────────────────────────────────────────────────────────────
 
     private static RunwayRuleRow Regola(string dep, string arr, string nome, int coda = 5) =>

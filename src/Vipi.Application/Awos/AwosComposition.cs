@@ -118,12 +118,12 @@ public static partial class AwosComposition
     }
 
     /// <summary>
-    /// Il QFE di una soglia: QNH meno l'altezza, con la regola di campo di 27 ft per hPa.
-    /// <para>È un'approssimazione — la stessa che usa il quadro del prototipo — e vale finché si parla di
-    /// aeroporti italiani, tutti sotto i 1 500 ft. Senza elevazione non si stima: null.</para>
+    /// Il QFE di una soglia: la pressione dell'atmosfera standard all'altezza della soglia, partendo dal QNH.
+    /// <para>La retta dei 27 ft per hPa andava bene in pianura ma sbagliava di 2–4 hPa sugli scali in quota
+    /// (U-226). Senza elevazione non si stima: null.</para>
     /// </summary>
     public static int? Qfe(int? qnh, int? elevazioneFt) =>
-        qnh is int q && elevazioneFt is int e ? (int)Math.Round(q - e / 27.0) : null;
+        qnh is int q && elevazioneFt is int e ? (int)Math.Round(q * Math.Pow(1 - 6.8756e-6 * e, 5.2559)) : null;
 
     /// <summary>
     /// La pista in uso e chi l'ha decisa: prima l'ATIS, poi le regole dello scalo, poi il vento.

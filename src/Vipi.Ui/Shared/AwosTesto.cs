@@ -55,6 +55,22 @@ public sealed record AwosScritte(string RigaAttiva, string LvpTesto, string LvpC
 public static class AwosTesto
 {
     /// <summary>I gruppi di tempo presente in parole. Il resto del quadro è tutto sigle ICAO, che non si traducono.</summary>
+    /// <summary>
+    /// Traverso e coda sulla testata di rotta <paramref name="hdg"/>. Vento assente, calmo o variabile ⇒ null:
+    /// non c'è una componente da scrivere, e la casella dice «--» come la scrive il JavaScript agli
+    /// aggiornamenti (U-225: al primo disegno diceva «00»).
+    /// </summary>
+    public static (int Cross, int Tail)? Componenti(ParsedWind? w, int hdg)
+    {
+        if (w is null || w.Calm || w.Variable || w.DirectionDeg is not int dir) return null;
+        var delta = (dir - hdg) * Math.PI / 180.0;
+        var testa = (int)Math.Round(w.SpeedKt * Math.Cos(delta));
+        return ((int)Math.Round(Math.Abs(w.SpeedKt * Math.Sin(delta))), testa < 0 ? -testa : 0);
+    }
+
+    /// <summary>Una componente in nodi per la casella: due cifre, oppure «--» se non si misura.</summary>
+    public static string Kt(int? v) => v is int n ? n.ToString("00", System.Globalization.CultureInfo.InvariantCulture) : "--";
+
     public static IReadOnlyList<string> TempoPresente(ParsedMetar? m, Func<string, string> t) =>
         m is null
             ? Array.Empty<string>()

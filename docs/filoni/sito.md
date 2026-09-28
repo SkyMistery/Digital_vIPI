@@ -1136,11 +1136,29 @@
   che si chiude con U-227); **da una scelta del committente** U-214 (vento ignoto e regole piste), U-217 (ATZ
   in AGL), U-219 (aeroporti gestiti da un APP); le altre ancora vere. La prova rossa del registro per U-223 era
   sbagliata (vento 250 sulla 163 è di prua): quella giusta è 070/15 sulla «16» di rotta vera 163.
+  - **Scelte del committente** (28-set): U-214 senza vento noto (METAR assente, NIL, «/////KT», scaduto) le
+    regole piste **non decidono**: nessuna pista, «—»; VRB sopra i 2 kt conta come vento ignoto. U-217 le quote
+    AGL delle ATZ si alzano dell'elevazione dello scalo **nelle statistiche e nel 3D**. U-219 un `_APP` gestisce
+    gli scali delle **TWR figlie nell'albero** dei settori proiettato. U-218/U-228 lo storico si rifà con una
+    **passata d'avvio una tantum** (turni dell'anno ricalcolati, giorni aeroporto già consolidati rimessi in
+    coda), poi un timbro la spegne.
   - **Gruppo 1** (TAF, **codice comune** `Vipi.Application`): **U-215** («PROB30 TEMPO periodo» apriva una riga
     PROB vuota «dall'inizio della validità» e poi un TEMPO senza probabilità) → il TEMPO subito dopo un PROB
     senza periodo né gruppi eredita la probabilità, niente riga vuota; il meteo dello scalo lo scrive
     «PROB30 TEMPO». Un «PROB40 periodo» da solo resta un gruppo PROB.
   - **Test**: `WeatherParsingTests` (+2). Rosso sul codice di prima (3 segmenti invece di 2). Application
     3039 → **3041**.
+  - **Gruppo 2** (QFE, **codice comune** `Vipi.Application`): **U-226** (il QFE del vAWOS usava la retta dei
+    27 ft/hPa «perché gli scali italiani sono tutti sotto i 1 500 ft», premessa falsa: 2–4 hPa di errore sugli
+    scali in quota) → pressione dell'atmosfera standard all'altezza della soglia, `q·(1 − 6,8756·10⁻⁶·h)^5,2559`.
+    In pianura non cambia niente (1013 a 81 ft resta 1010).
+  - **Test**: `AwosCompositionTests` (+1: 990 hPa a 1796 ft → 927, la retta dava 923). Rosso sul codice di
+    prima. Application 3041 → **3042**.
+  - **Gruppo 3** (pannello vento del vAWOS, solo Ui): **U-225** (con vento calmo o VRB le caselle CROSS e TAIL
+    dicevano «00» al primo disegno e «--» dal primo aggiornamento del JavaScript) → traverso e coda passano in
+    `AwosTesto.Componenti`, che con vento assente, calmo o variabile non dà componenti; la casella scrive «--»
+    come il JavaScript.
+  - **Test**: `AwosVentoTests` (nuova, +4). Rosso con la logica di prima spostata tale e quale (VRB e calmo
+    davano «00»). Ui 1818 → **1822**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
