@@ -318,16 +318,7 @@
 
     private void Cambia(ImportCategory cat, bool daSorgente)
     {
-        _p = cat switch
-        {
-            ImportCategory.TransitionAltitude => _p with { TransitionAltitude = daSorgente },
-            ImportCategory.Runways => _p with { Runways = daSorgente },
-            ImportCategory.Sectors => _p with { Sectors = daSorgente },
-            ImportCategory.Sids => _p with { Sids = daSorgente },
-            ImportCategory.AtcSessions => _p with { AtcSessions = daSorgente },
-            ImportCategory.Navaids => _p with { Navaids = daSorgente },
-            _ => _p with { SpecialAreas = daSorgente },
-        };
+        _p = _p.With(cat, daSorgente);
         _msg = _ok = null;
     }
 
@@ -366,8 +357,12 @@
         _busy = true; _msg = _ok = null;
         try
         {
-            await Policy.SaveAsync(_p);
-            _ok = L["Sorg_Saved"];
+            // Solo le categorie toccate, sopra la policy riletta adesso (U-184): `_p` è la fotografia
+            // dell'apertura, e scriverla intera riportava indietro in silenzio ciò che un altro
+            // amministratore aveva deciso nel frattempo in un'altra scheda.
+            var tenute = await Policy.SaveChangesAsync(_salvata, _p);
+            if (tenute.Count > 0) _msg = L["Sorg_SavedKept", Elenco(tenute)!];
+            else _ok = L["Sorg_Saved"];
             await LoadAsync();       // stato e provenienze si rileggono insieme: sono la stessa riga
         }
         catch (EditNotAllowedException) { _msg = L["Common_OpAdminOnly"]; }

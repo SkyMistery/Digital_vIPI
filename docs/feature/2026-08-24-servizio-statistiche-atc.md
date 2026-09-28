@@ -989,6 +989,11 @@ che accompagnano il permesso, e senza le quali non sarebbe stato fatto.
    F5: senza finestra, una consultazione diventava venti righe identiche a mezzo minuto l'una dall'altra, e
    un registro così non si legge — che è come non averlo. L'accorpamento è per **coppia** attore→soggetto:
    due staffisti che guardano la stessa persona restano due accessi da spiegare.
+   Vale anche per il **dettaglio di un turno** altrui (`StatsSessionPage`, `/services/stats/session/{id}`):
+   porta gli stessi orari, quindi stessa riga (stessa coppia, stessa finestra) e la sua fascia «Turno di un
+   altro controllore» con il collegamento alle statistiche della persona. Prima lo staff lo apriva per id
+   senza lasciare traccia (U-116, revisione 3; scelta del committente del 28 settembre 2026). L'archivio
+   mondiale no: vedi la sua carta, §8.
 
 Nell'enum `AuditAction` il valore è **additivo e senza migrazione**: gli enum sono salvati come stringa
 (§SPEC 6), quindi «View» non sposta nessun numero già scritto.

@@ -1244,6 +1244,7 @@
   <data name="Sorg_ProvSource" xml:space="preserve"><value>da sorgente (sola lettura)</value></data>
   <data name="Sorg_ProvManual" xml:space="preserve"><value>manuale</value></data>
   <data name="Sorg_Saved" xml:space="preserve"><value>Policy delle sorgenti salvata.</value></data>
+  <data name="Sorg_SavedKept" xml:space="preserve"><value>Policy salvata. Nel frattempo un altro amministratore aveva cambiato: {0}. Quelle restano come le aveva messe.</value></data>
   <data name="Sorg_HelpAria" xml:space="preserve"><value>Come funzionano le sorgenti dati</value></data>
   <data name="Sorg_Dirty" xml:space="preserve"><value>{0} modificate</value></data>
   <data name="Sorg_DirtyTitle" xml:space="preserve"><value>Categorie cambiate rispetto a quanto salvato</value></data>
@@ -2878,6 +2879,9 @@
   <data name="Stats_ProfileForbidden" xml:space="preserve"><value>Le statistiche personali di un altro controllore le può aprire solo lo staff di divisione.</value></data>
   <data name="Stats_StaffViewingTitle" xml:space="preserve"><value>Statistiche di un altro controllore</value></data>
   <data name="Stats_StaffViewingBody" xml:space="preserve"><value>Le stai vedendo perché sei staff di divisione. L'accesso resta scritto nel registro di audit.</value></data>
+  <data name="Stats_StaffViewingSessionTitle" xml:space="preserve"><value>Turno di un altro controllore</value></data>
+  <data name="Stats_StaffViewingSessionBody" xml:space="preserve"><value>Lo stai vedendo perché sei staff di divisione. L'accesso resta scritto nel registro di audit.</value></data>
+  <data name="Stats_StaffViewingSessionProfile" xml:space="preserve"><value>Le sue statistiche</value></data>
   <data name="Stats_BackToDivision" xml:space="preserve"><value>Torna alla classifica</value></data>
   <data name="Stats_OpenProfileTitle" xml:space="preserve"><value>Apri le statistiche del VID {0}</value></data>
   <data name="Audit_Cat_Statistiche" xml:space="preserve"><value>Statistiche</value></data>

@@ -1405,5 +1405,15 @@
     «Publish now» due volte: la seconda dice «Nothing new…» e nel DB c'è una release sola. Lock scritto nel DB a
     un collega, «✎ Edit» → resta fuori e dice «Being edited by Collega Prova…». ⚠️ Non provati a schermo: U-117
     (serve una seconda identità), U-162 e U-063 (la corsa sta nei test bUnit), U-062/U-071 (dati latenti).
+- ✅ **S37** lotto **L11, fetta K — pagine admin** (via del committente il 28-set; solo K, L dopo).
+  - **U-184** (Sorgenti, **codice comune** `Vipi.Application`): «Salva» scriveva l'intera policy letta all'apertura
+    e riportava indietro in silenzio la categoria cambiata nel frattempo da un altro amministratore.
+    `IImportPolicyService.SaveChangesAsync(letta, voluta)` rilegge la policy e scrive solo le categorie toccate;
+    restituisce quelle cambiate da altri e tenute, e la pagina lo dice (`Sorg_SavedKept`). Una categoria toccata
+    non può essere in conflitto (due valori soli). `ImportPolicySnapshot.With` sostituisce lo switch della pagina.
+  - **U-116** come da scelta del committente (variante mista): il dettaglio di un turno altrui scrive la riga
+    `StatsProfile` (stessa finestra di 30 minuti) e mostra la fascia «Turno di un altro controllore» con il
+    collegamento alle statistiche della persona; l'archivio mondiale resta senza audit e la sua carta lo dice.
+  - **Test**: prove rosse sul codice di prima (servizio che scrive la policy intera; pagina di HEAD).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
