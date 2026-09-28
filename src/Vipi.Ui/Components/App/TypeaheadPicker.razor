@@ -22,9 +22,9 @@
        modale — il pannello di una clausola — la risalita lo farebbe arrivare anche alla finestra, che
        chiuderebbe buttando via quello che si sta scrivendo. Qui Esc vuol dire «chiudi la tendina»; al secondo
        Esc la tendina non c'è più, il tasto risale, e allora sì che chiude la finestra. *@
-    <input placeholder="@Placeholder" title="@Title" autocomplete="off" disabled="@Disabled"
-           value="@Text" @oninput="OnInput" @onfocus="() => Open(true)" @onblur="OnBlur"
-           @onkeydown="OnKey" @onkeydown:stopPropagation="_open" />
+    <CampoTesto placeholder="@Placeholder" title="@Title" autocomplete="off" disabled="@Disabled"
+           Valore="@Text" OnInput="OnInput" OnFocus="() => Open(true)" OnBlur="OnBlur"
+           OnKeyDown="OnKey" FermaTasti="_open" />
     @if (_open && !Disabled)
     {
         <div class="sector-pick">

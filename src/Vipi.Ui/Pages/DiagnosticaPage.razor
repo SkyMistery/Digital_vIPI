@@ -118,7 +118,7 @@
                 else
                 {
                     <div class="struct-bar">
-                        <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())"
+                        <CampoTesto class="htree-search" Valore="@_q" OnInput="e => SetQuery(e.Value?.ToString())"
                                placeholder="@L["Diag_SearchPh"]" />
 
                         @* I chip contano, e contano per AREA e non per categoria: le categorie sono tredici
@@ -582,11 +582,11 @@
     /// <summary>I rilievi di un'area. È il numero che il chip mostra, e la somma dei chip è il totale.</summary>
     private int Conta(ConsistencyArea area) => _findings.Count(f => f.Area == area);
 
-    private bool Filtra => _area is not null || _q.Length > 0;
+    private bool Filtra => _area is not null || Query.Length > 0;
 
     private IReadOnlyList<ConsistencyFinding> Filtrate => _findings
         .Where(f => _area is null || f.Area == _area)
-        .Where(f => _q.Length == 0 || Cerca(f))
+        .Where(f => Query.Length == 0 || Cerca(f))
         .ToList();
 
     /// <summary>La ricerca guarda quello che si legge — categoria tradotta e dettaglio tradotto — <b>più</b>
@@ -594,9 +594,12 @@
     private bool Cerca(ConsistencyFinding f) =>
         (f.Entity + " " + f.Category + " " + f.Detail + " " + ConsistencyNarrator.Bersaglio(f, L) + " " +
          ConsistencyNarrator.Categoria(f, L) + " " + ConsistencyNarrator.Dettaglio(f, L))
-        .Contains(_q, StringComparison.OrdinalIgnoreCase);
+        .Contains(Query, StringComparison.OrdinalIgnoreCase);
 
-    private void SetQuery(string? v) => _q = (v ?? "").Trim();
+    // ⚠️ Il campo tiene quel che si è digitato, spazi compresi; il Trim si fa dove si cerca (U-084: un valore
+    // trasformato che torna al campo sembrerebbe un cambio del server, e il campo si riscriverebbe sotto le dita).
+    private void SetQuery(string? v) => _q = v ?? "";
+    private string Query => _q.Trim();
 
     private void ToggleArea(ConsistencyArea area) => _area = _area == area ? null : area;
 

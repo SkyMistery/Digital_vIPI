@@ -28,8 +28,8 @@
     @if (Editing)
     {
         <div class="app-linkpick">
-            <input class="app-in" placeholder="@L["AorExtra_SearchPh"]" value="@_search"
-                   @oninput="e => _search = (e.Value as string ?? string.Empty)" />
+            <CampoTesto class="app-in" placeholder="@L["AorExtra_SearchPh"]" Valore="@_search"
+                   OnInput="e => _search = (e.Value as string ?? string.Empty)" />
             @if (!string.IsNullOrWhiteSpace(_search))
             {
                 <div class="sector-pick">

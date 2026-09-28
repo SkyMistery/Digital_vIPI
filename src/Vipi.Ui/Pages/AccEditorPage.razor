@@ -764,8 +764,8 @@ else
                l'elenco un menu a tendina ancorato al campo. Senza, i risultati escono come chip in riga —
                due forme diverse per lo stesso gesto in due editor gemelli. *@
             <div class="app-linkpick">
-            <input class="app-in" placeholder="@L["App_LinkFreqPh"]" value="@search"
-                   @oninput="e => _freqSearch[blk.BlockSectionId] = AsString(e.Value)" />
+            <CampoTesto class="app-in" placeholder="@L["App_LinkFreqPh"]" Valore="@search"
+                   OnInput="e => _freqSearch[blk.BlockSectionId] = AsString(e.Value)" />
             @if (!string.IsNullOrWhiteSpace(search))
             {
                 <div class="sector-pick">

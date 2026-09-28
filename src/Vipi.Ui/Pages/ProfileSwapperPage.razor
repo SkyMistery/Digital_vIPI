@@ -131,8 +131,8 @@
         <div class="section-title"><h2 class="h-sect">@L["Swap_SectionsTitle"]</h2><span class="ln"></span></div>
 
         <div class="swap-tools">
-            <input class="swap-filter" type="search" placeholder="@L["Swap_SearchPh"]"
-                   value="@_sectionFilter" @oninput="OnFilterInput" />
+            <CampoTesto class="swap-filter" type="search" placeholder="@L["Swap_SearchPh"]"
+                   Valore="@_sectionFilter" OnInput="OnFilterInput" />
             <button type="button" class="btn ghost swap-mini" @onclick="SelectAll">@L["Swap_SelectAll"]</button>
             <button type="button" class="btn ghost swap-mini" @onclick="ClearAll">@L["Swap_ClearAll"]</button>
             <span class="muted">@L["Swap_SelectedCount", _selected.Count]</span>

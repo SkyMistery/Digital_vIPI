@@ -360,13 +360,13 @@
             <div class="mil-add">
                 <label>
                     @L["Att_ColTitle"]
-                    <input value="@_nTitolo" maxlength="@AttachmentRules.TitleMaxLength" placeholder="@L["Att_TitlePh"]"
-                           @oninput="e => TitoloCambiato(e.Value?.ToString())" />
+                    <CampoTesto Valore="@_nTitolo" maxlength="@AttachmentRules.TitleMaxLength" placeholder="@L["Att_TitlePh"]"
+                           OnInput="e => TitoloCambiato(e.Value?.ToString())" />
                 </label>
                 <label>
                     @L["Att_ColSlug"]
-                    <input value="@_nSlug" placeholder="loa-lirr-lfmm"
-                           @oninput="e => SlugCambiato(e.Value?.ToString())" />
+                    <CampoTesto Valore="@_nSlug" placeholder="loa-lirr-lfmm"
+                           OnInput="e => SlugCambiato(e.Value?.ToString())" />
                 </label>
                 <label>
                     @L["Att_ColKind"]

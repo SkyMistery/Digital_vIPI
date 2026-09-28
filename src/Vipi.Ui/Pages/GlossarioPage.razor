@@ -74,8 +74,8 @@
            un filtro applicato al lotto direbbe «non c'è» di una frase che sta alla riga 101 — cioè
            mentirebbe proprio quando la memoria diventa lunga, che è l'unico caso in cui serve. *@
         <div class="struct-bar">
-            <input class="htree-search" placeholder="@L["Gt_SearchPh"]" value="@_cerca"
-                   @oninput="CercaAsync" @onkeydown="TastoRicerca" />
+            <CampoTesto class="htree-search" placeholder="@L["Gt_SearchPh"]" Valore="@_cerca"
+                   OnInput="CercaAsync" OnKeyDown="TastoRicerca" />
             @if (Cercando)
             {
                 <button class="lnk-mini" disabled="@_busy" @onclick="PulisciRicercaAsync">@L["Gt_ClearSearch"]</button>

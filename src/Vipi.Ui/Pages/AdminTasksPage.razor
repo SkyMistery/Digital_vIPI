@@ -74,7 +74,7 @@
         <div class="task-layout">
             <div class="panel st-pane">
                 <div class="struct-bar">
-                    <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["AdminTasks_SearchPh"]" />
+                    <CampoTesto class="htree-search" Valore="@_q" OnInput="e => SetQuery(e.Value?.ToString())" placeholder="@L["AdminTasks_SearchPh"]" />
 
                     <select class="htree-select" @bind="_airac" title="@L["AdminTasks_DueFilterTitle"]">
                         <option value="">@L["AdminTasks_AllDue"]</option>

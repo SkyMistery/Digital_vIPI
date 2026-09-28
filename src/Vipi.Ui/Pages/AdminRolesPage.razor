@@ -80,7 +80,7 @@
             @* --- SINISTRA: tutti quelli che il sistema conosce, col livello che hanno --- *@
             <div class="panel st-pane">
                 <div class="struct-bar">
-                    <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Roles_SearchPh"]" />
+                    <CampoTesto class="htree-search" Valore="@_q" OnInput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Roles_SearchPh"]" />
                     @* Un chip per livello, sempre presenti e spenti a zero: contano PERSONE, come le righe. *@
                     <span class="sb-chips">
                         @foreach (var liv in Livelli_Chip)

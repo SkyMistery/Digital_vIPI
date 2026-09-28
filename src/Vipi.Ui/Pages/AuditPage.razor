@@ -61,7 +61,7 @@
            dettaglio è un oggetto su cui si AGISCE, qui la riga è già tutto il fatto. *@
         <div class="panel st-pane audit-pane">
             <div class="struct-bar">
-                <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Audit_SearchPh"]" />
+                <CampoTesto class="htree-search" Valore="@_q" OnInput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Audit_SearchPh"]" />
 
                 @* Il periodo prende il posto del tetto muto: prima la pagina mostrava le 200 righe più
                    recenti senza dire che sotto c'era altro. *@

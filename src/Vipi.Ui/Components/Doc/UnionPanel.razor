@@ -202,9 +202,9 @@
            filtro restringe e basta: l'identità resta l'id del documento, che è sempre uno solo. *@
         <div class="union-add">
             <label for="union-add-@Key">@Sito["Union_AddLabel"]</label>
-            <input id="union-cerca-@Key" class="app-in union-cerca" type="search" autocomplete="off"
+            <CampoTesto id="@($"union-cerca-{Key}")" class="app-in union-cerca" type="search" autocomplete="off"
                    placeholder="@Sito["Union_SearchPh"]" aria-label="@Sito["Union_SearchPh"]"
-                   value="@_cerca" @oninput="SuRicerca" disabled="@_busy" />
+                   Valore="@_cerca" OnInput="SuRicerca" disabled="@_busy" />
             <select id="union-add-@Key" class="app-in union-scelta" @bind="_scelto" disabled="@_busy"
                     size="@Apertura">
                 <option value="0">—</option>

@@ -111,7 +111,7 @@
                sparisce «mostra tutti»: il chip È già l'interruttore del filtro, e due comandi per lo stesso
                stato sono uno di troppo. *@
             <div class="struct-bar">
-                <input class="htree-search" placeholder="@L["Struct_SearchPlaceholder"]" value="@_treeFilter" @oninput="OnSearchInput" />
+                <CampoTesto class="htree-search" placeholder="@L["Struct_SearchPlaceholder"]" Valore="@_treeFilter" OnInput="OnSearchInput" />
                 <select class="htree-select" @bind="_countryFilter" title="@L["Struct_FilterCountry"]">
                     <option value="">@L["Struct_AllCountries"]</option>
                     @foreach (var c in CountryOptions())
@@ -342,7 +342,7 @@
                                             <label>@L["Struct_Fallback_From"]</label>
                                             <div class="fb-lvl">
                                                 <input type="number" min="0" max="@MassimoDi(u.Piede)" placeholder="@L["Struct_Fallback_Sfc"]" disabled="@_busy"
-                                                       value="@NumeroDi(_ripieghi[idx].BaseFeet, u.Piede)" @oninput="e => CambiaPiede(idx, e.Value?.ToString())" />
+                                                       value="@NumeroDi(_ripieghi[idx].BaseFeet, u.Piede)" @onchange="e => CambiaPiede(idx, e.Value?.ToString())" />
                                                 <select disabled="@_busy" title="@L["Struct_Fallback_Unit"]" value="@u.Piede"
                                                         @onchange="e => CambiaUnitaPiede(idx, e.Value?.ToString())">
                                                     <option value="@LevelUnit.Fl">FL</option>
@@ -354,7 +354,7 @@
                                             <label>@L["Struct_Fallback_To"]</label>
                                             <div class="fb-lvl">
                                                 <input type="number" min="0" max="@MassimoDi(u.Tetto)" placeholder="@L["Struct_Fallback_Unl"]" disabled="@_busy"
-                                                       value="@NumeroDi(_ripieghi[idx].TopFeet, u.Tetto)" @oninput="e => CambiaTetto(idx, e.Value?.ToString())" />
+                                                       value="@NumeroDi(_ripieghi[idx].TopFeet, u.Tetto)" @onchange="e => CambiaTetto(idx, e.Value?.ToString())" />
                                                 <select disabled="@_busy" title="@L["Struct_Fallback_Unit"]" value="@u.Tetto"
                                                         @onchange="e => CambiaUnitaTetto(idx, e.Value?.ToString())">
                                                     <option value="@LevelUnit.Fl">FL</option>

@@ -177,7 +177,7 @@
             @* --- SINISTRA: l'elenco dei documenti --- *@
             <div class="panel st-pane">
                 <div class="struct-bar">
-                    <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Ver_SearchPh"]" />
+                    <CampoTesto class="htree-search" Valore="@_q" OnInput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Ver_SearchPh"]" />
                     <select class="htree-select" aria-label="@L["Ver_KindLabel"]" title="@L["Ver_KindLabel"]"
                             @onchange="e => SetKind(ParseKind(e.Value?.ToString()))">
                         @foreach (var (k, lab) in KindFilters)

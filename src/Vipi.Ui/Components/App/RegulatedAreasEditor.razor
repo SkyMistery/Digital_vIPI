@@ -62,8 +62,8 @@
         {
             <button type="button" class="btn ghost" style="margin-bottom:6px" @onclick="() => SetOwnAuto(true)">↺ @L["Acc_BackToAuto"]</button>
         }
-        <input class="app-in" placeholder="@L["Acc_SearchOwnArea"]" value="@_ownSearch"
-               @oninput="e => _ownSearch = AsString(e.Value)" />
+        <CampoTesto class="app-in" placeholder="@L["Acc_SearchOwnArea"]" Valore="@_ownSearch"
+               OnInput="e => _ownSearch = AsString(e.Value)" />
         @if (OwnPicks.Count == 0)
         {
             <p class="muted" style="margin-top:6px">@L["Acc_NoIvaoArea"]</p>
@@ -133,8 +133,8 @@
                         <option value="@accCode">@accCode (@n)</option>
                     }
                 </select>
-                <input class="app-in" style="flex:1;min-width:160px" placeholder="@L["Acc_SearchOtherArea"]" value="@_extraSearch"
-                       @oninput="e => _extraSearch = AsString(e.Value)" />
+                <CampoTesto class="app-in" style="flex:1;min-width:160px" placeholder="@L["Acc_SearchOtherArea"]" Valore="@_extraSearch"
+                       OnInput="e => _extraSearch = AsString(e.Value)" />
             </div>
 
             var extraMatches = OtherPicks
