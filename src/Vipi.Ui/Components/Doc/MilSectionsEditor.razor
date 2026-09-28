@@ -1309,8 +1309,15 @@ else
     private List<MilDiversionPayload.Riga> RigheAlternati() =>
         _alternati.Select(MilDiversionPayload.Da).ToList();
 
-    private Task SalvaAlternati(List<MilDiversionPayload.Riga> righe) => _shell.GuardAsync(async () =>
+    /// <summary>
+    /// 🔴 U-063 (revisione 3): la modifica si applica DENTRO il tornello, sulle righe come sono dopo il salvataggio di
+    /// prima. Composte al momento del gesto, due gesti più veloci del giro salva+rilettura facevano cancellare il
+    /// primo al secondo. <paramref name="cambia"/> risponde <c>false</c> quando non c'è niente da scrivere.
+    /// </summary>
+    private Task SalvaAlternati(Func<List<MilDiversionPayload.Riga>, bool> cambia) => _shell.GuardAsync(async () =>
     {
+        var righe = RigheAlternati();
+        if (!cambia(righe)) return;
         await Militari.SaveDiversionsAsync(_icao, righe);
         await CaricaAlternatiAsync();
     });
@@ -1333,22 +1340,20 @@ else
         if (trovato is null) _shell.Error = L["Div_UnknownIcao"].Value;
     });
 
-    private Task TogliAlternato(int i)
+    private Task TogliAlternato(int i) => SalvaAlternati(righe =>
     {
-        var righe = RigheAlternati();
-        if (i < 0 || i >= righe.Count) return Task.CompletedTask;
+        if (i < 0 || i >= righe.Count) return false;
         righe.RemoveAt(i);
-        return SalvaAlternati(righe);
-    }
+        return true;
+    });
 
-    private Task SpostaAlternato((int Indice, int Delta) m)
+    private Task SpostaAlternato((int Indice, int Delta) m) => SalvaAlternati(righe =>
     {
-        var righe = RigheAlternati();
         var (a, b) = (m.Indice, m.Indice + m.Delta);
-        if (a < 0 || a >= righe.Count || b < 0 || b >= righe.Count) return Task.CompletedTask;
+        if (a < 0 || a >= righe.Count || b < 0 || b >= righe.Count) return false;
         (righe[a], righe[b]) = (righe[b], righe[a]);
-        return SalvaAlternati(righe);
-    }
+        return true;
+    });
 
     /// <summary>
     /// Cita una radioassistenza su una riga. ⚠️ Arriva l'<b>identità intera</b>, non il codice: quando il
@@ -1369,27 +1374,28 @@ else
             return;
         }
 
-        var righe = RigheAlternati();
-        if (x.Indice < 0 || x.Indice >= righe.Count) return;
-        var riga = righe[x.Indice];
-        if (riga.Navaids.Any(n => n.Code == scelta.Code && n.Kind == scelta.Kind
-                                  && n.Channel == scelta.Channel)) return;
-
-        righe[x.Indice] = new MilDiversionPayload.Riga
+        await SalvaAlternati(righe =>
         {
-            Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
-            Navaids = riga.Navaids.Append(new MilDiversionPayload.Nav
+            if (x.Indice < 0 || x.Indice >= righe.Count) return false;
+            var riga = righe[x.Indice];
+            if (riga.Navaids.Any(n => n.Code == scelta.Code && n.Kind == scelta.Kind
+                                      && n.Channel == scelta.Channel)) return false;
+
+            righe[x.Indice] = new MilDiversionPayload.Riga
             {
-                Code = scelta.Code, Kind = scelta.Kind, Channel = scelta.Channel,
-            }).ToList(),
-        };
-        await SalvaAlternati(righe);
+                Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
+                Navaids = riga.Navaids.Append(new MilDiversionPayload.Nav
+                {
+                    Code = scelta.Code, Kind = scelta.Kind, Channel = scelta.Channel,
+                }).ToList(),
+            };
+            return true;
+        });
     }
 
-    private Task TogliNavaidAlternato((int Indice, NavaidKey Chiave) x)
+    private Task TogliNavaidAlternato((int Indice, NavaidKey Chiave) x) => SalvaAlternati(righe =>
     {
-        var righe = RigheAlternati();
-        if (x.Indice < 0 || x.Indice >= righe.Count) return Task.CompletedTask;
+        if (x.Indice < 0 || x.Indice >= righe.Count) return false;
         var riga = righe[x.Indice];
         righe[x.Indice] = new MilDiversionPayload.Riga
         {
@@ -1398,8 +1404,8 @@ else
                 .Where(n => n.Code != x.Chiave.Code || n.Kind != x.Chiave.Kind || n.Channel != x.Chiave.Channel)
                 .ToList(),
         };
-        return SalvaAlternati(righe);
-    }
+        return true;
+    });
 
     private Task ScriviRilevamentoAlternato((int Indice, int? Gradi) x) =>
         ScriviNumeroAlternato(x.Indice, riga => new MilDiversionPayload.Riga
@@ -1457,8 +1463,12 @@ else
             });
         }
 
-        var righe = r.Sostituisci ? nuove : RigheAlternati().Concat(nuove).ToList();
-        return SalvaAlternati(righe);
+        return SalvaAlternati(righe =>
+        {
+            if (r.Sostituisci) righe.Clear();
+            righe.AddRange(nuove);
+            return true;
+        });
     }
 
     /// <summary>Il nome dentro «LIBA Amendola», senza il codice. Vuoto = nessun nome da tenere.</summary>
@@ -1470,13 +1480,13 @@ else
         return resto.Length > 0 ? resto : null;
     }
 
-    private Task ScriviNumeroAlternato(int indice, Func<MilDiversionPayload.Riga, MilDiversionPayload.Riga> cambia)
-    {
-        var righe = RigheAlternati();
-        if (indice < 0 || indice >= righe.Count) return Task.CompletedTask;
-        righe[indice] = cambia(righe[indice]);
-        return SalvaAlternati(righe);
-    }
+    private Task ScriviNumeroAlternato(int indice, Func<MilDiversionPayload.Riga, MilDiversionPayload.Riga> cambia) =>
+        SalvaAlternati(righe =>
+        {
+            if (indice < 0 || indice >= righe.Count) return false;
+            righe[indice] = cambia(righe[indice]);
+            return true;
+        });
 
     // ---- Nominativi e Parcheggi: tabelle a colonne fisse, tutto a mano (§12g) ---------------------------
     //
@@ -1497,10 +1507,13 @@ else
 
     /// <summary>Le due tabelle si comportano allo stesso modo: una sola funzione, e la sezione la sceglie il
     /// chiamante. Due copie divergerebbero al primo ritocco.</summary>
+    /// <remarks>U-063 (revisione 3): la modifica si applica dentro il tornello, sulla tabella ricaricata dal
+    /// salvataggio di prima, come gli alternati.</remarks>
     private Task SalvaTabella(string chiave, string variante, int colonne,
-        IReadOnlyList<IReadOnlyList<string>> righe) => _shell.GuardAsync(async () =>
+        Func<IReadOnlyList<IReadOnlyList<string>>, IReadOnlyList<IReadOnlyList<string>>> cambia) => _shell.GuardAsync(async () =>
     {
-        await Militari.SaveFixedTableAsync(_icao, chiave, variante, righe, colonne);
+        var attuali = chiave == "callsigns" ? _nominativi : _parcheggi;
+        await Militari.SaveFixedTableAsync(_icao, chiave, variante, cambia(attuali), colonne);
         await CaricaTabelleAsync();
     });
 
@@ -1545,22 +1558,22 @@ else
     }
 
     private Task AggiungiNominativo() =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, ConRigaVuota(_nominativi, ColNominativi));
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, t => ConRigaVuota(t, ColNominativi));
     private Task TogliNominativo(int i) =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, Senza(_nominativi, i));
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, t => Senza(t, i));
     private Task SpostaNominativo((int Indice, int Delta) m) =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, Spostata(_nominativi, m.Indice, m.Delta));
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, t => Spostata(t, m.Indice, m.Delta));
     private Task ScriviNominativo((int Riga, int Colonna, string Testo) c) =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, ConCella(_nominativi, c.Riga, c.Colonna, c.Testo));
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, t => ConCella(t, c.Riga, c.Colonna, c.Testo));
 
     private Task AggiungiParcheggio() =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConRigaVuota(_parcheggi, ColParcheggi));
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, t => ConRigaVuota(t, ColParcheggi));
     private Task TogliParcheggio(int i) =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Senza(_parcheggi, i));
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, t => Senza(t, i));
     private Task SpostaParcheggio((int Indice, int Delta) m) =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Spostata(_parcheggi, m.Indice, m.Delta));
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, t => Spostata(t, m.Indice, m.Delta));
     private Task ScriviParcheggio((int Riga, int Colonna, string Testo) c) =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConCella(_parcheggi, c.Riga, c.Colonna, c.Testo));
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, t => ConCella(t, c.Riga, c.Colonna, c.Testo));
 
     // ---- prendere una tabella da un ALTRO vSOP ---------------------------------------------------------
     //
@@ -1615,10 +1628,10 @@ else
     // «sostituisci»): la fusione l'ha gia' fatta l'anteprima, che e' l'unico posto dove chi importa ha visto
     // che cosa stava per succedere.
     private Task ImportaNominativi(IReadOnlyList<IReadOnlyList<string>> righe) =>
-        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, righe);
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, _ => righe);
 
     private Task ImportaParcheggi(IReadOnlyList<IReadOnlyList<string>> righe) =>
-        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, righe);
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, _ => righe);
 
     /// <summary>L'attività di UN'area (§12h): una alla volta, come i campi delle radioassistenze.</summary>
     private Task ScriviAttivitaArea((string AreaId, MilActivity Attivita) x) => _shell.GuardAsync(async () =>

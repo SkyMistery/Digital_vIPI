@@ -6,6 +6,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @inherits OwningComponentBase
 @inject IStringLocalizer<SharedResource> L
+@inject Microsoft.Extensions.Logging.ILogger<DocumentSectionsEditor> Log
 @using System.Text.Json
 @using Vipi.Application.Import
 @using RenderMode = Vipi.Domain.RenderMode
@@ -322,8 +323,24 @@ else
         // arrivava addosso: «A second operation was started on this context instance». E l'editor chiuso durante
         // la lettura si portava via il contesto sotto la query. Qui niente di tutto questo: lo scope è della chiamata.
         RiferimentiRisolti nomi;
-        await using (var scope = ScopedServices.GetRequiredService<IServiceScopeFactory>().CreateAsyncScope())
+        // U-166 (revisione 3): con una rete. È un avviso, non il documento: un guasto passeggero del database (o
+        // GitHub a cache fredda per un [[FIX]]) qui era un'eccezione del ciclo di vita, e il circuito cadeva.
+        // Senza esito l'editor si disegna com'è, senza avviso; il prossimo ricarico riprova.
+        try
+        {
+            await using var scope = ScopedServices.GetRequiredService<IServiceScopeFactory>().CreateAsyncScope();
             nomi = await scope.ServiceProvider.GetRequiredService<IRiferimentiResolver>().PerTestiAsync(testi.Select(t => t.Testo));
+        }
+        catch (Exception ex)
+        {
+            Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(Log, ex,
+                "Riferimenti citati non letti nell'editor (documento {DocumentId}): niente avviso sulle SID da ricontrollare.", doc.DocumentId);
+            if (!ReferenceEquals(doc, Doc)) return;
+            _nomiSid = RiferimentiRisolti.Vuoto;
+            _sidDaRivedere = Array.Empty<ProceduraDaRivedere>();
+            _datiDaRivedere = Array.Empty<DatoDaRivedere>();
+            return;
+        }
 
         // Un documento più nuovo è arrivato mentre si leggeva: questo esito è di quello vecchio, e si butta.
         if (!ReferenceEquals(doc, Doc)) return;
@@ -1011,52 +1028,69 @@ else
     private static string SerializeTable(List<string> cols, List<List<string>> rows, List<int?> widths) =>
         TabellaGenerica.Scrivi(cols, rows, widths);
 
-    // Ogni mutazione ri-parsa il BodyJson corrente, applica, serializza e salva (nessuno stato catturato tra render).
-    private Task SetTableCol(EditableBlock b, int ci, string val)
+    // 🔴 U-162 (revisione 3): la mutazione si applica DENTRO il tornello, sul blocco com'è in quel momento nel
+    // documento (ricaricato dopo il salvataggio di prima), e col suo token. Prima si componeva al momento
+    // dell'evento dal blocco visto: due celle scritte in fila, più in fretta del giro salva+ricarica, e la seconda
+    // partiva senza la prima e col token vecchio — «modificato nel frattempo», e la cella mostrava un valore mai
+    // salvato.
+    private Task MutaTabella(EditableBlock b, Action<List<string>, List<List<string>>, List<int?>> muta) => Run(async () =>
     {
-        var (cols, rows, larg) = ParseTable(b.BodyJson);
-        if (ci < cols.Count) cols[ci] = val;
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
-    }
-    private Task SetTableWidth(EditableBlock b, int ci, string val)
+        var corrente = BloccoCorrente(b.Id) ?? b;
+        var (cols, rows, larg) = ParseTable(corrente.BodyJson);
+        muta(cols, rows, larg);
+        await Editing.UpdateBlockAsync(corrente.Id, new BlockEdit
+        {
+            Tier = corrente.Tier,
+            Visibility = corrente.Visibility,
+            CalloutKind = corrente.CalloutKind,
+            Body = corrente.Body,
+            BodyJson = SerializeTable(cols, rows, larg),
+            RowVersion = corrente.RowVersion,
+        });
+        await OnChanged.InvokeAsync();
+    });
+
+    /// <summary>Il blocco com'è nel documento di adesso: dopo un ricarico è un'istanza nuova, col token nuovo.</summary>
+    private EditableBlock? BloccoCorrente(int id)
     {
-        var (cols, rows, larg) = ParseTable(b.BodyJson);
-        if (ci < larg.Count) larg[ci] = TabellaGenerica.LarghezzaDa(val);
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
+        static EditableBlock? Cerca(IEnumerable<EditableSection> sezioni, int id)
+        {
+            foreach (var s in sezioni)
+            {
+                if (s.Blocks.FirstOrDefault(x => x.Id == id) is { } b) return b;
+                if (Cerca(s.Children, id) is { } f) return f;
+            }
+            return null;
+        }
+        return Cerca(Doc.Sections, id);
     }
-    private Task RemoveTableCol(EditableBlock b, int ci)
-    {
-        var (cols, rows, larg) = ParseTable(b.BodyJson);
-        if (ci < cols.Count) cols.RemoveAt(ci);
-        if (ci < larg.Count) larg.RemoveAt(ci);
-        foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
-    }
-    private Task AddTableCol(EditableBlock b)
-    {
-        var (cols, rows, larg) = ParseTable(b.BodyJson);
-        cols.Add($"Colonna {cols.Count + 1}");
-        foreach (var r in rows) r.Add("");
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
-    }
-    private Task SetTableCell(EditableBlock b, int ri, int ci, string val)
-    {
-        var (cols, rows, larg) = ParseTable(b.BodyJson);
-        if (ri < rows.Count) { while (rows[ri].Count <= ci) rows[ri].Add(""); rows[ri][ci] = val; }
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
-    }
-    private Task AddTableRow(EditableBlock b)
-    {
-        var (cols, rows, larg) = ParseTable(b.BodyJson);
-        rows.Add(Enumerable.Repeat(string.Empty, Math.Max(1, cols.Count)).ToList());
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
-    }
-    private Task RemoveTableRow(EditableBlock b, int ri)
-    {
-        var (cols, rows, larg) = ParseTable(b.BodyJson);
-        if (ri < rows.Count) rows.RemoveAt(ri);
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
-    }
+
+    private Task SetTableCol(EditableBlock b, int ci, string val) =>
+        MutaTabella(b, (cols, rows, larg) => { if (ci < cols.Count) cols[ci] = val; });
+    private Task SetTableWidth(EditableBlock b, int ci, string val) =>
+        MutaTabella(b, (cols, rows, larg) => { if (ci < larg.Count) larg[ci] = TabellaGenerica.LarghezzaDa(val); });
+    private Task RemoveTableCol(EditableBlock b, int ci) =>
+        MutaTabella(b, (cols, rows, larg) =>
+        {
+            if (ci < cols.Count) cols.RemoveAt(ci);
+            if (ci < larg.Count) larg.RemoveAt(ci);
+            foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
+        });
+    private Task AddTableCol(EditableBlock b) =>
+        MutaTabella(b, (cols, rows, larg) =>
+        {
+            cols.Add($"Colonna {cols.Count + 1}");
+            foreach (var r in rows) r.Add("");
+        });
+    private Task SetTableCell(EditableBlock b, int ri, int ci, string val) =>
+        MutaTabella(b, (cols, rows, larg) =>
+        {
+            if (ri < rows.Count) { while (rows[ri].Count <= ci) rows[ri].Add(""); rows[ri][ci] = val; }
+        });
+    private Task AddTableRow(EditableBlock b) =>
+        MutaTabella(b, (cols, rows, larg) => rows.Add(Enumerable.Repeat(string.Empty, Math.Max(1, cols.Count)).ToList()));
+    private Task RemoveTableRow(EditableBlock b, int ri) =>
+        MutaTabella(b, (cols, rows, larg) => { if (ri < rows.Count) rows.RemoveAt(ri); });
 
     private RenderFragment TableEditor(EditableBlock b) => __builder =>
     {

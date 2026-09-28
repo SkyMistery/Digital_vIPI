@@ -213,11 +213,18 @@
         _ => L["Acc_AreaCountTruncated", PageSize, total].Value,
     };
 
+    // 🔴 U-063 (revisione 3): l'ospite aggiorna `Selection` solo dopo salvataggio e rilettura, e ogni gesto manda la
+    // lista INTERA. Composta dal parametro, tre chip cliccate più in fretta del giro lasciavano scelta solo l'ultima.
+    // Finché un salvataggio è in volo, il gesto dopo parte da ciò che è già stato mandato.
+    private RegulatedSelection? _mandata;
+    private int _inVolo;
+    private RegulatedSelection Base => _inVolo > 0 && _mandata is not null ? _mandata : Selection;
+
     // Aree proprie effettivamente selezionate: in automatico sono tutte quelle dell'ACC, sennò il sottoinsieme scelto.
     private List<string> EffectiveOwnIds() =>
-        AllowAuto && Selection.OwnAuto
+        AllowAuto && Base.OwnAuto
             ? OwnPicks.Select(p => p.IvaoId).ToList()
-            : new List<string>(Selection.OwnIds);
+            : new List<string>(Base.OwnIds);
 
     // Passaggio automatico↔manuale: manuale materializza le aree attualmente mostrate (tutte), così non ne sparisce
     // nessuna al primo click; automatico torna dinamico e scarta il sottoinsieme.
@@ -225,7 +232,7 @@
     {
         OwnAuto = auto,
         OwnIds = auto ? new List<string>() : EffectiveOwnIds(),
-        ExtraIds = new List<string>(Selection.ExtraIds),
+        ExtraIds = new List<string>(Base.ExtraIds),
     });
 
     // Seleziona/deseleziona un'area propria. In automatico passa a manuale materializzando le attuali.
@@ -235,25 +242,31 @@
         if (own.Contains(areaId, StringComparer.OrdinalIgnoreCase))
             own.RemoveAll(x => string.Equals(x, areaId, StringComparison.OrdinalIgnoreCase));
         else own.Add(areaId);
-        return Emit(new RegulatedSelection { OwnAuto = false, OwnIds = own, ExtraIds = new List<string>(Selection.ExtraIds) });
+        return Emit(new RegulatedSelection { OwnAuto = false, OwnIds = own, ExtraIds = new List<string>(Base.ExtraIds) });
     }
 
     // Aggiunge/rimuove un'area di altro ACC: non tocca il modo auto/manuale delle proprie.
     private Task ToggleExtraArea(string areaId)
     {
-        var extra = new List<string>(Selection.ExtraIds);
+        var extra = new List<string>(Base.ExtraIds);
         if (extra.Contains(areaId, StringComparer.OrdinalIgnoreCase))
             extra.RemoveAll(x => string.Equals(x, areaId, StringComparison.OrdinalIgnoreCase));
         else extra.Add(areaId);
         return Emit(new RegulatedSelection
         {
-            OwnAuto = Selection.OwnAuto,
-            OwnIds = new List<string>(Selection.OwnIds),
+            OwnAuto = Base.OwnAuto,
+            OwnIds = new List<string>(Base.OwnIds),
             ExtraIds = extra,
         });
     }
 
-    private Task Emit(RegulatedSelection sel) => SelectionChanged.InvokeAsync(sel);
+    private async Task Emit(RegulatedSelection sel)
+    {
+        _mandata = sel;
+        _inVolo++;
+        try { await SelectionChanged.InvokeAsync(sel); }
+        finally { _inVolo--; }
+    }
 
     private static string AsString(object? v) => v as string ?? "";
 }

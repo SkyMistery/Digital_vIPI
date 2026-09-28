@@ -56,6 +56,22 @@ public class AvvisoSidCitateTests : TestContext
             Task.FromResult(RiferimentiRisolti.Di(Nomi));
     }
 
+    /// <summary>Il risolutore che cade: un guasto passeggero del database, o GitHub a cache fredda per un [[FIX]].</summary>
+    private sealed class RisolutoreRotto : IProcedureReferenceResolver, IRiferimentiResolver
+    {
+        private static Exception Guasto() => new InvalidOperationException("connessione persa");
+
+        public Task<NomiProcedura> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
+            string? proprioIcao = null, AirportSidView? propriaTabella = null,
+            AirportSidView? propriaTabellaStar = null, CancellationToken ct = default) => throw Guasto();
+        public Task<NomiProcedura> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) => throw Guasto();
+        public Task<IReadOnlyList<ProceduraCitabile>> ElencoAsync(string icao, ProcedureKind kind = ProcedureKind.Sid, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ProceduraCitabile>>(Array.Empty<ProceduraCitabile>());
+        Task<RiferimentiRisolti> IRiferimentiResolver.PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
+            string? proprioIcao, AirportSidView? propriaTabella, AirportSidView? propriaTabellaStar, CancellationToken ct) => throw Guasto();
+        Task<RiferimentiRisolti> IRiferimentiResolver.PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct) => throw Guasto();
+    }
+
     public AvvisoSidCitateTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
@@ -103,6 +119,23 @@ public class AvvisoSidCitateTests : TestContext
         Assert.Contains("LIRF OST1E", avviso.TextContent);
         Assert.Contains("Sid_Check_Missing", avviso.TextContent);
         Assert.Contains("(Remarks)", avviso.TextContent);
+    }
+
+    /// <summary>
+    /// U-166 (revisione 3): la lettura dei riferimenti citati stava nel ciclo di vita senza rete. Un guasto passeggero
+    /// del database diventava un'eccezione di render, e il circuito cadeva: la pagina moriva invece di mostrare
+    /// l'editor. Ora l'editor si disegna senza avviso, e il testo resta quello scritto.
+    /// </summary>
+    [Fact]
+    public void Un_risolutore_che_cade_non_fa_cadere_l_editor()
+    {
+        Services.AddScoped<IProcedureReferenceResolver>(_ => new RisolutoreRotto());
+        Services.AddScoped<IRiferimentiResolver>(_ => new RisolutoreRotto());
+
+        var c = Editor(inModifica: false);
+
+        Assert.Empty(c.FindAll(".sidref-check"));
+        Assert.Contains("Remarks", c.Markup);
     }
 
     [Fact]
