@@ -192,6 +192,38 @@ public class VloaOrdineFrequenzeTests : IAsyncLifetime
         Assert.Single(righe, r => r.Cop == "VALMA");
     }
 
+    /// <summary>
+    /// 🔴 U-060 (revisione totale 3), scelta del committente: con la controparte sparita (settore disattivato) la
+    /// vIPI continua a stampare l'accordo, e la vLOA lo toglieva — due documenti che raccontano la stessa coppia
+    /// in due modi. Ora lo stampa anche la vLOA, e la segnalazione «da rivedere» chiede all'editor di decidere.
+    /// </summary>
+    [Fact]
+    public async Task Con_la_controparte_disattivata_la_vLOA_continua_a_stampare_l_accordo()
+    {
+        var repo = new EfAgreementRepository(_db);
+        var ne = await _db.Sectors.Where(s => s.Callsign == "LIRR_NE_CTR").Select(s => s.Id).SingleAsync();
+        var tunisi = await _db.Sectors.SingleAsync(s => s.Callsign == "DTTC_CTR");
+        var accordo = await repo.AddAgreementAsync("LIRR", new AgreementInput { SideASectorId = ne, SideBSectorId = tunisi.Id });
+        var sezione = await repo.AddSectionAsync("LIRR", accordo, new AgreementSectionInput
+        {
+            Kind = TransferFlowKind.Overflight, Direction = AgreementDirection.AtoB,
+        });
+        await repo.AddClauseAsync("LIRR", sezione, new AgreementClauseInput
+        {
+            Cops = "VALMA", LevelValue = 240, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Exact,
+        });
+        tunisi.IsActive = false;
+        await _db.SaveChangesAsync();
+
+        var coord = await _service.DeriveCoordinationAsync(_docId);
+
+        var righe = coord.HomeToForeign.Sectors.SelectMany(s => s.Accs)
+            .SelectMany(a => a.Airports.SelectMany(x => x.Arrivals.Concat(x.Departures))
+                .Concat(a.Extras.SelectMany(x => x.Rows)))
+            .ToList();
+        Assert.Single(righe, r => r.Cop == "VALMA");
+    }
+
     private sealed class LockFinto(bool mio) : IDocumentLockGuard
     {
         public Task EnsureMineAsync(int documentId, CancellationToken ct = default) =>

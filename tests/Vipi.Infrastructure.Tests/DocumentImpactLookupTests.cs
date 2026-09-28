@@ -227,6 +227,61 @@ public class DocumentImpactLookupTests : IAsyncLifetime
         Assert.Contains(_vloaDoc, ids);   // il callsign è fra i confinanti domestici della coppia
     }
 
+    /// <summary>
+    /// 🔴 U-060 (revisione totale 3): quando un settore sparisce, chi ha un accordo con lui continua a stampare
+    /// «trasferire a X» (scelta del committente, 28 settembre 2026: si stampa e si segnala) — ma la segnalazione
+    /// non arrivava alla CONTROPARTE, perché nessun passo del reverse-lookup guardava gli accordi. Ora sparizione
+    /// e nascondimento avvisano anche i documenti dell'altro capo; un riparentamento no (non cambia la frase).
+    /// </summary>
+    [Fact]
+    public async Task Un_settore_sparito_avvisa_i_documenti_della_controparte_dei_suoi_accordi()
+    {
+        var app = await _db.Sectors.SingleAsync(s => s.Callsign == "LIRP_APP");
+        var linate = await _db.Sectors.SingleAsync(s => s.Callsign == "LIML_TWR");
+        _db.CoordinationAgreements.Add(new CoordinationAgreement
+        {
+            OwnerAccId = linate.AccId, SideASectorId = Math.Min(app.Id, linate.Id), SideBSectorId = Math.Max(app.Id, linate.Id), Order = 1,
+        });
+        await _db.SaveChangesAsync();
+        var svc = new DocumentImpactService(Repo, new AuthzSempre());
+
+        await svc.RaiseForSectorAsync(ImpactKind.SectorReparented, "LIRP_APP", "LIRR");
+        Assert.Empty(await Repo.ListOpenAsync(_scaloMilanoDoc));   // riparentato: la frase non cambia
+
+        await svc.RaiseForSectorAsync(ImpactKind.SectorGone, "LIRP_APP", "LIRR");
+        Assert.NotEmpty(await Repo.ListOpenAsync(_scaloMilanoDoc));
+    }
+
+    private sealed class AuthzSempre : Vipi.Application.Auth.IEditAuthorizationService
+    {
+        public bool IsAdmin => true;
+        public Vipi.Domain.VipiRole Role => Vipi.Domain.VipiRole.Admin;
+        public int? CurrentUserId => 1;
+        public string? CurrentName => "test";
+        public void EnsureAdmin() { }
+    }
+
+    /// <summary>
+    /// 🔴 U-158 (revisione totale 3): la vLOA deriva i confinanti dalla GEOMETRIA di oggi, ma chi cerca i documenti
+    /// da avvisare guardava solo l'elenco fermo all'ultimo import dei confinanti. Un settore che confina per
+    /// poligono ma manca dall'elenco non avvisava la vLOA che pure lo mostra. Ora vale l'uno o l'altro.
+    /// </summary>
+    [Fact]
+    public async Task Un_settore_confinante_per_geometria_segnala_la_vLOA_anche_fuori_dall_elenco()
+    {
+        (await _db.AccSectors.SingleAsync(s => s.ComposePosition == "LIRR_NE_CTR")).RegionMapPolygon =
+            "[[10.0,40.0],[11.0,40.0],[11.0,41.0],[10.0,41.0]]";
+        _db.Accs.Add(Acc.NewForeign("LFMM", "Marseille"));
+        _db.AccSectors.Add(new AccSector
+        {
+            ComposePosition = "LFMM_CTR", CenterId = "LFMM", Position = "CTR",
+            RegionMapPolygon = "[[10.0,39.0],[11.0,39.0],[11.0,40.0],[10.0,40.0]]",
+        });
+        await _db.SaveChangesAsync();
+
+        Assert.Contains(_vloaDoc, await LookupAsync("LIRR_NE_CTR"));   // NE non è nell'elenco: c'è solo TS
+    }
+
     /// <summary>⚠️ Il difetto che ha imposto la riscrittura: prima <b>ogni</b> documento primario e <b>ogni</b>
     /// APP dell'ACC finivano nell'elenco. Pisa e Grottaglie non c'entrano nulla con un CTR di Roma.</summary>
     [Fact]

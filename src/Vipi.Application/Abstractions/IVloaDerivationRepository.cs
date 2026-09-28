@@ -4,12 +4,15 @@ namespace Vipi.Application.Abstractions;
 /// Coppia risolta di una vLOA: i due ACC (Home italiano / Neighbour estero), i settori confinanti calcolati
 /// dall'import (per AoR/frequenze), e l'insieme completo dei settori di ciascun ACC (per i coordinamenti, che
 /// possono coinvolgere qualunque settore dei due ACC, non solo quelli di confine).
+/// <para><paramref name="HomeInattivi"/>/<paramref name="ForeignInattivi"/>: i settori disattivati dei due ACC. Non
+/// stanno in AoR e frequenze, ma un accordo verso di loro si stampa ancora, come nella vIPI (U-060, scelta del
+/// committente): lo toglie l'editor, avvisato dalla segnalazione.</para>
 /// </summary>
 public sealed record VloaPairInfo(
     string HomeAcc, string ForeignAcc, string HomeName, string ForeignName,
-    IReadOnlyList<string> HomeConfining, IReadOnlyList<string> ForeignConfining,
     IReadOnlyList<string> HomeAll, IReadOnlyList<string> ForeignAll,
-    string ForeignCountry);
+    string ForeignCountry,
+    IReadOnlyList<string>? HomeInattivi = null, IReadOnlyList<string>? ForeignInattivi = null);
 
 /// <summary>Stato editoriale persistito di una vLOA: callsign nascosti da AoR/frequenze. Le SEZIONI nascoste
 /// stanno sul documento (<c>DocumentSection.IsHidden</c>, doc 11 §3c), non più qui.</summary>

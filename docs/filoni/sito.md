@@ -1100,5 +1100,23 @@
     (T-045) esce già.
   - **Test**: `AzureTranslationEngineTests` (+1, un finto che fa come Azure: 400 oltre i 50 000). Rosso sul codice
     di prima. Infrastructure 1788 → **1789**.
+  - **Gruppo 10** (proiezione e confinanti, **codice comune** `Vipi.Application` e `Vipi.Infrastructure`):
+    **U-150** (un settore disattivato — nascosto, o con l'ACC nascosto — teneva la frequenza del giorno in cui era
+    uscito dal giro, e vIPI e frequenze collegate degli scali la leggono ancora) → la proiezione la aggiorna dal
+    catalogo intero senza riattivarlo. ⚠️ Dati al primo avvio: i settori disattivati (Barca, Pioppo, Legion…)
+    prendono la frequenza di catalogo; dove differisce da quella congelata, la deriva chiede di ripubblicare.
+    **U-158** (tre definizioni di «settori confinanti»: la vLOA per geometria, la ricerca dei documenti da
+    avvisare sull'elenco fermo all'ultimo import, e un terzo elenco nella coppia che nessuno leggeva) → una regola
+    sola, `VloaConfinanti.Calcola` (geometria di oggi, la stessa soglia), usata dalla vLOA e dalla ricerca, che
+    tiene l'elenco solo come «oppure» (un settore sparito non ha più il poligono); tolti i due campi morti e il
+    loro ripiego sul catalogo. **U-060** (accordo verso un ente sparito: la vIPI lo stampava, la vLOA lo toglieva,
+    e alla controparte non arrivava niente) → scelta del committente, **si stampa e si segnala**: la vLOA tiene
+    nei coordinamenti anche i settori disattivati, e sparizione e nascondimento avvisano anche i documenti
+    della controparte degli accordi (il suo documento o quello dello scalo, la vIPI ACC del suo centro, la vLOA
+    della coppia). Un riparentamento no: non cambia la frase. ⚠️ Non fatto: il genere «controparte sparita» fra
+    le lacune della pagina Trasferimenti (`AgreementGaps`) — la segnalazione basta a portare l'editor
+    all'accordo; resta un'idea, non un difetto.
+  - **Test**: `SectorProjectionTests` (+1), `DocumentImpactLookupTests` (+2), `VloaOrdineFrequenzeTests` (+1).
+    Rossi sul codice di prima. Infrastructure 1789 → **1793**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

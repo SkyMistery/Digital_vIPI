@@ -127,25 +127,11 @@ internal sealed class VloaDerivationService : IVloaDerivationService
 
     /// <summary>Settori EFFETTIVAMENTE confinanti (home/estero) calcolati per geometria dai poligoni di confine dei
     /// due ACC (non tutti i settori delle FIR). Deterministico, indipendente dallo stato del candidato.</summary>
-    private async Task<(List<string> Home, List<string> Foreign)> ComputeConfiningAsync(VloaPairInfo pair, CancellationToken ct)
-    {
-        var homeRings = (await _repo.GetBoundaryPolygonsAsync(pair.HomeAcc, ct))
-            .Select(p => (p.Callsign, Ring: PolygonGeometry.ToRing(p.Raw))).Where(x => x.Ring is not null).ToList();
-        var foreignRings = (await _repo.GetBoundaryPolygonsAsync(pair.ForeignAcc, ct))
-            .Select(p => (p.Callsign, Ring: PolygonGeometry.ToRing(p.Raw))).Where(x => x.Ring is not null).ToList();
-
-        var threshold = _neighbours.AdjacencyThresholdNm;
-        var home = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var foreign = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var h in homeRings)
-            foreach (var f in foreignRings)
-                if (PolygonGeometry.AreAdjacent(h.Ring, f.Ring, threshold))
-                {
-                    home.Add(h.Callsign);
-                    foreign.Add(f.Callsign);
-                }
-        return (home.ToList(), foreign.ToList());
-    }
+    private async Task<(List<string> Home, List<string> Foreign)> ComputeConfiningAsync(VloaPairInfo pair, CancellationToken ct) =>
+        VloaConfinanti.Calcola(
+            await _repo.GetBoundaryPolygonsAsync(pair.HomeAcc, ct),
+            await _repo.GetBoundaryPolygonsAsync(pair.ForeignAcc, ct),
+            _neighbours.AdjacencyThresholdNm);
 
     public async Task<VloaPairMeta?> GetPairMetaAsync(int docId, CancellationToken ct = default)
     {
@@ -235,8 +221,11 @@ internal sealed class VloaDerivationService : IVloaDerivationService
         // Senza contesto (test, chiamanti vecchi) resta l'inglese: il comportamento di prima.
         var tpl = CoordinationSentenceTemplate.For(_lingua?.Corrente ?? "en", _sentence.Current);
 
-        var homeSet = new HashSet<string>(pair.HomeAll, StringComparer.OrdinalIgnoreCase);
-        var foreignSet = new HashSet<string>(pair.ForeignAll, StringComparer.OrdinalIgnoreCase);
+        // 🔴 U-060 (revisione totale 3): anche i settori disattivati. Un accordo verso una controparte sparita la
+        // vIPI lo stampa ancora, e la vLOA lo toglieva: la stessa coppia raccontata in due modi. Scelta del
+        // committente: si stampa, e la segnalazione «da rivedere» chiede all'editor di decidere.
+        var homeSet = new HashSet<string>(pair.HomeAll.Concat(pair.HomeInattivi ?? Array.Empty<string>()), StringComparer.OrdinalIgnoreCase);
+        var foreignSet = new HashSet<string>(pair.ForeignAll.Concat(pair.ForeignInattivi ?? Array.Empty<string>()), StringComparer.OrdinalIgnoreCase);
 
         // 🔴 U-155 (revisione totale 3): un accordo di confine riguarda tutte e due le ACC, e letto da ciascuna
         // entrava due volte. Si tolgono i doppioni PRIMA di espandere: dopo, gli Id dei flussi sono sintetici.

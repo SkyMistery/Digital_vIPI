@@ -27,7 +27,16 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
 {
     private readonly VipiDbContext _db;
-    public EfDocumentImpactRepository(VipiDbContext db) => _db = db;
+    private readonly double _sogliaConfineNm;
+
+    /// <param name="vicini">La soglia di adiacenza dei confinanti (U-158): la stessa della vLOA. Opzionale: senza,
+    /// il default delle opzioni.</param>
+    public EfDocumentImpactRepository(VipiDbContext db,
+        Microsoft.Extensions.Options.IOptions<Vipi.Application.NeighboursOptions>? vicini = null)
+    {
+        _db = db;
+        _sogliaConfineNm = (vicini?.Value ?? new Vipi.Application.NeighboursOptions()).AdjacencyThresholdNm;
+    }
 
     private static readonly StringComparer OIC = StringComparer.OrdinalIgnoreCase;
 
@@ -36,6 +45,51 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
     /// segnalarli lì vorrebbe dire riaprire la vIPI di Roma perché a Pisa è cambiato il GND.</summary>
     private static bool PesaSullAcc(string? position) =>
         (position ?? "").Trim().ToUpperInvariant() is "CTR" or "FSS" or "APP" or "DEP";
+
+    /// <inheritdoc cref="IDocumentImpactRepository.FindAgreementCounterpartDocumentsAsync"/>
+    public async Task<IReadOnlyList<int>> FindAgreementCounterpartDocumentsAsync(string composePosition,
+        CancellationToken ct = default)
+    {
+        var cs = (composePosition ?? "").Trim();
+        if (cs.Length == 0) return Array.Empty<int>();
+
+        var propri = await _db.Sectors.AsNoTracking().Where(s => s.Callsign == cs)
+            .Select(s => new { s.Id, Acc = s.Acc!.Code }).ToListAsync(ct);
+        if (propri.Count == 0) return Array.Empty<int>();
+        var idPropri = propri.Select(p => p.Id).ToList();
+
+        var accordi = await _db.CoordinationAgreements.AsNoTracking()
+            .Where(a => idPropri.Contains(a.SideASectorId) || idPropri.Contains(a.SideBSectorId))
+            .Select(a => new
+            {
+                A = a.SideASectorId, ACs = a.SideASector!.Callsign, AAcc = a.SideASector.Acc!.Code,
+                BCs = a.SideBSector!.Callsign, BAcc = a.SideBSector.Acc!.Code,
+            })
+            .ToListAsync(ct);
+        if (accordi.Count == 0) return Array.Empty<int>();
+
+        var ids = new HashSet<int>();
+        var mioAcc = propri[0].Acc;
+        foreach (var a in accordi)
+        {
+            var (altro, altroAcc) = idPropri.Contains(a.A) ? (a.BCs, a.BAcc) : (a.ACs, a.AAcc);
+            foreach (var id in await DocsForCallsignsAsync(new[] { altro }, ct)) ids.Add(id);
+            foreach (var id in await AccWideDocsAsync(altroAcc, ct)) ids.Add(id);
+            foreach (var id in await VloaDellaCoppiaAsync(mioAcc, altroAcc, ct)) ids.Add(id);
+        }
+        return ids.ToList();
+    }
+
+    /// <summary>La vLOA fra due ACC, in qualunque verso (Home/Neighbour stanno sulle parti del documento).</summary>
+    private async Task<IReadOnlyList<int>> VloaDellaCoppiaAsync(string uno, string altro, CancellationToken ct)
+    {
+        if (string.Equals(uno, altro, StringComparison.OrdinalIgnoreCase)) return Array.Empty<int>();
+        return await _db.Documents.AsNoTracking()
+            .Where(d => d.Type == DocumentType.Vloa
+                        && d.Parties.Any(p => p.Sector!.Acc!.Code == uno)
+                        && d.Parties.Any(p => p.Sector!.Acc!.Code == altro))
+            .Select(d => d.Id).ToListAsync(ct);
+    }
 
     public async Task<IReadOnlyList<AffectedDoc>> FindDocumentsForSectorAsync(
         string composePosition, string accCode, CancellationToken ct = default)
@@ -249,18 +303,36 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
     private async Task<IReadOnlyList<int>> VloaPerConfineAsync(string callsign, string accCode, CancellationToken ct)
     {
         var cands = await _db.NeighbourCandidates.AsNoTracking()
-            .Where(c => c.VloaDocumentId != null && c.AdjacentHomeCallsigns != null
+            .Where(c => c.VloaDocumentId != null
                         && (accCode.Length == 0 || c.HomeAccCode == accCode))
-            .Select(c => new { c.VloaDocumentId, c.AdjacentHomeCallsigns })
+            .Select(c => new { c.VloaDocumentId, c.AdjacentHomeCallsigns, c.ForeignAccCode })
             .ToListAsync(ct);
 
+        // 🔴 U-158 (revisione totale 3): l'elenco è fermo all'ultimo import dei confinanti, la vLOA invece deriva
+        // dalla geometria di oggi. Colpita se il settore è nell'elenco (un settore sparito non ha più il poligono)
+        // OPPURE se confina per poligono: la stessa regola della vLOA (VloaConfinanti).
+        List<VloaSectorPoly>? proprio = null;
         var ids = new List<int>();
         foreach (var c in cands)
         {
-            List<string>? list;
-            try { list = JsonSerializer.Deserialize<List<string>>(c.AdjacentHomeCallsigns!); }
-            catch (JsonException) { list = null; }
-            if (list is not null && list.Any(x => OIC.Equals(x, callsign))) ids.Add(c.VloaDocumentId!.Value);
+            List<string>? list = null;
+            if (c.AdjacentHomeCallsigns is not null)
+            {
+                try { list = JsonSerializer.Deserialize<List<string>>(c.AdjacentHomeCallsigns); }
+                catch (JsonException) { list = null; }
+            }
+            if (list is not null && list.Any(x => OIC.Equals(x, callsign))) { ids.Add(c.VloaDocumentId!.Value); continue; }
+
+            proprio ??= await _db.AccSectors.AsNoTracking()
+                .Where(s => s.ComposePosition == callsign && !s.IsHidden && s.RegionMapPolygon != null && s.RegionMapPolygon != ""
+                            && s.Position != null && (s.Position.ToUpper() == "CTR" || s.Position.ToUpper() == "FSS"))
+                .Select(s => new VloaSectorPoly(s.ComposePosition, s.RegionMapPolygon!))
+                .ToListAsync(ct);
+            if (proprio.Count == 0) continue;
+
+            var esteri = await EfVloaDerivationRepository.PoligoniDiConfine(_db, c.ForeignAccCode).ToListAsync(ct);
+            if (VloaConfinanti.Calcola(proprio, esteri, _sogliaConfineNm).Home.Count > 0)
+                ids.Add(c.VloaDocumentId!.Value);
         }
         return ids;
     }

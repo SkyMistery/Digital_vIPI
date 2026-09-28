@@ -14,6 +14,15 @@ public interface IDocumentImpactRepository
     /// catena di copertura, chi lo cita per Id e le vLOA che lo hanno fra i confinanti.</summary>
     Task<IReadOnlyList<AffectedDoc>> FindDocumentsForSectorAsync(string composePosition, string accCode, CancellationToken ct = default);
 
+    /// <summary>
+    /// I documenti della <b>controparte</b> degli accordi del settore (U-060, revisione totale 3): il documento
+    /// dell'altro capo (o del suo scalo), la vIPI ACC del suo centro e la vLOA della coppia. Sono loro a stampare
+    /// «trasferire a X», e quando X sparisce nessun altro passo del reverse-lookup li trova. Il default torna
+    /// vuoto: i finti dei test non lo devono conoscere.
+    /// </summary>
+    Task<IReadOnlyList<int>> FindAgreementCounterpartDocumentsAsync(string composePosition, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<int>>(Array.Empty<int>());
+
     /// <summary>Documenti la cui sezione «aree regolamentate» cita l'area indicata (per id IVAO).</summary>
     Task<IReadOnlyList<AffectedDoc>> FindDocumentsForSpecialAreaAsync(string ivaoId, CancellationToken ct = default);
 
