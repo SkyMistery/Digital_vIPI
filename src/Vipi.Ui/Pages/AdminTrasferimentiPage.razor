@@ -393,6 +393,7 @@
                                 @onclick="ApplyBulkCondition">@L["Xfer_BulkApplyCondition"]</button>
                         <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_BulkRemoveCondition"]" Disabled="@(_busy || !_canEdit)"
                                        Prompt="@(string.Format(L["Xfer_BulkRemoveConditionPrompt"].Value, _selected.Count))"
+                                       ConfirmLabel="@L["Xfer_BulkRemoveConditionYes"]"
                                        OnConfirm="TogliCondizioneBulk"><Trigger>@L["Xfer_BulkRemoveCondition"]</Trigger></InlineConfirm>
 
                         @* «Come risale»: non modifica niente, quindi NON chiede _canEdit — la si guarda anche

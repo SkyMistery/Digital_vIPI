@@ -1358,5 +1358,52 @@
     il Sito prepara il testo e lo passa). **U-100** `/vsop/health` va in Degraded **solo per gli errori che
     danno problemi al sito** (gravità Error), non per i Warning permanenti del report di consistenza (torri a
     5 NM, FSS).
+- ✅ **S36** lotto **L11, fetta J — editor documenti** (via del committente il 28-set; stesso ramo, un unico caricamento).
+  Smistate le voci ancora aperte (19 mai citate da S10 in poi, più le scelte rimandate): alla J U-062, U-063, U-071,
+  U-084, U-117, U-162, U-166, U-176, U-187, U-193, U-207, U-241, U-256. Restano per K/L/M: U-184 (Sorgenti, K);
+  U-208, U-209, U-210, U-213 (L); U-123, U-232, U-236 (M); U-116 (scelta da chiedere); U-021 (da misurare in
+  produzione); il resto di U-115.
+  - **Scelte del committente** (28-set): **U-176** «Applica condizione» spento a campi vuoti, e svuotare è un gesto
+    suo («Togli condizione») con la conferma del numero di righe e l'annulla. **U-241** «Pubblica ora» identica alla
+    release in vigore non crea niente e lo dice; e la pubblicazione smette di caricare i payload vecchi.
+  - **Gruppo 1** (**codice comune** `Vipi.Application`, `Vipi.Infrastructure`): **U-062** (la riconciliazione d'avvio
+    guardava le chiavi di catalogo solo sulle radici: una radice libera «Configurazioni pista» diventava a ogni
+    consegna una seconda «Regole piste» e perdeva i blocchi) → guarda tutta la versione. **U-071** (il viewer
+    riconosceva per titolo a ogni profondità) → solo le radici, e solo se la chiave non c'è già nell'albero.
+  - **Gruppo 2** (Trasferimenti; `Vipi.Domain` solo una costante): **U-187** tetto `AgreementClauseLimits.Pista` (80)
+    sulla condizione di pista. **U-176** come da scelta; l'annulla rimette la condizione di ogni riga, raggruppata
+    per valore, con la stessa porta in blocco. **U-193** `Guarded` torna `bool`: le quattro eliminazioni armano
+    l'annulla su quello (con la pagina occupata un'eliminazione mai fatta lo armava), «0 righe» non lo arma, un
+    ripristino fallito lo lascia.
+  - **Gruppo 3**: **U-162** le celle della tabella generica si modificano dentro il tornello sul blocco corrente e col
+    suo token (prima: dal blocco visto all'evento, e la seconda cella in fila era «modificata nel frattempo»).
+    **U-063** il selettore delle aree regolamentate, finché un salvataggio è in volo, parte da ciò che ha già
+    mandato; nel vSOP militare tabelle fisse e alternati passano una modifica, non la tabella intera. **U-166** rete
+    attorno alla lettura dei riferimenti citati nell'editor.
+  - **Gruppo 4**: **U-117** l'intro di pagina rilegge alla presa del lock (`Acquired`, come U-011). **U-256** negli
+    editor documentali «Modifica» col lock di un altro dice chi lo tiene (`Ed_LockedByOtherNow`).
+  - **Gruppo 5**: **U-084** nuovo componente `CampoTesto` (il testo lo tiene il browser; il server lo scrive solo
+    quando il valore cambia da parte sua, e ricrea l'elemento solo se il diff non lo vedrebbe) in 27 campi, compreso
+    `TypeaheadPicker`; i due numeri dei ripieghi in Struttura passano a `@onchange`; guardia sul sorgente contro
+    `value="@…" @oninput`. ⚠️ Chi usa `CampoTesto` assegna il suo campo prima di ogni `await` e non lo trasforma
+    (Diagnostica faceva `Trim` nel gestore: spostato dove si cerca). **U-207** la maniglia delle immagini misura in
+    unità di layout (divide per lo zoom di `<html>`, come `rootZoom`).
+  - **Gruppo 6** (**codice comune**: `IReleaseService.PublishNowAsync` ora `Task<bool>`): **U-241** come da scelta. Si
+    salta solo se il payload è identico byte per byte a quello in vigore E non c'è una programmata futura (U-009:
+    «Pubblica ora» serve a scavalcarla); la bozza si promuove comunque. `SaveReleaseAsync` legge quattro colonne e
+    scrive gli stati cambiati sulla sola colonna (⚠️ non `ExecuteUpdate`: lasciava stantie le istanze già seguite, e
+    l'annullo dopo le riscriveva — due test rossi l'hanno detto).
+  - **Test**: prove rosse sul codice di prima (dettaglio nei sei commit). Suite intere verdi net8 e net10:
+    Application **3082**, Infrastructure **1819**, Ui **1840**, Hosting **79**, E2E **454**. Nessuna migrazione,
+    `deploy/` no, resx it/en (7 chiavi), wwwroot sì (`vipi-media.js`).
+  - **Prova a schermo** sulla copia del DB (cancellata a fine prova), dal DOM perché il pannello non si disegnava:
+    Trasferimenti LIRR, vista elenco, due righe → «Apply condition» spento col motivo; condizione applicata e
+    annullata; «Remove condition» con la conferma «2 clausole», poi annulla → rimesse (l'etichetta del tasto di
+    conferma diceva «Yes, delete»: ora «Yes, remove»). Ricerca della Diagnostica: `AGNI7G` e sei Backspace a 60 ms →
+    il campo resta `AGN` dopo le risposte del server; il ✕ lo svuota. Selettore postazione della vista live: stessa
+    sonda, e la scelta da elenco funziona. vSOP MIL LIBG a zoom 120%: freccia sulla maniglia 60% → 65%, salvato 65.
+    «Publish now» due volte: la seconda dice «Nothing new…» e nel DB c'è una release sola. Lock scritto nel DB a
+    un collega, «✎ Edit» → resta fuori e dice «Being edited by Collega Prova…». ⚠️ Non provati a schermo: U-117
+    (serve una seconda identità), U-162 e U-063 (la corsa sta nei test bUnit), U-062/U-071 (dati latenti).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
