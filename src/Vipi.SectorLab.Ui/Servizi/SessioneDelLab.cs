@@ -1894,6 +1894,80 @@ public sealed class SessioneDelLab
     }
 
     public bool TogliRecord(string fileRelativo, int record)
+    {
+        // Slice 8e (F2): togliere un punto .vfi PROPONE di togliere il suo fix nascosto; non lo toglie da solo.
+        var gemello = Sessione is null ? null : GemelliVfr.Di(Sessione, fileRelativo, record);
+        string etichetta = EtichettaDi(fileRelativo, record);
+        bool tolto = TogliRecordEBasta(fileRelativo, record);
+        GemelloDaTogliere = tolto && fileRelativo.EndsWith(".vfi", StringComparison.OrdinalIgnoreCase) && gemello is { Gemelli: [var unico] }
+            ? new GemelloDaTogliere(etichetta, gemello.Codice, unico.File)
+            : null;
+        if (GemelloDaTogliere is not null)
+            Avvisa();
+        return tolto;
+    }
+
+    /// <summary>
+    /// Dopo aver tolto un punto .vfi che aveva il gemello (slice 8e): la domanda «togli anche il fix nascosto?». Null quando
+    /// non c'è niente da chiedere; la risposta (o un altro gesto) la toglie.
+    /// </summary>
+    public GemelloDaTogliere? GemelloDaTogliere { get; private set; }
+
+    /// <summary>La risposta alla domanda: sì toglie il fix nascosto (un gesto suo nella storia), no lo lascia.</summary>
+    public bool RispondiSulGemello(bool togli)
+    {
+        var domanda = GemelloDaTogliere;
+        GemelloDaTogliere = null;
+        if (!togli || domanda is null || Sessione?.File.GetValueOrDefault(domanda.File) is not IFileConRecord conRecord)
+        {
+            Avvisa();
+            return false;
+        }
+
+        // Il record si cerca per nome adesso: fra la domanda e la risposta il file può essere cambiato.
+        int indice = conRecord.RecordDelModello.ToList().FindIndex(r => r is Fix f && f.Name.Trim() == domanda.Codice);
+        return indice >= 0 && TogliRecordEBasta(domanda.File, indice);
+    }
+
+    /// <summary>Il gemello di un punto .vfi o di un fix nascosto (slice 8e, F2), o null se il record non ne chiede.</summary>
+    public GemelloVfr? GemelloDi(string fileRelativo, int record)
+        => Sessione is null ? null : GemelliVfr.Di(Sessione, fileRelativo, record);
+
+    /// <summary>
+    /// Crea il fix nascosto di un punto .vfi che non l'ha (slice 8e, F2): nome = il codice, al suo posto in ordine
+    /// alfabetico nel file dei nascosti (come il modello: tipo 3, nascosto), nella posizione del punto. Un gesto solo.
+    /// </summary>
+    public bool CreaIlGemello(string fileRelativo, int record)
+        => NellaStoria($"gemello di {EtichettaDi(fileRelativo, record)} creato", () => CreaIlGemelloAdesso(fileRelativo, record));
+
+    private bool CreaIlGemelloAdesso(string fileRelativo, int record)
+    {
+        if (Sessione is null || GemelliVfr.Di(Sessione, fileRelativo, record) is not { Gemelli.Count: 0 } gemello
+            || ((IFileConRecord)Sessione.File[fileRelativo]).RecordDelModello[record] is not VfrPoint punto)
+            return false;
+        if (GemelliVfr.FileDeiNascosti(Sessione) is not { } nascosti || Sessione.File[nascosti] is not IFileConRecord conRecord
+            || conRecord.RecordDelModello.Count == 0)
+        {
+            Rifiuto = "Non c'è un NAVAIDS/VFR_NASCOSTI.fix con dei fix da prendere come modello.";
+            Avvisa();
+            return false;
+        }
+
+        var scelta = Scelta;
+        if (!GestoDiStruttura(nascosti, () => Modifiche.AggiungiRecord(Sessione.File[nascosti], 0, gemello.Codice)))
+            return false;
+        int nuovo = Modifiche.UltimoAggiunto ?? -1;
+        Scelta = scelta;
+        var esito = Modifiche.Cambia(Sessione.File[nascosti], nuovo, GemelliVfr.Campo, CoordinateConverter.ToDottedDms(punto.Position),
+            gemello.Codice);
+        Registro.Scrivi("gemello", $"{nascosti}#{nuovo} {gemello.Codice}: {Descrivi(esito)}");
+        RifaiLaGeometria(nascosti);
+        RicontrollaLeModifiche();
+        Avvisa();
+        return esito is ModificaDiCampo;
+    }
+
+    private bool TogliRecordEBasta(string fileRelativo, int record)
         => NellaStoria($"{EtichettaDi(fileRelativo, record)} tolto", () => GestoDiStruttura(fileRelativo,
             () => Sessione!.File[fileRelativo] is not { } file ? new ModificaRifiutata("Questo file non è aperto.")
                 // Slice 7 (L2): un punto che qualcuno cita non si toglie — le sue citazioni resterebbero senza punto.
@@ -2153,6 +2227,9 @@ public sealed class SessioneDelLab
     /// <summary>Fa un gesto e, se è andato, lo mette nella storia: i gesti annullati dopo di lui non si ripetono più.</summary>
     private bool NellaStoria(string cosa, Func<bool> gesto)
     {
+        // La domanda sul gemello (8e) vale per il gesto appena fatto: il prossimo la toglie.
+        if (!_rigioco)
+            GemelloDaTogliere = null;
         bool fatto = gesto();
         if (!fatto || _rigioco)
             return fatto;
@@ -2187,6 +2264,7 @@ public sealed class SessioneDelLab
     /// <summary>Tutto com'era all'apertura, poi i primi <paramref name="quanti"/> gesti della storia, di nuovo.</summary>
     private void Rigioca(int quanti)
     {
+        GemelloDaTogliere = null;
         var sessione = Sessione!;
         var scelta = Scelta;
         _daRifareDopoIlRigioco.UnionWith(Modifiche.FileToccati);

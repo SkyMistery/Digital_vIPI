@@ -1,0 +1,23 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Slice 8e (F2): tolto un punto .vfi che aveva il fix nascosto, il Lab PROPONE di togliere anche quello — non lo toglie
+    da solo: un fix nascosto può servire a una rotta anche senza il punto.
+*@
+@if (Lab.GemelloDaTogliere is { } domanda)
+{
+    <div class="lab-rinomina" data-domanda-gemello="@domanda.Codice">
+        <p class="lab-nota">Hai tolto @domanda.Punto: togli anche il suo gemello @domanda.Codice da VFR_NASCOSTI.fix?</p>
+        <button class="lab-tasto" data-togli-gemello="si" @onclick="() => Lab.RispondiSulGemello(true)">Sì, toglilo</button>
+        <button class="lab-tasto lab-tasto-tenue" data-togli-gemello="no" @onclick="() => Lab.RispondiSulGemello(false)">No, lascialo</button>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

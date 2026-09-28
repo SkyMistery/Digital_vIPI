@@ -1055,3 +1055,31 @@ diverse» · **8c** la modifica propagata alle copie uguali, «allinea anche que
   `lirf.geo −2 +2` (i due segmenti del vertice); `rf_ad_gnd.pol` #6 → «+ Bordo in lirf.geo (TAXIWAY)» → `lirf.geo −0
   +113` (`//Twy_D_1` e 111 segmenti), la scelta sulla linea nuova, «La stessa forma» uguale; «Annulla tutto» pulito.
   Test: Lab 688 → **698**, motore 676.
+- **8e (29 settembre)** — il gemello `.vfi` ↔ `VFR_NASCOSTI.fix` (F2). Un punto di un `.vfi` col codice nel 2° campo
+  (`COLOMBO;RFS3;…`) e il fix nascosto con quel nome (`RFS3;…;3;`) sono gemelli (`Copie/GemelliVfr.cs`): una rotta VFR
+  riconosce un punto solo se sta in un `.fix`. Il gemello entra nell'indice delle copie gemelle di F3-bis
+  (`GemelliDellaSessione`), che da qui sa anche di gemelli fra tipi diversi; fra i due passa **solo la posizione** (il
+  nome del punto non è il nome del fix: test rosso senza il filtro sul campo).
+  - **Spostare** il punto sposta il fix e viceversa: una voce su due file («come in lirf.vfi»); se erano già diversi, il
+    gemello resta «non cambiato» con «allinea», come le copie di F3-bis.
+  - **Aggiungere**: nella scheda del punto senza gemello, «+ Crea il gemello RFS4 in VFR_NASCOSTI.fix» — nome = il
+    codice, al suo posto in ordine alfabetico, copiato da un fix del file (tipo 3), nella posizione del punto; un gesto
+    solo, la scheda resta sul punto. Scelta dell'agente: il gemello nasce col tasto e non da solo con «+ Nuovo record»,
+    perché un punto nuovo nasce copia del vicino, **col suo codice**, e il codice giusto lo darà la slice 16 (F3, codice
+    proposto): lì il gemello potrà nascere col punto.
+  - **Togliere** il punto: la domanda «Hai tolto OSTIA: togli anche il suo gemello RFS2 da VFR_NASCOSTI.fix?» (sì = un
+    gesto suo, no = resta); il gesto dopo, o annulla, la toglie.
+  - Nella scheda, sezione **«Gemello»**: il gemello (clic = ci va), «stessa posizione» o «posizione diversa»; «manca»; un
+    codice ripetuto (non si sa quale va con quale: niente propagazione); nel fix senza punto, «nessun punto ha il codice».
+  Un codice è 2-5 lettere e 1-2 cifre: il 2° campo che non lo è (`2500`, `BV`) non chiede un gemello. La posizione si
+  confronta al decimo di metro, non come testo.
+  Misura sul fork (`scratchpad/misura8e`): **586 punti**, 76 senza codice; **495 gemelli uguali**, 5 con posizione
+  diversa (`BNNW1`, `BNSW1`, `BNW1`, `RPNE1`, `RPSE1`), **6 senza gemello** (`CZE1`, `MCE1`, `PYSW2`, `RFS4`, `RFE2`,
+  `RPSW1`), 4 col codice ripetuto nel `.fix` (`MJNW1`, `PKS1`), **8 fix orfani**. La carta diceva 496/9/81/7: le 81
+  «senza» erano 76 secondi campi che non sono codici e 5-6 codici veri; i refusi di scrittura di `PXSW1` e `RNNE1` si
+  leggono nella stessa posizione (confronto per posizione) e contano uguali. Spostamento vero di ognuno dei 495, poi
+  annullato: gemello uguale dopo, due file toccati, **0 guasti**, 29 s. Prova a schermo sul banco: COLOMBO spostato →
+  «1 modifica in 2 file», `VFR_NASCOSTI.fix −1 +1` (e il refuso `E01221856000` di COLOMBO/RFS3, R-10, si corregge in tutti
+  e due); CAPO DUE RAMI → «+ Crea il gemello RFS4» → `RFS4;N0414634000;E0121642000;3;` fra RFS3 e RFW1, compatto come il
+  file; OSTIA tolto → la domanda → «Sì» → `VFR_NASCOSTI.fix −1 +0`; «Annulla tutto» pulito. Il motore non è toccato.
+  Test: Lab 698 → **709**.

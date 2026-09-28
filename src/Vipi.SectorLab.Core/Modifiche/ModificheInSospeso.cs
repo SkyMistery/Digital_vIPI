@@ -321,7 +321,7 @@ public sealed class ModificheInSospeso
             return esito;
 
         var nonToccate = new List<CopiaNonToccata>();
-        foreach (var copia in gemelli.AltreCopie(file.Relativo, indice))
+        foreach (var copia in gemelli.AltreCopie(file.Relativo, indice, campo))
         {
             if (cercaIlFile(copia.File) is not { } fileDellaCopia || ValoreScritto(copia.Record, campo) is not { } suo)
                 continue;

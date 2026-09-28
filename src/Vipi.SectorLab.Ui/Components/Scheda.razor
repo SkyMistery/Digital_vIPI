@@ -6,6 +6,8 @@
     disco, coi numeri di riga VERI — quelli che si citano a un AOD e che usa il validatore. In slice 6 i campi si
     modificano; qui si guardano.
 *@
+@* Slice 8e: la domanda sul gemello di un punto .vfi appena tolto (il record non ha più una scheda sua). *@
+<DomandaSulGemello />
 @if (Lab.Scheda() is { } scheda)
 {
     <div class="lab-ispettore" data-ispettore="@($"{scheda.File}#{scheda.Indice}")">
@@ -76,6 +78,9 @@
 
         @* Slice 8: la stessa forma in altri record (D5, I2): il confine del settore, l'ATZ del MAPS, il bordo e l'erba. *@
         <StessaFormaNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
+        @* Slice 8e (F2): il gemello del punto .vfi nel file dei fix nascosti, e viceversa. *@
+        <GemelloNellaScheda File="@scheda.File" Record="scheda.Indice" />
 
         @* Slice 3d: i metadati di §M del record, le chiavi del catalogo del suo tipo di file. Si scrivono nel tag
            //@"NOME" sopra il record; un valore vuoto toglie la chiave. *@

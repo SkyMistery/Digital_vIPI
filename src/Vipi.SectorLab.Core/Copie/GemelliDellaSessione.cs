@@ -37,7 +37,8 @@ public sealed class GemelliDellaSessione
         var file = sessione.File.Values
             .Where(f => f is IFileConRecord && CopieGemelle.Famiglia(f.Relativo) is not null)
             .Select(f => (f.Relativo, ((IFileConRecord)f).RecordDelModello));
-        return new GemelliDellaSessione(CopieGemelle.Trova(file));
+        // Lotto «Subito» slice 8e (F2): anche i gemelli fra tipi diversi, il punto .vfi e il suo fix nascosto.
+        return new GemelliDellaSessione([.. CopieGemelle.Trova(file), .. GemelliVfr.Trova(sessione)]);
     }
 
     /// <summary>Il gruppo di un record, o null se il record non ha copie in altri file.</summary>
@@ -46,10 +47,13 @@ public sealed class GemelliDellaSessione
 
     /// <summary>
     /// Le altre copie di un record, dove una modifica si può portare. Vuoto se non ne ha, e vuoto anche quando la chiave
-    /// si ripete in un file e le copie non si abbinano (D10): lì non si sa quale copia va con quale.
+    /// si ripete in un file e le copie non si abbinano (D10): lì non si sa quale copia va con quale. Col
+    /// <paramref name="campo"/>: vuoto anche se quel campo fra quei gemelli non passa (i gemelli VFR, 8e, dividono solo la
+    /// posizione).
     /// </summary>
-    public IReadOnlyList<CopiaGemella> AltreCopie(string relativo, int indice)
+    public IReadOnlyList<CopiaGemella> AltreCopie(string relativo, int indice, string? campo = null)
         => GruppoDi(relativo, indice) is { PerOrdine: true } gruppo
+           && (campo is null || gruppo.Famiglia != GemelliVfr.Famiglia || campo == GemelliVfr.Campo)
             ? gruppo.Copie.Where(c => !Stessa(c, relativo, indice)).ToList()
             : [];
 

@@ -1,0 +1,84 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Il gemello (lotto «Subito» slice 8e, «file per file» F2): il punto di un .vfi e il suo fix nascosto in
+    NAVAIDS/VFR_NASCOSTI.fix, legati dal codice. Spostare l'uno sposta l'altro (passa dalle copie gemelle di F3-bis, solo
+    la posizione); se il gemello manca, un tasto lo crea; se il codice si ripete, non si sa quale va con quale e lo dice.
+*@
+@if (Lab.GemelloDi(File, Record) is { } gemello)
+{
+    <Sezione Chiave="scheda-gemello" data-gemello="@gemello.Codice">
+    <Titolo>Gemello <span class="lab-nota">@Stato(gemello)</span></Titolo>
+    <ChildContent>
+    @if (gemello.Gemelli.Count == 0)
+    {
+        @if (File.EndsWith(".vfi", StringComparison.OrdinalIgnoreCase))
+        {
+            <p class="lab-nota">Nessun fix @gemello.Codice in VFR_NASCOSTI.fix: senza, una rotta VFR non riconosce il punto.</p>
+            <button class="lab-tasto" data-crea-gemello="@gemello.Codice" @onclick="() => Lab.CreaIlGemello(File, Record)">
+                + Crea il gemello @gemello.Codice in VFR_NASCOSTI.fix
+            </button>
+        }
+        else
+        {
+            <p class="lab-avviso-breve" data-gemello-orfano>Nessun punto di un .vfi ha il codice @gemello.Codice.</p>
+        }
+    }
+    else
+    {
+        @if (gemello.Gemelli.Count > 1)
+        {
+            <p class="lab-avviso-breve" data-gemelli-doppi>Il codice @gemello.Codice è in @gemello.Gemelli.Count record: non si sa quale va con questo, e spostarlo non li sposta.</p>
+        }
+        <div class="lab-stessa-forma">
+        <ul>
+            @foreach (var copia in gemello.Gemelli)
+            {
+                var questa = copia;
+                <li>
+                    <button type="button" class="lab-citazione" data-copia-gemella="@($"{questa.File}#{questa.Indice}")"
+                            @onclick="() => Lab.Scegli(questa.File, questa.Indice)">
+                        @NomeDelFile(questa.File) <span class="lab-nota">@Nome(questa.Record)</span>
+                        @if (gemello.Gemelli.Count == 1)
+                        {
+                            @(" · ")<span class="@(gemello.Uguale ? "lab-nota" : "lab-avviso-breve")">@(gemello.Uguale ? "stessa posizione" : "posizione diversa")</span>
+                        }
+                    </button>
+                </li>
+            }
+        </ul>
+        </div>
+    }
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    // Solo parametri primitivi: si ridisegna da sé ai cambi del Lab (la lezione della 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private static string Stato(GemelloVfr gemello) => gemello.Gemelli.Count switch
+    {
+        0 => "manca",
+        1 => gemello.Uguale ? gemello.Codice : $"{gemello.Codice}, posizione diversa",
+        _ => $"{gemello.Codice} ripetuto",
+    };
+
+    private static string Nome(object record) => record switch
+    {
+        Vipi.Sectorfile.Models.VfrPoint p => p.Name,
+        Vipi.Sectorfile.Models.Fix f => f.Name,
+        _ => "",
+    };
+
+    private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
+}
