@@ -425,6 +425,88 @@ foreach (var p in problemiDelSector.Where(p => p.Regola is Vipi.Sectorfile.Valid
     Console.WriteLine($"  {p.Regola,-26} {p.File}{(p.Riga > 0 ? ":" + p.Riga : "")}  {p.Dettaglio}");
 }
 
+// I COLORI (lotto «Subito» slice 4): gli schemi di Aurora (ColorSchemes\ accanto a SectorFiles, e i .clr dentro)
+// e i colors.def si leggono senza avvisi; ogni colore scritto nell'albero (teste di .tfl/.pol, 5° campo dei .geo e
+// delle aree P/R/D) è un nome di colors.def, un nome che lo schema colora da sé (manuale) o un valore.
+var avvisiDeiColori = new Avvisi();   // solo schemi e .def: le righe opache dei .geo le conta già la misura 2
+var schemi = new List<(string File, SchemaDeiColori Schema)>();
+string cartellaDegliSchemi = Path.Combine(cartellaSectorFiles, "..", "ColorSchemes");
+foreach (string clr in (Directory.Exists(cartellaDegliSchemi) ? Directory.GetFiles(cartellaDegliSchemi, "*.clr") : [])
+             .Concat(Directory.GetFiles(cartellaSectorFiles, "*.clr", SearchOption.AllDirectories)).Order(StringComparer.Ordinal))
+{
+    schemi.Add((Path.GetRelativePath(Path.Combine(cartellaSectorFiles, ".."), clr).Replace('\\', '/'), new ClrParser(avvisiDeiColori).Parse(clr)));
+}
+
+var definiti = new ColorPalette();
+foreach (string def in Directory.GetFiles(radice, "*.def", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+{
+    foreach (var voce in new DefParser(avvisiDeiColori).Parse(def).Entries.Values)
+    {
+        definiti.Add(voce);
+    }
+}
+
+var usiDeiColori = new SortedDictionary<string, (int Volte, string Come)>(StringComparer.OrdinalIgnoreCase);
+void ContaIlColore(string? scritto, string dove)
+{
+    string nome = (scritto ?? string.Empty).Trim();
+    if (nome.Length == 0)
+    {
+        return;
+    }
+
+    string come = definiti.TryResolve(nome, out _) ? "colors.def"
+        : NomiDeiColoriDelGeo.Chiave(nome) is { } chiave && dove == "geo" ? "schema " + chiave
+        : ColoreDelSector.TryLeggi(nome, out _, out var forma) ? "valore " + forma
+        : "SCONOSCIUTO";
+    usiDeiColori.TryGetValue(dove + " " + nome, out var uso);
+    usiDeiColori[dove + " " + nome] = (uso.Volte + 1, come);
+}
+
+foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+{
+    switch (Path.GetExtension(percorso).ToLowerInvariant())
+    {
+        case ".pol":
+            foreach (var p in new PolParser(new Avvisi()).Parse(percorso, new ColorPalette()).Records)
+            {
+                ContaIlColore(p.FillColor, "pol");
+                ContaIlColore(p.LineColor, "pol");
+            }
+
+            break;
+        case ".tfl":
+            foreach (var s in new TflParser(new Avvisi()).Parse(percorso, new ColorPalette()).Records)
+            {
+                ContaIlColore(s.FillColor, "tfl");
+                ContaIlColore(s.StrokeColor, "tfl");
+            }
+
+            break;
+        case ".geo" or ".restrict" or ".prohibit" or ".danger":
+            foreach (var l in new GeoParser(new Avvisi()).Parse(percorso, new ColorPalette()).Records)
+            {
+                ContaIlColore(l.Color, "geo");
+            }
+
+            break;
+    }
+}
+
+Console.WriteLine($"\nCOLORI: {schemi.Count} schemi, {definiti.Entries.Count} nomi definiti, {avvisiDeiColori.Count} avvisi di lettura; " +
+    $"{usiDeiColori.Values.Sum(u => u.Volte)} colori scritti nell'albero, {usiDeiColori.Values.Where(u => u.Come == "SCONOSCIUTO").Sum(u => u.Volte)} sconosciuti");
+foreach (var (file, schema) in schemi)
+{
+    var mancanti = NomiDeiColoriDelGeo.ChiaveDelloSchema.Values.Distinct().Where(k => !schema.TryColore(k, out _)).ToList();
+    Console.WriteLine($"  {file,-40} {schema.Colori.Count,4} colori ({schema.Colori.Values.Count(c => c is null)} clNone), " +
+        $"{schema.Altri.Count,3} impostazioni; chiavi del .geo mancanti: {(mancanti.Count == 0 ? "nessuna" : string.Join(", ", mancanti))}");
+}
+
+foreach (var gruppo in usiDeiColori.GroupBy(u => u.Value.Come).OrderBy(g => g.Key, StringComparer.Ordinal))
+{
+    Console.WriteLine($"  {gruppo.Sum(u => u.Value.Volte),7}  {gruppo.Key,-28} {string.Join(", ", gruppo.OrderByDescending(u => u.Value.Volte).Take(8).Select(u => $"{u.Key} {u.Value.Volte}"))}");
+}
+
 // 7. CONCORDANZA col lettore di vIPI (F2 slice 9, carta §2.4): AuroraSectorfileParser, quello dell'import di
 //    produzione, contro il motore. I punti dei file che l'.isc cita (come li sceglie AuroraNavaidSource), le SID e le
 //    STAR degli <icao>.sid/.str della cartella (come le scarica AuroraProcedureProvider).

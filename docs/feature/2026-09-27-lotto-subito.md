@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) e la slice 3 (3a-3e); prossima la **slice 4** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la 4a; in corso la **slice 4** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -430,3 +430,37 @@ record, 24 tipi) e **la scheda scrive la stessa riga del motore**: ogni campo ch
 ora è corretto e misurato su tutto il fork. Restano in sola lettura, col perché scritto nella scheda: quota e carattere
 delle MVA di scalo (slice 15), transizione e RNAV degli `.str` (slice 9), i metadati dei record senza nome (slice 6).
 Da provare a mano (eseguibile ripubblicato): prove 62-70 in `SectorLab-prova\PROVE.md`.
+
+**Slice 4 — colori.** Divisa in passi, un commit ciascuno (scelta dell'agente): **4a** i colori nel motore (le forme
+del manuale, `colors.def`, gli schemi `.clr` di Aurora) · **4b** la mappa coi colori dello schema scelto · **4c** il
+selettore nella scheda.
+
+- **4a (28 settembre)** — i colori nel motore (codice comune, `Vipi.Sectorfile`). Dal manuale IVAO del sector
+  («Colour Definitions», letto il 28 settembre): un colore si scrive `#RRGGBB`, `#AARRGGBB` (da Aurora 1.4.1,
+  l'opacità si vede solo con *Smooth Drawing*), `R,G,B` o `%R:G:B`, e **ogni forma vale anche in `[DEFINE]`**.
+  - `Shared/ColoreDelSector.cs` (nuovo): legge le quattro forme e dice quale (`FormaDelColore`); scrive `#RRGGBB`
+    maiuscolo, `#AARRGGBB` solo se il colore non è opaco. `DefParser` leggeva solo `#RRGGBB`: ora tutte e quattro
+    (rosso: col `DefParser` di prima 4 test su 10 cadono).
+  - `IO/Parsers/ClrParser.cs` + `Shared/SchemaDeiColori.cs` (nuovi): gli schemi di Aurora, `CHIAVE=valore`. Il manuale
+    **non descrive** la notazione, quindi la regola è misurata sugli schemi del fork: `$00BBGGRR` (byte alto a zero)
+    è il `TColor` di Delphi, rosso nel byte basso; `$AARRGGBB` (byte alto diverso da zero) è opacità e poi RGB — le
+    coppie dello stesso schema danno lo stesso colore (`ITALY_GND`: `DANGER=$00963CAE` = `SPEC_DANGER=$FFAE3C96`;
+    `LIRR_RDR_V1.0`: `ARTCC=$00F06E90` = `COAST=$FF906EF0`, `PROHIBITED=$00006DFF` = `SPEC_PROHIBITED=$FFFF6D00`). I
+    nomi di Delphi (`clWhite`, `clLime`…) dalla VCL, `clNone` = non si disegna; il resto (`ACC_SOLID=0`,
+    `VORSYMBOL=«`) sono impostazioni, tenute come testo.
+  - `Shared/NomiDeiColoriDelGeo.cs` (nuovo): i nomi che un `.geo` usa senza definirli (manuale: APRON, BUILDING,
+    COAST, DANGER, PIER, PROHIBIT, RESTRICT, RUNWAY, STOPBAR, TAXI_CENTER, TAXIWAY, più `APPRON`, `STOPLINE` «ancora
+    accettati» e `PARKING` dell'esempio) → la chiave dello schema (`TAXI_CENTER` → `TAXIWAYCENTER`, `STOPLINE` →
+    `STOPBAR`, `PROHIBIT` → `PROHIBITED`…).
+  - Misura nuova nella prova sull'albero, **COLORI**: 6 schemi (4 in `ColorSchemes\`, `Default.clr`, `PAR2090.clr`)
+    letti con **0 avvisi**, ognuno dei 4 schemi radar ha tutte le chiavi del `.geo`; 16 nomi in `colors.def`;
+    **107 806 colori scritti nell'albero**, di cui 50 666 nomi di `colors.def`, 57 132 nomi che colora lo schema
+    (`TAXI_CENTER` 23 771, `COAST` 13 560, `PROHIBIT` 10 143, `PIER` 6 207…), 6 valori `#RRGGBB` nei `.tfl`, e **2
+    sconosciuti**: `COAST` come riempimento e bordo dell'orfano `limw.pol` (già noto dalla 3a). Il resto della prova
+    invariato: 701/701, opache 93, tutto toccato 0, una modifica per record 115 568/115 568, tag 118 469, punti
+    38 330, blocchi 107 204, validatore 120/481, il solo guasto noto di `limf.sid`.
+  - 🟡 **Da chiedere al committente**: `TAXIWAY`, `BUILDING`, `RUNWAY`, `APRON`, `STOPBAR` sono **sia** in
+    `colors.def` **sia** nomi che lo schema colora da sé; nei `.geo` sono 46 800 segmenti. Quale colore usa Aurora
+    per le linee di un `.geo` (per `TAXIWAY`: il grigio `#767587` di `colors.def` o il giallo dello schema)? Serve
+    alla 4b.
+  Test: motore 621 → **667** (net8 e net10), Lab **438**.

@@ -55,6 +55,20 @@ public sealed class DefParserTests
         Assert.Equal(1, _warnings.Count);
     }
 
+    // Lotto «Subito» slice 4: ogni forma del manuale IVAO vale anche in [DEFINE] (gli esempi sono del manuale).
+    [Theory]
+    [InlineData("GRASS;%48:98:0;", 0xFF, 48, 98, 0)]
+    [InlineData("ASPHALT;#FF4455f0;", 0xFF, 0x44, 0x55, 0xF0)]
+    [InlineData("VETRO;#80406230;", 0x80, 0x40, 0x62, 0x30)]
+    [InlineData("LABEL;24,183,108;", 0xFF, 24, 183, 108)]
+    public void Parse_EveryManualColourForm(string line, int a, int r, int g, int b)
+    {
+        var palette = Parser.Parse(ParserTestHelpers.Read(line + "\r\n"), "test.def");
+
+        Assert.Equal(0, _warnings.Count);
+        Assert.Equal(Color.FromArgb(a, r, g, b).ToArgb(), palette.Resolve(line.Split(';')[0]).Value.ToArgb());
+    }
+
     // §24.4 — parse the real colours.def: every colour line is covered (no warnings).
     [Fact]
     public void Parse_RealDefFile_AllLinesCovered()

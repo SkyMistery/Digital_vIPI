@@ -1,12 +1,13 @@
 using System.Drawing;
-using System.Globalization;
 using Vipi.Sectorfile.Shared;
 
 namespace Vipi.Sectorfile.IO;
 
 /// <summary>
 /// Parses a .def colour-definition file into a <see cref="ColorPalette"/>. Each non-comment line is
-///   NAME ; #RRGGBB ;
+///   NAME ; colour ;
+/// where the colour is any form of the IVAO sector manual (<see cref="ColoreDelSector"/>: <c>#RRGGBB</c>,
+/// <c>#AARRGGBB</c>, <c>R,G,B</c>, <c>%R:G:B</c> — slice 4 of the «Subito» batch; before it only <c>#RRGGBB</c>).
 /// Whitespace around the separator is ignored. Unlike the <see cref="IFileParser{T}"/> family, .def
 /// is never edited by this application, so it is not round-tripped: <see cref="DefParser"/> builds a
 /// palette directly rather than producing chunks (SRS FR-LOAD-05 / TEST_MATRIX §24).
@@ -45,7 +46,7 @@ public sealed class DefParser
                 continue;
             }
 
-            if (!TryParseHex(parts[1].Trim(), out Color color))
+            if (!ColoreDelSector.TryLeggi(parts[1], out Color color))
             {
                 _warnings.Add(WarningSeverity.Warning, WarningCategory.Parser, source,
                     "Unparseable colour value", i + 1, read.Lines[i]);
@@ -56,24 +57,5 @@ public sealed class DefParser
         }
 
         return palette;
-    }
-
-    private static bool TryParseHex(string token, out Color color)
-    {
-        color = Color.Black;
-
-        if (token.StartsWith('#'))
-        {
-            token = token[1..];
-        }
-
-        if (token.Length != 6
-            || !int.TryParse(token, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int rgb))
-        {
-            return false;
-        }
-
-        color = Color.FromArgb((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
-        return true;
     }
 }
