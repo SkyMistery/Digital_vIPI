@@ -96,6 +96,8 @@ public static class DependencyInjection
                         // altrove, rileggere quel file. (La copia di sicurezza ne apre una sua, ma su una
                         // connessione MySqlConnector propria, fuori da EF e dal retry: vedi MySqlDumpSource.)
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null))
+                    // DDL rieseguibili: una migrazione interrotta a metà si finisce all'avvio dopo (U-096).
+                    .ReplaceService<Microsoft.EntityFrameworkCore.Migrations.IMigrationsSqlGenerator, Persistence.MigrazioniRieseguibili>()
                     .AddInterceptors(Tracciante, Bump(sp), Segnala(sp)));
                 // La copia di sicurezza sa leggere solo questo provider: sugli altri non si registra, e
                 // IDatabaseBackup.IsSupported risponde di no (carta 2026-09-16-copia-del-database.md).

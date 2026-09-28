@@ -1320,8 +1320,38 @@
     net10: Application **3080**, Infrastructure **1796**, Ui **1822**, Hosting **78**, E2E **454**. Nessuna
     migrazione, `deploy/` no. Prova a schermo: non serve (nessuna pagina cambia aspetto; la tendina tolta non era
     nel markup). ⚠️ Non provato: il filtro di `Program.cs` sotto `dotnet ef` (non ho lanciato una migrazione).
-- ▶ **S35** lotto **L11, fetta I — migrazioni all'avvio** (via del committente il 28-set; da fare): U-096 (migrazioni
-  MySQL all'avvio non atomiche, non serializzate, non riprendibili), U-097, U-100.
+- ✅ **S35** lotto **L11, fetta I — migrazioni all'avvio** (via del committente il 28-set): U-096, U-097, U-100.
+  - **U-096** (su MariaDB ogni DDL fa commit da sé: una migrazione interrotta a metà lasciava le prime istruzioni
+    senza la riga in `__EFMigrationsHistory`, e ogni avvio dopo cadeva sulla prima già fatta; due avvii insieme
+    migravano insieme). Tre pezzi, solo nel ramo MySQL: `MigrazioniRieseguibili` (nuovo, `Vipi.Infrastructure`)
+    sostituisce il generatore di Pomelo in DI e nella factory di `dotnet ef` e riscrive ogni forma che Pomelo genera
+    con `IF [NOT] EXISTS` (i `DROP` anche con `ALTER TABLE IF EXISTS`: al secondo giro la tabella può essere già
+    rinominata; per le chiavi esterne MariaDB vuole `FOREIGN KEY IF NOT EXISTS`, provato); `TurnoDelleMigrazioni`
+    (nuovo) prende `GET_LOCK('vipi-migrazioni:<db>')` sulla connessione di EF attorno a `Migrate()`, 5 minuti
+    d'attesa, e ferma l'avvio se non lo ottiene; `SetCommandTimeout(10 min)` per la sola migrazione. Regola per chi
+    scrive migrazioni in ADR-0007 §D5. **Prove su un MariaDB 11.4.10 in Docker** (la versione di produzione):
+    rosso = storia senza `CausaDelleSegnalazioni` e `database update` → «Duplicate column name 'CauseArgsJson'»,
+    verde col generatore nuovo; le 11 migrazioni dal 16-set tolte dalla storia e rieseguite → schema identico
+    (`mariadb-dump --no-data`) a un database migrato una volta; migrazione con la tabella rinominata fermata dopo
+    la terza istruzione e ripresa → schema identico; due `Vipi.Host` insieme su un database vuoto → senza turno il
+    secondo muore con «Duplicate entry '20260805213003_InitialCreate'», col turno partono tutti e due. Nella CI un
+    passo nuovo del job `mariadb-schema` rifà la prova delle 11 rieseguite. ⚠️ Visto nella prova dei due avvii
+    insieme, non corretto: la passata d'avvio isolata «PubblicoDiCatalogo» del secondo processo registra un
+    «Duplicate entry» (l'ha fatta il primo); è idempotente e sparisce al riavvio dopo.
+  - **U-100** (`/vsop/health` era «Degraded» per costruzione dalla 1.26.1: contava anche gli avvisi permanenti del
+    report, TWR a 5 NM e FSS senza poligono, e una passata d'avvio fallita non cambiava niente) → contano solo gli
+    **Error** fuori dal sectorfile, come ha scelto il committente; gli avvisi restano nel corpo
+    (`dataConsistencyWarnings`). Le passate d'avvio fallite e le sonde rotte sono Error: muovono il verdetto.
+  - **U-097** (scelta del committente: MINOR marcata «non si torna indietro»). Nessun codice: i due file sono del
+    Master, il testo gli va con l'avviso. Le tre migrazioni di questo pacchetto (`AliasPerScalo`,
+    `ProcedureSostituite`, `SectorfileDifferito`) sono additive (la prima toglie solo un indice): il rollback a due
+    rinomine vale ancora.
+  - **Test**: `MigrazioniRieseguibiliTests` (+17: le 12 forme una volta sola, 3 intatte, il turno, la guardia su
+    ogni istruzione dello script, provata rossa togliendo `UPDATE`/`DELETE` dalle forme ammesse),
+    `MySqlMigrationsTests` (ricerche sulla DDL con `IF NOT EXISTS`), `VipiHealthCheckTests` (+1, rosso sul codice di
+    prima). Conteggi: Infrastructure **1813**, Hosting **79**, E2E **454** (net8 e net10). Nessuna migrazione, `deploy/` no, codice comune sì (`Vipi.Infrastructure`
+    DependencyInjection e due classi nuove, `Vipi.Hosting` avvio e salute). Prova a schermo: non serve (nessuna
+    pagina cambia).
   - **Scelte del committente** (28-set): **U-097** una migrazione con DROP o RENAME resta **MINOR, marcata «non si
     torna indietro»**: il foglio di consegna lo dice, e il rollback «a due rinomine» non vale per quel pacchetto
     (⚠️ `Directory.Build.props:84` e `deploy/atc-ivao/LEGGIMI-AGGIORNARE-VIA-FTP.md:219` sono file del Master:

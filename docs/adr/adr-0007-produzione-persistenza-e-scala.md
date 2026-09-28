@@ -104,8 +104,9 @@ modello EF con `information_schema` **nel verso opposto** al reconciler e produc
 | Tipo colonna divergente | Warning | Il reconciler non cambia i tipi: serve un `ALTER` a mano |
 | Colonna mancante nello schema | Error | Attesa dal modello e assente: il reconcile è best-effort, può aver fallito |
 
-I finding confluiscono nel report di consistenza esistente, quindi si vedono in `/services/vsop/admin/diagnostics` e
-mandano `/vsop/health` a **Degraded** senza modifiche a valle. Fuori da Npgsql è un no-op: dove le migrazioni EF
+I finding confluiscono nel report di consistenza esistente, quindi si vedono in `/services/vsop/admin/diagnostics`;
+quelli **Error** mandano `/vsop/health` a **Degraded** senza modifiche a valle (dal 28-set-2026, U-100 della
+revisione 3, gli avvisi restano solo un numero nel corpo della risposta). Fuori da Npgsql è un no-op: dove le migrazioni EF
 girano davvero il drift non si accumula. Non sta in `/vsop/health/ready`, che l'orchestratore ripete di continuo.
 
 **Cosa deliberatamente NON fa: correggere.** Guardando solo modello e schema, una rinomina è indistinguibile da
@@ -372,3 +373,31 @@ l'impronta, e la durata di un giorno lo riallinea da sola. Su net10 quel file st
 prendere l'impronta da `AssetVersion` — da fare prima del prossimo salto di .NET.
 ✅ **Fatto il 21 settembre 2026** (`48a36a46`, `docs/lavori-aperti.md` §A108): `App.razor` lo cita con
 `AssetVersion.Url`, e con `?v=` la risposta è `immutable`. Arriva col prossimo pacchetto.
+
+## Aggiornamento (28 settembre 2026) — D5: le migrazioni MariaDB si rieseguono, una alla volta
+
+Revisione totale 3, U-096. Su MariaDB ogni DDL fa commit da sé, quindi una migrazione di più istruzioni
+interrotta a metà (il SIGTERM delle hh:56, un secondo `restart.txt`, un errore di dati su un indice) lasciava
+applicate le prime istruzioni senza la riga in `__EFMigrationsHistory`, e ogni avvio dopo cadeva sulla prima
+già fatta («Duplicate column name»): il sito giù finché qualcuno non sistemava lo schema a mano. Riprodotto su
+un MariaDB 11.4.10 in locale; due avvii insieme su un database vuoto: il secondo moriva con «Duplicate entry
+'…_InitialCreate'».
+
+**Decisione.** Tre cose, tutte nel solo ramo MySQL:
+
+1. **DDL rieseguibili.** `MigrazioniRieseguibili` sostituisce il generatore di Pomelo (in DI e nella factory di
+   `dotnet ef`, così la CI esegue la stessa SQL dell'avvio) e riscrive ogni forma che Pomelo genera con
+   `IF [NOT] EXISTS`; i `DROP` anche con `ALTER TABLE IF EXISTS`, perché al secondo giro la tabella può essere
+   già rinominata. Una migrazione fermata a metà si finisce all'avvio dopo.
+2. **Un turno.** `GET_LOCK('vipi-migrazioni:<database>')` sulla connessione che usa EF, attorno a `Migrate()`: chi
+   arriva secondo aspetta (5 minuti al massimo), poi trova la coda vuota.
+3. **Timeout lungo** (10 minuti) per i soli comandi della migrazione.
+
+**La regola per chi scrive una migrazione.** La SQL scritta a mano con `migrationBuilder.Sql(...)` si scrive
+rieseguibile: `UPDATE` a un valore fisso, `DELETE`, `CREATE OR REPLACE VIEW`. Un `INSERT` di dati, un
+`ADD PRIMARY KEY` o una forma nuova di Pomelo fanno diventare rosso `MigrazioniRieseguibiliTests`, che controlla
+ogni istruzione dello script; la CI (`mariadb-schema`, «Migrazioni interrotte, rieseguite») toglie dalla storia
+le migrazioni dal 16 settembre 2026 in poi, le rilancia e pretende lo stesso schema.
+
+⚠️ Non rende **reversibile** niente: una migrazione con `DROP` o `RENAME` resta a senso unico, e il pacchetto
+che la porta lo dice (U-097, scelta del committente del 28 settembre 2026).

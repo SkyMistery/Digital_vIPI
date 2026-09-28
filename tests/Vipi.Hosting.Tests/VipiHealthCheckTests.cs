@@ -44,7 +44,7 @@ public class VipiHealthCheckTests
     public void Le_divergenze_col_sectorfile_non_degradano_la_salute()
     {
         ConsistencyFinding Rilievo(ConsistencyArea area) =>
-            new("x", ConsistencySeverity.Warning, "x", "x", area);
+            new("x", ConsistencySeverity.Error, "x", "x", area);
 
         var findings = new[]
         {
@@ -59,5 +59,36 @@ public class VipiHealthCheckTests
         // Il caso che conta davvero: SOLO divergenze col sectorfile ⇒ zero incongruenze ⇒ Healthy.
         var soloSectorfile = new[] { Rilievo(ConsistencyArea.Sectorfile) };
         Assert.Equal(0, VipiHealthCheck.ContaIncongruenze(soloSectorfile));
+    }
+
+    /// <summary>
+    /// U-100 (revisione 3): gli <b>avvisi</b> non degradano la salute, in nessuna area. Il report ne ha di
+    /// permanenti su stati previsti («Shape sintetica» di ogni TWR col cerchio da 5 NM, «Settore senza
+    /// poligono» delle FSS), e contarli teneva <c>/vsop/health</c> «Degraded» dalla 1.26.1: un guasto vero
+    /// all'avvio non cambiava niente. Scelta del committente (28-set-2026): Degraded solo per gli errori.
+    /// Gli avvisi restano nel corpo come numero.
+    /// </summary>
+    [Fact]
+    public void Gli_avvisi_non_degradano_la_salute_gli_errori_si()
+    {
+        ConsistencyFinding Rilievo(ConsistencySeverity gravita, ConsistencyArea area) =>
+            new("x", gravita, "x", "x", area);
+
+        var soloAvvisi = new[]
+        {
+            Rilievo(ConsistencySeverity.Warning, ConsistencyArea.Sorgente),
+            Rilievo(ConsistencySeverity.Warning, ConsistencyArea.Dati),
+            Rilievo(ConsistencySeverity.Warning, ConsistencyArea.Avvio),
+        };
+        Assert.Equal(0, VipiHealthCheck.ContaIncongruenze(soloAvvisi));
+        Assert.Equal(3, VipiHealthCheck.ContaAvvisi(soloAvvisi));
+
+        // La passata d'avvio fallita (StartupMaintenance la scrive Error) deve muovere il verdetto.
+        var conGuasto = soloAvvisi.Append(Rilievo(ConsistencySeverity.Error, ConsistencyArea.Avvio)).ToArray();
+        Assert.Equal(1, VipiHealthCheck.ContaIncongruenze(conGuasto));
+        Assert.Equal(3, VipiHealthCheck.ContaAvvisi(conGuasto));
+
+        // Gli avvisi del sectorfile non si contano due volte: hanno già il loro numero.
+        Assert.Equal(0, VipiHealthCheck.ContaAvvisi(new[] { Rilievo(ConsistencySeverity.Warning, ConsistencyArea.Sectorfile) }));
     }
 }

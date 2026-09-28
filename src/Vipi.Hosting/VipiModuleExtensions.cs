@@ -791,16 +791,37 @@ public static class VipiModuleExtensions
                 ?.CreateLogger(typeof(PostgresSchemaReconciler).FullName!);
             PostgresSchemaReconciler.InitializeSchema(db, log);
         }
-        else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) ||
-                 provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
-            // ⚠️ PRIMA di migrare: l'unico indice unico della coda che possa trovare dati già in conflitto
-            // è quello dei numeri di rilascio. Senza questo controllo il guasto arriva da dentro una
-            // migrazione a metà, come un «Duplicate entry ... for key ...» che dice la chiave e non le
-            // righe — su un host dove l'unico canale è scaricare `avvio-errore.txt` via FTP.
             ReleaseNumberPreflight.Verifica(db);
-
             db.Database.Migrate();
+        }
+        else if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            // U-096 (revisione 3): un ALTER su una tabella grande supera i 30 s di default, e un comando scaduto
+            // a metà migrazione è proprio l'interruzione da evitare. Il timeout lungo vale solo per questo
+            // contesto, che muore alla fine del metodo.
+            db.Database.SetCommandTimeout(TimeSpan.FromMinutes(10));
+            // La stessa connessione per il turno e per EF: GET_LOCK vale per la sessione (TurnoDelleMigrazioni).
+            db.Database.OpenConnection();
+            try
+            {
+                TurnoDelleMigrazioni.Prendi(db.Database.GetDbConnection(), TurnoDelleMigrazioni.Attesa);
+                try
+                {
+                    // ⚠️ PRIMA di migrare: l'unico indice unico della coda che possa trovare dati già in conflitto
+                    // è quello dei numeri di rilascio. Senza questo controllo il guasto arriva da dentro una
+                    // migrazione a metà, come un «Duplicate entry ... for key ...» che dice la chiave e non le
+                    // righe — su un host dove l'unico canale è scaricare `avvio-errore.txt` via FTP.
+                    ReleaseNumberPreflight.Verifica(db);
+
+                    // Le DDL sono rieseguibili (MigrazioniRieseguibili): se l'avvio prima si è fermato a metà di
+                    // una migrazione, questa la finisce invece di cadere sulla prima istruzione già fatta.
+                    db.Database.Migrate();
+                }
+                finally { TurnoDelleMigrazioni.Rilascia(db.Database.GetDbConnection()); }
+            }
+            finally { db.Database.CloseConnection(); }
         }
         else
         {
