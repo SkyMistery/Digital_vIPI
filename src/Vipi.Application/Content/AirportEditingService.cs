@@ -240,6 +240,14 @@ public sealed class AirportEditingService : IAirportEditingService
             if (row.CancelCeilingFt is int cc && row.PrepCeilingFt is int pc2 && cc < pc2)
                 throw new ValidationException(Lingua("Il soffitto di cancellazione deve essere maggiore o uguale a quello di preparazione.",
                                                      "The cancellation ceiling must be greater than or equal to the preparation one."));
+
+            // 🔴 U-194 (revisione totale 3): il tetto della colonna, detto prima del database (come T-053). Contato
+            // sulla nota senza spazi ai bordi, che è quel che il repository salva.
+            var nota = row.Note?.Trim().Length ?? 0;
+            if (nota > Vipi.Domain.Entities.AirportLvpMinima.NotaMassima)
+                throw new ValidationException(Lingua(
+                    $"La nota: {nota} caratteri, il massimo è {Vipi.Domain.Entities.AirportLvpMinima.NotaMassima}.",
+                    $"The note: {nota} characters, the maximum is {Vipi.Domain.Entities.AirportLvpMinima.NotaMassima}."));
         }
         await _repo.SaveLvpAsync(Norm(icao), row, ct);
     }

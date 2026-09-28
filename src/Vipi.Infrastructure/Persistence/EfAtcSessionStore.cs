@@ -199,14 +199,25 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
         // (16L → 34R → 16L) è un cambio, e la sequenza deve raccontarlo.
         if (ultima is not null && ultima.Arrival == arrival && ultima.Departure == departure) return false;
 
-        _db.AtcSessionRunways.Add(new AtcSessionRunway
+        var riga = new AtcSessionRunway
         {
             SessionId = sessionId,
             FromUtc = atUtc.UtcDateTime,
             Arrival = arrival,
             Departure = departure,
-        });
-        await _db.SaveChangesAsync(ct);
+        };
+        _db.AtcSessionRunways.Add(riga);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // 🔴 U-079 (revisione totale 3): la riga resterebbe «Added» nel contesto del giro, e il salvataggio
+            // successivo dello stesso contesto — il traffico della divisione — la riproverebbe e cadrebbe con lei.
+            _db.Entry(riga).State = EntityState.Detached;
+            throw;
+        }
         return true;
     }
 

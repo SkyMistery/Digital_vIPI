@@ -79,6 +79,32 @@ public class SegnalaModificheInterceptorTests : IAsyncLifetime
         Assert.Single(_registro.Segnalate);
     }
 
+    /// <summary>
+    /// 🔴 U-196 (revisione totale 3): dentro una transazione un salvataggio fallito — catturato, come fa il ponte di
+    /// <c>VipiDbContext.SaveChangesAsync</c> — buttava anche le famiglie dei salvataggi GIÀ riusciti, e alla
+    /// conferma non arrivava niente: il giro della deriva aspettava la notte.
+    /// </summary>
+    [Fact]
+    public async Task Un_salvataggio_fallito_non_butta_quelli_riusciti_della_stessa_transazione()
+    {
+        _db.Accs.Add(new Acc { Code = "LIRR", Name = "Roma", CountryPrefix = "LI" });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+        _registro.Segnalate.Clear();
+
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        _db.Documents.Add(Doc());
+        await _db.SaveChangesAsync();                                        // famiglia Testo, riuscito
+
+        _db.Accs.Add(new Acc { Code = "LIRR", Name = "Roma bis", CountryPrefix = "LI" });
+        await Assert.ThrowsAsync<DbUpdateException>(() => _db.SaveChangesAsync());   // codice doppio: cade
+        _db.ChangeTracker.Clear();
+
+        await tx.CommitAsync();
+
+        Assert.Equal(new[] { FamiglieDiModifica.Testo }, Assert.Single(_registro.Segnalate));
+    }
+
     [Fact]
     public async Task Una_transazione_annullata_non_segnala_niente()
     {

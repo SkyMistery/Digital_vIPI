@@ -75,7 +75,8 @@
             <label><b>@L["Ape_Notes"]</b></label>
             @if (Editing)
             {
-                <input style="width:100%;max-width:520px" @bind="Row.Note" @bind:after="Cambiato"
+                <input style="width:100%;max-width:520px" maxlength="@Vipi.Domain.Entities.AirportLvpMinima.NotaMassima"
+                       @bind="Row.Note" @bind:after="Cambiato"
                        placeholder="@L["Lvp_NotePlaceholder"]" />
             }
             else

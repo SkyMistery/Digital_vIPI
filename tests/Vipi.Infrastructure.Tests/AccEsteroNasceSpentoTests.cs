@@ -27,6 +27,27 @@ public class AccEsteroNasceSpentoTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
+    /// <summary>
+    /// U-078 (revisione totale 3): un bool con <c>HasDefaultValue(true)</c> e sentinella <c>false</c> — un
+    /// <c>false</c> in INSERT verrebbe omesso e il database scriverebbe il suo <c>true</c>. Si rilegge da un
+    /// SECONDO contesto, senza l'entità tracciata a mascherare il valore.
+    /// </summary>
+    [Fact]
+    public async Task Un_false_scritto_alla_nascita_arriva_nel_database()
+    {
+        _db.Accs.Add(Acc.NewForeign("LDZO", "Zagreb ACC"));
+        _db.ImportPolicies.Add(new ImportPolicy { ImportSids = false, ImportSpecialAreas = false, ImportAtcSessions = false, ImportNavaids = false });
+        await _db.SaveChangesAsync();
+
+        await using var altro = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
+        Assert.False((await altro.Accs.AsNoTracking().SingleAsync(a => a.Code == "LDZO")).SpecialAreasEnabled);
+        var policy = await altro.ImportPolicies.AsNoTracking().SingleAsync();
+        Assert.False(policy.ImportSids);
+        Assert.False(policy.ImportSpecialAreas);
+        Assert.False(policy.ImportAtcSessions);
+        Assert.False(policy.ImportNavaids);
+    }
+
     [Fact]
     public void La_fabbrica_spegne_le_aree_e_ricava_il_prefisso()
     {

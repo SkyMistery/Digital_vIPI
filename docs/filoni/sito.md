@@ -1051,5 +1051,22 @@
   - **Test**: `ReconcileAirportSectionsTests` (+1), `IndiceDelSodTests` (+1), `DocumentMaintenanceTests` (+2),
     `EditingRepositoryTests` (+1), `ReleaseRepositoryTests` (+1). Rossi sul codice di prima (la passata nuova con
     un corpo vuoto). Infrastructure 1773 → **1779**; Hosting 68 invariato.
+  - **Gruppo 6** (scritture che cadono, **codice comune** `Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Domain`):
+    **U-078 FALSA** — un `false` scritto alla nascita arriva nella colonna nonostante `HasDefaultValue(true)`:
+    riletto da un SECONDO contesto (il default del database è `true`, quindi è stato scritto). Resta la prova
+    come presidio (`AccEsteroNasceSpentoTests`). **U-079** (un ATIS con troppe piste superava i 32 caratteri di
+    `AtcSessionRunways`, e la riga non salvata restava «Added» nel contesto del giro: il salvataggio del traffico
+    di tutta la divisione cadeva con lei, a ogni giro) → oltre `AtisRunways.MaxLunghezza` (la stessa costante
+    della colonna) il parser non dice niente — scelta del Sito, la regola del parser «meglio niente che
+    indovinare» —, e `AppendRunwayAsync` stacca la riga se il salvataggio cade. **U-194** (la nota LVP senza tetto
+    sulla colonna da 2000) → `AirportLvpMinima.NotaMassima` nel modello, nel servizio (frase) e nel campo
+    (`maxlength`); la nota della promozione era già di S30. **U-196** (dentro una transazione un salvataggio
+    caduto e catturato buttava anche le famiglie dei salvataggi già riusciti: alla conferma il giro della deriva
+    non riceveva niente) → `SegnalaModificheInterceptor` tiene due insiemi, «in volo» e «riuscite»: chi cade
+    butta solo le sue.
+  - **Test**: `AccEsteroNasceSpentoTests` (+1, verde anche prima: è la prova che U-078 non c'è), `AtisRunwaysTests`
+    (+1), `PisteInUsoTests` (+1), `AirportLockGuardTests` (+1), `SegnalaModificheInterceptorTests` (+1),
+    `EditorLvpTests` (+1, nuovo). Rossi sul codice di prima gli altri cinque. Application 3038 → **3039**,
+    Infrastructure 1779 → **1783**, Ui 1817 → **1818**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

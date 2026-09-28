@@ -59,6 +59,37 @@ public class PisteInUsoTests : IAsyncLifetime
         "This is Fiumicino ATIS arrival and departure information GOLF at 1520. " +
         "Arrival runway 34L departure runway 34R Transition level 70";
 
+    /// <summary>
+    /// 🔴 U-079 (revisione totale 3): la riga che non si salva restava «Added» nel contesto del giro, e il
+    /// salvataggio successivo dello STESSO contesto — il traffico della divisione — la riprovava e cadeva con lei.
+    /// </summary>
+    [Fact]
+    public async Task Una_riga_che_non_si_salva_non_resta_appesa_al_contesto()
+    {
+        var cade = new SalvataggioCheCade { Cadi = true };
+        await using var db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn)
+            .AddInterceptors(cade).Options);
+
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => new EfAtcSessionStore(db).AppendRunwayAsync(100, "16L", "25", T0));
+
+        Assert.Empty(db.ChangeTracker.Entries<AtcSessionRunway>());
+    }
+
+    private sealed class SalvataggioCheCade : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
+    {
+        public bool Cadi { get; set; }
+
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
+            Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, CancellationToken ct = default)
+        {
+            if (!Cadi) return ValueTask.FromResult(result);
+            Cadi = false;
+            throw new DbUpdateException("Data too long for column 'Arrival' at row 1");
+        }
+    }
+
     [Fact]
     public async Task Il_primo_giro_scrive_la_configurazione()
     {

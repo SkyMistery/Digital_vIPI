@@ -660,6 +660,9 @@ public class AirportRunwayRule
 /// </summary>
 public class AirportLvpMinima
 {
+    /// <summary>La colonna della nota: il servizio la dice prima del database (U-194, come T-053).</summary>
+    public const int NotaMassima = 2000;
+
     public int Id { get; set; }
     public int AirportId { get; set; }
     public Airport? Airport { get; set; }

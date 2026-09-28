@@ -668,7 +668,7 @@ public class VipiDbContext : DbContext
             // l'unicità è l'unico modo di dirlo al database invece che soltanto ai commenti.
             e.HasIndex(x => x.AirportId).IsUnique();
             e.HasOne(x => x.Airport).WithMany(a => a.LvpMinima).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
-            e.Property(x => x.Note).HasMaxLength(2000);
+            e.Property(x => x.Note).HasMaxLength(Vipi.Domain.Entities.AirportLvpMinima.NotaMassima);
         });
         b.Entity<AirportProcedure>(e =>
         {
@@ -1035,8 +1035,8 @@ public class VipiDbContext : DbContext
 
             // Corte per definizione: «16L/16R» è il caso lungo. Dichiarate per tutti i provider, come il
             // resto delle statistiche: la tabella nasce adesso e non c'è nessun `text` da convertire.
-            e.Property(x => x.Arrival).HasMaxLength(32);
-            e.Property(x => x.Departure).HasMaxLength(32);
+            e.Property(x => x.Arrival).HasMaxLength(Vipi.Application.Stats.AtisRunways.MaxLunghezza);
+            e.Property(x => x.Departure).HasMaxLength(Vipi.Application.Stats.AtisRunways.MaxLunghezza);
         });
 
         b.Entity<AirportDayTraffic>(e =>

@@ -131,6 +131,27 @@ public class AirportLockGuardTests : IAsyncLifetime
         await Assert.ThrowsAsync<EditConflictException>(() => s.SetImportedSidsHiddenAsync("LIPZ", new[] { sid, sparita }, true));
     }
 
+    /// <summary>
+    /// 🔴 U-194 (revisione totale 3): la nota delle LVP non aveva tetto: su MariaDB fuori da strict si troncava in
+    /// silenzio alla colonna, in strict l'errore grezzo. Ora il servizio lo dice con una frase, prima di scrivere.
+    /// </summary>
+    [Fact]
+    public async Task Una_nota_LVP_oltre_la_colonna_si_rifiuta_con_una_frase()
+    {
+        var doc = await ApriEditorAsync();
+        await LockA(doc, Io);
+        var tetto = AirportLvpMinima.NotaMassima;
+        LvpRow Riga(string nota) => new(0, true, 550, 200, 350, 200, 800, 300, nota);
+
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => Servizio(Io).SaveLvpAsync("LIPZ", Riga(new string('x', tetto + 1))));
+        Assert.Contains(tetto.ToString(), ex.Message);
+        Assert.False(await _db.AirportLvpMinima.AnyAsync());
+
+        await Servizio(Io).SaveLvpAsync("LIPZ", Riga(new string('y', tetto)));
+        Assert.True(await _db.AirportLvpMinima.AnyAsync());
+    }
+
     /// <summary>Il documento dello scalo: lo crea l'apertura dell'editor, e senza non c'è lock da prendere.</summary>
     private Task<int> ApriEditorAsync() => Servizio(Io).EnsureDocumentAsync("LIPZ");
 

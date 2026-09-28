@@ -45,6 +45,9 @@ public readonly record struct RunwaysInUse(string Arrival, string Departure)
 /// </summary>
 public static class AtisRunways
 {
+    /// <summary>Quanto può essere lunga la sequenza di un verso: la colonna di <c>AtcSessionRunways</c> (U-079).</summary>
+    public const int MaxLunghezza = 32;
+
     // Una pista è due cifre più un suffisso opzionale: 04R, 16L, 25, 34C.
     private const string Pista = @"\d{2}[LRC]?";
 
@@ -95,6 +98,9 @@ public static class AtisRunways
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return string.Join('/', trovate);
+        // 🔴 U-079 (revisione totale 3): oltre la colonna non è una configurazione vera (un blocco di cifre dopo
+        // «ARRIVAL RUNWAY»), e scritta faceva cadere il salvataggio a ogni giro. Meglio non dire niente.
+        var piste = string.Join('/', trovate);
+        return piste.Length > MaxLunghezza ? "" : piste;
     }
 }
