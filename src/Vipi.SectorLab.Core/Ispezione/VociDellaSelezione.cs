@@ -1,3 +1,4 @@
+using System.Globalization;
 using Vipi.SectorLab.Core.Modifiche;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.Models;
@@ -24,9 +25,36 @@ public sealed record ParteDellaVoce(string Chiave, int Record, int? Poligono, st
 /// <param name="RigaDelNome">Dove il nome è un commento (i <c>.geo</c>): la sua riga, da 1.</param>
 /// <param name="NomeMancante">Il nome non c'è, o è quello che mette Google Earth («Percorso senza titolo», H3).</param>
 /// <param name="PrimaRiga">Dove il nome è un commento: la prima riga del gruppo (da 0), sotto il commento nuovo.</param>
+/// <param name="Pista">Nelle SID e negli <c>.str</c> (slice 9b): la pista della voce (<c>16L</c>, <c>MAPS</c>).</param>
 public sealed record VoceDellaSelezione(string Nome, IReadOnlyList<int> Record, IReadOnlyList<ParteDellaVoce> Parti,
-                                        int? RigaDelNome = null, bool NomeMancante = false, int? PrimaRiga = null)
+                                        int? RigaDelNome = null, bool NomeMancante = false, int? PrimaRiga = null,
+                                        string? Pista = null)
 {
+    /// <summary>
+    /// Il record da copiare per una procedura nuova in questa voce (P2, «SID nuova nel gruppo della sua pista»):
+    /// l'ultima della voce scritta per la sola pista della voce, se c'è, sennò l'ultima della voce. Il nuovo va sotto di
+    /// lei: nel gruppo della pista, col tipo della voce. Null se la voce non è di una pista.
+    /// </summary>
+    public int? ModelloDelNuovo(IReadOnlyList<object> record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        if (Pista is null || Record.Count == 0)
+            return null;
+        foreach (int r in Record.Reverse())
+        {
+            string? spec = record[r] switch
+            {
+                SidProcedure sid => sid.Runway,
+                StrRecord str => str.RunwaySpec,
+                _ => null,
+            };
+            if (string.Equals(spec?.Trim(), Pista, StringComparison.OrdinalIgnoreCase))
+                return r;
+        }
+
+        return Record[^1];
+    }
+
     /// <summary>Vero se il nome della voce è un commento (i gruppi dei .geo e dei .pol): si cambia dalla scheda.</summary>
     public bool NomeDalCommento => PrimaRiga is not null;
 }
@@ -37,7 +65,7 @@ public static class VociDellaSelezione
     /// <summary>Il nome della voce delle zone MVA senza il gruppo (2° campo vuoto): non è scritto nel file.</summary>
     public const string SenzaGruppo = "(senza gruppo)";
 
-    /// <summary>Le voci del file, o null se il file non ha una finestra di selezione (fix, SID, settori dinamici…).</summary>
+    /// <summary>Le voci del file, o null se il file non ha una finestra di selezione (fix, settori dinamici…).</summary>
     public static IReadOnlyList<VoceDellaSelezione>? Di(FileAperto file, IReadOnlyList<string> righe, IReadOnlyList<(int Da, int Quante)> posti)
     {
         ArgumentNullException.ThrowIfNull(file);
@@ -54,6 +82,7 @@ public static class VociDellaSelezione
             Airway => Aerovie(record, righe, posti),
             Line { Nome: not null } => AreePerNome(record),
             Line or Polygon => PerCommento(record, righe, posti),
+            SidProcedure or StrRecord => Procedure(record),
             _ => record.Any(r => r is StaticBoundaryGroup) ? Confini(record, righe, posti) : null,
         };
     }
@@ -214,6 +243,68 @@ public static class VociDellaSelezione
         Chiudi();
         return voci;
     }
+
+    // --- SID e .str: per pista e tipo, come la finestra delle procedure di Aurora (slice 9b, Q1) -----------------
+
+    /// <summary>I nomi dei tipi delle voci <c>.str</c>: i tasti della finestra delle procedure di Aurora.</summary>
+    private static readonly string[] Tasti = ["STAR", "TRANS", "HOLD", "IAP", "FAP", "GA"];
+
+    /// <summary>
+    /// Una voce per pista e tipo (<c>16L · STAR</c>), nell'ordine in cui le piste compaiono nel file e i tipi nell'ordine
+    /// dei tasti; le mappe del <c>MAPS</c> in fondo, per il tasto che le accende (<c>MAPS · tasto FAP</c>). Una procedura
+    /// su più piste (<c>16L:16R</c>) sta sotto ognuna, come nel menu di Aurora filtrato per pista attiva; una su una pista
+    /// e sul <c>MAPS</c> (<c>07:MAPS</c>) sotto tutte e due. Le SID hanno SID (tipo vuoto o 0) e transizioni (1).
+    /// Le voci di menu che non sono piste (<c>NE</c> di <c>lirr.str</c>, <c>BULL</c> di <c>lizz.str</c>) valgono come piste.
+    /// </summary>
+    private static List<VoceDellaSelezione> Procedure(IReadOnlyList<object> record)
+    {
+        var piste = new List<string>();
+        var perVoce = new Dictionary<(string Pista, int Tipo), List<int>>();
+        for (int r = 0; r < record.Count; r++)
+        {
+            var (spec, tipo) = record[r] switch
+            {
+                SidProcedure sid => (sid.Runway, sid.DefaultVisible == 1 ? 1 : 0),
+                StrRecord str => (str.RunwaySpec, (int)str.RecordType),
+                _ => (null, 0),
+            };
+            if (spec is null)
+                continue;
+            foreach (string pista in spec.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                string chiave = DescrizioniDeiCampi.EUnaMappa(pista) ? VociDegliElenchi.Maps : pista;
+                if (!piste.Contains(chiave, StringComparer.OrdinalIgnoreCase))
+                    piste.Add(chiave);
+                string trovata = piste.First(p => string.Equals(p, chiave, StringComparison.OrdinalIgnoreCase));
+                if (!perVoce.TryGetValue((trovata, tipo), out var suoi))
+                    perVoce[(trovata, tipo)] = suoi = [];
+                suoi.Add(r);
+            }
+        }
+
+        bool diSid = record.Any(r => r is SidProcedure);
+        var ordinate = piste.Where(p => p != VociDegliElenchi.Maps).Append(VociDegliElenchi.Maps);
+        var voci = new List<VoceDellaSelezione>();
+        foreach (string pista in ordinate)
+        {
+            foreach (var ((diPista, tipo), suoi) in perVoce.Where(v => v.Key.Pista == pista).OrderBy(v => v.Key.Tipo))
+            {
+                string nomeDelTipo = diSid ? (tipo == 1 ? "transizioni" : "SID") : tipo is >= 0 and < 6 ? Tasti[tipo] : tipo.ToString(CultureInfo.InvariantCulture);
+                string nome = pista == VociDegliElenchi.Maps ? $"{pista} · tasto {nomeDelTipo}" : $"{diPista} · {nomeDelTipo}";
+                var parti = suoi.Select(r => new ParteDellaVoce($"{r}", r, null, NomeDellaProcedura(record[r]), null)).ToList();
+                voci.Add(new VoceDellaSelezione(nome, suoi, parti, Pista: diPista));
+            }
+        }
+
+        return voci;
+    }
+
+    private static string NomeDellaProcedura(object record) => record switch
+    {
+        SidProcedure sid => sid.Name.Trim(),
+        StrRecord str => str.ProcedureId.Trim(),
+        _ => "",
+    };
 
     // --- i commenti -------------------------------------------------------------------------------------------
 

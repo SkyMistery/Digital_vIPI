@@ -1141,6 +1141,18 @@ public sealed class SessioneDelLab
                     ? Modifiche.AggiungiRecord(file, record, nome, tipo)
                     : new ModificaRifiutata("Questo file non è aperto.")));
 
+    /// <summary>
+    /// Una procedura nuova in una voce della vista per pista e tipo (slice 9b, P2): copia l'ultima di quella pista e va
+    /// sotto di lei, nel gruppo della pista e col tipo della voce.
+    /// </summary>
+    public bool AggiungiNellaVoce(string fileRelativo, VoceDellaSelezione voce)
+    {
+        ArgumentNullException.ThrowIfNull(voce);
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord file || voce.ModelloDelNuovo(file.RecordDelModello) is not { } modello)
+            return false;
+        return AggiungiRecord(fileRelativo, modello);
+    }
+
     /// <summary>Il tipo che «+ Nuovo record» chiede prima di tutto in quel file (slice 3e, A1), o null.</summary>
     public SceltaDelTipo? TipoDelNuovoDi(string fileRelativo)
         => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? TipoDelNuovo.Di(file) : null;

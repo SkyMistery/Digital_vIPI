@@ -45,6 +45,22 @@ public static class RecordNuovo
         var chunk = letto.Chunks.ToList();
         var record_ = letto.Records.ToList();
         int dove = DoveMetterlo(letto, dopoIndice);
+
+        // Lotto «Subito» slice 9b (trovato a schermo): il lettore degli .str lascia nelle righe di una voce la riga vuota
+        // e il commento della voce DOPO (`//LIRF RNP RWY07`). Messo sotto quelle righe, il nuovo si prendeva il commento
+        // dell'altra. La coda del vicino dalla prima riga vuota dopo i suoi dati passa sotto il nuovo, e la riga vuota
+        // si ripete fra il vicino e il nuovo: la forma del file. Un punto commentato attaccato ai dati resta del vicino.
+        if (dove > 0 && chunk[dove - 1] is RecordChunk<T> vicino && InizioDellaCoda(vicino.RawLines) is { } da)
+        {
+            chunk[dove - 1] = new RecordChunk<T>(vicino.Record, vicino.RawLines[..da], vicino.HasMarkers, vicino.LeadingComments)
+            {
+                Base = vicino.Base,
+            };
+            chunk.Insert(dove, new RawChunk<T>(vicino.RawLines[da..]));
+            if (separatore is not { Count: > 0 })
+                separatore = [.. vicino.RawLines[da..].TakeWhile(r => r.Trim().Length == 0)];
+        }
+
         chunk.Insert(dove, nuovo);
         if (separatore is { Count: > 0 })
             chunk.Insert(dove, new RawChunk<T>(separatore.ToArray()));
@@ -125,6 +141,19 @@ public static class RecordNuovo
     }
 
     /// <summary>Dove infilare il chunk nuovo: subito dopo quello del vicino, o in testa a tutto.</summary>
+    /// <summary>
+    /// Dove comincia la coda di un record che non è sua: la prima riga vuota dopo l'ultima riga di dati (né vuota né
+    /// commento), se dopo di lei ci sono solo righe vuote e commenti. Null se non c'è.
+    /// </summary>
+    private static int? InizioDellaCoda(string[] righe)
+    {
+        int ultimoDato = Array.FindLastIndex(righe, r => r.Trim().Length > 0 && !r.TrimStart().StartsWith("//", StringComparison.Ordinal));
+        if (ultimoDato < 0)
+            return null;
+        int vuota = Array.FindIndex(righe, ultimoDato + 1, r => r.Trim().Length == 0);
+        return vuota < 0 ? null : vuota;
+    }
+
     private static int DoveMetterlo<T>(ParseResult<T> letto, int dopoIndice)
     {
         if (dopoIndice < 0)

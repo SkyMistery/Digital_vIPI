@@ -108,10 +108,58 @@ public sealed class VociDellaSelezioneTests : IDisposable
         Assert.Equal(voci.Count, voci.Select(v => v.Nome).Distinct().Count());
     }
 
+    // --- slice 9b: le procedure per pista e tipo, come la finestra delle procedure di Aurora (Q1) -----------------
+
+    [Fact]
+    public void LeSidStannoSottoLaLoroPistaNellOrdineDelFile()
+    {
+        var (_, voci) = Voci("lirf.sid");
+
+        Assert.Equal(["07 · SID", "25 · SID", "16R · SID", "16L · SID", "34L · SID", "34R · SID"], voci.Select(v => v.Nome));
+        // Il tipo vuoto e il tipo 0 sono la stessa cosa: SID.
+        Assert.Equal(64, voci.Single(v => v.Nome == "25 · SID").Parti.Count);
+        Assert.Equal(["OST1E", "OST1D", "RATI1D"], voci[0].Parti.Select(p => p.Nome));
+    }
+
+    [Fact]
+    public void LeVociStrStannoSottoOgniPistaColTastoDiAuroraEIlMapsAParte()
+    {
+        var (file, voci) = Voci("lirf.str");
+        var nomi = voci.Select(v => v.Nome).ToList();
+
+        Assert.Equal(["16L · STAR", "16L · HOLD", "16R · STAR", "16R · HOLD", "34L · STAR", "34L · HOLD", "34R · STAR", "34R · HOLD",
+                      "07 · STAR", "07 · HOLD", "07 · IAP", "25 · STAR", "25 · HOLD", "25 · IAP",
+                      "MAPS · tasto STAR", "MAPS · tasto TRANS", "MAPS · tasto IAP", "MAPS · tasto FAP", "MAPS · tasto GA"], nomi);
+
+        // Una procedura su più piste sta sotto ognuna (16L:16R), come nel menu di Aurora filtrato per pista attiva; una
+        // su una pista e sul MAPS (07:MAPS) sta sotto tutte e due.
+        var record = ((IFileConRecord)file).RecordDelModello;
+        string Nome(int r) => ((Vipi.Sectorfile.Models.StrRecord)record[r]).ProcedureId;
+        Assert.Contains("ELKA3A", voci.Single(v => v.Nome == "16L · STAR").Record.Select(Nome));
+        Assert.Contains("ELKA3A", voci.Single(v => v.Nome == "16R · STAR").Record.Select(Nome));
+        Assert.Equal(6, voci.Single(v => v.Nome == "MAPS · tasto IAP").Record.Count);
+        Assert.Equal(2, voci.Single(v => v.Nome == "07 · IAP").Record.Count);
+    }
+
+    [Fact]
+    public void UnaProceduraNuovaCopiaLUltimaDellaSuaPistaSola()
+    {
+        var (file, voci) = Voci("lirf.str");
+        var record = ((IFileConRecord)file).RecordDelModello;
+        string Spec(int? r) => ((Vipi.Sectorfile.Models.StrRecord)record[r!.Value]).RunwaySpec;
+
+        // Sotto la 07 gli IAP sono `07` e `07:MAPS`: si copia quello della sola 07. Le attese della 16L sono
+        // `07:16L:16R` e `16L`: quella della 16L. Le STAR della 16L sono tutte `16L:16R`: l'ultima.
+        Assert.Equal("07", Spec(voci.Single(v => v.Nome == "07 · IAP").ModelloDelNuovo(record)));
+        Assert.Equal("16L", Spec(voci.Single(v => v.Nome == "16L · HOLD").ModelloDelNuovo(record)));
+        Assert.Equal("16L:16R", Spec(voci.Single(v => v.Nome == "16L · STAR").ModelloDelNuovo(record)));
+        Assert.Null(Voci("ACC/FRA.artcc").Voci[0].ModelloDelNuovo(record));
+    }
+
     [Fact]
     public void UnFileSenzaFinestraDiSelezioneNonHaVoci()
     {
-        var file = SessioneAperta.Apri(CartellaDelSector.Riconosci(_albero.Radice, out _)!).File["SectorFiles/Include/IT/lied.sid"];
+        var file = SessioneAperta.Apri(CartellaDelSector.Riconosci(_albero.Radice, out _)!).File["SectorFiles/Include/IT/NAVAIDS/APT.fix"];
 
         Assert.Null(VociDellaSelezione.Di(file, ((IFileConRecord)file).RigheDelFile([]), ((IFileConRecord)file).PostiDeiRecord([])));
     }

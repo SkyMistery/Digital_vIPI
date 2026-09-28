@@ -874,6 +874,14 @@ body.lab-trascina * {
     margin-left: 1.6rem;
 }
 
+/* Slice 9b (P2): la procedura nuova nella voce, un tasto piccolo in fondo alla riga. */
+.lab-voce-selezione > summary .lab-tasto {
+    margin-left: auto;
+    padding: 0 .45rem;
+    font-size: .85em;
+    line-height: 1.35;
+}
+
 .lab-voce-nome {
     background: none;
     border: 0;

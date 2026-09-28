@@ -245,6 +245,17 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
     }
 
     [Fact]
+    public async Task UnaProceduraDiceLeSueVociENonHaUnNomeDiParteDaCommento()
+    {
+        // Slice 9b, visto sul banco: il nome della parte di una procedura è il suo nome nei dati; scritto come commento
+        // sarebbe finito in cima al file.
+        var pagina = await ConIlRecord("lirf.str", "LIRF ELKA3A");
+
+        Assert.Equal("16L · STAR, 16R · STAR", pagina.Find("[data-voci-della-procedura]").GetAttribute("data-voci-della-procedura"));
+        Assert.Empty(pagina.FindAll("[data-nome-parte]"));
+    }
+
+    [Fact]
     public async Task NelMapsIlTipoSiLeggeComeIlTastoCheAccendeLaMappa()
     {
         var pagina = await ConIlRecord("lirf.str", "LIRF LIRF ATZ");

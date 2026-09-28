@@ -1134,3 +1134,26 @@ tipo e la scheda della voce (Q1, P2) · **9c** i metadati delle procedure e il f
     Il resto invariato (round-trip 701/701, tutto toccato 0, una modifica per record 115 568, tag, blocchi, validatore
     132/560); «spostati sopra» 52 → 53 file su 54.
   Test: motore 680 → **688**, Lab 709 → **715**.
+- **9b, secondo passo (29 settembre)** — la vista per pista e tipo (Q1) e la procedura nuova nel gruppo della sua
+  pista (P2). Codice comune toccato: `RecordNuovo.Aggiungi`.
+  - Sotto un `.sid` o un `.str` le voci sono **per pista e tipo**, come la finestra delle procedure di Aurora: `16L ·
+    STAR`, `16L · HOLD`, `07 · IAP`…, le piste nell'ordine del file, i tipi nell'ordine dei tasti; il `MAPS` in fondo,
+    per il tasto che accende la mappa (`MAPS · tasto FAP`). Una procedura su più piste (`16L:16R`) sta sotto ognuna,
+    come nel menu di Aurora filtrato per pista attiva; una su pista e `MAPS` (`07:MAPS`) sotto tutte e due. Nelle SID
+    il tipo vuoto e lo 0 sono «SID», l'1 «transizioni». Le voci di menu che non sono piste (`NE` di `lirr.str`) valgono
+    come piste. Nella scheda la procedura dice tutte le sue voci («16L · STAR, 16R · STAR»).
+  - **«+» su ogni voce** (P2): copia l'ultima procedura scritta per la sola pista della voce (sennò l'ultima della voce)
+    e la mette sotto di lei. Scelta dell'agente: il nuovo nasce uguale al modello (nome compreso: l'avviso
+    `ProceduraRipetuta` lo dice finché non si cambia), come «+ Record come questo».
+  - 🔴 **Trovati a schermo sul banco**: (1) il lettore degli `.str` lascia nelle righe di una voce la riga vuota e il
+    commento della voce DOPO; il record nuovo, messo sotto, **si prendeva il commento dell'altra** (`//LIRF RNP RWY07`
+    passava da `RNP07(CMP)` al nuovo). Valeva per ogni «+ Record come questo». Ora la coda del vicino dalla prima riga
+    vuota dopo i suoi dati passa sotto il nuovo, e la riga vuota si ripete fra i due; un punto commentato attaccato ai
+    dati resta del vicino. (2) Il nome della «parte» di una procedura si offriva come commento da scrivere, e sarebbe
+    finito in cima al file: per le procedure il nome è quello dei dati (campo «Nome»).
+  - Misura sull'albero, **«+ record come questo» su ogni file** (il primo, quello a metà e il penultimo come vicini, 637
+    file, 1 833 prove; `scratchpad/misura9b`): 1 804 buone, **0 righe di prima perse o spostate**; i 29 casi dove il
+    nuovo riletto si attacca al vicino (`.vrt` e aerovie, che separa la chiave, e due `.artcc`) sono **gli stessi col
+    codice di prima**. La coda passa sotto il nuovo in 186 prove in più (109 → 295 con righe vuote in più). Prova
+    sull'albero invariata.
+  Test: motore 688 → **691**, Lab 715 → **720**.

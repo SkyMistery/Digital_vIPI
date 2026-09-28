@@ -62,4 +62,23 @@ public sealed class VociAschermoTests : IDisposable
 
         Assert.Equal(Fra, _lab.Scelta?.File);
     }
+
+    // --- slice 9b: le procedure per pista e tipo (Q1), la procedura nuova nel gruppo della sua pista (P2) -----------
+
+    [Fact]
+    public async Task UnaSidNuovaNascaNelGruppoDellaSuaPista()
+    {
+        const string Sid = "SectorFiles/Include/IT/lirf.sid";
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<VociDelFile>(p => p.Add(v => v.File, Sid));
+        Assert.Contains("per pista e tipo", pagina.Markup, StringComparison.Ordinal);
+
+        pagina.Find("[data-nuova-nella-voce='07 · SID']").Click();
+
+        // lirf.sid: le tre SID della 07, una riga vuota, poi la 25. La nuova è la quarta del gruppo della 07.
+        var righe = _lab.RigheDiAdesso(Sid);
+        Assert.Equal(["LIRF;07;OST1E;;;;;1;", "LIRF;07;OST1D; ; ;", "LIRF;07;RATI1D; ; ;", "LIRF;07;RATI1D; ; ;", ""], righe.Take(5));
+        Assert.Equal(3, _lab.Scelta?.Record);
+        Assert.Equal(4, _lab.VociDi(Sid)!.Single(v => v.Nome == "07 · SID").Parti.Count);
+    }
 }

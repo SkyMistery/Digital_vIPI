@@ -10,7 +10,7 @@
 {
     var scelte = voci.Where(v => Passa(v)).ToList();
     <Sezione Chiave="file-voci" data-voci="@voci.Count">
-    <Titolo>Voci <span class="lab-nota">@voci.Count · come la selezione di Aurora@(Mancanti(voci) is > 0 and var m ? $" · {m} senza nome" : "")</span></Titolo>
+    <Titolo>Voci <span class="lab-nota">@voci.Count · @ComeInAurora(voci)@(Mancanti(voci) is > 0 and var m ? $" · {m} senza nome" : "")</span></Titolo>
     <ChildContent>
     <div class="lab-voci">
         @foreach (var voce in scelte.Take(Tetto))
@@ -27,6 +27,11 @@
                         <span class="lab-nota" title="Nome mancante: si scrive nel commento sopra">⚠</span>
                     }
                     <span class="lab-nota">@Conto(voce)</span>
+                    @if (voce.Pista is not null)
+                    {
+                        <button class="lab-tasto" data-nuova-nella-voce="@voce.Nome" title="@TitoloDelNuovo(voce)"
+                                @onclick:stopPropagation="true" @onclick="() => Lab.AggiungiNellaVoce(File, voce)">+</button>
+                    }
                 </summary>
                 @foreach (var parte in voce.Parti)
                 {
@@ -63,6 +68,13 @@
            || voce.Parti.Any(p => p.Nome?.Contains(f, StringComparison.OrdinalIgnoreCase) == true);
 
     private static int Mancanti(IReadOnlyList<VoceDellaSelezione> voci) => voci.Count(v => v.NomeMancante);
+
+    // Slice 9b (Q1): le SID e gli .str si vedono per pista e tipo, come la finestra delle procedure di Aurora.
+    private static string ComeInAurora(IReadOnlyList<VoceDellaSelezione> voci)
+        => voci.Any(v => v.Pista is not null) ? "per pista e tipo, come le procedure di Aurora" : "come la selezione di Aurora";
+
+    private static string TitoloDelNuovo(VoceDellaSelezione voce)
+        => $"Una procedura nuova in «{voce.Nome}»: copia l'ultima di questa pista e va sotto di lei, nel suo gruppo (P2). Poi si cambia nella scheda.";
 
     private static string Conto(VoceDellaSelezione voce)
         => voce.Parti.Count > 1 ? $"{voce.Parti.Count} parti" : voce.Record.Count > 1 ? $"{voce.Record.Count} record" : "";

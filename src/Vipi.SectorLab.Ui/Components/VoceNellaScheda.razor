@@ -8,7 +8,9 @@
 *@
 @if (Lab.VoceDi(File, Record) is { } voce)
 {
-    var parti = voce.Parti.Where(p => p.Record == Record).ToList();
+    // Slice 9b: una procedura sta sotto ogni sua pista (16L:16R), e il nome delle sue parti è il suo nome nei dati — si
+    // cambia dal campo «Nome», non da un commento.
+    var parti = voce.Pista is null ? voce.Parti.Where(p => p.Record == Record).ToList() : [];
     <Sezione Chiave="scheda-voce" data-voce-scheda="@voce.Nome">
     <Titolo>Voce <span class="lab-nota">@voce.Nome@(voce.NomeMancante ? " · nome mancante" : "")</span></Titolo>
     <ChildContent>
@@ -35,6 +37,14 @@
                                @onchange="e => Lab.RinominaLaVoce(File, voce, e.Value?.ToString())" />
                         <span class="lab-nota">@Conto(voce)</span>
                     </td>
+                </tr>
+            }
+            else if (voce.Pista is not null)
+            {
+                var sue = (Lab.VociDi(File) ?? []).Where(v => v.Record.Contains(Record)).Select(v => v.Nome).ToList();
+                <tr data-voci-della-procedura="@string.Join(", ", sue)">
+                    <th title="Dove sta nella finestra delle procedure di Aurora: sotto ogni sua pista, col suo tipo">@(sue.Count > 1 ? "Voci" : "Voce")</th>
+                    <td>@string.Join(", ", sue)</td>
                 </tr>
             }
             else
