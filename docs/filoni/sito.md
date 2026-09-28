@@ -1463,5 +1463,14 @@
   - **Test**: rossi sul codice di prima (U-236 servizio di HEAD; U-232 le quattro mutazioni; U-123 lo script
     vecchio). Suite intere verdi: Application 3084, Infrastructure **1984**, Hosting 79 (net8 e net10), E2E 454.
     Nessuna migrazione, `deploy/` no, nessuna UI (niente prova a schermo: il comportamento è di processo e di script).
+- ✅ **S40** rosso intermittente segnalato dal Master dopo la fusione (29-set): `TranslationReviewPanelTests.
+  Due_clic_ravvicinati_sulle_righe_ne_aprono_una`, rosso su net8 nella corsa intera della soluzione (Release,
+  `--no-build`), verde da solo. Non riprodotto qui (suite Ui 6 volte, e 4 sotto carico con Application e
+  Infrastructure in parallelo); l'unica dipendenza dal tempo era il finto, con `Task.Delay(40)` nel conto e 3 s
+  di attesa. Ora il conto resta fermo su un `TaskCompletionSource` finché il secondo clic non è passato (un giro a
+  vuoto sul dispatcher lo garantisce), attese a 10 s, e le due righe si aspettano prima di cliccare. Controprova:
+  tolta la sentinella `_busy` da `ApriAsync`, il test è rosso (`Conti` 2) invece di piantarsi. Solo test.
+  ⚠️ `StrutturaUnaOperazionePerVoltaTests` (stesso commit `334267c0`) ha la stessa forma a tempo: non è segnalato
+  rosso, resta da rifare allo stesso modo se lo diventa.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
