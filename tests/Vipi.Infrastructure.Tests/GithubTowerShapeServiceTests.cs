@@ -184,4 +184,89 @@ public class GithubTowerShapeServiceTests : IAsyncLifetime
         var lirn = await _db.AirportSectors.AsNoTracking().SingleAsync(s => s.ComposePosition == "LIRN_TWR");
         Assert.True(lirn.IsShapeSynthetic);
     }
+
+    // ---- U-037: la provenienza e il ciclo -----------------------------------------------------------------
+
+    /// <summary>Un orologio fermo al 28 settembre 2026: il ciclo corrente è il 2609, il successivo il 2610 (1° ottobre).</summary>
+    private sealed class Orologio : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(2026, 9, 28, 12, 0, 0, TimeSpan.Zero);
+    }
+
+    private GithubTowerShapeService Servizio(ITowerShapeSource sorgente) =>
+        new(_repo, sorgente, airac: new Vipi.Domain.Services.AiracService(), clock: new Orologio());
+
+    private const string Prima = "[[14.2,40.8],[14.4,40.8],[14.4,41.0],[14.2,40.8]]";
+    private const string Dopo = "[[14.1,40.7],[14.5,40.7],[14.5,41.1],[14.1,40.7]]";
+
+    private async Task<AirportSector> Lirn() =>
+        await _db.AirportSectors.AsNoTracking().SingleAsync(s => s.ComposePosition == "LIRN_TWR");
+
+    private Task TorreSenzaArea() => _repo.ImportForAirportAsync("LIRN", new[]
+    {
+        new SourceAtcPosition("LIRN_TWR", "118.300", "TWR", null, "[]", null, null, 40.886, 14.291),
+    });
+
+    /// <summary>
+    /// 🔴 U-037 (revisione totale 3): l'area presa da <c>twrs.tfl</c> restava marcata come dell'anagrafica
+    /// (<c>ShapeSource.Source</c>, quella di IVAO), e da lì non era più un bersaglio: 66 torri su 70 avevano
+    /// l'anello di <c>twrs.tfl</c> e nessuna si sarebbe mai aggiornata. Ora porta la provenienza del sectorfile.
+    /// </summary>
+    [Fact]
+    public async Task L_area_presa_da_twrs_porta_la_provenienza_del_sectorfile()
+    {
+        await TorreSenzaArea();
+
+        Assert.Equal(1, await Servizio(new FakeSource(new Dictionary<string, string> { ["LIRN_TWR"] = Prima })).ApplyAsync());
+
+        var t = await Lirn();
+        Assert.Equal(Vipi.Domain.ShapeSource.Sectorfile, t.ShapeSource);
+        Assert.Null(t.ShapeAiracCycle);        // la prima area entra subito: nessuna area è peggio di una in anticipo
+    }
+
+    /// <summary>
+    /// 🔴 U-037: la divisione ridisegna in <c>twrs.tfl</c> l'area di una torre. Entra, come quella dei settori, dal
+    /// ciclo SUCCESSIVO — il sectorfile lo scriviamo in anticipo — e quella di adesso resta in vigore per chi
+    /// pubblica nel frattempo.
+    /// </summary>
+    [Fact]
+    public async Task Un_area_ridisegnata_entra_dal_ciclo_successivo()
+    {
+        await TorreSenzaArea();
+        await Servizio(new FakeSource(new Dictionary<string, string> { ["LIRN_TWR"] = Prima })).ApplyAsync();
+
+        Assert.Equal(1, await Servizio(new FakeSource(new Dictionary<string, string> { ["LIRN_TWR"] = Dopo })).ApplyAsync());
+
+        var t = await Lirn();
+        Assert.Equal(Dopo, t.RegionMapPolygon);
+        Assert.Equal(Prima, t.RegionMapPolygonInForce);
+        Assert.Equal("2610", t.ShapeAiracCycle);
+        // Idempotente: identica alla corrente, niente da fare.
+        Assert.Equal(0, await Servizio(new FakeSource(new Dictionary<string, string> { ["LIRN_TWR"] = Dopo })).ApplyAsync());
+    }
+
+    /// <summary>
+    /// 🔴 U-037: le torri che hanno GIÀ l'anello di <c>twrs.tfl</c> (scritte prima, senza provenienza) si
+    /// riconoscono: stessa geometria, e si segnano come del sectorfile senza toccare niente. Una shape diversa da
+    /// <c>twrs.tfl</c> con la provenienza dell'anagrafica è di IVAO, e resta sua.
+    /// </summary>
+    [Fact]
+    public async Task Le_torri_scritte_prima_si_riconoscono_e_poi_si_aggiornano()
+    {
+        await TorreSenzaArea();
+        var id = (await Lirn()).Id;
+        var riga = await _db.AirportSectors.SingleAsync(s => s.Id == id);
+        riga.RegionMapPolygon = Prima;                       // com'era scritta fino a oggi
+        riga.ShapeSource = Vipi.Domain.ShapeSource.Source;
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        Assert.Equal(0, await Servizio(new FakeSource(new Dictionary<string, string> { ["LIRN_TWR"] = Prima })).ApplyAsync());
+        var t = await Lirn();
+        Assert.Equal(Vipi.Domain.ShapeSource.Sectorfile, t.ShapeSource);
+        Assert.Equal(Prima, t.RegionMapPolygon);
+
+        Assert.Equal(1, await Servizio(new FakeSource(new Dictionary<string, string> { ["LIRN_TWR"] = Dopo })).ApplyAsync());
+        Assert.Equal("2610", (await Lirn()).ShapeAiracCycle);
+    }
 }

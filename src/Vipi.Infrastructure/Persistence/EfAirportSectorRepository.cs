@@ -130,7 +130,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
             .Where(s => s.Position == "TWR" && !s.IsHidden)
             .Join(_db.Airports.AsNoTracking(), s => s.AirportIcao, a => a.Icao,
                 (s, a) => new TwrShapeRow(s.Id, s.ComposePosition, s.AirportIcao, a.Latitude, a.Longitude,
-                    s.RegionMapPolygon, s.IsShapeSynthetic, s.ShapeSource))
+                    s.RegionMapPolygon, s.IsShapeSynthetic, s.ShapeSource, s.RegionMapPolygonInForce))
             .ToListAsync(ct);
 
     public async Task SetSyntheticShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default)
@@ -142,12 +142,21 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task SetRealShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default)
+    public async Task SetRealShapeAsync(int sectorId, string polygonJson, string? inForce = null, string? fromCycle = null,
+        CancellationToken ct = default)
     {
         var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == sectorId, ct)
                 ?? throw new InvalidOperationException(Lingua($"Settore d'aeroporto id {sectorId} inesistente.", $"Airport sector id {sectorId} does not exist."));
         s.RegionMapPolygon = polygonJson;
         s.IsShapeSynthetic = false;   // poligono reale (GitHub): non è un cerchio di ripiego
+        // 🔴 U-037 (revisione totale 3): si sa da dove viene. Restava `Source`, quella di IVAO, e da lì la torre
+        // non era più un bersaglio di nessuno: 66 su 70 avevano l'anello di twrs.tfl e non si sarebbero mai
+        // aggiornate. Come per i settori (EfSectorShapeRepository.ApplyShapeAsync), la forzatura si spegne su
+        // una geometria nuova.
+        s.ShapeSource = ShapeSource.Sectorfile;
+        s.RegionMapPolygonInForce = inForce;
+        s.ShapeAiracCycle = fromCycle;
+        s.ShapeForcePublished = false;
         await _db.SaveChangesAsync(ct);
     }
 
