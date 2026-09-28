@@ -30,6 +30,8 @@
             </p>
             <input type="search" class="lab-cerca" placeholder="Filtra i record" value="@_filtro"
                    @oninput="e => _filtro = e.Value?.ToString() ?? string.Empty" data-campo="filtra" />
+            @* Slice 6: le voci come la finestra di selezione di Aurora, sopra l'elenco dei record. *@
+            <VociDelFile File="@Relativo" Filtro="@_filtro" />
             var voci = Voci();
             @* Slice 5c: i record nascosti (commentati) restano nell'elenco, grigi, al loro posto. *@
             var nascosti = Lab.NascostiDi(Relativo);

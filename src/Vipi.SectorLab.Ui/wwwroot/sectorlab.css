@@ -855,6 +855,44 @@ body.lab-trascina * {
     font-weight: 700;
 }
 
+/* Lotto «Subito» slice 6: le voci come la selezione di Aurora, con le parti dentro. */
+.lab-voci {
+    max-height: 22rem;
+    overflow-y: auto;
+    margin: .3rem 0 .5rem;
+}
+
+.lab-voce-selezione > summary,
+.lab-parte {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .05rem 0;
+}
+
+.lab-parte {
+    margin-left: 1.6rem;
+}
+
+.lab-voce-nome {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.lab-voce-nome:hover {
+    text-decoration: underline;
+}
+
+.lab-nome-mancante {
+    color: var(--lab-tenue);
+    font-style: italic;
+}
+
 /* Lotto «Subito» slice 5d: nella linea di un .geo, i due punti del segmento scelto. */
 .lab-vertice-scelto .lab-numero {
     color: var(--lab-scelto-testo, inherit);

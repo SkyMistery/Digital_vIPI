@@ -28,6 +28,8 @@ public enum TipoDiForma
 /// <c>.str</c>: STAR, IAP, GOAROUND…).</param>
 /// <param name="Punto">Il tipo del punto per il suo simbolo (slice 4d): <c>FIX:1</c>, <c>VOR:2</c>, <c>NDB</c>, <c>VFR</c>,
 /// <c>APT</c> — la famiglia e il valore del campo del tipo, come è scritto.</param>
+/// <param name="Parti">Per ogni tratto, la parte del record da cui viene (lotto «Subito» slice 6: il poligono di un confine),
+/// così la mappa ne spegne uno solo. Null: un tratto per parte, nell'ordine.</param>
 public sealed record FormaDellaMappa(
     string File,
     int Record,
@@ -39,7 +41,8 @@ public sealed record FormaDellaMappa(
     string? Riempimento = null,
     bool SoloBordo = false,
     string? Chiave = null,
-    string? Punto = null)
+    string? Punto = null,
+    IReadOnlyList<int>? Parti = null)
 {
     public int Punti => Tratti.Sum(t => t.Count);
 }

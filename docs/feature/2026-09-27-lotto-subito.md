@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e), la slice 4 (4a-4d) e la slice 5 (5a-5d); prossima la **slice 6** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e), la slice 4 (4a-4d) e la slice 5 (5a-5d); in corso la **slice 6** (6a fatta; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -703,3 +703,37 @@ confini, aerovie, MVA di scalo; 6 120 linee `.geo`), le interruzioni che ci sono
 perché); **le 53 righe MVA commentate e le 274 di `limm_tma` si vedono grigie** (in parte e «MM CONF 4» nascosto), e
 nascondi/mostra torna al file di prima. Da provare a mano (eseguibile ripubblicato): prove 82-89 in
 `SectorLab-prova\PROVE.md`.
+
+**Slice 6 — gruppi e blocchi come Aurora.** Divisa in passi, un commit ciascuno (scelta dell'agente): **6a** le voci della
+selezione e le parti, accese e spente sulla mappa · **6b** il nome dal commento cambiato dalla scheda, e il nome mancante
+(H3) · **6c** la regola commento/blocco di §M (un pezzo senza nome che riceve il primo dato passa a blocco).
+
+- **6a (28 settembre)** — le voci come la finestra di selezione di Aurora (A3, J1, B1, E1 vista, H3 vista; solo Lab).
+  Sotto il file, sopra l'elenco dei record, la sezione **«Voci · come la selezione di Aurora»**
+  (`Ispezione/VociDellaSelezione.cs`, `Components/VociDelFile.razor`), calcolata sul testo com'è adesso:
+  - **confini** (`.artcc`, `.hartcc`, `.lartcc`): una voce per nome del gruppo T, anche in più blocchi (J1: `RR CONF2`,
+    FRA BDRY); le parti sono i **poligoni** (fra i `T;DUMMY`), col nome dal **commento subito sopra** il primo punto — fra
+    più commenti di fila l'ultimo corto che non è un titolo di sole barre (`// LINPZ1 VEKEN`, non la descrizione sotto) —
+    o dal **commento in coda al `T;DUMMY`** che lo precede (`T;DUMMY;…; //brindisi/tirana`). Le etichette L sono una voce;
+  - **MVA**: una voce per gruppo (il 2° campo: `LIMM`, la zona di scalo), le parti sono le zone col soprannome del blocco
+    (`zone=`, E1) o il commento sopra;
+  - **aerovie** (B1): una voce per aerovia, senza i `BREAK`, coi pezzi e le etichette;
+  - **`.geo` e `.pol`** (H3): la voce è il gruppo di segmenti (o di poligoni) sotto un commento; «Percorso/Poligono
+    senza titolo» di Google Earth e i gruppi senza commento sono **nomi mancanti** (⚠, in grigio, e contati nel titolo);
+  - **aree P/R/D**: una voce per area, col nome del 6° campo.
+  Ogni voce e ogni parte ha la sua **casella**: spenta, sparisce dalla mappa (anche nella vista «Solo questo…»). Per
+  spegnere un poligono solo, le forme dei confini portano per ogni tratto il numero del suo poligono
+  (`FormaDellaMappa.Parti`, `q` nel JSON); la pagina ridisegna la forma coi tratti accesi (`sectorlab.mappa.spenti`). Il
+  filtro dei record vale anche sulle voci e sui nomi delle parti; un clic sul nome sceglie il record.
+  - Trovato a schermo: nella scheda di un confine «Poligoni» si leggeva `Vipi.Sectorfile.Models.StaticBoundaryPolygon, …`
+    → ora «N punti» (anche i tratti degli `.str`, i vertici MVA e i punti delle SID). Rosso: il test cade col codice di prima.
+  Misura sul fork (strumento fuori repo, `scratchpad/misura6`): `FRA.artcc` **6 gruppi** (FRA BDRY, LIMITROFI, NPZ, AOCC
+  MM/PP/RR) più le 104 etichette L; FRA BDRY **5 poligoni in 5 blocchi, tutti col nome** («FRA IT - Zona A», «Zona B»,
+  «PADOVA TUTTA da sud a nord», «MILANO-ROMA NE», «confine ROMA-BRINDISI») — 🟡 i «31 tratti» della carta «file per file»
+  §1 nel file di oggi non ci sono (5 blocchi, 7 commenti, nessun punto per nome): da rivedere col committente;
+  LIMITROFI 14 poligoni, 9 col nome; **`lirr.hartcc` 13 voci**; **564 «senza titolo» nei `.geo`** (come la carta) più
+  42 gruppi senza commento, e 253 «senza titolo» nei `.pol`. In tutto: `.artcc` 10 voci e 116 parti, `.hartcc` 26 e 45,
+  `.lartcc` 21 e 50, MVA 169 voci e 334 zone, aerovie 277 voci e 540 pezzi, `.geo` 6 298 voci, `.pol` 1 731, aree P/R/D
+  517; ogni record in una voce sola, ogni riga del nome un commento (0 guasti). Prova a schermo sul banco: `FRA.artcc` —
+  7 voci con le caselle; LIMITROFI aperta mostra i suoi 14 poligoni («brindisi/tirana»…, «poligono 3 · senza nome»);
+  spenta, coi soli FRA.artcc sulla mappa, i tratti verso l'estero spariscono; riaccesa, tornano. Test: Lab 579 → **596**.

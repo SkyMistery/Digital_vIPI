@@ -25,6 +25,7 @@
     private readonly Dictionary<string, int> _versioni = new(StringComparer.Ordinal);
     private int _versioneDellAnteprima;
     private int _versioneDellaVista;
+    private int _versioneDeiSpenti;
     private int _versioneDeiColori = -1;
     private int _inquadrature;
 
@@ -123,6 +124,13 @@
             // 🔴 (object): un string[] passato da solo diventa gli ARGOMENTI (covarianza con object[]), una chiave per
             // argomento — il JS riceveva una stringa, non un elenco, e la vista restava vuota (committente, 24 settembre).
             await Js.InvokeVoidAsync("sectorlab.mappa.vista", (object)Lab.InVista.ToArray());
+        }
+
+        // Slice 6: le voci e le parti spente dall'albero del file. Gli strati che arrivano dopo le spengono da sé.
+        if (_versioneDeiSpenti != Lab.VersioneDeiSpenti)
+        {
+            _versioneDeiSpenti = Lab.VersioneDeiSpenti;
+            await Js.InvokeVoidAsync("sectorlab.mappa.spenti", (object)Lab.Spenti.ToArray());
         }
 
         // Si rievidenzia quando cambia la scelta, quando si chiede di nuovo lo stesso record (il secondo clic

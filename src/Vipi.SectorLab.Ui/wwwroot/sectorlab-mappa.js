@@ -143,6 +143,33 @@
         }
     }
 
+    /// Le voci e le parti spente (lotto «Subito» slice 6): 'file#3' un record, 'file#3.1' il suo secondo poligono. Una
+    /// forma spenta esce dal suo gruppo (la vista e i colori non la vedono più); una con qualche parte spenta si ridisegna
+    /// coi tratti accesi. Si rifà per ogni strato quando cambiano le spente, e quando uno strato arriva.
+    function applicaSpenti(id) {
+        var gruppo = stato.strati[id], tutte = stato.tutte && stato.tutte[id];
+        if (!gruppo || !tutte) return;
+        var spenti = stato.spenti || {};
+        for (var i = 0; i < tutte.length; i++) {
+            var l = tutte[i], f = l.sectorlab, base = f.p + '#' + f.r;
+            var via = !!spenti[base], accesi = null;
+            if (!via && f.t !== 'p') {
+                accesi = [];
+                for (var t = 0; t < f.c.length; t++) {
+                    var parte = f.q ? f.q[t] : t;
+                    if (!spenti[base + '.' + parte] && f.c[t].length >= 4) accesi.push(coppie(f.c[t]));
+                }
+                if (!accesi.length) via = true;
+            }
+            if (via) { if (gruppo.hasLayer(l)) gruppo.removeLayer(l); continue; }
+            if (!gruppo.hasLayer(l)) { gruppo.addLayer(l); applica(l); }
+            if (accesi && l.setLatLngs && (l.sectorlabParziale || accesi.length !== l.sectorlabTratti)) {
+                l.setLatLngs(accesi);
+                l.sectorlabParziale = accesi.length !== l.sectorlabTratti;
+            }
+        }
+    }
+
     function scelta(forma) {
         if (!stato || !stato.riferimento) return;
         stato.riferimento.invokeMethodAsync('SceltaDallaMappa', forma.p, forma.r);
@@ -207,6 +234,7 @@
                     if (!stato || stato.giro[id] !== giro) return 0;
                     delete stato.inArrivo[id];
                     var gruppo = L.layerGroup();
+                    var tutte = [];
                     for (var i = 0; i < dati.f.length; i++) {
                         var forma = dati.f[i];
                         var disegnata = disegna(forma, tinta);
@@ -217,11 +245,16 @@
                         disegnata.bindTooltip(forma.e, { sticky: true });
                         gruppo.addLayer(disegnata);
                         stato.forme[forma.p + '#' + forma.r] = disegnata;
+                        disegnata.sectorlabTratti = forma.c.filter(function (t) { return t.length >= 4; }).length;
+                        tutte.push(disegnata);
                     }
 
                     if (!stato.voluti[id]) return 0;
                     if (stato.strati[id]) stato.mappa.removeLayer(stato.strati[id]);
                     stato.strati[id] = gruppo;
+                    stato.tutte = stato.tutte || {};
+                    stato.tutte[id] = tutte;
+                    applicaSpenti(id);
                     gruppo.addTo(stato.mappa);
                     ordina(id);
                     // Lo sfondo decide l'inquadratura: la prima volta che arriva, la mappa si mette sull'Italia vera.
@@ -309,8 +342,19 @@
         /// La vista: solo alcuni elementi sulla mappa ('file#3' un record, 'file#*' un file intero) più le coste; vuota,
         /// si torna agli strati accesi. Le forme restano quelle degli strati (nessuna fetch in più): si tolgono i gruppi
         /// dalla mappa e se ne fa uno con le sole forme scelte, che restano cliccabili.
+        /// Le voci e le parti spente (slice 6): la mappa le toglie, e la vista (se c'è) si rifà senza di loro.
+        spenti: function (chiavi) {
+            if (!stato) return;
+            stato.spenti = {};
+            for (var i = 0; i < (chiavi || []).length; i++) stato.spenti[chiavi[i]] = true;
+            var ids = Object.keys(stato.strati);
+            for (var j = 0; j < ids.length; j++) applicaSpenti(ids[j]);
+            if (stato.vistaVoluta && stato.vistaVoluta.length) this.vista(stato.vistaVoluta);
+        },
+
         vista: function (chiavi) {
             if (!stato) return 0;
+            stato.vistaVoluta = chiavi;
             if (stato.gruppoDellaVista) { stato.mappa.removeLayer(stato.gruppoDellaVista); stato.gruppoDellaVista = null; }
             var ids = Object.keys(stato.strati);
 

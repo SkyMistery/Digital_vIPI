@@ -144,14 +144,18 @@ public static class Geometria
                 return Area(file, indice, mva.AltLabel, mva.Vertices.Select(v => v.Position), catalogo, nonRisolti);
 
             case StaticBoundaryGroup gruppo:
-                // Ogni poligono del gruppo è un tratto suo: i DUMMY che li separano li ha già divisi il lettore.
-                return Tratti(file, indice, TipoDiForma.Linea, gruppo.Name,
-                    gruppo.Polygons
-                        .Select(p => (IReadOnlyList<Coordinate>)p.Vertices
-                            .Select(v => v.Position ?? Risolvi(Vertice(v), catalogo, nonRisolti))
-                            .Where(c => c is not null).Select(c => c!.Value).ToList())
-                        .Where(t => t.Count > 0).ToList(),
-                    nonRisolti);
+            {
+                // Ogni poligono del gruppo è un tratto suo: i DUMMY che li separano li ha già divisi il lettore. Ogni
+                // tratto porta il numero del suo poligono (slice 6): la mappa spegne una parte sola.
+                var poligoni = gruppo.Polygons
+                    .Select((p, n) => (Numero: n, Punti: (IReadOnlyList<Coordinate>)p.Vertices
+                        .Select(v => v.Position ?? Risolvi(Vertice(v), catalogo, nonRisolti))
+                        .Where(c => c is not null).Select(c => c!.Value).ToList()))
+                    .Where(t => t.Punti.Count > 0).ToList();
+                return Tratti(file, indice, TipoDiForma.Linea, gruppo.Name, [.. poligoni.Select(t => t.Punti)], nonRisolti) is { } forma
+                    ? forma with { Parti = [.. poligoni.Select(t => t.Numero)] }
+                    : null;
+            }
 
             default:
                 return null;

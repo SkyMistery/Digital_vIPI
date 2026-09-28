@@ -298,7 +298,7 @@ public static class Interruzioni
     /// Gli indici, nelle righe del file, delle righe dei punti del record, in fila: le righe di dati, tolte la testa (SID
     /// e .str), i separatori DUMMY e BREAK, e nelle MVA le righe L.
     /// </summary>
-    private static List<int>? RigheDeiPunti(object record, IReadOnlyList<string> righe, (int Da, int Quante) posto)
+    internal static List<int>? RigheDeiPunti(object record, IReadOnlyList<string> righe, (int Da, int Quante) posto)
     {
         var dati = Enumerable.Range(posto.Da, posto.Quante)
             .Where(i => i < righe.Count && righe[i].Trim() is { Length: > 0 } t && !t.StartsWith("//", StringComparison.Ordinal))

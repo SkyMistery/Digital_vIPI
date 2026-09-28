@@ -1,0 +1,75 @@
+@inject SessioneDelLab Lab
+
+@*
+    Le voci del file come nella finestra di selezione di Aurora (lotto «Subito» slice 6, «file per file» A3, J1, B1, E1,
+    H3): una voce per nome (ACC Selection, MVA Selection, l'aerovia, il gruppo di un .geo), dentro le parti col nome dal
+    commento sopra. La casella accende e spegne sulla mappa la voce intera o una parte sola; un clic sul nome sceglie il
+    record. «senza titolo» (Google Earth) e i gruppi senza commento sono nomi mancanti (H3).
+*@
+@if (Lab.VociDi(File) is { Count: > 0 } voci)
+{
+    var scelte = voci.Where(v => Passa(v)).ToList();
+    <Sezione Chiave="file-voci" data-voci="@voci.Count">
+    <Titolo>Voci <span class="lab-nota">@voci.Count · come la selezione di Aurora@(Mancanti(voci) is > 0 and var m ? $" · {m} senza nome" : "")</span></Titolo>
+    <ChildContent>
+    <div class="lab-voci">
+        @foreach (var voce in scelte.Take(Tetto))
+        {
+            var parti = SessioneDelLab.PartiDi(voce);
+            <details class="lab-voce-selezione" data-voce="@voce.Nome">
+                <summary>
+                    <input type="checkbox" checked="@Lab.Acceso(File, parti)" title="Accesa o spenta sulla mappa"
+                           data-accendi-voce="@voce.Nome" @onclick:stopPropagation="true" @onchange="e => Lab.Accendi(File, parti, Equals(e.Value, true))" />
+                    <button class="lab-voce-nome @(voce.NomeMancante ? "lab-nome-mancante" : null)" title="@TitoloDellaVoce(voce)"
+                            @onclick:stopPropagation="true" @onclick="() => Lab.Scegli(File, voce.Record[0])">@voce.Nome</button>
+                    @if (voce.NomeMancante)
+                    {
+                        <span class="lab-nota" title="Nome mancante: si scrive nel commento sopra">⚠</span>
+                    }
+                    <span class="lab-nota">@Conto(voce)</span>
+                </summary>
+                @foreach (var parte in voce.Parti)
+                {
+                    string[] una = [parte.Chiave];
+                    <div class="lab-parte" data-parte="@parte.Chiave">
+                        <input type="checkbox" checked="@Lab.Acceso(File, una)" data-accendi-parte="@parte.Chiave"
+                               @onchange="e => Lab.Accendi(File, una, Equals(e.Value, true))" />
+                        <button class="lab-voce-nome @(parte.Nome is null ? "lab-nome-mancante" : null)"
+                                @onclick="() => Lab.Scegli(File, parte.Record)">@(parte.Nome ?? SenzaNome(parte))</button>
+                    </div>
+                }
+            </details>
+        }
+        @if (scelte.Count > Tetto)
+        {
+            <p class="lab-nota">@scelte.Count voci: ne vedi @Tetto. Filtra per arrivare alle altre.</p>
+        }
+    </div>
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    private const int Tetto = 200;
+
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    /// <summary>Il filtro dell'elenco dei record: vale anche per le voci e i nomi delle parti.</summary>
+    [Parameter] public string Filtro { get; set; } = string.Empty;
+
+    private bool Passa(VoceDellaSelezione voce)
+        => Filtro.Trim() is not { Length: > 0 } f
+           || voce.Nome.Contains(f, StringComparison.OrdinalIgnoreCase)
+           || voce.Parti.Any(p => p.Nome?.Contains(f, StringComparison.OrdinalIgnoreCase) == true);
+
+    private static int Mancanti(IReadOnlyList<VoceDellaSelezione> voci) => voci.Count(v => v.NomeMancante);
+
+    private static string Conto(VoceDellaSelezione voce)
+        => voce.Parti.Count > 1 ? $"{voce.Parti.Count} parti" : voce.Record.Count > 1 ? $"{voce.Record.Count} record" : "";
+
+    private static string TitoloDellaVoce(VoceDellaSelezione voce)
+        => voce.NomeMancante ? "Nome mancante (Google Earth, o nessun commento sopra): clic per sceglierla" : "Clic: sceglie il primo record";
+
+    private static string SenzaNome(ParteDellaVoce parte)
+        => parte.Poligono is { } p ? $"poligono {p + 1} · senza nome" : $"record {parte.Record} · senza nome";
+}

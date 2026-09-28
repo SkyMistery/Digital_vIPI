@@ -212,6 +212,10 @@ public sealed class SessioneDelLab
             TogliLAnteprima();
             _inVista.Clear();
             VersioneDellaVista++;
+            _spenti.Clear();
+            _voci.Clear();
+            _nascosti.Clear();
+            VersioneDeiSpenti++;
             UltimoSalvataggio = null;
             _perse.Clear();
             ScordaIProblemi();
@@ -286,6 +290,10 @@ public sealed class SessioneDelLab
         TogliLAnteprima();
         _inVista.Clear();
         VersioneDellaVista++;
+        _spenti.Clear();
+        _voci.Clear();
+        _nascosti.Clear();
+        VersioneDeiSpenti++;
         UltimoSalvataggio = null;
         _perse.Clear();
         ScordaIProblemi();
@@ -1081,6 +1089,67 @@ public sealed class SessioneDelLab
 
         return NellaStoria($"riga {numero} di {NomeDelFile(problema.File)} corretta ({problema.Problema.Regola})",
             () => CambiaRigaAManoAdesso(problema.File, numero, proposta));
+    }
+
+    // --- le voci della selezione e le parti, accese e spente (lotto «Subito» slice 6) -----------------------------
+
+    private readonly Dictionary<string, (IReadOnlyList<string> Righe, IReadOnlyList<VoceDellaSelezione>? Voci)> _voci = [];
+
+    /// <summary>
+    /// Le voci della finestra di selezione del file (A3, J1, B1, E1, H3), o null se il file non ne ha. Si rifanno quando
+    /// il testo del file cambia.
+    /// </summary>
+    public IReadOnlyList<VoceDellaSelezione>? VociDi(string fileRelativo)
+    {
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord file)
+            return null;
+        var righe = RigheDiAdesso(fileRelativo);
+        if (_voci.TryGetValue(fileRelativo, out var tenute) && tenute.Righe.SequenceEqual(righe, StringComparer.Ordinal))
+            return tenute.Voci;
+
+        var voci = VociDellaSelezione.Di((FileAperto)file, righe, file.PostiDeiRecord(Modifiche.SporchiDi(fileRelativo)));
+        _voci[fileRelativo] = (righe, voci);
+        return voci;
+    }
+
+    /// <summary>Le chiavi della mappa di una voce: le sue parti, o i suoi record se non ne ha.</summary>
+    public static IReadOnlyList<string> PartiDi(VoceDellaSelezione voce)
+    {
+        ArgumentNullException.ThrowIfNull(voce);
+        return voce.Parti.Count > 0
+            ? [.. voce.Parti.Select(p => p.Chiave)]
+            : [.. voce.Record.Select(r => r.ToString(System.Globalization.CultureInfo.InvariantCulture))];
+    }
+
+    private readonly HashSet<string> _spenti = new(StringComparer.Ordinal);
+
+    /// <summary>Le forme spente sulla mappa: <c>file#3</c> un record, <c>file#3.1</c> un poligono.</summary>
+    public IReadOnlyCollection<string> Spenti => _spenti;
+
+    public int VersioneDeiSpenti { get; private set; }
+
+    /// <summary>Vero se nessuna di quelle parti del file è spenta.</summary>
+    public bool Acceso(string fileRelativo, IEnumerable<string> parti)
+        => parti.All(p => !_spenti.Contains($"{fileRelativo}#{p}"));
+
+    /// <summary>Accende o spegne sulla mappa quelle parti del file (una voce intera, o una parte sola).</summary>
+    public void Accendi(string fileRelativo, IEnumerable<string> parti, bool acceso)
+    {
+        ArgumentNullException.ThrowIfNull(parti);
+        foreach (string parte in parti)
+        {
+            if (acceso)
+                _spenti.Remove($"{fileRelativo}#{parte}");
+            else
+                _spenti.Add($"{fileRelativo}#{parte}");
+        }
+
+        // Spegnere una voce di un file vuol dire vederne lo strato: se è spento, si accende.
+        if (StratiDellaMappa.DiFile(fileRelativo) is { } tipo && Strati.Any(s => s.Tipo.Id == tipo.Id))
+            _accesi.Add(tipo.Id);
+        Registro.Scrivi("voci", $"{fileRelativo}: {(acceso ? "accese" : "spente")} {string.Join(", ", parti.Take(5))} ({_spenti.Count} spente in tutto)");
+        VersioneDeiSpenti++;
+        Avvisa();
     }
 
     // --- nascondi e mostra (lotto «Subito» slice 5c) --------------------------------------------------------------

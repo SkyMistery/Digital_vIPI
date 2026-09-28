@@ -107,6 +107,15 @@ public static class MappaDelLab
 
             json.WriteEndArray();
 
+            // La parte di ogni tratto (slice 6), dove non è semplicemente il suo numero: il poligono di un confine.
+            if (forma.Parti is { } parti && !parti.Select((p, i) => p == i).All(u => u))
+            {
+                json.WriteStartArray("q");
+                foreach (int parte in parti)
+                    json.WriteNumberValue(parte);
+                json.WriteEndArray();
+            }
+
             // I nomi che il catalogo non conosce viaggiano con la forma: è ciò che spiega un disegno mancante
             // (slice 3b: una forma senza punti resta, col nome, invece di sparire in silenzio).
             if (forma.NomiNonRisolti.Count > 0)

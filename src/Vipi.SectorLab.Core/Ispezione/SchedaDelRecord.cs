@@ -184,6 +184,14 @@ public static class Ispettore
             : Testo(p.Posizione!.Value),
         bool b => b ? "sì" : "no",
         string s => s.Length == 0 ? "—" : s,
+        // Gli elenchi dentro gli elenchi (i poligoni di un confine, i tratti di una mappa .str) e gli involucri dei
+        // punti: si dice quanti punti, non il nome del tipo (visto a schermo, slice 6: «Vipi.Sectorfile.Models.…»).
+        StaticBoundaryPolygon poligono => $"{poligono.Vertices.Count} punti",
+        GeometricSegment tratto => $"{tratto.Points.Count} punti",
+        MvaVertex vertice => Testo(vertice.Position),
+        PuntoDelTracciato punto => Testo(punto.Punto),
+        ProcedureWaypoint punto => punto.FixName,
+        StaticBoundaryVertex vertice => vertice.Position is { } c ? Testo(c) : vertice.FixA ?? "—",
         IEnumerable elenco and not string => Elenco(elenco),
         _ => valore.ToString() ?? "—",
     };
