@@ -167,6 +167,34 @@ public class CoordinationSentenceComposerTests
         Assert.Equal("Roma Radar NE trasferisce a Pisa Approach il traffico con destinazione Pisa - San Giusto LIRP in discesa a livello 120 o livello inferiore su MAREL.", s);
     }
 
+    /// <summary>
+    /// 🔴 U-153 (revisione totale 3): il codice del mittente si ometteva se le sue LETTERE stavano nel nome — la
+    /// «N» di DTTC_N_CTR dentro «TUNIS», e la frase diceva «TUNIS Radar» per un settore solo. Si omette solo se
+    /// il nome lo porta come PAROLA.
+    /// </summary>
+    [Fact]
+    public void Il_codice_del_mittente_si_omette_solo_se_il_nome_lo_porta_come_parola()
+    {
+        var types = new Dictionary<string, SectorType>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            ["DTTC_N_CTR"] = SectorType.Ctr, ["LIBB_NE_CTR"] = SectorType.Ctr, ["LIMM_WS2"] = SectorType.Ctr,
+        };
+        var codes = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            ["DTTC_N_CTR"] = "N", ["LIBB_NE_CTR"] = "NE", ["LIMM_WS2"] = "WS2",
+        };
+        var atc = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            ["DTTC_N_CTR"] = "TUNIS Radar", ["LIBB_NE_CTR"] = "Brindisi NE Radar", ["LIMM_WS2"] = "Milano Radar",
+        };
+        string? Frase(string owner) => CoordinationSentences.Compose(Tpl, types, Names, codes, Airports, atc,
+            owner, "LIMM_WS2", null, LevelConstraint.Exact, 240, LevelUnit.Fl, null, LevelParity.Any, "VALMA",
+            TransferFlowKind.Overflight);
+
+        Assert.StartsWith("TUNIS Radar N trasferisce", Frase("DTTC_N_CTR"));
+        Assert.StartsWith("Brindisi NE Radar trasferisce", Frase("LIBB_NE_CTR"));
+    }
+
     [Fact]
     public void Climb_and_level_state_words()
     {

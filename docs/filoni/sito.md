@@ -1010,5 +1010,20 @@
   - **Test**: `ImpactDriftTests` (+2, un giro trattenuto a metà con un `TaskCompletionSource` nel finto),
     `SezioneRadioassistenzeTests` (+1), `PaginaRadioassistenzeTests` (+1). Rossi sul codice di prima.
     Infrastructure 1769 → **1772**, Ui 1814 → **1815**.
+  - **Gruppo 3** (frasi e tabelle dei coordinamenti, **codice comune** `Vipi.Application`): **U-153** (il codice
+    del mittente si ometteva se le sue LETTERE stavano nel nome: la «N» di DTTC_N_CTR dentro «TUNIS») → si omette
+    solo se il nome lo porta come parola. ⚠️ Effetto visibile: il mittente «Athinai Radar West» (codice W) ora è
+    «Athinai Radar West W», la forma che il ricevente aveva già — un lato e l'altro con la stessa regola; il
+    file approvato della caratterizzazione cambia su quelle 20 righe. **U-152** (ponte Aurora: la condizione
+    della capofila non pesava sulle eccezioni) → si valuta la riga e ogni antenato, vince l'esito peggiore; oggi
+    il ponte è spento, la regola è pronta per quando si riaccende. **U-149** (in una tabella mista la capofila
+    veniva dalla prima riga e nominava un ricevente solo) → capofila solo se tutte le righe dicono la stessa,
+    altrimenti le frasi distese (scelta del Sito: la regola che la tabella ha già senza capofila). **U-155** (la
+    vLOA leggeva gli accordi di ciascuna ACC, e un accordo di confine entrava due volte; il collasso lo
+    nascondeva, ma senza punti scriveva «, ») → gli accordi si tolgono dai doppioni per Id PRIMA di espanderli, e
+    il collasso non accoda un punto vuoto o già detto.
+  - **Test**: `CoordinationSentenceComposerTests` (+1), `TransferMatcherTests` (+1), `CoordTableTests` (+2),
+    `VloaOrdineFrequenzeTests` (+1, servizio vero su SQLite), `CoordinationCharacterizationTests` (file approvato).
+    Rossi sul codice di prima. Application 3034 → **3036**, Infrastructure 1772 → **1773**, Ui 1815 → **1817**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

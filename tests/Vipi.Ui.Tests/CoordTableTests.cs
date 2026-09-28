@@ -233,6 +233,38 @@ public class CoordTableTests : TestContext
         Assert.Equal("Capofila.", Assert.Single(frasi).TextContent);
     }
 
+    /// <summary>
+    /// 🔴 U-149 (revisione totale 3): la capofila si prendeva dalla prima riga, anche in una tabella mista — «Verso
+    /// ACC» fonde più gruppi, cioè più riceventi o scali — e nominava uno solo. Se le capofila non coincidono,
+    /// la prosa torna alle frasi distese, una per clausola.
+    /// </summary>
+    [Fact]
+    public void Lead_mode_with_different_leads_falls_back_to_the_full_sentences()
+    {
+        var cut = RenderComponent<CoordTable>(p => p
+            .Add(x => x.Rows, new[] { Said("VALMA", 1, "Distesa.", "Capofila A."), Said("PISIP", 2, "Distesa due.", "Capofila B.") })
+            .Add(x => x.LeadSentence, true));
+
+        Assert.Equal(new[] { "Distesa.", "Distesa due." },
+                     cut.FindAll("details.coord-prose p.coord-sentence").Select(x => x.TextContent));
+    }
+
+    /// <summary>
+    /// 🔴 U-155 (revisione totale 3): due righe della stessa clausola senza punto (la vLOA legge due volte un
+    /// accordo di confine) si richiudevano in «, ». Un punto vuoto non si accoda, e uno già detto nemmeno.
+    /// </summary>
+    [Fact]
+    public void Collapsing_a_clause_without_points_does_not_write_a_bare_comma()
+    {
+        var t = Render(Plain("") with { ClauseId = 5 }, Plain("") with { ClauseId = 5 },
+                       Plain("VALMA") with { ClauseId = 6 }, Plain("VALMA") with { ClauseId = 6 });
+
+        var rows = t.FindAll("tbody tr").ToList();
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("—", rows[0].QuerySelector("td")!.TextContent);
+        Assert.Equal("VALMA", rows[1].QuerySelector("td")!.TextContent);
+    }
+
     [Fact]
     public void English_prose_summary_never_falls_back_to_the_ui_culture()
     {

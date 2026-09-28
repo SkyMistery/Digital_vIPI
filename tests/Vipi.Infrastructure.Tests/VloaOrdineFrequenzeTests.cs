@@ -162,6 +162,36 @@ public class VloaOrdineFrequenzeTests : IAsyncLifetime
         Assert.Empty(stato.HiddenFrequencies);
     }
 
+    /// <summary>
+    /// 🔴 U-155 (revisione totale 3): un accordo di confine riguarda tutte e due le ACC, e la vLOA leggeva gli
+    /// accordi di ciascuna: lo stesso accordo entrava due volte, nascosto solo dal collasso della tabella.
+    /// </summary>
+    [Fact]
+    public async Task Un_accordo_di_confine_entra_una_volta_sola()
+    {
+        var repo = new EfAgreementRepository(_db);
+        var ne = await _db.Sectors.Where(s => s.Callsign == "LIRR_NE_CTR").Select(s => s.Id).SingleAsync();
+        var tunisi = await _db.Sectors.Where(s => s.Callsign == "DTTC_CTR").Select(s => s.Id).SingleAsync();
+        Assert.True(ne < tunisi);   // A è il minore: il verso AtoB è Roma → Tunisi
+        var accordo = await repo.AddAgreementAsync("LIRR", new AgreementInput { SideASectorId = ne, SideBSectorId = tunisi });
+        var sezione = await repo.AddSectionAsync("LIRR", accordo, new AgreementSectionInput
+        {
+            Kind = TransferFlowKind.Overflight, Direction = AgreementDirection.AtoB,
+        });
+        await repo.AddClauseAsync("LIRR", sezione, new AgreementClauseInput
+        {
+            Cops = "VALMA", LevelValue = 240, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Exact,
+        });
+
+        var coord = await _service.DeriveCoordinationAsync(_docId);
+
+        var righe = coord.HomeToForeign.Sectors.SelectMany(s => s.Accs)
+            .SelectMany(a => a.Airports.SelectMany(x => x.Arrivals.Concat(x.Departures))
+                .Concat(a.Extras.SelectMany(x => x.Rows)))
+            .ToList();
+        Assert.Single(righe, r => r.Cop == "VALMA");
+    }
+
     private sealed class LockFinto(bool mio) : IDocumentLockGuard
     {
         public Task EnsureMineAsync(int documentId, CancellationToken ct = default) =>

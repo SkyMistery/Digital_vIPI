@@ -549,7 +549,11 @@ public static class CoordinationSentences
         // diversi con lo stesso nome. Ora la regola e' la stessa dei due lati: il codice si mostra se c'e'.
         var ownerBase = BaseName(ownerCallsign, nameMap, atcMap);
         var ownerMid = codeMap.GetValueOrDefault(ownerCallsign) ?? "";
-        var ownerName = (ownerMid.Length > 0 && ownerBase.IndexOf(ownerMid, StringComparison.OrdinalIgnoreCase) < 0)
+        // 🔴 U-153 (revisione totale 3): si omette se il nome lo porta come PAROLA. Cercato come sottostringa, la
+        // «N» di DTTC_N_CTR stava dentro «TUNIS» e la frase diceva «TUNIS Radar» per un settore solo.
+        var ownerName = (ownerMid.Length > 0 && !System.Text.RegularExpressions.Regex.IsMatch(ownerBase,
+                            $@"\b{System.Text.RegularExpressions.Regex.Escape(ownerMid)}\b",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             ? $"{ownerBase} {ownerMid}"
             : ownerBase;
 

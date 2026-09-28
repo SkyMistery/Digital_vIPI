@@ -238,8 +238,12 @@ internal sealed class VloaDerivationService : IVloaDerivationService
         var homeSet = new HashSet<string>(pair.HomeAll, StringComparer.OrdinalIgnoreCase);
         var foreignSet = new HashSet<string>(pair.ForeignAll, StringComparer.OrdinalIgnoreCase);
 
-        var flows = (await _transfers.ListFlowsByAccAsync(pair.HomeAcc, ct))
-            .Concat(await _transfers.ListFlowsByAccAsync(pair.ForeignAcc, ct)).ToList();
+        // 🔴 U-155 (revisione totale 3): un accordo di confine riguarda tutte e due le ACC, e letto da ciascuna
+        // entrava due volte. Si tolgono i doppioni PRIMA di espandere: dopo, gli Id dei flussi sono sintetici.
+        var accordi = (await _transfers.ListByAccAsync(pair.HomeAcc, ct))
+            .Concat(await _transfers.ListByAccAsync(pair.ForeignAcc, ct))
+            .DistinctBy(a => a.Id).ToList();
+        var flows = AgreementExpansion.Expand(accordi);
         var airportMap = CoordinationDerivation.MergeAirportNames(await _accRepo.GetAirportNameMapAsync(ct), flows);
 
         // Solo i trasferimenti che attraversano il confine, per direzione (owner→next, senza inversione):

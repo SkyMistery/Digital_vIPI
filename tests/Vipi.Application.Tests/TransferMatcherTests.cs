@@ -242,6 +242,29 @@ public class TransferMatcherTests
         Assert.Equal("unmatched", res.Candidates.Single(c => c.PointId == 11).Condition.Match);
     }
 
+    /// <summary>
+    /// 🔴 U-152 (revisione totale 3): un'eccezione vale solo dove vale la sua capofila. Con la pista in uso 34 la
+    /// capofila «RWY 16L» non vale, e la sua eccezione d'area (non verificabile, «unknown») passava davanti
+    /// perché la condizione si guardava sulla sola riga.
+    /// </summary>
+    [Fact]
+    public void L_eccezione_non_vale_dove_non_vale_la_sua_capofila()
+    {
+        var req = Request(arr: "LIRF", fixes: "ASPIR");
+        req.RunwaysInUse["LIRF"] = new RunwayConfig { Departure = { "34" }, Arrival = { "34" } };
+        var flows = new[]
+        {
+            Flow(1, TransferFlowKind.Arrival, "LIRF",
+                Point(10, "ASPIR", conditionLabel: "RWY 16L") with { VariantGroup = 1, VariantDepth = 0 },
+                Point(11, "ASPIR", areaLabel: "LOTAR attiva") with { VariantGroup = 1, VariantDepth = 1 }),
+        };
+
+        var res = Run(req, flows);
+
+        Assert.NotEqual(11, res.Candidates[0].PointId);
+        Assert.Equal("unmatched", res.Candidates.Single(c => c.PointId == 11).Condition.Match);
+    }
+
     [Fact]
     public void Condizione_di_area_resta_non_verificabile_e_avvisa()
     {
