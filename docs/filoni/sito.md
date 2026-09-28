@@ -1206,5 +1206,16 @@
     decimali le virgole rimaste valgono da separatore se sono tutte seguite da uno spazio.
   - **Test**: `CoordinateParserTests` (+4, tre rossi sul codice di prima; il quarto è la guardia del segno
     senza emisfero). Application 3056 → **3060**.
+  - **Gruppo 8** (convertitore, il JSON, **codice comune** `Vipi.Application`): **U-222** (un GeoJSON `Feature` o
+    `FeatureCollection` non si riconosceva: `PolygonGeometry` in un oggetto cerca solo `points/coordinates/…` in
+    cima, usciva vuoto e il testo cadeva nel lettore a righe, lat/lon invertite) → `GeoJsonReader` nuovo, solo
+    per il convertitore: `Feature`, `FeatureCollection`, `Polygon`, `MultiPolygon`, un'area per poligono, il
+    nome da `properties.name`, i buchi scartati e segnalati come nel KML. `PolygonGeometry` resta com'è per i
+    cataloghi (un anello per settore, misurato). **U-229**, metà JSON (un numero oltre il double, «1e999»,
+    faceva lanciare `GetDouble` con una `FormatException` che il `catch (JsonException)` non prende, fino alla
+    pagina) → `TryGetDouble` e valori finiti, il resto si scarta; sui numeri buoni AoR e statistiche non
+    cambiano (Infrastructure 1793 verde).
+  - **Test**: `CoordinateParserTests` (+6: Feature, FeatureCollection con MultiPolygon, buco, tre forme con
+    «1e999»; tutti rossi sul codice di prima). Application 3060 → **3066**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

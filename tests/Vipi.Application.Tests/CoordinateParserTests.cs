@@ -413,4 +413,63 @@ public class CoordinateParserTests
 
     [Fact]
     public void Il_Vuoto_Non_E_Un_Errore() => Assert.Empty(CoordinateParser.Parse("   ").Aree);
+
+    // ---- GeoJSON col suo tipo (U-222) e numeri JSON impossibili (U-229) ----
+
+    [Fact]
+    public void Un_Feature_GeoJson_si_legge_con_la_longitudine_prima()
+    {
+        const string json = """
+            {"type":"Feature","properties":{"name":"ZONA A"},"geometry":{"type":"Polygon",
+             "coordinates":[[[12.1,41.9],[12.2,41.9],[12.2,42.0],[12.1,41.9]]]}}
+            """;
+
+        var area = Assert.Single(CoordinateParser.Parse(json).Aree);
+
+        Assert.Equal("ZONA A", area.Nome);
+        Assert.Equal((41.9, 12.1), area.Punti[0]);
+        Assert.Equal(3, area.Punti.Count);
+        Assert.True(area.AnelloChiuso);
+    }
+
+    [Fact]
+    public void Una_FeatureCollection_con_un_MultiPolygon_da_un_area_per_poligono()
+    {
+        const string json = """
+            {"type":"FeatureCollection","features":[
+              {"type":"Feature","properties":{},"geometry":{"type":"MultiPolygon","coordinates":[
+                [[[10,45],[11,45],[11,46],[10,45]]],
+                [[[12,44],[13,44],[13,45],[12,44]]]]}},
+              {"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[8,40],[9,40],[9,41],[8,40]]]}}]}
+            """;
+
+        var aree = CoordinateParser.Parse(json).Aree;
+
+        Assert.Equal(3, aree.Count);
+        Assert.Equal((44.0, 12.0), aree[1].Punti[0]);
+    }
+
+    [Fact]
+    public void Un_buco_GeoJson_si_scarta_e_si_dice()
+    {
+        const string json = """
+            {"type":"Polygon","coordinates":[[[10,45],[11,45],[11,46],[10,45]],[[10.2,45.2],[10.4,45.2],[10.4,45.4],[10.2,45.2]]]}
+            """;
+
+        var esito = CoordinateParser.Parse(json);
+
+        Assert.Single(esito.Aree);
+        Assert.Contains(esito.Segnalazioni, s => s.Kind == CoordinateIssueKind.BucoScartato);
+    }
+
+    [Theory]
+    [InlineData("[[1e999,45],[10,45],[10,46]]")]
+    [InlineData("[{\"lat\":1e999,\"lng\":10},{\"lat\":45,\"lng\":10},{\"lat\":46,\"lng\":11}]")]
+    [InlineData("{\"type\":\"Polygon\",\"coordinates\":[[[1e999,45],[10,45],[10,46],[11,46]]]}")]
+    public void Un_numero_Json_oltre_il_double_non_fa_cadere_niente(string json)
+    {
+        var esito = CoordinateParser.Parse(json);   // prima: FormatException fino alla pagina
+
+        Assert.All(esito.Aree.SelectMany(a => a.Punti), p => Assert.True(double.IsFinite(p.Lat) && double.IsFinite(p.Lon)));
+    }
 }

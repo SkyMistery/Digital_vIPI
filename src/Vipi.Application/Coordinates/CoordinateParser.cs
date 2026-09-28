@@ -99,6 +99,9 @@ public static class CoordinateParser
         // regionMapPolygon), e la verità su quell'ordine sta in PolygonGeometry: qui non si riscrive.
         if (trimmed.StartsWith('[') || trimmed.StartsWith('{'))
         {
+            // Prima il GeoJSON col suo tipo (Feature, FeatureCollection, Polygon, MultiPolygon): un'area per
+            // poligono (U-222). Le forme di IVAO, senza tipo, restano a PolygonGeometry.
+            if (GeoJsonReader.Prova(testo, out var geo)) return geo;
             var daJson = PolygonGeometry.ParsePoints(testo);
             if (daJson.Count > 0) return DaPunti(daJson, testo);
         }
