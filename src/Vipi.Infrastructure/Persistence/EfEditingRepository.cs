@@ -709,6 +709,10 @@ public sealed class EfEditingRepository : IEditingRepository
         if (!string.IsNullOrEmpty(edit.RowVersion))
             _db.Entry(block).Property(b => b.RowVersion).OriginalValue = Convert.FromBase64String(edit.RowVersion);
 
+        // 🔴 U-137 (revisione totale 3): la foto che il blocco citava PRIMA. Sostituita o tolta, restava nel
+        // deposito, fuori dalla quota e mai ripulita; ora si libera come alla cancellazione del blocco.
+        var prima = ShaCitati(new[] { block });
+
         block.Tier = edit.Tier;
         block.Visibility = edit.Visibility;
         block.CalloutKind = edit.CalloutKind;
@@ -723,6 +727,8 @@ public sealed class EfEditingRepository : IEditingRepository
                 "Il blocco è stato modificato nel frattempo: ricarica l'editor prima di salvare.",
                 "The block has been changed in the meantime: reload the editor before saving."));
         }
+
+        await LiberaImmaginiAsync(prima.Except(ShaCitati(new[] { block }), StringComparer.Ordinal).ToList(), ct);
     }
 
     public async Task<int> AddBlockAsync(int sectionId, BlockFormat format, BlockTier tier, BlockVisibility visibility, CancellationToken ct = default)

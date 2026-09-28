@@ -50,7 +50,23 @@ public sealed class EfMediaMaintenance : IMediaMaintenance
         var daTogliere = await _db.MediaAssets.Where(m => richiesti.Contains(m.Sha256)).ToListAsync(ct);
         _db.MediaAssets.RemoveRange(daTogliere);
         await _db.SaveChangesAsync(ct);
-        return daTogliere.Count;
+
+        // 🔴 U-138 (revisione totale 3): fra il controllo di sopra e la cancellazione qualcuno può aver ricaricato
+        // la stessa foto — il deposito deduplica per sha, quindi non nasce una riga nuova — e averla citata in un
+        // blocco. Si ricontrolla DOPO, e una foto tornata in uso si rimette coi byte che si hanno ancora in mano.
+        // Resta scoperto solo un blocco salvato dopo questo secondo controllo con una foto caricata prima della
+        // cancellazione: una finestra di millisecondi, contro i minuti di prima.
+        var tornati = await ReferencedShasAsync(ct);
+        var daRimettere = daTogliere.Where(m => tornati.Contains(m.Sha256)).ToList();
+        foreach (var m in daRimettere)
+            _db.MediaAssets.Add(new Vipi.Domain.Entities.MediaAsset
+            {
+                Sha256 = m.Sha256, ContentType = m.ContentType, ByteSize = m.ByteSize, Width = m.Width,
+                Height = m.Height, Bytes = m.Bytes, OriginalFileName = m.OriginalFileName,
+                CreatedUtc = m.CreatedUtc, CreatedByUserId = m.CreatedByUserId,
+            });
+        if (daRimettere.Count > 0) await _db.SaveChangesAsync(ct);
+        return daTogliere.Count - daRimettere.Count;
     }
 
     public async Task<long> DocumentImageBytesAsync(int documentId, CancellationToken ct = default)

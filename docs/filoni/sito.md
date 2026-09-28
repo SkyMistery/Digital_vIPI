@@ -1068,5 +1068,17 @@
     (+1), `PisteInUsoTests` (+1), `AirportLockGuardTests` (+1), `SegnalaModificheInterceptorTests` (+1),
     `EditorLvpTests` (+1, nuovo). Rossi sul codice di prima gli altri cinque. Application 3038 → **3039**,
     Infrastructure 1779 → **1783**, Ui 1817 → **1818**.
+  - **Gruppo 7** (immagini, **codice comune** `Vipi.Infrastructure`): **U-137** (sostituire o togliere l'immagine
+    di un blocco lasciava la vecchia nel deposito, fuori dalla quota e mai ripulita) → `UpdateBlockAsync` libera
+    le foto che il blocco non cita più, dalla stessa porta della cancellazione (`DeleteOrphansAsync` ricontrolla
+    tutti i posti: una foto citata altrove resta). Gemello trovato nel giro: l'**intro di pagina**
+    (`EfPageIntroStore`) aveva la stessa perdita, chiusa allo stesso modo. **U-138** (la pulizia controllava le
+    citazioni e POI cancellava: una foto ricaricata in mezzo — il deposito deduplica per sha, niente riga nuova —
+    e citata in un blocco spariva da sotto) → dopo la cancellazione si ricontrolla, e una foto tornata in uso si
+    rimette coi byte ancora in mano. Resta scoperto solo un blocco salvato DOPO il secondo controllo con una foto
+    caricata PRIMA della cancellazione: millisecondi contro i minuti di prima. Senza migrazione (scelta del Sito:
+    niente colonna «ultimo uso»).
+  - **Test**: `MediaMaintenanceTests` (+2; U-138 con un intercettore che cita la foto nell'istante del DELETE),
+    `IntroDiPaginaTests` (+1). Rossi sul codice di prima. Infrastructure 1783 → **1786**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

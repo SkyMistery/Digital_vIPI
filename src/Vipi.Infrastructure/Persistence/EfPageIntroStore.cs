@@ -21,8 +21,14 @@ public sealed class EfPageIntroStore : IPageIntroStore
     private readonly IEditAuthorizationService _authz;
     private readonly IResourceLockService _locks;
 
-    public EfPageIntroStore(VipiDbContext db, IEditAuthorizationService authz, IResourceLockService locks)
+    private readonly Vipi.Application.Media.IMediaMaintenance? _media;
+
+    /// <param name="media">La pulizia delle immagini che l'intro smette di citare (gemello di U-137). Opzionale:
+    /// senza, come prima.</param>
+    public EfPageIntroStore(VipiDbContext db, IEditAuthorizationService authz, IResourceLockService locks,
+        Vipi.Application.Media.IMediaMaintenance? media = null)
     {
+        _media = media;
         _db = db;
         _authz = authz;
         _locks = locks;
@@ -50,11 +56,14 @@ public sealed class EfPageIntroStore : IPageIntroStore
         var chiave = PageIntro.Chiave(pagina);
         var json = PageIntro.Serialize(sezioni);
         var riga = await _db.SharedBlocks.FirstOrDefaultAsync(b => b.Key == chiave, ct);
+        // Le foto che l'intro citava prima (gemello di U-137): quelle che non cita più si liberano dopo il salvataggio.
+        var prima = Vipi.Application.Media.MediaReferenceScanner.ScanAll(new[] { riga?.BodyJson });
 
         if (json is null)
         {
             if (riga is not null) _db.SharedBlocks.Remove(riga);
             await _db.SaveChangesAsync(ct);
+            await LiberaAsync(prima, null, ct);
             return;
         }
 
@@ -72,6 +81,15 @@ public sealed class EfPageIntroStore : IPageIntroStore
         riga.Body = null;
 
         await _db.SaveChangesAsync(ct);
+        await LiberaAsync(prima, json, ct);
+    }
+
+    /// <summary>Ripassa dalla pulizia vera, che ricontrolla TUTTI i posti: una foto citata anche altrove resta.</summary>
+    private async Task LiberaAsync(HashSet<string> prima, string? dopo, CancellationToken ct)
+    {
+        if (_media is null || prima.Count == 0) return;
+        prima.ExceptWith(Vipi.Application.Media.MediaReferenceScanner.ScanAll(new[] { dopo }));
+        if (prima.Count > 0) await _media.DeleteOrphansAsync(prima.ToList(), ct);
     }
 
     /// <summary>L'etichetta, con un tetto di ragionevolezza. Vuota → la chiave, che per chi guarda la tabella
