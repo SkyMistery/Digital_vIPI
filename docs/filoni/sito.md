@@ -1320,5 +1320,13 @@
     net10: Application **3080**, Infrastructure **1796**, Ui **1822**, Hosting **78**, E2E **454**. Nessuna
     migrazione, `deploy/` no. Prova a schermo: non serve (nessuna pagina cambia aspetto; la tendina tolta non era
     nel markup). ⚠️ Non provato: il filtro di `Program.cs` sotto `dotnet ef` (non ho lanciato una migrazione).
+- ▶ **S35** lotto **L11, fetta I — migrazioni all'avvio** (via del committente il 28-set; da fare): U-096 (migrazioni
+  MySQL all'avvio non atomiche, non serializzate, non riprendibili), U-097, U-100.
+  - **Scelte del committente** (28-set): **U-097** una migrazione con DROP o RENAME resta **MINOR, marcata «non si
+    torna indietro»**: il foglio di consegna lo dice, e il rollback «a due rinomine» non vale per quel pacchetto
+    (⚠️ `Directory.Build.props:84` e `deploy/atc-ivao/LEGGIMI-AGGIORNARE-VIA-FTP.md:219` sono file del Master:
+    il Sito prepara il testo e lo passa). **U-100** `/vsop/health` va in Degraded **solo per gli errori che
+    danno problemi al sito** (gravità Error), non per i Warning permanenti del report di consistenza (torri a
+    5 NM, FSS).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
