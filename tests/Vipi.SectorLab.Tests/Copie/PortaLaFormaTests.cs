@@ -134,25 +134,4 @@ public sealed class PortaLaFormaTests : IDisposable
         Assert.DoesNotContain(fix.Nome, File.ReadAllText(Path.Combine(_albero.Radice, Erba)), StringComparison.Ordinal);
         Assert.Contains(Righe(Settore), r => r.Contains(fix.Nome, StringComparison.Ordinal));
     }
-
-    [Fact]
-    public async Task IlBordoInUnGeoNonRiceveAncoraLaFormaEDiceIlPerche()
-    {
-        const string Geo = "SectorFiles/Include/IT/GEO/prova.geo";
-        _albero.Scrivi(Erba, "STATIC;GRASS;1;GRASS;\r\nN045.00.00.000;E009.00.00.000;\r\nN045.00.10.000;E009.00.00.000;\r\n"
-                             + "N045.00.10.000;E009.00.10.000;\r\nN045.00.00.000;E009.00.10.000;\r\n");
-        _albero.Scrivi(Geo, "N045.00.00.000;E009.00.00.000;N045.00.10.000;E009.00.00.000;BUILDING;\r\n"
-                            + "N045.00.10.000;E009.00.00.000;N045.00.10.000;E009.00.10.000;BUILDING;\r\n"
-                            + "N045.00.10.000;E009.00.10.000;N045.00.00.000;E009.00.10.000;BUILDING;\r\n"
-                            + "N045.00.00.000;E009.00.10.000;N045.00.00.000;E009.00.00.000;BUILDING;\r\n");
-        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
-
-        Assert.True(_lab.GestoSuiVertici(Erba, 0, "Vertices", GestoDeiVertici.Cambia, 1, "N045.00.20.000;E009.00.00.000;"));
-
-        Assert.Empty(_lab.FormaPortata!.Portate);
-        var (copia, perche) = Assert.Single(_lab.FormaPortata.NonPortate);
-        Assert.Equal(Geo, copia.File);
-        Assert.Contains(".geo", perche, StringComparison.Ordinal);
-        Assert.Equal([Erba], _lab.Modifiche.FileToccati);
-    }
 }

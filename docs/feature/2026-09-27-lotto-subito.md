@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); in corso la **slice 8** (8a-8c fatte, §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); in corso la **slice 8** (8a-8d fatte, §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -1015,3 +1015,43 @@ diverse» · **8c** la modifica propagata alle copie uguali, «allinea anche que
   della riga sopra intatto), la famiglia `form=LIRE` tutta uguale; LIRF_TWR, tolto il vertice 3 → «Forma portata anche
   su: lirf.str LIRF LIRF ATZ», `twrs.tfl −1 +0` e `lirf.str −1 +0`; Ctrl+Z pulito. Il motore non è toccato. Test: Lab
   679 → **688**.
+- **8d (28 settembre)** — il bordo in un `.geo` e il riempimento in un `.pol` (I2, H10). Codice comune toccato: solo la
+  regola nuova `Regola.ConfineSenzaErba` (avviso), calcolata dal Lab come `FormeDiverse`.
+  - **Le linee dei `.geo` ricevono e portano la forma.** Una linea (i segmenti di fila della 5d) non è un elenco di
+    vertici: si riscrive come testo (`ModificheInSospeso.RiscriviLaLinea`, `PortaLaForma.RigheDellaLinea`), un segmento
+    per lato, col giro e la partenza della linea, chiusa se lo era; i segmenti che non cambiano restano **le righe di
+    prima, byte per byte**, e quelli nuovi prendono tipo, area e resto dalla prima riga della linea (senza commento in
+    coda), con le coordinate nella sua forma (col punto o compatte). Spostare un punto della linea (5d) porta la forma
+    sull'erba e sulle altre copie; «Allinea» e «Prendi la sua» valgono anche fra linee e poligoni.
+  - 🔴 Una linea riscritta può avere un segmento in più o in meno, e i record dopo di lei nel suo file slittano (misura:
+    `liaa.geo` ha la stessa linea due volte). Nello stesso file le copie si scrivono dall'ultima alla prima, e la scelta
+    nella scheda segue il suo record; test rosso sul codice di prima.
+  - **L'uscita che manca (I2)**: nella scheda di un poligono di un `.pol` senza bordo, **«+ Bordo in lirf.geo
+    (TAXIWAY)»**; in quella di una linea chiusa di un `.geo` di scalo senza riempimento, **«+ Riempimento in
+    rf_ad_gnd.pol (GRASS)»**. Si aggiunge in fondo al file, dopo una riga vuota e un commento col nome del gruppo (quello
+    del `.pol` senza `_Polygon`, e viceversa), coordinate col punto; il record nuovo diventa la scelta, e da lì le due
+    sono la stessa forma. Regole prese dalla misura (sotto), scelte dell'agente: il file è quello dove stanno già i bordi
+    (o i riempimenti) di quel file, se no `GEO/lixx.geo` per `xx_ad_gnd.pol` (e viceversa); il tipo del bordo è quello del
+    riempimento per BUILDING, TAXIWAY, APRON, RUNWAY, e BUILDING per gli altri; il riempimento di un confine dello scalo
+    è GRASS, degli altri il tipo della linea (BUILDING per i tipi che non sono riempimenti). Il riempimento si propone
+    solo nei `.geo` degli scali (`GEO/li…geo`) e non per le linee RUNWAY: sul fork le 458 linee chiuse RUNWAY senza
+    riempimento sono soglie e numeri di pista disegnati a tratti. Senza un file dello scalo dove metterla, la scheda lo
+    dice (crearne uno è per il futuro, §4).
+  - **Il confine e la sua erba (H10)**: il gruppo `ad_boundary` di un `.geo` (con o senza le due lettere dello scalo:
+    `MC_ad_boundary`, `mw_boundary`, `boundary`) senza un poligono uguale in un `.pol`, e l'erba `…_Polygon` senza una
+    linea uguale: avviso `ConfineSenzaErba`, con «ce n'è uno simile, diverso di N vertici» se c'è.
+  - Limite noto: la mappa cuce i segmenti dei `.geo` senza guardare commenti e righe vuote, la linea del file (5d) sì.
+    Dove le due non coincidono (una linea chiusa attaccata a un'altra dello stesso tipo: **34 su 5 599**, quasi tutte la
+    costa di `itgeo.geo`; 25 delle 200 linee provate sotto) la forma non si porta: il Lab non scrive niente, e non lo dice.
+  Misura sul fork (`scratchpad/misura8`, `misura8c`): coppie `.pol` ↔ `.geo` **1 594**, tipi (BUILDING→BUILDING 625,
+  TAXIWAY 399, APRON 184, CONCRETE→BUILDING 107, RUNWAY 103, GRASS→BUILDING 92, HOLE→BUILDING 50…); ogni `xx_ad_gnd.pol`
+  ha i suoi bordi in un solo `.geo`, `GEO/lixx.geo` (92 su 94, gli altri due con lo stesso nome); i `.pol` non ripetono il
+  primo vertice (1 673 su 1 751). **H10: 0 avvisi** (60 confini, 57 con l'erba: gli altri 3 sono confini di pista, fuori
+  dalla regola; 58 erbe tutte col confine). **Uscite proponibili**: 159 bordi (BUILDING 109, TAXIWAY 35, RUNWAY 11, APRON
+  4), 105 riempimenti (BUILDING 65, TAXIWAY 30, APRON 10), 3 senza file (`lipm.geo`). **Propagazione**, gesto vero e
+  annulla: **613 forme** (anche 200 linee `.geo` come sorgente), **617 copie portate** (201 bordi dai `.pol`), dopo il
+  gesto tutte uguali, annullato tutto come prima, **0 guasti**. Prova sull'albero invariata (120 errori, 543 avvisi).
+  Prova a schermo sul banco: l'erba di LIRF (`rf_ad_gnd.pol`), un vertice spostato → «Forma portata anche su: lirf.geo»,
+  `lirf.geo −2 +2` (i due segmenti del vertice); `rf_ad_gnd.pol` #6 → «+ Bordo in lirf.geo (TAXIWAY)» → `lirf.geo −0
+  +113` (`//Twy_D_1` e 111 segmenti), la scelta sulla linea nuova, «La stessa forma» uguale; «Annulla tutto» pulito.
+  Test: Lab 688 → **698**, motore 676.

@@ -502,8 +502,10 @@ public sealed class SessioneDelLab
             var orologio = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                var forme = FormeUguali.Di(strati);
                 problemi = [.. ProblemiDelLab.DellAlbero(sessione),
-                    .. ProblemiDelLab.Aggancia(sessione, Core.Copie.FamiglieDichiarate.Problemi(Core.Copie.FamiglieDichiarate.Di(sessione, FormeUguali.Di(strati)), sessione))];
+                    .. ProblemiDelLab.Aggancia(sessione, Core.Copie.FamiglieDichiarate.Problemi(Core.Copie.FamiglieDichiarate.Di(sessione, forme), sessione)),
+                    .. ProblemiDelLab.Aggancia(sessione, UsciteDellaForma.Problemi(sessione, strati, forme))];
                 Registro.Scrivi("validazione", $"{problemi.Count} problemi ({problemi.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore)} errori) in {orologio.ElapsedMilliseconds} ms");
             }
             catch (Exception e)
@@ -960,11 +962,9 @@ public sealed class SessioneDelLab
 
         // Le copie che ADESSO sono uguali a questa forma: dopo il gesto la ricevono (D5). Quelle già diverse no.
         FormaPortata = null;
-        var uguali = ElenchiDiVertici.Uno(file, record, campo) is { } prima
-            ? copie.Where(c => ElencoDellaCopia(c) is { } suo && PortaLaForma.Uguali(prima, suo, CatalogoScelto)).ToList()
+        var uguali = ElenchiDiVertici.Uno(file, record, campo) is { } prima && PortaLaForma.Da(prima, CatalogoScelto) is { } forma
+            ? AncoraUguali(forma, copie)
             : [];
-        // Le copie che non sono un elenco di vertici (le linee dei .geo) non la ricevono ancora: si dice, non si tace.
-        var senzaElenco = copie.Where(c => ElencoDellaCopia(c) is null).ToList();
 
         string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
         object esito = gesto switch
@@ -984,8 +984,8 @@ public sealed class SessioneDelLab
         if (esito is ModificaDeiVertici)
         {
             RifaiLaGeometria(fileRelativo);
-            if (uguali.Count > 0 || senzaElenco.Count > 0)
-                FormaPortata = PortaSulleCopie(file, record, campo, [.. uguali, .. senzaElenco]);
+            if (uguali.Count > 0 && ElenchiDiVertici.Uno(file, record, campo) is { } dopo)
+                FormaPortata = PortaSulleCopie(PortaLaForma.Da(dopo, CatalogoScelto), $"{NomeDelFile(fileRelativo)} {etichetta}", uguali);
         }
 
         RicontrollaLeModifiche();
@@ -1011,42 +1011,84 @@ public sealed class SessioneDelLab
             .SelectMany(p => p.Copie.Where(c => c.Uguale).Select(c => c.Dove))];
     }
 
+    /// <summary>Le copie uguali di una linea di un .geo (8d): quelle della sua forma.</summary>
+    private IReadOnlyList<ParteDiForma> CopieDellaLinea(string fileRelativo, int record)
+        => [.. StessaFormaDi(fileRelativo, record).SelectMany(p => p.Copie.Where(c => c.Uguale).Select(c => c.Dove))];
+
+    /// <summary>Fra le copie candidate, quelle che nel modello di adesso sono ancora uguali alla forma.</summary>
+    private List<ParteDiForma> AncoraUguali(FormaDiPartenza forma, IReadOnlyList<ParteDiForma> copie)
+        => [.. copie.Where(c => FormaDi(c) is { } sua && PortaLaForma.Uguali(forma, sua))];
+
     private ElencoDiVertici? ElencoDellaCopia(ParteDiForma copia)
         => Sessione?.File.GetValueOrDefault(copia.File) is { } file ? PortaLaForma.ElencoDellaParte(file, copia.Record, copia.Parte) : null;
 
-    /// <summary>Porta la forma dell'elenco sulle copie: una voce di vertici per copia, ognuna col suo file.</summary>
-    private FormaPortataSulleCopie PortaSulleCopie(FileAperto file, int record, string campo, IReadOnlyList<ParteDiForma> copie)
+    /// <summary>La forma di una parte com'è adesso: un elenco di vertici, o una linea di un .geo (8d).</summary>
+    private FormaDiPartenza? FormaDi(ParteDiForma parte)
+    {
+        if (Sessione?.File.GetValueOrDefault(parte.File) is not { } file)
+            return null;
+        if (PortaLaForma.ElencoDellaParte(file, parte.Record, parte.Parte) is { } elenco)
+            return PortaLaForma.Da(elenco, CatalogoScelto);
+        return Modifiche.LineaDi(file, parte.Record) is { } linea ? PortaLaForma.Da(linea) : null;
+    }
+
+    /// <summary>
+    /// Porta la forma sulle copie: una voce di vertici per copia che è un elenco, una voce nel testo per una linea di un
+    /// .geo (8d), ognuna col suo file.
+    /// </summary>
+    private FormaPortataSulleCopie PortaSulleCopie(FormaDiPartenza? forma, string da, IReadOnlyList<ParteDiForma> copie)
     {
         var portate = new List<ParteDiForma>();
         var no = new List<(ParteDiForma Copia, string Perche)>();
-        string da = $"{NomeDelFile(file.Relativo)} {EtichettaDi(file.Relativo, record)}";
-        foreach (var copia in copie)
+        // 🔴 Una linea di un .geo riscritta può avere un segmento in più o in meno, e i record dopo di lei nel suo file
+        // slittano (misura 8d: liaa.geo ha la stessa linea due volte). Nello stesso file si scrive dall'ultima copia alla
+        // prima, così gli indici di quelle ancora da scrivere restano giusti; la scelta, se sta dopo, segue il suo record.
+        foreach (var copia in copie.OrderBy(c => c.File, StringComparer.Ordinal).ThenByDescending(c => c.Record))
         {
-            if (ElenchiDiVertici.Uno(file, record, campo) is not { } sorgente || ElencoDellaCopia(copia) is not { } suo
-                || Sessione?.File.GetValueOrDefault(copia.File) is not { } suoFile)
+            int primaDelGesto = Sessione?.File.GetValueOrDefault(copia.File)?.Record ?? 0;
+            if (forma is null)
             {
-                no.Add((copia, "Questa copia non è un elenco di vertici (una linea di un .geo: slice 8d)."));
+                no.Add((copia, "La forma di partenza ha un nome che non si risolve."));
                 continue;
             }
 
-            if (PortaLaForma.VociPer(sorgente, suo, CatalogoScelto, out string? perche) is not { } voci)
+            if (Sessione?.File.GetValueOrDefault(copia.File) is not { } suoFile)
+                continue;
+
+            object esito;
+            if (ElencoDellaCopia(copia) is { } suo)
             {
-                no.Add((copia, perche!));
+                if (PortaLaForma.VociPer(forma, suo, CatalogoScelto, out string? perche) is not { } voci)
+                {
+                    no.Add((copia, perche!));
+                    continue;
+                }
+
+                esito = Modifiche.SostituisciIVertici(suoFile, copia.Record, suo.Chiave, voci, $"forma portata da {da}",
+                    EtichettaDi(copia.File, copia.Record));
+            }
+            else if (Modifiche.LineaDi(suoFile, copia.Record) is not null)
+            {
+                esito = Modifiche.RiscriviLaLinea(suoFile, copia.Record, forma, $"{EtichettaDi(copia.File, copia.Record)}: forma portata da {da}");
+            }
+            else
+            {
+                no.Add((copia, "Questa copia non è né un elenco di vertici né una linea di un .geo."));
                 continue;
             }
 
-            var esito = Modifiche.SostituisciIVertici(suoFile, copia.Record, suo.Chiave, voci, $"forma portata da {da}",
-                EtichettaDi(copia.File, copia.Record));
-            Registro.Scrivi("vertici", $"  anche {copia.File}#{copia.Record} {suo.Chiave}: {Descrivi(esito)}");
-            if (esito is ModificaDeiVertici)
-            {
-                portate.Add(copia);
-                RifaiLaGeometria(copia.File);
-            }
-            else if (esito is ModificaRifiutata rifiutata)
+            Registro.Scrivi("vertici", $"  anche {copia.File}#{copia.Record}: {Descrivi(esito)}");
+            if (esito is ModificaRifiutata rifiutata)
             {
                 no.Add((copia, rifiutata.Motivo));
+                continue;
             }
+
+            portate.Add(copia);
+            int slittati = suoFile.Record - primaDelGesto;
+            if (slittati != 0 && Scelta is { } scelta && scelta.File == copia.File && scelta.Record > copia.Record)
+                Scelta = (scelta.File, scelta.Record + slittati);
+            RifaiLaGeometria(copia.File);
         }
 
         return new FormaPortataSulleCopie(portate, no);
@@ -1054,27 +1096,27 @@ public sealed class SessioneDelLab
 
     /// <summary>
     /// «Allinea questa» e «prendi la sua» (slice 8c, D5): la forma della parte <paramref name="da"/> portata sulla parte
-    /// <paramref name="a"/>, che tiene la sua partenza, il suo verso e la scrittura dei suoi vertici.
+    /// <paramref name="a"/>, che tiene la sua partenza, il suo verso e la scrittura dei suoi vertici. Tutte e due possono
+    /// essere una linea di un .geo (8d).
     /// </summary>
     public bool CopiaLaForma(ParteDiForma da, ParteDiForma a)
         => NellaStoria($"forma di {da.Etichetta} portata su {a.Etichetta}", () => CopiaLaFormaAdesso(da, a));
 
     private bool CopiaLaFormaAdesso(ParteDiForma da, ParteDiForma a)
     {
-        if (Sessione?.File.GetValueOrDefault(da.File) is not { } file || ElencoDellaCopia(da) is not { } sorgente)
+        if (FormaDi(da) is not { } forma)
         {
-            Rifiuto = "La forma di partenza non è un elenco di vertici (una linea di un .geo: slice 8d).";
+            Rifiuto = "La forma di partenza non si legge (un nome che non si risolve?).";
             Avvisa();
             return false;
         }
 
-        FormaPortata = PortaSulleCopie(file, da.Record, sorgente.Chiave, [a]);
+        FormaPortata = PortaSulleCopie(forma, $"{NomeDelFile(da.File)} {EtichettaDi(da.File, da.Record)}", [a]);
         Rifiuto = FormaPortata.NonPortate.Count > 0 ? FormaPortata.NonPortate[0].Perche : null;
         RicontrollaLeModifiche();
         Avvisa();
         return FormaPortata.Portate.Count > 0;
     }
-
 
     private static string ComeSiLegge(object punto) => punto switch
     {
@@ -1659,6 +1701,59 @@ public sealed class SessioneDelLab
         return esito is ModificaDelTesto;
     }
 
+    // --- bordo e riempimento (lotto «Subito» slice 8d, I2) ------------------------------------------------------------
+
+    /// <summary>
+    /// L'uscita che manca alla forma del record (il bordo in un .geo per un poligono di un .pol, il riempimento in un .pol
+    /// per una linea chiusa di un .geo), o null; <paramref name="perche"/> dice perché non si può aggiungere, se manca.
+    /// </summary>
+    public UscitaDellaForma? UscitaDi(string fileRelativo, int record, out string? perche)
+    {
+        perche = null;
+        if (Sessione is null)
+            return null;
+        if (_formeUguali is not { } indice || !ReferenceEquals(indice.Strati, Strati))
+            _formeUguali = indice = (Strati, FormeUguali.Di(Strati));
+        var delFile = Strati.SelectMany(s => s.Forme).Where(f => f.File == fileRelativo).ToList();
+        return UsciteDellaForma.Di(Sessione, indice.Indice, delFile, fileRelativo, record, out perche);
+    }
+
+    /// <summary>
+    /// Aggiunge l'uscita che manca (I2) in fondo al suo file, legata alla forma come famiglia: da lì cambiare l'una cambia
+    /// l'altra. Le righe si fissano adesso (annulla e ripeti rifanno le stesse); il record nuovo diventa la scelta.
+    /// </summary>
+    public bool AggiungiLUscita(string fileRelativo, int record)
+    {
+        if (UscitaDi(fileRelativo, record, out string? perche) is not { } uscita)
+        {
+            Rifiuto = perche ?? "Questa forma ha già il suo bordo e il suo riempimento.";
+            Avvisa();
+            return false;
+        }
+
+        return NellaStoria($"{(uscita.Bordo ? "bordo" : "riempimento")} di {EtichettaDi(fileRelativo, record)} aggiunto in {NomeDelFile(uscita.File)}",
+            () => AggiungiLUscitaAdesso(uscita));
+    }
+
+    private bool AggiungiLUscitaAdesso(UscitaDellaForma uscita)
+    {
+        if (Sessione?.File.GetValueOrDefault(uscita.File) is not { } file || file is not IFileConRecord conRecord)
+            return false;
+
+        int prima = conRecord.RecordDelModello.Count;
+        int nuovi = uscita.Bordo ? uscita.Righe.Count - 2 : 1;
+        var righe = conRecord.RigheDelFile(Modifiche.SporchiDi(uscita.File));
+        // In fondo al file, dopo l'ultima riga; una riga vuota in più se il file non ne ha già una in fondo.
+        var aggiunte = righe.Count > 0 && righe[^1].Trim().Length == 0 ? uscita.Righe.Skip(1).ToList() : uscita.Righe.ToList();
+        var sostituzioni = new Dictionary<int, IReadOnlyList<string>> { [righe.Count] = [righe[^1], .. aggiunte] };
+        string gesto = uscita.Bordo ? $"bordo aggiunto ({uscita.Tipo})" : $"riempimento aggiunto ({uscita.Tipo})";
+        bool fatto = GestoSulTesto(uscita.File, gesto, f => Modifiche.CambiaRighe(f, sostituzioni, gesto,
+            riletto => riletto.RecordDelModello.Count == prima + nuovi ? null : "Riletto, il file non ha i record che dovrebbe: si aggiunge a mano."));
+        if (fatto)
+            Scegli(uscita.File, prima);
+        return fatto;
+    }
+
     // --- la vista a linea dei .geo (lotto «Subito» slice 5d) ------------------------------------------------------
 
     /// <summary>La linea del segmento .geo, o null.</summary>
@@ -1667,20 +1762,31 @@ public sealed class SessioneDelLab
 
     /// <summary>Sposta un punto della linea: i due segmenti che lo toccano, in un gesto solo della storia.</summary>
     public bool CambiaPuntoDellaLinea(string fileRelativo, int record, int punto, string? testo)
-        => NellaStoria($"punto {punto + 1} della linea di {EtichettaDi(fileRelativo, record)} spostato",
-            () => GestoSulPunto(fileRelativo, record, punto, testo));
+    {
+        // Slice 8d: come per i vertici, le copie della stessa forma si fissano adesso (annulla e ripeti le ritrovano).
+        var copie = CopieDellaLinea(fileRelativo, record);
+        return NellaStoria($"punto {punto + 1} della linea di {EtichettaDi(fileRelativo, record)} spostato",
+            () => GestoSulPunto(fileRelativo, record, punto, testo, copie));
+    }
 
-    private bool GestoSulPunto(string fileRelativo, int record, int punto, string? testo)
+    private bool GestoSulPunto(string fileRelativo, int record, int punto, string? testo, IReadOnlyList<ParteDiForma> copie)
     {
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return false;
+
+        FormaPortata = null;
+        var uguali = Modifiche.LineaDi(file, record) is { } prima ? AncoraUguali(PortaLaForma.Da(prima), copie) : [];
 
         string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
         var esito = Modifiche.CambiaPuntoDellaLinea(file, record, punto, testo, etichetta);
         Registro.Scrivi("linea", $"{fileRelativo}#{record} punto {punto} «{testo}»: {Descrivi(esito)}");
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
         if (esito is not ModificaRifiutata)
+        {
             RifaiLaGeometria(fileRelativo);
+            if (uguali.Count > 0 && Modifiche.LineaDi(file, record) is { } dopo)
+                FormaPortata = PortaSulleCopie(PortaLaForma.Da(dopo), $"{NomeDelFile(fileRelativo)} {etichetta}", uguali);
+        }
         RicontrollaLeModifiche();
         Avvisa();
         return esito is not ModificaRifiutata;

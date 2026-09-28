@@ -82,6 +82,13 @@ public enum Regola
     /// </summary>
     FormeDiverse,
 
+    /// <summary>
+    /// Il confine dello scalo (<c>ad_boundary</c> in un <c>.geo</c>) senza la sua erba uguale in un <c>.pol</c>, o l'erba
+    /// (<c>ad_boundary_Polygon</c>) senza il suo confine (lotto «Subito» slice 8d, H10): sono la stessa forma, e spostare
+    /// il confine sposta l'erba. La calcola il Sector Lab, come <see cref="FormeDiverse"/>.
+    /// </summary>
+    ConfineSenzaErba,
+
     /// <summary>Una mappa composta elenca una procedura che nel suo <c>.str</c> non c'è (F3-bis §2.2), o un elenco che non si legge.</summary>
     CompostaConProceduraAssente,
 
@@ -160,7 +167,7 @@ public static class Regole
     {
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
-            or Regola.CopieDiverse or Regola.FormeDiverse or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
+            or Regola.CopieDiverse or Regola.FormeDiverse or Regola.ConfineSenzaErba or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
             or Regola.CommentoInCoda or Regola.FileCitatoAssente or Regola.FileInclusoDueVolte
             or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma
             or Regola.NomeMancante => Validazione.Gravita.Avviso,

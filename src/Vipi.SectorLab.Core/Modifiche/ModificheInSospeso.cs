@@ -1293,6 +1293,35 @@ public sealed class ModificheInSospeso
         return esito;
     }
 
+    /// <summary>
+    /// Riscrive i segmenti della linea con la forma <paramref name="forma"/> (lotto «Subito» slice 8d: la forma portata su
+    /// un bordo in un <c>.geo</c>). Una voce nel testo del file; i segmenti che non cambiano restano le righe di prima.
+    /// </summary>
+    public object RiscriviLaLinea(FileAperto file, int indice, Copie.FormaDiPartenza forma, string gesto)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(forma);
+        if (file is not IFileConRecord conRecord || LineaDi(file, indice) is not { } linea)
+            return new ModificaRifiutata("Questo record non è un segmento di un .geo.");
+        if (forma.Anello.Count < 3)
+            return new ModificaRifiutata("La forma di partenza ha meno di 3 vertici.");
+        var sporchi = SporchiDi(file.Relativo);
+        var righe = conRecord.RigheDelFile(sporchi);
+        var posti = conRecord.PostiDeiRecord(sporchi);
+        // Un segmento, una riga: con un commento o un'altra riga attaccata al segmento la linea si riscrive a mano.
+        if (linea.Record.Any(r => posti[r].Quante != 1))
+            return new ModificaRifiutata("Un segmento di questa linea non sta su una riga sola: si cambia a mano, dalle righe del file.");
+
+        var nuove = Copie.PortaLaForma.RigheDellaLinea(forma, linea, [.. linea.Record.Select(r => righe[posti[r].Da])]);
+        var sostituzioni = new Dictionary<int, IReadOnlyList<string>> { [posti[linea.Record[0]].Da + 1] = nuove };
+        foreach (int r in linea.Record.Skip(1))
+            sostituzioni[posti[r].Da + 1] = [];
+
+        int attesi = conRecord.RecordDelModello.Count - linea.Record.Count + nuove.Count;
+        return CambiaRighe(file, sostituzioni, gesto,
+            riletto => riletto.RecordDelModello.Count == attesi ? null : "Riletto, il file non ha i segmenti che dovrebbe: si fa a mano, dalle righe del file.");
+    }
+
     /// <summary>Spezza la linea al punto <paramref name="punto"/> (in mezzo): una riga vuota prima del segmento che comincia lì.</summary>
     public object SpezzaLaLinea(FileAperto file, int indice, int punto, string etichetta = "")
     {

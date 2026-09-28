@@ -9,7 +9,8 @@
     Slice 8b: la famiglia DICHIARATA (form=NOME) coi suoi record, e i gesti per dichiararla sulle copie uguali o per
     aggiungerci una copia. Solo dentro una famiglia dichiarata una forma diversa è un avviso («copie di forma diverse»).
 *@
-@if (Lab.StessaFormaDi(File, Record) is var parti && (parti.Count > 0 || Lab.FamigliaDi(File, Record) is not null))
+@if (Lab.StessaFormaDi(File, Record) is var parti && Uscita() is var (uscita, senzaUscita)
+     && (parti.Count > 0 || Lab.FamigliaDi(File, Record) is not null || uscita is not null || senzaUscita is not null))
 {
     var famiglia = Lab.FamigliaDi(File, Record);
     var dellaFamiglia = famiglia?.Membri.Select(m => (m.File, m.Record)).ToHashSet() ?? [];
@@ -70,6 +71,19 @@
                 Dichiara qui e @SulleCopie(uguali.Count)
             </button>
         </div>
+    }
+    @if (uscita is not null)
+    {
+        @* Slice 8d (I2): una forma, due uscite — il bordo in un .geo, il riempimento in un .pol. Quella che manca si aggiunge
+           in fondo al file dello scalo, e da lì le due sono la stessa forma. *@
+        <p class="lab-rinomina" data-uscita="@(uscita.Bordo ? "bordo" : "riempimento")">
+            <button class="lab-tasto" data-aggiungi-uscita="@uscita.File"
+                    title="@TitoloDellUscita(uscita)" @onclick="() => Lab.AggiungiLUscita(File, Record)">@TestoDellUscita(uscita)</button>
+        </p>
+    }
+    else if (senzaUscita is not null)
+    {
+        <p class="lab-nota" data-uscita-perche>@senzaUscita</p>
     }
     @if (Lab.FormaPortata is { } portata)
     {
@@ -186,6 +200,15 @@
     private static string QuantiRecord(int quanti) => quanti == 1 ? "1 record" : $"{quanti} record";
 
     private static string Diverse(int quante) => quante == 1 ? "1 di forma diversa" : $"{quante} di forma diversa";
+
+    private (UscitaDellaForma? Uscita, string? Perche) Uscita() => (Lab.UscitaDi(File, Record, out string? perche), perche);
+
+    private static string TestoDellUscita(UscitaDellaForma uscita)
+        => $"{(uscita.Bordo ? "+ Bordo" : "+ Riempimento")} in {NomeDelFile(uscita.File)} ({uscita.Tipo})";
+
+    private static string TitoloDellUscita(UscitaDellaForma uscita) => uscita.Bordo
+        ? "Aggiunge in fondo al .geo dello scalo la linea che fa il bordo di questo poligono: da lì sono la stessa forma"
+        : "Aggiunge in fondo al .pol dello scalo il poligono che riempie questa linea: da lì sono la stessa forma";
 
     private static string Nome(ParteDiForma parte) => $"{NomeDelFile(parte.File)} {parte.Etichetta}";
 
