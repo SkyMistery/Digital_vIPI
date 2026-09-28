@@ -133,5 +133,7 @@ public class SegnalaModificheInterceptorTests : IAsyncLifetime
 
         public Task<FinestraDiModifiche> PrendiAsync(TimeSpan attesa, CancellationToken ct) =>
             throw new NotSupportedException();
+
+        public FinestraDiModifiche? PrendiSubito() => throw new NotSupportedException();
     }
 }

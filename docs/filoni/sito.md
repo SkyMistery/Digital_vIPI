@@ -1440,5 +1440,28 @@
     seconda richiesta, orologio che scorre, lo `<script>` fallito tolto, nessuna richiesta dopo l'arrivo.
     ⚠️ U-208 non riproducibile coi dati: `IcaoFromCallsign` ricava lo scalo da ogni callsign con «_», quindi
     l'indirizzo manca solo in un caso latente; resta il test bUnit.
+- ✅ **S39** lotto **L11, fetta M — il resto** (via del committente il 29-set). Codice comune: `Vipi.Application`
+  (`IModificheInAttesa.PrendiSubito`), `Vipi.Infrastructure` (`DerivaDopoLeModificheHostedService`), `tools/`.
+  - **U-123** `tools/prepara-pacchetto.ps1`: la seconda rete cerca **chiavi con un valore** invece dei nomi (una chiave
+    nota non vuota e non segnaposto, `Password=` con valore, `rfo_` + 40 caratteri, chiave privata, key-ring), e
+    guarda anche il ramo `docs/` e i `.md`. Prima fermava sempre `appsettings.json` (nomi con valori vuoti) e lasciava
+    passare il file del ponte RFO e tutto `docs/`. Trovato strada facendo: con **un** file dichiarato `$percorsi`
+    era una stringa e «stringa + array» concatenava i percorsi (`@()`). Prova dei cinque casi in
+    `docs/history/revisione-totale-3/prova-rete-segreti.ps1` (prima: 1 FERMO, 2 e 3 PASSA, 5 FERMO; ora come
+    atteso). Passata su `deploy/` e `docs/` (327 file): resta solo `registro.json`, che nomina «BEGIN PRIVATE KEY»
+    per descriverlo e non entra in nessun pacchetto. Guida `preparare-un-pacchetto.md` aggiornata.
+  - **U-232** porte provate tutte: `PorteTutteLeScrittureTests` prende per riflessione ogni metodo dei sette servizi
+    delle pagine di struttura (55 scritture, 21 letture; l'eccezione voluta `RecomputeFromArchiveAsync` col suo
+    perché); `LockDelleScrittureStrutturateTests` ogni `Save…` di APP e vSOP militare, con la guardia che un'altra
+    scrittura debba chiamarsi `Save` o essere dichiarata; `PorteDelleAnagraficheTests` dal livello subito sotto la
+    soglia (`DivisionStaff` per le porte da Editor) e la controprova alla soglia della classifica. Le quattro
+    mutazioni (lock tolto da `DeleteClauseAsync`, `EnsureAsync` in `SaveRegulatedAsync` dell'APP, glossario a
+    `DivisionStaff`, classifica a `Editor`) ora fanno rosso: `docs/history/revisione-totale-3/mutazioni-u232.sh`.
+    ⚠️ La vIPI ACC resta ai casi a mano: le sue scritture verificano prima che la sezione sia del documento.
+  - **U-236** come da scelta del committente: allo spegnimento `StopAsync` prende la finestra aperta e fa il giro nel
+    tempo concesso dall'host; un giro già partito finisce invece di interrompersi al segnale di arresto.
+  - **Test**: rossi sul codice di prima (U-236 servizio di HEAD; U-232 le quattro mutazioni; U-123 lo script
+    vecchio). Suite intere verdi: Application 3084, Infrastructure **1984**, Hosting 79 (net8 e net10), E2E 454.
+    Nessuna migrazione, `deploy/` no, nessuna UI (niente prova a schermo: il comportamento è di processo e di script).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

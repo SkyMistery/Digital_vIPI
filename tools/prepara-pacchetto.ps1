@@ -61,18 +61,53 @@ function Fermati($messaggio) {
 # è un allarme: è la ragione per cui si smette di leggerli. Le credenziali stanno nei file di testo, e in
 # un pacchetto di questo prodotto un `.json`, un `.xml` o un `.env` non ci hanno niente da fare — tranne
 # l'indice degli asset, che è dichiarato e si riconosce dal nome.
+#
+# ⚠️ Si cercano CHIAVI CON UN VALORE, non nomi di chiave (U-123, revisione 3). La prima stesura cercava i nomi
+# («ConnectionStrings», «ClientSecret»…) e aveva due buchi opposti: bloccava per sempre `appsettings.json`,
+# che quei nomi li porta con i valori VUOTI, e lasciava passare il file del ponte RFO — `{"Rfo":{"Chiavi":
+# [{"Chiave":"rfo_…"}]}}` — che nessuno di quei nomi lo contiene, ed è proprio la forma che il foglio 1.33.0
+# consiglia. Ora: una chiave nota con un valore che non è un segnaposto («…», «<…>», «LA-PASSWORD-VERA»),
+# una `Password=` con un valore vero, una chiave RFO (`rfo_` + almeno 40 caratteri), una chiave privata o
+# un key-ring. Così si possono guardare anche i `.md` di docs/, che gli esempi li scrivono coi segnaposto.
+function Segnaposto($valore) {
+    $v = $valore.Trim()
+    if ($v -eq '') { return $true }
+    if ($v.Contains([string][char]0x2026) -or $v.Contains('...') -or $v.Contains('<') -or $v.Contains('>')) { return $true }
+    # Tutto maiuscolo, cifre escluse: «LA-PASSWORD-VERA», «XXX». Un segreto vero mescola.
+    if ($v -cmatch '^[A-Z_-]+$') { return $true }
+    # «xxx», «***»: lo stesso carattere ripetuto (deploy/render/README.md scrive `Password=xxx`).
+    if ($v -match '^(.)\1*$') { return $true }
+    return $false
+}
+
 function TrovaSegreti($percorso) {
-    $spie = @('ConnectionStrings', 'ClientSecret', 'Password=', 'Pwd=', 'ApiKey', 'BEGIN PRIVATE KEY', '<key id=')
-    $testuali = @('.json', '.txt', '.xml', '.config', '.env', '.pem', '.key', '.ini', '.yml', '.yaml')
+    $testuali = @('.json', '.txt', '.xml', '.config', '.env', '.pem', '.key', '.ini', '.yml', '.yaml', '.md')
+    $sempre = @('BEGIN PRIVATE KEY', '<key id=')
+    $chiaveValore = '"(ClientSecret|ApiKey|Chiave|Password|Pwd|Secret|Token)"\s*:\s*"(?<v>[^"]*)"'
+    # Il backtick fuori dal valore: nei `.md` «`Password=`» è il nome scritto in prosa, non un'assegnazione.
+    $password = '(?i)\b(Password|Pwd)\s*=\s*(?<v>[^;"''`\s]+)'
+    $rfo = 'rfo_[A-Za-z0-9_-]{40,}'
     $sospetti = @()
     foreach ($f in $percorso) {
         if ($testuali -notcontains [IO.Path]::GetExtension($f).ToLower()) { continue }
         if ((Get-Item $f).Length -gt 2MB) { continue }
         $testo = ''
-        try { $testo = Get-Content $f -Raw -ErrorAction Stop } catch { continue }
-        foreach ($s in $spie) {
-            if ($testo -like "*$s*") { $sospetti += [pscustomobject]@{ File = $f; Spia = $s }; break }
+        try { $testo = Get-Content $f -Raw -Encoding UTF8 -ErrorAction Stop } catch { continue }
+        if (-not $testo) { continue }
+        $spia = $null
+        foreach ($s in $sempre) { if ($testo.Contains($s)) { $spia = $s; break } }
+        if (-not $spia -and $testo -cmatch $rfo) { $spia = 'chiave RFO (rfo_...)' }
+        if (-not $spia) {
+            foreach ($m in [regex]::Matches($testo, $chiaveValore)) {
+                if (-not (Segnaposto $m.Groups['v'].Value)) { $spia = ('"' + $m.Groups[1].Value + '" con un valore'); break }
+            }
         }
+        if (-not $spia) {
+            foreach ($m in [regex]::Matches($testo, $password)) {
+                if (-not (Segnaposto $m.Groups['v'].Value)) { $spia = "$($m.Groups[1].Value)= con un valore"; break }
+            }
+        }
+        if ($spia) { $sospetti += [pscustomobject]@{ File = $f; Spia = $spia } }
     }
     return $sospetti
 }
@@ -180,16 +215,21 @@ switch ($Azione) {
 
         # SECONDA RETE: dentro i file DICHIARATI. Il nome non basta - quello dei segreti e' scelto apposta
         # perche' non dica niente.
-        $percorsi = $dichiarati | ForEach-Object { Join-Path $cart ($_ -replace '/', '\') }
+        # ⚠️ @() anche qui: con UN file dichiarato `$percorsi` è una stringa, e «stringa + array» in PowerShell
+        # concatena il testo invece di unire gli elenchi — la rete leggeva un percorso che non esiste.
+        $percorsi = @($dichiarati | ForEach-Object { Join-Path $cart ($_ -replace '/', '\') })
         # ⚠️ Le @() non sono decorazione. Con UN SOLO file sospetto PowerShell 5.1 restituisce un oggetto
         # scalare, e `.Count` su un PSCustomObject scalare non vale 1: non vale niente. Questa rete l'ha
         # fatto vedere al primo giro — con due file trovati parlava, con uno solo restava muta, cioè taceva
         # esattamente nel caso per cui esiste.
-        $sospetti = @(TrovaSegreti ($percorsi + @($intrusi | ForEach-Object { Join-Path $cart ($_ -replace '/', '\') })))
+        # ⚠️ Anche il ramo docs/ (U-123): entra nello zip intero, e un file copiato lì a mano non passava da
+        # nessuna rete.
+        $inDocs = @(Get-ChildItem $docs -Recurse -File | ForEach-Object { $_.FullName })
+        $sospetti = @(TrovaSegreti ($percorsi + @($intrusi | ForEach-Object { Join-Path $cart ($_ -replace '/', '\') }) + $inDocs))
         if ($sospetti.Count -gt 0) {
             Write-Host ''
             foreach ($s in $sospetti) {
-                Write-Host ("  {0}  -> contiene '{1}'" -f $s.File.Substring($cart.Length + 1), $s.Spia) -ForegroundColor Red
+                Write-Host ("  {0}  -> contiene {1}" -f $s.File.Substring($publish.Length + 1), $s.Spia) -ForegroundColor Red
             }
             Fermati 'un file del pacchetto sembra contenere credenziali. Toglilo dalla cartella e rifai lo zip. Se e'' un falso allarme, guardalo con i tuoi occhi prima di forzare.'
         }

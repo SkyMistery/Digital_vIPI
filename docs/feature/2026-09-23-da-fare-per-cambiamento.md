@@ -130,6 +130,12 @@ confrontare il contenuto della copia pubblicata a ogni giro: non vale il costo f
   la sua frase.
 - ⚠️ `ModificheInAttesa.PrendiAsync` non aspetta mai più della finestra: un istante di segnalazione nel futuro
   faceva aspettare ore. L'hanno trovato i test, un'ora e undici minuti con un istante fisso scritto come UTC.
+- ⚠️ **Allo spegnimento la finestra aperta si consuma** (U-236, revisione 3; scelta del committente del 29 settembre
+  2026). La finestra vive solo in memoria e Passenger spegne il processo poco dopo l'ultima richiesta: chi salvava e
+  chiudeva la scheda entro due minuti perdeva la causa, e le righe arrivavano solo col giro notturno. Ora
+  `DerivaDopoLeModificheHostedService.StopAsync` prende la finestra (`IModificheInAttesa.PrendiSubito`) e fa il giro
+  nel tempo che l'host concede allo spegnimento; un giro già partito non si interrompe al segnale di arresto, solo
+  quando quel tempo scade. Se il processo viene ucciso di colpo la finestra si perde come prima: resta il giro notturno.
 
 **Prova dal vivo** (copia del 15 settembre, porta 5199): una modifica di testo nell'editor LIBB → nel log, circa due
 minuti dopo, «Deriva dopo le modifiche (Testo, dalle 21:15:42Z): 19 documenti». La riga di Brindisi, già indietro
