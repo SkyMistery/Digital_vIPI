@@ -373,6 +373,47 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         Assert.Equal(Enumerable.Range(1, ordini.Count), ordini);
     }
 
+    /// <summary>
+    /// U-062 (revisione 3): «già presente» si guardava sulle sole RADICI, e dal 12-set «Regole piste» è figlia di
+    /// «Piste». Una radice libera intitolata «Configurazioni pista» diventava a ogni consegna una seconda «Regole
+    /// piste» di catalogo e perdeva i suoi blocchi, anche su una versione pubblicata.
+    /// </summary>
+    [Fact]
+    public async Task Una_radice_libera_col_titolo_delle_regole_resta_libera_se_le_regole_ci_sono_gia()
+    {
+        var (_, ver) = await ScaloCottoAsync("LIRP", ("Runways", null));
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+        await _manutenzione.AddMissingCatalogSectionsAsync();
+        await _manutenzione.ReparentAirportSectionsAsync();
+
+        var libera = new DocumentSection
+        {
+            DocumentVersionId = ver.Id, Title = "Configurazioni pista", Depth = 0,
+            Order = await _db.DocumentSections.Where(x => x.DocumentVersionId == ver.Id && x.ParentSectionId == null).CountAsync() + 1,
+            SectionKey = SectionKeys.NewCustom(), RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(libera);
+        await _db.SaveChangesAsync();
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = ver.Id, SectionId = libera.Id, Order = 1, Format = BlockFormat.Prose,
+            Tier = BlockTier.Reduced, Visibility = BlockVisibility.Always, Body = "le configurazioni di LIRP",
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+        await _manutenzione.ReparentAirportSectionsAsync();
+        _db.ChangeTracker.Clear();
+
+        Assert.Equal(1, await _db.DocumentSections.CountAsync(x => x.DocumentVersionId == ver.Id && x.SectionKey == "runwayrules"));
+        var dopo = await _db.DocumentSections.Include(x => x.Blocks).SingleAsync(x => x.Id == libera.Id);
+        Assert.True(SectionKeys.IsCustom(dopo.SectionKey));
+        Assert.Equal("Configurazioni pista", dopo.Title);
+        Assert.Equal("le configurazioni di LIRP", Assert.Single(dopo.Blocks).Body);
+    }
+
     [Fact] // il passo è IDEMPOTENTE: al secondo avvio non c'è più niente da spostare
     public async Task Il_secondo_giro_non_sposta_niente()
     {

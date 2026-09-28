@@ -1361,7 +1361,14 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             // ⚠️ La LINGUA del documento, non quella del catalogo: questo passo riscrive i titoli col titolo
             // di catalogo, e su un documento redatto in inglese li riporterebbe tutti in italiano — a ogni
             // avvio, in silenzio, disfacendo quel che l'editor aveva scritto.
-            toccate += ReconcileCookedSections(roots, scalo.Language == Vipi.Domain.Language.En ? "en" : "it");
+            // 🔴 U-062 (revisione 3): le chiavi di catalogo di TUTTA la versione, non delle sole radici. Dal 12-set
+            // «Regole piste» è figlia di «Piste», e una radice libera intitolata «Configurazioni pista» diventava a
+            // ogni consegna una seconda «Regole piste» e perdeva i suoi blocchi.
+            var giaNellaVersione = await _db.DocumentSections
+                .Where(x => x.DocumentVersionId == vid && x.ParentSectionId != null)
+                .Select(x => x.SectionKey).ToListAsync(ct);
+            toccate += ReconcileCookedSections(roots, scalo.Language == Vipi.Domain.Language.En ? "en" : "it",
+                giaNellaVersione);
             // ⚠️ Il trasloco degli extra SOLO nell'ultima versione: è un trasloco — le righe della tabella si
             // cancellano dopo averle portate dentro — e una seconda versione le troverebbe già sparite.
             if (ultima) toccate += await MoveExtraSectionsIntoDocumentAsync(scalo.Id, version, roots, ct);
@@ -1379,9 +1386,10 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
     /// chiave di catalogo gia' presente non si tocca, e una seconda sezione con lo stesso titolo nemmeno: la
     /// riconciliazione ne rivendica <b>una sola</b> per chiave.</para>
     /// </summary>
-    private int ReconcileCookedSections(List<DocumentSection> roots, string lingua)
+    private int ReconcileCookedSections(List<DocumentSection> roots, string lingua, IEnumerable<string> chiaviDelleFiglie)
     {
-        var gia = roots.Select(x => x.SectionKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var gia = roots.Select(x => x.SectionKey).Concat(chiaviDelleFiglie)
+            .Where(k => !SectionKeys.IsCustom(k)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var fatte = 0;
         foreach (var s in roots)
         {
