@@ -21,7 +21,7 @@ public sealed record Citazione(string File, int Record, int Riga, string Testo, 
 }
 
 /// <summary>Chi usa un punto: le citazioni che vanno a lui, e quelle dello stesso nome che vanno a un altro punto.</summary>
-/// <param name="Catalogo">«fix», «vor», «ndb», «scalo», «vrp», «attesa» o «posizione».</param>
+/// <param name="Catalogo">«fix», «vor», «ndb», «scalo», «vrp», «attesa», «posizione» o «pista».</param>
 /// <param name="Nomi">I nomi con cui lo si cita (il VRP ne ha due: il nome e il codice).</param>
 /// <param name="AltroPunto">Lo stesso nome citato in file dove Aurora lo risolve in un altro punto (o in nessuno):
 /// non sono sue, e una rinomina non le tocca.</param>
@@ -110,6 +110,10 @@ public sealed class ChiLoUsa
 
             return testo;
         }
+
+        // Una pista (slice 7d, R-1): lo scalo e i due versi, citati nelle procedure, nelle mappe, nei tag, nei PAR.
+        if (dichiarato is Runway)
+            return Piste.Di(sessione, file, record, sporchiDi);
 
         // Una posizione (slice 7c, R-1) è un nome di rete: vale in tutto l'albero, non per master. La citano i
         // trasferimenti dei .frq (anche esclusa, «-LIRR_EW_CTR») e le teste dei settori dinamici (.tfl).

@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a-7c fatte; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a-7d fatte; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -859,3 +859,27 @@ cominciando la 7c: le posizioni, le piste e i file hanno ognuno la sua forma di 
   annullata: **2 615 su 2 615** (2 307 punti + 308 posizioni), 16 618 righe, 0 rifiutati, **0 guasti**. Prova a schermo
   sul banco: LIRR_NW_CTR → «LIRR_WN_CTR»: una voce, 27 righe in 5 file (le 25 citazioni e le 2 dichiarazioni); «Annulla
   tutto» pulito. Il motore non è toccato. Test: Lab 634 → **640**.
+- **7d (28 settembre)** — le piste (R-1): «chi lo usa» e rinomina di un verso. La pista è «scalo + verso»; il record
+  del `.rw` ne dichiara due (`LIRF;16L;34R;…`), e la scheda ha un campo «Rinomina» per ciascuno (`Sessione/Piste.cs`).
+  - **La citano, e la rinomina le riscrive**: il 2° campo delle SID (`LIRF;16L;NENI7J;…`) e delle voci dei `.str`
+    (`LIRF;16L:16R;ELKA3A;…`, i versi separati da «:»: si cambia solo il suo), il nome delle mappe del `MAPS`
+    (`RWY16L`), i tag del `.rw` (il nome del record `//@"LIRF 16L/34R"` e le chiavi `16L.tora=…`, §M regola 7), e le
+    **copie** della pista (lo stesso scalo e la stessa coppia in un altro `.rw`: `itrw.rw` e `lirr.rw`).
+  - **La citano, e la rinomina le ELENCA** («Da cambiare a mano», `RinominaPronta.AMano`): i PAR dei profili `.cpr`
+    (`INS1PAR_CAPTION=LIBN RWY14/3.0°` — lo scalo è quello della didascalia, non del file: `LIPA.cpr` ha il PAR di
+    LIPI) perché il Lab non ha ancora il lettore dei `.cpr` (slice 11), e i commenti dei disegni dello scalo
+    (`lirf.geo`, `rf_ad_gnd.pol`, `rf_mark.geo`: `//Runway 16L designator`) perché una marcatura rinumerata è un
+    disegno nuovo. Il clic su una di queste righe apre il file lì.
+  - Rifiuti: un verso che non è un verso (due cifre fra 01 e 36, e L, R o C), un verso che lo scalo ha già.
+  - Una pista usata non si toglie (come i punti).
+  Scelte dell'agente: le mappe si riconoscono solo dal nome esatto `RWY` + verso (209 sul fork); le rotte e le quote
+  della pista non cambiano con la rinomina (16L → 16C è lo stesso asfalto; una rinumerazione per la declinazione cambia
+  la rotta e va scritta nella scheda).
+  Misura sul fork (`scratchpad/misura7d`): **309 piste** (con le copie), 244 citate, **7 756 citazioni** — procedure
+  6 383, mappe 209, da cambiare a mano 1 164 (PAR 44); **LIRF 16L/34R 108 righe in 4 file** (`lirf.sid` 57 — 35+22, le
+  stesse del conteggio dei campi —, `lirf.str` 39 + 2 mappe, `lirf.geo` 9 e `rf_ad_gnd.pol` 1 commenti). Rinomina di
+  ogni verso (a un verso libero dello stesso numero) e annullata: **618 su 618**, 8 685 righe, 1 570 da cambiare a
+  mano, 0 rifiutati, **0 guasti** (dopo, il verso nuovo è citato dalle stesse righe, il vecchio da nessuna che il Lab
+  scrive; annullato, ogni file torna quello dell'apertura). Prova a schermo sul banco: LIRF 16L → «16C»: una voce, 4
+  file, e «Da cambiare a mano · 7 righe» (6 commenti di `lirf.geo`, 1 di `rf_ad_gnd.pol`); «Annulla tutto» pulito. Il
+  motore non è toccato. Test: Lab 640 → **647**.

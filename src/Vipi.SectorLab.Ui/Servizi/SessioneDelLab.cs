@@ -1154,6 +1154,7 @@ public sealed class SessioneDelLab
     public bool RinominaIlPunto(string fileRelativo, int record, string vecchio, string? nuovo, bool? omonimi = null)
     {
         DaDecidere = null;
+        DaCambiareAMano = [];
         return NellaStoria($"{vecchio} rinominato {nuovo}", () =>
         {
             if (Sessione is null || _chiLoUsa is null)
@@ -1186,6 +1187,8 @@ public sealed class SessioneDelLab
                 return false;
             }
 
+            // Quel che il Lab non riscrive (i PAR dei .cpr, i commenti dei disegni): resta da dire, sotto la scheda.
+            DaCambiareAMano = pronta.AMano;
             // I nomi sono cambiati: i cataloghi si rifanno, poi la geometria dei file toccati (i punti per nome).
             RifaiICataloghi();
             foreach (var (toccato, _) in pronta.PerFile)
@@ -1196,6 +1199,12 @@ public sealed class SessioneDelLab
             return true;
         });
     }
+
+    /// <summary>
+    /// Le righe che citavano il nome e che l'ultima rinomina non ha potuto riscrivere (slice 7d: i PAR dei .cpr, i
+    /// commenti dei disegni di una pista): vanno cambiate a mano.
+    /// </summary>
+    public IReadOnlyList<Citazione> DaCambiareAMano { get; private set; } = [];
 
     /// <summary>La domanda di una rinomina ferma (VOR e NDB omonimi): null se non ce n'è.</summary>
     public RinominaDaDecidere? DaDecidere { get; private set; }
@@ -1215,7 +1224,17 @@ public sealed class SessioneDelLab
         ArgumentNullException.ThrowIfNull(citazione);
         if (Sessione?.File.ContainsKey(citazione.File) != true)
             return;
-        Scegli(citazione.File, citazione.Record);
+        // Una riga fuori da un record (un .cpr, un commento): l'ispettore mostra le righe intorno, come per un problema.
+        if (citazione.Record < 0)
+        {
+            Scelta = null;
+            FileScelto = citazione.File;
+        }
+        else
+        {
+            Scegli(citazione.File, citazione.Record);
+        }
+
         RigaSegnalata = (citazione.File, citazione.Riga);
         Avvisa();
     }

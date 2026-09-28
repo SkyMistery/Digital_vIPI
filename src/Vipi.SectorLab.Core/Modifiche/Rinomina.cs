@@ -33,6 +33,8 @@ public static partial class Rinomina
         string? suo = usi.Nomi.FirstOrDefault(n => string.Equals(n, vecchio?.Trim(), StringComparison.OrdinalIgnoreCase));
         if (suo is null)
             return new ModificaRifiutata($"«{vecchio}» non è un nome di questo punto.");
+        if (usi.Catalogo == "pista")
+            return LaPista(sessione, file, record, usi, suo, nuovo?.Trim(), sporchiDi);
         nuovo = nuovo?.Trim();
         bool posizione = usi.Catalogo == "posizione";
         if ((posizione ? PercheNonVaLaPosizione(nuovo) : PercheNonVa(nuovo)) is { } perche)
@@ -133,6 +135,94 @@ public static partial class Rinomina
         return new RinominaPronta(suo, nuovo!,
             [.. perFile.OrderBy(f => f.Key == file ? 0 : 1).ThenBy(f => f.Key, StringComparer.Ordinal)
                 .Select(f => (f.Key, (IReadOnlyDictionary<int, IReadOnlyList<string>>)f.Value))]);
+    }
+
+    /// <summary>
+    /// La rinomina di un verso di pista (slice 7d): il <c>.rw</c> e le sue copie (lo stesso scalo e la stessa coppia di
+    /// versi in un altro <c>.rw</c>), le procedure e le mappe che lo citano, i tag. I PAR dei <c>.cpr</c> e i commenti
+    /// dei disegni restano, e la rinomina li elenca (<see cref="RinominaPronta.AMano"/>).
+    /// </summary>
+    private static object LaPista(SessioneAperta sessione, string file, int record, UsiDelPunto usi, string suo, string? nuovo,
+                                  Func<string, IEnumerable<object>> sporchiDi)
+    {
+        if (!Piste.EUnVerso(nuovo))
+            return new ModificaRifiutata("Un verso di pista si scrive con due cifre fra 01 e 36, e L, R o C se serve: 16L, 07.");
+        if (string.Equals(nuovo, suo, StringComparison.Ordinal))
+            return new ModificaRifiutata("Il verso è già questo.");
+        var questa = (Runway)((IFileConRecord)sessione.File[file]).RecordDelModello[record];
+        string icao = questa.IcaoCode.Trim();
+        var coppia = new HashSet<string>([questa.Designator1.Trim(), questa.Designator2.Trim()], StringComparer.OrdinalIgnoreCase);
+
+        // Le copie (lo stesso scalo, la stessa coppia) e un verso che c'è già (un'altra pista dello scalo).
+        var dichiarazioni = new List<(string File, int Record)>();
+        foreach (var (relativo, altro) in sessione.File.OrderBy(f => f.Key, StringComparer.Ordinal))
+        {
+            if (altro is not IFileConRecord rw)
+                continue;
+            for (int k = 0; k < rw.RecordDelModello.Count; k++)
+            {
+                if (rw.RecordDelModello[k] is not Runway pista || !string.Equals(pista.IcaoCode.Trim(), icao, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var suoi = new HashSet<string>([pista.Designator1.Trim(), pista.Designator2.Trim()], StringComparer.OrdinalIgnoreCase);
+                if (suoi.SetEquals(coppia))
+                    dichiarazioni.Add((relativo, k));
+                else if (!string.Equals(nuovo, suo, StringComparison.OrdinalIgnoreCase) && suoi.Contains(nuovo!))
+                    return new ModificaRifiutata($"{icao} ha già una pista {nuovo} ({relativo[(relativo.LastIndexOf('/') + 1)..]}).");
+            }
+        }
+
+        var perFile = new Dictionary<string, Dictionary<int, IReadOnlyList<string>>>(StringComparer.Ordinal);
+        var righeDi = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        IReadOnlyList<string> Righe(string relativo)
+        {
+            if (!righeDi.TryGetValue(relativo, out var righe))
+                righeDi[relativo] = righe = ((IFileConRecord)sessione.File[relativo]).RigheDelFile(sporchiDi(relativo));
+            return righe;
+        }
+
+        void Metti(string relativo, int riga)
+        {
+            if (Piste.Rinomina(Righe(relativo)[riga], icao, suo, nuovo!) is not { } nuova)
+                return;
+            if (!perFile.TryGetValue(relativo, out var suoi))
+                perFile[relativo] = suoi = [];
+            suoi[riga + 1] = [nuova];
+        }
+
+        foreach (var (relativo, k) in dichiarazioni.OrderBy(d => d.File == file && d.Record == record ? 0 : 1))
+        {
+            var righe = Righe(relativo);
+            var (da, quante) = ((IFileConRecord)sessione.File[relativo]).PostiDeiRecord(sporchiDi(relativo))[k];
+            for (int i = da; i < da + quante && i < righe.Count; i++)
+                Metti(relativo, i);
+            for (int i = da - 1; i >= 0 && righe[i].TrimStart().StartsWith("//@", StringComparison.Ordinal); i--)
+                Metti(relativo, i);
+        }
+
+        // Le procedure e le mappe che citano QUESTO verso (la pista ne ha due: l'altro resta com'è).
+        var aMano = new List<Citazione>();
+        foreach (var citazione in usi.Citazioni)
+        {
+            if (citazione.Come == Piste.DaVedere)
+            {
+                if (Piste.CitaAMano(citazione.Testo, icao, suo))
+                    aMano.Add(citazione);
+                continue;
+            }
+
+            if (Piste.CitaIlVerso(citazione.Testo, icao, [suo]) is not null)
+                Metti(citazione.File, citazione.Riga - 1);
+        }
+
+        if (!perFile.ContainsKey(file))
+            return new ModificaRifiutata("Non trovo il verso nella riga della pista: si cambia a mano, dalle righe del file.");
+
+        return new RinominaPronta(suo, nuovo!,
+            [.. perFile.OrderBy(f => f.Key == file ? 0 : 1).ThenBy(f => f.Key, StringComparer.Ordinal)
+                .Select(f => (f.Key, (IReadOnlyDictionary<int, IReadOnlyList<string>>)f.Value))])
+        {
+            AMano = aMano,
+        };
     }
 
     // Un VRP ha due nomi (il nome e il codice): delle sue citazioni si prendono quelle che nominano QUESTO.
@@ -267,6 +357,12 @@ public static partial class Rinomina
 public sealed record RinominaPronta(string Vecchio, string Nuovo, IReadOnlyList<(string File, IReadOnlyDictionary<int, IReadOnlyList<string>> Righe)> PerFile)
 {
     public int Righe => PerFile.Sum(f => f.Righe.Count);
+
+    /// <summary>
+    /// Le righe che citano il nome e che il Lab non riscrive (slice 7d: i PAR dei <c>.cpr</c>, i commenti dei disegni di
+    /// una pista): dopo la rinomina restano col nome vecchio, e vanno cambiate a mano.
+    /// </summary>
+    public IReadOnlyList<Citazione> AMano { get; init; } = [];
 }
 
 /// <summary>

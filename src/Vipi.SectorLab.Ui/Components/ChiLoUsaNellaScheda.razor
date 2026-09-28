@@ -32,6 +32,23 @@
             <button class="lab-tasto lab-tasto-tenue" data-rinomina-omonimi="no" @onclick="() => Rinomina(attesa.Vecchio, attesa.Nuovo, false)">No, lasciale</button>
         }
     </div>
+    @if (Lab.DaCambiareAMano.Count > 0)
+    {
+        <details class="lab-citazioni" open data-a-mano="@Lab.DaCambiareAMano.Count">
+            <summary>Da cambiare a mano <span class="lab-nota">@Righe(Lab.DaCambiareAMano.Count): il Lab non le riscrive</span></summary>
+            <ul>
+                @foreach (var citazione in Lab.DaCambiareAMano)
+                {
+                    var questa = citazione;
+                    <li>
+                        <button type="button" class="lab-citazione" @onclick="() => Lab.VaiAllaCitazione(questa)">
+                            @NomeDelFile(questa.File) <span class="lab-nota">@questa.Riga</span> <code>@questa.Testo.Trim()</code>
+                        </button>
+                    </li>
+                }
+            </ul>
+        </details>
+    }
     @if (usi.Citazioni.Select(c => c.AncheA).FirstOrDefault(a => a is not null) is { } ancheA)
     {
         <p class="lab-nota" data-navaid-omonimo="@ancheA">Stesso nome anche per: @ancheA. Una riga non dice quale dei due: vale per tutti e due.</p>
@@ -110,6 +127,11 @@
         => relativo.IndexOf("/IT/", StringComparison.Ordinal) is var i and >= 0 ? relativo[(i + 4)..] : relativo;
 
     private static string Titolo(Citazione citazione)
-        => (citazione.Come == "punto" ? "Cita il punto per nome" : citazione.Come)
+        => (citazione.Come switch
+            {
+                "punto" => "Cita il punto per nome",
+                Piste.DaVedere => "Il Lab non riscrive questa riga: dopo una rinomina va cambiata a mano",
+                _ => citazione.Come,
+            })
            + (citazione.SoloIn.Count > 0 ? $" — va a questo punto solo in {string.Join(", ", citazione.SoloIn)}" : "");
 }
