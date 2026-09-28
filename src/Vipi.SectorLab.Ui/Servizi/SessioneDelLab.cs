@@ -1083,6 +1083,49 @@ public sealed class SessioneDelLab
             () => CambiaRigaAManoAdesso(problema.File, numero, proposta));
     }
 
+    // --- spezza e unisci (lotto «Subito» slice 5b) ---------------------------------------------------------------
+
+    /// <summary>Come si interrompe quell'elenco (riga vuota, &lt;br&gt;, DUMMY, BREAK), o null se lì non si spezza.</summary>
+    public FormaDellInterruzione? FormaDellInterruzioneDi(string fileRelativo, int record, string campo)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? Interruzioni.Forma(file, record, campo) : null;
+
+    /// <summary>Le posizioni dopo le quali, dentro l'elenco, la linea è interrotta.</summary>
+    public IReadOnlyList<int> InterruzioniDentro(string fileRelativo, int record, string campo)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file && ElenchiDiVertici.Uno(file, record, campo) is { } elenco
+            ? Interruzioni.Dentro(elenco)
+            : [];
+
+    /// <summary>Dove continua la linea dopo l'ultimo punto dell'elenco, oltre un'interruzione.</summary>
+    public Continuazione? ContinuaDopo(string fileRelativo, int record, string campo)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? Interruzioni.Dopo(file, record, campo) : null;
+
+    /// <summary>Spezza (o riunisce) la linea dopo il punto <paramref name="dopo"/>: una voce nel testo del file.</summary>
+    public bool SpezzaOUnisci(string fileRelativo, int record, string campo, int dopo, bool spezza)
+        => NellaStoria($"{EtichettaDi(fileRelativo, record)} {(spezza ? "spezzata" : "riunita")} dopo il punto {dopo + 1}",
+            () => SpezzaOUnisciAdesso(fileRelativo, record, campo, dopo, spezza));
+
+    private bool SpezzaOUnisciAdesso(string fileRelativo, int record, string campo, int dopo, bool spezza)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
+        var esito = Modifiche.SpezzaOUnisci(file, record, campo, dopo, spezza, etichetta);
+        Registro.Scrivi(spezza ? "spezza" : "unisci", $"{fileRelativo}#{record} {campo} dopo {dopo}: {Descrivi(esito)}");
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is ModificaDelTesto)
+        {
+            RifaiLaGeometria(fileRelativo);
+            // La scheda resta sul pezzo che si stava guardando: il primo, che non cambia numero.
+            if (Scelta is { } scelta && scelta.File == fileRelativo && scelta.Record >= file.Record)
+                Scelta = null;
+        }
+
+        RicontrollaLeModifiche();
+        Avvisa();
+        return esito is ModificaDelTesto;
+    }
+
     /// <summary>
     /// Sposta sopra la sua riga il commento in coda (lotto «Subito» slice 2a, «file per file» §C): quello della riga
     /// <paramref name="riga"/> (da 1, nel file com'è adesso), o tutti quelli del file se è null. Una voce sola nelle

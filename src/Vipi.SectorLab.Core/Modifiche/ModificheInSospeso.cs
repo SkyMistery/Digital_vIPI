@@ -79,13 +79,20 @@ public sealed record ModificaDelTesto(string File, IReadOnlyList<int> Righe)
 {
     internal const string Chiave = "§testo";
 
-    public override string Descrizione => Righe.Count switch
+    /// <summary>
+    /// I gesti fatti sul testo (lotto «Subito» slice 5b: «L613 spezzata dopo RIVAM»), nell'ordine: le loro righe non
+    /// sono scritte a mano e non stanno in <see cref="Righe"/>.
+    /// </summary>
+    public IReadOnlyList<string> Gesti { get; init; } = [];
+
+    public override string Descrizione => string.Join(" · ", Gesti.Concat(Righe.Count switch
     {
-        1 => $"riga {Righe[0]} scritta a mano",
-        <= 6 => $"righe {string.Join(", ", Righe)} scritte a mano",
+        0 => [],
+        1 => [$"riga {Righe[0]} scritta a mano"],
+        <= 6 => [$"righe {string.Join(", ", Righe)} scritte a mano"],
         // I commenti in coda spostati sopra in un file intero (slice 2a) sono centinaia di righe.
-        _ => $"{Righe.Count} righe scritte a mano ({string.Join(", ", Righe.Take(3))}, … {Righe[^1]})",
-    };
+        _ => [$"{Righe.Count} righe scritte a mano ({string.Join(", ", Righe.Take(3))}, … {Righe[^1]})"],
+    }));
 }
 
 /// <summary>
@@ -890,7 +897,12 @@ public sealed class ModificheInSospeso
     /// commento in coda spostato sopra la sua riga (lotto «Subito» slice 2a) — e se ne cambiano più insieme, in una voce
     /// sola. La voce ricorda i numeri delle righe scritte, nel file com'è dopo.
     /// </summary>
-    public object CambiaRighe(FileAperto file, IReadOnlyDictionary<int, IReadOnlyList<string>> sostituzioni)
+    /// <param name="gesto">Se le righe le scrive un gesto del Lab (spezza, unisci…, slice 5b): come si chiama nella
+    /// voce. Le sue righe non contano fra quelle scritte a mano.</param>
+    /// <param name="verifica">Un controllo sul file riletto, prima di tenerlo (la struttura è già quella nuova):
+    /// torna il perché se il gesto non ha fatto quello che doveva, e allora il file resta com'era.</param>
+    public object CambiaRighe(FileAperto file, IReadOnlyDictionary<int, IReadOnlyList<string>> sostituzioni,
+                              string? gesto = null, Func<IFileConRecord, string?>? verifica = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(sostituzioni);
@@ -940,22 +952,96 @@ public sealed class ModificheInSospeso
             return new ModificaRifiutata($"Il file con quella riga non si rilegge: {e.Message}");
         }
 
+        if (verifica is not null)
+        {
+            var adesso = conRecord.IstantaneaDellaStruttura();
+            string? perche;
+            try
+            {
+                conRecord.RipristinaLaStruttura(riletto);
+                perche = verifica(conRecord);
+            }
+            finally
+            {
+                conRecord.RipristinaLaStruttura(adesso);
+            }
+
+            if (perche is not null)
+                return new ModificaRifiutata(perche);
+        }
+
         // Le righe già scritte a mano prima seguono lo spostamento.
-        var giaAMano = ((_fatte.GetValueOrDefault((file.Relativo, -1, ModificaDelTesto.Chiave)) as ModificaDelTesto)?.Righe ?? [])
+        var prima = _fatte.GetValueOrDefault((file.Relativo, -1, ModificaDelTesto.Chiave)) as ModificaDelTesto;
+        var giaAMano = (prima?.Righe ?? [])
             .Where(n => !sostituzioni.ContainsKey(n))
             .Select(n => spostamento.GetValueOrDefault(n, n));
         RimettiIlFileDellApertura(file, conRecord);
         Fotografa(file, conRecord);
         conRecord.RipristinaLaStruttura(riletto);
 
-        var modifica = new ModificaDelTesto(file.Relativo, [.. giaAMano.Concat(scritte).Distinct().Order()]);
+        var modifica = new ModificaDelTesto(file.Relativo, [.. giaAMano.Concat(gesto is null ? scritte : []).Distinct().Order()])
+        {
+            Gesti = gesto is null ? prima?.Gesti ?? [] : [.. prima?.Gesti ?? [], gesto],
+        };
         _fatte[(file.Relativo, -1, ModificaDelTesto.Chiave)] = modifica;
         _sporchi[file.Relativo] = [];
         UltimoAggiunto = null;
+
+        // Tornato il testo dell'apertura (spezzata e riunita, slice 5b): non è una modifica, e il file riprende i suoi
+        // record di prima, com'erano.
+        if (_strutturaDiPartenza.TryGetValue(file.Relativo, out object? apertura)
+            && nuove.SequenceEqual(conRecord.RigheDi(apertura), StringComparer.Ordinal))
+        {
+            Annulla(file, modifica);
+        }
+
         return modifica;
     }
 
     private static bool EUnTag(string riga) => riga.TrimStart().StartsWith("//@", StringComparison.Ordinal);
+
+    // --- spezza e unisci (lotto «Subito» slice 5b) ---------------------------------------------------------------
+
+    /// <summary>
+    /// Spezza la linea dopo il punto <paramref name="dopo"/> dell'elenco (toglie il pezzo fra lui e il prossimo), o la
+    /// riunisce (<paramref name="spezza"/> falso): una riga (o un <c>&lt;br&gt;</c>) aggiunta o tolta nel testo del file
+    /// com'è adesso, e il file riletto (<see cref="Interruzioni"/>). Una voce nel testo del file, che si annulla con lui.
+    /// Il file riletto deve avere i record che il gesto vuole (un'aerovia spezzata: due in più); se no, niente.
+    /// </summary>
+    public object SpezzaOUnisci(FileAperto file, int indice, string campo, int dopo, bool spezza, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord || indice < 0 || indice >= conRecord.RecordDelModello.Count)
+            return new ModificaRifiutata("Questo record non c'è.");
+        if (ElenchiDiVertici.Uno(file, indice, campo) is not { } elenco)
+            return new ModificaRifiutata($"Il campo «{campo}» non è un elenco di punti.");
+
+        var sporchi = SporchiDi(file.Relativo);
+        var righe = conRecord.RigheDelFile(sporchi);
+        var posti = conRecord.PostiDeiRecord(sporchi);
+        if (Interruzioni.Righe(file, righe, posti, indice, campo, dopo, spezza, out string? perche) is not { } gesto)
+            return new ModificaRifiutata(perche!);
+
+        string punto = Interruzioni.NomeDelPunto(elenco, dopo);
+        string nome = $"{(etichetta.Length > 0 ? etichetta + ": " : "")}{(spezza ? "spezzata" : "riunita")} dopo {punto}";
+        return CambiaRighe(file, gesto.Sostituzioni, nome, riletto =>
+        {
+            if (riletto.RecordDelModello.Count != gesto.Record)
+            {
+                return $"Riletto, il file non ha i record che il gesto voleva ({riletto.RecordDelModello.Count} invece di {gesto.Record}): "
+                       + "fra i due pezzi c'è qualcos'altro (un commento?). Si fa a mano, dalle righe del file.";
+            }
+
+            // Spezzata, l'interruzione si deve vedere dove l'AOD l'ha messa: se no, riunirla non si potrebbe (misura sul
+            // fork: licj.mva, zona 12 — il pezzo staccato prendeva il nome dell'altra zona).
+            var rilettoFile = (FileAperto)riletto;
+            bool siVede = ElenchiDiVertici.Uno(rilettoFile, indice, campo) is { } nuovo
+                && (Interruzioni.Dentro(nuovo).Contains(dopo) || dopo == nuovo.Quanti - 1 && Interruzioni.Dopo(rilettoFile, indice, campo) is not null);
+            return !spezza || siVede
+                ? null
+                : "Riletto, la linea non risulta spezzata lì (i due pezzi non sono più la stessa zona o la stessa forma): si fa a mano, dalle righe del file.";
+        });
+    }
 
     /// <summary>
     /// Il file torna quello dell'apertura, SENZA annullare niente negli altri file: i valori dei campi si rimettono

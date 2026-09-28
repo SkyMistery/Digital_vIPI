@@ -48,6 +48,13 @@ public interface IFileConRecord
     IReadOnlyList<Ispezione.RigaGrezza> RigheDelRecord(int indice, int contesto);
 
     /// <summary>
+    /// Dove sta ogni record nelle righe di <see cref="RigheDelFile"/> con quei record toccati (lotto «Subito» slice 5b):
+    /// l'indice (da 0) della sua prima riga — dopo i commenti che lo precedono — e quante righe ha. Servono ai gesti che
+    /// lavorano sul testo del file com'è adesso (spezza, unisci, nascondi) a trovare la riga di un punto.
+    /// </summary>
+    IReadOnlyList<(int Da, int Quante)> PostiDeiRecord(IEnumerable<object> sporchi);
+
+    /// <summary>
     /// Il record che ha la riga numero <paramref name="riga"/> (da 1, come le cita il validatore) fra le sue righe
     /// di dati; nullo per un commento, una riga vuota, una riga che il lettore non ha capito (slice 10).
     /// </summary>
@@ -303,6 +310,39 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         // Sporchi PER IDENTITA', come vuole lo scrittore: due record uguali campo per campo restano due record.
         var suoi = new HashSet<T>(sporchi.OfType<T>(), ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
         return new FileSaverOrchestrator().Righe(Letto, suoi, Scrittore);
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<(int Da, int Quante)> PostiDeiRecord(IEnumerable<object> sporchi)
+    {
+        ArgumentNullException.ThrowIfNull(sporchi);
+        var suoi = new HashSet<T>(sporchi.OfType<T>(), ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
+        var posti = new List<(int, int)>(Letto.Records.Count);
+        int riga = 0;
+        foreach (var chunk in Letto.Chunks)
+        {
+            switch (chunk)
+            {
+                case RawChunk<T> grezzo:
+                    riga += grezzo.Lines.Length;
+                    break;
+
+                case RecordChunk<T> record:
+                    riga += record.LeadingComments.Length;
+                    // Un record toccato ha le righe che lo scrittore vero gli dà: si chiede allo scrittore quel record
+                    // da solo, com'è scritto dentro il file intero (la forma dei punti può cambiare, il numero no).
+                    int quante = suoi.Contains(record.Record)
+                        ? new FileSaverOrchestrator().Righe(Letto with { Records = [record.Record], Chunks = [record] },
+                              new HashSet<T>([record.Record], ReferenceEqualityComparer.Instance as IEqualityComparer<T>), Scrittore).Count
+                          - record.LeadingComments.Length
+                        : record.RawLines.Length;
+                    posti.Add((riga, quante));
+                    riga += quante;
+                    break;
+            }
+        }
+
+        return posti;
     }
 
     /// <inheritdoc/>

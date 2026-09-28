@@ -855,6 +855,19 @@ body.lab-trascina * {
     font-weight: 700;
 }
 
+/* Lotto «Subito» slice 5b: dove la linea si interrompe, fra due punti o in fondo all'elenco. */
+.lab-interruzione {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    align-items: center;
+    margin: .15rem 0 .15rem 2.3rem;
+    padding: .1rem .4rem;
+    border-left: 2px dashed var(--lab-toccato);
+    font-size: 12px;
+    color: var(--lab-tenue, inherit);
+}
+
 /* Lotto «Subito» slice 5a: i gesti sulla sequenza intera, sotto i vertici. */
 .lab-gesti-vertici {
     display: flex;

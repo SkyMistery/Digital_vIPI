@@ -178,6 +178,10 @@
         {
             string chiave = elenco.Chiave;
             var vertici = Lab.VerticiDi(scheda.File, scheda.Indice, chiave);
+            // Slice 5b: dove la linea si interrompe, e come lo scrive il file.
+            var interrompe = Lab.FormaDellInterruzioneDi(scheda.File, scheda.Indice, chiave);
+            var dentro = Lab.InterruzioniDentro(scheda.File, scheda.Indice, chiave);
+            var continua = Lab.ContinuaDopo(scheda.File, scheda.Indice, chiave);
             @* Un tratto per sezione: si chiudono uno per uno, e il nome del tratto è la chiave (Vertices, Tratto 3…). *@
             <Sezione Chiave="@($"vertici:{elenco.Nome}")" data-elenco="@chiave">
             <Titolo>@elenco.Nome <span class="lab-nota">@vertici.Count</span></Titolo>
@@ -207,6 +211,28 @@
                         <button class="lab-annulla" title="togli questo vertice"
                                 @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Togli, posizione)"
                                 data-togli="@posizione">−</button>
+                        @if (interrompe is not null && posizione + 1 < vertici.Count && !dentro.Contains(posizione))
+                        {
+                            <button class="lab-annulla" title="@($"Spezza qui: la linea si interrompe fra questo punto e il prossimo ({ComeSiScrive(interrompe.Value)})")"
+                                    @onclick="() => Lab.SpezzaOUnisci(scheda.File, scheda.Indice, chiave, posizione, spezza: true)"
+                                    data-spezza="@posizione">✂</button>
+                        }
+                    </div>
+                    @if (dentro.Contains(posizione))
+                    {
+                        <div class="lab-interruzione" data-interruzione="@posizione">
+                            <span>interruzione · @ComeSiScrive(interrompe!.Value)</span>
+                            <button class="lab-tasto lab-tasto-tenue" data-unisci="@posizione"
+                                    @onclick="() => Lab.SpezzaOUnisci(scheda.File, scheda.Indice, chiave, posizione, spezza: false)">Unisci</button>
+                        </div>
+                    }
+                }
+                @if (continua is not null && interrompe is not null)
+                {
+                    <div class="lab-interruzione" data-continua="@continua.Campo">
+                        <span>interruzione · @ComeSiScrive(interrompe.Value) — continua in @continua.Testo</span>
+                        <button class="lab-tasto lab-tasto-tenue" data-unisci="@(vertici.Count - 1)"
+                                @onclick="() => Lab.SpezzaOUnisci(scheda.File, scheda.Indice, chiave, vertici.Count - 1, spezza: false)">Unisci</button>
                     </div>
                 }
             </div>
@@ -333,6 +359,15 @@ else
 
     /// <summary>Per quale elenco è il testo da incollare: un record può avere più tratti, ognuno col suo.</summary>
     private string? _perQuale;
+
+    /// <summary>Come il file scrive l'interruzione, detto all'AOD.</summary>
+    private static string ComeSiScrive(FormaDellInterruzione forma) => forma switch
+    {
+        FormaDellInterruzione.RigaVuota => "riga vuota",
+        FormaDellInterruzione.Br => "<br>",
+        FormaDellInterruzione.Dummy => "riga T;DUMMY",
+        _ => "riga T;BREAK",
+    };
 
     private IEnumerable<ElencoDiVertici> ElenchiDaMostrare(SchedaDelRecord scheda)
     {

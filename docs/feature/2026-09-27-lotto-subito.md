@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4d); in corso la **slice 5** (5a fatta; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4d); in corso la **slice 5** (5a e 5b fatte; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -612,3 +612,39 @@ due segmenti `.geo`; 169 righe vuote fra due righe di dati nelle MVA di scalo.
   schermo sul banco: L613 invertita (−4 +4) e «+ in fondo»; `RR CONF1` di `lirr.hartcc`, TIPNI → OTNUN per nome
   (`T;RR CONF1;OTNUN;OTNUN;`); `CERCHIO-BA` «+ in fondo» (`T;CERCHIO-BA;…`, «Vertici: vertice aggiunto (73 → 74)»);
   «Annulla tutto». Test: motore 670 → **671**, Lab 534 → **548**.
+- **5b (28 settembre)** — spezza e unisci (B6, R-3, E4; solo Lab, nessun codice comune). «Spezza dopo questo punto»
+  (✂ su ogni punto) toglie il pezzo di linea fra un punto e il prossimo; «Unisci» lo rimette. Cinque scritture, una per
+  famiglia (`Modifiche/Interruzioni.cs`): **riga vuota** nelle SID e nelle MVA di scalo, **`<br>`** nel 3° campo del
+  punto che apre il tratto negli `.str` (procedure e zone), **`T;DUMMY;…`** nei confini, **`T;BREAK;PUNTO;PUNTO;`**
+  nelle aerovie. Scelte dell'agente:
+  - **Il gesto si fa sul testo** del file com'è adesso (modifiche comprese) e il motore rilegge il file: un'aerovia
+    spezzata diventa davvero tre record (pezzo, `BREAK`, pezzo) come la legge Aurora, e spezzare e riunire torna al file
+    di prima byte per byte. La voce è quella del testo del file, col nome del gesto («L615: riunita dopo VADIK»), e si
+    annulla con lui; se il testo torna quello dell'apertura la voce sparisce. `IFileConRecord.PostiDeiRecord` dice dove
+    sta ogni record nelle righe di adesso (anche un record già toccato); `CambiaRighe` prende il nome del gesto e un
+    controllo sul file riletto: se il file non ha i record che il gesto voleva, o l'interruzione non si vede dove l'AOD
+    l'ha messa, non si scrive niente e si dice perché.
+  - Le scritture come nei file: il separatore ripete il punto di prima (`T;BREAK;RIVAM;RIVAM;` come in `itawlow`,
+    `T;DUMMY;TIPNI;TIPNI;`); il `<br>` si chiude o no col `;` come fa il file (`lirf.str` `…;<br>;`); su un punto col
+    suffisso (`4E`) il punto si ripete, una riga col `<br>` e una col suffisso (come `lime.str`), e riunire toglie la
+    copia. Mai un commento in coda: riunito e rispezzato, `T;BREAK;VADIK;VADIK; //discontinuity…` torna senza commento.
+  - Dove non si spezza: `.pol`, `.tfl`, `.vrt`, le righe L; **nelle MVA di ACC** il `T;DUMMY` chiude la zona (sul fork
+    169 in coda, nessuno in mezzo) e il motore non lo tiene in mezzo: il Lab lo dice (slice 15).
+  - Nella scheda: fra due punti «interruzione · riga vuota [Unisci]»; in fondo all'elenco «interruzione · riga T;BREAK
+    — continua in L615, dopo il BREAK (record 31) [Unisci]» (così anche il poligono dopo, il tratto dopo, la zona di
+    scalo dopo la riga vuota con lo stesso nome).
+  - Trovati dalla misura: 84 punti `.str` con un commento in coda nella riga dopo → spezzare lì si rifiuta («spostalo
+    sopra, poi spezza», slice 2a); la zona 12 di `licj.mva` (già nota dalla 5a) spezzata non si vede come spezzata →
+    rifiutato; `itawlow.lairway:187` (L613), commento su una riga sua sopra il `BREAK`: tolto il `BREAK` i pezzi restano
+    due per il Lab → unire si rifiuta. 🟡 Per Aurora quel commento spezza l'aerovia? È la stessa domanda della 2a
+    (commento dentro un tratto).
+  Misura sul fork (strumento fuori repo, `scratchpad/misura5b`): **ogni interruzione che c'è** — 1 776 `<br>`, 37
+  `DUMMY` fra due poligoni, 28 `BREAK`, 5 righe vuote — riunita e rispezzata: 1 845 su 1 846 riunite (L613 rifiutata col
+  perché), rispezzate **1 383 identiche** byte per byte e 461 la stessa linea scritta come il Lab (il `DUMMY` dei
+  confini sul punto prima invece che su un punto qualsiasi, il `BREAK` senza commento in coda, il `<br>` nella forma del
+  file dove il file ne ha due); **spezza e riunisci su tre punti di ogni elenco** che si spezza: **5 762 su 5 762
+  tornano al file di prima, senza voce** (3 985 `<br>`, 582 `BREAK`, 554 `DUMMY`, 641 righe vuote), 87 rifiutati col
+  perché; annullare torna sempre al file. Prova a schermo sul banco: L615 «Unisci» (−1, «L615: riunita dopo VADIK»), ✂
+  dopo VADIK (`T;BREAK;VADIK;VADIK;`); NORTH DEP16 di `lied.sid`: la riga «interruzione · riga vuota», «Unisci», la SID
+  sulla mappa diventa una linea sola e le forbici tornano sul punto 6; «Annulla tutto». Test: Lab 548 → **560**
+  (motore invariato, 671).
