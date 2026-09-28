@@ -1168,6 +1168,8 @@
     {
         if (_cambioInSospeso is not { } c) return Task.CompletedTask;
         _cambioInSospeso = null;
+        // L'avviso di un «Fine modifica» negato parlava di questa catena: scartata, non vale più.
+        if (_msg == L["Struct_Fallback_UnsavedRelease"].Value) _msg = null;
         _ripieghi = _ripieghiSalvati.ToList();
         _unita.Clear();
         foreach (var r in _ripieghi) _unita.Add((UnitaDedotta(r.BaseFeet), UnitaDedotta(r.TopFeet)));
@@ -1178,11 +1180,14 @@
     /// «Fine modifica» con la catena non salvata: NO, e si dice perché (U-192). Come le righe dei limiti in ACC: senza
     /// lock le righe resterebbero a schermo senza più modo di salvarle, e al primo ricarico sparirebbero.
     /// </summary>
-    private Task<bool> PrimaDelRilascioAsync()
+    private async Task<bool> PrimaDelRilascioAsync()
     {
-        if (!_ripieghiSporchi) return Task.FromResult(true);
+        if (!_ripieghiSporchi) return true;
         _msg = L["Struct_Fallback_UnsavedRelease"];
-        return Task.FromResult(false);
+        // ⚠️ La barra chiama un Func, non un EventCallback: la pagina non si ridisegna da sé, e il perché del no
+        // restava invisibile fino al gesto dopo (visto dal vivo il 28 settembre 2026).
+        await InvokeAsync(StateHasChanged);
+        return false;
     }
 
     // =====================================================================================================

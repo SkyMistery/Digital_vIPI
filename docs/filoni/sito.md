@@ -817,7 +817,7 @@
     committente): login → logout → login, tutti e tre riusciti. Il guasto in locale non si è ripetuto (cookie tornato,
     nessun recupero): che la causa fosse il cookie lo dirà la riga nuova in produzione.
   - Nessuna migrazione, `deploy/` no, codice comune no (solo `Vipi.Host`).
-- 🔨 **S30** lotto **L11 «Il resto», fetta D — circuito e doppio clic** della revisione 3 (via del committente il
+- ✅ **S30** lotto **L11 «Il resto», fetta D — circuito e doppio clic** della revisione 3 (via del committente il
   28-set). Smistamento dei 27 aperti del tema contro il codice di oggi: **già chiusi per altra via** U-046 e U-180
   (tetto SignalR a 512 KB, U-016), U-175 (U-029), U-083 (U-108), U-118 (U-001); U-114 = U-181 + U-199; U-065 e U-081
   sono lo stesso difetto e ne resta la sola parte di «Differenze» (il resto l'ha chiuso U-017). Si procede a gruppi.
@@ -902,5 +902,17 @@
     secondo clic trova il nodo già scelto), `BibliotecaAllegatiSuDatabaseTests` (3, nuovo: un intercettore fa fallire
     il salvataggio e il contesto deve restare pulito). Rossi sul codice di prima. Ui 1807 → **1810**,
     Infrastructure 1760 → **1763**.
+  - **Prova dal vivo** (copia del DB di sviluppo del clone, :5199, utente di sviluppo): `doppio-clic.js` su 17 pagine
+    staff (Struttura, ACC, Aeroporti, Confinanti, Sorgenti, Trasferimenti, Da sistemare, Radioassistenze, Allegati,
+    Spazi aerei, Audit, Diagnostica, Permessi, Chiavi API, Fraseologia, Compiti, Versioni LIBB) → nessun circuito
+    caduto. Glossario: il cestino apre la domanda con la formula, la voce resta fino alla conferma, «Cancel» chiude.
+    Struttura, con il lock: riga aggiunta alla catena di DAAA_CTR, clic sullo stesso nodo → niente, clic su
+    DAAA_MIL_CTR → la domanda; «Resta qui» tiene la catena; «Fine modifica» → no e il perché; «Scarta e cambia
+    settore» → DAAA_MIL_CTR scelto, «Applica» spento; poi «Fine modifica» rilascia. Nel log zero `fail:` e zero
+    «second operation». ⚠️ **Trovato dal vivo e corretto**: il perché del «Fine modifica» negato compariva solo al
+    gesto dopo — la barra del lock chiama un `Func`, non un `EventCallback`, e la pagina non si ridisegnava; ora
+    `InvokeAsync(StateHasChanged)`, e scartando la catena l'avviso sparisce (test di comportamento al posto del
+    presidio sul testo, rosso sul commit di prima). Il pannello non si disegnava (finestra dietro): verifiche lette dal
+    DOM, non da screenshot. Su SQLite le chiamate «async» non cedono il turno: la corsa vera la provano i bUnit.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

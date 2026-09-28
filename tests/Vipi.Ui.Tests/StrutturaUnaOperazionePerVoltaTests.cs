@@ -248,17 +248,31 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
         await NessunaCaduta();
     }
 
-    /// <summary>🔴 U-192: «Fine modifica» con la catena non salvata non rilascia il lock (come le righe dei limiti in ACC):
-    /// senza lock le righe resterebbero a schermo senza più modo di salvarle.</summary>
+    /// <summary>
+    /// 🔴 U-192: «Fine modifica» con la catena non salvata non rilascia il lock (come le righe dei limiti in ACC): senza
+    /// lock le righe resterebbero a schermo senza più modo di salvarle. E il perché si vede SUBITO: la barra chiama un
+    /// <c>Func</c>, non un <c>EventCallback</c>, e dal vivo il messaggio compariva solo al gesto dopo.
+    /// </summary>
     [Fact]
-    public void Fine_modifica_passa_da_chi_guarda_la_catena_non_salvata()
+    public async Task Fine_modifica_con_la_catena_non_salvata_non_rilascia_e_dice_perche()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "src", "Vipi.Ui", "Pages"))) dir = dir.Parent;
-        var sorgente = File.ReadAllText(Path.Combine(dir!.FullName, "src", "Vipi.Ui", "Pages", "StrutturaPage.razor"));
-        var inizio = sorgente.IndexOf("<EditLockBar", StringComparison.Ordinal);
-        var barra = sorgente[inizio..sorgente.IndexOf("/>", inizio, StringComparison.Ordinal)];
-        Assert.Contains("BeforeRelease=", barra);
+        _ripieghi.Righe.Add(new FallbackRowEdit("LIMM_CTR", null, 24500));
+        var cut = Apri();
+        await Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
+        cut.WaitForAssertion(() => Assert.Equal(1, _ripieghi.Letture), TimeSpan.FromSeconds(3));
+        await cut.InvokeAsync(() => cut.Find("button[title=Struct_Fallback_Remove]").Click());
+
+        await cut.InvokeAsync(() => cut.FindAll("button").First(x => x.TextContent.Contains("Lock_FinishEdit")).ClickAsync(new()));
+
+        Assert.Contains("Struct_Fallback_UnsavedRelease", cut.Markup);
+        Assert.Contains(cut.FindAll("button"), x => x.TextContent.Contains("Lock_FinishEdit"));   // il lock resta
+
+        // Scartata la catena, l'avviso non vale più e sparisce.
+        await Premi(cut, "#hn-AirportPosition-3", e => e.ClickAsync(new()));
+        cut.WaitForAssertion(() => Assert.Contains("Struct_Fallback_UnsavedSwitch", cut.Markup));
+        await cut.InvokeAsync(() => cut.FindAll("button").First(x => x.TextContent.Contains("Struct_Fallback_DiscardSwitch")).ClickAsync(new()));
+        cut.WaitForAssertion(() => Assert.DoesNotContain("Struct_Fallback_UnsavedRelease", cut.Markup));
+        await NessunaCaduta();
     }
 
     /// <summary>🔴 U-190: «Proponi» era in fila ma senza catch: un guasto del servizio usciva dal gestore.</summary>
