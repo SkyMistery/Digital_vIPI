@@ -1129,7 +1129,7 @@
     provati a schermo: il canale di una radioassistenza citata (U-157: nella copia nessun vSOP militare, la
     prova è il test sul database e il bUnit della pagina), la vLOA 65 e il suo puntatore (non c'è nella copia),
     e le segnalazioni U-060 (richiedono una sparizione dal catalogo: la prova è il test d'integrazione).
-- 🔨 **S33** lotto **L11 «Il resto», fetta G — dominio aeronautico** della revisione 3 (via del committente il
+- ✅ **S33** lotto **L11 «Il resto», fetta G — dominio aeronautico** della revisione 3 (via del committente il
   28-set; stesso ramo, un unico caricamento con S9…S32). Perimetro: d13 aperte, U-214…U-230 (17 voci; U-015 e
   U-089…U-095 già chiuse in L8/L2). Smistamento sul codice di `5728ffd6` con due agenti in sola lettura:
   **già chiusa** U-216 (S22/U-015: `AirportViewFormat.TlAdesso` dà «—» senza QNH; resta «una funzione sola»,
@@ -1249,9 +1249,9 @@
     statistiche accreditavano il solo ICAO del callsign: `LIBD_CS0_APP` non gestiva mai Brindisi) → scelta del
     committente, **l'albero**: gli si accreditano anche gli scali che hanno lui come padre di copertura
     (`Airport.ParentCallsign`, il campo della Struttura), figli diretti, albero di oggi come per i poligoni
-    d'area; si calcola a ogni lettura, quindi cambia anche i numeri passati, niente da ricalcolare. ⚠️ Da
-    misurare in produzione quanti scali hanno un padre `_APP` (il 25 agosto l'albero era compilato su 31 scali
-    su 93): quelli senza restano al solo prefisso, come prima. ⚠️ Fuori dalla voce, e non fatto: la copertura
+    d'area; si calcola a ogni lettura, quindi cambia anche i numeri passati, niente da ricalcolare. Misurato
+    sulla copia del DB di sviluppo (28-set): 31 scali su 93 hanno un padre, e tutti e 31 sono un `_APP`; gli
+    altri restano al solo prefisso, come prima. ⚠️ Fuori dalla voce, e non fatto: la copertura
     del consolidamento giornaliero (`EfAirportTrafficRollupStore`) usa ancora il solo prefisso — con
     `LIRF_PN1_APP` in linea conta coperto LIRF e non LIRA.
   - **Test**: `AtcStatsQueriesTests` (+1, rosso sul codice di prima: solo LIBD). Infrastructure 1794 →
@@ -1268,5 +1268,18 @@
   - **Test**: `SectorVolumeMapTests` (+1), `SectorVolumeTests` (+1, la mappa), rossi coi soli campi aggiunti e
     non usati; `SectorShapeResolverTests` (+1, l'elevazione arriva dalla porta unica). Application 3077 →
     **3079**, Infrastructure 1795 → **1796**.
+  - **Chiusura**: suite intere verdi net8 e net10 — Application **3079**, Infrastructure **1796**, Ui **1822**,
+    Hosting **68**, E2E **453** (net10); CI verde sui commit dei gruppi. Nessuna migrazione, `deploy/` no.
+    **Prova dal vivo** (copia del DB di sviluppo autorizzata dal committente, :5199, poi cancellata): all'avvio la
+    passata una tantum scrive «642 sessioni con il turno corretto, 22 725 giorni aeroporto rimessi in coda» (più
+    dei ~282 turni stimati dall'audit: il ricalcolo sistema anche le chiavi provvisorie lasciate dal backfill);
+    vAWOS LIRF col METAR di prova — VRB05KT: CROSS/TAIL «--» e «no runway in use», 00000KT: «--» già
+    nell'HTML prerenderizzato (prima «00»), 16012KT: pista dal vento 16R partenze · 16L arrivi, TL FL70; banco
+    di prova dell'editor LIRF: ripiego 16R/16L sulle rotte vere; vIPI LIBD si apre (senza METAR nessuna pista in
+    uso). Nel log zero `fail:` e zero «second operation». ⚠️ Non provati a schermo: l'etichetta «PROB30 TEMPO»
+    (a sorgenti spente non c'è nessun TAF; la prova è il test del parser), il QFE (pannello EXT. DATA; test
+    d'unità), il 3D di un'ATZ in AGL (test sulla proiezione e sul risolutore). ⚠️ In produzione, dopo il
+    pacchetto: i giorni aeroporto rimessi in coda li riprende il consolidamento notturno un blocco alla volta,
+    dal più recente — l'arretrato si svuota in più notti.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
