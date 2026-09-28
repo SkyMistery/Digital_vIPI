@@ -119,6 +119,20 @@ public class RoleAdminServiceTests
         Assert.Equal(VipiRole.Editor, deposito.Righe[Tizio]);
     }
 
+    /// <summary>🔴 U-181: oltre la colonna il database rifiutava a metà salvataggio; ora si dice prima, in parole.</summary>
+    [Fact]
+    public async Task Una_nota_oltre_la_colonna_si_rifiuta_prima_di_scrivere()
+    {
+        var (s, deposito, _) = Costruisci(roster: (Tizio, new[] { "IT-T01" }));
+
+        await Assert.ThrowsAsync<Aor.ValidationException>(() =>
+            s.SetAsync(Tizio, VipiRole.Editor, new string('x', RoleAdminService.NotaMassima + 1)));
+        Assert.Empty(deposito.Righe);
+
+        await s.SetAsync(Tizio, VipiRole.Editor, new string('x', RoleAdminService.NotaMassima));
+        Assert.Equal(VipiRole.Editor, deposito.Righe[Tizio]);
+    }
+
     [Fact]
     public async Task Un_vid_non_valido_non_si_promuove()
     {

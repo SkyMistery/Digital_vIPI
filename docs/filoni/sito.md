@@ -817,5 +817,21 @@
     committente): login → logout → login, tutti e tre riusciti. Il guasto in locale non si è ripetuto (cookie tornato,
     nessun recupero): che la causa fosse il cookie lo dirà la riga nuova in produzione.
   - Nessuna migrazione, `deploy/` no, codice comune no (solo `Vipi.Host`).
+- 🔨 **S30** lotto **L11 «Il resto», fetta D — circuito e doppio clic** della revisione 3 (via del committente il
+  28-set). Smistamento dei 27 aperti del tema contro il codice di oggi: **già chiusi per altra via** U-046 e U-180
+  (tetto SignalR a 512 KB, U-016), U-175 (U-029), U-083 (U-108), U-118 (U-001); U-114 = U-181 + U-199; U-065 e U-081
+  sono lo stesso difetto e ne resta la sola parte di «Differenze» (il resto l'ha chiuso U-017). Si procede a gruppi.
+  - **Gruppo 1**: **U-167** («¶ Prosa capofila/distesa» sui Coordinamenti salvava e non ricaricava: etichetta ferma,
+    il secondo clic riscriveva lo stesso valore) → `OnChanged` dopo la scrittura, come ogni altro comando della riga.
+    **U-197** (`EditLockBar` possiede uno scope ed è `IAsyncDisposable`, ma il suo `DisposeAsync` fermava il battito e
+    basta: uno scope col suo DbContext lasciato in piedi a ogni pagina di struttura) → lo chiude a mano; presidio sul
+    sorgente esteso a OGNI componente `OwningComponentBase` + `IAsyncDisposable`. **U-114/U-181/U-199** (Permessi e
+    Chiavi API: lettura in fila, gesti no; doppio clic su «Salva»/«Crea» = due scritture sullo stesso contesto;
+    guasti non tradotti fuori dal gestore) → sentinella prima del primo await, scrittura in `InFilaAsync`, catch
+    generale col messaggio; nota dei permessi con `maxlength` 500 e rifiuto in parole nel servizio
+    (`RoleAdminService.NotaMassima`, **codice comune** `Vipi.Application`).
+  - **Test**: `PaginaPermessiTests` (3), `PaginaChiaviApiTests` (+2), `ProsaCapofilaRicaricaTests` (1),
+    `ScopeDellEditingTests` (+1), `RoleAdminServiceTests` (+1). Tutti rossi sul codice di prima (i due doppi clic:
+    2 scritture invece di 1). Ui 1782 → **1789**, Application 3017 → **3018**, net8 e net10.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

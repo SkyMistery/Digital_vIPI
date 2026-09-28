@@ -185,34 +185,41 @@
         if (acceso) _scelti.Add(endpoint); else _scelti.Remove(endpoint);
     }
 
+    // 🔴 U-181/U-199 (revisione totale 3): un doppio clic apriva due scritture sullo stesso DbContext e il circuito
+    // cadeva. La sentinella sta PRIMA del primo await; la scrittura passa dalla fila della pagina, la stessa delle
+    // letture; un guasto che il servizio non traduce (la nota oltre la colonna, il database giù) resta un messaggio.
     private async Task Crea()
     {
+        if (_busy) return;
         _busy = true;
         ClearStatus();
         try
         {
-            _emessa = await Chiavi.CreaAsync(_nome, _scelti.ToList());
+            _emessa = await InFilaAsync(() => Chiavi.CreaAsync(_nome, _scelti.ToList()));
             _nome = "";
             _scelti.Clear();
             await CaricaAsync();
         }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (Exception ex) { _error = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 
     private async Task Revoca(ApiClientRow r)
     {
+        if (_busy) return;
         _busy = true;
         ClearStatus();
         try
         {
-            await Chiavi.RevocaAsync(r.Id);
+            await InFilaAsync(() => Chiavi.RevocaAsync(r.Id));
             _status = L["ApiKeys_RevokedStatus", r.Nome];
             if (_emessa?.Cliente.Id == r.Id) _emessa = null;
             await CaricaAsync();
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (Exception ex) { _error = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 

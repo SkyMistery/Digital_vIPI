@@ -249,7 +249,16 @@
         // risorsa (le 4 pagine di struttura), e rilasciare farebbe perdere il lock ad ogni cambio pagina. La chiusura
         // scheda è già gestita dal TTL corto: fermato l'heartbeat, il lock scade da sé in pochi minuti. Il rilascio
         // immediato avviene solo su «Fine modifica» (esplicito) o «Forza sblocco» (ogni Editor).
-        StopHeartbeat();
+        //
+        // 🔴 U-197 (revisione totale 3): lo scope di OwningComponentBase si chiude A MANO. Il renderer chiama solo
+        // DisposeAsync su un componente che lo implementa, mai il Dispose sincrono che chiude lo scope: senza questa
+        // riga ogni pagina di struttura visitata lasciava in piedi uno scope col suo DbContext.
+        try { StopHeartbeat(); }
+        finally
+        {
+            ((IDisposable)this).Dispose();
+            GC.SuppressFinalize(this);
+        }
         return ValueTask.CompletedTask;
     }
 }

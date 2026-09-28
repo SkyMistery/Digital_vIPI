@@ -61,6 +61,9 @@ public interface IRoleAdminService
 /// <inheritdoc cref="IRoleAdminService"/>
 public sealed class RoleAdminService : IRoleAdminService
 {
+    /// <summary>La lunghezza della colonna <c>Note</c> delle promozioni (VipiDbContext): la pagina la usa come maxlength.</summary>
+    public const int NotaMassima = 500;
+
     private readonly IStaffRosterRepository _roster;
     private readonly IRoleOverrideStore _store;
     private readonly IRoleOverrides _cache;
@@ -117,6 +120,13 @@ public sealed class RoleAdminService : IRoleAdminService
             throw new Aor.ValidationException(Messaggio.Lingua(
                 "Chi ha costruito il sistema è admin per configurazione: qui non si tocca.",
                 "The system's author is an admin by configuration: not editable here."));
+
+        // 🔴 U-181 (revisione totale 3): la colonna è di 500 caratteri, e oltre il database rifiutava a metà
+        // salvataggio con un'eccezione che la pagina non conosceva. Si dice prima, in parole.
+        if (note is { Length: > NotaMassima })
+            throw new Aor.ValidationException(Messaggio.Lingua(
+                $"La nota può essere lunga al massimo {NotaMassima} caratteri.",
+                $"The note can be at most {NotaMassima} characters long."));
 
         var pavimento = await PavimentoAsync(userId, ct);
         if (level < pavimento)

@@ -509,6 +509,8 @@ else
     private Task ToggleLeadSentence(EditableSection s) => Run(async () =>
     {
         await Editing.SetSectionLeadSentenceAsync(s.Id, !s.LeadSentence);
+        // 🔴 U-167: senza il ricarico l'etichetta restava quella di prima e il secondo clic riscriveva lo stesso valore.
+        await OnChanged.InvokeAsync();
     });
 
     /// <summary>
