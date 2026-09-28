@@ -45,6 +45,7 @@ public sealed class EfMvaChartStates
         {
             riga.AiracCycle = null;       // il ciclo è arrivato: la corrente è quella in vigore
             riga.TextInForce = null;
+            riga.ForcePublished = false;
             cambiata = true;
         }
         if (!string.Equals(riga.Text, testo, StringComparison.Ordinal))
@@ -54,6 +55,7 @@ public sealed class EfMvaChartStates
             if (riga.AiracCycle is null) riga.TextInForce = riga.Text;
             riga.Text = testo;
             riga.AiracCycle = CicloSuccessivo(adesso);
+            riga.ForcePublished = false;  // valeva per il testo di prima
             riga.UpdatedUtc = adesso;
             cambiata = true;
         }
@@ -68,9 +70,10 @@ public sealed class EfMvaChartStates
     {
         var stato = await _db.MvaChartStates.AsNoTracking()
             .Where(x => x.Path == path)
-            .Select(x => new { x.AiracCycle, x.TextInForce })
+            .Select(x => new { x.AiracCycle, x.TextInForce, x.ForcePublished })
             .FirstOrDefaultAsync(ct);
-        return stato is { AiracCycle: { } daCiclo, TextInForce: { } vecchio } && Differita(daCiclo, ciclo) ? vecchio : null;
+        return stato is { AiracCycle: { } daCiclo, TextInForce: { } vecchio, ForcePublished: false } && Differita(daCiclo, ciclo)
+            ? vecchio : null;
     }
 
     /// <summary>Vero se <paramref name="daCiclo"/> non è ancora arrivato a <paramref name="ciclo"/>. Per data.</summary>

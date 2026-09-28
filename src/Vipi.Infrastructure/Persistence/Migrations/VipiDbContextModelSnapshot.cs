@@ -2248,6 +2248,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("ForcePublished")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Path")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -2359,6 +2362,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("SourceAiracCycle")
                         .HasMaxLength(8)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("SourceForcePublished")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Type")
                         .HasMaxLength(16)

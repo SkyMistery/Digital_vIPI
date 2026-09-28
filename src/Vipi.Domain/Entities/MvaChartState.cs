@@ -30,6 +30,12 @@ public class MvaChartState
     /// <summary>Il ciclo AIRAC (YYNN) dal quale <see cref="Text"/> entra in vigore. Null = è già in vigore.</summary>
     public string? AiracCycle { get; set; }
 
+    /// <summary>
+    /// «Pubblicala lo stesso»: una release congela la carta corrente anche prima di <see cref="AiracCycle"/>. Si
+    /// spegne da sé quando il ciclo arriva o il file cambia di nuovo: valeva per quel testo.
+    /// </summary>
+    public bool ForcePublished { get; set; }
+
     /// <summary>Quando il testo è cambiato l'ultima volta.</summary>
     public DateTime UpdatedUtc { get; set; }
 }

@@ -2597,6 +2597,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(8)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<bool>("ForcePublished")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("Path")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -2734,6 +2737,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("varchar(8)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<bool>("SourceForcePublished")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Type")
                         .HasMaxLength(16)

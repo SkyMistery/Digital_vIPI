@@ -42,6 +42,13 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 collation: "utf8mb4_uca1400_as_cs")
                 .Annotation("MySql:CharSet", "utf8mb4");
 
+            migrationBuilder.AddColumn<bool>(
+                name: "SourceForcePublished",
+                table: "Navaids",
+                type: "tinyint(1)",
+                nullable: false,
+                defaultValue: false);
+
             migrationBuilder.CreateTable(
                 name: "MvaChartStates",
                 columns: table => new
@@ -56,6 +63,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     AiracCycle = table.Column<string>(type: "varchar(8)", maxLength: 8, nullable: true, collation: "utf8mb4_uca1400_as_cs")
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    ForcePublished = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     UpdatedUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
@@ -91,6 +99,10 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
             migrationBuilder.DropColumn(
                 name: "SourceAiracCycle",
+                table: "Navaids");
+
+            migrationBuilder.DropColumn(
+                name: "SourceForcePublished",
                 table: "Navaids");
         }
     }

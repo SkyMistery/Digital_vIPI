@@ -76,7 +76,8 @@ public sealed class EfNavaidCatalog : INavaidCatalog
     private NavaidRow AlCiclo(Navaid n, string? ciclo)
     {
         var riga = Riga(n);
-        if (ciclo is null || !Differita(n.SourceAiracCycle, ciclo)) return riga;
+        // Forzata: qualcuno ha deciso che è una correzione da pubblicare subito.
+        if (ciclo is null || n.SourceForcePublished || !Differita(n.SourceAiracCycle, ciclo)) return riga;
         return riga with { Frequency = n.FrequencyInForce, Latitude = n.LatitudeInForce, Longitude = n.LongitudeInForce };
     }
 
@@ -315,6 +316,7 @@ public sealed class EfNavaidCatalog : INavaidCatalog
                 d.SourceAiracCycle = null;
                 d.FrequencyInForce = null;
                 d.LatitudeInForce = d.LongitudeInForce = null;
+                d.SourceForcePublished = false;   // la pratica è chiusa: la forzatura non serve più
             }
 
         var chiavi = navaids.Select(s => Chiave(s.Code, s.Kind, s.Channel)).Distinct().ToList();
@@ -359,7 +361,12 @@ public sealed class EfNavaidCatalog : INavaidCatalog
                 riga.FrequencyInForce = prima.Frequency;
                 (riga.LatitudeInForce, riga.LongitudeInForce) = (prima.Latitude, prima.Longitude);
             }
-            if (eraDellaSorgente) riga.SourceAiracCycle = cicloSuccessivo;
+            if (eraDellaSorgente)
+            {
+                riga.SourceAiracCycle = cicloSuccessivo;
+                // Valeva per il valore di prima: un valore nuovo non si pubblica in anticipo senza che nessuno l'abbia chiesto.
+                riga.SourceForcePublished = false;
+            }
         }
 
         // 🔴 U-036 (revisione totale 3): la riga che la sorgente NON manda più. Restava con il timbro d'import e

@@ -133,6 +133,13 @@ public class Navaid
     /// <inheritdoc cref="LatitudeInForce"/>
     public double? LongitudeInForce { get; set; }
 
+    /// <summary>
+    /// «Pubblicalo lo stesso»: una release congela i valori correnti anche prima di <see cref="SourceAiracCycle"/>.
+    /// È la correzione urgente che non può aspettare il ciclo — il gemello di <c>AccSector.ShapeForcePublished</c>.
+    /// Si spegne da sé quando il ciclo arriva o la sorgente cambia di nuovo: valeva per quel valore.
+    /// </summary>
+    public bool SourceForcePublished { get; set; }
+
     public DateTime? UpdatedUtc { get; set; }
     public int? UpdatedByUserId { get; set; }
 }

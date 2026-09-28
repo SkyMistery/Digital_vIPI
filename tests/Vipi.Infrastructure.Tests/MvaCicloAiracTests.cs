@@ -118,4 +118,49 @@ public class MvaCicloAiracTests : IAsyncLifetime
 
         Assert.Equal(CartaA, await Stati().TestoInVigoreAsync(Percorso, "2609"));
     }
+
+    /// <summary>
+    /// 🔴 U-037, l'avviso a chi pubblica: la carta di un APP con una revisione in attesa compare nell'avviso della sua
+    /// release — ai cicli in cui porterebbe la versione di prima, e solo a quelli — e «pubblica comunque» la forza.
+    /// </summary>
+    [Fact]
+    public async Task L_avviso_della_release_di_un_app_dice_la_carta_in_attesa_e_la_forza()
+    {
+        var acc = new Vipi.Domain.Entities.Acc { Code = "LIRR", Name = "Roma" };
+        _db.Accs.Add(acc);
+        _db.Airports.Add(new Vipi.Domain.Entities.Airport { Icao = "LIRA", Name = "Ciampino", Acc = acc });
+        _db.AirportSectors.Add(new Vipi.Domain.Entities.AirportSector
+        {
+            ComposePosition = "LIRA_APP", AirportIcao = "LIRA", AccCode = "LIRR", Position = "APP",
+        });
+        await _db.SaveChangesAsync();
+        await Stati().RiconciliaAsync("lira.mva", CartaA);
+        await Stati().RiconciliaAsync("lira.mva", CartaB);
+
+        var avviso = new ShapeGateNoticeService(new EfShapeGateRepository(_db), new AiracService(), LivelloFisso.Editor,
+            new EfSectorfileGateRepository(_db));
+
+        var riga = Assert.Single(await avviso.ListDeferredAsync(Vipi.Domain.ReleaseTargetType.App, "LIRA_APP", new[] { "2609" }));
+        Assert.Equal(DeferredKind.CartaMrva, riga.Kind);
+        Assert.Empty(await avviso.ListDeferredAsync(Vipi.Domain.ReleaseTargetType.App, "LIRA_APP", new[] { "2610" }));
+
+        Assert.Equal(1, await avviso.ForcePublishAsync(Vipi.Domain.ReleaseTargetType.App, "LIRA_APP", new[] { "2609" }));
+        Assert.Null(await Stati().TestoInVigoreAsync("lira.mva", "2609"));   // la release di adesso porta la nuova
+        Assert.Empty(await avviso.ListDeferredAsync(Vipi.Domain.ReleaseTargetType.App, "LIRA_APP", new[] { "2609" }));
+    }
+
+    /// <summary>Una revisione nuova dopo la forzatura spegne la forzatura: valeva per il testo di prima.</summary>
+    [Fact]
+    public async Task Una_revisione_nuova_spegne_la_forzatura()
+    {
+        await Stati().RiconciliaAsync(Percorso, CartaA);
+        await Stati().RiconciliaAsync(Percorso, CartaB);
+        var id = (await _db.MvaChartStates.SingleAsync()).Id;
+        await new EfSectorfileGateRepository(_db).ForceAsync(new[] { (DeferredKind.CartaMrva, id) });
+
+        await Stati().RiconciliaAsync(Percorso, "L;130;N044.13.15.000;E010.53.34.000;130;7;");
+
+        Assert.False((await _db.MvaChartStates.AsNoTracking().SingleAsync()).ForcePublished);
+        Assert.Equal(CartaA, await Stati().TestoInVigoreAsync(Percorso, "2609"));
+    }
 }

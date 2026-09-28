@@ -672,9 +672,10 @@
   entra **dal ciclo AIRAC successivo** tenendo in vigore la versione di prima per le release del ciclo in corso.
   Era già così per le aree di settore (`SectorShapeFallbackService`, `ShapeAiracGate`); ora vale anche per torri,
   radioassistenze e carte MRVA. **Migrazione SÌ**: `SectorfileDifferito` (SQLite + MySQL; Postgres dal
-  riconciliatore), solo aggiunte — quattro colonne su `Navaids`, la tabella `MvaChartStates`. **Codice comune sì**:
-  `Vipi.Domain` (`Navaid`, `MvaChartState`), `Vipi.Application` (`IAirportSectorRepository`, `TwrShapeRow`,
-  `GithubTowerShapeService`, `NavaidRow.SourceAiracCycle`).
+  riconciliatore), solo aggiunte — cinque colonne su `Navaids` (valori in vigore, ciclo, forzatura), la tabella
+  `MvaChartStates`. **Codice comune sì**: `Vipi.Domain` (`Navaid`, `MvaChartState`), `Vipi.Application`
+  (`IAirportSectorRepository`, `TwrShapeRow`, `GithubTowerShapeService`, `NavaidRow.SourceAiracCycle`,
+  `ShapeGateNoticeService`, `ISectorfileGateRepository`, `DeferredKind`).
   - **TWR** (niente migrazione: le colonne c'erano): l'area presa da `twrs.tfl` restava marcata come
     dell'anagrafica IVAO e non era più un bersaglio — 66 torri su 70, mai più aggiornate. Ora porta
     `ShapeSource.Sectorfile`; un'area ridisegnata entra dal ciclo successivo (in vigore quella di prima); le torri
@@ -687,12 +688,20 @@
   - **MRVA**: `EfMvaChartStates` ricorda il **testo** di ogni file `.mva` (non la carta letta: il parser può
     cambiare, il file no). Il provider confronta il testo una volta per caricamento; dentro la cattura di una
     release dà la carta in vigore a quel ciclo. Un file che sparisce (404) non tocca il ricordo.
-  - **Non fatto**: l'avviso a chi pubblica («questa release congela la versione di prima») c'è per le aree
-    (`ShapeGateNotice`), non per radioassistenze e MRVA; e per loro non c'è la forzatura «pubblica adesso».
-  - **Test**: `GithubTowerShapeServiceTests` (+3), `RadioassistenzeCicloAiracTests` (5), `MvaCicloAiracTests` (4),
-    pagina Radioassistenze (+1). Sul codice di prima non compilano (costruttori e colonne nuove): il rosso è il
-    comportamento che descrivono — provenienza mai scritta, valori e carte che entravano subito. Suite intera
-    verde, net8 e net10: Infrastructure 1720 → **1732**, Ui 1777 → **1778**, il resto invariato.
+  - **L'avviso a chi pubblica e la forzatura** (chiesti dal committente il 28-set, dopo la prima stesura): il
+    pannello release elencava solo le aree che la release porterebbe nella versione di prima. Ora elenca anche le
+    radioassistenze che il documento **cita** (in una sua versione qualsiasi) e le carte MRVA dell'ente (vIPI ACC:
+    l'enroute e quelle degli aeroporti della ACC; APP: quella del suo aeroporto), ognuna col suo tipo; «Pubblica
+    comunque i dati nuovi» le forza tutte (`SourceForcePublished`, `MvaChartState.ForcePublished`). La forzatura
+    si spegne da sé quando il ciclo arriva o la sorgente cambia di nuovo, come per le aree. Il percorso delle
+    carte sta in un posto solo (`AuroraMvaProvider.PercorsoAcc/PercorsoAeroporto`). La migrazione, non ancora
+    fusa, è stata rigenerata con dentro le due colonne invece di aggiungerne una seconda.
+  - **Test**: `GithubTowerShapeServiceTests` (+3), `RadioassistenzeCicloAiracTests` (6), `MvaCicloAiracTests` (6),
+    `SezioneRadioassistenzeTests` (+1), `ReleasePanelTests` (+1), pagina Radioassistenze (+1). Sul codice di prima
+    quelli del dominio non compilano (costruttori e colonne nuove): il rosso è il comportamento che descrivono —
+    provenienza mai scritta, valori e carte che entravano subito; il pannello release di prima non dice il tipo
+    (rosso provato). Suite intera verde, net8 e net10: Infrastructure 1720 → **1736**, Ui 1777 → **1779**, il resto
+    invariato.
   - **Prova dal vivo** (copia pulita del DB di sviluppo del 15-set, sectorfile vero, IVAO irraggiungibile): la
     migrazione si applica all'avvio; il giro dei settori d'aeroporto riconosce **66 torri su 68** come del
     sectorfile (le altre 2 hanno un'area diversa dal file e restano di IVAO; 16 cerchi di ripiego invariati), nessun
@@ -702,5 +711,10 @@
     115.20 in vigore, e la pagina scrive «valori nuovi dal ciclo 2610»; `libd.mva` passa al 2610 col testo di
     prima in vigore. Zero errori nel log. La cattura di una release al ciclo precedente la provano i test, non
     la prova a schermo.
+  - **Prova dal vivo dell'avviso** (copia pulita, migrazione rigenerata): simulata una revisione di
+    `ENRMVA/libb.mva`, l'editor della vIPI LIBB mostra nel pannello release «Dati del sectorfile non ancora in
+    vigore — carta MRVA ENRMVA/libb.mva, in vigore dal ciclo 2610»; «Pubblica comunque i dati nuovi» scrive la
+    forzatura (il ciclo resta), l'avviso sparisce, zero errori. La prima stesura diceva «chartMRVA …»: etichetta
+    senza spazio e «MRVA» ripetuto, corretta dopo averla vista a schermo.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

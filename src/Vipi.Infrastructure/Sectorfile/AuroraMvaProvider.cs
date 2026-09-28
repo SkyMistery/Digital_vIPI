@@ -43,10 +43,17 @@ public sealed class AuroraMvaProvider : IVectoringMinimaSource
     }
 
     public Task<MvaChart> GetAccChartAsync(string accCode, CancellationToken ct = default) =>
-        GetChartAsync(accCode, $"ENRMVA/{Norm(accCode)}.mva", ct);
+        GetChartAsync(accCode, PercorsoAcc(accCode), ct);
 
     public Task<MvaChart> GetAirportChartAsync(string icao, CancellationToken ct = default) =>
-        GetChartAsync(icao, $"{Norm(icao)}.mva", ct);
+        GetChartAsync(icao, PercorsoAeroporto(icao), ct);
+
+    /// <summary>Il file della carta enroute di un ACC. ⚠️ Un posto solo: lo usa anche l'avviso a chi pubblica
+    /// (<c>EfSectorfileGateRepository</c>), e due scritture dello stesso percorso sono due chiavi che divergono.</summary>
+    internal static string PercorsoAcc(string accCode) => $"ENRMVA/{Norm(accCode)}.mva";
+
+    /// <summary>Il file della carta di un aeroporto. Vedi <see cref="PercorsoAcc"/>.</summary>
+    internal static string PercorsoAeroporto(string icao) => $"{Norm(icao)}.mva";
 
     private async Task<MvaChart> GetChartAsync(string? code, string relative, CancellationToken ct)
     {

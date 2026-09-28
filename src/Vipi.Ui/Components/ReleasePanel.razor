@@ -84,6 +84,9 @@
                     @foreach (var d in _deferred)
                     {
                         <li>
+                            @* U-037: anche radioassistenze e carte MRVA aspettano il loro ciclo — si dice che cosa sono. *@
+                            @if (d.Kind == DeferredKind.Radioassistenza) { <span class="muted">@($"{L["Rel_DeferredNavaid"]} ")</span> }
+                            @if (d.Kind == DeferredKind.CartaMrva) { <span class="muted">@($"{L["Rel_DeferredMva"]} ")</span> }
                             <b>@d.Callsign</b>@(string.IsNullOrWhiteSpace(d.Name) ? "" : " · " + d.Name)
                             <span class="muted">— @(string.Format(L["Rel_ShapeDeferredRow"].Value, d.FromCycle))</span>
                         </li>

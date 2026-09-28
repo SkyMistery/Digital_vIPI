@@ -101,6 +101,23 @@ public class RadioassistenzeCicloAiracTests : IAsyncLifetime
         Assert.Null(riga.FrequencyInForce);
     }
 
+    /// <summary>La forzatura valeva per quel valore: un cambio nuovo della sorgente la spegne, e la release di
+    /// adesso torna a congelare quello in vigore.</summary>
+    [Fact]
+    public async Task Un_cambio_nuovo_spegne_la_forzatura()
+    {
+        await Anagrafica().ImportFromSourceAsync(new[] { Mnl("115.25", 41.5476) });
+        await Anagrafica().ImportFromSourceAsync(new[] { Mnl("115.30", 41.5476) });
+        var id = (await _db.Navaids.SingleAsync()).Id;
+        await new EfSectorfileGateRepository(_db).ForceAsync(new[] { (DeferredKind.Radioassistenza, id) });
+        Assert.Equal("115.30", (await AlCiclo("2609")).Frequency);
+
+        await Anagrafica().ImportFromSourceAsync(new[] { Mnl("115.35", 41.5476) });
+
+        Assert.False((await _db.Navaids.AsNoTracking().SingleAsync()).SourceForcePublished);
+        Assert.Equal("115.25", (await AlCiclo("2609")).Frequency);
+    }
+
     [Fact]
     public async Task Senza_cambi_nessun_differimento()
     {

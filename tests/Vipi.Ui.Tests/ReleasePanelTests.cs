@@ -539,6 +539,22 @@ public class ReleasePanelTests : TestContext
         Assert.Contains("2608", cicli);   // il primo della tendina
     }
 
+    /// <summary>🔴 U-037: nell'avviso ci sono anche radioassistenze e carte MRVA, e ognuna dice che cosa è — un
+    /// «MNL VHF 99Y» da solo, fra i callsign dei settori, non si legge.</summary>
+    [Fact]
+    public void L_avviso_dice_anche_radioassistenze_e_carte_e_che_cosa_sono()
+    {
+        Arrange();
+        _gate.Differite.Add(new DeferredShapeNotice("MNL VHF 99Y", null, "2609", DeferredKind.Radioassistenza));
+        _gate.Differite.Add(new DeferredShapeNotice("ENRMVA/lirr.mva", null, "2609", DeferredKind.CartaMrva));
+
+        var cut = Render();
+
+        Assert.Contains("Rel_DeferredNavaid", cut.Markup);
+        Assert.Contains("MNL VHF 99Y", cut.Markup);
+        Assert.Contains("Rel_DeferredMva", cut.Markup);
+    }
+
     [Fact]
     public void Il_tasto_forza_le_aree_e_l_avviso_sparisce()
     {

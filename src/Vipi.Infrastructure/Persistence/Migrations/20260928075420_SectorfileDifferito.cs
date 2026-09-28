@@ -37,6 +37,13 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                 maxLength: 8,
                 nullable: true);
 
+            migrationBuilder.AddColumn<bool>(
+                name: "SourceForcePublished",
+                table: "Navaids",
+                type: "INTEGER",
+                nullable: false,
+                defaultValue: false);
+
             migrationBuilder.CreateTable(
                 name: "MvaChartStates",
                 columns: table => new
@@ -47,6 +54,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     Text = table.Column<string>(type: "TEXT", nullable: false),
                     TextInForce = table.Column<string>(type: "TEXT", nullable: true),
                     AiracCycle = table.Column<string>(type: "TEXT", maxLength: 8, nullable: true),
+                    ForcePublished = table.Column<bool>(type: "INTEGER", nullable: false),
                     UpdatedUtc = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
@@ -81,6 +89,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropColumn(
                 name: "SourceAiracCycle",
+                table: "Navaids");
+
+            migrationBuilder.DropColumn(
+                name: "SourceForcePublished",
                 table: "Navaids");
         }
     }

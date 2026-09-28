@@ -195,6 +195,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Content.ICallsignRenameService, EfCallsignRenameService>();
         services.AddScoped<Vipi.Application.Content.ISectorShapeRepository, EfSectorShapeRepository>();
         services.AddScoped<Vipi.Application.Content.IShapeGateRepository, EfShapeGateRepository>();
+        // U-037: radioassistenze e carte MRVA nell'avviso a chi pubblica, e la loro forzatura.
+        services.AddScoped<Vipi.Application.Content.ISectorfileGateRepository, EfSectorfileGateRepository>();
         // Il contesto del congelamento: SCOPED come il DbContext, quindi vale per una richiesta sola.
         services.AddScoped<Vipi.Application.Content.ShapeReleaseContext>();
         // In che lingua comporre la prosa GENERATA (frasi di coordinamento). Scoped come il contesto
