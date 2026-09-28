@@ -914,7 +914,7 @@
     `InvokeAsync(StateHasChanged)`, e scartando la catena l'avviso sparisce (test di comportamento al posto del
     presidio sul testo, rosso sul commit di prima). Il pannello non si disegnava (finestra dietro): verifiche lette dal
     DOM, non da screenshot. Su SQLite le chiamate «async» non cedono il turno: la corsa vera la provano i bUnit.
-- 🔨 **S31** lotto **L11 «Il resto», fetta E — import da testo/XLSX** della revisione 3 (via del committente il
+- ✅ **S31** lotto **L11 «Il resto», fetta E — import da testo/XLSX** della revisione 3 (via del committente il
   28-set). Perimetro: U-042, U-043, U-044, U-045, U-050 (import), U-178 («Incolla tabella» dei Trasferimenti), e i due
   ingressi da file AIP U-119, U-136. Il resto degli «altri ingressi» (U-041, U-047, U-135, U-137, U-138: rinomina,
   eliminazione, traduzione, immagini) va con la fetta F.
@@ -962,5 +962,13 @@
   - **Test**: `AirspaceKmlReaderTests` (+2), `NavaidAipReportTests` (+4: KML salvato letto come KML, KMZ come KMZ,
     file illeggibile → null, nome di radioassistenza decodificato). Rossi i quattro che il difetto tocca; KMZ e «&»
     vera passavano già e restano come controllo. Application 3028 → **3034**.
+  - **Prova dal vivo** (copia del DB di sviluppo autorizzata dal committente, :5199, poi cancellata): Trasferimenti
+    LIRR, accordo LIRR_ES_CTR ⇄ LIBB_ES_CTR, «Incolla tabella» di tre righe con la seconda oltre il tetto →
+    «Row 2: The condition: 600 characters, the maximum is 500.», pannello aperto, nel database 50 clausole prima e
+    50 dopo; corretta la riga e reinviato → «Imported 3 clauses», 53 clausole, ognuna delle tre una volta sola.
+    «Confronta con l'AIP» sul KMZ in vigore → 218 righe di rapporto, nessun «file non leggibile». Nel log zero
+    `fail:` e zero «second operation». ⚠️ Non provati a schermo: l'anteprima di «Importa tabella» con il rifiuto
+    per troppe celle (nella copia nessun documento ha una tabella generica né un vSOP militare; la prova è il test
+    bUnit sul componente vero) e la decodifica dei nomi AIP (i volumi salvati si rileggono solo ricaricando l'AIP).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
