@@ -166,6 +166,27 @@ public static partial class Validatore
             problemi.AddRange(Esito(percorso)?.Problemi ?? Array.Empty<ProblemaDelSector>());
         }
 
+        // Le procedure (lotto «Subito» slice 9a): ripetute, 6° campo fuori posto, di un altro scalo, su piste che non ci sono.
+        var versi = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (string percorso in indice.Values.Where(p => p.EndsWith(".rw", StringComparison.OrdinalIgnoreCase)))
+        {
+            foreach (var pista in Esito(percorso)?.Record.OfType<Runway>() ?? [])
+            {
+                if (!versi.TryGetValue(pista.IcaoCode.Trim(), out var suoi))
+                    versi[pista.IcaoCode.Trim()] = suoi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                suoi.Add(pista.Designator1.Trim());
+                suoi.Add(pista.Designator2.Trim());
+            }
+        }
+
+        var versiDelloScalo = versi.ToDictionary(v => v.Key, v => (IReadOnlySet<string>)v.Value, StringComparer.OrdinalIgnoreCase);
+        foreach (string percorso in indice.Values.Where(p => p.EndsWith(".sid", StringComparison.OrdinalIgnoreCase)
+                                                            || p.EndsWith(".str", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal))
+        {
+            if (Esito(percorso) is { } esito)
+                problemi.AddRange(ControlloDelleProcedure.Di(Relativo(percorso), esito.Record, versiDelloScalo, r => TestoDellaRiga(percorso, r)));
+        }
+
         // Le copie gemelle diverse (carta F3-bis §2.1): uno scalo, una pista, una posizione con un altro valore nel file
         // nazionale e in quello della FIR. Una per copia fuori posto, col valore che hanno le altre.
         var famiglie = indice.Values.Where(p => CopieGemelle.Famiglia(p) is not null && Esito(p) is not null)

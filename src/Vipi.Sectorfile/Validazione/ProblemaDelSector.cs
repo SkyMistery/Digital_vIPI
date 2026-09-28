@@ -89,6 +89,21 @@ public enum Regola
     /// </summary>
     ConfineSenzaErba,
 
+    /// <summary>La stessa procedura due volte nello stesso file: scalo, piste, nome e tipo uguali (lotto «Subito» slice 9a, P3).</summary>
+    ProceduraRipetuta,
+
+    /// <summary>
+    /// Il 6° campo di una SID non è il tipo (0 SID, 1 transizione): un campo manca prima (<c>VICTOR6A; ;0;VICTOR;</c>,
+    /// slice 9a, P3) e Aurora legge la riga sbagliata.
+    /// </summary>
+    TipoFuoriPosto,
+
+    /// <summary>Una procedura di un altro scalo nel file di uno scalo (<c>licz.str</c> con <c>LICC</c>, <c>limf.sid</c> con <c>LIMF18</c>: slice 9a, Q6, R-4).</summary>
+    VoceDiUnAltroScalo,
+
+    /// <summary>Una procedura su una pista che lo scalo non ha nei <c>.rw</c> (<c>lipi.str</c> <c>06:24</c> con 06L/06R: slice 9a, Q6, R-4).</summary>
+    PistaInesistente,
+
     /// <summary>Una mappa composta elenca una procedura che nel suo <c>.str</c> non c'è (F3-bis §2.2), o un elenco che non si legge.</summary>
     CompostaConProceduraAssente,
 
@@ -167,7 +182,8 @@ public static class Regole
     {
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
-            or Regola.CopieDiverse or Regola.FormeDiverse or Regola.ConfineSenzaErba or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
+            or Regola.CopieDiverse or Regola.FormeDiverse or Regola.ConfineSenzaErba or Regola.ProceduraRipetuta
+            or Regola.VoceDiUnAltroScalo or Regola.PistaInesistente or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
             or Regola.CommentoInCoda or Regola.FileCitatoAssente or Regola.FileInclusoDueVolte
             or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma
             or Regola.NomeMancante => Validazione.Gravita.Avviso,

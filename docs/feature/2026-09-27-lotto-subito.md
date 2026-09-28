@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) e la slice 8 (8a-8e); prossima la **slice 9** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) e la slice 8 (8a-8e); in corso la **slice 9** (9a fatta, §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -1093,3 +1093,27 @@ il riempimento che mancano (159 e 105 proponibili) con l'avviso `ConfineSenzaErb
 del motore (`FormeDiverse`, `ConfineSenzaErba`), calcolate dal Lab. Voci del giro dei file chiuse: D5, J3, Q5, I2, H10,
 F2 (l'adozione in massa delle famiglie, D6, e le 17 divergenti sono di F4). Da provare a mano (eseguibile da
 ripubblicare): prove in `SectorLab-prova\PROVE.md`.
+
+**Slice 9 — procedure (dal 29 settembre).** Divisa in: **9a** i controlli (P3, Q6, R-4) · **9b** la vista per pista e
+tipo e la scheda della voce (Q1, P2) · **9c** i metadati delle procedure e il fix proposto dal nome (P6, P7, Q2b, Q2d) ·
+**9d** i metadati per punto (Q2, P11) · **9e** i legami STAR → attesa → IAP → GA (Q2c).
+
+- **9a (29 settembre)** — i controlli delle procedure nel motore (`Validazione/ControlloDelleProcedure.cs`, nella
+  validazione dell'albero). Codice comune toccato: quattro regole nuove.
+  - **`ProceduraRipetuta`** (avviso): lo stesso scalo, piste, nome e tipo due volte nello stesso file (P3).
+  - **`TipoFuoriPosto`** (errore): il 6° campo di una SID non è il tipo 0/1 — un campo manca prima e il navaid finisce
+    lì (`LIBV;14L:14R;VICTOR6A; ;0;VICTOR;`, `LIMN;17:35;SID1; ; ;TOP;`): Aurora legge la riga sbagliata (P3).
+  - **`VoceDiUnAltroScalo`** (avviso): la voce di un altro scalo nel file di uno scalo (Q6, R-4; solo nei file con un
+    nome di scalo di quattro lettere, non in `lirr.str`/`lizz.str` che sono raccolte). Prende anche `limf.sid:28`
+    (`LIMF18;TOP1B LAG2L;…`: il `;` mancante dopo lo scalo).
+  - **`PistaInesistente`** (avviso): un verso che lo scalo non ha nei `.rw` (Q6, R-4). Scelta dell'agente, dalla
+    misura: si controllano solo i campi con la forma di un verso (due cifre e L/R/C). `MAPS` combinato con una pista
+    (`35:MAPS`, 72 STAR: la procedura sta nel menu della pista e in quello delle mappe), `NE`/`SU` di `lirr.str` e
+    `BULL`/`AAR` di `lizz.str` sono gruppi del menu, non piste; uno scalo senza piste nei `.rw` non si controlla.
+  - Già c'erano: `CoppiaDecimale` (i 38 punti decimali di `liba.str`), `DueNomiDiversi` (`ALPHA SOUTH;ALPHA SUOTH`).
+  Misura sul fork (`scratchpad/misura9`): 1 306 SID e 1 505 voci STR; **11 SID ripetute** (5 di LIMC 35R, `lieo`,
+  `lipq`), **12 SID col tipo fuori posto** (`libv` VICTOR, `limn` SID1/2/4, `lirl` PEMAR ×4, `lirm` VEGIM, `limf:28`; la
+  carta ne contava 28 con un'altra lettura), **2 voci di un altro scalo** (`limf.sid:28`, `licz.str` LICC), **4 piste che
+  lo scalo non ha** (`licz.str` LICC 10L:10R, `lipi.str` 06:24 con 06L/06R, `lirl.str` HLD-IRDUN e HLD-LAT su 05:12),
+  STR ripetute 0. Il validatore sull'albero passa da 120 errori e 543 avvisi a **132 errori e 560 avvisi**; round-trip
+  invariato. Test: motore 676 → **680**, Lab 709.
