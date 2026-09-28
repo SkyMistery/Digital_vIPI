@@ -50,6 +50,7 @@ public static partial class ValoriDeiMetadati
     {
         ["nav"] = ["RNAV1", "RNP1", "RNP APCH"],
         ["type"] = ["ILS", "LOC", "RNP", "VOR", "NDB"],
+        ["role"] = ["IAF", "IF", "FAF", "MAPt"],
     };
 
     /// <summary>L'editor di una chiave (senza il numero di pista davanti).</summary>
@@ -103,6 +104,12 @@ public static partial class ValoriDeiMetadati
 
             case "gp":
                 return Pendenza(scritto, out scritto, out perche);
+
+            case "alt":
+                return Vincolo(scritto, out scritto, out perche);
+
+            case "spd":
+                return Velocita(scritto, out scritto, out perche);
 
             case var _ when Scelte.TryGetValue(chiave, out var scelte):
                 string cercato = string.Join(' ', scritto.Split(' ', StringSplitOptions.RemoveEmptyEntries));
@@ -191,6 +198,64 @@ public static partial class ValoriDeiMetadati
         perche = null;
         scritto = perCategoria.Count == 0 ? null : string.Join(',', perCategoria.Select(c => $"{c.Key}:{c.Value}"));
         return true;
+    }
+
+    /// <summary>
+    /// Il vincolo di quota di un punto (Q2, §M): <c>+FL80</c> (a o sopra), <c>-5000</c> (a o sotto), <c>=4000</c> (a),
+    /// <c>4000/6000</c> (fra). Una quota è in piedi o in FL; il segno davanti è obbligatorio, fuori da un «fra»: un
+    /// numero da solo non dice se è un minimo, un massimo o la quota.
+    /// </summary>
+    private static bool Vincolo(string testo, out string? scritto, out string? perche)
+    {
+        string t = testo.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
+        if (t.Split('/') is [var basso, var alto])
+        {
+            if (Quota(basso) is { } b && Quota(alto) is { } a)
+            {
+                scritto = $"{b}/{a}";
+                perche = null;
+                return true;
+            }
+        }
+        else if (t.Length > 1 && t[0] is '+' or '-' or '=' && Quota(t[1..]) is { } quota)
+        {
+            scritto = t[0] + quota;
+            perche = null;
+            return true;
+        }
+
+        scritto = null;
+        perche = $"«{testo}»: si scrive +FL80 (a o sopra), -5000 (a o sotto), =4000 (a) o 4000/6000 (fra), in piedi o FL.";
+        return false;
+    }
+
+    /// <summary>Una quota di un vincolo: <c>FL80</c>, o piedi (<c>5000</c>, <c>5000ft</c>) scritti senza unità.</summary>
+    private static string? Quota(string t)
+    {
+        if (Livello().Match(t) is { Success: true } livello
+            && int.Parse(livello.Groups[1].Value, CultureInfo.InvariantCulture) is > 0 and <= 660 and var fl)
+            return $"FL{fl}";
+        if (Piedi().Match(t) is { Success: true } piedi
+            && int.Parse(piedi.Groups[1].Value, CultureInfo.InvariantCulture) is > 0 and <= 66000 and var ft)
+            return ft.ToString(CultureInfo.InvariantCulture);
+        return null;
+    }
+
+    /// <summary>Il vincolo di velocità di un punto (Q2, §M): nodi con il segno, <c>-210</c> (al più), <c>+180</c>, <c>=230</c>.</summary>
+    private static bool Velocita(string testo, out string? scritto, out string? perche)
+    {
+        string t = testo.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant().Replace("KT", "", StringComparison.Ordinal);
+        if (t.Length > 1 && t[0] is '+' or '-' or '='
+            && int.TryParse(t[1..], NumberStyles.None, CultureInfo.InvariantCulture, out int nodi) && nodi is >= 60 and <= 400)
+        {
+            scritto = t[0] + nodi.ToString(CultureInfo.InvariantCulture);
+            perche = null;
+            return true;
+        }
+
+        scritto = null;
+        perche = $"«{testo}»: la velocità si scrive in nodi col segno, -210 (al più), +180 (almeno) o =230, da 60 a 400.";
+        return false;
     }
 
     /// <summary>La pendenza del sentiero di discesa (Q2d), in gradi con un decimale: <c>3.0</c>. Da 1 a 10 gradi.</summary>

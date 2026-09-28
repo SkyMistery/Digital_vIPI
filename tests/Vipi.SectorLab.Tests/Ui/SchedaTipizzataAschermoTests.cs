@@ -327,6 +327,30 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
         pagina.WaitForAssertion(() => Assert.Contains("//@\"ELKA3A\" nav=\"RNP APCH\"", Righe("lirf.str")));
     }
 
+    [Fact]
+    public async Task IVincoliDeiPuntiSiScrivonoDallaScheda()
+    {
+        var pagina = await ConIlRecord("lirf.str", "LIRF ELKA3A");
+        Assert.Equal("9", pagina.Find("[data-punti-con-tag]").GetAttribute("data-punti-con-tag"));
+
+        pagina.Find("select[data-scrivi-punto='1.role']").Change("IAF");
+        pagina.WaitForAssertion(() => Assert.Contains("//@@\"BIBEK\" role=IAF", Righe("lirf.str")));
+        pagina.Find("[data-scrivi-punto='1.alt']").Change("+fl80");
+
+        pagina.WaitForAssertion(() => Assert.Contains("//@@\"BIBEK\" role=IAF alt=+FL80", Righe("lirf.str")));
+        Assert.Contains("role=IAF", pagina.Find("[data-punto-con-tag='1']").GetAttribute("title"), StringComparison.Ordinal);
+        // La forma della mappa porta i vincoli, per il passaggio del mouse: si rifà quando si scrive un tag di punto.
+        Assert.Equal("BIBEK role=IAF alt=+FL80", _lab.FormaScelta()?.Vincoli);
+    }
+
+    [Fact]
+    public async Task UnaMappaDelMapsNonHaVincoliDeiPunti()
+    {
+        var pagina = await ConIlRecord("lirf.str", "LIRF LIRF ATZ");
+
+        Assert.Empty(pagina.FindAll("[data-punti-con-tag]"));
+    }
+
     // --- slice 3e: il tipo del record nuovo ------------------------------------------------------------------------
 
     [Fact]

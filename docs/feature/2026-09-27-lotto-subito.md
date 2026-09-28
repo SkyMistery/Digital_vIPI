@@ -1177,3 +1177,16 @@ tipo e la scheda della voce (Q1, P2) · **9c** i metadati delle procedure e il f
   - **«a tutta la voce»** (P6, «valori per pista come gesto»): accanto a ogni metadato scritto di una procedura, porta
     lo stesso valore alle altre della sua voce (stessa pista, stesso tipo) in un gesto solo della storia.
   Test: Lab 720 → **745**.
+- **9d (29 settembre)** — i vincoli dei punti (Q2, P11). Codice comune toccato: `Metadati.RigheDeiPunti` (le righe di
+  punto di un record, per la scheda; il lettore e lo scrittore dei `//@@` c'erano dalla slice 1c).
+  - Nella scheda di una procedura (SID col tracciato, voce `.str` su una pista; non le mappe del `MAPS`) la sezione
+    **«Vincoli dei punti»**: ogni punto (senza quelli commentati) con ruolo da elenco (IAF, IF, FAF, MAPt), quota e
+    velocità. Si scrivono nel `//@@"PUNTO" …` sopra il punto; un punto si riconosce dal suo numero fra le righe di
+    punto, che non cambia quando un tag si aggiunge sopra un altro. Tolte le chiavi il tag sparisce.
+  - Le forme di §M: quota `+FL80` (a o sopra), `-5000` (a o sotto), `=4000` (a), `4000/6000` (fra), in piedi o FL;
+    **il segno è obbligatorio** (scelta dell'agente: un numero da solo non dice se è un minimo, un massimo o la
+    quota); velocità in nodi col segno, `-210`, da 60 a 400.
+  - **Al passaggio del mouse, mai in Aurora**: la forma della mappa porta i vincoli (`BIBEK role=IAF alt=+FL80`), il
+    suggerimento li mostra sotto il nome (ora come testo, non come HTML: i nomi vengono dai file), e scrivere un tag
+    di punto rifà la forma. Provato sul banco (fork, `lirf.str` ELKA3A).
+  Test: motore 691 → **692**, Lab 745 → **764**. Prova sull'albero invariata.

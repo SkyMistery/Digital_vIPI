@@ -30,6 +30,8 @@ public enum TipoDiForma
 /// <c>APT</c> — la famiglia e il valore del campo del tipo, come è scritto.</param>
 /// <param name="Parti">Per ogni tratto, la parte del record da cui viene (lotto «Subito» slice 6: il poligono di un confine),
 /// così la mappa ne spegne uno solo. Null: un tratto per parte, nell'ordine.</param>
+/// <param name="Vincoli">I vincoli dei punti di una procedura (lotto «Subito» slice 9d, Q2): si leggono al passaggio del
+/// mouse, mai in Aurora. Null se nessun punto ne ha.</param>
 public sealed record FormaDellaMappa(
     string File,
     int Record,
@@ -42,7 +44,8 @@ public sealed record FormaDellaMappa(
     bool SoloBordo = false,
     string? Chiave = null,
     string? Punto = null,
-    IReadOnlyList<int>? Parti = null)
+    IReadOnlyList<int>? Parti = null,
+    string? Vincoli = null)
 {
     public int Punti => Tratti.Sum(t => t.Count);
 }

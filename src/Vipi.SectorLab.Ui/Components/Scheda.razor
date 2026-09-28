@@ -187,6 +187,53 @@
             </Sezione>
         }
 
+        @* Slice 9d (Q2, P11): i vincoli dei punti della procedura, nel tag //@@ sopra il punto — mai a schermo in Aurora. *@
+        @if (Lab.PuntiDellaProceduraDi(scheda.File, scheda.Indice) is { Count: > 0 } punti)
+        {
+            <Sezione Chiave="scheda-punti" data-punti-con-tag="@punti.Count">
+            <Titolo>Vincoli dei punti <span class="lab-nota">@punti.Count(p => p.Chiavi.Count > 0) di @punti.Count · mai in Aurora</span></Titolo>
+            <ChildContent>
+            <table class="lab-campi lab-vincoli">
+                <thead>
+                    <tr><th>Punto</th><th title="IAF, IF, FAF, MAPt">Ruolo</th><th title="+FL80 a o sopra · -5000 a o sotto · =4000 a · 4000/6000 fra">Quota</th><th title="-210 al più · +180 almeno · =230">Velocità</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var punto in punti)
+                    {
+                        int ordinale = punto.Ordinale;
+                        string? ruolo = Valore(punto, "role");
+                        <tr data-punto-con-tag="@ordinale" title="@Vincoli(punto)">
+                            <th>@(ordinale + 1). @punto.Punto</th>
+                            <td>
+                                <select class="lab-campo" value="@ruolo" data-scrivi-punto="@($"{ordinale}.role")"
+                                        @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, RuoloChiave, e.Value?.ToString())">
+                                    <option value="">—</option>
+                                    @foreach (string scelta in ValoriDeiMetadati.Scelte[RuoloChiave])
+                                    {
+                                        <option value="@scelta">@scelta</option>
+                                    }
+                                    @if (ruolo is not null && !ValoriDeiMetadati.Scelte[RuoloChiave].Contains(ruolo))
+                                    {
+                                        <option value="@ruolo">@ruolo — non è nell'elenco</option>
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                <input class="lab-campo" value="@Valore(punto, "alt")" placeholder="+FL80" data-scrivi-punto="@($"{ordinale}.alt")"
+                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, QuotaChiave, e.Value?.ToString())" />
+                            </td>
+                            <td>
+                                <input class="lab-campo" value="@Valore(punto, "spd")" placeholder="-210" data-scrivi-punto="@($"{ordinale}.spd")"
+                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, VelocitaChiave, e.Value?.ToString())" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </ChildContent>
+            </Sezione>
+        }
+
         @if (Lab.Rifiuto is { } rifiuto)
         {
             <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
@@ -423,6 +470,16 @@ else
         Lab.CambiaIlMetadato(scheda.File, scheda.Indice, metadato.Chiave,
             ValoriDeiMetadati.Clic(metadato.Base, adesso, lettera, e.Detail >= 2));
     }
+
+    private const string RuoloChiave = "role", QuotaChiave = "alt", VelocitaChiave = "spd";
+
+    private static string? Valore(PuntoConTag punto, string chiave)
+        => punto.Chiavi.TryGetValue(chiave, out string? scritto) ? Vipi.Sectorfile.IO.Metadati.Testo(scritto) : null;
+
+    /// <summary>I vincoli del punto in una riga, per il passaggio del mouse (Q2: nel Lab sì, in Aurora mai).</summary>
+    private static string Vincoli(PuntoConTag punto)
+        => punto.Chiavi.Count == 0 ? $"{punto.Punto}: nessun vincolo"
+            : $"{punto.Punto}: " + string.Join(" · ", punto.Chiavi.Select(c => $"{c.Key}={Vipi.Sectorfile.IO.Metadati.Testo(c.Value)}"));
 
     private static string TitoloATuttaLaVoce(string chiave, string valore, int altre)
         => $"Scrive {chiave}={valore} anche nelle altre {altre} procedure della voce (stessa pista, stesso tipo)";

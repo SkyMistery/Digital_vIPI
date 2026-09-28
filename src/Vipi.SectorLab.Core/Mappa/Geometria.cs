@@ -1,5 +1,6 @@
 using System.Globalization;
 using Vipi.SectorLab.Core.Sessione;
+using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Models;
 using Vipi.Sectorfile.Shared;
 
@@ -37,13 +38,26 @@ public static class Geometria
             return forme;
         }
 
+        // Slice 9d (Q2): i vincoli dei punti delle procedure viaggiano con la forma, per il passaggio del mouse.
+        var vincoli = record.Count > 0 && record[0] is SidProcedure or StrRecord
+            ? conRecord.PuntiConTagDelFile()
+            : new Dictionary<int, IReadOnlyList<PuntoConTag>>();
         for (int i = 0; i < record.Count; i++)
         {
             if (Forma(file.Relativo, i, record[i], catalogo) is { } forma)
-                forme.Add(forma);
+                forme.Add(vincoli.TryGetValue(i, out var punti) ? forma with { Vincoli = Vincoli(punti) } : forma);
         }
 
         return forme;
+    }
+
+    /// <summary>I vincoli dei punti in una riga per punto: <c>BIBEK role=IAF alt=+FL80</c>.</summary>
+    private static string? Vincoli(IReadOnlyList<PuntoConTag> punti)
+    {
+        var righe = punti.Where(p => p.Chiavi.Count > 0)
+            .Select(p => p.Punto + " " + string.Join(" ", p.Chiavi.Select(c => $"{c.Key}={Metadati.Testo(c.Value)}")))
+            .ToList();
+        return righe.Count > 0 ? string.Join("\n", righe) : null;
     }
 
     private static FormaDellaMappa? Forma(string file, int indice, object record, CatalogoDeiPunti? catalogo)

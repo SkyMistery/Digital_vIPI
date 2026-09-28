@@ -863,6 +863,48 @@ public sealed class SessioneDelLab
         });
     }
 
+    /// <summary>
+    /// I punti di una procedura coi loro vincoli (slice 9d, Q2): SID col tracciato e voci .str su una pista; vuoto per
+    /// le mappe del MAPS e per i file i cui punti non portano tag.
+    /// </summary>
+    public IReadOnlyList<PuntoConTag> PuntiDellaProceduraDi(string fileRelativo, int record)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file && record >= 0 && record < file.RecordDelModello.Count
+           && EUnaProcedura(file.RecordDelModello[record])
+            ? file.PuntiConTag(record)
+            : [];
+
+    private static bool EUnaProcedura(object record) => record switch
+    {
+        Vipi.Sectorfile.Models.SidProcedure => true,
+        Vipi.Sectorfile.Models.StrRecord voce => !DescrizioniDeiCampi.EUnaMappa(voce.RunwaySpec),
+        _ => false,
+    };
+
+    /// <summary>Scrive, cambia o toglie (vuoto) una chiave del tag di un punto della procedura (slice 9d, Q2).</summary>
+    public bool CambiaIlTagDelPunto(string fileRelativo, int record, int ordinale, string chiave, string? valore)
+        => NellaStoria($"{chiave} del punto {ordinale + 1} di {EtichettaDi(fileRelativo, record)}", () =>
+        {
+            if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+                return false;
+            if (!ValoriDeiMetadati.Normalizza(chiave, valore, null, out string? normale, out string? perche))
+            {
+                Rifiuto = perche;
+                Registro.Scrivi("modifica", $"{fileRelativo}#{record} punto {ordinale} {chiave} = «{valore}»: rifiutata, {perche}");
+                Avvisa();
+                return false;
+            }
+
+            var esito = Modifiche.CambiaIlTagDelPunto(file, record, ordinale, chiave, normale, EtichettaDi(fileRelativo, record));
+            Registro.Scrivi("modifica", $"{fileRelativo}#{record} punto {ordinale} {chiave} = «{normale}»: {Descrivi(esito)}");
+            Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+            // I vincoli viaggiano con la forma della mappa (il passaggio del mouse): la si rifà.
+            if (esito is ModificaDelMetadato)
+                RifaiLaGeometria(fileRelativo);
+            RicontrollaLeModifiche();
+            Avvisa();
+            return esito is ModificaDelMetadato;
+        });
+
     /// <summary>Scrive, cambia o toglie (vuoto) una chiave dei metadati del record: il tag sopra il record.</summary>
     public bool CambiaIlMetadato(string fileRelativo, int record, string chiave, string? valore)
         => NellaStoria($"{chiave} di {EtichettaDi(fileRelativo, record)}", () => CambiaIlMetadatoAdesso(fileRelativo, record, chiave, valore));

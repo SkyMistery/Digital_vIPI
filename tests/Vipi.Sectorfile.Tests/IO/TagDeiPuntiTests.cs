@@ -184,6 +184,17 @@ public sealed class TagDeiPuntiTests
         }
     }
 
+    // Slice 9d: le righe di punto di una procedura, per la scheda — senza intestazione, tag, commenti e righe vuote.
+    [Fact]
+    public void LeRigheDeiPuntiSaltanoIntestazioneTagECommenti()
+    {
+        var letto = Str(Righe(LaStar[0], LaStar[1], "//@@\"OBFUL\" role=IAF", LaStar[2], "//un commento", LaStar[3]));
+
+        Assert.Equal(
+            [(1, "ODINA"), (3, "OBFUL"), (5, "N045.29.09.347;E010.01.56.131")],
+            Metadati.RigheDeiPunti(letto, letto.Records[0]));
+    }
+
     private sealed class NessunoScrive<T> : IFileSaver<T>
     {
         public IReadOnlyList<string> Serialize(T record) => throw new InvalidOperationException("Nessun record sporco.");

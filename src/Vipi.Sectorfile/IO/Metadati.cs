@@ -731,6 +731,31 @@ public static partial class Metadati
         return campi.Length < davanti + 2 ? null : ChiaveDelPunto(string.Join(';', campi.Skip(davanti)));
     }
 
+    /// <summary>
+    /// Le righe di punto di <paramref name="record"/>, in ordine: l'indice fra le righe del record (quello di
+    /// <see cref="ScriviIlPunto{T}"/>) e il nome col quale un <c>//@@</c> la aggancia. Senza le righe vuote, i commenti,
+    /// i tag e (in SID e STAR) l'intestazione (Sector Lab, lotto «Subito» slice 9d: i vincoli dei punti nella scheda).
+    /// </summary>
+    public static IReadOnlyList<(int Riga, string Punto)> RigheDeiPunti<T>(ParseResult<T> letto, T record)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(letto);
+        ArgumentNullException.ThrowIfNull(record);
+        var rec = (RecordChunk<T>)letto.Chunks[IndiceDel(letto, record)];
+        var righe = new List<(int, string)>();
+        for (int i = PrimaRigaDiPunto<T>(); i < rec.RawLines.Length; i++)
+        {
+            string riga = rec.RawLines[i];
+            if (riga.Trim().Length > 0 && !riga.TrimStart().StartsWith("//", StringComparison.Ordinal)
+                && ChiaveDelPunto<T>(riga) is { } punto && !punto.Contains('"', StringComparison.Ordinal))
+            {
+                righe.Add((i, punto));
+            }
+        }
+
+        return righe;
+    }
+
     // Quanti campi stanno prima del punto: tipo e nome in un'aerovia, il numero in una rotta VFR.
     private static int CampiPrimaDelPunto<T>()
         => typeof(T) == typeof(Airway) ? 2 : typeof(T) == typeof(RottaVfr) ? 1 : 0;

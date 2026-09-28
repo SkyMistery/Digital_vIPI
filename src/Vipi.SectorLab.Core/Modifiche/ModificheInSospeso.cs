@@ -594,6 +594,74 @@ public sealed class ModificheInSospeso
         return modifica;
     }
 
+    /// <summary>
+    /// Scrive, cambia o toglie (vuoto) una chiave del tag del punto numero <paramref name="ordinale"/> del record
+    /// (lotto «Subito» slice 9d, «file per file» Q2): <c>//@@"ELVAD" role=IAF alt=+FL80 spd=-210</c> sopra il punto.
+    /// Come per i metadati del record, una voce per chiave, che sparisce se il valore torna quello dell'apertura.
+    /// </summary>
+    public object CambiaIlTagDelPunto(FileAperto file, int indice, int ordinale, string chiave, string? valore, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentException.ThrowIfNullOrWhiteSpace(chiave);
+        if (file is not IFileConRecord conRecord || indice < 0 || indice >= conRecord.RecordDelModello.Count)
+            return new ModificaRifiutata("Questo record non c'è.");
+        if (conRecord.CatalogoDeiTag is not { } catalogo || !catalogo.AmmetteDelPunto(chiave))
+            return new ModificaRifiutata($"«{chiave}» non è fra i metadati dei punti di questo file.");
+        if (conRecord.TagRotti() is { } rotto)
+            return new ModificaRifiutata($"Il file ha tag //@ che non valgono ({rotto}): vanno sistemati prima.");
+        var punti = conRecord.PuntiConTag(indice);
+        if (ordinale < 0 || ordinale >= punti.Count)
+            return new ModificaRifiutata("Questo punto non c'è.");
+
+        var oggi = punti[ordinale].Chiavi;
+        string? prima = oggi.GetValueOrDefault(chiave);
+        string scritto = (valore ?? "").Trim();
+        string? dopo = scritto.Length == 0 ? null : Metadati.ValoreDaScrivere(scritto);
+        if (dopo == prima)
+            return new ModificaRifiutata("Il valore è già questo.");
+
+        var nuove = oggi.Where(c => c.Key != chiave).ToDictionary(c => c.Key, c => c.Value, StringComparer.Ordinal);
+        if (dopo is not null)
+            nuove[chiave] = dopo;
+
+        object struttura;
+        try
+        {
+            struttura = conRecord.ConIlTagDelPunto(indice, ordinale, nuove);
+        }
+        catch (Exception e) when (e is InvalidOperationException or ArgumentException)
+        {
+            return new ModificaRifiutata(e.Message);
+        }
+
+        string campo = $"@@{ordinale}.{chiave}";
+        var suaPartenza = (file.Relativo, indice, campo);
+        if (!_tagDiPartenza.ContainsKey(suaPartenza))
+            _tagDiPartenza[suaPartenza] = prima;
+        Fotografa(file, conRecord);
+        conRecord.RipristinaLaStruttura(struttura);
+
+        string? partenza = _tagDiPartenza[suaPartenza];
+        var voce = (file.Relativo, indice, ModificaDelMetadato.Prefisso + campo);
+        var modifica = new ModificaDelMetadato(file.Relativo, indice, etichetta, $"{punti[ordinale].Punto} {chiave}", Leggibile(partenza), Leggibile(dopo));
+        if (dopo == partenza)
+        {
+            _fatte.Remove(voce);
+            _tagDiPartenza.Remove(suaPartenza);
+            if (!PendeStruttura(file.Relativo) && _strutturaDiPartenza.Remove(file.Relativo, out object? comEra))
+                conRecord.RipristinaLaStruttura(comEra);
+            Ripulisci(file.Relativo);
+        }
+        else
+        {
+            _fatte[voce] = modifica;
+            if (!_sporchi.ContainsKey(file.Relativo))
+                _sporchi[file.Relativo] = [];
+        }
+
+        return modifica;
+    }
+
     private static string Leggibile(string? valore) => valore is null ? "—" : Metadati.Testo(valore);
 
     /// <summary>Vero se in quel file pende qualcosa che ne ha cambiato le righe oltre i campi (struttura, testo, tag).</summary>

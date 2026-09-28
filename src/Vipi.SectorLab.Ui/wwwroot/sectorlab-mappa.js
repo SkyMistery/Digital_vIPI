@@ -20,6 +20,15 @@
         return valore || '#4a5060';
     }
 
+    // Il suggerimento al passaggio del mouse: il nome, e sotto i vincoli dei punti di una procedura (slice 9d, Q2: nel Lab
+    // sì, in Aurora mai). Come testo, non come HTML: i nomi vengono dai file.
+    function suggerimento(forma) {
+        var testo = document.createElement('div');
+        testo.style.whiteSpace = 'pre-line';
+        testo.textContent = forma.v ? forma.e + '\n' + forma.v : forma.e;
+        return testo;
+    }
+
     function token(nome, riserva) {
         var valore = getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
         return valore || riserva;
@@ -242,7 +251,7 @@
                         disegnata.sectorlab = forma;
                         disegnata.sectorlabStrato = id;
                         disegnata.on('click', (function (f) { return function (e) { L.DomEvent.stop(e); scelta(f); }; })(forma));
-                        disegnata.bindTooltip(forma.e, { sticky: true });
+                        disegnata.bindTooltip(suggerimento(forma), { sticky: true });
                         gruppo.addLayer(disegnata);
                         stato.forme[forma.p + '#' + forma.r] = disegnata;
                         disegnata.sectorlabTratti = forma.c.filter(function (t) { return t.length >= 4; }).length;

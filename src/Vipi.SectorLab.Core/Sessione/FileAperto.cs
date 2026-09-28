@@ -147,7 +147,32 @@ public interface IFileConRecord
     /// ha un nome nelle righe di dati, prende quello del suo commento, §M).
     /// </summary>
     object ConIlBlocco(int primo, int ultimo, string nome, IReadOnlyDictionary<string, string> chiavi);
+
+    /// <summary>
+    /// I punti del record coi loro tag <c>//@@</c> (lotto «Subito» slice 9d, «file per file» Q2): vuoto se i punti di
+    /// questo file non portano tag.
+    /// </summary>
+    IReadOnlyList<PuntoConTag> PuntiConTag(int indice);
+
+    /// <summary>
+    /// La struttura del file col punto numero <paramref name="ordinale"/> del record che porta quelle chiavi (nessuna =
+    /// il tag tolto), da dare a <see cref="RipristinaLaStruttura"/>. Lo scrive <see cref="Metadati"/>.
+    /// </summary>
+    object ConIlTagDelPunto(int indice, int ordinale, IReadOnlyDictionary<string, string> chiavi);
+
+    /// <summary>
+    /// I punti coi tag di tutto il file in un passo solo (la mappa li chiede per ogni record): per indice di record, solo
+    /// i record che hanno almeno un punto col tag.
+    /// </summary>
+    IReadOnlyDictionary<int, IReadOnlyList<PuntoConTag>> PuntiConTagDelFile();
 }
+
+/// <summary>Un punto di una procedura coi suoi metadati (<c>//@@"ELVAD" role=IAF alt=+FL80 spd=-210</c>).</summary>
+/// <param name="Ordinale">Il numero del punto nel record (da 0), fra le sole righe di punto: resta quello anche quando un
+/// tag si aggiunge sopra un altro punto.</param>
+/// <param name="Punto">Il nome col quale il tag lo aggancia (<c>ELVAD</c>, o le due coordinate).</param>
+/// <param name="Chiavi">Le chiavi del suo tag, come scritte; vuoto se non ne ha.</param>
+public sealed record PuntoConTag(int Ordinale, string Punto, IReadOnlyDictionary<string, string> Chiavi);
 
 /// <summary>Un file che il motore interpreta: record, righe grezze, basi, e lo scrittore che lo riscriverà.</summary>
 public sealed class FileLetto<T> : FileAperto, IFileConRecord
@@ -299,6 +324,46 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         return chiavi.Count == 0
             ? Metadati.Togli(Letto, record, r => Metadati.NomeDelRecord(r))
             : Metadati.Scrivi(Letto, record, r => Metadati.NomeDelRecord(r), chiavi);
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<PuntoConTag> PuntiConTag(int indice)
+    {
+        if (CatalogoDeiTag is not { DelPunto.Count: > 0 } || indice < 0 || indice >= Letto.Records.Count)
+            return [];
+        var record = Letto.Records[indice];
+        var coiTag = MetadatiDelFile()?.PuntiDi(record).ToDictionary(p => p.RigaDelPunto, p => p.Chiavi) ?? [];
+        return [.. Metadati.RigheDeiPunti(Letto, record).Select((p, i) =>
+            new PuntoConTag(i, p.Punto, coiTag.GetValueOrDefault(p.Riga) ?? new Dictionary<string, string>()))];
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<int, IReadOnlyList<PuntoConTag>> PuntiConTagDelFile()
+    {
+        if (CatalogoDeiTag is not { DelPunto.Count: > 0 } || MetadatiDelFile() is not { Punti.Count: > 0 } metadati)
+            return new Dictionary<int, IReadOnlyList<PuntoConTag>>();
+        var indici = Letto.Records.Select((r, i) => (r, i)).ToDictionary(c => c.r, c => c.i, ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
+        var perRecord = new Dictionary<int, IReadOnlyList<PuntoConTag>>();
+        foreach (var gruppo in metadati.Punti.GroupBy(p => p.Record, ReferenceEqualityComparer.Instance as IEqualityComparer<T>))
+        {
+            var coiTag = gruppo.ToDictionary(p => p.RigaDelPunto, p => p.Chiavi);
+            perRecord[indici[gruppo.Key]] = [.. Metadati.RigheDeiPunti(Letto, gruppo.Key).Select((p, i) =>
+                new PuntoConTag(i, p.Punto, coiTag.GetValueOrDefault(p.Riga) ?? new Dictionary<string, string>()))];
+        }
+
+        return perRecord;
+    }
+
+    /// <inheritdoc/>
+    public object ConIlTagDelPunto(int indice, int ordinale, IReadOnlyDictionary<string, string> chiavi)
+    {
+        ArgumentNullException.ThrowIfNull(chiavi);
+        var record = Letto.Records[indice];
+        var righe = Metadati.RigheDeiPunti(Letto, record);
+        if (ordinale < 0 || ordinale >= righe.Count)
+            throw new ArgumentException($"Il record non ha il punto numero {ordinale + 1}.", nameof(ordinale));
+        int riga = righe[ordinale].Riga;
+        return chiavi.Count == 0 ? Metadati.TogliIlPunto(Letto, record, riga) : Metadati.ScriviIlPunto(Letto, record, riga, chiavi);
     }
 
     /// <inheritdoc/>

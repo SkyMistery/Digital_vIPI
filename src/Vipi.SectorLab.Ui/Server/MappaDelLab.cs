@@ -79,6 +79,9 @@ public static class MappaDelLab
                 _ => "a",
             });
             json.WriteString("e", forma.Etichetta);
+            // Slice 9d (Q2): i vincoli dei punti, per il passaggio del mouse.
+            if (forma.Vincoli is { } vincoli)
+                json.WriteString("v", vincoli);
 
             if (colori is not null)
             {
