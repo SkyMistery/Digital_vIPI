@@ -551,6 +551,16 @@ public sealed class EfAgreementRepository : IAgreementRepository
         bool areaNegated, bool areaAll, string? customLabel, CancellationToken ct = default)
     {
         var rows = await ClausesInAccAsync(accCode, clauseIds, ct);
+
+        // La regola di ValidateClause (U-154): una clausola «in ogni caso» deve dire a quali condizioni vale. La
+        // pista non si tocca qui, quindi basta lei; senza, la barra svuoterebbe ciò che il pannello non salverebbe.
+        // Controllata PRIMA di toccare le righe: tracciate e modificate, un salvataggio dopo le scriverebbe.
+        if (NullIfBlank(areaLabel) is null && NullIfBlank(customLabel) is null
+            && rows.Any(r => r.IsGroupWide && string.IsNullOrWhiteSpace(r.ConditionLabel)))
+            throw new ValidationException(Lingua(
+                "Una clausola «in ogni caso» deve dire a quali condizioni vale.",
+                "A «in any case» clause has to say under which conditions it applies."));
+
         foreach (var r in rows)
         {
             r.ConditionAreaLabel = NullIfBlank(areaLabel);
@@ -605,9 +615,10 @@ public sealed class EfAgreementRepository : IAgreementRepository
         foreach (var s in snapshot.Sections.OrderBy(x => x.Order))
             a.Sections.Add(SectionFrom(s));
 
+        // Prima di scrivere (U-061): rifiutata dopo il SaveChanges, la fotografia rotta restava salvata.
+        foreach (var s in a.Sections) ControllaOutline(s.Clauses);
         _db.CoordinationAgreements.Add(a);
         await _db.SaveChangesAsync(ct);
-        await EnsureOutlineIsSoundAsync(a.Id, ct);
         return a.Id;
     }
 
@@ -620,14 +631,15 @@ public sealed class EfAgreementRepository : IAgreementRepository
 
         var section = SectionFrom(restore.Section);
         section.AgreementId = a.Id;
+        // L'outline vive dentro la sezione, e questa arriva intera: si controlla da sola, prima di scrivere.
+        ControllaOutline(section.Clauses);
         _db.AgreementSections.Add(section);
         await _db.SaveChangesAsync(ct);
-        await EnsureOutlineIsSoundAsync(a.Id, ct);
         return section.Id;
     }
 
     public async Task<int> RestoreClausesAsync(string accCode, IReadOnlyList<AgreementClauseRestore> clauses,
-        CancellationToken ct = default)
+        IReadOnlyList<AgreementOutlineRestore>? sorelle = null, CancellationToken ct = default)
     {
         if (clauses.Count == 0) return 0;
 
@@ -635,14 +647,34 @@ public sealed class EfAgreementRepository : IAgreementRepository
         var alive = (await SectionsOf(accCode).Where(s => ids.Contains(s.Id)).Select(s => s.Id).ToListAsync(ct))
             .ToHashSet();
 
-        var restored = clauses.Where(c => alive.Contains(c.SectionId)).ToList();
-        foreach (var c in restored) _db.AgreementClauses.Add(ClauseFrom(c.SectionId, c.Clause));
+        var restored = clauses.Where(c => alive.Contains(c.SectionId)).Select(c => ClauseFrom(c.SectionId, c.Clause)).ToList();
+        var esistenti = await _db.AgreementClauses.Where(c => alive.Contains(c.SectionId)).ToListAsync(ct);
+
+        // U-061: l'eliminazione ha sciolto il gruppo rimasto di una, e la superstite ha perso gruppo, profondità e
+        // «in ogni caso». Si rimettono solo a chi è ancora fuori da ogni gruppo: una sorella messa altrove nel
+        // frattempo è una scelta successiva, e l'annulla non la disfa.
+        var perId = esistenti.ToDictionary(c => c.Id);
+        var rientri = (sorelle ?? [])
+            .Where(o => perId.TryGetValue(o.ClauseId, out var c) && c.VariantGroup is null)
+            .ToDictionary(o => o.ClauseId);
+
+        // L'outline come SARÀ, controllato prima di toccare qualunque riga tracciata: rifiutato dopo il
+        // SaveChanges, l'orfano restava salvato; rifiutato dopo aver modificato le sorelle, un salvataggio
+        // successivo dello stesso contesto le scriverebbe lo stesso.
+        ControllaOutline(esistenti.Select(c => rientri.TryGetValue(c.Id, out var o)
+                ? new PostoInOutline(c.SectionId, c.Order, o.VariantGroup, o.VariantDepth, o.IsGroupWide, c.Cops)
+                : PostoDi(c))
+            .Concat(restored.Select(PostoDi)));
+
+        foreach (var o in rientri.Values)
+        {
+            var c = perId[o.ClauseId];
+            c.VariantGroup = o.VariantGroup;
+            c.VariantDepth = o.VariantDepth;
+            c.IsGroupWide = o.IsGroupWide;
+        }
+        _db.AgreementClauses.AddRange(restored);
         await _db.SaveChangesAsync(ct);
-
-        foreach (var agreementId in await _db.AgreementSections
-                     .Where(s => alive.Contains(s.Id)).Select(s => s.AgreementId).Distinct().ToListAsync(ct))
-            await EnsureOutlineIsSoundAsync(agreementId, ct);
-
         return restored.Count;
     }
 
@@ -686,17 +718,17 @@ public sealed class EfAgreementRepository : IAgreementRepository
     }
 
     /// <summary>
-    /// Gli invarianti dell'outline dopo un ripristino, sezione per sezione. Una fotografia può essere vecchia di
-    /// un archivio che nel frattempo è cambiato — la clausola di cui era eccezione può non esserci più — e non
-    /// deve poter rientrare rotta: un'eccezione orfana descrive la clausola sbagliata, senza nessun errore a
-    /// dirlo.
+    /// Gli invarianti dell'outline di un ripristino, sezione per sezione, <b>prima</b> di scrivere. Una fotografia
+    /// può essere vecchia di un archivio che nel frattempo è cambiato — la clausola di cui era eccezione può non
+    /// esserci più — e non deve poter rientrare rotta: un'eccezione orfana descrive la clausola sbagliata, senza
+    /// nessun errore a dirlo.
     /// </summary>
-    private async Task EnsureOutlineIsSoundAsync(int agreementId, CancellationToken ct)
-    {
-        var all = await ClausesOfAgreement(agreementId)
-            .OrderBy(x => x.SectionId).ThenBy(x => x.Order).ToListAsync(ct);
+    private static void ControllaOutline(IEnumerable<AgreementClause> clausole) =>
+        ControllaOutline(clausole.Select(PostoDi));
 
-        foreach (var perSection in all.GroupBy(x => x.SectionId))
+    private static void ControllaOutline(IEnumerable<PostoInOutline> posti)
+    {
+        foreach (var perSection in posti.OrderBy(x => x.Order).GroupBy(x => x.SectionId))
         {
             var depthByGroup = new Dictionary<int, int>();
             foreach (var r in perSection)
@@ -718,6 +750,13 @@ public sealed class EfAgreementRepository : IAgreementRepository
             }
         }
     }
+
+    /// <summary>Ciò che il controllo dell'outline guarda di una clausola. La sezione di una clausola nuova dentro
+    /// una sezione nuova è 0 per tutte: stanno comunque insieme, ed è giusto così.</summary>
+    private sealed record PostoInOutline(int SectionId, int Order, int? VariantGroup, int VariantDepth, bool IsGroupWide, string Cops);
+
+    private static PostoInOutline PostoDi(AgreementClause c) =>
+        new(c.SectionId, c.Order, c.VariantGroup, c.VariantDepth, c.IsGroupWide, c.Cops);
 
     // ---- attrezzi dell'outline ----------------------------------------------------------------------
 

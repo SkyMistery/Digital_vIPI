@@ -355,6 +355,64 @@ public class AgreementRepositoryTests : IAsyncLifetime
         Assert.Null(Assert.Single(await ClausesAsync()).VariantGroup);
     }
 
+    /// <summary>
+    /// 🔴 U-061 (revisione totale 3): eliminare l'eccezione scioglie il gruppo rimasto di una, e «Annulla»
+    /// rimetteva l'eccezione a profondità 1 accanto a una capofila fuori dal gruppo: il controllo dell'outline la
+    /// rifiutava DOPO averla salvata. Ora la foto porta anche la posizione delle sorelle, e il gruppo si ricompone.
+    /// </summary>
+    [Fact]
+    public async Task Annullare_l_eliminazione_di_un_eccezione_ricompone_il_gruppo()
+    {
+        var (sezione, capo) = await WithClauseAsync();
+        var ecc = await _repo.AddExceptionAsync("LIRR", capo);
+        var (foto, sorelle) = FotoDellEliminazione(await ClausesAsync(), sezione, ecc);
+
+        await _repo.DeleteClausesAsync("LIRR", [ecc]);
+        Assert.Null(Assert.Single(await ClausesAsync()).VariantGroup);
+
+        Assert.Equal(1, await _repo.RestoreClausesAsync("LIRR", foto, sorelle));
+
+        var righe = (await ClausesAsync()).OrderBy(c => c.Order).ToList();
+        Assert.Equal(new[] { 0, 1 }, righe.Select(c => c.VariantDepth));
+        Assert.NotNull(righe[0].VariantGroup);
+        Assert.Equal(righe[0].VariantGroup, righe[1].VariantGroup);
+    }
+
+    /// <summary>🔴 U-061: senza più la capofila l'eccezione resterebbe orfana. Si rifiuta, e senza scrivere
+    /// niente: prima restava salvata nonostante l'errore.</summary>
+    [Fact]
+    public async Task Un_eccezione_senza_la_sua_capofila_non_rientra_e_non_resta_scritta()
+    {
+        var (sezione, capo) = await WithClauseAsync();
+        var ecc = await _repo.AddExceptionAsync("LIRR", capo);
+        var (foto, sorelle) = FotoDellEliminazione(await ClausesAsync(), sezione, ecc);
+
+        await _repo.DeleteClausesAsync("LIRR", [ecc]);
+        await _repo.DeleteClausesAsync("LIRR", [capo]);
+
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => _repo.RestoreClausesAsync("LIRR", foto, sorelle));
+        _db.ChangeTracker.Clear();
+        Assert.Equal(0, await _db.AgreementClauses.CountAsync(c => c.SectionId == sezione));
+    }
+
+    /// <summary>🔴 U-061: due alternative, se ne elimina una e la si rimette: tornano nello stesso gruppo, non
+    /// due clausole separate che la pagina mostra come regole indipendenti.</summary>
+    [Fact]
+    public async Task Annullare_l_eliminazione_di_un_alternativa_la_rimette_nel_gruppo()
+    {
+        var (sezione, capo) = await WithClauseAsync();
+        var alt = await _repo.AddAlternativeAsync("LIRR", capo);
+        var (foto, sorelle) = FotoDellEliminazione(await ClausesAsync(), sezione, alt);
+
+        await _repo.DeleteClausesAsync("LIRR", [alt]);
+        await _repo.RestoreClausesAsync("LIRR", foto, sorelle);
+
+        var righe = await ClausesAsync();
+        Assert.Equal(2, righe.Count);
+        Assert.NotNull(righe[0].VariantGroup);
+        Assert.All(righe, r => Assert.Equal(righe[0].VariantGroup, r.VariantGroup));
+    }
     // ---- le sezioni ----------------------------------------------------------------------------------
 
     [Fact]
@@ -492,6 +550,9 @@ public class AgreementRepositoryTests : IAsyncLifetime
 
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
             () => _repo.RestoreAgreementAsync("LIRR", snapshot));
+        // U-061: rifiutato PRIMA di scrivere. Prima l'accordo restava salvato con l'orfano dentro.
+        _db.ChangeTracker.Clear();
+        Assert.Empty(await _repo.ListByAccAsync("LIRR"));
     }
 
     [Fact]
@@ -613,6 +674,17 @@ public class AgreementRepositoryTests : IAsyncLifetime
         var sec = await _repo.AddSectionAsync("LIRR", id, Section(AgreementDirection.AtoB));
         var clause = await _repo.AddClauseAsync("LIRR", sec, Clause("VALMA", 130));
         return (sec, clause);
+    }
+
+    /// <summary>La foto che la pagina prende prima di eliminare <paramref name="eliminata"/>: la clausola, e la
+    /// posizione delle sorelle del suo gruppo che restano.</summary>
+    private static (IReadOnlyList<AgreementClauseRestore> Foto, IReadOnlyList<AgreementOutlineRestore> Sorelle)
+        FotoDellEliminazione(IReadOnlyList<AgreementClauseRow> righe, int sezione, int eliminata)
+    {
+        var r = righe.Single(x => x.Id == eliminata);
+        var foto = new[] { new AgreementClauseRestore(sezione,
+            new AgreementClauseSnapshot(Clause(r.Cops, r.LevelValue ?? 0), r.Order, r.VariantGroup, r.VariantDepth)) };
+        return (foto, AgreementOutlineRestore.SorelleDi(righe, [eliminata]));
     }
 
     private async Task<IReadOnlyList<AgreementClauseRow>> ClausesAsync() =>

@@ -215,7 +215,8 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task<int> RestoreAgreementAsync(string a, AgreementSnapshot s, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> RestoreClausesAsync(string a, IReadOnlyList<AgreementClauseRestore> c, CancellationToken ct = default) =>
+        public Task<int> RestoreClausesAsync(string a, IReadOnlyList<AgreementClauseRestore> c,
+            IReadOnlyList<AgreementOutlineRestore>? s = null, CancellationToken ct = default) =>
             throw new NotSupportedException();
     }
 }

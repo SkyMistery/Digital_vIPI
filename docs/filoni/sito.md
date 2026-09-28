@@ -970,5 +970,31 @@
     `fail:` e zero «second operation». ⚠️ Non provati a schermo: l'anteprima di «Importa tabella» con il rifiuto
     per troppe celle (nella copia nessun documento ha una tabella generica né un vSOP militare; la prova è il test
     bUnit sul componente vero) e la decodifica dei nomi AIP (i volumi salvati si rileggono solo ricaricando l'AIP).
+- 🔨 **S32** lotto **L11 «Il resto», fetta F — derivazioni e dati** della revisione 3 (via del committente il
+  28-set). Perimetro: d08 (U-060, U-061, U-148…U-160), d10 (U-076…U-080, U-194, U-195, U-196), U-200 (d11) e il
+  resto di d06 (U-041, U-047, U-135, U-137, U-138). Smistamento sul codice di `9a7dc868` con due agenti in sola
+  lettura: **già chiuse** U-159 (= U-058, S27: la vLOA generata nasce bozza) e U-160 (= U-040/U-036, S25: canale
+  a mano rifiutato sulle righe importate, righe «staccate»); **in parte** U-194 (la nota della promozione è di
+  S30, resta la nota LVP) e U-080 (la nascita è di S27, resta la pubblicazione); **dubbia** U-078 (tre test verdi
+  dicono il contrario del meccanismo: si decide eseguendoli).
+  - **Scelte del committente** (28-set): U-060 la vIPI e la vLOA **continuano a stampare** l'accordo verso un ente
+    sparito, e parte una voce «da rivedere» per chi lo possiede; U-077 la passata del pubblico di catalogo gira
+    **un'ultima volta** e poi un timbro la spegne; U-135 le frequenze collegate a un settore eliminato sono **da
+    rivedere** (non bloccano), ripieghi e agganci AIP si tolgono nella stessa transazione; U-080 una **passata
+    d'avvio** rimette il puntatore ai documenti pubblicati che non l'hanno (oggi la vLOA 65).
+  - **Gruppo 1** (editor degli accordi, **codice comune** `Vipi.Application` e `Vipi.Infrastructure`): **U-154**
+    (la barra «in blocco» scriveva la condizione senza il tetto delle colonne, e poteva svuotarla a una clausola
+    «in ogni caso», che il pannello non salverebbe) → `SetConditionAsync` passa dagli stessi tetti di
+    `ValidateClause`, il repository rifiuta la condizione vuota su una «in ogni caso» PRIMA di toccare le righe
+    tracciate, `maxlength` sul campo della barra. **U-061** (eliminare una variante scioglie il gruppo rimasto di
+    una; «Annulla» rimetteva l'eccezione a profondità 1 accanto a una capofila fuori dal gruppo, e il controllo
+    dell'outline la rifiutava DOPO averla salvata) → la foto dell'eliminazione porta anche la posizione delle
+    sorelle (`AgreementOutlineRestore.SorelleDi`, una regola sola per la riga e per il blocco), il ripristino la
+    rimette a chi è ancora fuori da ogni gruppo, e l'outline si controlla in memoria prima di scrivere — anche nel
+    ripristino di un accordo o di una sezione, che prima restavano salvati con l'orfano dentro.
+  - **Test**: `AgreementValidationTests` (+2), `AgreementRepositoryTests` (+3, e il test dell'outline rotto ora
+    chiede che non resti scritto niente), `FilaDeiTrasferimentiTests` (+2, presidio: la pagina non si monta nei
+    test). Rossi sul codice di prima (U-061 con la firma nuova e le sorelle ignorate). Infrastructure 1764 →
+    **1769**, Ui 1812 → **1814**, net8 e net10.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

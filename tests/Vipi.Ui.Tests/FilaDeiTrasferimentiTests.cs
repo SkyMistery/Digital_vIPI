@@ -55,6 +55,18 @@ public sealed class FilaDeiTrasferimentiTests
         Assert.DoesNotContain("AddClauseAsync(", corpo);
     }
 
+    /// <summary>U-061: le due eliminazioni fotografano anche le sorelle del gruppo, e l'annulla le passa al
+    /// ripristino — altrimenti il gruppo sciolto dall'eliminazione non si ricompone.</summary>
+    [Theory]
+    [InlineData("private async Task DeleteRow(")]
+    [InlineData("private async Task DeleteBulk(")]
+    public void L_annulla_di_un_eliminazione_rimette_anche_le_sorelle(string firma)
+    {
+        var corpo = Corpo(firma);
+        Assert.Contains("AgreementOutlineRestore.SorelleDi(", corpo);
+        Assert.Contains("RestoreClausesAsync(_acc!.Code, snaps, sorelle)", corpo);
+    }
+
     [Fact]
     public void La_fila_e_rientrante()
     {

@@ -383,7 +383,7 @@
                             <option value="true">@L["Xfer_CondAreaAll"]</option>
                         </select>
                         <div class="field xt-bulkfield">
-                            <input placeholder="@L["Xfer_BulkCustom"]" @bind="_bulkCustomText" @bind:event="oninput" />
+                            <input placeholder="@L["Xfer_BulkCustom"]" maxlength="@Vipi.Domain.Entities.AgreementClauseLimits.Etichetta" @bind="_bulkCustomText" @bind:event="oninput" />
                         </div>
                         <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_BulkConditionTitle"]"
                                 @onclick="ApplyBulkCondition">@L["Xfer_BulkApplyCondition"]</button>
@@ -1141,6 +1141,8 @@
             .SelectMany(sec => sec.Clauses.Where(c => _selected.Contains(c.Id))
                                   .Select(c => new AgreementClauseRestore(sec.Id, SnapshotOf(c))))
             .ToList();
+        var sorelle = AgreementOutlineRestore.SorelleDi(
+            _agreements.SelectMany(a => a.Sections).SelectMany(sec => sec.Clauses), ids);
 
         var n = 0;
         await Guarded(async () =>
@@ -1152,7 +1154,7 @@
         if (_error is not null) return;
         _status = string.Format(L["Xfer_BulkDeleted"].Value, n);
         if (snaps.Count > 0)
-            _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps), L["Xfer_RowsRestored"].Value);
+            _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps, sorelle), L["Xfer_RowsRestored"].Value);
     }
 
     // ---- Ordinamento della VISTA ----
@@ -3708,6 +3710,9 @@
         // Fotografia prima, annulla armato dopo, e solo se è andata: come l'eliminazione multipla.
         var snaps = sottoalbero.Select(c => new AgreementClauseRestore(sec.Id, SnapshotOf(c))).ToList();
         var ids = sottoalbero.Select(c => c.Id).ToList();
+        // Anche le sorelle del gruppo (U-061): l'eliminazione scioglie un gruppo rimasto di una, e l'annulla lo
+        // deve ricomporre.
+        var sorelle = AgreementOutlineRestore.SorelleDi(sec.Clauses, ids);
 
         await Guarded(async () => await Agreements.DeleteClausesAsync(_acc!.Code, ids),
             ids.Count == 1 ? L["Xfer_RowDeleted"].Value : string.Format(L["Xfer_BulkDeleted"].Value, ids.Count));
@@ -3719,7 +3724,7 @@
         foreach (var id in ids) _selected.Remove(id);
         if (_editClauseId is int aperta && ids.Contains(aperta)) ClosePanel();
 
-        _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps), L["Xfer_RowsRestored"].Value);
+        _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps, sorelle), L["Xfer_RowsRestored"].Value);
     }
 
     /// <summary>Il ✕ del pannello: stessa porta del ✕ di riga, comprese le eccezioni.</summary>

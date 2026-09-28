@@ -284,6 +284,9 @@ public sealed class AgreementService : IAgreementService
         bool areaNegated, bool areaAll, string? customLabel, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
+        // Gli stessi tetti di ValidateClause (U-154): la porta in blocco scrive le stesse colonne del pannello.
+        TroppoLungo(areaLabel, Vipi.Domain.Entities.AgreementClauseLimits.Elenco, "Le aree della condizione", "The condition areas");
+        TroppoLungo(customLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "La condizione", "The condition");
         return await _repo.SetConditionAsync(accCode, clauseIds, areaLabel, areaNegated, areaAll, customLabel, ct);
     }
 
@@ -305,10 +308,11 @@ public sealed class AgreementService : IAgreementService
         return await _repo.RestoreSectionAsync(accCode, section, ct);
     }
 
-    public async Task<int> RestoreClausesAsync(string accCode, IReadOnlyList<AgreementClauseRestore> clauses, CancellationToken ct = default)
+    public async Task<int> RestoreClausesAsync(string accCode, IReadOnlyList<AgreementClauseRestore> clauses,
+        IReadOnlyList<AgreementOutlineRestore>? sorelle = null, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        return await _repo.RestoreClausesAsync(accCode, clauses, ct);
+        return await _repo.RestoreClausesAsync(accCode, clauses, sorelle, ct);
     }
 
     // ---- validazione SOFT ---------------------------------------------------------------------------
