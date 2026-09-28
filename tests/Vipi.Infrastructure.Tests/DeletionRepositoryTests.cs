@@ -185,6 +185,40 @@ public class DeletionRepositoryTests : IAsyncLifetime
         Assert.Equal(_ctr.Id, gnd.ParentSectorId);
     }
 
+    /// <summary>
+    /// 🔴 U-135 (revisione totale 3): eliminare un settore portava via in cascata le frequenze d'aeroporto
+    /// collegate, senza dirlo né marcare il documento dello scalo, e lasciava appesi ripieghi e agganci AIP (per
+    /// callsign, senza chiave esterna). Ora il piano li nomina, le frequenze sono «da rivedere» (scelta del
+    /// committente, 28 settembre 2026) e marcano il documento, e ripieghi e agganci se ne vanno col settore.
+    /// </summary>
+    [Fact]
+    public async Task Eliminando_un_settore_frequenze_collegate_ripieghi_e_agganci_si_dicono_e_non_restano_appesi()
+    {
+        _db.AirportFrequencyLinks.Add(new AirportFrequencyLink { AirportId = _lirf.Id, Order = 1, SourceSectorId = _app.Id });
+        _db.SectorFallbacks.AddRange(
+            new SectorFallback { SectorCallsign = "LIRF_TWR", Order = 1, TargetCallsign = "LIRF_APP" },
+            new SectorFallback { SectorCallsign = "LIRF_APP", Order = 1, TargetCallsign = "LIRR_CTR" });
+        _db.SectorAirspaceBindings.Add(new SectorAirspaceBinding
+        {
+            Catalog = SourceCatalog.AirportPosition, SectorId = _app.Id, Callsign = "LIRF_APP",
+            VolumeKey = "CTA|ROMA|0|100", CreatedUtc = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var piano = await PianoSettoreAsync(_app.Id);
+
+        Assert.True(piano.Eliminabile);
+        Assert.Contains(piano.DaRivedere, r => r.Contains("LIRF"));
+        Assert.Contains(_scaloDoc.Id, piano.Azioni.DocumentiDaMarcare);
+        Assert.Contains(piano.Muore, m => m.Contains("2"));   // le due righe di ripiego che lo nominano
+
+        await _repo.ApplyAsync(piano.Azioni, actorUserId: 7);
+
+        _db.ChangeTracker.Clear();
+        Assert.False(await _db.SectorFallbacks.AnyAsync(f => f.SectorCallsign == "LIRF_APP" || f.TargetCallsign == "LIRF_APP"));
+        Assert.False(await _db.SectorAirspaceBindings.AnyAsync(b => b.Callsign == "LIRF_APP"));
+    }
+
     [Fact]
     public async Task Il_catalogo_dei_figli_viene_riappeso_al_nonno()
     {

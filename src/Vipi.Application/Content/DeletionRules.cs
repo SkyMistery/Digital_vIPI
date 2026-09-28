@@ -155,7 +155,17 @@ public sealed record SectorFacts(
     IReadOnlyList<ChildFacts> Figli,
     IReadOnlyList<CatalogChildFacts> FigliDiCatalogo,
     IReadOnlyList<DocRefFacts> Documenti,
-    IReadOnlyList<AgreementFacts> Accordi);
+    IReadOnlyList<AgreementFacts> Accordi,
+    IReadOnlyList<LinkedFrequencyFacts>? FrequenzeCollegate = null,
+    int Ripieghi = 0,
+    int AgganciAip = 0);
+
+/// <summary>
+/// Uno scalo che mostra fra le sue frequenze quella di questo settore (<c>AirportFrequencyLink</c>): il legame va
+/// via in cascata col settore (U-135). Non blocca — scelta del committente, 28 settembre 2026 — ma il piano lo
+/// dice e il documento dello scalo diventa «da rivedere».
+/// </summary>
+public sealed record LinkedFrequencyFacts(string Icao, int? DocumentId);
 
 /// <summary>Tutto ciò che serve a decidere se e come un aeroporto si può eliminare.</summary>
 public sealed record AirportFacts(
@@ -338,6 +348,22 @@ public static class DeletionRules
                 rivedere.Add($"«{d.Titolo}» — {string.Join(", ", pezzi.Count > 0 ? pezzi : new List<string> { Lingua("va riletto", "needs re-reading") })}");
             }
         }
+
+        // 🔴 U-135 (revisione totale 3): i legami che il settore si porta via e che il piano non diceva. Le
+        // frequenze collegate sono «da rivedere» (non bloccano: scelta del committente) e marcano il documento
+        // dello scalo; ripieghi e agganci AIP vivono per callsign e se ne vanno con lui.
+        foreach (var fq in f.FrequenzeCollegate ?? Array.Empty<LinkedFrequencyFacts>())
+        {
+            rivedere.Add(Lingua($"«Frequenze» di {fq.Icao} — perde la frequenza collegata a {f.Callsign}",
+                                $"«Frequencies» of {fq.Icao} — loses the frequency linked to {f.Callsign}"));
+            if (fq.DocumentId is int d && !daMarcare.Contains(d)) daMarcare.Add(d);
+        }
+        if (f.Ripieghi > 0)
+            muore.Add(f.Ripieghi == 1
+                ? Lingua($"una riga della catena di ripiego che nomina {f.Callsign}", $"one fallback-chain row naming {f.Callsign}")
+                : Lingua($"{f.Ripieghi} righe della catena di ripiego che nominano {f.Callsign}", $"{f.Ripieghi} fallback-chain rows naming {f.Callsign}"));
+        if (f.AgganciAip > 0)
+            muore.Add(Lingua($"gli agganci AIP di {f.Callsign} ({f.AgganciAip})", $"the AIP bindings of {f.Callsign} ({f.AgganciAip})"));
 
         var azioni = new DeletionActions(
             SettoriDaEliminare: new[] { f.SectorId },

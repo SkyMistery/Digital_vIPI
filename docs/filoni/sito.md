@@ -1080,5 +1080,17 @@
     niente colonna «ultimo uso»).
   - **Test**: `MediaMaintenanceTests` (+2; U-138 con un intercettore che cita la foto nell'istante del DELETE),
     `IntroDiPaginaTests` (+1). Rossi sul codice di prima. Infrastructure 1783 → **1786**.
+  - **Gruppo 8** (catalogo dei settori, **codice comune** `Vipi.Application` e `Vipi.Infrastructure`): **U-041**
+    (la rinomina di un callsign lasciava indietro gli agganci AIP, che si risolvono per callsign: il settore
+    tornava in silenzio alla forma di IVAO) → `EfCallsignRenameService` riscrive `SectorAirspaceBindings.Callsign`
+    e, scelta del Sito, anche le scelte per callsign del profilo dei documenti (AoR e frequenze nascoste, ordine
+    delle frequenze) con lo stesso riscrittore dei blocchi. **U-135** (eliminare un settore portava via in cascata
+    le frequenze d'aeroporto collegate senza dirlo né marcare il documento dello scalo, e lasciava appesi ripieghi
+    e agganci AIP) → i fatti del settore contano i tre legami; il piano dice le frequenze «da rivedere» (scelta
+    del committente: non bloccano) e marca il documento dello scalo, e nomina ripieghi e agganci, che
+    l'esecuzione toglie nella stessa transazione. `SectorFacts` cresce con tre parametri in coda, con default:
+    i costruttori di prima restano validi.
+  - **Test**: `RinominaSettoreTests` (+1), `DeletionRepositoryTests` (+1, fatti + piano + esecuzione). Rossi sul
+    codice di prima. Infrastructure 1786 → **1788**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
