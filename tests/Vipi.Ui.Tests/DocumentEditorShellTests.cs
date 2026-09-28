@@ -156,6 +156,28 @@ public class DocumentEditorShellTests
         Assert.Equal("Collega", guscio.Lock.ByName);
     }
 
+    /// <summary>
+    /// U-256 (revisione 3): col lock di un altro il tasto «✎ Modifica» si preme (il lock letto all'apertura può essere
+    /// vecchio), ma se il database dice che è ancora suo si restava fuori SENZA una parola. Ora il guscio lo dice, col
+    /// nome: è la regola «un tasto spento, o un gesto rifiutato, dice perché».
+    /// </summary>
+    [Fact]
+    public async Task Col_lock_di_un_altro_premere_Modifica_dice_chi_lo_tiene()
+    {
+        var (guscio, _) = Guscio(new EditingFinto
+        {
+            LockPreso = new LockInfo { Locked = true, IsMine = false, ByUserId = 111111, ByName = "Collega" },
+        });
+        guscio.IsEditing = false;
+        guscio.Doc = BozzaAperta();
+
+        await guscio.StartEditingAsync(() => Task.CompletedTask);
+
+        Assert.False(guscio.IsEditing);
+        Assert.NotNull(guscio.Error);
+        Assert.Contains("Ed_LockedByOtherNow", guscio.Error);
+    }
+
     /// <summary>Il controllo del test sopra: col lock NOSTRO sulla stessa bozza si entra.</summary>
     [Fact]
     public async Task Col_lock_NOSTRO_sulla_bozza_aperta_si_entra()

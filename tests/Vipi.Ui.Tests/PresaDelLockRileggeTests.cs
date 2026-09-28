@@ -97,6 +97,19 @@ public class PresaDelLockRileggeTests : TestContext
         Assert.Contains("private async Task RileggiAllaPresaAsync()", s);
     }
 
+    /// <summary>
+    /// U-117 (revisione 3): l'intro di pagina caricava le sezioni solo all'apertura. Chi aspettava sulla pagina che il
+    /// collega finisse, prendeva il lock e salvava, riscriveva l'intro INTERA letta all'apertura: le modifiche del
+    /// collega sparivano senza avvisi, su un testo pubblico. Stessa porta delle pagine di struttura.
+    /// </summary>
+    [Fact]
+    public void L_intro_di_pagina_rilegge_alla_presa()
+    {
+        var s = File.ReadAllText(Path.Combine(Radice(), "Components", "PageIntroZone.razor"));
+        Assert.Contains("Acquired=\"RileggiAllaPresaAsync\"", s);
+        Assert.Contains("private async Task RileggiAllaPresaAsync()", s);
+    }
+
     private static string Radice()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

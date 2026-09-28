@@ -341,7 +341,13 @@ public sealed class DocumentEditorShell : IDisposable
             if (Doc is { IsEditable: false }) await _editing.CreateDraftAsync(id);
             else preso = await _editing.AcquireLockAsync(id);
             await ricarica();
-            if (preso is { IsMine: false }) Lock = preso;
+            if (preso is { IsMine: false })
+            {
+                Lock = preso;
+                // U-256 (revisione 3): il tasto si preme anche col lock letto all'apertura, e se il database dice
+                // che è ancora dell'altro si restava fuori senza una parola. Si dice chi lo tiene.
+                Error = _l["Ed_LockedByOtherNow", preso.ByName ?? _l["Lock_AnotherEditor"].Value].Value;
+            }
             IsEditing = Doc?.IsEditable == true && preso is not { IsMine: false };
         }, silenziosa: true);
     }

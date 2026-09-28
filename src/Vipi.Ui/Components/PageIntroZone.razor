@@ -69,7 +69,7 @@ else
                     }
                 </LiveRegion>
                 @* «Fine modifica» SALVA, invece di buttare via. Vedi SalvaSeSporcoAsync. *@
-                <EditLockBar ResourceKey="@ChiaveLock" LockChanged="OnLockChanged" BeforeRelease="SalvaSeSporcoAsync" />
+                <EditLockBar ResourceKey="@ChiaveLock" Acquired="RileggiAllaPresaAsync" LockChanged="OnLockChanged" BeforeRelease="SalvaSeSporcoAsync" />
             </div>
         }
 
@@ -220,6 +220,17 @@ else
         await SalvaAsync();
         // Salvataggio fallito: il lock RESTA, o chi ha scritto non potrebbe nemmeno riprovare.
         return !_sporco;
+    }
+
+    /// <summary>
+    /// U-117 (revisione 3): alla presa del lock si rilegge, PRIMA che i comandi si riaccendano. Chi aspettava sulla
+    /// pagina che il collega finisse aveva in mano l'intro letta all'apertura, e il suo salvataggio — che riscrive
+    /// il testo intero — cancellava in silenzio quello del collega. Stessa porta delle pagine di struttura (U-011).
+    /// </summary>
+    private async Task RileggiAllaPresaAsync()
+    {
+        _sporco = false;
+        await CaricaAsync();
     }
 
     private async Task OnLockChanged(bool mio)
