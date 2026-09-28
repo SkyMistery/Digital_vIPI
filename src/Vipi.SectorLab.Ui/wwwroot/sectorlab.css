@@ -955,6 +955,12 @@ body.lab-trascina * {
     color: var(--lab-avviso);
 }
 
+.lab-gesti-forma {
+    display: flex;
+    gap: .3rem;
+    margin: .1rem 0 .3rem;
+}
+
 .lab-rinomina {
     display: flex;
     flex-wrap: wrap;

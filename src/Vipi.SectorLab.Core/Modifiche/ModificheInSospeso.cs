@@ -1673,6 +1673,24 @@ public sealed class ModificheInSospeso
             return null;
         });
 
+    /// <summary>
+    /// Le voci dell'elenco sostituite tutte (lotto «Subito» slice 8c): la forma portata da una sua copia
+    /// (<see cref="Copie.PortaLaForma"/>). Come ogni gesto sui vertici, si annulla all'elenco dell'apertura.
+    /// </summary>
+    public object SostituisciIVertici(FileAperto file, int indice, string campo, IReadOnlyList<object> voci, string cosa, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(voci);
+        return Gesto(file, indice, campo, etichetta, cosa, vertici =>
+        {
+            if (voci.Select(ElencoDiVertici.Firma).SequenceEqual(vertici.Elenco.Cast<object>().Select(ElencoDiVertici.Firma), StringComparer.Ordinal))
+                return new ModificaRifiutata("La forma è già questa.");
+            vertici.Elenco.Clear();
+            foreach (object voce in voci)
+                vertici.Elenco.Add(voce);
+            return null;
+        });
+    }
+
     /// <summary>Vero se l'elenco si chiude ripetendo il primo punto in fondo: è il punto di partenza della casella.</summary>
     public static bool ElencoChiuso(ElencoDiVertici vertici)
     {

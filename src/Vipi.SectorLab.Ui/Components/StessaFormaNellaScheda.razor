@@ -71,6 +71,18 @@
             </button>
         </div>
     }
+    @if (Lab.FormaPortata is { } portata)
+    {
+        @* Slice 8c: dopo un gesto sui vertici, dove è andata la stessa forma. *@
+        @if (portata.Portate.Count > 0)
+        {
+            <p class="lab-nota" data-forma-portata="@portata.Portate.Count">Forma portata anche su: @string.Join(", ", portata.Portate.Select(Nome))</p>
+        }
+        @foreach (var (copia, perche) in portata.NonPortate)
+        {
+            <p class="lab-avviso-breve" data-forma-non-portata="@($"{copia.File}#{copia.Record}")">Non portata su @Nome(copia): @perche</p>
+        }
+    }
     @foreach (var (parte, copie) in parti)
     {
         <div class="lab-stessa-forma" data-parte-della-forma="@parte.Parte">
@@ -90,6 +102,18 @@
                             @NomeDelFile(questa.Dove.File) <span class="lab-nota">@questa.Dove.Etichetta</span>
                             <span class="@(questa.Uguale ? "lab-nota" : "lab-avviso-breve")">@Come(questa)</span>
                         </button>
+                        @if (!questa.Uguale)
+                        {
+                            @* D5: «allinea anche questa» e «copia la forma da…»: una delle due diventa uguale all'altra. *@
+                            <span class="lab-gesti-forma">
+                                <button type="button" class="lab-tasto lab-tasto-tenue" data-allinea="@($"{questa.Dove.File}#{questa.Dove.Record}")"
+                                        title="Porta la forma di questo record su quella copia (che tiene il suo giro e la sua scrittura)"
+                                        @onclick="() => Lab.CopiaLaForma(parte, questa.Dove)">⇒ Allinea quella</button>
+                                <button type="button" class="lab-tasto lab-tasto-tenue" data-prendi-la-forma="@($"{questa.Dove.File}#{questa.Dove.Record}")"
+                                        title="Porta la forma di quella copia su questo record"
+                                        @onclick="() => Lab.CopiaLaForma(questa.Dove, parte)">⇐ Prendi la sua</button>
+                            </span>
+                        }
                     </li>
                 }
             </ul>
@@ -162,6 +186,8 @@
     private static string QuantiRecord(int quanti) => quanti == 1 ? "1 record" : $"{quanti} record";
 
     private static string Diverse(int quante) => quante == 1 ? "1 di forma diversa" : $"{quante} di forma diversa";
+
+    private static string Nome(ParteDiForma parte) => $"{NomeDelFile(parte.File)} {parte.Etichetta}";
 
     private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
 }

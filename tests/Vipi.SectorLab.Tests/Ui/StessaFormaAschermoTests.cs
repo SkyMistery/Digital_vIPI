@@ -148,4 +148,50 @@ public sealed class StessaFormaAschermoTests : IDisposable
         var dalMaps = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Mappe).Add(c => c.Record, 0));
         Assert.NotNull(dalMaps.Find("[data-questo-diverso]"));
     }
+
+    // --- slice 8c: la forma portata sulle copie ------------------------------------------------------------------
+
+    [Fact]
+    public async Task AllineaDallaSchedaRendeUgualeLaCopiaDiversaEDiceDoveEAndata()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Settore).Add(c => c.Record, 0));
+        // Sulla copia uguale non c'è niente da allineare.
+        Assert.Empty(pagina.FindAll($"[data-allinea='{Confine}#0']"));
+
+        pagina.Find($"[data-allinea='{Mappe}#0']").Click();
+
+        pagina.WaitForAssertion(() => Assert.Equal("si", pagina.Find($"[data-copia-della-forma='{Mappe}#0']").GetAttribute("data-uguale")));
+        Assert.Contains("zzzz.str ZZZZ ZZZZ CTR", pagina.Find("[data-forma-portata]").TextContent, StringComparison.Ordinal);
+        Assert.Equal([Mappe], _lab.Modifiche.FileToccati);
+    }
+
+    [Fact]
+    public async Task PrendiLaSuaPortaLaFormaDellaCopiaSuQuestoRecord()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Settore).Add(c => c.Record, 0));
+
+        pagina.Find($"[data-prendi-la-forma='{Mappe}#0']").Click();
+
+        // Il settore ora ha la forma del MAPS; il confine, che era uguale al settore di prima, adesso è lui il diverso.
+        Assert.Equal([Settore], _lab.Modifiche.FileToccati);
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Equal("si", pagina.Find($"[data-copia-della-forma='{Mappe}#0']").GetAttribute("data-uguale"));
+            Assert.Equal("no", pagina.Find($"[data-copia-della-forma='{Confine}#0']").GetAttribute("data-uguale"));
+        });
+    }
+
+    [Fact]
+    public async Task DopoUnGestoSuiVerticiLaSchedaDiceSuQualiCopieEAndataLaForma()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Settore).Add(c => c.Record, 0));
+
+        Assert.True(_lab.GestoSuiVertici(Settore, 0, "Vertices", GestoDeiVertici.Togli, 2));
+
+        pagina.WaitForAssertion(() => Assert.Contains("prova.hartcc ZZ CONF", pagina.Find("[data-forma-portata]").TextContent, StringComparison.Ordinal));
+        Assert.Equal("si", pagina.Find($"[data-copia-della-forma='{Confine}#0']").GetAttribute("data-uguale"));
+    }
 }

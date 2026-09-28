@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); in corso la **slice 8** (8a e 8b fatte, §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); in corso la **slice 8** (8a-8c fatte, §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -989,3 +989,29 @@ diverse» · **8c** la modifica propagata alle copie uguali, «allinea anche que
   «Dichiara qui e sulla copia uguale» → `twrs.tfl −0 +3` e `lirf.str −0 +3` (tag, `//@START`, `//@END`), «Annulla tutto»
   pulito; `form=LIRE` a mano su LIRE_APP e LIRE CTR → «2 record · 1 di forma diversa», salvato nella copia di prova →
   543 → **544 avvisi**, «lire.str:5 FormeDiverse». Test: Lab 671 → **679** (motore 676, invariato).
+- **8c (28 settembre)** — la forma portata sulle copie (D5: «modifica propagata alle copie uguali», «allinea anche
+  questa», «copia la forma da…»). `Copie/PortaLaForma.cs` scrive l'anello di una forma su una sua copia; la copia
+  **tiene** il suo vertice di partenza, il suo **verso** (dalle coppie di vertici vicini, non dall'area col segno, che su
+  una forma che si incrocia non vuol dire niente), la sua **chiusura** (il primo punto ripetuto in fondo) e la
+  **scrittura** dei vertici che restano (un nome resta nome); un vertice nuovo si scrive come nella forma di partenza,
+  se la copia lo sa scrivere (un `.pol` tiene solo coordinate: un nome diventa la sua posizione; i punti di una
+  procedura `.str` solo nomi: una coordinata non ci va, e la copia lo dice). Le righe toccate escono nella forma del
+  file (`FormaDelPunto` di F2: un `.hartcc` compatto resta compatto anche nel vertice nuovo).
+  - **Dopo ogni gesto sui vertici** (sposta, aggiungi, togli, inverti, incolla) la forma va sulle copie che PRIMA del
+    gesto erano uguali, una voce di vertici per copia («Tratto 1: forma portata da twrs.tfl LIRF_TWR»), tutto un gesto
+    solo nella storia; quelle già diverse restano. Le copie si fissano alla prima esecuzione del gesto, come la densità
+    dell'incolla: rigiocato da annulla/ripeti, il gesto le ritrova anche con gli strati non ancora rifatti.
+  - Nella scheda, sotto ogni copia diversa: **«⇒ Allinea quella»** (questa forma su quella copia) e **«⇐ Prendi la
+    sua»** (la forma di quella su questo record); sopra, «Forma portata anche su: …» e, in giallo, dove non è andata e
+    perché. La nota vale per il gesto appena fatto: scegliere un altro record la toglie.
+  - Le **linee dei `.geo`** non sono un elenco di vertici (sono segmenti cuciti): non ricevono ancora la forma, e la
+    scheda lo dice («una linea di un .geo: slice 8d»).
+  Misura sul fork (`scratchpad/misura8c`, niente salvato): per ogni forma con copie uguali, il primo vertice spostato di
+  un millesimo di grado col gesto vero, poi annullato — **413 forme** (i `.pol` limitati a 200 su 1 594), **232 copie
+  portate** (`.tfl` 100, `.str` 74, `.lartcc` 41, `.hartcc` 12, `.mva` 4, `.artcc` 1), dopo il gesto **tutte uguali**,
+  annullato **tutto come prima: 0 guasti**, 48 s; **212 non portate, tutte linee `.geo`** (201 bordi dei `.pol`); 149
+  forme scritte solo per nome (le mappe delle procedure) non provate col vertice a coordinate. Prova a schermo sul
+  banco: LIRE_APP → «⇒ Allinea quella» su LIRE CTR → `lire.str −1 +1` (solo il vertice diverso, il commento in coda
+  della riga sopra intatto), la famiglia `form=LIRE` tutta uguale; LIRF_TWR, tolto il vertice 3 → «Forma portata anche
+  su: lirf.str LIRF LIRF ATZ», `twrs.tfl −1 +0` e `lirf.str −1 +0`; Ctrl+Z pulito. Il motore non è toccato. Test: Lab
+  679 → **688**.

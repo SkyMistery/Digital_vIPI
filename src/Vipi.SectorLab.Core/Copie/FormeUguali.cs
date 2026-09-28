@@ -245,7 +245,7 @@ public sealed class FormeUguali
         return chiavi.Distinct().Count() >= 3 ? [.. chiavi] : null;
     }
 
-    private static long Chiave(Coordinate punto)
+    internal static long Chiave(Coordinate punto)
         => (long)Math.Round(punto.LatitudeDeg * 1e6) * 1_000_000_000L + (long)Math.Round(punto.LongitudeDeg * 1e6);
 
     /// <summary>Lo stesso anello: stessi vertici nello stesso giro, da qualunque vertice e in qualunque verso.</summary>
