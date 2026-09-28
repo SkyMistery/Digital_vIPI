@@ -104,6 +104,10 @@ usa le schede, i gesti e le viste dell'ondata 1 e aggiunge solo quello che è de
 - La **consegna** agli AOD (slice 11 di F3): la decide il committente. Proposta: dopo l'ondata 1 e le prime slice
   dell'ondata 2 c'è già un Lab che copre la gran parte dei file che gli AOD toccano ogni ciclo.
 - **R-7** (coordinate in una forma sola per `.vfi`/`.tfl`) e **R-8** (`LIMJ_APP`/`LIBB_APP`): rimandate.
+- **Per il futuro** (committente, 28 settembre: «lasciali così, segnali come cose per il futuro»): la **rinomina di
+  un file** (vuol dire spostarlo sul disco: il salvataggio oggi scrive solo contenuti; aggiorna le righe `F;` degli
+  `.isc` e i campi dei `.frq`) e la **rinomina di un nome di `colors.def`** (serve un lettore e uno scrittore del `.def`
+  nel motore; TAXIWAY sono circa 19 000 righe in 164 file). «Chi lo usa» di file e colori c'è già (slice 7e).
 
 ## §5 — Decisioni del committente (27 settembre)
 
@@ -891,9 +895,9 @@ cominciando la 7c: le posizioni, le piste e i file hanno ognuno la sua forma di 
   **D-ATIS** (anche con la barra di troppo davanti, `\liml.atis`). Un file che nessuno usa lo dice («Aurora non lo
   legge»). In un `.def`, sotto, **ogni nome** col suo campione, quante volte e in quali file lo usano il riempimento e
   il bordo dei `.pol` e dei settori dinamici e le linee dei `.geo`; il clic su un file lo apre.
-  - Scelta dell'agente: **rinominare un file o un colore non è in questa slice**. Un file rinominato vuol dire un
+  - **Rinominare un file o un colore non è in questa slice** (per il futuro, §4: deciso dal committente il 28 settembre). Un file rinominato vuol dire un
     file spostato sul disco (il salvataggio oggi scrive solo contenuti), e `colors.def` il motore lo legge solo come
-    tavolozza (niente record né scrittore): servono tutti e due un pezzo nuovo, e il committente decide se valgono.
+    tavolozza (niente record né scrittore): servono tutti e due un pezzo nuovo.
   Misura sul fork (`scratchpad/misura7e`): **748 file, 2 829 usi** (943 righe `F;`, 876 per il codice dello scalo, 70
   perché un `.frq` li cita, 5 trovati per nome, 386 profili, 166 ATIS, 383 D-ATIS), 3,6 s per tutti (il più lento 24
   ms); **28 file senza nessun uso** — 22 `.txt`, e `itawhigh.hairway`, `ENR.fix`, `FRA.fix`, `TERM.fix`, `WW0.cpr` («serve
