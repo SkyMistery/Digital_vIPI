@@ -32,7 +32,12 @@ confini come elenchi, «+ in fondo» e «inverti» (che rilegge il file e rifiut
 al posto sbagliato; corretto lo scrittore MVA delle zone di scalo senza riga L), **5b** spezza/unisci come gesto sul
 testo riletto dal motore, nelle cinque scritture (riga vuota, `<br>`, `DUMMY`, `BREAK`), **5c** nascondi/mostra (i
 record commentati restano nell'elenco, grigi: fra gli altri, dentro, in parte), **5d** la vista a linea dei `.geo`.
-Slice 5 chiusa; prossima: **slice 6** (gruppi e blocchi come Aurora). Test: motore **671**, Lab **579**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
+Slice 5 chiusa. **Slice 6** (gruppi e blocchi come Aurora, 28 settembre): **6a** sotto il file le voci della finestra di
+selezione (confini coi poligoni, MVA con le zone, aerovie coi pezzi, gruppi dei `.geo`/`.pol` sotto un commento, aree
+P/R/D), accese e spente sulla mappa anche un poligono solo; **6b** il nome dal commento cambiato dalla scheda e la
+regola `NomeMancante` del validatore (564 «senza titolo» nei `.geo`); **6c** il gruppo col nome dal commento passa a
+blocco `//@` al primo metadato. Slice 6 chiusa; prossima: **slice 7** («chi lo usa» e rinomina). Test: motore **674**,
+Lab **606**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
 ## 27 settembre 2026 — revisione del giro dei file
