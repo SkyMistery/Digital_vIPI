@@ -1,0 +1,59 @@
+@inject SessioneDelLab Lab
+
+@*
+    La voce del record nella scheda (lotto «Subito» slice 6b, «file per file» H3, §M «nome di un pezzo»): come si chiama
+    nella finestra di selezione di Aurora, e le sue parti di questo record col nome dal commento sopra — che qui si
+    cambia. Il nome della voce dei confini, delle MVA e delle aerovie è nelle righe di dati (il 2° campo): quello si
+    cambia con la rinomina (slice 7), non qui.
+*@
+@if (Lab.VoceDi(File, Record) is { } voce)
+{
+    var parti = voce.Parti.Where(p => p.Record == Record).ToList();
+    <Sezione Chiave="scheda-voce" data-voce-scheda="@voce.Nome">
+    <Titolo>Voce <span class="lab-nota">@voce.Nome@(voce.NomeMancante ? " · nome mancante" : "")</span></Titolo>
+    <ChildContent>
+    <table class="lab-campi">
+        <tbody>
+            @if (voce.NomeDalCommento)
+            {
+                <tr data-nome-voce="@voce.Nome">
+                    <th title="Il commento sopra il gruppo: è il nome della voce (H3)">Nome del gruppo</th>
+                    <td>
+                        <input class="lab-campo @(voce.NomeMancante ? "lab-nome-mancante" : null)" value="@(voce.NomeMancante ? null : voce.Nome)"
+                               placeholder="@(voce.NomeMancante ? voce.Nome : "—")" data-scrivi-nome="voce"
+                               @onchange="e => Lab.CambiaIlNomeDellaVoce(File, voce, e.Value?.ToString())" />
+                    </td>
+                </tr>
+            }
+            else
+            {
+                <tr>
+                    <th title="La voce della finestra di selezione di Aurora: il nome sta nelle righe di dati">Voce</th>
+                    <td>@voce.Nome <span class="lab-nota">@Conto(voce)</span></td>
+                </tr>
+            }
+            @foreach (var parte in parti)
+            {
+                var questa = parte;
+                <tr data-nome-parte="@parte.Chiave">
+                    <th title="Il commento sopra la parte: il suo nome nell'elenco delle voci">@(parte.Poligono is { } p ? $"Poligono {p + 1}" : "Nome della parte")</th>
+                    <td>
+                        <input class="lab-campo" value="@parte.Nome" placeholder="senza nome" data-scrivi-nome="@parte.Chiave"
+                               @onchange="e => Lab.CambiaIlNomeDellaParte(File, questa, e.Value?.ToString())" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    private static string Conto(VoceDellaSelezione voce)
+        => voce.Record.Count > 1 ? $"({voce.Record.Count} record)" : "";
+}

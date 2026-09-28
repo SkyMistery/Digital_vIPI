@@ -122,6 +122,13 @@ public enum Regola
     /// N004.11.31, in Africa; proposta N0411316200).
     /// </summary>
     CoordinataLettaAltrove,
+
+    /// <summary>
+    /// Gruppi di un <c>.geo</c> o di un <c>.pol</c> col nome che mette Google Earth, «Percorso senza titolo» o «Poligono
+    /// senza titolo» (lotto «Subito» slice 6, «file per file» H3: 564 nei <c>.geo</c> del fork): il nome del gruppo è il
+    /// commento sopra, e questo non dice niente. Uno per file, col numero e le righe.
+    /// </summary>
+    NomeMancante,
 }
 
 public enum Gravita
@@ -148,7 +155,8 @@ public static class Regole
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
             or Regola.CopieDiverse or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
             or Regola.CommentoInCoda or Regola.FileCitatoAssente or Regola.FileInclusoDueVolte
-            or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma => Validazione.Gravita.Avviso,
+            or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma
+            or Regola.NomeMancante => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

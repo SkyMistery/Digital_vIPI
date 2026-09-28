@@ -10,7 +10,8 @@ namespace Vipi.SectorLab.Core.Ispezione;
 /// </summary>
 /// <param name="Chiave">Come si accende e spegne sulla mappa: <c>3</c> il record, <c>3.1</c> il suo secondo poligono.</param>
 /// <param name="RigaDelNome">La riga (da 1, nel file di adesso) del commento che dà il nome; null se non ce l'ha.</param>
-public sealed record ParteDellaVoce(string Chiave, int Record, int? Poligono, string? Nome, int? RigaDelNome);
+/// <param name="PrimaRiga">La prima riga della parte (da 0): un nome nuovo va nel commento sopra di lei.</param>
+public sealed record ParteDellaVoce(string Chiave, int Record, int? Poligono, string? Nome, int? RigaDelNome, int PrimaRiga = 0);
 
 /// <summary>
 /// Una voce come nella finestra di selezione di Aurora (lotto «Subito» slice 6, «file per file» A3, J1, B1, E1, H3):
@@ -22,8 +23,13 @@ public sealed record ParteDellaVoce(string Chiave, int Record, int? Poligono, st
 /// <param name="Parti">Le parti con un senso proprio (poligoni, zone, pezzi); vuoto dove la voce è un blocco solo.</param>
 /// <param name="RigaDelNome">Dove il nome è un commento (i <c>.geo</c>): la sua riga, da 1.</param>
 /// <param name="NomeMancante">Il nome non c'è, o è quello che mette Google Earth («Percorso senza titolo», H3).</param>
+/// <param name="PrimaRiga">Dove il nome è un commento: la prima riga del gruppo (da 0), sotto il commento nuovo.</param>
 public sealed record VoceDellaSelezione(string Nome, IReadOnlyList<int> Record, IReadOnlyList<ParteDellaVoce> Parti,
-                                        int? RigaDelNome = null, bool NomeMancante = false);
+                                        int? RigaDelNome = null, bool NomeMancante = false, int? PrimaRiga = null)
+{
+    /// <summary>Vero se il nome della voce è un commento (i gruppi dei .geo e dei .pol): si cambia dalla scheda.</summary>
+    public bool NomeDalCommento => PrimaRiga is not null;
+}
 
 /// <summary>Le voci della finestra di selezione di un file, calcolate sul testo com'è adesso.</summary>
 public static class VociDellaSelezione
@@ -82,7 +88,7 @@ public static class VociDellaSelezione
             {
                 int? riga = primo < punti.Count ? punti[primo] : null;
                 var (testo, dove) = riga is { } i ? CommentoSopra(righe, i) : (null, null);
-                voce.Parti.Add(new ParteDellaVoce($"{r}.{p}", r, p, testo, dove));
+                voce.Parti.Add(new ParteDellaVoce($"{r}.{p}", r, p, testo, dove, riga ?? posti[r].Da));
                 primo += gruppo.Polygons[p].Vertices.Count;
             }
         }
@@ -111,7 +117,7 @@ public static class VociDellaSelezione
             // Il nome della zona: il soprannome del blocco (E1, zone=), poi il commento sopra.
             var (testo, dove) = CommentoSopra(righe, posti[r].Da);
             string? soprannome = file.ChiaviDi(r)?.GetValueOrDefault("zone")?.Trim('"');
-            voce.Parti.Add(new ParteDellaVoce($"{r}", r, null, soprannome ?? testo, soprannome is null ? dove : null));
+            voce.Parti.Add(new ParteDellaVoce($"{r}", r, null, soprannome ?? testo, soprannome is null ? dove : null, posti[r].Da));
         }
 
         return [.. voci.Select(v => new VoceDellaSelezione(v.Nome, v.Record, v.Parti))];
@@ -133,7 +139,7 @@ public static class VociDellaSelezione
             voce.Record.Add(r);
             var (testo, dove) = CommentoSopra(righe, posti[r].Da);
             string cosa = aerovia.FixLabels.Count > 0 ? "tracciato" : "etichette";
-            voce.Parti.Add(new ParteDellaVoce($"{r}", r, null, testo is null ? null : $"{cosa} · {testo}", dove));
+            voce.Parti.Add(new ParteDellaVoce($"{r}", r, null, testo is null ? null : $"{cosa} · {testo}", dove, posti[r].Da));
         }
 
         return [.. voci.OrderBy(v => v.Nome, StringComparer.Ordinal).Select(v => new VoceDellaSelezione(v.Nome, v.Record, v.Parti))];
@@ -160,7 +166,7 @@ public static class VociDellaSelezione
         void Chiudi()
         {
             if (suoi.Count > 0)
-                voci.Add(new VoceDellaSelezione(nome ?? "(senza nome)", [.. suoi], [], riga, SenzaTitolo(nome)));
+                voci.Add(new VoceDellaSelezione(nome ?? "(senza nome)", [.. suoi], [], riga, SenzaTitolo(nome), posti[suoi[0]].Da));
             suoi.Clear();
         }
 

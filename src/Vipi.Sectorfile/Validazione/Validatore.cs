@@ -125,7 +125,44 @@ public static partial class Validatore
                 "Aurora legge queste righe in circa il doppio del tempo — il commento va sopra la riga"));
         }
 
+        // 5. I gruppi senza nome dei .geo e dei .pol (lotto «Subito» slice 6, H3): il commento sopra il gruppo è il suo
+        //    nome, e «Percorso/Poligono senza titolo» è quello che mette Google Earth. UNO per file, come i commenti in coda.
+        if (estensione is "geo" or "pol" && SenzaTitolo(righe) is { Count: > 0 } senza)
+        {
+            string quali = string.Join(", ", senza.Take(20)) + (senza.Count > 20 ? ", …" : string.Empty);
+            problemi.Add(new(Regola.NomeMancante, relativo, senza[0], righe[senza[0] - 1],
+                (senza.Count == 1 ? "1 gruppo" : $"{senza.Count} gruppi") + $" col nome di Google Earth «… senza titolo» (righe {quali}): " +
+                "il nome del gruppo è il commento sopra, e questo non dice cosa disegna"));
+        }
+
         return letto with { Problemi = problemi.OrderBy(p => p.Riga).ThenBy(p => p.Regola).ToList() };
+    }
+
+    /// <summary>
+    /// Le righe (da 1) dei commenti «… senza titolo» che fanno da nome a un gruppo: l'ultimo commento prima di una riga di
+    /// dati (le righe vuote in mezzo non contano).
+    /// </summary>
+    public static List<int> SenzaTitolo(IReadOnlyList<string> righe)
+    {
+        var trovate = new List<int>();
+        int? ultimoCommento = null;
+        for (int i = 0; i < righe.Count; i++)
+        {
+            string t = righe[i].Trim();
+            if (t.Length == 0)
+                continue;
+            if (t.StartsWith("//", StringComparison.Ordinal))
+            {
+                ultimoCommento = t.StartsWith("//@", StringComparison.Ordinal) ? ultimoCommento : i;
+                continue;
+            }
+
+            if (ultimoCommento is { } c && righe[c].Contains("senza titolo", StringComparison.OrdinalIgnoreCase))
+                trovate.Add(c + 1);
+            ultimoCommento = null;
+        }
+
+        return trovate;
     }
 
     /// <summary>Le regole sui campi di una riga di dati: coordinate una per una, e le coppie.</summary>

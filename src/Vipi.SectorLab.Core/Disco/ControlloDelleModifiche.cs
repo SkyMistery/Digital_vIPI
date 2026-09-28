@@ -63,8 +63,8 @@ public static class ControlloDelleModifiche
     internal static (List<ProblemaDelSector> Nuovi, int? Riletti) ProvaUnFile(string relativo, string percorso, byte[] dopo)
     {
         var prima = File.Exists(percorso) ? Validatore.ValidaIlFile(percorso, relativo) : [];
-        var (poi, riletti, inCodaDopo) = RiletturaDiProva.Con(relativo, dopo, copia =>
-            (Validatore.ValidaIlFile(copia, relativo), RiletturaDiProva.QuantiRecord(copia), CommentiInCoda(copia)));
+        var (poi, riletti, inCodaDopo, senzaTitoloDopo) = RiletturaDiProva.Con(relativo, dopo, copia =>
+            (Validatore.ValidaIlFile(copia, relativo), RiletturaDiProva.QuantiRecord(copia), CommentiInCoda(copia), SenzaTitolo(copia)));
 
         var restano = prima.GroupBy(Chiave).ToDictionary(g => g.Key, g => g.Count());
         var nuovi = new List<ProblemaDelSector>();
@@ -75,6 +75,14 @@ public static class ControlloDelleModifiche
             if (problema.Regola == Regola.CommentoInCoda)
             {
                 if (inCodaDopo > (File.Exists(percorso) ? CommentiInCoda(percorso) : 0))
+                    nuovi.Add(problema);
+                continue;
+            }
+
+            // Così i gruppi «senza titolo» (slice 6): un avviso per file, nuovo solo se crescono.
+            if (problema.Regola == Regola.NomeMancante)
+            {
+                if (senzaTitoloDopo > (File.Exists(percorso) ? SenzaTitolo(percorso) : 0))
                     nuovi.Add(problema);
                 continue;
             }
@@ -91,5 +99,7 @@ public static class ControlloDelleModifiche
         static (Regola, string) Chiave(ProblemaDelSector p) => (p.Regola, p.Testo.Trim());
 
         static int CommentiInCoda(string file) => Vipi.Sectorfile.IO.CommentiInCoda.Righe(SectorFileReader.Read(file).Lines).Count;
+
+        static int SenzaTitolo(string file) => Validatore.SenzaTitolo(SectorFileReader.Read(file).Lines).Count;
     }
 }

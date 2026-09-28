@@ -68,6 +68,9 @@
         </ChildContent>
         </Sezione>
 
+        @* Slice 6b: la voce della selezione di Aurora, e il nome delle parti dal commento sopra (H3). *@
+        <VoceNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
         @* Slice 3d: i metadati di §M del record, le chiavi del catalogo del suo tipo di file. Si scrivono nel tag
            //@"NOME" sopra il record; un valore vuoto toglie la chiave. *@
         @if (Lab.MetadatiDi(scheda.File, scheda.Indice) is { Count: > 0 } metadati)

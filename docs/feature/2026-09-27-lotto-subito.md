@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e), la slice 4 (4a-4d) e la slice 5 (5a-5d); in corso la **slice 6** (6a fatta; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e), la slice 4 (4a-4d) e la slice 5 (5a-5d); in corso la **slice 6** (6a e 6b fatte; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -737,3 +737,21 @@ selezione e le parti, accese e spente sulla mappa · **6b** il nome dal commento
   517; ogni record in una voce sola, ogni riga del nome un commento (0 guasti). Prova a schermo sul banco: `FRA.artcc` —
   7 voci con le caselle; LIMITROFI aperta mostra i suoi 14 poligoni («brindisi/tirana»…, «poligono 3 · senza nome»);
   spenta, coi soli FRA.artcc sulla mappa, i tratti verso l'estero spariscono; riaccesa, tornano. Test: Lab 579 → **596**.
+- **6b (28 settembre)** — il nome dal commento cambiato dalla scheda, e il nome mancante (H3, §M «nome di un pezzo»).
+  Nella scheda la sezione **«Voce»** (`Components/VoceNellaScheda.razor`): la voce del record e, per le sue parti di
+  questo record, il nome da cambiare; nei `.geo` e nei `.pol` anche **«Nome del gruppo»**. Il gesto
+  (`ModificheInSospeso.CambiaIlNome`, una voce nel testo del file: «nome «Percorso senza titolo» → «pista 03/21»»)
+  riscrive il commento che dà il nome **tenendone le barre** (`// LINPZ1 VEKEN` → `// VEKEN`), ne mette uno sopra la prima
+  riga del pezzo se non c'è (un poligono di LIMITROFI senza nome), e con un nome vuoto lo toglie; nelle zone MVA col
+  soprannome del blocco (E1) cambia il metadato `zone`. Rifiutati col perché: un `;` (il commento sembrerebbe una riga di
+  dati nascosta, 5c), un `@` davanti (sarebbe un tag). Il nome della voce dei confini, delle MVA e delle aerovie sta
+  nelle righe di dati (il 2° campo): si cambia con la rinomina della slice 7.
+  - **Codice comune, `Vipi.Sectorfile`**: regola nuova del validatore **`NomeMancante`, avviso, UNO per file** (come i
+    commenti in coda, 2a) — i gruppi dei `.geo` e dei `.pol` il cui ultimo commento prima dei dati è «… senza titolo» di
+    Google Earth, col numero e le righe (`Validatore.SenzaTitolo`). Nel controllo delle modifiche è «nuovo» solo se
+    crescono (dare un nome cambia la riga del primo e non deve risultare introdotto).
+  Misura: la regola del motore e le voci del Lab danno gli stessi numeri, **564 gruppi nei `.geo`** (la carta) e 253 nei
+  `.pol`, in **62 file**; il validatore sull'albero passa da 481 a **543 avvisi** (+62), il resto della prova sull'albero
+  invariato (701/701, tutto toccato 0, 115 568, tag, punti, blocchi, 120 errori, solo `limf.sid`). Prova a schermo sul
+  banco: `liaa.geo`, la voce «Percorso senza titolo» (⚠) → la scheda «Voce · nome mancante» → «pista 03/21»: −1 +1 sulla
+  riga 356, la voce cambia nome, nessun problema introdotto; «Annulla tutto». Test: motore 671 → **674**, Lab 596 → **602**.

@@ -1088,6 +1088,54 @@ public sealed class ModificheInSospeso
             riletto => riletto.RecordDelModello.Count == attesi ? null : "Scommentato, il file non si rilegge con un record in più: si fa a mano, dalle righe del file.");
     }
 
+    // --- il nome dal commento (lotto «Subito» slice 6b, «file per file» H3) ---------------------------------------
+
+    /// <summary>
+    /// Cambia il nome di una voce o di una parte che lo prende dal commento sopra (H3, §M «nome di un pezzo»): riscrive
+    /// quel commento tenendone le barre (<c>////CONF 4</c> resta con le sue), o ne mette uno sopra la prima riga del pezzo
+    /// se non c'è; un nome vuoto toglie il commento. Una voce nel testo del file; riletto, il file ha gli stessi record.
+    /// </summary>
+    /// <param name="rigaDelNome">La riga (da 1) del commento che dà il nome oggi, o null.</param>
+    /// <param name="primaRiga">La prima riga del pezzo (da 0): il commento nuovo va subito sopra.</param>
+    public object CambiaIlNome(FileAperto file, int? rigaDelNome, int primaRiga, string? nuovo, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord)
+            return new ModificaRifiutata("Questo file il motore non lo interpreta.");
+        string testo = (nuovo ?? "").Trim();
+        if (testo.Contains(';', StringComparison.Ordinal))
+            return new ModificaRifiutata("Un nome non può avere il «;»: il commento sembrerebbe una riga di dati nascosta.");
+        if (testo.StartsWith('@'))
+            return new ModificaRifiutata("Un nome non comincia con «@»: sarebbe un tag //@ del Lab.");
+
+        var righe = conRecord.RigheDelFile(SporchiDi(file.Relativo));
+        var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+        string prima = "—";
+        if (rigaDelNome is { } riga && riga >= 1 && riga <= righe.Count)
+        {
+            string vecchia = righe[riga - 1];
+            prima = VociDellaSelezione.Pulito(vecchia);
+            string barre = System.Text.RegularExpressions.Regex.Match(vecchia, @"^\s*/+\s*").Value;
+            sostituzioni[riga] = testo.Length == 0 ? [] : [barre + testo];
+        }
+        else if (testo.Length == 0)
+        {
+            return new ModificaRifiutata("Il pezzo non ha un nome da togliere.");
+        }
+        else if (primaRiga >= 0 && primaRiga < righe.Count)
+        {
+            sostituzioni[primaRiga + 1] = ["//" + testo, righe[primaRiga]];
+        }
+        else
+        {
+            return new ModificaRifiutata("Non trovo dove mettere il nome.");
+        }
+
+        int quanti = conRecord.RecordDelModello.Count;
+        return CambiaRighe(file, sostituzioni, $"{(etichetta.Length > 0 ? etichetta + ": " : "")}nome «{prima}» → «{(testo.Length > 0 ? testo : "—")}»",
+            riletto => riletto.RecordDelModello.Count == quanti ? null : "Col commento nuovo il file non si rilegge coi record di prima: si fa a mano, dalle righe del file.");
+    }
+
     // --- la vista a linea dei .geo (lotto «Subito» slice 5d) ------------------------------------------------------
 
     /// <summary>La linea del segmento, nel file com'è adesso (<see cref="LineeDelGeo.Di"/>); null se non è un segmento .geo.</summary>

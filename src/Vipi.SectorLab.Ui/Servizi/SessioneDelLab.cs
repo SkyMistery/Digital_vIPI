@@ -1121,6 +1121,46 @@ public sealed class SessioneDelLab
             : [.. voce.Record.Select(r => r.ToString(System.Globalization.CultureInfo.InvariantCulture))];
     }
 
+    /// <summary>La voce che contiene il record, o null.</summary>
+    public VoceDellaSelezione? VoceDi(string fileRelativo, int record)
+        => VociDi(fileRelativo)?.FirstOrDefault(v => v.Record.Contains(record));
+
+    /// <summary>
+    /// Cambia il nome di una parte (H3): il commento sopra; nelle zone MVA col soprannome del blocco (E1), il
+    /// metadato <c>zone</c>.
+    /// </summary>
+    public bool CambiaIlNomeDellaParte(string fileRelativo, ParteDellaVoce parte, string? nuovo)
+    {
+        ArgumentNullException.ThrowIfNull(parte);
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file && parte.RigaDelNome is null
+            && file.RecordDelModello[parte.Record] is Vipi.Sectorfile.Models.MvaSector
+            && file.ChiaviDi(parte.Record)?.ContainsKey("zone") == true)
+            return CambiaIlMetadato(fileRelativo, parte.Record, "zone", nuovo);
+
+        return NellaStoria($"nome di una parte di {NomeDelFile(fileRelativo)} cambiato",
+            () => GestoSulTesto(fileRelativo, "nome", f => Modifiche.CambiaIlNome(f, parte.RigaDelNome, parte.PrimaRiga, nuovo,
+                EtichetteDi(fileRelativo).ElementAtOrDefault(parte.Record) ?? "")));
+    }
+
+    /// <summary>Cambia il nome di una voce che lo prende dal commento sopra (i gruppi dei .geo e dei .pol, H3).</summary>
+    public bool CambiaIlNomeDellaVoce(string fileRelativo, VoceDellaSelezione voce, string? nuovo)
+    {
+        ArgumentNullException.ThrowIfNull(voce);
+        if (voce.PrimaRiga is not { } prima)
+        {
+            Rifiuto = "Il nome di questa voce non è un commento: si cambia nelle righe del record.";
+            Avvisa();
+            return false;
+        }
+
+        bool fatto = NellaStoria($"nome del gruppo «{voce.Nome}» di {NomeDelFile(fileRelativo)} cambiato",
+            () => GestoSulTesto(fileRelativo, "nome", f => Modifiche.CambiaIlNome(f, voce.RigaDelNome, prima, nuovo)));
+        // La scheda resta sul record di prima: il commento nuovo non cambia i numeri dei record.
+        if (fatto && Scelta is null)
+            Scegli(fileRelativo, voce.Record[0]);
+        return fatto;
+    }
+
     private readonly HashSet<string> _spenti = new(StringComparer.Ordinal);
 
     /// <summary>Le forme spente sulla mappa: <c>file#3</c> un record, <c>file#3.1</c> un poligono.</summary>
