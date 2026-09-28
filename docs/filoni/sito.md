@@ -1432,5 +1432,13 @@
   - **U-213** «Cosa è cambiato»: orario con `VipiTime.DayZ` e `data-utc` (prima UTC senza «Z»).
   - **Test**: rossi tutti e quattro sulle sorgenti di prima. Suite intere verdi: Ui **1847** (net8 e net10), Assets
     63, E2E 454. Nessuna migrazione, `deploy/` no, resx it/en 1 chiave, wwwroot sì (`vipi-boot.js`, `vipi-theme.css`).
+  - **Prova a schermo** sulla copia del DB (cancellata a fine prova), dal DOM: landing LIRR, cinque righe `<a href>`,
+    nessun `li[onclick]`, il collegamento largo quanto la riga; Tab vero → riga successiva con `:focus-visible` e
+    contorno 2px. «What changed»: `15 Sep 2026 · 04:44Z` con `data-utc`, e `vipiApplyOreLocali` aggiunge «· 06:44
+    UTC+2» (nel pannello nascosto `requestAnimationFrame` non scatta da solo). vAWOS: da /services/vsop, prima
+    richiesta di `vipi-awos.js` dirottata su un file che non c'è, navigazione enhanced a /services/vawos/libc →
+    seconda richiesta, orologio che scorre, lo `<script>` fallito tolto, nessuna richiesta dopo l'arrivo.
+    ⚠️ U-208 non riproducibile coi dati: `IcaoFromCallsign` ricava lo scalo da ogni callsign con «_», quindi
+    l'indirizzo manca solo in un caso latente; resta il test bUnit.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
