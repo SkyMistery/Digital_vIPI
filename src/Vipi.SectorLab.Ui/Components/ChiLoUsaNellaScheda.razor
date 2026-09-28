@@ -1,0 +1,80 @@
+@inject SessioneDelLab Lab
+
+@*
+    «Chi lo usa» (lotto «Subito» slice 7, «file per file» L2): dove il punto della scheda è citato per nome — aerovie,
+    SID/STAR, confini, settori, MVA, rotte VFR, attese, tag —, file per file, riga per riga. Il clic su una riga porta
+    al record che la contiene. Sotto, in grigio, lo stesso nome dove Aurora lo risolve in un ALTRO punto (un NDB col
+    nome del VOR, un'altra FIR): non sono sue, e la rinomina non le toccherà.
+*@
+@if (Lab.UsiDi(File, Record) is { } usi)
+{
+    var perFile = usi.Citazioni.GroupBy(c => c.File).ToList();
+    <Sezione Chiave="scheda-chi-lo-usa" data-chi-lo-usa="@usi.Citazioni.Count">
+    <Titolo>Chi lo usa <span class="lab-nota">@Conto(usi)</span></Titolo>
+    <ChildContent>
+    @if (usi.Citazioni.Count == 0)
+    {
+        <p class="lab-nota" data-nessuno-lo-usa>@Nessuno(usi)</p>
+    }
+    @foreach (var gruppo in perFile)
+    {
+        <details class="lab-citazioni" open="@(perFile.Count <= 3)" data-citazioni-file="@gruppo.Key">
+            <summary>@NomeDelFile(gruppo.Key) <span class="lab-nota">@Righe(gruppo.Count())</span></summary>
+            <ul>
+                @foreach (var citazione in gruppo)
+                {
+                    var questa = citazione;
+                    <li>
+                        <button type="button" class="lab-citazione" data-citazione="@($"{questa.File}:{questa.Riga}")"
+                                title="@Titolo(questa)" @onclick="() => Lab.VaiAllaCitazione(questa)">
+                            <span class="lab-nota">@questa.Riga</span> <code>@questa.Testo.Trim()</code>
+                        </button>
+                    </li>
+                }
+            </ul>
+        </details>
+    }
+    @if (usi.AltroPunto.Count > 0)
+    {
+        <details class="lab-citazioni lab-citazioni-altrui" data-altro-punto="@usi.AltroPunto.Count">
+            <summary>Stesso nome, altro punto <span class="lab-nota">@Righe(usi.AltroPunto.Count)</span></summary>
+            <ul>
+                @foreach (var citazione in usi.AltroPunto)
+                {
+                    var questa = citazione;
+                    <li>
+                        <button type="button" class="lab-citazione" data-citazione-altrui="@($"{questa.File}:{questa.Riga}")"
+                                title="Qui Aurora risolve il nome in: @questa.VaA" @onclick="() => Lab.VaiAllaCitazione(questa)">
+                            @NomeDelFile(questa.File) <span class="lab-nota">@questa.Riga → @questa.VaA</span>
+                        </button>
+                    </li>
+                }
+            </ul>
+        </details>
+    }
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    private static string Conto(UsiDelPunto usi)
+        => usi.Citazioni.Count == 0 ? "nessuno" : $"{Righe(usi.Citazioni.Count)} in {usi.File.Count} file";
+
+    private static string Nessuno(UsiDelPunto usi)
+        => usi.Catalogo == "attesa" ? "Nessun fix o VOR rimanda a questa attesa."
+            : usi.AltroPunto.Count > 0 ? "Nessuna citazione va a questo punto: dove il nome compare, Aurora lo risolve in un altro (sotto)."
+            : "Nessun file lo cita per nome.";
+
+    private static string Righe(int quante) => quante == 1 ? "1 riga" : $"{quante} righe";
+
+    private static string NomeDelFile(string relativo)
+        => relativo.IndexOf("/IT/", StringComparison.Ordinal) is var i and >= 0 ? relativo[(i + 4)..] : relativo;
+
+    private static string Titolo(Citazione citazione)
+        => (citazione.Come == "punto" ? "Cita il punto per nome" : citazione.Come)
+           + (citazione.SoloIn.Count > 0 ? $" — va a questo punto solo in {string.Join(", ", citazione.SoloIn)}" : "");
+}

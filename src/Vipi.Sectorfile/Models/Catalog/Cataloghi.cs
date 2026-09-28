@@ -29,4 +29,15 @@ public static class Cataloghi
             _ => null,
         };
     }
+
+    /// <summary>
+    /// I nomi di punto che un record CITA e che Aurora risolve nei cataloghi: i punti per nome (tutti e due i campi),
+    /// i punti dei <c>.str</c>, i vertici per nome delle righe <c>T;</c>, le etichette delle aerovie. Sono quelli del
+    /// validatore (<c>NomeNonRisolto</c>); li chiede anche il «chi lo usa» del Lab (lotto «Subito», slice 7).
+    /// </summary>
+    public static IEnumerable<string> Usati(object record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        return Validazione.Validatore.NomiUsati(record);
+    }
 }

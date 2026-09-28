@@ -191,12 +191,15 @@ public sealed class SessioneDelLab
             // La lettura dell'albero e la geometria sono lavoro lungo: fuori dal filo del circuito (carta §7).
             var sessione = await SessioneAperta.ApriAsync(cartella, annulla).ConfigureAwait(false);
             var cataloghi = await Task.Run(() => CatalogoDeiPunti.PerOgniIsc(sessione), annulla).ConfigureAwait(false);
+            var chiLoUsa = await Task.Run(() => ChiLoUsa.Di(sessione), annulla).ConfigureAwait(false);
             string? isc = cataloghi.OrderByDescending(c => c.Value.Punti).Select(c => c.Key).FirstOrDefault();
             var strati = await Task.Run(
                 () => StratiDellaMappa.DiSessione(sessione, isc is null ? null : cataloghi[isc]), annulla).ConfigureAwait(false);
 
             Sessione = sessione;
             Cataloghi = cataloghi;
+            _chiLoUsa = chiLoUsa;
+            _usi.Clear();
             IscScelto = isc;
             Strati = strati;
             RifaiIColori();
@@ -278,6 +281,8 @@ public sealed class SessioneDelLab
         Sessione = null;
         Strati = [];
         Cataloghi = new Dictionary<string, CatalogoDeiPunti>();
+        _chiLoUsa = null;
+        _usi.Clear();
         IscScelto = null;
         Scelta = null;
         Albero = null;
@@ -734,13 +739,16 @@ public sealed class SessioneDelLab
 
         var sessione = Sessione;
         string? isc = IscScelto;
-        var (cataloghi, strati) = await Task.Run(() =>
+        var (cataloghi, strati, chiLoUsa) = await Task.Run(() =>
         {
             var c = CatalogoDeiPunti.PerOgniIsc(sessione);
-            return (c, StratiDellaMappa.DiSessione(sessione, isc is not null && c.TryGetValue(isc, out var scelto) ? scelto : null));
+            return (c, StratiDellaMappa.DiSessione(sessione, isc is not null && c.TryGetValue(isc, out var scelto) ? scelto : null),
+                ChiLoUsa.Di(sessione));
         }).ConfigureAwait(false);
 
         Cataloghi = cataloghi;
+        _chiLoUsa = chiLoUsa;
+        _usi.Clear();
         Strati = strati;
         Albero = AlberoDaSfogliare.Di(sessione);
         _etichette.Clear();
@@ -1110,6 +1118,42 @@ public sealed class SessioneDelLab
         var voci = VociDellaSelezione.Di((FileAperto)file, righe, file.PostiDeiRecord(Modifiche.SporchiDi(fileRelativo)));
         _voci[fileRelativo] = (righe, voci);
         return voci;
+    }
+
+    // --- «chi lo usa» (lotto «Subito» slice 7, «file per file» L2) -----------------------------------------------------
+
+    private ChiLoUsa? _chiLoUsa;
+
+    // Le risposte già date, finché un file non cambia: la scheda si ridisegna a ogni tasto, e rileggere le righe dei
+    // file che citano un VOR (decine) ogni volta si sentirebbe.
+    private readonly Dictionary<(string File, int Record), UsiDelPunto?> _usi = [];
+
+    /// <summary>
+    /// Chi usa il record, se è un punto che si cita per nome (fix, VOR, NDB, scalo, punto VFR, attesa): le righe dei file
+    /// che lo citano e che Aurora risolve in lui, nel file com'è adesso. Null per gli altri record.
+    /// </summary>
+    public UsiDelPunto? UsiDi(string fileRelativo, int record)
+    {
+        if (Sessione is null || _chiLoUsa is null)
+            return null;
+        if (!_usi.TryGetValue((fileRelativo, record), out var usi))
+        {
+            usi = _chiLoUsa.Di(Sessione, Cataloghi, fileRelativo, record, Modifiche.SporchiDi);
+            _usi[(fileRelativo, record)] = usi;
+        }
+
+        return usi;
+    }
+
+    /// <summary>Il clic su una citazione: il suo record nella scheda e sulla mappa, la sua riga segnata.</summary>
+    public void VaiAllaCitazione(Citazione citazione)
+    {
+        ArgumentNullException.ThrowIfNull(citazione);
+        if (Sessione?.File.ContainsKey(citazione.File) != true)
+            return;
+        Scegli(citazione.File, citazione.Record);
+        RigaSegnalata = (citazione.File, citazione.Riga);
+        Avvisa();
     }
 
     /// <summary>Le chiavi della mappa di una voce: le sue parti, o i suoi record se non ne ha.</summary>
@@ -1746,6 +1790,10 @@ public sealed class SessioneDelLab
 
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return;
+
+        // «Chi lo usa» (slice 7): i nomi citati da questo file si rifanno, anche se il file non ha uno strato (.hold).
+        _chiLoUsa?.RifaiIlFile(file);
+        _usi.Clear();
 
         var tipo = StratiDellaMappa.DiFile(fileRelativo);
         _etichette.Remove(fileRelativo);

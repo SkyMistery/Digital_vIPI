@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); prossima la **slice 7** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a fatta; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -776,3 +776,36 @@ selezione e le parti, accese e spente sulla mappa · **6b** il nome dal commento
 13 voci**, **564 «senza titolo»** nei `.geo` segnalati come nome mancante (e 253 nei `.pol`); voci e parti accese e spente
 sulla mappa, il nome dal commento cambiato dalla scheda, il blocco `//@` col nome del gruppo. Da provare a mano
 (eseguibile ripubblicato): prove 90-94 in `SectorLab-prova\PROVE.md`.
+
+**Slice 7 — «chi lo usa» e rinomina.** Divisa in passi, un commit ciascuno (scelta dell'agente): **7a** l'indice di chi
+usa un punto chiamato per nome, nella scheda · **7b** la rinomina di un punto (una voce, più diff) e il «togli» impedito
+a un punto usato · **7c** posizioni, piste, file e nomi di `colors.def` (R-1) · **7d** il nome delle voci di confini, MVA
+e aerovie (il 2° campo, rimandato dalla 6b).
+
+- **7a (28 settembre)** — «chi lo usa» (L2). Nella scheda di un fix, VOR, NDB, scalo, punto VFR o attesa la sezione
+  **«Chi lo usa»** (`Components/ChiLoUsaNellaScheda.razor`): le righe che lo citano, file per file, col testo; il clic
+  porta al record e segna la riga. L'indice (`Sessione/ChiLoUsa.cs`) tiene per nome i file e i record che lo citano;
+  si fa all'apertura accanto ai cataloghi (330-450 ms sul fork) e si rifà per file a ogni modifica.
+  - **Che cosa cita**: i nomi che risolve il validatore (`NomeNonRisolto`: punti per nome, punti dei `.str`, vertici
+    `T;` dei confini, etichette delle aerovie), il fix della descrizione di un'attesa (`ABBOZ/225R-9000`), i valori dei
+    tag `fix=` e `trans=` (§M, P6). Un'attesa la citano i fix e i VOR che ci rimandano (`HLD-ABBOZ`). Le righe
+    commentate no: Aurora non le legge.
+  - **Di chi è una citazione**: 🔴 un nome va a un punto **per master**. Una citazione è di questo punto se, nei master
+    che caricano il suo file, il nome si risolve nel suo file — o in una sua **copia**, lo stesso catalogo a meno di un
+    decimo di miglio (le copie gemelle di F3-bis, i `NomeRipetuto`). Se va a lui solo in alcuni master lo dice («solo
+    in ITALY.isc»). Le citazioni dello stesso nome che vanno a un altro punto stanno sotto, in grigio, **«Stesso nome,
+    altro punto»**, con dove vanno: non sono sue, e la rinomina non le toccherà.
+  - **Codice comune, `Vipi.Sectorfile`**: `Cataloghi.Usati(record)`, pubblico, i nomi citati da un record — è lo
+    stesso metodo del validatore, perché le due risposte non si separino. Nel Lab `IFileConRecord.ChiaviDeiRecord()`:
+    le chiavi di tutti i record in un passo (con `ChiaviDi` a ogni record l'indice costava 9,7 s, quadratico).
+  Misura sul fork (strumento fuori repo, `scratchpad/misura7`): **`LUSIL` 12 righe in 5 file** (`FRA.artcc` 1,
+  `itawlow.lairway` 4, `limm.hartcc` 2, `lipp.hartcc` 2, `liml.str` 3), le stesse del grep tolta la riga commentata
+  `itawlow.lairway:2636` e la dichiarazione. In tutto: fix 3 901, usati 2 069, 8 832 citazioni; VOR 121, usati 61,
+  719; NDB 27, 13, 103; scali 295, 2, 2; VRP 586, 84, 134; attese 68, usate 67. «Altro punto»: i fix scendono da 317 a
+  **0** contando le copie a meno di un decimo di miglio; restano **8 VOR col nome di un NDB** (LPD, MMP, OST, PAN, PES,
+  PIS, TRP, VIE: 100 citazioni che il catalogo dà all'NDB, `itndb.ndb` viene prima di `itvor.vor`) e 2 citazioni di VRP.
+  L'attesa senza rimandi è **`HLD-EKLAP`** (L1: il fix la chiama `HLD-ELKAP`). Prova sull'albero invariata. Prova a
+  schermo sul banco: `LUSIL` → «Chi lo usa · 12 righe in 5 file»; clic su `T;T772;LUSIL;LUSIL;` → scheda di T772, riga
+  1119 segnata; VOR TRP → «Nessuna citazione va a questo punto» e «Stesso nome, altro punto · 28 righe». Rosso: i test
+  nuovi non compilano sul codice di prima (tipi e metodi nuovi). Test: motore 674 → **676**, Lab 606 → **616**.
+  🟡 Da chiedere: con un VOR e un NDB dello stesso nome Aurora quale prende? Oggi il Lab segue l'ordine dei file.

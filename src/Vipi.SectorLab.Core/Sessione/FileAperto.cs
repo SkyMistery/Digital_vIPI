@@ -121,6 +121,12 @@ public interface IFileConRecord
     /// <summary>Le chiavi del record come sono scritte (valori con le virgolette), o null se il record non ha tag.</summary>
     IReadOnlyDictionary<string, string>? ChiaviDi(int indice);
 
+    /// <summary>
+    /// Le chiavi di ogni record, in un passo solo (lotto «Subito» slice 7: l'indice di «chi lo usa» le chiede per tutti i
+    /// record dell'albero, e <see cref="ChiaviDi"/> rilegge i tag del file a ogni chiamata). Null dove non ce n'è.
+    /// </summary>
+    IReadOnlyList<IReadOnlyDictionary<string, string>?> ChiaviDeiRecord();
+
     /// <summary>Il primo errore dei tag del file (riga e testo), o null: sopra un tag rotto non si scrive.</summary>
     string? TagRotti();
 
@@ -268,6 +274,12 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
     /// <inheritdoc/>
     public IReadOnlyDictionary<string, string>? ChiaviDi(int indice)
         => indice >= 0 && indice < Letto.Records.Count ? MetadatiDelFile()?.Di(Letto.Records[indice])?.Chiavi : null;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IReadOnlyDictionary<string, string>?> ChiaviDeiRecord()
+        => MetadatiDelFile() is { } metadati
+            ? [.. Letto.Records.Select(r => metadati.Di(r)?.Chiavi)]
+            : new IReadOnlyDictionary<string, string>?[Letto.Records.Count];
 
     /// <inheritdoc/>
     public string? TagRotti()
