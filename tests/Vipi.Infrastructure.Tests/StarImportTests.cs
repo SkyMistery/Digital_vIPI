@@ -136,7 +136,7 @@ public class StarImportTests : IAsyncLifetime
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Star,
             new[] { Imp("GILI3A", "GILIO", "STAR|LIRF|GILIO|A||16L") }, "2606");
         var prima = await _db.AirportProcedures.SingleAsync(p => p.Kind == ProcedureKind.Star);
-        await _repo.UpdateImportedSidAsync(prima.Id, priority: 2, forcePublished: true, resolvedFix: null,
+        await _repo.UpdateImportedSidAsync("LIRF", prima.Id, priority: 2, forcePublished: true, resolvedFix: null,
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         // Revisione nuova, stessa chiave: la priorità segue la riga. La forzatura no, perché la 3A resta in vigore
@@ -189,7 +189,8 @@ public class StarImportTests : IAsyncLifetime
             new Vipi.Application.Auth.EditAuthorizationService(
                 new SenzaUtente(),
                 new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()),
-                SenzaPromozioni.Instance));
+                SenzaPromozioni.Instance),
+            LockAperto.Instance);
 
     private sealed class SenzaUtente : ICurrentUserProvider
     {

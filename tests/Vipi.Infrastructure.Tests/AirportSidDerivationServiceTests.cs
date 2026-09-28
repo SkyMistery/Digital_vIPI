@@ -112,7 +112,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
 
         // Forzata → compare; ordine per FIX: ALAXI prima di OSTIA.
         var g = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.Name == "ALAX7G");
-        await _repo.UpdateImportedSidAsync(g.Id, priority: null, forcePublished: true, resolvedFix: null,
+        await _repo.UpdateImportedSidAsync("LIRF", g.Id, priority: null, forcePublished: true, resolvedFix: null,
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         var v2 = await _sut.DeriveAsync("LIRF");
@@ -135,7 +135,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
         var siv = sids.Single(s => s.Name == "SIV5A");
         var alax = sids.Single(s => s.Name == "ALAX7G");
 
-        await _repo.UpdateImportedSidAsync(alax.Id, priority: null, forcePublished: true, resolvedFix: null,
+        await _repo.UpdateImportedSidAsync("LIRF", alax.Id, priority: null, forcePublished: true, resolvedFix: null,
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
         await _repo.SetImportedSidsHiddenAsync("LIRF", new[] { alax.Id }, hidden: true);
         await _repo.SetImportedSidOverridesAsync("LIRF", siv.Id, "SOSIV", "ESINO");

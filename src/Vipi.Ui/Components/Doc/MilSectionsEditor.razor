@@ -424,7 +424,6 @@ else
     /// </summary>
     private Vipi.Application.Abstractions.INavaidCatalog Radioassistenze = default!;
     private IProcedureImporter ImportatoreSid = default!;
-    private ISidFixAliasRepository AliasSid = default!;
 
     /// <summary>Gli aeroporti noti, per gli alternati: <b>stesso scope</b>, e per la stessa ragione — si
     /// legge dentro <c>CaricaAlternatiAsync</c>, cioè nel caricamento della pagina.</summary>
@@ -459,7 +458,6 @@ else
         // ⚠️ Dallo scope PROPRIO come tutti gli altri: leggono e scrivono nel database dentro il
         // caricamento della pagina, cioè dentro il tornello. Vale parola per parola il blocco qui sopra.
         ImportatoreSid = ScopedServices.GetRequiredService<IProcedureImporter>();
-        AliasSid = ScopedServices.GetRequiredService<ISidFixAliasRepository>();
         Aeroporti = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IAirportNameLookup>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
@@ -1028,13 +1026,15 @@ else
     private async Task ScriviSidImportata(ImportedSidEdit e)
     {
         string? fissato = null;
+        string? alias = null;
         if (e.NeedsReview && !string.IsNullOrWhiteSpace(e.FixOverride))
         {
             fissato = e.FixOverride!.Trim();
-            if (e.CreateAlias) await AliasSid.UpsertAsync(_icao, e.Fix, fissato);   // vale per questo scalo (U-031)
+            if (e.CreateAlias) alias = e.Fix;   // vale per questo scalo (U-031)
         }
+        // 🔴 U-171: l'alias lo scrive il servizio, dopo il lock (vedi AirportSectionsEditor.PersistImported).
         await Scalo.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, fissato,
-            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
+            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition, alias);
         e.IsPublicNow = e.IsPublicNow || e.ForcePublished;
     }
 

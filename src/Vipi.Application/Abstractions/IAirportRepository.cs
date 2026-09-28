@@ -71,24 +71,26 @@ public interface IAirportRepository : IAirportProfileReader
     /// sostituisce l'intera lista manuale di quel verso, non tocca le importate né l'altro verso.</summary>
     Task SaveSidsAsync(string icao, ProcedureKind kind, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
 
-    /// <summary>Merge delle procedure importate <b>di quel verso</b>: rimuove le sole righe importate precedenti
-    /// dello stesso <paramref name="kind"/> e inserisce le nuove, riapplicando Priority e ForcePublished per
-    /// StableKey. Le righe manuali restano intatte, e le procedure dell'altro verso non si toccano — importare
+    /// <summary>Merge delle procedure importate <b>di quel verso</b>: la riga che continua si aggiorna sul posto
+    /// (stesso Id, con le decisioni dello staff), quella nata adesso si aggiunge, quella che la sorgente non manda
+    /// più resta come sostituita finché serve a un ciclo. Le righe manuali restano intatte, e le procedure dell'altro verso non si toccano — importare
     /// gli arrivi non deve poter cancellare le partenze.</summary>
     Task ReplaceImportedProceduresAsync(string icao, ProcedureKind kind, IReadOnlyList<ImportedProcedure> rows,
         string airacCycle, CancellationToken ct = default);
 
     /// <summary>Aggiorna i campi editabili di UNA riga SID importata: priorità, forzatura pubblicazione, fix risolto a
-    /// mano e gli arricchimenti editoriali (initial climb, CAT, WTC, condition) sovrapposti alla riga di sorgente.</summary>
-    Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
+    /// mano e gli arricchimenti editoriali (initial climb, CAT, WTC, condition) sovrapposti alla riga di sorgente.
+    /// Falso se la riga non c'è (più) fra le importate di quello scalo: niente è stato scritto.</summary>
+    Task<bool> UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
         string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default);
 
     /// <summary>Nasconde (o rimostra) al pubblico le SID IMPORTATE indicate, dello scalo indicato. Le manuali
     /// passano da <see cref="SaveSidsAsync"/>, che le riscrive tutte. Ritorna quante righe ha toccato.</summary>
     Task<int> SetImportedSidsHiddenAsync(string icao, IReadOnlyCollection<int> sidIds, bool hidden, CancellationToken ct = default);
 
-    /// <summary>Punto e transition corretti a mano su UNA SID importata. Null o vuoto = torna a valere la sorgente.</summary>
-    Task SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default);
+    /// <summary>Punto e transition corretti a mano su UNA SID importata. Null o vuoto = torna a valere la sorgente.
+    /// Falso se la riga non c'è (più) fra le importate di quello scalo.</summary>
+    Task<bool> SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
 
     /// <summary>

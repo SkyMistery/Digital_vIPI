@@ -376,7 +376,6 @@ else
     private IStationResolver Stations = default!;
     private Vipi.Application.Airspace.ISectorShapeResolver Forme = default!;
     private IProcedureImporter ProcedureImporter = default!;
-    private ISidFixAliasRepository SidAliases = default!;
 
     protected override void OnInitialized()
     {
@@ -387,7 +386,6 @@ else
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
         Forme = ScopedServices.GetRequiredService<Vipi.Application.Airspace.ISectorShapeResolver>();
         ProcedureImporter = ScopedServices.GetRequiredService<IProcedureImporter>();
-        SidAliases = ScopedServices.GetRequiredService<ISidFixAliasRepository>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "aeroporto", "Ape_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
@@ -884,13 +882,16 @@ else
     private async Task PersistImported(ImportedSidEdit e)
     {
         string? resolvedFix = null;
+        string? alias = null;
         if (e.NeedsReview && !string.IsNullOrWhiteSpace(e.FixOverride))
         {
             resolvedFix = e.FixOverride!.Trim();
-            if (e.CreateAlias) await SidAliases.UpsertAsync(_icao, e.Fix, resolvedFix);   // e.Fix = prefisso grezzo; vale per questo scalo (U-031)
+            if (e.CreateAlias) alias = e.Fix;   // e.Fix = prefisso grezzo; vale per questo scalo (U-031)
         }
+        // 🔴 U-171: l'alias lo scrive il servizio, DOPO il lock. Scritto da qui, prima, restava anche quando la riga
+        // veniva rifiutata.
         await Profile.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, resolvedFix,
-            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
+            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition, alias);
         e.IsPublicNow = e.IsPublicNow || e.ForcePublished;   // riflette subito la forzatura senza reload totale
     }
 

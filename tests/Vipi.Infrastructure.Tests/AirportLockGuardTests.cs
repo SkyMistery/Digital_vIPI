@@ -63,7 +63,72 @@ public class AirportLockGuardTests : IAsyncLifetime
         var authz = new AuthzFinta(comeChi);
         var repo = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         return new AirportEditingService(repo, authz, new NienteDirectory(), new NienteDetails(),
-            new EfImportPolicyStore(_db), new AirportLockGuard(repo, _editing, authz));
+            new EfImportPolicyStore(_db), new AirportLockGuard(repo, _editing, authz),
+            alias: new EfSidFixAliasRepository(_db, authz));
+    }
+
+    /// <summary>Una SID importata dello scalo, col prefisso grezzo da verificare.</summary>
+    private async Task<int> UnaSidImportataAsync()
+    {
+        var repo = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
+        await repo.ReplaceImportedProceduresAsync("LIPZ", ProcedureKind.Sid, new[]
+        {
+            new ImportedProcedure("04R", "SOS", "SOS5A", null, "RNAV", "LIPZ|SOS|A||04R", NeedsFixReview: true),
+        }, "2606");
+        return (await repo.LoadAsync("LIPZ"))!.Sids.Single().Id;
+    }
+
+    /// <summary>
+    /// 🔴 U-171 (revisione totale 3): l'alias lo scriveva la pagina PRIMA di chiamare il servizio, cioè prima del
+    /// lock. Con il lock perso la riga veniva rifiutata e l'alias restava, a cambiare i prossimi import dello
+    /// scalo. Ora lo scrive il servizio, dopo la porta.
+    /// </summary>
+    [Fact]
+    public async Task ColLockDiUnAltro_L_Alias_Del_Punto_Non_Si_Scrive()
+    {
+        var doc = await ApriEditorAsync();
+        var sid = await UnaSidImportataAsync();
+        await LockA(doc, Altri);
+
+        await Assert.ThrowsAsync<EditConflictException>(() => Servizio(Io).UpdateImportedSidAsync("LIPZ", sid,
+            null, false, "SOSIV", null, false, null, null, null, aliasDalPrefisso: "SOS"));
+
+        Assert.False(await _db.SidFixAliases.AnyAsync());
+    }
+
+    [Fact]
+    public async Task ColMioLock_La_Riga_E_L_Alias_Si_Scrivono()
+    {
+        var doc = await ApriEditorAsync();
+        var sid = await UnaSidImportataAsync();
+        await LockA(doc, Io);
+
+        await Servizio(Io).UpdateImportedSidAsync("LIPZ", sid, null, false, "SOSIV", null, false, null, null, null,
+            aliasDalPrefisso: "SOS");
+
+        var alias = await _db.SidFixAliases.SingleAsync();
+        Assert.Equal(("LIPZ", "SOS", "SOSIV"), (alias.Icao, alias.Prefix, alias.FixName));
+        Assert.Equal("SOSIV", (await _db.AirportProcedures.SingleAsync()).Fix);
+    }
+
+    /// <summary>
+    /// 🔴 U-035/U-064 (revisione totale 3): una scrittura su una riga che un reimport ha tolto tornava muta, e la
+    /// pagina diceva «Salvato». Ora è un conflitto come quello del lock, col suo messaggio: ricarica.
+    /// </summary>
+    [Fact]
+    public async Task Scrivere_Su_Una_Riga_Che_Non_C_E_Piu_E_Un_Conflitto()
+    {
+        var doc = await ApriEditorAsync();
+        var sid = await UnaSidImportataAsync();
+        await LockA(doc, Io);
+        var s = Servizio(Io);
+        const int sparita = 424242;
+
+        var ex = await Assert.ThrowsAsync<EditConflictException>(
+            () => s.UpdateImportedSidAsync("LIPZ", sparita, 1, false, null, null, false, null, null, null));
+        Assert.True(ex.Message.Contains("Ricarica") || ex.Message.Contains("Reload"), ex.Message);
+        await Assert.ThrowsAsync<EditConflictException>(() => s.SetImportedSidOverridesAsync("LIPZ", sparita, "SOSIV", null));
+        await Assert.ThrowsAsync<EditConflictException>(() => s.SetImportedSidsHiddenAsync("LIPZ", new[] { sid, sparita }, true));
     }
 
     /// <summary>Il documento dello scalo: lo crea l'apertura dell'editor, e senza non c'è lock da prendere.</summary>
