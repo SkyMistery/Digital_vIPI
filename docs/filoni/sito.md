@@ -617,5 +617,55 @@
     pubblicata hanno le stesse chiavi di catalogo. Secondo avvio: nessuna passata trova lavoro. Editor e viewer
     LIBD, editor vIPI LIBB e pagina versioni si aprono senza errori. L'avviso U-105 non scatta su questa copia (il
     caso c'è solo in produzione): lo provano i test.
+- ✅ **S25** lotto **L11 «Il resto», fetta A — import SID e sectorfile** della revisione 3 (via del committente il
+  28-set; L11 diviso in fette per area, A…I, tabella §4 del registro). U-034, U-035/U-064, U-036/U-040, U-038,
+  U-039, U-111/U-161, U-132, U-133, U-134, U-171, U-173. **Resta fuori U-037** (aree TWR scritte una volta, MRVA e
+  radioassistenze senza il cancello del ciclo AIRAC): chiede una colonna di provenienza e un ridisegno, si propone
+  a parte. Nessuna migrazione. **Codice comune sì**: `Vipi.Application` (`IAirportRepository`,
+  `AirportEditingService`, `ProcedureImporter`, `MinimaView`/`MinimaCharts` e i due fornitori Frozen,
+  `NavaidImportOutcome`).
+  - **U-034** (SID e transizione separate da uno SPAZIO: «SRN6A ARL2A» a LIML, «LAT1E PEM1T» a LIRL): il parser
+    divideva solo sul «-», e il vSOP pubblico di LIRL stampava «LAT1E PEM» come FIX. `ParteSid` separa anche sullo
+    spazio, ma solo se il primo pezzo ha la forma di un designatore: le partenze a vista di `lied.sid` («FRASCA
+    DEP16») restano un nome solo. La chiave stabile si ricalcola sui due lati al riaggancio: niente migrazione.
+  - **U-133** (parser `.tfl`): un commento a riga intera dentro un blocco chiudeva l'anello coi vertici visti fin
+    lì, e una coppia «E…;N…» entrava invertita. Ora il commento si salta e la coppia si legge solo N/S poi E/W.
+    Sui file veri il commento dentro il blocco **c'è** (lirrctr, limmfic, libb_es_ctr, lmmm, lyba): sonda sui 27
+    file di `DYNAMIC_SEC` prima/dopo, ritrovano l'area LIEE_MIL_APP (183 vertici), LMMM_CTR/FSS, LYBA_CTR/WES_CTR,
+    nessuna persa. Siccome i quattro laghi di `limmfic.tfl` non cadono più, lo stesso callsign in più blocchi
+    tiene l'**area più grande** (vinceva l'ultimo blocco: LIMM_WS2_CTR prendeva uno spezzone del confine svizzero).
+  - **U-035/U-064** (ogni giro cancellava e ricreava le importate, anche identiche: l'editor aperto scriveva su Id
+    spariti sotto «Salvato»): `ReplaceImportedProceduresAsync` aggiorna **sul posto** la riga che continua, che
+    tiene l'Id — anche la revisione nuova; la versione vecchia che vale ancora è la copia sostituita (U-003). Le
+    scritture su una riga tolta dal reimport sollevano `EditConflictException` «ricarica» (prima tornavano mute;
+    `SetImportedSidsHiddenAsync` restituiva un numero che nessuno leggeva).
+  - **U-173**: `UpdateImportedSidAsync` filtra per scalo oltre che per Id. **U-111/U-161**: «Reimporta SID» chiede
+    `EnsureNotOtherAsync`, la guardia del re-import completo che sta nello stesso gesto. **U-171**: l'alias del
+    punto lo scriveva la pagina prima del lock; ora lo scrive il servizio dopo la riga (`aliasDalPrefisso`).
+  - **U-134**: a contenuto invariato il timbro è il ciclo più vicino fra quello di prima e quello calcolato.
+  - **U-038**: il giro delle procedure non timbra (solleva, `GatedImportLoop` scrive l'errore e ritenta fra
+    un'ora) se fallisce almeno metà degli scali o non arriva nessuna procedura; con le SID escluse in Sorgenti non
+    timbra e non chiama la sorgente. Uno scalo rotto da solo non ferma il timbro degli altri.
+  - **U-039**: cache MRVA con un semaforo per carta e il guasto ricordato 2 minuti; a view-time la sezione delle
+    minime arriva vuota con l'avviso «la carta non è arrivata» (distinto da «nessuna carta»); la cattura di una
+    release invece rifiuta (`MinimaCharts.DaCongelare`).
+  - **U-036/U-040**: il giro delle radioassistenze **stacca** le righe che la sorgente non manda più (restano coi
+    loro valori, ma i campi tornano «a mano»: si correggono e si tolgono; se la sorgente le rimanda si riprendono) e
+    le conta nell'esito, nella pagina e nel log. Il canale non si scrive a mano sulle righe della sorgente.
+    **Dati in produzione**: al primo giro TRP|VHF|25X diventa modificabile; le tabelle alternati MIL di LICT che
+    la citano vanno ripuntate a mano su TRP|VHF| (il committente).
+  - **U-132**: pagina Radioassistenze, import, celle, aggiunta, eliminazione e caricamento in una fila sola; celle
+    spente durante l'import; gli errori si dicono sulla riga o in testata.
+  - **Test**: nuovi `GiroProcedureNonRegalaVerdeTests` (4), `MinimeSorgenteGiuTests` (Application 4, Ui 2); in più
+    parser (+7), repository e servizio SID (+8), importatore (+1), cache (+2), anagrafica (+3), pagina
+    Radioassistenze (+2). Ognuno rosso sul comportamento di prima (file vecchio al posto del nuovo, o ritocco
+    mirato del solo comportamento per il repository). Suite intera verde, net8 e net10: Application 3008 →
+    **3012**, Infrastructure 1695 → **1720**, Ui 1773 → **1777**, il resto invariato.
+  - **Prova dal vivo** (copia del DB di sviluppo del 15-set): con il sectorfile irraggiungibile la vIPI LIBB si apre,
+    le due sezioni MRVA mostrano l'avviso, nessun errore di circuito. Col sectorfile vero il giro procedure fa 59
+    scali e 2354 righe senza errori: LIRL «LAT1E PEM1T» ha il punto LAT (prima «LAT1E PEM»), LIML SRN/MMP/TZO e
+    LIMF TOP risolti; restano «da verificare» i prefissi ambigui veri (TOV, RUV, ABS, LIM, SIR). Radioassistenze: su
+    148 righe della sorgente nessuna casella del canale; una TRP|VHF|25X simulata col timbro d'import viene staccata
+    dal tasto «Importa dal sectorfile» («1 riga… tornata modificabile»), e da lì ha le caselle e il cestino.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -439,7 +439,7 @@
                 @* Il localizzatore con gli argomenti, non `string.Format` sul `.Value`: quello non
                    interpola i segnaposto e stamperebbe la frase con dentro le graffe. *@
                 { Esito: { } e } => L["Nav_AdminImported", e.Create, e.Aggiornate, e.Invariate, r.DallaSorgente].Value
-                    + (e.Staccate > 0 ? " " + L["Nav_AdminDetached", e.Staccate].Value : ""),
+                    + (e.Staccate > 0 ? " " + L[e.Staccate == 1 ? "Nav_AdminDetachedOne" : "Nav_AdminDetached", e.Staccate].Value : ""),
                 _ => L["Nav_AdminImportMute"].Value,
             };
             await CaricaAsync();

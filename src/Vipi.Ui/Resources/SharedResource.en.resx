@@ -1173,6 +1173,7 @@
   <data name="Nav_AdminImport" xml:space="preserve"><value>Import from sectorfile</value></data>
   <data name="Nav_AdminImportTitle" xml:space="preserve"><value>Re-reads the sectorfile now and updates the catalogue, without waiting for the automatic run</value></data>
   <data name="Nav_AdminImporting" xml:space="preserve"><value>Re-reading the sectorfile…</value></data>
+  <data name="Nav_AdminDetachedOne" xml:space="preserve"><value>One row the sectorfile no longer sends is editable by hand again: if a document cites it, point it to the new row.</value></data>
   <data name="Nav_AdminDetached" xml:space="preserve"><value>{0} rows the sectorfile no longer sends are editable by hand again: if a document cites them, point it to the new row.</value></data>
   <data name="Nav_AdminImported" xml:space="preserve"><value>Import done: {0} created, {1} updated, {2} unchanged (out of {3} rows from the sectorfile).</value></data>
   <data name="Nav_AdminImportExcluded" xml:space="preserve"><value>Import not run: in Sources, navaids are marked as “manual”, so a person looks after them.</value></data>
