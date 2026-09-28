@@ -241,6 +241,32 @@ public class AwosCompositionTests
         Assert.Equal(new[] { "34" }, attiva.Dep);
     }
 
+    [Theory] // U-214 (scelta del committente 28-set): senza vento noto le regole non decidono — niente pista
+    [InlineData(null)]
+    [InlineData("LIRF 270650Z NIL")]
+    [InlineData("LIRF 270650Z /////KT 9999 NSC 12/08 Q1013")]
+    [InlineData("LIRF 270650Z VRB05KT 9999 NSC 12/08 Q1013")]
+    public void Senza_vento_noto_le_regole_non_decidono(string? raw)
+    {
+        var metar = raw is null ? null : MetarParser.ParseMetar(raw);
+
+        var attiva = AwosComposition.PistaAttiva(new[] { Regola("16R", "16L", "Config 16") },
+            new[] { "16L", "16R", "34L", "34R" }, metar);
+
+        Assert.Equal(AwosRunwaySource.Nessuna, attiva.Sorgente);
+    }
+
+    [Theory] // U-214: il vento calmo invece è un vento noto, e la regola vale
+    [InlineData("LIRF 270650Z 00000KT 9999 NSC 12/08 Q1013")]
+    [InlineData("LIRF 270650Z VRB02KT 9999 NSC 12/08 Q1013")]
+    public void Col_vento_calmo_la_regola_vale(string raw)
+    {
+        var attiva = AwosComposition.PistaAttiva(new[] { Regola("16R", "16L", "Config 16") },
+            new[] { "16L", "16R", "34L", "34R" }, MetarParser.ParseMetar(raw));
+
+        Assert.Equal(AwosRunwaySource.Regola, attiva.Sorgente);
+    }
+
     [Fact] // senza METAR il quadro non inventa una configurazione
     public void Senza_Metar_Nessuna_Pista()
     {

@@ -77,7 +77,9 @@ public sealed record RunwayRuleResult(string Dep, string Arr, string? Note, int 
 /// Perché una regola si applica o no, nell'ordine in cui il motore controlla: il PRIMO vincolo che non passa.
 /// <see cref="Applies"/> = passano tutti (la regola vince se nessuna prima di lei si applica).
 /// </summary>
-public enum RuleVerdict { Applies, Surface, Time, Day, Parity, Season, Tailwind, Crosswind }
+/// <para><see cref="NoWind"/>: il vento non si conosce (METAR assente, NIL, «/////KT», scaduto, VRB sopra i 2 kt) e
+/// nessuna regola decide — scelta del committente del 28 settembre 2026, U-214 della revisione totale 3.</para>
+public enum RuleVerdict { Applies, Surface, Time, Day, Parity, Season, Tailwind, Crosswind, NoWind }
 
 /// <summary>Il vento proiettato su una pista di una regola: tailwind (0 se il vento arriva di fronte) e vento traverso, in kt.</summary>
 public sealed record RunwayWindComponents(string Ident, int TailwindKt, int CrosswindKt);
@@ -219,9 +221,9 @@ public static partial class RunwaySuggestion
     /// passa il banco di prova dell'editor, che serve a provare una regola in un momento che non è questo.</para>
     /// </summary>
     public static RunwayRuleResult? EvaluateRules(IReadOnlyList<RunwayRuleEval> rules, int? windDir, int windKt, bool wet,
-        DateTime? nowUtc = null, IReadOnlyDictionary<string, int>? rotte = null)
+        DateTime? nowUtc = null, IReadOnlyDictionary<string, int>? rotte = null, bool ventoNoto = true)
     {
-        var vincente = ExplainRules(rules, windDir, windKt, wet, nowUtc, rotte).FirstOrDefault(e => e.Verdict == RuleVerdict.Applies);
+        var vincente = ExplainRules(rules, windDir, windKt, wet, nowUtc, rotte, ventoNoto).FirstOrDefault(e => e.Verdict == RuleVerdict.Applies);
         if (vincente is null) return null;
 
         var r = rules[vincente.RuleIndex];
@@ -246,9 +248,15 @@ public static partial class RunwaySuggestion
     /// <para>⚠️ Coda e traverso massimi si confrontano col <b>vento medio</b>, non con la raffica (decisione del
     /// committente del 27 settembre 2026, U-091 della revisione totale 3). PANS-ATM li scrive «including gusts»: qui
     /// è una scelta, non una svista — la pista suggerita è un suggerimento, la sceglie chi controlla.</para>
+    ///
+    /// <para>🔴 <paramref name="ventoNoto"/> falso ⇒ nessuna regola si applica (<see cref="RuleVerdict.NoWind"/>). Prima
+    /// un vento sconosciuto valeva «calmo» e vinceva la prima regola «asciutta»: col METAR scaduto il vAWOS proponeva
+    /// una pista che U-092 aveva promesso di non proporre (U-214, scelta del committente del 28 settembre 2026). Si
+    /// calcola con <see cref="VentoNoto"/>; il banco di prova dell'editor lascia il default, il vento lo batte chi prova.</para>
     /// </summary>
     public static IReadOnlyList<RuleExplanation> ExplainRules(IReadOnlyList<RunwayRuleEval> rules, int? windDir,
-        int windKt, bool wet, DateTime? nowUtc = null, IReadOnlyDictionary<string, int>? rotte = null)
+        int windKt, bool wet, DateTime? nowUtc = null, IReadOnlyDictionary<string, int>? rotte = null,
+        bool ventoNoto = true)
     {
         // Orari/giorni/stagione AIP sono in ora LOCALE: porto l'istante UTC all'ora locale italiana prima dei confronti.
         var utc = DateTime.SpecifyKind(nowUtc ?? DateTime.UtcNow, DateTimeKind.Utc);
@@ -265,7 +273,8 @@ public static partial class RunwaySuggestion
             var giorno = GiornoOperativo(now, minOfDay, r.TimeFromLocalMin, r.TimeToLocalMin);
 
             var verdetto =
-                !SurfaceMatches(r.Surface, wet) ? RuleVerdict.Surface
+                !ventoNoto ? RuleVerdict.NoWind
+                : !SurfaceMatches(r.Surface, wet) ? RuleVerdict.Surface
                 : !TimeInWindow(r.TimeFromLocalMin, r.TimeToLocalMin, minOfDay) ? RuleVerdict.Time
                 : !DayOfWeekMatches(r.DaysOfWeekMask, giorno) ? RuleVerdict.Day
                 : !ParityMatches(r.DateParity, giorno) ? RuleVerdict.Parity
@@ -362,6 +371,14 @@ public static partial class RunwaySuggestion
         }
         return d;
     }
+
+    /// <summary>
+    /// Se il vento di un METAR si conosce abbastanza da far decidere le regole (U-214): sì col vento calmo
+    /// (<c>00000KT</c>, o fino a 2 kt anche VRB — è la soglia di calma del motore) e con una direzione misurata;
+    /// no senza vento (METAR assente o scaduto, NIL, <c>/////KT</c>) e col VRB sopra i 2 kt.
+    /// </summary>
+    public static bool VentoNoto(ParsedWind? w) =>
+        w is not null && (w.Calm || w.SpeedKt <= 2 || (!w.Variable && w.DirectionDeg is not null));
 
     /// <summary>Il lato di una parallela, da sinistra a destra: L, poi C (o nessun lato), poi R.</summary>
     private static int Lato(string ident) => ident.Length > 0 ? char.ToUpperInvariant(ident[^1]) switch

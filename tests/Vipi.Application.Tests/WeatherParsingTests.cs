@@ -282,6 +282,18 @@ public class WeatherParsingTests
         Assert.Null(RunwaySuggestion.EvaluateRules(regole, 70, 15, false, rotte: rotte));
     }
 
+    [Fact] // U-214: senza vento noto ogni regola dice «vento non noto» e nessuna vince
+    public void Senza_vento_noto_nessuna_regola_vince()
+    {
+        var regole = new[] { new RunwayRuleEval("16", "16", "sud", null, 5, null, RunwaySurface.Dry) };
+
+        var e = RunwaySuggestion.ExplainRules(regole, null, 0, false, ventoNoto: false).Single();
+
+        Assert.Equal(RuleVerdict.NoWind, e.Verdict);
+        Assert.Null(RunwaySuggestion.EvaluateRules(regole, null, 0, false, ventoNoto: false));
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(regole, null, 0, false));   // calmo noto: la regola vale
+    }
+
     [Fact] // U-223: il ripiego sul vento misura sulla rotta vera, e la dichiara
     public void Il_ripiego_usa_la_rotta_vera()
     {

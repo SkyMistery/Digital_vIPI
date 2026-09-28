@@ -2215,6 +2215,7 @@
   <data name="Ape_TestVerdictDay" xml:space="preserve"><value>giorno non incluso</value></data>
   <data name="Ape_TestVerdictParity" xml:space="preserve"><value>parità del giorno diversa</value></data>
   <data name="Ape_TestVerdictSeason" xml:space="preserve"><value>fuori dal periodo</value></data>
+  <data name="Ape_TestVerdictNoWind" xml:space="preserve"><value>vento non noto: nessuna regola decide</value></data>
   <data name="Ape_TestVerdictTail" xml:space="preserve"><value>tailwind {0} kt oltre il massimo di {1} kt</value></data>
   <data name="Ape_TestVerdictCross" xml:space="preserve"><value>vento traverso {0} kt oltre il massimo di {1} kt</value></data>
   <data name="Ape_NoUnitFound" xml:space="preserve"><value>Nessun ente trovato.</value></data>

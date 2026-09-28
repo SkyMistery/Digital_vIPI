@@ -156,7 +156,8 @@ public static partial class AwosComposition
         if (regole.Count > 0)
         {
             var bagnata = (metar?.HasRain ?? false) || (metar?.HasSnow ?? false);
-            var esito = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(regole), dir, kt, bagnata, DateTime.UtcNow, rotte);
+            var esito = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(regole), dir, kt, bagnata, DateTime.UtcNow, rotte,
+                RunwaySuggestion.VentoNoto(metar?.Wind));   // U-214: senza vento noto le regole non decidono
             if (esito is not null)
                 return new AwosActive(Spezza(esito.Dep), Spezza(esito.Arr), AwosRunwaySource.Regola,
                                       esito.RuleName ?? $"#{esito.RuleIndex + 1}");

@@ -195,7 +195,8 @@ public sealed class AirportMemberLoader
         var scaloVivo = await _profile.LoadForViewAsync(code, ct);
         var vive = regole is null ? scaloVivo?.Rules : null;
         var inUso = PistaInUso.Calcola(regole, derived.Sids, runways, windDir, windKt, metar, vive,
-            AirportRunwayRowView.Esclusioni(derived.Runways.Rows), RunwayRow.Rotte(scaloVivo?.Runways));
+            AirportRunwayRowView.Esclusioni(derived.Runways.Rows), RunwayRow.Rotte(scaloVivo?.Runways),
+            RunwaySuggestion.VentoNoto(metar?.Wind));
         var lvp = ValutaLvp(derived.Lvp, metar);
 
         // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------

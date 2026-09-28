@@ -1175,5 +1175,18 @@
     parallele a un grado di differenza), `AwosCompositionTests` (+1, il percorso del vAWOS). I primi tre rossi
     col solo parametro aggiunto e non usato; il quarto è la guardia del raggruppamento. Application 3042 →
     **3047**.
+  - **Gruppo 5** (vento ignoto, **codice comune** `Vipi.Application`): **U-214** (senza vento noto — METAR
+    assente, NIL, «/////KT», scaduto oltre i 90 minuti — il motore lo trattava come calmo e vinceva la prima
+    regola «asciutta»: col METAR scaduto il vAWOS proponeva una pista che U-092 aveva promesso di non proporre;
+    idem il VRB sopra i 2 kt) → scelta del committente, **le regole non decidono**: verdetto nuovo
+    `RuleVerdict.NoWind`, `RunwaySuggestion.VentoNoto` dice quando il vento basta (calmo sì, direzione misurata
+    sì, VRB sopra i 2 kt no), e i quattro posti che leggono un METAR la passano (vAWOS, vIPI/vSOP, vista rapida,
+    elenco aeroporti). Il ripiego sul vento non cambia: senza direzione non proponeva già niente. Il banco di
+    prova dell'editor lascia il vento noto (lo batte chi prova); la scritta «vento non noto» c'è in it/en.
+  - **Test**: `AwosCompositionTests` (+6: NIL, «/////KT», METAR assente, VRB05 → nessuna pista, rossi sul
+    codice di prima; 00000KT e VRB02 → la regola vale), `WeatherParsingTests` (+1, il verdetto del motore).
+    `PistaMaiUsareTests.Una_regola_che_nomina_la_soglia_esclusa_continua_a_valere` passava un METAR nullo per
+    comodità, cioè proprio il comportamento tolto: ora ha un vento calmo, e prova ancora le esclusioni.
+    Application 3047 → **3054**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

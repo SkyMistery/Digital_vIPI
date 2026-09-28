@@ -192,7 +192,8 @@ public sealed class MilMemberLoader
         var vive = regole is null ? scaloVivo?.Rules : null;
         var inUso = PistaInUso.Calcola(regole, derivate.Sids,
             derivate.Runways.Rows.Select(r => r.Ident).ToList(), windDir, windKt, metar, vive,
-            AirportRunwayRowView.Esclusioni(derivate.Runways.Rows), RunwayRow.Rotte(scaloVivo?.Runways));
+            AirportRunwayRowView.Esclusioni(derivate.Runways.Rows), RunwayRow.Rotte(scaloVivo?.Runways),
+            RunwaySuggestion.VentoNoto(metar?.Wind));
 
         // ⚠️ Gli id delle aree li porta il DOCUMENTO mostrato; shape e descrizioni vengono dai cataloghi
         // correnti — come nella vIPI ACC e nell'APP. Si legge PRIMA della traduzione: la sezione tradotta

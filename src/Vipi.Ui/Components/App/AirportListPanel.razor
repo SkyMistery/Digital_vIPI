@@ -240,7 +240,8 @@ else
         {
             var bagnata = m.HasRain || m.HasSnow;
             var vincente = RunwaySuggestion.EvaluateRules(
-                RegoleDiPista.Valutabili(decisive.Regole), dir, kt, bagnata, DateTime.UtcNow, RunwayRow.Rotte(profilo?.Runways));
+                RegoleDiPista.Valutabili(decisive.Regole), dir, kt, bagnata, DateTime.UtcNow, RunwayRow.Rotte(profilo?.Runways),
+                RunwaySuggestion.VentoNoto(m.Wind));
             if (vincente is not null) return (Norm(vincente.Dep), Norm(vincente.Arr));
         }
 

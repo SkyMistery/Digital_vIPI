@@ -2210,6 +2210,7 @@
   <data name="Ape_TestVerdictDay" xml:space="preserve"><value>day not included</value></data>
   <data name="Ape_TestVerdictParity" xml:space="preserve"><value>day parity does not match</value></data>
   <data name="Ape_TestVerdictSeason" xml:space="preserve"><value>outside its date window</value></data>
+  <data name="Ape_TestVerdictNoWind" xml:space="preserve"><value>wind unknown: no rule decides</value></data>
   <data name="Ape_TestVerdictTail" xml:space="preserve"><value>tailwind {0} kt above the {1} kt maximum</value></data>
   <data name="Ape_TestVerdictCross" xml:space="preserve"><value>crosswind {0} kt above the {1} kt maximum</value></data>
   <data name="Ape_NoUnitFound" xml:space="preserve"><value>No unit found.</value></data>
