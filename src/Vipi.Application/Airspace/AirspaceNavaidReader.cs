@@ -38,6 +38,25 @@ public static class AirspaceNavaidReader
     private static readonly Regex Canale = new(@"Channel:\s*(?<c>[0-9]{1,3}[XYxy])",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+    /// <summary>
+    /// Le radioassistenze di un file salvato, KMZ o KML: il lettore si sceglie dai primi byte («PK» è uno zip). Null
+    /// se il file non si legge. 🔴 U-136 (revisione totale 3): il caricamento accetta anche un <c>.kml</c>, e «Confronta
+    /// con l'AIP» lo apriva sempre come KMZ — nessuna radioassistenza letta, e il rapporto diceva che mancavano tutte.
+    /// </summary>
+    public static IReadOnlyList<AipNavaid>? Leggi(byte[] contenuto)
+    {
+        string? xml;
+        if (contenuto.Length >= 2 && contenuto[0] == (byte)'P' && contenuto[1] == (byte)'K')
+        {
+            using var s = new MemoryStream(contenuto);
+            xml = KmlReader.ApriKmz(s, out _);
+        }
+        else xml = System.Text.Encoding.UTF8.GetString(contenuto);
+
+        var doc = xml is null ? null : KmlReader.CaricaXml(xml, out _);
+        return doc is null ? null : Righe(doc);
+    }
+
     /// <summary>Le radioassistenze di un KMZ.</summary>
     public static IReadOnlyList<AipNavaid> LeggiKmz(Stream zip)
     {
@@ -49,8 +68,11 @@ public static class AirspaceNavaidReader
     public static IReadOnlyList<AipNavaid> LeggiKml(string? xml)
     {
         var doc = KmlReader.CaricaXml(xml, out _);
-        if (doc is null) return Array.Empty<AipNavaid>();
+        return doc is null ? Array.Empty<AipNavaid>() : Righe(doc);
+    }
 
+    private static IReadOnlyList<AipNavaid> Righe(System.Xml.Linq.XDocument doc)
+    {
         var righe = new List<AipNavaid>();
         foreach (var placemark in doc.Descendants().Where(e => e.Name.LocalName == "Placemark"))
         {
@@ -58,7 +80,8 @@ public static class AirspaceNavaidReader
             foreach (var campo in placemark.Descendants().Where(e => e.Name.LocalName == "SimpleData"))
             {
                 var nome = campo.Attribute("name")?.Value;
-                if (!string.IsNullOrWhiteSpace(nome)) dati[nome] = campo.Value;
+                // 🔴 U-119: il secondo livello di codifica di AirspaceConverter («&amp;apos;»). Vedi AirspaceKmlReader.
+                if (!string.IsNullOrWhiteSpace(nome)) dati[nome] = System.Net.WebUtility.HtmlDecode(campo.Value);
             }
 
             var tipoFile = Testo(dati, "Type");

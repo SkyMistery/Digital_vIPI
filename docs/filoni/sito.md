@@ -949,5 +949,18 @@
     scritto e il messaggio dice la riga; corretta, tre righe una volta sola), `FilaDeiTrasferimentiTests` (+1,
     presidio: la pagina non si monta nei test). Application 3024 → **3028**, Infrastructure 1763 → **1764**,
     Ui 1811 → **1812**.
+  - **Gruppo 3** (file AIP, **codice comune** `Vipi.Application`): **U-119** (AirspaceConverter codifica gli
+    apostrofi due volte e il parser XML ne toglie una: 32 volumi su 1 536 «VAL D&apos;AOSTA», in pagina e nella
+    chiave naturale, e la ricerca di «VAL D'AOSTA» non li trovava) → `WebUtility.HtmlDecode` una volta sui campi
+    `SimpleData` e sul `<name>`, negli spazi aerei e nelle radioassistenze; una «&» vera resta «&». ⚠️ La chiave
+    naturale dei 32 volumi cambia (nessuno agganciato, dice la revisione), e quelli GIÀ salvati in produzione
+    tengono il nome vecchio fino al prossimo caricamento dell'AIP: si ricarica `it.kmz` dopo il pacchetto.
+    **U-136** («Confronta con l'AIP» apriva sempre il file in vigore come KMZ: dopo un caricamento `.kml`, nessuna
+    radioassistenza letta e il rapporto le dava tutte per mancanti) → `AirspaceNavaidReader.Leggi(byte[])` sceglie il
+    lettore dai primi byte («PK» = zip) e torna null se il file non si legge; la pagina lo dice
+    (`Asp_NavUnreadable`, it/en) invece di un rapporto falso.
+  - **Test**: `AirspaceKmlReaderTests` (+2), `NavaidAipReportTests` (+4: KML salvato letto come KML, KMZ come KMZ,
+    file illeggibile → null, nome di radioassistenza decodificato). Rossi i quattro che il difetto tocca; KMZ e «&»
+    vera passavano già e restano come controllo. Application 3028 → **3034**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -3403,6 +3403,7 @@
   <data name="Conv_FromCatalog" xml:space="preserve"><value>Oppure prendi un'area dal catalogo</value></data>
   <data name="Conv_FromCatalogPick" xml:space="preserve"><value>Scegli un'area…</value></data>
   <data name="Asp_NavReport" xml:space="preserve"><value>Radioassistenze: AIP contro anagrafica</value></data>
+  <data name="Asp_NavUnreadable" xml:space="preserve"><value>Il file in vigore non si legge: il confronto con l'AIP non si può fare.</value></data>
   <data name="Asp_NavReportScope" xml:space="preserve"><value>Il confronto SEGNALA e basta: le correzioni si fanno nel sectorfile, e da lì si reimportano. Nessun valore dell'anagrafica viene toccato.</value></data>
   <data name="Asp_NavReportRun" xml:space="preserve"><value>Confronta con l'anagrafica</value></data>
   <data name="Asp_NavReportNone" xml:space="preserve"><value>Nessuna differenza: l'AIP e l'anagrafica dicono la stessa cosa.</value></data>

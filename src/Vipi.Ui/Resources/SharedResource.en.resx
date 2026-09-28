@@ -3395,6 +3395,7 @@
   <data name="Conv_FromCatalog" xml:space="preserve"><value>Or take an area from the catalogue</value></data>
   <data name="Conv_FromCatalogPick" xml:space="preserve"><value>Pick an area…</value></data>
   <data name="Asp_NavReport" xml:space="preserve"><value>Navaids: AIP against our register</value></data>
+  <data name="Asp_NavUnreadable" xml:space="preserve"><value>The file in force cannot be read: no comparison with the AIP is possible.</value></data>
   <data name="Asp_NavReportScope" xml:space="preserve"><value>The comparison only REPORTS: fixes go into the sectorfile, and are imported from there. No register value is touched.</value></data>
   <data name="Asp_NavReportRun" xml:space="preserve"><value>Compare with the register</value></data>
   <data name="Asp_NavReportNone" xml:space="preserve"><value>No differences: the AIP and the register say the same thing.</value></data>

@@ -549,8 +549,15 @@
             var file = await Catalogo.GetFileAsync(corrente.Id);
             if (file is null) return;
 
-            using var flusso = new MemoryStream(file.Value.Content);
-            var daAip = AirspaceNavaidReader.LeggiKmz(flusso);
+            // 🔴 U-136: il lettore si sceglie dai byte (KMZ o KML), e un file che non si legge si dice: un rapporto
+            // vuoto direbbe che mancano tutte le radioassistenze, e manderebbe a correggere dati giusti.
+            var daAip = AirspaceNavaidReader.Leggi(file.Value.Content);
+            if (daAip is null)
+            {
+                _ok = false;
+                _messaggio = L["Asp_NavUnreadable"];
+                return;
+            }
             _rapporto = NavaidAipReport.Confronta(daAip, await Radioassistenze.ListAsync());
             _rapportoFatto = true;
         });

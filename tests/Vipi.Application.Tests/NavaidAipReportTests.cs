@@ -213,4 +213,47 @@ public class NavaidAipReportTests
         Assert.Empty(AirspaceNavaidReader.LeggiKml(null));
         Assert.Empty(AirspaceNavaidReader.LeggiKml("non xml"));
     }
+
+    /// <summary>
+    /// 🔴 U-136 (revisione totale 3): il caricamento accetta anche un <c>.kml</c> e ne salva i byte così come sono, ma
+    /// «Confronta con l'AIP» li apriva sempre come KMZ: nessuna radioassistenza letta, e il rapporto diceva che
+    /// mancavano tutte. Il lettore si sceglie dai primi byte («PK» è uno zip).
+    /// </summary>
+    [Fact]
+    public void Un_file_kml_salvato_si_legge_come_kml()
+    {
+        var righe = AirspaceNavaidReader.Leggi(System.Text.Encoding.UTF8.GetBytes(Kml));
+
+        Assert.NotNull(righe);
+        Assert.Equal(new[] { "AHO", "ABN" }, righe!.Select(r => r.Code));
+    }
+
+    [Fact]
+    public void Un_file_kmz_salvato_si_legge_come_kmz()
+    {
+        using var zip = new MemoryStream();
+        using (var a = new System.IO.Compression.ZipArchive(zip, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        using (var s = new StreamWriter(a.CreateEntry("doc.kml").Open()))
+            s.Write(Kml);
+
+        Assert.Equal(2, AirspaceNavaidReader.Leggi(zip.ToArray())!.Count);
+    }
+
+    /// <summary>🔴 U-136: un file che non si legge lo dice (null), invece di diventare «nessuna radioassistenza».</summary>
+    [Fact]
+    public void Un_file_illeggibile_non_e_un_elenco_vuoto()
+    {
+        Assert.Null(AirspaceNavaidReader.Leggi(System.Text.Encoding.UTF8.GetBytes("non è né uno zip né un KML")));
+        Assert.Null(AirspaceNavaidReader.Leggi(new byte[] { (byte)'P', (byte)'K', 3, 4, 0, 0 }));
+    }
+
+    /// <summary>🔴 U-119: anche i nomi delle radioassistenze arrivano con l'apostrofo codificato due volte.</summary>
+    [Fact]
+    public void Il_nome_di_una_radioassistenza_si_decodifica()
+    {
+        var kml = Kml.Replace("<SimpleData name=\"Name\">ALGHERO</SimpleData>",
+            "<SimpleData name=\"Name\">SANT&amp;apos;ANTIOCO</SimpleData>");
+
+        Assert.Equal("SANT'ANTIOCO", AirspaceNavaidReader.LeggiKml(kml).First(r => r.Code == "AHO").Name);
+    }
 }
