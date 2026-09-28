@@ -105,12 +105,11 @@ public sealed class EfReleaseRepository : IReleaseRepository
         var doc = draft.Document!;
         var now = DateTime.UtcNow;
 
-        // Archivia la pubblicata precedente (se diversa) — stessa semantica di EfEditingRepository.PublishAsync.
-        if (doc.CurrentVersionId is int prevId && prevId != draft.Id)
-        {
-            var prev = await _db.DocumentVersions.FirstOrDefaultAsync(v => v.Id == prevId, ct);
-            if (prev is not null) prev.Status = DocumentStatus.Archived;
-        }
+        // Archivia ogni altra pubblicata — stessa semantica di EfEditingRepository.PublishAsync (U-080).
+        foreach (var prev in await _db.DocumentVersions
+                     .Where(v => v.DocumentId == doc.Id && v.Id != draft.Id && v.Status == DocumentStatus.Published)
+                     .ToListAsync(ct))
+            prev.Status = DocumentStatus.Archived;
 
         draft.Status = DocumentStatus.Published;
         doc.CurrentVersionId = draft.Id;

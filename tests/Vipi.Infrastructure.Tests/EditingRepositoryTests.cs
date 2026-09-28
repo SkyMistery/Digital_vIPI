@@ -623,6 +623,28 @@ public class EditingRepositoryTests : IAsyncLifetime
         Assert.True(await _db.AuditLogs.AnyAsync(a => a.Action == AuditAction.Publish && a.UserId == 222));
     }
 
+    /// <summary>
+    /// 🔴 U-080 (revisione totale 3): un documento «Published» con la versione pubblicata ma senza puntatore
+    /// (la vLOA 65 in produzione). La pubblicazione archiviava solo la versione del puntatore, e ne restavano due
+    /// «Published». Si archivia ogni altra pubblicata dello stesso documento.
+    /// </summary>
+    [Fact]
+    public async Task Pubblicare_archivia_anche_una_pubblicata_senza_puntatore()
+    {
+        var docId = await AccDocIdAsync();
+        var doc = await _db.Documents.SingleAsync(d => d.Id == docId);
+        var vecchia = doc.CurrentVersionId!.Value;
+        doc.CurrentVersionId = null;                  // lo stato della vLOA 65
+        await _db.SaveChangesAsync();
+
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 1);
+        await _repo.PublishAsync(draftId, actorUserId: 1, note: null);
+
+        Assert.Equal(DocumentStatus.Archived,
+            (await _db.DocumentVersions.AsNoTracking().SingleAsync(v => v.Id == vecchia)).Status);
+        Assert.Equal(1, await _db.DocumentVersions.CountAsync(v => v.DocumentId == docId && v.Status == DocumentStatus.Published));
+    }
+
     [Fact]
     public async Task PruneArchivedVersions_KeepsNewestN_DeletesRest_WithChildren_PreservesCurrentAndDraft()
     {

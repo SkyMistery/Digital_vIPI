@@ -385,6 +385,36 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// 🔴 U-076 (revisione totale 3): il passo delle LVP era un invariante («subito dopo le Procedure generali»)
+    /// e non un trasloco: a ogni consegna disfaceva il riordino fatto dall'editor, e da S24 anche nella versione
+    /// pubblicata. Le LVP si spostano solo insieme al trasloco delle regole piste, cioè sui documenti col vecchio
+    /// indice del 12 settembre; l'ordine delle radici poi è di chi scrive ([[ordine-sezioni-personalizzato]]).
+    /// </summary>
+    [Fact]
+    public async Task Le_lvp_riordinate_dall_editor_restano_dove_sono()
+    {
+        await ScaloCottoAsync("LIRF", ("Runways", null), ("SID", null));
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+        await _manutenzione.AddMissingCatalogSectionsAsync();
+        await _manutenzione.ReparentAirportSectionsAsync();
+
+        // L'editor porta le LVP in testa.
+        var radici = await _db.DocumentSections.Where(x => x.ParentSectionId == null).OrderBy(x => x.Order).ToListAsync();
+        var lvp = radici.Single(x => x.SectionKey == "lvp");
+        radici.Remove(lvp);
+        radici.Insert(0, lvp);
+        for (var i = 0; i < radici.Count; i++) radici[i].Order = i + 1;
+        await _db.SaveChangesAsync();
+        var prima = radici.Select(x => x.SectionKey).ToList();
+
+        Assert.Equal(0, await _manutenzione.ReparentAirportSectionsAsync());
+
+        var dopo = await _db.DocumentSections.Where(x => x.ParentSectionId == null).OrderBy(x => x.Order)
+            .Select(x => x.SectionKey).ToListAsync();
+        Assert.Equal(prima, dopo);
+    }
+
+    /// <summary>
     /// 🔴 Se qualcuno ha già portato le regole ALTROVE, quella è la scelta di chi scrive e non si tocca.
     /// È la stessa regola del passo dei parcheggi, ed è ciò che impedisce a una manutenzione di scavalcare
     /// una decisione editoriale.

@@ -1035,5 +1035,21 @@
     Sito: nasconderle, la regola che il commento della vista aveva già scritto.
   - **Test**: `ProcedureReferenceResolverTests` (+1), `AccDocumentAssemblerTests` (+1). Rossi sul codice di
     prima (U-151 con la correzione spenta). Application 3036 → **3038**.
+  - **Gruppo 5** (passate d'avvio e pubblicazione, **codice comune** `Vipi.Application` e `Vipi.Infrastructure`,
+    tocca `Vipi.Hosting`): **U-076** (il passo delle LVP «subito dopo le Procedure generali» era un invariante e
+    non un trasloco: a ogni consegna disfaceva il riordino dell'editor, da S24 anche nella pubblicata) → le LVP si
+    spostano solo insieme al trasloco delle regole piste, cioè sui documenti col vecchio indice del 12-set.
+    **U-077** (il pubblico di catalogo rimetteva «piloti» a ogni consegna, anche nelle archiviate) → un'ultima
+    volta e poi il timbro `ImportCategories.PubblicoDiCatalogo` la spegne (scelta del committente): ⚠️ un «per
+    tutti» scelto dopo l'ultima consegna si ribalta quest'ultima volta. **U-195** (la chiave «purpose» data a
+    ogni radice libera «Purpose», anche con la sezione di catalogo già presente) → una sola per versione.
+    **U-080** (la pubblicazione archiviava solo la versione del puntatore: un documento «Published» senza
+    puntatore — la vLOA 65 — ne avrebbe tenute due «Published») → `PublishAsync` e `PublishWorkingVersionAsync`
+    archiviano ogni altra pubblicata; e la passata d'avvio `RestorePublishedCurrentVersionAsync` (scelta del
+    committente) rimette il puntatore ai documenti pubblicati con una sola versione pubblicata — con due non
+    indovina. Dati toccati al primo avvio: il puntatore della vLOA 65; l'ultimo giro del pubblico di catalogo.
+  - **Test**: `ReconcileAirportSectionsTests` (+1), `IndiceDelSodTests` (+1), `DocumentMaintenanceTests` (+2),
+    `EditingRepositoryTests` (+1), `ReleaseRepositoryTests` (+1). Rossi sul codice di prima (la passata nuova con
+    un corpo vuoto). Infrastructure 1773 → **1779**; Hosting 68 invariato.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -1134,6 +1134,13 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Azzerati {Count} puntatori «versione pubblicata» che indicavano una bozza: quel campo lo scrive la pubblicazione.", puntatori);
 
+        // E il verso opposto (revisione 3, U-080): un documento pubblicato senza puntatore, con una sola versione
+        // pubblicata, lo riprende su quella. ⚠️ DOPO l'azzeramento, che non tocca questi (puntatore già nullo).
+        var rimessi = maintenance.RestorePublishedCurrentVersionAsync().GetAwaiter().GetResult();
+        if (rimessi > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Rimessi {Count} puntatori «versione pubblicata» a documenti pubblicati che non l'avevano.", rimessi);
+
         // La sezione delle minime di vettoramento si chiama «MRVA», e uguale in tutte e due le lingue: il
         // titolo di una sezione di catalogo sta NEL DOCUMENTO, quindi cambiare il catalogo vale solo per i
         // documenti nuovi e questo passo porta avanti quelli già scritti.

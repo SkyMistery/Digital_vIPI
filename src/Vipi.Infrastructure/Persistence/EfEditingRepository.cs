@@ -1233,12 +1233,13 @@ public sealed class EfEditingRepository : IEditingRepository
         var doc = ver.Document!;
         var now = DateTime.UtcNow;
 
-        // Archivia la pubblicata precedente (se diversa).
-        if (doc.CurrentVersionId is int prevId && prevId != versionId)
-        {
-            var prev = await _db.DocumentVersions.FirstOrDefaultAsync(v => v.Id == prevId, ct);
-            if (prev is not null) prev.Status = DocumentStatus.Archived;
-        }
+        // Archivia OGNI altra pubblicata, non solo quella del puntatore (U-080, revisione totale 3): un documento
+        // «Published» senza puntatore — la vLOA generata prima di S27 — ne teneva una che restava «Published»
+        // accanto alla nuova.
+        foreach (var prev in await _db.DocumentVersions
+                     .Where(v => v.DocumentId == doc.Id && v.Id != versionId && v.Status == DocumentStatus.Published)
+                     .ToListAsync(ct))
+            prev.Status = DocumentStatus.Archived;
 
         ver.Status = DocumentStatus.Published;
         if (!string.IsNullOrWhiteSpace(note)) ver.Note = note;

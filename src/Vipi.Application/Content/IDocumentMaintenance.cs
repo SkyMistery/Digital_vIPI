@@ -208,6 +208,10 @@ public interface IDocumentMaintenance
     /// di quelle sezioni se lo rivede ribaltato una volta sola, e lo rimette con un clic. Sta nel runbook
     /// della consegna, perché non lo scopra a schermo.</para>
     ///
+    /// <para>🔴 U-077 (revisione totale 3): «una volta sola» non era vero — la passata girava a ogni consegna e
+    /// ribaltava ogni volta il <c>Both</c> scelto nel frattempo. Ora lo è: il registro «già fatta»
+    /// (<c>ImportCategories.PubblicoDiCatalogo</c>) la spegne dopo il primo giro.</para>
+    ///
     /// <para>⚠️ Chi ha già scelto <c>Pilots</c> o <c>Controllers</c> non viene toccato: quello è un valore
     /// che solo una persona può aver scritto.</para>
     ///
@@ -303,4 +307,14 @@ public interface IDocumentMaintenance
     /// </summary>
     /// <returns>Quanti puntatori sono stati azzerati.</returns>
     Task<int> ClearUnpublishedCurrentVersionAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Il verso opposto di <see cref="ClearUnpublishedCurrentVersionAsync"/> (revisione 3, U-080, scelta del
+    /// committente): un documento «Published» senza puntatore, con <b>una sola</b> versione pubblicata, riprende
+    /// il puntatore su quella. È la vLOA generata da «ACC confinanti» prima di S27, nata «Published» senza
+    /// versione corrente (la 65 in produzione). Con due versioni pubblicate non indovina: le sistema la prossima
+    /// pubblicazione, che le archivia tutte tranne la nuova. Idempotente: al secondo giro non c'è più niente.
+    /// </summary>
+    /// <returns>Quanti puntatori sono stati rimessi.</returns>
+    Task<int> RestorePublishedCurrentVersionAsync(CancellationToken ct = default);
 }

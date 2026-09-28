@@ -245,6 +245,32 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.Equal(DocumentStatus.Published, (await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.Id == ver.Id)).Status);
     }
 
+    /// <summary>
+    /// 🔴 U-080 (revisione totale 3): la vLOA 65 in produzione è «Published» con la v1 «Published» e il
+    /// puntatore nullo (nata così da «ACC confinanti» prima di S27). La pubblicazione archiviava solo la versione
+    /// del puntatore: la v1 restava «Published» accanto alla nuova. Si archivia ogni altra pubblicata.
+    /// </summary>
+    [Fact]
+    public async Task PublishWorkingVersion_ArchivesEveryOtherPublishedVersion()
+    {
+        var acc = await _db.Accs.FirstAsync();
+        var doc = new Document { Type = DocumentType.Vipi, Title = "vIPI LIPY_APP", Language = Language.It, Status = DocumentStatus.Published, LastUpdatedAiracCycle = "2606" };
+        var v1 = new DocumentVersion { Document = doc, VersionNumber = 1, Status = DocumentStatus.Published, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
+        var v2 = new DocumentVersion { Document = doc, VersionNumber = 2, Status = DocumentStatus.Draft, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
+        doc.Versions.Add(v1);
+        doc.Versions.Add(v2);
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+        _db.Sectors.Add(new Sector { Acc = acc, Callsign = "LIPY_APP", Name = "Falconara APP", Type = SectorType.App, Kind = SectorKind.Airport, ApproachKind = ApproachKind.Standalone, IsActive = true, DocumentId = doc.Id, IsPrimary = true });
+        await _db.SaveChangesAsync();
+
+        await _repo.PublishWorkingVersionAsync(ReleaseTargetType.App, "LIPY_APP", 1, "2607");
+
+        var stati = await _db.DocumentVersions.AsNoTracking().Where(v => v.DocumentId == doc.Id)
+            .OrderBy(v => v.VersionNumber).Select(v => v.Status).ToListAsync();
+        Assert.Equal(new[] { DocumentStatus.Archived, DocumentStatus.Published }, stati);
+    }
+
     [Fact]
     public async Task PublishWorkingVersion_NoDraft_IsNoOp()
     {

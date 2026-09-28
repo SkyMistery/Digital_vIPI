@@ -214,10 +214,20 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                         && s.DocumentVersion!.Document!.Type == Vipi.Domain.DocumentType.Vloa)
             .ToListAsync(ct);
 
+        // 🔴 U-195 (revisione totale 3): una versione che ha già la sezione di catalogo non ne prende una seconda,
+        // e fra due libere «Purpose» della stessa versione la chiave va a una sola. Prima ogni consegna poteva
+        // dare la stessa chiave di catalogo a due sezioni.
+        var versioni = candidates.Select(s => s.DocumentVersionId).Distinct().ToList();
+        var conLaChiave = (await _db.DocumentSections
+                .Where(s => versioni.Contains(s.DocumentVersionId) && s.SectionKey == PurposeKey)
+                .Select(s => s.DocumentVersionId).Distinct().ToListAsync(ct))
+            .ToHashSet();
+
         var touched = 0;
-        foreach (var s in candidates)
+        foreach (var s in candidates.OrderBy(x => x.Order).ThenBy(x => x.Id))
         {
             if (!SectionKeys.IsCustom(s.SectionKey)) continue;   // già riconciliata
+            if (!conLaChiave.Add(s.DocumentVersionId)) continue;
             s.SectionKey = PurposeKey;
             s.RowVersion = Guid.NewGuid().ToByteArray();
             touched++;
@@ -350,6 +360,25 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
         var docs = await _db.Documents.Where(d => sospetti.Contains(d.Id)).ToListAsync(ct);
         foreach (var d in docs) d.CurrentVersionId = null;
+        await _db.SaveChangesAsync(ct);
+        return docs.Count;
+    }
+
+    /// <inheritdoc cref="IDocumentMaintenance.RestorePublishedCurrentVersionAsync"/>
+    public async Task<int> RestorePublishedCurrentVersionAsync(CancellationToken ct = default)
+    {
+        var sola = await _db.DocumentVersions
+            .Where(v => v.Status == DocumentStatus.Published
+                        && v.Document!.Status == DocumentStatus.Published && v.Document.CurrentVersionId == null)
+            .GroupBy(v => v.DocumentId)
+            .Where(g => g.Count() == 1)
+            .Select(g => new { DocumentId = g.Key, VersionId = g.Min(v => v.Id) })
+            .ToListAsync(ct);
+        if (sola.Count == 0) return 0;
+
+        var perDoc = sola.ToDictionary(x => x.DocumentId, x => x.VersionId);
+        var docs = await _db.Documents.Where(d => perDoc.Keys.Contains(d.Id)).ToListAsync(ct);
+        foreach (var d in docs) d.CurrentVersionId = perDoc[d.Id];
         await _db.SaveChangesAsync(ct);
         return docs.Count;
     }
@@ -1059,6 +1088,8 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             // di chi scrive. È anche ciò che rende il passo idempotente — al secondo avvio sono già figlie.
             var leRegole = Radice(regole);
             var lePiste = Radice(piste);
+            // Il trasloco: le regole ancora radice sono il vecchio indice del 12 settembre.
+            var trasloco = leRegole is not null && lePiste is not null;
             if (leRegole is not null && lePiste is not null)
             {
                 var figlie = tutte.Where(x => x.ParentSectionId == lePiste.Id).ToList();
@@ -1071,8 +1102,11 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             }
 
             // ── 2. Le LVP scendono subito dopo le Procedure generali, restando SORELLE ────────────────
-            var leLvp = Radice(lvp);
-            var leProcedure = Radice(procedure);
+            // 🔴 U-076 (revisione totale 3): SOLO insieme al trasloco. Da solo era un invariante, e a ogni
+            // consegna disfaceva il riordino fatto dall'editor — dopo S24 anche nella versione pubblicata.
+            // L'ordine delle radici, dopo il trasloco, è di chi scrive ([[ordine-sezioni-personalizzato]]).
+            var leLvp = trasloco ? Radice(lvp) : null;
+            var leProcedure = trasloco ? Radice(procedure) : null;
             if (leLvp is not null && leProcedure is not null && leLvp.Order != leProcedure.Order + 1)
                 cambiato = true;
 
@@ -1258,6 +1292,19 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
     /// <inheritdoc cref="IDocumentMaintenance.ApplyCatalogAudienceDefaultsAsync"/>
     public async Task<int> ApplyCatalogAudienceDefaultsAsync(CancellationToken ct = default)
+    {
+        // 🔴 U-077 (revisione totale 3): girava a ogni consegna, e un «per tutti» scelto dall'editor tornava
+        // «piloti», anche nelle versioni archiviate. Col registro gira un'ultima volta e poi tace (scelta del
+        // committente, 28 settembre 2026); senza registro (i test di sempre) com'era.
+        var chiave = Vipi.Application.Abstractions.ImportCategories.PubblicoDiCatalogo;
+        if (_stati is not null && await _stati.GetLastSuccessAsync(chiave, ct) is not null) return 0;
+        var marcate = await ApplicaPubblicoDiCatalogoAsync(ct);
+        // Il timbro anche a zero righe, come per le STAR: la passata ha guardato.
+        if (_stati is not null) await _stati.MarkSuccessAsync(chiave, DateTime.UtcNow, ct);
+        return marcate;
+    }
+
+    private async Task<int> ApplicaPubblicoDiCatalogoAsync(CancellationToken ct)
     {
         // Le chiavi che il catalogo vuole marcate, per profilo. ⚠️ Si chiede al CATALOGO invece di
         // riscrivere qui l'elenco del SOD: due elenchi che devono restare uguali divergono al primo
