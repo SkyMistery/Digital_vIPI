@@ -106,6 +106,11 @@ public class AwosCompositionTests
 
     // ─── Transition level ──────────────────────────────────────────────────────────
 
+    /// <summary>La tabella viva come la proietta il documento: il TL si legge da lì, con la funzione unica (U-227).</summary>
+    private static string? Tl(IEnumerable<TlRow> righe, int? qnh) => LivelloDiTransizione.Adesso(
+        new AirportTransitionView(5000, righe.Select(t =>
+            new AirportTlRowView(AirportSectionProjection.QnhRange(t.QnhFrom, t.QnhTo), t.Level)).ToList()), qnh);
+
     [Fact] // il TL viene dalla TABELLA dello scalo, per fascia di QNH
     public void Il_Tl_Viene_Dalla_Tabella()
     {
@@ -116,18 +121,18 @@ public class AwosCompositionTests
             new TlRow(3, null, 994, "FL80"),
         };
 
-        Assert.Equal("FL70", AwosComposition.TransitionLevel(righe, 1020));
-        Assert.Equal("FL75", AwosComposition.TransitionLevel(righe, 1000));
-        Assert.Equal("FL80", AwosComposition.TransitionLevel(righe, 980));
+        Assert.Equal("FL70", Tl(righe, 1020));
+        Assert.Equal("FL75", Tl(righe, 1000));
+        Assert.Equal("FL80", Tl(righe, 980));
     }
 
     [Fact] // senza QNH o senza tabella si dice «non lo so», non «FL70»
     public void Senza_Qnh_O_Tabella_Il_Tl_E_Null()
     {
         var righe = new[] { new TlRow(1, 1013, null, "FL70") };
-        Assert.Null(AwosComposition.TransitionLevel(righe, null));
-        Assert.Null(AwosComposition.TransitionLevel(Array.Empty<TlRow>(), 1013));
-        Assert.Null(AwosComposition.TransitionLevel(righe, 990));      // nessuna fascia copre
+        Assert.Null(Tl(righe, null));
+        Assert.Null(Tl(Array.Empty<TlRow>(), 1013));
+        Assert.Null(Tl(righe, 990));      // nessuna fascia copre
     }
 
     // ─── QFE ───────────────────────────────────────────────────────────────────────

@@ -1188,5 +1188,16 @@
     `PistaMaiUsareTests.Una_regola_che_nomina_la_soglia_esclusa_continua_a_valere` passava un METAR nullo per
     comodità, cioè proprio il comportamento tolto: ora ha un vento calmo, e prova ancora le esclusioni.
     Application 3047 → **3054**.
+  - **Gruppo 6** (TA e TL del vAWOS, **codice comune** `Vipi.Application`): **U-227** (il vAWOS prendeva TA e fasce
+    TL dall'anagrafica viva, mentre documento e vista rapida mostrano la sezione congelata: una modifica non
+    pubblicata cambiava il quadro pubblico) → estensione diretta della scelta del 17 settembre già applicata a
+    regole, LVP e soglie escluse: `PisteDecisive.Transizione` porta la sezione congelata, e senza si proietta la
+    tabella viva come fa il documento. Con lui si chiude il resto di **U-216** («una funzione sola»): il TL
+    «adesso» ha una regola sola, `LivelloDiTransizione.Adesso` in `Vipi.Application`, che usano vAWOS, vista
+    rapida e sezione del documento; `AwosComposition.TransitionLevel` (la seconda regola, sui numeri) è tolta e
+    `AirportViewFormat.QnhRowMatches` delega.
+  - **Test**: `PisteDalPubblicatoTests` (+2: la transizione congelata arriva, senza non si inventa; sul codice di
+    prima non compilano, il campo non c'era), `AwosCompositionTests` (i due test del TL passano dalla funzione
+    unica). Application 3054 → **3056**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

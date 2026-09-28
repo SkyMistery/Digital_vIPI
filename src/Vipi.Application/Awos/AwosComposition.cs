@@ -100,24 +100,6 @@ public static partial class AwosComposition
         osservato is { } o && adesso - o > MetarScaduto;
 
     /// <summary>
-    /// Il Transition Level per il QNH corrente, dalla tabella dello scalo.
-    /// <para>⚠️ Dalla <b>tabella</b>, non da una formula a fasce come nel prototipo: il TL è dell'AIP di
-    /// quell'aeroporto, e quattro soglie cablate valgono per nessuno in particolare. Senza QNH o senza righe:
-    /// null, che si legge «non lo so» e non «FL70».</para>
-    /// </summary>
-    public static string? TransitionLevel(IEnumerable<TlRow> righe, int? qnh)
-    {
-        if (qnh is not int q) return null;
-        foreach (var r in righe)
-        {
-            if (r.QnhFrom is int da && q < da) continue;
-            if (r.QnhTo is int a && q > a) continue;
-            if (!string.IsNullOrWhiteSpace(r.Level)) return r.Level.Trim();
-        }
-        return null;
-    }
-
-    /// <summary>
     /// Il QFE di una soglia: la pressione dell'atmosfera standard all'altezza della soglia, partendo dal QNH.
     /// <para>La retta dei 27 ft per hPa andava bene in pianura ma sbagliava di 2–4 hPa sugli scali in quota
     /// (U-226). Senza elevazione non si stima: null.</para>

@@ -53,8 +53,7 @@ public static class AirportViewFormat
     public static string TlAdesso(AirportTransitionView view, int? qnh)
     {
         if (view.TransitionAltitudeFt is null) return "N/A";
-        if (qnh is not int q) return Dash;
-        return view.Rows.FirstOrDefault(r => QnhRowMatches(r.QnhRange, q))?.Level ?? Dash;
+        return LivelloDiTransizione.Adesso(view, qnh) ?? Dash;   // la stessa funzione del vAWOS (U-216/U-227)
     }
 
     /// <summary>
@@ -62,20 +61,7 @@ public static class AirportViewFormat
     /// «1014 – 1030» (range), «≥ 1031» / «&gt;= 1031», «≤ 984» / «&lt;= 984», «&gt; 1031», «&lt; 984».
     /// Riga senza numeri ⇒ nessuna corrispondenza.
     /// </summary>
-    public static bool QnhRowMatches(string? range, int qnh)
-    {
-        var text = range ?? "";
-        var nums = Regex.Matches(text, @"\d+")
-            .Select(m => int.TryParse(m.Value, out var v) ? v : (int?)null)
-            .Where(v => v is not null).Select(v => v!.Value).ToList();
-        if (nums.Count == 0) return false;
-
-        if (text.Contains('≥') || text.Contains(">=")) return qnh >= nums[0];
-        if (text.Contains('≤') || text.Contains("<=")) return qnh <= nums[0];
-        if (text.Contains('>')) return qnh > nums[0];
-        if (text.Contains('<')) return qnh < nums[0];
-        return nums.Count >= 2 && qnh >= Math.Min(nums[0], nums[1]) && qnh <= Math.Max(nums[0], nums[1]);
-    }
+    public static bool QnhRowMatches(string? range, int qnh) => LivelloDiTransizione.FasciaContiene(range, qnh);
 
     /// <summary>Tabella dei livelli di transizione: intestazioni + righe (intervallo QNH, livello).</summary>
     public sealed record TransitionLevelTable(
