@@ -195,6 +195,29 @@ public class SezioneRadioassistenzeTests : IAsyncLifetime
         Assert.Equal(NavaidDelete.Ok, await anagrafica.DeleteAsync(amd.Id, userId: 7));
     }
 
+    /// <summary>
+    /// 🔴 U-157 (revisione totale 3): il canale è nell'identità, e il documento cita per identità. Cambiarlo su
+    /// una riga citata la faceva sparire in silenzio dalle tabelle militari (il resolver scarta la chiave che non
+    /// trova). Come per l'eliminazione: prima si toglie di lì.
+    /// </summary>
+    [Fact]
+    public async Task Il_canale_di_una_riga_citata_non_si_cambia()
+    {
+        var m = Militari();
+        await m.CreaAsync("LIBA");
+        var anagrafica = Anagrafica();
+        var amd = await anagrafica.CreateAsync("AMD", "VHF", userId: 7);
+        await m.SaveNavaidsAsync("LIBA", new[] { amd.Key });
+
+        Assert.Equal(NavaidWrite.Citata, await anagrafica.SetChannelAsync(amd.Id, "25X", userId: 7));
+        Assert.Single(await m.GetNavaidsAsync("LIBA"));
+        Assert.Null((await anagrafica.ListAsync()).Single(n => n.Id == amd.Id).Channel);
+
+        // Tolta dal documento, il canale si scrive.
+        await m.SaveNavaidsAsync("LIBA", Array.Empty<NavaidKey>());
+        Assert.Equal(NavaidWrite.Ok, await anagrafica.SetChannelAsync(amd.Id, "25X", userId: 7));
+    }
+
     /// <summary>Vale anche per chi la cita da un <b>aeroporto alternato</b>: è l'altra tabella che le usa.</summary>
     [Fact]
     public async Task Anche_una_citazione_da_un_alternato_conta()

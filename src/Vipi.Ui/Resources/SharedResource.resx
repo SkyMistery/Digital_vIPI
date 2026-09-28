@@ -1192,6 +1192,7 @@
   <data name="Nav_AdminNoTypeTitle" xml:space="preserve"><value>Le righe di cui nessuno ha ancora detto che tipo sono</value></data>
   <data name="Nav_AdminDeletePrompt" xml:space="preserve"><value>Eliminare «{0}» ({1}) dall&apos;anagrafica?</value></data>
   <data name="Nav_BadChannel" xml:space="preserve"><value>Non salvato: un canale è da una a tre cifre più X o Y (per esempio 99Y) — e se esiste già una riga con quel canale, va cambiata quella.</value></data>
+  <data name="Nav_ChannelCited" xml:space="preserve"><value>Non salvato: il canale fa parte dell'identità, e questa radioassistenza la cita un documento. Prima si toglie da quella tabella.</value></data>
   <data name="Div_Airports" xml:space="preserve"><value>Aeroporti</value></data>
   <data name="Div_Navaids" xml:space="preserve"><value>Radioassistenze</value></data>
   <data name="Div_Bearing" xml:space="preserve"><value>Rilevamento</value></data>

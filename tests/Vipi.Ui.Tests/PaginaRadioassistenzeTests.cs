@@ -96,8 +96,10 @@ public class PaginaRadioassistenzeTests : TestContext
         }
         public Task<NavaidWrite> SetFrequencyAsync(int id, string? f, int userId, CancellationToken ct = default) =>
             Task.FromResult(NavaidWrite.Ok);
+        /// <summary>Che cosa risponde la scrittura del canale.</summary>
+        public NavaidWrite EsitoCanale { get; set; } = NavaidWrite.Ok;
         public Task<NavaidWrite> SetChannelAsync(int id, string? c, int userId, CancellationToken ct = default) =>
-            Task.FromResult(NavaidWrite.Ok);
+            Task.FromResult(EsitoCanale);
         public Task<NavaidWrite> SetCoordinatesAsync(int id, string? s, int userId, CancellationToken ct = default) =>
             Task.FromResult(NavaidWrite.Ok);
         public Task<NavaidImportOutcome> ImportFromSourceAsync(IReadOnlyList<SourceNavaid> navaids, CancellationToken ct = default) =>
@@ -197,6 +199,19 @@ public class PaginaRadioassistenzeTests : TestContext
     /// ⚠️ Sulle righe che manda il sectorfile il cestino <b>non c'è affatto</b>: il giro dopo le ricreerebbe,
     /// e chi l'avesse premuto crederebbe di averle eliminate. Meglio che comparire e rifiutare.
     /// </summary>
+    /// <summary>U-157: il canale di una riga citata non si cambia, e la pagina dice perché — non «valore non
+    /// valido», che manderebbe a correggere un canale giusto.</summary>
+    [Fact]
+    public void Il_canale_di_una_riga_citata_dice_perche_non_si_salva()
+    {
+        var anagrafica = new AnagraficaFinta(Nostra(2, "AMD")) { EsitoCanale = NavaidWrite.Citata };
+        var cut = Render(anagrafica, new ImportatoreFinto(new NavaidImportReport(null, NavaidImportSkip.SorgenteMuta, 0)));
+
+        cut.Find("td.c-chan input").Change("25X");
+
+        cut.WaitForAssertion(() => Assert.Contains("Nav_ChannelCited", cut.Markup));
+    }
+
     [Fact]
     public void Il_cestino_non_compare_sulle_righe_della_sorgente()
     {

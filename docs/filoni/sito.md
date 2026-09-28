@@ -996,5 +996,19 @@
     chiede che non resti scritto niente), `FilaDeiTrasferimentiTests` (+2, presidio: la pagina non si monta nei
     test). Rossi sul codice di prima (U-061 con la firma nuova e le sorelle ignorate). Infrastructure 1764 →
     **1769**, Ui 1812 → **1814**, net8 e net10.
+  - **Gruppo 2** (giro della deriva e anagrafica, **codice comune** `Vipi.Application` e `Vipi.Infrastructure`):
+    **U-156/U-200** (ogni giro decide su un insieme letto all'inizio e riconcilia alla fine: il notturno e quello
+    dopo le modifiche si chiudevano le righe a vicenda, e la riconciliazione di una pubblicazione arrivata a metà
+    giro veniva disfatta — «da ripubblicare» su un documento appena pubblicato) → `ImpactDriftUseCase` un giro
+    alla volta in tutto il processo (semaforo statico: ogni giro vive nel suo scope); la pubblicazione aspetta il
+    giro in corso e richiude dopo di lui. Vale per un processo solo, che è il deploy di oggi. **U-157** (il canale
+    è nell'identità, e il documento cita per identità: cambiarlo su una riga citata la faceva sparire in silenzio
+    dalle tabelle militari) → `SetChannelAsync` rifiuta come l'eliminazione (`NavaidWrite.Citata`, in coda
+    all'enum), e le due pagine lo dicono (`Nav_ChannelCited`, it/en). Scelta del Sito: rifiutare, non riscrivere
+    le citazioni — è la regola che l'eliminazione ha già. Il resolver che scarta in silenzio una chiave non
+    trovata resta com'è: con la porta chiusa non se ne creano di nuove.
+  - **Test**: `ImpactDriftTests` (+2, un giro trattenuto a metà con un `TaskCompletionSource` nel finto),
+    `SezioneRadioassistenzeTests` (+1), `PaginaRadioassistenzeTests` (+1). Rossi sul codice di prima.
+    Infrastructure 1769 → **1772**, Ui 1814 → **1815**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -224,6 +224,10 @@ public sealed class EfNavaidCatalog : INavaidCatalog
         var nuovo = NavaidRules.Valore(canale);
         if (string.Equals(n.Channel, nuovo, StringComparison.Ordinal)) return NavaidWrite.Invariato;
 
+        // 🔴 U-157 (revisione totale 3): la stessa regola dell'eliminazione. Il documento cita per identità, e
+        // un'identità nuova faceva sparire la riga da sotto le tabelle militari, in silenzio.
+        if ((await CitataDaAsync(id, ct)).Count > 0) return NavaidWrite.Citata;
+
         var chiave = Chiave(n.Code, n.Kind, nuovo);
         if (await _db.Navaids.AnyAsync(x => x.NaturalKey == chiave && x.Id != n.Id, ct))
             return NavaidWrite.NonValido;

@@ -106,10 +106,26 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     /// cosa era stata segnalata, non tanto da far diventare la tabella un archivio storico.</summary>
     private const int CicliDiRitenzione = 2;
 
-    public Task<ImpactDriftResult> RunAsync(CancellationToken ct = default) => RunCoreAsync(null, ct);
+    /// <summary>
+    /// Un giro alla volta, in tutto il processo (U-156, U-200). Ogni giro decide su un insieme letto all'inizio e
+    /// riconcilia alla fine: due giri sovrapposti — il notturno e quello dopo le modifiche, o un giro e la
+    /// riconciliazione di una pubblicazione — si chiudevano e riaprivano le righe a vicenda, e una riga
+    /// «da ripubblicare» poteva riaprirsi su un documento appena pubblicato. Statico perché ogni giro vive nel
+    /// suo scope. Non è rientrante, e non serve: la valutazione non pubblica.
+    /// </summary>
+    private static readonly SemaphoreSlim UnGiroAllaVolta = new(1, 1);
+
+    public Task<ImpactDriftResult> RunAsync(CancellationToken ct = default) => InFilaAsync(() => RunCoreAsync(null, ct), ct);
 
     public Task<ImpactDriftResult> RunAfterChangesAsync(FinestraDiModifiche finestra, CancellationToken ct = default) =>
-        RunCoreAsync(finestra, ct);
+        InFilaAsync(() => RunCoreAsync(finestra, ct), ct);
+
+    private static async Task<ImpactDriftResult> InFilaAsync(Func<Task<ImpactDriftResult>> giro, CancellationToken ct)
+    {
+        await UnGiroAllaVolta.WaitAsync(ct).ConfigureAwait(false);
+        try { return await giro().ConfigureAwait(false); }
+        finally { UnGiroAllaVolta.Release(); }
+    }
 
     private async Task<ImpactDriftResult> RunCoreAsync(FinestraDiModifiche? causa, CancellationToken ct)
     {
@@ -188,7 +204,10 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         ImpactKind.ReleaseKeyMoved, ImpactKind.BrokenTarget,
     };
 
-    public async Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default)
+    public Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default) =>
+        InFilaAsync(() => RunForDocumentCoreAsync(documentId, ct), ct);
+
+    private async Task<ImpactDriftResult> RunForDocumentCoreAsync(int documentId, CancellationToken ct)
     {
         // ⚠️ Si passa dall'elenco gestito e NON da `DescribeAsync`: quello non porta i cicli di release
         // (è scritto nella sua stessa documentazione), quindi `HasEffectiveRelease` sarebbe falso e

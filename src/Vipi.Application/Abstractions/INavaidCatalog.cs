@@ -48,6 +48,12 @@ public enum NavaidWrite
     /// <summary>Niente da fare: il valore era già quello. ⚠️ Il non-evento non si scrive nel registro —
     /// altrimenti «modificata da X oggi» finirebbe sopra una decisione presa da un altro mesi fa.</summary>
     Invariato,
+
+    /// <summary>
+    /// Rifiutato: il campo è nell'<b>identità</b> (il canale) e la riga la cita almeno un documento, che cita per
+    /// identità. Cambiata, sparirebbe da sotto la tabella (U-157): prima si toglie di lì, come per eliminarla.
+    /// </summary>
+    Citata,
 }
 
 /// <summary>Esito del tentativo di eliminare una riga dall'anagrafica.</summary>

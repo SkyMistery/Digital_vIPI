@@ -1187,6 +1187,7 @@
   <data name="Nav_AdminNoTypeTitle" xml:space="preserve"><value>The rows nobody has yet said the type of</value></data>
   <data name="Nav_AdminDeletePrompt" xml:space="preserve"><value>Delete “{0}” ({1}) from the catalogue?</value></data>
   <data name="Nav_BadChannel" xml:space="preserve"><value>Not saved: a channel is one to three digits plus X or Y (99Y, for instance) — and if a row with that channel already exists, that is the one to change.</value></data>
+  <data name="Nav_ChannelCited" xml:space="preserve"><value>Not saved: the channel is part of the identity, and a document cites this navaid. Remove it from that table first.</value></data>
   <data name="Div_Airports" xml:space="preserve"><value>Airports</value></data>
   <data name="Div_Navaids" xml:space="preserve"><value>Navaids</value></data>
   <data name="Div_Bearing" xml:space="preserve"><value>Bearing</value></data>
