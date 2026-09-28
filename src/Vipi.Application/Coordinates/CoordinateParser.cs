@@ -439,17 +439,23 @@ public static class CoordinateParser
 
     private static readonly Regex RxVirgolaFraCifre =new(@"(?<=\d),(?=\d)", Opzioni);
 
+    /// <summary>Una virgola che NON è seguita da uno spazio: dopo la conversione dei decimali, segno che la riga è CSV.</summary>
+    private static readonly Regex RxVirgolaSenzaSpazio = new(@",(?! )", Opzioni);
+
     /// <summary>
     /// 🔴 T-049 (revisione del 13 settembre 2026): la virgola decimale all'italiana. <c>41,9906 12,4964</c> si
     /// spezzava sulle virgole in quattro numeri — due vertici validi e sbagliati. Le virgole fra cifre sono
     /// decimali quando sulla riga <b>non c'è nessun punto</b> e c'è <b>un altro separatore</b> (spazio, punto e
     /// virgola, tabulazione): senza il secondo, <c>41,12</c> resta la coppia CSV che è sempre stata.
+    /// <para>🔴 U-221 (revisione totale 3): <c>45,4642, 9,1900</c> — decimali all'italiana e la coppia separata da
+    /// «, » — restava com'era e si spezzava in quattro numeri. Le virgole rimaste dopo la conversione valgono da
+    /// separatore se sono <b>tutte</b> seguite da uno spazio.</para>
     /// </summary>
     private static string VirgolaDecimale(string riga)
     {
         if (riga.IndexOf('.') >= 0 || !RxVirgolaFraCifre.IsMatch(riga)) return riga;
         var senzaVirgole = RxVirgolaFraCifre.Replace(riga, ".");
-        return senzaVirgole.IndexOfAny([' ', ';', '\t', '|']) >= 0 && senzaVirgole.IndexOf(',') < 0
+        return senzaVirgole.IndexOfAny([' ', ';', '\t', '|']) >= 0 && !RxVirgolaSenzaSpazio.IsMatch(senzaVirgole)
             ? senzaVirgole
             : riga;
     }
@@ -503,7 +509,10 @@ public static class CoordinateParser
             var testo = semp.Groups["v"].Value;
             var negativo = testo[0] == '-';
             if (!Impacchettato(testo.TrimStart('+', '-'), out var v, out var fuori)) return false;
-            angoli.Add(new Angolo(v, Emisfero(semp), negativo, fuori));
+            // 🔴 U-220 (revisione totale 3): «N-41.99» o «-41.99N» dicono due cose opposte, e diventavano sud senza
+            // avvisi. Segno ed emisfero insieme: il token non è una coordinata leggibile, si segnala.
+            var emisfero = Emisfero(semp);
+            angoli.Add(new Angolo(v, emisfero, negativo, fuori || (negativo && emisfero is not null)));
             return true;
         }
 

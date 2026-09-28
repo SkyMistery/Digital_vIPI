@@ -172,6 +172,38 @@ public class CoordinateParserTests
         Assert.Equal(12.4964, p.Lon, 6);
     }
 
+    /// <summary>🔴 U-221: la virgola decimale anche quando la coppia è separata da «, ».</summary>
+    [Fact]
+    public void La_virgola_decimale_con_la_coppia_separata_da_virgola_e_spazio()
+    {
+        var esito = CoordinateParser.Parse("45,4642, 9,1900");
+
+        var p = Assert.Single(Assert.Single(esito.Aree).Punti);
+        Assert.Equal(45.4642, p.Lat, 6);
+        Assert.Equal(9.19, p.Lon, 6);
+    }
+
+    /// <summary>🔴 U-220: un segno meno insieme all'emisfero dichiarato è una contraddizione, non una latitudine sud.</summary>
+    [Theory]
+    [InlineData("N-41.9906 E12.4964")]
+    [InlineData("-41.9906N 12.4964E")]
+    public void Un_segno_con_l_emisfero_dichiarato_e_fuori_intervallo(string riga)
+    {
+        var esito = CoordinateParser.Parse(riga);
+
+        Assert.Empty(esito.Aree);
+        Assert.Contains(esito.Segnalazioni, s => s.Kind == CoordinateIssueKind.FuoriIntervallo);
+    }
+
+    /// <summary>E il segno da solo resta la forma di sempre per il sud e l'ovest.</summary>
+    [Fact]
+    public void Il_segno_senza_emisfero_resta_valido()
+    {
+        var p = Assert.Single(Assert.Single(CoordinateParser.Parse("-41.9906 -12.4964").Aree).Punti);
+        Assert.Equal(-41.9906, p.Lat, 6);
+        Assert.Equal(-12.4964, p.Lon, 6);
+    }
+
     /// <summary>E la coppia CSV coi punti resta com'era: la virgola lì separa.</summary>
     [Fact]
     public void La_virgola_fra_due_decimali_col_punto_resta_un_separatore()

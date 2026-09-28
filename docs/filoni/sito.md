@@ -1199,5 +1199,12 @@
   - **Test**: `PisteDalPubblicatoTests` (+2: la transizione congelata arriva, senza non si inventa; sul codice di
     prima non compilano, il campo non c'era), `AwosCompositionTests` (i due test del TL passano dalla funzione
     unica). Application 3054 → **3056**.
+  - **Gruppo 7** (convertitore, i numeri, **codice comune** `Vipi.Application`): **U-220** («N-41.99» o «-41.99N»
+    diventavano latitudine sud senza avvisi) → segno ed emisfero insieme fanno un token fuori intervallo, che si
+    segnala; il segno da solo resta la forma di sempre per sud e ovest. **U-221** («45,4642, 9,1900»: decimali
+    all'italiana con la coppia separata da «, » si spezzavano in quattro numeri) → dopo la conversione dei
+    decimali le virgole rimaste valgono da separatore se sono tutte seguite da uno spazio.
+  - **Test**: `CoordinateParserTests` (+4, tre rossi sul codice di prima; il quarto è la guardia del segno
+    senza emisfero). Application 3056 → **3060**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
