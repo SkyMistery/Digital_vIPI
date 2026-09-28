@@ -74,7 +74,7 @@
     /// ha in mano. Additivo — chi non lo aggancia non cambia di una virgola.
     ///
     /// <para>⚠️ <b>Solo sul tasto</b>, e non sulle altre strade che tolgono il lock: la scadenza e lo sblocco
-    /// forzato di un admin significano «questo lock non è più tuo», e salvare <i>lì</i> vorrebbe dire scrivere
+    /// forzato di un collega (ogni Editor può) significano «questo lock non è più tuo», e salvare <i>lì</i> vorrebbe dire scrivere
     /// sopra al lavoro di chi il lock ce l'ha adesso. Premere il tasto è l'unico caso in cui l'intenzione è
     /// dichiarata.</para>
     ///
@@ -135,7 +135,7 @@
 
     private async Task ForceUnlock()
     {
-        await Locks.ForceUnlockAsync(ResourceKey);   // admin: libera il lock altrui
+        await Locks.ForceUnlockAsync(ResourceKey);   // ogni Editor: libera il lock altrui (U-113)
         await Acquire();                              // e prendilo io
     }
 
@@ -248,7 +248,7 @@
         // NON si rilascia il lock qui: il teardown scatta anche navigando tra le pagine che CONDIVIDONO la stessa
         // risorsa (le 4 pagine di struttura), e rilasciare farebbe perdere il lock ad ogni cambio pagina. La chiusura
         // scheda è già gestita dal TTL corto: fermato l'heartbeat, il lock scade da sé in pochi minuti. Il rilascio
-        // immediato avviene solo su «Fine modifica» (esplicito) o «Forza sblocco» (admin).
+        // immediato avviene solo su «Fine modifica» (esplicito) o «Forza sblocco» (ogni Editor).
         StopHeartbeat();
         return ValueTask.CompletedTask;
     }

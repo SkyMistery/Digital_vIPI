@@ -302,4 +302,22 @@ public class MarkdownLiteTests
         Assert.Equal("", Html(null));
         Assert.Equal("", Html("   \r\n  "));
     }
+
+    /// <summary>
+    /// 🔴 U-240 (revisione totale 3): le regex della riga non avevano un tempo massimo. Una riga lunga piena di «__»
+    /// senza chiusura faceva ripartire la ricerca da ogni apertura fino in fondo — lavoro quadratico, a ogni lettura
+    /// pubblica del blocco. Ora oltre il tetto la riga si mostra com'è, codificata.
+    /// </summary>
+    [Fact]
+    public void Una_riga_piena_di_aperture_spaiate_non_ferma_il_render()
+    {
+        var riga = string.Concat(Enumerable.Repeat("__x ", 30_000)) + "<b>";
+        var tempo = System.Diagnostics.Stopwatch.StartNew();
+
+        var html = Html(riga);
+
+        tempo.Stop();
+        Assert.True(tempo.Elapsed < TimeSpan.FromSeconds(3), $"render in {tempo.Elapsed.TotalMilliseconds:0} ms");
+        Assert.Contains("&lt;b&gt;", html);   // codificata comunque: niente HTML dal testo
+    }
 }

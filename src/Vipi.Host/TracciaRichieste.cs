@@ -50,9 +50,10 @@ public static class TracciaRichieste
     /// <summary>Il percorso della PRIMA richiesta: dice chi ha svegliato il processo.</summary>
     public static string? Prima => Volatile.Read(ref _prima);
 
-    /// <summary>Il percorso, tagliato: un indirizzo lungo qui non serve, e la riga del registro si legge.</summary>
-    private static string Taglia(string percorso) =>
-        percorso.Length <= 40 ? percorso : percorso[..40] + "…";
+    /// <summary>Il percorso, tagliato: un indirizzo lungo qui non serve, e la riga del registro si legge.
+    /// <para>⚠️ E senza a capo (U-120, revisione totale 3): finisce nella riga ARRESTO di <c>avvii.txt</c>, e un
+    /// percorso con %0A la spezzava.</para></summary>
+    private static string Taglia(string percorso) => TestoDiRegistro.Riga(percorso, 40)!;
 
     /// <summary>Registra una richiesta. La chiama il middleware, una volta per richiesta.</summary>
     public static void Segna(string percorso)

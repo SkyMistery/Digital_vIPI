@@ -61,6 +61,11 @@ public static class DiagnosticaErrori
     {
         try
         {
+            // 🔴 U-120 (revisione totale 3): il percorso lo sceglie chi chiama, ed è decodificato — un %0A andava a
+            // capo e scriveva a colonna 0 una voce finta, che l'analisi per era contava come un guasto.
+            percorso = TestoDiRegistro.Riga(percorso, 200)!;
+            metodo = TestoDiRegistro.Riga(metodo, 16)!;
+            utente = TestoDiRegistro.Riga(utente, 60);
             var sb = new StringBuilder()
                 .AppendLine()
                 .AppendLine(new string('-', 78))
@@ -247,6 +252,10 @@ public static class DiagnosticaErrori
     /// motivo, e che non ci finisca mai un pezzo di credenziale.
     /// <para>⚠️ Nessuna dedup da <see cref="ENota"/> qui: un login che fallisce non è mai rumore, e sono
     /// pochi per definizione — chi non entra non riprova venti volte al minuto.</para>
+    ///
+    /// <para>🔴 U-023 (revisione totale 3): «error» ed «error_description» li scrive chi chiama /signin-oidc, già
+    /// decodificati. Scritti crudi, un a capo apriva a colonna 0 una voce inventata — codice, VID, stack — che l'analisi
+    /// per era contava. Qui ogni campo che viene da fuori passa da <see cref="TestoDiRegistro.Riga"/>.</para>
     /// </summary>
     internal static string VoceDiLogin(
         string motivo, string errorePortale, bool statoRecuperato, bool giaDentro, string ritorno,
@@ -254,16 +263,16 @@ public static class DiagnosticaErrori
         new StringBuilder()
             .AppendLine()
             .AppendLine(new string('-', 78))
-            .AppendLine($"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC · codice login-{motivo}")
-            .AppendLine($"LOGIN {PercorsoCallback} · utente {utente ?? "non collegato"}")
+            .AppendLine($"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC · codice login-{TestoDiRegistro.Riga(motivo, 40)}")
+            .AppendLine($"LOGIN {PercorsoCallback} · utente {TestoDiRegistro.Riga(utente, 60) ?? "non collegato"}")
             .AppendLine()
-            .AppendLine($"Motivo ..................... {motivo}")
-            .AppendLine($"Errore dal portale ......... {errorePortale}")
+            .AppendLine($"Motivo ..................... {TestoDiRegistro.Riga(motivo, 40)}")
+            .AppendLine($"Errore dal portale ......... {TestoDiRegistro.Riga(errorePortale, 300)}")
             .AppendLine($"Stato del giro recuperato .. {(statoRecuperato ? "sì" : "NO")}")
             .AppendLine($"Sessione già attiva ........ {(giaDentro
                 ? "sì — l'utente è rimasto dentro e NON ha visto niente"
                 : "no — è finito sulla pagina che spiega")}")
-            .AppendLine($"Ritorno .................... {ritorno}")
+            .AppendLine($"Ritorno .................... {TestoDiRegistro.Riga(ritorno, 200)}")
             .AppendLine()
             .AppendLine(guasto?.ToString()
                 ?? "(nessuna eccezione: il giro si è fermato per una risposta del portale, non per un guasto nostro)")
@@ -279,17 +288,47 @@ public static class DiagnosticaErrori
     /// distinguono: è la stessa. Da qui in poi il file lo dice.</para>
     ///
     /// <para>Una riga sola, come le note: non è un guasto, è un fatto che serve a leggere gli altri.</para>
+    ///
+    /// <para>🔴 <b>Una al minuto, non una per richiesta</b> (U-022/U-098, revisione totale 3). /Error è pubblico e senza
+    /// tetto: 130 richieste con un Referer da 8 kB facevano ruotare il file due volte e cancellavano i guasti veri,
+    /// magari provocati un attimo prima dallo stesso chiamante. Ora la prima del minuto si scrive, le altre si contano
+    /// e il numero esce con la successiva; il «da dove» si tronca a 200 caratteri e non va a capo.</para>
     /// </summary>
-    public static void RegistraPaginaSenzaEccezione(string? codice, string percorso)
+    public static void RegistraPaginaSenzaEccezione(string? codice, string percorso) =>
+        RegistraPaginaSenzaEccezione(codice, percorso, DateTime.UtcNow);
+
+    internal static void RegistraPaginaSenzaEccezione(string? codice, string percorso, DateTime ora)
     {
         try
         {
-            var riga = $"NOTA {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC · pagina /Error servita SENZA eccezione"
-                       + $" (nessuna richiesta è morta: ci si è arrivati da {percorso})"
-                       + $" · codice {codice ?? "(nessuno)"}" + Environment.NewLine;
-            lock (Serratura) Scrivi(riga);
+            lock (Serratura)
+            {
+                if (ora - _ultimaPaginaSenzaEccezione < TimeSpan.FromMinutes(1))
+                {
+                    _paginaSenzaEccezioneTaciute++;
+                    return;
+                }
+                var taciute = _paginaSenzaEccezioneTaciute > 0
+                    ? $" · altre {_paginaSenzaEccezioneTaciute} dall'ultima riga, non scritte" : "";
+                _ultimaPaginaSenzaEccezione = ora;
+                _paginaSenzaEccezioneTaciute = 0;
+
+                var riga = $"NOTA {ora:yyyy-MM-dd HH:mm:ss} UTC · pagina /Error servita SENZA eccezione"
+                           + $" (nessuna richiesta è morta: ci si è arrivati da {TestoDiRegistro.Riga(percorso, 200)})"
+                           + $" · codice {TestoDiRegistro.Riga(codice, 80) ?? "(nessuno)"}{taciute}" + Environment.NewLine;
+                Scrivi(riga);
+            }
         }
         catch { /* non c'è un piano C, e non deve esserci */ }
+    }
+
+    private static DateTime _ultimaPaginaSenzaEccezione = DateTime.MinValue;
+    private static int _paginaSenzaEccezioneTaciute;
+
+    /// <summary>Solo per i test: rimette a zero la memoria delle righe di /Error.</summary>
+    internal static void AzzeraPaginaSenzaEccezione()
+    {
+        lock (Serratura) { _ultimaPaginaSenzaEccezione = DateTime.MinValue; _paginaSenzaEccezioneTaciute = 0; }
     }
 
     /// <summary>Il percorso del callback, scritto a mano e senza query: la query è la credenziale.</summary>

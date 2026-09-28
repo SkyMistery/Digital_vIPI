@@ -28,6 +28,33 @@ namespace Vipi.Hosting;
 /// </summary>
 public static class VipiModuleExtensions
 {
+    /// <summary>
+    /// Il chiamante ha già l'immagine con questo sha? <paramref name="ifNoneMatch"/> è l'intestazione così come arriva:
+    /// una o più etichette separate da virgola, forti o deboli (un proxy che comprime riscrive <c>"x"</c> in
+    /// <c>W/"x"</c>). U-242: serve a rispondere 304 prima di leggere i byte.
+    /// </summary>
+    public static bool EtichettaGiaInMano(string? ifNoneMatch, string sha)
+    {
+        if (string.IsNullOrWhiteSpace(ifNoneMatch) || string.IsNullOrWhiteSpace(sha)) return false;
+        foreach (var grezza in ifNoneMatch.Split(','))
+        {
+            var e = grezza.Trim();
+            if (e.StartsWith("W/", StringComparison.Ordinal)) e = e[2..];
+            if (string.Equals(e, $"\"{sha}\"", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Una connessione SSE di questo VID in meno; a zero la voce se ne va, il dizionario non cresce.</summary>
+    private static void RilasciaSse(int vid)
+    {
+        while (_ssePerVid.TryGetValue(vid, out var n))
+        {
+            if (n <= 1 ? _ssePerVid.TryRemove(new KeyValuePair<int, int>(vid, n)) : _ssePerVid.TryUpdate(vid, n - 1, n))
+                return;
+        }
+    }
+
     /// <summary>Assembly della RCL vIPI: passarlo a <c>AddAdditionalAssemblies(...)</c> nell'host.</summary>
     public static Assembly UiAssembly => typeof(Vipi.Ui.Pages.SopHome).Assembly;
 
@@ -46,6 +73,16 @@ public static class VipiModuleExtensions
 
     /// <summary>Connessioni SSE attualmente aperte. Vive quanto il processo, come l'endpoint.</summary>
     private static int _sseAperti;
+
+    /// <summary>
+    /// Quante connessioni SSE può tenere aperte la stessa persona: le schede di chi lavora su più documenti.
+    /// 🔴 U-101 (revisione totale 3): «entrato» vuol dire qualunque account IVAO, e col solo tetto globale uno solo
+    /// ne apriva 300 e lasciava a 503 i gettoni live di tutta la divisione. Un tetto per VID accanto al globale.
+    /// </summary>
+    public const int MaxSsePerPersona = 5;
+
+    /// <summary>Connessioni SSE aperte per VID.</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> _ssePerVid = new();
 
     /// <summary>
     /// Come si serializza il quadro vAWOS.
@@ -297,9 +334,17 @@ public static class VipiModuleExtensions
             // aperte da uno script lasciavano a 503 i gettoni live di tutta la divisione; un tetto per IP dietro
             // Cloudflare colpirebbe controllori veri che arrivano dallo stesso indirizzo. Dal §CZ l'anonimo lo
             // stream non lo apre più (gettone spento): chiudergli la porta non gli toglie niente.
-            if (utente.Get() is null)
+            if (utente.Get() is not { } chi)
             {
                 ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return;
+            }
+
+            if (_ssePerVid.AddOrUpdate(chi.UserId, 1, (_, n) => n + 1) > MaxSsePerPersona)
+            {
+                RilasciaSse(chi.UserId);
+                ctx.Response.Headers.RetryAfter = "30";
+                ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 return;
             }
 
@@ -311,6 +356,7 @@ public static class VipiModuleExtensions
             if (Interlocked.Increment(ref _sseAperti) > MaxSseConcorrenti)
             {
                 Interlocked.Decrement(ref _sseAperti);
+                RilasciaSse(chi.UserId);
                 ctx.Response.Headers.RetryAfter = "30";
                 ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                 return;
@@ -362,6 +408,7 @@ public static class VipiModuleExtensions
             {
                 cache.Changed -= OnChanged;
                 Interlocked.Decrement(ref _sseAperti);
+                RilasciaSse(chi.UserId);
             }
         });
 
@@ -574,6 +621,16 @@ public static class VipiModuleExtensions
         // nosniff perché il browser non provi a interpretarlo diversamente.
         endpoints.MapGet(Vipi.Application.Content.MediaRef.UrlPrefix + "{sha}", async (string sha, IMediaStore store, HttpContext ctx, CancellationToken ct) =>
         {
+            // 🔴 U-242 (revisione totale 3): il 304 lo decideva Results.File DOPO aver letto dal database tutti i byte
+            // dell'immagine. L'indirizzo è content-addressed — lo sha È l'ETag — quindi un If-None-Match uguale allo
+            // sha si risponde subito, senza toccare il database.
+            if (EtichettaGiaInMano(ctx.Request.Headers.IfNoneMatch.ToString(), sha))
+            {
+                ctx.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
+                ctx.Response.Headers.ETag = $"\"{sha}\"";
+                return Results.StatusCode(StatusCodes.Status304NotModified);
+            }
+
             var media = await store.GetAsync(sha, ct);
             if (media is null) return Results.NotFound();
 

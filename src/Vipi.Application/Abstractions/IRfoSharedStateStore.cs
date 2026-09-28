@@ -36,4 +36,8 @@ public interface IRfoSharedStateStore
     /// <param name="data">JSON già validato come oggetto; si salva così com'è.</param>
     Task<RfoWriteResult> WriteAsync(string eventId, long expectedVersion, string data, string? updatedBy,
         CancellationToken ct = default);
+
+    /// <summary>Toglie la storia degli eventi la cui ultima scrittura è precedente a <paramref name="primaDi"/>.
+    /// Ritorna le righe tolte. Il documento corrente resta.</summary>
+    Task<int> PotaStoriaAsync(DateTime primaDi, CancellationToken ct = default);
 }

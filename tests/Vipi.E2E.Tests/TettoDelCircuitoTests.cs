@@ -31,4 +31,17 @@ public sealed class TettoDelCircuitoTests : IClassFixture<SmokeTests.VipiAppFact
         Assert.True(opzioni.MaximumReceiveMessageSize >= 512 * 1024,
             $"MaximumReceiveMessageSize = {opzioni.MaximumReceiveMessageSize}");
     }
+
+    /// <summary>
+    /// 🔴 U-238 (revisione totale 3): 25 posti per i circuiti staccati, comuni a tutti. Li riempivano i lettori
+    /// anonimi che bloccano il telefono, e l'editor che perdeva la rete per un attimo veniva ricaricato.
+    /// </summary>
+    [Fact]
+    public void I_circuiti_staccati_hanno_posto_anche_in_una_sera_d_evento()
+    {
+        var opzioni = _factory.Services.GetRequiredService<IOptions<Microsoft.AspNetCore.Components.Server.CircuitOptions>>().Value;
+
+        Assert.True(opzioni.DisconnectedCircuitMaxRetained >= 100,
+            $"DisconnectedCircuitMaxRetained = {opzioni.DisconnectedCircuitMaxRetained}");
+    }
 }

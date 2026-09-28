@@ -381,10 +381,16 @@ public static class VipiStandaloneAuthExtensions
         return vid is null ? null : $"VID {vid}";
     }
 
-    private static string Describe(string? error, string? description) =>
+    /// <summary>
+    /// L'errore dichiarato dal portale, in una riga. 🔴 U-023 (revisione totale 3): «error» ed «error_description»
+    /// sono nella query di /signin-oidc, cioè li scrive chiunque, e ASP.NET Core li consegna già decodificati: un
+    /// %0A andava a capo nei due registri. Neutralizzati e troncati qui, alla fonte, per il log e per il file.
+    /// </summary>
+    internal static string Describe(string? error, string? description) =>
         string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(description)
             ? "nessuno"
-            : $"{(string.IsNullOrWhiteSpace(error) ? "—" : error)} / {(string.IsNullOrWhiteSpace(description) ? "—" : description)}";
+            : $"{(string.IsNullOrWhiteSpace(error) ? "—" : TestoDiRegistro.Riga(error, 80))} / "
+              + $"{(string.IsNullOrWhiteSpace(description) ? "—" : TestoDiRegistro.Riga(description, 200))}";
 
     /// <summary>
     /// Nome da mostrare, dalla userinfo IVAO (<c>/v2/users/me</c>). In ordine:

@@ -109,9 +109,35 @@ public sealed class EfRfoSharedStateStore : IRfoSharedStateStore
                 $"INSERT INTO rfo_shared_state_history (event_id, version, data, updated_by, updated_at) SELECT event_id, version, data, updated_by, updated_at FROM rfo_shared_state WHERE event_id = {eventId}",
                 token).ConfigureAwait(false);
 
+            // 🔴 U-104/U-121 (revisione totale 3): e la storia si tiene alle ultime RfoLimits.StoriaPerEvento righe,
+            // nella stessa transazione. Per Id e non per versione: se il documento si svuota a mano la versione
+            // riparte da 1, e la vita di prima deve uscire per prima, non restare per sempre.
+            var soglia = await _db.RfoSharedStateHistory.AsNoTracking()
+                .Where(h => h.EventId == eventId)
+                .OrderByDescending(h => h.Id)
+                .Skip(Vipi.Domain.Entities.RfoLimits.StoriaPerEvento - 1)
+                .Select(h => (long?)h.Id)
+                .FirstOrDefaultAsync(token).ConfigureAwait(false);
+            if (soglia is long primaDaTenere)
+                await _db.RfoSharedStateHistory.Where(h => h.EventId == eventId && h.Id < primaDaTenere)
+                    .ExecuteDeleteAsync(token).ConfigureAwait(false);
+
             await tx.CommitAsync(token).ConfigureAwait(false);
             return true;
         }, ct);
+    }
+
+    public async Task<int> PotaStoriaAsync(DateTime primaDi, CancellationToken ct = default)
+    {
+        // L'ultima scrittura di un evento è la riga più recente della sua storia: le due si scrivono insieme.
+        var finiti = await _db.RfoSharedStateHistory.AsNoTracking()
+            .GroupBy(h => h.EventId)
+            .Where(g => g.Max(h => h.UpdatedAt) < primaDi)
+            .Select(g => g.Key)
+            .ToListAsync(ct).ConfigureAwait(false);
+        if (finiti.Count == 0) return 0;
+        return await _db.RfoSharedStateHistory.Where(h => finiti.Contains(h.EventId))
+            .ExecuteDeleteAsync(ct).ConfigureAwait(false);
     }
 
     private Task<bool> EsisteAsync(string eventId, CancellationToken ct) =>

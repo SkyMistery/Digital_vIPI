@@ -758,5 +758,42 @@
     release 37 della vIPI ACC LIBB mostra le frequenze dei blocchi, che prima derivava live. Guida con la regola
     nuova; pagina Versioni con tre «Refresh» di fila senza cadute. Nel log solo IVAO irraggiungibile (voluto).
     Le altre voci (unioni, lock, ricerca, ponte militare, scarta/pubblica in transazione) le provano i test.
+- ✅ **S28** lotto **L11 «Il resto», fetta C — registri e superficie anonima** della revisione 3 (via del
+  committente il 28-set). Registri: U-022/U-098, U-099/U-239, U-023, U-120, U-124, U-125, U-127, U-234. Porte
+  anonime: U-019, U-101, U-102, U-103, U-104/U-121, U-238, U-240, U-242, U-243; più U-113 (gli ultimi commenti
+  «solo admin»). **Resta fuori U-021** (IP vero dietro Cloudflare/Plesk/Passenger): va prima misurata la catena
+  in produzione. Nessuna migrazione, `deploy/` no. **Codice comune sì**: `Vipi.Domain` (`RfoLimits`),
+  `Vipi.Application` (`IRfoSharedStateStore.PotaStoriaAsync`, `EditorTaskService`).
+  - **Registri** (`TestoDiRegistro` nuovo): un valore da fuori — percorso, Referer, errore del portale IVAO —
+    entra in una riga sola e con un tetto; messaggi e stack dentro una voce rientrano di due spazi, così a
+    colonna 0 stanno solo le righe nostre. Prima un %0A scriveva voci finte e poteva zittire una firma vera
+    fino a mezzanotte (U-120, U-023); dieci percorsi da 8 kB facevano una voce da 80 kB (U-127).
+  - **/Error** (U-022/U-098): la nota «pagina senza eccezione» una al minuto, col conto delle taciute; 300
+    richieste non fanno più ruotare il file. E risponde a tutti i metodi (U-234): un'eccezione in un PUT del
+    ponte o in un POST esce 500, non 405.
+  - **Ponte RFO** (U-099/U-239, U-104/U-121, scelte del committente): chi sbaglia chiave, oltre 30 al minuto
+    per IP, riceve 429 senza scrivere niente; il rifiuto vale una riga di log al minuto per IP; 401 e 429 del
+    ponte fuori dal registro delle richieste. Scritture: 120 al minuto per evento. Storia: ultime 100 versioni
+    per evento (nella stessa transazione), e 30 giorni dopo l'ultima scrittura via tutta (giro notturno di
+    `TrafficRetentionHostedService`). Il documento corrente resta.
+  - **Segreti** (U-124, U-125): un file dei segreti malformato dice il numero e il difetto, non il nome; il GUID
+    della chiave di DataProtection non entra in `avvisi-log.txt`; la password fra virgolette con un «;» non esce
+    più in `avvio-diagnostica.txt` (`DbConnectionStringBuilder`).
+  - **Porte anonime**: cache delle letture solo con le chiavi di query che le pagine leggono (U-102; il tetto per
+    IP sulle pagine, l'altra metà, sta meglio al bordo e non è fatto); riconvalida delle posizioni staff una
+    volta ogni 5 minuti per VID, anche con un cookie vecchio rimandato uguale (U-103); 100 circuiti staccati
+    invece di 25 (U-238); regex di MarkdownLite con un tempo massimo di 1 s (U-240: una riga patologica prendeva 10 s;
+    100 ms, la prima stesura, scadevano sotto carico anche su «__a__», visto nella suite intera); 304 delle immagini senza leggere il database (U-242); chiavi API false oltre il tetto senza
+    query (U-243); stream live al massimo 5 per persona (U-101); incarichi solo dall'Editor, e il tasto solo a
+    lui (U-019).
+  - **Test**: `RegistriEPorteAnonimeTests` (14), ponte RFO (+2 e un caso in più), `StoriaDelPonteRfoTests` (2),
+    riconvalida (+1), circuiti (+1), incarichi (+1), MarkdownLite (+1). Rossi col comportamento di ogni
+    correzione spento (le firme nuove sono troppe per rimettere i sorgenti di `HEAD`): 25 su 25. Suite intera
+    verde, net8 e net10: E2E 423 → **441**, Application 3016 → **3017**, Infrastructure 1754 → **1756**,
+    Ui 1781 → **1782**, il resto invariato.
+  - **Prova dal vivo** (copia del DB di sviluppo, identità senza livello VID 123456): POST e PUT su `/Error` → 200;
+    `/vsop/media/<sha inesistente>` con If-None-Match uguale → 304 (senza, 404); 35 richieste al ponte con la
+    chiave sbagliata → 30 × 401 poi 429, e **una** riga di log; la pagina Incarichi si apre senza il tasto
+    «Nuovo incarico personale». Nel log solo IVAO irraggiungibile (voluto).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

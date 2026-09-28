@@ -132,8 +132,26 @@ internal static class CacheDelleLettureAnonime
         foreach (var chiave in Vipi.Application.Content.LinguaDiLettura.ChiaviQuery)
             if (context.Request.Query.ContainsKey(chiave)) return false;
 
+        // 🔴 U-102 (revisione totale 3): la chiave della copia è l'indirizzo con TUTTA la query, e un «?x=<a caso>»
+        // faceva di ogni richiesta una copia nuova — render intero ogni volta, e 32 MB di cache riempiti di varianti
+        // inutili che scacciavano le copie buone. Si tengono solo gli indirizzi con le chiavi che le pagine
+        // pubbliche leggono davvero; con una chiave diversa la pagina si serve, ma non si tiene. È la direzione
+        // prudente: una chiave dimenticata qui costa una copia in meno, non una pagina sbagliata.
+        foreach (var chiave in context.Request.Query.Keys)
+            if (!ChiaviDellePagine.Contains(chiave)) return false;
+
         return true;
     }
+
+    /// <summary>
+    /// Le chiavi di query che le pagine pubbliche leggono (<c>[SupplyParameterFromQuery]</c>): scalo, vista, albero
+    /// ACC, APP, coppia della vLOA, ricerca, statistiche, lingua della Guida. ⚠️ <c>test</c> del vAWOS NON c'è:
+    /// porta un METAR scelto da chi chiama, cioè una copia diversa a ogni richiesta.
+    /// </summary>
+    internal static readonly IReadOnlySet<string> ChiaviDellePagine = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "icao", "vista", "tree", "app", "acc", "live", "q", "p", "g", "f", "lang",
+    };
 
     /// <summary>
     /// I due cookie che <b>questo sito emette da sé</b> e che non dicono niente su chi guarda. Sono un

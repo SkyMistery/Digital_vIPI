@@ -331,10 +331,54 @@ public sealed class PonteRfoTests : IClassFixture<PonteRfoTests.PonteFactory>
         Assert.Equal(HttpStatusCode.Forbidden, (await Client(Chiave).SendAsync(Get("limc-20261010"))).StatusCode);
     }
 
+    /// <summary>
+    /// 🔴 U-099/U-239 (revisione totale 3): ogni rifiuto senza chiave scriveva una riga nel log e una nel registro
+    /// delle richieste, e circa 35 000 richieste anonime zittivano la diagnostica fino a mezzanotte. Da un IP, oltre
+    /// RifiutiAlMinutoPerIp, il ponte risponde 429 senza scrivere niente. Una fabbrica sua: il limitatore è per
+    /// host, e le altre prove di questa classe mandano chiavi sbagliate dallo stesso indirizzo.
+    /// </summary>
+    [Fact]
+    public async Task Chi_sbaglia_chiave_a_raffica_si_ferma_al_429()
+    {
+        using var fabbrica = new PonteFactory();
+        var c = fabbrica.CreateClient();
+        c.DefaultRequestHeaders.Add("x-api-key", Chiave + "x");
+
+        var esiti = new List<HttpStatusCode>();
+        for (var i = 0; i < 40; i++) esiti.Add((await c.SendAsync(Get("lirn-20260919"))).StatusCode);
+
+        Assert.Equal(Vipi.Hosting.PonteRfo.RifiutiAlMinutoPerIp, esiti.Count(e => e == HttpStatusCode.Unauthorized));
+        Assert.Equal(HttpStatusCode.TooManyRequests, esiti[^1]);
+    }
+
+    /// <summary>
+    /// 🔴 U-104 (revisione totale 3, tetto scelto dal committente): un client incastrato in un ciclo 409 → PUT non si
+    /// fermava mai, e ogni scrittura costava fino a 1 MB due volte. Oltre RfoLimits.ScrittureAlMinuto, 429.
+    /// </summary>
+    [Fact]
+    public async Task Oltre_il_tetto_delle_scritture_dell_evento_429()
+    {
+        var c = Client();
+        var ev = Evento();
+        const string Corpo = "{\"data\":{}}";
+        var esiti = new List<HttpStatusCode>();
+        for (var i = 0; i <= Vipi.Domain.Entities.RfoLimits.ScrittureAlMinuto; i++)
+            esiti.Add((await c.SendAsync(Put(ev, "\"0\"", Corpo))).StatusCode);
+
+        Assert.Equal(HttpStatusCode.OK, esiti[0]);
+        Assert.DoesNotContain(HttpStatusCode.TooManyRequests, esiti.Take(Vipi.Domain.Entities.RfoLimits.ScrittureAlMinuto));
+        Assert.Equal(HttpStatusCode.TooManyRequests, esiti[^1]);
+        // Un altro evento non ne risente: il tetto è per evento.
+        Assert.Equal(HttpStatusCode.OK, (await c.SendAsync(Put(Evento(), "\"0\"", Corpo))).StatusCode);
+    }
+
     [Fact]
     public async Task Il_registro_delle_richieste_non_scrive_i_304_del_ponte()
     {
         Assert.True(RegistroRichieste.PollingVuoto("/api/rfo/events/lirn-20260919/state", 304));
+        // Né i rifiuti senza chiave né i 429 (U-239): li può mandare chiunque.
+        Assert.True(RegistroRichieste.PollingVuoto("/api/rfo/events/lirn-20260919/state", 401));
+        Assert.True(RegistroRichieste.PollingVuoto("/api/rfo/events/lirn-20260919/state", 429));
         Assert.False(RegistroRichieste.PollingVuoto("/api/rfo/events/lirn-20260919/state", 200));
         Assert.False(RegistroRichieste.PollingVuoto("/api/rfo/events/lirn-20260919/state", 409));
         Assert.False(RegistroRichieste.PollingVuoto("/services/vsop/airport/LIRN", 304));

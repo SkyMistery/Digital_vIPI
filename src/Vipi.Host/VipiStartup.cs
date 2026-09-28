@@ -100,7 +100,12 @@ internal static class VipiStartup
                 // tutto lo stato della pagina editor che aveva aperta.
                 // ⚠️ Numeri stimati sul traffico atteso (decine di persone, non migliaia): da rivedere dopo il primo
                 // ciclo AIRAC pubblicato dal server nuovo, quando ci sarà una misura al posto di una stima.
-                o.DisconnectedCircuitMaxRetained = 25;
+                // 🔴 Da 25 a 100 il 28 settembre 2026 (U-238, revisione totale 3): il posto è UNO per tutti, e lo
+                // occupano anche i circuiti dei lettori anonimi (isole meteo e SID, ricerca) staccati senza beacon,
+                // ognuno per cinque minuti. Una sera d'evento bastavano venticinque telefoni bloccati sulle pagine
+                // aeroporto: l'editor che perdeva la rete per un attimo veniva ricaricato, e perdeva quel che non
+                // aveva salvato. La misura c'è ora (MemoriaDelProcesso, ARRESTO): 251 MB su 29 GB, margine largo.
+                o.DisconnectedCircuitMaxRetained = CircuitiTrattenuti;
 
                 // ⚠️ Da 2 a 5 minuti il 31 agosto 2026, e la ragione è precisa: QUESTA finestra è l'unica cosa
                 // che distingue «mi si è staccato un attimo e ritrovo la pagina com'era» da «ricarico e riparto
@@ -664,7 +669,10 @@ internal static class VipiStartup
         // La pagina d'errore. E' un endpoint e non un componente perche' deve reggere anche quando a lanciare
         // e' stato il layout condiviso — successo il 24 agosto 2026: una pagina d'errore che passasse di li'
         // lancerebbe una seconda volta. Il codice che mostra e' quello scritto in diagnostica/errori-richieste.txt.
-        app.MapGet("/Error", (HttpContext ctx) =>
+        // 🔴 Per TUTTI i metodi (U-234, revisione totale 3): UseExceptionHandler rifà la pipeline col metodo della
+        // richiesta morta. Con il solo GET un'eccezione nel PUT del ponte RFO o nel POST di transfers/resolve usciva
+        // come 405 vuoto — «errore di contratto» per chi chiama — invece che come 500, da ritentare.
+        app.Map("/Error", (HttpContext ctx) =>
         {
             var codice = System.Diagnostics.Activity.Current?.Id ?? ctx.TraceIdentifier;
 
@@ -690,6 +698,9 @@ internal static class VipiStartup
 
         app.Run();
     }
+
+    /// <summary>Quanti circuiti staccati si tengono per il riaggancio (vedi l'impostazione in AddInteractiveServerComponents).</summary>
+    internal const int CircuitiTrattenuti = 100;
 
     /// <summary>
     /// «vipi-fonts.css.br» → «vipi-fonts.css». Serve a decidere sul file VERO quando quello che si sta
