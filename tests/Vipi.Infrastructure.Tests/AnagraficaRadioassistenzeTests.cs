@@ -396,4 +396,61 @@ public class AnagraficaRadioassistenzeTests : IAsyncLifetime
 
         Assert.Equal(new[] { "MNL", "AEA" }, righe.Select(r => r.Code));
     }
+
+    // ---- La riga che la sorgente non manda più (U-036, U-040) ---------------------------------------------
+
+    /// <summary>
+    /// 🔴 U-036 (revisione totale 3): la chiave è CODICE|FAMIGLIA|CANALE e l'import non pota mai. Una riga che
+    /// la sorgente non manda più conservava il timbro d'import e le origini «sorgente»: non si cancellava («la
+    /// manda la sorgente»), non si correggeva, e i vSOP che la citano stampavano i suoi valori fermi. In
+    /// produzione: TRP|VHF|25X, ferma al 30 agosto e citata dalle tabelle alternati MIL di LICT. Ora il giro la
+    /// stacca dalla sorgente — la riga resta, con i suoi valori, ma torna nostra: si corregge e si toglie.
+    /// </summary>
+    [Fact]
+    public async Task La_riga_che_la_sorgente_non_manda_piu_torna_modificabile()
+    {
+        await _cat.ImportFromSourceAsync(new[] { new SourceNavaid("AEA", "VHF", "111.65", "54Y", 40.6, 17.9) });
+        await _cat.ImportFromSourceAsync(new[] { new SourceNavaid("AEA", "VHF", "111.80", "55Y", 40.6, 17.9) });
+
+        var righe = await _cat.ListAsync();
+        Assert.Equal(2, righe.Count);
+        var vecchia = righe.Single(r => r.Channel == "54Y");
+        Assert.Equal(NavaidWrite.Ok, await _cat.SetFrequencyAsync(vecchia.Id, "111.70", userId: 7));
+        Assert.Equal(NavaidDelete.Ok, await _cat.DeleteAsync(vecchia.Id, userId: 7));
+        // La riga che la sorgente manda resta sua.
+        var nuova = (await _cat.ListAsync()).Single();
+        Assert.Equal(NavaidWrite.DallaSorgente, await _cat.SetFrequencyAsync(nuova.Id, "118.00", userId: 7));
+    }
+
+    /// <summary>🔴 U-036: il giro dice quante righe ha staccato — è un fatto che qualcuno deve guardare (una
+    /// citata va ripuntata a mano) — e una riga che torna nella sorgente torna sua.</summary>
+    [Fact]
+    public async Task Il_giro_conta_le_staccate_e_riprende_quelle_che_tornano()
+    {
+        var aea = new SourceNavaid("AEA", "VHF", "111.65", "54Y", 40.6, 17.9);
+        await _cat.ImportFromSourceAsync(new[] { aea, Mnl() });
+
+        Assert.Equal(1, (await _cat.ImportFromSourceAsync(new[] { Mnl() })).Staccate);
+        Assert.Equal(0, (await _cat.ImportFromSourceAsync(new[] { aea, Mnl() })).Staccate);
+
+        var riga = (await _cat.ListAsync()).Single(r => r.Code == "AEA");
+        Assert.Equal(NavaidWrite.DallaSorgente, await _cat.SetFrequencyAsync(riga.Id, "118.00", userId: 7));
+    }
+
+    /// <summary>
+    /// 🔴 U-040 (revisione totale 3): il canale scritto a mano su una riga della sorgente che non lo porta ne
+    /// cambiava l'identità: il giro dopo la sorgente mandava la chiave vecchia e ricreava la riga, e quella col
+    /// canale restava congelata (così è nata TRP 25X il 31 agosto). Sulle righe della sorgente il canale non si
+    /// scrive a mano: è parte dell'identità che la sorgente decide.
+    /// </summary>
+    [Fact]
+    public async Task Il_canale_non_si_scrive_a_mano_su_una_riga_della_sorgente()
+    {
+        await _cat.ImportFromSourceAsync(new[] { new SourceNavaid("TRP", "VHF", "116.90", null, 38.0, 12.5) });
+        var trp = (await _cat.ListAsync()).Single();
+
+        Assert.Equal(NavaidWrite.DallaSorgente, await _cat.SetChannelAsync(trp.Id, "25X", userId: 7));
+        await _cat.ImportFromSourceAsync(new[] { new SourceNavaid("TRP", "VHF", "116.90", null, 38.0, 12.5) });
+        Assert.Single(await _cat.ListAsync());
+    }
 }

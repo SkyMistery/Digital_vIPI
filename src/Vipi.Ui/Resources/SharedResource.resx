@@ -1178,6 +1178,7 @@
   <data name="Nav_AdminImport" xml:space="preserve"><value>Importa dal sectorfile</value></data>
   <data name="Nav_AdminImportTitle" xml:space="preserve"><value>Rilegge il sectorfile adesso e aggiorna l&apos;anagrafica, senza aspettare il giro automatico</value></data>
   <data name="Nav_AdminImporting" xml:space="preserve"><value>Sto rileggendo il sectorfile…</value></data>
+  <data name="Nav_AdminDetached" xml:space="preserve"><value>{0} righe che il sectorfile non manda più sono tornate modificabili a mano: se un documento le cita, va ripuntato sulla riga nuova.</value></data>
   <data name="Nav_AdminImported" xml:space="preserve"><value>Import fatto: {0} create, {1} aggiornate, {2} invariate (su {3} righe dal sectorfile).</value></data>
   <data name="Nav_AdminImportExcluded" xml:space="preserve"><value>Import non eseguito: nelle Sorgenti le radioassistenze sono segnate come «manuali», quindi le gestisce una persona.</value></data>
   <data name="Nav_AdminImportMute" xml:space="preserve"><value>Import non eseguito: il sectorfile non ha risposto (repository spostato o rete giù). Niente è stato cambiato.</value></data>

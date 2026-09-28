@@ -184,11 +184,14 @@
                             <td class="c-band muted"><Marca Testo="@r.Kind" Cerca="@_cerca" /></td>
                             <td class="c-type">
                                 @* Il TIPO si scrive sempre: non viene mai dalla sorgente. *@
-                                <input list="@TipiId" value="@r.Type" aria-label="@L["Nav_Type"]"
+                                <input list="@TipiId" value="@r.Type" aria-label="@L["Nav_Type"]" disabled="@_busy"
                                        @onchange="e => Scrivi(r, NavaidCampo.Tipo, e.Value?.ToString())" />
                             </td>
                             <td class="c-freq">@Campo(r, NavaidCampo.Frequenza, r.Frequency, r.FrequencyOrigin, "115.25")</td>
-                            <td class="c-chan">@Campo(r, NavaidCampo.Canale, r.Channel, r.ChannelOrigin, "99Y")</td>
+                            @* U-040: il canale è nell'identità, e su una riga della sorgente lo decide la sorgente, anche quando non
+                               lo manda. Casella solo sulle righe nostre. *@
+                            <td class="c-chan">@Campo(r, NavaidCampo.Canale, r.Channel,
+                                r.DallaSorgente ? NavaidFieldOrigin.Source : r.ChannelOrigin, "99Y")</td>
                             <td class="c-coord @(r.CoordinatesOrigin == NavaidFieldOrigin.Source ? "c-nowrap" : null)">
                                 @Campo(r, NavaidCampo.Coordinate, NavaidText.Coordinate(r.Latitude, r.Longitude),
                                        r.CoordinatesOrigin, "N41°32'05.07''E015°43'42.47''")
@@ -384,7 +387,7 @@
             : "zzzz";
 
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
-    protected override async Task OnParametersSetAsync() => await CaricaAsync();
+    protected override async Task OnParametersSetAsync() => await InFila(CaricaAsync);
 
     private async Task CaricaAsync() => _righe = await Anagrafica.ListAsync();
 
@@ -399,7 +402,8 @@
         }
         else
         {
-            <input value="@valore" placeholder="@segnaposto" aria-label="@segnaposto"
+            @* Spenta solo mentre gira l'import (U-132): l'import e le celle scrivono sullo stesso contesto. *@
+            <input value="@valore" placeholder="@segnaposto" aria-label="@segnaposto" disabled="@_busy"
                    @onchange="e => Scrivi(r, campo, e.Value?.ToString())" />
         }
     };
@@ -421,6 +425,10 @@
     {
         if (!PuoScrivere) return;
         _busy = true; _messaggio = null; _note.Clear();
+        // 🔴 U-132 (revisione totale 3): l'import gira DENTRO la fila delle scritture. `RunNowAsync` riparte fuori dal
+        // dispatcher (ConfigureAwait(false)) e usa lo stesso DbContext del circuito delle celle: una cella salvata
+        // mentre l'import scriveva faceva «A second operation was started», e il circuito moriva.
+        await _scritture.WaitAsync();
         try
         {
             var r = await Importatore.RunNowAsync();
@@ -430,13 +438,14 @@
                 { Saltato: NavaidImportSkip.Esclusa } => L["Nav_AdminImportExcluded"].Value,
                 @* Il localizzatore con gli argomenti, non `string.Format` sul `.Value`: quello non
                    interpola i segnaposto e stamperebbe la frase con dentro le graffe. *@
-                { Esito: { } e } => L["Nav_AdminImported", e.Create, e.Aggiornate, e.Invariate, r.DallaSorgente].Value,
+                { Esito: { } e } => L["Nav_AdminImported", e.Create, e.Aggiornate, e.Invariate, r.DallaSorgente].Value
+                    + (e.Staccate > 0 ? " " + L["Nav_AdminDetached", e.Staccate].Value : ""),
                 _ => L["Nav_AdminImportMute"].Value,
             };
             await CaricaAsync();
         }
         catch (Exception ex) { _ok = false; _messaggio = ex.Message; }
-        finally { _busy = false; }
+        finally { _busy = false; _scritture.Release(); }
     }
 
     /// <summary>
@@ -476,6 +485,21 @@
             // che si è battuto e sembra salvato.
             await CaricaAsync();
         }
+        // 🔴 U-132: un'eccezione del database usciva dal gestore del cambio, e il circuito cadeva. Si dice sulla riga.
+        catch (Exception ex) { _note[r.Id] = ex.Message; }
+        finally { _scritture.Release(); }
+    }
+
+    /// <summary>
+    /// Un gesto che tocca il database, nella stessa fila delle celle e dell'import (U-132): la pagina ha UN contesto,
+    /// quello del circuito, e due operazioni sovrapposte lo rompono. Un errore si dice in testata invece di
+    /// abbattere il circuito.
+    /// </summary>
+    private async Task InFila(Func<Task> gesto)
+    {
+        await _scritture.WaitAsync();
+        try { await gesto(); }
+        catch (Exception ex) { _ok = false; _messaggio = ex.Message; }
         finally { _scritture.Release(); }
     }
 
@@ -510,7 +534,9 @@
     /// <summary>Vero mentre la domanda è a schermo. Ci arrivano tutt'e due le strade, mouse e tastiera.</summary>
     private bool _chiediConferma;
 
-    private async Task Aggiungi()
+    private Task Aggiungi() => InFila(AggiungiAsync);
+
+    private async Task AggiungiAsync()
     {
         _messaggio = null;
         _chiediConferma = false;
@@ -539,7 +565,9 @@
     /// sorgente» è definitiva, «la cita un documento» si risolve togliendola di lì — e per farlo bisogna
     /// sapere <b>quale</b>.
     /// </summary>
-    private async Task Elimina(NavaidRow r)
+    private Task Elimina(NavaidRow r) => InFila(() => EliminaAsync(r));
+
+    private async Task EliminaAsync(NavaidRow r)
     {
         _messaggio = null;
         _note.Remove(r.Id);

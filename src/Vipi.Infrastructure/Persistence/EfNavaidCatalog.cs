@@ -177,7 +177,10 @@ public sealed class EfNavaidCatalog : INavaidCatalog
         _authz.EnsureAtLeast(VipiRole.Editor);
         var n = await _db.Navaids.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (n is null) return NavaidWrite.NonTrovata;
-        if (n.ChannelOrigin == NavaidFieldOrigin.Source) return NavaidWrite.DallaSorgente;
+        // 🔴 U-040 (revisione totale 3): non solo il canale che manda la sorgente — ogni riga che la sorgente
+        // manda. Il canale è nell'identità: scritto a mano su una sua riga che non lo porta, il giro dopo la
+        // sorgente mandava la chiave vecchia e ricreava la riga, e questa restava congelata (TRP 25X, 31 agosto).
+        if (n.ChannelOrigin == NavaidFieldOrigin.Source || n.ImportedUtc is not null) return NavaidWrite.DallaSorgente;
         if (!NavaidRules.CanaleValido(canale)) return NavaidWrite.NonValido;
 
         var nuovo = NavaidRules.Valore(canale);
@@ -298,8 +301,27 @@ public sealed class EfNavaidCatalog : INavaidCatalog
             else aggiornate++;
         }
 
+        // 🔴 U-036 (revisione totale 3): la riga che la sorgente NON manda più. Restava con il timbro d'import e
+        // le origini «sorgente»: non si cancellava, non si correggeva, e i vSOP che la citano stampavano i suoi
+        // valori fermi (TRP|VHF|25X, ferma al 30 agosto, citata a LICT). Non si cancella nemmeno ora — l'assenza
+        // non cancella, e una riga citata non sparisce da sotto un documento — ma torna NOSTRA: i campi della
+        // sorgente diventano scritti a mano, e da lì si correggono o si tolgono. Se la sorgente la rimanda, il giro
+        // dopo la riprende. ⚠️ Solo le righe con il timbro d'import: ILS e TACAN scritti a mano non sono mai stati
+        // della sorgente, e restano come sono.
+        var mandate = esistenti.Keys.ToHashSet(StringComparer.Ordinal);
+        var staccate = await _db.Navaids.Where(n => n.ImportedUtc != null).ToListAsync(ct);
+        var nStaccate = 0;
+        foreach (var n in staccate.Where(n => !mandate.Contains(n.NaturalKey)))
+        {
+            n.ImportedUtc = null;
+            if (n.FrequencyOrigin == NavaidFieldOrigin.Source) n.FrequencyOrigin = NavaidFieldOrigin.Manual;
+            if (n.ChannelOrigin == NavaidFieldOrigin.Source) n.ChannelOrigin = NavaidFieldOrigin.Manual;
+            if (n.CoordinatesOrigin == NavaidFieldOrigin.Source) n.CoordinatesOrigin = NavaidFieldOrigin.Manual;
+            nStaccate++;
+        }
+
         await _db.SaveChangesAsync(ct);
-        return new NavaidImportOutcome(create, aggiornate, invariate);
+        return new NavaidImportOutcome(create, aggiornate, invariate, nStaccate);
     }
 
     /// <summary>

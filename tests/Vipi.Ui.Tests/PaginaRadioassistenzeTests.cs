@@ -74,8 +74,17 @@ public class PaginaRadioassistenzeTests : TestContext
         public int Scritture { get; private set; }
         private int _inVolo;
 
+        /// <summary>Se c'è, dice se in questo momento un import è in volo: una scrittura che lo trova vero è
+        /// una seconda operazione sullo stesso contesto.</summary>
+        public Func<bool>? ImportInVolo { get; set; }
+        public int ScrittureDuranteLImport { get; private set; }
+        /// <summary>Se c'è, la scrittura del tipo solleva questa eccezione: il database che non risponde.</summary>
+        public Exception? Guasto { get; set; }
+
         public async Task<NavaidWrite> SetTypeAsync(int id, string? tipo, int userId, CancellationToken ct = default)
         {
+            if (ImportInVolo?.Invoke() == true) ScrittureDuranteLImport++;
+            if (Guasto is { } g) throw g;
             MassimoInVolo = Math.Max(MassimoInVolo, ++_inVolo);
             try
             {
@@ -109,10 +118,20 @@ public class PaginaRadioassistenzeTests : TestContext
             return Task.FromResult(_esito);
         }
 
-        public Task<NavaidImportReport> RunNowAsync(CancellationToken ct = default)
+        /// <summary>Se c'è, il giro «adesso» aspetta qui: serve a tenerlo in volo mentre arriva una scrittura.</summary>
+        public TaskCompletionSource? Freno { get; set; }
+        public bool InVolo { get; private set; }
+
+        public async Task<NavaidImportReport> RunNowAsync(CancellationToken ct = default)
         {
             Adesso++;
-            return Task.FromResult(_esito);
+            InVolo = true;
+            try
+            {
+                if (Freno is { } f) await f.Task.ConfigureAwait(false);   // come il vero: riparte fuori dal dispatcher
+                return _esito;
+            }
+            finally { InVolo = false; }
         }
     }
 
@@ -396,6 +415,46 @@ public class PaginaRadioassistenzeTests : TestContext
 
         Assert.Equal(2, anagrafica.Scritture);
         Assert.Equal(1, anagrafica.MassimoInVolo);
+    }
+
+    /// <summary>
+    /// 🔴 U-132 (revisione totale 3): «Rileggi dal sectorfile» e le celle usano lo stesso contesto del circuito, e
+    /// l'import riparte fuori dal dispatcher: una cella salvata mentre l'import scriveva era «A second operation was
+    /// started». Ora la scrittura aspetta che l'import finisca.
+    /// </summary>
+    [Fact]
+    public async Task Una_cella_salvata_durante_l_import_aspetta_che_finisca()
+    {
+        var importatore = new ImportatoreFinto(new NavaidImportReport(new NavaidImportOutcome(0, 0, 1), null, 1))
+            { Freno = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        var anagrafica = new AnagraficaFinta(Nostra(1, "AMD"));
+        anagrafica.ImportInVolo = () => importatore.InVolo;
+        var cut = Render(anagrafica, importatore);
+
+        var import = cut.InvokeAsync(() => cut.Find("button[title=Nav_AdminImportTitle]").ClickAsync(new()));
+        var cella = cut.InvokeAsync(() => cut.Find("table.navadm-table td.c-type input")
+            .ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "ILS" }));
+
+        importatore.Freno.SetResult();
+        await import;
+        await cella;
+
+        Assert.Equal(0, anagrafica.ScrittureDuranteLImport);
+        Assert.Equal(1, anagrafica.Scritture);
+    }
+
+    /// <summary>🔴 U-132: un errore del database su una cella si dice sulla riga; prima usciva dal gestore del
+    /// cambio, e il circuito cadeva.</summary>
+    [Fact]
+    public async Task Un_errore_di_scrittura_si_dice_sulla_riga()
+    {
+        var anagrafica = new AnagraficaFinta(Nostra(1, "AMD")) { Guasto = new InvalidOperationException("database giù") };
+        var cut = Render(anagrafica, new ImportatoreFinto(new NavaidImportReport(null, NavaidImportSkip.SorgenteMuta, 0)));
+
+        await cut.InvokeAsync(() => cut.Find("table.navadm-table td.c-type input")
+            .ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "ILS" }));
+
+        Assert.Contains("database giù", cut.Find("tr.mil-note").TextContent);
     }
 
     /// <summary>Chi non è Editor non vede la tabella: il rifiuto, non una pagina che non risponde.</summary>

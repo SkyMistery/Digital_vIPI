@@ -65,7 +65,9 @@ public enum NavaidDelete
 }
 
 /// <summary>Che cosa ha fatto un giro d'import delle radioassistenze.</summary>
-public sealed record NavaidImportOutcome(int Create, int Aggiornate, int Invariate);
+/// <param name="Staccate">Righe che la sorgente mandava e non manda più: restano, coi loro valori, ma tornano
+/// nostre — si correggono e si tolgono a mano (U-036). Se un documento le cita, va ripuntato.</param>
+public sealed record NavaidImportOutcome(int Create, int Aggiornate, int Invariate, int Staccate = 0);
 
 /// <summary>
 /// L'anagrafica delle radioassistenze di divisione (carta vSOP militari §12b): <b>scritta una volta, esce
