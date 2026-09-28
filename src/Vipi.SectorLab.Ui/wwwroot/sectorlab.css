@@ -947,6 +947,33 @@ body.lab-trascina * {
     align-items: center;
 }
 
+/* Lotto «Subito» slice 7e: i nomi di colors.def e chi li usa, nel pannello del file. */
+.lab-sottotitolo {
+    margin: .5rem 0 .2rem;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--lab-titoli);
+}
+
+.lab-colori-usati {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.lab-colori-usati summary {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    cursor: pointer;
+}
+
+.lab-colori-usati .lab-campione {
+    display: inline-block;
+}
+
 .lab-citazioni-altrui {
     color: var(--lab-tenue);
 }

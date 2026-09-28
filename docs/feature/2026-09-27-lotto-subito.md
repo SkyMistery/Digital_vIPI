@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a-7d fatte; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a-7e fatte; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -883,3 +883,21 @@ cominciando la 7c: le posizioni, le piste e i file hanno ognuno la sua forma di 
   scrive; annullato, ogni file torna quello dell'apertura). Prova a schermo sul banco: LIRF 16L → «16C»: una voce, 4
   file, e «Da cambiare a mano · 7 righe» (6 commenti di `lirf.geo`, 1 di `rf_ad_gnd.pol`); «Annulla tutto» pulito. Il
   motore non è toccato. Test: Lab 640 → **647**.
+- **7e (28 settembre)** — «chi lo usa» dei file e dei nomi di `colors.def` (R-1), **solo da vedere**. Nel pannello di
+  ogni file (anche quelli che il motore non interpreta: `.cpr`, `.def`, `.datis`) la sezione **«Chi lo usa»**
+  (`Sessione/ChiUsaIlFile.cs`, `Components/ChiUsaIlFileVista.razor`): gli `.isc` che lo caricano — con la riga `F;`, o
+  «trovato per nome» (il `F;` dice un'altra cartella, M6: `DYNAMIC_SEC\GCI.tfl` sta in `OTHER\`), o «per il codice
+  dello scalo», o «perché un `.frq` lo cita» — e le righe dei `.frq` che lo citano come **profilo**, **ATIS** o
+  **D-ATIS** (anche con la barra di troppo davanti, `\liml.atis`). Un file che nessuno usa lo dice («Aurora non lo
+  legge»). In un `.def`, sotto, **ogni nome** col suo campione, quante volte e in quali file lo usano il riempimento e
+  il bordo dei `.pol` e dei settori dinamici e le linee dei `.geo`; il clic su un file lo apre.
+  - Scelta dell'agente: **rinominare un file o un colore non è in questa slice**. Un file rinominato vuol dire un
+    file spostato sul disco (il salvataggio oggi scrive solo contenuti), e `colors.def` il motore lo legge solo come
+    tavolozza (niente record né scrittore): servono tutti e due un pezzo nuovo, e il committente decide se valgono.
+  Misura sul fork (`scratchpad/misura7e`): **748 file, 2 829 usi** (943 righe `F;`, 876 per il codice dello scalo, 70
+  perché un `.frq` li cita, 5 trovati per nome, 386 profili, 166 ATIS, 383 D-ATIS), 3,6 s per tutti (il più lento 24
+  ms); **28 file senza nessun uso** — 22 `.txt`, e `itawhigh.hairway`, `ENR.fix`, `FRA.fix`, `TERM.fix`, `WW0.cpr` («serve
+  a un settore da venire», §14), `limw.pol` (la copia orfana di V2). `CTR.cpr` 59 usi, `default.atis` 107, `colors.def`
+  le 5 righe `F;IT\colors\colors.def`. **Colori**: 16 nomi, 50 666 usi — gli stessi della prova sull'albero (TAXIWAY
+  19 149 = 18 268 dei `.geo` + 881 dei `.pol`); **MARKING non lo usa nessuno**. Prova a schermo sul banco:
+  `colors.def` → «Chi lo usa · 5 .isc» e i 16 colori coi campioni. Il motore non è toccato. Test: Lab 647 → **652**.

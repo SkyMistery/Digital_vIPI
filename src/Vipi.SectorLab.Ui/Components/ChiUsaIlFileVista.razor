@@ -1,0 +1,91 @@
+@inject SessioneDelLab Lab
+
+@*
+    «Chi lo usa» di un FILE (lotto «Subito» slice 7e, R-1): gli .isc che lo caricano — con la riga F;, o perché è il
+    file di uno scalo, o perché un .frq lo cita — e i .frq che lo citano come profilo, ATIS o D-ATIS. In un colors.def,
+    anche ogni suo nome e chi lo usa (riempimenti e bordi dei .pol e dei settori, linee dei .geo). Solo da vedere:
+    rinominare un file o un colore non è in questa slice.
+*@
+@{
+    var usi = Lab.UsiDelFile(Relativo);
+    var colori = Lab.ColoriDi(Relativo);
+}
+<Sezione Chiave="file-chi-lo-usa" data-chi-usa-il-file="@usi.Count">
+<Titolo>Chi lo usa <span class="lab-nota">@(usi.Count == 0 ? "nessuno" : Conto(usi))</span></Titolo>
+<ChildContent>
+@if (usi.Count == 0)
+{
+    <p class="lab-nota" data-file-senza-usi>Nessun .isc lo carica e nessun .frq lo cita: Aurora non lo legge.</p>
+}
+@foreach (var gruppo in usi.GroupBy(u => u.File))
+{
+    <details class="lab-citazioni" data-uso-file="@gruppo.Key">
+        <summary>@NomeDelFile(gruppo.Key) <span class="lab-nota">@Come(gruppo.ToList())</span></summary>
+        <ul>
+            @foreach (var uso in gruppo.Where(u => u.Riga > 0))
+            {
+                var questo = uso;
+                <li>
+                    <button type="button" class="lab-citazione" data-citazione="@($"{questo.File}:{questo.Riga}")"
+                            title="@questo.Come" @onclick="() => Lab.VaiAllaCitazione(questo)">
+                        <span class="lab-nota">@questo.Riga</span> <code>@questo.Testo.Trim()</code>
+                    </button>
+                </li>
+            }
+        </ul>
+    </details>
+}
+@if (colori is not null)
+{
+    <h3 class="lab-sottotitolo">Colori <span class="lab-nota">@colori.Count nomi, @colori.Count(c => c.Volte == 0) mai usati</span></h3>
+    <ul class="lab-colori-usati">
+        @foreach (var colore in colori)
+        {
+            <li data-colore-usato="@colore.Nome">
+                <details>
+                    <summary>
+                        <span class="lab-campione" style="background:@colore.Valore"></span>
+                        <strong>@colore.Nome</strong> <span class="lab-nota">@Volte(colore)</span>
+                    </summary>
+                    <ul>
+                        @foreach (var (file, volte) in colore.PerFile.Take(40))
+                        {
+                            var questo = file;
+                            <li>
+                                <button type="button" class="lab-citazione" @onclick="() => Lab.ApriFile(questo)">
+                                    @NomeDelFile(questo) <span class="lab-nota">@volte</span>
+                                </button>
+                            </li>
+                        }
+                        @if (colore.PerFile.Count > 40)
+                        {
+                            <li class="lab-nota">… e altri @(colore.PerFile.Count - 40) file</li>
+                        }
+                    </ul>
+                </details>
+            </li>
+        }
+    </ul>
+}
+</ChildContent>
+</Sezione>
+
+@code {
+    [Parameter, EditorRequired] public string Relativo { get; set; } = null!;
+
+    private static string Conto(IReadOnlyList<Citazione> usi)
+    {
+        int isc = usi.Count(u => u.File.EndsWith(".isc", StringComparison.OrdinalIgnoreCase));
+        int frq = usi.Count - isc;
+        return string.Join(", ", new[] { isc > 0 ? $"{isc} .isc" : null, frq > 0 ? $"{frq} righe di .frq" : null }.Where(t => t is not null));
+    }
+
+    private static string Come(IReadOnlyList<Citazione> usi)
+        => string.Join(", ", usi.GroupBy(u => u.Come).Select(g => g.Count() == 1 ? g.Key : $"{g.Key} ×{g.Count()}"));
+
+    private static string Volte(UsoDelColore colore)
+        => colore.Volte == 0 ? "mai usato" : $"{colore.Volte:N0} volte in {colore.PerFile.Count} file";
+
+    private static string NomeDelFile(string relativo)
+        => relativo.IndexOf("/IT/", StringComparison.Ordinal) is var i and >= 0 ? relativo[(i + 4)..] : relativo[(relativo.LastIndexOf('/') + 1)..];
+}

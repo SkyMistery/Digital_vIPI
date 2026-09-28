@@ -199,7 +199,7 @@ public sealed class SessioneDelLab
             Sessione = sessione;
             Cataloghi = cataloghi;
             _chiLoUsa = chiLoUsa;
-            _usi.Clear();
+            ScordaGliUsi();
             IscScelto = isc;
             Strati = strati;
             RifaiIColori();
@@ -282,7 +282,7 @@ public sealed class SessioneDelLab
         Strati = [];
         Cataloghi = new Dictionary<string, CatalogoDeiPunti>();
         _chiLoUsa = null;
-        _usi.Clear();
+        ScordaGliUsi();
         IscScelto = null;
         Scelta = null;
         Albero = null;
@@ -748,7 +748,7 @@ public sealed class SessioneDelLab
 
         Cataloghi = cataloghi;
         _chiLoUsa = chiLoUsa;
-        _usi.Clear();
+        ScordaGliUsi();
         Strati = strati;
         Albero = AlberoDaSfogliare.Di(sessione);
         _etichette.Clear();
@@ -1159,7 +1159,7 @@ public sealed class SessioneDelLab
         {
             if (Sessione is null || _chiLoUsa is null)
                 return false;
-            _usi.Clear();
+            ScordaGliUsi();
             var esito = Rinomina.Prepara(Sessione, _chiLoUsa, Cataloghi, fileRelativo, record, vecchio, nuovo, omonimi, Modifiche.SporchiDi);
             if (esito is RinominaDaDecidere domanda)
             {
@@ -1215,7 +1215,41 @@ public sealed class SessioneDelLab
         if (Sessione is null)
             return;
         Cataloghi = CatalogoDeiPunti.PerOgniIsc(Sessione);
+        ScordaGliUsi();
+    }
+
+    // Le risposte per file (slice 7e): chi usa un file, chi usa i colori di un .def. Si scordano con quelle dei record.
+    private readonly Dictionary<string, IReadOnlyList<Citazione>> _usiDeiFile = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<UsoDelColore>?> _colori = new(StringComparer.Ordinal);
+
+    private void ScordaGliUsi()
+    {
         _usi.Clear();
+        _usiDeiFile.Clear();
+        _colori.Clear();
+    }
+
+    /// <summary>
+    /// Chi usa il FILE (lotto «Subito» slice 7e, R-1): gli .isc che lo caricano (e come), i .frq che lo citano come
+    /// profilo, ATIS o D-ATIS.
+    /// </summary>
+    public IReadOnlyList<Citazione> UsiDelFile(string fileRelativo)
+    {
+        if (Sessione is null)
+            return [];
+        if (!_usiDeiFile.TryGetValue(fileRelativo, out var usi))
+            _usiDeiFile[fileRelativo] = usi = ChiUsaIlFile.Di(Sessione, fileRelativo, Modifiche.SporchiDi);
+        return usi;
+    }
+
+    /// <summary>I nomi di un colors.def e chi li usa (slice 7e); null per gli altri file.</summary>
+    public IReadOnlyList<UsoDelColore>? ColoriDi(string fileRelativo)
+    {
+        if (Sessione is null)
+            return null;
+        if (!_colori.TryGetValue(fileRelativo, out var colori))
+            _colori[fileRelativo] = colori = ChiUsaIlFile.Colori(Sessione, fileRelativo);
+        return colori;
     }
 
     /// <summary>Il clic su una citazione: il suo record nella scheda e sulla mappa, la sua riga segnata.</summary>
@@ -1235,7 +1269,7 @@ public sealed class SessioneDelLab
             Scegli(citazione.File, citazione.Record);
         }
 
-        RigaSegnalata = (citazione.File, citazione.Riga);
+        RigaSegnalata = citazione.Riga > 0 ? (citazione.File, citazione.Riga) : null;
         Avvisa();
     }
 
@@ -1886,7 +1920,7 @@ public sealed class SessioneDelLab
 
         // «Chi lo usa» (slice 7): i nomi citati da questo file si rifanno, anche se il file non ha uno strato (.hold).
         _chiLoUsa?.RifaiIlFile(file);
-        _usi.Clear();
+        ScordaGliUsi();
 
         var tipo = StratiDellaMappa.DiFile(fileRelativo);
         _etichette.Remove(fileRelativo);
