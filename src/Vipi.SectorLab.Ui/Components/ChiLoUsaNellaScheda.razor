@@ -12,6 +12,10 @@
     <Sezione Chiave="scheda-chi-lo-usa" data-chi-lo-usa="@usi.Citazioni.Count">
     <Titolo>Chi lo usa <span class="lab-nota">@Conto(usi)</span></Titolo>
     <ChildContent>
+    @if (usi.Citazioni.Select(c => c.AncheA).FirstOrDefault(a => a is not null) is { } ancheA)
+    {
+        <p class="lab-nota" data-navaid-omonimo="@ancheA">Stesso nome anche per: @ancheA. Una riga non dice quale dei due: vale per tutti e due.</p>
+    }
     @if (usi.Citazioni.Count == 0)
     {
         <p class="lab-nota" data-nessuno-lo-usa>@Nessuno(usi)</p>

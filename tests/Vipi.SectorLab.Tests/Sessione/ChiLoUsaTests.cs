@@ -129,6 +129,35 @@ public sealed class ChiLoUsaTests : IDisposable
     }
 
     [Fact]
+    public void UnVorEUnNdbConLoStessoNomeHannoTuttiEDueLaRiga()
+    {
+        _albero.Scrivi("SectorFiles/ITALY.isc", Isc("""
+            [NDB]
+            F;NAVAIDS\prova.ndb
+
+            [VOR]
+            F;NAVAIDS\prova.vor
+
+            [LOW AIRWAY]
+            F;AIRWAY\prova.lairway
+            """));
+        _albero.Scrivi("SectorFiles/Include/IT/NAVAIDS/prova.ndb", "TRP;317.5;N037.54.51.600;E012.29.34.700;\r\n");
+        _albero.Scrivi("SectorFiles/Include/IT/NAVAIDS/prova.vor", "TRP;108.80;N037.53.45.500;E012.30.47.500;;;;\r\n");
+        _albero.Scrivi(Aerovia, "T;L869;TRP;TRP;\r\n");
+        var (sessione, cataloghi, indice) = Apri();
+
+        // Il catalogo risolve TRP nell'NDB (il suo file viene prima), ma la riga non dice quale dei due: vale per entrambi.
+        var vor = indice.Di(sessione, cataloghi, "SectorFiles/Include/IT/NAVAIDS/prova.vor", 0, _ => [])!;
+        var ndb = indice.Di(sessione, cataloghi, "SectorFiles/Include/IT/NAVAIDS/prova.ndb", 0, _ => [])!;
+
+        Assert.Equal(Aerovia, Assert.Single(vor.Citazioni).File);
+        Assert.Empty(vor.AltroPunto);
+        Assert.Equal("NDB TRP, NAVAIDS/prova.ndb", vor.Citazioni[0].AncheA);
+        Assert.Equal(Aerovia, Assert.Single(ndb.Citazioni).File);
+        Assert.Equal("VOR TRP, NAVAIDS/prova.vor", ndb.Citazioni[0].AncheA);
+    }
+
+    [Fact]
     public void UnAttesaLaCitanoIFixCheCiRimandano()
     {
         var (sessione, cataloghi, indice) = Apri();

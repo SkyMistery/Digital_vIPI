@@ -12,6 +12,12 @@ public sealed record Citazione(string File, int Record, int Riga, string Testo, 
 {
     /// <summary>Per una citazione di un altro punto: dove Aurora la risolve («ndb, NAVAIDS/itndb.ndb»), o «nessun punto».</summary>
     public string? VaA { get; init; }
+
+    /// <summary>
+    /// Se un VOR e un NDB hanno lo stesso nome (TRP, PAN…: capita, e la riga non dice quale dei due), l'altro dei due:
+    /// «NDB TRP, NAVAIDS/itndb.ndb». La citazione si mostra in tutti e due (committente, 28 settembre).
+    /// </summary>
+    public string? AncheA { get; init; }
 }
 
 /// <summary>Chi usa un punto: le citazioni che vanno a lui, e quelle dello stesso nome che vanno a un altro punto.</summary>
@@ -38,6 +44,9 @@ public sealed class ChiLoUsa
 {
     // Per nome (come Aurora, maiuscole indifferenti): i file e i record che lo citano.
     private readonly Dictionary<string, Dictionary<string, SortedSet<int>>> _perNome = new(StringComparer.OrdinalIgnoreCase);
+
+    // Per nome: i VOR e gli NDB che si chiamano così (catalogo e file), per i navaid omonimi.
+    private readonly Dictionary<string, List<(string Catalogo, string File)>> _navaid = new(StringComparer.OrdinalIgnoreCase);
 
     // Per file: i nomi che ci sono, per rifare il file senza rifare l'albero.
     private readonly Dictionary<string, List<string>> _nomiDelFile = new(StringComparer.Ordinal);
@@ -148,11 +157,16 @@ public sealed class ChiLoUsa
                 // Un file che nessun master carica non risolve niente (il validatore lo dice, FileMaiCitato).
                 if (!masterDi.TryGetValue(relativo, out var master) || sessione.File.GetValueOrDefault(relativo) is not IFileConRecord)
                     continue;
-                var qui = master.Where(c => EQuesto(c.Cerca(nome), file, dichiarazione))
+                // Un VOR e un NDB con lo stesso nome: la riga può voler dire l'uno o l'altro, e vale per tutti e due.
+                // Solo quelli che un master carica: un NDB in un file che nessuno carica non è nel sector.
+                var gemelli = Gemelli(nome, dichiarazione.Catalogo).Where(g => masterDi.ContainsKey(g.File)).ToList();
+                string? ancheA = gemelli.Count == 0 ? null : string.Join("; ", gemelli.Select(g => $"{g.Catalogo.ToUpperInvariant()} {nome}, {Breve(g.File)}"));
+                var qui = master.Where(c => EQuesto(c.Cerca(nome), file, dichiarazione)
+                                            || c.Cerca(nome) is { } p && gemelli.Contains((p.Catalogo, p.File)))
                     .Select(c => c.Isc).Order(StringComparer.Ordinal).ToList();
                 string? vaA = qui.Count > 0 ? null
                     : master.Select(c => c.Cerca(nome)).FirstOrDefault(p => p is not null) is { } altro
-                        ? $"{altro.Catalogo}, {altro.File[(altro.File.IndexOf("/IT/", StringComparison.Ordinal) + 4)..]}"
+                        ? $"{altro.Catalogo}, {Breve(altro.File)}"
                         : "nessun punto";
                 var (testo, posti) = Testo(relativo);
                 if (k >= posti.Count)
@@ -162,10 +176,10 @@ public sealed class ChiLoUsa
                 var dove = qui.Count > 0 ? sue : altrui;
                 IReadOnlyList<string> soloIn = qui.Count > 0 && qui.Count < master.Count ? qui : [];
                 foreach (int i in RigheCheCitano(testo, posti[k], nome, dallAttesa))
-                    dove.Add(new Citazione(relativo, k, i + 1, testo[i], dallAttesa ? "attesa" : "punto", soloIn) { VaA = vaA });
+                    dove.Add(new Citazione(relativo, k, i + 1, testo[i], dallAttesa ? "attesa" : "punto", soloIn) { VaA = vaA, AncheA = ancheA });
 
                 foreach (var (chiave, riga) in NeiTag(testo, posti[k], (IFileConRecord)sessione.File[relativo], k, nome))
-                    dove.Add(new Citazione(relativo, k, riga + 1, testo[riga], chiave + "=", soloIn) { VaA = vaA });
+                    dove.Add(new Citazione(relativo, k, riga + 1, testo[riga], chiave + "=", soloIn) { VaA = vaA, AncheA = ancheA });
             }
         }
 
@@ -190,6 +204,15 @@ public sealed class ChiLoUsa
                     * Math.Cos(punto.Posizione.LatitudeDeg * Math.PI / 180);
         return Math.Sqrt((dx * dx) + (dy * dy)) < 185.2;
     }
+
+    private static string Breve(string relativo)
+        => relativo.IndexOf("/IT/", StringComparison.Ordinal) is var i and >= 0 ? relativo[(i + 4)..] : relativo;
+
+    /// <summary>I navaid dell'altro tipo (VOR per un NDB, NDB per un VOR) con lo stesso nome: catalogo e file.</summary>
+    private IReadOnlyList<(string Catalogo, string File)> Gemelli(string nome, string catalogo)
+        => catalogo is "vor" or "ndb" && _navaid.TryGetValue(nome, out var tutti)
+            ? [.. tutti.Where(n => n.Catalogo != catalogo).Distinct()]
+            : [];
 
     // Le chiavi dei tag che nominano un punto (§M, P6): il fix intero e la transizione di una SID o di una voce .str.
     private static readonly string[] ChiaviConUnPunto = ["fix", "trans"];
@@ -257,6 +280,16 @@ public sealed class ChiLoUsa
         var chiavi = conRecord.CatalogoDeiTag is null ? null : conRecord.ChiaviDeiRecord();
         for (int k = 0; k < conRecord.RecordDelModello.Count; k++)
         {
+            if (Cataloghi.Dichiarato(conRecord.RecordDelModello[k]) is { Catalogo: "vor" or "ndb" } navaid)
+            {
+                foreach (string suo in navaid.Nomi.Select(n => n.Trim()).Where(n => n.Length > 0))
+                {
+                    if (!_navaid.TryGetValue(suo, out var omonimi))
+                        _navaid[suo] = omonimi = [];
+                    omonimi.Add((navaid.Catalogo, relativo));
+                }
+            }
+
             foreach (string nome in NomiCitati(conRecord.RecordDelModello[k], chiavi?[k]))
             {
                 if (!_perNome.TryGetValue(nome, out var perFile))
@@ -273,6 +306,9 @@ public sealed class ChiLoUsa
 
     private void Togli(string relativo)
     {
+        foreach (var omonimi in _navaid.Values)
+            omonimi.RemoveAll(n => n.File == relativo);
+
         if (!_nomiDelFile.Remove(relativo, out var nomi))
             return;
         foreach (string nome in nomi)

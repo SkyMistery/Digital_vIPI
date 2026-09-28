@@ -803,9 +803,15 @@ e aerovie (il 2° campo, rimandato dalla 6b).
   `itawlow.lairway:2636` e la dichiarazione. In tutto: fix 3 901, usati 2 069, 8 832 citazioni; VOR 121, usati 61,
   719; NDB 27, 13, 103; scali 295, 2, 2; VRP 586, 84, 134; attese 68, usate 67. «Altro punto»: i fix scendono da 317 a
   **0** contando le copie a meno di un decimo di miglio; restano **8 VOR col nome di un NDB** (LPD, MMP, OST, PAN, PES,
-  PIS, TRP, VIE: 100 citazioni che il catalogo dà all'NDB, `itndb.ndb` viene prima di `itvor.vor`) e 2 citazioni di VRP.
+  PIS, TRP, VIE: 100 citazioni che il catalogo dà all'NDB, `itndb.ndb` viene prima di `itvor.vor`) e 2 citazioni di VRP
+  — vedi sotto, VOR e NDB omonimi.
   L'attesa senza rimandi è **`HLD-EKLAP`** (L1: il fix la chiama `HLD-ELKAP`). Prova sull'albero invariata. Prova a
   schermo sul banco: `LUSIL` → «Chi lo usa · 12 righe in 5 file»; clic su `T;T772;LUSIL;LUSIL;` → scheda di T772, riga
   1119 segnata; VOR TRP → «Nessuna citazione va a questo punto» e «Stesso nome, altro punto · 28 righe». Rosso: i test
   nuovi non compilano sul codice di prima (tipi e metodi nuovi). Test: motore 674 → **676**, Lab 606 → **616**.
-  🟡 Da chiedere: con un VOR e un NDB dello stesso nome Aurora quale prende? Oggi il Lab segue l'ordine dei file.
+  - **VOR e NDB con lo stesso nome** (decisione del committente, 28 settembre: «mostrali entrambi, capita che VOR e NDB
+    abbiano lo stesso nome»): la riga non dice quale dei due, e vale per tutti e due. Nella scheda di ognuno le righe
+    sono sue, con la nota «Stesso nome anche per: NDB TRP, NAVAIDS/itndb.ndb» (`Citazione.AncheA`); contano solo gli
+    omonimi in un file che un master carica. Sul fork: VOR usati 61 → **72**, 719 → **819** citazioni, «altro punto»
+    dei VOR 100 → **0**; TRP 28 righe in 5 file, nel VOR e nell'NDB. Restano «altro punto» solo 2 citazioni di VRP.
+    Test: Lab 616 → **617**.
