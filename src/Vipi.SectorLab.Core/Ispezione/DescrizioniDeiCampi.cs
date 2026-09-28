@@ -114,7 +114,7 @@ public static class DescrizioniDeiCampi
     /// </summary>
     public static IReadOnlySet<string> Nascoste { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        "Source", "Sources", "HasConflict",
+        "Source", "Sources", "HasConflict", "TipoNonScritto",
     };
 
     /// <summary>La descrizione di un record in QUEL file (le MVA di ACC e di scalo leggono la quota da campi diversi).</summary>
@@ -125,6 +125,7 @@ public static class DescrizioniDeiCampi
         return record switch
         {
             MvaSector => diAcc ? MvaDiAcc : MvaDiScalo,
+            StrRecord { RunwaySpec: var piste } voce when EUnaMappa(piste) => MappeDelMaps[voce.GetType()],
             _ => PerTipo.GetValueOrDefault(record.GetType()),
         };
     }
@@ -136,6 +137,8 @@ public static class DescrizioniDeiCampi
             yield return (tipo, descrizione);
         yield return (typeof(MvaSector), MvaDiAcc);
         yield return (typeof(MvaSector), MvaDiScalo);
+        foreach (var (tipo, descrizione) in MappeDelMaps)
+            yield return (tipo, descrizione);
     }
 
     // --- i valori a tipo fisso, dal manuale ----------------------------------------------------------------------
@@ -151,6 +154,12 @@ public static class DescrizioniDeiCampi
 
     private static readonly IReadOnlyList<ValoreFisso> TipiDelFix = Valori(
         ("0", "in rotta (ENR)"), ("1", "terminale (TERM)"), ("2", "in rotta e terminale"), ("3", "nascosto"));
+
+    /// <summary>I tipi delle voci degli <c>.str</c> su una pista: i tasti della finestra delle procedure di Aurora.</summary>
+    private static readonly IReadOnlyList<ValoreFisso> TipiDelloStr = DiEnum(
+        (nameof(StrRecordType.Star), "0", "STAR"), (nameof(StrRecordType.Transition), "1", "transizione (TRANS)"),
+        (nameof(StrRecordType.Holding), "2", "attesa (HOLD)"), (nameof(StrRecordType.Iap), "3", "avvicinamento (IAP)"),
+        (nameof(StrRecordType.Fap), "4", "FAP"), (nameof(StrRecordType.GoAround), "5", "mancato avvicinamento (GA)"));
 
     private static readonly IReadOnlyList<ValoreFisso> ZeroOUno = [Vuoto, .. Valori(("0", "0"), ("1", "1"))];
 
@@ -363,6 +372,7 @@ public static class DescrizioniDeiCampi
                 Valori = [Vuoto, .. Valori(("0", "SID"), ("1", "transizione"))],
             },
             C("RelatedFix", "Navaid della transizione", "7° campo.", Editor.Navaid),
+            C("IsRnav", "RNAV", "8° campo: 1 = RNAV.", Editor.SiNo),
             Vertici("Track", "Tracciato"),
         ]),
         [typeof(GeometricStrRecord)] = Procedura("Mappa (coordinate)", Vertici("Segments", "Tratti")),
@@ -417,8 +427,23 @@ public static class DescrizioniDeiCampi
         Vertici("Vertices"),
     ]);
 
+    /// <summary>
+    /// Le voci del <c>MAPS</c> (Q1): mappe del menu generale, non procedure. Il 6° campo è lo stesso, ma lì sceglie il
+    /// TASTO della finestra delle procedure che accende la mappa (CTR → TRANS, ATZ → GA, RWYxx → FAP): si mostra così,
+    /// e non è mai un errore.
+    /// </summary>
+    private static readonly Dictionary<Type, DescrizioneDelTipo> MappeDelMaps = new()
+    {
+        [typeof(GeometricStrRecord)] = Procedura("Mappa del MAPS (coordinate)", Vertici("Segments", "Tratti"), mappa: true),
+        [typeof(ProcedureStrRecord)] = Procedura("Mappa del MAPS (punti per nome)", Vertici("Waypoints", "Punti"), mappa: true),
+        [typeof(HoldingStrRecord)] = Procedura("Mappa del MAPS (punti misti)", Vertici("Points", "Punti"), mappa: true),
+    };
+
+    /// <summary>Vero per le voci del menu delle mappe (<c>MAPS</c>), non per una procedura su una pista.</summary>
+    public static bool EUnaMappa(string? piste) => string.Equals(piste?.Trim(), VociDegliElenchi.Maps, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Le voci degli <c>.str</c> (§17): la stessa testa, tracciati di forma diversa.</summary>
-    private static DescrizioneDelTipo Procedura(string nome, DescrizioneDelCampo tracciato) => new(nome,
+    private static DescrizioneDelTipo Procedura(string nome, DescrizioneDelCampo tracciato, bool mappa = false) => new(nome,
     [
         Scalo(),
         C("RunwaySpec", "Piste", "Le piste della voce, più d'una separate da : — MAPS = una mappa del menu generale, non una pista.", Editor.Elenco) with
@@ -428,16 +453,20 @@ public static class DescrizioniDeiCampi
         C("ProcedureId", "Nome", "Il nome della procedura o della mappa."),
         C("LabelLat", "Latitudine dell'etichetta", "4° campo, di solito vuoto."),
         C("LabelLon", "Longitudine dell'etichetta", "5° campo, di solito vuoto."),
-        C("RecordType", "Tipo", "6° campo: il tasto della finestra delle procedure di Aurora; nel MAPS è il tasto che accende la mappa.", Editor.TipoFisso) with
-        {
-            Valori = DiEnum((nameof(StrRecordType.Star), "0", "STAR"), (nameof(StrRecordType.Transition), "1", "transizione (TRANS)"),
-                            (nameof(StrRecordType.Holding), "2", "attesa (HOLD)"), (nameof(StrRecordType.Iap), "3", "avvicinamento (IAP)"),
-                            (nameof(StrRecordType.Fap), "4", "FAP"), (nameof(StrRecordType.GoAround), "5", "mancato avvicinamento (GA)")),
-        },
-        // 🔴 Slice 3c, misurato su ogni campo: lo scrittore degli .str si ferma al 6° campo, e questi due non arrivano
-        // mai nella riga (il file li tiene com'erano). Si scrivono con la scheda delle procedure (slice 9).
-        C("Transition", "Navaid della transizione", "7° campo (mai usato nei file italiani). Si scriverà con la slice 9: oggi il Lab non lo sa riscrivere.", Editor.SolaLettura),
-        C("IsRnav", "RNAV", "8° campo: 1 = RNAV. Si scriverà con la slice 9: oggi il Lab non lo sa riscrivere.", Editor.SolaLettura),
+        mappa
+            ? C("RecordType", "Si accende col tasto", "6° campo: nel MAPS non è il tipo della procedura, è il tasto della finestra delle procedure di Aurora che accende la mappa.", Editor.TipoFisso) with
+            {
+                Valori = DiEnum((nameof(StrRecordType.Star), "0", "STAR"), (nameof(StrRecordType.Transition), "1", "TRANS"),
+                                (nameof(StrRecordType.Holding), "2", "HOLD"), (nameof(StrRecordType.Iap), "3", "IAP"),
+                                (nameof(StrRecordType.Fap), "4", "FAP"), (nameof(StrRecordType.GoAround), "5", "GA")),
+            }
+            : C("RecordType", "Tipo", "6° campo: il tasto della finestra delle procedure di Aurora; nel MAPS è il tasto che accende la mappa.", Editor.TipoFisso) with
+            {
+                Valori = TipiDelloStr,
+            },
+        // Slice 9b: lo scrittore degli .str arriva all'8° campo (prima si fermava al 6°, e questi due erano in sola lettura).
+        C("Transition", "Navaid della transizione", "7° campo (mai usato nei file italiani).", Editor.Navaid),
+        C("IsRnav", "RNAV", "8° campo: 1 = RNAV.", Editor.SiNo),
         tracciato,
     ]);
 }

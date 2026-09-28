@@ -6,7 +6,7 @@ namespace Vipi.Sectorfile.IO;
 
 /// <summary>
 /// Serialises a <see cref="StrRecord"/> back to .str form: a header line plus one body line per point.
-///   Header: <c>Icao ; Runways ; ProcId ; LabelLat ; LabelLon ; Type ;</c>
+///   Header: <c>Icao ; Runways ; ProcId ; LabelLat ; LabelLon ; Type ; [Transition ;] [RNAV ;]</c>
 ///   Geometric body: <c>Lat ; Lon ;</c> — the first point of each segment after the first carries
 ///                   a trailing <c>&lt;br&gt;</c> (ARCHITECTURE §3.3: &lt;br&gt; marks the FIRST point
 ///                   of a new segment).
@@ -21,17 +21,31 @@ public sealed class StrSaver : IFileSaver<StrRecord>
     {
         ArgumentNullException.ThrowIfNull(record);
 
-        var lines = new List<string>
+        var header = new List<string>
         {
-            string.Join(
-                ";",
-                record.IcaoCode,
-                record.RunwaySpec,
-                record.ProcedureId,
-                record.LabelLat ?? string.Empty,
-                record.LabelLon ?? string.Empty,
-                ((int)record.RecordType).ToString(CultureInfo.InvariantCulture)) + ";",
+            record.IcaoCode,
+            record.RunwaySpec,
+            record.ProcedureId,
+            record.LabelLat ?? string.Empty,
+            record.LabelLon ?? string.Empty,
+            record.TipoNonScritto && record.RecordType == StrRecordType.Star
+                ? string.Empty
+                : ((int)record.RecordType).ToString(CultureInfo.InvariantCulture),
         };
+
+        // Lotto «Subito», slice 9b: transition (7th) and RNAV (8th) only when there is one; the transition keeps its
+        // empty slot when only the RNAV follows.
+        if (record.Transition is not null || record.IsRnav is not null)
+        {
+            header.Add(record.Transition ?? string.Empty);
+        }
+
+        if (record.IsRnav is { } rnav)
+        {
+            header.Add(rnav ? "1" : "0");
+        }
+
+        var lines = new List<string> { string.Join(";", header) + ";" };
 
         switch (record)
         {

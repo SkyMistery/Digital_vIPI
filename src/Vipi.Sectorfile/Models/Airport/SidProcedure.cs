@@ -22,6 +22,12 @@ public sealed class SidProcedure
     public string? RelatedFix { get; set; }
 
     /// <summary>
+    /// 8th optional field: <c>1</c> = RNAV (614 SID in the Italian files, always <c>1</c>); null when absent. Before
+    /// the Lab's slice 9b only the merge kept it, as an unknown field.
+    /// </summary>
+    public bool? IsRnav { get; set; }
+
+    /// <summary>
     /// The drawn track under the header, one point per line — empty for the usual one-line SID (F2 slice 4).
     /// Only the visual departure blocks of lied.sid have one today (<c>QUIRRA DEP34</c>, <c>FRASCA DEP34</c>: 84
     /// lines that A skipped as malformed), with points by coordinates or by name and an optional label.

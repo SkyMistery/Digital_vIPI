@@ -232,17 +232,25 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
     }
 
     [Fact]
-    public async Task TransizioneERnavDiUnaVoceStrNonSiScrivonoFinoAllaSlice9()
+    public async Task TransizioneERnavDiUnaVoceStrSiScrivonoDallaSlice9()
     {
-        // Lo scrittore degli .str si ferma al 6° campo: scriverli dalla scheda non cambierebbe la riga.
-        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
-        var pagina = _contesto.RenderComponent<Home>();
-        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/lirf.str", 0));
-        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-campo-record='RecordType']")));
+        // Slice 9b: lo scrittore degli .str arriva all'8° campo (prima si fermava al 6°, e la scheda li teneva fermi).
+        var pagina = await ConIlRecord("lirf.str", "LIRF ELKA3A");
 
-        Assert.Empty(pagina.FindAll("[data-scrivi='Transition']"));
-        Assert.Empty(pagina.FindAll("[data-scrivi='IsRnav']"));
-        Assert.NotNull(pagina.Find("[data-scrivi='RecordType']"));
+        pagina.Find("select[data-scrivi='IsRnav']").Change("");
+
+        pagina.WaitForAssertion(() => Assert.Equal(1, _lab.Modifiche.Quante));
+        Assert.Contains("LIRF;16L:16R;ELKA3A;;;;", Righe("lirf.str"));
+        Assert.NotNull(pagina.Find("[data-scrivi='Transition']"));
+    }
+
+    [Fact]
+    public async Task NelMapsIlTipoSiLeggeComeIlTastoCheAccendeLaMappa()
+    {
+        var pagina = await ConIlRecord("lirf.str", "LIRF LIRF ATZ");
+
+        Assert.StartsWith("Si accende col tasto", pagina.Find("[data-campo-record='RecordType'] th").TextContent.Trim(), StringComparison.Ordinal);
+        Assert.Contains("5 · GA", pagina.Find("select[data-scrivi='RecordType']").TextContent, StringComparison.Ordinal);
     }
 
     // --- slice 3d: i metadati del catalogo ------------------------------------------------------------------------

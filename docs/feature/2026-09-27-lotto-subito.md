@@ -1117,3 +1117,20 @@ tipo e la scheda della voce (Q1, P2) · **9c** i metadati delle procedure e il f
   lo scalo non ha** (`licz.str` LICC 10L:10R, `lipi.str` 06:24 con 06L/06R, `lirl.str` HLD-IRDUN e HLD-LAT su 05:12),
   STR ripetute 0. Il validatore sull'albero passa da 120 errori e 543 avvisi a **132 errori e 560 avvisi**; round-trip
   invariato. Test: motore 676 → **680**, Lab 709.
+- **9b, primo passo (29 settembre)** — la scheda delle procedure scrive la coda della testa (P1, Q1). Codice comune
+  toccato: `SidProcedure.IsRnav` (8° campo nel modello: prima lo teneva solo la fusione, come campo sconosciuto),
+  `StrSaver` fino all'8° campo (transizione e RNAV, prima si fermava al 6°), `StrRecord.TipoNonScritto`,
+  `StrParser.Rnav`, `FusioneDelRecord` (il commento in coda resta in coda).
+  - Nella scheda: RNAV delle SID e delle voci `.str` (sì/no), navaid della transizione degli `.str` coi suggerimenti; nel
+    `MAPS` il 6° campo si chiama **«Si accende col tasto»** e vale STAR/TRANS/HOLD/IAP/FAP/GA (mai un errore).
+  - 🔴 **Trovati scrivendo, due difetti del motore di prima**: (1) il tipo vuoto o assente di una voce `.str` (519 teste
+    RNAV `LIRF;16L:16R;ELKA3A;;;;;1;` e 215 teste corte) si riscriveva `0`: la testa non si riconosceva più nella
+    fusione e **una testa cambiata usciva due volte** (valeva già per il nome cambiato dalla scheda). Ora il tipo resta
+    vuoto finché resta STAR. (2) In `limc.sid` il commento in coda cade nell'8° campo (`…;0;AOSTA; //SUPER-HEAVY-A321`):
+    letto come «RNAV no», riscritto `0`, stessa testa doppia (16 righe in più); e l'RNAV scritto avrebbe preso il posto
+    del commento. Ora l'RNAV si legge solo da `1`/`0`, e la fusione tiene il commento in coda in coda.
+  - Misura nuova nella prova sull'albero, **UNA TESTA PER PROCEDURA**: l'RNAV di ogni SID e voce `.str` invertito →
+    **2 811 righe cambiate su 2 811 procedure, 0 file fuori misura** (prima delle correzioni: `limc.sid` 73 → 89 righe).
+    Il resto invariato (round-trip 701/701, tutto toccato 0, una modifica per record 115 568, tag, blocchi, validatore
+    132/560); «spostati sopra» 52 → 53 file su 54.
+  Test: motore 680 → **688**, Lab 709 → **715**.

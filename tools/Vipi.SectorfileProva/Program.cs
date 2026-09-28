@@ -22,6 +22,8 @@ using Vipi.Sectorfile.Shared;
 //      Il secondo argomento facoltativo è una cartella dove lasciare i file fuori misura, per un diff.
 //   4. CONCORDANZA: ogni token DMS letto dal motore e dal DMS di vIPI, stesso esito e stesso valore.
 //      Esce 1 se ce n'è uno discorde.
+//      c. UNA TESTA PER PROCEDURA (lotto «Subito» slice 9b) — l'RNAV di ogni SID e voce .str invertito: una riga per
+//         procedura, e il file lungo uguale.
 //   5. I TAG //@ di .sid e .str (slice 7). 6. IL VALIDATORE (slice 8).
 //   7. CONCORDANZA col lettore di vIPI (slice 9): punti, SID e STAR contro AuroraSectorfileParser (Concordanza.cs).
 //
@@ -45,6 +47,7 @@ var toccato = new List<(string File, int Righe, int Cambiate, string? Esempio)>(
 var modifica = new List<(string File, int Spostati, int Cambiate, string? Esempio)>();
 var piuDiUnCampo = new List<string>();
 var commenti = new List<(string File, int NelFile, int Scritti, string? Esempio, string? CambiaSpostandoli)>();
+var teste = new List<(string File, int Procedure, int Cambiate, string? Esempio)>();
 
 foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
 {
@@ -54,7 +57,7 @@ foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDi
     (byte[] Originale, byte[] Riscritto)? esito;
     try
     {
-        esito = Formati.Usa(percorso, avvisi, new ProvaDelFile(percorso, Relativo(percorso), cartellaFuoriMisura, toccato, modifica, piuDiUnCampo, commenti), out var prova)
+        esito = Formati.Usa(percorso, avvisi, new ProvaDelFile(percorso, Relativo(percorso), cartellaFuoriMisura, toccato, modifica, piuDiUnCampo, commenti, teste), out var prova)
             ? prova
             : null;
     }
@@ -167,6 +170,13 @@ int cambiateTutte = modifica.Sum(m => m.Cambiate);
 Console.WriteLine($"\nUNA MODIFICA PER RECORD: {spostatiTutti} record spostati, {cambiateTutte} righe cambiate " +
     $"(ideale: tante quanti i record), {modifica.Count(m => m.Cambiate != m.Spostati)} file fuori misura, " +
     $"{piuDiUnCampo.Count} righe con più di un campo cambiato");
+Console.WriteLine($"\nUNA TESTA PER PROCEDURA: {teste.Sum(t => t.Procedure)} procedure con l'RNAV invertito, " +
+    $"{teste.Sum(t => t.Cambiate)} righe cambiate (ideale: tante quante le procedure), {teste.Count(t => t.Cambiate != t.Procedure)} file fuori misura");
+foreach (var t in teste.Where(t => t.Cambiate != t.Procedure).Take(10))
+{
+    Console.WriteLine($"  {t.File}: {t.Procedure} procedure, {t.Cambiate} righe — {t.Esempio}");
+}
+
 foreach (string riga in piuDiUnCampo.Take(10))
 {
     Console.WriteLine("  " + riga);
@@ -782,7 +792,8 @@ sealed class ProvaDelFile(
     List<(string File, int Righe, int Cambiate, string? Esempio)> toccato,
     List<(string File, int Spostati, int Cambiate, string? Esempio)> modifica,
     List<string> piuDiUnCampo,
-    List<(string File, int NelFile, int Scritti, string? Esempio, string? CambiaSpostandoli)> commenti) : IUsoDelFormato<(byte[], byte[])>
+    List<(string File, int NelFile, int Scritti, string? Esempio, string? CambiaSpostandoli)> commenti,
+    List<(string File, int Procedure, int Cambiate, string? Esempio)> teste) : IUsoDelFormato<(byte[], byte[])>
 {
     public (byte[], byte[]) Usa<T>(IFileParser<T> lettore, IFileSaver<T> scrittore)
         where T : class
@@ -822,6 +833,27 @@ sealed class ProvaDelFile(
                     }
                 }
             }
+            // 3d. UNA TESTA PER PROCEDURA (lotto «Subito», slice 9b): l'RNAV di ogni SID e di ogni voce .str
+            //     invertito (tolto dove c'è, messo dove manca). Ogni procedura cambia UNA riga, la sua testa, e il file
+            //     resta lungo uguale: prima della 9b una testa col tipo vuoto usciva due volte.
+            if (typeof(T) == typeof(SidProcedure) || typeof(T) == typeof(StrRecord))
+            {
+                var fresco = lettore.Parse(percorso, new ColorPalette()).FissaLeBasi(scrittore);
+                foreach (object r in fresco.Records)
+                {
+                    switch (r)
+                    {
+                        case SidProcedure sid: sid.IsRnav = sid.IsRnav is null ? true : null; break;
+                        case StrRecord str: str.IsRnav = str.IsRnav is null ? true : null; break;
+                    }
+                }
+
+                new FileSaverOrchestrator().Save(fresco, new HashSet<T>(fresco.Records), scrittore, temporaneo);
+                var dopoLeTeste = File.ReadAllLines(temporaneo);
+                var (cambiateTeste, esempioTeste) = Differenze(prima, dopoLeTeste);
+                teste.Add((relativo, fresco.Records.Count, cambiateTeste, prima.Length == dopoLeTeste.Length ? esempioTeste : $"{prima.Length} righe → {dopoLeTeste.Length}"));
+            }
+
             // 3c. COMMENTI IN CODA (lotto «Subito» slice 2): quanti ce ne sono nel file, e quanti ne scrivono gli
             //     scrittori del motore riscrivendo OGNI record dal modello. Il Lab non ne scrive mai: deve fare zero.
             var scrittiDalModello = letto.Records.SelectMany(r => scrittore.Serialize(r)).Where(r => CommentiInCoda.Dove(r) is not null).ToList();

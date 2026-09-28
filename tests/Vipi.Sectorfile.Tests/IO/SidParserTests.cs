@@ -69,4 +69,26 @@ public sealed class SidParserTests
         var r = new SidProcedure { IcaoCode = "LIRF", Runway = "07", Name = "OST1E", Field4 = " ", Field5 = " " };
         Assert.Equal("LIRF;07;OST1E; ; ;", new SidSaver().Serialize(r)[0]);
     }
+
+    // Lotto «Subito», slice 9b (P1): l'8° campo, RNAV, è del modello (614 SID sul fork, sempre «1»). Prima lo teneva
+    // solo la fusione, come campo sconosciuto: la scheda non lo poteva scrivere.
+    [Fact]
+    public void Parse_Rnav()
+    {
+        Assert.True(Parse("LIRF;25;EKLO8R;;;;;1;\r\n").Records[0].IsRnav);
+        Assert.Equal(false, Parse("LIRF;25;EKLO8R;;;;;0;\r\n").Records[0].IsRnav);
+        Assert.Null(Parse("LIRF;07;OST1E; ; ;0;OST;\r\n").Records[0].IsRnav);
+    }
+
+    [Fact]
+    public void Saver_Rnav_TieneIPostiDavanti()
+    {
+        var r = new SidProcedure { IcaoCode = "LIRF", Runway = "25", Name = "EKLO8R", IsRnav = true };
+        Assert.Equal("LIRF;25;EKLO8R;;;;;1;", new SidSaver().Serialize(r)[0]);
+        r.RelatedFix = "ESINO";
+        r.DefaultVisible = 0;
+        Assert.Equal("LIRF;25;EKLO8R;;;0;ESINO;1;", new SidSaver().Serialize(r)[0]);
+        r.IsRnav = null;
+        Assert.Equal("LIRF;25;EKLO8R;;;0;ESINO;", new SidSaver().Serialize(r)[0]);
+    }
 }

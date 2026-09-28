@@ -124,6 +124,36 @@ public sealed class StrParserTests
         Assert.Null(r.IsRnav);
     }
 
+    // Lotto «Subito», slice 9b (Q1): lo scrittore arriva all'8° campo. Prima si fermava al 6°, e la scheda teneva
+    // transizione e RNAV in sola lettura (520 voci RNAV sul fork).
+    [Fact]
+    public void Saver_TransizioneERnav()
+    {
+        var r = new ProcedureStrRecord { IcaoCode = "LIRF", RunwaySpec = "16L", ProcedureId = "ELKA3A", RecordType = StrRecordType.Star };
+        Assert.Equal("LIRF;16L;ELKA3A;;;0;", new StrSaver().Serialize(r)[0]);
+        r.IsRnav = true;
+        Assert.Equal("LIRF;16L;ELKA3A;;;0;;1;", new StrSaver().Serialize(r)[0]);
+        r.Transition = "ELKAP";
+        Assert.Equal("LIRF;16L;ELKA3A;;;0;ELKAP;1;", new StrSaver().Serialize(r)[0]);
+        r.IsRnav = null;
+        Assert.Equal("LIRF;16L;ELKA3A;;;0;ELKAP;", new StrSaver().Serialize(r)[0]);
+    }
+
+    // Slice 9b: il tipo vuoto o assente si legge STAR e si riscrive vuoto. Scritto «0», la testa non si riconosceva più
+    // nella fusione e una testa cambiata usciva due volte (trovato dalla prova della scheda sulle voci RNAV).
+    [Theory]
+    [InlineData("LIRF;16L:16R;ELKA3A;;;;;1;", "LIRF;16L:16R;ELKA3A;;;;;1;")]
+    [InlineData("LIRF;16L;FOO; ; ;", "LIRF;16L;FOO;;;;")]
+    [InlineData("LIRF;16L;FOO; ; ;0;", "LIRF;16L;FOO;;;0;")]
+    public void TipoVuoto_SiRiscriveVuoto(string testa, string scritta)
+    {
+        var r = Parse(testa + "\r\nELKAP;ELKAP;\r\n").Records[0];
+        Assert.Equal(StrRecordType.Star, r.RecordType);
+        Assert.Equal(scritta, new StrSaver().Serialize(r)[0]);
+        r.RecordType = StrRecordType.Iap;
+        Assert.Contains(";3;", new StrSaver().Serialize(r)[0], StringComparison.Ordinal);
+    }
+
     // §7.12 — RunwaySpec "07:16L:16R" kept as an opaque string.
     [Fact]
     public void RunwaySpec_Opaque()

@@ -5,7 +5,7 @@ namespace Vipi.Sectorfile.IO;
 
 /// <summary>
 /// Serialises a <see cref="SidProcedure"/> to a .sid line:
-///   <c>ICAO ; Runway ; Name ; Field4 ; Field5 ; [DefaultVisible] ; [RelatedFix] ;</c>
+///   <c>ICAO ; Runway ; Name ; Field4 ; Field5 ; [DefaultVisible] ; [RelatedFix] ; [RNAV] ;</c>
 /// Field4/Field5 are written verbatim (literal space). Optional tail fields are emitted only when
 /// present; an empty DefaultVisible placeholder is kept if RelatedFix follows (TEST_MATRIX §11.7).
 /// A drawn track follows the header, one <c>LAT ; LON ; [label ;]</c> line per point (F2 slice 4).
@@ -25,7 +25,8 @@ public sealed class SidSaver : IFileSaver<SidProcedure>
             record.Field5,
         };
 
-        bool hasRelatedFix = record.RelatedFix is not null;
+        bool hasRnav = record.IsRnav is not null;
+        bool hasRelatedFix = record.RelatedFix is not null || hasRnav;
 
         if (record.DefaultVisible is { } visible)
         {
@@ -33,12 +34,17 @@ public sealed class SidSaver : IFileSaver<SidProcedure>
         }
         else if (hasRelatedFix)
         {
-            fields.Add(string.Empty);   // keep RelatedFix in its positional slot (field 7)
+            fields.Add(string.Empty);   // keep the fields after it in their positional slots
         }
 
         if (hasRelatedFix)
         {
-            fields.Add(record.RelatedFix!);
+            fields.Add(record.RelatedFix ?? string.Empty);
+        }
+
+        if (hasRnav)
+        {
+            fields.Add(record.IsRnav!.Value ? "1" : "0");
         }
 
         var lines = new List<string> { string.Join(";", fields) + ";" };

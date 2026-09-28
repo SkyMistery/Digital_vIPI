@@ -327,11 +327,24 @@ public sealed class StrParser : IFileParser<StrRecord>
         record.RecordType = p.Length > 5 && int.TryParse(p[5].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int t)
             ? (StrRecordType)t
             : StrRecordType.Star;
+        record.TipoNonScritto = Field(p, 5) is null;
         record.Transition = Field(p, 6);
         string? rnav = Field(p, 7);
-        record.IsRnav = rnav is null ? null : rnav is "1" or "true" or "True";
+        record.IsRnav = Rnav(rnav);
         record.Source = new SourceRef(source, lineNumber);
     }
+
+    /// <summary>
+    /// The RNAV field of a .sid or .str header: <c>1</c> yes, <c>0</c> no, anything else unknown (null). Lab's slice
+    /// 9b: in limc.sid a trailing comment lands in that field (<c>…;0;AOSTA; //SUPER-HEAVY-A321</c>); read as «no», it
+    /// was written back as <c>0</c> and the header no longer matched its own line.
+    /// </summary>
+    internal static bool? Rnav(string? field) => field?.Trim() switch
+    {
+        "1" or "true" or "True" => true,
+        "0" or "false" or "False" => false,
+        _ => null,
+    };
 
     private static string? Field(string[] parts, int index)
     {

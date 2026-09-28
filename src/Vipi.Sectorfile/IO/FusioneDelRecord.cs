@@ -109,6 +109,14 @@ internal static class FusioneDelRecord
             return grezza[..(inizio + 2)] + UnisciCampi(grezza[(inizio + 2)..], base_, nuova, forma);
         }
 
+        // Lotto «Subito», slice 9b: il commento in coda della grezza resta in coda. In limc.sid cade in un campo
+        // (`…;0;AOSTA; //SUPER-HEAVY-A321`, l'8°, quello dell'RNAV): preso per un campo, l'RNAV scritto lo cancellava.
+        // Solo un commento dopo il quale non c'è più un `;` (il `T; //3500 SE;N…;` dei .mva è un campo, non una coda).
+        if (CodaCommentata(grezza) is { } coda && coda > 0)
+        {
+            return UnisciCampi(grezza[..coda].TrimEnd(), base_, nuova, forma) + grezza[grezza[..coda].TrimEnd().Length..];
+        }
+
         string[] g = grezza.Split(';');
         string[] b = base_.Split(';');
         string[] n = nuova.Split(';');
@@ -172,6 +180,16 @@ internal static class FusioneDelRecord
         // Il terminatore della grezza, finché la riga non va oltre; di più, quello dello scrittore.
         bool chiusa = campi.Count <= gN ? grezza.EndsWith(';') : nuova.EndsWith(';');
         return chiusa ? unita + ";" : unita;
+    }
+
+    /// <summary>
+    /// Dove comincia il commento in coda di una riga di dati (l'indice del <c>//</c>), o null: un <c>//</c> dopo uno
+    /// spazio o un <c>;</c>, e dopo di lui nessun <c>;</c>.
+    /// </summary>
+    private static int? CodaCommentata(string riga)
+    {
+        int i = riga.LastIndexOf("//", StringComparison.Ordinal);
+        return i > 0 && (char.IsWhiteSpace(riga[i - 1]) || riga[i - 1] == ';') && riga.IndexOf(';', i) < 0 ? i : null;
     }
 
     /// <summary>I campi di una riga, senza il pezzo vuoto che lascia il <c>;</c> di chiusura.</summary>

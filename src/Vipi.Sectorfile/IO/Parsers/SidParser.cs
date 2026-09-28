@@ -212,6 +212,7 @@ public sealed class SidParser : IFileParser<SidProcedure>
         }
 
         string? relatedFix = n >= 7 && parts[6].Trim().Length > 0 ? parts[6] : null;
+        bool? rnav = n >= 8 ? StrParser.Rnav(parts[7]) : null;
 
         return new SidProcedure
         {
@@ -222,6 +223,7 @@ public sealed class SidParser : IFileParser<SidProcedure>
             Field5 = parts[4],   // verbatim (literal space)
             DefaultVisible = defaultVisible,
             RelatedFix = relatedFix,
+            IsRnav = rnav,
             Source = new SourceRef(source, lineNumber),
         };
     }

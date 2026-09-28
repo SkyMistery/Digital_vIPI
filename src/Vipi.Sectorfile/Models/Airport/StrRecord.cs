@@ -28,6 +28,14 @@ public abstract class StrRecord
     public string? LabelLat { get; set; }                    // on-map label anchor latitude (nullable)
     public string? LabelLon { get; set; }                    // on-map label anchor longitude (nullable)
     public StrRecordType RecordType { get; set; }
+
+    /// <summary>
+    /// True when the 6th field is empty or absent (519 RNAV headers <c>LIRF;16L:16R;ELKA3A;;;;;1;</c> and 215 short
+    /// ones on the Italian fork): <see cref="RecordType"/> reads it as <see cref="StrRecordType.Star"/>, and the saver
+    /// writes it back empty while it stays so. Lab's slice 9b: writing <c>0</c> made the header unrecognisable to the
+    /// merge, and a changed header came out twice.
+    /// </summary>
+    public bool TipoNonScritto { get; set; }
     public string? Transition { get; set; }                  // absent in Italian files
     public bool? IsRnav { get; set; }                        // absent in Italian files
     public SourceRef Source { get; set; } = null!;
