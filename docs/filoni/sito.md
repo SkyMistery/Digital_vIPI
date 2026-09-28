@@ -866,5 +866,17 @@
     sovrappongono), `ScopeProprioDellePagineTests` (rosso naturale su Versioni appena tolto il servizio dai sicuri),
     `GestiDegliImportNonCadonoTests` (+2, presidio sul testo come per U-029: la pagina ACC tira una dozzina di
     servizi). Rossi sul codice di prima. Ui 1796 → **1799**, net8 e net10.
+  - **Gruppo 4** (editor dello scalo): **U-066** (vSOP militare, radioassistenze: la ✕ passa l'indice e l'elenco
+    si leggeva dentro la fila; il secondo clic di un doppio clic toglieva la riga DOPO) → la riga si sceglie al clic
+    e si ritrova per chiave, anche per «sposta». **U-163** («+ Alternato»: nome cercato a IVAO fuori dal guardiano;
+    l'avviso «ICAO sconosciuto» scritto prima del salvataggio lo cancellava il guardiano entrando) → tutto dentro un
+    solo `GuardAsync`, avviso dopo il salvataggio; `EfAirportNameLookup` tratta il timeout di HttpClient e una
+    risposta non JSON come «IVAO non risponde» (nome sconosciuto), un annullamento vero passa (**codice comune**
+    `Vipi.Infrastructure`). **U-164** (scrittura di un campo di radioassistenza in fila ma fuori dal guardiano) →
+    `GuardedAsync`. **U-165** («Crea vSOP militare» dall'editor d'aeroporto senza sentinella, fuori dal tornello) →
+    sentinella e `Guarded`.
+  - **Test**: `GestiDegliEditorDelloScaloTests` (5, presidio sul testo: nessun test monta i due editor, il guardiano
+    ha i suoi test in `DocumentEditorShellTests`), `SezioneAlternatiTests` (+3: timeout e JSON → nome sconosciuto,
+    annullamento vero che passa). Rossi sul codice di prima. Ui 1799 → **1804**, Infrastructure 1757 → **1760**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -731,18 +731,14 @@ else
     /// Crea il vSOP militare di questo scalo e ci porta. ⚠️ La guardia («prima la vIPI civile») sta nel
     /// SERVIZIO: qui si mostra soltanto il suo rifiuto, che è già scritto per essere letto da una persona.
     /// </summary>
+    ///
+    /// <para>🔴 U-165 (revisione totale 3): passa dal guardiano, come ogni altro gesto dell'editor. Prima non guardava
+    /// <c>_busy</c>, stava fuori dal tornello e prendeva due soli tipi di eccezione.</para>
     private async Task CreaVsopMilitare()
     {
-        _busy = true;
-        _shell.Error = null;
-        try
-        {
-            await Militari.CreaAsync(_icao);
-            if (MilEditorUrl() is { } url) Nav.NavigateTo(url, forceLoad: true);
-        }
-        catch (ValidationException ex) { _shell.Error = ex.Message; }
-        catch (EditNotAllowedException ex) { _shell.Error = ex.Message; }
-        finally { _busy = false; }
+        if (_busy) return;
+        if (await Guarded(() => Militari.CreaAsync(_icao)) && MilEditorUrl() is { } url)
+            Nav.NavigateTo(url, forceLoad: true);
     }
 
     // ---- bozza e lock: lo stesso gesto degli altri tre editor ----

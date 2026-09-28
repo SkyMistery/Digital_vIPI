@@ -214,4 +214,43 @@ public class SezioneAlternatiTests : IAsyncLifetime
         Assert.True((await lookup.FindAsync("LIBG"))!.InArchivio);
         Assert.Null(await lookup.FindAsync("LGKR"));   // estero, e nessuna sorgente configurata qui
     }
+
+    /// <summary>La sorgente IVAO che risponde male: un timeout, o una pagina che non è JSON.</summary>
+    private sealed class SorgenteCheCade(Exception guasto) : IAirportDirectory
+    {
+        public Task<IReadOnlyList<SourceAirport>> GetAirportsAsync(CancellationToken ct = default) =>
+            Task.FromException<IReadOnlyList<SourceAirport>>(guasto);
+        public Task<SourceAirport?> GetByIcaoAsync(string icao, CancellationToken ct = default) =>
+            Task.FromException<SourceAirport?>(guasto);
+    }
+
+    /// <summary>
+    /// 🔴 U-163 (revisione totale 3): il nome di uno scalo estero si chiede a IVAO, e la ricerca prendeva solo la
+    /// sorgente senza credenziali e la rete giù. Un timeout (<c>TaskCanceledException</c> senza che nessuno abbia
+    /// annullato) o una risposta illeggibile (<c>JsonException</c>) uscivano e abbattevano l'editor militare.
+    /// Per chi aggiunge un alternato è lo stesso caso di «IVAO non risponde»: la riga si aggiunge senza nome.
+    /// </summary>
+    [Theory]
+    [InlineData("timeout")]
+    [InlineData("json")]
+    public async Task Una_sorgente_che_non_risponde_bene_da_un_nome_sconosciuto(string come)
+    {
+        Exception guasto = come == "timeout"
+            ? new TaskCanceledException("HttpClient.Timeout of 15 seconds elapsing")
+            : new System.Text.Json.JsonException("'<' is an invalid start of a value");
+        var lookup = new EfAirportNameLookup(_db, new SorgenteCheCade(guasto));
+
+        Assert.Null(await lookup.FindAsync("LGKR"));
+    }
+
+    /// <summary>Chi annulla davvero riceve l'annullamento: non si traveste da «nome sconosciuto».</summary>
+    [Fact]
+    public async Task Un_annullamento_vero_non_si_ingoia()
+    {
+        using var annulla = new CancellationTokenSource();
+        annulla.Cancel();
+        var lookup = new EfAirportNameLookup(_db, new SorgenteCheCade(new TaskCanceledException()));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => lookup.FindAsync("LGKR", annulla.Token));
+    }
 }

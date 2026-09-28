@@ -1215,25 +1215,42 @@ else
 
     /// <summary>Toglie la riga dal DOCUMENTO. ⚠️ Non dall'anagrafica: quella radioassistenza la citano altri
     /// SOP, e cancellarla davvero sarebbe un atto su un dato di tutti preso dalla tabella di uno.</summary>
-    private Task TogliRadioassistenza(int indice) => _shell.GuardAsync(async () =>
+    ///
+    /// <para>🔴 U-066 (revisione totale 3): la riga si sceglie AL CLIC, per chiave. La ✕ passa l'indice, e l'elenco si
+    /// leggeva dentro la fila: il secondo clic di un doppio clic, arrivato il suo turno, trovava l'elenco già senza la
+    /// prima riga, e lo stesso indice toglieva quella DOPO. Per chiave, il secondo gesto non trova niente da togliere.</para>
+    private Task TogliRadioassistenza(int indice)
     {
-        var chiavi = ChiaviCorrenti();
-        if (indice < 0 || indice >= chiavi.Count) return;
-        chiavi.RemoveAt(indice);
-        await Militari.SaveNavaidsAsync(_icao, chiavi);
-        await CaricaRadioassistenzeAsync();
-    });
+        var alClic = ChiaviCorrenti();
+        if (indice < 0 || indice >= alClic.Count) return Task.CompletedTask;
+        var chiave = alClic[indice];
+        return _shell.GuardAsync(async () =>
+        {
+            var chiavi = ChiaviCorrenti();
+            if (!chiavi.Remove(chiave)) return;
+            await Militari.SaveNavaidsAsync(_icao, chiavi);
+            await CaricaRadioassistenzeAsync();
+        });
+    }
 
-    private Task SpostaRadioassistenza((int Indice, int Delta) m) => _shell.GuardAsync(async () =>
+    /// <summary>Sposta una riga di un posto. 🔴 U-066: come per la ✕, la riga si sceglie al clic e si ritrova per
+    /// chiave; il vicino è quello di ADESSO.</summary>
+    private Task SpostaRadioassistenza((int Indice, int Delta) m)
     {
-        var chiavi = ChiaviCorrenti();
-        var a = m.Indice;
-        var b = a + m.Delta;
-        if (a < 0 || a >= chiavi.Count || b < 0 || b >= chiavi.Count) return;
-        (chiavi[a], chiavi[b]) = (chiavi[b], chiavi[a]);
-        await Militari.SaveNavaidsAsync(_icao, chiavi);
-        await CaricaRadioassistenzeAsync();
-    });
+        var alClic = ChiaviCorrenti();
+        if (m.Indice < 0 || m.Indice >= alClic.Count) return Task.CompletedTask;
+        var chiave = alClic[m.Indice];
+        return _shell.GuardAsync(async () =>
+        {
+            var chiavi = ChiaviCorrenti();
+            var a = chiavi.IndexOf(chiave);
+            var b = a + m.Delta;
+            if (a < 0 || b < 0 || b >= chiavi.Count) return;
+            (chiavi[a], chiavi[b]) = (chiavi[b], chiavi[a]);
+            await Militari.SaveNavaidsAsync(_icao, chiavi);
+            await CaricaRadioassistenzeAsync();
+        });
+    }
 
     /// <summary>
     /// Scrive UN campo nell'anagrafica e torna l'esito a chi l'ha chiesto. ⚠️ L'esito serve: «la fonte vince»
@@ -1246,10 +1263,14 @@ else
     /// scritture partite insieme sullo stesso <c>DbContext</c>: «A second operation was started», poi il contesto
     /// smaltito e la pagina morta («Something went wrong»). Visto in produzione alle 10:09–10:14Z. In fila, la
     /// seconda trova il valore già scritto e torna «invariato».</para>
+    ///
+    /// <para>🔴 U-164 (revisione totale 3): in fila sì, ma fuori dal guardiano. Un'eccezione del servizio (il database,
+    /// un permesso scaduto) usciva dal gestore della cella e abbatteva il circuito: ora diventa il messaggio
+    /// dell'editor, come per ogni altro gesto.</para>
     private async Task<NavaidWrite> ScriviRadioassistenza(int navaidId, NavaidCampo campo, string? valore)
     {
         var esito = NavaidWrite.NonTrovata;
-        await _shell.InFilaAsync(async () =>
+        await _shell.GuardedAsync(async () =>
         {
             var utente = Authz.CurrentUserId ?? 0;
             esito = campo switch
@@ -1294,17 +1315,23 @@ else
         await CaricaAlternatiAsync();
     });
 
-    private async Task AggiungiAlternato(string icao)
+    ///
+    /// <para>🔴 U-163 (revisione totale 3): la ricerca del nome sta DENTRO il guardiano. Prima girava fuori, e un
+    /// timeout di IVAO o una lettura in corso abbattevano il circuito. E l'avviso «ICAO sconosciuto» si scrive DOPO
+    /// il salvataggio: scritto prima, il guardiano lo cancellava entrando, e non si vedeva mai.</para>
+    private Task AggiungiAlternato(string icao) => _shell.GuardAsync(async () =>
     {
         // ⚠️ L'unica chiamata alla SORGENTE di tutta la sezione, e la fa una persona premendo un tasto: il
         // nome si salva nel documento, così la pagina pubblica non dipenderà mai da IVAO per stampare una cella.
         var trovato = await Aeroporti.FindAsync(icao);
-        if (trovato is null) _shell.Error = L["Div_UnknownIcao"].Value;
 
         var righe = RigheAlternati();
         righe.Add(new MilDiversionPayload.Riga { Icao = icao, Name = trovato?.Name });
-        await SalvaAlternati(righe);
-    }
+        await Militari.SaveDiversionsAsync(_icao, righe);
+        await CaricaAlternatiAsync();
+
+        if (trovato is null) _shell.Error = L["Div_UnknownIcao"].Value;
+    });
 
     private Task TogliAlternato(int i)
     {
