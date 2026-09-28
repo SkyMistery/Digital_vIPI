@@ -48,6 +48,7 @@ public sealed class SessioneDelLab
     {
         _cartellaDeiDati = cartellaDeiDati ?? CartellaDeiDatiDiBase;
         Registro = registro ?? new Registro(_cartellaDeiDati);
+        (_schemaRicordato, ColoriDiAurora) = ColoriRicordati();
     }
 
     /// <summary><c>%LOCALAPPDATA%\VipiSectorLab</c>: l'ultima cartella, i backup, il registro.</summary>
@@ -197,6 +198,7 @@ public sealed class SessioneDelLab
             Cataloghi = cataloghi;
             IscScelto = isc;
             Strati = strati;
+            RifaiIColori();
             Albero = AlberoDaSfogliare.Di(sessione);
             FuoriDaiDati = AlberoDaSfogliare.FuoriDaiDati(sessione);
             Scelta = null;
@@ -244,6 +246,8 @@ public sealed class SessioneDelLab
         var sessione = Sessione;
         var catalogo = Cataloghi[isc];
         Strati = await Task.Run(() => StratiDellaMappa.DiSessione(sessione, catalogo), annulla).ConfigureAwait(false);
+        // I nomi di [DEFINE] sono del master: con un altro master i riempimenti possono cambiare colore.
+        RifaiIColori();
         TuttiGliStratiCambiati();
         // Le etichette dipendono dal master (un punto per nome che lì non si risolve si chiama diversamente).
         _etichette.Clear();
@@ -1525,6 +1529,120 @@ public sealed class SessioneDelLab
         IscScelto = null;
         Scelta = null;
         Avvisa();
+    }
+
+    // --- I colori della mappa (lotto «Subito» slice 4, D3) ------------------------------------------------------
+
+    /// <summary>Gli schemi di Aurora del clone aperto (<c>ColorSchemes\*.clr</c>, fuori dal sector).</summary>
+    public IReadOnlyList<string> SchemiDisponibili { get; private set; } = [];
+
+    /// <summary>Lo schema con cui si colora la mappa: scelto una volta, ricordato fra un avvio e l'altro.</summary>
+    public string? SchemaScelto { get; private set; }
+
+    /// <summary>Vero: la mappa ha i colori di Aurora (quelli dello schema e di <c>colors.def</c>); falso: quelli del Lab, uno per strato.</summary>
+    public bool ColoriDiAurora { get; private set; } = true;
+
+    /// <summary>I colori di Aurora calcolati per la sessione aperta; null senza sessione o senza schema.</summary>
+    public ColoriDellaMappa? Colori { get; private set; }
+
+    /// <summary>Perché i colori di Aurora non ci sono, da dire accanto alla scelta. Null se ci sono.</summary>
+    public string? ColoriMancanti { get; private set; }
+
+    /// <summary>Cresce a ogni cambio del modo o dello schema: la mappa si ricolora.</summary>
+    public int VersioneDeiColori { get; private set; }
+
+    /// <summary>Sceglie lo schema: la mappa si riprende (i colori viaggiano con le forme) e la scelta si ricorda.</summary>
+    public void ScegliSchema(string nome)
+    {
+        if (!SchemiDisponibili.Contains(nome, StringComparer.OrdinalIgnoreCase)
+            || string.Equals(nome, SchemaScelto, StringComparison.OrdinalIgnoreCase))
+            return;
+        SchemaScelto = nome;
+        RicordaIColori();
+        RifaiIColori();
+        TuttiGliStratiCambiati();
+        Registro.Scrivi("colori", "schema " + nome);
+        Avvisa();
+    }
+
+    /// <summary>Colori di Aurora o del Lab: la mappa si ricolora senza riprendere le coordinate.</summary>
+    public void UsaIColoriDiAurora(bool aurora)
+    {
+        if (ColoriDiAurora == aurora)
+            return;
+        ColoriDiAurora = aurora;
+        VersioneDeiColori++;
+        RicordaIColori();
+        Registro.Scrivi("colori", aurora ? "di Aurora" : "del Lab");
+        Avvisa();
+    }
+
+    /// <summary>Legge lo schema scelto e i nomi di <c>[DEFINE]</c> del master; se qualcosa manca lo dice.</summary>
+    private void RifaiIColori()
+    {
+        VersioneDeiColori++;
+        Colori = null;
+        ColoriMancanti = null;
+        if (Sessione is null)
+            return;
+
+        SchemiDisponibili = SchemiDiAurora.Disponibili(Sessione.Cartella);
+        SchemaScelto = SchemiDiAurora.Scegli(SchemiDisponibili, SchemaScelto ?? _schemaRicordato);
+        if (SchemaScelto is null)
+        {
+            ColoriMancanti = $"Nessuno schema di Aurora in «{SchemiDiAurora.Cartella(Sessione.Cartella)}».";
+            return;
+        }
+
+        try
+        {
+            var avvisi = new RaccoltaDiAvvisi();
+            var schema = SchemiDiAurora.Leggi(Sessione.Cartella, SchemaScelto, avvisi);
+            var definiti = SchemiDiAurora.Definiti(Sessione, IscScelto is null ? null : Cataloghi.GetValueOrDefault(IscScelto), avvisi);
+            Colori = new ColoriDellaMappa(schema, definiti);
+            if (avvisi.Count > 0)
+                Registro.Scrivi("colori", $"{SchemaScelto}: {avvisi.Count} righe illeggibili negli schemi o nei .def");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            ColoriMancanti = $"Lo schema «{SchemaScelto}» non si legge: {e.Message}";
+            Registro.Errore("colori", e);
+        }
+    }
+
+    /// <summary>Lo schema scelto nell'avvio di prima: vale finché questo clone lo ha.</summary>
+    private readonly string? _schemaRicordato;
+
+    private string FileDeiColori => Path.Combine(_cartellaDeiDati, "colori-della-mappa.txt");
+
+    /// <summary>Lo schema e il modo ricordati: due righe, il nome dello schema e «aurora» o «lab».</summary>
+    private (string? Schema, bool Aurora) ColoriRicordati()
+    {
+        try
+        {
+            if (!File.Exists(FileDeiColori))
+                return (null, true);
+            string[] righe = File.ReadAllLines(FileDeiColori);
+            return (righe.Length > 0 && righe[0].Trim().Length > 0 ? righe[0].Trim() : null,
+                    righe.Length < 2 || !string.Equals(righe[1].Trim(), "lab", StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return (null, true);
+        }
+    }
+
+    private void RicordaIColori()
+    {
+        try
+        {
+            Directory.CreateDirectory(_cartellaDeiDati);
+            File.WriteAllLines(FileDeiColori, [SchemaScelto ?? string.Empty, ColoriDiAurora ? "aurora" : "lab"]);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Come l'ultima cartella: ricordarlo è una comodità.
+        }
     }
 
     private void Ricorda(string radice)

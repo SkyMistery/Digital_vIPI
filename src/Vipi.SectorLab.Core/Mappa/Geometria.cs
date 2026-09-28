@@ -98,7 +98,7 @@ public static class Geometria
                     // I due campi sono i due nomi del punto: Aurora prende la latitudine dal primo e la longitudine
                     // dal secondo (F2 slice 4), e con un refuso in uno dei due il punto non si disegna.
                     Spezza(procedura.Waypoints.Select(w => (Sectorfile.Shared.Punto.Nominato(w.FixName, w.DisplayLabel), w.IniziaUnTratto)),
-                        catalogo, nonRisolti), nonRisolti);
+                        catalogo, nonRisolti), nonRisolti, ChiaveDellaVoce(procedura));
 
             case HoldingStrRecord attesa:
                 return Tratti(file, indice, TipoDiForma.Linea, $"{attesa.IcaoCode} {attesa.ProcedureId}",
@@ -107,7 +107,7 @@ public static class Geometria
                         HoldingFixPoint fisso => (Sectorfile.Shared.Punto.Nominato(fisso.FixName, fisso.DisplayLabel), fisso.IniziaUnTratto),
                         HoldingCoordPoint coordinata => (Sectorfile.Shared.Punto.Da(coordinata.Position), coordinata.IniziaUnTratto),
                         _ => (default(Sectorfile.Shared.Punto), false),
-                    }), catalogo, nonRisolti), nonRisolti);
+                    }), catalogo, nonRisolti), nonRisolti, ChiaveDellaVoce(attesa));
 
             // 🔴 Linea, non area: Aurora disegna le mappe degli .str punto dopo punto e non le chiude mai. Un'ATZ
             // col primo punto sbagliato in Aurora resta aperta; da noi Leaflet la chiudeva e l'errore non si vedeva
@@ -116,17 +116,27 @@ public static class Geometria
             case GeometricStrRecord zona:
                 return Tratti(file, indice, TipoDiForma.Linea, $"{zona.IcaoCode} {zona.ProcedureId}",
                     zona.Segments.Select(s => (IReadOnlyList<Coordinate>)s.Points.ToList())
-                        .Where(s => s.Count > 0).ToList(), nonRisolti);
+                        .Where(s => s.Count > 0).ToList(), nonRisolti, ChiaveDellaVoce(zona));
 
             // --- aree -------------------------------------------------------------------------------------------
             case Polygon poligono:
                 return poligono.Vertices.Count == 0
                     ? null
                     : new FormaDellaMappa(file, indice, TipoDiForma.Area, poligono.FillColor,
-                        [poligono.Vertices.ToList()], []);
+                        [poligono.Vertices.ToList()], [], Tratto: poligono.LineColor, Riempimento: poligono.FillColor);
 
+            // Un settore dinamico si vede solo col bordo (D3): in Aurora compare solo con la posizione collegata, e
+            // riempito coprirebbe tutto. L'opacità a 1 è «riempimento trasparente» (manuale: FILLCOLOR CLEAR).
             case TflSector settore:
-                return Area(file, indice, settore.SectorCode, settore.Vertices, catalogo, nonRisolti);
+                return Area(file, indice, settore.SectorCode, settore.Vertices, catalogo, nonRisolti) is { } area
+                    ? area with
+                    {
+                        Tratto = settore.StrokeColor,
+                        Riempimento = settore.FillColor,
+                        SoloBordo = !string.Equals(settore.SectorCode.Trim(), "STATIC", StringComparison.OrdinalIgnoreCase)
+                                    || settore.Flags == 1,
+                    }
+                    : null;
 
             case MvaSector mva:
                 return Area(file, indice, mva.AltLabel, mva.Vertices.Select(v => v.Position), catalogo, nonRisolti);
@@ -171,13 +181,25 @@ public static class Geometria
     /// il motivo (trovato dalla misura sull'albero, slice 3b: `LIMN;35;IAF HITAC35` in `limn.str`).
     /// </summary>
     private static FormaDellaMappa? Tratti(string file, int indice, TipoDiForma tipo, string etichetta,
-                                           IReadOnlyList<IReadOnlyList<Coordinate>> tratti, IReadOnlyList<string> nonRisolti)
+                                           IReadOnlyList<IReadOnlyList<Coordinate>> tratti, IReadOnlyList<string> nonRisolti,
+                                           string? chiave = null)
     {
         var buoni = tratti.Where(t => t.Count > 0).ToList();
         return buoni.Count == 0 && nonRisolti.Count == 0
             ? null
-            : new FormaDellaMappa(file, indice, tipo, etichetta.Trim(), buoni, nonRisolti);
+            : new FormaDellaMappa(file, indice, tipo, etichetta.Trim(), buoni, nonRisolti, Chiave: chiave);
     }
+
+    /// <summary>La chiave dello schema di Aurora di una voce <c>.str</c>: la decide il suo tipo (1° campo dopo la pista).</summary>
+    private static string ChiaveDellaVoce(StrRecord voce) => voce.RecordType switch
+    {
+        StrRecordType.Transition => "TRANSITIONS",
+        StrRecordType.Holding => "HOLDINGS",
+        StrRecordType.Iap => "IAP",
+        StrRecordType.Fap => "FAP",
+        StrRecordType.GoAround => "GOAROUND",
+        _ => "STAR",
+    };
 
     /// <summary>
     /// I punti in tratti: un nome che non si risolve, o un punto che chiede un tratto nuovo, chiude quello aperto.
@@ -231,7 +253,7 @@ public static class Geometria
 
     /// <summary>
     /// I segmenti di un <c>.geo</c> (o di un'area P/R/D) cuciti in polilinee: la fine di un segmento è l'inizio del
-    /// successivo finché il colore e il nome dell'area non cambiano. Una forma per polilinea, agganciata al PRIMO
+    /// successivo finché il colore e il nome dell'area non cambiano (il colore anche quando c'è il nome: slice 4). Una forma per polilinea, agganciata al PRIMO
     /// record che la compone.
     /// </summary>
     private static IEnumerable<FormaDellaMappa> Segmenti(string file, IReadOnlyList<Line> segmenti)
@@ -239,6 +261,7 @@ public static class Geometria
         int primo = 0;
         var punti = new List<Coordinate>();
         string etichetta = string.Empty;
+        string colore = string.Empty;
 
         for (int i = 0; i < segmenti.Count; i++)
         {
@@ -246,15 +269,17 @@ public static class Geometria
             string suo = segmento.Nome ?? segmento.Color;
             bool continua = punti.Count > 0
                             && string.Equals(suo, etichetta, StringComparison.Ordinal)
+                            && string.Equals(segmento.Color, colore, StringComparison.Ordinal)
                             && Vicini(punti[^1], segmento.Start);
 
             if (!continua)
             {
                 if (punti.Count > 1)
-                    yield return new FormaDellaMappa(file, primo, TipoDiForma.Linea, etichetta, [punti.ToList()], []);
+                    yield return new FormaDellaMappa(file, primo, TipoDiForma.Linea, etichetta, [punti.ToList()], [], Tratto: colore);
                 punti.Clear();
                 primo = i;
                 etichetta = suo;
+                colore = segmento.Color;
                 punti.Add(segmento.Start);
             }
 
@@ -262,7 +287,7 @@ public static class Geometria
         }
 
         if (punti.Count > 1)
-            yield return new FormaDellaMappa(file, primo, TipoDiForma.Linea, etichetta, [punti.ToList()], []);
+            yield return new FormaDellaMappa(file, primo, TipoDiForma.Linea, etichetta, [punti.ToList()], [], Tratto: colore);
     }
 
     /// <summary>Lo stesso punto scritto due volte: il sector arrotonda ai millesimi di secondo.</summary>

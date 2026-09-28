@@ -81,6 +81,39 @@
                 </ChildContent>
                 </Sezione>
 
+                @* I colori della mappa (lotto «Subito» slice 4, D3): quelli di Aurora dallo schema scelto, o quelli del Lab. *@
+                <Sezione Chiave="colori">
+                <Titolo>Colori</Titolo>
+                <ChildContent>
+                <div class="lab-colori" data-colori="@(Lab.ColoriDiAurora ? "aurora" : "lab")">
+                    <label class="lab-strato">
+                        <input type="radio" name="lab-colori" checked="@Lab.ColoriDiAurora" disabled="@(Lab.Colori is null)"
+                               @onchange="() => Lab.UsaIColoriDiAurora(true)" data-tasto="colori-aurora" />
+                        <span>di Aurora</span>
+                    </label>
+                    <label class="lab-strato">
+                        <input type="radio" name="lab-colori" checked="@(!Lab.ColoriDiAurora)"
+                               @onchange="() => Lab.UsaIColoriDiAurora(false)" data-tasto="colori-lab" />
+                        <span>del Lab</span>
+                    </label>
+                    @if (Lab.SchemiDisponibili.Count > 0)
+                    {
+                        <select class="lab-schema" data-schema="@Lab.SchemaScelto" @onchange="ScegliSchema"
+                                title="Lo schema di Aurora (ColorSchemes, fuori dal sector): lo stesso che si usa in Aurora">
+                            @foreach (string schema in Lab.SchemiDisponibili)
+                            {
+                                <option value="@schema" selected="@(schema == Lab.SchemaScelto)">@schema</option>
+                            }
+                        </select>
+                    }
+                    @if (Lab.ColoriMancanti is { } mancanti)
+                    {
+                        <p class="lab-nota">@mancanti</p>
+                    }
+                </div>
+                </ChildContent>
+                </Sezione>
+
                 @if (Lab.InVista.Count > 0)
                 {
                     @* La vista: la mappa mostra solo questi (e le coste). Un clic sulla × toglie; «Tutto» torna agli strati. *@
@@ -172,6 +205,12 @@ else
     private int Errori => Lab.ProblemiDellAlbero.Count(p => p.Gravita == Gravita.Errore);
 
     private int Avvisi => Lab.ProblemiDellAlbero.Count - Errori;
+
+    private void ScegliSchema(ChangeEventArgs e)
+    {
+        if (e.Value?.ToString() is { Length: > 0 } nome)
+            Lab.ScegliSchema(nome);
+    }
 
     private int Forme => Lab.Strati.Sum(s => s.Forme.Count);
 

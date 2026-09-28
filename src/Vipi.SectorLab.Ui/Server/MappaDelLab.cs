@@ -47,13 +47,17 @@ public static class MappaDelLab
             // Sessione chiusa o strato senza forme: si risponde con l'elenco vuoto, non con un errore — la pagina
             // accende una casella e non deve distinguere «non c'è niente» da «è andata male».
             return Results.Stream(
-                flusso => Scrivi(flusso, id, strato?.Forme ?? []),
+                flusso => Scrivi(flusso, id, strato?.Forme ?? [], lab.Colori),
                 contentType: "application/json");
         });
     }
 
     /// <summary>Scrive uno strato nel formato corto. Pubblica perché la misura sull'albero vero la chiama da fuori.</summary>
-    public static async Task Scrivi(Stream flusso, string id, IReadOnlyList<FormaDellaMappa> forme)
+    /// <param name="colori">I colori di Aurora (slice 4): con questi ogni forma porta <c>k</c> (la linea, <c>#RRGGBB</c>,
+    /// null = non si disegna), <c>ka</c> (la sua opacità se non è piena), <c>g</c>/<c>ga</c> (il riempimento) e
+    /// <c>s</c> (lo stile della linea dello schema, se non è continua). La pagina passa fra i colori del Lab e questi
+    /// senza riprendere le coordinate.</param>
+    public static async Task Scrivi(Stream flusso, string id, IReadOnlyList<FormaDellaMappa> forme, ColoriDellaMappa? colori = null)
     {
         await using var json = new Utf8JsonWriter(flusso);
         json.WriteStartObject();
@@ -72,6 +76,15 @@ public static class MappaDelLab
                 _ => "a",
             });
             json.WriteString("e", forma.Etichetta);
+
+            if (colori is not null)
+            {
+                var colore = colori.Di(forma);
+                ScriviIlColore(json, "k", "ka", colore.Tratto, sempre: true);
+                ScriviIlColore(json, "g", "ga", colore.Riempimento, sempre: false);
+                if (colore.Tratteggio != 0)
+                    json.WriteNumber("s", colore.Tratteggio);
+            }
 
             json.WriteStartArray("c");
             foreach (var tratto in forma.Tratti)
@@ -104,5 +117,20 @@ public static class MappaDelLab
         json.WriteEndArray();
         json.WriteEndObject();
         await json.FlushAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>Un colore come <c>#RRGGBB</c> più l'opacità a parte (fra 0 e 1) solo se non è piena.</summary>
+    private static void ScriviIlColore(Utf8JsonWriter json, string chiave, string chiaveOpacita, System.Drawing.Color? colore, bool sempre)
+    {
+        if (colore is not { } c)
+        {
+            if (sempre)
+                json.WriteNull(chiave);
+            return;
+        }
+
+        json.WriteString(chiave, $"#{c.R:X2}{c.G:X2}{c.B:X2}");
+        if (c.A != 0xFF)
+            json.WriteNumber(chiaveOpacita, Math.Round(c.A / 255.0, 3));
     }
 }

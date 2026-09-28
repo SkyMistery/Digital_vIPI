@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la 4a; in corso la **slice 4** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e), la 4a e la 4b; in corso la **slice 4** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -459,8 +459,41 @@ selettore nella scheda.
     sconosciuti**: `COAST` come riempimento e bordo dell'orfano `limw.pol` (già noto dalla 3a). Il resto della prova
     invariato: 701/701, opache 93, tutto toccato 0, una modifica per record 115 568/115 568, tag 118 469, punti
     38 330, blocchi 107 204, validatore 120/481, il solo guasto noto di `limf.sid`.
-  - 🟡 **Da chiedere al committente**: `TAXIWAY`, `BUILDING`, `RUNWAY`, `APRON`, `STOPBAR` sono **sia** in
-    `colors.def` **sia** nomi che lo schema colora da sé; nei `.geo` sono 46 800 segmenti. Quale colore usa Aurora
-    per le linee di un `.geo` (per `TAXIWAY`: il grigio `#767587` di `colors.def` o il giallo dello schema)? Serve
-    alla 4b.
+  - `TAXIWAY`, `BUILDING`, `RUNWAY`, `APRON`, `STOPBAR` sono **sia** in `colors.def` **sia** nomi che lo schema
+    colora da sé (nei `.geo` 46 800 segmenti). **Committente, 28 settembre**: in Aurora i bordi taxiway di un `.geo`
+    sono gialli → nelle linee dei `.geo` vince lo schema; `colors.def` vale per i riempimenti di `.pol` e `.tfl`.
   Test: motore 621 → **667** (net8 e net10), Lab **438**.
+- **4b (28 settembre)** — la mappa coi colori di Aurora (D3; solo Lab, nessun codice comune).
+  - **Lo schema** si sceglie una volta fra i `.clr` di `ColorSchemes\` accanto a `SectorFiles` (fuori dal sector: così è
+    nel repository del sector e in un'installazione di Aurora); di base `LIRR_RDR_V1.0.clr`, lo schema del committente.
+    Scelta e modo si ricordano fra un avvio e l'altro (`colori-della-mappa.txt` nella cartella dei dati del Lab). I nomi
+    di `[DEFINE]` sono quelli del master scelto (`colors.def` di `ITALY.isc`): cambiando master si ricalcolano.
+    Nella colonna degli strati, sotto «Colori»: **di Aurora** / **del Lab** (quelli di prima, uno per strato) e lo
+    schema. Senza `ColorSchemes` la mappa resta coi colori del Lab e lo dice.
+  - **La regola** (`Mappa/ColoriDellaMappa.cs`): i record senza un colore scritto prendono la chiave dello schema del
+    loro file (`.lairway` → `AIRWAYLOW`, `.hartcc` → `ARTCCHIGH`, `.mva` → `MRVA`, `.fix` → `FIX`, `.gts` → `GATES`…)
+    o della voce (`.str`: STAR, IAP, FAP, GOAROUND, TRANSITIONS, HOLDINGS dal 6° campo); nelle linee dei `.geo` e
+    delle aree P/R/D vince lo schema, poi `colors.def`, poi il valore; nelle teste di `.tfl` e `.pol` `colors.def`,
+    poi il valore (lo schema lì non conta); un nome che nessuno conosce è **magenta**, come la riserva di
+    `ColorPalette`. `clNone` non si disegna. **Settori dinamici solo bordo**, e così uno statico con l'opacità a 1
+    (manuale: «FILLCOLOR CLEAR»); i riempimenti dei `.pol` pieni, con l'opacità di `#AARRGGBB` se c'è. Il fondo della
+    mappa è `RADARBACK`. Lo stile delle linee viene dalle impostazioni `…_SOLID` dello schema (1 tratteggio, 2
+    puntini, 3 tratto-punto: i `PenStyle` di Delphi, 🟡 da confrontare con Aurora — in `LIRR_RDR_V1.0` sono a
+    tratto-punto gli ARTCC alti e bassi, a puntini MVA e attese).
+  - I segmenti dei `.geo` si cuciono solo se hanno anche lo **stesso colore** (prima bastava il nome dell'area).
+  - I colori viaggiano con le forme (`k`/`ka` linea, `g`/`ga` riempimento, `s` stile): «di Aurora» ↔ «del Lab» non
+    riprende le coordinate; cambiare schema sì.
+  - 🔴 **Trovato a schermo**: i riempimenti di terra vanno SOTTO le linee dei `.geo` (pieni coprirebbero bordi e assi);
+    portandoli in fondo forma per forma il loro ordine si **rovesciava**, e l'erba del confine di LIRF copriva taxiway e
+    piste. Ora si portano in fondo dall'ultima alla prima: vince l'ultima del file, come in Aurora (I3).
+  - Misura sul fork (strumento fuori repo, `scratchpad/colori4b`, schema `LIRR_RDR_V1.0`, master `ITALY.isc`): **21 853
+    forme**, tutte con un colore dello schema o di `colors.def` salvo **3** già note, magenta: i 2 tipi vuoti di
+    `liap.geo` (H2) e il `COAST` dell'orfano `limw.pol`; 1 753 riempite (tutti i `.pol`, nessun `.tfl`), 182 solo bordo,
+    682 tratteggiate. Per strato: coste `COAST`; `.geo` RUNWAY 3 185, PIER 1 947, TAXIWAYCENTER 1 487…; settori ARTCC
+    102, TWR/APP/CTR/MIL da `colors.def`, 3 valori; aree PROHIBITED 284, RESTRICTED 198, DANGER 55; terra GATES 1 674,
+    TAXILABELS 1 075 e i riempimenti di `colors.def`.
+  - Prova a schermo sul banco (server del Lab su una copia del fork con `ColorSchemes`): fondo `#040404`, coste
+    viola-blu, settori, MVA a puntini e aerovie; LIRF con erba, taxiway e piazzali grigi, bordi gialli sopra; «del Lab»
+    → fondo e colori di prima, «di Aurora» → di nuovo; `Default.clr` → coste arancioni e taxiway verdi, come i suoi
+    valori.
+  Test: Lab 438 → **462**, motore **667**.

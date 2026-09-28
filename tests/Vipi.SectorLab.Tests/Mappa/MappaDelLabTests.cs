@@ -113,6 +113,33 @@ public sealed class MappaDelLabTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SenzaSchemaDiAuroraLeFormeNonPortanoColori()
+    {
+        await Apri();
+        var fix = (await Chiedi("/mappa/strato/punti")).GetProperty("f").EnumerateArray().First();
+
+        Assert.False(fix.TryGetProperty("k", out _));
+    }
+
+    [Fact]
+    public async Task ConLoSchemaOgniFormaPortaIlSuoColoreDiAurora()
+    {
+        // Lotto «Subito» slice 4: FIX di LIRR_RDR_V1.0 è $007D716D, cioè #6D717D (rosso nel byte basso).
+        _albero.Scrivi("ColorSchemes/LIRR_RDR_V1.0.clr", "RADARBACK=$00040404\r\nFIX=$007D716D\r\nAIRPORT=clNone\r\n");
+        await Apri();
+        var forme = (await Chiedi("/mappa/strato/punti")).GetProperty("f").EnumerateArray().ToList();
+
+        var fix = forme.First(f => f.GetProperty("e").GetString() == "BC404");
+        Assert.Equal("#6D717D", fix.GetProperty("k").GetString());
+        Assert.False(fix.TryGetProperty("ka", out _));   // opaco: l'opacità non viaggia
+        Assert.False(fix.TryGetProperty("g", out _));
+
+        // clNone: Aurora non la disegna, e il JSON lo dice con un null (non con l'assenza, che vuol dire «colori del Lab»).
+        var scalo = forme.First(f => f.GetProperty("p").GetString()!.EndsWith("itap.ap", StringComparison.Ordinal));
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, scalo.GetProperty("k").ValueKind);
+    }
+
+    [Fact]
     public async Task LeCoordinateSonoTagliateACinqueDecimali()
     {
         await Apri();

@@ -3,7 +3,12 @@
 //
 // Le coordinate NON passano dal circuito Blazor: ogni strato si chiede con una fetch a /mappa/strato/<id> (§3, il
 // tetto dei 32 KB di SignalR). Il formato è corto: { id, f: [ { p: file, r: record, t: 'p'|'l'|'a', e: etichetta,
-// c: [ [lat,lon,lat,lon,…], … ], x: [nomi non risolti] } ] } — i punti di un tratto sono numeri in fila, a coppie.
+// c: [ [lat,lon,lat,lon,…], … ], x: [nomi non risolti], k/ka, g/ga, s: i colori di Aurora } ] } — i punti di un tratto
+// sono numeri in fila, a coppie.
+//
+// Due modi di colore (lotto «Subito» slice 4): quelli del Lab, uno per strato dal foglio, tenui; e quelli di Aurora,
+// che il server calcola forma per forma dallo schema scelto e da colors.def (k = linea, g = riempimento, s = stile
+// della linea). Si passa dall'uno all'altro senza riprendere le coordinate.
 (function () {
     'use strict';
 
@@ -27,13 +32,37 @@
         return punti;
     }
 
-    function disegna(forma, colore) {
-        var stile = { color: colore, weight: 1, opacity: .9, fillOpacity: forma.t === 'a' ? .06 : 0 };
+    // Gli stili delle linee dello schema di Aurora (…_SOLID): 1 tratteggio, 2 puntini, 3 tratto-punto, 4 tratto-punto-punto
+    // (i PenStyle di Delphi: da provare accanto ad Aurora).
+    var tratteggi = { 1: '6,4', 2: '2,3', 3: '8,3,2,3', 4: '8,3,2,3,2,3' };
+
+    /// Lo stile di una forma nel modo di adesso. `tinta` è il colore del Lab per il suo strato.
+    function stile(forma, tinta) {
+        var aurora = stato && stato.aurora && Object.prototype.hasOwnProperty.call(forma, 'k');
+        if (!aurora) {
+            return forma.t === 'p'
+                ? { color: tinta, weight: 1, opacity: 1, fillColor: tinta, fillOpacity: .8, dashArray: null }
+                : { color: tinta, weight: 1, opacity: .9, fillColor: tinta, fillOpacity: forma.t === 'a' ? .06 : 0, dashArray: null };
+        }
+        // clNone (k null): Aurora non la disegna, e nemmeno noi; resta raggiungibile dall'elenco.
+        var linea = forma.k || tinta;
+        var opacita = forma.k ? (forma.ka === undefined ? 1 : forma.ka) : 0;
+        if (forma.t === 'p') return { color: linea, weight: 1, opacity: opacita, fillColor: linea, fillOpacity: opacita * .8, dashArray: null };
+        return {
+            color: linea, weight: 1, opacity: opacita,
+            fillColor: forma.g || linea, fillOpacity: forma.g ? (forma.ga === undefined ? 1 : forma.ga) : 0,
+            dashArray: forma.s ? (tratteggi[forma.s] || null) : null
+        };
+    }
+
+    function disegna(forma, tinta) {
+        var suo = stile(forma, tinta);
         if (forma.t === 'p') {
             var uno = forma.c.length && forma.c[0].length ? [forma.c[0][0], forma.c[0][1]] : null;
             // Una forma senza punti (un nome che il catalogo non risolve, slice 3b) non si disegna: non è un errore
             // da nascondere, ma sulla mappa non c'è niente da mettere.
-            return uno ? L.circleMarker(uno, { radius: 3, color: colore, weight: 1, fillOpacity: .8 }) : null;
+            suo.radius = 3;
+            return uno ? L.circleMarker(uno, suo) : null;
         }
 
         var tratti = [];
@@ -41,7 +70,36 @@
             if (forma.c[i].length >= 4) tratti.push(coppie(forma.c[i]));
         }
         if (!tratti.length) return null;
-        return forma.t === 'a' ? L.polygon(tratti, stile) : L.polyline(tratti, stile);
+        return forma.t === 'a' ? L.polygon(tratti, suo) : L.polyline(tratti, suo);
+    }
+
+    /// Rimette a una forma lo stile del modo di adesso (dopo l'evidenza, dopo un cambio di tema o di modo).
+    function applica(l) {
+        if (!l.setStyle || !l.sectorlab) return;
+        l.setStyle(stile(l.sectorlab, colore(l.sectorlabStrato)));
+    }
+
+    /// Il fondo della mappa: quello dello schermo radar coi colori di Aurora, quello del foglio coi colori del Lab.
+    function fondo() {
+        if (!stato) return;
+        stato.mappa.getContainer().style.background = stato.aurora && stato.sfondo ? stato.sfondo : '';
+    }
+
+    /// 🔴 I riempimenti di terra (.pol) stanno SOTTO le linee dei .geo, come in Aurora: coi colori di Aurora sono pieni, e
+    /// sopra coprirebbero bordi e assi delle taxiway. Una tela sola (canvas) disegna nell'ordine della lista: la terra si
+    /// porta in fondo, e le coste ancora sotto.
+    /// 🔴 Dall'ULTIMA forma alla prima: portate in fondo nell'ordine del file, la prima finirebbe sopra l'ultima e l'ordine
+    /// dei .pol si rovescerebbe — l'erba del confine copriva taxiway e piste (visto a schermo su LIRF). In Aurora vince
+    /// l'ultima del file (carta «file per file», I3).
+    function ordina(id) {
+        if (id !== 'terra' && id !== 'sfondo') return;
+        var sotto = ['terra', 'sfondo'];
+        for (var i = 0; i < sotto.length; i++) {
+            var gruppo = stato.strati[sotto[i]];
+            if (!gruppo || !stato.mappa.hasLayer(gruppo)) continue;
+            var forme = gruppo.getLayers();
+            for (var j = forme.length - 1; j >= 0; j--) if (forme[j].bringToBack) forme[j].bringToBack();
+        }
     }
 
     function scelta(forma) {
@@ -65,7 +123,7 @@
                 maxZoom: 20                  // un pixel ≈ 11 cm, come i sei decimali delle coordinate (MappaDelLab)
             }).setView([42.0, 12.5], 6);
 
-            stato = { mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {} };
+            stato = { mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {}, aurora: false, sfondo: null };
             // Il riquadro della mappa cambia misura quando i pannelli vanno nell'altra finestra (e tornano): Leaflet
             // non se ne accorge da solo, e disegnerebbe solo nella parte che aveva prima.
             if (typeof ResizeObserver !== 'undefined') {
@@ -112,6 +170,7 @@
                         var disegnata = disegna(forma, tinta);
                         if (!disegnata) continue;
                         disegnata.sectorlab = forma;
+                        disegnata.sectorlabStrato = id;
                         disegnata.on('click', (function (f) { return function (e) { L.DomEvent.stop(e); scelta(f); }; })(forma));
                         disegnata.bindTooltip(forma.e, { sticky: true });
                         gruppo.addLayer(disegnata);
@@ -122,6 +181,7 @@
                     if (stato.strati[id]) stato.mappa.removeLayer(stato.strati[id]);
                     stato.strati[id] = gruppo;
                     gruppo.addTo(stato.mappa);
+                    ordina(id);
                     // Lo sfondo decide l'inquadratura: la prima volta che arriva, la mappa si mette sull'Italia vera.
                     if (id === 'sfondo' && !stato.inquadrato) {
                         var bordi = L.latLngBounds([]);
@@ -146,18 +206,18 @@
             if (!stato) return false;
             if (stato.evidenza) {
                 var vecchia = stato.evidenza;
-                if (vecchia.setStyle) vecchia.setStyle(vecchia.sectorlabStile);
+                applica(vecchia);
                 if (vecchia.bringToBack) vecchia.bringToBack();
                 stato.evidenza = null;
+                // Portata in fondo, una forma qualsiasi finirebbe sotto la terra e le coste: si rimettono in fondo loro.
+                ordina('terra');
             }
             if (!file) return false;
 
             var forma = stato.forme[file + '#' + record];
             if (!forma) return false;
-            forma.sectorlabStile = forma.sectorlabStile || {
-                color: forma.options.color, weight: forma.options.weight, fillOpacity: forma.options.fillOpacity
-            };
-            forma.setStyle({ color: token('--lab-evidenza', '#e26e17'), weight: 3, fillOpacity: forma.sectorlab.t === 'a' ? .15 : forma.options.fillOpacity });
+            forma.setStyle({ color: token('--lab-evidenza', '#e26e17'), weight: 3, opacity: 1, dashArray: null,
+                             fillOpacity: forma.sectorlab.t === 'a' ? Math.max(.15, forma.options.fillOpacity) : forma.options.fillOpacity });
             if (forma.bringToFront) forma.bringToFront();
             stato.evidenza = forma;
 
@@ -236,16 +296,21 @@
             return gruppo.getLayers().length;
         },
 
-        /// Il tema è cambiato: ogni strato riprende il suo colore dal foglio (le coordinate non si richiedono).
+        /// I colori della mappa: di Aurora (col fondo dello schermo radar) o del Lab. Le forme hanno già tutti e due.
+        colori: function (aurora, sfondo) {
+            if (!stato) return;
+            stato.aurora = !!aurora;
+            stato.sfondo = sfondo || null;
+            fondo();
+            this.ricolora();
+        },
+
+        /// Il tema o il modo è cambiato: ogni forma riprende il suo colore (le coordinate non si richiedono).
         ricolora: function () {
             if (!stato) return;
             for (var id in stato.strati) {
                 if (!Object.prototype.hasOwnProperty.call(stato.strati, id)) continue;
-                var tinta = colore(id);
-                stato.strati[id].eachLayer(function (l) {
-                    if (l.sectorlabStile) l.sectorlabStile.color = tinta;
-                    if (l !== stato.evidenza && l.setStyle) l.setStyle({ color: tinta });
-                });
+                stato.strati[id].eachLayer(function (l) { if (l !== stato.evidenza) applica(l); });
             }
             if (stato.evidenza && stato.evidenza.setStyle) stato.evidenza.setStyle({ color: token('--lab-evidenza', '#e26e17') });
             if (stato.anteprima) {

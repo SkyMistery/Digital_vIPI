@@ -20,13 +20,23 @@ public enum TipoDiForma
 /// <param name="Etichetta">Come si chiama a schermo (il nome del settore, dell'area, della procedura…).</param>
 /// <param name="Tratti">Uno o più tratti di punti; un punto solo per <see cref="TipoDiForma.Punto"/>.</param>
 /// <param name="NomiNonRisolti">I nomi citati che il catalogo non conosce: il tratto lì si interrompe.</param>
+/// <param name="Tratto">Il colore della linea come è scritto nel record (5° campo dei <c>.geo</c>, bordo di
+/// <c>.tfl</c> e <c>.pol</c>): un nome o un valore. Null per i record che il colore lo prendono dallo schema.</param>
+/// <param name="Riempimento">Il riempimento come è scritto (<c>.tfl</c>, <c>.pol</c>).</param>
+/// <param name="SoloBordo">Il riempimento non si disegna: settore dinamico, o opacità a 1 (lotto «Subito» slice 4, D3).</param>
+/// <param name="Chiave">La chiave dello schema di Aurora quando la decide il record e non il file (le voci degli
+/// <c>.str</c>: STAR, IAP, GOAROUND…).</param>
 public sealed record FormaDellaMappa(
     string File,
     int Record,
     TipoDiForma Tipo,
     string Etichetta,
     IReadOnlyList<IReadOnlyList<Coordinate>> Tratti,
-    IReadOnlyList<string> NomiNonRisolti)
+    IReadOnlyList<string> NomiNonRisolti,
+    string? Tratto = null,
+    string? Riempimento = null,
+    bool SoloBordo = false,
+    string? Chiave = null)
 {
     public int Punti => Tratti.Sum(t => t.Count);
 }
