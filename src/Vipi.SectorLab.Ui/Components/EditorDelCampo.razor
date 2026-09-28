@@ -32,6 +32,11 @@ else if (Campo.Descrizione is { Editor: Editor.TipoFisso } fisso)
         }
     </select>
 }
+else if (Campo.Descrizione is { Editor: Editor.Colore } colore)
+{
+    @* Slice 4: nomi di colors.def del master, selettore, opacità (#AARRGGBB con l'avviso su Smooth Drawing). *@
+    <CampoColore Valore="@Campo.Scritto" Significati="@colore.Valori" OnCambia="Cambia" data-scrivi="@Campo.Nome" />
+}
 else if (Campo.Descrizione is { Editor: Editor.SiNo } && TipoVero == typeof(bool) && !PuoEssereVuoto)
 {
     <input type="checkbox" class="lab-casella-campo" checked="@(Campo.Scritto == "sì")" data-scrivi="@Campo.Nome"

@@ -1545,6 +1545,9 @@ public sealed class SessioneDelLab
     /// <summary>I colori di Aurora calcolati per la sessione aperta; null senza sessione o senza schema.</summary>
     public ColoriDellaMappa? Colori { get; private set; }
 
+    /// <summary>I nomi di <c>[DEFINE]</c> del master scelto (<c>colors.def</c>): la mappa e il selettore della scheda.</summary>
+    public ColorPalette Definiti { get; private set; } = new();
+
     /// <summary>Perché i colori di Aurora non ci sono, da dire accanto alla scelta. Null se ci sono.</summary>
     public string? ColoriMancanti { get; private set; }
 
@@ -1583,8 +1586,19 @@ public sealed class SessioneDelLab
         VersioneDeiColori++;
         Colori = null;
         ColoriMancanti = null;
+        Definiti = new ColorPalette();
         if (Sessione is null)
             return;
+
+        var avvisi = new RaccoltaDiAvvisi();
+        try
+        {
+            Definiti = SchemiDiAurora.Definiti(Sessione, IscScelto is null ? null : Cataloghi.GetValueOrDefault(IscScelto), avvisi);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Registro.Errore("colors.def", e);
+        }
 
         SchemiDisponibili = SchemiDiAurora.Disponibili(Sessione.Cartella);
         SchemaScelto = SchemiDiAurora.Scegli(SchemiDisponibili, SchemaScelto ?? _schemaRicordato);
@@ -1596,10 +1610,8 @@ public sealed class SessioneDelLab
 
         try
         {
-            var avvisi = new RaccoltaDiAvvisi();
             var schema = SchemiDiAurora.Leggi(Sessione.Cartella, SchemaScelto, avvisi);
-            var definiti = SchemiDiAurora.Definiti(Sessione, IscScelto is null ? null : Cataloghi.GetValueOrDefault(IscScelto), avvisi);
-            Colori = new ColoriDellaMappa(schema, definiti);
+            Colori = new ColoriDellaMappa(schema, Definiti);
             if (avvisi.Count > 0)
                 Registro.Scrivi("colori", $"{SchemaScelto}: {avvisi.Count} righe illeggibili negli schemi o nei .def");
         }

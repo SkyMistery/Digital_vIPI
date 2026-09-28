@@ -29,7 +29,11 @@ public enum Editor
     /// <summary>Uno o più valori presi dal sector (<see cref="DescrizioneDelCampo.Fonte"/>).</summary>
     Elenco,
 
-    /// <summary>Un colore: nome di <c>colors.def</c> o <c>#RRGGBB</c> (il selettore vero è la slice 4).</summary>
+    /// <summary>
+    /// Un colore di <c>[FILLCOLOR]</c>: un nome di <c>colors.def</c> del master, o un valore nelle forme del manuale
+    /// (<c>#RRGGBB</c>, <c>#AARRGGBB</c>, <c>R,G,B</c>, <c>%R:G:B</c>). Col selettore della slice 4; i
+    /// <see cref="DescrizioneDelCampo.Valori"/>, se ci sono, danno il significato dei nomi (e il tipo del nuovo, 3e).
+    /// </summary>
     Colore,
 
     /// <summary>Sì o no.</summary>
@@ -289,9 +293,9 @@ public static class DescrizioniDeiCampi
         // GND_LAYOUT (§9): STATIC;Riempimento;Bordo;ColoreBordo, poi i vertici.
         [typeof(Polygon)] = new("Poligono di terra",
         [
-            C("FillColor", "Riempimento", "Il tipo di superficie (2° campo, un nome di colors.def).", Editor.TipoFisso) with { Valori = TipiDelPol },
+            C("FillColor", "Riempimento", "Il tipo di superficie (2° campo): un nome di colors.def, o un colore.", Editor.Colore) with { Valori = TipiDelPol },
             C("LineWeight", "Spessore del bordo", "3° campo.", Editor.Numero),
-            C("LineColor", "Bordo", "Il colore del bordo (4° campo, un nome di colors.def).", Editor.TipoFisso) with { Valori = TipiDelPol },
+            C("LineColor", "Bordo", "Il colore del bordo (4° campo): un nome di colors.def, o un colore.", Editor.Colore) with { Valori = TipiDelPol },
             Vertici("Vertices"),
         ]),
         // GEO (§8, §8-bis, §15): LatInizio;LonInizio;LatFine;LonFine;Tipo;[Nome dell'area].
@@ -404,9 +408,9 @@ public static class DescrizioniDeiCampi
         {
             Fonte = FonteDellElenco.Posizioni,
         },
-        C("FillColor", "Riempimento", "2° campo (per convenzione italiana il riempimento resta vuoto: si vede il bordo).", Editor.Colore),
+        C("FillColor", "Riempimento", "2° campo: un nome di colors.def o un colore. Con l'opacità a 1 non si riempie (convenzione italiana: si vede il bordo).", Editor.Colore),
         C("LineWeight", "Spessore del bordo", "3° campo.", Editor.Numero),
-        C("StrokeColor", "Colore del bordo", "4° campo.", Editor.Colore),
+        C("StrokeColor", "Colore del bordo", "4° campo: un nome di colors.def o un colore.", Editor.Colore),
         C("Flags", "Opacità", "5° campo, 0 o 1.", Editor.TipoFisso) with { Valori = Valori(("0", "0"), ("1", "1")) },
         C("Type", "Tipo di settore", "Calcolato dal riempimento (CTR, APP, TMA…).", Editor.SolaLettura),
         .. inPiu,

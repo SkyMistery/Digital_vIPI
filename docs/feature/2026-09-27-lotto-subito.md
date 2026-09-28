@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e), la 4a e la 4b; in corso la **slice 4** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4c); prossima la **slice 5** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -497,3 +497,28 @@ selettore nella scheda.
     → fondo e colori di prima, «di Aurora» → di nuovo; `Default.clr` → coste arancioni e taxiway verdi, come i suoi
     valori.
   Test: Lab 438 → **462**, motore **667**.
+- **4c (28 settembre)** — il selettore dei colori nella scheda (D2, I1; solo Lab). `Components/CampoColore.razor` per
+  i campi `Colore` (riempimento e bordo dei `.tfl` e dei `.pol`): il **campione** del colore, il testo com'è scritto
+  (ogni forma del manuale), il **selettore** di Windows (scrive `#RRGGBB` maiuscolo), l'**opacità** in % (sotto 100
+  scrive `#AARRGGBB`; spenta su un nome, che ha l'opacità del suo `.def`), e sotto **i nomi di `colors.def` del
+  master** come tasti col loro colore — nei `.pol` anche col significato (GRASS erba, HOLE buco…). Avvisi accanto al
+  campo: `#AARRGGBB` (anche un nome definito così) → «l'opacità si vede solo con Smooth Drawing acceso (PVD → OTHER →
+  Smooth Drawing)», dal manuale; un nome che `colors.def` non ha né un colore → «Aurora non sa come disegnarlo».
+  `Ispezione/ColoriDellaScheda.cs` legge e scrive; i nomi sono quelli del master scelto (`SessioneDelLab.Definiti`).
+  Scelte dell'agente:
+  - Riempimento e bordo dei `.pol` passano da tipo fisso a colore (I1: «da `colors.def` o col selettore»), ma tengono
+    i loro valori col significato: sono anche il tipo che «+ Nuovo record» chiede (3e), che non cambia.
+  - In `[FILLCOLOR]` contano i nomi di `colors.def`, non lo schema (come sulla mappa): il `COAST` di `limw.pol` è
+    detto sconosciuto.
+  Misura sul fork (`scratchpad/colori4b`): **3 870 campi colore** nelle teste di `.tfl` e `.pol`, **3 862 nomi** di
+  `colors.def`, 6 valori, **2 sconosciuti** (il `COAST` di `limw.pol`, riempimento e bordo); nessuna opacità. La
+  scrittura passa dallo stesso `CambiaCampo` misurato nella 3c (ogni campo scrivibile arriva nella riga).
+  Prova a schermo sul banco: `aa_ad_gnd.pol` GRASS → tasto TAXIWAY → «Riempimento: GRASS → TAXIWAY», diff −1 +1;
+  `lirr_ne_ctr.tfl` bordo `CTR` → selettore `#FF8800` → opacità 60 → `LIRR_NE_CTR;CTR;1;#99FF8800;1;`, una voce,
+  l'avviso su Smooth Drawing; «Annulla tutto». Nella colonna stretta la riga del colore andava oltre il bordo: ora va
+  a capo. Test: Lab 462 → **479** (un test della 3a aggiornato: anche un colore può avere valori).
+
+**Slice 4 chiusa.** Uscita misurata sul fork: ogni forma della mappa (21 853) ha il colore dello schema scelto o di
+`colors.def`, salvo 3 già note che si vedono magenta; settori dinamici solo bordo; il selettore scrive nomi, `#RRGGBB`
+e `#AARRGGBB` con l'avviso. Il confronto **accanto a uno schermo di Aurora** (ARTCC, aerovie, SID/STAR, fix, costa,
+terra, e gli stili di linea `…_SOLID`) è del committente: prove 71-76 in `SectorLab-prova\PROVE.md`.

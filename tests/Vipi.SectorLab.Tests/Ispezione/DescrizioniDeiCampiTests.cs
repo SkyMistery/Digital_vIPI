@@ -92,7 +92,12 @@ public sealed class DescrizioniDeiCampiTests : IDisposable
         {
             foreach (var campo in descrizione.Campi)
             {
-                Assert.Equal(campo.Editor == Editor.TipoFisso, campo.Valori.Count > 0);
+                // Un tipo fisso ha sempre i suoi valori; un colore può averli (slice 4: i nomi dei riempimenti dei .pol,
+                // col significato, sono anche il tipo del nuovo record), gli altri editor no.
+                if (campo.Editor == Editor.TipoFisso)
+                    Assert.NotEmpty(campo.Valori);
+                else if (campo.Editor != Editor.Colore)
+                    Assert.Empty(campo.Valori);
                 Assert.Equal(campo.Editor == Editor.Elenco, campo.Fonte is not null);
                 Assert.Equal(campo.Valori.Count, campo.Valori.Select(v => v.Valore).Distinct(StringComparer.Ordinal).Count());
             }

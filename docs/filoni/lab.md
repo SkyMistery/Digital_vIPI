@@ -20,7 +20,13 @@ numero, piste dal `.rw`, scali e posizioni; corretto lo scrittore delle MVA di A
 gruppo; MVA di scalo in sola lettura fino alla slice 15), **3c** il punto coi suggerimenti del master (corretta la
 fusione dei campi del motore, che cancellava l'RNAV delle SID quando la riga si allungava), **3d** i metadati del
 catalogo di §M nella scheda (1 271 record su 1 271 sul fork), **3e** «+ Nuovo record» che chiede il tipo fisso (negli
-`.artcc` etichetta o traccia). Slice 3 chiusa; prossima: **slice 4** (colori). Test: motore **621**, Lab **438**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
+`.artcc` etichetta o traccia). Slice 3 chiusa. **Slice 4** (colori, 28 settembre): **4a** i colori nel motore (le
+quattro forme del manuale, `colors.def` in tutte, gli schemi `.clr` di Aurora con la notazione di Delphi misurata sulle
+coppie dello stesso colore), **4b** la mappa coi colori dello schema scelto (`LIRR_RDR_V1.0.clr` di base, fondo
+radar, settori dinamici solo bordo, nei `.geo` vince lo schema — committente —, nei `.tfl`/`.pol` `colors.def`;
+corretto l'ordine dei riempimenti di terra, che si rovesciava), **4c** il selettore nella scheda (nomi di
+`colors.def` del master, selettore, opacità con l'avviso su Smooth Drawing). Slice 4 chiusa; prossima: **slice 5**
+(sequenze di punti e gesti sul record). Test: motore **667**, Lab **479**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
 ## 27 settembre 2026 — revisione del giro dei file

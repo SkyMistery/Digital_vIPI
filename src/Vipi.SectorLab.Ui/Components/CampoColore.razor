@@ -1,0 +1,83 @@
+@inject SessioneDelLab Lab
+
+@*
+    Un colore della scheda (lotto «Subito» slice 4, D2 e I1): un nome di colors.def del master (i tasti sotto, col loro
+    colore), un colore dal selettore (#RRGGBB) o con l'opacità (#AARRGGBB, e l'avviso su Smooth Drawing), o scritto a
+    mano in una delle forme del manuale. Tutto finisce nello stesso CambiaCampo degli altri campi.
+*@
+<span class="lab-colore" @attributes="Attributi">
+    <span class="lab-campione @(Letto.Sconosciuto ? "lab-campione-ignoto" : null)" style="@Campione()"
+          title="@(Letto.Sconosciuto ? "Colore sconosciuto" : Letto.Esadecimale)"></span>
+    <input class="lab-campo" value="@Valore" @onchange="e => OnCambia.InvokeAsync(e.Value?.ToString())"
+           title="Un nome di colors.def, #RRGGBB, #AARRGGBB, R,G,B o %R:G:B" />
+    <input type="color" class="lab-selettore" value="@(Letto.Esadecimale ?? Nero)" @onchange="DalSelettore"
+           data-selettore-colore title="Scegli un colore: scrive #RRGGBB (o #AARRGGBB con l'opacità)" />
+    <input class="lab-opacita" inputmode="numeric" value="@Letto.Opacita" @onchange="DallOpacita" disabled="@(Letto.Nome is not null || Letto.Sconosciuto)"
+           data-opacita-colore title="@TitoloDellOpacita()" /><span class="lab-nota">%</span>
+</span>
+@if (Nomi.Count > 0)
+{
+    <span class="lab-nomi-dei-colori" data-nomi-dei-colori="@Nomi.Count">
+        @foreach (var nome in Nomi)
+        {
+            <button class="lab-nome-colore @(Scelto(nome) ? "lab-nome-colore-scelto" : null)" data-nome-colore="@nome.Nome"
+                    title="@TitoloDelNome(nome)" @onclick="() => OnCambia.InvokeAsync(nome.Nome)">
+                <span class="lab-pallino" style="@Pallino(nome)"></span>@nome.Nome
+            </button>
+        }
+    </span>
+}
+@if (Letto.Avviso is { } avviso)
+{
+    <span class="lab-nota lab-avviso-colore" data-avviso-colore>@avviso</span>
+}
+
+@code {
+    private const string Nero = "#000000";
+
+    /// <summary>Il valore di adesso, come lo mostra la scheda.</summary>
+    [Parameter] public string? Valore { get; set; }
+
+    [Parameter] public EventCallback<string?> OnCambia { get; set; }
+
+    /// <summary>Il significato che il campo dà ai nomi (i riempimenti dei .pol: GRASS erba, HOLE buco…).</summary>
+    [Parameter] public IReadOnlyList<ValoreFisso>? Significati { get; set; }
+
+    /// <summary>Gli attributi del campo (<c>data-scrivi</c>): i test e le prove li cercano.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributi { get; set; }
+
+    private ColoreLetto Letto => ColoriDellaScheda.Leggi(Valore, Lab.Definiti);
+
+    private IReadOnlyList<NomeDiColore> Nomi => ColoriDellaScheda.Nomi(Lab.Definiti, Significati);
+
+    private bool Scelto(NomeDiColore nome) => string.Equals(nome.Nome, Valore?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private string Campione()
+        => Letto.Esadecimale is { } colore
+            ? $"background:{colore};opacity:{(Letto.Opacita / 100.0).ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+            : string.Empty;
+
+    private static string Pallino(NomeDiColore nome) => "background:" + nome.Esadecimale;
+
+    private static string TitoloDelNome(NomeDiColore nome)
+        => nome.Significato is { } significato ? $"{nome.Esadecimale.ToUpperInvariant()} · {significato}" : nome.Esadecimale.ToUpperInvariant();
+
+    private string TitoloDellOpacita()
+        => Letto.Nome is not null
+            ? "Un nome di colors.def ha l'opacità scritta nel .def"
+            : "Opacità in %: sotto 100 scrive #AARRGGBB (" + ColoriDellaScheda.SoloConSmoothDrawing + ")";
+
+    private Task DalSelettore(ChangeEventArgs e)
+    {
+        int opacita = Letto.Nome is null ? Letto.Opacita : 100;
+        return ColoriDellaScheda.DaScrivere(e.Value?.ToString(), opacita) is { } valore
+            ? OnCambia.InvokeAsync(valore)
+            : Task.CompletedTask;
+    }
+
+    private Task DallOpacita(ChangeEventArgs e)
+        => int.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int opacita)
+           && ColoriDellaScheda.DaScrivere(Letto.Esadecimale, opacita) is { } valore
+            ? OnCambia.InvokeAsync(valore)
+            : Task.CompletedTask;
+}
