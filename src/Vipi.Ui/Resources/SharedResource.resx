@@ -1792,6 +1792,7 @@
   <data name="Rel_ScheduleAtCycle" xml:space="preserve"><value>Programma al ciclo</value></data>
   <data name="Rel_PublishedAtCycle" xml:space="preserve"><value>Release pubblicata al ciclo AIRAC {0}.</value></data>
   <data name="Rel_PublishedNow" xml:space="preserve"><value>Release pubblicata subito (review).</value></data>
+  <data name="Rel_NothingNewToPublish" xml:space="preserve"><value>Niente di nuovo rispetto alla release in vigore: nessuna release creata, resta quella.</value></data>
     <data name="Rel_CancelPrompt" xml:space="preserve"><value>Annullare la release AIRAC {0}? Il pubblico tornerà alla precedente in vigore.</value></data>
   <data name="Rel_CancelPromptOld" xml:space="preserve"><value>Eliminare dalla storia la release superata AIRAC {0}? Il pubblico non vede alcuna differenza.</value></data>
   <data name="Rel_CancelTitleOld" xml:space="preserve"><value>Elimina questa release superata dalla storia</value></data>

@@ -65,8 +65,20 @@ public sealed class EfReleaseRepository : IReleaseRepository
         string payloadJson, int createdByUserId, string? note, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        var existing = await _db.DocReleases
-            .Where(r => r.TargetType == type && r.TargetKey == key).ToListAsync(ct);
+        // U-241 (revisione 3): per numerare e ricalcolare gli stati servono quattro colonne, non il payload. Prima si
+        // caricavano come entità intere TUTTE le release del bersaglio, payload compresi (centinaia di kB l'una, tenute
+        // 13 cicli): ogni pubblicazione si faceva più pesante della precedente. Non seguite: gli stati cambiati si
+        // scrivono qui sotto sulla sola colonna.
+        var existing = await _db.DocReleases.AsNoTracking()
+            .Where(r => r.TargetType == type && r.TargetKey == key)
+            .Select(r => new DocRelease
+            {
+                Id = r.Id, TargetType = r.TargetType, TargetKey = r.TargetKey, VersionNumber = r.VersionNumber,
+                ReleaseAiracCycle = r.ReleaseAiracCycle, ReleaseEffectiveUtc = r.ReleaseEffectiveUtc, Status = r.Status,
+                PayloadJson = "",
+            })
+            .ToListAsync(ct);
+        var statiDiPrima = existing.ToDictionary(r => r.Id, r => r.Status);
 
         // «Una release per ciclo» lo impone RecomputeStatuses (vince la più recente del ciclo, le altre
         // Superseded). Qui c'era anche una marcatura esplicita per-ciclo, ma per i cicli FUTURI il ricalcolo
@@ -87,7 +99,31 @@ public sealed class EfReleaseRepository : IReleaseRepository
         // diventano Superseded, le future Scheduled.
         RecomputeStatuses(existing.Append(row).ToList(), now);
 
+        // ⚠️ Non un ExecuteUpdate: lascerebbe stantia l'istanza che il contesto segue già (la release appena scritta
+        // da una pubblicazione di prima nello stesso scope), e un ricalcolo dopo — l'annullo — la riscriverebbe con lo
+        // stato vecchio. Chi è già seguito cambia lì; gli altri con un segnaposto seguito per la sola colonna, staccato
+        // subito dopo: un payload vuoto nel contesto sarebbe restituito a chi legge dopo.
+        var segnaposti = new List<DocRelease>();
+        foreach (var r in existing.Where(r => r.Status != statiDiPrima[r.Id]))
+        {
+            if (_db.DocReleases.Local.FirstOrDefault(x => x.Id == r.Id) is { } seguita)
+            {
+                seguita.Status = r.Status;
+                continue;
+            }
+            var segnaposto = new DocRelease
+            {
+                Id = r.Id, TargetType = r.TargetType, TargetKey = r.TargetKey, VersionNumber = r.VersionNumber,
+                ReleaseAiracCycle = r.ReleaseAiracCycle, ReleaseEffectiveUtc = r.ReleaseEffectiveUtc,
+                Status = statiDiPrima[r.Id], PayloadJson = "",
+            };
+            _db.DocReleases.Attach(segnaposto);
+            segnaposto.Status = r.Status;
+            segnaposti.Add(segnaposto);
+        }
+
         await _db.SaveChangesAsync(ct);
+        foreach (var s in segnaposti) _db.Entry(s).State = EntityState.Detached;
         return row.Id;
     }
 

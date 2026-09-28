@@ -1178,7 +1178,10 @@
     {
         var key = RowKey(d);
         _releases.Remove(key);
-        await Run(() => Releases.PublishNowAsync(d.ReleaseTarget, d.ReleaseKey, NoteOf(key)), L["Rel_PublishedNow"]);
+        var creata = true;
+        await Run(async () => creata = await Releases.PublishNowAsync(d.ReleaseTarget, d.ReleaseKey, NoteOf(key)), L["Rel_PublishedNow"]);
+        // U-241: contenuto identico alla release in vigore, nessuna release nuova. Lo si dice.
+        if (!creata && _status is not null) _status = L["Rel_NothingNewToPublish"];
         await LoadDetailAsync(key);
         await LoadAsync();   // i cicli release stanno nell'elenco: si rilegge quello, non un secondo riepilogo
     }

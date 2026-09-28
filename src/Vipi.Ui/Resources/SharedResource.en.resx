@@ -1787,6 +1787,7 @@
   <data name="Rel_ScheduleAtCycle" xml:space="preserve"><value>Schedule at cycle</value></data>
   <data name="Rel_PublishedAtCycle" xml:space="preserve"><value>Release published at AIRAC cycle {0}.</value></data>
   <data name="Rel_PublishedNow" xml:space="preserve"><value>Release published now (review).</value></data>
+  <data name="Rel_NothingNewToPublish" xml:space="preserve"><value>Nothing new compared with the release in force: no release created, that one stays.</value></data>
     <data name="Rel_CancelPrompt" xml:space="preserve"><value>Cancel the AIRAC {0} release? The public goes back to the previous effective one.</value></data>
   <data name="Rel_CancelPromptOld" xml:space="preserve"><value>Remove the superseded AIRAC {0} release from the history? The public sees no difference.</value></data>
   <data name="Rel_CancelTitleOld" xml:space="preserve"><value>Remove this superseded release from the history</value></data>

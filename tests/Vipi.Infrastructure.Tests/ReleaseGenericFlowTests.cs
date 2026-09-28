@@ -177,8 +177,13 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.False(diff.HasBaseline);
         Assert.Contains(diff.Rows, r => r.Label == "Sezione Fittizia");
 
-        // Seconda pubblicazione identica: la baseline è la release PRECEDENTE (non «l'effettiva ora», che
+        // Seconda pubblicazione a struttura identica: la baseline è la release PRECEDENTE (non «l'effettiva ora», che
         // per la release in vigore era se stessa → null → il diff fingeva una prima pubblicazione).
+        // ⚠️ Dal 28-set-2026 (U-241) una pubblicazione IDENTICA non crea una release: si cambia il titolo del
+        // documento, che la firma editoriale non guarda — la struttura resta la stessa, il payload no.
+        var documento = await _db.Documents.FirstAsync(d => d.Id == _docId);
+        documento.Title = "Documento Fittizio (rev)";
+        await _db.SaveChangesAsync();
         await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "bis");
         var rel2 = (await svc.ListAsync(FakeType, "qualsiasi-chiave")).First(r => r.IsEffectiveNow);
         var diff2 = await svc.DiffAsync(rel2.Id);
@@ -612,6 +617,67 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     }
 
     /// <summary>Il ReleaseService montato sul DbContext di prova, con authz permissivo.</summary>
+    /// <summary>
+    /// U-241 (revisione 3; scelta del committente del 28-set): «Pubblica ora» premuto senza modifiche scriveva ogni
+    /// volta una release completa (payload intero, tenuto 13 cicli). Se il contenuto è identico a quello in vigore
+    /// non si crea niente, e il servizio lo dice; la bozza si promuove comunque, come sempre.
+    /// </summary>
+    [Fact]
+    public async Task Pubblica_ora_senza_modifiche_non_crea_una_seconda_release()
+    {
+        var svc = Servizio();
+
+        Assert.True(await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "prima"));
+        Assert.False(await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "di nuovo"));
+
+        Assert.Single(await svc.ListAsync(FakeType, "qualsiasi-chiave"));
+    }
+
+    /// <summary>
+    /// U-241, il caso che NON si salta: con una programmata futura, «Pubblica ora» serve proprio a scavalcarla (la
+    /// release nuova ha il numero più alto e la supera, U-009). Saltarla perché uguale all'effettiva lascerebbe la
+    /// programmata a riportare indietro la pagina al suo ciclo.
+    /// </summary>
+    [Fact]
+    public async Task Pubblica_ora_identica_si_crea_lo_stesso_se_c_e_una_programmata()
+    {
+        var svc = Servizio();
+        await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "prima");
+        var futuro = new Vipi.Domain.Services.AiracService().NextCycles(DateTime.UtcNow, 3)[2].Cycle;
+        await svc.PublishAsync(FakeType, "qualsiasi-chiave", futuro, "programmata");
+
+        Assert.True(await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "scavalca"));
+
+        var righe = await svc.ListAsync(FakeType, "qualsiasi-chiave");
+        Assert.Equal(3, righe.Count);
+        Assert.DoesNotContain(righe, r => r.Status == ReleaseStatus.Scheduled);
+    }
+
+    /// <summary>Un testo cambiato dentro un blocco (la firma editoriale conta i blocchi, non il testo) è una modifica.</summary>
+    [Fact]
+    public async Task Pubblica_ora_con_un_testo_cambiato_crea_la_release()
+    {
+        var svc = Servizio();
+        var sezione = await _db.DocumentSections.FirstAsync();
+        var blocco = new ContentBlock
+        {
+            DocumentVersionId = sezione.DocumentVersionId, SectionId = sezione.Id, Order = 1, Format = BlockFormat.Prose,
+            Tier = BlockTier.Reduced, Visibility = BlockVisibility.Always, Body = "prima", RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.ContentBlocks.Add(blocco);
+        await _db.SaveChangesAsync();
+        await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", null);
+
+        // ⚠️ Riletto: la transazione della pubblicazione azzera il change-tracker (EfUnitOfWork), e l'istanza di
+        // prima non è più seguita — cambiarla non scriverebbe niente.
+        var riletto = await _db.ContentBlocks.SingleAsync(b => b.Id == blocco.Id);
+        riletto.Body = "dopo";
+        await _db.SaveChangesAsync();
+
+        Assert.True(await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", null));
+        Assert.Equal(2, (await svc.ListAsync(FakeType, "qualsiasi-chiave")).Count);
+    }
+
     private ReleaseService Servizio() =>
         new(new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new AllowAuthz(),
             new Vipi.Domain.Services.AiracService(),

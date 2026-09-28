@@ -47,8 +47,12 @@ public interface IReleaseService
     /// è lockato da un altro editor (promuoverebbe la sua bozza a metà); a pubblicazione avvenuta rilascia
     /// l'eventuale lock del chiamante, come il publish-versione dell'editor.
     /// <para><inheritdoc cref="PublishAsync" path="/summary/para[1]"/> ⚠️ E promuove la bozza di <b>ogni</b>
-    /// membro: le due semantiche restano diverse anche unite — la pianificata non promuove, questa sì.</para></summary>
-    Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
+    /// membro: le due semantiche restano diverse anche unite — la pianificata non promuove, questa sì.</para>
+    /// <para>U-241 (revisione 3; scelta del committente del 28-set-2026): un bersaglio il cui contenuto è identico,
+    /// byte per byte, alla release in vigore — e che non ha programmate future da scavalcare — non riceve una
+    /// release nuova. La bozza si promuove lo stesso.</para></summary>
+    /// <returns><c>false</c> se nessun bersaglio aveva modifiche: non è stata creata nessuna release.</returns>
+    Task<bool> PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
 
     /// <summary>
     /// Annulla una release (per Id). Authz sull'ACC del bersaglio.
@@ -325,7 +329,7 @@ public sealed class ReleaseService : IReleaseService
     /// da annullare, e tenerla dentro significherebbe aprire una transazione anche per rifiutare. Fuori sta anche
     /// il controllo del lock (<see cref="EnsureNotLockedByOthersAsync"/>), per la stessa ragione.</para>
     /// </summary>
-    public async Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
+    public async Task<bool> PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
     {
         // I bersagli: i membri dell'unione, o questo documento solo. ⚠️ `DocumentId` serve dopo, per mollare
         // il lock: sui membri arriva dai descrittori, sul singolo dal controllo del lock.
@@ -352,11 +356,13 @@ public sealed class ReleaseService : IReleaseService
         var now = DateTime.UtcNow;
         var cycle = _airac.GetCycle(now);
 
+        var create = 0;
         await _uow.ExecuteInTransactionAsync(async token =>
         {
+            create = 0;   // la strategia di retry può rifare il blocco: si conta da capo
             foreach (var t in bersagli)
             {
-                await SnapshotAndSaveAsync(t.Type, t.Key, cycle, now, note, token);
+                if (await SnapshotAndSaveAsync(t.Type, t.Key, cycle, now, note, token, saltaSeIdentica: true)) create++;
                 // Pubblicazione IMMEDIATA (review): promuove anche la bozza a versione pubblicata, così lo stato del
                 // documento e quello della release restano allineati (la pill dell'editor, la storia versioni, il diff).
                 // La VISIBILITÀ pubblica non dipende più da questo: dal doc 10 §S6b è la release effettiva a decidere, e
@@ -376,6 +382,7 @@ public sealed class ReleaseService : IReleaseService
                 await _editing.ReleaseLockAsync(t.DocumentId, _authz.CurrentUserId ?? 0, ct);
 
         await RiconciliaDerivaAsync(bersagli.Select(t => t.DocumentId), ct).ConfigureAwait(false);
+        return create > 0;
     }
 
     /// <summary>
@@ -808,16 +815,36 @@ public sealed class ReleaseService : IReleaseService
             .ThenBy(r => r.Label, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    private async Task SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc, string? note, CancellationToken ct)
+    /// <returns><c>false</c> se la release non è stata scritta perché identica a quella in vigore (U-241).</returns>
+    private async Task<bool> SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc,
+        string? note, CancellationToken ct, bool saltaSeIdentica = false)
     {
         var finalJson = await BuildSnapshotJsonAsync(type, key, cycle, ct, conCollegamenti: true)
             ?? throw new Aor.ValidationException(Lingua(
                 "Nessun contenuto da pubblicare: crea prima il documento (bozza).",
                 "There is nothing to publish: create the document first (as a draft)."));
+        if (saltaSeIdentica && await IdenticaAllaInVigoreAsync(type, key, effectiveUtc, finalJson, ct)) return false;
         await _repo.SaveReleaseAsync(type, key, cycle, effectiveUtc, finalJson, _authz.CurrentUserId ?? 0, note, ct);
         // Retention per-publish (release Superseded): sia per l'immediato sia per lo schedulato. Le versioni Archived
         // si potano solo dopo la promozione della bozza (PublishNowAsync) → vedi PruneArchivedVersionsForTargetAsync.
         await _repo.PruneReleasesAsync(type, key, KeepSupersededFromUtc(), ct);
+        return true;
+    }
+
+    /// <summary>
+    /// La fotografia di adesso è la release in vigore, byte per byte, e non c'è nessuna programmata futura (U-241).
+    /// <para>⚠️ Il confronto è sul payload INTERO e non sulla firma editoriale: quella conta i blocchi, e un testo
+    /// corretto dentro un blocco non la cambia. Saltare per firma perderebbe una modifica vera.</para>
+    /// <para>⚠️ Con una programmata futura non si salta mai: «Pubblica ora» ha il numero più alto e la scavalca
+    /// (EfReleaseRepository.RecomputeStatuses, U-009), ed è spesso proprio per questo che la si preme.</para>
+    /// </summary>
+    private async Task<bool> IdenticaAllaInVigoreAsync(ReleaseTargetType type, string key, DateTime adesso,
+        string payloadJson, CancellationToken ct)
+    {
+        var elenco = await _repo.ListAsync(type, key, ct);
+        if (elenco.Any(r => r.ReleaseEffectiveUtc > adesso && r.Status != ReleaseStatus.Superseded)) return false;
+        var inVigore = await _repo.GetEffectiveAsync(type, key, adesso, ct);
+        return inVigore is not null && string.Equals(inVigore.PayloadJson, payloadJson, StringComparison.Ordinal);
     }
 
     public async Task<int> PruneAllAsync(CancellationToken ct = default)

@@ -146,6 +146,31 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.Contains("Settori di aerovia", json);
     }
 
+    /// <summary>
+    /// U-241 (revisione 3): per numerare e ricalcolare gli stati la pubblicazione caricava TUTTE le release del
+    /// bersaglio come entità intere, payload compresi. Ora legge quattro colonne: nel contesto, dopo, c'è solo la
+    /// release nuova — e gli stati delle vecchie sono comunque giusti.
+    /// </summary>
+    [Fact]
+    public async Task Salvare_una_release_non_carica_i_payload_delle_vecchie()
+    {
+        var key = _docId.ToString();
+        var json = (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!;
+        var now = DateTime.UtcNow;
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2605", now.AddDays(-40), json, 1, "prima");
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2606", now.AddDays(-2), json, 1, "seconda");
+        _db.ChangeTracker.Clear();
+
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2607", now.AddSeconds(-5), json, 1, "terza");
+
+        var seguite = _db.ChangeTracker.Entries<DocRelease>().Select(e => e.Entity).ToList();
+        Assert.Equal(new[] { "terza" }, seguite.Select(r => r.Note));
+
+        _db.ChangeTracker.Clear();
+        var stati = await _db.DocReleases.OrderBy(r => r.VersionNumber).Select(r => r.Status).ToListAsync();
+        Assert.Equal(new[] { ReleaseStatus.Superseded, ReleaseStatus.Superseded, ReleaseStatus.Effective }, stati);
+    }
+
     [Fact]
     public async Task Cancel_RemovesRelease_AndPromotesPrevious()
     {

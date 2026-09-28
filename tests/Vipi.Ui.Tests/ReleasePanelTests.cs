@@ -55,16 +55,20 @@ public class ReleasePanelTests : TestContext
             return Task.CompletedTask;
         }
 
-        public async Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
+        /// <summary>Che cosa risponde la pubblicazione: <c>false</c> = contenuto identico, nessuna release (U-241).</summary>
+        public bool Crea { get; set; } = true;
+
+        public async Task<bool> PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
         {
             // Come il DbContext del circuito: una seconda operazione mentre la prima e' in volo esplode.
             if (_inVolo) throw new InvalidOperationException("A second operation was started on this context instance");
             if (Lancia is not null) throw Lancia;
             PublishedNow++; LastNote = note;
-            if (Trattieni is null) return;
+            if (Trattieni is null) return Crea;
             _inVolo = true;
             try { await Trattieni.Task; }
             finally { _inVolo = false; }
+            return Crea;
         }
 
         /// <summary>Tiene in volo la pubblicazione finche' il test non la lascia andare.</summary>
@@ -289,6 +293,21 @@ public class ReleasePanelTests : TestContext
         var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
         if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
         Assert.Equal(1, fake.DiffCalls);
+    }
+
+    /// <summary>U-241: niente di nuovo rispetto alla release in vigore → nessuna release, e il pannello lo dice invece
+    /// di «Pubblicato» (che farebbe cercare nella storia una riga che non c'è).</summary>
+    [Fact]
+    public void Pubblica_ora_senza_niente_di_nuovo_lo_dice()
+    {
+        var fake = Arrange();
+        fake.Crea = false;
+        var cut = Render();
+
+        cut.FindAll("button").First(b => b.TextContent.Contains("PublishNow")).Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("Rel_NothingNewToPublish", cut.Markup));
+        Assert.DoesNotContain("Rel_PublishedNow", cut.Markup);
     }
 
     [Fact]

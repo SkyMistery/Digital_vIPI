@@ -620,13 +620,20 @@
         return true;
     }, string.Format(L["Rel_PublishedAtCycle"].Value, _cycle ?? _currentCycle), notify: true);
 
-    private Task PublishNow() => Run(async () =>
+    private async Task PublishNow()
     {
-        if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
-        await Releases.PublishNowAsync(Target, Key, _note);
-        await SegnaRiletteAsync();
-        return true;
-    }, L["Rel_PublishedNow"], notify: true);
+        var creata = true;
+        await Run(async () =>
+        {
+            if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
+            creata = await Releases.PublishNowAsync(Target, Key, _note);
+            await SegnaRiletteAsync();
+            return true;
+        }, L["Rel_PublishedNow"], notify: true);
+        // U-241: niente di diverso dalla release in vigore, quindi nessuna release nuova. Lo si dice: un «Pubblicato»
+        // farebbe cercare nella storia una riga che non c'è.
+        if (!creata && _ok is not null) _ok = L["Rel_NothingNewToPublish"];
+    }
 
     // La domanda la fa `InlineConfirm` accanto al tasto (vedi RigaRelease): qui resta il solo atto.
     private Task CancelRelease(int releaseId) => Run(async () =>
