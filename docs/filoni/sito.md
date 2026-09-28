@@ -1092,5 +1092,13 @@
     i costruttori di prima restano validi.
   - **Test**: `RinominaSettoreTests` (+1), `DeletionRepositoryTests` (+1, fatti + piano + esecuzione). Rossi sul
     codice di prima. Infrastructure 1786 → **1788**.
+  - **Gruppo 9** (traduzione, **codice comune** `Vipi.Application` e `Vipi.Infrastructure`): **U-047** (il lotto
+    verso Azure si tagliava a 50 testi e non ai 50 000 caratteri per richiesta: 50 testi lunghi facevano un 400,
+    guasto definitivo del giro) → il lotto si chiude al primo dei due tetti (`AzureOptions.MaxCaratteriPerChiamata`,
+    45 000: un margine per il corpo JSON); un testo da solo oltre il tetto parte da solo. Scelta del Sito: niente
+    salvataggio parziale dei lotti riusciti — cambierebbe il contratto del giro, e il conto dei lotti pagati
+    (T-045) esce già.
+  - **Test**: `AzureTranslationEngineTests` (+1, un finto che fa come Azure: 400 oltre i 50 000). Rosso sul codice
+    di prima. Infrastructure 1788 → **1789**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
