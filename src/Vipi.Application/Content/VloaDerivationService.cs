@@ -104,11 +104,16 @@ internal sealed class VloaDerivationService : IVloaDerivationService
     /// prima — italiano per ACC/APP, inglese per la vLOA.</summary>
     private readonly ReadingLanguageContext? _lingua;
 
+    /// <summary>Il lock del documento come guardia delle scritture editoriali (U-051, gemello di T-004): vedi
+    /// <see cref="IDocumentLockGuard"/>.</summary>
+    private readonly IDocumentLockGuard _lock;
 
     public VloaDerivationService(IVloaDerivationRepository repo, IAccDerivationRepository accRepo, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IEditAuthorizationService authz, IOptions<NeighboursOptions> neighbours,
-        Airspace.ISectorShapeResolver forme, IDocumentProfileRepository docProfiles, ReadingLanguageContext? lingua = null)
+        Airspace.ISectorShapeResolver forme, IDocumentProfileRepository docProfiles, IDocumentLockGuard lockGuard,
+        ReadingLanguageContext? lingua = null)
     {
+        _lock = lockGuard;
         _repo = repo;
         _accRepo = accRepo;
         _docProfiles = docProfiles;
@@ -122,25 +127,11 @@ internal sealed class VloaDerivationService : IVloaDerivationService
 
     /// <summary>Settori EFFETTIVAMENTE confinanti (home/estero) calcolati per geometria dai poligoni di confine dei
     /// due ACC (non tutti i settori delle FIR). Deterministico, indipendente dallo stato del candidato.</summary>
-    private async Task<(List<string> Home, List<string> Foreign)> ComputeConfiningAsync(VloaPairInfo pair, CancellationToken ct)
-    {
-        var homeRings = (await _repo.GetBoundaryPolygonsAsync(pair.HomeAcc, ct))
-            .Select(p => (p.Callsign, Ring: PolygonGeometry.ToRing(p.Raw))).Where(x => x.Ring is not null).ToList();
-        var foreignRings = (await _repo.GetBoundaryPolygonsAsync(pair.ForeignAcc, ct))
-            .Select(p => (p.Callsign, Ring: PolygonGeometry.ToRing(p.Raw))).Where(x => x.Ring is not null).ToList();
-
-        var threshold = _neighbours.AdjacencyThresholdNm;
-        var home = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var foreign = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var h in homeRings)
-            foreach (var f in foreignRings)
-                if (PolygonGeometry.AreAdjacent(h.Ring, f.Ring, threshold))
-                {
-                    home.Add(h.Callsign);
-                    foreign.Add(f.Callsign);
-                }
-        return (home.ToList(), foreign.ToList());
-    }
+    private async Task<(List<string> Home, List<string> Foreign)> ComputeConfiningAsync(VloaPairInfo pair, CancellationToken ct) =>
+        VloaConfinanti.Calcola(
+            await _repo.GetBoundaryPolygonsAsync(pair.HomeAcc, ct),
+            await _repo.GetBoundaryPolygonsAsync(pair.ForeignAcc, ct),
+            _neighbours.AdjacencyThresholdNm);
 
     public async Task<VloaPairMeta?> GetPairMetaAsync(int docId, CancellationToken ct = default)
     {
@@ -230,11 +221,18 @@ internal sealed class VloaDerivationService : IVloaDerivationService
         // Senza contesto (test, chiamanti vecchi) resta l'inglese: il comportamento di prima.
         var tpl = CoordinationSentenceTemplate.For(_lingua?.Corrente ?? "en", _sentence.Current);
 
-        var homeSet = new HashSet<string>(pair.HomeAll, StringComparer.OrdinalIgnoreCase);
-        var foreignSet = new HashSet<string>(pair.ForeignAll, StringComparer.OrdinalIgnoreCase);
+        // 🔴 U-060 (revisione totale 3): anche i settori disattivati. Un accordo verso una controparte sparita la
+        // vIPI lo stampa ancora, e la vLOA lo toglieva: la stessa coppia raccontata in due modi. Scelta del
+        // committente: si stampa, e la segnalazione «da rivedere» chiede all'editor di decidere.
+        var homeSet = new HashSet<string>(pair.HomeAll.Concat(pair.HomeInattivi ?? Array.Empty<string>()), StringComparer.OrdinalIgnoreCase);
+        var foreignSet = new HashSet<string>(pair.ForeignAll.Concat(pair.ForeignInattivi ?? Array.Empty<string>()), StringComparer.OrdinalIgnoreCase);
 
-        var flows = (await _transfers.ListFlowsByAccAsync(pair.HomeAcc, ct))
-            .Concat(await _transfers.ListFlowsByAccAsync(pair.ForeignAcc, ct)).ToList();
+        // 🔴 U-155 (revisione totale 3): un accordo di confine riguarda tutte e due le ACC, e letto da ciascuna
+        // entrava due volte. Si tolgono i doppioni PRIMA di espandere: dopo, gli Id dei flussi sono sintetici.
+        var accordi = (await _transfers.ListByAccAsync(pair.HomeAcc, ct))
+            .Concat(await _transfers.ListByAccAsync(pair.ForeignAcc, ct))
+            .DistinctBy(a => a.Id).ToList();
+        var flows = AgreementExpansion.Expand(accordi);
         var airportMap = CoordinationDerivation.MergeAirportNames(await _accRepo.GetAirportNameMapAsync(ct), flows);
 
         // Solo i trasferimenti che attraversano il confine, per direzione (owner→next, senza inversione):
@@ -293,6 +291,7 @@ internal sealed class VloaDerivationService : IVloaDerivationService
         _ = await _repo.GetHomeAccCodeAsync(docId, ct)
             ?? throw new Aor.ValidationException(Lingua("vLOA inesistente.", "The vLOA does not exist."));
         _authz.EnsureAtLeast(VipiRole.Editor);
+        await _lock.EnsureMineAsync(docId, ct);   // U-051: chi ha perso il lock non riscrive l'ordine di chi l'ha preso
         await _docProfiles.SaveFreqOrderAsync(docId, overrides ?? Array.Empty<AppFreqOrderOverride>(), ct);
     }
 
@@ -303,6 +302,9 @@ internal sealed class VloaDerivationService : IVloaDerivationService
         var homeAcc = await _repo.GetHomeAccCodeAsync(docId, ct)
             ?? throw new Aor.ValidationException(Lingua("vLOA inesistente.", "The vLOA does not exist."));
         _authz.EnsureAtLeast(VipiRole.Editor);
+        // ⚠️ U-051: questi insiemi stanno nel profilo del documento, NON versionato, e fino al 27-set si scrivevano
+        // col solo ruolo — la pagina che aveva perso il lock riscriveva quelli di chi l'aveva preso dopo.
+        await _lock.EnsureMineAsync(docId, ct);
 
         var state = await _repo.LoadEditorialAsync(docId, ct);
         var hiddenAor = new HashSet<string>(state.HiddenAorSectors, StringComparer.OrdinalIgnoreCase);

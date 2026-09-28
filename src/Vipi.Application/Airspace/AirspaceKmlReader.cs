@@ -56,7 +56,8 @@ public static class AirspaceKmlReader
             quanti++;
 
             var nome = Testo(dati, "Name")
-                       ?? placemark.Elements().FirstOrDefault(e => e.Name.LocalName == "name")?.Value.Trim();
+                       ?? System.Net.WebUtility.HtmlDecode(
+                           placemark.Elements().FirstOrDefault(e => e.Name.LocalName == "name")?.Value.Trim() ?? "");
             if (string.IsNullOrWhiteSpace(nome))
             {
                 segnalazioni.Add(new AirspaceIssue(AirspaceIssueKind.VolumeSenzaNome, "", categoria));
@@ -160,7 +161,11 @@ public static class AirspaceKmlReader
         foreach (var campo in placemark.Descendants().Where(e => e.Name.LocalName == "SimpleData"))
         {
             var nome = campo.Attribute("name")?.Value;
-            if (!string.IsNullOrWhiteSpace(nome)) dati[nome] = campo.Value;
+            // 🔴 U-119 (revisione totale 3): AirspaceConverter codifica gli apostrofi DUE volte («&amp;apos;»), e il
+            // parser XML ne toglie una: «VAL D&apos;AOSTA» in pagina e nella chiave naturale, e la ricerca non
+            // trovava «VAL D'AOSTA». Il secondo livello si toglie qui, una volta sola: una «&» vera, scritta una volta
+            // come vuole l'XML, non ha più niente da decodificare e resta «&».
+            if (!string.IsNullOrWhiteSpace(nome)) dati[nome] = System.Net.WebUtility.HtmlDecode(campo.Value);
         }
         return dati;
     }

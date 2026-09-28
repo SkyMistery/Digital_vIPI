@@ -73,14 +73,39 @@ public class SidImporterAuthorizationTests : IAsyncLifetime
             Task.CompletedTask;
     }
 
-    private ProcedureImporter Build(CurrentUser? user)
+    /// <summary>Il lock dello scalo preso da un altro editor.</summary>
+    private sealed class LockDiUnAltro : IAirportLockGuard
+    {
+        public Task EnsureMineAsync(string icao, CancellationToken ct = default) =>
+            throw new EditConflictException("di un altro");
+
+        public Task EnsureNotOtherAsync(string icao, CancellationToken ct = default) =>
+            throw new EditConflictException("di un altro");
+    }
+
+    private ProcedureImporter Build(CurrentUser? user, bool lockDiUnAltro = false)
     {
         var provider = new FakeUser { User = user };
         var authz = new EditAuthorizationService(provider,
             new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
 
         return new ProcedureImporter(new UnaSid(), new EfAirportRepository(_db, new EfMediaMaintenance(_db)),
-            new TuttoImportato(), new AiracService(), authz);
+            new TuttoImportato(), new AiracService(), authz,
+            lockDiUnAltro ? new LockDiUnAltro() : LockAperto.Instance);
+    }
+
+    /// <summary>
+    /// 🔴 U-111/U-161 (revisione totale 3): «Reimporta SID» chiedeva solo il ruolo. Una pagina rimasta «in
+    /// modifica» dopo aver perso il lock riscriveva le procedure sotto chi quel lock l'aveva preso. Ora chiede la
+    /// stessa guardia del re-import completo, che sta nello stesso gesto: il lock non dev'essere di un altro.
+    /// </summary>
+    [Fact]
+    public async Task Col_lock_di_un_altro_editor_non_si_reimportano_le_SID()
+    {
+        var importer = Build(new CurrentUser(1, "Capo", Acc, new[] { "IT-AOC" }), lockDiUnAltro: true);
+
+        await Assert.ThrowsAsync<EditConflictException>(() => importer.ImportForCurrentUserAsync(Icao));
+        Assert.Equal(0, await SidImportateAsync());
     }
 
     private async Task<int> SidImportateAsync() =>

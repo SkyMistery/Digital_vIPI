@@ -27,9 +27,19 @@ else
 {
     @* `@key` a giro: stessa ragione del commento in testa. Se la scrittura fallisce la categoria in archivio
        non cambia, e senza un elemento nuovo la tendina resterebbe sulla voce rifiutata. *@
+    @* U-028: sulla riga DIVERGENTE (IVAO non riconosce più la presenza militare, la categoria scelta è rimasta) il segno
+       lo dice, e «Civile» entra fra le scelte: è il gesto che chiude la divergenza. *@
+    @if (Divergente)
+    {
+        <span class="pill amber apt-cat-div" title="@L["Apt_CatDivergentTitle", Icao]">@L["Apt_CatDivergent"]</span>
+    }
     <select @key="_giro" class="apt-cat pill @AirportCategoryText.PillClass(Category)" disabled="@Disabled"
-            aria-label="@L["Apt_CatPickAria", Icao]" title="@L[AirportCategoryText.TitleKey(Category)]"
+            aria-label="@L["Apt_CatPickAria", Icao]" title="@(Divergente ? L["Apt_CatDivergentTitle", Icao] : L[AirportCategoryText.TitleKey(Category)])"
             @onchange="ScegliAsync">
+        @if (Divergente)
+        {
+            <option value="@AirportCategory.Civil">@L[AirportCategoryText.Key(AirportCategory.Civil)]</option>
+        }
         @foreach (var c in AirportCategories.Selectable)
         {
             <option value="@c" selected="@(c == Category)">@L[AirportCategoryText.Key(c)]</option>
@@ -50,6 +60,9 @@ else
     [Parameter] public bool HasMilitaryDocument { get; set; }
 
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>La sorgente non riconosce più la presenza militare ma la categoria è militare (U-028).</summary>
+    [Parameter] public bool Divergente { get; set; }
 
     /// <summary>La categoria scelta (e, se serviva, confermata): la pagina la scrive.</summary>
     [Parameter] public EventCallback<AirportCategory> OnChange { get; set; }

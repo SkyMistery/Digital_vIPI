@@ -181,4 +181,101 @@ public class LockDelleScrittureStrutturateTests : IAsyncLifetime
         await mil.SaveRegulatedAsync("LIRP", SectionKeys.Regulated, new RegulatedSelection { OwnIds = { "X" } });
         Assert.Equal(new[] { "X" }, (await mil.GetRegulatedAsync("LIRP", SectionKeys.Regulated)).OwnIds);
     }
+
+    // ------------------------------------------------------------------ tutte, non a campione (U-232)
+
+    /// <summary>
+    /// U-232 (revisione 3, S39): qui sopra si provavano due scritture per documento. Mettere <c>EnsureAsync</c> al
+    /// posto di <c>EnsureWritableAsync</c> in <c>SaveRegulatedAsync</c>, <c>SaveAorCustomizationAsync</c> o
+    /// <c>SaveConfigurationsAsync</c> dell'APP lasciava la suite verde. Ora ogni <c>Save…</c> dei due servizi.
+    /// ⚠️ La vIPI ACC resta ai casi qui sopra: le sue scritture controllano prima che la sezione sia del documento,
+    /// e per riflessione servirebbe un id valido per ogni genere di sezione.
+    /// </summary>
+    private async Task<(object Servizio, Type Interfaccia, string Codice)> DocumentoAsync(string quale)
+    {
+        if (quale == "APP")
+        {
+            var app = App();
+            await app.EnsureAsync("LIRP_APP");
+            return (app, typeof(IAppDocumentService), "LIRP_APP");
+        }
+        var campo = await _db.Airports.FirstAsync(a => a.Icao == "LIRP");
+        campo.Category = AirportCategory.MilitaryOnly;
+        campo.HasMilitaryPresence = true;
+        await _db.SaveChangesAsync();
+        var mil = new EfMilitaryDocumentService(_db, new AiracService(), _authz, _editing,
+            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db, LivelloFisso.Editor), Guardia());
+        await mil.CreaAsync("LIRP");
+        return (mil, typeof(IMilitaryDocumentService), "LIRP");
+    }
+
+    /// <summary>Ciò che non comincia con «Save»: letture, e la creazione del documento, che il lock non lo chiede
+    /// perché la fa l'apertura dell'editor prima di «Modifica». Un metodo nuovo con un altro verbo (Add, Delete…)
+    /// fa diventare rosso <see cref="Ogni_scrittura_si_chiama_Save"/>, e va deciso da che parte sta.</summary>
+    private static readonly Dictionary<string, string[]> NonSave = new()
+    {
+        ["APP"] = new[]
+        {
+            "DeriveConfigTableAsync", "DeriveCoordinationAsync", "DeriveFrequenciesAsync", "DeriveMinimaAsync",
+            "EnsureAsync", "GetAorCustomizationAsync", "GetAorViewAsync", "GetConfigurationsAsync", "GetIdentityAsync",
+            "GetOverridesAsync", "GetRegulatedAsync", "GetSeparationsAsync", "ListLinkableFrequenciesAsync",
+            "ListOtherAccSpecialAreasAsync", "ListSectorsAsync", "ListSelectableSectorShapesAsync",
+            "ListSpecialAreasAsync", "ResolveRegulatedAreasAsync",
+        },
+        ["MIL"] = new[]
+        {
+            "CreaAsync", "GetAreaActivitiesAsync", "GetAreaNotesAsync", "GetCivilEditionAsync", "GetDiversionsAsync",
+            "GetDocumentIdAsync", "GetFixedTableAsync", "GetNavaidsAsync", "GetRegulatedAsync", "HasPublishedAsync",
+            "ListAsync", "ListOtherAccSpecialAreasAsync", "ListSpecialAreasAsync", "ResolveDiversionsForViewAsync",
+            "ResolveNavaidsAsync", "ResolveNavaidsForViewAsync", "ResolveRegulatedAreasAsync",
+        },
+    };
+
+    private static Type InterfacciaDi(string quale) =>
+        quale == "APP" ? typeof(IAppDocumentService) : typeof(IMilitaryDocumentService);
+
+    private static IEnumerable<string> MetodiTask(Type t) =>
+        t.GetMethods().Where(m => typeof(Task).IsAssignableFrom(m.ReturnType)).Select(m => m.Name).Distinct();
+
+    public static TheoryData<string, string> SaveDeiDocumenti()
+    {
+        var dati = new TheoryData<string, string>();
+        foreach (var quale in new[] { "APP", "MIL" })
+        foreach (var m in MetodiTask(InterfacciaDi(quale)).Where(n => n.StartsWith("Save", StringComparison.Ordinal)).OrderBy(n => n))
+            dati.Add(quale, m);
+        return dati;
+    }
+
+    [Theory]
+    [InlineData("APP")]
+    [InlineData("MIL")]
+    public void Ogni_scrittura_si_chiama_Save(string quale)
+    {
+        var altri = MetodiTask(InterfacciaDi(quale)).Where(n => !n.StartsWith("Save", StringComparison.Ordinal))
+            .OrderBy(n => n).ToArray();
+        Assert.Equal(NonSave[quale].OrderBy(n => n).ToArray(), altri);
+    }
+
+    [Theory]
+    [MemberData(nameof(SaveDeiDocumenti))]
+    public async Task Senza_lock_nessun_Save_passa(string quale, string metodo)
+    {
+        var (servizio, interfaccia, codice) = await DocumentoAsync(quale);
+        var esiti = await PorteTutteLeScrittureTests.ChiamaAsync(servizio, interfaccia, metodo,
+            t => t == typeof(string) ? codice : PorteTutteLeScrittureTests.Valore(t));
+        Assert.All(esiti, ex => Assert.IsType<EditConflictException>(ex));
+    }
+
+    [Theory]
+    [MemberData(nameof(SaveDeiDocumenti))]
+    public async Task Col_lock_di_un_altro_nessun_Save_passa(string quale, string metodo)
+    {
+        var (servizio, interfaccia, codice) = await DocumentoAsync(quale);
+        var docId = quale == "APP" ? await App().EnsureAsync("LIRP_APP")
+            : (await ((IMilitaryDocumentService)servizio).GetDocumentIdAsync("LIRP"))!.Value;
+        await PrendiLockAsync(docId, Altro);
+        var esiti = await PorteTutteLeScrittureTests.ChiamaAsync(servizio, interfaccia, metodo,
+            t => t == typeof(string) ? codice : PorteTutteLeScrittureTests.Valore(t));
+        Assert.All(esiti, ex => Assert.IsType<EditConflictException>(ex));
+    }
 }

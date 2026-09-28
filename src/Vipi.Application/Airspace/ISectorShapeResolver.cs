@@ -10,8 +10,11 @@ namespace Vipi.Application.Airspace;
 /// sono un errore da nascondere: il settore torna alla forma di IVAO e la pagina deve poter dire quale
 /// aggancio è rimasto senza volume.</para>
 /// </summary>
+/// <param name="ElevazioneFt">L'elevazione dello scalo del settore, se ne ha uno: il suolo da cui si misurano le quote
+/// <c>AGL</c> dei suoi pezzi (U-217, revisione totale 3). Null = settore d'area, o scalo senza elevazione.</param>
 public sealed record SectorShape(
-    string Callsign, ShapeSource Source, IReadOnlyList<ShapePart> Parts, IReadOnlyList<string> UncoveredKeys)
+    string Callsign, ShapeSource Source, IReadOnlyList<ShapePart> Parts, IReadOnlyList<string> UncoveredKeys,
+    int? ElevazioneFt = null)
 {
     /// <summary>Vero se non c'è niente da disegnare: sotto questo, chi chiede non mostra nulla.</summary>
     public bool IsEmpty => Parts.Count == 0;

@@ -263,4 +263,73 @@ public class StatsProfileAccessTests : TestContext
         var cut = Render(staff: true, vidGuardato: vidGuardato, new ArchivioVuoto());
         Assert.DoesNotContain("export.csv", cut.Markup);
     }
+
+    // ------------------------------------------------------------------ il dettaglio di un turno (U-116)
+
+    /// <summary>Un solo turno, del controllore 555003: basta alla pagina di dettaglio.</summary>
+    private sealed class UnTurno : IAtcStatsQueries
+    {
+        private readonly ArchivioVuoto _vuoto = new();
+        public Task<StatsSessionDetail?> SessionAsync(long id, CancellationToken ct = default) =>
+            Task.FromResult<StatsSessionDetail?>(new StatsSessionDetail(
+                new StatsSessionRow(id, 555003, "LIRF_TWR", null, "118.700",
+                    new DateTimeOffset(2026, 9, 20, 18, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 9, 20, 20, 0, 0, TimeSpan.Zero),
+                    7200, 0, 0, 0, 1),
+                Array.Empty<StatsTrafficRow>(), Array.Empty<StatsRunwayRow>()));
+
+        public Task<StatsTotals> TotalsAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => _vuoto.TotalsAsync(u, f, t, ct);
+        public Task<IReadOnlyList<StatsByKey>> ByPositionAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 20, CancellationToken ct = default) => _vuoto.ByPositionAsync(u, f, t, l, ct);
+        public Task<IReadOnlyList<StatsByKey>> ByMonthAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => _vuoto.ByMonthAsync(u, f, t, ct);
+        public Task<IReadOnlyList<StatsSessionRow>> SessionsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 50, CancellationToken ct = default) => _vuoto.SessionsAsync(u, f, t, l, ct);
+        public Task<IReadOnlyList<ControllerRanking>> TopControllersAsync(DateTimeOffset f, DateTimeOffset t, int l = 20, CancellationToken ct = default) => _vuoto.TopControllersAsync(f, t, l, ct);
+        public Task<IReadOnlyList<CoverageCell>> CoverageAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => _vuoto.CoverageAsync(u, f, t, ct);
+        public Task<IReadOnlyList<StatsByKey>> TopAirportsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => _vuoto.TopAirportsAsync(u, f, t, l, ct);
+        public Task<IReadOnlyList<StatsByKey>> ManagedAirportsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => _vuoto.ManagedAirportsAsync(u, f, t, l, ct);
+        public Task<IReadOnlyList<StatsByKey>> TopAircraftAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => _vuoto.TopAircraftAsync(u, f, t, l, ct);
+        public Task<StatsStreak> StreakAsync(int u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => _vuoto.StreakAsync(u, f, t, ct);
+        public Task<StatsRank> RankAsync(int u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => _vuoto.RankAsync(u, f, t, ct);
+        public Task<DateTimeOffset?> ArchiveStartAsync(int? u, CancellationToken ct = default) => _vuoto.ArchiveStartAsync(u, ct);
+    }
+
+    private IRenderedComponent<StatsSessionPage> RenderTurno(bool staff, int io)
+    {
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+        Services.AddSingleton<IAtcStatsQueries>(new UnTurno());
+        Services.AddSingleton<ICurrentUserProvider>(new FakeUser
+        {
+            User = new CurrentUser(io, "Chi Guarda", "LIRR", staff ? new[] { "IT-AOC" } : Array.Empty<string>()),
+        });
+        Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz { IsAdmin = staff });
+        Services.AddSingleton<IStatsAccessLog>(_registro);
+        Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(new Vipi.Application.DivisionOptions()));
+
+        return RenderComponent<StatsSessionPage>(p => p.Add(c => c.SessionId, 42L));
+    }
+
+    /// <summary>
+    /// U-116: il turno di un altro porta gli stessi orari della pagina profilo, e la carta §14.2 vuole la
+    /// riga di audit anche qui. Prima lo staff lo apriva per id senza lasciare traccia.
+    /// </summary>
+    [Fact]
+    public void Aprire_il_turno_di_un_altro_lascia_traccia_e_la_pagina_lo_dichiara()
+    {
+        var cut = RenderTurno(staff: true, io: 704798);
+
+        Assert.Equal((704798, 555003), Assert.Single(_registro.Accessi));
+        Assert.Contains("Stats_StaffViewingSessionTitle", cut.Markup);
+        Assert.Equal("/services/stats/user/555003", cut.Find(".callout.info a").GetAttribute("href"));
+    }
+
+    /// <summary>Il proprio turno non è un accesso ai dati di un altro; e chi non è staff non lo apre.</summary>
+    [Theory]
+    [InlineData(true, 555003)]
+    [InlineData(false, 704798)]
+    public void Il_proprio_turno_e_il_divieto_non_scrivono_niente(bool staff, int io)
+    {
+        var cut = RenderTurno(staff, io);
+
+        Assert.Empty(_registro.Accessi);
+        Assert.DoesNotContain("Stats_StaffViewingSessionTitle", cut.Markup);
+    }
 }

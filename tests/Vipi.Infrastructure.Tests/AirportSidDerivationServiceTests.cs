@@ -41,6 +41,23 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     private static ImportedProcedure Imp(string name, string fix, string key) =>
         new(Runway: "07", Fix: fix, Name: name, Transition: null, Type: "RNAV", StableKey: key, NeedsFixReview: false);
 
+    /// <summary>
+    /// 🔴 U-003 (revisione totale 3), la prova scritta nella scheda: la TOP1B importata al 2609 e rivista dal
+    /// changelog del 2610. Fino al 27 settembre 2026 la tabella del 2609 restava VUOTA — la vecchia cancellata, la
+    /// nuova in attesa — e una release che congelava la sezione in quei giorni la congelava senza la procedura.
+    /// </summary>
+    [Fact]
+    public async Task Fra_il_changelog_e_il_ciclo_nuovo_la_procedura_rivista_non_sparisce()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid,
+            new[] { Imp("TOP1B", "TOPIS", "LIRF|TOP|B||07") }, "2609");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid,
+            new[] { Imp("TOP2B", "TOPIS", "LIRF|TOP|B||07") }, "2610");
+
+        Assert.Equal("TOP1B", Assert.Single((await _sut.DeriveAsync("LIRF", ProcedureKind.Sid, "2609")).Rows).Name);
+        Assert.Equal("TOP2B", Assert.Single((await _sut.DeriveAsync("LIRF", ProcedureKind.Sid, "2610")).Rows).Name);
+    }
+
     // --- I due versi: stessa derivazione, tabelle separate ---------------------------------------------
 
     [Fact]
@@ -95,7 +112,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
 
         // Forzata → compare; ordine per FIX: ALAXI prima di OSTIA.
         var g = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.Name == "ALAX7G");
-        await _repo.UpdateImportedSidAsync(g.Id, priority: null, forcePublished: true, resolvedFix: null,
+        await _repo.UpdateImportedSidAsync("LIRF", g.Id, priority: null, forcePublished: true, resolvedFix: null,
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         var v2 = await _sut.DeriveAsync("LIRF");
@@ -118,7 +135,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
         var siv = sids.Single(s => s.Name == "SIV5A");
         var alax = sids.Single(s => s.Name == "ALAX7G");
 
-        await _repo.UpdateImportedSidAsync(alax.Id, priority: null, forcePublished: true, resolvedFix: null,
+        await _repo.UpdateImportedSidAsync("LIRF", alax.Id, priority: null, forcePublished: true, resolvedFix: null,
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
         await _repo.SetImportedSidsHiddenAsync("LIRF", new[] { alax.Id }, hidden: true);
         await _repo.SetImportedSidOverridesAsync("LIRF", siv.Id, "SOSIV", "ESINO");

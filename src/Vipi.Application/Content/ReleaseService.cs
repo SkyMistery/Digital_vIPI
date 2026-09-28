@@ -47,14 +47,12 @@ public interface IReleaseService
     /// è lockato da un altro editor (promuoverebbe la sua bozza a metà); a pubblicazione avvenuta rilascia
     /// l'eventuale lock del chiamante, come il publish-versione dell'editor.
     /// <para><inheritdoc cref="PublishAsync" path="/summary/para[1]"/> ⚠️ E promuove la bozza di <b>ogni</b>
-    /// membro: le due semantiche restano diverse anche unite — la pianificata non promuove, questa sì.</para></summary>
-    Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
-
-    /// <summary>Migrazione A (doc 10 §3f): per ogni documento <c>Published</c> e non nascosto SENZA release effettiva,
-    /// genera una copia statica al ciclo corrente (effettiva adesso), così togliere il fallback live pubblico (S6b) non
-    /// lascia buchi. Operazione di sistema (nessuna authz), idempotente: salta i bersagli già coperti e i documenti
-    /// senza contenuto. Ritorna il numero di release generate.</summary>
-    Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default);
+    /// membro: le due semantiche restano diverse anche unite — la pianificata non promuove, questa sì.</para>
+    /// <para>U-241 (revisione 3; scelta del committente del 28-set-2026): un bersaglio il cui contenuto è identico,
+    /// byte per byte, alla release in vigore — e che non ha programmate future da scavalcare — non riceve una
+    /// release nuova. La bozza si promuove lo stesso.</para></summary>
+    /// <returns><c>false</c> se nessun bersaglio aveva modifiche: non è stata creata nessuna release.</returns>
+    Task<bool> PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
 
     /// <summary>
     /// Annulla una release (per Id). Authz sull'ACC del bersaglio.
@@ -141,14 +139,16 @@ public interface IReleaseService
     /// «diversa» una programmata identica.</para>
     ///
     /// <para>⚠️ Se la bozza cambia <i>dopo</i> aver programmato, le firme tornano a divergere e la riga
-    /// riappare — che è giusto: quella programmata porta un testo che non è più quello che si vuole.</para>
+    /// riappare — che è giusto: quella programmata porta un testo che non è più quello che si vuole. Lo stesso se
+    /// cambiano le <b>derivate congelate</b> (una TORA, un minimo LVP): dal 28 settembre 2026 (U-053) il
+    /// confronto guarda anche quelle, che nessun conteggio di blocchi vede.</para>
     /// </summary>
     Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 
     /// <summary>Il ciclo AIRAC <b>entrante</b> con la sua data efficace: il primo che non è ancora in vigore.</summary>
     AiracCycleInfo NextCycle();
 
-    /// <summary>Sweep di retention su tutti i documenti gestiti (system op, come <see cref="BackfillMissingReleasesAsync"/>):
+    /// <summary>Sweep di retention su tutti i documenti gestiti (system op, nessuna authz):
     /// pota release Superseded oltre soglia e versioni Archived oltre N per ciascun bersaglio. Idempotente. Ritorna il
     /// numero di versioni archiviate rimosse.</summary>
     Task<int> PruneAllAsync(CancellationToken ct = default);
@@ -329,7 +329,7 @@ public sealed class ReleaseService : IReleaseService
     /// da annullare, e tenerla dentro significherebbe aprire una transazione anche per rifiutare. Fuori sta anche
     /// il controllo del lock (<see cref="EnsureNotLockedByOthersAsync"/>), per la stessa ragione.</para>
     /// </summary>
-    public async Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
+    public async Task<bool> PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
     {
         // I bersagli: i membri dell'unione, o questo documento solo. ⚠️ `DocumentId` serve dopo, per mollare
         // il lock: sui membri arriva dai descrittori, sul singolo dal controllo del lock.
@@ -356,11 +356,13 @@ public sealed class ReleaseService : IReleaseService
         var now = DateTime.UtcNow;
         var cycle = _airac.GetCycle(now);
 
+        var create = 0;
         await _uow.ExecuteInTransactionAsync(async token =>
         {
+            create = 0;   // la strategia di retry può rifare il blocco: si conta da capo
             foreach (var t in bersagli)
             {
-                await SnapshotAndSaveAsync(t.Type, t.Key, cycle, now, note, token);
+                if (await SnapshotAndSaveAsync(t.Type, t.Key, cycle, now, note, token, saltaSeIdentica: true)) create++;
                 // Pubblicazione IMMEDIATA (review): promuove anche la bozza a versione pubblicata, così lo stato del
                 // documento e quello della release restano allineati (la pill dell'editor, la storia versioni, il diff).
                 // La VISIBILITÀ pubblica non dipende più da questo: dal doc 10 §S6b è la release effettiva a decidere, e
@@ -380,6 +382,7 @@ public sealed class ReleaseService : IReleaseService
                 await _editing.ReleaseLockAsync(t.DocumentId, _authz.CurrentUserId ?? 0, ct);
 
         await RiconciliaDerivaAsync(bersagli.Select(t => t.DocumentId), ct).ConfigureAwait(false);
+        return create > 0;
     }
 
     /// <summary>
@@ -484,25 +487,12 @@ public sealed class ReleaseService : IReleaseService
                                             d.LockedByUserId, d.LockedByName))
             .ToList();
     }
-    public async Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default)
-    {
-        var now = DateTime.UtcNow;
-        var cycle = _airac.GetCycle(now);
-        var count = 0;
-        foreach (var d in await _admin.ListAsync(ct))
-        {
-            if (!d.IsPublished || d.IsHidden) continue;   // solo i pubblicati, non nascosti
-            if (await _repo.GetEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, now, ct) is not null) continue;   // già coperto → idempotente
-
-            // Riusa il path di cattura (§3d); tollera i documenti senza contenuto (null) senza esplodere.
-            var finalJson = await BuildSnapshotJsonAsync(d.ReleaseTarget, d.ReleaseKey, cycle, ct, conCollegamenti: true);
-            if (finalJson is null) continue;
-            await _repo.SaveReleaseAsync(d.ReleaseTarget, d.ReleaseKey, cycle, now,
-                finalJson, createdByUserId: 0, note: "backfill migrazione A (doc 10)", ct);
-            count++;
-        }
-        return count;
-    }
+    // ⚠️ Qui c'era `BackfillMissingReleasesAsync`, la «migrazione A» di luglio (doc 10 §3f): a OGNI avvio
+    // pubblicava, firmando «sistema», la versione di lavoro — BOZZA compresa — di ogni documento Published
+    // senza release in vigore. Finita la migrazione, quell'ingresso lo aprivano solo casi in cui pubblicare
+    // è sbagliato: l'Editor che annulla l'unica release (riprodotto: LIRA tornata pubblica con la bozza dopo
+    // un riavvio), il documento con la sola programmata, lo scheletro di vLOA generato (la 65 dell'8-set).
+    // Tolto il 27-set-2026 (U-006, revisione totale 3): una release la crea solo il gesto di un Editor.
 
     public async Task CancelReleaseAsync(int releaseId, CancellationToken ct = default)
     {
@@ -618,20 +608,9 @@ public sealed class ReleaseService : IReleaseService
         var baseline = precedente is null ? null : await _repo.GetByIdAsync(precedente.Id, ct);
 
         var cur = Signature(rel.PayloadJson);
-        var prev = baseline is null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        var prev = baseline is null ? new Dictionary<string, Voce>(StringComparer.OrdinalIgnoreCase)
                                     : Signature(baseline.PayloadJson);
-
-        var rows = new List<ReleaseDiffRow>();
-        foreach (var kv in cur.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            if (!prev.TryGetValue(kv.Key, out var p))
-                rows.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Added, null, kv.Value));
-            else if (p != kv.Value)
-                rows.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Modified, p, kv.Value));
-        }
-        foreach (var kv in prev.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-            if (!cur.ContainsKey(kv.Key))
-                rows.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Removed, kv.Value, null));
+        var rows = Confronta(cur, prev);
 
         // Niente frasi in Application: il ciclo di confronto (o la sua assenza) lo formatta la UI.
         return new ReleaseDiff(baseline is not null, baseline?.ReleaseAiracCycle, rows);
@@ -653,22 +632,7 @@ public sealed class ReleaseService : IReleaseService
         var oggiJson = await BuildSnapshotJsonAsync(type, key, alCiclo ?? _airac.GetCycle(DateTime.UtcNow), ct);
         if (oggiJson is null) return Array.Empty<ReleaseDiffRow>();
 
-        var oggi = Signature(oggiJson);
-        var pubblicata = Signature(effettiva.PayloadJson);
-
-        var righe = new List<ReleaseDiffRow>();
-        foreach (var kv in oggi.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            if (!pubblicata.TryGetValue(kv.Key, out var p))
-                righe.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Added, null, kv.Value));
-            else if (p != kv.Value)
-                righe.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Modified, p, kv.Value));
-        }
-        foreach (var kv in pubblicata.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-            if (!oggi.ContainsKey(kv.Key))
-                righe.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Removed, kv.Value, null));
-
-        return righe;
+        return Confronta(Signature(oggiJson), Signature(effettiva.PayloadJson));
     }
 
     public async Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key,
@@ -693,14 +657,19 @@ public sealed class ReleaseService : IReleaseService
             var oggiJson = await BuildSnapshotJsonAsync(type, key, rel.ReleaseAiracCycle, ct);
             if (oggiJson is null) continue;
 
-            if (StesseFirme(Signature(oggiJson), Signature(rel.PayloadJson))) return rel.ReleaseAiracCycle;
+            // 🔴 U-053 (revisione totale 3): e le DERIVATE congelate. La firma editoriale conta i blocchi, e una
+            // TORA o un minimo LVP corretti dopo aver programmato non cambiano nessun conteggio: la programmata
+            // copriva ancora la riga «da ripubblicare» mentre portava i valori vecchi.
+            if (StesseFirme(Signature(oggiJson), Signature(rel.PayloadJson))
+                && StesseCongelate(FirmaCongelate(oggiJson), FirmaCongelate(rel.PayloadJson)))
+                return rel.ReleaseAiracCycle;
         }
         return null;
     }
 
-    /// <summary>Due firme editoriali dicono la stessa cosa? Stesse voci, stessi conteggi.</summary>
-    private static bool StesseFirme(Dictionary<string, int> a, Dictionary<string, int> b) =>
-        a.Count == b.Count && a.All(kv => b.TryGetValue(kv.Key, out var v) && v == kv.Value);
+    /// <summary>Due firme editoriali dicono la stessa cosa? Il confronto non trova nessuna differenza.</summary>
+    private static bool StesseFirme(Dictionary<string, Voce> a, Dictionary<string, Voce> b) =>
+        Confronta(a, b).Count == 0;
 
     public async Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType,
         string expectedKey, CancellationToken ct = default)
@@ -740,40 +709,142 @@ public sealed class ReleaseService : IReleaseService
         return new ReleaseLocation(rel.TargetType, rel.TargetKey, rel.ReleaseAiracCycle, acc);
     }
 
-    /// <summary>Firma editoriale di un payload: voce (sezione/blocco) → conteggio elementi. Base del diff.
-    /// Post-08 tutti i tipi sono su DocReleasePayload → firma unica, nessuno switch per-tipo.</summary>
-    private static Dictionary<string, int> Signature(string payloadJson)
+    /// <summary>Una voce della firma: l'etichetta che si mostra (il percorso dei TITOLI) e il numero di blocchi.</summary>
+    private sealed record Voce(string Etichetta, int Blocchi);
+
+    /// <summary>Firma editoriale di un payload: identità della sezione → voce. Base del diff e della deriva.
+    /// Post-08 tutti i tipi sono su DocReleasePayload → firma unica, nessuno switch per-tipo.
+    /// <para>⚠️ L'identità di una sezione di CATALOGO è la sua chiave, non il titolo (revisione 3, U-249). Il titolo
+    /// di una sezione di catalogo non lo sceglie nessuno — lo risolve <c>TitoliDiCatalogo</c> a view-time, e il DB
+    /// lo tiene nella lingua di nascita — quindi una sua riscrittura (la riconciliazione dei titoli d'aeroporto,
+    /// una rinomina del catalogo) non è una modifica del documento. Col percorso dei titoli contava come una sezione
+    /// tolta più una aggiunta, e apriva una riga «da ripubblicare» che nessun lettore poteva vedere: LIRL, 21-set,
+    /// «Airport charts, Airport charts / Aerodromo…».</para>
+    /// <para>Per titolo restano le sezioni LIBERE (<c>custom:…</c>), e le chiavi ripetute fra sorelle
+    /// (<c>appgroup</c> nella vIPI ACC, lo storico <c>custom</c> nudo): lì la chiave non dice quale sezione è.</para>
+    /// </summary>
+    /// <summary>
+    /// Le derivate congelate dello snapshot, per identità di sezione — la stessa della firma editoriale: chiave di
+    /// catalogo, o percorso di titoli. ⚠️ Non per Id: gli Id sono quelli della versione di lavoro al momento della
+    /// cattura, e una «Pubblica versione» fra la programmazione e oggi li cambia senza che cambi niente.
+    /// </summary>
+    private static Dictionary<string, string> FirmaCongelate(string payloadJson)
     {
-        var sig = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var firma = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         try
         {
             var p = JsonSerializer.Deserialize<DocReleasePayload>(payloadJson);
-            if (p?.Doc?.Roots is not null) FlattenSections(p.Doc.Roots, "", sig);
+            if (p?.Doc?.Roots is not null && p.FrozenSections is { Count: > 0 } congelate)
+                FlattenSections(p.Doc.Roots, "", "", new Dictionary<string, Voce>(StringComparer.OrdinalIgnoreCase),
+                    (id, s) => { if (congelate.TryGetValue(s.Id, out var json)) firma[id] = json; });
+        }
+        catch (JsonException) { }
+        return firma;
+    }
+
+    private static bool StesseCongelate(Dictionary<string, string> a, Dictionary<string, string> b) =>
+        a.Count == b.Count && a.All(kv => b.TryGetValue(kv.Key, out var v) && string.Equals(v, kv.Value, StringComparison.Ordinal));
+
+    private static Dictionary<string, Voce> Signature(string payloadJson)
+    {
+        var sig = new Dictionary<string, Voce>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var p = JsonSerializer.Deserialize<DocReleasePayload>(payloadJson);
+            if (p?.Doc?.Roots is not null) FlattenSections(p.Doc.Roots, "", "", sig);
         }
         catch (JsonException) { }
         return sig;
     }
 
-    private static void FlattenSections(IReadOnlyList<RawSection> sections, string prefix, Dictionary<string, int> sig)
+    private static void FlattenSections(IReadOnlyList<RawSection> sections, string idPrefix, string labelPrefix,
+        Dictionary<string, Voce> sig, Action<string, RawSection>? ogni = null)
     {
+        var ripetute = sections.GroupBy(s => s.SectionKey ?? "", StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var s in sections)
         {
-            var label = prefix.Length == 0 ? s.Title : $"{prefix} / {s.Title}";
-            sig[label] = s.Blocks.Count;
-            if (s.Children.Count > 0) FlattenSections(s.Children, label, sig);
+            var perChiave = !string.IsNullOrEmpty(s.SectionKey) && !SectionKeys.IsCustom(s.SectionKey)
+                            && !ripetute.Contains(s.SectionKey);
+            // «#» davanti: una chiave non si confonde mai con un titolo che le somigli.
+            var id = perChiave ? "#" + s.SectionKey : s.Title;
+            var idPath = idPrefix.Length == 0 ? id : $"{idPrefix} / {id}";
+            var label = labelPrefix.Length == 0 ? s.Title : $"{labelPrefix} / {s.Title}";
+            sig[idPath] = new Voce(label, s.Blocks.Count);
+            ogni?.Invoke(idPath, s);
+            if (s.Children.Count > 0) FlattenSections(s.Children, idPath, label, sig, ogni);
         }
     }
 
-    private async Task SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc, string? note, CancellationToken ct)
+    /// <summary>
+    /// Il confronto fra due firme: aggiunte, modificate (blocchi diversi), tolte. Etichetta dalla firma nuova,
+    /// dalla vecchia per le tolte.
+    /// <para>⚠️ Due passate. La prima per identità. La seconda accoppia fra loro le voci rimaste spaiate che hanno
+    /// lo stesso percorso di TITOLI: una release vecchia può avere la stessa sezione con una chiave libera (le
+    /// sezioni «cotte» degli aeroporti, prima della riconciliazione delle chiavi) — cambiata la chiave, non è
+    /// cambiato il documento. Senza questa rete, il passaggio all'identità per chiave avrebbe aperto righe
+    /// «da ripubblicare» su tutti i documenti pubblicati prima di quella riconciliazione.</para>
+    /// </summary>
+    private static List<ReleaseDiffRow> Confronta(Dictionary<string, Voce> nuova, Dictionary<string, Voce> vecchia)
+    {
+        var aggiunte = nuova.Where(kv => !vecchia.ContainsKey(kv.Key)).Select(kv => kv.Value).ToList();
+        var tolte = vecchia.Where(kv => !nuova.ContainsKey(kv.Key)).Select(kv => kv.Value).ToList();
+        var righe = new List<ReleaseDiffRow>();
+
+        foreach (var kv in nuova)
+            if (vecchia.TryGetValue(kv.Key, out var v) && v.Blocchi != kv.Value.Blocchi)
+                righe.Add(new ReleaseDiffRow(kv.Value.Etichetta, ReleaseChangeKind.Modified, v.Blocchi, kv.Value.Blocchi));
+
+        foreach (var a in aggiunte)
+        {
+            var gemella = tolte.FirstOrDefault(t => string.Equals(t.Etichetta, a.Etichetta, StringComparison.OrdinalIgnoreCase));
+            if (gemella is null)
+            {
+                righe.Add(new ReleaseDiffRow(a.Etichetta, ReleaseChangeKind.Added, null, a.Blocchi));
+                continue;
+            }
+            tolte.Remove(gemella);
+            if (gemella.Blocchi != a.Blocchi)
+                righe.Add(new ReleaseDiffRow(a.Etichetta, ReleaseChangeKind.Modified, gemella.Blocchi, a.Blocchi));
+        }
+        foreach (var t in tolte)
+            righe.Add(new ReleaseDiffRow(t.Etichetta, ReleaseChangeKind.Removed, t.Blocchi, null));
+
+        // L'ordine di prima: le presenti per etichetta, poi le tolte per etichetta.
+        return righe.OrderBy(r => r.Change == ReleaseChangeKind.Removed)
+            .ThenBy(r => r.Label, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <returns><c>false</c> se la release non è stata scritta perché identica a quella in vigore (U-241).</returns>
+    private async Task<bool> SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc,
+        string? note, CancellationToken ct, bool saltaSeIdentica = false)
     {
         var finalJson = await BuildSnapshotJsonAsync(type, key, cycle, ct, conCollegamenti: true)
             ?? throw new Aor.ValidationException(Lingua(
                 "Nessun contenuto da pubblicare: crea prima il documento (bozza).",
                 "There is nothing to publish: create the document first (as a draft)."));
+        if (saltaSeIdentica && await IdenticaAllaInVigoreAsync(type, key, effectiveUtc, finalJson, ct)) return false;
         await _repo.SaveReleaseAsync(type, key, cycle, effectiveUtc, finalJson, _authz.CurrentUserId ?? 0, note, ct);
         // Retention per-publish (release Superseded): sia per l'immediato sia per lo schedulato. Le versioni Archived
         // si potano solo dopo la promozione della bozza (PublishNowAsync) → vedi PruneArchivedVersionsForTargetAsync.
         await _repo.PruneReleasesAsync(type, key, KeepSupersededFromUtc(), ct);
+        return true;
+    }
+
+    /// <summary>
+    /// La fotografia di adesso è la release in vigore, byte per byte, e non c'è nessuna programmata futura (U-241).
+    /// <para>⚠️ Il confronto è sul payload INTERO e non sulla firma editoriale: quella conta i blocchi, e un testo
+    /// corretto dentro un blocco non la cambia. Saltare per firma perderebbe una modifica vera.</para>
+    /// <para>⚠️ Con una programmata futura non si salta mai: «Pubblica ora» ha il numero più alto e la scavalca
+    /// (EfReleaseRepository.RecomputeStatuses, U-009), ed è spesso proprio per questo che la si preme.</para>
+    /// </summary>
+    private async Task<bool> IdenticaAllaInVigoreAsync(ReleaseTargetType type, string key, DateTime adesso,
+        string payloadJson, CancellationToken ct)
+    {
+        var elenco = await _repo.ListAsync(type, key, ct);
+        if (elenco.Any(r => r.ReleaseEffectiveUtc > adesso && r.Status != ReleaseStatus.Superseded)) return false;
+        var inVigore = await _repo.GetEffectiveAsync(type, key, adesso, ct);
+        return inVigore is not null && string.Equals(inVigore.PayloadJson, payloadJson, StringComparison.Ordinal);
     }
 
     public async Task<int> PruneAllAsync(CancellationToken ct = default)

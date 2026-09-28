@@ -32,7 +32,8 @@ internal static class MinimaCharts
         var code = (accCode ?? "").Trim().ToUpperInvariant();
         if (code.Length == 0) return MinimaView.Empty;
 
-        var chart = await source.GetAccChartAsync(code, ct);
+        var (chart, guasto) = await Leggi(() => source.GetAccChartAsync(code, ct), ct);
+        if (guasto) return new MinimaView(Array.Empty<MinimaChart>(), SorgenteNonRaggiungibile: true);
         return chart.IsEmpty ? MinimaView.Empty : new MinimaView(new[] { new MinimaChart(code, chart) });
     }
 
@@ -51,12 +52,40 @@ internal static class MinimaCharts
         if (icaos.Count == 0) return MinimaView.Empty;
 
         var charts = new List<MinimaChart>();
+        var guasti = false;
         foreach (var icao in icaos)
         {
-            var chart = await source.GetAirportChartAsync(icao, ct);
+            var (chart, guasto) = await Leggi(() => source.GetAirportChartAsync(icao, ct), ct);
+            guasti |= guasto;
             if (chart.IsEmpty) continue;
             charts.Add(new MinimaChart(icao, chart));
         }
+        if (guasti) return new MinimaView(charts, SorgenteNonRaggiungibile: true);
         return charts.Count == 0 ? MinimaView.Empty : new MinimaView(charts);
     }
+
+    /// <summary>
+    /// Una carta, o il segno che la sorgente non ha risposto.
+    ///
+    /// <para>🔴 U-039 (revisione totale 3): l'eccezione della sorgente risaliva fino alla pagina, che non aveva un
+    /// catch: con GitHub giù la bozza, l'editor e l'anteprima di una vIPI ACC o APP cadevano. La sezione è una
+    /// sola di tante, e una sezione che non arriva non deve portarsi via il documento: diventa vuota, e lo dice.</para>
+    /// </summary>
+    private static async Task<(MvaChart Chart, bool Guasto)> Leggi(Func<Task<MvaChart>> leggi, CancellationToken ct)
+    {
+        try { return (await leggi(), false); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { return (MvaChart.Empty, true); }
+    }
+
+    /// <summary>
+    /// La sezione come la si congela in una release: <b>mai</b> quella di una sorgente che non ha risposto. Un
+    /// documento pubblicato mostrerebbe per sempre «nessuna carta» dove una carta c'è; meglio che la pubblicazione
+    /// si fermi e si riprovi fra poco.
+    /// </summary>
+    public static MinimaView DaCongelare(MinimaView view) => view.SorgenteNonRaggiungibile
+        ? throw new InvalidOperationException(Vipi.Application.Messaggio.Lingua(
+            "La carta delle minime (MRVA) non arriva dal sectorfile in questo momento: la release non si può congelare. Riprova fra qualche minuto.",
+            "The vectoring minima chart (MRVA) is not coming from the sectorfile right now: the release cannot be frozen. Try again in a few minutes."))
+        : view;
 }

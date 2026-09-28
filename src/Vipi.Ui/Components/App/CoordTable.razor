@@ -217,9 +217,19 @@
     /// dire ricostruire mittente e destinatario dal testo reso, cioè leggere all'indietro cioè che il composer ha
     /// già scritto. La frase capofila la compone <c>CoordinationSentenceComposer.ComposeLead</c>, e arriva qui
     /// già fatta in <see cref="AppCoordRow.LeadSentence"/>.</para>
+    /// <para>🔴 U-149 (revisione totale 3): solo se tutte le righe dicono la STESSA capofila. Una tabella mista
+    /// («Verso ACC» fonde più gruppi: più riceventi, più scali) ne ha più d'una, e la prima ne nominava uno solo:
+    /// lì la prosa torna alle frasi distese.</para>
     /// </summary>
-    private static string? Lead(IReadOnlyList<AppCoordRow> rows) =>
-        rows.Select(r => r.LeadSentence).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+    private static string? Lead(IReadOnlyList<AppCoordRow> rows)
+    {
+        var capofila = rows.Select(r => r.LeadSentence).Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.Ordinal).ToList();
+        return capofila.Count == 1 ? capofila[0] : null;
+    }
+
+    private static bool LeadsDisagree(IReadOnlyList<AppCoordRow> rows) =>
+        rows.Select(r => r.LeadSentence).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.Ordinal).Skip(1).Any();
 
     /// <summary>
     /// La prosa della tabella, nell'ordine in cui si legge: una frase sola in modo capofila, una per clausola
@@ -228,7 +238,7 @@
     /// </summary>
     private IReadOnlyList<string> Prose(IReadOnlyList<AppCoordRow> rows)
     {
-        if (LeadSentence)
+        if (LeadSentence && !LeadsDisagree(rows))
         {
             var lead = Lead(rows);
             return string.IsNullOrWhiteSpace(lead) ? Array.Empty<string>() : new[] { lead! };
@@ -300,8 +310,13 @@
             {
                 // Ci siamo già passati: questa riga aggiunge solo il proprio punto. Se la clausola porta già
                 // l'elenco completo non c'è niente da accumulare — è già tutto nella riga emessa.
-                if (string.IsNullOrWhiteSpace(result[at].Points))
-                    result[at] = result[at] with { Cop = $"{result[at].Cop}, {r.Cop}" };
+                // 🔴 U-155: un punto vuoto non si accoda (dava «, »), e uno già detto nemmeno.
+                if (string.IsNullOrWhiteSpace(result[at].Points) && !string.IsNullOrWhiteSpace(r.Cop)
+                    && !CopList.Parse(result[at].Cop).Contains(r.Cop.Trim(), StringComparer.OrdinalIgnoreCase))
+                    result[at] = result[at] with
+                    {
+                        Cop = string.IsNullOrWhiteSpace(result[at].Cop) ? r.Cop : $"{result[at].Cop}, {r.Cop}",
+                    };
                 continue;
             }
             seen[id] = result.Count;

@@ -186,6 +186,49 @@ public class ImportXlsxTests
         Assert.Equal("7", esito.Griglia.Riga(0)[0]);
     }
 
+    /// <summary>
+    /// 🔴 U-045 (revisione totale 3): foglio e stringhe condivise passavano per un DOM <c>XDocument</c> intero prima di
+    /// ogni tetto. Un milione di <c>&lt;si&gt;</c> (17 MB decompressi, pochi KB nello zip) valevano oltre 300 MB vivi.
+    /// Ora si leggono in streaming, e il tetto sulle stringhe scatta durante la lettura.
+    /// </summary>
+    [Fact]
+    public void Troppe_stringhe_condivise_si_rifiutano_senza_costruire_il_DOM()
+    {
+        var si = new StringBuilder();
+        for (var i = 0; i < 1_000_000; i++) si.Append("<si><t>a</t></si>");
+        using var file = Xlsx(fogli: new[] { ("F", Foglio("<row><c r=\"A1\" t=\"s\"><v>0</v></c></row>")) },
+            condivise: new string[0], condiviseGrezze: si.ToString());
+        si.Clear();
+
+        var prima = System.GC.GetAllocatedBytesForCurrentThread();
+        var esito = LettoreXlsx.Leggi(file);
+        var allocati = System.GC.GetAllocatedBytesForCurrentThread() - prima;
+
+        Assert.NotNull(esito.Guasto);
+        Assert.True(allocati < 100L * 1024 * 1024, $"{allocati / (1024 * 1024)} MB allocati");
+    }
+
+    /// <summary>
+    /// 🔴 U-050 (revisione totale 3): il tetto T-022 conta le celle VERE, e 1 999 righe in A più una cella in XFD
+    /// passano. La proposta poi portava ogni riga a 16 384 colonne: 2000 × 16 384 celle da un file di pochi KB. Il
+    /// lettore accetta il file; è la proposta che si rifiuta.
+    /// </summary>
+    [Fact]
+    public async System.Threading.Tasks.Task Una_cella_lontana_a_destra_non_gonfia_la_proposta()
+    {
+        var righe = new StringBuilder();
+        for (var i = 1; i <= 1999; i++) righe.Append($"<row><c r=\"A{i}\"><v>{i}</v></c></row>");
+        righe.Append("<row><c r=\"XFD2000\"><v>1</v></c></row>");
+        using var file = Xlsx(fogli: new[] { ("F", Foglio(righe.ToString())) }, condivise: new string[0]);
+
+        var esito = LettoreXlsx.Leggi(file);
+        Assert.Null(esito.Guasto);
+
+        var proposta = await CostruttoreProposta.CostruisciAsync(esito.Griglia, SpecImport.Generica());
+        Assert.NotNull(proposta.Guasto);
+        Assert.Empty(proposta.Righe);
+    }
+
     private static string Foglio(string righe) =>
         "<?xml version=\"1.0\"?><worksheet><sheetData>" + righe + "</sheetData></worksheet>";
 

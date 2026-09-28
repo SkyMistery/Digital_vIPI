@@ -43,8 +43,9 @@ public interface IAccAdminRepository
     Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default);
 
     /// <summary>Accende/spegne l'import periodico delle aree regolamentate di un ACC. Spegnendolo ne pota anche i
-    /// legami (le aree che nessun altro ente elenca spariscono): ritorna quanti legami ha tolto.</summary>
-    Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default);
+    /// legami (le aree che nessun altro ente elenca spariscono): ritorna quanti legami ha tolto e quali aree sono
+    /// sparite dalla vista dell'ACC — chi chiama ne apre gli impatti AreaGone (U-130).</summary>
+    Task<Vipi.Application.Content.SpecialAreaPruneOutcome> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default);
 
     /// <summary>Mostra/nasconde un settore ATC.</summary>
     Task SetSubcenterHiddenAsync(int id, bool hidden, CancellationToken ct = default);

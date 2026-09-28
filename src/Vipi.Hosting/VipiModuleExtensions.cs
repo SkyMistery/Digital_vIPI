@@ -28,6 +28,33 @@ namespace Vipi.Hosting;
 /// </summary>
 public static class VipiModuleExtensions
 {
+    /// <summary>
+    /// Il chiamante ha già l'immagine con questo sha? <paramref name="ifNoneMatch"/> è l'intestazione così come arriva:
+    /// una o più etichette separate da virgola, forti o deboli (un proxy che comprime riscrive <c>"x"</c> in
+    /// <c>W/"x"</c>). U-242: serve a rispondere 304 prima di leggere i byte.
+    /// </summary>
+    public static bool EtichettaGiaInMano(string? ifNoneMatch, string sha)
+    {
+        if (string.IsNullOrWhiteSpace(ifNoneMatch) || string.IsNullOrWhiteSpace(sha)) return false;
+        foreach (var grezza in ifNoneMatch.Split(','))
+        {
+            var e = grezza.Trim();
+            if (e.StartsWith("W/", StringComparison.Ordinal)) e = e[2..];
+            if (string.Equals(e, $"\"{sha}\"", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Una connessione SSE di questo VID in meno; a zero la voce se ne va, il dizionario non cresce.</summary>
+    private static void RilasciaSse(int vid)
+    {
+        while (_ssePerVid.TryGetValue(vid, out var n))
+        {
+            if (n <= 1 ? _ssePerVid.TryRemove(new KeyValuePair<int, int>(vid, n)) : _ssePerVid.TryUpdate(vid, n - 1, n))
+                return;
+        }
+    }
+
     /// <summary>Assembly della RCL vIPI: passarlo a <c>AddAdditionalAssemblies(...)</c> nell'host.</summary>
     public static Assembly UiAssembly => typeof(Vipi.Ui.Pages.SopHome).Assembly;
 
@@ -46,6 +73,16 @@ public static class VipiModuleExtensions
 
     /// <summary>Connessioni SSE attualmente aperte. Vive quanto il processo, come l'endpoint.</summary>
     private static int _sseAperti;
+
+    /// <summary>
+    /// Quante connessioni SSE può tenere aperte la stessa persona: le schede di chi lavora su più documenti.
+    /// 🔴 U-101 (revisione totale 3): «entrato» vuol dire qualunque account IVAO, e col solo tetto globale uno solo
+    /// ne apriva 300 e lasciava a 503 i gettoni live di tutta la divisione. Un tetto per VID accanto al globale.
+    /// </summary>
+    public const int MaxSsePerPersona = 5;
+
+    /// <summary>Connessioni SSE aperte per VID.</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> _ssePerVid = new();
 
     /// <summary>
     /// Come si serializza il quadro vAWOS.
@@ -297,9 +334,17 @@ public static class VipiModuleExtensions
             // aperte da uno script lasciavano a 503 i gettoni live di tutta la divisione; un tetto per IP dietro
             // Cloudflare colpirebbe controllori veri che arrivano dallo stesso indirizzo. Dal §CZ l'anonimo lo
             // stream non lo apre più (gettone spento): chiudergli la porta non gli toglie niente.
-            if (utente.Get() is null)
+            if (utente.Get() is not { } chi)
             {
                 ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return;
+            }
+
+            if (_ssePerVid.AddOrUpdate(chi.UserId, 1, (_, n) => n + 1) > MaxSsePerPersona)
+            {
+                RilasciaSse(chi.UserId);
+                ctx.Response.Headers.RetryAfter = "30";
+                ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 return;
             }
 
@@ -311,6 +356,7 @@ public static class VipiModuleExtensions
             if (Interlocked.Increment(ref _sseAperti) > MaxSseConcorrenti)
             {
                 Interlocked.Decrement(ref _sseAperti);
+                RilasciaSse(chi.UserId);
                 ctx.Response.Headers.RetryAfter = "30";
                 ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                 return;
@@ -362,6 +408,7 @@ public static class VipiModuleExtensions
             {
                 cache.Changed -= OnChanged;
                 Interlocked.Decrement(ref _sseAperti);
+                RilasciaSse(chi.UserId);
             }
         });
 
@@ -431,8 +478,9 @@ public static class VipiModuleExtensions
             // La cosa giusta è quella che già succede, non quella che c'era scritta: sotto c'è un METAR con
             // un TTL di DIECI MINUTI (`Weather:TtlMinutes`), quindi una copia tenuta sessanta secondi è più
             // fresca del dato che trasporta, e toglie dall'origine il giro al minuto di ogni scheda aperta.
-            // L'età che il quadro mostra si calcola da un timbro assoluto nel payload: una copia tenuta un
-            // minuto mostra l'età giusta, non un'età congelata.
+            // L'età che il quadro mostra si calcola da un timbro assoluto nel payload (`metarObservedUtc`, l'ora del
+            // METAR — dal 27 settembre 2026, U-092; prima non c'era): una copia tenuta un minuto mostra l'età
+            // giusta, non un'età congelata.
             //
             // ⚠️ E vale SOLO per gli anonimi, che è ciò che rende innocua la riga: chi è entrato non passa
             // il vaglio di `Riutilizzabile` (né per identità né per cookie), quindi il payload di un editor
@@ -456,9 +504,9 @@ public static class VipiModuleExtensions
         // validatore dei tour) tenevano un archiviatore proprio sullo stesso whazzup.
         //
         // 🔴 Le API non sono mai anonime (committente, 13 settembre 2026; carta 2026-09-13-chiavi-api.md): qui
-        // si entra con una chiave. Finché `Api:RichiediChiave` è false l'archivio accetta ANCHE chi non ne
-        // porta, come prima, perché il validatore dei tour non si fermi prima di aver ricevuto la sua; una
-        // chiave presentata però si verifica sempre, e una chiave sbagliata è un 401 anche in quel periodo.
+        // si entra con una chiave. `Api:RichiediChiave` vale true se la configurazione non dice niente (U-018,
+        // 27 settembre 2026); solo scritto false l'archivio accetta ANCHE chi non ne porta, come nel periodo di
+        // passaggio. Una chiave presentata però si verifica sempre, e una chiave sbagliata è un 401 comunque.
         // Tetti con lo stesso limitatore del bridge, per chiave quando c'è: qui una richiesta costa una COUNT
         // e una pagina di righe, non un file.
         endpoints.MapGet("/vsop/api/v1/atc/sessions", async (
@@ -573,6 +621,16 @@ public static class VipiModuleExtensions
         // nosniff perché il browser non provi a interpretarlo diversamente.
         endpoints.MapGet(Vipi.Application.Content.MediaRef.UrlPrefix + "{sha}", async (string sha, IMediaStore store, HttpContext ctx, CancellationToken ct) =>
         {
+            // 🔴 U-242 (revisione totale 3): il 304 lo decideva Results.File DOPO aver letto dal database tutti i byte
+            // dell'immagine. L'indirizzo è content-addressed — lo sha È l'ETag — quindi un If-None-Match uguale allo
+            // sha si risponde subito, senza toccare il database.
+            if (EtichettaGiaInMano(ctx.Request.Headers.IfNoneMatch.ToString(), sha))
+            {
+                ctx.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
+                ctx.Response.Headers.ETag = $"\"{sha}\"";
+                return Results.StatusCode(StatusCodes.Status304NotModified);
+            }
+
             var media = await store.GetAsync(sha, ct);
             if (media is null) return Results.NotFound();
 
@@ -733,16 +791,37 @@ public static class VipiModuleExtensions
                 ?.CreateLogger(typeof(PostgresSchemaReconciler).FullName!);
             PostgresSchemaReconciler.InitializeSchema(db, log);
         }
-        else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) ||
-                 provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
-            // ⚠️ PRIMA di migrare: l'unico indice unico della coda che possa trovare dati già in conflitto
-            // è quello dei numeri di rilascio. Senza questo controllo il guasto arriva da dentro una
-            // migrazione a metà, come un «Duplicate entry ... for key ...» che dice la chiave e non le
-            // righe — su un host dove l'unico canale è scaricare `avvio-errore.txt` via FTP.
             ReleaseNumberPreflight.Verifica(db);
-
             db.Database.Migrate();
+        }
+        else if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            // U-096 (revisione 3): un ALTER su una tabella grande supera i 30 s di default, e un comando scaduto
+            // a metà migrazione è proprio l'interruzione da evitare. Il timeout lungo vale solo per questo
+            // contesto, che muore alla fine del metodo.
+            db.Database.SetCommandTimeout(TimeSpan.FromMinutes(10));
+            // La stessa connessione per il turno e per EF: GET_LOCK vale per la sessione (TurnoDelleMigrazioni).
+            db.Database.OpenConnection();
+            try
+            {
+                TurnoDelleMigrazioni.Prendi(db.Database.GetDbConnection(), TurnoDelleMigrazioni.Attesa);
+                try
+                {
+                    // ⚠️ PRIMA di migrare: l'unico indice unico della coda che possa trovare dati già in conflitto
+                    // è quello dei numeri di rilascio. Senza questo controllo il guasto arriva da dentro una
+                    // migrazione a metà, come un «Duplicate entry ... for key ...» che dice la chiave e non le
+                    // righe — su un host dove l'unico canale è scaricare `avvio-errore.txt` via FTP.
+                    ReleaseNumberPreflight.Verifica(db);
+
+                    // Le DDL sono rieseguibili (MigrazioniRieseguibili): se l'avvio prima si è fermato a metà di
+                    // una migrazione, questa la finisce invece di cadere sulla prima istruzione già fatta.
+                    db.Database.Migrate();
+                }
+                finally { TurnoDelleMigrazioni.Rilascia(db.Database.GetDbConnection()); }
+            }
+            finally { db.Database.CloseConnection(); }
         }
         else
         {
@@ -757,7 +836,7 @@ public static class VipiModuleExtensions
     }
 
     /// <summary>
-    /// Esegue le CINQUE manutenzioni d'avvio <b>non critiche</b>, ognuna isolata dalle altre: se una
+    /// Esegue le QUATTRO manutenzioni d'avvio <b>non critiche</b>, ognuna isolata dalle altre: se una
     /// fallisce viene registrata e l'avvio prosegue con le successive.
     ///
     /// <para><b>Perché non basta lasciarle esplodere.</b> Sono passate idempotenti che rigirano a ogni
@@ -795,8 +874,10 @@ public static class VipiModuleExtensions
         Isolata(host, log, report, "promozioni a mano in memoria", h => h.LoadVipiRoleOverrides());
         Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments(timbroVersione));
         Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
-        Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
+        // ⚠️ Il backfill delle release NON c'è più (U-006, 27-set-2026): ripubblicava da solo la bozza di un
+        // documento a cui un Editor aveva annullato la release. Nessuna passata d'avvio pubblica.
         Isolata(host, log, report, "pulizia delle unioni di documenti", h => h.TidyVipiDocumentUnions());
+        Isolata(host, log, report, "storico delle statistiche (una tantum)", h => h.RifaiStoricoStatistiche());
         // ⚠️ La potatura delle release NON è più qui: dal 2 settembre 2026 la fa `ReleaseSweepHostedService`
         // ogni 24 ore (carta 2026-09-02-il-ciclo-entrante.md §AW4). All'avvio girava una volta sola, e gli
         // stati delle release invecchiano DA SOLI — al rollover AIRAC una schedulata entra in vigore senza
@@ -804,6 +885,26 @@ public static class VipiModuleExtensions
         // niente. Tenerla anche qui sarebbe lo stesso lavoro fatto da due parti: il giro copre l'avvio
         // (parte a 130s) e tutti i giorni dopo.
 
+        return host;
+    }
+
+    /// <summary>
+    /// Una volta sola: turni dell'ultimo anno ricalcolati e giorni aeroporto rimessi in coda con le regole corrette
+    /// dalla revisione totale 3 (U-218, U-228; scelta del committente del 28 settembre 2026). Il registro
+    /// <c>ImportCategories.StoricoStatistiche</c> la ferma dalla seconda volta.
+    /// </summary>
+    public static IHost RifaiStoricoStatistiche(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        var manutenzione = scope.ServiceProvider.GetService<Vipi.Application.Stats.IStatsMaintenance>();
+        if (manutenzione is null) return host;
+        var fatto = manutenzione.RifaiStoricoAsync().GetAwaiter().GetResult();
+        var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+            ?.CreateLogger("Vipi.StartupMaintenance");
+        if ((fatto.Turni > 0 || fatto.Giorni > 0) && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Storico delle statistiche rifatto (una tantum): {Turni} sessioni con il turno corretto, {Giorni} giorni aeroporto rimessi in coda al consolidamento.",
+                fatto.Turni, fatto.Giorni);
         return host;
     }
 
@@ -1018,6 +1119,28 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto/militari e ai blocchi Aerovia delle vIPI ACC.", catalog);
 
+        // Le sezioni «sempre live» rimaste Frozen tornano Live (revisione 3, U-246: la vLOA nasceva con la validità
+        // Frozen). ⚠️ DOPO AddMissingCatalogSections: le sezioni che quel passo ha appena aggiunto nascono già giuste,
+        // e questo raggiunge quelle nate prima.
+        var sempreLive = maintenance.RiallineaSezioniSempreLiveAsync().GetAwaiter().GetResult();
+        if (sempreLive > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riportate a Live {Count} sezioni «sempre live» (meteo, validità) che erano Frozen.", sempreLive);
+
+        // Una volta sola: le STAR delle vIPI civili, Frozen perché aggiunte dalla manutenzione, diventano Live come
+        // le SID (revisione 3, U-245, scelta del committente). Il registro «già fatta» la ferma dalla seconda volta.
+        var starLive = maintenance.StarCiviliLiveAsync().GetAwaiter().GetResult();
+        if (starLive > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Portate a Live {Count} sezioni STAR delle vIPI civili (passata una tantum).", starLive);
+
+        // Sola lettura: dove lo spostamento del VFR ha lasciato un lavoro da fare a mano (revisione 3, U-105). Un
+        // avviso nel registro, uno per documento; il contenuto lo sposta una persona con «Sposta in…».
+        if (log is not null)
+            foreach (var riga in maintenance.TrafficoDaSistemareAManoAsync().GetAwaiter().GetResult())
+                Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(
+                    log, "Gestione del traffico da sistemare a mano: {Riga}", riga);
+
         // QRA/Scramble fuori dai vSOP militari (indice del SOD, 6 settembre 2026). ⚠️ DOPO
         // AddMissingCatalogSections: quel passo misura la presenza per CHIAVE su tutta la versione, e con la
         // sezione ancora al suo posto non c'è niente da confondere — ma togliere prima di aggiungere
@@ -1053,6 +1176,13 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Azzerati {Count} puntatori «versione pubblicata» che indicavano una bozza: quel campo lo scrive la pubblicazione.", puntatori);
 
+        // E il verso opposto (revisione 3, U-080): un documento pubblicato senza puntatore, con una sola versione
+        // pubblicata, lo riprende su quella. ⚠️ DOPO l'azzeramento, che non tocca questi (puntatore già nullo).
+        var rimessi = maintenance.RestorePublishedCurrentVersionAsync().GetAwaiter().GetResult();
+        if (rimessi > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Rimessi {Count} puntatori «versione pubblicata» a documenti pubblicati che non l'avevano.", rimessi);
+
         // La sezione delle minime di vettoramento si chiama «MRVA», e uguale in tutte e due le lingue: il
         // titolo di una sezione di catalogo sta NEL DOCUMENTO, quindi cambiare il catalogo vale solo per i
         // documenti nuovi e questo passo porta avanti quelli già scritti.
@@ -1067,6 +1197,15 @@ public static class VipiModuleExtensions
         if (minima > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Rimossi {Count} blocchi placeholder dalle sezioni «minima».", minima);
+
+        // La colonna Depth riallineata all'albero (U-014, 27 settembre 2026). ⚠️ DOPO tutte le passate che
+        // spostano sezioni (parcheggi, regole piste, LVP, VFR): quelle scrivono la profondità della sola
+        // sezione mossa, e questa sistema le figlie — anche di una passata che verrà. È anche quella che
+        // corregge la riga già guasta in produzione (5720, «Note» di Perugia Approach).
+        var profondita = maintenance.RiallineaProfonditaAsync().GetAwaiter().GetResult();
+        if (profondita > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riallineata all'albero la profondità di {Count} sezioni.", profondita);
 
         // Aree regolamentate: appartenenza agli ACC dalla vecchia colonna singola alla tabella dei legami.
         var areas = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.ISpecialAreaMaintenance>();
@@ -1099,8 +1238,10 @@ public static class VipiModuleExtensions
         // ⚠️ Best-effort anche qui: se la scrittura fallisce, l'unica conseguenza è che il prossimo avvio
         // rifà quel che ha appena fatto. Costa qualche centinaio di millisecondi; non merita un avvio in
         // meno.
-        var cambiamenti = keys + hidden + vloaKeys + airportKeys + parcheggi + scali + catalog + qra
-                        + pubblico + airacRighe + puntatori + mrva + minima + links + manuali + dropped;
+        // ⚠️ `traffico` mancava dal 15-set: lo si è visto il 27-set su una copia in cui il VFR si spostava
+        // e il log diceva «29 righe» invece di 31.
+        var cambiamenti = keys + hidden + vloaKeys + airportKeys + parcheggi + scali + traffico + catalog + qra
+                        + pubblico + airacRighe + puntatori + mrva + minima + profondita + links + manuali + dropped;
 
         if (chiaveTimbro is not null && stato is not null && cambiamenti == 0)
         {
@@ -1141,16 +1282,6 @@ public static class VipiModuleExtensions
         using var scope = host.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<Vipi.Application.Abstractions.ISectorProjectionService>()
             .SyncFromCatalogsAsync().GetAwaiter().GetResult();
-        return host;
-    }
-
-    /// <summary>Migrazione A (doc 10 §3f): backfilla una release effettiva per ogni documento pubblicato senza copia
-    /// congelata, così la visibilità pubblica = release effettiva non lascia buchi. Idempotente: sicuro a ogni avvio.</summary>
-    public static IHost BackfillVipiReleases(this IHost host)
-    {
-        using var scope = host.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
-            .BackfillMissingReleasesAsync().GetAwaiter().GetResult();
         return host;
     }
 

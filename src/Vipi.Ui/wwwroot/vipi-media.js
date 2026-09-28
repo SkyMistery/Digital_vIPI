@@ -127,6 +127,18 @@ window.vipiMedia = (() => {
       return colonna.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
     };
 
+    // 🔴 U-207 (revisione 3): due unità di misura. `vipi-zoom.js` mette `zoom` su <html>, e da lì
+    // `getBoundingClientRect` e `clientX` parlano in pixel di FINESTRA, mentre `clientWidth` (la colonna) parla in
+    // unità di LAYOUT, cioè pixel di finestra diviso lo zoom. Col rapporto fra le due, a zoom 120% la maniglia
+    // salvava 60% dove si vedeva 50%. Si porta tutto in layout, come `rootZoom` in vipi-ui.js.
+    const zoom = () => {
+      const v = getComputedStyle(document.documentElement).zoom;
+      let z = parseFloat(v);
+      if (typeof v === 'string' && v.indexOf('%') >= 0) z = z / 100;
+      return !z || isNaN(z) || z <= 0 ? 1 : z;
+    };
+    const larghezzaFigura = () => figura.getBoundingClientRect().width / zoom();
+
     const percentuale = (px, larghezzaColonna) =>
       Math.min(100, Math.max(min, Math.round((px / larghezzaColonna) * 100)));
 
@@ -148,7 +160,7 @@ window.vipiMedia = (() => {
       e.preventDefault();
       e.stopPropagation();          // la figura sta dentro un <label> con sopra il file input: senza questo, il
                                     // trascinamento aprirebbe anche la finestra «scegli un file».
-      trascinando = { x: e.clientX, w: figura.getBoundingClientRect().width, colonna: larghezza, pct: null };
+      trascinando = { x: e.clientX, w: larghezzaFigura(), colonna: larghezza, z: zoom(), pct: null };
       figura.classList.add('sizing');
       mostra(percentuale(trascinando.w, larghezza));
       maniglia.setPointerCapture(e.pointerId);
@@ -156,7 +168,7 @@ window.vipiMedia = (() => {
 
     maniglia.addEventListener('pointermove', (e) => {
       if (!trascinando) return;
-      trascinando.pct = percentuale(trascinando.w + (e.clientX - trascinando.x), trascinando.colonna);
+      trascinando.pct = percentuale(trascinando.w + (e.clientX - trascinando.x) / trascinando.z, trascinando.colonna);
       applica(trascinando.pct);
     });
 
@@ -185,7 +197,7 @@ window.vipiMedia = (() => {
       const colonna = figura.parentElement;
       const larghezza = colonna ? colonnaUtile(colonna) : 0;
       if (larghezza <= 0) return;
-      const attuale = percentuale(figura.getBoundingClientRect().width, larghezza);
+      const attuale = percentuale(larghezzaFigura(), larghezza);
       const pct = Math.min(100, Math.max(min, attuale + passo));
       applica(pct);
       figura.classList.add('sizing');

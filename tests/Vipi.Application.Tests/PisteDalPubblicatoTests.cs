@@ -74,6 +74,30 @@ public class PisteDalPubblicatoTests
         Assert.Equal(ReleaseTargetType.Airport, lettore.Chiesto);
     }
 
+    /// <summary>U-227: TA e fasce TL del vAWOS vengono dalla sezione congelata, come regole e LVP.</summary>
+    [Fact]
+    public async Task La_transizione_viene_dalla_sezione_congelata()
+    {
+        var (porta, lettore) = Porta();
+        lettore.Chiavi["transition"] = JsonSerializer.Serialize(new AirportTransitionView(5000,
+            new[] { new AirportTlRowView("≥ 1014", "FL60"), new AirportTlRowView("978 – 1013", "FL70") }));
+
+        var d = await porta.PerScaloAsync("LIBD", RegoleVive, null, PisteVive, new[] { Doc(ReleaseTargetType.Airport, "LIBD") });
+
+        Assert.Equal(5000, d.Transizione!.TransitionAltitudeFt);
+        Assert.Equal("FL60", LivelloDiTransizione.Adesso(d.Transizione, 1020));
+    }
+
+    [Fact]
+    public async Task Senza_transizione_congelata_la_porta_non_la_inventa()
+    {
+        var (porta, _) = Porta();
+
+        var d = await porta.PerScaloAsync("LIBD", RegoleVive, null, PisteVive, new[] { Doc(ReleaseTargetType.Airport, "LIBD") });
+
+        Assert.Null(d.Transizione);   // il chiamante proietta i vivi, come fa il documento
+    }
+
     /// <summary>Sezione in Live (lo snapshot non la porta): si ricade sui vivi, come nel documento.</summary>
     [Fact]
     public async Task Sezione_non_congelata_ricade_sui_vivi_e_un_vsop_militare_da_solo_decide_lui()

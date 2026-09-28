@@ -376,7 +376,6 @@ else
     private IStationResolver Stations = default!;
     private Vipi.Application.Airspace.ISectorShapeResolver Forme = default!;
     private IProcedureImporter ProcedureImporter = default!;
-    private ISidFixAliasRepository SidAliases = default!;
 
     protected override void OnInitialized()
     {
@@ -387,7 +386,6 @@ else
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
         Forme = ScopedServices.GetRequiredService<Vipi.Application.Airspace.ISectorShapeResolver>();
         ProcedureImporter = ScopedServices.GetRequiredService<IProcedureImporter>();
-        SidAliases = ScopedServices.GetRequiredService<ISidFixAliasRepository>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "aeroporto", "Ape_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
@@ -643,11 +641,13 @@ else
         // stessa proiezione andrebbero tenute allineate a mano per sempre.
         var cyc = Airac.GetCycle(DateTime.UtcNow);
         _sids = _data.Sids.Where(s => !s.IsImported).Select(s => Manuale(s, cyc)).ToList();
-        _imported = _data.Sids.Where(s => s.IsImported).OrderBy(s => s.Fix)
+        // ⚠️ Le versioni sostituite (U-003) no: valgono fino al ciclo nuovo sulla pagina pubblica, ma non si
+        // modifica una riga che sta per scadere — le decisioni si prendono sulla versione nuova.
+        _imported = _data.Sids.Where(s => s.IsImported && !s.IsSuperseded).OrderBy(s => s.Fix)
             .ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
             .Select(s => Importata(s, cyc)).ToList();
         _stars = _data.Stars.Where(s => !s.IsImported).Select(s => Manuale(s, cyc)).ToList();
-        _starsImported = _data.Stars.Where(s => s.IsImported).OrderBy(s => s.Fix)
+        _starsImported = _data.Stars.Where(s => s.IsImported && !s.IsSuperseded).OrderBy(s => s.Fix)
             .ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
             .Select(s => Importata(s, cyc)).ToList();
         // ⚠️ La selezione e le righe non salvate NON si azzerano qui: le possiede <AirportSidsEditor>, che
@@ -731,18 +731,14 @@ else
     /// Crea il vSOP militare di questo scalo e ci porta. ⚠️ La guardia («prima la vIPI civile») sta nel
     /// SERVIZIO: qui si mostra soltanto il suo rifiuto, che è già scritto per essere letto da una persona.
     /// </summary>
+    ///
+    /// <para>🔴 U-165 (revisione totale 3): passa dal guardiano, come ogni altro gesto dell'editor. Prima non guardava
+    /// <c>_busy</c>, stava fuori dal tornello e prendeva due soli tipi di eccezione.</para>
     private async Task CreaVsopMilitare()
     {
-        _busy = true;
-        _shell.Error = null;
-        try
-        {
-            await Militari.CreaAsync(_icao);
-            if (MilEditorUrl() is { } url) Nav.NavigateTo(url, forceLoad: true);
-        }
-        catch (ValidationException ex) { _shell.Error = ex.Message; }
-        catch (EditNotAllowedException ex) { _shell.Error = ex.Message; }
-        finally { _busy = false; }
+        if (_busy) return;
+        if (await Guarded(() => Militari.CreaAsync(_icao)) && MilEditorUrl() is { } url)
+            Nav.NavigateTo(url, forceLoad: true);
     }
 
     // ---- bozza e lock: lo stesso gesto degli altri tre editor ----
@@ -882,13 +878,16 @@ else
     private async Task PersistImported(ImportedSidEdit e)
     {
         string? resolvedFix = null;
+        string? alias = null;
         if (e.NeedsReview && !string.IsNullOrWhiteSpace(e.FixOverride))
         {
             resolvedFix = e.FixOverride!.Trim();
-            if (e.CreateAlias) await SidAliases.UpsertAsync(e.Fix, resolvedFix);   // e.Fix = prefisso grezzo
+            if (e.CreateAlias) alias = e.Fix;   // e.Fix = prefisso grezzo; vale per questo scalo (U-031)
         }
+        // 🔴 U-171: l'alias lo scrive il servizio, DOPO il lock. Scritto da qui, prima, restava anche quando la riga
+        // veniva rifiutata.
         await Profile.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, resolvedFix,
-            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
+            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition, alias);
         e.IsPublicNow = e.IsPublicNow || e.ForcePublished;   // riflette subito la forzatura senza reload totale
     }
 
@@ -1100,7 +1099,7 @@ else
     /// e col banco di prova, che è suo (doc 14 §3g).</summary>
     private RenderFragment RulesEditor => __builder =>
     {
-        <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()" Exclusions="RwEdit.Esclusioni(_rwys)"
+        <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()" Exclusions="RwEdit.Esclusioni(_rwys)" Rotte="RwEdit.Rotte(_rwys)"
                                   Editing="_shell.IsEditing" RowsChanged="SaveRules"
                                   ConfirmRemove="ConfermaRimozioneRegola" />
     };
@@ -1204,6 +1203,18 @@ else
 
     /// <summary>⚠️ Non `FinishEditingAsync` diretto: qui prima si salva quel che e' in sospeso, ed e' per
     /// questo che il gancio avvolge <c>FineModificaAsync</c> e non il guscio.</summary>
-    private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : FineModificaAsync();
+    /// <para>⚠️ E prima ancora si chiede se una tabella è ferma su una riga a metà (U-010): uscire butterebbe
+    /// anche le correzioni valide alle altre righe, che quella riga tiene fuori dall'archivio.</para>
+    private Task FineModifica()
+    {
+        if (PercheResta is { } perche) { _shell.Error = perche; return Task.CompletedTask; }
+        return SuFineModifica is not null ? SuFineModifica() : FineModificaAsync();
+    }
+
+    /// <inheritdoc cref="IMembroEditor.PercheResta"/>
+    public string? PercheResta => _shell.IsEditing
+        && AirportSaveGate.Ferme(_tls, _rwys, _rules, _sids, _stars) is { Count: > 0 } ferme
+        ? L["Ape_FinishBlocked", string.Join(", ", ferme.Select(k => L[k].Value))].Value
+        : null;
 
 }

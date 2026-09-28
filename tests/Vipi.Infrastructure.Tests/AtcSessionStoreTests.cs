@@ -130,6 +130,29 @@ public class AtcSessionStoreTests : IAsyncLifetime
         Assert.Empty(recenti);
     }
 
+    /// <summary>
+    /// 🔴 U-026 (revisione totale 3): una sessione chiusa dal poller all'ultimo avvistamento (un whazzup che per
+    /// venti minuti la omette) e ricomparsa con lo STESSO id dopo più di 15 minuti non è fra le «aperte o finite da
+    /// poco»: il piano la dà per nuova, e la scrittura faceva `Add` su una chiave già in archivio. Il `SaveChanges`
+    /// unico cadeva, e con lui le righe di TUTTI gli altri — ogni minuto, finché quel controllore restava connesso.
+    /// </summary>
+    [Fact]
+    public async Task Una_sessione_che_ricompare_dopo_mezz_ora_si_riapre_e_non_ferma_le_altre()
+    {
+        await Giro(T0, Conn(100, T0, 60));
+        await Giro(T0.AddMinutes(5));                                   // sparisce: chiusa a T0+60s
+        await Giro(T0.AddMinutes(40),                                   // ricompare dopo 35 minuti
+            Conn(100, T0, 40 * 60),
+            Conn(200, T0.AddMinutes(39), 60, callsign: "LIRR_CTR", vid: 111111));
+        _db.ChangeTracker.Clear();
+
+        var s = await _db.AtcSessions.SingleAsync(x => x.SessionId == 100);
+        Assert.Null(s.EndUtc);                          // riaperta
+        Assert.Equal(40 * 60, s.DurationSeconds);
+        Assert.Equal(100, s.ShiftKey);                  // il turno resta il suo
+        Assert.True(await _db.AtcSessions.AnyAsync(x => x.SessionId == 200));   // e l'altra è scritta
+    }
+
     [Fact]
     public async Task Due_postazioni_insieme_sono_due_sessioni_e_due_turni()
     {

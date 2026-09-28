@@ -38,7 +38,7 @@ public sealed record ManagedDoc(
     /// <summary>Scadenza del lock attivo (UTC). ⚠️ Il TTL del lock documento è 30 minuti e <b>non</b> ha heartbeat
     /// (a differenza di <c>EditResourceLock</c>): si rinnova al salvataggio e si libera con «Fine modifica», quindi
     /// una scheda chiusa lascia il lock in piedi fin quasi a mezz'ora. Per questo la UI mostra l'ora e offre il
-    /// force-unlock agli admin.</summary>
+    /// force-unlock a ogni Editor.</summary>
     DateTime? LockExpiresUtc = null)
 {
     /// <summary>Ha una release AIRAC EFFETTIVA adesso (doc 10 §3f): gate della visibilità pubblica.

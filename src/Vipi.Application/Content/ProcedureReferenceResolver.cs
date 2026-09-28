@@ -96,13 +96,18 @@ public sealed class ProcedureReferenceResolver : IProcedureReferenceResolver
     /// senza, l'elenco guarda al ciclo di oggi — il comportamento di prima, che serve ai finti dei test.</summary>
     private readonly IAiracService? _airac;
 
+    /// <param name="ciclo">Il ciclo di un congelamento in corso (U-151): dentro la cattura di una release le tabelle
+    /// dei punti si chiedono al SUO ciclo, fuori a oggi. Opzionale come l'AIRAC: senza, sempre oggi.</param>
     public ProcedureReferenceResolver(IAirportSidDerivationService sids, IFrozenSectionReader frozen,
-        IAiracService? airac = null)
+        IAiracService? airac = null, ShapeReleaseContext? ciclo = null)
     {
         _sids = sids;
         _frozen = frozen;
         _airac = airac;
+        _ciclo = ciclo;
     }
+
+    private readonly ShapeReleaseContext? _ciclo;
 
     public Task<NomiProcedura> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
         string? proprioIcao = null, AirportSidView? propriaTabella = null,
@@ -113,7 +118,7 @@ public sealed class ProcedureReferenceResolver : IProcedureReferenceResolver
         RisolviAsync(testi, pubblica: false, null, null, null, ct);
 
     public Task<NomiProcedura> PerTabelleAsync(IReadOnlySet<(ProcedureKind Kind, string Icao)> tabelle,
-        CancellationToken ct = default) => AlCicloAsync(tabelle, null, ct);
+        CancellationToken ct = default) => AlCicloAsync(tabelle, _ciclo?.Cycle, ct);
 
     public async Task<NomiAlCambio> PerTabelleEntrantiAsync(IReadOnlySet<(ProcedureKind Kind, string Icao)> tabelle,
         CancellationToken ct = default)

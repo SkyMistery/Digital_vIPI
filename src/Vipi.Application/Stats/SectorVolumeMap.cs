@@ -114,7 +114,8 @@ public static class SectorVolumeMap
             ? null
             : SectorVolume.From(
                 callsign,
-                riga.Parts.Select(p => ((string?)p.PolygonJson, p.BaseFeet, p.TopFeet)).ToList(),
+                // U-217: le quote AGL sul campo, con la stessa regola della mappa.
+                riga.Parts.Select(p => { var (b, t) = p.QuoteAmsl(riga.ElevazioneFt); return ((string?)p.PolygonJson, b, t); }).ToList(),
                 riga.Source);
 
     /// <summary>

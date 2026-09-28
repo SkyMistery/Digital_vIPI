@@ -226,7 +226,10 @@ public static class AipGeometryReader
         // («radius\n15.0 NM»). Al suo posto resta un segnaposto, più gli a capo che conteneva — così i numeri
         // di riga di quello che segue restano veri.
         var raggi = new List<double>();
-        var intero = string.Join('\n', originali, 0, quante).ToUpperInvariant();
+        // 🔴 U-229 (revisione totale 3): «⟦R3⟧» scritto nel testo passava per un segnaposto nostro e indicizzava
+        // un raggio che non c'era — ArgumentOutOfRange fino alla pagina. Le parentesi del segnaposto le mettiamo
+        // solo noi: quelle che arrivano col testo si tolgono.
+        var intero = string.Join('\n', originali, 0, quante).ToUpperInvariant().Replace("⟦", "").Replace("⟧", "");
         intero = RxRaggio.Replace(intero, m =>
         {
             raggi.Add(InNm(m.Groups["v"].Value, m.Groups["u"].Value));
@@ -312,7 +315,9 @@ public static class AipGeometryReader
                     RendiParolaIlSospeso();
                     ChiudiAngoli();
                     if (parole.Count == 0) postoParole = dove;
-                    raggio = raggi[int.Parse(segnaposto.Groups["k"].Value, CultureInfo.InvariantCulture)];
+                    if (int.TryParse(segnaposto.Groups["k"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var k)
+                        && k < raggi.Count)
+                        raggio = raggi[k];
                     continue;
                 }
 
@@ -388,6 +393,10 @@ public static class AipGeometryReader
         var vertici = new List<(double Lat, double Lon)>();
         var attesa = Attesa.Niente;
         var orario = true;
+        // 🔴 U-230 (revisione totale 3): un arco senza verso si disegnava orario in silenzio. Si disegna ancora
+        // orario — un arco serve — ma si dice; e il verso scritto DOPO il centro («… centred on X anti-clockwise
+        // till point Y») si applica, invece di perdersi nella frase che aspetta la fine.
+        var versoNoto = false;
         double? raggio = null;
         (double Lat, double Lon) centro = default;
         var postoCentro = default(Posto);
@@ -421,6 +430,7 @@ public static class AipGeometryReader
             // Senza raggio l'arco si disegna lo stesso: passa per gli estremi, e il raggio serviva solo a
             // controllarli. Ma lo si dice.
             if (raggio is null) Incompleto(postoArco, "raggio");
+            if (!versoNoto) Incompleto(postoArco, "verso");
             var arco = ArcGeometry.Arco(vertici[^1], fine, centro, orario, raggio ?? 0, densita);
             if (OltreIlTetto(arco.Punti.Count))
                 arco = ArcGeometry.Arco(vertici[^1], fine, centro, orario, raggio ?? 0, ArcGeometry.DensitaMinima);
@@ -491,6 +501,14 @@ public static class AipGeometryReader
             // alla cosa nuova.
             var raggioDellaFrase = f.RaggioNm;
 
+            // Un verso detto mentre l'arco aspetta centro o fine è il verso di quell'arco (U-230).
+            if (attesa is Attesa.CentroDellArco or Attesa.FineDellArco or Attesa.PuntoDiFine
+                && (sensi.Contains(Senso.Orario) || sensi.Contains(Senso.Antiorario)))
+            {
+                orario = !sensi.Contains(Senso.Antiorario);
+                versoNoto = true;
+            }
+
             // Quello che si stava aspettando, e una frase al suo posto.
             switch (attesa)
             {
@@ -536,6 +554,7 @@ public static class AipGeometryReader
                 postoArco = f.Dove;
                 if (vertici.Count == 0) { Incompleto(postoArco, "inizio"); continue; }
                 orario = !sensi.Contains(Senso.Antiorario);
+                versoNoto = sensi.Contains(Senso.Orario) || sensi.Contains(Senso.Antiorario);
                 raggio = raggioDellaFrase;
                 if (sensi.Contains(Senso.Centro)) attesa = Attesa.CentroDellArco;
                 else Incompleto(postoArco, "centro");

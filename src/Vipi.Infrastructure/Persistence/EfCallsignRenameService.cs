@@ -180,6 +180,25 @@ public sealed class EfCallsignRenameService : ICallsignRenameService
         foreach (var x in await _db.SectorFallbacks.Where(x => x.TargetCallsign == vecchio).ToListAsync(ct))
             x.TargetCallsign = nuovo;
 
+        // 3-ter. 🔴 U-041 (revisione totale 3): gli agganci AIP, che si risolvono per callsign. Rimasti al vecchio
+        //        nome, il settore tornava in silenzio alla forma di IVAO. Il ponte delle forme gira dopo il
+        //        salvataggio, e vede già il nome nuovo.
+        foreach (var x in await _db.SectorAirspaceBindings.Where(x => x.Callsign == vecchio).ToListAsync(ct))
+            x.Callsign = nuovo;
+
+        // 3-quater. Le scelte per callsign del profilo dei documenti (AoR e frequenze nascoste, ordine delle
+        //        frequenze): stesso riscrittore dei blocchi, che tocca solo i valori uguali al vecchio nome.
+        foreach (var p in await _db.DocumentProfiles
+                     .Where(x => (x.HiddenAorSectorsJson != null && EF.Functions.Like(x.HiddenAorSectorsJson, $"%{vecchio}%"))
+                                 || (x.HiddenFrequenciesJson != null && EF.Functions.Like(x.HiddenFrequenciesJson, $"%{vecchio}%"))
+                                 || (x.FreqOrderJson != null && EF.Functions.Like(x.FreqOrderJson, $"%{vecchio}%")))
+                     .ToListAsync(ct))
+        {
+            p.HiddenAorSectorsJson = JsonCallsignRewriter.Rewrite(p.HiddenAorSectorsJson, vecchio, nuovo) ?? p.HiddenAorSectorsJson;
+            p.HiddenFrequenciesJson = JsonCallsignRewriter.Rewrite(p.HiddenFrequenciesJson, vecchio, nuovo) ?? p.HiddenFrequenciesJson;
+            p.FreqOrderJson = JsonCallsignRewriter.Rewrite(p.FreqOrderJson, vecchio, nuovo) ?? p.FreqOrderJson;
+        }
+
         // 4. Le chiavi di release e degli incarichi (vedi il commento del tipo sul perché si riscrivono).
         var suffissoAcc = "|" + vecchio;
         foreach (var rel in await _db.DocReleases

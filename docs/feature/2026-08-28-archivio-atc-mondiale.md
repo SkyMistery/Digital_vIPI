@@ -187,6 +187,9 @@ I tetti per giro non cambiano (`SessionRetentionPerRun` = 2000): a regime scadon
   ⚠️ Aggiunta a `SegmentiEsclusi` della cache delle letture anonime: vive sotto `/services/stats` e non
   porta la parola `admin` nell'indirizzo, quindi sarebbe stata l'unica schermata di staff di cui si teneva
   una copia.
+  **Niente riga di audit**, dichiaratamente (U-116, revisione 3; scelta del committente del 28 settembre 2026):
+  la ricerca per VID legge dati pubblici di IVAO di tutto il mondo e la pagina è chiusa per default. La riga
+  della carta statistiche §14.2 resta per la pagina profilo e per il dettaglio di un turno della divisione.
 - **`GET /vsop/api/v1/atc/sessions`** — in sola lettura. ⚠️ **Non più anonimo di proposito** dal 13 settembre
   2026: le API non sono mai anonime (decisione del committente, carta
   [`2026-09-13-chiavi-api.md`](2026-09-13-chiavi-api.md)). Si entra con una chiave; finché

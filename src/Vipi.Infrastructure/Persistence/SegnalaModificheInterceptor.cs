@@ -26,8 +26,19 @@ public sealed class SegnalaModificheInterceptor : SaveChangesInterceptor, IDbTra
 {
     private readonly IModificheInAttesa _attesa;
 
-    /// <summary>Le famiglie scritte da un contesto, fra il «sto per salvare» e il «salvato / confermato».</summary>
-    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<DbContext, HashSet<string>> _inSospeso = new();
+    /// <summary>
+    /// Le famiglie scritte da un contesto. Due insiemi e non uno (U-196, revisione totale 3): quelle del salvataggio
+    /// <b>in volo</b> e quelle dei salvataggi già <b>riusciti</b> dentro la transazione aperta. Un salvataggio che
+    /// cade butta solo le sue: con un insieme solo buttava anche quelle dei riusciti, e alla conferma non arrivava
+    /// niente.
+    /// </summary>
+    private sealed class Sospese
+    {
+        public HashSet<string> InVolo { get; } = new(StringComparer.Ordinal);
+        public HashSet<string> Riuscite { get; } = new(StringComparer.Ordinal);
+    }
+
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<DbContext, Sospese> _inSospeso = new();
 
     public SegnalaModificheInterceptor(IModificheInAttesa attesa) => _attesa = attesa;
 
@@ -57,11 +68,11 @@ public sealed class SegnalaModificheInterceptor : SaveChangesInterceptor, IDbTra
         return ValueTask.FromResult(result);
     }
 
-    public override void SaveChangesFailed(DbContextErrorEventData eventData) => Scarta(eventData.Context);
+    public override void SaveChangesFailed(DbContextErrorEventData eventData) => ScartaInVolo(eventData.Context);
 
     public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
     {
-        Scarta(eventData.Context);
+        ScartaInVolo(eventData.Context);
         return Task.CompletedTask;
     }
 
@@ -88,28 +99,36 @@ public sealed class SegnalaModificheInterceptor : SaveChangesInterceptor, IDbTra
     private void Annota(DbContext? contesto)
     {
         if (contesto is null) return;
-        HashSet<string>? famiglie = null;
+        Sospese? sospese = null;
         foreach (var voce in contesto.ChangeTracker.Entries())
         {
             if (voce.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted)) continue;
             if (FamiglieDiModifica.Di(voce.Entity) is not string f) continue;
-            famiglie ??= _inSospeso.GetValue(contesto, _ => new HashSet<string>(StringComparer.Ordinal));
-            famiglie.Add(f);
+            sospese ??= _inSospeso.GetValue(contesto, _ => new Sospese());
+            sospese.InVolo.Add(f);
         }
     }
 
     private void DopoIlSalvataggio(DbContext? contesto)
     {
+        if (contesto is null || !_inSospeso.TryGetValue(contesto, out var sospese)) return;
+        sospese.Riuscite.UnionWith(sospese.InVolo);
+        sospese.InVolo.Clear();
         // Dentro una transazione la scrittura non è ancora vista dagli altri: si aspetta la conferma.
-        if (contesto is null || contesto.Database.CurrentTransaction is not null) return;
-        Consegna(contesto);
+        if (contesto.Database.CurrentTransaction is null) Consegna(contesto);
     }
 
     private void Consegna(DbContext? contesto)
     {
-        if (contesto is null || !_inSospeso.TryGetValue(contesto, out var famiglie)) return;
+        if (contesto is null || !_inSospeso.TryGetValue(contesto, out var sospese)) return;
         _inSospeso.Remove(contesto);
-        if (famiglie.Count > 0) _attesa.Segnala(famiglie, DateTime.UtcNow);
+        if (sospese.Riuscite.Count > 0) _attesa.Segnala(sospese.Riuscite, DateTime.UtcNow);
+    }
+
+    /// <summary>Un salvataggio caduto: via le sue famiglie, non quelle dei riusciti prima di lui.</summary>
+    private void ScartaInVolo(DbContext? contesto)
+    {
+        if (contesto is not null && _inSospeso.TryGetValue(contesto, out var sospese)) sospese.InVolo.Clear();
     }
 
     private void Scarta(DbContext? contesto)

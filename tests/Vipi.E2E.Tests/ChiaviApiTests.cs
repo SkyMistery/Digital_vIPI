@@ -135,24 +135,47 @@ public sealed class ChiaviApiTests : IClassFixture<ChiaviApiTests.ApiChiusaFacto
             (await aperta.CreateClient().PostAsJsonAsync(Bridge, new { ownerCallsign = "ZZZZ_CTR" })).StatusCode);
     }
 
+    /// <summary>
+    /// U-018 (revisione totale 3): la regola «le API non sono mai anonime» sta nel CODICE, non solo nella
+    /// configurazione di produzione. Un sito che non dice niente di <c>Api:RichiediChiave</c> tiene l'archivio
+    /// chiuso; aprirlo è una scelta scritta (<c>false</c>), mai una dimenticanza. Fino al 27 settembre 2026 il
+    /// default era <c>false</c> e la produzione, che non lo aveva mai acceso, rispondeva a chiunque con 46 522
+    /// sessioni.
+    /// </summary>
+    [Fact]
+    public async Task Senza_configurazione_l_archivio_vuole_la_chiave()
+    {
+        using var muta = new ApiChiusaFactory(richiediChiave: null);
+
+        var res = await muta.CreateClient().GetAsync(Archivio);
+        Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
+
+        var chiave = await EmettiAsync(muta.Services, "archivio");
+        var c = muta.CreateClient();
+        c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", chiave);
+        Assert.Equal(HttpStatusCode.OK, (await c.GetAsync(Archivio)).StatusCode);
+    }
+
     public sealed class ApiChiusaFactory : WebApplicationFactory<Program>
     {
         private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"vipi-e2e-api-{Guid.NewGuid():N}.db");
-        private readonly bool _richiediChiave;
+        private readonly bool? _richiediChiave;
 
         public ApiChiusaFactory() : this(richiediChiave: true) { }
-        // Interno: xUnit vuole un solo costruttore PUBBLICO nelle fixture.
-        internal ApiChiusaFactory(bool richiediChiave) => _richiediChiave = richiediChiave;
+        // Interno: xUnit vuole un solo costruttore PUBBLICO nelle fixture. Null = la chiave non si scrive affatto,
+        // e decide il default del codice.
+        internal ApiChiusaFactory(bool? richiediChiave) => _richiediChiave = richiediChiave;
 
         protected override IHost CreateHost(IHostBuilder builder)
         {
             builder.UseEnvironment("Development");
-            builder.ConfigureHostConfiguration(cfg => cfg.AddInMemoryCollection(new Dictionary<string, string?>
+            var config = new Dictionary<string, string?>
             {
                 ["ConnectionStrings:Vipi"] = $"Data Source={_dbPath}",
                 ["AuroraBridge:Enabled"] = "true",
-                ["Api:RichiediChiave"] = _richiediChiave ? "true" : "false",
-            }));
+            };
+            if (_richiediChiave is { } r) config["Api:RichiediChiave"] = r ? "true" : "false";
+            builder.ConfigureHostConfiguration(cfg => cfg.AddInMemoryCollection(config));
             Environment.SetEnvironmentVariable("VipiAuth__Enabled", "false");
             return base.CreateHost(builder);
         }

@@ -6,14 +6,26 @@
 (function () {
     var SEEN_KEY = 'vipi-tour:editor:v1';
 
+    // I TESTI vengono dal server (revisione 3, U-252): prima erano scritti qui in italiano, e con l'interfaccia
+    // in inglese il tour diceva «Indice del documento… Salta / Avanti». App.razor li mette, presi dal resx
+    // nella lingua della pagina, nell'attributo `data-tour-testi` del tag di vipi-boot.js. L'italiano scritto
+    // qui sotto e' solo la rete, se l'attributo mancasse.
+    var testi = (function () {
+        try {
+            var tag = document.querySelector('script[data-tour-testi]');
+            return (tag && JSON.parse(tag.getAttribute('data-tour-testi'))) || {};
+        } catch (e) { return {}; }
+    })();
+    function T(chiave, riserva) { return testi[chiave] || riserva; }
+
     // Ordine e testo degli step. `sel` = elemento bersaglio; il primo visibile per chiave vince.
     // ⚠️ Qui stava il passo «Salva tutto» (anche con Ctrl+S): nessun editor ha più quel tasto, ogni gesto scrive
     // nella bozza da solo (carta 2026-09-04-aeroporto-porta-sola). Il passo si saltava in silenzio, ma il testo
     // dell'indice prometteva ancora il pallino delle modifiche non salvate (T-071).
     var STEPS = [
-        { sel: '[data-tour="toc"]',     title: 'Indice del documento', body: 'Salta a una sezione. Non c\'è un tasto «Salva»: dopo «Modifica» ogni gesto scrive da solo nella <b>bozza</b>.' },
-        { sel: '[data-tour="preview"]', title: 'Anteprima bozza', body: 'Apri il documento come apparirà. Controlla sempre qui <b>prima</b> di pubblicare.' },
-        { sel: '[data-tour="release"]', title: 'Pubblica', body: 'Rendi la bozza pubblica con una <b>release AIRAC</b>: subito o programmata a un ciclo.' }
+        { sel: '[data-tour="toc"]',     title: T('Tour_TocTitle', 'Indice del documento'), body: T('Tour_TocBody', 'Salta a una sezione. Non c\'è un tasto «Salva»: dopo «Modifica» ogni gesto scrive da solo nella <b>bozza</b>.') },
+        { sel: '[data-tour="preview"]', title: T('Tour_PreviewTitle', 'Anteprima bozza'), body: T('Tour_PreviewBody', 'Apri il documento come apparirà. Controlla sempre qui <b>prima</b> di pubblicare.') },
+        { sel: '[data-tour="release"]', title: T('Tour_ReleaseTitle', 'Pubblica'), body: T('Tour_ReleaseBody', 'Rendi la bozza pubblica con una <b>release AIRAC</b>: subito o programmata a un ciclo.') }
     ];
 
     var state = null; // { steps:[{el,title,body}], i, nodes:{...} }
@@ -46,16 +58,22 @@
         card.setAttribute('role', 'dialog');
         card.setAttribute('aria-live', 'polite');
         card.innerHTML =
-            '<button type="button" class="vt-close" aria-label="Chiudi il tour" title="Chiudi (Esc)">✕</button>' +
+            '<button type="button" class="vt-close">✕</button>' +
             '<div class="vt-step"></div>' +
             '<h4 class="vt-title"></h4>' +
             '<div class="vt-body"></div>' +
             '<div class="vt-actions">' +
-              '<button type="button" class="vt-skip">Salta</button>' +
+              '<button type="button" class="vt-skip"></button>' +
               '<span class="vt-spacer"></span>' +
-              '<button type="button" class="vt-prev btn ghost">Indietro</button>' +
-              '<button type="button" class="vt-next btn primary">Avanti</button>' +
+              '<button type="button" class="vt-prev btn ghost"></button>' +
+              '<button type="button" class="vt-next btn primary"></button>' +
             '</div>';
+        // Le etichette con textContent/setAttribute, non nella stringa qui sopra: vengono da fuori del file.
+        var chiudi = card.querySelector('.vt-close');
+        chiudi.setAttribute('aria-label', T('Tour_Close', 'Chiudi il tour'));
+        chiudi.setAttribute('title', T('Tour_CloseTitle', 'Chiudi (Esc)'));
+        card.querySelector('.vt-skip').textContent = T('Tour_Skip', 'Salta');
+        card.querySelector('.vt-prev').textContent = T('Tour_Prev', 'Indietro');
         // ⚠️ Dentro `.vipi-root`, non nel `body`: dal 7 settembre 2026 le regole del tema sono confinate
         // sotto quel contenitore (ADR-0005 D3, finalmente vero), e un tour appeso al body si troverebbe
         // senza stile — comprese le classi che si porta dentro, `btn ghost` e `btn primary`.
@@ -112,11 +130,11 @@
 
     function render() {
         var s = state.steps[state.i], n = state.nodes, total = state.steps.length;
-        n.step.textContent = 'Passo ' + (state.i + 1) + ' di ' + total;
+        n.step.textContent = T('Tour_Step', 'Passo {0} di {1}').replace('{0}', state.i + 1).replace('{1}', total);
         n.title.textContent = s.title;
         n.body.innerHTML = s.body;
         n.prev.style.visibility = state.i === 0 ? 'hidden' : 'visible';
-        n.next.textContent = state.i === total - 1 ? 'Fine' : 'Avanti';
+        n.next.textContent = state.i === total - 1 ? T('Tour_Done', 'Fine') : T('Tour_Next', 'Avanti');
         centra();
         place();
     }

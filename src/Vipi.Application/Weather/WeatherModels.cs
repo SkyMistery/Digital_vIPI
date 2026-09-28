@@ -78,8 +78,20 @@ public sealed record ParsedMetar(
     bool HasSnow,
     int? VisibilityMeters = null,
     IReadOnlyList<RunwayVisualRange>? Rvr = null,
-    int? VerticalVisibilityFt = null)
+    int? VerticalVisibilityFt = null,
+    bool VerticalVisibilityUnknown = false,
+    IReadOnlyList<string>? CoversWithoutBase = null)
 {
+    /// <summary>
+    /// 🔴 U-089 (revisione totale 3): il cielo è oscurato o coperto ma l'altezza non è misurata — <c>VV///</c>, oppure
+    /// <c>BKN///</c>, <c>OVC///</c>, <c>//////</c>. Il soffitto c'è e non si sa quanto è basso: <b>non</b> è il cielo
+    /// sgombro di un <see cref="CeilingFt"/> null, e chi lo confronta con una soglia di cancellazione non deve poterlo
+    /// prendere per «sopra a tutto».
+    /// </summary>
+    public bool CeilingUnknown =>
+        VerticalVisibilityUnknown
+        || (CoversWithoutBase ?? Array.Empty<string>()).Any(c => c is "BKN" or "OVC" or "///");
+
     public string CloudsLabel => Clouds.Count == 0 ? "—" : string.Join(" · ", Clouds.Select(c => c.Label));
 
     /// <summary>I gruppi RVR, mai null: chi cicla non deve difendersi da un elenco assente.</summary>

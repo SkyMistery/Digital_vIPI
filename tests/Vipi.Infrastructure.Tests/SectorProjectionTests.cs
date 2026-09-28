@@ -155,6 +155,29 @@ public class SectorProjectionTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// 🔴 U-150 (revisione totale 3): un settore disattivato (nascosto, o con l'ACC nascosto) usciva dal giro, e la
+    /// sua frequenza restava ferma al giorno della disattivazione — mentre le frequenze collegate degli scali e la
+    /// vIPI continuano a leggerla. Si aggiorna dal catalogo senza riattivarlo.
+    /// </summary>
+    [Fact]
+    public async Task Un_settore_disattivato_prende_la_frequenza_nuova_del_catalogo()
+    {
+        await _proj.SyncFromCatalogsAsync();
+        var ts = await _db.AccSectors.FirstAsync(s => s.ComposePosition == "LIRR_TS_CTR");
+        ts.IsHidden = true;
+        await _db.SaveChangesAsync();
+        await _proj.SyncFromCatalogsAsync();
+
+        ts.Frequency = "133.705";
+        await _db.SaveChangesAsync();
+        await _proj.SyncFromCatalogsAsync();
+
+        var sector = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRR_TS_CTR");
+        Assert.False(sector.IsActive);
+        Assert.Equal("133.705", sector.DefaultFrequency);
+    }
+
+    /// <summary>
     /// ⚠️ Questo test diceva il contrario fino al 25 agosto 2026 — si chiamava
     /// <c>Sync_Clears_Editorial_Links_When_Projected_Sector_Becomes_Orphan</c> e pretendeva che il legame al
     /// documento venisse <b>reciso</b>. Era la decisione di allora, e costava cara: la riga tornava al giro

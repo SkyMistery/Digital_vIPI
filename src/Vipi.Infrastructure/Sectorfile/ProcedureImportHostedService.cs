@@ -33,7 +33,7 @@ internal sealed class ProcedureImportHostedService : BackgroundService
             TimeSpan.FromHours(Math.Max(1, _opt.ImportHours)), RunOnceAsync, _log, stoppingToken);
     }
 
-    private async Task<bool> RunOnceAsync(IServiceProvider sp, CancellationToken ct)
+    internal async Task<bool> RunOnceAsync(IServiceProvider sp, CancellationToken ct)
     {
         var repo = sp.GetRequiredService<IAirportSectorRepository>();
         var importer = sp.GetRequiredService<IProcedureImporter>();
@@ -46,7 +46,13 @@ internal sealed class ProcedureImportHostedService : BackgroundService
         var icaos = await repo.ListAirportIcaosAsync(ct);
         if (icaos.Count == 0) return false;   // aeroporti non ancora importati: non "consumare" il gate, riprova a breve
 
+        // Categoria esclusa in Sorgenti: l'importatore non fa niente per scelta, e un giro che non legge non si
+        // timbra (U-024, lo stesso per i settori). Non è nemmeno un errore: nessun «ultimo errore» in Sorgenti.
+        if (!(await sp.GetRequiredService<IImportPolicyStore>().GetAsync(ct)).IsImported(Vipi.Domain.ImportCategory.Sids))
+            return false;
+
         int airports = 0, sids = 0, failed = 0;
+        var falliti = new List<string>();
         foreach (var icao in icaos)
         {
             try
@@ -61,9 +67,24 @@ internal sealed class ProcedureImportHostedService : BackgroundService
                 // tenuto nascosto per cicli interi un import rotto sugli scali principali (vedi la nota in
                 // EfAirportRepository.ReplaceImportedProceduresAsync sulle revisioni con StableKey condivisa).
                 failed++;
+                falliti.Add(icao);
                 _log.LogWarning(ex, "Import procedure {Icao} fallito; gli altri aeroporti proseguono.", icao);
             }
         }
+
+        // 🔴 U-038 (revisione totale 3): si tornava sempre «riuscito». GitHub giù all'ora del giro — tutti gli
+        // scali falliti — lasciava Sorgenti verde, il giro dopo fra 24 ore invece che fra un'ora, e il gradino 3
+        // di SidStampCycle ancorato a un giro che non aveva letto niente. Un giro che non ha letto la sorgente
+        // solleva: GatedImportLoop scrive l'errore e ritenta presto. ⚠️ Non basta UNO scalo rotto, come invece per
+        // i settori: un .sid scritto male è di uno scalo e può restarlo per settimane, e il timbro di tutti gli
+        // altri non deve fermarsi con lui.
+        if (failed > 0 && failed * 2 >= icaos.Count)
+            throw new InvalidOperationException(
+                $"Import procedure non riuscito: {failed} scali falliti su {icaos.Count} ({string.Join(", ", falliti.Take(5))}{(falliti.Count > 5 ? ", …" : "")}).");
+        if (sids == 0)
+            throw new InvalidOperationException(
+                $"Import procedure non riuscito: la sorgente non ha dato nessuna procedura per {icaos.Count} scali.");
+
         await WarnStaleAliasesAsync(sp, ct);
 
         if (failed > 0)

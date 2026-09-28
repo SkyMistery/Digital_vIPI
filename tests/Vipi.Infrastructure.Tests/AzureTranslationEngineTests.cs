@@ -93,6 +93,48 @@ public class AzureTranslationEngineTests
         Assert.Equal(1, esito.BilledTexts);
     }
 
+    /// <summary>Come Azure: 400 se la richiesta supera i 50 000 caratteri, altrimenti rimanda i testi.</summary>
+    private sealed class TettoDiAzure : HttpMessageHandler
+    {
+        public int Chiamate { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Chiamate++;
+            var corpo = System.Text.Json.JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            var testi = corpo.RootElement.EnumerateArray().Select(e => e.GetProperty("Text").GetString() ?? "").ToList();
+            if (testi.Sum(t => t.Length) > 50_000)
+                return new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{}") };
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(Risposta(testi.Select(_ => "x").ToArray()), Encoding.UTF8, "application/json"),
+            };
+        }
+    }
+
+    /// <summary>
+    /// 🔴 U-047 (revisione totale 3): il lotto si tagliava solo a 50 testi, non ai 50 000 caratteri che Azure
+    /// accetta per richiesta: 50 testi lunghi facevano un 400, cioè un guasto definitivo del giro. Si taglia
+    /// anche per caratteri.
+    /// </summary>
+    [Fact]
+    public async Task Il_lotto_si_taglia_anche_per_caratteri()
+    {
+        var azure = new TettoDiAzure();
+        var motore = new AzureTranslationEngine(new StubFactory(azure), Options.Create(new TranslationOptions
+        {
+            Enabled = true,
+            Azure = new AzureOptions { ApiKey = "chiave-finta", Region = "westeurope", MaxTextsPerCall = 50 },
+        }));
+        var testi = Enumerable.Range(0, 50).Select(_ => new string('a', 1_200)).ToList();   // 60 000 caratteri
+
+        var esito = await motore.TranslateAsync(testi, "it", "en");
+
+        Assert.Equal(TranslationOutcome.Ok, esito.Outcome);
+        Assert.Equal(50, esito.Texts!.Count);
+        Assert.True(azure.Chiamate >= 2);
+    }
+
     // ---- L'indirizzo ---------------------------------------------------------------------------------
 
     /// <summary>

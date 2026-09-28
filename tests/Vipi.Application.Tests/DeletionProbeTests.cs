@@ -79,6 +79,36 @@ public class DeletionProbeTests : IDisposable
         Assert.Contains("a mano", esito.Prova.Motivo);
     }
 
+    /// <summary>
+    /// 🔴 U-129 (revisione totale 3): la sonda interroga i center del SOLO paese della divisione, quindi per un
+    /// ACC estero (LFMM, LOVV, LJLA: li porta l'import dei confinanti) rispondeva «non c'è più: la sorgente elenca
+    /// N center del paese e questo non è fra loro» — una constatazione falsa, che scioglieva la D8. Non si chiede.
+    /// </summary>
+    [Fact]
+    public async Task A_un_ACC_estero_non_si_chiede_e_non_si_dice_sparito()
+    {
+        var sorgente = new SorgenteFinta(SourceProbeResult.Assente("non c'è"));
+        var repo = new RepoFinto { Ente = new AccFacts("LFMM", "Marseille", null, 0, 0, IsForeign: true) };
+        var s = Costruisci(sorgente, repo);
+
+        var esito = await s.VerificaAllaSorgenteAsync(DeletionTarget.Acc("LFMM"));
+
+        Assert.Empty(sorgente.Chiesti);
+        Assert.Equal(SourcePresence.NonSiSa, esito.Prova.Esito);
+        Assert.Contains("estero", esito.Prova.Motivo);
+    }
+
+    [Fact]
+    public async Task A_un_ACC_della_divisione_si_chiede_come_prima()
+    {
+        var sorgente = new SorgenteFinta(SourceProbeResult.Presente("c'è"));
+        var repo = new RepoFinto { Ente = new AccFacts("LIRR", "Roma", null, 0, 0) };
+
+        await Costruisci(sorgente, repo).VerificaAllaSorgenteAsync(DeletionTarget.Acc("LIRR"));
+
+        Assert.Equal(SourceProbeKind.Acc, Assert.Single(sorgente.Chiesti).Kind);
+    }
+
     [Fact]
     public async Task A_un_documento_non_si_chiede_niente()
     {
@@ -325,8 +355,9 @@ public class DeletionProbeTests : IDisposable
 
         public Task<AirportFacts?> AirportFactsAsync(int airportId, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public AccFacts? Ente { get; init; }
         public Task<AccFacts?> AccFactsAsync(string accCode, CancellationToken ct = default) =>
-            throw new NotSupportedException();
+            Ente is null ? throw new NotSupportedException() : Task.FromResult<AccFacts?>(Ente);
         public Task<IReadOnlyList<AffectedDoc>> AllDocumentsAsync(CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task DeleteUnmanagedDocumentAsync(int documentId, int actorUserId, CancellationToken ct = default) =>

@@ -157,7 +157,8 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
     {
         // ⚠️ Il permesso è quello del DOCUMENTO: correggere la traduzione è un atto editoriale su ciò che
         // quel documento dice a chi legge, e chi non lo può scrivere non lo può nemmeno ridire in un'altra
-        // lingua. (Il Registro, che tocca tutte le frasi della divisione, resta agli admin.)
+        // lingua. (Il Registro, che tocca tutte le frasi della divisione, lo apre anche lui all'Editor: AdminNav e
+        // GlossarioPage — il «resta agli admin» che stava qui era superato, U-113.)
         _authz.EnsureAtLeast(VipiRole.Editor);
 
         var doc = await _editing.LoadForEditAsync(documentId, ct)

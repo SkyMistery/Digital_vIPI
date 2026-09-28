@@ -297,6 +297,7 @@
             NavaidWrite.DallaSorgente => L["Nav_RefusedSource"].Value,
             NavaidWrite.NonValido => campo == NavaidCampo.Coordinate ? L["Nav_BadCoords"].Value : L["Nav_BadValue"].Value,
             NavaidWrite.NonTrovata => L["Nav_Gone"].Value,
+            NavaidWrite.Citata => L["Nav_ChannelCited"].Value,
             _ => null,
         };
         if (msg is not null) _messaggi[r.Id] = msg;

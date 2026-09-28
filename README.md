@@ -22,7 +22,7 @@ live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD)
 | `src/Vipi.AuroraProfiles` | Motore dell'Aurora Profile Swapper: scambia sezioni di un profilo `.cpr` lasciando il resto identico byte per byte. Zero dipendenze. | — |
 | `src/Vipi.Ui` | **RCL Blazor** montabile in-process nel sito host. Stili confinati in `.vipi-root`. | Application, Domain |
 | `src/Vipi.Hosting` | **Superficie del modulo**: `AddVipiModule`/`UseVipiModule`/`MapVipiModule`/`MigrateVipiDatabase`, identità host, middleware, SSE, health. | Ui, Infrastructure, Application, Domain |
-| `src/Vipi.Host` | Host Blazor Server di **sviluppo/esempio** che aggancia il modulo. | tutti |
+| `src/Vipi.Host` | L'**host dell'applicazione** che aggancia il modulo: in produzione è quello che Passenger lancia (`Vipi.Host.dll`), in sviluppo lo stesso con `dotnet run`. | tutti |
 | `src/Vipi.AuroraBridge.Contracts` | Contratto di filo dell'API del bridge Aurora (solo POCO, `net8.0;net10.0`). | — |
 | `src/Vipi.AuroraBridge.Core` | Cuore del **tool desktop**: protocollo Aurora (TCP 1130), client del sito, orchestrazione, ViewModel. Nessuna UI. | Contracts |
 | `src/Vipi.AuroraBridge` | Shell **Avalonia** del tool desktop (solo XAML e binding). | Core |
@@ -33,7 +33,10 @@ gira sul PC del controllore e parla col sito via HTTP. Vedi `docs/guide/aurora-b
 
 Regola di dipendenza verso l'interno: `Host → Infrastructure → Application → Domain`. La RCL e la logica
 **non dipendono da tipi specifici dell'host** (ADR-0002 D5): l'identità arriva solo da `ICurrentUserProvider`.
-In sviluppo (`useDevIdentity:true`) è attivo `DevCurrentUserProvider` (admin `IT-AOC`). Integrazione in `docs/guide/integration.md`.
+In sviluppo senza login (`useDevIdentity:true`) è attivo `DevCurrentUserProvider`: impersona il VID 704798 (sezione
+`DevIdentity` della configurazione), con le posizioni staff chieste a IVAO o scritte in `DevIdentity:StaffPositions`.
+`ProductionIdentityGuard` ferma l'avvio se l'identità di sviluppo è accesa fuori da Development, su un indirizzo non
+locale o sul database MySQL. Integrazione in `docs/guide/integration.md`.
 
 ## Build & run
 
@@ -50,8 +53,9 @@ dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /se
 2. Un progetto che **non compila** non produce nessuna riga di esito: contare i «Failed!» dà **zero** anche
    quando non è stato eseguito niente. È successo il 27 agosto 2026.
 
-Perciò: **prima** `dotnet build Vipi.slnx -c Release --no-incremental`, e poi si controlla che i progetti con
-esito siano **15** — non che i falliti siano zero.
+Perciò: **prima** `dotnet build Vipi.slnx -c Release --no-incremental`, e poi si controlla che ci sia una riga
+d'esito per ogni riga di `tests/conteggi/` (un file per assieme, una riga per TFM) — non che i falliti siano zero.
+Il numero non si scrive qui: cambia a ogni assieme o TFM aggiunto, e un numero scritto a mano diventa falso.
 
 ℹ️ Le dipendenze sono bloccate dai `packages.lock.json` committati. Se aggiungi un pacchetto, il restore
 aggiorna il lock e va committato: la CI restora in «locked mode» e si ferma se il file non combacia.

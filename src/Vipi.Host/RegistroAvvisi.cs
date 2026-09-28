@@ -142,9 +142,15 @@ public sealed class RegistroAvvisi : ILoggerProvider
 
         var messaggio = SenzaQuery(formatter(state, ex));
 
+        // 🔴 U-124 (revisione totale 3): DataProtection nomina la chiave del key-ring («Key {GUID} may be persisted…»).
+        // È un identificativo che non serve a chi legge e che il file, spedito per email, porterebbe fuori.
+        if (categoria.StartsWith("Microsoft.AspNetCore.DataProtection", StringComparison.Ordinal))
+            messaggio = Regex.Replace(messaggio, @"\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}?",
+                "{chiave}");
+
         if (livello < LogLevel.Warning)
         {
-            lock (_serratura) Accoda(_righe, $"{ora:HH:mm:ss} {Breve(categoria)} · {Tronca(messaggio, 300)}");
+            lock (_serratura) Accoda(_righe, $"{ora:HH:mm:ss} {Breve(categoria)} · {TestoDiRegistro.Riga(messaggio, 300)}");
             return;
         }
 
@@ -190,7 +196,13 @@ public sealed class RegistroAvvisi : ILoggerProvider
         var ms = valori.FirstOrDefault(x => x.Key == "ElapsedMilliseconds").Value is double d
             ? d.ToString("0", CultureInfo.InvariantCulture) + " ms"
             : "";
-        return $"{ora:HH:mm:ss} {V("Method")} {V("PathBase")}{percorso} → {codice} {ms}".TrimEnd();
+        // 🔴 U-120/U-127 (revisione totale 3): il percorso è DECODIFICATO e lo sceglie chi chiama. Un %0A andava a
+        // capo e scriveva a colonna 0 una riga finta (anche una firma «già scritta oggi», che zittiva un avviso vero
+        // fino a mezzanotte); e dieci percorsi da 8 kB facevano di una voce 80 kB. Una riga, 160 caratteri: la
+        // stessa regola di RegistroRichieste.Riga.
+        return TestoDiRegistro.Riga($"{ora:HH:mm:ss} {V("Method")} ", 20)
+               + TestoDiRegistro.Riga($"{V("PathBase")}{percorso}", 160)
+               + TestoDiRegistro.Riga($" → {codice} {ms}", 40)!.TrimEnd();
     }
 
     /// <summary>
@@ -252,16 +264,18 @@ public sealed class RegistroAvvisi : ILoggerProvider
             .AppendLine($"{ora:yyyy-MM-dd HH:mm:ss} UTC · {Livello(livello)} · firma {firma}")
             .AppendLine($"{categoria}{(evento.Id != 0 ? $" · evento {evento.Id}{(evento.Name is { } n ? $" {n}" : "")}" : "")}")
             .AppendLine()
-            .AppendLine(Tronca(messaggio, 4000));
+            // ⚠️ Rientrati (U-120): a colonna 0 stanno solo le righe nostre, e un messaggio con un a capo seguito
+            // da un timbro non si rilegge come l'intestazione di una voce.
+            .AppendLine(TestoDiRegistro.Rientro(Tronca(messaggio, 4000)));
 
         if (ex is not null)
         {
             sb.AppendLine();
             if (stackAltrove)
-                sb.AppendLine($"{ex.GetType().Name}: {Tronca(SenzaQuery(ex.Message), 500)}")
+                sb.AppendLine($"{ex.GetType().Name}: {TestoDiRegistro.Riga(SenzaQuery(ex.Message), 500)}")
                   .AppendLine($"(lo stack sta in {DiagnosticaErrori.NomeFile}, alla stessa ora)");
             else
-                sb.AppendLine(Tronca(SenzaQuery(ex.ToString()), 8000));
+                sb.AppendLine(TestoDiRegistro.Rientro(Tronca(SenzaQuery(ex.ToString()), 8000)));
         }
 
         sb.AppendLine().AppendLine($"Le ultime richieste servite da questo processo ({_richieste.Count}):");
@@ -277,7 +291,7 @@ public sealed class RegistroAvvisi : ILoggerProvider
 
     private static string RigaDiRipetizione(DateTime ora, LogLevel livello, string categoria, string messaggio, string firma) =>
         $"ANCORA {ora:yyyy-MM-dd HH:mm:ss} UTC · {Livello(livello)} · firma {firma} · {Breve(categoria)} · "
-        + Tronca(messaggio.ReplaceLineEndings(" "), 200) + Environment.NewLine;
+        + TestoDiRegistro.Riga(messaggio, 200) + Environment.NewLine;
 
     /// <summary>
     /// Le firme già scritte OGGI, lette dal file: la memoria del processo dura cinquanta secondi, quella del file no.

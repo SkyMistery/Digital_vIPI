@@ -64,8 +64,20 @@ public sealed record Griglia(IReadOnlyList<IReadOnlyList<string>> Righe, FormaGr
     /// <summary>La griglia senza niente dentro.</summary>
     public static readonly Griglia Vuota = new(Array.Empty<IReadOnlyList<string>>(), FormaGriglia.Vuota);
 
-    /// <summary>Quante celle ha la riga piu' lunga.</summary>
-    public int Colonne => Righe.Count == 0 ? 0 : Righe.Max(r => r.Count);
+    /// <summary>
+    /// Quante colonne ha la griglia: fino all'ultima cella NON vuota della riga che arriva piu' lontano.
+    /// <para>🔴 U-043 (revisione totale 3): prima contava la riga piu' lunga, vuoti compresi. Una sola riga con
+    /// migliaia di separatori in coda (24 KB incollati) portava la proposta a righe × ventimila colonne. Le celle
+    /// vuote in coda non sono colonne: nessuno le ha scritte.</para>
+    /// </summary>
+    public int Colonne => Righe.Count == 0 ? 0 : Righe.Max(Occupate);
+
+    private static int Occupate(IReadOnlyList<string> riga)
+    {
+        for (var i = riga.Count - 1; i >= 0; i--)
+            if (!string.IsNullOrWhiteSpace(riga[i])) return i + 1;
+        return 0;
+    }
 
     public bool Piena => Righe.Count > 0;
 

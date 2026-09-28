@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
@@ -58,7 +59,7 @@ public static class RiconvalidaPosizioniStaff
         if (elenco is null) return;
 
         SourceUserStaff? profilo;
-        try { profilo = await elenco.GetUserAsync(vid, ctx.HttpContext.RequestAborted); }
+        try { profilo = await LeggiAsync(elenco, vid, adesso).WaitAsync(ctx.HttpContext.RequestAborted); }
         catch (Exception) when (!ctx.HttpContext.RequestAborted.IsCancellationRequested) { profilo = null; }
 
         if (profilo is null || (profilo.IsStaff && profilo.StaffPositionCodes.Count == 0))
@@ -79,6 +80,46 @@ public static class RiconvalidaPosizioniStaff
         Timbra(ctx, adesso);
         ctx.ShouldRenew = true;
     }
+
+    /// <summary>Per quanto una lettura di IVAO vale per lo stesso VID, anche fra cookie diversi.</summary>
+    internal static readonly TimeSpan MemoriaPerVid = TimeSpan.FromMinutes(5);
+
+    private static readonly ConcurrentDictionary<int, (DateTimeOffset Quando, Lazy<Task<SourceUserStaff?>> Lettura)> _letture = new();
+
+    /// <summary>
+    /// La lettura delle posizioni di un VID, <b>una</b> per <see cref="MemoriaPerVid"/>, condivisa da chi la chiede
+    /// nel frattempo — anche mentre è ancora in volo.
+    ///
+    /// <para>🔴 U-103 (revisione totale 3): l'ultima verifica sta solo nel cookie. Un client che ignora il cookie
+    /// rinnovato e rimanda sempre lo stesso, emesso più di quattro ore prima, faceva chiamare /v2/users/{vid} a OGNI
+    /// richiesta, col token dell'applicazione: se IVAO lo limitava, cadevano per tutti la riconvalida, gli import e
+    /// l'anagrafica. La memoria sta nel processo, per VID: il cookie lo sceglie chi chiama, il processo no.</para>
+    ///
+    /// <para>⚠️ La lettura condivisa non porta l'annullamento di chi l'ha avviata: se quella richiesta se ne va, le
+    /// altre che la aspettano non devono vedersela cadere. Ognuna aspetta col suo (<c>WaitAsync</c>).</para>
+    /// </summary>
+    private static Task<SourceUserStaff?> LeggiAsync(IUserDirectory elenco, int vid, DateTimeOffset adesso)
+    {
+        var nuova = (adesso, new Lazy<Task<SourceUserStaff?>>(() => ChiediAsync(elenco, vid)));
+        var voce = _letture.AddOrUpdate(vid, _ => nuova,
+            (_, v) => adesso - v.Quando < MemoriaPerVid ? v : nuova);
+
+        // Il dizionario cresce di un posto per persona entrata: si ripulisce quando comincia a pesare.
+        if (_letture.Count > 1000)
+            foreach (var (chiave, v) in _letture)
+                if (adesso - v.Quando >= MemoriaPerVid) _letture.TryRemove(chiave, out _);
+
+        return voce.Lettura.Value;
+    }
+
+    private static async Task<SourceUserStaff?> ChiediAsync(IUserDirectory elenco, int vid)
+    {
+        try { return await elenco.GetUserAsync(vid, CancellationToken.None).ConfigureAwait(false); }
+        catch (Exception) { return null; }
+    }
+
+    /// <summary>Solo per i test: dimentica le letture tenute.</summary>
+    internal static void DimenticaLetture() => _letture.Clear();
 
     private static DateTimeOffset? UltimaVerifica(CookieValidatePrincipalContext ctx) =>
         ctx.Properties.Items.TryGetValue(ChiaveVerifica, out var s)

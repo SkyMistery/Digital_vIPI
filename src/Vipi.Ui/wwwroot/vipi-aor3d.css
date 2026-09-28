@@ -26,6 +26,13 @@
     background: linear-gradient(180deg, var(--tint-atmos-2), var(--surface-soft)); position: relative; cursor: grab; touch-action: none;
 }
 :where(.vipi-root) .aor3d-stage.grabbing{ cursor: grabbing; }
+/* Al tocco (revisione 3, U-088) lo stage non si prende piu' tutto il dito: la passata verticale scorre la
+   pagina, quella orizzontale gira la scena, due dita avvicinano (vipi-aor3d.js). E non piu' alto del 60%
+   dello schermo: a 540px fissi, su un telefono, era due terzi della vista. */
+@media (pointer: coarse) {
+    :where(.vipi-root) .aor3d-stage{ touch-action: pan-y; height: min(540px, 60vh); }
+    :where(.vipi-root) .aor3d-stage:fullscreen{ height: 100%; }
+}
 :where(.vipi-root) .aor3d-stage canvas{ display: block; }
 :where(.vipi-root) .aor3d-stage:fullscreen{ height: 100%; width: 100%; border-radius: 0; }
 

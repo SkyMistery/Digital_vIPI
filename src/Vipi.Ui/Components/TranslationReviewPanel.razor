@@ -406,12 +406,29 @@
         _attesa = await _attese.AttesaAsync();
     }
 
+    /// <summary>
+    /// Apre una riga e conta i documenti che la correzione toccherebbe.
+    ///
+    /// <para>🔴 U-108 (revisione totale 3, riprodotto dal vivo su LIBD e LIBB): due clic ravvicinati erano due
+    /// conti sullo stesso contesto — «A second operation…», una volta «Packet received out-of-order», e il
+    /// circuito giù. La sentinella sta <b>prima</b> dell'await, e il conto passa dalla porta: il secondo clic non
+    /// parte, e il conto non corre contro una rilettura.</para>
+    /// </summary>
     private async Task ApriAsync(RigaDaRivedere r)
     {
-        _aperta = r.Sorgente;
-        _bozza = r.Tradotto;
-        _esito = null;
-        _toccati = await _lettura.DocumentiToccatiAsync(r.Sorgente);
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            _aperta = r.Sorgente;
+            _bozza = r.Tradotto;
+            _esito = null;
+            await InFilaAsync(async () => { _toccati = await _lettura.DocumentiToccatiAsync(r.Sorgente); });
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private void Chiudi()
@@ -429,6 +446,7 @@
     /// </summary>
     private async Task TraduciOraAsync()
     {
+        if (_busy) return;
         _busy = true;
         _esito = null;
         try
@@ -440,8 +458,12 @@
             {
                 // Rilettura dal contesto isolato, come dopo un salvataggio: la scrittura è appena finita
                 // altrove e il genitore si sta ridisegnando per lo `StateHasChanged` di questo gestore.
-                _righe = (await _lettura.RevisioneAsync(DocumentId, _lettore)).Righe;
-                await StatoEAttesaAsync();
+                // Dalla porta, come ogni lettura di `_lettura` (U-108).
+                await InFilaAsync(async () =>
+                {
+                    _righe = (await _lettura.RevisioneAsync(DocumentId, _lettore)).Righe;
+                    await StatoEAttesaAsync();
+                });
             }
         }
         catch (Vipi.Application.Content.EditNotAllowedException)
@@ -499,6 +521,7 @@
 
     private async Task SalvaAsync(RigaDaRivedere r)
     {
+        if (_busy) return;
         _busy = true;
         try
         {
@@ -516,10 +539,13 @@
             // La rilettura passa dal contesto isolato: la scrittura qui sopra è appena finita su quello del
             // circuito, e riprendere da lì significherebbe rimetterci sopra una query mentre il genitore si
             // ridisegna per il `StateHasChanged` di questo stesso gestore.
-            _righe = (await _lettura.RevisioneAsync(DocumentId, _lettore)).Righe;
             // Una correzione a mano cambia anche lo STATO — una frase in meno da rileggere — e la riga in
-            // cima lo deve dire subito: è quella che dice se il lavoro è finito.
-            await StatoEAttesaAsync();
+            // cima lo deve dire subito: è quella che dice se il lavoro è finito. Dalla porta (U-108).
+            await InFilaAsync(async () =>
+            {
+                _righe = (await _lettura.RevisioneAsync(DocumentId, _lettore)).Righe;
+                await StatoEAttesaAsync();
+            });
         }
         catch (Vipi.Application.Aor.ValidationException ex)
         {

@@ -174,7 +174,7 @@ else
 
     private AccInfo? _acc;
     private AccVipiData _data = new() { AccCode = "", AccName = "", Blocks = new() };
-    private IReadOnlyList<AccAssembledBlock>? _blocks;   // blocchi con Id sezione (view/draft); null in anteprima release
+    private IReadOnlyList<AccAssembledBlock>? _blocks;   // blocchi con Id sezione (view/draft/anteprima release)
     private bool _useFrozen;                              // vista pubblica: leggi frozen dalla release effettiva
     private bool _notAvailable;                           // vista pubblica senza release effettiva → "non disponibile" (doc 10 §S6b)
     private bool _canEdit;
@@ -184,6 +184,7 @@ else
     private RiferimentiRisolti? _nomiSid;
     private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();   // §A109
     private string? _relCycle;      // anteprima release: ciclo di quella release
+    private string? _relKey;        // anteprima release: la sua chiave, per leggerne le congelate (U-053)
     private string? _docCycle;      // vista pubblica: ciclo della release effettiva da cui viene lo snapshot
 
     // Lettura bilingue (carta 2026-08-27 §7): la lingua in cui il documento è REDATTO e le traduzioni che la
@@ -228,6 +229,7 @@ else
 
         _mode = PreviewMode.Parse(As);
         _relCycle = null;
+        _relKey = null;
         _haMarcate = false;
         _docCycle = null;
         _blocks = null;
@@ -252,7 +254,9 @@ else
                 AccReleaseView? rv = null;
                 try { rv = await AccDoc.LoadForReleaseAsync(Acc, _mode.ReleaseId); }
                 catch (EditNotAllowedException) { }
-                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; _lingua = rv.Language; _bloccato = rv.LanguageLocked; _congelate = rv.Translations; }   // anteprima release: derive live (no ids)
+                // 🔴 U-053 (revisione totale 3): con i blocchi dello snapshot le derivate si leggono dalle congelate
+                // di QUESTA release. Prima i blocchi non c'erano, e l'anteprima non mostrava le derivate affatto.
+                if (rv is not null) { _data = rv.Data; _blocks = rv.Blocks; _relKey = rv.ReleaseKey; _useFrozen = true; _relCycle = rv.AiracCycle; _lingua = rv.Language; _bloccato = rv.LanguageLocked; _congelate = rv.Translations; }
                 else { _mode = default; LoadViewModel(await AccDoc.LoadForViewAsync(Acc)); }
                 break;
             default:
@@ -279,7 +283,10 @@ else
         {
             // freq/coord/aor risolti dal service (frozen se pubblica + release effettiva, sennò live); aree/config-table
             // sempre live (derivano da input già congelati). doc 10 §3d.
-            var derived = await ViewDeriv.ResolveForViewAsync(Acc, _blocks, _useFrozen);
+            AccDerivedSections derived;
+            using (_mode.Kind == PreviewKind.Release && _relKey is not null
+                       ? AnteprimaDiRelease.Apri(Vipi.Domain.ReleaseTargetType.AccVipi, _relKey, _mode.ReleaseId) : null)
+                derived = await ViewDeriv.ResolveForViewAsync(Acc, _blocks, _useFrozen);
             foreach (var b in _data.Blocks)
             {
                 _freqs[b.Key] = derived.Freqs.GetValueOrDefault(b.Key)?.ToList() ?? new();
@@ -294,7 +301,8 @@ else
         }
         else
         {
-            // Anteprima release (nessun Id sezione): deriva tutto live come prima.
+            // Senza Id sezione: deriva tutto live. Era il ramo dell'anteprima di release fino a U-053, che ora porta
+            // i blocchi dello snapshot; resta per chi arrivasse senza.
             foreach (var b in _data.Blocks)
             {
                 _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(Acc, b, _root)).ToList();

@@ -278,6 +278,10 @@
     /// di prova ripiega senza di loro nel loro verso, e una regola che le nomina in quel verso riceve un avviso.</summary>
     [Parameter] public RunwayExclusions Exclusions { get; set; } = RunwayExclusions.None;
 
+    /// <summary>Le rotte vere delle testate (anche non ancora salvate): il banco di prova misura su quelle, come il
+    /// motore del vAWOS e dei documenti (U-223). Vuoto = ident×10.</summary>
+    [Parameter] public IReadOnlyDictionary<string, int>? Rotte { get; set; }
+
     /// <summary>Le regole sono cambiate — un campo, un chip, l'ordine: l'host le salva subito.</summary>
     [Parameter] public EventCallback RowsChanged { get; set; }
 
@@ -311,6 +315,7 @@
         RuleVerdict.Season => L["Ape_TestVerdictSeason"],
         RuleVerdict.Tailwind => L["Ape_TestVerdictTail", e.WorstTailwindKt, r.MaxTail],
         RuleVerdict.Crosswind => L["Ape_TestVerdictCross", e.WorstCrosswindKt, r.MaxCross ?? 0],
+        RuleVerdict.NoWind => L["Ape_TestVerdictNoWind"],
         _ => "",
     };
 
@@ -526,9 +531,9 @@
         // ⚠️ Il momento si passa in UTC perché è così che il motore lo vuole, e la conversione la fa LUI:
         // rifarla qui vorrebbe dire due fusi orari nel prodotto, e uno dei due sbagliato prima o poi.
         var quando = RunwaySuggestion.AUtc(_provaQuando);
-        _vincente = RunwaySuggestion.EvaluateRules(regole, _provaDir, _provaKt, _provaBagnata, quando);
-        _spiegazione = RunwaySuggestion.ExplainRules(regole, _provaDir, _provaKt, _provaBagnata, quando);
-        _ripiego = _vincente is null ? RunwaySuggestion.Suggest(RunwayIdents, _provaDir, _provaKt, Exclusions) : null;
+        _vincente = RunwaySuggestion.EvaluateRules(regole, _provaDir, _provaKt, _provaBagnata, quando, Rotte);
+        _spiegazione = RunwaySuggestion.ExplainRules(regole, _provaDir, _provaKt, _provaBagnata, quando, Rotte);
+        _ripiego = _vincente is null ? RunwaySuggestion.Suggest(RunwayIdents, _provaDir, _provaKt, Exclusions, Rotte) : null;
         _provaFatta = true;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Bunit;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Ui;
@@ -89,5 +90,101 @@ public class ProfileSwapperPageTests : TestContext
 
         // Identiche: nessuna riga marcata. È il caso che in pagina diventa «identica — nessuna modifica».
         Assert.All(LineDiff.Diff(prima, prima), r => Assert.Equal(DiffKind.Equal, r.Kind));
+    }
+
+    // ---- U-001 (revisione totale 3): la pagina è anonima, quindi niente in lei cresce senza un tetto ----
+
+    private static string[] Righe(string prefisso, int quante) =>
+        Enumerable.Range(0, quante).Select(i => $"{prefisso}{i}\r\n").ToArray();
+
+    /// <summary>
+    /// 🔴 U-001: il diff era una tabella LCS piena, n·m interi. Due sezioni da 5.000 righe diverse allocavano
+    /// 100 MB a ogni render, per ogni destinazione: con dieci file costruiti apposta un anonimo metteva in
+    /// ginocchio l'unico processo del sito. La prova è quella proposta dal registro.
+    /// </summary>
+    [Fact]
+    public void LineDiff_non_cresce_col_quadrato_delle_righe()
+    {
+        var a = Righe("x", 5_000);
+        var b = Righe("y", 5_000);
+        LineDiff.Diff(Righe("w", 10), Righe("z", 10));   // JIT fuori dalla misura
+
+        var prima = GC.GetAllocatedBytesForCurrentThread();
+        var righe = LineDiff.Diff(a, b);
+        var allocati = GC.GetAllocatedBytesForCurrentThread() - prima;
+
+        Assert.True(allocati < 10 * 1024 * 1024, $"LineDiff ha allocato {allocati / (1024 * 1024)} MB per 5.000×5.000 righe");
+        Assert.Equal(10_000, righe.Count);
+    }
+
+    /// <summary>
+    /// Qualunque strada prenda (tabella piccola o blocco sostituito), il diff resta un diff: le righe uguali e
+    /// tolte ridanno la sezione di partenza, le uguali e aggiunte quella d'arrivo, nell'ordine.
+    /// </summary>
+    [Theory]
+    [InlineData(3, 3)]
+    [InlineData(40, 60)]
+    [InlineData(2_000, 2_000)]
+    public void Il_diff_ricostruisce_le_due_sezioni(int n, int m)
+    {
+        var comuneInTesta = Righe("t", 5);
+        var comuneInCoda = Righe("c", 5);
+        var da = comuneInTesta.Concat(Righe("a", n)).Concat(Righe("m", 3)).Concat(comuneInCoda).ToArray();
+        var a = comuneInTesta.Concat(Righe("b", m)).Concat(Righe("m", 3)).Concat(comuneInCoda).ToArray();
+
+        var righe = LineDiff.Diff(da, a);
+
+        Assert.Equal(da.Select(r => r.TrimEnd('\r', '\n')),
+            righe.Where(r => r.Kind != DiffKind.Added).Select(r => r.Text));
+        Assert.Equal(a.Select(r => r.TrimEnd('\r', '\n')),
+            righe.Where(r => r.Kind != DiffKind.Removed).Select(r => r.Text));
+        // Testa e coda comuni restano uguali qualunque sia la taglia del mezzo.
+        Assert.All(righe.Take(5), r => Assert.Equal(DiffKind.Equal, r.Kind));
+        Assert.All(righe.TakeLast(5), r => Assert.Equal(DiffKind.Equal, r.Kind));
+    }
+
+    private static InputFileContent Profilo(string nome, int righe = 3) =>
+        InputFileContent.CreateFromText("[A]\r\n" + string.Concat(Righe("r", righe)), nome);
+
+    [Fact]
+    public void Le_destinazioni_hanno_un_tetto_e_la_pagina_dice_perche()
+    {
+        var cut = Render();
+        var dest = cut.FindComponents<InputFile>().Last();
+
+        dest.UploadFiles(Enumerable.Range(1, 8).Select(i => Profilo($"d{i}.cpr")).ToArray());
+        cut.FindComponents<InputFile>().Last()
+            .UploadFiles(Enumerable.Range(9, 4).Select(i => Profilo($"d{i}.cpr")).ToArray());
+
+        Assert.Equal(10, cut.FindAll("ul .swap-file").Count);
+        Assert.Contains("Swap_ErrTooManyDests", cut.Markup);
+    }
+
+    [Fact]
+    public void Un_file_oltre_il_tetto_di_byte_non_entra()
+    {
+        var cut = Render();
+        var grosso = InputFileContent.CreateFromText("[A]\r\n" + new string('x', 600 * 1024) + "\r\n", "grosso.cpr");
+
+        cut.FindComponents<InputFile>().Last().UploadFiles(grosso);
+
+        Assert.Empty(cut.FindAll("ul .swap-file"));
+        Assert.Contains("Swap_ErrTooBig", cut.Markup);
+    }
+
+    /// <summary>
+    /// Il tetto sulle righe è separato da quello sui byte: un file di soli «\r» sta in pochi KB e diventa una
+    /// riga per carattere (<c>SplitKeepEnds</c> tratta ogni «\r» come fine riga).
+    /// </summary>
+    [Fact]
+    public void Un_file_di_troppe_righe_non_entra_anche_se_e_piccolo()
+    {
+        var cut = Render();
+        var righe = InputFileContent.CreateFromText("[A]\r" + new string('\r', 30_000), "righe.cpr");
+
+        cut.FindComponents<InputFile>().First().UploadFiles(righe);
+
+        Assert.Empty(cut.FindAll(".swap-file-name"));
+        Assert.Contains("Swap_ErrTooManyLines", cut.Markup);
     }
 }

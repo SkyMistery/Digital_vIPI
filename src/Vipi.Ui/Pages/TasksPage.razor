@@ -40,8 +40,12 @@
             <nav class="struct-nav">
                 @* Aggiungersi un promemoria è il gesto raro: il form stava sempre aperto in cima e costava
                    ~120px a chi voleva solo vedere cosa deve fare (regola 119). *@
-                <button class="btn primary @(_newOpen ? "on" : "")" disabled="@_busy" @onclick="() => _newOpen = !_newOpen"
-                        title="@L["Tasks_NewPersonal"]"><Icon Name="plus" Size="14" /> @L["Tasks_NewPersonal"]</button>
+                @* Il tasto solo a chi può creare: il servizio lo pretende (U-019), e un tasto che risponde «non puoi» è un tasto in più. *@
+                @if (Authz.IsEditor)
+                {
+                    <button class="btn primary @(_newOpen ? "on" : "")" disabled="@_busy" @onclick="() => _newOpen = !_newOpen"
+                            title="@L["Tasks_NewPersonal"]"><Icon Name="plus" Size="14" /> @L["Tasks_NewPersonal"]</button>
+                }
             </nav>
             <LiveRegion>
                 @if (_error is not null || _status is not null)

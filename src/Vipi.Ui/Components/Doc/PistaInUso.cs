@@ -51,10 +51,14 @@ public static class PistaInUso
     /// <param name="runways">Gli identificativi delle piste, per il ripiego sul vento quando nessuna regola vale.</param>
     /// <param name="escluse">Le soglie «mai in partenza» / «mai in arrivo» della sezione mostrata: il ripiego non le
     /// sceglie in quel verso (carta 2026-09-17-pista-mai-usare.md). Le regole non le guardano.</param>
+    /// <param name="rotte">Le rotte vere delle testate, dall'anagrafica: regole e ripiego misurano su quelle (U-223).</param>
+    /// <param name="ventoNoto">Falso ⇒ le regole non decidono (U-214): lo calcola il chiamante con
+    /// <see cref="RunwaySuggestion.VentoNoto"/> sul vento del METAR.</param>
     public static PistaInUsoAdesso Calcola(IReadOnlyList<RunwayRuleRow>? regole, AirportSidView sids,
                                            IReadOnlyList<string> runways, int? windDir, int windKt,
                                            ParsedMetar? metar, IReadOnlyList<RunwayRuleRow>? viveDiRipiego = null,
-                                           RunwayExclusions? escluse = null)
+                                           RunwayExclusions? escluse = null,
+                                           IReadOnlyDictionary<string, int>? rotte = null, bool ventoNoto = true)
     {
         var mostrate = regole is not null;
         var daValutare = regole ?? viveDiRipiego ?? Array.Empty<RunwayRuleRow>();
@@ -62,9 +66,9 @@ public static class PistaInUso
         var wet = (metar?.HasRain ?? false) || (metar?.HasSnow ?? false);
         var ruleResult = daValutare.Count > 0
             ? RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(daValutare),
-                                             windDir, windKt, wet, DateTime.UtcNow)
+                                             windDir, windKt, wet, DateTime.UtcNow, rotte, ventoNoto)
             : null;
-        var sugg = RunwaySuggestion.Suggest(runways, windDir, windKt, escluse);
+        var sugg = RunwaySuggestion.Suggest(runways, windDir, windKt, escluse, rotte);
 
         var dep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var arr = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

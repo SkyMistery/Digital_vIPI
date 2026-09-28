@@ -131,8 +131,8 @@
         <div class="section-title"><h2 class="h-sect">@L["Swap_SectionsTitle"]</h2><span class="ln"></span></div>
 
         <div class="swap-tools">
-            <input class="swap-filter" type="search" placeholder="@L["Swap_SearchPh"]"
-                   value="@_sectionFilter" @oninput="OnFilterInput" />
+            <CampoTesto class="swap-filter" type="search" placeholder="@L["Swap_SearchPh"]"
+                   Valore="@_sectionFilter" OnInput="OnFilterInput" />
             <button type="button" class="btn ghost swap-mini" @onclick="SelectAll">@L["Swap_SelectAll"]</button>
             <button type="button" class="btn ghost swap-mini" @onclick="ClearAll">@L["Swap_ClearAll"]</button>
             <span class="muted">@L["Swap_SelectedCount", _selected.Count]</span>
@@ -200,8 +200,8 @@
                             else
                             {
                                 var da = destinazione is null ? Array.Empty<string>() : (IEnumerable<string>)destinazione.Lines;
-                                var righe = LineDiff.Diff(da, sorgente.Lines);
                                 var chiave = $"{nome}|{d.Id}";
+                                var righe = DiffDi(chiave, da, sorgente.Lines);
                                 var tutte = _espansi.Contains(chiave);
                                 var mostrate = tutte ? righe.Count : Math.Min(righe.Count, MaxRigheDiff);
                                 <div class="swap-diff-body">
@@ -271,12 +271,41 @@
         public required string Name { get; init; }
     }
 
-    // Un .cpr reale sta sotto i 60 KB: 4 MB è già una misura generosa, e serve a fermare l'errore di
-    // trascinamento (un sectorfile al posto di un profilo) prima che arrivi tutto al server.
-    private const long MaxByteFile = 4 * 1024 * 1024;
+    // 🔴 U-001 (revisione totale 3): la pagina è aperta anche a chi non è entrato (scelta del committente,
+    // 27 settembre 2026), quindi ogni cosa che un file fa crescere ha un tetto QUI, sul server. Misura dei 26
+    // profili veri dei test: il più grande è 74 KB e 1.517 righe. Fino a quel giorno i tetti erano 4 MB per
+    // file e 50 file per selezione, senza tetto sul totale: dieci file costruiti bastavano a esaurire memoria e
+    // CPU dell'unico processo del sito.
+    internal const long MaxByteFile = 512 * 1024;
+    // Separato dai byte: un file di soli «\r» sta in pochi KB e diventa una riga per carattere.
+    internal const int MaxRigheFile = 10_000;
+    // Sul TOTALE delle destinazioni, non per selezione: prima ogni trascinamento se ne aggiungeva altre 50.
+    internal const int MaxDestinazioni = 10;
 
     // Oltre questa soglia il diff si taglia: su un circuito Server ogni riga è markup che passa dalla rete.
     private const int MaxRigheDiff = 200;
+
+    private sealed class TroppeRigheException(int righe) : Exception
+    {
+        public int Righe { get; } = righe;
+    }
+
+    // Il diff di una sezione per una destinazione si calcola UNA volta: prima si rifaceva a ogni render (una
+    // spunta, un tasto nel filtro). Si svuota a ogni cambio di sorgente o destinazioni, insieme a `_espansi`.
+    private readonly Dictionary<string, IReadOnlyList<DiffLine>> _diffs = new(StringComparer.Ordinal);
+
+    private IReadOnlyList<DiffLine> DiffDi(string chiave, IEnumerable<string> da, IEnumerable<string> a)
+    {
+        if (!_diffs.TryGetValue(chiave, out var righe))
+            _diffs[chiave] = righe = LineDiff.Diff(da, a);
+        return righe;
+    }
+
+    private void DimenticaAnteprime()
+    {
+        _espansi.Clear();
+        _diffs.Clear();
+    }
 
     private CprProfile? _source;
     private string? _sourceName;
@@ -356,46 +385,73 @@
             _sourceName = file.Name;
             _sourceSectionNames = _source.SectionNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             _selected.RemoveWhere(s => !_sourceSectionNames.Contains(s, StringComparer.OrdinalIgnoreCase));
-            _espansi.Clear();
-        }
-        catch (IOException)
-        {
-            SetStatus("danger", L["Swap_ErrTooBig", file.Name, MaxByteFile / (1024 * 1024)]);
+            DimenticaAnteprime();
         }
         catch (Exception ex)
         {
-            SetStatus("danger", L["Swap_ErrRead", file.Name, ex.Message]);
+            SegnalaFileRifiutato(file.Name, ex);
         }
     }
 
     private async Task LoadDests(InputFileChangeEventArgs e)
     {
         ResetStatus();
-        foreach (var file in e.GetMultipleFiles(maximumFileCount: 50))
+        // L'elenco dei file arriva comunque intero col messaggio del browser: chiederne «fino a FileCount» non
+        // costa niente, mentre un numero fisso fa sollevare GetMultipleFiles FUORI dal try (e cade il circuito)
+        // a chi ne trascina uno in più. Il tetto vero è sul totale, sotto.
+        var scartati = 0;
+        foreach (var file in e.GetMultipleFiles(Math.Max(1, e.FileCount)))
         {
+            if (_dests.Count >= MaxDestinazioni)
+            {
+                scartati++;
+                continue;
+            }
             try
             {
                 _dests.Add(new Destinazione { Profile = await LeggiProfilo(file), Name = file.Name });
             }
-            catch (IOException)
-            {
-                SetStatus("danger", L["Swap_ErrTooBig", file.Name, MaxByteFile / (1024 * 1024)]);
-            }
             catch (Exception ex)
             {
-                SetStatus("danger", L["Swap_ErrRead", file.Name, ex.Message]);
+                SegnalaFileRifiutato(file.Name, ex);
             }
         }
+        if (scartati > 0)
+            SetStatus("danger", L["Swap_ErrTooManyDests", MaxDestinazioni, scartati]);
         _destInputKey++;
-        _espansi.Clear();
+        DimenticaAnteprime();
     }
+
+    private void SegnalaFileRifiutato(string nome, Exception ex) => SetStatus("danger", ex switch
+    {
+        // OpenReadStream solleva IOException quando il file supera il tetto dichiarato.
+        IOException => L["Swap_ErrTooBig", nome, MaxByteFile / 1024],
+        TroppeRigheException r => L["Swap_ErrTooManyLines", nome, MaxRigheFile],
+        _ => L["Swap_ErrRead", nome, ex.Message],
+    });
 
     private static async Task<CprProfile> LeggiProfilo(IBrowserFile file)
     {
         await using var stream = file.OpenReadStream(MaxByteFile);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
-        return CprProfile.Load(ms.ToArray());
+        var bytes = ms.ToArray();
+        // Le righe si contano sui BYTE, prima di spezzare il testo: è lo spezzare che alloca una stringa per riga.
+        var righe = ContaRighe(bytes);
+        if (righe > MaxRigheFile) throw new TroppeRigheException(righe);
+        return CprProfile.Load(bytes);
+    }
+
+    // Stesse fini riga di CprProfile.SplitKeepEnds: CR LF, LF e CR da solo.
+    internal static int ContaRighe(ReadOnlySpan<byte> b)
+    {
+        var n = 0;
+        for (var i = 0; i < b.Length; i++)
+        {
+            if (b[i] == (byte)'\n') n++;
+            else if (b[i] == (byte)'\r' && (i + 1 >= b.Length || b[i + 1] != (byte)'\n')) n++;
+        }
+        return n + 1;
     }
 
     private void ResetSource()
@@ -405,7 +461,7 @@
         _sourceName = null;
         _sourceSectionNames.Clear();
         _selected.Clear();
-        _espansi.Clear();
+        DimenticaAnteprime();
         _sectionFilter = "";
     }
 
@@ -414,7 +470,7 @@
         ResetStatus();
         _dests.RemoveAll(d => d.Id == id);
         _destInputKey++;
-        _espansi.Clear();
+        DimenticaAnteprime();
     }
 
     private void ClearAllDests()
@@ -422,7 +478,7 @@
         ResetStatus();
         _dests.Clear();
         _destInputKey++;
-        _espansi.Clear();
+        DimenticaAnteprime();
     }
 
     private void OnFilterInput(ChangeEventArgs e) => _sectionFilter = e.Value?.ToString() ?? "";

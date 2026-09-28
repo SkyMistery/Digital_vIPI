@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace Vipi.Application.Import;
@@ -65,6 +66,17 @@ public static class LettoreXlsx
     /// </summary>
     public const int MaxCelle = 200_000;
 
+    /// <summary>
+    /// Quante stringhe condivise al massimo. 🔴 U-045 (revisione totale 3): non avevano tetto, e un milione di
+    /// <c>&lt;si&gt;</c> da pochi KB nello zip diventava un DOM da oltre 300 MB. Piu' stringhe distinte che celle non
+    /// servono a nessun foglio leggibile.
+    /// </summary>
+    public const int MaxStringheCondivise = MaxCelle;
+
+    /// <summary>Tetto dei file di struttura (cartella di lavoro e relazioni): pochi KB in un file vero. Si leggono
+    /// ancora con <c>XDocument</c>, e senza un tetto loro erano 32 MB di DOM come il foglio.</summary>
+    public const int MaxByteStruttura = 1024 * 1024;
+
     private static readonly EsitoXlsx Niente =
         new(Griglia.Vuota, Array.Empty<string>(), 0);
 
@@ -85,16 +97,22 @@ public static class LettoreXlsx
             if (fogli.Count == 0) return Niente with { Guasto = "nessun foglio nel file" };
 
             var scelto = foglio >= 0 && foglio < fogli.Count ? foglio : 0;
-            var xml = Testo(archivio, fogli[scelto].Percorso);
-            if (xml is null)
-                return new EsitoXlsx(Griglia.Vuota, fogli.Select(f => f.Nome).ToList(), scelto,
-                    "foglio non leggibile");
+            var nomi = fogli.Select(f => f.Nome).ToList();
+            var voce = Voce(archivio, fogli[scelto].Percorso);
+            if (voce is null) return new EsitoXlsx(Griglia.Vuota, nomi, scelto, "foglio non leggibile");
 
-            var condivise = StringheCondivise(archivio);
-            var righe = Celle(xml, condivise);
-            return new EsitoXlsx(
-                righe.Count == 0 ? Griglia.Vuota : new Griglia(righe, FormaGriglia.Xlsx),
-                fogli.Select(f => f.Nome).ToList(), scelto);
+            // 🔴 U-045 (revisione totale 3): foglio e stringhe condivise si leggono in STREAMING, e i tetti scattano
+            // durante la lettura. Un guasto qui lascia l'elenco dei fogli: chi ha scelto quello sbagliato ne sceglie
+            // un altro, invece di ricaricare il file.
+            try
+            {
+                var condivise = StringheCondivise(archivio);
+                var righe = Celle(voce, condivise);
+                return new EsitoXlsx(
+                    righe.Count == 0 ? Griglia.Vuota : new Griglia(righe, FormaGriglia.Xlsx), nomi, scelto);
+            }
+            catch (InvalidDataException e) { return new EsitoXlsx(Griglia.Vuota, nomi, scelto, e.Message); }
+            catch (XmlException e) { return new EsitoXlsx(Griglia.Vuota, nomi, scelto, e.Message); }
         }
         catch (InvalidDataException e) { return Niente with { Guasto = e.Message }; }
         catch (System.Xml.XmlException e) { return Niente with { Guasto = e.Message }; }
@@ -112,8 +130,8 @@ public static class LettoreXlsx
     /// </summary>
     private static IReadOnlyList<Foglio> Fogli(ZipArchive archivio)
     {
-        var libro = Testo(archivio, "xl/workbook.xml");
-        var relazioni = Testo(archivio, "xl/_rels/workbook.xml.rels");
+        var libro = Testo(archivio, "xl/workbook.xml", MaxByteStruttura);
+        var relazioni = Testo(archivio, "xl/_rels/workbook.xml.rels", MaxByteStruttura);
         if (libro is not null && relazioni is not null)
         {
             // T-022: un Id doppio faceva sollevare `ToDictionary` fuori dai catch. La prima relazione vince.
@@ -161,46 +179,85 @@ public static class LettoreXlsx
     /// </summary>
     private static IReadOnlyList<string> StringheCondivise(ZipArchive archivio)
     {
-        var xml = Testo(archivio, "xl/sharedStrings.xml");
-        if (xml is null) return Array.Empty<string>();
+        var voce = Voce(archivio, "xl/sharedStrings.xml");
+        if (voce is null) return Array.Empty<string>();
 
-        return XDocument.Parse(xml).Root?.Elements()
-            .Where(e => e.Name.LocalName == "si")
-            .Select(TestoDiSi)
-            .ToList() ?? (IReadOnlyList<string>)Array.Empty<string>();
+        var elenco = new List<string>();
+        using var x = Lettore(voce);
+        while (x.Read())
+        {
+            if (x.NodeType != XmlNodeType.Element || x.LocalName != "si") continue;
+            if (elenco.Count >= MaxStringheCondivise)
+                throw new InvalidDataException($"oltre {MaxStringheCondivise} stringhe condivise");
+            elenco.Add(TestoDeiT(x));
+        }
+        return elenco;
     }
 
-    /// <summary>⚠️ Un <c>si</c> puo' essere spezzato in piu' <c>r</c> (pezzi con formattazione diversa): il
-    /// testo e' la loro somma, e prendere il primo perderebbe meta' cella.</summary>
-    private static string TestoDiSi(XElement si) =>
-        string.Concat(si.Descendants().Where(e => e.Name.LocalName == "t").Select(e => e.Value));
+    /// <summary>
+    /// Il testo di tutti i <c>&lt;t&gt;</c> dentro l'elemento su cui sta il lettore. ⚠️ Un <c>si</c> puo' essere
+    /// spezzato in piu' <c>r</c> (pezzi con formattazione diversa): il testo e' la loro somma, che resta sulla sua chiusura.
+    /// Gli spazi soli contano solo se dichiarati (<c>xml:space="preserve"</c>): come faceva <c>XDocument</c>.
+    /// </summary>
+    private static string TestoDeiT(XmlReader x)
+    {
+        if (x.IsEmptyElement) return "";
+        var profondita = x.Depth;
+        var sb = new StringBuilder();
+        var dentroT = -1;
+        while (x.Read())
+        {
+            if (x.NodeType == XmlNodeType.EndElement && x.Depth == profondita) break;
+            if (x.NodeType == XmlNodeType.Element && x.LocalName == "t" && !x.IsEmptyElement) dentroT = x.Depth;
+            else if (x.NodeType == XmlNodeType.EndElement && x.Depth == dentroT) dentroT = -1;
+            else if (dentroT >= 0 && x.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.SignificantWhitespace)
+                sb.Append(x.Value);
+        }
+        return sb.ToString();
+    }
 
-    private static IReadOnlyList<IReadOnlyList<string>> Celle(string xml, IReadOnlyList<string> condivise)
+    private static IReadOnlyList<IReadOnlyList<string>> Celle(ZipArchiveEntry foglio, IReadOnlyList<string> condivise)
     {
         var righe = new List<IReadOnlyList<string>>();
         var totale = 0;
-        foreach (var r in XDocument.Parse(xml).Descendants().Where(e => e.Name.LocalName == "row"))
-        {
-            if (righe.Count >= MaxRighe) break;
+        List<string>? celle = null;
 
-            var celle = new List<string>();
-            foreach (var c in r.Elements().Where(e => e.Name.LocalName == "c"))
-            {
-                var colonna = Colonna((string?)c.Attribute("r"));
-                // 🔴 T-022: il riferimento decide quante celle vuote aggiungere, e viene dal file. Si controlla
-                // PRIMA di allocare: una colonna oltre XFD, o troppe celle in tutto, e il file si rifiuta.
-                if (colonna >= MaxColonne)
-                    throw new InvalidDataException($"colonna oltre XFD ({(string?)c.Attribute("r")})");
-                var dopo = totale + Math.Max(colonna, celle.Count) + 1 - celle.Count;
-                if (dopo > MaxCelle)
-                    throw new InvalidDataException($"oltre {MaxCelle} celle");
-                if (colonna >= 0)
-                    while (celle.Count < colonna) celle.Add("");
-                celle.Add(Valore(c, condivise));
-                totale = dopo;
-            }
-            if (celle.Any(x => x.Length > 0)) righe.Add(celle);
+        void Chiudi()
+        {
+            if (celle is not null && celle.Any(v => v.Length > 0)) righe.Add(celle);
+            celle = null;
         }
+
+        using var x = Lettore(foglio);
+        while (x.Read())
+        {
+            if (x.NodeType == XmlNodeType.EndElement && x.LocalName == "row") { Chiudi(); continue; }
+            if (x.NodeType != XmlNodeType.Element) continue;
+
+            if (x.LocalName == "row")
+            {
+                Chiudi();
+                if (righe.Count >= MaxRighe) break;
+                if (!x.IsEmptyElement) celle = new List<string>();
+                continue;
+            }
+            if (x.LocalName != "c" || celle is null) continue;
+
+            var riferimento = x.GetAttribute("r");
+            var colonna = Colonna(riferimento);
+            // 🔴 T-022: il riferimento decide quante celle vuote aggiungere, e viene dal file. Si controlla
+            // PRIMA di allocare: una colonna oltre XFD, o troppe celle in tutto, e il file si rifiuta.
+            if (colonna >= MaxColonne)
+                throw new InvalidDataException($"colonna oltre XFD ({riferimento})");
+            var dopo = totale + Math.Max(colonna, celle.Count) + 1 - celle.Count;
+            if (dopo > MaxCelle)
+                throw new InvalidDataException($"oltre {MaxCelle} celle");
+            if (colonna >= 0)
+                while (celle.Count < colonna) celle.Add("");
+            celle.Add(Valore(x, condivise));
+            totale = dopo;
+        }
+        Chiudi();
         return righe;
     }
 
@@ -220,14 +277,13 @@ public static class LettoreXlsx
         return n - 1;
     }
 
-    private static string Valore(XElement cella, IReadOnlyList<string> condivise)
+    /// <summary>Il valore della cella su cui sta il lettore (che resta sulla sua chiusura).</summary>
+    private static string Valore(XmlReader x, IReadOnlyList<string> condivise)
     {
-        var tipo = (string?)cella.Attribute("t") ?? "n";
-        if (tipo == "inlineStr")
-            return TestoTabellare.NormalizzaSegni(
-                string.Concat(cella.Descendants().Where(e => e.Name.LocalName == "t").Select(e => e.Value)));
+        var tipo = x.GetAttribute("t") ?? "n";
+        if (tipo == "inlineStr") return TestoTabellare.NormalizzaSegni(TestoDeiT(x));
 
-        var v = cella.Elements().FirstOrDefault(e => e.Name.LocalName == "v")?.Value;
+        var v = ValoreDiV(x);
         if (v is null) return "";
 
         return tipo switch
@@ -244,13 +300,84 @@ public static class LettoreXlsx
         };
     }
 
+    /// <summary>Il testo del <c>&lt;v&gt;</c> figlio diretto della cella su cui sta il lettore; null se non c'e'.</summary>
+    private static string? ValoreDiV(XmlReader x)
+    {
+        if (x.IsEmptyElement) return null;
+        var profondita = x.Depth;
+        StringBuilder? v = null;
+        var dentroV = false;
+        while (x.Read())
+        {
+            if (x.NodeType == XmlNodeType.EndElement && x.Depth == profondita) break;
+            if (x.NodeType == XmlNodeType.Element && x.Depth == profondita + 1 && x.LocalName == "v")
+            {
+                v ??= new StringBuilder();
+                dentroV = !x.IsEmptyElement;
+            }
+            else if (x.NodeType == XmlNodeType.EndElement && x.Depth == profondita + 1) dentroV = false;
+            else if (dentroV && x.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.SignificantWhitespace)
+                v!.Append(x.Value);
+        }
+        return v?.ToString();
+    }
+
     // ---- zip -----------------------------------------------------------------------------------------
 
-    private static string? Testo(ZipArchive archivio, string percorso)
+    private static ZipArchiveEntry? Voce(ZipArchive archivio, string percorso)
     {
         var voce = archivio.Entries.FirstOrDefault(
             e => e.FullName.Equals(percorso, StringComparison.OrdinalIgnoreCase));
-        if (voce is null || voce.Length > MaxByteDecompresso) return null;
+        return voce is null || voce.Length > MaxByteDecompresso ? null : voce;
+    }
+
+    /// <summary>
+    /// Un lettore XML in streaming sulla voce dello zip, con il tetto sui byte decompressi applicato MENTRE si legge
+    /// (la lunghezza dichiarata nello zip la scrive chi fa il file). Niente DTD, niente risorse esterne.
+    /// </summary>
+    private static XmlReader Lettore(ZipArchiveEntry voce) =>
+        XmlReader.Create(new FlussoLimitato(voce.Open(), MaxByteDecompresso), new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            CloseInput = true,
+        });
+
+    /// <summary>Un flusso che smette di dare byte oltre un tetto: oltre, <see cref="InvalidDataException"/>.</summary>
+    private sealed class FlussoLimitato(Stream interno, long tetto) : Stream
+    {
+        private long _letti;
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var n = interno.Read(buffer, offset, count);
+            _letti += n;
+            if (_letti > tetto) throw new InvalidDataException($"voce oltre {tetto / (1024 * 1024)} MB decompressi");
+            return n;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => _letti; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) interno.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+
+    private static string? Testo(ZipArchive archivio, string percorso, int tetto)
+    {
+        var voce = archivio.Entries.FirstOrDefault(
+            e => e.FullName.Equals(percorso, StringComparison.OrdinalIgnoreCase));
+        if (voce is null || voce.Length > tetto) return null;
 
         using var flusso = voce.Open();
         using var limitato = new MemoryStream();
@@ -258,7 +385,7 @@ public static class LettoreXlsx
         int letti;
         while ((letti = flusso.Read(buffer, 0, buffer.Length)) > 0)
         {
-            if (limitato.Length + letti > MaxByteDecompresso) return null;
+            if (limitato.Length + letti > tetto) return null;
             limitato.Write(buffer, 0, letti);
         }
 

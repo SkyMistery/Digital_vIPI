@@ -37,6 +37,18 @@ public interface IDocumentMaintenance
     Task<int> RenameMinimaSectionsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Riallinea la colonna <c>Depth</c> all'albero: ogni sezione sta un livello sotto il suo padre, le radici
+    /// a zero. Ritorna le sezioni corrette.
+    ///
+    /// <para>⚠️ <c>Depth</c> è una COLONNA, non un calcolo. Lo spostamento dell'editor riscrive tutto il
+    /// sottoalbero; le passate d'avvio che spostano una sezione (VFR sotto «Gestione del traffico», parcheggi,
+    /// regole piste, LVP) scrivevano solo la sezione mossa, e le sue figlie restavano alla profondità di prima.
+    /// Il guasto si vede tardi: «Crea bozza» da una versione pubblicata così (U-014, Perugia Approach). Questa
+    /// passata gira DOPO tutte quelle che spostano: le corregge tutte, comprese quelle che verranno.</para>
+    /// </summary>
+    Task<int> RiallineaProfonditaAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Porta le vLOA esistenti sulle chiavi del catalogo (doc 13 §3c): le due sotto-sezioni dei coordinamenti
     /// smettono di ripetere la chiave del padre e prendono <c>coordination:out</c>/<c>coordination:in</c> secondo
     /// l'ordine (la prima è Home→vicino, come le semina il registro), e la sezione «Purpose» — che nasceva con una
@@ -63,6 +75,31 @@ public interface IDocumentMaintenance
     /// (<see cref="ReparentMilParkingsAsync"/>). Le chiavi di un profilo sono uniche, e lo pretende un test.</para>
     /// </summary>
     Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Le sezioni «sempre live» (<see cref="SectionCatalog.IsAlwaysLive"/>: meteo e validità) rimaste Frozen
+    /// nelle versioni da curare — l'ultima e la pubblicata corrente — tornano Live (revisione 3, U-246: la vLOA
+    /// nasceva con «Validity and Revision» Frozen). Idempotente, e senza scelte da rispettare: per queste
+    /// sezioni l'editor non offre il toggle.
+    /// </summary>
+    Task<int> RiallineaSezioniSempreLiveAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// <b>Una volta sola</b> (registro <c>ImportCategories.StarCiviliLive</c>): le STAR delle vIPI d'aeroporto
+    /// civili ancora Frozen diventano Live, come le SID e come nascono (revisione 3, U-245, scelta del committente
+    /// il 28 settembre 2026). Una volta sola perché, fatta questa, una STAR Frozen è la scelta di un Editor: una
+    /// passata che girasse a ogni consegna gliela disferebbe.
+    /// </summary>
+    Task<int> StarCiviliLiveAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// SOLA LETTURA: i documenti dove lo spostamento del VFR in «Gestione del traffico» ha lasciato un lavoro a
+    /// mano (revisione 3, U-105). Due casi: la «IFR» di catalogo è vuota mentre accanto al contenitore ci sono
+    /// sezioni libere che parlano di IFR (vIPI LIBB, blocco Brindisi CS0), oppure accanto al contenitore c'è una
+    /// sezione libera che si chiama come lui (Perugia Approach, due «Gestione del traffico»). Il contenuto l'hanno
+    /// scritto gli editori: spostarlo lo decide una persona, con «Sposta in…». Qui si dice solo dove guardare.
+    /// </summary>
+    Task<IReadOnlyList<string>> TrafficoDaSistemareAManoAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Sposta la sezione <c>parkings</c> dei vSOP militari già scritti da «Procedure di terra» a ultima figlia di
@@ -171,6 +208,10 @@ public interface IDocumentMaintenance
     /// di quelle sezioni se lo rivede ribaltato una volta sola, e lo rimette con un clic. Sta nel runbook
     /// della consegna, perché non lo scopra a schermo.</para>
     ///
+    /// <para>🔴 U-077 (revisione totale 3): «una volta sola» non era vero — la passata girava a ogni consegna e
+    /// ribaltava ogni volta il <c>Both</c> scelto nel frattempo. Ora lo è: il registro «già fatta»
+    /// (<c>ImportCategories.PubblicoDiCatalogo</c>) la spegne dopo il primo giro.</para>
+    ///
     /// <para>⚠️ Chi ha già scelto <c>Pilots</c> o <c>Controllers</c> non viene toccato: quello è un valore
     /// che solo una persona può aver scritto.</para>
     ///
@@ -266,4 +307,14 @@ public interface IDocumentMaintenance
     /// </summary>
     /// <returns>Quanti puntatori sono stati azzerati.</returns>
     Task<int> ClearUnpublishedCurrentVersionAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Il verso opposto di <see cref="ClearUnpublishedCurrentVersionAsync"/> (revisione 3, U-080, scelta del
+    /// committente): un documento «Published» senza puntatore, con <b>una sola</b> versione pubblicata, riprende
+    /// il puntatore su quella. È la vLOA generata da «ACC confinanti» prima di S27, nata «Published» senza
+    /// versione corrente (la 65 in produzione). Con due versioni pubblicate non indovina: le sistema la prossima
+    /// pubblicazione, che le archivia tutte tranne la nuova. Idempotente: al secondo giro non c'è più niente.
+    /// </summary>
+    /// <returns>Quanti puntatori sono stati rimessi.</returns>
+    Task<int> RestorePublishedCurrentVersionAsync(CancellationToken ct = default);
 }

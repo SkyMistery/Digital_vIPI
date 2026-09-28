@@ -28,26 +28,33 @@ internal sealed class EfVloaDerivationRepository : IVloaDerivationRepository
         var foreignAll = await _db.Sectors.AsNoTracking()
             .Where(s => s.Acc!.Code == foreignAcc.Code && s.IsActive).Select(s => s.Callsign).ToListAsync(ct);
 
+        // U-158: i confinanti della coppia li calcola la derivazione dalla geometria (VloaConfinanti); qui c'erano
+        // un secondo elenco e il suo ripiego sul catalogo intero, che nessuno leggeva.
         var cand = await _db.NeighbourCandidates.AsNoTracking()
             .FirstOrDefaultAsync(c => c.VloaDocumentId == docId, ct);
-        var homeConfining = Deserialize(cand?.AdjacentHomeCallsigns);
-        var foreignConfining = Deserialize(cand?.AdjacentForeignCallsigns);
-        if (homeConfining.Count == 0) homeConfining = await BoundarySectorsAsync(homeAcc.Code, ct);
-        if (foreignConfining.Count == 0) foreignConfining = await BoundarySectorsAsync(foreignAcc.Code, ct);
 
         // Codice nazione estero: IVAO CountryId del candidato se disponibile, altrimenti prefisso ICAO dell'ACC.
         var foreignCountry = string.IsNullOrWhiteSpace(cand?.CountryId) ? foreignAcc.CountryPrefix : cand!.CountryId;
 
+        var homeInattivi = await _db.Sectors.AsNoTracking()
+            .Where(s => s.Acc!.Code == homeAcc.Code && !s.IsActive).Select(s => s.Callsign).ToListAsync(ct);
+        var foreignInattivi = await _db.Sectors.AsNoTracking()
+            .Where(s => s.Acc!.Code == foreignAcc.Code && !s.IsActive).Select(s => s.Callsign).ToListAsync(ct);
+
         return new VloaPairInfo(homeAcc.Code, foreignAcc.Code, homeAcc.Name, foreignAcc.Name,
-            homeConfining, foreignConfining, homeAll, foreignAll, foreignCountry);
+            homeAll, foreignAll, foreignCountry, homeInattivi, foreignInattivi);
     }
 
     public async Task<IReadOnlyList<VloaSectorPoly>> GetBoundaryPolygonsAsync(string accCode, CancellationToken ct = default) =>
-        await _db.AccSectors.AsNoTracking()
+        await PoligoniDiConfine(_db, accCode).ToListAsync(ct);
+
+    /// <summary>I poligoni di confine di un ACC (CTR/FSS visibili, con la forma): la sola sorgente della geometria
+    /// dei confinanti, per la vLOA e per chi cerca i documenti da avvisare (U-158).</summary>
+    internal static IQueryable<VloaSectorPoly> PoligoniDiConfine(VipiDbContext db, string accCode) =>
+        db.AccSectors.AsNoTracking()
             .Where(s => s.CenterId == accCode && !s.IsHidden && s.RegionMapPolygon != null && s.RegionMapPolygon != ""
                         && s.Position != null && (s.Position.ToUpper() == "CTR" || s.Position.ToUpper() == "FSS"))
-            .Select(s => new VloaSectorPoly(s.ComposePosition, s.RegionMapPolygon!))
-            .ToListAsync(ct);
+            .Select(s => new VloaSectorPoly(s.ComposePosition, s.RegionMapPolygon!));
 
     // vLOA usa la side-entity unificata DocumentProfile (doc 08i): stessi campi Hidden AoR/Freq/Sezioni; i campi extra
     // (FreqLinks/CoordTemplate) restano null per le vLOA. La tabella VloaProfiles è stata eliminata.
@@ -77,13 +84,6 @@ internal sealed class EfVloaDerivationRepository : IVloaDerivationRepository
             .Where(p => p.Role == PartyRole.Home)
             .Select(p => p.Sector!.Acc!.Code)
             .FirstOrDefaultAsync(ct);
-
-    /// <summary>Settori di confine (CTR/FSS) di un ACC dal catalogo, per il fallback dei settori confinanti.</summary>
-    private async Task<List<string>> BoundarySectorsAsync(string accCode, CancellationToken ct) =>
-        await _db.AccSectors.AsNoTracking()
-            .Where(s => s.CenterId == accCode && !s.IsHidden && s.Position != null
-                        && (s.Position.ToUpper() == "CTR" || s.Position.ToUpper() == "FSS"))
-            .Select(s => s.ComposePosition).ToListAsync(ct);
 
     private static List<string> Deserialize(string? json)
     {

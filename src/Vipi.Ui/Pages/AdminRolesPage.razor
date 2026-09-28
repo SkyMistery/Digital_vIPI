@@ -80,7 +80,7 @@
             @* --- SINISTRA: tutti quelli che il sistema conosce, col livello che hanno --- *@
             <div class="panel st-pane">
                 <div class="struct-bar">
-                    <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Roles_SearchPh"]" />
+                    <CampoTesto class="htree-search" Valore="@_q" OnInput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Roles_SearchPh"]" />
                     @* Un chip per livello, sempre presenti e spenti a zero: contano PERSONE, come le righe. *@
                     <span class="sb-chips">
                         @foreach (var liv in Livelli_Chip)
@@ -167,7 +167,7 @@
                             </div>
                             <div class="field">
                                 <label>@L["Roles_Note"]</label>
-                                <input class="app-in" placeholder="@L["Roles_NotePh"]" @bind="_nota" />
+                                <input class="app-in" placeholder="@L["Roles_NotePh"]" maxlength="@RoleAdminService.NotaMassima" @bind="_nota" />
                             </div>
 
                             <button class="btn primary perm-go" disabled="@(_busy || _livelloScelto < sel.Floor || IoStesso(sel))"
@@ -368,33 +368,40 @@
         if (e.Key is "Enter" or " ") Scegli(userId);
     }
 
+    // 🔴 U-181/U-199 (revisione totale 3): un doppio clic apriva due scritture sullo stesso DbContext e il circuito
+    // cadeva. La sentinella sta PRIMA del primo await; la scrittura passa dalla fila della pagina, la stessa delle
+    // letture; un guasto che il servizio non traduce (la nota oltre la colonna, il database giù) resta un messaggio.
     private async Task Salva(RoleRow sel)
     {
+        if (_busy) return;
         _busy = true;
         ClearStatus();
         try
         {
-            await Livelli.SetAsync(sel.UserId, _livelloScelto, _nota);
+            await InFilaAsync(() => Livelli.SetAsync(sel.UserId, _livelloScelto, _nota));
             _status = L["Roles_Saved", NomeDi(sel), Nome(_livelloScelto)];
             await CaricaAsync();
         }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (Exception ex) { _error = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 
     private async Task Togli(RoleRow sel)
     {
+        if (_busy) return;
         _busy = true;
         ClearStatus();
         try
         {
-            await Livelli.RemoveAsync(sel.UserId);
+            await InFilaAsync(() => Livelli.RemoveAsync(sel.UserId));
             _status = L["Roles_Removed", NomeDi(sel), Nome(sel.Floor)];
             await CaricaAsync();
         }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (Exception ex) { _error = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 

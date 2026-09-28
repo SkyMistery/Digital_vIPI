@@ -77,7 +77,9 @@ public sealed record RunwayRuleResult(string Dep, string Arr, string? Note, int 
 /// Perché una regola si applica o no, nell'ordine in cui il motore controlla: il PRIMO vincolo che non passa.
 /// <see cref="Applies"/> = passano tutti (la regola vince se nessuna prima di lei si applica).
 /// </summary>
-public enum RuleVerdict { Applies, Surface, Time, Day, Parity, Season, Tailwind, Crosswind }
+/// <para><see cref="NoWind"/>: il vento non si conosce (METAR assente, NIL, «/////KT», scaduto, VRB sopra i 2 kt) e
+/// nessuna regola decide — scelta del committente del 28 settembre 2026, U-214 della revisione totale 3.</para>
+public enum RuleVerdict { Applies, Surface, Time, Day, Parity, Season, Tailwind, Crosswind, NoWind }
 
 /// <summary>Il vento proiettato su una pista di una regola: tailwind (0 se il vento arriva di fronte) e vento traverso, in kt.</summary>
 public sealed record RunwayWindComponents(string Ident, int TailwindKt, int CrosswindKt);
@@ -145,8 +147,13 @@ public static partial class RunwaySuggestion
     /// verso). I chiamanti NON devono ripiegare su <see cref="RunwaySuggestionResult.Best"/>: sarebbe proporre per
     /// gli arrivi una soglia marcata «mai in arrivo».</para>
     /// </param>
+    /// <param name="rotte">
+    /// La rotta vera di ogni testata (ident → gradi), dall'anagrafica. Una testata che non c'è ripiega sull'ident×10.
+    /// <para>🔴 U-223 (revisione totale 3): il motore misurava sull'ident×10 e il pannello vento del vAWOS sulla rotta
+    /// dell'anagrafica — su LIRF 16 (163°) un 070/15 dava coda 0 alla regola e «TAIL 01» sul quadro.</para>
+    /// </param>
     public static RunwaySuggestionResult Suggest(IEnumerable<string> runwayIdents, int? windDir, int windKt,
-        RunwayExclusions? exclusions = null)
+        RunwayExclusions? exclusions = null, IReadOnlyDictionary<string, int>? rotte = null)
     {
         static HashSet<string> Insieme(IEnumerable<string>? v) =>
             new((v ?? Array.Empty<string>()).Select(i => (i ?? "").Trim()), StringComparer.OrdinalIgnoreCase);
@@ -155,7 +162,7 @@ public static partial class RunwaySuggestion
         var tutte = runwayIdents
             .Select(i => (Ident: i.Trim().ToUpperInvariant(), M: IdentRe().Match(i.Trim())))
             .Where(x => x.M.Success)
-            .Select(x => (x.Ident, Heading: int.Parse(x.M.Groups[1].Value) * 10))
+            .Select(x => (x.Ident, Heading: Rotta(x.Ident, x.M, rotte)))
             .ToList();
         // Fuori dal ripiego solo le soglie escluse in TUTTI E DUE i versi: le altre servono almeno a uno.
         var ends = tutte.Where(e => !(noDep.Contains(e.Ident) && noArr.Contains(e.Ident))).ToList();
@@ -182,16 +189,19 @@ public static partial class RunwaySuggestion
             .ToList();
 
         var best = ranked[0];
-        // Ogni verso sceglie fra le SUE soglie ammesse. Piste parallele nella direzione del vento (stesso heading):
-        // split arrivi/partenze (sinistra = arrivi, destra = partenze). Senza esclusioni i due insiemi coincidono con
-        // `ranked` e l'esito è quello di sempre.
+        // Ogni verso sceglie fra le SUE soglie ammesse. Piste parallele nella direzione del vento (stesso NUMERO
+        // dell'ident): split arrivi/partenze (sinistra = arrivi, destra = partenze). Senza esclusioni i due insiemi
+        // coincidono con `ranked` e l'esito è quello di sempre.
+        // ⚠️ Per numero e non per rotta: con le rotte vere 16L e 16R possono differire di un grado (U-223).
+        // ⚠️ Per lato e non in ordine alfabetico: «16C» < «16L» mandava gli arrivi sulla centrale (U-224).
         static string? Scegli(IReadOnlyList<RunwayPick> ammesse, bool arrivi)
         {
             if (ammesse.Count == 0) return null;
-            var parallele = ammesse.Where(p => p.Heading == ammesse[0].Heading)
-                .OrderBy(p => p.Ident, StringComparer.Ordinal).ToList();
+            var numero = IdentRe().Match(ammesse[0].Ident).Groups[1].Value;
+            var parallele = ammesse.Where(p => IdentRe().Match(p.Ident).Groups[1].Value == numero)
+                .OrderBy(p => Lato(p.Ident)).ToList();
             return parallele.Count >= 2
-                ? (arrivi ? parallele[0].Ident : parallele[^1].Ident)   // ARR = prima (es. 35L), DEP = ultima (es. 35R)
+                ? (arrivi ? parallele[0].Ident : parallele[^1].Ident)   // ARR = sinistra (35L), DEP = destra (35R)
                 : ammesse[0].Ident;
         }
         var depIdent = Scegli(ranked.Where(p => !noDep.Contains(p.Ident)).ToList(), arrivi: false);
@@ -211,9 +221,9 @@ public static partial class RunwaySuggestion
     /// passa il banco di prova dell'editor, che serve a provare una regola in un momento che non è questo.</para>
     /// </summary>
     public static RunwayRuleResult? EvaluateRules(IReadOnlyList<RunwayRuleEval> rules, int? windDir, int windKt, bool wet,
-        DateTime? nowUtc = null)
+        DateTime? nowUtc = null, IReadOnlyDictionary<string, int>? rotte = null, bool ventoNoto = true)
     {
-        var vincente = ExplainRules(rules, windDir, windKt, wet, nowUtc).FirstOrDefault(e => e.Verdict == RuleVerdict.Applies);
+        var vincente = ExplainRules(rules, windDir, windKt, wet, nowUtc, rotte, ventoNoto).FirstOrDefault(e => e.Verdict == RuleVerdict.Applies);
         if (vincente is null) return null;
 
         var r = rules[vincente.RuleIndex];
@@ -234,9 +244,19 @@ public static partial class RunwaySuggestion
     ///
     /// <para>Le componenti si calcolano SEMPRE, anche quando la regola cade prima (superficie, orario): chi prova
     /// vuole vedere i numeri comunque. Vento calmo (≤ 2 kt) o senza direzione: zero, come nel confronto.</para>
+    ///
+    /// <para>⚠️ Coda e traverso massimi si confrontano col <b>vento medio</b>, non con la raffica (decisione del
+    /// committente del 27 settembre 2026, U-091 della revisione totale 3). PANS-ATM li scrive «including gusts»: qui
+    /// è una scelta, non una svista — la pista suggerita è un suggerimento, la sceglie chi controlla.</para>
+    ///
+    /// <para>🔴 <paramref name="ventoNoto"/> falso ⇒ nessuna regola si applica (<see cref="RuleVerdict.NoWind"/>). Prima
+    /// un vento sconosciuto valeva «calmo» e vinceva la prima regola «asciutta»: col METAR scaduto il vAWOS proponeva
+    /// una pista che U-092 aveva promesso di non proporre (U-214, scelta del committente del 28 settembre 2026). Si
+    /// calcola con <see cref="VentoNoto"/>; il banco di prova dell'editor lascia il default, il vento lo batte chi prova.</para>
     /// </summary>
     public static IReadOnlyList<RuleExplanation> ExplainRules(IReadOnlyList<RunwayRuleEval> rules, int? windDir,
-        int windKt, bool wet, DateTime? nowUtc = null)
+        int windKt, bool wet, DateTime? nowUtc = null, IReadOnlyDictionary<string, int>? rotte = null,
+        bool ventoNoto = true)
     {
         // Orari/giorni/stagione AIP sono in ora LOCALE: porto l'istante UTC all'ora locale italiana prima dei confronti.
         var utc = DateTime.SpecifyKind(nowUtc ?? DateTime.UtcNow, DateTimeKind.Utc);
@@ -246,14 +266,15 @@ public static partial class RunwaySuggestion
         for (var i = 0; i < rules.Count; i++)
         {
             var r = rules[i];
-            var piste = Components(r, windDir, windKt);
+            var piste = Components(r, windDir, windKt, rotte);
             var tail = piste.Count == 0 ? 0 : piste.Max(p => p.TailwindKt);
             var cross = piste.Count == 0 ? 0 : piste.Max(p => p.CrosswindKt);
             // ⚠️ Il giorno da confrontare è quello OPERATIVO, non quello del calendario: vedi GiornoOperativo.
             var giorno = GiornoOperativo(now, minOfDay, r.TimeFromLocalMin, r.TimeToLocalMin);
 
             var verdetto =
-                !SurfaceMatches(r.Surface, wet) ? RuleVerdict.Surface
+                !ventoNoto ? RuleVerdict.NoWind
+                : !SurfaceMatches(r.Surface, wet) ? RuleVerdict.Surface
                 : !TimeInWindow(r.TimeFromLocalMin, r.TimeToLocalMin, minOfDay) ? RuleVerdict.Time
                 : !DayOfWeekMatches(r.DaysOfWeekMask, giorno) ? RuleVerdict.Day
                 : !ParityMatches(r.DateParity, giorno) ? RuleVerdict.Parity
@@ -302,9 +323,10 @@ public static partial class RunwaySuggestion
     /// <para>⚠️ Il tailwind è <c>max(0, -headwind)</c>: un vento di fronte non è «tailwind negativo». Il confronto
     /// con la soglia non cambia (la soglia è ≥ 0), ma a schermo un «-8 kt» in colonna tailwind si leggeva male.</para>
     /// </summary>
-    private static List<RunwayWindComponents> Components(RunwayRuleEval r, int? windDir, int windKt)
+    private static List<RunwayWindComponents> Components(RunwayRuleEval r, int? windDir, int windKt,
+        IReadOnlyDictionary<string, int>? rotte)
     {
-        var piste = Idents(r.DepRunways).Concat(Idents(r.ArrRunways))
+        var piste = Idents(r.DepRunways, rotte).Concat(Idents(r.ArrRunways, rotte))
             .DistinctBy(p => p.Ident, StringComparer.OrdinalIgnoreCase)
             .ToList();
         return piste.Select(p =>
@@ -317,12 +339,54 @@ public static partial class RunwaySuggestion
         }).ToList();
     }
 
-    /// <summary>Ident e heading (gradi) delle estremità in un CSV di ident (es. "16L,16R" → [(16L,160),(16R,160)]).</summary>
-    private static IEnumerable<(string Ident, int Heading)> Idents(string? csv) => (csv ?? "")
+    /// <summary>Ident e rotta (gradi) delle estremità in un CSV di ident (es. "16L,16R" → [(16L,159),(16R,160)]).</summary>
+    private static IEnumerable<(string Ident, int Heading)> Idents(string? csv, IReadOnlyDictionary<string, int>? rotte) => (csv ?? "")
         .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         .Select(i => (Ident: i.ToUpperInvariant(), M: IdentRe().Match(i)))
         .Where(x => x.M.Success)
-        .Select(x => (x.Ident, int.Parse(x.M.Groups[1].Value) * 10));
+        .Select(x => (x.Ident, Rotta(x.Ident, x.M, rotte)));
+
+    /// <summary>
+    /// La rotta di una testata: quella vera dell'anagrafica se il chiamante la passa, altrimenti l'ident×10.
+    /// <para>⚠️ Una sola regola per regole e ripiego: il vAWOS disegna traverso e coda sulla rotta vera
+    /// (<c>AwosComposition.Rotta</c>), e un motore che misurasse su un'altra direbbe un'altra cosa (U-223).</para>
+    /// </summary>
+    private static int Rotta(string ident, Match m, IReadOnlyDictionary<string, int>? rotte) =>
+        rotte is not null && (rotte.TryGetValue(ident, out var r) || rotte.TryGetValue(ident.ToUpperInvariant(), out r))
+            && r is > 0 and <= 360
+            ? r
+            : int.Parse(m.Groups[1].Value) * 10;
+
+    /// <summary>
+    /// Il dizionario delle rotte vere da passare al motore: una voce per ogni testata con una rotta valida
+    /// (1–360°), l'ident in maiuscolo. Le testate senza rotta restano fuori e il motore usa l'ident×10.
+    /// </summary>
+    public static IReadOnlyDictionary<string, int> Rotte(IEnumerable<(string? Ident, int? Bearing)> piste)
+    {
+        var d = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (ident, bearing) in piste)
+        {
+            var id = (ident ?? "").Trim().ToUpperInvariant();
+            if (id.Length > 0 && bearing is int b and > 0 and <= 360) d.TryAdd(id, b);
+        }
+        return d;
+    }
+
+    /// <summary>
+    /// Se il vento di un METAR si conosce abbastanza da far decidere le regole (U-214): sì col vento calmo
+    /// (<c>00000KT</c>, o fino a 2 kt anche VRB — è la soglia di calma del motore) e con una direzione misurata;
+    /// no senza vento (METAR assente o scaduto, NIL, <c>/////KT</c>) e col VRB sopra i 2 kt.
+    /// </summary>
+    public static bool VentoNoto(ParsedWind? w) =>
+        w is not null && (w.Calm || w.SpeedKt <= 2 || (!w.Variable && w.DirectionDeg is not null));
+
+    /// <summary>Il lato di una parallela, da sinistra a destra: L, poi C (o nessun lato), poi R.</summary>
+    private static int Lato(string ident) => ident.Length > 0 ? char.ToUpperInvariant(ident[^1]) switch
+    {
+        'L' => 0,
+        'R' => 2,
+        _ => 1,
+    } : 1;
 
     /// <summary>Vero se l'orario (minuti locali) ricade nella finestra [from,to] (gestisce il wrap notturno, es. 22:00→06:00). Estremi null = nessun vincolo.</summary>
     private static bool TimeInWindow(int? from, int? to, int minOfDay)

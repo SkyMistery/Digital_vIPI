@@ -201,16 +201,22 @@ public sealed class DocumentImpactService : IDocumentImpactService
         var cs = (composePosition ?? "").Trim();
         if (cs.Length == 0) return 0;
 
-        var docs = await _repo.FindDocumentsForSectorAsync(cs, accCode ?? "", ct);
-        if (docs.Count == 0) return 0;
+        var ids = (await _repo.FindDocumentsForSectorAsync(cs, accCode ?? "", ct)).Select(d => d.Id).ToList();
 
-        var live = await _repo.WithLiveSectionAsync(docs.Select(d => d.Id).ToList(), ImpactFamily.Sector, ct);
+        // 🔴 U-060 (revisione totale 3): sparito o nascosto, il settore lascia «trasferire a X» nei documenti della
+        // controparte dei suoi accordi — che continuano a stamparlo (scelta del committente). Un riparentamento
+        // non cambia quella frase, e non li disturba.
+        if (kind is ImpactKind.SectorGone or ImpactKind.SectorHidden)
+            ids = ids.Union(await _repo.FindAgreementCounterpartDocumentsAsync(cs, ct)).ToList();
+        if (ids.Count == 0) return 0;
+
+        var live = await _repo.WithLiveSectionAsync(ids, ImpactFamily.Sector, ct);
 
         var aperti = 0;
-        foreach (var d in docs)
+        foreach (var id in ids)
         {
             await _repo.RaiseAsync(new RaiseImpactInput(
-                d.Id, kind, cs, Reasons.For(kind), new[] { cs }, live.Contains(d.Id)), ct);
+                id, kind, cs, Reasons.For(kind), new[] { cs }, live.Contains(id)), ct);
             aperti++;
         }
         return aperti;

@@ -47,22 +47,45 @@
         ['awos',  '.awos',                                                              'vipiInitAwos',  []]
     ];
 
+    // Per chiave: 'volo' mentre lo <script> viaggia, true quando è arrivato. Il segno «in volo» basta a non
+    // chiedere due volte lo stesso file; il segno «arrivato» lo mette solo `onload`.
     var caricati = {};
+
+    // ⚠️ Un caricamento fallito si ritenta (U-209). Il segno si scriveva prima di appendere lo <script>, e
+    // senza `onerror`: se il file non arrivava — Passenger che riparte, la rete che salta — nessuno lo
+    // chiedeva più, né al prossimo `enhancedload` né dall'osservatore, che intanto si spegneva. Il quadro
+    // vAWOS restava con l'orologio a «--:--:--Z» fino a un ricarico completo. Tetto di tentativi: un file
+    // che manca davvero (pacchetto rotto) non deve diventare una richiesta ogni 150 ms per sempre.
+    var MAX_TENTATIVI = 3;
+    var falliti = {};
+
+    function esaurito(chiave) { return (falliti[chiave] || 0) >= MAX_TENTATIVI; }
 
     function carica(m) {
         var chiave = m[0];
-        if (caricati[chiave]) return;
+        if (caricati[chiave] || esaurito(chiave)) return;
 
         var indirizzo = qui && qui.getAttribute('data-' + chiave + '-src');
         if (!indirizzo) return;                      // non dichiarato: non è un guasto, è una pagina che non lo vuole
 
-        caricati[chiave] = true;
+        caricati[chiave] = 'volo';
 
         var el = document.createElement('script');
         el.src = indirizzo;
+        el.onerror = function () {
+            delete caricati[chiave];
+            falliti[chiave] = (falliti[chiave] || 0) + 1;
+            if (el.parentNode) el.parentNode.removeChild(el);
+            console.warn('[vipi] il modulo «' + chiave + '» non è arrivato (tentativo ' + falliti[chiave] + ')');
+            if (esaurito(chiave)) return;
+            // Il bersaglio è ancora in pagina e nessuna mutazione lo riannuncerà: si riprova da soli, con
+            // un'attesa che cresce (il processo che riparte ci mette qualche secondo).
+            setTimeout(function () { caricaQuelliCheServono(); sorveglia(); }, 2000 * falliti[chiave]);
+        };
         // ⚠️ Un modulo che arriva adesso si aggancia da sé al proprio `DOMContentLoaded`, che a questo
         // punto è GIÀ passato: nessuno lo chiamerebbe. Lo si chiama qui, appena è in piedi.
         el.onload = function () {
+            caricati[chiave] = true;
             try {
                 if (window[m[2]]) window[m[2]]();
             } catch (e) {
@@ -84,7 +107,7 @@
     function restaDaCaricare() {
         for (var i = 0; i < moduli.length; i++) {
             var chiave = moduli[i][0];
-            if (caricati[chiave]) continue;
+            if (caricati[chiave] || esaurito(chiave)) continue;
             if (qui && qui.getAttribute('data-' + chiave + '-src')) return true;
         }
         return false;

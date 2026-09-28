@@ -59,9 +59,13 @@ public interface IAirportEditingService
     /// <summary>Le procedure manuali di un verso (SID o STAR): sostituiscono l'intera lista manuale di quel verso.</summary>
     Task SaveSidsAsync(string icao, ProcedureKind kind, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
     /// <summary>Aggiorna priorità/forzatura pubblicazione/fix risolto e arricchimenti editoriali (initial climb, CAT,
-    /// WTC, condition) di UNA riga SID importata (ACC-gated).</summary>
+    /// WTC, condition) di UNA riga SID importata (ACC-gated). Con <paramref name="aliasDalPrefisso"/> crea anche
+    /// l'alias di scalo «prefisso → <paramref name="resolvedFix"/>», e solo dopo che la riga si è scritta.</summary>
+    /// <exception cref="EditConflictException">Il lock non è mio, o la riga non c'è più (un reimport l'ha tolta):
+    /// si ricarica.</exception>
     Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
-        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default);
+        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition,
+        string? aliasDalPrefisso = null, CancellationToken ct = default);
 
     /// <summary>Nasconde o rimostra al pubblico le SID importate indicate (ACC-gated). Ritorna quante ne ha toccate.</summary>
     Task<int> SetImportedSidsHiddenAsync(string icao, IReadOnlyCollection<int> sidIds, bool hidden, CancellationToken ct = default);
@@ -94,7 +98,8 @@ public sealed class AirportEditingService : IAirportEditingService
 
     public AirportEditingService(IAirportRepository repo, IEditAuthorizationService authz,
         IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
-        IAirportLockGuard @lock, Vipi.Application.Abstractions.IStazioniMeteo? stazioni = null)
+        IAirportLockGuard @lock, Vipi.Application.Abstractions.IStazioniMeteo? stazioni = null,
+        ISidFixAliasRepository? alias = null)
     {
         _repo = repo;
         _authz = authz;
@@ -103,9 +108,13 @@ public sealed class AirportEditingService : IAirportEditingService
         _policy = policy;
         _lock = @lock;
         _stazioni = stazioni;
+        _alias = alias;
     }
 
     private readonly Vipi.Application.Abstractions.IStazioniMeteo? _stazioni;
+
+    /// <summary>Gli alias prefisso → punto delle SID (U-171): si scrivono da qui, dopo il lock.</summary>
+    private readonly ISidFixAliasRepository? _alias;
 
     public async Task SetMetarStationAsync(string icao, string? station, CancellationToken ct = default)
     {
@@ -231,6 +240,14 @@ public sealed class AirportEditingService : IAirportEditingService
             if (row.CancelCeilingFt is int cc && row.PrepCeilingFt is int pc2 && cc < pc2)
                 throw new ValidationException(Lingua("Il soffitto di cancellazione deve essere maggiore o uguale a quello di preparazione.",
                                                      "The cancellation ceiling must be greater than or equal to the preparation one."));
+
+            // 🔴 U-194 (revisione totale 3): il tetto della colonna, detto prima del database (come T-053). Contato
+            // sulla nota senza spazi ai bordi, che è quel che il repository salva.
+            var nota = row.Note?.Trim().Length ?? 0;
+            if (nota > Vipi.Domain.Entities.AirportLvpMinima.NotaMassima)
+                throw new ValidationException(Lingua(
+                    $"La nota: {nota} caratteri, il massimo è {Vipi.Domain.Entities.AirportLvpMinima.NotaMassima}.",
+                    $"The note: {nota} characters, the maximum is {Vipi.Domain.Entities.AirportLvpMinima.NotaMassima}."));
         }
         await _repo.SaveLvpAsync(Norm(icao), row, ct);
     }
@@ -254,23 +271,51 @@ public sealed class AirportEditingService : IAirportEditingService
     }
 
     public async Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
-        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default)
+        string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition,
+        string? aliasDalPrefisso = null, CancellationToken ct = default)
     {
         await EnsureLockMineAsync(icao, ct);
-        await _repo.UpdateImportedSidAsync(sidId, priority, forcePublished, resolvedFix, initialClimb, initialClimbByApp, cat, wtc, condition, ct);
+        if (!await _repo.UpdateImportedSidAsync(Norm(icao), sidId, priority, forcePublished, resolvedFix, initialClimb, initialClimbByApp, cat, wtc, condition, ct))
+            throw RigaSparita(1);
+
+        // 🔴 U-171 (revisione totale 3): l'alias lo scriveva la PAGINA, prima di chiamare qui — cioè prima del
+        // controllo del lock. Con il lock perso la riga non si scriveva, l'alias sì, e cambiava i prossimi import
+        // dello scalo. Ora nasce solo dopo che la riga è passata dalla porta.
+        if (!string.IsNullOrWhiteSpace(aliasDalPrefisso) && !string.IsNullOrWhiteSpace(resolvedFix))
+        {
+            if (_alias is null) throw new InvalidOperationException("Alias SID non disponibili in questo servizio.");
+            await _alias.UpsertAsync(Norm(icao), aliasDalPrefisso, resolvedFix, ct);
+        }
     }
 
     public async Task<int> SetImportedSidsHiddenAsync(string icao, IReadOnlyCollection<int> sidIds, bool hidden, CancellationToken ct = default)
     {
         await EnsureLockMineAsync(icao, ct);
-        return sidIds.Count == 0 ? 0 : await _repo.SetImportedSidsHiddenAsync(Norm(icao), sidIds, hidden, ct);
+        if (sidIds.Count == 0) return 0;
+        var chieste = sidIds.Distinct().Count();
+        var toccate = await _repo.SetImportedSidsHiddenAsync(Norm(icao), sidIds, hidden, ct);
+        // Il numero tornava già, e nessuno lo leggeva: un reimport che aveva tolto le righe finiva in «Salvato».
+        if (toccate < chieste) throw RigaSparita(chieste - toccate);
+        return toccate;
     }
 
     public async Task SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default)
     {
         await EnsureLockMineAsync(icao, ct);
-        await _repo.SetImportedSidOverridesAsync(Norm(icao), sidId, fixOverride, transitionOverride, ct);
+        if (!await _repo.SetImportedSidOverridesAsync(Norm(icao), sidId, fixOverride, transitionOverride, ct))
+            throw RigaSparita(1);
     }
+
+    /// <summary>
+    /// 🔴 U-035/U-064 (revisione totale 3): la riga su cui l'editor scrive non c'è più — la sorgente non la manda
+    /// più e un reimport l'ha tolta. Le scritture su un Id sparito tornavano mute, e la pagina diceva «Salvato».
+    /// È un conflitto come quello del lock: la pagina è una fotografia vecchia, e la cura è la stessa, ricaricare.
+    /// </summary>
+    private static EditConflictException RigaSparita(int quante) => new(quante == 1
+        ? Lingua("Questa procedura non c'è più: un nuovo import dal sectorfile l'ha tolta. Ricarica la pagina.",
+                 "This procedure is gone: a new import from the sectorfile removed it. Reload the page.")
+        : Lingua($"{quante} procedure non ci sono più: un nuovo import dal sectorfile le ha tolte. Ricarica la pagina.",
+                 $"{quante} procedures are gone: a new import from the sectorfile removed them. Reload the page."));
 
     public async Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default)
     {

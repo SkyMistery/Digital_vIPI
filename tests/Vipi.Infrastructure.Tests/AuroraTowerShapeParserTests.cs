@@ -91,6 +91,42 @@ public class AuroraTowerShapeParserTests
         Assert.True(map.ContainsKey("LIBC_TWR"));   // un blocco rotto non si porta via gli altri
     }
 
+    /// <summary>
+    /// 🔴 U-133 (revisione totale 3): un'annotazione «//…» DENTRO un blocco si leggeva come un'intestazione
+    /// nuova — chiudeva la torre coi vertici visti fin lì (3 su 5) e ne apriva una chiamata «//NOTA».
+    /// </summary>
+    [Fact]
+    public void Un_commento_dentro_il_blocco_non_tronca_l_anello()
+    {
+        var map = AuroraSectorfileParser.ParseTowerShapes("""
+            LIBA_TWR;TWR;1;TWR;1;
+            N041.37.28.965;E015.43.18.960;
+            N041.37.26.491;E015.43.58.078;
+            N041.37.21.148;E015.44.36.682;
+            //nota: lato verso il mare
+            N041.37.10.000;E015.44.50.000;
+            N041.37.00.000;E015.44.00.000;
+            """);
+
+        Assert.Single(map);
+        Assert.Equal(5, map["LIBA_TWR"].Count);
+    }
+
+    /// <summary>🔴 U-133: la coppia si legge solo nell'ordine del formato, latitudine (N/S) poi longitudine
+    /// (E/W). Invertita, «E015…;N041…» dava una torre a 15° N e 41° E, in Arabia, senza un avviso.</summary>
+    [Fact]
+    public void Una_coppia_invertita_invalida_la_torre()
+    {
+        var map = AuroraSectorfileParser.ParseTowerShapes("""
+            LIBA_TWR;TWR;1;TWR;1;
+            N041.37.28.965;E015.43.18.960;
+            E015.43.58.078;N041.37.26.491;
+            N041.37.21.148;E015.44.36.682;
+            """);
+
+        Assert.Empty(map);
+    }
+
     [Theory]
     [InlineData("N041.37.28.965", 41.624713)]
     [InlineData("E015.43.18.960", 15.721933)]

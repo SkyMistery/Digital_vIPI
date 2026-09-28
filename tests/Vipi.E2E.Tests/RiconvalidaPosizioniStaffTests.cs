@@ -18,6 +18,26 @@ public class RiconvalidaPosizioniStaffTests
 {
     private static readonly DateTimeOffset Login = new(2026, 9, 13, 8, 0, 0, TimeSpan.Zero);
 
+    /// <summary>La memoria delle letture è per VID e dura cinque minuti (U-103): ogni test parte senza.</summary>
+    public RiconvalidaPosizioniStaffTests() => RiconvalidaPosizioniStaff.DimenticaLetture();
+
+    /// <summary>
+    /// 🔴 U-103 (revisione totale 3): un cookie vecchio più di quattro ore, rimandato sempre uguale, faceva chiamare
+    /// IVAO a OGNI richiesta. Nello stesso intervallo lo stesso VID si legge una volta sola; passato, di nuovo.
+    /// </summary>
+    [Fact]
+    public async Task Lo_stesso_VID_si_legge_da_IVAO_una_volta_ogni_cinque_minuti()
+    {
+        var elenco = new ElencoFinto(new SourceUserStaff(704798, null, null, "IT", true, new[] { "IT-DIR" }));
+
+        for (var i = 0; i < 20; i++)
+            await RiconvalidaPosizioniStaff.ValidaAsync(Contesto(new[] { "IT-DIR" }, elenco), Login.AddHours(5));
+        Assert.Equal(1, elenco.Chiamate);
+
+        await RiconvalidaPosizioniStaff.ValidaAsync(Contesto(new[] { "IT-DIR" }, elenco), Login.AddHours(5).AddMinutes(6));
+        Assert.Equal(2, elenco.Chiamate);
+    }
+
     [Fact]
     public async Task Chi_perde_l_incarico_lo_perde_anche_nel_cookie()
     {

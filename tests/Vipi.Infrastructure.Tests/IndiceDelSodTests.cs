@@ -256,6 +256,27 @@ public class IndiceDelSodTests : IAsyncLifetime
         Assert.Equal(SectionAudience.Controllers, Sezione(ver, "callsigns").Audience);
     }
 
+    /// <summary>
+    /// 🔴 U-077 (revisione totale 3): la passata girava a ogni consegna, e un «per tutti» scelto dall'editor su
+    /// una sezione che il catalogo vuole «per i piloti» tornava «piloti» — anche nelle versioni archiviate. Col
+    /// registro «già fatta» gira un'ultima volta e poi tace (scelta del committente, 28 settembre 2026).
+    /// </summary>
+    [Fact]
+    public async Task Dopo_l_ultima_volta_il_per_tutti_scelto_dall_editor_resta()
+    {
+        var manutenzione = new EfDocumentMaintenance(_db, new EfImportStateStore(_db));
+        var ver = await VsopVecchioAsync("LIBG");
+
+        Assert.True(await manutenzione.ApplyCatalogAudienceDefaultsAsync() > 0);   // l'ultima volta
+
+        var marcata = _db.DocumentSections.First(x => x.DocumentVersionId == ver.Id && x.Audience == SectionAudience.Pilots);
+        marcata.Audience = SectionAudience.Both;                                       // l'editor sceglie «per tutti»
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(0, await manutenzione.ApplyCatalogAudienceDefaultsAsync());
+        Assert.Equal(SectionAudience.Both, Sezione(ver, marcata.SectionKey).Audience);
+    }
+
     [Fact]
     public async Task Rieseguire_il_pubblico_non_cambia_niente()
     {

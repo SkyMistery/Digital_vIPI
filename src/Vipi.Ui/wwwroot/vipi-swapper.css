@@ -27,7 +27,9 @@
     border:2px dashed var(--line);border-radius:var(--radius);background:var(--bg);
     transition:border-color .12s ease, background .12s ease}
 .vipi-root .swap-drop:hover,
-.vipi-root .swap-drop.over{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 6%, var(--bg))}
+/* `--ivao-blue` e non `--accent`, che esiste solo dentro `.nav-card` (revisione 3, U-206): qui la
+   dichiarazione era invalida, e il riquadro sotto il file trascinato e la sezione scelta non si vedevano. */
+.vipi-root .swap-drop.over{border-color:var(--ivao-blue);background:color-mix(in srgb, var(--ivao-blue) 6%, var(--bg))}
 .vipi-root .swap-drop input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .vipi-root .swap-drop-t{font-weight:600;font-size:14px}
 .vipi-root .swap-drop-s{color:var(--ink-soft);font-size:13px;text-decoration:underline}
@@ -48,7 +50,7 @@
 .vipi-root .swap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px}
 .vipi-root .swap-sec{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;
     border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:14px}
-.vipi-root .swap-sec.on{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 7%, var(--surface))}
+.vipi-root .swap-sec.on{border-color:var(--ivao-blue);background:color-mix(in srgb, var(--ivao-blue) 7%, var(--surface))}
 .vipi-root .swap-sec-n{flex:1;font-family:var(--font-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vipi-root .swap-sec-tags{display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}
 

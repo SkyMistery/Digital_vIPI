@@ -48,10 +48,10 @@ public class AuroraProcedureProviderTests
         public Task<IReadOnlyList<SidFixAliasRow>> ListAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<SidFixAliasRow>>(Array.Empty<SidFixAliasRow>());
 
-        public Task<IReadOnlyDictionary<string, string>> GetMapAsync(CancellationToken ct = default) =>
+        public Task<IReadOnlyDictionary<string, string>> GetMapAsync(string icao, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
 
-        public Task UpsertAsync(string prefix, string fixName, CancellationToken ct = default) => Task.CompletedTask;
+        public Task UpsertAsync(string icao, string prefix, string fixName, CancellationToken ct = default) => Task.CompletedTask;
         public Task DeleteAsync(int id, CancellationToken ct = default) => Task.CompletedTask;
     }
 

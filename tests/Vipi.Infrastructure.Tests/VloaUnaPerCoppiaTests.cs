@@ -209,6 +209,33 @@ public class VloaUnaPerCoppiaTests : IAsyncLifetime
         Assert.Equal(quante, await _db.Documents.CountAsync(d => d.Type == DocumentType.Vloa));
     }
 
+    /// <summary>
+    /// 🔴 U-058 (revisione totale 3): la vLOA generata da una coppia confinante nasceva «Published» — documento
+    /// e versione — senza che nessuno la pubblicasse. Il backfill d'avvio di allora le dava una release in
+    /// vigore firmata «sistema», e il pubblico ha letto il testo segnaposto. Nasce in bozza, come le altre.
+    /// </summary>
+    [Fact]
+    public async Task La_vLOA_generata_da_confinanti_nasce_in_BOZZA()
+    {
+        await NuovoSettoreEsteroAsync("LFFF", "Paris ACC", "LFFF_CTR");
+        _db.NeighbourCandidates.Add(new NeighbourCandidate
+        {
+            HomeAccCode = "LIRR", ForeignAccCode = "LFFF", ForeignAccName = "Paris ACC",
+            CountryId = "FR", ForeignRootCallsign = "LFFF_CTR",
+        });
+        await _db.SaveChangesAsync();
+        var candidato = await _db.NeighbourCandidates.Where(c => c.ForeignAccCode == "LFFF")
+            .Select(c => c.Id).FirstAsync();
+
+        var id = await new EfNeighbourRepository(_db, new AiracService()).MaterializeAndCreateVloaAsync(candidato);
+
+        var doc = await _db.Documents.AsNoTracking().Include(d => d.Versions).FirstAsync(d => d.Id == id);
+        Assert.Equal(DocumentStatus.Draft, doc.Status);
+        Assert.Null(doc.CurrentVersionId);
+        Assert.All(doc.Versions, v => Assert.Equal(DocumentStatus.Draft, v.Status));
+        Assert.False(await _db.DocReleases.AnyAsync(r => r.TargetType == ReleaseTargetType.Vloa && r.TargetKey == id.ToString()));
+    }
+
     private async Task<int> NuovoSettoreEsteroAsync(string accCode, string accName, string callsign)
     {
         var acc = new Acc { Code = accCode, Name = accName, CountryPrefix = accCode[..2], IsForeign = true };

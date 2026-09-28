@@ -55,7 +55,7 @@ public sealed class EfAirportRepository : IAirportRepository
             .OrderBy(x => x.Order)
             .Select(x => new { x.Kind, Riga = new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition,
                 x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview, x.InitialClimbByApp,
-                x.IsHidden, x.FixOverride, x.TransitionOverride) })
+                x.IsHidden, x.FixOverride, x.TransitionOverride, x.SupersededFromCycle) })
             .ToListAsync(ct);
         var sids = procedure.Where(x => x.Kind == ProcedureKind.Sid).Select(x => x.Riga).ToList();
         var stars = procedure.Where(x => x.Kind == ProcedureKind.Star).Select(x => x.Riga).ToList();
@@ -313,29 +313,25 @@ public sealed class EfAirportRepository : IAirportRepository
         IReadOnlyList<ImportedProcedure> rows, string airacCycle, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
-        // Snapshot per StableKey di TUTTE le righe (manuali + importate): serve a riapplicare priorità/forzatura,
-        // il fix risolto a mano e il PRIMO ciclo d'entrata alle righe con StableKey coincidente.
+        // Le importate dell'import precedente, per riapplicare alle righe nuove quel che la sorgente non conosce:
+        // priorità e forzatura, il fix risolto a mano, gli arricchimenti, le decisioni dello staff e il PRIMO ciclo
+        // d'entrata. Come si abbinano lo dice `Riaggancia`.
         //
-        // First-wins sulla chiave, in ordine di Id. La StableKey esclude di proposito la cifra della revisione,
-        // quindi un file .sid che contiene DUE revisioni della stessa SID (es. ROBO1H e ROBO2H) produce due righe
-        // con la stessa chiave: costruire qui un dizionario a chiave unica lanciava «An item with the same key has
-        // already been added» al primo REIMPORT di quell'aeroporto. Il primo import passava (tabella vuota, nessuna
-        // chiave da indicizzare) e ogni successivo fallliva, quindi l'import restava rotto per sempre su quegli
-        // scali — in silenzio, perché il job periodico logga l'errore per-ICAO a Debug. Misurato sul DB di
-        // sviluppo: 20 coppie così su 1478 righe, tra cui LIRF, LIMC, LIME, LIBG, LIED, LIEO, LIPQ.
-        var priorRows = await _db.AirportProcedures.AsNoTracking()
-            .Where(x => x.AirportId == id && x.Kind == kind && x.StableKey != null)
-            .OrderBy(x => x.Id)
+        // ⚠️ Anche le versioni «sostituite» (U-003) sono candidate, ma DOPO quelle vive: a parità di nome si
+        // continua la riga in vigore, e una sostituita si riprende solo se la sorgente rimanda proprio lei.
+        //
+        // 🔴 U-035/U-064 (revisione totale 3): <b>la riga che continua si aggiorna SUL POSTO</b>, e tiene il suo Id.
+        // Si cancellava e si ricreava tutto a ogni giro, anche a contenuto identico: tutti gli Id cambiavano, e
+        // l'editor già aperto — che scrive per Id — da lì in poi salvava nel vuoto sotto «Salvato». Il giro
+        // quotidiano parte 30 secondi dopo l'avvio e non chiede il lock, per disegno: una sessione di un'ora
+        // sulle 206 SID di LIRF ci cadeva dentro. Ora cambiano Id solo le righe nate adesso e quelle che la
+        // sorgente non manda più; per quelle l'editor riceve «la riga non c'è più, ricarica».
+        var priorRows = await _db.AirportProcedures
+            .Where(x => x.AirportId == id && x.Kind == kind && x.IsImported)
+            .OrderBy(x => x.SupersededFromCycle != null).ThenBy(x => x.Id)
             .ToListAsync(ct);
-        var prior = new Dictionary<string, PriorSid>();
-        foreach (var x in priorRows)
-            prior.TryAdd(x.StableKey!,
-                new PriorSid(x.Priority, x.ForcePublished, x.SourceAiracCycle, x.Fix, x.NeedsFixReview, x.Name, x.Transition, x.Type,
-                    x.InitialClimb, x.Cat, x.Wtc, x.Condition, x.InitialClimbByApp,
-                    x.IsHidden, x.FixOverride, x.TransitionOverride));
-
-        _db.AirportProcedures.RemoveRange(_db.AirportProcedures
-            .Where(x => x.AirportId == id && x.Kind == kind && x.IsImported));
+        var abbinate = Riaggancia(icao, kind, priorRows, rows);
+        var continuate = new HashSet<int>(abbinate.Where(p => p is not null).Select(p => p!.Id));
 
         // Le importate dopo le manuali; l'ordine di resa reale è per fix/priorità nel viewer. Gli arrivi partono
         // più in alto delle partenze: ogni lettura filtra comunque per verso, ma una tabella guardata a mano —
@@ -348,13 +344,25 @@ public sealed class EfAirportRepository : IAirportRepository
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
-            var found = prior.TryGetValue(r.StableKey, out var p);
+            var p = abbinate[i];
+            var found = p is not null;
 
             // `airacCycle` è il ciclo DAL QUALE la riga vale, deciso da SidStampCycle su quel che la sorgente
             // dichiara (carta §AW2). Se il contenuto è invariato dall'import precedente si conserva il PRIMO:
             // così, raggiunto quel ciclo, la SID diventa pubblica (IsPublicAt) e ci RESTA. Solo un contenuto
             // cambiato — una revisione nuova — riparte dal ciclo d'entrata appena calcolato.
-            var sourceCycle = found && ContentUnchanged(p!, r) ? (p!.SourceAiracCycle ?? airacCycle) : airacCycle;
+            //
+            // 🔴 U-134 (revisione totale 3): «il primo» vuol dire il più VICINO, non il primo scritto. Se il ciclo
+            // dichiarato torna indietro — la divisione crea 2611.txt mentre lavora al 2610, poi lo rinomina — il
+            // timbro 2611 restava appiccicato e le SID rimanevano fuori dalla pagina pubblica per un ciclo intero.
+            var invariata = found && ContentUnchanged(p!, r);
+            var sourceCycle = invariata ? PiuVicino(p!.SourceAiracCycle, airacCycle) : airacCycle;
+
+            // 🔴 U-003: una revisione nuova non cancella la versione in vigore. Resta, sostituita dal ciclo
+            // d'entrata della nuova, e ognuna delle due si vede nel suo tratto. ⚠️ La copia si fa QUI, prima che
+            // la riga si aggiorni sul posto: porta i valori di prima. L'Id resta alla revisione nuova, che è la
+            // riga su cui l'editor continua a lavorare.
+            var vecchiaConservata = found && !invariata && ConservaVersioneVecchia(p!, airacCycle);
 
             // Se la sorgente ripropone il prefisso grezzo (NeedsFixReview) ma quel fix era già stato risolto a mano,
             // conserva la risoluzione invece di ripristinare il grezzo a ogni reimport.
@@ -366,37 +374,165 @@ public sealed class EfAirportRepository : IAirportRepository
                 needsReview = false;
             }
 
-            _db.AirportProcedures.Add(new AirportProcedure
-            {
-                AirportId = id, Kind = kind,
-                Order = baseOrder + i, Runway = r.Runway, Fix = fix, Name = r.Name.Trim(),
-                Transition = r.Transition, Type = r.Type,
-                IsImported = true, StableKey = r.StableKey, SourceAiracCycle = sourceCycle,
-                NeedsFixReview = needsReview,
-                Priority = p?.Priority, ForcePublished = p?.ForcePublished ?? false,
-                // Arricchimenti editoriali sovrapposti a mano: sopravvivono al reimport (la sorgente non li fornisce).
-                InitialClimb = p?.InitialClimb, InitialClimbByApp = p?.InitialClimbByApp ?? false,
-                Cat = p?.Cat, Wtc = p?.Wtc, Condition = p?.Condition,
-                // Decisioni dello staff sulla riga: nasconderla, correggerne punto e transition. Come gli
-                // arricchimenti, la sorgente non le conosce e un reimport non deve disfarle.
-                IsHidden = p?.IsHidden ?? false, FixOverride = p?.FixOverride, TransitionOverride = p?.TransitionOverride,
-            });
+            // La riga nuova è quella di prima aggiornata (stesso Id), o una riga nata adesso. Tutto quel che la
+            // sorgente non conosce — priorità, arricchimenti, decisioni dello staff — resta com'è.
+            var riga = p ?? _db.AirportProcedures.Add(new AirportProcedure { AirportId = id, Kind = kind, IsImported = true }).Entity;
+            riga.Order = baseOrder + i;
+            riga.Runway = r.Runway;
+            riga.Fix = fix;
+            riga.Name = r.Name.Trim();
+            riga.Transition = r.Transition;
+            riga.Type = r.Type;
+            riga.StableKey = r.StableKey;
+            riga.SourceAiracCycle = sourceCycle;
+            riga.NeedsFixReview = needsReview;
+            // Una versione «sostituita» che la sorgente rimanda torna la riga in vigore.
+            riga.SupersededFromCycle = null;
+            // ⚠️ La forzatura NON passa a una revisione nuova quando la vecchia resta come sostituita: era una
+            // decisione su quel contenuto — «pubblicalo adesso» — e il buco che copriva non c'è più. Passandola,
+            // la nuova usciva insieme alla vecchia: due SID dello stesso punto e della stessa pista (LIRN,
+            // ALAX6G e ALAX7G, prova sulla copia del 27 settembre 2026).
+            if (vecchiaConservata) riga.ForcePublished = false;
         }
+
+        // 🔴 U-003: quel che la sorgente non manda più vale ancora fino al ciclo che dichiara adesso — resta,
+        // col suo Id, segnata come sostituita; se non serve più a nessun ciclo si toglie.
+        foreach (var p in priorRows.Where(x => !continuate.Contains(x.Id)))
+        {
+            if (CicloDiSostituzione(p, airacCycle) is { } dal) p.SupersededFromCycle = dal;
+            else _db.AirportProcedures.Remove(p);
+        }
+
         await _db.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Una riga dell'import precedente che non continua così com'è — rivista, o tolta dalla sorgente — si rimette
+    /// in archivio come versione <b>sostituita</b>, se serve ancora a qualche ciclo (U-003, revisione totale 3).
+    ///
+    /// <para>Fino al 27 settembre 2026 si cancellava: la nuova aspettava il suo ciclo d'entrata e in mezzo non c'era
+    /// niente — il 25 settembre a LIMF le TOP1B con transizione sono sparite dal vSOP pubblico fino al 1° ottobre.
+    /// Ora la vecchia vale fino al ciclo che la sorgente dichiara (<see cref="SidRow.IsPublicAt"/>), con tutte le
+    /// sue decisioni.</para>
+    /// <list type="bullet">
+    ///   <item><b>viva</b>: si tiene se era entrata PRIMA del ciclo dichiarato. Entrata nello stesso ciclo, era una
+    ///         correzione dentro il ciclo: la sorgente ha cambiato idea, e si toglie come prima.</item>
+    ///   <item><b>già sostituita</b>: si tiene finché il ciclo dichiarato non la supera; dopo non serve più a nessun
+    ///         ciclo e si toglie.</item>
+    /// </list>
+    /// </summary>
+    /// <returns>Vero se la versione vecchia è rimasta in archivio.</returns>
+    private bool ConservaVersioneVecchia(AirportProcedure p, string cicloDichiarato)
+    {
+        if (CicloDiSostituzione(p, cicloDichiarato) is not { } dal) return false;
+
+        _db.AirportProcedures.Add(new AirportProcedure
+        {
+            AirportId = p.AirportId, Kind = p.Kind, Order = p.Order, Runway = p.Runway, Fix = p.Fix, Name = p.Name,
+            Transition = p.Transition, Type = p.Type, IsImported = true, StableKey = p.StableKey,
+            SourceAiracCycle = p.SourceAiracCycle, SupersededFromCycle = dal, NeedsFixReview = p.NeedsFixReview,
+            Priority = p.Priority, ForcePublished = p.ForcePublished,
+            InitialClimb = p.InitialClimb, InitialClimbByApp = p.InitialClimbByApp, Cat = p.Cat, Wtc = p.Wtc,
+            Condition = p.Condition, IsHidden = p.IsHidden, FixOverride = p.FixOverride, TransitionOverride = p.TransitionOverride,
+        });
+        return true;
+    }
+
+    /// <summary>Il ciclo dal quale la versione vecchia è sostituita, se serve ancora a qualche ciclo; null se no.
+    /// Le regole sono quelle di <see cref="ConservaVersioneVecchia"/>.</summary>
+    private static string? CicloDiSostituzione(AirportProcedure p, string cicloDichiarato)
+    {
+        if (p.SupersededFromCycle is { } gia) return Prima(cicloDichiarato, gia) || cicloDichiarato == gia ? gia : null;
+        return Prima(p.SourceAiracCycle, cicloDichiarato) ? cicloDichiarato : null;
+    }
+
+    /// <summary>Dei due cicli, quello che entra in vigore prima; il timbro che manca lascia il calcolato.</summary>
+    private static string PiuVicino(string? timbro, string calcolato) =>
+        string.IsNullOrWhiteSpace(timbro) || Prima(calcolato, timbro) ? calcolato : timbro;
+
+    private static readonly Vipi.Domain.Services.AiracService Airac = new();
+
+    /// <summary>Vero se il ciclo <paramref name="a"/> entra in vigore prima di <paramref name="b"/>. Per DATA, non
+    /// per stringa («2701» viene dopo «2613»); un ciclo che manca o non si legge non è «prima» di niente.</summary>
+    private static bool Prima(string? a, string? b)
+    {
+        if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b)) return false;
+        try { return Airac.EffectiveUtcForCycle(a) < Airac.EffectiveUtcForCycle(b); }
+        catch (ArgumentException) { return false; }
+    }
+
     // "Contenuto invariato" = stessi campi che definiscono la SID lato sorgente (codice con revisione, transition, tipo).
-    // Fix/pista fanno parte della StableKey, quindi qui non si riconfrontano.
-    private static bool ContentUnchanged(PriorSid p, ImportedProcedure r) =>
+    // Prefisso e pista fanno parte della chiave, quindi qui non si riconfrontano.
+    private static bool ContentUnchanged(AirportProcedure p, ImportedProcedure r) =>
         string.Equals(p.Name, r.Name.Trim(), StringComparison.Ordinal)
         && string.Equals(p.Transition ?? "", r.Transition ?? "", StringComparison.Ordinal)
         && string.Equals(p.Type ?? "", r.Type ?? "", StringComparison.Ordinal);
 
-    // Snapshot dell'import precedente per StableKey (materializzato client-side da ToDictionaryAsync).
-    private sealed record PriorSid(int? Priority, bool ForcePublished, string? SourceAiracCycle,
-        string? Fix, bool NeedsFixReview, string Name, string? Transition, string? Type,
-        string? InitialClimb, string? Cat, string? Wtc, string? Condition, bool InitialClimbByApp,
-        bool IsHidden, string? FixOverride, string? TransitionOverride);
+    /// <summary>
+    /// Per ogni riga nuova, la riga dell'import precedente che ne è la continuazione (o null: è nata adesso).
+    ///
+    /// <para>🔴 <b>La chiave si RICALCOLA dai dati delle righe, non si legge quella salvata</b> (U-005, revisione
+    /// totale 3). Quella salvata fino al 27 settembre 2026 conteneva il punto risolto, e un alias nuovo bastava a
+    /// staccare la riga dal suo passato. Ricalcolata con <see cref="Sectorfile.AuroraSectorfileParser.ChiaveStabile"/>
+    /// sul nome, la transition e la pista, vale anche per le righe scritte nel formato vecchio: niente migrazione.</para>
+    ///
+    /// <para>🔴 <b>Una riga vecchia si abbina a UNA riga nuova, in tre passi</b> (U-004). La chiave esclude la cifra
+    /// della revisione, e nei file ci sono coppie di procedure diverse che la condividono e convivono (ROBO1H/ROBO5H
+    /// a LIBG, XIB5A-OKU5R/OKU6A a LIRF, VOG1K/VOG1S a LIME). Col first-wins di prima la seconda della coppia
+    /// ereditava le decisioni della prima e, confrontata col nome della prima, prendeva il ciclo nuovo a ogni giro:
+    /// restava fuori dalla pagina pubblica per dieci-dodici giorni a ogni ciclo. Ora:</para>
+    /// <list type="number">
+    ///   <item><b>stesso nome</b>: è la stessa procedura, invariata;</item>
+    ///   <item><b>stessa radice del nome</b> (le cifre non contano: <c>XIB?A-OKU?R</c>): la stessa procedura
+    ///         rivista, senza confonderla con la sorella che ha un'altra transition;</item>
+    ///   <item><b>stessa chiave</b>: la revisione nuova di una procedura il cui nome è cambiato di più.</item>
+    /// </list>
+    /// <para>Le righe vecchie si prendono in ordine di Id: a parità, l'esito è lo stesso a ogni giro.</para>
+    ///
+    /// <para>Prima ancora (luglio 2026) il dizionario a chiave unica lanciava «An item with the same key has already
+    /// been added» al primo reimport degli scali con queste coppie: una lista, qui, non ha quel problema.</para>
+    /// </summary>
+    private static AirportProcedure?[] Riaggancia(string icao, ProcedureKind kind,
+        IReadOnlyList<AirportProcedure> vecchie, IReadOnlyList<ImportedProcedure> nuove)
+    {
+        string Chiave(string nome, string? transition, string? pista) =>
+            Sectorfile.AuroraSectorfileParser.ChiaveStabile(kind, icao, nome, transition, pista);
+
+        var v = vecchie.Select(x => (Riga: x, Chiave: Chiave(x.Name, x.Transition, x.Runway),
+            Nome: x.Name.Trim().ToUpperInvariant())).ToList();
+        var n = nuove.Select(x => (Chiave: Chiave(x.Name, x.Transition, x.Runway),
+            Nome: x.Name.Trim().ToUpperInvariant())).ToList();
+        var usata = new bool[v.Count];
+        var esito = new AirportProcedure?[n.Count];
+
+        var passi = new Func<string, string, bool>[]
+        {
+            (a, b) => string.Equals(a, b, StringComparison.Ordinal),
+            (a, b) => string.Equals(Radice(a), Radice(b), StringComparison.Ordinal),
+            (_, _) => true,
+        };
+        foreach (var stessa in passi)
+            for (var i = 0; i < n.Count; i++)
+            {
+                if (esito[i] is not null) continue;
+                for (var j = 0; j < v.Count; j++)
+                {
+                    if (usata[j] || !string.Equals(v[j].Chiave, n[i].Chiave, StringComparison.Ordinal)) continue;
+                    if (!stessa(v[j].Nome, n[i].Nome)) continue;
+                    esito[i] = v[j].Riga;
+                    usata[j] = true;
+                    break;
+                }
+            }
+        return esito;
+    }
+
+    /// <summary>Il nome senza le cifre delle revisioni: <c>XIB5A-OKU6A</c> → <c>XIB?A-OKU?A</c>.</summary>
+    private static string Radice(string nome) =>
+        string.Create(nome.Length, nome, (span, s) =>
+        {
+            for (var k = 0; k < s.Length; k++) span[k] = char.IsAsciiDigit(s[k]) ? '?' : s[k];
+        });
 
     public async Task<int> SetImportedSidsHiddenAsync(string icao, IReadOnlyCollection<int> sidIds, bool hidden, CancellationToken ct = default)
     {
@@ -412,24 +548,28 @@ public sealed class EfAirportRepository : IAirportRepository
         return righe.Count;
     }
 
-    public async Task SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default)
+    public async Task<bool> SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
         var s = await _db.AirportProcedures.FirstOrDefaultAsync(x => x.Id == sidId && x.AirportId == id && x.IsImported, ct);
-        if (s is null) return;
+        if (s is null) return false;
         // Uguale alla sorgente = nessuna correzione: si torna a seguire la sorgente, anche quando cambierà.
         var fix = Blank(fixOverride)?.ToUpperInvariant();
         s.FixOverride = fix is null || string.Equals(fix, s.Fix, StringComparison.OrdinalIgnoreCase) ? null : fix;
         var trans = Blank(transitionOverride)?.ToUpperInvariant();
         s.TransitionOverride = trans is null || string.Equals(trans, s.Transition, StringComparison.OrdinalIgnoreCase) ? null : trans;
         await _db.SaveChangesAsync(ct);
+        return true;
     }
 
-    public async Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
+    public async Task<bool> UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
         string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default)
     {
-        var s = await _db.AirportProcedures.FirstOrDefaultAsync(x => x.Id == sidId && x.IsImported, ct);
-        if (s is null) return;
+        // 🔴 U-173 (revisione totale 3): filtrata per SCALO oltre che per Id, come le due sorelle qui sopra. Il lock
+        // che il servizio controlla è quello di questo ICAO: un Id di un altro scalo non deve poter passare di qui.
+        var id = await AirportIdAsync(icao, ct);
+        var s = await _db.AirportProcedures.FirstOrDefaultAsync(x => x.Id == sidId && x.AirportId == id && x.IsImported, ct);
+        if (s is null) return false;
         s.Priority = priority;
         s.ForcePublished = forcePublished;
         // Arricchimenti editoriali: null/vuoto = campo cancellato (Trim per non salvare spazi).
@@ -444,6 +584,7 @@ public sealed class EfAirportRepository : IAirportRepository
             s.NeedsFixReview = false;
         }
         await _db.SaveChangesAsync(ct);
+        return true;
     }
 
     private static string? Blank(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
@@ -589,7 +730,7 @@ public sealed class EfAirportRepository : IAirportRepository
             // Su `puntaAllaVersione` c'è una domanda aperta: sta scritta in DocumentBirth.
             (doc, _) = Seed.DocumentBirth.Crea(_db, new AiracService(), $"vIPI — {icao} {airport.Name}",
                 Language.It, SectionProfile.Airport, authorUserId: 0,
-                nasceLive: BornLive, conSegnaposto: false);
+                nasceLive: Seed.DocumentBirth.NasceLive(SectionProfile.Airport), conSegnaposto: false);
             await _db.SaveChangesAsync(ct);
             // ⚠️ `CurrentVersionId` resta NULL, e adesso e' come nascono tutte e quattro le famiglie.
             // Qui veniva impostato sulla versione appena creata, che e' una BOZZA — ma quel campo vuol dire
@@ -632,13 +773,8 @@ public sealed class EfAirportRepository : IAirportRepository
     /// governato dal gate d'import, non dalla release.
     /// </para>
     /// </summary>
-    /// <summary>Sezioni derivate che nascono Live: il meteo (mai congelabile) e le procedure — SID e STAR —
-    /// per la stessa scelta editoriale storica. ⚠️ Gli arrivi nascono come le partenze: sono la stessa
-    /// tabella, e due nascite diverse vorrebbero dire due comportamenti da spiegare.</summary>
-    private static bool BornLive(string key) =>
-        SectionCatalog.IsAlwaysLive(key)
-        || string.Equals(key, "sids", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(key, "stars", StringComparison.OrdinalIgnoreCase);
+    // La regola «nasce Live» (meteo, SID e STAR) sta in DocumentBirth.NasceLive: la usa anche la manutenzione
+    // d'avvio, che aggiunge le sezioni mancanti ai documenti già scritti (revisione 3, U-245).
 
             public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
     {

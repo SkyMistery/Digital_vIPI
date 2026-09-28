@@ -67,7 +67,10 @@ Conseguenze pratiche per chi tocca il codice del modulo:
 ```csharp
 using Vipi.Hosting;
 
-builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddRazorComponents().AddInteractiveServerComponents()
+    // ⚠️ Obbligatorio: col default di 32 KB un campo oltre ~16 KB di testo stacca il circuito e il testo si
+    // perde in silenzio (blazor.web.js spedisce il valore due volte). Revisione 3, U-016.
+    .AddHubOptions(o => o.MaximumReceiveMessageSize = 512 * 1024);
 
 // Registra l'intero modulo (Application, EF, polling IVAO, opzioni, identità host).
 // useDevIdentity:false => l'identità è letta dal ClaimsPrincipal dell'host.
@@ -75,7 +78,7 @@ builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: builder.En
 
 var app = builder.Build();
 app.MigrateVipiDatabase();          // crea/migra il DB del modulo — CRITICO: un guasto qui deve fermare l'avvio
-app.RunVipiStartupMaintenance();    // riconciliazioni/proiezione/release: idempotenti, isolate, non fatali
+app.RunVipiStartupMaintenance();    // promozioni/riconciliazioni/proiezione/unioni: idempotenti, isolate, non fatali
 
 app.UseAuthentication();            // l'auth dell'host PRIMA del modulo
 app.UseAuthorization();

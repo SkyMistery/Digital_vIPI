@@ -23,11 +23,20 @@ public sealed class EfNavaidCatalog : INavaidCatalog
 {
     private readonly VipiDbContext _db;
     private readonly IEditAuthorizationService _authz;
+    private readonly ShapeReleaseContext? _cattura;
+    private readonly Vipi.Domain.Services.IAiracService _airac;
+    private readonly TimeProvider _orologio;
 
-    public EfNavaidCatalog(VipiDbContext db, IEditAuthorizationService authz)
+    /// <param name="cattura">U-037: il ciclo della release che si sta congelando. Dentro la cattura
+    /// <see cref="GetManyAsync"/> dà i valori in vigore a quel ciclo; fuori, i correnti.</param>
+    public EfNavaidCatalog(VipiDbContext db, IEditAuthorizationService authz, ShapeReleaseContext? cattura = null,
+        Vipi.Domain.Services.IAiracService? airac = null, TimeProvider? orologio = null)
     {
         _db = db;
         _authz = authz;
+        _cattura = cattura;
+        _airac = airac ?? new Vipi.Domain.Services.AiracService();
+        _orologio = orologio ?? TimeProvider.System;
     }
 
     /// <summary>
@@ -55,8 +64,37 @@ public sealed class EfNavaidCatalog : INavaidCatalog
         var esito = new List<NavaidRow>(keys.Count);
         foreach (var k in keys)
             if (indice.TryGetValue(Chiave(k), out var n))
-                esito.Add(Riga(n));
+                esito.Add(AlCiclo(n, _cattura?.Cycle));
         return esito;   // ⚠️ NELL'ORDINE CHIESTO: l'ordine delle righe è una scelta editoriale del documento.
+    }
+
+    /// <summary>
+    /// La riga come vale al ciclo di una release. 🔴 U-037 (revisione totale 3): quel che la sorgente ha cambiato
+    /// entra dal ciclo successivo; una release di un ciclo precedente congela i valori in vigore. Fuori dalla
+    /// cattura (<paramref name="ciclo"/> null) valgono i correnti, come per le aree di settore.
+    /// </summary>
+    private NavaidRow AlCiclo(Navaid n, string? ciclo)
+    {
+        var riga = Riga(n);
+        // Forzata: qualcuno ha deciso che è una correzione da pubblicare subito.
+        if (ciclo is null || n.SourceForcePublished || !Differita(n.SourceAiracCycle, ciclo)) return riga;
+        return riga with { Frequency = n.FrequencyInForce, Latitude = n.LatitudeInForce, Longitude = n.LongitudeInForce };
+    }
+
+    /// <summary>Vero se i valori che entrano da <paramref name="daCiclo"/> non sono ancora in vigore a
+    /// <paramref name="ciclo"/>. Per DATA, non per stringa; un ciclo illeggibile non differisce niente.</summary>
+    private bool Differita(string? daCiclo, string ciclo)
+    {
+        if (string.IsNullOrWhiteSpace(daCiclo)) return false;
+        try { return _airac.EffectiveUtcForCycle(ciclo) < _airac.EffectiveUtcForCycle(daCiclo); }
+        catch (ArgumentException) { return false; }
+    }
+
+    /// <summary>Il ciclo successivo a quello corrente: è da lì che un cambio della sorgente entra in vigore.</summary>
+    private string CicloSuccessivo(DateTime adesso)
+    {
+        var prossimi = _airac.NextCycles(adesso, 2);
+        return prossimi.Count > 1 ? prossimi[1].Cycle : _airac.GetCycle(adesso);
     }
 
     /// <summary>
@@ -177,11 +215,18 @@ public sealed class EfNavaidCatalog : INavaidCatalog
         _authz.EnsureAtLeast(VipiRole.Editor);
         var n = await _db.Navaids.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (n is null) return NavaidWrite.NonTrovata;
-        if (n.ChannelOrigin == NavaidFieldOrigin.Source) return NavaidWrite.DallaSorgente;
+        // 🔴 U-040 (revisione totale 3): non solo il canale che manda la sorgente — ogni riga che la sorgente
+        // manda. Il canale è nell'identità: scritto a mano su una sua riga che non lo porta, il giro dopo la
+        // sorgente mandava la chiave vecchia e ricreava la riga, e questa restava congelata (TRP 25X, 31 agosto).
+        if (n.ChannelOrigin == NavaidFieldOrigin.Source || n.ImportedUtc is not null) return NavaidWrite.DallaSorgente;
         if (!NavaidRules.CanaleValido(canale)) return NavaidWrite.NonValido;
 
         var nuovo = NavaidRules.Valore(canale);
         if (string.Equals(n.Channel, nuovo, StringComparison.Ordinal)) return NavaidWrite.Invariato;
+
+        // 🔴 U-157 (revisione totale 3): la stessa regola dell'eliminazione. Il documento cita per identità, e
+        // un'identità nuova faceva sparire la riga da sotto le tabelle militari, in silenzio.
+        if ((await CitataDaAsync(id, ct)).Count > 0) return NavaidWrite.Citata;
 
         var chiave = Chiave(n.Code, n.Kind, nuovo);
         if (await _db.Navaids.AnyAsync(x => x.NaturalKey == chiave && x.Id != n.Id, ct))
@@ -264,7 +309,20 @@ public sealed class EfNavaidCatalog : INavaidCatalog
     {
         if (navaids.Count == 0) return new NavaidImportOutcome(0, 0, 0);
 
-        var adesso = DateTime.UtcNow;
+        var adesso = _orologio.GetUtcNow().UtcDateTime;
+        var cicloSuccessivo = CicloSuccessivo(adesso);
+
+        // U-037: prima si chiudono i differimenti maturati — un valore entrato in vigore stanotte dev'essere già
+        // «corrente e basta» quando si guarda se la sorgente l'ha cambiato di nuovo.
+        foreach (var d in await _db.Navaids.Where(n => n.SourceAiracCycle != null).ToListAsync(ct))
+            if (!Differita(d.SourceAiracCycle, _airac.GetCycle(adesso)))
+            {
+                d.SourceAiracCycle = null;
+                d.FrequencyInForce = null;
+                d.LatitudeInForce = d.LongitudeInForce = null;
+                d.SourceForcePublished = false;   // la pratica è chiusa: la forzatura non serve più
+            }
+
         var chiavi = navaids.Select(s => Chiave(s.Code, s.Kind, s.Channel)).Distinct().ToList();
         var esistenti = (await _db.Navaids.Where(n => chiavi.Contains(n.NaturalKey)).ToListAsync(ct))
             .ToDictionary(n => n.NaturalKey, n => n);
@@ -293,13 +351,49 @@ public sealed class EfNavaidCatalog : INavaidCatalog
             }
 
             var prima = (riga.Frequency, riga.Channel, riga.Latitude, riga.Longitude);
+            var eraDellaSorgente = riga.ImportedUtc is not null;
             Applica(riga, s, adesso);
-            if (prima == (riga.Frequency, riga.Channel, riga.Latitude, riga.Longitude)) invariate++;
-            else aggiornate++;
+            if (prima == (riga.Frequency, riga.Channel, riga.Latitude, riga.Longitude)) { invariate++; continue; }
+            aggiornate++;
+
+            // 🔴 U-037: la sorgente ha CAMBIATO una riga che mandava già. Il cambio entra dal ciclo successivo, e fino
+            // ad allora resta in vigore quel che c'era — se un differimento era già aperto, i valori in vigore sono
+            // ancora quelli di prima, non i correnti che non lo sono mai stati. Una riga appena arrivata, o nostra
+            // fino a ieri, entra subito: nessun valore è peggio di uno in anticipo.
+            if (eraDellaSorgente && riga.SourceAiracCycle is null)
+            {
+                riga.FrequencyInForce = prima.Frequency;
+                (riga.LatitudeInForce, riga.LongitudeInForce) = (prima.Latitude, prima.Longitude);
+            }
+            if (eraDellaSorgente)
+            {
+                riga.SourceAiracCycle = cicloSuccessivo;
+                // Valeva per il valore di prima: un valore nuovo non si pubblica in anticipo senza che nessuno l'abbia chiesto.
+                riga.SourceForcePublished = false;
+            }
+        }
+
+        // 🔴 U-036 (revisione totale 3): la riga che la sorgente NON manda più. Restava con il timbro d'import e
+        // le origini «sorgente»: non si cancellava, non si correggeva, e i vSOP che la citano stampavano i suoi
+        // valori fermi (TRP|VHF|25X, ferma al 30 agosto, citata a LICT). Non si cancella nemmeno ora — l'assenza
+        // non cancella, e una riga citata non sparisce da sotto un documento — ma torna NOSTRA: i campi della
+        // sorgente diventano scritti a mano, e da lì si correggono o si tolgono. Se la sorgente la rimanda, il giro
+        // dopo la riprende. ⚠️ Solo le righe con il timbro d'import: ILS e TACAN scritti a mano non sono mai stati
+        // della sorgente, e restano come sono.
+        var mandate = esistenti.Keys.ToHashSet(StringComparer.Ordinal);
+        var staccate = await _db.Navaids.Where(n => n.ImportedUtc != null).ToListAsync(ct);
+        var nStaccate = 0;
+        foreach (var n in staccate.Where(n => !mandate.Contains(n.NaturalKey)))
+        {
+            n.ImportedUtc = null;
+            if (n.FrequencyOrigin == NavaidFieldOrigin.Source) n.FrequencyOrigin = NavaidFieldOrigin.Manual;
+            if (n.ChannelOrigin == NavaidFieldOrigin.Source) n.ChannelOrigin = NavaidFieldOrigin.Manual;
+            if (n.CoordinatesOrigin == NavaidFieldOrigin.Source) n.CoordinatesOrigin = NavaidFieldOrigin.Manual;
+            nStaccate++;
         }
 
         await _db.SaveChangesAsync(ct);
-        return new NavaidImportOutcome(create, aggiornate, invariate);
+        return new NavaidImportOutcome(create, aggiornate, invariate, nStaccate);
     }
 
     /// <summary>
@@ -333,5 +427,5 @@ public sealed class EfNavaidCatalog : INavaidCatalog
 
     private static NavaidRow Riga(Navaid n) => new(
         n.Id, n.Code, n.Kind, n.Type, n.Frequency, n.Channel, n.Latitude, n.Longitude,
-        n.FrequencyOrigin, n.ChannelOrigin, n.CoordinatesOrigin, n.UpdatedUtc, n.UpdatedByUserId);
+        n.FrequencyOrigin, n.ChannelOrigin, n.CoordinatesOrigin, n.UpdatedUtc, n.UpdatedByUserId, n.SourceAiracCycle);
 }

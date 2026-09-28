@@ -491,8 +491,7 @@
         if (pezzi.Length != 3 || !Enum.TryParse<SourceCatalog>(pezzi[0], out var catalogo)
             || !int.TryParse(pezzi[1], out var id)) return;
 
-        _busy = true;
-        try
+        await Gesto(async () =>
         {
             // Nell'ORDINE IN CUI SONO IN TABELLA, non in quello in cui sono stati spuntati: la tabella e'
             // ordinata per famiglia e nome, ed e' l'ordine che chi guarda si aspetta di ritrovare in mappa.
@@ -506,6 +505,31 @@
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Bound"].Value, pezzi[2], volumi.Count);
+        });
+    }
+
+    /// <summary>
+    /// 🔴 U-049 (revisione totale 3): la porta di ogni gesto della pagina. I servizi vengono dal circuito, quindi due
+    /// gesti sovrapposti sono due operazioni sullo stesso DbContext: la sentinella sta PRIMA del primo await, e un
+    /// doppio clic (o un secondo tasto premuto mentre il primo lavora) non parte. Un guasto che il servizio non
+    /// traduce resta un messaggio: prima c'era un <c>finally</c> e basta, e l'eccezione abbatteva il circuito.
+    /// </summary>
+    private async Task Gesto(Func<Task> lavoro)
+    {
+        if (_busy) return;
+        _busy = true;
+        _messaggio = null;
+        try { await lavoro(); }
+        catch (Vipi.Application.Aor.ValidationException ex)
+        {
+            _ok = false;
+            _messaggio = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _ok = false;
+            _messaggio = L["Common_UnexpectedError"] + ex.Message;
+            Logger.LogError(ex, "Spazi aerei: gesto non riuscito.");
         }
         finally { _busy = false; }
     }
@@ -518,25 +542,30 @@
     private async Task Confronta()
     {
         if (_corrente is null) return;
+        var corrente = _corrente;
 
-        _busy = true;
-        try
+        await Gesto(async () =>
         {
-            var file = await Catalogo.GetFileAsync(_corrente.Id);
+            var file = await Catalogo.GetFileAsync(corrente.Id);
             if (file is null) return;
 
-            using var flusso = new MemoryStream(file.Value.Content);
-            var daAip = AirspaceNavaidReader.LeggiKmz(flusso);
+            // 🔴 U-136: il lettore si sceglie dai byte (KMZ o KML), e un file che non si legge si dice: un rapporto
+            // vuoto direbbe che mancano tutte le radioassistenze, e manderebbe a correggere dati giusti.
+            var daAip = AirspaceNavaidReader.Leggi(file.Value.Content);
+            if (daAip is null)
+            {
+                _ok = false;
+                _messaggio = L["Asp_NavUnreadable"];
+                return;
+            }
             _rapporto = NavaidAipReport.Confronta(daAip, await Radioassistenze.ListAsync());
             _rapportoFatto = true;
-        }
-        finally { _busy = false; }
+        });
     }
 
     private async Task Sgancia(SectorAirspaceBindingRow a)
     {
-        _busy = true;
-        try
+        await Gesto(async () =>
         {
             await Agganci.SetAsync(a.Catalog, a.SectorId, a.Callsign, Array.Empty<AirspaceVolumeKey>(),
                 Authz.CurrentUserId, Authz.CurrentName);
@@ -544,8 +573,7 @@
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Unbound"].Value, a.Callsign);
-        }
-        finally { _busy = false; }
+        });
     }
 
     /// <summary>
@@ -572,81 +600,69 @@
     {
         if (!PuoScrivere) return;
 
-        _busy = true;
-        _messaggio = null;
-        try
+        await Gesto(async () =>
         {
-            var file = e.File;
-
-            // ⚠️ Il tetto sta qui E nel lettore, e non è una ripetizione oziosa: qui evita di tirare in
-            // memoria un file enorme, là protegge chiunque altro chiami il lettore.
-            await using var flusso = file.OpenReadStream(Vipi.Application.Coordinates.KmlReader.MaxByteFile);
-            using var memoria = new MemoryStream();
-            await flusso.CopyToAsync(memoria);
-            var byteFile = memoria.ToArray();
-
-            memoria.Position = 0;
-            var lettura = file.Name.EndsWith(".kml", StringComparison.OrdinalIgnoreCase)
-                ? AirspaceKmlReader.LeggiKml(System.Text.Encoding.UTF8.GetString(byteFile))
-                : AirspaceKmlReader.LeggiKmz(memoria);
-
-            if (lettura.Volumes.Count == 0)
+            try
             {
-                _ok = false;
-                _messaggio = L["Asp_NothingRead"];
-                return;
+                var file = e.File;
+
+                // ⚠️ Il tetto sta qui E nel lettore, e non è una ripetizione oziosa: qui evita di tirare in
+                // memoria un file enorme, là protegge chiunque altro chiami il lettore.
+                await using var flusso = file.OpenReadStream(Vipi.Application.Coordinates.KmlReader.MaxByteFile);
+                using var memoria = new MemoryStream();
+                await flusso.CopyToAsync(memoria);
+                var byteFile = memoria.ToArray();
+
+                memoria.Position = 0;
+                var lettura = file.Name.EndsWith(".kml", StringComparison.OrdinalIgnoreCase)
+                    ? AirspaceKmlReader.LeggiKml(System.Text.Encoding.UTF8.GetString(byteFile))
+                    : AirspaceKmlReader.LeggiKmz(memoria);
+
+                if (lettura.Volumes.Count == 0)
+                {
+                    _ok = false;
+                    _messaggio = L["Asp_NothingRead"];
+                    return;
+                }
+
+                var salvato = await Catalogo.SaveAsync(
+                    new NewAirspaceImport(file.Name, byteFile, _ciclo, Authz.CurrentUserId, Authz.CurrentName),
+                    lettura, DateTime.UtcNow);
+
+                _ok = true;
+                _messaggio = string.Format(L["Asp_Loaded"].Value,
+                    salvato.VolumesRead, salvato.VolumesUsable, salvato.DuplicateKeys);
+                await RicaricaAsync();
             }
-
-            var salvato = await Catalogo.SaveAsync(
-                new NewAirspaceImport(file.Name, byteFile, _ciclo, Authz.CurrentUserId, Authz.CurrentName),
-                lettura, DateTime.UtcNow);
-
-            _ok = true;
-            _messaggio = string.Format(L["Asp_Loaded"].Value,
-                salvato.VolumesRead, salvato.VolumesUsable, salvato.DuplicateKeys);
-            await RicaricaAsync();
-        }
-        catch (IOException ex)
-        {
-            // Il tetto di `OpenReadStream` esce di qui: è la risposta a un file troppo grosso, non un guasto.
-            _ok = false;
-            _messaggio = $"{L["Asp_TooBig"]} ({ex.Message})";
-        }
-        finally
-        {
-            _busy = false;
-        }
+            catch (IOException ex)
+            {
+                // Il tetto di `OpenReadStream` esce di qui: è la risposta a un file troppo grosso, non un guasto.
+                _ok = false;
+                _messaggio = $"{L["Asp_TooBig"]} ({ex.Message})";
+            }
+        });
     }
 
     private async Task MettiInVigore(int id)
     {
-        _busy = true;
-        try
+        await Gesto(async () =>
         {
             await Catalogo.SetCurrentAsync(id);
             await RicaricaAsync();
             _ok = true;
             _messaggio = L["Asp_SetCurrentDone"];
-        }
-        finally { _busy = false; }
+        });
     }
 
     private async Task Elimina(int id)
     {
-        _busy = true;
-        try
+        await Gesto(async () =>
         {
             await Catalogo.DeleteAsync(id);
             await RicaricaAsync();
             _ok = true;
             _messaggio = L["Asp_Deleted"];
-        }
-        catch (Vipi.Application.Aor.ValidationException ex)
-        {
-            _ok = false;
-            _messaggio = ex.Message;
-        }
-        finally { _busy = false; }
+        });
     }
 
     /// <summary>Il nome della famiglia nelle due lingue. Le sigle restano sigle: CTR è CTR ovunque.</summary>

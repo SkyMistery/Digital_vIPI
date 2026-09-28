@@ -92,18 +92,21 @@ public sealed class DocumentAdminService : IDocumentAdminService
     /// una fotografia, e chi arriva da un'altra scheda o con la lista vecchia in mano passerebbe lo stesso.</para>
     ///
     /// <para>Il lock <b>scaduto</b> non blocca: <c>InspectLockAsync</c> lo riporta come libero. Un lock altrui
-    /// vivo si toglie dall'elenco col force-unlock (admin), non aggirandolo qui.</para>
+    /// vivo si toglie dall'elenco con «sblocca comunque» (ogni Editor), non aggirandolo qui.</para>
+    ///
+    /// <para>⚠️ L'Id si <b>risolve</b> dalla chiave quando manca: il pannello di rilascio non lo passa, e fino a
+    /// U-139 (revisione 3) la guardia usciva proprio lì mentre il repository, risolvendolo, scriveva.</para>
     /// </summary>
     private async Task EnsureNotLockedByOtherAsync(ManagedDocRef doc, CancellationToken ct)
     {
-        if (doc.DocumentId is not int id) return;
+        if (await _repo.ResolveDocumentIdAsync(doc, ct) is not int id) return;
         var lk = await _editing.InspectLockAsync(id, _authz.CurrentUserId ?? 0, ct);
         if (!lk.Locked || lk.IsMine) return;
         throw new EditConflictException(Lingua(
             $"Documento in modifica da {lk.ByName ?? $"VID {lk.ByUserId}"} fino alle {lk.ExpiresUtc:HH:mm} UTC: "
-            + "aspetta che finisca, oppure sbloccalo (solo admin) prima di procedere.",
+            + "aspetta che finisca, oppure sbloccalo prima di procedere.",
             $"Document being edited by {lk.ByName ?? $"VID {lk.ByUserId}"} until {lk.ExpiresUtc:HH:mm} UTC: "
-            + "wait until they are done, or unlock it (admin only) before carrying on."));
+            + "wait until they are done, or unlock it before carrying on."));
     }
 
     private async Task EnsureCanEditAsync(ManagedDocRef doc, CancellationToken ct)

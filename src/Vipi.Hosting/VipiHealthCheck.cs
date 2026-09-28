@@ -38,9 +38,20 @@ public sealed class VipiHealthCheck : IHealthCheck
     /// sempre qualcuno, perché le due sorgenti hanno cadenze diverse (IVAO in continuo, il sectorfile per
     /// ciclo AIRAC): contarli qui vorrebbe dire un endpoint di salute perennemente «Degraded», cioè un
     /// monitor che qualcuno impara a ignorare — e con lui i guasti veri.</para>
+    ///
+    /// <para>⚠️ E per la stessa ragione contano solo gli <b>errori</b> (U-100, revisione 3; scelta del
+    /// committente il 28-set-2026). Il report ha avvisi permanenti su stati previsti — «Shape sintetica» per
+    /// ogni TWR col cerchio da 5 NM, «Settore senza poligono» per le FSS, che un'area non ce l'hanno per
+    /// natura — e contarli teneva l'endpoint «Degraded» dalla 1.26.1: una passata d'avvio fallita, che
+    /// <c>StartupMaintenance</c> scrive come Error, non cambiava niente. Gli avvisi restano nel corpo, con
+    /// <see cref="ContaAvvisi"/>.</para>
     /// </summary>
     public static int ContaIncongruenze(IReadOnlyList<ConsistencyFinding> findings) =>
-        findings.Count(f => f.Area != ConsistencyArea.Sectorfile);
+        findings.Count(f => f.Area != ConsistencyArea.Sectorfile && f.Severity == ConsistencySeverity.Error);
+
+    /// <summary>Gli avvisi fuori dal sectorfile: non muovono il verdetto (U-100), restano nel corpo come numero.</summary>
+    public static int ContaAvvisi(IReadOnlyList<ConsistencyFinding> findings) =>
+        findings.Count(f => f.Area != ConsistencyArea.Sectorfile && f.Severity == ConsistencySeverity.Warning);
 
     /// <summary>Le divergenze col sectorfile: non muovono il verdetto, ma restano nel corpo della risposta —
     /// saperlo è comodo per chi guarda, e non costa niente.</summary>
@@ -93,12 +104,15 @@ public sealed class VipiHealthCheck : IHealthCheck
         var divergenzeSectorfile = ContaDivergenzeSectorfile(findings);
         if (divergenzeSectorfile > 0) data["sectorfileDivergences"] = divergenzeSectorfile;
 
+        var avvisi = ContaAvvisi(findings);
+        if (avvisi > 0) data["dataConsistencyWarnings"] = avvisi;
+
         var incongruenze = ContaIncongruenze(findings);
         if (incongruenze > 0)
         {
             data["dataConsistencyFindings"] = incongruenze;
             return HealthCheckResult.Degraded(
-                $"{incongruenze} incongruenze dati rilevate (vedi /services/vsop/admin/diagnostics).", data: data);
+                $"{incongruenze} errori nel report di consistenza (vedi /services/vsop/admin/diagnostics).", data: data);
         }
 
         // Snapshot mai aggiornato o scaduto: degradato (il DB e la consultazione funzionano comunque). La soglia

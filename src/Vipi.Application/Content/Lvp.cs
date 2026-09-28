@@ -89,8 +89,9 @@ public enum LvpMisura
 /// Falso = si sono usati i minimi <see cref="LvpStandard"/>, perché lo scalo non ne ha di suoi. Il quadro lo
 /// scrive: una soglia standard è utile, una soglia standard spacciata per quella di Fiumicino no.
 /// </param>
+/// <param name="RvrSopraScala">L'RVR è un limite inferiore («P2000»): <see cref="RvrM"/> dice da dove in su (U-090).</param>
 public sealed record LvpValutazione(LvpStato Stato, LvpMisura Misura, bool DaiMinimiDelloScalo,
-                                    int? RvrM, int? CeilingFt)
+                                    int? RvrM, int? CeilingFt, bool RvrSopraScala = false)
 {
     public static readonly LvpValutazione NonValutabile =
         new(LvpStato.NonValutabile, LvpMisura.Nessuna, false, null, null);
@@ -119,8 +120,10 @@ public static class LvpValutatore
     /// rende da capo ogni volta e passa <c>false</c>, quindi non mostra mai la cancellazione — che è la
     /// risposta giusta a una domanda che lui non può porsi.</para>
     /// </param>
+    /// <param name="soffittoIgnoto">Cielo oscurato o coperto con l'altezza non misurata (U-089): un soffitto null
+    /// allora NON vale «sopra ogni soglia», e le LVP non si propongono da cancellare.</param>
     public static LvpValutazione Valuta(LvpRow? minimi, int? rvrM, int? visibilitaM, int? ceilingFt,
-                                        bool giaInVigore = false)
+                                        bool giaInVigore = false, bool soffittoIgnoto = false)
     {
         var dalloScalo = minimi is not null;
         var m = minimi ?? LvpStandard.Riga;
@@ -149,7 +152,7 @@ public static class LvpValutatore
         // Se erano in vigore, il dato risalito sopra la soglia d'ingresso NON le fa uscire: si esce quando
         // supera quella di CANCELLAZIONE, che è più alta apposta. Nel mezzo restano in vigore.
         if (giaInVigore)
-            return Cancellabile(m, vis, ceilingFt)
+            return Cancellabile(m, vis, ceilingFt, soffittoIgnoto)
                 ? new LvpValutazione(LvpStato.Cancellabile, misura, dalloScalo, vis, ceilingFt)
                 : new LvpValutazione(LvpStato.InVigore, misura, dalloScalo, vis, ceilingFt);
 
@@ -169,14 +172,16 @@ public static class LvpValutatore
     /// <para>⚠️ Se lo scalo non ha dichiarato <b>nessuna</b> soglia di cancellazione non si propone niente:
     /// restano in vigore, e a toglierle è una persona. Il silenzio non è un permesso.</para>
     /// </summary>
-    private static bool Cancellabile(LvpRow m, int? vis, int? ceilingFt)
+    private static bool Cancellabile(LvpRow m, int? vis, int? ceilingFt, bool soffittoIgnoto)
     {
         if (m.CancelRvrM is null && m.CancelCeilingFt is null) return false;
         // 🔴 T-009 (revisione del 13 settembre 2026): un soffitto null CON la visibilità misurata vuol dire
         // «nessuno strato coprente» (9999 NSC, CAVOK), cioè sopra ogni soglia — non «non misurato». Letto come
         // mancante, le LVP restavano in vigore sotto un cielo sereno. Senza visibilità, invece, null resta
         // un dato che manca e non fa cancellare niente.
-        var soffitto = ceilingFt ?? (vis is not null ? int.MaxValue : (int?)null);
+        // 🔴 U-089: e nemmeno quando il cielo è oscurato con l'altezza non misurata (VV///, OVC///): lì il soffitto
+        // c'è e non si sa quanto è basso.
+        var soffitto = ceilingFt ?? (vis is not null && !soffittoIgnoto ? int.MaxValue : (int?)null);
         return Sopra(vis, m.CancelRvrM) && Sopra(soffitto, m.CancelCeilingFt);
     }
 
@@ -194,7 +199,19 @@ public static class LvpValutatore
         if (metar is null) return LvpValutazione.NonValutabile with { DaiMinimiDelloScalo = minimi is not null };
         var rvr = metar.RvrGroups.Where(r => r.Modifier != Vipi.Application.Weather.RvrModifier.Above)
                                  .Select(r => (int?)r.ValueM).DefaultIfEmpty(null).Min();
-        return Valuta(minimi, rvr, metar.VisibilityMeters, metar.CeilingFt, giaInVigore);
+
+        // 🔴 U-090 (revisione totale 3): con TUTTI i gruppi «P» (sopra scala) la valutazione ricadeva sulla visibilità
+        // e accendeva le LVP da 500 m mentre ogni testata diceva «oltre 2000». Il P è un limite inferiore: si
+        // confronta come «appena sopra» il più basso dei valori, e la misura resta l'RVR.
+        var sopraScala = rvr is null
+            ? metar.RvrGroups.Where(r => r.Modifier == Vipi.Application.Weather.RvrModifier.Above)
+                             .Select(r => (int?)r.ValueM).DefaultIfEmpty(null).Min()
+            : null;
+        if (sopraScala is int s)
+            return Valuta(minimi, s + 1, metar.VisibilityMeters, metar.CeilingFt, giaInVigore, metar.CeilingUnknown)
+                   with { RvrM = s, RvrSopraScala = true };
+
+        return Valuta(minimi, rvr, metar.VisibilityMeters, metar.CeilingFt, giaInVigore, metar.CeilingUnknown);
     }
 
     /// <summary>

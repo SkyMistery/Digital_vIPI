@@ -209,6 +209,17 @@ public sealed class DeletionService : IDeletionService
             case DeletionTargetKind.Acc:
             {
                 var f = await _repo.AccFactsAsync(b.Code ?? "", ct) ?? throw Inesistente("ACC");
+
+                // 🔴 U-129 (revisione totale 3): la sonda chiede i center del SOLO paese della divisione, e per un ACC
+                // estero rispondeva «non c'è più: la sorgente elenca N center del paese e questo non è fra loro» — una
+                // constatazione falsa, che scioglieva la D8. Un confinante lo porta il nostro import dei confinanti:
+                // la domanda giusta non è alla sorgente del paese, e finché non la si sa fare la risposta è «non si sa».
+                if (f.IsForeign)
+                    return SourceProbeResult.NonSiSa(
+                        Lingua($"{f.Code} è un ACC estero: la sorgente si interroga solo per i center del paese della divisione, e non può dire se c'è ancora",
+                               $"{f.Code} is a foreign ACC: the source is only queried for the division's own country, and cannot say whether it is still there"),
+                        Lingua("nessuna chiamata: ACC estero", "no call: foreign ACC"));
+
                 return await _sorgente.ChiediAsync(new SourceProbeTarget(SourceProbeKind.Acc, f.Code), ct);
             }
 

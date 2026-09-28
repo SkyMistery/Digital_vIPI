@@ -57,5 +57,9 @@ public sealed class EfAirportNameLookup : IAirportNameLookup
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (InvalidOperationException) { return null; }   // credenziali sorgente assenti: non è un errore qui
         catch (HttpRequestException) { return null; }        // sorgente irraggiungibile: idem
+        // 🔴 U-163 (revisione totale 3): il timeout di HttpClient (nessuno ha annullato) e una risposta che non è JSON
+        // sono lo stesso «IVAO non risponde»: la riga si aggiunge senza nome, e l'editor non cade.
+        catch (OperationCanceledException) { return null; }
+        catch (System.Text.Json.JsonException) { return null; }
     }
 }

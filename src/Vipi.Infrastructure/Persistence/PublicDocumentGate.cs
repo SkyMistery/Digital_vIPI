@@ -23,7 +23,7 @@ internal static class PublicDocumentGate
         IReadOnlyList<T> items, Func<T, Document> doc, Func<T, ManagedDoc> managed,
         IReleaseRepository releases, CancellationToken ct)
     {
-        var candidates = items.Where(i => !doc(i).IsHidden).ToList();
+        var candidates = items.Where(i => !doc(i).IsHidden && PaginaAperta(doc(i), managed(i))).ToList();
         if (candidates.Count == 0) return Array.Empty<T>();
 
         var targets = candidates.Select(i => (managed(i).ReleaseTarget, managed(i).ReleaseKey)).Distinct().ToList();
@@ -34,6 +34,26 @@ internal static class PublicDocumentGate
                         && s.EffectiveCycle is not null)
             .ToList();
     }
+
+    /// <summary>
+    /// La pagina pubblica del documento è aperta? Le stesse condizioni di <c>EfContentRepository</c> oltre al
+    /// documento nascosto: lo <b>scalo</b> nascosto chiude la vIPI civile e il vSOP militare, l'<b>APP</b> che
+    /// la proiezione ha disattivato (nascosto dall'admin o sparito dalla sorgente) chiude la sua pagina.
+    ///
+    /// <para>🔴 U-142 (revisione totale 3): il cancello guardava solo il documento. La pagina spariva, e la
+    /// ricerca ne citava testi ed estratti con un link a «non disponibile»; «Cosa è cambiato» la elencava.
+    /// Vuole <c>Airport</c>, <c>MilAirport</c> e <c>Sectors</c> caricati: le due query che passano di qui li
+    /// includono già per i descrittori.</para>
+    /// </summary>
+    internal static bool PaginaAperta(Document d, ManagedDoc m) => m.Kind switch
+    {
+        ReleaseTargetType.Airport => d.Airport is not { IsHidden: true },
+        ReleaseTargetType.AirportMil => d.MilAirport is not { IsHidden: true },
+        ReleaseTargetType.App => d.Sectors.Any(s => s.IsPrimary && s.Type == SectorType.App
+                                                   && s.ApproachKind == ApproachKind.Standalone && s.IsActive
+                                                   && string.Equals(s.Callsign, m.ReleaseKey, StringComparison.OrdinalIgnoreCase)),
+        _ => true,
+    };
 
     /// <summary>Id delle sezioni da NON indicizzare: quelle nascoste e tutto ciò che sta sotto di esse — nel
     /// documento una sezione nascosta si porta via il proprio sottoalbero.</summary>

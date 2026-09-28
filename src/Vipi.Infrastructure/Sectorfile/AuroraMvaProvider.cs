@@ -23,50 +23,81 @@ public sealed class AuroraMvaProvider : IVectoringMinimaSource
     private readonly SectorfileOptions _opt;
     private readonly SectorfileCache _cache;
     private readonly ILogger<AuroraMvaProvider> _log;
+    private readonly Persistence.EfMvaChartStates? _stati;
+    private readonly Vipi.Application.Content.ShapeReleaseContext? _cattura;
 
+    /// <param name="stati">U-037: le carte ricordate col testo in vigore. Senza, il provider legge il sectorfile
+    /// com'è — il comportamento di prima.</param>
+    /// <param name="cattura">U-037: il ciclo della release che si sta congelando. Dentro la cattura, una carta
+    /// cambiata per un ciclo che la release non ha ancora raggiunto esce com'era.</param>
     public AuroraMvaProvider(HttpClient http, IOptions<SectorfileOptions> opt, SectorfileCache cache,
-        ILogger<AuroraMvaProvider> log)
+        ILogger<AuroraMvaProvider> log, Persistence.EfMvaChartStates? stati = null,
+        Vipi.Application.Content.ShapeReleaseContext? cattura = null)
     {
         _http = http;
         _opt = opt.Value;
         _cache = cache;
         _log = log;
+        _stati = stati;
+        _cattura = cattura;
     }
 
     public Task<MvaChart> GetAccChartAsync(string accCode, CancellationToken ct = default) =>
-        GetChartAsync(accCode, $"ENRMVA/{Norm(accCode)}.mva", ct);
+        GetChartAsync(accCode, PercorsoAcc(accCode), ct);
 
     public Task<MvaChart> GetAirportChartAsync(string icao, CancellationToken ct = default) =>
-        GetChartAsync(icao, $"{Norm(icao)}.mva", ct);
+        GetChartAsync(icao, PercorsoAeroporto(icao), ct);
 
-    private Task<MvaChart> GetChartAsync(string? code, string relative, CancellationToken ct)
+    /// <summary>Il file della carta enroute di un ACC. ⚠️ Un posto solo: lo usa anche l'avviso a chi pubblica
+    /// (<c>EfSectorfileGateRepository</c>), e due scritture dello stesso percorso sono due chiavi che divergono.</summary>
+    internal static string PercorsoAcc(string accCode) => $"ENRMVA/{Norm(accCode)}.mva";
+
+    /// <summary>Il file della carta di un aeroporto. Vedi <see cref="PercorsoAcc"/>.</summary>
+    internal static string PercorsoAeroporto(string icao) => $"{Norm(icao)}.mva";
+
+    private async Task<MvaChart> GetChartAsync(string? code, string relative, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(_opt.RawBaseUrl) || string.IsNullOrWhiteSpace(code))
-            return Task.FromResult(MvaChart.Empty);
+            return MvaChart.Empty;
 
         // La chiave di cache è il percorso: distingue da sola ENRMVA/lipp.mva dall'ipotetico lipp.mva di root.
-        return _cache.GetMvaChartAsync(relative, async token =>
+        var file = await _cache.GetMvaFileAsync(relative, token => CaricaAsync(relative, token), ct);
+        if (file.Testo is null || _stati is null) return file.Carta;   // 404: l'assenza non tocca il ricordo
+
+        // 🔴 U-037 (revisione totale 3): una carta rivista per il ciclo prossimo entrava subito anche nelle release
+        // del ciclo in corso. Il testo si confronta con quello ricordato una volta per caricamento, e dentro la
+        // cattura di una release si dà quello in vigore al suo ciclo.
+        if (!file.Riconciliato)
         {
-            var text = await SectorfileRaw.GetTextOrNullAsync(_http, _opt.RawBaseUrl, relative, token);
-            if (text is null)
-            {
-                // 404 = caso normale, non un guasto: 25 APP su 49 non hanno il file, e nel sectorfile è
-                // indistinguibile «non serve» da «non l'ha ancora fatto nessuno» (nessuna componente è obbligatoria).
-                _log.LogDebug("MRVA: {Path} non presente nel sectorfile.", relative);
-                return MvaChart.Empty;
-            }
+            await _stati.RiconciliaAsync(relative, file.Testo, ct);
+            file.Riconciliato = true;
+        }
+        if (_cattura?.Cycle is { } ciclo && await _stati.TestoInVigoreAsync(relative, ciclo, ct) is { } inVigore)
+            return AuroraSectorfileParser.ParseMva(inVigore);
+        return file.Carta;
+    }
 
-            var chart = AuroraSectorfileParser.ParseMva(text);
+    private async Task<MvaFile> CaricaAsync(string relative, CancellationToken token)
+    {
+        var text = await SectorfileRaw.GetTextOrNullAsync(_http, _opt.RawBaseUrl, relative, token);
+        if (text is null)
+        {
+            // 404 = caso normale, non un guasto: 25 APP su 49 non hanno il file, e nel sectorfile è
+            // indistinguibile «non serve» da «non l'ha ancora fatto nessuno» (nessuna componente è obbligatoria).
+            _log.LogDebug("MRVA: {Path} non presente nel sectorfile.", relative);
+            return new MvaFile(null, MvaChart.Empty);
+        }
 
-            // Un file presente ma illeggibile è l'unico caso che vale un avviso: il parser scarta le righe
-            // malformate in silenzio, quindi senza questo log un cambio di formato a monte sparirebbe.
-            if (chart.IsEmpty)
-                _log.LogWarning("MRVA: {Path} presente ma senza contenuto leggibile (formato .mva cambiato?).", relative);
-            else
-                _log.LogInformation("MRVA {Path}: {Shapes} tracciati, {Labels} etichette.",
-                    relative, chart.Shapes.Count, chart.Labels.Count);
-            return chart;
-        }, ct);
+        var chart = AuroraSectorfileParser.ParseMva(text);
+
+        // Un file presente ma illeggibile è l'unico caso che vale un avviso: il parser scarta le righe
+        // malformate in silenzio, quindi senza questo log un cambio di formato a monte sparirebbe.
+        if (chart.IsEmpty)
+            _log.LogWarning("MRVA: {Path} presente ma senza contenuto leggibile (formato .mva cambiato?).", relative);
+        else
+            _log.LogInformation("MRVA {Path}: {Shapes} tracciati, {Labels} etichette.",
+                relative, chart.Shapes.Count, chart.Labels.Count);
+        return new MvaFile(text, chart);
     }
 
     private static string Norm(string code) => code.Trim().ToLowerInvariant();

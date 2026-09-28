@@ -76,8 +76,11 @@ public class IntroDiPaginaTests : TestContext
             CancellationToken ct = default)
         {
             Salvataggi++;
-            return Task.CompletedTask;
+            return Rifiuta ? throw new EditConflictException("lock di un collega") : Task.CompletedTask;
         }
+
+        /// <summary>Il deposito rifiuta come quello vero quando il lock non è nostro (U-109).</summary>
+        public bool Rifiuta { get; set; }
     }
 
     /// <summary>Una memoria che sa quel che le si è detto, e niente rete.</summary>
@@ -267,6 +270,24 @@ public class IntroDiPaginaTests : TestContext
         Clicca(cut, "Lock_FinishEdit");
 
         Assert.Equal(1, deposito.Salvataggi);
+    }
+
+    /// <summary>U-109: il deposito ora rifiuta chi ha perso il lock. Il rifiuto è un messaggio nel riquadro,
+    /// non un circuito caduto, e quel che si è scritto resta a schermo come «non salvato».</summary>
+    [Fact]
+    public async Task Il_rifiuto_del_lock_resta_un_messaggio()
+    {
+        var deposito = MontaEditor();
+        deposito.Rifiuta = true;
+        var cut = RenderComponent<PageIntroZone>(p => p.Add(x => x.Pagina, "mil"));
+        Clicca(cut, "PageIntro_AddSection");
+
+        Clicca(cut, "Common_Save");
+
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
+        if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
+        Assert.Contains("lock di un collega", cut.Markup);
+        Assert.Contains("PageIntro_Unsaved", cut.Markup);
     }
 
     /// <summary>Senza modifiche non si scrive niente: uscire da una lettura non deve toccare l'archivio.</summary>

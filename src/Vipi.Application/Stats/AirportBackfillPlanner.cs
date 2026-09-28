@@ -68,6 +68,67 @@ public static class AirportBackfillPlanner
         return migliore.SessionId;
     }
 
+    /// <summary>
+    /// Il movimento avvenuto a <paramref name="istante"/> è di <paramref name="candidate"/>?
+    ///
+    /// <para>🔴 U-094 (revisione totale 3): prima decideva <see cref="Owner"/> per l'INTERA finestra — bastava
+    /// un'intersezione anche breve con una sessione più titolata perché la candidata andasse a zero movimenti per
+    /// sempre, e la vincitrice chiedeva alla sorgente solo la sua finestra: i movimenti fuori dall'intersezione non
+    /// andavano a nessuno (57 sessioni, 63 ore in frequenza, nella copia del 26 settembre). Ora decide chi era in
+    /// frequenza, e più titolato, in QUELL'istante.</para>
+    ///
+    /// <para>Se in quell'istante non c'era nessuno (o la sorgente non dà l'istante), vale la regola della finestra:
+    /// così due sessioni sovrapposte non si prendono lo stesso movimento.</para>
+    /// </summary>
+    public static bool Tiene(AirportSessionWindow candidate, IReadOnlyList<AirportSessionWindow> concurrent,
+                             DateTimeOffset? istante)
+    {
+        if (Competence(candidate.Type) == 0) return false;
+        if (istante is not { } i) return Owner(candidate, concurrent) == candidate.SessionId;
+
+        AirportSessionWindow? migliore = null;
+        foreach (var s in concurrent.Append(candidate))
+        {
+            if (!string.Equals(s.Icao, candidate.Icao, StringComparison.OrdinalIgnoreCase)) continue;
+            if (Competence(s.Type) == 0 || i < s.StartUtc || i >= s.EndUtc) continue;
+            if (migliore is not { } m || Meglio(s, m)) migliore = s;
+        }
+
+        return migliore is { } vincitore
+            ? vincitore.SessionId == candidate.SessionId
+            : Owner(candidate, concurrent) == candidate.SessionId;
+    }
+
+    /// <summary>
+    /// La finestra di <paramref name="candidate"/> è coperta per INTERO da sessioni più titolate dello stesso campo:
+    /// ogni istante al suo interno è di un altro, e chiedere i movimenti alla sorgente non servirebbe a niente.
+    /// </summary>
+    public static bool CopertaDaAltri(AirportSessionWindow candidate, IReadOnlyList<AirportSessionWindow> concurrent)
+    {
+        var sopra = concurrent
+            .Where(s => s.SessionId != candidate.SessionId
+                        && string.Equals(s.Icao, candidate.Icao, StringComparison.OrdinalIgnoreCase)
+                        && Competence(s.Type) > 0 && Meglio(s, candidate) && Overlaps(s, candidate))
+            .OrderBy(s => s.StartUtc)
+            .ToList();
+
+        var fin = candidate.StartUtc;
+        foreach (var s in sopra)
+        {
+            if (s.StartUtc > fin) return false;           // un buco: lì la candidata è sola
+            if (s.EndUtc > fin) fin = s.EndUtc;
+            if (fin >= candidate.EndUtc) return true;
+        }
+        return false;
+    }
+
+    // Più titolata; a parità decide l'id, per un esito stabile (stessa regola di Owner).
+    private static bool Meglio(AirportSessionWindow a, AirportSessionWindow b)
+    {
+        int ca = Competence(a.Type), cb = Competence(b.Type);
+        return ca > cb || (ca == cb && a.SessionId < b.SessionId);
+    }
+
     /// <summary>Vero se le due finestre si toccano nel tempo.</summary>
     public static bool Overlaps(AirportSessionWindow a, AirportSessionWindow b) =>
         a.StartUtc < b.EndUtc && b.StartUtc < a.EndUtc;

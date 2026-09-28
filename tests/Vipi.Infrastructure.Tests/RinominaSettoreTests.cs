@@ -229,6 +229,36 @@ public class RinominaSettoreTests : IAsyncLifetime
         Assert.DoesNotContain(chiavi, k => k.Contains(Vecchio));
     }
 
+    /// <summary>
+    /// 🔴 U-041 (revisione totale 3): gli agganci AIP stanno per callsign, e la rinomina li lasciava indietro: il
+    /// settore tornava alla forma di IVAO in silenzio. E le scelte per callsign del profilo del documento (AoR e
+    /// frequenze nascoste) seguono anche loro.
+    /// </summary>
+    [Fact]
+    public async Task Gli_agganci_AIP_e_le_scelte_del_profilo_seguono()
+    {
+        _db.SectorAirspaceBindings.Add(new SectorAirspaceBinding
+        {
+            Catalog = SourceCatalog.AirportPosition, SectorId = _settoreId, Callsign = Vecchio,
+            VolumeKey = "CTR|BARI|0|100", CreatedUtc = DateTime.UtcNow,
+        });
+        _db.DocumentProfiles.Add(new DocumentProfile
+        {
+            DocumentId = _docId, HiddenAorSectorsJson = $"[\"{Vecchio}\"]", HiddenFrequenciesJson = $"[\"{Vecchio}\",\"LIBD_TWR\"]",
+        });
+        await _db.SaveChangesAsync();
+
+        await Rinomina();
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal(Nuovo, (await _db.SectorAirspaceBindings.SingleAsync()).Callsign);
+        var profilo = await _db.DocumentProfiles.SingleAsync(p => p.DocumentId == _docId);
+        Assert.Equal($"[\"{Nuovo}\"]", profilo.HiddenAorSectorsJson);
+        Assert.Contains(Nuovo, profilo.HiddenFrequenciesJson);
+        Assert.Contains("LIBD_TWR", profilo.HiddenFrequenciesJson);
+        Assert.DoesNotContain(Vecchio, profilo.HiddenFrequenciesJson);
+    }
+
     [Fact]
     public async Task I_puntatori_dentro_i_blocchi_seguono()
     {

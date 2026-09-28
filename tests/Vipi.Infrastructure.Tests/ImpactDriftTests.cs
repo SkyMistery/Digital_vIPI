@@ -454,6 +454,69 @@ public class ImpactDriftTests : IAsyncLifetime
         Assert.Empty(await _impatti.ListOpenAsync(_docId));
     }
 
+    // ---- Due giri insieme (revisione 3, U-156 e U-200) ------------------------------------------------
+
+    /// <summary>
+    /// 🔴 U-200: il giro dopo le modifiche decide la deriva di X, e mentre valuta gli altri documenti qualcuno
+    /// pubblica X — la pubblicazione chiude la riga. Poi il giro riconcilia col suo insieme vecchio e la
+    /// riapre: «da ripubblicare» su un documento appena pubblicato. In fila, la pubblicazione aspetta il giro e
+    /// richiude dopo di lui.
+    /// </summary>
+    [Fact]
+    public async Task Una_Pubblicazione_Durante_Il_Giro_Resta_Chiusa()
+    {
+        var admin = new FakeAdmin(Gestito());
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        var rel = new FakeReleaseService
+        {
+            Righe = new[] { new ReleaseDiffRow("AoR", ReleaseChangeKind.Modified, 3, 4) },
+            Cancello = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously),
+        };
+        var cancello = rel.Cancello;
+
+        var giro = Giro(admin, rel, repo, new FakeTargets(_docId)).RunAsync();
+        await rel.Entrato.Task;                          // il giro ha visto la deriva di X
+
+        rel.Righe = Array.Empty<ReleaseDiffRow>();       // si pubblica X
+        var pubblicazione = Giro(admin, rel, repo, new FakeTargets(_docId)).RunForDocumentAsync(_docId);
+        // Senza fila la pubblicazione finisce subito; in fila aspetta il giro, e il tempo scade.
+        await Task.WhenAny(pubblicazione, Task.Delay(500));
+        cancello.SetResult();
+        await giro;
+        await pubblicazione;
+
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+    }
+
+    /// <summary>
+    /// 🔴 U-156: due giri interi (il notturno e quello dopo le modifiche). Il primo valuta «nessuna deriva», il
+    /// secondo nel frattempo vede la deriva nuova e apre la riga; il primo riconcilia col suo insieme vecchio e
+    /// la chiude. In fila vince l'ultimo che ha guardato.
+    /// </summary>
+    [Fact]
+    public async Task Due_Giri_Insieme_Non_Si_Chiudono_Le_Righe_A_Vicenda()
+    {
+        var admin = new FakeAdmin(Gestito());
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        var rel = new FakeReleaseService
+        {
+            Cancello = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously),
+        };
+        var cancello = rel.Cancello;
+
+        var primo = Giro(admin, rel, repo, new FakeTargets(_docId)).RunAsync();
+        await rel.Entrato.Task;                          // il primo non vede deriva
+
+        rel.Righe = new[] { new ReleaseDiffRow("AoR", ReleaseChangeKind.Modified, 3, 4) };
+        var secondo = Giro(admin, rel, repo, new FakeTargets(_docId)).RunAsync();
+        await Task.WhenAny(secondo, Task.Delay(500));
+        cancello.SetResult();
+        await primo;
+        await secondo;
+
+        Assert.Single(await _impatti.ListOpenAsync(_docId));
+    }
+
     private static DocRelease Release(string key) => new()
     {
         Id = 1, TargetType = ReleaseTargetType.AccVipi, TargetKey = key, VersionNumber = 1,
@@ -542,10 +605,24 @@ public class ImpactDriftTests : IAsyncLifetime
         /// <summary>I cicli con cui il giro ha chiesto la deriva, per provare che ne chiede DUE e quali.</summary>
         public List<string?> CicliChiesti { get; } = new();
 
-        public Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, string? alCiclo = null, CancellationToken ct = default)
+        /// <summary>Se c'è, la PRIMA domanda risponde con le righe di quel momento ma si ferma qui finché il test
+        /// non apre: è il giro «a metà», dopo aver deciso e prima di riconciliare.</summary>
+        public TaskCompletionSource? Cancello { get; set; }
+
+        /// <summary>Si completa quando la domanda trattenuta è arrivata al cancello.</summary>
+        public TaskCompletionSource Entrato { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, string? alCiclo = null, CancellationToken ct = default)
         {
             CicliChiesti.Add(alCiclo);
-            return Task.FromResult(alCiclo is null ? Righe : RigheEntranti);
+            var risposta = alCiclo is null ? Righe : RigheEntranti;
+            if (Cancello is { } cancello)
+            {
+                Cancello = null;
+                Entrato.TrySetResult();
+                await cancello.Task;
+            }
+            return risposta;
         }
 
         /// <summary>Il ciclo di una release PROGRAMMATA che porta gia' questa bozza, se c'e'.</summary>
@@ -564,8 +641,7 @@ public class ImpactDriftTests : IAsyncLifetime
             ReleaseTargetType type, string key, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>>(Array.Empty<Vipi.Application.Content.BersaglioUnito>());
         public Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) => Task.CompletedTask;
-        public Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => Task.FromResult(0);
+        public Task<bool> PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) => Task.FromResult(true);
         public Task CancelReleaseAsync(int releaseId, CancellationToken ct = default) => Task.CompletedTask;
         public Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default) => Task.FromResult(ReleaseDiff.Empty);
         public Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType, string expectedKey, CancellationToken ct = default) => Task.FromResult<ReleasePreview?>(null);

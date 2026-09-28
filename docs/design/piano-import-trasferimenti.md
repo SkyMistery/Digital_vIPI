@@ -156,6 +156,11 @@ c'è già.
 Gli attrezzi per scrivere ci sono tutti: `FindByPairAsync`, `AddAgreementAsync`, `AddSectionAsync`,
 `AddClauseAsync`. Questa carta non ne aggiunge.
 
+⚠️ **Dal 28 settembre 2026 (U-178) l'incolla scrive con `AddClausesAsync`**: tutte le righe validate prima di
+scriverne una (il rifiuto dice quale riga: «Riga 2: …»), e scritte in un solo salvataggio, cioè tutte o nessuna.
+Una per una, una riga rifiutata a metà lasciava salvate le precedenti — invisibili, perché dopo un errore la
+pagina non ricarica — e al nuovo invio entravano due volte.
+
 ## A3. Le fette
 
 Ognuna si chiude da sola, con la sua verifica.

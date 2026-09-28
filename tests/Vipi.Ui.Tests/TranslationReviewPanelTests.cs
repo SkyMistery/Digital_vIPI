@@ -60,15 +60,32 @@ public class TranslationReviewPanelTests : TestContext
             if (string.Equals(targetLang, "it", StringComparison.OrdinalIgnoreCase))
                 return Task.FromResult(new RevisioneDocumento("it", Array.Empty<RigaDaRivedere>()));
 
-            return Task.FromResult(new RevisioneDocumento("it", new[]
+            var righe = new List<RigaDaRivedere>
             {
-                new RigaDaRivedere("Contatta la torre.", Resa,
-                    TranslationOrigin.Machine, false, "Regole piste"),
-            }));
+                new("Contatta la torre.", Resa, TranslationOrigin.Machine, false, "Regole piste"),
+            };
+            if (DueRighe)
+                righe.Add(new("Riporta sottovento.", "Report downwind.", TranslationOrigin.Machine, false, "Circuito"));
+            return Task.FromResult(new RevisioneDocumento("it", righe));
         }
 
-        public Task<int> DocumentiToccatiAsync(string sorgente, CancellationToken ct = default) =>
-            Task.FromResult(1);
+        /// <summary>Vero: il documento ha due frasi da rivedere invece di una.</summary>
+        public bool DueRighe { get; set; }
+
+        /// <summary>Vero: il conto dei documenti toccati prende tempo, come la query vera sul DB remoto.</summary>
+        public bool ContoLento { get; set; }
+        public int Conti;
+        public int MassimoInsieme;
+        private int _dentro;
+
+        public async Task<int> DocumentiToccatiAsync(string sorgente, CancellationToken ct = default)
+        {
+            Interlocked.Increment(ref Conti);
+            var ora = Interlocked.Increment(ref _dentro);
+            if (ora > MassimoInsieme) MassimoInsieme = ora;
+            try { if (ContoLento) await Task.Delay(40); return 1; }
+            finally { Interlocked.Decrement(ref _dentro); }
+        }
 
         public Task CorreggiAsync(int documentId, string targetLang, string sorgente, string tradotto,
             CancellationToken ct = default) => Task.CompletedTask;
@@ -183,6 +200,40 @@ public class TranslationReviewPanelTests : TestContext
         if (caduta == Renderer.UnhandledException)
             Assert.Fail("Eccezione non gestita: " + await Renderer.UnhandledException);
         Assert.Contains("Common_AccessReserved", cut.Markup);
+    }
+
+    /// <summary>
+    /// 🔴 U-108 (revisione totale 3, riprodotto dal vivo su LIBD e LIBB): due clic ravvicinati sulle righe erano
+    /// due <c>ApriAsync</c>, e ognuno contava i documenti toccati sullo stesso contesto — «A second operation…»,
+    /// una volta «Packet received out-of-order», e il circuito giù. Il secondo clic, finché il primo conta, non
+    /// parte.
+    ///
+    /// <para>⚠️ Due righe e non una, per un limite della prova: dal vivo il secondo clic arriva sulla STESSA riga
+    /// perché il server tiene vivo il gestore finché il browser non conferma il disegno; bUnit lo smaltisce
+    /// subito, e il tasto della prima riga — diventata campo — non c'è già più.</para>
+    /// </summary>
+    [Fact]
+    public async Task Due_clic_ravvicinati_sulle_righe_ne_aprono_una()
+    {
+        var revisione = Arrangia();
+        revisione.ContoLento = true;
+        revisione.DueRighe = true;
+
+        var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
+
+        // ⚠️ Ricerca e clic sul dispatcher (cut.InvokeAsync): fra le due, un render arrivato da un altro thread
+        // cambiava l'albero e il gestore trovato non c'era più — rosso intermittente sul runner, 27 settembre 2026.
+        var primo = cut.InvokeAsync(() => cut.FindAll("button.tr-open").First().ClickAsync(new()));
+        var secondo = cut.InvokeAsync(() => cut.FindAll("button.tr-open").Last().ClickAsync(new()));
+        await Task.WhenAll(primo, secondo);
+        cut.WaitForElement("textarea.tr-edit", TimeSpan.FromSeconds(3));
+
+        Assert.Equal(1, revisione.MassimoInsieme);
+        Assert.Equal(1, revisione.Conti);
+        Assert.Single(cut.FindAll("textarea.tr-edit"));
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(200));
+        if (caduta == Renderer.UnhandledException)
+            Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
     }
 
     /// <summary>

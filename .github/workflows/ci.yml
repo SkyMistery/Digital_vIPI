@@ -32,7 +32,10 @@ jobs:
       - run: dotnet build Vipi.slnx --no-restore -c Release
       # Dall'11 agosto 2026 questa riga esegue ENTRAMBI i TFM di ogni progetto multi-target: prima erano
       # net10 tutti tranne Vipi.Infrastructure.Tests, cioè ~1000 test che non toccavano mai il runtime di
-      # produzione di allora (net8). Da L13 la produzione è net10 e questo job la copre per intero.
+      # produzione di allora (net8). Da L13 la produzione è net10 e questo job ne esegue tutti i test.
+      # ⚠️ Cosa NON copre (U-233 della revisione 3): MariaDB oltre lo schema (il job mariadb-schema applica le
+      # migrazioni, i test girano su SQLite), il ramo Production dell'avvio (i test girano in Development o
+      # con WebApplicationFactory) e il pacchetto consegnato (tools/prepara-pacchetto.ps1 gira in locale).
       # `tee`: la corsa si vede in diretta E finisce in un file, perche' il passo dopo la deve contare.
       # ATTENZIONE: `shell: bash` NON e' cosmetico. Il guscio di serie di GitHub e' `bash -e`, SENZA
       # `pipefail`: in una pipe l'esito e' quello dell'ULTIMO comando, cioe' `tee`, che riesce sempre.
@@ -221,6 +224,29 @@ jobs:
           root "DROP USER 'hub_lettore'@'%';"
 
           echo "tutte e quattro le verifiche passate."
+
+      # U-096 (revisione 3): su MariaDB ogni DDL fa commit da sé, e una migrazione interrotta a metà lasciava il
+      # sito giù a ogni avvio («Duplicate column name»). Le DDL ora sono rieseguibili (MigrazioniRieseguibili):
+      # qui si tolgono dalla storia le migrazioni dal 16 settembre 2026 in poi — dentro ci sono una tabella
+      # rinominata, una vista, UPDATE e DELETE a mano — e si rilanciano sullo schema già migrato. Devono passare,
+      # e lo schema deve uscire identico. Provato rosso il 28-set-2026 col generatore di Pomelo nudo.
+      - name: Migrazioni interrotte, rieseguite
+        run: |
+          set -euo pipefail
+          sql() {
+            docker run --rm --network host mariadb:11.4.10               mariadb -h 127.0.0.1 -P 3306 -u itivao_atc -pprova-di-ci itivao_atc --batch --skip-column-names -e "$1"
+          }
+          schema() {
+            docker run --rm --network host mariadb:11.4.10               mariadb-dump -h 127.0.0.1 -P 3306 -u root -pradice-di-prova --no-data --skip-comments --skip-dump-date itivao_atc               | sed -E 's/AUTO_INCREMENT=[0-9]+ //'
+          }
+          schema > prima.sql
+          tolte=$(sql "DELETE FROM __EFMigrationsHistory WHERE MigrationId >= '20260916'; SELECT ROW_COUNT();")
+          echo "migrazioni tolte dalla storia: $tolte"
+          [ "$tolte" -ge 10 ] || { echo "::error::tolte solo $tolte migrazioni: la prova non rigira quel che deve"; exit 1; }
+          "$HOME/.dotnet/tools/dotnet-ef" database update             --project src/Vipi.Infrastructure.MySqlMigrations             --startup-project src/Vipi.Infrastructure.MySqlMigrations             --framework net10.0             --connection "$CONN"
+          schema > dopo.sql
+          diff prima.sql dopo.sql || { echo "::error::lo schema rieseguito non è quello di prima"; exit 1; }
+          echo "migrazioni rieseguite, schema identico."
 
       # La copia del database che l'Admin scarica da Diagnostica (§A47): scritta col codice del sito, reimportata
       # col client `mariadb` in un database vuoto, confrontata con CHECKSUM TABLE tabella per tabella. I test

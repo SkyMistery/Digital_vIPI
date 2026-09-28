@@ -140,6 +140,9 @@ public static class AgreementClauseLimits
 
     /// <summary>L'elenco dei punti d'ingresso e quello delle aree della condizione.</summary>
     public const int Elenco = 500;
+
+    /// <summary>La condizione di pista (<c>ConditionLabel</c>): le piste scelte, con l'ICAO se la sezione ha più scali.</summary>
+    public const int Pista = 80;
 }
 
 /// <summary>

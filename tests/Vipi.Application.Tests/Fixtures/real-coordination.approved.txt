@@ -185,34 +185,34 @@
    «Brindisi Radar ES riceve da Zagreb Radar il traffico con destinazione Brindisi Casale LIBR stabile per un livello dispari su BEVIS.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=OLGAT liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su OLGAT.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico stabile per un livello pari su OLGAT.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=TIGRA liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su TIGRA.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico stabile per un livello pari su TIGRA.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=NOSTO liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su NOSTO.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico stabile per un livello pari su NOSTO.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=LATAN liv=Pari (Nord) - Dispari (Sud) next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile Pari (Nord) - Dispari (Sud) su LATAN.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico stabile Pari (Nord) - Dispari (Sud) su LATAN.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=DINOB liv=dispari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello dispari su DINOB.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico stabile per un livello dispari su DINOB.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=RUTOM liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su RUTOM.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico stabile per un livello pari su RUTOM.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=LORNO liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su LORNO.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico stabile per un livello pari su LORNO.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBD
    cop=ALL liv=FL250 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico con destinazione Bari Palese LIBD stabile a livello 250 su tutti i punti.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico con destinazione Bari Palese LIBD stabile a livello 250 su tutti i punti.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBR
    cop=ALL liv=FL230 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico con destinazione Brindisi Casale LIBR stabile a livello 230 su tutti i punti.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico con destinazione Brindisi Casale LIBR stabile a livello 230 su tutti i punti.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBG
    cop=ALL liv=FL310 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES riceve da Athinai Radar West il traffico con destinazione Taranto Grottaglie LIBG stabile a livello 310 su tutti i punti.»
+   «Brindisi Radar ES riceve da Athinai Radar West W il traffico con destinazione Taranto Grottaglie LIBG stabile a livello 310 su tutti i punti.»
 << LIBB_ES_CTR | LYTV_APP (App) | Overflight | —
    cop=CRAYE liv=Nord(pari) - Sud (dispari) next=LYTV_APP trasf= livTrasf= com= vel= cond= gruppo=—/0
    «Brindisi Radar ES riceve da Tivat Approach il traffico stabile Nord(pari) - Sud (dispari) su CRAYE.»
@@ -538,34 +538,34 @@
    «Brindisi Radar ES receives from Zagreb Radar the traffic inbound to Brindisi Casale LIBR level for an odd level over BEVIS.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=OLGAT liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over OLGAT.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic level for an even level over OLGAT.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=TIGRA liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over TIGRA.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic level for an even level over TIGRA.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=NOSTO liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over NOSTO.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic level for an even level over NOSTO.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=LATAN liv=Pari (Nord) - Dispari (Sud) next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic level Pari (Nord) - Dispari (Sud) over LATAN.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic level Pari (Nord) - Dispari (Sud) over LATAN.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=DINOB liv=odd next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an odd level over DINOB.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic level for an odd level over DINOB.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=RUTOM liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over RUTOM.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic level for an even level over RUTOM.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=LORNO liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over LORNO.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic level for an even level over LORNO.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBD
    cop=ALL liv=FL250 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic inbound to Bari Palese LIBD level at level 250 over all points.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic inbound to Bari Palese LIBD level at level 250 over all points.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBR
    cop=ALL liv=FL230 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic inbound to Brindisi Casale LIBR level at level 230 over all points.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic inbound to Brindisi Casale LIBR level at level 230 over all points.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBG
    cop=ALL liv=FL310 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES receives from Athinai Radar West the traffic inbound to Taranto Grottaglie LIBG level at level 310 over all points.»
+   «Brindisi Radar ES receives from Athinai Radar West W the traffic inbound to Taranto Grottaglie LIBG level at level 310 over all points.»
 << LIBB_ES_CTR | LYTV_APP (App) | Overflight | —
    cop=CRAYE liv=Nord(pari) - Sud (dispari) next=LYTV_APP trasf= livTrasf= com= vel= cond= gruppo=—/0
    «Brindisi Radar ES receives from Tivat Approach the traffic level Nord(pari) - Sud (dispari) over CRAYE.»

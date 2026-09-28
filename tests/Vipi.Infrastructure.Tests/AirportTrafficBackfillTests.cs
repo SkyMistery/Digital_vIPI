@@ -119,6 +119,35 @@ public class AirportTrafficBackfillTests : IAsyncLifetime
         Assert.NotNull((await _db.AtcSessions.SingleAsync(s => s.SessionId == 101)).TrafficFilledUtc);
     }
 
+    /// <summary>
+    /// 🔴 U-094 (revisione totale 3): la GND aperta per due ore, la TWR solo nel mezzo. Prima bastava l'intersezione
+    /// per dare TUTTA la finestra alla torre: la GND veniva marcata «provata» a zero movimenti per sempre, e la torre
+    /// chiedeva alla sorgente solo la propria finestra — i movimenti fuori dall'intersezione non andavano a nessuno.
+    /// Nella copia del 26 settembre: 57 sessioni, 63 ore in frequenza, a zero. Ora si attribuisce per ISTANTE.
+    /// </summary>
+    [Fact]
+    public async Task Una_torre_nel_mezzo_non_porta_via_i_movimenti_fuori_dalla_sua_ora()
+    {
+        await Sessione(100, "LIRF_TWR", 30, 90);
+        await Sessione(101, "LIRF_GND", 0, 120);
+        var (uc, _) = Caso(
+            Arrivo(minuto: 10, callsign: "AZA010"),     // solo la GND c'era
+            Arrivo(minuto: 60, callsign: "AZA060"),     // c'erano tutt'e due: è della torre
+            Arrivo(minuto: 100, callsign: "AZA100"));   // solo la GND c'era
+
+        await uc.RunAsync(T0.AddDays(-1), 50, T0.AddDays(1));
+        _db.ChangeTracker.Clear();
+
+        var gnd = await _db.AtcSessionTraffic.Where(t => t.SessionId == 101).Select(t => t.PilotCallsign).OrderBy(c => c).ToListAsync();
+        var twr = await _db.AtcSessionTraffic.Where(t => t.SessionId == 100).Select(t => t.PilotCallsign).ToListAsync();
+        Assert.Equal(new[] { "AZA010", "AZA100" }, gnd);
+        Assert.Equal(new[] { "AZA060" }, twr);
+    }
+
+    private static SourceAirportMovement Arrivo(int minuto, string callsign) =>
+        new(AirportMovementKind.Inbound, callsign, 785031, minuto, "LEPA", "LIRF", "BCS3",
+            T0.AddMinutes(minuto - 60), T0.AddMinutes(minuto));
+
     [Fact]
     public async Task Una_sessione_che_ha_gia_traffico_dal_vivo_non_si_tocca()
     {

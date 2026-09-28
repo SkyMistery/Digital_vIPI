@@ -73,6 +73,11 @@ public sealed class EditorTaskService : IEditorTaskService
 
     public async Task<int> CreateAsync(EditorTaskInput input, CancellationToken ct = default)
     {
+        // 🔴 U-019 (revisione totale 3): il contratto dice «Editor», e il codice per un incarico senza documento non
+        // chiedeva nessun livello — EnsureCanEditTargetAsync esce subito. Qualunque socio IVAO entrato creava
+        // incarichi «liberi» a raffica, con titoli lunghi quanto voleva, e finivano nella bacheca admin.
+        _authz.EnsureAtLeast(VipiRole.Editor);
+
         if (string.IsNullOrWhiteSpace(input.Title))
             throw new Aor.ValidationException(Lingua("Titolo obbligatorio.", "The title is required."), "Task_Err_TitleRequired");
 

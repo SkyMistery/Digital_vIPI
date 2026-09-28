@@ -63,6 +63,10 @@ public interface IAgreementRepository
     // ---- clausole ---------------------------------------------------------------------------------------
 
     Task<int> AddClauseAsync(string accCode, int sectionId, AgreementClauseInput input, CancellationToken ct = default);
+
+    /// <summary>Più clausole in coda alla sezione, in UN salvataggio: entrano tutte o nessuna (U-178).</summary>
+    Task<int> AddClausesAsync(string accCode, int sectionId, IReadOnlyList<AgreementClauseInput> inputs,
+        CancellationToken ct = default);
     Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default);
     Task DeleteClauseAsync(string accCode, int clauseId, CancellationToken ct = default);
 
@@ -115,6 +119,9 @@ public interface IAgreementRepository
     /// <summary>Rimette una sezione eliminata nel suo accordo, se esiste ancora.</summary>
     Task<int?> RestoreSectionAsync(string accCode, AgreementSectionRestore section, CancellationToken ct = default);
 
-    /// <summary>Rimette clausole eliminate nelle loro sezioni, se esistono ancora.</summary>
-    Task<int> RestoreClausesAsync(string accCode, IReadOnlyList<AgreementClauseRestore> clauses, CancellationToken ct = default);
+    /// <summary>Rimette clausole eliminate nelle loro sezioni, se esistono ancora, e con
+    /// <paramref name="sorelle"/> ricompone il gruppo che l'eliminazione aveva sciolto (U-061). L'outline si
+    /// controlla prima di scrivere: rotto, non entra niente.</summary>
+    Task<int> RestoreClausesAsync(string accCode, IReadOnlyList<AgreementClauseRestore> clauses,
+        IReadOnlyList<AgreementOutlineRestore>? sorelle = null, CancellationToken ct = default);
 }

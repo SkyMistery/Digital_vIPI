@@ -57,6 +57,13 @@ internal sealed class AirportTrafficRollupHostedService : BackgroundService
         var esito = await sp.GetRequiredService<AirportTrafficRollupUseCase>()
             .RunAsync(da, ora, Math.Max(1, _opt.AirportTrafficRollupPerRun), ora, ct);
 
+        // U-027: gli scali che IVAO non conosce si dicono per nome — di solito un ICAO sbagliato in archivio.
+        if (esito.NonDisponibili.Count > 0)
+            _log.LogWarning(
+                "Traffico d'aeroporto: la sorgente non conosce {Scali} (404); saltati in questo giro. " +
+                "Un ICAO sbagliato in archivio, o un campo ritirato da IVAO.",
+                string.Join(", ", esito.NonDisponibili));
+
         if (esito.Chunks > 0)
             _log.LogInformation(
                 "Traffico d'aeroporto consolidato: {Blocchi} blocchi su {Aeroporti} aeroporti, " +

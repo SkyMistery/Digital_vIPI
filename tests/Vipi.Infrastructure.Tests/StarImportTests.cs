@@ -58,7 +58,8 @@ public class StarImportTests : IAsyncLifetime
         Assert.Equal(1, await ConteggioAsync(ProcedureKind.Sid));
         var partenza = await _db.AirportProcedures.SingleAsync(p => p.Kind == ProcedureKind.Sid);
         Assert.Equal("ALAX7G", partenza.Name);
-        var arrivo = await _db.AirportProcedures.SingleAsync(p => p.Kind == ProcedureKind.Star);
+        // La 3A resta come versione sostituita dal 2607 (U-003): quella viva è la 4A.
+        var arrivo = await _db.AirportProcedures.SingleAsync(p => p.Kind == ProcedureKind.Star && p.SupersededFromCycle == null);
         Assert.Equal("GILI4A", arrivo.Name);
     }
 
@@ -135,17 +136,18 @@ public class StarImportTests : IAsyncLifetime
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Star,
             new[] { Imp("GILI3A", "GILIO", "STAR|LIRF|GILIO|A||16L") }, "2606");
         var prima = await _db.AirportProcedures.SingleAsync(p => p.Kind == ProcedureKind.Star);
-        await _repo.UpdateImportedSidAsync(prima.Id, priority: 2, forcePublished: true, resolvedFix: null,
+        await _repo.UpdateImportedSidAsync("LIRF", prima.Id, priority: 2, forcePublished: true, resolvedFix: null,
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
-        // Revisione nuova, stessa StableKey: priorità e forzatura seguono la riga.
+        // Revisione nuova, stessa chiave: la priorità segue la riga. La forzatura no, perché la 3A resta in vigore
+        // fino al 2607 come sostituita (U-003): forzata, la 4A uscirebbe insieme a lei.
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Star,
             new[] { Imp("GILI4A", "GILIO", "STAR|LIRF|GILIO|A||16L") }, "2607");
 
-        var dopo = await _db.AirportProcedures.SingleAsync(p => p.Kind == ProcedureKind.Star);
+        var dopo = await _db.AirportProcedures.SingleAsync(p => p.Kind == ProcedureKind.Star && p.SupersededFromCycle == null);
         Assert.Equal("GILI4A", dopo.Name);
         Assert.Equal(2, dopo.Priority);
-        Assert.True(dopo.ForcePublished);
+        Assert.False(dopo.ForcePublished);
         // Il nome è cambiato: è una revisione NUOVA, e entra in vigore dal ciclo di adesso. (Il primo ciclo si
         // conserva solo quando il contenuto è identico — stessa regola delle SID, carta §AW2.)
         Assert.Equal("2607", dopo.SourceAiracCycle);
@@ -187,7 +189,8 @@ public class StarImportTests : IAsyncLifetime
             new Vipi.Application.Auth.EditAuthorizationService(
                 new SenzaUtente(),
                 new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()),
-                SenzaPromozioni.Instance));
+                SenzaPromozioni.Instance),
+            LockAperto.Instance);
 
     private sealed class SenzaUtente : ICurrentUserProvider
     {

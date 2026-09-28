@@ -12,7 +12,12 @@ namespace Vipi.Application.Stats;
 // ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
 // compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
 // espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
-public sealed record AirportRollupResult(int Chunks, int Days, int Movements, int Airports);
+/// <param name="NonDisponibili">Gli scali che la sorgente non conosce (404) in questo giro: saltati, non un guasto (U-027).</param>
+public sealed record AirportRollupResult(int Chunks, int Days, int Movements, int Airports,
+    IReadOnlyList<string>? NonDisponibili = null)
+{
+    public IReadOnlyList<string> NonDisponibili { get; init; } = NonDisponibili ?? Array.Empty<string>();
+}
 
 /// <summary>
 /// Consolida il <b>traffico di ogni aeroporto italiano</b>, giorno per giorno, e quanto di quel traffico ha
@@ -85,11 +90,36 @@ public sealed class AirportTrafficRollupUseCase
         var righe = new List<AirportDayCount>();
         var movimenti = 0;
 
+        // 🔴 U-027 (revisione totale 3): un blocco che la sorgente rifiuta non butta il giro. Prima il ciclo non aveva
+        // catch: uno scalo in archivio che IVAO non conosce (404 — un ICAO sbagliato creato a mano, un campo ritirato)
+        // faceva salire il giro, i giorni già calcolati non arrivavano al salvataggio, e il traffico di TUTTI gli
+        // aeroporti restava fermo per sempre. Ora lo scalo che fallisce si salta per il resto del giro (una chiamata,
+        // non una per blocco), gli altri si salvano; il 404 è «non disponibile», ogni altro guasto risale DOPO il
+        // salvataggio, col nome.
+        var nonDisponibili = new List<string>();
+        var guasti = new List<(string Icao, Exception Errore)>();
+        var saltati = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var b in blocchi)
         {
             ct.ThrowIfCancellationRequested();
+            if (saltati.Contains(b.Icao)) continue;
 
-            var mov = await _sorgente.GetMovementsAsync(b.Icao, b.From, b.To, ct);
+            IReadOnlyList<SourceAirportMovement> mov;
+            try
+            {
+                mov = await _sorgente.GetMovementsAsync(b.Icao, b.From, b.To, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                saltati.Add(b.Icao);
+                if (ex is HttpRequestException { StatusCode: System.Net.HttpStatusCode.NotFound })
+                    nonDisponibili.Add(b.Icao);
+                else
+                    guasti.Add((b.Icao, ex));
+                continue;
+            }
             var spans = perCampo.TryGetValue(b.Icao, out var s) ? s : Array.Empty<OnlineSpan>();
 
             for (var giorno = b.From; giorno < b.To; giorno = giorno.AddDays(1))
@@ -107,8 +137,14 @@ public sealed class AirportTrafficRollupUseCase
 
         var scritte = await _archivio.SaveAsync(righe, now, ct);
 
+        if (guasti.Count > 0)
+            throw new HttpRequestException(
+                $"Traffico non letto per {guasti.Count} aeroporti (salvati gli altri): " +
+                string.Join(", ", guasti.Take(10).Select(g => $"{g.Icao} ({g.Errore.Message})")) + ".",
+                guasti[0].Errore);
+
         return new AirportRollupResult(
-            blocchi.Count, scritte, movimenti, blocchi.Select(b => b.Icao).Distinct().Count());
+            blocchi.Count, scritte, movimenti, blocchi.Select(b => b.Icao).Distinct().Count(), nonDisponibili);
     }
 
     /// <summary>

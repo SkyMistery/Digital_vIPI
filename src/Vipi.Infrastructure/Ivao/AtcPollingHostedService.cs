@@ -21,6 +21,10 @@ internal sealed class AtcPollingHostedService : BackgroundService
     private readonly IHostEnvironment _env;
     private readonly ILogger<AtcPollingHostedService> _log;
 
+    // La data di generazione dell'ultima fotografia pubblicata (U-131). Solo il giro la tocca, uno alla volta.
+    private DateTimeOffset _ultimaFotografia = DateTimeOffset.MinValue;
+    private static readonly TimeSpan SaltoIndietroAmmesso = TimeSpan.FromMinutes(10);
+
     public AtcPollingHostedService(
         IServiceScopeFactory scopes,
         AtcTrafficRecorder traffico,
@@ -49,7 +53,7 @@ internal sealed class AtcPollingHostedService : BackgroundService
         while (!stoppingToken.IsCancellationRequested && await timer.WaitForNextTickAsync(stoppingToken));
     }
 
-    private async Task PollOnceAsync(CancellationToken ct)
+    internal async Task PollOnceAsync(CancellationToken ct)
     {
         // Verifica live (vedi docs/feature/2026-08-23-live-coordinamenti-a-colonne.md): elenco finto da
         // config, nessuna chiamata di rete. Serve perche' senza vicini online OGNI punto di trasferimento
@@ -88,6 +92,21 @@ internal sealed class AtcPollingHostedService : BackgroundService
             using var scope = _scopes.CreateScope();
             var source = scope.ServiceProvider.GetRequiredService<IAtcActivitySource>();
             var snapshot = await source.GetSnapshotAsync(ct);
+
+            // 🔴 U-131 (revisione totale 3): il tempo della sorgente deve AVANZARE. Una fotografia con la stessa data
+            // di generazione della precedente (o più vecchia) è un whazzup fermo: ripubblicarla terrebbe accesi
+            // controllori già staccati, registrarla regalerebbe un giro di traffico a ogni sessione coi piloti
+            // congelati. Si tiene quella di prima, che scade da sé dopo tre giri (T-034).
+            // ⚠️ Un salto indietro GRANDE non è una fotografia ferma ma un orologio della sorgente riazzerato:
+            // rifiutarlo spegnerebbe la vista live finché la sorgente non torna alla data di prima.
+            if (snapshot.AsOf <= _ultimaFotografia && _ultimaFotografia - snapshot.AsOf < SaltoIndietroAmmesso)
+            {
+                _log.LogWarning(
+                    "Poll IVAO: fotografia ferma (generata {AsOf:o}, la precedente {Prima:o}); non si ripubblica né si registra.",
+                    snapshot.AsOf, _ultimaFotografia);
+                return;
+            }
+            _ultimaFotografia = snapshot.AsOf;
 
             // ⚠️ La cache resta della DIVISIONE. Dal 28 agosto 2026 la fotografia porta tutte le postazioni
             // del mondo (si archiviano), ma la cache è quella che accende il pallino «in frequenza», risolve i

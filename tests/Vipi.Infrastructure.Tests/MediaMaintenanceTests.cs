@@ -223,6 +223,91 @@ public class MediaMaintenanceTests : IAsyncLifetime
         Assert.Equal(0, await _db.MediaAssets.CountAsync());
     }
 
+    /// <summary>
+    /// 🔴 U-137 (revisione totale 3): sostituire (o togliere) l'immagine di un blocco lasciava la vecchia nel
+    /// deposito, non contata dalla quota del documento e mai ripulita. Ora si libera come alla cancellazione.
+    /// </summary>
+    [Fact]
+    public async Task Sostituire_l_immagine_libera_la_vecchia()
+    {
+        var vecchia = await CaricaAsync(1);
+        var nuova = await CaricaAsync(2);
+        await BloccoImmagineAsync(vecchia);
+        var blocco = await _db.ContentBlocks.FirstAsync();
+
+        await Editing().UpdateBlockAsync(blocco.Id, new BlockEdit
+        {
+            Tier = blocco.Tier, Visibility = blocco.Visibility,
+            BodyJson = MediaRef.Serialize(new MediaRef(nuova, "alt", 800, 600)),
+        });
+
+        Assert.Equal(new[] { nuova }, await _db.MediaAssets.Select(m => m.Sha256).ToListAsync());
+
+        // «Rimuovi»: il blocco resta senza immagine, e la foto se ne va.
+        await Editing().UpdateBlockAsync(blocco.Id, new BlockEdit { Tier = blocco.Tier, Visibility = blocco.Visibility, BodyJson = "" });
+        Assert.Equal(0, await _db.MediaAssets.CountAsync());
+    }
+
+    /// <summary>
+    /// 🔴 U-138 (revisione totale 3): la pulizia controlla le citazioni e POI cancella. In mezzo, chi ricarica la
+    /// stessa foto (il deposito deduplica per sha: nessuna riga nuova) e la cita in un blocco se la vedeva sparire
+    /// da sotto. Ora dopo la cancellazione si ricontrolla, e una foto tornata in uso si rimette.
+    /// </summary>
+    [Fact]
+    public async Task Una_foto_citata_mentre_la_pulizia_cancella_si_rimette()
+    {
+        var orfana = await CaricaAsync(1);
+        var altra = await CaricaAsync(2);
+        await BloccoImmagineAsync(altra);
+        var blocco = await _db.ContentBlocks.FirstAsync();
+
+        var spia = new CitaDuranteLaCancellazione(blocco.Id, MediaRef.Serialize(new MediaRef(orfana, "alt", 800, 600)));
+        await using var db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn)
+            .AddInterceptors(spia).Options);
+
+        await new EfMediaMaintenance(db).DeleteOrphansAsync(new[] { orfana });
+
+        Assert.True(spia.Fatto);
+        Assert.True(await _db.MediaAssets.AnyAsync(m => m.Sha256 == orfana));
+    }
+
+    /// <summary>Appena prima del DELETE degli asset, un altro blocco comincia a citare la foto: nella stessa
+    /// connessione e transazione, come se il salvataggio dell'editor fosse passato in quell'istante.</summary>
+    private sealed class CitaDuranteLaCancellazione(int bloccoId, string json)
+        : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
+    {
+        public bool Fatto { get; private set; }
+
+        private void Cita(System.Data.Common.DbCommand command)
+        {
+            if (Fatto || !command.CommandText.Contains("DELETE FROM \"MediaAssets\"")) return;
+            Fatto = true;
+            using var update = command.Connection!.CreateCommand();
+            update.Transaction = command.Transaction;
+            update.CommandText = "UPDATE \"ContentBlocks\" SET \"BodyJson\" = $j WHERE \"Id\" = $id";
+            var j = update.CreateParameter(); j.ParameterName = "$j"; j.Value = json; update.Parameters.Add(j);
+            var id = update.CreateParameter(); id.ParameterName = "$id"; id.Value = bloccoId; update.Parameters.Add(id);
+            update.ExecuteNonQuery();
+        }
+
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader>> ReaderExecutingAsync(
+            System.Data.Common.DbCommand command, Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            Cita(command);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> NonQueryExecutingAsync(
+            System.Data.Common.DbCommand command, Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            Cita(command);
+            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+        }
+    }
+
     [Fact]
     public async Task Cancellare_il_blocco_NON_tocca_una_foto_usata_anche_altrove()
     {

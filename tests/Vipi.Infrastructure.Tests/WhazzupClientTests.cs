@@ -111,25 +111,104 @@ public class WhazzupClientTests
             FlightPhases.Of(aza.OnGround, aza.GroundSpeed, aza.State, aza.DepartureDistanceNm));
     }
 
-    private static IvaoWhazzupClient Client(string prefix = "LI")
+    private static IvaoWhazzupClient Client(string prefix = "LI", string corpo = WhazzupReale)
     {
         var opt = Options.Create(new IvaoOptions { ClientId = "" /* endpoint pubblico: nessun token */ });
         var div = Options.Create(new Vipi.Application.DivisionOptions { IcaoPrefixes = new() { prefix } });
-        var http = new HttpClient(new StubHandler(WhazzupReale));
+        var http = new HttpClient(new StubHandler(corpo));
         var token = new IvaoTokenProvider(new NullHttpClientFactory(), opt);
         return new IvaoWhazzupClient(new IvaoHttp(http, token, opt), opt, div);
+    }
+
+    // ---- U-025 e U-131 (revisione totale 3) ----
+
+    /// <summary>
+    /// 🔴 U-025: il whazzup è pubblico, ma la richiesta passava da <c>AuthorizeAsync</c>, che chiede il token quando
+    /// il ClientId c'è. Un segreto ruotato male, un token endpoint giù: la GET — che il token non lo vuole — non
+    /// partiva, e dopo tre giri vista live e statistiche si spegnevano per tutti.
+    /// </summary>
+    [Fact]
+    public async Task Il_whazzup_non_chiede_il_token_e_regge_un_segreto_rotto()
+    {
+        var opt = Options.Create(new IvaoOptions { ClientId = "prova", ClientSecret = "sbagliato" });
+        var div = Options.Create(new Vipi.Application.DivisionOptions { IcaoPrefixes = new() { "LI" } });
+        var handler = new StubHandler(WhazzupReale);
+        var token = new IvaoTokenProvider(new FabbricaCheRifiuta(), opt);
+        var client = new IvaoWhazzupClient(new IvaoHttp(new HttpClient(handler), token, opt), opt, div);
+
+        var snap = await client.GetSnapshotAsync();
+
+        Assert.Equal(2, snap.Atc.Count);
+        Assert.Null(handler.Autorizzazione);   // nessun Bearer su un endpoint pubblico
+    }
+
+    /// <summary>
+    /// 🔴 U-131: la fotografia era datata all'ora d'ARRIVO. Un whazzup fermo servito con 200 (cache, generatore
+    /// bloccato) sembrava fresco: la scadenza della cache (T-034) non scattava, e i piloti congelati accumulavano
+    /// minuti di traffico. Ora la data è quella di generazione, <c>updatedAt</c>.
+    /// </summary>
+    [Fact]
+    public async Task La_fotografia_porta_la_data_in_cui_la_sorgente_l_ha_generata()
+    {
+        // ⚠️ Il formato è quello VERO, letto sul filo il 27 settembre 2026: NOVE cifre di frazione («…15.107470159Z»).
+        // Un parser che non le reggesse farebbe fallire ogni poll, cioè spegnerebbe la vista live per tutti.
+        var corpo = WhazzupReale.Replace("\"clients\":", "\"updatedAt\": \"2026-08-24T13:10:05.107470159Z\", \"clients\":");
+
+        var snap = await Client(corpo: corpo).GetSnapshotAsync();
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 24, 13, 10, 5, TimeSpan.Zero).AddTicks(1074701), snap.AsOf);
+    }
+
+    /// <summary>
+    /// 🔴 U-131: una risposta senza <c>clients</c> (o senza <c>atcs</c>/<c>pilots</c>) era «nessuno online»: la cache
+    /// si svuotava e il poller chiudeva in massa le sessioni aperte (l'innesco di U-026). È un poll fallito.
+    /// </summary>
+    [Theory]
+    [InlineData("""{ "updatedAt": "2026-08-24T13:10:05.000Z" }""")]
+    [InlineData("""{ "clients": null }""")]
+    [InlineData("""{ "clients": { "pilots": [] } }""")]
+    [InlineData("""{ "clients": { "atcs": [] } }""")]
+    public async Task Una_risposta_senza_elenchi_e_un_poll_fallito_non_nessuno_online(string corpo)
+    {
+        await Assert.ThrowsAsync<InvalidDataException>(() => Client(corpo: corpo).GetSnapshotAsync());
+    }
+
+    [Fact]
+    public async Task Elenchi_vuoti_ma_presenti_sono_davvero_nessuno_online()
+    {
+        var snap = await Client(corpo: """{ "clients": { "atcs": [], "pilots": [] } }""").GetSnapshotAsync();
+        Assert.Empty(snap.Atc);
+        Assert.Empty(snap.Pilots);
+    }
+
+    private sealed class FabbricaCheRifiuta : IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name) => new(new Rifiuto());
+
+        private sealed class Rifiuto : HttpMessageHandler
+        {
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct) =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("""{"error":"invalid_client"}""", Encoding.UTF8, "application/json"),
+                });
+        }
     }
 
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly string _body;
         public StubHandler(string body) => _body = body;
+        public string? Autorizzazione { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
-            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Autorizzazione = request.Headers.Authorization?.ToString();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(_body, Encoding.UTF8, "application/json"),
             });
+        }
     }
 
     private sealed class NullHttpClientFactory : IHttpClientFactory

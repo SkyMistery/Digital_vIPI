@@ -491,7 +491,7 @@
     {
         var w = _vista?.Metar?.Wind;
         var hdg = end?.HeadingDeg ?? 0;
-        var comp = Componenti(w, hdg);
+        var comp = AwosTesto.Componenti(w, hdg);
 
         <div class="awos-pannello" data-awos-wind="@blocco-@lato" data-awos-hdg="@hdg">
             <div class="awos-pannello-t">WIND @(end?.Ident ?? "—")</div>
@@ -513,8 +513,8 @@
                 </div>
             </div>
             <div class="awos-wrow">
-                <div class="awos-wf"><div class="awos-wl">CROSS (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @Colore(comp.Cross, 8, 15)" data-awos-w="cross">@Kt(comp.Cross, w)</div></div></div>
-                <div class="awos-wf"><div class="awos-wl">TAIL (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp.Tail > 0 ? "rosso" : "")" data-awos-w="tail">@Kt(comp.Tail, w)</div></div></div>
+                <div class="awos-wf"><div class="awos-wl">CROSS (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp is { } cc ? Colore(cc.Cross, 8, 15) : "")" data-awos-w="cross">@AwosTesto.Kt(comp?.Cross)</div></div></div>
+                <div class="awos-wf"><div class="awos-wl">TAIL (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp?.Tail > 0 ? "rosso" : "")" data-awos-w="tail">@AwosTesto.Kt(comp?.Tail)</div></div></div>
             </div>
         </div>
     };
@@ -531,15 +531,5 @@
 
     private static string Spd(ParsedWind? w) => w is null ? "--" : w.SpeedKt.ToString("00", Inv);
     private static string Deg(int? v) => v is int d ? d.ToString("000", Inv) : "--";
-    private static string Kt(int v, ParsedWind? w) => w is null ? "--" : v.ToString("00", Inv);
     private static string Colore(int v, int ambra, int rosso) => v >= rosso ? "rosso" : v >= ambra ? "ambra" : "";
-
-    /// <summary>Traverso e coda sulla testata. Vento calmo o sconosciuto ⇒ zero, e la casella dice `--`.</summary>
-    private static (int Cross, int Tail) Componenti(ParsedWind? w, int hdg)
-    {
-        if (w is null || w.Calm || w.DirectionDeg is not int dir) return (0, 0);
-        var delta = (dir - hdg) * Math.PI / 180.0;
-        var testa = (int)Math.Round(w.SpeedKt * Math.Cos(delta));
-        return ((int)Math.Round(Math.Abs(w.SpeedKt * Math.Sin(delta))), testa < 0 ? -testa : 0);
-    }
 }

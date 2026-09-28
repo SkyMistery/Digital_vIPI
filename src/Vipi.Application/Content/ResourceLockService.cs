@@ -15,27 +15,31 @@ public static class ResourceLockKeys
     public const string NewDoc = "editor:newdoc";
 
     /// <summary>
-    /// Chiavi che solo un admin può prendere. Il requisito è dichiarato qui e non dedotto dal prefisso
-    /// «admin:» del nome, che è una convenzione e non un controllo.
+    /// Chiavi che si prendono solo col livello <b>Editor</b>. Il requisito è dichiarato qui e non dedotto dal
+    /// prefisso «admin:» del nome, che è una convenzione e non un controllo.
     ///
     /// <para><b>Perché serve.</b> Fino all'11 agosto 2026 <see cref="IResourceLockService.AcquireAsync"/>
     /// chiedeva una cosa sola: che l'utente fosse autenticato. Le quattro pagine di struttura sono pagine
     /// admin, ma il loro lock lo poteva prendere qualunque membro IVAO loggato — e tenerlo per sempre, con
     /// l'heartbeat della UI. Gli admin restavano fuori dal proprio strumento finché l'altro non smetteva.
-    /// Non era un blocco (il force-unlock è già riservato agli admin) ma un fastidio ripetibile a piacere.</para>
+    /// Non era un blocco ma un fastidio ripetibile a piacere.</para>
+    ///
+    /// <para>⚠️ Si chiamava <c>RichiedonoAdmin</c>, e diceva «solo un admin», mentre il controllo chiede
+    /// l'Editor dal 28 agosto 2026 (chi scrive è l'Editor, l'admin non è più l'unico). Il nome raccontava una
+    /// regola che non c'era più (U-146, revisione 3).</para>
     ///
     /// <para><c>editor:newdoc</c> resta fuori di proposito: creare un documento è già filtrato dai grant
     /// per ACC dentro il servizio che lo crea, e chiedere l'admin qui toglierebbe il lock a chi ha il
     /// permesso di scrivere.</para>
     /// </summary>
-    public static readonly IReadOnlySet<string> RichiedonoAdmin =
+    public static readonly IReadOnlySet<string> RichiedonoEditor =
         new HashSet<string>(StringComparer.Ordinal) { Structure };
 }
 
 /// <summary>
 /// Lock di editing esclusivo su risorse nominate (gemello per-risorsa del lock del Document in <see cref="IEditingService"/>).
 /// Owner = utente corrente (<see cref="IEditAuthorizationService"/>); TTL corto rinnovato via heartbeat dalla UI, così la
-/// chiusura della scheda libera da sé in pochi minuti. Il rilascio esplicito e il force-unlock (admin) sono immediati.
+/// chiusura della scheda libera da sé in pochi minuti. Il rilascio esplicito e il force-unlock (ogni Editor) sono immediati.
 /// </summary>
 public interface IResourceLockService
 {
@@ -51,7 +55,7 @@ public interface IResourceLockService
     /// <summary>Rilascia il lock se è mio (bottone «Fine modifica» / teardown della UI).</summary>
     Task ReleaseAsync(string resourceKey, CancellationToken ct = default);
 
-    /// <summary>Sblocca comunque (solo admin).</summary>
+    /// <summary>Sblocca comunque: lo può ogni Editor, come il lock del documento (<c>EditingService.ForceUnlockAsync</c>).</summary>
     Task ForceUnlockAsync(string resourceKey, CancellationToken ct = default);
 
     /// <summary>Garantisce che l'utente corrente tenga il lock (per gestire le azioni); rinnova la scadenza. Lancia <see cref="EditConflictException"/> altrimenti.</summary>
@@ -76,8 +80,8 @@ public sealed class ResourceLockService : IResourceLockService
     public Task<LockInfo> AcquireAsync(string resourceKey, CancellationToken ct = default)
     {
         if (_authz.CurrentUserId is not int uid) return Task.FromResult(LockInfo.Free());
-        // Le chiavi admin le prende solo un admin: vedi ResourceLockKeys.RichiedonoAdmin per il perché.
-        if (ResourceLockKeys.RichiedonoAdmin.Contains(resourceKey)) _authz.EnsureAtLeast(VipiRole.Editor);
+        // Le chiavi di struttura le prende solo un Editor: vedi ResourceLockKeys.RichiedonoEditor per il perché.
+        if (ResourceLockKeys.RichiedonoEditor.Contains(resourceKey)) _authz.EnsureAtLeast(VipiRole.Editor);
         return _repo.AcquireOrInspectAsync(resourceKey, uid, _authz.CurrentName, LockTtlMinutes, ct);
     }
 

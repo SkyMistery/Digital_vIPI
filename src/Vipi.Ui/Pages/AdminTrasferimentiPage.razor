@@ -56,7 +56,7 @@
         </HelpHint>
         @if (Authz.IsEditor)
         {
-            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" ExpiresChanged="OnLockExpiry" />
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" Acquired="RileggiAllaPresaAsync" ExpiresChanged="OnLockExpiry" />
         }
     </div>
 
@@ -128,13 +128,15 @@
         var lacune = _acc is null ? Array.Empty<AgreementGap>() : Gaps();
         <div class="xfe-filters xt-bar">
             <span class="xt-acclbl">ACC</span>
-            @if (Stations.Accs.Count == 0)
+            @* 🔴 U-082: `_accs`, non `Stations.Accs`. Dopo che chiunque scrive un ACC la copia del catalogo si rilegge
+               dal database, e qui sarebbe dentro il render, sul DbContext del circuito, magari con un gesto in volo. *@
+            @if (_accs.Count == 0)
             {
                 <span class="help">@((MarkupString)L["Xfer_NoAccImport"].Value)</span>
             }
             else
             {
-                @foreach (var a in Stations.Accs)
+                @foreach (var a in _accs)
                 {
                     var active = string.Equals(_accCode, a.Code, StringComparison.OrdinalIgnoreCase);
                     @* Il titolo dell'ACC aperta porta i due totali: erano una casella in barra, e una casella
@@ -381,10 +383,18 @@
                             <option value="true">@L["Xfer_CondAreaAll"]</option>
                         </select>
                         <div class="field xt-bulkfield">
-                            <input placeholder="@L["Xfer_BulkCustom"]" @bind="_bulkCustomText" @bind:event="oninput" />
+                            <input placeholder="@L["Xfer_BulkCustom"]" maxlength="@Vipi.Domain.Entities.AgreementClauseLimits.Etichetta" @bind="_bulkCustomText" @bind:event="oninput" />
                         </div>
-                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_BulkConditionTitle"]"
+                        @* U-176 (revisione 3; scelta del committente del 28-set): a campi vuoti il tasto svuotava le
+                           condizioni di tutte le righe scelte. Ora è spento e dice perché; svuotare è un gesto suo, con
+                           la conferma del numero di righe, e tutti e due si annullano. *@
+                        <button class="btn ghost" disabled="@(_busy || !_canEdit || !CondizioneDaApplicare)"
+                                title="@(CondizioneDaApplicare ? L["Xfer_BulkConditionTitle"] : L["Xfer_BulkConditionEmpty"])"
                                 @onclick="ApplyBulkCondition">@L["Xfer_BulkApplyCondition"]</button>
+                        <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_BulkRemoveCondition"]" Disabled="@(_busy || !_canEdit)"
+                                       Prompt="@(string.Format(L["Xfer_BulkRemoveConditionPrompt"].Value, _selected.Count))"
+                                       ConfirmLabel="@L["Xfer_BulkRemoveConditionYes"]"
+                                       OnConfirm="TogliCondizioneBulk"><Trigger>@L["Xfer_BulkRemoveCondition"]</Trigger></InlineConfirm>
 
                         @* «Come risale»: non modifica niente, quindi NON chiede _canEdit — la si guarda anche
                            in sola lettura, ed e' il caso piu' frequente (si viene qui per capire, non per
@@ -505,6 +515,9 @@
 @code {
     private string _accCode = "";
     private AccInfo? _acc;
+
+    /// <summary>Gli ACC della barra, letti una volta all'apertura (U-082). Il markup guarda solo questo campo.</summary>
+    private IReadOnlyList<AccInfo> _accs = Array.Empty<AccInfo>();
     private IReadOnlyList<AgreementRow> _agreements = Array.Empty<AgreementRow>();
     private IReadOnlyList<GlobalSectorRow> _all = Array.Empty<GlobalSectorRow>();
 
@@ -526,6 +539,18 @@
     private bool _showPreviews = true;
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
+
+    /// <summary>«Inizia modifica»: si rilegge PRIMA che i comandi si riaccendano (U-011, revisione totale 3).
+    /// La pagina aperta in sola lettura teneva la fotografia dell'apertura, e la prima scrittura riportava
+    /// indietro il lavoro fatto nel frattempo da chi il lock l'aveva tenuto.</summary>
+    private async Task RileggiAllaPresaAsync()
+    {
+        if (_acc is null) return;
+        await InFilaAsync(() => LoadAsync(withPreview: false));
+        // Pannello e caselle aperti portano una copia della clausola letta PRIMA (EditableCopy): si chiudono.
+        ClosePanel();
+        _newSectionFor = null; _editSectionId = null; _editHeaderId = null; _pasteSectionId = null;
+    }
 
     // Scadenza del lock: arriva a ogni battito (60s), che è anche la frequenza con cui l'avviso si aggiorna.
     private DateTime? _lockExpiresUtc;
@@ -1096,22 +1121,60 @@
         if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
     }
 
+    /// <summary>C'è qualcosa da applicare: un'area scelta o una condizione libera scritta (U-176).</summary>
+    private bool CondizioneDaApplicare => _bulkAree.Count > 0 || !string.IsNullOrWhiteSpace(_bulkCustomText);
+
     private async Task ApplyBulkCondition()
     {
-        if (_selected.Count == 0) return;
+        if (_selected.Count == 0 || !CondizioneDaApplicare) return;
         var ids = _selected.ToList();
+        var foto = FotografaCondizioni(ids);
         var area = TransferConditionText.UnisciAree(_bulkAree);
         var custom = _bulkCustomText.Trim();
         var n = 0;
-        await Guarded(async () =>
+        if (!await Guarded(async () =>
         {
             n = await Agreements.SetConditionAsync(_acc!.Code, ids,
                 area, _bulkAreaNegated, _bulkAreaAll, custom.Length == 0 ? null : custom);
             _selected.Clear(); _bulkAree.Clear(); _bulkAreaText = "";
             _bulkAreaNegated = false; _bulkAreaAll = false; _bulkCustomText = "";
-        }, null);
-        if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
+        }, null)) return;
+        if (n == 0) return;
+        _status = string.Format(L["Xfer_BulkDone"].Value, n);
+        _undo = (RimettiCondizioni(foto), L["Xfer_CondRestored"].Value);
     }
+
+    /// <summary>«Togli condizione»: area e condizione libera via dalle righe scelte, dopo la conferma (U-176).</summary>
+    private async Task TogliCondizioneBulk()
+    {
+        if (_selected.Count == 0) return;
+        var ids = _selected.ToList();
+        var foto = FotografaCondizioni(ids);
+        var n = 0;
+        if (!await Guarded(async () =>
+        {
+            n = await Agreements.SetConditionAsync(_acc!.Code, ids, null, false, false, null);
+            _selected.Clear();
+        }, null)) return;
+        if (n == 0) return;
+        _status = string.Format(L["Xfer_BulkDone"].Value, n);
+        _undo = (RimettiCondizioni(foto), L["Xfer_CondRestored"].Value);
+    }
+
+    /// <summary>La condizione di ogni riga prima del gesto, raggruppata per valore: l'annulla la rimette con la
+    /// stessa porta in blocco, un gruppo per volta. I valori di prima sono validi per costruzione.</summary>
+    private List<(string? Area, bool Neg, bool All, string? Custom, List<int> Ids)> FotografaCondizioni(IReadOnlyCollection<int> ids) =>
+        _agreements.SelectMany(a => a.Sections).SelectMany(s => s.Clauses).Where(c => ids.Contains(c.Id))
+            .GroupBy(c => (c.ConditionAreaLabel, c.ConditionAreaNegated, c.ConditionAreaAll, c.ConditionCustomLabel))
+            .Select(g => (g.Key.ConditionAreaLabel, g.Key.ConditionAreaNegated, g.Key.ConditionAreaAll,
+                          g.Key.ConditionCustomLabel, g.Select(c => c.Id).ToList()))
+            .ToList();
+
+    private Func<Task> RimettiCondizioni(List<(string? Area, bool Neg, bool All, string? Custom, List<int> Ids)> foto) => async () =>
+    {
+        foreach (var f in foto)
+            await Agreements.SetConditionAsync(_acc!.Code, f.Ids, f.Area, f.Neg, f.All, f.Custom);
+    };
 
     private async Task DeleteBulk()
     {
@@ -1124,18 +1187,20 @@
             .SelectMany(sec => sec.Clauses.Where(c => _selected.Contains(c.Id))
                                   .Select(c => new AgreementClauseRestore(sec.Id, SnapshotOf(c))))
             .ToList();
+        var sorelle = AgreementOutlineRestore.SorelleDi(
+            _agreements.SelectMany(a => a.Sections).SelectMany(sec => sec.Clauses), ids);
 
         var n = 0;
-        await Guarded(async () =>
+        // U-193: l'annulla si arma su ciò che è successo davvero, non su «nessun errore a schermo».
+        if (!await Guarded(async () =>
         {
             n = await Agreements.DeleteClausesAsync(_acc!.Code, ids);
             _selected.Clear();
-        }, null);
+        }, null)) return;
 
-        if (_error is not null) return;
         _status = string.Format(L["Xfer_BulkDeleted"].Value, n);
-        if (snaps.Count > 0)
-            _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps), L["Xfer_RowsRestored"].Value);
+        if (n > 0 && snaps.Count > 0)
+            _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps, sorelle), L["Xfer_RowsRestored"].Value);
     }
 
     // ---- Ordinamento della VISTA ----
@@ -1842,32 +1907,6 @@
         await InFilaAsync(() => LoadRunwaysAsync(FocusSection()?.Section));
     }
 
-    /// <summary>
-    /// Cambia il tipo di traffico della sezione.
-    /// <para>⚠️ Passa dalla porta di scrittura come tutto il resto, quindi le regole valgono: passare ad
-    /// <b>arrivi</b> o <b>partenze</b> una sezione senza aeroporti <b>non va a buon fine</b>, e lo dice.</para>
-    /// </summary>
-    private int _kindEpoch;
-
-    private Task ChangeKind(AgreementSectionRow sec, ChangeEventArgs e)
-    {
-        if (!Enum.TryParse<TransferFlowKind>(e.Value?.ToString(), out var kind) || kind == sec.Kind)
-            return Task.CompletedTask;
-
-        // L'epoca avanza a ogni tentativo, riuscito o no: è ciò che fa ricreare la tendina e riallinearla al
-        // tipo davvero salvato. Un <select> il cui valore memorizzato non cambia dopo un rifiuto non viene
-        // riscritto da Blazor, e resta sulla scelta rifiutata — mentendo.
-        _kindEpoch++;
-        return Guarded(() => Agreements.UpdateSectionAsync(_acc!.Code, sec.Id, new AgreementSectionInput
-        {
-            Kind = kind,
-            Direction = sec.Direction,
-            Description = sec.Description,
-            Airports = sec.Airports.OrderBy(x => x.Order)
-                .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
-        }), null);
-    }
-
     /// <summary>Ribalta il verso della sezione: la proposta dell'aeroporto è una proposta, e va potuta
     /// smentire in un gesto.</summary>
     private Task FlipDirection(AgreementSectionRow sec) =>
@@ -1993,10 +2032,11 @@
         var parsed = ClausePaste.Parse(_pasteText).Where(p => p.Ok).ToList();
         if (parsed.Count == 0) return;
 
+        // 🔴 U-178 (revisione totale 3): tutte le righe in un colpo, validate prima. Una per una, una riga rifiutata a
+        // metà lasciava salvate le precedenti, e al nuovo invio entravano due volte.
         await Guarded(async () =>
         {
-            foreach (var p in parsed)
-                await Agreements.AddClauseAsync(_acc!.Code, sec.Id, p.Clause!);
+            await Agreements.AddClausesAsync(_acc!.Code, sec.Id, parsed.Select(p => p.Clause!).ToList());
             _pasteSectionId = null;
             _pasteText = "";
         }, string.Format(L["Xfer_PasteDone"].Value, parsed.Count));
@@ -3132,6 +3172,7 @@
         // Prewarm nel ciclo di vita e non dal markup: il lazy-load durante il render girava sul DbContext del
         // circuito e produceva «A second operation was started», cioe' un circuito morto che a occhio sembra vivo.
         Stations.Prewarm();
+        _accs = Stations.Accs;
         // In fila anche l'apertura: al primo await la pagina si disegna già, e da lì un clic può partire.
         await InFilaAsync(async () =>
         {
@@ -3209,7 +3250,8 @@
 
     private async Task OnAccChanged()
     {
-        _acc = string.IsNullOrWhiteSpace(_accCode) ? null : Stations.Resolve(_accCode);
+        _acc = string.IsNullOrWhiteSpace(_accCode) ? null
+            : _accs.FirstOrDefault(a => a.Code.Equals(_accCode, StringComparison.OrdinalIgnoreCase));
         if (_acc is null)
         {
             _agreements = Array.Empty<AgreementRow>();
@@ -3388,12 +3430,9 @@
         // La fotografia si scatta PRIMA (dopo, l'accordo non c'è più) ma l'annulla si arma DOPO, e solo se
         // l'eliminazione è andata: offrire di annullare qualcosa che non è successo è peggio che non offrirlo.
         var snap = SnapshotOf(a);
-        await Guarded(() => Agreements.DeleteAgreementAsync(_acc!.Code, a.Id), L["Xfer_AgreementDeleted"].Value);
-        if (_error is null)
-        {
-            _selectedId = null;
-            _undo = (() => Agreements.RestoreAgreementAsync(_acc!.Code, snap), L["Xfer_AgreementRestored"].Value);
-        }
+        if (!await Guarded(() => Agreements.DeleteAgreementAsync(_acc!.Code, a.Id), L["Xfer_AgreementDeleted"].Value)) return;
+        _selectedId = null;
+        _undo = (() => Agreements.RestoreAgreementAsync(_acc!.Code, snap), L["Xfer_AgreementRestored"].Value);
     }
 
     // ---- sezioni ------------------------------------------------------------------------------------
@@ -3451,12 +3490,9 @@
     private async Task DeleteSection(AgreementRow a, AgreementSectionRow sec)
     {
         var snap = new AgreementSectionRestore(a.Id, SnapshotOf(sec));
-        await Guarded(() => Agreements.DeleteSectionAsync(_acc!.Code, sec.Id), L["Xfer_SectionDeleted"].Value);
-        if (_error is null)
-        {
-            if (_focusSectionId == sec.Id) _focusSectionId = null;
-            _undo = (() => Agreements.RestoreSectionAsync(_acc!.Code, snap), L["Xfer_SectionRestored"].Value);
-        }
+        if (!await Guarded(() => Agreements.DeleteSectionAsync(_acc!.Code, sec.Id), L["Xfer_SectionDeleted"].Value)) return;
+        if (_focusSectionId == sec.Id) _focusSectionId = null;
+        _undo = (() => Agreements.RestoreSectionAsync(_acc!.Code, snap), L["Xfer_SectionRestored"].Value);
     }
 
     /// <summary>Copia la sezione nel verso opposto, come punto di partenza per il reciproco.</summary>
@@ -3688,18 +3724,19 @@
         // Fotografia prima, annulla armato dopo, e solo se è andata: come l'eliminazione multipla.
         var snaps = sottoalbero.Select(c => new AgreementClauseRestore(sec.Id, SnapshotOf(c))).ToList();
         var ids = sottoalbero.Select(c => c.Id).ToList();
+        // Anche le sorelle del gruppo (U-061): l'eliminazione scioglie un gruppo rimasto di una, e l'annulla lo
+        // deve ricomporre.
+        var sorelle = AgreementOutlineRestore.SorelleDi(sec.Clauses, ids);
 
-        await Guarded(async () => await Agreements.DeleteClausesAsync(_acc!.Code, ids),
-            ids.Count == 1 ? L["Xfer_RowDeleted"].Value : string.Format(L["Xfer_BulkDeleted"].Value, ids.Count));
-
-        if (_error is not null) return;
+        if (!await Guarded(async () => await Agreements.DeleteClausesAsync(_acc!.Code, ids),
+            ids.Count == 1 ? L["Xfer_RowDeleted"].Value : string.Format(L["Xfer_BulkDeleted"].Value, ids.Count))) return;
 
         // La selezione non deve restare appesa a righe che non ci sono più: il tasto «elimina i selezionati»
         // le rimanderebbe al server, e il conteggio in testata direbbe un numero che non esiste.
         foreach (var id in ids) _selected.Remove(id);
         if (_editClauseId is int aperta && ids.Contains(aperta)) ClosePanel();
 
-        _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps), L["Xfer_RowsRestored"].Value);
+        _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps, sorelle), L["Xfer_RowsRestored"].Value);
     }
 
     /// <summary>Il ✕ del pannello: stessa porta del ✕ di riga, comprese le eccezioni.</summary>
@@ -3833,7 +3870,8 @@
     {
         if (_undo is not { } undo) return;
         _undo = null;
-        await Guarded(undo.Restore, undo.Message);
+        // U-193: se il ripristino non riesce (lock perso, errore del database) la fotografia resta, e si riprova.
+        if (!await Guarded(undo.Restore, undo.Message)) _undo = undo;
     }
 
     /// <summary>Un gruppo di alternative senza «negli altri casi»: i casi che nessuna condizione copre restano
@@ -3859,9 +3897,11 @@
     /// <para>⚠️ Il costo per gesto conta: ricaricare il contesto anteprima costa sei mappe, irrilevante dal
     /// pannello e caro a ogni Invio in cella. Si rifà solo quando cambia ciò che l'anteprima legge davvero.</para>
     /// </summary>
-    private async Task Guarded(Func<Task> action, string? ok, bool withPreview = false)
+    /// <returns><c>true</c> se l'azione è stata eseguita ed è andata a buon fine (U-193): con la pagina occupata
+    /// non parte nemmeno, e chi arma un annulla deve saperlo.</returns>
+    private async Task<bool> Guarded(Func<Task> action, string? ok, bool withPreview = false)
     {
-        if (_busy) return;
+        if (_busy) return false;
         _busy = true;
         _error = null; _status = null; _undo = null;
         try
@@ -3872,14 +3912,17 @@
                 if (_acc is not null) await LoadAsync(withPreview);
             });
             if (ok is not null) _status = ok;
+            return true;
         }
         catch (Vipi.Application.Aor.ValidationException ex)
         {
             _error = ex.Message;
+            return false;
         }
         catch (Exception ex)
         {
             _error = ex.Message;
+            return false;
         }
         finally
         {

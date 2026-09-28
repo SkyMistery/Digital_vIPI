@@ -122,6 +122,8 @@ public sealed class PaginaErroreTests
         var registro = StartupDiagnostics.Percorso(DiagnosticaErrori.NomeFile);
         Assert.NotNull(registro);
         if (File.Exists(registro)) File.Delete(registro);
+        // Una riga al minuto (U-022): la prova parte senza quella di un'altra prova.
+        DiagnosticaErrori.AzzeraPaginaSenzaEccezione();
 
         using var fabbrica = new FabbricaRotta();
         // ⚠️ La query c'è apposta: nel Referer di una navigazione interna ci finisce, e se si veniva dal

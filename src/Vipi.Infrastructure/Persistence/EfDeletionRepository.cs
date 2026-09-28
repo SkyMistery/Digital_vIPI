@@ -53,11 +53,24 @@ public sealed class EfDeletionRepository : IDeletionRepository
         var documenti = await DocumentiCheLoCitanoAsync(sectorId, s.DocumentId, ct);
         var accordi = await AccordiAsync(sectorId, ct);
 
+        // U-135: i legami che la cascata o il callsign si porterebbero via senza dirlo.
+        var frequenze = (await _db.AirportFrequencyLinks.AsNoTracking()
+                .Where(l => l.SourceSectorId == sectorId)
+                .Select(l => new { l.Airport!.Icao, l.Airport.DocumentId })
+                .ToListAsync(ct))
+            .DistinctBy(x => x.Icao).OrderBy(x => x.Icao)
+            .Select(x => new LinkedFrequencyFacts(x.Icao, x.DocumentId)).ToList();
+        var ripieghi = await _db.SectorFallbacks.CountAsync(
+            x => x.SectorCallsign == s.Callsign || x.TargetCallsign == s.Callsign, ct);
+        var agganci = await _db.SectorAirspaceBindings.CountAsync(
+            x => x.SectorId == sectorId || x.Callsign == s.Callsign, ct);
+
         return new SectorFacts(
             s.Id, s.Callsign, s.Name, s.AccCode, s.Type, s.Kind,
             s.AirportId, s.AirportIcao, s.ParentSectorId, padre,
             s.IsProjected, manuale, timbro, figli,
-            await FigliDiCatalogoAsync(s.Callsign, ct), documenti, accordi);
+            await FigliDiCatalogoAsync(s.Callsign, ct), documenti, accordi,
+            frequenze, ripieghi, agganci);
     }
 
     /// <summary>
@@ -123,13 +136,14 @@ public sealed class EfDeletionRepository : IDeletionRepository
     {
         var acc = await _db.Accs.AsNoTracking()
             .Where(x => x.Code == accCode)
-            .Select(x => new { x.Id, x.Code, x.Name, x.ImportedAtUtc })
+            .Select(x => new { x.Id, x.Code, x.Name, x.ImportedAtUtc, x.IsForeign })
             .FirstOrDefaultAsync(ct);
         if (acc is null) return null;
 
         return new AccFacts(acc.Code, acc.Name, acc.ImportedAtUtc,
             await _db.Sectors.CountAsync(s => s.AccId == acc.Id, ct),
-            await _db.Airports.CountAsync(a => a.AccId == acc.Id, ct));
+            await _db.Airports.CountAsync(a => a.AccId == acc.Id, ct),
+            acc.IsForeign);
     }
 
     public async Task<DocumentFacts?> DocumentFactsAsync(int documentId, CancellationToken ct = default)
@@ -385,6 +399,18 @@ public sealed class EfDeletionRepository : IDeletionRepository
         var settori = a.SettoriDaEliminare.Count > 0
             ? await _db.Sectors.Where(s => a.SettoriDaEliminare.Contains(s.Id)).ToListAsync(ct)
             : new List<Domain.Entities.Sector>();
+
+        // 4-bis) 🔴 U-135 (revisione totale 3): ripieghi e agganci AIP vivono per callsign, senza chiave esterna:
+        //    restavano appesi a un nominativo che non c'è più. Se ne vanno col settore, nella stessa transazione.
+        if (settori.Count > 0)
+        {
+            var nomi = settori.Select(s => s.Callsign).ToList();
+            var ids = settori.Select(s => s.Id).ToList();
+            _db.SectorFallbacks.RemoveRange(await _db.SectorFallbacks
+                .Where(x => nomi.Contains(x.SectorCallsign) || nomi.Contains(x.TargetCallsign)).ToListAsync(ct));
+            _db.SectorAirspaceBindings.RemoveRange(await _db.SectorAirspaceBindings
+                .Where(x => ids.Contains(x.SectorId) || nomi.Contains(x.Callsign)).ToListAsync(ct));
+        }
         //    ⚠️ Il dettaglio si scrive in due forme, non in una con un campo a null: `ProvaSorgente` compare
         //    SOLO quando c'è stata una domanda puntuale alla sorgente. Un `"ProvaSorgente":null` su ogni riga
         //    sarebbe rumore in un registro che si legge anche in SQL, di fretta, davanti a un incidente.

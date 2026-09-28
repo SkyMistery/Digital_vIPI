@@ -51,19 +51,36 @@ internal static class SegretiFuoriDalWeb
     /// Unisce alla configurazione ogni <c>*.json</c> della cartella, in ordine di nome. Ritorna quanti file
     /// ha letto (0 = cartella assente o vuota, ed è il caso normale in sviluppo e nei test).
     /// </summary>
-    internal static int Carica(IConfigurationBuilder configurazione)
+    internal static int Carica(IConfigurationBuilder configurazione) => Carica(configurazione, AppContext.BaseDirectory);
+
+    /// <summary>Come sopra, da una base scelta: i test la puntano a una cartella temporanea, perché un file
+    /// malformato accanto all'eseguibile dei test romperebbe l'avvio di ogni altro host del processo.</summary>
+    internal static int Carica(IConfigurationBuilder configurazione, string baseDir)
     {
         var letti = 0;
         foreach (var nome in Cartelle)
         {
-            var cartella = Path.Combine(AppContext.BaseDirectory, nome);
+            var cartella = Path.Combine(baseDir, nome);
             if (!Directory.Exists(cartella)) continue;
 
             // Ordine per nome: con due file che dicono la stessa chiave, deve vincere sempre lo stesso — e
             // «l'ordine in cui il filesystem li elenca» non è un criterio, è il caso.
             foreach (var file in Directory.EnumerateFiles(cartella, "*.json").OrderBy(f => f, StringComparer.Ordinal))
             {
-                configurazione.AddJsonFile(file, optional: true, reloadOnChange: false);
+                // 🔴 U-124 (revisione totale 3): un file malformato faceva uscire «Failed to load configuration from
+                // file '<percorso completo>'», che avvio-errore.txt scrive per intero — e quel file si spedisce per
+                // email. Il nome è la sola protezione di questi file: si dice il NUMERO e il difetto, non il nome.
+                // ⚠️ Senza l'eccezione originale come interna: la sua ToString() riporterebbe il percorso.
+                try
+                {
+                    configurazione.AddJsonFile(file, optional: true, reloadOnChange: false);
+                }
+                catch (Exception ex) when (ex is InvalidDataException or FormatException)
+                {
+                    var difetto = (ex.InnerException ?? ex).Message.Replace(file, "…", StringComparison.Ordinal);
+                    throw new InvalidDataException(
+                        $"Il file n. {letti + 1} (in ordine di nome) della cartella «{nome}» non è un JSON valido: {difetto}");
+                }
                 letti++;
             }
         }

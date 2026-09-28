@@ -44,6 +44,13 @@ public enum AttachmentCreate
     /// <summary>Manca il titolo: è quel che si legge dentro il documento, quindi non è un dettaglio.</summary>
     TitoloMancante,
 
+    /// <summary>Il titolo supera la colonna (<see cref="Content.AttachmentRules.TitleMaxLength"/>). 🔴 U-048: prima
+    /// non lo guardava nessuno, e il database rifiutava a metà salvataggio.</summary>
+    TitoloTroppoLungo,
+
+    /// <summary>Le note della voce superano la colonna (<see cref="Content.AttachmentRules.NotesMaxLength"/>).</summary>
+    NoteTroppoLunghe,
+
     /// <summary>Dal link incollato non si ricava nessun id di file.</summary>
     LinkNonValido,
 
@@ -64,6 +71,9 @@ public enum AttachmentReplace
 
     /// <summary>Dal link incollato non si ricava nessun id di file.</summary>
     LinkNonValido,
+
+    /// <summary>La nota della versione supera la colonna (<see cref="Content.AttachmentRules.NoteMaxLength"/>). 🔴 U-048.</summary>
+    NotaTroppoLunga,
 
     /// <summary>
     /// Il file è <b>lo stesso di adesso</b>: non si scrive una versione nuova.

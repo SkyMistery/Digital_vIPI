@@ -45,10 +45,13 @@ public static class SectionMoveTargets
     /// <param name="etichettaRadice">Come si chiama a schermo quella destinazione.</param>
     /// <param name="titolo">Come si chiama una sezione a schermo (titoli di catalogo risolti). Null = quel che
     /// porta il documento.</param>
-    /// <param name="profonditaMassima">Livelli consentiti dal modello (<c>DocumentSection.MaxDepth</c>).</param>
+    /// <param name="profonditaMassima">La profondità più bassa consentita dal modello: per default
+    /// <c>DocumentSection.MaxDepth</c>, lo stesso tetto che applica il repository. 🔴 U-247 (revisione totale 3): il
+    /// default era 3, rimasto dal modello di prima del 16 settembre, e le destinazioni ai livelli 4 e 5 non si
+    /// offrivano mai, mentre il repository le accettava.</param>
     public static IReadOnlyList<SectionMoveTarget> Per(
         IReadOnlyList<EditableSection> radici, EditableSection mossa, int? radiceId, string etichettaRadice,
-        Func<EditableSection, string>? titolo = null, int profonditaMassima = 3)
+        Func<EditableSection, string>? titolo = null, int profonditaMassima = Vipi.Domain.Entities.DocumentSection.MaxDepth)
     {
         var esiti = new List<SectionMoveTarget>();
         if (radici.Count == 0) return esiti;

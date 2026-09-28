@@ -38,13 +38,26 @@ public class AirportCategoriesTests
         Assert.DoesNotContain(AirportCategory.Civil, AirportCategories.Selectable);
     }
 
+    // 🔴 U-028 (revisione totale 3, decisione del committente del 27-set-2026): senza presenza una categoria militare
+    // NON scende da sola a Civile. Una notte di «military» falso cancellava per sempre la scelta di una persona;
+    // ora la riga resta com'è, è una DIVERGENZA, e a chiuderla è l'amministratore scegliendo «Civile».
     [Theory]
-    [InlineData(false, AirportCategory.MilitaryOnly, AirportCategory.Civil)]
+    [InlineData(false, AirportCategory.MilitaryOnly, AirportCategory.MilitaryOnly)]
     [InlineData(false, AirportCategory.Civil, AirportCategory.Civil)]
     [InlineData(true, AirportCategory.Civil, AirportCategory.CivilWithMilitaryPresence)]
     [InlineData(true, AirportCategory.MilitaryWithCivilPresence, AirportCategory.MilitaryWithCivilPresence)]
     public void L_invariante_con_la_presenza_militare(bool presenza, AirportCategory prima, AirportCategory dopo)
     {
         Assert.Equal(dopo, AirportCategories.Normalize(presenza, prima));
+    }
+
+    [Theory]
+    [InlineData(false, AirportCategory.MilitaryOnly, true)]
+    [InlineData(false, AirportCategory.CivilWithMilitaryPresence, true)]
+    [InlineData(false, AirportCategory.Civil, false)]
+    [InlineData(true, AirportCategory.MilitaryOnly, false)]
+    public void La_divergenza_e_una_categoria_militare_senza_presenza(bool presenza, AirportCategory categoria, bool divergente)
+    {
+        Assert.Equal(divergente, AirportCategories.Divergente(presenza, categoria));
     }
 }

@@ -105,6 +105,16 @@ public static class PonteRfo
             if (!EventoValido.IsMatch(eventId)) return Vuota(StatusCodes.Status400BadRequest);
             if (Porta(ctx, eventId, opzioni.CurrentValue) is { } rifiuto) return rifiuto;
 
+            // 🔴 U-104 (revisione totale 3): un tetto alle scritture dell'evento. Ogni PUT riuscito costa fino a 1 MB
+            // due volte (documento e storia), e un client incastrato in un ciclo 409 → riapplica → PUT non si
+            // fermava mai. RfoLimits.ScrittureAlMinuto, riprove comprese: largo per dieci postazioni.
+            if (ctx.RequestServices.GetService<RequestRateLimiter>() is { } limiter
+                && !limiter.TryAcquire("rfo:scritture:" + eventId, RfoLimits.ScrittureAlMinuto, MaxChiamantiTracciati))
+            {
+                ctx.Response.Headers.RetryAfter = "60";
+                return Vuota(StatusCodes.Status429TooManyRequests);
+            }
+
             // Senza If-Match una postazione sovrascriverebbe alla cieca quello che hanno deciso le altre.
             var ifMatch = ctx.Request.Headers.IfMatch.ToString();
             if (string.IsNullOrWhiteSpace(ifMatch)) return Vuota(StatusCodes.Status428PreconditionRequired);
@@ -163,22 +173,45 @@ public static class PonteRfo
     /// </summary>
     internal static IResult? Porta(HttpContext ctx, string eventId, RfoOptions opzioni)
     {
+        var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
+        var limiter = ctx.RequestServices.GetService<RequestRateLimiter>();
+
+        // 🔴 U-099/U-239 (revisione totale 3): chi chiede senza la chiave giusta a raffica si ferma qui, prima di
+        // verificare e senza scrivere niente. Ogni rifiuto scriveva una riga nel log del giorno e una nel registro
+        // delle richieste: circa 35 000 richieste anonime saturavano i due tetti da 5 MB, e la diagnostica del
+        // giorno taceva fino a mezzanotte — memoria del processo e import compresi.
+        var rifiuti = "rfo:rifiuti:" + ip;
+        if (limiter?.Esaurita(rifiuti, RifiutiAlMinutoPerIp) == true)
+        {
+            ctx.Response.Headers.RetryAfter = "60";
+            return Vuota(StatusCodes.Status429TooManyRequests);
+        }
+
         var presentata = ctx.Request.Headers["x-api-key"].ToString().Trim();
         var esito = Verifica(presentata, eventId, opzioni);
         if (esito == EsitoChiaveRfo.Valida) return null;
 
+        limiter?.TryAcquire(rifiuti, RifiutiAlMinutoPerIp, MaxChiamantiTracciati);
         var log = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(PortaDelleApi.CategoriaLog);
-        var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
         if (esito == EsitoChiaveRfo.AltroEvento)
         {
             log.LogWarning("Ponte RFO {Evento}: chiave valida ma non per questo evento, da {Ip}", eventId, ip);
             return Vuota(StatusCodes.Status403Forbidden);
         }
 
-        log.LogInformation("Ponte RFO {Evento}: chiave {Stato}, da {Ip}", eventId,
-            presentata.Length == 0 ? "mancante" : "sconosciuta", ip);
+        // Una riga al minuto per IP, non una per richiesta: chi prova resta visibile, il registro non si riempie.
+        if (limiter is null || limiter.TryAcquire("rfo:log:" + ip, 1, MaxChiamantiTracciati))
+            log.LogInformation("Ponte RFO {Evento}: chiave {Stato}, da {Ip}", eventId,
+                presentata.Length == 0 ? "mancante" : "sconosciuta", ip);
         return Vuota(StatusCodes.Status401Unauthorized);
     }
+
+    /// <summary>Quante richieste con la chiave sbagliata si accettano al minuto da un IP prima del 429. Una
+    /// postazione con la chiave sbagliata ne fa venti al minuto (una ogni tre secondi): passa, e si vede.</summary>
+    public const int RifiutiAlMinutoPerIp = 30;
+
+    /// <summary>Tetto dei chiamanti tenuti in memoria dal limitatore per le chiavi del ponte.</summary>
+    private const int MaxChiamantiTracciati = 10_000;
 
     internal static EsitoChiaveRfo Verifica(string? presentata, string eventId, RfoOptions opzioni)
     {

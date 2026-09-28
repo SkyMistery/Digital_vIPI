@@ -12,6 +12,21 @@ namespace Vipi.Application.Tests;
 /// </summary>
 public class AwosCompositionTests
 {
+    // 🔴 U-092: oltre 90 minuti il METAR non guida più LVP e pista; senza ora non si sa, e non si dice vecchio.
+    [Theory]
+    [InlineData(89, false)]
+    [InlineData(91, true)]
+    [InlineData(190, true)]
+    public void Un_METAR_oltre_novanta_minuti_e_vecchio(int minuti, bool vecchio)
+    {
+        var adesso = new DateTimeOffset(2026, 9, 27, 9, 0, 0, TimeSpan.Zero);
+        Assert.Equal(vecchio, AwosComposition.MetarVecchio(adesso.AddMinutes(-minuti), adesso));
+    }
+
+    [Fact]
+    public void Senza_ora_il_METAR_non_e_vecchio() =>
+        Assert.False(AwosComposition.MetarVecchio(null, DateTimeOffset.UtcNow));
+
     private static RunwayRow Pista(string ident, int? bearing = null, int? elev = null) =>
         new(0, ident, null, bearing, null, null, null, null, null, null, null, elev);
 
@@ -91,6 +106,11 @@ public class AwosCompositionTests
 
     // ─── Transition level ──────────────────────────────────────────────────────────
 
+    /// <summary>La tabella viva come la proietta il documento: il TL si legge da lì, con la funzione unica (U-227).</summary>
+    private static string? Tl(IEnumerable<TlRow> righe, int? qnh) => LivelloDiTransizione.Adesso(
+        new AirportTransitionView(5000, righe.Select(t =>
+            new AirportTlRowView(AirportSectionProjection.QnhRange(t.QnhFrom, t.QnhTo), t.Level)).ToList()), qnh);
+
     [Fact] // il TL viene dalla TABELLA dello scalo, per fascia di QNH
     public void Il_Tl_Viene_Dalla_Tabella()
     {
@@ -101,18 +121,18 @@ public class AwosCompositionTests
             new TlRow(3, null, 994, "FL80"),
         };
 
-        Assert.Equal("FL70", AwosComposition.TransitionLevel(righe, 1020));
-        Assert.Equal("FL75", AwosComposition.TransitionLevel(righe, 1000));
-        Assert.Equal("FL80", AwosComposition.TransitionLevel(righe, 980));
+        Assert.Equal("FL70", Tl(righe, 1020));
+        Assert.Equal("FL75", Tl(righe, 1000));
+        Assert.Equal("FL80", Tl(righe, 980));
     }
 
     [Fact] // senza QNH o senza tabella si dice «non lo so», non «FL70»
     public void Senza_Qnh_O_Tabella_Il_Tl_E_Null()
     {
         var righe = new[] { new TlRow(1, 1013, null, "FL70") };
-        Assert.Null(AwosComposition.TransitionLevel(righe, null));
-        Assert.Null(AwosComposition.TransitionLevel(Array.Empty<TlRow>(), 1013));
-        Assert.Null(AwosComposition.TransitionLevel(righe, 990));      // nessuna fascia copre
+        Assert.Null(Tl(righe, null));
+        Assert.Null(Tl(Array.Empty<TlRow>(), 1013));
+        Assert.Null(Tl(righe, 990));      // nessuna fascia copre
     }
 
     // ─── QFE ───────────────────────────────────────────────────────────────────────
@@ -123,6 +143,13 @@ public class AwosCompositionTests
         Assert.Equal(1010, AwosComposition.Qfe(1013, 81));    // 81/27 = 3 hPa
         Assert.Null(AwosComposition.Qfe(1013, null));         // soglia senza elevazione: non si stima
         Assert.Null(AwosComposition.Qfe(null, 81));
+    }
+
+    [Fact] // U-226: sugli scali in quota la retta dei 27 ft/hPa sbaglia di 2–4 hPa; si segue l'atmosfera standard
+    public void Qfe_in_quota_segue_l_atmosfera_standard()
+    {
+        Assert.Equal(927, AwosComposition.Qfe(990, 1796));   // la retta darebbe 923
+        Assert.Equal(1013, AwosComposition.Qfe(1013, 0));
     }
 
     // ─── Pista in uso ──────────────────────────────────────────────────────────────
@@ -200,6 +227,49 @@ public class AwosCompositionTests
             new[] { Regola("16R,16L", "16L", "Config 16") }, new[] { "16L", "16R" }, metar);
 
         Assert.Equal(new[] { "16R", "16L" }, attiva.Dep);
+    }
+
+    [Fact] // U-223: la regola si misura sulla rotta vera, la stessa del pannello vento
+    public void La_regola_si_misura_sulla_rotta_vera_come_il_pannello()
+    {
+        var metar = MetarParser.ParseMetar("LIRF 121250Z 07015KT 9999 NSC 12/08 Q1013");
+        var piste = new[]
+        {
+            new RunwayRow(1, "16", null, 163, null, null, null, null, null),
+            new RunwayRow(2, "34", null, 343, null, null, null, null, null),
+        };
+
+        var attiva = AwosComposition.PistaAttiva(new[] { Regola("16", "16", "Sud", coda: 0) }, new[] { "16", "34" },
+            metar, rotte: RunwayRow.Rotte(piste));
+
+        Assert.Equal(AwosRunwaySource.Vento, attiva.Sorgente);   // coda 1 kt sulla 163: la regola «coda 0» cade
+        Assert.Equal(new[] { "34" }, attiva.Dep);
+    }
+
+    [Theory] // U-214 (scelta del committente 28-set): senza vento noto le regole non decidono — niente pista
+    [InlineData(null)]
+    [InlineData("LIRF 270650Z NIL")]
+    [InlineData("LIRF 270650Z /////KT 9999 NSC 12/08 Q1013")]
+    [InlineData("LIRF 270650Z VRB05KT 9999 NSC 12/08 Q1013")]
+    public void Senza_vento_noto_le_regole_non_decidono(string? raw)
+    {
+        var metar = raw is null ? null : MetarParser.ParseMetar(raw);
+
+        var attiva = AwosComposition.PistaAttiva(new[] { Regola("16R", "16L", "Config 16") },
+            new[] { "16L", "16R", "34L", "34R" }, metar);
+
+        Assert.Equal(AwosRunwaySource.Nessuna, attiva.Sorgente);
+    }
+
+    [Theory] // U-214: il vento calmo invece è un vento noto, e la regola vale
+    [InlineData("LIRF 270650Z 00000KT 9999 NSC 12/08 Q1013")]
+    [InlineData("LIRF 270650Z VRB02KT 9999 NSC 12/08 Q1013")]
+    public void Col_vento_calmo_la_regola_vale(string raw)
+    {
+        var attiva = AwosComposition.PistaAttiva(new[] { Regola("16R", "16L", "Config 16") },
+            new[] { "16L", "16R", "34L", "34R" }, MetarParser.ParseMetar(raw));
+
+        Assert.Equal(AwosRunwaySource.Regola, attiva.Sorgente);
     }
 
     [Fact] // senza METAR il quadro non inventa una configurazione

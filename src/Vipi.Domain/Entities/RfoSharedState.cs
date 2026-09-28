@@ -55,4 +55,19 @@ public static class RfoLimits
 
     /// <summary>Il corpo di un PUT, in byte: oltre, <c>413</c>.</summary>
     public const int CorpoMassimo = 1_048_576;
+
+    /// <summary>
+    /// Quante versioni della storia si tengono per evento: le più vecchie si tolgono a ogni scrittura. 🔴 U-104/U-121
+    /// (revisione totale 3, scelta del committente il 28 settembre 2026): fino ad allora ogni scrittura aggiungeva
+    /// una copia intera, fino a 1 MB, per sempre.
+    /// </summary>
+    public const int StoriaPerEvento = 100;
+
+    /// <summary>Dopo quanti giorni dall'ultima scrittura di un evento la sua storia se ne va tutta: il debriefing
+    /// è fatto, e restano i dati dei piloti. Stessa scelta del committente.</summary>
+    public const int GiorniDiStoria = 30;
+
+    /// <summary>Quante scritture al minuto accetta un evento, riprove dopo un 409 comprese: due al secondo, larghe
+    /// per dieci postazioni. Oltre, <c>429</c> (scelta del committente, 28 settembre 2026).</summary>
+    public const int ScrittureAlMinuto = 120;
 }

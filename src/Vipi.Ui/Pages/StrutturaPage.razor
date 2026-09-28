@@ -58,10 +58,21 @@
                         <button class="tclose" title="@L["Common_Close"]" @onclick="() => _msg = null">✕</button>
                     </span>
                 }
+                @* 🔴 U-192: la domanda prima di buttare una catena di ripiego non salvata. *@
+                @if (_cambioInSospeso is not null)
+                {
+                    <span class="st-msg warn">
+                        <Icon Name="warning" Size="14" />
+                        <span class="st-msg-t">@L["Struct_Fallback_UnsavedSwitch", Selected()?.Label ?? ""]</span>
+                        <button class="btn ghost sm" @onclick="ScartaECambiaAsync">@L["Struct_Fallback_DiscardSwitch"]</button>
+                        <button class="btn ghost sm" @onclick="() => _cambioInSospeso = null">@L["Struct_Fallback_Stay"]</button>
+                    </span>
+                }
             </LiveRegion>
             @* ⚠️ La EditLockBar sta QUI, in testata, e non come fascia a sé: i suoi margini di fascia si
                azzerano nel CSS di .st-head, non nel componente — newdoc la usa ancora come fascia. *@
-            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" Acquired="RileggiAllaPresaAsync"
+                         BeforeRelease="PrimaDelRilascioAsync" />
         }
     </div>
 
@@ -100,7 +111,7 @@
                sparisce «mostra tutti»: il chip È già l'interruttore del filtro, e due comandi per lo stesso
                stato sono uno di troppo. *@
             <div class="struct-bar">
-                <input class="htree-search" placeholder="@L["Struct_SearchPlaceholder"]" value="@_treeFilter" @oninput="OnSearchInput" />
+                <CampoTesto class="htree-search" placeholder="@L["Struct_SearchPlaceholder"]" Valore="@_treeFilter" OnInput="OnSearchInput" />
                 <select class="htree-select" @bind="_countryFilter" title="@L["Struct_FilterCountry"]">
                     <option value="">@L["Struct_AllCountries"]</option>
                     @foreach (var c in CountryOptions())
@@ -331,7 +342,7 @@
                                             <label>@L["Struct_Fallback_From"]</label>
                                             <div class="fb-lvl">
                                                 <input type="number" min="0" max="@MassimoDi(u.Piede)" placeholder="@L["Struct_Fallback_Sfc"]" disabled="@_busy"
-                                                       value="@NumeroDi(_ripieghi[idx].BaseFeet, u.Piede)" @oninput="e => CambiaPiede(idx, e.Value?.ToString())" />
+                                                       value="@NumeroDi(_ripieghi[idx].BaseFeet, u.Piede)" @onchange="e => CambiaPiede(idx, e.Value?.ToString())" />
                                                 <select disabled="@_busy" title="@L["Struct_Fallback_Unit"]" value="@u.Piede"
                                                         @onchange="e => CambiaUnitaPiede(idx, e.Value?.ToString())">
                                                     <option value="@LevelUnit.Fl">FL</option>
@@ -343,7 +354,7 @@
                                             <label>@L["Struct_Fallback_To"]</label>
                                             <div class="fb-lvl">
                                                 <input type="number" min="0" max="@MassimoDi(u.Tetto)" placeholder="@L["Struct_Fallback_Unl"]" disabled="@_busy"
-                                                       value="@NumeroDi(_ripieghi[idx].TopFeet, u.Tetto)" @oninput="e => CambiaTetto(idx, e.Value?.ToString())" />
+                                                       value="@NumeroDi(_ripieghi[idx].TopFeet, u.Tetto)" @onchange="e => CambiaTetto(idx, e.Value?.ToString())" />
                                                 <select disabled="@_busy" title="@L["Struct_Fallback_Unit"]" value="@u.Tetto"
                                                         @onchange="e => CambiaUnitaTetto(idx, e.Value?.ToString())">
                                                     <option value="@LevelUnit.Fl">FL</option>
@@ -585,6 +596,15 @@
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
+    /// <summary>«Inizia modifica»: si rilegge PRIMA che i comandi si riaccendano (U-011, revisione totale 3).
+    /// La pagina aperta in sola lettura teneva la fotografia dell'apertura, e la prima scrittura riportava
+    /// indietro il lavoro fatto nel frattempo da chi il lock l'aveva tenuto.</summary>
+    private async Task RileggiAllaPresaAsync() => await InFilaAsync(async () =>
+    {
+        await ReloadTreeAsync();
+        await CaricaRipieghiAsync();   // i ripieghi si riscrivono per intero (ReplaceAsync)
+    });
+
     // Etichetta orfani con pluralizzazione IT/EN gestita via chiavi singolare/plurale.
     private string OrphansLabel(int apt, int app)
     {
@@ -600,11 +620,14 @@
         // lettura. Prima non si vedeva perché ogni comando era dietro `IsAdmin` — ma i dati c'erano.
         if (!Authz.IsEditor) return;
 
-        _accs = await Struct.ListAccsAsync();
-        _confining = await Hierarchy.ListConfiningForeignCallsignsAsync();
-        _online = new HashSet<string>(Online.GetCurrent().Callsigns, StringComparer.OrdinalIgnoreCase);
-        await ReloadTreeAsync();
-        await RicaricaOrfaniAsync();
+        await InFilaAsync(async () =>
+        {
+            _accs = await Struct.ListAccsAsync();
+            _confining = await Hierarchy.ListConfiningForeignCallsignsAsync();
+            _online = new HashSet<string>(Online.GetCurrent().Callsigns, StringComparer.OrdinalIgnoreCase);
+            await ReloadTreeAsync();
+            await RicaricaOrfaniAsync();
+        });
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -656,14 +679,14 @@
 
     /// <summary>Dopo un'eliminazione: l'albero cambia, la selezione non esiste più e gli orfani possono
     /// essere diminuiti (il settore tolto poteva essere uno di loro).</summary>
-    private async Task RicaricaDopoEliminazione()
+    private Task RicaricaDopoEliminazione() => InFilaAsync(async () =>
     {
         _selKind = null;
         _selId = 0;
         _pendingParent = null;
         await ReloadTreeAsync();
         await RicaricaOrfaniAsync();
-    }
+    });
 
     private async Task ReloadTreeAsync()
     {
@@ -672,14 +695,71 @@
         _tree = full.Where(n => !n.IsForeign || (n.Callsign != null && _confining.Contains(n.Callsign))).ToList();
     }
 
-    private async Task Guarded(Func<Task> action)
+    /// <summary>
+    /// Un gesto che scrive, poi la rilettura dell'albero. Vero se è andato a buon fine; falso se ha dato un
+    /// messaggio o se non è partito.
+    ///
+    /// <para>⚠️ <b>La sentinella sta PRIMA dell'await</b> (U-012, revisione totale 3): due rilasci nello stesso
+    /// istante — o un «Applica» premuto due volte prima che il render spenga il tasto — erano due
+    /// <c>SetParentAsync</c> sullo stesso contesto. Il secondo gesto <b>non parte</b>, e lo dice il valore di
+    /// ritorno: chi dopo il gesto rilegge (i ripieghi) non deve rileggere sopra un salvataggio che non c'è stato,
+    /// o butta via le righe non salvate.</para>
+    /// </summary>
+    private async Task<bool> Guarded(Func<Task> action)
     {
+        if (_busy) return false;
         _busy = true; _msg = null;
-        try { await action(); await ReloadTreeAsync(); }
+        try
+        {
+            await InFilaAsync(async () => { await action(); await ReloadTreeAsync(); });
+            return true;
+        }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
+        // 🔴 U-190 (revisione totale 3): tre tipi soli, e una DbUpdateException (due schede, un giro notturno che
+        // scrive) usciva dal gestore. Il resto resta un messaggio.
+        catch (Exception ex) { _msg = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
+        return false;
+    }
+
+    /// <summary>
+    /// 🔴 <b>La fila della pagina: un'operazione per volta sul DbContext del circuito</b> (U-012, revisione
+    /// totale 3). La pagina prende i servizi dal circuito (è nel debito di <c>ScopeProprioDellePagineTests</c>):
+    /// albero, ripieghi e orfani stanno sullo stesso contesto. Un clic su un nodo leggeva i ripieghi mentre un
+    /// trascinamento salvava e riproiettava — «A second operation was started», e il circuito giù. Riprodotto dal
+    /// vivo col doppio clic vero su un nodo: le due letture dei ripieghi una sopra l'altra.
+    ///
+    /// <para>Ci passano <b>tutti</b>: apertura, gesti che scrivono (<see cref="Guarded"/>), selezione di un nodo,
+    /// ripieghi, proposte, rilettura alla presa del lock e dopo un'eliminazione. Un clic su un nodo mentre si
+    /// salva <b>aspetta il suo turno</b> e poi arriva: non si perde.</para>
+    ///
+    /// <para>⚠️ <b>Rientrante</b>, come quella dei Trasferimenti: le catene si annidano (<c>Select</c> →
+    /// <c>CaricaRipieghiAsync</c>, <c>RileggiAllaPresaAsync</c> → <c>CaricaRipieghiAsync</c>) e un semaforo non
+    /// rientrante aspetterebbe sé stesso per sempre. <c>AsyncLocal</c> perché un <c>bool</c> di campo direbbe
+    /// «dentro» anche a un altro gesto.</para>
+    ///
+    /// <para>⚠️ Il semaforo non si smaltisce mai: una lettura in volo arriva al suo <c>Release()</c> anche dopo
+    /// che la pagina se n'è andata (vedi <see cref="ScopeProprioCheAspetta"/>).</para>
+    /// </summary>
+    private readonly SemaphoreSlim _fila = new(1, 1);
+    private readonly AsyncLocal<bool> _inFila = new();
+
+    private async Task InFilaAsync(Func<Task> operazione)
+    {
+        if (_inFila.Value) { await operazione(); return; }
+
+        // 🔴 NIENTE ConfigureAwait(false) (§CW): dopo l'attesa l'operazione scrive lo stato della pagina, e
+        // deve farlo sul dispatcher.
+        await _fila.WaitAsync();
+        _inFila.Value = true;
+        try { await operazione(); }
+        finally
+        {
+            _inFila.Value = false;
+            _fila.Release();
+        }
     }
 
     /// <summary>Vero se il padre selezionato (pending) differisce da quello salvato sul nodo.</summary>
@@ -1062,13 +1142,53 @@
         return sel.Kind == HierarchyNodeKind.Acc ? L["Struct_OptRoot"].Value : L["Struct_OptToAssign"].Value;
     }
 
-    private async Task Select(HierarchyNodeKind kind, int id)
+    /// <summary>La selezione cambia <b>in fila</b>, non prima: il dettaglio e i ripieghi letti devono essere dello
+    /// stesso nodo, e un clic dato mentre si salva passa quando il salvataggio ha finito.</summary>
+    ///
+    /// <para>🔴 U-192 (revisione totale 3): cliccare un nodo — anche lo STESSO — rileggeva la catena di ripiego e
+    /// buttava in silenzio quella che si stava scrivendo. Lo stesso nodo non fa niente; con righe non salvate si
+    /// chiede prima (<see cref="_cambioInSospeso"/>). I controlli stanno DENTRO la fila: il secondo clic di un doppio
+    /// clic, quando tocca a lui, trova il nodo già scelto.</para>
+    private Task Select(HierarchyNodeKind kind, int id) => InFilaAsync(async () =>
     {
+        if (IsSelected(kind, id)) return;
+        if (_ripieghiSporchi) { _cambioInSospeso = (kind, id); return; }
+        _cambioInSospeso = null;
         _selKind = kind; _selId = id; _parentFilter = "";
         _pendingParent = _tree.FirstOrDefault(n => n.Kind == kind && n.Id == id)?.ParentCallsign;
         await CaricaRipieghiAsync();
-    }
+    });
     private bool IsSelected(HierarchyNodeKind kind, int id) => _selKind == kind && _selId == id;
+
+    /// <summary>Il nodo che si voleva aprire mentre la catena di ripiego del nodo scelto non era salvata (U-192).</summary>
+    private (HierarchyNodeKind Kind, int Id)? _cambioInSospeso;
+
+    /// <summary>«Scarta e cambia»: la catena torna quella salvata, e il cambio si fa davvero.</summary>
+    private Task ScartaECambiaAsync()
+    {
+        if (_cambioInSospeso is not { } c) return Task.CompletedTask;
+        _cambioInSospeso = null;
+        // L'avviso di un «Fine modifica» negato parlava di questa catena: scartata, non vale più.
+        if (_msg == L["Struct_Fallback_UnsavedRelease"].Value) _msg = null;
+        _ripieghi = _ripieghiSalvati.ToList();
+        _unita.Clear();
+        foreach (var r in _ripieghi) _unita.Add((UnitaDedotta(r.BaseFeet), UnitaDedotta(r.TopFeet)));
+        return Select(c.Kind, c.Id);
+    }
+
+    /// <summary>
+    /// «Fine modifica» con la catena non salvata: NO, e si dice perché (U-192). Come le righe dei limiti in ACC: senza
+    /// lock le righe resterebbero a schermo senza più modo di salvarle, e al primo ricarico sparirebbero.
+    /// </summary>
+    private async Task<bool> PrimaDelRilascioAsync()
+    {
+        if (!_ripieghiSporchi) return true;
+        _msg = L["Struct_Fallback_UnsavedRelease"];
+        // ⚠️ La barra chiama un Func, non un EventCallback: la pagina non si ridisegna da sé, e il perché del no
+        // restava invisibile fino al gesto dopo (visto dal vivo il 28 settembre 2026).
+        await InvokeAsync(StateHasChanged);
+        return false;
+    }
 
     // =====================================================================================================
     //  Catena di ripiego dichiarata
@@ -1102,7 +1222,7 @@
         _ripieghi.Count != _ripieghiSalvati.Count
         || _ripieghi.Where((r, i) => !r.Equals(_ripieghiSalvati[i])).Any();
 
-    private async Task CaricaRipieghiAsync()
+    private Task CaricaRipieghiAsync() => InFilaAsync(async () =>
     {
         _proposte = Array.Empty<FallbackSuggestion>();
         _proposteChieste = false;
@@ -1116,7 +1236,7 @@
 
         _unita.Clear();
         foreach (var r in _ripieghi) _unita.Add((UnitaDedotta(r.BaseFeet), UnitaDedotta(r.TopFeet)));
-    }
+    });
 
     /// <summary>
     /// I bersagli proposti mentre si scrive: tutti i settori dell'albero tranne sé stesso, filtrati sul testo
@@ -1253,9 +1373,21 @@
 
     private async Task ProponiAsync(HierarchyNode sel)
     {
-        if (sel.Callsign is null) return;
-        _proposteChieste = true;
-        _proposte = await Fallbacks.SuggestAsync(sel.Callsign);
+        // 🔴 U-190: in fila sì (U-012), ma senza catch: un guasto del servizio usciva dal gestore.
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                if (sel.Callsign is null) return;
+                _proposteChieste = true;
+                _proposte = await Fallbacks.SuggestAsync(sel.Callsign);
+            });
+        }
+        catch (Exception ex)
+        {
+            _proposteChieste = false;
+            _msg = L["Common_UnexpectedError"] + ex.Message;
+        }
     }
 
     private void AccettaProposta(FallbackSuggestion g)
@@ -1268,8 +1400,7 @@
     private async Task SalvaRipieghiAsync(HierarchyNode sel)
     {
         if (sel.Callsign is null) return;
-        await Guarded(() => Fallbacks.ReplaceAsync(sel.Callsign, _ripieghi));
-        if (_msg is null) await CaricaRipieghiAsync();
+        if (await Guarded(() => Fallbacks.ReplaceAsync(sel.Callsign, _ripieghi))) await CaricaRipieghiAsync();
     }
 
     private HierarchyNode? Selected() => _selKind is HierarchyNodeKind k

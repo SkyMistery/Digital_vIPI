@@ -59,6 +59,10 @@ public static class PostgresSchemaReconciler
                 // e i due passi successivi la trovano allineata.
                 EnsureModelTables(db, conn, log);
                 EnsureModelColumns(db, conn, log);
+                // Prima di crearne di nuovi, via quelli che il modello ha ritirato: un UNIQUE vecchio più stretto
+                // del nuovo rifiuterebbe righe che il modello considera buone.
+                foreach (var indice in IndiciRitirati)
+                    TryExec(conn, $"DROP INDEX IF EXISTS \"{indice}\"", log, $"indice ritirato {indice}");
                 EnsureModelIndexes(db, conn, log);
             }
             finally
@@ -93,6 +97,18 @@ public static class PostgresSchemaReconciler
     {
         // 20 settembre 2026: SID e STAR nella stessa tabella (`Kind`), carta 2026-09-20-star-e-altri-riferimenti.
         ("AirportSids", "AirportProcedures"),
+    };
+
+    /// <summary>
+    /// Gli indici che il modello non ha più. <see cref="EnsureModelIndexes"/> crea quelli che mancano ma non toglie
+    /// mai niente, e su questo percorso nessuna migrazione lo fa: come per le rinomine, una voce ci resta per sempre,
+    /// e ripetere il <c>DROP INDEX IF EXISTS</c> è a vuoto.
+    /// </summary>
+    private static readonly string[] IndiciRitirati =
+    {
+        // 27 settembre 2026: un alias per prefisso E SCALO (U-031, revisione totale 3). Il vecchio UNIQUE sul solo
+        // prefisso rifiuterebbe lo stesso prefisso per due scali.
+        "IX_SidFixAliases_Prefix",
     };
 
     /// <summary>Applica <see cref="TabelleRinominate"/>: solo dove la vecchia esiste e la nuova ancora no.</summary>

@@ -86,8 +86,20 @@
     /// </summary>
     protected override void OnParametersSet()
     {
-        if (_registro.TieniSolo(Membri.Select(m => m.DocumentId).ToList())) _editor = _registro.Editor;
+        // Un membro che entra o esce, o la modifica che si apre, sono gesti: i lock negati si riprovano (U-052).
+        if (_registro.TieniSolo(Membri.Select(m => m.DocumentId).ToList()))
+        {
+            _editor = _registro.Editor;
+            _negati.Dimentica();
+        }
+        if (InModifica && !_eraInModifica) _negati.Dimentica();
+        _eraInModifica = InModifica;
     }
+
+    private bool _eraInModifica;
+
+    /// <summary>I membri il cui lock è stato negato, da non riprovare a ogni render (U-052).</summary>
+    private readonly LockNegatiDeiMembri _negati = new();
 
     private async Task Registra(int documentId, IMembroEditor e)
     {
@@ -124,7 +136,16 @@
             {
                 // Documento non ancora caricato: si riprova al prossimo giro, che arriva da sé.
                 if (e.Guscio.Doc is null || e.Guscio.IsEditing) continue;
-                if (await e.PrendiLockAsync() is { } chi) await LockNegato.InvokeAsync(chi);
+                // 🔴 U-052 (revisione totale 3): un membro già negato NON si riprova a ogni render. Questo metodo
+                // gira dopo ogni disegno, e ogni rifiuto ridisegnava l'ospite: lock più ricarico, una decina di
+                // query, in giro continuo finché il collega non mollava. Si riprova a un gesto (vedi
+                // LockNegatiDeiMembri), e l'ospite si avvisa solo se il rifiuto è una notizia.
+                if (!_negati.DaProvare(e.DocumentId)) continue;
+                if (await e.PrendiLockAsync() is { } chi)
+                {
+                    if (_negati.Negato(e.DocumentId, chi)) await LockNegato.InvokeAsync(chi);
+                }
+                else _negati.Preso(e.DocumentId);
             }
         }
         finally { _stoPrendendo = false; }
@@ -142,6 +163,7 @@
     /// </summary>
     public async Task<string?> PrendiLockAsync()
     {
+        _negati.Dimentica();   // è un gesto: «Modifica» su tutti
         var presi = new List<IMembroEditor>();
         foreach (var e in _editor)
         {
@@ -193,6 +215,9 @@
     private static string Firma(IReadOnlyList<EditorTocItem> voci) =>
         string.Join('\u001F', voci.Select(v => $"{v.AnchorId}\u001E{v.Label}\u001E{v.GroupLabel}"));
 
+    /// <summary>Il primo membro che non deve ancora uscire dalla modifica, detto con le sue parole (U-010).</summary>
+    public string? PercheResta => _editor.Select(e => e.PercheResta).FirstOrDefault(p => p is not null);
+
     /// <summary>Molla il lock di tutti i membri. No-op su quelli che non erano suoi.</summary>
     public async Task RilasciaLockAsync()
     {
@@ -220,6 +245,7 @@
     /// </summary>
     public async Task RicaricaAsync(IReadOnlyCollection<int> documentIds)
     {
+        _negati.Dimentica();   // un gesto sull'unione: da qui si riprova
         foreach (var e in _registro.Di(documentIds)) await e.RicaricaAsync();
     }
 

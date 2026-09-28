@@ -660,6 +660,9 @@ public class AirportRunwayRule
 /// </summary>
 public class AirportLvpMinima
 {
+    /// <summary>La colonna della nota: il servizio la dice prima del database (U-194, come T-053).</summary>
+    public const int NotaMassima = 2000;
+
     public int Id { get; set; }
     public int AirportId { get; set; }
     public Airport? Airport { get; set; }
@@ -735,7 +738,7 @@ public class AirportProcedure
     public bool IsImported { get; set; }
     /// <summary>Ordine di preferenza tra le SID dello stesso punto (fix). Impostato a mano, persiste tra import per StableKey.</summary>
     public int? Priority { get; set; }
-    /// <summary>Identità stabile della SID (ICAO|fix|lettera|transition|pista), esclusa la cifra della revisione. Per ri-applicare priorità/pubblicazione tra import.</summary>
+    /// <summary>Identità stabile della SID (ICAO|prefisso grezzo|lettera|transition|pista), esclusa la cifra della revisione: la scrive l'import, ma il riaggancio la ricalcola dai dati della riga (U-005, revisione 3).</summary>
     public string? StableKey { get; set; }
     /// <summary>
     /// Ciclo AIRAC (YYNN) <b>dal quale la riga è in vigore</b>. Governa la pubblicazione differita:
@@ -749,6 +752,15 @@ public class AirportProcedure
     /// dati si sono mossi. Il calcolo sta tutto in <c>SidStampCycle</c>.</para>
     /// </summary>
     public string? SourceAiracCycle { get; set; }
+    /// <summary>
+    /// Ciclo AIRAC (YYNN) <b>dal quale la riga non vale più</b>: null = vale finché la sorgente la manda.
+    /// <para>🔴 U-003 (revisione totale 3): quando la sorgente dichiara il ciclo nuovo e rivede o toglie una
+    /// procedura, la versione in vigore NON si cancella — resta, «sostituita dal» ciclo nuovo, fino a quel ciclo.
+    /// Prima spariva subito, e la nuova aspettava il suo ciclo: in mezzo, niente (LIMF, TOP1B, 25 settembre
+    /// 2026). La scrive solo l'import; <c>SidRow.IsPublicAt</c> la nasconde da quel ciclo in poi, e l'import la
+    /// toglie quando la sorgente dichiara un ciclo successivo.</para>
+    /// </summary>
+    public string? SupersededFromCycle { get; set; }
     /// <summary>Forzatura manuale della pubblicazione di una riga importata: scavalca l'attesa del ciclo d'entrata.</summary>
     public bool ForcePublished { get; set; }
     /// <summary>Fix non risolto automaticamente dal parser (prefisso troncato irregolare): da completare a mano.</summary>
@@ -775,10 +787,13 @@ public class AirportProcedure
     public string? TransitionOverride { get; set; }
 }
 
-/// <summary>Alias autoritativo per completare i prefissi SID troncati irregolari (es. "SIV" → "SOSIV"). Globale.</summary>
+/// <summary>Alias autoritativo per completare i prefissi SID troncati irregolari (es. "SIV" → "SOSIV"), per lo scalo
+/// da cui nasce (U-031, revisione totale 3).</summary>
 public class SidFixAlias
 {
     public int Id { get; set; }
+    /// <summary>Lo scalo per cui vale; null = tutti (gli alias nati prima del 27 settembre 2026).</summary>
+    public string? Icao { get; set; }
     public string Prefix { get; set; } = default!;     // prefisso troncato come appare nel codice SID
     public string FixName { get; set; } = default!;    // fix reale completo
 }

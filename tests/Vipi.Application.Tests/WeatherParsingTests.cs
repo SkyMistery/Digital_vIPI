@@ -7,6 +7,33 @@ namespace Vipi.Application.Tests;
 /// <summary>Decoder METAR/TAF + suggerimento pista dal vento (vista vIPI aeroporto).</summary>
 public class WeatherParsingTests
 {
+    // ---- U-092 (revisione totale 3): l'ora del METAR, risolta in UTC ----
+
+    /// <summary>Il gruppo «ddhhmmZ» dice giorno e ora, non mese né anno: li dà l'istante di chi legge. Un giorno
+    /// più avanti di oggi è del mese scorso (il METAR delle 23:50 del 31 letto l'1 alle 00:10).</summary>
+    [Theory]
+    [InlineData("270550Z", "2026-09-27T09:00:00Z", "2026-09-27T05:50:00Z")]
+    [InlineData("312350Z", "2026-10-01T00:10:00Z", "2026-09-30T23:50:00Z")]   // settembre ha 30 giorni: non esiste
+    [InlineData("302350Z", "2026-10-01T00:10:00Z", "2026-09-30T23:50:00Z")]
+    [InlineData("011000Z", "2026-10-01T09:59:00Z", "2026-10-01T10:00:00Z")]   // un minuto avanti: orologi non allineati
+    public void L_ora_del_METAR_si_risolve_rispetto_a_chi_legge(string gruppo, string adesso, string? atteso)
+    {
+        var ora = MetarParser.OraOsservazione(gruppo, DateTimeOffset.Parse(adesso));
+
+        if (gruppo == "312350Z") { Assert.Null(ora); return; }
+        Assert.Equal(DateTimeOffset.Parse(atteso!), ora);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("27055Z")]
+    [InlineData("329999Z")]
+    public void Un_gruppo_orario_illeggibile_non_ha_ora(string? gruppo)
+    {
+        Assert.Null(MetarParser.OraOsservazione(gruppo, DateTimeOffset.Parse("2026-09-27T09:00:00Z")));
+    }
+
     /// <summary>
     /// 🔴 T-010 (revisione del 13 settembre 2026): dopo TEMPO/BECMG le condizioni sono una PREVISIONE, non
     /// l'osservazione. Il ciclo non si fermava: <c>TEMPO … VV001</c> portava il soffitto a 100 ft (LVP in vigore
@@ -166,6 +193,31 @@ public class WeatherParsingTests
         Assert.Equal(240, taf.Segments[3].Wind!.DirectionDeg);
     }
 
+    [Fact] // U-215: «PROB30 TEMPO» è un solo gruppo, un TEMPO con la probabilità; nessuna riga PROB vuota
+    public void Taf_Prob_Tempo_porta_la_probabilita_sul_TEMPO()
+    {
+        var taf = MetarParser.ParseTaf(
+            "LIRF 270500Z 2706/2812 16010KT 9999 SCT030 PROB30 TEMPO 2714/2718 TSRA");
+
+        Assert.Equal(2, taf.Segments.Count);
+        Assert.Equal(TafChangeKind.Tempo, taf.Segments[1].Kind);
+        Assert.Equal(30, taf.Segments[1].Probability);
+        Assert.Equal("2714/2718", taf.Segments[1].PeriodRaw);
+        Assert.Equal(new[] { "TS", "RA" }, taf.Segments[1].Weather.Single().Codes);
+    }
+
+    [Fact] // U-215: «PROB40 periodo» da solo resta un gruppo PROB
+    public void Taf_Prob_da_solo_resta_Prob()
+    {
+        var taf = MetarParser.ParseTaf(
+            "LIRF 270500Z 2706/2812 16010KT 9999 SCT030 PROB40 2714/2718 TSRA");
+
+        Assert.Equal(2, taf.Segments.Count);
+        Assert.Equal(TafChangeKind.Prob, taf.Segments[1].Kind);
+        Assert.Equal(40, taf.Segments[1].Probability);
+        Assert.Equal("2714/2718", taf.Segments[1].PeriodRaw);
+    }
+
     [Fact] // TAF period leggibile: range validità + punto singolo (FM), con mese dedotto dalla data di riferimento
     public void TafPeriod_Formats_Human_Readable()
     {
@@ -206,6 +258,63 @@ public class WeatherParsingTests
         Assert.StartsWith("16", r.Best!.Ident);
         Assert.True(r.Best.Headwind > 10);
         Assert.True(r.Best.Crosswind <= 1);
+    }
+
+    [Fact] // U-224: tre parallele — arrivi a sinistra, partenze a destra, la centrale no
+    public void Tre_parallele_arrivi_a_sinistra_partenze_a_destra()
+    {
+        var r = RunwaySuggestion.Suggest(new[] { "16L", "16C", "16R", "34L", "34C", "34R" }, 160, 12);
+
+        Assert.Equal("16L", r.ArrIdent);
+        Assert.Equal("16R", r.DepIdent);
+    }
+
+    [Fact] // U-223: il motore usa la rotta vera dell'anagrafica, la stessa del pannello vento del vAWOS
+    public void Regola_e_pannello_usano_la_stessa_rotta()
+    {
+        var regole = new[] { new RunwayRuleEval("16", "16", "sud", null, 0, null, RunwaySurface.Any) };
+        var rotte = new Dictionary<string, int> { ["16"] = 163 };
+
+        var e = RunwaySuggestion.ExplainRules(regole, 70, 15, false, rotte: rotte).Single();
+
+        Assert.Equal(RuleVerdict.Tailwind, e.Verdict);   // con 160 = ident×10 la coda era 0 e la regola valeva
+        Assert.Equal(1, e.WorstTailwindKt);
+        Assert.Null(RunwaySuggestion.EvaluateRules(regole, 70, 15, false, rotte: rotte));
+    }
+
+    [Fact] // U-214: senza vento noto ogni regola dice «vento non noto» e nessuna vince
+    public void Senza_vento_noto_nessuna_regola_vince()
+    {
+        var regole = new[] { new RunwayRuleEval("16", "16", "sud", null, 5, null, RunwaySurface.Dry) };
+
+        var e = RunwaySuggestion.ExplainRules(regole, null, 0, false, ventoNoto: false).Single();
+
+        Assert.Equal(RuleVerdict.NoWind, e.Verdict);
+        Assert.Null(RunwaySuggestion.EvaluateRules(regole, null, 0, false, ventoNoto: false));
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(regole, null, 0, false));   // calmo noto: la regola vale
+    }
+
+    [Fact] // U-223: il ripiego sul vento misura sulla rotta vera, e la dichiara
+    public void Il_ripiego_usa_la_rotta_vera()
+    {
+        var rotte = new Dictionary<string, int> { ["16"] = 163, ["34"] = 343 };
+
+        var r = RunwaySuggestion.Suggest(new[] { "16", "34" }, 70, 15, rotte: rotte);
+
+        Assert.Equal("34", r.Best!.Ident);
+        Assert.Equal(343, r.Best.Heading);
+        Assert.Equal(1, r.Best.Headwind);
+    }
+
+    [Fact] // U-223 con U-224: parallele con rotte vere diverse di un grado restano parallele
+    public void Parallele_con_rotte_diverse_di_un_grado_restano_parallele()
+    {
+        var rotte = new Dictionary<string, int> { ["16L"] = 159, ["16R"] = 160, ["34L"] = 339, ["34R"] = 340 };
+
+        var r = RunwaySuggestion.Suggest(new[] { "16L", "16R", "34L", "34R" }, 160, 12, rotte: rotte);
+
+        Assert.Equal("16L", r.ArrIdent);
+        Assert.Equal("16R", r.DepIdent);
     }
 
     [Fact] // pista calma → nessun suggerimento

@@ -114,7 +114,10 @@ public sealed record MinimaChart(string Owner, Abstractions.MvaChart Chart);
 /// del suo ACC); un gruppo-APP o un APP standalone ne ha una per aeroporto membro che abbia il file — e nessuna
 /// per quelli che non ce l'hanno, che nel sectorfile italiano sono la maggioranza.
 /// </summary>
-public sealed record MinimaView(IReadOnlyList<MinimaChart> Charts)
+/// <param name="SorgenteNonRaggiungibile">🔴 U-039 (revisione totale 3): almeno una carta non è arrivata perché la
+/// sorgente non ha risposto. La sezione lo dice invece di cadere — e invece di fingere «nessuna carta», che è un
+/// altro fatto. Una release non si congela mai così: la cattura rifiuta (<see cref="MinimaCharts.DaCongelare"/>).</param>
+public sealed record MinimaView(IReadOnlyList<MinimaChart> Charts, bool SorgenteNonRaggiungibile = false)
 {
     public static readonly MinimaView Empty = new(Array.Empty<MinimaChart>());
 

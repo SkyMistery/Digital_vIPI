@@ -81,6 +81,10 @@ public sealed class RwEdit { public int Id; public string? Ident; public int? Le
         return new(r.Where(x => x.NeverDep).Select(x => x.Ident!.Trim()).ToList(),
                    r.Where(x => x.NeverArr).Select(x => x.Ident!.Trim()).ToList());
     }
+
+    /// <summary>Le rotte vere fra le righe in scrittura: il banco di prova misura su quelle, come il motore (U-223).</summary>
+    public static IReadOnlyDictionary<string, int> Rotte(IEnumerable<RwEdit> rows) =>
+        RunwaySuggestion.Rotte(rows.Select(x => (x.Ident, x.Bearing)));
 }
 /// <summary>Riga in scrittura.</summary>
 public sealed class RuleEdit
@@ -576,4 +580,31 @@ public static class AirportSaveGate
     /// <summary>Ogni SID manuale ha nome e punto.</summary>
     public static bool Sids(IReadOnlyList<SidEdit> rows) =>
         rows.All(r => !string.IsNullOrWhiteSpace(r.Name) && !string.IsNullOrWhiteSpace(r.Fix));
+
+    // Le chiavi di risorsa col nome di ogni tabella: le usa la UI per dire QUALE tabella è ferma.
+    public const string TabellaLivelli = "Ape_TlTitle";
+    public const string TabellaPiste = "Airport_Runways";
+    public const string TabellaRegole = "Ape_PanelRules";
+    public const string TabellaSid = "Sorg_SidLabel";
+    public const string TabellaStar = "Ape_TabStar";
+
+    /// <summary>
+    /// Le tabelle <b>ferme</b>: quelle in cui una riga a metà impedisce il salvataggio di TUTTA la tabella.
+    /// Chiavi di risorsa del loro nome, nell'ordine della pagina; vuoto = niente di sospeso.
+    ///
+    /// <para>⚠️ U-010 (revisione totale 3): il cancello qui sopra non scrive una tabella con una riga a metà, e
+    /// «Fine modifica» mollava il lock lo stesso — le correzioni valide alle ALTRE righe restavano nel buffer,
+    /// la vista le mostrava come salvate e il primo ricarico le buttava. Chi esce deve prima sapere questo.</para>
+    /// </summary>
+    public static IReadOnlyList<string> Ferme(IReadOnlyList<TlEdit> tls, IReadOnlyList<RwEdit> rwys,
+        IReadOnlyList<RuleEdit> rules, IReadOnlyList<SidEdit> sids, IReadOnlyList<SidEdit> stars)
+    {
+        var ferme = new List<string>();
+        if (!Tls(tls)) ferme.Add(TabellaLivelli);
+        if (!Runways(rwys)) ferme.Add(TabellaPiste);
+        if (!Rules(rules)) ferme.Add(TabellaRegole);
+        if (!Sids(sids)) ferme.Add(TabellaSid);
+        if (!Sids(stars)) ferme.Add(TabellaStar);
+        return ferme;
+    }
 }

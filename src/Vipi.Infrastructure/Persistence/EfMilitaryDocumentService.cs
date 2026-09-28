@@ -76,11 +76,14 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
             .Select(a => new
             {
                 a.Icao, a.Name, AccCode = a.Acc!.Code, a.Category, a.MilDocumentId,
+                Nascosto = a.MilDocument != null && a.MilDocument.IsHidden,
             })
             .ToListAsync(ct).ConfigureAwait(false);
 
         // Una lettura sola per sapere quali hanno una release EFFETTIVA: il gate dell'elenco pubblico.
-        var chiavi = campi.Where(c => c.MilDocumentId is not null).Select(c => c.Icao).ToList();
+        // 🔴 U-141 (revisione totale 3): e che il documento non sia NASCOSTO — la pagina lo rifiuta, e l'elenco
+        // lo mostrava ancora, con un clic che portava a «Nessun vSOP militare pubblicato».
+        var chiavi = campi.Where(c => c.MilDocumentId is not null && !c.Nascosto).Select(c => c.Icao).ToList();
         var adesso = DateTime.UtcNow;
         var pubblicati = chiavi.Count == 0
             ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -171,13 +174,19 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         // in due istanti diversi.
         var campo = await _db.Airports.AsNoTracking()
             .Where(a => a.Icao == icao)
-            .Select(a => new { Esiste = a.DocumentId != null, a.Category })
+            .Select(a => new
+            {
+                Esiste = a.DocumentId != null, a.Category,
+                // 🔴 U-141: la pagina civile rifiuta documento e scalo nascosti; il ponte deve dire lo stesso.
+                Chiusa = a.IsHidden || (a.Document != null && a.Document.IsHidden),
+            })
             .FirstOrDefaultAsync(ct).ConfigureAwait(false);
 
         // ICAO sconosciuto: «non esiste, non pubblicata» — e NON «solo militare», che direbbe che
         // l'assenza è a norma quando in realtà non si sa niente di quel campo. Civil ammette la vIPI.
         if (campo is null) return new CivilEdition(false, false, AirportCategory.Civil);
         if (!campo.Esiste) return new CivilEdition(false, false, campo.Category);
+        if (campo.Chiusa) return new CivilEdition(true, false, campo.Category);
 
         var adesso = DateTime.UtcNow;
         var pubblicata = await _db.DocReleases.AsNoTracking()
@@ -203,9 +212,11 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         // ⚠️ Il predicato si sceglie FUORI dall'espressione: un ternario che salta fra due colonne dentro
         // una `Where` diventa una CASE WHEN che i provider traducono in modi diversi. Due lambda esplicite
         // sono più lunghe da leggere e più corte da spiegare.
+        // 🔴 U-141 (revisione totale 3): documento e scalo NASCOSTI chiudono la pagina, e il ponte lo ignorava —
+        // la vIPI civile teneva il collegamento a un vSOP che, aperto, diceva «non pubblicato».
         System.Linq.Expressions.Expression<Func<Airport, bool>> haIlDocumento = militare
-            ? a => a.Icao == icao && a.MilDocumentId != null
-            : a => a.Icao == icao && a.DocumentId != null;
+            ? a => a.Icao == icao && !a.IsHidden && a.MilDocument != null && !a.MilDocument.IsHidden
+            : a => a.Icao == icao && !a.IsHidden && a.Document != null && !a.Document.IsHidden;
 
         if (!await _db.Airports.AsNoTracking().AnyAsync(haIlDocumento, ct).ConfigureAwait(false))
             return false;

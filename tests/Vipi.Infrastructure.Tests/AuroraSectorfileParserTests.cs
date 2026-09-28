@@ -47,6 +47,24 @@ public class AuroraSectorfileParserTests
         Assert.NotEqual(g7.StableKey, j7.StableKey);      // 7G e 7J distinte
     }
 
+    /// <summary>
+    /// 🔴 U-005 (revisione totale 3): la chiave conteneva il fix RISOLTO, che dipende dal catalogo e dagli alias.
+    /// Creare un alias (o un catalogo che cambia) cambiava la chiave, e al reimport la riga rinasceva nuda: senza
+    /// priorità, forzatura, «nascosta», WTC, IC, e col ciclo d'entrata nuovo. La chiave si fa col prefisso grezzo
+    /// del codice, che la risoluzione non tocca.
+    /// </summary>
+    [Fact]
+    public void StableKey_Non_Dipende_Da_Come_Si_Risolve_Il_Punto()
+    {
+        var dalCatalogo = Parse("LIRN;25;SOSA5A;;;;;1;").Single();
+        var dallAlias = Parse("LIRN;25;SOSA5A;;;;;1;", new Dictionary<string, string> { ["SOSA"] = "SOSIV" }).Single();
+
+        Assert.Equal("SOSAK", dalCatalogo.Fix);
+        Assert.Equal("SOSIV", dallAlias.Fix);
+        Assert.Equal(dalCatalogo.StableKey, dallAlias.StableKey);
+        Assert.Equal("LIRN|SOSA|A||25", dalCatalogo.StableKey);
+    }
+
     [Fact]
     public void SidTrans_Uses_Transition_Fix_From_Col6()
     {
@@ -58,6 +76,36 @@ public class AuroraSectorfileParserTests
         Assert.Equal("SOSIV", trans.Fix);
         Assert.Equal("ESINO", trans.Transition);
         Assert.Null(only.Transition);
+    }
+
+    /// <summary>
+    /// 🔴 U-034 (revisione totale 3): SID e transizione si scrivono anche separate da uno SPAZIO (liml.sid
+    /// «SRN6A ARL2A», lirl.sid «LAT1E PEM1T», limf.sid «TOP1B AST8L»). Il parser divideva solo sul «-»: il pezzo
+    /// SID era tutta la stringa, il prefisso «SOSI5A ESI» non si risolveva e la colonna FIX del vSOP pubblico
+    /// stampava «LAT1E PEM». A LIML e LIMF l'avevano corretto gli editor a mano, riga per riga.
+    /// </summary>
+    [Fact]
+    public void SidTrans_Separate_Da_Spazio_Come_Dal_Trattino()
+    {
+        var spazio = Parse("LIRN;25;SOSI5A ESI8H; ; ;0;;1;").Single();
+        var trattino = Parse("LIRN;25;SOSI5A-ESI8H; ; ;0;;1;").Single();
+
+        Assert.Equal("SOSIV", spazio.Fix);
+        Assert.False(spazio.NeedsFixReview);
+        Assert.Equal("SOSI5A ESI8H", spazio.Name);          // il nome resta quello scritto
+        Assert.Equal(trattino.StableKey, spazio.StableKey);  // stessa identità della forma col «-»
+    }
+
+    /// <summary>Lo spazio separa solo se il primo pezzo ha la forma di un designatore (lettere, cifra, lettera):
+    /// le partenze a vista di lied.sid («FRASCA DEP16») sono un nome solo e restano com'erano.</summary>
+    [Fact]
+    public void Lo_Spazio_Non_Spezza_Un_Nome_Che_Non_E_Un_Designatore()
+    {
+        var vfr = Parse("LIRN;16R;FRASCA DEP16; ; ; ;").Single();
+
+        Assert.Equal("FRASCA DEP16", vfr.Name);
+        Assert.Equal("FRASCA DEP", vfr.Fix);  // il prefisso grezzo di sempre: da verificare a mano
+        Assert.True(vfr.NeedsFixReview);
     }
 
     [Fact]

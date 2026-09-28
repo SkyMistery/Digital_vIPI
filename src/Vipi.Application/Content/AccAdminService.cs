@@ -71,7 +71,9 @@ internal sealed class AccAdminService : IAccAdminService
     public async Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        return await _repo.SetSpecialAreasEnabledAsync(accId, enabled, ct);
+        // Spegnere passa dal caso d'uso delle aree, che apre gli impatti AreaGone come l'import (U-130).
+        if (!enabled) return await _specialAreas.SpegniAccAsync(accId, ct);
+        return (await _repo.SetSpecialAreasEnabledAsync(accId, true, ct)).Removed;
     }
 
     public async Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default)

@@ -115,17 +115,40 @@ public class CategorieAeroportoTests : IAsyncLifetime
         Assert.Equal(AirportCategory.MilitaryWithCivilPresence, (await Rileggi("LIRP")).Category);
     }
 
-    /// <summary>Lo stato che nessuno digita: la presenza è caduta ma la categoria è rimasta militare.</summary>
+    /// <summary>
+    /// 🔴 U-028 (decisione del committente del 27-set-2026): la presenza è caduta ma la categoria è militare. Fino a quel
+    /// giorno la passata d'avvio la «riparava» a Civile, e la scelta di una persona spariva a ogni riavvio dopo una
+    /// notte di «military» falso. Ora è una divergenza: la passata non la tocca, la chiude l'amministratore.
+    /// </summary>
     [Fact]
-    public async Task La_passata_ripara_una_categoria_militare_senza_presenza()
+    public async Task La_passata_non_declassa_una_categoria_militare_senza_presenza()
     {
         var a = await Campo("LIPA", presenza: true, AirportCategory.MilitaryOnly);
         a.HasMilitaryPresence = false;
         await _db.SaveChangesAsync();
 
-        Assert.Equal(1, await new EfDocumentMaintenance(_db).ReconcileAirportCategoriesAsync());
-        var dopo = await Rileggi("LIPA");
-        Assert.Equal(AirportCategory.Civil, dopo.Category);
+        Assert.Equal(0, await new EfDocumentMaintenance(_db).ReconcileAirportCategoriesAsync());
+        Assert.Equal(AirportCategory.MilitaryOnly, (await Rileggi("LIPA")).Category);
+    }
+
+    /// <summary>In divergenza l'amministratore chiude scegliendo «Civile», o cambia fra le militari.</summary>
+    [Fact]
+    public async Task In_divergenza_Civile_si_sceglie_e_le_militari_restano_sceglibili()
+    {
+        var a = await Campo("LIPA", presenza: true, AirportCategory.MilitaryOnly);
+        a.HasMilitaryPresence = false;
+        await _db.SaveChangesAsync();
+        var repo = new EfStructureEditingRepository(_db);
+
+        await repo.SetAirportCategoryAsync("LIPP", a.Id, AirportCategory.MilitaryWithCivilPresence);
+        Assert.Equal(AirportCategory.MilitaryWithCivilPresence, (await Rileggi("LIPA")).Category);
+
+        await repo.SetAirportCategoryAsync("LIPP", a.Id, AirportCategory.Civil);
+        Assert.Equal(AirportCategory.Civil, (await Rileggi("LIPA")).Category);
+
+        // Chiusa la divergenza, si torna alla regola di prima: senza presenza le militari si rifiutano.
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => repo.SetAirportCategoryAsync("LIPP", a.Id, AirportCategory.MilitaryOnly));
     }
 
     // ---- Il comando della pagina Aeroporti ------------------------------------------------------------

@@ -74,8 +74,17 @@ public class PaginaRadioassistenzeTests : TestContext
         public int Scritture { get; private set; }
         private int _inVolo;
 
+        /// <summary>Se c'è, dice se in questo momento un import è in volo: una scrittura che lo trova vero è
+        /// una seconda operazione sullo stesso contesto.</summary>
+        public Func<bool>? ImportInVolo { get; set; }
+        public int ScrittureDuranteLImport { get; private set; }
+        /// <summary>Se c'è, la scrittura del tipo solleva questa eccezione: il database che non risponde.</summary>
+        public Exception? Guasto { get; set; }
+
         public async Task<NavaidWrite> SetTypeAsync(int id, string? tipo, int userId, CancellationToken ct = default)
         {
+            if (ImportInVolo?.Invoke() == true) ScrittureDuranteLImport++;
+            if (Guasto is { } g) throw g;
             MassimoInVolo = Math.Max(MassimoInVolo, ++_inVolo);
             try
             {
@@ -87,8 +96,10 @@ public class PaginaRadioassistenzeTests : TestContext
         }
         public Task<NavaidWrite> SetFrequencyAsync(int id, string? f, int userId, CancellationToken ct = default) =>
             Task.FromResult(NavaidWrite.Ok);
+        /// <summary>Che cosa risponde la scrittura del canale.</summary>
+        public NavaidWrite EsitoCanale { get; set; } = NavaidWrite.Ok;
         public Task<NavaidWrite> SetChannelAsync(int id, string? c, int userId, CancellationToken ct = default) =>
-            Task.FromResult(NavaidWrite.Ok);
+            Task.FromResult(EsitoCanale);
         public Task<NavaidWrite> SetCoordinatesAsync(int id, string? s, int userId, CancellationToken ct = default) =>
             Task.FromResult(NavaidWrite.Ok);
         public Task<NavaidImportOutcome> ImportFromSourceAsync(IReadOnlyList<SourceNavaid> navaids, CancellationToken ct = default) =>
@@ -109,10 +120,20 @@ public class PaginaRadioassistenzeTests : TestContext
             return Task.FromResult(_esito);
         }
 
-        public Task<NavaidImportReport> RunNowAsync(CancellationToken ct = default)
+        /// <summary>Se c'è, il giro «adesso» aspetta qui: serve a tenerlo in volo mentre arriva una scrittura.</summary>
+        public TaskCompletionSource? Freno { get; set; }
+        public bool InVolo { get; private set; }
+
+        public async Task<NavaidImportReport> RunNowAsync(CancellationToken ct = default)
         {
             Adesso++;
-            return Task.FromResult(_esito);
+            InVolo = true;
+            try
+            {
+                if (Freno is { } f) await f.Task.ConfigureAwait(false);   // come il vero: riparte fuori dal dispatcher
+                return _esito;
+            }
+            finally { InVolo = false; }
         }
     }
 
@@ -178,6 +199,19 @@ public class PaginaRadioassistenzeTests : TestContext
     /// ⚠️ Sulle righe che manda il sectorfile il cestino <b>non c'è affatto</b>: il giro dopo le ricreerebbe,
     /// e chi l'avesse premuto crederebbe di averle eliminate. Meglio che comparire e rifiutare.
     /// </summary>
+    /// <summary>U-157: il canale di una riga citata non si cambia, e la pagina dice perché — non «valore non
+    /// valido», che manderebbe a correggere un canale giusto.</summary>
+    [Fact]
+    public void Il_canale_di_una_riga_citata_dice_perche_non_si_salva()
+    {
+        var anagrafica = new AnagraficaFinta(Nostra(2, "AMD")) { EsitoCanale = NavaidWrite.Citata };
+        var cut = Render(anagrafica, new ImportatoreFinto(new NavaidImportReport(null, NavaidImportSkip.SorgenteMuta, 0)));
+
+        cut.Find("td.c-chan input").Change("25X");
+
+        cut.WaitForAssertion(() => Assert.Contains("Nav_ChannelCited", cut.Markup));
+    }
+
     [Fact]
     public void Il_cestino_non_compare_sulle_righe_della_sorgente()
     {
@@ -396,6 +430,57 @@ public class PaginaRadioassistenzeTests : TestContext
 
         Assert.Equal(2, anagrafica.Scritture);
         Assert.Equal(1, anagrafica.MassimoInVolo);
+    }
+
+    /// <summary>
+    /// 🔴 U-132 (revisione totale 3): «Rileggi dal sectorfile» e le celle usano lo stesso contesto del circuito, e
+    /// l'import riparte fuori dal dispatcher: una cella salvata mentre l'import scriveva era «A second operation was
+    /// started». Ora la scrittura aspetta che l'import finisca.
+    /// </summary>
+    [Fact]
+    public async Task Una_cella_salvata_durante_l_import_aspetta_che_finisca()
+    {
+        var importatore = new ImportatoreFinto(new NavaidImportReport(new NavaidImportOutcome(0, 0, 1), null, 1))
+            { Freno = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        var anagrafica = new AnagraficaFinta(Nostra(1, "AMD"));
+        anagrafica.ImportInVolo = () => importatore.InVolo;
+        var cut = Render(anagrafica, importatore);
+
+        var import = cut.InvokeAsync(() => cut.Find("button[title=Nav_AdminImportTitle]").ClickAsync(new()));
+        var cella = cut.InvokeAsync(() => cut.Find("table.navadm-table td.c-type input")
+            .ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "ILS" }));
+
+        importatore.Freno.SetResult();
+        await import;
+        await cella;
+
+        Assert.Equal(0, anagrafica.ScrittureDuranteLImport);
+        Assert.Equal(1, anagrafica.Scritture);
+    }
+
+    /// <summary>🔴 U-132: un errore del database su una cella si dice sulla riga; prima usciva dal gestore del
+    /// cambio, e il circuito cadeva.</summary>
+    [Fact]
+    public async Task Un_errore_di_scrittura_si_dice_sulla_riga()
+    {
+        var anagrafica = new AnagraficaFinta(Nostra(1, "AMD")) { Guasto = new InvalidOperationException("database giù") };
+        var cut = Render(anagrafica, new ImportatoreFinto(new NavaidImportReport(null, NavaidImportSkip.SorgenteMuta, 0)));
+
+        await cut.InvokeAsync(() => cut.Find("table.navadm-table td.c-type input")
+            .ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "ILS" }));
+
+        Assert.Contains("database giù", cut.Find("tr.mil-note").TextContent);
+    }
+
+    /// <summary>🔴 U-037: un cambio della sorgente che aspetta il suo ciclo lo dice nella provenienza — una release
+    /// di adesso congela ancora i valori di prima, e a schermo si vedono già i nuovi.</summary>
+    [Fact]
+    public void Un_cambio_in_attesa_del_ciclo_si_dice()
+    {
+        var cut = Render(new AnagraficaFinta(DallaSorgente(1, "MNL") with { SourceAiracCycle = "2610" }),
+            new ImportatoreFinto(new NavaidImportReport(null, NavaidImportSkip.SorgenteMuta, 0)));
+
+        Assert.Contains("Nav_FromSourceNext 2610", cut.Find("td.c-origin").TextContent);
     }
 
     /// <summary>Chi non è Editor non vede la tabella: il rifiuto, non una pagina che non risponde.</summary>

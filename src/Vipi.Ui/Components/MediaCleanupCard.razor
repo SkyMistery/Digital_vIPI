@@ -105,17 +105,21 @@
     private bool _busy;
     private string? _done;
 
+    // 🔴 U-190 (revisione totale 3): sentinella prima del primo await, e un guasto che il servizio non traduce (il disco,
+    // il database) resta un messaggio nella scheda. Prima c'era un finally e basta, e il circuito cadeva.
     private async Task AnalyzeAsync()
     {
+        if (_busy) return;
         _busy = true;
         _done = null;
         try { _report = await _media.AnalyzeAsync(); }
+        catch (Exception ex) { _done = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 
     private async Task DeleteAsync()
     {
-        if (_report is null) return;
+        if (_report is null || _busy) return;
         _busy = true;
         try
         {
@@ -126,6 +130,7 @@
             _report = await _media.AnalyzeAsync();
             _done = Plurale("MediaClean_Deleted", quante, quante);
         }
+        catch (Exception ex) { _done = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 

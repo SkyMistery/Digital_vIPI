@@ -278,6 +278,156 @@ public class SezioniComuniTests
 
     // ---- attrezzi ------------------------------------------------------------------------------------
 
+    // ---- U-007 (revisione totale 3): nascondere una sezione non deve portarsi via quel che il civile non ha ----
+    //
+    // 🔴 Il confronto per CHIAVE proponeva sedici sezioni fra vIPI civile e vSOP militare, quindici spuntate. Ma
+    // `IsHidden` su una sezione si porta via il SOTTOALBERO: dal vSOP sparivano procedure VFR/IFR, soglie, carte
+    // militari, blocchi CRC/AEW — contenuti che il civile non ha. A LIRP la release corrente del vSOP ha già
+    // piste e soglie nascoste.
+
+    private const int Civile = 26;
+    private const int Militare = 3;
+
+    /// <summary>L'albero di un documento appena nato: quello del catalogo, con id progressivi.</summary>
+    private static IReadOnlyList<EditableSection> DalCatalogo(SectionProfile profilo, ref int id)
+    {
+        var righe = new List<EditableSection>();
+        foreach (var d in SectionCatalog.For(profilo))
+            righe.Add(DaDescrittore(d, ref id));
+        return righe;
+    }
+
+    private static EditableSection DaDescrittore(SectionDescriptor d, ref int id)
+    {
+        var mio = ++id;
+        var figlie = new List<EditableSection>();
+        foreach (var c in d.Children ?? Array.Empty<SectionDescriptor>()) figlie.Add(DaDescrittore(c, ref id));
+        return new EditableSection
+        {
+            Id = mio, Title = d.Title, SectionKey = d.Key, Depth = 0, Order = mio,
+            Blocks = Array.Empty<EditableBlock>(), Children = figlie,
+        };
+    }
+
+    private static IEnumerable<EditableSection> Tutte(IEnumerable<EditableSection> s) =>
+        s.SelectMany(x => new[] { x }.Concat(Tutte(x.Children)));
+
+    /// <summary>La prova scritta nella registro: tutte le comuni spuntate, nascoste dal militare. Quel che sparisce
+    /// dal vSOP — le sezioni nascoste e tutto quel che hanno sotto — deve esserci anche nel civile.</summary>
+    [Fact]
+    public void Piano_non_fa_sparire_dal_vSOP_sottoalberi_che_il_civile_non_ha()
+    {
+        var id = 0;
+        var civile = DalCatalogo(SectionProfile.Airport, ref id);
+        var militare = DalCatalogo(SectionProfile.AirportMil, ref id);
+        var comuni = SezioniComuni.Di(new[]
+        {
+            (Civile, SectionProfile.Airport, civile),
+            (Militare, SectionProfile.AirportMil, militare),
+        });
+
+        var piano = SezioniComuni.Piano(comuni, comuni.Select(c => c.Chiave).ToList(), new[] { Militare });
+        var nascoste = piano.Where(x => x.Nascondi).Select(x => x.SectionId).ToHashSet();
+
+        var chiaviCivili = Tutte(civile).Select(s => s.SectionKey).ToHashSet();
+        var spariscono = Tutte(militare).Where(s => nascoste.Contains(s.Id))
+            .SelectMany(s => Tutte(new[] { s })).Select(s => s.SectionKey).Distinct().ToList();
+
+        Assert.NotEmpty(spariscono);   // qualcosa di davvero ripetuto c'è: METAR, quote di transizione
+        Assert.All(spariscono, k => Assert.Contains(k, chiaviCivili));
+    }
+
+    [Fact]
+    public void Una_sezione_con_figlie_solo_sue_resta_e_basta_nasconderla_quando_le_figlie_sono_comuni()
+    {
+        // Il vSOP ha le soglie sotto le piste, il civile no: le piste del vSOP restano.
+        var soloNelVsop = SezioniComuni.Di(new[]
+        {
+            (Vipi, Sezioni(Sez(1, "runways", "Piste"))),
+            (Vsop, Sezioni(Sez(4, "runways", "Piste", Sez(5, "runwaythresholds", "Coordinate delle soglie")))),
+        });
+        Assert.Empty(SezioniComuni.Piano(soloNelVsop, new[] { "runways" }, new[] { Vsop }));
+        Assert.True(SezioniComuni.Trattenuta(soloNelVsop, "runways", new[] { Vsop }));
+
+        // Se le soglie le ha anche il civile, il sottoalbero è comune e si nasconde tutto.
+        var tutteEDue = SezioniComuni.Di(new[]
+        {
+            (Vipi, Sezioni(Sez(1, "runways", "Piste", Sez(2, "runwaythresholds", "Coordinate delle soglie")))),
+            (Vsop, Sezioni(Sez(4, "runways", "Piste", Sez(5, "runwaythresholds", "Coordinate delle soglie")))),
+        });
+        Assert.Contains((4, true), SezioniComuni.Piano(tutteEDue, new[] { "runways" }, new[] { Vsop }));
+        Assert.False(SezioniComuni.Trattenuta(tutteEDue, "runways", new[] { Vsop }));
+        Assert.Equal(1, SezioniComuni.Trascinate(tutteEDue, "runways", new[] { Vsop }));
+    }
+
+    /// <summary>A LIRP le piste del vSOP sono già nascoste dalla scheda di prima: riapplicandola, la regola nuova
+    /// le RIMOSTRA — hanno sotto le soglie, che il civile non ha.</summary>
+    [Fact]
+    public void Una_sezione_nascosta_dalla_scheda_di_prima_che_non_si_puo_nascondere_si_rimostra()
+    {
+        var comuni = SezioniComuni.Di(new[]
+        {
+            (Vipi, Sezioni(Sez(1, "runways", "Piste"))),
+            (Vsop, Sezioni(Sez(4, "runways", "Piste", nascosta: true, Sez(5, "runwaythresholds", "Coordinate delle soglie")))),
+        });
+
+        Assert.Equal(new[] { (4, false) }, SezioniComuni.Piano(comuni, new[] { "runways" }, new[] { Vsop }));
+    }
+
+    /// <summary>Si propongono spuntate solo le sezioni che sono DATO dell'anagrafica, uguale per costruzione. Quelle
+    /// con blocchi propri (le frequenze del vSOP portano CRC e AEW) o scritte a mano restano in elenco, non spuntate.</summary>
+    [Fact]
+    public void Si_propongono_spuntate_solo_le_sezioni_di_dati()
+    {
+        var id = 0;
+        var comuni = SezioniComuni.Di(new[]
+        {
+            (Civile, SectionProfile.Airport, DalCatalogo(SectionProfile.Airport, ref id)),
+            (Militare, SectionProfile.AirportMil, DalCatalogo(SectionProfile.AirportMil, ref id)),
+        });
+
+        Assert.True(comuni.Single(c => c.Chiave == "weather").Proposta);
+        Assert.False(comuni.Single(c => c.Chiave == "frequencies").Proposta);
+        // Le STAR nascono nascoste: spuntate, «tenerle» nel civile le MOSTRAVA (LIBV, 27 settembre 2026).
+        Assert.False(comuni.Single(c => c.Chiave == "stars").Proposta);
+        Assert.All(comuni.Where(c => c.Proposta), c => Assert.All(c.Presenze, p => Assert.True(p.Dati)));
+    }
+
+    /// <summary>
+    /// 🔴 U-008 (revisione totale 3): sciogliere l'unione lasciava nascoste le sezioni «in comune», e la pagina
+    /// singola usciva monca (LIRS e LIRL: tutte le radici nascoste). Si rimostrano quelle nascoste in un documento
+    /// e visibili nell'altro — l'impronta della scheda — e nient'altro.
+    /// </summary>
+    [Fact]
+    public void Separandosi_si_rimostra_solo_quel_che_la_scheda_aveva_nascosto()
+    {
+        var comuni = SezioniComuni.Di(new[]
+        {
+            (Vipi, Sezioni(Sez(1, "weather", "METAR & TAF", nascosta: true), Sez(2, "stars", "STAR", nascosta: true),
+                           Sez(3, "transition", "Quote", nascosta: true))),
+            (Vsop, Sezioni(Sez(4, "weather", "METAR & TAF"), Sez(5, "stars", "STAR", nascosta: true),
+                           Sez(6, "transition", "Quote", nascosta: true))),
+        });
+
+        // METAR: nascosto qui, visibile là → torna. STAR: nate nascoste in tutti e due → restano. Quote: nascoste
+        // dappertutto per scelta → restano.
+        Assert.Equal(new[] { 1 }, SezioniComuni.DaRimostrare(comuni));
+    }
+
+    /// <summary>Le STAR nascono nascoste in tutti e due i profili: non sono una scelta della scheda, e non devono
+    /// far proporre di nascondere dappertutto (LIBV, prova dal vivo del 27 settembre 2026).</summary>
+    [Fact]
+    public void Le_STAR_nate_nascoste_non_fanno_proporre_di_nascondere_dappertutto()
+    {
+        var comuni = SezioniComuni.Di(new[]
+        {
+            (Vsop, Sezioni(Sez(1, "weather", "METAR & TAF"), Sez(2, "stars", "STAR", nascosta: true))),
+            (Vipi, Sezioni(Sez(3, "weather", "METAR & TAF"), Sez(4, "stars", "STAR", nascosta: true))),
+        });
+
+        Assert.Equal(new[] { Vipi }, SezioniComuni.DoveNascondere(comuni, new[] { Vsop, Vipi }));
+    }
+
     private static IReadOnlyList<EditableSection> Sezioni(params EditableSection[] s) => s;
 
     private static EditableSection Sez(int id, string chiave, string titolo, params EditableSection[] figlie) =>

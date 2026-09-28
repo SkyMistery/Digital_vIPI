@@ -326,8 +326,12 @@ public static class PolygonGeometry
         {
             if (item.ValueKind == JsonValueKind.Array)
             {
-                var nums = item.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Number)
-                    .Select(e => e.GetDouble()).ToList();
+                // ⚠️ TryGetDouble e non GetDouble: un numero oltre il double («1e999») faceva lanciare
+                // FormatException, che il catch di ParsePoints non prende (U-229). Il valore non finito si scarta.
+                var nums = item.EnumerateArray()
+                    .Select(e => e.ValueKind == JsonValueKind.Number && e.TryGetDouble(out var d) && double.IsFinite(d)
+                        ? d : (double?)null)
+                    .Where(d => d is not null).Select(d => d!.Value).ToList();
                 // Formato IVAO `regionMapPolygon`: coppie [lng, lat] (longitudine prima, stile GeoJSON).
                 if (nums.Count >= 2) result.Add((nums[1], nums[0]));
             }
@@ -346,7 +350,7 @@ public static class PolygonGeometry
     {
         foreach (var n in names)
             if (obj.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Number)
-                return v.GetDouble();
+                return v.TryGetDouble(out var d) && double.IsFinite(d) ? d : null;   // U-229: «1e999» non lancia
         return null;
     }
 }

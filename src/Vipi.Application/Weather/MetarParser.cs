@@ -34,8 +34,40 @@ public static partial class MetarParser
     [GeneratedRegex(@"^VV(\d{3}|///)$")]
     private static partial Regex VertVisRe();
 
+    /// <summary>Uno strato la cui base non è misurata: <c>BKN///</c>, <c>OVC///</c>, <c>//////</c> (U-089).</summary>
+    [GeneratedRegex(@"^(FEW|SCT|BKN|OVC|///)///(CB|TCU|///)?$")]
+    private static partial Regex CloudNoBaseRe();
+
+    /// <summary>Il gruppo orario del bollettino: <c>ddhhmmZ</c>.</summary>
+    [GeneratedRegex(@"^(\d{2})(\d{2})(\d{2})Z$")]
+    private static partial Regex OraRe();
+
     private static readonly HashSet<string> CloudCovers = new() { "FEW", "SCT", "BKN", "OVC" };
     private static readonly HashSet<string> ChangeTokens = new() { "BECMG", "TEMPO", "NOSIG" };
+
+    /// <summary>
+    /// L'istante UTC dell'osservazione, dal gruppo <c>ddhhmmZ</c>. Mese e anno li dà <paramref name="adesso"/>: un
+    /// giorno più avanti di oggi è del mese scorso. Null se il gruppo non si legge o il giorno non esiste.
+    /// <para>🔴 U-092 (revisione totale 3): il quadro vAWOS misurava l'età dall'ultima risposta HTTP, non dal
+    /// METAR: con le sorgenti giù un bollettino vecchio di ore sembrava di dodici secondi fa, e guidava LVP e pista.</para>
+    /// </summary>
+    public static DateTimeOffset? OraOsservazione(string? timeRaw, DateTimeOffset adesso)
+    {
+        if (string.IsNullOrWhiteSpace(timeRaw) || OraRe().Match(timeRaw.Trim()) is not { Success: true } m) return null;
+        int g = int.Parse(m.Groups[1].Value), h = int.Parse(m.Groups[2].Value), min = int.Parse(m.Groups[3].Value);
+        if (g < 1 || g > 31 || h > 23 || min > 59) return null;
+
+        // Il mese di chi legge; se lì il giorno cade nel futuro (oltre un'ora di tolleranza: gli orologi non sono
+        // allineati al minuto), è il mese prima. Un giorno che in quel mese non esiste non è un'ora.
+        var utc = adesso.UtcDateTime;
+        var mese = new DateTime(utc.Year, utc.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateTimeOffset? Nel(DateTime m) => g <= DateTime.DaysInMonth(m.Year, m.Month)
+            ? new DateTimeOffset(m.Year, m.Month, g, h, min, 0, TimeSpan.Zero) : null;
+
+        var ora = Nel(mese);
+        if (ora is null || ora > adesso.AddHours(1)) ora = Nel(mese.AddMonths(-1));
+        return ora is { } o && o <= adesso.AddHours(1) ? o : null;
+    }
 
     public static ParsedMetar ParseMetar(string raw)
     {
@@ -59,6 +91,8 @@ public static partial class MetarParser
         var wxParts = new List<WeatherGroup>();
         var rvr = new List<RunwayVisualRange>();
         bool rain = false, snow = false;
+        var vvIgnota = false;
+        var senzaBase = new List<string>();
 
         for (var i = 0; i < tokens.Count; i++)
         {
@@ -70,7 +104,14 @@ public static partial class MetarParser
             { wind = wind with { VarFromDeg = int.Parse(vm.Groups[1].Value), VarToDeg = int.Parse(vm.Groups[2].Value) }; continue; }
             if (RvrRe().Match(t) is { Success: true } rm) { rvr.Add(ParseRvr(rm)); continue; }
             if (VertVisRe().Match(t) is { Success: true } vvm)
-            { if (vvm.Groups[1].Value != "///") vertVis = int.Parse(vvm.Groups[1].Value) * 100; continue; }
+            {
+                // 🔴 U-089: «VV///» è cielo oscurato con l'altezza non misurata. Prima si buttava, e il soffitto null
+                // valeva «cielo sgombro»: il quadro proponeva di cancellare le LVP con la nebbia.
+                if (vvm.Groups[1].Value != "///") vertVis = int.Parse(vvm.Groups[1].Value) * 100;
+                else vvIgnota = true;
+                continue;
+            }
+            if (CloudNoBaseRe().Match(t) is { Success: true } nbm) { senzaBase.Add(nbm.Groups[1].Value); continue; }
             // CAVOK e 9999 sono il FONDO SCALA del bollettino (10 km), non una misura: chi confronta con una
             // soglia deve poterli trattare come «sopra a tutto» senza sapere quale dei due era scritto.
             if (t is "CAVOK") { vis ??= ">10 km"; visM ??= 10000; continue; }
@@ -97,7 +138,7 @@ public static partial class MetarParser
         trend = trendDaTendenza;
 
         return new ParsedMetar(raw.Trim(), station, timeRaw, wind, vis, clouds, wxParts, qnh, temp, dew, trend, rain, snow,
-            visM, rvr, vertVis);
+            visM, rvr, vertVis, vvIgnota, senzaBase);
     }
 
     public static ParsedTaf ParseTaf(string raw)
@@ -128,8 +169,11 @@ public static partial class MetarParser
 
             if (t is "BECMG" or "TEMPO")
             {
-                Flush();
+                // «PROB30 TEMPO periodo» è un gruppo solo: il TEMPO eredita la probabilità (U-215).
+                var probDelTempo = t == "TEMPO" && kind == TafChangeKind.Prob && current.Count == 0 && period is null ? prob : null;
+                if (probDelTempo is null) Flush();
                 kind = t == "BECMG" ? TafChangeKind.Becmg : TafChangeKind.Tempo;
+                prob = probDelTempo;
                 if (i + 1 < tokens.Count && PeriodRe().IsMatch(tokens[i + 1])) { period = tokens[++i]; }
                 continue;
             }

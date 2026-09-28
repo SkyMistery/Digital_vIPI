@@ -221,7 +221,7 @@ public static class TransferMatcher
         }
 
         // --- condizioni operative ---
-        var condition = EvaluateCondition(flow, p, req);
+        var condition = EvaluateChain(flow, p, req);
         score += condition.Match switch
         {
             "matched" => RunwayOk,
@@ -327,6 +327,31 @@ public static class TransferMatcher
         return digits.Length > 0 && int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var n)
             && n >= from && n <= to;
     }
+
+    /// <summary>
+    /// 🔴 U-152 (revisione totale 3): un'eccezione vale solo dove vale la clausola che la ospita. Si valuta la
+    /// riga e ogni antenato nell'outline, e vince l'esito peggiore: una capofila «non soddisfatta» porta con sé le
+    /// sue eccezioni, anche quelle la cui condizione propria non si può verificare.
+    /// </summary>
+    private static CandidateCondition EvaluateChain(TransferFlowRow flow, TransferPointRow p, TransferResolveRequest req)
+    {
+        var worst = EvaluateCondition(flow, p, req);
+        for (var parent = CoordinationDerivation.ParentOf(flow.Points, p); parent is not null;
+             parent = CoordinationDerivation.ParentOf(flow.Points, parent))
+        {
+            var c = EvaluateCondition(flow, parent, req);
+            if (Gravity(c.Match) > Gravity(worst.Match)) worst = c;
+        }
+        return worst;
+    }
+
+    private static int Gravity(string? match) => match switch
+    {
+        "unmatched" => 3,
+        "unknown" => 2,
+        "matched" => 1,
+        _ => 0,
+    };
 
     /// <summary>Verifica le condizioni del punto. La pista si può controllare (Aurora dà <c>#CTRLRWY</c>);
     /// area e condizione personalizzata no, e restano dichiaratamente «unknown».</summary>
