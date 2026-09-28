@@ -914,5 +914,25 @@
     `InvokeAsync(StateHasChanged)`, e scartando la catena l'avviso sparisce (test di comportamento al posto del
     presidio sul testo, rosso sul commit di prima). Il pannello non si disegnava (finestra dietro): verifiche lette dal
     DOM, non da screenshot. Su SQLite le chiamate «async» non cedono il turno: la corsa vera la provano i bUnit.
+- 🔨 **S31** lotto **L11 «Il resto», fetta E — import da testo/XLSX** della revisione 3 (via del committente il
+  28-set). Perimetro: U-042, U-043, U-044, U-045, U-050 (import), U-178 («Incolla tabella» dei Trasferimenti), e i due
+  ingressi da file AIP U-119, U-136. Il resto degli «altri ingressi» (U-041, U-047, U-135, U-137, U-138: rinomina,
+  eliminazione, traduzione, immagini) va con la fetta F.
+  - **Gruppo 1** (tetti dell'import, **codice comune** `Vipi.Application`): **U-043** (una riga di separatori vuoti
+    in coda portava la proposta a righe × ventimila colonne) → `Griglia.Colonne` conta fino all'ultima cella non
+    vuota. **U-043/U-050** (una cella in XFD passava il tetto T-022 del lettore, che conta le celle vere, e la proposta
+    faceva 2000 × 16 384 celle) → tetto sulle celle della PROPOSTA (`CostruttoreProposta.MaxCelle`, 200 000, righe ×
+    colonne vuote comprese), controllato prima di costruire; oltre, `Proposta.Guasto` in parole e l'anteprima non si
+    mostra (`ImportaTabella` porta il motivo dove si leggono i guasti del file). **U-044** (la regola delle ancore
+    degli alternati provava in tempo circa cubico gli spazi Unicode non ridotti: 1 600 spazi, 8 s misurati) →
+    `NormalizzaSegni` riduce OGNI spazio Unicode (non l'a-capo), e la regex ha un tempo massimo di 200 ms (scaduto:
+    la riga non si spezza). **U-045** (foglio e stringhe condivise in un DOM `XDocument` intero prima di ogni tetto) →
+    lettura in streaming con `XmlReader` su un flusso che smette oltre i 32 MB decompressi MENTRE legge, tetto sulle
+    stringhe condivise (`MaxStringheCondivise`), cartella di lavoro e relazioni con un tetto di 1 MB; un guasto
+    lascia l'elenco dei fogli.
+  - **Test**: `ImportPropostaTests` (+2), `ImportAncoreTests` (+2), `ImportXlsxTests` (+2: un milione di stringhe
+    condivise rifiutate con meno di 100 MB allocati; una cella in XFD che il lettore accetta e la proposta rifiuta),
+    `ImportaTabellaBarraTests` (+1). Tutti rossi sul codice di prima; i test dell'XLSX che c'erano passano uguali
+    sulla lettura nuova. Application 3018 → **3024**, Ui 1810 → **1811**, net8 e net10.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -23,6 +23,13 @@ public static class CostruttoreProposta
     public const int MaxRighe = 2000;
 
     /// <summary>
+    /// Quante celle al massimo ha una proposta: righe × colonne, vuote comprese, perche' ognuna diventa una cella
+    /// a schermo. 🔴 U-043/U-050 (revisione totale 3): il tetto T-022 del lettore XLSX conta le celle VERE, e una
+    /// sola cella in XFD più 1 999 righe in A passava; la proposta poi ne faceva 2000 × 16 384 (circa 2,3 GB).
+    /// </summary>
+    public const int MaxCelle = 200_000;
+
+    /// <summary>
     /// La proposta per questa griglia, con la mappatura suggerita.
     /// </summary>
     public static Task<Proposta> CostruisciAsync(
@@ -44,6 +51,18 @@ public static class CostruttoreProposta
         var righeDati = dati.Righe.Take(MaxRighe).ToList();
 
         var colonne = Colonne(spec, griglia, mappatura);
+
+        // 🔴 U-043/U-050: si guarda PRIMA di costruire. Oltre il tetto non si prova a mostrare niente: si dice perche'.
+        if ((long)righeDati.Count * colonne.Count > MaxCelle)
+            return Proposta.Niente(spec) with
+            {
+                Guasto = Messaggio.Lingua(
+                    $"Tabella troppo grande: {righeDati.Count} righe × {colonne.Count} colonne, oltre {MaxCelle} celle. " +
+                    "Una cella lontana dalle altre allarga tutte le righe: controlla il file.",
+                    $"Table too large: {righeDati.Count} rows × {colonne.Count} columns, over {MaxCelle} cells. " +
+                    "A cell far from the others widens every row: check the file."),
+            };
+
         var tipi = Tipi(spec, colonne.Count);
 
         // I valori da cercare sul catalogo, raccolti per tipo PRIMA di costruire le righe: e' l'unico modo

@@ -151,4 +151,31 @@ public class ImportAncoreTests
         Assert.True(m.Intestazione);
         Assert.Equal(new[] { 0, 1, 2, 3 }, m.Colonne);
     }
+
+    /// <summary>
+    /// 🔴 U-044 (revisione totale 3): la regola delle ancore riduceva solo alcuni spazi; gli altri spazi Unicode
+    /// (U+2002, U+3000…) restavano, e la regex li provava in tempo circa cubico: 1 600 spazi, 4,7 s di CPU dentro il
+    /// gestore del circuito. Ora tutti gli spazi si riducono a uno, e la regex ha comunque un tempo massimo.
+    /// </summary>
+    [Fact]
+    public void Una_riga_piena_di_spazi_Unicode_si_rifiuta_subito()
+    {
+        var orologio = System.Diagnostics.Stopwatch.StartNew();
+        var celle = SpecTabelle.SpezzaAlternato("LIBA " + new string('\u2002', 1600) + "x");
+        orologio.Stop();
+
+        Assert.Null(celle);
+        Assert.True(orologio.ElapsedMilliseconds < 250, $"{orologio.ElapsedMilliseconds} ms");
+    }
+
+    /// <summary>🔴 U-044: e gli stessi spazi, messi dove stanno gli spazi veri, non rompono una riga buona.</summary>
+    [Fact]
+    public void Gli_spazi_Unicode_valgono_come_spazi()
+    {
+        var celle = SpecTabelle.SpezzaAlternato("LIBA\u2003Amendola\u3000MNL TAC - 99Y 115.25\u2002308° 72.2NM");
+
+        Assert.NotNull(celle);
+        Assert.Equal("LIBA Amendola", celle![0]);
+        Assert.Equal("308", celle[2]);
+    }
 }

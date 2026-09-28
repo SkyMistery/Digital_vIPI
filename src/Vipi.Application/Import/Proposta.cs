@@ -81,7 +81,8 @@ public sealed record Proposta(
     SpecImport Spec,
     IReadOnlyList<string> Colonne,
     MappaturaColonne Mappatura,
-    IReadOnlyList<RigaProposta> Righe)
+    IReadOnlyList<RigaProposta> Righe,
+    string? Guasto = null)
 {
     public static Proposta Niente(SpecImport spec) =>
         new(spec, Array.Empty<string>(), new MappaturaColonne(Array.Empty<int>(), false),

@@ -76,9 +76,12 @@ public static class SpecTabelle
     /// <para>⚠️ Sono <b>ancore</b>, cioe' si cercano dal FONDO: e' l'unica parte della riga la cui forma e'
     /// certa. Il mezzo — nome dello scalo e impianti citati — e' fatto di parole, e contarle non funziona.</para>
     /// </summary>
+    /// <para>🔴 U-044 (revisione totale 3): con un tempo massimo. Gli spazi si riducono prima (vedi
+    /// <see cref="TestoTabellare.NormalizzaSegni"/>), ma una regola che gira nel gestore di un circuito non deve poter
+    /// tenere un thread per minuti su una riga fatta apposta: scaduto il tempo, la riga non si spezza.</para>
     private static readonly Regex Coda = new(
         @"^\s*([A-Z]{4})\s+(.*?)\s+(\d{1,3})\s*°?\s+(\d+(?:[.,]\d+)?)\s*(?:NM)?\s*$",
-        RegexOptions.IgnoreCase);
+        RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(200));
 
     /// <summary>
     /// Spezza una riga di «Aeroporti alternati» copiata da un PDF, dove di separatori non ce n'e' nessuno:
@@ -94,7 +97,9 @@ public static class SpecTabelle
     /// </summary>
     public static string[]? SpezzaAlternato(string riga)
     {
-        var m = Coda.Match(TestoTabellare.NormalizzaSegni(riga));
+        Match m;
+        try { m = Coda.Match(TestoTabellare.NormalizzaSegni(riga)); }
+        catch (RegexMatchTimeoutException) { return null; }
         if (!m.Success) return null;
 
         var icao = m.Groups[1].Value.ToUpperInvariant();
