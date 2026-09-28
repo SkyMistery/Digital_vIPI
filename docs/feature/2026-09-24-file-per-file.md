@@ -13,8 +13,9 @@ formato (manuale IVAO), misure sul fork `c46226f`, decisioni del committente e f
   coi parametri (§M-G), voci nuove D9 J7 Q8 (limiti verticali), M9 (pista), P11 Q2d (SID, IAP), F8 S6 (rotte VFR),
   R6 (taxiway), M10 (dati dello scalo), H10 (confine dello scalo ↔ erba); proposte da confermare e correzioni dei
   dati in **§R**.
-- **Prossimo**: il **lotto «Subito»** — carta [`2026-09-27-lotto-subito.md`](2026-09-27-lotto-subito.md) (20 slice
-  in tre ondate), da far leggere al committente prima di cominciare.
+- **In corso**: il **lotto «Subito»** — carta [`2026-09-27-lotto-subito.md`](2026-09-27-lotto-subito.md) (20 slice
+  in tre ondate), approvata il 27 settembre; al 28 settembre sera fatte le slice 0-7, prossima la 8 (lo stato di ogni
+  slice sta in §6 «Traccia» di quella carta).
 - **Prove in Aurora da fare presto** (committente, in rami di prova): T3 ordine dei simboli · R4 startup col tasto HOLD ·
   B9 etichette `L` fra i `T` delle aerovie · A8 etichette ACC per riferimento · F5 `ENRVFI` sotto `[VFRFIX]` · I7/K2
   organizzazioni dei file di scalo A-E.
@@ -513,7 +514,7 @@ Stesso formato di §10. Qui i **settori di avvicinamento** (`…_APP`).
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
 | L1 | **Schede tipizzate** (tipo fix, confine, visibilità, tipo VOR, canale TACAN) con l'**attesa collegata** alla sua definizione e l'info `ABBOZ/225R-9000` mostrata a campi | Subito | ✅ deciso |
-| L2 | **«Chi lo usa»**: dove è citato un fix/navaid (aerovie, SID/STAR, settori, ACC, MVA, `.vfi`, attese); **rinominare aggiorna tutti i riferimenti**, spostare avvisa, togliere è impedito se è usato | Subito — comune | ✅ deciso |
+| L2 | **«Chi lo usa»**: dove è citato un fix/navaid (aerovie, SID/STAR, settori, ACC, MVA, `.vfi`, attese); **rinominare aggiorna tutti i riferimenti**, spostare avvisa, togliere è impedito se è usato | Subito — comune | ✅ deciso · **fatto** (lotto, slice 7a-7b) |
 | L3 | **Nome unico**: avviso per i nomi in posizioni diverse (24); i doppioni nella stessa posizione (245, per lo più `ESTERNI` che ripete `secsi`/`itfix`) segnalati, da pulire | Subito (controllo) + F4 (pulizia) | ✅ deciso |
 | L4 | Controlli: coordinate illeggibili (con correzione proposta), attesa citata e non definita o viceversa, campi mancanti. **Nome oltre i 5 caratteri NON è un errore** (Aurora lo accetta) | Subito | ✅ deciso |
 | L5 | Import di fix (ENR 4.4) e navaid (ENR 4.1) dall'AIP, col confronto | F6 | ✅ deciso |
@@ -935,7 +936,7 @@ e le misure fatte per controllarle.
 
 | # | Proposta | Perché | Fase |
 |---|---|---|---|
-| R-1 | **«Chi lo usa» anche per posizioni, piste e file**: una posizione (`.frq` ↔ teste dei `.tfl` ↔ trasferimenti), una pista (`.rw` ↔ piste di `.sid`/`.str` ↔ PAR ↔ marcature ↔ prolungamenti ↔ `NN.` di M9), un file (`.cpr`, `.atis` citati dai `.frq`), un nome di `colors.def`. Rinominare aggiorna anche i valori dei tag (`fix=`, `trans=`, `compose=`) | L2 copre solo fix, navaid, attese e punti VFR; una pista rinumerata per la declinazione tocca tutto | Subito — comune · ✅ confermata (27 settembre) |
+| R-1 | **«Chi lo usa» anche per posizioni, piste e file**: una posizione (`.frq` ↔ teste dei `.tfl` ↔ trasferimenti), una pista (`.rw` ↔ piste di `.sid`/`.str` ↔ PAR ↔ marcature ↔ prolungamenti ↔ `NN.` di M9), un file (`.cpr`, `.atis` citati dai `.frq`), un nome di `colors.def`. Rinominare aggiorna anche i valori dei tag (`fix=`, `trans=`, `compose=`) | L2 copre solo fix, navaid, attese e punti VFR; una pista rinumerata per la declinazione tocca tutto | Subito — comune · ✅ confermata (27 settembre) · **fatto** (lotto, slice 7c-7f; di file e colori solo «chi lo usa», la rinomina è per il futuro) |
 | R-2 | **Import dall'AIP anche di CTR e ATZ** (AD 2.17: limiti laterali e verticali, classe; le **TMA per ora no**, committente) e dei **punti e rotte VFR** | F6 li ha per tutto il resto; con D9/Q8 i limiti hanno un posto | F6 · ✅ confermata (27 settembre) |
 | R-3 | **Spezza/unisci** (§C) vale anche per `<br>` di `.sid`/`.str`, la riga vuota dei `.geo` e delle `.mva` di scalo | lo stesso gesto in tre scritture | Subito — comune · ✅ confermata (27 settembre) |
 | R-4 | **Controlli pari fra gemelli**: `.sid` con «ICAO diverso dal file», «coordinate non DMS», «pista inesistente» (come `.str` Q6 e `.gts` R3); `.tfl` con «nome ripetuto nello stesso file» (`LIBB_FSS`, `LIMM_FSS`, §5). Misurato il 27 settembre: nei `.sid` 0 ICAO diversi (serviranno col disegno, P9); nei `.str` 0 procedure ripetute (il controllo di P3 lo si estende e basta) | un controllo scritto per un file e non per il suo gemello | Subito · ✅ confermata (27 settembre) |

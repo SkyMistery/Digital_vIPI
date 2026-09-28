@@ -4,7 +4,7 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## 27 settembre 2026, sera — lotto «Subito» in corso
+## 28 settembre 2026, sera — lotto «Subito» in corso (slice 0-7 fatte)
 
 Carta approvata: [`2026-09-27-lotto-subito.md`](../feature/2026-09-27-lotto-subito.md) (20 slice in tre ondate). Fatte
 la slice 0 (misure di partenza) e la **slice 1** intera: sintassi dei tag di §M nel motore (1a), tag sui file a una
