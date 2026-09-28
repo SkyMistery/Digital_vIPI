@@ -283,6 +283,31 @@ public class AtcStatsQueriesTests : IAsyncLifetime
         Assert.Contains("EDDF", visti.Select(a => a.Key));
     }
 
+    /// <summary>
+    /// 🔴 U-219 (scelta del committente 28-set): un APP gestisce anche gli scali che nell'albero hanno lui come padre
+    /// di copertura (<c>Airport.ParentCallsign</c>), non il solo ICAO del suo callsign.
+    /// </summary>
+    [Fact]
+    public async Task Un_APP_accredita_gli_scali_che_ha_sotto_nell_albero()
+    {
+        var acc = await AccRoma();
+        _db.Airports.AddRange(
+            new Airport { Icao = "LIBD", Name = "Bari", Acc = acc },
+            new Airport { Icao = "LIBR", Name = "Brindisi", Acc = acc, ParentCallsign = "LIBD_CS0_APP" },
+            new Airport { Icao = "LIBP", Name = "Pescara", Acc = acc, ParentCallsign = "LIBP_APP" });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        await Sessione(100, 704798, "LIBD_CS0_APP", 3600);
+        await Tratta(100, "AZA1", "LIRF", "LIBR");                 // arrivo a uno scalo sotto l'APP
+        await Tratta(100, "AZA2", "LIBD", "LIRF", ordinale: 2);    // partenza dal suo campo
+        await Tratta(100, "AZA3", "LIRF", "LIBP", ordinale: 3);    // campo di un altro APP: non è suo
+
+        var gestiti = await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A);
+
+        Assert.Equal(new[] { "LIBD", "LIBR" }, gestiti.Select(g => g.Key).OrderBy(k => k));
+    }
+
     /// <summary>Un circuito LIRF→LIRF è UNA tratta, non due: il campo sta a tutti e due i capi.</summary>
     [Fact]
     public async Task Un_volo_che_parte_e_torna_conta_una_volta_sola()

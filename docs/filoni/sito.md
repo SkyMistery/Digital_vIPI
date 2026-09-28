@@ -1245,5 +1245,16 @@
     codice di prima tranne le due guardie (sovrapposizione lunga, stesso callsign a ore di distanza).
     `StoricoStatisticheTests` (nuova, +1: turni ricuciti, giorno rimesso in coda con la riga intatta, seconda
     volta niente). Application 3070 → **3077**, Infrastructure 1793 → **1794**, Hosting 68.
+  - **Gruppo 11** (aeroporti gestiti da un APP, solo `Vipi.Infrastructure`): **U-219** (per un `_APP` le
+    statistiche accreditavano il solo ICAO del callsign: `LIBD_CS0_APP` non gestiva mai Brindisi) → scelta del
+    committente, **l'albero**: gli si accreditano anche gli scali che hanno lui come padre di copertura
+    (`Airport.ParentCallsign`, il campo della Struttura), figli diretti, albero di oggi come per i poligoni
+    d'area; si calcola a ogni lettura, quindi cambia anche i numeri passati, niente da ricalcolare. ⚠️ Da
+    misurare in produzione quanti scali hanno un padre `_APP` (il 25 agosto l'albero era compilato su 31 scali
+    su 93): quelli senza restano al solo prefisso, come prima. ⚠️ Fuori dalla voce, e non fatto: la copertura
+    del consolidamento giornaliero (`EfAirportTrafficRollupStore`) usa ancora il solo prefisso — con
+    `LIRF_PN1_APP` in linea conta coperto LIRF e non LIRA.
+  - **Test**: `AtcStatsQueriesTests` (+1, rosso sul codice di prima: solo LIBD). Infrastructure 1794 →
+    **1795**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
