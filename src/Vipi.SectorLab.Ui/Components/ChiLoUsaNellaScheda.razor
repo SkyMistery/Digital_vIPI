@@ -12,6 +12,26 @@
     <Sezione Chiave="scheda-chi-lo-usa" data-chi-lo-usa="@usi.Citazioni.Count">
     <Titolo>Chi lo usa <span class="lab-nota">@Conto(usi)</span></Titolo>
     <ChildContent>
+    @* Slice 7b: la rinomina — il punto, le sue copie e tutte le righe qui sotto, in una voce sola. *@
+    <div class="lab-rinomina" data-rinomina>
+        @foreach (string nome in usi.Nomi)
+        {
+            var questo = nome;
+            <label>
+                Rinomina @(usi.Nomi.Count > 1 ? questo : "")
+                <input class="lab-campo" placeholder="nome nuovo" value="@questo" data-rinomina-nome="@questo"
+                       @onchange="e => Rinomina(questo, e.Value?.ToString(), null)" />
+            </label>
+        }
+        @if (Lab.DaDecidere is { } domanda && _inAttesa is { } attesa)
+        {
+            <p class="lab-nota" data-rinomina-domanda>
+                @domanda.Righe righe valgono anche per @domanda.AncheA (stesso nome): le rinomino?
+            </p>
+            <button class="lab-tasto" data-rinomina-omonimi="si" @onclick="() => Rinomina(attesa.Vecchio, attesa.Nuovo, true)">Sì, anche quelle</button>
+            <button class="lab-tasto lab-tasto-tenue" data-rinomina-omonimi="no" @onclick="() => Rinomina(attesa.Vecchio, attesa.Nuovo, false)">No, lasciale</button>
+        }
+    </div>
     @if (usi.Citazioni.Select(c => c.AncheA).FirstOrDefault(a => a is not null) is { } ancheA)
     {
         <p class="lab-nota" data-navaid-omonimo="@ancheA">Stesso nome anche per: @ancheA. Una riga non dice quale dei due: vale per tutti e due.</p>
@@ -64,6 +84,17 @@
     [Parameter, EditorRequired] public string File { get; set; } = null!;
 
     [Parameter, EditorRequired] public int Record { get; set; }
+
+    // La rinomina ferma sulla domanda degli omonimi: il nome vecchio e il nuovo, per rifarla con la risposta.
+    private (string Vecchio, string? Nuovo)? _inAttesa;
+
+    private void Rinomina(string vecchio, string? nuovo, bool? omonimi)
+    {
+        if (string.Equals(vecchio, nuovo?.Trim(), StringComparison.Ordinal))
+            return;
+        bool fatto = Lab.RinominaIlPunto(File, Record, vecchio, nuovo, omonimi);
+        _inAttesa = !fatto && Lab.DaDecidere is not null ? (vecchio, nuovo) : null;
+    }
 
     private static string Conto(UsiDelPunto usi)
         => usi.Citazioni.Count == 0 ? "nessuno" : $"{Righe(usi.Citazioni.Count)} in {usi.File.Count} file";

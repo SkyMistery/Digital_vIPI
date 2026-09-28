@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a fatta; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a e 7b fatte; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -815,3 +815,30 @@ e aerovie (il 2° campo, rimandato dalla 6b).
     omonimi in un file che un master carica. Sul fork: VOR usati 61 → **72**, 719 → **819** citazioni, «altro punto»
     dei VOR 100 → **0**; TRP 28 righe in 5 file, nel VOR e nell'NDB. Restano «altro punto» solo 2 citazioni di VRP.
     Test: Lab 616 → **617**.
+- **7b (28 settembre)** — la rinomina di un punto (L2) e il «togli» impedito a un punto usato. Nella sezione «Chi lo
+  usa» il campo **«Rinomina»** (uno per nome: il VRP ne ha due). `Modifiche/Rinomina.cs` prepara le righe, file per
+  file: la dichiarazione del punto e delle sue **copie** (`ChiLoUsa.Copie`: stesso catalogo, stesso nome, meno di un
+  decimo di miglio — lo scalo in `itap.ap` e `limm.ap`), ogni citazione di «chi lo usa», i tag che lo nominano
+  (`//@"NOME"` del suo record, `//@@"NOME"` dei punti, i valori di `fix=` e `trans=`), il fix nella descrizione di
+  un'attesa (`LUSIL/225R-9000`); il resto della riga resta com'era, spazi compresi, e le righe commentate no.
+  `ModificheInSospeso.CambiaInPiuFile` prova prima ogni file (riletto: stessi record, tag validi come prima) e solo se
+  vanno tutti li cambia: **una voce** nel pannello (il file del punto, «anche in …»), un diff per file
+  (`ModificaDelTesto.ParteDi`), annullata da qualunque suo file torna tutta. Dopo una rinomina, e dopo ogni annulla, i
+  cataloghi dei master si rifanno.
+  - **Rifiuti**: un nome che non va (vuoto, `;`, `/` — separa il fix nella descrizione di un'attesa —, virgolette o
+    `@`, una coordinata), un nome che c'è già («due punti con lo stesso nome»; cambiare solo le maiuscole si può).
+  - **Le righe comuni si chiedono** (committente, 28 settembre: «deve chiedere»): quelle che valgono anche per un
+    altro punto — un VOR e un NDB omonimi, o lo stesso nome che un altro master risolve altrove (la citazione è sua
+    «solo in» alcuni) — non si cambiano finché l'AOD non sceglie «Sì, anche quelle» o «No, lasciale».
+  - Un'attesa rinominata porta con sé il campo dei fix e dei VOR che ci rimandano (`HLD-ABBOZ`); un fix rinominato
+    cambia la descrizione della sua attesa ma non il nome dell'attesa (`HLD-LUSIL` resta: è un altro nome).
+  - **Togli**: un punto che qualcuno cita non si toglie — «È usato: lo citano N righe in M file (vedi «Chi lo usa»)».
+  Scelta dell'agente: il file rinominato non si riordina (un fix fuori dall'ordine alfabetico lo si sposta a mano).
+  Misura sul fork (strumento fuori repo, `scratchpad/misura7b`): **ogni punto usato** rinominato (nome + «Q7») e poi
+  annullato — **2 307 su 2 307**, 12 686 righe, 0 rifiutati, **0 guasti** (le citazioni dopo sono le stesse righe di
+  prima, il punto ha il nome nuovo, e annullato ogni file torna quello dell'apertura); 25 domande (22 VOR/NDB omonimi,
+  3 «solo in»). **`LUSIL` → 13 righe in 6 file**: `itfix.fix` 1, `FRA.artcc` 1, `itawlow.lairway` 4 (non la riga
+  commentata 2636), `limm.hartcc` 2, `lipp.hartcc` 2, `liml.str` 3 — tutti e soli i file giusti. `LIMA` (scalo) porta
+  con sé la copia di `limm.ap`. Prova a schermo sul banco: `LUSIL` → «LUSIX»: «1 modifiche in 6 file», la voce in
+  `itfix.fix` «anche in FRA.artcc, itawlow.lairway, limm.hartcc, lipp.hartcc, liml.str»; «annulla» su `FRA.artcc`
+  toglie tutto; «Togli questo record» su LUSIL rifiutato col perché. Il motore non è toccato. Test: Lab 617 → **634**.

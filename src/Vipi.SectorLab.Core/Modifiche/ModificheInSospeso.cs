@@ -85,6 +85,12 @@ public sealed record ModificaDelTesto(string File, IReadOnlyList<int> Righe)
     /// </summary>
     public IReadOnlyList<string> Gesti { get; init; } = [];
 
+    /// <summary>
+    /// Se il file è cambiato SOLO per una rinomina partita da un altro file (lotto «Subito» slice 7b): quel file. Nel
+    /// pannello non è una voce a sé — la rinomina è una, coi suoi diff —, e si annulla con lei.
+    /// </summary>
+    public string? ParteDi { get; init; }
+
     public override string Descrizione => string.Join(" · ", Gesti.Concat(Righe.Count switch
     {
         0 => [],
@@ -193,12 +199,28 @@ public sealed class ModificheInSospeso
             .OrderBy(m => m.File, StringComparer.Ordinal)];
     }
 
-    /// <summary>La modifica principale di una copia gemella, se c'è ancora; null per le altre.</summary>
-    public ModificaDiCampo? Principale(Modifica modifica)
-        => modifica is ModificaDiCampo { CopiaDi: { } da }
-           && _fatte.GetValueOrDefault((da.File, da.Record, modifica.Campo)) is ModificaDiCampo principale
-            ? principale
-            : null;
+    /// <summary>
+    /// La modifica principale di una copia gemella, o di un file toccato da una rinomina partita da un altro (slice 7b),
+    /// se c'è ancora; null per le altre.
+    /// </summary>
+    public Modifica? Principale(Modifica modifica)
+        => modifica switch
+        {
+            ModificaDiCampo { CopiaDi: { } da } when _fatte.GetValueOrDefault((da.File, da.Record, modifica.Campo)) is ModificaDiCampo principale
+                => principale,
+            ModificaDelTesto { ParteDi: { } da } when _fatte.GetValueOrDefault((da, -1, ModificaDelTesto.Chiave)) is ModificaDelTesto principale
+                => principale,
+            _ => null,
+        };
+
+    /// <summary>I file toccati da una rinomina insieme al file della voce (vuoto per le altre voci).</summary>
+    public IReadOnlyList<ModificaDelTesto> PartiDi(Modifica principale)
+    {
+        ArgumentNullException.ThrowIfNull(principale);
+        return principale is ModificaDelTesto
+            ? [.. _fatte.Values.OfType<ModificaDelTesto>().Where(m => m.ParteDi == principale.File).OrderBy(m => m.File, StringComparer.Ordinal)]
+            : [];
+    }
 
     /// <summary>I file delle copie gemelle toccate: annullare una voce li rimette, e lì serve l'oggetto del file.</summary>
     private readonly Dictionary<string, FileAperto> _fileDelleCopie = new(StringComparer.Ordinal);
@@ -682,6 +704,16 @@ public sealed class ModificheInSospeso
         if (Principale(_fatte[chiave]) is { } suaPrincipale && Cerca(suaPrincipale.File) is { } fileDellaPrincipale)
             return Annulla(fileDellaPrincipale, suaPrincipale, cercaIlFile);
 
+        // Una rinomina (slice 7b) si annulla tutta: gli altri file che ha toccato tornano com'erano con lei.
+        if (modifica is ModificaDelTesto)
+        {
+            foreach (var parte in PartiDi(modifica))
+            {
+                if (Cerca(parte.File) is { } fileDellaParte)
+                    Annulla(fileDellaParte, parte);
+            }
+        }
+
         if (modifica is ModificaDiCampo campo)
         {
             foreach (var copia in CopieDi(modifica))
@@ -906,8 +938,12 @@ public sealed class ModificheInSospeso
     /// voce. Le sue righe non contano fra quelle scritte a mano.</param>
     /// <param name="verifica">Un controllo sul file riletto, prima di tenerlo (la struttura è già quella nuova):
     /// torna il perché se il gesto non ha fatto quello che doveva, e allora il file resta com'era.</param>
+    /// <param name="anchiITag">Solo per la rinomina (slice 7b): le righe //@ si possono cambiare — il nome di un punto sta
+    /// anche nei tag —, e il file riletto deve avere i tag validi come prima.</param>
+    /// <param name="parteDi">Solo per la rinomina: il file da cui è partita, se è un altro (<see cref="ModificaDelTesto.ParteDi"/>).</param>
     public object CambiaRighe(FileAperto file, IReadOnlyDictionary<int, IReadOnlyList<string>> sostituzioni,
-                              string? gesto = null, Func<IFileConRecord, string?>? verifica = null)
+                              string? gesto = null, Func<IFileConRecord, string?>? verifica = null,
+                              bool anchiITag = false, string? parteDi = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(sostituzioni);
@@ -923,7 +959,7 @@ public sealed class ModificheInSospeso
             return new ModificaRifiutata($"Il file ha {righe.Count} righe: la {fuori} non c'è.");
         if (sostituzioni.All(s => s.Value.Count == 1 && s.Value[0] == righe[s.Key - 1]))
             return new ModificaRifiutata(sostituzioni.Count == 1 ? "La riga è già questa." : "Le righe sono già queste.");
-        if (sostituzioni.Any(s => EUnTag(righe[s.Key - 1]) || s.Value.Any(EUnTag)))
+        if (!anchiITag && sostituzioni.Any(s => EUnTag(righe[s.Key - 1]) || s.Value.Any(EUnTag)))
             return new ModificaRifiutata("I tag //@ sono metadati del Lab: non si scrivono a mano, si cambiano dalla scheda.");
 
         // Le righe nuove, e dove finiscono: ogni sostituzione sposta in giù quelle dopo di lei.
@@ -987,6 +1023,8 @@ public sealed class ModificheInSospeso
         var modifica = new ModificaDelTesto(file.Relativo, [.. giaAMano.Concat(gesto is null ? scritte : []).Distinct().Order()])
         {
             Gesti = gesto is null ? prima?.Gesti ?? [] : [.. prima?.Gesti ?? [], gesto],
+            // Parte di una rinomina solo finché il file non ha altro: un gesto suo lo fa tornare una voce a sé.
+            ParteDi = parteDi is not null && (prima is null || prima.ParteDi == parteDi) ? parteDi : null,
         };
         _fatte[(file.Relativo, -1, ModificaDelTesto.Chiave)] = modifica;
         _sporchi[file.Relativo] = [];
@@ -1004,6 +1042,84 @@ public sealed class ModificheInSospeso
     }
 
     private static bool EUnTag(string riga) => riga.TrimStart().StartsWith("//@", StringComparison.Ordinal);
+
+    // --- la rinomina di un punto (lotto «Subito» slice 7b, «file per file» L2) -------------------------------------
+
+    /// <summary>
+    /// Cambia le righe di più file insieme, come UNA voce (la rinomina di un punto: la sua dichiarazione e chi lo usa).
+    /// Prima si prova ogni file — riletto, deve avere gli stessi record e i tag validi come prima —, e solo se vanno
+    /// tutti si cambiano: un file che non si rilegge non lascia la rinomina a metà. Il primo file è la voce; gli altri
+    /// ne sono parte (<see cref="ModificaDelTesto.ParteDi"/>).
+    /// </summary>
+    public object CambiaInPiuFile(IReadOnlyList<(FileAperto File, IReadOnlyDictionary<int, IReadOnlyList<string>> Righe)> perFile, string gesto)
+    {
+        ArgumentNullException.ThrowIfNull(perFile);
+        ArgumentException.ThrowIfNullOrEmpty(gesto);
+        if (perFile.Count == 0)
+            return new ModificaRifiutata("Nessuna riga da cambiare.");
+        foreach (var (file, sostituzioni) in perFile)
+        {
+            if (file is not IFileConRecord conRecord)
+                return new ModificaRifiutata($"{file.Relativo}: il motore non lo interpreta.");
+            if (ProvaLeRighe(file, conRecord, sostituzioni) is { } perche)
+                return new ModificaRifiutata($"{ModificaDiCampo.NomeDelFile(file.Relativo)}: {perche}");
+        }
+
+        string principale = perFile[0].File.Relativo;
+        object? prima = null;
+        foreach (var (file, sostituzioni) in perFile)
+        {
+            var conRecord = (IFileConRecord)file;
+            int quanti = conRecord.RecordDelModello.Count;
+            bool tagBuoni = conRecord.TagRotti() is null;
+            var esito = CambiaRighe(file, sostituzioni, gesto,
+                riletto => riletto.RecordDelModello.Count == quanti && (!tagBuoni || riletto.TagRotti() is null) ? null : "riletto, non è più lo stesso file.",
+                anchiITag: true, parteDi: file.Relativo == principale ? null : principale);
+            prima ??= esito;
+        }
+
+        return prima!;
+    }
+
+    /// <summary>Il file con quelle righe cambiate si rilegge con gli stessi record e i tag validi? Null se sì, se no il perché.</summary>
+    private string? ProvaLeRighe(FileAperto file, IFileConRecord conRecord, IReadOnlyDictionary<int, IReadOnlyList<string>> sostituzioni)
+    {
+        var righe = conRecord.RigheDelFile(SporchiDi(file.Relativo)).ToList();
+        if (sostituzioni.Keys.Any(n => n < 1 || n > righe.Count))
+            return "una riga da cambiare non c'è più.";
+        foreach (var (numero, nuove) in sostituzioni.OrderByDescending(s => s.Key))
+        {
+            righe.RemoveAt(numero - 1);
+            righe.InsertRange(numero - 1, nuove);
+        }
+
+        object riletto;
+        try
+        {
+            riletto = conRecord.LeggiLeRighe(righe);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return $"non si rilegge: {e.Message}";
+        }
+
+        int quanti = conRecord.RecordDelModello.Count;
+        bool tagBuoni = conRecord.TagRotti() is null;
+        var adesso = conRecord.IstantaneaDellaStruttura();
+        try
+        {
+            conRecord.RipristinaLaStruttura(riletto);
+            if (conRecord.RecordDelModello.Count != quanti)
+                return "riletto, non ha più gli stessi record.";
+            if (tagBuoni && conRecord.TagRotti() is { } rotto)
+                return $"i tag non si leggono più ({rotto}).";
+            return null;
+        }
+        finally
+        {
+            conRecord.RipristinaLaStruttura(adesso);
+        }
+    }
 
     // --- nascondi e mostra (lotto «Subito» slice 5c) --------------------------------------------------------------
 

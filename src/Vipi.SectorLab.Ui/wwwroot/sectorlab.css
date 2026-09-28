@@ -933,6 +933,20 @@ body.lab-trascina * {
     font: 12px var(--lab-mono);
 }
 
+.lab-rinomina {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    align-items: center;
+    margin: .2rem 0 .4rem;
+}
+
+.lab-rinomina label {
+    display: flex;
+    gap: .4rem;
+    align-items: center;
+}
+
 .lab-citazioni-altrui {
     color: var(--lab-tenue);
 }

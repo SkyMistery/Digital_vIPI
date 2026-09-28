@@ -45,8 +45,8 @@ public sealed class ChiLoUsa
     // Per nome (come Aurora, maiuscole indifferenti): i file e i record che lo citano.
     private readonly Dictionary<string, Dictionary<string, SortedSet<int>>> _perNome = new(StringComparer.OrdinalIgnoreCase);
 
-    // Per nome: i VOR e gli NDB che si chiamano così (catalogo e file), per i navaid omonimi.
-    private readonly Dictionary<string, List<(string Catalogo, string File)>> _navaid = new(StringComparer.OrdinalIgnoreCase);
+    // Per nome: i punti che si chiamano così (catalogo e file) — i VOR e gli NDB omonimi, le copie di un punto.
+    private readonly Dictionary<string, List<(string Catalogo, string File)>> _dichiarati = new(StringComparer.OrdinalIgnoreCase);
 
     // Per file: i nomi che ci sono, per rifare il file senza rifare l'albero.
     private readonly Dictionary<string, List<string>> _nomiDelFile = new(StringComparer.Ordinal);
@@ -197,12 +197,46 @@ public sealed class ChiLoUsa
             return false;
         if (string.Equals(punto.File, file, StringComparison.Ordinal))
             return true;
-        if (punto.Catalogo != dichiarazione.Catalogo)
-            return false;
-        double dy = (punto.Posizione.LatitudeDeg - dichiarazione.Posizione.LatitudeDeg) * 111_320;
-        double dx = (punto.Posizione.LongitudeDeg - dichiarazione.Posizione.LongitudeDeg) * 111_320
-                    * Math.Cos(punto.Posizione.LatitudeDeg * Math.PI / 180);
+        return punto.Catalogo == dichiarazione.Catalogo && Vicini(punto.Posizione, dichiarazione.Posizione);
+    }
+
+    // Meno di un decimo di miglio: lo stesso punto scritto due volte (il validatore: NomeRipetuto, non NomeDuplicato).
+    private static bool Vicini(Vipi.Sectorfile.Shared.Coordinate a, Vipi.Sectorfile.Shared.Coordinate b)
+    {
+        double dy = (a.LatitudeDeg - b.LatitudeDeg) * 111_320;
+        double dx = (a.LongitudeDeg - b.LongitudeDeg) * 111_320 * Math.Cos(a.LatitudeDeg * Math.PI / 180);
         return Math.Sqrt((dx * dx) + (dy * dy)) < 185.2;
+    }
+
+    /// <summary>
+    /// Le copie del punto (lotto «Subito» slice 7b): gli altri record dello stesso catalogo con lo stesso nome a meno di
+    /// un decimo di miglio — lo scalo in <c>itap.ap</c> e in <c>limm.ap</c>, il fix scritto in due file. Una rinomina le
+    /// porta con sé: le citazioni che Aurora risolve in una copia sono anche sue.
+    /// </summary>
+    public IReadOnlyList<(string File, int Record)> Copie(SessioneAperta sessione, string file, int record, string nome)
+    {
+        ArgumentNullException.ThrowIfNull(sessione);
+        if (sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord || record < 0 || record >= conRecord.RecordDelModello.Count
+            || Cataloghi.Dichiarato(conRecord.RecordDelModello[record]) is not { } questo
+            || !_dichiarati.TryGetValue(nome.Trim(), out var dove))
+            return [];
+
+        var copie = new List<(string, int)>();
+        foreach (string altro in dove.Where(d => d.Catalogo == questo.Catalogo).Select(d => d.File).Distinct().Order(StringComparer.Ordinal))
+        {
+            if (sessione.File.GetValueOrDefault(altro) is not IFileConRecord suo)
+                continue;
+            for (int k = 0; k < suo.RecordDelModello.Count; k++)
+            {
+                if ((altro, k) != (file, record)
+                    && Cataloghi.Dichiarato(suo.RecordDelModello[k]) is { } punto && punto.Catalogo == questo.Catalogo
+                    && punto.Nomi.Any(n => string.Equals(n.Trim(), nome.Trim(), StringComparison.OrdinalIgnoreCase))
+                    && Vicini(punto.Posizione, questo.Posizione))
+                    copie.Add((altro, k));
+            }
+        }
+
+        return copie;
     }
 
     private static string Breve(string relativo)
@@ -210,8 +244,8 @@ public sealed class ChiLoUsa
 
     /// <summary>I navaid dell'altro tipo (VOR per un NDB, NDB per un VOR) con lo stesso nome: catalogo e file.</summary>
     private IReadOnlyList<(string Catalogo, string File)> Gemelli(string nome, string catalogo)
-        => catalogo is "vor" or "ndb" && _navaid.TryGetValue(nome, out var tutti)
-            ? [.. tutti.Where(n => n.Catalogo != catalogo).Distinct()]
+        => catalogo is "vor" or "ndb" && _dichiarati.TryGetValue(nome, out var tutti)
+            ? [.. tutti.Where(n => n.Catalogo is "vor" or "ndb" && n.Catalogo != catalogo).Distinct()]
             : [];
 
     // Le chiavi dei tag che nominano un punto (§M, P6): il fix intero e la transizione di una SID o di una voce .str.
@@ -280,13 +314,14 @@ public sealed class ChiLoUsa
         var chiavi = conRecord.CatalogoDeiTag is null ? null : conRecord.ChiaviDeiRecord();
         for (int k = 0; k < conRecord.RecordDelModello.Count; k++)
         {
-            if (Cataloghi.Dichiarato(conRecord.RecordDelModello[k]) is { Catalogo: "vor" or "ndb" } navaid)
+            if (Cataloghi.Dichiarato(conRecord.RecordDelModello[k]) is { } punto)
             {
-                foreach (string suo in navaid.Nomi.Select(n => n.Trim()).Where(n => n.Length > 0))
+                foreach (string suo in punto.Nomi.Select(n => n.Trim()).Where(n => n.Length > 0))
                 {
-                    if (!_navaid.TryGetValue(suo, out var omonimi))
-                        _navaid[suo] = omonimi = [];
-                    omonimi.Add((navaid.Catalogo, relativo));
+                    if (!_dichiarati.TryGetValue(suo, out var omonimi))
+                        _dichiarati[suo] = omonimi = [];
+                    if (!omonimi.Contains((punto.Catalogo, relativo)))
+                        omonimi.Add((punto.Catalogo, relativo));
                 }
             }
 
@@ -306,7 +341,7 @@ public sealed class ChiLoUsa
 
     private void Togli(string relativo)
     {
-        foreach (var omonimi in _navaid.Values)
+        foreach (var omonimi in _dichiarati.Values)
             omonimi.RemoveAll(n => n.File == relativo);
 
         if (!_nomiDelFile.Remove(relativo, out var nomi))

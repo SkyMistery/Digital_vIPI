@@ -68,4 +68,67 @@ public sealed class ChiLoUsaAschermoTests : IDisposable
 
         Assert.Single(_lab.UsiDi(Prova, 0)!.Citazioni);
     }
+
+    // --- slice 7b: la rinomina ------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task RinominatoDallaSchedaIlNomeNuovoSiRisolveEAnnullatoTorna()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<ChiLoUsaNellaScheda>(p => p.Add(c => c.File, Prova).Add(c => c.Record, 0));
+
+        pagina.Find("[data-rinomina-nome='LUSIL']").Change("LUSIX");
+
+        // Una voce sola, due file; i cataloghi rifatti risolvono il nome nuovo, e le citazioni sono ancora sue.
+        Assert.Equal(1, _lab.Modifiche.Quante);
+        Assert.Equal(2, _lab.Modifiche.FileToccati.Count);
+        Assert.True(_lab.Cataloghi["ITALY.isc"].Risolve("LUSIX"));
+        Assert.False(_lab.Cataloghi["ITALY.isc"].Risolve("LUSIL"));
+        Assert.Equal(2, _lab.UsiDi(Prova, 0)!.Citazioni.Count);
+        Assert.Contains("T;M984;LUSIX;LUSIX;", _lab.RigheDiAdesso(Aerovia));
+
+        _lab.Annulla();
+
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        Assert.True(_lab.Cataloghi["ITALY.isc"].Risolve("LUSIL"));
+        Assert.Contains("T;M984;LUSIL;LUSIL;", _lab.RigheDiAdesso(Aerovia));
+    }
+
+    [Fact]
+    public async Task UnPuntoUsatoNonSiToglie()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+
+        Assert.False(_lab.TogliRecord(Prova, 0));
+
+        Assert.Contains("È usato", _lab.Rifiuto, StringComparison.Ordinal);
+        Assert.False(_lab.Modifiche.CEQualcosa);
+    }
+
+    [Fact]
+    public async Task ConUnNdbOmonimoLaRinominaChiedeEPoiFa()
+    {
+        _albero.Scrivi("SectorFiles/ITALY.isc",
+            "[INFO]\r\nN041.48.01.000\r\nE012.14.20.000\r\n60\r\n45\r\n+4.0\r\nIT\r\n\r\n"
+            + "[NDB]\r\nF;NAVAIDS\\prova.ndb\r\n\r\n[VOR]\r\nF;NAVAIDS\\prova.vor\r\n\r\n[LOW AIRWAY]\r\nF;AIRWAY\\prova.lairway\r\n");
+        _albero.Scrivi("SectorFiles/Include/IT/NAVAIDS/prova.ndb", "TRP;317.5;N037.54.51.600;E012.29.34.700;\r\n");
+        _albero.Scrivi("SectorFiles/Include/IT/NAVAIDS/prova.vor", "TRP;108.80;N037.53.45.500;E012.30.47.500;;;;\r\n");
+        _albero.Scrivi(Aerovia, "T;L869;TRP;TRP;\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        const string Vor = "SectorFiles/Include/IT/NAVAIDS/prova.vor";
+        var pagina = _contesto.RenderComponent<ChiLoUsaNellaScheda>(p => p.Add(c => c.File, Vor).Add(c => c.Record, 0));
+
+        pagina.Find("[data-rinomina-nome='TRP']").Change("TRX");
+
+        // Ferma: la riga vale anche per l'NDB, e la scheda chiede.
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        Assert.Contains("NDB TRP", pagina.Find("[data-rinomina-domanda]").TextContent, StringComparison.Ordinal);
+
+        pagina.Find("[data-rinomina-omonimi='no']").Click();
+
+        // «No, lasciale»: il VOR cambia nome, la riga dell'aerovia resta all'NDB.
+        Assert.Equal(["TRX;108.80;N037.53.45.500;E012.30.47.500;;;;"], _lab.RigheDiAdesso(Vor));
+        Assert.Equal(["T;L869;TRP;TRP;"], _lab.RigheDiAdesso(Aerovia));
+        Assert.Null(_lab.DaDecidere);
+    }
 }

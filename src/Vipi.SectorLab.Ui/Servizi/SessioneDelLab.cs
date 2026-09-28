@@ -1145,6 +1145,70 @@ public sealed class SessioneDelLab
         return usi;
     }
 
+    /// <summary>
+    /// Rinomina il punto (lotto «Subito» slice 7b, L2): la sua dichiarazione, le sue copie, e tutte le righe che lo
+    /// citano, in una voce sola (più diff). Con un VOR e un NDB omonimi <paramref name="omonimi"/> dice se le righe che
+    /// valgono per tutti e due si rinominano: finché non è deciso, la rinomina non si fa e <see cref="DaDecidere"/> lo
+    /// chiede (committente, 28 settembre).
+    /// </summary>
+    public bool RinominaIlPunto(string fileRelativo, int record, string vecchio, string? nuovo, bool? omonimi = null)
+    {
+        DaDecidere = null;
+        return NellaStoria($"{vecchio} rinominato {nuovo}", () =>
+        {
+            if (Sessione is null || _chiLoUsa is null)
+                return false;
+            _usi.Clear();
+            var esito = Rinomina.Prepara(Sessione, _chiLoUsa, Cataloghi, fileRelativo, record, vecchio, nuovo, omonimi, Modifiche.SporchiDi);
+            if (esito is RinominaDaDecidere domanda)
+            {
+                DaDecidere = domanda;
+                Rifiuto = null;
+                Avvisa();
+                return false;
+            }
+
+            if (esito is not RinominaPronta pronta)
+            {
+                Rifiuto = (esito as ModificaRifiutata)?.Motivo;
+                Avvisa();
+                return false;
+            }
+
+            var fatto = Modifiche.CambiaInPiuFile(
+                [.. pronta.PerFile.Select(f => (Sessione.File[f.File], f.Righe))],
+                $"rinomina {pronta.Vecchio} → {pronta.Nuovo} ({pronta.Righe} righe in {pronta.PerFile.Count} file)");
+            Registro.Scrivi("rinomina", $"{fileRelativo}#{record} {pronta.Vecchio} → {pronta.Nuovo}: {Descrivi(fatto)}");
+            Rifiuto = fatto is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+            if (fatto is not ModificaDelTesto)
+            {
+                Avvisa();
+                return false;
+            }
+
+            // I nomi sono cambiati: i cataloghi si rifanno, poi la geometria dei file toccati (i punti per nome).
+            RifaiICataloghi();
+            foreach (var (toccato, _) in pronta.PerFile)
+                RifaiLaGeometria(toccato);
+            RigaSegnalata = null;
+            RicontrollaLeModifiche();
+            Avvisa();
+            return true;
+        });
+    }
+
+    /// <summary>La domanda di una rinomina ferma (VOR e NDB omonimi): null se non ce n'è.</summary>
+    public RinominaDaDecidere? DaDecidere { get; private set; }
+
+    /// <summary>I cataloghi dei master, rifatti dai record di adesso: dopo una rinomina, o un annulla che la toglie.</summary>
+    private void RifaiICataloghi()
+    {
+        if (Sessione is null)
+            return;
+        Cataloghi = CatalogoDeiPunti.PerOgniIsc(Sessione);
+        _usi.Clear();
+    }
+
     /// <summary>Il clic su una citazione: il suo record nella scheda e sulla mappa, la sua riga segnata.</summary>
     public void VaiAllaCitazione(Citazione citazione)
     {
@@ -1446,9 +1510,12 @@ public sealed class SessioneDelLab
 
     public bool TogliRecord(string fileRelativo, int record)
         => NellaStoria($"{EtichettaDi(fileRelativo, record)} tolto", () => GestoDiStruttura(fileRelativo,
-            () => Sessione!.File[fileRelativo] is { } file
-                ? Modifiche.TogliRecord(file, record)
-                : new ModificaRifiutata("Questo file non è aperto.")));
+            () => Sessione!.File[fileRelativo] is not { } file ? new ModificaRifiutata("Questo file non è aperto.")
+                // Slice 7 (L2): un punto che qualcuno cita non si toglie — le sue citazioni resterebbero senza punto.
+                : UsiDi(fileRelativo, record) is { Citazioni.Count: > 0 } usi
+                    ? new ModificaRifiutata($"È usato: lo citano {usi.Citazioni.Count} righe in {usi.File.Count} file (vedi «Chi lo usa»). "
+                                            + "Toglilo prima da lì, o rinominalo.")
+                    : Modifiche.TogliRecord(file, record)));
 
     private bool GestoDiStruttura(string fileRelativo, Func<object> fai)
     {
@@ -1498,6 +1565,8 @@ public sealed class SessioneDelLab
             return false;
         Registro.Scrivi("annulla", $"{modifica.File}#{modifica.Record} {modifica.Descrizione}");
         Rifiuto = null;
+        if (modifica is ModificaDelTesto)
+            RifaiICataloghi();
         foreach (string toccato in toccati.Except(Modifiche.FileToccati).Append(modifica.File).Distinct())
             RifaiLaGeometria(toccato);
         RicontrollaLeModifiche();
@@ -1542,6 +1611,7 @@ public sealed class SessioneDelLab
         Registro.Scrivi("annulla", $"tutto ({Modifiche.Quante} modifiche" + (soloQuesto is null ? ")" : $" di {soloQuesto})"));
         Modifiche.AnnullaTutto(f => Sessione.File.GetValueOrDefault(f), soloQuesto);
         Rifiuto = null;
+        RifaiICataloghi();
         foreach (string file in toccati)
             RifaiLaGeometria(file);
         RicontrollaLeModifiche();
@@ -1751,6 +1821,8 @@ public sealed class SessioneDelLab
             _fatti = quanti;
         }
 
+        // I nomi possono essere tornati quelli di prima (una rinomina annullata, slice 7b): i cataloghi si rifanno.
+        RifaiICataloghi();
         // La scelta resta dov'era, se quel record c'è ancora.
         Scelta = scelta is { } s && sessione.File.TryGetValue(s.File, out var file) && s.Record < file.Record ? s : null;
         Rifiuto = null;
