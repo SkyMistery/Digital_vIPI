@@ -26,8 +26,8 @@ coppie dello stesso colore), **4b** la mappa coi colori dello schema scelto (`LI
 radar, settori dinamici solo bordo, nei `.geo` vince lo schema — committente —, nei `.tfl`/`.pol` `colors.def`;
 corretto l'ordine dei riempimenti di terra, che si rovesciava), **4c** il selettore nella scheda (nomi di
 `colors.def` del master, selettore, opacità con l'avviso su Smooth Drawing), **4d** i punti coi simboli del `.sym`
-del sector (chiesta dal committente; abbinamento per nome, da confermare). Slice 4 chiusa; prossima: **slice 5**
-(sequenze di punti e gesti sul record). Test: motore **670**, Lab **496**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
+del sector (chiesta dal committente; abbinamento per nome, confermato a schermo salvo i VFR, che usano il rombo di Aurora). Slice 4 chiusa; prossima: **slice 5**
+(sequenze di punti e gesti sul record). Test: motore **670**, Lab **497**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
 ## 27 settembre 2026 — revisione del giro dei file

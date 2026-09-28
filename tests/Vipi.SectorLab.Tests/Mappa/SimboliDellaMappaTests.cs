@@ -39,11 +39,24 @@ public sealed class SimboliDellaMappaTests : IDisposable
 
     [Theory]
     [InlineData("FIX:3")]   // «FIX vuoto piccolo» non c'è in questo .sym
-    [InlineData("VFR")]
     [InlineData(null)]      // una forma che non è un punto
     [InlineData("GATE")]
     public void SenzaIlSimboloNelFileResta_unCerchio(string? tipo)
         => Assert.Null(Simboli().Di(Punto(tipo)));
+
+    [Theory]
+    [InlineData("VFR")]
+    [InlineData("VFR:1")]
+    public void IPuntiVfrHannoIlRomboDiAuroraCheNelSymNonCE(string tipo)
+    {
+        // Committente, 28 settembre, con uno schermo di Aurora: i VFR sono un rombo pieno, non il «VFR» del .sym.
+        var simboli = new SimboliDellaMappa([Simbolo(1, "VFR")]);
+
+        int indice = Assert.IsType<int>(simboli.Di(Punto(tipo)));
+        Assert.Same(SimboliDellaMappa.VfrDiAurora, simboli.Simboli[indice]);
+        Assert.True(SimboliDellaMappa.VfrDiAurora.Acceso(6, 5));   // il centro del rombo
+        Assert.False(SimboliDellaMappa.VfrDiAurora.Acceso(6, 1));
+    }
 
     [Fact]
     public void INomiSiConfrontanoSenzaMaiuscole()
@@ -72,7 +85,7 @@ public sealed class SimboliDellaMappaTests : IDisposable
         await lab.ScegliIscAsync("ITALY.isc");
 
         Assert.NotNull(lab.Simboli);
-        Assert.Equal(["APT", "FIX vuoto piccolo"], lab.Simboli!.Simboli.Select(s => s.Nome));
+        Assert.Equal(["APT", "FIX vuoto piccolo", "VFR · di Aurora"], lab.Simboli!.Simboli.Select(s => s.Nome));
         var bc404 = lab.Strati.Single(s => s.Id == "punti").Forme.First(f => f.Etichetta == "BC404");
         Assert.Equal(1, lab.Simboli.Di(bc404));
     }

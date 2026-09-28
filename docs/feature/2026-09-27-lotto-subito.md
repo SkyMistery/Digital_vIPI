@@ -534,8 +534,10 @@ terra, e gli stili di linea `…_SOLID`) è del committente: prove 71-76 in `Sec
   - Lab: `Mappa/SimboliDellaMappa.cs`. 🟡 **Quale simbolo per quale punto il sector non lo dice** (Aurora li sceglie
     per numero, T3 da provare): abbinamento **per nome, proposta dell'agente**, da confermare accanto ad Aurora — fix
     in rotta `FIX vuoto`, terminale `TERM`, in rotta e terminale `FIX pieno`, nascosto `FIX vuoto piccolo` (in Aurora
-    non si vede; qui piccolo); VOR `VOR`, VOR/DME e DME `VOR2`, VORTAC `VOR3`, TACAN `TAC2`; NDB `NDB`; punti VFR
-    `VFR`; scali `APT`. Un nome che il file non ha → il punto resta un cerchio. Il `.sym` è quello che carica il master
+    non si vede; qui piccolo); VOR `VOR`, VOR/DME e DME `VOR2`, VORTAC `VOR3`, TACAN `TAC2`; NDB `NDB`; scali `APT`. **Punti VFR**: il committente, con uno
+    schermo di Aurora, li vede come un piccolo **rombo pieno** che nel `.sym` non c'è — è il simbolo di Aurora
+    (`SYMBOLS_FIX_VFR`, uguale in tutti i 35 profili misurati): il Lab lo tiene scritto (`VfrDiAurora`), in coda ai
+    simboli del sector (🟡 i tipi 2 elicotteri e 3 area hanno in Aurora simboli loro; sul fork nessun punto li usa). Un nome che il file non ha → il punto resta un cerchio. Il `.sym` è quello che carica il master
     scelto. Ogni punto porta il suo tipo (`FormaDellaMappa.Punto`: `FIX:1`, `VOR:2`…), il JSON l'indice del simbolo
     (`y`), i pixel arrivano una volta coi colori.
   - Mappa: **coi colori di Aurora** ogni punto è il suo simbolo, pixel per pixel e nel colore dello schema (una tela
@@ -545,4 +547,5 @@ terra, e gli stili di linea `…_SOLID`) è del committente: prove 71-76 in `Sec
     in rotta 454, in rotta e terminale 316, VFR 586, scali 295, VOR 95, TACAN 17, VORTAC 9, NDB 27.
   - Prova a schermo sul banco: intorno a OST triangoli, quadrati, simboli di VOR e NDB sul fondo radar; clic su OST
     (NDB) lo sceglie; «del Lab» → cerchi, «di Aurora» → simboli; console pulita.
-  Test: motore 667 → **670**, Lab 479 → **496**.
+  Committente, dopo la prova: «tutto pare ok, tranne i punti VFR» → rombo di Aurora, rivisto sul banco (PONTE
+  GALERIA e dintorni come nello schermo di Aurora). Test: motore 667 → **670**, Lab 479 → **497**.

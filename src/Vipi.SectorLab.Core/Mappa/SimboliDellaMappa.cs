@@ -11,9 +11,15 @@ namespace Vipi.SectorLab.Core.Mappa;
 /// e come li numeri è ancora da provare (T3). L'abbinamento qui sotto è per NOME del simbolo (il commento sopra i
 /// pixel) ed è una proposta dell'agente, da confermare accanto ad Aurora; un nome che il file non ha → il punto resta
 /// un cerchio.</para>
+/// <para>I <b>punti VFR</b> sono l'eccezione (committente, 28 settembre, con uno schermo di Aurora): Aurora li disegna
+/// come un rombo pieno che nel <c>.sym</c> non c'è — è il suo simbolo, <c>SYMBOLS_FIX_VFR</c>, uguale in tutti i 35
+/// profili misurati (fork e installazione). Il Lab lo tiene qui (<see cref="VfrDiAurora"/>), in coda ai simboli del sector.</para>
 /// </summary>
 public sealed class SimboliDellaMappa
 {
+    /// <summary>Il nome di <see cref="VfrDiAurora"/> (una costante: gli abbinamenti lo usano prima che il simbolo esista).</summary>
+    public const string NomeDelVfrDiAurora = "VFR · di Aurora";
+
     /// <summary>Tipo del punto (<see cref="FormaDellaMappa.Punto"/>) → nome del simbolo nel <c>.sym</c>.</summary>
     public static IReadOnlyDictionary<string, string> Abbinamenti { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -29,23 +35,34 @@ public sealed class SimboliDellaMappa
         ["VOR:3"] = "TAC2",                 // TACAN
         ["VOR:4"] = "VOR2",                 // DME
         ["NDB"] = "NDB",
-        ["VFR"] = "VFR",
+        ["VFR"] = NomeDelVfrDiAurora,    // 🟡 tipi 2 (elicotteri) e 3 (area): in Aurora hanno simboli loro; sul fork nessuno
         ["APT"] = "APT",
     };
+
+    /// <summary>
+    /// Il rombo pieno con cui Aurora disegna i punti VFR (<c>SYMBOLS_FIX_VFR</c> dei profili, colonne come nel <c>.sym</c>).
+    /// Numero 0: non è del sector.
+    /// </summary>
+    public static readonly SimboloDelSector VfrDiAurora = new(0, NomeDelVfrDiAurora,
+    [
+        "0000000000000", "0000000000000", "0000000000000", "0000010000000", "0000111000000", "0001111100000", "0011111110000",
+        "0001111100000", "0000111000000", "0000010000000", "0000000000000", "0000000000000", "0000000000000",
+    ], 0);
 
     private readonly Dictionary<string, int> _perNome = new(StringComparer.OrdinalIgnoreCase);
 
     public SimboliDellaMappa(IReadOnlyList<SimboloDelSector> simboli)
     {
-        Simboli = simboli ?? throw new ArgumentNullException(nameof(simboli));
-        for (int i = 0; i < simboli.Count; i++)
+        ArgumentNullException.ThrowIfNull(simboli);
+        Simboli = [.. simboli, VfrDiAurora];
+        for (int i = 0; i < Simboli.Count; i++)
         {
-            if (simboli[i].Nome is { } nome)
+            if (Simboli[i].Nome is { } nome)
                 _perNome.TryAdd(nome.Trim(), i);
         }
     }
 
-    /// <summary>I simboli del file, nell'ordine.</summary>
+    /// <summary>I simboli del file, nell'ordine, e in coda quelli di Aurora che il sector non ha (<see cref="VfrDiAurora"/>).</summary>
     public IReadOnlyList<SimboloDelSector> Simboli { get; }
 
     /// <summary>Il simbolo di un punto (indice in <see cref="Simboli"/>), o null: resta un cerchio.</summary>
