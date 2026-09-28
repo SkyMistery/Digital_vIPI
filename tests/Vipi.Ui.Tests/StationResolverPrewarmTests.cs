@@ -66,6 +66,35 @@ public class StationResolverPrewarmTests
     }
 
     /// <summary>
+    /// 🔴 U-082 (revisione totale 3): scaldare all'apertura non basta. La copia del catalogo vale finché nessuno scrive
+    /// un ACC o un aeroporto; dopo, il primo render la rilegge DAL DATABASE, dentro il render, sul DbContext del
+    /// circuito — e un render arriva anche mentre un gesto della pagina è in volo sullo stesso contesto. In una pagina
+    /// interattiva il markup legge solo campi, riempiti nel ciclo di vita (come fa <c>SopHome</c> con <c>_accs</c>).
+    /// <para>I commenti Razor non contano: <c>SopHome</c> spiega proprio in un commento perché non lo fa.</para>
+    /// </summary>
+    [Fact]
+    public void Nessun_componente_interattivo_legge_il_resolver_nel_render()
+    {
+        var radice = RadiceDelRepo();
+        var colpevoli = new List<string>();
+        foreach (var file in Directory.GetFiles(Path.Combine(radice, "src", "Vipi.Ui"), "*.razor", SearchOption.AllDirectories))
+        {
+            var testo = File.ReadAllText(file);
+            var iniezione = Regex.Match(testo, @"@inject\s+IStationResolver\s+(\w+)");
+            if (!iniezione.Success) continue;
+            if (!testo.Contains("@rendermode InteractiveServer", StringComparison.Ordinal)) continue;
+
+            var markup = Regex.Replace(MarkupPrimaDelCodice(testo), @"@\*.*?\*@", "", RegexOptions.Singleline);
+            if (Regex.IsMatch(markup, $@"\b{Regex.Escape(iniezione.Groups[1].Value)}\."))
+                colpevoli.Add(Path.GetRelativePath(radice, file));
+        }
+
+        Assert.True(colpevoli.Count == 0,
+            "Componenti interattivi che leggono IStationResolver nel render (la copia si rilegge dal database dopo ogni "
+            + "scrittura di un ACC):\n  " + string.Join("\n  ", colpevoli));
+    }
+
+    /// <summary>
     /// Tutto ciò che precede il primo <c>@code</c>: è la parte che viene valutata a ogni render. Quel che
     /// sta dentro <c>@code</c> gira nel ciclo di vita o negli handler, dove la lettura è legittima.
     /// </summary>

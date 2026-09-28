@@ -878,5 +878,16 @@
   - **Test**: `GestiDegliEditorDelloScaloTests` (5, presidio sul testo: nessun test monta i due editor, il guardiano
     ha i suoi test in `DocumentEditorShellTests`), `SezioneAlternatiTests` (+3: timeout e JSON → nome sconosciuto,
     annullamento vero che passa). Rossi sul codice di prima. Ui 1799 → **1804**, Infrastructure 1757 → **1760**.
+  - **Gruppo 5**: **U-070 + U-169** (pannello dell'unione: scope proprio senza fila; entrare e uscire di modifica in
+    fretta faceva partire un secondo ricarico sopra il primo; i gesti prendevano tre soli tipi di eccezione, e il
+    tornello dell'editor che non dà il turno dopo 30 s — pensato proprio per questo pannello — usciva dal gestore)
+    → `ScopeProprioCheAspetta`: ricarico del ciclo di vita in fila, fatto solo se la chiave è ancora quella, con una
+    rete che azzera la chiave (il ridisegno dopo riprova); gesto e ricarico in fila, l'avviso all'host fuori; catch
+    generale. Tolto da `SenzaAttesaNoto` della terza porta. **U-082** (Trasferimenti: la barra degli ACC leggeva il
+    resolver nel markup; dopo che chiunque scrive un ACC la copia si rilegge dal database, dentro il render, sul
+    DbContext del circuito) → campo `_accs` riempito all'apertura, e la scelta dell'ACC lo cerca lì.
+  - **Test**: `PannelloUnioneUnGiroAllaVoltaTests` (2: tre ricarichi sovrapposti sul codice di prima, l'eccezione
+    fuori dal gestore), `StationResolverPrewarmTests` (+1, più severo del precedente: nel markup di una pagina
+    interattiva il resolver non si legge proprio, commenti esclusi). Rossi sul codice di prima. Ui 1804 → **1807**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

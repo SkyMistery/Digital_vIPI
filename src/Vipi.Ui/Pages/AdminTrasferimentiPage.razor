@@ -128,13 +128,15 @@
         var lacune = _acc is null ? Array.Empty<AgreementGap>() : Gaps();
         <div class="xfe-filters xt-bar">
             <span class="xt-acclbl">ACC</span>
-            @if (Stations.Accs.Count == 0)
+            @* 🔴 U-082: `_accs`, non `Stations.Accs`. Dopo che chiunque scrive un ACC la copia del catalogo si rilegge
+               dal database, e qui sarebbe dentro il render, sul DbContext del circuito, magari con un gesto in volo. *@
+            @if (_accs.Count == 0)
             {
                 <span class="help">@((MarkupString)L["Xfer_NoAccImport"].Value)</span>
             }
             else
             {
-                @foreach (var a in Stations.Accs)
+                @foreach (var a in _accs)
                 {
                     var active = string.Equals(_accCode, a.Code, StringComparison.OrdinalIgnoreCase);
                     @* Il titolo dell'ACC aperta porta i due totali: erano una casella in barra, e una casella
@@ -505,6 +507,9 @@
 @code {
     private string _accCode = "";
     private AccInfo? _acc;
+
+    /// <summary>Gli ACC della barra, letti una volta all'apertura (U-082). Il markup guarda solo questo campo.</summary>
+    private IReadOnlyList<AccInfo> _accs = Array.Empty<AccInfo>();
     private IReadOnlyList<AgreementRow> _agreements = Array.Empty<AgreementRow>();
     private IReadOnlyList<GlobalSectorRow> _all = Array.Empty<GlobalSectorRow>();
 
@@ -3144,6 +3149,7 @@
         // Prewarm nel ciclo di vita e non dal markup: il lazy-load durante il render girava sul DbContext del
         // circuito e produceva «A second operation was started», cioe' un circuito morto che a occhio sembra vivo.
         Stations.Prewarm();
+        _accs = Stations.Accs;
         // In fila anche l'apertura: al primo await la pagina si disegna già, e da lì un clic può partire.
         await InFilaAsync(async () =>
         {
@@ -3221,7 +3227,8 @@
 
     private async Task OnAccChanged()
     {
-        _acc = string.IsNullOrWhiteSpace(_accCode) ? null : Stations.Resolve(_accCode);
+        _acc = string.IsNullOrWhiteSpace(_accCode) ? null
+            : _accs.FirstOrDefault(a => a.Code.Equals(_accCode, StringComparison.OrdinalIgnoreCase));
         if (_acc is null)
         {
             _agreements = Array.Empty<AgreementRow>();

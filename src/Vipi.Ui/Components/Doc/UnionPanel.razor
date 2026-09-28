@@ -10,7 +10,9 @@
 
    ⚠️ I comandi si accendono solo IN MODIFICA, come tutti gli altri dell'editor: l'unione è una scelta
    editoriale sul documento, non una preferenza di chi guarda. *@
-@inherits OwningComponentBase
+@* 🔴 U-070/U-169 (revisione totale 3): la terza porta. Lo scope proprio c'era, la fila no: il ricarico del ciclo di
+   vita e quello dopo un gesto giravano fuori da ogni fila sullo stesso DbContext. *@
+@inherits Vipi.Ui.ScopeProprioCheAspetta
 @using Microsoft.Extensions.DependencyInjection
 @using Vipi.Domain
 @inject IStringLocalizer<SharedResource> L
@@ -322,7 +324,24 @@
         var chiave = $"{Target}|{Key}|{IsEditing}";
         if (_caricato == chiave) return;
         _caricato = chiave;
-        await RicaricaAsync();
+
+        // 🔴 U-070 (revisione totale 3): la chiave guardata qui sopra non basta. Entrare e uscire di modifica in
+        // fretta cambia la chiave DUE volte con il primo ricarico ancora in volo, e il secondo partiva sopra.
+        // In fila il secondo aspetta, e quando tocca a lui ricarica solo se la chiave è ancora la sua: l'ultimo
+        // stato è quello che conta. E un guasto qui è ciclo di vita, che nessun gestore prende: senza la rete il
+        // circuito cadeva; con la chiave azzerata il ridisegno dopo riprova.
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                if (_caricato == chiave) await RicaricaAsync();
+            });
+        }
+        catch (Exception ex)
+        {
+            _errore = L["Common_UnexpectedError"] + ex.Message;
+            _caricato = "";
+        }
     }
 
     private async Task RicaricaAsync()
@@ -465,20 +484,25 @@
         try
         {
             _esito = null;
-            await gesto();
-            await RicaricaAsync();
-            if (_apriComuniDopoIlCarico)
+            // 🔴 U-070: gesto e ricarico in fila, la stessa del ciclo di vita. L'avviso all'host resta fuori: l'host
+            // ricarica la sua pagina, e non deve aspettare la fila di questo riquadro.
+            await InFilaAsync(async () =>
             {
-                _apriComuniDopoIlCarico = false;
-                await CaricaComuniAsync();
-                // ⚠️ Si apre solo se c'e' DAVVERO qualcosa da chiedere. Fino al 9 settembre 2026 si
-                // apriva sempre — «niente da scegliere e' una risposta, il silenzio e' un dubbio» — e
-                // andava bene finche' l'unione era vIPI + vSOP dello stesso scalo. Unendo un APP le chiavi
-                // in comune non sono ripetizioni: la scheda compariva a ogni unione per non proporre
-                // niente, e una scheda che si apre per dire «niente» la seconda volta e' rumore.
-                _scheda = _comuni.Count > 0;
-            }
-            else if (_scheda) await CaricaComuniAsync();
+                await gesto();
+                await RicaricaAsync();
+                if (_apriComuniDopoIlCarico)
+                {
+                    _apriComuniDopoIlCarico = false;
+                    await CaricaComuniAsync();
+                    // ⚠️ Si apre solo se c'e' DAVVERO qualcosa da chiedere. Fino al 9 settembre 2026 si
+                    // apriva sempre — «niente da scegliere e' una risposta, il silenzio e' un dubbio» — e
+                    // andava bene finche' l'unione era vIPI + vSOP dello stesso scalo. Unendo un APP le chiavi
+                    // in comune non sono ripetizioni: la scheda compariva a ogni unione per non proporre
+                    // niente, e una scheda che si apre per dire «niente» la seconda volta e' rumore.
+                    _scheda = _comuni.Count > 0;
+                }
+                else if (_scheda) await CaricaComuniAsync();
+            });
             if (avvisaLHost) await Changed.InvokeAsync();
         }
         catch (Vipi.Application.Aor.ValidationException ex) { _errore = ex.Message; }
@@ -488,6 +512,9 @@
         // «Attempting to reconnect».
         catch (EditConflictException ex) { _errore = ex.Message; }
         catch (EditNotAllowedException) { _errore = Sito["PageIntro_NotAllowed"]; }
+        // 🔴 U-169 (revisione totale 3): tutto il resto — il database, il tornello dell'editor che non dà il turno
+        // dopo 30 s (è pensato proprio per questo pannello), l'host che ricarica e cade — resta un messaggio.
+        catch (Exception ex) { _errore = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 }
