@@ -457,6 +457,17 @@ public class PaginaRadioassistenzeTests : TestContext
         Assert.Contains("database giù", cut.Find("tr.mil-note").TextContent);
     }
 
+    /// <summary>🔴 U-037: un cambio della sorgente che aspetta il suo ciclo lo dice nella provenienza — una release
+    /// di adesso congela ancora i valori di prima, e a schermo si vedono già i nuovi.</summary>
+    [Fact]
+    public void Un_cambio_in_attesa_del_ciclo_si_dice()
+    {
+        var cut = Render(new AnagraficaFinta(DallaSorgente(1, "MNL") with { SourceAiracCycle = "2610" }),
+            new ImportatoreFinto(new NavaidImportReport(null, NavaidImportSkip.SorgenteMuta, 0)));
+
+        Assert.Contains("Nav_FromSourceNext 2610", cut.Find("td.c-origin").TextContent);
+    }
+
     /// <summary>Chi non è Editor non vede la tabella: il rifiuto, non una pagina che non risponde.</summary>
     [Fact]
     public void Sotto_Editor_la_pagina_dice_di_no()

@@ -235,6 +235,7 @@ public class VipiDbContext : DbContext
     /// <summary>L'anagrafica delle radioassistenze: una riga per codice+natura, condivisa da tutti i
     /// documenti che la citano (carta vSOP militari §12b).</summary>
     public DbSet<Navaid> Navaids => Set<Navaid>();
+    public DbSet<MvaChartState> MvaChartStates => Set<MvaChartState>();
 
     /// <summary>La biblioteca allegati: una riga per DOCUMENTO ESTERNO citabile, non per citazione
     /// (carta del 25 agosto 2026).</summary>
@@ -910,6 +911,18 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Type).HasMaxLength(16);
             e.Property(x => x.Frequency).HasMaxLength(16);
             e.Property(x => x.Channel).HasMaxLength(8);
+            // U-037: i valori in vigore mentre quelli nuovi aspettano il loro ciclo.
+            e.Property(x => x.FrequencyInForce).HasMaxLength(16);
+            e.Property(x => x.SourceAiracCycle).HasMaxLength(8);
+        });
+
+        // U-037 (revisione totale 3): le carte MRVA del sectorfile con quella in vigore, per il ciclo AIRAC. Una riga
+        // per file; il percorso è l'identità, come la chiave della cache che la legge.
+        b.Entity<MvaChartState>(e =>
+        {
+            e.HasIndex(x => x.Path).IsUnique();
+            e.Property(x => x.Path).HasMaxLength(64);
+            e.Property(x => x.AiracCycle).HasMaxLength(8);
         });
 
         // --- Biblioteca allegati (carta del 25 agosto 2026) ---------------------------------------------

@@ -137,6 +137,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();
         services.AddScoped<Vipi.Application.Abstractions.INavaidCatalog, EfNavaidCatalog>();
+        // U-037: le carte MRVA ricordate col testo in vigore, per il cancello del ciclo AIRAC.
+        services.AddScoped<EfMvaChartStates>();
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentLibrary, EfAttachmentLibrary>();
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentTextSource, EfAttachmentTextSource>();
         services.AddScoped<Vipi.Application.Abstractions.IPageIntroStore, EfPageIntroStore>();

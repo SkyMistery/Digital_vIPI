@@ -1136,6 +1136,7 @@
   <data name="Nav_AddHint" xml:space="preserve"><value>A code that does not exist yet is created by typing it: the nature is only needed the first time.</value></data>
   <data name="Nav_Empty" xml:space="preserve"><value>No navaids in this document.</value></data>
   <data name="Nav_SharedNote" xml:space="preserve"><value>Navaids are a division-wide catalogue: what you write here changes the same navaid in every other document that cites it. Fields coming from the sectorfile cannot be edited.</value></data>
+  <data name="Nav_FromSourceNext" xml:space="preserve"><value>from the sectorfile · new values from cycle {0}</value></data>
   <data name="Nav_FromSource" xml:space="preserve"><value>from the sectorfile</value></data>
   <data name="Nav_EditedAt" xml:space="preserve"><value>written on {0}</value></data>
   <data name="Nav_RemoveFromDoc" xml:space="preserve"><value>Removes the row from this document (the navaid stays in the catalogue)</value></data>

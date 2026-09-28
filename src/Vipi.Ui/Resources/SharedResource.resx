@@ -1141,6 +1141,7 @@
   <data name="Nav_AddHint" xml:space="preserve"><value>Un codice che non esiste ancora si crea scrivendolo: la natura serve solo la prima volta.</value></data>
   <data name="Nav_Empty" xml:space="preserve"><value>Nessuna radioassistenza in questo documento.</value></data>
   <data name="Nav_SharedNote" xml:space="preserve"><value>Le radioassistenze sono un'anagrafica di divisione: quel che si scrive qui cambia la stessa radioassistenza in ogni altro documento che la cita. I campi che arrivano dal sectorfile non si modificano.</value></data>
+  <data name="Nav_FromSourceNext" xml:space="preserve"><value>dal sectorfile · valori nuovi dal ciclo {0}</value></data>
   <data name="Nav_FromSource" xml:space="preserve"><value>dal sectorfile</value></data>
   <data name="Nav_EditedAt" xml:space="preserve"><value>scritta il {0}</value></data>
   <data name="Nav_RemoveFromDoc" xml:space="preserve"><value>Toglie la riga da questo documento (la radioassistenza resta in anagrafica)</value></data>

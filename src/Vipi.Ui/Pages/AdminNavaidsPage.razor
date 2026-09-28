@@ -410,6 +410,9 @@
 
     private string Provenienza(NavaidRow r)
     {
+        // U-037: un cambio della sorgente che aspetta il suo ciclo lo dice — una release di adesso congela ancora i
+        // valori di prima, e a schermo si vedono già i nuovi.
+        if (r.DallaSorgente && r.SourceAiracCycle is { } ciclo) return L["Nav_FromSourceNext", ciclo].Value;
         if (r.DallaSorgente) return L["Nav_FromSource"].Value;
         if (r.UpdatedUtc is { } q) return string.Format(L["Nav_EditedAt"].Value, VipiTime.Z(q));
         return "—";

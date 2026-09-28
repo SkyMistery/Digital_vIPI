@@ -667,5 +667,40 @@
     LIMF TOP risolti; restano «da verificare» i prefissi ambigui veri (TOV, RUV, ABS, LIM, SIR). Radioassistenze: su
     148 righe della sorgente nessuna casella del canale; una TRP|VHF|25X simulata col timbro d'import viene staccata
     dal tasto «Importa dal sectorfile» («1 riga… tornata modificabile»), e da lì ha le caselle e il cestino.
+- ✅ **S26** **U-037** della revisione 3 (fetta A di L11, lasciata fuori da S25; via del committente il 28-set): il
+  sectorfile ha **una regola sola** — si segna la provenienza, si aggiorna quel che abbiamo scritto noi, e un cambio
+  entra **dal ciclo AIRAC successivo** tenendo in vigore la versione di prima per le release del ciclo in corso.
+  Era già così per le aree di settore (`SectorShapeFallbackService`, `ShapeAiracGate`); ora vale anche per torri,
+  radioassistenze e carte MRVA. **Migrazione SÌ**: `SectorfileDifferito` (SQLite + MySQL; Postgres dal
+  riconciliatore), solo aggiunte — quattro colonne su `Navaids`, la tabella `MvaChartStates`. **Codice comune sì**:
+  `Vipi.Domain` (`Navaid`, `MvaChartState`), `Vipi.Application` (`IAirportSectorRepository`, `TwrShapeRow`,
+  `GithubTowerShapeService`, `NavaidRow.SourceAiracCycle`).
+  - **TWR** (niente migrazione: le colonne c'erano): l'area presa da `twrs.tfl` restava marcata come
+    dell'anagrafica IVAO e non era più un bersaglio — 66 torri su 70, mai più aggiornate. Ora porta
+    `ShapeSource.Sectorfile`; un'area ridisegnata entra dal ciclo successivo (in vigore quella di prima); le torri
+    scritte prima si riconoscono per geometria e si segnano senza toccarle; una shape IVAO diversa dal file resta
+    di IVAO. La promozione dei differiti è quella dei settori (`PromoteDueShapesAsync` copre già le TWR).
+  - **Radioassistenze**: un cambio di frequenza o posizione su una riga che la sorgente mandava già entra dal ciclo
+    successivo (`SourceAiracCycle`, valori `…InForce`); la cattura di una release (`GetManyAsync` dentro
+    `ShapeReleaseContext`) congela i valori in vigore al suo ciclo; fuori dalla cattura valgono i correnti. Il giro
+    chiude i differimenti maturati. La pagina Radioassistenze dice «valori nuovi dal ciclo X».
+  - **MRVA**: `EfMvaChartStates` ricorda il **testo** di ogni file `.mva` (non la carta letta: il parser può
+    cambiare, il file no). Il provider confronta il testo una volta per caricamento; dentro la cattura di una
+    release dà la carta in vigore a quel ciclo. Un file che sparisce (404) non tocca il ricordo.
+  - **Non fatto**: l'avviso a chi pubblica («questa release congela la versione di prima») c'è per le aree
+    (`ShapeGateNotice`), non per radioassistenze e MRVA; e per loro non c'è la forzatura «pubblica adesso».
+  - **Test**: `GithubTowerShapeServiceTests` (+3), `RadioassistenzeCicloAiracTests` (5), `MvaCicloAiracTests` (4),
+    pagina Radioassistenze (+1). Sul codice di prima non compilano (costruttori e colonne nuove): il rosso è il
+    comportamento che descrivono — provenienza mai scritta, valori e carte che entravano subito. Suite intera
+    verde, net8 e net10: Infrastructure 1720 → **1732**, Ui 1777 → **1778**, il resto invariato.
+  - **Prova dal vivo** (copia pulita del DB di sviluppo del 15-set, sectorfile vero, IVAO irraggiungibile): la
+    migrazione si applica all'avvio; il giro dei settori d'aeroporto riconosce **66 torri su 68** come del
+    sectorfile (le altre 2 hanno un'area diversa dal file e restano di IVAO; 16 cerchi di ripiego invariati), nessun
+    differimento perché `twrs.tfl` non è cambiato. La vIPI LIBB si apre con le due carte, e le 7 carte lette
+    finiscono ricordate senza differimento. Simulato sulla copia un valore vecchio (MNL 115.20, un testo diverso
+    di `libd.mva`) e riavviato: il tasto «Importa dal sectorfile» apre il differimento di MNL al **2610** con
+    115.20 in vigore, e la pagina scrive «valori nuovi dal ciclo 2610»; `libd.mva` passa al 2610 col testo di
+    prima in vigore. Zero errori nel log. La cattura di una release al ciclo precedente la provano i test, non
+    la prova a schermo.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

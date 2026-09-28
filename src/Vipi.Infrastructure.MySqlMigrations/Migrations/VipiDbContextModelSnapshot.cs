@@ -2584,6 +2584,45 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("MediaAssets");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.MvaChartState", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiracCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TextInForce")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Path")
+                        .IsUnique();
+
+                    b.ToTable("MvaChartStates");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.NavReference", b =>
                 {
                     b.Property<int>("Id")
@@ -2653,6 +2692,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(16)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<string>("FrequencyInForce")
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<string>("FrequencyOrigin")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -2671,13 +2715,24 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<double?>("Latitude")
                         .HasColumnType("double");
 
+                    b.Property<double?>("LatitudeInForce")
+                        .HasColumnType("double");
+
                     b.Property<double?>("Longitude")
+                        .HasColumnType("double");
+
+                    b.Property<double?>("LongitudeInForce")
                         .HasColumnType("double");
 
                     b.Property<string>("NaturalKey")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceAiracCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<string>("Type")

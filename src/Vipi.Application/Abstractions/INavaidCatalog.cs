@@ -11,7 +11,7 @@ public sealed record NavaidRow(
     int Id, string Code, string Kind, string? Type,
     string? Frequency, string? Channel, double? Latitude, double? Longitude,
     NavaidFieldOrigin FrequencyOrigin, NavaidFieldOrigin ChannelOrigin, NavaidFieldOrigin CoordinatesOrigin,
-    DateTime? UpdatedUtc, int? UpdatedByUserId)
+    DateTime? UpdatedUtc, int? UpdatedByUserId, string? SourceAiracCycle = null)
 {
     /// <summary>L'identità di questa riga, da citare in un documento.</summary>
     [JsonIgnore]

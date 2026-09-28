@@ -112,6 +112,27 @@ public class Navaid
     /// <summary>Quando la sorgente l'ha confermata l'ultima volta. Null = non l'ha mai mandata (riga nostra).</summary>
     public DateTime? ImportedUtc { get; set; }
 
+    /// <summary>
+    /// Il ciclo AIRAC (YYNN) dal quale i valori correnti mandati dalla sorgente entrano in vigore. Null = sono già
+    /// in vigore.
+    ///
+    /// <para>🔴 U-037 (revisione totale 3): il sectorfile lo scriviamo <b>in anticipo</b> sul ciclo, e una frequenza
+    /// o una posizione cambiata entrava subito — anche nella release del ciclo in corso, pubblicata dopo il giro.
+    /// Ora vale la regola delle aree di settore: il cambio entra dal ciclo successivo, e fino ad allora una release
+    /// congela i valori <c>…InForce</c>. Il giro chiude il differimento quando il ciclo arriva.</para>
+    /// </summary>
+    public string? SourceAiracCycle { get; set; }
+
+    /// <summary>La frequenza in vigore mentre la corrente aspetta <see cref="SourceAiracCycle"/>.</summary>
+    public string? FrequencyInForce { get; set; }
+
+    /// <summary>La posizione in vigore mentre la corrente aspetta <see cref="SourceAiracCycle"/>: una coppia,
+    /// come <see cref="CoordinatesOrigin"/>.</summary>
+    public double? LatitudeInForce { get; set; }
+
+    /// <inheritdoc cref="LatitudeInForce"/>
+    public double? LongitudeInForce { get; set; }
+
     public DateTime? UpdatedUtc { get; set; }
     public int? UpdatedByUserId { get; set; }
 }

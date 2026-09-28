@@ -34,7 +34,7 @@ public sealed class SectorfileCache
     // Le carte MRVA sono UNA PER ENTE (ENRMVA/{acc}.mva, {icao}.mva): a differenza delle altre due fette non c'è
     // un file solo da tenere, ma fino a una trentina. ConcurrentDictionary e non Dictionary+lock perché
     // Invalidate() è sincrona e non può prendere il gate asincrono che protegge i caricamenti.
-    private readonly ConcurrentDictionary<string, MvaChart> _mvaCharts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, MvaFile> _mvaCharts = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Il catalogo dei punti, caricato una volta sola per processo.</summary>
     public Task<NavaidCatalog> GetNavaidsAsync(
@@ -111,7 +111,13 @@ public sealed class SectorfileCache
     /// ha la sua fila, e per <see cref="DurataDelGuasto"/> chi la chiede riceve subito lo stesso guasto.</para>
     /// </summary>
     public async Task<MvaChart> GetMvaChartAsync(
-        string key, Func<CancellationToken, Task<MvaChart>> load, CancellationToken ct = default)
+        string key, Func<CancellationToken, Task<MvaChart>> load, CancellationToken ct = default) =>
+        (await GetMvaFileAsync(key, async t => new MvaFile(null, await load(t)), ct)).Carta;
+
+    /// <summary>Come <see cref="GetMvaChartAsync"/>, col <b>testo</b> del file accanto alla carta: serve al
+    /// cancello del ciclo AIRAC (U-037), che ricorda il testo e non la carta letta.</summary>
+    public async Task<MvaFile> GetMvaFileAsync(
+        string key, Func<CancellationToken, Task<MvaFile>> load, CancellationToken ct = default)
     {
         if (_mvaCharts.TryGetValue(key, out var hit)) return hit;
         var gate = _mvaGates.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
