@@ -16,10 +16,11 @@ public sealed class StessaFormaAschermoTests : IDisposable
     private readonly TestContext _contesto = new();
     private readonly SessioneDelLab _lab;
 
+    private static string Anello(int spostato) => string.Concat(Enumerable.Range(0, 10).Select(i =>
+        $"N041.{i:00}.00.000;E012.{(i % 2 == 0 ? 0 : 5) + (i == spostato ? 1 : 0):00}.00.000;\r\n"));
+
     public StessaFormaAschermoTests()
     {
-        string Anello(int spostato) => string.Concat(Enumerable.Range(0, 10).Select(i =>
-            $"N041.{i:00}.00.000;E012.{(i % 2 == 0 ? 0 : 5) + (i == spostato ? 1 : 0):00}.00.000;\r\n"));
         _albero.Scrivi(Settore, "LZZZ_APP;APP;1;APP;1;\r\n" + Anello(-1));
         _albero.Scrivi(Confine, string.Concat(Anello(-1).Split("\r\n", StringSplitOptions.RemoveEmptyEntries).Reverse()
             .Select(v => "T;ZZ CONF;" + v + "\r\n")));
@@ -73,5 +74,78 @@ public sealed class StessaFormaAschermoTests : IDisposable
         var pagina = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Settore).Add(c => c.Record, 0));
 
         Assert.Empty(pagina.FindAll("[data-stessa-forma]"));
+    }
+
+    // --- slice 8b: la famiglia dichiarata (form=) --------------------------------------------------------------------
+
+    [Fact]
+    public async Task DichiarataDallaSchedaLaFamigliaVaSuQuestoESulleCopieUgualiEAnnullataSparisce()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Settore).Add(c => c.Record, 0));
+
+        Assert.Equal("LZZZ_APP", pagina.Find("[data-nome-famiglia]").GetAttribute("value"));
+        pagina.Find("[data-nome-famiglia]").Change("ZZ");
+        pagina.Find("[data-scrivi-famiglia]").Click();
+
+        var famiglia = _lab.FamigliaDi(Settore, 0)!;
+        Assert.Equal("ZZ", famiglia.Nome);
+        Assert.Equal([(Settore, true), (Confine, true)], famiglia.Membri.Select(m => (m.File, m.Uguale)));
+        // La copia diversa del MAPS resta fuori: la famiglia è di chi ha la stessa forma.
+        Assert.Null(_lab.FamigliaDi(Mappe, 0));
+        Assert.Equal("ZZ", pagina.Find("[data-famiglia]").GetAttribute("data-famiglia"));
+        Assert.Equal(2, _lab.Modifiche.Voci.Count);
+
+        _lab.Annulla();
+
+        Assert.Null(_lab.FamigliaDi(Settore, 0));
+        Assert.False(_lab.Modifiche.CEQualcosa);
+    }
+
+    [Fact]
+    public async Task AnnullaTuttoToglieLaFamigliaAncheDallaSezioneGiaDisegnata()
+    {
+        // Trovato sul banco: la sezione ha solo parametri primitivi, e il ridisegno del padre non la raggiungeva.
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Settore).Add(c => c.Record, 0));
+        Assert.Contains("sulla copia uguale", pagina.Find("[data-scrivi-famiglia]").TextContent, StringComparison.Ordinal);
+
+        Assert.True(_lab.ScriviLaFamiglia(Settore, 0, "ZZ", [(Confine, 0)]));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-famiglia='ZZ']")));
+
+        _lab.AnnullaTutte();
+
+        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-famiglia]")));
+    }
+
+    [Fact]
+    public async Task UnaCopiaUgualeFuoriDallaFamigliaSiAggiungeColTasto()
+    {
+        _albero.Scrivi(Settore, "//@\"LZZZ_APP\" form=ZZ\r\n//@START\r\nLZZZ_APP;APP;1;APP;1;\r\n" + Anello(-1) + "//@END \"LZZZ_APP\"\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Settore).Add(c => c.Record, 0));
+
+        pagina.Find("[data-aggiungi-alla-famiglia='1']").Click();
+
+        Assert.Equal("ZZ", _lab.FamigliaDi(Confine, 0)?.Nome);
+        Assert.Empty(pagina.FindAll("[data-aggiungi-alla-famiglia]"));
+    }
+
+    [Fact]
+    public async Task UnaCopiaDiFormaDiversaNellaFamigliaEUnAvvisoDelPannello()
+    {
+        _albero.Scrivi(Settore, "//@\"LZZZ_APP\" form=ZZ\r\n//@START\r\nLZZZ_APP;APP;1;APP;1;\r\n" + Anello(-1) + "//@END \"LZZZ_APP\"\r\n");
+        _albero.Scrivi(Mappe, "//@\"ZZZZ CTR\" form=ZZ\r\n//@START\r\nZZZZ;MAPS;ZZZZ CTR;;;;;1;\r\n" + Anello(4) + "//@END \"ZZZZ CTR\"\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Settore).Add(c => c.Record, 0));
+
+        Assert.NotNull(pagina.Find("[data-famiglia-diversa]"));
+        Assert.Equal("no", pagina.Find($"[data-membro-della-famiglia='{Mappe}#0']").GetAttribute("data-uguale"));
+        var avviso = Assert.Single(_lab.ProblemiDellAlbero, p => p.Problema.Regola == Vipi.Sectorfile.Validazione.Regola.FormeDiverse);
+        // Con due membri e forme diverse non c'è una maggioranza: la forma è quella del primo, e l'avviso va all'altro.
+        Assert.Equal((Mappe, 0), (avviso.File, avviso.Record));
+        Assert.Empty(pagina.FindAll("[data-questo-diverso]"));
+        var dalMaps = _contesto.RenderComponent<StessaFormaNellaScheda>(p => p.Add(c => c.File, Mappe).Add(c => c.Record, 0));
+        Assert.NotNull(dalMaps.Find("[data-questo-diverso]"));
     }
 }

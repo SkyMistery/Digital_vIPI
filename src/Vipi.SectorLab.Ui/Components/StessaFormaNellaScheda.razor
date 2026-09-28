@@ -1,16 +1,76 @@
+@implements IDisposable
 @inject SessioneDelLab Lab
 
 @*
     La stessa forma (lotto «Subito» slice 8, «file per file» D5, I2, J3, Q5, H10): gli altri record che disegnano questa
     forma — il confine del settore, l'ATZ del MAPS, il bordo nel .geo del riempimento nel .pol —, confrontati come
-    anello (inizio e verso qualsiasi). Prima le copie uguali, poi le simili (9 vertici su 10 in comune): quelle sono
-    le «copie di forma diverse». Il clic su una porta al suo record.
+    anello (inizio e verso qualsiasi). Prima le copie uguali, poi le simili (9 vertici su 10 in comune). Il clic su una
+    porta al suo record.
+    Slice 8b: la famiglia DICHIARATA (form=NOME) coi suoi record, e i gesti per dichiararla sulle copie uguali o per
+    aggiungerci una copia. Solo dentro una famiglia dichiarata una forma diversa è un avviso («copie di forma diverse»).
 *@
-@if (Lab.StessaFormaDi(File, Record) is { Count: > 0 } parti)
+@if (Lab.StessaFormaDi(File, Record) is var parti && (parti.Count > 0 || Lab.FamigliaDi(File, Record) is not null))
 {
+    var famiglia = Lab.FamigliaDi(File, Record);
+    var dellaFamiglia = famiglia?.Membri.Select(m => (m.File, m.Record)).ToHashSet() ?? [];
+    var uguali = parti.SelectMany(p => p.Copie).Where(c => c.Uguale).Select(c => (c.Dove.File, c.Dove.Record)).Distinct().ToList();
+    var fuori = uguali.Where(u => !dellaFamiglia.Contains(u)).ToList();
     <Sezione Chiave="scheda-stessa-forma" data-stessa-forma="@parti.Sum(p => p.Copie.Count)">
-    <Titolo>La stessa forma <span class="lab-nota">@Conto(parti)</span></Titolo>
+    <Titolo>La stessa forma <span class="lab-nota">@Conto(parti, famiglia)</span></Titolo>
     <ChildContent>
+    @if (famiglia is not null)
+    {
+        <div class="lab-stessa-forma" data-famiglia="@famiglia.Nome">
+            <p>
+                Famiglia <code class="lab-chiave">form=@famiglia.Nome</code>
+                <span class="lab-nota">@QuantiRecord(famiglia.Membri.Count)</span>
+                @if (famiglia.ConCopieDiverse)
+                {
+                    <span class="lab-avviso-breve" data-famiglia-diversa>&nbsp;· @Diverse(famiglia.Membri.Count(m => !m.Uguale))</span>
+                }
+            </p>
+            @if (famiglia.ConCopieDiverse && famiglia.Membri.FirstOrDefault(m => Questo(m.File, m.Record)) is { Uguale: false })
+            {
+                <p class="lab-avviso-breve" data-questo-diverso>Questo record non ha la forma della famiglia: è quella dei record segnati «uguale».</p>
+            }
+            <ul>
+                @foreach (var membro in famiglia.Membri.Where(m => !Questo(m.File, m.Record)))
+                {
+                    var questo = membro;
+                    <li>
+                        <button type="button" class="lab-citazione @(questo.Uguale ? null : "lab-forma-diversa")"
+                                data-membro-della-famiglia="@($"{questo.File}#{questo.Record}")" data-uguale="@(questo.Uguale ? "si" : "no")"
+                                @onclick="() => Lab.Scegli(questo.File, questo.Record)">
+                            @NomeDelFile(questo.File) <span class="lab-nota">@questo.Etichetta</span>
+                            <span class="@(questo.Uguale ? "lab-nota" : "lab-avviso-breve")">@(questo.Uguale ? "uguale" : "forma diversa")</span>
+                        </button>
+                    </li>
+                }
+            </ul>
+            @if (fuori.Count > 0)
+            {
+                <button class="lab-tasto lab-tasto-tenue" data-aggiungi-alla-famiglia="@fuori.Count"
+                        title="Scrive form=@famiglia.Nome anche sulle copie uguali che non lo hanno"
+                        @onclick="() => Lab.ScriviLaFamiglia(File, Record, famiglia.Nome, fuori)">+ Anche @LeCopie(fuori.Count)</button>
+            }
+        </div>
+    }
+    else if (uguali.Count > 0)
+    {
+        @* D5: la famiglia la trova il Lab, la dichiara l'AOD — un nome, scritto qui e su tutte le copie uguali. *@
+        <div class="lab-rinomina" data-dichiara-famiglia>
+            <label>
+                Famiglia
+                <input class="lab-campo" placeholder="nome" value="@(_nome ?? Proposta(parti))" data-nome-famiglia
+                       @onchange="e => _nome = e.Value?.ToString()" />
+            </label>
+            <button class="lab-tasto" data-scrivi-famiglia="@uguali.Count"
+                    title="Scrive form=NOME su questo record e sulle copie uguali: da lì una forma diversa è un avviso"
+                    @onclick="() => Lab.ScriviLaFamiglia(File, Record, _nome ?? Proposta(parti), uguali)">
+                Dichiara qui e @SulleCopie(uguali.Count)
+            </button>
+        </div>
+    }
     @foreach (var (parte, copie) in parti)
     {
         <div class="lab-stessa-forma" data-parte-della-forma="@parte.Parte">
@@ -44,16 +104,45 @@
 
     [Parameter, EditorRequired] public int Record { get; set; }
 
-    private static string Conto(IReadOnlyList<(ParteDiForma Parte, IReadOnlyList<CopiaDellaForma> Copie)> parti)
+    // Il nome scritto dall'AOD per la famiglia nuova; null = la proposta.
+    private string? _nome;
+
+    private string? _di;
+
+    // I parametri sono un testo e un numero: col solo padre che si ridisegna questa sezione resterebbe ferma (una famiglia
+    // annullata da «Annulla tutto» restava a schermo). Si iscrive da sé ai cambi del Lab, come la scheda.
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    protected override void OnParametersSet()
+    {
+        // Un altro record: il nome scritto per quello di prima non vale più.
+        string questo = $"{File}#{Record}";
+        if (_di != questo)
+            (_di, _nome) = (questo, null);
+    }
+
+    private bool Questo(string file, int record) => record == Record && string.Equals(file, File, StringComparison.OrdinalIgnoreCase);
+
+    // La proposta è il nome del record come lo mostra la mappa (LIRE_APP, RR CONF1): l'AOD lo cambia se vuole.
+    private static string Proposta(IReadOnlyList<(ParteDiForma Parte, IReadOnlyList<CopiaDellaForma> Copie)> parti)
+        => parti.Select(p => p.Parte.Etichetta.Trim()).FirstOrDefault(e => e.Length > 0) ?? "";
+
+    private static string Conto(IReadOnlyList<(ParteDiForma Parte, IReadOnlyList<CopiaDellaForma> Copie)> parti, FamigliaDichiarata? famiglia)
     {
         int uguali = parti.Sum(p => p.Copie.Count(c => c.Uguale));
         int diverse = parti.Sum(p => p.Copie.Count(c => !c.Uguale));
-        return (uguali, diverse) switch
+        string copie = (uguali, diverse) switch
         {
+            (0, 0) => "",
             (_, 0) => uguali == 1 ? "1 copia uguale" : $"{uguali} copie uguali",
             (0, _) => diverse == 1 ? "1 copia diversa" : $"{diverse} copie diverse",
             _ => $"{uguali} uguali, {diverse} diverse",
         };
+        return famiglia is null ? copie : string.Join(" · ", new[] { "famiglia " + famiglia.Nome, copie }.Where(t => t.Length > 0));
     }
 
     private static string Come(CopiaDellaForma copia) => copia.Uguale
@@ -65,6 +154,14 @@
         : $"{copia.Vertici} vertici, quasi tutti in comune: una delle due è stata cambiata e l'altra no";
 
     private static string Vertici(int quanti) => quanti == 1 ? "1 vertice" : $"{quanti} vertici";
+
+    private static string SulleCopie(int quante) => quante == 1 ? "sulla copia uguale" : $"sulle {quante} copie uguali";
+
+    private static string LeCopie(int quante) => quante == 1 ? "la copia uguale" : $"le {quante} copie uguali";
+
+    private static string QuantiRecord(int quanti) => quanti == 1 ? "1 record" : $"{quanti} record";
+
+    private static string Diverse(int quante) => quante == 1 ? "1 di forma diversa" : $"{quante} di forma diversa";
 
     private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
 }

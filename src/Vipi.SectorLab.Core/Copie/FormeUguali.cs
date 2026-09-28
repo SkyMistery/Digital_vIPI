@@ -112,6 +112,40 @@ public sealed class FormeUguali
     }
 
     /// <summary>
+    /// Confronta i membri di una famiglia dichiarata (<c>form=</c>, slice 8b): la forma della famiglia è l'anello che hanno
+    /// più membri (a pari, quello del primo); ogni membro ha la sua parte uguale, o null se non ce l'ha — o se non si
+    /// disegna. Due record che sono la stessa linea di un <c>.geo</c> contano una volta sola (il primo dei due).
+    /// </summary>
+    public IReadOnlyList<(string File, int Record, ParteDiForma? Parte)> Confronta(IEnumerable<(string File, int Record)> membri)
+    {
+        ArgumentNullException.ThrowIfNull(membri);
+        var unici = new List<(string File, int Record, List<int> Anelli)>();
+        var visti = new HashSet<List<int>>(ReferenceEqualityComparer.Instance);
+        foreach (var (file, record) in membri)
+        {
+            var suoi = Suoi(file, record);
+            if (suoi is null)
+                unici.Add((file, record, []));
+            else if (visti.Add(suoi))
+                unici.Add((file, record, suoi));
+        }
+
+        int? scelto = null;
+        int migliore = 0;
+        foreach (int candidato in unici.SelectMany(m => m.Anelli))
+        {
+            int quanti = unici.Count(m => m.Anelli.Any(a => UgualiComeAnello(_anelli[a].Chiavi, _anelli[candidato].Chiavi)));
+            if (quanti > migliore)
+                (scelto, migliore) = (candidato, quanti);
+        }
+
+        return [.. unici.Select(m => (m.File, m.Record,
+            scelto is { } forma && m.Anelli.FirstOrDefault(a => UgualiComeAnello(_anelli[a].Chiavi, _anelli[forma].Chiavi), -1) is var uguale and >= 0
+                ? _anelli[uguale].Dove
+                : (ParteDiForma?)null))];
+    }
+
+    /// <summary>
     /// Le famiglie di forme uguali: ogni gruppo di anelli uguali fra loro in almeno due record. Per la misura e per il
     /// controllo delle famiglie dichiarate (<c>form=</c>).
     /// </summary>

@@ -488,6 +488,8 @@ public sealed class SessioneDelLab
             return Task.CompletedTask;
 
         int giro = ++_giroDellaValidazione;
+        // Le famiglie di forme (slice 8b) le calcola il Lab sulle forme della mappa, coi nomi già risolti.
+        var strati = Strati;
         StaValidando = true;
         ErroreDellaValidazione = null;
         Avvisa();
@@ -498,7 +500,8 @@ public sealed class SessioneDelLab
             var orologio = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                problemi = ProblemiDelLab.DellAlbero(sessione);
+                problemi = [.. ProblemiDelLab.DellAlbero(sessione),
+                    .. ProblemiDelLab.Aggancia(sessione, Core.Copie.FamiglieDichiarate.Problemi(Core.Copie.FamiglieDichiarate.Di(sessione, FormeUguali.Di(strati)), sessione))];
                 Registro.Scrivi("validazione", $"{problemi.Count} problemi ({problemi.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore)} errori) in {orologio.ElapsedMilliseconds} ms");
             }
             catch (Exception e)
@@ -1137,6 +1140,73 @@ public sealed class SessioneDelLab
         if (_formeUguali is not { } fatto || !ReferenceEquals(fatto.Strati, Strati))
             _formeUguali = fatto = (Strati, FormeUguali.Di(Strati));
         return fatto.Indice.Di(fileRelativo, record);
+    }
+
+    // Le famiglie dichiarate (slice 8b) si rileggono quando cambiano gli strati o un metadato: leggere i tag di tutti i
+    // file costa qualche decina di millisecondi, troppo per ogni disegno della scheda.
+    private (IReadOnlyList<StratoDellaMappa> Strati, string Firma, IReadOnlyList<FamigliaDichiarata> Famiglie)? _famiglie;
+
+    /// <summary>Le famiglie di forme dichiarate col tag <c>form=</c> (slice 8b), come sono adesso.</summary>
+    public IReadOnlyList<FamigliaDichiarata> FamiglieDichiarate()
+    {
+        if (Sessione is null)
+            return [];
+        string firma = string.Join("|", Modifiche.Tutte.OfType<ModificaDelMetadato>()
+            .Select(m => $"{m.File}#{m.Record}:{m.Chiave}={m.Dopo}").Order(StringComparer.Ordinal));
+        if (_famiglie is not { } fatte || !ReferenceEquals(fatte.Strati, Strati) || fatte.Firma != firma)
+        {
+            if (_formeUguali is not { } indice || !ReferenceEquals(indice.Strati, Strati))
+                _formeUguali = indice = (Strati, FormeUguali.Di(Strati));
+            _famiglie = fatte = (Strati, firma, Core.Copie.FamiglieDichiarate.Di(Sessione, indice.Indice));
+        }
+
+        return fatte.Famiglie;
+    }
+
+    /// <summary>La famiglia che il record dichiara (<c>form=</c>), o null.</summary>
+    public FamigliaDichiarata? FamigliaDi(string fileRelativo, int record)
+        => Sessione is null ? null : Core.Copie.FamiglieDichiarate.Del(FamiglieDichiarate(), Sessione, fileRelativo, record);
+
+    /// <summary>
+    /// Scrive <c>form=NOME</c> sul record e sulle copie date (slice 8b, D5): dichiara la famiglia, o ci aggiunge delle
+    /// copie. Un gesto solo nella storia; un record che il tag non lo può portare lo dice il rifiuto, gli altri si scrivono.
+    /// </summary>
+    public bool ScriviLaFamiglia(string fileRelativo, int record, string? nome, IReadOnlyList<(string File, int Record)> anche)
+        => NellaStoria($"famiglia di forme {nome?.Trim()} di {EtichettaDi(fileRelativo, record)}",
+            () => ScriviLaFamigliaAdesso(fileRelativo, record, nome, anche));
+
+    private bool ScriviLaFamigliaAdesso(string fileRelativo, int record, string? nome, IReadOnlyList<(string File, int Record)> anche)
+    {
+        if (Sessione is null)
+            return false;
+        string pulito = (nome ?? "").Trim();
+        if (pulito.Length == 0)
+        {
+            Rifiuto = "Serve il nome della famiglia.";
+            Avvisa();
+            return false;
+        }
+
+        int scritti = 0;
+        var rifiuti = new List<string>();
+        foreach (var (file, indice) in new[] { (fileRelativo, record) }.Concat(anche))
+        {
+            if (!Sessione.File.TryGetValue(file, out var aperto))
+                continue;
+            if (FamigliaDi(file, indice)?.Nome == pulito)
+                continue;
+            var esito = Modifiche.CambiaIlMetadato(aperto, indice, Core.Copie.FamiglieDichiarate.Chiave, pulito, EtichettaDi(file, indice));
+            Registro.Scrivi("modifica", $"{file}#{indice} tag form = «{pulito}»: {Descrivi(esito)}");
+            if (esito is ModificaDelMetadato)
+                scritti++;
+            else if (esito is ModificaRifiutata rifiutata)
+                rifiuti.Add($"{NomeDelFile(file)} {EtichettaDi(file, indice)}: {rifiutata.Motivo}");
+        }
+
+        Rifiuto = rifiuti.Count > 0 ? "Famiglia non scritta in " + string.Join("; ", rifiuti) : null;
+        RicontrollaLeModifiche();
+        Avvisa();
+        return scritti > 0;
     }
 
     // --- «chi lo usa» (lotto «Subito» slice 7, «file per file» L2) -----------------------------------------------------

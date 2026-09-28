@@ -75,6 +75,13 @@ public enum Regola
     /// </summary>
     CopieDiverse,
 
+    /// <summary>
+    /// Una famiglia di forme dichiarata (<c>form=NOME</c>, lotto «Subito» slice 8b, D5) con una copia di forma diversa
+    /// dalle altre: il settore dinamico e il suo confine non disegnano più la stessa cosa. La calcola il Sector Lab, che ha
+    /// le forme coi nomi risolti; il validatore dell'albero non la dà.
+    /// </summary>
+    FormeDiverse,
+
     /// <summary>Una mappa composta elenca una procedura che nel suo <c>.str</c> non c'è (F3-bis §2.2), o un elenco che non si legge.</summary>
     CompostaConProceduraAssente,
 
@@ -153,7 +160,7 @@ public static class Regole
     {
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
-            or Regola.CopieDiverse or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
+            or Regola.CopieDiverse or Regola.FormeDiverse or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
             or Regola.CommentoInCoda or Regola.FileCitatoAssente or Regola.FileInclusoDueVolte
             or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma
             or Regola.NomeMancante => Validazione.Gravita.Avviso,

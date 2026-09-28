@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); in corso la **slice 8** (8a fatta, §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); in corso la **slice 8** (8a e 8b fatte, §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -963,3 +963,29 @@ diverse» · **8c** la modifica propagata alle copie uguali, «allinea anche que
   solo simili (la carta di I2 diceva 1 585). Prova a schermo sul banco: LIRE_APP → «La stessa forma · 1 copia
   diversa: `lire.str` LIRE CTR, 1 vertice solo qui, 1 solo là»; il clic apre `lire.str#0`, che mostra LIRE_APP allo
   stesso modo. Il motore non è toccato. Test: Lab 661 → **671**.
+- **8b (28 settembre)** — la famiglia **dichiarata** e l'avviso «copie di forma diverse» (D5, §M `form`). I record che
+  portano lo stesso `form=NOME` (settori, confini, mappe degli `.str`, `.geo`, `.pol`: le chiavi del catalogo della
+  slice 1) sono una famiglia (`Copie/FamiglieDichiarate.cs`); la **forma della famiglia** è l'anello che hanno più
+  membri (a pari, quello del primo nell'ordine dei file), e chi non ce l'ha è una copia di forma diversa: regola nuova
+  **`FormeDiverse`, avviso**, sulla prima riga del record («Famiglia «LIRE»: LIRE CTR ha una forma diversa da
+  lirrctr.tfl LIRE_APP»). Due record della stessa linea di un `.geo` contano una volta.
+  - **Codice comune toccato**: solo la regola nell'elenco del motore (`Regola.FormeDiverse`, gravità avviso). La
+    calcola il Lab, che ha le forme coi nomi risolti, e la aggiunge ai problemi della validazione dell'albero; il
+    validatore del motore (e `tools/Vipi.SectorfileProva`) non la dà.
+  - **Senza tag, nessun avviso**: la famiglia la trova il Lab (8a) e la dichiara l'AOD. Così le copie simili che non
+    sono la stessa cosa (`LIMM_ES2_CTR` e `LIMM_ES5_CTR`) non riempiono il pannello, e le 17 divergenti dei settori
+    diventano avvisi solo quando qualcuno dice che devono essere uguali (D6: l'adozione è di F4).
+  - Nella scheda, sezione «La stessa forma»: la famiglia `form=NOME` coi suoi record (uguale / forma diversa, il clic
+    porta lì), «Questo record non ha la forma della famiglia» se è lui il diverso; senza famiglia, **«Dichiara qui e
+    sulle N copie uguali»** con un nome proposto (il nome del record, l'AOD lo cambia): `form=` sul record e sulle copie
+    uguali, un gesto solo nella storia (le copie diverse restano fuori); con la famiglia, **«+ Anche le copie uguali»**
+    per quelle che il tag non l'hanno. Un record che il tag non lo può portare lo dice il rifiuto, gli altri si scrivono.
+  - Trovato sul banco: dopo «Annulla tutto» la sezione mostrava ancora la famiglia — ha solo parametri primitivi e il
+    ridisegno del padre non la raggiunge (la trappola della mappa di F3). Si iscrive da sé ai cambi del Lab, come la
+    scheda; test rosso sul codice di prima.
+  Misura sul fork: **0 tag `form=`**, quindi 0 famiglie e 0 avvisi (la validazione dell'albero resta 120 errori e 543
+  avvisi); leggere i tag di tutti i file costa 33-61 ms, e la scheda li tiene finché non cambiano gli strati o un
+  metadato. Prova sull'albero invariata (701/701, 1 guasto noto `limf.sid`). Prova a schermo sul banco: LIRF_TWR →
+  «Dichiara qui e sulla copia uguale» → `twrs.tfl −0 +3` e `lirf.str −0 +3` (tag, `//@START`, `//@END`), «Annulla tutto»
+  pulito; `form=LIRE` a mano su LIRE_APP e LIRE CTR → «2 record · 1 di forma diversa», salvato nella copia di prova →
+  543 → **544 avvisi**, «lire.str:5 FormeDiverse». Test: Lab 671 → **679** (motore 676, invariato).
