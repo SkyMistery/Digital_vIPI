@@ -344,6 +344,24 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
     }
 
     [Fact]
+    public async Task ILegamiPortanoDallaStarAllAttesaEAllAvvicinamento()
+    {
+        // Slice 9e (Q2c): uno .str di prova — ELKA3A finisce a ELVAD, dove ci sono l'attesa e l'ILS.
+        _albero.Scrivi("SectorFiles/Include/IT/lizz.str", string.Join("\r\n",
+            "LIZZ;16L;ELKA3A;;;;;1;", "ELKAP;ELKAP;", "ELVAD;ELVAD;", "",
+            "LIZZ;16L;HLD-ELVAD;;;2;", "ELVAD;ELVAD;", "N041.50.00.000;E012.10.00.000;", "",
+            "LIZZ;16L;ILS16L;;;3;", "ELVAD;ELVAD;", "RF400;RF400;", "") + "\r\n");
+        var pagina = await ConIlRecord("lizz.str", "LIZZ ELKA3A");
+
+        Assert.Equal(["HLD-ELVAD", "ILS16L"], pagina.FindAll("[data-legame]").Select(b => b.GetAttribute("data-legame")));
+        pagina.Find("[data-legame='ILS16L']").Click();
+
+        pagina.WaitForAssertion(() => Assert.Equal(2, _lab.Scelta?.Record));
+        // Dall'ILS si torna indietro: si arriva dalla STAR e dall'attesa.
+        pagina.WaitForAssertion(() => Assert.Equal(["ELKA3A", "HLD-ELVAD"], pagina.FindAll("[data-legame]").Select(b => b.GetAttribute("data-legame"))));
+    }
+
+    [Fact]
     public async Task UnaMappaDelMapsNonHaVincoliDeiPunti()
     {
         var pagina = await ConIlRecord("lirf.str", "LIRF LIRF ATZ");

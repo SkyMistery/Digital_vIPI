@@ -82,6 +82,9 @@
         @* Slice 8e (F2): il gemello del punto .vfi nel file dei fix nascosti, e viceversa. *@
         <GemelloNellaScheda File="@scheda.File" Record="scheda.Indice" />
 
+        @* Slice 9e (Q2c): STAR → attesa → avvicinamento → mancato avvicinamento, sulla stessa pista. *@
+        <LegamiNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
         @* Slice 3d: i metadati di §M del record, le chiavi del catalogo del suo tipo di file. Si scrivono nel tag
            //@"NOME" sopra il record; un valore vuoto toglie la chiave. *@
         @if (Lab.MetadatiDi(scheda.File, scheda.Indice) is { Count: > 0 } metadati)

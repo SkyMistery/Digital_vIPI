@@ -104,6 +104,12 @@ public enum Regola
     /// <summary>Una procedura su una pista che lo scalo non ha nei <c>.rw</c> (<c>lipi.str</c> <c>06:24</c> con 06L/06R: slice 9a, Q6, R-4).</summary>
     PistaInesistente,
 
+    /// <summary>
+    /// Una STAR che finisce in un punto dal quale nessun avvicinamento della sua pista passa, se la pista ne ha (lotto
+    /// «Subito» slice 9e, Q2c: <see cref="LegamiDelleProcedure"/>).
+    /// </summary>
+    StarSenzaAvvicinamento,
+
     /// <summary>Una mappa composta elenca una procedura che nel suo <c>.str</c> non c'è (F3-bis §2.2), o un elenco che non si legge.</summary>
     CompostaConProceduraAssente,
 
@@ -183,7 +189,7 @@ public static class Regole
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
             or Regola.CopieDiverse or Regola.FormeDiverse or Regola.ConfineSenzaErba or Regola.ProceduraRipetuta
-            or Regola.VoceDiUnAltroScalo or Regola.PistaInesistente or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
+            or Regola.VoceDiUnAltroScalo or Regola.PistaInesistente or Regola.StarSenzaAvvicinamento or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
             or Regola.CommentoInCoda or Regola.FileCitatoAssente or Regola.FileInclusoDueVolte
             or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma
             or Regola.NomeMancante => Validazione.Gravita.Avviso,

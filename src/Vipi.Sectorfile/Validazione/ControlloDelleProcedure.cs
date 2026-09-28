@@ -87,5 +87,14 @@ public static class ControlloDelleProcedure
                 }
             }
         }
+
+        // Slice 9e (Q2c): la STAR che finisce dove nessun avvicinamento della sua pista passa.
+        foreach (var (indice, punto, avvicinamenti) in LegamiDelleProcedure.StarSenzaAvvicinamento(record))
+        {
+            var star = (StrRecord)record[indice];
+            int riga = star.Source?.LineNumber ?? 0;
+            yield return new ProblemaDelSector(Regola.StarSenzaAvvicinamento, relativo, riga, riga > 0 ? testoDellaRiga(riga) : string.Empty,
+                $"{star.ProcedureId.Trim()} finisce a {punto}, e nessun avvicinamento della pista {star.RunwaySpec.Trim()} ci passa ({string.Join(", ", avvicinamenti)})");
+        }
     }
 }

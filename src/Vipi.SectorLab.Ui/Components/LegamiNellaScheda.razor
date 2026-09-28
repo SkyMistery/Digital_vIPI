@@ -1,0 +1,49 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    I legami della procedura (lotto «Subito» slice 9e, «file per file» Q2c): nello stesso .str e sulla stessa pista, da
+    quali voci si arriva qui e dove si va — STAR → attesa di scalo → avvicinamento → mancato avvicinamento. Un clic
+    sceglie l'altra voce. Niente legame con HOLDENR.hold (attese in rotta).
+*@
+@if (Lab.LegamiDi(File, Record) is { Count: > 0 } legami)
+{
+    <Sezione Chiave="scheda-legami" data-legami="@legami.Count">
+    <Titolo>Legami <span class="lab-nota">@legami.Count · stessa pista</span></Titolo>
+    <ChildContent>
+    <div class="lab-stessa-forma">
+    <ul>
+        @foreach (var legame in legami)
+        {
+            var questo = legame;
+            <li>
+                <button type="button" class="lab-citazione" data-legame="@questo.Nome" title="@Titolo(questo)"
+                        @onclick="() => Lab.Scegli(File, questo.Indice)">
+                    <span class="lab-nota">@(questo.Arriva ? "da" : "verso")</span> @questo.Nome
+                    <span class="lab-nota">@questo.Tipo · @questo.Pista · a @questo.Punto</span>
+                </button>
+            </li>
+        }
+    </ul>
+    </div>
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    // Solo parametri primitivi: si ridisegna da sé ai cambi del Lab (la lezione della 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private static string Titolo(LegameDellaScheda legame)
+        => legame.Arriva
+            ? $"{legame.Nome} arriva qui passando da {legame.Punto}: clic per sceglierla"
+            : $"Da qui si va a {legame.Nome} passando da {legame.Punto}: clic per sceglierla";
+}

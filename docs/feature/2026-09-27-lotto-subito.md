@@ -1190,3 +1190,18 @@ tipo e la scheda della voce (Q1, P2) · **9c** i metadati delle procedure e il f
     suggerimento li mostra sotto il nome (ora come testo, non come HTML: i nomi vengono dai file), e scrivere un tag
     di punto rifà la forma. Provato sul banco (fork, `lirf.str` ELKA3A).
   Test: motore 691 → **692**, Lab 745 → **764**. Prova sull'albero invariata.
+- **9e (29 settembre)** — i legami fra le procedure della stessa pista (Q2c). Codice comune toccato:
+  `Validazione/LegamiDelleProcedure.cs` e la regola **`StarSenzaAvvicinamento`** (avviso) in `ControlloDelleProcedure`.
+  - Nello stesso `.str`, sulla stessa pista vera, per nome: la **STAR** porta all'**attesa di scalo** e
+    all'**avvicinamento** che passano dal suo ultimo punto; l'attesa all'avvicinamento che passa dal suo punto;
+    l'avvicinamento al **mancato avvicinamento** che comincia dove lui finisce (o da un suo punto). ❌ Niente legame con
+    `HOLDENR.hold` (attese in rotta). Nella scheda la sezione **«Legami»**: «da» e «verso», col tipo, la pista e il punto;
+    un clic sceglie l'altra voce. Sul banco: `lirf.str` RITE2K (07:25) → RNP07(CMP), RNP25 e le due HLD-CMP, «a CMP».
+  - Misura sul fork (`scratchpad/misura9e.py`): 645 STAR su una pista coi punti per nome, 602 su piste che hanno un
+    avvicinamento; in **533** un avvicinamento della pista comincia dal loro ultimo punto, in **552** ci passa, in 546
+    c'è un'attesa lì. GA su una pista: **0** nel fork (le «GA» sono le ATZ del `MAPS`).
+  - L'avviso vale per la STAR la cui pista ha avvicinamenti ma nessuno passa dal suo ultimo punto. Scelta dell'agente,
+    dalla misura: «ci passa» e non «comincia da lì» (una STAR può finire all'IF, dentro l'avvicinamento) — **50** STAR
+    invece di 69 (`libv.str` HITACX…(ATC) → GIO, `lica.str` → SUGEP, `limj.str` → SES, le REC militari di `lied.str`…);
+    una pista senza avvicinamenti nel file non si controlla. Validatore sull'albero: 132 errori, 560 → **610 avvisi**.
+  Test: motore 692 → **694**, Lab 764 → **765**.

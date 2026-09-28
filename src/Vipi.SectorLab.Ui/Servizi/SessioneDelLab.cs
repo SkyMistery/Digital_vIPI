@@ -864,6 +864,30 @@ public sealed class SessioneDelLab
     }
 
     /// <summary>
+    /// I legami della voce di un .str con le altre della stessa pista (slice 9e, Q2c): prima quelle da cui si arriva,
+    /// poi quelle dove si va. Vuoto per le voci senza legami e per gli altri file.
+    /// </summary>
+    public IReadOnlyList<LegameDellaScheda> LegamiDi(string fileRelativo, int record)
+    {
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord file || file.RecordDelModello.Count == 0
+            || file.RecordDelModello[0] is not Vipi.Sectorfile.Models.StrRecord)
+            return [];
+        var voci = file.RecordDelModello;
+        string Nome(int i) => ((Vipi.Sectorfile.Models.StrRecord)voci[i]).ProcedureId.Trim();
+        string Tipo(int i) => ((Vipi.Sectorfile.Models.StrRecord)voci[i]).RecordType switch
+        {
+            Vipi.Sectorfile.Models.StrRecordType.Star => "STAR",
+            Vipi.Sectorfile.Models.StrRecordType.Holding => "attesa",
+            Vipi.Sectorfile.Models.StrRecordType.Iap => "avvicinamento",
+            Vipi.Sectorfile.Models.StrRecordType.GoAround => "mancato avvicinamento",
+            var altro => altro.ToString(),
+        };
+        var legami = Vipi.Sectorfile.Validazione.LegamiDelleProcedure.Di(voci);
+        return [.. legami.Where(l => l.A == record).Select(l => new LegameDellaScheda(true, l.Da, Nome(l.Da), Tipo(l.Da), l.Pista, l.Punto))
+            .Concat(legami.Where(l => l.Da == record).Select(l => new LegameDellaScheda(false, l.A, Nome(l.A), Tipo(l.A), l.Pista, l.Punto)))];
+    }
+
+    /// <summary>
     /// I punti di una procedura coi loro vincoli (slice 9d, Q2): SID col tracciato e voci .str su una pista; vuoto per
     /// le mappe del MAPS e per i file i cui punti non portano tag.
     /// </summary>
@@ -2651,3 +2675,6 @@ public sealed class SessioneDelLab
         }
     }
 }
+
+/// <summary>Un legame della voce scelta con un'altra dello stesso .str (slice 9e): <see cref="Arriva"/> = si arriva da lei.</summary>
+public sealed record LegameDellaScheda(bool Arriva, int Indice, string Nome, string Tipo, string Pista, string Punto);
