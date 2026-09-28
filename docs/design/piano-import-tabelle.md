@@ -57,6 +57,14 @@ una cella di un CSV sono contenuto scritto da qualcuno, e riscriverlo sarebbe ca
 lo si importa. Nelle cinque righe d'esempio degli «Aeroporti alternati» convivono `–` e `-`, e una riga ha
 un doppio spazio.
 
+⚠️ **Dal 28 settembre 2026 (U-044) `NormalizzaSegni` riduce a uno OGNI spazio Unicode** (`char.IsWhiteSpace`,
+a-capo escluso), non più i soli quattro elencati sopra: U+2002, U+3000 e gli altri restavano, e la regola delle
+ancore degli alternati li provava in tempo circa cubico (1 600 spazi, 8 s di CPU nel gestore del circuito). La
+regola ha anche un tempo massimo di 200 ms: scaduto, la riga non si spezza.
+
+⚠️ **Le colonne di una griglia arrivano fino all'ultima cella NON vuota** (`Griglia.Colonne`, U-043): una riga
+con migliaia di separatori vuoti in coda non allarga la tabella.
+
 ### Stadio 2 — Mappatura (`SpecImport`, senza registry)
 
 Ogni tabella importabile dichiara **un descrittore**. Aggiungere una tabella importabile = scrivere una
@@ -97,11 +105,29 @@ di *tutti*: la riga resta rossa con il link alla pagina d'anagrafica. È la stes
 Uscita: una riga per riga incollata, `(Numero, Grezza, Valore?, Errori)` — la forma di `PastedClause`,
 generalizzata.
 
+⚠️ **La proposta ha un tetto: 200 000 celle** (`CostruttoreProposta.MaxCelle`, righe × colonne, vuote comprese:
+ognuna diventa una cella a schermo), controllato PRIMA di costruirla (U-043/U-050, 28 settembre 2026). Il tetto
+T-022 del lettore XLSX conta le celle vere, e una sola cella in XFD più 1 999 righe in A passava: la proposta ne
+faceva 2000 × 16 384, circa 2,3 GB. Oltre il tetto la proposta è vuota e porta `Guasto` in parole; l'anteprima
+non si mostra e il motivo va dove si leggono i guasti del file.
+
+⚠️ **L'XLSX si legge in streaming** (`XmlReader`, U-045): foglio e stringhe condivise passavano per un DOM
+`XDocument` intero prima di ogni tetto, e un file da 80 KB valeva ~380 MB. Ora il tetto sui byte decompressi
+(32 MB) scatta mentre si legge, le stringhe condivise hanno un tetto (`MaxStringheCondivise`), cartella di lavoro
+e relazioni uno di 1 MB. Un guasto lascia l'elenco dei fogli, per sceglierne un altro.
+
 ### Stadio 4 — Approvazione (`ImportaTabella.razor`)
 
 Un solo componente, aperto da qualunque editor con la sua spec. Griglia d'anteprima con colore per cella:
 **risolto dal catalogo** · **testo com'era** · **non letto** (il testo originale e il perché stanno nel
 fumetto). Poi «Importa N righe», con **in coda** (default) o **sostituisci**.
+
+⚠️ **In coda le righe che c'erano non si toccano** (U-042, 28 settembre 2026; regola in
+`TabellaGenerica.Importa`, usata dai due editor di tabelle generiche): il numero di colonne è il massimo fra la
+tabella e l'incollato, le intestazioni si sostituiscono solo a colonne uguali e quelle in più prendono il nome
+dell'incollato. Prima, con «la prima riga è l'intestazione», le colonne incollate prendevano il posto di quelle
+della tabella e il pareggio tagliava TUTTE le righe: tre colonne incollate su una tabella da quattro, e la quarta
+spariva dalla bozza. **Sostituendo**, come prima: le colonne incollate se c'è l'intestazione o la tabella è vuota.
 
 ⚠️ Una cella **ambigua** porta una tendina con i candidati, e ognuno si porta dietro la propria
 **identità**: «si chiede quale» deve avere una risposta possibile, o è un rifiuto scritto in modo gentile —
