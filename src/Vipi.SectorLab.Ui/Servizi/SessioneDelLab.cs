@@ -1513,6 +1513,8 @@ public sealed class SessioneDelLab
             () => Sessione!.File[fileRelativo] is not { } file ? new ModificaRifiutata("Questo file non è aperto.")
                 // Slice 7 (L2): un punto che qualcuno cita non si toglie — le sue citazioni resterebbero senza punto.
                 : UsiDi(fileRelativo, record) is { Citazioni.Count: > 0 } usi
+                  // Una posizione vale in tutto l'albero (slice 7c): se un altro .frq la dichiara ancora, si toglie.
+                  && !(usi.Catalogo == "posizione" && _chiLoUsa!.Copie(Sessione!, fileRelativo, record, usi.Nomi[0]).Count > 0)
                     ? new ModificaRifiutata($"È usato: lo citano {usi.Citazioni.Count} righe in {usi.File.Count} file (vedi «Chi lo usa»). "
                                             + "Toglilo prima da lì, o rinominalo.")
                     : Modifiche.TogliRecord(file, record)));

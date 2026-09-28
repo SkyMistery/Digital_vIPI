@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a e 7b fatte; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a-7c fatte; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -779,8 +779,9 @@ sulla mappa, il nome dal commento cambiato dalla scheda, il blocco `//@` col nom
 
 **Slice 7 — «chi lo usa» e rinomina.** Divisa in passi, un commit ciascuno (scelta dell'agente): **7a** l'indice di chi
 usa un punto chiamato per nome, nella scheda · **7b** la rinomina di un punto (una voce, più diff) e il «togli» impedito
-a un punto usato · **7c** posizioni, piste, file e nomi di `colors.def` (R-1) · **7d** il nome delle voci di confini, MVA
-e aerovie (il 2° campo, rimandato dalla 6b).
+a un punto usato · **7c** le posizioni (R-1) · **7d** le piste · **7e** i file (`.cpr`, `.atis`) e i nomi di `colors.def`
+· **7f** il nome delle voci di confini, MVA e aerovie (il 2° campo, rimandato dalla 6b). (Divisa così il 28 settembre,
+cominciando la 7c: le posizioni, le piste e i file hanno ognuno la sua forma di citazione.)
 
 - **7a (28 settembre)** — «chi lo usa» (L2). Nella scheda di un fix, VOR, NDB, scalo, punto VFR o attesa la sezione
   **«Chi lo usa»** (`Components/ChiLoUsaNellaScheda.razor`): le righe che lo citano, file per file, col testo; il clic
@@ -842,3 +843,19 @@ e aerovie (il 2° campo, rimandato dalla 6b).
   con sé la copia di `limm.ap`. Prova a schermo sul banco: `LUSIL` → «LUSIX»: «1 modifiche in 6 file», la voce in
   `itfix.fix` «anche in FRA.artcc, itawlow.lairway, limm.hartcc, lipp.hartcc, liml.str»; «annulla» su `FRA.artcc`
   toglie tutto; «Togli questo record» su LUSIL rifiutato col perché. Il motore non è toccato. Test: Lab 617 → **634**.
+- **7c (28 settembre)** — le posizioni (R-1): «chi lo usa» e rinomina. Una posizione è un nome di rete: vale in tutto
+  l'albero, non per master. La dichiara il 1° campo di un `.frq` (`itfreq.frq` e il `.frq` della FIR sono **copie**); la
+  citano i **trasferimenti** (3° campo, parole separate da spazi — anche esclusa, `-LIRR_NW_CTR`, «trasferimento
+  escluso») e la **testa dei settori dinamici** (1° campo di un `.tfl`, «settore dinamico»). Solo le parole uguali:
+  `LIRR` nei trasferimenti include la posizione per prefisso, ma non la nomina, e la rinomina non lo tocca.
+  - Rinomina: il 1° campo delle righe che la dichiarano e la **parola** nelle citazioni, col «-» dell'esclusa tenuto
+    (`Rinomina.NelPrimoCampo`, `NellaParola`); il resto della riga com'era. Rifiuti: una posizione che c'è già, uno
+    spazio (separa i trasferimenti), un «-» davanti (vuol dire «esclusa»).
+  - «Togli» di una posizione usata: bloccato, **salvo** che un altro `.frq` la dichiari ancora (è una copia: la
+    posizione resta nel sector). I punti restano bloccati sempre.
+  Misura sul fork (`scratchpad/misura7` e `misura7b`, estesi alle posizioni): **423 posizioni, 308 citate, 3 308
+  citazioni**; **LIRR_NW_CTR 25 righe in 5 file** (`lirr_ne_ctr.tfl` 1, `itfreq.frq` 12, `libb.frq` 4, `limm.frq` 5,
+  `lirr.frq` 3), le stesse del grep tolte le 2 righe che la dichiarano. Rinomina di ogni punto e posizione usati, e
+  annullata: **2 615 su 2 615** (2 307 punti + 308 posizioni), 16 618 righe, 0 rifiutati, **0 guasti**. Prova a schermo
+  sul banco: LIRR_NW_CTR → «LIRR_WN_CTR»: una voce, 27 righe in 5 file (le 25 citazioni e le 2 dichiarazioni); «Annulla
+  tutto» pulito. Il motore non è toccato. Test: Lab 634 → **640**.

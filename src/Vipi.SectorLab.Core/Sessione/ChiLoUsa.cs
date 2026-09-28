@@ -21,7 +21,7 @@ public sealed record Citazione(string File, int Record, int Riga, string Testo, 
 }
 
 /// <summary>Chi usa un punto: le citazioni che vanno a lui, e quelle dello stesso nome che vanno a un altro punto.</summary>
-/// <param name="Catalogo">«fix», «vor», «ndb», «scalo», «vrp» o «attesa».</param>
+/// <param name="Catalogo">«fix», «vor», «ndb», «scalo», «vrp», «attesa» o «posizione».</param>
 /// <param name="Nomi">I nomi con cui lo si cita (il VRP ne ha due: il nome e il codice).</param>
 /// <param name="AltroPunto">Lo stesso nome citato in file dove Aurora lo risolve in un altro punto (o in nessuno):
 /// non sono sue, e una rinomina non le tocca.</param>
@@ -47,6 +47,9 @@ public sealed class ChiLoUsa
 
     // Per nome: i punti che si chiamano così (catalogo e file) — i VOR e gli NDB omonimi, le copie di un punto.
     private readonly Dictionary<string, List<(string Catalogo, string File)>> _dichiarati = new(StringComparer.OrdinalIgnoreCase);
+
+    // Per posizione (slice 7c, R-1): i file e i record che la citano — i trasferimenti dei .frq, le teste dei .tfl.
+    private readonly Dictionary<string, Dictionary<string, SortedSet<int>>> _perPosizione = new(StringComparer.OrdinalIgnoreCase);
 
     // Per file: i nomi che ci sono, per rifare il file senza rifare l'albero.
     private readonly Dictionary<string, List<string>> _nomiDelFile = new(StringComparer.Ordinal);
@@ -106,6 +109,33 @@ public sealed class ChiLoUsa
             }
 
             return testo;
+        }
+
+        // Una posizione (slice 7c, R-1) è un nome di rete: vale in tutto l'albero, non per master. La citano i
+        // trasferimenti dei .frq (anche esclusa, «-LIRR_EW_CTR») e le teste dei settori dinamici (.tfl).
+        if (dichiarato is AtcPosition posizione)
+        {
+            string codice = posizione.Code.Trim();
+            if (codice.Length == 0)
+                return null;
+            var dellaPosizione = new List<Citazione>();
+            foreach (var (relativo, k) in CitanoLaPosizione(codice))
+            {
+                var (testo, posti) = Testo(relativo);
+                if (k >= posti.Count)
+                    continue;
+                bool settore = ((IFileConRecord)sessione.File[relativo]).RecordDelModello[k] is TflSector;
+                foreach (int i in RigheCheNominano(testo, posti[k], codice, soloIlPrimoCampo: settore))
+                {
+                    string come = settore ? "settore dinamico"
+                        : Parole(testo[i]).Any(p => p.StartsWith('-') && string.Equals(p[1..], codice, StringComparison.OrdinalIgnoreCase))
+                            ? "trasferimento escluso"
+                            : "trasferimento";
+                    dellaPosizione.Add(new Citazione(relativo, k, i + 1, testo[i], come, []));
+                }
+            }
+
+            return new UsiDelPunto("posizione", [codice], Ordina(dellaPosizione), []);
         }
 
         // Un'attesa non sta nei cataloghi dei master: la citano per nome i fix e i VOR (HLD-ABBOZ), in tutto l'albero.
@@ -208,6 +238,40 @@ public sealed class ChiLoUsa
         return Math.Sqrt((dx * dx) + (dy * dy)) < 185.2;
     }
 
+    /// <summary>I file e i record che citano la posizione (trasferimenti, teste dei .tfl), in ordine di file.</summary>
+    public IReadOnlyList<(string File, int Record)> CitanoLaPosizione(string codice)
+        => _perPosizione.TryGetValue(codice.Trim(), out var perFile)
+            ? [.. perFile.OrderBy(f => f.Key, StringComparer.Ordinal).SelectMany(f => f.Value.Select(r => (f.Key, r)))]
+            : [];
+
+    /// <summary>Vero se nell'albero c'è già una posizione (o un punto del catalogo) con quel nome.</summary>
+    public bool CEGia(string nome, string catalogo)
+        => _dichiarati.TryGetValue(nome.Trim(), out var dove) && dove.Any(d => d.Catalogo == catalogo);
+
+    /// <summary>Le parole di una riga, campo per campo: i trasferimenti di un .frq, le posizioni della testa di un .tfl.</summary>
+    internal static IEnumerable<string> Parole(string riga)
+        => riga.Split(';').SelectMany(c => c.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+    /// <summary>
+    /// Le righe (da 0) del record dove una PAROLA è il nome (con o senza il «-» dell'escluso): i trasferimenti sono parole
+    /// separate da spazi dentro un campo. Nella testa di un .tfl conta solo il primo campo.
+    /// </summary>
+    internal static IEnumerable<int> RigheCheNominano(IReadOnlyList<string> righe, (int Da, int Quante) posto, string nome, bool soloIlPrimoCampo)
+    {
+        for (int i = posto.Da; i < posto.Da + posto.Quante && i < righe.Count; i++)
+        {
+            if (righe[i].TrimStart().StartsWith("//", StringComparison.Ordinal))
+                continue;
+            var parole = soloIlPrimoCampo ? Parole(righe[i].Split(';')[0]) : Parole(righe[i]);
+            if (parole.Any(p => string.Equals(p.TrimStart('-'), nome, StringComparison.OrdinalIgnoreCase)))
+            {
+                yield return i;
+                if (soloIlPrimoCampo)
+                    yield break;
+            }
+        }
+    }
+
     /// <summary>
     /// Le copie del punto (lotto «Subito» slice 7b): gli altri record dello stesso catalogo con lo stesso nome a meno di
     /// un decimo di miglio — lo scalo in <c>itap.ap</c> e in <c>limm.ap</c>, il fix scritto in due file. Una rinomina le
@@ -217,7 +281,7 @@ public sealed class ChiLoUsa
     {
         ArgumentNullException.ThrowIfNull(sessione);
         if (sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord || record < 0 || record >= conRecord.RecordDelModello.Count
-            || Cataloghi.Dichiarato(conRecord.RecordDelModello[record]) is not { } questo
+            || Dichiarazione(conRecord.RecordDelModello[record]) is not { } questo
             || !_dichiarati.TryGetValue(nome.Trim(), out var dove))
             return [];
 
@@ -228,10 +292,11 @@ public sealed class ChiLoUsa
                 continue;
             for (int k = 0; k < suo.RecordDelModello.Count; k++)
             {
+                // Una posizione è la stessa in ogni .frq che la dichiara (itfreq.frq e quello della FIR): non ha un punto.
                 if ((altro, k) != (file, record)
-                    && Cataloghi.Dichiarato(suo.RecordDelModello[k]) is { } punto && punto.Catalogo == questo.Catalogo
+                    && Dichiarazione(suo.RecordDelModello[k]) is { } punto && punto.Catalogo == questo.Catalogo
                     && punto.Nomi.Any(n => string.Equals(n.Trim(), nome.Trim(), StringComparison.OrdinalIgnoreCase))
-                    && Vicini(punto.Posizione, questo.Posizione))
+                    && (questo.Catalogo == "posizione" || Vicini(punto.Posizione, questo.Posizione)))
                     copie.Add((altro, k));
             }
         }
@@ -314,7 +379,7 @@ public sealed class ChiLoUsa
         var chiavi = conRecord.CatalogoDeiTag is null ? null : conRecord.ChiaviDeiRecord();
         for (int k = 0; k < conRecord.RecordDelModello.Count; k++)
         {
-            if (Cataloghi.Dichiarato(conRecord.RecordDelModello[k]) is { } punto)
+            if (Dichiarazione(conRecord.RecordDelModello[k]) is { } punto)
             {
                 foreach (string suo in punto.Nomi.Select(n => n.Trim()).Where(n => n.Length > 0))
                 {
@@ -323,6 +388,15 @@ public sealed class ChiLoUsa
                     if (!omonimi.Contains((punto.Catalogo, relativo)))
                         omonimi.Add((punto.Catalogo, relativo));
                 }
+            }
+
+            foreach (string posizione in PosizioniCitate(conRecord.RecordDelModello[k]))
+            {
+                if (!_perPosizione.TryGetValue(posizione, out var perFile))
+                    _perPosizione[posizione] = perFile = new(StringComparer.Ordinal);
+                if (!perFile.TryGetValue(relativo, out var suoi))
+                    perFile[relativo] = suoi = [];
+                suoi.Add(k);
             }
 
             foreach (string nome in NomiCitati(conRecord.RecordDelModello[k], chiavi?[k]))
@@ -341,6 +415,8 @@ public sealed class ChiLoUsa
 
     private void Togli(string relativo)
     {
+        foreach (var perFile in _perPosizione.Values)
+            perFile.Remove(relativo);
         foreach (var omonimi in _dichiarati.Values)
             omonimi.RemoveAll(n => n.File == relativo);
 
@@ -352,6 +428,20 @@ public sealed class ChiLoUsa
                 _perNome.Remove(nome);
         }
     }
+
+    /// <summary>Il nome col quale un record si dichiara: un punto dei cataloghi, o una posizione di un .frq (slice 7c).</summary>
+    internal static NomeDiCatalogo? Dichiarazione(object record)
+        => record is AtcPosition posizione && posizione.Code.Trim().Length > 0
+            ? new NomeDiCatalogo("posizione", default, [posizione.Code.Trim()])
+            : Cataloghi.Dichiarato(record);
+
+    // Le posizioni che un record cita: i trasferimenti di un .frq, le posizioni della testa di un settore dinamico.
+    private static IEnumerable<string> PosizioniCitate(object record) => record switch
+    {
+        AtcPosition posizione => posizione.TransferList.Select(t => t.PositionCode.Trim()).Where(c => c.Length > 0),
+        TflSector settore => settore.SectorCode.Split(' ', StringSplitOptions.RemoveEmptyEntries),
+        _ => [],
+    };
 
     // I nomi che un record cita: quelli che il motore risolve, il fix di un'attesa, i valori dei tag fix= e trans=.
     private static IEnumerable<string> NomiCitati(object oggetto, IReadOnlyDictionary<string, string>? chiavi)

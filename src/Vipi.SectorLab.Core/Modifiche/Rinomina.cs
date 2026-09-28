@@ -34,7 +34,8 @@ public static partial class Rinomina
         if (suo is null)
             return new ModificaRifiutata($"«{vecchio}» non è un nome di questo punto.");
         nuovo = nuovo?.Trim();
-        if (PercheNonVa(nuovo) is { } perche)
+        bool posizione = usi.Catalogo == "posizione";
+        if ((posizione ? PercheNonVaLaPosizione(nuovo) : PercheNonVa(nuovo)) is { } perche)
             return new ModificaRifiutata(perche);
         if (string.Equals(nuovo, suo, StringComparison.Ordinal))
             return new ModificaRifiutata("Il nome è già questo.");
@@ -42,7 +43,12 @@ public static partial class Rinomina
         // Un nome che c'è già farebbe due punti con lo stesso nome (NomeDuplicato): Aurora ne prenderebbe uno.
         if (!string.Equals(nuovo, suo, StringComparison.OrdinalIgnoreCase))
         {
-            if (usi.Catalogo == "attesa")
+            if (posizione)
+            {
+                if (indice.CEGia(nuovo!, "posizione"))
+                    return new ModificaRifiutata($"C'è già una posizione {nuovo} in un .frq.");
+            }
+            else if (usi.Catalogo == "attesa")
             {
                 if (sessione.File.Values.OfType<IFileConRecord>().SelectMany(f => f.RecordDelModello).OfType<Attesa>()
                         .Any(a => string.Equals(a.Nome.Trim(), nuovo, StringComparison.OrdinalIgnoreCase)))
@@ -97,7 +103,7 @@ public static partial class Rinomina
             var righe = Righe(relativo);
             var (da, quante) = conRecord.PostiDeiRecord(sporchiDi(relativo))[k];
             for (int i = da; i < da + quante && i < righe.Count; i++)
-                Metti(relativo, i, NeiCampi(righe[i], suo, nuovo!));
+                Metti(relativo, i, posizione ? NelPrimoCampo(righe[i], suo, nuovo!) : NeiCampi(righe[i], suo, nuovo!));
             for (int i = da - 1; i >= 0 && righe[i].TrimStart().StartsWith("//", StringComparison.Ordinal); i--)
                 Metti(relativo, i, NeiTag(righe[i], suo, nuovo!, dichiarazione: true));
         }
@@ -106,8 +112,9 @@ public static partial class Rinomina
         foreach (var citazione in citazioni)
         {
             string riga = Righe(citazione.File)[citazione.Riga - 1];
-            Metti(citazione.File, citazione.Riga - 1,
-                NeiCampi(riga, suo, nuovo!, attesa: citazione.Come == "attesa") ?? NeiTag(riga, suo, nuovo!, dichiarazione: false));
+            Metti(citazione.File, citazione.Riga - 1, posizione
+                ? NellaParola(riga, suo, nuovo!, soloIlPrimoCampo: citazione.Come == "settore dinamico")
+                : NeiCampi(riga, suo, nuovo!, attesa: citazione.Come == "attesa") ?? NeiTag(riga, suo, nuovo!, dichiarazione: false));
         }
 
         foreach (string relativo in citazioni.Select(c => c.File).Distinct(StringComparer.Ordinal))
@@ -134,6 +141,57 @@ public static partial class Rinomina
                                     || c.Trim().StartsWith(nome + "/", StringComparison.OrdinalIgnoreCase))
            || riga.Contains("=" + nome, StringComparison.OrdinalIgnoreCase)
            || riga.Contains("=\"" + nome + "\"", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Perché il nome di una posizione non va (slice 7c): come un nome, e in più è UNA parola dei trasferimenti.</summary>
+    public static string? PercheNonVaLaPosizione(string? nuovo)
+        => OrdineAlfabetico.PercheNonVa(nuovo) is { } perche ? perche
+            : nuovo!.Contains(' ', StringComparison.Ordinal) ? "Una posizione non ha spazi: nei trasferimenti le separa lo spazio."
+            : nuovo.StartsWith('-') ? "Una posizione non comincia col «-»: nei trasferimenti vuol dire «esclusa»."
+            : null;
+
+    /// <summary>La riga di un .frq col primo campo (la posizione) cambiato, o null.</summary>
+    public static string? NelPrimoCampo(string riga, string vecchio, string nuovo)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (riga.TrimStart().StartsWith("//", StringComparison.Ordinal))
+            return null;
+        int fine = riga.IndexOf(';', StringComparison.Ordinal);
+        string primo = fine < 0 ? riga : riga[..fine];
+        return string.Equals(primo.Trim(), vecchio, StringComparison.OrdinalIgnoreCase)
+            ? primo.Replace(primo.Trim(), nuovo, StringComparison.Ordinal) + (fine < 0 ? "" : riga[fine..])
+            : null;
+    }
+
+    /// <summary>
+    /// La riga con la PAROLA cambiata (slice 7c): nei trasferimenti di un .frq, col «-» dell'esclusa tenuto
+    /// (<c>-LIRR_EW_CTR</c>), o nella testa di un .tfl (solo il primo campo). Il primo campo di un .frq è la posizione
+    /// della riga, non una citazione: non si tocca. Null se non cambia.
+    /// </summary>
+    public static string? NellaParola(string riga, string vecchio, string nuovo, bool soloIlPrimoCampo)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (riga.TrimStart().StartsWith("//", StringComparison.Ordinal))
+            return null;
+        string[] campi = riga.Split(';');
+        bool cambiata = false;
+        for (int c = soloIlPrimoCampo ? 0 : 1; c < (soloIlPrimoCampo ? Math.Min(1, campi.Length) : campi.Length); c++)
+        {
+            string[] parole = campi[c].Split(' ');
+            for (int i = 0; i < parole.Length; i++)
+            {
+                string meno = parole[i].StartsWith('-') ? "-" : "";
+                if (parole[i].Length > 0 && string.Equals(parole[i][meno.Length..], vecchio, StringComparison.OrdinalIgnoreCase))
+                {
+                    parole[i] = meno + nuovo;
+                    cambiata = true;
+                }
+            }
+
+            campi[c] = string.Join(' ', parole);
+        }
+
+        return cambiata ? string.Join(';', campi) : null;
+    }
 
     /// <summary>Perché il nome nuovo non va, o null. Le regole di un nome nuovo, più quelle di un nome citato.</summary>
     public static string? PercheNonVa(string? nuovo)
