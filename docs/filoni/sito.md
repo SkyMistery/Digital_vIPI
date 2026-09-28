@@ -716,5 +716,47 @@
     vigore — carta MRVA ENRMVA/libb.mva, in vigore dal ciclo 2610»; «Pubblica comunque i dati nuovi» scrive la
     forzatura (il ciclo resta), l'avviso sparisce, zero errori. La prima stesura diceva «chartMRVA …»: etichetta
     senza spazio e «MRVA» ripetuto, corretta dopo averla vista a schermo.
+- ✅ **S27** lotto **L11 «Il resto», fetta B — lock, release e unioni** della revisione 3 (via del committente il
+  28-set). U-053, U-054, U-055, U-056, U-057, U-058, U-139, U-141, U-142, U-143, U-144, U-145, U-146, U-147.
+  **U-059** è U-051 e **U-140** è U-109, già chiusi in S11: niente da fare. Nessuna migrazione, `deploy/` no.
+  **Codice comune sì**: `Vipi.Application` (`IDocumentAdminRepository.ResolveDocumentIdAsync`,
+  `IEditingRepository.GetSectionCatalogPlaceAsync`, `EditingService`, `DocumentUnionService`, `AirportLockGuard`,
+  `ReleaseService`, `IFrozenSectionReader`, `AnteprimaDiRelease` nuovo, `AccReleaseView`,
+  `ResourceLockKeys.RichiedonoEditor`).
+  - **U-053** (l'anteprima `?as=rel:N` mostrava le derivate di oggi): nuovo `AnteprimaDiRelease`, un contesto
+    asincrono per chiamata che i loader aprono solo dopo che `GetPreviewAsync` ha autorizzato; dentro, il
+    lettore delle congelate legge lo snapshot di **quella** release per quel bersaglio. Aeroporto, vSOP militare
+    (anche radioassistenze e alternati, e ora al ciclo dell'anteprima), APP, vLOA e vIPI ACC. La vIPI ACC in
+    anteprima non aveva i blocchi e derivava tutto live: ora `AccReleaseView` porta blocchi e chiave. E
+    `ProgrammataAllineataAsync` confronta anche le derivate congelate (per identità di sezione, non per Id):
+    una TORA corretta dopo aver programmato riapre la riga «da ripubblicare».
+  - **U-054/U-139** (lingua dal pannello release): la guardia del lock risolve l'Id dalla chiave come il
+    repository (prima usciva su Id nullo e il repository scriveva); la vLOA cerca l'ACC anche dalla chiave (prima
+    «Documento inesistente», la lingua di una vLOA non si salvava mai).
+  - **U-055**: unire, togliere, spostare e sciogliere pretendono che nessun documento dell'unione sia in mano a
+    un altro (il proprio lock non ferma). Il pannello mostra già il conflitto.
+  - **U-056**: `AirportLockGuard` rinnova il lock a ogni scrittura dello scalo, come la prosa.
+  - **U-057/U-142**: ricerca e «Cosa è cambiato» senza il filtro `CurrentVersionId` (la vLOA 65 ne era fuori), e
+    il cancello pubblico chiude anche lo scalo nascosto e l'APP disattivato, come le pagine.
+  - **U-058**: la vLOA generata dalle ACC confinanti nasce in bozza (documento e versione).
+  - **U-141**: elenco pubblico dei vSOP militari e ponte civile↔militare guardano documento e scalo nascosti.
+  - **U-143**: «Scarta bozza» su un'unione salta il membro mai pubblicato (la sua bozza è l'unica versione) invece
+    di fermare il gesto. **U-145**: «Pubblica versione» e «Scarta bozza» su un'unione in una transazione
+    (`IUnitOfWork`), lock compresi.
+  - **U-144**: la porta dei gesti della pagina Versioni ha la sentinella in testa e la rete generale; il
+    `ReleasePanel` l'aveva già da U-017.
+  - **U-146**: commenti, tasto «Sblocca comunque» e Guida dicono la regola vera (ogni Editor, e resta nel
+    registro); `RichiedonoAdmin` → `RichiedonoEditor`.
+  - **U-147**: `DeleteSectionAsync` rifiuta la sezione di catalogo del profilo (del documento, o del blocco ACC).
+  - **Test**: `AnteprimaDiReleaseTests` (4), `MilitareNascostoTests` (3), unioni (+4), guardia admin (+2), lock
+    dello scalo (+1), ricerca/novità (+3), vLOA in bozza (+1), editing (+3), programmata (+1), pagina Versioni (2).
+    Tutti rossi sul codice di prima (sorgenti di `HEAD` rimessi al loro posto, tenuti solo il tipo nuovo e la firma
+    del costruttore), tranne le guardie dei casi che non devono cambiare. Suite intera verde, net8 e net10:
+    Application 3012 → **3016**, Infrastructure 1736 → **1754**, Ui 1779 → **1781**, il resto invariato.
+  - **Prova dal vivo** (copia del DB di sviluppo del 15-set, TORA della 17 di LIBC portata a 1999 nella copia):
+    l'anteprima della release 65 di LIBC mostra TORA **2000** (congelata), la bozza **1999**; l'anteprima della
+    release 37 della vIPI ACC LIBB mostra le frequenze dei blocchi, che prima derivava live. Guida con la regola
+    nuova; pagina Versioni con tre «Refresh» di fila senza cadute. Nel log solo IVAO irraggiungibile (voluto).
+    Le altre voci (unioni, lock, ricerca, ponte militare, scarta/pubblica in transazione) le provano i test.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

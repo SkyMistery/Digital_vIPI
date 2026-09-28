@@ -1243,6 +1243,9 @@
 
     private async Task Run(Func<Task> action, string ok)
     {
+        // 🔴 U-144 (revisione totale 3): la sentinella in testa, come ReleasePanel.Run (U-017). `disabled` spegne
+        // il tasto dopo un giro di rete, e un vero doppio clic arriva prima.
+        if (_busy) return;
         _busy = true; _status = _error = _errorTitle = null;
         // Anche i gesti passano dalla porta (T-039): stesso DbContext dello scope della pagina, e un gesto non
         // deve partire sopra il dettaglio che si sta leggendo.
@@ -1251,6 +1254,10 @@
         catch (EditConflictException ex) { _error = ex.Message; _errorTitle = L["Ver_LockedTitle"]; }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
         catch (InvalidOperationException ex) { _error = ex.Message; }
+        // 🔴 U-144: e la rete generale. Due pubblicazioni dello stesso bersaglio nello stesso istante urtano
+        // l'indice unico con una DbUpdateException, che non è di dominio: usciva dal gestore e abbatteva il
+        // circuito («Attempting to reconnect»). Il doppione lo ferma l'indice; qui si dice e si resta in piedi.
+        catch (Exception ex) { _error = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
     }
 

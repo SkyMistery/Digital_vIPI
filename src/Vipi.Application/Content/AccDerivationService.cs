@@ -11,10 +11,13 @@ namespace Vipi.Application.Content;
 /// <param name="Translations">Le traduzioni congelate in QUESTA release: se ci sono vincono sulla memoria viva.</param>
 /// <param name="LanguageLocked">Il documento si legge SEMPRE in <paramref name="Language"/>: niente traduzione
 /// (carta <c>docs/feature/2026-08-31-lingua-bloccata.md</c>).</param>
+/// <param name="Blocks">I blocchi dello snapshot con gli Id delle loro sezioni: con questi le derivate si leggono
+/// dalle congelate della release (U-053). Prima l'anteprima non ne aveva, e le derivate non si mostravano.</param>
+/// <param name="ReleaseKey">La chiave di release, per aprire <see cref="AnteprimaDiRelease"/> sul bersaglio giusto.</param>
 public sealed record AccReleaseView(
     AccVipiData Data, string AiracCycle,
     Language? Language = null, Dictionary<string, Dictionary<string, FrozenTranslation>>? Translations = null,
-    bool LanguageLocked = false);
+    bool LanguageLocked = false, IReadOnlyList<AccAssembledBlock>? Blocks = null, string? ReleaseKey = null);
 
 /// <summary>
 /// Use-case di authoring della vIPI ACC: documento a blocchi (Aerovia/CTR + gruppi APP). Le parti editoriali

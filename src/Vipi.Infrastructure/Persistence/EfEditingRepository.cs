@@ -904,6 +904,49 @@ public sealed class EfEditingRepository : IEditingRepository
         return section.Id;
     }
 
+    public async Task<(SectionProfile? Profilo, string Chiave)?> GetSectionCatalogPlaceAsync(
+        int sectionId, CancellationToken ct = default)
+    {
+        var s = await _db.DocumentSections.AsNoTracking().Where(x => x.Id == sectionId)
+            .Select(x => new { x.SectionKey, x.DocumentVersionId, DocId = x.DocumentVersion!.DocumentId })
+            .FirstOrDefaultAsync(ct);
+        if (s is null) return null;
+
+        // Il profilo come lo sceglie l'editor che la disegna: la famiglia del documento, e per la vIPI ACC il
+        // blocco (Aerovia o gruppo APP) sotto cui la sezione sta.
+        var d = await _db.Documents.AsNoTracking().Where(x => x.Id == s.DocId)
+            .Select(x => new
+            {
+                x.Type, x.Edition,
+                Civile = x.Airport != null,
+                Militare = x.MilAirport != null,
+                App = x.Sectors.Any(z => z.IsPrimary && z.Type == SectorType.App && z.ApproachKind == ApproachKind.Standalone),
+            })
+            .FirstAsync(ct);
+
+        SectionProfile? profilo = d.Type == DocumentType.Vloa ? SectionProfile.Vloa
+            : d.Edition == DocumentEdition.Military ? (d.Militare ? SectionProfile.AirportMil : null)
+            : d.Civile ? SectionProfile.Airport
+            : d.App ? SectionProfile.App
+            : null;
+
+        if (profilo is null && d.Type == DocumentType.Vipi && d.Edition == DocumentEdition.Civil)
+        {
+            var righe = await _db.DocumentSections.AsNoTracking().Where(x => x.DocumentVersionId == s.DocumentVersionId)
+                .Select(x => new { x.Id, x.ParentSectionId, x.SectionKey }).ToDictionaryAsync(x => x.Id, ct);
+            var radice = righe[sectionId];
+            for (var passi = 0; radice.ParentSectionId is int p && righe.TryGetValue(p, out var padre) && passi < 64; passi++)
+                radice = padre;
+            if (radice.Id != sectionId)
+                profilo = string.Equals(radice.SectionKey, SectionKeys.AccBloccoAerovia, StringComparison.OrdinalIgnoreCase)
+                    ? SectionProfile.AccAerovia
+                    : string.Equals(radice.SectionKey, SectionKeys.AccBloccoApp, StringComparison.OrdinalIgnoreCase)
+                        ? SectionProfile.AccAppBlock
+                        : null;
+        }
+        return (profilo, s.SectionKey);
+    }
+
     public async Task DeleteSectionAsync(int sectionId, CancellationToken ct = default)
     {
         var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct);

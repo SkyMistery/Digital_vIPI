@@ -1636,7 +1636,7 @@
   <data name="Lock_LockedByPrefix" xml:space="preserve"><value>In modifica da</value></data>
   <data name="Lock_AnotherEditor" xml:space="preserve"><value>un altro editor</value></data>
   <data name="Lock_LockedUntilSuffix" xml:space="preserve"><value> (fino alle {0})</value></data>
-  <data name="Lock_ForceTitle" xml:space="preserve"><value>Sblocca comunque e prendi il controllo (admin)</value></data>
+  <data name="Lock_ForceTitle" xml:space="preserve"><value>Sblocca comunque e prendi il controllo</value></data>
   <data name="Lock_ForceUnlock" xml:space="preserve"><value>Forza sblocco</value></data>
   <data name="Lock_ReadOnly" xml:space="preserve"><value>Sola lettura</value></data>
   <data name="Lock_StartEdit" xml:space="preserve"><value>Inizia modifica</value></data>

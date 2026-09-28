@@ -237,6 +237,8 @@ public sealed class DocumentUnionService : IDocumentUnionService
                 $"“{invitato.Title}” is already joined to other documents: detach it there first."));
 
         var unioneDellInvitante = await _repo.ByDocumentAsync(invitanteDocumentId, ct).ConfigureAwait(false);
+        await EsigiNessunLockAltruiAsync(unioneDellInvitante.Select(r => r.DocumentId)
+            .Append(invitanteDocumentId).Append(invitatoDocumentId), ct).ConfigureAwait(false);
         if (unioneDellInvitante.Count > 0)
         {
             var id = unioneDellInvitante[0].UnionId;
@@ -258,6 +260,8 @@ public sealed class DocumentUnionService : IDocumentUnionService
         var tutte = await _repo.ListAsync(ct).ConfigureAwait(false);
         if (tutte.FirstOrDefault(r => r.MemberId == memberId) is { } riga)
         {
+            await EsigiNessunLockAltruiAsync(tutte.Where(r => r.UnionId == riga.UnionId).Select(r => r.DocumentId), ct)
+                .ConfigureAwait(false);
             var membri = await FamiglieAsync(tutte.Where(r => r.UnionId == riga.UnionId).ToList(), ct).ConfigureAwait(false);
             if (SezioniComuni.Confrontabili(membri).Contains(riga.DocumentId))
                 rimostrate = await RimostraAsync(membri, ct).ConfigureAwait(false);
@@ -279,7 +283,9 @@ public sealed class DocumentUnionService : IDocumentUnionService
         // singola usciva monca — LIRS e LIRL avevano tutte le radici nascoste — e il prompt diceva «non si
         // perde niente». Se il lock di un documento manca, qui si ferma tutto: meglio un'unione ancora in piedi
         // che una pagina vuota.
-        var membri = await FamiglieAsync(await _repo.ByUnionAsync(unionId, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+        var righe = await _repo.ByUnionAsync(unionId, ct).ConfigureAwait(false);
+        await EsigiNessunLockAltruiAsync(righe.Select(r => r.DocumentId), ct).ConfigureAwait(false);
+        var membri = await FamiglieAsync(righe, ct).ConfigureAwait(false);
         var rimostrate = await RimostraAsync(membri, ct).ConfigureAwait(false);
 
         await _repo.DissolveAsync(unionId, ct).ConfigureAwait(false);
@@ -307,7 +313,39 @@ public sealed class DocumentUnionService : IDocumentUnionService
     public async Task SpostaAsync(int memberId, int delta, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
+        var tutte = await _repo.ListAsync(ct).ConfigureAwait(false);
+        if (tutte.FirstOrDefault(r => r.MemberId == memberId) is { } riga)
+            await EsigiNessunLockAltruiAsync(tutte.Where(r => r.UnionId == riga.UnionId).Select(r => r.DocumentId), ct)
+                .ConfigureAwait(false);
         await _repo.MoveAsync(memberId, delta, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Pretende che nessuno dei documenti toccati sia in mano a <b>un'altra</b> persona: il lock mio o libero,
+    /// come la scheda delle sezioni comuni.
+    ///
+    /// <para>🔴 U-055 (revisione totale 3): unire, togliere, spostare e sciogliere chiedevano solo il ruolo, e i
+    /// comandi si spegnevano soltanto nella pagina. Unire il vSOP che un collega sta scrivendo gli impediva di
+    /// pubblicare il suo — la pubblicazione di un'unione pretende i lock di tutti i membri — e sciogliere
+    /// un'unione mentre un altro la pubblicava gliela cambiava sotto le mani. Si guarda l'unione <b>intera</b>:
+    /// cambiarne i membri cambia che cosa pubblica ognuno di loro.</para>
+    ///
+    /// <para>Il lock scaduto non è un lock: <c>DescribeAsync</c> lo riporta già come libero.</para>
+    /// </summary>
+    private async Task EsigiNessunLockAltruiAsync(IEnumerable<int> documentIds, CancellationToken ct)
+    {
+        var ids = documentIds.Distinct().ToList();
+        if (ids.Count == 0) return;
+        var io = _authz.CurrentUserId ?? 0;
+        var descritti = await _docs.DescribeAsync(ids, ct).ConfigureAwait(false);
+        foreach (var id in ids)
+        {
+            if (!descritti.TryGetValue(id, out var d) || d.LockedByUserId is not int chi || chi == io) continue;
+            var nome = d.LockedByName ?? $"VID {chi}";
+            throw new EditConflictException(Lingua(
+                $"«{d.Title}» è in modifica da {nome} fino alle {d.LockExpiresUtc:HH:mm} UTC: l'unione si cambia quando ha finito.",
+                $"“{d.Title}” is being edited by {nome} until {d.LockExpiresUtc:HH:mm} UTC: the union can be changed once they are done."));
+        }
     }
 
     public async Task<IReadOnlyList<UnionCandidate>> CandidatiAsync(int documentId, CancellationToken ct = default)

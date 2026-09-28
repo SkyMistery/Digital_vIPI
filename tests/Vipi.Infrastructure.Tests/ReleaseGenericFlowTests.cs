@@ -253,7 +253,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     /// <param name="stati">Dove la pubblicazione lascia scritto com'è andata la riconciliazione. Null = come
     /// prima dell'8 settembre 2026, cioè un guasto che non lascia traccia da nessuna parte.</param>
     private (ReleaseService Servizio, DocumentImpactService Impatti, EfDocumentImpactRepository Repo) ConDeriva(
-        IImportStateStore? stati = null)
+        IImportStateStore? stati = null, IFrozenSectionProvider? congelate = null)
     {
         var impattiRepo = new EfDocumentImpactRepository(_db);
         var impatti = new DocumentImpactService(impattiRepo, new AllowAuthz());
@@ -266,7 +266,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
 
         svc = new ReleaseService(new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new AllowAuthz(),
             new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()),
+            new FrozenSectionRegistry(congelate is null ? Array.Empty<IFrozenSectionProvider>() : new[] { congelate }),
             new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)),
             Registry(), Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
@@ -371,6 +371,38 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         await AggiungiSezioneAllaBozzaAsync("Sezione arrivata dopo");
 
         Assert.Null(await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
+    }
+
+    /// <summary>
+    /// 🔴 U-053 (revisione totale 3): la firma della programmata contava i blocchi, e una derivata congelata
+    /// cambiata dopo aver programmato — una TORA, un minimo LVP — non cambia nessun conteggio. La programmata
+    /// continuava a coprire la riga «da ripubblicare» portando i valori vecchi.
+    /// </summary>
+    [Fact]
+    public async Task Una_Programmata_Con_Una_Derivata_Cambiata_Non_Copre_Piu()
+    {
+        var derivata = new DerivataFinta { Valore = "TORA 3000" };
+        var (svc, _, _) = ConDeriva(congelate: derivata);
+
+        await AddDraftAsync(2);
+        await svc.PublishAsync(FakeType, "fake-key", svc.NextCycle().Cycle, null);
+        Assert.NotNull(await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
+
+        derivata.Valore = "TORA 3100";
+
+        Assert.Null(await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
+    }
+
+    /// <summary>Una derivata congelata sulla prima sezione dello snapshot, col valore che il test decide.</summary>
+    private sealed class DerivataFinta : IFrozenSectionProvider
+    {
+        public string Valore { get; set; } = "";
+        public ReleaseTargetType Type => FakeType;
+        public Task<IReadOnlyDictionary<int, string>> CaptureFrozenAsync(string key, RawDocument doc, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>
+            {
+                [doc.Roots[0].Id] = System.Text.Json.JsonSerializer.Serialize(Valore),
+            });
     }
 
     // ---- E se la riconciliazione salta? (8 settembre 2026) ------------------------------------------

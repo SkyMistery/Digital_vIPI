@@ -193,7 +193,7 @@ public sealed class AccDocumentService : IAccDocumentService
         var blocks = AccDocumentAssembler.Assemble(raw);
         var data = new AccVipiData { AccCode = accCode, AccName = name, Blocks = blocks.Select(b => b.Block).ToList() };
         return new AccReleaseView(data, rel.ReleaseAiracCycle, ident?.Language ?? raw.Language, raw.Translations,
-            ident?.LanguageLocked ?? raw.LanguageLocked);
+            ident?.LanguageLocked ?? raw.LanguageLocked, blocks, rel.TargetKey);
     }
 
     // Snapshot release ACC = DocReleasePayload (ramo Document, doc 08e-acc): estrae il RawDocument congelato.

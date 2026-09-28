@@ -185,6 +185,25 @@ public class AirportLockGuardTests : IAsyncLifetime
         Assert.True(await IlLivelloDiProvaCeAsync());
     }
 
+    /// <summary>
+    /// 🔴 U-056 (revisione totale 3): chi lavora solo sulle tabelle dello scalo non allungava il lock, e lo
+    /// perdeva 30 minuti dopo la presa mentre salvava. Scrivere col lock lo rinnova, come la prosa.
+    /// </summary>
+    [Fact]
+    public async Task ColMioLock_LaScritturaRinnovaIlLock()
+    {
+        var doc = await ApriEditorAsync();
+        await LockA(doc, Io);
+        var d = await _db.Documents.FirstAsync(x => x.Id == doc);
+        d.LockExpiresUtc = DateTime.UtcNow.AddMinutes(2);
+        await _db.SaveChangesAsync();
+
+        await Servizio(Io).SaveTransitionLevelsAsync("LIPZ", UnLivello());
+
+        var scade = (await _db.Documents.AsNoTracking().FirstAsync(x => x.Id == doc)).LockExpiresUtc;
+        Assert.True(scade > DateTime.UtcNow.AddMinutes(25), $"lock non rinnovato: scade {scade:HH:mm:ss}");
+    }
+
     /// <summary>⚠️ Un lock SCADUTO non è un lock — ma non è nemmeno il mio: chi ha lasciato scadere il suo
     /// deve ripremere «Modifica», che è ciò che l'editor fa da sé riacquisendolo.</summary>
     [Fact]

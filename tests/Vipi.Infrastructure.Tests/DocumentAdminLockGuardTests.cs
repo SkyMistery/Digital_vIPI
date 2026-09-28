@@ -132,6 +132,45 @@ public class DocumentAdminLockGuardTests : IAsyncLifetime
         await Assert.ThrowsAsync<EditNotAllowedException>(() => servizio.DeleteAsync(_doc));
     }
 
+    /// <summary>
+    /// U-139 (revisione 3): il pannello di rilascio passa bersaglio e chiave, <b>senza</b> l'Id. La guardia
+    /// del lock usciva su «Id nullo» e il repository poi risolveva l'Id dalla chiave e scriveva: lingua
+    /// bloccata in inglese mentre un collega scriveva la vIPI in italiano.
+    /// </summary>
+    [Fact]
+    public async Task Lingua_DalPannelloSenzaId_RispettaIlLockAltrui()
+    {
+        await LockA(Altri);
+        var dalPannello = new ManagedDocRef(ReleaseTargetType.AccVipi, "LIRR|LIRR_ROOT_CTR", null);
+
+        await Assert.ThrowsAsync<EditConflictException>(
+            () => Servizio(Io).SetLanguageAsync(dalPannello, Language.En, locked: true));
+        var d = await RileggiAsync();
+        Assert.Equal(Language.It, d.Language);
+        Assert.False(d.LanguageLocked);
+    }
+
+    /// <summary>
+    /// U-054 (revisione 3): per la vLOA l'ACC si cercava con l'Id del riferimento, che dal pannello è nullo:
+    /// chiave vuota, «Documento inesistente», e la lingua di una vLOA non si salvava mai.
+    /// </summary>
+    [Fact]
+    public async Task Lingua_DellaVloaDalPannello_SiSalva()
+    {
+        var home = await _db.Sectors.FirstAsync();
+        var vloa = new Document { Type = DocumentType.Vloa, Title = "vLOA LIRR↔LMMM", Language = Language.En, Status = DocumentStatus.Published, LastUpdatedAiracCycle = "2606" };
+        vloa.Parties.Add(new DocumentParty { Document = vloa, Sector = home, Role = PartyRole.Home });
+        _db.Documents.Add(vloa);
+        await _db.SaveChangesAsync();
+
+        await Servizio(Io).SetLanguageAsync(new ManagedDocRef(ReleaseTargetType.Vloa, vloa.Id.ToString(), null),
+            Language.It, locked: true);
+
+        var d = await _db.Documents.AsNoTracking().FirstAsync(x => x.Id == vloa.Id);
+        Assert.Equal(Language.It, d.Language);
+        Assert.True(d.LanguageLocked);
+    }
+
     /// <summary>Autorizzazione finta: il gate ACC è provato altrove, qui interessa solo il lock.</summary>
     private sealed class AuthzFinta : IEditAuthorizationService
     {

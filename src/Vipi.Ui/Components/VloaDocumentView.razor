@@ -287,7 +287,7 @@
     /// <b>del circuito</b>, non da <b>sé stessi</b>: è il difetto che il 2 settembre 2026 ha abbattuto tre
     /// circuiti in produzione da <c>AttachmentBlockEditor</c>, dove il commento lungo lo racconta per esteso.
     /// </summary>
-    private (int DocId, bool UseFrozen)? _derivato;
+    private (int DocId, bool UseFrozen, int? ReleaseId)? _derivato;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -296,12 +296,16 @@
         _canEdit = !string.IsNullOrWhiteSpace(HomeAcc) && Authz.IsEditor;
 
         if (DocId is not int docId) return;
-        var ora = (docId, UseFrozen);
+        var ora = (docId, UseFrozen, ReleaseId);
         if (_derivato == ora) return;
         _derivato = ora;
 
-        // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
-        var d = await VloaView.ResolveForViewAsync(docId, UseFrozen);
+        // Derivate: frozen dalla release effettiva nella vista pubblica, da QUELLA release in anteprima di release
+        // (U-053), live in bozza (doc 10 §3d).
+        VloaViewDerived d;
+        using (ReleaseId is int anteprima && !IsDraft
+                   ? AnteprimaDiRelease.Apri(ReleaseTargetType.Vloa, docId.ToString(), anteprima) : null)
+            d = await VloaView.ResolveForViewAsync(docId, UseFrozen);
         _aor = d.Aor;
         _freq = d.Freq;
         _coord = d.Coord;

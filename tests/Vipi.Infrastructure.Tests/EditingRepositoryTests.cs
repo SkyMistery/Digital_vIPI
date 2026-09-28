@@ -823,6 +823,89 @@ public class EditingRepositoryTests : IAsyncLifetime
         Assert.True((await svc.InspectLockAsync(docA)).IsMine);       // e il nostro sul primo, che avevamo già
     }
 
+    /// <summary>
+    /// 🔴 U-143 (revisione totale 3): un membro MAI PUBBLICATO ha per unica versione la bozza, che non si scarta.
+    /// Fermava lo «Scarta» del documento che si aveva in mano, con un messaggio che sembrava parlare di quello.
+    /// Ora si scarta la bozza scartabile e l'altro membro resta com'è.
+    /// </summary>
+    [Fact]
+    public async Task Scartare_con_un_membro_mai_pubblicato_scarta_la_mia_e_lascia_la_sua()
+    {
+        var docA = await AccDocIdAsync();
+        var nuovo = await _repo.CreateDocumentAsync(DocumentType.Vipi, "Mai pubblicato", Language.It,
+            Array.Empty<int>(), null, null, authorUserId: 1);
+        var unica = await _db.DocumentVersions.Where(v => v.DocumentId == nuovo).Select(v => v.Id).SingleAsync();
+        await new EfDocumentUnionRepository(_db).CreateAsync(docA, nuovo, createdByUserId: 111);
+        var svc = ServizioConUnioni(new AllowAuthz());
+        var bozzaA = await svc.CreateDraftAsync(docA);
+
+        await svc.DiscardDraftAsync(bozzaA);
+
+        _db.ChangeTracker.Clear();
+        Assert.False(await _db.DocumentVersions.AnyAsync(v => v.Id == bozzaA));
+        Assert.True(await _db.DocumentVersions.AnyAsync(v => v.Id == unica && v.Status == DocumentStatus.Draft));
+    }
+
+    /// <summary>
+    /// 🔴 U-145 (revisione totale 3): «Pubblica versione» su un'unione scriveva un membro per volta, senza
+    /// transazione. Un guasto sul secondo lasciava il primo pubblicato da solo, col lock già lasciato. Ora è
+    /// tutto o niente, come la pubblicazione di una release.
+    /// </summary>
+    [Fact]
+    public async Task Un_guasto_sul_secondo_membro_non_lascia_pubblicato_il_primo()
+    {
+        var (docA, bozzaA, _, bozzaB, _) = await UnitiConBozzeAsync();
+        var repo = System.Reflection.DispatchProxy.Create<Vipi.Application.Abstractions.IEditingRepository, RepoCheCadeAllaSecondaPubblicazione>();
+        ((RepoCheCadeAllaSecondaPubblicazione)(object)repo).Vero = _repo;
+        var svc = new EditingService(repo, new AllowAuthz(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
+            new EfDocumentUnionRepository(_db), new EfUnitOfWork(_db));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.PublishAsync(bozzaA, note: null));
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal(DocumentStatus.Draft, (await _db.DocumentVersions.SingleAsync(v => v.Id == bozzaA)).Status);
+        Assert.Equal(DocumentStatus.Draft, (await _db.DocumentVersions.SingleAsync(v => v.Id == bozzaB)).Status);
+        Assert.True((await svc.InspectLockAsync(docA)).IsMine);   // il lock non si è mollato a metà
+    }
+
+    /// <summary>
+    /// 🔴 U-147 (revisione totale 3): la guardia delle sezioni di catalogo stava solo nel tasto (IsMandatory degli
+    /// editor). Il servizio cancellava qualunque sezione gli si passasse.
+    /// </summary>
+    [Fact]
+    public async Task Una_sezione_di_catalogo_non_si_elimina_una_libera_si()
+    {
+        var vloa = await _db.Documents.Where(d => d.Type == DocumentType.Vloa).Select(d => d.Id).FirstAsync();
+        var svc = Servizio();
+        var bozza = await svc.CreateDraftAsync(vloa);
+        var chiavi = await _db.DocumentSections.Where(s => s.DocumentVersionId == bozza)
+            .Select(s => new { s.Id, s.SectionKey }).ToListAsync();
+        var diCatalogo = chiavi.First(s => SectionCatalog.IsFixed(SectionProfile.Vloa, s.SectionKey)).Id;
+        var libera = await svc.AddSectionAsync(bozza, null, "Note mie", BlockSection.Other);
+
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => svc.DeleteSectionAsync(diCatalogo));
+        await svc.DeleteSectionAsync(libera);
+
+        Assert.True(await _db.DocumentSections.AnyAsync(s => s.Id == diCatalogo));
+        Assert.False(await _db.DocumentSections.AnyAsync(s => s.Id == libera));
+    }
+
+    /// <summary>Il repository vero, tranne la seconda <c>PublishAsync</c>: un guasto del database a metà gesto.</summary>
+    public class RepoCheCadeAllaSecondaPubblicazione : System.Reflection.DispatchProxy
+    {
+        public Vipi.Application.Abstractions.IEditingRepository Vero { get; set; } = default!;
+        private int _pubblicazioni;
+
+        protected override object? Invoke(System.Reflection.MethodInfo? m, object?[]? a)
+        {
+            if (m!.Name == nameof(Vipi.Application.Abstractions.IEditingRepository.PublishAsync) && ++_pubblicazioni == 2)
+                return Task.FromException(new InvalidOperationException("guasto del database"));
+            try { return m.Invoke(Vero, a); }
+            catch (System.Reflection.TargetInvocationException ex) { throw ex.InnerException!; }
+        }
+    }
+
     /// <summary>Senza unione (o senza il repository delle unioni) il documento si comporta da solo: la regola di prima.</summary>
     [Fact]
     public async Task Un_documento_non_unito_pubblica_solo_la_sua_bozza()

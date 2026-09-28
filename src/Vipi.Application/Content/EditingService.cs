@@ -21,14 +21,29 @@ public sealed class EditingService : IEditingService
     /// servizio a mano non devono conoscere le unioni.</summary>
     private readonly IDocumentUnionRepository? _unioni;
 
+    /// <summary>La transazione di «Pubblica versione» e «Scarta bozza» su un'unione (U-145). Facoltativa come le
+    /// unioni: senza, i membri si scrivono uno dopo l'altro come prima.</summary>
+    private readonly IUnitOfWork? _uow;
+
     public EditingService(IEditingRepository repo, IEditAuthorizationService authz, IOptions<ReleaseRetentionOptions> retention,
-        IDocumentUnionRepository? unioni = null)
+        IDocumentUnionRepository? unioni = null, IUnitOfWork? uow = null)
     {
         _repo = repo;
         _authz = authz;
         _retention = retention.Value;
         _unioni = unioni;
+        _uow = uow;
     }
+
+    /// <summary>
+    /// Le scritture di un gesto su più membri di un'unione: tutte o nessuna.
+    /// <para>🔴 U-145 (revisione totale 3): i cancelli venivano prima, poi un SaveChanges per membro senza
+    /// transazione, mollando i lock uno per uno. Un guasto sul secondo membro lasciava la vIPI pubblicata e il
+    /// vSOP in bozza, coi lock già lasciati. <see cref="ReleaseService"/> fa lo stesso gesto dentro
+    /// <see cref="IUnitOfWork"/>: la stessa regola, scritta nello stesso modo.</para>
+    /// </summary>
+    private Task TuttiONessunoAsync(bool piuDiUno, Func<CancellationToken, Task> scritture, CancellationToken ct) =>
+        piuDiUno && _uow is not null ? _uow.ExecuteInTransactionAsync(scritture, ct) : scritture(ct);
 
     // Lista dei documenti = metadati per il picker dell'editor (non sensibile). Le aperture/modifiche sono ACC-gated.
     public Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default) =>
@@ -256,6 +271,16 @@ public sealed class EditingService : IEditingService
     {
         var docId = await AuthorizeSectionAsync(sectionId, ct);
         await EnsureLockAsync(docId, ct);
+
+        // 🔴 U-147 (revisione totale 3): una sezione di catalogo non si elimina. La guardia stava solo nel tasto
+        // (IsMandatory degli editor): un tasto spento non è una guardia. Stessa domanda degli editor — la chiave
+        // è fissa nel profilo del documento, o del blocco ACC in cui sta.
+        if (await _repo.GetSectionCatalogPlaceAsync(sectionId, ct) is { Profilo: SectionProfile p, Chiave: var chiave }
+            && SectionCatalog.IsFixed(p, chiave))
+            throw new ValidationException(Lingua(
+                "Questa sezione è del catalogo del documento: non si elimina.",
+                "This section belongs to the document's catalogue: it cannot be deleted."));
+
         await _repo.DeleteSectionAsync(sectionId, ct);
     }
 
@@ -302,8 +327,11 @@ public sealed class EditingService : IEditingService
         var altri = await BozzeDegliAltriMembriAsync(docId, ct);
         await PrendiLockDegliAltriAsync(altri.Select(a => a.DocumentId), ct);
 
-        await PubblicaUnaAsync(docId, versionId, note, ct);
-        foreach (var a in altri) await PubblicaUnaAsync(a.DocumentId, a.Bozza.Id, note, ct);
+        await TuttiONessunoAsync(altri.Count > 0, async t =>
+        {
+            await PubblicaUnaAsync(docId, versionId, note, t);
+            foreach (var a in altri) await PubblicaUnaAsync(a.DocumentId, a.Bozza.Id, note, t);
+        }, ct);
     }
 
     private async Task PubblicaUnaAsync(int docId, int versionId, string? note, CancellationToken ct)
@@ -327,14 +355,28 @@ public sealed class EditingService : IEditingService
         // 🔴 Come la pubblicazione: su un documento UNITO si scarta la bozza di TUTTI i membri — «Modifica» le apre
         // insieme, e scartarne una sola lasciava l'unione metà in bozza e metà no. Tutti i controlli PRIMA di
         // cancellare qualcosa: una bozza che non si può scartare ferma il gesto intero, non a metà.
-        var altri = await BozzeDegliAltriMembriAsync(docId, ct);
+        //
+        // 🔴 U-143 (revisione totale 3): tranne il membro MAI PUBBLICATO. La sua bozza è l'unica versione che ha, e
+        // non si scarta — ma non è una ragione per non scartare quella del documento che si ha in mano: fermava
+        // il gesto intero con un messaggio che sembrava parlare del documento sbagliato. Quel membro resta com'è,
+        // in bozza, che è l'unico stato che ha; il suo lock non si prende.
+        var altri = (await BozzeDegliAltriMembriAsync(docId, ct))
+            .Where(a => HaDoveTornare(a.Versioni, a.Bozza.Id)).ToList();
         foreach (var a in altri) ControllaScartabile(a.Versioni, a.Bozza.Id);
         await PrendiLockDegliAltriAsync(altri.Select(a => a.DocumentId), ct);
 
-        var numero = await ScartaUnaAsync(docId, versionId, ct);
-        foreach (var a in altri) await ScartaUnaAsync(a.DocumentId, a.Bozza.Id, ct);
+        var numero = 0;
+        await TuttiONessunoAsync(altri.Count > 0, async t =>
+        {
+            numero = await ScartaUnaAsync(docId, versionId, t);
+            foreach (var a in altri) await ScartaUnaAsync(a.DocumentId, a.Bozza.Id, t);
+        }, ct);
         return numero;
     }
+
+    /// <summary>C'è una versione pubblicata o archiviata a cui tornare, scartando la bozza.</summary>
+    private static bool HaDoveTornare(IReadOnlyList<VersionInfo> versions, int versionId) =>
+        versions.Any(v => v.Id != versionId && v.Status is DocumentStatus.Published or DocumentStatus.Archived);
 
     private async Task<int> ScartaUnaAsync(int docId, int versionId, CancellationToken ct)
     {
@@ -358,7 +400,7 @@ public sealed class EditingService : IEditingService
         // Serve qualcosa a cui tornare. Su un documento mai pubblicato la bozza È il documento: scartarla
         // lascerebbe un guscio senza contenuto e senza vista pubblica — chi vuole disfarsene elimini il
         // documento, che è un'altra azione con altre conseguenze.
-        if (!versions.Any(v => v.Id != versionId && v.Status is DocumentStatus.Published or DocumentStatus.Archived))
+        if (!HaDoveTornare(versions, versionId))
             throw new ValidationException(Lingua(
                 "Questa bozza è l'unica versione del documento: scartandola non resterebbe nulla da mostrare. " +
                 "Pubblicala, oppure elimina il documento.",

@@ -296,6 +296,71 @@ public class SearchAndChangesTests : IAsyncLifetime
             r => r.DocTitle.Contains("Pisa"));
     }
 
+    /// <summary>
+    /// 🔴 U-057 (revisione totale 3): un documento in vigore che non ha mai avuto una «Pubblica versione» — la
+    /// vLOA 65 in produzione, o uno pubblicato solo con release programmata — ha CurrentVersionId nullo. Il
+    /// contenuto viene dallo snapshot della release, ma il filtro su CurrentVersionId lo scartava prima.
+    /// </summary>
+    [Fact]
+    public async Task Un_documento_in_vigore_senza_versione_corrente_si_trova_e_si_elenca()
+    {
+        await SeedPublishedAppDocumentAsync();
+        var doc = await _db.Documents.FirstAsync(d => d.Title.Contains("Pisa"));
+        doc.CurrentVersionId = null;
+        await _db.SaveChangesAsync();
+
+        Assert.NotEmpty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
+        Assert.Contains(await _changes.ListChangedAsync(new AiracService().GetCycle(DateTime.UtcNow)),
+            r => r.DocTitle.Contains("Pisa"));
+    }
+
+    /// <summary>
+    /// 🔴 U-142 (revisione totale 3): l'APP che la proiezione disattiva (nascosto o sparito dalla sorgente) chiude
+    /// la sua pagina, e il cancello di ricerca e novità non lo guardava: link a «non disponibile».
+    /// </summary>
+    [Fact]
+    public async Task Un_APP_disattivato_sparisce_da_ricerca_e_novita()
+    {
+        await SeedPublishedAppDocumentAsync();
+        var app = await _db.Sectors.FirstAsync(s => s.Callsign == "LIRP_APP");
+        app.IsActive = false;
+        await _db.SaveChangesAsync();
+
+        Assert.Empty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
+        Assert.DoesNotContain(await _changes.ListChangedAsync(new AiracService().GetCycle(DateTime.UtcNow)),
+            r => r.DocTitle.Contains("Pisa"));
+    }
+
+    /// <summary>🔴 U-142: lo stesso per lo scalo nascosto dall'admin, che chiude la sua vIPI.</summary>
+    [Fact]
+    public async Task Uno_scalo_nascosto_sparisce_da_ricerca_e_novita()
+    {
+        // Il seme lega la vIPI di Fiumicino alla torre (modello di prima del 25 agosto): qui la si lega allo scalo,
+        // come fa oggi l'editor, perché la descriva il descrittore dell'aeroporto.
+        var lirf = await _db.Airports.FirstAsync(a => a.Icao == "LIRF");
+        var docId = await _db.Documents.Where(d => d.Title.StartsWith("vIPI — LIRF")).Select(d => d.Id).FirstAsync();
+        lirf.DocumentId = docId;
+        await _db.SaveChangesAsync();
+        var versione = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId).FirstAsync();
+        var sezione = await _db.DocumentSections.FirstAsync(s => s.DocumentVersionId == versione);
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = sezione.DocumentVersionId, SectionId = sezione.Id, Order = 9000,
+            Format = Vipi.Domain.BlockFormat.Prose, Body = "Parola dello scalo: fiumicinotoken.",
+        });
+        await _db.SaveChangesAsync();
+        await PublishAllAsync();
+        Assert.NotEmpty(await _search.SearchAsync("fiumicinotoken", SearchScope.All, 50));
+        var titolo = (await _db.Documents.FirstAsync(d => d.Id == docId)).Title;
+
+        lirf.IsHidden = true;
+        await _db.SaveChangesAsync();
+
+        Assert.Empty(await _search.SearchAsync("fiumicinotoken", SearchScope.All, 50));
+        Assert.DoesNotContain(await _changes.ListChangedAsync(new AiracService().GetCycle(DateTime.UtcNow)),
+            r => r.DocTitle == titolo);
+    }
+
     [Fact]
     public async Task A_document_without_an_effective_release_is_not_indexed()
     {

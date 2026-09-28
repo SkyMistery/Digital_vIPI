@@ -376,7 +376,11 @@ public sealed class EfNeighbourRepository : INeighbourRepository
             return already;
         }
 
-        // 5) Crea il Document vLOA (skeleton pubblicato, contenuto editabile poi dal lato Home).
+        // 5) Crea il Document vLOA in BOZZA (scheletro col testo segnaposto, da scrivere dal lato Home).
+        // 🔴 U-058 (revisione totale 3): nasceva «Published» — documento e versione — senza release e senza che
+        // nessuno la pubblicasse. Era l'ingresso esatto del backfill d'avvio, che al primo riavvio le dava una
+        // release in vigore firmata «sistema»: il pubblico ha letto il segnaposto della vLOA 65 LIBB↔LGGG.
+        // Come ogni altra nascita (DocumentBirth), la pubblica chi preme «Pubblica».
         var now = DateTime.UtcNow;
         var cycle = _airac.GetCycle(now);
         var doc = new Document
@@ -384,13 +388,13 @@ public sealed class EfNeighbourRepository : INeighbourRepository
             Type = DocumentType.Vloa,
             Title = $"vLOA — {cand.HomeAccCode} ↔ {fCode}",
             Language = Language.En,
-            Status = DocumentStatus.Published,
+            Status = DocumentStatus.Draft,
             LastUpdatedUtc = now,
             LastUpdatedAiracCycle = cycle,
         };
         var ver = new DocumentVersion
         {
-            Document = doc, VersionNumber = 1, Status = DocumentStatus.Published,
+            Document = doc, VersionNumber = 1, Status = DocumentStatus.Draft,
             CreatedByUserId = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Generata da coppia ACC confinante",
         };
         doc.Versions.Add(ver);

@@ -119,6 +119,9 @@ public sealed class AppMemberLoader
                 {
                     relCycle = pv.AiracCycle;
                     view = await _viewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended);
+                    // 🔴 U-053 (revisione totale 3): le derivate dell'anteprima sono le congelate di QUESTA release
+                    // (l'apertura è sotto), non quelle di oggi.
+                    useFrozen = true;
                 }
                 else { mode = default; (view, useFrozen) = await PubblicaAsync(app); }
                 break;
@@ -127,6 +130,8 @@ public sealed class AppMemberLoader
                 break;
         }
         if (view is null) return null;
+        using var congelateDellaRelease = mode.Kind == PreviewKind.Release
+            ? AnteprimaDiRelease.Apri(ReleaseTargetType.App, app, mode.ReleaseId) : null;
 
         // ---- In che lingua si legge QUESTO documento (carta 2026-08-31-lingua-bloccata.md §3-4) ---------
         // ⚠️ SUBITO, appena si sa qual è il documento, e non in fondo insieme alla traduzione: se è bloccato
@@ -137,7 +142,8 @@ public sealed class AppMemberLoader
                                                  fissaLaPagina: fissaLaPagina);
         var bloccata = view.LanguageLocked ? lettore : null;
 
-        // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
+        // Derivate: frozen dalla release effettiva nella vista pubblica, da quella release in anteprima di release
+        // (U-053), live in bozza (doc 10 §3d).
         // Il documento mostrato viaggia col resolver: la tabella «Configurazioni» si deriva dalle configurazioni
         // di QUESTA versione, non da quella di lavoro.
         var derived = await _appView.ResolveForViewAsync(app, view, useFrozen, ct);

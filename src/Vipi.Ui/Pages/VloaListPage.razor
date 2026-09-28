@@ -168,7 +168,9 @@ else
                     break;
                 case PreviewKind.Release:
                     var pv = await Releases.GetPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Vloa, row.DocId.ToString());
-                    if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
+                    // 🔴 U-053 (revisione totale 3): derivate congelate di QUESTA release (le legge VloaDocumentView
+                    // dentro l'anteprima), non quelle di oggi.
+                    if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _useFrozen = true; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
                     else { _mode = default; await LoadPublicAsync(row.DocId); }
                     break;
                 default:

@@ -135,7 +135,9 @@ public interface IReleaseService
     /// «diversa» una programmata identica.</para>
     ///
     /// <para>⚠️ Se la bozza cambia <i>dopo</i> aver programmato, le firme tornano a divergere e la riga
-    /// riappare — che è giusto: quella programmata porta un testo che non è più quello che si vuole.</para>
+    /// riappare — che è giusto: quella programmata porta un testo che non è più quello che si vuole. Lo stesso se
+    /// cambiano le <b>derivate congelate</b> (una TORA, un minimo LVP): dal 28 settembre 2026 (U-053) il
+    /// confronto guarda anche quelle, che nessun conteggio di blocchi vede.</para>
     /// </summary>
     Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 
@@ -648,7 +650,12 @@ public sealed class ReleaseService : IReleaseService
             var oggiJson = await BuildSnapshotJsonAsync(type, key, rel.ReleaseAiracCycle, ct);
             if (oggiJson is null) continue;
 
-            if (StesseFirme(Signature(oggiJson), Signature(rel.PayloadJson))) return rel.ReleaseAiracCycle;
+            // 🔴 U-053 (revisione totale 3): e le DERIVATE congelate. La firma editoriale conta i blocchi, e una
+            // TORA o un minimo LVP corretti dopo aver programmato non cambiano nessun conteggio: la programmata
+            // copriva ancora la riga «da ripubblicare» mentre portava i valori vecchi.
+            if (StesseFirme(Signature(oggiJson), Signature(rel.PayloadJson))
+                && StesseCongelate(FirmaCongelate(oggiJson), FirmaCongelate(rel.PayloadJson)))
+                return rel.ReleaseAiracCycle;
         }
         return null;
     }
@@ -709,6 +716,28 @@ public sealed class ReleaseService : IReleaseService
     /// <para>Per titolo restano le sezioni LIBERE (<c>custom:…</c>), e le chiavi ripetute fra sorelle
     /// (<c>appgroup</c> nella vIPI ACC, lo storico <c>custom</c> nudo): lì la chiave non dice quale sezione è.</para>
     /// </summary>
+    /// <summary>
+    /// Le derivate congelate dello snapshot, per identità di sezione — la stessa della firma editoriale: chiave di
+    /// catalogo, o percorso di titoli. ⚠️ Non per Id: gli Id sono quelli della versione di lavoro al momento della
+    /// cattura, e una «Pubblica versione» fra la programmazione e oggi li cambia senza che cambi niente.
+    /// </summary>
+    private static Dictionary<string, string> FirmaCongelate(string payloadJson)
+    {
+        var firma = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var p = JsonSerializer.Deserialize<DocReleasePayload>(payloadJson);
+            if (p?.Doc?.Roots is not null && p.FrozenSections is { Count: > 0 } congelate)
+                FlattenSections(p.Doc.Roots, "", "", new Dictionary<string, Voce>(StringComparer.OrdinalIgnoreCase),
+                    (id, s) => { if (congelate.TryGetValue(s.Id, out var json)) firma[id] = json; });
+        }
+        catch (JsonException) { }
+        return firma;
+    }
+
+    private static bool StesseCongelate(Dictionary<string, string> a, Dictionary<string, string> b) =>
+        a.Count == b.Count && a.All(kv => b.TryGetValue(kv.Key, out var v) && string.Equals(v, kv.Value, StringComparison.Ordinal));
+
     private static Dictionary<string, Voce> Signature(string payloadJson)
     {
         var sig = new Dictionary<string, Voce>(StringComparer.OrdinalIgnoreCase);
@@ -722,7 +751,7 @@ public sealed class ReleaseService : IReleaseService
     }
 
     private static void FlattenSections(IReadOnlyList<RawSection> sections, string idPrefix, string labelPrefix,
-        Dictionary<string, Voce> sig)
+        Dictionary<string, Voce> sig, Action<string, RawSection>? ogni = null)
     {
         var ripetute = sections.GroupBy(s => s.SectionKey ?? "", StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -735,7 +764,8 @@ public sealed class ReleaseService : IReleaseService
             var idPath = idPrefix.Length == 0 ? id : $"{idPrefix} / {id}";
             var label = labelPrefix.Length == 0 ? s.Title : $"{labelPrefix} / {s.Title}";
             sig[idPath] = new Voce(label, s.Blocks.Count);
-            if (s.Children.Count > 0) FlattenSections(s.Children, idPath, label, sig);
+            ogni?.Invoke(idPath, s);
+            if (s.Children.Count > 0) FlattenSections(s.Children, idPath, label, sig, ogni);
         }
     }
 
