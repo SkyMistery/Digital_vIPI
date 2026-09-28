@@ -90,9 +90,9 @@ public class StartupMaintenanceTests
         Assert.Contains(report.Findings, f => f.Entity.Contains("promozioni", StringComparison.OrdinalIgnoreCase));
     }
 
-    [Fact]
-    public void Un_avvio_intero_non_lascia_segnalazioni()
-        => Assert.Empty(new StartupMaintenanceReport().Findings);
+    // 🔴 U-231 (revisione totale 3): qui c'era «Un_avvio_intero_non_lascia_segnalazioni», che asseriva su un
+    // report nuovo e vuoto — non poteva fallire, e il nome prometteva il contrario. La prova vera sta ora
+    // nell'avvio intero: SmokeTests.L_avvio_vero_non_lascia_segnalazioni_di_manutenzione (Vipi.E2E.Tests).
 
     /// <summary>
     /// Il messaggio deve dire che la passata è idempotente e che un riavvio la rifà: è l'informazione che

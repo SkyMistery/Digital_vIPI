@@ -795,7 +795,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         const string vfrKey = "vfr";
 
         // Gli stessi documenti che AddMissingCatalogSections riconosce come APP: settore primario APP
-        // standalone. ⚠️ Non la vIPI ACC — il blocco APP remotizzato tiene il suo VFR come radice del blocco.
+        // standalone. ⚠️ Qui solo loro: i gruppi APP delle vIPI ACC li sposta RiparentaVfrDeiBlocchiAppAccAsync, in
+        // fondo a questo stesso passo (dal 21 settembre 2026; U-172 della revisione 3 — il commento diceva che la
+        // vIPI ACC teneva il suo VFR come radice del blocco, e due righe sotto lo si spostava).
         var docs = await _db.Documents
             .Where(d => d.Type != Vipi.Domain.DocumentType.Vloa
                         && d.Sectors.Any(x => x.IsPrimary && x.Type == SectorType.App

@@ -1281,5 +1281,44 @@
     d'unità), il 3D di un'ATZ in AGL (test sulla proiezione e sul risolutore). ⚠️ In produzione, dopo il
     pacchetto: i giorni aeroporto rimessi in coda li riprende il consolidamento notturno un blocco alla volta,
     dal più recente — l'arretrato si svuota in più notti.
+- ✅ **S34** lotto **L11 «Il resto», fetta H — carte e commenti falsi** della revisione 3 (via del committente il
+  28-set; stesso ramo, un unico caricamento). Il registro non assegna le voci alle fette: smistate con due agenti in
+  sola lettura **tutte le 52 aperte** sul codice di `4532ba78`. **Già chiuse sotto altri numeri**: U-067 (= U-077,
+  S32), U-068 (= U-076, S32), U-069 (= U-108, S12; resta un catch mancante in `ApriAsync`), U-182 (= U-019, S28),
+  U-244 (= U-137, S32), U-250 (S10, il timbro conta già il traffico). **In parte**: U-115 (da U-103), U-176 (da
+  U-154). **I** (migrazioni all'avvio): U-096, U-097, U-100. **Altro**, che non sta in nessuna fetta: 34 voci —
+  scelta del committente, **fette nuove J…M** dopo I (J editor documenti, K pagine admin, L JS e pubblico,
+  M identità e il resto).
+  - **Scelte del committente** (28-set): U-112 la guardia dell'identità di sviluppo diventa **una guardia vera**;
+    U-122 **Render non si usa più**.
+  - **Codice e commenti** (**codice comune** `Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Hosting`, `Vipi.Host`):
+    **U-191** (`ChangeKind`/`_kindEpoch` in Trasferimenti descrivevano una tendina del tipo che non esiste: nessun
+    markup, nessun chiamante) → tolti. **U-172** (il commento della riconciliazione del VFR diceva «non la vIPI
+    ACC» e due righe sotto la si trattava) → dice il vero. **U-247** («Sposta in…» aveva il tetto di profondità 3,
+    mentre `DocumentSection.MaxDepth` è 5 dal 16-set e il repository accetta fino a lì; e il commento diceva
+    «= MaxDepth») → il default è `DocumentSection.MaxDepth`. **U-235** (`Program.cs`: il filtro guardava solo il
+    nome `StopTheHostException`, e il commento lo attribuiva a WebApplicationFactory, che da .NET 7 non lancia
+    niente) → `HostAbortedException` (la lancia `dotnet ef`), il nome vecchio come ripiego, commento vero.
+    **U-112** (nel Vipi.Host l'identità di sviluppo nasce solo in Development, quindi la guardia «dev identity
+    fuori da Development» non scattava mai) → rifiuta anche l'identità di sviluppo su un indirizzo non loopback
+    (`ASPNETCORE_URLS`/`--urls`) o sul MySQL. ⚠️ Non guarda gli endpoint scritti in `Kestrel:Endpoints`.
+    **U-231** (`Un_avvio_intero_non_lascia_segnalazioni` asseriva su un report nuovo e vuoto) → tolto; al suo
+    posto un E2E sull'avvio vero, `SmokeTests.L_avvio_vero_non_lascia_segnalazioni_di_manutenzione`, provato
+    rosso con una passata rotta di proposito.
+  - **Carte** (U-233, U-126, U-122, parti del Sito): README (il Vipi.Host è l'host di produzione, non «di
+    esempio»; l'identità di sviluppo è il VID 704798, non «admin IT-AOC»; i progetti con esito si contano su
+    `tests/conteggi/`, non «15»), `ci.yml` (cosa la CI NON copre: MariaDB oltre lo schema, il ramo Production,
+    il pacchetto), testata della carta «vista condivisa» (online dalla 1.43.0, non «in PR»), commento dei proxy
+    in `VipiStartup` e `render.yaml` marcato SUPERATO. ⚠️ **Al Master** (file suoi): `HANDOFF.md:1689` («devono
+    essere 15»), `deploy/atc-ivao/LEGGIMI-DEPLOY.md:13-17` (rimanda a `LEGGIMI-AGGIORNAMENTO.md`, che è storia e
+    comincia con DROP DATABASE: va rimandato a `LEGGIMI-AGGIORNARE-VIA-FTP.md`), `deploy/render/README.md` (da
+    marcare superato).
+  - **Test**: `SectionMoveTargetsTests` (+1, rosso; `Esclude_le_destinazioni_troppo_profonde_per_il_sottoalbero`
+    fissava il tetto vecchio: ora passa 3 esplicito e prova ancora la regola del sottoalbero),
+    `ProductionIdentityGuardTests` (+11: sei casi esposti rossi col solo parametro aggiunto, quattro locali, uno
+    senza identità di sviluppo), `StartupMaintenanceTests` (−1), `SmokeTests` (+1). Suite intere verdi net8 e
+    net10: Application **3080**, Infrastructure **1796**, Ui **1822**, Hosting **78**, E2E **454**. Nessuna
+    migrazione, `deploy/` no. Prova a schermo: non serve (nessuna pagina cambia aspetto; la tendina tolta non era
+    nel markup). ⚠️ Non provato: il filtro di `Program.cs` sotto `dotnet ef` (non ho lanciato una migrazione).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

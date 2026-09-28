@@ -1861,32 +1861,6 @@
         await InFilaAsync(() => LoadRunwaysAsync(FocusSection()?.Section));
     }
 
-    /// <summary>
-    /// Cambia il tipo di traffico della sezione.
-    /// <para>⚠️ Passa dalla porta di scrittura come tutto il resto, quindi le regole valgono: passare ad
-    /// <b>arrivi</b> o <b>partenze</b> una sezione senza aeroporti <b>non va a buon fine</b>, e lo dice.</para>
-    /// </summary>
-    private int _kindEpoch;
-
-    private Task ChangeKind(AgreementSectionRow sec, ChangeEventArgs e)
-    {
-        if (!Enum.TryParse<TransferFlowKind>(e.Value?.ToString(), out var kind) || kind == sec.Kind)
-            return Task.CompletedTask;
-
-        // L'epoca avanza a ogni tentativo, riuscito o no: è ciò che fa ricreare la tendina e riallinearla al
-        // tipo davvero salvato. Un <select> il cui valore memorizzato non cambia dopo un rifiuto non viene
-        // riscritto da Blazor, e resta sulla scelta rifiutata — mentendo.
-        _kindEpoch++;
-        return Guarded(() => Agreements.UpdateSectionAsync(_acc!.Code, sec.Id, new AgreementSectionInput
-        {
-            Kind = kind,
-            Direction = sec.Direction,
-            Description = sec.Description,
-            Airports = sec.Airports.OrderBy(x => x.Order)
-                .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
-        }), null);
-    }
-
     /// <summary>Ribalta il verso della sezione: la proposta dell'aeroporto è una proposta, e va potuta
     /// smentire in un gesto.</summary>
     private Task FlipDirection(AgreementSectionRow sec) =>

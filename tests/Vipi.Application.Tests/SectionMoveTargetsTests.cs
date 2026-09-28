@@ -58,10 +58,28 @@ public class SectionMoveTargetsTests
     }
 
     private static IReadOnlyList<SectionMoveTarget> Per(int id, IReadOnlyList<EditableSection>? albero = null,
-        int? radiceId = null)
+        int? radiceId = null, int profonditaMassima = Vipi.Domain.Entities.DocumentSection.MaxDepth)
     {
         var a = albero ?? Albero();
-        return SectionMoveTargets.Per(a, Trova(a, id), radiceId, "Primo livello");
+        return SectionMoveTargets.Per(a, Trova(a, id), radiceId, "Primo livello", profonditaMassima: profonditaMassima);
+    }
+
+    /// <summary>
+    /// 🔴 U-247: il tetto è <c>DocumentSection.MaxDepth</c> (5 dal 16 settembre), non 3: una sezione sotto una
+    /// di profondità 3 finisce a profondità 4, che il repository accetta, e l'elenco la deve offrire.
+    /// </summary>
+    [Fact]
+    public void Offre_le_destinazioni_fino_alla_profondita_del_modello()
+    {
+        var albero = new[]
+        {
+            Sez(1, "A", 0, null, Sez(11, "A1", 1, null, Sez(111, "A1a", 2, null, Sez(1111, "A1a-i", 3)))),
+            Sez(2, "B", 0, null, Sez(21, "B1", 1)),
+        };
+
+        var ids = Per(21, albero).Select(t => t.ParentId).ToList();
+
+        Assert.Contains(1111, ids);
     }
 
     [Fact]
@@ -93,13 +111,14 @@ public class SectionMoveTargetsTests
     }
 
     /// <summary>⚠️ La profondità si misura sul SOTTOALBERO: A ne porta due, quindi sotto B1 (profondità 1)
-    /// non ci sta, mentre A1, che ne porta uno, sì.</summary>
+    /// non ci sta, mentre A1, che ne porta uno, sì. Col tetto a 3 per stare su un albero piccolo: quello del
+    /// modello (5) è il default, provato sopra.</summary>
     [Fact]
     public void Esclude_le_destinazioni_troppo_profonde_per_il_sottoalbero()
     {
-        Assert.DoesNotContain(21, Per(1).Select(t => t.ParentId));   // A sotto B1: sarebbe un livello 4
-        Assert.Contains(2, Per(1).Select(t => t.ParentId));          // A sotto B: 1 + 2 = 3, il massimo
-        Assert.Contains(21, Per(11).Select(t => t.ParentId));        // A1 sotto B1: 2 + 1 = 3
+        Assert.DoesNotContain(21, Per(1, profonditaMassima: 3).Select(t => t.ParentId));   // A sotto B1: sarebbe un livello 4
+        Assert.Contains(2, Per(1, profonditaMassima: 3).Select(t => t.ParentId));          // A sotto B: 1 + 2 = 3, il massimo
+        Assert.Contains(21, Per(11, profonditaMassima: 3).Select(t => t.ParentId));        // A1 sotto B1: 2 + 1 = 3
     }
 
     /// <summary>La vIPI ACC: l'albero mostrato sono le figlie del BLOCCO, e «primo livello» è il blocco —

@@ -290,8 +290,12 @@ internal static class VipiStartup
         // In sviluppo usa l'utente CH fittizio; in produzione l'identità è letta dal login del sito ospitante.
         // Se il login IVAO standalone è attivo, esso vince sul dev identity anche in sviluppo (si prova il login vero).
         var useDevIdentity = builder.Environment.IsDevelopment() && !authEnabled;
-        // Guardia di sicurezza (audit D1): mai identità dev fittizia (admin onnipotente) fuori da Development.
-        Vipi.Hosting.ProductionIdentityGuard.EnsureSafe(builder.Environment.IsDevelopment(), useDevIdentity);
+        // Guardia di sicurezza (audit D1): mai identità dev fittizia (admin onnipotente) fuori da Development — e,
+        // dal 28 settembre 2026 (U-112), nemmeno su un indirizzo non locale o sul MySQL di produzione: qui
+        // `useDevIdentity` implica già Development, e senza gli altri due controlli la guardia non scattava mai.
+        Vipi.Hosting.ProductionIdentityGuard.EnsureSafe(builder.Environment.IsDevelopment(), useDevIdentity,
+            builder.WebHost.GetSetting(Microsoft.AspNetCore.Hosting.WebHostDefaults.ServerUrlsKey),
+            builder.Configuration[Vipi.Infrastructure.Persistence.PersistenceProviderResolver.ProviderConfigKey]);
         builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: useDevIdentity);
 
         crono.Segna("registrazioni dei servizi");
@@ -316,9 +320,11 @@ internal static class VipiStartup
         // StartupDiagnostics.ShutdownFileName.
         app.Lifetime.ApplicationStarted.Register(StartupDiagnostics.SegnaAvvioRiuscito);
 
-        // Dietro il proxy TLS di Fly.io/Render (TLS al bordo, HTTP interno): fidati di X-Forwarded-Proto/For così
-        // UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. KnownIPNetworks/Proxies
-        // svuotati perché l'IP del proxy non è fisso. Innocuo in locale (gli header non arrivano).
+        // Dietro il proxy TLS (nginx sulla stessa macchina, su atc.it.ivao.aero): fidati di X-Forwarded-Proto/For così
+        // UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. Innocuo in locale (gli
+        // header non arrivano). 🔴 U-122 (revisione totale 3): il commento parlava di Fly.io/Render, che non si usano
+        // più (committente, 28 settembre 2026) — e su Render, che gira in Production, questa regola non avrebbe
+        // funzionato: lì il proxy non arriva da loopback.
         var forwardedOptions = new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
@@ -326,8 +332,8 @@ internal static class VipiStartup
 
         // KnownIPNetworks e non KnownNetworks: l'host è net10 dal salto di L13 (T-059), e il nome vecchio è obsoleto.
         //
-        // Svuotare entrambe significa «fidati di X-Forwarded-For da chiunque», ed è quel che serve su Render, dove
-        // l'IP del proxy non è fisso. Su atc.it.ivao.aero NON serve: nginx sta sulla stessa macchina e arriva da
+        // Svuotare entrambe significa «fidati di X-Forwarded-For da chiunque», ed era quel che serviva su Render (non
+        // più usato), dove l'IP del proxy non è fisso. Su atc.it.ivao.aero NON serve: nginx sta sulla stessa macchina e arriva da
         // loopback. Lasciarle vuote lì vorrebbe dire che l'IP del chiamante lo sceglie il chiamante — e su
         // quell'IP si regge il tetto per-IP del bridge Aurora, oltre a ogni riga di log che dice «da dove».
         //
