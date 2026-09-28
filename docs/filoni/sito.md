@@ -1160,5 +1160,20 @@
     come il JavaScript.
   - **Test**: `AwosVentoTests` (nuova, +4). Rosso con la logica di prima spostata tale e quale (VRB e calmo
     davano «00»). Ui 1818 → **1822**.
+  - **Gruppo 4** (motore delle piste, **codice comune** `Vipi.Application`): **U-223** (regole e ripiego
+    misuravano coda e traverso sull'ident×10, il pannello vento del vAWOS sulla rotta vera dell'anagrafica: su
+    una «16» di 163° un 070/15 dava coda 0 alla regola e «TAIL 01» sul quadro) → `Suggest`, `EvaluateRules` ed
+    `ExplainRules` prendono le rotte vere (`RunwayRow.Rotte`, `RwEdit.Rotte`; senza rotta si ripiega
+    sull'ident×10) e tutti e cinque i posti che decidono la pista le passano: vAWOS, vIPI e vSOP (i loader ora
+    leggono sempre l'anagrafica: la rotta è un dato fisico e la sezione Piste non la porta — scelta del Sito,
+    niente campo nuovo nello snapshot, che avrebbe fatto sembrare da ripubblicare ogni aeroporto), vista
+    rapida, elenco aeroporti, banco di prova dell'editor. **U-224** (con tre parallele gli arrivi andavano
+    sulla «C», perché «16C» < «16L» in ordine alfabetico) → le parallele si riconoscono dal numero dell'ident (con
+    le rotte vere 16L e 16R possono differire di un grado) e si ordinano per lato: arrivi a sinistra, partenze a
+    destra, la centrale nel mezzo.
+  - **Test**: `WeatherParsingTests` (+4: tre parallele, regola sulla rotta vera, ripiego sulla rotta vera,
+    parallele a un grado di differenza), `AwosCompositionTests` (+1, il percorso del vAWOS). I primi tre rossi
+    col solo parametro aggiunto e non usato; il quarto è la guardia del raggruppamento. Application 3042 →
+    **3047**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

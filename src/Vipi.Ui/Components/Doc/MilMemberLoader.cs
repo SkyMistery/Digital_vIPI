@@ -187,10 +187,12 @@ public sealed class MilMemberLoader
         var windDir = metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : (int?)null;
         var windKt = metar?.Wind?.SpeedKt ?? 0;
         var regole = derivate.Rules.Regole;
-        var vive = regole is null ? (await _scalo.LoadForViewAsync(code, ct))?.Rules : null;
+        // ⚠️ L'anagrafica si legge sempre: le rotte vere delle testate non stanno nella sezione Piste (U-223).
+        var scaloVivo = await _scalo.LoadForViewAsync(code, ct);
+        var vive = regole is null ? scaloVivo?.Rules : null;
         var inUso = PistaInUso.Calcola(regole, derivate.Sids,
             derivate.Runways.Rows.Select(r => r.Ident).ToList(), windDir, windKt, metar, vive,
-            AirportRunwayRowView.Esclusioni(derivate.Runways.Rows));
+            AirportRunwayRowView.Esclusioni(derivate.Runways.Rows), RunwayRow.Rotte(scaloVivo?.Runways));
 
         // ⚠️ Gli id delle aree li porta il DOCUMENTO mostrato; shape e descrizioni vengono dai cataloghi
         // correnti — come nella vIPI ACC e nell'APP. Si legge PRIMA della traduzione: la sezione tradotta

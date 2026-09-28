@@ -81,6 +81,10 @@ public sealed class RwEdit { public int Id; public string? Ident; public int? Le
         return new(r.Where(x => x.NeverDep).Select(x => x.Ident!.Trim()).ToList(),
                    r.Where(x => x.NeverArr).Select(x => x.Ident!.Trim()).ToList());
     }
+
+    /// <summary>Le rotte vere fra le righe in scrittura: il banco di prova misura su quelle, come il motore (U-223).</summary>
+    public static IReadOnlyDictionary<string, int> Rotte(IEnumerable<RwEdit> rows) =>
+        RunwaySuggestion.Rotte(rows.Select(x => (x.Ident, x.Bearing)));
 }
 /// <summary>Riga in scrittura.</summary>
 public sealed class RuleEdit

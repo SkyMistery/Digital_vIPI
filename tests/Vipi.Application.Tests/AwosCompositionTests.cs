@@ -224,6 +224,23 @@ public class AwosCompositionTests
         Assert.Equal(new[] { "16R", "16L" }, attiva.Dep);
     }
 
+    [Fact] // U-223: la regola si misura sulla rotta vera, la stessa del pannello vento
+    public void La_regola_si_misura_sulla_rotta_vera_come_il_pannello()
+    {
+        var metar = MetarParser.ParseMetar("LIRF 121250Z 07015KT 9999 NSC 12/08 Q1013");
+        var piste = new[]
+        {
+            new RunwayRow(1, "16", null, 163, null, null, null, null, null),
+            new RunwayRow(2, "34", null, 343, null, null, null, null, null),
+        };
+
+        var attiva = AwosComposition.PistaAttiva(new[] { Regola("16", "16", "Sud", coda: 0) }, new[] { "16", "34" },
+            metar, rotte: RunwayRow.Rotte(piste));
+
+        Assert.Equal(AwosRunwaySource.Vento, attiva.Sorgente);   // coda 1 kt sulla 163: la regola «coda 0» cade
+        Assert.Equal(new[] { "34" }, attiva.Dep);
+    }
+
     [Fact] // senza METAR il quadro non inventa una configurazione
     public void Senza_Metar_Nessuna_Pista()
     {

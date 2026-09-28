@@ -240,14 +240,14 @@ else
         {
             var bagnata = m.HasRain || m.HasSnow;
             var vincente = RunwaySuggestion.EvaluateRules(
-                RegoleDiPista.Valutabili(decisive.Regole), dir, kt, bagnata, DateTime.UtcNow);
+                RegoleDiPista.Valutabili(decisive.Regole), dir, kt, bagnata, DateTime.UtcNow, RunwayRow.Rotte(profilo?.Runways));
             if (vincente is not null) return (Norm(vincente.Dep), Norm(vincente.Arr));
         }
 
         var piste = profilo?.Runways.Select(r => r.Ident).ToList() ?? new List<string>();
         if (piste.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(piste, dir, kt, decisive?.Escluse);
+            var s = RunwaySuggestion.Suggest(piste, dir, kt, decisive?.Escluse, RunwayRow.Rotte(profilo?.Runways));
             if (s.Best is not null) return (Norm(s.DepIdent), Norm(s.ArrIdent));   // un verso escluso resta vuoto
         }
         return (null, null);

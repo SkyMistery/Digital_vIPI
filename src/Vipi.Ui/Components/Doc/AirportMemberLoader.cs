@@ -190,9 +190,12 @@ public sealed class AirportMemberLoader
         // la porta con sé (carta 2026-09-12). Solo una release scattata prima non le ha, e allora si ricade
         // sulle regole vive — il comportamento di prima — chiedendo l'anagrafica SOLO in quel caso.
         var regole = derived.Rules.Regole;
-        var vive = regole is null ? (await _profile.LoadForViewAsync(code, ct))?.Rules : null;
+        // ⚠️ L'anagrafica si legge sempre: le rotte vere delle testate sono un dato fisico, non contenuto del
+        // documento, e la sezione Piste non le porta (U-223: regole e ripiego misurano sulla rotta del vAWOS).
+        var scaloVivo = await _profile.LoadForViewAsync(code, ct);
+        var vive = regole is null ? scaloVivo?.Rules : null;
         var inUso = PistaInUso.Calcola(regole, derived.Sids, runways, windDir, windKt, metar, vive,
-            AirportRunwayRowView.Esclusioni(derived.Runways.Rows));
+            AirportRunwayRowView.Esclusioni(derived.Runways.Rows), RunwayRow.Rotte(scaloVivo?.Runways));
         var lvp = ValutaLvp(derived.Lvp, metar);
 
         // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------

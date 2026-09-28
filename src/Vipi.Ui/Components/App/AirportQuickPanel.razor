@@ -275,12 +275,13 @@ else
         if (_decisive.Regole.Count > 0)
         {
             var wet = (m?.HasRain ?? false) || (m?.HasSnow ?? false);
-            var rr = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(_decisive.Regole), windDir, windKt, wet, DateTime.UtcNow);
+            var rr = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(_decisive.Regole), windDir, windKt, wet, DateTime.UtcNow,
+                RunwayRow.Rotte(_profile.Runways));
             if (rr is not null) return (Norm(rr.Dep), Norm(rr.Arr));
         }
         if (_runways.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(_runways, windDir, windKt, _decisive.Escluse);
+            var s = RunwaySuggestion.Suggest(_runways, windDir, windKt, _decisive.Escluse, RunwayRow.Rotte(_profile.Runways));
             if (s.Best is not null) return (Norm(s.DepIdent), Norm(s.ArrIdent));   // un verso escluso resta vuoto
         }
         return (null, null);

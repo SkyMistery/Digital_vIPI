@@ -117,7 +117,8 @@ public sealed class AwosService : IAwosService
         var (regole, minimiLvp, escluse) = await _pubblicato.PerScaloAsync(id, scalo.Rules, scalo.Lvp, scalo.Runways,
             await DocumentiAsync(ct), ct);
         var attiva = AwosComposition.PistaAttiva(regole, identificativi, perDecidere,
-            AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign, escluse);
+            AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign, escluse,
+            RunwayRow.Rotte(scalo.Runways));   // la rotta del pannello vento, anche per regole e ripiego (U-223)
 
         return new AwosResult(new AwosView(
             Icao: id,

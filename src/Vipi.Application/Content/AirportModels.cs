@@ -29,6 +29,13 @@ public sealed record RunwayRow(int Id, string Ident, int? LengthM, int? Bearing,
         return new(r.Where(x => x.NeverDeparture).Select(x => x.Ident.Trim()).ToList(),
                    r.Where(x => x.NeverArrival).Select(x => x.Ident.Trim()).ToList());
     }
+
+    /// <summary>
+    /// Le rotte vere delle testate (ident → gradi), il dato su cui il motore delle piste misura coda e traverso
+    /// (U-223). Una testata senza rotta non c'è: il motore ripiega sull'ident×10.
+    /// </summary>
+    public static IReadOnlyDictionary<string, int> Rotte(IEnumerable<RunwayRow>? rows) =>
+        Weather.RunwaySuggestion.Rotte((rows ?? Array.Empty<RunwayRow>()).Select(x => ((string?)x.Ident, x.Bearing)));
 }
 
 /// <summary>

@@ -260,6 +260,51 @@ public class WeatherParsingTests
         Assert.True(r.Best.Crosswind <= 1);
     }
 
+    [Fact] // U-224: tre parallele — arrivi a sinistra, partenze a destra, la centrale no
+    public void Tre_parallele_arrivi_a_sinistra_partenze_a_destra()
+    {
+        var r = RunwaySuggestion.Suggest(new[] { "16L", "16C", "16R", "34L", "34C", "34R" }, 160, 12);
+
+        Assert.Equal("16L", r.ArrIdent);
+        Assert.Equal("16R", r.DepIdent);
+    }
+
+    [Fact] // U-223: il motore usa la rotta vera dell'anagrafica, la stessa del pannello vento del vAWOS
+    public void Regola_e_pannello_usano_la_stessa_rotta()
+    {
+        var regole = new[] { new RunwayRuleEval("16", "16", "sud", null, 0, null, RunwaySurface.Any) };
+        var rotte = new Dictionary<string, int> { ["16"] = 163 };
+
+        var e = RunwaySuggestion.ExplainRules(regole, 70, 15, false, rotte: rotte).Single();
+
+        Assert.Equal(RuleVerdict.Tailwind, e.Verdict);   // con 160 = ident×10 la coda era 0 e la regola valeva
+        Assert.Equal(1, e.WorstTailwindKt);
+        Assert.Null(RunwaySuggestion.EvaluateRules(regole, 70, 15, false, rotte: rotte));
+    }
+
+    [Fact] // U-223: il ripiego sul vento misura sulla rotta vera, e la dichiara
+    public void Il_ripiego_usa_la_rotta_vera()
+    {
+        var rotte = new Dictionary<string, int> { ["16"] = 163, ["34"] = 343 };
+
+        var r = RunwaySuggestion.Suggest(new[] { "16", "34" }, 70, 15, rotte: rotte);
+
+        Assert.Equal("34", r.Best!.Ident);
+        Assert.Equal(343, r.Best.Heading);
+        Assert.Equal(1, r.Best.Headwind);
+    }
+
+    [Fact] // U-223 con U-224: parallele con rotte vere diverse di un grado restano parallele
+    public void Parallele_con_rotte_diverse_di_un_grado_restano_parallele()
+    {
+        var rotte = new Dictionary<string, int> { ["16L"] = 159, ["16R"] = 160, ["34L"] = 339, ["34R"] = 340 };
+
+        var r = RunwaySuggestion.Suggest(new[] { "16L", "16R", "34L", "34R" }, 160, 12, rotte: rotte);
+
+        Assert.Equal("16L", r.ArrIdent);
+        Assert.Equal("16R", r.DepIdent);
+    }
+
     [Fact] // pista calma → nessun suggerimento
     public void Runway_Calm_No_Suggestion()
     {
