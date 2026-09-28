@@ -9,8 +9,14 @@ namespace Vipi.SectorLab.Core.Ispezione;
 /// <param name="Valore">Il valore come si legge (senza virgolette), o null se il record non ce l'ha.</param>
 /// <param name="SiNo">La chiave vale <c>si</c> o manca (<c>locked</c>, <c>whole</c>, <c>vfronly</c>): una casella.</param>
 /// <param name="PercheNo">Perché non si scrive dalla scheda, o null se si scrive.</param>
-public sealed record MetadatoDellaScheda(string Chiave, string Nome, string Significato, string? Valore, bool SiNo, string? PercheNo)
+/// <param name="Editor">Come si scrive (prova 68: fix e transizione dai punti del master, salita iniziale in ft/FL o COO
+/// APP, categorie come tasti).</param>
+public sealed record MetadatoDellaScheda(string Chiave, string Nome, string Significato, string? Valore, bool SiNo, string? PercheNo,
+                                         EditorDelMetadato Editor = EditorDelMetadato.Testo)
 {
+    /// <summary>La chiave senza il numero di pista davanti (<c>tora</c> per <c>16L.tora</c>).</summary>
+    public string Base => MetadatiDellaScheda.Senzaverso(Chiave);
+
     public bool SiScrive => PercheNo is null;
 }
 
@@ -57,9 +63,10 @@ public static class MetadatiDellaScheda
         {
             var (nome, significato) = Descrizione(chiave);
             string? percheNo = perTutte ?? PercheNoLaChiave(chiave, record, catalogo);
+            bool siNo = ChiaviSiNo.Contains(Senzaverso(chiave));
             return new MetadatoDellaScheda(chiave, nome, significato,
                 valori.TryGetValue(chiave, out string? scritto) ? Metadati.Testo(scritto) : null,
-                ChiaviSiNo.Contains(Senzaverso(chiave)), percheNo);
+                siNo, percheNo, ValoriDeiMetadati.EditorDi(Senzaverso(chiave), siNo));
         })];
     }
 
@@ -76,7 +83,8 @@ public static class MetadatiDellaScheda
         };
     }
 
-    private static string Senzaverso(string chiave) => chiave.Contains('.', StringComparison.Ordinal) && char.IsAsciiDigit(chiave[0])
+    /// <summary>La chiave senza il numero di pista davanti.</summary>
+    public static string Senzaverso(string chiave) => chiave.Contains('.', StringComparison.Ordinal) && char.IsAsciiDigit(chiave[0])
         ? chiave[(chiave.IndexOf('.', StringComparison.Ordinal) + 1)..]
         : chiave;
 
@@ -95,12 +103,12 @@ public static class MetadatiDellaScheda
         ["locked"] = ("Bloccato", "locked=si: l'import non lo tocca né lo toglie (l'AOD può sempre cancellarlo)."),
         ["gen"] = ("Generato da", "Il generatore e i suoi parametri (§M-G)."),
         ["note"] = ("Nota", "Per chi legge il file."),
-        ["fix"] = ("Fix intero", "Il nome intero del fix (EKLOS per EKLO8R)."),
-        ["trans"] = ("Transizione", "Il nome intero della transizione."),
-        ["initialclimb"] = ("Salita iniziale", "In piedi (6000ft) o \"COO APP\"."),
-        ["wtc"] = ("Categorie di scia", "Le WTC ammesse: L M H S (LMHS)."),
-        ["cat"] = ("Categorie Vref", "A-E (ABCD)."),
-        ["nav"] = ("Specifica di navigazione", "RNAV1, RNP1, RNPAPCH…"),
+        ["fix"] = ("Fix intero", "Il nome intero del fix (EKLOS per EKLO8R): un punto del sector."),
+        ["trans"] = ("Transizione", "Il fix della transizione: un punto del sector."),
+        ["initialclimb"] = ("Salita iniziale", "In piedi (6000ft) o in FL (FL80), oppure «COO APP» (coordinare con l'avvicinamento)."),
+        ["wtc"] = ("Categorie di scia", "Le WTC ammesse: L M H S. Doppio clic: anche le precedenti come quella."),
+        ["cat"] = ("Categorie Vref", "A B C D E. Doppio clic: anche le precedenti come quella."),
+        ["nav"] = ("Specifica di navigazione", "Quale navigazione chiede la procedura: RNAV1, RNP1, RNP APCH (P11, Q2b; i valori arrivano con l'import dall'AIP, F7)."),
         ["type"] = ("Tipo di avvicinamento", "ILS, LOC, RNP, VOR, NDB."),
         ["mins"] = ("Minimi", "Per categoria, in piedi: A:450,B:450,C:500,D:500."),
         ["gp"] = ("Pendenza", "Del sentiero di discesa, in gradi (3.0)."),

@@ -549,3 +549,23 @@ terra, e gli stili di linea `…_SOLID`) è del committente: prove 71-76 in `Sec
     (NDB) lo sceglie; «del Lab» → cerchi, «di Aurora» → simboli; console pulita.
   Committente, dopo la prova: «tutto pare ok, tranne i punti VFR» → rombo di Aurora, rivisto sul banco (PONTE
   GALERIA e dintorni come nello schermo di Aurora). Test: motore 667 → **670**, Lab 479 → **497**.
+
+**Dalle prove 53-77 del committente (28 settembre).** Tutte ✅; tre richieste, fatte prima della slice 5:
+
+- **Prova 68, i metadati di SID e STAR con l'editor giusto** (`Ispezione/ValoriDeiMetadati.cs`, `EditorDelMetadato`):
+  **fix intero** e **transizione** sono punti del sector — il campo coi suggerimenti del master (`CampoPunto`), un nome
+  che il master non conosce si rifiuta col perché; **salita iniziale** in piedi o FL (`6000`, `2500'` → `6000ft`,
+  `2500ft`; `fl 100` → `FL100`; FL 1-660, piedi fino a 66 000) oppure la **spunta «COO APP»**, che scrive sempre
+  `initialclimb="COO APP"` (niente refusi); **categorie di scia** L M H S e **Vref** A B C D E come tasti, scritte in
+  ordine (`wtc=LMH`): un clic accende o spegne, il **doppio clic** porta le precedenti allo stato di quella cliccata
+  (doppio clic su H: L, M, H accese; di nuovo: spente, S com'era). 🔴 Trovato a schermo: il secondo clic del doppio
+  clic arriva prima che la scheda si ridisegni, e col valore di prima annullava il primo — il tasto rilegge il valore
+  dalla sessione (bUnit non riproduce la corsa: provato col doppio clic vero nel browser del pannello).
+  «Specifica di navigazione» (`nav`, P11 e Q2b): quale navigazione chiede la procedura (RNAV1, RNP1, RNP APCH); resta
+  testo, i valori arrivano con l'import dall'AIP (F7).
+- **Cerca anche i file per nome** (`Ricerca.CercaFile`): il nome con o senza estensione, poi il percorso
+  (`GND_LAYOUT\rf`), anche i file tenuti come testo e gli `.isc`; in cima ai risultati, un clic apre il file nell'albero.
+- **Prova 57, COLOMBO e VFR_NASCOSTI**: sì, la correzione di un punto `.vfi` va portata al suo gemello di
+  `VFR_NASCOSTI.fix` (COLOMBO ↔ RFS3, chiave = il codice) — è la voce F2 della **slice 8** (gemello `.vfi` ↔
+  `VFR_NASCOSTI.fix`: 496 uguali, 9 diversi, 81 senza, 7 orfani); oggi il Lab non lo sa.
+  Test: Lab 497 → **534**.

@@ -6,13 +6,22 @@
     aperto. Si iscrive da sé a Cambiata — vedi Mappa.razor: un componente senza parametri non lo ridisegna nessuno.
 *@
 <div class="lab-sfoglia">
-    <input type="search" class="lab-cerca" placeholder="Cerca un nome (fix, VOR, settore, area…)"
+    <input type="search" class="lab-cerca" placeholder="Cerca un nome (fix, VOR, settore, area…) o un file"
            value="@_cercato" @oninput="Cerca" data-campo="cerca" />
 
     @if (_cercato.Trim().Length >= 2)
     {
         <div class="lab-risultati" data-risultati="@_trovati.Count">
-            @if (_trovati.Count == 0)
+            @* I file per nome (28 settembre): prima dei record, un clic apre il file nell'albero. *@
+            @foreach (string file in _file)
+            {
+                <button class="lab-trovato lab-trovato-file" @onclick="() => ApriIlFile(file)" data-trovato-file="@file"
+                        title="@file">
+                    <span class="lab-etichetta">📄 @Nome(file)</span>
+                    <span class="lab-nota">@Cartella(file)</span>
+                </button>
+            }
+            @if (_trovati.Count == 0 && _file.Count == 0)
             {
                 <p class="lab-nota">Nessun nome così. @* I record senza geometria non sono ancora nell'indice (slice 5). *@</p>
             }
@@ -51,6 +60,7 @@
 @code {
     private string _cercato = string.Empty;
     private IReadOnlyList<Trovato> _trovati = [];
+    private IReadOnlyList<string> _file = [];
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
 
@@ -58,6 +68,26 @@
     {
         _cercato = e.Value?.ToString() ?? string.Empty;
         _trovati = Lab.Cerca(_cercato);
+        _file = Lab.CercaFile(_cercato);
+    }
+
+    /// <summary>Un file trovato: si apre nell'albero, e la ricerca si chiude per mostrarlo coi suoi record.</summary>
+    private void ApriIlFile(string relativo)
+    {
+        _cercato = string.Empty;
+        _trovati = [];
+        _file = [];
+        Lab.ApriFile(relativo);
+    }
+
+    /// <summary>La cartella del file sotto Include/IT (o sotto la radice, per gli .isc).</summary>
+    private static string Cartella(string relativo)
+    {
+        string senza = relativo.StartsWith("SectorFiles/Include/IT/", StringComparison.OrdinalIgnoreCase)
+            ? relativo["SectorFiles/Include/IT/".Length..]
+            : relativo;
+        int barra = senza.LastIndexOf('/');
+        return barra < 0 ? "IT" : senza[..barra];
     }
 
     private void VaiA(Trovato trovato)

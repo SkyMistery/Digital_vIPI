@@ -80,6 +80,36 @@
                                     <input type="checkbox" class="lab-casella-campo" checked="@(metadato.Valore == "si")" data-scrivi-tag="@chiave"
                                            @onchange="e => SpuntaIlTag(scheda, chiave, e)" />
                                 }
+                                else if (metadato.Editor == EditorDelMetadato.Punto)
+                                {
+                                    @* Prova 68: un punto del sector, coi suggerimenti del master (un nome sconosciuto si rifiuta). *@
+                                    <CampoPunto Valore="@metadato.Valore" OnCambia="v => CambiaIlTag(scheda, chiave, v)" data-scrivi-tag="@chiave" />
+                                }
+                                else if (metadato.Editor == EditorDelMetadato.SalitaIniziale)
+                                {
+                                    bool coo = metadato.Valore == ValoriDeiMetadati.CooApp;
+                                    <span class="lab-campo-con-nota">
+                                        <input class="lab-campo" value="@(coo ? null : metadato.Valore)" data-scrivi-tag="@chiave" disabled="@coo"
+                                               placeholder="6000ft o FL80" @onchange="e => CambiaIlTag(scheda, chiave, e.Value?.ToString())" />
+                                        <label class="lab-nota" title="Coordinare con l'avvicinamento: si scrive sempre uguale">
+                                            <input type="checkbox" checked="@coo" data-coo-app="@chiave" @onchange="e => SpuntaCooApp(scheda, chiave, e)" />
+                                            @ValoriDeiMetadati.CooApp
+                                        </label>
+                                    </span>
+                                }
+                                else if (metadato.Editor == EditorDelMetadato.Lettere)
+                                {
+                                    @* Prova 68: una lettera, un tasto; doppio clic = anche le precedenti come quella. *@
+                                    <span class="lab-piste" data-lettere="@chiave">
+                                        @foreach (char lettera in ValoriDeiMetadati.Lettere[metadato.Base])
+                                        {
+                                            bool accesa = (metadato.Valore ?? string.Empty).Contains(lettera, StringComparison.OrdinalIgnoreCase);
+                                            <button class="lab-pista @(accesa ? "lab-pista-scelta" : null)" data-lettera="@lettera"
+                                                    title="Clic: accende o spegne. Doppio clic: anche le precedenti come questa."
+                                                    @onclick="e => Lettera(scheda, metadato, lettera, e)">@lettera</button>
+                                        }
+                                    </span>
+                                }
                                 else
                                 {
                                     <input class="lab-campo" value="@metadato.Valore" data-scrivi-tag="@chiave" placeholder="—"
@@ -259,6 +289,25 @@ else
 }
 
 @code {
+    private void CambiaIlTag(SchedaDelRecord scheda, string chiave, string? valore)
+        => Lab.CambiaIlMetadato(scheda.File, scheda.Indice, chiave, valore);
+
+    /// <summary>La spunta COO APP: scrive «COO APP» fra virgolette (§M), tolta la chiave sparisce.</summary>
+    private void SpuntaCooApp(SchedaDelRecord scheda, string chiave, ChangeEventArgs e)
+        => Lab.CambiaIlMetadato(scheda.File, scheda.Indice, chiave, Equals(e.Value, true) ? ValoriDeiMetadati.CooApp : null);
+
+    /// <summary>
+    /// Un tasto delle lettere: il secondo clic di un doppio clic (Detail 2) porta con sé le precedenti. 🔴 Il valore si
+    /// rilegge dalla sessione, non da quello disegnato: il secondo clic arriva prima che la scheda si ridisegni, e col
+    /// valore di prima del primo clic annullava tutto (visto a schermo, doppio clic su H: niente).
+    /// </summary>
+    private void Lettera(SchedaDelRecord scheda, MetadatoDellaScheda metadato, char lettera, MouseEventArgs e)
+    {
+        string? adesso = Lab.MetadatiDi(scheda.File, scheda.Indice).FirstOrDefault(m => m.Chiave == metadato.Chiave)?.Valore;
+        Lab.CambiaIlMetadato(scheda.File, scheda.Indice, metadato.Chiave,
+            ValoriDeiMetadati.Clic(metadato.Base, adesso, lettera, e.Detail >= 2));
+    }
+
     /// <summary>Una chiave sì/no dei metadati: spuntata vale «si», tolta sparisce (§M).</summary>
     private void SpuntaIlTag(SchedaDelRecord scheda, string chiave, ChangeEventArgs e)
         => Lab.CambiaIlMetadato(scheda.File, scheda.Indice, chiave, Equals(e.Value, true) ? "si" : null);

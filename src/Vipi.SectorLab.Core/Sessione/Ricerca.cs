@@ -46,6 +46,35 @@ public static class Ricerca
             .Select(t => t.Voce)];
     }
 
+    /// <summary>
+    /// I file per nome (committente, 28 settembre: «in cerca voglio anche poter cercare i file per nome»): il nome con o
+    /// senza estensione (<c>lirf</c> trova <c>lirf.sid</c>, <c>lirf.str</c>…), poi il percorso (<c>GND_LAYOUT/rf</c>).
+    /// Stesso ordine dei record: uguale, comincia così, lo contiene; a parità, per percorso.
+    /// </summary>
+    /// <param name="relativi">I percorsi dei file, relativi alla radice del clone.</param>
+    public static IReadOnlyList<string> CercaFile(IEnumerable<string> relativi, string? testo, int tetto = 20)
+    {
+        ArgumentNullException.ThrowIfNull(relativi);
+        string cercato = (testo ?? "").Trim().Replace('\\', '/');
+        if (cercato.Length < 2)
+            return [];
+
+        return [.. relativi
+            .Select(r => (Relativo: r, Quanto: QuantoDelFile(r, cercato)))
+            .Where(t => t.Quanto > 0)
+            .OrderByDescending(t => t.Quanto)
+            .ThenBy(t => t.Relativo, StringComparer.OrdinalIgnoreCase)
+            .Take(tetto)
+            .Select(t => t.Relativo)];
+    }
+
+    private static int QuantoDelFile(string relativo, string cercato)
+    {
+        string nome = relativo[(relativo.LastIndexOf('/') + 1)..];
+        int quanto = Math.Max(Quanto(nome, cercato), Quanto(Path.GetFileNameWithoutExtension(nome), cercato));
+        return quanto > 0 ? quanto : relativo.Contains(cercato, StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+    }
+
     /// <summary>3 = uguale, 2 = comincia così, 1 = lo contiene, 0 = no.</summary>
     private static int Quanto(string etichetta, string cercato)
     {

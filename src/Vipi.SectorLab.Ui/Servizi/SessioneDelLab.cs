@@ -369,6 +369,9 @@ public sealed class SessioneDelLab
     /// <summary>La ricerca per nome fra le forme della mappa (slice 5).</summary>
     public IReadOnlyList<Trovato> Cerca(string? testo) => Ricerca.Cerca(Strati, testo);
 
+    /// <summary>I file della sessione per nome (anche quelli tenuti come testo), relativi alla radice.</summary>
+    public IReadOnlyList<string> CercaFile(string? testo) => Sessione is null ? [] : Ricerca.CercaFile(Sessione.File.Keys, testo);
+
     /// <summary>Le modifiche fatte e non salvate (slice 6): sul disco vanno solo col salvataggio (slice 9).</summary>
     public ModificheInSospeso Modifiche { get; private set; } = new();
 
@@ -799,6 +802,18 @@ public sealed class SessioneDelLab
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return false;
 
+        // Prova 68: fix e transizione sono punti del master scelto, la salita è una quota, le categorie lettere in ordine.
+        var master = IscScelto is null ? null : Cataloghi.GetValueOrDefault(IscScelto);
+        if (!ValoriDeiMetadati.Normalizza(MetadatiDellaScheda.Senzaverso(chiave), valore, master is null ? null : master.Risolve,
+                                           out string? normale, out string? perche))
+        {
+            Rifiuto = perche;
+            Registro.Scrivi("modifica", $"{fileRelativo}#{record} tag {chiave} = «{valore}»: rifiutata, {perche}");
+            Avvisa();
+            return false;
+        }
+
+        valore = normale;
         var esito = Modifiche.CambiaIlMetadato(file, record, chiave, valore, EtichettaDi(fileRelativo, record));
         Registro.Scrivi("modifica", $"{fileRelativo}#{record} tag {chiave} = «{valore}»: {Descrivi(esito)}");
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
