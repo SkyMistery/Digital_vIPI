@@ -49,7 +49,7 @@ public static class MetadatiDellaScheda
                 ? null
                 : VociDellaSelezione.GruppoDelRecord(file, indice, out string? perche) is null ? perche : null;
 
-        var chiavi = new List<string>(catalogo.DelRecord);
+        var chiavi = new List<string>(catalogo.DelRecord.Where(c => DelGenere(record, c)));
         // Le chiavi per verso di pista col numero davanti, per i due versi di QUESTA pista (§M regola 7).
         if (record is Runway pista)
         {
@@ -69,6 +69,31 @@ public static class MetadatiDellaScheda
                 siNo, percheNo, ValoriDeiMetadati.EditorDi(Senzaverso(chiave), siNo));
         })];
     }
+
+    /// <summary>Le chiavi delle procedure (P6, Q2b): SID e voci .str su una pista.</summary>
+    private static readonly HashSet<string> DelleProcedure = new(StringComparer.Ordinal) { "fix", "trans", "initialclimb", "wtc", "cat", "nav" };
+
+    /// <summary>Le chiavi dell'avvicinamento (Q2d): IAP, FAP e mancato avvicinamento.</summary>
+    private static readonly HashSet<string> DellAvvicinamento = new(StringComparer.Ordinal) { "type", "mins", "gp" };
+
+    /// <summary>Le chiavi delle mappe del MAPS: composte (F3-bis), famiglie di forme (D5), limiti e classe (Q8).</summary>
+    private static readonly HashSet<string> DelleMappe = new(StringComparer.Ordinal)
+    {
+        Metadati.Compose, Metadati.Whole, "form", "lower", "upper", "class",
+    };
+
+    /// <summary>
+    /// Se la scheda propone la chiave per QUEL record (slice 9c, scelta dell'agente): il catalogo dei <c>.str</c> è uno
+    /// solo — il contratto con vIPI, che le legge tutte —, ma una mappa del <c>MAPS</c> non ha fix né minimi, e una
+    /// STAR non ha la salita iniziale. Le chiavi che il record ha già si vedono comunque.
+    /// </summary>
+    private static bool DelGenere(object record, string chiave) => record switch
+    {
+        StrRecord voce when DescrizioniDeiCampi.EUnaMappa(voce.RunwaySpec) => !DelleProcedure.Contains(chiave) && !DellAvvicinamento.Contains(chiave),
+        StrRecord voce => !DelleMappe.Contains(chiave) && chiave != "initialclimb"
+                          && (!DellAvvicinamento.Contains(chiave) || voce.RecordType is StrRecordType.Iap or StrRecordType.Fap or StrRecordType.GoAround),
+        _ => true,
+    };
 
     private static string? PercheNoLaChiave(string chiave, object record, CatalogoDeiTag catalogo)
     {
@@ -108,7 +133,7 @@ public static class MetadatiDellaScheda
         ["initialclimb"] = ("Salita iniziale", "In piedi (6000ft) o in FL (FL80), oppure «COO APP» (coordinare con l'avvicinamento)."),
         ["wtc"] = ("Categorie di scia", "Le WTC ammesse: L M H S. Doppio clic: anche le precedenti come quella."),
         ["cat"] = ("Categorie Vref", "A B C D E. Doppio clic: anche le precedenti come quella."),
-        ["nav"] = ("Specifica di navigazione", "Quale navigazione chiede la procedura: RNAV1, RNP1, RNP APCH (P11, Q2b; i valori arrivano con l'import dall'AIP, F7)."),
+        ["nav"] = ("Specifica di navigazione", "Quale navigazione chiede la procedura: RNAV1, RNP1, RNP APCH (P11, Q2b)."),
         ["type"] = ("Tipo di avvicinamento", "ILS, LOC, RNP, VOR, NDB."),
         ["mins"] = ("Minimi", "Per categoria, in piedi: A:450,B:450,C:500,D:500."),
         ["gp"] = ("Pendenza", "Del sentiero di discesa, in gradi (3.0)."),

@@ -20,7 +20,7 @@ public sealed class ValoriDeiMetadatiTests
     [InlineData("initialclimb", EditorDelMetadato.SalitaIniziale)]
     [InlineData("wtc", EditorDelMetadato.Lettere)]
     [InlineData("cat", EditorDelMetadato.Lettere)]
-    [InlineData("nav", EditorDelMetadato.Testo)]
+    [InlineData("nav", EditorDelMetadato.Scelta)]
     [InlineData("note", EditorDelMetadato.Testo)]
     public void OgniChiaveHaIlSuoEditor(string chiave, EditorDelMetadato editor)
         => Assert.Equal(editor, ValoriDeiMetadati.EditorDi(chiave, siNo: false));

@@ -110,6 +110,36 @@
                                 {
                                     @* Prova 68: un punto del sector, coi suggerimenti del master (un nome sconosciuto si rifiuta). *@
                                     <CampoPunto Valore="@metadato.Valore" OnCambia="v => CambiaIlTag(scheda, chiave, v)" data-scrivi-tag="@chiave" />
+                                    @if (chiave == "fix" && Lab.FixPropostoDi(scheda.File, scheda.Indice) is { Candidati.Count: > 0 } proposto)
+                                    {
+                                        @* Slice 9c (P7): il fix dal nome della procedura, un clic per scriverlo. *@
+                                        <span class="lab-proposta" data-fix-proposto="@proposto.Radice">
+                                            <span class="lab-nota">@(proposto.Automatico ? "dal nome:" : "dal nome, scegli:")</span>
+                                            @foreach (var candidato in proposto.Candidati)
+                                            {
+                                                string nome = candidato.Nome;
+                                                <button class="lab-pista" data-candidato="@nome" title="@TitoloDelCandidato(candidato)"
+                                                        @onclick="() => CambiaIlTag(scheda, chiave, nome)">@nome</button>
+                                            }
+                                        </span>
+                                    }
+                                }
+                                else if (metadato.Editor == EditorDelMetadato.Scelta)
+                                {
+                                    @* Slice 9c (Q2b, Q2d): specifica di navigazione e tipo di avvicinamento da un elenco. *@
+                                    var scelte = ValoriDeiMetadati.Scelte[metadato.Base];
+                                    <select class="lab-campo" value="@metadato.Valore" data-scrivi-tag="@chiave"
+                                            @onchange="e => CambiaIlTag(scheda, chiave, e.Value?.ToString())">
+                                        <option value="">— non scritto</option>
+                                        @foreach (string scelta in scelte)
+                                        {
+                                            <option value="@scelta">@scelta</option>
+                                        }
+                                        @if (metadato.Valore is { } fuori && !scelte.Contains(fuori))
+                                        {
+                                            <option value="@fuori">@fuori — non è nell'elenco</option>
+                                        }
+                                    </select>
                                 }
                                 else if (metadato.Editor == EditorDelMetadato.SalitaIniziale)
                                 {
@@ -138,8 +168,15 @@
                                 }
                                 else
                                 {
-                                    <input class="lab-campo" value="@metadato.Valore" data-scrivi-tag="@chiave" placeholder="—"
+                                    <input class="lab-campo" value="@metadato.Valore" data-scrivi-tag="@chiave" placeholder="@Segnaposto(metadato.Base)"
                                            @onchange="e => Lab.CambiaIlMetadato(scheda.File, scheda.Indice, chiave, e.Value?.ToString())" />
+                                }
+                                @if (metadato.SiScrive && metadato.Valore is not null && Lab.AltreDellaVoce(scheda.File, scheda.Indice) is { Count: > 0 } altre)
+                                {
+                                    @* Slice 9c (P6): lo stesso valore a tutte le procedure della sua pista e del suo tipo. *@
+                                    <button class="lab-tasto lab-tasto-tenue lab-a-tutta-la-voce" data-a-tutta-la-voce="@chiave"
+                                            title="@TitoloATuttaLaVoce(chiave, metadato.Valore, altre.Count)"
+                                            @onclick="() => Lab.MetadatoATuttaLaVoce(scheda.File, scheda.Indice, chiave)">a tutta la voce</button>
                                 }
                             </td>
                         </tr>
@@ -386,6 +423,19 @@ else
         Lab.CambiaIlMetadato(scheda.File, scheda.Indice, metadato.Chiave,
             ValoriDeiMetadati.Clic(metadato.Base, adesso, lettera, e.Detail >= 2));
     }
+
+    private static string TitoloATuttaLaVoce(string chiave, string valore, int altre)
+        => $"Scrive {chiave}={valore} anche nelle altre {altre} procedure della voce (stessa pista, stesso tipo)";
+
+    private static string TitoloDelCandidato(PuntoDelCatalogo punto) => $"{punto.Catalogo} di {punto.File}: scrive fix={punto.Nome}";
+
+    /// <summary>Cosa scrivere nelle chiavi di testo che hanno una forma (slice 9c).</summary>
+    private static string Segnaposto(string chiave) => chiave switch
+    {
+        "mins" => "A:450,B:450,C:500,D:500",
+        "gp" => "3.0",
+        _ => "—",
+    };
 
     /// <summary>Una chiave sì/no dei metadati: spuntata vale «si», tolta sparisce (§M).</summary>
     private void SpuntaIlTag(SchedaDelRecord scheda, string chiave, ChangeEventArgs e)

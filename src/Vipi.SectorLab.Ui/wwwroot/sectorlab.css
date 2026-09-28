@@ -712,6 +712,22 @@ body.lab-trascina * {
     font-weight: 700;
 }
 
+/* Slice 9c: il fix proposto dal nome della procedura (P7), e «a tutta la voce» (P6). */
+.lab-proposta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+    margin-top: .25rem;
+}
+
+.lab-a-tutta-la-voce {
+    margin-top: .25rem;
+    padding: 0 .45rem;
+    font-size: .8em;
+    line-height: 1.35;
+}
+
 /* Il selettore dei colori (lotto «Subito» slice 4): campione, testo, selettore, opacità; sotto, i nomi di colors.def. */
 .lab-colore {
     display: flex;

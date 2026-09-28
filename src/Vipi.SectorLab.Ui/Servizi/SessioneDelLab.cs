@@ -817,6 +817,52 @@ public sealed class SessioneDelLab
     public IReadOnlyList<MetadatoDellaScheda> MetadatiDi(string fileRelativo, int record)
         => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? MetadatiDellaScheda.Di(file, record) : [];
 
+    /// <summary>
+    /// Il fix proposto dal nome di una SID o di una procedura .str (slice 9c, P7), coi punti del master scelto; null se
+    /// il record non è una procedura, se ha già il fix, o se il nome non dice un punto.
+    /// </summary>
+    public FixProposto? FixPropostoDi(string fileRelativo, int record)
+    {
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord file || record < 0 || record >= file.RecordDelModello.Count
+            || CatalogoScelto is not { } catalogo || file.ChiaviDi(record)?.ContainsKey("fix") == true)
+            return null;
+        return file.RecordDelModello[record] switch
+        {
+            Vipi.Sectorfile.Models.SidProcedure sid => FixDalNome.Di(sid.Name, sid.IcaoCode, catalogo),
+            Vipi.Sectorfile.Models.StrRecord voce when !DescrizioniDeiCampi.EUnaMappa(voce.RunwaySpec) => FixDalNome.Di(voce.ProcedureId, voce.IcaoCode, catalogo),
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Le altre procedure della voce del record (la sua pista e il suo tipo, slice 9b), alle quali «a tutta la voce»
+    /// porta un suo metadato (slice 9c, P6: «valori di gruppo per pista come gesto»). Vuoto se non è una procedura.
+    /// </summary>
+    public IReadOnlyList<int> AltreDellaVoce(string fileRelativo, int record)
+        => VoceDi(fileRelativo, record) is { Pista: not null } voce ? [.. voce.Record.Where(r => r != record)] : [];
+
+    /// <summary>
+    /// Porta il valore di una chiave del record a tutte le altre procedure della sua voce (P6): un gesto solo nella
+    /// storia, una modifica per record. Le procedure che hanno già quel valore non si toccano.
+    /// </summary>
+    public bool MetadatoATuttaLaVoce(string fileRelativo, int record, string chiave)
+    {
+        if (VoceDi(fileRelativo, record) is not { Pista: not null } voce
+            || MetadatiDi(fileRelativo, record).FirstOrDefault(m => m.Chiave == chiave)?.Valore is not { } valore)
+            return false;
+        return NellaStoria($"{chiave}={valore} a tutta la voce {voce.Nome} di {NomeDelFile(fileRelativo)}", () =>
+        {
+            bool fatto = false;
+            foreach (int altro in AltreDellaVoce(fileRelativo, record))
+            {
+                if (MetadatiDi(fileRelativo, altro).FirstOrDefault(m => m.Chiave == chiave)?.Valore != valore)
+                    fatto |= CambiaIlMetadatoAdesso(fileRelativo, altro, chiave, valore);
+            }
+
+            return fatto;
+        });
+    }
+
     /// <summary>Scrive, cambia o toglie (vuoto) una chiave dei metadati del record: il tag sopra il record.</summary>
     public bool CambiaIlMetadato(string fileRelativo, int record, string chiave, string? valore)
         => NellaStoria($"{chiave} di {EtichettaDi(fileRelativo, record)}", () => CambiaIlMetadatoAdesso(fileRelativo, record, chiave, valore));

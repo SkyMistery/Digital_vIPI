@@ -1157,3 +1157,23 @@ tipo e la scheda della voce (Q1, P2) · **9c** i metadati delle procedure e il f
     codice di prima**. La coda passa sotto il nuovo in 186 prove in più (109 → 295 con righe vuote in più). Prova
     sull'albero invariata.
   Test: motore 688 → **691**, Lab 715 → **720**.
+- **9c (29 settembre)** — i metadati delle procedure (P6, P7, Q2b, Q2d). Solo Lab, niente codice comune: il catalogo
+  dei tag c'era dalla slice 1, le chiavi fix/trans/salita/scia/categorie con i loro editor dalla 3d (prova 68).
+  - **Le chiavi del genere di voce** (scelta dell'agente): il catalogo dei `.str` resta uno — è il contratto con vIPI,
+    che le legge tutte —, ma la scheda propone a una mappa del `MAPS` solo le chiavi delle mappe (composte, famiglia di
+    forme, limiti e classe), a una STAR quelle delle SID senza la salita iniziale, a IAP/FAP/GA in più tipo, minimi e
+    pendenza. Le chiavi che un record ha già si vedono comunque.
+  - **Scelte chiuse**: `nav` da RNAV1 / RNP1 / RNP APCH (Q2b), `type` da ILS / LOC / RNP / VOR / NDB (Q2d); un valore
+    fuori elenco già nel file si vede e resta. **Forme**: `mins` categoria:piedi nell'ordine A-E
+    (`a:450, b:450` → `A:450,B:450`), `gp` in gradi da 1 a 10 (`3` → `3.0`); il resto si rifiuta col perché.
+  - **Fix proposto dal nome** (P7, `FixDalNome`): la radice del nome (il punto prima di numero e lettera, `EKLO8R` →
+    `EKLO`, `OST1E` → `OST`, la prima parte dei nomi composti) cercata fra fix, VOR e NDB del master scelto — il nome
+    uguale, o un nome di cinque lettere che comincia con la radice di tre o quattro — entro **150 NM dallo scalo**, il
+    più vicino prima. Nella scheda, sotto «Fix intero»: «dal nome: EKLOS» (un clic scrive `fix=`), o «dal nome,
+    scegli:» coi candidati. Misura sul fork (`scratchpad/misura9c`, ITALY.isc): **SID 1 305 → 1 081 con un candidato
+    (265 col nome già navaid), 114 da scegliere, 50 senza, 60 nomi senza radice** (militari, luoghi); procedure `.str`
+    su pista: 619 / 4 / 3 / 26. La carta diceva 982 / 277 / 48: il raggio dallo scalo toglie gli omonimi lontani.
+    Scelta dell'agente: è una proposta a un clic, non una scrittura in massa.
+  - **«a tutta la voce»** (P6, «valori per pista come gesto»): accanto a ogni metadato scritto di una procedura, porta
+    lo stesso valore alle altre della sua voce (stessa pista, stesso tipo) in un gesto solo della storia.
+  Test: Lab 720 → **745**.

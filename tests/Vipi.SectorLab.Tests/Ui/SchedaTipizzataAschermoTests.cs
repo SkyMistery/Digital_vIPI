@@ -284,6 +284,49 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
             r => r.StartsWith("//@\"BC404\"", StringComparison.Ordinal) && r.Contains("locked=si", StringComparison.Ordinal)));
     }
 
+    // --- slice 9c: i metadati delle procedure ---------------------------------------------------------------------
+
+    [Fact]
+    public async Task IlFixDalNomeSiScriveConUnClic()
+    {
+        // OST1E: il nome è già il navaid del master (OST, a Fiumicino).
+        var pagina = await ConIlRecord("lirf.sid", "OST1E");
+
+        Assert.Equal("OST", pagina.Find("[data-fix-proposto]").GetAttribute("data-fix-proposto"));
+        pagina.Find("[data-candidato='OST']").Click();
+
+        pagina.WaitForAssertion(() => Assert.Contains("//@\"OST1E\" fix=OST", Righe("lirf.sid")));
+        // Scritto il fix, la proposta non c'è più.
+        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-fix-proposto]")));
+    }
+
+    [Fact]
+    public async Task UnMetadatoVaATuttaLaVoceInUnGestoSolo()
+    {
+        // lirf.sid: la 07 ha tre SID (OST1E, OST1D, RATI1D).
+        var pagina = await ConIlRecord("lirf.sid", "OST1E");
+        pagina.Find("[data-scrivi-tag='initialclimb']").Change("FL70");
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-a-tutta-la-voce='initialclimb']")));
+
+        pagina.Find("[data-a-tutta-la-voce='initialclimb']").Click();
+
+        pagina.WaitForAssertion(() => Assert.Equal(3, Righe("lirf.sid").Count(r => r.Contains("initialclimb=FL70", StringComparison.Ordinal))));
+        Assert.Contains("//@\"RATI1D\" initialclimb=FL70", Righe("lirf.sid"));
+        // Un gesto per il valore, uno per portarlo alla voce: annullare toglie i due della voce e lascia il primo.
+        _lab.Annulla();
+        Assert.Equal(1, Righe("lirf.sid").Count(r => r.Contains("initialclimb=FL70", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task LaNavigazioneSiSceglieDaUnElenco()
+    {
+        var pagina = await ConIlRecord("lirf.str", "LIRF ELKA3A");
+
+        pagina.Find("select[data-scrivi-tag='nav']").Change("RNP APCH");
+
+        pagina.WaitForAssertion(() => Assert.Contains("//@\"ELKA3A\" nav=\"RNP APCH\"", Righe("lirf.str")));
+    }
+
     // --- slice 3e: il tipo del record nuovo ------------------------------------------------------------------------
 
     [Fact]

@@ -20,6 +20,9 @@ public enum EditorDelMetadato
 
     /// <summary>Lettere da un insieme chiuso, come tasti (<c>wtc</c> L M H S, <c>cat</c> A-E).</summary>
     Lettere,
+
+    /// <summary>Un valore da un elenco chiuso (<c>nav</c>, <c>type</c>: slice 9c, Q2b, Q2d).</summary>
+    Scelta,
 }
 
 /// <summary>
@@ -39,6 +42,16 @@ public static partial class ValoriDeiMetadati
         ["cat"] = "ABCDE",
     };
 
+    /// <summary>
+    /// I valori chiusi (slice 9c): la specifica di navigazione (Q2b, P11) e il tipo di avvicinamento (Q2d), come li
+    /// scrive la carta «file per file». Un valore fuori elenco già nel file si vede e resta.
+    /// </summary>
+    public static IReadOnlyDictionary<string, IReadOnlyList<string>> Scelte { get; } = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+    {
+        ["nav"] = ["RNAV1", "RNP1", "RNP APCH"],
+        ["type"] = ["ILS", "LOC", "RNP", "VOR", "NDB"],
+    };
+
     /// <summary>L'editor di una chiave (senza il numero di pista davanti).</summary>
     public static EditorDelMetadato EditorDi(string chiave, bool siNo)
         => siNo ? EditorDelMetadato.SiNo
@@ -47,6 +60,7 @@ public static partial class ValoriDeiMetadati
                 "fix" or "trans" => EditorDelMetadato.Punto,
                 "initialclimb" => EditorDelMetadato.SalitaIniziale,
                 _ when Lettere.ContainsKey(chiave) => EditorDelMetadato.Lettere,
+                _ when Scelte.ContainsKey(chiave) => EditorDelMetadato.Scelta,
                 _ => EditorDelMetadato.Testo,
             };
 
@@ -83,6 +97,23 @@ public static partial class ValoriDeiMetadati
                 }
 
                 return Salita(scritto, out scritto, out perche);
+
+            case "mins":
+                return Minimi(scritto, out scritto, out perche);
+
+            case "gp":
+                return Pendenza(scritto, out scritto, out perche);
+
+            case var _ when Scelte.TryGetValue(chiave, out var scelte):
+                string cercato = string.Join(' ', scritto.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                if (scelte.FirstOrDefault(v => string.Equals(v, cercato, StringComparison.OrdinalIgnoreCase)) is { } scelta)
+                {
+                    scritto = scelta;
+                    return true;
+                }
+
+                perche = $"«{scritto}» non è fra {string.Join(", ", scelte)}.";
+                return false;
 
             default:
                 if (!Lettere.TryGetValue(chiave, out string? ammesse))
@@ -127,6 +158,54 @@ public static partial class ValoriDeiMetadati
 
         scritto = null;
         perche = $"«{testo}» non è una quota: si scrive in piedi (6000, 6000ft) o in FL (FL80), oppure si spunta {CooApp}.";
+        return false;
+    }
+
+    /// <summary>
+    /// I minimi per categoria (Q2d): <c>A:450,B:450,C:500,D:500</c>, in piedi, nell'ordine delle categorie. Si
+    /// accettano spazi e minuscole; una categoria fuori da A-E o una quota che non è un numero si rifiutano.
+    /// </summary>
+    private static bool Minimi(string testo, out string? scritto, out string? perche)
+    {
+        var perCategoria = new SortedDictionary<char, int>();
+        foreach (string pezzo in testo.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            string[] coppia = pezzo.Split(':', StringSplitOptions.TrimEntries);
+            if (coppia.Length != 2 || coppia[0].Length != 1 || !Lettere["cat"].Contains(char.ToUpperInvariant(coppia[0][0]), StringComparison.Ordinal))
+            {
+                scritto = null;
+                perche = $"«{pezzo}»: i minimi si scrivono categoria:piedi (A:450), con le categorie A-E.";
+                return false;
+            }
+
+            if (!int.TryParse(coppia[1], NumberStyles.None, CultureInfo.InvariantCulture, out int piedi) || piedi is <= 0 or > 10000)
+            {
+                scritto = null;
+                perche = $"«{pezzo}»: la quota dei minimi è in piedi, da 1 a 10 000.";
+                return false;
+            }
+
+            perCategoria[char.ToUpperInvariant(coppia[0][0])] = piedi;
+        }
+
+        perche = null;
+        scritto = perCategoria.Count == 0 ? null : string.Join(',', perCategoria.Select(c => $"{c.Key}:{c.Value}"));
+        return true;
+    }
+
+    /// <summary>La pendenza del sentiero di discesa (Q2d), in gradi con un decimale: <c>3.0</c>. Da 1 a 10 gradi.</summary>
+    private static bool Pendenza(string testo, out string? scritto, out string? perche)
+    {
+        if (decimal.TryParse(testo.Replace(',', '.').Replace("°", "", StringComparison.Ordinal), NumberStyles.Number,
+                             CultureInfo.InvariantCulture, out decimal gradi) && gradi is >= 1 and <= 10)
+        {
+            scritto = gradi.ToString("0.0#", CultureInfo.InvariantCulture);
+            perche = null;
+            return true;
+        }
+
+        scritto = null;
+        perche = $"«{testo}»: la pendenza è in gradi, da 1 a 10 (3.0).";
         return false;
     }
 
