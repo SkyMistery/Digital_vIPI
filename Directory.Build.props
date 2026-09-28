@@ -81,7 +81,9 @@
       Quindi la regola, e vale per il numero che sta qui sotto:
 
         PATCH  1.0.x  solo correzioni: nessuna migrazione, nessuna pagina o sezione nuova.
-        MINOR  1.x.0  funzionalità nuove, e/o migrazioni ADDITIVE.
+        MINOR  1.x.0  funzionalità nuove, e/o migrazioni ADDITIVE. Una migrazione con DROP o RENAME resta
+                      MINOR, ma il pacchetto è marcato «NON SI TORNA INDIETRO»: il rollback a due rinomine
+                      farebbe girare il codice di prima su uno schema che non conosce (U-097, 28-set-2026).
         MAJOR  x.0.0  il pacchetto NON si può consegnare da solo: serve una sostituzione del database,
                       oppure il codice nuovo non sa leggere l'archivio che c'è in produzione.
 
