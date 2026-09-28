@@ -1025,5 +1025,15 @@
   - **Test**: `CoordinationSentenceComposerTests` (+1), `TransferMatcherTests` (+1), `CoordTableTests` (+2),
     `VloaOrdineFrequenzeTests` (+1, servizio vero su SQLite), `CoordinationCharacterizationTests` (file approvato).
     Rossi sul codice di prima. Application 3034 → **3036**, Infrastructure 1772 → **1773**, Ui 1815 → **1817**.
+  - **Gruppo 4** (ciclo e snapshot delle derivate, **codice comune** `Vipi.Application`): **U-151** (una release
+    programmata al ciclo entrante congela la vIPI dentro `ShapeReleaseContext.Capturing`, ma le SID/STAR fra i
+    punti degli accordi si chiedevano al ciclo di OGGI) → `ProcedureReferenceResolver` legge il ciclo della
+    cattura, se c'è (stesso scope del contesto); fuori, oggi come prima. **U-148** (una vIPI ACC pubblicata prima
+    delle sezioni SCCAM/FIC: la vista rifiuta di derivarle, ma l'assemblatore le accodava lo stesso, e la pagina
+    pubblica — e dopo S27 anche l'anteprima di release — mostrava due sezioni «Nessun settore») → dallo snapshot
+    le sezioni di `AccDocumentAssembler.SoloSePubblicate` non si accodano; nella bozza sì, come prima. Scelta del
+    Sito: nasconderle, la regola che il commento della vista aveva già scritto.
+  - **Test**: `ProcedureReferenceResolverTests` (+1), `AccDocumentAssemblerTests` (+1). Rossi sul codice di
+    prima (U-151 con la correzione spenta). Application 3036 → **3038**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
