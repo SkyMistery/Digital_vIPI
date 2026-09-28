@@ -47,6 +47,28 @@ public class GestiDegliImportNonCadonoTests
         Assert.Matches(new Regex($@"private Task {gestore}\([^)]*\)\s*=>\s*(\r?\n\s*)?Gesto\("), s);
     }
 
+    /// <summary>
+    /// 🔴 U-174 (revisione totale 3): i due gesti della pagina ACC che restavano fuori dalla porta. Il clic su una
+    /// riga ACC legge le sue aree dal DbContext del circuito, e restava cliccabile mentre un import scriveva; «Salva
+    /// limiti (N)» (anche da «Fine modifica») partiva sopra un import in volo. Stessa guardia della porta, prima del
+    /// primo await, e nessuna eccezione che esca dal gestore.
+    /// </summary>
+    [Theory]
+    [InlineData("TogglePick")]
+    [InlineData("SaveAllLimits")]
+    public void I_gesti_ACC_fuori_dalla_porta_hanno_la_stessa_guardia(string gestore)
+    {
+        var m = Regex.Match(Leggi("AccAdminPage.razor"), $@"private async Task {gestore}\([^)]*\)\s*\{{(?<c>.*?)\n    \}}",
+            RegexOptions.Singleline);
+        Assert.True(m.Success, $"{gestore} non trovato");
+        var corpo = m.Groups["c"].Value;
+
+        var guardia = corpo.IndexOf("if (_busy) return;", StringComparison.Ordinal);
+        var attesa = corpo.IndexOf("await ", StringComparison.Ordinal);
+        Assert.True(guardia >= 0 && guardia < attesa, $"{gestore}: la guardia `_busy` deve stare PRIMA del primo await.");
+        Assert.Matches(@"catch \(Exception ex\)", corpo);
+    }
+
     private static string CorpoDi(string sorgente, string metodo)
     {
         var m = Regex.Match(sorgente, $@"private async Task {metodo}\(Func<Task> [a-z]+(, string [a-z]+)?\)\s*\{{(?<c>.*?)\n    \}}",

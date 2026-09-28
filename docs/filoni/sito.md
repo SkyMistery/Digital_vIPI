@@ -851,5 +851,20 @@
     ⚠️ Il doppio clic in bUnit si prova su DUE righe: il secondo clic sullo stesso tasto trova il gestore già
     rimpiazzato dal disegno (le lambda in un `foreach` cambiano id a ogni render), dal vivo no.
     Ui 1789 → **1796**, Infrastructure 1756 → **1757**, net8 e net10. **Codice comune**: `Vipi.Infrastructure` (`EfGlossaryStore`).
+  - **Gruppo 3**: **U-065/U-081** (pannello release: «Differenze» senza sentinella né catch generale, e il
+    ricarico del ciclo di vita con i tasti accesi) → `ToggleDiff` con la sentinella e la rete di `Run` (chiudere
+    passa sempre, un diff già letto si riapre senza leggere); durante il ricarico del ciclo di vita `_busy` acceso,
+    senza spegnere quello di un gesto già in volo. **U-198** (`IProssimoAiracService` fra i servizi «sicuri» del
+    presidio, ma legge e scrive il database; Versioni lo prendeva dal circuito) → tolto dai sicuri; Versioni lo
+    prende dallo scope proprio, la lettura del ciclo entrante e la programmazione in blocco passano dalla fila,
+    sentinella su «Ricarica» e «Programma mancanti». **U-174** (ACC: il clic su una riga leggeva le aree dal
+    circuito mentre un import scriveva; «Salva limiti (N)», anche da «Fine modifica», partiva sopra un import;
+    la prima lettura senza rete) → guardia e catch su `TogglePick` e `SaveAllLimits` (con un import in volo le righe
+    restano pendenti e il lock non si rilascia), rete sulla prima lettura. La parte Radioassistenze di U-174 era già
+    chiusa da U-132.
+  - **Test**: `ReleasePanelTests` (+1, il finto delle differenze esplode con «A second operation» se due letture si
+    sovrappongono), `ScopeProprioDellePagineTests` (rosso naturale su Versioni appena tolto il servizio dai sicuri),
+    `GestiDegliImportNonCadonoTests` (+2, presidio sul testo come per U-029: la pagina ACC tira una dozzina di
+    servizi). Rossi sul codice di prima. Ui 1796 → **1799**, net8 e net10.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

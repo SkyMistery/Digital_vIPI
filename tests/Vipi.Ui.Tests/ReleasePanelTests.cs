@@ -88,11 +88,20 @@ public class ReleasePanelTests : TestContext
             return Task.CompletedTask;
         }
 
-        public Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default)
+        public async Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default)
         {
+            // Come il DbContext del circuito: una seconda operazione mentre la prima e' in volo esplode.
+            if (_inVolo) throw new InvalidOperationException("A second operation was started on this context instance");
             DiffCalls++;
-            return Task.FromResult(Diff);
+            if (TrattieniDiff is null) return Diff;
+            _inVolo = true;
+            try { await TrattieniDiff.Task; }
+            finally { _inVolo = false; }
+            return Diff;
         }
+
+        /// <summary>Tiene in volo le differenze finche' il test non le lascia andare (U-065).</summary>
+        public TaskCompletionSource? TrattieniDiff { get; set; }
 
         public string CurrentCycle() => "2607";
 
@@ -257,6 +266,28 @@ public class ReleasePanelTests : TestContext
         cut.FindAll("button").First(b => b.TextContent.Contains("Diff")).Click();
         Assert.DoesNotContain("Separazioni", cut.Markup);
         cut.FindAll("button").First(b => b.TextContent.Contains("Diff")).Click();
+        Assert.Equal(1, fake.DiffCalls);
+    }
+
+    /// <summary>
+    /// 🔴 U-065/U-081 (revisione totale 3): «Differenze» non aveva sentinella né catch generale. Due «Differenze» su
+    /// righe diverse erano due letture sovrapposte sullo stesso DbContext del circuito, e l'eccezione usciva dal
+    /// gestore: circuito giù. U-017 aveva chiuso i gesti che passano da <c>Run</c>; questo no.
+    /// </summary>
+    [Fact]
+    public async Task Due_Differenze_ravvicinate_non_sovrappongono_due_letture()
+    {
+        var fake = Arrange(Rel(7), Rel(8, cycle: "2609"));
+        fake.TrattieniDiff = new TaskCompletionSource();
+        var cut = Render(showDiff: true);
+
+        var prima = cut.FindAll("button").Where(b => b.TextContent.Contains("Rel_Diff")).ElementAt(0).ClickAsync(new());
+        var seconda = cut.FindAll("button").Where(b => b.TextContent.Contains("Rel_Diff")).ElementAt(1).ClickAsync(new());
+        fake.TrattieniDiff.SetResult();
+        await Task.WhenAll(prima, seconda);
+
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
+        if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
         Assert.Equal(1, fake.DiffCalls);
     }
 

@@ -5,7 +5,6 @@
 @* ⚠️ OwningComponentBase per lo SCOPE: il servizio di editing (e il suo DbContext) non viene dal circuito. *@
 @inherits ScopeProprioCheAspetta
 @using Microsoft.Extensions.DependencyInjection
-@inject IProssimoAiracService ProssimoAirac
 @inject IEditAuthorizationService Authz
 @inject NavigationManager Nav
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
@@ -526,6 +525,9 @@
     private IDocumentImpactService Impacts = default!;
     private Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster = default!;
     private Vipi.Application.Translation.IStatoTraduzione StatoTraduzione = default!;
+    // 🔴 U-198 (revisione totale 3): legge i documenti e programma le release. Stava in `@@inject`, cioè sul
+    // DbContext del circuito e fuori dalla fila della pagina.
+    private IProssimoAiracService ProssimoAirac = default!;
     protected override async Task OnInitializedAsync()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
@@ -536,6 +538,7 @@
         Impacts = ScopedServices.GetRequiredService<IDocumentImpactService>();
         StaffRoster = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IStaffRosterRepository>();
         StatoTraduzione = ScopedServices.GetRequiredService<Vipi.Application.Translation.IStatoTraduzione>();
+        ProssimoAirac = ScopedServices.GetRequiredService<IProssimoAiracService>();
 
         // ⚠️ Fino al 29 agosto 2026 questa pagina non aveva un cancello, ed era una scelta: l'elenco si
         // leggeva e i tasti li abilitava la concessione. Con le concessioni morte quella scelta non ha più
@@ -552,6 +555,7 @@
     /// <summary>Ricarica l'elenco: i lock nascono e muoiono mentre la pagina sta aperta, e con essi i cicli release.</summary>
     private async Task ReloadAsync()
     {
+        if (_busy) return;
         _busy = true; _status = _error = _errorTitle = null;
         try { await LoadAsync(); await LeggiCicloEntranteAsync(); }
         finally { _busy = false; }
@@ -563,7 +567,7 @@
     /// </summary>
     private async Task LeggiCicloEntranteAsync()
     {
-        try { _airac = await ProssimoAirac.LeggiAsync(); }
+        try { await InFilaAsync(async () => _airac = await ProssimoAirac.LeggiAsync()); }
         catch { _airac = null; }
     }
 
@@ -574,13 +578,14 @@
     /// </summary>
     private async Task ProgrammaMancantiAsync()
     {
+        if (_busy) return;
         _busy = true; _status = _error = _errorTitle = null; _airacSaltati = new();
         try
         {
             // ⚠️ Nota NULL, e non una frase nostra: la nota di una release è testo che finisce in archivio e
             // si rilegge in timeline. Scritta qui, sarebbe nella lingua di chi ha premuto il tasto e ci
             // resterebbe per sempre — è la regola già pagata dagli impatti (le frasi restano chiave+argomenti).
-            var esito = await ProssimoAirac.ProgrammaMancantiAsync();
+            var esito = (await InFilaAsync(() => ProssimoAirac.ProgrammaMancantiAsync()))!;
             _airacSaltati = esito.Saltati.ToList();
             _status = string.Format(L["Airac_NextDone"].Value, esito.Programmati, _airac?.CicloEntrante ?? "");
             await LoadAsync();

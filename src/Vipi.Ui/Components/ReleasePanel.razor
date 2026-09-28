@@ -412,8 +412,15 @@
         _loaded = (Target, Key, Revisione);
         // Rete di sicurezza: un'eccezione qui NON è catturabile dall'host (è ciclo di vita, non evento) e
         // abbatterebbe il circuito. Meglio il pannello con un errore visibile che la pagina morta.
+        //
+        // 🔴 U-081 (revisione totale 3): durante il ricarico i tasti si spengono e le sentinelle chiudono la porta.
+        // Prima restavano accesi, e «Differenze» partiva sopra la lettura in corso sullo stesso DbContext. Se un
+        // gesto è già in volo il suo `_busy` non si tocca: lo spegnerebbe questo finally, a gesto non finito.
+        var mio = !_busy;
+        _busy = true;
         try { await Reload(); }
         catch (Exception ex) { _error = ex.Message; }
+        finally { if (mio) _busy = false; }
     }
 
     /// <summary>
@@ -628,15 +635,23 @@
         return true;
     }, L["Rel_Canceled"]);
 
+    /// <summary>
+    /// Apre o chiude le differenze di una release. 🔴 U-065 (revisione totale 3): la lettura ha la stessa sentinella
+    /// di <see cref="Run"/> e la stessa rete. Prima due «Differenze» su righe diverse erano due letture sovrapposte
+    /// sullo stesso DbContext del circuito, e l'eccezione usciva dal gestore. Chiudere non legge niente: passa sempre.
+    /// </summary>
     private async Task ToggleDiff(int releaseId)
     {
         if (_diffOpen.Remove(releaseId)) return;
+        if (_diffs.ContainsKey(releaseId)) { _diffOpen.Add(releaseId); return; }
+        if (_busy) return;
+
+        _busy = true;
         _diffOpen.Add(releaseId);
-        if (!_diffs.ContainsKey(releaseId))
-        {
-            try { _diffs[releaseId] = await Releases.DiffAsync(releaseId); }
-            catch (EditNotAllowedException ex) { _error = ex.Message; }
-        }
+        try { _diffs[releaseId] = await Releases.DiffAsync(releaseId); }
+        catch (EditNotAllowedException ex) { _error = ex.Message; _diffOpen.Remove(releaseId); }
+        catch (Exception ex) { _error = L["Common_UnexpectedError"] + ex.Message; _diffOpen.Remove(releaseId); }
+        finally { _busy = false; }
     }
 
     // Esegue l'azione (che ritorna true=proceduta → mostra ok; false=annullata → nessun messaggio) con guardia busy/errori.
