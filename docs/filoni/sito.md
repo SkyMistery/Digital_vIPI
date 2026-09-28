@@ -1129,5 +1129,18 @@
     provati a schermo: il canale di una radioassistenza citata (U-157: nella copia nessun vSOP militare, la
     prova è il test sul database e il bUnit della pagina), la vLOA 65 e il suo puntatore (non c'è nella copia),
     e le segnalazioni U-060 (richiedono una sparizione dal catalogo: la prova è il test d'integrazione).
+- 🔨 **S33** lotto **L11 «Il resto», fetta G — dominio aeronautico** della revisione 3 (via del committente il
+  28-set; stesso ramo, un unico caricamento con S9…S32). Perimetro: d13 aperte, U-214…U-230 (17 voci; U-015 e
+  U-089…U-095 già chiuse in L8/L2). Smistamento sul codice di `5728ffd6` con due agenti in sola lettura:
+  **già chiusa** U-216 (S22/U-015: `AirportViewFormat.TlAdesso` dà «—» senza QNH; resta «una funzione sola»,
+  che si chiude con U-227); **da una scelta del committente** U-214 (vento ignoto e regole piste), U-217 (ATZ
+  in AGL), U-219 (aeroporti gestiti da un APP); le altre ancora vere. La prova rossa del registro per U-223 era
+  sbagliata (vento 250 sulla 163 è di prua): quella giusta è 070/15 sulla «16» di rotta vera 163.
+  - **Gruppo 1** (TAF, **codice comune** `Vipi.Application`): **U-215** («PROB30 TEMPO periodo» apriva una riga
+    PROB vuota «dall'inizio della validità» e poi un TEMPO senza probabilità) → il TEMPO subito dopo un PROB
+    senza periodo né gruppi eredita la probabilità, niente riga vuota; il meteo dello scalo lo scrive
+    «PROB30 TEMPO». Un «PROB40 periodo» da solo resta un gruppo PROB.
+  - **Test**: `WeatherParsingTests` (+2). Rosso sul codice di prima (3 segmenti invece di 2). Application
+    3039 → **3041**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

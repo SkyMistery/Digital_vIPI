@@ -169,8 +169,11 @@ public static partial class MetarParser
 
             if (t is "BECMG" or "TEMPO")
             {
-                Flush();
+                // «PROB30 TEMPO periodo» è un gruppo solo: il TEMPO eredita la probabilità (U-215).
+                var probDelTempo = t == "TEMPO" && kind == TafChangeKind.Prob && current.Count == 0 && period is null ? prob : null;
+                if (probDelTempo is null) Flush();
                 kind = t == "BECMG" ? TafChangeKind.Becmg : TafChangeKind.Tempo;
+                prob = probDelTempo;
                 if (i + 1 < tokens.Count && PeriodRe().IsMatch(tokens[i + 1])) { period = tokens[++i]; }
                 continue;
             }

@@ -193,6 +193,31 @@ public class WeatherParsingTests
         Assert.Equal(240, taf.Segments[3].Wind!.DirectionDeg);
     }
 
+    [Fact] // U-215: «PROB30 TEMPO» è un solo gruppo, un TEMPO con la probabilità; nessuna riga PROB vuota
+    public void Taf_Prob_Tempo_porta_la_probabilita_sul_TEMPO()
+    {
+        var taf = MetarParser.ParseTaf(
+            "LIRF 270500Z 2706/2812 16010KT 9999 SCT030 PROB30 TEMPO 2714/2718 TSRA");
+
+        Assert.Equal(2, taf.Segments.Count);
+        Assert.Equal(TafChangeKind.Tempo, taf.Segments[1].Kind);
+        Assert.Equal(30, taf.Segments[1].Probability);
+        Assert.Equal("2714/2718", taf.Segments[1].PeriodRaw);
+        Assert.Equal(new[] { "TS", "RA" }, taf.Segments[1].Weather.Single().Codes);
+    }
+
+    [Fact] // U-215: «PROB40 periodo» da solo resta un gruppo PROB
+    public void Taf_Prob_da_solo_resta_Prob()
+    {
+        var taf = MetarParser.ParseTaf(
+            "LIRF 270500Z 2706/2812 16010KT 9999 SCT030 PROB40 2714/2718 TSRA");
+
+        Assert.Equal(2, taf.Segments.Count);
+        Assert.Equal(TafChangeKind.Prob, taf.Segments[1].Kind);
+        Assert.Equal(40, taf.Segments[1].Probability);
+        Assert.Equal("2714/2718", taf.Segments[1].PeriodRaw);
+    }
+
     [Fact] // TAF period leggibile: range validità + punto singolo (FM), con mese dedotto dalla data di riferimento
     public void TafPeriod_Formats_Human_Readable()
     {
