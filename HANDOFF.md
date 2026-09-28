@@ -1686,7 +1686,8 @@ via del **pool** di SQLite invece che per via dell'interceptor, e che un `ClearA
 mezzo albero non compila e il totale cala di centinaia senza che il comando diventi rosso.
 ⚠️ **E non basta contare i «Failed!»**: se un progetto non compila non produce nessuna riga di esito, quindi
 zero falliti può voler dire zero eseguiti. Si costruisce PRIMA (`dotnet build Vipi.slnx -c Release`), e poi
-si contano i **progetti con esito: devono essere 15**.
+si contano i **progetti con esito**: il numero giusto non si scrive qui (invecchia a ogni progetto di test
+nuovo), si conta su `tests/conteggi/`, una riga per TFM, e lo verifica `tools/conta-test.sh`.
 
 🔵 **Quel che aspetta il committente sul codice: ripubblicare le quattro vLOA.** La correzione del ciclo
 AIRAC doppio **non arriva al pubblico da sola** — la pagina legge lo snapshot della release, e gli snapshot

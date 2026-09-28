@@ -1,6 +1,11 @@
 # Deploy vIPI su Render (free) + Neon (Postgres free)
 
-Runbook autorevole. Nessuna carta di credito. Risultato: `https://<nome>.onrender.com` con TLS
+> ⚪ **SUPERATO il 28 settembre 2026: Render non si usa più** (decisione del committente, revisione 3, U-122).
+> Il sito vive su `atc.it.ivao.aero` (Plesk + Passenger): per consegnare vale
+> [`docs/guide/preparare-un-pacchetto.md`](../../docs/guide/preparare-un-pacchetto.md). Questo foglio resta
+> come storia e non va seguito.
+
+Runbook autorevole (fino al 28 settembre 2026). Nessuna carta di credito. Risultato: `https://<nome>.onrender.com` con TLS
 automatico, DB Postgres condiviso e persistente su Neon, login IVAO OIDC.
 
 Caratteristiche/limiti del piano free:

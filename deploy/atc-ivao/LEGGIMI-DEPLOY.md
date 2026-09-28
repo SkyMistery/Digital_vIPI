@@ -15,8 +15,9 @@
 >
 > Questo documento descrive la **prima installazione**. Per **aggiornare** un sito già in produzione — che
 > dal 16 agosto 2026 è il caso di `atc.it.ivao.aero` — si segue
-> [`LEGGIMI-AGGIORNAMENTO.md`](LEGGIMI-AGGIORNAMENTO.md), che dice l'ordine dei passi e soprattutto le tre
-> cose che l'FTP cancellerebbe senza chiedere. Da qui restano utili le impostazioni di MariaDB, la tabella
+> [`LEGGIMI-AGGIORNARE-VIA-FTP.md`](LEGGIMI-AGGIORNARE-VIA-FTP.md), più il foglio `LEGGIMI-PACCHETTO-<versione>.md`
+> del pacchetto che si carica. ⛔ **Non** `LEGGIMI-AGGIORNAMENTO.md`: è la storia della consegna del 23 agosto e
+> comincia con `DROP DATABASE` (revisione 3, U-126). Da qui restano utili le impostazioni di MariaDB, la tabella
 > dei guasti e i redirect IVAO.
 
 Build del **23 agosto 2026**, da `main`. Self-contained: **non serve installare .NET**, il runtime è nel
