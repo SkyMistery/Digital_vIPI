@@ -510,6 +510,12 @@ che sceglie **sul DOM, non sull'indirizzo** — è scritto nella nota in testa a
 seguita. `vipiInitAwos` si chiama a ogni navigazione: se il quadro c'è si (ri)aggancia all'aeroporto che
 trova, se non c'è **spegne i timer**.
 
+⚠️ **Un file che non arriva si ritenta** (U-209, revisione 3, 29 settembre 2026). La macchina segnava il modulo
+come caricato prima di chiederlo e non aveva `onerror`: se `vipi-awos.js` non arrivava (Passenger che riparte)
+il quadro restava fermo fino a un ricarico completo. Ora il segno «arrivato» lo mette `onload`; `onerror` lo
+toglie e riprova da solo dopo 2 s, 4 s (anche ogni `enhancedload` riprova), fino a tre tentativi. Prova:
+`docs/history/revisione-totale-3/sim-boot.js`.
+
 ### 🟠 3. Le soglie di cancellazione erano inerti
 
 Si scrivevano, si mostravano, si precompilavano — e nessuno le leggeva. La carta (§5.6) prometteva il

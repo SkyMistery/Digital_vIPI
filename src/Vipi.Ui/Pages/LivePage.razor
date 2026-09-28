@@ -140,7 +140,11 @@
         else if (_view.NoDocument)
         {
             <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span>
-                <div><p class="ct">@L["Live_NoDocTitle", _view.AccCode]</p>@FraseHtml.Format(L["Live_NoDocBody"], ExtendedDocHref() ?? "#")</div>
+                @* ⚠️ Senza indirizzo niente <a> (U-208): un href="#" lo risolve Blazor contro <base href="/"> e
+                   porta il controllore all'hub, fuori dalla vista live. *@
+                <div><p class="ct">@L["Live_NoDocTitle", _view.AccCode]</p>@(ExtendedDocHref() is { } docHref
+                    ? FraseHtml.Format(L["Live_NoDocBody"], docHref)
+                    : (MarkupString)System.Net.WebUtility.HtmlEncode(L["Live_NoDocBodyNoLink"].Value))</div>
             </div>
         }
 

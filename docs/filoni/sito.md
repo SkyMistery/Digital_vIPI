@@ -1420,5 +1420,17 @@
     administrator had changed: SID…», nel DB piste e SID entrambe manuali, due righe di audit distinte.
     `/services/stats/session/63433982` (turno di un altro) → fascia «Another controller's shift» col collegamento
     a `/services/stats/user/456130` e riga `View`/`StatsProfile`/`456130` in AuditLogs.
+- ✅ **S38** lotto **L11, fetta L — JS e pubblico** (via del committente il 29-set). Solo `Vipi.Ui`, nessun codice comune.
+  - **U-208** vista live senza documento e senza indirizzo: la frase «apri la vIPI» riceveva `href="#"`, che Blazor
+    risolve contro `<base href="/">` → hub. Senza indirizzo ora la frase è senza collegamento (`Live_NoDocBodyNoLink`).
+  - **U-209** `vipi-boot.js`: il segno «caricato» lo mette `onload` (prima si scriveva prima di chiedere il file);
+    `onerror` lo toglie, toglie lo `<script>` e riprova da solo dopo 2 s e 4 s, tetto 3 tentativi (anche
+    `restaDaCaricare` ignora gli esauriti, o l'osservatore non si spegnerebbe). Simulazione in Node salvata in
+    `docs/history/revisione-totale-3/sim-boot.js` (prima: una richiesta sola; dopo: ritenta; con 99 guasti: 3).
+  - **U-210** landing dell'ACC: le tre liste in evidenza sono `<li><a href>` invece di `<li onclick>`; nel tema il
+    `<a>` riempie la riga (stessa area di clic) e ha il contorno al fuoco da tastiera.
+  - **U-213** «Cosa è cambiato»: orario con `VipiTime.DayZ` e `data-utc` (prima UTC senza «Z»).
+  - **Test**: rossi tutti e quattro sulle sorgenti di prima. Suite intere verdi: Ui **1847** (net8 e net10), Assets
+    63, E2E 454. Nessuna migrazione, `deploy/` no, resx it/en 1 chiave, wwwroot sì (`vipi-boot.js`, `vipi-theme.css`).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

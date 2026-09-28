@@ -76,10 +76,13 @@ else
                     else
                     {
                         @* Una riga, un collegamento: la vIPI se c'è, altrimenti il vSOP militare. Chi vuole
-                           scegliere fra i due li trova tutt'e due sulla scheda dello scalo, nell'elenco. *@
+                           scegliere fra i due li trova tutt'e due sulla scheda dello scalo, nell'elenco.
+                           ⚠️ Un <a href> vero e non un `<li onclick>` (U-210): quello non si raggiungeva da
+                           tastiera, non si apriva in una nuova scheda, i lettori di schermo non lo annunciavano,
+                           e un gestore inline la CSP vera lo blocca. Vale per le tre schede. *@
                         @foreach (var ap in _airports)
                         {
-                            <li onclick="location.href='@ap.Href(Acc)'"><span class="tag">@ap.Scalo.Icao</span><span>@ap.Scalo.Name</span></li>
+                            <li><a href="@ap.Href(Acc)"><span class="tag">@ap.Scalo.Icao</span><span>@ap.Scalo.Name</span></a></li>
                         }
                     }
                 </ul>
@@ -98,7 +101,7 @@ else
                     {
                         @foreach (var ap in _apps)
                         {
-                            <li onclick="location.href='/services/vsop/@a/apps/vipi?app=@ap.Callsign'"><span class="tag">@ap.Callsign</span><span>@ap.Name</span></li>
+                            <li><a href="/services/vsop/@a/apps/vipi?app=@ap.Callsign"><span class="tag">@ap.Callsign</span><span>@ap.Name</span></a></li>
                         }
                     }
                 </ul>
@@ -117,7 +120,7 @@ else
                     {
                         @foreach (var v in _vloas)
                         {
-                            <li onclick="location.href='/services/vsop/@a/vloa?acc=@v.NeighbourCode'">@if (v.Neighbour is not null){<span class="tag">@v.Neighbour</span>}<span>@v.Title</span></li>
+                            <li><a href="/services/vsop/@a/vloa?acc=@v.NeighbourCode">@if (v.Neighbour is not null){<span class="tag">@v.Neighbour</span>}<span>@v.Title</span></a></li>
                         }
                     }
                 </ul>

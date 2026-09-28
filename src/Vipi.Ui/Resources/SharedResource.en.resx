@@ -310,6 +310,7 @@
   <data name="Live_NoCoord" xml:space="preserve"><value>No coordination for this ACC.</value></data>
   <data name="Live_NoDocTitle" xml:space="preserve"><value>No vIPI published for {0}</value></data>
   <data name="Live_NoDocBody" xml:space="preserve"><value>Transfers, areas of responsibility and the frequencies below come from the catalogues and are still valid. Only the editorial grouping of frequencies is missing: &lt;a href="{0}"&gt;open the vIPI&lt;/a&gt; and publish it.</value></data>
+  <data name="Live_NoDocBodyNoLink" xml:space="preserve"><value>Transfers, areas of responsibility and the frequencies below come from the catalogues and are still valid. Only the editorial grouping of frequencies is missing: the vIPI needs to be published.</value></data>
   <data name="Common_ConnectedAsN" xml:space="preserve"><value>Connected as {0}</value></data>
   <data name="Common_Coordination" xml:space="preserve"><value>Coordination</value></data>
   <data name="Common_AptQuickView" xml:space="preserve"><value>Airport quick view</value></data>

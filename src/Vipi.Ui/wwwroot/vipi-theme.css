@@ -1098,6 +1098,9 @@
 :where(.vipi-root) .linklist li{justify-content:flex-start}
 :where(.vipi-root) .linklist li.empty{cursor:default}
 :where(.vipi-root) .linklist li.empty:hover{background:transparent}
+/* U-210: la riga è un collegamento vero; il <a> occupa tutta la riga, così l'area del clic resta quella di prima. */
+:where(.vipi-root) .linklist li>a{display:flex;align-items:center;flex:1;margin:-9px -12px;padding:9px 12px;border-radius:inherit;color:inherit;text-decoration:none}
+:where(.vipi-root) .linklist li>a:focus-visible{outline:2px solid var(--brand-ink-2);outline-offset:-2px}
 :where(.vipi-root) .see-all{align-self:flex-start;margin-top:10px;font-size:12.5px;font-weight:600;color:var(--accent-ink);text-decoration:none}
 :where(.vipi-root) .see-all::after{content:" ›";font-weight:700}
 :where(.vipi-root) .see-all:hover{text-decoration:underline}
