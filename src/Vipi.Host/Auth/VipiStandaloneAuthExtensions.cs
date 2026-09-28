@@ -34,7 +34,7 @@ public static class VipiStandaloneAuthExtensions
     internal const string LoginFailedPath = "/services/vsop/auth/accesso-non-riuscito";
 
     /// <summary>Categoria di log dei guasti del login. Nome fisso: è la stringa da cercare nei log del server.</summary>
-    private const string AuthLogCategory = "Vipi.Auth.Ivao";
+    internal const string AuthLogCategory = "Vipi.Auth.Ivao";
 
     /// <summary>
     /// Se <c>VipiAuth:Enabled=true</c>, registra cookie + OpenID Connect IVAO e rimappa i nomi dei claim IVAO
@@ -137,6 +137,12 @@ public static class VipiStandaloneAuthExtensions
                     RequireState = false,
                     RequireNonce = !opt.RelaxProtocolValidation,
                 };
+
+                // 🔴 28 settembre 2026: il cookie del nonce che non torna (IDX21323 al primo login dopo un logout).
+                // Il nonce viaggia anche nello state e, se l'id_token porta quello, si recupera da lì. Vedi
+                // NonceNelloStato, anche per il perché la difesa resta la stessa.
+                oidc.Events.OnRedirectToIdentityProvider = NonceNelloStato.RicordaAsync;
+                oidc.Events.OnTokenValidated = NonceNelloStato.RecuperaAsync;
 
                 // Dalla userinfo si portano a claim SOLO i campi che qualcuno legge davvero. Prima c'era
                 // MapAll(), e non era gratis: il profilo IVAO contiene `hours[]`, `rating{}`, `groups`,
@@ -274,15 +280,21 @@ public static class VipiStandaloneAuthExtensions
             // dello schema di default. La sessione esistente va chiesta allo schema cookie a mano.
             var existing = await context.HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
+            // Cookie perso o IVAO che rimanda un altro nonce: lo lascia NonceNelloStato, se il giro è arrivato
+            // fino all'id_token. Prima del 28 settembre 2026 le due cose davano lo stesso IDX21323.
+            var nonce = context.HttpContext.Items[NonceNelloStato.ChiaveDiagnosi] as string;
+
             // Tutto ciò che serviva il 23 agosto e non c'era. Niente `code`, niente token: sono credenziali.
             logger.LogWarning(context.Failure,
                 "Login IVAO non riuscito — motivo {Motivo}. Errore dal portale: {ErrorePortale}. " +
-                "Stato del giro recuperato: {StatoRecuperato}. Sessione già attiva: {GiaDentro}. Ritorno: {Ritorno}.",
+                "Stato del giro recuperato: {StatoRecuperato}. Sessione già attiva: {GiaDentro}. Ritorno: {Ritorno}. " +
+                "Nonce: {Nonce}",
                 reason,
                 Describe(context.Request.Query["error"], context.Request.Query["error_description"]),
                 context.Properties is not null,
                 existing.Succeeded,
-                returnUrl);
+                returnUrl,
+                nonce ?? "giro fermo prima del token");
 
             // 🔴 E nel registro che si SCARICA: `Vipi.Auth.Ivao` finisce su stdout, e su
             // atc.it.ivao.aero stdout è il vuoto. Il 10 settembre 2026 un login rotto delle 11:00 UTC non ha
@@ -294,7 +306,8 @@ public static class VipiStandaloneAuthExtensions
                 giaDentro: existing.Succeeded,
                 ritorno: returnUrl,
                 utente: Vid(existing.Principal),
-                guasto: context.Failure);
+                guasto: context.Failure,
+                nonce: nonce);
 
             if (existing.Succeeded)
             {

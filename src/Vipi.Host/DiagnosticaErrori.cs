@@ -237,11 +237,11 @@ public static class DiagnosticaErrori
     /// </summary>
     public static void RegistraLogin(
         string motivo, string errorePortale, bool statoRecuperato, bool giaDentro, string ritorno,
-        string? utente, Exception? guasto)
+        string? utente, Exception? guasto, string? nonce = null)
     {
         try
         {
-            var voce = VoceDiLogin(motivo, errorePortale, statoRecuperato, giaDentro, ritorno, utente, guasto);
+            var voce = VoceDiLogin(motivo, errorePortale, statoRecuperato, giaDentro, ritorno, utente, guasto, nonce);
             lock (Serratura) Scrivi(voce);
         }
         catch { /* non c'è un piano C, e non deve esserci */ }
@@ -259,7 +259,7 @@ public static class DiagnosticaErrori
     /// </summary>
     internal static string VoceDiLogin(
         string motivo, string errorePortale, bool statoRecuperato, bool giaDentro, string ritorno,
-        string? utente, Exception? guasto) =>
+        string? utente, Exception? guasto, string? nonce = null) =>
         new StringBuilder()
             .AppendLine()
             .AppendLine(new string('-', 78))
@@ -273,6 +273,8 @@ public static class DiagnosticaErrori
                 ? "sì — l'utente è rimasto dentro e NON ha visto niente"
                 : "no — è finito sulla pagina che spiega")}")
             .AppendLine($"Ritorno .................... {TestoDiRegistro.Riga(ritorno, 200)}")
+            // 28 settembre 2026: cookie del nonce perso o IVAO con un altro nonce (NonceNelloStato). Testo nostro.
+            .AppendLine($"Nonce ...................... {TestoDiRegistro.Riga(nonce, 200) ?? "giro fermo prima del token"}")
             .AppendLine()
             .AppendLine(guasto?.ToString()
                 ?? "(nessuna eccezione: il giro si è fermato per una risposta del portale, non per un guasto nostro)")

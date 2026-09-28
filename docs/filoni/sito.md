@@ -795,5 +795,27 @@
     `/vsop/media/<sha inesistente>` con If-None-Match uguale → 304 (senza, 404); 35 richieste al ponte con la
     chiave sbagliata → 30 × 401 poi 429, e **una** riga di log; la pagina Incarichi si apre senza il tasto
     «Nuovo incarico personale». Nel log solo IVAO irraggiungibile (voluto).
+- ✅ **S29** **login IVAO: «The sign-in expired along the way» al primo login dopo un logout** (assegnato dal Master
+  il 28-set, segnalato dal committente con un utente generico). Registro di produzione 28-set 10:24Z, 1.46.5: logout
+  10:24:05 → `signout-callback` → **una sola** `/auth/login` 10:24:07 → `/signin-oidc` 10:24:19 = IDX21323 «Nonce was
+  null», «Stato del giro recuperato: True». Quindi non il doppio avvio del 18-set (§A78): il cookie di correlazione è
+  tornato, quello del nonce no — oppure IVAO ha rimandato un nonce diverso. L'handler non distingue i due casi: cerca
+  il cookie del nonce che l'id_token porta, e se non lo trova il nonce è «null» in tutti e due.
+  - **Correzione** (`Vipi.Host/Auth/NonceNelloStato.cs`): all'andata il nonce entra anche nelle proprietà del giro,
+    cioè nello `state` (cifrato con le chiavi del sito, accettato solo col cookie di correlazione del browser); al
+    ritorno, in `OnTokenValidated`, se il cookie non c'era e l'id_token porta **quel** nonce, si valida con quello.
+    Un id_token con un altro nonce resta fuori, col cookie o senza. La chiave esce dalle proprietà prima del cookie di
+    sessione. Ogni recupero lascia un avviso `Vipi.Auth.Ivao` («nonce recuperato dallo stato del giro»).
+  - **Diagnosi**: la voce `login-*` di `errori-richieste.txt` e il log hanno una riga **Nonce** — cookie trovato o no
+    (quanti in richiesta), token col nonce mandato / con un nonce DIVERSO / senza nonce. ▶ Al prossimo guasto `nonce`
+    in produzione: «DIVERSO» = lato IVAO, e il recupero non lo copre. Se invece compaiono gli avvisi di recupero e
+    niente guasti, era il cookie.
+  - **Test**: `NonceDelLoginTests` (12), il giro intero contro un IVAO finto dentro il test (token endpoint, userinfo,
+    id_token non firmato come nel flusso con code). Rosso prima della correzione: senza il cookie del nonce →
+    `accesso-non-riuscito?motivo=nonce`, il sintomo di produzione. E2E 441 → **453**, suite intera verde.
+  - **Prova dal vivo** (host locale su `localhost:5034`, database vuoto, portale IVAO vero, credenziali inserite dal
+    committente): login → logout → login, tutti e tre riusciti. Il guasto in locale non si è ripetuto (cookie tornato,
+    nessun recupero): che la causa fosse il cookie lo dirà la riga nuova in produzione.
+  - Nessuna migrazione, `deploy/` no, codice comune no (solo `Vipi.Host`).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
