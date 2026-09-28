@@ -1,0 +1,71 @@
+@inject SessioneDelLab Lab
+
+@*
+    La vista a linea dei .geo (lotto «Subito» slice 5d, «file per file» G1): i segmenti attaccati di fila sono una linea di
+    punti. Cambiare un punto riscrive i due segmenti che lo toccano; ✂ spezza la linea in un punto in mezzo (una riga
+    vuota), «Unisci» la rimette. Le linee lunghe (le coste di itgeo.geo, migliaia di punti) si vedono intorno al segmento
+    scelto: il resto si raggiunge scegliendo un altro segmento.
+*@
+@if (Lab.LineaDi(File, Record) is { } linea)
+{
+    int qui = linea.Record.ToList().IndexOf(Record);
+    int da = Math.Max(0, qui - Intorno), a = Math.Min(linea.Punti.Count - 1, qui + 1 + Intorno);
+    <Sezione Chiave="linea-geo" data-linea="@linea.Record.Count">
+    <Titolo>Linea <span class="lab-nota">@linea.Punti.Count punti · @linea.Record.Count segmenti</span></Titolo>
+    <ChildContent>
+    <p class="lab-nota">I segmenti di fila, attaccati e dello stesso tipo: spostare un punto sposta la fine di un segmento e l'inizio del prossimo.</p>
+    @if (linea.Prima is { } prima)
+    {
+        <div class="lab-interruzione" data-continua="prima">
+            <span>riga vuota — prima c'è la linea che finisce qui (record @prima)</span>
+            <button class="lab-tasto lab-tasto-tenue" data-unisci-linea="prima" @onclick="UnisciPrima">Unisci</button>
+        </div>
+    }
+    @if (da > 0)
+    {
+        <p class="lab-nota">… @da punti prima</p>
+    }
+    <div class="lab-vertici lab-linea">
+        @for (int i = da; i <= a; i++)
+        {
+            int punto = i;
+            bool delScelto = punto == qui || punto == qui + 1;
+            <div class="lab-vertice @(delScelto ? "lab-vertice-scelto" : null)">
+                <span class="lab-numero">@(punto + 1)</span>
+                <input class="lab-campo" value="@LineeDelGeo.Scrivi(linea.Punti[punto])" data-punto-linea="@punto"
+                       @onchange="e => Lab.CambiaPuntoDellaLinea(File, Record, punto, e.Value?.ToString())" />
+                @if (punto > 0 && punto < linea.Record.Count)
+                {
+                    <button class="lab-annulla" data-spezza-linea="@punto" title="Spezza qui: una riga vuota, la linea diventa due"
+                            @onclick="() => Lab.SpezzaLaLinea(File, Record, punto)">✂</button>
+                }
+            </div>
+        }
+    </div>
+    @if (a < linea.Punti.Count - 1)
+    {
+        <p class="lab-nota">… altri @(linea.Punti.Count - 1 - a) punti</p>
+    }
+    @if (linea.Dopo is { } dopo)
+    {
+        <div class="lab-interruzione" data-continua="dopo">
+            <span>riga vuota — dopo c'è la linea che comincia qui (record @dopo)</span>
+            <button class="lab-tasto lab-tasto-tenue" data-unisci-linea="dopo" @onclick="UnisciDopo">Unisci</button>
+        </div>
+    }
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    /// <summary>Quanti punti prima e dopo il segmento scelto.</summary>
+    private const int Intorno = 20;
+
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    private void UnisciPrima() => Lab.UnisciLaLinea(File, Record, dopo: false);
+
+    private void UnisciDopo() => Lab.UnisciLaLinea(File, Record, dopo: true);
+}

@@ -855,6 +855,16 @@ body.lab-trascina * {
     font-weight: 700;
 }
 
+/* Lotto «Subito» slice 5d: nella linea di un .geo, i due punti del segmento scelto. */
+.lab-vertice-scelto .lab-numero {
+    color: var(--lab-scelto-testo, inherit);
+    font-weight: 700;
+}
+
+.lab-vertice-scelto .lab-campo {
+    border-color: var(--lab-toccato);
+}
+
 /* Lotto «Subito» slice 5c: i record nascosti (righe commentate) restano nell'elenco, grigi. */
 .lab-voce.lab-nascosto {
     color: var(--lab-tenue);

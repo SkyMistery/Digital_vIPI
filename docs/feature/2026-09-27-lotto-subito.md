@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4d); in corso la **slice 5** (5a-5c fatte; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e), la slice 4 (4a-4d) e la slice 5 (5a-5d); prossima la **slice 6** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -678,3 +678,28 @@ due segmenti `.geo`; 169 righe vuote fra due righe di dati nelle MVA di scalo.
   Prova a schermo sul banco: `limm_tma.lartcc` — «6 MM CONF 3 ◑ 2», «· MM CONF 4 nascosto» grigio; scelto, l'ispettore
   dice «righe 1062-1349 commentate: per Aurora non c'è»; «Mostra» → −274 +274, MM CONF 4 diventa il record 8 e la scheda
   va su di lui; «Nascondi» → nessuna modifica, di nuovo grigio in fondo. Test: Lab 560 → **572**.
+- **5d (28 settembre)** — la vista a linea dei `.geo` (G1, R-3; solo Lab). Nella scheda di un segmento `.geo` (anche
+  `RW_MARKINGS` e aree P/R/D) la sezione **«Linea · N punti · N−1 segmenti»** (`Modifiche/LineeDelGeo.cs`,
+  `Components/LineaDelGeoVista.razor`): i segmenti di fila nel file, **attaccati** (la fine di uno è l'inizio del
+  prossimo), dello stesso tipo e della stessa area, **senza righe in mezzo** (una riga vuota o un commento chiude la
+  linea, come dice la specifica dei `.geo`). Cambiare un punto riscrive **la fine del segmento prima e l'inizio di quello
+  dopo** (due campi, due voci, un gesto solo nella storia): la catena non si rompe. ✂ su un punto in mezzo spezza la
+  linea con una riga vuota prima del segmento che comincia lì; dove due linee attaccate sono staccate solo da righe vuote
+  la sezione dice «riga vuota — dopo c'è la linea che comincia qui [Unisci]» (e «prima»), e unire toglie le righe vuote.
+  Le linee lunghe (la costa di `itgeo.geo`, 4 523 segmenti) si vedono intorno al segmento scelto, 20 punti per parte; i
+  due punti del segmento scelto sono segnati.
+  Misura sul fork (strumento fuori repo, `scratchpad/misura5d`): **134 file, 9 503 linee, 103 942 segmenti** (3 046 linee
+  di un segmento solo); su ogni linea di almeno tre segmenti il punto in mezzo spostato: **6 120 su 6 120** cambiano due
+  righe e la linea resta intera; spezza e riunisci lì: **6 120 su 6 120 tornano al file di prima**, senza voce. Delle 42
+  righe vuote fra due segmenti del fork **una sola** sta fra due linee attaccate (`lira.geo`, due righe vuote: riunita e
+  rispezzata ne torna una); le altre separano forme diverse. Annullare torna sempre al file. Prova a schermo sul banco:
+  `liap.geo`, «//fence» — «Linea · 20 punti · 19 segmenti», punti 3-4 segnati; il punto 4 spostato → «Fine: … → …» e
+  «Inizio: … → …», −2 +2; ✂ al punto 11 → +1 riga vuota, la linea scende a 11 punti con «Unisci»; «Unisci» → nessuna
+  modifica, di nuovo 20 punti. Test: Lab 572 → **579**.
+
+**Slice 5 chiusa.** Uscita misurata sul fork: le sequenze di punti su tutti i file (2 522 elenchi: cambia, in fondo,
+inverti riletti giusti); **spezzare e riunire torna al file di prima** in ogni scrittura (5 762 punti di SID, `.str`,
+confini, aerovie, MVA di scalo; 6 120 linee `.geo`), le interruzioni che ci sono si riuniscono tutte salvo L613 (col
+perché); **le 53 righe MVA commentate e le 274 di `limm_tma` si vedono grigie** (in parte e «MM CONF 4» nascosto), e
+nascondi/mostra torna al file di prima. Da provare a mano (eseguibile ripubblicato): prove 82-89 in
+`SectorLab-prova\PROVE.md`.

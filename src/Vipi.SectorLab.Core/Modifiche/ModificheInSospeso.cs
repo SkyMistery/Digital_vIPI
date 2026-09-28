@@ -1088,6 +1088,74 @@ public sealed class ModificheInSospeso
             riletto => riletto.RecordDelModello.Count == attesi ? null : "Scommentato, il file non si rilegge con un record in più: si fa a mano, dalle righe del file.");
     }
 
+    // --- la vista a linea dei .geo (lotto «Subito» slice 5d) ------------------------------------------------------
+
+    /// <summary>La linea del segmento, nel file com'è adesso (<see cref="LineeDelGeo.Di"/>); null se non è un segmento .geo.</summary>
+    public LineaDelGeo? LineaDi(FileAperto file, int indice)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord)
+            return null;
+        var sporchi = SporchiDi(file.Relativo);
+        return LineeDelGeo.Di(file, indice, conRecord.RigheDelFile(sporchi), conRecord.PostiDeiRecord(sporchi));
+    }
+
+    /// <summary>
+    /// Sposta il punto <paramref name="punto"/> della linea (da 0): la fine del segmento prima e l'inizio di quello dopo,
+    /// insieme, così la catena non si rompe (G1). Due campi, due voci; un punto all'estremità tocca un segmento solo.
+    /// </summary>
+    public object CambiaPuntoDellaLinea(FileAperto file, int indice, int punto, string? testo, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (LineaDi(file, indice) is not { } linea)
+            return new ModificaRifiutata("Questo record non è un segmento di un .geo.");
+        if (punto < 0 || punto >= linea.Punti.Count)
+            return new ModificaRifiutata("Quel punto non c'è.");
+        if (!Converti(typeof(Coordinate), testo, out _, out string? perche))
+            return new ModificaRifiutata(perche!);
+
+        object esito = new ModificaRifiutata("Niente da cambiare.");
+        if (punto > 0)
+            esito = Cambia(file, linea.Record[punto - 1], nameof(Line.End), testo, etichetta);
+        if (esito is ModificaRifiutata && punto > 0)
+            return esito;
+        if (punto < linea.Record.Count)
+            esito = Cambia(file, linea.Record[punto], nameof(Line.Start), testo, etichetta);
+        return esito;
+    }
+
+    /// <summary>Spezza la linea al punto <paramref name="punto"/> (in mezzo): una riga vuota prima del segmento che comincia lì.</summary>
+    public object SpezzaLaLinea(FileAperto file, int indice, int punto, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord || LineaDi(file, indice) is not { } linea)
+            return new ModificaRifiutata("Questo record non è un segmento di un .geo.");
+        var sporchi = SporchiDi(file.Relativo);
+        var righe = conRecord.RigheDelFile(sporchi);
+        var sostituzioni = LineeDelGeo.Spezza(linea, punto, righe, conRecord.PostiDeiRecord(sporchi), out string? perche);
+        if (sostituzioni is null)
+            return new ModificaRifiutata(perche!);
+
+        int quanti = conRecord.RecordDelModello.Count;
+        return CambiaRighe(file, sostituzioni, $"{(etichetta.Length > 0 ? etichetta + ": " : "")}linea spezzata al punto {punto + 1}",
+            riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha gli stessi segmenti: si fa a mano, dalle righe del file.");
+    }
+
+    /// <summary>Riunisce la linea con quella dopo (o prima) staccata solo da righe vuote: le righe vuote se ne vanno.</summary>
+    public object UnisciLaLinea(FileAperto file, int indice, bool dopo, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord || LineaDi(file, indice) is not { } linea)
+            return new ModificaRifiutata("Questo record non è un segmento di un .geo.");
+        var sostituzioni = LineeDelGeo.Unisci(linea, dopo, conRecord.PostiDeiRecord(SporchiDi(file.Relativo)), out string? perche);
+        if (sostituzioni is null)
+            return new ModificaRifiutata(perche!);
+
+        int quanti = conRecord.RecordDelModello.Count;
+        return CambiaRighe(file, sostituzioni, $"{(etichetta.Length > 0 ? etichetta + ": " : "")}linea riunita con quella {(dopo ? "dopo" : "prima")}",
+            riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha gli stessi segmenti: si fa a mano, dalle righe del file.");
+    }
+
     // --- spezza e unisci (lotto «Subito» slice 5b) ---------------------------------------------------------------
 
     /// <summary>

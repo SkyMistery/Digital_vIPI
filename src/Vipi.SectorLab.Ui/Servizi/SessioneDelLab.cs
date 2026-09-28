@@ -1163,6 +1163,43 @@ public sealed class SessioneDelLab
         return esito is ModificaDelTesto;
     }
 
+    // --- la vista a linea dei .geo (lotto «Subito» slice 5d) ------------------------------------------------------
+
+    /// <summary>La linea del segmento .geo, o null.</summary>
+    public LineaDelGeo? LineaDi(string fileRelativo, int record)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? Modifiche.LineaDi(file, record) : null;
+
+    /// <summary>Sposta un punto della linea: i due segmenti che lo toccano, in un gesto solo della storia.</summary>
+    public bool CambiaPuntoDellaLinea(string fileRelativo, int record, int punto, string? testo)
+        => NellaStoria($"punto {punto + 1} della linea di {EtichettaDi(fileRelativo, record)} spostato",
+            () => GestoSulPunto(fileRelativo, record, punto, testo));
+
+    private bool GestoSulPunto(string fileRelativo, int record, int punto, string? testo)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
+        var esito = Modifiche.CambiaPuntoDellaLinea(file, record, punto, testo, etichetta);
+        Registro.Scrivi("linea", $"{fileRelativo}#{record} punto {punto} «{testo}»: {Descrivi(esito)}");
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is not ModificaRifiutata)
+            RifaiLaGeometria(fileRelativo);
+        RicontrollaLeModifiche();
+        Avvisa();
+        return esito is not ModificaRifiutata;
+    }
+
+    /// <summary>Spezza la linea in un punto in mezzo (una riga vuota).</summary>
+    public bool SpezzaLaLinea(string fileRelativo, int record, int punto)
+        => NellaStoria($"linea di {EtichettaDi(fileRelativo, record)} spezzata al punto {punto + 1}",
+            () => GestoSulTesto(fileRelativo, "spezza linea", file => Modifiche.SpezzaLaLinea(file, record, punto, EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "")));
+
+    /// <summary>Riunisce la linea con quella dopo (o prima), staccata da righe vuote.</summary>
+    public bool UnisciLaLinea(string fileRelativo, int record, bool dopo)
+        => NellaStoria($"linea di {EtichettaDi(fileRelativo, record)} riunita",
+            () => GestoSulTesto(fileRelativo, "unisci linea", file => Modifiche.UnisciLaLinea(file, record, dopo, EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "")));
+
     // --- spezza e unisci (lotto «Subito» slice 5b) ---------------------------------------------------------------
 
     /// <summary>Come si interrompe quell'elenco (riga vuota, &lt;br&gt;, DUMMY, BREAK), o null se lì non si spezza.</summary>
