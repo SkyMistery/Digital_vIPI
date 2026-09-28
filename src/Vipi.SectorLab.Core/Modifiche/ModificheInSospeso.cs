@@ -514,8 +514,11 @@ public sealed class ModificheInSospeso
             return new ModificaRifiutata($"«{chiave}» non è fra i metadati dei {catalogo.Formato}.");
         if (conRecord.TagRotti() is { } rotto)
             return new ModificaRifiutata($"Il file ha tag //@ che non valgono ({rotto}): vanno sistemati prima.");
-        if (!conRecord.SiDichiara(indice))
-            return new ModificaRifiutata("Questo record non ha un nome suo: i suoi metadati si scrivono sul blocco che lo contiene.");
+        // Slice 6c (§M): un record senza nome suo (un segmento di un .geo) riceve i metadati nel blocco del suo gruppo, col
+        // nome del commento — il pezzo passa da commento a blocco, e il commento resta sopra.
+        VoceDellaSelezione? gruppo = null;
+        if (!conRecord.SiDichiara(indice) && (gruppo = VociDellaSelezione.GruppoDelRecord(file, indice, out string? senza)) is null)
+            return new ModificaRifiutata(senza!);
 
         var oggi = conRecord.ChiaviDi(indice) ?? new Dictionary<string, string>();
         string? prima = oggi.GetValueOrDefault(chiave);
@@ -531,7 +534,9 @@ public sealed class ModificheInSospeso
         object struttura;
         try
         {
-            struttura = conRecord.ConLeChiavi(indice, nuove);
+            struttura = gruppo is not null
+                ? conRecord.ConIlBlocco(gruppo.Record[0], gruppo.Record[^1], gruppo.Nome, nuove)
+                : conRecord.ConLeChiavi(indice, nuove);
         }
         catch (Exception e) when (e is InvalidOperationException or ArgumentException)
         {

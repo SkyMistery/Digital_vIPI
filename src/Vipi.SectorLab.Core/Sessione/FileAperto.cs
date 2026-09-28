@@ -134,6 +134,13 @@ public interface IFileConRecord
     /// <exception cref="InvalidOperationException">Il record non si può dichiarare, o il file ha tag rotti.</exception>
     /// <exception cref="ArgumentException">Una chiave fuori catalogo, o un valore che non si scrive.</exception>
     object ConLeChiavi(int indice, IReadOnlyDictionary<string, string> chiavi);
+
+    /// <summary>
+    /// La struttura del file con un blocco nuovo <c>//@"NOME" …</c> <c>//@START</c> … <c>//@END</c> che tiene i record da
+    /// <paramref name="primo"/> a <paramref name="ultimo"/> (lotto «Subito» slice 6c: il gruppo di un <c>.geo</c>, che non
+    /// ha un nome nelle righe di dati, prende quello del suo commento, §M).
+    /// </summary>
+    object ConIlBlocco(int primo, int ultimo, string nome, IReadOnlyDictionary<string, string> chiavi);
 }
 
 /// <summary>Un file che il motore interpreta: record, righe grezze, basi, e lo scrittore che lo riscriverà.</summary>
@@ -280,6 +287,13 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         return chiavi.Count == 0
             ? Metadati.Togli(Letto, record, r => Metadati.NomeDelRecord(r))
             : Metadati.Scrivi(Letto, record, r => Metadati.NomeDelRecord(r), chiavi);
+    }
+
+    /// <inheritdoc/>
+    public object ConIlBlocco(int primo, int ultimo, string nome, IReadOnlyDictionary<string, string> chiavi)
+    {
+        ArgumentNullException.ThrowIfNull(chiavi);
+        return Metadati.ScriviIlBlocco(Letto, Letto.Records[primo], Letto.Records[ultimo], r => Metadati.NomeDelRecord(r), nome, chiavi);
     }
 
     /// <inheritdoc/>

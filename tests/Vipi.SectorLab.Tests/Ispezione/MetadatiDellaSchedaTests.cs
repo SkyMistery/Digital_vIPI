@@ -116,10 +116,16 @@ public sealed class MetadatiDellaSchedaTests : IDisposable
     }
 
     [Fact]
-    public void UnRecordSenzaNomeMostraIMetadatiMaNonLiScrive()
+    public void UnRecordSenzaNomeFuoriDaUnGruppoColNomeMostraIMetadatiMaNonLiScrive()
     {
+        // Dalla slice 6c un segmento .geo scrive i metadati nel blocco del suo gruppo, col nome del commento sopra
+        // (BloccoDalCommentoTests). Senza nessun commento il gruppo non ha un nome da dare al blocco: si leggono e basta.
+        _albero.Scrivi("SectorFiles/Include/IT/GEO/prova.geo", string.Join("\r\n",
+            "N042.22.24.448;E013.18.27.278;N042.22.17.909;E013.18.42.313;BUILDING;",
+            "N042.22.17.909;E013.18.42.313;N042.22.18.000;E013.18.43.785;BUILDING;",
+            ""));
         var sessione = SessioneAperta.Apri(CartellaDelSector.Riconosci(_albero.Radice, out _)!);
-        var file = sessione.File["SectorFiles/Include/IT/GEO/liap.geo"];
+        var file = sessione.File["SectorFiles/Include/IT/GEO/prova.geo"];
 
         var metadati = MetadatiDellaScheda.Di(file, 0);
 

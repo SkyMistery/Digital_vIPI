@@ -55,6 +55,30 @@ public static class VociDellaSelezione
         };
     }
 
+    /// <summary>
+    /// Il gruppo nel quale un record senza nome suo riceve i metadati (§M, «un pezzo che riceve il primo dato passa da
+    /// commento a blocco»): la voce dei <c>.geo</c> e dei <c>.pol</c> col nome dal commento. Null col perché se non c'è,
+    /// o se il suo nome è mancante (un blocco «Percorso senza titolo» non ritroverebbe niente).
+    /// </summary>
+    public static VoceDellaSelezione? GruppoDelRecord(FileAperto file, int indice, out string? perche)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        perche = "Questo record non ha un nome suo, e non sta in un gruppo col nome dal commento: i suoi metadati non si attaccano a niente.";
+        if (file is not IFileConRecord conRecord)
+            return null;
+        var voce = Di(file, conRecord.RigheDelFile([]), conRecord.PostiDeiRecord([]))?.FirstOrDefault(v => v.Record.Contains(indice));
+        if (voce is null || !voce.NomeDalCommento)
+            return null;
+        if (voce.NomeMancante)
+        {
+            perche = $"Il gruppo si chiama «{voce.Nome}»: il nome del blocco è quello del gruppo, prima dagli un nome vero (sezione «Voce»).";
+            return null;
+        }
+
+        perche = null;
+        return voce;
+    }
+
     /// <summary>Le voci che hanno un nome mancante («… senza titolo», o nessun commento): H3.</summary>
     public static bool SenzaTitolo(string? nome)
         => nome is null || nome.Contains("senza titolo", StringComparison.OrdinalIgnoreCase);

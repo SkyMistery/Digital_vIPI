@@ -45,9 +45,9 @@ public static class MetadatiDellaScheda
         var valori = conRecord.ChiaviDi(indice) ?? new Dictionary<string, string>();
         string? perTutte = conRecord.TagRotti() is { } rotto
             ? $"Il file ha tag //@ che non valgono ({rotto}): prima vanno sistemati."
-            : conRecord.SiDichiara(indice)
+            : conRecord.SiDichiara(indice) || VociDellaSelezione.GruppoDelRecord(file, indice, out _) is not null
                 ? null
-                : "Questo record non ha un nome suo: i suoi metadati si scrivono sul blocco che lo contiene (slice 6).";
+                : VociDellaSelezione.GruppoDelRecord(file, indice, out string? perche) is null ? perche : null;
 
         var chiavi = new List<string>(catalogo.DelRecord);
         // Le chiavi per verso di pista col numero davanti, per i due versi di QUESTA pista (§M regola 7).

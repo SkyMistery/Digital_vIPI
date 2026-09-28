@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e), la slice 4 (4a-4d) e la slice 5 (5a-5d); in corso la **slice 6** (6a e 6b fatte; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e), la slice 4 (4a-4d) la slice 5 (5a-5d) e la slice 6 (6a-6c); prossima la **slice 7** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -755,3 +755,24 @@ selezione e le parti, accese e spente sulla mappa · **6b** il nome dal commento
   invariato (701/701, tutto toccato 0, 115 568, tag, punti, blocchi, 120 errori, solo `limf.sid`). Prova a schermo sul
   banco: `liaa.geo`, la voce «Percorso senza titolo» (⚠) → la scheda «Voce · nome mancante» → «pista 03/21»: −1 +1 sulla
   riga 356, la voce cambia nome, nessun problema introdotto; «Annulla tutto». Test: motore 671 → **674**, Lab 596 → **602**.
+- **6c (28 settembre)** — la regola commento/blocco di §M: «un pezzo che riceve il primo dato passa da commento a blocco,
+  e il commento resta sopra» e «nei file senza nome nelle righe di dati (`.geo`, `.pol`) il nome del blocco è il nome del
+  gruppo». Un segmento o un poligono che fino alla 3d non poteva ricevere metadati (non ha un nome suo) ora li scrive nel
+  blocco del suo **gruppo col nome dal commento** (`VociDellaSelezione.GruppoDelRecord`, `IFileConRecord.ConIlBlocco`
+  → `Metadati.ScriviIlBlocco` del motore, che c'era dalla 1d): `//fence`, poi `//@"fence" note=recinzione`,
+  `//@START`, il gruppo intero, `//@END "fence"`. Le chiavi dopo cambiano la dichiarazione, e tolta l'ultima il blocco
+  se ne va e il file torna quello di prima. Un gruppo col nome mancante (H3) non dà il nome a un blocco: «prima dagli un
+  nome vero (sezione «Voce»)». Il test della 3d che voleva i segmenti sempre in sola lettura ora prova il caso senza
+  commento. Rosso: col codice della 6b 3 test nuovi su 4 cadono.
+  Misura sul fork (strumento fuori repo, `scratchpad/misura6c`): una nota sul record in mezzo di **ogni** gruppo di ogni
+  `.geo` e `.pol` — **7 167 su 7 167** col blocco giusto (tutto il gruppo e niente fuori, dichiarazione sotto il
+  commento, file riletto coi tag validi e gli stessi record), **7 167 su 7 167 tolti tornano al file di prima**; 862
+  rifiutati col perché (564 + 253 «senza titolo», 45 gruppi senza nessun commento, quasi tutti in `itgeo.geo`). Prova a
+  schermo sul banco: `liap.geo`, nota su un segmento del «fence» → −0 +3 (dichiarazione e `//@START` sotto `//fence`,
+  `//@END` dopo il gruppo); «Annulla tutto». Test: Lab 602 → **606**.
+
+**Slice 6 chiusa.** Uscita misurata sul fork: le voci come la finestra di selezione di Aurora — **`FRA.artcc` 6 gruppi**
+(FRA BDRY coi suoi 5 poligoni tutti col nome; 🟡 i «31 tratti» della carta nel file di oggi non ci sono), **`lirr.hartcc`
+13 voci**, **564 «senza titolo»** nei `.geo` segnalati come nome mancante (e 253 nei `.pol`); voci e parti accese e spente
+sulla mappa, il nome dal commento cambiato dalla scheda, il blocco `//@` col nome del gruppo. Da provare a mano
+(eseguibile ripubblicato): prove 90-94 in `SectorLab-prova\PROVE.md`.
