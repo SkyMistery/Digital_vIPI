@@ -36,9 +36,13 @@ public class MediaCleanupCardTests : TestContext
         /// Simula «nel frattempo è tornata in uso»: il servizio non la cancella e l'elenco resta.
         public bool RifiutaCancellazione { get; set; }
 
+        /// Un guasto che il servizio non traduce (il disco, il database): U-190.
+        public Exception? Lancia { get; set; }
+
         public Task<MediaUsageReport> AnalyzeAsync(CancellationToken ct = default)
         {
             Analisi++;
+            if (Lancia is not null) return Task.FromException<MediaUsageReport>(Lancia);
             return Task.FromResult(new MediaUsageReport(TotalCount, TotalBytes, Orphans.ToList()));
         }
 
@@ -186,5 +190,24 @@ public class MediaCleanupCardTests : TestContext
         Assert.Equal(2, _servizio.Analisi);                  // una prima, una dopo
         Assert.Contains("foto-torre.png", cut.Markup);       // ancora lì
         Assert.Contains("MediaClean_Deleted 0", cut.Markup);
+    }
+
+    /// <summary>
+    /// 🔴 U-190 (revisione totale 3): «Analizza» e «Cancella» avevano un <c>finally</c> e basta. Un guasto del disco o
+    /// del database usciva dal gestore e il circuito della Diagnostica cadeva: la pagina che serve a capire cosa non
+    /// va, morta perché qualcosa non va.
+    /// </summary>
+    [Fact]
+    public async Task Un_guasto_dell_analisi_resta_un_messaggio()
+    {
+        _servizio.Lancia = new IOException("cartella media illeggibile");
+        var cut = RenderComponent<MediaCleanupCard>();
+
+        await cut.Find("button").ClickAsync(new());
+
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
+        if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
+        cut.WaitForAssertion(() => Assert.Contains("cartella media illeggibile", cut.Markup));
+        Assert.False(cut.Find("button").HasAttribute("disabled"));
     }
 }

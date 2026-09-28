@@ -257,10 +257,14 @@
                                     }
                                 </td>
                                 <td>
-                                    <button class="btn ghost" disabled="@_busy" title="@L["Common_Delete"]"
-                                            @onclick="() => TogliAsync(v)">
-                                        <Icon Name="trash" Size="14" />
-                                    </button>
+                                    @* 🔴 U-179: il cestino chiede prima. Toglieva la voce al primo clic, e la traccia
+                                       di chi l'aveva tolta non c'era. *@
+                                    <InlineConfirm TriggerClass="btn ghost" Disabled="@_busy"
+                                                   Prompt="@string.Format(L["Gl_DeletePrompt"].Value, v.SourceText)"
+                                                   TriggerTitle="@L["Common_Delete"]" AriaLabel="@L["Common_Delete"]"
+                                                   OnConfirm="() => TogliAsync(v)">
+                                        <Trigger><Icon Name="trash" Size="14" /></Trigger>
+                                    </InlineConfirm>
                                 </td>
                             </tr>
 
@@ -1046,19 +1050,39 @@
         _ => "Gl_ErrDuplicate",
     };
 
-    private async Task AggiungiAsync()
+    /// <summary>
+    /// 🔴 U-190 (revisione totale 3): la porta dei gesti di scrittura. Erano già in fila, ma con un <c>finally</c> e
+    /// basta: un guasto del database usciva dal gestore e il circuito cadeva. La sentinella sta prima del primo
+    /// await; il guasto resta un messaggio e la pagina non ricarica, così quel che si stava scrivendo resta lì.
+    /// </summary>
+    private async Task<bool> Gesto(Func<Task> lavoro)
     {
-        if (RifiutoNuova is not null) return;
+        if (_busy) return false;
         _busy = true;
         try
         {
-            await InFilaAsync(() => Glossario.UpsertAsync(_da, _a, _nuovaSorgente, _nuovaResa, Authz.CurrentUserId));
-            _nuovaSorgente = "";
-            _nuovaResa = "";
-            _msg = L["Gl_Saved"].Value;
+            await lavoro();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _msg = L["Common_UnexpectedError"] + ex.Message;
+            return false;
         }
         finally { _busy = false; }
-        await CaricaAsync();
+    }
+
+    private async Task AggiungiAsync()
+    {
+        if (RifiutoNuova is not null) return;
+        if (await Gesto(async () =>
+            {
+                await InFilaAsync(() => Glossario.UpsertAsync(_da, _a, _nuovaSorgente, _nuovaResa, Authz.CurrentUserId));
+                _nuovaSorgente = "";
+                _nuovaResa = "";
+                _msg = L["Gl_Saved"].Value;
+            }))
+            await CaricaAsync();
     }
 
     /// <summary>
@@ -1090,14 +1114,12 @@
     private async Task SalvaVoceAsync(GlossaryTerm v)
     {
         if (!BozzaValida(v)) return;
-        _busy = true;
-        try
-        {
-            await InFilaAsync(() => Glossario.UpsertAsync(_da, _a, v.SourceText, _bozza, Authz.CurrentUserId));
-            _msg = L["Gl_Saved"].Value;
-        }
-        finally { _busy = false; }
-        await CaricaAsync();
+        if (await Gesto(async () =>
+            {
+                await InFilaAsync(() => Glossario.UpsertAsync(_da, _a, v.SourceText, _bozza, Authz.CurrentUserId));
+                _msg = L["Gl_Saved"].Value;
+            }))
+            await CaricaAsync();
     }
 
     /// <summary>
@@ -1107,26 +1129,22 @@
     /// </summary>
     private async Task RifaiAsync(GlossaryTerm v)
     {
-        _busy = true;
-        try
-        {
-            var quante = await InFilaAsync(() => Memoria.DimenticaAutomaticheConLaFormulaAsync(_da, _a, v.SourceText));
-            _msg = (quante > 0 ? L["Gl_RedoDone", quante] : L["Gl_RedoNone"]).Value;
-        }
-        finally { _busy = false; }
-        await RicaricaAsync();
+        if (await Gesto(async () =>
+            {
+                var quante = await InFilaAsync(() => Memoria.DimenticaAutomaticheConLaFormulaAsync(_da, _a, v.SourceText));
+                _msg = (quante > 0 ? L["Gl_RedoDone", quante] : L["Gl_RedoNone"]).Value;
+            }))
+            await RicaricaAsync();
     }
 
     private async Task TogliAsync(GlossaryTerm v)
     {
-        _busy = true;
-        try
-        {
-            await InFilaAsync(() => Glossario.DeleteAsync(v.Id));
-            _msg = L["Gl_Deleted"].Value;
-        }
-        finally { _busy = false; }
-        await CaricaAsync();
+        if (await Gesto(async () =>
+            {
+                await InFilaAsync(() => Glossario.DeleteAsync(v.Id));
+                _msg = L["Gl_Deleted"].Value;
+            }))
+            await CaricaAsync();
     }
 
     /// <summary>Le frasi che contengono la formula. Si chiedono al clic: sono un elenco, non un numero.</summary>
@@ -1198,22 +1216,20 @@
             return;
         }
         var quanti = Usi(r.SourceText).Count;
-        _busy = true;
-        try
-        {
-            // Origin diventa Human: da qui in avanti la macchina non la tocca piu', nemmeno cambiando
-            // motore o versione. E' la promessa su cui si regge la funzione.
-            await InFilaAsync(() => Memoria.SaveHumanAsync(_da, _a, r.SourceText, _bozzaTr.Trim(), Authz.CurrentUserId ?? 0));
-            // ⚠️ Il conto adesso e' vero: la frase deve reggere anche a uno e a zero.
-            _msg = (quanti switch
+        if (await Gesto(async () =>
             {
-                0 => L["Tr_SavedNone"],
-                1 => L["Tr_SavedOne"],
-                _ => L["Tr_Saved", quanti],
-            }).Value;
-        }
-        finally { _busy = false; }
-        await CaricaAsync();
+                // Origin diventa Human: da qui in avanti la macchina non la tocca piu', nemmeno cambiando
+                // motore o versione. E' la promessa su cui si regge la funzione.
+                await InFilaAsync(() => Memoria.SaveHumanAsync(_da, _a, r.SourceText, _bozzaTr.Trim(), Authz.CurrentUserId ?? 0));
+                // ⚠️ Il conto adesso e' vero: la frase deve reggere anche a uno e a zero.
+                _msg = (quanti switch
+                {
+                    0 => L["Tr_SavedNone"],
+                    1 => L["Tr_SavedOne"],
+                    _ => L["Tr_Saved", quanti],
+                }).Value;
+            }))
+            await CaricaAsync();
     }
 
     private static string ChiaveDove(UsoDelTesto dove) => dove switch

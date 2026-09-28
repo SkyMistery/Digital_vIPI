@@ -3030,6 +3030,7 @@
   <data name="Gl_ErrDuplicate" xml:space="preserve"><value>This formula already exists. Correct that one instead of adding a second.</value></data>
   <data name="Gl_Saved" xml:space="preserve"><value>Entry saved.</value></data>
   <data name="Gl_Deleted" xml:space="preserve"><value>Entry removed.</value></data>
+  <data name="Gl_DeletePrompt" xml:space="preserve"><value>Remove «{0}» from the glossary?</value></data>
   <data name="Gl_InMemory" xml:space="preserve"><value>{0} machine translations already in memory contain this formula, and they stay as they are: the round only translates what is missing.</value></data>
   <data name="Gl_Redo" xml:space="preserve"><value>Have them redone ({0})</value></data>
   <data name="Gl_RedoHint" xml:space="preserve"><value>Throws away the machine translations containing the formula, so the next round redoes them with the glossary. Corrections written by a person are left alone. ⚠️ The characters are paid to the engine again.</value></data>

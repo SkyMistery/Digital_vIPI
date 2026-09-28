@@ -53,7 +53,7 @@
             <nav class="struct-nav">
                 @* Il report è una fotografia e costa ~1,3 s: chi ha appena corretto un'incongruenza deve
                    poter chiedere «e adesso?» senza ricaricare la pagina. *@
-                <button class="btn ghost" disabled="@_loading" title="@L["Diag_RefreshTitle"]" @onclick="LoadAsync">
+                <button class="btn ghost" disabled="@(_loading || _derivaInCorso)" title="@L["Diag_RefreshTitle"]" @onclick="Aggiorna">
                     <Icon Name="refresh" Size="14" /> @L["Diag_Refresh"]
                 </button>
             </nav>
@@ -546,6 +546,13 @@
     ///
     /// <para>⚠️ Il guasto si mostra, non si inghiotte: è la pagina che serve a capire cosa non va.</para>
     /// </summary>
+    /// <summary>
+    /// 🔴 U-188 (revisione totale 3): «Aggiorna» non parte mentre gira la deriva. Il tasto si spegne, ma si spegne un
+    /// giro di rete dopo: la sentinella qui sotto chiude la finestra. La guardia NON sta in <see cref="LoadAsync"/>,
+    /// che la deriva stessa richiama alla fine.
+    /// </summary>
+    private Task Aggiorna() => _derivaInCorso ? Task.CompletedTask : LoadAsync();
+
     private async Task RilanciaDerivaAsync()
     {
         if (!Authz.IsAdmin) return;
@@ -554,9 +561,15 @@
         _esitoDeriva = null;
         try
         {
-            var esito = await Deriva.RunAsync();
-            await ImportStates.MarkSuccessAsync(
-                Vipi.Application.Abstractions.ImportCategories.ImpactDrift, DateTime.UtcNow);
+            // 🔴 U-188: il giro e la marcatura passano dalla fila della pagina, la stessa di LoadAsync. Prima stavano
+            // fuori, e un «Aggiorna» premuto intanto leggeva lo stesso DbContext nello stesso momento.
+            ImpactDriftResult esito = default!;
+            await InFilaAsync(async () =>
+            {
+                esito = await Deriva.RunAsync();
+                await ImportStates.MarkSuccessAsync(
+                    Vipi.Application.Abstractions.ImportCategories.ImpactDrift, DateTime.UtcNow);
+            });
             _esitoDeriva = string.Format(L["Diag_ImpactsRunDone"], esito.Esaminati, esito.Aperti, esito.Chiusi);
             await LoadAsync();
         }

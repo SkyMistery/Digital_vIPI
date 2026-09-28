@@ -3038,6 +3038,7 @@
   <data name="Gl_ErrDuplicate" xml:space="preserve"><value>Questa formula c'è già. Correggi quella invece di aggiungerne una seconda.</value></data>
   <data name="Gl_Saved" xml:space="preserve"><value>Voce salvata.</value></data>
   <data name="Gl_Deleted" xml:space="preserve"><value>Voce tolta.</value></data>
+  <data name="Gl_DeletePrompt" xml:space="preserve"><value>Togliere «{0}» dal glossario?</value></data>
   <data name="Gl_InMemory" xml:space="preserve"><value>{0} traduzioni automatiche già in memoria contengono questa formula, e restano come sono: il giro traduce solo quello che manca.</value></data>
   <data name="Gl_Redo" xml:space="preserve"><value>Falle rifare ({0})</value></data>
   <data name="Gl_RedoHint" xml:space="preserve"><value>Butta le traduzioni automatiche che contengono la formula, così il prossimo giro le rifà col glossario. Le correzioni scritte da una persona non si toccano. ⚠️ I caratteri si ripagano al motore.</value></data>

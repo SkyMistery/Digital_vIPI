@@ -833,5 +833,23 @@
   - **Test**: `PaginaPermessiTests` (3), `PaginaChiaviApiTests` (+2), `ProsaCapofilaRicaricaTests` (1),
     `ScopeDellEditingTests` (+1), `RoleAdminServiceTests` (+1). Tutti rossi sul codice di prima (i due doppi clic:
     2 scritture invece di 1). Ui 1782 → **1789**, Application 3017 → **3018**, net8 e net10.
+  - **Gruppo 2**: **U-049** (Spazi aerei admin: servizi del circuito, cinque gesti con `_busy` alzato e mai guardato
+    in ingresso e un `finally` e basta) → una porta `Gesto` per tutti: sentinella prima del primo await, catch
+    generale col messaggio e una riga di log. **U-188** (Diagnostica: «Aggiorna» acceso durante «Rilancia la
+    deriva», e il giro con la marcatura fuori dalla fila) → tasto spento e gestore che non parte durante la deriva;
+    giro e marcatura in `InFilaAsync`. **U-179** (Glossario: il cestino toglieva al primo clic, senza traccia) →
+    `InlineConfirm` con la formula nella domanda (`Gl_DeletePrompt`, it/en); `EfGlossaryStore` scrive l'audit
+    (`GlossaryTerm`: Create/Update per le voci di una persona, Delete con la resa nel dettaglio; il seme resta
+    muto). **U-190**, parte Glossario e pulizia immagini: i gesti in fila del Glossario passano da una porta con
+    sentinella e catch, e su errore la pagina non ricarica (quel che si stava scrivendo resta); «Analizza» e
+    «Cancella» della pulizia immagini con sentinella e catch. La parte Struttura di U-190 va con U-192.
+  - **Test**: `SpaziAereiAdminUnGestoAllaVoltaTests` (2), `DiagnosticaUnGiroAllaVoltaTests` (2: un finto che conta
+    le operazioni sovrapposte sul contesto della pagina, più il presidio sul tasto), `GlossarioGestiTests` (2),
+    `MediaCleanupCardTests` (+1), `GlossarioSuDatabaseTests` (+1); `ServizioVuoto` (finto che risponde vuoto, per
+    montare pagine con molti servizi). Tutti rossi sul codice di prima: il secondo gesto con 2 scritture o 2
+    operazioni insieme invece di 1, le eccezioni fuori dal gestore, la voce tolta al primo clic, nessuna traccia.
+    ⚠️ Il doppio clic in bUnit si prova su DUE righe: il secondo clic sullo stesso tasto trova il gestore già
+    rimpiazzato dal disegno (le lambda in un `foreach` cambiano id a ogni render), dal vivo no.
+    Ui 1789 → **1796**, Infrastructure 1756 → **1757**, net8 e net10. **Codice comune**: `Vipi.Infrastructure` (`EfGlossaryStore`).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

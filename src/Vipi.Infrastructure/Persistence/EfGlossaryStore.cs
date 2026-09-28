@@ -96,6 +96,11 @@ public sealed class EfGlossaryStore : IGlossaryStore
         {
             riga.UpdatedUtc = DateTime.UtcNow;
             riga.UpdatedByUserId = userId;
+
+            // 🔴 U-179 (revisione totale 3): la voce di una persona lascia traccia, come le radioassistenze. Il seme
+            // no: è contenuto di partenza, e ogni avvio ne riscriverebbe decine.
+            AuditScribe.Write(_db, userId.Value, nuova ? AuditAction.Create : AuditAction.Update, "GlossaryTerm",
+                $"{sourceLang}>{targetLang}:{chiave}", new { Sorgente = riga.SourceText, Resa = riga.TargetText });
         }
 
         await _db.SaveChangesAsync(ct).ConfigureAwait(false);
@@ -110,6 +115,9 @@ public sealed class EfGlossaryStore : IGlossaryStore
         if (riga is null) return false;
 
         _db.GlossaryTerms.Remove(riga);
+        // 🔴 U-179: chi ha tolto quale voce. La resa sta nel dettaglio: è quel che serve per rimetterla.
+        AuditScribe.Write(_db, _authz.CurrentUserId ?? 0, AuditAction.Delete, "GlossaryTerm",
+            $"{riga.SourceLang}>{riga.TargetLang}:{riga.SourceKey}", new { Sorgente = riga.SourceText, Resa = riga.TargetText });
         await _db.SaveChangesAsync(ct).ConfigureAwait(false);
         return true;
     }
