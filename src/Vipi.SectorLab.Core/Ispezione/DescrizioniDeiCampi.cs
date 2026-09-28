@@ -274,13 +274,13 @@ public static class DescrizioniDeiCampi
         [typeof(StaticBoundaryGroup)] = new("Traccia (T)",
         [
             C("Name", "Nome", "Il gruppo (2° campo di ogni riga T): è la voce della finestra di selezione di Aurora (FRA BDRY, RR CONF2)."),
-            Vertici("Polygons", "Tratti"),
+            Vertici("Polygons", "Poligoni"),
         ]),
         // AIRWAY (§2): Tipo;Aerovia;Lat;Lon.
         [typeof(Airway)] = new("Aerovia",
         [
             C("Name", "Nome", "Il nome dell'aerovia (2° campo)."),
-            C("FixLabels", "Punti", "I nomi dei punti, uno per riga.", Editor.SolaLettura),
+            Vertici("FixLabels", "Tracciato"),
             Vertici("Coordinates", "Coordinate"),
         ]),
         // DYNAMIC_SEC e GCI (§5): Posizioni;Riempimento;Bordo;ColoreBordo;[Opacità];[Filtro], poi i vertici.

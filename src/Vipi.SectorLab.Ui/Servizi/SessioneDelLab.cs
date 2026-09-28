@@ -11,13 +11,14 @@ using Vipi.Sectorfile.Shared;
 
 namespace Vipi.SectorLab.Ui.Servizi;
 
-/// <summary>I quattro gesti sui vertici di una forma (slice 7).</summary>
+/// <summary>I gesti sui vertici di una forma (slice 7; «inverti» dal lotto «Subito», slice 5a).</summary>
 public enum GestoDeiVertici
 {
     Cambia,
     Aggiungi,
     Togli,
     Incolla,
+    Inverti,
 }
 
 /// <summary>L'anteprima di «incolla da testo»: per quale elenco, con che densità, e che cosa ne esce.</summary>
@@ -916,6 +917,7 @@ public sealed class SessioneDelLab
             GestoDeiVertici.Cambia => "vertice spostato",
             GestoDeiVertici.Aggiungi => "vertice aggiunto",
             GestoDeiVertici.Togli => "vertice tolto",
+            GestoDeiVertici.Inverti => "ordine invertito",
             _ => "vertici incollati",
         };
         bool fatto = NellaStoria($"{cosa} in {EtichettaDi(fileRelativo, record)}",
@@ -937,6 +939,7 @@ public sealed class SessioneDelLab
             GestoDeiVertici.Cambia => Modifiche.CambiaVertice(file, record, campo, posizione, testo, etichetta),
             GestoDeiVertici.Aggiungi => Modifiche.AggiungiVertice(file, record, campo, posizione, testo, etichetta),
             GestoDeiVertici.Togli => Modifiche.TogliVertice(file, record, campo, posizione, etichetta),
+            GestoDeiVertici.Inverti => Modifiche.InvertiVertici(file, record, campo, etichetta),
             _ => Modifiche.IncollaVertici(file, record, campo, testo, etichetta,
                                           puntiPerGrado ?? DensitaDiBase, chiudi),
         };

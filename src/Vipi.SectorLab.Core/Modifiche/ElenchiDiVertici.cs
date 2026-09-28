@@ -16,6 +16,10 @@ namespace Vipi.SectorLab.Core.Modifiche;
 /// (<see cref="ProcedureWaypoint"/>), che sono solo per nome e portano il suffisso e il «nuovo tratto».</para>
 /// <para>Chi modifica un vertice non deve sapere quale dei tre: qui si legge e si scrive un punto, e quel che
 /// l'involucro porta in più <b>resta</b> — l'etichetta di una SID non si perde spostando il suo punto.</para>
+/// <para>Dal lotto «Subito» (slice 5a, B7 «sequenze di punti su tutti i file») anche tre elenchi che prima si
+/// leggevano e basta: il <b>tracciato di un'aerovia</b> (le righe <c>T</c>, solo nomi: <see cref="Airway.FixLabels"/>),
+/// i <b>vertici di una zona MVA</b> (<see cref="MvaVertex"/>, col gruppo del 5° campo) e quelli di un <b>confine</b>
+/// <c>.artcc</c>/<c>.hartcc</c>/<c>.lartcc</c> (<see cref="StaticBoundaryVertex"/>, un poligono per elenco).</para>
 /// </summary>
 public sealed class ElencoDiVertici
 {
@@ -40,24 +44,71 @@ public sealed class ElencoDiVertici
     public int Quanti => Elenco.Count;
 
     /// <summary>Vero dove un vertice si può scrivere per NOME: il file lo sa riscrivere.</summary>
-    public bool AmmetteNomi => _dentro == typeof(Punto) || _dentro == typeof(PuntoDelTracciato) || _dentro == typeof(ProcedureWaypoint);
+    public bool AmmetteNomi => _dentro != typeof(Coordinate);
 
     /// <summary>
     /// Vero dove un vertice si può scrivere per coordinate. Non nei punti di una procedura <c>.str</c>: il record è
-    /// fatto di nomi, e una coordinata ne cambierebbe il tipo (F3-bis slice 4).
+    /// fatto di nomi, e una coordinata ne cambierebbe il tipo (F3-bis slice 4). Né nel tracciato di un'aerovia: le
+    /// righe <c>T</c> sono <c>T;L613;RIVAM;RIVAM;</c>, un nome ripetuto (le coordinate stanno nelle righe <c>L</c>).
     /// </summary>
-    public bool AmmetteCoordinate => _dentro != typeof(ProcedureWaypoint);
+    public bool AmmetteCoordinate => _dentro != typeof(ProcedureWaypoint) && _dentro != typeof(string);
+
+    /// <summary>
+    /// Perché quel punto qui non si può scrivere, o null. Oltre a nomi e coordinate (<see cref="AmmetteNomi"/>,
+    /// <see cref="AmmetteCoordinate"/>): il tracciato di un'aerovia ripete lo STESSO nome nei due campi, quindi due
+    /// nomi diversi non ci stanno.
+    /// </summary>
+    public string? NonVa(Punto punto)
+        => _dentro == typeof(string) && punto.PerNome && punto.Nome != punto.NomeLongitudine
+            ? "Nel tracciato di un'aerovia un punto è un nome solo (T;L613;RIVAM;RIVAM;): due nomi diversi non si scrivono."
+            : null;
 
     /// <summary>Il vertice in posizione data, come si scrive a schermo.</summary>
     public string Scrivi(int posizione)
+        => ScriviLaVoce(posizione >= 0 && posizione < Elenco.Count ? Elenco[posizione] : null);
+
+    /// <summary>Il punto del vertice in posizione data, senza quel che l'involucro porta in più.</summary>
+    public Punto PuntoDi(int posizione) => Elenco[posizione] switch
     {
-        object? voce = posizione >= 0 && posizione < Elenco.Count ? Elenco[posizione] : null;
+        Coordinate c => Punto.Da(c),
+        Punto p => p,
+        PuntoDelTracciato t => t.Punto,
+        ProcedureWaypoint w => Punto.Nominato(w.FixName, w.DisplayLabel),
+        string nome => Punto.Nominato(nome),
+        MvaVertex m => m.Position,
+        StaticBoundaryVertex { Position: { } c } => Punto.Da(c),
+        StaticBoundaryVertex s => Punto.Nominato(s.FixA ?? "", s.FixB),
+        var altro => throw new InvalidOperationException($"«{altro?.GetType().Name}» non è un vertice."),
+    };
+
+    /// <summary>
+    /// Tutto quel che una voce scrive nel file — il punto e quel che l'involucro porta (etichetta, suffisso, segno di
+    /// nuovo tratto, gruppo): due voci con la stessa firma danno le stesse righe. Serve a dire «tornato com'era»
+    /// quando un gesto ha rifatto gli involucri (inverti due volte, slice 5a).
+    /// </summary>
+    internal static string Firma(object? voce) => voce switch
+    {
+        PuntoDelTracciato t => $"{ScriviLaVoce(t)}|{t.Etichetta}|{t.NuovoTratto}",
+        ProcedureWaypoint w => $"{ScriviLaVoce(w)}|{w.SuffixCode}|{w.IniziaUnTratto}",
+        MvaVertex m => $"{ScriviLaVoce(m)}|{m.ExtraField}",
+        StaticBoundaryVertex s => $"{ScriviLaVoce(s)}|{s.Position is null}",
+        _ => ScriviLaVoce(voce),
+    };
+
+    /// <summary>Una voce di un elenco di vertici, come si scrive a schermo.</summary>
+    internal static string ScriviLaVoce(object? voce)
+    {
         return voce switch
         {
             Coordinate c => CoordinateConverter.ToDottedDms(c),
             Punto p => ScriviIlPunto(p),
             PuntoDelTracciato t => ScriviIlPunto(t.Punto),
             ProcedureWaypoint w => w.FixName == w.DisplayLabel ? w.FixName : $"{w.FixName} {w.DisplayLabel}",
+            string nome => nome,
+            MvaVertex m => ScriviIlPunto(m.Position),
+            StaticBoundaryVertex s => s.Position is { } c
+                ? CoordinateConverter.ToDottedDms(c)
+                : s.FixA == s.FixB ? s.FixA ?? "" : $"{s.FixA} {s.FixB}",
             _ => "",
         };
     }
@@ -72,6 +123,8 @@ public sealed class ElencoDiVertici
             Coordinate c => (Coordinate?)c,
             Punto { PerNome: false } p => p.Posizione,
             PuntoDelTracciato { Punto.PerNome: false } t => t.Punto.Posizione,
+            MvaVertex { Position.PerNome: false } m => m.Position.Posizione,
+            StaticBoundaryVertex s => s.Position,
             _ => null,
         }).OfType<Coordinate>()];
 
@@ -98,6 +151,26 @@ public sealed class ElencoDiVertici
 
         if (_dentro == typeof(Punto))
             return punto;
+
+        if (_dentro == typeof(string))
+            return punto.Nome ?? throw new InvalidOperationException("Qui un punto va per nome.");
+
+        if (_dentro == typeof(MvaVertex))
+        {
+            // Il 5° campo (il gruppo della MVA Selection, «file per file» E3) resta quello del vertice, e un vertice
+            // nuovo prende quello dei suoi vicini: una T senza gruppo in un file che lo scrive sarebbe un'altra voce.
+            string? gruppo = vecchio is MvaVertex prima
+                ? prima.ExtraField
+                : Elenco.OfType<MvaVertex>().Select(v => v.ExtraField).FirstOrDefault(g => g is not null);
+            return new MvaVertex { Position = punto, ExtraField = gruppo };
+        }
+
+        if (_dentro == typeof(StaticBoundaryVertex))
+        {
+            return punto.PerNome
+                ? new StaticBoundaryVertex { FixA = punto.Nome, FixB = punto.NomeLongitudine ?? punto.Nome }
+                : new StaticBoundaryVertex { Position = punto.Posizione };
+        }
 
         if (_dentro == typeof(ProcedureWaypoint))
         {
@@ -146,6 +219,10 @@ public static class ElenchiDiVertici
             if (dentro is null)
                 continue;
 
+            // Un elenco di testi è un tracciato solo nelle aerovie (le righe T): altrove sono altro (le fonti…).
+            if (dentro == typeof(string) && !(record is Airway && proprieta.Name == nameof(Airway.FixLabels)))
+                continue;
+
             if (EUnPunto(dentro))
             {
                 trovati.Add(new ElencoDiVertici(proprieta.Name, NomeDelCampo(proprieta.Name), elenco, dentro));
@@ -166,7 +243,8 @@ public static class ElenchiDiVertici
                     if (interna.GetValue(voce) is not IList dentroIl || TipoDentro(interna.PropertyType) is not { } tipo || !EUnPunto(tipo))
                         continue;
                     trovati.Add(new ElencoDiVertici(
-                        $"{proprieta.Name}[{i}].{interna.Name}", $"Tratto {i + 1}", dentroIl, tipo));
+                        $"{proprieta.Name}[{i}].{interna.Name}",
+                        (proprieta.Name == "Polygons" ? "Poligono " : "Tratto ") + (i + 1), dentroIl, tipo));
                 }
             }
         }
@@ -179,7 +257,8 @@ public static class ElenchiDiVertici
         => Di(file, indice).FirstOrDefault(e => e.Chiave == chiave);
 
     private static bool EUnPunto(Type tipo)
-        => tipo == typeof(Coordinate) || tipo == typeof(Punto) || tipo == typeof(PuntoDelTracciato) || tipo == typeof(ProcedureWaypoint);
+        => tipo == typeof(Coordinate) || tipo == typeof(Punto) || tipo == typeof(PuntoDelTracciato) || tipo == typeof(ProcedureWaypoint)
+           || tipo == typeof(string) || tipo == typeof(MvaVertex) || tipo == typeof(StaticBoundaryVertex);
 
     private static Type? TipoDentro(Type tipoDellaProprieta)
         => tipoDellaProprieta.IsGenericType ? tipoDellaProprieta.GetGenericArguments().FirstOrDefault() : null;
@@ -192,6 +271,7 @@ public static class ElenchiDiVertici
         "Points" => "Punti",
         "Waypoints" => "Punti",
         "Coordinates" => "Punti",
+        "FixLabels" => "Tracciato",
         "LabelAnchors" => "Ancore delle etichette",
         _ => campo,
     };

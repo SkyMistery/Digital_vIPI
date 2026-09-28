@@ -172,7 +172,9 @@
         }
 
         @* Una forma semplice ha un elenco solo; una zona a più tratti ne ha uno per tratto (slice 7-bis). *@
-        @foreach (var elenco in Lab.ElenchiDiVerticiDi(scheda.File, scheda.Indice))
+        @* Slice 5a: un elenco vuoto accanto a uno pieno è l'altra forma del record (le righe L di un'aerovia fatta di
+           righe T): non si mostra. Un record con gli elenchi tutti vuoti li mostra, per poterli incollare. *@
+        @foreach (var elenco in ElenchiDaMostrare(scheda))
         {
             string chiave = elenco.Chiave;
             var vertici = Lab.VerticiDi(scheda.File, scheda.Indice, chiave);
@@ -200,7 +202,7 @@
                                    data-vertice="@posizione" />
                         }
                         <button class="lab-annulla" title="aggiungi un vertice qui sopra"
-                                @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Aggiungi, posizione, vertici[posizione])"
+                                @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Aggiungi, posizione)"
                                 data-aggiungi="@posizione">+</button>
                         <button class="lab-annulla" title="togli questo vertice"
                                 @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Togli, posizione)"
@@ -208,6 +210,15 @@
                     </div>
                 }
             </div>
+            @* Lotto «Subito» slice 5a (B7): un punto in fondo (copia dell'ultimo, da cambiare) e la sequenza al contrario. *@
+            <p class="lab-gesti-vertici">
+                <button class="lab-tasto lab-tasto-tenue" data-in-fondo="@chiave" disabled="@(vertici.Count == 0)"
+                        title="Aggiunge un punto dopo l'ultimo (una copia dell'ultimo: poi lo cambi)"
+                        @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Aggiungi, vertici.Count)">+ in fondo</button>
+                <button class="lab-tasto lab-tasto-tenue" data-inverti="@chiave" disabled="@(vertici.Count < 2)"
+                        title="La sequenza dall'ultimo punto al primo: le interruzioni restano fra gli stessi due punti"
+                        @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Inverti, 0)">⇅ Inverti</button>
+            </p>
 
             <details class="lab-incolla">
                 <summary data-incolla="@chiave">Incolla da testo</summary>
@@ -322,6 +333,12 @@ else
 
     /// <summary>Per quale elenco è il testo da incollare: un record può avere più tratti, ognuno col suo.</summary>
     private string? _perQuale;
+
+    private IEnumerable<ElencoDiVertici> ElenchiDaMostrare(SchedaDelRecord scheda)
+    {
+        var tutti = Lab.ElenchiDiVerticiDi(scheda.File, scheda.Indice);
+        return tutti.Any(e => e.Quanti > 0) ? tutti.Where(e => e.Quanti > 0) : tutti;
+    }
 
     private void Gesto(SchedaDelRecord scheda, string campo, GestoDeiVertici gesto, int posizione, string? testo = null)
         => Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, gesto, posizione, testo);

@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4d); prossima la **slice 5** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4d); in corso la **slice 5** (5a fatta; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -569,3 +569,46 @@ terra, e gli stili di linea `…_SOLID`) è del committente: prove 71-76 in `Sec
   `VFR_NASCOSTI.fix` (COLOMBO ↔ RFS3, chiave = il codice) — è la voce F2 della **slice 8** (gemello `.vfi` ↔
   `VFR_NASCOSTI.fix`: 496 uguali, 9 diversi, 81 senza, 7 orfani); oggi il Lab non lo sa.
   Test: Lab 497 → **534**.
+
+**Slice 5 — sequenze di punti e gesti sul record.** Divisa in passi, un commit ciascuno (scelta dell'agente): **5a** le
+sequenze su tutti i file e «inverti» · **5b** spezza/unisci · **5c** nascondi/mostra · **5d** la vista a linea dei `.geo`.
+Misure di partenza (fork, testo): 28 `BREAK` attivi e 2 commentati nelle aerovie; `DUMMY` negli `.artcc` 101 in coda,
+11 in mezzo, 2 in testa; nei `.hartcc` 22 in coda e 1 in mezzo; nei `.lartcc` 10 in coda e **19 in mezzo** (i
+`T;dummy;INLER;INLER;` delle mappe STAR in `limc_star`/`lirf_star`, per nome); nelle MVA **169 tutti in coda** (nessuno
+in mezzo a una zona); 1 973 `<br>` negli `.str`; nelle SID 2 righe vuote fra due punti (`lied.sid`); 42 righe vuote fra
+due segmenti `.geo`; 169 righe vuote fra due righe di dati nelle MVA di scalo.
+
+- **5a (28 settembre)** — le sequenze di punti su tutti i file (B7). Tre elenchi che la scheda mostrava in sola lettura
+  diventano elenchi di vertici come gli altri (`ElenchiDiVertici`): il **tracciato delle aerovie** (le righe `T`,
+  `Airway.FixLabels`: solo nomi, uno per punto — coordinate e due nomi diversi si rifiutano col perché), i **vertici
+  delle MVA** (`MvaVertex`: il 5° campo resta quello del vertice, e un vertice nuovo prende il gruppo dei vicini, E3) e
+  quelli dei **confini** `.artcc`/`.hartcc`/`.lartcc` (`StaticBoundaryVertex`, un elenco per poligono, «Poligono 2»,
+  per coordinate o per nome). Sotto ogni elenco due tasti: **«+ in fondo»** (una copia dell'ultimo punto) e **«⇅
+  Inverti»**. Inverti: quel che ogni punto porta (etichetta di una SID, suffisso `4E` di un `.str`, gruppo di una T)
+  resta col suo punto; le interruzioni stanno FRA due punti e restano fra quegli stessi due (la riga vuota di una SID, il
+  `<br>` di un `.str` passano all'altro punto della coppia; il segno sul primo punto resta sul primo). Inverti due volte
+  = nessuna modifica (il confronto con l'apertura ora guarda anche le righe che le voci scrivono, `Firma`). Le voci
+  dicono il nome dell'elenco come la scheda («Poligono 1: vertice spostato», non `Polygons[0].Vertices`); un elenco
+  vuoto accanto a uno pieno (le righe L di un'aerovia fatta di righe T) non si mostra. Scelte dell'agente e trovati:
+  - 🔴 **Codice comune, `MvaSaver`**: nelle zone di scalo senza riga L (`T;CERCHIO-BA;…`, `liba.mva`) lo scrittore
+    metteva la quota (vuota) nel 2° campo: un vertice aggiunto usciva `T;;N…;E…;`, un'altra zona per Aurora. Ora il
+    nome della zona (`MvaSector.Nome`). Rosso sullo scrittore di prima: 1 test su 14 del Lab, e un test nuovo nel motore.
+  - 🔴 **Trovato dalla misura: girare le righe porta con sé quelle che lo scrittore non produce**, attaccate alla riga
+    sotto: i separatori `T;dummy;INLER;INLER;` dei `.lartcc` finivano dentro un altro poligono. Inverti ora rilegge il
+    file com'uscirebbe e, se la sequenza riletta non è quella girata, **non si fa** e dice perché (14 elenchi sul fork:
+    `limc_star`, `lirf_star`, e la zona 12 di `licj.mva`). Rosso: senza la rilettura il test cade.
+  - Trovato dalla misura: «+» copiava il punto passando dal testo, e un nome con gli spazi (`FOCI DEL FORTORE` dei
+    `.vrt`) si leggeva come coordinate sbagliate → la copia prende il punto com'è. 🟡 Resta che un nome con gli spazi
+    non si può **scrivere** in un vertice (`LeggiIlPunto` divide sugli spazi): da vedere con la slice 16 (VFR).
+  - 🟡 Dato da correggere (R-10): `licj.mva`, zona 12 — due righe L di nomi diversi (`85TRS`, `85TPS`) e le T col
+    secondo: l'unica zona su 334 del fork dove il nome delle T non è quello della prima riga.
+  Misura sul fork (strumento fuori repo, `scratchpad/misura5`): **2 522 elenchi in 278 file** (ogni record di aerovie,
+  MVA e confini, cinque per file negli altri), per ognuno «cambia il primo», «in fondo» e «inverti», il file riletto dal
+  motore e poi annullato: **0 guasti** — cambia 2 522/2 522 (diff −1 +1), in fondo 2 522/2 522 (−0 +1), inverti 2 063
+  riletti giusti, 14 rifiutati col perché, 440 con un punto solo, 5 uguali al contrario; annullare torna sempre al file.
+  Per tipo: tracciati di aerovia 302, vertici MVA 317, poligoni di confine 211, `.pol` 439, zone `.str` 365, procedure
+  `.str` 224. Prova sull'albero (lo scrittore MVA è cambiato): tutto invariato — 701/701, opache 93, tutto toccato 0,
+  una modifica per record 115 568, tag 118 469, punti 38 330, blocchi 107 204, 120/481, il solo `limf.sid`. Prova a
+  schermo sul banco: L613 invertita (−4 +4) e «+ in fondo»; `RR CONF1` di `lirr.hartcc`, TIPNI → OTNUN per nome
+  (`T;RR CONF1;OTNUN;OTNUN;`); `CERCHIO-BA` «+ in fondo» (`T;CERCHIO-BA;…`, «Vertici: vertice aggiunto (73 → 74)»);
+  «Annulla tutto». Test: motore 670 → **671**, Lab 534 → **548**.

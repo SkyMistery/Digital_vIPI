@@ -855,6 +855,14 @@ body.lab-trascina * {
     font-weight: 700;
 }
 
+/* Lotto «Subito» slice 5a: i gesti sulla sequenza intera, sotto i vertici. */
+.lab-gesti-vertici {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin: .3rem 0 0;
+}
+
 .lab-incolla {
     margin-top: .5rem;
 }

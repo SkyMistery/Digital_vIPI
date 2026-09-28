@@ -96,9 +96,12 @@ public sealed record ModificaDeiVertici(
     string File, int Record, string Etichetta, string Campo, int Prima, int Dopo, string Cosa)
     : Modifica(File, Record, Etichetta, Campo)
 {
+    /// <summary>Il nome dell'elenco come lo dice la scheda («Tracciato», «Poligono 2»); di base la chiave.</summary>
+    public string NomeDellElenco { get; init; } = Campo;
+
     public override string Descrizione => Prima == Dopo
-        ? $"{Campo}: {Cosa} ({Dopo} vertici)"
-        : $"{Campo}: {Cosa} ({Prima} → {Dopo} vertici)";
+        ? $"{NomeDellElenco}: {Cosa} ({Dopo} vertici)"
+        : $"{NomeDellElenco}: {Cosa} ({Prima} → {Dopo} vertici)";
 }
 
 /// <summary>
@@ -1112,13 +1115,20 @@ public sealed class ModificheInSospeso
             return null;
         });
 
-    /// <summary>Aggiunge un vertice PRIMA della posizione data (o in fondo, se è quanti ce ne sono).</summary>
+    /// <summary>
+    /// Aggiunge un vertice PRIMA della posizione data (o in fondo, se è quanti ce ne sono). Senza testo il nuovo è una
+    /// copia del punto che c'è lì (in fondo: dell'ultimo), da cambiare poi (slice 5a): la copia non passa dal testo,
+    /// così anche un nome con gli spazi (i punti VFR dei .vrt, PONTE GALERIA) si copia com'è.
+    /// </summary>
     public object AggiungiVertice(FileAperto file, int indice, string campo, int posizione, string? testo, string etichetta = "")
         => Gesto(file, indice, campo, etichetta, "vertice aggiunto", vertici =>
         {
             if (posizione < 0 || posizione > vertici.Quanti)
                 return new ModificaRifiutata("Lì non si può aggiungere un vertice.");
-            if (!LeggiIlPunto(vertici, testo, out Punto punto, out string? perche))
+            Punto punto;
+            if (testo is null && vertici.Quanti > 0)
+                punto = vertici.PuntoDi(Math.Min(posizione, vertici.Quanti - 1));
+            else if (!LeggiIlPunto(vertici, testo, out punto, out string? perche))
                 return new ModificaRifiutata(perche!);
 
             vertici.Elenco.Insert(posizione, vertici.Fabbrica(punto, vecchio: null));
@@ -1137,6 +1147,96 @@ public sealed class ModificheInSospeso
             vertici.Elenco.RemoveAt(posizione);
             return null;
         });
+
+    /// <summary>
+    /// «Inverti» (lotto «Subito» slice 5a, B7): la sequenza dall'ultimo punto al primo. Quel che ogni punto porta con
+    /// sé (l'etichetta di una SID, il suffisso di un punto <c>.str</c>, il gruppo di una T MVA) resta col suo punto;
+    /// le <b>interruzioni</b> invece stanno FRA due punti, e restano fra quegli stessi due: il segno «qui comincia un
+    /// tratto» (riga vuota di una SID, <c>&lt;br&gt;</c> di un <c>.str</c>) passa all'altro punto della coppia. Il segno
+    /// sul PRIMO punto (la testa di un tratto che comincia comunque, F3-bis) resta sul primo.
+    /// </summary>
+    public object InvertiVertici(FileAperto file, int indice, string campo, string etichetta = "")
+        => Gesto(file, indice, campo, etichetta, "ordine invertito", vertici =>
+        {
+            if (vertici.Quanti < 2)
+                return new ModificaRifiutata("Con un punto solo non c'è un ordine da invertire.");
+
+            var voci = vertici.Elenco.Cast<object>().ToList();
+            int n = voci.Count;
+            var segni = voci.Select(IniziaUnTratto).ToList();
+            var girate = Enumerable.Range(0, n).Select(k => ConIlSegno(voci[n - 1 - k], k == 0 ? segni[0] : segni[n - k])).ToList();
+            if (girate.Select(ElencoDiVertici.ScriviLaVoce).SequenceEqual(voci.Select(ElencoDiVertici.ScriviLaVoce))
+                && girate.Select(IniziaUnTratto).SequenceEqual(segni))
+                return new ModificaRifiutata("Letta al contrario la sequenza è la stessa.");
+
+            vertici.Elenco.Clear();
+            foreach (var voce in girate)
+                vertici.Elenco.Add(voce);
+
+            // 🔴 Misura sul fork (slice 5a): girare le righe porta con sé quelle che lo scrittore non produce, attaccate
+            // alla riga sotto — un separatore `T;dummy;INLER;INLER;` dei .lartcc finiva dentro un altro poligono. Si
+            // rilegge il file com'uscirebbe: se la sequenza riletta non è quella girata, il gesto non si fa.
+            if (!SiRileggeCosi(file, indice, campo, [.. girate.Select(ElencoDiVertici.Firma)]))
+            {
+                vertici.Elenco.Clear();
+                foreach (var voce in voci)
+                    vertici.Elenco.Add(voce);
+                return new ModificaRifiutata("Al contrario questo file non si rilegge uguale: fra i punti ci sono righe che il Lab "
+                    + "non scrive (un separatore come T;dummy;INLER;INLER;, un'altra zona nello stesso blocco) e finirebbero al "
+                    + "posto sbagliato. Si gira a mano, dalle righe del file.");
+            }
+
+            return null;
+        });
+
+    /// <summary>
+    /// Vero se il file, scritto col record com'è adesso e riletto dal motore, ha lo stesso numero di record e in quel
+    /// record l'elenco con quelle firme. La struttura del file resta com'era.
+    /// </summary>
+    private bool SiRileggeCosi(FileAperto file, int indice, string campo, IReadOnlyList<string> firme)
+    {
+        var conRecord = (IFileConRecord)file;
+        var righe = conRecord.RigheDelFile([.. SporchiDi(file.Relativo), conRecord.RecordDelModello[indice]]);
+        int quanti = conRecord.RecordDelModello.Count;
+        var comEra = conRecord.IstantaneaDellaStruttura();
+        try
+        {
+            conRecord.RipristinaLaStruttura(conRecord.LeggiLeRighe(righe));
+            return conRecord.RecordDelModello.Count == quanti
+                && ElenchiDiVertici.Uno(file, indice, campo) is { } riletto
+                && riletto.Elenco.Cast<object>().Select(ElencoDiVertici.Firma).SequenceEqual(firme, StringComparer.Ordinal);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return false;
+        }
+        finally
+        {
+            conRecord.RipristinaLaStruttura(comEra);
+        }
+    }
+
+    /// <summary>Il segno «qui comincia un tratto» di un punto, dove l'involucro lo porta.</summary>
+    private static bool IniziaUnTratto(object voce) => voce switch
+    {
+        PuntoDelTracciato t => t.NuovoTratto,
+        ProcedureWaypoint w => w.IniziaUnTratto,
+        _ => false,
+    };
+
+    /// <summary>
+    /// Il punto col segno dato: un involucro NUOVO (il confronto con l'elenco dell'apertura è per riferimento, e un
+    /// involucro cambiato sul posto passerebbe per quello di prima).
+    /// </summary>
+    private static object ConIlSegno(object voce, bool segno) => voce switch
+    {
+        PuntoDelTracciato t when t.NuovoTratto != segno => new PuntoDelTracciato { Punto = t.Punto, Etichetta = t.Etichetta, NuovoTratto = segno },
+        ProcedureWaypoint w when w.IniziaUnTratto != segno => new ProcedureWaypoint
+        {
+            FixName = w.FixName, DisplayLabel = w.DisplayLabel, SuffixCode = w.SuffixCode, IniziaUnTratto = segno,
+        },
+        _ => voce,
+    };
 
     /// <summary>
     /// «Incolla da testo» (carta §2.3): il testo dell'AIP con gli archi, o l'uscita del convertitore del sito, o
@@ -1190,17 +1290,20 @@ public sealed class ModificheInSospeso
             return rifiutata;
         }
 
-        if (elenco.Cast<object>().SequenceEqual(_verticiDiPartenza[chiave]))
+        // Tornato com'era: gli stessi oggetti, o voci che scrivono le stesse righe (un «inverti» fatto due volte rifà
+        // gli involucri col segno di nuovo tratto: oggetti nuovi, righe di prima).
+        if (elenco.Cast<object>().SequenceEqual(_verticiDiPartenza[chiave])
+            || elenco.Cast<object>().Select(ElencoDiVertici.Firma).SequenceEqual(_verticiDiPartenza[chiave].Select(ElencoDiVertici.Firma), StringComparer.Ordinal))
         {
             // Tornato com'era all'apertura: non è una modifica.
             _fatte.Remove(chiave);
             _verticiDiPartenza.Remove(chiave);
             Ripulisci(file.Relativo);
             RigeneraLeComposte(file);
-            return new ModificaDeiVertici(file.Relativo, indice, etichetta, campo, prima, elenco.Count, cosa);
+            return new ModificaDeiVertici(file.Relativo, indice, etichetta, campo, prima, elenco.Count, cosa) { NomeDellElenco = vertici.Nome };
         }
 
-        var modifica = new ModificaDeiVertici(file.Relativo, indice, etichetta, campo, prima, elenco.Count, cosa);
+        var modifica = new ModificaDeiVertici(file.Relativo, indice, etichetta, campo, prima, elenco.Count, cosa) { NomeDellElenco = vertici.Nome };
         _fatte[chiave] = modifica;
         if (!_sporchi.TryGetValue(file.Relativo, out var suoi))
             _sporchi[file.Relativo] = suoi = [];
@@ -1211,7 +1314,12 @@ public sealed class ModificheInSospeso
 
     /// <summary>Legge un vertice scritto: una coppia di coordinate, o il nome di un punto (dove il file lo ammette).</summary>
     private static bool LeggiIlPunto(ElencoDiVertici vertici, string? testo, out Punto punto, out string? perche)
-        => LeggiIlPunto(testo, vertici.AmmetteNomi, vertici.AmmetteCoordinate, out punto, out perche);
+    {
+        if (!LeggiIlPunto(testo, vertici.AmmetteNomi, vertici.AmmetteCoordinate, out punto, out perche))
+            return false;
+        perche = vertici.NonVa(punto);
+        return perche is null;
+    }
 
     /// <summary>
     /// Un punto scritto dall'AOD: il NOME di un fix/navaid (uno, o due per latitudine e longitudine) o le coordinate.
@@ -1251,7 +1359,7 @@ public sealed class ModificheInSospeso
 
         if (!ammetteCoordinate)
         {
-            perche = "Qui un punto si scrive per nome: una procedura del .str è fatta di nomi.";
+            perche = "Qui un punto si scrive per nome: l'elenco è fatto di nomi (una procedura del .str, il tracciato di un'aerovia).";
             return false;
         }
 

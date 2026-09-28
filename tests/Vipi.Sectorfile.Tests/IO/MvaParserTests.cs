@@ -37,6 +37,22 @@ public sealed class MvaParserTests
         Assert.Single(r.LabelAnchors);
     }
 
+    // Lotto «Subito» slice 5a: a named airport zone without an L; line (CERCHIO-BA in liba.mva) has no altitude, and
+    // the saver wrote its vertices as `T;;N…;E…;` — without the zone's name, another zone for Aurora.
+    [Fact]
+    public void Airport_ZoneWithoutL_VerticesKeepTheZoneName()
+    {
+        var zona = Airport(
+            "T;CERCHIO-BA;N041.30.50.674;E014.00.20.609;\r\n" +
+            "T;CERCHIO-BA;N041.37.18.175;E014.00.29.254;\r\n").Records[0];
+        zona.Vertices.Add(new MvaVertex { Position = Punto.Da(new Coordinate(41.5, 14.5)) });
+
+        var righe = new MvaSaver(enroute: false).Serialize(zona);
+
+        Assert.Equal("T;CERCHIO-BA;N041.30.00.000;E014.30.00.000;", righe[^1]);
+        Assert.All(righe, r => Assert.StartsWith("T;CERCHIO-BA;", r, StringComparison.Ordinal));
+    }
+
     // §12.4 — DUMMY row is kept in RawLines, never added to Vertices.
     [Fact]
     public void Airport_Dummy_InRawLinesNotVertices()

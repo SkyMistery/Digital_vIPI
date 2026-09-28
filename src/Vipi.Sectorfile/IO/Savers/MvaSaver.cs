@@ -52,7 +52,10 @@ public sealed class MvaSaver : IFileSaver<MvaSector>
         foreach (var vertex in record.Vertices)
         {
             var (lat, lon) = vertex.Position.Campi();
-            string ident = vertex.ExtraField ?? (_enroute ? fir : record.AltLabel);
+            // Di scalo il 2° campo è il nome della zona (MvaSector.Nome): la quota solo dove la zona non ne ha un altro.
+            // 🔴 Lotto «Subito» slice 5a: nelle zone senza riga L (`T;ZONA1;…`, liba.mva) la quota è vuota, e un vertice
+            // aggiunto usciva `T;;N…;E…;` — senza nome, un'altra zona per Aurora.
+            string ident = vertex.ExtraField ?? (_enroute ? fir : record.Nome.Length > 0 ? record.Nome : record.AltLabel);
 
             lines.Add(vertex.ExtraField is not null
                 ? $"T;{ident};{lat};{lon};{vertex.ExtraField};"
