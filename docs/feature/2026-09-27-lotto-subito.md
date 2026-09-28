@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); in corso la **slice 8** (8a-8d fatte, §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) e la slice 8 (8a-8e); prossima la **slice 9** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -1083,3 +1083,13 @@ diverse» · **8c** la modifica propagata alle copie uguali, «allinea anche que
   e due); CAPO DUE RAMI → «+ Crea il gemello RFS4» → `RFS4;N0414634000;E0121642000;3;` fra RFS3 e RFW1, compatto come il
   file; OSTIA tolto → la domanda → «Sì» → `VFR_NASCOSTI.fix −1 +0`; «Annulla tutto» pulito. Il motore non è toccato.
   Test: Lab 698 → **709**.
+
+**Slice 8 chiusa.** Uscita misurata sul fork: la stessa forma trovata dal Lab come anello (**1 971 famiglie** uguali;
+settori dinamici 98 con una copia uguale e 17 solo diverse; **1 594 `.pol` col bordo uguale** in un `.geo`), la famiglia
+dichiarata `form=` con l'avviso `FormeDiverse`, la forma portata sulle copie dopo ogni gesto (**613 forme, 617 copie
+portate, 0 guasti**, anche le linee dei `.geo` come copia e come sorgente), «Allinea quella» e «Prendi la sua», il bordo e
+il riempimento che mancano (159 e 105 proponibili) con l'avviso `ConfineSenzaErba` (0 sul fork), i gemelli `.vfi` ↔
+`VFR_NASCOSTI.fix` (**495 uguali**, spostati e annullati tutti, 0 guasti). Codice comune toccato: due regole nell'elenco
+del motore (`FormeDiverse`, `ConfineSenzaErba`), calcolate dal Lab. Voci del giro dei file chiuse: D5, J3, Q5, I2, H10,
+F2 (l'adozione in massa delle famiglie, D6, e le 17 divergenti sono di F4). Da provare a mano (eseguibile da
+ripubblicare): prove in `SectorLab-prova\PROVE.md`.

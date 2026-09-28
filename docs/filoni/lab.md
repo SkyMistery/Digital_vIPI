@@ -4,7 +4,7 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## 28 settembre 2026, sera — lotto «Subito» in corso (slice 0-7 fatte)
+## 29 settembre 2026 — lotto «Subito» in corso (slice 0-8 fatte)
 
 Carta approvata: [`2026-09-27-lotto-subito.md`](../feature/2026-09-27-lotto-subito.md) (20 slice in tre ondate). Fatte
 la slice 0 (misure di partenza) e la **slice 1** intera: sintassi dei tag di §M nel motore (1a), tag sui file a una
@@ -43,8 +43,15 @@ un diff per file, che **chiede** per le righe comuni (decisione del committente)
 usato; **7c** le posizioni (trasferimenti dei `.frq`, teste dei `.tfl`); **7d** i versi di pista (SID, STAR, mappe,
 tag; i PAR dei `.cpr` e i commenti dei disegni «da cambiare a mano»); **7e** chi usa un file e i colori di
 `colors.def`, solo da vedere (la loro rinomina è per il futuro, decisione del committente); **7f** il nome delle voci
-di confini, MVA, aerovie e aree. Sul fork tutto rinominato e annullato con 0 guasti. Slice 7 chiusa; prossima:
-**slice 8** (famiglie di forme e gemelli). Test: motore **676**, Lab **661**. Il dettaglio di ogni passo sta in §6
+di confini, MVA, aerovie e aree. Sul fork tutto rinominato e annullato con 0 guasti. Slice 7 chiusa. **Slice 8** (famiglie di forme e
+gemelli fra tipi diversi, 28-29 settembre): **8a** la stessa forma in più record, trovata dal Lab come anello (inizio e
+verso qualsiasi) e mostrata nella scheda, uguali e simili; **8b** la famiglia dichiarata `form=` e l'avviso «copie di
+forma diverse» solo per le dichiarate (i settori solo simili non riempiono il pannello); **8c** la forma portata sulle
+copie dopo ogni gesto sui vertici, che tengono partenza, verso, chiusura e scrittura, e «Allinea quella» / «Prendi la
+sua»; **8d** le linee dei `.geo` come copia e come sorgente (l'erba e il suo confine si seguono), il bordo e il
+riempimento che mancano, l'avviso del confine senza erba; **8e** il gemello `.vfi` ↔ `VFR_NASCOSTI.fix` (la
+posizione passa, «crea il gemello», la domanda dopo «togli»). Sul fork 0 guasti in ogni misura. Slice 8 chiusa;
+prossima: **slice 9** (procedure). Test: motore **676**, Lab **709**. Il dettaglio di ogni passo sta in §6
 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
@@ -245,7 +252,7 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
 
 `Vipi.Sectorfile`: `Validazione/CopieGemelle.cs`, `Regola.CopieDiverse`, `Regola.CompostaConProceduraAssente`,
 `Regola.CompostaNonAllineata`; `IO/Metadati.cs` (virgolette, `composta`, `intere`, `Togli`, `NomeElencabile`);
-`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set); `Regola.FormaQuasiChiusa` (24 set). `tools/Vipi.SectorfileProva` (sezione
+`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set); `Regola.FormaQuasiChiusa` (24 set). Lotto «Subito» slice 8: `Regola.FormeDiverse` e `Regola.ConfineSenzaErba` (le calcola il Lab). `tools/Vipi.SectorfileProva` (sezione
 5b, `composta` sulle MAPS). Il sito non usa niente di questo; la build della soluzione è verde.
 
 ### Dove sta la storia di prima
@@ -266,6 +273,13 @@ F2 → carta [`2026-09-22-f2-motore-del-sector.md`](../feature/2026-09-22-f2-mot
   `.pol`/`.lairway` (l'ha presa la misura sull'albero, non i test).
 - 🔴 Sorgenti con `\r\n` dentro le stringhe e percorsi Windows nei documenti: solo con gli strumenti di modifica, mai
   Python o sed passati da heredoc (un `\v` di `scratchpad\vetrina` era diventato un carattere di controllo qui sopra).
+
+- 🔴 Un componente della scheda con soli parametri primitivi (file e record) **non si ridisegna** col padre: dopo
+  «Annulla tutto» mostrava ancora la famiglia (8b). Si iscrive da sé a `Lab.Cambiata`, come la scheda.
+- 🔴 La mappa cuce i segmenti dei `.geo` senza guardare commenti e righe vuote; la linea del file (5d) sì. Chi confronta
+  forme lo sa: 34 linee su 5 599 sul fork non coincidono (8d).
+- 🔴 Riscrivere una linea può cambiarne il numero di segmenti: i record dopo di lei, nel suo file, slittano. Più
+  scritture nello stesso file si fanno dall'ultima alla prima, e la scelta segue il suo record (8d, `liaa.geo`).
 
 ### Dove lavorare
 

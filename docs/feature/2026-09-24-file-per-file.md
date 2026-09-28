@@ -208,7 +208,7 @@ poligoni aperti.
 | D2 | **Selettore di colori** vero, più i nomi di `colors.def` | Subito — comune | ✅ deciso |
 | D3 | **Mappa coi colori di Aurora** dallo schema scelto (`LIRR_RDR_V1.0.clr`), per tutti gli strati; settori dinamici solo bordo | Subito — comune | ✅ deciso |
 | D4 | **Settore italiano legato ai `.frq`**: ogni sua posizione è citata in un `.frq`, come posizione o fra i trasferimenti (anche non primaria). Esteri esclusi | Subito | ✅ deciso — «la cosa più importante» |
-| D5 | **Famiglie di forme**: chiave `form=NOME` nella dichiarazione del settore (§M) uguale in ogni copia; la famiglia la trova il Lab. Modifica propagata alle copie uguali, «allinea anche questa» per le già diverse, «copia la forma da…», avviso «copie di forma diverse». Confronto come ANELLO (inizio e verso qualsiasi), formati diversi | Subito — comune | ✅ deciso: **opzione B** (l'opzione A, link verso gli altri file, scartata: N² link, si rompono coi nomi dei file, le copie si perdono di vista) |
+| D5 | **Famiglie di forme**: chiave `form=NOME` nella dichiarazione del settore (§M) uguale in ogni copia; la famiglia la trova il Lab. Modifica propagata alle copie uguali, «allinea anche questa» per le già diverse, «copia la forma da…», avviso «copie di forma diverse». Confronto come ANELLO (inizio e verso qualsiasi), formati diversi | Subito — comune | ✅ deciso: **opzione B** (l'opzione A, link verso gli altri file, scartata: N² link, si rompono coi nomi dei file, le copie si perdono di vista) · **fatto** (lotto, slice 8a-8c: la stessa forma trovata come anello, `form=` dichiarata, forma portata sulle copie) |
 | D6 | **Adozione**: il Lab propone le famiglie trovate (120 identiche), il committente conferma, i tag si scrivono in un ramo. Le 12 divergenti si sistemano **quando il sistema è pronto** | F4 | ✅ deciso |
 | D7 | Include rotti/doppi negli `.isc`: controllo | Subito — comune (poi correzione in F4) | ✅ deciso |
 | D8 | Copie parziali (confini in comune fra settori) | F8 «saldatura bordi» | come da piano |
@@ -289,7 +289,7 @@ quota mostrata, font), `T` traccia. Sono le MVA **di ACC**; quelle di aeroporto 
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
 | F1 | **Scheda per ognuna delle quattro strutture** coi nomi giusti dei campi; nei `.vfi` il 2° campo si chiama «Codice» (convenzione italiana), il tipo 0-3 da elenco (obbligatorio, VFR, eli, area) | Subito | ✅ deciso |
-| F2 | **Gemello `.vfi` ↔ `VFR_NASCOSTI.fix`** (chiave = codice): spostare il punto sposta il gemello, **aggiungere un punto crea il gemello**, togliere il punto propone di togliere il gemello. Estende le copie gemelle di F3-bis | Subito — comune | ✅ deciso |
+| F2 | **Gemello `.vfi` ↔ `VFR_NASCOSTI.fix`** (chiave = codice): spostare il punto sposta il gemello, **aggiungere un punto crea il gemello**, togliere il punto propone di togliere il gemello. Estende le copie gemelle di F3-bis | Subito — comune | ✅ deciso · **fatto** (lotto, slice 8e) |
 | F3 | Punto nuovo in ordine di codice, **codice proposto** = numero libero successivo con lo stesso prefisso (nessuna regola di direzione) | Subito | ✅ deciso |
 | F4 | Controlli: gemello mancante o diverso, fix nascosto senza punto, codice doppio, coordinate scritte male (cifre mancanti, forma diversa dal file), riga con un campo in meno (il `;` mancante di `lict.vfi`) | Subito | ✅ deciso |
 | F5 | **Prova in Aurora**: i tre file di `ENRVFI` sotto `[VFRFIX]` invece di `[VFRENR]` — si vedono? come si accendono senza un aeroporto? | F4, in un ramo | 🟡 da provare |
@@ -363,7 +363,7 @@ prestazioni**.
 | H7 | **Carta AIP sopra la mappa**: PDF (AD 2.24) → immagine dentro l'app; **aggancio su 3 punti** noti (soglie e ARP dal testo dell'AIP, AD 2.12/2.2) con lo **scarto misurato** (carta «not to scale» = scarto grande, detto subito); trasparenza regolabile, sotto le linee di oggi. Precisione attesa: carta 1:15 000-20 000, un tratto ≈ 5 m | F6 | ✅ deciso — stesso meccanismo del ricalco MVA (E10) |
 | H8 | **Disegnare sulla carta**: linee e poligoni col tipo, il nome, l'aggancio ai vertici vicini | F9 | ✅ deciso |
 | H9 | ~~OSM come base~~ | — | ❌ scartato: si continua a mano |
-| H10 | **Confine dello scalo legato al suo manto erboso**: il `//AD_BOUNDARY` del `.geo` (il confine, oggi di tipo `BUILDING`) e il `//AD_BOUNDARY_Polygon` del `.pol` (l'erba, `GRASS`) sono la **stessa forma** → una famiglia (`form=`, D5/I2): spostare il confine sposta l'erba. Controllo: confine senza erba o erba che non coincide col confine | Subito (famiglia) · F4 (adozione con le 1 585 coppie di I2) | ✅ deciso (committente, 27 settembre) |
+| H10 | **Confine dello scalo legato al suo manto erboso**: il `//AD_BOUNDARY` del `.geo` (il confine, oggi di tipo `BUILDING`) e il `//AD_BOUNDARY_Polygon` del `.pol` (l'erba, `GRASS`) sono la **stessa forma** → una famiglia (`form=`, D5/I2): spostare il confine sposta l'erba. Controllo: confine senza erba o erba che non coincide col confine | Subito (famiglia) · F4 (adozione con le 1 585 coppie di I2) | ✅ deciso (committente, 27 settembre) · **fatto** (lotto, slice 8d: avviso `ConfineSenzaErba`, 0 sul fork) |
 
 ## §9 — `GND_LAYOUT` (93 `.pol`, i riempimenti dei layout di terra)
 
@@ -387,7 +387,7 @@ prestazioni**.
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
 | I1 | **Scheda del poligono** (come D1): riempimento e bordo da `colors.def` o col selettore, anche `#AARRGGBB` con l'avviso su *Smooth Drawing* | Subito | ✅ deciso |
-| I2 | **Una forma, uscite a scelta**: una forma si disegna/modifica una volta; due caselle, **«bordo» (`.geo`, col suo tipo) e «riempimento» (`.pol`, col suo colore)** — tutte e due o una sola (linea di centro solo `.geo`, erba senza bordo solo `.pol`); legate come famiglia (`form=`, D5). Adozione delle 1 585 coppie in un ramo | Subito (famiglie) + F4 (adozione) | ✅ deciso |
+| I2 | **Una forma, uscite a scelta**: una forma si disegna/modifica una volta; due caselle, **«bordo» (`.geo`, col suo tipo) e «riempimento» (`.pol`, col suo colore)** — tutte e due o una sola (linea di centro solo `.geo`, erba senza bordo solo `.pol`); legate come famiglia (`form=`, D5). Adozione delle 1 585 coppie in un ramo | Subito (famiglie) + F4 (adozione) | ✅ deciso · **fatto** (lotto, slice 8d: bordo e riempimento si portano la forma, «+ Bordo»/«+ Riempimento»; l'adozione resta a F4) |
 | I3 | **Ordine di disegno** (vince l'ultimo): erba → cemento → piazzale → taxiway → pista → edifici → buchi; il Lab lo mostra e mette un poligono nuovo al posto del suo tipo | Subito | ✅ deciso |
 | I4 | Controlli: poligono con meno di 3 vertici (43), colore sconosciuto, `.pol` senza `.geo` dello scalo (3) | Subito | ✅ deciso |
 | I5 | L'import/export KML (H4) produce tutte e due le uscite | F6 | ✅ deciso |
@@ -445,7 +445,7 @@ si caricano da soli se lo scalo è in `[AIRPORTS]`** → da verificare nelle pro
 |---|---|---|---|
 | J1 | **Vista come la selezione di Aurora**: voci per nome (anche in più pezzi), parti col nome dal commento, accese/spente sulla mappa (come A3) | Subito — comune | ✅ deciso |
 | J2 | Tipo fisso T/L, punti coi suggerimenti, etichetta col font facoltativo | Subito — comune | ✅ deciso |
-| J3 | **Famiglie con `DYNAMIC_SEC`** (D5): settore colorato e confine restano uguali | Subito + F4 (adozione) | ✅ deciso |
+| J3 | **Famiglie con `DYNAMIC_SEC`** (D5): settore colorato e confine restano uguali | Subito + F4 (adozione) | ✅ deciso · **fatto** (lotto, slice 8a-8c) |
 | J4 | Controlli: commento in coda (avviso). Nome in più blocchi **non** è un errore (pezzi dello stesso settore) | Subito | ✅ deciso |
 | J5 | **Il file giusto per un settore nuovo**: `…_CTR` → `HI_AIRSPACE`, `…_APP` → `LOW_AIRSPACE`; avviso se un settore sta nell'altro | Subito | ✅ deciso |
 | J6 | **Configurazioni composte**: `//@"RR CONF2" compose="RR NE","RR TS"` (§M) — la forma della configurazione si calcola dall'unione dei settori (come le mappe composte di F3-bis); le regole di Roma (EW mai diviso, SU solo con ES) diventano controlli. 🔴 L'unione ha bisogno di confini che coincidono (saldatura bordi) | F8 | ✅ deciso (dipende dalla saldatura) |
@@ -695,7 +695,7 @@ STAR / TRANS / HOLD / IAP / FAP / GA della finestra delle procedure di Aurora.
 | Q2c | **Legami fra procedure della stessa pista** (STAR → attesa di scalo → IAP → GA) e controllo «STAR che finisce dove non parte nessuna IAP». ❌ NIENTE legame con `HOLDENR.hold` (attese in rotta, altra cosa) | Subito (legami) | ✅ deciso |
 | Q3 | **Lettura dai PDF** (tabelle «STAR RNAV1 … DESCRIPTION TABLES», come per le SID) e disegno automatico; IAP/FAP/GA dalle carte di avvicinamento (immagini) più tardi | F7 | ✅ deciso |
 | Q4 | **Generatore dei prolungamenti d'asse** dal `.rw`: lunghezza, punto ogni NM, tacca corta ogni NM e lunga ogni 5 NM, lunghezza di ciascuna tacca (parametri per scalo) | F8 | ✅ deciso |
-| Q5 | ATZ/CTR del `MAPS` legati ai settori dinamici (famiglie di forme, D5) | Subito | ✅ deciso (D5) |
+| Q5 | ATZ/CTR del `MAPS` legati ai settori dinamici (famiglie di forme, D5) | Subito | ✅ deciso (D5) · **fatto** (lotto, slice 8a-8c: le zone del `MAPS` sono forme come le altre) |
 | Q6 | Controlli: coordinate non DMS (decimali), voce di un altro scalo, piste inesistenti o combinate male, nome diverso nei due campi di un punto | Subito | ✅ deciso |
 | Q2d | **IAP** (e FAP, GA dove servono): `type` (ILS, LOC, RNP, VOR, NDB), categoria, **minimi per categoria** (`mins=A:450,B:450,C:500,D:500`), pendenza (`gp`), §M. Dai PDF in F7 | Subito (tag e scheda) · F7 (lettura) | ✅ deciso (revisione 27 settembre) |
 | Q8 | **ATZ/CTR del `MAPS`**: limiti verticali e classe (come D9), import da AD 2.17 (R-2) | Subito (tag) · F6 | ✅ deciso (revisione 27 settembre) |
