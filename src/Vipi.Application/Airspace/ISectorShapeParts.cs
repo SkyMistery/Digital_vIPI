@@ -18,7 +18,22 @@ public sealed record ShapePart(
     AirspaceDatum BaseDatum, AirspaceDatum TopDatum,
     string BaseRaw, string TopRaw,
     string? SourceRef = null,
-    string? Name = null, string? AirspaceClass = null);
+    string? Name = null, string? AirspaceClass = null)
+{
+    /// <summary>
+    /// Base e tetto <b>sul livello del mare</b>: le quote <c>AGL</c> si alzano dell'elevazione dello scalo, le altre
+    /// restano come sono. Senza elevazione l'AGL vale AMSL, come prima.
+    /// <para>🔴 U-217 (revisione totale 3, scelta del committente del 28 settembre 2026): le ATZ in AGL si leggevano
+    /// come AMSL sia nell'attribuzione del traffico sia nel 3D — una torre «GND–1500 FT AGL» su un campo a 1050 ft
+    /// rivendicava il cielo fino a 1500 ft sul mare, cioè 450 sopra la pista. <b>Una regola sola</b> per le
+    /// statistiche e per la mappa.</para>
+    /// </summary>
+    public (int? Base, int? Top) QuoteAmsl(int? elevazioneFt) =>
+        (Alza(BaseFeet, BaseDatum, elevazioneFt), Alza(TopFeet, TopDatum, elevazioneFt));
+
+    private static int? Alza(int? piedi, AirspaceDatum datum, int? elevazioneFt) =>
+        piedi is int p && datum == AirspaceDatum.Agl && elevazioneFt is int e ? p + e : piedi;
+}
 
 /// <summary>
 /// Esito di una scrittura. <paramref name="SourceSilent"/> = la sorgente non ha detto niente (elenco vuoto):

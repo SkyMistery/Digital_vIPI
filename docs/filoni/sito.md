@@ -1256,5 +1256,17 @@
     `LIRF_PN1_APP` in linea conta coperto LIRF e non LIRA.
   - **Test**: `AtcStatsQueriesTests` (+1, rosso sul codice di prima: solo LIBD). Infrastructure 1794 →
     **1795**.
+  - **Gruppo 12** (quote AGL, **codice comune** `Vipi.Application`, `Vipi.Infrastructure`): **U-217** (le quote
+    AGL delle ATZ si leggevano come AMSL: una torre «GND–1500 FT AGL» su un campo a 1050 ft rivendicava il cielo
+    fino a 1500 ft sul mare, 450 sopra la pista, e il 3D la disegnava lì) → scelta del committente, **statistiche
+    e 3D**: il risolutore delle forme mette sulla forma l'elevazione dello scalo del settore
+    (`SectorShape.ElevazioneFt`), il catalogo dei volumi la passa (`SectorVolumeRow.ElevazioneFt`), e
+    `ShapePart.QuoteAmsl` è la regola sola che usano attribuzione del traffico e proiezione AoR. Carta refactor
+    15 §3i aggiornata. Nessun dato storico cambia (0 sessioni su quei callsign, misurato dall'audit). ⚠️ Nei
+    documenti: le sezioni AoR derivate degli scali con un'ATZ in AGL cambiano banda, e la deriva può chiedere di
+    ripubblicarle — è il dato corretto.
+  - **Test**: `SectorVolumeMapTests` (+1), `SectorVolumeTests` (+1, la mappa), rossi coi soli campi aggiunti e
+    non usati; `SectorShapeResolverTests` (+1, l'elevazione arriva dalla porta unica). Application 3077 →
+    **3079**, Infrastructure 1795 → **1796**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

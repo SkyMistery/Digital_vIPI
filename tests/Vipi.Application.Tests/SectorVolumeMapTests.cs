@@ -40,6 +40,23 @@ public class SectorVolumeMapTests
     private static IReadOnlySet<string> Online(params string[] cs) =>
         new HashSet<string>(cs, StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// 🔴 U-217 (scelta del committente 28-set): le quote AGL di un'ATZ si alzano dell'elevazione dello scalo. Una
+    /// torre GND–1500 ft AGL su un campo a 1050 ft arriva a 2550 ft sul mare, non a 1500.
+    /// </summary>
+    [Fact]
+    public void Un_ATZ_in_AGL_si_alza_dell_elevazione_dello_scalo()
+    {
+        var atz = new SectorVolumeRow("LIRP_TWR", null, SectorType.ITwr, "LIRP",
+            new[] { new ShapePart(Campo, 0, 1500, AirspaceDatum.Gnd, AirspaceDatum.Agl, "GND", "1500 FT AGL") },
+            ShapeSource.Aip, ElevazioneFt: 1050);
+
+        var torre = SectorVolumeMap.BuildClaims(new[] { atz }, Online("LIRP_TWR")).Single();
+
+        Assert.True(torre.Volume.Contains(42.0, 12.0, 2300));    // dentro: 2300 ft AMSL sono 1250 sul campo
+        Assert.False(torre.Volume.Contains(42.0, 12.0, 2700));
+    }
+
     [Fact]
     public void Chi_e_solo_in_frequenza_rivendica_tutto_l_albero_sotto_di_se()
     {

@@ -33,7 +33,8 @@ public sealed record SectorVolumeRow(
     string? AirportIcao,
     IReadOnlyList<Vipi.Application.Airspace.ShapePart> Parts,
     ShapeSource Source,
-    string? AccCode = null);
+    string? AccCode = null,
+    int? ElevazioneFt = null);
 
 /// <summary>
 /// Da dove l'attribuzione del traffico prende la mappa dei settori: albero di copertura più volumi.
