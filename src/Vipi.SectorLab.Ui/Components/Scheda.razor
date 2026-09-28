@@ -74,6 +74,9 @@
         @* Slice 7: dove il punto è citato per nome (L2). *@
         <ChiLoUsaNellaScheda File="@scheda.File" Record="scheda.Indice" />
 
+        @* Slice 8: la stessa forma in altri record (D5, I2): il confine del settore, l'ATZ del MAPS, il bordo e l'erba. *@
+        <StessaFormaNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
         @* Slice 3d: i metadati di §M del record, le chiavi del catalogo del suo tipo di file. Si scrivono nel tag
            //@"NOME" sopra il record; un valore vuoto toglie la chiave. *@
         @if (Lab.MetadatiDi(scheda.File, scheda.Indice) is { Count: > 0 } metadati)

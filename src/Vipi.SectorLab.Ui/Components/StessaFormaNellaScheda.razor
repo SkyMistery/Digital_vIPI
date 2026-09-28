@@ -1,0 +1,70 @@
+@inject SessioneDelLab Lab
+
+@*
+    La stessa forma (lotto «Subito» slice 8, «file per file» D5, I2, J3, Q5, H10): gli altri record che disegnano questa
+    forma — il confine del settore, l'ATZ del MAPS, il bordo nel .geo del riempimento nel .pol —, confrontati come
+    anello (inizio e verso qualsiasi). Prima le copie uguali, poi le simili (9 vertici su 10 in comune): quelle sono
+    le «copie di forma diverse». Il clic su una porta al suo record.
+*@
+@if (Lab.StessaFormaDi(File, Record) is { Count: > 0 } parti)
+{
+    <Sezione Chiave="scheda-stessa-forma" data-stessa-forma="@parti.Sum(p => p.Copie.Count)">
+    <Titolo>La stessa forma <span class="lab-nota">@Conto(parti)</span></Titolo>
+    <ChildContent>
+    @foreach (var (parte, copie) in parti)
+    {
+        <div class="lab-stessa-forma" data-parte-della-forma="@parte.Parte">
+            @if (parti.Count > 1 || parte.Parte > 0)
+            {
+                <p class="lab-nota">Parte @(parte.Parte + 1)</p>
+            }
+            <ul>
+                @foreach (var copia in copie)
+                {
+                    var questa = copia;
+                    <li>
+                        <button type="button" class="lab-citazione @(questa.Uguale ? null : "lab-forma-diversa")"
+                                data-copia-della-forma="@($"{questa.Dove.File}#{questa.Dove.Record}")"
+                                data-uguale="@(questa.Uguale ? "si" : "no")"
+                                title="@Titolo(questa)" @onclick="() => Lab.Scegli(questa.Dove.File, questa.Dove.Record)">
+                            @NomeDelFile(questa.Dove.File) <span class="lab-nota">@questa.Dove.Etichetta</span>
+                            <span class="@(questa.Uguale ? "lab-nota" : "lab-avviso-breve")">@Come(questa)</span>
+                        </button>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    private static string Conto(IReadOnlyList<(ParteDiForma Parte, IReadOnlyList<CopiaDellaForma> Copie)> parti)
+    {
+        int uguali = parti.Sum(p => p.Copie.Count(c => c.Uguale));
+        int diverse = parti.Sum(p => p.Copie.Count(c => !c.Uguale));
+        return (uguali, diverse) switch
+        {
+            (_, 0) => uguali == 1 ? "1 copia uguale" : $"{uguali} copie uguali",
+            (0, _) => diverse == 1 ? "1 copia diversa" : $"{diverse} copie diverse",
+            _ => $"{uguali} uguali, {diverse} diverse",
+        };
+    }
+
+    private static string Come(CopiaDellaForma copia) => copia.Uguale
+        ? "uguale"
+        : $"diversa: {Vertici(copia.SoloQui)} solo qui, {Vertici(copia.SoloLa)} solo là";
+
+    private static string Titolo(CopiaDellaForma copia) => copia.Uguale
+        ? $"Stessi {copia.Vertici} vertici, nello stesso giro"
+        : $"{copia.Vertici} vertici, quasi tutti in comune: una delle due è stata cambiata e l'altra no";
+
+    private static string Vertici(int quanti) => quanti == 1 ? "1 vertice" : $"{quanti} vertici";
+
+    private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
+}

@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); prossima la **slice 8** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); in corso la **slice 8** (8a fatta, §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -932,3 +932,34 @@ in 5 file**, tutti e soli i file giusti; «togli» impedito a chi è usato; «ch
 la loro rinomina è per il futuro, §4). Decisioni del committente del 28 settembre: VOR e NDB omonimi mostrati tutti e
 due, e la rinomina **chiede** per le righe comuni. Da provare a mano (eseguibile da ripubblicare): prove in
 `SectorLab-prova\PROVE.md`.
+
+**Slice 8 — famiglie di forme e gemelli fra tipi diversi (dal 28 settembre).** Divisa in: **8a** l'indice delle
+forme uguali e la vista nella scheda · **8b** il tag `form=` (la famiglia dichiarata) e l'avviso «copie di forma
+diverse» · **8c** la modifica propagata alle copie uguali, «allinea anche questa», «copia la forma da…» · **8d**
+`.geo` ↔ `.pol` (I2) e confine dello scalo ↔ erba (H10) · **8e** il gemello `.vfi` ↔ `VFR_NASCOSTI.fix` (F2).
+
+- **8a (28 settembre)** — la stessa forma in più record (D5, I2, J3, Q5, H10), **solo da vedere**. L'indice
+  (`Copie/FormeUguali.cs`) lavora sulle forme della mappa: i punti per nome sono già risolti nel master scelto, i
+  segmenti dei `.geo` e delle aree P/R/D già cuciti in linee. Due forme sono **la stessa** se hanno gli stessi vertici
+  nello stesso giro, da qualunque vertice e in qualunque verso (confronto come ANELLO), in qualunque forma siano
+  scritte le coordinate (col punto, compatte, per nome); il vertice che ripete il primo non conta, due vertici sono lo
+  stesso al decimo di metro. Sono **simili** (le «copie di forma diverse») se hanno in comune almeno 9 vertici su 10
+  del più lungo dei due. Meno di 3 vertici non è una forma. Vale anche nello stesso file, fra record diversi
+  (`libb_es_ctr.tfl`: LIBB_ES_CTR e LIBB_MIL_CTR). Nella scheda, sezione **«La stessa forma»**
+  (`Components/StessaFormaNellaScheda.razor`): per ogni parte del record, le copie uguali e poi, in giallo, le diverse
+  con «N vertici solo qui, M solo là»; il clic porta alla copia. Un segmento di un `.geo` vale per la sua linea.
+  L'indice si rifà quando cambiano gli strati (una modifica rifà le forme del suo file).
+  Scelta dell'agente: la soglia dei 9/10 si misura sul **più lungo** dei due anelli, così un settore e uno più piccolo
+  che ne tiene i vertici (`LIMM_ES2_CTR` ⊃ `LIMM_ES5_CTR`, 12 vertici in più) restano «simili», non «uguali»; la
+  famiglia vera la dichiara il tag (8b), e l'avviso varrà solo per quella.
+  Misura sul fork (`scratchpad/misura8`, master `ITALY.isc`): **10 610 forme**, indice in 97 ms, la domanda della scheda
+  sotto 1,5 ms (21 853 in 81 ms). **1 971 famiglie di forme uguali** (3 999 parti, al più 5): `.geo`+`.pol` 1 591,
+  `.str` fra loro 158, `.geo` fra loro 77, `.str`+`.tfl` 69, `.restrict` 17, `.lartcc`+`.str` 14, `.lartcc`+`.tfl` 13,
+  `.hartcc`+`.tfl` 5… **Settori dinamici**: 182 forme, **98 con una copia uguale, 17 solo con copie diverse** —
+  LIRE_APP/LIRE CTR, LIRS_APP, LICC_APP, LICJ_APP/LICJ CTR, LICT_APP, LIBP_APP nei `.str`; LIRR_NC/US, LIMM_FSS, LIPP_FSS
+  negli `.hartcc`; LIRF_TW1_APP in `lirr_tma.lartcc` (scarti veri, da 27 m a decine di km, non arrotondamenti). La
+  slice 0 contava 120 identiche e 12 divergenti su 132 con un'altra regola (≥ 90% dei vertici del settore in un altro
+  file, senza l'ordine): l'anello è più severo. **`.pol`**: 1 753 poligoni, **1 594 col bordo uguale in un `.geo`**, 9
+  solo simili (la carta di I2 diceva 1 585). Prova a schermo sul banco: LIRE_APP → «La stessa forma · 1 copia
+  diversa: `lire.str` LIRE CTR, 1 vertice solo qui, 1 solo là»; il clic apre `lire.str#0`, che mostra LIRE_APP allo
+  stesso modo. Il motore non è toccato. Test: Lab 661 → **671**.

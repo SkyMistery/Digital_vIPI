@@ -1120,6 +1120,25 @@ public sealed class SessioneDelLab
         return voci;
     }
 
+    // --- la stessa forma (lotto «Subito» slice 8, «file per file» D5, I2) ----------------------------------------------
+
+    // L'indice delle forme si rifà quando cambiano gli strati (una modifica rifà le forme del suo file): costruirlo costa
+    // un paio di decimi di secondo sull'albero vero, e la scheda si ridisegna a ogni tasto.
+    private (IReadOnlyList<StratoDellaMappa> Strati, FormeUguali Indice)? _formeUguali;
+
+    /// <summary>
+    /// Le parti del record che hanno la stessa forma in un altro record (D5: confronto come anello), con le copie uguali
+    /// e quelle simili. Vuoto se non ne ha, o se il record non si disegna.
+    /// </summary>
+    public IReadOnlyList<(ParteDiForma Parte, IReadOnlyList<CopiaDellaForma> Copie)> StessaFormaDi(string fileRelativo, int record)
+    {
+        if (Sessione is null)
+            return [];
+        if (_formeUguali is not { } fatto || !ReferenceEquals(fatto.Strati, Strati))
+            _formeUguali = fatto = (Strati, FormeUguali.Di(Strati));
+        return fatto.Indice.Di(fileRelativo, record);
+    }
+
     // --- «chi lo usa» (lotto «Subito» slice 7, «file per file» L2) -----------------------------------------------------
 
     private ChiLoUsa? _chiLoUsa;
