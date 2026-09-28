@@ -1415,5 +1415,10 @@
     `StatsProfile` (stessa finestra di 30 minuti) e mostra la fascia «Turno di un altro controllore» con il
     collegamento alle statistiche della persona; l'archivio mondiale resta senza audit e la sua carta lo dice.
   - **Test**: prove rosse sul codice di prima (servizio che scrive la policy intera; pagina di HEAD).
+  - **Prova a schermo** sulla copia del DB (cancellata a fine prova), dal DOM: Sorgenti in due schede; B toglie la
+    spunta alle SID e salva; A, senza ricaricare, toglie le Piste e salva → «Policy saved. Meanwhile another
+    administrator had changed: SID…», nel DB piste e SID entrambe manuali, due righe di audit distinte.
+    `/services/stats/session/63433982` (turno di un altro) → fascia «Another controller's shift» col collegamento
+    a `/services/stats/user/456130` e riga `View`/`StatsProfile`/`456130` in AuditLogs.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
