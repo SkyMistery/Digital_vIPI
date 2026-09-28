@@ -26,7 +26,6 @@ public sealed class SectorfileCache
     private readonly SemaphoreSlim _navGate = new(1, 1);
     private readonly SemaphoreSlim _twrGate = new(1, 1);
     private readonly SemaphoreSlim _secGate = new(1, 1);
-    private readonly SemaphoreSlim _mvaGate = new(1, 1);
 
     private NavaidCatalog? _navaids;
     private IReadOnlyDictionary<string, string>? _towerPolygons;
@@ -105,21 +104,45 @@ public sealed class SectorfileCache
     /// La carta MRVA di un ente (chiave = percorso del file), caricata una volta sola per processo. Un esito
     /// vuoto viene messo in cache come gli altri: i 25 APP su 49 che non hanno il file darebbero altrimenti un
     /// GET a ogni apertura del documento, per un 404 che non cambia fino al prossimo ciclo AIRAC.
+    ///
+    /// <para>🔴 U-039 (revisione totale 3): <b>un semaforo per carta, e il guasto si ricorda</b>. Il semaforo era
+    /// uno per tutte, e un caricamento fallito non lasciava traccia: con GitHub giù ogni richiesta riprovava, in
+    /// fila — tre editor su tre vIPI ACC aspettavano 15, 30 e 45 secondi prima di vedere l'errore. Ora ogni carta
+    /// ha la sua fila, e per <see cref="DurataDelGuasto"/> chi la chiede riceve subito lo stesso guasto.</para>
     /// </summary>
     public async Task<MvaChart> GetMvaChartAsync(
         string key, Func<CancellationToken, Task<MvaChart>> load, CancellationToken ct = default)
     {
         if (_mvaCharts.TryGetValue(key, out var hit)) return hit;
-        await _mvaGate.WaitAsync(ct);
+        var gate = _mvaGates.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
         try
         {
             if (_mvaCharts.TryGetValue(key, out var cached)) return cached;   // caricata durante l'attesa
-            var loaded = await load(ct);
-            _mvaCharts[key] = loaded;
-            return loaded;
+            if (_mvaGuasti.TryGetValue(key, out var guasto) && _orologio.GetUtcNow() - guasto.Quando < DurataDelGuasto)
+                throw new HttpRequestException(
+                    $"Carta MRVA {key} non disponibile: la sorgente non ha risposto alle {guasto.Quando:HH:mm:ss} UTC ({guasto.Perche}).");
+            try
+            {
+                var loaded = await load(ct);
+                _mvaCharts[key] = loaded;
+                _mvaGuasti.TryRemove(key, out _);
+                return loaded;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+            {
+                _mvaGuasti[key] = (_orologio.GetUtcNow(), ex.Message);
+                throw;
+            }
         }
-        finally { _mvaGate.Release(); }
+        finally { gate.Release(); }
     }
+
+    /// <summary>Quanto si ricorda un caricamento MRVA fallito. Vedi <see cref="GetMvaChartAsync"/>.</summary>
+    public static readonly TimeSpan DurataDelGuasto = TimeSpan.FromMinutes(2);
+
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _mvaGates = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, (DateTimeOffset Quando, string Perche)> _mvaGuasti = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// <b>Che cosa dice di sé la sorgente delle SID</b> — ciclo dichiarato e ultimo cambiamento — chiesto una
@@ -183,6 +206,7 @@ public sealed class SectorfileCache
         Volatile.Write(ref _sectorShapes, null);
         Volatile.Write(ref _sidStamp, null);
         _mvaCharts.Clear();
+        _mvaGuasti.Clear();
     }
 
     /// <summary>Butta via il solo catalogo dei punti. È la fetta che serve a chi SCRIVE, ed è l'unica che

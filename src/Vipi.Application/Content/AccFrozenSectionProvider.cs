@@ -39,7 +39,7 @@ internal sealed class AccFrozenSectionProvider : IFrozenSectionProvider
                     SectionKeys.AorMil => await _acc.DeriveAorViewAsync(accCode, ab.Block, FamigliaAor.Mil, root, ct),
                     SectionKeys.AorFss => await _acc.DeriveAorViewAsync(accCode, ab.Block, FamigliaAor.Fss, root, ct),
                     "frequencies" => await _acc.DeriveFrequenciesAsync(accCode, ab.Block, root, ct),
-                    "minima" => await _acc.DeriveMinimaAsync(accCode, ab.Block, root, ct),
+                    "minima" => MinimaCharts.DaCongelare(await _acc.DeriveMinimaAsync(accCode, ab.Block, root, ct)),
                     _ => await _acc.DeriveCoordinationAsync(accCode, ab.Block, root, ct),
                 };
                 result[sid] = JsonSerializer.Serialize(vm);
