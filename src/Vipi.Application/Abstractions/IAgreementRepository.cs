@@ -63,6 +63,10 @@ public interface IAgreementRepository
     // ---- clausole ---------------------------------------------------------------------------------------
 
     Task<int> AddClauseAsync(string accCode, int sectionId, AgreementClauseInput input, CancellationToken ct = default);
+
+    /// <summary>Più clausole in coda alla sezione, in UN salvataggio: entrano tutte o nessuna (U-178).</summary>
+    Task<int> AddClausesAsync(string accCode, int sectionId, IReadOnlyList<AgreementClauseInput> inputs,
+        CancellationToken ct = default);
     Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default);
     Task DeleteClauseAsync(string accCode, int clauseId, CancellationToken ct = default);
 

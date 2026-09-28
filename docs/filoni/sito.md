@@ -934,5 +934,20 @@
     condivise rifiutate con meno di 100 MB allocati; una cella in XFD che il lettore accetta e la proposta rifiuta),
     `ImportaTabellaBarraTests` (+1). Tutti rossi sul codice di prima; i test dell'XLSX che c'erano passano uguali
     sulla lettura nuova. Application 3018 → **3024**, Ui 1810 → **1811**, net8 e net10.
+  - **Gruppo 2**: **U-042** (import in coda con «la prima riga è l'intestazione»: le colonne incollate prendevano il
+    posto di quelle della tabella e il pareggio tagliava TUTTE le righe; tre colonne su una tabella da quattro, e la
+    quarta spariva) → la regola sta in `TabellaGenerica.Importa` (**codice comune** `Vipi.Application`), usata dai due
+    editor che importavano allo stesso modo (`DocumentSectionsEditor`, `DocumentBlocksEditor`): in coda le righe che
+    c'erano non si toccano, colonne = massimo fra le due, intestazioni sostituite solo a colonne uguali; sostituendo,
+    come prima. **U-178** («Incolla tabella» dei Trasferimenti scriveva le clausole una per una: una riga rifiutata a
+    metà lasciava salvate le precedenti, invisibili, e al nuovo invio entravano due volte) → `AddClausesAsync` nel
+    servizio (valida TUTTE le righe prima, e il rifiuto dice quale) e nel repository (un solo `SaveChanges`: tutte o
+    nessuna) — **codice comune** `Vipi.Application` (`IAgreementService`, `IAgreementRepository`) e
+    `Vipi.Infrastructure`.
+  - **Test**: `ImportInTabellaGenericaTests` (4, nuovo: rossi i due casi in coda con la regola di prima, scritta
+    tale e quale nel metodo nuovo), `AgreementValidationTests` (+1, sul database: riga 2 oltre il tetto → niente
+    scritto e il messaggio dice la riga; corretta, tre righe una volta sola), `FilaDeiTrasferimentiTests` (+1,
+    presidio: la pagina non si monta nei test). Application 3024 → **3028**, Infrastructure 1763 → **1764**,
+    Ui 1811 → **1812**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

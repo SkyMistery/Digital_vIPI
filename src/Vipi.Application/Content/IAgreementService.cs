@@ -52,6 +52,14 @@ public interface IAgreementService
     Task<int> MergeSectionsAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default);
 
     Task<int> AddClauseAsync(string accCode, int sectionId, AgreementClauseInput input, CancellationToken ct = default);
+
+    /// <summary>
+    /// Le clausole di un «Incolla tabella». 🔴 U-178 (revisione totale 3): si validano TUTTE prima di scriverne una,
+    /// e si scrivono in un salvataggio solo. Prima si scrivevano una per una: se la riga k veniva rifiutata, le
+    /// righe 1..k-1 restavano salvate (ma non a schermo), e al nuovo invio entravano una seconda volta.
+    /// </summary>
+    Task<int> AddClausesAsync(string accCode, int sectionId, IReadOnlyList<AgreementClauseInput> inputs,
+        CancellationToken ct = default);
     Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default);
     Task DeleteClauseAsync(string accCode, int clauseId, CancellationToken ct = default);
 

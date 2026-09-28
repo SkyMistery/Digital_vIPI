@@ -298,6 +298,25 @@ public sealed class EfAgreementRepository : IAgreementRepository
         return c.Id;
     }
 
+    /// <summary>🔴 U-178: le clausole in coda alla sezione in UN <c>SaveChanges</c>, cioè in una transazione: entrano
+    /// tutte o nessuna.</summary>
+    public async Task<int> AddClausesAsync(string accCode, int sectionId, IReadOnlyList<AgreementClauseInput> inputs,
+        CancellationToken ct = default)
+    {
+        var section = await SectionsOf(accCode).FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+                      ?? throw new InvalidOperationException(Lingua($"Sezione {sectionId} non riguarda la ACC {accCode}.", $"Section {sectionId} does not belong to ACC {accCode}."));
+
+        var order = await Scope(section.Id).MaxAsync(c => (int?)c.Order, ct) ?? 0;
+        foreach (var input in inputs)
+        {
+            var c = new AgreementClause { SectionId = section.Id, Order = ++order };
+            ApplyClause(c, input);
+            _db.AgreementClauses.Add(c);
+        }
+        await _db.SaveChangesAsync(ct);
+        return inputs.Count;
+    }
+
     public async Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default)
     {
         var c = await ClauseInAccAsync(accCode, clauseId, ct);

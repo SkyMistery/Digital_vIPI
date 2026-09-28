@@ -88,6 +88,36 @@ public class AgreementValidationTests : IAsyncLifetime
             new AgreementClauseInput { LevelUnit = Vipi.Domain.LevelUnit.Fl, LevelConstraint = Vipi.Domain.LevelConstraint.AtOrAbove, LevelValue = 240, Cops = "ELKAP", ConditionCustomLabel = new string('z', tetto) }) > 0);
     }
 
+    /// <summary>
+    /// 🔴 U-178 (revisione totale 3): «Incolla tabella» scriveva le clausole una per una. Una riga rifiutata a metà
+    /// lasciava salvate le precedenti, che la pagina non mostrava (niente ricarico dopo un errore): al nuovo invio,
+    /// dopo aver corretto la riga, entravano due volte. Ora si validano tutte prima e si scrivono insieme.
+    /// </summary>
+    [Fact]
+    public async Task Incollare_con_una_riga_rifiutata_non_scrive_niente()
+    {
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+        var sezione = await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Overflight));
+        var tetto = Vipi.Domain.Entities.AgreementClauseLimits.Etichetta;
+        var righe = new[]
+        {
+            Clause("GISAM"),
+            new AgreementClauseInput { LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow, LevelValue = 130,
+                Cops = "VALMA", ConditionCustomLabel = new string('x', tetto + 1) },
+            Clause("ELKAP"),
+        };
+
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _svc.AddClausesAsync("LIRR", sezione, righe));
+        Assert.Contains("2", ex.Message);   // quale riga: chi corregge deve sapere dove
+        Assert.Equal(0, await _db.AgreementClauses.CountAsync(c => c.SectionId == sezione));
+
+        // Corretta la riga, il nuovo invio scrive le tre righe una volta sola.
+        righe[1] = Clause("VALMA");
+        Assert.Equal(3, await _svc.AddClausesAsync("LIRR", sezione, righe));
+        Assert.Equal(new[] { "GISAM", "VALMA", "ELKAP" },
+            await _db.AgreementClauses.Where(c => c.SectionId == sezione).OrderBy(c => c.Order).Select(c => c.Cops).ToListAsync());
+    }
+
     [Fact]
     public async Task Con_i_due_capi_si_salva()
     {

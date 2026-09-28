@@ -171,6 +171,8 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task DeleteAgreementAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<int> AddClausesAsync(string a, int id, IReadOnlyList<AgreementClauseInput> i, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task<int> AddClauseAsync(string a, int id, AgreementClauseInput i, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int?> FindByPairAsync(string a, int x, int y, CancellationToken ct = default) =>

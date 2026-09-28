@@ -46,6 +46,15 @@ public sealed class FilaDeiTrasferimentiTests
             "Vanno in `CaricaOpzioniDelPannelloAsync` o dentro `InFilaAsync`.");
     }
 
+    /// <summary>🔴 U-178 (revisione totale 3): «Incolla tabella» scrive le righe in un colpo solo, non una per una.</summary>
+    [Fact]
+    public void Incolla_tabella_scrive_tutte_le_righe_insieme()
+    {
+        var corpo = Corpo("private async Task ConfirmPaste(");
+        Assert.Contains("AddClausesAsync(", corpo);
+        Assert.DoesNotContain("AddClauseAsync(", corpo);
+    }
+
     [Fact]
     public void La_fila_e_rientrante()
     {

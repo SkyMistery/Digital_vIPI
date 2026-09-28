@@ -1155,14 +1155,15 @@ else
         // «la prima riga e' l'intestazione» E' la richiesta di usarle: la casella si accendeva, la riga
         // spariva dai dati — quindi qualcosa faceva — e le intestazioni restavano «Colonna 1, Colonna 2».
         // Un comando che fa meta' di quel che dice e' peggio di un comando che non c'e'.
-        if (r.Proposta.Colonne.Count > 0 && (cols.Count == 0 || r.Proposta.Mappatura.Intestazione))
-            cols = r.Proposta.Colonne.ToList();
-
+        //
+        // 🔴 U-042 (revisione totale 3): in coda le righe che c'erano non si toccano — la regola sta in
+        // TabellaGenerica.Importa, dove si prova senza montare l'editor.
         var nuove = r.Proposta.Buone.Select(x => (IReadOnlyList<string>)x.Celle.Select(c => c.Valore).ToList());
-        var tutte = r.Sostituisci ? nuove.ToList() : rows.Select(x => (IReadOnlyList<string>)x).Concat(nuove).ToList();
+        var (colonne, righe) = TabellaGenerica.Importa(cols, rows, r.Proposta.Colonne, r.Proposta.Mappatura.Intestazione,
+            r.Sostituisci, nuove);
 
         _importBlockId = null;
-        return SaveBlock(b, bodyJson: TabellaGenerica.Scrivi(cols, TabellaGenerica.Pareggia(tutte, cols.Count), larg));
+        return SaveBlock(b, bodyJson: TabellaGenerica.Scrivi(colonne, righe, larg));
     }
 
     private RenderFragment RenderTablePreview(EditableBlock b) => __builder =>

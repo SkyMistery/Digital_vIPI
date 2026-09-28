@@ -2010,10 +2010,11 @@
         var parsed = ClausePaste.Parse(_pasteText).Where(p => p.Ok).ToList();
         if (parsed.Count == 0) return;
 
+        // 🔴 U-178 (revisione totale 3): tutte le righe in un colpo, validate prima. Una per una, una riga rifiutata a
+        // metà lasciava salvate le precedenti, e al nuovo invio entravano due volte.
         await Guarded(async () =>
         {
-            foreach (var p in parsed)
-                await Agreements.AddClauseAsync(_acc!.Code, sec.Id, p.Clause!);
+            await Agreements.AddClausesAsync(_acc!.Code, sec.Id, parsed.Select(p => p.Clause!).ToList());
             _pasteSectionId = null;
             _pasteText = "";
         }, string.Format(L["Xfer_PasteDone"].Value, parsed.Count));

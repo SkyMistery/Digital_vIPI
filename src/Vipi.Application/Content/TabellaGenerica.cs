@@ -134,6 +134,40 @@ public static class TabellaGenerica
     /// non lascia una cella vuota, <b>sposta tutto a sinistra</b>. Il dato sembrerebbe sbagliato invece che
     /// incompleto.</para>
     /// </summary>
+    /// <summary>
+    /// Colonne e righe dopo un import in una tabella generica.
+    /// <list type="bullet">
+    ///   <item><b>Sostituisci</b>: le colonne arrivano da chi incolla se la tabella non ne ha, o se ha detto che la
+    ///     prima riga E' l'intestazione (correzione del 2 settembre 2026: spuntarla e' la richiesta di usarle).</item>
+    ///   <item><b>In coda</b>: 🔴 U-042 (revisione totale 3) — le righe che c'erano non si toccano. Prima le colonne
+    ///     incollate prendevano il posto di quelle della tabella anche in coda, e il pareggio tagliava TUTTE le righe
+    ///     al numero nuovo: tre colonne incollate su una tabella da quattro, e la quarta spariva dalla bozza senza
+    ///     avviso. Ora il numero di colonne e' il massimo fra le due; le intestazioni si sostituiscono solo a colonne
+    ///     uguali, e quelle in piu' prendono il nome di chi incolla.</item>
+    /// </list>
+    /// </summary>
+    public static (List<string> Colonne, List<List<string>> Righe) Importa(
+        IReadOnlyList<string> colonne, IEnumerable<IReadOnlyList<string>> righe,
+        IReadOnlyList<string> colonneNuove, bool intestazione, bool sostituisci,
+        IEnumerable<IReadOnlyList<string>> righeNuove)
+    {
+        if (sostituisci)
+        {
+            var sc = colonneNuove.Count > 0 && (colonne.Count == 0 || intestazione) ? colonneNuove.ToList() : colonne.ToList();
+            return (sc, Pareggia(righeNuove, sc.Count));
+        }
+
+        List<string> cols;
+        if (colonne.Count == 0) cols = colonneNuove.ToList();
+        else if (intestazione && colonneNuove.Count == colonne.Count) cols = colonneNuove.ToList();
+        else
+            cols = Enumerable.Range(0, Math.Max(colonne.Count, colonneNuove.Count))
+                .Select(i => i < colonne.Count ? colonne[i] : colonneNuove[i])
+                .ToList();
+
+        return (cols, Pareggia(righe.Concat(righeNuove), cols.Count));
+    }
+
     public static List<List<string>> Pareggia(IEnumerable<IReadOnlyList<string>> righe, int quante) =>
         righe.Select(r => Enumerable.Range(0, Math.Max(0, quante))
                 .Select(i => i < r.Count ? (r[i] ?? "") : "")

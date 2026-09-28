@@ -202,6 +202,23 @@ public sealed class AgreementService : IAgreementService
         return await _repo.AddClauseAsync(accCode, sectionId, ProceduraNeiPunti.Normalizza(input), ct);
     }
 
+    public async Task<int> AddClausesAsync(string accCode, int sectionId, IReadOnlyList<AgreementClauseInput> inputs,
+        CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        // 🔴 U-178: TUTTE le righe prima di scriverne una. Il rifiuto dice quale riga, perché chi incolla sa correggerla.
+        for (var r = 0; r < inputs.Count; r++)
+        {
+            try { ValidateClause(inputs[r]); }
+            catch (ValidationException ex)
+            {
+                throw new ValidationException(Lingua($"Riga {r + 1}: {ex.Message}", $"Row {r + 1}: {ex.Message}"));
+            }
+        }
+        return await _repo.AddClausesAsync(accCode, sectionId,
+            inputs.Select(ProceduraNeiPunti.Normalizza).ToList(), ct);
+    }
+
     public async Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
