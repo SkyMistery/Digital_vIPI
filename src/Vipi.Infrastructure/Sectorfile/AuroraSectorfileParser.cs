@@ -76,7 +76,7 @@ public static class AuroraSectorfileParser
             double? lat = null, lon = null;
             var iLon = -1;
             for (var i = 1; i + 1 < fields.Length; i++)
-                if (TryParseDms(fields[i], out var la) && TryParseDms(fields[i + 1], out var lo))
+                if (TryParseLatLon(fields[i], fields[i + 1], out var la, out var lo))
                 {
                     (lat, lon) = (la, lo);
                     iLon = i + 1;
@@ -197,9 +197,8 @@ public static class AuroraSectorfileParser
                 if (tipo.Length != 0 && tipo != "0") continue;
             }
 
-            // Codice = SID o SID-TRANS: il fix di partenza si estrae dalla sola parte SID.
-            var sidPart = code.Split('-')[0].Trim();
-            var (prefix, _) = SplitDesignator(sidPart);
+            // Codice = SID, SID-TRANS o SID TRANS: il fix di partenza si estrae dalla sola parte SID.
+            var (prefix, _) = SplitDesignator(ParteSid(code));
             var (fix, needsReview) = ResolveFix(prefix, navNames, aliasMap);
 
             var runways = runwaysField.Length == 0
@@ -242,13 +241,35 @@ public static class AuroraSectorfileParser
     /// </summary>
     public static string ChiaveStabile(ProcedureKind kind, string icao, string code, string? transition, string? runway)
     {
-        var (prefix, letter) = SplitDesignator(code.Split('-')[0].Trim());
+        var (prefix, letter) = SplitDesignator(ParteSid(code));
         var key = string.Join('|', icao.Trim().ToUpperInvariant(), prefix.ToUpperInvariant(), letter.ToUpperInvariant(),
             (transition ?? "").Trim().ToUpperInvariant(), (runway ?? "").Trim().ToUpperInvariant());
         // Le STAR portano davanti la loro parola, o una STAR e una SID dello stesso punto e stessa lettera sarebbero
         // la stessa riga.
         return kind == ProcedureKind.Star ? "STAR|" + key : key;
     }
+
+    /// <summary>
+    /// La parte SID di un codice: quella prima del «-» (<c>SIV5A-ESI8H</c>) o prima dello SPAZIO
+    /// (<c>SRN6A ARL2A</c>, <c>LAT1E PEM1T</c>, <c>TOP1B AST8L</c>).
+    ///
+    /// <para>🔴 U-034 (revisione totale 3): si divideva solo sul «-». Con lo spazio il pezzo SID era tutta la
+    /// stringa, il prefisso «LAT1E PEM» non si risolveva e la colonna FIX del vSOP pubblico di LIRL lo stampava;
+    /// a LIML (25 righe) e LIMF (12) gli editor l'avevano corretto a mano.</para>
+    ///
+    /// <para>⚠️ Lo spazio separa solo se il primo pezzo ha la <b>forma di un designatore</b> (lettere, cifra,
+    /// lettera): le partenze a vista di <c>lied.sid</c> («FRASCA DEP16») sono un nome solo e restano intere.</para>
+    /// </summary>
+    internal static string ParteSid(string code)
+    {
+        var parte = code.Split('-')[0].Trim();
+        var spazio = parte.IndexOf(' ');
+        if (spazio > 0 && Designatore.IsMatch(parte[..spazio])) parte = parte[..spazio];
+        return parte;
+    }
+
+    private static readonly Regex Designatore = new(@"^[A-Z]{2,5}[0-9][A-Z]$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
 
     // Designatore = ultime 2 char (cifra+lettera); il resto è il prefisso fix troncato. La lettera è l'ultimo char.
     private static (string Prefix, string Letter) SplitDesignator(string sidCode)
@@ -417,9 +438,12 @@ public static class AuroraSectorfileParser
         {
             var line = raw.Trim();
             if (line.Length == 0) { Flush(); continue; }   // riga vuota = fine blocco
+            // 🔴 U-133 (revisione totale 3): un'annotazione «//…» non è niente, né fuori né DENTRO un blocco. Prima
+            // passava per un'intestazione nuova: dentro un blocco chiudeva la torre coi vertici visti fin lì.
+            if (line.StartsWith("//", StringComparison.Ordinal)) continue;
 
             var fields = line.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (fields.Length == 2 && TryParseDms(fields[0], out var lat) && TryParseDms(fields[1], out var lon))
+            if (fields.Length == 2 && TryParseLatLon(fields[0], fields[1], out var lat, out var lon))
             {
                 ring?.Add((lat, lon));   // vertice (ignorato se non siamo dentro un blocco)
             }
@@ -510,13 +534,21 @@ public static class AuroraSectorfileParser
                 if (mancante is not null) irrisolti.Add((mancante, string.Join(" ", callsigns)));
                 else if (malformato is not null) irrisolti.Add((malformato, string.Join(" ", callsigns)));
                 else if (ring is { Count: >= 3 })
-                    foreach (var cs in callsigns) rings[cs] = ring;
+                    foreach (var cs in callsigns)
+                        // Lo stesso callsign in più blocchi (il contorno di LIMM_FSS e i suoi quattro laghi; l'area
+                        // di LIMM_WS2_CTR e gli spezzoni del confine svizzero): un'area sola, la più GRANDE. Vinceva
+                        // l'ultimo blocco, e i laghi si salvavano solo perché il commento sotto l'intestazione li
+                        // buttava via (U-133).
+                        if (!rings.TryGetValue(cs, out var gia) || Estensione(ring) > Estensione(gia)) rings[cs] = ring;
             }
             callsigns = null; ring = null; mancante = null; malformato = null;
         }
 
         foreach (var raw in tfl.Split('\n'))
         {
+            // 🔴 U-133 (revisione totale 3): una riga che è SOLO commento non è niente. Tolto il commento restava
+            // vuota, e la riga vuota è la fine del blocco: dentro un blocco salvava l'anello troncato.
+            if (raw.TrimStart().StartsWith("//", StringComparison.Ordinal)) continue;
             // I file di settore commentano a fine riga: `LIRR_NE_CTR;CTR;1;CTR;1; //NE cnf.1`.
             var line = raw.Split("//", 2, StringSplitOptions.None)[0].Trim();
             if (line.Length == 0) { Flush(); continue; }
@@ -524,7 +556,7 @@ public static class AuroraSectorfileParser
             var fields = line.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             // Vertice in coordinate.
-            if (fields.Length == 2 && TryParseDms(fields[0], out var lat) && TryParseDms(fields[1], out var lon))
+            if (fields.Length == 2 && TryParseLatLon(fields[0], fields[1], out var lat, out var lon))
             {
                 ring?.Add((lat, lon));
                 continue;
@@ -567,6 +599,19 @@ public static class AuroraSectorfileParser
         return new SectorShapeParse(rings, irrisolti);
     }
 
+    /// <summary>Quanto è grande un anello, per confrontarlo con un altro: l'area del poligono in gradi quadrati
+    /// (formula dell'area di Gauss). Non è una misura, è un ordinamento.</summary>
+    private static double Estensione(IReadOnlyList<(double Lat, double Lon)> ring)
+    {
+        var s = 0.0;
+        for (var i = 0; i < ring.Count; i++)
+        {
+            var (a, b) = (ring[i], ring[(i + 1) % ring.Count]);
+            s += a.Lon * b.Lat - b.Lon * a.Lat;
+        }
+        return Math.Abs(s) / 2;
+    }
+
     /// <summary>
     /// Se una stringa <b>si presenta</b> come una coordinata Aurora: emisfero (<c>N</c>/<c>S</c>/<c>E</c>/
     /// <c>W</c>) e subito una cifra, come in <c>N044.23.16.000</c>.
@@ -605,6 +650,25 @@ public static class AuroraSectorfileParser
     /// </remarks>
     public static bool TryParseDms(string? token, out double degrees) =>
         DmsCoordinate.TryParse(token, out degrees);
+
+    /// <summary>
+    /// Un vertice: latitudine (<c>N</c>/<c>S</c>) e POI longitudine (<c>E</c>/<c>W</c>), nell'ordine del formato.
+    /// <para>🔴 U-133 (revisione totale 3): ognuna delle due si leggeva da sola, e «E015…;N041…» entrava come
+    /// latitudine 15, longitudine 41 — un vertice plausibile dall'altra parte del mondo, disegnato senza
+    /// avvisi. L'emisfero dice il ruolo, e un ruolo sbagliato è un vertice che non si legge.</para>
+    /// </summary>
+    private static bool TryParseLatLon(string latToken, string lonToken, out double lat, out double lon)
+    {
+        lat = lon = 0;
+        return Emisfero(latToken) is 'N' or 'S' && Emisfero(lonToken) is 'E' or 'W'
+            && TryParseDms(latToken, out lat) && TryParseDms(lonToken, out lon);
+    }
+
+    private static char Emisfero(string token)
+    {
+        var t = token.TrimStart();
+        return t.Length == 0 ? '\0' : char.ToUpperInvariant(t[0]);
+    }
 
     // ---------------------------------------------------------------------------------------------------
     // I tre file che descrivono le cose che ANCHE vIPI tiene: posizioni, aeroporti, piste.

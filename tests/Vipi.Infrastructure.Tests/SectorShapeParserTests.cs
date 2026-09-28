@@ -41,6 +41,70 @@ public class SectorShapeParserTests
     }
 
     /// <summary>
+    /// 🔴 U-133 (revisione totale 3): il commento a fine riga si toglie, ma su una riga che è SOLO commento
+    /// restava una riga vuota — la fine del blocco. L'anello si salvava coi vertici visti fin lì: 3 su 5, un
+    /// poligono troncato che si disegna benissimo.
+    /// </summary>
+    [Fact]
+    public void Un_commento_a_riga_intera_dentro_il_blocco_non_lo_chiude()
+    {
+        var r = AuroraSectorfileParser.ParseSectorShapes("""
+            LIRR_NE_CTR;CTR;1;CTR;1;
+            N044.23.16.000;E011.07.44.000;
+            N044.18.17.000;E011.13.04.000;
+            N044.14.48.000;E011.16.47.000;
+            //confine concordato con LIMM
+            N044.10.00.000;E011.10.00.000;
+            N044.20.00.000;E011.00.00.000;
+            """, Punti());
+
+        Assert.Equal(5, Assert.Single(r.Rings).Value.Count);
+    }
+
+    /// <summary>
+    /// Lo stesso callsign in più blocchi: <c>limmfic.tfl</c> ha il contorno di LIMM_FSS e poi quattro laghi
+    /// (<c>//GARDA</c>, <c>//LAGO DI COMO</c>…), <c>limmctr.tfl</c> l'area di LIMM_WS2_CTR e poi tre spezzoni del
+    /// confine svizzero. Un callsign ha un'area sola: resta la più GRANDE. Prima vinceva l'ultimo blocco — i laghi
+    /// si salvavano solo perché il commento subito sotto l'intestazione li buttava via (U-133), e LIMM_WS2_CTR
+    /// prendeva per area un quadrilatero di confine.
+    /// </summary>
+    [Fact]
+    public void Lo_stesso_callsign_in_piu_blocchi_tiene_l_area_piu_grande()
+    {
+        var r = AuroraSectorfileParser.ParseSectorShapes("""
+            LIMM_FSS;LIMMFIC;1;LIMMFIC;0;
+            N046.00.00.000;E008.00.00.000;
+            N046.00.00.000;E011.00.00.000;
+            N044.00.00.000;E011.00.00.000;
+            N044.00.00.000;E008.00.00.000;
+
+            LIMM_FSS;LIMMFIC;1;LIMMFIC;0;
+            //GARDA
+            N045.40.00.000;E010.40.00.000;
+            N045.40.00.000;E010.50.00.000;
+            N045.30.00.000;E010.45.00.000;
+            """, Punti());
+
+        Assert.Equal(4, Assert.Single(r.Rings).Value.Count);
+    }
+
+    /// <summary>🔴 U-133: latitudine poi longitudine, come dice il formato. Invertita è un vertice sbagliato e
+    /// invalida l'anello, come ogni altro vertice che non si legge.</summary>
+    [Fact]
+    public void Una_coppia_invertita_invalida_l_anello()
+    {
+        var r = AuroraSectorfileParser.ParseSectorShapes("""
+            LIRR_NE_CTR;CTR;1;CTR;1;
+            N044.23.16.000;E011.07.44.000;
+            E011.13.04.000;N044.18.17.000;
+            N044.14.48.000;E011.16.47.000;
+            """, Punti());
+
+        Assert.Empty(r.Rings);
+        Assert.Single(r.UnresolvedPoints);
+    }
+
+    /// <summary>
     /// La forma che <c>ParseTowerShapes</c> non sa leggere: una shape sola per più enti. Sui file veri
     /// succede 16 volte su 112, fino a cinque callsign (<c>EDMM_CTR EDMM_S_CTR EDMM_FSS EDMM_MIL_CTR</c>).
     /// </summary>
