@@ -1,3 +1,4 @@
+using System.Globalization;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.Models;
 using Vipi.Sectorfile.Shared;
@@ -52,16 +53,17 @@ public static class Geometria
         switch (record)
         {
             // --- punti ------------------------------------------------------------------------------------------
+            // Il tipo del punto sceglie il suo simbolo del .sym (slice 4d).
             case Fix f:
-                return Punto(file, indice, f.Name, f.Position);
+                return Punto(file, indice, f.Name, f.Position) with { Punto = TipoDelPunto("FIX", f.DisplayType?.ToString(CultureInfo.InvariantCulture)) };
             case Vor v:
-                return Punto(file, indice, v.Ident, v.Position);
+                return Punto(file, indice, v.Ident, v.Position) with { Punto = TipoDelPunto("VOR", v.ExtraField6) };
             case Ndb n:
-                return Punto(file, indice, n.Ident, n.Position);
+                return Punto(file, indice, n.Ident, n.Position) with { Punto = "NDB" };
             case VfrPoint p:
-                return Punto(file, indice, p.Name, p.Position);
+                return Punto(file, indice, p.Name, p.Position) with { Punto = "VFR" };
             case AirportInfo a:
-                return Punto(file, indice, a.IcaoCode, a.Centre);
+                return Punto(file, indice, a.IcaoCode, a.Centre) with { Punto = "APT" };
             case Stand s:
                 return Punto(file, indice, s.Number, s.Position);
             case TaxiwayLabel t:
@@ -155,6 +157,9 @@ public static class Geometria
                 return null;
         }
     }
+
+    private static string TipoDelPunto(string famiglia, string? tipo)
+        => tipo?.Trim() is { Length: > 0 } scritto ? famiglia + ":" + scritto : famiglia;
 
     private static Sectorfile.Shared.Punto Vertice(StaticBoundaryVertex vertice)
         => Sectorfile.Shared.Punto.Nominato(vertice.FixA ?? string.Empty, vertice.FixB);

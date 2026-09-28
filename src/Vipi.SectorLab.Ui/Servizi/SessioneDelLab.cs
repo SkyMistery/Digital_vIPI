@@ -1548,6 +1548,9 @@ public sealed class SessioneDelLab
     /// <summary>I nomi di <c>[DEFINE]</c> del master scelto (<c>colors.def</c>): la mappa e il selettore della scheda.</summary>
     public ColorPalette Definiti { get; private set; } = new();
 
+    /// <summary>I simboli dei punti dal <c>.sym</c> del master scelto (slice 4d); null se il master non ne carica.</summary>
+    public SimboliDellaMappa? Simboli { get; private set; }
+
     /// <summary>Perché i colori di Aurora non ci sono, da dire accanto alla scelta. Null se ci sono.</summary>
     public string? ColoriMancanti { get; private set; }
 
@@ -1587,17 +1590,20 @@ public sealed class SessioneDelLab
         Colori = null;
         ColoriMancanti = null;
         Definiti = new ColorPalette();
+        Simboli = null;
         if (Sessione is null)
             return;
 
         var avvisi = new RaccoltaDiAvvisi();
+        var master = IscScelto is null ? null : Cataloghi.GetValueOrDefault(IscScelto);
         try
         {
-            Definiti = SchemiDiAurora.Definiti(Sessione, IscScelto is null ? null : Cataloghi.GetValueOrDefault(IscScelto), avvisi);
+            Definiti = SchemiDiAurora.Definiti(Sessione, master, avvisi);
+            Simboli = SimboliDellaMappa.DelMaster(Sessione, master, avvisi);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            Registro.Errore("colors.def", e);
+            Registro.Errore("colors.def e simboli", e);
         }
 
         SchemiDisponibili = SchemiDiAurora.Disponibili(Sessione.Cartella);

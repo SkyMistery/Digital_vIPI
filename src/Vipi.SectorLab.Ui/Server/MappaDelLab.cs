@@ -47,7 +47,7 @@ public static class MappaDelLab
             // Sessione chiusa o strato senza forme: si risponde con l'elenco vuoto, non con un errore — la pagina
             // accende una casella e non deve distinguere «non c'è niente» da «è andata male».
             return Results.Stream(
-                flusso => Scrivi(flusso, id, strato?.Forme ?? [], lab.Colori),
+                flusso => Scrivi(flusso, id, strato?.Forme ?? [], lab.Colori, lab.Simboli),
                 contentType: "application/json");
         });
     }
@@ -57,7 +57,10 @@ public static class MappaDelLab
     /// null = non si disegna), <c>ka</c> (la sua opacità se non è piena), <c>g</c>/<c>ga</c> (il riempimento) e
     /// <c>s</c> (lo stile della linea dello schema, se non è continua). La pagina passa fra i colori del Lab e questi
     /// senza riprendere le coordinate.</param>
-    public static async Task Scrivi(Stream flusso, string id, IReadOnlyList<FormaDellaMappa> forme, ColoriDellaMappa? colori = null)
+    /// <param name="simboli">I simboli del <c>.sym</c> (slice 4d): un punto che ne ha uno porta <c>y</c>, l'indice nell'elenco
+    /// che la pagina riceve coi colori.</param>
+    public static async Task Scrivi(Stream flusso, string id, IReadOnlyList<FormaDellaMappa> forme, ColoriDellaMappa? colori = null,
+                                    SimboliDellaMappa? simboli = null)
     {
         await using var json = new Utf8JsonWriter(flusso);
         json.WriteStartObject();
@@ -85,6 +88,9 @@ public static class MappaDelLab
                 if (colore.Tratteggio != 0)
                     json.WriteNumber("s", colore.Tratteggio);
             }
+
+            if (simboli?.Di(forma) is { } simbolo)
+                json.WriteNumber("y", simbolo);
 
             json.WriteStartArray("c");
             foreach (var tratto in forma.Tratti)

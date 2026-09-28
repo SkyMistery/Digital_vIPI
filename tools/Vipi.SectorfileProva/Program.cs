@@ -502,6 +502,16 @@ foreach (var (file, schema) in schemi)
         $"{schema.Altri.Count,3} impostazioni; chiavi del .geo mancanti: {(mancanti.Count == 0 ? "nessuna" : string.Join(", ", mancanti))}");
 }
 
+// I simboli dei .sym (slice 4d): quanti, coi nomi, e le righe che non sono 13×13.
+foreach (string sym in Directory.GetFiles(radice, "*.sym", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+{
+    var avvisiDeiSimboli = new Avvisi();
+    var simboli = new SymParser(avvisiDeiSimboli).Parse(sym);
+    Console.WriteLine($"  SIMBOLI {Relativo(sym)}: {simboli.Count}, {avvisiDeiSimboli.Count} non 13×13, " +
+        $"{simboli.Count(s => s.Nome is null)} senza nome, {simboli.Count(s => s.NomeSenzaCommento)} col nome senza //: " +
+        string.Join(", ", simboli.Select(s => $"{s.Numero} {s.Nome ?? "?"}")));
+}
+
 foreach (var gruppo in usiDeiColori.GroupBy(u => u.Value.Come).OrderBy(g => g.Key, StringComparer.Ordinal))
 {
     Console.WriteLine($"  {gruppo.Sum(u => u.Value.Volte),7}  {gruppo.Key,-28} {string.Join(", ", gruppo.OrderByDescending(u => u.Value.Volte).Take(8).Select(u => $"{u.Key} {u.Value.Volte}"))}");

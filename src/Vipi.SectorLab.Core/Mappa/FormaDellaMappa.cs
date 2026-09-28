@@ -26,6 +26,8 @@ public enum TipoDiForma
 /// <param name="SoloBordo">Il riempimento non si disegna: settore dinamico, o opacità a 1 (lotto «Subito» slice 4, D3).</param>
 /// <param name="Chiave">La chiave dello schema di Aurora quando la decide il record e non il file (le voci degli
 /// <c>.str</c>: STAR, IAP, GOAROUND…).</param>
+/// <param name="Punto">Il tipo del punto per il suo simbolo (slice 4d): <c>FIX:1</c>, <c>VOR:2</c>, <c>NDB</c>, <c>VFR</c>,
+/// <c>APT</c> — la famiglia e il valore del campo del tipo, come è scritto.</param>
 public sealed record FormaDellaMappa(
     string File,
     int Record,
@@ -36,7 +38,8 @@ public sealed record FormaDellaMappa(
     string? Tratto = null,
     string? Riempimento = null,
     bool SoloBordo = false,
-    string? Chiave = null)
+    string? Chiave = null,
+    string? Punto = null)
 {
     public int Punti => Tratti.Sum(t => t.Count);
 }

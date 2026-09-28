@@ -8,7 +8,8 @@
 //
 // Due modi di colore (lotto «Subito» slice 4): quelli del Lab, uno per strato dal foglio, tenui; e quelli di Aurora,
 // che il server calcola forma per forma dallo schema scelto e da colors.def (k = linea, g = riempimento, s = stile
-// della linea). Si passa dall'uno all'altro senza riprendere le coordinate.
+// della linea). Si passa dall'uno all'altro senza riprendere le coordinate. Coi colori di Aurora i punti hanno il
+// loro simbolo del .sym (slice 4d, y = indice nell'elenco dei simboli che arriva con i colori).
 (function () {
     'use strict';
 
@@ -36,18 +37,59 @@
     // (i PenStyle di Delphi: da provare accanto ad Aurora).
     var tratteggi = { 1: '6,4', 2: '2,3', 3: '8,3,2,3', 4: '8,3,2,3,2,3' };
 
+    /// Un simbolo 13×13 nel suo colore, disegnato una volta su una tela piccola e poi copiato (drawImage) per ogni punto:
+    /// 4 000 fix a pixel singoli sarebbero 100 000 rettangoli a ogni spostamento della mappa.
+    function immagine(indice, colore) {
+        var chiave = indice + '|' + colore;
+        var fatta = stato.immagini[chiave];
+        if (fatta) return fatta;
+        var colonne = stato.simboli[indice];
+        if (!colonne) return null;
+        var tela = document.createElement('canvas');
+        tela.width = 13; tela.height = 13;
+        var ctx = tela.getContext('2d');
+        ctx.fillStyle = colore;
+        // Ogni gruppo del .sym è una COLONNA, ogni cifra un pixel dall'alto (carta «file per file» §20).
+        for (var x = 0; x < 13; x++) {
+            for (var y = 0; y < 13; y++) if (colonne[x].charAt(y) === '1') ctx.fillRect(x, y, 1, 1);
+        }
+        stato.immagini[chiave] = tela;
+        return tela;
+    }
+
+    /// Un punto col simbolo del .sym: un cerchio di Leaflet (clic, evidenza, strati uguali a prima) che sulla tela si
+    /// disegna col simbolo quando ne ha uno, pixel per pixel e centrato come in Aurora.
+    var PuntoConSimbolo = L.CircleMarker.extend({
+        _updatePath: function () {
+            var tela = this._renderer, simbolo = this.options.sectorlabSimbolo;
+            var img = simbolo === null || simbolo === undefined || !tela._ctx ? null : immagine(simbolo, this.options.color);
+            if (!img) { L.CircleMarker.prototype._updatePath.call(this); return; }
+            if (!tela._drawing || this._empty()) return;
+            var p = this._point, ctx = tela._ctx;
+            ctx.save();
+            ctx.imageSmoothingEnabled = false;
+            ctx.globalAlpha = this.options.opacity;
+            ctx.drawImage(img, Math.round(p.x) - 6, Math.round(p.y) - 6);
+            ctx.restore();
+        }
+    });
+
     /// Lo stile di una forma nel modo di adesso. `tinta` è il colore del Lab per il suo strato.
     function stile(forma, tinta) {
         var aurora = stato && stato.aurora && Object.prototype.hasOwnProperty.call(forma, 'k');
         if (!aurora) {
             return forma.t === 'p'
-                ? { color: tinta, weight: 1, opacity: 1, fillColor: tinta, fillOpacity: .8, dashArray: null }
+                ? { color: tinta, weight: 1, opacity: 1, fillColor: tinta, fillOpacity: .8, dashArray: null, radius: 3, sectorlabSimbolo: null }
                 : { color: tinta, weight: 1, opacity: .9, fillColor: tinta, fillOpacity: forma.t === 'a' ? .06 : 0, dashArray: null };
         }
         // clNone (k null): Aurora non la disegna, e nemmeno noi; resta raggiungibile dall'elenco.
         var linea = forma.k || tinta;
         var opacita = forma.k ? (forma.ka === undefined ? 1 : forma.ka) : 0;
-        if (forma.t === 'p') return { color: linea, weight: 1, opacity: opacita, fillColor: linea, fillOpacity: opacita * .8, dashArray: null };
+        if (forma.t === 'p') {
+            var simbolo = forma.y !== undefined && stato.simboli[forma.y] ? forma.y : null;
+            return { color: linea, weight: 1, opacity: opacita, fillColor: linea, fillOpacity: opacita * .8, dashArray: null,
+                     radius: simbolo === null ? 3 : 6, sectorlabSimbolo: simbolo };
+        }
         return {
             color: linea, weight: 1, opacity: opacita,
             fillColor: forma.g || linea, fillOpacity: forma.g ? (forma.ga === undefined ? 1 : forma.ga) : 0,
@@ -61,8 +103,7 @@
             var uno = forma.c.length && forma.c[0].length ? [forma.c[0][0], forma.c[0][1]] : null;
             // Una forma senza punti (un nome che il catalogo non risolve, slice 3b) non si disegna: non è un errore
             // da nascondere, ma sulla mappa non c'è niente da mettere.
-            suo.radius = 3;
-            return uno ? L.circleMarker(uno, suo) : null;
+            return uno ? new PuntoConSimbolo(uno, suo) : null;
         }
 
         var tratti = [];
@@ -123,7 +164,8 @@
                 maxZoom: 20                  // un pixel ≈ 11 cm, come i sei decimali delle coordinate (MappaDelLab)
             }).setView([42.0, 12.5], 6);
 
-            stato = { mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {}, aurora: false, sfondo: null };
+            stato = { mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {}, aurora: false, sfondo: null,
+                      simboli: [], immagini: {} };
             // Il riquadro della mappa cambia misura quando i pannelli vanno nell'altra finestra (e tornano): Leaflet
             // non se ne accorge da solo, e disegnerebbe solo nella parte che aveva prima.
             if (typeof ResizeObserver !== 'undefined') {
@@ -297,10 +339,12 @@
         },
 
         /// I colori della mappa: di Aurora (col fondo dello schermo radar) o del Lab. Le forme hanno già tutti e due.
-        colori: function (aurora, sfondo) {
+        colori: function (aurora, sfondo, simboli) {
             if (!stato) return;
             stato.aurora = !!aurora;
             stato.sfondo = sfondo || null;
+            stato.simboli = simboli || [];
+            stato.immagini = {};
             fondo();
             this.ricolora();
         },

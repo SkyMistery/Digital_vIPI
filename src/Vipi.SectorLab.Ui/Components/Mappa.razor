@@ -68,7 +68,9 @@
         {
             _versioneDeiColori = Lab.VersioneDeiColori;
             string? sfondo = Lab.Colori?.Sfondo is { } c ? $"#{c.R:X2}{c.G:X2}{c.B:X2}" : null;
-            await Js.InvokeVoidAsync("sectorlab.mappa.colori", Lab.ColoriDiAurora && Lab.Colori is not null, sfondo);
+            // I simboli del .sym (slice 4d) viaggiano qui, una volta: sono pochi (23 sul fork), le forme dicono solo l'indice.
+            string[][] simboli = Lab.Simboli is { } s ? [.. s.Simboli.Select(x => x.Colonne.ToArray())] : [];
+            await Js.InvokeVoidAsync("sectorlab.mappa.colori", Lab.ColoriDiAurora && Lab.Colori is not null, sfondo, simboli);
         }
 
         // Una modifica ha cambiato la geometria di uno strato: la mappa ce l'ha in memoria, va ripresa (slice 6).

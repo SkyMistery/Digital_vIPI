@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4c); prossima la **slice 5** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4d); prossima la **slice 5** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -522,3 +522,27 @@ selettore nella scheda.
 `colors.def`, salvo 3 già note che si vedono magenta; settori dinamici solo bordo; il selettore scrive nomi, `#RRGGBB`
 e `#AARRGGBB` con l'avviso. Il confronto **accanto a uno schermo di Aurora** (ARTCC, aerovie, SID/STAR, fix, costa,
 terra, e gli stili di linea `…_SOLID`) è del committente: prove 71-76 in `SectorLab-prova\PROVE.md`.
+- **4d (28 settembre, chiesta dal committente dopo la chiusura)** — i punti coi simboli del sector, «così appare proprio
+  come in Aurora». Committente: i simboli **dal `.sym` del sector** (`[SYMBOLS]`, `symbols.sym`), **non dai profili**.
+  Anticipa dalla slice 17 il solo **lettore** del `.sym` (l'editor a pixel T1 e i controlli T2 restano là).
+  - Motore (codice comune): `IO/Parsers/SymParser.cs` + `Shared/SimboloDelSector.cs`, solo lettura come `.def` e
+    `.clr`. Un simbolo per riga, 13 gruppi di 13 cifre = **13 colonne** da sinistra, una cifra un pixel dall'alto
+    (carta «file per file» §20: così il FIX punta in alto); il nome è l'ultimo commento sopra (`////ALTRI` è un
+    titolo: il commento dopo lo sostituisce), o la riga di testo senza `//` (`AC_comb SEL`, `AC_DUPE`, segnati);
+    numero = posizione nel file; una riga di pixel che non è 13×13 avvisa e si salta. Prova sull'albero, misura
+    nuova in COLORI: **23 simboli**, 0 non 13×13, 1 senza nome (il 19°, dopo CROCE X), 2 col nome senza `//`.
+  - Lab: `Mappa/SimboliDellaMappa.cs`. 🟡 **Quale simbolo per quale punto il sector non lo dice** (Aurora li sceglie
+    per numero, T3 da provare): abbinamento **per nome, proposta dell'agente**, da confermare accanto ad Aurora — fix
+    in rotta `FIX vuoto`, terminale `TERM`, in rotta e terminale `FIX pieno`, nascosto `FIX vuoto piccolo` (in Aurora
+    non si vede; qui piccolo); VOR `VOR`, VOR/DME e DME `VOR2`, VORTAC `VOR3`, TACAN `TAC2`; NDB `NDB`; punti VFR
+    `VFR`; scali `APT`. Un nome che il file non ha → il punto resta un cerchio. Il `.sym` è quello che carica il master
+    scelto. Ogni punto porta il suo tipo (`FormaDellaMappa.Punto`: `FIX:1`, `VOR:2`…), il JSON l'indice del simbolo
+    (`y`), i pixel arrivano una volta coi colori.
+  - Mappa: **coi colori di Aurora** ogni punto è il suo simbolo, pixel per pixel e nel colore dello schema (una tela
+    13×13 per simbolo e colore, copiata per ogni punto: 4 000 fix a pixel singoli sarebbero 100 000 rettangoli a ogni
+    spostamento); coi colori del Lab restano i cerchi. Clic, evidenza e strati come prima.
+  - Misura sul fork (`scratchpad/colori4b`): **4 925 punti, tutti col loro simbolo** — fix nascosti 2 556, TERM 575,
+    in rotta 454, in rotta e terminale 316, VFR 586, scali 295, VOR 95, TACAN 17, VORTAC 9, NDB 27.
+  - Prova a schermo sul banco: intorno a OST triangoli, quadrati, simboli di VOR e NDB sul fondo radar; clic su OST
+    (NDB) lo sceglie; «del Lab» → cerchi, «di Aurora» → simboli; console pulita.
+  Test: motore 667 → **670**, Lab 479 → **496**.
