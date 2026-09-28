@@ -889,5 +889,18 @@
   - **Test**: `PannelloUnioneUnGiroAllaVoltaTests` (2: tre ricarichi sovrapposti sul codice di prima, l'eccezione
     fuori dal gestore), `StationResolverPrewarmTests` (+1, più severo del precedente: nel markup di una pagina
     interattiva il resolver non si legge proprio, commenti esclusi). Rossi sul codice di prima. Ui 1804 → **1807**.
+  - **Gruppo 6**: **U-192** (Struttura: cliccare un nodo, anche lo stesso, rileggeva la catena di ripiego e buttava
+    quella che si stava scrivendo; «Fine modifica» rilasciava il lock con la catena non salvata) → lo stesso nodo non
+    fa niente; con la catena non salvata cambiare nodo chiede prima («Scarta e cambia settore» / «Resta qui»);
+    `BeforeRelease` della barra del lock risponde no e dice perché. **U-190**, parte Struttura: `Guarded` prende ogni
+    eccezione, «Proponi» ha la sua rete. **U-048** (allegati: `TitleMaxLength` definito e mai usato, nota di versione
+    senza tetto; un salvataggio rifiutato lasciava righe `Added` nel DbContext del circuito, e ogni salvataggio dopo
+    cadeva con loro) → rifiuti in parole prima di scrivere (`TitoloTroppoLungo`, `NoteTroppoLunghe`,
+    `NotaTroppoLunga`: **codice comune** `Vipi.Application`), `maxlength` sulle caselle, `ChangeTracker.Clear()` su
+    un `DbUpdateException` come in `EfMediaStore` (**codice comune** `Vipi.Infrastructure`).
+  - **Test**: `StrutturaUnaOperazionePerVoltaTests` (+3, più il doppio clic esistente che ora legge UNA volta: il
+    secondo clic trova il nodo già scelto), `BibliotecaAllegatiSuDatabaseTests` (3, nuovo: un intercettore fa fallire
+    il salvataggio e il contesto deve restare pulito). Rossi sul codice di prima. Ui 1807 → **1810**,
+    Infrastructure 1760 → **1763**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

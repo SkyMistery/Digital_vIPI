@@ -812,6 +812,10 @@
   <data name="Struct_Fallback_Remove" xml:space="preserve"><value>Remove this row</value></data>
   <data name="Struct_Fallback_Suggested" xml:space="preserve"><value>Suggested by geometry:</value></data>
   <data name="Struct_Fallback_NoSuggestions" xml:space="preserve"><value>No suggestion: no other sector shares altitude with this one.</value></data>
+  <data name="Struct_Fallback_UnsavedSwitch" xml:space="preserve"><value>The fallback chain of {0} is not saved.</value></data>
+  <data name="Struct_Fallback_DiscardSwitch" xml:space="preserve"><value>Discard and switch sector</value></data>
+  <data name="Struct_Fallback_Stay" xml:space="preserve"><value>Stay here</value></data>
+  <data name="Struct_Fallback_UnsavedRelease" xml:space="preserve"><value>The fallback chain is not saved: apply or cancel it before «Finish editing».</value></data>
   <data name="Struct_Ciclo" xml:space="preserve"><value>cycle</value></data>
   <data name="Struct_CicloTitle" xml:space="preserve"><value>Cyclic hierarchy: this sector is its own ancestor. The fallback chain stops here. Give it a valid parent, or remove it from the child that points at it.</value></data>
   <data name="Struct_InheritedTitle" xml:space="preserve"><value>No parent set: derived from the airport ladder (DEL → GND → TWR → APP). Assign one to pin it.</value></data>
@@ -3235,6 +3239,8 @@
   <data name="Att_ErrSlug" xml:space="preserve"><value>A slug takes lowercase letters, digits and single hyphens: «loa-lirr-lfmm».</value></data>
   <data name="Att_ErrSlugTaken" xml:space="preserve"><value>The slug «{0}» already belongs to another entry, and two entries sharing a slug would make the link ambiguous.</value></data>
   <data name="Att_ErrTitle" xml:space="preserve"><value>The title is missing: it is what people read inside the document.</value></data>
+  <data name="Att_ErrTitleLong" xml:space="preserve"><value>The title is too long: at most {0} characters.</value></data>
+  <data name="Att_ErrNoteLong" xml:space="preserve"><value>The note is too long: at most {0} characters.</value></data>
   <data name="Att_ErrLink" xml:space="preserve"><value>No file id can be read from that link. A Drive sharing link is what is needed.</value></data>
   <data name="Att_ErrScope" xml:space="preserve"><value>The scope and its code do not go together: the division wants no code, an ACC or an airport requires one.</value></data>
   <data name="AttKind_Loa" xml:space="preserve"><value>LoA</value></data>

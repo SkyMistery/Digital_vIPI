@@ -82,10 +82,16 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
     {
         public int Letture;
 
+        /// <summary>Le righe salvate di ogni settore. Vuoto = nessun ripiego dichiarato.</summary>
+        public List<FallbackRowEdit> Righe { get; } = new();
+
+        /// <summary>Se c'è, il suggerimento lancia questo: un guasto che la pagina non traduce (U-190).</summary>
+        public Exception? LanciaProposte { get; set; }
+
         public Task<IReadOnlyList<FallbackRowEdit>> ListAsync(string sectorCallsign, CancellationToken ct = default)
         {
             Interlocked.Increment(ref Letture);
-            return db.Pausa<IReadOnlyList<FallbackRowEdit>>(Array.Empty<FallbackRowEdit>());
+            return db.Pausa<IReadOnlyList<FallbackRowEdit>>(Righe.ToList());
         }
 
         public Task<string?> RipiegoAutomaticoAsync(string sectorCallsign, CancellationToken ct = default) =>
@@ -95,7 +101,9 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
             db.Pausa(0);
 
         public Task<IReadOnlyList<FallbackSuggestion>> SuggestAsync(string sectorCallsign, CancellationToken ct = default) =>
-            db.Pausa<IReadOnlyList<FallbackSuggestion>>(Array.Empty<FallbackSuggestion>());
+            LanciaProposte is not null
+                ? Task.FromException<IReadOnlyList<FallbackSuggestion>>(LanciaProposte)
+                : db.Pausa<IReadOnlyList<FallbackSuggestion>>(Array.Empty<FallbackSuggestion>());
     }
 
     private sealed class OrfaniFinti(Contesto db) : IOrphanSectorService
@@ -181,8 +189,9 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
         if (caduta == Renderer.UnhandledException) Assert.Fail("Circuito caduto: " + await Renderer.UnhandledException);
     }
 
-    /// <summary>La riproduzione dal vivo: il doppio clic vero su un nodo sono due <c>Select</c>, e ognuno legge i
-    /// ripieghi. Senza fila la seconda lettura partiva sopra la prima.</summary>
+    /// <summary>La riproduzione dal vivo: il doppio clic vero su un nodo sono due <c>Select</c>. Senza fila la seconda
+    /// lettura partiva sopra la prima. Dal 28 settembre 2026 (U-192) il secondo clic, arrivato il suo turno, trova il
+    /// nodo già scelto e non rilegge niente: una lettura sola, e nessuna sovrapposizione.</summary>
     [Fact]
     public async Task Doppio_clic_su_un_nodo_legge_una_volta_per_volta()
     {
@@ -191,11 +200,81 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
         var primo = Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
         var secondo = Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
         await Task.WhenAll(primo, secondo);
-        cut.WaitForAssertion(() => Assert.True(_ripieghi.Letture >= 2), TimeSpan.FromSeconds(3));
+        cut.WaitForAssertion(() => Assert.True(_ripieghi.Letture >= 1), TimeSpan.FromSeconds(3));
         await Task.Delay(150);
 
         Assert.Equal(1, _db.MassimoInsieme);
+        Assert.Equal(1, _ripieghi.Letture);
         await NessunaCaduta();
+    }
+
+    /// <summary>
+    /// 🔴 U-192 (revisione totale 3): cliccare un nodo dell'albero — anche lo STESSO — rileggeva la catena di ripiego e
+    /// buttava via in silenzio quella che si stava scrivendo. Ora lo stesso nodo non rilegge, e con righe non salvate
+    /// cambiare nodo chiede prima: «Resta» le tiene, «Scarta e cambia» le butta davvero.
+    /// </summary>
+    [Fact]
+    public async Task Con_la_catena_non_salvata_cambiare_nodo_chiede_prima()
+    {
+        _ripieghi.Righe.Add(new FallbackRowEdit("LIMM_CTR", null, 24500));
+        var cut = Apri();
+        await Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
+        cut.WaitForAssertion(() => Assert.Equal(1, _ripieghi.Letture), TimeSpan.FromSeconds(3));
+
+        // Si toglie la riga: la catena a schermo non è più quella salvata.
+        await cut.InvokeAsync(() => cut.Find("button[title=Struct_Fallback_Remove]").Click());
+        cut.WaitForAssertion(() => Assert.Contains("Common_Unsaved", cut.Markup));
+
+        // Lo stesso nodo: niente.
+        await Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
+        await Task.Delay(100);
+        Assert.Equal(1, _ripieghi.Letture);
+        Assert.Contains("Common_Unsaved", cut.Markup);
+
+        // Un altro nodo: la domanda, e le righe restano.
+        await Premi(cut, "#hn-AirportPosition-3", e => e.ClickAsync(new()));
+        cut.WaitForAssertion(() => Assert.Contains("Struct_Fallback_UnsavedSwitch", cut.Markup));
+        Assert.Equal(1, _ripieghi.Letture);
+
+        await cut.InvokeAsync(() => cut.FindAll("button").First(x => x.TextContent.Contains("Struct_Fallback_Stay")).Click());
+        Assert.DoesNotContain("Struct_Fallback_UnsavedSwitch", cut.Markup);
+        Assert.Contains("Common_Unsaved", cut.Markup);
+
+        // E se si sceglie di scartare, si cambia davvero.
+        await Premi(cut, "#hn-AirportPosition-3", e => e.ClickAsync(new()));
+        cut.WaitForAssertion(() => Assert.Contains("Struct_Fallback_UnsavedSwitch", cut.Markup));
+        await cut.InvokeAsync(() => cut.FindAll("button").First(x => x.TextContent.Contains("Struct_Fallback_DiscardSwitch")).ClickAsync(new()));
+        cut.WaitForAssertion(() => Assert.Equal(2, _ripieghi.Letture), TimeSpan.FromSeconds(3));
+        await NessunaCaduta();
+    }
+
+    /// <summary>🔴 U-192: «Fine modifica» con la catena non salvata non rilascia il lock (come le righe dei limiti in ACC):
+    /// senza lock le righe resterebbero a schermo senza più modo di salvarle.</summary>
+    [Fact]
+    public void Fine_modifica_passa_da_chi_guarda_la_catena_non_salvata()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "src", "Vipi.Ui", "Pages"))) dir = dir.Parent;
+        var sorgente = File.ReadAllText(Path.Combine(dir!.FullName, "src", "Vipi.Ui", "Pages", "StrutturaPage.razor"));
+        var inizio = sorgente.IndexOf("<EditLockBar", StringComparison.Ordinal);
+        var barra = sorgente[inizio..sorgente.IndexOf("/>", inizio, StringComparison.Ordinal)];
+        Assert.Contains("BeforeRelease=", barra);
+    }
+
+    /// <summary>🔴 U-190: «Proponi» era in fila ma senza catch: un guasto del servizio usciva dal gestore.</summary>
+    [Fact]
+    public async Task Un_guasto_delle_proposte_resta_un_messaggio()
+    {
+        _ripieghi.LanciaProposte = new InvalidOperationException("geometria illeggibile");
+        var cut = Apri();
+        await Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
+        cut.WaitForAssertion(() => Assert.Contains(cut.FindAll("button"), x => x.TextContent.Contains("Struct_Fallback_Suggest")),
+            TimeSpan.FromSeconds(3));
+
+        await cut.InvokeAsync(() => cut.FindAll("button").First(x => x.TextContent.Contains("Struct_Fallback_Suggest")).ClickAsync(new()));
+
+        await NessunaCaduta();
+        cut.WaitForAssertion(() => Assert.Contains("geometria illeggibile", cut.Markup));
     }
 
     /// <summary>Lo scenario della scheda: si trascina l'APP sotto un nuovo padre e, mentre salva e riproietta, si

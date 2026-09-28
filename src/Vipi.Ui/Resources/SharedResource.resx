@@ -817,6 +817,10 @@
   <data name="Struct_Fallback_Remove" xml:space="preserve"><value>Togli questa riga</value></data>
   <data name="Struct_Fallback_Suggested" xml:space="preserve"><value>Proposte dalla geometria:</value></data>
   <data name="Struct_Fallback_NoSuggestions" xml:space="preserve"><value>Nessuna proposta: nessun altro settore condivide quota con questo.</value></data>
+  <data name="Struct_Fallback_UnsavedSwitch" xml:space="preserve"><value>La catena di ripiego di {0} non è salvata.</value></data>
+  <data name="Struct_Fallback_DiscardSwitch" xml:space="preserve"><value>Scarta e cambia settore</value></data>
+  <data name="Struct_Fallback_Stay" xml:space="preserve"><value>Resta qui</value></data>
+  <data name="Struct_Fallback_UnsavedRelease" xml:space="preserve"><value>La catena di ripiego non è salvata: applicala o annullala prima di «Fine modifica».</value></data>
   <data name="Struct_Ciclo" xml:space="preserve"><value>ciclo</value></data>
   <data name="Struct_CicloTitle" xml:space="preserve"><value>Gerarchia ciclica: questo settore è antenato di sé stesso. La catena di ricaduta si interrompe qui. Assegnargli un padre valido, o toglierlo al figlio che lo cita.</value></data>
   <data name="Struct_InheritedTitle" xml:space="preserve"><value>Padre non scritto: dedotto dalla scaletta dell'aeroporto (DEL → GND → TWR → APP). Assegnane uno per fissarlo.</value></data>
@@ -3243,6 +3247,8 @@
   <data name="Att_ErrSlug" xml:space="preserve"><value>Lo slug vuole minuscole, cifre e trattini singoli: «loa-lirr-lfmm».</value></data>
   <data name="Att_ErrSlugTaken" xml:space="preserve"><value>Lo slug «{0}» è già di un'altra voce, e due voci con lo stesso slug renderebbero ambiguo il link.</value></data>
   <data name="Att_ErrTitle" xml:space="preserve"><value>Manca il titolo: è quel che si legge dentro il documento.</value></data>
+  <data name="Att_ErrTitleLong" xml:space="preserve"><value>Il titolo è troppo lungo: al massimo {0} caratteri.</value></data>
+  <data name="Att_ErrNoteLong" xml:space="preserve"><value>La nota è troppo lunga: al massimo {0} caratteri.</value></data>
   <data name="Att_ErrLink" xml:space="preserve"><value>Da quel link non si ricava nessun id di file. Serve il link di condivisione di Drive.</value></data>
   <data name="Att_ErrScope" xml:space="preserve"><value>L'ambito e il suo codice non stanno insieme: la divisione non vuole un codice, un ACC o uno scalo lo pretendono.</value></data>
   <data name="AttKind_Loa" xml:space="preserve"><value>LoA</value></data>

@@ -58,10 +58,21 @@
                         <button class="tclose" title="@L["Common_Close"]" @onclick="() => _msg = null">✕</button>
                     </span>
                 }
+                @* 🔴 U-192: la domanda prima di buttare una catena di ripiego non salvata. *@
+                @if (_cambioInSospeso is not null)
+                {
+                    <span class="st-msg warn">
+                        <Icon Name="warning" Size="14" />
+                        <span class="st-msg-t">@L["Struct_Fallback_UnsavedSwitch", Selected()?.Label ?? ""]</span>
+                        <button class="btn ghost sm" @onclick="ScartaECambiaAsync">@L["Struct_Fallback_DiscardSwitch"]</button>
+                        <button class="btn ghost sm" @onclick="() => _cambioInSospeso = null">@L["Struct_Fallback_Stay"]</button>
+                    </span>
+                }
             </LiveRegion>
             @* ⚠️ La EditLockBar sta QUI, in testata, e non come fascia a sé: i suoi margini di fascia si
                azzerano nel CSS di .st-head, non nel componente — newdoc la usa ancora come fascia. *@
-            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" Acquired="RileggiAllaPresaAsync" />
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" Acquired="RileggiAllaPresaAsync"
+                         BeforeRelease="PrimaDelRilascioAsync" />
         }
     </div>
 
@@ -706,6 +717,9 @@
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
+        // 🔴 U-190 (revisione totale 3): tre tipi soli, e una DbUpdateException (due schede, un giro notturno che
+        // scrive) usciva dal gestore. Il resto resta un messaggio.
+        catch (Exception ex) { _msg = L["Common_UnexpectedError"] + ex.Message; }
         finally { _busy = false; }
         return false;
     }
@@ -1130,13 +1144,46 @@
 
     /// <summary>La selezione cambia <b>in fila</b>, non prima: il dettaglio e i ripieghi letti devono essere dello
     /// stesso nodo, e un clic dato mentre si salva passa quando il salvataggio ha finito.</summary>
+    ///
+    /// <para>🔴 U-192 (revisione totale 3): cliccare un nodo — anche lo STESSO — rileggeva la catena di ripiego e
+    /// buttava in silenzio quella che si stava scrivendo. Lo stesso nodo non fa niente; con righe non salvate si
+    /// chiede prima (<see cref="_cambioInSospeso"/>). I controlli stanno DENTRO la fila: il secondo clic di un doppio
+    /// clic, quando tocca a lui, trova il nodo già scelto.</para>
     private Task Select(HierarchyNodeKind kind, int id) => InFilaAsync(async () =>
     {
+        if (IsSelected(kind, id)) return;
+        if (_ripieghiSporchi) { _cambioInSospeso = (kind, id); return; }
+        _cambioInSospeso = null;
         _selKind = kind; _selId = id; _parentFilter = "";
         _pendingParent = _tree.FirstOrDefault(n => n.Kind == kind && n.Id == id)?.ParentCallsign;
         await CaricaRipieghiAsync();
     });
     private bool IsSelected(HierarchyNodeKind kind, int id) => _selKind == kind && _selId == id;
+
+    /// <summary>Il nodo che si voleva aprire mentre la catena di ripiego del nodo scelto non era salvata (U-192).</summary>
+    private (HierarchyNodeKind Kind, int Id)? _cambioInSospeso;
+
+    /// <summary>«Scarta e cambia»: la catena torna quella salvata, e il cambio si fa davvero.</summary>
+    private Task ScartaECambiaAsync()
+    {
+        if (_cambioInSospeso is not { } c) return Task.CompletedTask;
+        _cambioInSospeso = null;
+        _ripieghi = _ripieghiSalvati.ToList();
+        _unita.Clear();
+        foreach (var r in _ripieghi) _unita.Add((UnitaDedotta(r.BaseFeet), UnitaDedotta(r.TopFeet)));
+        return Select(c.Kind, c.Id);
+    }
+
+    /// <summary>
+    /// «Fine modifica» con la catena non salvata: NO, e si dice perché (U-192). Come le righe dei limiti in ACC: senza
+    /// lock le righe resterebbero a schermo senza più modo di salvarle, e al primo ricarico sparirebbero.
+    /// </summary>
+    private Task<bool> PrimaDelRilascioAsync()
+    {
+        if (!_ripieghiSporchi) return Task.FromResult(true);
+        _msg = L["Struct_Fallback_UnsavedRelease"];
+        return Task.FromResult(false);
+    }
 
     // =====================================================================================================
     //  Catena di ripiego dichiarata
@@ -1319,12 +1366,24 @@
     private string FasciaTesto(int? baseFt, int? topFt) =>
         $"{(baseFt is int b ? StatsView.Livello(b) : L["Struct_Fallback_Sfc"].Value)}–{(topFt is int t ? StatsView.Livello(t) : L["Struct_Fallback_Unl"].Value)}";
 
-    private Task ProponiAsync(HierarchyNode sel) => InFilaAsync(async () =>
+    private async Task ProponiAsync(HierarchyNode sel)
     {
-        if (sel.Callsign is null) return;
-        _proposteChieste = true;
-        _proposte = await Fallbacks.SuggestAsync(sel.Callsign);
-    });
+        // 🔴 U-190: in fila sì (U-012), ma senza catch: un guasto del servizio usciva dal gestore.
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                if (sel.Callsign is null) return;
+                _proposteChieste = true;
+                _proposte = await Fallbacks.SuggestAsync(sel.Callsign);
+            });
+        }
+        catch (Exception ex)
+        {
+            _proposteChieste = false;
+            _msg = L["Common_UnexpectedError"] + ex.Message;
+        }
+    }
 
     private void AccettaProposta(FallbackSuggestion g)
     {

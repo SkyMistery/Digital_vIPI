@@ -16,6 +16,22 @@ internal sealed class EfAttachmentLibrary : IAttachmentLibrary
 
     public EfAttachmentLibrary(VipiDbContext db) => _db = db;
 
+    /// <summary>
+    /// Salva, e se il database rifiuta lascia il contesto PULITO. 🔴 U-048 (revisione totale 3): la pagina degli
+    /// allegati prende questo servizio dal circuito, e le righe <c>Added</c> di un salvataggio fallito restavano nel
+    /// suo DbContext: ogni salvataggio dopo, anche giusto, le ritentava e cadeva con loro, fino a un ricarico.
+    /// Stessa cura di <c>EfMediaStore</c> e <c>EfUnitOfWork</c>.
+    /// </summary>
+    private async Task SalvaAsync(CancellationToken ct)
+    {
+        try { await _db.SaveChangesAsync(ct); }
+        catch (DbUpdateException)
+        {
+            _db.ChangeTracker.Clear();
+            throw;
+        }
+    }
+
     public async Task<IReadOnlyList<AttachmentRow>> ListAsync(CancellationToken ct = default)
     {
         // Le versioni servono tutte, ma solo per due numeri: la corrente e quante sono state. Il carico è
@@ -45,6 +61,10 @@ internal sealed class EfAttachmentLibrary : IAttachmentLibrary
 
         var titolo = AttachmentRules.Norm(draft.Title);
         if (titolo.Length == 0) return (AttachmentCreate.TitoloMancante, null);
+        // 🔴 U-048 (revisione totale 3): le colonne si dicono prima, in parole. Dopo, il database rifiutava a metà.
+        if (titolo.Length > AttachmentRules.TitleMaxLength) return (AttachmentCreate.TitoloTroppoLungo, null);
+        if (AttachmentRules.Norm(draft.Notes).Length > AttachmentRules.NotesMaxLength)
+            return (AttachmentCreate.NoteTroppoLunghe, null);
 
         if (!AttachmentRules.ScopeValido(draft.Scope, draft.ScopeKey)) return (AttachmentCreate.AmbitoNonValido, null);
 
@@ -84,7 +104,7 @@ internal sealed class EfAttachmentLibrary : IAttachmentLibrary
         _db.Attachments.Add(voce);
         AuditScribe.Write(_db, userId, AuditAction.Create, "Attachment", slug,
             new { Titolo = titolo, Tipo = draft.Kind.ToString(), Ambito = voce.ScopeKey ?? draft.Scope.ToString() });
-        await _db.SaveChangesAsync(ct);
+        await SalvaAsync(ct);
 
         return (AttachmentCreate.Ok, Riga(voce));
     }
@@ -101,6 +121,7 @@ internal sealed class EfAttachmentLibrary : IAttachmentLibrary
 
         var externalId = AttachmentRules.ExternalIdDa(link);
         if (externalId is null) return (AttachmentReplace.LinkNonValido, null);
+        if (AttachmentRules.Norm(note).Length > AttachmentRules.NoteMaxLength) return (AttachmentReplace.NotaTroppoLunga, null);
 
         var corrente = voce.Versions.OrderByDescending(v => v.Number).FirstOrDefault();
 
@@ -133,7 +154,7 @@ internal sealed class EfAttachmentLibrary : IAttachmentLibrary
             Nota = nuova.Note,
         });
 
-        await _db.SaveChangesAsync(ct);
+        await SalvaAsync(ct);
         return (AttachmentReplace.Ok, Riga(voce));
     }
 

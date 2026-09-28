@@ -70,7 +70,15 @@ public static class AttachmentRules
     /// <summary>Lunghezza massima dello slug: la stessa della colonna.</summary>
     public const int SlugMaxLength = 64;
 
+    /// <summary>Lunghezza massima del titolo: la stessa della colonna. 🔴 U-048: fino al 28 settembre 2026 non la
+    /// usava nessuno.</summary>
     public const int TitleMaxLength = 200;
+
+    /// <summary>Lunghezza massima delle note della voce: la stessa della colonna.</summary>
+    public const int NotesMaxLength = 1000;
+
+    /// <summary>Lunghezza massima della nota di una versione: la stessa della colonna.</summary>
+    public const int NoteMaxLength = 500;
 
     public static string Norm(string? v) => (v ?? "").Trim();
 

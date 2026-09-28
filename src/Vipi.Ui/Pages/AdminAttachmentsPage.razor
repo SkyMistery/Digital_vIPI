@@ -307,7 +307,7 @@
                                             </label>
                                             <label class="att-field">
                                                 <span class="muted">@L["Att_ReplaceNote"]</span>
-                                                <input class="app-in" @bind="_nuovaNota" placeholder="@L["Att_ReplaceNotePh"]" />
+                                                <input class="app-in" @bind="_nuovaNota" maxlength="@AttachmentRules.NoteMaxLength" placeholder="@L["Att_ReplaceNotePh"]" />
                                             </label>
                                         </div>
 
@@ -360,7 +360,7 @@
             <div class="mil-add">
                 <label>
                     @L["Att_ColTitle"]
-                    <input value="@_nTitolo" placeholder="@L["Att_TitlePh"]"
+                    <input value="@_nTitolo" maxlength="@AttachmentRules.TitleMaxLength" placeholder="@L["Att_TitlePh"]"
                            @oninput="e => TitoloCambiato(e.Value?.ToString())" />
                 </label>
                 <label>
@@ -579,6 +579,7 @@
                 AttachmentReplace.Ok => L["Att_Replaced", r.Title, esito.Riga!.VersionNumber,
                     esito.Impattati.Count(c => c.DocumentId is not null)].Value,
                 AttachmentReplace.LinkNonValido => L["Att_ErrLink"].Value,
+                AttachmentReplace.NotaTroppoLunga => string.Format(L["Att_ErrNoteLong"].Value, AttachmentRules.NoteMaxLength),
                 AttachmentReplace.Invariato => L["Att_ReplaceSame"].Value,
                 _ => L["Att_ReplaceGone"].Value,
             };
@@ -611,6 +612,7 @@
                 AttachmentCreate.SlugNonValido => L["Att_ErrSlug"].Value,
                 AttachmentCreate.SlugOccupato => string.Format(L["Att_ErrSlugTaken"].Value, _nSlug.Trim()),
                 AttachmentCreate.TitoloMancante => L["Att_ErrTitle"].Value,
+                AttachmentCreate.TitoloTroppoLungo => string.Format(L["Att_ErrTitleLong"].Value, AttachmentRules.TitleMaxLength),
                 AttachmentCreate.LinkNonValido => L["Att_ErrLink"].Value,
                 _ => L["Att_ErrScope"].Value,
             };
