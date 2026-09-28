@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d) e la slice 6 (6a-6c); in corso la **slice 7** (7a-7e fatte; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c) e la slice 7 (7a-7f); prossima la **slice 8** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -905,3 +905,30 @@ cominciando la 7c: le posizioni, le piste e i file hanno ognuno la sua forma di 
   le 5 righe `F;IT\colors\colors.def`. **Colori**: 16 nomi, 50 666 usi — gli stessi della prova sull'albero (TAXIWAY
   19 149 = 18 268 dei `.geo` + 881 dei `.pol`); **MARKING non lo usa nessuno**. Prova a schermo sul banco:
   `colors.def` → «Chi lo usa · 5 .isc» e i 16 colori coi campioni. Il motore non è toccato. Test: Lab 647 → **652**.
+- **7f (28 settembre)** — il nome delle voci che sta nelle righe di dati (rimandato dalla 6b). Nella scheda, sezione
+  «Voce», il nome dei confini, delle MVA, delle aerovie e delle aree P/R/D diventa un campo
+  (`Modifiche/RinominaDellaVoce.cs`, `SessioneDelLab.RinominaLaVoce`). Vale **nel file della voce**: Aurora raccoglie per
+  nome, e sul fork nessun nome di voce sta in due file (misurato: solo `DUMMY`; le MVA di scalo «2000» in `licc.mva` e
+  `lipe.mva` sono zone di scali diversi).
+  - Dove cambia: i confini nel 2° campo delle righe `T;` (le etichette `L;` sono la voce «Etichette (L)», e una col
+    testo uguale resta); le MVA nel 2° campo delle `T;` e delle `L;`, e nel 5° dove era il gruppo (`T;LIMM;…;LIMM;`,
+    4 257 righe sul fork); le aerovie nel 2° campo dei tratti e nella **parola** delle etichette (`L;M984-Y740;`); le
+    aree nel 6° campo. Anche le **righe nascoste** della voce (5c: mostrate, tornano con lei) e il tag del suo blocco
+    (`//@"M984"`). Una voce nel testo del file.
+  - Non si rinominano: l'etichetta condivisa «L613-L615» (segue le sue aerovie), le zone MVA «(senza gruppo)» (il
+    nome non è scritto), «Etichette (L)». Rifiuti: `DUMMY`/`BREAK`, un nome di un'altra voce del file («le due
+    diventerebbero una»), spazi o «-» nel nome di un'aerovia, `;`, virgolette, «@» davanti.
+  Misura sul fork (`scratchpad/misura7f`): **985 voci** rinominabili — aerovie 246 (2 302 righe), aree 517 (13 028,
+  12 nascoste), confini 55 (12 959, 5 nascoste), MVA 167 (9 324, 53 nascoste) — rinominate (nome + «Q7») e annullate:
+  **985 su 985, 0 guasti** (dopo, le stesse voci, quella nuova coi record di prima e nessuna col nome vecchio;
+  annullato, il file torna quello dell'apertura). `M984` 13 righe (7 tratti + 6 etichette, come il grep), `FRA BDRY`
+  1 589, `LIMM` 1 441 (42 nascoste). Prova a schermo sul banco: M984 → «M985» rifiutato («c'è già una voce M985»: nel
+  fork c'è), → «M999»: `itawlow.lairway` −13 +13; «Annulla tutto» pulito. Il motore non è toccato. Test: Lab 652 →
+  **661**.
+
+**Slice 7 chiusa.** Uscita misurata sul fork: «chi lo usa» e rinomina di punti (2 307), posizioni (308), versi di pista
+(618) e voci (985) — rinominati e annullati tutti, 0 guasti; **`LUSIL` 13 righe in 6 file** e **LIRR_NW_CTR 27 righe
+in 5 file**, tutti e soli i file giusti; «togli» impedito a chi è usato; «chi lo usa» di file e colori (solo da vedere:
+la loro rinomina è per il futuro, §4). Decisioni del committente del 28 settembre: VOR e NDB omonimi mostrati tutti e
+due, e la rinomina **chiede** per le righe comuni. Da provare a mano (eseguibile da ripubblicare): prove in
+`SectorLab-prova\PROVE.md`.

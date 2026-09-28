@@ -36,8 +36,16 @@ Slice 5 chiusa. **Slice 6** (gruppi e blocchi come Aurora, 28 settembre): **6a**
 selezione (confini coi poligoni, MVA con le zone, aerovie coi pezzi, gruppi dei `.geo`/`.pol` sotto un commento, aree
 P/R/D), accese e spente sulla mappa anche un poligono solo; **6b** il nome dal commento cambiato dalla scheda e la
 regola `NomeMancante` del validatore (564 «senza titolo» nei `.geo`); **6c** il gruppo col nome dal commento passa a
-blocco `//@` al primo metadato. Slice 6 chiusa; prossima: **slice 7** («chi lo usa» e rinomina). Test: motore **674**,
-Lab **606**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
+blocco `//@` al primo metadato. Slice 6 chiusa. **Slice 7** («chi lo usa» e rinomina, 28 settembre, divisa in sei
+passi): **7a** nella scheda di un punto chi lo usa, per master (e le copie a un decimo di miglio sono lo stesso punto;
+VOR e NDB omonimi mostrati tutti e due, decisione del committente); **7b** la rinomina di un punto in una voce sola con
+un diff per file, che **chiede** per le righe comuni (decisione del committente), e il «togli» impedito a un punto
+usato; **7c** le posizioni (trasferimenti dei `.frq`, teste dei `.tfl`); **7d** i versi di pista (SID, STAR, mappe,
+tag; i PAR dei `.cpr` e i commenti dei disegni «da cambiare a mano»); **7e** chi usa un file e i colori di
+`colors.def`, solo da vedere (la loro rinomina è per il futuro, decisione del committente); **7f** il nome delle voci
+di confini, MVA, aerovie e aree. Sul fork tutto rinominato e annullato con 0 guasti. Slice 7 chiusa; prossima:
+**slice 8** (famiglie di forme e gemelli). Test: motore **676**, Lab **661**. Il dettaglio di ogni passo sta in §6
+«Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
 ## 27 settembre 2026 — revisione del giro dei file

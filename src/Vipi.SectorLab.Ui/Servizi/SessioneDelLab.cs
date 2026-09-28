@@ -1322,6 +1322,42 @@ public sealed class SessioneDelLab
         return fatto;
     }
 
+    /// <summary>Vero se il nome della voce sta nelle righe di dati e si rinomina (slice 7f): confini, MVA, aerovie, aree.</summary>
+    public bool SiRinominaLaVoce(string fileRelativo, VoceDellaSelezione voce)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file && RinominaDellaVoce.Tipo(file, voce) is not null;
+
+    /// <summary>
+    /// Rinomina una voce il cui nome sta nelle righe di dati (lotto «Subito» slice 7f): il 2° campo dei confini, delle
+    /// MVA e delle aerovie (e le parole delle etichette delle aerovie, il 5° campo delle MVA), il 6° delle aree P/R/D,
+    /// nel suo file, righe nascoste e tag del blocco compresi. Una voce nel testo del file.
+    /// </summary>
+    public bool RinominaLaVoce(string fileRelativo, VoceDellaSelezione voce, string? nuovo)
+    {
+        ArgumentNullException.ThrowIfNull(voce);
+        string testo = (nuovo ?? "").Trim();
+        return NellaStoria($"voce «{voce.Nome}» di {NomeDelFile(fileRelativo)} rinominata «{testo}»",
+            () => GestoSulTesto(fileRelativo, "rinomina", f =>
+            {
+                if (f is not IFileConRecord conRecord || RinominaDellaVoce.Tipo(conRecord, voce) is not { } tipo)
+                    return new ModificaRifiutata("Il nome di questa voce non sta nelle righe di dati.");
+                var altre = (VociDi(fileRelativo) ?? []).Where(v => !string.Equals(v.Nome, voce.Nome, StringComparison.OrdinalIgnoreCase));
+                if (RinominaDellaVoce.PercheNonVa(testo, tipo, altre) is { } perche)
+                    return new ModificaRifiutata(perche);
+                if (string.Equals(testo, voce.Nome, StringComparison.Ordinal))
+                    return new ModificaRifiutata("Il nome è già questo.");
+                var sostituzioni = RinominaDellaVoce.Sostituzioni(RigheDiAdesso(fileRelativo), tipo, voce.Nome, testo);
+                if (sostituzioni.Count == 0)
+                    return new ModificaRifiutata("Non trovo il nome della voce nelle righe del file.");
+                int quanti = conRecord.RecordDelModello.Count;
+                bool tagBuoni = conRecord.TagRotti() is null;
+                return Modifiche.CambiaRighe(f, sostituzioni, $"voce «{voce.Nome}» → «{testo}» ({sostituzioni.Count} righe)",
+                    riletto => riletto.RecordDelModello.Count == quanti && (!tagBuoni || riletto.TagRotti() is null)
+                        ? null
+                        : "Col nome nuovo il file non si rilegge coi record di prima: si fa a mano, dalle righe del file.",
+                    anchiITag: true);
+            }));
+    }
+
     private readonly HashSet<string> _spenti = new(StringComparer.Ordinal);
 
     /// <summary>Le forme spente sulla mappa: <c>file#3</c> un record, <c>file#3.1</c> un poligono.</summary>

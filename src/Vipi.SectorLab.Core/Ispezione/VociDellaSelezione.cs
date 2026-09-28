@@ -34,6 +34,9 @@ public sealed record VoceDellaSelezione(string Nome, IReadOnlyList<int> Record, 
 /// <summary>Le voci della finestra di selezione di un file, calcolate sul testo com'è adesso.</summary>
 public static class VociDellaSelezione
 {
+    /// <summary>Il nome della voce delle zone MVA senza il gruppo (2° campo vuoto): non è scritto nel file.</summary>
+    public const string SenzaGruppo = "(senza gruppo)";
+
     /// <summary>Le voci del file, o null se il file non ha una finestra di selezione (fix, SID, settori dinamici…).</summary>
     public static IReadOnlyList<VoceDellaSelezione>? Di(FileAperto file, IReadOnlyList<string> righe, IReadOnlyList<(int Da, int Quante)> posti)
     {
@@ -132,7 +135,7 @@ public static class VociDellaSelezione
         {
             if (record[r] is not MvaSector zona)
                 continue;
-            string nome = zona.Nome.Length > 0 ? zona.Nome : "(senza gruppo)";
+            string nome = zona.Nome.Length > 0 ? zona.Nome : SenzaGruppo;
             var voce = voci.FirstOrDefault(v => v.Nome == nome);
             if (voce.Nome is null)
                 voci.Add(voce = (nome, [], []));

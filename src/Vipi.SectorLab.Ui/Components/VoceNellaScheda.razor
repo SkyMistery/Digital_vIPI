@@ -3,8 +3,8 @@
 @*
     La voce del record nella scheda (lotto «Subito» slice 6b, «file per file» H3, §M «nome di un pezzo»): come si chiama
     nella finestra di selezione di Aurora, e le sue parti di questo record col nome dal commento sopra — che qui si
-    cambia. Il nome della voce dei confini, delle MVA e delle aerovie è nelle righe di dati (il 2° campo): quello si
-    cambia con la rinomina (slice 7), non qui.
+    cambia. Il nome della voce dei confini, delle MVA, delle aerovie e delle aree è nelle righe di dati (il 2° campo, il
+    6° delle aree): dalla slice 7f si rinomina anche quello, in tutte le righe della voce del file.
 *@
 @if (Lab.VoceDi(File, Record) is { } voce)
 {
@@ -22,6 +22,18 @@
                         <input class="lab-campo @(voce.NomeMancante ? "lab-nome-mancante" : null)" value="@(voce.NomeMancante ? null : voce.Nome)"
                                placeholder="@(voce.NomeMancante ? voce.Nome : "—")" data-scrivi-nome="voce"
                                @onchange="e => Lab.CambiaIlNomeDellaVoce(File, voce, e.Value?.ToString())" />
+                    </td>
+                </tr>
+            }
+            else if (Lab.SiRinominaLaVoce(File, voce))
+            {
+                @* Slice 7f: il nome nelle righe di dati (2° campo, 6° delle aree) si rinomina in tutto il file. *@
+                <tr data-nome-voce="@voce.Nome">
+                    <th title="La voce della finestra di selezione di Aurora: il nome sta nelle righe di dati, e cambia in tutte le righe della voce del file (anche le nascoste)">Voce</th>
+                    <td>
+                        <input class="lab-campo" value="@voce.Nome" data-rinomina-voce="@voce.Nome"
+                               @onchange="e => Lab.RinominaLaVoce(File, voce, e.Value?.ToString())" />
+                        <span class="lab-nota">@Conto(voce)</span>
                     </td>
                 </tr>
             }
