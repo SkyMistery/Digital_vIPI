@@ -50,8 +50,16 @@ forma diverse» solo per le dichiarate (i settori solo simili non riempiono il p
 copie dopo ogni gesto sui vertici, che tengono partenza, verso, chiusura e scrittura, e «Allinea quella» / «Prendi la
 sua»; **8d** le linee dei `.geo` come copia e come sorgente (l'erba e il suo confine si seguono), il bordo e il
 riempimento che mancano, l'avviso del confine senza erba; **8e** il gemello `.vfi` ↔ `VFR_NASCOSTI.fix` (la
-posizione passa, «crea il gemello», la domanda dopo «togli»). Sul fork 0 guasti in ogni misura. Slice 8 chiusa;
-prossima: **slice 9** (procedure). Test: motore **676**, Lab **709**. Il dettaglio di ogni passo sta in §6
+posizione passa, «crea il gemello», la domanda dopo «togli»). Sul fork 0 guasti in ogni misura. Slice 8 chiusa.
+**Slice 9** (procedure, 29 settembre): **9a** i controlli (procedura ripetuta, tipo fuori posto, voce di un altro scalo,
+pista che lo scalo non ha); **9b** la scheda scrive RNAV e transizione, nel `MAPS` il tipo è «il tasto che accende la
+mappa», le voci per pista e tipo come la finestra delle procedure di Aurora e il «+» che mette la procedura nuova nel
+gruppo della sua pista; **9c** le chiavi del genere di voce, le scelte chiuse, minimi e pendenza, il fix proposto dal
+nome, «a tutta la voce»; **9d** i vincoli dei punti (`//@@`), al passaggio del mouse sulla mappa e mai in Aurora;
+**9e** i legami STAR → attesa → avvicinamento → mancato avvicinamento e l'avviso della STAR che finisce dove nessun
+avvicinamento passa. Tre difetti del motore trovati scrivendo, tutti di prima (testa `.str` doppia, commento in coda
+letto come RNAV, record nuovo che rubava il commento della voce dopo). Slice 9 chiusa; poi, decisione del committente,
+**la consegna agli AOD** (zip con eseguibile e sector). Test: motore **694**, Lab **765**. Il dettaglio di ogni passo sta in §6
 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
@@ -252,7 +260,7 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
 
 `Vipi.Sectorfile`: `Validazione/CopieGemelle.cs`, `Regola.CopieDiverse`, `Regola.CompostaConProceduraAssente`,
 `Regola.CompostaNonAllineata`; `IO/Metadati.cs` (virgolette, `composta`, `intere`, `Togli`, `NomeElencabile`);
-`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set); `Regola.FormaQuasiChiusa` (24 set). Lotto «Subito» slice 8: `Regola.FormeDiverse` e `Regola.ConfineSenzaErba` (le calcola il Lab). `tools/Vipi.SectorfileProva` (sezione
+`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set); `Regola.FormaQuasiChiusa` (24 set). Lotto «Subito» slice 8: `Regola.FormeDiverse` e `Regola.ConfineSenzaErba` (le calcola il Lab). Slice 9: `Validazione/ControlloDelleProcedure.cs` (4 regole), `Validazione/LegamiDelleProcedure.cs` e `Regola.StarSenzaAvvicinamento`; `SidProcedure.IsRnav`, `StrRecord.TipoNonScritto`, `StrParser.Rnav`, `StrSaver` fino all'8° campo; `FusioneDelRecord` (il commento in coda resta in coda); `RecordNuovo.Aggiungi` (la coda del vicino passa sotto il nuovo); `Metadati.RigheDeiPunti`. `tools/Vipi.SectorfileProva` (sezione
 5b, `composta` sulle MAPS). Il sito non usa niente di questo; la build della soluzione è verde.
 
 ### Dove sta la storia di prima
@@ -278,6 +286,11 @@ F2 → carta [`2026-09-22-f2-motore-del-sector.md`](../feature/2026-09-22-f2-mot
   «Annulla tutto» mostrava ancora la famiglia (8b). Si iscrive da sé a `Lab.Cambiata`, come la scheda.
 - 🔴 La mappa cuce i segmenti dei `.geo` senza guardare commenti e righe vuote; la linea del file (5d) sì. Chi confronta
   forme lo sa: 34 linee su 5 599 sul fork non coincidono (8d).
+- 🔴 Una scrittura che nessuna misura faceva (la testa di una procedura) nasconde difetti vecchi: prima di offrire un
+  campo nuovo, misurarlo su **ogni** record del fork (9b: «una testa per procedura», 2 811 righe; prima della correzione
+  `limc.sid` usciva con 16 righe in più).
+- 🔴 Il lettore degli `.str` lascia nelle righe di una voce la riga vuota e il commento della voce DOPO: chi inserisce
+  dopo una voce deve spostare quella coda (9b, `RecordNuovo.Aggiungi`).
 - 🔴 Riscrivere una linea può cambiarne il numero di segmenti: i record dopo di lei, nel suo file, slittano. Più
   scritture nello stesso file si fanno dall'ultima alla prima, e la scelta segue il suo record (8d, `liaa.geo`).
 

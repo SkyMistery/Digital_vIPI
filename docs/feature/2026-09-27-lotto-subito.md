@@ -8,7 +8,8 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) e la slice 8 (8a-8e); in corso la **slice 9** (9a fatta, §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e) e la slice 9 (9a-9e, §6 «Traccia»). Dopo la 9, decisione del committente (29 settembre): **consegna
+agli AOD** per una prima prova, uno zip con l'eseguibile e il sector. Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -1205,3 +1206,14 @@ tipo e la scheda della voce (Q1, P2) · **9c** i metadati delle procedure e il f
     invece di 69 (`libv.str` HITACX…(ATC) → GIO, `lica.str` → SUGEP, `limj.str` → SES, le REC militari di `lied.str`…);
     una pista senza avvicinamenti nel file non si controlla. Validatore sull'albero: 132 errori, 560 → **610 avvisi**.
   Test: motore 692 → **694**, Lab 764 → **765**.
+
+**Slice 9 chiusa.** Uscita misurata sul fork: **SID ripetute 11**, **tipo fuori posto 12** (la carta ne contava 28 con
+un'altra lettura), `limf.sid:28` preso da `TipoFuoriPosto` e da `VoceDiUnAltroScalo`, `licz.str` LICC, i 38 punti
+decimali di `liba.str` e `ALPHA SUOTH` (regole di prima, `CoppiaDecimale` e `DueNomiDiversi`); il fix dal nome **1 081
+con un candidato / 114 da scegliere / 50 senza** (la carta: 982 / 277 / 48, senza il raggio dallo scalo); **50 STAR**
+che finiscono dove nessun avvicinamento passa; **2 811 teste** riscritte una riga ciascuna. Trovati e corretti, nel
+motore, tre difetti di prima: la testa `.str` col tipo vuoto che usciva due volte, il commento in coda di `limc.sid`
+letto come RNAV, il record nuovo che si prendeva il commento della voce dopo. Voci del giro dei file chiuse: P1-P3, P6,
+P7, P11 (catalogo e vincoli; i valori dai PDF sono di F7), Q1, Q2, Q2b, Q2c, Q2d, Q6, R-4. Validatore sull'albero:
+**132 errori, 610 avvisi**. Test: motore 676 → **694**, Lab 709 → **765**. Da provare a mano (eseguibile ripubblicato
+`f27d4ed4`): prove 116-129 in `SectorLab-prova\PROVE.md`.
