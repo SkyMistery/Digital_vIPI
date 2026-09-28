@@ -1217,5 +1217,14 @@
     cambiano (Infrastructure 1793 verde).
   - **Test**: `CoordinateParserTests` (+6: Feature, FeatureCollection con MultiPolygon, buco, tre forme con
     «1e999»; tutti rossi sul codice di prima). Application 3060 → **3066**.
+  - **Gruppo 9** (convertitore, il testo AIP, **codice comune** `Vipi.Application`): **U-229**, metà segnaposto
+    («⟦R3⟧» scritto nel testo passava per un segnaposto del raggio e indicizzava un raggio che non c'era:
+    `ArgumentOutOfRange` fino alla pagina) → le parentesi del segnaposto arrivate col testo si tolgono, e
+    l'indice si controlla. **U-230** (un arco senza verso si disegnava orario in silenzio, e il verso scritto
+    dopo il centro — «… centred on X anti-clockwise till point Y» — si perdeva) → il verso detto mentre l'arco
+    aspetta centro o fine vale per quell'arco; senza verso si disegna ancora orario (scelta del Sito: un arco
+    serve) ma si segnala come arco incompleto, «verso». Carta F1 §5 aggiornata.
+  - **Test**: `AipGeometryReaderTests` (+4: arco senza verso, verso dopo il centro, due segnaposto a mano;
+    tutti rossi sul codice di prima). Application 3066 → **3070**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

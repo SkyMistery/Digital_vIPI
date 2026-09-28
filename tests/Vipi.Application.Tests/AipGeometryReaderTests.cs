@@ -454,11 +454,37 @@ public class AipGeometryReaderTests
     [InlineData("45°05'00\"N 009°00'00\"E then arc of circle in clockwise direction centred on 45°00'00\"N 009°00'00\"E till point 45°00'00\"N 009°07'04\"E", "raggio")]
     // Cerchio senza raggio.
     [InlineData("Circular area centered on 45°00'00\"N 009°00'00\"E.", "raggio")]
+    // 🔴 U-230: arco senza verso — si disegna orario, ma si dice.
+    [InlineData("45°05'00\"N 009°00'00\"E then arc of circle radius 5 NM centred on 45°00'00\"N 009°00'00\"E till point 45°00'00\"N 009°07'04\"E", "verso")]
     public void L_Arco_Incompleto_Dice_Che_Cosa_Manca(string testo, string manca)
     {
         var esito = AipGeometryReader.Leggi(testo);
 
         Assert.Contains(esito.Segnalazioni, s => s.Kind == CoordinateIssueKind.ArcoIncompleto && s.Dettaglio == manca);
+    }
+
+    /// <summary>🔴 U-230: il verso scritto dopo il centro («… centred on X anti-clockwise till point Y») vale.</summary>
+    [Fact]
+    public void Il_verso_dopo_il_centro_si_applica()
+    {
+        const string dopo = "45°05'00\"N 009°00'00\"E then arc of circle radius 5 NM centred on 45°00'00\"N 009°00'00\"E anti-clockwise till point 45°00'00\"N 009°07'04\"E";
+        const string prima = "45°05'00\"N 009°00'00\"E then arc of circle in anti-clockwise direction radius 5 NM centred on 45°00'00\"N 009°00'00\"E till point 45°00'00\"N 009°07'04\"E";
+
+        var esito = AipGeometryReader.Leggi(dopo);
+
+        Assert.Equal(Assert.Single(AipGeometryReader.Leggi(prima).Aree).Punti, Assert.Single(esito.Aree).Punti);
+        Assert.DoesNotContain(esito.Segnalazioni, s => s.Kind == CoordinateIssueKind.ArcoIncompleto);
+    }
+
+    /// <summary>🔴 U-229: un segnaposto del raggio scritto a mano nel testo non fa cadere il lettore.</summary>
+    [Theory]
+    [InlineData("ARC OF CIRCLE ⟦R3⟧")]
+    [InlineData("45°05'00\"N 009°00'00\"E then arc of circle ⟦R99999999999⟧ centred on 45°00'00\"N 009°00'00\"E till point 45°00'00\"N 009°07'04\"E")]
+    public void Un_segnaposto_scritto_a_mano_non_fa_cadere_niente(string testo)
+    {
+        var esito = CoordinateParser.Parse(testo);   // prima: ArgumentOutOfRange / Overflow fino alla pagina
+
+        Assert.NotNull(esito);
     }
 
     [Fact]
