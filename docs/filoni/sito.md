@@ -970,7 +970,7 @@
     `fail:` e zero «second operation». ⚠️ Non provati a schermo: l'anteprima di «Importa tabella» con il rifiuto
     per troppe celle (nella copia nessun documento ha una tabella generica né un vSOP militare; la prova è il test
     bUnit sul componente vero) e la decodifica dei nomi AIP (i volumi salvati si rileggono solo ricaricando l'AIP).
-- 🔨 **S32** lotto **L11 «Il resto», fetta F — derivazioni e dati** della revisione 3 (via del committente il
+- ✅ **S32** lotto **L11 «Il resto», fetta F — derivazioni e dati** della revisione 3 (via del committente il
   28-set). Perimetro: d08 (U-060, U-061, U-148…U-160), d10 (U-076…U-080, U-194, U-195, U-196), U-200 (d11) e il
   resto di d06 (U-041, U-047, U-135, U-137, U-138). Smistamento sul codice di `9a7dc868` con due agenti in sola
   lettura: **già chiuse** U-159 (= U-058, S27: la vLOA generata nasce bozza) e U-160 (= U-040/U-036, S25: canale
@@ -1118,5 +1118,16 @@
     all'accordo; resta un'idea, non un difetto.
   - **Test**: `SectorProjectionTests` (+1), `DocumentImpactLookupTests` (+2), `VloaOrdineFrequenzeTests` (+1).
     Rossi sul codice di prima. Infrastructure 1789 → **1793**.
+  - **Chiusura**: suite intere verdi net8 e net10 — Application **3039**, Infrastructure **1793**, Ui **1818**,
+    Hosting **68**, E2E **453** (net10); CI verde su tutti e dieci i commit. **Prova dal vivo** (copia del DB di
+    sviluppo autorizzata dal committente, :5199, poi cancellata): all'avvio il timbro `PubblicoDiCatalogo` è
+    scritto (U-077, l'ultimo giro è passato); Trasferimenti LIBB, gruppo LGKF di due varianti — eliminata la
+    seconda il gruppo si scioglie, «Undo» lo ricompone (nel database gruppo 1 su tutte e due le righe, U-061);
+    il campo «free condition» della barra in blocco porta `maxlength=500` (U-154); editor LIRF, «Declare minima» →
+    la nota LVP porta `maxlength=2000` (U-194); vIPI ACC LIBB e vLOA LIBB ↔ LGGG si aprono senza errori, nessuna
+    sezione «Nessun settore» e nessuna cella «, ». Nel log zero `fail:` e zero «second operation». ⚠️ Non
+    provati a schermo: il canale di una radioassistenza citata (U-157: nella copia nessun vSOP militare, la
+    prova è il test sul database e il bUnit della pagina), la vLOA 65 e il suo puntatore (non c'è nella copia),
+    e le segnalazioni U-060 (richiedono una sparizione dal catalogo: la prova è il test d'integrazione).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
