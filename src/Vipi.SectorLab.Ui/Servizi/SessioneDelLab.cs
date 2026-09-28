@@ -1083,6 +1083,86 @@ public sealed class SessioneDelLab
             () => CambiaRigaAManoAdesso(problema.File, numero, proposta));
     }
 
+    // --- nascondi e mostra (lotto «Subito» slice 5c) --------------------------------------------------------------
+
+    /// <summary>
+    /// I nascosti di ogni file, col testo da cui sono stati calcolati: trovarli costa una rilettura del file, e l'elenco
+    /// si ridisegna a ogni clic. Si rifanno quando il testo del file cambia.
+    /// </summary>
+    private readonly Dictionary<string, (IReadOnlyList<string> Righe, AnalisiDeiNascosti Analisi)> _nascosti = [];
+
+    /// <summary>Quel che il file ha di nascosto: fra gli altri, dentro, in parte.</summary>
+    public AnalisiDeiNascosti NascostiDi(string fileRelativo)
+    {
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not { } file)
+            return AnalisiDeiNascosti.Vuota;
+        var righe = RigheDiAdesso(fileRelativo);
+        if (_nascosti.TryGetValue(fileRelativo, out var tenuti) && tenuti.Righe.SequenceEqual(righe, StringComparer.Ordinal))
+            return tenuti.Analisi;
+
+        var analisi = Modifiche.NascostiDi(file);
+        _nascosti[fileRelativo] = (righe, analisi);
+        return analisi;
+    }
+
+    /// <summary>Il nascosto scelto nell'elenco: quello che comincia alla riga segnalata.</summary>
+    public BloccoNascosto? NascostoScelto
+        => RigaSegnalata is { } segnata ? NascostiDi(segnata.File).Fra.FirstOrDefault(b => b.Riga == segnata.Riga) : null;
+
+    /// <summary>Sceglie un record nascosto fra gli altri: l'ispettore mostra le sue righe e il tasto «Mostra».</summary>
+    public void ScegliNascosto(string fileRelativo, BloccoNascosto blocco)
+    {
+        ArgumentNullException.ThrowIfNull(blocco);
+        Scelta = null;
+        FileScelto = fileRelativo;
+        RigaSegnalata = (fileRelativo, blocco.Riga);
+        Registro.Scrivi("scelta", $"{fileRelativo}:{blocco.Riga} nascosto «{blocco.Etichetta}»");
+        Avvisa();
+    }
+
+    /// <summary>Nasconde il record: una voce nel testo del file.</summary>
+    public bool Nascondi(string fileRelativo, int record)
+        => NellaStoria($"{EtichettaDi(fileRelativo, record)} nascosto",
+            () => GestoSulTesto(fileRelativo, "nascondi", file => Modifiche.Nascondi(file, record, EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "")));
+
+    /// <summary>Mostra le righe nascoste dentro il record (tutte, o quelle commentate).</summary>
+    public bool MostraNelRecord(string fileRelativo, int record)
+        => NellaStoria($"{EtichettaDi(fileRelativo, record)}: righe nascoste mostrate",
+            () => GestoSulTesto(fileRelativo, "mostra", file => Modifiche.MostraNelRecord(file, record, EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "")));
+
+    /// <summary>Mostra un record nascosto fra gli altri: la scheda va su di lui.</summary>
+    public bool Mostra(string fileRelativo, BloccoNascosto blocco)
+    {
+        ArgumentNullException.ThrowIfNull(blocco);
+        bool fatto = NellaStoria($"{blocco.Etichetta} di {NomeDelFile(fileRelativo)} mostrato",
+            () => GestoSulTesto(fileRelativo, "mostra", file => Modifiche.Mostra(file, blocco)));
+        if (fatto)
+            Scegli(fileRelativo, blocco.DopoIlRecord + 1);
+        return fatto;
+    }
+
+    /// <summary>Il giro comune dei gesti che scrivono il testo del file (nascondi, mostra): registro, geometria, avvisi.</summary>
+    private bool GestoSulTesto(string fileRelativo, string cosa, Func<FileAperto, object> fai)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        var esito = fai(file);
+        Registro.Scrivi(cosa, $"{fileRelativo}: {Descrivi(esito)}");
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is ModificaDelTesto)
+        {
+            RifaiLaGeometria(fileRelativo);
+            RigaSegnalata = null;
+            if (Scelta is { } scelta && scelta.File == fileRelativo && scelta.Record >= file.Record)
+                Scelta = null;
+        }
+
+        RicontrollaLeModifiche();
+        Avvisa();
+        return esito is ModificaDelTesto;
+    }
+
     // --- spezza e unisci (lotto «Subito» slice 5b) ---------------------------------------------------------------
 
     /// <summary>Come si interrompe quell'elenco (riga vuota, &lt;br&gt;, DUMMY, BREAK), o null se lì non si spezza.</summary>

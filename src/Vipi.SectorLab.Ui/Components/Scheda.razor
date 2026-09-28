@@ -17,6 +17,18 @@
                 <NuovoRecord File="@scheda.File" Modello="scheda.Indice" />
                 <button class="lab-tasto lab-tasto-tenue" data-tasto="togli-record"
                         @onclick="() => Lab.TogliRecord(scheda.File, scheda.Indice)">− Togli questo record</button>
+                @* Slice 5c: nascondere = commentare le sue righe (in Aurora non c'è più, qui resta grigio). *@
+                @if (!Nascosti(scheda).Dentro.Contains(scheda.Indice))
+                {
+                    <button class="lab-tasto lab-tasto-tenue" data-tasto="nascondi"
+                            title="Mette // davanti alle sue righe: Aurora non lo legge più, qui resta nell'elenco, grigio"
+                            @onclick="() => Lab.Nascondi(scheda.File, scheda.Indice)">◐ Nascondi</button>
+                }
+                @if (Nascosti(scheda).Dentro.Contains(scheda.Indice) || Nascosti(scheda).InParte.ContainsKey(scheda.Indice))
+                {
+                    <button class="lab-tasto lab-tasto-tenue" data-tasto="mostra" title="Toglie i // dalle sue righe nascoste: Aurora le torna a leggere"
+                            @onclick="() => Lab.MostraNelRecord(scheda.File, scheda.Indice)">@TestoDelMostra(scheda)</button>
+                }
                 @* La vista (chiesta dal committente il 23 settembre): sulla mappa solo quel che si sta lavorando. *@
                 <button class="lab-tasto lab-tasto-tenue @(Lab.EInVista(scheda.File, scheda.Indice) ? "lab-tasto-acceso" : null)"
                         data-tasto="vista-record" @onclick="() => Lab.CambiaLaVista(scheda.File, scheda.Indice)"
@@ -301,10 +313,23 @@ else if (Lab.RigaSegnalata is { } segnata)
 {
     @* Slice 10: un problema che non sta in un record. Niente scheda, ma la riga si vede, dal disco. *@
     var righe = Lab.RigheIntornoAllaSegnalata();
+    var nascosto = Lab.NascostoScelto;
     <div class="lab-ispettore" data-ispettore-riga="@($"{segnata.File}:{segnata.Riga}")">
         <header>
-            <p class="lab-etichetta">@segnata.File[(segnata.File.LastIndexOf('/') + 1)..], riga @segnata.Riga</p>
-            <p class="lab-nota">@segnata.File · la riga non appartiene a un record</p>
+            @if (nascosto is not null)
+            {
+                @* Slice 5c: un record nascosto fra gli altri — le sue righe commentate, e il tasto per rimetterlo. *@
+                <p class="lab-etichetta">@nascosto.Etichetta <span class="lab-nota">nascosto</span></p>
+                <p class="lab-nota">@segnata.File · righe @nascosto.Riga-@(nascosto.Riga + nascosto.Righe - 1) commentate: per Aurora non c'è</p>
+                <p class="lab-gesti-record">
+                    <button class="lab-tasto" data-tasto="mostra" @onclick="MostraIlNascosto">◑ Mostra</button>
+                </p>
+            }
+            else
+            {
+                <p class="lab-etichetta">@segnata.File[(segnata.File.LastIndexOf('/') + 1)..], riga @segnata.Riga</p>
+                <p class="lab-nota">@segnata.File · la riga non appartiene a un record</p>
+            }
         </header>
         @* Una riga che non è un record (illeggibile, per esempio) si corregge qui, a mano (prova 7 del committente). *@
         <RigheAMano File="@segnata.File" Righe="righe"
@@ -359,6 +384,17 @@ else
 
     /// <summary>Per quale elenco è il testo da incollare: un record può avere più tratti, ognuno col suo.</summary>
     private string? _perQuale;
+
+    private AnalisiDeiNascosti Nascosti(SchedaDelRecord scheda) => Lab.NascostiDi(scheda.File);
+
+    private string TestoDelMostra(SchedaDelRecord scheda)
+        => Nascosti(scheda).InParte.TryGetValue(scheda.Indice, out var sue) ? $"◑ Mostra le {sue.Count} righe nascoste" : "◑ Mostra";
+
+    private void MostraIlNascosto()
+    {
+        if (Lab.RigaSegnalata is { } segnata && Lab.NascostoScelto is { } blocco)
+            Lab.Mostra(segnata.File, blocco);
+    }
 
     /// <summary>Come il file scrive l'interruzione, detto all'AOD.</summary>
     private static string ComeSiScrive(FormaDellInterruzione forma) => forma switch

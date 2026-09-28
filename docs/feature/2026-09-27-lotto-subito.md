@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4d); in corso la **slice 5** (5a e 5b fatte; §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) la slice 3 (3a-3e) e la slice 4 (4a-4d); in corso la **slice 5** (5a-5c fatte; §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -648,3 +648,33 @@ due segmenti `.geo`; 169 righe vuote fra due righe di dati nelle MVA di scalo.
   dopo VADIK (`T;BREAK;VADIK;VADIK;`); NORTH DEP16 di `lied.sid`: la riga «interruzione · riga vuota», «Unisci», la SID
   sulla mappa diventa una linea sola e le forbici tornano sul punto 6; «Annulla tutto». Test: Lab 548 → **560**
   (motore invariato, 671).
+- **5c (28 settembre)** — nascondi e mostra (B3, R-5, K4; solo Lab, nessun codice comune). «◐ Nascondi» mette `//`
+  davanti a ogni riga di dati del record; «◑ Mostra» li toglie. Per Aurora un record nascosto non c'è; nel Lab resta
+  nell'elenco, **grigio** e in corsivo, al suo posto. Come spezza e unisci il gesto si fa sul testo (una voce: «MM CONF 4:
+  mostrato»), il motore rilegge, e un controllo sul file riletto decide se il gesto ha fatto quel che doveva.
+  - **Come il Lab trova i nascosti** (`Modifiche/Nascosti.cs`, `Analizza`): il motore i record commentati non li vede
+    (sono commenti). Il Lab toglie i `//` a tutte le righe commentate **che hanno dati** (un `;`: i titoli `//SARDEGNA`,
+    `//discontinuity…` e i tag `//@` no), rilegge il file UNA volta, e guarda ogni record che ne esce. Tre casi, misurati
+    sul fork: **nascosto fra gli altri** (tutte le sue righe erano commentate: le SID di `lipb.sid`, «MM CONF 4» di
+    `limm_tma`, le procedure di `limw.str`, che per il motore stavano dentro la procedura prima — negli `.str` un
+    commento non chiude il record); **nascosto dentro** (il motore lo tiene anche commentato: nei file a una riga per
+    record una riga commentata è un record disattivato, `//LIRR;0;0;…; Roma Area;` di `itap.ap`; una zona MVA tutta
+    commentata); **in parte** (un record attivo con qualche riga commentata: l'etichetta `//L;LIRR;…; //NAPOLI CTA`, le
+    `//T;LIMM;…` di `limm.mva`, i punti commentati delle mappe `.str`), che nell'elenco porta «◑ N» e nella scheda «◑
+    Mostra le N righe nascoste». I nascosti del file si calcolano una volta e si tengono finché il suo testo non cambia.
+  - Scelte dell'agente: nelle MVA nascondere lascia attivo il `T;DUMMY` (come le zone commentate del fork: chiude il
+    blocco); un record coi metadati `//@` non si nasconde (il tag resterebbe senza record: prima si tolgono); gli `.atis`
+    sono testi e non si nascondono; «Mostra» su un record nascosto dentro scommenta tutte le sue righe con dati (anche
+    quelle che erano commentate prima di «Nascondi»: il Lab non sa quali fossero).
+  Misura sul fork (strumento fuori repo, `scratchpad/misura5c`): **nascosti fra gli altri 98** (71 aerovie dell'archivio
+  `itawhigh.hairway`, 11 SID, 6 righe dei `.frq`, 4 settori `.tfl`, 2 procedure `.str`, 2 piste, **«MM CONF 4» con le
+  sue 274 righe**, K4, e una riga di `liml.txi`), **dentro 28** (12 `italy.restrict`, 8 `.ap`, 6 `.geo`, 2 `.gts`), **in parte 129 record** (5 zone
+  MVA con **53 righe** — le 52 della carta —, 120 procedure `.str` con 541 righe, 2 settori, 2 confini `.hartcc`/`.lartcc`). Mostra e
+  rinascondi ognuno: **98 + 28 su 98 + 28 tornano al file di prima**, senza voce; «mostra in parte» cambia solo quelle
+  righe (128 su 129; `lime.str` #4 rifiutato col perché: scommentate le sue righe il file avrebbe un record in più).
+  **Nascondi e rimostra tre record per file: 1 928 tornano al file di prima**, 9 scommentano anche le righe che il record
+  aveva già nascoste (atteso), 3 (`limm_tma` #7, `limw.str` #0, `lipb.sid` #16) si fondono col nascosto che hanno accanto:
+  scommentati sono un record solo, e «Mostra» li mostra insieme; 7 `.atis` rifiutati. Annullare torna sempre al file.
+  Prova a schermo sul banco: `limm_tma.lartcc` — «6 MM CONF 3 ◑ 2», «· MM CONF 4 nascosto» grigio; scelto, l'ispettore
+  dice «righe 1062-1349 commentate: per Aurora non c'è»; «Mostra» → −274 +274, MM CONF 4 diventa il record 8 e la scheda
+  va su di lui; «Nascondi» → nessuna modifica, di nuovo grigio in fondo. Test: Lab 560 → **572**.

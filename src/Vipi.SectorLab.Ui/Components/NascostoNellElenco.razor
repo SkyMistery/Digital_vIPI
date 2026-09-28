@@ -1,0 +1,20 @@
+@inject SessioneDelLab Lab
+
+@*
+    Un record nascosto fra gli altri (lotto «Subito» slice 5c): le sue righe sono commentate, per Aurora non c'è. Nel Lab
+    resta nell'elenco, grigio, al suo posto; un clic lo sceglie e l'ispettore offre «Mostra».
+*@
+<button class="lab-voce lab-nascosto @(Scelto ? "lab-scelto" : null)" data-nascosto="@Blocco.Riga"
+        title="@($"Nascosto: righe {Blocco.Riga}-{Blocco.Riga + Blocco.Righe - 1} commentate")" @onclick="Scegli">
+    <span class="lab-numero">·</span> @Blocco.Etichetta <span class="lab-nota">nascosto</span>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public BloccoNascosto Blocco { get; set; } = null!;
+
+    private bool Scelto => Lab.RigaSegnalata == (File, Blocco.Riga);
+
+    private void Scegli() => Lab.ScegliNascosto(File, Blocco);
+}

@@ -855,6 +855,12 @@ body.lab-trascina * {
     font-weight: 700;
 }
 
+/* Lotto «Subito» slice 5c: i record nascosti (righe commentate) restano nell'elenco, grigi. */
+.lab-voce.lab-nascosto {
+    color: var(--lab-tenue);
+    font-style: italic;
+}
+
 /* Lotto «Subito» slice 5b: dove la linea si interrompe, fra due punti o in fondo all'elenco. */
 .lab-interruzione {
     display: flex;

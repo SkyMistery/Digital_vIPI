@@ -1000,6 +1000,94 @@ public sealed class ModificheInSospeso
 
     private static bool EUnTag(string riga) => riga.TrimStart().StartsWith("//@", StringComparison.Ordinal);
 
+    // --- nascondi e mostra (lotto «Subito» slice 5c) --------------------------------------------------------------
+
+    /// <summary>Quel che il file ha di nascosto, com'è adesso (<see cref="Nascosti.Analizza"/>).</summary>
+    public AnalisiDeiNascosti NascostiDi(FileAperto file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord)
+            return AnalisiDeiNascosti.Vuota;
+        var sporchi = SporchiDi(file.Relativo);
+        return Nascosti.Analizza(file, conRecord.RigheDelFile(sporchi), conRecord.PostiDeiRecord(sporchi));
+    }
+
+    /// <summary>
+    /// Nasconde il record: <c>//</c> davanti a ogni sua riga di dati. Una voce nel testo del file. Riletto, il record non
+    /// c'è più per il motore, o c'è tutto commentato (le zone MVA, i file a una riga per record). Un record coi metadati
+    /// <c>//@</c> non si nasconde (il tag resterebbe senza il suo record), né un testo <c>.atis</c>.
+    /// </summary>
+    public object Nascondi(FileAperto file, int indice, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord || indice < 0 || indice >= conRecord.RecordDelModello.Count)
+            return new ModificaRifiutata("Questo record non c'è.");
+        if (file.Relativo.EndsWith(".atis", StringComparison.OrdinalIgnoreCase))
+            return new ModificaRifiutata("Gli .atis sono testi: una riga commentata è un'altra frase, non un record nascosto.");
+        if (conRecord.ChiaviDi(indice) is not null)
+            return new ModificaRifiutata("Il record ha dei metadati (//@): nascosto, il tag resterebbe senza il suo record. Togli prima i metadati.");
+
+        var sporchi = SporchiDi(file.Relativo);
+        var righe = conRecord.RigheDelFile(sporchi);
+        var posto = conRecord.PostiDeiRecord(sporchi)[indice];
+        var sostituzioni = Nascosti.Nascondi(conRecord.RecordDelModello[indice], righe, posto);
+        if (sostituzioni.Count == 0)
+            return new ModificaRifiutata("Il record è già nascosto: non ha righe di dati attive.");
+
+        int quanti = conRecord.RecordDelModello.Count;
+        return CambiaRighe(file, sostituzioni, (etichetta.Length > 0 ? etichetta + ": " : "") + "nascosto", riletto =>
+        {
+            int ora = riletto.RecordDelModello.Count;
+            return ora == quanti - 1
+                   || ora == quanti && Nascosti.Dentro(riletto.RigheDelFile([]), riletto.PostiDeiRecord([])[indice])
+                ? null
+                : "Commentato, il file non si rilegge come dovrebbe: si fa a mano, dalle righe del file.";
+        });
+    }
+
+    /// <summary>
+    /// Mostra le righe nascoste DENTRO il record (tutte, se è nascosto dentro; quelle commentate, se lo è in parte):
+    /// via i <c>//</c>. Riletto, il file ha gli stessi record.
+    /// </summary>
+    public object MostraNelRecord(FileAperto file, int indice, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord || indice < 0 || indice >= conRecord.RecordDelModello.Count)
+            return new ModificaRifiutata("Questo record non c'è.");
+
+        var sporchi = SporchiDi(file.Relativo);
+        var righe = conRecord.RigheDelFile(sporchi);
+        var posto = conRecord.PostiDeiRecord(sporchi)[indice];
+        var analisi = NascostiDi(file);
+        IEnumerable<int> quali = analisi.Dentro.Contains(indice) ? Enumerable.Range(posto.Da, posto.Quante)
+            : analisi.InParte.TryGetValue(indice, out var sue) ? sue
+            : [];
+        var sostituzioni = Nascosti.Mostra(righe, quali);
+        if (sostituzioni.Count == 0)
+            return new ModificaRifiutata("Il record non ha righe nascoste.");
+
+        int quanti = conRecord.RecordDelModello.Count;
+        return CambiaRighe(file, sostituzioni, (etichetta.Length > 0 ? etichetta + ": " : "") + $"mostrate {sostituzioni.Count} righe",
+            riletto => riletto.RecordDelModello.Count == quanti ? null : "Scommentato, il file non si rilegge coi record di prima: si fa a mano, dalle righe del file.");
+    }
+
+    /// <summary>Mostra un record nascosto fra gli altri: via i <c>//</c> dalle sue righe, e il motore lo rilegge.</summary>
+    public object Mostra(FileAperto file, BloccoNascosto blocco)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(blocco);
+        if (file is not IFileConRecord conRecord)
+            return new ModificaRifiutata("Questo file il motore non lo interpreta.");
+        // Il blocco deve essere ancora lì, com'era: fra un clic e l'altro il file può essere cambiato.
+        if (!NascostiDi(file).Fra.Contains(blocco))
+            return new ModificaRifiutata("Quel record nascosto non è più lì: il file è cambiato.");
+
+        var righe = conRecord.RigheDelFile(SporchiDi(file.Relativo));
+        int attesi = conRecord.RecordDelModello.Count + 1;
+        return CambiaRighe(file, Nascosti.Mostra(righe, Enumerable.Range(blocco.Riga - 1, blocco.Righe)), blocco.Etichetta + ": mostrato",
+            riletto => riletto.RecordDelModello.Count == attesi ? null : "Scommentato, il file non si rilegge con un record in più: si fa a mano, dalle righe del file.");
+    }
+
     // --- spezza e unisci (lotto «Subito» slice 5b) ---------------------------------------------------------------
 
     /// <summary>

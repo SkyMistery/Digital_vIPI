@@ -31,12 +31,27 @@
             <input type="search" class="lab-cerca" placeholder="Filtra i record" value="@_filtro"
                    @oninput="e => _filtro = e.Value?.ToString() ?? string.Empty" data-campo="filtra" />
             var voci = Voci();
+            @* Slice 5c: i record nascosti (commentati) restano nell'elenco, grigi, al loro posto. *@
+            var nascosti = Lab.NascostiDi(Relativo);
+            var fra = nascosti.Fra;
+            foreach (var blocco in fra.Where(b => b.DopoIlRecord < 0 && Passa(b.Etichetta)))
+            {
+                <NascostoNellElenco File="@Relativo" Blocco="blocco" />
+            }
             foreach (var voce in voci.Take(Tetto))
             {
-                <button class="lab-voce @(Lab.Scelta == (Relativo, voce.Indice) ? "lab-scelto" : null)"
+                <button class="@Classe(nascosti, voce.Indice)" title="@Titolo(nascosti, voce.Indice)"
                         @onclick="() => Lab.Scegli(Relativo, voce.Indice)" data-record="@voce.Indice">
                     <span class="lab-numero">@voce.Indice</span> @voce.Etichetta
+                    @if (nascosti.InParte.TryGetValue(voce.Indice, out var sue))
+                    {
+                        <span class="lab-nota" data-in-parte="@sue.Count">◑ @sue.Count</span>
+                    }
                 </button>
+                foreach (var blocco in fra.Where(b => b.DopoIlRecord == voce.Indice && Passa(b.Etichetta)))
+                {
+                    <NascostoNellElenco File="@Relativo" Blocco="blocco" />
+                }
             }
             if (voci.Count > Tetto)
             {
@@ -65,6 +80,16 @@
             ? [.. voci.Where(v => v.Etichetta.Contains(filtro, StringComparison.OrdinalIgnoreCase))]
             : [.. voci];
     }
+
+    private bool Passa(string etichetta) => _filtro.Trim() is not { Length: > 0 } filtro || etichetta.Contains(filtro, StringComparison.OrdinalIgnoreCase);
+
+    private string Classe(AnalisiDeiNascosti nascosti, int indice)
+        => "lab-voce" + (Lab.Scelta == (Relativo, indice) ? " lab-scelto" : "") + (nascosti.Dentro.Contains(indice) ? " lab-nascosto" : "");
+
+    private static string? Titolo(AnalisiDeiNascosti nascosti, int indice)
+        => nascosti.Dentro.Contains(indice) ? "Nascosto: le sue righe sono commentate"
+            : nascosti.InParte.TryGetValue(indice, out var sue) ? $"{sue.Count} righe nascoste (commentate) dentro questo record"
+            : null;
 
     private static string Nome(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
 
