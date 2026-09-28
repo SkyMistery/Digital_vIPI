@@ -89,6 +89,29 @@ public class AgreementValidationTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// U-187 (revisione 3): la condizione di PISTA non aveva tetto nel servizio, e la colonna è di 80 caratteri. Con
+    /// più scali ogni pista porta l'ICAO («LIRF 16L / LIRF 16R / …»): sei-otto piste scelte bastano, e in strict
+    /// l'errore del database arrivava grezzo.
+    /// </summary>
+    [Fact]
+    public async Task Una_condizione_di_pista_oltre_la_colonna_si_rifiuta_con_una_frase()
+    {
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+        var sezione = await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Overflight));
+        var tetto = Vipi.Domain.Entities.AgreementClauseLimits.Pista;
+        Assert.Equal(80, tetto);
+
+        var lunga = string.Join(" / ", Enumerable.Range(1, 9).Select(i => $"LIRF {i:00}L"));
+        Assert.True(lunga.Length > tetto);
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _svc.AddClauseAsync("LIRR", sezione,
+            new AgreementClauseInput { LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove, LevelValue = 240, Cops = "VALMA", ConditionLabel = lunga }));
+        Assert.Contains(tetto.ToString(), ex.Message);
+
+        Assert.True(await _svc.AddClauseAsync("LIRR", sezione,
+            new AgreementClauseInput { LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrAbove, LevelValue = 240, Cops = "VALMA", ConditionLabel = new string('p', tetto) }) > 0);
+    }
+
+    /// <summary>
     /// 🔴 U-178 (revisione totale 3): «Incolla tabella» scriveva le clausole una per una. Una riga rifiutata a metà
     /// lasciava salvate le precedenti, che la pagina non mostrava (niente ricarico dopo un errore): al nuovo invio,
     /// dopo aver corretto la riga, entravano due volte. Ora si validano tutte prima e si scrivono insieme.

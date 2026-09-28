@@ -391,6 +391,8 @@ public sealed class AgreementService : IAgreementService
         TroppoLungo(CopList.Format(CopList.Parse(i.Cops)), Vipi.Domain.Entities.AgreementClauseLimits.Elenco, "I punti", "The points");
         TroppoLungo(i.ConditionAreaLabel, Vipi.Domain.Entities.AgreementClauseLimits.Elenco, "Le aree della condizione", "The condition areas");
         TroppoLungo(i.ConditionCustomLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "La condizione", "The condition");
+        // U-187: con più scali ogni pista porta l'ICAO, e sei-otto piste scelte superano la colonna.
+        TroppoLungo(i.ConditionLabel, Vipi.Domain.Entities.AgreementClauseLimits.Pista, "Le piste della condizione", "The condition runways");
         TroppoLungo(i.HandoffLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "Il luogo del trasferimento", "The transfer location");
         TroppoLungo(i.CommsHandoffLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "Il luogo del passaggio comunicazioni", "The communications transfer location");
 

@@ -2518,6 +2518,10 @@
   <data name="Xfer_BulkArea" xml:space="preserve"><value>active area…</value></data>
   <data name="Xfer_BulkCustom" xml:space="preserve"><value>free condition…</value></data>
   <data name="Xfer_BulkApplyCondition" xml:space="preserve"><value>Apply condition</value></data>
+  <data name="Xfer_BulkConditionEmpty" xml:space="preserve"><value>Pick an area or write a free condition. To clear them there is «Remove condition».</value></data>
+  <data name="Xfer_BulkRemoveCondition" xml:space="preserve"><value>Remove condition</value></data>
+  <data name="Xfer_BulkRemoveConditionPrompt" xml:space="preserve"><value>Remove area and free condition from {0} clauses? You can undo while the message stays on screen.</value></data>
+  <data name="Xfer_CondRestored" xml:space="preserve"><value>Conditions put back as they were.</value></data>
   <data name="Xfer_BulkConditionTitle" xml:space="preserve"><value>Area and free condition. Not runways: those depend on the group's airport</value></data>
   <data name="Xfer_BulkDeleteAria" xml:space="preserve"><value>Delete the selected rows</value></data>
   <data name="Xfer_BulkDeletePrompt" xml:space="preserve"><value>Delete {0} clauses? You can undo while the message stays on screen.</value></data>

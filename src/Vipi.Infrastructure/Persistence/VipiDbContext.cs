@@ -561,7 +561,7 @@ public class VipiDbContext : DbContext
             // all'utente prima di arrivare al database — su MariaDB fuori da strict un testo troppo lungo non dava
             // errore, veniva troncato. ConditionLabel resta a 80: sono designatori di pista scelti da un elenco.
             e.Property(x => x.Cops).HasMaxLength(AgreementClauseLimits.Elenco);
-            e.Property(x => x.ConditionLabel).HasMaxLength(80);
+            e.Property(x => x.ConditionLabel).HasMaxLength(AgreementClauseLimits.Pista);
             e.Property(x => x.ConditionAreaLabel).HasMaxLength(AgreementClauseLimits.Elenco);
             e.Property(x => x.ConditionCustomLabel).HasMaxLength(AgreementClauseLimits.Etichetta);
             e.Property(x => x.HandoffLabel).HasMaxLength(AgreementClauseLimits.Etichetta);

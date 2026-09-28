@@ -385,8 +385,15 @@
                         <div class="field xt-bulkfield">
                             <input placeholder="@L["Xfer_BulkCustom"]" maxlength="@Vipi.Domain.Entities.AgreementClauseLimits.Etichetta" @bind="_bulkCustomText" @bind:event="oninput" />
                         </div>
-                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_BulkConditionTitle"]"
+                        @* U-176 (revisione 3; scelta del committente del 28-set): a campi vuoti il tasto svuotava le
+                           condizioni di tutte le righe scelte. Ora è spento e dice perché; svuotare è un gesto suo, con
+                           la conferma del numero di righe, e tutti e due si annullano. *@
+                        <button class="btn ghost" disabled="@(_busy || !_canEdit || !CondizioneDaApplicare)"
+                                title="@(CondizioneDaApplicare ? L["Xfer_BulkConditionTitle"] : L["Xfer_BulkConditionEmpty"])"
                                 @onclick="ApplyBulkCondition">@L["Xfer_BulkApplyCondition"]</button>
+                        <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_BulkRemoveCondition"]" Disabled="@(_busy || !_canEdit)"
+                                       Prompt="@(string.Format(L["Xfer_BulkRemoveConditionPrompt"].Value, _selected.Count))"
+                                       OnConfirm="TogliCondizioneBulk"><Trigger>@L["Xfer_BulkRemoveCondition"]</Trigger></InlineConfirm>
 
                         @* «Come risale»: non modifica niente, quindi NON chiede _canEdit — la si guarda anche
                            in sola lettura, ed e' il caso piu' frequente (si viene qui per capire, non per
@@ -1113,22 +1120,60 @@
         if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
     }
 
+    /// <summary>C'è qualcosa da applicare: un'area scelta o una condizione libera scritta (U-176).</summary>
+    private bool CondizioneDaApplicare => _bulkAree.Count > 0 || !string.IsNullOrWhiteSpace(_bulkCustomText);
+
     private async Task ApplyBulkCondition()
     {
-        if (_selected.Count == 0) return;
+        if (_selected.Count == 0 || !CondizioneDaApplicare) return;
         var ids = _selected.ToList();
+        var foto = FotografaCondizioni(ids);
         var area = TransferConditionText.UnisciAree(_bulkAree);
         var custom = _bulkCustomText.Trim();
         var n = 0;
-        await Guarded(async () =>
+        if (!await Guarded(async () =>
         {
             n = await Agreements.SetConditionAsync(_acc!.Code, ids,
                 area, _bulkAreaNegated, _bulkAreaAll, custom.Length == 0 ? null : custom);
             _selected.Clear(); _bulkAree.Clear(); _bulkAreaText = "";
             _bulkAreaNegated = false; _bulkAreaAll = false; _bulkCustomText = "";
-        }, null);
-        if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
+        }, null)) return;
+        if (n == 0) return;
+        _status = string.Format(L["Xfer_BulkDone"].Value, n);
+        _undo = (RimettiCondizioni(foto), L["Xfer_CondRestored"].Value);
     }
+
+    /// <summary>«Togli condizione»: area e condizione libera via dalle righe scelte, dopo la conferma (U-176).</summary>
+    private async Task TogliCondizioneBulk()
+    {
+        if (_selected.Count == 0) return;
+        var ids = _selected.ToList();
+        var foto = FotografaCondizioni(ids);
+        var n = 0;
+        if (!await Guarded(async () =>
+        {
+            n = await Agreements.SetConditionAsync(_acc!.Code, ids, null, false, false, null);
+            _selected.Clear();
+        }, null)) return;
+        if (n == 0) return;
+        _status = string.Format(L["Xfer_BulkDone"].Value, n);
+        _undo = (RimettiCondizioni(foto), L["Xfer_CondRestored"].Value);
+    }
+
+    /// <summary>La condizione di ogni riga prima del gesto, raggruppata per valore: l'annulla la rimette con la
+    /// stessa porta in blocco, un gruppo per volta. I valori di prima sono validi per costruzione.</summary>
+    private List<(string? Area, bool Neg, bool All, string? Custom, List<int> Ids)> FotografaCondizioni(IReadOnlyCollection<int> ids) =>
+        _agreements.SelectMany(a => a.Sections).SelectMany(s => s.Clauses).Where(c => ids.Contains(c.Id))
+            .GroupBy(c => (c.ConditionAreaLabel, c.ConditionAreaNegated, c.ConditionAreaAll, c.ConditionCustomLabel))
+            .Select(g => (g.Key.ConditionAreaLabel, g.Key.ConditionAreaNegated, g.Key.ConditionAreaAll,
+                          g.Key.ConditionCustomLabel, g.Select(c => c.Id).ToList()))
+            .ToList();
+
+    private Func<Task> RimettiCondizioni(List<(string? Area, bool Neg, bool All, string? Custom, List<int> Ids)> foto) => async () =>
+    {
+        foreach (var f in foto)
+            await Agreements.SetConditionAsync(_acc!.Code, f.Ids, f.Area, f.Neg, f.All, f.Custom);
+    };
 
     private async Task DeleteBulk()
     {
@@ -1145,15 +1190,15 @@
             _agreements.SelectMany(a => a.Sections).SelectMany(sec => sec.Clauses), ids);
 
         var n = 0;
-        await Guarded(async () =>
+        // U-193: l'annulla si arma su ciò che è successo davvero, non su «nessun errore a schermo».
+        if (!await Guarded(async () =>
         {
             n = await Agreements.DeleteClausesAsync(_acc!.Code, ids);
             _selected.Clear();
-        }, null);
+        }, null)) return;
 
-        if (_error is not null) return;
         _status = string.Format(L["Xfer_BulkDeleted"].Value, n);
-        if (snaps.Count > 0)
+        if (n > 0 && snaps.Count > 0)
             _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps, sorelle), L["Xfer_RowsRestored"].Value);
     }
 
@@ -3384,12 +3429,9 @@
         // La fotografia si scatta PRIMA (dopo, l'accordo non c'è più) ma l'annulla si arma DOPO, e solo se
         // l'eliminazione è andata: offrire di annullare qualcosa che non è successo è peggio che non offrirlo.
         var snap = SnapshotOf(a);
-        await Guarded(() => Agreements.DeleteAgreementAsync(_acc!.Code, a.Id), L["Xfer_AgreementDeleted"].Value);
-        if (_error is null)
-        {
-            _selectedId = null;
-            _undo = (() => Agreements.RestoreAgreementAsync(_acc!.Code, snap), L["Xfer_AgreementRestored"].Value);
-        }
+        if (!await Guarded(() => Agreements.DeleteAgreementAsync(_acc!.Code, a.Id), L["Xfer_AgreementDeleted"].Value)) return;
+        _selectedId = null;
+        _undo = (() => Agreements.RestoreAgreementAsync(_acc!.Code, snap), L["Xfer_AgreementRestored"].Value);
     }
 
     // ---- sezioni ------------------------------------------------------------------------------------
@@ -3447,12 +3489,9 @@
     private async Task DeleteSection(AgreementRow a, AgreementSectionRow sec)
     {
         var snap = new AgreementSectionRestore(a.Id, SnapshotOf(sec));
-        await Guarded(() => Agreements.DeleteSectionAsync(_acc!.Code, sec.Id), L["Xfer_SectionDeleted"].Value);
-        if (_error is null)
-        {
-            if (_focusSectionId == sec.Id) _focusSectionId = null;
-            _undo = (() => Agreements.RestoreSectionAsync(_acc!.Code, snap), L["Xfer_SectionRestored"].Value);
-        }
+        if (!await Guarded(() => Agreements.DeleteSectionAsync(_acc!.Code, sec.Id), L["Xfer_SectionDeleted"].Value)) return;
+        if (_focusSectionId == sec.Id) _focusSectionId = null;
+        _undo = (() => Agreements.RestoreSectionAsync(_acc!.Code, snap), L["Xfer_SectionRestored"].Value);
     }
 
     /// <summary>Copia la sezione nel verso opposto, come punto di partenza per il reciproco.</summary>
@@ -3688,10 +3727,8 @@
         // deve ricomporre.
         var sorelle = AgreementOutlineRestore.SorelleDi(sec.Clauses, ids);
 
-        await Guarded(async () => await Agreements.DeleteClausesAsync(_acc!.Code, ids),
-            ids.Count == 1 ? L["Xfer_RowDeleted"].Value : string.Format(L["Xfer_BulkDeleted"].Value, ids.Count));
-
-        if (_error is not null) return;
+        if (!await Guarded(async () => await Agreements.DeleteClausesAsync(_acc!.Code, ids),
+            ids.Count == 1 ? L["Xfer_RowDeleted"].Value : string.Format(L["Xfer_BulkDeleted"].Value, ids.Count))) return;
 
         // La selezione non deve restare appesa a righe che non ci sono più: il tasto «elimina i selezionati»
         // le rimanderebbe al server, e il conteggio in testata direbbe un numero che non esiste.
@@ -3832,7 +3869,8 @@
     {
         if (_undo is not { } undo) return;
         _undo = null;
-        await Guarded(undo.Restore, undo.Message);
+        // U-193: se il ripristino non riesce (lock perso, errore del database) la fotografia resta, e si riprova.
+        if (!await Guarded(undo.Restore, undo.Message)) _undo = undo;
     }
 
     /// <summary>Un gruppo di alternative senza «negli altri casi»: i casi che nessuna condizione copre restano
@@ -3858,9 +3896,11 @@
     /// <para>⚠️ Il costo per gesto conta: ricaricare il contesto anteprima costa sei mappe, irrilevante dal
     /// pannello e caro a ogni Invio in cella. Si rifà solo quando cambia ciò che l'anteprima legge davvero.</para>
     /// </summary>
-    private async Task Guarded(Func<Task> action, string? ok, bool withPreview = false)
+    /// <returns><c>true</c> se l'azione è stata eseguita ed è andata a buon fine (U-193): con la pagina occupata
+    /// non parte nemmeno, e chi arma un annulla deve saperlo.</returns>
+    private async Task<bool> Guarded(Func<Task> action, string? ok, bool withPreview = false)
     {
-        if (_busy) return;
+        if (_busy) return false;
         _busy = true;
         _error = null; _status = null; _undo = null;
         try
@@ -3871,14 +3911,17 @@
                 if (_acc is not null) await LoadAsync(withPreview);
             });
             if (ok is not null) _status = ok;
+            return true;
         }
         catch (Vipi.Application.Aor.ValidationException ex)
         {
             _error = ex.Message;
+            return false;
         }
         catch (Exception ex)
         {
             _error = ex.Message;
+            return false;
         }
         finally
         {

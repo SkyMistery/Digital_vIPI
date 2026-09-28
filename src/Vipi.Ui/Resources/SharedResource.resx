@@ -2526,6 +2526,10 @@
   <data name="Xfer_BulkArea" xml:space="preserve"><value>area attiva…</value></data>
   <data name="Xfer_BulkCustom" xml:space="preserve"><value>condizione libera…</value></data>
   <data name="Xfer_BulkApplyCondition" xml:space="preserve"><value>Applica condizione</value></data>
+  <data name="Xfer_BulkConditionEmpty" xml:space="preserve"><value>Scegli un'area o scrivi una condizione libera. Per svuotarle c'è «Togli condizione».</value></data>
+  <data name="Xfer_BulkRemoveCondition" xml:space="preserve"><value>Togli condizione</value></data>
+  <data name="Xfer_BulkRemoveConditionPrompt" xml:space="preserve"><value>Togliere area e condizione libera da {0} clausole? Si potrà annullare finché il messaggio resta a schermo.</value></data>
+  <data name="Xfer_CondRestored" xml:space="preserve"><value>Condizioni rimesse com'erano.</value></data>
   <data name="Xfer_BulkConditionTitle" xml:space="preserve"><value>Area e condizione libera. Le piste no: dipendono dall'aeroporto del gruppo</value></data>
   <data name="Xfer_BulkDeleteAria" xml:space="preserve"><value>Elimina le righe selezionate</value></data>
   <data name="Xfer_BulkDeletePrompt" xml:space="preserve"><value>Eliminare {0} clausole? Si potrà annullare finché il messaggio resta a schermo.</value></data>

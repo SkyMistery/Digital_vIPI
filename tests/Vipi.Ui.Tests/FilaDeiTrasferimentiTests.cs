@@ -22,7 +22,7 @@ public sealed class FilaDeiTrasferimentiTests
     [Fact]
     public void Ogni_scrittura_passa_dalla_fila()
     {
-        var guarded = Corpo("private async Task Guarded(");
+        var guarded = Corpo("private async Task<bool> Guarded(");
         Assert.Contains("await InFilaAsync(", guarded);
     }
 
@@ -65,6 +65,52 @@ public sealed class FilaDeiTrasferimentiTests
         var corpo = Corpo(firma);
         Assert.Contains("AgreementOutlineRestore.SorelleDi(", corpo);
         Assert.Contains("RestoreClausesAsync(_acc!.Code, snaps, sorelle)", corpo);
+    }
+
+    /// <summary>
+    /// U-193 (revisione 3): l'annulla di un'eliminazione si armava su <c>_error is null</c>. Ma <c>Guarded</c> esce
+    /// SUBITO se la pagina è occupata, prima di toccare <c>_error</c>: un'eliminazione mai fatta armava l'annulla
+    /// («0 righe eliminate ↺ Annulla», che reinseriva copie). Ora <c>Guarded</c> dice se ha eseguito e se è andata.
+    /// </summary>
+    [Theory]
+    [InlineData("private async Task DeleteAgreement(")]
+    [InlineData("private async Task DeleteSection(")]
+    [InlineData("private async Task DeleteRow(")]
+    [InlineData("private async Task DeleteBulk(")]
+    public void L_annulla_si_arma_solo_se_l_eliminazione_e_avvenuta(string firma)
+    {
+        Assert.Contains("private async Task<bool> Guarded(", Testo);
+        var corpo = Corpo(firma);
+        Assert.Contains("if (!await Guarded(", corpo);
+        Assert.DoesNotContain("_error is null", corpo);
+        Assert.DoesNotContain("_error is not null", corpo);
+    }
+
+    /// <summary>U-193: e l'annulla non si consuma prima che il ripristino riesca — se fallisce, resta.</summary>
+    [Fact]
+    public void Un_ripristino_fallito_lascia_l_annulla()
+    {
+        var corpo = Corpo("private async Task Undo(");
+        Assert.Contains("if (!await Guarded(undo.Restore, undo.Message)) _undo = undo;", corpo);
+    }
+
+    /// <summary>
+    /// U-176 (revisione 3; scelta del committente del 28-set): «Applica condizione» con i campi vuoti svuotava le
+    /// condizioni di tutte le righe scelte, senza conferma né annulla. Ora è spento se non c'è niente da applicare;
+    /// svuotare è un gesto suo, «Togli condizione», con la conferma del numero di righe; e tutti e due armano
+    /// l'annulla con la condizione di prima di ogni riga.
+    /// </summary>
+    [Fact]
+    public void Applica_condizione_e_spento_a_campi_vuoti_e_togliere_ha_conferma_e_annulla()
+    {
+        Assert.Contains("disabled=\"@(_busy || !_canEdit || !CondizioneDaApplicare)\"", Testo);
+        Assert.Contains("OnConfirm=\"TogliCondizioneBulk\"", Testo);
+        foreach (var firma in new[] { "private async Task ApplyBulkCondition(", "private async Task TogliCondizioneBulk(" })
+        {
+            var corpo = Corpo(firma);
+            Assert.Contains("FotografaCondizioni(", corpo);
+            Assert.Contains("_undo = ", corpo);
+        }
     }
 
     [Fact]
