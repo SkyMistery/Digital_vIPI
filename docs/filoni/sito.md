@@ -1603,5 +1603,11 @@
   3102, Infrastructure 2014, Ui 1875), una guardia dei nomi aggiornata (`WhereCitedAsync` è una lettura); i test
   rossi sul codice di prima dove compilavano contro di esso (ponti, codice-posizione, ACC con enti, lock), gli altri
   usano API nuove. Niente migrazione. Codice comune `Vipi.Application`, `Vipi.Hosting`. Carta §6.
+  **Provato a schermo** sulla copia del 29-set (SQLite dalle migrazioni + travaso): 18 enti all'avvio, nessuno scalo
+  con la vIPI di un ente; Pratica passata a `LIRE_TWR` dal riquadro e ancora in pagina ACC sotto `LIRE_TWR`;
+  `LIRE_APP` rifiutato a Catania («è il codice di Pratica Tower»); «Sposta» di `LIBG_APP` → gruppo nella bozza di
+  Brindisi, vIPI APP ancora pubblica, riquadro «copiata…» senza tasto; pubblicata la vIPI di Brindisi NASCOSTA →
+  niente conclusione; resa visibile e «Pubblica ora» → ente `InAccVipi`, vIPI APP nascosta, `?app=LIBG_APP` → vIPI
+  di Brindisi col gruppo, Grottaglie ancora in «Bozze & versioni» come Nascosto. Log senza errori.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
