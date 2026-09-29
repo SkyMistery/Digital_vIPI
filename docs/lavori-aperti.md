@@ -43,6 +43,18 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A137 — 1.50.1 PRONTO: vAWOS ancorato alla finestra, bandierina «segnala», switch Errore/Suggerimento (30 settembre 2026)
+
+PATCH senza migrazioni, su 1.50.0 (`e7742ff`). Timbro **`1.50.1 · e666236`**. Fuso da `fix/vawos-segnala` @ `03d566ff`
+(Sito S58, CI verde run 36644840764): il vAWOS è ancorato alla finestra (`position:fixed; inset:0`, via `vh` e
+`min-height:max-content`: con S57 in Edge scorreva ancora); al posto della parola «Segnala» una bandierina ⚑ con
+tooltip su ogni titolo di sezione, sotto-sezioni e vIPI ACC comprese; switch Errore/Suggerimento nel modulo delle
+richieste. **12 file** (`solo-12-file-1.50.1`): Ui e Host (dll + pdb), `en/`, endpoints.json, `vipi-awos.css` e
+`vipi-theme.css` con `.br`/`.gz`. Zip 2,95 MB, sha256
+`264a8f6cbf51b363f120138b91409be98e74a52145322ef2f1e4a168c3b073dd`. Build Release senza avvisi, test verdi (Ui 1888),
+conteggi identici. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.50.1.md`. Storia: `docs/filoni/sito.md` S58.
+▶ Caricamento del committente.
+
 ### ✅ A136 — 1.50.0 ONLINE: richieste dal campo (S56) e vAWOS in Edge (S57) (30 settembre 2026)
 
 ✅ Online il 30 settembre 2026: timbro, `Schema 0` e il link «Report» confermati dal committente (la migrazione

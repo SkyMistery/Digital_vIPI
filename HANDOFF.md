@@ -4,7 +4,13 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 30 settembre 2026
+> ## ▶ Il punto — 30 settembre 2026, notte
+>
+> **📦 Pronto: 1.50.1** (§A137, timbro `1.50.1 · e666236`, 12 file, zip `264a8f6c…`, PATCH senza migrazioni): Sito S58,
+> vAWOS ancorato alla finestra, bandierina ⚑ «segnala» su ogni titolo di sezione, switch Errore/Suggerimento.
+> ▶ Caricamento del committente. Online resta 1.50.0.
+>
+> ## Il punto — 30 settembre 2026
 >
 > **✅ Online: 1.50.0** (timbro, `Schema 0` e «Report» confermati dal committente; `/vsop/health` Healthy, Ricerca LIRF,
 > CSS nuovo del vAWOS servito; **in `main` non resta codice fuori pacchetto**) (§A136, timbro `1.50.0 · e7742ff`, 20 file, zip `30fb29b6…`, MINOR con la
