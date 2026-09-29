@@ -1,6 +1,20 @@
 # Piano — le segnalazioni dal campo 🟣
 
-**Stato:** **carta, non eseguita — RIMANDATA** (vedi §10.0) · **Aggiornato:** 9 settembre 2026
+**Stato:** **canale 1 in esecuzione dal 29 settembre 2026 (S56)** · canale 2 rimandato · **Aggiornato:** 29 settembre 2026
+
+> **Decisioni del committente, 29 settembre 2026** (riapertura dopo la finestra cieca):
+> 1. **Nome**: «**richiesta dal campo**» (§10.5, opzione a). «Segnalazione» resta alle righe del sistema. In codice
+>    l'entità si chiama `FieldRequest` (non `FieldReport`), `EditorTask.FromRequestId`.
+> 2. **Secondo canale** (staff → sviluppatore, §10): **dopo**. Per ora lo staff scrive allo sviluppatore in privato.
+> 3. **Lo sviluppatore avrà un login admin in produzione**: quando si farà il secondo canale, la strada è **B-1**
+>    (§10.3), la coda letta dal sito.
+>
+> **Scostamenti dal piano, decisi eseguendo:**
+> - **Il pulsante nelle pagine pubbliche è un LINK, non un'isola interattiva** (§5, trappola 1): un'isola per
+>   sezione aprirebbe un circuito a ogni visitatore di ogni documento, anche a chi legge soltanto. Il link porta
+>   famiglia, chiave e sezione a una pagina-modulo, interattiva solo lei.
+> - **Il numero di rilascio lo ricava il servizio all'invio** (la pubblicazione in vigore), non la pagina: le pagine
+>   pubbliche conoscono il ciclo AIRAC, non l'id della release. È la stessa che il lettore aveva davanti.
 **Metodo:** [FEATURE-PROCESS](../FEATURE-PROCESS.md) · **Perimetro:** [regole-perimetro-servizi](regole-perimetro-servizi.md) §P1
 **Richiesta del committente (1 set 2026):** *«sì, sarebbe molto utile, così da non dover passare dalle mail»*
 

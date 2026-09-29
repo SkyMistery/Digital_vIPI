@@ -146,6 +146,7 @@ public static class MySqlStringLengths
             [("AgreementClause", "SpeedConstraint")] = 32,
             [("DocRelease", "TargetType")] = 32,           // misurato 7 (`AccVipi`)
             [("EditorTask", "Status")] = 32,               // tabella vuota: dimensionato sui nomi dell'enum
+            [("FieldRequest", "Status")] = 32,             // S56, tabella nuova: il nome più lungo è `PresaInCarico`
             // ⚠️ Chiave primaria, e dal 12 settembre 2026 non ci stanno solo i nomi fissi: il gate delle
             // riconciliazioni d'avvio compone «RiconcDoc:<commit>» (17 caratteri col commit a 7 cifre).
             // Il presidio è CategorieDiImportTests, che misura le costanti E le chiavi composte contro
