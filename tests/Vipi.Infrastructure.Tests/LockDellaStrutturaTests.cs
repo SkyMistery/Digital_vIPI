@@ -81,7 +81,7 @@ public class LockDellaStrutturaTests : IAsyncLifetime
     {
         "Accordi.AddAgreement", "Accordi.UpdateClause", "Accordi.DeleteClauses", "Accordi.RestoreClauses",
         "Struttura.SetAirportHidden", "Struttura.MoveAirport", "Struttura.GenerateAirportDocument",
-        "Orfani.Reattach", "Gerarchia.SetParent", "Ripieghi.Replace",
+        "Orfani.Reattach", "Orfani.Substitute", "Gerarchia.SetParent", "Ripieghi.Replace",
         "Acc.SetHidden", "Acc.SetSubcenterLimits", "Acc.ImportFromSource",
         "Confinanti.SetStatus", "Confinanti.AddManual", "Confinanti.ImportAndCompute",
     };
@@ -104,6 +104,8 @@ public class LockDellaStrutturaTests : IAsyncLifetime
             .GenerateAirportDocumentAsync("LIRF"),
         "Orfani.Reattach" => Servizio<IOrphanSectorService>(typeof(OrphanSectorService))
             .ReattachAsync(1, 2),
+        "Orfani.Substitute" => Servizio<IOrphanSectorService>(typeof(OrphanSectorService))
+            .SubstituteAsync(1, 2),
         "Gerarchia.SetParent" => Servizio<IHierarchyEditingService>(typeof(EfHierarchyEditingService))
             .SetParentAsync(HierarchyNodeKind.Acc, 1, "LIRR_CTR"),
         "Ripieghi.Replace" => Servizio<ISectorFallbackService>(typeof(EfSectorFallbackService))

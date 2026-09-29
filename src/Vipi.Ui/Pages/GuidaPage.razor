@@ -1264,10 +1264,14 @@
                scalo non ne ha bisogno — il documento è dell'<b>aeroporto</b>, non di una posizione. Se la
                sezione Frequenze è congelata, il pubblico vede il cambio alla ripubblicazione, che la casella
                «da rivedere» segnala.</p>
-              <p>Quando il sospetto è una rinomina e il sostituto è <b>uno solo</b>, la riga lo propone
-               («forse rinominato in…»). Con due candidati tace di proposito: due posizioni dello stesso tipo
-               sullo stesso scalo di solito vogliono dire uno <b>sdoppiamento</b>, non un cambio di nome, e
-               spostare il documento sul settore sbagliato è peggio che non spostarlo.</p>
+              <p>Se IVAO <b>rinomina</b> una posizione tenendola la stessa, il sito se ne accorge da solo e tutto
+               segue: accordi, documenti, gruppi APP, configurazioni. Se invece la <b>toglie e ne crea una nuova</b>
+               al suo posto (per esempio <code>LIRN_US0_APP</code> che diventa <code>LIRR_US0_APP</code>), la vecchia
+               finisce fra gli orfani con tutto addosso. Allora sulla sua riga si sceglie il settore nuovo e si preme
+               <b>Sostituisci con…</b>: accordi, blocchi, figli, documento, gruppi APP, configurazioni, gerarchia ed
+               enti passano al nuovo, come in una rinomina. Il vecchio resta vuoto, e si elimina. Si rifiuta — senza
+               toccare niente — se il nuovo ha già un accordo con lo stesso ente, se i due portano documenti diversi
+               o se sono posizioni di due enti diversi: lì la scelta è di una persona.</p>
               <p>Come la vIPI d'aeroporto è dello scalo, la <b>vIPI APP</b> è di un <b>ente</b> («Pratica Tower»,
                «Palermo Radar»), non di un nominativo. Nell'editor della vIPI APP, in modifica, il riquadro <b>Ente</b>
                elenca le sue posizioni IVAO, di qualunque tipo: chi si connette su una di queste apre il documento, e
@@ -1308,10 +1312,15 @@
                the document to another sector, or <b>remove</b>. If something holds it back — child sectors,
                agreements, vLOA parties, blocks citing it — removal says so instead of failing. ⚠️ ""Remove"" is
                not forever: if the source sends that callsign back, the next import recreates it.</p>
-              <p>When a rename is suspected and there is <b>exactly one</b> replacement, the row suggests it
-               (""renamed to…""). With two candidates it stays quiet on purpose: two positions of the same kind at
-               the same airport usually mean a <b>split</b>, not a new name, and moving the document onto the
-               wrong sector is worse than not moving it.</p>
+              <p>If IVAO <b>renames</b> a position keeping it the same, the site notices on its own and everything
+               follows: agreements, documents, APP groups, configurations. If instead it <b>removes it and creates a
+               new one</b> in its place (for example <code>LIRN_US0_APP</code> becoming <code>LIRR_US0_APP</code>), the
+               old one ends up among the orphans with everything still on it. Then pick the new sector on its row
+               and press <b>Replace with…</b>: agreements, blocks, children, document, APP groups, configurations,
+               hierarchy and units move to the new one, as in a rename. The old one stays empty, and is deleted. It
+               refuses — touching nothing — if the new one already has an agreement with the same unit, if the two
+               carry different documents, or if they are positions of two different units: that choice is a
+               person's.</p>
               <p>Just as the airport vIPI belongs to the airport, the <b>APP vIPI</b> belongs to a <b>unit</b>
                (""Pratica Tower"", ""Palermo Radar""), not to a callsign. In the APP vIPI editor, while editing, the
                <b>Unit</b> box lists its IVAO positions, of any kind: whoever connects on one of them opens the document,

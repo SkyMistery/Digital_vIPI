@@ -1779,8 +1779,13 @@
   <data name="Orph_Gone" xml:space="preserve"><value>sparito dalla sorgente</value></data>
   <data name="Orph_CarriesDoc" xml:space="preserve"><value>porta il documento</value></data>
   <data name="Orph_NoDocs" xml:space="preserve"><value>nessun documento</value></data>
-  <data name="Orph_PickTarget" xml:space="preserve"><value>Riaggancia a…</value></data>
+  <data name="Orph_PickTarget" xml:space="preserve"><value>Settore…</value></data>
   <data name="Orph_Reattach" xml:space="preserve"><value>Riaggancia</value></data>
+  <data name="Orph_Substitute" xml:space="preserve"><value>Sostituisci con…</value></data>
+  <data name="Orph_SubstituteTitle" xml:space="preserve"><value>IVAO ha tolto questa posizione e ne ha creata una nuova al suo posto: tutto passa a quella scelta nell'elenco</value></data>
+  <data name="Orph_SubstitutePrompt" xml:space="preserve"><value>{0} è diventato {1}? Tutto passa a {1}: accordi, blocchi, figli, documento, gruppi APP, configurazioni, gerarchia ed enti. {0} resta vuoto, da eliminare.</value></data>
+  <data name="Orph_SubstituteYes" xml:space="preserve"><value>Sostituisci</value></data>
+  <data name="Orph_Substituted" xml:space="preserve"><value>{0} → {1}: {2} accordi, {3} blocchi, {4} figli spostati. Ora {0} è vuoto: puoi eliminarlo.</value></data>
   <data name="Orph_Remove" xml:space="preserve"><value>Rimuovi</value></data>
   <data name="Orph_RemoveTitle" xml:space="preserve"><value>Toglie il settore dall'archivio (torna se la sorgente lo rimanda)</value></data>
   <data name="Rel_AiracRelease" xml:space="preserve"><value>Release AIRAC</value></data>

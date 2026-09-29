@@ -1617,5 +1617,18 @@
   cambiano dal riquadro «Ente», dove c'è il lock). `IAtcUnitOverviewService`; `SpostamentiInCorsoAsync` in un giro
   per ACC. Test +1 Infrastructure (2015), Ui 1878 (guardie: menu 17/12 voci, pagina senza circuito). Codice comune
   `Vipi.Application`.
+- ✅ **S54** «Sostituisci con…» (29-set, committente: «un domani LIRN_US0_APP diventerà LIRR_US0_APP e non vorrei
+  esploda tutto»; ramo `fix/enti-acc`). Se IVAO rinomina la STESSA riga, la rinomina automatica (26-ago) fa già tutto.
+  Se toglie la vecchia e ne crea una nuova (identità, o catalogo, diversi), tutto restava sul settore vecchio. Ora
+  dagli orfani di Struttura si sceglie il settore nuovo e si preme «Sostituisci con…» (`ISectorSubstitution`, in
+  `EfCallsignRenameService`): PER NUMERO passano accordi (forma canonica e versi delle sezioni ribaltati se i lati si
+  scambiano), blocchi (scope/da/a), parti vLOA, figli, documento, link di frequenza (anche nel profilo); il nuovo
+  prende il padre del vecchio (settore e riga di catalogo) se non ne ha; PER NOME la stessa riscrittura della
+  rinomina (estratta in `RiscriviRiferimentiAsync`: gerarchia, ripieghi, agganci AIP, profili, chiavi di release
+  ACC, posizioni degli enti, segnalazioni, gruppi APP e configurazioni nei blocchi) + alias + avviso «rinominato»
+  ai documenti + audit. Rifiuta prima di scrivere: accordo che il nuovo ha già con lo stesso ente, accordo fra i
+  due, due documenti, due enti diversi, nuovo spento. Transazione, lock della struttura, Editor. Il selettore
+  degli orfani c'è ora per tutti (non solo per chi porta un documento). Guida (IT/EN): tolto il «forse rinominato
+  in…» che non esisteva più dal 26-ago. Test +4 (+5 guardie lock/porte): Infrastructure 2024.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

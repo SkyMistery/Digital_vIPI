@@ -64,6 +64,10 @@ public interface IOrphanSectorService
     /// <summary>Sposta il documento (e il ruolo di primario) dall'orfano al settore indicato.</summary>
     Task ReattachAsync(int orphanSectorId, int targetSectorId, CancellationToken ct = default);
 
+    /// <summary>«Sostituisci con…» (S54): l'orfano è diventato il settore indicato, e TUTTO passa a quello — vedi
+    /// <see cref="ISectorSubstitution"/>. Sotto il lock della struttura, in una transazione.</summary>
+    Task<SostituzioneEsito> SubstituteAsync(int orphanSectorId, int targetSectorId, CancellationToken ct = default);
+
 }
 
 /// <inheritdoc cref="IOrphanSectorService"/>
@@ -74,14 +78,20 @@ public sealed class OrphanSectorService : IOrphanSectorService
     private readonly IImportStateStore _stati;
 
     private readonly IResourceLockService _locks;
+    private readonly ISectorSubstitution? _sostituzione;
+    private readonly IUnitOfWork? _uow;
 
+    /// <param name="sostituzione">Il motore di «Sostituisci con…» (S54). Opzionale per i banchi che non lo usano.</param>
     public OrphanSectorService(IOrphanSectorRepository repo, IEditAuthorizationService authz,
-        IImportStateStore stati, IResourceLockService locks)
+        IImportStateStore stati, IResourceLockService locks, ISectorSubstitution? sostituzione = null,
+        IUnitOfWork? uow = null)
     {
         _repo = repo;
         _authz = authz;
         _stati = stati;
         _locks = locks;
+        _sostituzione = sostituzione;
+        _uow = uow;
     }
 
     /// <summary>La stessa soglia che usa il giro notturno: due letture diverse dello stesso metro sono il
@@ -122,6 +132,20 @@ public sealed class OrphanSectorService : IOrphanSectorService
         await _locks.EnsureHeldAsync(ResourceLockKeys.Structure, ct);
         await EnsureCanEditAsync(orphanSectorId, ct);
         await _repo.ReattachAsync(orphanSectorId, targetSectorId, ct);
+    }
+
+    public async Task<SostituzioneEsito> SubstituteAsync(int orphanSectorId, int targetSectorId, CancellationToken ct = default)
+    {
+        // Come «riaggancia»: cambia la gerarchia e gli accordi, cioè la struttura — sotto il suo lock.
+        await _locks.EnsureHeldAsync(ResourceLockKeys.Structure, ct);
+        await EnsureCanEditAsync(orphanSectorId, ct);
+        if (_sostituzione is null || _uow is null)
+            throw new InvalidOperationException("Sostituzione non configurata.");
+        SostituzioneEsito? esito = null;
+        // Tutto o niente: sono decine di righe in tabelle diverse, e metà sostituzione sarebbe un settore a pezzi.
+        await _uow.ExecuteInTransactionAsync(async token =>
+            esito = await _sostituzione.SostituisciAsync(orphanSectorId, targetSectorId, _authz.CurrentUserId ?? 0, token), ct);
+        return esito!;
     }
 
     private async Task EnsureCanEditAsync(int orphanSectorId, CancellationToken ct)
