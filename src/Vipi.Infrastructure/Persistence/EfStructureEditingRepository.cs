@@ -417,19 +417,9 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         if (gnd is not null && (twr ?? app) is Sector gndParent && gnd.ParentSectorId is null) gnd.ParentSector = gndParent;
         if (del is not null && (gnd ?? twr ?? app) is Sector delParent && del.ParentSectorId is null) del.ParentSector = delParent;
 
-        // Fallback: nessun settore d'aeroporto (né creato né preesistente) → crea almeno il TWR.
-        var hasAirportSector = app is not null || twr is not null || gnd is not null || del is not null
-            || accSectors.Any(s => s.AirportId == airport.Id);
-        if (!hasAirportSector)
-        {
-            _db.Sectors.Add(new Sector
-            {
-                AccId = accId, Callsign = $"{icao}_TWR", Type = SectorType.Twr, Kind = SectorKind.Airport,
-                Name = $"{icao} Tower", CoverageOrder = 10, AirportId = airport.Id, AirportIcao = icao,
-                ImportedAtUtc = DateTime.UtcNow, IsActive = true,
-            });
-            created++;
-        }
+        // ⚠️ Niente torre inventata quando lo scalo non ha posizioni (fino al 29 settembre 2026 nasceva una
+        // `{ICAO}_TWR` d'ufficio): serviva solo a dare al documento qualcosa a cui agganciarsi, e il documento è
+        // dell'aeroporto (S48). Una posizione che IVAO non ha è un nominativo che nessuno userà mai.
 
         await _db.SaveChangesAsync(ct);
         return (created, true);
@@ -474,12 +464,8 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         if (sector is null) return;
         if (await _db.Sectors.AnyAsync(s => s.ParentSectorId == sectorId, ct))
             throw new InvalidOperationException(Lingua("Impossibile eliminare il settore: ha dei sotto-settori.", "The sector cannot be deleted: it has sub-sectors."));
-        // Invariante: un aeroporto non resta senza torre. Blocca la rimozione dell'unica TWR/I_TWR
-        // (per rimuoverla, eliminare prima l'intero aeroporto o aggiungere un'altra torre).
-        if (sector.AirportId is int aid && (sector.Type is SectorType.Twr or SectorType.ITwr)
-            && !await _db.Sectors.AnyAsync(s => s.AirportId == aid && s.Id != sectorId
-                && (s.Type == SectorType.Twr || s.Type == SectorType.ITwr), ct))
-            throw new InvalidOperationException(Lingua("Impossibile eliminare l'unica torre (TWR/I_TWR) dell'aeroporto: ogni aeroporto deve mantenerne almeno una.", "The airport's only tower (TWR/I_TWR) cannot be deleted: every airport has to keep at least one."));
+        // ⚠️ Niente più «un aeroporto non resta senza torre» (S48, 29 settembre 2026): la torre teneva in piedi il
+        // documento dello scalo, che oggi è dell'aeroporto; e dove l'APP fa da torre (LIBG, LIRE) IVAO l'ha tolta.
         AuditScribe.Write(_db, Attore, AuditAction.Delete, "Sector", sector.Id.ToString(),
             new { sector.Callsign, sector.Name, sector.Type, sector.Kind, Acc = accCode });
         _db.Sectors.Remove(sector);

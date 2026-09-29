@@ -139,11 +139,12 @@ public class StructureEditingTests : IAsyncLifetime
         var docId = await profile.EnsureDocumentAsync("LIRF");
         Assert.True(docId > 0);
 
-        // Settori: TWR primario, agganciato al documento; ATIS non è un settore.
+        // Il documento è dell'AEROPORTO, e nessuna posizione lo porta (S48): la TWR c'è, libera. ATIS non è un settore.
+        Assert.Equal(docId, (await _db.Airports.SingleAsync(a => a.Icao == "LIRF")).DocumentId);
         var data = await _repo.LoadAsync("LIRR");
         var twr = Assert.Single(data!.Sectors, s => s.Callsign == "LIRF_TWR");
-        Assert.True(twr.IsPrimary);
-        Assert.Equal(docId, twr.DocumentId);
+        Assert.False(twr.IsPrimary);
+        Assert.Null(twr.DocumentId);
         Assert.DoesNotContain(data.Sectors, s => s.Callsign == "LIRF_ATIS");
 
         // Documento in BOZZA (lo staff pubblica a mano) con le sezioni del CATALOGO, nel loro ordine.
@@ -326,7 +327,7 @@ public class StructureEditingTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Airport_Must_Keep_At_Least_One_Tower()
+    public async Task La_torre_si_elimina_come_ogni_altra_posizione()
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         var apId = await _repo.CreateAirportAsync("LIRR", "LIRN", "Napoli");
@@ -341,17 +342,14 @@ public class StructureEditingTests : IAsyncLifetime
         var after = await _repo.ListAllAirportsAsync();
         Assert.True(Assert.Single(after, a => a.Icao == "LIRN").HasTower);
 
-        // L'unica torre non si può eliminare (invariante "ogni aeroporto ha sempre una torre").
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _repo.DeleteSectorAsync("LIRR", twrId));
-
-        // Con una seconda torre (I_TWR) la prima diventa eliminabile.
-        await _repo.AddSectorAsync("LIRR", "LIRN_I_TWR", SectorType.ITwr, SectorKind.Airport,
-            "Napoli Informazioni", "118.700", 10, null, null, apId);
+        // 🔴 S48 (29 settembre 2026): anche l'UNICA torre si elimina. Prima «ogni aeroporto ha sempre una torre»
+        // teneva in piedi il documento dello scalo; oggi il documento è dell'aeroporto, e dove l'APP fa da torre
+        // (LIBG, LIRE) IVAO la torre l'ha tolta davvero.
         await _repo.DeleteSectorAsync("LIRR", twrId);
 
         var data = await _repo.LoadAsync("LIRR");
         Assert.DoesNotContain(data!.Sectors, s => s.Id == twrId);
-        Assert.Contains(data.Sectors, s => s.Type == SectorType.ITwr);
+        Assert.False(Assert.Single(await _repo.ListAllAirportsAsync(), a => a.Icao == "LIRN").HasTower);
     }
 
     [Fact]

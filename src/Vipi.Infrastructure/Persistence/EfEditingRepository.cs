@@ -52,6 +52,7 @@ public sealed class EfEditingRepository : IEditingRepository
     {
         var docs = await _db.Documents
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
+            .Include(d => d.Airport).ThenInclude(a => a!.Acc)
             .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .AsNoTracking()
             .ToListAsync(ct);
@@ -1470,6 +1471,8 @@ public sealed class EfEditingRepository : IEditingRepository
 
     private static string ScopeOf(Document d)
     {
+        // La vIPI d'aeroporto la dice l'AEROPORTO: dal 29 settembre 2026 nessuna posizione la porta più (S48).
+        if (d.Airport is { } a) return a.Icao;
         // Settore primario (o primo) del documento; per le vLOA niente scope settore.
         var s = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
         if (s is null) return "—";
@@ -1480,12 +1483,9 @@ public sealed class EfEditingRepository : IEditingRepository
         return s.Acc?.Code ?? s.Callsign;
     }
 
-    // Documento di aeroporto = settore primario (o primo) Kind=Airport, ESCLUSI gli APP standalone (editor dedicato).
-    private static bool IsAirportDoc(Document d)
-    {
-        var s = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
-        return s?.Kind == SectorKind.Airport && !IsStandaloneApp(s);
-    }
+    // Documento di aeroporto = quello che un aeroporto indica come sua vIPI (Airport.DocumentId). Fino al 29
+    // settembre 2026 lo si deduceva dal settore primario: uno scalo senza torre (LIBG) non risultava.
+    private static bool IsAirportDoc(Document d) => d.Airport is not null;
 
     // Documento APP non remotizzato = settore primario (o primo) Type=App con ApproachKind=Standalone.
     private static bool IsStandaloneAppDoc(Document d) =>
@@ -1496,5 +1496,5 @@ public sealed class EfEditingRepository : IEditingRepository
 
     // ACC del settore primario (o primo): serve a costruire i link editor.
     private static string? AccCodeOf(Document d) =>
-        (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault())?.Acc?.Code;
+        d.Airport?.Acc?.Code ?? (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault())?.Acc?.Code;
 }

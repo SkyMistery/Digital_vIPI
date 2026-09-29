@@ -1415,7 +1415,7 @@
   <data name="Apt_Deselect" xml:space="preserve"><value>Deselect all rows</value></data>
   <data name="Apt_ColSectors" xml:space="preserve"><value>Sectors</value></data>
   <data name="Apt_OpenEditorTitle" xml:space="preserve"><value>Open airport editor {0}</value></data>
-  <data name="Apt_NoTwrTitle" xml:space="preserve"><value>Every airport must have at least one tower (TWR or I_TWR). Generate the documents or add the tower from the Structure page.</value></data>
+  <data name="Apt_NoTwrTitle" xml:space="preserve"><value>No tower (TWR or I_TWR) on IVAO. Not a defect: where the APP also works as the tower there is no TWR, and the airport's vIPI does not need one.</value></data>
   <data name="Apt_NoTwr" xml:space="preserve"><value>no TWR</value></data>
   <data name="Apt_HiddenNoSectorsTitle" xml:space="preserve"><value>Hidden by default: the airport has no sector at all, the public page stays inaccessible until it generates the documents.</value></data>
   <data name="Apt_HiddenNoSectors" xml:space="preserve"><value>hidden (no sectors)</value></data>

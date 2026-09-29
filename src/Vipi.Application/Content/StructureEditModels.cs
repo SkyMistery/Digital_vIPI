@@ -23,7 +23,8 @@ public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, i
 
 /// <summary>
 /// Aeroporto (cross-ACC) per la pagina di gestione aeroporti: ACC assegnata + n. settori che vi puntano.
-/// <paramref name="HasTower"/> = ha almeno una torre (TWR o I_TWR): invariante "ogni aeroporto ha sempre una torre".
+/// <paramref name="HasTower"/> = ha almeno una torre (TWR o I_TWR). Un dato, non più un invariante (S48, 29 settembre 2026):
+/// dove l'APP fa da torre (LIBG, LIRE) IVAO la torre non ce l'ha.
 /// <paramref name="IsHidden"/> = nascosto dall'admin; la visibilità pubblica effettiva richiede anche almeno un settore (vedi <see cref="IsPublic"/>).
 /// </summary>
 /// <param name="DocumentId">Il documento vIPI dell'aeroporto, se già esiste. Serve a chi deve distinguere

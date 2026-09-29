@@ -1543,5 +1543,22 @@
   e nessun pannello tagliato a 1900×920, 1536×730, 2560×1300 (e a 1366×650 e 1280×600 con una o due piste); con tre
   piste sotto i ~700px la pagina scorre di poco invece di tagliare; telefono senza scorrimento orizzontale. Test
   invariati; Ui **1870**.
+- ✅ **S48** la vIPI e il vSOP sono dello **scalo**, non di una posizione; le posizioni sparite da IVAO escono da sole
+  (29-set, committente). Il caso: a LIBG e LIRE IVAO ha tolto la TWR il 21-set (l'APP fa da torre, «Tower/Approach»).
+  Il nostro catalogo non potava mai, quindi la torre fantasma restava nelle frequenze della vIPI. E non si poteva
+  eliminare: la regola D6 («la torre cade solo con lo scalo») la proteggeva, e il documento le veniva riagganciato
+  a ogni apertura dell'editor. Dal 25-ago il legame vero era già `Airport.DocumentId`; restava il legame vecchio sui settori.
+  Ora: (1) `EnsureDocumentAsync` sgancia invece di riagganciare DEL/GND/TWR; (2) il giro d'avvio
+  `LinkAirportDocumentsAsync`, dopo il ponte, sgancia i settori che portano la vIPI del loro scalo (sulla copia del
+  29-set: 70 settori in 46 scali; restano legati solo gli APP non remotizzati al loro documento); (3) via la D6,
+  l'«unica torre» di `DeleteSectorAsync` e la `{ICAO}_TWR` inventata quando uno scalo non ha posizioni; (4) l'import
+  toglie dal catalogo d'aeroporto le posizioni che IVAO non manda da due giri (`SogliaEliminazione`), solo se la risposta
+  non è vuota, mai le manuali, figli al nonno, riga nel registro (sulla copia usciranno solo `LIBG_TWR` e `LIRE_TWR`).
+  La proiezione spegne il settore e lo segnala; la vIPI dello scalo ora riceve la segnalazione passando dal settore
+  (`DocsForCallsignsAsync`), e la deriva segnala la sezione Frequenze congelata da ripubblicare. Badge «no TWR» in
+  Aeroporti: filtro neutro, non più un avviso. Le frequenze restano derivate dal catalogo, come nella vIPI ACC.
+  Test +8 (import, ponte, generazione, segnalazione; i 4 del comportamento nuovo ROSSI sul codice di prima), 4
+  riscritti sulla regola nuova. Infrastructure **1992**. Migrazione no. Codice comune `Vipi.Application`
+  (DeletionRules, StructureEditModels, StaleCatalogRow). Resta com'è il catalogo ACC (non pota).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

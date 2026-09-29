@@ -1420,7 +1420,7 @@
   <data name="Apt_Deselect" xml:space="preserve"><value>Deseleziona tutte le righe</value></data>
   <data name="Apt_ColSectors" xml:space="preserve"><value>Settori</value></data>
   <data name="Apt_OpenEditorTitle" xml:space="preserve"><value>Apri editor aeroporto {0}</value></data>
-  <data name="Apt_NoTwrTitle" xml:space="preserve"><value>Ogni aeroporto deve avere almeno una torre (TWR o I_TWR). Genera i documenti o aggiungi la torre dalla pagina Struttura.</value></data>
+  <data name="Apt_NoTwrTitle" xml:space="preserve"><value>Nessuna torre (TWR o I_TWR) su IVAO. Non è un difetto: dove l'APP fa anche da torre la TWR non c'è, e la vIPI dello scalo non ne ha bisogno.</value></data>
   <data name="Apt_NoTwr" xml:space="preserve"><value>no TWR</value></data>
   <data name="Apt_HiddenNoSectorsTitle" xml:space="preserve"><value>Nascosto di default: l'aeroporto non ha nemmeno un settore, la pagina pubblica resta inaccessibile finché non genera i documenti.</value></data>
   <data name="Apt_HiddenNoSectors" xml:space="preserve"><value>nascosto (no settori)</value></data>

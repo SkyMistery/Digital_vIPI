@@ -221,8 +221,10 @@ public sealed record AreaFacts(
 /// documento va riletto. Se il documento perde l'ultimo aggancio, si blocca.</item>
 /// <item><b>D5 accordi</b> — bloccano sempre: un accordo senza un lato non è un accordo, ma è anche una
 /// scelta editoriale a due, e la cancella chi l'ha scritta.</item>
-/// <item><b>D6 torre</b> — TWR/I_TWR cade solo insieme all'intero aeroporto.</item>
-/// <item><b>D7 settori d'aeroporto</b> — DEL/GND/APP si eliminano da soli; con lo scalo muoiono tutti.</item>
+/// <item><b>D6 torre</b> — <i>tolta il 29 settembre 2026 (S48)</i>: la torre non ha più uno statuto suo. Teneva in
+/// piedi il documento dello scalo, che oggi è dell'aeroporto e non di una posizione; e su un campo dove l'APP fa
+/// da torre (LIBG, LIRE) IVAO la torre l'ha tolta davvero.</item>
+/// <item><b>D7 settori d'aeroporto</b> — DEL/GND/TWR/APP si eliminano da soli; con lo scalo muoiono tutti.</item>
 /// <item><b>D8 sorgente</b> — si elimina solo ciò che la sorgente non manda da due giri
 /// (<see cref="SogliaEliminazione"/>), <b>oppure</b> ciò di cui la sorgente, interrogata adesso e in
 /// puntuale, ha constatato l'assenza (<c>provaDiAssenza</c>, carta del 26 agosto sera).</item>
@@ -235,9 +237,8 @@ public static class DeletionRules
         PerSettore(f, penultimoGiro, dentroLoScalo: false, provaDiAssenza);
 
     /// <param name="dentroLoScalo">
-    /// Vero quando il settore cade come parte dell'eliminazione del suo aeroporto: solo allora la torre può
-    /// andarsene (D6), e solo allora il documento <b>dell'aeroporto</b> non conta come aggancio perduto,
-    /// perché lo si sta valutando a parte.
+    /// Vero quando il settore cade come parte dell'eliminazione del suo aeroporto: solo allora il documento
+    /// <b>dell'aeroporto</b> non conta come aggancio perduto, perché lo si sta valutando a parte.
     /// </param>
     /// <param name="provaDiAssenza">La sorgente, interrogata adesso, ha constatato che non c'è: cade la sola
     /// D8. Tutte le altre protezioni restano dove sono — non è la sorgente a decidere degli accordi o dei
@@ -275,12 +276,6 @@ public static class DeletionRules
             if (f.Figli.Any(x => string.Equals(x.Callsign, c.Callsign, StringComparison.OrdinalIgnoreCase))) continue;
             sposta.Add(Riappeso(c.Callsign));
         }
-
-        // D6 — la torre cade solo con lo scalo.
-        if (!dentroLoScalo && f.Type is SectorType.Twr or SectorType.ITwr && f.AirportId is not null)
-            blocca.Add(new DeletionBlocker(
-                Lingua($"{f.Callsign} è la torre di {f.AirportIcao}: una torre si elimina solo insieme all'intero aeroporto", $"{f.Callsign} is the tower of {f.AirportIcao}: a tower can only be deleted together with the whole airport"),
-                f.AirportIcao is { } icao ? $"/services/vsop/{f.AccCode.ToLowerInvariant()}/airports/editor?icao={icao}" : null));
 
         // D8 — la sorgente deve tacere da due giri, o averlo detto in faccia. I settori aggiunti a mano non
         // la riguardano.

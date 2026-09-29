@@ -1257,6 +1257,13 @@
                trattiene — sotto-settori, accordi, parti di vLOA, blocchi che lo citano — la rimozione lo dice
                invece di fallire. ⚠️ «Rimuovi» non è per sempre: se la sorgente rimanda quel callsign, il
                prossimo import lo ricrea.</p>
+              <p>Una <b>posizione d'aeroporto</b> che IVAO non manda più da due giri d'import esce da sola:
+               sparisce dalle frequenze della vIPI e del vSOP, dalla struttura e dalle mappe, e il suo settore
+               passa fra gli orfani come <b>sparito</b>. Le posizioni aggiunte a mano restano. La torre non ha
+               più uno statuto suo: dove l'APP fa anche da torre (LIBG, LIRE) la TWR non c'è, e la vIPI dello
+               scalo non ne ha bisogno — il documento è dell'<b>aeroporto</b>, non di una posizione. Se la
+               sezione Frequenze è congelata, il pubblico vede il cambio alla ripubblicazione, che la casella
+               «da rivedere» segnala.</p>
               <p>Quando il sospetto è una rinomina e il sostituto è <b>uno solo</b>, la riga lo propone
                («forse rinominato in…»). Con due candidati tace di proposito: due posizioni dello stesso tipo
                sullo stesso scalo di solito vogliono dire uno <b>sdoppiamento</b>, non un cambio di nome, e

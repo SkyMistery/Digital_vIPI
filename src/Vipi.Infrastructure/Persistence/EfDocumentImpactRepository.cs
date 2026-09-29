@@ -152,6 +152,14 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             .Select(s => s.AirportIcao)
             .Distinct()
             .ToListAsync(ct);
+        // ⚠️ E lo scalo lo dice anche il SETTORE: una posizione che IVAO non manda più esce dal catalogo (S48), e
+        // la segnalazione della sua sparizione arriva quando la riga di catalogo non c'è già più. Senza questa
+        // lettura la vIPI di quello scalo — che dal 29 settembre 2026 nessun settore porta — non la riceveva.
+        icaos = icaos.Concat(await _db.Sectors.AsNoTracking()
+                .Where(s => s.AirportIcao != null && list.Contains(s.Callsign))
+                .Select(s => s.AirportIcao!)
+                .ToListAsync(ct))
+            .Distinct(OIC).ToList();
         if (icaos.Count > 0)
         {
             ids.AddRange(await _db.Airports.AsNoTracking()

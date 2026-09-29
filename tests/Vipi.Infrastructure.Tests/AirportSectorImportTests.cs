@@ -300,4 +300,112 @@ public class AirportSectorImportTests : IAsyncLifetime
         Assert.Equal(ShapeSource.Sectorfile, dopo.ShapeSource);
         Assert.Equal("2610", dopo.ShapeAiracCycle);
     }
+
+    // ── S48: la posizione che IVAO non manda più esce da sola ────────────────────────────────────────
+
+    /// <summary>
+    /// Il caso vero: a LIBG IVAO ha tolto la TWR il 21 settembre 2026 (l'APP fa da torre, «Tower/Approach»),
+    /// e la riga restava per sempre — nelle frequenze della vIPI, in struttura, nelle mappe.
+    /// </summary>
+    private async Task<DateTime> DueGiriAlleSpalleAsync()
+    {
+        var adesso = DateTime.UtcNow;
+        _db.ImportStates.Add(new ImportState
+        {
+            Category = ImportCategories.AirportSector,
+            LastSuccessUtc = adesso.AddHours(-2), PrevSuccessUtc = adesso.AddDays(-1),
+        });
+        await _db.SaveChangesAsync();
+        return adesso;
+    }
+
+    private async Task TimbraAsync(string posizione, DateTime quando)
+    {
+        var r = await _db.AirportSectors.SingleAsync(x => x.ComposePosition == posizione);
+        r.ImportedAtUtc = quando;
+        await _db.SaveChangesAsync();
+    }
+
+    private static IReadOnlyList<SourceAtcPosition> SenzaTorre() => Positions()
+        .Where(p => p.Callsign != "LIRN_TWR").ToList();
+
+    [Fact]
+    public async Task Una_posizione_che_la_sorgente_non_manda_da_due_giri_esce_dal_catalogo()
+    {
+        await _repo.ImportForAirportAsync("LIRN", Positions());
+        var adesso = await DueGiriAlleSpalleAsync();
+        await TimbraAsync("LIRN_TWR", adesso.AddDays(-8));   // vista l'ultima volta prima del penultimo giro
+        // La GND sotto la torre: la sua riga di catalogo deve passare al padre della torre, non restare appesa.
+        var gnd = await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRN_GND");
+        gnd.ParentCallsign = "LIRN_TWR";
+        (await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRN_TWR")).ParentCallsign = "LIRR_CTR";
+        await _db.SaveChangesAsync();
+
+        await _repo.ImportForAirportAsync("LIRN", SenzaTorre());
+
+        var dopo = await _repo.ListByAirportAsync("LIRN");
+        Assert.DoesNotContain(dopo, s => s.ComposePosition == "LIRN_TWR");
+        Assert.Equal(3, dopo.Count);
+        Assert.Equal("LIRR_CTR", (await _db.AirportSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRN_GND")).ParentCallsign);
+        // Un'uscita non si annulla: resta scritta nel registro, col nome.
+        var log = Assert.Single(await _db.AuditLogs.AsNoTracking().Where(a => a.EntityType == "AirportSector").ToListAsync());
+        Assert.Equal(AuditAction.Delete, log.Action);
+        Assert.Contains("LIRN_TWR", log.DetailsJson);
+    }
+
+    [Fact]
+    public async Task Una_posizione_mandata_nel_penultimo_giro_resta()
+    {
+        // Un giro solo di silenzio è un'ipotesi, non un fatto (SogliaEliminazione).
+        await _repo.ImportForAirportAsync("LIRN", Positions());
+        var adesso = await DueGiriAlleSpalleAsync();
+        await TimbraAsync("LIRN_TWR", adesso.AddHours(-12));   // dopo il penultimo giro
+
+        await _repo.ImportForAirportAsync("LIRN", SenzaTorre());
+
+        Assert.Contains(await _repo.ListByAirportAsync("LIRN"), s => s.ComposePosition == "LIRN_TWR");
+    }
+
+    [Fact]
+    public async Task Un_elenco_vuoto_dalla_sorgente_non_toglie_niente()
+    {
+        // Un elenco vuoto è un guasto della sorgente, non uno scalo che ha perso tutte le posizioni.
+        await _repo.ImportForAirportAsync("LIRN", Positions());
+        var adesso = await DueGiriAlleSpalleAsync();
+        foreach (var p in Positions()) await TimbraAsync(p.Callsign, adesso.AddDays(-8));
+
+        await _repo.ImportForAirportAsync("LIRN", Array.Empty<SourceAtcPosition>());
+
+        Assert.Equal(4, (await _repo.ListByAirportAsync("LIRN")).Count);
+    }
+
+    [Fact]
+    public async Task Senza_due_giri_riusciti_alle_spalle_non_esce_niente()
+    {
+        // «Non lo sappiamo» non è «è sparita»: senza il penultimo giro non c'è metro.
+        await _repo.ImportForAirportAsync("LIRN", Positions());
+        await TimbraAsync("LIRN_TWR", DateTime.UtcNow.AddDays(-30));
+
+        await _repo.ImportForAirportAsync("LIRN", SenzaTorre());
+
+        Assert.Contains(await _repo.ListByAirportAsync("LIRN"), s => s.ComposePosition == "LIRN_TWR");
+    }
+
+    [Fact]
+    public async Task Una_posizione_aggiunta_a_mano_non_esce_mai()
+    {
+        // La sorgente non l'ha mai mandata: il suo silenzio non dice niente.
+        await _repo.ImportForAirportAsync("LIRN", Positions());
+        var adesso = await DueGiriAlleSpalleAsync();
+        _db.AirportSectors.Add(new AirportSector
+        {
+            ComposePosition = "LIRN_I_TWR", AirportIcao = "LIRN", AccCode = "LIRR", Position = "TWR",
+            Frequency = "118.300", IsManual = true, ImportedAtUtc = adesso.AddDays(-40),
+        });
+        await _db.SaveChangesAsync();
+
+        await _repo.ImportForAirportAsync("LIRN", Positions());
+
+        Assert.Contains(await _repo.ListByAirportAsync("LIRN"), s => s.ComposePosition == "LIRN_I_TWR");
+    }
 }

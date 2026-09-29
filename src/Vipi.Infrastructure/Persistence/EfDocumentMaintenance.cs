@@ -237,6 +237,14 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
     public async Task<int> LinkAirportDocumentsAsync(CancellationToken ct = default)
     {
+        var collegati = await CollegaDaiSettoriAsync(ct);
+        await SganciaDaiSettoriAsync(ct);
+        return collegati;
+    }
+
+    /// <summary>Il ponte: gli aeroporti ancora scollegati prendono il documento che un loro settore portava.</summary>
+    private async Task<int> CollegaDaiSettoriAsync(CancellationToken ct)
+    {
         // Solo quelli ancora scollegati: il giro è idempotente e non tocca chi è già a posto.
         var airports = await _db.Airports.Where(a => a.DocumentId == null).ToListAsync(ct);
         if (airports.Count == 0) return 0;
@@ -262,6 +270,24 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
         if (collegati > 0) await _db.SaveChangesAsync(ct);
         return collegati;
+    }
+
+    /// <summary>
+    /// 🔴 Dopo il ponte, nessuna POSIZIONE porta più la vIPI del suo aeroporto (S48, 29 settembre 2026): il
+    /// documento è dello scalo, e una posizione legata al documento non si poteva togliere nemmeno quando IVAO
+    /// l'aveva tolta (LIBG_TWR). Si sganciano solo i settori che portano il documento del LORO aeroporto: gli
+    /// APP non remotizzati e le vIPI ACC hanno un documento proprio, e restano come sono.
+    /// <para>⚠️ Gira DOPO <see cref="CollegaDaiSettoriAsync"/>, e non prima: il ponte legge proprio questi legami.</para>
+    /// </summary>
+    private async Task SganciaDaiSettoriAsync(CancellationToken ct)
+    {
+        var agganciati = await _db.Sectors
+            .Where(s => s.AirportId != null && s.DocumentId != null
+                        && _db.Airports.Any(a => a.Id == s.AirportId && a.DocumentId == s.DocumentId))
+            .ToListAsync(ct);
+        if (agganciati.Count == 0) return;
+        foreach (var s in agganciati) { s.DocumentId = null; s.IsPrimary = false; }
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<int> ReconcileAirportCategoriesAsync(CancellationToken ct = default)
