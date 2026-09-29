@@ -59,7 +59,9 @@ nome, «a tutta la voce»; **9d** i vincoli dei punti (`//@@`), al passaggio del
 **9e** i legami STAR → attesa → avvicinamento → mancato avvicinamento e l'avviso della STAR che finisce dove nessun
 avvicinamento passa. Tre difetti del motore trovati scrivendo, tutti di prima (testa `.str` doppia, commento in coda
 letto come RNAV, record nuovo che rubava il commento della voce dopo). Slice 9 chiusa; poi, decisione del committente,
-**la consegna agli AOD** (zip con eseguibile e sector). Test: motore **694**, Lab **765**. Il dettaglio di ogni passo sta in §6
+**la consegna agli AOD**: lo zip (eseguibile `f27d4ed4` e i `SectorFiles` del fork al commit `8cf32c6`, con le
+istruzioni) è stato preparato e provato il 29 settembre, e lo manda il committente. Test: motore **694**, Lab **765**.
+Prossima: **slice 10** (NAVAIDS e attese). Il dettaglio di ogni passo sta in §6
 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 

@@ -1217,3 +1217,11 @@ letto come RNAV, il record nuovo che si prendeva il commento della voce dopo. Vo
 P7, P11 (catalogo e vincoli; i valori dai PDF sono di F7), Q1, Q2, Q2b, Q2c, Q2d, Q6, R-4. Validatore sull'albero:
 **132 errori, 610 avvisi**. Test: motore 676 → **694**, Lab 709 → **765**. Da provare a mano (eseguibile ripubblicato
 `f27d4ed4`): prove 116-129 in `SectorLab-prova\PROVE.md`.
+
+**Consegna agli AOD (29 settembre).** Decisione del committente: dopo la slice 9, una prima prova degli AOD. Il Lab ha
+preparato lo zip `AuroraSectorLab-prova-2026-09-29.zip` (64 MB, fuori dal repo in `IVAO_Test\SectorLab-consegna\`):
+`SectorLab\` = l'eseguibile di `f27d4ed4` (senza `PROVE.md` e senza i `.pdb`), `Sector\` = i `SectorFiles` del fork
+`it-aurora-sector-test` al commit `8cf32c6` presi con `git archive` (niente modifiche locali) più gli schemi colore di
+Aurora, `LEGGIMI.txt` con le istruzioni. Estratto e provato (autoprova 0). Il sector del fork, e non l'ufficiale, l'ha
+confermato il committente; lo zip lo manda lui. Le segnalazioni degli AOD entrano come prove o voci nuove. Poi
+l'ondata 2 continua con la **slice 10** (NAVAIDS e attese).
