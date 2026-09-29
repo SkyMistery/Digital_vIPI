@@ -233,6 +233,27 @@ public enum Regola
 
     /// <summary>Un messaggio CPDLC che dichiara un numero di valori (TotVal) diverso dai <c>[n]</c> del testo (2 sul fork, slice 11c).</summary>
     ValoriDelMessaggio,
+
+    /// <summary>
+    /// Una finestra PAR di un profilo senza didascalia, o con una pista che il <c>.rw</c> dello scalo non ha (<c>LIPI RWY06</c>:
+    /// il <c>.rw</c> ha 06L e 06R; lotto «Subito» slice 11d, N3).
+    /// </summary>
+    ParSenzaPista,
+
+    /// <summary>La radiale di un PAR a più di 0,2° dalla rotta della sua pista nel <c>.rw</c> (<c>LIBV</c>: 137 contro 138; slice 11d, N2).</summary>
+    RadialeDelPar,
+
+    /// <summary>L'elevazione di un PAR a più di 1 ft da quella della soglia nel <c>.rw</c> (slice 11d, N2).</summary>
+    ElevazioneDelPar,
+
+    /// <summary>Un profilo con più di 20 impostazioni fuori dai PAR: ognuna sovrascrive quella dell'utente (slice 11d, N3).</summary>
+    ProfiloConMolteImpostazioni,
+
+    /// <summary>
+    /// Chiavi di una finestra finite nella sezione di un'altra (<c>INS4PAR_CAPTION</c> in <c>[INSET3]</c> di <c>LIBN.cpr</c>):
+    /// un INI si legge per sezione e chiave, e lì Aurora non le legge (slice 11d, N3).
+    /// </summary>
+    ChiaveFuoriSezione,
 }
 
 public enum Gravita
@@ -265,7 +286,9 @@ public static class Regole
             or Regola.NomeInPiuCataloghi or Regola.CampoMancante or Regola.ValoreFuoriElenco
             or Regola.PosizioneNonDefinita or Regola.PosizioneRipetuta
             or Regola.RottaConDecimali or Regola.PrimariaOltre18 or Regola.RottaDiversaDalleSoglie
-            or Regola.GruppoSenzaMessaggi or Regola.MessaggioSenzaRisposta or Regola.ValoriDelMessaggio => Validazione.Gravita.Avviso,
+            or Regola.GruppoSenzaMessaggi or Regola.MessaggioSenzaRisposta or Regola.ValoriDelMessaggio
+            or Regola.ParSenzaPista or Regola.RadialeDelPar or Regola.ElevazioneDelPar or Regola.ProfiloConMolteImpostazioni
+            or Regola.ChiaveFuoriSezione => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

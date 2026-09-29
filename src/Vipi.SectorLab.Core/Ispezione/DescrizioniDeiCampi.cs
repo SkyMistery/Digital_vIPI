@@ -69,6 +69,12 @@ public enum FonteDellElenco
 
     /// <summary>I file <c>.loa</c> dell'albero (slice 11a; sul fork non ce n'è nessuno).</summary>
     Loa,
+
+    /// <summary>
+    /// Le chiavi di un profilo completo di Aurora e quelle dei <c>.cpr</c> dell'albero, per la sezione del record (slice
+    /// 11d, N1: <c>[INSET1]</c> → <c>INS1PAR_Radial</c>…).
+    /// </summary>
+    ChiaviDelProfilo,
 }
 
 /// <summary>Un valore di un campo a tipo fisso, col suo significato («3 · nascosto»).</summary>
@@ -418,6 +424,13 @@ public static class DescrizioniDeiCampi
                 Valori = [.. Enumerable.Range(0, 19).Select(n => new ValoreFisso(n.ToString(System.Globalization.CultureInfo.InvariantCulture), $"gruppo {n}"))],
             },
             C("Nome", "Nome", "Il nome del tasto nella finestra CPDLC, al più 20 caratteri."),
+        ]),
+        // PREFS (§14, N1; slice 11d): un'impostazione di un profilo .cpr, una riga Chiave=Valore nella sua sezione.
+        [typeof(ImpostazioneDelProfilo)] = new("Impostazione del profilo",
+        [
+            C("Sezione", "Sezione", "La sezione del profilo ([PREFS], [INSET1] per la prima finestra…); vuota prima della prima sezione.", Editor.SolaLettura),
+            C("Chiave", "Impostazione", "Il nome dell'impostazione, dall'elenco di un profilo completo di Aurora (nella finestra n le chiavi cominciano con INSn).", Editor.Elenco) with { Fonte = FonteDellElenco.ChiaviDelProfilo },
+            C("Valore", "Valore", "🔴 Sovrascrive quella dell'utente a ogni connessione alla posizione: nel profilo solo quel che serve. PAR: PAR_CAPTION didascalia (ICAO RWYnn/pendenza), PAR_Glide pendenza (°), PAR_Radial radiale = rotta del .rw, Par_Elevation = elevazione della soglia (ft), Par_DA altitudine di decisione, Par_Distance distanza (NM), Par_Lat/Par_Long il centro."),
         ]),
         [typeof(Runway)] = new("Pista",
         [

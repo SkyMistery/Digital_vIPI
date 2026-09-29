@@ -102,7 +102,8 @@ else if (Campo.Descrizione is { Editor: Editor.Elenco, Fonte: FonteDellElenco.Pi
 else if (Campo.Descrizione is { Editor: Editor.Elenco, Fonte: { } fonte })
 {
     string lista = $"elenco-{Campo.Nome}";
-    var voci = Lab.Elenchi()?.Voci(fonte) ?? [];
+    // Slice 11d: le chiavi di un profilo dipendono dalla sezione del record.
+    var voci = Lab.Elenchi()?.Voci(fonte, fonte == FonteDellElenco.ChiaviDelProfilo ? Sezione : Scalo) ?? [];
     <input class="lab-campo" value="@Campo.Scritto" data-scrivi="@Campo.Nome" list="@lista"
            @onchange="e => Cambia(e.Value?.ToString())" />
     <datalist id="@lista">
@@ -145,6 +146,9 @@ else
 
     /// <summary>Lo scalo del record, per le sue piste.</summary>
     private string? Scalo => Scheda.Campi.FirstOrDefault(c => c.Nome == "IcaoCode")?.Scritto;
+
+    /// <summary>La sezione del record, per le chiavi di un profilo (slice 11d).</summary>
+    private string? Sezione => Scheda.Campi.FirstOrDefault(c => c.Nome == "Sezione")?.Scritto;
 
     /// <summary>
     /// Si scrive quel che il motore sa leggere dal testo: numeri, sì/no, testo, enum, coordinate, punti. Gli elenchi (i vertici)

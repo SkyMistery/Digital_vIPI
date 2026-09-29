@@ -208,6 +208,16 @@ public static partial class Validatore
         problemi.AddRange(ControlloDelCpdlc.Di([.. cpdlc.Select(p => (Relativo(p), Esito(p)!.Record))],
             (relativo, riga) => TestoDellaRiga(percorsoDelCpdlc[relativo], riga)));
 
+        // I profili .cpr e i loro PAR, contro le piste di tutti i .rw (lotto «Subito» slice 11d).
+        var profili = indice.Values.Where(p => p.EndsWith(".cpr", StringComparison.OrdinalIgnoreCase) && Esito(p) is not null)
+            .Order(StringComparer.Ordinal).ToList();
+        var percorsoDelProfilo = profili.ToDictionary(Relativo, p => p, StringComparer.Ordinal);
+        problemi.AddRange(ControlloDeiProfili.Di(
+            [.. profili.Select(p => (Relativo(p), (IReadOnlyList<ImpostazioneDelProfilo>)[.. Esito(p)!.Record.OfType<ImpostazioneDelProfilo>()]))],
+            indice.Values.Where(p => p.EndsWith(".rw", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal)
+                .SelectMany(p => Esito(p)?.Record.OfType<Runway>() ?? []),
+            (relativo, riga) => TestoDellaRiga(percorsoDelProfilo[relativo], riga)));
+
         // Le copie gemelle diverse (carta F3-bis §2.1): uno scalo, una pista, una posizione con un altro valore nel file
         // nazionale e in quello della FIR. Una per copia fuori posto, col valore che hanno le altre.
         var famiglie = indice.Values.Where(p => CopieGemelle.Famiglia(p) is not null && Esito(p) is not null)

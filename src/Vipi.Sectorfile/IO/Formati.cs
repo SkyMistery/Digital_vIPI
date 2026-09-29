@@ -59,6 +59,8 @@ public static class Formati
             // Lotto «Subito» slice 11c (M5): i messaggi CPDLC e i nomi dei loro gruppi.
             "cpdlc" => Con(new CpdlcParser(avvisi), new CpdlcSaver()),
             "cpdlcnames" => Con(new CpdlcNamesParser(avvisi), new CpdlcNamesSaver()),
+            // Slice 11d (N1): i profili delle posizioni, un INI come quelli di Aurora.
+            "cpr" => Con(new ProfiloParser(avvisi), new ProfiloSaver()),
             "str" => Con(new StrParser(avvisi), new StrSaver()),
             "hartcc" => Con(new HartccParser(avvisi), new HartccSaver()),
             "lartcc" => Con(new LartccParser(avvisi), new LartccSaver()),

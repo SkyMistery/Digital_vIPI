@@ -128,7 +128,7 @@ public static class Ispettore
     /// il loro nome sta in <c>FixRef</c> (o <c>CustomName</c>).</para>
     /// </summary>
     private static readonly string[] NomiCheFannoDaEtichetta =
-        ["Name", "Nome", "Ident", "IcaoCode", "Designator", "Callsign", "Code", "Number", "Identifier", "FixRef", "CustomName", "Comando", "Color"];
+        ["Name", "Nome", "Ident", "IcaoCode", "Designator", "Callsign", "Code", "Number", "Identifier", "FixRef", "CustomName", "Comando", "Chiave", "Color"];
 
     /// <summary>
     /// I campi nell'ordine della descrizione (quello della riga del file), poi quelli che la descrizione non conosce:

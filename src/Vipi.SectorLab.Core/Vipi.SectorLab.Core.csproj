@@ -24,6 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Lotto «Subito» slice 11d (N1): i nomi delle chiavi di un profilo completo di Aurora, per la scheda del .cpr. -->
+    <EmbeddedResource Include="Ispezione\ChiaviDeiProfiliDiAurora.txt" LogicalName="ChiaviDeiProfiliDiAurora.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Vipi.Sectorfile\Vipi.Sectorfile.csproj" />    <!-- Il convertitore di F1 (CoordinateParser, AipGeometryReader): il campo «incolla coordinate». Carta madre,
          decisione 3: un motore solo fra sito e app. -->
     <ProjectReference Include="..\Vipi.Application\Vipi.Application.csproj" />

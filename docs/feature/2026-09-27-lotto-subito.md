@@ -1366,3 +1366,27 @@ profili `.cpr` e i PAR.
   Uscita sul fork: **1** gruppo senza messaggi, **0** senza risposta, **2** valori diversi. Round-trip **703/703** (i
   due file ora hanno un lettore), tutto toccato 0. Validatore sull'albero: 235/859 → **235 errori, 862 avvisi**. Test:
   motore 734 → **739**, Lab 778 → **779**.
+- **11d (29 settembre)** — i profili `.cpr` e i PAR (N1-N3). Misura (`scratchpad/misura11d.py`): i quattro generici e
+  `WW0` con 2-4 impostazioni; dieci profili PAR con 1-6 finestre (`[INSETn]`, 15 chiavi `INSnPAR_…`); radiale entro
+  ±0,2° dalla rotta del `.rw` nazionale ed elevazione entro 1 ft ovunque (per `LIBV` il `.rw` nazionale dice 137 come
+  il PAR, le copie delle FIR 138: lo dice già `CopieDiverse`); `LIPI RWY06` in `LIPI.cpr` e `LIPA.cpr` (il `.rw` ha
+  06L e 06R). 🔴 Trovato misurando: in `LIBN.cpr` la sezione `[INSET3]` contiene le chiavi `INS4…` — un INI si legge
+  per sezione e chiave, quindi per Aurora INSET3 è una finestra PAR vuota (è la «INSET3 senza didascalia» della carta)
+  e quelle 13 righe non valgono. Codice comune toccato: lettore e scrittore nuovi dei `.cpr` (`ProfiloParser`,
+  `ImpostazioneDelProfilo`: un record per riga `Chiave=Valore` con la sua sezione; intestazioni e commenti restano
+  righe del file), `Validazione/ControlloDeiProfili.cs` e cinque regole.
+  - **`ParSenzaPista`** (finestra PAR — `VIEW_TYPE=2` o chiavi `PAR_` — senza didascalia o con una pista che il `.rw`
+    dello scalo non ha; uno scalo che il `.rw` non ha del tutto non si controlla), **`RadialeDelPar`** e
+    **`ElevazioneDelPar`** (oltre ±0,2° e ±1 ft, col valore del `.rw` proposto), **`ProfiloConMolteImpostazioni`** (oltre
+    20 fuori dai PAR: scelta dell'agente, i generici ne hanno 2-4), **`ChiaveFuoriSezione`** (chiavi di un'altra
+    finestra, una per sezione). Tutti avvisi. Non sono avvisi, come deciso: profilo non usato, PAR di un altro scalo,
+    righe prima delle sezioni.
+  - Nel Lab la scheda dell'impostazione: sezione, chiave scelta dall'elenco delle chiavi di Aurora **per quella
+    sezione** (risorsa `ChiaviDeiProfiliDiAurora.txt`: solo i nomi, 1 448 in 36 sezioni, l'unione dei 30 profili della
+    cartella `Profiles` di Aurora ALPHA, più quelle scritte nei `.cpr` dell'albero), valore col suo significato — «🔴
+    sovrascrive quella dell'utente a ogni connessione» e le chiavi del PAR spiegate. Per aggiungerne una: «+ Record come
+    questo» e si sceglie la chiave. Il profilo si apre dalla scheda della posizione (11a, N4).
+  Uscita sul fork: **3** finestre PAR senza pista (LIPI, LIPA, LIBN INSET3), **1** sezione con chiavi di un'altra, 0
+  radiali, 0 elevazioni, 0 profili con molte impostazioni. Round-trip **718/718** (i 15 `.cpr` ora hanno un lettore),
+  tutto toccato 0. Validatore sull'albero: 235/862 → **235 errori, 866 avvisi**. Test: motore 739 → **747**, Lab 779 →
+  **781**.
