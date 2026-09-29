@@ -177,8 +177,11 @@ public sealed record AirportFacts(
 /// <summary>Tutto ciò che serve a decidere se e come una ACC si può eliminare.</summary>
 /// <param name="IsForeign">Un ACC estero (confinante): lo porta il nostro import dei confinanti, e la sonda della
 /// sorgente interroga solo i center del paese della divisione (U-129).</param>
+/// <param name="EntiConDocumento">Codici degli enti ATC dell'ACC che hanno ancora la loro vIPI APP (S52). Gli enti
+/// senza documento non contano: se ne vanno con l'ACC.</param>
 public sealed record AccFacts(
-    string Code, string Name, DateTime? ImportedAtUtc, int Settori, int Aeroporti, bool IsForeign = false);
+    string Code, string Name, DateTime? ImportedAtUtc, int Settori, int Aeroporti, bool IsForeign = false,
+    IReadOnlyList<string>? EntiConDocumento = null);
 
 /// <summary>Tutto ciò che serve a decidere se e come un documento si può eliminare.</summary>
 /// <param name="Incarichi">
@@ -186,10 +189,12 @@ public sealed record AccFacts(
 /// (<c>TargetType</c> + <c>TargetKey</c>, senza chiave esterna): eliminando il documento l'incarico resta,
 /// con la sua etichetta vecchia e senza più un collegamento che apra qualcosa.
 /// </param>
+/// <param name="EnteCheLoPerde">Il codice dell'ente ATC di cui è la vIPI APP (S52): dal 29 settembre 2026 nessun
+/// settore la porta più, e la conferma non diceva che l'ente restava senza documento.</param>
 public sealed record DocumentFacts(
     int DocumentId, string Titolo, DocumentType Tipo, bool Pubblicato,
     int Release, IReadOnlyList<string> SettoriCheLoPerdono, string? AeroportoCheLoPerde,
-    IReadOnlyList<string>? Incarichi = null);
+    IReadOnlyList<string>? Incarichi = null, string? EnteCheLoPerde = null);
 
 /// <summary>Tutto ciò che serve a decidere di un candidato confinante.</summary>
 /// <param name="SettoreEsteroPresente">Il settore estero materializzato dalla conferma esiste ancora: non
@@ -511,6 +516,14 @@ public static class DeletionRules
                     : Lingua($"{f.Code} ha ancora {f.Aeroporti} aeroporti: eliminali o spostali prima", $"{f.Code} still has {f.Aeroporti} airports: delete them, or move them first"),
                 "/services/vsop/admin/airports"));
 
+        // Gli enti ATC (S52): la chiave esterna sull'ACC è Restrict, e prima la conferma finiva in un errore del
+        // database. Un ente con la sua vIPI APP si ferma qui; uno senza documento se ne va con l'ACC.
+        if (f.EntiConDocumento is { Count: > 0 } enti)
+            blocca.Add(new DeletionBlocker(
+                Lingua($"{f.Code} ha ancora la vIPI APP di {string.Join(", ", enti)}: eliminala prima",
+                       $"{f.Code} still has the APP vIPI of {string.Join(", ", enti)}: delete it first"),
+                "/services/vsop/versions"));
+
         return new DeletionPlan(DeletionTarget.Acc(f.Code), f.Code,
             new[] { Lingua($"la ACC {f.Code} ({f.Name})", $"the ACC {f.Code} ({f.Name})") }, Array.Empty<string>(), Array.Empty<string>(), blocca,
             DeletionActions.Nessuna with { AccDaEliminare = f.Code });
@@ -529,6 +542,7 @@ public static class DeletionRules
                 : Lingua($"le sue {f.Release} pubblicazioni", $"its {f.Release} releases"));
         foreach (var s in f.SettoriCheLoPerdono) muore.Add(Lingua($"il legame con il settore {s}", $"the link to sector {s}"));
         if (f.AeroportoCheLoPerde is { } icao) muore.Add(Lingua($"il legame con l'aeroporto {icao}", $"the link to airport {icao}"));
+        if (f.EnteCheLoPerde is { } ente) muore.Add(Lingua($"la vIPI APP dell'ente {ente} (l'ente resta, senza documento)", $"the APP vIPI of unit {ente} (the unit stays, without a document)"));
 
         // ⚠️ Gli incarichi puntano al documento per (tipo, chiave), senza chiave esterna: non si rompe
         // niente e nessuno se ne accorge. Restano nell'elenco col titolo di prima e senza collegamento —

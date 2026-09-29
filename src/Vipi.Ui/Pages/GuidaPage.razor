@@ -1264,20 +1264,23 @@
                scalo non ne ha bisogno — il documento è dell'<b>aeroporto</b>, non di una posizione. Se la
                sezione Frequenze è congelata, il pubblico vede il cambio alla ripubblicazione, che la casella
                «da rivedere» segnala.</p>
-              <p>Lo stesso vale per la <b>vIPI APP</b>: è di un <b>ente</b> («Pratica Tower», «Palermo Radar»), non di
-               un nominativo. Nell'editor della vIPI APP il riquadro <b>Ente</b> elenca le sue posizioni IVAO, di
-               qualunque tipo: chi si connette su una di queste apre il documento, e dalla <b>principale</b> si
-               derivano frequenze, AoR e coordinamenti. Cambiarle non tocca il documento né le sue pubblicazioni, e
-               l'indirizzo resta quello del <b>codice</b> dell'ente. Esempio: a Pratica di Mare si aggiunge
-               <code>LIRE_TWR</code>, la si rende principale e si toglie <code>LIRE_APP</code>.</p>
-              <p>Quando un APP passa sotto un ACC (<b>remotizzato</b>), dal riquadro Ente si preme <b>Sposta nella vIPI
-               dell'ACC</b>: tutto il contenuto della vIPI APP entra nella bozza della vIPI dell'ACC come gruppo APP, e
-               da lì si scrive e si pubblica. La vIPI APP viene nascosta (la sua storia resta) e il suo indirizzo porta
-               alla vIPI dell'ACC. Il pubblico vede il gruppo quando si pubblica la vIPI dell'ACC.</p>
               <p>Quando il sospetto è una rinomina e il sostituto è <b>uno solo</b>, la riga lo propone
                («forse rinominato in…»). Con due candidati tace di proposito: due posizioni dello stesso tipo
                sullo stesso scalo di solito vogliono dire uno <b>sdoppiamento</b>, non un cambio di nome, e
                spostare il documento sul settore sbagliato è peggio che non spostarlo.</p>
+              <p>Come la vIPI d'aeroporto è dello scalo, la <b>vIPI APP</b> è di un <b>ente</b> («Pratica Tower»,
+               «Palermo Radar»), non di un nominativo. Nell'editor della vIPI APP, in modifica, il riquadro <b>Ente</b>
+               elenca le sue posizioni IVAO, di qualunque tipo: chi si connette su una di queste apre il documento, e
+               frequenze, AoR, coordinamenti e configurazioni si derivano da <b>tutte</b>, la principale per prima.
+               Cambiarle non tocca il documento né le sue pubblicazioni, e l'indirizzo resta quello del <b>codice</b>
+               dell'ente. Esempio: a Pratica di Mare si aggiunge <code>LIRE_TWR</code>, la si rende principale e si
+               toglie <code>LIRE_APP</code>. Se la posizione tolta è ancora scelta in una configurazione, sulla mappa o
+               nell'ordine delle frequenze, il riquadro lo dice: quelle scelte sono salvate per nominativo.</p>
+              <p>Quando un APP passa sotto un ACC (<b>remotizzato</b>), dal riquadro Ente si preme <b>Sposta nella vIPI
+               dell'ACC</b>: tutto il contenuto della vIPI APP viene copiato nella bozza della vIPI dell'ACC come
+               gruppo APP. La vIPI APP resta pubblica finché la vIPI dell'ACC col gruppo non va in vigore; allora si
+               nasconde da sola (la sua storia resta) e il suo indirizzo porta alla vIPI dell'ACC. Quello che si scrive
+               nella vIPI APP dopo la copia non viene copiato.</p>
               <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta, Accordi di
                coordinamento compresi.</p>",
             @"<p>The <b>Structure</b> page (<code>/services/vsop/admin/sector-structure</code>) holds the <b>single fallback
@@ -1309,6 +1312,19 @@
                (""renamed to…""). With two candidates it stays quiet on purpose: two positions of the same kind at
                the same airport usually mean a <b>split</b>, not a new name, and moving the document onto the
                wrong sector is worse than not moving it.</p>
+              <p>Just as the airport vIPI belongs to the airport, the <b>APP vIPI</b> belongs to a <b>unit</b>
+               (""Pratica Tower"", ""Palermo Radar""), not to a callsign. In the APP vIPI editor, while editing, the
+               <b>Unit</b> box lists its IVAO positions, of any kind: whoever connects on one of them opens the document,
+               and frequencies, AoR, coordination and configurations are derived from <b>all</b> of them, the primary
+               one first. Changing them does not touch the document or its publications, and the address stays the
+               unit's <b>code</b>. Example: at Pratica di Mare you add <code>LIRE_TWR</code>, make it primary and remove
+               <code>LIRE_APP</code>. If the removed position is still chosen in a configuration, on the map or in the
+               frequency order, the box says so: those choices are saved by callsign.</p>
+              <p>When an APP moves under an ACC (<b>remoted</b>), press <b>Move into the ACC vIPI</b> in the Unit box:
+               all the content of the APP vIPI is copied into the draft of the ACC vIPI as an APP group. The APP vIPI
+               stays public until the ACC vIPI with the group comes into force; then it hides itself (its history
+               stays) and its address leads to the ACC vIPI. What you write in the APP vIPI after the copy is not
+               copied.</p>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time, coordination
                agreements included.</p>"),
 

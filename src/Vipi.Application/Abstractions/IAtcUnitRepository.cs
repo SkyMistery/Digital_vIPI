@@ -27,6 +27,9 @@ public interface IAtcUnitRepository
     /// </summary>
     Task<AtcUnitRow?> FindAsync(string key, CancellationToken ct = default);
 
+    /// <summary>L'ente per id; null se non c'è.</summary>
+    Task<AtcUnitRow?> GetAsync(int unitId, CancellationToken ct = default);
+
     /// <summary>Tutti gli enti, per l'ACC indicato o tutti.</summary>
     Task<IReadOnlyList<AtcUnitRow>> ListAsync(string? accCode = null, CancellationToken ct = default);
 

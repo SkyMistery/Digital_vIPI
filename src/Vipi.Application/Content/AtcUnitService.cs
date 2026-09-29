@@ -26,11 +26,26 @@ public sealed partial class AtcUnitService : IAtcUnitService
 {
     private readonly IAtcUnitRepository _repo;
     private readonly IEditAuthorizationService _authz;
+    private readonly IDocumentLockGuard _lock;
 
-    public AtcUnitService(IAtcUnitRepository repo, IEditAuthorizationService authz)
+    public AtcUnitService(IAtcUnitRepository repo, IEditAuthorizationService authz, IDocumentLockGuard lockGuard)
     {
         _repo = repo;
         _authz = authz;
+        _lock = lockGuard;
+    }
+
+    /// <summary>
+    /// Ruolo e LOCK della vIPI APP dell'ente (revisione, S52): le posizioni decidono frequenze, AoR e coordinamenti
+    /// del documento, quindi cambiarle è scriverlo. Prima bastava il ruolo, e da una seconda scheda — o col lock
+    /// scaduto e preso da un altro — si cambiava il documento sotto chi lo stava scrivendo.
+    /// </summary>
+    private async Task EnsureWritableAsync(int unitId, CancellationToken ct)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        var ente = await _repo.GetAsync(unitId, ct)
+                   ?? throw new Aor.ValidationException(Lingua($"Ente {unitId} inesistente.", $"Unit {unitId} does not exist."));
+        if (ente.DocumentId is int doc) await _lock.EnsureMineAsync(doc, ct);
     }
 
     /// <summary>Un nominativo IVAO: lettere, cifre e trattini bassi (<c>LIRE_TWR</c>, <c>LIPE_W_APP</c>).</summary>
@@ -39,31 +54,32 @@ public sealed partial class AtcUnitService : IAtcUnitService
 
     public Task<AtcUnitRow?> FindAsync(string key, CancellationToken ct = default) => _repo.FindAsync(key, ct);
 
-    public Task AddPositionAsync(int unitId, string callsign, CancellationToken ct = default)
+    public async Task AddPositionAsync(int unitId, string callsign, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
         var cs = (callsign ?? "").Trim().ToUpperInvariant();
         if (!Nominativo().IsMatch(cs))
             throw new Aor.ValidationException(Lingua($"«{cs}» non è un nominativo (es. LIRE_TWR).",
                 $"«{cs}» is not a callsign (e.g. LIRE_TWR)."));
-        return _repo.AddPositionAsync(unitId, cs, ct);
+        await EnsureWritableAsync(unitId, ct);
+        await _repo.AddPositionAsync(unitId, cs, ct);
     }
 
-    public Task RemovePositionAsync(int unitId, string callsign, CancellationToken ct = default)
+    public async Task RemovePositionAsync(int unitId, string callsign, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
-        return _repo.RemovePositionAsync(unitId, callsign, ct);
+        await EnsureWritableAsync(unitId, ct);
+        await _repo.RemovePositionAsync(unitId, callsign, ct);
     }
 
-    public Task MakePrimaryAsync(int unitId, string callsign, CancellationToken ct = default)
+    public async Task MakePrimaryAsync(int unitId, string callsign, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
-        return _repo.MakePrimaryAsync(unitId, callsign, ct);
+        await EnsureWritableAsync(unitId, ct);
+        await _repo.MakePrimaryAsync(unitId, callsign, ct);
     }
 
-    public Task RenameAsync(int unitId, string name, CancellationToken ct = default)
+    public async Task RenameAsync(int unitId, string name, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
-        return _repo.RenameAsync(unitId, name, ct);
+        await EnsureWritableAsync(unitId, ct);
+        await _repo.RenameAsync(unitId, name, ct);
     }
 }

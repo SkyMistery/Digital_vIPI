@@ -119,7 +119,7 @@ public class EntiAtcTests : IAsyncLifetime
     public async Task Pratica_passa_su_LIRE_TWR_e_documento_e_pubblicazioni_restano()
     {
         await PonteAsync();
-        var enti = new AtcUnitService(new EfAtcUnitRepository(_db), new Authz(VipiRole.Editor));
+        var enti = new AtcUnitService(new EfAtcUnitRepository(_db), new Authz(VipiRole.Editor), LockConcesso.Instance);
         var ente = (await enti.FindAsync("LIRE_APP"))!;
 
         await enti.AddPositionAsync(ente.Id, "lire_twr");
@@ -168,7 +168,7 @@ public class EntiAtcTests : IAsyncLifetime
         await PonteAsync();
         var repo = new EfAtcUnitRepository(_db);
         var altro = await repo.EnsureDocumentAsync("LIRF_APP", "Roma Approach", "LIRR", SectionProfile.App, 0);
-        var enti = new AtcUnitService(repo, new Authz(VipiRole.Editor));
+        var enti = new AtcUnitService(repo, new Authz(VipiRole.Editor), LockConcesso.Instance);
         var pratica = (await enti.FindAsync("LIRE_APP"))!;
         var roma = (await enti.FindAsync("LIRF_APP"))!;
         Assert.Equal(altro, roma.DocumentId);
@@ -176,7 +176,113 @@ public class EntiAtcTests : IAsyncLifetime
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => enti.AddPositionAsync(roma.Id, "LIRE_APP"));
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => enti.AddPositionAsync(pratica.Id, "pratica"));
         await Assert.ThrowsAsync<EditNotAllowedException>(
-            () => new AtcUnitService(repo, new Authz(VipiRole.User)).AddPositionAsync(pratica.Id, "LIRE_TWR"));
+            () => new AtcUnitService(repo, new Authz(VipiRole.User), LockConcesso.Instance).AddPositionAsync(pratica.Id, "LIRE_TWR"));
+    }
+
+    /// <summary>
+    /// Revisione (S52): un APP spuntato «remotizzato» PRIMA del carico, con la sua vIPI ancora sul settore, e uno
+    /// scalo senza vIPI propria. Il ponte degli scali girava per primo e prendeva quel documento come vIPI dello
+    /// scalo: la vIPI APP di Pratica diventava la vIPI d'aeroporto di LIRE, e l'ente non nasceva più.
+    /// </summary>
+    [Fact]
+    public async Task Un_app_remotizzato_con_la_sua_vipi_non_la_cede_allo_scalo()
+    {
+        var settore = await _db.Sectors.SingleAsync(s => s.Callsign == "LIRE_APP");
+        settore.ApproachKind = ApproachKind.Remotized;
+        await _db.SaveChangesAsync();
+
+        var manutenzione = new EfDocumentMaintenance(_db);
+        await manutenzione.LinkAirportDocumentsAsync();   // l'ordine vecchio dell'avvio: prima gli scali
+        await manutenzione.LinkAppUnitsAsync();
+
+        Assert.Null((await _db.Airports.AsNoTracking().SingleAsync(a => a.Icao == "LIRE")).DocumentId);
+        Assert.Equal(_docId, (await new EfAtcUnitRepository(_db).FindAsync("LIRE_APP"))!.DocumentId);
+    }
+
+    /// <summary>
+    /// Revisione (S52): il codice di un ente non può diventare la posizione di un altro. Il codice vince sulla
+    /// posizione nella ricerca, quindi a Pratica — tolta la posizione LIRE_APP e data a un altro ente — indirizzo,
+    /// vista live ed editor di LIRE_APP portavano ancora a Pratica, e la posizione dell'altro non valeva niente.
+    /// </summary>
+    [Fact]
+    public async Task Il_codice_di_un_ente_non_diventa_la_posizione_di_un_altro()
+    {
+        await PonteAsync();
+        var repo = new EfAtcUnitRepository(_db);
+        var enti = new AtcUnitService(repo, new Authz(VipiRole.Editor), LockConcesso.Instance);
+        var pratica = (await enti.FindAsync("LIRE_APP"))!;
+        await enti.AddPositionAsync(pratica.Id, "LIRE_TWR");
+        await enti.MakePrimaryAsync(pratica.Id, "LIRE_TWR");
+        await enti.RemovePositionAsync(pratica.Id, "LIRE_APP");
+        await repo.EnsureDocumentAsync("LIRF_APP", "Roma Approach", "LIRR", SectionProfile.App, 0);
+        var roma = (await enti.FindAsync("LIRF_APP"))!;
+
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => enti.AddPositionAsync(roma.Id, "LIRE_APP"));
+        Assert.Contains("Pratica", ex.Message);
+        // Il proprio codice invece si può riprendere come posizione.
+        await enti.AddPositionAsync(pratica.Id, "LIRE_APP");
+    }
+
+    /// <summary>
+    /// Revisione (S52): un ente spostato nella vIPI dell'ACC. Le segnalazioni sulle sue posizioni andavano alla
+    /// vIPI APP nascosta — che non ha più né contenuto né pagina — e non alla vIPI dell'ACC che ora lo descrive.
+    /// </summary>
+    [Fact]
+    public async Task Le_segnalazioni_di_un_ente_spostato_vanno_alla_vipi_dell_acc()
+    {
+        await PonteAsync();
+        var vipiAcc = new Document { Type = DocumentType.Vipi, Title = "vIPI Roma", Language = Language.It, LastUpdatedAiracCycle = "2610" };
+        _db.Documents.Add(vipiAcc);
+        await _db.SaveChangesAsync();
+        _db.Sectors.Add(new Sector { Acc = _acc, Callsign = "LIRR_CTR", Name = "Roma", Type = SectorType.Ctr, Kind = SectorKind.Acc, IsActive = true, DocumentId = vipiAcc.Id, IsPrimary = true });
+        (await _db.AtcUnits.SingleAsync()).Mode = AtcUnitMode.InAccVipi;
+        await _db.SaveChangesAsync();
+
+        var avvisati = await new EfDocumentImpactRepository(_db).FindDocumentsForSectorAsync("LIRE_APP", "LIRR");
+
+        Assert.Contains(avvisati, d => d.Id == vipiAcc.Id);
+        Assert.DoesNotContain(avvisati, d => d.Id == _docId);
+    }
+
+    /// <summary>
+    /// Revisione (S52): i gesti del pannello «Ente» pretendono il lock della vIPI APP, come ogni altra scrittura del
+    /// documento. Prima bastava il ruolo: da una seconda scheda, o col lock scaduto e preso da un altro, si
+    /// cambiavano le posizioni — e con loro frequenze, AoR e coordinamenti — sotto chi stava scrivendo.
+    /// </summary>
+    [Fact]
+    public async Task I_gesti_sull_ente_pretendono_il_lock_del_documento()
+    {
+        await PonteAsync();
+        var enti = new AtcUnitService(new EfAtcUnitRepository(_db), new Authz(VipiRole.Editor), new LockNegato());
+        var pratica = (await enti.FindAsync("LIRE_APP"))!;
+
+        await Assert.ThrowsAsync<EditConflictException>(() => enti.AddPositionAsync(pratica.Id, "LIRE_TWR"));
+        await Assert.ThrowsAsync<EditConflictException>(() => enti.MakePrimaryAsync(pratica.Id, "LIRE_APP"));
+        await Assert.ThrowsAsync<EditConflictException>(() => enti.RemovePositionAsync(pratica.Id, "LIRE_APP"));
+        Assert.Equal(new[] { "LIRE_APP" }, (await enti.FindAsync("LIRE_APP"))!.Positions);
+    }
+
+    /// <summary>Revisione (S52): la vIPI APP di un ente spostato nella vIPI ACC è nascosta, ma resta in Gestione
+    /// documenti — prima nessun descrittore la riconosceva, e non la si poteva più né mostrare né eliminare.</summary>
+    [Fact]
+    public async Task La_vipi_app_di_un_ente_spostato_resta_in_gestione_documenti()
+    {
+        await PonteAsync();
+        (await _db.AtcUnits.SingleAsync()).Mode = AtcUnitMode.InAccVipi;
+        (await _db.Documents.SingleAsync(d => d.Id == _docId)).IsHidden = true;
+        await _db.SaveChangesAsync();
+
+        Assert.True(new AppReleaseTarget(_db).TryDescribe(await DocumentoConEnteAsync(), false, out var app));
+        Assert.Equal("LIRE_APP", app.ReleaseKey);
+        Assert.True(app.IsHidden);
+        Assert.Null(await new AppReleaseTarget(_db).ResolveDocumentIdAsync("LIRE_APP"));   // la porta pubblica resta chiusa
+    }
+
+    private sealed class LockNegato : IDocumentLockGuard
+    {
+        public Task EnsureMineAsync(int documentId, CancellationToken ct = default) =>
+            throw new EditConflictException("in modifica da un altro");
     }
 
     private sealed class Authz : IEditAuthorizationService

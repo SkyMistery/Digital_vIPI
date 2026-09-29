@@ -111,6 +111,20 @@ public class LiveStationRegistryTests
         Assert.Null(registry.For(Ctx(SectorType.Ctr)));
     }
 
+    /// <summary>Revisione degli enti ATC (S52): un ente spostato nella vIPI ACC trova il SUO gruppo anche quando
+    /// online c'è il codice dell'ente e non una posizione (Pratica, tolta la posizione LIRE_APP).</summary>
+    [Fact]
+    public void Il_gruppo_di_un_ente_si_trova_dall_ente_anche_senza_la_posizione()
+    {
+        var altro = new AccBlock { Kind = AccBlockKind.AppGroup, Title = "Altro", MemberCallsigns = { "LIRE_APP" } };
+        var suo = new AccBlock { Kind = AccBlockKind.AppGroup, Title = "Pratica", MemberCallsigns = { "LIRE_TWR" }, UnitId = 7 };
+        var blocchi = new[] { altro, suo };
+
+        Assert.Same(suo, ApproachLiveStation.GruppoDi(blocchi, "LIRE_APP", unitId: 7));
+        Assert.Same(altro, ApproachLiveStation.GruppoDi(blocchi, "LIRE_APP", unitId: null));
+        Assert.Null(ApproachLiveStation.GruppoDi(blocchi, "LICJ_APP", unitId: null));
+    }
+
     private sealed record FakeKind(int Priority, bool Accepts) : ILiveStationKind
     {
         public bool Matches(LiveStationContext ctx) => Accepts;

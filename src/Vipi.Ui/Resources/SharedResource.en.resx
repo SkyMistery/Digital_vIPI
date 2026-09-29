@@ -3724,11 +3724,11 @@
   <data name="Audit_Fr_BackupStart" xml:space="preserve"><value>database copy requested</value></data>
   <data name="Audit_Fr_BackupDone" xml:space="preserve"><value>database copy completed: {0} tables, {1} rows, sha256 {2}</value></data>
   <data name="Unit_Title" xml:space="preserve"><value>Unit</value></data>
-  <data name="Unit_Help" xml:space="preserve"><value>The APP vIPI belongs to the unit, not to an IVAO callsign. The positions say who opens this document when online and where frequencies, AoR and coordination are derived from (the primary one). Changing them does not touch the document or its publications.</value></data>
+  <data name="Unit_Help" xml:space="preserve"><value>The APP vIPI belongs to the unit, not to an IVAO callsign. The positions say who opens this document when online and where frequencies, AoR and coordination are derived from: all of them, the primary one first. Changing them does not touch the document or its publications.</value></data>
   <data name="Unit_CodeLine" xml:space="preserve"><value>{0} · code {1} (publication key and address, never changes)</value></data>
-  <data name="Unit_NoPositions" xml:space="preserve"><value>No positions: the document stays, but no online controller opens it and the derived sections start from the code.</value></data>
+  <data name="Unit_NoPositions" xml:space="preserve"><value>No positions: the document stays and only a controller online with the code opens it; the derived sections start from the code.</value></data>
   <data name="Unit_Primary" xml:space="preserve"><value>primary</value></data>
-  <data name="Unit_PrimaryTitle" xml:space="preserve"><value>Frequencies, AoR and coordination are derived from this position</value></data>
+  <data name="Unit_PrimaryTitle" xml:space="preserve"><value>The unit's first position: it comes first in frequencies, AoR and configurations</value></data>
   <data name="Unit_MakePrimary" xml:space="preserve"><value>Make primary</value></data>
   <data name="Unit_Remove" xml:space="preserve"><value>Remove the position</value></data>
   <data name="Unit_RemovePrompt" xml:space="preserve"><value>Remove {0} from the unit? The document stays.</value></data>
@@ -3737,7 +3737,9 @@
   <data name="Unit_AddAction" xml:space="preserve"><value>Add</value></data>
   <data name="Unit_EditToChange" xml:space="preserve"><value>Press «Edit» to change the positions.</value></data>
   <data name="Unit_Remote" xml:space="preserve"><value>Move into the ACC vIPI</value></data>
-  <data name="Unit_RemoteHelp" xml:space="preserve"><value>If the APP moves under the {0} ACC (remoted), its content moves into the ACC vIPI as an APP group, and is written and published from there.</value></data>
-  <data name="Unit_RemotePrompt" xml:space="preserve"><value>Move all the content into the draft of the {0} ACC vIPI? This APP vIPI is hidden (its history stays) and the public sees the group once you publish the ACC vIPI.</value></data>
+  <data name="Unit_RemoteHelp" xml:space="preserve"><value>If the APP moves under the {0} ACC (remoted), its content is copied into the ACC vIPI as an APP group: it is written and published from there, and once that one is in force this APP vIPI hides itself.</value></data>
+  <data name="Unit_RemotePrompt" xml:space="preserve"><value>Copy all the content into the draft of the {0} ACC vIPI? This APP vIPI stays public until you publish the ACC vIPI with the group: then it hides itself (its history stays).</value></data>
   <data name="Unit_RemoteYes" xml:space="preserve"><value>Move</value></data>
+  <data name="Unit_StillCited" xml:space="preserve"><value>{0} is still referenced in: {1}. Those choices are saved by callsign: update them.</value></data>
+  <data name="Unit_MovePending" xml:space="preserve"><value>Copied into the draft of the {0} ACC vIPI: it stays public until you publish that one. What you write here now is not copied.</value></data>
 </root>

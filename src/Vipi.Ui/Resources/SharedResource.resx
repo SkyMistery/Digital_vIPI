@@ -3732,11 +3732,11 @@
   <data name="Audit_Fr_BackupStart" xml:space="preserve"><value>copia del database richiesta</value></data>
   <data name="Audit_Fr_BackupDone" xml:space="preserve"><value>copia del database completata: {0} tabelle, {1} righe, sha256 {2}</value></data>
   <data name="Unit_Title" xml:space="preserve"><value>Ente</value></data>
-  <data name="Unit_Help" xml:space="preserve"><value>La vIPI APP è dell'ente, non di un nominativo IVAO. Le posizioni dicono chi apre questo documento quando è online e da dove si derivano frequenze, AoR e coordinamenti (dalla principale). Cambiarle non tocca il documento né le sue pubblicazioni.</value></data>
+  <data name="Unit_Help" xml:space="preserve"><value>La vIPI APP è dell'ente, non di un nominativo IVAO. Le posizioni dicono chi apre questo documento quando è online e da dove si derivano frequenze, AoR e coordinamenti: da tutte, la principale per prima. Cambiarle non tocca il documento né le sue pubblicazioni.</value></data>
   <data name="Unit_CodeLine" xml:space="preserve"><value>{0} · codice {1} (chiave di pubblicazione e indirizzo, non cambia)</value></data>
-  <data name="Unit_NoPositions" xml:space="preserve"><value>Nessuna posizione: il documento resta, ma nessun controllore online lo apre e le derivate partono dal codice.</value></data>
+  <data name="Unit_NoPositions" xml:space="preserve"><value>Nessuna posizione: il documento resta e lo apre solo chi è online col codice; le derivate partono dal codice.</value></data>
   <data name="Unit_Primary" xml:space="preserve"><value>principale</value></data>
-  <data name="Unit_PrimaryTitle" xml:space="preserve"><value>Da questa posizione si derivano frequenze, AoR e coordinamenti</value></data>
+  <data name="Unit_PrimaryTitle" xml:space="preserve"><value>La prima posizione dell'ente: viene per prima in frequenze, AoR e configurazioni</value></data>
   <data name="Unit_MakePrimary" xml:space="preserve"><value>Rendi principale</value></data>
   <data name="Unit_Remove" xml:space="preserve"><value>Togli la posizione</value></data>
   <data name="Unit_RemovePrompt" xml:space="preserve"><value>Togliere {0} dall'ente? Il documento resta.</value></data>
@@ -3745,7 +3745,9 @@
   <data name="Unit_AddAction" xml:space="preserve"><value>Aggiungi</value></data>
   <data name="Unit_EditToChange" xml:space="preserve"><value>Premi «Modifica» per cambiare le posizioni.</value></data>
   <data name="Unit_Remote" xml:space="preserve"><value>Sposta nella vIPI dell'ACC</value></data>
-  <data name="Unit_RemoteHelp" xml:space="preserve"><value>Se l'APP passa sotto l'ACC {0} (remotizzato), il suo contenuto si sposta nella vIPI dell'ACC come gruppo APP, e da lì si scrive e si pubblica.</value></data>
-  <data name="Unit_RemotePrompt" xml:space="preserve"><value>Spostare tutto il contenuto nella bozza della vIPI dell'ACC {0}? Questa vIPI APP viene nascosta (la sua storia resta) e il pubblico vedrà il gruppo quando pubblichi la vIPI dell'ACC.</value></data>
+  <data name="Unit_RemoteHelp" xml:space="preserve"><value>Se l'APP passa sotto l'ACC {0} (remotizzato), il suo contenuto si copia nella vIPI dell'ACC come gruppo APP: da lì si scrive e si pubblica, e quando quella va in vigore questa vIPI APP si nasconde.</value></data>
+  <data name="Unit_RemotePrompt" xml:space="preserve"><value>Copiare tutto il contenuto nella bozza della vIPI dell'ACC {0}? Questa vIPI APP resta pubblica finché non pubblichi la vIPI dell'ACC col gruppo: allora si nasconde da sola (la sua storia resta).</value></data>
   <data name="Unit_RemoteYes" xml:space="preserve"><value>Sposta</value></data>
+  <data name="Unit_StillCited" xml:space="preserve"><value>{0} è ancora citata in: {1}. Quelle scelte sono salvate per nominativo: aggiornale.</value></data>
+  <data name="Unit_MovePending" xml:space="preserve"><value>Copiata nella bozza della vIPI dell'ACC {0}: resta pubblica finché non pubblichi quella. Quello che scrivi qui adesso non viene copiato.</value></data>
 </root>

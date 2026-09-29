@@ -64,17 +64,19 @@ public sealed class ApproachLiveStation : ILiveStationKind
             {
                 Title = identity is null || string.IsNullOrWhiteSpace(identity.Title) ? ctx.Callsign : identity.Title,
                 Frequencies = await _appDoc.DeriveFrequenciesAsync(chiave, ct),
-                ExtendedDoc = new LiveDocRef(ReleaseTargetType.App, ctx.Acc.Code, identity?.Code ?? chiave),
+                // L'ACC dell'ENTE, non del settore online (revisione, S52): una posizione può stare in un altro ACC.
+                ExtendedDoc = new LiveDocRef(ReleaseTargetType.App, identity?.AccCode ?? ctx.Acc.Code, identity?.Code ?? chiave),
                 NoDocument = identity is null,
             };
         }
 
-        // Remotizzato: il gruppo-APP della vIPI di ACC che lo contiene.
-        var roots = await _deriv.ListTreeRootsAsync(ctx.Acc.Code, ct);
+        // Remotizzato: il gruppo-APP della vIPI di ACC che lo contiene. Per un ente spostato (S50) è la vIPI del SUO
+        // ACC, e il gruppo è il suo anche quando online c'è il codice e non una posizione (revisione, S52).
+        var accCode = ctx.UnitAccCode ?? ctx.Acc.Code;
+        var roots = await _deriv.ListTreeRootsAsync(accCode, ct);
         var root = roots.Count > 0 ? roots[0].Callsign : null;
-        var model = await _accDoc.LoadForViewAsync(ctx.Acc.Code, ct);
-        var block = model?.Data.Blocks.FirstOrDefault(b => b.Kind == AccBlockKind.AppGroup
-            && b.MemberCallsigns.Contains(ctx.Callsign, StringComparer.OrdinalIgnoreCase));
+        var model = await _accDoc.LoadForViewAsync(accCode, ct);
+        var block = model is null ? null : GruppoDi(model.Data.Blocks, ctx.Callsign, ctx.UnitId);
 
         // Senza blocco (APP non ancora messo in nessun gruppo) resta la derivazione sul solo callsign: il
         // catalogo del suo aeroporto c'è comunque, manca solo il raggruppamento editoriale.
@@ -88,8 +90,16 @@ public sealed class ApproachLiveStation : ILiveStationKind
             Frequencies = freqs,
             Groups = block is null ? Array.Empty<LiveGroup>() : new[] { new LiveGroup(block, freqs.ToList(), false) },
             TreeRoot = root,
-            ExtendedDoc = new LiveDocRef(ReleaseTargetType.AccVipi, ctx.Acc.Code, null),
+            ExtendedDoc = new LiveDocRef(ReleaseTargetType.AccVipi, accCode, null),
             NoDocument = block is null,
         };
+    }
+
+    /// <summary>Il gruppo APP della postazione: quello dell'ente se ce n'è uno, altrimenti quello che la elenca.</summary>
+    internal static AccBlock? GruppoDi(IEnumerable<AccBlock> blocchi, string callsign, int? unitId)
+    {
+        var gruppi = blocchi.Where(b => b.Kind == AccBlockKind.AppGroup).ToList();
+        return (unitId is int id ? gruppi.FirstOrDefault(b => b.UnitId == id) : null)
+               ?? gruppi.FirstOrDefault(b => b.MemberCallsigns.Contains(callsign, StringComparer.OrdinalIgnoreCase));
     }
 }

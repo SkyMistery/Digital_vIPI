@@ -38,6 +38,9 @@ public sealed class EfAtcUnitRepository : IAtcUnitRepository
         return u is null ? null : Riga(u);
     }
 
+    public async Task<AtcUnitRow?> GetAsync(int unitId, CancellationToken ct = default) =>
+        await Con().FirstOrDefaultAsync(u => u.Id == unitId, ct) is { } u ? Riga(u) : null;
+
     public async Task<IReadOnlyList<AtcUnitRow>> ListAsync(string? accCode = null, CancellationToken ct = default)
     {
         var q = Con();
@@ -90,6 +93,13 @@ public sealed class EfAtcUnitRepository : IAtcUnitRepository
         var altro = await _db.AtcUnitPositions.Where(p => p.Callsign == cs).Select(p => p.AtcUnit!.Name).FirstOrDefaultAsync(ct);
         if (altro is not null)
             throw new ValidationException(Lingua($"{cs} è già una posizione di «{altro}».", $"{cs} is already a position of «{altro}»."));
+        // ⚠️ Nemmeno il CODICE di un altro ente (revisione, S52): nella ricerca il codice vince sulla posizione, e
+        // la posizione nuova non porterebbe mai al suo ente — indirizzo, vista live ed editor aprirebbero l'altro.
+        var diCodice = await _db.AtcUnits.Where(u => u.Code == cs && u.Id != unitId).Select(u => u.Name).FirstOrDefaultAsync(ct);
+        if (diCodice is not null)
+            throw new ValidationException(Lingua(
+                $"{cs} è il codice di «{diCodice}»: la vIPI di quell'ente si pubblica con questo nome.",
+                $"{cs} is the code of «{diCodice}»: that unit's vIPI is published under this name."));
         unit.Positions.Add(new AtcUnitPosition
         {
             Callsign = cs, Order = unit.Positions.Count == 0 ? 0 : unit.Positions.Max(p => p.Order) + 1,

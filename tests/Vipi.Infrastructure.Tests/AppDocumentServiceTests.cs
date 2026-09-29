@@ -505,6 +505,23 @@ public class AppDocumentServiceTests : IAsyncLifetime
         Assert.Equal(new[] { App, "LIRF_TWR" }, settori.Select(s => s.Callsign).ToArray());
     }
 
+    /// <summary>Revisione (S52): togliendo una posizione dall'ente, le scelte salvate per nominativo non la seguono
+    /// — configurazioni, mappa, frequenze. Il pannello «Ente» lo dice, e per dirlo chiede dove è ancora citata.</summary>
+    [Fact]
+    public async Task Dice_dove_un_nominativo_e_ancora_citato()
+    {
+        Assert.Empty(await _service.WhereCitedAsync(App, App));
+
+        var cfg = new AccConfiguration { Key = "cfg:1", Name = "APP unico" };
+        cfg.Open.Add(new AccConfigOpen { Callsign = App });
+        await _service.SaveConfigurationsAsync(App, new[] { cfg });
+        await _service.SaveAorCustomizationAsync(App, new AorExtraShapes { Colors = { [App] = "#123456" } });
+
+        var dove = await _service.WhereCitedAsync(App, "lirp_app");
+        Assert.Equal(2, dove.Count);
+        Assert.Empty(await _service.WhereCitedAsync(App, "LIRP_TWR"));
+    }
+
     // ---- aree regolamentate: come la vIPI ACC ma senza aree di default (nessun modo automatico) ----
 
     [Fact]

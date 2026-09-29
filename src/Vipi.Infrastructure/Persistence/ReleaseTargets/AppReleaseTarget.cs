@@ -44,7 +44,11 @@ public sealed class AppReleaseTarget : IReleaseTarget
         // difese indipendenti, ognuna sufficiente -- la stessa forma delle guardie sulle corse del context.
         if (doc.Edition != DocumentEdition.Civil) return false;
 
-        if (doc.AtcUnit is not { Mode: AtcUnitMode.OwnDocument } ente) return false;
+        // ⚠️ Anche un ente spostato nella vIPI dell'ACC (revisione, S52): la sua vIPI APP è nascosta ma resta un
+        // documento suo, con la sua storia. Prima nessun descrittore la riconosceva, e da Gestione documenti non la
+        // si poteva più né mostrare, né eliminare, né vederne le versioni. La porta pubblica resta chiusa lo stesso
+        // (ResolveDocumentIdAsync, PublicDocumentGate: solo OwnDocument).
+        if (doc.AtcUnit is not { } ente) return false;
         managed = new ManagedDoc(ReleaseTargetType.App, doc.Title, ente.Code, ente.Acc?.Code,
             doc.Status == DocumentStatus.Published, hasDraft, doc.IsHidden,
             ReleaseTargetType.App, ente.Code, doc.Id);

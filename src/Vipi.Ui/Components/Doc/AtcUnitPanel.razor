@@ -10,6 +10,12 @@
 @inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Nav
 
+@* ⚠️ L'errore si vede anche senza ente (revisione, S52): stava DENTRO il ramo dell'ente, e un caricamento fallito
+   faceva sparire il pannello senza una parola. *@
+@if (_ente is null && _errore is { Length: > 0 })
+{
+    <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+}
 @if (_ente is not null)
 {
     <div class="rel-panel" id="sec-ente">
@@ -24,7 +30,17 @@
             <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
         }
 
+        @if (_avviso is { Length: > 0 })
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div>@_avviso</div></div>
+        }
+
         <p class="muted" style="margin:0 0 6px">@L["Unit_CodeLine", _ente.Name, _ente.Code]</p>
+
+        @if (_spostamentoVerso is { } acc)
+        {
+            <p class="help" style="margin:0 0 6px">@L["Unit_MovePending", acc]</p>
+        }
 
         @if (_ente.Positions.Count == 0)
         {
@@ -75,7 +91,10 @@
                         @onclick="Aggiungi">@L["Unit_AddAction"]</button>
             </div>
 
-            @* «Remotizza» (S50): il contenuto si SPOSTA nella vIPI dell'ACC come gruppo APP, e lì resta. *@
+            @* «Remotizza» (S50): il contenuto si SPOSTA nella vIPI dell'ACC come gruppo APP, e lì resta. Già copiato
+               (S52): il tasto non c'è più, farebbe un secondo gruppo. *@
+            @if (_spostamentoVerso is null)
+            {
             <div class="unit-remote" style="margin-top:12px">
                 <p class="help" style="margin:0 0 6px">@L["Unit_RemoteHelp", _ente.AccCode]</p>
                 <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Unit_Remote"]" AriaLabel="@L["Unit_Remote"]"
@@ -84,6 +103,7 @@
                     <Trigger>@L["Unit_Remote"]</Trigger>
                 </InlineConfirm>
             </div>
+            }
         }
         else
         {
@@ -106,6 +126,10 @@
     private AtcUnitRow? _ente;
     private string _nuova = "";
     private string? _errore;
+    /// <summary>Dopo «togli»: dove il documento cita ancora la posizione tolta (configurazioni, mappa, frequenze).</summary>
+    private string? _avviso;
+    /// <summary>L'ACC in cui l'ente è già copiato, finché la vIPI ACC non va in vigore (S52); null altrimenti.</summary>
+    private string? _spostamentoVerso;
     private bool _busy;
     private string _caricato = "";
 
@@ -121,7 +145,7 @@
         {
             await InFilaAsync(async () =>
             {
-                if (_caricato == chiave) _ente = await _enti.FindAsync(Key);
+                if (_caricato == chiave) await RileggiAsync();
             });
         }
         catch (Exception ex)
@@ -137,16 +161,33 @@
         _nuova = "";
     });
 
-    private Task Togli(string cs) => EseguiAsync(() => _enti.RemovePositionAsync(_ente!.Id, cs));
+    private Task Togli(string cs) => EseguiAsync(async () =>
+    {
+        await _enti.RemovePositionAsync(_ente!.Id, cs);
+        // Le scelte salvate per nominativo non seguono la posizione (S52): lo si dice, invece di lasciarle orfane.
+        var dove = await ScopedServices.GetRequiredService<IAppDocumentService>().WhereCitedAsync(_ente.Code, cs);
+        if (dove.Count > 0) _avviso = L["Unit_StillCited", cs, string.Join(", ", dove)];
+    });
 
     private Task Principale(string cs) => EseguiAsync(() => _enti.MakePrimaryAsync(_ente!.Id, cs));
 
-    /// <summary>Sposta il contenuto nella vIPI dell'ACC e apre il suo editor: è lì che ora si scrive e si pubblica.</summary>
+    /// <summary>L'ente e, se è già copiato nella vIPI ACC, verso quale. Dentro la fila dei caricamenti.</summary>
+    private async Task RileggiAsync()
+    {
+        _ente = await _enti.FindAsync(Key);
+        _spostamentoVerso = _ente is not null && IsEditing
+            ? await ScopedServices.GetRequiredService<IRemotizzazioneService>().SpostamentoInCorsoAsync(_ente.Id)
+            : null;
+    }
+
+    /// <summary>Copia il contenuto nella vIPI dell'ACC e apre il suo editor: è lì che si pubblica il gruppo, e con la
+    /// pubblicazione lo spostamento si conclude (S52).</summary>
     private async Task Remotizza()
     {
         if (_ente is null) return;
         _busy = true;
         _errore = null;
+        _avviso = null;
         try
         {
             RemotizzazioneEsito? esito = null;
@@ -159,11 +200,20 @@
         {
             _errore = ex is Vipi.Application.Aor.ValidationException or EditConflictException
                 ? ex.Message : L["Common_UnexpectedError"] + ex.Message;
+            await RileggiDopoErroreAsync();
         }
         finally
         {
             _busy = false;
         }
+    }
+
+    /// <summary>Dopo un errore si rilegge (S52): il pannello mostrava lo stato di prima del gesto, che può non essere
+    /// più vero. Un secondo guasto qui non copre il primo.</summary>
+    private async Task RileggiDopoErroreAsync()
+    {
+        try { await InFilaAsync(RileggiAsync); }
+        catch (Exception) { /* l'errore da mostrare è quello del gesto */ }
     }
 
     /// <summary>Un gesto: in fila col caricamento, l'errore a schermo e non nel circuito, poi rilettura e host.</summary>
@@ -172,18 +222,22 @@
         if (_ente is null) return;
         _busy = true;
         _errore = null;
+        _avviso = null;
         try
         {
             await InFilaAsync(async () =>
             {
                 await gesto();
-                _ente = await _enti.FindAsync(Key);
+                await RileggiAsync();
             });
             await Changed.InvokeAsync();
         }
         catch (Exception ex)
         {
-            _errore = ex is Vipi.Application.Aor.ValidationException ? ex.Message : L["Common_UnexpectedError"] + ex.Message;
+            // Il lock scaduto o preso da un altro (S52: i gesti sull'ente lo pretendono) si legge com'è.
+            _errore = ex is Vipi.Application.Aor.ValidationException or EditConflictException
+                ? ex.Message : L["Common_UnexpectedError"] + ex.Message;
+            await RileggiDopoErroreAsync();
         }
         finally
         {

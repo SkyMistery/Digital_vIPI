@@ -1591,5 +1591,17 @@
   (Infrastructure 2003), tutti ROSSI sul codice di prima; uno portato alla regola nuova (sceglieva `LIRP_APP` come
   «primo settore libero»). Niente migrazione. Codice comune `Vipi.Application`. Opzionale non fatto: vIPI ACC
   legata all'ACC. Carta `docs/feature/2026-09-29-enti-atc.md` §5.
+- ✅ **S52** revisione delle fasi 1–3 degli enti ATC (29-set, committente: «rivedi il lavoro… fai finta di non averlo
+  scritto tu»; ramo `fix/enti-atc`). Tre revisori indipendenti, rilievi verificati sul codice: due gravi, otto medi,
+  una decina lievi. Scelte del committente: **A** «Sposta» in due tempi (copia nella bozza ACC, la vIPI APP resta
+  pubblica e si nasconde da sola quando la vIPI ACC col gruppo va in vigore: `ConcludiSpostamentiAsync` dopo la
+  pubblicazione e nel giro delle release); **B** un ACC con enti che hanno una vIPI APP non si elimina (frase), gli
+  enti vuoti se ne vanno con lui. Gravi: ordine dei ponti d'avvio (una vIPI APP diventava vIPI dello scalo),
+  «Sposta» senza transazione (due gruppi riprovando). Medi: codice come posizione altrui, lock nel riquadro «Ente»,
+  pagina dell'ACC, segnalazioni di un ente spostato, vIPI APP nascosta fuori da Gestione documenti, scelte salvate
+  per nominativo (avviso), rifiuti tardivi. `EfUnitOfWork` ripulisce il tracker al rollback. Test +19 (Application
+  3102, Infrastructure 2014, Ui 1875), una guardia dei nomi aggiornata (`WhereCitedAsync` è una lettura); i test
+  rossi sul codice di prima dove compilavano contro di esso (ponti, codice-posizione, ACC con enti, lock), gli altri
+  usano API nuove. Niente migrazione. Codice comune `Vipi.Application`, `Vipi.Hosting`. Carta §6.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

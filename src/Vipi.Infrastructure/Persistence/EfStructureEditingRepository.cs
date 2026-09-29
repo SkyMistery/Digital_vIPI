@@ -52,6 +52,10 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         // I settori portano contenuto/documenti: vanno rimossi esplicitamente prima.
         if (await _db.Sectors.AnyAsync(s => s.AccId == fid, ct))
             throw new InvalidOperationException(Lingua("Impossibile eliminare la ACC: rimuovi prima i settori.", "The ACC cannot be deleted: remove its sectors first."));
+        // Gli enti ATC (S52): con la vIPI APP si fermano qui, senza se ne vanno con l'ACC (FK Restrict).
+        if (await _db.AtcUnits.AnyAsync(u => u.AccId == fid && u.DocumentId != null, ct))
+            throw new InvalidOperationException(Lingua("Impossibile eliminare la ACC: ha ancora una vIPI APP.", "The ACC cannot be deleted: it still has an APP vIPI."));
+        _db.AtcUnits.RemoveRange(await _db.AtcUnits.Include(u => u.Positions).Where(u => u.AccId == fid).ToListAsync(ct));
         // Gli aeroporti (spesso auto-assegnati in blocco) seguono la ACC: FK Sector.AirportId è SetNull.
         var airports = await _db.Airports.Where(a => a.AccId == fid).ToListAsync(ct);
         if (airports.Count > 0) _db.Airports.RemoveRange(airports);

@@ -148,9 +148,21 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             .ToListAsync(ct);
         // La vIPI APP la porta l'ENTE, per ogni sua posizione (S49): nessun settore APP la porta più.
         ids.AddRange(await _db.AtcUnitPositions.AsNoTracking()
-            .Where(p => list.Contains(p.Callsign) && p.AtcUnit!.DocumentId != null)
+            .Where(p => list.Contains(p.Callsign) && p.AtcUnit!.DocumentId != null
+                        && p.AtcUnit.Mode == AtcUnitMode.OwnDocument)
             .Select(p => p.AtcUnit!.DocumentId!.Value)
             .ToListAsync(ct));
+        // ⚠️ Un ente spostato nella vIPI dell'ACC (S50) la riceve LÌ, non sulla vIPI APP nascosta (revisione, S52).
+        // La vIPI ACC la porta il CTR radice dell'ACC, come in ResolveAccDocumentIdentityAsync.
+        var accDiEntiSpostati = await _db.AtcUnitPositions.AsNoTracking()
+            .Where(p => list.Contains(p.Callsign) && p.AtcUnit!.Mode == AtcUnitMode.InAccVipi)
+            .Select(p => p.AtcUnit!.AccId).Distinct().ToListAsync(ct);
+        foreach (var accId in accDiEntiSpostati)
+            if (await _db.Sectors.AsNoTracking()
+                    .Where(s => s.AccId == accId && s.Type == SectorType.Ctr && s.ParentSectorId == null && s.IsActive)
+                    .OrderBy(s => s.CoverageOrder).ThenBy(s => s.Callsign)
+                    .Select(s => s.DocumentId).FirstOrDefaultAsync(ct) is int accDoc)
+                ids.Add(accDoc);
 
         var icaos = await _db.AirportSectors.AsNoTracking()
             .Where(s => list.Contains(s.ComposePosition))

@@ -60,6 +60,13 @@ public interface IAppDocumentService
     /// <summary>Override editoriali del documento (sezioni nascoste, ordine/link frequenze, template coord). Vuoti se non migrato.</summary>
     Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default);
 
+    /// <summary>
+    /// Dove il documento cita ancora un nominativo scritto a mano: configurazioni, mappa AoR, frequenze. Serve a
+    /// chi toglie una posizione dall'ente (S52): quelle scelte sono salvate per nominativo e non la seguono.
+    /// Vuoto = da nessuna parte.
+    /// </summary>
+    Task<IReadOnlyList<string>> WhereCitedAsync(string appCallsign, string callsign, CancellationToken ct = default);
+
     /// <summary>Salva l'override d'ordine delle frequenze per callsign (ACC-gated).</summary>
     Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default);
 
@@ -200,16 +207,26 @@ public sealed class AppDocumentService : IAppDocumentService
         return dominio;
     }
 
-    /// <summary>I genitori di copertura dell'ente, vicino→lontano e posizione per posizione, senza ripetizioni e
-    /// senza chi è già nel suo dominio (una torre dell'ente sotto il suo stesso APP ha l'APP come padre).</summary>
-    private static List<string> AntenatiDi(Aor.Topology topo, IReadOnlyList<string> posizioni, IReadOnlySet<string> dominio)
+    /// <summary>I genitori di copertura dell'ente, dal più vicino al più lontano, senza ripetizioni e senza chi è già
+    /// nel suo dominio (una torre dell'ente sotto il suo stesso APP ha l'APP come padre).</summary>
+    /// <remarks>⚠️ Per DISTANZA, non posizione per posizione (revisione, S52): con due posizioni in rami diversi
+    /// (P1 → CTR_A → ROOT, P2 → CTR_B → ROOT) l'accodamento dava A, ROOT, B — la radice prima di un CTR vicino. A
+    /// parità di distanza vale l'ordine delle posizioni.</remarks>
+    internal static List<string> AntenatiDi(Aor.Topology topo, IReadOnlyList<string> posizioni, IReadOnlySet<string> dominio)
     {
-        var visti = new HashSet<string>(dominio, StringComparer.OrdinalIgnoreCase);
-        var antenati = new List<string>();
+        var distanza = new Dictionary<string, (int Passi, int Ordine)>(StringComparer.OrdinalIgnoreCase);
+        var ordine = 0;
         foreach (var p in posizioni)
+        {
+            var passi = 0;
             foreach (var a in topo.Ancestors(p))
-                if (visti.Add(a)) antenati.Add(a);
-        return antenati;
+            {
+                passi++;
+                if (dominio.Contains(a)) continue;
+                if (!distanza.TryGetValue(a, out var gia) || passi < gia.Passi) distanza[a] = (passi, gia.Passi == 0 ? ordine++ : gia.Ordine);
+            }
+        }
+        return distanza.OrderBy(kv => kv.Value.Passi).ThenBy(kv => kv.Value.Ordine).Select(kv => kv.Key).ToList();
     }
 
     // Override derivati (link/ordine freq, template coord) dal DocumentProfile del documento dell'APP; vuoti se non migrato.
@@ -523,6 +540,27 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default) =>
         LoadOverridesAsync(appCallsign, ct);
+
+    public async Task<IReadOnlyList<string>> WhereCitedAsync(string appCallsign, string callsign, CancellationToken ct = default)
+    {
+        var cs = Norm(callsign);
+        var dove = new List<string>();
+        bool Uguale(string? x) => string.Equals(x, cs, StringComparison.OrdinalIgnoreCase);
+
+        var configurazioni = (await GetConfigurationsAsync(appCallsign, ct)).Count(c => c.OpenCallsigns.Any(Uguale));
+        if (configurazioni > 0)
+            dove.Add(configurazioni == 1
+                ? Lingua("una configurazione", "one configuration")
+                : Lingua($"{configurazioni} configurazioni", $"{configurazioni} configurations"));
+
+        var aor = await GetAorCustomizationAsync(appCallsign, ct);
+        var profilo = await LoadOverridesAsync(Norm(appCallsign), ct);
+        if (aor.Callsigns.Any(Uguale) || aor.Colors.Keys.Any(Uguale) || profilo.HiddenAorSectors.Any(Uguale))
+            dove.Add(Lingua("la mappa AoR", "the AoR map"));
+        if (profilo.FreqOrder.Any(o => Uguale(o.Callsign)) || profilo.HiddenFrequencies.Any(Uguale))
+            dove.Add(Lingua("le frequenze", "the frequencies"));
+        return dove;
+    }
 
     public Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default) =>
         WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveFreqOrderAsync(docId, overrides ?? Array.Empty<AppFreqOrderOverride>(), c), ct);

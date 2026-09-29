@@ -220,7 +220,7 @@ public class LockDelleScrittureStrutturateTests : IAsyncLifetime
             "EnsureAsync", "GetAorCustomizationAsync", "GetAorViewAsync", "GetConfigurationsAsync", "GetIdentityAsync",
             "GetOverridesAsync", "GetRegulatedAsync", "GetSeparationsAsync", "ListLinkableFrequenciesAsync",
             "ListOtherAccSpecialAreasAsync", "ListSectorsAsync", "ListSelectableSectorShapesAsync",
-            "ListSpecialAreasAsync", "ResolveRegulatedAreasAsync",
+            "ListSpecialAreasAsync", "ResolveRegulatedAreasAsync", "WhereCitedAsync",
         },
         ["MIL"] = new[]
         {

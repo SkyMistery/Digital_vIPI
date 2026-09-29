@@ -576,6 +576,14 @@ public sealed class EfEditingRepository : IEditingRepository
         var srcSections = await _db.DocumentSections.AsNoTracking().Where(s => s.DocumentVersionId == sourceVersionId).ToListAsync(ct);
         var srcBlocks = await _db.ContentBlocks.AsNoTracking().Where(b => b.DocumentVersionId == sourceVersionId).ToListAsync(ct);
 
+        // ⚠️ Una sezione il cui padre non è in questa versione: «crea bozza» su lo stesso albero si ferma apposta,
+        // perché chi copia se ne accorga. Qui finiva sotto il blocco, a profondità 1, in silenzio (revisione, S52).
+        var ids = srcSections.Select(s => s.Id).ToHashSet();
+        if (srcSections.FirstOrDefault(s => s.ParentSectionId is int pid && !ids.Contains(pid)) is { } orfana)
+            throw new Vipi.Application.Aor.ValidationException(Lingua(
+                $"La sezione «{orfana.Title}» punta a una sezione madre che non è in questa versione: sistemala nell'editor e riprova.",
+                $"The section «{orfana.Title}» points to a parent section that is not in this version: fix it in the editor and try again."));
+
         // La profondità dall'ALBERO, come «crea bozza» (U-014): dentro il blocco ogni sezione scende di uno, e
         // oltre il massimo il motore non la saprebbe disegnare. Si controlla PRIMA di scrivere qualunque cosa.
         var ordine = InOrdineDiAlbero(srcSections);
