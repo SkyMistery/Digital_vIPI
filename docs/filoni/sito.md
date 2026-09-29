@@ -1516,11 +1516,15 @@
 - ✅ **S44** il piè di pagina del sito (29-set, committente, con davanti quello dell'hub): `SitoFooter` in
   `SopLayout`, quindi su ogni pagina tranne il vAWOS (layout suo, `AwosLayout`); non si rende quando un host
   aggancia il modulo senza la nostra barra, né in stampa. Marchio, a che cosa serve il sito, l'avviso di simulazione;
-  i collegamenti di IVAO (gli stessi dell'hub: ivao.aero, termini, privacy, regolamento, in una scheda nuova); in
+  i collegamenti di IVAO (ivao.aero e la pagina della wiki con regole, regolamento e privacy, in una scheda nuova —
+  le tre pagine dell'hub su ivao.aero rispondono 404; un link solo all'indice, scelta del committente); in
   fondo diritti e «Parte della International Virtual Aviation Organisation». La **versione** esce dalla barra e va
   qui, allo **staff** (chi può modificare; prima ai soli admin), con la stessa classe `ver-chip`. Su pagina corta il
   piè resta in fondo alla finestra. Verificato a schermo a 1500 (scuro, IT/EN) e 375px; `/services/vawos` senza.
   Test +5 (`PieDiPaginaTests`); Ui **1863**.
+  Poi (S46, stesso giorno): i link legali passano alla wiki di IVAO (le pagine su ivao.aero rispondono 404); in fondo
+  «Realizzato da Carmine (704798)» col link al profilo IVAO; il piè prende il colore della barra (`--ivao-blue`),
+  per uniformità, in entrambi i temi. Test +1; Ui **1870**.
 - ✅ **S45** scheda di uno scalo con vIPI **e** vSOP nell'elenco aeroporti di un'ACC (29-set, committente): il clic
   fuori dalle due voci apre il documento principale per categoria — la vIPI su uno scalo civile (anche con presenza
   militare), il vSOP su un campo militare (anche aperto al civile). Prima il riquadro non si cliccava, e dove si

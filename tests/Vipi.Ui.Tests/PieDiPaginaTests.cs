@@ -60,16 +60,27 @@ public class PieDiPaginaTests : TestContext
         var cut = Rendi(staff: false);
 
         var link = cut.FindAll(".sf-links a").ToList();
-        Assert.Equal(new[]
-        {
-            "https://www.ivao.aero", "https://www.ivao.aero/termsandconditions.htm",
-            "https://www.ivao.aero/privacy.htm", "https://www.ivao.aero/rules.htm",
-        }, link.Select(a => a.GetAttribute("href")));
+        // ⚠️ Le tre pagine di ivao.aero (termini, privacy, regole) rispondono 404 dal 29 settembre 2026: tutto sta
+        // sulla wiki di IVAO, sotto una pagina sola.
+        Assert.Equal(new[] { "https://www.ivao.aero", "https://wiki.ivao.aero/en/home/ivao/information" },
+            link.Select(a => a.GetAttribute("href")));
         Assert.All(link, a =>
         {
             Assert.Equal("_blank", a.GetAttribute("target"));
             Assert.Equal("noopener", a.GetAttribute("rel"));
         });
+    }
+
+    /// <summary>Committente, 29 settembre 2026: «built by Carmine (704798)», con nome e VID che portano al profilo IVAO.</summary>
+    [Fact]
+    public void Dice_chi_l_ha_realizzato_col_link_al_profilo_IVAO()
+    {
+        var cut = Rendi(staff: false);
+
+        var autore = cut.FindAll(".sf-bottom a").Single(a => a.TextContent == "Carmine (704798)");
+        Assert.Equal("https://ivao.aero/Login.aspx?r=Member.aspx?Id=704798", autore.GetAttribute("href"));
+        Assert.Equal("_blank", autore.GetAttribute("target"));
+        Assert.Contains("Foot_BuiltBy", cut.Find(".sf-bottom").TextContent);
     }
 
     [Fact]

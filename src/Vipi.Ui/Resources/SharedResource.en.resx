@@ -141,10 +141,9 @@
   <data name="Foot_Disclaimer" xml:space="preserve"><value>{0} is a division of IVAO, a non-commercial flight simulation network. Nothing published here is intended for real world aviation.</value></data>
   <data name="Foot_Rights" xml:space="preserve"><value>All rights reserved.</value></data>
   <data name="Foot_PartOf" xml:space="preserve"><value>Part of the International Virtual Aviation Organisation</value></data>
+  <data name="Foot_BuiltBy" xml:space="preserve"><value>Built by</value></data>
   <data name="Foot_Ivao" xml:space="preserve"><value>IVAO</value></data>
-  <data name="Foot_Terms" xml:space="preserve"><value>Terms and conditions</value></data>
-  <data name="Foot_Privacy" xml:space="preserve"><value>Privacy policy</value></data>
-  <data name="Foot_Rules" xml:space="preserve"><value>Rules and regulations</value></data>
+  <data name="Foot_Info" xml:space="preserve"><value>Rules, regulations and privacy</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Theme: automatic (follows the system)</value></data>
   <data name="Chrome_ThemeLight" xml:space="preserve"><value>Theme: light</value></data>
   <data name="Chrome_ThemeDark" xml:space="preserve"><value>Theme: dark</value></data>
