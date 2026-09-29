@@ -994,9 +994,17 @@
 /* Riga della pill militare sulla card d'aeroporto: sta fra il nome e il meteo, e non deve toccarli. */
 :where(.vipi-root) .apt-mil{margin:6px 0 0}
 /* Scheda di uno scalo con vIPI E vSOP militare: non e' un link unico (un <a> dentro un <a> non e' HTML), ma
-   un riquadro con due voci ACCANTO AL NOME, che vanno a capo se il nome e' lungo. Non si solleva al passaggio,
-   o prometterebbe un clic che sul riquadro non c'e'. La voce militare prende l'oliva dell'edizione militare. */
-:where(.vipi-root) .apt-card.apt-two:hover{transform:none}
+   un riquadro con due voci ACCANTO AL NOME, che vanno a capo se il nome e' lungo. La voce militare prende
+   l'oliva dell'edizione militare.
+   Dal 29 settembre 2026 il riquadro si clicca fuori dalle voci (apre il documento principale per categoria): il
+   collegamento `.apt-main` e' steso su tutta la scheda SOTTO il contenuto, e le due voci gli stanno sopra. Il
+   resto del contenuto non prende i clic (`pointer-events:none`), cosi' arrivano al collegamento; per questo la
+   scheda torna a sollevarsi al passaggio come le altre. */
+:where(.vipi-root) .apt-card.apt-two{position:relative}
+:where(.vipi-root) .apt-card.apt-two>.apt-main{position:absolute;inset:0;border-radius:inherit;z-index:0}
+:where(.vipi-root) .apt-card.apt-two>:not(.apt-main){position:relative;z-index:1;pointer-events:none}
+:where(.vipi-root) .apt-card.apt-two .apt-docs{pointer-events:auto}
+:where(.vipi-root) .apt-card.apt-two>.apt-main:focus-visible{outline:2px solid var(--ivao-lightblue);outline-offset:2px}
 :where(.vipi-root) .apt-name{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;margin-top:4px}
 :where(.vipi-root) .apt-card .apt-name p.muted{margin:0}
 /* ⚠️ I filtri per categoria: una categoria a zero e' NEUTRA, non verde — il verde di `button.sh-chip:disabled`
