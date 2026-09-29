@@ -13,13 +13,46 @@ public sealed partial class VociDegliElenchi
 {
     private readonly Dictionary<string, List<string>> _piste;
 
+    private readonly Dictionary<string, List<string>> _file;
+
     private VociDegliElenchi(
-        IReadOnlyList<string> scali, IReadOnlyList<string> posizioni, IReadOnlyList<string> attese, Dictionary<string, List<string>> piste)
+        IReadOnlyList<string> scali, IReadOnlyList<string> posizioni, IReadOnlyList<string> attese, Dictionary<string, List<string>> piste,
+        Dictionary<string, List<string>> file)
     {
         Scali = scali;
         Posizioni = posizioni;
         Attese = attese;
         _piste = piste;
+        _file = file;
+    }
+
+    // Le estensioni dei file che un .frq cita (slice 11a).
+    private static readonly Dictionary<FonteDellElenco, string> Estensioni = new()
+    {
+        [FonteDellElenco.Profili] = ".cpr", [FonteDellElenco.Atis] = ".atis", [FonteDellElenco.Datis] = ".datis", [FonteDellElenco.Loa] = ".loa",
+    };
+
+    /// <summary>
+    /// Il file dell'albero che un campo cita (<c>PREFS\TWR.cpr</c> → <c>SectorFiles/Include/IT/PREFS/TWR.cpr</c>), fra
+    /// quelli aperti; null se non c'è. Un <c>\</c> in testa (<c>\liml.atis</c>) vale dalla cartella dei dati.
+    /// </summary>
+    public static string? FileCitato(SessioneAperta sessione, string? citato)
+    {
+        ArgumentNullException.ThrowIfNull(sessione);
+        string cercato = (citato ?? string.Empty).Trim().Replace('\\', '/').TrimStart('/');
+        if (cercato.Length == 0)
+            return null;
+        return sessione.File.Keys.FirstOrDefault(k => DallaCartellaDeiDati(k) is { } suo && string.Equals(suo, cercato, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // SectorFiles/Include/IT/PREFS/TWR.cpr → PREFS/TWR.cpr; null fuori da Include/<cartella dei dati>.
+    private static string? DallaCartellaDeiDati(string relativo)
+    {
+        int include = relativo.IndexOf("/Include/", StringComparison.OrdinalIgnoreCase);
+        if (include < 0)
+            return null;
+        int cartella = relativo.IndexOf('/', include + "/Include/".Length);
+        return cartella < 0 ? null : relativo[(cartella + 1)..];
     }
 
     /// <summary>I codici ICAO degli scali, in ordine alfabetico (non i commentati: Aurora non li legge).</summary>
@@ -54,6 +87,7 @@ public sealed partial class VociDegliElenchi
         FonteDellElenco.Scali => Scali,
         FonteDellElenco.Posizioni => Posizioni,
         FonteDellElenco.Attese => Attese,
+        FonteDellElenco.Profili or FonteDellElenco.Atis or FonteDellElenco.Datis or FonteDellElenco.Loa => _file.GetValueOrDefault(Estensioni[fonte]) ?? [],
         FonteDellElenco.Piste => PisteDi(scalo),
         _ => [],
     };
@@ -65,6 +99,18 @@ public sealed partial class VociDegliElenchi
         var posizioni = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         var attese = new SortedSet<string>(StringComparer.Ordinal);
         var piste = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        // I file citabili, scritti come li scrive un .frq: dalla cartella dei dati, col «\».
+        var citabili = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (string relativo in sessione.File.Keys.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            if (Estensioni.ContainsValue(Path.GetExtension(relativo).ToLowerInvariant()) && DallaCartellaDeiDati(relativo) is { } suo)
+            {
+                string estensione = Path.GetExtension(relativo).ToLowerInvariant();
+                if (!citabili.TryGetValue(estensione, out var suoi))
+                    citabili[estensione] = suoi = [];
+                suoi.Add(suo.Replace('/', '\\'));
+            }
+        }
 
         foreach (var file in sessione.File.Values.OrderBy(f => f.Relativo, StringComparer.Ordinal))
         {
@@ -97,7 +143,7 @@ public sealed partial class VociDegliElenchi
             }
         }
 
-        return new VociDegliElenchi([.. scali], [.. posizioni], [.. attese], piste);
+        return new VociDegliElenchi([.. scali], [.. posizioni], [.. attese], piste, citabili);
     }
 
     [GeneratedRegex(@"^(0[1-9]|[12][0-9]|3[0-6])[LCR]?$")]

@@ -36,7 +36,8 @@ public static class CopieGemelle
     public static IReadOnlyList<string> Estensioni { get; } = ["ap", "rw", "frq"];
 
     // Proprietà che non sono dati del record: da dove viene, e un segno che nessuno imposta.
-    private static readonly HashSet<string> FuoriConfronto = new(StringComparer.Ordinal) { "Sources", "Source", "HasConflict" };
+    // Inclusi ed Esclusi di una posizione sono i trasferimenti letti in due liste (slice 11a): li dice già TransferList.
+    private static readonly HashSet<string> FuoriConfronto = new(StringComparer.Ordinal) { "Sources", "Source", "HasConflict", "Inclusi", "Esclusi" };
 
     /// <summary>
     /// La chiave di un record di famiglia; null per ogni altro record. Uno scalo commentato (<c>//LIBB;…</c>, che il

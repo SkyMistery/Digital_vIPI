@@ -5,9 +5,9 @@ namespace Vipi.Sectorfile.IO;
 
 /// <summary>
 /// Serialises an <see cref="AtcPosition"/> to a .frq line:
-///   <c>Code ; Freq ; TransferList ; Profile ; AtisFile ; BlockCpdlc ; [empty] ; DatisFile ;</c>
-/// Always writes through BlockCpdlc; the empty placeholder + DatisFile are appended only when a
-/// DatisFile is present (SRS §5.14).
+///   <c>Code ; Freq ; TransferList ; Profile ; AtisFile ; BlockCpdlc ; Loa ; DatisFile ;</c>
+/// Always writes through BlockCpdlc; the Loa field (empty if there is none) and DatisFile are appended only when
+/// one of them is present (SRS §5.14, slice 11a).
 /// </summary>
 public sealed class FrqSaver : IFileSaver<AtcPosition>
 {
@@ -27,7 +27,7 @@ public sealed class FrqSaver : IFileSaver<AtcPosition>
         };
 
         // A position with nothing after the transfer list is written as it was read (F2 slice 5).
-        if (record.Profile is null && record.AtisFile is null && !record.BlockCpdlc && record.DatisFile is null)
+        if (record.Profile is null && record.AtisFile is null && !record.BlockCpdlc && record.Loa is null && record.DatisFile is null)
         {
             return new[] { string.Join(";", fields) + ";" };
         }
@@ -36,9 +36,13 @@ public sealed class FrqSaver : IFileSaver<AtcPosition>
         fields.Add(record.AtisFile ?? string.Empty);
         fields.Add(record.BlockCpdlc ? "1" : "0");
 
+        if (record.Loa is not null || record.DatisFile is not null)
+        {
+            fields.Add(record.Loa ?? string.Empty);   // field 7, the .loa file (slice 11a)
+        }
+
         if (record.DatisFile is not null)
         {
-            fields.Add(string.Empty);   // field 7 placeholder
             fields.Add(record.DatisFile);
         }
 

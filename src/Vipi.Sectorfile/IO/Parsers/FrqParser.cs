@@ -6,9 +6,9 @@ namespace Vipi.Sectorfile.IO;
 
 /// <summary>
 /// Parses .frq ATC-position files. One record per line (SRS §5.14 / TEST_MATRIX §16):
-///   <c>Code ; FreqMHz ; TransferList ; Profile ; AtisFile ; BlockCpdlc ; [empty] ; DatisFile ;</c>
-/// TransferList is space-separated; a leading <c>-</c> marks a negative transfer. Field 7 is an
-/// always-empty placeholder (not modelled). <see cref="AtcPosition"/> has no disabled state, so a
+///   <c>Code ; FreqMHz ; TransferList ; Profile ; AtisFile ; BlockCpdlc ; Loa ; DatisFile ;</c>
+/// TransferList is space-separated; a leading <c>-</c> marks a negative transfer. Field 7 is the .loa file
+/// (slice 11a; before, an always-empty placeholder). <see cref="AtcPosition"/> has no disabled state, so a
 /// <c>//</c> line is a comment.
 /// </summary>
 public sealed class FrqParser : LineRecordParser<AtcPosition>
@@ -65,7 +65,11 @@ public sealed class FrqParser : LineRecordParser<AtcPosition>
             position.BlockCpdlc = parts[5].Trim() == "1";
         }
 
-        // parts[6] is the always-empty placeholder (field 7) — intentionally ignored.
+        // Field 7 is the .loa file (IVAO manual «LOA & XFL», lotto «Subito» slice 11a); empty on the whole fork.
+        if (n >= 7)
+        {
+            position.Loa = parts[6].Length > 0 ? parts[6] : null;   // verbatim
+        }
 
         if (n >= 8)
         {

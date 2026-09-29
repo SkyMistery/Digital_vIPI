@@ -83,4 +83,40 @@ public sealed class FrqParserTests
     [InlineData("LIMM_WS2_CTR")]
     public void Parse_CodeVerbatim(string code)
         => Assert.Equal(code, Parse($"{code};128.350;LIMM;PREFS\\TWR.cpr;;0;\r\n").Records[0].Code);
+
+    // Lotto «Subito» slice 11a (M1): il 7° campo è il file .loa (manuale IVAO, «LOA & XFL»), non un segnaposto vuoto.
+    [Theory]
+    [InlineData("LGAV_APP;132.975;LGMD;PREFS\\APP.cpr;ATIS\\LG.atis;1;PROCs\\LG.loa;ATIS\\LGAV_D.atis;", "PROCs\\LG.loa")]
+    [InlineData("LIML_TWR;118.100;LIML;PREFS\\TWR.cpr;\\liml.atis;1;;datis-ad.datis;", null)]
+    [InlineData("LGAV_APP;132.975;LGMD;PREFS\\APP.cpr;;0;PROCs\\LG.loa;", "PROCs\\LG.loa")]
+    public void Il7CampoELaLoa(string riga, string? loa)
+    {
+        var r = Assert.Single(Parse(riga + "\r\n").Records);
+        Assert.Equal(loa, r.Loa);
+        Assert.Equal(riga, new FrqSaver().Serialize(r)[0]);
+    }
+
+    // Slice 11a (M1): i trasferimenti in due liste; scriverne una rimette sempre prima gli include, poi gli esclusi.
+    [Fact]
+    public void ITrasferimentiSonoDueListe_EScriverleLiMetteInOrdine()
+    {
+        var r = Parse("LIML_TWR;118.100;LIML LIMM -LIMC_MAR_APP -LIMM_ES5_CTR LIRO LIVK;PREFS\\TWR.cpr;;1;\r\n").Records[0];
+        Assert.Equal("LIML LIMM LIRO LIVK", r.Inclusi);
+        Assert.Equal("LIMC_MAR_APP LIMM_ES5_CTR", r.Esclusi);
+
+        r.Inclusi = "LIML  LIMM LIRO LIVK LIZZ";
+        Assert.Equal("LIML_TWR;118.100;LIML LIMM LIRO LIVK LIZZ -LIMC_MAR_APP -LIMM_ES5_CTR;PREFS\\TWR.cpr;;1;", new FrqSaver().Serialize(r)[0]);
+        r.Esclusi = "-LIMC_MAR_APP";
+        Assert.Equal("LIML LIMM LIRO LIVK LIZZ -LIMC_MAR_APP", string.Join(" ", r.TransferList.Select(t => (t.IsNegative ? "-" : "") + t.PositionCode)));
+    }
+
+    [Theory]
+    [InlineData("LIML;LIMM")]
+    [InlineData("LIML -LIMM")]
+    public void UnaListaConUnPuntoEVirgolaOUnMenoSiRifiuta(string inclusi)
+    {
+        var r = Parse("LIML_TWR;118.100;LIML;PREFS\\TWR.cpr;;1;\r\n").Records[0];
+        Assert.Throws<ArgumentException>(() => r.Inclusi = inclusi);
+        Assert.Equal("LIML", r.Inclusi);
+    }
 }

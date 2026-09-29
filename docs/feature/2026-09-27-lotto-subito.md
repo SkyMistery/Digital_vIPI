@@ -1303,3 +1303,30 @@ fra cataloghi); **5 + 2** righe illeggibili, già con la correzione proposta dal
 Validatore sull'albero: **133 errori, 636 avvisi**. Test: motore 694 → **720**, Lab 765 → **771**. Da provare a mano:
 prove 130-137 in `SectorLab-prova\PROVE.md`. Resta per F4: la prova in Aurora di quale fra VOR e NDB omonimi prende un
 punto per nome.
+
+**Slice 11 — OTHER e PREFS (dal 29 settembre).** Manuale IVAO riletto (`[ATC]`, `[AIRPORT]`, `[RUNWAY]`): nei
+trasferimenti una voce è una posizione o un **ICAO** (tutte le sue posizioni), prima gli inclusi e poi gli esclusi
+(«DO NOT use an INCLUDE definition after EXCLUDE definitions! It will not work»); il 7° campo è il file **`.loa`**
+(«LOA & XFL»: livelli di trasferimento per punto e settore); la rotta della pista è **magnetica**; nascosto e tipo
+dello scalo facoltativi. Divisa in: **11a** le posizioni (`.frq`) · **11b** scali e piste · **11c** il CPDLC · **11d** i
+profili `.cpr` e i PAR.
+- **Misura dei `.frq`** (`scratchpad/misura11a.py`, chat `2b142de2`): include dopo un escluso in **102** posizioni (51
+  `itfreq`, 15 `libb`, 3 `limm`, 22 `lipp`, 11 `lirr`); citate e mai definite, fra le italiane, `LIMJ_APP`, `LIBB_APP`,
+  `LIMM_WN4_CTR`, `LIMM_EN4_CTR` (le straniere, `LFMM_S_CTR`, `LDZO_CTR`…, sono normali); `LIMF_WN0_APP` due volte in
+  `itfreq.frq` e in `limm.frq`, con trasferimenti e profilo diversi; il 7° campo vuoto ovunque; frequenze tutte
+  `nnn.nnn`; un solo file citato che non c'è (`PREFS\LIPC.cpr`, già `FileCitatoAssente`).
+- **Decisione del committente (29 settembre)**: l'include dopo un escluso è un **errore**, con il riordino proposto.
+- **11a (29 settembre)** — le posizioni (M1, M2, N4). Codice comune toccato: `AtcPosition.Loa` (7° campo; prima un
+  segnaposto sempre vuoto), `AtcPosition.Inclusi`/`Esclusi` (i trasferimenti in due liste: scriverne una rimette prima
+  gli inclusi e poi gli esclusi; un «;» o un «-» fra gli inclusi si rifiuta col perché), `FrqParser`/`FrqSaver`,
+  `Validazione/ControlloDellePosizioni.cs` e tre regole; `CopieGemelle` non confronta le due liste (le dice già
+  `TransferList`).
+  - **`IncludeDopoEscluso`** (errore) con la riga riordinata proposta; **`PosizioneNonDefinita`** (avviso) per una
+    posizione italiana (`LI…_…`) che nessun `.frq` definisce; **`PosizioneRipetuta`** (avviso).
+  - Nella scheda della posizione: **Trasferimenti: inclusi** e **esclusi**; profilo, ATIS, LOA e D-ATIS scelti fra i
+    file dell'albero (fonti nuove degli elenchi), con **«apri»** accanto a un file che c'è (N4: il profilo si apre
+    nell'elenco dei file) e «non c'è nell'albero» accanto a uno che manca. Il nome di una posizione citata si cambia
+    con «Rinomina», come quello dei punti (10c).
+  Uscita sul fork: **102** errori, tutti con la correzione che, applicata a una copia, torna pulita; **32** avvisi di
+  posizioni mai definite (le righe che citano le quattro); **2** ripetute. Validatore sull'albero: 133/636 → **235
+  errori, 670 avvisi**. Round-trip invariato, copie gemelle invariate (29). Test: motore 720 → **729**, Lab 771 → **775**.

@@ -197,6 +197,18 @@ public enum Regola
 
     /// <summary>Un campo a valori fissi con un valore fuori elenco: il tipo <c>3:</c> di <c>APT.fix</c> (slice 10b).</summary>
     ValoreFuoriElenco,
+
+    /// <summary>
+    /// Nei trasferimenti di un <c>.frq</c> un include dopo un escluso: il manuale dice che «non funziona», Aurora non lo legge
+    /// (lotto «Subito» slice 11a, M2; errore per il committente, 29 settembre: 102 sul fork). Col riordino proposto.
+    /// </summary>
+    IncludeDopoEscluso,
+
+    /// <summary>Una posizione italiana nei trasferimenti che nessun <c>.frq</c> definisce (<c>LIMM_WN4_CTR</c>: slice 11a, M2).</summary>
+    PosizioneNonDefinita,
+
+    /// <summary>La stessa posizione due volte nello stesso <c>.frq</c> (<c>LIMF_WN0_APP</c> in <c>itfreq.frq</c>: slice 11a).</summary>
+    PosizioneRipetuta,
 }
 
 public enum Gravita
@@ -226,7 +238,8 @@ public static class Regole
             or Regola.CommentoInCoda or Regola.FileCitatoAssente or Regola.FileInclusoDueVolte
             or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma
             or Regola.NomeMancante or Regola.AttesaMaiCitata or Regola.AttesaFuoriPosto or Regola.AtteseNonCaricate
-            or Regola.NomeInPiuCataloghi or Regola.CampoMancante or Regola.ValoreFuoriElenco => Validazione.Gravita.Avviso,
+            or Regola.NomeInPiuCataloghi or Regola.CampoMancante or Regola.ValoreFuoriElenco
+            or Regola.PosizioneNonDefinita or Regola.PosizioneRipetuta => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

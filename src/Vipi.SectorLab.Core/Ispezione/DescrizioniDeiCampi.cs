@@ -57,6 +57,18 @@ public enum FonteDellElenco
 
     /// <summary>Le attese in rotta di <c>[HOLDENR]</c> (slice 10a).</summary>
     Attese,
+
+    /// <summary>I profili <c>.cpr</c> dell'albero, scritti come li cita un <c>.frq</c> (<c>PREFS\TWR.cpr</c>, slice 11a).</summary>
+    Profili,
+
+    /// <summary>I modelli <c>.atis</c> dell'albero (slice 11a).</summary>
+    Atis,
+
+    /// <summary>I modelli <c>.datis</c> dell'albero (slice 11a).</summary>
+    Datis,
+
+    /// <summary>I file <c>.loa</c> dell'albero (slice 11a; sul fork non ce n'è nessuno).</summary>
+    Loa,
 }
 
 /// <summary>Un valore di un campo a tipo fisso, col suo significato («3 · nascosto»).</summary>
@@ -168,6 +180,10 @@ public static class DescrizioniDeiCampi
 
     /// <summary>La visibilità di VOR e NDB (manuale IVAO: 0 Show, 1 Hide).</summary>
     private static readonly IReadOnlyList<ValoreFisso> Visibilita = [Vuoto, .. Valori(("0", "mostrato"), ("1", "nascosto"))];
+
+    /// <summary>Un file citato da un .frq (slice 11a, M1, N4): scelto fra quelli che ci sono, e da lì si apre.</summary>
+    private static DescrizioneDelCampo FileCitato(string proprieta, string nome, string significato, FonteDellElenco fonte)
+        => C(proprieta, nome, significato, Editor.Elenco) with { Fonte = fonte };
 
     /// <summary>Una parte dell'info di un'attesa (slice 10c): si scrive solo se l'info ha la forma FIX/rotta+virata-quota.</summary>
     private static DescrizioneDelCampo ParteDellInfo(DescrizioneDelCampo campo) => campo with
@@ -370,11 +386,15 @@ public static class DescrizioniDeiCampi
         [
             C("Code", "Posizione", "Il nominativo della posizione (LIRR_NE_CTR)."),
             C("FrequencyMhz", "Frequenza", "In MHz (2° campo).", Editor.Numero),
-            C("TransferList", "Trasferimenti", "3° campo: prima le posizioni incluse, poi le escluse (-POS). Le due liste sono della slice 11.", Editor.SolaLettura),
-            C("Profile", "Profilo", "Il file .cpr della posizione (4° campo)."),
-            C("AtisFile", "ATIS", "Il file .atis (5° campo)."),
+            C("TransferList", "Trasferimenti (come sono scritti)", "3° campo: le posizioni o gli ICAO a cui passa il traffico, gli esclusi col «-».", Editor.SolaLettura),
+            // Slice 11a (M1): le due liste; scriverne una rimette prima gli inclusi e poi gli esclusi, come vuole il manuale.
+            C("Inclusi", "Trasferimenti: inclusi", "Posizioni (LIRR_NE_CTR) o ICAO (LIRF, tutte le sue posizioni), separate da uno spazio. Nella riga vengono sempre prima degli esclusi: un incluso dopo un escluso Aurora non lo legge."),
+            C("Esclusi", "Trasferimenti: esclusi", "Le posizioni escluse, separate da uno spazio (il «-» lo scrive il Lab)."),
+            FileCitato("Profile", "Profilo", "Il file .cpr della posizione (4° campo): le sue impostazioni sovrascrivono quelle dell'utente a ogni connessione.", FonteDellElenco.Profili),
+            FileCitato("AtisFile", "ATIS", "Il modello .atis (5° campo).", FonteDellElenco.Atis),
             C("BlockCpdlc", "CPDLC bloccato", "6° campo: 1 = il CPDLC non si usa su questa posizione.", Editor.SiNo),
-            C("DatisFile", "D-ATIS", "Il file .datis (8° campo)."),
+            FileCitato("Loa", "LOA", "Il file .loa (7° campo): i livelli di trasferimento per punto e settore (manuale IVAO, «LOA & XFL»).", FonteDellElenco.Loa),
+            FileCitato("DatisFile", "D-ATIS", "Il modello .datis (8° campo).", FonteDellElenco.Datis),
         ]),
         [typeof(Runway)] = new("Pista",
         [

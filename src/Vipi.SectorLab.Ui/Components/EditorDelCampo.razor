@@ -111,6 +111,16 @@ else if (Campo.Descrizione is { Editor: Editor.Elenco, Fonte: { } fonte })
             <option value="@voce"></option>
         }
     </datalist>
+    @if (EUnFile(fonte) && Lab.FileCitato(Campo.Scritto) is { } citato)
+    {
+        @* Slice 11a (N4): il file citato si apre da qui. *@
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-apri-citato="@Campo.Nome" title="@citato"
+                @onclick="() => Lab.ApriIlFileCitato(citato)">apri</button>
+    }
+    else if (EUnFile(fonte) && Campo.Scritto.Trim().Length > 0)
+    {
+        <span class="lab-nota lab-fuori-elenco" data-citato-assente="@Campo.Nome">non c'è nell'albero</span>
+    }
 }
 else
 {
@@ -152,6 +162,9 @@ else
     }
 
     private void Cambia(string? valore) => Lab.CambiaCampo(Scheda.File, Scheda.Indice, Campo.Nome, valore);
+
+    private static bool EUnFile(FonteDellElenco fonte)
+        => fonte is FonteDellElenco.Profili or FonteDellElenco.Atis or FonteDellElenco.Datis or FonteDellElenco.Loa;
 
     private void CambiaSiNo(ChangeEventArgs e) => Cambia(Equals(e.Value, true) ? "sì" : "no");
 

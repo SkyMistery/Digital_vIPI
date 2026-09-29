@@ -340,6 +340,18 @@ public sealed class SessioneDelLab
     /// <summary>L'ultimo file di cui si è rifatta la geometria: se è quello scelto, la mappa segue il record spostato.</summary>
     public string? FileRifatto { get; private set; }
 
+    /// <summary>Il file dell'albero che un campo cita (<c>PREFS\TWR.cpr</c>), se c'è (slice 11a, N4).</summary>
+    public string? FileCitato(string? citato) => Sessione is null ? null : VociDegliElenchi.FileCitato(Sessione, citato);
+
+    /// <summary>Apre un file citato da una scheda (il profilo di una posizione): lascia la scelta e mostra il file.</summary>
+    public void ApriIlFileCitato(string relativo)
+    {
+        Scelta = null;
+        FileScelto = relativo;
+        Registro.Scrivi("scelta", $"file citato {relativo}");
+        Avvisa();
+    }
+
     /// <summary>Apre (o chiude, con null) un file nell'elenco dei record. Non cambia la scelta.</summary>
     public void ApriFile(string? relativo)
     {
@@ -837,6 +849,8 @@ public sealed class SessioneDelLab
             Vor v => (nameof(Vor.Ident), v.Ident),
             Ndb n => (nameof(Ndb.Ident), n.Ident),
             Attesa a => (nameof(Attesa.Nome), a.Nome),
+            // Slice 11a: una posizione la citano i trasferimenti e le teste dei settori dinamici.
+            AtcPosition p => (nameof(AtcPosition.Code), p.Code),
             _ => null,
         };
         string nuovo = valore?.Trim() ?? string.Empty;
@@ -845,7 +859,8 @@ public sealed class SessioneDelLab
             return null;
         if (UsiDi(fileRelativo, record) is { Citazioni.Count: > 0 and var quante })
             return $"{nome.Nome.Trim()} è citato in {(quante == 1 ? "1 riga" : $"{quante} righe")}: il nome si cambia con «Rinomina», in «Chi lo usa», che riscrive anche le citazioni.";
-        return Rinomina.NomeGiaUsato(Sessione, Cataloghi, punto is Attesa, nuovo);
+        // Una posizione ripetuta la dice il validatore (PosizioneRipetuta); i cataloghi dei punti non la riguardano.
+        return punto is AtcPosition ? null : Rinomina.NomeGiaUsato(Sessione, Cataloghi, punto is Attesa, nuovo);
     }
 
     /// <summary>I metadati di §M del record, per la scheda (lotto «Subito», slice 3d); vuoto se il file non porta tag.</summary>
