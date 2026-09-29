@@ -43,7 +43,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A136 — 1.50.0 PRONTO: richieste dal campo (S56) e vAWOS in Edge (S57) (30 settembre 2026)
+### ✅ A136 — 1.50.0 ONLINE: richieste dal campo (S56) e vAWOS in Edge (S57) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: timbro, `Schema 0` e il link «Report» confermati dal committente (la migrazione
+`RichiesteDalCampo` è entrata). Da fuori: `/vsop/health` Healthy, Ricerca «13 results for LIRF», console pulita
+(`pacchetto-verifica.js`, tutto verde); la pagina vAWOS chiede `vipi-awos.css?v=f36639b1`, che è il file nuovo
+(`100dvh`), e non ha più TEST METAR. ⚠️ L'URL **senza** `?v=` restava il vecchio nella cache di Cloudflare: innocuo,
+il sito chiede sempre quello con l'impronta.
 
 **Pacchetto 1.50.0**, MINOR con **una migrazione additiva** (`RichiesteDalCampo`), su 1.49.0 (`89bfb04`). Timbro
 **`1.50.0 · e7742ff`**. **20 file** (`solo-20-file-1.50.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui,
