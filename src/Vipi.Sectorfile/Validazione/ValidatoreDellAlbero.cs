@@ -112,6 +112,12 @@ public static partial class Validatore
                 }
             }
 
+            // Le attese in rotta e i nomi in più cataloghi (lotto «Subito» slice 10b).
+            problemi.AddRange(ControlloDelleAttese.DelMaster(nomeMaster,
+                caricati.Order(StringComparer.Ordinal).Where(p => Esito(p) is not null)
+                    .Select(p => (p, Relativo(p), Esito(p)!.Record)).ToList(),
+                TestoDellaRiga));
+
             foreach (string file in caricati)
             {
                 foreach (var usato in Esito(file)?.Usati ?? Array.Empty<NomeUsato>())
@@ -290,7 +296,7 @@ public static partial class Validatore
     }
 
     // Distanza in metri, piana: basta per dire «stesso punto» o «a quante miglia».
-    private static double Metri(Shared.Coordinate a, Shared.Coordinate b)
+    internal static double Metri(Shared.Coordinate a, Shared.Coordinate b)
     {
         double dy = (a.LatitudeDeg - b.LatitudeDeg) * 111_320;
         double dx = (a.LongitudeDeg - b.LongitudeDeg) * 111_320 * Math.Cos(a.LatitudeDeg * Math.PI / 180);

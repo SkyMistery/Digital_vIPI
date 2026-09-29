@@ -276,6 +276,48 @@ public static partial class Validatore
         return "gradi oltre il limite";
     }
 
+    private static readonly string[] TipiDelFix = ["0", "1", "2", "3"];
+    private static readonly string[] ZeroOUno = ["", "0", "1"];
+    private static readonly string[] TipiDelVor = ["", "0", "1", "2", "3", "4"];
+
+    /// <summary>
+    /// I campi a valori fissi dei NAVAIDS (manuale IVAO, lotto «Subito» slice 10b): il tipo di un fix è obbligatorio
+    /// (0-3) — sul fork 9 fix di <c>VFR_NASCOSTI.fix</c> non l'hanno, e <c>APT.fix</c> ha un <c>3:</c> che il motore leggeva
+    /// 0 —; il confine, la visibilità e il tipo di VOR sono facoltativi, ma se ci sono stanno nell'elenco. Il confine che
+    /// manca non si dice: Aurora legge i 2 032 fix che si fermano al tipo.
+    /// </summary>
+    private static IEnumerable<(Regola Regola, string Dettaglio)> CampiDelNavaid(object record, string riga)
+    {
+        if (record is not (Fix or Vor or Ndb))
+            yield break;
+        int commento = riga.IndexOf("//", StringComparison.Ordinal);
+        string[] campi = (commento >= 0 ? riga[..commento] : riga).Split(';').Select(c => c.Trim()).ToArray();
+        int n = campi.Length > 0 && campi[^1].Length == 0 ? campi.Length - 1 : campi.Length;
+        string Campo(int i) => i < n ? campi[i] : string.Empty;
+
+        switch (record)
+        {
+            case Fix:
+                if (Campo(3).Length == 0)
+                    yield return (Regola.CampoMancante, "il tipo (4° campo) manca: il manuale lo vuole, 0 in rotta, 1 terminale, 2 tutti e due, 3 nascosto");
+                else if (!TipiDelFix.Contains(Campo(3)))
+                    yield return (Regola.ValoreFuoriElenco, $"tipo «{Campo(3)}» (4° campo): il manuale vuole 0, 1, 2 o 3");
+                if (!ZeroOUno.Contains(Campo(4)))
+                    yield return (Regola.ValoreFuoriElenco, $"confine «{Campo(4)}» (5° campo): il manuale vuole 0 o 1");
+                break;
+            case Vor:
+                if (!ZeroOUno.Contains(Campo(4)))
+                    yield return (Regola.ValoreFuoriElenco, $"visibilità «{Campo(4)}» (5° campo): il manuale vuole 0 o 1");
+                if (!TipiDelVor.Contains(Campo(5)))
+                    yield return (Regola.ValoreFuoriElenco, $"tipo «{Campo(5)}» (6° campo): il manuale vuole da 0 (VOR) a 4 (DME)");
+                break;
+            case Ndb:
+                if (!ZeroOUno.Contains(Campo(4)))
+                    yield return (Regola.ValoreFuoriElenco, $"visibilità «{Campo(4)}» (5° campo): il manuale vuole 0 o 1");
+                break;
+        }
+    }
+
     private static string? CampoVuoto(string riga, string estensione)
     {
         if (!CampiObbligatori.TryGetValue(estensione, out int quanti))
@@ -376,6 +418,12 @@ public static partial class Validatore
                     {
                         dichiarati.Add(new(nome, dichiarato.Catalogo, dichiarato.Posizione, primaRiga, rec.RawLines[0]));
                     }
+                }
+
+                // Il tipo dei fix, la visibilità e il tipo di VOR e NDB (lotto «Subito» slice 10b, L4).
+                foreach (var (regola, dettaglio) in CampiDelNavaid(rec.Record, rec.RawLines.Length > 0 ? rec.RawLines[0] : string.Empty))
+                {
+                    problemi.Add(new(regola, string.Empty, primaRiga, rec.RawLines[0], dettaglio));
                 }
 
                 if (rec.Record is TflSector { Vertices.Count: < 3 } settore)

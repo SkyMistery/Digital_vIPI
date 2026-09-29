@@ -1256,3 +1256,23 @@ ammette `<br>`, il nome può avere spazi (`ABC HOLD`). Divisa in: **10a** il mot
   le schede di fix, VOR e NDB li mostrano: **Attesa** coi suggerimenti delle attese di `HOLDENR.hold` (fonte nuova degli
   elenchi), **Canale TACAN**, **Visibilità** «0 mostrato / 1 nascosto» anche per i VOR. Prova sull'albero invariata
   (round-trip 701/701, validatore 132/610). Test: motore 694 → **705**, Lab 765 → **766**.
+- **10b (29 settembre)** — i controlli (L3, L4, U1). Codice comune toccato: `Validazione/ControlloDelleAttese.cs`
+  (per ogni master, nella validazione dell'albero), `CampiDelNavaid` nel validatore dei file, sette regole nuove.
+  - **`AttesaNonDefinita`** (errore): un fix, VOR o NDB cita un'attesa che non è in `[HOLDENR]`; se c'è quella col suo
+    nome, `HLD-<nome>`, la **propone** (`EKLAP;…;HLD-ELKAP;` → `HLD-EKLAP`).
+  - **`AttesaMaiCitata`** (avviso): un'attesa che nessuno cita, e chi porta il suo nome cosa cita.
+  - **`AttesaFuoriPosto`** (avviso): il punto dell'attesa a 0,1 NM o più dal navaid che la cita, o l'info che nomina un
+    fix lontano dal punto; se nel punto c'è il fix col nome dell'attesa, **propone** l'info con lui
+    (`ELKAP/090R-FL190` → `EKLAP/090R-FL190`). Un nome ripetuto in più file vale nel punto più vicino (senza questa
+    scelta, 2 falsi avvisi: nomi che `ESTERNI.fix` ripete lontano).
+  - **`AtteseNonCaricate`** (avviso, uno per master, decisione del committente): il master carica navaid che citano
+    attese e non `[HOLDENR]`. Il controllo attesa per attesa si fa solo nei master che le caricano.
+  - **`NomeInPiuCataloghi`** (avviso, decisione del committente): lo stesso nome fra fix, VOR e NDB a 0,1 NM o più, sul
+    secondo nell'ordine fix, VOR, NDB. Estende `NomeDuplicato`/`NomeRipetuto`, che guardano un catalogo alla volta.
+  - **`CampoMancante`** (avviso): il fix senza il tipo. **`ValoreFuoriElenco`** (avviso): tipo del fix fuori da 0-3,
+    confine e visibilità fuori da 0/1, tipo del VOR fuori da 0-4 (🔴 il `3:` di `APT.fix:407` il motore lo leggeva 0,
+    in rotta, invece che nascosto). Il confine che manca non si dice (2 032 fix: Aurora li legge).
+  Uscita sul fork: **1** attesa non definita, **1** mai citata, **1** fuori posto (le tre di `EKLAP`), **4** master
+  senza attese, **10** nomi VOR/NDB, **9** fix senza tipo, **1** tipo fuori elenco. Validatore sull'albero: 132 errori,
+  610 avvisi → **133 errori, 636 avvisi**; le correzioni proposte 169 → 171, applicate a una copia le 165 righe tornano
+  pulite. Round-trip invariato. Test: motore 705 → **711**.

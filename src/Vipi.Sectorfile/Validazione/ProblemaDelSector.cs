@@ -164,6 +164,39 @@ public enum Regola
     /// commento sopra, e questo non dice niente. Uno per file, col numero e le righe.
     /// </summary>
     NomeMancante,
+
+    /// <summary>
+    /// Un fix, VOR o NDB che cita un'attesa (6° campo; 8° di VOR e NDB) che non è fra quelle di <c>[HOLDENR]</c> del suo
+    /// master: il tasto HOLD non la mostra (lotto «Subito» slice 10b, U1: <c>EKLAP</c> → <c>HLD-ELKAP</c>).
+    /// </summary>
+    AttesaNonDefinita,
+
+    /// <summary>Un'attesa di <c>[HOLDENR]</c> che nessun fix, VOR o NDB del master cita: non si vede (slice 10b, U1).</summary>
+    AttesaMaiCitata,
+
+    /// <summary>
+    /// Un'attesa lontana (0,1 NM o più) dal fix che la cita, o la cui info nomina un fix lontano dal suo punto
+    /// (<c>HLD-EKLAP</c> con <c>ELKAP/090R-FL190</c>, a 143 NM: slice 10b, U1).
+    /// </summary>
+    AttesaFuoriPosto,
+
+    /// <summary>
+    /// Un master che carica fix, VOR o NDB che citano attese, ma non <c>[HOLDENR]</c>: nessuna si vede. Uno per master
+    /// (committente, 29 settembre: sul fork i quattro master di FIR).
+    /// </summary>
+    AtteseNonCaricate,
+
+    /// <summary>
+    /// Lo stesso nome in due cataloghi (un VOR e un NDB) a 0,1 NM o più: un punto per nome non dice quale dei due
+    /// (slice 10b, L3; committente, 29 settembre: 10 sul fork, <c>PIS</c> a 6,7 NM). Quale prende Aurora: prova di F4.
+    /// </summary>
+    NomeInPiuCataloghi,
+
+    /// <summary>Un campo che il manuale vuole e la riga non ha: il tipo di un fix (9 in <c>VFR_NASCOSTI.fix</c>, slice 10b).</summary>
+    CampoMancante,
+
+    /// <summary>Un campo a valori fissi con un valore fuori elenco: il tipo <c>3:</c> di <c>APT.fix</c> (slice 10b).</summary>
+    ValoreFuoriElenco,
 }
 
 public enum Gravita
@@ -192,7 +225,8 @@ public static class Regole
             or Regola.VoceDiUnAltroScalo or Regola.PistaInesistente or Regola.StarSenzaAvvicinamento or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
             or Regola.CommentoInCoda or Regola.FileCitatoAssente or Regola.FileInclusoDueVolte
             or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma
-            or Regola.NomeMancante => Validazione.Gravita.Avviso,
+            or Regola.NomeMancante or Regola.AttesaMaiCitata or Regola.AttesaFuoriPosto or Regola.AtteseNonCaricate
+            or Regola.NomeInPiuCataloghi or Regola.CampoMancante or Regola.ValoreFuoriElenco => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

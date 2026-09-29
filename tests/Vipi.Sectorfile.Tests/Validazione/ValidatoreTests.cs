@@ -102,8 +102,9 @@ public sealed class ValidatoreTests : IDisposable
     {
         var problemi = Validatore.ValidaIlFile(RealSectorFiles.Path("NAVAIDS/APT.fix")!, "NAVAIDS/APT.fix");
 
-        var problema = Assert.Single(problemi);
-        Assert.Equal((Regola.CoordinataIllegibile, 294), (problema.Regola, problema.Riga));
+        // Slice 10b: e il tipo `3:` alla riga 407, che il motore leggeva 0 (in rotta) invece di 3 (nascosto).
+        Assert.Equal([(Regola.CoordinataIllegibile, 294), (Regola.ValoreFuoriElenco, 407)],
+            problemi.Select(p => (p.Regola, p.Riga)));
     }
 
     // Lo spazio al posto del `;` (slice 6): una regola sola, non anche «riga illeggibile».
