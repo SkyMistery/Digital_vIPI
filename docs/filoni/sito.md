@@ -1646,5 +1646,18 @@
   «Napoli APP» con LIRN_US0_APP); pagina «Enti ATC» con 25 enti per ACC; simulato IVAO che spegne LIRN_US0_APP e crea
   LIRR_US0_APP, «Sostituisci con…» da Struttura → 3 figli (LIRI_I_TWR, LIRM_APP, LIRN_TWR) e padre LIRR_US_CTR passati
   al nuovo, gruppo APP della vIPI di Roma e posizione dell'ente riscritti, alias annotato. Log senza errori.
+- ✅ **S56** richieste dal campo, canale utente → staff (29-set, committente: riapre `piano-segnalazioni.md` con tre
+  decisioni: nome «richiesta dal campo», secondo canale dopo, sviluppatore con login admin). Ramo
+  `fix/richieste-campo` (sopra `fix/enti-acc`, per non litigare sullo snapshot delle migrazioni). Cinque fette:
+  (1) `FieldRequest` + `EditorTask.FromRequestId`, migrazione `RichiesteDalCampo` (SQLite+MySQL, additiva; `Status`
+  32 su MySQL, guardia degli indici); (2) `IFieldRequestService`: solo da connessi, 5 aperte e 10 al giorno per VID,
+  2000 caratteri, il rilascio IN VIGORE registrato all'invio, presa in carico → incarico legato, chiusure con
+  risposta obbligatoria, doppione col rimando; (3) pagina `/services/vsop/requests` (modulo, «le mie», coda dello
+  staff), voce del menu; (4) link «Segnala» accanto ai titoli delle sezioni radice nelle cinque famiglie, SOLO in
+  vista pubblica e `noprint` — un link e non un'isola, per non aprire un circuito a ogni lettore; (5) le richieste
+  NUOVE in «Da fare» e nel banner dell'editor (`WorkOrigin.Campo`, `WorkAction.ApriRichiesta`, testo di chi scrive
+  stampato com'è; prese in carico → le rappresenta l'incarico). Test +5 Infrastructure (2033), +1 Application
+  (3103), +2 Ui (1884) e guardie (menu 18/13; campi con `CampoTesto`). Codice comune `Vipi.Application`,
+  `Vipi.Domain`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

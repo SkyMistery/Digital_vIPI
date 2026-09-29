@@ -1,0 +1,274 @@
+@page "/services/vsop/requests"
+@layout SopLayout
+@rendermode InteractiveServer
+@inherits Vipi.Ui.ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Nav
+
+<PageTitle>@L["Req_Title"] · IVAO Italy</PageTitle>
+
+@* ---- Le richieste dal campo (S56, committente, 29 settembre 2026) ----------------------------------------------
+   Carta docs/design/piano-segnalazioni.md. Tre cose in una pagina: il MODULO (ci si arriva dal link «Segnala» accanto
+   a una sezione di un documento pubblico, con famiglia, chiave e sezione nell'indirizzo — o senza, per una richiesta
+   libera), le MIE richieste con lo stato e la risposta, e la CODA dello staff.
+   ⚠️ Interattiva e con SCOPE PROPRIO: qui si scrive, e il documento pubblico resta statico — è il motivo per cui il
+   pulsante nelle sezioni è un link e non un'isola (un circuito per ogni lettore). *@
+<div class="wrap">
+    <div class="doc-head">
+        <h1 class="page-h1">@L["Req_Title"]</h1>
+        <HelpHint AriaLabel="@L["Req_Title"]" ExtraClass="wide">@L["Req_Intro"]</HelpHint>
+    </div>
+
+    @if (_errore is { Length: > 0 })
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+    }
+    @if (_esito is { Length: > 0 })
+    {
+        <div class="callout info"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_esito</div></div>
+    }
+
+    @if (!_connesso)
+    {
+        <div class="panel">
+            <p>@L["Req_LoginNeeded"]</p>
+            <a class="btn primary" href="@LoginHref" data-enhance-nav="false"><Icon Name="log-in" /> @L["Chrome_Login"]</a>
+        </div>
+    }
+    else
+    {
+        @* ---- Il modulo ---- *@
+        <section class="panel" id="req-form" style="margin-bottom:18px">
+            <h2 class="h-card">@L["Req_New"]</h2>
+            @if (_contesto is { } c)
+            {
+                <p class="muted" style="margin:0 0 8px">@L["Req_About", c.DocumentTitle, c.SectionTitle ?? "—"]</p>
+            }
+            else
+            {
+                <p class="muted" style="margin:0 0 8px">@L["Req_Free"]</p>
+            }
+            <div style="display:flex;gap:14px;margin:0 0 8px">
+                <label><input type="radio" name="req-kind" checked="@(_tipo == FieldRequestKind.Errore)"
+                              @onchange="() => _tipo = FieldRequestKind.Errore" /> @L["Req_KindError"]</label>
+                <label><input type="radio" name="req-kind" checked="@(_tipo == FieldRequestKind.Suggerimento)"
+                              @onchange="() => _tipo = FieldRequestKind.Suggerimento" /> @L["Req_KindSuggestion"]</label>
+            </div>
+            <CampoTesto Multiriga="true" class="app-in" rows="5" maxlength="@FieldRequestRules.MaxCorpo" style="width:100%"
+                        aria-label="@L["Req_BodyLabel"]" placeholder="@L["Req_BodyPlaceholder"]"
+                        Valore="@_corpo" OnInput="e => _corpo = e.Value?.ToString() ?? string.Empty" disabled="@_busy" />
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+                <span class="muted">@_corpo.Length / @FieldRequestRules.MaxCorpo</span>
+                <button class="btn primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_corpo))" @onclick="InviaAsync">@L["Req_Send"]</button>
+            </div>
+        </section>
+
+        @* ---- Le mie ---- *@
+        <section style="margin-bottom:18px">
+            <h2 class="h-card">@L["Req_Mine"]</h2>
+            @if (_mie is null)
+            {
+                <LoadingState />
+            }
+            else if (_mie.Count == 0)
+            {
+                <p class="muted">@L["Req_MineNone"]</p>
+            }
+            else
+            {
+                @foreach (var r in _mie)
+                {
+                    <div class="panel req-row" style="margin-bottom:8px">
+                        @Testata(r)
+                        <p style="white-space:pre-wrap;margin:6px 0">@r.Body</p>
+                        @if (r.Reply.Length > 0)
+                        {
+                            <div class="callout info" style="margin:6px 0 0"><div><b>@L["Req_ReplyFrom", r.HandledByName]</b><br /><span style="white-space:pre-wrap">@r.Reply</span></div></div>
+                        }
+                    </div>
+                }
+            }
+        </section>
+
+        @* ---- La coda dello staff ---- *@
+        @if (_staff)
+        {
+            <section>
+                <h2 class="h-card">@L["Req_Queue"]
+                    <label class="muted" style="font-weight:normal;font-size:13px;margin-left:10px">
+                        <input type="checkbox" checked="@_ancheChiuse" @onchange="CambiaFiltroAsync" /> @L["Req_ShowClosed"]
+                    </label>
+                </h2>
+                @if (_coda is null)
+                {
+                    <LoadingState />
+                }
+                else if (_coda.Count == 0)
+                {
+                    <EmptyState Icon="check-circle" Title="@L["Req_QueueEmpty"].Value" />
+                }
+                else
+                {
+                    @foreach (var r in _coda)
+                    {
+                        <div class="panel req-row" style="margin-bottom:8px" id="req-@r.Id">
+                            @Testata(r)
+                            <p class="muted" style="margin:2px 0">@L["Req_By", r.ReporterName, r.ReporterUserId]</p>
+                            <p style="white-space:pre-wrap;margin:6px 0">@r.Body</p>
+                            @if (r.Aperta)
+                            {
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start">
+                                    @if (r.TaskId is null)
+                                    {
+                                        <button class="btn ghost" disabled="@_busy" @onclick="() => PrendiAsync(r.Id)">@L["Req_Take"]</button>
+                                    }
+                                    <CampoTesto Multiriga="true" class="app-in" rows="2" style="flex:1;min-width:240px" aria-label="@L["Req_ReplyLabel"]"
+                                                placeholder="@L["Req_ReplyPlaceholder"]" Valore="@Risposta(r.Id)"
+                                                OnInput="e => _risposte[r.Id] = e.Value?.ToString() ?? string.Empty" />
+                                    <button class="btn primary" disabled="@_busy" @onclick="() => ChiudiAsync(r.Id, FieldRequestStatus.Risolta)">@L["Req_Resolve"]</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => ChiudiAsync(r.Id, FieldRequestStatus.Respinta)">@L["Req_Reject"]</button>
+                                    <CampoTesto class="app-in" type="number" min="1" style="width:90px" aria-label="@L["Req_DuplicateOf"]"
+                                                placeholder="#" Valore="@(_doppioni.TryGetValue(r.Id, out var d) ? d.ToString() : "")"
+                                                OnInput="e => _doppioni[r.Id] = int.TryParse(e.Value?.ToString(), out var v) ? v : 0" />
+                                    <button class="btn ghost" disabled="@(_busy || !_doppioni.TryGetValue(r.Id, out var d2) || d2 <= 0)"
+                                            @onclick="() => ChiudiAsync(r.Id, FieldRequestStatus.Doppione)">@L["Req_Duplicate"]</button>
+                                </div>
+                            }
+                            else if (r.Reply.Length > 0)
+                            {
+                                <div class="callout info" style="margin:6px 0 0"><div><b>@L["Req_ReplyFrom", r.HandledByName]</b><br /><span style="white-space:pre-wrap">@r.Reply</span></div></div>
+                            }
+                        </div>
+                    }
+                }
+            </section>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>Famiglia del documento (come nelle release): Airport, App, AccVipi, AirportMil, Vloa.</summary>
+    [SupplyParameterFromQuery(Name = "t")] public string? Tipo { get; set; }
+    /// <summary>La chiave che la pagina conosce: ICAO, codice dell'ente, codice dell'ACC, id della vLOA.</summary>
+    [SupplyParameterFromQuery(Name = "k")] public string? Chiave { get; set; }
+    /// <summary>La chiave di catalogo della sezione.</summary>
+    [SupplyParameterFromQuery(Name = "s")] public string? Sezione { get; set; }
+
+    private IFieldRequestService _richieste = default!;
+    private IEditAuthorizationService _authz = default!;
+    private bool _connesso, _staff, _busy, _ancheChiuse;
+    private string? _errore, _esito;
+    private FieldRequestContext? _contesto;
+    private ReleaseTargetType? _tipoDoc;
+    private FieldRequestKind _tipo = FieldRequestKind.Errore;
+    private string _corpo = "";
+    private IReadOnlyList<FieldRequestRow>? _mie, _coda;
+    private readonly Dictionary<int, string> _risposte = new();
+    private readonly Dictionary<int, int> _doppioni = new();
+
+    private string LoginHref => $"{VsopRoutes.Prefix}/auth/login?returnUrl={Uri.EscapeDataString(Nav.ToBaseRelativePath(Nav.Uri) is { Length: > 0 } p ? "/" + p : VsopRoutes.ServicesHome)}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _richieste = ScopedServices.GetRequiredService<IFieldRequestService>();
+        _authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
+        _connesso = _authz.CurrentUserId is not null;
+        _staff = _authz.IsEditor;
+        if (!_connesso) return;
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                if (Enum.TryParse<ReleaseTargetType>(Tipo, ignoreCase: true, out var t) && !string.IsNullOrWhiteSpace(Chiave))
+                {
+                    _tipoDoc = t;
+                    _contesto = await _richieste.ContestoAsync(t, Chiave!, Sezione);
+                }
+                await RileggiAsync();
+            });
+        }
+        catch (Exception ex) { _errore = L["Common_UnexpectedError"] + ex.Message; }
+    }
+
+    private async Task RileggiAsync()
+    {
+        _mie = await _richieste.MieAsync();
+        if (_staff) _coda = await _richieste.CodaAsync(_ancheChiuse);
+    }
+
+    private string Risposta(int id) => _risposte.TryGetValue(id, out var r) ? r : "";
+
+    private RenderFragment Testata(FieldRequestRow r) => @<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <b>#@r.Id</b>
+        <span class="pill @(r.Kind == FieldRequestKind.Errore ? "amber" : "blue")">@(r.Kind == FieldRequestKind.Errore ? L["Req_KindError"] : L["Req_KindSuggestion"])</span>
+        <span class="pill @(r.Aperta ? "amber" : "neutral")">@L["Req_Status_" + r.Status]</span>
+        @if (r.DocumentTitle is { } t)
+        {
+            <span>@t</span>
+            @if (r.SectionKey.Length > 0) { <span class="muted">· @r.SectionKey</span> }
+            @if (r.ReleaseNumber is int n) { <span class="muted">· @L["Req_Release", n]</span> }
+        }
+        else
+        {
+            <span class="muted">@L["Req_FreeShort"]</span>
+        }
+        <span class="muted" style="margin-left:auto">@VipiTime.Day(r.CreatedUtc)</span>
+    </div>;
+
+    private Task InviaAsync() => GestoAsync(async () =>
+    {
+        await _richieste.ApriAsync(new FieldRequestInput(_tipoDoc, _contesto is null ? null : Chiave, Sezione, _tipo, _corpo));
+        _corpo = "";
+        _esito = L["Req_Sent"];
+    });
+
+    private Task PrendiAsync(int id) => GestoAsync(async () =>
+    {
+        await _richieste.PrendiInCaricoAsync(id);
+        _esito = L["Req_Taken", id];
+    });
+
+    private Task ChiudiAsync(int id, FieldRequestStatus stato) => GestoAsync(async () =>
+    {
+        var frase = Risposta(id);
+        switch (stato)
+        {
+            case FieldRequestStatus.Risolta: await _richieste.RisolviAsync(id, frase); break;
+            case FieldRequestStatus.Respinta: await _richieste.RespingiAsync(id, frase); break;
+            default: await _richieste.DoppioneAsync(id, _doppioni.GetValueOrDefault(id), frase); break;
+        }
+        _risposte.Remove(id);
+        _esito = L["Req_Closed", id];
+    });
+
+    private Task CambiaFiltroAsync(ChangeEventArgs e) => GestoAsync(() =>
+    {
+        _ancheChiuse = e.Value is true;
+        return Task.CompletedTask;
+    });
+
+    /// <summary>Un gesto: in fila coi caricamenti, l'errore a schermo e non nel circuito, poi rilettura.</summary>
+    private async Task GestoAsync(Func<Task> gesto)
+    {
+        if (_busy) return;
+        _busy = true;
+        _errore = null;
+        _esito = null;
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                await gesto();
+                await RileggiAsync();
+            });
+        }
+        catch (Exception ex)
+        {
+            _esito = null;
+            _errore = ex is Vipi.Application.Aor.ValidationException or EditNotAllowedException
+                ? ex.Message : L["Common_UnexpectedError"] + ex.Message;
+        }
+        finally { _busy = false; }
+    }
+}

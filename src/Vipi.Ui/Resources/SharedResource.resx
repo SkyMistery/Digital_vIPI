@@ -3774,4 +3774,42 @@
   <data name="Units_DocDraft" xml:space="preserve"><value>solo bozza</value></data>
   <data name="Units_OpenEditor" xml:space="preserve"><value>Apri editor →</value></data>
   <data name="Units_EditorsOnly" xml:space="preserve"><value>Pagina riservata agli editor.</value></data>
+  <data name="Req_Title" xml:space="preserve"><value>Richieste dal campo</value></data>
+  <data name="Req_Intro" xml:space="preserve"><value>Hai visto un errore in un documento, o hai un suggerimento? Scrivilo qui: lo legge lo staff che scrive i documenti, e la risposta la trovi in questa pagina. Si scrive da connessi con IVAO. Niente posta, niente notifiche: torna qui a vedere.</value></data>
+  <data name="Req_LoginNeeded" xml:space="preserve"><value>Per scrivere una richiesta, e per vedere le tue, accedi con IVAO.</value></data>
+  <data name="Req_New" xml:space="preserve"><value>Nuova richiesta</value></data>
+  <data name="Req_About" xml:space="preserve"><value>Su «{0}», sezione «{1}».</value></data>
+  <data name="Req_Free" xml:space="preserve"><value>Richiesta libera: per parlare di una sezione precisa, usa il link «Segnala» accanto al suo titolo nel documento.</value></data>
+  <data name="Req_KindError" xml:space="preserve"><value>Errore</value></data>
+  <data name="Req_KindSuggestion" xml:space="preserve"><value>Suggerimento</value></data>
+  <data name="Req_BodyLabel" xml:space="preserve"><value>Che cosa hai visto</value></data>
+  <data name="Req_BodyPlaceholder" xml:space="preserve"><value>Che cosa hai visto, e che cosa dovrebbe dire secondo te</value></data>
+  <data name="Req_Send" xml:space="preserve"><value>Invia</value></data>
+  <data name="Req_Sent" xml:space="preserve"><value>Inviata. La risposta la trovi qui sotto, in «Le mie richieste».</value></data>
+  <data name="Req_Mine" xml:space="preserve"><value>Le mie richieste</value></data>
+  <data name="Req_MineNone" xml:space="preserve"><value>Non hai ancora scritto nessuna richiesta.</value></data>
+  <data name="Req_ReplyFrom" xml:space="preserve"><value>Risposta di {0}</value></data>
+  <data name="Req_Queue" xml:space="preserve"><value>Coda dello staff</value></data>
+  <data name="Req_ShowClosed" xml:space="preserve"><value>anche le chiuse</value></data>
+  <data name="Req_QueueEmpty" xml:space="preserve"><value>Nessuna richiesta in attesa</value></data>
+  <data name="Req_By" xml:space="preserve"><value>di {0} (VID {1})</value></data>
+  <data name="Req_Take" xml:space="preserve"><value>Prendi in carico</value></data>
+  <data name="Req_Taken" xml:space="preserve"><value>Richiesta #{0} presa in carico: trovi l'incarico in «Da fare».</value></data>
+  <data name="Req_ReplyLabel" xml:space="preserve"><value>Risposta</value></data>
+  <data name="Req_ReplyPlaceholder" xml:space="preserve"><value>La risposta che legge chi l'ha scritta (obbligatoria)</value></data>
+  <data name="Req_Resolve" xml:space="preserve"><value>Risolta</value></data>
+  <data name="Req_Reject" xml:space="preserve"><value>Respingi</value></data>
+  <data name="Req_DuplicateOf" xml:space="preserve"><value>Doppione di</value></data>
+  <data name="Req_Duplicate" xml:space="preserve"><value>Doppione</value></data>
+  <data name="Req_Closed" xml:space="preserve"><value>Richiesta #{0} chiusa: chi l'ha scritta legge la tua risposta.</value></data>
+  <data name="Req_Release" xml:space="preserve"><value>pubblicazione {0}</value></data>
+  <data name="Req_FreeShort" xml:space="preserve"><value>richiesta libera</value></data>
+  <data name="Req_Status_Nuova" xml:space="preserve"><value>nuova</value></data>
+  <data name="Req_Status_PresaInCarico" xml:space="preserve"><value>presa in carico</value></data>
+  <data name="Req_Status_Risolta" xml:space="preserve"><value>risolta</value></data>
+  <data name="Req_Status_Respinta" xml:space="preserve"><value>respinta</value></data>
+  <data name="Req_Status_Doppione" xml:space="preserve"><value>doppione</value></data>
+  <data name="Req_Report" xml:space="preserve"><value>Segnala</value></data>
+  <data name="Req_ReportTitle" xml:space="preserve"><value>Hai visto un errore in questa sezione? Scrivilo allo staff</value></data>
+  <data name="Req_Open" xml:space="preserve"><value>Rispondi</value></data>
 </root>

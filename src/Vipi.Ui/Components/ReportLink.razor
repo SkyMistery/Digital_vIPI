@@ -1,0 +1,19 @@
+@* «Segnala» accanto al titolo di una sezione pubblica (S56, richieste dal campo). ⚠️ Un LINK e non un'isola
+   interattiva: il documento pubblico resta statico, e un circuito per ogni lettore — anche per chi legge soltanto —
+   sarebbe il prezzo di un modulo che quasi nessuno apre. Il modulo sta nella sua pagina, interattiva lei.
+   In stampa non c'è (noprint): è chrome, non documento. *@
+@inject IStringLocalizer<SharedResource> L
+
+@if (!string.IsNullOrEmpty(Href))
+{
+    <a class="noprint req-link" href="@Href" title="@L["Req_ReportTitle"]" rel="nofollow"
+       style="font-size:12px;font-weight:500;margin-left:8px;opacity:.7">@L["Req_Report"]</a>
+}
+
+@code {
+    [Parameter] public string? Href { get; set; }
+
+    /// <summary>L'indirizzo del modulo per una sezione: famiglia e chiave del documento come le conosce la pagina.</summary>
+    public static string Per(ReleaseTargetType tipo, string chiave, string sectionKey) =>
+        $"/services/vsop/requests?t={tipo}&k={Uri.EscapeDataString(chiave)}&s={Uri.EscapeDataString(sectionKey)}";
+}

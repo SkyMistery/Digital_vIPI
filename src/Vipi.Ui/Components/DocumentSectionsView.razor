@@ -41,6 +41,7 @@
                        famiglie che la chip non ce l'hanno. Sta qui, nel componente condiviso, e non nelle
                        pagine, perché una regola scritta in cinque posti si applica in tre. *@
                     <AudienceBadge Audience="s.Audience" />
+                    @if (!nascosta) { <ReportLink Href="@ReportHrefOf?.Invoke(s)" /> }
                 </h2>
             </Header>
             <ChildContent>
@@ -74,7 +75,7 @@
         @* ⚠️ Profilo e corpo derivato SCENDONO: una sezione contenitore — «Dati generali» del vSOP militare —
            non è resa dalla pagina, ma le sue FIGLIE sì (frequenze, piste, quote di transizione). Senza
            passarli, quelle figlie uscivano come titoli vuoti. *@
-        <SectionNode Section="s" IsDraft="IsDraft" Profile="Profile" DerivedContent="DerivedContent" />
+        <SectionNode Section="s" IsDraft="IsDraft" Profile="Profile" DerivedContent="DerivedContent" ReportHrefOf="ReportHrefOf" />
     }
 }
 
@@ -90,6 +91,9 @@
 
     /// <summary>Anteprima BOZZA: le sezioni nascoste si vedono, marcate. Pubblica e anteprima release: no.</summary>
     [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>L'indirizzo del modulo «Segnala» per una sezione radice (S56); null = niente link (bozza, anteprime).</summary>
+    [Parameter] public Func<SectionView, string?>? ReportHrefOf { get; set; }
 
     /// <summary>Il corpo che la pagina disegna per una sezione resa da lei. Riceve la sezione e decide per chiave.</summary>
     [Parameter, EditorRequired] public RenderFragment<SectionView> DerivedContent { get; set; } = default!;
