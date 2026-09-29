@@ -6,10 +6,10 @@
 >
 > ## ▶ Il punto — 29 settembre 2026, notte
 >
-> **Pronto: 1.49.0** (§A135, timbro `1.49.0 · 89bfb04`, 15 file, zip `08799c5e…`, MINOR con la migrazione
-> `EntiGruppiAcc`): pagina «Enti ATC», «Sostituisci con…», enti dei gruppi APP. Fuso da `fix/enti-acc` (S53–S55).
-> **Online resta 1.48.0** finché il committente non carica. `lab/f3` non fuso (consegna del Lab: la decide il
-> committente).
+> **✅ Online: 1.49.0** (§A135, timbro `1.49.0 · 89bfb04`, 15 file, zip `08799c5e…`, MINOR con la migrazione
+> `EntiGruppiAcc`; timbro e `Schema 0` confermati, `/vsop/health` Healthy, Ricerca LIRF): pagina «Enti ATC»,
+> «Sostituisci con…», enti dei gruppi APP. **In `main` non resta codice fuori pacchetto.** `lab/f3` non fuso (consegna
+> del Lab: la decide il committente). ▶ I gesti di §A134 e §A130.
 >
 > ## Il punto — 29 settembre 2026, sera tardi
 >

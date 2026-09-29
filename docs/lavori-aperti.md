@@ -43,7 +43,10 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### A135 — 1.49.0 PRONTO: pagina Enti ATC, «Sostituisci con…», enti dei gruppi APP (29 settembre 2026)
+### ✅ A135 — 1.49.0 ONLINE: pagina Enti ATC, «Sostituisci con…», enti dei gruppi APP (29–30 settembre 2026)
+
+✅ Online il 30 settembre 2026: timbro e `Schema 0` confermati dal committente (la migrazione `EntiGruppiAcc` è
+entrata). Da fuori: `/vsop/health` Healthy, Ricerca «13 results for LIRF». CI di `main` verde (run 36636587162).
 
 MINOR con **una migrazione** (`EntiGruppiAcc`: indice composto al posto di quello su `AccId`, nessuna tabella o
 colonna tolta; rollback valido). Su 1.48.0 (`e292a1e`). Timbro **`1.49.0 · 89bfb04`**. Fuso da `fix/enti-acc` (S53
