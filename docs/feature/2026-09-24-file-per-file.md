@@ -513,10 +513,10 @@ Stesso formato di §10. Qui i **settori di avvicinamento** (`…_APP`).
 
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
-| L1 | **Schede tipizzate** (tipo fix, confine, visibilità, tipo VOR, canale TACAN) con l'**attesa collegata** alla sua definizione e l'info `ABBOZ/225R-9000` mostrata a campi | Subito | ✅ deciso |
+| L1 | **Schede tipizzate** (tipo fix, confine, visibilità, tipo VOR, canale TACAN) con l'**attesa collegata** alla sua definizione e l'info `ABBOZ/225R-9000` mostrata a campi | Subito | ✅ deciso · **fatto** (lotto, slice 10a, 10c) |
 | L2 | **«Chi lo usa»**: dove è citato un fix/navaid (aerovie, SID/STAR, settori, ACC, MVA, `.vfi`, attese); **rinominare aggiorna tutti i riferimenti**, spostare avvisa, togliere è impedito se è usato | Subito — comune | ✅ deciso · **fatto** (lotto, slice 7a-7b) |
-| L3 | **Nome unico**: avviso per i nomi in posizioni diverse (24); i doppioni nella stessa posizione (245, per lo più `ESTERNI` che ripete `secsi`/`itfix`) segnalati, da pulire | Subito (controllo) + F4 (pulizia) | ✅ deciso |
-| L4 | Controlli: coordinate illeggibili (con correzione proposta), attesa citata e non definita o viceversa, campi mancanti. **Nome oltre i 5 caratteri NON è un errore** (Aurora lo accetta) | Subito | ✅ deciso |
+| L3 | **Nome unico**: avviso per i nomi in posizioni diverse (24); i doppioni nella stessa posizione (245, per lo più `ESTERNI` che ripete `secsi`/`itfix`) segnalati, da pulire | Subito (controllo) + F4 (pulizia) | ✅ deciso · controllo **fatto** (lotto, slice 10b-10c: `NomeInPiuCataloghi`, nome unico nella scheda) |
+| L4 | Controlli: coordinate illeggibili (con correzione proposta), attesa citata e non definita o viceversa, campi mancanti. **Nome oltre i 5 caratteri NON è un errore** (Aurora lo accetta) | Subito | ✅ deciso · **fatto** (lotto, slice 2 e 10b) |
 | L5 | Import di fix (ENR 4.4) e navaid (ENR 4.1) dall'AIP, col confronto | F6 | ✅ deciso |
 | L6 | Via `ENR.fix`, `FRA.fix`, `TERM.fix` vuoti | **più avanti**, non ora (committente) | 🕓 rimandato |
 
@@ -795,7 +795,7 @@ nelle prove I7.
 
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
-| U1 | **Scheda dell'attesa**: fix, rotta di avvicinamento, virata L/R, quota minima (ft o FL) come campi separati dall'info; legata al fix che la cita (controllo nei due versi, es. `EKLAP` → `HLD-ELKAP`) | Subito | ✅ deciso |
+| U1 | **Scheda dell'attesa**: fix, rotta di avvicinamento, virata L/R, quota minima (ft o FL) come campi separati dall'info; legata al fix che la cita (controllo nei due versi, es. `EKLAP` → `HLD-ELKAP`) | Subito | ✅ deciso · **fatto** (lotto, slice 10b-10c) |
 | U2 | **Per ora solo la scritta** (come oggi). Il disegno dell'ovale (fix, rotta, virata, tratto in minuti o NM) **si sceglie attesa per attesa**: all'import dall'AIP o quando se ne scrive/modifica una | F6 (import) + F8 (ovale) | ✅ deciso |
 | U3 | Import dall'AIP ENR 3.6 (attese in rotta), col confronto | F6 | ✅ deciso |
 

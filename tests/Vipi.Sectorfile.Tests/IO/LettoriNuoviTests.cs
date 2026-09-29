@@ -35,6 +35,46 @@ public sealed class LettoriNuoviTests
         Assert.Equal(("OZE", 196, 'L', "FL135"), (oze.Fix, oze.Rotta, oze.Verso, oze.Quota));
     }
 
+    // Lotto «Subito» slice 10c (U1): le parti dell'info si scrivono una alla volta e ricompongono la descrizione.
+    [Fact]
+    public void LePartiDellInfoSiScrivonoERicompongonoLaDescrizione()
+    {
+        var attesa = new Attesa { Nome = "HLD-EKLAP", Descrizione = "ELKAP/090R-FL190" };
+
+        attesa.Fix = "EKLAP";
+        attesa.Rotta = 45;
+        attesa.Verso = 'l';
+        attesa.Quota = "9000";
+
+        Assert.Equal("EKLAP/045L-9000", attesa.Descrizione);
+        attesa.Quota = "fl105";
+        Assert.Equal("EKLAP/045L-FL105", attesa.Descrizione);
+    }
+
+    [Theory]
+    [InlineData("Fix", "AB/C")]
+    [InlineData("Fix", "")]
+    [InlineData("Rotta", 0)]
+    [InlineData("Rotta", 361)]
+    [InlineData("Verso", 'X')]
+    [InlineData("Quota", "9000ft")]
+    [InlineData("Quota", "FL")]
+    public void UnaParteSbagliataSiRifiutaEDiceCosaVuole(string parte, object valore)
+    {
+        var attesa = new Attesa { Nome = "HLD-ABBOZ", Descrizione = "ABBOZ/225R-9000" };
+        var errore = Assert.Throws<System.Reflection.TargetInvocationException>(() => typeof(Attesa).GetProperty(parte)!.SetValue(attesa, valore));
+        Assert.IsType<ArgumentException>(errore.InnerException);
+        Assert.Equal("ABBOZ/225R-9000", attesa.Descrizione);
+    }
+
+    [Fact]
+    public void UnaParteDiUnaDescrizioneFuoriFormaNonSiScrive()
+    {
+        var attesa = new Attesa { Nome = "HLD-X", Descrizione = "vedi carta" };
+        Assert.Throws<InvalidOperationException>(() => attesa.Rotta = 90);
+        Assert.Equal("vedi carta", attesa.Descrizione);
+    }
+
     [Fact]
     public void UnaDescrizioneFuoriFormaResta()
     {

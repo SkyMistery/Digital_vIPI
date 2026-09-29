@@ -268,8 +268,16 @@ public sealed class ModificheInSospeso
         if (Equals(prima, dopo))
             return new ModificaRifiutata("Il valore è già questo.");
 
-        if (!CambiaColSuoTag(file, record, campo, dopo, () => proprieta.SetValue(record, dopo), out string? rotto))
-            return new ModificaRifiutata(rotto!);
+        // Slice 10c: un modello che controlla il valore (le parti dell'info di un'attesa) lo rifiuta col perché.
+        try
+        {
+            if (!CambiaColSuoTag(file, record, campo, dopo, () => proprieta.SetValue(record, dopo), out string? rotto))
+                return new ModificaRifiutata(rotto!);
+        }
+        catch (TargetInvocationException e) when (e.InnerException is ArgumentException or InvalidOperationException)
+        {
+            return new ModificaRifiutata(e.InnerException.Message.Split(" (Parameter", 2)[0]);
+        }
 
         var chiave = (file.Relativo, indice, campo);
         // Se il campo era già stato cambiato, il «prima» resta quello DELL'APERTURA: sennò annullare due modifiche

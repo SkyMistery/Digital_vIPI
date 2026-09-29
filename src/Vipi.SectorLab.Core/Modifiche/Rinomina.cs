@@ -13,6 +13,30 @@ namespace Vipi.SectorLab.Core.Modifiche;
 public static partial class Rinomina
 {
     /// <summary>
+    /// Il perché, se <paramref name="nuovo"/> è già il nome di un'attesa (per un'attesa) o di un punto dei cataloghi dei
+    /// master (fix, VOR, NDB, scali, VRP): due punti con lo stesso nome, e Aurora ne prenderebbe uno (L3). Null se è libero.
+    /// Lo usa anche la scheda, quando il nome si scrive nel suo campo (lotto «Subito» slice 10c).
+    /// </summary>
+    public static string? NomeGiaUsato(SessioneAperta sessione, IReadOnlyDictionary<string, CatalogoDeiPunti> cataloghi, bool attesa, string nuovo)
+    {
+        ArgumentNullException.ThrowIfNull(sessione);
+        ArgumentNullException.ThrowIfNull(cataloghi);
+        nuovo = (nuovo ?? string.Empty).Trim();
+        if (attesa)
+        {
+            return sessione.File.Values.OfType<IFileConRecord>().SelectMany(f => f.RecordDelModello).OfType<Attesa>()
+                    .Any(a => string.Equals(a.Nome.Trim(), nuovo, StringComparison.OrdinalIgnoreCase))
+                ? $"C'è già un'attesa {nuovo}."
+                : null;
+        }
+
+        return cataloghi.Values.Select(c => c.Cerca(nuovo)).FirstOrDefault(p => p is not null) is { } gia
+            ? $"C'è già un {gia.Catalogo} {gia.Nome} in {gia.File[(gia.File.LastIndexOf('/') + 1)..]}: "
+              + "due punti con lo stesso nome, e Aurora ne prenderebbe uno."
+            : null;
+    }
+
+    /// <summary>
     /// Le righe da cambiare, file per file (il file del punto per primo): la dichiarazione del punto e delle sue copie,
     /// ogni citazione che «chi lo usa» gli dà, i tag che lo nominano. Oppure il perché no (<see cref="ModificaRifiutata"/>),
     /// o la domanda sui VOR/NDB omonimi (<see cref="RinominaDaDecidere"/>).
@@ -50,16 +74,9 @@ public static partial class Rinomina
                 if (indice.CEGia(nuovo!, "posizione"))
                     return new ModificaRifiutata($"C'è già una posizione {nuovo} in un .frq.");
             }
-            else if (usi.Catalogo == "attesa")
+            else if (NomeGiaUsato(sessione, cataloghi, usi.Catalogo == "attesa", nuovo!) is { } gia)
             {
-                if (sessione.File.Values.OfType<IFileConRecord>().SelectMany(f => f.RecordDelModello).OfType<Attesa>()
-                        .Any(a => string.Equals(a.Nome.Trim(), nuovo, StringComparison.OrdinalIgnoreCase)))
-                    return new ModificaRifiutata($"C'è già un'attesa {nuovo}.");
-            }
-            else if (cataloghi.Values.Select(c => c.Cerca(nuovo!)).FirstOrDefault(p => p is not null) is { } gia)
-            {
-                return new ModificaRifiutata($"C'è già un {gia.Catalogo} {gia.Nome} in {gia.File[(gia.File.LastIndexOf('/') + 1)..]}: "
-                                             + "due punti con lo stesso nome, e Aurora ne prenderebbe uno.");
+                return new ModificaRifiutata(gia);
             }
         }
 

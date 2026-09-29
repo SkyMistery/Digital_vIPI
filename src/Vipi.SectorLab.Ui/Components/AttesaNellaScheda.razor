@@ -1,0 +1,55 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    L'attesa in rotta di un fix, VOR o NDB (lotto «Subito» slice 10c, «file per file» L1 e U1): il nome scritto nel suo
+    campo porta alla definizione in HOLDENR.hold, un clic la sceglie. Se non c'è lo dice, e se c'è quella col nome del
+    punto (HLD-EKLAP per EKLAP) la propone. L'altro verso — l'attesa e chi la cita — è in «Chi lo usa» della sua scheda.
+*@
+@if (Lab.AttesaDi(File, Record) is { } attesa)
+{
+    <Sezione Chiave="scheda-attesa" data-attesa="@attesa.Nome">
+    <Titolo>Attesa in rotta <span class="lab-nota">@attesa.Nome</span></Titolo>
+    <ChildContent>
+    <div class="lab-stessa-forma">
+        @if (attesa.File is { } dove)
+        {
+            <button type="button" class="lab-citazione" data-vai-all-attesa="@attesa.Nome" title="Clic per scegliere l'attesa"
+                    @onclick="() => Lab.Scegli(dove, attesa.Indice)">
+                @attesa.Nome <span class="lab-nota">@NomeDelFile(dove) · @InfoDi(attesa)</span>
+            </button>
+        }
+        else
+        {
+            <p class="lab-nota lab-fuori-elenco" data-attesa-assente="@attesa.Nome">
+                @attesa.Nome non è fra le attese di HOLDENR: il tasto HOLD non la mostra.
+            </p>
+            @if (attesa.Proposta is { } proposta)
+            {
+                <button type="button" class="lab-tasto" data-usa-attesa="@proposta"
+                        @onclick="() => Lab.CambiaCampo(File, Record, NomeDelCampo, proposta)">Usa @proposta</button>
+            }
+        }
+    </div>
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    private const string NomeDelCampo = "NomeDellAttesa";
+
+    // Solo parametri primitivi: si ridisegna da sé ai cambi del Lab (la lezione della 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
+
+    private static string InfoDi(AttesaDellaScheda attesa) => attesa.Info is { Length: > 0 } info ? info : "senza info";
+}

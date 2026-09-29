@@ -169,6 +169,13 @@ public static class DescrizioniDeiCampi
     /// <summary>La visibilità di VOR e NDB (manuale IVAO: 0 Show, 1 Hide).</summary>
     private static readonly IReadOnlyList<ValoreFisso> Visibilita = [Vuoto, .. Valori(("0", "mostrato"), ("1", "nascosto"))];
 
+    /// <summary>Una parte dell'info di un'attesa (slice 10c): si scrive solo se l'info ha la forma FIX/rotta+virata-quota.</summary>
+    private static DescrizioneDelCampo ParteDellInfo(DescrizioneDelCampo campo) => campo with
+    {
+        SiScriveSe = r => r is Attesa { Fix: not null },
+        PercheNo = "L'info non ha la forma FIX/rotta+virata-quota (ABBOZ/225R-9000): si scrive tutta nel campo Info.",
+    };
+
     /// <summary>L'attesa in rotta di un fix, VOR o NDB (slice 10a): il nome coi suggerimenti delle attese di HOLDENR.</summary>
     private static DescrizioneDelCampo AttesaDelNavaid(string campo)
         => C("NomeDellAttesa", "Attesa", $"Il nome della sua attesa in rotta in HOLDENR.hold ({campo} campo), uguale a quello dell'attesa.",
@@ -268,10 +275,14 @@ public static class DescrizioniDeiCampi
             C("Nome", "Nome", "Uguale a quello scritto nel 6° campo del fix (8° di VOR e NDB) che la usa."),
             C("Posizione", "Punto", "Coordinate o il nome del fix.", Editor.Punto),
             C("Descrizione", "Info", "Il testo mostrato, FIX/rotta+virata-quota (ABBOZ/225R-9000)."),
-            C("Fix", "Fix", "Dall'info.", Editor.SolaLettura),
-            C("Rotta", "Rotta di avvicinamento", "Dall'info, in gradi.", Editor.SolaLettura),
-            C("Verso", "Virata", "Dall'info: L a sinistra, R a destra.", Editor.SolaLettura),
-            C("Quota", "Quota minima", "Dall'info (ft o FL).", Editor.SolaLettura),
+            // Slice 10c (U1): le parti dell'info si scrivono una alla volta, se l'info ha la forma solita.
+            ParteDellInfo(C("Fix", "Fix", "Il fix dell'info, prima della «/».", Editor.Navaid)),
+            ParteDellInfo(C("Rotta", "Rotta di avvicinamento", "Dall'info, in gradi (da 1 a 360, si scrive con tre cifre).", Editor.Numero)),
+            ParteDellInfo(C("Verso", "Virata", "Dall'info: L a sinistra, R a destra.", Editor.TipoFisso) with
+            {
+                Valori = Valori(("L", "a sinistra"), ("R", "a destra")),
+            }),
+            ParteDellInfo(C("Quota", "Quota minima", "Dall'info: in piedi (9000) o livello di volo (FL105).")),
         ]),
         // ACC, HI_AIRSPACE, LOW_AIRSPACE (§1, §10, §11): T/L;Identificativo;Lat;Lon;[Font].
         [typeof(LabelPoint)] = new("Etichetta (L)",

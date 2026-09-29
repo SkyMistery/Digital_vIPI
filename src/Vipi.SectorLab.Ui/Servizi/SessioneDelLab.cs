@@ -790,6 +790,14 @@ public sealed class SessioneDelLab
             return false;
 
         string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
+        if (NomeCheNonVa(fileRelativo, record, campo, valore) is { } nonVa)
+        {
+            Registro.Scrivi("modifica", $"{fileRelativo}#{record} {campo} = «{valore}»: rifiutata, {nonVa}");
+            Rifiuto = nonVa;
+            Avvisa();
+            return false;
+        }
+
         // Il cambio va anche sulle copie gemelle che avevano lo stesso valore (carta F3-bis §2.1, slice 2).
         var esito = Modifiche.CambiaAncheLeCopie(file, record, campo, valore, GemelliDellaSessione.Di(Sessione),
             f => Sessione.File.GetValueOrDefault(f), etichetta);
@@ -811,6 +819,33 @@ public sealed class SessioneDelLab
         RicontrollaLeModifiche();
         Avvisa();
         return esito is ModificaDiCampo;
+    }
+
+    /// <summary>
+    /// Il nome di un fix, VOR, NDB o attesa scritto nel suo campo della scheda (lotto «Subito» slice 10c, L3): se il
+    /// punto è citato, il nome si cambia con «Rinomina» (che riscrive anche le citazioni); un nome che c'è già non va.
+    /// Null se va bene, o se il campo non è il nome di uno di questi. Un record nuovo, che nessuno cita, si chiama qui.
+    /// </summary>
+    private string? NomeCheNonVa(string fileRelativo, int record, string campo, string? valore)
+    {
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord file || record < 0 || record >= file.RecordDelModello.Count)
+            return null;
+        object punto = file.RecordDelModello[record];
+        (string Campo, string Nome)? delNome = punto switch
+        {
+            Fix f => (nameof(Fix.Name), f.Name),
+            Vor v => (nameof(Vor.Ident), v.Ident),
+            Ndb n => (nameof(Ndb.Ident), n.Ident),
+            Attesa a => (nameof(Attesa.Nome), a.Nome),
+            _ => null,
+        };
+        string nuovo = valore?.Trim() ?? string.Empty;
+        if (delNome is not { } nome || nome.Campo != campo || nuovo.Length == 0
+            || string.Equals(nuovo, nome.Nome.Trim(), StringComparison.OrdinalIgnoreCase))
+            return null;
+        if (UsiDi(fileRelativo, record) is { Citazioni.Count: > 0 and var quante })
+            return $"{nome.Nome.Trim()} è citato in {(quante == 1 ? "1 riga" : $"{quante} righe")}: il nome si cambia con «Rinomina», in «Chi lo usa», che riscrive anche le citazioni.";
+        return Rinomina.NomeGiaUsato(Sessione, Cataloghi, punto is Attesa, nuovo);
     }
 
     /// <summary>I metadati di §M del record, per la scheda (lotto «Subito», slice 3d); vuoto se il file non porta tag.</summary>
@@ -885,6 +920,46 @@ public sealed class SessioneDelLab
         var legami = Vipi.Sectorfile.Validazione.LegamiDelleProcedure.Di(voci);
         return [.. legami.Where(l => l.A == record).Select(l => new LegameDellaScheda(true, l.Da, Nome(l.Da), Tipo(l.Da), l.Pista, l.Punto))
             .Concat(legami.Where(l => l.Da == record).Select(l => new LegameDellaScheda(false, l.A, Nome(l.A), Tipo(l.A), l.Pista, l.Punto)))];
+    }
+
+    /// <summary>
+    /// L'attesa in rotta citata dal fix, VOR o NDB scelto (slice 10c): dove sta in <c>[HOLDENR]</c>, o che non c'è; null
+    /// se il record non è un navaid o non cita un'attesa.
+    /// </summary>
+    public AttesaDellaScheda? AttesaDi(string fileRelativo, int record)
+    {
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord file || record < 0 || record >= file.RecordDelModello.Count)
+            return null;
+        var (nomeDelPunto, citata) = file.RecordDelModello[record] switch
+        {
+            Fix f => (f.Name, f.NomeDellAttesa),
+            Vor v => (v.Ident, v.NomeDellAttesa),
+            Ndb n => (n.Ident, n.NomeDellAttesa),
+            _ => (string.Empty, null),
+        };
+        if (citata?.Trim() is not { Length: > 0 } nome)
+            return null;
+
+        (string File, int Indice, Attesa Attesa)? Cerca(string cercato)
+        {
+            foreach (var (relativo, altro) in Sessione.File.OrderBy(f => f.Key, StringComparer.Ordinal))
+            {
+                if (altro is not IFileConRecord conRecord)
+                    continue;
+                for (int i = 0; i < conRecord.RecordDelModello.Count; i++)
+                {
+                    if (conRecord.RecordDelModello[i] is Attesa a && string.Equals(a.Nome.Trim(), cercato, StringComparison.Ordinal))
+                        return (relativo, i, a);
+                }
+            }
+
+            return null;
+        }
+
+        if (Cerca(nome) is { } trovata)
+            return new AttesaDellaScheda(nome, trovata.File, trovata.Indice, trovata.Attesa.Descrizione, null);
+        string col = "HLD-" + nomeDelPunto.Trim();
+        return new AttesaDellaScheda(nome, null, -1, null, col != nome && Cerca(col) is not null ? col : null);
     }
 
     /// <summary>
@@ -2675,6 +2750,13 @@ public sealed class SessioneDelLab
         }
     }
 }
+
+/// <summary>
+/// L'attesa in rotta di un fix, VOR o NDB (slice 10c, L1/U1): <see cref="File"/> e <see cref="Indice"/> dove sta la sua
+/// definizione, null se non c'è; <see cref="Proposta"/> l'attesa col nome del punto (<c>HLD-EKLAP</c>) quando quella
+/// citata non c'è.
+/// </summary>
+public sealed record AttesaDellaScheda(string Nome, string? File, int Indice, string? Info, string? Proposta);
 
 /// <summary>Un legame della voce scelta con un'altra dello stesso .str (slice 9e): <see cref="Arriva"/> = si arriva da lei.</summary>
 public sealed record LegameDellaScheda(bool Arriva, int Indice, string Nome, string Tipo, string Pista, string Punto);

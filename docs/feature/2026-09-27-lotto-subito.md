@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e) e la slice 9 (9a-9e, §6 «Traccia»). Dopo la 9, decisione del committente (29 settembre): **consegna
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e) e la slice 10 (10a-10c, §6 «Traccia»). Dopo la 9, decisione del committente (29 settembre): **consegna
 agli AOD** per una prima prova, uno zip con l'eseguibile e il sector. Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
@@ -1276,3 +1276,30 @@ ammette `<br>`, il nome può avere spazi (`ABC HOLD`). Divisa in: **10a** il mot
   senza attese, **10** nomi VOR/NDB, **9** fix senza tipo, **1** tipo fuori elenco. Validatore sull'albero: 132 errori,
   610 avvisi → **133 errori, 636 avvisi**; le correzioni proposte 169 → 171, applicate a una copia le 165 righe tornano
   pulite. Round-trip invariato. Test: motore 705 → **711**.
+- **10c (29 settembre)** — le schede (L1, L3, U1). Codice comune toccato: `Attesa.Fix`, `Rotta`, `Verso`, `Quota` si
+  scrivono (ognuna ricompone l'info; un valore che non va è un `ArgumentException`, un'info fuori forma un
+  `InvalidOperationException`).
+  - **Attesa in rotta** nella scheda di un fix, VOR o NDB: il nome scritto nel suo campo porta alla definizione in
+    `HOLDENR.hold` (un clic la sceglie, con l'info accanto); se non c'è lo dice e, se c'è quella col nome del punto,
+    **«Usa HLD-EKLAP»** la scrive. L'altro verso c'era già: «Chi lo usa» dell'attesa elenca chi la cita.
+  - **La scheda dell'attesa** scrive l'info a campi: fix (coi suggerimenti), rotta (1-360, tre cifre), virata da un
+    elenco (L a sinistra, R a destra), quota (`9000` o `FL105`). Un valore sbagliato si rifiuta col perché, senza
+    toccare il record (il Lab ora rifiuta col perché ogni valore che il modello del motore non accetta). Un'info fuori
+    forma si scrive tutta nel campo Info e le parti restano in sola lettura.
+  - **Nome unico** (scelta dell'agente): nella scheda il nome di un fix, VOR, NDB o attesa si scriveva come un campo
+    qualunque — cambiava il nome senza riscrivere chi lo cita e senza guardare se c'era già. Ora, se il punto è
+    citato, il campo rimanda a «Rinomina» in «Chi lo usa» (che riscrive le citazioni); se non lo è (un record appena
+    nato) si scrive lì, ma non col nome di un altro punto (lo stesso controllo della rinomina).
+  - Provato a schermo sul banco (fork pulito): `EKLAP` dice che `HLD-ELKAP` non c'è, «Usa HLD-EKLAP» cambia una riga
+    di `itfix.fix`, il clic porta all'attesa, il fix dell'info scritto nel suo campo cambia una riga di `HOLDENR.hold`
+    (`EKLAP/090R-FL190`); `9000ft` e il nome dell'attesa citata si rifiutano col perché. Annullato, copia intatta.
+  Test: motore 711 → **720**, Lab 766 → **771**.
+
+**Slice 10 chiusa.** Uscita misurata sul fork: `EKLAP` → `HLD-ELKAP` preso da tre regole, con le due correzioni
+proposte che lo sistemano; **4** master senza `[HOLDENR]`; **10** nomi VOR/NDB lontani (la carta contava 24 nomi in
+posizioni diverse e 245 doppioni: con la lettura di oggi sono 5 + 285 dentro un catalogo, già dati dalla slice 2, e 10
+fra cataloghi); **5 + 2** righe illeggibili, già con la correzione proposta dalla slice 2; **9** fix senza tipo e il
+`3:` letto come «in rotta». Voci del giro dei file chiuse: L1, L3 (il controllo; la pulizia è di F4), L4, U1.
+Validatore sull'albero: **133 errori, 636 avvisi**. Test: motore 694 → **720**, Lab 765 → **771**. Da provare a mano:
+prove 130-137 in `SectorLab-prova\PROVE.md`. Resta per F4: la prova in Aurora di quale fra VOR e NDB omonimi prende un
+punto per nome.

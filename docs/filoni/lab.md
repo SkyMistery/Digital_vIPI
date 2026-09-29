@@ -262,7 +262,7 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
 
 `Vipi.Sectorfile`: `Validazione/CopieGemelle.cs`, `Regola.CopieDiverse`, `Regola.CompostaConProceduraAssente`,
 `Regola.CompostaNonAllineata`; `IO/Metadati.cs` (virgolette, `composta`, `intere`, `Togli`, `NomeElencabile`);
-`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set); `Regola.FormaQuasiChiusa` (24 set). Lotto «Subito» slice 8: `Regola.FormeDiverse` e `Regola.ConfineSenzaErba` (le calcola il Lab). Slice 9: `Validazione/ControlloDelleProcedure.cs` (4 regole), `Validazione/LegamiDelleProcedure.cs` e `Regola.StarSenzaAvvicinamento`; `SidProcedure.IsRnav`, `StrRecord.TipoNonScritto`, `StrParser.Rnav`, `StrSaver` fino all'8° campo; `FusioneDelRecord` (il commento in coda resta in coda); `RecordNuovo.Aggiungi` (la coda del vicino passa sotto il nuovo); `Metadati.RigheDeiPunti`. `tools/Vipi.SectorfileProva` (sezione
+`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set); `Regola.FormaQuasiChiusa` (24 set). Lotto «Subito» slice 8: `Regola.FormeDiverse` e `Regola.ConfineSenzaErba` (le calcola il Lab). Slice 9: `Validazione/ControlloDelleProcedure.cs` (4 regole), `Validazione/LegamiDelleProcedure.cs` e `Regola.StarSenzaAvvicinamento`; `SidProcedure.IsRnav`, `StrRecord.TipoNonScritto`, `StrParser.Rnav`, `StrSaver` fino all'8° campo; `FusioneDelRecord` (il commento in coda resta in coda); `RecordNuovo.Aggiungi` (la coda del vicino passa sotto il nuovo); `Metadati.RigheDeiPunti`. Slice 10: `Fix.NomeDellAttesa`, `Vor.CanaleTacan`/`NomeDellAttesa`, `Ndb.Visibilita`/`ExtraField6`/`ExtraField7`/`NomeDellAttesa`, lettori e scrittori dei NAVAIDS, `IO/Savers/CampiFacoltativi.cs`; `Validazione/ControlloDelleAttese.cs`, `CampiDelNavaid`, sette regole (`AttesaNonDefinita`, `AttesaMaiCitata`, `AttesaFuoriPosto`, `AtteseNonCaricate`, `NomeInPiuCataloghi`, `CampoMancante`, `ValoreFuoriElenco`), `Validatore.Metri` internal; `Attesa.Fix`/`Rotta`/`Verso`/`Quota` scrivibili. `tools/Vipi.SectorfileProva` (sezione
 5b, `composta` sulle MAPS). Il sito non usa niente di questo; la build della soluzione è verde.
 
 ### Dove sta la storia di prima
@@ -293,6 +293,9 @@ F2 → carta [`2026-09-22-f2-motore-del-sector.md`](../feature/2026-09-22-f2-mot
   `limc.sid` usciva con 16 righe in più).
 - 🔴 Il lettore degli `.str` lascia nelle righe di una voce la riga vuota e il commento della voce DOPO: chi inserisce
   dopo una voce deve spostare quella coda (9b, `RecordNuovo.Aggiungi`).
+- 🔴 Un campo della scheda che è il NOME di un punto citato non è un campo come gli altri: scritto lì, cambiava il nome
+  senza riscrivere le citazioni e senza guardare i doppioni (trovato nella slice 10). Il nome di un punto citato passa
+  da «Rinomina».
 - 🔴 Riscrivere una linea può cambiarne il numero di segmenti: i record dopo di lei, nel suo file, slittano. Più
   scritture nello stesso file si fanno dall'ultima alla prima, e la scelta segue il suo record (8d, `liaa.geo`).
 
