@@ -82,6 +82,9 @@ public sealed class AccBlock
     // frequenze
     public List<AppFreqOrderOverride> FreqOrder { get; set; } = new();
     public List<string> FreqLinkCallsigns { get; set; } = new();   // link extra per callsign (riferimento vivo)
+
+    /// <summary>L'ente ATC da cui il gruppo è nato con «Remotizza» (S50), o null. Vedi <see cref="AccBlockMeta.UnitId"/>.</summary>
+    public int? UnitId { get; set; }
 }
 
 /// <summary>Dati completi della vIPI ACC per editor e viewer: identità + blocchi.</summary>

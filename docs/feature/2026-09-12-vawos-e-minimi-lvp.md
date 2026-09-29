@@ -820,6 +820,9 @@ sola andava bene, ma due piste (LIMC) e tre (LIRF) devono rispettare `awos_2rwy`
   unità `cq` di un elemento si risolvono sul contenitore **antenato**, e qui cadevano sul viewport (7 px invece
   di 3) — su LIRF la riga TAIL usciva dal fondo. `min-height: 204px` **misurato**, non stimato. RVR con
   l'etichetta accanto al valore. A 1400×860 con tre piste la pagina scorre invece di tagliare.
+- 🟢 **29 settembre 2026 (S47)**: il quadro sta in **uno schermo** in tutti e tre gli impianti. Il pannello vento
+  è lo stesso ovunque (`size`, minimo 96px) e sotto i 204px d'altezza mette i sei valori in **una fila**; `.awos`
+  è alto 100vh. Con tre piste non scorre fino a ~730px di finestra (1080p al 125%). Storia in `docs/filoni/sito.md` S47.
 
 ### Sei decisioni del committente
 

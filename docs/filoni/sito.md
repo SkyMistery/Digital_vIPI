@@ -1532,5 +1532,82 @@
   regola `AeroportoInElenco.Href`). Un collegamento `.apt-main` steso sotto il contenuto, le voci sopra: niente `<a>`
   annidati. Impilamento dei clic provato in Edge (ICAO, nome, meteo, badge, angolo → principale; voci → la loro).
   Test +6; Ui **1869**.
+- ✅ **S47** il vAWOS in uno schermo, con una pista come con tre (29-set, committente): prima una pista lasciava
+  spazio vuoto sopra e sotto il vento con un riquadro fisso da 420px, e con due o tre piste la pagina scorreva. Il pannello del
+  vento non scendeva sotto i 204px delle sue tre righe. Ora `.awos` è alto 100vh (con `min-height: max-content` come
+  rete) e il pannello vento è lo stesso in tutti e due gli impianti: `container-type: size`, minimo 96px, e sotto i
+  204px d'altezza (`@container`) le tre righe diventano **una fila** (DIR SPEED · EXTREMES GUST · CROSS TAIL) con i
+  caratteri legati ad altezza e larghezza. Pista sola: il vento prende l'altezza che resta, fino a 480px. Più piste:
+  colonne fisse a `clamp(…, 14vw, 270px)` e colonna visibilità/nubi più compatta. Nuovo `awos-wcorpo` attorno alle
+  tre righe (JS invariato). Provato in Edge su copie statiche di LIBF/LIRP/LIRF col foglio nuovo: nessuno scorrimento
+  e nessun pannello tagliato a 1900×920, 1536×730, 2560×1300 (e a 1366×650 e 1280×600 con una o due piste); con tre
+  piste sotto i ~700px la pagina scorre di poco invece di tagliare; telefono senza scorrimento orizzontale. Test
+  invariati; Ui **1870**.
+- ✅ **S48** la vIPI e il vSOP sono dello **scalo**, non di una posizione; le posizioni sparite da IVAO escono da sole
+  (29-set, committente). Il caso: a LIBG e LIRE IVAO ha tolto la TWR il 21-set (l'APP fa da torre, «Tower/Approach»).
+  Il nostro catalogo non potava mai, quindi la torre fantasma restava nelle frequenze della vIPI. E non si poteva
+  eliminare: la regola D6 («la torre cade solo con lo scalo») la proteggeva, e il documento le veniva riagganciato
+  a ogni apertura dell'editor. Dal 25-ago il legame vero era già `Airport.DocumentId`; restava il legame vecchio sui settori.
+  Ora: (1) `EnsureDocumentAsync` sgancia invece di riagganciare DEL/GND/TWR; (2) il giro d'avvio
+  `LinkAirportDocumentsAsync`, dopo il ponte, sgancia i settori che portano la vIPI del loro scalo (sulla copia del
+  29-set: 70 settori in 46 scali; restano legati solo gli APP non remotizzati al loro documento); (3) via la D6,
+  l'«unica torre» di `DeleteSectorAsync` e la `{ICAO}_TWR` inventata quando uno scalo non ha posizioni; (4) l'import
+  toglie dal catalogo d'aeroporto le posizioni che IVAO non manda da due giri (`SogliaEliminazione`), solo se la risposta
+  non è vuota, mai le manuali, figli al nonno, riga nel registro (sulla copia usciranno solo `LIBG_TWR` e `LIRE_TWR`).
+  La proiezione spegne il settore e lo segnala; la vIPI dello scalo ora riceve la segnalazione passando dal settore
+  (`DocsForCallsignsAsync`), e la deriva segnala la sezione Frequenze congelata da ripubblicare. Badge «no TWR» in
+  Aeroporti: filtro neutro, non più un avviso. Le frequenze restano derivate dal catalogo, come nella vIPI ACC.
+  Test +8 (import, ponte, generazione, segnalazione; i 4 del comportamento nuovo ROSSI sul codice di prima), 4
+  riscritti sulla regola nuova. Infrastructure **1992**. Migrazione no. Codice comune `Vipi.Application`
+  (DeletionRules, StructureEditModels, StaleCatalogRow). Resta com'è il catalogo ACC (non pota).
+- ✅ **S49** enti ATC, fase 1 (29-set, committente, ramo `fix/enti-atc`): la vIPI APP è di un **ente** (`AtcUnit`:
+  codice stabile = chiave di pubblicazione e indirizzo, nome, ACC, modo, documento; posizioni IVAO per nome, la
+  prima è la principale), non del settore APP. Casi: Pratica di Mare vuole `LIRE_TWR` (torre che fa l'APP) e non
+  `LIRE_APP`; Palermo remotizzato non deve riscrivere la vIPI. Trovato e chiuso un guasto vero: spuntare
+  «remotizzato» su un APP con vIPI la rendeva irraggiungibile (descrittore → aeroporto con ICAO vuoto). Ponte
+  d'avvio `LinkAppUnitsAsync` (copia 29-set: 18 enti), tutti i punti «è una vIPI APP» dall'ente, derivazione dalla
+  posizione principale, vista live per posizione dell'ente, `?app=` posizione → codice, rinomina IVAO che non
+  riscrive più la chiave APP, pannello «Ente» nell'editor. Scelta: la pagina APP non chiude più quando una
+  posizione sparisce (si nasconde il documento). Migrazione `EntiAtc` (SQLite+MySQL, additiva). Provato a schermo
+  sulla copia del 29-set travasata in SQLite (la guardia vieta l'identità dev su MySQL). Carta
+  `docs/feature/2026-09-29-enti-atc.md` (fasi 2 e 3). Test +6 (Infrastructure 1997, Application 3098), 10 file di test
+  portati al modello nuovo. Codice comune `Vipi.Application`, `Vipi.Domain`.
+- ✅ **S50** enti ATC, fase 2: «Remotizza» (29-set, committente: «gli app remotizzati si spostano nella vIPI di ACC e
+  lì rimangono»; ramo `fix/enti-atc`). Riquadro «Ente» → «Sposta nella vIPI dell'ACC»: l'albero intero della vIPI APP
+  (sezioni, flag, contenuti) si copia sotto un gruppo APP nuovo nella bozza della vIPI ACC
+  (`IEditingRepository.CopyVersionIntoBlockAsync`), il blockmeta prende membri = posizioni dell'ente, ordine e
+  collegamenti delle frequenze, `UnitId`; l'ente passa a `InAccVipi`, la vIPI APP esce dall'unione, si nasconde e
+  restituisce il lock. Lock della vIPI ACC preso per il gesto (rifiuta se è di un altro). Dopo: `?app=` ed editor APP
+  portano alla vIPI ACC, vista live sul gruppo (anche da una torre), elenco APP e documenti collegati la trattano da
+  remotizzata. Niente migrazione (`Mode` c'era; blockmeta in JSON). Provato a schermo su Palermo con la copia del
+  29-set: 15/15 sezioni e 18/18 blocchi identici, vista live «Palermo Radar» dopo la pubblicazione della vIPI di Roma
+  (nella copia la vIPI di Roma è nascosta, come in produzione). Test +4 (Infrastructure 2000, Application 3099).
+- ✅ **S51** enti ATC, fase 3: pulizia (29-set, committente; ramo `fix/enti-atc`). La derivazione della vIPI APP parte
+  da **tutte** le posizioni dell'ente (`AppDocumentIdentity.Posizioni`), non dalla sola principale: dominio =
+  unione dei domini, antenati posizione per posizione, ★ su ogni posizione dell'ente, scalo di ogni posizione;
+  vale per frequenze, coordinamenti, AoR, configurazioni e minime. Via le ultime letture degli APP dal settore:
+  `ScopeOf`, «Nuovo documento» (solo l'ente dice «ha già un documento»), e `CreateDocumentAsync` che rifiuta un APP
+  non remotizzato nello scope. Restano di proposito il ponte, gli orfani (vIPI ACC) e il vSOP militare. Test +3
+  (Infrastructure 2003), tutti ROSSI sul codice di prima; uno portato alla regola nuova (sceglieva `LIRP_APP` come
+  «primo settore libero»). Niente migrazione. Codice comune `Vipi.Application`. Opzionale non fatto: vIPI ACC
+  legata all'ACC. Carta `docs/feature/2026-09-29-enti-atc.md` §5.
+- ✅ **S52** revisione delle fasi 1–3 degli enti ATC (29-set, committente: «rivedi il lavoro… fai finta di non averlo
+  scritto tu»; ramo `fix/enti-atc`). Tre revisori indipendenti, rilievi verificati sul codice: due gravi, otto medi,
+  una decina lievi. Scelte del committente: **A** «Sposta» in due tempi (copia nella bozza ACC, la vIPI APP resta
+  pubblica e si nasconde da sola quando la vIPI ACC col gruppo va in vigore: `ConcludiSpostamentiAsync` dopo la
+  pubblicazione e nel giro delle release); **B** un ACC con enti che hanno una vIPI APP non si elimina (frase), gli
+  enti vuoti se ne vanno con lui. Gravi: ordine dei ponti d'avvio (una vIPI APP diventava vIPI dello scalo),
+  «Sposta» senza transazione (due gruppi riprovando). Medi: codice come posizione altrui, lock nel riquadro «Ente»,
+  pagina dell'ACC, segnalazioni di un ente spostato, vIPI APP nascosta fuori da Gestione documenti, scelte salvate
+  per nominativo (avviso), rifiuti tardivi. `EfUnitOfWork` ripulisce il tracker al rollback. Test +19 (Application
+  3102, Infrastructure 2014, Ui 1875), una guardia dei nomi aggiornata (`WhereCitedAsync` è una lettura); i test
+  rossi sul codice di prima dove compilavano contro di esso (ponti, codice-posizione, ACC con enti, lock), gli altri
+  usano API nuove. Niente migrazione. Codice comune `Vipi.Application`, `Vipi.Hosting`. Carta §6.
+  **Provato a schermo** sulla copia del 29-set (SQLite dalle migrazioni + travaso): 18 enti all'avvio, nessuno scalo
+  con la vIPI di un ente; Pratica passata a `LIRE_TWR` dal riquadro e ancora in pagina ACC sotto `LIRE_TWR`;
+  `LIRE_APP` rifiutato a Catania («è il codice di Pratica Tower»); «Sposta» di `LIBG_APP` → gruppo nella bozza di
+  Brindisi, vIPI APP ancora pubblica, riquadro «copiata…» senza tasto; pubblicata la vIPI di Brindisi NASCOSTA →
+  niente conclusione; resa visibile e «Pubblica ora» → ente `InAccVipi`, vIPI APP nascosta, `?app=LIBG_APP` → vIPI
+  di Brindisi col gruppo, Grottaglie ancora in «Bozze & versioni» come Nascosto. Log senza errori.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

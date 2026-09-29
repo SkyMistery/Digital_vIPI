@@ -701,14 +701,6 @@ public sealed class EfAirportRepository : IAirportRepository
         // placeholder invece dei FL calcolati. Le fasce personalizzate restano intatte.
         RecomputeDefaultBandLevels(airport);
 
-        // Solo i settori-FOGLIA dell'aeroporto (DEL/GND/TWR/ITwr) appartengono alla vIPI d'aeroporto.
-        // Gli APP NON ci vanno mai: se sono "di ACC" stanno nella vIPI di ACC, se standalone hanno doc proprio.
-        // Ordino per (int)Type in MEMORIA: Type è un enum salvato come stringa, quindi ORDER BY (int)Type in SQL
-        // genera CAST("Type" AS integer) → su Postgres 'Twr'→integer lancia 22P02 (su SQLite tornava 0 in silenzio).
-        var sectors = (await _db.Sectors.Where(s => s.AirportId == airport.Id && s.Type != SectorType.App)
-            .ToListAsync(ct))
-            .OrderBy(s => (int)s.Type).ToList();
-
         var now = DateTime.UtcNow;
         var cycle = new AiracService().GetCycle(now);
 
@@ -742,21 +734,15 @@ public sealed class EfAirportRepository : IAirportRepository
             airport.DocumentId = doc.Id;
         }
 
-        // Riallineamento dei settori al documento dell'aeroporto: un settore comparso DOPO la prima generazione
-        // (una torre che IVAO aggiunge più tardi) resterebbe altrimenti scollegato per sempre, e chi parte dal
-        // suo callsign non troverebbe il documento che pure esiste.
-        if (sectors.Count > 0)
-        {
-            var primario = sectors.FirstOrDefault(s => IsTower(s.Type)) ?? sectors[0];
-            foreach (var s in sectors) { s.DocumentId = doc.Id; s.IsPrimary = s == primario; }
-        }
-
-        // Correzione/idempotenza: sgancia eventuali APP di questo aeroporto erroneamente legati a questa vIPI
-        // d'aeroporto (binding storico). Da qui in poi torneranno selezionabili in «Nuovo documento».
-        var strayApps = await _db.Sectors
-            .Where(s => s.AirportId == airport.Id && s.Type == SectorType.App && s.DocumentId == doc.Id)
+        // 🔴 Nessuna POSIZIONE porta la vIPI d'aeroporto (S48, committente, 29 settembre 2026). Fino ad allora
+        // qui DEL/GND/TWR venivano riagganciati al documento a ogni apertura dell'editor — anche una torre che
+        // IVAO non manda più: a LIBG la `LIBG_TWR` sparita il 21 settembre restava agganciata, e il documento la
+        // teneva in piedi. Il documento è dello SCALO (`Airport.DocumentId`), e le posizioni vanno e vengono da
+        // sole. Qui si sgancia chi lo porta ancora — idempotente, e copre anche gli APP del legame storico.
+        var agganciati = await _db.Sectors
+            .Where(s => s.AirportId == airport.Id && s.DocumentId == doc.Id)
             .ToListAsync(ct);
-        foreach (var s in strayApps) { s.DocumentId = null; s.IsPrimary = false; }
+        foreach (var s in agganciati) { s.DocumentId = null; s.IsPrimary = false; }
 
         await _db.SaveChangesAsync(ct);
         return doc.Id;
@@ -807,9 +793,6 @@ public sealed class EfAirportRepository : IAirportRepository
     private static InvalidOperationException NotFound(string icao) => new(Lingua($"Aeroporto {icao} inesistente.", $"Airport {icao} does not exist."));
 
     private static string Dash(string? s) => string.IsNullOrWhiteSpace(s) ? "—" : s!.Trim();
-
-    /// <summary>TWR e I_TWR (AFIS) sono entrambe "torri" ai fini di frequenza primaria/etichetta.</summary>
-    private static bool IsTower(SectorType type) => type is SectorType.Twr or SectorType.ITwr;
 
     // Ordine e nome vengono da FrequencyPositions (Application). La copia che stava qui era divergente: usava
     // `position ?? "—"`, quindi una posizione di soli spazi rendeva una cella BIANCA nel documento aeroporto

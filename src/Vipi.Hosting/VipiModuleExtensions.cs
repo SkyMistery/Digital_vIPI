@@ -990,7 +990,15 @@ public static class VipiModuleExtensions
         var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
             ?.CreateLogger("Vipi.DocumentMaintenance");
 
-        // PRIMA di tutto il resto: è il legame che tutte le letture del documento d'aeroporto useranno da qui in
+        // PRIMA di tutto il resto, le vIPI APP sui loro ENTI (S49): le passate sulle sezioni le riconoscono dall'ente,
+        // e su un database appena aggiornato, prima di qui, non ce n'è nessuno. ⚠️ E prima degli scali (revisione,
+        // S52): il ponte degli scali legge i documenti dai settori, e una vIPI APP ancora sul suo settore non è sua.
+        var enti = maintenance.LinkAppUnitsAsync().GetAwaiter().GetResult();
+        if (enti > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Nati {Count} enti ATC dalle vIPI APP (il documento passa dall'ente, non piu' dal settore APP).", enti);
+
+        // Subito dopo: è il legame che tutte le letture del documento d'aeroporto useranno da qui in
         // avanti. Un passo che lo presupponesse, girando prima, lavorerebbe su aeroporti ancora scollegati.
         var collegati = maintenance.LinkAirportDocumentsAsync().GetAwaiter().GetResult();
         if (collegati > 0 && log is not null)

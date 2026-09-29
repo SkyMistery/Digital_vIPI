@@ -146,12 +146,37 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             .Where(s => s.DocumentId != null && list.Contains(s.Callsign))
             .Select(s => s.DocumentId!.Value)
             .ToListAsync(ct);
+        // La vIPI APP la porta l'ENTE, per ogni sua posizione (S49): nessun settore APP la porta più.
+        ids.AddRange(await _db.AtcUnitPositions.AsNoTracking()
+            .Where(p => list.Contains(p.Callsign) && p.AtcUnit!.DocumentId != null
+                        && p.AtcUnit.Mode == AtcUnitMode.OwnDocument)
+            .Select(p => p.AtcUnit!.DocumentId!.Value)
+            .ToListAsync(ct));
+        // ⚠️ Un ente spostato nella vIPI dell'ACC (S50) la riceve LÌ, non sulla vIPI APP nascosta (revisione, S52).
+        // La vIPI ACC la porta il CTR radice dell'ACC, come in ResolveAccDocumentIdentityAsync.
+        var accDiEntiSpostati = await _db.AtcUnitPositions.AsNoTracking()
+            .Where(p => list.Contains(p.Callsign) && p.AtcUnit!.Mode == AtcUnitMode.InAccVipi)
+            .Select(p => p.AtcUnit!.AccId).Distinct().ToListAsync(ct);
+        foreach (var accId in accDiEntiSpostati)
+            if (await _db.Sectors.AsNoTracking()
+                    .Where(s => s.AccId == accId && s.Type == SectorType.Ctr && s.ParentSectorId == null && s.IsActive)
+                    .OrderBy(s => s.CoverageOrder).ThenBy(s => s.Callsign)
+                    .Select(s => s.DocumentId).FirstOrDefaultAsync(ct) is int accDoc)
+                ids.Add(accDoc);
 
         var icaos = await _db.AirportSectors.AsNoTracking()
             .Where(s => list.Contains(s.ComposePosition))
             .Select(s => s.AirportIcao)
             .Distinct()
             .ToListAsync(ct);
+        // ⚠️ E lo scalo lo dice anche il SETTORE: una posizione che IVAO non manda più esce dal catalogo (S48), e
+        // la segnalazione della sua sparizione arriva quando la riga di catalogo non c'è già più. Senza questa
+        // lettura la vIPI di quello scalo — che dal 29 settembre 2026 nessun settore porta — non la riceveva.
+        icaos = icaos.Concat(await _db.Sectors.AsNoTracking()
+                .Where(s => s.AirportIcao != null && list.Contains(s.Callsign))
+                .Select(s => s.AirportIcao!)
+                .ToListAsync(ct))
+            .Distinct(OIC).ToList();
         if (icaos.Count > 0)
         {
             ids.AddRange(await _db.Airports.AsNoTracking()
@@ -360,6 +385,11 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             .Select(a => a.Acc!.Code)
             .FirstOrDefaultAsync(ct);
         if (daAeroporto is not null) return daAeroporto;
+
+        // La vIPI APP: l'ACC è quello dell'ENTE (S49).
+        var daEnte = await _db.AtcUnits.AsNoTracking()
+            .Where(u => u.DocumentId == documentId).Select(u => u.Acc!.Code).FirstOrDefaultAsync(ct);
+        if (daEnte is not null) return daEnte;
 
         return await _db.DocumentParties.AsNoTracking()
             .Where(p => p.DocumentId == documentId && p.Role == PartyRole.Home

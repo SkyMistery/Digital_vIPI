@@ -3,8 +3,22 @@ using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
 
-/// <summary>Identità di un APP per la migrazione su Document: id settore, titolo del documento, DocumentId se già creato.</summary>
-public sealed record AppDocumentIdentity(int SectorId, string Callsign, string Title, string AccCode, int? DocumentId);
+/// <summary>
+/// Identità della vIPI APP: l'<b>ente</b> che la possiede (S49, 29 settembre 2026), non più un settore.
+/// </summary>
+/// <param name="Code">Il codice dell'ente: chiave di pubblicazione e indirizzo pubblico (<c>?app=</c>). Per un APP
+/// che non ha ancora un ente, il suo nominativo — sarà il codice dell'ente che nasce col documento.</param>
+/// <param name="Seme">Da dove parte la derivazione: la posizione principale dell'ente (<c>LIRE_TWR</c>).</param>
+/// <param name="UnitId">null finché l'ente non esiste (nasce col documento, alla prima apertura dell'editor).</param>
+/// <param name="Positions">Tutte le posizioni dell'ente, la principale per prima; null = la sola <paramref name="Seme"/>.</param>
+public sealed record AppDocumentIdentity(string Code, string Seme, string Title, string AccCode, int? DocumentId,
+    int? UnitId = null, IReadOnlyList<string>? Positions = null)
+{
+    /// <summary>Da dove parte la derivazione (S51, fase 3): TUTTE le posizioni dell'ente, la principale per prima.
+    /// Fino ad allora partiva dalla sola principale, e una seconda posizione fuori dal suo sottoalbero (una torre
+    /// che l'ente tiene anche lei) non portava né frequenze, né coordinamenti, né AoR.</summary>
+    public IReadOnlyList<string> Posizioni => Positions is { Count: > 0 } ? Positions : new[] { Seme };
+}
 
 /// <summary>
 /// Sorgente dati per la DERIVAZIONE delle sezioni live dell'APP standalone su Document (doc 08e): catalogo frequenze
@@ -16,9 +30,12 @@ public interface IAppDerivationRepository
     /// <summary>Codice ACC del settore APP (per la guardia di autorizzazione). null = inesistente.</summary>
     Task<string?> GetAccCodeByAppAsync(string appCallsign, CancellationToken ct = default);
 
-    /// <summary>Identità del settore APP per creare/risolvere il suo Document vIPI: id settore + titolo (nome IVAO/
-    /// AtcCallsign, fallback al nome settore) + DocumentId se già migrato. null = callsign APP inesistente. Doc 08e.</summary>
+    /// <summary>L'ente della vIPI APP, per codice o per una sua posizione; oppure un APP non remotizzato che un ente
+    /// ancora non ce l'ha. null = né l'uno né l'altro, o un ente il cui contenuto vive nella vIPI dell'ACC.</summary>
     Task<AppDocumentIdentity?> ResolveForDocumentAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Crea l'ente (se non c'è) e la sua vIPI APP (se non c'è); ritorna l'id del documento. Idempotente.</summary>
+    Task<int> EnsureDocumentAsync(AppDocumentIdentity identity, int authorUserId, CancellationToken ct = default);
 
     /// <summary>Poligono AoR grezzo (JSON IVAO) dal catalogo AirportSector del callsign APP. null = assente.</summary>
     Task<string?> GetAorPolygonRawAsync(string appCallsign, CancellationToken ct = default);
@@ -41,11 +58,12 @@ public interface IAppDerivationRepository
     Task<IReadOnlyList<AppFreqRow>> ResolveFreqLinksAsync(IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
 
     /// <summary>
-    /// Catalogo frequenze: posizioni (ATIS·DEL·GND·TWR·APP) degli aeroporti del sottoalbero (APP del callsign = ★),
-    /// seguite dai GENITORI di copertura (<paramref name="ancestorCallsigns"/>, in ordine di vicinanza) coi loro CTR.
+    /// Catalogo frequenze: posizioni (ATIS·DEL·GND·TWR·APP) degli aeroporti del sottoalbero e di quelli delle
+    /// posizioni dell'ente (le posizioni = ★), seguite dai GENITORI di copertura (<paramref name="ancestorCallsigns"/>,
+    /// in ordine di vicinanza) coi loro CTR.
     /// </summary>
     Task<IReadOnlyList<AppFreqRow>> DeriveCatalogFrequenciesAsync(
-        string appCallsign, IReadOnlySet<string> domainCallsigns,
+        IReadOnlyList<string> positions, IReadOnlySet<string> domainCallsigns,
         IReadOnlyList<string> ancestorCallsigns, CancellationToken ct = default);
 
     /// <summary>Mappa callsign→tipo di tutti i settori (per classificare i Next dei coordinamenti: ACC vs torre).</summary>

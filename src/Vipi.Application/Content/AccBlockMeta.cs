@@ -14,4 +14,8 @@ public sealed class AccBlockMeta
     public List<string> MemberCallsigns { get; set; } = new();
     public List<AppFreqOrderOverride> FreqOrder { get; set; } = new();
     public List<string> FreqLinkCallsigns { get; set; } = new();
+
+    /// <summary>L'ente ATC da cui il gruppo è nato con «Remotizza» (S50), o null. Traccia: i membri restano
+    /// <see cref="MemberCallsigns"/>, che l'editor della vIPI ACC gestisce come per ogni gruppo.</summary>
+    public int? UnitId { get; set; }
 }

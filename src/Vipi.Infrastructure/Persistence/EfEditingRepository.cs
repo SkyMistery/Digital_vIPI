@@ -52,6 +52,8 @@ public sealed class EfEditingRepository : IEditingRepository
     {
         var docs = await _db.Documents
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
+            .Include(d => d.Airport).ThenInclude(a => a!.Acc)
+            .Include(d => d.AtcUnit).ThenInclude(u => u!.Acc)
             .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .AsNoTracking()
             .ToListAsync(ct);
@@ -272,6 +274,21 @@ public sealed class EfEditingRepository : IEditingRepository
         IReadOnlyList<int>? scopeSectorIds, int? primarySectorId,
         (int homeSectorId, int neighbourSectorId)? parties, int authorUserId, CancellationToken ct = default)
     {
+        // ⚠️ La vIPI APP è di un ENTE (S49): un APP non remotizzato non si aggancia più a un documento dal settore.
+        // Questa porta era l'ultima che poteva rifare il legame vecchio, che il ponte d'avvio poi scioglierebbe
+        // creando un ente che nessuno ha chiesto (S51).
+        if (scopeSectorIds is { Count: > 0 })
+        {
+            var ids = scopeSectorIds.Distinct().ToList();
+            var app = await _db.Sectors.AsNoTracking()
+                .Where(s => ids.Contains(s.Id) && s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone)
+                .Select(s => s.Callsign).FirstOrDefaultAsync(ct);
+            if (app is not null)
+                throw new InvalidOperationException(Lingua(
+                    $"{app} è un APP non remotizzato: la sua vIPI è quella del suo ente, si apre dall'editor APP.",
+                    $"{app} is a non-remotized APP: its vIPI belongs to its unit, open it from the APP editor."));
+        }
+
         var now = DateTime.UtcNow;
         var doc = new Document
         {
@@ -365,8 +382,14 @@ public sealed class EfEditingRepository : IEditingRepository
     public async Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
         SectionProfile profile, int authorUserId, CancellationToken ct = default)
     {
-        var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
+        var sector = await _db.Sectors.Include(s => s.Acc).FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
             ?? throw new InvalidOperationException(Lingua($"Settore {primarySectorId} inesistente.", $"Sector {primarySectorId} does not exist."));
+
+        // La vIPI APP nasce dell'ENTE (S49), non del settore: il nominativo è il codice dell'ente che nasce.
+        if (profile == SectionProfile.App)
+            return await new EfAtcUnitRepository(_db, _airac).EnsureDocumentAsync(sector.Callsign, title,
+                sector.Acc?.Code ?? "", profile, authorUserId, ct);
+
         if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
 
         // La nascita è condivisa con l'aeroporto (Seed/DocumentBirth): documento, prima versione bozza e le
@@ -544,6 +567,74 @@ public sealed class EfEditingRepository : IEditingRepository
             version.Document!.Language == Language.En ? "en" : "it");
         await _db.SaveChangesAsync(ct);
         return blockSection.Id;
+    }
+
+    public async Task<int> CopyVersionIntoBlockAsync(int sourceVersionId, int targetVersionId, string blockKey,
+        string title, CancellationToken ct = default)
+    {
+        await RequireDraftAsync(targetVersionId, ct);
+        var srcSections = await _db.DocumentSections.AsNoTracking().Where(s => s.DocumentVersionId == sourceVersionId).ToListAsync(ct);
+        var srcBlocks = await _db.ContentBlocks.AsNoTracking().Where(b => b.DocumentVersionId == sourceVersionId).ToListAsync(ct);
+
+        // ⚠️ Una sezione il cui padre non è in questa versione: «crea bozza» su lo stesso albero si ferma apposta,
+        // perché chi copia se ne accorga. Qui finiva sotto il blocco, a profondità 1, in silenzio (revisione, S52).
+        var ids = srcSections.Select(s => s.Id).ToHashSet();
+        if (srcSections.FirstOrDefault(s => s.ParentSectionId is int pid && !ids.Contains(pid)) is { } orfana)
+            throw new Vipi.Application.Aor.ValidationException(Lingua(
+                $"La sezione «{orfana.Title}» punta a una sezione madre che non è in questa versione: sistemala nell'editor e riprova.",
+                $"The section «{orfana.Title}» points to a parent section that is not in this version: fix it in the editor and try again."));
+
+        // La profondità dall'ALBERO, come «crea bozza» (U-014): dentro il blocco ogni sezione scende di uno, e
+        // oltre il massimo il motore non la saprebbe disegnare. Si controlla PRIMA di scrivere qualunque cosa.
+        var ordine = InOrdineDiAlbero(srcSections);
+        var profondita = new Dictionary<int, int>();
+        foreach (var s in ordine)
+            profondita[s.Id] = s.ParentSectionId is int p && profondita.TryGetValue(p, out var dp) ? dp + 1 : 1;
+        if (profondita.Count > 0 && profondita.Values.Max() > DocumentSection.MaxDepth)
+            throw new Vipi.Application.Aor.ValidationException(Lingua(
+                $"Il documento ha sezioni annidate su {profondita.Values.Max()} livelli: dentro un gruppo APP ne entrano {DocumentSection.MaxDepth}. Sposta più in alto le sezioni più profonde e riprova.",
+                $"The document has sections nested {profondita.Values.Max()} levels deep: an APP group holds {DocumentSection.MaxDepth}. Move the deepest sections up and try again."));
+
+        var nextOrder = (await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == targetVersionId && s.ParentSectionId == null)
+            .MaxAsync(s => (int?)s.Order, ct) ?? 0) + 1;
+        var blocco = new DocumentSection
+        {
+            DocumentVersionId = targetVersionId, ParentSectionId = null, Title = title, Order = nextOrder, Depth = 0,
+            SectionKey = blockKey, RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(blocco);
+
+        var map = new Dictionary<int, DocumentSection>();
+        foreach (var s in ordine)
+        {
+            var padre = s.ParentSectionId is int pid && map.TryGetValue(pid, out var mp) ? mp : blocco;
+            var ns = new DocumentSection
+            {
+                DocumentVersionId = targetVersionId, ParentSection = padre,
+                Title = s.Title, Order = s.Order, Depth = padre.Depth + 1, SectionKey = s.SectionKey,
+                RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody,
+                BodyPosition = s.BodyPosition, Audience = s.Audience, LeadSentence = s.LeadSentence,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            };
+            map[s.Id] = ns;
+            _db.DocumentSections.Add(ns);
+        }
+        foreach (var b in srcBlocks)
+        {
+            if (!map.TryGetValue(b.SectionId, out var sezione)) continue;
+            _db.ContentBlocks.Add(new ContentBlock
+            {
+                DocumentVersionId = targetVersionId, Section = sezione, Order = b.Order,
+                Tier = b.Tier, Format = b.Format, Visibility = b.Visibility,
+                CollapsedByDefault = b.CollapsedByDefault, CalloutKind = b.CalloutKind,
+                ScopeSectorId = b.ScopeSectorId, FromSectorId = b.FromSectorId, ToSectorId = b.ToSectorId,
+                SharedBlockId = b.SharedBlockId, Body = b.Body, BodyJson = b.BodyJson,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            });
+        }
+        await _db.SaveChangesAsync(ct);
+        return blocco.Id;
     }
 
     // ⚠️ Stessa domanda del gemello per chiave e di `SectionPayload`: il primo blocco di STRUTTURA. «Il primo
@@ -926,7 +1017,7 @@ public sealed class EfEditingRepository : IEditingRepository
                 x.Type, x.Edition,
                 Civile = x.Airport != null,
                 Militare = x.MilAirport != null,
-                App = x.Sectors.Any(z => z.IsPrimary && z.Type == SectorType.App && z.ApproachKind == ApproachKind.Standalone),
+                App = x.AtcUnit != null,   // la vIPI APP è dell'ENTE (S49)
             })
             .FirstAsync(ct);
 
@@ -1470,31 +1561,26 @@ public sealed class EfEditingRepository : IEditingRepository
 
     private static string ScopeOf(Document d)
     {
-        // Settore primario (o primo) del documento; per le vLOA niente scope settore.
+        // La vIPI d'aeroporto la dice l'AEROPORTO: dal 29 settembre 2026 nessuna posizione la porta più (S48).
+        if (d.Airport is { } a) return a.Icao;
+        // La vIPI APP la dice l'ENTE (S49): lo scope è il suo codice, la chiave dell'editor dedicato.
+        if (d.AtcUnit is { } ente) return ente.Code;
+        // Settore primario (o primo) del documento: resta solo la vIPI ACC. Per le vLOA niente scope settore.
         var s = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
         if (s is null) return "—";
-        // APP standalone: lo scope è il callsign APP (chiave dell'editor dedicato), non l'ICAO dell'aeroporto.
-        if (IsStandaloneApp(s)) return s.Callsign;
         if (s.Kind == SectorKind.Airport)
             return s.AirportIcao ?? (s.Callsign.IndexOf('_') is int us && us > 0 ? s.Callsign[..us] : s.Callsign);
         return s.Acc?.Code ?? s.Callsign;
     }
 
-    // Documento di aeroporto = settore primario (o primo) Kind=Airport, ESCLUSI gli APP standalone (editor dedicato).
-    private static bool IsAirportDoc(Document d)
-    {
-        var s = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
-        return s?.Kind == SectorKind.Airport && !IsStandaloneApp(s);
-    }
+    // Documento di aeroporto = quello che un aeroporto indica come sua vIPI (Airport.DocumentId). Fino al 29
+    // settembre 2026 lo si deduceva dal settore primario: uno scalo senza torre (LIBG) non risultava.
+    private static bool IsAirportDoc(Document d) => d.Airport is not null;
 
-    // Documento APP non remotizzato = settore primario (o primo) Type=App con ApproachKind=Standalone.
-    private static bool IsStandaloneAppDoc(Document d) =>
-        (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault()) is { } s && IsStandaloneApp(s);
-
-    private static bool IsStandaloneApp(Domain.Entities.Sector s) =>
-        s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone;
+    // Documento APP non remotizzato = la vIPI di un ENTE (S49; prima: settore primario APP standalone).
+    private static bool IsStandaloneAppDoc(Document d) => d.AtcUnit is not null;
 
     // ACC del settore primario (o primo): serve a costruire i link editor.
     private static string? AccCodeOf(Document d) =>
-        (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault())?.Acc?.Code;
+        d.Airport?.Acc?.Code ?? d.AtcUnit?.Acc?.Code ?? (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault())?.Acc?.Code;
 }

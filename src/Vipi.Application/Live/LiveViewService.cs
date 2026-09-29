@@ -45,12 +45,14 @@ public sealed class LiveViewService : ILiveViewService
     private readonly ILiveStationRegistry _registry;
     private readonly IEditAuthorizationService _authz;
     private readonly IStructureEditingRepository _sectors;
+    private readonly IAtcUnitRepository? _enti;
 
     public LiveViewService(IStationResolver stations, IStructureEditingService structure,
         ITopologyProvider topology, IOnlineAtcProvider online, ICurrentUserProvider users,
         ILiveStationRegistry registry, IEditAuthorizationService authz,
-        IStructureEditingRepository sectors)
+        IStructureEditingRepository sectors, IAtcUnitRepository? enti = null)
     {
+        _enti = enti;
         _stations = stations;
         _structure = structure;
         _topology = topology;
@@ -88,7 +90,13 @@ public sealed class LiveViewService : ILiveViewService
         if (topology is null) return LiveViewResult.NotFound(callsign);
 
         var snapshot = _online.GetCurrent();
-        var ctx = new LiveStationContext(callsign, sector, acc, structure, topology, snapshot.Callsigns);
+        // L'ENTE di cui la postazione è una posizione (S49): decide il documento, qualunque sia il tipo della
+        // posizione — a Pratica di Mare la torre fa l'avvicinamento, e chi è su LIRE_TWR apre la vIPI dell'ente.
+        var ente = _enti is null ? null : await _enti.FindAsync(callsign, ct);
+        var ctx = new LiveStationContext(callsign, sector, acc, structure, topology, snapshot.Callsigns,
+            ente is { Mode: AtcUnitMode.OwnDocument } ? ente.Code : null,
+            ente is { Mode: AtcUnitMode.InAccVipi },
+            ente?.Id, ente?.AccCode);
 
         var kind = _registry.For(ctx);
         if (kind is null) return LiveViewResult.NotFound(callsign);

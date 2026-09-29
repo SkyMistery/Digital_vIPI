@@ -60,6 +60,13 @@ public interface IAppDocumentService
     /// <summary>Override editoriali del documento (sezioni nascoste, ordine/link frequenze, template coord). Vuoti se non migrato.</summary>
     Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default);
 
+    /// <summary>
+    /// Dove il documento cita ancora un nominativo scritto a mano: configurazioni, mappa AoR, frequenze. Serve a
+    /// chi toglie una posizione dall'ente (S52): quelle scelte sono salvate per nominativo e non la seguono.
+    /// Vuoto = da nessuna parte.
+    /// </summary>
+    Task<IReadOnlyList<string>> WhereCitedAsync(string appCallsign, string callsign, CancellationToken ct = default);
+
     /// <summary>Salva l'override d'ordine delle frequenze per callsign (ACC-gated).</summary>
     Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default);
 
@@ -180,8 +187,46 @@ public sealed class AppDocumentService : IAppDocumentService
         // Authz PRIMA dell'uscita anticipata: sui documenti già migrati il metodo non verificava nulla.
         _authz.EnsureAtLeast(VipiRole.Editor);
         if (id.DocumentId is int existing) return existing;   // già migrato
-        return await _editing.EnsureVipiDocumentAsync(id.SectorId, id.Title, Language.It, SectionProfile.App,
-            _authz.CurrentUserId ?? 0, ct);
+        // Il documento nasce dell'ENTE (S49), e l'ente nasce con lui se ancora non c'è.
+        return await _apps.EnsureDocumentAsync(id, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    /// <summary>
+    /// Da dove parte la derivazione: le posizioni dell'ente, non la chiave dell'indirizzo (S49). Per Pratica di
+    /// Mare l'indirizzo dice <c>LIRE_APP</c> (il codice) e la posizione è <c>LIRE_TWR</c>. Tutte, la principale per
+    /// prima (S51): prima partiva dalla sola principale.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> PosizioniAsync(string appCallsign, CancellationToken ct) =>
+        (await _apps.ResolveForDocumentAsync(Norm(appCallsign), ct))?.Posizioni ?? new[] { Norm(appCallsign) };
+
+    /// <summary>Il dominio dell'ente: l'unione dei domini delle sue posizioni.</summary>
+    private static HashSet<string> DominioDi(Aor.Topology topo, IReadOnlyList<string> posizioni)
+    {
+        var dominio = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in posizioni) dominio.UnionWith(topo.DomainOf(p));
+        return dominio;
+    }
+
+    /// <summary>I genitori di copertura dell'ente, dal più vicino al più lontano, senza ripetizioni e senza chi è già
+    /// nel suo dominio (una torre dell'ente sotto il suo stesso APP ha l'APP come padre).</summary>
+    /// <remarks>⚠️ Per DISTANZA, non posizione per posizione (revisione, S52): con due posizioni in rami diversi
+    /// (P1 → CTR_A → ROOT, P2 → CTR_B → ROOT) l'accodamento dava A, ROOT, B — la radice prima di un CTR vicino. A
+    /// parità di distanza vale l'ordine delle posizioni.</remarks>
+    internal static List<string> AntenatiDi(Aor.Topology topo, IReadOnlyList<string> posizioni, IReadOnlySet<string> dominio)
+    {
+        var distanza = new Dictionary<string, (int Passi, int Ordine)>(StringComparer.OrdinalIgnoreCase);
+        var ordine = 0;
+        foreach (var p in posizioni)
+        {
+            var passi = 0;
+            foreach (var a in topo.Ancestors(p))
+            {
+                passi++;
+                if (dominio.Contains(a)) continue;
+                if (!distanza.TryGetValue(a, out var gia) || passi < gia.Passi) distanza[a] = (passi, gia.Passi == 0 ? ordine++ : gia.Ordine);
+            }
+        }
+        return distanza.OrderBy(kv => kv.Value.Passi).ThenBy(kv => kv.Value.Ordine).Select(kv => kv.Key).ToList();
     }
 
     // Override derivati (link/ordine freq, template coord) dal DocumentProfile del documento dell'APP; vuoti se non migrato.
@@ -194,10 +239,11 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<IReadOnlyList<AppFreqRow>> DeriveFrequenciesAsync(string appCallsign, CancellationToken ct = default)
     {
         appCallsign = Norm(appCallsign);
+        var posizioni = await PosizioniAsync(appCallsign, ct);
         var topo = await _topology.BuildGlobalAsync(ct);
-        var domain = topo.DomainOf(appCallsign);
-        var ancestors = topo.Ancestors(appCallsign).ToList();
-        var catalog = await _apps.DeriveCatalogFrequenciesAsync(appCallsign, domain, ancestors, ct);
+        var domain = DominioDi(topo, posizioni);
+        var ancestors = AntenatiDi(topo, posizioni, domain);
+        var catalog = await _apps.DeriveCatalogFrequenciesAsync(posizioni, domain, ancestors, ct);
 
         var overrides = await LoadOverridesAsync(appCallsign, ct);
         var links = await _apps.ResolveFreqLinksAsync(overrides.FreqLinkSectorIds, ct);
@@ -215,7 +261,7 @@ public sealed class AppDocumentService : IAppDocumentService
 
         // Il doc copre l'intero dominio di gerarchia (primario + figli APP), come le frequenze: i coordinamenti
         // sono l'union dei flussi di tutti i settori del dominio (semantica del derive ACC su MemberCallsigns).
-        var domain = (await _topology.BuildGlobalAsync(ct)).DomainOf(appCallsign);
+        var domain = DominioDi(await _topology.BuildGlobalAsync(ct), await PosizioniAsync(appCallsign, ct));
 
         var flows = await _transfers.ListFlowsByAccAsync(accCode, ct);
         var types = await _apps.GetSectorTypeMapAsync(ct);
@@ -227,8 +273,7 @@ public sealed class AppDocumentService : IAppDocumentService
         var tpl = CoordinationSentenceTemplate.For(_lingua?.Corrente, _sentence.Current);
 
         // Cuore condiviso (owned + entranti, direzione owner→next senza invert, frase composta).
-        var domainSet = domain as IReadOnlySet<string> ?? new HashSet<string>(domain, StringComparer.OrdinalIgnoreCase);
-        var entries = CoordinationDerivation.Build(flows, domainSet, types, nameMap, codeMap, airportMap, atcMap, tpl);
+        var entries = CoordinationDerivation.Build(flows, domain, types, nameMap, codeMap, airportMap, atcMap, tpl);
 
         var towardAcc = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
         var towardTwr = new Dictionary<string, List<AppCoordRow>>(StringComparer.OrdinalIgnoreCase);
@@ -270,9 +315,8 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public async Task<MinimaView> DeriveMinimaAsync(string appCallsign, CancellationToken ct = default)
     {
-        // Un APP standalone è UN aeroporto: la sua carta è il file di quell'ICAO, e l'ICAO lo dice il callsign.
-        var app = Norm(appCallsign);
-        return await MinimaCharts.ForPositionsAsync(_minima, new[] { app }, ct);
+        // Una carta per scalo delle posizioni dell'ente, a partire da quello della principale (di solito uno solo).
+        return await MinimaCharts.ForPositionsAsync(_minima, await PosizioniAsync(appCallsign, ct), ct);
     }
 
     public async Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default)
@@ -286,20 +330,12 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<AccAorView> GetAorViewAsync(string appCallsign, AorExtraShapes custom,
         IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
     {
-        var app = Norm(appCallsign);
         var sectors = new List<AccSectorAor>();
         custom ??= new AorExtraShapes();
 
-        // Settori APP del dominio di copertura (primario + figli standalone), coerente con le frequenze che usano DomainOf.
-        var topo = await _topology.BuildGlobalAsync(ct);
-        var domain = topo.DomainOf(app);
-        var types = await _apps.GetSectorTypeMapAsync(ct);
-        var appCallsigns = domain
-            .Where(cs => types.TryGetValue(cs, out var t) && t == SectorType.App)
-            .OrderBy(cs => string.Equals(cs, app, StringComparison.OrdinalIgnoreCase) ? 0 : 1)   // primario per primo
-            .ThenBy(cs => cs, StringComparer.OrdinalIgnoreCase);
-
-        var appCsList = appCallsigns.ToList();
+        // Settori APP del dominio di copertura (posizioni dell'ente + figli standalone), come le frequenze.
+        var appCsList = (await AppSectorsOfAsync(await PosizioniAsync(appCallsign, ct), ct))
+            .Select(s => s.Callsign).ToList();
 
         // ⚠️ UNA PORTA SOLA (carta refactor 15): un avvicinamento agganciato al suo CTR disegna QUEL confine
         // con LE SUE quote — una banda per zona, non l'inviluppo — e uno non agganciato resta su IVAO. La
@@ -444,25 +480,29 @@ public sealed class AppDocumentService : IAppDocumentService
 
     // --- Configurazioni (blocco keyed "configurations"): storage editoriale + accorpamento derivato. ---
 
-    // Settori APP del dominio di copertura (primario incluso), con nome: pool dei picker e delle righe accorpamento.
-    private async Task<IReadOnlyList<(string Callsign, string Name)>> AppSectorsOfAsync(string app, CancellationToken ct)
+    // Settori APP del dominio di copertura (posizioni dell'ente incluse), con nome: pool dei picker, delle righe
+    // accorpamento e dell'AoR.
+    // ⚠️ Le posizioni dell'ente entrano SEMPRE, di qualunque tipo siano (a Pratica è una torre, LIRE_TWR: S49), e
+    // per prime nel loro ordine; dopo, gli APP del dominio per nominativo.
+    private async Task<IReadOnlyList<(string Callsign, string Name)>> AppSectorsOfAsync(
+        IReadOnlyList<string> posizioni, CancellationToken ct)
     {
-        var domain = (await _topology.BuildGlobalAsync(ct)).DomainOf(app);
+        var domain = DominioDi(await _topology.BuildGlobalAsync(ct), posizioni);
         var types = await _apps.GetSectorTypeMapAsync(ct);
         var names = await _apps.GetSectorNameMapAsync(ct);
+        var ordine = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in posizioni) ordine.TryAdd(p, ordine.Count);
         return domain
-            .Where(cs => types.TryGetValue(cs, out var t) && t == SectorType.App)
-            .OrderBy(cs => string.Equals(cs, app, StringComparison.OrdinalIgnoreCase) ? 0 : 1)   // primario per primo
+            .Where(cs => (types.TryGetValue(cs, out var t) && t == SectorType.App) || ordine.ContainsKey(cs))
+            .OrderBy(cs => ordine.TryGetValue(cs, out var i) ? i : int.MaxValue)
             .ThenBy(cs => cs, StringComparer.OrdinalIgnoreCase)
             .Select(cs => (cs, names.GetValueOrDefault(cs, cs)))
             .ToList();
     }
 
-    public async Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string appCallsign, CancellationToken ct = default)
-    {
-        var app = Norm(appCallsign);
-        return (await AppSectorsOfAsync(app, ct)).Select(s => new AccSectorPick(s.Callsign, s.Name)).ToList();
-    }
+    public async Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string appCallsign, CancellationToken ct = default) =>
+        (await AppSectorsOfAsync(await PosizioniAsync(appCallsign, ct), ct))
+            .Select(s => new AccSectorPick(s.Callsign, s.Name)).ToList();
 
     public async Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string appCallsign, CancellationToken ct = default)
     {
@@ -484,13 +524,13 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(
         string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
     {
-        var app = Norm(appCallsign);
         if (configs is null || configs.Count == 0) return Array.Empty<AccConfigTableView>();
+        var posizioni = await PosizioniAsync(appCallsign, ct);
 
         var topo = await _topology.BuildGlobalAsync(ct);
-        var sectors = await AppSectorsOfAsync(app, ct);
+        var sectors = await AppSectorsOfAsync(posizioni, ct);
         var pool = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
-        return ConfigTableProjector.Build(_aor, topo, new[] { app }, pool, configs);
+        return ConfigTableProjector.Build(_aor, topo, posizioni, pool, configs);
     }
 
     // --- Override editoriali su DocumentProfile (doc 08e f4-a): sezioni nascoste, ordine/link freq, template coord. ---
@@ -500,6 +540,27 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public Task<DocumentProfileData> GetOverridesAsync(string appCallsign, CancellationToken ct = default) =>
         LoadOverridesAsync(appCallsign, ct);
+
+    public async Task<IReadOnlyList<string>> WhereCitedAsync(string appCallsign, string callsign, CancellationToken ct = default)
+    {
+        var cs = Norm(callsign);
+        var dove = new List<string>();
+        bool Uguale(string? x) => string.Equals(x, cs, StringComparison.OrdinalIgnoreCase);
+
+        var configurazioni = (await GetConfigurationsAsync(appCallsign, ct)).Count(c => c.OpenCallsigns.Any(Uguale));
+        if (configurazioni > 0)
+            dove.Add(configurazioni == 1
+                ? Lingua("una configurazione", "one configuration")
+                : Lingua($"{configurazioni} configurazioni", $"{configurazioni} configurations"));
+
+        var aor = await GetAorCustomizationAsync(appCallsign, ct);
+        var profilo = await LoadOverridesAsync(Norm(appCallsign), ct);
+        if (aor.Callsigns.Any(Uguale) || aor.Colors.Keys.Any(Uguale) || profilo.HiddenAorSectors.Any(Uguale))
+            dove.Add(Lingua("la mappa AoR", "the AoR map"));
+        if (profilo.FreqOrder.Any(o => Uguale(o.Callsign)) || profilo.HiddenFrequencies.Any(Uguale))
+            dove.Add(Lingua("le frequenze", "the frequencies"));
+        return dove;
+    }
 
     public Task SaveFrequencyOrderAsync(string appCallsign, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default) =>
         WithDocumentAsync(appCallsign, (docId, c) => _docProfiles.SaveFreqOrderAsync(docId, overrides ?? Array.Empty<AppFreqOrderOverride>(), c), ct);

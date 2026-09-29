@@ -315,15 +315,21 @@ public class SearchAndChangesTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// 🔴 U-142 (revisione totale 3): l'APP che la proiezione disattiva (nascosto o sparito dalla sorgente) chiude
-    /// la sua pagina, e il cancello di ricerca e novità non lo guardava: link a «non disponibile».
+    /// 🔴 U-142 (revisione totale 3): ricerca e novità seguono la porta della pagina. Dal 29 settembre 2026 (S49) la
+    /// vIPI APP è dell'ENTE e un APP disattivato non la chiude più: resta in ricerca e novità, come la sua pagina.
+    /// La si toglie nascondendo il documento.
     /// </summary>
     [Fact]
-    public async Task Un_APP_disattivato_sparisce_da_ricerca_e_novita()
+    public async Task Un_APP_disattivato_resta_in_ricerca_finche_il_documento_non_si_nasconde()
     {
         await SeedPublishedAppDocumentAsync();
         var app = await _db.Sectors.FirstAsync(s => s.Callsign == "LIRP_APP");
         app.IsActive = false;
+        await _db.SaveChangesAsync();
+        Assert.NotEmpty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
+
+        var doc = await _db.Documents.FirstAsync(d => d.AtcUnit!.Code == "LIRP_APP");
+        doc.IsHidden = true;
         await _db.SaveChangesAsync();
 
         Assert.Empty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));

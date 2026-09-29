@@ -33,6 +33,13 @@ public enum FallbackTargetKind
 /// <summary>Per gli APP (<see cref="SectorType.App"/>): la doc vive nella vIPI di ACC (Remotized) o in un documento proprio (Standalone).</summary>
 public enum ApproachKind { Remotized, Standalone }
 
+/// <summary>
+/// Dove vive il contenuto di un ente (<see cref="Entities.AtcUnit"/>): nel documento suo, o dentro la vIPI
+/// dell'ACC. Lo decide lo staff, e non la casella «remotizzato» di IVAO: sono due fatti diversi, e il secondo
+/// cambiava il documento da solo (committente, 29 settembre 2026).
+/// </summary>
+public enum AtcUnitMode { OwnDocument, InAccVipi }
+
 /// <summary>vIPI (istruzioni di posizione) o vLOA (lettera di accordo).</summary>
 public enum DocumentType { Vipi, Vloa }
 

@@ -192,8 +192,10 @@ public sealed class ReleaseService : IReleaseService
         ReadingLanguageContext? linguaProsa = null,
         Lazy<IImpactDriftUseCase>? deriva = null,
         IImportStateStore? stati = null,
-        IDocLinkService? collegamenti = null)
+        IDocLinkService? collegamenti = null,
+        Lazy<IRemotizzazioneService>? spostamenti = null)
     {
+        _spostamenti = spostamenti;
         _collegamenti = collegamenti;
         _stati = stati;
         _deriva = deriva;
@@ -248,6 +250,26 @@ public sealed class ReleaseService : IReleaseService
     /// che costruiscono il servizio a mano: la release esce senza il campo, e la pagina li calcola dal vivo.</summary>
     private readonly IDocLinkService? _collegamenti;
 
+    /// <summary>Gli spostamenti degli enti nella vIPI dell'ACC (S52): si concludono quando la vIPI ACC col gruppo va
+    /// in vigore. Null = i banchi che costruiscono il servizio a mano; la rete è il giro delle release.</summary>
+    private readonly Lazy<IRemotizzazioneService>? _spostamenti;
+
+    /// <summary>
+    /// Dopo una pubblicazione della vIPI ACC: gli enti copiati nel suo gruppo APP passano alla vIPI ACC, e la loro
+    /// vIPI APP si nasconde (revisione degli enti ATC, S52). ⚠️ Fuori dalla transazione e a prova di guasto, come
+    /// la deriva: la pubblicazione è già riuscita, e se questo salta lo rifà il giro delle release.
+    /// </summary>
+    private async Task ConcludiSpostamentiAsync(IEnumerable<ReleaseTargetType> tipi, CancellationToken ct)
+    {
+        if (_spostamenti is null || !tipi.Contains(ReleaseTargetType.AccVipi)) return;
+        try
+        {
+            await _spostamenti.Value.ConcludiSpostamentiAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { /* la rete è il giro delle release (ReleaseSweepHostedService). */ }
+    }
+
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
         _repo.ListAsync(type, key, ct);
 
@@ -284,6 +306,7 @@ public sealed class ReleaseService : IReleaseService
             // in vigore, quindi la deriva continuerebbe a confrontare con la vecchia e a chiedere di
             // ripubblicare per settimane a chi ha appena fatto il gesto giusto.
             await RiconciliaDerivaAsync(new[] { solo ?? 0 }, ct).ConfigureAwait(false);
+            await ConcludiSpostamentiAsync(new[] { type }, ct).ConfigureAwait(false);
             return;
         }
 
@@ -312,6 +335,7 @@ public sealed class ReleaseService : IReleaseService
         }, ct).ConfigureAwait(false);
 
         await RiconciliaDerivaAsync(membri.Select(m => m.DocumentId), ct).ConfigureAwait(false);
+        await ConcludiSpostamentiAsync(membri.Select(m => m.Type), ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -382,6 +406,7 @@ public sealed class ReleaseService : IReleaseService
                 await _editing.ReleaseLockAsync(t.DocumentId, _authz.CurrentUserId ?? 0, ct);
 
         await RiconciliaDerivaAsync(bersagli.Select(t => t.DocumentId), ct).ConfigureAwait(false);
+        await ConcludiSpostamentiAsync(bersagli.Select(t => t.Type), ct).ConfigureAwait(false);
         return create > 0;
     }
 

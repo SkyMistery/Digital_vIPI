@@ -226,6 +226,7 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         var docId = await SeedVipiDocAsync("vIPI LIRR_APP", "separations");
         _db.Sectors.Add(new Sector { Acc = acc, Callsign = "LIRR_APP", Name = "Roma APP", Type = SectorType.App, Kind = SectorKind.Airport, ApproachKind = ApproachKind.Standalone, IsActive = true, DocumentId = docId, IsPrimary = true });
         await _db.SaveChangesAsync();
+        await new EfDocumentMaintenance(_db).LinkAppUnitsAsync();   // S49: la vIPI APP passa all'ente, come all'avvio
 
         Assert.Equal("LIRR", await _repo.GetAuthAccCodeAsync(ReleaseTargetType.App, "LIRR_APP"));
         var json = await _repo.SnapshotWorkingAsync(ReleaseTargetType.App, "LIRR_APP", "2606");
@@ -261,6 +262,7 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
         _db.Sectors.Add(new Sector { Acc = acc, Callsign = "LIPZ_APP", Name = "Pisa APP", Type = SectorType.App, Kind = SectorKind.Airport, ApproachKind = ApproachKind.Standalone, IsActive = true, DocumentId = doc.Id, IsPrimary = true });
         await _db.SaveChangesAsync();
+        await new EfDocumentMaintenance(_db).LinkAppUnitsAsync();   // S49: la vIPI APP passa all'ente, come all'avvio
 
         await _repo.PublishWorkingVersionAsync(ReleaseTargetType.App, "LIPZ_APP", 1, "2607");
 
@@ -288,6 +290,7 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
         _db.Sectors.Add(new Sector { Acc = acc, Callsign = "LIPY_APP", Name = "Falconara APP", Type = SectorType.App, Kind = SectorKind.Airport, ApproachKind = ApproachKind.Standalone, IsActive = true, DocumentId = doc.Id, IsPrimary = true });
         await _db.SaveChangesAsync();
+        await new EfDocumentMaintenance(_db).LinkAppUnitsAsync();   // S49: la vIPI APP passa all'ente, come all'avvio
 
         await _repo.PublishWorkingVersionAsync(ReleaseTargetType.App, "LIPY_APP", 1, "2607");
 

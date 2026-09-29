@@ -36,6 +36,9 @@ public sealed class AirportReleaseTarget : IReleaseTarget
         // disposti ad accettare un documento militare, e l'ordine sarebbe l'unica cosa a impedirlo: due
         // difese indipendenti, ognuna sufficiente -- la stessa forma delle guardie sulle corse del context.
         if (doc.Edition != DocumentEdition.Civil) return false;
+        // La stessa difesa per la vIPI di un ENTE (S49): anche quando il suo descrittore la rifiuta — ente il cui
+        // contenuto vive nella vIPI dell'ACC — non è la vIPI di uno scalo.
+        if (doc.AtcUnit is not null) return false;
 
         // Catch-all: Document vIPI non APP/ACC → aeroporto. L'ICAO viene dall'AEROPORTO collegato; l'ACC pure,
         // e non più dal settore — uno scalo col solo APP non remotizzato non ha un settore da cui prenderla.

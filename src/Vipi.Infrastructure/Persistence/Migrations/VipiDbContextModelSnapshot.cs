@@ -1312,6 +1312,72 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("AtcSessionTraffic");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("DocumentId")
+                        .IsUnique();
+
+                    b.ToTable("AtcUnits");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnitPosition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AtcUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Callsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AtcUnitId");
+
+                    b.HasIndex("Callsign")
+                        .IsUnique();
+
+                    b.ToTable("AtcUnitPositions");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Attachment", b =>
                 {
                     b.Property<int>("Id")
@@ -3376,6 +3442,35 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Session");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnit", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
+                        .WithMany()
+                        .HasForeignKey("AccId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithOne("AtcUnit")
+                        .HasForeignKey("Vipi.Domain.Entities.AtcUnit", "DocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Acc");
+
+                    b.Navigation("Document");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnitPosition", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.AtcUnit", "AtcUnit")
+                        .WithMany("Positions")
+                        .HasForeignKey("AtcUnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AtcUnit");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AttachmentVersion", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Attachment", "Attachment")
@@ -3692,6 +3787,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Traffic");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnit", b =>
+                {
+                    b.Navigation("Positions");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Attachment", b =>
                 {
                     b.Navigation("Versions");
@@ -3705,6 +3805,8 @@ namespace Vipi.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>
                 {
                     b.Navigation("Airport");
+
+                    b.Navigation("AtcUnit");
 
                     b.Navigation("MilAirport");
 

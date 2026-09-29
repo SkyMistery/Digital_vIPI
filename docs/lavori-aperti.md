@@ -5,6 +5,16 @@
 > Sezione dell'agente che lavora sul SITO nel worktree `vIPI-sito`. Le voci qui sotto hanno il prefisso **S**
 > per non incrociare la numerazione §A del Sector Lab, che lavora su `main`. Si fonde in `main` a lavoro finito.
 
+### 💤 Da fare in futuro — la vIPI ACC legata all'ACC, non ai settori d'area (29 settembre 2026)
+
+Rimandato dal committente alla chiusura degli enti ATC (S51, «lascialo com'è per ora»). Oggi la vIPI ACC è
+l'ultimo documento che vive sui settori (`Sector.DocumentId` + `IsPrimary` sui CTR e sugli APP remotizzati) e la
+sua chiave di pubblicazione è `ACC|CTR radice`: se IVAO rinomina o toglie il CTR radice, la chiave cambia. Lo
+stesso passo già fatto per gli scali (`Airport.DocumentId`, 25 agosto) e per gli APP (enti, S49): `Acc.DocumentId`,
+ponte d'avvio che porta i documenti sul legame nuovo e sgancia i settori, chiave = codice dell'ACC con le
+pubblicazioni già fatte che restano valide, lettori da spostare (descrittore, porta pubblica, `ScopeOf`, orfani,
+«Nuovo documento», segnalazioni). Migrazione sì. Carta: `docs/feature/2026-09-29-enti-atc.md` §5.
+
 ### ✅ S1 — Editor APP unito: «sezioni comuni» ricaricava la pagina (23 settembre 2026) — ONLINE in 1.43.0 (§A118)
 
 Segnalato su **LIRE** (APP unito al vSOP militare): premendo il tasto delle sezioni in comune la pagina si

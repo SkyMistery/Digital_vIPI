@@ -6,7 +6,9 @@ namespace Vipi.Application.Content;
 ///
 /// <para><b>Perché non basta guardare la proiezione.</b> I cataloghi non potano mai — «i settori spariti
 /// dalla sorgente restano, l'admin li nasconde» — quindi per la proiezione non è successo niente: il
-/// callsign è ancora lì, visibile, e il settore resta <b>attivo</b>.</para>
+/// callsign è ancora lì, visibile, e il settore resta <b>attivo</b>. (Dal 29 settembre 2026 — S48 — il
+/// catalogo d'AEROPORTO pota da solo dopo due giri di silenzio: questa riga ne è il preavviso, dal primo giorno.
+/// Quello degli ACC no.)</para>
 ///
 /// <para>⚠️ <b>Fino al 26 agosto 2026 questa riga voleva dire due cose insieme</b>, e per una sola aveva un
 /// rimedio. Poteva essere una sparizione vera — <c>LIED_G_APP</c>, che la sorgente risponde 404 — oppure una

@@ -125,6 +125,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAirportProfileReader>(
             sp => sp.GetRequiredService<Vipi.Application.Abstractions.IAirportRepository>());
         services.AddScoped<Vipi.Application.Abstractions.IAppDerivationRepository, EfAppDerivationRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IAtcUnitRepository, EfAtcUnitRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAccDerivationRepository, EfAccDerivationRepository>();
         services.AddScoped<Vipi.Application.Abstractions.ISpecialAreaRepository, EfSpecialAreaRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStationDirectory, EfStationDirectory>();

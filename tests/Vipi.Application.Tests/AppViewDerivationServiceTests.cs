@@ -111,6 +111,7 @@ public class AppViewDerivationServiceTests
         public Task<IReadOnlyList<AppSeparationRow>> GetSeparationsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveSeparationsAsync(string a, IReadOnlyList<AppSeparationRow> r, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<AppDocumentIdentity?> GetIdentityAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<string>> WhereCitedAsync(string a, string c, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<DocumentProfileData> GetOverridesAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveFrequencyOrderAsync(string a, IReadOnlyList<AppFreqOrderOverride> o, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveFrequencyLinksAsync(string a, IReadOnlyList<int> s, CancellationToken ct = default) => throw new NotImplementedException();

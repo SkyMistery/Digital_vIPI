@@ -191,6 +191,10 @@ public static class DependencyInjection
         services.AddScoped<IImportPolicyService, ImportPolicyService>();
         services.AddScoped<IImportOverviewService, ImportOverviewService>();
         services.AddScoped<INewDocumentOptionsService, NewDocumentOptionsService>();
+        services.AddScoped<IAtcUnitService, AtcUnitService>();
+        services.AddScoped<IRemotizzazioneService, RemotizzazioneService>();
+        // Pigro: la pubblicazione lo chiede solo dopo una vIPI ACC (S52), e il servizio tira dietro mezzo editing.
+        services.AddScoped(sp => new Lazy<IRemotizzazioneService>(sp.GetRequiredService<IRemotizzazioneService>));
         services.AddScoped<Vipi.Application.Diagnostics.IConsistencyReportService, Vipi.Application.Diagnostics.ConsistencyReportService>();
         // Un confronto col sectorfile, uno solo: lo chiamano il giro delle 24 ore e il tasto della pagina.
         services.AddScoped<Vipi.Application.Diagnostics.ISectorfileComparisonRunner,

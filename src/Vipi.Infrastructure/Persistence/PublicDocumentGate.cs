@@ -49,9 +49,10 @@ internal static class PublicDocumentGate
     {
         ReleaseTargetType.Airport => d.Airport is not { IsHidden: true },
         ReleaseTargetType.AirportMil => d.MilAirport is not { IsHidden: true },
-        ReleaseTargetType.App => d.Sectors.Any(s => s.IsPrimary && s.Type == SectorType.App
-                                                   && s.ApproachKind == ApproachKind.Standalone && s.IsActive
-                                                   && string.Equals(s.Callsign, m.ReleaseKey, StringComparison.OrdinalIgnoreCase)),
+        // La vIPI APP è dell'ENTE (S49) e non chiude quando una sua posizione sparisce: il documento non dipende
+        // dai nominativi IVAO. Vuole `AtcUnit` caricato, come i descrittori.
+        ReleaseTargetType.App => d.AtcUnit is { Mode: AtcUnitMode.OwnDocument } ente
+                                 && string.Equals(ente.Code, m.ReleaseKey, StringComparison.OrdinalIgnoreCase),
         _ => true,
     };
 

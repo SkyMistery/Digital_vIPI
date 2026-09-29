@@ -6,6 +6,7 @@
 @inject IDocumentAdminService Docs
 @inject IOnlineAtcProvider Online
 @inject IEditAuthorizationService Authz
+@inject IAtcUnitRepository Enti
 @inject EnglishStrings En
 
 @if (_acc is null)
@@ -34,11 +35,12 @@ else
                 @foreach (var ap in _apps)
                 {
                     var n = OnlineAt(ap);
-                    var st = StateOf(ap.Callsign);
+                    var chiave = Chiave(ap);
+                    var st = StateOf(chiave);
                     // Pubblicato → viewer pubblico. Non pubblicato (bozza/senza doc) → editor (solo staff arriva qui: crea/edita).
                     var href = st == AppState.Published
-                        ? $"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={ap.Callsign}"
-                        : $"/services/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={ap.Callsign}";
+                        ? $"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={chiave}"
+                        : $"/services/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={chiave}";
                     <a class="choice apt-card" href="@href">
                         <div class="apt-top">
                             <h2 class="h-card">@(ap.AirportIcao ?? ap.Callsign)</h2>
@@ -76,6 +78,11 @@ else
 
     private AppState StateOf(string callsign) => _state.TryGetValue(callsign, out var s) ? s : AppState.None;
 
+    // 🔴 La vIPI APP è dell'ENTE (S49): ogni posizione dell'ente porta al suo CODICE, che è la chiave di
+    // pubblicazione e dell'indirizzo. A Pratica di Mare la scheda sta sulla torre (LIRE_TWR), il link dice LIRE_APP.
+    private Dictionary<string, AtcUnitRow> _enteDi = new(StringComparer.OrdinalIgnoreCase);
+    private string Chiave(SectorRow s) => _enteDi.TryGetValue(s.Callsign, out var u) ? u.Code : s.Callsign;
+
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
@@ -98,11 +105,27 @@ else
                 return m.IsHidden ? AppState.Hidden : m.HasEffectiveRelease ? AppState.Published : AppState.Draft;
             }, StringComparer.OrdinalIgnoreCase);
 
-        // APP NON remotizzati (ApproachKind.Standalone: doc proprio; i Remotized vivono nella vIPI di ACC).
+        // Gli ENTI con documento proprio, ognuno sul settore della sua posizione principale (di qualunque tipo), e gli
+        // APP NON remotizzati che un ente ancora non ce l'hanno (il documento, e l'ente, nascono all'apertura
+        // dell'editor). I Remotized senza ente vivono nella vIPI di ACC.
         // Pubblico: solo i pubblicati. Staff che può editare l'ACC: TUTTI (per creare/editare il primo documento).
+        // ⚠️ Tutti gli enti nella mappa, anche i remotizzati (S50): le loro posizioni non sono APP «senza documento»
+        // da proporre — il contenuto sta nella vIPI dell'ACC. Le schede solo per chi ha il documento proprio.
+        var tutti = await Enti.ListAsync(_acc.Code);
+        var enti = tutti.Where(u => u.Mode == AtcUnitMode.OwnDocument).ToList();
+        _enteDi = new(StringComparer.OrdinalIgnoreCase);
+        foreach (var u in tutti)
+            foreach (var cs in u.Positions.Prepend(u.Code)) _enteDi.TryAdd(cs, u);
+        var perEnte = enti
+            .Select(u => all.FirstOrDefault(s => string.Equals(s.Callsign, u.Seme, StringComparison.OrdinalIgnoreCase))
+                         ?? all.FirstOrDefault(s => u.Positions.Contains(s.Callsign, StringComparer.OrdinalIgnoreCase))
+                         ?? all.FirstOrDefault(s => string.Equals(s.Callsign, u.Code, StringComparison.OrdinalIgnoreCase)))
+            .Where(s => s is not null).Select(s => s!);
         var standalone = all
-            .Where(s => s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone
-                        && (_canEdit || StateOf(s.Callsign) == AppState.Published))
+            .Where(s => s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone && !_enteDi.ContainsKey(s.Callsign))
+            .Concat(perEnte)
+            .DistinctBy(s => s.Id)
+            .Where(s => _canEdit || StateOf(Chiave(s)) == AppState.Published)
             .ToList();
         var standaloneIds = standalone.Select(s => s.Id).ToHashSet();
         var byId = all.ToDictionary(s => s.Id);
@@ -129,8 +152,11 @@ else
     {
         var head = ap.AirportIcao ?? ap.Callsign.Split('_', 2)[0];
         var snap = Online.GetCurrent();
+        // Le posizioni dell'ente contano comunque, di qualunque tipo siano (LIRE_TWR fa l'avvicinamento a Pratica).
+        var posizioni = _enteDi.TryGetValue(ap.Callsign, out var ente) ? ente.Positions : Array.Empty<string>();
         return snap.Callsigns.Count(cs =>
         {
+            if (posizioni.Contains(cs, StringComparer.OrdinalIgnoreCase)) return true;
             var t = cs.Split('_');
             if (t.Length < 2) return false;
             var last = t[^1].ToUpperInvariant();

@@ -29,11 +29,25 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
     private readonly IAiracService? _airac;
 
     public async Task<string?> GetAccCodeByAppAsync(string appCallsign, CancellationToken ct = default) =>
-        await _db.Sectors.Where(s => s.Callsign == appCallsign && s.Type == SectorType.App)
+        (await new EfAtcUnitRepository(_db).FindAsync(appCallsign, ct))?.AccCode
+        ?? await _db.Sectors.Where(s => s.Callsign == appCallsign && s.Type == SectorType.App)
             .Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
 
     public async Task<AppDocumentIdentity?> ResolveForDocumentAsync(string appCallsign, CancellationToken ct = default)
     {
+        // 1) L'ENTE (S49, 29 settembre 2026): per codice o per una sua posizione, qualunque sia il tipo della
+        //    posizione (LIRE_TWR) e qualunque cosa dica IVAO dell'APP. Fino ad allora qui c'era solo il settore, e
+        //    un APP spuntato «remotizzato» perdeva il documento. Un ente il cui contenuto vive nella vIPI dell'ACC
+        //    non ha una vIPI APP da mostrare.
+        var ente = await new EfAtcUnitRepository(_db).FindAsync(appCallsign, ct);
+        if (ente is not null)
+            return ente.Mode == AtcUnitMode.OwnDocument
+                ? new AppDocumentIdentity(ente.Code, ente.Seme, ente.Name, ente.AccCode, ente.DocumentId, ente.Id,
+                    ente.Positions)
+                : null;
+
+        // 2) Un APP non remotizzato che un ente ancora non ce l'ha: l'ente nasce col documento, alla prima
+        //    apertura dell'editor (AppDocumentService.EnsureAsync).
         // Stessa superficie del viewer (doc 11 §3e): SOLO gli APP non remotizzati hanno un documento proprio.
         // Prima bastava Type == App, quindi l'editor apriva (e creava un Document per) un APP REMOTIZZATO: documento
         // che nessun viewer sa rendere («APP not found» in pubblica e in bozza). NON si filtra su IsPrimary: quel
@@ -47,8 +61,12 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
         var display = await _db.AirportSectors.AsNoTracking()
             .Where(a => a.ComposePosition == appCallsign).Select(a => a.AtcCallsign).FirstOrDefaultAsync(ct);
         var title = string.IsNullOrWhiteSpace(display) ? (string.IsNullOrWhiteSpace(s.Name) ? s.Callsign : s.Name) : display!;
-        return new AppDocumentIdentity(s.Id, s.Callsign, title, s.Acc.Code, s.DocumentId);
+        return new AppDocumentIdentity(s.Callsign, s.Callsign, title, s.Acc.Code, DocumentId: null);
     }
+
+    public Task<int> EnsureDocumentAsync(AppDocumentIdentity identity, int authorUserId, CancellationToken ct = default) =>
+        new EfAtcUnitRepository(_db, _airac).EnsureDocumentAsync(identity.Code, identity.Title, identity.AccCode,
+            SectionProfile.App, authorUserId, ct);
 
     public async Task<IReadOnlyList<AppFreqRow>> ResolveFreqLinksAsync(IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default)
     {
@@ -126,10 +144,12 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
         await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
 
     public async Task<IReadOnlyList<AppFreqRow>> DeriveCatalogFrequenciesAsync(
-        string appCallsign, IReadOnlySet<string> domainCallsigns,
+        IReadOnlyList<string> positions, IReadOnlySet<string> domainCallsigns,
         IReadOnlyList<string> ancestorCallsigns, CancellationToken ct = default)
     {
         var domain = domainCallsigns.ToList();
+        var posList = positions.ToList();
+        var dellEnte = new HashSet<string>(positions, StringComparer.OrdinalIgnoreCase);
 
         // Aeroporti SOTTO l'APP: nella proiezione (Round 20) le posizioni DEL/GND/TWR NON sono figlie del Sector APP
         // (sono radici), ma l'AEROPORTO punta all'APP via ParentCallsign. "Sottostanti" = ParentCallsign nel sottoalbero.
@@ -137,10 +157,11 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
             .Where(a => a.ParentCallsign != null && domain.Contains(a.ParentCallsign))
             .Select(a => a.Icao).ToListAsync(ct);
 
-        // Difensivo: includi comunque l'aeroporto che possiede la posizione APP stessa.
-        var appIcao = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.ComposePosition == appCallsign).Select(s => s.AirportIcao).FirstOrDefaultAsync(ct);
-        if (appIcao != null && !icaos.Contains(appIcao)) icaos.Add(appIcao);
+        // Gli scali delle posizioni dell'ente entrano comunque: quello dell'APP stesso, e quello di una torre che
+        // l'ente tiene anche lei senza che stia sotto l'APP (S51).
+        foreach (var icao in await _db.AirportSectors.AsNoTracking()
+                     .Where(s => posList.Contains(s.ComposePosition)).Select(s => s.AirportIcao).ToListAsync(ct))
+            if (!icaos.Contains(icao)) icaos.Add(icao);
 
         if (icaos.Count == 0) return Array.Empty<AppFreqRow>();
 
@@ -153,7 +174,7 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
         var rows = cat.Select(s => new AppFreqRow(
             null, FreqNameForPosition(s.Position), s.ComposePosition, s.Frequency!,
             (s.Position ?? "").Trim().ToUpperInvariant(),
-            string.Equals(s.ComposePosition, appCallsign, StringComparison.OrdinalIgnoreCase), false)).ToList();
+            dellEnte.Contains(s.ComposePosition), false)).ToList();
 
         // Ordine ATIS·DEL·GND·TWR·APP; a parità, primaria (★) prima, poi callsign.
         var ordered = rows
@@ -171,8 +192,11 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
                 .Select(s => new { s.Callsign, s.Type, s.DefaultFrequency })
                 .ToListAsync(ct);
             var byCs = anc.ToDictionary(s => s.Callsign, StringComparer.OrdinalIgnoreCase);
+            // ⚠️ Un antenato già elencato fra le posizioni dello scalo non si ripete (S49): quando la derivazione parte
+            // dalla torre di un ente (LIRE_TWR), l'APP dello stesso scalo è insieme posizione dello scalo e suo padre.
+            var giaElencati = ordered.Select(r => r.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var cs in ancestorCallsigns)   // preserva l'ordine vicino→lontano
-                if (byCs.TryGetValue(cs, out var s))
+                if (byCs.TryGetValue(cs, out var s) && giaElencati.Add(cs))
                 {
                     var pos = PositionFromType(s.Type);
                     ordered.Add(new AppFreqRow(null, FreqNameForPosition(pos), s.Callsign, s.DefaultFrequency!, pos, false, false));

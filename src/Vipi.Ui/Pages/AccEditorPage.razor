@@ -506,7 +506,7 @@ else
     private static AccBlockMeta MetaOf(AccBlock b) => new()
     {
         Key = b.Key, Kind = b.Kind, MemberCallsigns = b.MemberCallsigns,
-        FreqOrder = b.FreqOrder, FreqLinkCallsigns = b.FreqLinkCallsigns,
+        FreqOrder = b.FreqOrder, FreqLinkCallsigns = b.FreqLinkCallsigns, UnitId = b.UnitId,
     };
     private Task SaveMeta(AccAssembledBlock blk) => AccDoc.SaveBlockMetaAsync(Acc, blk.BlockSectionId, MetaOf(blk.Block));
 

@@ -24,8 +24,19 @@ public sealed class EfUnitOfWork : IUnitOfWork
             // rileggono da zero, quindi azzerare il tracker rende ogni tentativo idempotente.
             _db.ChangeTracker.Clear();
             await using var tx = await _db.Database.BeginTransactionAsync(token);
-            await action(token);
-            await tx.CommitAsync(token);
+            try
+            {
+                await action(token);
+                await tx.CommitAsync(token);
+            }
+            catch
+            {
+                // ⚠️ Il rollback non ripulisce il tracker (S52): le entità del tentativo fallito resterebbero nel
+                // context scoped — quello di un circuito, che vive quanto la pagina — e il prossimo SaveChanges di
+                // un'altra operazione le scriverebbe, cioè proprio quel che la transazione aveva annullato.
+                _db.ChangeTracker.Clear();
+                throw;
+            }
         }, ct);
     }
 }

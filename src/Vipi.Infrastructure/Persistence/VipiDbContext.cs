@@ -153,6 +153,8 @@ public class VipiDbContext : DbContext
     public DbSet<Acc> Accs => Set<Acc>();
     public DbSet<Airport> Airports => Set<Airport>();
     public DbSet<Sector> Sectors => Set<Sector>();
+    public DbSet<AtcUnit> AtcUnits => Set<AtcUnit>();
+    public DbSet<AtcUnitPosition> AtcUnitPositions => Set<AtcUnitPosition>();
     public DbSet<UnificationRule> UnificationRules => Set<UnificationRule>();
 
     /// <summary>Righe di ripiego con fascia di quota: la catena che sta DAVANTI al padre. Nasce vuota.</summary>
@@ -430,6 +432,29 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.MilDocumentId);
             e.HasOne(x => x.MilDocument).WithMany(d => d.MilSectors).HasForeignKey(x => x.MilDocumentId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // L'ente ATC (S49, 29 settembre 2026): l'aggancio della vIPI APP al posto del nominativo.
+        b.Entity<AtcUnit>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            // Il codice è la chiave di pubblicazione: due enti con lo stesso codice pubblicherebbero uno sopra l'altro.
+            e.HasIndex(x => x.Code).IsUnique();
+            e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Restrict);
+            // Unico come Airport.DocumentId: un documento descrive un ente solo. Cancellare il documento non
+            // cancella l'ente — resta, pronto a riaverne uno.
+            e.HasIndex(x => x.DocumentId).IsUnique();
+            e.HasOne(x => x.Document).WithOne(d => d.AtcUnit).HasForeignKey<AtcUnit>(x => x.DocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+        b.Entity<AtcUnitPosition>(e =>
+        {
+            e.Property(x => x.Callsign).HasMaxLength(32).IsRequired();
+            // Una posizione appartiene a un ente solo: altrimenti un controllore online aprirebbe due documenti.
+            e.HasIndex(x => x.Callsign).IsUnique();
+            e.HasOne(x => x.AtcUnit).WithMany(u => u.Positions).HasForeignKey(x => x.AtcUnitId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // NB: niente token di concorrenza qui — decisione del 14 agosto 2026, come per CoordinationAgreement,

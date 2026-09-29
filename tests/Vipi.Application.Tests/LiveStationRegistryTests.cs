@@ -64,6 +64,30 @@ public class LiveStationRegistryTests
         Assert.Empty(scoperti);
     }
 
+    /// <summary>
+    /// 🔴 S49 (29 settembre 2026): a Pratica di Mare la torre fa l'avvicinamento, e chi è su LIRE_TWR deve aprire la
+    /// vIPI dell'ENTE. Il descrittore dell'avvicinamento viene prima di quello dell'aeroporto nel registry: basta
+    /// che riconosca la posizione di un ente. Una torre qualunque resta all'aeroporto.
+    /// </summary>
+    [Fact]
+    public void Una_torre_che_e_la_posizione_di_un_ente_apre_la_vipi_dell_ente()
+    {
+        var registry = new LiveStationRegistry(Kinds());
+
+        Assert.IsType<ApproachLiveStation>(registry.For(Ctx(SectorType.Twr) with { UnitCode = "LIRE_APP" }));
+        Assert.IsType<AirportLiveStation>(registry.For(Ctx(SectorType.Twr)));
+    }
+
+    /// <summary>S50: la posizione di un ente remotizzato (anche una torre) apre il suo gruppo nella vIPI dell'ACC —
+    /// il descrittore dell'avvicinamento, che per un ente remotizzato prende la strada del gruppo APP.</summary>
+    [Fact]
+    public void La_posizione_di_un_ente_remotizzato_apre_il_gruppo_nella_vipi_acc()
+    {
+        var registry = new LiveStationRegistry(Kinds());
+
+        Assert.IsType<ApproachLiveStation>(registry.For(Ctx(SectorType.Twr) with { UnitInAccVipi = true }));
+    }
+
     [Fact]
     public void Il_registry_sceglie_per_priorita_la_prima_corrispondenza()
     {
@@ -85,6 +109,20 @@ public class LiveStationRegistryTests
         var registry = new LiveStationRegistry(Array.Empty<ILiveStationKind>());
 
         Assert.Null(registry.For(Ctx(SectorType.Ctr)));
+    }
+
+    /// <summary>Revisione degli enti ATC (S52): un ente spostato nella vIPI ACC trova il SUO gruppo anche quando
+    /// online c'è il codice dell'ente e non una posizione (Pratica, tolta la posizione LIRE_APP).</summary>
+    [Fact]
+    public void Il_gruppo_di_un_ente_si_trova_dall_ente_anche_senza_la_posizione()
+    {
+        var altro = new AccBlock { Kind = AccBlockKind.AppGroup, Title = "Altro", MemberCallsigns = { "LIRE_APP" } };
+        var suo = new AccBlock { Kind = AccBlockKind.AppGroup, Title = "Pratica", MemberCallsigns = { "LIRE_TWR" }, UnitId = 7 };
+        var blocchi = new[] { altro, suo };
+
+        Assert.Same(suo, ApproachLiveStation.GruppoDi(blocchi, "LIRE_APP", unitId: 7));
+        Assert.Same(altro, ApproachLiveStation.GruppoDi(blocchi, "LIRE_APP", unitId: null));
+        Assert.Null(ApproachLiveStation.GruppoDi(blocchi, "LICJ_APP", unitId: null));
     }
 
     private sealed record FakeKind(int Priority, bool Accepts) : ILiveStationKind

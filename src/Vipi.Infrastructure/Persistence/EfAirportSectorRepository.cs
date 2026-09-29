@@ -11,7 +11,8 @@ namespace Vipi.Infrastructure.Persistence;
 /// <summary>
 /// Implementazione EF di <see cref="IAirportSectorRepository"/>. Import = upsert dei settori ATC d'aeroporto
 /// (DEL/GND/TWR/APP…) dalla sorgente, preservando IsHidden e i limiti admin. L'ACC di competenza è ereditato
-/// dall'aeroporto. Niente cancellazioni (i settori spariti dalla sorgente restano; l'admin li nasconde).
+/// dall'aeroporto. Una posizione che la sorgente non manda più esce da sola dopo due giri: vedi
+/// <see cref="TogliLeSpariteAsync"/>.
 /// </summary>
 public sealed class EfAirportSectorRepository : IAirportSectorRepository
 {
@@ -305,6 +306,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
             }
         }
 
+        await TogliLeSpariteAsync(icao, positions, existing.Values, now, ct);
         await _db.SaveChangesAsync(ct);
 
         // Default: una frequenza principale PER TIPO (Delivery/Ground/TWR/APP/DEP) se quel tipo non ne ha già una.
@@ -320,6 +322,54 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
         if (changed) await _db.SaveChangesAsync(ct);
 
         return (created, updated);
+    }
+
+    /// <summary>
+    /// 🔴 Le posizioni che IVAO <b>non manda più</b> escono dal catalogo da sole (S48, committente, 29 settembre
+    /// 2026: «deve uscire da sola, così come cambiano da sole le altre cose»). Fino ad allora restavano per
+    /// sempre: a LIBG e LIRE IVAO ha tolto la TWR il 21 settembre — l'APP fa da torre, «Tower/Approach» — e la
+    /// torre fantasma stava ancora nelle vIPI, nella struttura e nelle mappe.
+    /// <para>Tolta dal catalogo, sparisce da ogni lettura in un colpo solo (frequenze della vIPI e del vSOP,
+    /// vIPI ACC e APP, struttura, forme); la proiezione, subito dopo il giro, spegne il suo settore e lo segnala.
+    /// Le sezioni congelate cambiano per il pubblico alla ripubblicazione, che la deriva segnala.</para>
+    /// <para>⚠️ Tre guardie, perché un'uscita non si annulla: (1) la sorgente ha risposto con un elenco NON
+    /// vuoto — un elenco vuoto è un guasto, non un aeroporto senza posizioni; (2) la posizione manca anche dai
+    /// due giri riusciti prima di questo, la stessa regola che autorizza un'eliminazione a mano
+    /// (<see cref="SogliaEliminazione"/>); (3) le posizioni aggiunte a mano non escono mai: la sorgente non le ha
+    /// mai mandate. I figli nel catalogo passano al padre della posizione tolta, come in un'eliminazione.</para>
+    /// </summary>
+    private async Task TogliLeSpariteAsync(string icao, IReadOnlyList<SourceAtcPosition> positions,
+        IEnumerable<AirportSector> righe, DateTime adesso, CancellationToken ct)
+    {
+        if (positions.Count == 0) return;
+        var penultimo = await _db.ImportStates.AsNoTracking()
+            .Where(x => x.Category == ImportCategories.AirportSector)
+            .Select(x => x.PrevSuccessUtc).FirstOrDefaultAsync(ct);
+        if (penultimo is null) return;
+
+        var mandate = positions.Select(p => (p.Callsign ?? "").Trim().ToUpperInvariant())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var sparite = righe
+            .Where(r => !r.IsManual && !mandate.Contains(r.ComposePosition)
+                        && SogliaEliminazione.Consentita(r.ImportedAtUtc, penultimo, isManual: false))
+            .ToList();
+        if (sparite.Count == 0) return;
+
+        foreach (var r in sparite)
+        {
+            var nome = r.ComposePosition;
+            foreach (var x in await _db.AirportSectors.Where(x => x.ParentCallsign == nome).ToListAsync(ct))
+                x.ParentCallsign = r.ParentCallsign;
+            foreach (var x in await _db.AccSectors.Where(x => x.ParentCallsign == nome).ToListAsync(ct))
+                x.ParentCallsign = r.ParentCallsign;
+            foreach (var x in await _db.Airports.Where(x => x.ParentCallsign == nome).ToListAsync(ct))
+                x.ParentCallsign = r.ParentCallsign;
+
+            AuditScribe.Write(_db, 0, AuditAction.Delete, "AirportSector", r.Id.ToString(),
+                new { r.ComposePosition, Aeroporto = icao, r.Frequency, VistaUltimaVolta = r.ImportedAtUtc, Motivo = "non più mandata da IVAO" },
+                adesso);
+            _db.AirportSectors.Remove(r);
+        }
     }
 
     // Tipi di postazione che hanno una frequenza principale selezionabile (ATIS escluso).

@@ -290,7 +290,7 @@ public sealed class StructureEditingService : IStructureEditingService
             .Select(x => (x.Type, Callsign: x.ComposePosition, x.Frequency))
             .ToList();
 
-        // 1 — assicura i settori d'aeroporto (DEL/GND/TWR/APP + fallback TWR).
+        // 1 — assicura i settori d'aeroporto (DEL/GND/TWR/APP).
         var (created, found) = await _repo.EnsureAirportSectorsAsync(icao, sectors, ct);
         if (!found) return new AirportDocResult(icao, false, 0, null, "Aeroporto non assegnato a una ACC.");
 

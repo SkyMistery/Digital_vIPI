@@ -171,6 +171,7 @@ else
     private IEditAuthorizationService Authz = default!;
     private IStructureEditingService Structure = default!;
     private IDocumentAdminService Docs = default!;
+    private IAtcUnitRepository Enti = default!;
 
 
     /// <summary>
@@ -186,6 +187,7 @@ else
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
         Structure = ScopedServices.GetRequiredService<IStructureEditingService>();
         Docs = ScopedServices.GetRequiredService<IDocumentAdminService>();
+        Enti = ScopedServices.GetRequiredService<IAtcUnitRepository>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
     }
 
@@ -206,7 +208,7 @@ else
             // release effettiva). La regola è la stessa dell'elenco /airports, e sta in un posto solo.
             var airports = AeroportiDellAcc.Elenco(data.Airports, managed, _acc.Code);
             // APP: solo non remotizzati (Standalone) e pubblicati (non nascosti), con collasso d'albero (solo l'antenato).
-            var apps = StandaloneApps(data.Sectors, managed, _acc.Code);
+            var apps = AppDellAcc.Elenco(data.Sectors, managed, await Enti.ListAsync(_acc.Code), _acc.Code);
             // vLOA: solo quelle con release AIRAC effettiva e non nascoste (stessa regola di aeroporti/APP, doc 10 §3f).
             var publishedVloas = managed
                 .Where(m => m.Kind == ReleaseTargetType.Vloa && m.HasEffectiveRelease && !m.IsHidden && m.DocumentId is not null)
@@ -229,30 +231,4 @@ else
         }
     }
 
-    // APP non remotizzati (Standalone) e pubblicati (non nascosti), col collasso d'albero: se un APP standalone ha
-    // un antenato che è a sua volta un APP standalone mostrato, si tiene solo l'antenato. Stessa regola di /apps.
-    private static List<SectorRow> StandaloneApps(IReadOnlyList<SectorRow> all, IReadOnlyList<ManagedDoc> managed, string accCode)
-    {
-        var published = managed
-            .Where(m => m.Kind == ReleaseTargetType.App && m.HasEffectiveRelease && !m.IsHidden
-                        && string.Equals(m.AccCode, accCode, StringComparison.OrdinalIgnoreCase))
-            .Select(m => m.Scope)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var standalone = all
-            .Where(s => s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone && published.Contains(s.Callsign))
-            .ToList();
-        var standaloneIds = standalone.Select(s => s.Id).ToHashSet();
-        var byId = all.ToDictionary(s => s.Id);
-        bool HasStandaloneAncestor(SectorRow s)
-        {
-            var pid = s.ParentSectorId;
-            while (pid is int id && byId.TryGetValue(id, out var p))
-            {
-                if (standaloneIds.Contains(p.Id)) return true;
-                pid = p.ParentSectorId;
-            }
-            return false;
-        }
-        return standalone.Where(s => !HasStandaloneAncestor(s)).ToList();
-    }
 }

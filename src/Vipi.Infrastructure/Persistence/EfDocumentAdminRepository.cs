@@ -67,6 +67,7 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             // L'aeroporto descritto: da qui il descrittore prende ICAO e ACC (vedi AirportReleaseTarget).
             .Include(d => d.Airport).ThenInclude(a => a!.Acc)
+            .Include(d => d.AtcUnit).ThenInclude(u => u!.Acc)
             // ⚠️ E l'aeroporto dell'edizione MILITARE, che è un legame DIVERSO (`Airport.MilDocumentId`) e
             // una navigazione diversa. Senza, `AirportMilReleaseTarget.TryDescribe` legge `doc.MilAirport?.Icao`
             // su una navigazione NULLA e risponde false; i quattro descrittori civili rifiutano a loro volta

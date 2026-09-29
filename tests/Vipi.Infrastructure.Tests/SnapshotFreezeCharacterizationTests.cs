@@ -58,6 +58,7 @@ public class SnapshotFreezeCharacterizationTests : IAsyncLifetime
         _db.Sectors.Add(new Sector { Acc = acc, Callsign = callsign, Name = callsign, Type = SectorType.App, Kind = SectorKind.Airport, ApproachKind = ApproachKind.Standalone, IsActive = true, DocumentId = doc.Id, IsPrimary = true });
         if (published) doc.CurrentVersionId = ver.Id;   // pubblicata come versione, MA nessuna release
         await _db.SaveChangesAsync();
+        await new EfDocumentMaintenance(_db).LinkAppUnitsAsync();   // S49: la vIPI APP passa all'ente, come all'avvio
         return (callsign, doc.Id);
     }
 

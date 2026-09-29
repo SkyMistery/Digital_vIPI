@@ -137,4 +137,70 @@ public class LinkAirportDocumentsTests : IAsyncLifetime
         await _db.Entry(apt).ReloadAsync();
         Assert.Equal(buono, apt.DocumentId);
     }
+
+    // ── S48: nessuna posizione porta la vIPI dello scalo ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task Dopo_il_ponte_nessuna_posizione_porta_piu_la_vipi_dello_scalo()
+    {
+        // 🔴 A LIBG la TWR che IVAO aveva tolto restava agganciata al documento, e il documento la teneva in piedi.
+        // Il documento è dello scalo: le posizioni si sganciano. L'APP non remotizzato tiene il SUO.
+        var docScalo = await NuovoDocumentoAsync("vIPI — LIRP Pisa");
+        var docApp = await NuovoDocumentoAsync("vIPI — LIRP_APP Pisa Approach");
+        var apt = await ScaloStoricoAsync("LIRP",
+            ("LIRP_APP", SectorType.App, ApproachKind.Standalone, docApp, true),
+            ("LIRP_TWR", SectorType.Twr, null, docScalo, true),
+            ("LIRP_GND", SectorType.Gnd, null, docScalo, false));
+
+        await _manutenzione.LinkAirportDocumentsAsync();
+
+        await _db.Entry(apt).ReloadAsync();
+        Assert.Equal(docScalo, apt.DocumentId);   // il ponte ha letto il legame PRIMA di scioglierlo
+        var settori = await _db.Sectors.AsNoTracking().Where(s => s.AirportId == apt.Id).ToListAsync();
+        foreach (var cs in new[] { "LIRP_TWR", "LIRP_GND" })
+        {
+            var s = settori.Single(x => x.Callsign == cs);
+            Assert.Null(s.DocumentId);
+            Assert.False(s.IsPrimary);
+        }
+        var app = settori.Single(x => x.Callsign == "LIRP_APP");
+        Assert.Equal(docApp, app.DocumentId);
+        Assert.True(app.IsPrimary);
+    }
+
+    [Fact]
+    public async Task Generare_la_vipi_sgancia_le_posizioni_invece_di_riagganciarle()
+    {
+        // Fino al 29 settembre 2026 ogni apertura dell'editor dello scalo riagganciava DEL/GND/TWR al documento,
+        // anche una torre sparita da IVAO: sganciarla a mano non serviva a niente.
+        var docScalo = await NuovoDocumentoAsync("vIPI — LIBG Taranto Grottaglie");
+        var docApp = await NuovoDocumentoAsync("vIPI — LIBG_APP Grottaglie Tower/Approach");
+        var apt = await ScaloStoricoAsync("LIBG",
+            ("LIBG_APP", SectorType.App, ApproachKind.Standalone, docApp, true),
+            ("LIBG_TWR", SectorType.Twr, null, docScalo, true));
+        apt.DocumentId = docScalo;
+        await _db.SaveChangesAsync();
+
+        var id = await new EfAirportRepository(_db, new EfMediaMaintenance(_db)).EnsureDocumentAsync("LIBG");
+
+        Assert.Equal(docScalo, id);
+        var settori = await _db.Sectors.AsNoTracking().Where(s => s.AirportId == apt.Id).ToListAsync();
+        Assert.Null(settori.Single(x => x.Callsign == "LIBG_TWR").DocumentId);
+        Assert.Equal(docApp, settori.Single(x => x.Callsign == "LIBG_APP").DocumentId);
+    }
+
+    [Fact]
+    public async Task La_sparizione_di_una_posizione_avvisa_la_vipi_dello_scalo_anche_senza_riga_di_catalogo()
+    {
+        // La posizione sparita esce dal catalogo (S48), e nessun settore porta più la vIPI: la strada verso il
+        // documento resta quella del settore, che sa di quale scalo è.
+        var docScalo = await NuovoDocumentoAsync("vIPI — LIBG Taranto Grottaglie");
+        var apt = await ScaloStoricoAsync("LIBG", ("LIBG_TWR", SectorType.Twr, null, null, false));
+        apt.DocumentId = docScalo;
+        await _db.SaveChangesAsync();
+
+        var docs = await new EfDocumentImpactRepository(_db).FindDocumentsForSectorAsync("LIBG_TWR", "LIRR");
+
+        Assert.Contains(docs, d => d.Id == docScalo);
+    }
 }
