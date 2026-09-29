@@ -192,6 +192,9 @@ public static class Ispettore
         PuntoDelTracciato punto => Testo(punto.Punto),
         ProcedureWaypoint punto => punto.FixName,
         StaticBoundaryVertex vertice => vertice.Position is { } c ? Testo(c) : vertice.FixA ?? "—",
+        // Slice 11a, visto a schermo: «8 voci: Vipi.Sectorfile.Models.Transfer…». Un trasferimento si dice come si scrive.
+        Transfer trasferimento => (trasferimento.IsNegative ? "-" : string.Empty) + trasferimento.PositionCode,
+        IList<Transfer> trasferimenti => string.Join(" ", trasferimenti.Select(Testo)),
         IEnumerable elenco and not string => Elenco(elenco),
         _ => valore.ToString() ?? "—",
     };

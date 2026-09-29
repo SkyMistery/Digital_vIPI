@@ -53,6 +53,10 @@ public sealed class PosizioniNellaSchedaTests : IDisposable
 
         Assert.False(_lab.CambiaCampo(Frq, 0, "Inclusi", "LIML -LIMM"));
         Assert.Contains("altra lista", _lab.Rifiuto, StringComparison.Ordinal);
+
+        // Visto a schermo sul banco: i trasferimenti come sono scritti si leggono, non «Vipi.Sectorfile.Models.Transfer».
+        var scheda = Vipi.SectorLab.Core.Ispezione.Ispettore.Scheda(_lab.Sessione!.File[Frq], 0, null)!;
+        Assert.Equal("LIML LIMM LIRO LIVK -LIMC_MAR_APP -LIMM_WS2_CTR", scheda.Campi.Single(c => c.Nome == "TransferList").Valore);
     }
 
     [Fact]

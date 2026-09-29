@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e) e la slice 10 (10a-10c, §6 «Traccia»). Dopo la 9, decisione del committente (29 settembre): **consegna
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»). Dopo la 9, decisione del committente (29 settembre): **consegna
 agli AOD** per una prima prova, uno zip con l'eseguibile e il sector. Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
@@ -1390,3 +1390,21 @@ profili `.cpr` e i PAR.
   radiali, 0 elevazioni, 0 profili con molte impostazioni. Round-trip **718/718** (i 15 `.cpr` ora hanno un lettore),
   tutto toccato 0. Validatore sull'albero: 235/862 → **235 errori, 866 avvisi**. Test: motore 739 → **747**, Lab 779 →
   **781**.
+- **Prova a schermo della slice 11** (banco, fork pulito): la scheda di `LIML_TWR` con inclusi ed esclusi e «apri»
+  accanto a profilo, ATIS e D-ATIS; «apri» porta a `TWR.cpr`, le cui impostazioni hanno la loro scheda (187 chiavi
+  suggerite per `[PREFS]`); nel pannello 102 `IncludeDopoEscluso` con «Correggi tutte le 51 di itfreq.frq», «…le 3 di
+  limm.frq» riordina tre righe in una voce; `LIDW 15` «Rotta 149, rotta dalle soglie 14.9»; i problemi del CPDLC e dei
+  profili dove la misura li aspettava. 🔴 **Trovato a schermo**: il campo «Trasferimenti (come sono scritti)» diceva
+  «8 voci: Vipi.Sectorfile.Models.Transfer…» (c'era da prima: la scheda non sapeva scrivere un trasferimento); ora
+  `LIML LIMM LIRO … -LIMC_MAR_APP …`. Annullato, copia intatta.
+
+**Slice 11 chiusa.** Uscita misurata sul fork: **102** include dopo un escluso (la carta ne contava 51 in `itfreq.frq`:
+con le copie delle FIR sono 102), tutti con la riga riordinata; `LIMM_WN4_CTR`, `LIMM_EN4_CTR`, `LIMJ_APP`, `LIBB_APP`
+mai definite (32 righe); `PREFS\LIPC.cpr` e `\liml.atis` (il primo già `FileCitatoAssente`; il secondo Aurora lo
+trova, resta in R-10); soglie invertite `LIDW 15` e `LIKL 36`; **107** rotte con decimali e **80** primarie oltre il 18
+(la carta: 44 e 13, solo `itrw.rw` e un'altra lettura); CPDLC: il gruppo 15 senza messaggi, 0 senza risposta fuori dal
+DCL, 2 valori diversi; PAR: `LIPI RWY06` ×2 e `LIBN` INSET3 (con le chiavi `INS4…` finite lì), radiali ed elevazioni
+entro lo scarto. Voci del giro dei file chiuse: M1-M5, M9-M10 (scheda), N1-N4 (N2: la coerenza; la generazione è di F8).
+Validatore sull'albero: 133/636 → **235 errori, 866 avvisi**. Round-trip **718/718** (nuovi lettori: `.cpdlc`,
+`.cpdlcnames`, `.cpr`). Test: motore 720 → **747**, Lab 771 → **781**. Da provare a mano: prove 138-150 in
+`SectorLab-prova\PROVE.md`.
