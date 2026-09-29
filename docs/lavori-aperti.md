@@ -33,13 +33,17 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### A133 — 1.47.3 PRONTO: piè di pagina sistemato (29 settembre 2026)
+### ✅ A133 — 1.47.3 ONLINE: piè di pagina sistemato (29 settembre 2026)
+
+✅ Online il 29 settembre 2026: timbro e `Schema 0` confermati dal committente. Da fuori: `vipi-theme.css?v=1e7773f0`
+come nel pacchetto, link legali verso `wiki.ivao.aero`, riga «Realizzato da», `/vsop/health` Healthy, Ricerca
+«13 results for LIRF». CI di `main` verde (`8da09d67`).
 
 PATCH, **nessuna migrazione**, su 1.47.2 (`5bc663d`). Timbro **`1.47.3 · de51b76`**. Fuso da `sito/lavori` S46: link
 legali del piè di pagina verso la wiki di IVAO (ivao.aero rispondeva 404), stesso colore della barra, riga «Realizzato
 da Carmine (704798)». **9 file** (`solo-9-file-1.47.3`): Ui, Host (dll + pdb), `en/`, `vipi-theme.css` con
 `.br`/`.gz`, `Vipi.Host.staticwebassets.endpoints.json`. Zip 2,89 MB, sha256
-`94bd9cfa59a3867a1f860831f695c857cf1feccf29215befc42b63330cf4d7c0`. Test verdi, conteggi identici. ▶ caricamento.
+`94bd9cfa59a3867a1f860831f695c857cf1feccf29215befc42b63330cf4d7c0`. Test verdi, conteggi identici.
 
 ### ✅ A132 — 1.47.2 ONLINE: piè di pagina, scheda dello scalo con vIPI e vSOP (29 settembre 2026)
 

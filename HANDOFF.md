@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 29 settembre 2026, notte
+> ## ▶ Il punto — 29 settembre 2026, tardi
+>
+> **✅ Online: 1.47.3** (§A133, timbro `1.47.3 · de51b76`, nel piè di pagina; 9 file, zip `94bd9cfa…`, PATCH): il piè
+> di pagina della 1.47.2 (§A132) coi link alla wiki IVAO, il colore della barra e «Realizzato da». Timbro e
+> `Schema 0` confermati dal committente, `/vsop/health` Healthy, Ricerca LIRF. **In `main` non resta codice fuori
+> pacchetto.** ▶ Restano: login VID 704798 al primo clic, Azure Translator 401, i gesti di §A130, LIBG_TWR.
+>
+> ## Il punto — 29 settembre 2026, notte
 >
 > **✅ Online: 1.47.1** (§A131, timbro `1.47.1 · c41e6e7`, 13 file, zip `3e619790…`, PATCH): `/vsop/health` di nuovo
 > **Healthy**, login IVAO che rifà il giro se il consenso perde il nonce, sei punti della vSOP. Timbro e `Schema 0`
