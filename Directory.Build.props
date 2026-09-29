@@ -1535,6 +1535,12 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.47.3 — PATCH, NESSUNA migrazione. Su 1.47.2 (5bc663d, online dal 29 settembre 2026). Sito S46: i link legali
+      del piè di pagina portano alla wiki di IVAO (le pagine su ivao.aero rispondevano 404); piè di pagina dello stesso
+      colore della barra in alto, con la riga «Realizzato da Carmine (704798)» e il link al profilo IVAO. Tocca Vipi.Ui
+      (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
+    -->
+    <!--
       1.47.2 — PATCH, NESSUNA migrazione. Su 1.47.1 (c41e6e7, online dal 29 settembre 2026). Sito S44–S45: il piè di
       pagina del sito, dove passa la versione (visibile allo staff, prima in barra ai soli admin); nella scheda di uno
       scalo con vIPI e vSOP un clic fuori dalle due voci apre il documento della sua categoria. Tocca Vipi.Ui (+ frasi
@@ -1802,7 +1808,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.47.2</VipiVersione>
+    <VipiVersione>1.47.3</VipiVersione>
   </PropertyGroup>
 
 </Project>
