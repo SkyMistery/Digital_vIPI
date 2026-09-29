@@ -6,10 +6,11 @@
 >
 > ## ▶ Il punto — 30 settembre 2026
 >
-> **Online: 1.49.0.** In `main` c'è codice fuori pacchetto: **S56, richieste dal campo** (§A136, fuso da
-> `fix/richieste-campo` @ `6986f071`, migrazione additiva `RichiesteDalCampo`): link «Segnala» nelle sezioni pubbliche,
-> pagina `/services/vsop/requests`, richieste nuove in «Da fare»; chiudere la richiesta chiude il suo incarico.
-> ▶ Prossimo pacchetto (MINOR). `lab/f3` non fuso.
+> **Online: 1.49.0. 📦 Pronto: 1.50.0** (§A136, timbro `1.50.0 · e7742ff`, 20 file, zip `30fb29b6…`, MINOR con la
+> migrazione additiva `RichiesteDalCampo`): **S56 richieste dal campo** (link «Segnala» nelle sezioni pubbliche,
+> pagina `/services/vsop/requests`, richieste nuove in «Da fare»; chiudere la richiesta chiude il suo incarico) e
+> **S57 vAWOS** all'altezza visibile in Edge, senza il tasto TEST METAR. ▶ Caricamento del committente. `lab/f3` non
+> fuso.
 >
 > ## Il punto — 29 settembre 2026, notte
 >

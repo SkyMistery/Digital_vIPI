@@ -43,10 +43,20 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 🟢 A136 — S56 in `main`: richieste dal campo, canale utente → staff (30 settembre 2026)
+### 📦 A136 — 1.50.0 PRONTO: richieste dal campo (S56) e vAWOS in Edge (S57) (30 settembre 2026)
 
-Fuso da `fix/richieste-campo` @ `6986f071` (CI verde, run 36637362166), su 1.49.0 (`4f075c38`). **Non ancora in un
-pacchetto.** Chi è connesso manda una «richiesta dal campo» su una sezione (link «Segnala» accanto ai titoli delle
+**Pacchetto 1.50.0**, MINOR con **una migrazione additiva** (`RichiesteDalCampo`), su 1.49.0 (`89bfb04`). Timbro
+**`1.50.0 · e7742ff`**. **20 file** (`solo-20-file-1.50.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui,
+Host (dll + pdb), `en/`, `Vipi.Host.staticwebassets.endpoints.json` e `vipi-awos.css/.js` con `.br`/`.gz`; Hosting fuori
+(solo un commento). Zip 5,87 MB, sha256 `30fb29b6ae4d6e81d1d3c651dd53934dad358994facbcbc9345a30ec197727ad`. Build
+Release senza avvisi, test verdi, conteggi identici. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.50.0.md`.
+▶ Caricamento del committente.
+
+**S57** (fuso da `fix/vawos-schermo` @ `5792ec17`, CI verde run 36639468032): il vAWOS prende l'altezza visibile
+(`100dvh`: in Edge `100vh` superava la finestra e il quadro scorreva) e il tasto TEST METAR esce dal quadro (il
+`?test=` resta all'API, per lo staff). Conteggi Ui 1886. Storia: `docs/filoni/sito.md` S57.
+
+**S56** fuso da `fix/richieste-campo` @ `6986f071` (CI verde, run 36637362166). Chi è connesso manda una «richiesta dal campo» su una sezione (link «Segnala» accanto ai titoli delle
 sezioni radice, solo in vista pubblica e `noprint`) dalla pagina `/services/vsop/requests`; lo staff la vede lì e in
 «Da fare», la prende in carico (nasce un incarico legato) e la chiude con una risposta obbligatoria, e chiudendola
 chiude anche l'incarico. Limiti: 5 aperte e 10 al giorno per VID, 2000 caratteri. Registra il rilascio in vigore
@@ -54,8 +64,7 @@ all'invio. **Migrazione additiva** `RichiesteDalCampo` (SQLite + MySQL: tabella 
 `EditorTask.FromRequestId`). Codice comune `Vipi.Application`, `Vipi.Domain`. Conteggi Application 3103,
 Infrastructure 2033, Ui 1884: build Release senza avvisi, tutti i test verdi, `conta-test.sh` identico all'atteso.
 Provato a schermo dal Sito sulla copia del 29-set. Il secondo canale (staff → sviluppatore) resta rimandato (§CJ,
-strada B-1). Storia: `docs/filoni/sito.md` S56, `docs/design/piano-segnalazioni.md`. ▶ Prossimo pacchetto (MINOR, con
-migrazione).
+strada B-1). Storia: `docs/filoni/sito.md` S56, `docs/design/piano-segnalazioni.md`.
 
 ### ✅ A135 — 1.49.0 ONLINE: pagina Enti ATC, «Sostituisci con…», enti dei gruppi APP (29–30 settembre 2026)
 
