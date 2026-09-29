@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 29 settembre 2026, notte
+> ## ▶ Il punto — 30 settembre 2026
+>
+> **Online: 1.49.0.** In `main` c'è codice fuori pacchetto: **S56, richieste dal campo** (§A136, fuso da
+> `fix/richieste-campo` @ `6986f071`, migrazione additiva `RichiesteDalCampo`): link «Segnala» nelle sezioni pubbliche,
+> pagina `/services/vsop/requests`, richieste nuove in «Da fare»; chiudere la richiesta chiude il suo incarico.
+> ▶ Prossimo pacchetto (MINOR). `lab/f3` non fuso.
+>
+> ## Il punto — 29 settembre 2026, notte
 >
 > **✅ Online: 1.49.0** (§A135, timbro `1.49.0 · 89bfb04`, 15 file, zip `08799c5e…`, MINOR con la migrazione
 > `EntiGruppiAcc`; timbro e `Schema 0` confermati, `/vsop/health` Healthy, Ricerca LIRF): pagina «Enti ATC»,

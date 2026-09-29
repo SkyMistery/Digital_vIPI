@@ -43,6 +43,20 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 🟢 A136 — S56 in `main`: richieste dal campo, canale utente → staff (30 settembre 2026)
+
+Fuso da `fix/richieste-campo` @ `6986f071` (CI verde, run 36637362166), su 1.49.0 (`4f075c38`). **Non ancora in un
+pacchetto.** Chi è connesso manda una «richiesta dal campo» su una sezione (link «Segnala» accanto ai titoli delle
+sezioni radice, solo in vista pubblica e `noprint`) dalla pagina `/services/vsop/requests`; lo staff la vede lì e in
+«Da fare», la prende in carico (nasce un incarico legato) e la chiude con una risposta obbligatoria, e chiudendola
+chiude anche l'incarico. Limiti: 5 aperte e 10 al giorno per VID, 2000 caratteri. Registra il rilascio in vigore
+all'invio. **Migrazione additiva** `RichiesteDalCampo` (SQLite + MySQL: tabella `FieldRequests`,
+`EditorTask.FromRequestId`). Codice comune `Vipi.Application`, `Vipi.Domain`. Conteggi Application 3103,
+Infrastructure 2033, Ui 1884: build Release senza avvisi, tutti i test verdi, `conta-test.sh` identico all'atteso.
+Provato a schermo dal Sito sulla copia del 29-set. Il secondo canale (staff → sviluppatore) resta rimandato (§CJ,
+strada B-1). Storia: `docs/filoni/sito.md` S56, `docs/design/piano-segnalazioni.md`. ▶ Prossimo pacchetto (MINOR, con
+migrazione).
+
 ### ✅ A135 — 1.49.0 ONLINE: pagina Enti ATC, «Sostituisci con…», enti dei gruppi APP (29–30 settembre 2026)
 
 ✅ Online il 30 settembre 2026: timbro e `Schema 0` confermati dal committente (la migrazione `EntiGruppiAcc` è
