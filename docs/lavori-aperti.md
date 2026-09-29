@@ -33,6 +33,33 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### ✅ A130 — 1.47.0 ONLINE: la revisione totale 3 (29 settembre 2026)
+
+✅ Online il 29 settembre 2026, prima della scadenza U-009 (1-ott 00:00Z). Verificato da fuori: il sito serve gli
+asset del pacchetto (`vipi-boot.js?v=1fd64a8d`, `vipi-aor.js?v=59274ecb`, come in `IMPRONTE.txt`) e la Ricerca
+**trova** («13 results for LIRF», documenti di LIRF), circuito Blazor aperto. ▶ Da confermare col login: timbro
+`1.47.0 · 067a737`, `Schema 0`, #187 di LIBV_APP superata, passate d'avvio finite nel log. ▶ `/vsop/health` risponde
+`Degraded` (da 1.47.0 solo per un controllo in `Error`, U-100): guardare in Diagnostica quale.
+
+MINOR con **tre migrazioni additive** (`AliasPerScalo`, `ProcedureSostituite`, `SectorfileDifferito`; tolto solo un
+indice), rollback a due rinomine valido. Su 1.46.5 (`e24557e`). Timbro **`1.47.0 · 067a737`**. Fusi da
+`sito/lavori`: `3b9389c4` (S9–S39, 82 commit) e S40 (test stabilizzato); CI verde su `main` (run 36498019635).
+**52 file** (`solo-52-file-1.47.0`): Domain, Application, Infrastructure, Infrastructure.MySqlMigrations, Hosting,
+Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`, 12 file di `wwwroot` con `.br`/`.gz` e
+`Vipi.Host.staticwebassets.endpoints.json`. Fuori, per impronta e diff: `Vipi.AuroraBridge.Contracts`,
+`Vipi.AuroraProfiles` (solo MVID). Zip `vipi-1.47.0-solo-file-cambiati.zip`, 5,94 MB, sha256
+`c75ca416c80e834b2f69d1c7f4f0cfe73c26dcac6a4f381ba78961a7672912ef`. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.47.0.md`.
+
+Contenuto: il registro `docs/history/audit-2026-09-26-revisione-totale-3.md` (256 voci, 0 S1, 18 S2), lotti L1…L11
+corretti, dettaglio voce per voce in `docs/filoni/sito.md` S9–S40; più il login IVAO «nonce» recuperato dallo state
+(S29). ⚠️ La prova del PACCHETTO in locale (passo 6) non è stata fatta: il committente aveva già caricato; al suo
+posto la prova su produzione (6-bis) qui sopra.
+
+▶ **Gesti del committente dopo il caricamento** (dal foglio): ricaricare `it.kmz` (U-119); LIRS/LIRL sciogliere o
+riapplicare la scheda e ripubblicare; LICT ripuntare `TRP|VHF|25X` → `TRP|VHF|`; U-105 Brindisi CS0 e Perugia
+Approach; occhiata alle 2 torri su 68 non riconosciute; U-094 recupero delle 198 sessioni (da decidere); 512 KB
+all'host di ivao.it (U-016); riga «Nonce» del registro dei login al prossimo scarico; U-021 da misurare.
+
 ### ✅ A129 — 1.46.5 ONLINE: nominativo doppio ATC, Versioni per tutta l'unione, «Modifica» (25 settembre 2026)
 
 ✅ Online il 25 settembre 2026 (sera). Il committente conferma timbro `1.46.5 · e24557e`, `Schema 0` e Ricerca.

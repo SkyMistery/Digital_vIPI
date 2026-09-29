@@ -4,7 +4,15 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 29 settembre 2026
+> ## ▶ Il punto — 29 settembre 2026, sera
+>
+> **✅ Online: 1.47.0** (§A130, timbro `1.47.0 · 067a737`, 52 file, zip `c75ca416…`, tre migrazioni additive):
+> la revisione totale 3 è in produzione, prima della scadenza U-009 di LIBV_APP. Verificato da fuori (asset del
+> pacchetto serviti, Ricerca che trova LIRF). ▶ Col login: timbro, `Schema 0`, #187 superata, passate d'avvio;
+> `/vsop/health` dice `Degraded`: in Diagnostica quale controllo è in `Error`. ▶ I gesti del committente stanno in
+> §A130. **In `main` non resta codice fuori pacchetto.** Rami: `sito/lavori` fuso fino a S40, `lab/f3` in corso.
+>
+> ## Il punto — 29 settembre 2026 (fusione)
 >
 > **Fusa in `main` la revisione totale 3** (`3b9389c4`, da `sito/lavori` @ `8d2308cb`, 82 commit, S9–S39): registro
 > `docs/history/audit-2026-09-26-revisione-totale-3.md`, lotti L1…L11 chiusi, più il login IVAO «nonce» (S29). Il
