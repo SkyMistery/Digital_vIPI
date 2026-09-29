@@ -97,7 +97,11 @@ public sealed class NewDocumentOptionsService : INewDocumentOptionsService
                 if (u.DocumentId is not null)
                     foreach (var cs in u.Positions.Prepend(u.Code)) conDocumento.Add(cs);
         NewDocumentTarget Bersaglio(GlobalSectorRow s) =>
-            new(s.Id, s.Callsign, s.Callsign, s.DocumentId is not null || conDocumento.Contains(s.Callsign));
+            new(s.Id, s.Callsign, s.Callsign, s.DocumentId is not null);
+        // Per un APP lo dice SOLO l'ente (S51): il settore non porta più la vIPI APP, e un legame rimasto per sbaglio
+        // non deve dire «ha già un documento» a un APP che non ce l'ha.
+        NewDocumentTarget BersaglioApp(GlobalSectorRow s) =>
+            new(s.Id, s.Callsign, s.Callsign, conDocumento.Contains(s.Callsign));
 
         var miei = new List<NewDocumentAcc>();
 
@@ -112,7 +116,7 @@ public sealed class NewDocumentOptionsService : INewDocumentOptionsService
                 AreaSectors: suoi.Where(EArea).OrderBy(s => s.Callsign, StringComparer.Ordinal)
                     .Select(Bersaglio).ToList(),
                 StandaloneApps: suoi.Where(EAppStandalone).OrderBy(s => s.Callsign, StringComparer.Ordinal)
-                    .Select(Bersaglio).ToList(),
+                    .Select(BersaglioApp).ToList(),
                 Airports: airports.Where(x => Uguale(x.AccCode, a.Code))
                     .OrderBy(x => x.Icao, StringComparer.Ordinal)
                     .Select(x => new NewDocumentTarget(x.Id, x.Icao, $"{x.Icao} · {x.Name}", x.DocumentId is not null,

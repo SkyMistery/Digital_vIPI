@@ -194,11 +194,30 @@ public class EditingRepositoryTests : IAsyncLifetime
         Assert.Equal(prima, (await _db.DocumentSections.AsNoTracking().FirstAsync(s => s.Id == figlia)).BodyPosition);
     }
 
+    /// <summary>S51 (enti ATC, fase 3): la vIPI generica non riaggancia più un APP non remotizzato dal settore. La
+    /// sua vIPI è quella del suo ente; il legame vecchio lo scioglierebbe il ponte d'avvio inventando un ente.</summary>
+    [Fact]
+    public async Task CreateDocument_Vipi_Rifiuta_Un_App_Non_Remotizzato()
+    {
+        var app = await _db.Sectors.Where(s => s.Callsign == "LIRP_APP").Select(s => s.Id).FirstAsync();
+        var prima = await _db.Documents.CountAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _repo.CreateDocumentAsync(
+            DocumentType.Vipi, "vIPI Pisa", Language.It, new[] { app }, app, parties: null, authorUserId: 7));
+
+        Assert.Contains("LIRP_APP", ex.Message);
+        Assert.Equal(prima, await _db.Documents.CountAsync());   // niente documento a metà
+        Assert.Null((await _db.Sectors.AsNoTracking().FirstAsync(s => s.Id == app)).DocumentId);
+    }
+
     [Fact]
     public async Task CreateDocument_Vipi_From_Scratch_Has_Draft_And_Root_Section()
     {
-        // Settore non ancora descritto da nessun documento (gli ACC sono già assegnati dal content seed).
-        var scopeSec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
+        // Settore non ancora descritto da nessun documento (gli ACC sono già assegnati dal content seed), e non un
+        // APP non remotizzato: la sua vIPI è del suo ente (S51, vedi il test qui sopra).
+        var scopeSec = await _db.Sectors
+            .Where(s => s.DocumentId == null && !(s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone))
+            .Select(s => s.Id).FirstAsync();
 
         var newDocId = await _repo.CreateDocumentAsync(
             DocumentType.Vipi, "vIPI di test", Language.It, new[] { scopeSec }, scopeSec, parties: null, authorUserId: 7);

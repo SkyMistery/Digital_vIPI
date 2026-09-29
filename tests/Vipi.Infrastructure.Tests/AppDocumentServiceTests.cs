@@ -463,6 +463,48 @@ public class AppDocumentServiceTests : IAsyncLifetime
         Assert.Contains(acc.Rows, r => r.OwnerCallsign == "LIRP_E_APP");   // riga del figlio, non solo del primario
     }
 
+    /// <summary>
+    /// Enti ATC, fase 3 (S51, 29 settembre 2026): un ente con più posizioni deriva da TUTTE, non dalla sola
+    /// principale. Qui l'ente di Pisa prende anche la torre di Fiumicino, che non sta sotto <c>LIRP_APP</c>:
+    /// prima le sue frequenze, i suoi coordinamenti e la sua AoR non entravano nella vIPI dell'ente.
+    /// </summary>
+    [Fact]
+    public async Task Un_ente_con_piu_posizioni_deriva_da_tutte()
+    {
+        await _service.EnsureAsync(App);
+        var enti = new EfAtcUnitRepository(_db);
+        var ente = (await enti.FindAsync(App))!;
+        await enti.AddPositionAsync(ente.Id, "LIRF_TWR");
+
+        _db.AirportSectors.Add(new AirportSector
+        {
+            ComposePosition = "LIRF_TWR", AirportIcao = "LIRF", AccCode = "LIRR", Position = "TWR", Frequency = "118.700",
+            RegionMapPolygon = "[[12.2,41.7],[12.3,41.7],[12.3,41.8],[12.2,41.8]]",
+        });
+        (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == App)).RegionMapPolygon =
+            "[[10.4,43.6],[10.5,43.6],[10.5,43.7],[10.4,43.7]]";
+        await _db.SaveChangesAsync();
+        var ftwrId = (await _db.Sectors.FirstAsync(s => s.Callsign == "LIRF_TWR")).Id;
+        await Agreement(new EfAgreementRepository(_db), ftwrId, _neId, TransferFlowKind.Departure, "LIRF", "ELKAP", 60);
+
+        // Frequenze: la torre di Fiumicino c'è, ed è una posizione dell'ente (★) come l'APP; il CTR comune una volta.
+        var freqs = await _service.DeriveFrequenciesAsync(App);
+        Assert.True(freqs.Single(f => f.Callsign == "LIRF_TWR").IsPrimary);
+        Assert.True(freqs.Single(f => f.Callsign == App).IsPrimary);
+        Assert.False(freqs.Single(f => f.Callsign == "LIRP_TWR").IsPrimary);
+        Assert.Single(freqs, f => f.Callsign == "LIRR_NE_CTR");
+
+        // Coordinamenti: i flussi della torre sono dell'ente.
+        var coord = await _service.DeriveCoordinationAsync(App);
+        Assert.Contains(coord.TowardAcc.SelectMany(g => g.Rows), r => r.OwnerCallsign == "LIRF_TWR");
+
+        // AoR e configurazioni: la torre entra, dopo la principale.
+        var aor = await _service.GetAorViewAsync(App);
+        Assert.Equal(new[] { App, "LIRF_TWR" }, aor.Sectors.Select(s => s.Callsign).ToArray());
+        var settori = await _service.ListSectorsAsync(App);
+        Assert.Equal(new[] { App, "LIRF_TWR" }, settori.Select(s => s.Callsign).ToArray());
+    }
+
     // ---- aree regolamentate: come la vIPI ACC ma senza aree di default (nessun modo automatico) ----
 
     [Fact]

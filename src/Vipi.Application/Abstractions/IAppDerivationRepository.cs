@@ -10,8 +10,15 @@ namespace Vipi.Application.Abstractions;
 /// che non ha ancora un ente, il suo nominativo — sarà il codice dell'ente che nasce col documento.</param>
 /// <param name="Seme">Da dove parte la derivazione: la posizione principale dell'ente (<c>LIRE_TWR</c>).</param>
 /// <param name="UnitId">null finché l'ente non esiste (nasce col documento, alla prima apertura dell'editor).</param>
+/// <param name="Positions">Tutte le posizioni dell'ente, la principale per prima; null = la sola <paramref name="Seme"/>.</param>
 public sealed record AppDocumentIdentity(string Code, string Seme, string Title, string AccCode, int? DocumentId,
-    int? UnitId = null);
+    int? UnitId = null, IReadOnlyList<string>? Positions = null)
+{
+    /// <summary>Da dove parte la derivazione (S51, fase 3): TUTTE le posizioni dell'ente, la principale per prima.
+    /// Fino ad allora partiva dalla sola principale, e una seconda posizione fuori dal suo sottoalbero (una torre
+    /// che l'ente tiene anche lei) non portava né frequenze, né coordinamenti, né AoR.</summary>
+    public IReadOnlyList<string> Posizioni => Positions is { Count: > 0 } ? Positions : new[] { Seme };
+}
 
 /// <summary>
 /// Sorgente dati per la DERIVAZIONE delle sezioni live dell'APP standalone su Document (doc 08e): catalogo frequenze
@@ -51,11 +58,12 @@ public interface IAppDerivationRepository
     Task<IReadOnlyList<AppFreqRow>> ResolveFreqLinksAsync(IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
 
     /// <summary>
-    /// Catalogo frequenze: posizioni (ATIS·DEL·GND·TWR·APP) degli aeroporti del sottoalbero (APP del callsign = ★),
-    /// seguite dai GENITORI di copertura (<paramref name="ancestorCallsigns"/>, in ordine di vicinanza) coi loro CTR.
+    /// Catalogo frequenze: posizioni (ATIS·DEL·GND·TWR·APP) degli aeroporti del sottoalbero e di quelli delle
+    /// posizioni dell'ente (le posizioni = ★), seguite dai GENITORI di copertura (<paramref name="ancestorCallsigns"/>,
+    /// in ordine di vicinanza) coi loro CTR.
     /// </summary>
     Task<IReadOnlyList<AppFreqRow>> DeriveCatalogFrequenciesAsync(
-        string appCallsign, IReadOnlySet<string> domainCallsigns,
+        IReadOnlyList<string> positions, IReadOnlySet<string> domainCallsigns,
         IReadOnlyList<string> ancestorCallsigns, CancellationToken ct = default);
 
     /// <summary>Mappa callsign→tipo di tutti i settori (per classificare i Next dei coordinamenti: ACC vs torre).</summary>

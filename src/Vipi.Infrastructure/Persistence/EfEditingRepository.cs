@@ -274,6 +274,21 @@ public sealed class EfEditingRepository : IEditingRepository
         IReadOnlyList<int>? scopeSectorIds, int? primarySectorId,
         (int homeSectorId, int neighbourSectorId)? parties, int authorUserId, CancellationToken ct = default)
     {
+        // ⚠️ La vIPI APP è di un ENTE (S49): un APP non remotizzato non si aggancia più a un documento dal settore.
+        // Questa porta era l'ultima che poteva rifare il legame vecchio, che il ponte d'avvio poi scioglierebbe
+        // creando un ente che nessuno ha chiesto (S51).
+        if (scopeSectorIds is { Count: > 0 })
+        {
+            var ids = scopeSectorIds.Distinct().ToList();
+            var app = await _db.Sectors.AsNoTracking()
+                .Where(s => ids.Contains(s.Id) && s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone)
+                .Select(s => s.Callsign).FirstOrDefaultAsync(ct);
+            if (app is not null)
+                throw new InvalidOperationException(Lingua(
+                    $"{app} è un APP non remotizzato: la sua vIPI è quella del suo ente, si apre dall'editor APP.",
+                    $"{app} is a non-remotized APP: its vIPI belongs to its unit, open it from the APP editor."));
+        }
+
         var now = DateTime.UtcNow;
         var doc = new Document
         {
@@ -1542,10 +1557,9 @@ public sealed class EfEditingRepository : IEditingRepository
         if (d.Airport is { } a) return a.Icao;
         // La vIPI APP la dice l'ENTE (S49): lo scope è il suo codice, la chiave dell'editor dedicato.
         if (d.AtcUnit is { } ente) return ente.Code;
-        // Settore primario (o primo) del documento; per le vLOA niente scope settore.
+        // Settore primario (o primo) del documento: resta solo la vIPI ACC. Per le vLOA niente scope settore.
         var s = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
         if (s is null) return "—";
-        if (IsStandaloneApp(s)) return s.Callsign;
         if (s.Kind == SectorKind.Airport)
             return s.AirportIcao ?? (s.Callsign.IndexOf('_') is int us && us > 0 ? s.Callsign[..us] : s.Callsign);
         return s.Acc?.Code ?? s.Callsign;
@@ -1557,9 +1571,6 @@ public sealed class EfEditingRepository : IEditingRepository
 
     // Documento APP non remotizzato = la vIPI di un ENTE (S49; prima: settore primario APP standalone).
     private static bool IsStandaloneAppDoc(Document d) => d.AtcUnit is not null;
-
-    private static bool IsStandaloneApp(Domain.Entities.Sector s) =>
-        s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone;
 
     // ACC del settore primario (o primo): serve a costruire i link editor.
     private static string? AccCodeOf(Document d) =>

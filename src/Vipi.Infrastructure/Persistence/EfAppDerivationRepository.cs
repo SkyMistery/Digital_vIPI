@@ -42,7 +42,8 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
         var ente = await new EfAtcUnitRepository(_db).FindAsync(appCallsign, ct);
         if (ente is not null)
             return ente.Mode == AtcUnitMode.OwnDocument
-                ? new AppDocumentIdentity(ente.Code, ente.Seme, ente.Name, ente.AccCode, ente.DocumentId, ente.Id)
+                ? new AppDocumentIdentity(ente.Code, ente.Seme, ente.Name, ente.AccCode, ente.DocumentId, ente.Id,
+                    ente.Positions)
                 : null;
 
         // 2) Un APP non remotizzato che un ente ancora non ce l'ha: l'ente nasce col documento, alla prima
@@ -143,10 +144,12 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
         await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
 
     public async Task<IReadOnlyList<AppFreqRow>> DeriveCatalogFrequenciesAsync(
-        string appCallsign, IReadOnlySet<string> domainCallsigns,
+        IReadOnlyList<string> positions, IReadOnlySet<string> domainCallsigns,
         IReadOnlyList<string> ancestorCallsigns, CancellationToken ct = default)
     {
         var domain = domainCallsigns.ToList();
+        var posList = positions.ToList();
+        var dellEnte = new HashSet<string>(positions, StringComparer.OrdinalIgnoreCase);
 
         // Aeroporti SOTTO l'APP: nella proiezione (Round 20) le posizioni DEL/GND/TWR NON sono figlie del Sector APP
         // (sono radici), ma l'AEROPORTO punta all'APP via ParentCallsign. "Sottostanti" = ParentCallsign nel sottoalbero.
@@ -154,10 +157,11 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
             .Where(a => a.ParentCallsign != null && domain.Contains(a.ParentCallsign))
             .Select(a => a.Icao).ToListAsync(ct);
 
-        // Difensivo: includi comunque l'aeroporto che possiede la posizione APP stessa.
-        var appIcao = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.ComposePosition == appCallsign).Select(s => s.AirportIcao).FirstOrDefaultAsync(ct);
-        if (appIcao != null && !icaos.Contains(appIcao)) icaos.Add(appIcao);
+        // Gli scali delle posizioni dell'ente entrano comunque: quello dell'APP stesso, e quello di una torre che
+        // l'ente tiene anche lei senza che stia sotto l'APP (S51).
+        foreach (var icao in await _db.AirportSectors.AsNoTracking()
+                     .Where(s => posList.Contains(s.ComposePosition)).Select(s => s.AirportIcao).ToListAsync(ct))
+            if (!icaos.Contains(icao)) icaos.Add(icao);
 
         if (icaos.Count == 0) return Array.Empty<AppFreqRow>();
 
@@ -170,7 +174,7 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
         var rows = cat.Select(s => new AppFreqRow(
             null, FreqNameForPosition(s.Position), s.ComposePosition, s.Frequency!,
             (s.Position ?? "").Trim().ToUpperInvariant(),
-            string.Equals(s.ComposePosition, appCallsign, StringComparison.OrdinalIgnoreCase), false)).ToList();
+            dellEnte.Contains(s.ComposePosition), false)).ToList();
 
         // Ordine ATIS·DEL·GND·TWR·APP; a parità, primaria (★) prima, poi callsign.
         var ordered = rows

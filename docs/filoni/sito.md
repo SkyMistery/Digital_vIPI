@@ -1582,5 +1582,14 @@
   remotizzata. Niente migrazione (`Mode` c'era; blockmeta in JSON). Provato a schermo su Palermo con la copia del
   29-set: 15/15 sezioni e 18/18 blocchi identici, vista live «Palermo Radar» dopo la pubblicazione della vIPI di Roma
   (nella copia la vIPI di Roma è nascosta, come in produzione). Test +4 (Infrastructure 2000, Application 3099).
+- ✅ **S51** enti ATC, fase 3: pulizia (29-set, committente; ramo `fix/enti-atc`). La derivazione della vIPI APP parte
+  da **tutte** le posizioni dell'ente (`AppDocumentIdentity.Posizioni`), non dalla sola principale: dominio =
+  unione dei domini, antenati posizione per posizione, ★ su ogni posizione dell'ente, scalo di ogni posizione;
+  vale per frequenze, coordinamenti, AoR, configurazioni e minime. Via le ultime letture degli APP dal settore:
+  `ScopeOf`, «Nuovo documento» (solo l'ente dice «ha già un documento»), e `CreateDocumentAsync` che rifiuta un APP
+  non remotizzato nello scope. Restano di proposito il ponte, gli orfani (vIPI ACC) e il vSOP militare. Test +3
+  (Infrastructure 2003), tutti ROSSI sul codice di prima; uno portato alla regola nuova (sceglieva `LIRP_APP` come
+  «primo settore libero»). Niente migrazione. Codice comune `Vipi.Application`. Opzionale non fatto: vIPI ACC
+  legata all'ACC. Carta `docs/feature/2026-09-29-enti-atc.md` §5.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
