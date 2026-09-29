@@ -180,9 +180,16 @@ public sealed class AppDocumentService : IAppDocumentService
         // Authz PRIMA dell'uscita anticipata: sui documenti già migrati il metodo non verificava nulla.
         _authz.EnsureAtLeast(VipiRole.Editor);
         if (id.DocumentId is int existing) return existing;   // già migrato
-        return await _editing.EnsureVipiDocumentAsync(id.SectorId, id.Title, Language.It, SectionProfile.App,
-            _authz.CurrentUserId ?? 0, ct);
+        // Il documento nasce dell'ENTE (S49), e l'ente nasce con lui se ancora non c'è.
+        return await _apps.EnsureDocumentAsync(id, _authz.CurrentUserId ?? 0, ct);
     }
+
+    /// <summary>
+    /// Da dove parte la derivazione: la posizione principale dell'ente, non la chiave dell'indirizzo (S49). Per
+    /// Pratica di Mare l'indirizzo dice <c>LIRE_APP</c> (il codice) e la posizione è <c>LIRE_TWR</c>.
+    /// </summary>
+    private async Task<string> SemeAsync(string appCallsign, CancellationToken ct) =>
+        (await _apps.ResolveForDocumentAsync(Norm(appCallsign), ct))?.Seme ?? Norm(appCallsign);
 
     // Override derivati (link/ordine freq, template coord) dal DocumentProfile del documento dell'APP; vuoti se non migrato.
     private async Task<DocumentProfileData> LoadOverridesAsync(string appCallsign, CancellationToken ct)
@@ -194,10 +201,11 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<IReadOnlyList<AppFreqRow>> DeriveFrequenciesAsync(string appCallsign, CancellationToken ct = default)
     {
         appCallsign = Norm(appCallsign);
+        var seme = await SemeAsync(appCallsign, ct);
         var topo = await _topology.BuildGlobalAsync(ct);
-        var domain = topo.DomainOf(appCallsign);
-        var ancestors = topo.Ancestors(appCallsign).ToList();
-        var catalog = await _apps.DeriveCatalogFrequenciesAsync(appCallsign, domain, ancestors, ct);
+        var domain = topo.DomainOf(seme);
+        var ancestors = topo.Ancestors(seme).ToList();
+        var catalog = await _apps.DeriveCatalogFrequenciesAsync(seme, domain, ancestors, ct);
 
         var overrides = await LoadOverridesAsync(appCallsign, ct);
         var links = await _apps.ResolveFreqLinksAsync(overrides.FreqLinkSectorIds, ct);
@@ -215,7 +223,7 @@ public sealed class AppDocumentService : IAppDocumentService
 
         // Il doc copre l'intero dominio di gerarchia (primario + figli APP), come le frequenze: i coordinamenti
         // sono l'union dei flussi di tutti i settori del dominio (semantica del derive ACC su MemberCallsigns).
-        var domain = (await _topology.BuildGlobalAsync(ct)).DomainOf(appCallsign);
+        var domain = (await _topology.BuildGlobalAsync(ct)).DomainOf(await SemeAsync(appCallsign, ct));
 
         var flows = await _transfers.ListFlowsByAccAsync(accCode, ct);
         var types = await _apps.GetSectorTypeMapAsync(ct);
@@ -270,8 +278,9 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public async Task<MinimaView> DeriveMinimaAsync(string appCallsign, CancellationToken ct = default)
     {
-        // Un APP standalone è UN aeroporto: la sua carta è il file di quell'ICAO, e l'ICAO lo dice il callsign.
-        var app = Norm(appCallsign);
+        // Un APP standalone è UN aeroporto: la sua carta è il file di quell'ICAO, e l'ICAO lo dice la posizione
+        // principale dell'ente.
+        var app = await SemeAsync(appCallsign, ct);
         return await MinimaCharts.ForPositionsAsync(_minima, new[] { app }, ct);
     }
 
@@ -286,7 +295,7 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<AccAorView> GetAorViewAsync(string appCallsign, AorExtraShapes custom,
         IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
     {
-        var app = Norm(appCallsign);
+        var app = await SemeAsync(appCallsign, ct);
         var sectors = new List<AccSectorAor>();
         custom ??= new AorExtraShapes();
 
@@ -294,8 +303,10 @@ public sealed class AppDocumentService : IAppDocumentService
         var topo = await _topology.BuildGlobalAsync(ct);
         var domain = topo.DomainOf(app);
         var types = await _apps.GetSectorTypeMapAsync(ct);
+        // ⚠️ La posizione principale entra SEMPRE, di qualunque tipo sia: a Pratica è una torre (LIRE_TWR, S49).
         var appCallsigns = domain
-            .Where(cs => types.TryGetValue(cs, out var t) && t == SectorType.App)
+            .Where(cs => (types.TryGetValue(cs, out var t) && t == SectorType.App)
+                         || string.Equals(cs, app, StringComparison.OrdinalIgnoreCase))
             .OrderBy(cs => string.Equals(cs, app, StringComparison.OrdinalIgnoreCase) ? 0 : 1)   // primario per primo
             .ThenBy(cs => cs, StringComparer.OrdinalIgnoreCase);
 
@@ -451,7 +462,8 @@ public sealed class AppDocumentService : IAppDocumentService
         var types = await _apps.GetSectorTypeMapAsync(ct);
         var names = await _apps.GetSectorNameMapAsync(ct);
         return domain
-            .Where(cs => types.TryGetValue(cs, out var t) && t == SectorType.App)
+            .Where(cs => (types.TryGetValue(cs, out var t) && t == SectorType.App)
+                         || string.Equals(cs, app, StringComparison.OrdinalIgnoreCase))
             .OrderBy(cs => string.Equals(cs, app, StringComparison.OrdinalIgnoreCase) ? 0 : 1)   // primario per primo
             .ThenBy(cs => cs, StringComparer.OrdinalIgnoreCase)
             .Select(cs => (cs, names.GetValueOrDefault(cs, cs)))
@@ -460,7 +472,7 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public async Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string appCallsign, CancellationToken ct = default)
     {
-        var app = Norm(appCallsign);
+        var app = await SemeAsync(appCallsign, ct);
         return (await AppSectorsOfAsync(app, ct)).Select(s => new AccSectorPick(s.Callsign, s.Name)).ToList();
     }
 
@@ -484,7 +496,7 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(
         string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
     {
-        var app = Norm(appCallsign);
+        var app = await SemeAsync(appCallsign, ct);
         if (configs is null || configs.Count == 0) return Array.Empty<AccConfigTableView>();
 
         var topo = await _topology.BuildGlobalAsync(ct);

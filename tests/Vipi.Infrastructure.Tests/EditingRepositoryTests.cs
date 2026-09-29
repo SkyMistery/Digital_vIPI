@@ -249,9 +249,13 @@ public class EditingRepositoryTests : IAsyncLifetime
             Assert.Equal(SectionCatalog.IsHostRendered(SectionProfile.App, d.Key), haBlocchi);
         }
 
+        // Il documento è dell'ENTE (S49), nato col nominativo del settore come codice e prima posizione; il
+        // settore non lo porta.
         var linked = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Id == sec);
-        Assert.Equal(docId, linked.DocumentId);
-        Assert.True(linked.IsPrimary);
+        Assert.Null(linked.DocumentId);
+        var ente = await new EfAtcUnitRepository(_db).FindAsync(linked.Callsign);
+        Assert.Equal(docId, ente!.DocumentId);
+        Assert.Equal(new[] { linked.Callsign.ToUpperInvariant() }, ente.Positions);
 
         // Idempotente: seconda chiamata ritorna lo stesso documento, senza duplicare sezioni.
         Assert.Equal(docId, await _repo.EnsureVipiDocumentAsync(sec, "altro titolo", Language.It, SectionProfile.App, authorUserId: 9));

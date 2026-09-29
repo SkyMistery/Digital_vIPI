@@ -63,6 +63,7 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
         _db.Airports.Add(new Airport { Icao = "LIPI", Name = "Rivolto", Acc = lirr, MilDocumentId = milDoc });
 
         await _db.SaveChangesAsync();
+        await new EfDocumentMaintenance(_db).LinkAppUnitsAsync();   // S49: la vIPI APP passa all'ente, come all'avvio
     }
 
     private async Task<int> NewVipiDocAsync(string title, DocumentEdition edizione = DocumentEdition.Civil)

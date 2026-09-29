@@ -40,6 +40,7 @@ public sealed class EfChangesRepository : IChangesRepository
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             // L'aeroporto descritto: da qui il descrittore prende ICAO e ACC (vedi AirportReleaseTarget).
             .Include(d => d.Airport).ThenInclude(a => a!.Acc)
+            .Include(d => d.AtcUnit).ThenInclude(u => u!.Acc)
             // ⚠️ E quello dell'edizione MILITARE: legame diverso, navigazione diversa. Senza, il documento
             // militare non viene descritto da nessuno e sparisce di qui in silenzio — la spiegazione lunga
             // sta su `EfDocumentAdminRepository.ListAsync`, che fa la stessa query.

@@ -238,8 +238,11 @@ else
                         && string.Equals(m.AccCode, accCode, StringComparison.OrdinalIgnoreCase))
             .Select(m => m.Scope)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // ⚠️ Senza il filtro sullo stato IVAO dell'APP (S49): il documento è dell'ENTE, e la sua chiave pubblicata è
+        // il codice — il nominativo del settore da cui l'ente è nato. Un APP spuntato «remotizzato» che ha ancora il
+        // suo documento resta in elenco.
         var standalone = all
-            .Where(s => s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone && published.Contains(s.Callsign))
+            .Where(s => published.Contains(s.Callsign))
             .ToList();
         var standaloneIds = standalone.Select(s => s.Id).ToHashSet();
         var byId = all.ToDictionary(s => s.Id);

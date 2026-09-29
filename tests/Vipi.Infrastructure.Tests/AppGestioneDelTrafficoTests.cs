@@ -59,6 +59,7 @@ public class AppGestioneDelTrafficoTests : IAsyncLifetime
         };
         _db.DocumentVersions.Add(ver);
         await _db.SaveChangesAsync();
+        if (standalone) await new EfDocumentMaintenance(_db).LinkAppUnitsAsync();   // S49: la vIPI APP passa all'ente, come all'avvio
 
         var ordine = 0;
         foreach (var (k, t) in new[]

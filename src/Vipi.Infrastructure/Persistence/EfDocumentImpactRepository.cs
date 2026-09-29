@@ -146,6 +146,11 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             .Where(s => s.DocumentId != null && list.Contains(s.Callsign))
             .Select(s => s.DocumentId!.Value)
             .ToListAsync(ct);
+        // La vIPI APP la porta l'ENTE, per ogni sua posizione (S49): nessun settore APP la porta più.
+        ids.AddRange(await _db.AtcUnitPositions.AsNoTracking()
+            .Where(p => list.Contains(p.Callsign) && p.AtcUnit!.DocumentId != null)
+            .Select(p => p.AtcUnit!.DocumentId!.Value)
+            .ToListAsync(ct));
 
         var icaos = await _db.AirportSectors.AsNoTracking()
             .Where(s => list.Contains(s.ComposePosition))
@@ -368,6 +373,11 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             .Select(a => a.Acc!.Code)
             .FirstOrDefaultAsync(ct);
         if (daAeroporto is not null) return daAeroporto;
+
+        // La vIPI APP: l'ACC è quello dell'ENTE (S49).
+        var daEnte = await _db.AtcUnits.AsNoTracking()
+            .Where(u => u.DocumentId == documentId).Select(u => u.Acc!.Code).FirstOrDefaultAsync(ct);
+        if (daEnte is not null) return daEnte;
 
         return await _db.DocumentParties.AsNoTracking()
             .Where(p => p.DocumentId == documentId && p.Role == PartyRole.Home

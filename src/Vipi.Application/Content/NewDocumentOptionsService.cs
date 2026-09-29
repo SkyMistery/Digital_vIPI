@@ -70,11 +70,16 @@ public sealed class NewDocumentOptionsService : INewDocumentOptionsService
 {
     private readonly IStructureEditingRepository _repo;
     private readonly IEditAuthorizationService _authz;
+    private readonly IAtcUnitRepository? _enti;
 
-    public NewDocumentOptionsService(IStructureEditingRepository repo, IEditAuthorizationService authz)
+    /// <param name="enti">Gli enti ATC: dicono quali APP hanno già una vIPI (S49). Opzionale per i test che non li
+    /// usano: senza, l'elenco dice «senza documento» per tutti — la creazione resta comunque idempotente.</param>
+    public NewDocumentOptionsService(IStructureEditingRepository repo, IEditAuthorizationService authz,
+        IAtcUnitRepository? enti = null)
     {
         _repo = repo;
         _authz = authz;
+        _enti = enti;
     }
 
     /// <summary>Prefisso ICAO degli ACC di casa: gli altri sono «esteri» e possono solo fare da Neighbour.</summary>
@@ -85,6 +90,14 @@ public sealed class NewDocumentOptionsService : INewDocumentOptionsService
         var accs = await _repo.ListAccsAsync(ct);
         var sectors = await _repo.ListSectorNodesAsync(ct);
         var airports = await _repo.ListAllAirportsAsync(ct);
+        // ⚠️ «Ha già un documento», per un APP, lo dice l'ENTE (S49): nessun settore porta più la vIPI APP.
+        var conDocumento = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (_enti is not null)
+            foreach (var u in await _enti.ListAsync(null, ct))
+                if (u.DocumentId is not null)
+                    foreach (var cs in u.Positions.Prepend(u.Code)) conDocumento.Add(cs);
+        NewDocumentTarget Bersaglio(GlobalSectorRow s) =>
+            new(s.Id, s.Callsign, s.Callsign, s.DocumentId is not null || conDocumento.Contains(s.Callsign));
 
         var miei = new List<NewDocumentAcc>();
 
@@ -119,11 +132,6 @@ public sealed class NewDocumentOptionsService : INewDocumentOptionsService
 
         return new NewDocumentOptions(miei, esteri);
     }
-
-    /// <summary>Il dato «ha già un documento» viene da chi lo possiede: il settore lo tiene in
-    /// <c>DocumentId</c>, e non serve una seconda lettura dell'elenco documenti per dedurlo.</summary>
-    private static NewDocumentTarget Bersaglio(GlobalSectorRow s) =>
-        new(s.Id, s.Callsign, s.Callsign, s.DocumentId is not null);
 
     private static bool Nazionale(AccRow a) =>
         string.Equals(a.CountryPrefix, PrefissoNazionale, StringComparison.OrdinalIgnoreCase) && a.Sectors > 0;

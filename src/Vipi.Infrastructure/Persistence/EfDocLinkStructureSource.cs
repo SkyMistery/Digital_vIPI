@@ -42,13 +42,27 @@ internal sealed class EfDocLinkStructureSource : IDocLinkStructureSource
 
         // Gli APP d'anagrafica. ⚠️ Un APP disattivato non ha pagina pubblica (EfContentRepository.LoadAppAsync
         // vuole IsActive): come candidato porterebbe a «documento non disponibile».
+        // 🔴 Il documento lo dice l'ENTE (S49), non il settore: per il suo codice e per ognuna delle sue posizioni,
+        // di qualunque tipo (LIRE_TWR) e qualunque cosa dica IVAO dell'APP. La sua pagina non chiude quando una
+        // posizione sparisce, quindi l'ente entra anche senza settori attivi.
+        var dellEnte = new Dictionary<string, (int? Doc, string Acc)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var u in await _db.AtcUnits.AsNoTracking()
+                     .Where(u => u.Mode == AtcUnitMode.OwnDocument)
+                     .Select(u => new { u.Code, u.DocumentId, Acc = u.Acc!.Code, Pos = u.Positions.Select(p => p.Callsign).ToList() })
+                     .ToListAsync(ct))
+            foreach (var cs in u.Pos.Prepend(u.Code))
+                dellEnte.TryAdd(cs, (u.DocumentId, u.Acc));
+
         var app = new Dictionary<string, DocLinkApp>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in await _db.Sectors.AsNoTracking()
                      .Where(s => s.Type == SectorType.App && s.IsActive)
-                     .Select(s => new { s.Callsign, s.ApproachKind, s.DocumentId, Acc = s.Acc!.Code })
+                     .Select(s => new { s.Callsign, s.ApproachKind, Acc = s.Acc!.Code })
                      .ToListAsync(ct))
-            app.TryAdd(s.Callsign, new DocLinkApp(s.Callsign, s.ApproachKind == ApproachKind.Remotized,
-                s.ApproachKind == ApproachKind.Remotized ? null : s.DocumentId, s.Acc));
+            app.TryAdd(s.Callsign, dellEnte.TryGetValue(s.Callsign, out var e)
+                ? new DocLinkApp(s.Callsign, false, e.Doc, s.Acc)
+                : new DocLinkApp(s.Callsign, s.ApproachKind == ApproachKind.Remotized, null, s.Acc));
+        foreach (var (cs, e) in dellEnte)
+            app.TryAdd(cs, new DocLinkApp(cs, false, e.Doc, e.Acc));
 
         return new DocLinkStructure(padri, centri, scali, app);
     }

@@ -59,6 +59,14 @@ public class Document
     public Airport? MilAirport { get; set; }
 
     /// <summary>
+    /// L'ente di cui questo documento è la vIPI APP (<c>AtcUnit.DocumentId</c>). null per aeroporti, ACC e vLOA.
+    /// <para>Serve a <c>IReleaseTarget.TryDescribe</c>, che decide guardando il documento in mano: fino al 29
+    /// settembre 2026 guardava il settore primario, e un APP diventato «remotizzato» rendeva il suo documento
+    /// irraggiungibile.</para>
+    /// </summary>
+    public AtcUnit? AtcUnit { get; set; }
+
+    /// <summary>
     /// I settori di cui questo documento è l'edizione <b>militare</b> (<c>Sector.MilDocumentId</c>).
     /// <para>⚠️ Sono una collezione DIVERSA da <see cref="Sectors"/>: quelli puntano al documento col
     /// legame civile. Cercare il settore primario di un documento militare dentro <c>Sectors</c> non

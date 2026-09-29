@@ -46,6 +46,7 @@ public class AppRoutingTests : IAsyncLifetime
         app.DocumentId = doc.Id;
         app.IsPrimary = true;
         await _db.SaveChangesAsync();
+        await new EfDocumentMaintenance(_db).LinkAppUnitsAsync();   // S49: la vIPI APP passa all'ente, come all'avvio
 
         var repo = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var summaries = await repo.ListDocumentsAsync();

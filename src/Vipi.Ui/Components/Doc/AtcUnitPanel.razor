@@ -1,0 +1,157 @@
+@* L'ENTE della vIPI APP (S49, committente, 29 settembre 2026): a chi appartiene il documento e con quali posizioni
+   IVAO. Il documento è dell'ente, non di un nominativo: a Pratica di Mare si aggiunge LIRE_TWR, la si fa principale
+   e si toglie LIRE_APP, e documento e pubblicazioni restano dove sono.
+
+   ⚠️ SCOPE PROPRIO e caricamenti in fila, come il pannello dell'unione: qui si SCRIVE, e un servizio di scrittura
+   preso col circuito è il difetto già pagato tre volte.
+   ⚠️ I comandi si accendono solo IN MODIFICA, come tutti gli altri dell'editor. *@
+@inherits Vipi.Ui.ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<SharedResource> L
+
+@if (_ente is not null)
+{
+    <div class="rel-panel" id="sec-ente">
+        <div class="doc-head" style="margin:0 0 10px">
+            <h3 class="h-card" style="margin:0">@L["Unit_Title"]
+                <HelpHint ExtraClass="wide">@L["Unit_Help"]</HelpHint>
+            </h3>
+        </div>
+
+        @if (_errore is { Length: > 0 })
+        {
+            <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+        }
+
+        <p class="muted" style="margin:0 0 6px">@L["Unit_CodeLine", _ente.Name, _ente.Code]</p>
+
+        @if (_ente.Positions.Count == 0)
+        {
+            <p class="muted">@L["Unit_NoPositions"]</p>
+        }
+        else
+        {
+            <ol class="union-list unit-positions">
+                @for (var i = 0; i < _ente.Positions.Count; i++)
+                {
+                    var cs = _ente.Positions[i];
+                    var principale = i == 0;
+                    <li>
+                        <b>@cs</b>
+                        @if (principale)
+                        {
+                            <span class="pill neutral" title="@L["Unit_PrimaryTitle"]">@L["Unit_Primary"]</span>
+                        }
+                        @if (IsEditing)
+                        {
+                            <span class="union-cmds">
+                                @if (!principale)
+                                {
+                                    <button class="btn ghost" disabled="@_busy" title="@L["Unit_MakePrimary"]"
+                                            @onclick="() => Principale(cs)">@L["Unit_MakePrimary"]</button>
+                                }
+                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Unit_Remove"]"
+                                               AriaLabel="@L["Unit_Remove"]" Prompt="@L["Unit_RemovePrompt", cs]"
+                                               ConfirmLabel="@L["Unit_RemoveYes"]" CancelLabel="@L["Common_Close"]"
+                                               Disabled="@_busy" OnConfirm="() => Togli(cs)">
+                                    <Trigger>✕</Trigger>
+                                </InlineConfirm>
+                            </span>
+                        }
+                    </li>
+                }
+            </ol>
+        }
+
+        @if (IsEditing)
+        {
+            <div class="union-add">
+                <label for="unit-add-@Key">@L["Unit_AddLabel"]</label>
+                <CampoTesto id="@($"unit-add-{Key}")" class="app-in" type="text" autocomplete="off"
+                            placeholder="LIRE_TWR" aria-label="@L["Unit_AddLabel"]"
+                            Valore="@_nuova" OnInput="e => _nuova = e.Value?.ToString() ?? string.Empty" disabled="@_busy" />
+                <button class="btn primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_nuova))"
+                        @onclick="Aggiungi">@L["Unit_AddAction"]</button>
+            </div>
+        }
+        else
+        {
+            <p class="muted" style="margin-top:8px">@L["Unit_EditToChange"]</p>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>La chiave della vIPI APP: il codice dell'ente (o, finché l'ente non c'è, il nominativo dell'APP).</summary>
+    [Parameter, EditorRequired] public string Key { get; set; } = "";
+
+    /// <summary>Vero mentre l'editor è in modifica: i comandi si accendono solo allora.</summary>
+    [Parameter] public bool IsEditing { get; set; }
+
+    /// <summary>L'host ricarica: le posizioni decidono frequenze, AoR e coordinamenti del documento.</summary>
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private IAtcUnitService _enti = default!;
+    private AtcUnitRow? _ente;
+    private string _nuova = "";
+    private string? _errore;
+    private bool _busy;
+    private string _caricato = "";
+
+    protected override void OnInitialized() => _enti = ScopedServices.GetRequiredService<IAtcUnitService>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // La guardia PRIMA dell'await, come nel pannello dell'unione: ogni ridisegno richiama questo metodo.
+        var chiave = $"{Key}|{IsEditing}";
+        if (_caricato == chiave) return;
+        _caricato = chiave;
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                if (_caricato == chiave) _ente = await _enti.FindAsync(Key);
+            });
+        }
+        catch (Exception ex)
+        {
+            _errore = L["Common_UnexpectedError"] + ex.Message;
+            _caricato = "";
+        }
+    }
+
+    private Task Aggiungi() => EseguiAsync(async () =>
+    {
+        await _enti.AddPositionAsync(_ente!.Id, _nuova);
+        _nuova = "";
+    });
+
+    private Task Togli(string cs) => EseguiAsync(() => _enti.RemovePositionAsync(_ente!.Id, cs));
+
+    private Task Principale(string cs) => EseguiAsync(() => _enti.MakePrimaryAsync(_ente!.Id, cs));
+
+    /// <summary>Un gesto: in fila col caricamento, l'errore a schermo e non nel circuito, poi rilettura e host.</summary>
+    private async Task EseguiAsync(Func<Task> gesto)
+    {
+        if (_ente is null) return;
+        _busy = true;
+        _errore = null;
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                await gesto();
+                _ente = await _enti.FindAsync(Key);
+            });
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _errore = ex is Vipi.Application.Aor.ValidationException ? ex.Message : L["Common_UnexpectedError"] + ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

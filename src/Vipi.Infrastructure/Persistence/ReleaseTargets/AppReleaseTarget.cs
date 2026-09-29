@@ -6,7 +6,14 @@ using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence.ReleaseTargets;
 
-/// <summary>Descrittore APP standalone (doc 09 §3a). Chiave di release = callsign del settore APP primario; ACC = quello del settore.</summary>
+/// <summary>
+/// Descrittore della vIPI APP (doc 09 §3a). Chiave di release = il <b>codice dell'ente</b>; ACC = quello dell'ente.
+/// <para>🔴 Fino al 29 settembre 2026 (S49) decideva dal settore APP primario del documento: un APP spuntato
+/// «remotizzato», o un documento spostato su una torre, non era più riconosciuto — e il documento cadeva nel
+/// descrittore d'aeroporto con l'ICAO vuoto, cioè diventava irraggiungibile. Il codice dell'ente, per gli enti
+/// nati dal legame vecchio, è il nominativo che portava il documento: le chiavi già pubblicate restano quelle.</para>
+/// <para>⚠️ Chi chiama <see cref="TryDescribe"/> deve caricare <c>.Include(d => d.AtcUnit).ThenInclude(u => u!.Acc)</c>.</para>
+/// </summary>
 public sealed class AppReleaseTarget : IReleaseTarget
 {
     private readonly VipiDbContext _db;
@@ -15,14 +22,15 @@ public sealed class AppReleaseTarget : IReleaseTarget
     public ReleaseTargetType Type => ReleaseTargetType.App;
     public int DescribeOrder => 2;
 
-    public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
-        await _db.Sectors.AsNoTracking()
-            .Where(s => s.Callsign == key && s.Type == SectorType.App
-                        && s.ApproachKind == ApproachKind.Standalone && s.DocumentId != null)
-            .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
+    public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default)
+    {
+        var ente = await new EfAtcUnitRepository(_db).FindAsync(key, ct);
+        return ente is { Mode: AtcUnitMode.OwnDocument } ? ente.DocumentId : null;
+    }
 
     public async Task<string?> AuthAccCodeAsync(string key, CancellationToken ct = default) =>
-        await _db.Sectors.AsNoTracking()
+        (await new EfAtcUnitRepository(_db).FindAsync(key, ct))?.AccCode
+        ?? await _db.Sectors.AsNoTracking()
             .Where(s => s.Callsign == key).Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
 
     public bool TryDescribe(Document doc, bool hasDraft, out ManagedDoc managed)
@@ -36,11 +44,10 @@ public sealed class AppReleaseTarget : IReleaseTarget
         // difese indipendenti, ognuna sufficiente -- la stessa forma delle guardie sulle corse del context.
         if (doc.Edition != DocumentEdition.Civil) return false;
 
-        var primary = doc.Sectors.FirstOrDefault(s => s.IsPrimary) ?? doc.Sectors.FirstOrDefault();
-        if (primary is not { Type: SectorType.App, ApproachKind: ApproachKind.Standalone }) return false;
-        managed = new ManagedDoc(ReleaseTargetType.App, doc.Title, primary.Callsign, primary.Acc?.Code,
+        if (doc.AtcUnit is not { Mode: AtcUnitMode.OwnDocument } ente) return false;
+        managed = new ManagedDoc(ReleaseTargetType.App, doc.Title, ente.Code, ente.Acc?.Code,
             doc.Status == DocumentStatus.Published, hasDraft, doc.IsHidden,
-            ReleaseTargetType.App, primary.Callsign, doc.Id);
+            ReleaseTargetType.App, ente.Code, doc.Id);
         return true;
     }
 }

@@ -53,6 +53,7 @@ public class ContentReleaseVisibilityTests : IAsyncLifetime
         _db.Sectors.Add(new Sector { Acc = acc, Callsign = callsign, Name = callsign, Type = SectorType.App, Kind = SectorKind.Airport, ApproachKind = ApproachKind.Standalone, IsActive = true, DocumentId = doc.Id, IsPrimary = true });
         // Document resta Draft: CurrentVersionId NON impostato.
         await _db.SaveChangesAsync();
+        await new EfDocumentMaintenance(_db).LinkAppUnitsAsync();   // S49: la vIPI APP passa all'ente, come all'avvio
         return callsign;
     }
 
@@ -103,8 +104,12 @@ public class ContentReleaseVisibilityTests : IAsyncLifetime
     /// <para>Che sullo scalo lo stesso gesto funzionasse davvero è ciò che rendeva difficile accorgersene.</para>
     /// </summary>
     [Fact]
-    public async Task AppDisattivatoDallaProiezione_NonSiServeAlPubblico_MaResta_InAnteprima()
+    public async Task AppDisattivatoDallaProiezione_LaVipiDellEnteResta_SiChiudeNascondendoIlDocumento()
     {
+        // 🔴 S49 (29 settembre 2026): la vIPI APP è dell'ENTE, e non dipende più dai nominativi IVAO. Fino ad allora
+        // una posizione disattivata chiudeva la pagina (R-024); oggi a Pratica di Mare LIRE_APP può sparire prima che
+        // qualcuno aggiunga LIRE_TWR all'ente, e il documento non deve andarsene con lei. La sparizione arriva come
+        // segnalazione sul documento; per chiudere la pagina si nasconde il documento.
         var app = await SeedDraftAppAsync("LIPY_APP", "Tecnica operativa", "Testo");
 
         var json = (await _releases.SnapshotWorkingAsync(ReleaseTargetType.App, app, "2607"))!;
@@ -118,11 +123,13 @@ public class ContentReleaseVisibilityTests : IAsyncLifetime
         settore.IsActive = false;   // è ciò che fa la proiezione quando l'admin nasconde, o la sorgente tace
         await _db.SaveChangesAsync();
 
-        Assert.Null(await _content.LoadAppVipiAsync(app));
+        Assert.NotNull(await _content.LoadAppVipiAsync(app));
 
-        // L'anteprima dell'editor continua a vedere la bozza: disattivare una posizione chiude la porta
-        // pubblica, non il lavoro di chi la cura. (`ignoreRelease` da solo non basta a vederla, ma per una
-        // ragione sua e più vecchia: il documento è Draft, e senza release non c'è versione pubblicata.)
+        var doc = await _db.Documents.FirstAsync(d => d.AtcUnit!.Code == app);
+        doc.IsHidden = true;
+        await _db.SaveChangesAsync();
+        Assert.Null(await _content.LoadAppVipiAsync(app));
+        // L'anteprima dell'editor continua a vedere la bozza.
         Assert.NotNull(await _content.LoadAppVipiAsync(app, preferWorking: true));
     }
 

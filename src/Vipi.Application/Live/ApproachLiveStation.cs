@@ -30,11 +30,17 @@ public sealed class ApproachLiveStation : ILiveStationKind
 
     public int Priority => 20;
 
-    public bool Matches(LiveStationContext ctx) => ctx.Sector.Type == SectorType.App;
+    /// <summary>Un APP, oppure una posizione di qualunque tipo che appartiene a un ENTE con documento proprio (S49):
+    /// a Pratica di Mare la torre fa l'avvicinamento, e chi è su LIRE_TWR vede la vIPI dell'ente.</summary>
+    public bool Matches(LiveStationContext ctx) => ctx.Sector.Type == SectorType.App || ctx.UnitCode is not null;
 
     public async Task<LiveView> BuildAsync(LiveStationContext ctx, CancellationToken ct = default)
     {
-        var standalone = ctx.Sector.ApproachKind == ApproachKind.Standalone;
+        // Documento proprio: quello dell'ENTE se la posizione ne ha uno (qualunque cosa dica IVAO dell'APP — un
+        // APP spuntato «remotizzato» che ha ancora il suo documento lo tiene), altrimenti un APP non remotizzato
+        // che il documento non l'ha ancora.
+        var standalone = ctx.UnitCode is not null || ctx.Sector.ApproachKind == ApproachKind.Standalone;
+        var chiave = ctx.UnitCode ?? ctx.Callsign;
 
         var view = new LiveView
         {
@@ -50,12 +56,12 @@ public sealed class ApproachLiveStation : ILiveStationKind
 
         if (standalone)
         {
-            var identity = await _appDoc.GetIdentityAsync(ctx.Callsign, ct);
+            var identity = await _appDoc.GetIdentityAsync(chiave, ct);
             return view with
             {
                 Title = identity is null || string.IsNullOrWhiteSpace(identity.Title) ? ctx.Callsign : identity.Title,
-                Frequencies = await _appDoc.DeriveFrequenciesAsync(ctx.Callsign, ct),
-                ExtendedDoc = new LiveDocRef(ReleaseTargetType.App, ctx.Acc.Code, ctx.Callsign),
+                Frequencies = await _appDoc.DeriveFrequenciesAsync(chiave, ct),
+                ExtendedDoc = new LiveDocRef(ReleaseTargetType.App, ctx.Acc.Code, identity?.Code ?? chiave),
                 NoDocument = identity is null,
             };
         }

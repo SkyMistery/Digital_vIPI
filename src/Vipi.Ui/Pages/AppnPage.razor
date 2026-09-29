@@ -13,6 +13,7 @@
 @inject IAiracService Airac
 @inject StringheDelSito Sito
 @inject EnglishStrings En
+@inject IAtcUnitRepository Enti
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
@@ -186,6 +187,14 @@ else
         _app = (App ?? "").Trim().ToUpperInvariant();
         _doc = null;
         if (string.IsNullOrWhiteSpace(_app)) return;
+
+        // L'indirizzo canonico dice il CODICE dell'ente (S49): è la chiave sotto cui è pubblicato. Arrivando da una
+        // sua posizione (?app=LIRE_TWR) si passa al codice, e da lì in giù ogni lettura vede la stessa chiave.
+        if (await Enti.FindAsync(_app) is { } ente && !string.Equals(ente.Code, _app, StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo(Nav.GetUriWithQueryParameter("app", ente.Code), replace: true);
+            return;
+        }
 
         _mil = Stations.AirportOfCallsign(_app);
         _canEdit = Authz.IsEditor;

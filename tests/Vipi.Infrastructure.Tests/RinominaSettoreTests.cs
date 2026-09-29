@@ -219,14 +219,24 @@ public class RinominaSettoreTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Le_chiavi_di_release_seguono_nelle_due_forme()
+    public async Task La_chiave_della_vipi_acc_segue_quella_della_vipi_app_resta_sul_codice_dell_ente()
     {
+        // 🔴 S49 (29 settembre 2026): la vIPI APP è dell'ENTE, pubblicata sotto il suo CODICE, che non cambia mai.
+        // Riscriverne la chiave la staccherebbe dall'ente; segue invece la POSIZIONE dell'ente.
+        await new EfDocumentMaintenance(_db).LinkAppUnitsAsync();
+
         await Rinomina();
 
-        var chiavi = await _db.DocReleases.AsNoTracking().Select(r => r.TargetKey).ToListAsync();
-        Assert.Contains(Nuovo, chiavi);              // App: il callsign nudo
-        Assert.Contains($"LIRR|{Nuovo}", chiavi);    // AccVipi: {acc}|{callsign}
-        Assert.DoesNotContain(chiavi, k => k.Contains(Vecchio));
+        var chiavi = await _db.DocReleases.AsNoTracking().Select(r => new { r.TargetType, r.TargetKey }).ToListAsync();
+        Assert.Contains(chiavi, k => k.TargetType == ReleaseTargetType.App && k.TargetKey == Vecchio);
+        Assert.Contains(chiavi, k => k.TargetType == ReleaseTargetType.AccVipi && k.TargetKey == $"LIRR|{Nuovo}");
+        Assert.DoesNotContain(chiavi, k => k.TargetType == ReleaseTargetType.AccVipi && k.TargetKey.Contains(Vecchio));
+
+        var ente = await new EfAtcUnitRepository(_db).FindAsync(Nuovo);
+        Assert.NotNull(ente);
+        Assert.Equal(Vecchio, ente!.Code);
+        Assert.Equal(new[] { Nuovo }, ente.Positions);
+        Assert.Equal(_docId, ente.DocumentId);
     }
 
     /// <summary>

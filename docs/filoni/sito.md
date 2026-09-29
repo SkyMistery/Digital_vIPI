@@ -1560,5 +1560,17 @@
   Test +8 (import, ponte, generazione, segnalazione; i 4 del comportamento nuovo ROSSI sul codice di prima), 4
   riscritti sulla regola nuova. Infrastructure **1992**. Migrazione no. Codice comune `Vipi.Application`
   (DeletionRules, StructureEditModels, StaleCatalogRow). Resta com'è il catalogo ACC (non pota).
+- ✅ **S49** enti ATC, fase 1 (29-set, committente, ramo `fix/enti-atc`): la vIPI APP è di un **ente** (`AtcUnit`:
+  codice stabile = chiave di pubblicazione e indirizzo, nome, ACC, modo, documento; posizioni IVAO per nome, la
+  prima è la principale), non del settore APP. Casi: Pratica di Mare vuole `LIRE_TWR` (torre che fa l'APP) e non
+  `LIRE_APP`; Palermo remotizzato non deve riscrivere la vIPI. Trovato e chiuso un guasto vero: spuntare
+  «remotizzato» su un APP con vIPI la rendeva irraggiungibile (descrittore → aeroporto con ICAO vuoto). Ponte
+  d'avvio `LinkAppUnitsAsync` (copia 29-set: 18 enti), tutti i punti «è una vIPI APP» dall'ente, derivazione dalla
+  posizione principale, vista live per posizione dell'ente, `?app=` posizione → codice, rinomina IVAO che non
+  riscrive più la chiave APP, pannello «Ente» nell'editor. Scelta: la pagina APP non chiude più quando una
+  posizione sparisce (si nasconde il documento). Migrazione `EntiAtc` (SQLite+MySQL, additiva). Provato a schermo
+  sulla copia del 29-set travasata in SQLite (la guardia vieta l'identità dev su MySQL). Carta
+  `docs/feature/2026-09-29-enti-atc.md` (fasi 2 e 3). Test +6 (Infrastructure 1997, Application 3098), 10 file di test
+  portati al modello nuovo. Codice comune `Vipi.Application`, `Vipi.Domain`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

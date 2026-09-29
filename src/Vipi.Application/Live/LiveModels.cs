@@ -18,7 +18,8 @@ public sealed record LiveStationContext(
     AccInfo Acc,
     StructureData Structure,
     Topology Topology,
-    IReadOnlySet<string> Online);
+    IReadOnlySet<string> Online,
+    string? UnitCode = null);
 
 /// <summary>
 /// Chip «vista rapida aeroporto» dei tipi d'area: ICAO, se è controllato da qualcun altro online, e

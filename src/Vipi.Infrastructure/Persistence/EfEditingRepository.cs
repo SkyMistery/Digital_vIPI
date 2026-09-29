@@ -53,6 +53,7 @@ public sealed class EfEditingRepository : IEditingRepository
         var docs = await _db.Documents
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             .Include(d => d.Airport).ThenInclude(a => a!.Acc)
+            .Include(d => d.AtcUnit).ThenInclude(u => u!.Acc)
             .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .AsNoTracking()
             .ToListAsync(ct);
@@ -366,8 +367,14 @@ public sealed class EfEditingRepository : IEditingRepository
     public async Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
         SectionProfile profile, int authorUserId, CancellationToken ct = default)
     {
-        var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
+        var sector = await _db.Sectors.Include(s => s.Acc).FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
             ?? throw new InvalidOperationException(Lingua($"Settore {primarySectorId} inesistente.", $"Sector {primarySectorId} does not exist."));
+
+        // La vIPI APP nasce dell'ENTE (S49), non del settore: il nominativo è il codice dell'ente che nasce.
+        if (profile == SectionProfile.App)
+            return await new EfAtcUnitRepository(_db, _airac).EnsureDocumentAsync(sector.Callsign, title,
+                sector.Acc?.Code ?? "", profile, authorUserId, ct);
+
         if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
 
         // La nascita è condivisa con l'aeroporto (Seed/DocumentBirth): documento, prima versione bozza e le
@@ -927,7 +934,7 @@ public sealed class EfEditingRepository : IEditingRepository
                 x.Type, x.Edition,
                 Civile = x.Airport != null,
                 Militare = x.MilAirport != null,
-                App = x.Sectors.Any(z => z.IsPrimary && z.Type == SectorType.App && z.ApproachKind == ApproachKind.Standalone),
+                App = x.AtcUnit != null,   // la vIPI APP è dell'ENTE (S49)
             })
             .FirstAsync(ct);
 
@@ -1473,10 +1480,11 @@ public sealed class EfEditingRepository : IEditingRepository
     {
         // La vIPI d'aeroporto la dice l'AEROPORTO: dal 29 settembre 2026 nessuna posizione la porta più (S48).
         if (d.Airport is { } a) return a.Icao;
+        // La vIPI APP la dice l'ENTE (S49): lo scope è il suo codice, la chiave dell'editor dedicato.
+        if (d.AtcUnit is { } ente) return ente.Code;
         // Settore primario (o primo) del documento; per le vLOA niente scope settore.
         var s = d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault();
         if (s is null) return "—";
-        // APP standalone: lo scope è il callsign APP (chiave dell'editor dedicato), non l'ICAO dell'aeroporto.
         if (IsStandaloneApp(s)) return s.Callsign;
         if (s.Kind == SectorKind.Airport)
             return s.AirportIcao ?? (s.Callsign.IndexOf('_') is int us && us > 0 ? s.Callsign[..us] : s.Callsign);
@@ -1487,14 +1495,13 @@ public sealed class EfEditingRepository : IEditingRepository
     // settembre 2026 lo si deduceva dal settore primario: uno scalo senza torre (LIBG) non risultava.
     private static bool IsAirportDoc(Document d) => d.Airport is not null;
 
-    // Documento APP non remotizzato = settore primario (o primo) Type=App con ApproachKind=Standalone.
-    private static bool IsStandaloneAppDoc(Document d) =>
-        (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault()) is { } s && IsStandaloneApp(s);
+    // Documento APP non remotizzato = la vIPI di un ENTE (S49; prima: settore primario APP standalone).
+    private static bool IsStandaloneAppDoc(Document d) => d.AtcUnit is not null;
 
     private static bool IsStandaloneApp(Domain.Entities.Sector s) =>
         s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone;
 
     // ACC del settore primario (o primo): serve a costruire i link editor.
     private static string? AccCodeOf(Document d) =>
-        d.Airport?.Acc?.Code ?? (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault())?.Acc?.Code;
+        d.Airport?.Acc?.Code ?? d.AtcUnit?.Acc?.Code ?? (d.Sectors.FirstOrDefault(x => x.IsPrimary) ?? d.Sectors.FirstOrDefault())?.Acc?.Code;
 }

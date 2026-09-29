@@ -142,6 +142,7 @@ public sealed class EfCallsignRenameService : ICallsignRenameService
     private async Task<string?> RinominaAsync(CallsignRename r, CancellationToken ct)
     {
         var (vecchio, nuovo) = (r.OldCallsign, r.NewCallsign);
+        bool Stesso(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
         string? accCode;
 
         // 1. La riga di catalogo, per IDENTITÀ: è l'unica ricerca del metodo che non passa dal nominativo.
@@ -200,19 +201,29 @@ public sealed class EfCallsignRenameService : ICallsignRenameService
         }
 
         // 4. Le chiavi di release e degli incarichi (vedi il commento del tipo sul perché si riscrivono).
+        //    ⚠️ Solo la vIPI ACC. La vIPI APP dal 29 settembre 2026 (S49) è pubblicata sotto il CODICE del suo
+        //    ente, che non cambia mai: riscriverla la staccherebbe dall'ente. Cambia la posizione dell'ente (4-bis).
         var suffissoAcc = "|" + vecchio;
         foreach (var rel in await _db.DocReleases
-                     .Where(x => (x.TargetType == ReleaseTargetType.App && x.TargetKey == vecchio)
-                                 || (x.TargetType == ReleaseTargetType.AccVipi && x.TargetKey.EndsWith(suffissoAcc)))
+                     .Where(x => x.TargetType == ReleaseTargetType.AccVipi && x.TargetKey.EndsWith(suffissoAcc))
                      .ToListAsync(ct))
             rel.TargetKey = RiscriviChiave(rel.TargetKey, vecchio, nuovo);
 
         foreach (var t in await _db.EditorTasks
                      .Where(x => x.TargetKey != null
-                                 && ((x.TargetType == ReleaseTargetType.App && x.TargetKey == vecchio)
-                                     || (x.TargetType == ReleaseTargetType.AccVipi && x.TargetKey.EndsWith(suffissoAcc))))
+                                 && x.TargetType == ReleaseTargetType.AccVipi && x.TargetKey.EndsWith(suffissoAcc))
                      .ToListAsync(ct))
             t.TargetKey = RiscriviChiave(t.TargetKey!, vecchio, nuovo);
+
+        // 4-bis. La posizione dell'ENTE segue il nominativo (S49). Se il nome nuovo è già di un ente, quella resta
+        //        e questa si toglie: una posizione appartiene a un ente solo.
+        var posizione = _db.AtcUnitPositions.Local.FirstOrDefault(p => Stesso(p.Callsign, vecchio))
+                        ?? await _db.AtcUnitPositions.FirstOrDefaultAsync(p => p.Callsign == vecchio, ct);
+        if (posizione is not null)
+        {
+            if (await _db.AtcUnitPositions.AnyAsync(p => p.Callsign == nuovo, ct)) _db.AtcUnitPositions.Remove(posizione);
+            else posizione.Callsign = nuovo;
+        }
 
         // 5. Le segnalazioni APERTE che citano il vecchio nominativo come origine: chiuse o no, restano
         //    ancorate al settore, e il settore è lo stesso. Le righe già chiuse non si toccano — quelle sono
@@ -240,7 +251,6 @@ public sealed class EfCallsignRenameService : ICallsignRenameService
         //   • il vecchio ha al più UN successore: se l'alias c'è già, si aggiorna invece di aggiungerne un altro.
         // Si guarda anche fra le righe NON ancora salvate: più rinomine dello stesso giro vanno in un solo
         // SaveChanges, e una query non le vedrebbe.
-        bool Stesso(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
         foreach (var rinato in _db.CallsignAliases.Local.Where(a => Stesso(a.OldCallsign, nuovo)).ToList()
                      .Concat(await _db.CallsignAliases.Where(a => a.OldCallsign == nuovo).ToListAsync(ct))

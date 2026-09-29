@@ -29,11 +29,24 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
     private readonly IAiracService? _airac;
 
     public async Task<string?> GetAccCodeByAppAsync(string appCallsign, CancellationToken ct = default) =>
-        await _db.Sectors.Where(s => s.Callsign == appCallsign && s.Type == SectorType.App)
+        (await new EfAtcUnitRepository(_db).FindAsync(appCallsign, ct))?.AccCode
+        ?? await _db.Sectors.Where(s => s.Callsign == appCallsign && s.Type == SectorType.App)
             .Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
 
     public async Task<AppDocumentIdentity?> ResolveForDocumentAsync(string appCallsign, CancellationToken ct = default)
     {
+        // 1) L'ENTE (S49, 29 settembre 2026): per codice o per una sua posizione, qualunque sia il tipo della
+        //    posizione (LIRE_TWR) e qualunque cosa dica IVAO dell'APP. Fino ad allora qui c'era solo il settore, e
+        //    un APP spuntato «remotizzato» perdeva il documento. Un ente il cui contenuto vive nella vIPI dell'ACC
+        //    non ha una vIPI APP da mostrare.
+        var ente = await new EfAtcUnitRepository(_db).FindAsync(appCallsign, ct);
+        if (ente is not null)
+            return ente.Mode == AtcUnitMode.OwnDocument
+                ? new AppDocumentIdentity(ente.Code, ente.Seme, ente.Name, ente.AccCode, ente.DocumentId, ente.Id)
+                : null;
+
+        // 2) Un APP non remotizzato che un ente ancora non ce l'ha: l'ente nasce col documento, alla prima
+        //    apertura dell'editor (AppDocumentService.EnsureAsync).
         // Stessa superficie del viewer (doc 11 §3e): SOLO gli APP non remotizzati hanno un documento proprio.
         // Prima bastava Type == App, quindi l'editor apriva (e creava un Document per) un APP REMOTIZZATO: documento
         // che nessun viewer sa rendere («APP not found» in pubblica e in bozza). NON si filtra su IsPrimary: quel
@@ -47,8 +60,12 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
         var display = await _db.AirportSectors.AsNoTracking()
             .Where(a => a.ComposePosition == appCallsign).Select(a => a.AtcCallsign).FirstOrDefaultAsync(ct);
         var title = string.IsNullOrWhiteSpace(display) ? (string.IsNullOrWhiteSpace(s.Name) ? s.Callsign : s.Name) : display!;
-        return new AppDocumentIdentity(s.Id, s.Callsign, title, s.Acc.Code, s.DocumentId);
+        return new AppDocumentIdentity(s.Callsign, s.Callsign, title, s.Acc.Code, DocumentId: null);
     }
+
+    public Task<int> EnsureDocumentAsync(AppDocumentIdentity identity, int authorUserId, CancellationToken ct = default) =>
+        new EfAtcUnitRepository(_db, _airac).EnsureDocumentAsync(identity.Code, identity.Title, identity.AccCode,
+            SectionProfile.App, authorUserId, ct);
 
     public async Task<IReadOnlyList<AppFreqRow>> ResolveFreqLinksAsync(IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default)
     {
@@ -171,8 +188,11 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
                 .Select(s => new { s.Callsign, s.Type, s.DefaultFrequency })
                 .ToListAsync(ct);
             var byCs = anc.ToDictionary(s => s.Callsign, StringComparer.OrdinalIgnoreCase);
+            // ⚠️ Un antenato già elencato fra le posizioni dello scalo non si ripete (S49): quando la derivazione parte
+            // dalla torre di un ente (LIRE_TWR), l'APP dello stesso scalo è insieme posizione dello scalo e suo padre.
+            var giaElencati = ordered.Select(r => r.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var cs in ancestorCallsigns)   // preserva l'ordine vicino→lontano
-                if (byCs.TryGetValue(cs, out var s))
+                if (byCs.TryGetValue(cs, out var s) && giaElencati.Add(cs))
                 {
                     var pos = PositionFromType(s.Type);
                     ordered.Add(new AppFreqRow(null, FreqNameForPosition(pos), s.Callsign, s.DefaultFrequency!, pos, false, false));

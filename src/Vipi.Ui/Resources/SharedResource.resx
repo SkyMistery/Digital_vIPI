@@ -3731,4 +3731,17 @@
   <data name="Audit_Cat_CopiaDatabase" xml:space="preserve"><value>Copia del database</value></data>
   <data name="Audit_Fr_BackupStart" xml:space="preserve"><value>copia del database richiesta</value></data>
   <data name="Audit_Fr_BackupDone" xml:space="preserve"><value>copia del database completata: {0} tabelle, {1} righe, sha256 {2}</value></data>
+  <data name="Unit_Title" xml:space="preserve"><value>Ente</value></data>
+  <data name="Unit_Help" xml:space="preserve"><value>La vIPI APP è dell'ente, non di un nominativo IVAO. Le posizioni dicono chi apre questo documento quando è online e da dove si derivano frequenze, AoR e coordinamenti (dalla principale). Cambiarle non tocca il documento né le sue pubblicazioni.</value></data>
+  <data name="Unit_CodeLine" xml:space="preserve"><value>{0} · codice {1} (chiave di pubblicazione e indirizzo, non cambia)</value></data>
+  <data name="Unit_NoPositions" xml:space="preserve"><value>Nessuna posizione: il documento resta, ma nessun controllore online lo apre e le derivate partono dal codice.</value></data>
+  <data name="Unit_Primary" xml:space="preserve"><value>principale</value></data>
+  <data name="Unit_PrimaryTitle" xml:space="preserve"><value>Da questa posizione si derivano frequenze, AoR e coordinamenti</value></data>
+  <data name="Unit_MakePrimary" xml:space="preserve"><value>Rendi principale</value></data>
+  <data name="Unit_Remove" xml:space="preserve"><value>Togli la posizione</value></data>
+  <data name="Unit_RemovePrompt" xml:space="preserve"><value>Togliere {0} dall'ente? Il documento resta.</value></data>
+  <data name="Unit_RemoveYes" xml:space="preserve"><value>Togli</value></data>
+  <data name="Unit_AddLabel" xml:space="preserve"><value>Aggiungi una posizione</value></data>
+  <data name="Unit_AddAction" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="Unit_EditToChange" xml:space="preserve"><value>Premi «Modifica» per cambiare le posizioni.</value></data>
 </root>

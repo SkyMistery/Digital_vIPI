@@ -64,6 +64,20 @@ public class LiveStationRegistryTests
         Assert.Empty(scoperti);
     }
 
+    /// <summary>
+    /// 🔴 S49 (29 settembre 2026): a Pratica di Mare la torre fa l'avvicinamento, e chi è su LIRE_TWR deve aprire la
+    /// vIPI dell'ENTE. Il descrittore dell'avvicinamento viene prima di quello dell'aeroporto nel registry: basta
+    /// che riconosca la posizione di un ente. Una torre qualunque resta all'aeroporto.
+    /// </summary>
+    [Fact]
+    public void Una_torre_che_e_la_posizione_di_un_ente_apre_la_vipi_dell_ente()
+    {
+        var registry = new LiveStationRegistry(Kinds());
+
+        Assert.IsType<ApproachLiveStation>(registry.For(Ctx(SectorType.Twr) with { UnitCode = "LIRE_APP" }));
+        Assert.IsType<AirportLiveStation>(registry.For(Ctx(SectorType.Twr)));
+    }
+
     [Fact]
     public void Il_registry_sceglie_per_priorita_la_prima_corrispondenza()
     {
