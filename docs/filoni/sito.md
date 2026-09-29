@@ -1642,5 +1642,9 @@
   alla vIPI ACC (S52). **Migrazione** `EntiGruppiAcc` (SQLite+MySQL, additiva: colonna + indice unico (AccId,
   GroupKey); in MySQL l'indice su AccId si toglie DOPO aver creato il composto, o MariaDB rifiuta). Test +4:
   Infrastructure 2028. Codice comune `Vipi.Application`, `Vipi.Domain`, `Vipi.Hosting`.
+  **S53–S55 provati a schermo** sulla copia del 29-set: all'avvio 18 enti dalle vIPI APP e 7 dai gruppi APP (fra cui
+  «Napoli APP» con LIRN_US0_APP); pagina «Enti ATC» con 25 enti per ACC; simulato IVAO che spegne LIRN_US0_APP e crea
+  LIRR_US0_APP, «Sostituisci con…» da Struttura → 3 figli (LIRI_I_TWR, LIRM_APP, LIRN_TWR) e padre LIRR_US_CTR passati
+  al nuovo, gruppo APP della vIPI di Roma e posizione dell'ente riscritti, alias annotato. Log senza errori.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
