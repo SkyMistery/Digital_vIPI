@@ -3744,4 +3744,8 @@
   <data name="Unit_AddLabel" xml:space="preserve"><value>Aggiungi una posizione</value></data>
   <data name="Unit_AddAction" xml:space="preserve"><value>Aggiungi</value></data>
   <data name="Unit_EditToChange" xml:space="preserve"><value>Premi «Modifica» per cambiare le posizioni.</value></data>
+  <data name="Unit_Remote" xml:space="preserve"><value>Sposta nella vIPI dell'ACC</value></data>
+  <data name="Unit_RemoteHelp" xml:space="preserve"><value>Se l'APP passa sotto l'ACC {0} (remotizzato), il suo contenuto si sposta nella vIPI dell'ACC come gruppo APP, e da lì si scrive e si pubblica.</value></data>
+  <data name="Unit_RemotePrompt" xml:space="preserve"><value>Spostare tutto il contenuto nella bozza della vIPI dell'ACC {0}? Questa vIPI APP viene nascosta (la sua storia resta) e il pubblico vedrà il gruppo quando pubblichi la vIPI dell'ACC.</value></data>
+  <data name="Unit_RemoteYes" xml:space="preserve"><value>Sposta</value></data>
 </root>

@@ -32,14 +32,17 @@ public sealed class ApproachLiveStation : ILiveStationKind
 
     /// <summary>Un APP, oppure una posizione di qualunque tipo che appartiene a un ENTE con documento proprio (S49):
     /// a Pratica di Mare la torre fa l'avvicinamento, e chi è su LIRE_TWR vede la vIPI dell'ente.</summary>
-    public bool Matches(LiveStationContext ctx) => ctx.Sector.Type == SectorType.App || ctx.UnitCode is not null;
+    public bool Matches(LiveStationContext ctx) =>
+        ctx.Sector.Type == SectorType.App || ctx.UnitCode is not null || ctx.UnitInAccVipi;
 
     public async Task<LiveView> BuildAsync(LiveStationContext ctx, CancellationToken ct = default)
     {
         // Documento proprio: quello dell'ENTE se la posizione ne ha uno (qualunque cosa dica IVAO dell'APP — un
         // APP spuntato «remotizzato» che ha ancora il suo documento lo tiene), altrimenti un APP non remotizzato
         // che il documento non l'ha ancora.
-        var standalone = ctx.UnitCode is not null || ctx.Sector.ApproachKind == ApproachKind.Standalone;
+        // Un ente remotizzato (S50) vive nel gruppo APP della vIPI ACC, qualunque cosa dica IVAO dell'APP.
+        var standalone = ctx.UnitCode is not null
+                         || (!ctx.UnitInAccVipi && ctx.Sector.ApproachKind == ApproachKind.Standalone);
         var chiave = ctx.UnitCode ?? ctx.Callsign;
 
         var view = new LiveView

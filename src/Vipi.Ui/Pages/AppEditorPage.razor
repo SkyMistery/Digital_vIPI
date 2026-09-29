@@ -86,8 +86,14 @@
     {
         // L'indirizzo canonico dice il CODICE dell'ente (S49): è la chiave sotto cui si pubblica. Arrivando da una
         // sua posizione (?app=LIRE_TWR) si passa al codice, prima che l'editor cominci a scrivere.
-        if (await ScopedServices.GetRequiredService<IAtcUnitRepository>().FindAsync(Callsign) is { } ente
-            && !string.Equals(ente.Code, Callsign, StringComparison.OrdinalIgnoreCase))
+        var ente = await ScopedServices.GetRequiredService<IAtcUnitRepository>().FindAsync(Callsign);
+        // Un ente remotizzato (S50) vive nella vIPI dell'ACC: si scrive lì.
+        if (ente is { Mode: AtcUnitMode.InAccVipi })
+        {
+            Navigazione.NavigateTo($"/services/vsop/{ente.AccCode.ToLowerInvariant()}/editor", replace: true);
+            return;
+        }
+        if (ente is not null && !string.Equals(ente.Code, Callsign, StringComparison.OrdinalIgnoreCase))
         {
             Navigazione.NavigateTo(Navigazione.GetUriWithQueryParameter("app", ente.Code), replace: true);
             return;

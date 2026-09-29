@@ -71,6 +71,15 @@ public interface IEditingRepository
     Task<int> AddBlockToVersionAsync(int versionId, VipiBlockSpec block, CancellationToken ct = default);
 
     /// <summary>
+    /// Copia TUTTO l'albero di sezioni di <paramref name="sourceVersionId"/> (sezioni, flag e blocchi di contenuto)
+    /// sotto una sezione-blocco nuova, in coda ai blocchi della bozza <paramref name="targetVersionId"/>. Per la
+    /// remotizzazione di un ente: la vIPI APP entra nella vIPI ACC come gruppo APP (S50). Rifiuta, prima di scrivere,
+    /// un albero che dentro il blocco supererebbe la profondità massima. Ritorna l'Id della sezione-blocco.
+    /// </summary>
+    Task<int> CopyVersionIntoBlockAsync(int sourceVersionId, int targetVersionId, string blockKey, string title,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Legge il <c>BodyJson</c> del primo blocco di UNA sezione identificata dall'Id (non per chiave radice): serve alla
     /// vIPI ACC dove le sezioni editoriali-strutturate vivono a depth 1 sotto il blocco, e il metadata del blocco
     /// (kind/membri/override) vive sulla sezione-blocco stessa. Null se sezione/blocco assenti. Doc refactor 08e-acc.

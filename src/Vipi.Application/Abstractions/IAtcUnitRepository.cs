@@ -49,6 +49,9 @@ public interface IAtcUnitRepository
     /// <summary>Cambia il nome dell'ente (il codice no).</summary>
     Task RenameAsync(int unitId, string name, CancellationToken ct = default);
 
+    /// <summary>Dove vive il contenuto dell'ente: documento proprio o vIPI dell'ACC (S50).</summary>
+    Task SetModeAsync(int unitId, AtcUnitMode mode, CancellationToken ct = default);
+
     /// <summary>Rinomina di un nominativo IVAO (stessa identità di sorgente): la posizione segue.</summary>
     Task RenamePositionAsync(string oldCallsign, string newCallsign, CancellationToken ct = default);
 }

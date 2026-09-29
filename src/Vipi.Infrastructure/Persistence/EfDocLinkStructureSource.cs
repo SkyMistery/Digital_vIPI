@@ -45,13 +45,15 @@ internal sealed class EfDocLinkStructureSource : IDocLinkStructureSource
         // 🔴 Il documento lo dice l'ENTE (S49), non il settore: per il suo codice e per ognuna delle sue posizioni,
         // di qualunque tipo (LIRE_TWR) e qualunque cosa dica IVAO dell'APP. La sua pagina non chiude quando una
         // posizione sparisce, quindi l'ente entra anche senza settori attivi.
+        // Un ente remotizzato (S50) porta alla vIPI dell'ACC, come un APP remotizzato.
         var dellEnte = new Dictionary<string, (int? Doc, string Acc)>(StringComparer.OrdinalIgnoreCase);
+        var remotizzati = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var u in await _db.AtcUnits.AsNoTracking()
-                     .Where(u => u.Mode == AtcUnitMode.OwnDocument)
-                     .Select(u => new { u.Code, u.DocumentId, Acc = u.Acc!.Code, Pos = u.Positions.Select(p => p.Callsign).ToList() })
+                     .Select(u => new { u.Code, u.Mode, u.DocumentId, Acc = u.Acc!.Code, Pos = u.Positions.Select(p => p.Callsign).ToList() })
                      .ToListAsync(ct))
             foreach (var cs in u.Pos.Prepend(u.Code))
-                dellEnte.TryAdd(cs, (u.DocumentId, u.Acc));
+                if (u.Mode == AtcUnitMode.OwnDocument) dellEnte.TryAdd(cs, (u.DocumentId, u.Acc));
+                else remotizzati.TryAdd(cs, u.Acc);
 
         var app = new Dictionary<string, DocLinkApp>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in await _db.Sectors.AsNoTracking()
@@ -60,7 +62,8 @@ internal sealed class EfDocLinkStructureSource : IDocLinkStructureSource
                      .ToListAsync(ct))
             app.TryAdd(s.Callsign, dellEnte.TryGetValue(s.Callsign, out var e)
                 ? new DocLinkApp(s.Callsign, false, e.Doc, s.Acc)
-                : new DocLinkApp(s.Callsign, s.ApproachKind == ApproachKind.Remotized, null, s.Acc));
+                : new DocLinkApp(s.Callsign, s.ApproachKind == ApproachKind.Remotized || remotizzati.ContainsKey(s.Callsign),
+                    null, s.Acc));
         foreach (var (cs, e) in dellEnte)
             app.TryAdd(cs, new DocLinkApp(cs, false, e.Doc, e.Acc));
 

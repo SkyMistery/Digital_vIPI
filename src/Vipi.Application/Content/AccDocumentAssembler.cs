@@ -95,6 +95,7 @@ public static class AccDocumentAssembler
                 MemberCallsigns = meta?.MemberCallsigns ?? new(),
                 FreqOrder = meta?.FreqOrder ?? new(),
                 FreqLinkCallsigns = meta?.FreqLinkCallsigns ?? new(),
+                UnitId = meta?.UnitId,
                 Configurations = configs,
                 ExtraAorCallsigns = aorCustom.Callsigns ?? new(),
                 AorColorOverrides = aorCustom.Colors ?? new(),

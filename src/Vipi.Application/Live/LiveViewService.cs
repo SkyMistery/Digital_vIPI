@@ -94,7 +94,8 @@ public sealed class LiveViewService : ILiveViewService
         // posizione — a Pratica di Mare la torre fa l'avvicinamento, e chi è su LIRE_TWR apre la vIPI dell'ente.
         var ente = _enti is null ? null : await _enti.FindAsync(callsign, ct);
         var ctx = new LiveStationContext(callsign, sector, acc, structure, topology, snapshot.Callsigns,
-            ente is { Mode: AtcUnitMode.OwnDocument } ? ente.Code : null);
+            ente is { Mode: AtcUnitMode.OwnDocument } ? ente.Code : null,
+            ente is { Mode: AtcUnitMode.InAccVipi });
 
         var kind = _registry.For(ctx);
         if (kind is null) return LiveViewResult.NotFound(callsign);

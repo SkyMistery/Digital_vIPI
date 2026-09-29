@@ -192,6 +192,7 @@ public static class DependencyInjection
         services.AddScoped<IImportOverviewService, ImportOverviewService>();
         services.AddScoped<INewDocumentOptionsService, NewDocumentOptionsService>();
         services.AddScoped<IAtcUnitService, AtcUnitService>();
+        services.AddScoped<IRemotizzazioneService, RemotizzazioneService>();
         services.AddScoped<Vipi.Application.Diagnostics.IConsistencyReportService, Vipi.Application.Diagnostics.ConsistencyReportService>();
         // Un confronto col sectorfile, uno solo: lo chiamano il giro delle 24 ore e il tasto della pagina.
         services.AddScoped<Vipi.Application.Diagnostics.ISectorfileComparisonRunner,

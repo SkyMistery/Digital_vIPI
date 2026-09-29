@@ -3736,4 +3736,8 @@
   <data name="Unit_AddLabel" xml:space="preserve"><value>Add a position</value></data>
   <data name="Unit_AddAction" xml:space="preserve"><value>Add</value></data>
   <data name="Unit_EditToChange" xml:space="preserve"><value>Press «Edit» to change the positions.</value></data>
+  <data name="Unit_Remote" xml:space="preserve"><value>Move into the ACC vIPI</value></data>
+  <data name="Unit_RemoteHelp" xml:space="preserve"><value>If the APP moves under the {0} ACC (remoted), its content moves into the ACC vIPI as an APP group, and is written and published from there.</value></data>
+  <data name="Unit_RemotePrompt" xml:space="preserve"><value>Move all the content into the draft of the {0} ACC vIPI? This APP vIPI is hidden (its history stays) and the public sees the group once you publish the ACC vIPI.</value></data>
+  <data name="Unit_RemoteYes" xml:space="preserve"><value>Move</value></data>
 </root>

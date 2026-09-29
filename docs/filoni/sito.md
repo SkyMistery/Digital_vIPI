@@ -1572,5 +1572,15 @@
   sulla copia del 29-set travasata in SQLite (la guardia vieta l'identità dev su MySQL). Carta
   `docs/feature/2026-09-29-enti-atc.md` (fasi 2 e 3). Test +6 (Infrastructure 1997, Application 3098), 10 file di test
   portati al modello nuovo. Codice comune `Vipi.Application`, `Vipi.Domain`.
+- ✅ **S50** enti ATC, fase 2: «Remotizza» (29-set, committente: «gli app remotizzati si spostano nella vIPI di ACC e
+  lì rimangono»; ramo `fix/enti-atc`). Riquadro «Ente» → «Sposta nella vIPI dell'ACC»: l'albero intero della vIPI APP
+  (sezioni, flag, contenuti) si copia sotto un gruppo APP nuovo nella bozza della vIPI ACC
+  (`IEditingRepository.CopyVersionIntoBlockAsync`), il blockmeta prende membri = posizioni dell'ente, ordine e
+  collegamenti delle frequenze, `UnitId`; l'ente passa a `InAccVipi`, la vIPI APP esce dall'unione, si nasconde e
+  restituisce il lock. Lock della vIPI ACC preso per il gesto (rifiuta se è di un altro). Dopo: `?app=` ed editor APP
+  portano alla vIPI ACC, vista live sul gruppo (anche da una torre), elenco APP e documenti collegati la trattano da
+  remotizzata. Niente migrazione (`Mode` c'era; blockmeta in JSON). Provato a schermo su Palermo con la copia del
+  29-set: 15/15 sezioni e 18/18 blocchi identici, vista live «Palermo Radar» dopo la pubblicazione della vIPI di Roma
+  (nella copia la vIPI di Roma è nascosta, come in produzione). Test +4 (Infrastructure 2000, Application 3099).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

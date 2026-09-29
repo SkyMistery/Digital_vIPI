@@ -127,6 +127,13 @@ public sealed class EfAtcUnitRepository : IAtcUnitRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task SetModeAsync(int unitId, Domain.AtcUnitMode mode, CancellationToken ct = default)
+    {
+        var unit = await CaricaAsync(unitId, ct);
+        unit.Mode = mode;
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task RenamePositionAsync(string oldCallsign, string newCallsign, CancellationToken ct = default)
     {
         var vecchio = Norm(oldCallsign);

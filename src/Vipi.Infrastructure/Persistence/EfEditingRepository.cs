@@ -554,6 +554,66 @@ public sealed class EfEditingRepository : IEditingRepository
         return blockSection.Id;
     }
 
+    public async Task<int> CopyVersionIntoBlockAsync(int sourceVersionId, int targetVersionId, string blockKey,
+        string title, CancellationToken ct = default)
+    {
+        await RequireDraftAsync(targetVersionId, ct);
+        var srcSections = await _db.DocumentSections.AsNoTracking().Where(s => s.DocumentVersionId == sourceVersionId).ToListAsync(ct);
+        var srcBlocks = await _db.ContentBlocks.AsNoTracking().Where(b => b.DocumentVersionId == sourceVersionId).ToListAsync(ct);
+
+        // La profondità dall'ALBERO, come «crea bozza» (U-014): dentro il blocco ogni sezione scende di uno, e
+        // oltre il massimo il motore non la saprebbe disegnare. Si controlla PRIMA di scrivere qualunque cosa.
+        var ordine = InOrdineDiAlbero(srcSections);
+        var profondita = new Dictionary<int, int>();
+        foreach (var s in ordine)
+            profondita[s.Id] = s.ParentSectionId is int p && profondita.TryGetValue(p, out var dp) ? dp + 1 : 1;
+        if (profondita.Count > 0 && profondita.Values.Max() > DocumentSection.MaxDepth)
+            throw new Vipi.Application.Aor.ValidationException(Lingua(
+                $"Il documento ha sezioni annidate su {profondita.Values.Max()} livelli: dentro un gruppo APP ne entrano {DocumentSection.MaxDepth}. Sposta più in alto le sezioni più profonde e riprova.",
+                $"The document has sections nested {profondita.Values.Max()} levels deep: an APP group holds {DocumentSection.MaxDepth}. Move the deepest sections up and try again."));
+
+        var nextOrder = (await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == targetVersionId && s.ParentSectionId == null)
+            .MaxAsync(s => (int?)s.Order, ct) ?? 0) + 1;
+        var blocco = new DocumentSection
+        {
+            DocumentVersionId = targetVersionId, ParentSectionId = null, Title = title, Order = nextOrder, Depth = 0,
+            SectionKey = blockKey, RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(blocco);
+
+        var map = new Dictionary<int, DocumentSection>();
+        foreach (var s in ordine)
+        {
+            var padre = s.ParentSectionId is int pid && map.TryGetValue(pid, out var mp) ? mp : blocco;
+            var ns = new DocumentSection
+            {
+                DocumentVersionId = targetVersionId, ParentSection = padre,
+                Title = s.Title, Order = s.Order, Depth = padre.Depth + 1, SectionKey = s.SectionKey,
+                RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody,
+                BodyPosition = s.BodyPosition, Audience = s.Audience, LeadSentence = s.LeadSentence,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            };
+            map[s.Id] = ns;
+            _db.DocumentSections.Add(ns);
+        }
+        foreach (var b in srcBlocks)
+        {
+            if (!map.TryGetValue(b.SectionId, out var sezione)) continue;
+            _db.ContentBlocks.Add(new ContentBlock
+            {
+                DocumentVersionId = targetVersionId, Section = sezione, Order = b.Order,
+                Tier = b.Tier, Format = b.Format, Visibility = b.Visibility,
+                CollapsedByDefault = b.CollapsedByDefault, CalloutKind = b.CalloutKind,
+                ScopeSectorId = b.ScopeSectorId, FromSectorId = b.FromSectorId, ToSectorId = b.ToSectorId,
+                SharedBlockId = b.SharedBlockId, Body = b.Body, BodyJson = b.BodyJson,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            });
+        }
+        await _db.SaveChangesAsync(ct);
+        return blocco.Id;
+    }
+
     // ⚠️ Stessa domanda del gemello per chiave e di `SectionPayload`: il primo blocco di STRUTTURA. «Il primo
     // e basta» qui prendeva perfino un blocco di prosa (che un JSON non ce l'ha) e tornava indietro un null.
     public async Task<string?> GetSectionBlockJsonBySectionAsync(int sectionId, CancellationToken ct = default) =>

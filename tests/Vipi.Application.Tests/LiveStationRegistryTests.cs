@@ -78,6 +78,16 @@ public class LiveStationRegistryTests
         Assert.IsType<AirportLiveStation>(registry.For(Ctx(SectorType.Twr)));
     }
 
+    /// <summary>S50: la posizione di un ente remotizzato (anche una torre) apre il suo gruppo nella vIPI dell'ACC —
+    /// il descrittore dell'avvicinamento, che per un ente remotizzato prende la strada del gruppo APP.</summary>
+    [Fact]
+    public void La_posizione_di_un_ente_remotizzato_apre_il_gruppo_nella_vipi_acc()
+    {
+        var registry = new LiveStationRegistry(Kinds());
+
+        Assert.IsType<ApproachLiveStation>(registry.For(Ctx(SectorType.Twr) with { UnitInAccVipi = true }));
+    }
+
     [Fact]
     public void Il_registry_sceglie_per_priorita_la_prima_corrispondenza()
     {

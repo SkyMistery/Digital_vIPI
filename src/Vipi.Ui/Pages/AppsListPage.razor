@@ -109,9 +109,12 @@ else
         // APP NON remotizzati che un ente ancora non ce l'hanno (il documento, e l'ente, nascono all'apertura
         // dell'editor). I Remotized senza ente vivono nella vIPI di ACC.
         // Pubblico: solo i pubblicati. Staff che può editare l'ACC: TUTTI (per creare/editare il primo documento).
-        var enti = (await Enti.ListAsync(_acc.Code)).Where(u => u.Mode == AtcUnitMode.OwnDocument).ToList();
+        // ⚠️ Tutti gli enti nella mappa, anche i remotizzati (S50): le loro posizioni non sono APP «senza documento»
+        // da proporre — il contenuto sta nella vIPI dell'ACC. Le schede solo per chi ha il documento proprio.
+        var tutti = await Enti.ListAsync(_acc.Code);
+        var enti = tutti.Where(u => u.Mode == AtcUnitMode.OwnDocument).ToList();
         _enteDi = new(StringComparer.OrdinalIgnoreCase);
-        foreach (var u in enti)
+        foreach (var u in tutti)
             foreach (var cs in u.Positions.Prepend(u.Code)) _enteDi.TryAdd(cs, u);
         var perEnte = enti
             .Select(u => all.FirstOrDefault(s => string.Equals(s.Callsign, u.Seme, StringComparison.OrdinalIgnoreCase))
