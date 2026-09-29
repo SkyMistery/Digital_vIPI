@@ -1350,3 +1350,19 @@ profili `.cpr` e i PAR.
   Uscita sul fork: **107 + 80 + 2** avvisi; correzioni proposte 273 → 460, applicate a una copia tornano pulite tutte
   tranne `LIKL` (le soglie invertite restano: il Lab non indovina quale dato è sbagliato). Validatore sull'albero:
   235/670 → **235 errori, 859 avvisi**. Round-trip invariato. Test: motore 729 → **734**, Lab 775 → **778**.
+- **11c (29 settembre)** — il CPDLC (M5). Manuale IVAO «Aurora CPDLC Sectorfile»: un messaggio è `Comando;Risposta;
+  Gruppo;` più tredici campi di valori che prepara uLink (ReplVal, AtVal, TpVal, TotVal); comando al più 128 caratteri
+  coi valori `[0]`…`[3]`; risposta WU, AN, R, NE; gruppi 0-18, il 20 per il DCL; i nomi `GROUP.ID;NOME;`, al più 20
+  caratteri. Misura: 155 messaggi, tutti a 16 campi; il gruppo 15 si chiama «TWR» e non ha messaggi; 3 senza risposta,
+  tutti pezzi del DCL (gruppo 20: `CLIMB [0]`, `SQK [0]`, `ATIS INFO [0]`); 2 dichiarano più valori dei `[n]` del
+  testo (`WHEN CAN YOU ACCEPT [0]` 2, `REPORT PASSING [0]` 3). Codice comune toccato: lettori e scrittori nuovi
+  `.cpdlc` e `.cpdlcnames` (`MessaggioCpdlc`, `NomeDelGruppoCpdlc`; i campi dei valori si tengono come sono),
+  `Validazione/ControlloDelCpdlc.cs` e tre regole.
+  - **`GruppoSenzaMessaggi`**, **`MessaggioSenzaRisposta`** (non nel gruppo 20: scelta dell'agente dalla misura, i tre
+    pezzi del DCL non l'hanno), **`ValoriDelMessaggio`** (TotVal diverso dai `[n]`: scelta dell'agente, si rifà con
+    uLink), e `ValoreFuoriElenco` per risposta, gruppo e lunghezze fuori dal manuale. Tutti avvisi.
+  - Nel Lab la scheda del messaggio (risposta e gruppo da un elenco col significato, «20 · DCL»; i valori di uLink in
+    sola lettura) e quella del nome del gruppo; l'elenco dei record dice il messaggio.
+  Uscita sul fork: **1** gruppo senza messaggi, **0** senza risposta, **2** valori diversi. Round-trip **703/703** (i
+  due file ora hanno un lettore), tutto toccato 0. Validatore sull'albero: 235/859 → **235 errori, 862 avvisi**. Test:
+  motore 734 → **739**, Lab 778 → **779**.

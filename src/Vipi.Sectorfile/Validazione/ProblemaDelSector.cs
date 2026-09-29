@@ -224,6 +224,15 @@ public enum Regola
     /// (<c>LIDW 15</c>, <c>LIKL 36</c>: slice 11b, M4).
     /// </summary>
     RottaDiversaDalleSoglie,
+
+    /// <summary>Un gruppo CPDLC col nome in <c>[CPDLCNAMES]</c> e nessun messaggio (il 15, «TWR», sul fork: slice 11c, M5).</summary>
+    GruppoSenzaMessaggi,
+
+    /// <summary>Un messaggio CPDLC senza la risposta attesa (WU, AN, R, NE); non nel gruppo 20, il DCL (slice 11c, M5).</summary>
+    MessaggioSenzaRisposta,
+
+    /// <summary>Un messaggio CPDLC che dichiara un numero di valori (TotVal) diverso dai <c>[n]</c> del testo (2 sul fork, slice 11c).</summary>
+    ValoriDelMessaggio,
 }
 
 public enum Gravita
@@ -255,7 +264,8 @@ public static class Regole
             or Regola.NomeMancante or Regola.AttesaMaiCitata or Regola.AttesaFuoriPosto or Regola.AtteseNonCaricate
             or Regola.NomeInPiuCataloghi or Regola.CampoMancante or Regola.ValoreFuoriElenco
             or Regola.PosizioneNonDefinita or Regola.PosizioneRipetuta
-            or Regola.RottaConDecimali or Regola.PrimariaOltre18 or Regola.RottaDiversaDalleSoglie => Validazione.Gravita.Avviso,
+            or Regola.RottaConDecimali or Regola.PrimariaOltre18 or Regola.RottaDiversaDalleSoglie
+            or Regola.GruppoSenzaMessaggi or Regola.MessaggioSenzaRisposta or Regola.ValoriDelMessaggio => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

@@ -56,6 +56,9 @@ public static class Formati
             "lairway" or "hairway" => Con(new AirwayParser(avvisi), new AirwaySaver()),
             "frq" => Con(new FrqParser(avvisi), new FrqSaver()),
             "rw" => Con(new RwParser(avvisi), new RwSaver()),
+            // Lotto «Subito» slice 11c (M5): i messaggi CPDLC e i nomi dei loro gruppi.
+            "cpdlc" => Con(new CpdlcParser(avvisi), new CpdlcSaver()),
+            "cpdlcnames" => Con(new CpdlcNamesParser(avvisi), new CpdlcNamesSaver()),
             "str" => Con(new StrParser(avvisi), new StrSaver()),
             "hartcc" => Con(new HartccParser(avvisi), new HartccSaver()),
             "lartcc" => Con(new LartccParser(avvisi), new LartccSaver()),

@@ -200,6 +200,14 @@ public static partial class Validatore
         problemi.AddRange(ControlloDellePosizioni.Di([.. frq.Select(p => (Relativo(p), Esito(p)!.Record))],
             (relativo, riga) => TestoDellaRiga(percorsoDi[relativo], riga)));
 
+        // Il CPDLC (lotto «Subito» slice 11c): gruppi senza messaggi, messaggi senza risposta, valori, elenchi del manuale.
+        var cpdlc = indice.Values.Where(p => (p.EndsWith(".cpdlc", StringComparison.OrdinalIgnoreCase)
+                                              || p.EndsWith(".cpdlcnames", StringComparison.OrdinalIgnoreCase)) && Esito(p) is not null)
+            .Order(StringComparer.Ordinal).ToList();
+        var percorsoDelCpdlc = cpdlc.ToDictionary(Relativo, p => p, StringComparer.Ordinal);
+        problemi.AddRange(ControlloDelCpdlc.Di([.. cpdlc.Select(p => (Relativo(p), Esito(p)!.Record))],
+            (relativo, riga) => TestoDellaRiga(percorsoDelCpdlc[relativo], riga)));
+
         // Le copie gemelle diverse (carta F3-bis §2.1): uno scalo, una pista, una posizione con un altro valore nel file
         // nazionale e in quello della FIR. Una per copia fuori posto, col valore che hanno le altre.
         var famiglie = indice.Values.Where(p => CopieGemelle.Famiglia(p) is not null && Esito(p) is not null)

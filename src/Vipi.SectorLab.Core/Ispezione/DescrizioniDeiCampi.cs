@@ -396,6 +396,29 @@ public static class DescrizioniDeiCampi
             FileCitato("Loa", "LOA", "Il file .loa (7° campo): i livelli di trasferimento per punto e settore (manuale IVAO, «LOA & XFL»).", FonteDellElenco.Loa),
             FileCitato("DatisFile", "D-ATIS", "Il modello .datis (8° campo).", FonteDellElenco.Datis),
         ]),
+        // CPDLC (§13, M5; lotto «Subito» slice 11c): i messaggi e i nomi dei gruppi della finestra CPDLC di Aurora.
+        [typeof(MessaggioCpdlc)] = new("Messaggio CPDLC",
+        [
+            C("Comando", "Messaggio", "Il testo (al più 128 caratteri); [0]…[3] sono i valori che Aurora riempie dalla strip."),
+            C("Risposta", "Risposta", "Quella che il pilota deve dare (2° campo).", Editor.TipoFisso) with
+            {
+                Valori = [Vuoto, .. Valori(("WU", "WILCO o UNABLE"), ("AN", "AFFIRMATIVE o NEGATIVE"), ("R", "ROGER"), ("NE", "nessuna ora, si aspetta un report"))],
+            },
+            C("Gruppo", "Gruppo", "Il gruppo della finestra CPDLC (3° campo): da 0 a 18, 20 per il DCL. I nomi dei gruppi stanno nel .cpdlcnames.", Editor.TipoFisso) with
+            {
+                Valori = [.. Enumerable.Range(0, 19).Select(n => new ValoreFisso(n.ToString(System.Globalization.CultureInfo.InvariantCulture), $"gruppo {n}")), new ValoreFisso("20", "DCL")],
+            },
+            C("Valori", "Valori (uLink)", "I tredici campi dei valori (ReplVal, AtVal, TpVal, TotVal): li prepara uLink, il Lab li tiene come sono.", Editor.SolaLettura),
+            C("TotaleDeiValori", "Valori dichiarati", "TotVal, l'ultimo dei campi dei valori: devono essere tanti quanti i [n] del messaggio.", Editor.SolaLettura),
+        ]),
+        [typeof(NomeDelGruppoCpdlc)] = new("Nome di un gruppo CPDLC",
+        [
+            C("Gruppo", "Gruppo", "Il numero del gruppo dopo GROUP. (da 0 a 18).", Editor.TipoFisso) with
+            {
+                Valori = [.. Enumerable.Range(0, 19).Select(n => new ValoreFisso(n.ToString(System.Globalization.CultureInfo.InvariantCulture), $"gruppo {n}"))],
+            },
+            C("Nome", "Nome", "Il nome del tasto nella finestra CPDLC, al più 20 caratteri."),
+        ]),
         [typeof(Runway)] = new("Pista",
         [
             Scalo(),
