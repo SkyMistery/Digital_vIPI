@@ -132,6 +132,53 @@ public class DocumentiCollegatiTests
         Assert.Equal(new[] { "Airport:LIRN vIPI" }, Etichette(Grafo(), ReleaseTargetType.AccVipi, "LIRR|LIRR_CTR"));
     }
 
+    /// <summary>
+    /// 🔴 Audit del 29 settembre 2026 (committente: «i documenti nascosti non compaiono nei link?»). Un APP che l'admin
+    /// nasconde sparisce dall'anagrafica attiva: la vIPI ACC non lo elenca più, anche se il documento c'è ancora.
+    /// </summary>
+    [Fact]
+    public void ACC_non_elenca_un_APP_disattivato()
+    {
+        var attivi = new Dictionary<string, DocLinkApp>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["LIBN_APP"] = new("LIBN_APP", false, null, "LIBB"),
+            ["LIRN_US0_APP"] = new("LIRN_US0_APP", true, null, "LIRR"),
+        };
+
+        Assert.DoesNotContain("App:LIBV_APP", Etichette(Grafo(attivi), ReleaseTargetType.AccVipi, "LIBB|LIBB_CTR"));
+    }
+
+    /// <summary>
+    /// 🔴 Stesso audit: i posti CONGELATI in una release restano quelli del giorno della pubblicazione. Se dopo lo
+    /// scalo viene nascosto o l'APP disattivato, al disegno il link non esce più.
+    /// </summary>
+    [Fact]
+    public void Un_posto_congelato_verso_una_pagina_chiusa_non_esce()
+    {
+        var congelato = DocumentiCollegati.Capture(Grafo(), ReleaseTargetType.AccVipi, "LIBB|LIBB_CTR");
+
+        var scaliDopo = new[] { new DocLinkAirport("LIBV", "LIBB", true, "LIBV_G_APP", Array.Empty<string>()) };
+        var appDopo = new Dictionary<string, DocLinkApp>(StringComparer.OrdinalIgnoreCase);
+        var etichette = DocumentiCollegati.Resolve(congelato, t => DocumentiCollegati.PaginaAperta(t, scaliDopo, appDopo))
+            .Select(x => $"{x.Group}:{x.Target.Label}").ToList();
+
+        Assert.Equal(new[] { "Airport:LIBN vSOP" }, etichette);
+    }
+
+    [Theory]
+    [InlineData(ReleaseTargetType.Airport, "LIBZ", false)]
+    [InlineData(ReleaseTargetType.AirportMil, "LIBZ", false)]
+    [InlineData(ReleaseTargetType.Airport, "LIBV", true)]
+    [InlineData(ReleaseTargetType.App, "LIBV_APP", true)]
+    [InlineData(ReleaseTargetType.App, "LIRN_US0_APP", false)]   // remotizzato: la sua pagina non c'è
+    [InlineData(ReleaseTargetType.App, "LIXX_APP", false)]       // non attivo: fuori dall'anagrafica
+    [InlineData(ReleaseTargetType.AccVipi, "LIBB|LIBB_CTR", true)]
+    public void La_pagina_aperta_segue_scalo_e_APP(ReleaseTargetType tipo, string chiave, bool aperta)
+    {
+        var g = Grafo();
+        Assert.Equal(aperta, DocumentiCollegati.PaginaAperta(new DocLinkTarget { Type = tipo, Key = chiave }, g.Airports, g.Apps));
+    }
+
     [Fact]
     public void Nessun_documento_pubblico_nessun_link()
     {

@@ -36,6 +36,11 @@ public static class VipiStandaloneAuthExtensions
     /// <summary>Categoria di log dei guasti del login. Nome fisso: è la stringa da cercare nei log del server.</summary>
     internal const string AuthLogCategory = "Vipi.Auth.Ivao";
 
+    /// <summary>Segno del secondo giro dopo un guasto sul nonce. Sta nelle proprietà, cioè nello <c>state</c> cifrato:
+    /// non si falsifica e non si toglie, quindi un secondo guasto va alla pagina e non riparte. Vedi
+    /// <see cref="HandleIvaoRemoteFailure"/>.</summary>
+    internal const string SecondoGiroChiave = "vipi.secondo-giro";
+
     /// <summary>
     /// Se <c>VipiAuth:Enabled=true</c>, registra cookie + OpenID Connect IVAO e rimappa i nomi dei claim IVAO
     /// sul modello neutro (<see cref="HostIdentityOptions"/>). Ritorna <c>true</c> se l'auth standalone è attiva.
@@ -143,6 +148,15 @@ public static class VipiStandaloneAuthExtensions
                 // NonceNelloStato, anche per il perché la difesa resta la stessa.
                 oidc.Events.OnRedirectToIdentityProvider = NonceNelloStato.RicordaAsync;
                 oidc.Events.OnTokenValidated = NonceNelloStato.RecuperaAsync;
+
+                // Il segno del secondo giro serve solo al giro: non deve finire nel cookie di sessione. Si toglie
+                // qui e non in OnTokenValidated, che gira PRIMA della validazione del nonce — toglierlo lì
+                // riaprirebbe l'anello che il segno chiude.
+                oidc.Events.OnTicketReceived = context =>
+                {
+                    context.Properties?.Items.Remove(SecondoGiroChiave);
+                    return Task.CompletedTask;
+                };
 
                 // Dalla userinfo si portano a claim SOLO i campi che qualcuno legge davvero. Prima c'era
                 // MapAll(), e non era gratis: il profilo IVAO contiene `hours[]`, `rating{}`, `groups`,
@@ -261,6 +275,13 @@ public static class VipiStandaloneAuthExtensions
     /// <para>⚠️ Qui dentro non deve poter fallire niente: un'eccezione in questo gestore riporterebbe
     /// esattamente alla pagina muta che si sta togliendo di mezzo. Per questo il corpo è in un
     /// <c>try</c> e l'ultima parola è comunque un redirect.</para>
+    ///
+    /// <para>🔴 <b>Il nonce riparte una volta (29 settembre 2026).</b> La prima volta che un membro entra nel client,
+    /// IVAO gli mostra la pagina di consenso di <c>sso.ivao.aero/authorize</c>, e il form di quella pagina rimanda
+    /// avanti <c>state</c>, <c>redirectUrl</c> e PKCE ma non il <c>nonce</c>: l'id_token torna con un nonce che non è
+    /// il nostro, e scatta IDX21323 («token con un nonce DIVERSO da quello mandato» nel registro). Al secondo giro il
+    /// consenso c'è già, IVAO risponde subito col nonce giusto, e si entra. Stessa causa e stessa cura dell'hub IVAO
+    /// Italy (SkyMistery/Ivao-Italy-Hub, PR 174). Il nonce resta validato: si rifà il giro invece di spegnerlo.</para>
     /// </summary>
     private static async Task HandleIvaoRemoteFailure(RemoteFailureContext context)
     {
@@ -283,18 +304,20 @@ public static class VipiStandaloneAuthExtensions
             // Cookie perso o IVAO che rimanda un altro nonce: lo lascia NonceNelloStato, se il giro è arrivato
             // fino all'id_token. Prima del 28 settembre 2026 le due cose davano lo stesso IDX21323.
             var nonce = context.HttpContext.Items[NonceNelloStato.ChiaveDiagnosi] as string;
+            var secondoGiro = context.Properties?.Items.ContainsKey(SecondoGiroChiave) == true;
 
             // Tutto ciò che serviva il 23 agosto e non c'era. Niente `code`, niente token: sono credenziali.
             logger.LogWarning(context.Failure,
                 "Login IVAO non riuscito — motivo {Motivo}. Errore dal portale: {ErrorePortale}. " +
                 "Stato del giro recuperato: {StatoRecuperato}. Sessione già attiva: {GiaDentro}. Ritorno: {Ritorno}. " +
-                "Nonce: {Nonce}",
+                "Nonce: {Nonce}. Secondo giro: {SecondoGiro}",
                 reason,
                 Describe(context.Request.Query["error"], context.Request.Query["error_description"]),
                 context.Properties is not null,
                 existing.Succeeded,
                 returnUrl,
-                nonce ?? "giro fermo prima del token");
+                nonce ?? "giro fermo prima del token",
+                secondoGiro);
 
             // 🔴 E nel registro che si SCARICA: `Vipi.Auth.Ivao` finisce su stdout, e su
             // atc.it.ivao.aero stdout è il vuoto. Il 10 settembre 2026 un login rotto delle 11:00 UTC non ha
@@ -314,6 +337,19 @@ public static class VipiStandaloneAuthExtensions
                 // Era già dentro: il login nuovo non si è chiuso, ma sbatterlo su una pagina d'errore
                 // sarebbe peggio del vero. Ci si accorge del guasto dal log, non dalla faccia dell'utente.
                 context.Response.Redirect(returnUrl);
+                return;
+            }
+
+            // Il consenso di IVAO che perde il nonce: si rifà il giro, una volta. Solo con lo stato letto — senza,
+            // non c'è né il ritorno da portare né il segno che dica se è già il secondo. Una correlazione fallita
+            // non riparte mai.
+            if (DeveRipartire(reason, context.Properties is not null, secondoGiro))
+            {
+                var ancora = new AuthenticationProperties { RedirectUri = returnUrl, IsPersistent = true };
+                ancora.Items[SecondoGiroChiave] = "1";
+
+                logger.LogInformation("Login IVAO: guasto sul nonce al primo giro, si riparte una volta.");
+                await context.HttpContext.ChallengeAsync(IvaoScheme, ancora);
                 return;
             }
         }
@@ -369,6 +405,11 @@ public static class VipiStandaloneAuthExtensions
 
         return "sconosciuto";
     }
+
+    /// <summary>Se il guasto rifà il giro da solo: solo il nonce, solo con lo stato letto, solo al primo giro.
+    /// Tutto il resto va alla pagina, che non rimbalza mai da sé (vedi <see cref="LoginFailedPath"/>).</summary>
+    internal static bool DeveRipartire(string motivo, bool statoRecuperato, bool secondoGiro) =>
+        motivo == "nonce" && statoRecuperato && !secondoGiro;
 
     /// <summary>I soli motivi che la pagina sa rendere. Tutto il resto — compreso ciò che arriva
     /// dall'URL — diventa <c>sconosciuto</c>: così in pagina non finisce mai una stringa altrui.</summary>

@@ -1472,5 +1472,46 @@
   tolta la sentinella `_busy` da `ApriAsync`, il test è rosso (`Conti` 2) invece di piantarsi. Solo test.
   ⚠️ `StrutturaUnaOperazionePerVoltaTests` (stesso commit `334267c0`) ha la stessa forma a tempo: non è segnalato
   rosso, resta da rifare allo stesso modo se lo diventa.
+- ✅ **S41** diagnostica della 1.47.0 (29-set, file scaricati dal committente in `diagnostica/`). `/vsop/health`
+  «Degraded» = un solo errore, «Transfer with no fallback» su LIMM: `LIMM_WS2_CTR → LSAG_TST_CTR`. Scelta del
+  committente: «Ginevra si gestisce lo spazio aereo svizzero, WS2 quello italiano più Lugano» → il rilievo non conta
+  un settore di un ACC **estero** come chi copre il punto (`CoverageFallbackContext.AccDi`, prefissi della divisione
+  passati ad `Analyze`; `ConsistencyReportService` legge `IOptions<DivisionOptions>`). Codice comune `Vipi.Application`.
+  Test +1 rosso sul codice di prima; Application **3085**, Infrastructure 1984, Hosting 79, E2E 454. Nessuna UI.
+  Dagli stessi file: passate d'avvio 1.47 tutte riuscite; U-236 visto al lavoro («allo spegnimento», 23 segnalazioni);
+  Azure Translator 401 dal 27-set 09:18Z (segreti, non codice); U-105 Perugia Approach sez. 5716 da fare a mano.
+- ✅ **S42** login di un utente nuovo (29-set 09:16Z): «The sign-in expired along the way», motivo `nonce`, al
+  «riprova» entra. Registro: «Cookie del nonce: non trovato (1 in richiesta); token con un nonce DIVERSO da quello
+  mandato» — non il cookie perso del 28-set (quello lo recupera `NonceNelloStato`), ma la pagina di **consenso** di
+  `sso.ivao.aero/authorize`, che al primo accesso di un membro a un client rimanda avanti state, redirectUrl e PKCE
+  ma **non il nonce**. Stessa causa misurata sull'hub IVAO Italy (SkyMistery/Ivao-Italy-Hub, PR 174, nota
+  `2026-09-28-il-nonce-e-il-consenso-di-ivao.md`), stessa cura: `HandleIvaoRemoteFailure` su un guasto `nonce`, con
+  lo stato letto e senza il segno `vipi.secondo-giro` (nelle proprietà, quindi nello state cifrato), rifà il
+  challenge con lo stesso ritorno e `IsPersistent`; un secondo guasto va alla pagina come prima. Il segno esce in
+  `OnTicketReceived`. Il nonce resta validato; `RelaxProtocolValidation` resta la via di fuga in config, spenta.
+  Test +7 (giro intero col finto IVAO: riparte ed entra, estraneo anche al secondo giro resta fuori; la decisione
+  `DeveRipartire`), 4 rossi senza la correzione; E2E **461**. Da provare sul server: un VID mai entrato nel client
+  (o revocando il consenso dal profilo IVAO) entra al primo clic; nel registro «Secondo giro: False» e poi «si
+  riparte una volta».
+- ✅ **S43** giro di sei punti del committente (29-set) sulla porta della vSOP:
+  1. «Cosa è cambiato» esce dalle schede pubbliche di `/services/vsop` e va nella sezione **Staff** (la pagina resta
+     raggiungibile dal suo indirizzo).
+  2. `/services/vsop/mil`: al pubblico, accanto a «Pubblicato», usciva «Nessun documento». L'ultimo ramo della
+     colonna Stato era un `else` nudo legato ai tasti dello staff e scattava per ogni non Editor.
+  3. Barra in alto: un'altezza sola per i comandi (`--tb-ctl` 34px; misurati prima 32/34/36/38) e, da `tb-3`, la
+     lente è un collegamento a `/services/vsop/search` (prima toccarla non faceva niente). Verificato a schermo a 1900,
+     1000 e 375px su un database vuoto. Carta `2026-08-22-topbar-misurata.md` aggiornata.
+  4. Nascosti nei collegati (verifica): i «Documenti collegati» filtravano documento nascosto e release, e i link nel
+     testo possono puntare solo agli allegati; ma due buchi — la vIPI ACC elencava anche un APP disattivato, e nei
+     posti **congelati** di una release uno scalo nascosto o un APP disattivato dopo la pubblicazione restava fra i
+     collegati. Ora `DocumentiCollegati.PaginaAperta` al disegno (struttura in cache, 2 minuti) e `PerAcc` sui soli
+     APP attivi. Codice comune `Vipi.Application`. Resta, minore: `PubblicatoAsync`/`GetCivilEditionAsync` (ponte
+     civile↔militare) non escludono una release `Superseded`.
+  5. Nascosti e non pubblicati nella ricerca (verifica): no. Cancello `PublicDocumentGate` a ogni ricerca, testo
+     solo dalla release in vigore, sezioni nascoste fuori dall'indice; lo stesso per «Cosa è cambiato». Già coperto
+     da `SearchAndChangesTests`.
+  6. La Guida per ruolo: la parte «Modificare» (e le anteprime di bozza, spostate lì) solo a chi può modificare
+     (`IsEditor`), e lo stesso confine nella ricerca (`GuideSearchCatalog.AncorePubbliche`: l'elenco è dei pubblici,
+     un capitolo nuovo nasce riservato). Codice comune `Vipi.Application` (SearchService).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

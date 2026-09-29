@@ -63,3 +63,14 @@ Test: `RipiegoMilitareTests` (8), `CoverageFallbackTests` +1 (rosso sul codice d
 **Prova dal vivo** (copia del 15 settembre): in Struttura la catena di `LIBG_APP` è «LIBB_MIL_CTR — automatico · MIL»
 e poi «LIBB_ES_CTR — padre». Il rilievo «Trasferimento senza ripiego» sulla copia locale non c'era nemmeno prima (i
 punti di Milano lì non hanno coordinate): il caso WS2 → MIL lo fissa il test del rinvio.
+
+## Dopo la 1.47.0: un settore estero non è un ripiego mancante (29 settembre 2026)
+
+Col MIL fuori dai ripieghi, il rilievo «Trasferimento senza ripiego» su `LIMM_WS2_CTR` ha trovato il settore
+**successivo** che copre il punto: `LSAG_TST_CTR`, di Ginevra. Era l'unico errore della produzione, e teneva
+`/vsop/health` in «Degraded». Il committente: «Ginevra si gestisce lo spazio aereo svizzero, WS2 quello italiano
+più Lugano». Le forme di confine si sovrappongono, ma chiusa la radice italiana il traffico va su UNICOM, non
+all'estero. Il rilievo ora **non conta un settore di un ACC estero** (prefissi ICAO della divisione,
+`HierarchyRules.IsForeignCode`) come «qualcun altro che copre il punto». Test
+`RilieviDellaRicadutaTests.Una_radice_coperta_solo_da_un_settore_estero_non_si_segnala` (rosso sul codice di
+prima).

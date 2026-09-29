@@ -70,14 +70,18 @@ public sealed class DocLinkService : IDocLinkService
         bool bozza, CancellationToken ct = default)
     {
         var documenti = await _documenti.ListAsync(ct).ConfigureAwait(false);
+        var struttura = await StrutturaInCacheAsync(ct).ConfigureAwait(false);
         var snap = (bozza ? null : await CongelatiAsync(type, key, releaseId, ct).ConfigureAwait(false))
-                   ?? DocumentiCollegati.Capture(Grafo(await StrutturaInCacheAsync(ct).ConfigureAwait(false), documenti), type, key);
+                   ?? DocumentiCollegati.Capture(Grafo(struttura, documenti), type, key);
 
         // Pubblico adesso = la regola degli elenchi pubblici (doc 10 §3f): release in vigore e non nascosto.
         var pubblici = documenti.Where(d => d.HasEffectiveRelease && !d.IsHidden && d.DocumentId is not null)
             .Select(d => d.DocumentId!.Value).ToHashSet();
 
-        return DocumentiCollegati.Resolve(snap, t => pubblici.Contains(t.DocumentId))
+        // ⚠️ E la pagina aperta: lo scalo nascosto o l'APP disattivato DOPO la pubblicazione restano nei posti
+        // congelati, e senza questo il link usciva verso «non disponibile». Struttura in cache (due minuti).
+        return DocumentiCollegati.Resolve(snap, t => pubblici.Contains(t.DocumentId)
+                                                     && DocumentiCollegati.PaginaAperta(t, struttura.Airports, struttura.Apps))
             .Select(x => new ResolvedDocLink(x.Group, x.Target, Indirizzo(x.Target)))
             .Where(x => x.Href.Length > 0)
             .ToList();

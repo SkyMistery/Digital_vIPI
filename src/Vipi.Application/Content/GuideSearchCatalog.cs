@@ -31,6 +31,25 @@ public static class GuideSearchCatalog
         public string Snippet(bool inglese) => inglese ? SnippetEn : SnippetIt;
     }
 
+    /// <summary>
+    /// I capitoli che legge <b>chiunque</b>: la parte «Consultare» della Guida. Tutti gli altri — come si modifica,
+    /// le anteprime di bozza, le pagine d'amministrazione — sono per chi può modificare (<c>IsEditor</c>), e agli
+    /// altri non si mostrano né nella Guida né nei risultati di ricerca.
+    ///
+    /// <para>🔴 Committente, 29 settembre 2026: «la guida deve essere diversa a seconda di cosa l'utente può vedere,
+    /// un utente normale non può vedere la parte di guida sull'editor». ⚠️ L'elenco è dei PUBBLICI e non degli staff
+    /// apposta: un capitolo nuovo nasce riservato finché qualcuno non decide di aprirlo, e dimenticarsene lo lascia
+    /// chiuso invece che esposto. Una guardia (<c>GuidaPerRuoloTests</c>) tiene questo elenco uguale alla parte
+    /// «Consultare» della pagina.</para>
+    /// </summary>
+    public static readonly IReadOnlySet<string> AncorePubbliche = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "nav", "ricerca", "live", "changed", "aree", "profile-swapper", "convertitore-coordinate", "statistiche",
+    };
+
+    /// <summary>Se il capitolo si mostra a chi legge: i pubblici a tutti, gli altri solo a chi può modificare.</summary>
+    public static bool Visibile(string anchor, bool puoModificare) => puoModificare || AncorePubbliche.Contains(anchor);
+
     public static readonly IReadOnlyList<Entry> Entries = new[]
     {
         new Entry("nav", "Navigare tra le pagine", "Navigating the pages",

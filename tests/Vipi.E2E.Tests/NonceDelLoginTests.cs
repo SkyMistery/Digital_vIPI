@@ -33,6 +33,7 @@ public sealed class NonceDelLoginTests
 {
     private const string PrefissoNonce = ".AspNetCore.OpenIdConnect.Nonce.";
     private const string PrefissoCorrelazione = ".AspNetCore.Correlation.";
+    private const string NonceEstraneo = "638000000000000000.QWx0cm8gZ2lybw";
 
     [Fact]
     public async Task Con_tutti_i_cookie_il_login_riesce()
@@ -61,7 +62,9 @@ public sealed class NonceDelLoginTests
 
     /// <summary>
     /// Il recupero non è una porta aperta: un id_token con un nonce che NON è quello mandato in questo giro resta
-    /// fuori, col cookie o senza. È esattamente il replay da cui il nonce difende.
+    /// fuori, col cookie o senza. È esattamente il replay da cui il nonce difende. Dal 29 settembre il primo guasto
+    /// rifà il giro una volta (il consenso di IVAO che perde il nonce); se anche il secondo torna con un nonce
+    /// estraneo, si va alla pagina e basta.
     /// </summary>
     [Theory]
     [InlineData(true)]
@@ -70,14 +73,57 @@ public sealed class NonceDelLoginTests
     {
         await using var giro = await Giro.AvviaAsync();
         var andata = await giro.AndataAsync("/chi");
-        giro.Ivao.NonceDaMettere = "638000000000000000.QWx0cm8gZ2lybw";
+        giro.Ivao.NonceDaMettere = NonceEstraneo;
 
         var cookie = conCookieDelNonce ? andata.Cookie : andata.Cookie.Where(c => !c.StartsWith(PrefissoNonce));
-        var ritorno = await giro.RitornoAsync(andata, cookie);
+        var primo = await giro.RitornoAsync(andata, cookie);
+        var seconda = giro.SecondaAndata(primo);
+        giro.Ivao.NonceDaMettere = NonceEstraneo;
 
-        Assert.StartsWith(VipiStandaloneAuthExtensions.LoginFailedPath + "?motivo=nonce", ritorno.Destinazione);
-        Assert.False(ritorno.Dentro);
+        var secondo = await giro.RitornoAsync(seconda, seconda.Cookie);
+
+        Assert.StartsWith(VipiStandaloneAuthExtensions.LoginFailedPath + "?motivo=nonce", secondo.Destinazione);
+        Assert.False(secondo.Dentro);
     }
+
+    /// <summary>
+    /// 🔴 Il guasto del 29 settembre (e del 28 sull'hub): primo accesso di un membro, IVAO passa dal consenso e
+    /// l'id_token torna con un nonce non nostro. Il sito rifà il giro da solo, con state e nonce nuovi e lo stesso
+    /// ritorno, e il secondo giro entra: il membro non vede la pagina d'errore.
+    /// </summary>
+    [Fact]
+    public async Task Il_consenso_che_perde_il_nonce_riparte_una_volta_ed_entra()
+    {
+        await using var giro = await Giro.AvviaAsync();
+        var andata = await giro.AndataAsync("/chi");
+        giro.Ivao.NonceDaMettere = NonceEstraneo;
+
+        var primo = await giro.RitornoAsync(andata, andata.Cookie);
+        Assert.False(primo.Dentro);
+        var seconda = giro.SecondaAndata(primo);
+        Assert.NotEqual(andata.State, seconda.State);
+        Assert.NotEqual(andata.Nonce, seconda.Nonce);
+
+        var secondo = await giro.RitornoAsync(seconda, seconda.Cookie);
+
+        Assert.Equal("/chi", secondo.Destinazione);
+        Assert.True(secondo.Dentro, "vipi.auth non emesso al secondo giro");
+        // Il segno del secondo giro serve al giro, non alla sessione.
+        var proprieta = await giro.ProprietaDellaSessioneAsync(secondo.CookieDiSessione!);
+        Assert.DoesNotContain(VipiStandaloneAuthExtensions.SecondoGiroChiave, proprieta.Keys);
+        // E resta persistente come il giro normale: il cookie dura sette giorni anche per chi è entrato così.
+        Assert.True(proprieta.ContainsKey(".persistent"), "sessione non persistente dopo il secondo giro");
+    }
+
+    [Theory]
+    [InlineData("nonce", true, false, true)]
+    [InlineData("nonce", true, true, false)]     // già al secondo giro: niente anello
+    [InlineData("nonce", false, false, false)]   // stato illeggibile: né ritorno né segno
+    [InlineData("correlazione", true, false, false)]
+    [InlineData("portale", true, false, false)]
+    [InlineData("sconosciuto", true, false, false)]
+    public void Riparte_solo_il_nonce_al_primo_giro_con_lo_stato(string motivo, bool stato, bool secondo, bool riparte) =>
+        Assert.Equal(riparte, VipiStandaloneAuthExtensions.DeveRipartire(motivo, stato, secondo));
 
     /// <summary>Senza il cookie di correlazione lo stato non vale niente, e con lui il nonce che porta.</summary>
     [Fact]
@@ -142,7 +188,7 @@ public sealed class NonceDelLoginTests
 
     private sealed record Andata(string State, string Nonce, IReadOnlyList<string> Cookie);
 
-    private sealed record Ritorno(string Destinazione, string? CookieDiSessione)
+    private sealed record Ritorno(string Destinazione, string? CookieDiSessione, IReadOnlyList<string> Cookie)
     {
         public bool Dentro => CookieDiSessione is not null;
     }
@@ -196,13 +242,21 @@ public sealed class NonceDelLoginTests
             using var risposta = await _browser.GetAsync($"/services/vsop/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
             Assert.Equal(HttpStatusCode.Redirect, risposta.StatusCode);
 
-            var verso = risposta.Headers.Location!;
+            return Verso(risposta.Headers.Location!, Cookie(risposta));
+        }
+
+        /// <summary>Il ritorno che rimanda a IVAO: il secondo giro partito da solo, coi cookie che ha lasciato.</summary>
+        public Andata SecondaAndata(Ritorno ritorno) =>
+            Verso(new Uri(ritorno.Destinazione), ritorno.Cookie);
+
+        private Andata Verso(Uri verso, IReadOnlyList<string> cookie)
+        {
             Assert.StartsWith(FintoIvao.Autorizza, verso.GetLeftPart(UriPartial.Path));
             var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(verso.Query);
 
             var nonce = query["nonce"].ToString();
             Ivao.NonceDaMettere = nonce;     // IVAO, di norma, rimanda il nonce che gli si è dato
-            return new Andata(query["state"].ToString(), nonce, Cookie(risposta));
+            return new Andata(query["state"].ToString(), nonce, cookie);
         }
 
         public async Task<Ritorno> RitornoAsync(Andata andata, IEnumerable<string> cookie)
@@ -214,8 +268,9 @@ public sealed class NonceDelLoginTests
 
             using var risposta = await _browser.SendAsync(richiesta);
             Assert.Equal(HttpStatusCode.Redirect, risposta.StatusCode);
-            var sessione = Cookie(risposta).FirstOrDefault(c => c.StartsWith("vipi.auth=", StringComparison.Ordinal));
-            return new Ritorno(risposta.Headers.Location!.OriginalString, sessione);
+            var tornati = Cookie(risposta);
+            var sessione = tornati.FirstOrDefault(c => c.StartsWith("vipi.auth=", StringComparison.Ordinal));
+            return new Ritorno(risposta.Headers.Location!.OriginalString, sessione, tornati);
         }
 
         /// <summary>Le proprietà che il cookie di sessione si porta dietro, decifrate come fa l'handler.</summary>

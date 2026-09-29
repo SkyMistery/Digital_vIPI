@@ -116,7 +116,10 @@
                                         <Icon Name="plus" Size="14" /> @L["Mil_Create"]
                                     </button>
                                 }
-                                else
+                                @* 🔴 Fino al 29 settembre 2026 qui c'era un `else` nudo: legato alla catena dello
+                                   staff, scattava per OGNI lettore che non fosse Editor, e il pubblico vedeva
+                                   «Pubblicato» e accanto «Nessun documento» sullo stesso campo. *@
+                                else if (r.DocumentId is null)
                                 {
                                     <span class="muted">@L["Mil_NoDoc"]</span>
                                 }
