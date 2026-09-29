@@ -12,7 +12,7 @@ public sealed record EditorTaskInput(
     string Title, string? Description, int AssigneeUserId, string? AssigneeName,
     EditorTaskPriority Priority, string? DueAiracCycle,
     ReleaseTargetType? TargetType, string? TargetKey, string? TargetLabel,
-    int? FromImpactId = null);
+    int? FromImpactId = null, int? FromRequestId = null);
 
 /// <summary>
 /// Persistenza degli incarichi editoriali.

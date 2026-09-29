@@ -194,6 +194,7 @@ public static class DependencyInjection
         services.AddScoped<IAtcUnitService, AtcUnitService>();
         services.AddScoped<IRemotizzazioneService, RemotizzazioneService>();
         services.AddScoped<IAtcUnitOverviewService, AtcUnitOverviewService>();
+        services.AddScoped<IFieldRequestService, FieldRequestService>();
         // Pigro: la pubblicazione lo chiede solo dopo una vIPI ACC (S52), e il servizio tira dietro mezzo editing.
         services.AddScoped(sp => new Lazy<IRemotizzazioneService>(sp.GetRequiredService<IRemotizzazioneService>));
         services.AddScoped<Vipi.Application.Diagnostics.IConsistencyReportService, Vipi.Application.Diagnostics.ConsistencyReportService>();

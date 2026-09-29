@@ -2443,6 +2443,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int?>("FromImpactId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("FromRequestId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -2483,6 +2486,88 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("EditorTasks");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.FieldRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DuplicateOfId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HandledByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("HandledByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("HandledUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("ReleaseNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reply")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("ReporterName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("ReporterUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SectionKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("ReporterUserId");
+
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.ToTable("FieldRequests");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.GlossaryTerm", b =>
@@ -4177,6 +4262,16 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Document");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.FieldRequest", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Document");
                 });

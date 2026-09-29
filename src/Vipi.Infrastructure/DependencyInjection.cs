@@ -197,6 +197,7 @@ public static class DependencyInjection
         // La rinomina: un motore solo, come l'eliminazione. Lo chiamano i due upsert di catalogo, in cima.
         services.AddScoped<Vipi.Application.Content.ICallsignRenameService, EfCallsignRenameService>();
         services.AddScoped<Vipi.Application.Abstractions.ISectorSubstitution, EfCallsignRenameService>();
+        services.AddScoped<Vipi.Application.Abstractions.IFieldRequestRepository, EfFieldRequestRepository>();
         services.AddScoped<Vipi.Application.Content.ISectorShapeRepository, EfSectorShapeRepository>();
         services.AddScoped<Vipi.Application.Content.IShapeGateRepository, EfShapeGateRepository>();
         // U-037: radioassistenze e carte MRVA nell'avviso a chi pubblica, e la loro forzatura.

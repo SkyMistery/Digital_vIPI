@@ -550,6 +550,12 @@ public enum SourceCatalog
 /// rinumerando, ma il valore finisce in banca dati (<c>RoleOverride</c>): rinumerare senza migrazione
 /// promuove o declassa delle persone in silenzio.</para>
 /// </summary>
+/// <summary>Di che cosa parla una richiesta dal campo (S56).</summary>
+public enum FieldRequestKind { Errore, Suggerimento }
+
+/// <summary>Il ciclo di una richiesta dal campo (S56): nuova, presa in carico, poi una delle tre chiusure.</summary>
+public enum FieldRequestStatus { Nuova, PresaInCarico, Risolta, Respinta, Doppione }
+
 public enum VipiRole
 {
     /// <summary>Chiunque, anche anonimo: le pagine e i documenti pubblici.</summary>

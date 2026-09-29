@@ -23,6 +23,7 @@ else if (depth <= 0)
                 @* Il badge del destinatario vale anche sulle SOTTO-sezioni: nel vSOP militare venti delle
                    ventisei sezioni sono figlie, e marcare solo le radici lascerebbe fuori quasi tutto. *@
                 <AudienceBadge Audience="Section.Audience" />
+                @if (!Section.IsHidden) { <ReportLink Href="@ReportHrefOf?.Invoke(Section)" /> }
             </h3>
         </Header>
         <ChildContent>@Corpo()</ChildContent>
@@ -94,6 +95,10 @@ else
     /// <summary>Vista bozza: le sezioni nascoste si vedono, marcate. ⚠️ Il default <c>false</c> è quello
     /// prudente — chi dimentica di passarlo <b>nasconde</b>, non pubblica per sbaglio.</summary>
     [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>Il link «Segnala» (S56), solo sulle radici: le sotto-sezioni stanno dentro, e la richiesta porta
+    /// comunque la chiave della radice. Null = niente link.</summary>
+    [Parameter] public Func<SectionView, string?>? ReportHrefOf { get; set; }
 
     /// <summary>
     /// Se la sezione RADICE nasce aperta. Null = decide il catalogo (le sezioni di documento che nascono

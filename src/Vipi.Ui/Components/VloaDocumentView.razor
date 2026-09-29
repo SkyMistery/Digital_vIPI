@@ -54,7 +54,8 @@
            ⚠️ Chi rende il corpo lo dice ora il CATALOGO: prima era una catena di `else if` su tre chiavi
            cablate, e la vLOA era l'unica delle quattro a decidere da sé. *@
         <DocumentSectionsView Sections="View.Sections" Profile="SectionProfile.Vloa" IsDraft="IsDraft"
-                              SlotsOf="SenzaDirezioni" DerivedContent="CorpoDerivato" />
+                              SlotsOf="SenzaDirezioni" DerivedContent="CorpoDerivato"
+                              ReportHrefOf="@(!IsDraft && ReleaseId is null && DocId is int id ? s => ReportLink.Per(ReleaseTargetType.Vloa, id.ToString(), s.SectionKey) : null)" />
     </div>
 
     <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">

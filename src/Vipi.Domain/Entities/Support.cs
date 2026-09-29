@@ -42,9 +42,63 @@ public class EditorTask
     /// </summary>
     public int? FromImpactId { get; set; }
 
+    /// <summary>
+    /// La richiesta dal campo (<see cref="FieldRequest"/>) da cui l'incarico è nato con «prendi in carico»; null
+    /// altrimenti. Gemello dichiarato di <see cref="FromImpactId"/>, e per la stessa ragione senza chiave esterna:
+    /// serve a non mostrare due volte lo stesso lavoro (carta <c>docs/design/piano-segnalazioni.md</c> §2/D5).
+    /// </summary>
+    public int? FromRequestId { get; set; }
+
     public DateTime CreatedUtc { get; set; }
     public DateTime UpdatedUtc { get; set; }
     public DateTime? CompletedUtc { get; set; }
+}
+
+/// <summary>
+/// Una <b>richiesta dal campo</b> (S56, committente, 29 settembre 2026): un utente IVAO connesso — non serve
+/// essere staff — dice a chi scrive i documenti che qualcosa è sbagliato o si può migliorare, senza passare
+/// dalla posta. Carta <c>docs/design/piano-segnalazioni.md</c>.
+///
+/// <para>⚠️ <b>Non è una «segnalazione»</b> (decisione del committente, §10.5 della carta): in vIPI quella
+/// parola è del sistema (<see cref="DocumentImpact"/>, un fatto dedotto che si chiude da sé). Questa la scrive una
+/// persona, ha un autore a cui rispondere, e può essere respinta.</para>
+///
+/// <para>Ogni chiusura ha una frase (<see cref="Reply"/>): una richiesta chiusa in silenzio insegna a non
+/// chiederne più.</para>
+/// </summary>
+public class FieldRequest
+{
+    public int Id { get; set; }
+
+    // Chi
+    public int ReporterUserId { get; set; }                 // VID
+    public string ReporterName { get; set; } = "";
+    public DateTime CreatedUtc { get; set; }
+
+    // Su che cosa: tutto opzionale, perché esiste la richiesta libera.
+    public int? DocumentId { get; set; }
+    public Document? Document { get; set; }
+
+    /// <summary>⚠️ La chiave di catalogo della sezione, non <c>DocumentSection.Id</c>: le sezioni sono figlie di una
+    /// versione, e alla pubblicazione successiva quell'Id non esiste più.</summary>
+    public string SectionKey { get; set; } = "";
+
+    /// <summary>Il numero della pubblicazione che il lettore stava leggendo: senza, chi valuta apre la bozza, vede un
+    /// testo diverso e risponde «non c'è nessun errore» mentre in pubblico c'è ancora.</summary>
+    public int? ReleaseNumber { get; set; }
+
+    // Che cosa dice: prosa di una persona, si salva e si mostra com'è scritta (niente traduzione, niente .resx).
+    public FieldRequestKind Kind { get; set; }
+    public string Body { get; set; } = "";
+
+    // Che fine ha fatto
+    public FieldRequestStatus Status { get; set; } = FieldRequestStatus.Nuova;
+    public int HandledByUserId { get; set; }
+    public string HandledByName { get; set; } = "";
+    public DateTime? HandledUtc { get; set; }
+    /// <summary>La frase che l'autore legge.</summary>
+    public string Reply { get; set; } = "";
+    public int? DuplicateOfId { get; set; }
 }
 
 /// <summary>

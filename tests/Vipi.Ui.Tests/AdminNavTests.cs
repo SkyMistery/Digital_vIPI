@@ -64,7 +64,9 @@ public class AdminNavTests : TestContext
         // ⚠️ 16 dal 1 settembre 2026: il registro delle traduzioni e il glossario sono UNA pagina, e il
         // vecchio indirizzo del registro ci porta come rotta della stessa pagina — non come voce di barra.
         // ⚠️ 17 dal 29 settembre 2026 (S53): gli enti ATC, accanto agli aeroporti.
-        Assert.Equal(17, nav.QuerySelectorAll(".an-link").Length);
+        // ⚠️ 18 dal 29 settembre 2026 (S56): le richieste dal campo, accanto a «Da sistemare».
+        Assert.Equal(18, nav.QuerySelectorAll(".an-link").Length);
+        Assert.Contains("/services/vsop/requests", cut.Markup);
         Assert.Contains("/services/vsop/admin/units", cut.Markup);
         Assert.Contains("/services/vsop/admin/sector-structure", cut.Markup);
         Assert.Contains("/services/vsop/admin/glossary", cut.Markup);
@@ -192,7 +194,7 @@ public class AdminNavTests : TestContext
 
     /// <summary>Un editor vede le sue undici voci e nessuna delle cinque dell'admin.</summary>
     [Fact]
-    public void Un_editor_vede_dodici_voci()
+    public void Un_editor_vede_tredici_voci()
     {
         var cut = Render(VipiRole.Editor, url: "http://localhost/services/vsop/versions");
 
@@ -200,7 +202,8 @@ public class AdminNavTests : TestContext
         // contenuto documentale, come le radioassistenze. Vedi la nota sul conteggio dell'admin.
         // ⚠️ 11 dal 1 settembre 2026: glossario e registro delle traduzioni sono una pagina sola.
         // ⚠️ 12 dal 29 settembre 2026 (S53): gli enti ATC, che sono struttura come gli aeroporti.
-        Assert.Equal(12, cut.Find("nav.admin-nav").QuerySelectorAll(".an-link").Length);
+        // ⚠️ 13 dal 29 settembre 2026 (S56): la coda delle richieste dal campo, che valuta l'Editor.
+        Assert.Equal(13, cut.Find("nav.admin-nav").QuerySelectorAll(".an-link").Length);
         Assert.DoesNotContain("/services/vsop/admin/permissions", cut.Markup);
         Assert.DoesNotContain("/services/vsop/admin/diagnostics", cut.Markup);
     }

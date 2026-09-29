@@ -209,6 +209,7 @@ public class VipiDbContext : DbContext
 
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
+    public DbSet<FieldRequest> FieldRequests => Set<FieldRequest>();
     public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
     public DbSet<DocumentImpact> DocumentImpacts => Set<DocumentImpact>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
@@ -750,6 +751,21 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => x.AssigneeUserId);
             e.HasIndex(x => x.Status);
+        });
+
+        // --- Richieste dal campo (S56, carta piano-segnalazioni.md §3). ---
+        b.Entity<FieldRequest>(e =>
+        {
+            e.Property(x => x.ReporterName).HasMaxLength(128).IsRequired();
+            e.Property(x => x.SectionKey).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Body).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.HandledByName).HasMaxLength(128).IsRequired();
+            e.Property(x => x.Reply).HasMaxLength(2000).IsRequired();
+            e.HasIndex(x => new { x.Status, x.CreatedUtc });   // la coda
+            e.HasIndex(x => x.DocumentId);                     // il banner dell'editor
+            e.HasIndex(x => x.ReporterUserId);                 // «le mie»
+            // Come DocumentImpact: eliminato il documento, una richiesta su di lui non è più un lavoro.
+            e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // --- Lock di editing esclusivo su risorse nominate (pagine admin di struttura, wizard nuovo doc). ---
