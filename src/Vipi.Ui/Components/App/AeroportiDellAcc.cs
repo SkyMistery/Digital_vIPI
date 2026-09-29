@@ -20,9 +20,16 @@ public sealed record AeroportoInElenco(AirportRow Scalo, bool HaVipi, bool HaVso
     public string VsopHref(string acc) =>
         $"/services/vsop/{acc.ToLowerInvariant()}/mil?icao={Scalo.Icao}&vista={AudienceFilter.QueryAtc}";
 
-    /// <summary>Dove porta la riga quando c'è posto per UN solo collegamento: la vIPI se c'è, altrimenti il
-    /// vSOP. Un campo solo militare ha soltanto il secondo.</summary>
-    public string Href(string acc) => HaVipi ? VipiHref(acc) : VsopHref(acc);
+    /// <summary>
+    /// Dove porta la scheda (o la riga) quando si apre UN documento solo: quello che c'è, e con tutti e due quello
+    /// che la categoria dice principale — la vIPI su uno scalo civile, anche con presenza militare, il vSOP su un
+    /// campo militare, anche aperto al traffico civile (committente, 29 settembre 2026). Fino ad allora vinceva
+    /// sempre la vIPI, e sulla scheda con due documenti fuori dalle due voci non si apriva niente.
+    /// </summary>
+    public string Href(string acc) => HaVipi && !(HaVsop && Militare) ? VipiHref(acc) : VsopHref(acc);
+
+    /// <summary>La categoria dice militare: il vSOP è il documento principale.</summary>
+    private bool Militare => Scalo.Category is AirportCategory.MilitaryWithCivilPresence or AirportCategory.MilitaryOnly;
 }
 
 /// <summary>

@@ -179,16 +179,7 @@
                 <Icon Name="moon" Class="ti ti-dark" />
             </button>
             @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /services/vsop, Round 12). *@
-            @* La versione, ai SOLI admin. Risponde a una domanda che si è posta di continuo — «che versione
-               è online?» — e che finora si rispondeva scaricando un file via FTP.
-               ⚠️ Non è per tutti: a un socio non dice niente, e a chi passa di qui direbbe con quale build
-               precisa sta parlando, che è informazione da regalare solo se serve a qualcuno.
-               ⚠️ È la PRIMA cosa che esce dalla barra quando lo spazio manca (CSS, scaglione tb-2): è una
-               spia, non un comando, e la stessa riga sta in diagnostica/avvio-diagnostica.txt. *@
-            @if (_isAdmin && Chrome.Value.Versione is { Length: > 0 } ver)
-            {
-                <span class="ver-chip" title="@Chrome.Value.VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
-            }
+            @* ⚠️ La versione non sta più qui: dal 29 settembre 2026 è nel piè di pagina, allo staff (SitoFooter). *@
             @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
                da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha.
 
@@ -253,6 +244,11 @@
 }
 
 <main id="vipi-main">@Body</main>
+@* Il piè di pagina, a schermo. Come la barra, solo quando il modulo è il sito: un host che lo aggancia ha il suo. *@
+@if (Chrome.Value.RenderTopbar)
+{
+    <SitoFooter MostraVersione="_canEdit" Versione="@Chrome.Value.Versione" VersioneDettaglio="@Chrome.Value.VersioneDettaglio" />
+}
 @* IL PIE' DI OGNI FOGLIO STAMPATO. A schermo non esiste (`.print-only`).
 
    ⚠️ Sta nel LAYOUT e non nei documenti perche' vale per OGNI pagina del sito, non solo per i cinque

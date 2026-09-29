@@ -345,13 +345,6 @@
 :where(.vipi-root) .live-badge:hover{background:color-mix(in srgb,var(--ivao-green) 30%,transparent);border-color:color-mix(in srgb,var(--ivao-green) 75%,transparent)}
 :where(.vipi-root) .live-badge.off:hover{background:var(--line);border-color:var(--ink-dim)}
 :where(.vipi-root) .live-badge .dot{width:9px;height:9px;border-radius:50%;background:var(--ivao-green);box-shadow:0 0 0 0 color-mix(in srgb,var(--ivao-green) 60%,transparent);animation:pulse 2s infinite}
-/* La spia della versione (soli admin). Deliberatamente SPENTA: e' una spia, non un comando, e nella barra
-   non deve competere con niente. Monospazio perche' quello che porta e' un codice, e i codici si leggono a
-   colpo d'occhio solo se le cifre stanno in colonna. `user-select` resta libero: serve poterlo copiare
-   dentro una segnalazione. */
-:where(.vipi-root) .ver-chip{font:12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ink-dim);
-          background:var(--surface-muted);border:1px solid var(--line);border-radius:6px;
-          padding:5px 8px;white-space:nowrap;cursor:default}
 
 /* variante "disconnesso" (U7): prima era override inline nel SopLayout */
 :where(.vipi-root) .live-badge.off{background:var(--surface-muted);color:var(--ink-soft);border-color:var(--ivao-grey)}
@@ -370,7 +363,7 @@
    stessa altezza»). Misurati a 1900px prima di questa riga: tasti a icona 32, «Documenti» e ricerca 36, zoom 38,
    lingua 32, badge 34. Ognuno la prendeva dal proprio padding e dal proprio contenuto, e un'icona e una riga di
    testo non sono alte uguali. Ora la decide la barra: `--tb-ctl`, con `box-sizing` perché il bordo stia dentro.
-   ⚠️ La versione (`.ver-chip`) resta più bassa apposta: è una spia, non un comando. */
+   ⚠️ La versione dal 29 settembre non sta più in barra: è nel piè di pagina (`.sito-foot`). */
 :where(.vipi-root) .topbar{--tb-ctl:34px}
 :where(.vipi-root) .topbar :is(.editor-btn,.zoom-ctrl,.lang-ctrl,.live-badge,.top-search,.acc-nav a,.tb-menu>summary){height:var(--tb-ctl);box-sizing:border-box}
 :where(.vipi-root) .topbar .acc-nav a{display:inline-flex;align-items:center}
@@ -1001,9 +994,17 @@
 /* Riga della pill militare sulla card d'aeroporto: sta fra il nome e il meteo, e non deve toccarli. */
 :where(.vipi-root) .apt-mil{margin:6px 0 0}
 /* Scheda di uno scalo con vIPI E vSOP militare: non e' un link unico (un <a> dentro un <a> non e' HTML), ma
-   un riquadro con due voci ACCANTO AL NOME, che vanno a capo se il nome e' lungo. Non si solleva al passaggio,
-   o prometterebbe un clic che sul riquadro non c'e'. La voce militare prende l'oliva dell'edizione militare. */
-:where(.vipi-root) .apt-card.apt-two:hover{transform:none}
+   un riquadro con due voci ACCANTO AL NOME, che vanno a capo se il nome e' lungo. La voce militare prende
+   l'oliva dell'edizione militare.
+   Dal 29 settembre 2026 il riquadro si clicca fuori dalle voci (apre il documento principale per categoria): il
+   collegamento `.apt-main` e' steso su tutta la scheda SOTTO il contenuto, e le due voci gli stanno sopra. Il
+   resto del contenuto non prende i clic (`pointer-events:none`), cosi' arrivano al collegamento; per questo la
+   scheda torna a sollevarsi al passaggio come le altre. */
+:where(.vipi-root) .apt-card.apt-two{position:relative}
+:where(.vipi-root) .apt-card.apt-two>.apt-main{position:absolute;inset:0;border-radius:inherit;z-index:0}
+:where(.vipi-root) .apt-card.apt-two>:not(.apt-main){position:relative;z-index:1;pointer-events:none}
+:where(.vipi-root) .apt-card.apt-two .apt-docs{pointer-events:auto}
+:where(.vipi-root) .apt-card.apt-two>.apt-main:focus-visible{outline:2px solid var(--ivao-lightblue);outline-offset:2px}
 :where(.vipi-root) .apt-name{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;margin-top:4px}
 :where(.vipi-root) .apt-card .apt-name p.muted{margin:0}
 /* ⚠️ I filtri per categoria: una categoria a zero e' NEUTRA, non verde — il verde di `button.sh-chip:disabled`
@@ -4424,7 +4425,6 @@
    niente — la stessa riga sta in diagnostica/avvio-diagnostica.txt e nel `title` finche' si vede.
    ⚠️ Qui NON c'e' un numero di pixel come nelle regole vicine: quelli sono misurati, questo non lo e'
    ancora. Chi passa di qui con un browser aperto lo misuri e lo scriva. */
-:where(.vipi-root) .topbar.tb-2 .ver-chip{display:none}
 
 /* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
 
@@ -5175,3 +5175,31 @@
   box-shadow:0 -1px 2px rgba(0,0,0,.2);font-size:13.5px}
 :where(.vipi-root) #blazor-error-ui .reload{margin-left:8px;font-weight:600;color:var(--brand-ink)}
 :where(.vipi-root) #blazor-error-ui .dismiss{position:absolute;right:12px;top:8px;cursor:pointer}
+
+/* ---- Il piè di pagina del sito (SitoFooter, 29 settembre 2026) ----
+   Lo stesso disegno di quello dell'hub IVAO Italy: marchio e due frasi a sinistra, i collegamenti di IVAO a
+   destra, in fondo diritti e appartenenza. Fondo `--surface` sopra la pagina `--bg`: nel tema scuro e' la fascia
+   un tono piu' chiara della foto del committente, nel chiaro una fascia bianca. */
+:where(.vipi-root):has(> .sito-foot){display:flex;flex-direction:column;min-height:100vh}
+/* Su una pagina corta il piè di pagina resta in fondo alla finestra invece di lasciare una fascia vuota sotto:
+   la pagina cresce, il piè no. Solo dove il piè c'è (`:has`), cioè non quando un host aggancia il modulo. */
+:where(.vipi-root):has(> .sito-foot)>#vipi-main{flex:1 0 auto}
+:where(.vipi-root) .sito-foot{margin-top:48px;background:var(--surface);border-top:1px solid var(--line);color:var(--ink-soft);font-size:14px}
+:where(.vipi-root) .sito-foot .sf-in{max-width:1120px;margin:0 auto;padding:36px 16px 22px}
+:where(.vipi-root) .sito-foot .sf-cols{display:flex;flex-wrap:wrap;justify-content:center;gap:28px 96px;text-align:center}
+:where(.vipi-root) .sito-foot .sf-about{max-width:340px;display:flex;flex-direction:column;align-items:center;gap:10px}
+:where(.vipi-root) .sito-foot .sf-about p{margin:0;line-height:1.5}
+:where(.vipi-root) .sito-foot .sf-brand{display:inline-flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;font-family:var(--font-head)}
+:where(.vipi-root) .sito-foot .sf-brand .logo{width:30px;height:30px;border-radius:7px;background:var(--ivao-blue);color:var(--on-brand);display:grid;place-items:center;font-weight:800;font-size:11px}
+:where(.vipi-root) .sito-foot .sf-brand small{color:var(--ink-soft);font-size:12px}
+:where(.vipi-root) .sito-foot .sf-links{display:flex;flex-direction:column;align-items:center;gap:10px}
+:where(.vipi-root) .sito-foot .sf-h{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ink-dim)}
+:where(.vipi-root) .sito-foot .sf-links a{color:var(--ink-soft);text-decoration:none}
+:where(.vipi-root) .sito-foot .sf-links a:hover{color:var(--brand-ink);text-decoration:underline}
+:where(.vipi-root) .sito-foot .sf-bottom{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;
+  justify-content:space-between;align-items:center;gap:8px 24px;font-size:13px;color:var(--ink-dim)}
+:where(.vipi-root) .sito-foot .sf-sep{margin:0 4px}
+/* La versione: monospazio perche' e' un codice, e le cifre in colonna si leggono a colpo d'occhio. Si copia
+   (serve dentro una segnalazione), quindi niente user-select:none. */
+:where(.vipi-root) .sito-foot .ver-chip{font:12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ink-dim);
+  background:var(--surface-muted);border:1px solid var(--line);border-radius:6px;padding:4px 7px;white-space:nowrap}

@@ -1513,5 +1513,20 @@
   6. La Guida per ruolo: la parte «Modificare» (e le anteprime di bozza, spostate lì) solo a chi può modificare
      (`IsEditor`), e lo stesso confine nella ricerca (`GuideSearchCatalog.AncorePubbliche`: l'elenco è dei pubblici,
      un capitolo nuovo nasce riservato). Codice comune `Vipi.Application` (SearchService).
+- ✅ **S44** il piè di pagina del sito (29-set, committente, con davanti quello dell'hub): `SitoFooter` in
+  `SopLayout`, quindi su ogni pagina tranne il vAWOS (layout suo, `AwosLayout`); non si rende quando un host
+  aggancia il modulo senza la nostra barra, né in stampa. Marchio, a che cosa serve il sito, l'avviso di simulazione;
+  i collegamenti di IVAO (gli stessi dell'hub: ivao.aero, termini, privacy, regolamento, in una scheda nuova); in
+  fondo diritti e «Parte della International Virtual Aviation Organisation». La **versione** esce dalla barra e va
+  qui, allo **staff** (chi può modificare; prima ai soli admin), con la stessa classe `ver-chip`. Su pagina corta il
+  piè resta in fondo alla finestra. Verificato a schermo a 1500 (scuro, IT/EN) e 375px; `/services/vawos` senza.
+  Test +5 (`PieDiPaginaTests`); Ui **1863**.
+- ✅ **S45** scheda di uno scalo con vIPI **e** vSOP nell'elenco aeroporti di un'ACC (29-set, committente): il clic
+  fuori dalle due voci apre il documento principale per categoria — la vIPI su uno scalo civile (anche con presenza
+  militare), il vSOP su un campo militare (anche aperto al civile). Prima il riquadro non si cliccava, e dove si
+  apriva un solo documento vinceva sempre la vIPI (anche nei «in evidenza» della landing ACC, che usano la stessa
+  regola `AeroportoInElenco.Href`). Un collegamento `.apt-main` steso sotto il contenuto, le voci sopra: niente `<a>`
+  annidati. Impilamento dei clic provato in Edge (ICAO, nome, meteo, badge, angolo → principale; voci → la loro).
+  Test +6; Ui **1869**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -1,0 +1,121 @@
+using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
+using Vipi.Application;
+using Vipi.Ui.Components;
+using Xunit;
+
+namespace Vipi.Ui.Tests;
+
+/// <summary>
+/// Il piè di pagina del sito (<see cref="SitoFooter"/>).
+///
+/// <para>🔴 <b>Perché (29 settembre 2026).</b> Il committente, con davanti quello dell'hub IVAO Italy: «in fondo al sito
+/// dobbiamo mettere una cosa così, con le descrizioni appropriate e versione e commit spostati dalla barra in alto a in
+/// basso, visibili solo allo staff. Deve essere presente ovunque tranne che nel vAWOS».</para>
+/// </summary>
+public class PieDiPaginaTests : TestContext
+{
+    private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
+    {
+        public LocalizedString this[string name] => new(name, name, resourceNotFound: false);
+        public LocalizedString this[string name, params object[] arguments] =>
+            new(name, name + string.Concat(arguments.Select(a => " " + a)), resourceNotFound: false);
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
+    }
+
+    private IRenderedComponent<SitoFooter> Rendi(bool staff)
+    {
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<IOptions<DivisionOptions>>(Options.Create(new DivisionOptions { Name = "Italy" }));
+        return RenderComponent<SitoFooter>(p => p
+            .Add(x => x.MostraVersione, staff)
+            .Add(x => x.Versione, "1.48.0 · abc1234")
+            .Add(x => x.VersioneDettaglio, "pacchetto 1.48.0, commit abc1234"));
+    }
+
+    [Fact]
+    public void Allo_staff_la_versione_e_il_commit()
+    {
+        var cut = Rendi(staff: true);
+
+        var ver = cut.Find(".ver-chip");
+        Assert.Equal("1.48.0 · abc1234", ver.TextContent);
+        Assert.Equal("pacchetto 1.48.0, commit abc1234", ver.GetAttribute("title"));
+    }
+
+    [Fact]
+    public void Al_lettore_niente_versione()
+    {
+        var cut = Rendi(staff: false);
+
+        Assert.Empty(cut.FindAll(".ver-chip"));
+        Assert.DoesNotContain("abc1234", cut.Markup);
+    }
+
+    [Fact]
+    public void Porta_i_collegamenti_di_IVAO_in_una_scheda_nuova()
+    {
+        var cut = Rendi(staff: false);
+
+        var link = cut.FindAll(".sf-links a").ToList();
+        Assert.Equal(new[]
+        {
+            "https://www.ivao.aero", "https://www.ivao.aero/termsandconditions.htm",
+            "https://www.ivao.aero/privacy.htm", "https://www.ivao.aero/rules.htm",
+        }, link.Select(a => a.GetAttribute("href")));
+        Assert.All(link, a =>
+        {
+            Assert.Equal("_blank", a.GetAttribute("target"));
+            Assert.Equal("noopener", a.GetAttribute("rel"));
+        });
+    }
+
+    [Fact]
+    public void Dice_chi_e_la_divisione_e_che_e_simulazione()
+    {
+        var cut = Rendi(staff: false);
+
+        Assert.Contains("Foot_About IVAO Italy", cut.Markup);
+        Assert.Contains("Foot_Disclaimer IVAO Italy", cut.Markup);
+        Assert.Contains($"© {DateTime.UtcNow.Year} IVAO Italy.", cut.Markup);
+        Assert.Contains("Foot_PartOf", cut.Markup);
+    }
+
+    /// <summary>
+    /// Ovunque tranne il vAWOS: sta nel layout comune, non in quello del vAWOS; e la versione non sta più in barra.
+    /// ⚠️ Presidio sul sorgente: il layout comune ha servizi e sedi che un test di componente non monta.
+    /// </summary>
+    [Fact]
+    public void Sta_in_ogni_pagina_tranne_il_vAWOS_e_la_versione_non_sta_in_barra()
+    {
+        var layout = Leggi("Shared/SopLayout.razor");
+        Assert.Contains("<SitoFooter ", layout);
+        Assert.DoesNotContain("class=\"ver-chip\"", layout);
+
+        Assert.DoesNotContain("SitoFooter", Leggi("Shared/AwosLayout.razor"));
+
+        // Le pagine con un layout diverso dal comune: oggi solo il vAWOS. Una nuova resterebbe senza piè di pagina.
+        var altri = Directory.GetFiles(Path.Combine(Radice(), "Pages"), "*.razor")
+            .Where(f => File.ReadAllText(f).Contains("@layout ") && !File.ReadAllText(f).Contains("@layout SopLayout"))
+            .Select(Path.GetFileName)
+            .ToList();
+        Assert.Equal(new[] { "AwosPage.razor" }, altri);
+    }
+
+    private static string Leggi(string relativo) =>
+        File.ReadAllText(Path.Combine(Radice(), relativo.Replace('/', Path.DirectorySeparatorChar)));
+
+    private static string Radice()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var c = Path.Combine(dir.FullName, "src", "Vipi.Ui");
+            if (Directory.Exists(Path.Combine(c, "Pages"))) return c;
+            dir = dir.Parent;
+        }
+        throw new DirectoryNotFoundException($"src/Vipi.Ui non trovata risalendo da {AppContext.BaseDirectory}");
+    }
+}

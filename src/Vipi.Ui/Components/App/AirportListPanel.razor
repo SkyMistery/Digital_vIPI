@@ -55,10 +55,14 @@ else
             var n = OnlineSu(ap.Icao);
             @* ⚠️ Con DUE documenti la scheda non è più un link unico: un <a> dentro un <a> non è HTML valido, e
                il browser lo spezza da sé. Diventa un riquadro con due voci accanto al nome, una per documento.
-               Con un documento solo resta tutta cliccabile, com'era. *@
+               Con un documento solo resta tutta cliccabile, com'era.
+               🔴 Dal 29 settembre 2026 (committente) anche il riquadro si clicca, fuori dalle due voci: apre il
+               documento principale per la categoria (AeroportoInElenco.Href). È un collegamento a parte, steso
+               sotto il contenuto (`.apt-main`), e le due voci gli stanno sopra: niente <a> annidati. *@
             @if (voce.HaVipi && voce.HaVsop)
             {
                 <div class="choice apt-card apt-two">
+                    <a class="apt-main" href="@voce.Href(Acc)" aria-label="@ap.Icao · @ap.Name"></a>
                     @Corpo(voce, n)
                 </div>
             }

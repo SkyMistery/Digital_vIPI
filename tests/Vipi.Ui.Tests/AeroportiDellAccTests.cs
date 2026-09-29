@@ -46,7 +46,55 @@ public class AeroportiDellAccTests
         Assert.Equal("/services/vsop/limm/airports?icao=LIBV", voce.VipiHref("LIMM"));
         // Il vSOP si apre in vista ATC: dall'ACC arriva un controllore.
         Assert.Equal("/services/vsop/limm/mil?icao=LIBV&vista=atc", voce.VsopHref("LIMM"));
-        // Dove c'è posto per un collegamento solo, vince la vIPI.
+        // Dove si apre un documento solo, su un campo militare vince il vSOP (committente, 29 settembre 2026).
+        Assert.Equal(voce.VsopHref("LIMM"), voce.Href("LIMM"));
+    }
+
+    /// <summary>
+    /// 🔴 Committente, 29 settembre 2026: sulla scheda con vIPI e vSOP, il clic fuori dalle due voci apre la vIPI se lo
+    /// scalo è civile con presenza militare, il vSOP se è militare con presenza civile.
+    /// </summary>
+    [Theory]
+    [InlineData(AirportCategory.CivilWithMilitaryPresence, "/services/vsop/limm/airports?icao=LIML")]
+    [InlineData(AirportCategory.Civil, "/services/vsop/limm/airports?icao=LIML")]
+    [InlineData(AirportCategory.MilitaryWithCivilPresence, "/services/vsop/limm/mil?icao=LIML&vista=atc")]
+    [InlineData(AirportCategory.MilitaryOnly, "/services/vsop/limm/mil?icao=LIML&vista=atc")]
+    public void Con_tutti_e_due_la_scheda_apre_il_documento_della_categoria(AirportCategory categoria, string atteso)
+    {
+        var voce = Assert.Single(AeroportiDellAcc.Elenco(
+            new[] { Scalo("LIML", categoria: categoria) },
+            new[] { Doc(ReleaseTargetType.Airport, "LIML"), Doc(ReleaseTargetType.AirportMil, "LIML") }, "LIMM"));
+
+        Assert.Equal(atteso, voce.Href("LIMM"));
+    }
+
+    /// <summary>
+    /// La scheda con due documenti si clicca anche fuori dalle voci: un collegamento a parte, steso sotto il contenuto,
+    /// che porta a <see cref="AeroportoInElenco.Href"/>. ⚠️ Presidio sul sorgente: il pannello ha sei servizi dal proprio
+    /// scope; l'impilamento dei clic è stato provato nel browser il 29 settembre 2026 (voci sopra, resto al collegamento).
+    /// </summary>
+    [Fact]
+    public void La_scheda_con_due_documenti_ha_il_suo_collegamento_principale()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "src", "Vipi.Ui"))) dir = dir.Parent;
+        var ui = Path.Combine(dir!.FullName, "src", "Vipi.Ui");
+
+        var pannello = File.ReadAllText(Path.Combine(ui, "Components", "App", "AirportListPanel.razor"));
+        Assert.Contains("<a class=\"apt-main\" href=\"@voce.Href(Acc)\"", pannello);
+
+        var tema = File.ReadAllText(Path.Combine(ui, "wwwroot", "vipi-theme.css"));
+        Assert.Contains(".apt-card.apt-two>.apt-main{position:absolute;inset:0", tema);
+        Assert.Contains(".apt-card.apt-two .apt-docs{pointer-events:auto}", tema);
+    }
+
+    [Fact]
+    public void Con_la_sola_vIPI_la_scheda_apre_la_vIPI_anche_su_un_campo_militare()
+    {
+        var voce = Assert.Single(AeroportiDellAcc.Elenco(
+            new[] { Scalo("LIRZ", categoria: AirportCategory.MilitaryWithCivilPresence) },
+            new[] { Doc(ReleaseTargetType.Airport, "LIRZ") }, "LIMM"));
+
         Assert.Equal(voce.VipiHref("LIMM"), voce.Href("LIMM"));
     }
 
