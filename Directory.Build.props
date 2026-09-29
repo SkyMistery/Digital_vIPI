@@ -1535,6 +1535,12 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.47.2 — PATCH, NESSUNA migrazione. Su 1.47.1 (c41e6e7, online dal 29 settembre 2026). Sito S44–S45: il piè di
+      pagina del sito, dove passa la versione (visibile allo staff, prima in barra ai soli admin); nella scheda di uno
+      scalo con vIPI e vSOP un clic fuori dalle due voci apre il documento della sua categoria. Tocca Vipi.Ui (+ frasi
+      IT/EN, vipi-theme.css, vipi-print.css) e Vipi.Host per il timbro.
+    -->
+    <!--
       1.47.1 — PATCH, NESSUNA migrazione. Su 1.47.0 (067a737, online dal 29 settembre 2026). Sito S41–S43:
       il rilievo «Trasferimento senza ripiego» non conta i settori di un ACC estero (era il Degraded di /vsop/health,
       LIMM_WS2_CTR → LSAG_TST_CTR); login: se la pagina di consenso IVAO perde il nonce il sito rifà il giro una volta
@@ -1796,7 +1802,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.47.1</VipiVersione>
+    <VipiVersione>1.47.2</VipiVersione>
   </PropertyGroup>
 
 </Project>
