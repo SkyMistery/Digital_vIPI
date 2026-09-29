@@ -5,6 +5,7 @@
 @page "/services/vsop/guide"
 @layout SopLayout
 @inject NavigationManager Nav
+@inject IEditAuthorizationService Authz
 @using System.Globalization
 
 <PageTitle>@T("Guida","Guide") · vIPI IVAO Italy</PageTitle>
@@ -30,10 +31,13 @@
         {
             <a href="#@s.Anchor">@Titolo(s)</a>
         }
-        <h2 class="h-sect">@T("Modificare","Editing")</h2>
-        @foreach (var s in _modify)
+        @if (Authz.IsEditor)
         {
-            <a href="#@s.Anchor">@Titolo(s)</a>
+            <h2 class="h-sect">@T("Modificare","Editing")</h2>
+            @foreach (var s in _modify)
+            {
+                <a href="#@s.Anchor">@Titolo(s)</a>
+            }
         }
     </nav>
 
@@ -47,14 +51,19 @@
         </CollapsibleBlock>
     }
 
-    @* ══════════════════════ PARTE 2 · MODIFICARE ══════════════════════ *@
-    <div class="guida-part"><Icon Name="pencil" Size="14" /> @T("Modificare","Editing") <span class="ln"></span></div>
-    @foreach (var s in _modify)
+    @* ══════════════════════ PARTE 2 · MODIFICARE ══════════════════════
+       🔴 Solo a chi può modificare (committente, 29 settembre 2026): a un lettore la parte sull'editor non serve,
+       e gli racconterebbe strumenti che non vede. Stesso confine nella ricerca (GuideSearchCatalog.Visibile). *@
+    @if (Authz.IsEditor)
     {
-        <CollapsibleBlock Id="@s.Anchor" ExtraClass="guida-sec">
-            <Header><Icon Name="@s.Icon" /> &nbsp;@Titolo(s)</Header>
-            <ChildContent>@((MarkupString)T(s.BodyIt, s.BodyEn))</ChildContent>
-        </CollapsibleBlock>
+        <div class="guida-part"><Icon Name="pencil" Size="14" /> @T("Modificare","Editing") <span class="ln"></span></div>
+        @foreach (var s in _modify)
+        {
+            <CollapsibleBlock Id="@s.Anchor" ExtraClass="guida-sec">
+                <Header><Icon Name="@s.Icon" /> &nbsp;@Titolo(s)</Header>
+                <ChildContent>@((MarkupString)T(s.BodyIt, s.BodyEn))</ChildContent>
+            </CollapsibleBlock>
+        }
     }
 
     <p class="muted" style="margin:22px 0 40px;font-size:13px">
@@ -164,23 +173,6 @@
                with how many sections/blocks changed and who published. Filter by ACC. It's the first place to
                check when a new cycle comes into effect.</p>"),
 
-        new Sec("anteprime", "file",
-            @"<p>Ogni documento può essere visto in tre modi, controllati dal parametro <code>?as=</code> nell'URL:</p>
-              <ul>
-                <li><b>Pubblica</b> (default, nessun parametro): quello che vede tutti — la release in vigore, o il live se non c'è release.</li>
-                <li><b>Bozza</b> (<code>?as=draft</code>): le modifiche non ancora pubblicate. Solo per chi può modificare quell'ACC.</li>
-                <li><b>Release congelata</b> (<code>?as=rel:{id}</code>): lo snapshot esatto di una pubblicazione passata.</li>
-              </ul>
-              <p>Una fascia colorata in cima segnala quando <b>non</b> stai vedendo la versione pubblica. Se non sei
-               autorizzato, la vista <b>degrada a pubblica</b> senza rivelare la bozza.</p>",
-            @"<p>Every document can be viewed in three ways, controlled by the <code>?as=</code> URL parameter:</p>
-              <ul>
-                <li><b>Public</b> (default, no parameter): what everyone sees — the effective release, or the live version if there's no release.</li>
-                <li><b>Draft</b> (<code>?as=draft</code>): changes not yet published. Only for who can edit that ACC.</li>
-                <li><b>Frozen release</b> (<code>?as=rel:{id}</code>): the exact snapshot of a past publication.</li>
-              </ul>
-              <p>A coloured banner at the top flags when you are <b>not</b> looking at the public version. If you are
-               not authorized, the view <b>degrades to public</b> without revealing the draft.</p>"),
         new Sec("aree", "map",
             @"<p>La sezione <b>Aree regolamentate</b> di una vIPI ha <b>una mappa sola</b> e una
                <b>pastiglia per ogni area</b> sopra di essa. All'apertura sono tutte accese: spegnendone una
@@ -373,6 +365,23 @@
 
     private static readonly List<Sec> _modify = new()
     {
+        new Sec("anteprime", "file",
+            @"<p>Ogni documento può essere visto in tre modi, controllati dal parametro <code>?as=</code> nell'URL:</p>
+              <ul>
+                <li><b>Pubblica</b> (default, nessun parametro): quello che vede tutti — la release in vigore, o il live se non c'è release.</li>
+                <li><b>Bozza</b> (<code>?as=draft</code>): le modifiche non ancora pubblicate. Solo per chi può modificare quell'ACC.</li>
+                <li><b>Release congelata</b> (<code>?as=rel:{id}</code>): lo snapshot esatto di una pubblicazione passata.</li>
+              </ul>
+              <p>Una fascia colorata in cima segnala quando <b>non</b> stai vedendo la versione pubblica. Se non sei
+               autorizzato, la vista <b>degrada a pubblica</b> senza rivelare la bozza.</p>",
+            @"<p>Every document can be viewed in three ways, controlled by the <code>?as=</code> URL parameter:</p>
+              <ul>
+                <li><b>Public</b> (default, no parameter): what everyone sees — the effective release, or the live version if there's no release.</li>
+                <li><b>Draft</b> (<code>?as=draft</code>): changes not yet published. Only for who can edit that ACC.</li>
+                <li><b>Frozen release</b> (<code>?as=rel:{id}</code>): the exact snapshot of a past publication.</li>
+              </ul>
+              <p>A coloured banner at the top flags when you are <b>not</b> looking at the public version. If you are
+               not authorized, the view <b>degrades to public</b> without revealing the draft.</p>"),
         new Sec("editor-accesso", "key",
             @"<p>Puoi modificare se sei <b>admin</b> o hai un <b>permesso (grant)</b> su un ACC. In quel caso in alto
                a destra compaiono due tasti:</p>

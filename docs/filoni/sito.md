@@ -1493,5 +1493,25 @@
   `DeveRipartire`), 4 rossi senza la correzione; E2E **461**. Da provare sul server: un VID mai entrato nel client
   (o revocando il consenso dal profilo IVAO) entra al primo clic; nel registro «Secondo giro: False» e poi «si
   riparte una volta».
+- ✅ **S43** giro di sei punti del committente (29-set) sulla porta della vSOP:
+  1. «Cosa è cambiato» esce dalle schede pubbliche di `/services/vsop` e va nella sezione **Staff** (la pagina resta
+     raggiungibile dal suo indirizzo).
+  2. `/services/vsop/mil`: al pubblico, accanto a «Pubblicato», usciva «Nessun documento». L'ultimo ramo della
+     colonna Stato era un `else` nudo legato ai tasti dello staff e scattava per ogni non Editor.
+  3. Barra in alto: un'altezza sola per i comandi (`--tb-ctl` 34px; misurati prima 32/34/36/38) e, da `tb-3`, la
+     lente è un collegamento a `/services/vsop/search` (prima toccarla non faceva niente). Verificato a schermo a 1900,
+     1000 e 375px su un database vuoto. Carta `2026-08-22-topbar-misurata.md` aggiornata.
+  4. Nascosti nei collegati (verifica): i «Documenti collegati» filtravano documento nascosto e release, e i link nel
+     testo possono puntare solo agli allegati; ma due buchi — la vIPI ACC elencava anche un APP disattivato, e nei
+     posti **congelati** di una release uno scalo nascosto o un APP disattivato dopo la pubblicazione restava fra i
+     collegati. Ora `DocumentiCollegati.PaginaAperta` al disegno (struttura in cache, 2 minuti) e `PerAcc` sui soli
+     APP attivi. Codice comune `Vipi.Application`. Resta, minore: `PubblicatoAsync`/`GetCivilEditionAsync` (ponte
+     civile↔militare) non escludono una release `Superseded`.
+  5. Nascosti e non pubblicati nella ricerca (verifica): no. Cancello `PublicDocumentGate` a ogni ricerca, testo
+     solo dalla release in vigore, sezioni nascoste fuori dall'indice; lo stesso per «Cosa è cambiato». Già coperto
+     da `SearchAndChangesTests`.
+  6. La Guida per ruolo: la parte «Modificare» (e le anteprime di bozza, spostate lì) solo a chi può modificare
+     (`IsEditor`), e lo stesso confine nella ricerca (`GuideSearchCatalog.AncorePubbliche`: l'elenco è dei pubblici,
+     un capitolo nuovo nasce riservato). Codice comune `Vipi.Application` (SearchService).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

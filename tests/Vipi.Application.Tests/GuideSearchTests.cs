@@ -1,4 +1,5 @@
 using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
@@ -20,6 +21,17 @@ public class GuideSearchTests
             => Task.FromResult(_hits);
     }
 
+    private sealed class AuthzFinto(VipiRole ruolo) : IEditAuthorizationService
+    {
+        public VipiRole Role => ruolo;
+        public bool IsAdmin => ruolo >= VipiRole.Admin;
+        public int? CurrentUserId => null;
+        public string? CurrentName => null;
+        public void EnsureAdmin() { }
+    }
+
+    private static readonly IEditAuthorizationService Editor = new AuthzFinto(VipiRole.Editor);
+
     private static SearchHit Doc(string title) => new()
     {
         DocTitle = title, DocType = DocumentType.Vipi, Where = title, Snippet = title, Url = "/services/vsop/x",
@@ -28,7 +40,7 @@ public class GuideSearchTests
     [Fact]
     public async Task Guide_section_surfaces_first_in_all_scope()
     {
-        var svc = new SearchService(new FakeRepo(Doc("vIPI Roma")));
+        var svc = new SearchService(new FakeRepo(Doc("vIPI Roma")), authz: Editor);
 
         var hits = await svc.SearchAsync("pubblicare", SearchScope.All);
 
@@ -36,6 +48,28 @@ public class GuideSearchTests
         Assert.StartsWith("Guida ›", hits[0].Where);                 // la guida viene prima dei documenti
         Assert.Equal("/services/vsop/guide#editor-release", hits[0].Url);     // ancora della sezione giusta
         Assert.Contains(hits, h => h.Where == "vIPI Roma");          // i documenti restano presenti
+    }
+
+    /// <summary>
+    /// 🔴 Committente, 29 settembre 2026: la parte della Guida sull'editor non la vede un utente normale — e quindi
+    /// nemmeno la ricerca gliela propone. Senza chi ha cercato (nullo) vale «lettore pubblico».
+    /// </summary>
+    [Theory]
+    [InlineData(VipiRole.User)]
+    [InlineData(VipiRole.DivisionStaff)]
+    [InlineData(null)]
+    public async Task Al_lettore_la_ricerca_non_propone_i_capitoli_sull_editor(VipiRole? ruolo)
+    {
+        var svc = new SearchService(new FakeRepo(Doc("vIPI Roma")),
+            authz: ruolo is { } r ? new AuthzFinto(r) : null);
+
+        var editor = await svc.SearchAsync("pubblicare", SearchScope.All);
+        var pubblico = await svc.SearchAsync("ricerca", SearchScope.All);
+
+        Assert.DoesNotContain(editor, h => h.Url.StartsWith("/services/vsop/guide#", StringComparison.Ordinal)
+            && !GuideSearchCatalog.AncorePubbliche.Contains(h.Url["/services/vsop/guide#".Length..]));
+        Assert.Contains(editor, h => h.Where == "vIPI Roma");
+        Assert.Contains(pubblico, h => h.Url == "/services/vsop/guide#ricerca");
     }
 
     [Fact]
@@ -85,7 +119,7 @@ public class GuideSearchTests
     {
         var lingua = new ReadingLanguageContext();
         using var _ = lingua.Rendering("en");
-        var svc = new SearchService(new FakeRepo(Doc("vIPI Roma")), lingua);
+        var svc = new SearchService(new FakeRepo(Doc("vIPI Roma")), lingua, Editor);
 
         var hits = await svc.SearchAsync("publishing", SearchScope.All);
 
@@ -100,7 +134,7 @@ public class GuideSearchTests
         // cerchera' «pubblicare», e deve trovare. Chi cerca vuole trovare, non essere coerente.
         var lingua = new ReadingLanguageContext();
         using var _ = lingua.Rendering("en");
-        var svc = new SearchService(new FakeRepo(Doc("vIPI Roma")), lingua);
+        var svc = new SearchService(new FakeRepo(Doc("vIPI Roma")), lingua, Editor);
 
         var hits = await svc.SearchAsync("pubblicare", SearchScope.All);
 

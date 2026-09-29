@@ -98,6 +98,24 @@ public static class DocumentiCollegati
     /// Sceglie, per ogni posto, la prima alternativa visibile. L'ordine dei gruppi è quello dell'enum; dentro un
     /// gruppo resta quello congelato. Un documento non compare due volte.
     /// </summary>
+    /// <summary>
+    /// La pagina del bersaglio è aperta, secondo la struttura di adesso? Le stesse condizioni della pagina pubblica
+    /// (<c>PublicDocumentGate.PaginaAperta</c>) che si possono dire senza il documento: lo scalo nascosto chiude vIPI e
+    /// vSOP, l'APP disattivato (o remotizzato) chiude la sua. Il documento nascosto e la release li guarda il chiamante.
+    ///
+    /// <para>🔴 Serve per i posti CONGELATI in una release (§A109): lì la struttura è quella del giorno della
+    /// pubblicazione, e uno scalo nascosto dopo continuava a comparire fra i collegati di tutti (audit del
+    /// 29 settembre 2026, domanda del committente «i documenti nascosti non compaiono nei link?»).</para>
+    /// </summary>
+    public static bool PaginaAperta(DocLinkTarget t, IReadOnlyList<DocLinkAirport> scali, IReadOnlyDictionary<string, DocLinkApp> app) =>
+        t.Type switch
+        {
+            ReleaseTargetType.Airport or ReleaseTargetType.AirportMil =>
+                !scali.Any(a => a.IsHidden && string.Equals(a.Icao, t.Key, StringComparison.OrdinalIgnoreCase)),
+            ReleaseTargetType.App => app.TryGetValue(t.Key, out var a) && !a.Remotized,
+            _ => true,
+        };
+
     public static IReadOnlyList<(DocLinkGroup Group, DocLinkTarget Target)> Resolve(
         DocLinkSnapshot snap, Func<DocLinkTarget, bool> visibile)
     {
@@ -213,7 +231,11 @@ public static class DocumentiCollegati
         {
             var slots = new List<DocLinkSlot>();
 
+            // ⚠️ Solo gli APP d'anagrafica ATTIVI e non remotizzati (`_g.Apps` porta solo gli attivi): un documento
+            // APP il cui settore l'admin ha nascosto o la sorgente ha tolto non ha pagina pubblica, e il link
+            // porterebbe a «non disponibile». Fino al 29 settembre 2026 qui si guardava solo il documento.
             var app = _g.Docs.Where(d => d.Kind == ReleaseTargetType.App && d.DocumentId is not null)
+                .Where(d => _g.Apps.TryGetValue(d.ReleaseKey, out var s) && !s.Remotized)
                 .Where(d => string.Equals(AccDi(Risali(d.ReleaseKey), d.AccCode), acc, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(d => d.ReleaseKey, StringComparer.OrdinalIgnoreCase);
             foreach (var d in app) Aggiungi(slots, Posto(DocLinkGroup.App, Bersaglio(d, d.ReleaseKey.ToUpperInvariant())));

@@ -814,7 +814,12 @@ window.vipiScorrimento = function () {
             var t = e.target;
             if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
             var input = document.querySelector('.top-search input');
-            if (!input) return;
+            // A barra stretta il modulo non si rende e la ricerca è il collegamento alla sua pagina: si va lì.
+            if (!input || !input.offsetParent) {
+                var go = document.querySelector('.top-search-go');
+                if (go && go.offsetParent) { e.preventDefault(); location.href = go.href; }
+                return;
+            }
             e.preventDefault();
             input.focus();
             input.select();

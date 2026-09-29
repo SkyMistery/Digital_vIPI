@@ -1,4 +1,7 @@
 using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using Vipi.Application.Auth;
+using Vipi.Domain;
 using Vipi.Application.Content;
 using Vipi.Ui.Pages;
 using Xunit;
@@ -15,6 +18,10 @@ namespace Vipi.Ui.Tests;
 /// </summary>
 public class GuidaAncoreTests : TestContext
 {
+    /// <summary>La Guida si legge da Editor: è l'unico ruolo che vede TUTTI i capitoli (vedi GuidaPerRuoloTests).</summary>
+    public GuidaAncoreTests() =>
+        Services.AddSingleton<IEditAuthorizationService>(new GuidaPerRuoloTests.AuthzFinto(VipiRole.Editor));
+
     [Fact]
     public void Ogni_voce_di_ricerca_ha_il_suo_capitolo_nella_guida()
     {

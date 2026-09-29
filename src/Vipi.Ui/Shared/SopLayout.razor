@@ -110,9 +110,17 @@
             }
         </nav>
         <form class="top-search" action="/services/vsop/search" method="get" role="search">
-            <span class="ico"><Icon Name="search" /></span>
+            @* La lente invia il modulo: col testo scritto, cerca quello. *@
+            <button type="submit" class="ico" title="@L["Chrome_Search"]" aria-label="@L["Chrome_Search"]"><Icon Name="search" /></button>
             <input name="q" placeholder="@L["Chrome_SearchPh"]" aria-label="@L["Chrome_Search"]" />
         </form>
+        @* 🔴 A barra stretta (scaglioni tb-3/tb-4) la ricerca chiusa è QUESTO collegamento, e il modulo sopra non si
+           rende (committente, 29 settembre 2026: «il tasto cerca non porta alla pagina search»). Prima era il
+           modulo ridotto a un'icona sopra un campo largo 0px, che si apriva sotto la barra al fuoco: toccare la
+           lente non la apriva (uno `<span>`), e con un tasto al suo posto il fuoco spostava il modulo sotto il
+           dito prima che il clic finisse. Misurato a 375px: nessuna navigazione. La pagina di ricerca ha il suo
+           campo, e sul telefono è il posto giusto dove scrivere. *@
+        <a class="top-search-go editor-btn icon-only" href="/services/vsop/search" title="@L["Chrome_Search"]" aria-label="@L["Chrome_Search"]"><Icon Name="search" /></a>
         <div class="right">
             @* ⚠️ Qui stava il tasto «Servizi», tolto insieme al cambio del marchio: adesso e' il marchio a
                portare all'hub, e due link identici a 100px di distanza sono ingombro, non ridondanza. Nel
