@@ -447,6 +447,9 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.DocumentId).IsUnique();
             e.HasOne(x => x.Document).WithOne(d => d.AtcUnit).HasForeignKey<AtcUnit>(x => x.DocumentId)
                 .OnDelete(DeleteBehavior.SetNull);
+            // Un gruppo APP della vIPI di un ACC è di un ente solo (S55).
+            e.Property(x => x.GroupKey).HasMaxLength(32);
+            e.HasIndex(x => new { x.AccId, x.GroupKey }).IsUnique();
         });
         b.Entity<AtcUnitPosition>(e =>
         {

@@ -1630,5 +1630,17 @@
   due, due documenti, due enti diversi, nuovo spento. Transazione, lock della struttura, Editor. Il selettore
   degli orfani c'è ora per tutti (non solo per chi porta un documento). Guida (IT/EN): tolto il «forse rinominato
   in…» che non esisteva più dal 26-ago. Test +4 (+5 guardie lock/porte): Infrastructure 2024.
+- ✅ **S55** enti anche per gli APP della vIPI ACC (29-set, committente: «estendere gli enti agli APP di ACC»;
+  ramo `fix/enti-acc`). Ogni gruppo APP della vIPI ACC con membri ha il suo ente: vive nella vIPI dell'ACC
+  (`InAccVipi`, niente documento proprio), codice = il primo membro libero, nome = titolo del gruppo, legato al
+  gruppo dalla sua chiave (`AtcUnit.GroupKey` = `grp:…`, la stessa in bozza, pubblicata e release). I MEMBRI restano
+  la verità (li gestisce l'editor della vIPI ACC) e diventano le posizioni dell'ente: all'avvio
+  (`LinkAccGroupUnitsAsync`, dopo gli enti delle vIPI APP) e a ogni `SaveBlockMetaAsync` di un gruppo. Un membro già
+  di un altro ente, o che ne è il codice, resta suo; un ente con la vIPI APP ancora in vigore (spostamento in corso)
+  si lega al gruppo ma non si tocca. La vista live ritrova il gruppo per chiave, poi per ente d'origine, poi per
+  membro. Effetti: la pagina «Enti ATC» li elenca, rinomine e «Sostituisci con…» li seguono, le segnalazioni vanno
+  alla vIPI ACC (S52). **Migrazione** `EntiGruppiAcc` (SQLite+MySQL, additiva: colonna + indice unico (AccId,
+  GroupKey); in MySQL l'indice su AccId si toglie DOPO aver creato il composto, o MariaDB rifiuta). Test +4:
+  Infrastructure 2028. Codice comune `Vipi.Application`, `Vipi.Domain`, `Vipi.Hosting`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

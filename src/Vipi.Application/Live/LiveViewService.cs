@@ -96,7 +96,7 @@ public sealed class LiveViewService : ILiveViewService
         var ctx = new LiveStationContext(callsign, sector, acc, structure, topology, snapshot.Callsigns,
             ente is { Mode: AtcUnitMode.OwnDocument } ? ente.Code : null,
             ente is { Mode: AtcUnitMode.InAccVipi },
-            ente?.Id, ente?.AccCode);
+            ente?.Id, ente?.AccCode, ente?.GroupKey);
 
         var kind = _registry.For(ctx);
         if (kind is null) return LiveViewResult.NotFound(callsign);

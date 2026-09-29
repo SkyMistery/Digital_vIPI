@@ -249,6 +249,14 @@ public interface IDocumentMaintenance
     Task<int> LinkAppUnitsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Gli enti dei gruppi APP della vIPI ACC (S55, committente, 29 settembre 2026): ogni gruppo con membri ha il suo
+    /// ente, che vive nella vIPI dell'ACC e prende i membri come posizioni. Così un APP di ACC ha la stessa identità
+    /// di un APP con la vIPI propria: segue le rinomine, «Sostituisci con…», la pagina degli enti. Idempotente;
+    /// ritorna quanti enti sono nati. Gira DOPO <see cref="LinkAppUnitsAsync"/>.
+    /// </summary>
+    Task<int> LinkAccGroupUnitsAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Porta ogni aeroporto alla <b>categoria</b> che deve avere (carta 2026-09-11-categorie-aeroporto.md): il
     /// l'invariante con la presenza militare (fino al 16 settembre 2026 anche il travaso dal booleano
     /// <c>IsMilitaryOnly</c>, poi tolto).

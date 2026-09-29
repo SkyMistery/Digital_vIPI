@@ -43,6 +43,26 @@ public class AccDocumentServiceTests : IAsyncLifetime
         await _conn.DisposeAsync();
     }
 
+    /// <summary>S55: i membri di un gruppo APP sono le posizioni del suo ente, e l'ente segue al salvataggio del
+    /// gruppo nell'editor — non al prossimo avvio.</summary>
+    [Fact]
+    public async Task Salvare_i_membri_di_un_gruppo_app_riallinea_il_suo_ente()
+    {
+        var enti = new EfAtcUnitRepository(_db);
+        var service = new AccDocumentService(new EfAccDerivationRepository(_db),
+            new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db)), new AllowAuthz(),
+            TestReleaseTargets.ReleaseRepo(_db), LockConcesso.Instance, enti);
+        var model = await service.LoadForEditAsync(Acc);
+        var gruppo = await service.AddGroupAsync(Acc, model.VersionId, "Pisa");
+        Assert.Empty(await enti.ListAsync(Acc));   // senza membri, niente ente
+
+        await service.SaveBlockMetaAsync(Acc, gruppo,
+            new AccBlockMeta { Key = "grp:pisa", Kind = AccBlockKind.AppGroup, MemberCallsigns = { "LIRP_APP" } });
+
+        var ente = Assert.Single(await enti.ListAsync(Acc));
+        Assert.Equal(("LIRP_APP", "Pisa", AtcUnitMode.InAccVipi, "grp:pisa"), (ente.Code, ente.Name, ente.Mode, ente.GroupKey));
+    }
+
     [Fact]
     public async Task Ensure_Creates_Document_Keyed_On_Primary_Ctr_Root_With_Default_Aerovia_Block()
     {
