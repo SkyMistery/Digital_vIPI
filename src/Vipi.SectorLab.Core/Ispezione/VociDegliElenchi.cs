@@ -6,17 +6,19 @@ namespace Vipi.SectorLab.Core.Ispezione;
 
 /// <summary>
 /// Le voci degli editor a elenco (lotto «Subito», slice 3b): gli scali dell'<c>.ap</c>, le piste del <c>.rw</c>, le
-/// posizioni dei <c>.frq</c>. Si leggono dai record della sessione come sono ADESSO (una pista aggiunta nel Lab si
+/// posizioni dei <c>.frq</c>, le attese in rotta di <c>HOLDENR.hold</c> (slice 10a). Si leggono dai record della sessione come sono ADESSO (una pista aggiunta nel Lab si
 /// propone subito), da tutti i file: le copie gemelle dei file di FIR dicono le stesse cose.
 /// </summary>
 public sealed partial class VociDegliElenchi
 {
     private readonly Dictionary<string, List<string>> _piste;
 
-    private VociDegliElenchi(IReadOnlyList<string> scali, IReadOnlyList<string> posizioni, Dictionary<string, List<string>> piste)
+    private VociDegliElenchi(
+        IReadOnlyList<string> scali, IReadOnlyList<string> posizioni, IReadOnlyList<string> attese, Dictionary<string, List<string>> piste)
     {
         Scali = scali;
         Posizioni = posizioni;
+        Attese = attese;
         _piste = piste;
     }
 
@@ -25,6 +27,9 @@ public sealed partial class VociDegliElenchi
 
     /// <summary>I nominativi delle posizioni ATC, in ordine alfabetico.</summary>
     public IReadOnlyList<string> Posizioni { get; }
+
+    /// <summary>I nomi delle attese in rotta di <c>[HOLDENR]</c>, in ordine alfabetico (slice 10a: il campo attesa dei NAVAIDS).</summary>
+    public IReadOnlyList<string> Attese { get; }
 
     /// <summary>La voce del menu generale di Aurora: le mappe degli <c>.str</c> che non stanno su una pista.</summary>
     public const string Maps = "MAPS";
@@ -48,6 +53,7 @@ public sealed partial class VociDegliElenchi
     {
         FonteDellElenco.Scali => Scali,
         FonteDellElenco.Posizioni => Posizioni,
+        FonteDellElenco.Attese => Attese,
         FonteDellElenco.Piste => PisteDi(scalo),
         _ => [],
     };
@@ -57,6 +63,7 @@ public sealed partial class VociDegliElenchi
         ArgumentNullException.ThrowIfNull(sessione);
         var scali = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         var posizioni = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        var attese = new SortedSet<string>(StringComparer.Ordinal);
         var piste = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var file in sessione.File.Values.OrderBy(f => f.Relativo, StringComparer.Ordinal))
@@ -73,6 +80,9 @@ public sealed partial class VociDegliElenchi
                     case AtcPosition posizione when posizione.Code.Length > 0:
                         posizioni.Add(posizione.Code.Trim());
                         break;
+                    case Attesa attesa when attesa.Nome.Trim().Length > 0:
+                        attese.Add(attesa.Nome.Trim());
+                        break;
                     case Runway pista when pista.IcaoCode.Length > 0:
                         if (!piste.TryGetValue(pista.IcaoCode.Trim(), out var sue))
                             piste[pista.IcaoCode.Trim()] = sue = [];
@@ -87,7 +97,7 @@ public sealed partial class VociDegliElenchi
             }
         }
 
-        return new VociDegliElenchi([.. scali], [.. posizioni], piste);
+        return new VociDegliElenchi([.. scali], [.. posizioni], [.. attese], piste);
     }
 
     [GeneratedRegex(@"^(0[1-9]|[12][0-9]|3[0-6])[LCR]?$")]

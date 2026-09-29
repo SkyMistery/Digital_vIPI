@@ -5,7 +5,7 @@ using Vipi.Sectorfile.Shared;
 namespace Vipi.Sectorfile.IO;
 
 /// <summary>
-/// Parses .ndb files. One record per line: <c>Ident ; Frequency(kHz) ; Lat ; Lon ;</c>
+/// Parses .ndb files. One record per line: <c>Ident ; Frequency(kHz) ; Lat ; Lon ; [Visibility ;] [; ;] [Hold ;]</c>
 /// <see cref="Ndb"/> has no disabled state, so a <c>//</c> line is always a comment.
 /// </summary>
 public sealed class NdbParser : LineRecordParser<Ndb>
@@ -48,6 +48,10 @@ public sealed class NdbParser : LineRecordParser<Ndb>
             Ident = parts[0].Trim(),
             Frequency = freq,
             Position = position,
+            Visibilita = n >= 5 ? parts[4] : null,   // verbatim (slice 10a)
+            ExtraField6 = n >= 6 ? parts[5] : null,
+            ExtraField7 = n >= 7 ? parts[6] : null,
+            NomeDellAttesa = n >= 8 ? parts[7] : null,
             Source = new SourceRef(source, lineNumber),
         };
         return true;

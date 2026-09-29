@@ -133,8 +133,8 @@ public sealed class DescrizioniDeiCampiTests : IDisposable
         var scheda = Ispettore.Scheda(file, indice, null)!;
 
         Assert.Equal("Fix", scheda.NomeDelTipo);
-        Assert.Equal(["Name", "Position", "DisplayType", "ExtraField"], scheda.Campi.Select(c => c.Nome));
-        Assert.Equal(["Nome", "Posizione", "Tipo", "Confine"], scheda.Campi.Select(c => c.NomeDaMostrare));
+        Assert.Equal(["Name", "Position", "DisplayType", "ExtraField", "NomeDellAttesa"], scheda.Campi.Select(c => c.Nome));
+        Assert.Equal(["Nome", "Posizione", "Tipo", "Confine", "Attesa"], scheda.Campi.Select(c => c.NomeDaMostrare));
         // Da dove viene il record lo dicono la testa e le righe: non è un campo.
         Assert.DoesNotContain(scheda.Campi, c => c.Nome == "Source");
     }
@@ -148,7 +148,7 @@ public sealed class DescrizioniDeiCampiTests : IDisposable
 
         Assert.Equal("Name", campi[0].Nome);
         Assert.False(campi[0].Sconosciuto);
-        Assert.Equal(["Position", "DisplayType", "ExtraField"], campi.Skip(1).Select(c => c.Nome));
+        Assert.Equal(["Position", "DisplayType", "ExtraField", "NomeDellAttesa"], campi.Skip(1).Select(c => c.Nome));
         Assert.All(campi.Skip(1), c => Assert.True(c.Sconosciuto));
         Assert.Equal("Position", campi[1].NomeDaMostrare);
     }

@@ -6,7 +6,7 @@ namespace Vipi.Sectorfile.IO;
 
 /// <summary>
 /// Serialises a <see cref="Fix"/> to a .fix line:
-///   <c>Name ; Lat ; Lon ; [DisplayType ;] [Field5 ;]</c>
+///   <c>Name ; Lat ; Lon ; [DisplayType ;] [Field5 ;] [Hold ;]</c>
 /// </summary>
 public sealed class FixSaver : IFileSaver<Fix>
 {
@@ -21,16 +21,9 @@ public sealed class FixSaver : IFileSaver<Fix>
             CoordinateConverter.LongitudeToDottedDms(record.Position.LongitudeDeg),
         };
 
-        // The optional fields as far as they go: a Field5 without a DisplayType keeps its slot.
-        if (record.DisplayType is not null || record.ExtraField is not null)
-        {
-            fields.Add(record.DisplayType?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
-        }
-
-        if (record.ExtraField is not null)
-        {
-            fields.Add(record.ExtraField);
-        }
+        // The optional fields as far as they go: a Field5 without a DisplayType keeps its slot, and so does the hold.
+        CampiFacoltativi.Aggiungi(fields,
+            record.DisplayType?.ToString(CultureInfo.InvariantCulture), record.ExtraField, record.NomeDellAttesa);
 
         return new[] { string.Join(";", fields) + ";" };
     }

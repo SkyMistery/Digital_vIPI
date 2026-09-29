@@ -54,6 +54,9 @@ public enum FonteDellElenco
 
     /// <summary>Le posizioni ATC dei <c>.frq</c>.</summary>
     Posizioni,
+
+    /// <summary>Le attese in rotta di <c>[HOLDENR]</c> (slice 10a).</summary>
+    Attese,
 }
 
 /// <summary>Un valore di un campo a tipo fisso, col suo significato («3 · nascosto»).</summary>
@@ -163,6 +166,14 @@ public static class DescrizioniDeiCampi
 
     private static readonly IReadOnlyList<ValoreFisso> ZeroOUno = [Vuoto, .. Valori(("0", "0"), ("1", "1"))];
 
+    /// <summary>La visibilità di VOR e NDB (manuale IVAO: 0 Show, 1 Hide).</summary>
+    private static readonly IReadOnlyList<ValoreFisso> Visibilita = [Vuoto, .. Valori(("0", "mostrato"), ("1", "nascosto"))];
+
+    /// <summary>L'attesa in rotta di un fix, VOR o NDB (slice 10a): il nome coi suggerimenti delle attese di HOLDENR.</summary>
+    private static DescrizioneDelCampo AttesaDelNavaid(string campo)
+        => C("NomeDellAttesa", "Attesa", $"Il nome della sua attesa in rotta in HOLDENR.hold ({campo} campo), uguale a quello dell'attesa.",
+            Editor.Elenco) with { Fonte = FonteDellElenco.Attese };
+
     /// <summary>
     /// I tipi dei <c>.geo</c> (H2): quelli che il fork usa, con le linee di scalo, la costa di <c>itgeo.geo</c> e le
     /// aree P/R/D. Un valore fuori elenco (o vuoto: 10 in <c>liap.geo</c>) resta com'è e si vede; l'avviso è della 12.
@@ -219,30 +230,37 @@ public static class DescrizioniDeiCampi
 
     private static readonly IReadOnlyDictionary<Type, DescrizioneDelTipo> PerTipo = new Dictionary<Type, DescrizioneDelTipo>
     {
-        // NAVAIDS (§12): Nome;Lat;Lon;Tipo;Confine;[Attesa] — l'attesa (6° campo) il motore la tiene nella riga.
+        // NAVAIDS (§12): Nome;Lat;Lon;Tipo;Confine;[Attesa] — l'attesa (6° campo; 8° di VOR e NDB) dalla slice 10a.
         [typeof(Fix)] = new("Fix",
         [
             C("Name", "Nome", "Il nome del fix (al massimo 5 lettere), come lo citano procedure e rotte."),
             Posizione(),
             C("DisplayType", "Tipo", "Con quale filtro lo mostra Aurora (4° campo).", Editor.TipoFisso) with { Valori = [Vuoto, .. TipiDelFix] },
             C("ExtraField", "Confine", "Fix di confine, 0 o 1 (5° campo).", Editor.TipoFisso) with { Valori = ZeroOUno },
+            AttesaDelNavaid("6°"),
         ]),
         [typeof(Vor)] = new("VOR",
         [
             C("Ident", "Nome", "Il nome del VOR (al massimo 3 lettere)."),
             C("Frequency", "Frequenza", "In MHz (2° campo).", Editor.Numero),
             Posizione(),
-            C("ExtraField5", "Visibilità", "5° campo, 0 o 1 (manuale IVAO).", Editor.TipoFisso) with { Valori = ZeroOUno },
+            C("ExtraField5", "Visibilità", "5° campo: 0 lo mostra, 1 lo nasconde (manuale IVAO).", Editor.TipoFisso) with { Valori = Visibilita },
             C("ExtraField6", "Tipo", "6° campo.", Editor.TipoFisso) with
             {
                 Valori = [Vuoto, .. Valori(("0", "VOR"), ("1", "VOR/DME"), ("2", "VORTAC"), ("3", "TACAN"), ("4", "DME"))],
             },
+            C("CanaleTacan", "Canale TACAN", "7° campo, per VORTAC e TACAN: il canale (54Y)."),
+            AttesaDelNavaid("8°"),
         ]),
         [typeof(Ndb)] = new("NDB",
         [
             C("Ident", "Nome", "Il nome dell'NDB."),
             C("Frequency", "Frequenza", "In kHz (2° campo).", Editor.Numero),
             Posizione(),
+            C("Visibilita", "Visibilità", "5° campo: 0 lo mostra, 1 lo nasconde (manuale IVAO).", Editor.TipoFisso) with { Valori = Visibilita },
+            C("ExtraField6", "6° campo", "Il manuale IVAO non lo descrive (nel suo esempio è vuoto): si tiene com'è.", Editor.SolaLettura),
+            C("ExtraField7", "7° campo", "Il manuale IVAO non lo descrive (nel suo esempio è vuoto): si tiene com'è.", Editor.SolaLettura),
+            AttesaDelNavaid("8°"),
         ]),
         // HOLDENR.hold (§20): NOME;Lat;Lon;[Info] — l'info in forma fissa FIX/rotta+virata-quota.
         [typeof(Attesa)] = new("Attesa in rotta",

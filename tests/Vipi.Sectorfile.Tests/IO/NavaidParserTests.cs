@@ -140,6 +140,67 @@ public sealed class NavaidParserTests
     public void Fix_DisplayType()
         => Assert.Equal(2, ParseFix("ABADI;N040.45.19.000;E018.38.30.000;2;0;\r\n").Records[0].DisplayType);
 
+    // Lotto «Subito» slice 10a (L1) — l'attesa: 6° campo dei fix, 8° di VOR e NDB (manuale IVAO, [HOLDENR]); il canale
+    // TACAN è il 7° dei VOR, la visibilità il 5° degli NDB. Prima stavano nella riga come campi che il modello non conosce.
+    [Fact]
+    public void Fix_Attesa_SestoCampo()
+    {
+        const string riga = "ABBOZ;N046.02.37.000;E011.07.48.000;1;0;HLD-ABBOZ;";
+        var fix = Assert.Single(ParseFix(riga + "\r\n").Records);
+        Assert.Equal("HLD-ABBOZ", fix.NomeDellAttesa);
+        Assert.Equal(riga, new FixSaver().Serialize(fix)[0]);
+    }
+
+    [Fact]
+    public void Fix_AttesaNuova_TieneIPostiDeiCampi()
+    {
+        var fix = Assert.Single(ParseFix("POE1;N045.28.15.000;E010.28.20.000;\r\n").Records);
+        Assert.Null(fix.NomeDellAttesa);
+        fix.NomeDellAttesa = "HLD-POE1";
+        Assert.Equal("POE1;N045.28.15.000;E010.28.20.000;;;HLD-POE1;", new FixSaver().Serialize(fix)[0]);
+    }
+
+    [Theory]
+    [InlineData("CDC;117.30;N038.45.21.100;E016.22.08.900;0;2;120X;HLD-CDC;", "120X", "HLD-CDC")]
+    [InlineData("ALG;113.80;N040.37.41.300;E008.14.38.000;;;;HLD-ALG;", "", "HLD-ALG")]
+    [InlineData("AEA;111.65;N040.38.17.400;E008.17.30.400;0;2;54Y;", "54Y", null)]
+    [InlineData("VBA;117.40;N045.44.52.080;E017.08.48.290;1;0;", null, null)]
+    public void Vor_CanaleEAttesa(string riga, string? canale, string? attesa)
+    {
+        var vor = Assert.Single(ParseVor(riga + "\r\n").Records);
+        Assert.Equal(canale, vor.CanaleTacan);
+        Assert.Equal(attesa, vor.NomeDellAttesa);
+        Assert.Equal(riga, new VorSaver().Serialize(vor)[0]);
+    }
+
+    [Fact]
+    public void Vor_AttesaNuova_TieneIPostiDeiCampi()
+    {
+        var vor = Assert.Single(ParseVor("ALB;116.95;N044.02.53.400;E008.07.39.400;\r\n").Records);
+        vor.NomeDellAttesa = "HLD-ALB";
+        Assert.Equal("ALB;116.95;N044.02.53.400;E008.07.39.400;;;;HLD-ALB;", new VorSaver().Serialize(vor)[0]);
+    }
+
+    [Theory]
+    [InlineData("CRE;433.0;N044.54.10.370;E014.24.59.570;1;", "1", null)]
+    [InlineData("ALP;351.0;N040.51.21.000;E025.56.27.130;;;;ABC HOLD;", "", "ABC HOLD")]
+    [InlineData("AVI;390.0;N045.55.27.600;E012.25.42.600;", null, null)]
+    public void Ndb_VisibilitaEAttesa(string riga, string? visibilita, string? attesa)
+    {
+        var ndb = Assert.Single(ParseNdb(riga + "\r\n").Records);
+        Assert.Equal(visibilita, ndb.Visibilita);
+        Assert.Equal(attesa, ndb.NomeDellAttesa);
+        Assert.Equal(riga, new NdbSaver().Serialize(ndb)[0]);
+    }
+
+    [Fact]
+    public void Ndb_AttesaNuova_TieneIPostiDeiCampi()
+    {
+        var ndb = Assert.Single(ParseNdb("AVI;390.0;N045.55.27.600;E012.25.42.600;\r\n").Records);
+        ndb.NomeDellAttesa = "HLD-AVI";
+        Assert.Equal("AVI;390.0;N045.55.27.600;E012.25.42.600;;;;HLD-AVI;", new NdbSaver().Serialize(ndb)[0]);
+    }
+
     // Integration — fixes parsed into a NavaidSet resolve as fix references (ties §1.8 to real data).
     [Fact]
     public void Fix_PopulatesNavaidSet_ResolvesIdent()

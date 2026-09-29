@@ -5,7 +5,7 @@ using Vipi.Sectorfile.Shared;
 namespace Vipi.Sectorfile.IO;
 
 /// <summary>
-/// Parses .fix files. One record per line: <c>Name ; Lat ; Lon ; [DisplayType ;] [Field5 ;]</c>
+/// Parses .fix files. One record per line: <c>Name ; Lat ; Lon ; [DisplayType ;] [Field5 ;] [Hold ;]</c>
 /// Field5 (boundary) is preserved verbatim. ⚠️ TEST_MATRIX §22.3 of A (a line without Field5 is malformed) is
 /// overturned by F2 slice 5: 2 041 real fixes stop at field 4 or 3.
 /// <see cref="Fix"/> has no disabled state, so a <c>//</c> line is always a comment.
@@ -56,6 +56,7 @@ public sealed class FixParser : LineRecordParser<Fix>
             Position = position,
             DisplayType = displayType,
             ExtraField = n >= 5 ? parts[4] : null,   // verbatim
+            NomeDellAttesa = n >= 6 ? parts[5] : null,   // verbatim (slice 10a)
             Source = new SourceRef(source, lineNumber),
         };
         return true;

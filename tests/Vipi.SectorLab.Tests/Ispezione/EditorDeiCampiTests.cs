@@ -113,6 +113,20 @@ public sealed class EditorDeiCampiTests : IDisposable
         Assert.Equal(voci.PisteDi("LIRF"), voci.Voci(FonteDellElenco.Piste, "LIRF"));
     }
 
+    // Slice 10a (L1): il campo attesa di fix, VOR e NDB propone le attese di HOLDENR.hold.
+    [Fact]
+    public void IlCampoAttesaDeiNavaidProponeLeAtteseDiHoldenr()
+    {
+        var sessione = Apri();
+        var voci = VociDegliElenchi.Di(sessione);
+        Assert.Contains("HLD-ABBOZ", voci.Voci(FonteDellElenco.Attese));
+
+        var file = sessione.File["SectorFiles/Include/IT/NAVAIDS/itvor.vor"];
+        var campo = Ispettore.Scheda(file, Indice(file, "OST"), null)!.Campi.Single(c => c.Nome == "NomeDellAttesa");
+        Assert.Equal("HLD-OST", campo.Scritto);
+        Assert.Equal(FonteDellElenco.Attese, campo.Descrizione!.Fonte);
+    }
+
     [Theory]
     [InlineData("07", true)]
     [InlineData("16L", true)]

@@ -22,6 +22,17 @@ public sealed class Vor
     /// <summary>Optional Field6 from the .vor file; purpose unknown; preserved verbatim.</summary>
     public string? ExtraField6 { get; set; }
 
+    /// <summary>
+    /// Il 7° campo, il canale TACAN (<c>54Y</c>), com'è scritto; null se la riga finisce prima (lotto «Subito» slice 10a).
+    /// </summary>
+    public string? CanaleTacan { get; set; }
+
+    /// <summary>
+    /// L'8° campo, il nome della sua attesa in <c>[HOLDENR]</c> (<c>HLD-ALG</c>), com'è scritto; null se la riga finisce
+    /// prima (manuale IVAO, lotto «Subito» slice 10a).
+    /// </summary>
+    public string? NomeDellAttesa { get; set; }
+
     public SourceRef Source { get; set; } = null!;
 }
 
@@ -31,6 +42,19 @@ public sealed class Ndb
     public string Ident { get; set; } = string.Empty;
     public decimal Frequency { get; set; }
     public Coordinate Position { get; set; }
+
+    /// <summary>Il 5° campo, 0 mostrato o 1 nascosto (manuale IVAO), com'è scritto; null se la riga finisce prima.</summary>
+    public string? Visibilita { get; set; }
+
+    /// <summary>Il 6° campo: il manuale non lo descrive (nell'esempio è vuoto); com'è scritto.</summary>
+    public string? ExtraField6 { get; set; }
+
+    /// <summary>Il 7° campo: il manuale non lo descrive (nell'esempio è vuoto); com'è scritto.</summary>
+    public string? ExtraField7 { get; set; }
+
+    /// <summary>L'8° campo, il nome della sua attesa in <c>[HOLDENR]</c>, com'è scritto (manuale IVAO: <c>ALP;351.0;…;;;;ABC HOLD;</c>).</summary>
+    public string? NomeDellAttesa { get; set; }
+
     public SourceRef Source { get; set; } = null!;
 }
 
@@ -49,6 +73,12 @@ public sealed class Fix
     /// «malformed» (F2 slice 5).
     /// </summary>
     public string? ExtraField { get; set; }
+
+    /// <summary>
+    /// Il 6° campo, il nome della sua attesa in <c>[HOLDENR]</c> (<c>HLD-ABBOZ</c>), com'è scritto; null se la riga finisce
+    /// prima. Il manuale IVAO dice «5th field», ma il suo esempio e il sector la scrivono nel 6° (lotto «Subito» slice 10a).
+    /// </summary>
+    public string? NomeDellAttesa { get; set; }
 
     public SourceRef Source { get; set; } = null!;
 }

@@ -6,8 +6,8 @@ namespace Vipi.Sectorfile.IO;
 
 /// <summary>
 /// Serialises a <see cref="Vor"/> to a .vor line:
-///   <c>Ident ; Frequency ; Lat ; Lon ; [Field5] ; [Field6] ;</c>
-/// Field5/Field6 are emitted only when present (a placeholder keeps Field6 positional if needed).
+///   <c>Ident ; Frequency ; Lat ; Lon ; [Field5] ; [Field6] ; [TACAN] ; [Hold] ;</c>
+/// The optional fields are emitted as far as the last one present, each in its positional slot.
 /// </summary>
 public sealed class VorSaver : IFileSaver<Vor>
 {
@@ -23,19 +23,8 @@ public sealed class VorSaver : IFileSaver<Vor>
             CoordinateConverter.LongitudeToDottedDms(record.Position.LongitudeDeg),
         };
 
-        if (record.ExtraField5 is not null)
-        {
-            fields.Add(record.ExtraField5);
-        }
-        else if (record.ExtraField6 is not null)
-        {
-            fields.Add(string.Empty);   // keep Field6 in its positional slot
-        }
-
-        if (record.ExtraField6 is not null)
-        {
-            fields.Add(record.ExtraField6);
-        }
+        // Each optional field keeps its positional slot (the hold is the 8th: slice 10a).
+        CampiFacoltativi.Aggiungi(fields, record.ExtraField5, record.ExtraField6, record.CanaleTacan, record.NomeDellAttesa);
 
         return new[] { string.Join(";", fields) + ";" };
     }

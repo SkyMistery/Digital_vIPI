@@ -5,7 +5,7 @@ using Vipi.Sectorfile.Shared;
 namespace Vipi.Sectorfile.IO;
 
 /// <summary>
-/// Parses .vor files. One record per line: <c>Ident ; Frequency(MHz) ; Lat ; Lon ; [Field5] ; [Field6] ;</c>
+/// Parses .vor files. One record per line: <c>Ident ; Frequency(MHz) ; Lat ; Lon ; [Field5] ; [Field6] ; [TACAN] ; [Hold] ;</c>
 /// Field5/Field6 (purpose unknown) are preserved verbatim when present (TEST_MATRIX §20). The frequency may be
 /// empty: a TACAN (F2 slice 9).
 /// <see cref="Vor"/> has no disabled state, so a <c>//</c> line is always a comment.
@@ -65,6 +65,8 @@ public sealed class VorParser : LineRecordParser<Vor>
             Position = position,
             ExtraField5 = n >= 5 ? parts[4] : null,   // verbatim
             ExtraField6 = n >= 6 ? parts[5] : null,   // verbatim
+            CanaleTacan = n >= 7 ? parts[6] : null,   // verbatim (slice 10a)
+            NomeDellAttesa = n >= 8 ? parts[7] : null,
             Source = new SourceRef(source, lineNumber),
         };
         return true;

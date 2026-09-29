@@ -1225,3 +1225,34 @@ preparato lo zip `AuroraSectorLab-prova-2026-09-29.zip` (64 MB, fuori dal repo i
 Aurora, `LEGGIMI.txt` con le istruzioni. Estratto e provato (autoprova 0). Il sector del fork, e non l'ufficiale, l'ha
 confermato il committente; lo zip lo manda lui. Le segnalazioni degli AOD entrano come prove o voci nuove. Poi
 l'ondata 2 continua con la **slice 10** (NAVAIDS e attese).
+
+**Slice 10 — NAVAIDS e attese (dal 29 settembre).** Manuale IVAO riletto (*Aurora Sectorfile Creation Manual*,
+`[FIXES]`, `[NDB]`, `[VOR]`, `[HOLDENR]`): fix `Nome;Lat;Lon;Tipo;Confine;` con l'attesa nel 6° campo (il testo dice
+«5th», l'esempio la scrive nel 6°, come il sector); NDB `Nome;kHz;Lat;Lon;[Visibilità];` con l'attesa nell'**8°**
+(`ALP;351.0;…;;;;ABC HOLD;`); VOR `Nome;MHz;Lat;Lon;[Visibilità];[Tipo];[Canale TACAN];` e l'attesa nell'8°; un'attesa
+`NOME;Lat;Lon;[Info];` può essere **una sequenza di punti** con lo stesso nome (l'ovale), l'info è facoltativa e
+ammette `<br>`, il nome può avere spazi (`ABC HOLD`). Divisa in: **10a** il motore legge i campi che mancavano ·
+**10b** i controlli · **10c** le schede (attesa collegata nei due versi, info a campi, nome unico).
+- **Misura sul fork** (`scratchpad/misura10.py`, fork `8cf32c6`): fix 1 256 in `itfix.fix` (54 con l'attesa), 641
+  `ESTERNI`, 186 `MIL`, 781 `APT`, 512 `VFR_NASCOSTI`, 527 `secsi`; **2 032 fix senza il campo confine** (Aurora li
+  legge) e **9 senza il tipo** (`VFR_NASCOSTI`), un tipo `3:` (`APT.fix`); VOR 122 (32 nascosti, 26 col canale
+  TACAN, 14 con l'attesa); NDB 27 (7 nascosti, nessuno con l'attesa). **Attese**: 68 definite, un punto ciascuna, info
+  tutte nella forma `FIX/rotta+virata-quota` (53 in piedi, 15 FL); 68 citate; **una sola sbagliata**: `EKLAP` cita
+  `HLD-ELKAP`, e l'info di `HLD-EKLAP` dice `ELKAP/090R-FL190` (quel fix esiste, a 143 NM). Righe illeggibili: le 5
+  della carta più `PL-BRAVO` (secondi 72) e `itvor.vor:109` (secondi 75 e 99) — le prende già la slice 2 con la
+  correzione proposta. Nomi: dentro un catalogo 5 in posizioni diverse (`SARKI` 556 NM, `BV-BRAVO`, `PKS1`, `MJNW1`,
+  `ABNAT`) e 285 nello stesso punto — sono già `NomeDuplicato`/`NomeRipetuto`; la carta ne contava 24 e 245 con
+  un'altra lettura. **Fra cataloghi**: 17 VOR e NDB con lo stesso nome, 10 a più di 0,1 NM (`AVI` 9 NM, `RIV` 7,
+  `PIS` 6,7, `FAL` 4,5, `TRP` 1,5…). 🔴 `HOLDENR.hold` lo carica **solo** `ITALY.isc`: i quattro master di FIR citano
+  le 68 attese dai loro fix e non le hanno.
+- **Decisioni del committente (29 settembre)**: (1) le attese nei master di FIR → **un avviso per master** (4), e il
+  controllo attesa per attesa solo nei master che caricano `[HOLDENR]`; (2) VOR e NDB con lo stesso nome → **avviso
+  oltre 0,1 NM** (10), e una prova in Aurora (F4) per sapere quale dei due prende una procedura che scrive `PIS;PIS;`.
+- **10a (29 settembre)** — il motore legge i campi che mancavano. Codice comune toccato: `Fix.NomeDellAttesa` (6°),
+  `Vor.CanaleTacan` (7°) e `Vor.NomeDellAttesa` (8°), `Ndb.Visibilita` (5°), `Ndb.ExtraField6`/`ExtraField7` (il
+  manuale non li descrive) e `Ndb.NomeDellAttesa` (8°), tutti com'erano scritti; lettori e scrittori, e
+  `CampiFacoltativi` (un campo facoltativo scritto dopo uno che manca lascia vuoto il posto: `ALB;116.95;…;;;;HLD-ALB;`).
+  Prima questi campi stavano nella riga come campi sconosciuti (la fusione li teneva, la scheda non li vedeva). Nel Lab
+  le schede di fix, VOR e NDB li mostrano: **Attesa** coi suggerimenti delle attese di `HOLDENR.hold` (fonte nuova degli
+  elenchi), **Canale TACAN**, **Visibilità** «0 mostrato / 1 nascosto» anche per i VOR. Prova sull'albero invariata
+  (round-trip 701/701, validatore 132/610). Test: motore 694 → **705**, Lab 765 → **766**.
