@@ -260,6 +260,13 @@ Il lavoro **tocca il database**, quindi va letto insieme alla memoria `finestra-
 
 ## §8 — Le slice
 
+> ✅ **Eseguite il 29 settembre 2026 (S56), ramo `fix/richieste-campo`**, con i nomi decisi dal committente
+> (`FieldRequest`, «richiesta dal campo»): S1–S2 `86c86f99`, S3–S5 `6a4b0f2e`, prova a schermo `d1e963c2`, e
+> **chiudere la richiesta chiude anche il suo incarico** (decisione del committente dopo la prova) `26e3f0db`.
+> Migrazione `RichiesteDalCampo`. Pagina `/services/vsop/requests`; link «Segnala» (non isola) accanto alle sezioni
+> radice in vista pubblica; righe `WorkOrigin.Campo` in «Da fare». Storia: `docs/filoni/sito.md` S56.
+> **Resta**: S6 (secondo canale, staff → sviluppatore), rimandata; quando si farà, strada B-1 (login admin).
+
 1. **S1 — lo schema**: entità, mappatura, la migrazione (una), il presidio della finestra verde. Nulla di
    visibile.
 2. **S2 — il servizio**: apertura, tetti, cancelli, i quattro esiti; **test puri** sul cuore (chi può cosa,

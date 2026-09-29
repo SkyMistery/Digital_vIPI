@@ -1667,4 +1667,7 @@
   Poi, decisione del committente: **chiudere la richiesta chiude anche il suo incarico** (prima restava in «Da fare»
   dimenticato). Prova estesa, rossa sul codice di prima.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
+  Al 30-set: da fondere `fix/enti-acc` (S53–S55) e poi `fix/richieste-campo` (S56, costruito sopra); dopo la
+  fusione si torna su `sito/lavori`. Futuro: vIPI ACC legata all'ACC (`lavori-aperti.md`, Sito), secondo canale
+  delle richieste (`piano-segnalazioni.md` §10, strada B-1).
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

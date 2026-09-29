@@ -14453,6 +14453,11 @@ esiste — non il rettangolo giallo sullo schermo.
 
 ## §CJ — Un sistema di feedback a due canali: carta ragionata e RIMANDATA — 9 settembre 2026
 
+> ▶ **Ripresa il 29 settembre 2026 (Sito, S56):** il canale 1 (utente → staff) è **fatto** sul ramo
+> `fix/richieste-campo` — nome «richiesta dal campo», provato a schermo. Il canale 2 (staff → sviluppatore) resta
+> **rimandato** per decisione del committente; lo sviluppatore avrà un login admin, quindi sarà la strada B-1.
+> Dettagli: `docs/design/piano-segnalazioni.md` §8 e intestazione, `docs/filoni/sito.md` S56.
+
 **Non è un lavoro fatto: è una decisione presa e messa per iscritto perché non si ripensi da zero.**
 Nessuna riga di codice, nessuna migrazione, niente in `main` oltre a questa pagina e a
 `docs/design/piano-segnalazioni.md` §10.
