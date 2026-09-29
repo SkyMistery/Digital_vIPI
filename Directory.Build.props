@@ -1535,6 +1535,13 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.50.1 — PATCH, nessuna migrazione. Su 1.50.0 (e7742ff, online dal 30 settembre 2026). Sito S58: il vAWOS è
+      ancorato alla finestra (position:fixed; inset:0), perché con S57 in Edge scorreva ancora; al posto della parola
+      «Segnala» una bandierina con tooltip su ogni titolo di sezione (sotto-sezioni e vIPI ACC comprese); nel modulo
+      delle richieste uno switch Errore/Suggerimento. Tocca solo Vipi.Ui (+ frasi IT/EN, vipi-awos.css e
+      vipi-theme.css con l'indice degli asset) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.50.1.md, §A137.
+    -->
+    <!--
       1.50.0 — MINOR: una migrazione ADDITIVA (RichiesteDalCampo: tabella FieldRequests, colonna
       EditorTask.FromRequestId; niente tolto o rinominato). Su 1.49.0 (89bfb04, online dal 30 settembre 2026).
       Sito S56: richieste dal campo, canale utente → staff — link «Segnala» accanto ai titoli delle sezioni nelle
@@ -1835,7 +1842,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.50.0</VipiVersione>
+    <VipiVersione>1.50.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
