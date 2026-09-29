@@ -1535,6 +1535,14 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.49.0 — MINOR: una migrazione (EntiGruppiAcc: un indice composto al posto di quello su AccId; niente tabelle né
+      colonne tolte o rinominate), rollback a due rinomine valido. Su 1.48.0 (e292a1e, online dal 29 settembre 2026).
+      Sito S53–S55: pagina nuova «Enti ATC» (/services/vsop/admin/units); «Sostituisci con…» dagli orfani della
+      Struttura (una posizione IVAO sostituita da un'altra); enti anche per i gruppi APP della vIPI ACC. Tocca
+      Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Hosting, Vipi.Ui (+ frasi IT/EN) e
+      Vipi.Host. Dettaglio: LEGGIMI-PACCHETTO-1.49.0.md, §A135.
+    -->
+    <!--
       1.48.0 — MINOR: UNA migrazione ADDITIVA (EntiAtc: 2 tabelle, 5 indici), rollback a due rinomine valido, niente
       «NON SI TORNA INDIETRO». Su 1.47.3 (de51b76, online dal 29 settembre 2026). Sito S47–S52: vAWOS in uno schermo con
       una pista come con tre (S47); la vIPI e il vSOP sono dello scalo, le posizioni sparite da IVAO escono da sole —
@@ -1817,7 +1825,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.48.0</VipiVersione>
+    <VipiVersione>1.49.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
