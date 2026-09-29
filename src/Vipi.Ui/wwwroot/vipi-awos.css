@@ -38,7 +38,14 @@
 
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  /* ⚠️ Il quadro sta in UNO schermo, con una pista come con tre (committente, 29 settembre 2026): è un
+     pannello che si guarda da lontano, e una riga TAIL da andare a cercare scorrendo non la guarda nessuno.
+     `height: 100vh` dà ai blocchi un'altezza da dividersi; `min-height: max-content` è la rete — su una
+     finestra davvero bassa vince il contenuto e la pagina scorre, invece di tagliare dei numeri. Perché la
+     rete non scatti sugli schermi normali i pannelli del vento hanno un minimo piccolo e cambiano impianto
+     quando sono bassi (più sotto, `@container`). */
+  height: 100vh;
+  min-height: max-content;
   background: var(--awos-bg);
   color: var(--awos-txt);
   font-family: var(--awos-testo);
@@ -201,70 +208,84 @@
 .awos-sorgente b { color: var(--awos-txt); }
 
 /* ── Vento: due pannelli, uno per testata ──────────────────────────────── */
-/* ⚠️ `center` e non `stretch`: i pannelli crescono con la LARGHEZZA (container query), non con l'altezza,
-   e su uno scalo a una pista sola lo stiramento verticale dava due riquadri altissimi con dentro tre righe
-   di numeri persi in mezzo al nero. Lo spazio che avanza resta spazio, sopra e sotto. */
-.awos-vento { display: flex; justify-content: center; align-items: center; padding: 6px; flex: 1; }
+/* La coppia di pannelli prende l'altezza che resta sotto la striscia, fino a un tetto, e sta al centro.
+   ⚠️ Il tetto serve alla pista sola: senza, su un monitor alto i due riquadri diventano altissimi e i
+   numeri — che seguono il lato CORTO del pannello e hanno un massimo — restano persi in mezzo al nero.
+   Colonna flex + `margin-block: auto`: prima il pannello cresce fino al tetto, poi il resto va ai margini.
+   Fino al 29 settembre 2026 l'altezza era fissa (420px): sotto i ~800px di finestra la pagina scorreva e
+   la fascia RVR finiva fuori schermo, sopra restava una striscia vuota sopra e sotto il vento. */
+.awos-vento { display: flex; flex-direction: column; align-items: center; padding: 6px; flex: 1; min-height: 0; }
 .awos-vento-wrap {
   display: grid; grid-template-columns: 1fr 12px 1fr;
+  flex: 1 1 0; min-height: 0; max-height: 480px; margin-block: auto;
   width: 100%; max-width: clamp(640px, 74vw, 1180px);
   border: 1px solid rgba(255,255,255,.55);
-  /* Occupa lo spazio che c'è, fino a un tetto: su una pista sola il quadro sarebbe due riquadri piccoli in
-     mezzo a mezzo schermo vuoto, su tre piste tre riquadri altissimi.
-     ⚠️ `min-height: max-content` è la rete che impedisce il taglio: quando lo spazio non basta, il
-     contenuto vince sull'altezza — ed è il difetto che aveva già mangiato la riga CROSS/TAIL. */
-  height: 420px;
-  max-height: 100%;
-  min-height: max-content;
 }
 .awos-divisore { background: var(--awos-bordo); }
-/* ⚠️ `inline-size` e non `size`, e l'altezza è AUTOMATICA. Con `container-type: size` il pannello deve
-   avere un'altezza definita — il contenimento gli impedisce di misurarsi dal contenuto — e su tre piste
-   quell'altezza (46vh diviso tre) tagliava la riga CROSS/TAIL: a schermo restavano le etichette e sparivano
-   i numeri, che su un quadro d'aeroporto è il difetto peggiore possibile. Con `inline-size` il pannello
-   cresce quanto serve e i caratteri seguono la LARGHEZZA. */
+/* ⚠️ `container-type: size` e le misure in cqmin: il pannello ha un'altezza vera (la sua parte dello
+   schermo), e con `cqmin` i caratteri seguono il lato CORTO — su un pannello largo e basso non esplodono
+   seguendo la larghezza.
+   🔴 `size` impedisce al pannello di misurarsi dal contenuto: il minimo lo dichiara lui (`min-height`), ed
+   è il minimo dell'impianto su UNA riga qui sotto, non quello a tre righe. Era 204px (tre righe) e con tre
+   piste su uno schermo da 920px i blocchi non ci stavano: la pagina scorreva. Sotto i 204px il pannello
+   mette i sei valori in fila (`@container`), e il minimo scende a quello di una fila sola.
+   ⚠️ Spazi e margini del pannello in px FISSI e non in cqmin: le unità cq di un elemento si risolvono sul
+   contenitore ANTENATO, non su sé stesso, e qui non ce n'è — cadrebbero sul viewport. */
 .awos-pannello {
-  container-type: inline-size;
+  container-type: size; min-height: 96px;
   background: var(--awos-pannello); border: 1px solid rgba(255,255,255,.55);
-  display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
-  gap: clamp(5px, .9cqi, 9px);
-  padding: clamp(9px, 1.5cqi, 16px) clamp(12px, 2.2cqi, 20px);
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 4px 6px;
   overflow: hidden;
 }
 .awos-pannello-t {
-  width: 100%; text-align: center; border-bottom: 1px solid #444; padding-bottom: 2px;
+  width: 100%; text-align: center; border-bottom: 1px solid #444; padding-bottom: 2px; flex-shrink: 0;
   letter-spacing: .2em; color: var(--awos-lbl);
-  font-size: clamp(12px, 2.6cqi, 19px);
+  font-size: clamp(12px, 4cqmin, 22px);
 }
-.awos-wrow { display: flex; justify-content: center; align-items: flex-end; flex-wrap: wrap; gap: clamp(16px, 5cqi, 44px); width: 100%; }
-.awos-wf { display: flex; flex-direction: column; align-items: center; gap: clamp(2px, .4cqi, 5px); }
-.awos-wl { font-size: clamp(10px, 2cqi, 15px); letter-spacing: .06em; color: var(--awos-lbl); white-space: nowrap; }
+.awos-wcorpo { flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: space-evenly; }
+.awos-wrow { display: flex; justify-content: center; align-items: flex-end; gap: clamp(28px, 8cqmin, 46px); width: 100%; }
+.awos-wf { display: flex; flex-direction: column; align-items: center; gap: clamp(2px, .6cqmin, 5px); }
+.awos-wl { font-size: clamp(11px, 3.1cqmin, 17px); letter-spacing: .06em; color: var(--awos-lbl); white-space: nowrap; }
 .awos-wpair { display: flex; gap: 4px; }
 .awos-box-lg {
   background: var(--awos-cella); display: inline-flex; align-items: center; justify-content: center;
-  min-width: clamp(76px, 14cqi, 128px); padding: clamp(4px, .8cqi, 7px) clamp(10px, 2.6cqi, 24px);
+  min-width: clamp(76px, 21.7cqmin, 128px); padding: clamp(4px, 1.1cqmin, 7px) clamp(14px, 4cqmin, 24px);
 }
 .awos-box-sm {
   background: var(--awos-cella); display: inline-flex; align-items: center; justify-content: center;
-  min-width: clamp(52px, 9.6cqi, 88px); padding: clamp(4px, .8cqi, 7px) clamp(8px, 1.8cqi, 17px);
+  min-width: clamp(52px, 14.9cqmin, 88px); padding: clamp(4px, 1.1cqmin, 7px) clamp(10px, 2.9cqmin, 17px);
 }
-.awos-n-lg { font-family: var(--awos-mono); font-weight: 700; line-height: 1; color: var(--awos-verde); font-size: clamp(28px, 6.6cqi, 50px); }
-.awos-n-sm { font-family: var(--awos-mono); font-weight: 700; line-height: 1; color: var(--awos-verde); font-size: clamp(17px, 3.6cqi, 28px); }
+.awos-n-lg { font-family: var(--awos-mono); font-weight: 700; line-height: 1; color: var(--awos-verde); font-size: clamp(36px, 10.5cqmin, 58px); }
+.awos-n-sm { font-family: var(--awos-mono); font-weight: 700; line-height: 1; color: var(--awos-verde); font-size: clamp(20px, 5.7cqmin, 34px); }
 .awos-n-lg.ambra, .awos-n-sm.ambra { color: var(--awos-ambra); }
 .awos-n-lg.rosso, .awos-n-sm.rosso { color: var(--awos-rosso); }
+
+/* Il pannello BASSO (tre piste, o una finestra corta): le tre righe diventano una fila sola —
+   DIR SPEED · EXTREMES GUST · CROSS TAIL — e i caratteri seguono l'altezza. 204px = titolo e tre righe ai
+   valori-pavimento qui sopra, MISURATO a schermo: sotto quella soglia la riga TAIL usciva dal fondo.
+   I caratteri seguono anche la LARGHEZZA (`min(…cqh, …cqi)`): su un portatile da 1280 la fila è larga
+   ~440px, e seguendo solo l'altezza usciva dai lati. */
+@container (max-height: 203px) {
+  .awos-wcorpo { flex-direction: row; justify-content: space-evenly; align-items: center; gap: clamp(6px, 2cqi, 40px); }
+  .awos-wrow { width: auto; gap: clamp(6px, 2cqi, 40px); }
+  .awos-wl { font-size: clamp(9px, min(8cqh, 2.4cqi), 14px); }
+  .awos-n-lg { font-size: clamp(20px, min(27cqh, 6cqi), 50px); }
+  .awos-n-sm { font-size: clamp(16px, min(19cqh, 4.4cqi), 34px); }
+  .awos-box-lg, .awos-box-sm { min-width: 0; padding: 3px clamp(4px, 1.2cqi, 10px); }
+}
 
 /* ── Due o più piste (prototipi awos_2rwy e a tre piste) ───────────────────
    Un altro impianto, non la fascia MET più strisce impilate: colonna di scalo
    a sinistra (270px), e a destra un blocco per pista, tutti ALTI UGUALI, con
    dentro visibilità+nubi a sinistra e striscia, vento, RVR a destra.
 
-   ⚠️ `height: 100vh` e non solo `min-height`: i blocchi si dividono l'altezza
-   in parti uguali, e una frazione di un'altezza indefinita non è una frazione
-   di niente — le righe prenderebbero l'altezza del contenuto, diverse fra loro.
-   `min-height: max-content` è la rete: su una finestra bassa vince il contenuto
-   e la pagina scorre, invece di tagliare la riga CROSS/TAIL. */
-.awos-multi { height: 100vh; min-height: max-content; }
-.awos-corpo { flex: 1; display: grid; grid-template-columns: 270px 1fr; min-height: 0; }
+   ⚠️ I blocchi si dividono in parti uguali l'altezza di `.awos` (100vh, in
+   testa al foglio): una frazione di un'altezza indefinita non è una frazione
+   di niente — le righe prenderebbero l'altezza del contenuto, diverse fra loro. */
+/* Le due colonne fisse (scalo, e visibilità/nubi di ogni blocco) si stringono sotto i ~1900px: ogni pixel
+   che tengono è tolto ai pannelli del vento, che su un portatile devono stare su una fila sola. */
+.awos-corpo { flex: 1; display: grid; grid-template-columns: clamp(200px, 14vw, 270px) 1fr; min-height: 0; }
 
 .awos-sx {
   background: var(--awos-met); border-right: 2px solid var(--awos-bordo);
@@ -300,7 +321,7 @@
 .awos-rwybar-attiva { font-size: 11px; letter-spacing: .1em; color: #b9b9b9; overflow: hidden; text-overflow: ellipsis; }
 
 .awos-blocco-corpo {
-  flex: 1; display: grid; grid-template-columns: 270px 1fr;
+  flex: 1; display: grid; grid-template-columns: clamp(180px, 14vw, 270px) 1fr;
   border: 1px solid rgba(255,255,255,.25);
 }
 .awos-blocco-met {
@@ -308,41 +329,23 @@
   background: var(--awos-met); border: 2px solid rgba(255,255,255,.55);
 }
 .awos-blocco-met .awos-vis { flex: 1; }
-.awos-multi .awos-vis-n { flex: 0 0 auto; margin: auto; font-size: 36px; padding: 12px 18px; min-width: 80px; min-height: 0; }
+/* ⚠️ Spazi stretti di proposito: su tre piste la colonna visibilità+nubi è ciò che decide l'altezza MINIMA
+   di un blocco — con i 12px di prima e le righe da 22 non stava in un terzo di uno schermo da 730px. */
+.awos-multi .awos-vis-n { flex: 0 0 auto; margin: auto; font-size: 32px; padding: 4px 14px; min-width: 80px; min-height: 0; }
 .awos-blocco-met .awos-cloud { flex-shrink: 0; }
-.awos-blocco-met .awos-righe { gap: 4px; margin-top: 4px; flex: 0 0 auto; }
-.awos-multi .awos-riga { min-height: 22px; font-size: 13px; }
+.awos-blocco-met .awos-righe { gap: 2px; margin-top: 2px; flex: 0 0 auto; }
+.awos-multi .awos-riga { min-height: 18px; font-size: 13px; }
 .awos-blocco-pista { display: flex; flex-direction: column; min-width: 0; }
 
 /* Il vento riempie il blocco: due pannelli affiancati, niente tetto né centratura (quelli servono alla pista
-   sola, dove lo spazio avanza). */
+   sola, dove lo spazio avanza). Il pannello è lo stesso della pista sola (`size`, cqmin, fila sola quando è
+   basso): con tre piste su uno schermo normale è la fila sola. */
 .awos-multi .awos-vento { padding: 3px 4px; align-items: stretch; }
 .awos-multi .awos-vento-wrap {
-  flex: 1; height: auto; max-width: none; min-height: 0;
+  max-height: none; max-width: none; margin-block: 0;
   grid-template-columns: 1fr 3px 1fr; gap: 3px; border: 0;
 }
-/* ⚠️ Qui `container-type: size` e le misure in cqmin, come nel prototipo: il pannello ha un'altezza vera (la
-   sua parte del blocco), e con `cqmin` i caratteri seguono il lato CORTO — su un blocco largo e basso non
-   esplodono seguendo la larghezza.
-   🔴 `min-height` è la rete contro il difetto che `size` aveva già fatto (riga CROSS/TAIL tagliata su tre
-   piste): il contenimento impedisce al pannello di misurarsi dal contenuto, quindi il minimo lo dichiara lui.
-   204px = titolo e tre righe ai valori-pavimento qui sotto, più spazi e bordo — MISURATO a schermo, non
-   stimato (la stima a tavolino diceva 182, e la riga TAIL usciva dal fondo).
-   ⚠️ Spazi e margini del pannello in px FISSI e non in cqmin come nel prototipo: le unità cq di un elemento
-   si risolvono sul contenitore ANTENATO, non su sé stesso, e qui non ce n'è — cadevano sul viewport e
-   valevano 7px invece di 3, cioè 22px d'altezza in più su ogni pannello. */
-.awos-multi .awos-pannello {
-  container-type: size; min-height: 204px;
-  gap: 3px; padding: 4px 6px;
-}
 .awos-multi .awos-pannello-t { font-size: clamp(14px, 4cqmin, 22px); }
-.awos-multi .awos-wrow { gap: clamp(28px, 8cqmin, 46px); }
-.awos-multi .awos-wf { gap: clamp(2px, .6cqmin, 5px); }
-.awos-multi .awos-wl { font-size: clamp(11px, 3.1cqmin, 17px); }
-.awos-multi .awos-n-lg { font-size: clamp(36px, 10.5cqmin, 58px); }
-.awos-multi .awos-n-sm { font-size: clamp(20px, 5.7cqmin, 34px); }
-.awos-multi .awos-box-lg { padding: clamp(4px, 1.1cqmin, 7px) clamp(14px, 4cqmin, 24px); min-width: clamp(76px, 21.7cqmin, 128px); }
-.awos-multi .awos-box-sm { padding: clamp(4px, 1.1cqmin, 7px) clamp(10px, 2.9cqmin, 17px); min-width: clamp(52px, 14.9cqmin, 88px); }
 
 /* La fascia RVR dei blocchi: il prototipo non ha etichette (le nasconde) e sta in ~50px. Qui l'etichetta
    serve — dice di QUALE testata è il valore — e allora le sta ACCANTO invece che sopra: stessa riga, 26px
@@ -407,7 +410,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-areas: "qnh atis" "vis vis" "wx cloud" "trend trend";
   }
-  .awos-vento-wrap { grid-template-columns: 1fr; grid-template-rows: 1fr 8px 1fr; height: auto; }
+  .awos-vento-wrap { grid-template-columns: 1fr; grid-template-rows: 1fr 8px 1fr; flex: none; max-height: none; }
   .awos-divisore { height: 8px; }
   .awos-testata { width: 62px; font-size: 17px; }
   /* ⚠️ 16px, e non per gusto (revisione 3, U-212): sotto i 16px iOS ingrandisce la pagina quando il campo
@@ -416,8 +419,10 @@
   /* La barra dei tasti qui va a capo su due o tre righe: le finestrelle ancorate a 54px dall'alto si
      aprivano SOPRA i tasti che le aprono e le chiudono. Sul telefono stanno in basso. */
   .awos-mask { top: auto; bottom: 12px; }
-  /* Più piste: colonne impilate, e il pannello torna a misurarsi dal contenuto. */
-  .awos-multi { height: auto; }
+  /* Sul telefono il quadro scorre (non c'è altezza per stare in uno schermo): colonne impilate, e il
+     pannello torna a misurarsi dal contenuto, sempre sulle tre righe. */
+  .awos { height: auto; min-height: 100vh; }
+  .awos-pannello { container-type: inline-size; min-height: 0; }
   /* ⚠️ `minmax(0, 1fr)` e non `1fr` (revisione 3, L9): `1fr` e' `minmax(auto, 1fr)`, e la colonna non
      scendeva sotto il suo contenuto — le tre celle QNH/temperatura/rugiada da 159px l'una. Su un telefono
      da 375 la pagina ne misurava 509 e il browser la rimpiccioliva tutta. */
@@ -427,7 +432,6 @@
      (`.awos-rwybar`, testo su una riga sola) e riportava la pagina a 509. */
   .awos-blocchi.multi { grid-template-rows: none; grid-template-columns: minmax(0, 1fr); }
   .awos-multi .awos-vento-wrap { grid-template-columns: 1fr; }
-  .awos-multi .awos-pannello { container-type: inline-size; min-height: 0; }
 }
 
 /* Un quadro su carta è meteo scaduto: non si stampa. */

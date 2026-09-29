@@ -495,26 +495,30 @@
 
         <div class="awos-pannello" data-awos-wind="@blocco-@lato" data-awos-hdg="@hdg">
             <div class="awos-pannello-t">WIND @(end?.Ident ?? "—")</div>
-            <div class="awos-wrow">
-                <div class="awos-wf"><div class="awos-wl">DIR (°)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="dir">@Dir(w)</div></div></div>
-                <div class="awos-wf"><div class="awos-wl">SPEED (kt)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="spd">@Spd(w)</div></div></div>
-            </div>
-            <div class="awos-wrow">
-                <div class="awos-wf">
-                    <div class="awos-wl">EXTREMES (°)</div>
-                    <div class="awos-wpair">
-                        <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmin">@Deg(w?.VarFromDeg)</div></div>
-                        <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmax">@Deg(w?.VarToDeg)</div></div>
+            @* `awos-wcorpo`: le tre righe una sotto l'altra, oppure in fila quando il pannello è basso — lo
+               decide il foglio (`@container`), non la pagina. *@
+            <div class="awos-wcorpo">
+                <div class="awos-wrow">
+                    <div class="awos-wf"><div class="awos-wl">DIR (°)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="dir">@Dir(w)</div></div></div>
+                    <div class="awos-wf"><div class="awos-wl">SPEED (kt)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="spd">@Spd(w)</div></div></div>
+                </div>
+                <div class="awos-wrow">
+                    <div class="awos-wf">
+                        <div class="awos-wl">EXTREMES (°)</div>
+                        <div class="awos-wpair">
+                            <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmin">@Deg(w?.VarFromDeg)</div></div>
+                            <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmax">@Deg(w?.VarToDeg)</div></div>
+                        </div>
+                    </div>
+                    <div class="awos-wf">
+                        <div class="awos-wl">GUST (kt)</div>
+                        <div class="awos-box-sm"><div class="awos-n-sm ambra" data-awos-w="gust">@(w?.GustKt is int g ? g.ToString("00", Inv) : "--")</div></div>
                     </div>
                 </div>
-                <div class="awos-wf">
-                    <div class="awos-wl">GUST (kt)</div>
-                    <div class="awos-box-sm"><div class="awos-n-sm ambra" data-awos-w="gust">@(w?.GustKt is int g ? g.ToString("00", Inv) : "--")</div></div>
+                <div class="awos-wrow">
+                    <div class="awos-wf"><div class="awos-wl">CROSS (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp is { } cc ? Colore(cc.Cross, 8, 15) : "")" data-awos-w="cross">@AwosTesto.Kt(comp?.Cross)</div></div></div>
+                    <div class="awos-wf"><div class="awos-wl">TAIL (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp?.Tail > 0 ? "rosso" : "")" data-awos-w="tail">@AwosTesto.Kt(comp?.Tail)</div></div></div>
                 </div>
-            </div>
-            <div class="awos-wrow">
-                <div class="awos-wf"><div class="awos-wl">CROSS (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp is { } cc ? Colore(cc.Cross, 8, 15) : "")" data-awos-w="cross">@AwosTesto.Kt(comp?.Cross)</div></div></div>
-                <div class="awos-wf"><div class="awos-wl">TAIL (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp?.Tail > 0 ? "rosso" : "")" data-awos-w="tail">@AwosTesto.Kt(comp?.Tail)</div></div></div>
             </div>
         </div>
     };

@@ -1532,5 +1532,16 @@
   regola `AeroportoInElenco.Href`). Un collegamento `.apt-main` steso sotto il contenuto, le voci sopra: niente `<a>`
   annidati. Impilamento dei clic provato in Edge (ICAO, nome, meteo, badge, angolo → principale; voci → la loro).
   Test +6; Ui **1869**.
+- ✅ **S47** il vAWOS in uno schermo, con una pista come con tre (29-set, committente): prima una pista lasciava
+  spazio vuoto sopra e sotto il vento con un riquadro fisso da 420px, e con due o tre piste la pagina scorreva. Il pannello del
+  vento non scendeva sotto i 204px delle sue tre righe. Ora `.awos` è alto 100vh (con `min-height: max-content` come
+  rete) e il pannello vento è lo stesso in tutti e due gli impianti: `container-type: size`, minimo 96px, e sotto i
+  204px d'altezza (`@container`) le tre righe diventano **una fila** (DIR SPEED · EXTREMES GUST · CROSS TAIL) con i
+  caratteri legati ad altezza e larghezza. Pista sola: il vento prende l'altezza che resta, fino a 480px. Più piste:
+  colonne fisse a `clamp(…, 14vw, 270px)` e colonna visibilità/nubi più compatta. Nuovo `awos-wcorpo` attorno alle
+  tre righe (JS invariato). Provato in Edge su copie statiche di LIBF/LIRP/LIRF col foglio nuovo: nessuno scorrimento
+  e nessun pannello tagliato a 1900×920, 1536×730, 2560×1300 (e a 1366×650 e 1280×600 con una o due piste); con tre
+  piste sotto i ~700px la pagina scorre di poco invece di tagliare; telefono senza scorrimento orizzontale. Test
+  invariati; Ui **1870**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
