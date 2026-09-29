@@ -43,6 +43,17 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### A135 — 1.49.0 PRONTO: pagina Enti ATC, «Sostituisci con…», enti dei gruppi APP (29 settembre 2026)
+
+MINOR con **una migrazione** (`EntiGruppiAcc`: indice composto al posto di quello su `AccId`, nessuna tabella o
+colonna tolta; rollback valido). Su 1.48.0 (`e292a1e`). Timbro **`1.49.0 · 89bfb04`**. Fuso da `fix/enti-acc` (S53
+pagina `/services/vsop/admin/units`, S54 «Sostituisci con…» dagli orfani della Struttura, S55 enti per i gruppi APP
+della vIPI ACC). **15 file** (`solo-15-file-1.49.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting,
+Ui, Host (dll + pdb) e `en/`; niente `wwwroot`. Zip 5,85 MB, sha256
+`08799c5e26cba54a2e9227b347b5e3565554e7d2c445f8d32d232699fc1ebb83`. Test verdi, conteggi identici. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.49.0.md`. ▶ Caricamento del committente. `lab/f3` NON fuso (consegna del Lab
+decisa dal committente).
+
 ### ✅ A134 — 1.48.0 ONLINE: enti ATC, vIPI/vSOP dello scalo, vAWOS in uno schermo (29 settembre 2026)
 
 ✅ Online il 29 settembre 2026: timbro e `Schema 0` confermati dal committente (la migrazione `EntiAtc` è entrata). Da

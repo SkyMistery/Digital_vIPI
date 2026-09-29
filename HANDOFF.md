@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 29 settembre 2026, sera tardi
+> ## ▶ Il punto — 29 settembre 2026, notte
+>
+> **Pronto: 1.49.0** (§A135, timbro `1.49.0 · 89bfb04`, 15 file, zip `08799c5e…`, MINOR con la migrazione
+> `EntiGruppiAcc`): pagina «Enti ATC», «Sostituisci con…», enti dei gruppi APP. Fuso da `fix/enti-acc` (S53–S55).
+> **Online resta 1.48.0** finché il committente non carica. `lab/f3` non fuso (consegna del Lab: la decide il
+> committente).
+>
+> ## Il punto — 29 settembre 2026, sera tardi
 >
 > **✅ Online: 1.48.0** (timbro e `Schema 0` confermati, `/vsop/health` Healthy, Ricerca LIRF; **in `main` non resta
 > codice fuori pacchetto**) (§A134, timbro `1.48.0 · e292a1e`, 19 file, zip `4cbc457b…`, MINOR con una migrazione additiva
