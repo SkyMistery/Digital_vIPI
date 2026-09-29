@@ -124,6 +124,12 @@ public class RichiesteDalCampoTests : IAsyncLifetime
         Assert.Equal((FieldRequestStatus.Respinta, "La 16L è aperta: il NOTAM è scaduto ieri.", "Carmine"), (mia.Status, mia.Reply, mia.HandledByName));
         Assert.Empty(await Servizio(Staff).CodaAsync());
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => Servizio(Staff).RisolviAsync(id, "ripensamento"));
+
+        // Decisione del committente (29-set): chiudendo la richiesta si chiude anche il suo incarico, che
+        // altrimenti restava in «Da fare» dimenticato.
+        var chiuso = await _db.EditorTasks.AsNoTracking().SingleAsync(x => x.Id == incarico);
+        Assert.Equal(EditorTaskStatus.Done, chiuso.Status);
+        Assert.NotNull(chiuso.CompletedUtc);
     }
 
     [Fact]

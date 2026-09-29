@@ -226,6 +226,11 @@ public sealed class FieldRequestService : IFieldRequestService
         if (frase.Length > FieldRequestRules.MaxRisposta)
             throw new Aor.ValidationException(Lingua(
                 $"Al massimo {FieldRequestRules.MaxRisposta} caratteri.", $"At most {FieldRequestRules.MaxRisposta} characters."));
+        var r = await _repo.GetAsync(id, ct);
         await _repo.SetStatusAsync(id, stato, _authz.CurrentUserId ?? 0, _authz.CurrentName ?? "", frase, doppioneDi, ct);
+        // Chiusa la richiesta si chiude anche il suo incarico (decisione del committente, 29 settembre 2026):
+        // altrimenti restava in «Da fare» un impegno su una domanda che ha già la sua risposta.
+        if (r?.TaskId is int incarico && await _incarichi.GetAsync(incarico, ct) is { Status: not EditorTaskStatus.Done })
+            await _incarichi.UpdateStatusAsync(incarico, EditorTaskStatus.Done, _authz.CurrentUserId ?? 0, ct);
     }
 }
