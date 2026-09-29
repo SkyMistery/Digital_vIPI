@@ -1609,5 +1609,42 @@
   Brindisi, vIPI APP ancora pubblica, riquadro «copiata…» senza tasto; pubblicata la vIPI di Brindisi NASCOSTA →
   niente conclusione; resa visibile e «Pubblica ora» → ente `InAccVipi`, vIPI APP nascosta, `?app=LIBG_APP` → vIPI
   di Brindisi col gruppo, Grottaglie ancora in «Bozze & versioni» come Nascosto. Log senza errori.
+- ✅ **S53** pagina «Enti ATC» (29-set, committente: «fai la pagina di amministrazione degli enti»; ramo
+  `fix/enti-acc`). `/services/vsop/admin/units`, voce del menu accanto ad Aeroporti (Editor). Per ACC: ente e
+  codice, posizioni (principale in testa, «non su IVAO» se nessun settore attivo ha quel nominativo), dove vive il
+  contenuto (vIPI propria · copiato nella bozza della vIPI ACC · gruppo nella vIPI ACC · senza documento), stato del
+  documento com'è in «Bozze & versioni», link all'editor giusto. Sola lettura e pagina statica (le posizioni si
+  cambiano dal riquadro «Ente», dove c'è il lock). `IAtcUnitOverviewService`; `SpostamentiInCorsoAsync` in un giro
+  per ACC. Test +1 Infrastructure (2015), Ui 1878 (guardie: menu 17/12 voci, pagina senza circuito). Codice comune
+  `Vipi.Application`.
+- ✅ **S54** «Sostituisci con…» (29-set, committente: «un domani LIRN_US0_APP diventerà LIRR_US0_APP e non vorrei
+  esploda tutto»; ramo `fix/enti-acc`). Se IVAO rinomina la STESSA riga, la rinomina automatica (26-ago) fa già tutto.
+  Se toglie la vecchia e ne crea una nuova (identità, o catalogo, diversi), tutto restava sul settore vecchio. Ora
+  dagli orfani di Struttura si sceglie il settore nuovo e si preme «Sostituisci con…» (`ISectorSubstitution`, in
+  `EfCallsignRenameService`): PER NUMERO passano accordi (forma canonica e versi delle sezioni ribaltati se i lati si
+  scambiano), blocchi (scope/da/a), parti vLOA, figli, documento, link di frequenza (anche nel profilo); il nuovo
+  prende il padre del vecchio (settore e riga di catalogo) se non ne ha; PER NOME la stessa riscrittura della
+  rinomina (estratta in `RiscriviRiferimentiAsync`: gerarchia, ripieghi, agganci AIP, profili, chiavi di release
+  ACC, posizioni degli enti, segnalazioni, gruppi APP e configurazioni nei blocchi) + alias + avviso «rinominato»
+  ai documenti + audit. Rifiuta prima di scrivere: accordo che il nuovo ha già con lo stesso ente, accordo fra i
+  due, due documenti, due enti diversi, nuovo spento. Transazione, lock della struttura, Editor. Il selettore
+  degli orfani c'è ora per tutti (non solo per chi porta un documento). Guida (IT/EN): tolto il «forse rinominato
+  in…» che non esisteva più dal 26-ago. Test +4 (+5 guardie lock/porte): Infrastructure 2024.
+- ✅ **S55** enti anche per gli APP della vIPI ACC (29-set, committente: «estendere gli enti agli APP di ACC»;
+  ramo `fix/enti-acc`). Ogni gruppo APP della vIPI ACC con membri ha il suo ente: vive nella vIPI dell'ACC
+  (`InAccVipi`, niente documento proprio), codice = il primo membro libero, nome = titolo del gruppo, legato al
+  gruppo dalla sua chiave (`AtcUnit.GroupKey` = `grp:…`, la stessa in bozza, pubblicata e release). I MEMBRI restano
+  la verità (li gestisce l'editor della vIPI ACC) e diventano le posizioni dell'ente: all'avvio
+  (`LinkAccGroupUnitsAsync`, dopo gli enti delle vIPI APP) e a ogni `SaveBlockMetaAsync` di un gruppo. Un membro già
+  di un altro ente, o che ne è il codice, resta suo; un ente con la vIPI APP ancora in vigore (spostamento in corso)
+  si lega al gruppo ma non si tocca. La vista live ritrova il gruppo per chiave, poi per ente d'origine, poi per
+  membro. Effetti: la pagina «Enti ATC» li elenca, rinomine e «Sostituisci con…» li seguono, le segnalazioni vanno
+  alla vIPI ACC (S52). **Migrazione** `EntiGruppiAcc` (SQLite+MySQL, additiva: colonna + indice unico (AccId,
+  GroupKey); in MySQL l'indice su AccId si toglie DOPO aver creato il composto, o MariaDB rifiuta). Test +4:
+  Infrastructure 2028. Codice comune `Vipi.Application`, `Vipi.Domain`, `Vipi.Hosting`.
+  **S53–S55 provati a schermo** sulla copia del 29-set: all'avvio 18 enti dalle vIPI APP e 7 dai gruppi APP (fra cui
+  «Napoli APP» con LIRN_US0_APP); pagina «Enti ATC» con 25 enti per ACC; simulato IVAO che spegne LIRN_US0_APP e crea
+  LIRR_US0_APP, «Sostituisci con…» da Struttura → 3 figli (LIRI_I_TWR, LIRM_APP, LIRN_TWR) e padre LIRR_US_CTR passati
+  al nuovo, gruppo APP della vIPI di Roma e posizione dell'ente riscritti, alias annotato. Log senza errori.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

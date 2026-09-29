@@ -26,7 +26,7 @@ public sealed class EfAtcUnitRepository : IAtcUnitRepository
         _db.AtcUnits.AsNoTracking().Include(u => u.Positions).Include(u => u.Acc);
 
     internal static AtcUnitRow Riga(AtcUnit u) => new(u.Id, u.Code, u.Name, u.Acc?.Code ?? "", u.Mode, u.DocumentId,
-        u.Positions.OrderBy(p => p.Order).ThenBy(p => p.Id).Select(p => p.Callsign).ToList());
+        u.Positions.OrderBy(p => p.Order).ThenBy(p => p.Id).Select(p => p.Callsign).ToList(), u.GroupKey);
 
     public async Task<AtcUnitRow?> FindAsync(string key, CancellationToken ct = default)
     {
@@ -36,6 +36,134 @@ public sealed class EfAtcUnitRepository : IAtcUnitRepository
         var u = await Con().FirstOrDefaultAsync(x => x.Code == k, ct)
                 ?? await Con().FirstOrDefaultAsync(x => x.Positions.Any(p => p.Callsign == k), ct);
         return u is null ? null : Riga(u);
+    }
+
+    public async Task<IReadOnlySet<string>> ActiveCallsignsAsync(IReadOnlyCollection<string> callsigns, CancellationToken ct = default)
+    {
+        var cercati = callsigns.Select(Norm).Where(c => c.Length > 0).Distinct().ToList();
+        if (cercati.Count == 0) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // ⚠️ Il confronto fra maiuscole e minuscole nel HashSet, non nella query: i provider hanno collation diverse.
+        return (await _db.Sectors.AsNoTracking().Where(s => s.IsActive && cercati.Contains(s.Callsign))
+                .Select(s => s.Callsign).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Un gruppo APP come lo dice la vIPI ACC: chiave, titolo, membri e l'ente da cui è nato (S50).</summary>
+    private sealed record GruppoAcc(string Key, string Title, List<string> Membri, int? UnitId);
+
+    public async Task<int> AllineaGruppiAccAsync(string? accCode = null, CancellationToken ct = default)
+    {
+        // La vIPI ACC: il documento del CTR radice di ogni ACC (come ResolveAccDocumentIdentityAsync).
+        var radici = _db.Sectors.AsNoTracking()
+            .Where(s => s.Type == Domain.SectorType.Ctr && s.ParentSectorId == null && s.IsActive && s.DocumentId != null);
+        if (!string.IsNullOrWhiteSpace(accCode))
+        {
+            var acc = Norm(accCode);
+            radici = radici.Where(s => s.Acc!.Code == acc);
+        }
+        var documenti = (await radici.Select(s => new { s.AccId, AccCode = s.Acc!.Code, DocumentId = s.DocumentId!.Value })
+                .ToListAsync(ct))
+            .GroupBy(d => d.AccId).Select(g => g.First()).ToList();
+
+        var nati = 0;
+        foreach (var d in documenti)
+        {
+            var gruppi = await GruppiDiAsync(d.DocumentId, ct);
+            if (gruppi.Count == 0) continue;
+            nati += await AllineaAsync(d.AccId, d.AccCode, gruppi, ct);
+        }
+        return nati;
+    }
+
+    /// <summary>I gruppi APP della bozza e della versione pubblicata del documento; per la stessa chiave vince la bozza.</summary>
+    private async Task<List<GruppoAcc>> GruppiDiAsync(int documentId, CancellationToken ct)
+    {
+        var versioni = await _db.DocumentVersions.AsNoTracking()
+            .Where(v => v.DocumentId == documentId
+                        && (v.Status == Domain.DocumentStatus.Draft || v.Status == Domain.DocumentStatus.Published))
+            .Select(v => new { v.Id, v.Status, v.VersionNumber })
+            .ToListAsync(ct);
+        var perChiave = new Dictionary<string, GruppoAcc>(StringComparer.OrdinalIgnoreCase);
+        // Prima la pubblicata, poi la bozza (più recente per ultima): chi arriva dopo sovrascrive.
+        foreach (var v in versioni.OrderBy(v => v.Status == Domain.DocumentStatus.Draft ? 1 : 0).ThenBy(v => v.VersionNumber))
+        {
+            var sezioni = await _db.DocumentSections.AsNoTracking()
+                .Where(s => s.DocumentVersionId == v.Id && s.ParentSectionId == null && s.SectionKey == "appgroup")
+                .Select(s => new { s.Id, s.Title })
+                .ToListAsync(ct);
+            foreach (var s in sezioni)
+            {
+                var corpi = await _db.ContentBlocks.AsNoTracking()
+                    .Where(b => b.SectionId == s.Id && b.BodyJson != null)
+                    .OrderBy(b => b.Order).Select(b => b.BodyJson!).ToListAsync(ct);
+                var meta = corpi.Select(Meta).FirstOrDefault(m => m is { Kind: AccBlockKind.AppGroup } && !string.IsNullOrWhiteSpace(m.Key));
+                if (meta is null) continue;
+                perChiave[meta.Key] = new GruppoAcc(meta.Key, s.Title,
+                    meta.MemberCallsigns.Select(Norm).Where(c => c.Length > 0).Distinct().ToList(), meta.UnitId);
+            }
+        }
+        return perChiave.Values.ToList();
+
+        static AccBlockMeta? Meta(string json)
+        {
+            try { return System.Text.Json.JsonSerializer.Deserialize<AccBlockMeta>(json); }
+            catch (System.Text.Json.JsonException) { return null; }
+        }
+    }
+
+    private async Task<int> AllineaAsync(int accId, string accCode, List<GruppoAcc> gruppi, CancellationToken ct)
+    {
+        var enti = await _db.AtcUnits.Include(u => u.Positions).ToListAsync(ct);
+        var nati = 0;
+        foreach (var g in gruppi)
+        {
+            var ente = enti.FirstOrDefault(u => u.AccId == accId && string.Equals(u.GroupKey, g.Key, StringComparison.OrdinalIgnoreCase))
+                       ?? (g.UnitId is int id ? enti.FirstOrDefault(u => u.Id == id) : null);
+
+            // Le posizioni che il gruppo può prendere: non di un altro ente, e non il codice di un altro ente.
+            List<string> Libere(AtcUnit? io) => g.Membri
+                .Where(m => !enti.Any(u => u != io && (u.Positions.Any(p => p.Callsign == m) || u.Code == m)))
+                .ToList();
+
+            if (ente is null)
+            {
+                var libere = Libere(null);
+                // Un gruppo appena aggiunto nell'editor non ha ancora membri: l'ente nasce quando ne avrà.
+                if (libere.Count == 0) continue;
+                var codice = libere.FirstOrDefault(m => enti.All(u => u.Code != m))
+                             ?? $"{accCode}_{g.Key.Replace("grp:", "", StringComparison.OrdinalIgnoreCase)}".ToUpperInvariant();
+                ente = new AtcUnit
+                {
+                    Code = codice, Name = string.IsNullOrWhiteSpace(g.Title) ? codice : g.Title.Trim(), AccId = accId,
+                    Mode = Domain.AtcUnitMode.InAccVipi, GroupKey = g.Key,
+                };
+                for (var i = 0; i < libere.Count; i++) ente.Positions.Add(new AtcUnitPosition { Callsign = libere[i], Order = i });
+                _db.AtcUnits.Add(ente);
+                enti.Add(ente);
+                nati++;
+                continue;
+            }
+
+            ente.GroupKey ??= g.Key;
+            // ⚠️ Un ente che ha ancora la sua vIPI APP (spostamento in corso, S52) non si tocca: le sue posizioni le
+            // decide il riquadro «Ente», e il gruppo è solo una copia in bozza.
+            if (ente.Mode != Domain.AtcUnitMode.InAccVipi) continue;
+            if (!string.IsNullOrWhiteSpace(g.Title)) ente.Name = g.Title.Trim();
+            var voluti = Libere(ente);
+            foreach (var p in ente.Positions.Where(p => !voluti.Contains(p.Callsign)).ToList())
+            {
+                ente.Positions.Remove(p);
+                _db.AtcUnitPositions.Remove(p);
+            }
+            for (var i = 0; i < voluti.Count; i++)
+            {
+                var p = ente.Positions.FirstOrDefault(x => x.Callsign == voluti[i]);
+                if (p is null) ente.Positions.Add(new AtcUnitPosition { Callsign = voluti[i], Order = i });
+                else p.Order = i;
+            }
+        }
+        await _db.SaveChangesAsync(ct);
+        return nati;
     }
 
     public async Task<AtcUnitRow?> GetAsync(int unitId, CancellationToken ct = default) =>

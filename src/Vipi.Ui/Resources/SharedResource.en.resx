@@ -1774,8 +1774,13 @@
   <data name="Orph_Gone" xml:space="preserve"><value>gone from source</value></data>
   <data name="Orph_CarriesDoc" xml:space="preserve"><value>carries the document</value></data>
   <data name="Orph_NoDocs" xml:space="preserve"><value>no document</value></data>
-  <data name="Orph_PickTarget" xml:space="preserve"><value>Reattach to…</value></data>
+  <data name="Orph_PickTarget" xml:space="preserve"><value>Sector…</value></data>
   <data name="Orph_Reattach" xml:space="preserve"><value>Reattach</value></data>
+  <data name="Orph_Substitute" xml:space="preserve"><value>Replace with…</value></data>
+  <data name="Orph_SubstituteTitle" xml:space="preserve"><value>IVAO removed this position and created a new one in its place: everything moves to the one chosen in the list</value></data>
+  <data name="Orph_SubstitutePrompt" xml:space="preserve"><value>{0} became {1}? Everything moves to {1}: agreements, blocks, children, document, APP groups, configurations, hierarchy and units. {0} stays empty, to be deleted.</value></data>
+  <data name="Orph_SubstituteYes" xml:space="preserve"><value>Replace</value></data>
+  <data name="Orph_Substituted" xml:space="preserve"><value>{0} → {1}: {2} agreements, {3} blocks, {4} children moved. {0} is now empty: you can delete it.</value></data>
   <data name="Orph_Remove" xml:space="preserve"><value>Remove</value></data>
   <data name="Orph_RemoveTitle" xml:space="preserve"><value>Removes the sector from the archive (it returns if the source sends it back)</value></data>
   <data name="Rel_AiracRelease" xml:space="preserve"><value>AIRAC release</value></data>
@@ -3742,4 +3747,23 @@
   <data name="Unit_RemoteYes" xml:space="preserve"><value>Move</value></data>
   <data name="Unit_StillCited" xml:space="preserve"><value>{0} is still referenced in: {1}. Those choices are saved by callsign: update them.</value></data>
   <data name="Unit_MovePending" xml:space="preserve"><value>Copied into the draft of the {0} ACC vIPI: it stays public until you publish that one. What you write here now is not copied.</value></data>
+  <data name="Units_Title" xml:space="preserve"><value>ATC units</value></data>
+  <data name="Units_Intro" xml:space="preserve"><value>Who owns each APP vIPI: the unit, with its IVAO positions (the primary one first) and where its content lives. The code is the publication key and never changes. Positions are changed from the «Unit» box of the APP vIPI editor.</value></data>
+  <data name="Units_None" xml:space="preserve"><value>No units</value></data>
+  <data name="Units_ColUnit" xml:space="preserve"><value>Unit · code</value></data>
+  <data name="Units_ColPositions" xml:space="preserve"><value>Positions</value></data>
+  <data name="Units_ColWhere" xml:space="preserve"><value>Content</value></data>
+  <data name="Units_ColDoc" xml:space="preserve"><value>Document</value></data>
+  <data name="Units_NoPositions" xml:space="preserve"><value>no positions</value></data>
+  <data name="Units_Gone" xml:space="preserve"><value>not on IVAO</value></data>
+  <data name="Units_GoneTitle" xml:space="preserve"><value>No active sector with this callsign: IVAO does not send it (any more), and no online controller opens the vIPI from it.</value></data>
+  <data name="Units_OwnDoc" xml:space="preserve"><value>Own APP vIPI</value></data>
+  <data name="Units_Moving" xml:space="preserve"><value>copied into the {0} vIPI draft</value></data>
+  <data name="Units_InAcc" xml:space="preserve"><value>APP group in the {0} vIPI</value></data>
+  <data name="Units_NoDoc" xml:space="preserve"><value>no document</value></data>
+  <data name="Units_DocHidden" xml:space="preserve"><value>hidden</value></data>
+  <data name="Units_DocPublic" xml:space="preserve"><value>public</value></data>
+  <data name="Units_DocDraft" xml:space="preserve"><value>draft only</value></data>
+  <data name="Units_OpenEditor" xml:space="preserve"><value>Open editor →</value></data>
+  <data name="Units_EditorsOnly" xml:space="preserve"><value>Editors only.</value></data>
 </root>

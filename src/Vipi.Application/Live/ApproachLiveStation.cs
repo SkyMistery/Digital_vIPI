@@ -76,7 +76,7 @@ public sealed class ApproachLiveStation : ILiveStationKind
         var roots = await _deriv.ListTreeRootsAsync(accCode, ct);
         var root = roots.Count > 0 ? roots[0].Callsign : null;
         var model = await _accDoc.LoadForViewAsync(accCode, ct);
-        var block = model is null ? null : GruppoDi(model.Data.Blocks, ctx.Callsign, ctx.UnitId);
+        var block = model is null ? null : GruppoDi(model.Data.Blocks, ctx.Callsign, ctx.UnitId, ctx.UnitGroupKey);
 
         // Senza blocco (APP non ancora messo in nessun gruppo) resta la derivazione sul solo callsign: il
         // catalogo del suo aeroporto c'è comunque, manca solo il raggruppamento editoriale.
@@ -95,11 +95,13 @@ public sealed class ApproachLiveStation : ILiveStationKind
         };
     }
 
-    /// <summary>Il gruppo APP della postazione: quello dell'ente se ce n'è uno, altrimenti quello che la elenca.</summary>
-    internal static AccBlock? GruppoDi(IEnumerable<AccBlock> blocchi, string callsign, int? unitId)
+    /// <summary>Il gruppo APP della postazione: quello dell'ente se ce n'è uno — per chiave del gruppo (S55) o per
+    /// l'ente da cui è nato (S50) — altrimenti quello che la elenca.</summary>
+    internal static AccBlock? GruppoDi(IEnumerable<AccBlock> blocchi, string callsign, int? unitId, string? groupKey = null)
     {
         var gruppi = blocchi.Where(b => b.Kind == AccBlockKind.AppGroup).ToList();
-        return (unitId is int id ? gruppi.FirstOrDefault(b => b.UnitId == id) : null)
+        return (groupKey is { Length: > 0 } k ? gruppi.FirstOrDefault(b => string.Equals(b.Key, k, StringComparison.OrdinalIgnoreCase)) : null)
+               ?? (unitId is int id ? gruppi.FirstOrDefault(b => b.UnitId == id) : null)
                ?? gruppi.FirstOrDefault(b => b.MemberCallsigns.Contains(callsign, StringComparer.OrdinalIgnoreCase));
     }
 }

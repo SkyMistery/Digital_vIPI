@@ -998,6 +998,13 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Nati {Count} enti ATC dalle vIPI APP (il documento passa dall'ente, non piu' dal settore APP).", enti);
 
+        // Gli enti dei gruppi APP della vIPI ACC (S55): dopo gli enti delle vIPI APP, che hanno la precedenza sulle
+        // posizioni (un membro che è già di un ente resta suo).
+        var gruppi = maintenance.LinkAccGroupUnitsAsync().GetAwaiter().GetResult();
+        if (gruppi > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Nati {Count} enti ATC dai gruppi APP delle vIPI ACC.", gruppi);
+
         // Subito dopo: è il legame che tutte le letture del documento d'aeroporto useranno da qui in
         // avanti. Un passo che lo presupponesse, girando prima, lavorerebbe su aeroporti ancora scollegati.
         var collegati = maintenance.LinkAirportDocumentsAsync().GetAwaiter().GetResult();

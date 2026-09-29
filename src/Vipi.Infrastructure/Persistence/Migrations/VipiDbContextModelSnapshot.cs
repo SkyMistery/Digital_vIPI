@@ -1329,6 +1329,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("DocumentId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("GroupKey")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Mode")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -1340,12 +1344,13 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccId");
-
                     b.HasIndex("Code")
                         .IsUnique();
 
                     b.HasIndex("DocumentId")
+                        .IsUnique();
+
+                    b.HasIndex("AccId", "GroupKey")
                         .IsUnique();
 
                     b.ToTable("AtcUnits");

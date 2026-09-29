@@ -36,6 +36,13 @@ public class AtcUnit
     /// <summary>Dove vive il contenuto: nel documento dell'ente, o dentro la vIPI dell'ACC (APP remotizzato).</summary>
     public AtcUnitMode Mode { get; set; } = AtcUnitMode.OwnDocument;
 
+    /// <summary>
+    /// La chiave del suo gruppo APP nella vIPI dell'ACC (<c>grp:…</c>), per un ente che vive lì (S55, 29 settembre
+    /// 2026). La chiave è la stessa in bozza, pubblicata e release: il gruppo si ritrova anche quando i suoi membri
+    /// cambiano. Null per un ente con la vIPI APP propria.
+    /// </summary>
+    public string? GroupKey { get; set; }
+
     /// <summary>La vIPI APP dell'ente. Una sola, e un documento descrive un solo ente (indice unico).</summary>
     public int? DocumentId { get; set; }
     public Document? Document { get; set; }

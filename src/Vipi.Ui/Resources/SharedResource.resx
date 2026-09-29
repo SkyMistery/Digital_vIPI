@@ -1779,8 +1779,13 @@
   <data name="Orph_Gone" xml:space="preserve"><value>sparito dalla sorgente</value></data>
   <data name="Orph_CarriesDoc" xml:space="preserve"><value>porta il documento</value></data>
   <data name="Orph_NoDocs" xml:space="preserve"><value>nessun documento</value></data>
-  <data name="Orph_PickTarget" xml:space="preserve"><value>Riaggancia a…</value></data>
+  <data name="Orph_PickTarget" xml:space="preserve"><value>Settore…</value></data>
   <data name="Orph_Reattach" xml:space="preserve"><value>Riaggancia</value></data>
+  <data name="Orph_Substitute" xml:space="preserve"><value>Sostituisci con…</value></data>
+  <data name="Orph_SubstituteTitle" xml:space="preserve"><value>IVAO ha tolto questa posizione e ne ha creata una nuova al suo posto: tutto passa a quella scelta nell'elenco</value></data>
+  <data name="Orph_SubstitutePrompt" xml:space="preserve"><value>{0} è diventato {1}? Tutto passa a {1}: accordi, blocchi, figli, documento, gruppi APP, configurazioni, gerarchia ed enti. {0} resta vuoto, da eliminare.</value></data>
+  <data name="Orph_SubstituteYes" xml:space="preserve"><value>Sostituisci</value></data>
+  <data name="Orph_Substituted" xml:space="preserve"><value>{0} → {1}: {2} accordi, {3} blocchi, {4} figli spostati. Ora {0} è vuoto: puoi eliminarlo.</value></data>
   <data name="Orph_Remove" xml:space="preserve"><value>Rimuovi</value></data>
   <data name="Orph_RemoveTitle" xml:space="preserve"><value>Toglie il settore dall'archivio (torna se la sorgente lo rimanda)</value></data>
   <data name="Rel_AiracRelease" xml:space="preserve"><value>Release AIRAC</value></data>
@@ -3750,4 +3755,23 @@
   <data name="Unit_RemoteYes" xml:space="preserve"><value>Sposta</value></data>
   <data name="Unit_StillCited" xml:space="preserve"><value>{0} è ancora citata in: {1}. Quelle scelte sono salvate per nominativo: aggiornale.</value></data>
   <data name="Unit_MovePending" xml:space="preserve"><value>Copiata nella bozza della vIPI dell'ACC {0}: resta pubblica finché non pubblichi quella. Quello che scrivi qui adesso non viene copiato.</value></data>
+  <data name="Units_Title" xml:space="preserve"><value>Enti ATC</value></data>
+  <data name="Units_Intro" xml:space="preserve"><value>A chi appartiene ogni vIPI APP: l'ente, con le sue posizioni IVAO (la principale per prima) e dove vive il contenuto. Il codice è la chiave di pubblicazione e non cambia. Le posizioni si cambiano dal riquadro «Ente» dell'editor della vIPI APP.</value></data>
+  <data name="Units_None" xml:space="preserve"><value>Nessun ente</value></data>
+  <data name="Units_ColUnit" xml:space="preserve"><value>Ente · codice</value></data>
+  <data name="Units_ColPositions" xml:space="preserve"><value>Posizioni</value></data>
+  <data name="Units_ColWhere" xml:space="preserve"><value>Contenuto</value></data>
+  <data name="Units_ColDoc" xml:space="preserve"><value>Documento</value></data>
+  <data name="Units_NoPositions" xml:space="preserve"><value>nessuna posizione</value></data>
+  <data name="Units_Gone" xml:space="preserve"><value>non su IVAO</value></data>
+  <data name="Units_GoneTitle" xml:space="preserve"><value>Nessun settore attivo con questo nominativo: IVAO non lo manda (più), e nessun controllore online apre la vIPI da qui.</value></data>
+  <data name="Units_OwnDoc" xml:space="preserve"><value>vIPI APP propria</value></data>
+  <data name="Units_Moving" xml:space="preserve"><value>copiato nella bozza della vIPI {0}</value></data>
+  <data name="Units_InAcc" xml:space="preserve"><value>gruppo APP nella vIPI {0}</value></data>
+  <data name="Units_NoDoc" xml:space="preserve"><value>senza documento</value></data>
+  <data name="Units_DocHidden" xml:space="preserve"><value>nascosta</value></data>
+  <data name="Units_DocPublic" xml:space="preserve"><value>pubblica</value></data>
+  <data name="Units_DocDraft" xml:space="preserve"><value>solo bozza</value></data>
+  <data name="Units_OpenEditor" xml:space="preserve"><value>Apri editor →</value></data>
+  <data name="Units_EditorsOnly" xml:space="preserve"><value>Pagina riservata agli editor.</value></data>
 </root>

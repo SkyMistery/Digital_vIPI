@@ -114,6 +114,8 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
             throw new NotSupportedException();
         public Task ReattachAsync(int orphanSectorId, int targetSectorId, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<Vipi.Application.Abstractions.SostituzioneEsito> SubstituteAsync(int orphanSectorId, int targetSectorId, CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 
     private sealed class NessunoOnline : IOnlineAtcProvider

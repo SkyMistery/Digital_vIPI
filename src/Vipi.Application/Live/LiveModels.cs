@@ -22,7 +22,8 @@ public sealed record LiveStationContext(
     string? UnitCode = null,
     bool UnitInAccVipi = false,
     int? UnitId = null,
-    string? UnitAccCode = null);
+    string? UnitAccCode = null,
+    string? UnitGroupKey = null);
 
 /// <summary>
 /// Chip «vista rapida aeroporto» dei tipi d'area: ICAO, se è controllato da qualcun altro online, e

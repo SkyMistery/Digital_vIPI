@@ -123,6 +123,10 @@ public class LiveStationRegistryTests
         Assert.Same(suo, ApproachLiveStation.GruppoDi(blocchi, "LIRE_APP", unitId: 7));
         Assert.Same(altro, ApproachLiveStation.GruppoDi(blocchi, "LIRE_APP", unitId: null));
         Assert.Null(ApproachLiveStation.GruppoDi(blocchi, "LICJ_APP", unitId: null));
+
+        // S55: l'ente di un gruppo APP lo ritrova per CHIAVE, anche quando i membri non lo elencano ancora.
+        var perChiave = new AccBlock { Kind = AccBlockKind.AppGroup, Key = "grp:na", MemberCallsigns = { "LIRN_US0_APP" } };
+        Assert.Same(perChiave, ApproachLiveStation.GruppoDi(new[] { altro, perChiave }, "LIRR_US0_APP", unitId: 9, groupKey: "grp:na"));
     }
 
     private sealed record FakeKind(int Priority, bool Accepts) : ILiveStationKind

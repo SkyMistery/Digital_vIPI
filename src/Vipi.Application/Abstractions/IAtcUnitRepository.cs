@@ -8,8 +8,9 @@ namespace Vipi.Application.Abstractions;
 /// </summary>
 /// <param name="Code">Chiave di pubblicazione e indirizzo pubblico: non cambia mai.</param>
 /// <param name="Positions">Le posizioni IVAO, la principale per prima.</param>
+/// <param name="GroupKey">La chiave del suo gruppo APP nella vIPI dell'ACC, per un ente che vive lì (S55).</param>
 public sealed record AtcUnitRow(int Id, string Code, string Name, string AccCode, AtcUnitMode Mode, int? DocumentId,
-    IReadOnlyList<string> Positions)
+    IReadOnlyList<string> Positions, string? GroupKey = null)
 {
     /// <summary>Da dove parte la derivazione (frequenze, AoR, coordinamenti): la posizione principale, o il codice
     /// se l'ente non ne ha più nessuna.</summary>
@@ -26,6 +27,17 @@ public interface IAtcUnitRepository
     /// (<c>?app=LIRE_TWR</c> trova l'ente di Pratica, il cui codice è <c>LIRE_APP</c>). null se nessuno.
     /// </summary>
     Task<AtcUnitRow?> FindAsync(string key, CancellationToken ct = default);
+
+    /// <summary>Quali di questi nominativi IVAO manda ancora: un settore ATTIVO con quel nome (S53).</summary>
+    Task<IReadOnlySet<string>> ActiveCallsignsAsync(IReadOnlyCollection<string> callsigns, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gli enti dei gruppi APP della vIPI ACC (S55): per ogni gruppo con membri nasce l'ente che non c'è (vive nella
+    /// vIPI dell'ACC, codice = il primo membro libero), e quello che c'è prende i membri come posizioni e il titolo
+    /// come nome. I membri restano la verità: li gestisce l'editor della vIPI ACC. Bozza e pubblicata, la bozza vince.
+    /// Idempotente; ritorna quanti enti sono nati.
+    /// </summary>
+    Task<int> AllineaGruppiAccAsync(string? accCode = null, CancellationToken ct = default);
 
     /// <summary>L'ente per id; null se non c'è.</summary>
     Task<AtcUnitRow?> GetAsync(int unitId, CancellationToken ct = default);

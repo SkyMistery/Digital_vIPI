@@ -521,7 +521,10 @@
                             }
                         </td>
                         <td>
-                            @if (o.DocumentId is not null)
+                            @* La scelta del settore vale per due gesti: «Riaggancia» sposta il solo documento, «Sostituisci
+                               con…» (S54) sposta TUTTO — per quando IVAO ha tolto questa posizione e ne ha creata una
+                               nuova al suo posto, con un'identità diversa che la rinomina automatica non riconosce. *@
+                            @if (Bersagli(o.SectorId).Count > 0)
                             {
                                 <select class="app-in" value="@(_reattachTo.TryGetValue(o.SectorId, out var t) ? t.ToString() : "")"
                                         @onchange="e => _reattachTo[o.SectorId] = int.TryParse(e.Value?.ToString(), out var v) ? v : 0">
@@ -536,8 +539,19 @@
                                         <option value="@tgt.SectorId">@tgt.Callsign</option>
                                     }
                                 </select>
-                                <button class="btn ghost" disabled="@(_busy || !_canEdit || !_reattachTo.TryGetValue(o.SectorId, out var sel2) || sel2 == 0)"
-                                        @onclick="() => Riaggancia(o.SectorId)">@L["Orph_Reattach"]</button>
+                                @if (o.DocumentId is not null)
+                                {
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit || !_reattachTo.TryGetValue(o.SectorId, out var sel2) || sel2 == 0)"
+                                            @onclick="() => Riaggancia(o.SectorId)">@L["Orph_Reattach"]</button>
+                                }
+                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Orph_SubstituteTitle"]"
+                                               AriaLabel="@L["Orph_Substitute"]"
+                                               Prompt="@L["Orph_SubstitutePrompt", o.Callsign, NomeBersaglio(o.SectorId)]"
+                                               ConfirmLabel="@L["Orph_SubstituteYes"]" CancelLabel="@L["Common_Close"]"
+                                               Disabled="@(_busy || !_canEdit || !_reattachTo.TryGetValue(o.SectorId, out var sel3) || sel3 == 0)"
+                                               OnConfirm="() => Sostituisci(o.SectorId)">
+                                    <Trigger>@L["Orph_Substitute"]</Trigger>
+                                </InlineConfirm>
                             }
                             @* ⚠️ Nessun elenco di blocchi qui: li calcola e li mostra la finestra, che è lo
                                stesso motore di tutte le altre eliminazioni. Prima questa riga aveva un
@@ -654,7 +668,9 @@
         if (!Authz.IsEditor) return;
         _orfani = await Orphans.ListAsync();
         _bersagli.Clear();
-        foreach (var o in _orfani.Where(x => x.DocumentId is not null))
+        // Per TUTTI gli orfani, non solo per chi porta un documento: «Sostituisci con…» (S54) serve anche a chi
+        // porta soltanto accordi, blocchi o figli.
+        foreach (var o in _orfani)
             _bersagli[o.SectorId] = await Orphans.ReattachTargetsAsync(o.SectorId);
     }
 
@@ -665,6 +681,20 @@
     {
         await Orphans.ReattachAsync(orphanId, _reattachTo[orphanId]);
         await RicaricaOrfaniAsync();
+    });
+
+    private string NomeBersaglio(int orphanId) =>
+        _reattachTo.TryGetValue(orphanId, out var id)
+            ? Bersagli(orphanId).FirstOrDefault(b => b.SectorId == id)?.Callsign ?? "—"
+            : "—";
+
+    /// <summary>«Sostituisci con…» (S54): tutto passa al settore scelto, e l'esito dice cosa si è spostato e che
+    /// il vecchio, ora vuoto, si può eliminare.</summary>
+    private Task Sostituisci(int orphanId) => Guarded(async () =>
+    {
+        var e = await Orphans.SubstituteAsync(orphanId, _reattachTo[orphanId]);
+        await RicaricaOrfaniAsync();
+        _msg = L["Orph_Substituted", e.Vecchio, e.Nuovo, e.Accordi, e.Blocchi, e.Figli];
     });
 
     /// <summary>
