@@ -80,8 +80,10 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         Content.IImportOverviewService? giri = null,
         Abstractions.ICopPositions? punti = null,
         Abstractions.ISectorVolumeCatalog? volumi = null,
-        Abstractions.ITopologyProvider? topologia = null)
+        Abstractions.ITopologyProvider? topologia = null,
+        Microsoft.Extensions.Options.IOptions<DivisionOptions>? divisione = null)
     {
+        _prefissi = divisione?.Value.IcaoPrefixes ?? new DivisionOptions().IcaoPrefixes;
         _repo = repo;
         _schema = schema;
         _admin = admin;
@@ -94,6 +96,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         _volumi = volumi;
         _topologia = topologia;
     }
+
+    /// <summary>I prefissi ICAO della divisione: dicono quali ACC sono esteri (rilievo «trasferimento senza ripiego»).</summary>
+    private readonly IReadOnlyList<string> _prefissi;
 
     /// <summary>Volumi e topologia: servono alla scala di risalita. Opzionali, come tutto il resto qui.</summary>
     private readonly Abstractions.ISectorVolumeCatalog? _volumi;
@@ -173,7 +178,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 var dataset = await Misura("dati·carico", () => _repo.LoadAsync(ct));
                 var punti = _punti is null ? null : await Misura("dati·punti", () => _punti.GetAsync(ct));
                 var rinvio = await Misura("dati·rinvio", () => ContestoDelRinvioAsync(ct));
-                return await Misura("dati·analisi", () => Task.FromResult(Analyze(dataset, punti, rinvio)));
+                return await Misura("dati·analisi", () => Task.FromResult(Analyze(dataset, punti, rinvio, _prefissi)));
             }, ct);
         if (_schema is not null)
             await Raccogli(findings, "drift di schema", "Diag_Pezzo_Schema", ConsistencyArea.Schema, () => _schema.RunAsync(ct), ct);
@@ -342,9 +347,13 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// senza, il rilievo «trasferimento senza ripiego» non si fa — e non si fa in silenzio, perché senza i
     /// volumi non si potrebbe distinguere «non ha ripieghi» da «non lo so».
     /// </param>
+    /// <param name="prefissiDivisione">I prefissi ICAO della divisione (default: quelli di <see cref="DivisionOptions"/>):
+    /// un settore di un ACC che non comincia così è estero, e non è un ripiego mancante.</param>
     public static IReadOnlyList<ConsistencyFinding> Analyze(ConsistencyDataset d,
-        Abstractions.CopPositions? punti = null, Content.CoverageFallbackContext? rinvio = null)
+        Abstractions.CopPositions? punti = null, Content.CoverageFallbackContext? rinvio = null,
+        IReadOnlyList<string>? prefissiDivisione = null)
     {
+        prefissiDivisione ??= new DivisionOptions().IcaoPrefixes;
         var findings = new List<ConsistencyFinding>();
 
         foreach (var t in d.TransferConditions)
@@ -614,6 +623,14 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 var chiAltro = contestoSenza
                     .Risolvi(t.Cop, t.LevelFeet, t.OwningSectorCallsign, t.NextSectorCallsign);
                 if (chiAltro.Outcome != Content.CoverageFallbackOutcome.Resolved) continue;
+
+                // ⚠️ Un settore ESTERO che copre il punto non è un ripiego mancante (29 settembre 2026, primo
+                // giorno della 1.47.0: l'unico errore della produzione era `LIMM_WS2_CTR → LSAG_TST_CTR`). Il
+                // committente: «Ginevra si gestisce lo spazio aereo svizzero, WS2 quello italiano più Lugano».
+                // Le forme di confine si sovrappongono, ma chiusa la radice italiana il traffico non passa
+                // all'estero: UNICOM è la risposta giusta, come per le radici estere qui sopra.
+                if (rinvio.AccDi(chiAltro.TargetCallsign!) is { } accAltro
+                    && Aor.HierarchyRules.IsForeignCode(accAltro, prefissiDivisione)) continue;
 
                 if (!perAcc.TryGetValue(t.AccCode, out var elenco))
                     perAcc[t.AccCode] = elenco = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);

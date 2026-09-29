@@ -1472,5 +1472,13 @@
   tolta la sentinella `_busy` da `ApriAsync`, il test è rosso (`Conti` 2) invece di piantarsi. Solo test.
   ⚠️ `StrutturaUnaOperazionePerVoltaTests` (stesso commit `334267c0`) ha la stessa forma a tempo: non è segnalato
   rosso, resta da rifare allo stesso modo se lo diventa.
+- ✅ **S41** diagnostica della 1.47.0 (29-set, file scaricati dal committente in `diagnostica/`). `/vsop/health`
+  «Degraded» = un solo errore, «Transfer with no fallback» su LIMM: `LIMM_WS2_CTR → LSAG_TST_CTR`. Scelta del
+  committente: «Ginevra si gestisce lo spazio aereo svizzero, WS2 quello italiano più Lugano» → il rilievo non conta
+  un settore di un ACC **estero** come chi copre il punto (`CoverageFallbackContext.AccDi`, prefissi della divisione
+  passati ad `Analyze`; `ConsistencyReportService` legge `IOptions<DivisionOptions>`). Codice comune `Vipi.Application`.
+  Test +1 rosso sul codice di prima; Application **3085**, Infrastructure 1984, Hosting 79, E2E 454. Nessuna UI.
+  Dagli stessi file: passate d'avvio 1.47 tutte riuscite; U-236 visto al lavoro («allo spegnimento», 23 segnalazioni);
+  Azure Translator 401 dal 27-set 09:18Z (segreti, non codice); U-105 Perugia Approach sez. 5716 da fare a mano.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

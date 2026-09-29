@@ -108,6 +108,9 @@ public sealed class CoverageFallbackContext
     /// <summary>Il padre effettivo, per lo stesso motivo.</summary>
     public Func<string, string?> PadreDi => _padreDi;
 
+    /// <summary>L'ACC di un settore che ha un volume; <c>null</c> se non ne ha.</summary>
+    public string? AccDi(string callsign) => _perCallsign.GetValueOrDefault(callsign)?.AccCode;
+
     /// <summary>Chi raccoglie il traffico di quel punto se <paramref name="riceventeNominale"/> è chiuso.</summary>
     public CoverageFallbackResult Risolvi(string? cop, int? levelFeet, string? cedente, string? riceventeNominale)
     {
