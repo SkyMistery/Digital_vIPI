@@ -209,6 +209,21 @@ public enum Regola
 
     /// <summary>La stessa posizione due volte nello stesso <c>.frq</c> (<c>LIMF_WN0_APP</c> in <c>itfreq.frq</c>: slice 11a).</summary>
     PosizioneRipetuta,
+
+    /// <summary>
+    /// Una rotta di pista con decimali (<c>109.5</c>, <c>065.49</c>): Aurora la legge, ma rallenta (lotto «Subito» slice 11b,
+    /// M4: 107 righe sul fork). Proposta al grado tondo; il Pannello la applica anche a tutto il file.
+    /// </summary>
+    RottaConDecimali,
+
+    /// <summary>Il verso primario di una pista oltre il 18 (<c>LIMC;35R;17L</c>): il manuale lo vuole fra 01 e 18 (slice 11b, M4).</summary>
+    PrimariaOltre18,
+
+    /// <summary>
+    /// La rotta scritta di una pista lontana più di 15° da quella delle soglie: soglie invertite o rotta sbagliata
+    /// (<c>LIDW 15</c>, <c>LIKL 36</c>: slice 11b, M4).
+    /// </summary>
+    RottaDiversaDalleSoglie,
 }
 
 public enum Gravita
@@ -239,7 +254,8 @@ public static class Regole
             or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto or Regola.CoordinataFuoriForma
             or Regola.NomeMancante or Regola.AttesaMaiCitata or Regola.AttesaFuoriPosto or Regola.AtteseNonCaricate
             or Regola.NomeInPiuCataloghi or Regola.CampoMancante or Regola.ValoreFuoriElenco
-            or Regola.PosizioneNonDefinita or Regola.PosizioneRipetuta => Validazione.Gravita.Avviso,
+            or Regola.PosizioneNonDefinita or Regola.PosizioneRipetuta
+            or Regola.RottaConDecimali or Regola.PrimariaOltre18 or Regola.RottaDiversaDalleSoglie => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

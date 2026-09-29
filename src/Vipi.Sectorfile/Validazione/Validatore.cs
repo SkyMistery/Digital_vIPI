@@ -276,6 +276,37 @@ public static partial class Validatore
         return "gradi oltre il limite";
     }
 
+    // Oltre questa differenza fra la rotta scritta (magnetica) e quella vera dalle soglie non è la declinazione: sul fork
+    // tutte le piste stanno fra -5 e +2 gradi, tranne LIDW 15 (134) e LIKL 36 (180), con le soglie invertite.
+    private const double DifferenzaDalleSoglie = 15;
+
+    /// <summary>
+    /// Le regole di una pista (lotto «Subito» slice 11b, «file per file» M4): rotta con decimali (Aurora rallenta),
+    /// verso primario oltre il 18 (il manuale lo vuole fra 01 e 18), rotta lontana da quella delle soglie.
+    /// </summary>
+    private static IEnumerable<(Regola Regola, string Dettaglio)> CampiDellaPista(Runway pista, string riga)
+    {
+        int commento = riga.IndexOf("//", StringComparison.Ordinal);
+        string[] campi = (commento >= 0 ? riga[..commento] : riga).Split(';').Select(c => c.Trim()).ToArray();
+        if (campi.Length < 7)
+            yield break;
+        var decimali = campi[5..7].Where(c => c.Contains('.', StringComparison.Ordinal) || c.Contains('/', StringComparison.Ordinal)).ToList();
+        if (decimali.Count > 0)
+            yield return (Regola.RottaConDecimali, $"rotta {string.Join(" e ", decimali)}: Aurora legge queste righe più lentamente — al grado tondo non cambia niente sullo schermo");
+        if (CorrezioneDelleCoordinate.Primaria(campi[1]) is > 18 and var primaria && CorrezioneDelleCoordinate.Primaria(campi[2]) is <= 18)
+            yield return (Regola.PrimariaOltre18, $"il verso primario è {campi[1]} ({primaria}): il manuale lo vuole fra 01 e 18, e {campi[2]} va prima");
+        if (pista.RottaVeraDalleSoglie is { } vera
+            && double.TryParse(campi[5].Split('/')[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double scritta))
+        {
+            double differenza = ((scritta - vera + 540) % 360) - 180;
+            if (Math.Abs(differenza) > DifferenzaDalleSoglie)
+            {
+                yield return (Regola.RottaDiversaDalleSoglie,
+                    $"rotta scritta {campi[5]}°, dalle soglie {vera.ToString("000", System.Globalization.CultureInfo.InvariantCulture)}° (vera; la magnetica è di 2-5° meno): le soglie sono invertite, o la rotta è sbagliata");
+            }
+        }
+    }
+
     private static readonly string[] TipiDelFix = ["0", "1", "2", "3"];
     private static readonly string[] ZeroOUno = ["", "0", "1"];
     private static readonly string[] TipiDelVor = ["", "0", "1", "2", "3", "4"];
@@ -417,6 +448,24 @@ public static partial class Validatore
                     foreach (string nome in dichiarato.Nomi.Where(n => n.Length > 0).Distinct(StringComparer.Ordinal))
                     {
                         dichiarati.Add(new(nome, dichiarato.Catalogo, dichiarato.Posizione, primaRiga, rec.RawLines[0]));
+                    }
+                }
+
+                // Le piste (lotto «Subito» slice 11b, M4): la riga corretta la dice CorrezioneDelleCoordinate, tutta insieme.
+                if (rec.Record is Runway pista && rec.RawLines.Length > 0)
+                {
+                    string? corretta = null;
+                    bool calcolata = false;
+                    foreach (var (regola, dettaglio) in CampiDellaPista(pista, rec.RawLines[0]))
+                    {
+                        if (!calcolata)
+                        {
+                            corretta = CorrezioneDelleCoordinate.DellaRiga(rec.RawLines[0], "rw");
+                            calcolata = true;
+                        }
+
+                        problemi.Add(new(regola, string.Empty, primaRiga, rec.RawLines[0], dettaglio,
+                            regola == Regola.RottaDiversaDalleSoglie ? null : corretta));
                     }
                 }
 

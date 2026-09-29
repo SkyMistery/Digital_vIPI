@@ -31,6 +31,14 @@ else if (Problema.Problema.Proposta is { } proposta)
                 title="La riga diventa questa: una voce nelle modifiche, si annulla">
             Correggi la riga
         </button>
+        @if (Lab.ConLaStessaCorrezione(Problema) is > 1 and var quante)
+        {
+            @* Slice 11b (M4): la stessa correzione su tutto il file, una voce sola della storia. *@
+            <button class="lab-tasto lab-tasto-tenue" @onclick="CorreggiTutte" data-tasto="correggi-tutte"
+                    title="Ogni riga del file con questo problema diventa la sua proposta: una voce nelle modifiche, si annulla">
+                Correggi tutte le @quante di @Problema.Nome
+            </button>
+        }
     </div>
 }
 
@@ -40,4 +48,6 @@ else if (Problema.Problema.Proposta is { } proposta)
     private void SpostaSopra() => Lab.SpostaICommentiSopra(Problema.File);
 
     private void Correggi() => Lab.Correggi(Problema);
+
+    private void CorreggiTutte() => Lab.CorreggiTutte(Problema);
 }

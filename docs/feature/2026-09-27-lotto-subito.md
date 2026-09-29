@@ -1330,3 +1330,23 @@ profili `.cpr` e i PAR.
   Uscita sul fork: **102** errori, tutti con la correzione che, applicata a una copia, torna pulita; **32** avvisi di
   posizioni mai definite (le righe che citano le quattro); **2** ripetute. Validatore sull'albero: 133/636 → **235
   errori, 670 avvisi**. Round-trip invariato, copie gemelle invariate (29). Test: motore 720 → **729**, Lab 771 → **775**.
+- **11b (29 settembre)** — scali e piste (M3, M4, M9, M10). Misura (`scratchpad/misura11b.py`): rotte con decimali
+  **107** righe (44 in `itrw.rw`: `109.5`, `065.49`, `345.9`…); verso primario oltre il 18 **80** righe (34 in
+  `itrw.rw`; la carta ne contava 13); rotta scritta meno rotta vera dalle soglie sempre fra **−5° e +2°** (la
+  declinazione: la rotta del file è magnetica), tranne **LIDW 15** (149° contro 15°) e **LIKL 36** (360° contro 180°).
+  Le voci `MAPS` e di settore stanno nelle sezioni `//MENU MAPPE` e `//ACC`: per il motore sono righe del file, non
+  piste, e nel Lab non si confondono con le piste (M4, la parte «voci di menu»). Codice comune toccato:
+  `Runway.RottaVeraDalleSoglie` (calcolata, al decimo di grado), `CorrezioneDelleCoordinate` (per un `.rw` la riga
+  corretta arrotonda le rotte e, col primario oltre il 18, scambia i versi — numero, elevazione, rotta, soglia — e
+  scrive la reciproca se la rotta che diventa primaria manca: `LIMW 27/09` «261;;»), tre regole nel validatore dei file.
+  - **`RottaConDecimali`** (avviso) e **`PrimariaOltre18`** (avviso), tutte e due con la riga corretta proposta (la
+    stessa, se la riga ha tutti e due i problemi); **`RottaDiversaDalleSoglie`** (avviso, oltre 15°: nessun falso
+    avviso sul fork) senza proposta: quale sia giusto, le soglie o la rotta, lo decide l'AOD.
+  - Nel pannello dei problemi, sulla prima voce di un gruppo, **«Correggi tutte le N di <file>»**: ogni riga del file
+    con quel problema diventa la sua proposta, in una voce sola della storia (il gesto «arrotonda al grado» su riga o
+    file di M4). Nella scheda della pista **«Rotta dalle soglie»** accanto alla rotta scritta.
+  - Scheda dello scalo (M3: nascosto e tipo) e metadati della pista per verso (M9) e dello scalo (M10): c'erano già
+    dalle slice 3b e 3d.
+  Uscita sul fork: **107 + 80 + 2** avvisi; correzioni proposte 273 → 460, applicate a una copia tornano pulite tutte
+  tranne `LIKL` (le soglie invertite restano: il Lab non indovina quale dato è sbagliato). Validatore sull'albero:
+  235/670 → **235 errori, 859 avvisi**. Round-trip invariato. Test: motore 729 → **734**, Lab 775 → **778**.

@@ -93,8 +93,64 @@ public static partial class CorrezioneDelleCoordinate
             }
         }
 
+        // Lotto «Subito» slice 11b (M4): una pista ha le rotte al grado tondo e il verso primario fra 01 e 18.
+        if (estensione.Equals("rw", StringComparison.OrdinalIgnoreCase))
+        {
+            PistaInOrdine(campi);
+        }
+
         string nuova = string.Join(';', campi);
         return nuova == riga ? null : nuova;
+    }
+
+    /// <summary>
+    /// Una riga di pista messa in ordine (slice 11b): le rotte con decimali al grado tondo, con tre cifre (<c>065.49</c> →
+    /// <c>065</c>, <c>345.9</c> → <c>346</c>); se il verso primario è oltre il 18, i due versi scambiati (numero, elevazione,
+    /// rotta e soglia; la rotta che manca è la reciproca dell'altra). Le voci di menu (<c>MAPS</c>, <c>NE</c>) non hanno un
+    /// numero e restano come sono.
+    /// </summary>
+    private static void PistaInOrdine(List<string> campi)
+    {
+        if (campi.Count < 11)
+            return;
+        if (Primaria(campi[1]) is > 18 && Primaria(campi[2]) is <= 18)
+        {
+            // La rotta del verso che diventa primario, se manca, è la reciproca dell'altra (LIMW 27/09: «261;;»): una
+            // pista è una retta, e il 6° campo non può restare vuoto.
+            if (campi[6].Trim().Length == 0
+                && double.TryParse(campi[5].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double andata))
+            {
+                campi[6] = ((andata + 180) % 360).ToString("000.###", CultureInfo.InvariantCulture);
+            }
+
+            (campi[1], campi[2]) = (campi[2], campi[1]);
+            (campi[3], campi[4]) = (campi[4], campi[3]);
+            (campi[5], campi[6]) = (campi[6], campi[5]);
+            (campi[7], campi[9]) = (campi[9], campi[7]);
+            (campi[8], campi[10]) = (campi[10], campi[8]);
+        }
+
+        for (int i = 5; i <= 6; i++)
+        {
+            string c = campi[i].Trim();
+            if (c.Contains('.', StringComparison.Ordinal)
+                && double.TryParse(c, NumberStyles.Float, CultureInfo.InvariantCulture, out double gradi) && gradi is >= 0 and <= 360)
+            {
+                campi[i] = campi[i].Replace(c, Math.Round(gradi, MidpointRounding.AwayFromZero).ToString("000", CultureInfo.InvariantCulture), StringComparison.Ordinal);
+            }
+        }
+    }
+
+    /// <summary>Il numero di un verso di pista (<c>35R</c> → 35), null se non è un verso (<c>MAPS</c>).</summary>
+    internal static int? Primaria(string verso)
+    {
+        string v = verso.Trim();
+        int cifre = 0;
+        while (cifre < v.Length && char.IsAsciiDigit(v[cifre]))
+            cifre++;
+        return cifre is 1 or 2 && (v.Length == cifre || (v.Length == cifre + 1 && v[cifre] is 'L' or 'R' or 'C'))
+            ? int.Parse(v[..cifre], CultureInfo.InvariantCulture)
+            : null;
     }
 
     // Dieci cifre (DDD MM SS mmm). Con meno: se non comincia con lo zero manca lo zero dei gradi (`E103441000`, il motore

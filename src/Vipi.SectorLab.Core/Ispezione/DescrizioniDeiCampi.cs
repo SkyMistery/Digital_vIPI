@@ -407,6 +407,8 @@ public static class DescrizioniDeiCampi
             C("TrueHeading2", "Rotta opposta", "In gradi (7° campo).", Editor.Numero),
             Posizione("Threshold1", "Soglia", "La soglia del verso primario."),
             Posizione("Threshold2", "Soglia opposta", "La soglia del verso opposto."),
+            // Slice 11b (M4): accanto alla rotta scritta, quella che dicono le soglie; molto diverse = soglie invertite.
+            C("RottaVeraDalleSoglie", "Rotta dalle soglie", "Calcolata dalla soglia del verso primario a quella opposta, in gradi VERI: la rotta scritta è magnetica, e in Italia viene 2-5° meno. Molto diverse vuol dire soglie invertite (avviso RottaDiversaDalleSoglie).", Editor.SolaLettura),
         ]),
         // File di scalo (§16-§19).
         [typeof(SidProcedure)] = new("SID",

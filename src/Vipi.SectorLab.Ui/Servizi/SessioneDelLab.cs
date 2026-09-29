@@ -1459,6 +1459,62 @@ public sealed class SessioneDelLab
             () => CambiaRigaAManoAdesso(problema.File, numero, proposta));
     }
 
+    /// <summary>
+    /// Quanti problemi della stessa regola, nello stesso file, hanno una correzione proposta (slice 11b: «arrotonda al grado»
+    /// su riga o su file, M4).
+    /// </summary>
+    /// <remarks>Zero per tutti tranne il primo del gruppo: il gesto si offre una volta sola, non sotto ognuna delle 44 voci.</remarks>
+    public int ConLaStessaCorrezione(ProblemaNelLab problema)
+    {
+        var stessi = ProblemiDellAlbero.Where(p => p.File == problema.File && p.Problema.Regola == problema.Problema.Regola && p.Problema.Proposta is not null).ToList();
+        return stessi.Count > 0 && ReferenceEquals(stessi[0], problema) ? stessi.Count : 0;
+    }
+
+    /// <summary>
+    /// Applica le correzioni proposte di tutti i problemi della stessa regola nello stesso file, in una voce sola della
+    /// storia (slice 11b, M4). Le righe già cambiate fra le modifiche in sospeso restano come sono, e lo dice.
+    /// </summary>
+    public bool CorreggiTutte(ProblemaNelLab problema)
+    {
+        ArgumentNullException.ThrowIfNull(problema);
+        var stessi = ProblemiDellAlbero.Where(p => p.File == problema.File && p.Problema.Regola == problema.Problema.Regola
+                                                    && p.Problema.Proposta is not null).ToList();
+        if (stessi.Count == 0)
+        {
+            Rifiuto = "Per questo problema non c'è una correzione proposta.";
+            Avvisa();
+            return false;
+        }
+
+        int saltate = 0;
+        bool fatto = NellaStoria($"{stessi.Count} righe di {NomeDelFile(problema.File)} corrette ({problema.Problema.Regola})", () =>
+        {
+            bool almenoUna = false;
+            // Una riga con più problemi della stessa regola si corregge una volta.
+            foreach (var p in stessi.DistinctBy(p => p.Problema.Riga))
+            {
+                var adesso = RigheDiAdesso(p.File);
+                if (RigaDiAdesso(p.File, p.Problema.Riga) is not { } numero || numero < 1 || numero > adesso.Count
+                    || adesso[numero - 1] != p.Problema.Testo)
+                {
+                    saltate++;
+                    continue;
+                }
+
+                almenoUna |= CambiaRigaAManoAdesso(p.File, numero, p.Problema.Proposta!);
+            }
+
+            return almenoUna;
+        });
+        if (saltate > 0)
+        {
+            Rifiuto = $"{saltate} righe erano già cambiate fra le modifiche in sospeso: quelle restano come sono.";
+            Avvisa();
+        }
+
+        return fatto;
+    }
+
     // --- le voci della selezione e le parti, accese e spente (lotto «Subito» slice 6) -----------------------------
 
     private readonly Dictionary<string, (IReadOnlyList<string> Righe, IReadOnlyList<VoceDellaSelezione>? Voci)> _voci = [];
