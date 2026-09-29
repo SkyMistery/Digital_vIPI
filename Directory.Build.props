@@ -1539,8 +1539,10 @@
       EditorTask.FromRequestId; niente tolto o rinominato). Su 1.49.0 (89bfb04, online dal 30 settembre 2026).
       Sito S56: richieste dal campo, canale utente → staff — link «Segnala» accanto ai titoli delle sezioni nelle
       viste pubbliche, pagina nuova /services/vsop/requests, richieste nuove in «Da fare»; chiudere la richiesta
-      chiude il suo incarico. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Ui
-      (+ frasi IT/EN) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.50.0.md, §A136.
+      chiude il suo incarico. Sito S57: il vAWOS prende l'altezza visibile (100dvh: in Edge 100vh superava la
+      finestra) e il tasto TEST METAR esce dal quadro. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure
+      (+ MySqlMigrations), Vipi.Ui (+ frasi IT/EN, vipi-awos.css/.js con l'indice degli asset) e Vipi.Host per il
+      timbro; Vipi.Hosting solo in un commento (non si spedisce). Dettaglio: LEGGIMI-PACCHETTO-1.50.0.md, §A136.
     -->
     <!--
       1.49.0 — MINOR: una migrazione (EntiGruppiAcc: un indice composto al posto di quello su AccId; niente tabelle né
