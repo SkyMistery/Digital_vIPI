@@ -1,13 +1,16 @@
 @* «Segnala» accanto al titolo di una sezione pubblica (S56, richieste dal campo). ⚠️ Un LINK e non un'isola
    interattiva: il documento pubblico resta statico, e un circuito per ogni lettore — anche per chi legge soltanto —
    sarebbe il prezzo di un modulo che quasi nessuno apre. Il modulo sta nella sua pagina, interattiva lei.
-   In stampa non c'è (noprint): è chrome, non documento. *@
+   In stampa non c'è (noprint): è chrome, non documento.
+   ⚠️ Una BANDIERINA e non la parola «Segnala» (committente, 30 settembre 2026): sta su ogni titolo, anche delle
+   sotto-sezioni, e una parola ripetuta venti volte in una pagina è rumore. Che cos'è lo dice il `title` al
+   passaggio del mouse, e l'`aria-label` a chi usa un lettore di schermo. Lo stile sta nel foglio (`.req-link`). *@
 @inject IStringLocalizer<SharedResource> L
 
 @if (!string.IsNullOrEmpty(Href))
 {
-    <a class="noprint req-link" href="@Href" title="@L["Req_ReportTitle"]" rel="nofollow"
-       style="font-size:12px;font-weight:500;margin-left:8px;opacity:.7">@L["Req_Report"]</a>
+    <a class="noprint req-link" href="@Href" title="@L["Req_ReportTitle"]" aria-label="@L["Req_ReportTitle"]"
+       rel="nofollow"><Icon Name="flag" Size="15" /></a>
 }
 
 @code {

@@ -49,11 +49,14 @@
             {
                 <p class="muted" style="margin:0 0 8px">@L["Req_Free"]</p>
             }
-            <div style="display:flex;gap:14px;margin:0 0 8px">
-                <label><input type="radio" name="req-kind" checked="@(_tipo == FieldRequestKind.Errore)"
-                              @onchange="() => _tipo = FieldRequestKind.Errore" /> @L["Req_KindError"]</label>
-                <label><input type="radio" name="req-kind" checked="@(_tipo == FieldRequestKind.Suggerimento)"
-                              @onchange="() => _tipo = FieldRequestKind.Suggerimento" /> @L["Req_KindSuggestion"]</label>
+            @* Uno SWITCH e non due pallini (committente, 30 settembre 2026): la forma della scelta della lingua in
+               barra, coi colori della pagina (`.req-kind` nel foglio). Due tasti con `aria-pressed`: la pagina è
+               interattiva, e il segmento pieno dice quale vale. *@
+            <div class="req-kind" role="group" aria-label="@L["Req_KindLabel"]" style="margin:0 0 10px">
+                <button type="button" aria-pressed="@(_tipo == FieldRequestKind.Errore ? "true" : "false")" disabled="@_busy"
+                        @onclick="() => _tipo = FieldRequestKind.Errore">@L["Req_KindError"]</button>
+                <button type="button" aria-pressed="@(_tipo == FieldRequestKind.Suggerimento ? "true" : "false")" disabled="@_busy"
+                        @onclick="() => _tipo = FieldRequestKind.Suggerimento">@L["Req_KindSuggestion"]</button>
             </div>
             <CampoTesto Multiriga="true" class="app-in" rows="5" maxlength="@FieldRequestRules.MaxCorpo" style="width:100%"
                         aria-label="@L["Req_BodyLabel"]" placeholder="@L["Req_BodyPlaceholder"]"

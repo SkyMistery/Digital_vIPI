@@ -50,7 +50,7 @@
                    propri (solo se il catalogo dice che la sezione li tiene) e figlie, alternati. *@
                 <SectionBody Section="perSlot" ShowBlocks="SectionCatalog.KeepsOwnBlocks(Profile, s.SectionKey)"
                              Scheda="DerivedContent(s)" IsDraft="IsDraft"
-                             Profile="Profile" DerivedContent="DerivedContent" />
+                             Profile="Profile" DerivedContent="DerivedContent" ReportHrefOf="ReportHrefOf" />
             </ChildContent>
         </CollapsibleBlock>
     }
@@ -67,7 +67,7 @@
                     <AudienceBadge Audience="s.Audience" />
                 </h2>
             </Header>
-            <ChildContent><SectionBody Section="s" IsDraft="IsDraft" Profile="Profile" DerivedContent="DerivedContent" /></ChildContent>
+            <ChildContent><SectionBody Section="s" IsDraft="IsDraft" Profile="Profile" DerivedContent="DerivedContent" ReportHrefOf="ReportHrefOf" /></ChildContent>
         </CollapsibleBlock>
     }
     else

@@ -5205,3 +5205,19 @@
    (serve dentro una segnalazione), quindi niente user-select:none. Vestita come i comandi della barra. */
 :where(.vipi-root) .sito-foot .ver-chip{font:12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--on-dark-soft);
   background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:4px 7px;white-space:nowrap}
+
+/* ---------- Richieste dal campo (S56, ritocco del 30 settembre 2026) ----------
+   La BANDIERINA accanto al titolo di ogni sezione pubblica (`ReportLink`): discreta finche' non la si cerca,
+   blu al passaggio. In linea col titolo, a qualunque livello (h2 delle radici, summary delle sotto-sezioni). */
+:where(.vipi-root) .req-link{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;
+  width:24px;height:24px;margin-left:6px;border-radius:6px;color:var(--ink-faint);opacity:.75;text-decoration:none;flex:none}
+:where(.vipi-root) .req-link:hover,:where(.vipi-root) .req-link:focus-visible{opacity:1;color:var(--ivao-blue);background:var(--tint-blue)}
+/* Lo SWITCH errore / suggerimento del modulo: la forma della scelta della lingua in barra (`.lang-ctrl`: un
+   guscio arrotondato e due segmenti, quello scelto pieno), ma coi colori della PAGINA e non della barra blu. */
+:where(.vipi-root) .req-kind{display:inline-flex;align-items:center;gap:2px;background:var(--surface-muted);
+  border:1px solid var(--line);border-radius:9px;padding:3px}
+:where(.vipi-root) .req-kind button{display:inline-flex;align-items:center;justify-content:center;min-width:96px;height:28px;
+  padding:0 12px;border:0;border-radius:7px;background:none;color:var(--ink-mid);cursor:pointer;
+  font-family:var(--font-head);font-weight:600;font-size:13px;white-space:nowrap}
+:where(.vipi-root) .req-kind button:hover:not(:disabled){background:var(--tint-blue);color:var(--ink)}
+:where(.vipi-root) .req-kind button[aria-pressed="true"]{background:var(--ivao-blue);color:var(--on-brand);font-weight:700}

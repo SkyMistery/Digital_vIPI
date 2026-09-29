@@ -34,7 +34,9 @@ else
     <details class="@(depth == 1 ? "coord-sub" : "coord-sub2")" id="@Section.Id" open
              style="@(Section.IsHidden ? "opacity:.65" : null)">
         <summary>
-            <span>@Section.Title</span>
+            @* La bandierina anche sulle SOTTO-sezioni (committente, 30 settembre 2026: «su ogni sezione»), DENTRO lo
+               span del titolo: il summary distribuisce i suoi figli sulla riga, e da figlio a sé finiva a metà. *@
+            <span>@Section.Title@if (!Section.IsHidden) { <ReportLink Href="@ReportHrefOf?.Invoke(Section)" /> }</span>
             @if (Section.IsHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
             <AudienceBadge Audience="Section.Audience" />
             <span class="sum-right"><span class="chev">▸</span></span>
@@ -66,12 +68,13 @@ else
                figlia «sopra il corpo» uscita SOTTO la scheda (4 settembre 2026), e figlie rese due volte. *@
             <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft"
                          ShowBlocks="SectionCatalog.KeepsOwnBlocks(Profile!.Value, Section.SectionKey)"
-                         Scheda="DerivedContent!(Section)" Profile="Profile" DerivedContent="DerivedContent" />
+                         Scheda="DerivedContent!(Section)" Profile="Profile" DerivedContent="DerivedContent"
+                         ReportHrefOf="ReportHrefOf" />
         }
         else
         {
             <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft"
-                         Profile="Profile" DerivedContent="DerivedContent" />
+                         Profile="Profile" DerivedContent="DerivedContent" ReportHrefOf="ReportHrefOf" />
         }
     };
 
