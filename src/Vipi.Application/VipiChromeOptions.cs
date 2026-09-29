@@ -13,9 +13,9 @@ public sealed class VipiChromeOptions
     public bool RenderTopbar { get; set; } = true;
 
     /// <summary>
-    /// Versione in forma corta per la barra (es. <c>g · 17a6060</c>), mostrata <b>solo agli admin</b>.
-    /// Vuota ⇒ la barra non mostra niente: il modulo non deve inventarsi un numero quando l'host non
-    /// gliene passa uno, e un host che ha una barra propria non ha nessun posto dove metterlo.
+    /// Versione in forma corta (es. <c>g · 17a6060</c>), mostrata <b>solo allo staff</b> nel piè di pagina
+    /// (dal 29 settembre 2026; prima era in barra, ai soli admin). Vuota ⇒ non si mostra niente: il modulo non
+    /// deve inventarsi un numero quando l'host non gliene passa uno.
     /// </summary>
     public string? Versione { get; set; }
 

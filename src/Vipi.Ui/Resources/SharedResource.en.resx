@@ -136,6 +136,15 @@
   <data name="TrEd_ToReview" xml:space="preserve"><value>to review</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Theme</value></data>
   <data name="Chrome_Version" xml:space="preserve"><value>Site version</value></data>
+  <!-- Piè di pagina del sito (SitoFooter), 29-set-2026: frasi e collegamenti dell'hub IVAO Italy -->
+  <data name="Foot_About" xml:space="preserve"><value>The ATC services website of {0}: the operational documentation (vIPI, vLOA and vSOP), the statistics and the tools for controllers.</value></data>
+  <data name="Foot_Disclaimer" xml:space="preserve"><value>{0} is a division of IVAO, a non-commercial flight simulation network. Nothing published here is intended for real world aviation.</value></data>
+  <data name="Foot_Rights" xml:space="preserve"><value>All rights reserved.</value></data>
+  <data name="Foot_PartOf" xml:space="preserve"><value>Part of the International Virtual Aviation Organisation</value></data>
+  <data name="Foot_Ivao" xml:space="preserve"><value>IVAO</value></data>
+  <data name="Foot_Terms" xml:space="preserve"><value>Terms and conditions</value></data>
+  <data name="Foot_Privacy" xml:space="preserve"><value>Privacy policy</value></data>
+  <data name="Foot_Rules" xml:space="preserve"><value>Rules and regulations</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Theme: automatic (follows the system)</value></data>
   <data name="Chrome_ThemeLight" xml:space="preserve"><value>Theme: light</value></data>
   <data name="Chrome_ThemeDark" xml:space="preserve"><value>Theme: dark</value></data>

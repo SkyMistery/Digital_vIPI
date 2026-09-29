@@ -1513,5 +1513,13 @@
   6. La Guida per ruolo: la parte «Modificare» (e le anteprime di bozza, spostate lì) solo a chi può modificare
      (`IsEditor`), e lo stesso confine nella ricerca (`GuideSearchCatalog.AncorePubbliche`: l'elenco è dei pubblici,
      un capitolo nuovo nasce riservato). Codice comune `Vipi.Application` (SearchService).
+- ✅ **S44** il piè di pagina del sito (29-set, committente, con davanti quello dell'hub): `SitoFooter` in
+  `SopLayout`, quindi su ogni pagina tranne il vAWOS (layout suo, `AwosLayout`); non si rende quando un host
+  aggancia il modulo senza la nostra barra, né in stampa. Marchio, a che cosa serve il sito, l'avviso di simulazione;
+  i collegamenti di IVAO (gli stessi dell'hub: ivao.aero, termini, privacy, regolamento, in una scheda nuova); in
+  fondo diritti e «Parte della International Virtual Aviation Organisation». La **versione** esce dalla barra e va
+  qui, allo **staff** (chi può modificare; prima ai soli admin), con la stessa classe `ver-chip`. Su pagina corta il
+  piè resta in fondo alla finestra. Verificato a schermo a 1500 (scuro, IT/EN) e 375px; `/services/vawos` senza.
+  Test +5 (`PieDiPaginaTests`); Ui **1863**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

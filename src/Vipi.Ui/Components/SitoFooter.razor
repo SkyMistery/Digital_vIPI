@@ -1,0 +1,67 @@
+@* IL PIÈ DI PAGINA DEL SITO (committente, 29 settembre 2026: «in fondo al sito dobbiamo mettere una cosa così»,
+   con davanti quello dell'hub IVAO Italy). Marchio, a che cosa serve il sito, l'avviso che è simulazione; i
+   collegamenti di IVAO; in fondo i diritti e l'appartenenza a IVAO.
+
+   ⚠️ Sta in SopLayout, cioè su OGNI pagina tranne il vAWOS, che ha un layout suo (AwosLayout) ed è fatto per
+   stare a schermo intero dentro una finestra di Aurora: lì un piè di pagina ruba righe al meteo.
+
+   ⚠️ La VERSIONE sta qui e non più in barra, e solo allo staff (chi può modificare): è una spia per chi
+   segnala un guasto, e a un lettore direbbe soltanto con quale build precisa sta parlando. Mantiene la classe
+   `ver-chip`, che è la stringa che i test E2E e chi segnala cercano.
+
+   ⚠️ Collegamenti e frasi sono quelli dell'hub (locales/*/common.json, `footer`): i due siti della divisione
+   devono dire la stessa cosa con le stesse parole. *@
+@inject IStringLocalizer<SharedResource> L
+@inject IOptions<DivisionOptions> Divisione
+
+<footer class="sito-foot">
+    <div class="sf-in">
+        <div class="sf-cols">
+            <div class="sf-about">
+                <a class="sf-brand" href="/services"><span class="logo">ATC</span> <b>ATC Services</b> <small>@NomeDivisione</small></a>
+                <p>@L["Foot_About", NomeDivisione]</p>
+                <p>@L["Foot_Disclaimer", NomeDivisione]</p>
+            </div>
+            <nav class="sf-links" aria-label="IVAO">
+                <h2 class="sf-h">IVAO</h2>
+                @foreach (var (etichetta, indirizzo) in Collegamenti)
+                {
+                    <a href="@indirizzo" target="_blank" rel="noopener">@L[etichetta]</a>
+                }
+            </nav>
+        </div>
+        <div class="sf-bottom">
+            <span>
+                © @DateTime.UtcNow.Year @NomeDivisione. @L["Foot_Rights"]
+                @if (MostraVersione && Versione is { Length: > 0 } ver)
+                {
+                    <span class="sf-sep" aria-hidden="true">·</span>
+                    <span class="ver-chip" title="@VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
+                }
+            </span>
+            <span>@L["Foot_PartOf"]</span>
+        </div>
+    </div>
+</footer>
+
+@code {
+    /// <summary>Vero per lo staff (chi può modificare): solo allora si mostra la versione.</summary>
+    [Parameter] public bool MostraVersione { get; set; }
+
+    /// <summary>La versione corta (<c>1.47.0 · 067a737</c>). Vuota ⇒ niente, anche allo staff.</summary>
+    [Parameter] public string? Versione { get; set; }
+
+    /// <summary>Per esteso, nel <c>title</c>: pacchetto, commit, e da quando è in servizio.</summary>
+    [Parameter] public string? VersioneDettaglio { get; set; }
+
+    private string NomeDivisione => $"IVAO {Divisione.Value.Name}";
+
+    /// <summary>I collegamenti di IVAO, gli stessi dell'hub. Le etichette si traducono, gli indirizzi no.</summary>
+    internal static readonly (string Etichetta, string Indirizzo)[] Collegamenti =
+    {
+        ("Foot_Ivao", "https://www.ivao.aero"),
+        ("Foot_Terms", "https://www.ivao.aero/termsandconditions.htm"),
+        ("Foot_Privacy", "https://www.ivao.aero/privacy.htm"),
+        ("Foot_Rules", "https://www.ivao.aero/rules.htm"),
+    };
+}
