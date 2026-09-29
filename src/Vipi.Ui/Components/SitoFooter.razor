@@ -43,7 +43,12 @@
                     <span class="ver-chip" title="@VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
                 }
             </span>
-            <span>@L["Foot_PartOf"]</span>
+            @* Chi l'ha fatto (committente, 29 settembre 2026): nome e VID portano al suo profilo IVAO. *@
+            <span>
+                @L["Foot_PartOf"]
+                <span class="sf-sep" aria-hidden="true">·</span>
+                @L["Foot_BuiltBy"] <a href="@Autore.Profilo" target="_blank" rel="noopener">@Autore.Nome (@Autore.Vid)</a>
+            </span>
         </div>
     </div>
 </footer>
@@ -59,6 +64,10 @@
     [Parameter] public string? VersioneDettaglio { get; set; }
 
     private string NomeDivisione => $"IVAO {Divisione.Value.Name}";
+
+    /// <summary>Chi ha realizzato il sito, e il suo profilo IVAO (la pagina membro passa dal login di IVAO).</summary>
+    internal static readonly (string Nome, int Vid, string Profilo) Autore =
+        ("Carmine", 704798, "https://ivao.aero/Login.aspx?r=Member.aspx?Id=704798");
 
     /// <summary>I collegamenti di IVAO: il sito, e la pagina della wiki con regole, regolamento e privacy. Le
     /// etichette si traducono, gli indirizzi no (la wiki è in inglese).</summary>

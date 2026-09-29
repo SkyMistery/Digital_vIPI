@@ -5178,28 +5178,30 @@
 
 /* ---- Il piè di pagina del sito (SitoFooter, 29 settembre 2026) ----
    Lo stesso disegno di quello dell'hub IVAO Italy: marchio e due frasi a sinistra, i collegamenti di IVAO a
-   destra, in fondo diritti e appartenenza. Fondo `--surface` sopra la pagina `--bg`: nel tema scuro e' la fascia
-   un tono piu' chiara della foto del committente, nel chiaro una fascia bianca. */
+   destra, in fondo diritti, appartenenza e chi l'ha fatto. Stesso COLORE della barra in alto (committente: «per
+   uniformita'»): fondo `--ivao-blue` in entrambi i temi, e quindi i colori del testo sono quelli della barra
+   (`--on-brand`, `--on-dark-soft`), non quelli della pagina. */
 :where(.vipi-root):has(> .sito-foot){display:flex;flex-direction:column;min-height:100vh}
 /* Su una pagina corta il piè di pagina resta in fondo alla finestra invece di lasciare una fascia vuota sotto:
    la pagina cresce, il piè no. Solo dove il piè c'è (`:has`), cioè non quando un host aggancia il modulo. */
 :where(.vipi-root):has(> .sito-foot)>#vipi-main{flex:1 0 auto}
-:where(.vipi-root) .sito-foot{margin-top:48px;background:var(--surface);border-top:1px solid var(--line);color:var(--ink-soft);font-size:14px}
+:where(.vipi-root) .sito-foot{margin-top:48px;background:var(--ivao-blue);color:var(--on-dark-soft);font-size:14px}
 :where(.vipi-root) .sito-foot .sf-in{max-width:1120px;margin:0 auto;padding:36px 16px 22px}
 :where(.vipi-root) .sito-foot .sf-cols{display:flex;flex-wrap:wrap;justify-content:center;gap:28px 96px;text-align:center}
 :where(.vipi-root) .sito-foot .sf-about{max-width:340px;display:flex;flex-direction:column;align-items:center;gap:10px}
 :where(.vipi-root) .sito-foot .sf-about p{margin:0;line-height:1.5}
-:where(.vipi-root) .sito-foot .sf-brand{display:inline-flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;font-family:var(--font-head)}
-:where(.vipi-root) .sito-foot .sf-brand .logo{width:30px;height:30px;border-radius:7px;background:var(--ivao-blue);color:var(--on-brand);display:grid;place-items:center;font-weight:800;font-size:11px}
-:where(.vipi-root) .sito-foot .sf-brand small{color:var(--ink-soft);font-size:12px}
+:where(.vipi-root) .sito-foot .sf-brand{display:inline-flex;align-items:center;gap:8px;color:var(--on-brand);text-decoration:none;font-family:var(--font-head)}
+:where(.vipi-root) .sito-foot .sf-brand .logo{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--on-brand),var(--on-dark-soft));color:var(--ivao-blue);display:grid;place-items:center;font-weight:800;font-size:11px}
+:where(.vipi-root) .sito-foot .sf-brand small{color:var(--on-dark-soft);font-size:12px}
 :where(.vipi-root) .sito-foot .sf-links{display:flex;flex-direction:column;align-items:center;gap:10px}
-:where(.vipi-root) .sito-foot .sf-h{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ink-dim)}
-:where(.vipi-root) .sito-foot .sf-links a{color:var(--ink-soft);text-decoration:none}
-:where(.vipi-root) .sito-foot .sf-links a:hover{color:var(--brand-ink);text-decoration:underline}
-:where(.vipi-root) .sito-foot .sf-bottom{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;
-  justify-content:space-between;align-items:center;gap:8px 24px;font-size:13px;color:var(--ink-dim)}
+:where(.vipi-root) .sito-foot .sf-h{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--on-brand)}
+:where(.vipi-root) .sito-foot a:not(.sf-brand){color:var(--on-dark-soft);text-decoration:none}
+:where(.vipi-root) .sito-foot a:not(.sf-brand):hover{color:var(--on-brand);text-decoration:underline}
+:where(.vipi-root) .sito-foot .sf-bottom a{color:var(--on-brand)}
+:where(.vipi-root) .sito-foot .sf-bottom{margin-top:30px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2);display:flex;flex-wrap:wrap;
+  justify-content:space-between;align-items:center;gap:8px 24px;font-size:13px}
 :where(.vipi-root) .sito-foot .sf-sep{margin:0 4px}
 /* La versione: monospazio perche' e' un codice, e le cifre in colonna si leggono a colpo d'occhio. Si copia
-   (serve dentro una segnalazione), quindi niente user-select:none. */
-:where(.vipi-root) .sito-foot .ver-chip{font:12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ink-dim);
-  background:var(--surface-muted);border:1px solid var(--line);border-radius:6px;padding:4px 7px;white-space:nowrap}
+   (serve dentro una segnalazione), quindi niente user-select:none. Vestita come i comandi della barra. */
+:where(.vipi-root) .sito-foot .ver-chip{font:12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--on-dark-soft);
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:4px 7px;white-space:nowrap}

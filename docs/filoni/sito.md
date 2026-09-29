@@ -1522,6 +1522,9 @@
   qui, allo **staff** (chi può modificare; prima ai soli admin), con la stessa classe `ver-chip`. Su pagina corta il
   piè resta in fondo alla finestra. Verificato a schermo a 1500 (scuro, IT/EN) e 375px; `/services/vawos` senza.
   Test +5 (`PieDiPaginaTests`); Ui **1863**.
+  Poi (S46, stesso giorno): i link legali passano alla wiki di IVAO (le pagine su ivao.aero rispondono 404); in fondo
+  «Realizzato da Carmine (704798)» col link al profilo IVAO; il piè prende il colore della barra (`--ivao-blue`),
+  per uniformità, in entrambi i temi. Test +1; Ui **1870**.
 - ✅ **S45** scheda di uno scalo con vIPI **e** vSOP nell'elenco aeroporti di un'ACC (29-set, committente): il clic
   fuori dalle due voci apre il documento principale per categoria — la vIPI su uno scalo civile (anche con presenza
   militare), il vSOP su un campo militare (anche aperto al civile). Prima il riquadro non si cliccava, e dove si

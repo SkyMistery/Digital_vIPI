@@ -71,6 +71,18 @@ public class PieDiPaginaTests : TestContext
         });
     }
 
+    /// <summary>Committente, 29 settembre 2026: «built by Carmine (704798)», con nome e VID che portano al profilo IVAO.</summary>
+    [Fact]
+    public void Dice_chi_l_ha_realizzato_col_link_al_profilo_IVAO()
+    {
+        var cut = Rendi(staff: false);
+
+        var autore = cut.FindAll(".sf-bottom a").Single(a => a.TextContent == "Carmine (704798)");
+        Assert.Equal("https://ivao.aero/Login.aspx?r=Member.aspx?Id=704798", autore.GetAttribute("href"));
+        Assert.Equal("_blank", autore.GetAttribute("target"));
+        Assert.Contains("Foot_BuiltBy", cut.Find(".sf-bottom").TextContent);
+    }
+
     [Fact]
     public void Dice_chi_e_la_divisione_e_che_e_simulazione()
     {
