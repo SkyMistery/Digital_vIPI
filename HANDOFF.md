@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 29 settembre 2026, sera
+> ## ▶ Il punto — 29 settembre 2026, notte
+>
+> **✅ Online: 1.47.1** (§A131, timbro `1.47.1 · c41e6e7`, 13 file, zip `3e619790…`, PATCH): `/vsop/health` di nuovo
+> **Healthy**, login IVAO che rifà il giro se il consenso perde il nonce, sei punti della vSOP. Timbro e `Schema 0`
+> confermati dal committente, Ricerca LIRF verificata da fuori. **In `main` non resta codice fuori pacchetto.**
+> ▶ Login col VID 704798 al primo clic; Azure Translator 401 (segreti); i gesti di §A130.
+>
+> ## Il punto — 29 settembre 2026, sera
 >
 > **✅ Online: 1.47.0** (§A130, timbro `1.47.0 · 067a737`, 52 file, zip `c75ca416…`, tre migrazioni additive):
 > la revisione totale 3 è in produzione, prima della scadenza U-009 di LIBV_APP. Verificato da fuori (asset del

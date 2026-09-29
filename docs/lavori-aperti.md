@@ -33,6 +33,21 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### ✅ A131 — 1.47.1 ONLINE: /vsop/health di nuovo Healthy, nonce del consenso IVAO, sei punti vSOP (29 settembre 2026)
+
+✅ Online il 29 settembre 2026. Il committente conferma timbro e `Schema 0`. Da fuori: `/vsop/health` = **Healthy**
+(era `Degraded` su 1.47.0), asset del pacchetto serviti (`vipi-theme.css?v=f2e56ea8`, `vipi-ui.js?v=e2b4b80c`), Ricerca
+«13 results for LIRF». ▶ Resta: il login col VID 704798 (consenso IVAO revocato apposta) deve entrare al primo clic,
+registro «Secondo giro: False»; Azure Translator 401 dal 27-set (chiave nei segreti, gesto del committente).
+
+PATCH, **nessuna migrazione**, su 1.47.0 (`067a737`). Timbro **`1.47.1 · c41e6e7`**. Fusi da `sito/lavori` S41
+(rilievo «Trasferimento senza ripiego» senza settori di ACC esteri: era il Degraded, LIMM_WS2_CTR → LSAG_TST_CTR), S42
+(nonce perso dalla pagina di consenso IVAO: il sito rifà il giro una volta, come l'hub PR 174), S43 (sei punti della
+vSOP). **13 file** (`solo-13-file-1.47.1`): Application, Ui, Host (dll + pdb), `vipi-theme.css` e `vipi-ui.js` con
+`.br`/`.gz`, `Vipi.Host.staticwebassets.endpoints.json`. Zip 3,97 MB, sha256
+`3e61979085f2680e6af5950ad1a2b19f4d637508022e75b285b8cc238c61dacf`. Test verdi, conteggi identici (`conta-test.sh`,
+che col cancello corretto il 29-set torna a partire).
+
 ### ✅ A130 — 1.47.0 ONLINE: la revisione totale 3 (29 settembre 2026)
 
 ✅ Online il 29 settembre 2026, prima della scadenza U-009 (1-ott 00:00Z). Verificato da fuori: il sito serve gli
