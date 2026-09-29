@@ -142,9 +142,7 @@
   <data name="Foot_Rights" xml:space="preserve"><value>Tutti i diritti riservati.</value></data>
   <data name="Foot_PartOf" xml:space="preserve"><value>Parte della International Virtual Aviation Organisation</value></data>
   <data name="Foot_Ivao" xml:space="preserve"><value>IVAO</value></data>
-  <data name="Foot_Terms" xml:space="preserve"><value>Termini e condizioni</value></data>
-  <data name="Foot_Privacy" xml:space="preserve"><value>Informativa sulla privacy</value></data>
-  <data name="Foot_Rules" xml:space="preserve"><value>Regolamento</value></data>
+  <data name="Foot_Info" xml:space="preserve"><value>Regole, regolamento e privacy</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Tema: automatico (segue il sistema)</value></data>
   <data name="Chrome_ThemeLight" xml:space="preserve"><value>Tema: chiaro</value></data>
   <data name="Chrome_ThemeDark" xml:space="preserve"><value>Tema: scuro</value></data>

@@ -60,11 +60,10 @@ public class PieDiPaginaTests : TestContext
         var cut = Rendi(staff: false);
 
         var link = cut.FindAll(".sf-links a").ToList();
-        Assert.Equal(new[]
-        {
-            "https://www.ivao.aero", "https://www.ivao.aero/termsandconditions.htm",
-            "https://www.ivao.aero/privacy.htm", "https://www.ivao.aero/rules.htm",
-        }, link.Select(a => a.GetAttribute("href")));
+        // ⚠️ Le tre pagine di ivao.aero (termini, privacy, regole) rispondono 404 dal 29 settembre 2026: tutto sta
+        // sulla wiki di IVAO, sotto una pagina sola.
+        Assert.Equal(new[] { "https://www.ivao.aero", "https://wiki.ivao.aero/en/home/ivao/information" },
+            link.Select(a => a.GetAttribute("href")));
         Assert.All(link, a =>
         {
             Assert.Equal("_blank", a.GetAttribute("target"));

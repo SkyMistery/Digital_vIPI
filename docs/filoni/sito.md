@@ -1516,7 +1516,8 @@
 - ✅ **S44** il piè di pagina del sito (29-set, committente, con davanti quello dell'hub): `SitoFooter` in
   `SopLayout`, quindi su ogni pagina tranne il vAWOS (layout suo, `AwosLayout`); non si rende quando un host
   aggancia il modulo senza la nostra barra, né in stampa. Marchio, a che cosa serve il sito, l'avviso di simulazione;
-  i collegamenti di IVAO (gli stessi dell'hub: ivao.aero, termini, privacy, regolamento, in una scheda nuova); in
+  i collegamenti di IVAO (ivao.aero e la pagina della wiki con regole, regolamento e privacy, in una scheda nuova —
+  le tre pagine dell'hub su ivao.aero rispondono 404; un link solo all'indice, scelta del committente); in
   fondo diritti e «Parte della International Virtual Aviation Organisation». La **versione** esce dalla barra e va
   qui, allo **staff** (chi può modificare; prima ai soli admin), con la stessa classe `ver-chip`. Su pagina corta il
   piè resta in fondo alla finestra. Verificato a schermo a 1500 (scuro, IT/EN) e 375px; `/services/vawos` senza.

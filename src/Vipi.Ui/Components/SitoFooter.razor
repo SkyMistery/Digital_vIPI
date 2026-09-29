@@ -9,8 +9,12 @@
    segnala un guasto, e a un lettore direbbe soltanto con quale build precisa sta parlando. Mantiene la classe
    `ver-chip`, che è la stringa che i test E2E e chi segnala cercano.
 
-   ⚠️ Collegamenti e frasi sono quelli dell'hub (locales/*/common.json, `footer`): i due siti della divisione
-   devono dire la stessa cosa con le stesse parole. *@
+   ⚠️ Le frasi sono quelle dell'hub (locales/*/common.json, `footer`): i due siti della divisione devono dire la
+   stessa cosa con le stesse parole.
+   🔴 I COLLEGAMENTI invece no, e non per scelta: le tre pagine dell'hub (ivao.aero/termsandconditions.htm,
+   privacy.htm, rules.htm) rispondono 404, misurato il 29 settembre 2026. Termini, regolamento e privacy ora stanno
+   sulla wiki di IVAO, sotto una pagina che li elenca tutti: un collegamento solo lì (committente) si rompe meno di
+   tre collegamenti diretti, perché l'indice lo tiene aggiornato IVAO. *@
 @inject IStringLocalizer<SharedResource> L
 @inject IOptions<DivisionOptions> Divisione
 
@@ -56,12 +60,11 @@
 
     private string NomeDivisione => $"IVAO {Divisione.Value.Name}";
 
-    /// <summary>I collegamenti di IVAO, gli stessi dell'hub. Le etichette si traducono, gli indirizzi no.</summary>
+    /// <summary>I collegamenti di IVAO: il sito, e la pagina della wiki con regole, regolamento e privacy. Le
+    /// etichette si traducono, gli indirizzi no (la wiki è in inglese).</summary>
     internal static readonly (string Etichetta, string Indirizzo)[] Collegamenti =
     {
         ("Foot_Ivao", "https://www.ivao.aero"),
-        ("Foot_Terms", "https://www.ivao.aero/termsandconditions.htm"),
-        ("Foot_Privacy", "https://www.ivao.aero/privacy.htm"),
-        ("Foot_Rules", "https://www.ivao.aero/rules.htm"),
+        ("Foot_Info", "https://wiki.ivao.aero/en/home/ivao/information"),
     };
 }
