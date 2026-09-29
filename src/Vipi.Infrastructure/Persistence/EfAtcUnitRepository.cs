@@ -38,6 +38,16 @@ public sealed class EfAtcUnitRepository : IAtcUnitRepository
         return u is null ? null : Riga(u);
     }
 
+    public async Task<IReadOnlySet<string>> ActiveCallsignsAsync(IReadOnlyCollection<string> callsigns, CancellationToken ct = default)
+    {
+        var cercati = callsigns.Select(Norm).Where(c => c.Length > 0).Distinct().ToList();
+        if (cercati.Count == 0) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // ⚠️ Il confronto fra maiuscole e minuscole nel HashSet, non nella query: i provider hanno collation diverse.
+        return (await _db.Sectors.AsNoTracking().Where(s => s.IsActive && cercati.Contains(s.Callsign))
+                .Select(s => s.Callsign).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task<AtcUnitRow?> GetAsync(int unitId, CancellationToken ct = default) =>
         await Con().FirstOrDefaultAsync(u => u.Id == unitId, ct) is { } u ? Riga(u) : null;
 

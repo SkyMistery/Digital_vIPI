@@ -49,6 +49,8 @@ public class PannelloEnteTests : TestContext
         public Task<RemotizzazioneEsito> RemotizzaAsync(int unitId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<string?> SpostamentoInCorsoAsync(int unitId, CancellationToken ct = default) => Task.FromResult<string?>(null);
         public Task<int> ConcludiSpostamentiAsync(CancellationToken ct = default) => Task.FromResult(0);
+        public Task<IReadOnlyDictionary<int, string>> SpostamentiInCorsoAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>());
     }
 
     private readonly EntiFinti _enti = new();

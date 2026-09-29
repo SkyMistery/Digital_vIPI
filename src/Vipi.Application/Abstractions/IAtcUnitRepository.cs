@@ -27,6 +27,9 @@ public interface IAtcUnitRepository
     /// </summary>
     Task<AtcUnitRow?> FindAsync(string key, CancellationToken ct = default);
 
+    /// <summary>Quali di questi nominativi IVAO manda ancora: un settore ATTIVO con quel nome (S53).</summary>
+    Task<IReadOnlySet<string>> ActiveCallsignsAsync(IReadOnlyCollection<string> callsigns, CancellationToken ct = default);
+
     /// <summary>L'ente per id; null se non c'è.</summary>
     Task<AtcUnitRow?> GetAsync(int unitId, CancellationToken ct = default);
 

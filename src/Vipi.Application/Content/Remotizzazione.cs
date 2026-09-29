@@ -30,6 +30,10 @@ public interface IRemotizzazioneService
     /// APP è ancora quella in vigore; null se lo spostamento non è in corso.</summary>
     Task<string?> SpostamentoInCorsoAsync(int unitId, CancellationToken ct = default);
 
+    /// <summary>Gli spostamenti in corso di tutti gli enti, in un giro: id dell'ente → ACC. Per la pagina degli enti
+    /// (S53), che altrimenti caricherebbe la vIPI dell'ACC una volta per ente.</summary>
+    Task<IReadOnlyDictionary<int, string>> SpostamentiInCorsoAsync(CancellationToken ct = default);
+
     /// <summary>Gli enti il cui gruppo APP è nella vIPI ACC IN VIGORE passano alla vIPI ACC, e la loro vIPI APP si
     /// nasconde. Idempotente; ritorna quanti ne ha conclusi. Gira alla pubblicazione e nel giro delle release.</summary>
     Task<int> ConcludiSpostamentiAsync(CancellationToken ct = default);
@@ -162,6 +166,21 @@ public sealed class RemotizzazioneService : IRemotizzazioneService
         var modello = await _acc.LoadForEditAsync(ente.AccCode, ct);
         return modello.Blocks.Any(b => b.Block.Kind == AccBlockKind.AppGroup && b.Block.UnitId == unitId)
             ? ente.AccCode : null;
+    }
+
+    public async Task<IReadOnlyDictionary<int, string>> SpostamentiInCorsoAsync(CancellationToken ct = default)
+    {
+        var esito = new Dictionary<int, string>();
+        var proprie = (await _enti.ListAsync(null, ct)).Where(u => u.Mode == AtcUnitMode.OwnDocument).ToList();
+        foreach (var perAcc in proprie.GroupBy(u => u.AccCode, StringComparer.OrdinalIgnoreCase))
+        {
+            if ((await _accRepo.ResolveAccDocumentIdentityAsync(perAcc.Key, ct))?.DocumentId is null) continue;
+            var nelGruppo = (await _acc.LoadForEditAsync(perAcc.Key, ct)).Blocks
+                .Where(b => b.Block.Kind == AccBlockKind.AppGroup && b.Block.UnitId is not null)
+                .Select(b => b.Block.UnitId!.Value).ToHashSet();
+            foreach (var u in perAcc.Where(u => nelGruppo.Contains(u.Id))) esito[u.Id] = u.AccCode;
+        }
+        return esito;
     }
 
     public async Task<int> ConcludiSpostamentiAsync(CancellationToken ct = default)

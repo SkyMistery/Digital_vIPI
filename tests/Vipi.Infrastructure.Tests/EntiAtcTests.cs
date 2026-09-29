@@ -279,6 +279,46 @@ public class EntiAtcTests : IAsyncLifetime
         Assert.Null(await new AppReleaseTarget(_db).ResolveDocumentIdAsync("LIRE_APP"));   // la porta pubblica resta chiusa
     }
 
+    /// <summary>
+    /// La pagina degli enti (S53): per ogni ente le posizioni con quella che IVAO non manda più segnata, dove vive il
+    /// contenuto (spostamento in corso compreso) e il documento com'è in «Bozze &amp; versioni». Solo per gli editor.
+    /// </summary>
+    [Fact]
+    public async Task La_pagina_degli_enti_dice_posizioni_contenuto_e_documento()
+    {
+        await PonteAsync();
+        var repo = new EfAtcUnitRepository(_db);
+        var pratica = (await repo.FindAsync("LIRE_APP"))!;
+        await repo.AddPositionAsync(pratica.Id, "LIRE_TWR");
+        (await _db.Sectors.SingleAsync(s => s.Callsign == "LIRE_TWR")).IsActive = false;   // IVAO non la manda più
+        await _db.SaveChangesAsync();
+        var admin = TestReleaseTargets.AdminRepo(_db);
+
+        var righe = await new AtcUnitOverviewService(repo, admin, new SpostamentiFinti(), new Authz(VipiRole.Editor)).ListAsync();
+
+        var riga = Assert.Single(righe);
+        Assert.Equal("Pratica Tower", riga.Ente.Name);
+        Assert.Equal(new[] { ("LIRE_APP", true), ("LIRE_TWR", false) }, riga.Posizioni.Select(p => (p.Callsign, p.SuIvao)));
+        Assert.Equal(AtcUnitStato.VipiPropria, riga.Stato);
+        Assert.Equal(_docId, riga.Documento!.DocumentId);
+
+        var inCorso = await new AtcUnitOverviewService(repo, admin, new SpostamentiFinti(pratica.Id), new Authz(VipiRole.Editor)).ListAsync();
+        Assert.Equal(AtcUnitStato.InSpostamento, inCorso.Single().Stato);
+        Assert.Equal("LIRR", inCorso.Single().SpostamentoVerso);
+
+        await Assert.ThrowsAsync<EditNotAllowedException>(
+            () => new AtcUnitOverviewService(repo, admin, new SpostamentiFinti(), new Authz(VipiRole.User)).ListAsync());
+    }
+
+    private sealed class SpostamentiFinti(params int[] inCorso) : IRemotizzazioneService
+    {
+        public Task<RemotizzazioneEsito> RemotizzaAsync(int unitId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<string?> SpostamentoInCorsoAsync(int unitId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> ConcludiSpostamentiAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyDictionary<int, string>> SpostamentiInCorsoAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, string>>(inCorso.ToDictionary(i => i, _ => "LIRR"));
+    }
+
     private sealed class LockNegato : IDocumentLockGuard
     {
         public Task EnsureMineAsync(int documentId, CancellationToken ct = default) =>

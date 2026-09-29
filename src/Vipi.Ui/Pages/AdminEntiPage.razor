@@ -1,0 +1,142 @@
+@page "/services/vsop/admin/units"
+@layout SopLayout
+@inherits Vipi.Ui.ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Units_Title"] · IVAO Italy</PageTitle>
+
+@* ---- Gli enti ATC (S53, committente, 29 settembre 2026) ------------------------------------------------
+   Tutti gli enti, per ACC: a chi appartiene ogni vIPI APP, con quali posizioni IVAO, e dove vive il contenuto.
+   Prima un ente si vedeva solo aprendo la sua vIPI APP, uno alla volta.
+   ⚠️ SCOPE PROPRIO: la pagina legge il database (enti, documenti, la vIPI dell'ACC per gli spostamenti in corso),
+   e col DbContext del circuito lo condividerebbe con la barra e con quel che la pagina precedente ha lasciato
+   in volo. Sola lettura: le posizioni si cambiano dal riquadro «Ente» dell'editor, dove c'è il lock — e per
+   questo la pagina è statica, senza circuito (niente da cliccare che non sia un link). *@
+<div class="wrap struct">
+    <AdminNav />
+
+    <div class="doc-head st-head">
+        <h1 class="st-h2 page-h1">
+            @L["Units_Title"]
+            @if (_righe is not null)
+            {
+                <span>&nbsp;</span>
+                <span class="pill blue">@_righe.Count</span>
+            }
+        </h1>
+        <HelpHint AriaLabel="@L["Units_Title"]" ExtraClass="wide">@L["Units_Intro"]</HelpHint>
+    </div>
+
+    @if (_errore is { Length: > 0 })
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+    }
+    else if (_righe is null)
+    {
+        <LoadingState />
+    }
+    else if (_righe.Count == 0)
+    {
+        <EmptyState Icon="check-circle" Title="@L["Units_None"].Value" />
+    }
+    else
+    {
+        @foreach (var acc in _righe.GroupBy(r => r.Ente.AccCode))
+        {
+            <h2 class="h-card" style="margin:18px 0 8px">@acc.Key <span class="muted">· @acc.Count()</span></h2>
+            <div class="panel">
+                <table class="res-table units-table">
+                    <thead>
+                        <tr>
+                            <th>@L["Units_ColUnit"]</th>
+                            <th>@L["Units_ColPositions"]</th>
+                            <th>@L["Units_ColWhere"]</th>
+                            <th>@L["Units_ColDoc"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in acc)
+                        {
+                            <tr>
+                                <td><b>@r.Ente.Name</b><br /><code>@r.Ente.Code</code></td>
+                                <td>
+                                    @if (r.Posizioni.Count == 0)
+                                    {
+                                        <span class="muted">@L["Units_NoPositions"]</span>
+                                    }
+                                    @for (var i = 0; i < r.Posizioni.Count; i++)
+                                    {
+                                        var p = r.Posizioni[i];
+                                        <span class="unit-pos" style="display:inline-block;margin:0 8px 2px 0">
+                                            <code>@p.Callsign</code>
+                                            @if (i == 0) { <span class="pill neutral">@L["Unit_Primary"]</span> }
+                                            @if (!p.SuIvao) { <span class="pill amber" title="@L["Units_GoneTitle"]">@L["Units_Gone"]</span> }
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (r.Stato)
+                                    {
+                                        case AtcUnitStato.VipiPropria:
+                                            <span>@L["Units_OwnDoc"]</span>
+                                            break;
+                                        case AtcUnitStato.InSpostamento:
+                                            <span class="pill amber">@L["Units_Moving", r.SpostamentoVerso ?? r.Ente.AccCode]</span>
+                                            break;
+                                        case AtcUnitStato.NellaVipiAcc:
+                                            <span>@L["Units_InAcc", r.Ente.AccCode]</span>
+                                            break;
+                                        default:
+                                            <span class="muted">@L["Units_NoDoc"]</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (r.Documento is { } d)
+                                    {
+                                        <span class="pill @(d.IsHidden ? "neutral" : d.HasEffectiveRelease ? "blue" : "amber")">
+                                            @(d.IsHidden ? L["Units_DocHidden"] : d.HasEffectiveRelease ? L["Units_DocPublic"] : L["Units_DocDraft"])
+                                        </span>
+                                    }
+                                    <a class="btn ghost" href="@Editor(r)">@L["Units_OpenEditor"]</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<AtcUnitOverviewRow>? _righe;
+    private string? _errore;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var servizio = ScopedServices.GetRequiredService<IAtcUnitOverviewService>();
+            await InFilaAsync(async () => _righe = await servizio.ListAsync());
+        }
+        catch (EditNotAllowedException)
+        {
+            _errore = L["Units_EditorsOnly"];
+        }
+        catch (Exception ex)
+        {
+            _errore = L["Common_UnexpectedError"] + ex.Message;
+        }
+    }
+
+    /// <summary>L'editor giusto: quello della vIPI APP, o della vIPI dell'ACC per un ente che vive lì.</summary>
+    private static string Editor(AtcUnitOverviewRow r)
+    {
+        var acc = r.Ente.AccCode.ToLowerInvariant();
+        return r.Stato == AtcUnitStato.NellaVipiAcc
+            ? $"/services/vsop/{acc}/editor"
+            : $"/services/vsop/{acc}/apps/editor?app={Uri.EscapeDataString(r.Ente.Code)}";
+    }
+}

@@ -1609,5 +1609,13 @@
   Brindisi, vIPI APP ancora pubblica, riquadro «copiata…» senza tasto; pubblicata la vIPI di Brindisi NASCOSTA →
   niente conclusione; resa visibile e «Pubblica ora» → ente `InAccVipi`, vIPI APP nascosta, `?app=LIBG_APP` → vIPI
   di Brindisi col gruppo, Grottaglie ancora in «Bozze & versioni» come Nascosto. Log senza errori.
+- ✅ **S53** pagina «Enti ATC» (29-set, committente: «fai la pagina di amministrazione degli enti»; ramo
+  `fix/enti-acc`). `/services/vsop/admin/units`, voce del menu accanto ad Aeroporti (Editor). Per ACC: ente e
+  codice, posizioni (principale in testa, «non su IVAO» se nessun settore attivo ha quel nominativo), dove vive il
+  contenuto (vIPI propria · copiato nella bozza della vIPI ACC · gruppo nella vIPI ACC · senza documento), stato del
+  documento com'è in «Bozze & versioni», link all'editor giusto. Sola lettura e pagina statica (le posizioni si
+  cambiano dal riquadro «Ente», dove c'è il lock). `IAtcUnitOverviewService`; `SpostamentiInCorsoAsync` in un giro
+  per ACC. Test +1 Infrastructure (2015), Ui 1878 (guardie: menu 17/12 voci, pagina senza circuito). Codice comune
+  `Vipi.Application`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

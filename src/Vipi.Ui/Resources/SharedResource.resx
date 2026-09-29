@@ -3750,4 +3750,23 @@
   <data name="Unit_RemoteYes" xml:space="preserve"><value>Sposta</value></data>
   <data name="Unit_StillCited" xml:space="preserve"><value>{0} è ancora citata in: {1}. Quelle scelte sono salvate per nominativo: aggiornale.</value></data>
   <data name="Unit_MovePending" xml:space="preserve"><value>Copiata nella bozza della vIPI dell'ACC {0}: resta pubblica finché non pubblichi quella. Quello che scrivi qui adesso non viene copiato.</value></data>
+  <data name="Units_Title" xml:space="preserve"><value>Enti ATC</value></data>
+  <data name="Units_Intro" xml:space="preserve"><value>A chi appartiene ogni vIPI APP: l'ente, con le sue posizioni IVAO (la principale per prima) e dove vive il contenuto. Il codice è la chiave di pubblicazione e non cambia. Le posizioni si cambiano dal riquadro «Ente» dell'editor della vIPI APP.</value></data>
+  <data name="Units_None" xml:space="preserve"><value>Nessun ente</value></data>
+  <data name="Units_ColUnit" xml:space="preserve"><value>Ente · codice</value></data>
+  <data name="Units_ColPositions" xml:space="preserve"><value>Posizioni</value></data>
+  <data name="Units_ColWhere" xml:space="preserve"><value>Contenuto</value></data>
+  <data name="Units_ColDoc" xml:space="preserve"><value>Documento</value></data>
+  <data name="Units_NoPositions" xml:space="preserve"><value>nessuna posizione</value></data>
+  <data name="Units_Gone" xml:space="preserve"><value>non su IVAO</value></data>
+  <data name="Units_GoneTitle" xml:space="preserve"><value>Nessun settore attivo con questo nominativo: IVAO non lo manda (più), e nessun controllore online apre la vIPI da qui.</value></data>
+  <data name="Units_OwnDoc" xml:space="preserve"><value>vIPI APP propria</value></data>
+  <data name="Units_Moving" xml:space="preserve"><value>copiato nella bozza della vIPI {0}</value></data>
+  <data name="Units_InAcc" xml:space="preserve"><value>gruppo APP nella vIPI {0}</value></data>
+  <data name="Units_NoDoc" xml:space="preserve"><value>senza documento</value></data>
+  <data name="Units_DocHidden" xml:space="preserve"><value>nascosta</value></data>
+  <data name="Units_DocPublic" xml:space="preserve"><value>pubblica</value></data>
+  <data name="Units_DocDraft" xml:space="preserve"><value>solo bozza</value></data>
+  <data name="Units_OpenEditor" xml:space="preserve"><value>Apri editor →</value></data>
+  <data name="Units_EditorsOnly" xml:space="preserve"><value>Pagina riservata agli editor.</value></data>
 </root>
