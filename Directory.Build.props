@@ -1535,6 +1535,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.47.0 — MINOR: TRE migrazioni ADDITIVE (AliasPerScalo, ProcedureSostituite, SectorfileDifferito; l'unica
+      cosa tolta è un indice), rollback a due rinomine valido, niente «NON SI TORNA INDIETRO». Su 1.46.5 (e24557e,
+      online dal 25 settembre 2026). La revisione totale 3 (registro docs/history/audit-2026-09-26-revisione-totale-3.md,
+      lotti L1…L11, sito S9–S40) più il login IVAO «nonce» recuperato dallo state (S29). Tocca Vipi.Domain,
+      Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Hosting, Vipi.Ui (+ frasi IT/EN, wwwroot) e
+      Vipi.Host. Al primo avvio girano passate una tantum (StarCiviliLive, PubblicoDiCatalogo, StoricoStatistiche) e
+      le riconciliazioni documentali della build nuova. Dettaglio e gesti: LEGGIMI-PACCHETTO-1.47.0.md, §A130.
+    -->
+    <!--
       1.46.5 — PATCH, NESSUNA migrazione. Su 1.46.4 (60e782a, online dal 25 settembre 2026). Due rami fusi:
       fix/atc-nominativo-doppio (statistiche ATC: lo stesso nominativo due volte nella fotografia IVAO sollevava
       «An item with the same key» e il giro del minuto saltava intero — firma f45fedc38cea; ora vince la sessione
@@ -1779,7 +1788,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.46.5</VipiVersione>
+    <VipiVersione>1.47.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
