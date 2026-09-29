@@ -1535,6 +1535,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.48.0 — MINOR: UNA migrazione ADDITIVA (EntiAtc: 2 tabelle, 5 indici), rollback a due rinomine valido, niente
+      «NON SI TORNA INDIETRO». Su 1.47.3 (de51b76, online dal 29 settembre 2026). Sito S47–S52: vAWOS in uno schermo con
+      una pista come con tre (S47); la vIPI e il vSOP sono dello scalo, le posizioni sparite da IVAO escono da sole —
+      al primo import escono LIBG_TWR e LIRE_TWR (S48); enti ATC fasi 1–3: la vIPI APP è di un ente e non di un
+      nominativo, «Remotizza», la vIPI APP deriva da tutte le posizioni dell'ente, più la revisione (S49–S52). Tocca
+      Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Hosting, Vipi.Ui (+ frasi IT/EN,
+      vipi-awos.css) e Vipi.Host. Dettaglio e gesti: LEGGIMI-PACCHETTO-1.48.0.md, §A134.
+    -->
+    <!--
       1.47.3 — PATCH, NESSUNA migrazione. Su 1.47.2 (5bc663d, online dal 29 settembre 2026). Sito S46: i link legali
       del piè di pagina portano alla wiki di IVAO (le pagine su ivao.aero rispondevano 404); piè di pagina dello stesso
       colore della barra in alto, con la riga «Realizzato da Carmine (704798)» e il link al profilo IVAO. Tocca Vipi.Ui
@@ -1808,7 +1817,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.47.3</VipiVersione>
+    <VipiVersione>1.48.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
