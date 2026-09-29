@@ -20,19 +20,28 @@ public class AwosQuadroTests
     }
 
     /// <summary>
-    /// 🔴 Nell'Edge del committente, a 1920×917 visibili, il quadro misurava ~1003px con una pista come con due:
-    /// `100vh` valeva più della finestra. `100dvh` è l'altezza visibile, e dev'essere l'ULTIMA dichiarazione.
+    /// 🔴 Nell'Edge del committente, a 1920×917 visibili, il quadro misurava ~1003px con una pista come con due, e
+    /// `100dvh` non è bastato (30 settembre 2026, seconda volta). Il quadro È la finestra (fisso, `inset: 0`), e
+    /// nessuna altezza la decide più il calcolo intrinseco del motore: niente `vh`, niente `max-content`, niente
+    /// righe `min-content` fuori dal telefono.
     /// </summary>
     [Fact]
-    public void Il_quadro_prende_l_altezza_visibile()
+    public void Il_quadro_e_ancorato_alla_finestra()
     {
         var foglio = Leggi("wwwroot/vipi-awos.css");
         var inizio = foglio.IndexOf(".awos {", StringComparison.Ordinal);
         var regola = foglio[inizio..foglio.IndexOf('}', inizio)];
 
-        Assert.True(regola.IndexOf("height: 100dvh;", StringComparison.Ordinal)
-                    > regola.IndexOf("height: 100vh;", StringComparison.Ordinal));
-        Assert.Contains("height: 100dvh;", regola);
+        Assert.Contains("position: fixed;", regola);
+        Assert.Contains("inset: 0;", regola);
+        Assert.Contains("overflow-y: auto;", regola);
+        Assert.DoesNotContain("height: 100vh", regola);
+        Assert.DoesNotContain("height: 100dvh", regola);
+
+        var righe = foglio.Split('\n').Where(r => !r.TrimStart().StartsWith("/*") && !r.TrimStart().StartsWith("*")
+                                                  && !r.StartsWith("   ")).ToList();
+        Assert.DoesNotContain(righe, r => r.Contains("max-content"));
+        Assert.DoesNotContain(righe, r => r.Contains("minmax(min-content"));
     }
 
     private static string Leggi(string relativo) =>

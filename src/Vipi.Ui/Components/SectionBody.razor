@@ -22,7 +22,7 @@
             break;
         case TipoVoce.Figlia:
             <SectionNode Section="voce.Figlia!" DepthOffset="DepthOffset" IsDraft="IsDraft"
-                         Profile="Profile" DerivedContent="DerivedContent" />
+                         Profile="Profile" DerivedContent="DerivedContent" ReportHrefOf="ReportHrefOf" />
             break;
         case TipoVoce.Blocco:
             var block = voce.Blocco.Blocco;
@@ -64,6 +64,10 @@
     /// <summary>Scostamento di profondità per la resa delle sotto-sezioni: la vIPI ACC ospita le sezioni a
     /// <c>Depth 1</c> (figlie della sezione-blocco) ma le mostra come sezioni di primo livello, quindi passa -1.</summary>
     [Parameter] public int DepthOffset { get; set; }
+
+    /// <summary>L'indirizzo della bandierina «segnala» per una sezione (S56): si passa alle sotto-sezioni, che la
+    /// mettono anche loro accanto al titolo. <c>null</c> = niente bandierina (bozza, anteprime, editor).</summary>
+    [Parameter] public Func<SectionView, string?>? ReportHrefOf { get; set; }
 
     /// <summary>I blocchi col loro <c>Order</c>. ⚠️ Una vista costruita a mano (i test, le proiezioni che non
     /// lo conoscono) porta 0: allora vale la posizione nella lista, che è l'ordine in cui arrivano.</summary>

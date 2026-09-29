@@ -1677,6 +1677,25 @@
   dove lo usa `mai-usare-verifica.js`. Test +2 Ui (1886, presidi sul sorgente, rossi sul codice di prima).
   **A schermo** (copia del DB, 1920×917): LICB e LICG stanno intere, RVR comprese; in barra GO, DAY, LOCAL REP.,
   ATIS MSG, EXT. DATA. ⚠️ Da confermare nell'Edge del committente dopo il pacchetto.
+- ✅ **S58** vAWOS ancorato alla finestra, bandierina «segnala», switch errore/suggerimento (30-set, committente, con la
+  1.50.0 online: «l'awos è ancora così»; «invece di segnala… un flag all'altezza del titolo di ogni sezione»; «uno switch
+  tra errore e suggerimento con lo stesso stile dello switch della lingua»; ramo `fix/vawos-segnala`).
+  (1) S57 non è bastato: nell'Edge del committente LIBN misurava ancora ~1003px su 917, col vento centrato in uno spazio
+  vuoto. Nel browser integrato la stessa pagina di produzione misura 917 e il suo contenuto naturale 384; l'Edge di
+  questa macchina da qui non si avvia (headless, profilo a parte), quindi la causa esatta non è misurata. Tolti allora
+  TUTTI i punti in cui l'altezza la decide il browser: `.awos` è `position: fixed; inset: 0` (è la finestra, in
+  qualunque motore) con `overflow-y: auto`; via `height: 100vh/100dvh` e la rete `min-height: max-content`; le righe
+  dei blocchi a più piste da `minmax(min-content, 1fr)` a `minmax(220px, 1fr)`, e un minimo di 250px al blocco a pista
+  sola. Sul telefono il quadro torna nel flusso. Misurato: LIBN a 917 e 640, LICG a 917 e 700, LIRF (tre piste) a 917
+  interi; LIRF a 700 scorre di 9px DENTRO il quadro (la rete).
+  (2) `ReportLink` è una bandierina (icona `flag`, nuova nel set) con `title` e `aria-label` «Segnala un errore o un
+  suggerimento su questa sezione», anche sulle SOTTO-sezioni: `ReportHrefOf` ora scende da `DocumentSectionsView`/
+  `SectionNode` a `SectionBody` e da `AccSectionBody` (vIPI ACC). Nel `summary` delle figlie sta dentro lo span del
+  titolo, o il summary la metteva a metà riga. Stile `.req-link` nel foglio; tolta la chiave `Req_Report`.
+  (3) Nel modulo delle richieste il tipo si sceglie con `.req-kind`: la forma di `.lang-ctrl` (guscio e due segmenti),
+  coi colori della pagina (guscio `--surface-muted`, scelto `--ivao-blue`), due tasti con `aria-pressed`.
+  Test +2 Ui (1888): bandierina anche sulle figlie, switch; presidio del vAWOS riscritto. Provato a schermo sulla copia
+  (LIBD: 16 bandierine in linea coi titoli; switch che commuta). ⚠️ Da confermare nell'Edge del committente.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: da fondere `fix/enti-acc` (S53–S55) e poi `fix/richieste-campo` (S56, costruito sopra); dopo la
   fusione si torna su `sito/lavori`. Futuro: vIPI ACC legata all'ACC (`lavori-aperti.md`, Sito), secondo canale

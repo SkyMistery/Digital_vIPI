@@ -40,17 +40,19 @@
   flex-direction: column;
   /* ⚠️ Il quadro sta in UNO schermo, con una pista come con tre (committente, 29 settembre 2026): è un
      pannello che si guarda da lontano, e una riga TAIL da andare a cercare scorrendo non la guarda nessuno.
-     `height: 100vh` dà ai blocchi un'altezza da dividersi; `min-height: max-content` è la rete — su una
-     finestra davvero bassa vince il contenuto e la pagina scorre, invece di tagliare dei numeri. Perché la
-     rete non scatti sugli schermi normali i pannelli del vento hanno un minimo piccolo e cambiano impianto
-     quando sono bassi (più sotto, `@container`).
-     🔴 `100dvh` e non solo `100vh` (committente, 30 settembre 2026): nell'Edge del committente, a 1920×917 visibili,
-     il quadro misurava ~1003px con una pista (LICB) come con due (LICG), coi blocchi pieni di spazio vuoto — cioè
-     l'altezza non la spingeva il contenuto, la imponeva `100vh`, che lì valeva più della finestra. `dvh` è
-     l'altezza VISIBILE adesso; `vh` resta sopra come ripiego per un browser che `dvh` non lo conosce. */
-  height: 100vh;
-  height: 100dvh;
-  min-height: max-content;
+     🔴 ANCORATO ALLA FINESTRA (`position: fixed; inset: 0`), e non alto `100vh` (committente, 30 settembre
+     2026, seconda volta). Nell'Edge del committente, a 1920×917 visibili, il quadro misurava ~1003px con una
+     pista come con due, coi blocchi pieni di spazio vuoto; `100dvh` non è bastato. Qui due cose potevano
+     gonfiarlo e nessuna si riproduceva nel browser integrato (917 su 917, contenuto naturale 384): l'unità
+     `vh`, e la vecchia rete `min-height: max-content`, che fa decidere l'altezza al calcolo intrinseco del
+     motore. Tolte tutt'e due: un elemento fisso con `inset: 0` È la finestra, in qualunque browser.
+     La rete adesso sono i minimi ESPLICITI dei blocchi (più sotto, in px, mai «quanto il contenuto») e lo
+     scorrimento DENTRO il quadro su una finestra davvero bassa — invece di tagliare dei numeri. Perché non
+     scatti sugli schermi normali i pannelli del vento hanno un minimo piccolo e cambiano impianto quando sono
+     bassi (`@container`). */
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
   background: var(--awos-bg);
   color: var(--awos-txt);
   font-family: var(--awos-testo);
@@ -180,10 +182,10 @@
 .awos-atis-ts { font-family: var(--awos-mono); font-size: 13px; color: #888; }
 
 /* ── Un blocco per pista fisica ────────────────────────────────────────── */
-.awos-blocchi { display: flex; flex-direction: column; flex: 1; }
+.awos-blocchi { display: flex; flex-direction: column; flex: 1 1 0; min-height: 250px; }
 /* I blocchi si dividono lo spazio che avanza: su uno scalo a una pista sola, senza questo, sotto la fascia
    RVR resta mezzo schermo di fondo vuoto e il quadro sembra tagliato a metà. */
-.awos-blocco { display: flex; flex-direction: column; flex: 1; }
+.awos-blocco { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .awos-blocco + .awos-blocco { border-top: 3px solid var(--awos-bg); }
 
 .awos-strip { display: flex; align-items: stretch; height: 40px; background: #2a2a2a; border-bottom: 1px solid #444; }
@@ -285,12 +287,12 @@
    a sinistra (270px), e a destra un blocco per pista, tutti ALTI UGUALI, con
    dentro visibilità+nubi a sinistra e striscia, vento, RVR a destra.
 
-   ⚠️ I blocchi si dividono in parti uguali l'altezza di `.awos` (100dvh, in
+   ⚠️ I blocchi si dividono in parti uguali l'altezza di `.awos` (la finestra, in
    testa al foglio): una frazione di un'altezza indefinita non è una frazione
    di niente — le righe prenderebbero l'altezza del contenuto, diverse fra loro. */
 /* Le due colonne fisse (scalo, e visibilità/nubi di ogni blocco) si stringono sotto i ~1900px: ogni pixel
    che tengono è tolto ai pannelli del vento, che su un portatile devono stare su una fila sola. */
-.awos-corpo { flex: 1; display: grid; grid-template-columns: clamp(200px, 14vw, 270px) 1fr; min-height: 0; }
+.awos-corpo { flex: 1 1 0; display: grid; grid-template-columns: clamp(200px, 14vw, 270px) 1fr; min-height: 0; }
 
 .awos-sx {
   background: var(--awos-met); border-right: 2px solid var(--awos-bordo);
@@ -312,7 +314,9 @@
 
 .awos-blocchi.multi {
   display: grid; min-height: 0;
-  grid-template-rows: repeat(var(--awos-blocchi), minmax(min-content, 1fr));
+  /* Minimo di riga in px e non `min-content`: vedi la testa del foglio (il calcolo intrinseco è ciò che
+     gonfiava il quadro). 220px = barra della pista, striscia, pannelli su una fila, RVR; e colonna vis/nubi. */
+  grid-template-rows: repeat(var(--awos-blocchi), minmax(220px, 1fr));
 }
 .awos-blocchi.multi .awos-blocco { min-height: 0; }
 .awos-blocchi.multi .awos-blocco + .awos-blocco { border-top: 0; }
@@ -418,7 +422,8 @@
   .awos-mask { top: auto; bottom: 12px; }
   /* Sul telefono il quadro scorre (non c'è altezza per stare in uno schermo): colonne impilate, e il
      pannello torna a misurarsi dal contenuto, sempre sulle tre righe. */
-  .awos { height: auto; min-height: 100vh; min-height: 100dvh; }
+  .awos { position: static; overflow: visible; min-height: 100vh; min-height: 100dvh; }
+  .awos-blocchi, .awos-corpo { flex: none; min-height: 0; }
   .awos-pannello { container-type: inline-size; min-height: 0; }
   /* ⚠️ `minmax(0, 1fr)` e non `1fr` (revisione 3, L9): `1fr` e' `minmax(auto, 1fr)`, e la colonna non
      scendeva sotto il suo contenuto — le tre celle QNH/temperatura/rugiada da 159px l'una. Su un telefono
