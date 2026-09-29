@@ -1480,5 +1480,18 @@
   Test +1 rosso sul codice di prima; Application **3085**, Infrastructure 1984, Hosting 79, E2E 454. Nessuna UI.
   Dagli stessi file: passate d'avvio 1.47 tutte riuscite; U-236 visto al lavoro («allo spegnimento», 23 segnalazioni);
   Azure Translator 401 dal 27-set 09:18Z (segreti, non codice); U-105 Perugia Approach sez. 5716 da fare a mano.
+- ✅ **S42** login di un utente nuovo (29-set 09:16Z): «The sign-in expired along the way», motivo `nonce`, al
+  «riprova» entra. Registro: «Cookie del nonce: non trovato (1 in richiesta); token con un nonce DIVERSO da quello
+  mandato» — non il cookie perso del 28-set (quello lo recupera `NonceNelloStato`), ma la pagina di **consenso** di
+  `sso.ivao.aero/authorize`, che al primo accesso di un membro a un client rimanda avanti state, redirectUrl e PKCE
+  ma **non il nonce**. Stessa causa misurata sull'hub IVAO Italy (SkyMistery/Ivao-Italy-Hub, PR 174, nota
+  `2026-09-28-il-nonce-e-il-consenso-di-ivao.md`), stessa cura: `HandleIvaoRemoteFailure` su un guasto `nonce`, con
+  lo stato letto e senza il segno `vipi.secondo-giro` (nelle proprietà, quindi nello state cifrato), rifà il
+  challenge con lo stesso ritorno e `IsPersistent`; un secondo guasto va alla pagina come prima. Il segno esce in
+  `OnTicketReceived`. Il nonce resta validato; `RelaxProtocolValidation` resta la via di fuga in config, spenta.
+  Test +7 (giro intero col finto IVAO: riparte ed entra, estraneo anche al secondo giro resta fuori; la decisione
+  `DeveRipartire`), 4 rossi senza la correzione; E2E **461**. Da provare sul server: un VID mai entrato nel client
+  (o revocando il consenso dal profilo IVAO) entra al primo clic; nel registro «Secondo giro: False» e poi «si
+  riparte una volta».
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
