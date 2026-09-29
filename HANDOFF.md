@@ -4,7 +4,15 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 29 settembre 2026, tardi
+> ## ▶ Il punto — 29 settembre 2026, sera tardi
+>
+> **Pronto: 1.48.0** (§A134, timbro `1.48.0 · e292a1e`, 19 file, zip `4cbc457b…`, MINOR con una migrazione additiva
+> `EntiAtc`): enti ATC (la vIPI APP è di un ente), vIPI/vSOP dello scalo con le posizioni sparite da IVAO che escono da
+> sole (LIBG_TWR, LIRE_TWR), vAWOS in uno schermo. Fusi da `fix/enti-atc` (S47–S52). **Online resta 1.47.3** finché
+> il committente non carica. ▶ Dopo il carico: timbro, `Schema 0`, i gesti del foglio (LIRE ente, ripubblicare LIBG
+> e LIRE).
+>
+> ## Il punto — 29 settembre 2026, tardi
 >
 > **✅ Online: 1.47.3** (§A133, timbro `1.47.3 · de51b76`, nel piè di pagina; 9 file, zip `94bd9cfa…`, PATCH): il piè
 > di pagina della 1.47.2 (§A132) coi link alla wiki IVAO, il colore della barra e «Realizzato da». Timbro e

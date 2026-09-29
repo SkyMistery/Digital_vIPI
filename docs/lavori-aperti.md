@@ -43,6 +43,20 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### A134 — 1.48.0 PRONTO: enti ATC, vIPI/vSOP dello scalo, vAWOS in uno schermo (29 settembre 2026)
+
+MINOR con **una migrazione additiva** (`EntiAtc`: 2 tabelle, 5 indici; rollback valido). Su 1.47.3 (`de51b76`).
+Timbro **`1.48.0 · e292a1e`**. Fusi da `fix/enti-atc` (che contiene `sito/lavori`): S47 vAWOS in uno schermo con una
+pista come con tre; S48 la vIPI e il vSOP sono dello scalo e le posizioni sparite da IVAO escono da sole (al primo
+import **LIBG_TWR** e **LIRE_TWR**: risponde alla domanda del committente sul «LIBG_TWR che non esiste più»); S49–S52
+enti ATC fasi 1–3 (la vIPI APP è di un ente, «Remotizza», derivazione da tutte le posizioni) e revisione.
+**19 file** (`solo-19-file-1.48.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
+pdb), `en/`, `vipi-awos.css` con `.br`/`.gz`, `Vipi.Host.staticwebassets.endpoints.json`. Zip 5,83 MB, sha256
+`4cbc457b682623d31b47ebe8c73099e7174929a965b42505efdaf09b14149d28`. Test verdi, conteggi identici. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.48.0.md`. ▶ Caricamento del committente; poi gesti: LIRE_APP → ente con LIRE_TWR
+principale; ripubblicare vIPI/vSOP di LIBG e LIRE dopo il primo import; «Remotizza» al posto della spunta a mano.
+Rimandata dal committente: la vIPI ACC legata all'ACC (Sito, «Da fare in futuro»).
+
 ### ✅ A133 — 1.47.3 ONLINE: piè di pagina sistemato (29 settembre 2026)
 
 ✅ Online il 29 settembre 2026: timbro e `Schema 0` confermati dal committente. Da fuori: `vipi-theme.css?v=1e7773f0`
