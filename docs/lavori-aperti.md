@@ -43,7 +43,10 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### A134 — 1.48.0 PRONTO: enti ATC, vIPI/vSOP dello scalo, vAWOS in uno schermo (29 settembre 2026)
+### ✅ A134 — 1.48.0 ONLINE: enti ATC, vIPI/vSOP dello scalo, vAWOS in uno schermo (29 settembre 2026)
+
+✅ Online il 29 settembre 2026: timbro e `Schema 0` confermati dal committente (la migrazione `EntiAtc` è entrata). Da
+fuori: `/vsop/health` Healthy, Ricerca «13 results for LIRF». CI di `main` verde (run 36604692802).
 
 MINOR con **una migrazione additiva** (`EntiAtc`: 2 tabelle, 5 indici; rollback valido). Su 1.47.3 (`de51b76`).
 Timbro **`1.48.0 · e292a1e`**. Fusi da `fix/enti-atc` (che contiene `sito/lavori`): S47 vAWOS in uno schermo con una

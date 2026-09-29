@@ -6,11 +6,11 @@
 >
 > ## ▶ Il punto — 29 settembre 2026, sera tardi
 >
-> **Pronto: 1.48.0** (§A134, timbro `1.48.0 · e292a1e`, 19 file, zip `4cbc457b…`, MINOR con una migrazione additiva
+> **✅ Online: 1.48.0** (timbro e `Schema 0` confermati, `/vsop/health` Healthy, Ricerca LIRF; **in `main` non resta
+> codice fuori pacchetto**) (§A134, timbro `1.48.0 · e292a1e`, 19 file, zip `4cbc457b…`, MINOR con una migrazione additiva
 > `EntiAtc`): enti ATC (la vIPI APP è di un ente), vIPI/vSOP dello scalo con le posizioni sparite da IVAO che escono da
-> sole (LIBG_TWR, LIRE_TWR), vAWOS in uno schermo. Fusi da `fix/enti-atc` (S47–S52). **Online resta 1.47.3** finché
-> il committente non carica. ▶ Dopo il carico: timbro, `Schema 0`, i gesti del foglio (LIRE ente, ripubblicare LIBG
-> e LIRE).
+> sole (LIBG_TWR, LIRE_TWR), vAWOS in uno schermo. Fusi da `fix/enti-atc` (S47–S52). ▶ I gesti del foglio: LIRE_APP → ente con LIRE_TWR
+> principale, ripubblicare vIPI/vSOP di LIBG e LIRE dopo il primo import, «Remotizza» al posto della spunta a mano.
 >
 > ## Il punto — 29 settembre 2026, tardi
 >
