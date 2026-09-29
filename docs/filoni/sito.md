@@ -1659,5 +1659,12 @@
   stampato com'è; prese in carico → le rappresenta l'incarico). Test +5 Infrastructure (2033), +1 Application
   (3103), +2 Ui (1884) e guardie (menu 18/13; campi con `CampoTesto`). Codice comune `Vipi.Application`,
   `Vipi.Domain`.
+  **Provato a schermo** sulla copia del 29-set, impersonando con `DevIdentity` (VID 111111 senza posizioni staff, poi
+  704798): «Segnala» nelle vIPI APP e d'aeroporto in vista pubblica (assente in bozza per lo staff); modulo con
+  documento e sezione giusti, niente coda per il non staff; invio → #1 col rilascio in vigore (3); in «Da fare»
+  come «da rileggere» col testo e il tasto «Rispondi»; presa in carico → incarico legato (App/LICC_APP); chiusura
+  senza risposta rifiutata, con risposta chiusa; l'utente legge «risolta» e la risposta. Log senza errori.
+  ⚠️ Chiudere la richiesta NON chiude l'incarico nato dalla presa in carico: resta in «Da fare» finché lo staff non
+  lo spunta (voluto? chiedere al committente).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
