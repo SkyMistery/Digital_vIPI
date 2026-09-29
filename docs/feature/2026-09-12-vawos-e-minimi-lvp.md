@@ -11,7 +11,7 @@
 
 **Le sei decisioni del committente**, prese il 12 settembre e recepite qui dentro:
 
-1. **Pubblico**, col **Test METAR riservato allo staff**.
+1. **Pubblico**, col **Test METAR riservato allo staff**. ⚠️ Dal 30 settembre 2026 il tasto non c'è più (committente): il bollettino finto resta solo all'API, `/services/vawos/api/{icao}?test=`, staff (S57 in `docs/filoni/sito.md`).
 2. Rotta **fuori da `/vsop`**, e il servizio si chiama **vAWOS** — «v» come le vIPI, le vSOP e le vLOA: sono
    **operazioni virtuali**, e il nome lo deve dire prima che lo chieda qualcuno.
 3. ~~Il **movimento** si tiene (interpolazione, §4.3).~~ → **Ribaltata la sera stessa** (§11): il vento è quello del bollettino e **non si muove**. «Non abbiamo modo di sapere il vento reale istantaneo nei pressi dell'aeroporto».

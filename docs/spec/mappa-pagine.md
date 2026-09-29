@@ -123,7 +123,7 @@
 | `/services/vsop/admin/sources` | `SorgentiAdminPage.razor` | Policy import sorgenti | Admin |
 | `/services/vsop/admin/audit` | `AuditPage.razor` | Audit log | Admin |
 | `/` | `Home.razor` (Host) | Radice dell'host di sviluppo/esempio | tutti |
-| `/services/vawos` · `/services/vawos/{icao}` | `AwosPage.razor` | **Quadro vAWOS** di torre (SSR + JS): elenco scali e quadro dello scalo; impianto a pista sola o a blocchi per 2+ piste. Tetto di richieste per IP sull'API; sorgente METAR, «Test METAR» e provenienza della pista in uso solo allo staff; regole piste e minimi LVP dalla release pubblicata | tutti (sorgente, test, provenienza: DivisionStaff) |
+| `/services/vawos` · `/services/vawos/{icao}` | `AwosPage.razor` | **Quadro vAWOS** di torre (SSR + JS): elenco scali e quadro dello scalo; impianto a pista sola o a blocchi per 2+ piste. Tetto di richieste per IP sull'API; sorgente METAR e provenienza della pista in uso solo allo staff (il «Test METAR» è solo nell'API, `?test=`, dal 30-set); regole piste e minimi LVP dalla release pubblicata | tutti (sorgente, provenienza, `?test=` dell'API: DivisionStaff) |
 | `/services/coordinates` | `CoordinateConverterPage.razor` | Convertitore di coordinate | DivisionStaff |
 | `/services/stats/world` | `AtcWorldArchivePage.razor` | Archivio ATC mondiale | DivisionStaff |
 | `/services/vsop/airspace` | `AirspacePage.razor` | Spazi aerei (vista) | DivisionStaff |

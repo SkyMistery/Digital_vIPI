@@ -43,8 +43,13 @@
      `height: 100vh` dà ai blocchi un'altezza da dividersi; `min-height: max-content` è la rete — su una
      finestra davvero bassa vince il contenuto e la pagina scorre, invece di tagliare dei numeri. Perché la
      rete non scatti sugli schermi normali i pannelli del vento hanno un minimo piccolo e cambiano impianto
-     quando sono bassi (più sotto, `@container`). */
+     quando sono bassi (più sotto, `@container`).
+     🔴 `100dvh` e non solo `100vh` (committente, 30 settembre 2026): nell'Edge del committente, a 1920×917 visibili,
+     il quadro misurava ~1003px con una pista (LICB) come con due (LICG), coi blocchi pieni di spazio vuoto — cioè
+     l'altezza non la spingeva il contenuto, la imponeva `100vh`, che lì valeva più della finestra. `dvh` è
+     l'altezza VISIBILE adesso; `vh` resta sopra come ripiego per un browser che `dvh` non lo conosce. */
   height: 100vh;
+  height: 100dvh;
   min-height: max-content;
   background: var(--awos-bg);
   color: var(--awos-txt);
@@ -70,7 +75,7 @@
 }
 
 .awos *, .awos *::before, .awos *::after { box-sizing: border-box; }
-/* ⚠️ Serve QUI: le finestrelle e il pannello di prova hanno `display:flex`, che vince su `[hidden]`.
+/* ⚠️ Serve QUI: le finestrelle hanno `display:flex`, che vince su `[hidden]`.
    Senza questa riga nascono APERTE — visto a schermo il 12 settembre 2026. */
 .awos [hidden] { display: none !important; }
 
@@ -280,7 +285,7 @@
    a sinistra (270px), e a destra un blocco per pista, tutti ALTI UGUALI, con
    dentro visibilità+nubi a sinistra e striscia, vento, RVR a destra.
 
-   ⚠️ I blocchi si dividono in parti uguali l'altezza di `.awos` (100vh, in
+   ⚠️ I blocchi si dividono in parti uguali l'altezza di `.awos` (100dvh, in
    testa al foglio): una frazione di un'altezza indefinita non è una frazione
    di niente — le righe prenderebbero l'altezza del contenuto, diverse fra loro. */
 /* Le due colonne fisse (scalo, e visibilità/nubi di ogni blocco) si stringono sotto i ~1900px: ogni pixel
@@ -382,14 +387,6 @@
 }
 .awos-elenco a:hover { border-color: var(--awos-ciano); color: #fff; }
 
-/* Il pannello del METAR di prova: si apre solo allo staff. */
-.awos-prova { display: flex; gap: 6px; align-items: center; padding: 6px 10px; background: var(--awos-cella); border-bottom: 1px solid var(--awos-bordo); }
-.awos-prova input {
-  flex: 1; font-family: var(--awos-mono); font-size: 12.5px; padding: 4px 8px;
-  background: #000; color: var(--awos-verde); border: 1px solid var(--awos-bordo);
-}
-.awos-prova label { font-size: 10px; letter-spacing: .1em; color: var(--awos-lbl); }
-
 /* Le finestrelle (Local report, ATIS message, Ext data). `hidden` le spegne. */
 .awos-mask {
   position: fixed; top: 54px; left: 50%; transform: translateX(-50%); z-index: 60;
@@ -421,7 +418,7 @@
   .awos-mask { top: auto; bottom: 12px; }
   /* Sul telefono il quadro scorre (non c'è altezza per stare in uno schermo): colonne impilate, e il
      pannello torna a misurarsi dal contenuto, sempre sulle tre righe. */
-  .awos { height: auto; min-height: 100vh; }
+  .awos { height: auto; min-height: 100vh; min-height: 100dvh; }
   .awos-pannello { container-type: inline-size; min-height: 0; }
   /* ⚠️ `minmax(0, 1fr)` e non `1fr` (revisione 3, L9): `1fr` e' `minmax(auto, 1fr)`, e la colonna non
      scendeva sotto il suo contenuto — le tre celle QNH/temperatura/rugiada da 159px l'una. Su un telefono

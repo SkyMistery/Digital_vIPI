@@ -443,8 +443,8 @@ public static class VipiModuleExtensions
                 return Results.StatusCode(StatusCodes.Status429TooManyRequests);
             }
 
-            // Il METAR di prova è dello staff, come il tasto che lo apre: qui la guardia si ripete perché
-            // questa è una porta sua, e una porta non si fida di chi ha bussato all'altra.
+            // Il METAR di prova è dello staff. Dal 30 settembre 2026 il quadro non ha più il tasto TEST METAR:
+            // resta solo qui, per gli script di verifica (`mai-usare-verifica.js`), e la guardia è questa.
             var prova = authz.IsDivisionStaff && !string.IsNullOrWhiteSpace(test) ? test!.Trim() : null;
             // ⚠️ `inforce` è la MEMORIA del quadro, non un permesso: dice che un minuto fa le LVP erano in
             // vigore, e serve all'isteresi delle soglie di cancellazione. Chi lo falsifica ottiene, al

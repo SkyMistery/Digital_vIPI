@@ -1666,6 +1666,17 @@
   senza risposta rifiutata, con risposta chiusa; l'utente legge «risolta» e la risposta. Log senza errori.
   Poi, decisione del committente: **chiudere la richiesta chiude anche il suo incarico** (prima restava in «Da fare»
   dimenticato). Prova estesa, rossa sul codice di prima.
+- ✅ **S57** vAWOS: in uno schermo anche nell'Edge del committente, e senza TEST METAR (30-set, committente: «vedi
+  vAWOS che devo ancora scrollare per vedere tutto» e «test metar andrebbe tolto»; ramo `fix/vawos-schermo`).
+  (1) Dalle sue schermate, a 1920×917 visibili, il quadro misurava ~1003px con LICB (una pista) come con LICG (due),
+  coi blocchi pieni di spazio vuoto: l'altezza non la spingeva il contenuto (S47 regge), la imponeva `100vh`, che in
+  quell'Edge valeva più della finestra. Nel browser integrato, in locale e in produzione, 100vh = 917 e non scorre:
+  il difetto lì non si riproduce. `.awos` prende `100dvh` (l'altezza visibile), con `100vh` sopra come ripiego; lo
+  stesso nel `min-height` del telefono. (2) Via il tasto TEST METAR, il suo pannello, la pastiglia e il `?test=`
+  della pagina e del modulo JS; il bollettino finto resta SOLO all'API (`/services/vawos/api/{icao}?test=`, staff),
+  dove lo usa `mai-usare-verifica.js`. Test +2 Ui (1886, presidi sul sorgente, rossi sul codice di prima).
+  **A schermo** (copia del DB, 1920×917): LICB e LICG stanno intere, RVR comprese; in barra GO, DAY, LOCAL REP.,
+  ATIS MSG, EXT. DATA. ⚠️ Da confermare nell'Edge del committente dopo il pacchetto.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: da fondere `fix/enti-acc` (S53–S55) e poi `fix/richieste-campo` (S56, costruito sopra); dopo la
   fusione si torna su `sito/lavori`. Futuro: vIPI ACC legata all'ACC (`lavori-aperti.md`, Sito), secondo canale
