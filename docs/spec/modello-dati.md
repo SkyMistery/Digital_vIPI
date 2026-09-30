@@ -1116,6 +1116,12 @@ aereo comparirebbe in ogni spezzone.
 Sono la condizione perché la potatura del dettaglio (12 mesi) **non azzeri le ore di un anno fa**. Non è la
 «tabella dei totali» vietata dal §5.
 
+**Conservazione, in una riga** (aggiornata il 30 settembre 2026): dettaglio delle tratte e sessioni **12 mesi**
+(`TrafficRetentionUseCase`, `AtcSessionRetentionUseCase`); il riassunto mensile `AtcMonthRollup` (mese · VID ·
+callsign) **10 anni**, a mesi interi (`AtcMonthRollupRetentionUseCase`, decisione del committente: prima non
+scadeva mai ed era l'unico dato legato al VID senza scadenza); `AirportDayTraffic` senza scadenza (numeri per
+scalo, nessuna persona). Tutte e tre girano nella potatura notturna (`TrafficRetentionHostedService`).
+
 ⚠️ **`TrafficFilledUtc`**: una sessione senza traffico e senza quella data è «da riempire», una **con** la
 data e zero traffico è «riempita, non c'era nessuno». Senza la marca i due casi sarebbero indistinguibili e
 il riempimento a posteriori riproverebbe per sempre.

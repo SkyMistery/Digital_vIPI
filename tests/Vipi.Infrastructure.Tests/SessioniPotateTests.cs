@@ -158,6 +158,47 @@ public class SessioniPotateTests : IAsyncLifetime
         Assert.Empty(await _db.AtcSessionRunways.ToListAsync());
     }
 
+    /// <summary>
+    /// Il riassunto mensile si tiene dieci anni (committente, 30 settembre 2026): il mese di dieci anni fa resta
+    /// intero, quello prima se ne va.
+    /// </summary>
+    [Fact]
+    public async Task Il_riassunto_mensile_si_tiene_dieci_anni_a_mesi_interi()
+    {
+        DateTime Mese(int anno, int mese) => new(anno, mese, 1, 0, 0, 0, DateTimeKind.Utc);
+        foreach (var m in new[] { Mese(2016, 7), Mese(2016, 8), Mese(2020, 1) })
+            _db.AtcMonthRollups.Add(new AtcMonthRollup { Month = m, UserId = 704798, Callsign = "LIRF_TWR", Sessions = 1, Seconds = 3600 });
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(Mese(2016, 8), AtcMonthRollupRetentionUseCase.PrimoMeseTenuto(Adesso));
+        var esito = await new AtcMonthRollupRetentionUseCase(_store).RunAsync(Adesso, max: 100);
+
+        Assert.Equal(1, esito.Removed);
+        Assert.False(esito.MoreToGo);
+        var restano = await _db.AtcMonthRollups.AsNoTracking().Select(r => r.Month).OrderBy(m => m).ToListAsync();
+        Assert.Equal(new[] { Mese(2016, 8), Mese(2020, 1) }, restano);
+    }
+
+    [Fact]
+    public async Task La_potatura_del_riassunto_va_a_scaglioni_e_dice_se_resta_arretrato()
+    {
+        for (var i = 1; i <= 5; i++)
+            _db.AtcMonthRollups.Add(new AtcMonthRollup
+            {
+                Month = new DateTime(2010, i, 1, 0, 0, 0, DateTimeKind.Utc), UserId = 704798, Callsign = "LIRF_TWR",
+            });
+        await _db.SaveChangesAsync();
+
+        var caso = new AtcMonthRollupRetentionUseCase(_store);
+        var primo = await caso.RunAsync(Adesso, max: 3, batch: 2);
+        Assert.Equal(3, primo.Removed);
+        Assert.True(primo.MoreToGo);
+
+        var secondo = await caso.RunAsync(Adesso, max: 100, batch: 2);
+        Assert.Equal(2, secondo.Removed);
+        Assert.Empty(await _db.AtcMonthRollups.ToListAsync());
+    }
+
     [Fact]
     public async Task Il_caso_d_uso_smaltisce_a_scaglioni_e_dice_se_resta_arretrato()
     {

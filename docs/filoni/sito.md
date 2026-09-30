@@ -1857,13 +1857,19 @@
   personale (testata col nome, numeri con la media della divisione, mappa giorno × ora di nuovo qui). Trovato per
   strada: la mappa della divisione non si era mai colorata (`cov-q@q` letterale). Ramo `fix/statistiche-grafica`,
   in fila su `fix/titolo-documento`. Terzo: la pagina della divisione (nomi brevi in classifica, primi dieci più la
-  propria riga, aeroporti subito sotto i numeri). A schermo su copia del DB. Test: Domain 167, App 3160, Infra 2064,
+  propria riga, aeroporti subito sotto i numeri). A schermo su copia del DB. Test: Domain 167, App 3160, Infra 2066,
   Ui 1925.
 - ✅ **S73** pagina dell'ACC al buio (30-set, committente): intorno all'AIRAC un quadratino bianco (il bordo
   `--on-dark-soft` è quasi bianco anche nel tema scuro → bordo trasparente, stesso spessore); Aeroporti, Avvicinamenti
   e vLoA con tre colori diversi per bordo al passaggio e «Vedi tutti» → tutti col colore di Aeroporti (le classi
   `c-app`/`c-vloa` vivono solo lì). Solo CSS. A schermo su copia del DB. Ramo `fix/vsop-notte`, in fila su
   `fix/statistiche-grafica`.
+- ✅ **S74** conservazione delle statistiche ATC (30-set, committente: «ci sono dati conservati oltre i 12 mesi?»).
+  Sì: il riassunto mensile per VID e callsign (`AtcMonthRollup`) non scadeva mai. Ora **dieci anni** a mesi interi
+  (`AtcMonthRollupRetentionUseCase`, nella potatura notturna). Corretti il sottotitolo della divisione («oltre, la
+  sorgente non conserva» era vero solo per IVAO) e «I miei dati», che ora dice dodici mesi per esteso e dieci di
+  totali mensili. `modello-dati.md` ha la regola in una riga. Ramo `fix/riassunto-dieci-anni`, in fila su
+  `fix/vsop-notte`. Nessuna migrazione.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

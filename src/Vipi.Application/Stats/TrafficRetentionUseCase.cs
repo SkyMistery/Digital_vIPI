@@ -118,3 +118,48 @@ public sealed class AtcSessionRetentionUseCase
         return new SessionRetentionResult(tolte, MoreToGo: true);
     }
 }
+
+/// <summary>
+/// Pota il <b>riassunto mensile</b> (<c>AtcMonthRollup</c>) oltre i dieci anni.
+///
+/// <para><b>Perché esiste.</b> Fino al 30 settembre 2026 il riassunto non lo cancellava nessuno: nato il 26
+/// agosto per tenere le ore di un anno fa quando le sessioni vengono potate, era diventato l'unico dato legato
+/// al VID conservato senza scadenza. Il committente ha deciso dieci anni: quanto guarda il periodo «Tutto» delle
+/// statistiche (3650 giorni), quindi nessuna pagina perde niente di quel che mostrava.</para>
+///
+/// <para>Si tiene il mese <b>intero</b>: il limite è il primo giorno del mese di dieci anni fa, e quel mese resta.</para>
+/// </summary>
+public sealed class AtcMonthRollupRetentionUseCase
+{
+    /// <summary>Quanto si conserva il riassunto mensile.</summary>
+    public const int AnniDiRiassunto = 10;
+
+    private readonly IAtcTrafficStore _archivio;
+
+    public AtcMonthRollupRetentionUseCase(IAtcTrafficStore archivio) => _archivio = archivio;
+
+    /// <summary>Il primo mese che si tiene, dato l'istante di adesso.</summary>
+    public static DateTime PrimoMeseTenuto(DateTimeOffset now) =>
+        new DateTime(now.UtcDateTime.Year, now.UtcDateTime.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddYears(-AnniDiRiassunto);
+
+    public async Task<SessionRetentionResult> RunAsync(
+        DateTimeOffset now, int max, int batch = 1000, CancellationToken ct = default)
+    {
+        if (max <= 0 || batch <= 0) return new SessionRetentionResult(0, false);
+
+        var limite = PrimoMeseTenuto(now);
+        var tolte = 0;
+
+        while (tolte < max)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var quante = await _archivio.PruneMonthRollupsAsync(limite, Math.Min(batch, max - tolte), ct);
+            if (quante == 0) return new SessionRetentionResult(tolte, MoreToGo: false);
+
+            tolte += quante;
+        }
+
+        return new SessionRetentionResult(tolte, MoreToGo: true);
+    }
+}

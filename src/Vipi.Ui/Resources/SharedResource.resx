@@ -166,7 +166,7 @@
   <data name="My_NotSignedIn" xml:space="preserve"><value>Entra con IVAO per vedere i tuoi dati.</value></data>
   <data name="My_NoRow" xml:space="preserve"><value>Non c'è ancora una riga per te: si scrive al primo accesso, entro qualche minuto.</value></data>
   <data name="My_OtherTitle" xml:space="preserve"><value>Gli altri dati che ti riguardano</value></data>
-  <data name="My_OtherAtc" xml:space="preserve"><value>Le tue connessioni come controllore vengono dai dati pubblici della rete IVAO (chi era in frequenza e quando):</value></data>
+  <data name="My_OtherAtc" xml:space="preserve"><value>Le tue connessioni come controllore vengono dai dati pubblici della rete IVAO (chi era in frequenza e quando). Le teniamo per esteso dodici mesi; poi restano solo i totali di ogni mese (ore, sessioni e movimenti per callsign), per dieci anni:</value></data>
   <data name="My_OtherAtcLink" xml:space="preserve"><value>le tue statistiche</value></data>
   <data name="My_OtherStaff" xml:space="preserve"><value>Se sei nello staff della divisione, il tuo nome e le tue posizioni staff servono a decidere che cosa puoi modificare, e compaiono accanto alle modifiche che firmi.</value></data>
   <data name="My_DeleteTitle" xml:space="preserve"><value>Chiedere di cancellarli</value></data>
@@ -1157,7 +1157,7 @@
   <data name="Stats_BackToMine" xml:space="preserve"><value>Le mie statistiche</value></data>
   <data name="Stats_DivisionLink" xml:space="preserve"><value>Statistiche di divisione</value></data>
   <data name="Stats_DivisionTitle" xml:space="preserve"><value>Statistiche di divisione</value></data>
-  <data name="Stats_DivisionSubtitle" xml:space="preserve"><value>Ultimi dodici mesi: oltre, la sorgente non conserva le connessioni.</value></data>
+  <data name="Stats_DivisionSubtitle" xml:space="preserve"><value>Il dettaglio copre gli ultimi dodici mesi (IVAO non conserva le connessioni più vecchie); oltre, ore, sessioni e movimenti restano come totali mensili per dieci anni.</value></data>
   <data name="Stats_TopControllers" xml:space="preserve"><value>Classifica per ore</value></data>
   <data name="Stats_LeaderboardOff" xml:space="preserve"><value>La classifica di divisione non è pubblica. Può renderla visibile lo staff.</value></data>
   <data name="Stats_Visibility" xml:space="preserve"><value>Visibilità</value></data>

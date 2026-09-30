@@ -359,6 +359,7 @@ public static class IvaoServiceCollectionExtensions
         services.AddScoped<Vipi.Application.Stats.AirportTrafficRollupUseCase>();
         services.AddScoped<Vipi.Application.Stats.TrafficRetentionUseCase>();
         services.AddScoped<Vipi.Application.Stats.AtcSessionRetentionUseCase>();
+        services.AddScoped<Vipi.Application.Stats.AtcMonthRollupRetentionUseCase>();
         services.AddScoped<IvaoAtcHistoryClient>();
         services.AddScoped<IAtcHistorySource>(sp => sp.GetRequiredService<IvaoAtcHistoryClient>());
         services.AddScoped<Vipi.Application.Stats.AtcHistoryImportUseCase>();
