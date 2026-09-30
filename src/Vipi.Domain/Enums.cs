@@ -556,6 +556,9 @@ public enum FieldRequestKind { Errore, Suggerimento }
 /// <summary>Il ciclo di una richiesta dal campo (S56): nuova, presa in carico, poi una delle tre chiusure.</summary>
 public enum FieldRequestStatus { Nuova, PresaInCarico, Risolta, Respinta, Doppione }
 
+/// <summary>Una voce del pacchetto dell'evento: un file caricato sul sito, o un link (Drive).</summary>
+public enum EventKitItemKind { File, Link }
+
 public enum VipiRole
 {
     /// <summary>Chiunque, anche anonimo: le pagine e i documenti pubblici.</summary>

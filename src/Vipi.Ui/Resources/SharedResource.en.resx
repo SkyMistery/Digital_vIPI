@@ -3804,4 +3804,41 @@
   <data name="Req_Status_Doppione" xml:space="preserve"><value>duplicate</value></data>
   <data name="Req_ReportTitle" xml:space="preserve"><value>Report an error or suggest a change in this section</value></data>
   <data name="Req_Open" xml:space="preserve"><value>Reply</value></data>
+  <data name="Services_EventSection" xml:space="preserve"><value>Current event</value></data>
+  <data name="Services_EventDesc" xml:space="preserve"><value>Aurora profiles per position and the event files: download them before you open.</value></data>
+  <data name="Services_EventStaffDesc" xml:space="preserve"><value>Switch on the event profiles page, upload files and Drive links.</value></data>
+  <data name="Evt_Title" xml:space="preserve"><value>Event profiles</value></data>
+  <data name="Evt_None" xml:space="preserve"><value>There is no event right now. This page switches on when the staff prepares the profiles for the next event.</value></data>
+  <data name="Evt_Intro" xml:space="preserve"><value>Download the profile for the position you control and the event files. Links open on Google Drive.</value></data>
+  <data name="Evt_FromTo" xml:space="preserve"><value>From {0} to {1}</value></data>
+  <data name="Evt_Until" xml:space="preserve"><value>Until {0}</value></data>
+  <data name="Evt_Download" xml:space="preserve"><value>Download</value></data>
+  <data name="Evt_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Evt_Empty" xml:space="preserve"><value>No files yet.</value></data>
+  <data name="Evt_Manage" xml:space="preserve"><value>Event package</value></data>
+  <data name="Evt_StateVisible" xml:space="preserve"><value>Visible to everyone now</value></data>
+  <data name="Evt_StateOutside" xml:space="preserve"><value>On, but outside its dates: not visible to the public</value></data>
+  <data name="Evt_StateOff" xml:space="preserve"><value>Off: not visible to the public</value></data>
+  <data name="Evt_LastEdit" xml:space="preserve"><value>Last edited {0}, {1}</value></data>
+  <data name="Evt_Name" xml:space="preserve"><value>Event name</value></data>
+  <data name="Evt_StartUtc" xml:space="preserve"><value>Start (UTC, optional)</value></data>
+  <data name="Evt_EndUtc" xml:space="preserve"><value>End (UTC, optional)</value></data>
+  <data name="Evt_Active" xml:space="preserve"><value>On</value></data>
+  <data name="Evt_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Evt_Saved" xml:space="preserve"><value>Saved.</value></data>
+  <data name="Evt_DatesHelp" xml:space="preserve"><value>On with no dates: visible right away, until you switch it off. With dates: visible only between start and end. Off: never visible. Items stay for the next event: remove the ones you no longer need.</value></data>
+  <data name="Evt_AddFile" xml:space="preserve"><value>Add a file</value></data>
+  <data name="Evt_AddLink" xml:space="preserve"><value>Add a link</value></data>
+  <data name="Evt_Label" xml:space="preserve"><value>Title (e.g. LIRF_TWR)</value></data>
+  <data name="Evt_LinkLabel" xml:space="preserve"><value>Title (e.g. Stand Manager)</value></data>
+  <data name="Evt_Note" xml:space="preserve"><value>Note (optional)</value></data>
+  <data name="Evt_FileHelp" xml:space="preserve"><value>Up to {0}: .cpr profiles, Aurora files, zip. Bigger? Put it on Drive and add the link.</value></data>
+  <data name="Evt_Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Evt_Added" xml:space="preserve"><value>Added.</value></data>
+  <data name="Evt_TooBig" xml:space="preserve"><value>The file is larger than {0}: put it on Drive and add the link.</value></data>
+  <data name="Evt_Items" xml:space="preserve"><value>Items</value></data>
+  <data name="Evt_Up" xml:space="preserve"><value>Up</value></data>
+  <data name="Evt_Down" xml:space="preserve"><value>Down</value></data>
+  <data name="Evt_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Evt_ConfirmDelete" xml:space="preserve"><value>Confirm: delete</value></data>
 </root>

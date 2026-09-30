@@ -5221,3 +5221,32 @@
   font-family:var(--font-head);font-weight:600;font-size:13px;white-space:nowrap}
 :where(.vipi-root) .req-kind button:hover:not(:disabled){background:var(--tint-blue);color:var(--ink)}
 :where(.vipi-root) .req-kind button[aria-pressed="true"]{background:var(--ivao-blue);color:var(--on-brand);font-weight:700}
+
+/* ---------- Il pacchetto dell'evento (/services/event, carta 2026-09-30-profili-evento.md) ----------
+   Un elenco di righe, una per voce: icona, titolo con nota e dettaglio (nome del file e peso, o il dominio del
+   link), il tasto a destra. Sul telefono il tasto va sotto. Il pannello dello staff mette in griglia i campi. */
+:where(.vipi-root) .evt-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+:where(.vipi-root) .evt-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--radius)}
+:where(.vipi-root) .evt-ic{display:inline-flex;color:var(--ivao-blue);flex:none}
+:where(.vipi-root) .evt-body{flex:1;min-width:0}
+:where(.vipi-root) .evt-label{font-family:var(--font-head);font-weight:700;overflow-wrap:anywhere}
+:where(.vipi-root) .evt-note{font-size:13.5px;margin-top:2px}
+:where(.vipi-root) .evt-meta{font-size:12.5px;margin-top:2px;overflow-wrap:anywhere}
+:where(.vipi-root) .evt-act{display:flex;align-items:center;gap:6px;flex:none}
+:where(.vipi-root) .evt-act .evt-ib{padding:4px 8px;min-width:0}
+:where(.vipi-root) .evt-state{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+:where(.vipi-root) .evt-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+:where(.vipi-root) .evt-field{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0}
+:where(.vipi-root) .evt-field.evt-wide{grid-column:1/-1}
+:where(.vipi-root) .evt-check{display:flex;align-items:center;gap:6px;font-weight:600}
+:where(.vipi-root) .evt-help{font-size:12.5px;margin:6px 0 0}
+:where(.vipi-root) .evt-add{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+:where(.vipi-root) .evt-add-box{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px dashed var(--line-strong);
+  border-radius:var(--radius);min-width:0}
+:where(.vipi-root) .evt-add-box .btn{align-self:flex-start}
+@media (max-width:720px){
+  :where(.vipi-root) .evt-form,:where(.vipi-root) .evt-add{grid-template-columns:minmax(0,1fr)}
+  :where(.vipi-root) .evt-item{flex-wrap:wrap}
+  :where(.vipi-root) .evt-act{width:100%;justify-content:flex-end}
+}

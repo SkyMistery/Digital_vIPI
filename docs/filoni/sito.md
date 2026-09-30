@@ -1696,6 +1696,17 @@
   coi colori della pagina (guscio `--surface-muted`, scelto `--ivao-blue`), due tasti con `aria-pressed`.
   Test +2 Ui (1888): bandierina anche sulle figlie, switch; presidio del vAWOS riscritto. Provato a schermo sulla copia
   (LIBD: 16 bandierine in linea coi titoli; switch che commuta). ⚠️ Da confermare nell'Edge del committente.
+- ✅ **S59** profili per l'evento (30-set, committente: «una sezione a /services… attivabile in prossimità degli eventi.
+  Io carico i profili per postazione… un posto per caricare un link dal drive»; ramo `fix/profili-evento`). Carta
+  `docs/feature/2026-09-30-profili-evento.md`. Scelte del committente: file e link; interruttore più date; le voci
+  restano da un evento all'altro; gestione allo staff di divisione. `EventKit` + `EventKitItem`, **migrazione**
+  `ProfiliEvento` (SQLite+MySQL, solo additiva). `/services/event` SSR statica per il pubblico, isola
+  `EventKitManager` per lo staff; endpoint `/services/event/file/{id}/{nome}` (allegato, nosniff, no-store, tetti per
+  IP, fuori dalla cache anonima). Hub: sezione «Evento in corso» col nome, sopra gli strumenti, solo quando si vede
+  (risposta tenuta 30 s, svuotata a ogni scrittura); scheda «Pacchetto dell'evento» sempre nella sezione staff.
+  Test: App 3125, Infra 2039, Ui 1895, E2E 463. Codice comune `Vipi.Application`, `Vipi.Domain`, `Vipi.Hosting`,
+  `Vipi.Infrastructure`, `Vipi.Host`. **A schermo** su copia del DB: da staff pannello, «Acceso», link Drive e file .cpr,
+  scaricamento con le intestazioni giuste; da VID 111111 pagina pubblica col nome e hub con la sezione.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: da fondere `fix/enti-acc` (S53–S55) e poi `fix/richieste-campo` (S56, costruito sopra); dopo la
   fusione si torna su `sito/lavori`. Futuro: vIPI ACC legata all'ACC (`lavori-aperti.md`, Sito), secondo canale

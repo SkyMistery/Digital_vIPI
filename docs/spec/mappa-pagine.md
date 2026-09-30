@@ -17,12 +17,18 @@
 │  (dall'11-09-2026 niente banner: due PORTE grandi, una per pubblico, poi gli strumenti)
 ├─ [Per i controllori ATC]  vSOP — documentazione operativa   → /services/vsop
 ├─ [Per i piloti militari]  Documentazione militare           → /services/vsop/mil  (scorciatoia)
+├─ [solo con un evento acceso] Evento in corso: Profili per l'evento — <nome>  → /services/event
 ├─ Strumenti per controllori:
 │  ├─ vAWOS (quadro meteo di torre)                → /services/vawos  (scheda nuova)
 │  ├─ Le mie statistiche ATC                       → /services/stats
 │  ├─ Aurora Profile Swapper                       → /services/profile-swapper
 │  └─ Vedi chi è online ora (THE EYE, esterno)     → https://the-eye.andreadalbero.it/  (scheda nuova)
-└─ [staff di divisione] Spazi aerei · Convertitore · [Editor] Coerenza sectorfile
+└─ [staff di divisione] Spazi aerei · Convertitore · Pacchetto dell'evento · [Editor] Coerenza sectorfile
+
+/services/event                         Profili per l'evento (30-09-2026) ....... EventKitPage.razor
+│                                       (SSR statica; acceso + dentro le date = pubblica; allo staff
+│                                        di divisione il pannello di gestione, isola EventKitManager)
+└─ file di una voce                              → /services/event/file/{id}/{nome}  (endpoint, allegato)
 
 /services/profile-swapper               Copia sezioni fra profili Aurora .cpr  ... ProfileSwapperPage.razor
 
@@ -123,6 +129,7 @@
 | `/services/vsop/admin/sources` | `SorgentiAdminPage.razor` | Policy import sorgenti | Admin |
 | `/services/vsop/admin/audit` | `AuditPage.razor` | Audit log | Admin |
 | `/` | `Home.razor` (Host) | Radice dell'host di sviluppo/esempio | tutti |
+| `/services/event` | `EventKitPage.razor` (+ `EventKitManager`) | **Profili per l'evento** (carta `2026-09-30-profili-evento.md`): file per postazione e link Drive, visibili se il pacchetto è acceso e dentro le date; i file da `/services/event/file/{id}/{nome}` | tutti (gestione: DivisionStaff) |
 | `/services/vawos` · `/services/vawos/{icao}` | `AwosPage.razor` | **Quadro vAWOS** di torre (SSR + JS): elenco scali e quadro dello scalo; impianto a pista sola o a blocchi per 2+ piste. Tetto di richieste per IP sull'API; sorgente METAR e provenienza della pista in uso solo allo staff (il «Test METAR» è solo nell'API, `?test=`, dal 30-set); regole piste e minimi LVP dalla release pubblicata | tutti (sorgente, provenienza, `?test=` dell'API: DivisionStaff) |
 | `/services/coordinates` | `CoordinateConverterPage.razor` | Convertitore di coordinate | DivisionStaff |
 | `/services/stats/world` | `AtcWorldArchivePage.razor` | Archivio ATC mondiale | DivisionStaff |

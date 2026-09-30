@@ -195,6 +195,9 @@ public static class DependencyInjection
         services.AddScoped<IRemotizzazioneService, RemotizzazioneService>();
         services.AddScoped<IAtcUnitOverviewService, AtcUnitOverviewService>();
         services.AddScoped<IFieldRequestService, FieldRequestService>();
+        // Il pacchetto dell'evento (carta 2026-09-30-profili-evento.md): la cache della visibilità è UNA per processo.
+        services.AddSingleton<Vipi.Application.EventKits.EventKitVisibilityCache>();
+        services.AddScoped<Vipi.Application.EventKits.IEventKitService, Vipi.Application.EventKits.EventKitService>();
         // Pigro: la pubblicazione lo chiede solo dopo una vIPI ACC (S52), e il servizio tira dietro mezzo editing.
         services.AddScoped(sp => new Lazy<IRemotizzazioneService>(sp.GetRequiredService<IRemotizzazioneService>));
         services.AddScoped<Vipi.Application.Diagnostics.IConsistencyReportService, Vipi.Application.Diagnostics.ConsistencyReportService>();

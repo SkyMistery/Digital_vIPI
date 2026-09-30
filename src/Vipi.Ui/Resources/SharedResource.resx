@@ -3812,4 +3812,41 @@
   <data name="Req_Status_Doppione" xml:space="preserve"><value>doppione</value></data>
   <data name="Req_ReportTitle" xml:space="preserve"><value>Segnala un errore o un suggerimento su questa sezione</value></data>
   <data name="Req_Open" xml:space="preserve"><value>Rispondi</value></data>
+  <data name="Services_EventSection" xml:space="preserve"><value>Evento in corso</value></data>
+  <data name="Services_EventDesc" xml:space="preserve"><value>I profili Aurora per postazione e i file dell'evento: scaricali prima di aprire.</value></data>
+  <data name="Services_EventStaffDesc" xml:space="preserve"><value>Accendi la pagina dei profili per un evento, carica i file e i link di Drive.</value></data>
+  <data name="Evt_Title" xml:space="preserve"><value>Profili per l'evento</value></data>
+  <data name="Evt_None" xml:space="preserve"><value>Adesso non c'è un evento in corso. Questa pagina si accende quando lo staff prepara i profili per il prossimo evento.</value></data>
+  <data name="Evt_Intro" xml:space="preserve"><value>Scarica il profilo della postazione che controlli e i file dell'evento. I link si aprono su Google Drive.</value></data>
+  <data name="Evt_FromTo" xml:space="preserve"><value>Dal {0} al {1}</value></data>
+  <data name="Evt_Until" xml:space="preserve"><value>Fino al {0}</value></data>
+  <data name="Evt_Download" xml:space="preserve"><value>Scarica</value></data>
+  <data name="Evt_Open" xml:space="preserve"><value>Apri</value></data>
+  <data name="Evt_Empty" xml:space="preserve"><value>Ancora nessun file.</value></data>
+  <data name="Evt_Manage" xml:space="preserve"><value>Pacchetto dell'evento</value></data>
+  <data name="Evt_StateVisible" xml:space="preserve"><value>Visibile adesso al pubblico</value></data>
+  <data name="Evt_StateOutside" xml:space="preserve"><value>Acceso, ma fuori dalle date: il pubblico non lo vede</value></data>
+  <data name="Evt_StateOff" xml:space="preserve"><value>Spento: il pubblico non lo vede</value></data>
+  <data name="Evt_LastEdit" xml:space="preserve"><value>Ultima modifica {0}, {1}</value></data>
+  <data name="Evt_Name" xml:space="preserve"><value>Nome dell'evento</value></data>
+  <data name="Evt_StartUtc" xml:space="preserve"><value>Inizio (UTC, facoltativo)</value></data>
+  <data name="Evt_EndUtc" xml:space="preserve"><value>Fine (UTC, facoltativa)</value></data>
+  <data name="Evt_Active" xml:space="preserve"><value>Acceso</value></data>
+  <data name="Evt_Save" xml:space="preserve"><value>Salva</value></data>
+  <data name="Evt_Saved" xml:space="preserve"><value>Salvato.</value></data>
+  <data name="Evt_DatesHelp" xml:space="preserve"><value>Acceso e senza date: si vede subito, finché non lo spegni. Con le date: si vede solo fra inizio e fine. Spento: non si vede mai. Le voci restano per l'evento dopo: togli quelle che non servono.</value></data>
+  <data name="Evt_AddFile" xml:space="preserve"><value>Aggiungi un file</value></data>
+  <data name="Evt_AddLink" xml:space="preserve"><value>Aggiungi un link</value></data>
+  <data name="Evt_Label" xml:space="preserve"><value>Titolo (es. LIRF_TWR)</value></data>
+  <data name="Evt_LinkLabel" xml:space="preserve"><value>Titolo (es. Stand Manager)</value></data>
+  <data name="Evt_Note" xml:space="preserve"><value>Nota (facoltativa)</value></data>
+  <data name="Evt_FileHelp" xml:space="preserve"><value>Fino a {0}: profili .cpr, file di Aurora, zip. Più grande? Caricalo su Drive e aggiungi il link.</value></data>
+  <data name="Evt_Add" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="Evt_Added" xml:space="preserve"><value>Aggiunto.</value></data>
+  <data name="Evt_TooBig" xml:space="preserve"><value>Il file supera {0}: caricalo su Drive e aggiungi il link.</value></data>
+  <data name="Evt_Items" xml:space="preserve"><value>Voci</value></data>
+  <data name="Evt_Up" xml:space="preserve"><value>Su</value></data>
+  <data name="Evt_Down" xml:space="preserve"><value>Giù</value></data>
+  <data name="Evt_Delete" xml:space="preserve"><value>Elimina</value></data>
+  <data name="Evt_ConfirmDelete" xml:space="preserve"><value>Conferma: elimina</value></data>
 </root>
