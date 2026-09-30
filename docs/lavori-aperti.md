@@ -43,7 +43,12 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A142 — 1.54.0: login obbligatorio, registro degli accessi, «I miei dati» e altro (S65–S79) (30 settembre 2026)
+### ✅ A142 — 1.54.0 ONLINE: login obbligatorio, registro degli accessi, «I miei dati» e altro (S65–S79) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: timbro, `Schema 0` e Ricerca (col login) confermati dal committente. Da fuori, da
+anonimo: `/` → `/services` con «Entra con IVAO», `/services/vsop/search` 401, `/services/cookies` 200, `/vsop/health`
+Healthy, `/vsop/api/v1/airports` 401; `vipi-riconnessione.js?v=35b01d25` e `vipi-theme.css?v=d6225e05`, con le
+impronte dei file del pacchetto.
 
 MINOR con **tre migrazioni additive** (`RegistroAccessi`, `NomeBreveAccessi`, `PaginaDelleRichieste`: una tabella e
 due colonne; `Up` solo Create/Add), su 1.53.0 (`d4bbebd`). Timbro **`1.54.0 · 919b965`**. Dentro S65 e S66 (§A141) e,
@@ -71,8 +76,8 @@ identici (Domain 167, App 3161, Infra 2074, Ui 1926, E2E 498). Prova sul publish
 anonimo: `/` → `/services` con «Entra con IVAO», Ricerca/vIPI/«I miei dati» 401, cookie e `/vsop/health` 200, API
 401; rifatta sul publish con S78 e S79 (login spento: verde, timbro `919b965`, `POST
 /vsop/diag/disconnessione` 204; processo ucciso e riavviato → la pagina si ricarica da sola, riquadro nascosto). Foglio
-`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.0.md`. Storia: `docs/filoni/sito.md` S65–S79. ▶ Caricamento del
-committente; dopo: titolo di vIPI e vSOP MIL di LIML e ripubblicazione.
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.0.md`. Storia: `docs/filoni/sito.md` S65–S79. ▶ Dopo: titolo di vIPI e vSOP
+MIL di LIML e ripubblicazione.
 
 ### 🔀 A141 — in `main`, non ancora in pacchetto: vista live (S65) e pagina Chiavi API (S66) (30 settembre 2026) → in 1.54.0 (§A142)
 

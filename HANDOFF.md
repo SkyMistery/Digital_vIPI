@@ -6,11 +6,12 @@
 >
 > ## ▶ Il punto — 30 settembre 2026, notte
 >
-> **📦 Pronto da caricare: 1.54.0** (§A142, timbro `1.54.0 · 919b965`, 22 file, zip `cbfb3e74…`, MINOR con tre
+> **✅ Online: 1.54.0** (timbro, `Schema 0` e Ricerca col login confermati dal committente; da fuori la porta dice
+> «Entra con IVAO», Healthy, asset del pacchetto; **in `main` non resta codice fuori pacchetto**) (§A142, timbro `1.54.0 · 919b965`, 22 file, zip `cbfb3e74…`, MINOR con tre
 > migrazioni additive): Sito S65–S79. 🔴 **Da qui il sito si legge solo dopo il login IVAO** (S67; si riapre con
 > `VipiAuth__LoginObbligatorio=false`): la verifica da fuori non fa più la Ricerca, la fa il committente col login.
 > Registro degli accessi, «I miei dati», titolo del documento, statistiche nuove, ricerca in ordine, «Segnala» da ogni
-> pagina. Online resta 1.53.0 finché il committente non carica. ▶ Dopo: titolo LIML e ripubblicazione; LIRE/LIBG
+> pagina. ▶ Dopo: titolo LIML e ripubblicazione; LIRE/LIBG
 > aspettano il SOD.
 >
 > ## Il punto — 30 settembre 2026, sera
