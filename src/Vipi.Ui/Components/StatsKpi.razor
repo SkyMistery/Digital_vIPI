@@ -15,6 +15,12 @@
         }
     </div>
     <div class="kpi-l">@Etichetta</div>
+    @if (!string.IsNullOrEmpty(Nota))
+    {
+        @* Il contesto del numero (30 settembre 2026): la media della divisione, o che cosa conta. Senza, «346,8
+           ore» non diceva se erano tante o poche. *@
+        <div class="kpi-n">@Nota</div>
+    }
     @if (Serie is { Count: > 1 })
     {
         <div class="kpi-spark"><StatsSpark Punti="Serie" Titolo="@Etichetta" Didascalia="@SerieDidascalia" /></div>
@@ -40,4 +46,7 @@
 
     /// <summary>Che cosa misura l'asse della sparkline («per mese»): senza, il disegno non si sa leggere.</summary>
     [Parameter] public string? SerieDidascalia { get; set; }
+
+    /// <summary>Una riga sotto l'etichetta che dà il contesto: «media della divisione 34,7», «tratte viste…».</summary>
+    [Parameter] public string? Nota { get; set; }
 }

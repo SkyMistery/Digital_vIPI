@@ -2906,7 +2906,25 @@
   <data name="Stats_PositionShare" xml:space="preserve"><value>Come si divide il tuo tempo</value></data>
   <data name="Stats_PositionShareDivision" xml:space="preserve"><value>Come si divide il tempo della divisione</value></data>
   <data name="Stats_SliceTitle" xml:space="preserve"><value>{0}: {1} ore su {2} sessioni</value></data>
-  <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} ore, {2} movimenti</value></data>
+  <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} ore, {2} sessioni, {3} movimenti</value></data>
+  <data name="Stats_RankOf" xml:space="preserve"><value>su {0} in divisione · per ore</value></data>
+  <data name="Stats_AvgDivision" xml:space="preserve"><value>media della divisione {0}</value></data>
+  <data name="Stats_PresencesHint" xml:space="preserve"><value>tratte viste, parcheggiati compresi</value></data>
+  <data name="Stats_AvgShift" xml:space="preserve"><value>Durata media turno</value></data>
+  <data name="Stats_AvgShiftDivision" xml:space="preserve"><value>divisione {0}</value></data>
+  <data name="Stats_MonthHover" xml:space="preserve"><value>passa sopra una barra per il dettaglio del mese</value></data>
+  <data name="Stats_Where" xml:space="preserve"><value>Dove controlli</value></data>
+  <data name="Stats_WhereOther" xml:space="preserve"><value>Dove controlla</value></data>
+  <data name="Stats_PositionDetail" xml:space="preserve"><value>{0} sessioni · {1} movimenti</value></data>
+  <data name="Stats_AllPositions" xml:space="preserve"><value>Tutte le {0} postazioni</value></data>
+  <data name="Stats_HeatLess" xml:space="preserve"><value>meno</value></data>
+  <data name="Stats_HeatMore" xml:space="preserve"><value>più ore</value></data>
+  <data name="Stats_DayTotal" xml:space="preserve"><value>totale</value></data>
+  <data name="Stats_AirportsCard" xml:space="preserve"><value>Aeroporti</value></data>
+  <data name="Stats_FlightsMov" xml:space="preserve"><value>{0} voli · {1} mov.</value></data>
+  <data name="Stats_LastShifts" xml:space="preserve"><value>Ultimi turni</value></data>
+  <data name="Stats_ShiftsInPeriod" xml:space="preserve"><value>{0} nel periodo</value></data>
+  <data name="Stats_ShowAllShifts" xml:space="preserve"><value>Mostra tutti i {0} turni</value></data>
   <data name="Stats_CovLegend" xml:space="preserve"><value>Copertura:</value></data>
   <data name="Stats_CovNone" xml:space="preserve"><value>nessuna</value></data>
   <data name="Stats_CovFull" xml:space="preserve"><value>piena</value></data>

@@ -435,7 +435,7 @@
         _barreMesi = perMese
             .Select(m => new StatsBar(
                 StatsView.Mese(m.Key), m.Seconds / 3600.0,
-                L["Stats_MonthTitle", m.Key, StatsView.Ore(m.Seconds), m.Movements]))
+                L["Stats_MonthTitle", m.Key, StatsView.Ore(m.Seconds), m.Sessions, m.Movements]))
             .ToList();
 
         _fette = _tuttePostazioni

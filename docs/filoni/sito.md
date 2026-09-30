@@ -1851,6 +1851,12 @@
   corretta). **A schermo** su copia del DB (conservata su richiesta del committente): LIML rinominata, vAWOS «LIML —
   Milano Linate». Nella copia anche il **vSOP MIL di LIML** ha «MIlano». Ramo `fix/titolo-documento`, in fila su
   `fix/miei-dati`. Test: Infra 2056 → 2063; otto finti di test allineati all'interfaccia.
+- 🔨 **S72** nuova veste delle statistiche ATC (30-set, committente: «ripensare la grafica… prima la progettazione»).
+  Tavole in Claude Design approvate, carta [2026-09-30-statistiche-nuova-grafica](../feature/2026-09-30-statistiche-nuova-grafica.md).
+  Primo pezzo: nome breve «Mario R.» nel registro degli accessi (migrazione `NomeBreveAccessi`). Secondo: pagina
+  personale (testata col nome, numeri con la media della divisione, mappa giorno × ora di nuovo qui). Trovato per
+  strada: la mappa della divisione non si era mai colorata (`cov-q@q` letterale). Ramo `fix/statistiche-grafica`,
+  in fila su `fix/titolo-documento`. Terzo pezzo: la pagina della divisione.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

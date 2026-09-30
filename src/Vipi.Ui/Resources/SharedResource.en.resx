@@ -2898,7 +2898,25 @@
   <data name="Stats_PositionShare" xml:space="preserve"><value>How your time splits</value></data>
   <data name="Stats_PositionShareDivision" xml:space="preserve"><value>How the division's time splits</value></data>
   <data name="Stats_SliceTitle" xml:space="preserve"><value>{0}: {1} hours over {2} sessions</value></data>
-  <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} hours, {2} movements</value></data>
+  <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} hours, {2} sessions, {3} movements</value></data>
+  <data name="Stats_RankOf" xml:space="preserve"><value>of {0} in the division · by hours</value></data>
+  <data name="Stats_AvgDivision" xml:space="preserve"><value>division average {0}</value></data>
+  <data name="Stats_PresencesHint" xml:space="preserve"><value>legs seen, parked included</value></data>
+  <data name="Stats_AvgShift" xml:space="preserve"><value>Average shift</value></data>
+  <data name="Stats_AvgShiftDivision" xml:space="preserve"><value>division {0}</value></data>
+  <data name="Stats_MonthHover" xml:space="preserve"><value>hover a bar for the month's detail</value></data>
+  <data name="Stats_Where" xml:space="preserve"><value>Where you control</value></data>
+  <data name="Stats_WhereOther" xml:space="preserve"><value>Where they control</value></data>
+  <data name="Stats_PositionDetail" xml:space="preserve"><value>{0} sessions · {1} movements</value></data>
+  <data name="Stats_AllPositions" xml:space="preserve"><value>All {0} positions</value></data>
+  <data name="Stats_HeatLess" xml:space="preserve"><value>less</value></data>
+  <data name="Stats_HeatMore" xml:space="preserve"><value>more hours</value></data>
+  <data name="Stats_DayTotal" xml:space="preserve"><value>total</value></data>
+  <data name="Stats_AirportsCard" xml:space="preserve"><value>Airports</value></data>
+  <data name="Stats_FlightsMov" xml:space="preserve"><value>{0} flights · {1} mov.</value></data>
+  <data name="Stats_LastShifts" xml:space="preserve"><value>Latest shifts</value></data>
+  <data name="Stats_ShiftsInPeriod" xml:space="preserve"><value>{0} in the period</value></data>
+  <data name="Stats_ShowAllShifts" xml:space="preserve"><value>Show all {0} shifts</value></data>
   <data name="Stats_CovLegend" xml:space="preserve"><value>Coverage:</value></data>
   <data name="Stats_CovNone" xml:space="preserve"><value>none</value></data>
   <data name="Stats_CovFull" xml:space="preserve"><value>full</value></data>
