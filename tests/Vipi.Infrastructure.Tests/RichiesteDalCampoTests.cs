@@ -146,6 +146,50 @@ public class RichiesteDalCampoTests : IAsyncLifetime
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => Servizio(Staff).DoppioneAsync(prima, prima, null));
     }
 
+    /// <summary>
+    /// Eliminare una richiesta (committente, 30 settembre 2026): solo l'Admin, aperta o chiusa. Se era presa in carico,
+    /// il suo incarico si chiude — o resterebbe in «Da fare» su una domanda che non c'è più.
+    /// </summary>
+    [Fact]
+    public async Task Solo_l_admin_elimina_e_l_incarico_legato_si_chiude()
+    {
+        var id = await ApriAsync(Utente);
+        var incarico = await Servizio(Staff).PrendiInCaricoAsync(id);
+
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => Servizio(Staff).EliminaAsync(id));   // Editor: no
+        Assert.True(await _db.FieldRequests.AnyAsync(r => r.Id == id));
+
+        await Servizio(new Authz(VipiRole.Admin, 704798, "Carmine")).EliminaAsync(id);
+        Assert.False(await _db.FieldRequests.AnyAsync(r => r.Id == id));
+        Assert.Equal(EditorTaskStatus.Done, (await _db.EditorTasks.SingleAsync(t => t.Id == incarico)).Status);
+    }
+
+    /// <summary>
+    /// La pulizia automatica (committente, d'accordo con IT-HQ): le CHIUSE da più di tre mesi se ne vanno, le chiuse
+    /// recenti e le APERTE restano — anche un'aperta vecchia, perché è lavoro che aspetta una risposta.
+    /// </summary>
+    [Fact]
+    public async Task La_pulizia_toglie_solo_le_chiuse_da_piu_di_tre_mesi()
+    {
+        var vecchiaChiusa = await ApriAsync(Utente, "vecchia chiusa");
+        var recenteChiusa = await ApriAsync(Utente, "recente chiusa");
+        var vecchiaAperta = await ApriAsync(Utente, "vecchia aperta");
+        await Servizio(Staff).RisolviAsync(vecchiaChiusa, "fatto");
+        await Servizio(Staff).RespingiAsync(recenteChiusa, "no");
+
+        var soglia = DateTime.UtcNow.AddMonths(-FieldRequestRules.MesiDiConservazione);
+        foreach (var r in await _db.FieldRequests.ToListAsync())
+        {
+            if (r.Id == vecchiaChiusa) r.HandledUtc = soglia.AddDays(-1);
+            if (r.Id == recenteChiusa) r.HandledUtc = soglia.AddDays(1);
+            r.CreatedUtc = soglia.AddDays(-30);                        // tutte nate da tanto: conta la chiusura
+        }
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(1, await new EfFieldRequestRepository(_db).PotaChiuseAsync(soglia));
+        Assert.Equal(new[] { recenteChiusa, vecchiaAperta }.Order(), (await _db.FieldRequests.Select(r => r.Id).ToListAsync()).Order());
+    }
+
     private sealed class Authz(VipiRole livello, int? vid, string? nome) : IEditAuthorizationService
     {
         public VipiRole Role => livello;

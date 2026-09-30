@@ -23,6 +23,13 @@ public static class FieldRequestRules
     public const int MaxAlGiorno = 10;
     public const int MaxCorpo = 2000;
     public const int MaxRisposta = 2000;
+
+    /// <summary>
+    /// Per quanto si tiene una richiesta CHIUSA, dalla chiusura (committente, d'accordo con IT-HQ, 30 settembre 2026):
+    /// poi la toglie il giro notturno di conservazione. ⚠️ Dalla CHIUSURA e non dalla nascita, e le aperte mai: una
+    /// richiesta a cui nessuno ha ancora risposto è lavoro, non spazio occupato.
+    /// </summary>
+    public const int MesiDiConservazione = 3;
 }
 
 /// <summary>
@@ -53,6 +60,12 @@ public interface IFieldRequestService
     Task RisolviAsync(int id, string risposta, CancellationToken ct = default);
     Task RespingiAsync(int id, string risposta, CancellationToken ct = default);
     Task DoppioneAsync(int id, int doppioneDi, string? risposta, CancellationToken ct = default);
+
+    /// <summary>
+    /// Toglie una richiesta, aperta o chiusa: solo l'Admin (committente, 30 settembre 2026 — le richieste di prova
+    /// resterebbero nel sistema per niente). Se aveva un incarico ancora aperto, lo chiude come farebbe una chiusura.
+    /// </summary>
+    Task EliminaAsync(int id, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IFieldRequestService"/>
@@ -213,6 +226,18 @@ public sealed class FieldRequestService : IFieldRequestService
         await ChiudiAsync(id, FieldRequestStatus.Doppione,
             string.IsNullOrWhiteSpace(risposta) ? Lingua($"Doppione della richiesta #{doppioneDi}.", $"Duplicate of request #{doppioneDi}.") : risposta,
             doppioneDi, ct);
+    }
+
+    public async Task EliminaAsync(int id, CancellationToken ct = default)
+    {
+        _authz.EnsureAdmin();
+        var r = await _repo.GetAsync(id, ct)
+                ?? throw new Aor.ValidationException(Lingua($"Richiesta {id} inesistente.", $"Request {id} does not exist."));
+        // Prima l'incarico, poi la richiesta: tolta la richiesta, l'incarico resterebbe in «Da fare» su una domanda che
+        // non c'è più.
+        if (r.TaskId is int incarico && await _incarichi.GetAsync(incarico, ct) is { Status: not EditorTaskStatus.Done })
+            await _incarichi.UpdateStatusAsync(incarico, EditorTaskStatus.Done, _authz.CurrentUserId ?? 0, ct);
+        await _repo.DeleteAsync(id, ct);
     }
 
     /// <summary>D4: ogni chiusura ha una frase. Una richiesta chiusa in silenzio insegna a non chiederne più.</summary>

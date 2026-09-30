@@ -1708,6 +1708,16 @@
   fondo al piè di pagina, accanto ai diritti. ⚠️ L'elenco è scritto a mano: il presidio lega nome e durata di
   `vipi.auth` a `VipiStandaloneAuthExtensions`. Test Ui 1892. A schermo in italiano, inglese e a 375px (niente
   scorrimento di lato).
+- ✅ **S62** richieste dal campo: eliminare e pulizia automatica (30-set, committente: «come amministratore… eliminare
+  delle segnalazioni? Ne ho fatte alcune di test» e «si eliminano in automatico dopo 3 mesi? IT-HQ è d'accordo»; ramo
+  `fix/richieste-pulizia`, sopra S61). (1) `IFieldRequestService.EliminaAsync`, solo **Admin**: toglie la richiesta,
+  aperta o chiusa, e chiude prima il suo incarico se era ancora aperto. Nella coda dello staff il tasto «Elimina» con
+  la conferma sul posto, solo all'Admin. (2) `FieldRequestRules.MesiDiConservazione = 3`: il giro notturno di
+  conservazione (`TrafficRetentionHostedService`, la stessa domanda «che cosa non serve più tenere») toglie le
+  richieste **chiuse** da più di tre mesi, contati dalla **chiusura**. Le aperte restano a qualunque età (decisione
+  mia, detta al committente: sono lavoro che aspetta una risposta). Una riga sotto la coda lo dice. Test +2
+  Infrastructure (2035). Codice comune `Vipi.Application`, `Vipi.Infrastructure`. A schermo da Admin: richiesta
+  scritta, «Elimina» → «Conferma: elimina» → sparita, esito «Richiesta #1 eliminata».
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: da fondere `fix/enti-acc` (S53–S55) e poi `fix/richieste-campo` (S56, costruito sopra); dopo la
   fusione si torna su `sito/lavori`. Futuro: vIPI ACC legata all'ACC (`lavori-aperti.md`, Sito), secondo canale

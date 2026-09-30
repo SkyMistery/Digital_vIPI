@@ -337,6 +337,8 @@ public class WorkListServiceTests
         public Task<FieldRequestRow?> GetAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> SetStatusAsync(int id, FieldRequestStatus status, int handledByUserId, string handledByName, string reply, int? duplicateOfId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<string?> SectionTitleAsync(int documentId, string sectionKey, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> PotaChiuseAsync(DateTime chiuseprimaDiUtc, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     private static FieldRequestRow Richiesta(int id, int? doc, FieldRequestKind tipo = FieldRequestKind.Errore,

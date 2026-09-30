@@ -3834,4 +3834,8 @@
   <data name="Req_Status_Doppione" xml:space="preserve"><value>doppione</value></data>
   <data name="Req_ReportTitle" xml:space="preserve"><value>Segnala un errore o un suggerimento su questa sezione</value></data>
   <data name="Req_Open" xml:space="preserve"><value>Rispondi</value></data>
+  <data name="Req_Delete" xml:space="preserve"><value>Elimina</value></data>
+  <data name="Req_ConfirmDelete" xml:space="preserve"><value>Conferma: elimina</value></data>
+  <data name="Req_Deleted" xml:space="preserve"><value>Richiesta #{0} eliminata.</value></data>
+  <data name="Req_Retention" xml:space="preserve"><value>Le richieste chiuse si cancellano da sole {0} mesi dopo la chiusura. Le aperte restano finché qualcuno non risponde.</value></data>
 </root>

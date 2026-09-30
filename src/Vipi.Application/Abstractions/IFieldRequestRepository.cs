@@ -36,6 +36,15 @@ public interface IFieldRequestRepository
     Task<bool> SetStatusAsync(int id, FieldRequestStatus status, int handledByUserId, string handledByName,
         string reply, int? duplicateOfId, CancellationToken ct = default);
 
+    /// <summary>Toglie una richiesta. False se non c'è.</summary>
+    Task<bool> DeleteAsync(int id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Toglie le richieste CHIUSE (risolte, respinte, doppioni) prima di <paramref name="chiuseprimaDiUtc"/>: la pulizia
+    /// automatica. Le aperte restano, qualunque età abbiano. Ritorna quante ne ha tolte.
+    /// </summary>
+    Task<int> PotaChiuseAsync(DateTime chiuseprimaDiUtc, CancellationToken ct = default);
+
     /// <summary>Il titolo della sezione con questa chiave nella versione corrente del documento; null se non c'è.</summary>
     Task<string?> SectionTitleAsync(int documentId, string sectionKey, CancellationToken ct = default);
 }

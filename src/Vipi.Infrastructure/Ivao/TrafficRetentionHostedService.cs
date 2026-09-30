@@ -70,6 +70,14 @@ internal sealed class TrafficRetentionHostedService : BackgroundService
         if (storia > 0)
             _log.LogInformation("Potatura della storia del ponte RFO: {Tolte} righe di eventi finiti.", storia);
 
+        // Le richieste dal campo chiuse da più di tre mesi (committente, d'accordo con IT-HQ, 30 settembre 2026). Stessa
+        // domanda, stesso giro. Le aperte restano: sono lavoro, non spazio.
+        var richieste = await sp.GetRequiredService<IFieldRequestRepository>()
+            .PotaChiuseAsync(DateTime.UtcNow.AddMonths(-Vipi.Application.Content.FieldRequestRules.MesiDiConservazione), ct);
+        if (richieste > 0)
+            _log.LogInformation("Potatura delle richieste dal campo: {Tolte} chiuse da più di {Mesi} mesi.",
+                richieste, Vipi.Application.Content.FieldRequestRules.MesiDiConservazione);
+
         return true;
     }
 }

@@ -3826,4 +3826,8 @@
   <data name="Req_Status_Doppione" xml:space="preserve"><value>duplicate</value></data>
   <data name="Req_ReportTitle" xml:space="preserve"><value>Report an error or suggest a change in this section</value></data>
   <data name="Req_Open" xml:space="preserve"><value>Reply</value></data>
+  <data name="Req_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Req_ConfirmDelete" xml:space="preserve"><value>Confirm: delete</value></data>
+  <data name="Req_Deleted" xml:space="preserve"><value>Request #{0} deleted.</value></data>
+  <data name="Req_Retention" xml:space="preserve"><value>Closed requests are deleted automatically {0} months after closing. Open ones stay until someone answers.</value></data>
 </root>
