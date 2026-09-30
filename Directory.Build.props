@@ -1535,6 +1535,20 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.54.0 — MINOR: tre migrazioni ADDITIVE (RegistroAccessi: tabella AccessiAlSito; NomeBreveAccessi: una colonna;
+      PaginaDelleRichieste: colonna FieldRequests.PageUrl; niente tolto o rinominato). Su 1.53.0 (d4bbebd, online dal
+      30 settembre 2026). ⚠️ Da qui il sito si legge SOLO dopo il login IVAO (S67): senza login resta la porta di
+      /services con «Entra con IVAO», più login, sonde, /vsop/api con chiave e /api/rfo; si riapre con
+      VipiAuth__LoginObbligatorio=false. Sito S65 vista live (campi solo vSOP, niente «delegato» a chi guarda, SID del
+      pannello dal documento), S66 pagina Chiavi API con gli indirizzi, S67 login obbligatorio, S68 registro degli
+      accessi (12 mesi, solo admin, /services/stats/logins), S69 attese bUnit a 10 s, S70 «I miei dati», S71 titolo del
+      documento dall'elenco, S72 nuova veste delle statistiche, S73 pagina ACC al buio, S74 riassunto mensile ATC potato
+      a dieci anni, S75 ricerca senza JSON e in ordine di importanza, S76 scheda «Prenotazioni ATC e FRA», S77 «Segnala
+      un problema su questa pagina». Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations),
+      Vipi.Hosting, Vipi.Ui (+ frasi IT/EN, CSS con l'indice degli asset) e Vipi.Host. Dettaglio:
+      LEGGIMI-PACCHETTO-1.54.0.md, §A142.
+    -->
+    <!--
       1.53.0 — MINOR, nessuna migrazione. Su 1.52.0 (1a72e24, online dal 30 settembre 2026). Sito S64: API degli
       aeroporti per gli altri programmi (GET /vsop/api/v1/airports, /{icao}, /{icao}/sids, /{icao}/stars?runway=), la
       vista pubblica del documento dietro chiave API obbligatoria col permesso nuovo «aeroporti»; il nome dei vSOP
@@ -1868,7 +1882,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.53.0</VipiVersione>
+    <VipiVersione>1.54.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
