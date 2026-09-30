@@ -1749,8 +1749,14 @@
   classe D → pastiglia «corretto», aggancio intatto; «file nuovo» simulato nella copia col tetto a FL110 → blocco «Da
   controllare» (ritrovato per nome, aggancio scoperto); «Va bene» → voce sparita, FL115 tenuto, LIBA_APP di nuovo con
   le due zone. «Torna al file» con conferma «Sì, torna al file» (prima diceva «Sì, elimina»). Italiano e 375px senza
-  scorrimento di lato. ⚠️ «Va bene» su un volume ritrovato per nome impiega qualche secondo: rifà i confinanti, come
-  l'aggancio.
+  scorrimento di lato. Seconda prova, **caricamento vero dalla pagina**: il KMZ in vigore rizippato con il tetto di Z1
+  a FL110, passato a «Carica il file» (ciclo 2611) → «Da controllare» giusto, «Va bene» ok; «Metti in vigore» del file
+  vecchio → la correzione risalta fuori, «Prendi il file» la toglie e LIBA_APP torna con le due zone.
+  Due difetti visti lì e corretti: (1) la riga d'attesa diceva sempre «Sto leggendo il file» — ora ogni gesto dice il
+  suo («Un momento...», «Aggiorno gli agganci e ricalcolo i confinanti...»); (2) su SQLite la rotella non compariva
+  mai (23 s di pagina muta: le query finiscono subito e Blazor non ridisegna) — `Gesto` cede il passo una volta prima
+  del lavoro. ⚠️ Un gesto che sposta agganci impiega 15–25 s sulla copia: è il ricalcolo dei confinanti, lo stesso
+  dell'aggancio.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set sera: tutto fuso e online fino a S62 (1.51.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

@@ -3378,6 +3378,8 @@
   <data name="Asp_AdminSubtitle" xml:space="preserve"><value>Gli spazi aerei dell'AIP, dal file caricato a mano.</value></data>
   <data name="Asp_AdminIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Il file dell'AIP (KMZ) lo carica una persona: dentro ci sono i confini veri di CTR, CTA, TMA, ATZ e FIR.&lt;/p&gt;&lt;p style='margin:0'&gt;Le aree regolamentate (R, P, D) e le altre aree si leggono ma &lt;b&gt;non si usano&lt;/b&gt;: quelle vengono dal catalogo IVAO. Il ciclo AIRAC lo dichiari tu, perché il file non lo porta.&lt;/p&gt;&lt;p style='margin:6px 0 0'&gt;Con la matita correggi tipo, classe, base e tetto di un volume: la correzione resta ai caricamenti successivi, e se il file nuovo cambia qualcosa sotto di lei la pagina te lo segnala.&lt;/p&gt;</value></data>
   <data name="Asp_Upload" xml:space="preserve"><value>Carica il file</value></data>
+  <data name="Asp_Working" xml:space="preserve"><value>Un momento...</value></data>
+  <data name="Asp_Rebinding" xml:space="preserve"><value>Aggiorno gli agganci e ricalcolo i confinanti...</value></data>
   <data name="Asp_Reading" xml:space="preserve"><value>Sto leggendo il file...</value></data>
   <data name="Asp_Cycle" xml:space="preserve"><value>Ciclo AIRAC</value></data>
   <data name="Asp_CyclePh" xml:space="preserve"><value>AIRAC</value></data>

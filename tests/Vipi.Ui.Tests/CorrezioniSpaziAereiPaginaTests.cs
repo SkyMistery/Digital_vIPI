@@ -168,6 +168,8 @@ public class CorrezioniSpaziAereiPaginaTests : TestContext
         await cut.InvokeAsync(() => cut.FindAll(".asp-edit input").ElementAt(2).Input("FL95"));
         await cut.InvokeAsync(() => cut.FindAll(".asp-edit button").First(b => b.TextContent.Contains("Common_Save")).Click());
 
+        // Il gesto cede il passo prima di lavorare (la rotella si disegna): si aspetta che arrivi al catalogo.
+        cut.WaitForAssertion(() => Assert.Single(_catalogo.Corrette));
         var (chiave, input) = Assert.Single(_catalogo.Corrette);
         Assert.Equal("CTR|ALTRO CTR|GND|2500 FT AMSL", chiave.Key);
         Assert.Equal(new AirspaceCorrectionInput(AirspaceFamily.Ctr, "D", "GND", "FL95"), input);
@@ -187,7 +189,7 @@ public class CorrezioniSpaziAereiPaginaTests : TestContext
 
         await cut.InvokeAsync(() => cut.FindAll(".asp-review button").First(b => b.TextContent.Contains("Asp_Fix_Ok")).Click());
 
-        Assert.Equal(new[] { 5 }, _catalogo.Confermate);
+        cut.WaitForAssertion(() => Assert.Equal(new[] { 5 }, _catalogo.Confermate));
         cut.WaitForAssertion(() => Assert.Empty(cut.FindAll(".asp-review")));
     }
 
@@ -199,7 +201,7 @@ public class CorrezioniSpaziAereiPaginaTests : TestContext
 
         await cut.InvokeAsync(() => cut.FindAll(".asp-review button").First(b => b.TextContent.Contains("Asp_Fix_TakeFile")).Click());
 
-        Assert.Equal(new[] { 5 }, _catalogo.Tolte);
+        cut.WaitForAssertion(() => Assert.Equal(new[] { 5 }, _catalogo.Tolte));
         Assert.Empty(_catalogo.Confermate);
     }
 

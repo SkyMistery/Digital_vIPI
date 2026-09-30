@@ -58,7 +58,7 @@
             <LiveRegion>
                 @if (_busy)
                 {
-                    <span class="st-msg prog"><span class="spin"></span><span class="st-msg-t">@L["Asp_Reading"]</span></span>
+                    <span class="st-msg prog"><span class="spin"></span><span class="st-msg-t">@_attesa</span></span>
                 }
                 else if (_messaggio is not null)
                 {
@@ -566,6 +566,11 @@
     private bool _ok;
     private bool _busy;
 
+    /// <summary>Che cosa sta facendo il gesto in corso: la riga con la rotella in testata. Prima diceva sempre
+    /// «Sto leggendo il file», anche mentre si spostavano agganci e si rifacevano i confinanti (visto a schermo il
+    /// 30 settembre 2026: 18 secondi di «leggo il file» dopo un «Va bene»).</summary>
+    private string _attesa = "";
+
     // Le correzioni a mano (carta docs/feature/2026-09-30-correzioni-spazi-aerei.md).
     private IReadOnlyList<AirspaceCorrectionRow> _correzioni = Array.Empty<AirspaceCorrectionRow>();
     private IReadOnlyList<AirspaceCorrectionFinding> _revisione = Array.Empty<AirspaceCorrectionFinding>();
@@ -665,7 +670,7 @@
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Bound"].Value, pezzi[2], volumi.Count);
-        });
+        }, L["Asp_Rebinding"]);
     }
 
     /// <summary>
@@ -674,12 +679,20 @@
     /// doppio clic (o un secondo tasto premuto mentre il primo lavora) non parte. Un guasto che il servizio non
     /// traduce resta un messaggio: prima c'era un <c>finally</c> e basta, e l'eccezione abbatteva il circuito.
     /// </summary>
-    private async Task Gesto(Func<Task> lavoro)
+    private async Task Gesto(Func<Task> lavoro, string? attesa = null)
     {
         if (_busy) return;
+        _attesa = attesa ?? L["Asp_Working"];
         _busy = true;
         _messaggio = null;
-        try { await lavoro(); }
+        try
+        {
+            // ⚠️ Si cede il passo UNA volta prima del lavoro, o la rotella non si disegna: Blazor ridisegna al primo
+            // await che non finisce subito, e su SQLite le query finiscono tutte subito. Visto a schermo il 30
+            // settembre 2026: 23 secondi di «Prendi il file» (confinanti rifatti) con la pagina muta.
+            await Task.Yield();
+            await lavoro();
+        }
         catch (Vipi.Application.Aor.ValidationException ex)
         {
             _ok = false;
@@ -720,7 +733,7 @@
             }
             _rapporto = NavaidAipReport.Confronta(daAip, await Radioassistenze.ListAsync());
             _rapportoFatto = true;
-        });
+        }, L["Asp_Reading"]);
     }
 
     private async Task Sgancia(SectorAirspaceBindingRow a)
@@ -733,7 +746,7 @@
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Unbound"].Value, a.Callsign);
-        });
+        }, L["Asp_Rebinding"]);
     }
 
     /// <summary>
@@ -814,7 +827,7 @@
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Fix_Acked"].Value, f.Correction.Name);
-        });
+        }, f.KeyChanged ? L["Asp_Rebinding"].Value : null);
     }
 
     private async Task PrendiIlFile(AirspaceCorrectionFinding f)
@@ -826,7 +839,7 @@
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Fix_Removed"].Value, f.Correction.Name);
-        });
+        }, f.KeyChanged ? L["Asp_Rebinding"].Value : null);
     }
 
     private void Alterna(AirspaceFamily f)
@@ -878,7 +891,7 @@
                 _ok = false;
                 _messaggio = $"{L["Asp_TooBig"]} ({ex.Message})";
             }
-        });
+        }, L["Asp_Reading"]);
     }
 
     private async Task MettiInVigore(int id)

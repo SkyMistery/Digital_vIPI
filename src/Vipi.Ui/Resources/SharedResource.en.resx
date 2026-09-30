@@ -3370,6 +3370,8 @@
   <data name="Asp_AdminSubtitle" xml:space="preserve"><value>AIP airspaces, from the file uploaded by hand.</value></data>
   <data name="Asp_AdminIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;The AIP file (KMZ) is uploaded by a person: it holds the real boundaries of CTRs, CTAs, TMAs, ATZs and FIRs.&lt;/p&gt;&lt;p style='margin:0'&gt;Regulated areas (R, P, D) and the other areas are read but &lt;b&gt;not used&lt;/b&gt;: those come from the IVAO catalogue. You declare the AIRAC cycle, because the file does not carry one.&lt;/p&gt;&lt;p style='margin:6px 0 0'&gt;The pencil corrects the type, class, base and top of a volume: the correction survives later uploads, and if a new file changes something under it the page tells you.&lt;/p&gt;</value></data>
   <data name="Asp_Upload" xml:space="preserve"><value>Upload file</value></data>
+  <data name="Asp_Working" xml:space="preserve"><value>One moment...</value></data>
+  <data name="Asp_Rebinding" xml:space="preserve"><value>Updating the bindings and recomputing the neighbours...</value></data>
   <data name="Asp_Reading" xml:space="preserve"><value>Reading the file...</value></data>
   <data name="Asp_Cycle" xml:space="preserve"><value>AIRAC cycle</value></data>
   <data name="Asp_CyclePh" xml:space="preserve"><value>AIRAC</value></data>
