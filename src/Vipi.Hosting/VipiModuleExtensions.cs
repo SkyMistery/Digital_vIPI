@@ -503,6 +503,10 @@ public static class VipiModuleExtensions
         // evento, con la versione. Contratto del programma, seguito alla lettera: vedi PonteRfo.
         endpoints.MapPonteRfo();
 
+        // Scali, schede, SID e STAR per gli altri programmi della divisione: la vista pubblica del documento, con
+        // una chiave API (carta docs/feature/2026-09-30-api-aeroporti.md).
+        endpoints.MapApiAeroporti();
+
         // Archivio delle connessioni ATC, per le macchine (carta docs/feature/2026-08-28-archivio-atc-mondiale.md).
         // Dal 28 agosto 2026 il poller registra TUTTE le postazioni aperte, non le sole italiane: questo
         // endpoint è il modo di rileggerle da fuori — nasce perché altri strumenti della divisione (il

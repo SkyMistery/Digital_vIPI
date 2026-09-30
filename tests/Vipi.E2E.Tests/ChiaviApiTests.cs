@@ -23,6 +23,7 @@ public sealed class ChiaviApiTests : IClassFixture<ChiaviApiTests.ApiChiusaFacto
 {
     private const string Archivio = "/vsop/api/v1/atc/sessions";
     private const string Bridge = "/vsop/api/v1/transfers/resolve";
+    private const string Aeroporti = "/vsop/api/v1/airports";
 
     private readonly ApiChiusaFactory _factory;
     public ChiaviApiTests(ApiChiusaFactory factory) => _factory = factory;
@@ -113,6 +114,41 @@ public sealed class ChiaviApiTests : IClassFixture<ChiaviApiTests.ApiChiusaFacto
 
         var bridge = await EmettiAsync(_factory.Services, "bridge");
         Assert.Equal(HttpStatusCode.OK, (await ConBearer(bridge).PostAsJsonAsync(Bridge, corpo)).StatusCode);
+    }
+
+    /// <summary>
+    /// Le API degli aeroporti (carta 2026-09-30-api-aeroporti.md) vogliono la chiave SEMPRE, anche dove l'archivio
+    /// è ancora aperto: nascono dopo la regola. E solo la loro: una chiave dell'archivio non le apre.
+    /// </summary>
+    [Fact]
+    public async Task Aeroporti_senza_chiave_401_con_chiave_d_archivio_403_con_la_sua_200()
+    {
+        using var aperta = new ApiChiusaFactory(richiediChiave: false);
+
+        foreach (var percorso in new[] { Aeroporti, Aeroporti + "/LIRF", Aeroporti + "/LIRF/sids", Aeroporti + "/LIRF/stars" })
+            Assert.Equal(HttpStatusCode.Unauthorized, (await aperta.CreateClient().GetAsync(percorso)).StatusCode);
+
+        var archivio = await EmettiAsync(aperta.Services, "archivio");
+        var c = aperta.CreateClient();
+        c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", archivio);
+        Assert.Equal(HttpStatusCode.Forbidden, (await c.GetAsync(Aeroporti)).StatusCode);
+
+        var chiave = await EmettiAsync(aperta.Services, "aeroporti");
+        c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", chiave);
+        var res = await c.GetAsync(Aeroporti);
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        using var json = System.Text.Json.JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        Assert.Equal(json.RootElement.GetProperty("airports").GetArrayLength(), json.RootElement.GetProperty("count").GetInt32());
+    }
+
+    /// <summary>Uno scalo senza documento pubblicato non esiste per l'API, qualunque cosa abbia in archivio: le
+    /// SID che lo staff non ha dato al pubblico non escono da una porta laterale.</summary>
+    [Fact]
+    public async Task Aeroporti_uno_scalo_senza_documento_pubblicato_404()
+    {
+        var chiave = await EmettiAsync(_factory.Services, "aeroporti");
+        foreach (var percorso in new[] { Aeroporti + "/ZZZZ", Aeroporti + "/ZZZZ/sids", Aeroporti + "/ZZZZ/stars", Aeroporti + "/LIR/sids" })
+            Assert.Equal(HttpStatusCode.NotFound, (await ConBearer(chiave).GetAsync(percorso)).StatusCode);
     }
 
     /// <summary>
