@@ -6,10 +6,10 @@
 >
 > ## ▶ Il punto — 30 settembre 2026, pomeriggio
 >
-> **📦 Pronto da caricare: 1.53.0** (§A140, timbro `1.53.0 · d4bbebd`, 11 file, zip `214c8a17…`, MINOR senza
+> **✅ Online: 1.53.0** (`Schema 0` e Ricerca confermati dal committente; Healthy, API 401 senza chiave da fuori;
+> **in `main` non resta codice fuori pacchetto**) (§A140, timbro `1.53.0 · d4bbebd`, 11 file, zip `214c8a17…`, MINOR senza
 > migrazioni): Sito S64, API degli aeroporti (`/vsop/api/v1/airports`, scheda, SID, STAR) dietro chiave col permesso
-> «Aeroporti»; il nome dei vSOP militari senza «MIL». Fuso da `fix/api-aeroporti` @ `fd60631f`. Online resta 1.52.0
-> finché il committente non carica. ▶ Restano i gesti di §A134 su LIRE/LIBG, che aspettano il SOD.
+> «Aeroporti»; il nome dei vSOP militari senza «MIL». Fuso da `fix/api-aeroporti` @ `fd60631f`. ▶ Restano i gesti di §A134 su LIRE/LIBG, che aspettano il SOD.
 >
 > ## Il punto — 30 settembre 2026, mattina
 >
