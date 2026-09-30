@@ -254,6 +254,9 @@ public class VipiDbContext : DbContext
     /// <summary>I volumi di spazio aereo letti dal file caricato.</summary>
     public DbSet<AirspaceVolume> AirspaceVolumes => Set<AirspaceVolume>();
 
+    /// <summary>Le correzioni a mano dei volumi: citano la chiave del file e gli si sovrappongono (carta 30-set-2026).</summary>
+    public DbSet<AirspaceVolumeCorrection> AirspaceVolumeCorrections => Set<AirspaceVolumeCorrection>();
+
     /// <summary>Gli agganci settore → volumi dell'AIP: la scelta di una persona (carta §6-bis).</summary>
     public DbSet<SectorAirspaceBinding> SectorAirspaceBindings => Set<SectorAirspaceBinding>();
 
@@ -1208,6 +1211,25 @@ public class VipiDbContext : DbContext
 
             // ⚠️ Nessuna FK verso AirspaceVolume: l'aggancio cita la CHIAVE, non la riga, e deve sopravvivere
             // al ri-caricamento del file — che le righe le rifa' tutte.
+        });
+
+        b.Entity<AirspaceVolumeCorrection>(e =>
+        {
+            // Una correzione per volume: l'identita' e' quella del file, chiave+ordinale. Nessuna FK, per lo
+            // stesso motivo degli agganci: le righe dei volumi le rifa' ogni caricamento.
+            e.HasIndex(x => new { x.VolumeKey, x.VolumeOrdinal }).IsUnique();
+
+            e.Property(x => x.VolumeKey).HasMaxLength(300);    // come AirspaceVolume.NaturalKey
+            e.Property(x => x.Name).HasMaxLength(200);         // come AirspaceVolume.Name
+            e.Property(x => x.Family).HasMaxLength(32);        // enum -> stringa (SPEC §6)
+            e.Property(x => x.FileFamily).HasMaxLength(32);
+            e.Property(x => x.AirspaceClass).HasMaxLength(4);
+            e.Property(x => x.FileClass).HasMaxLength(4);
+            e.Property(x => x.BaseRaw).HasMaxLength(32);
+            e.Property(x => x.TopRaw).HasMaxLength(32);
+            e.Property(x => x.FileBaseRaw).HasMaxLength(32);
+            e.Property(x => x.FileTopRaw).HasMaxLength(32);
+            e.Property(x => x.UpdatedByName).HasMaxLength(128);
         });
 
         b.Entity<SectorShapePart>(e =>

@@ -1733,6 +1733,24 @@
   mia, detta al committente: sono lavoro che aspetta una risposta). Una riga sotto la coda lo dice. Test +2
   Infrastructure (2035). Codice comune `Vipi.Application`, `Vipi.Infrastructure`. A schermo da Admin: richiesta
   scritta, «Elimina» → «Conferma: elimina» → sparita, esito «Richiesta #1 eliminata».
+- 🟢 **S63** correzioni a mano degli spazi aerei (30-set, committente: «da /services/vsop/admin/airspace rendere
+  modificabile il tipo, la base, il tetto e la classe… quando se ne importa uno nuovo, se ci sono incongruenze il
+  programma lo segnala nella pagina, con la possibilità di marcarle come ok e farle sparire»; ramo
+  `fix/correzioni-spazi-aerei`). Carta `docs/feature/2026-09-30-correzioni-spazi-aerei.md`. ⚠️ La premessa «l'indice è
+  il nome» non regge: la chiave è `FAMIGLIA|NOME|BASE|TETTO` e gli agganci la citano, quindi la correzione **non** si
+  scrive sulla riga. Sta in `AirspaceVolumeCorrections`, con la chiave del file e i valori che il file aveva allora.
+  **Migrazione** `CorrezioniSpaziAerei` (SQLite+MySQL, solo additiva). Si sovrappone in lettura in `EfAirspaceCatalog`
+  ed `EfSectorAirspaceBindings` (regole pure in `AirspaceCorrections`). Dopo un caricamento: il file ha cambiato un
+  campo corretto / dice già così / il volume non c'è più; il volume si ritrova per chiave, poi per nome se unico, e
+  confermando gli agganci passano alla chiave nuova. Pagina: matita → modulo sotto la riga, pastiglia «corretto»,
+  filtro «Corretti a mano», blocco «Da controllare» in cima con «Va bene» e «Prendi il file». Test: App 3125 → 3144,
+  Infra 2041 → 2052, Ui 1899 → 1904. Codice comune `Vipi.Application`, `Vipi.Domain`, `Vipi.Infrastructure`.
+  **A schermo** su copia del DB (file vero, 1 536 volumi): AMENDOLA CTR Z1 (agganciato a LIBA_APP) corretto a FL115 e
+  classe D → pastiglia «corretto», aggancio intatto; «file nuovo» simulato nella copia col tetto a FL110 → blocco «Da
+  controllare» (ritrovato per nome, aggancio scoperto); «Va bene» → voce sparita, FL115 tenuto, LIBA_APP di nuovo con
+  le due zone. «Torna al file» con conferma «Sì, torna al file» (prima diceva «Sì, elimina»). Italiano e 375px senza
+  scorrimento di lato. ⚠️ «Va bene» su un volume ritrovato per nome impiega qualche secondo: rifà i confinanti, come
+  l'aggancio.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set sera: tutto fuso e online fino a S62 (1.51.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

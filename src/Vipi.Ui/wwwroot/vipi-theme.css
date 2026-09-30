@@ -4021,6 +4021,25 @@
 :where(.vipi-root) .res-table.mil-table.asp-table th.c-class,:where(.vipi-root) .res-table.mil-table.asp-table td.c-class{width:70px}
 :where(.vipi-root) .res-table.mil-table.asp-table th.c-pts,:where(.vipi-root) .res-table.mil-table.asp-table td.c-pts{width:78px;text-align:right}
 :where(.vipi-root) .res-table.mil-table.asp-table th.c-use,:where(.vipi-root) .res-table.mil-table.asp-table td.c-use{width:104px}
+/* Le correzioni a mano (carta 2026-09-30-correzioni-spazi-aerei): la matita in fondo alla riga, e il modulo
+   in una riga sotto, a tutta larghezza — dentro le colonne fisse della tabella quattro campi non ci stanno. */
+:where(.vipi-root) .res-table.mil-table.asp-table th.c-fix,:where(.vipi-root) .res-table.mil-table.asp-table td.c-fix{width:48px;text-align:right}
+:where(.vipi-root) .struct .asp-table .c-fix .btn{padding:4px 7px}
+:where(.vipi-root) .struct .asp-fixed{margin-left:6px;cursor:help}
+:where(.vipi-root) .struct .asp-table tr.asp-edit>td{background:var(--tint-atmos)}
+:where(.vipi-root) .struct .asp-edit-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
+:where(.vipi-root) .struct .asp-edit-row label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-mid)}
+:where(.vipi-root) .struct .asp-in{width:170px;border:1px solid var(--line);border-radius:8px;padding:5px 9px;
+  font-family:var(--font-body);font-size:12.5px;background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .struct .asp-in.asp-in-class{width:110px}
+:where(.vipi-root) .struct .asp-in:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
+:where(.vipi-root) .struct .asp-edit-act{display:flex;gap:6px;margin-left:auto;align-items:center}
+:where(.vipi-root) .struct .asp-edit-hint{font-size:12px;margin:8px 0 0;max-width:80ch}
+:where(.vipi-root) .res-table.mil-table.asp-review th.c-name,:where(.vipi-root) .res-table.mil-table.asp-review td.c-name{width:26%}
+:where(.vipi-root) .res-table.mil-table.asp-review th.c-what,:where(.vipi-root) .res-table.mil-table.asp-review td.c-what{width:24%}
+:where(.vipi-root) .res-table.mil-table.asp-review th.c-diff,:where(.vipi-root) .res-table.mil-table.asp-review td.c-diff{width:auto;font-size:12.5px}
+:where(.vipi-root) .res-table.mil-table.asp-review th.c-act2,:where(.vipi-root) .res-table.mil-table.asp-review td.c-act2{width:230px;text-align:right}
+:where(.vipi-root) .struct .asp-review td.c-act2 .btn{margin-left:4px}
 :where(.vipi-root) .res-table.mil-table.asp-bindings th.c-sec,:where(.vipi-root) .res-table.mil-table.asp-bindings td.c-sec{width:150px}
 :where(.vipi-root) .res-table.mil-table.asp-bindings th.c-vols,:where(.vipi-root) .res-table.mil-table.asp-bindings td.c-vols{width:auto}
 :where(.vipi-root) .res-table.mil-table.asp-bindings th.c-who,:where(.vipi-root) .res-table.mil-table.asp-bindings td.c-who{width:250px}

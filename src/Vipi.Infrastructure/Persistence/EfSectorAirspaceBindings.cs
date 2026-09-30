@@ -114,6 +114,11 @@ public sealed class EfSectorAirspaceBindings : ISectorAirspaceBindings
 
         var indice = volumi.ToDictionary(v => (v.NaturalKey, v.Ordinal));
 
+        // Il volume si disegna con le correzioni a mano sopra (quote, tipo, classe): la chiave resta quella del file.
+        var correzioni = (await _db.AirspaceVolumeCorrections.AsNoTracking()
+                .Where(c => chiavi.Contains(c.VolumeKey)).ToListAsync(ct))
+            .ToDictionary(c => (c.VolumeKey, c.VolumeOrdinal), c => EfAirspaceCatalog.Riga(c));
+
         var esito = new Dictionary<string, SectorAirspaceBindingRow>(StringComparer.OrdinalIgnoreCase);
         foreach (var gruppo in agganci.GroupBy(b => (b.Catalog, b.SectorId)))
         {
@@ -123,7 +128,8 @@ public sealed class EfSectorAirspaceBindings : ISectorAirspaceBindings
 
             foreach (var b in ordinati)
             {
-                if (indice.TryGetValue((b.VolumeKey, b.VolumeOrdinal), out var v)) trovati.Add(Riga(v));
+                if (indice.TryGetValue((b.VolumeKey, b.VolumeOrdinal), out var v))
+                    trovati.Add(AirspaceCorrections.Apply(Riga(v), correzioni.GetValueOrDefault((b.VolumeKey, b.VolumeOrdinal))));
                 else mancanti.Add(new AirspaceVolumeKey(b.VolumeKey, b.VolumeOrdinal));
             }
 
