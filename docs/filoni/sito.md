@@ -1700,6 +1700,14 @@
   Italia https://it.ivao.aero/»; ramo `fix/footer-ivao-italy`). Voce «IVAO Italia» / «IVAO Italy» fra IVAO e la
   wiki, scheda nuova come le altre. Test del piè di pagina aggiornato (conteggio invariato, Ui 1888). A schermo in
   italiano: tre collegamenti nell'ordine giusto.
+- ✅ **S61** pagina dei cookie (30-set, committente: «metti una paginetta cookie con link a piè di pagina»; ramo
+  `fix/pagina-cookie`, sopra S60). Il sito scrive solo cookie tecnici (`vipi.auth` 7 giorni a scorrimento, i due del
+  giro OpenID Connect, `.AspNetCore.Culture` un anno, `.AspNetCore.Antiforgery.*` di sessione): niente banner di
+  consenso, una pagina `/services/cookies` (SSR statica, IT/EN) che li elenca, dice delle preferenze nell'archivio
+  locale e delle tessere di Esri (verificato: nessun `Set-Cookie`), e rimanda alla privacy di IVAO. Link «Cookie» in
+  fondo al piè di pagina, accanto ai diritti. ⚠️ L'elenco è scritto a mano: il presidio lega nome e durata di
+  `vipi.auth` a `VipiStandaloneAuthExtensions`. Test Ui 1892. A schermo in italiano, inglese e a 375px (niente
+  scorrimento di lato).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: da fondere `fix/enti-acc` (S53–S55) e poi `fix/richieste-campo` (S56, costruito sopra); dopo la
   fusione si torna su `sito/lavori`. Futuro: vIPI ACC legata all'ACC (`lavori-aperti.md`, Sito), secondo canale

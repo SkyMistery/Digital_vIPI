@@ -144,6 +144,27 @@
   <data name="Foot_BuiltBy" xml:space="preserve"><value>Realizzato da</value></data>
   <data name="Foot_Ivao" xml:space="preserve"><value>IVAO</value></data>
   <data name="Foot_IvaoItaly" xml:space="preserve"><value>IVAO Italia</value></data>
+  <data name="Ck_Title" xml:space="preserve"><value>Cookie</value></data>
+  <data name="Ck_Intro" xml:space="preserve"><value>Questo sito usa solo cookie tecnici, necessari a farlo funzionare: il login con IVAO, la lingua che scegli, la protezione dei moduli. Niente statistiche, pubblicità o traccianti di terzi. Per questo non ti chiediamo un consenso: i cookie strettamente necessari non lo richiedono, ma è giusto che tu sappia quali sono.</value></data>
+  <data name="Ck_CookiesTitle" xml:space="preserve"><value>I cookie</value></data>
+  <data name="Ck_Name" xml:space="preserve"><value>Nome</value></data>
+  <data name="Ck_Purpose" xml:space="preserve"><value>A che serve</value></data>
+  <data name="Ck_Duration" xml:space="preserve"><value>Durata</value></data>
+  <data name="Ck_AuthPurpose" xml:space="preserve"><value>Ti tiene connesso dopo il login con IVAO. C'è solo se accedi.</value></data>
+  <data name="Ck_AuthDuration" xml:space="preserve"><value>7 giorni dall'ultima visita</value></data>
+  <data name="Ck_OidcPurpose" xml:space="preserve"><value>Proteggono il passaggio dalla pagina di login di IVAO al sito.</value></data>
+  <data name="Ck_OidcDuration" xml:space="preserve"><value>Pochi minuti, solo durante il login</value></data>
+  <data name="Ck_CulturePurpose" xml:space="preserve"><value>Ricorda la lingua che hai scelto (italiano o inglese).</value></data>
+  <data name="Ck_CultureDuration" xml:space="preserve"><value>1 anno</value></data>
+  <data name="Ck_AntiforgeryPurpose" xml:space="preserve"><value>Protegge i moduli da invii falsificati da altri siti.</value></data>
+  <data name="Ck_AntiforgeryDuration" xml:space="preserve"><value>Fino alla chiusura del browser</value></data>
+  <data name="Ck_StorageTitle" xml:space="preserve"><value>Le preferenze nel tuo browser</value></data>
+  <data name="Ck_Storage" xml:space="preserve"><value>Alcune scelte di visualizzazione restano nell'archivio locale del browser (non sono cookie e non vengono mandate a noi): tema chiaro o scuro, zoom, densità delle tabelle, sezioni aperte o chiuse, la guida già vista, il tema giorno/notte del vAWOS. Restano sul tuo dispositivo finché non le cancelli.</value></data>
+  <data name="Ck_ThirdTitle" xml:space="preserve"><value>Servizi di terzi</value></data>
+  <data name="Ck_Third" xml:space="preserve"><value>Le mappe caricano le immagini di sfondo dal servizio di Esri (ArcGIS): è il tuo browser a chiederle, e quel servizio vede il tuo indirizzo IP come per qualunque immagine sul web. Le immagini arrivano senza cookie, e il sito non usa altri servizi di terzi.</value></data>
+  <data name="Ck_ControlTitle" xml:space="preserve"><value>Come toglierli</value></data>
+  <data name="Ck_Control" xml:space="preserve"><value>Puoi cancellare cookie e archivio locale dalle impostazioni del browser: il sito continua a funzionare, ti chiederà di nuovo il login e tornerà alla lingua del browser. Per il trattamento dei dati da parte di IVAO vedi</value></data>
+  <data name="Ck_Updated" xml:space="preserve"><value>Ultimo aggiornamento: 30 settembre 2026.</value></data>
   <data name="Foot_Info" xml:space="preserve"><value>Regole, regolamento e privacy</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Tema: automatico (segue il sistema)</value></data>
   <data name="Chrome_ThemeLight" xml:space="preserve"><value>Tema: chiaro</value></data>

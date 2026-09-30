@@ -1,0 +1,61 @@
+@page "/services/cookies"
+@layout SopLayout
+@inject IStringLocalizer<SharedResource> L
+
+@* ---- I cookie (committente, 30 settembre 2026) ----------------------------------------------------------------------
+   Il sito usa solo cookie TECNICI: il login, la lingua, la protezione dei moduli. Niente statistiche, pubblicità o
+   traccianti di terzi — ed è per questo che non c'è un banner di consenso: i cookie strettamente necessari non lo
+   chiedono, basta dire quali sono. Questa pagina lo dice.
+   ⚠️ L'elenco è scritto a MANO, e va tenuto in pari col codice: un cookie nuovo (o un servizio di terzi che ne
+   porta) va aggiunto qui. I nomi vengono da VipiStandaloneAuthExtensions (`vipi.auth`, 7 giorni a scorrimento),
+   CultureCookieMiddleware (un anno), AddAntiforgery (di sessione) e dal giro di login OpenID Connect.
+   SSR statica: è testo. *@
+<PageTitle>@L["Ck_Title"] · IVAO Italy</PageTitle>
+
+<div class="wrap" style="max-width:900px">
+    <div class="doc-head">
+        <h1 class="page-h1">@L["Ck_Title"]</h1>
+    </div>
+
+    <p>@L["Ck_Intro"]</p>
+
+    <h2 class="h-sect">@L["Ck_CookiesTitle"]</h2>
+    <div class="ck-scroll">
+        <table class="ck-table">
+            <thead>
+                <tr><th>@L["Ck_Name"]</th><th>@L["Ck_Purpose"]</th><th>@L["Ck_Duration"]</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var (nome, scopo, durata) in Cookie)
+                {
+                    <tr><td><code>@nome</code></td><td>@L[scopo]</td><td>@L[durata]</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="h-sect">@L["Ck_StorageTitle"]</h2>
+    <p>@L["Ck_Storage"]</p>
+
+    <h2 class="h-sect">@L["Ck_ThirdTitle"]</h2>
+    <p>@L["Ck_Third"]</p>
+
+    <h2 class="h-sect">@L["Ck_ControlTitle"]</h2>
+    <p>
+        @L["Ck_Control"]
+        <a href="https://wiki.ivao.aero/en/home/ivao/information" target="_blank" rel="noopener">@L["Foot_Info"]</a>.
+    </p>
+
+    <p class="muted">@L["Ck_Updated"]</p>
+</div>
+
+@code {
+    /// <summary>I cookie che il sito scrive: nome, a che serve, quanto dura (chiavi del .resx).</summary>
+    internal static readonly (string Nome, string Scopo, string Durata)[] Cookie =
+    {
+        ("vipi.auth", "Ck_AuthPurpose", "Ck_AuthDuration"),
+        (".AspNetCore.OpenIdConnect.Nonce.* · .AspNetCore.Correlation.*", "Ck_OidcPurpose", "Ck_OidcDuration"),
+        (".AspNetCore.Culture", "Ck_CulturePurpose", "Ck_CultureDuration"),
+        (".AspNetCore.Antiforgery.*", "Ck_AntiforgeryPurpose", "Ck_AntiforgeryDuration"),
+    };
+}
