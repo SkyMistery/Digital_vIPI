@@ -1817,6 +1817,15 @@
   Test: E2E 465 → 497 (`CancelloDelLoginTests`), Ui 1905 → 1908. **Col login IVAO vero** (committente, localhost:5034,
   copia DB cancellata): link a LIRF → IVAO → di nuovo su LIRF, tutto normale. Misura del profilo: nessun campo
   «attivo/sospeso» (elenco dei nomi nella carta §5); resta il login riuscito.
+- ✅ **S68** registro degli accessi (30-set, committente: «registrare il nome di chi fa almeno un accesso e mostrarlo
+  nella pagina delle statistiche»; poi «vedi se ora bisogna aggiornare i cookies»). Ramo `fix/registro-accessi`, sopra
+  S67. Carta `docs/feature/2026-09-30-registro-accessi.md`. Prima si salvava il nome del solo staff IT (roster). Ora
+  `AccessiAlSito`, una riga per VID: nome, divisione, ACC, primo/ultimo accesso, giorni. **Migrazione**
+  `RegistroAccessi` (SQLite+MySQL, additiva). Scrive `StaffLoginTrackingMiddleware` (ogni 5 min per VID); potatura a
+  12 mesi una volta al giorno; divisione dal claim `divisionId` (nuovo, `CurrentUser.Division`). Pagina
+  `/services/stats/logins`, solo admin (servizio `EnsureAdmin`), SSR con ricerca `?q=`, link da Statistiche di
+  divisione. Informativa `/services/cookies`: libera dal cancello, `vipi.auth` riscritto, sezione «Che cosa registriamo
+  quando entri». A schermo su DB vuoto. Test: Domain 160, App 3158, Infra 2055, Ui 1915, E2E 498.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

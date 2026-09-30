@@ -12,6 +12,10 @@ public sealed record CurrentUser(
 {
     /// <summary>Vero se l'utente è CH/AOD della divisione IT → abilitato all'editing (RF-7).</summary>
     public bool CanEdit { get; init; }
+
+    /// <summary>La divisione IVAO (IT, FR, …), dal profilo. Null dove l'host non la dà (sviluppo, cookie di prima
+    /// del 30 settembre 2026). La legge il registro degli accessi.</summary>
+    public string? Division { get; init; }
 }
 
 /// <summary>

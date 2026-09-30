@@ -173,6 +173,7 @@ public static class VipiStandaloneAuthExtensions
                 oidc.ClaimActions.MapJsonKey("id", "id");                 // VID, la chiave dell'identità
                 oidc.ClaimActions.MapJsonKey("sub", "sub");               // ripiego del VID (HostIdentity)
                 oidc.ClaimActions.MapJsonKey("centerId", "centerId");     // ACC di appartenenza (es. LIRR)
+                oidc.ClaimActions.MapJsonKey("divisionId", "divisionId"); // divisione (IT, FR…): registro degli accessi
                 oidc.ClaimActions.MapJsonKey("firstName", "firstName");   // ↓ i due campi del nome vero
                 oidc.ClaimActions.MapJsonKey("lastName", "lastName");
                 oidc.ClaimActions.MapJsonKey("publicNickname", "publicNickname"); // ripiego del nome

@@ -56,6 +56,7 @@ public sealed class StaffLoginTrackingMiddleware
         HttpContext ctx,
         ICurrentUserProvider users,
         IStaffRosterService roster,
+        IRegistroAccessi accessi,
         StaffLoginThrottle throttle,
         ILogger<StaffLoginTrackingMiddleware> log)
     {
@@ -69,7 +70,12 @@ public sealed class StaffLoginTrackingMiddleware
         {
             var user = users.Get();
             if (user is not null && throttle.ShouldRecord(user.UserId))
+            {
                 await roster.RecordLoginAsync(user, ctx.RequestAborted);
+                // Chiunque entri, non solo lo staff: il registro degli accessi (30 settembre 2026). Stessa cadenza
+                // del roster — una scrittura ogni cinque minuti per VID — e stessa regola: se fallisce, si prosegue.
+                await accessi.RegistraAsync(user, ctx.RequestAborted);
+            }
         }
         catch (Exception ex)
         {

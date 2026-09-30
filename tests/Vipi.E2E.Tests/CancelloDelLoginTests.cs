@@ -48,6 +48,7 @@ public sealed class CancelloDelLoginTests
     [InlineData("/")]
     [InlineData("/services")]
     [InlineData("/services/")]
+    [InlineData("/services/cookies")]
     [InlineData("/services/vsop/auth/login")]
     [InlineData("/services/vsop/auth/accesso-non-riuscito")]
     [InlineData("/signin-oidc")]

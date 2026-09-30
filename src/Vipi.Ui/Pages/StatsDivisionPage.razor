@@ -282,6 +282,16 @@
             <Icon Name="search" Size="15" /> @L["World_Title"]
         </a>
 
+        @* Chi è entrato nel sito: solo agli amministratori (30 settembre 2026), sono dati personali. *@
+        @if (Authz.IsAdmin)
+        {
+            <h2 class="h-sect">@L["Logins_Title"]</h2>
+            <p class="muted">@L["Logins_Subtitle"]</p>
+            <a class="btn ghost" href="/services/stats/logins">
+                <Icon Name="log-in" Size="15" /> @L["Logins_Title"]
+            </a>
+        }
+
         <h2 class="h-sect">@L["Stats_Visibility"]</h2>
         <label class="inline-form">
             <input type="checkbox" checked="@_pubblica" @onchange="CambiaVisibilita" />

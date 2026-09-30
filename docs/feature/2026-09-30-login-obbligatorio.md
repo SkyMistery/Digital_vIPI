@@ -41,6 +41,7 @@ tiene.
 | Indirizzo | Perché |
 |---|---|
 | `/` e `/services` | la porta d'ingresso («/» rimanda lì) |
+| `/services/cookies` | cookie e dati: si leggono prima di decidere se entrare |
 | `/services/vsop/auth/…`, `/signin-oidc`, `/signout-callback-oidc` | il giro del login stesso |
 | `/vsop/health`, `/vsop/health/ready`, `/vsop/ping` | sonde di monitoraggio |
 | `/vsop/api/…` | API per altri programmi: hanno la loro chiave |

@@ -43,6 +43,7 @@ public static class CancelloDelLogin
     {
         "/",                                   // rimanda alla porta
         VsopRoutes.ServicesHome,               // la porta d'ingresso
+        "/services/cookies",                   // cookie e dati: si leggono PRIMA di decidere se entrare
         "/services/vsop/auth/",                // login, logout, «accesso non riuscito»
         "/signin-oidc", "/signout-callback-oidc",
         "/vsop/health", "/vsop/health/ready", "/vsop/ping",

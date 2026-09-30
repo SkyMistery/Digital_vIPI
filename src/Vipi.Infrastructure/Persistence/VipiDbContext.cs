@@ -179,6 +179,9 @@ public class VipiDbContext : DbContext
     /// <summary>I programmi con una chiave per le API. Carta del 13 settembre 2026 (T-017).</summary>
     public DbSet<ApiClient> ApiClients => Set<ApiClient>();
 
+    /// <summary>Chi è entrato nel sito almeno una volta (registro degli accessi, 30 settembre 2026).</summary>
+    public DbSet<AccessoAlSito> AccessiAlSito => Set<AccessoAlSito>();
+
     /// <summary>Il documento condiviso di ogni evento RFO e la sua storia. Carta del 18 settembre 2026.</summary>
     public DbSet<RfoSharedState> RfoSharedStates => Set<RfoSharedState>();
     public DbSet<RfoSharedStateHistory> RfoSharedStateHistory => Set<RfoSharedStateHistory>();
@@ -640,6 +643,19 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Level).HasMaxLength(32);         // enum → stringa (SPEC §6)
             e.Property(x => x.Note).HasMaxLength(500);
             e.Property(x => x.DisplayName).HasMaxLength(120);
+        });
+
+        // Registro degli accessi: una riga per VID, la chiave è il VID stesso (viene da IVAO, non si genera).
+        // L'indice sull'ultimo accesso regge sia l'elenco (più recenti per primi) sia la potatura dei dodici mesi.
+        b.Entity<AccessoAlSito>(e =>
+        {
+            e.ToTable("AccessiAlSito");
+            e.HasKey(x => x.UserId);
+            e.Property(x => x.UserId).ValueGeneratedNever();
+            e.Property(x => x.Nome).HasMaxLength(AccessoAlSitoLimits.Nome).IsRequired();
+            e.Property(x => x.Divisione).HasMaxLength(AccessoAlSitoLimits.Divisione);
+            e.Property(x => x.Acc).HasMaxLength(AccessoAlSitoLimits.Acc);
+            e.HasIndex(x => x.UltimoUtc);
         });
 
         b.Entity<ApiClient>(e =>

@@ -151,7 +151,7 @@
   <data name="Ck_Name" xml:space="preserve"><value>Name</value></data>
   <data name="Ck_Purpose" xml:space="preserve"><value>What it is for</value></data>
   <data name="Ck_Duration" xml:space="preserve"><value>Duration</value></data>
-  <data name="Ck_AuthPurpose" xml:space="preserve"><value>Keeps you signed in after the IVAO login. Only if you sign in.</value></data>
+  <data name="Ck_AuthPurpose" xml:space="preserve"><value>Keeps you signed in after the IVAO login, which you need to read the site.</value></data>
   <data name="Ck_AuthDuration" xml:space="preserve"><value>7 days from your last visit</value></data>
   <data name="Ck_OidcPurpose" xml:space="preserve"><value>Protect the round trip from the IVAO login page back to the site.</value></data>
   <data name="Ck_OidcDuration" xml:space="preserve"><value>A few minutes, only while signing in</value></data>
@@ -159,6 +159,8 @@
   <data name="Ck_CultureDuration" xml:space="preserve"><value>1 year</value></data>
   <data name="Ck_AntiforgeryPurpose" xml:space="preserve"><value>Protects forms from submissions forged by other sites.</value></data>
   <data name="Ck_AntiforgeryDuration" xml:space="preserve"><value>Until you close the browser</value></data>
+  <data name="Ck_DataTitle" xml:space="preserve"><value>What we record when you sign in</value></data>
+  <data name="Ck_Data" xml:space="preserve"><value>Reading the site requires signing in with IVAO. When you sign in we record your VID, name, division and ACC as IVAO sends them, the date of your first and last sign-in and on how many different days you signed in: one row per person, not a list of what you read. It tells us who uses the site and only administrators can see it. Anyone who has not signed in for twelve months is deleted.</value></data>
   <data name="Ck_StorageTitle" xml:space="preserve"><value>Preferences in your browser</value></data>
   <data name="Ck_Storage" xml:space="preserve"><value>Some display choices stay in the browser's local storage (they are not cookies and are not sent to us): light or dark theme, zoom, table density, open or closed sections, the guide already seen, the vAWOS day/night theme. They stay on your device until you clear them.</value></data>
   <data name="Ck_ThirdTitle" xml:space="preserve"><value>Third-party services</value></data>
@@ -3139,6 +3141,19 @@
   <data name="Mil_CreateFromCivil" xml:space="preserve"><value>Create the military vSOP</value></data>
   <data name="Mil_OpenFromCivil" xml:space="preserve"><value>Military vSOP</value></data>
   <data name="Mil_CreatedGoEditor" xml:space="preserve"><value>Military vSOP created: it is a draft, to be written and published.</value></data>
+  <data name="Logins_Title" xml:space="preserve"><value>Site sign-ins</value></data>
+  <data name="Logins_Subtitle" xml:space="preserve"><value>Everyone who signed in to the site with IVAO at least once, most recent first.</value></data>
+  <data name="Logins_AdminOnly" xml:space="preserve"><value>Administrators only.</value></data>
+  <data name="Logins_Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Logins_SearchPh" xml:space="preserve"><value>Name or VID</value></data>
+  <data name="Logins_SearchGo" xml:space="preserve"><value>Search</value></data>
+  <data name="Logins_Found" xml:space="preserve"><value>{0} shown out of {1}.</value></data>
+  <data name="Logins_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Logins_Division" xml:space="preserve"><value>Division</value></data>
+  <data name="Logins_First" xml:space="preserve"><value>First sign-in</value></data>
+  <data name="Logins_Last" xml:space="preserve"><value>Last sign-in</value></data>
+  <data name="Logins_Days" xml:space="preserve"><value>Days</value></data>
+  <data name="Logins_Retention" xml:space="preserve"><value>Recorded at most once every five minutes per VID. Anyone who has not signed in for twelve months is deleted.</value></data>
   <data name="World_Title" xml:space="preserve"><value>ATC archive</value></data>
   <data name="World_Subtitle" xml:space="preserve"><value>Every ATC position the poller has seen, division and rest of the world: when they opened and when we last saw them. Twelve months.</value></data>
   <data name="World_StaffOnly" xml:space="preserve"><value>The connection archive is for staff.</value></data>

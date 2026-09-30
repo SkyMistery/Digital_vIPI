@@ -39,9 +39,12 @@ public sealed class HostIdentityCurrentUserProvider : ICurrentUserProvider
 
         var positions = ExtractStaffPositions(principal.FindAll(_opt.StaffPositionsClaim).Select(c => c.Value));
 
+        var divisione = principal.FindFirst(_opt.DivisionClaim)?.Value;
+
         return new CurrentUser(UserId, name, string.IsNullOrWhiteSpace(acc) ? null : acc, positions)
         {
             CanEdit = positions.Count > 0,
+            Division = string.IsNullOrWhiteSpace(divisione) ? null : divisione,
         };
     }
 

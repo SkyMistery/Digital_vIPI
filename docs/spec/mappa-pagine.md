@@ -134,6 +134,7 @@
 | `/services/vawos` · `/services/vawos/{icao}` | `AwosPage.razor` | **Quadro vAWOS** di torre (SSR + JS): elenco scali e quadro dello scalo; impianto a pista sola o a blocchi per 2+ piste. Tetto di richieste per IP sull'API; sorgente METAR e provenienza della pista in uso solo allo staff (il «Test METAR» è solo nell'API, `?test=`, dal 30-set); regole piste e minimi LVP dalla release pubblicata | tutti (sorgente, provenienza, `?test=` dell'API: DivisionStaff) |
 | `/services/coordinates` | `CoordinateConverterPage.razor` | Convertitore di coordinate | DivisionStaff |
 | `/services/stats/world` | `AtcWorldArchivePage.razor` | Archivio ATC mondiale | DivisionStaff |
+| `/services/stats/logins` | `StatsAccessiPage.razor` | Accessi al sito (chi è entrato, 12 mesi) | Admin |
 | `/services/vsop/airspace` | `AirspacePage.razor` | Spazi aerei (vista) | DivisionStaff |
 | `/services/vsop/mil` | `MilListPage.razor` | Elenco vSOP militari (le bozze le vede solo l'Editor) | tutti |
 | `/services/vsop/{acc}/mil` | `MilDocumentPage.razor` | Documento vSOP militare | tutti (edit: Editor) |
