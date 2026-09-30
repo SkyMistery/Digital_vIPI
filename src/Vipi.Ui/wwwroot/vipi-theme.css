@@ -968,7 +968,10 @@
 :where(.vipi-root) .breadcrumb{font-size:13px;color:var(--ink-soft);margin-bottom:18px}
 :where(.vipi-root) .breadcrumb a{color:var(--ink-soft)}
 :where(.vipi-root) .breadcrumb b{color:var(--brand-ink)}
-:where(.vipi-root) .airac{display:inline-flex;align-items:center;gap:7px;background:var(--tint-atmos);color:var(--brand-ink);border:1px solid var(--on-dark-soft);padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:600;font-family:var(--font-head)}
+/* Bordo trasparente (30 settembre 2026, committente): `--on-dark-soft` è quasi bianco anche al buio, e intorno
+   all'AIRAC disegnava un quadratino bianco. Resta lo spessore, così la variante sull'eroe (bordo chiaro su blu) non
+   sposta niente. */
+:where(.vipi-root) .airac{display:inline-flex;align-items:center;gap:7px;background:var(--tint-atmos);color:var(--brand-ink);border:1px solid transparent;padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:600;font-family:var(--font-head)}
 :where(.vipi-root) .muted{color:var(--ink-soft)}
 /* Ora locale del lettore, accodata all'orario UTC scritto dal server (vipi-time.js scrive data-loc).
    E' un ::after e non un nodo figlio perche' l'elemento lo possiede Blazor: un figlio estraneo finirebbe
@@ -1212,9 +1215,9 @@
 /* --- Rework card di navigazione ACC: accent bar per categoria, niente emoji/frecce --- */
 :where(.vipi-root) .nav-card{position:relative;overflow:hidden;display:flex;flex-direction:column;border-radius:20px;transition:box-shadow .15s,border-color .15s,transform .15s}
 :where(.vipi-root) .nav-card{--accent:var(--ivao-blue);--accent-ink:var(--brand-ink)}
-:where(.vipi-root) .nav-card.c-air{--accent:var(--cat-air);--accent-ink:var(--cat-air-ink)}
-:where(.vipi-root) .nav-card.c-app{--accent:var(--cat-app);--accent-ink:var(--cat-app-ink)}
-:where(.vipi-root) .nav-card.c-vloa{--accent:var(--cat-vloa);--accent-ink:var(--cat-vloa-ink)}
+:where(.vipi-root) .nav-card.c-air,:where(.vipi-root) .nav-card.c-app,:where(.vipi-root) .nav-card.c-vloa{--accent:var(--cat-air);--accent-ink:var(--cat-air-ink)}
+/* ⚠️ Aeroporti, avvicinamenti e vLoA della pagina dell'ACC hanno lo stesso colore (30 settembre 2026, committente):
+   bordo al passaggio del mouse e «Vedi tutti» erano blu, azzurro e verde, tre colori per tre riquadri gemelli. */
 :where(.vipi-root) .nav-card.c-admin{--accent:var(--cat-admin);--accent-ink:var(--cat-admin-ink)}
 :where(.vipi-root) .nav-card.c-vipi{--accent:var(--ivao-blue);--accent-ink:var(--brand-ink)}
 :where(.vipi-root) .nav-card:hover{border-color:var(--accent);box-shadow:0 8px 22px color-mix(in srgb,var(--ivao-blue) 10%,transparent);transform:translateY(-1px)}
