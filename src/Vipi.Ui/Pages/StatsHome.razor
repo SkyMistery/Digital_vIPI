@@ -142,6 +142,9 @@
                 <StatsKpi Valore="@_durataMedia" Etichetta="@L["Stats_AvgShift"].Value"
                           Nota="@(_durataMediaDivisione is null ? null : L["Stats_AvgShiftDivision", _durataMediaDivisione].Value)" />
             </div>
+            @* Voli visti e movimenti (committente, 30 settembre 2026): due numeri vicini che si leggevano come la
+               stessa cosa. «Presenze» è diventato «Voli visti», e la differenza si scrive una volta, qui. *@
+            <p class="muted sx-note">@L["Stats_FlightsVsMovements"]</p>
 
             <div class="sx-row">
                 <section class="sx-card">

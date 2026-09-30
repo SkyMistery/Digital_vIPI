@@ -170,7 +170,7 @@
   <data name="My_OtherAtcLink" xml:space="preserve"><value>le tue statistiche</value></data>
   <data name="My_OtherStaff" xml:space="preserve"><value>Se sei nello staff della divisione, il tuo nome e le tue posizioni staff servono a decidere che cosa puoi modificare, e compaiono accanto alle modifiche che firmi.</value></data>
   <data name="My_DeleteTitle" xml:space="preserve"><value>Chiedere di cancellarli</value></data>
-  <data name="My_Delete" xml:space="preserve"><value>Per chiedere la cancellazione dei tuoi dati manda una richiesta allo staff da</value></data>
+  <data name="My_Delete" xml:space="preserve"><value>La cancellazione dei tuoi dati si chiede a IVAO HQ, che gira la richiesta a noi: la divisione provvede a cancellarli. Come contattare IVAO HQ lo trovi nella</value></data>
   <data name="My_DeleteNote" xml:space="preserve"><value>Il sito si legge solo dopo il login: finché lo usi, un nuovo accesso scrive di nuovo la tua riga. Chi non entra da dodici mesi viene cancellato da solo.</value></data>
   <data name="Ck_DataLink" xml:space="preserve"><value>Vedi i tuoi dati.</value></data>
   <data name="Ck_StorageTitle" xml:space="preserve"><value>Le preferenze nel tuo browser</value></data>
@@ -1112,11 +1112,11 @@
   <data name="Stats_WhenYouControl" xml:space="preserve"><value>Quando controlli</value></data>
   <data name="Stats_Coverage" xml:space="preserve"><value>Quando c'è copertura</value></data>
   <data name="Stats_CoverageHint" xml:space="preserve"><value>Percentuale di tempo con almeno un controllore italiano in frequenza, per ora UTC e giorno della settimana. Le caselle vuote sono i buchi.</value></data>
-  <data name="Stats_TopAirports" xml:space="preserve"><value>Aeroporti visti</value></data>
+  <data name="Stats_TopAirports" xml:space="preserve"><value>Da dove vengono e dove vanno</value></data>
   <data name="Stats_ManagedAirports" xml:space="preserve"><value>Aeroporti gestiti</value></data>
-  <data name="Stats_ManagedAirportsHint" xml:space="preserve"><value>Voli in partenza o in arrivo dagli aeroporti che coprivi: quello scritto nel callsign per torre e avvicinamento, quelli dentro il poligono per i settori d’area. I sorvoli non compaiono qui, ma restano nei totali.</value></data>
+  <data name="Stats_ManagedAirportsHint" xml:space="preserve"><value>Gli aeroporti di cui eri responsabile: per torre e avvicinamento quello del tuo callsign, per i settori d'area quelli dentro il tuo spazio. Si contano i voli partiti da lì o diretti lì; chi è solo passato sopra non compare qui, ma è nei totali in alto.</value></data>
   <data name="Stats_ManagedAirportsNone" xml:space="preserve"><value>Nessuno in questo periodo: il traffico che hai gestito non risulta partito da o diretto a un aeroporto dei settori che coprivi.</value></data>
-  <data name="Stats_SeenAirportsHint" xml:space="preserve"><value>I due capi del piano di volo di ogni traffico gestito, anche fuori Italia: da dove viene e dove va chi ti passa davanti.</value></data>
+  <data name="Stats_SeenAirportsHint" xml:space="preserve"><value>La partenza e la destinazione scritte nel piano di volo dei voli che hai gestito, anche fuori Italia.</value></data>
   <data name="Stats_TopAircraft" xml:space="preserve"><value>I tipi che vedi di più</value></data>
   <data name="Stats_Airport" xml:space="preserve"><value>Aeroporto</value></data>
   <data name="Stats_Flights" xml:space="preserve"><value>Voli</value></data>
@@ -1128,7 +1128,7 @@
   <data name="Stats_Hours" xml:space="preserve"><value>Ore</value></data>
   <data name="Stats_Shifts" xml:space="preserve"><value>Turni</value></data>
   <data name="Stats_Movements" xml:space="preserve"><value>Movimenti</value></data>
-  <data name="Stats_Presences" xml:space="preserve"><value>Presenze</value></data>
+  <data name="Stats_Presences" xml:space="preserve"><value>Voli visti</value></data>
   <data name="Stats_BusyMinutes" xml:space="preserve"><value>Minuti con traffico</value></data>
   <data name="Stats_ByPosition" xml:space="preserve"><value>Per postazione</value></data>
   <data name="Stats_ByMonth" xml:space="preserve"><value>Per mese</value></data>
@@ -1150,7 +1150,7 @@
   <data name="Stats_Gap" xml:space="preserve"><value>dati incompleti</value></data>
   <data name="Stats_GapHint" xml:space="preserve"><value>Fra due avvistamenti di questo volo c'è un buco: i suoi minuti sono per difetto.</value></data>
   <data name="Stats_Parked" xml:space="preserve"><value>fermo</value></data>
-  <data name="Stats_ParkedHint" xml:space="preserve"><value>Non si è mai mosso mentre eri in frequenza: conta come presenza, non come movimento.</value></data>
+  <data name="Stats_ParkedHint" xml:space="preserve"><value>Non si è mai mosso mentre eri in frequenza: conta come volo visto, non come movimento.</value></data>
   <data name="Stats_Rebuilt" xml:space="preserve"><value>ricostruito</value></data>
   <data name="Stats_RebuiltHint" xml:space="preserve"><value>Ricostruito dai movimenti dell'aeroporto: si sa che il volo c'è stato, non per quanti minuti.</value></data>
   <data name="Stats_StillOpen" xml:space="preserve"><value>in corso</value></data>
@@ -2919,7 +2919,9 @@
   <data name="Stats_StaffTools" xml:space="preserve"><value>Strumenti dello staff</value></data>
   <data name="Stats_RankOf" xml:space="preserve"><value>su {0} in divisione · per ore</value></data>
   <data name="Stats_AvgDivision" xml:space="preserve"><value>media della divisione {0}</value></data>
-  <data name="Stats_PresencesHint" xml:space="preserve"><value>tratte viste, parcheggiati compresi</value></data>
+  <data name="Stats_PresencesHint" xml:space="preserve"><value>anche fermi al parcheggio</value></data>
+  <data name="Stats_FlightsVsMovements" xml:space="preserve"><value>Voli visti: ogni volo che era nel tuo spazio mentre eri in frequenza, anche se non si è mai mosso dal parcheggio. Movimenti: quelli che si sono mossi almeno una volta mentre c'eri tu — rullaggio, decollo, atterraggio o in volo. Un aereo fermo al parcheggio è un volo visto, non un movimento.</value></data>
+  <data name="My_DeleteLink" xml:space="preserve"><value>pagina informativa di IVAO</value></data>
   <data name="Stats_AvgShift" xml:space="preserve"><value>Durata media turno</value></data>
   <data name="Stats_AvgShiftDivision" xml:space="preserve"><value>divisione {0}</value></data>
   <data name="Stats_MonthHover" xml:space="preserve"><value>passa sopra una barra per il dettaglio del mese</value></data>
@@ -2998,7 +3000,7 @@
   <data name="Stats_TagHint_HandedOff" xml:space="preserve"><value>È uscito dalla tua area ancora in volo, e l'ha preso un'altra postazione.</value></data>
   <data name="Stats_TagHint_LeftAirborne" xml:space="preserve"><value>È uscito dalla tua area ancora in volo, e dopo di te non l'ha preso nessuno.</value></data>
   <data name="Stats_TagHint_TaxiOnly" xml:space="preserve"><value>Si è mosso ma non l'hai mai visto in volo.</value></data>
-  <data name="Stats_TagHint_Parked" xml:space="preserve"><value>Non si è mai mosso: conta come presenza, non come movimento.</value></data>
+  <data name="Stats_TagHint_Parked" xml:space="preserve"><value>Non si è mai mosso: conta come volo visto, non come movimento.</value></data>
   <data name="Stats_TagHint_NoFlightPlan" xml:space="preserve"><value>Nessun piano di volo mentre era da te.</value></data>
   <data name="Stats_TagHint_SecondLeg" xml:space="preserve"><value>Secondo volo dello stesso callsign durante la tua sessione.</value></data>
   <data name="Stats_TagHint_Gap" xml:space="preserve"><value>Fra due avvistamenti c'è un buco: i minuti sono per difetto.</value></data>
@@ -3890,7 +3892,7 @@
   <data name="Units_DocDraft" xml:space="preserve"><value>solo bozza</value></data>
   <data name="Units_OpenEditor" xml:space="preserve"><value>Apri editor →</value></data>
   <data name="Units_EditorsOnly" xml:space="preserve"><value>Pagina riservata agli editor.</value></data>
-  <data name="Req_Title" xml:space="preserve"><value>Richieste dal campo</value></data>
+  <data name="Req_Title" xml:space="preserve"><value>Campo richieste</value></data>
   <data name="Req_Intro" xml:space="preserve"><value>Hai visto un errore in un documento, o hai un suggerimento? Scrivilo qui: lo legge lo staff che scrive i documenti, e la risposta la trovi in questa pagina. Si scrive da connessi con IVAO. Niente posta, niente notifiche: torna qui a vedere.</value></data>
   <data name="Req_LoginNeeded" xml:space="preserve"><value>Per scrivere una richiesta, e per vedere le tue, accedi con IVAO.</value></data>
   <data name="Req_New" xml:space="preserve"><value>Nuova richiesta</value></data>
@@ -3899,8 +3901,8 @@
   <data name="Req_KindError" xml:space="preserve"><value>Errore</value></data>
   <data name="Req_KindSuggestion" xml:space="preserve"><value>Suggerimento</value></data>
   <data name="Req_KindLabel" xml:space="preserve"><value>Tipo di richiesta</value></data>
-  <data name="Req_BodyLabel" xml:space="preserve"><value>Che cosa hai visto</value></data>
-  <data name="Req_BodyPlaceholder" xml:space="preserve"><value>Che cosa hai visto, e che cosa dovrebbe dire secondo te</value></data>
+  <data name="Req_BodyLabel" xml:space="preserve"><value>Cosa ci vuoi segnalare?</value></data>
+  <data name="Req_BodyPlaceholder" xml:space="preserve"><value>Cosa ci vuoi segnalare?</value></data>
   <data name="Req_Send" xml:space="preserve"><value>Invia</value></data>
   <data name="Req_Sent" xml:space="preserve"><value>Inviata. La risposta la trovi qui sotto, in «Le mie richieste».</value></data>
   <data name="Req_Mine" xml:space="preserve"><value>Le mie richieste</value></data>

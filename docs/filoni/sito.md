@@ -1891,6 +1891,11 @@
   scheda in Diagnostica + `registro-del-giorno.py`; niente riquadro sulle pagine di lettura (avviso discreto);
   punto di lettura tenuto alla ricarica. Carta [2026-09-30-disconnessioni](../feature/2026-09-30-disconnessioni.md).
   Ramo `fix/disconnessioni`.
+- ✅ **S80** testi (30-set, committente): la cancellazione dei dati si chiede a **IVAO HQ**, che la gira alla
+  divisione («I miei dati» ora rimanda alla pagina informativa IVAO, non al modulo); «Richieste dal campo» →
+  **«Campo richieste»**; il campo del modulo → «Cosa ci vuoi segnalare?»; statistiche: «Presenze» → **«Voli
+  visti»** e una riga che spiega voli visti contro movimenti (pagina personale e dettaglio del turno), testi
+  degli aeroporti gestiti e di «Da dove vengono e dove vanno» riscritti. Ramo `fix/testi-dati-statistiche`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
