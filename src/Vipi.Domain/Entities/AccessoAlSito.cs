@@ -17,6 +17,10 @@ public class AccessoAlSito
     /// <summary>Il nome come lo manda IVAO all'ultimo accesso.</summary>
     public string Nome { get; set; } = "";
 
+    /// <summary>Il nome breve, «Mario R.»: quello che compare nella classifica della divisione (30 settembre 2026,
+    /// committente: nome, iniziale del cognome e VID). Null finché la persona non rientra dopo il rilascio.</summary>
+    public string? NomeBreve { get; set; }
+
     /// <summary>La divisione IVAO (IT, FR, …); null se il cookie è di prima che la leggessimo.</summary>
     public string? Divisione { get; set; }
 
@@ -37,8 +41,9 @@ public class AccessoAlSito
     /// Nome, divisione e ACC si aggiornano, ma una divisione che manca non cancella quella nota (un cookie vecchio
     /// non la porta).
     /// </summary>
-    public void Registra(string nome, string? divisione, string? acc, DateTime oraUtc)
+    public void Registra(string nome, string? divisione, string? acc, DateTime oraUtc, string? nomeBreve = null)
     {
+        if (!string.IsNullOrWhiteSpace(nomeBreve)) NomeBreve = Taglia(nomeBreve.Trim(), AccessoAlSitoLimits.NomeBreve);
         if (Giorni == 0)
         {
             PrimoUtc = oraUtc;
@@ -56,12 +61,27 @@ public class AccessoAlSito
     }
 
     private static string Taglia(string s, int n) => s.Length <= n ? s : s[..n];
+
+    /// <summary>
+    /// «Mario R.» da nome e cognome come IVAO li manda, separati. Il nome resta intero («Gian Marco R.»); del cognome
+    /// l'iniziale della prima parola che comincia con una lettera maiuscola o no («de Santis» → «D.»). Senza cognome, il
+    /// solo nome; senza nome, null — meglio il VID che un'iniziale sola.
+    /// </summary>
+    public static string? ComponiNomeBreve(string? nome, string? cognome)
+    {
+        var n = string.Join(' ', (nome ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        if (n.Length == 0) return null;
+        var c = (cognome ?? "").Trim();
+        var iniziale = c.FirstOrDefault(char.IsLetter);
+        return iniziale == default ? n : $"{n} {char.ToUpperInvariant(iniziale)}.";
+    }
 }
 
 /// <summary>Le lunghezze delle colonne.</summary>
 public static class AccessoAlSitoLimits
 {
     public const int Nome = 120;
+    public const int NomeBreve = 60;
     public const int Divisione = 8;
     public const int Acc = 8;
 }

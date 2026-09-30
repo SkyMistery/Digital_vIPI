@@ -653,6 +653,7 @@ public class VipiDbContext : DbContext
             e.HasKey(x => x.UserId);
             e.Property(x => x.UserId).ValueGeneratedNever();
             e.Property(x => x.Nome).HasMaxLength(AccessoAlSitoLimits.Nome).IsRequired();
+            e.Property(x => x.NomeBreve).HasMaxLength(AccessoAlSitoLimits.NomeBreve);
             e.Property(x => x.Divisione).HasMaxLength(AccessoAlSitoLimits.Divisione);
             e.Property(x => x.Acc).HasMaxLength(AccessoAlSitoLimits.Acc);
             e.HasIndex(x => x.UltimoUtc);

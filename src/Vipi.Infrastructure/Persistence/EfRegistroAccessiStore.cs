@@ -11,7 +11,7 @@ public sealed class EfRegistroAccessiStore : IRegistroAccessiStore
     public EfRegistroAccessiStore(VipiDbContext db) => _db = db;
 
     public async Task RegistraAsync(int userId, string nome, string? divisione, string? acc, DateTime oraUtc,
-                                    CancellationToken ct = default)
+                                    string? nomeBreve = null, CancellationToken ct = default)
     {
         var riga = await _db.AccessiAlSito.FirstOrDefaultAsync(a => a.UserId == userId, ct).ConfigureAwait(false);
         if (riga is null)
@@ -19,8 +19,19 @@ public sealed class EfRegistroAccessiStore : IRegistroAccessiStore
             riga = new AccessoAlSito { UserId = userId };
             _db.AccessiAlSito.Add(riga);
         }
-        riga.Registra(nome, divisione, acc, oraUtc);
+        riga.Registra(nome, divisione, acc, oraUtc, nomeBreve);
         await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyDictionary<int, string>> NomiBreviAsync(IReadOnlyCollection<int> userIds,
+                                                                     CancellationToken ct = default)
+    {
+        var ids = userIds.Distinct().ToList();
+        var righe = await _db.AccessiAlSito.AsNoTracking()
+            .Where(a => ids.Contains(a.UserId) && a.NomeBreve != null)
+            .Select(a => new { a.UserId, a.NomeBreve })
+            .ToListAsync(ct).ConfigureAwait(false);
+        return righe.ToDictionary(r => r.UserId, r => r.NomeBreve!);
     }
 
     public Task<AccessoAlSitoRiga?> TrovaAsync(int userId, CancellationToken ct = default) =>

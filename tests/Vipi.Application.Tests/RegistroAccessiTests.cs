@@ -15,8 +15,14 @@ public class RegistroAccessiTests
         public DateTime? UltimaSoglia;
         public string? Divisione;
 
-        public Task RegistraAsync(int userId, string nome, string? divisione, string? acc, DateTime oraUtc, CancellationToken ct = default)
-        { Registrati++; Divisione = divisione; return Task.CompletedTask; }
+        public string? NomeBreve;
+        public Task RegistraAsync(int userId, string nome, string? divisione, string? acc, DateTime oraUtc,
+            string? nomeBreve = null, CancellationToken ct = default)
+        { Registrati++; Divisione = divisione; NomeBreve = nomeBreve; return Task.CompletedTask; }
+
+        public int RichiesteNomi;
+        public Task<IReadOnlyDictionary<int, string>> NomiBreviAsync(IReadOnlyCollection<int> userIds, CancellationToken ct = default)
+        { RichiesteNomi++; return Task.FromResult<IReadOnlyDictionary<int, string>>(userIds.ToDictionary(v => v, v => "Nome " + v)); }
 
         public Task<int> PotaAsync(DateTime ultimoPrimaDi, CancellationToken ct = default)
         { Potature++; UltimaSoglia = ultimoPrimaDi; return Task.FromResult(0); }
@@ -56,11 +62,12 @@ public class RegistroAccessiTests
     public async Task Registrare_passa_la_divisione_dell_utente()
     {
         var d = new Deposito();
-        var utente = new CurrentUser(704798, "Carmine", "LIRR", Array.Empty<string>()) { Division = "IT" };
+        var utente = new CurrentUser(704798, "Carmine", "LIRR", Array.Empty<string>()) { Division = "IT", ShortName = "Carmine G." };
         await new RegistroAccessi(d, new Livello(VipiRole.User)).RegistraAsync(utente);
 
         Assert.Equal(1, d.Registrati);
         Assert.Equal("IT", d.Divisione);
+        Assert.Equal("Carmine G.", d.NomeBreve);
     }
 
     /// <summary>«I miei dati»: la riga di chi chiede, presa dal VID dell'utente corrente e non da un parametro — non
@@ -75,6 +82,17 @@ public class RegistroAccessiTests
 
         Assert.Null(await new RegistroAccessi(d, new Livello(VipiRole.User, vid: null)).MieiAsync());
         Assert.Single(d.Cercati);
+    }
+
+    /// <summary>Un elenco vuoto non interroga il deposito: la classifica senza righe non costa una query.</summary>
+    [Fact]
+    public async Task I_nomi_brevi_di_nessuno_non_costano_una_query()
+    {
+        var d = new Deposito();
+        var s = new RegistroAccessi(d, new Livello(VipiRole.User));
+        Assert.Empty(await s.NomiBreviAsync(Array.Empty<int>()));
+        Assert.Equal(0, d.RichiesteNomi);
+        Assert.Equal("Nome 5", (await s.NomiBreviAsync(new[] { 5 }))[5]);
     }
 
     [Fact]

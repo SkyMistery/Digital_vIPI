@@ -45,6 +45,27 @@ public class AccessoAlSitoTests
         Assert.Equal("LFFF", a.Acc);
     }
 
+    [Theory]
+    [InlineData("Mario", "Rossi", "Mario R.")]
+    [InlineData("Gian  Marco", "Rossi", "Gian Marco R.")]   // il nome resta intero: dal nome unito sarebbe «Gian R.»
+    [InlineData("Maria", "de Santis", "Maria D.")]
+    [InlineData("Luca", "", "Luca")]                       // senza cognome, il solo nome
+    [InlineData("", "Rossi", null)]                        // senza nome, meglio il VID che un'iniziale
+    [InlineData(null, null, null)]
+    public void Il_nome_breve_e_nome_piu_iniziale_del_cognome(string? nome, string? cognome, string? atteso)
+    {
+        Assert.Equal(atteso, AccessoAlSito.ComponiNomeBreve(nome, cognome));
+    }
+
+    [Fact]
+    public void Un_nome_breve_che_manca_non_cancella_quello_noto()
+    {
+        var a = new AccessoAlSito { UserId = 1 };
+        a.Registra("Mario Rossi", "IT", "LIRR", Lunedi, "Mario R.");
+        a.Registra("Mario Rossi", "IT", "LIRR", Lunedi.AddDays(1));
+        Assert.Equal("Mario R.", a.NomeBreve);
+    }
+
     [Fact]
     public void Un_nome_troppo_lungo_si_taglia_alla_colonna()
     {

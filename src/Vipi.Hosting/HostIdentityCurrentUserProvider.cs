@@ -40,11 +40,16 @@ public sealed class HostIdentityCurrentUserProvider : ICurrentUserProvider
         var positions = ExtractStaffPositions(principal.FindAll(_opt.StaffPositionsClaim).Select(c => c.Value));
 
         var divisione = principal.FindFirst(_opt.DivisionClaim)?.Value;
+        // Nome e cognome SEPARATI, come IVAO li manda: il nome breve della classifica non si ricava dal nome intero.
+        var breve = Vipi.Domain.Entities.AccessoAlSito.ComponiNomeBreve(
+            principal.FindFirst("firstName")?.Value ?? principal.FindFirst("given_name")?.Value,
+            principal.FindFirst("lastName")?.Value ?? principal.FindFirst("family_name")?.Value);
 
         return new CurrentUser(UserId, name, string.IsNullOrWhiteSpace(acc) ? null : acc, positions)
         {
             CanEdit = positions.Count > 0,
             Division = string.IsNullOrWhiteSpace(divisione) ? null : divisione,
+            ShortName = breve,
         };
     }
 

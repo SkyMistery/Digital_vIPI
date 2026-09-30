@@ -16,6 +16,11 @@ public sealed record CurrentUser(
     /// <summary>La divisione IVAO (IT, FR, …), dal profilo. Null dove l'host non la dà (sviluppo, cookie di prima
     /// del 30 settembre 2026). La legge il registro degli accessi.</summary>
     public string? Division { get; init; }
+
+    /// <summary>Il nome breve, «Mario R.»: nome e iniziale del cognome, come IVAO li manda SEPARATI. Null dove l'host
+    /// non li ha. Lo usa la classifica della divisione (30 settembre 2026). ⚠️ Non si ricava da <see cref="Name"/>:
+    /// «Gian Marco Rossi» diventerebbe «Gian R.».</summary>
+    public string? ShortName { get; init; }
 }
 
 /// <summary>

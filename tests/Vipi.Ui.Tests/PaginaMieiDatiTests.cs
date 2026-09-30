@@ -35,6 +35,8 @@ public class PaginaMieiDatiTests : TestContext
         public Task RegistraAsync(CurrentUser utente, CancellationToken ct = default) => Task.CompletedTask;
         public Task<ElencoAccessi> ElencoAsync(string? cerca, CancellationToken ct = default) => throw new InvalidOperationException("non qui");
         public Task<AccessoAlSitoRiga?> MieiAsync(CancellationToken ct = default) => Task.FromResult(riga);
+        public Task<IReadOnlyDictionary<int, string>> NomiBreviAsync(IReadOnlyCollection<int> userIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>());
     }
 
     private IRenderedComponent<MieiDatiPage> Apri(int? vid, AccessoAlSitoRiga? riga)

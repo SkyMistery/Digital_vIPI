@@ -59,6 +59,18 @@ public sealed class RegistroAccessiStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task I_nomi_brevi_escono_solo_per_chi_li_ha()
+    {
+        var s = new EfRegistroAccessiStore(_db);
+        await s.RegistraAsync(704798, "Carmine Granato", "IT", "LIRR", Oggi, "Carmine G.");
+        await s.RegistraAsync(123456, "Mario Rossi", "IT", "LIMM", Oggi);   // entrato prima del nome breve
+
+        var nomi = await s.NomiBreviAsync(new[] { 704798, 123456, 999999 });
+        Assert.Equal("Carmine G.", Assert.Single(nomi).Value);
+        Assert.Equal(704798, nomi.Keys.Single());
+    }
+
+    [Fact]
     public async Task Trova_da_la_riga_del_VID_o_null()
     {
         var s = new EfRegistroAccessiStore(_db);

@@ -193,6 +193,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(120)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<string>("NomeBreve")
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<DateTime>("PrimoUtc")
                         .HasColumnType("datetime(6)");
 

@@ -36,6 +36,8 @@ public class PaginaAccessiTests : TestContext
         public int Letture;
         public Task RegistraAsync(CurrentUser utente, CancellationToken ct = default) => Task.CompletedTask;
         public Task<AccessoAlSitoRiga?> MieiAsync(CancellationToken ct = default) => Task.FromResult<AccessoAlSitoRiga?>(null);
+        public Task<IReadOnlyDictionary<int, string>> NomiBreviAsync(IReadOnlyCollection<int> userIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>());
         public Task<ElencoAccessi> ElencoAsync(string? cerca, CancellationToken ct = default)
         {
             Letture++;
