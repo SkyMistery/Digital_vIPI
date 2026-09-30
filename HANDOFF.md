@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 30 settembre 2026, pomeriggio
+> ## ▶ Il punto — 30 settembre 2026, sera
+>
+> **Online: 1.53.0.** In `main` **c'è codice fuori pacchetto** (§A141): Sito S65 (vista live: campi solo vSOP, niente
+> «delegato» a chi guarda, SID del pannello dal documento) e S66 (pagina Chiavi API con gli indirizzi per chi
+> integra), fusi da `fix/pagina-chiavi-api` @ `bb5fb638`. Niente migrazione. ▶ Pacchetto 1.54.0 al via del
+> committente; test a tempo `CorrezioniSpaziAereiPaginaTests` assegnato al Sito.
+>
+> ## Il punto — 30 settembre 2026, pomeriggio
 >
 > **✅ Online: 1.53.0** (`Schema 0` e Ricerca confermati dal committente; Healthy, API 401 senza chiave da fuori;
 > **in `main` non resta codice fuori pacchetto**) (§A140, timbro `1.53.0 · d4bbebd`, 11 file, zip `214c8a17…`, MINOR senza
