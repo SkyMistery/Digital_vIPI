@@ -67,7 +67,8 @@ public class StatsDivisionPageTests : TestContext
         public Task<IReadOnlyList<StatsByKey>> ByMonthAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => Vuoto<StatsByKey>();
         public Task<IReadOnlyList<StatsSessionRow>> SessionsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 50, CancellationToken ct = default) => Vuoto<StatsSessionRow>();
         public Task<StatsSessionDetail?> SessionAsync(long id, CancellationToken ct = default) => Task.FromResult<StatsSessionDetail?>(null);
-        public Task<IReadOnlyList<ControllerRanking>> TopControllersAsync(DateTimeOffset f, DateTimeOffset t, int l = 20, CancellationToken ct = default) => Vuoto<ControllerRanking>();
+        public IReadOnlyList<ControllerRanking> Classifica { get; set; } = Array.Empty<ControllerRanking>();
+        public Task<IReadOnlyList<ControllerRanking>> TopControllersAsync(DateTimeOffset f, DateTimeOffset t, int l = 20, CancellationToken ct = default) => Task.FromResult(Classifica);
         public Task<IReadOnlyList<CoverageCell>> CoverageAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => Vuoto<CoverageCell>();
         public Task<IReadOnlyList<StatsByKey>> TopAirportsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => Vuoto<StatsByKey>();
         public Task<IReadOnlyList<StatsByKey>> ManagedAirportsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => Vuoto<StatsByKey>();
@@ -127,7 +128,19 @@ public class StatsDivisionPageTests : TestContext
             Task.FromResult<IReadOnlyList<(string, string, int)>>(new[] { ("LIRR", "Roma", 42), ("LIMM", "Milano", 25) });
     }
 
+    /// <summary>Il registro degli accessi: dà il nome breve solo a chi è entrato nel sito.</summary>
+    private sealed class AccessiFinti : IRegistroAccessi
+    {
+        public Dictionary<int, string> Nomi { get; } = new();
+        public Task RegistraAsync(CurrentUser utente, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<ElencoAccessi> ElencoAsync(string? cerca, CancellationToken ct = default) => throw new InvalidOperationException("non qui");
+        public Task<AccessoAlSitoRiga?> MieiAsync(CancellationToken ct = default) => Task.FromResult<AccessoAlSitoRiga?>(null);
+        public Task<IReadOnlyDictionary<int, string>> NomiBreviAsync(IReadOnlyCollection<int> userIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, string>>(Nomi.Where(n => userIds.Contains(n.Key)).ToDictionary(n => n.Key, n => n.Value));
+    }
+
     private readonly ArchivioVuoto _archivio = new();
+    private readonly AccessiFinti _accessi = new();
 
     private IRenderedComponent<StatsDivisionPage> Render(
         bool staff, bool classificaPubblica, IAirportCoverageQueries aeroporti, string? gruppo = null)
@@ -143,6 +156,7 @@ public class StatsDivisionPageTests : TestContext
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz { IsAdmin = staff });
         Services.AddSingleton<IStaffRosterRepository>(new RosterFinto());
         Services.AddSingleton(aeroporti);
+        Services.AddSingleton<IRegistroAccessi>(_accessi);
 
         // ⚠️ Un parametro `[SupplyParameterFromQuery]` non si passa a mano: bUnit lo rifiuta e chiede di
         // navigare, che è anche il modo in cui la pagina lo riceve davvero.
@@ -255,5 +269,40 @@ public class StatsDivisionPageTests : TestContext
         Render(staff: true, classificaPubblica: false, aeroporti, gruppo: "lirr");
 
         Assert.Equal(new string?[] { "LIRR" }, aeroporti.GruppiChiesti.ToArray());
+    }
+
+    /// <summary>
+    /// Decisione del committente del 30 settembre 2026: in classifica «Mario R.» e il VID per chi è entrato nel
+    /// sito, il solo VID per gli altri — a chiunque veda la classifica, non solo allo staff.
+    /// </summary>
+    [Fact]
+    public void In_classifica_il_nome_breve_di_chi_e_entrato_e_il_solo_vid_degli_altri()
+    {
+        _archivio.Classifica = new[]
+        {
+            new ControllerRanking(111111, 10, 36000, 5),
+            new ControllerRanking(222222, 8, 18000, 3),
+        };
+        _accessi.Nomi[111111] = "Mario R.";
+        var cut = Render(staff: false, classificaPubblica: true, new NessunaLetturaAeroporti());
+
+        var righe = cut.FindAll("table.res-table tbody tr").Select(r => r.TextContent).ToList();
+        Assert.Contains(righe, r => r.Contains("Mario R.") && r.Contains("111111"));
+        Assert.Contains(righe, r => r.Contains("222222") && !r.Contains("Mario"));
+    }
+
+    /// <summary>I primi dieci, più la propria riga in coda quando si è più in basso.</summary>
+    [Fact]
+    public void La_classifica_mostra_i_primi_dieci_e_la_propria_riga()
+    {
+        _archivio.Classifica = Enumerable.Range(1, 30)
+            .Select(i => new ControllerRanking(i == 26 ? 704798 : 100000 + i, 1, 3600L * (40 - i), 0))
+            .ToList();
+        var cut = Render(staff: false, classificaPubblica: true, new NessunaLetturaAeroporti());
+
+        var righe = cut.FindAll("table.res-table tbody tr").ToList();
+        Assert.Equal(11, righe.Count);
+        Assert.Contains("rank-me", righe.Last().ClassName);
+        Assert.Contains("…26", righe.Last().TextContent);
     }
 }

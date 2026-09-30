@@ -2907,6 +2907,16 @@
   <data name="Stats_PositionShareDivision" xml:space="preserve"><value>Come si divide il tempo della divisione</value></data>
   <data name="Stats_SliceTitle" xml:space="preserve"><value>{0}: {1} ore su {2} sessioni</value></data>
   <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} ore, {2} sessioni, {3} movimenti</value></data>
+  <data name="Stats_PerController" xml:space="preserve"><value>{0} per controllore</value></data>
+  <data name="Stats_ControllersHint" xml:space="preserve"><value>almeno un turno nel periodo</value></data>
+  <data name="Stats_AllPositionsHint" xml:space="preserve"><value>tutte le postazioni</value></data>
+  <data name="Stats_SessionsN" xml:space="preserve"><value>{0} sessioni</value></data>
+  <data name="Stats_Controller" xml:space="preserve"><value>Controllore</value></data>
+  <data name="Stats_ShowFirst" xml:space="preserve"><value>Mostra i primi {0}</value></data>
+  <data name="Stats_ShowAllAirports" xml:space="preserve"><value>Mostra tutti i {0}</value></data>
+  <data name="Stats_YouAre" xml:space="preserve"><value>La riga evidenziata sei tu: {0}° su {1}.</value></data>
+  <data name="Stats_NamesHint" xml:space="preserve"><value>Il nome compare per chi è entrato nel sito almeno una volta; gli altri restano col VID.</value></data>
+  <data name="Stats_StaffTools" xml:space="preserve"><value>Strumenti dello staff</value></data>
   <data name="Stats_RankOf" xml:space="preserve"><value>su {0} in divisione · per ore</value></data>
   <data name="Stats_AvgDivision" xml:space="preserve"><value>media della divisione {0}</value></data>
   <data name="Stats_PresencesHint" xml:space="preserve"><value>tratte viste, parcheggiati compresi</value></data>

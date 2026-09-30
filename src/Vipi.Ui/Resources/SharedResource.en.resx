@@ -2899,6 +2899,16 @@
   <data name="Stats_PositionShareDivision" xml:space="preserve"><value>How the division's time splits</value></data>
   <data name="Stats_SliceTitle" xml:space="preserve"><value>{0}: {1} hours over {2} sessions</value></data>
   <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} hours, {2} sessions, {3} movements</value></data>
+  <data name="Stats_PerController" xml:space="preserve"><value>{0} per controller</value></data>
+  <data name="Stats_ControllersHint" xml:space="preserve"><value>at least one shift in the period</value></data>
+  <data name="Stats_AllPositionsHint" xml:space="preserve"><value>all positions</value></data>
+  <data name="Stats_SessionsN" xml:space="preserve"><value>{0} sessions</value></data>
+  <data name="Stats_Controller" xml:space="preserve"><value>Controller</value></data>
+  <data name="Stats_ShowFirst" xml:space="preserve"><value>Show the first {0}</value></data>
+  <data name="Stats_ShowAllAirports" xml:space="preserve"><value>Show all {0}</value></data>
+  <data name="Stats_YouAre" xml:space="preserve"><value>The highlighted row is you: #{0} of {1}.</value></data>
+  <data name="Stats_NamesHint" xml:space="preserve"><value>The name appears for those who signed in to the site at least once; the others keep their VID.</value></data>
+  <data name="Stats_StaffTools" xml:space="preserve"><value>Staff tools</value></data>
   <data name="Stats_RankOf" xml:space="preserve"><value>of {0} in the division · by hours</value></data>
   <data name="Stats_AvgDivision" xml:space="preserve"><value>division average {0}</value></data>
   <data name="Stats_PresencesHint" xml:space="preserve"><value>legs seen, parked included</value></data>

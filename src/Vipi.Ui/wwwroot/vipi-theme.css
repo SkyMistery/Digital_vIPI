@@ -743,12 +743,38 @@
 :where(.vipi-root) .sx-card>.bars{flex:1 1 auto;height:auto;min-height:190px}
 :where(.vipi-root) .sx-name a{color:inherit}
 :where(.vipi-root) .cov-tot{text-align:right;padding-left:10px;font-weight:600;color:var(--ink);white-space:nowrap}
+:where(.vipi-root) .sx-foot{display:flex;align-items:flex-start;gap:12px 16px;flex-wrap:wrap}
+:where(.vipi-root) .sx-foot>.btn{flex:none}
+:where(.vipi-root) .sx-foot>p{flex:1 1 320px;margin:0}
+:where(.vipi-root) .sx-cell{display:flex;align-items:center;gap:8px;white-space:nowrap}
+:where(.vipi-root) .sx-cell>.sx-bar{flex:0 0 90px}
+:where(.vipi-root) .sx-air .icao{font-family:var(--font-mono);font-weight:500}
+:where(.vipi-root) .res-table :is(td,th).num{text-align:right}
+:where(.vipi-root) .sx-type{display:grid;grid-template-columns:12px 48px minmax(0,1fr) auto 44px;gap:10px;align-items:center;font-size:13px}
+:where(.vipi-root) .sx-type>i{width:12px;height:12px;border-radius:3px}
+:where(.vipi-root) .sx-type>.v{text-align:right;font-weight:600;color:var(--ink)}
+:where(.vipi-root) .sx-type>.muted:last-child{text-align:right}
+:where(.vipi-root) .sx-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 32px}
+:where(.vipi-root) .sx-who-c{display:inline-flex;flex-direction:column;gap:1px}
+:where(.vipi-root) .sx-who-c>b{font-weight:700;color:var(--ink)}
+:where(.vipi-root) .sx-who-c>b+.sx-vid{font-size:12px}
+:where(.vipi-root) .sx-vid{display:inline-flex;gap:6px;align-items:center}
+:where(.vipi-root) .pod.p2{background:var(--surface-muted)}
+:where(.vipi-root) .sx-tools-h{margin:28px 0 10px}
+:where(.vipi-root) .sx-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+:where(.vipi-root) a.sx-tool{text-decoration:none;color:var(--ink)}
+:where(.vipi-root) a.sx-tool:hover{border-color:var(--brand-ink-2)}
+:where(.vipi-root) .sx-tool{gap:6px}
+:where(.vipi-root) .sx-tool b{font-family:var(--font-head);font-size:16px;display:inline-flex;gap:8px;align-items:center}
+:where(.vipi-root) .sx-tool .inline-form{display:flex;gap:10px;align-items:center;margin:0}
+:where(.vipi-root) .sx-card .vid-find{margin:0}
 @container (max-width: 760px){
   :where(.vipi-root) .sx-row,:where(.vipi-root) .sx-row.half{grid-template-columns:minmax(0,1fr)}
   :where(.vipi-root) .sx-id{flex-wrap:wrap;gap:14px}
   :where(.vipi-root) .sx-rank{flex-basis:100%;text-align:left;padding:12px 0 0;border-left:0;border-top:1px solid var(--line);display:flex;align-items:baseline;gap:10px}
   :where(.vipi-root) .sx-rank b{display:inline;font-size:32px}
   :where(.vipi-root) .sx-card{padding:16px}
+  :where(.vipi-root) .sx-cols{grid-template-columns:minmax(0,1fr)}
 }
 
 /* Sparkline. Il tratto NON si deforma con la scala orizzontale: `vector-effect` è quel che lo tiene
@@ -927,6 +953,9 @@
   :where(.vipi-root) .tbl-cards td::before{content:attr(data-l);color:var(--ink-soft);font-size:12px;flex:none;min-width:38%}
   :where(.vipi-root) .tbl-cards td.cb::before{content:attr(data-l);position:static;background:none;width:auto}
   :where(.vipi-root) .tbl-cards td:empty{display:none}
+  :where(.vipi-root) .tbl-cards td.num{text-align:left}
+  :where(.vipi-root) .tbl-cards .sx-cell{flex:1 1 0;min-width:0}
+  :where(.vipi-root) .tbl-cards .sx-cell>.sx-bar{flex:0 1 70px}
   :where(.vipi-root) .stat-hero .sh-side{margin-left:0}
   :where(.vipi-root) .donut-wrap{gap:14px}
 }

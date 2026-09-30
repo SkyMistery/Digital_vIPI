@@ -32,16 +32,27 @@
 
 <PageTitle>@L["Stats_DivisionTitle"] · vIPI IVAO Italy</PageTitle>
 
+@* ---- La veste del 30 settembre 2026 ------------------------------------------------------------------------
+   Tavola approvata dal committente (carta docs/feature/2026-09-30-statistiche-nuova-grafica.md), stesso stile
+   della pagina personale: cinque numeri col loro contesto, gli aeroporti subito sotto per lo staff, due grafici
+   affiancati, la copertura, la classifica coi nomi di chi è entrato nel sito, le postazioni, gli strumenti. *@
+
 <div class="wrap stats">
-    <div class="doc-head">
-        @* Il tasto gemello di quello sulla pagina personale: si va e si torna dalla riga del titolo. *@
-        <div class="sh-title">
-            <h1 class="page-h1">@L["Stats_DivisionTitle"]</h1>
-            <a class="btn ghost sh-go" href="/services/stats">
-                <Icon Name="activity" Size="15" /> @L["Stats_BackToMine"]
-            </a>
+    <div class="sx-top">
+        <div class="doc-head">
+            @* Il tasto gemello di quello sulla pagina personale: si va e si torna dalla riga del titolo. *@
+            <div class="sh-title">
+                <h1 class="page-h1">@L["Stats_DivisionTitle"]</h1>
+                <a class="btn ghost sh-go" href="/services/stats">
+                    <Icon Name="activity" Size="15" /> @L["Stats_BackToMine"]
+                </a>
+            </div>
+            <p class="muted">@L["Stats_DivisionSubtitle"]</p>
         </div>
-        <p class="muted">@L["Stats_DivisionSubtitle"]</p>
+        @if (_puoVedere)
+        {
+            <StatsChipBar Voci="_periodi" Titolo="@L["Stats_Period"].Value" />
+        }
     </div>
 
     @if (!_puoVedere)
@@ -51,186 +62,227 @@
     }
     else
     {
-        <StatsChipBar Voci="_periodi" Titolo="@L["Stats_Period"].Value" />
-
         <div class="kpi-grid">
-            <StatsKpi Valore="@StatsView.Ore(_totali?.Seconds ?? 0)" Unita="h" Etichetta="@L["Stats_Hours"].Value" />
-            <StatsKpi Valore="@((_totali?.Shifts ?? 0).ToString())" Etichetta="@L["Stats_Shifts"].Value" />
-            <StatsKpi Valore="@((_totali?.Movements ?? 0).ToString())" Etichetta="@L["Stats_Movements"].Value" />
-            <StatsKpi Valore="@_controllori.ToString()" Etichetta="@L["Stats_Controllers"].Value" />
+            <StatsKpi Valore="@StatsView.Ore(_totali?.Seconds ?? 0)" Unita="h" Etichetta="@L["Stats_Hours"].Value"
+                      Nota="@L["Stats_PerController", _mediaOre].Value" />
+            <StatsKpi Valore="@((_totali?.Shifts ?? 0).ToString())" Etichetta="@L["Stats_Shifts"].Value"
+                      Nota="@L["Stats_PerController", _mediaTurni].Value" />
+            <StatsKpi Valore="@((_totali?.Movements ?? 0).ToString())" Etichetta="@L["Stats_Movements"].Value"
+                      Nota="@L["Stats_PerController", _mediaMovimenti].Value" />
+            <StatsKpi Valore="@_controllori.ToString()" Etichetta="@L["Stats_Controllers"].Value"
+                      Nota="@L["Stats_ControllersHint"].Value" />
+            <StatsKpi Valore="@_durataMedia" Etichetta="@L["Stats_AvgShift"].Value"
+                      Nota="@L["Stats_AllPositionsHint"].Value" />
         </div>
 
-        @* La divisione non aveva NESSUN grafico nel tempo: i quattro riquadri dicono «quanto», non «se
-           stiamo crescendo». Le stesse barre della pagina personale, sullo stesso conto per mese. *@
         @* ⚠️ Guardia PROPRIA, e non basta essere dentro il ramo «_puoVedere»: questa pagina la aprono anche i
            soci quando la classifica è pubblica, e il traffico coperto/scoperto di ogni scalo è uno strumento
            di pianificazione dello staff — deciso dal committente il 25 agosto 2026.
 
-           ⚠️ Sta QUI, subito sotto i quattro riquadri, e non in fondo: è la domanda per cui uno staffista
-           apre questa pagina, e in coda alla classifica da cinquanta righe non la trovava nessuno (chiesto
-           dal committente). *@
+           ⚠️ Sta QUI, subito sotto i numeri, e non in fondo: è la domanda per cui uno staffista apre questa
+           pagina, e in coda alla classifica da cinquanta righe non la trovava nessuno (chiesto dal committente,
+           confermato nella veste del 30 settembre 2026). *@
         @if (Authz.IsDivisionStaff)
         {
-            <h2 class="h-sect">@L["Stats_Airports"]</h2>
-            <p class="muted">@L["Stats_AirportsHint"]</p>
-
-            <StatsChipBar Voci="_gruppi" Titolo="@L["Stats_AirportsGroup"].Value" />
-
-            @if (_aeroporti is null || _aeroporti.DaysCovered == 0)
-            {
-                @* Vuoto per un motivo, non per un buco: il consolidamento non ha ancora girato. *@
-                <p class="muted">@L["Stats_AirportsEmpty"]</p>
-            }
-            else
-            {
-                @if (_aeroporti.DaysCovered < _aeroporti.DaysAsked)
-                {
-                    @* ⚠️ Un periodo non ancora recuperato NON è «zero traffico»: senza questa riga i numeri
-                       bassi dei primi giorni sembrerebbero un dato, e sono un lavoro a metà. *@
-                    <p class="muted">@L["Stats_AirportsPartial", _aeroporti.DaysCovered, _aeroporti.DaysAsked]</p>
-                }
-
-                <table class="res-table tbl-cards">
-                    <thead>
-                        <tr>
-                            <th>@L["Stats_Airport"]</th>
-                            <th>@L["Stats_AirportMovements"]</th>
-                            <th>@L["Stats_AirportCovered"]</th>
-                            <th>@L["Stats_AirportOpenHours"]</th>
-                            <th>@L["Stats_AirportOpenShare"]</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var r in _aeroporti.Rows)
-                        {
-                            <tr title="@L["Stats_AirportRowTitle", r.Icao, r.Movements, r.Covered, StatsView.Ore(r.AtcMinutes * 60L)]">
-                                <td data-l="@L["Stats_Airport"]">@r.Icao <span class="muted">@r.Name</span></td>
-                                <td data-l="@L["Stats_AirportMovements"]">@r.Movements</td>
-                                @* La barra dice la QUOTA coperta, non il numero: fra due campi da mille e da
-                                   dieci movimenti la domanda è quale dei due è più scoperto. *@
-                                <td class="cb" data-l="@L["Stats_AirportCovered"]"
-                                    style="--cb:@(r.CoveredPercent is { } q ? q + "%" : "0%")">
-                                    @if (r.CoveredPercent is { } p2) { <text>@r.Covered · @p2%</text> }
-                                    else { <text>—</text> }
-                                </td>
-                                <td data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(r.AtcMinutes * 60L)</td>
-                                <td data-l="@L["Stats_AirportOpenShare"]">
-                                    @(r.OpenPercent is { } o ? o + "%" : "—")
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                    <tfoot>
-                        @* ⚠️ Celle `td` con `data-l` anche qui: sul piccolo la tabella diventa una pila di
-                           schede, e una riga di totali fatta di `th` nudi resterebbe senza etichette. *@
-                        <tr class="tot">
-                            <td data-l="">@L["Stats_AirportsTotal"]</td>
-                            <td data-l="@L["Stats_AirportMovements"]">@_aeroporti.Movements</td>
-                            <td data-l="@L["Stats_AirportCovered"]">@_aeroporti.Covered@(_quotaTotale is { } t ? $" · {t}%" : "")</td>
-                            <td data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(_aeroporti.AtcMinutes * 60L)</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
-                </table>
-
-                @* ⚠️ La misura si dichiara, non si lascia intuire: «con ATC» è un'approssimazione dichiarata,
-                   e senza questa riga un numero preciso sembrerebbe un registro. *@
-                <p class="muted">@L["Stats_AirportsMeasure"]</p>
-            }
-        }
-
-        <h2 class="h-sect">@L["Stats_MonthChart"]</h2>
-        <StatsBars Barre="_barreMesi" Titolo="@L["Stats_MonthChart"].Value" />
-
-        <h2 class="h-sect">@L["Stats_Coverage"]</h2>
-        <p class="muted">@L["Stats_CoverageHint"]</p>
-        <CoverageHeatmap Celle="_griglia" Copertura="true" Titolo="@L["Stats_Coverage"].Value" />
-        <div class="cov-legend">
-            <span>@L["Stats_CovLegend"]</span>
-            <span>@L["Stats_CovNone"]</span>
-            <i class="cov-q0"></i><i class="cov-q1"></i><i class="cov-q2"></i><i class="cov-q3"></i><i class="cov-q4"></i>
-            <span>@L["Stats_CovFull"]</span>
-        </div>
-
-        @* ⚠️ Solo allo staff, perché solo lo staff può APRIRE quel che questo campo trova: mostrarlo a tutti
-           vorrebbe dire offrire una porta che si chiude in faccia. Non è comunque una guardia — la guardia
-           sta nella pagina di destinazione, insieme alla riga di audit — è il modo di arrivarci senza
-           scorrere una classifica di cinquanta righe cercando un numero. *@
-        @if (Authz.IsDivisionStaff)
-        {
-            <h2 class="h-sect">@L["Stats_FindVid"]</h2>
-            <div class="vid-find">
-                <CampoTesto type="search" inputmode="numeric" list="vid-noti"
-                       placeholder="@L["Stats_FindVidPlaceholder"]" aria-label="@L["Stats_FindVid"]"
-                       Valore="@_cercato" OnInput="ScriveIlVid" OnKeyDown="TastoNelCampo" />
-                @* I nomi li sa il roster, che raccoglie chi ha fatto login da NOI: è un aiuto per gli
-                   staffisti, non un elenco di controllori — degli altri abbiamo il solo VID. *@
-                <datalist id="vid-noti">
-                    @foreach (var v in _noti)
+            <section class="sx-card sx-block">
+                <div class="sx-head">
+                    <h2 class="sx-h">@L["Stats_Airports"]</h2>
+                    @if (_aeroporti is not null && _aeroporti.DaysCovered > 0 && _aeroporti.DaysCovered < _aeroporti.DaysAsked)
                     {
-                        <option value="@v.Key">@v.Value</option>
+                        @* ⚠️ Un periodo non ancora recuperato NON è «zero traffico»: senza questo avviso i numeri
+                           bassi dei primi giorni sembrerebbero un dato, e sono un lavoro a metà. *@
+                        <span class="sx-tag gold">@L["Stats_AirportsPartial", _aeroporti.DaysCovered, _aeroporti.DaysAsked]</span>
                     }
-                </datalist>
-                <button class="btn primary" disabled="@(_vidValido is null)" @onclick="ApriIlProfilo">
-                    <Icon Name="search" Size="15" /> @L["Stats_FindVidGo"]
-                </button>
-            </div>
-            <p class="muted">
-                @if (_cercato.Length > 0 && _vidValido is null)
+                </div>
+                <p class="muted">@L["Stats_AirportsHint"]</p>
+
+                <StatsChipBar Voci="_gruppi" Titolo="@L["Stats_AirportsGroup"].Value" />
+
+                @if (_aeroporti is null || _aeroporti.DaysCovered == 0)
                 {
-                    <text>@L["Stats_FindVidBad"]</text>
+                    @* Vuoto per un motivo, non per un buco: il consolidamento non ha ancora girato. *@
+                    <p class="muted">@L["Stats_AirportsEmpty"]</p>
                 }
                 else
                 {
-                    <text>@L["Stats_FindVidHint"]</text>
+                    <table class="res-table tbl-cards sx-air">
+                        <thead>
+                            <tr>
+                                <th>@L["Stats_Airport"]</th>
+                                <th>@L["Stats_AirportMovements"]</th>
+                                <th>@L["Stats_AirportCovered"]</th>
+                                <th class="num">@L["Stats_AirportOpenHours"]</th>
+                                <th class="num">@L["Stats_AirportOpenShare"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in _tuttiAeroporti ? _aeroporti.Rows : _aeroporti.Rows.Take(10))
+                            {
+                                <tr title="@L["Stats_AirportRowTitle", r.Icao, r.Movements, r.Covered, StatsView.Ore(r.AtcMinutes * 60L)]">
+                                    <td data-l="@L["Stats_Airport"]"><b class="icao">@r.Icao</b> <span class="muted">@r.Name</span></td>
+                                    <td data-l="@L["Stats_AirportMovements"]">
+                                        <span class="sx-cell">
+                                            <span class="sx-bar"><i style="width:@StatsView.Quota(r.Movements, _maxMovimentiAeroporto)"></i></span>
+                                            @r.Movements
+                                        </span>
+                                    </td>
+                                    @* La barra dice la QUOTA coperta, non il numero: fra due campi da mille e da
+                                       dieci movimenti la domanda è quale dei due è più scoperto. *@
+                                    <td data-l="@L["Stats_AirportCovered"]">
+                                        <span class="sx-cell">
+                                            <span class="sx-bar"><i class="p-app" style="width:@(r.CoveredPercent is { } q ? q + "%" : "0%")"></i></span>
+                                            @if (r.CoveredPercent is { } p2) { <text>@r.Covered · @p2%</text> }
+                                            else { <text>—</text> }
+                                        </span>
+                                    </td>
+                                    <td class="num" data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(r.AtcMinutes * 60L)</td>
+                                    <td class="num muted" data-l="@L["Stats_AirportOpenShare"]">
+                                        @(r.OpenPercent is { } o ? o + "%" : "—")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            @* ⚠️ Celle `td` con `data-l` anche qui: sul piccolo la tabella diventa una pila di
+                               schede, e una riga di totali fatta di `th` nudi resterebbe senza etichette. *@
+                            <tr class="tot">
+                                <td data-l="">@L["Stats_AirportsTotal"]</td>
+                                <td data-l="@L["Stats_AirportMovements"]">@_aeroporti.Movements</td>
+                                <td data-l="@L["Stats_AirportCovered"]">@_aeroporti.Covered@(_quotaTotale is { } t ? $" · {t}%" : "")</td>
+                                <td class="num" data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(_aeroporti.AtcMinutes * 60L)</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div class="sx-foot">
+                        @if (_aeroporti.Rows.Count > 10)
+                        {
+                            <button type="button" class="btn ghost" @onclick="() => _tuttiAeroporti = !_tuttiAeroporti">
+                                @(_tuttiAeroporti ? L["Stats_ShowFirst", 10] : L["Stats_ShowAllAirports", _aeroporti.Rows.Count])
+                            </button>
+                        }
+                        @* ⚠️ La misura si dichiara, non si lascia intuire: «con ATC» è un'approssimazione
+                           dichiarata, e senza questa riga un numero preciso sembrerebbe un registro. *@
+                        <p class="muted">@L["Stats_AirportsMeasure"]</p>
+                    </div>
                 }
-            </p>
+            </section>
         }
 
-        <h2 class="h-sect">@L["Stats_TopControllers"]</h2>
-        @if (_classifica.Count > 0)
-        {
-            <div class="podium">
-                @for (var i = 0; i < Math.Min(3, _classifica.Count); i++)
+        <div class="sx-row">
+            <section class="sx-card">
+                <div class="sx-head">
+                    <h2 class="sx-h">@L["Stats_MonthChart"]</h2>
+                    <span class="muted">@L["Stats_MonthHover"]</span>
+                </div>
+                <StatsBars Barre="_barreMesi" Titolo="@L["Stats_MonthChart"].Value" />
+            </section>
+            <section class="sx-card">
+                <h2 class="sx-h">@L["Stats_PositionShareDivision"]</h2>
+                @* Una barra sola al posto della ciambella, sul tempo di TUTTE le postazioni. *@
+                <div class="sx-split" role="img" aria-label="@L["Stats_PositionShareDivision"]">
+                    @foreach (var f in _fette)
+                    {
+                        <i class="@f.CssClass" style="width:@StatsView.Quota(f.Value, _totaleFette)" title="@f.Title"></i>
+                    }
+                </div>
+                <ul class="sx-list">
+                    @foreach (var t in _tipi)
+                    {
+                        <li class="sx-type">
+                            <i class="@t.Classe"></i>
+                            <b>@t.Tipo</b>
+                            <span class="muted">@L["Stats_SessionsN", t.Sessioni]</span>
+                            <span class="v">@StatsView.Ore(t.Secondi) h</span>
+                            <span class="muted">@Percento(t.Secondi, _totaleFette)</span>
+                        </li>
+                    }
+                </ul>
+            </section>
+        </div>
+
+        <section class="sx-card sx-block">
+            <h2 class="sx-h">@L["Stats_Coverage"]</h2>
+            <p class="muted">@L["Stats_CoverageHint"]</p>
+            <CoverageHeatmap Celle="_griglia" Copertura="true" Titolo="@L["Stats_Coverage"].Value" />
+            <div class="cov-legend">
+                <span>@L["Stats_CovLegend"]</span>
+                <span>@L["Stats_CovNone"]</span>
+                <i class="cov-q0"></i><i class="cov-q1"></i><i class="cov-q2"></i><i class="cov-q3"></i><i class="cov-q4"></i>
+                <span>@L["Stats_CovFull"]</span>
+            </div>
+        </section>
+
+        <section class="sx-card sx-block">
+            <div class="sx-head">
+                <h2 class="sx-h">@L["Stats_TopControllers"]</h2>
+                @* ⚠️ Solo allo staff, perché solo lo staff può APRIRE quel che questo campo trova: mostrarlo a
+                   tutti vorrebbe dire offrire una porta che si chiude in faccia. Non è comunque una guardia — la
+                   guardia sta nella pagina di destinazione, insieme alla riga di audit — è il modo di arrivarci
+                   senza scorrere una classifica di cinquanta righe cercando un numero. *@
+                @if (Authz.IsDivisionStaff)
                 {
-                    var c = _classifica[i];
-                    <div class="pod @(i == 0 ? "p1" : "")">
-                        <span class="pos">@(i + 1)</span>
-                        <div>
-                            <div class="who">
-                            <VidLink Vid="c.UserId" SoloNumero="true" />
-                            @if (Authz.IsDivisionStaff) { <StatsPeekLink Vid="c.UserId" /> }
-                        </div>
-                            <div class="what">@StatsView.Ore(c.Seconds) h · @c.Shifts @L["Stats_Shifts"]</div>
-                        </div>
+                    <div class="vid-find">
+                        <CampoTesto type="search" inputmode="numeric" list="vid-noti"
+                               placeholder="@L["Stats_FindVidPlaceholder"]" aria-label="@L["Stats_FindVid"]"
+                               Valore="@_cercato" OnInput="ScriveIlVid" OnKeyDown="TastoNelCampo" />
+                        @* I nomi li sa il roster, che raccoglie chi ha fatto login da NOI: è un aiuto per gli
+                           staffisti, non un elenco di controllori — degli altri abbiamo il solo VID. *@
+                        <datalist id="vid-noti">
+                            @foreach (var v in _noti)
+                            {
+                                <option value="@v.Key">@v.Value</option>
+                            }
+                        </datalist>
+                        <button class="btn primary" disabled="@(_vidValido is null)" @onclick="ApriIlProfilo">
+                            <Icon Name="search" Size="15" /> @L["Stats_FindVidGo"]
+                        </button>
                     </div>
                 }
             </div>
-        }
+            @if (Authz.IsDivisionStaff)
+            {
+                <p class="muted">
+                    @(_cercato.Length > 0 && _vidValido is null ? L["Stats_FindVidBad"] : L["Stats_FindVidHint"])
+                </p>
+            }
 
-        <div class="stats-cols">
-            <section>
+            @if (_classifica.Count > 0)
+            {
+                <div class="podium">
+                    @for (var i = 0; i < Math.Min(3, _classifica.Count); i++)
+                    {
+                        var c = _classifica[i];
+                        <div class="pod p@(i + 1)">
+                            <span class="pos">@(i + 1)</span>
+                            <div>
+                                <div class="who">@Controllore(c.UserId)</div>
+                                <div class="what">@StatsView.Ore(c.Seconds) h · @c.Shifts @L["Stats_Shifts"]</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
                 <table class="res-table tbl-cards">
                     <thead>
                         <tr>
-                            <th>#</th><th>VID</th><th>@L["Stats_Hours"]</th>
+                            <th>#</th><th>@L["Stats_Controller"]</th><th>@L["Stats_Hours"]</th>
                             <th>@L["Stats_Shifts"]</th><th>@L["Stats_Movements"]</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @{ var pos = 0; }
-                        @foreach (var c in _classifica)
+                        @for (var i = 0; i < _classifica.Count; i++)
                         {
-                            pos++;
-                            @* La propria riga si trova senza cercarla, anche quando è la quarantasettesima. *@
-                            <tr class="@(c.UserId == _io ? "rank-me" : "")">
-                                <td data-l="#">@pos</td>
-                                @* Allo staff il VID porta in DUE posti: il numero al profilo IVAO (come
-                                   ovunque nell'app), la lente alle statistiche personali qui dentro. *@
-                                <td data-l="VID">
-                                    <VidLink Vid="c.UserId" SoloNumero="true" />
-                                    @if (Authz.IsDivisionStaff) { <StatsPeekLink Vid="c.UserId" /> }
-                                </td>
+                            var c = _classifica[i];
+                            var mia = c.UserId == _io;
+                            var staccata = !_tuttaClassifica && i >= 10;
+                            @* I primi dieci; la propria riga si trova senza cercarla anche quando è la
+                               ventiseiesima: in coda, dopo i puntini. *@
+                            if (staccata && !mia) continue;
+                            <tr class="@(mia ? "rank-me" : "")">
+                                <td data-l="#">@(staccata ? "…" : "")@(i + 1)</td>
+                                <td data-l="@L["Stats_Controller"]">@Controllore(c.UserId)</td>
                                 <td class="cb" data-l="@L["Stats_Hours"]"
                                     style="--cb:@StatsView.Quota(c.Seconds, _maxOre)">@StatsView.Ore(c.Seconds)</td>
                                 <td data-l="@L["Stats_Shifts"]">@c.Shifts</td>
@@ -239,71 +291,83 @@
                         }
                     </tbody>
                 </table>
-            </section>
-            <section>
-                <h2 class="h-sect">@L["Stats_PositionShareDivision"]</h2>
-                <StatsDonut Fette="_fette" Titolo="@L["Stats_PositionShareDivision"].Value"
-                            Centro="@StatsView.Ore(_totali?.Seconds ?? 0)" CentroLabel="@L["Stats_Hours"].Value" />
+            }
 
-                <h2 class="h-sect">@L["Stats_ByPosition"]</h2>
-                <table class="res-table tbl-cards">
-                    <thead>
-                        <tr>
-                            <th>@L["Stats_Position"]</th><th>@L["Stats_Sessions"]</th>
-                            <th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var r in _perPostazione)
-                        {
-                            <tr>
-                                <td data-l="@L["Stats_Position"]">
-                                    <i class="dot @StatsView.PosClass(r.Key)"></i> @r.Key
-                                </td>
-                                <td data-l="@L["Stats_Sessions"]">@r.Sessions</td>
-                                <td class="cb" data-l="@L["Stats_Hours"]"
-                                    style="--cb:@StatsView.Quota(r.Seconds, _maxOrePostazione)">@StatsView.Ore(r.Seconds)</td>
-                                <td data-l="@L["Stats_Movements"]">@r.Movements</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </section>
-        </div>
+            <div class="sx-foot">
+                @if (_classifica.Count > 10)
+                {
+                    <button type="button" class="btn ghost" @onclick="() => _tuttaClassifica = !_tuttaClassifica">
+                        @L["Stats_ShowFirst", _tuttaClassifica ? 10 : _classifica.Count]
+                    </button>
+                }
+                <p class="muted">
+                    @if (_rango.Position > 0)
+                    {
+                        <text>@L["Stats_YouAre", _rango.Position, _rango.Total]@(" ")</text>
+                    }
+                    @L["Stats_NamesHint"]
+                </p>
+            </div>
+        </section>
+
+        <section class="sx-card sx-block">
+            <h2 class="sx-h">@L["Stats_ByPosition"]</h2>
+            <ul class="sx-list sx-cols">
+                @foreach (var r in _tuttePostazioniVisibili ? _perPostazione : _perPostazione.Take(10))
+                {
+                    <li class="sx-hr">
+                        <span class="k">@r.Key</span>
+                        <span class="sx-bar"><i class="@StatsView.PosClass(r.Key)" style="width:@StatsView.Quota(r.Seconds, _maxOrePostazione)"></i></span>
+                        <span class="v">@StatsView.Ore(r.Seconds) h</span>
+                        <span class="d">@L["Stats_PositionDetail", r.Sessions, r.Movements]</span>
+                    </li>
+                }
+            </ul>
+            @if (_perPostazione.Count > 10)
+            {
+                <div>
+                    <button type="button" class="btn ghost" @onclick="() => _tuttePostazioniVisibili = !_tuttePostazioniVisibili">
+                        @(_tuttePostazioniVisibili ? L["Stats_ShowFirst", 10] : L["Stats_AllPositions", _perPostazione.Count])
+                    </button>
+                </div>
+            }
+        </section>
     }
 
     @if (Authz.IsDivisionStaff)
     {
-        @* L'ingresso all'archivio grezzo: senza un link da qualche parte, la pagina esisterebbe solo per
-           chi ne conosce l'indirizzo. Sta accanto agli altri strumenti di staff, non nel menu pubblico. *@
-        <h2 class="h-sect">@L["World_Title"]</h2>
-        <p class="muted">@L["World_Subtitle"]</p>
-        <a class="btn ghost" href="/services/stats/world">
-            <Icon Name="search" Size="15" /> @L["World_Title"]
-        </a>
-
-        @* Chi è entrato nel sito: solo agli amministratori (30 settembre 2026), sono dati personali. *@
-        @if (Authz.IsAdmin)
-        {
-            <h2 class="h-sect">@L["Logins_Title"]</h2>
-            <p class="muted">@L["Logins_Subtitle"]</p>
-            <a class="btn ghost" href="/services/stats/logins">
-                <Icon Name="log-in" Size="15" /> @L["Logins_Title"]
+        <h2 class="sx-sub sx-tools-h">@L["Stats_StaffTools"]</h2>
+        <div class="sx-tools">
+            @* L'ingresso all'archivio grezzo: senza un link da qualche parte, la pagina esisterebbe solo per
+               chi ne conosce l'indirizzo. Sta accanto agli altri strumenti di staff, non nel menu pubblico. *@
+            <a class="sx-card sx-tool" href="/services/stats/world">
+                <b><Icon Name="search" Size="15" /> @L["World_Title"]</b>
+                <span class="muted">@L["World_Subtitle"]</span>
             </a>
-        }
 
-        <h2 class="h-sect">@L["Stats_Visibility"]</h2>
-        <label class="inline-form">
-            <input type="checkbox" checked="@_pubblica" @onchange="CambiaVisibilita" />
-            <span>@L["Stats_PublicLeaderboard"]</span>
-        </label>
-        <p class="muted">
-            @L["Stats_PublicLeaderboardHint"]
-            @if (_deciso is { } quando)
+            @* Chi è entrato nel sito: solo agli amministratori (30 settembre 2026), sono dati personali. *@
+            @if (Authz.IsAdmin)
             {
-                <text> · @L["Stats_DecidedBy", _decisoDa, quando.ToString("yyyy-MM-dd HH:mm")]Z</text>
+                <a class="sx-card sx-tool" href="/services/stats/logins">
+                    <b><Icon Name="log-in" Size="15" /> @L["Logins_Title"]</b>
+                    <span class="muted">@L["Logins_Subtitle"]</span>
+                </a>
             }
-        </p>
+
+            <div class="sx-card sx-tool" role="group" aria-label="@L["Stats_Visibility"]">
+                <label class="inline-form">
+                    <input type="checkbox" checked="@_pubblica" @onchange="CambiaVisibilita" />
+                    <b>@L["Stats_PublicLeaderboard"]</b>
+                </label>
+                <span class="muted">
+                    @L["Stats_PublicLeaderboardHint"]
+                    @if (_deciso is { } quando)
+                    {
+                        <text> · @L["Stats_DecidedBy", _decisoDa, quando.ToString("yyyy-MM-dd HH:mm")]Z</text>
+                    }
+                </span>
+            </div>
+        </div>
     }
 
     <p class="muted" style="margin-top:22px">@L["Stats_Disclaimer"]</p>
@@ -331,8 +395,28 @@
     private DateTime? _deciso;
     private int _decisoDa;
     private int? _io;
-    private double _maxOre, _maxOrePostazione;
+    private double _maxOre, _maxOrePostazione, _maxMovimentiAeroporto, _totaleFette;
     private int _controllori;
+
+    /// <summary>La propria posizione: la riga evidenziata e la frase sotto la classifica.</summary>
+    private StatsRank _rango = new(0, 0);
+
+    /// <summary>Il contesto dei numeri: quanto fa, in media, ogni controllore con almeno un turno.</summary>
+    private string _mediaOre = "", _mediaTurni = "", _mediaMovimenti = "", _durataMedia = "—";
+
+    /// <summary>Tipo di postazione, sessioni e ore: la lista sotto la barra divisa.</summary>
+    private sealed record TipoPostazione(string Tipo, string Classe, int Sessioni, long Secondi);
+    private IReadOnlyList<TipoPostazione> _tipi = Array.Empty<TipoPostazione>();
+
+    /// <summary>
+    /// «Mario R.» per chi è entrato nel sito almeno una volta (registro degli accessi), per il VID della
+    /// classifica. Decisione del committente del 30 settembre 2026: nome e iniziale del cognome, accanto al VID,
+    /// a chiunque veda la classifica — IVAO lo consente, l'informativa lo dice. Chi non è mai entrato resta un VID.
+    /// </summary>
+    private IReadOnlyDictionary<int, string> _nomi = new Dictionary<int, string>();
+
+    // Quanto si vede: i primi dieci, il resto a richiesta. Interattiva, quindi basta un campo.
+    private bool _tuttaClassifica, _tuttiAeroporti, _tuttePostazioniVisibili;
 
     /// <summary>Periodo e gruppo dell'ultimo caricamento: senza, ogni render rifarebbe tutte le query.</summary>
     private string? _caricato;
@@ -348,6 +432,7 @@
     private IEditAuthorizationService Authz = default!;
     private IStaffRosterRepository Roster = default!;
     private IAirportCoverageQueries Aeroporti = default!;
+    private IRegistroAccessi Accessi = default!;
 
     protected override void OnInitialized()
     {
@@ -356,6 +441,7 @@
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
         Roster = ScopedServices.GetRequiredService<IStaffRosterRepository>();
         Aeroporti = ScopedServices.GetRequiredService<IAirportCoverageQueries>();
+        Accessi = ScopedServices.GetRequiredService<IRegistroAccessi>();
     }
 
     /// <summary>
@@ -428,7 +514,13 @@
         _perPostazione = _tuttePostazioni.Take(20).ToList();
 
         // Quanti controllori hanno almeno un turno: la classifica è tagliata ai primi cinquanta e non lo sa.
-        _controllori = (await Stats.RankAsync(_io ?? 0, da, a)).Total;
+        _rango = await Stats.RankAsync(_io ?? 0, da, a);
+        _controllori = _rango.Total;
+        var perTesta = Math.Max(1, _controllori);
+        _mediaOre = StatsView.Ore(_totali!.Seconds / perTesta);
+        _mediaTurni = Math.Round(_totali!.Shifts / (double)perTesta).ToString("0");
+        _mediaMovimenti = (_totali!.Movements / (double)perTesta).ToString("0.#");
+        _durataMedia = _totali!.Shifts > 0 ? StatsView.Durata((int)(_totali.Seconds / _totali.Shifts)) : "—";
         _griglia = await Stats.CoverageAsync(null, da, a);
 
         var perMese = await Stats.ByMonthAsync(null, da, a);
@@ -445,9 +537,16 @@
                 L["Stats_SliceTitle", g.Key, StatsView.Ore(g.Sum(x => x.Seconds)), g.Sum(x => x.Sessions)]))
             .OrderByDescending(f => f.Value)
             .ToList();
+        _totaleFette = _fette.Sum(f => f.Value);
+        _tipi = _tuttePostazioni
+            .GroupBy(p => StatsView.Tipo(p.Key))
+            .Select(g => new TipoPostazione(g.Key, StatsView.PosClass(g.Key), g.Sum(x => x.Sessions), g.Sum(x => x.Seconds)))
+            .OrderByDescending(x => x.Secondi)
+            .ToList();
 
         // I nomi per i suggerimenti: solo di chi è in classifica, e solo di chi il roster conosce.
         _noti = await Roster.GetDisplayNamesAsync(_classifica.Select(c => c.UserId).ToList());
+        _nomi = await Accessi.NomiBreviAsync(_classifica.Select(c => c.UserId).ToList());
 
         _maxOre = _classifica.Count == 0 ? 0 : _classifica.Max(c => c.Seconds);
         _maxOrePostazione = _perPostazione.Count == 0 ? 0 : _perPostazione.Max(r => r.Seconds);
@@ -464,10 +563,29 @@
             .ToList();
 
         _aeroporti = await Aeroporti.ByAirportAsync(da, a, gruppo);
+        _maxMovimentiAeroporto = _aeroporti.Rows.Count == 0 ? 0 : _aeroporti.Rows.Max(r => r.Movements);
         _quotaTotale = _aeroporti.Movements <= 0
             ? null
             : (int)Math.Round(_aeroporti.Covered * 100.0 / _aeroporti.Movements);
     }
+
+    private static string Percento(double v, double tot) =>
+        tot <= 0 ? "0%" : Math.Round(v / tot * 100).ToString("0") + "%";
+
+    /// <summary>
+    /// Chi è, in classifica e sul podio: il nome breve sopra e il VID sotto, o il solo VID. Allo staff il VID porta
+    /// in DUE posti: il numero al profilo IVAO (come ovunque nell'app), la lente alle statistiche personali qui dentro.
+    /// </summary>
+    private RenderFragment Controllore(int vid) => @<span class="sx-who-c">
+        @if (_nomi.TryGetValue(vid, out var nome))
+        {
+            <b>@nome</b>
+        }
+        <span class="sx-vid">
+            <VidLink Vid="vid" SoloNumero="true" />
+            @if (Authz.IsDivisionStaff) { <StatsPeekLink Vid="vid" /> }
+        </span>
+    </span>;
 
     /// <summary>L'indirizzo della pagina con periodo e gruppo insieme: le chip non si cancellano a vicenda.</summary>
     private static string Indirizzo(string periodo, string? gruppo) =>

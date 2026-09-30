@@ -1,7 +1,7 @@
 # Statistiche ATC: la nuova veste della pagina personale e di quella della divisione — carta (30 settembre 2026)
 
-> **Stato: 🔨 IN CORSO dal 30 settembre 2026** sul ramo `fix/statistiche-grafica` (filone Sito, S72), in fila su
-> `fix/titolo-documento`. Migrazione `NomeBreveAccessi` (una colonna nel registro degli accessi). Nessun `deploy/`.
+> **Stato: ✅ ESEGUITA il 30 settembre 2026** sul ramo `fix/statistiche-grafica` (filone Sito, S72), in fila su
+> `fix/titolo-documento`, provata a schermo su una copia del DB (§4). Migrazione `NomeBreveAccessi` (una colonna nel registro degli accessi). Nessun `deploy/`.
 > Nasce da una richiesta del committente (30 settembre 2026): «vorrei ripensare la grafica della pagina delle
 > statistiche… prima la progettazione della UI, discutiamone e poi la applichi al sito», fedele al resto del sito.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Registro degli accessi: [2026-09-30-registro-accessi.md](2026-09-30-registro-accessi.md).
@@ -52,12 +52,22 @@ esistenti restano senza nome breve fino al prossimo accesso.
   fascia: con le soglie della copertura sarebbe tutto chiaro).
 - 🔴 **Difetto trovato per strada**: le caselle della mappa avevano la classe letterale `cov-q@q` (Razor la leggeva
   come un indirizzo email), quindi la mappa della divisione **non si era mai colorata**. Ora `cov-q@(q)`.
+- Pagina della divisione: cinque numeri con la media per controllore (ore, turni, movimenti), chi conta come
+  controllore, durata media del turno; aeroporti (staff) in un riquadro con le barre dei movimenti e della quota
+  coperta, l'avviso del consolidamento in corso accanto al titolo, i primi dieci e «Mostra tutti»; ore per mese
+  accanto alla barra divisa per tipo (sessioni, ore, quota); copertura; classifica col podio, i nomi brevi
+  (`IRegistroAccessi.NomiBreviAsync` sui cinquanta VID), i primi dieci più la propria riga in coda («…26»),
+  «Mostra i primi 50», la ricerca per VID (staff) nella testata del riquadro; postazioni su due colonne;
+  strumenti dello staff come riquadri.
 - Stile: blocco `sx-*` in `vipi-theme.css` (riquadri, righe a due colonne, righe a barra, barra divisa per tipo di
   postazione), soglie sul contenitore come il resto del tema.
 
 ## 4. Prove
 
-- Test Ui: il nome breve in testata di chi è guardato (`StatsProfileAccessTests`). Domain, App e Infra: nome breve
+- Test Ui: il nome breve in testata di chi è guardato (`StatsProfileAccessTests`); in classifica il nome breve di
+  chi è entrato e il solo VID degli altri, i primi dieci più la propria riga (`StatsDivisionPageTests`). Ui 1925. Domain, App e Infra: nome breve
   composto, registrato, letto a gruppi.
 - **A schermo** su una copia del DB (VID 764245, 7° su 498): scuro 1280 px, chiaro 375 px senza scorrimento
-  orizzontale, mappa colorata (76/64/19/7/2 caselle per tono).
+  orizzontale, mappa colorata (76/64/19/7/2 caselle per tono). Divisione in scuro 1280 px e chiaro 375 px, con
+  nomi brevi inventati scritti nella copia: podio e classifica coi nomi, 26° in coda, «Mostra i primi 50» → 50
+  righe, schede degli aeroporti allineate sul telefono.
