@@ -4,7 +4,11 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 23 settembre 2026
+## Dove siamo — 30 settembre 2026
+
+> Tutto quel che è elencato qui sotto, fino a **S62**, è in `main` e **online** (ultima: 1.51.0, S58–S62). Niente da
+> fondere. Prove che restano al committente: il vAWOS nel suo Edge (S57/S58) e il primo evento vero in `/services/event`
+> (S59).
 
 - ✅ **S1** editor APP unito, «sezioni comuni» non ricarica più la pagina: fuso e **online in 1.43.0**
   (`docs/lavori-aperti.md` §S1, §A118). Al prossimo scarico di diagnostica: che non tornino gli
@@ -1730,7 +1734,10 @@
   Infrastructure (2035). Codice comune `Vipi.Application`, `Vipi.Infrastructure`. A schermo da Admin: richiesta
   scritta, «Elimina» → «Conferma: elimina» → sparita, esito «Richiesta #1 eliminata».
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 30-set: da fondere `fix/enti-acc` (S53–S55) e poi `fix/richieste-campo` (S56, costruito sopra); dopo la
-  fusione si torna su `sito/lavori`. Futuro: vIPI ACC legata all'ACC (`lavori-aperti.md`, Sito), secondo canale
-  delle richieste (`piano-segnalazioni.md` §10, strada B-1).
+  Al 30-set sera: tutto fuso e online fino a S62 (1.51.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
+  lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
+  IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il vAWOS nell'Edge del committente — se scorre
+  ancora, farsi mandare `innerHeight` e l'altezza di `.awos` (causa mai misurata, l'Edge di questa macchina non
+  parte in headless); il primo evento vero in `/services/event`. Futuro: vIPI ACC legata all'ACC
+  (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
