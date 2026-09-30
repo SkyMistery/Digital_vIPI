@@ -1535,6 +1535,12 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.54.2 — PATCH, nessuna migrazione. Su 1.54.1 (cab7337, online dal 30 settembre 2026). Sito S81: nella vista live
+      la finestra Trasferimenti si apre solo allo staff di divisione; per gli altri una riga «In sviluppo» che non si
+      apre. Tocca Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice degli asset) e Vipi.Host per il timbro. Dettaglio:
+      LEGGIMI-PACCHETTO-1.54.2.md, §A144.
+    -->
+    <!--
       1.54.1 — PATCH, nessuna migrazione. Su 1.54.0 (919b965, online dal 30 settembre 2026). Sito S80, solo testi:
       «I miei dati» rimanda per la cancellazione alla FAQ di IVAO (wiki.ivao.aero, delete-account); «Richieste dal
       campo» → «Campo richieste»; «Presenze» → «Voli visti», con la riga che spiega voli visti e movimenti; testi degli
@@ -1892,7 +1898,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.54.1</VipiVersione>
+    <VipiVersione>1.54.2</VipiVersione>
   </PropertyGroup>
 
 </Project>
