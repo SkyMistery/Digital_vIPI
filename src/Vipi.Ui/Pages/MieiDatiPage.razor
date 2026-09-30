@@ -55,7 +55,9 @@
         </ul>
 
         <h2 class="h-sect">@L["My_DeleteTitle"]</h2>
-        <p>@L["My_Delete"] <a href="/services/vsop/requests">@L["Req_Title"]</a>.</p>
+        @* 🔴 Committente, 30 settembre 2026: la cancellazione NON si chiede allo staff dal Campo richieste. Si chiede a
+           IVAO HQ (titolare del trattamento), che la gira alla divisione. La procedura è nelle FAQ dei membri della wiki. *@
+        <p>@L["My_Delete"] <a href="@ProceduraCancellazione" target="_blank" rel="noopener">@L["My_DeleteLink"]</a>.</p>
         <p class="muted">@L["My_DeleteNote"]</p>
     }
 
@@ -63,6 +65,9 @@
 </div>
 
 @code {
+    /// <summary>La procedura IVAO per cancellare l'account (committente, 30 settembre 2026).</summary>
+    internal const string ProceduraCancellazione = "https://wiki.ivao.aero/en/home/members/faqs#delete-account";
+
     private AccessoAlSitoRiga? _riga;
 
     protected override async Task OnInitializedAsync() => _riga = await Registro.MieiAsync();

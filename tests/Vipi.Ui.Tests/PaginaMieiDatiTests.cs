@@ -11,7 +11,7 @@ using Xunit;
 namespace Vipi.Ui.Tests;
 
 /// <summary>«I miei dati» (30 settembre 2026): la propria riga, i rimandi agli altri dati, e la strada per chiedere la
-/// cancellazione. Solo vedere: nessun tasto che scriva.</summary>
+/// cancellazione (a IVAO HQ). Solo vedere: nessun tasto che scriva.</summary>
 public class PaginaMieiDatiTests : TestContext
 {
     private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
@@ -60,7 +60,9 @@ public class PaginaMieiDatiTests : TestContext
 
         var link = cut.FindAll("a").Select(a => a.GetAttribute("href")).ToList();
         Assert.Contains("/services/stats/user/704798", link);
-        Assert.Contains("/services/vsop/requests", link);
+        // La cancellazione si chiede a IVAO HQ (committente, 30 settembre 2026), non allo staff dal Campo richieste.
+        Assert.Contains("https://wiki.ivao.aero/en/home/members/faqs#delete-account", link);
+        Assert.DoesNotContain("/services/vsop/requests", link);
         Assert.Empty(cut.FindAll("button"));
         Assert.Empty(cut.FindAll("form"));
     }

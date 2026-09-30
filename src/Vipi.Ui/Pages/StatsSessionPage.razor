@@ -70,6 +70,8 @@
             <StatsKpi Valore="@s.TrafficCount.ToString()" Etichetta="@L["Stats_Presences"].Value" />
             <StatsKpi Valore="@s.TrafficMinutes.ToString()" Etichetta="@L["Stats_BusyMinutes"].Value" />
         </div>
+        @* La stessa riga della pagina personale: voli visti contro movimenti (30 settembre 2026). *@
+        <p class="muted sx-note">@L["Stats_FlightsVsMovements"]</p>
 
         @if (_dettaglio.Traffic.Count == 0)
         {
