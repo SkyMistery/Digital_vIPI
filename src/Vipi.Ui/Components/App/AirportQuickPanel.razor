@@ -3,7 +3,7 @@
    - TA / TL·QNH → dalla STESSA vista del documento pubblico (IAirportViewDerivationService, congelata o derivata:
      U-015, la sezione «transition» è Host e nello snapshot non ha blocchi da leggere)
    - Piste suggerite → dal profilo strutturato (come /airports)
-   - SID → dalla STESSA derivazione del documento completo (IAirportSidDerivationService): stesse colonne,
+   - SID → dalla STESSA vista del documento pubblico (IAirportViewDerivationService, vIPI o vSOP): stesse colonne,
      stesso filtro AIRAC, stesse note. Qui c'era una seconda derivazione scritta a mano, e diceva una cosa
      diversa — la nota «to coord with APP» sull'initial climb non usciva mai.
    METAR live solo per la pista consigliata e l'evidenza della riga TL col QNH corrente. *@
@@ -205,7 +205,6 @@ else
     // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IVipiViewService ViewService = default!;
     private IAirportEditingService AirportProfile = default!;
-    private IAirportSidDerivationService SidView = default!;
     private IPisteDalPubblicato PisteDalPubblicato = default!;
     private IAirportViewDerivationService AirportView = default!;
     protected override void OnInitialized()
@@ -214,7 +213,6 @@ else
         AirportView = ScopedServices.GetRequiredService<IAirportViewDerivationService>();
         ViewService = ScopedServices.GetRequiredService<IVipiViewService>();
         AirportProfile = ScopedServices.GetRequiredService<IAirportEditingService>();
-        SidView = ScopedServices.GetRequiredService<IAirportSidDerivationService>();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -240,7 +238,8 @@ else
         // release o derivata, come la sezione che il documento completo mostra (AirportMemberLoader: pubblico =
         // frozen). Prima si cercavano nei BLOCCHI della sezione «transition», che dalla carta del 26 agosto è Host e
         // nello snapshot non ne ha: TA sempre «N/A», TL «—», initial climb in piedi sopra la TA.
-        _transition = (await AirportView.ResolveForViewAsync(Icao, useFrozen: true, _edizione)).Transition;
+        var derivate = await AirportView.ResolveForViewAsync(Icao, useFrozen: true, _edizione);
+        _transition = derivate.Transition;
         _ta = _transition.TransitionAltitudeFt;
 
         _profile = await AirportProfile.LoadForViewAsync(Icao);
@@ -252,7 +251,10 @@ else
 
         // La tabella SID è la STESSA del documento completo: stesse colonne, stesso filtro AIRAC, stesso
         // ordine. Al ciclo corrente, che qui è sempre «adesso»: il pannello rapido non ha anteprime.
-        _sids = (await SidView.DeriveAsync(Icao)).Rows;
+        // ⚠️ Dalla stessa vista di TA/TL, cioè congelata se la release congela la sezione. Fino al 30 settembre 2026
+        // si derivava dal vivo, e dove la sezione SID è congelata il pannello diceva una cosa diversa dal documento
+        // (LIRS: Cat «A,B,C,D,E» nel pannello, «—» nel vSOP pubblicato).
+        _sids = derivate.Sids.Rows;
 
         var wx = await Weather.GetAsync(Icao);
         var metar = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
