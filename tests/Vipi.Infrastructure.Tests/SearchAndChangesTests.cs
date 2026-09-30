@@ -135,6 +135,74 @@ public class SearchAndChangesTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// 🔴 Committente, 30 settembre 2026: un blocco strutturato (qui gli aeroporti alternati di un vSOP) usciva
+    /// nell'estratto come JSON grezzo. Ora ne restano i soli valori di testo, e le chiavi non pescano niente.
+    /// </summary>
+    [Fact]
+    public async Task Un_blocco_strutturato_esce_come_testo_e_non_come_json()
+    {
+        var section = await _db.DocumentSections.FirstAsync();
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = section.DocumentVersionId, SectionId = section.Id, Order = 9001,
+            Format = Vipi.Domain.BlockFormat.Table, Tier = Vipi.Domain.BlockTier.Extended,
+            Visibility = Vipi.Domain.BlockVisibility.Always,
+            BodyJson = "{\"alternates\":[{\"icao\":\"QQZZ\",\"name\":\"Lamezia Prova\",\"bearing\":309,\"navaids\":[{\"code\":\"LMT\"}]}]}",
+        });
+        await _db.SaveChangesAsync();
+        await PublishAllAsync();
+
+        var hit = Assert.Single(await _search.SearchAsync("QQZZ", SearchScope.All, 50));
+        Assert.Contains("QQZZ · Lamezia Prova · LMT", hit.Snippet);
+        Assert.DoesNotContain("{", hit.Snippet);
+        Assert.DoesNotContain("\"", hit.Snippet);
+
+        // Le chiavi non sono testo: «alternates» non si trova.
+        Assert.Empty(await _search.SearchAsync("alternates", SearchScope.All, 50));
+    }
+
+    /// <summary>
+    /// 🔴 Committente, 30 settembre 2026: i risultati in ordine di importanza — titolo del documento, titolo di
+    /// sezione, di sotto-sezione, testo — anche quando il titolo sta in un documento che si legge DOPO.
+    /// </summary>
+    [Fact]
+    public async Task I_risultati_vanno_in_ordine_di_importanza()
+    {
+        var radice = await _db.DocumentSections.OrderBy(s => s.Id).FirstAsync(s => s.ParentSectionId == null);
+        var versione = await _db.DocumentVersions.FirstAsync(v => v.Id == radice.DocumentVersionId);
+        var altro = await _db.Documents.OrderByDescending(d => d.Id).FirstAsync(d => d.Id != versione.DocumentId);
+
+        // Nel primo documento: testo, sotto-sezione e sezione; il titolo nell'ultimo.
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = radice.DocumentVersionId, SectionId = radice.Id, Order = 9002,
+            Format = Vipi.Domain.BlockFormat.Prose, Tier = Vipi.Domain.BlockTier.Extended,
+            Visibility = Vipi.Domain.BlockVisibility.Always, Body = "testo con ORDTOK dentro",
+        });
+        _db.DocumentSections.Add(new Vipi.Domain.Entities.DocumentSection
+        {
+            DocumentVersionId = radice.DocumentVersionId, ParentSectionId = radice.Id,
+            Title = "Figlia ORDTOK", Order = 99, Depth = 1, SectionKey = SectionKeys.NewCustom(),
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        radice.Title += " ORDTOK";
+        altro.Title += " ORDTOK";
+        await _db.SaveChangesAsync();
+        await PublishAllAsync();
+
+        var hits = await _search.SearchAsync("ORDTOK", SearchScope.All, 50);
+
+        int Dove(Func<Vipi.Application.Content.SearchHit, bool> p) => hits.ToList().FindIndex(h => p(h));
+        var titolo = Dove(h => !h.Url.Contains("#s-"));
+        var sezione = Dove(h => h.Snippet == radice.Title);
+        var figlia = Dove(h => h.Snippet == "Figlia ORDTOK");
+        var testo = Dove(h => h.Snippet.Contains("testo con ORDTOK"));
+
+        Assert.True(titolo >= 0 && sezione >= 0 && figlia >= 0 && testo >= 0, string.Join(" | ", hits.Select(h => h.Snippet)));
+        Assert.True(titolo < sezione && sezione < figlia && figlia < testo, $"{titolo} {sezione} {figlia} {testo}");
+    }
+
+    /// <summary>
     /// Un blocco immagine ha per testo il suo alternativo e la didascalia. Il BodyJson porta lo sha: se finisse
     /// nell'indice, cercare una sequenza qualsiasi pescherebbe immagini a caso e il risultato mostrerebbe JSON.
     /// </summary>

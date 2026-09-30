@@ -8,7 +8,7 @@ namespace Vipi.Application.Tests;
 
 /// <summary>
 /// La ricerca globale fa emergere le sezioni della Guida (intento "come si fa X"): solo nel filtro "Tutti",
-/// in cima ai risultati documentali. Vedi GuideSearchCatalog + SearchService.
+/// in coda ai risultati documentali (committente, 30 settembre 2026). Vedi GuideSearchCatalog + SearchService.
 /// </summary>
 public class GuideSearchTests
 {
@@ -38,16 +38,28 @@ public class GuideSearchTests
     };
 
     [Fact]
-    public async Task Guide_section_surfaces_first_in_all_scope()
+    public async Task Guide_section_comes_after_the_documents_in_all_scope()
     {
         var svc = new SearchService(new FakeRepo(Doc("vIPI Roma")), authz: Editor);
 
         var hits = await svc.SearchAsync("pubblicare", SearchScope.All);
 
-        Assert.NotEmpty(hits);
-        Assert.StartsWith("Guida ›", hits[0].Where);                 // la guida viene prima dei documenti
-        Assert.Equal("/services/vsop/guide#editor-release", hits[0].Url);     // ancora della sezione giusta
-        Assert.Contains(hits, h => h.Where == "vIPI Roma");          // i documenti restano presenti
+        Assert.Equal("vIPI Roma", hits[0].Where);                    // prima i documenti
+        var guida = hits.Skip(1).First();
+        Assert.StartsWith("Guida ›", guida.Where);                   // poi la guida
+        Assert.Equal("/services/vsop/guide#editor-release", guida.Url);       // ancora della sezione giusta
+    }
+
+    [Fact]
+    public async Task La_guida_resta_anche_quando_i_documenti_riempiono_il_tetto()
+    {
+        var tanti = Enumerable.Range(1, 50).Select(i => Doc($"vIPI {i}")).ToArray();
+        var svc = new SearchService(new FakeRepo(tanti), authz: Editor);
+
+        var hits = await svc.SearchAsync("pubblicare", SearchScope.All);
+
+        Assert.Equal("vIPI 1", hits[0].Where);
+        Assert.Contains(hits.Skip(50), h => h.Url == "/services/vsop/guide#editor-release");
     }
 
     /// <summary>
@@ -123,8 +135,9 @@ public class GuideSearchTests
 
         var hits = await svc.SearchAsync("publishing", SearchScope.All);
 
-        Assert.StartsWith("Guide ›", hits[0].Where);
-        Assert.Equal("Publishing (AIRAC release)", hits[0].DocTitle);
+        var guida = hits.First(h => h.Url.StartsWith("/services/vsop/guide#", StringComparison.Ordinal));
+        Assert.StartsWith("Guide ›", guida.Where);
+        Assert.Equal("Publishing (AIRAC release)", guida.DocTitle);
     }
 
     [Fact]
@@ -138,8 +151,8 @@ public class GuideSearchTests
 
         var hits = await svc.SearchAsync("pubblicare", SearchScope.All);
 
-        Assert.Equal("/services/vsop/guide#editor-release", hits[0].Url);
-        Assert.Equal("Publishing (AIRAC release)", hits[0].DocTitle);   // trovata in italiano, resa in inglese
+        var guida = hits.First(h => h.Url == "/services/vsop/guide#editor-release");
+        Assert.Equal("Publishing (AIRAC release)", guida.DocTitle);   // trovata in italiano, resa in inglese
     }
 
     [Fact]

@@ -70,7 +70,9 @@ internal static class ReleaseInVigore
 public sealed class IndiceDelleRelease
 {
     /// <summary>Un blocco ha fino a due testi (Body e BodyJson): un risultato per blocco, col primo che combacia.</summary>
-    internal sealed record Sezione(int Id, string Titolo, string Percorso, IReadOnlyList<(string? Primo, string? Secondo)> Testi);
+    /// <param name="Livello">0 = sezione di primo livello, 1 e oltre = sotto-sezione: decide l'ordine dei risultati.</param>
+    internal sealed record Sezione(int Id, string Titolo, string Percorso, IReadOnlyList<(string? Primo, string? Secondo)> Testi,
+        int Livello = 0);
     internal sealed record Voce(string Titolo, IReadOnlyList<Sezione> Sezioni, int Blocchi, int TutteLeSezioni);
 
     private readonly ConcurrentDictionary<(int Id, DateTime Creata), Voce> _voci = new();
@@ -106,7 +108,7 @@ public sealed class IndiceDelleRelease
         var blocchi = 0;
         var tutte = 0;
 
-        void Scendi(RawSection s, string padre, bool nascosta)
+        void Scendi(RawSection s, string padre, bool nascosta, int livello)
         {
             tutte++;
             blocchi += s.Blocks.Count;
@@ -114,11 +116,11 @@ public sealed class IndiceDelleRelease
             // Una sezione nascosta si porta via il proprio sottoalbero, nel documento come nell'indice.
             var fuori = nascosta || s.IsHidden;
             if (!fuori)
-                sezioni.Add(new Sezione(s.Id, s.Title, percorso, s.Blocks.Select(TestiDi).ToList()));
-            foreach (var figlio in s.Children) Scendi(figlio, percorso, fuori);
+                sezioni.Add(new Sezione(s.Id, s.Title, percorso, s.Blocks.Select(TestiDi).ToList(), livello));
+            foreach (var figlio in s.Children) Scendi(figlio, percorso, fuori, livello + 1);
         }
 
-        foreach (var r in doc.Roots) Scendi(r, "", nascosta: false);
+        foreach (var r in doc.Roots) Scendi(r, "", nascosta: false, livello: 0);
         return new Voce(doc.Title, sezioni, blocchi, tutte);
     }
 
@@ -136,6 +138,61 @@ public sealed class IndiceDelleRelease
     {
         BlockFormat.Image => (MediaRef.TextOf(b.BodyJson, b.Body), null),
         BlockFormat.Attachment => (AttachmentRef.TextOf(b.BodyJson, b.Body), null),
-        _ => (Riferimenti.Sostituisci(b.Body, null), Riferimenti.Sostituisci(b.BodyJson, null)),
+        _ => (Leggibile(Riferimenti.Sostituisci(b.Body, null)), Leggibile(Riferimenti.Sostituisci(b.BodyJson, null))),
     };
+
+    /// <summary>
+    /// Un testo che è JSON (i blocchi strutturati: tabelle, aeroporti alternati, radioaiuti…) diventa i suoi soli
+    /// VALORI di testo, separati da « · »: «LICA · Lamezia Terme · LMT». Le chiavi, le parentesi e i numeri nudi
+    /// non sono testo che qualcuno legge.
+    ///
+    /// <para>🔴 Committente, 30 settembre 2026: cercando «LICA» un risultato mostrava
+    /// <c>{"icao":"LICA","name":"Lamezia Terme","navaids":[{"code":"LMT"…</c>. Il JSON finiva nell'indice così
+    /// com'era, e con lui nell'estratto; cercare «name» o «icao» pescava ogni blocco strutturato del sito.</para>
+    ///
+    /// <para>Un testo che non comincia con <c>{</c> o <c>[</c>, o che non si legge come JSON, resta com'è.</para>
+    /// </summary>
+    /// <remarks>Le chiavi interne (<c>"Key":"cfg:bbbb0611"</c> dei gruppi e delle configurazioni, id, sha) non
+    /// sono testo del documento: si saltano per nome, o cercare «cfg» pescherebbe ogni configurazione.</remarks>
+    private static readonly HashSet<string> CampiTecnici = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Key", "Id", "Slug", "Sha", "MediaId", "SectionKey",
+    };
+
+    internal static string? Leggibile(string? testo)
+    {
+        if (string.IsNullOrWhiteSpace(testo)) return testo;
+        var t = testo.TrimStart();
+        if (t[0] != '{' && t[0] != '[') return testo;
+
+        try
+        {
+            using var json = System.Text.Json.JsonDocument.Parse(t);
+            var parti = new List<string>();
+            void Visita(System.Text.Json.JsonElement e)
+            {
+                switch (e.ValueKind)
+                {
+                    case System.Text.Json.JsonValueKind.Object:
+                        foreach (var p in e.EnumerateObject())
+                            if (!CampiTecnici.Contains(p.Name)) Visita(p.Value);
+                        break;
+                    case System.Text.Json.JsonValueKind.Array:
+                        foreach (var x in e.EnumerateArray()) Visita(x);
+                        break;
+                    case System.Text.Json.JsonValueKind.String:
+                        var s = e.GetString();
+                        if (!string.IsNullOrWhiteSpace(s)) parti.Add(s.Trim());
+                        break;
+                }
+            }
+            Visita(json.RootElement);
+            // Senza doppioni: una configurazione ripete il callsign in «Open» e in «OpenCallsigns».
+            return parti.Count == 0 ? null : string.Join(" · ", parti.Distinct(StringComparer.Ordinal));
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return testo;
+        }
+    }
 }

@@ -1870,6 +1870,13 @@
   sorgente non conserva» era vero solo per IVAO) e «I miei dati», che ora dice dodici mesi per esteso e dieci di
   totali mensili. `modello-dati.md` ha la regola in una riga. Ramo `fix/riassunto-dieci-anni`, in fila su
   `fix/vsop-notte`. Nessuna migrazione. Infra 2064 → 2066.
+- ✅ **S75** ricerca (30-set, committente, con schermata): 1) un blocco strutturato (aeroporti alternati di un vSOP MIL)
+  usciva nell'estratto come JSON grezzo → l'indice tiene i soli valori di testo, senza chiavi, campi tecnici
+  (`Key`, `Id`, sha…) e doppioni (`IndiceDelleRelease.Leggibile`); 2) ordine di importanza: titolo del documento,
+  titolo di sezione, di sotto-sezione, testo, e la Guida in coda (prima stava in cima) e fuori dal tetto dei 50.
+  Si raccolgono tutti i risultati e si taglia dopo. Guida del sito aggiornata. Provato sui dati veri della copia
+  (configurazioni e gruppi APP leggibili, «Brindisi» in ordine); la copia non ha il blocco degli alternati di
+  LIBN, quel caso è coperto dal test. Ramo `fix/ricerca-ordine`, in fila su `fix/riassunto-dieci-anni`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
