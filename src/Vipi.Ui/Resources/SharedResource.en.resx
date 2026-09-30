@@ -3552,6 +3552,22 @@
   <data name="Reconnect_Rejected" xml:space="preserve"><value>The server restarted: reloading the page.</value></data>
   <data name="Reconnect_Failed" xml:space="preserve"><value>Cannot reconnect. Check your connection, then reload the page.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Reload the page</value></data>
+  <data name="Reconnect_QuietTitle" xml:space="preserve"><value>Connection to the server lost</value></data>
+  <data name="Reconnect_QuietBody" xml:space="preserve"><value>The document is still readable; Live status and weather stop updating until you reload.</value></data>
+  <data name="Diag_DiscTitle" xml:space="preserve"><value>Disconnections seen by browsers</value></data>
+  <data name="Diag_DiscHint" xml:space="preserve"><value>One row each time someone saw the «reconnecting» box, over the last seven days. Back: the connection came back by itself. Rejected: the server process had been stopped or restarted. Failed: server unreachable. The full file is diagnostica/disconnessioni-*.tsv.</value></data>
+  <data name="Diag_DiscNone" xml:space="preserve"><value>No disconnections recorded.</value></data>
+  <data name="Diag_DiscDay" xml:space="preserve"><value>Day</value></data>
+  <data name="Diag_DiscTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="Diag_DiscBack" xml:space="preserve"><value>Back</value></data>
+  <data name="Diag_DiscRejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="Diag_DiscFailed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Diag_DiscLeft" xml:space="preserve"><value>Left</value></data>
+  <data name="Diag_DiscProcess" xml:space="preserve"><value>Process changed</value></data>
+  <data name="Diag_DiscHidden" xml:space="preserve"><value>Hidden tab</value></data>
+  <data name="Diag_DiscOffline" xml:space="preserve"><value>Offline</value></data>
+  <data name="Diag_DiscMedian" xml:space="preserve"><value>Gap (median)</value></data>
+  <data name="Diag_DiscPages" xml:space="preserve"><value>Pages where it happens most</value></data>
   <data name="Lost_Title" xml:space="preserve"><value>Your last action may not have gone through.</value></data>
   <data name="Lost_Body" xml:space="preserve"><value>The connection to the server dropped and the page reloaded by itself. Check your last change: if it is missing, do it again.</value></data>
   <!-- Import di una tabella: incolla, CSV, XLSX, anteprima -->

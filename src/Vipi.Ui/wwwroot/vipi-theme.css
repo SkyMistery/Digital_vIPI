@@ -5179,6 +5179,14 @@
 .vipi-rec.components-reconnect-failed{display:flex;position:fixed;inset:0;z-index:3000;align-items:center;
   justify-content:center;padding:20px;background:color-mix(in srgb,var(--ivao-color-fuselage-950) 55%,transparent)}
 .vipi-rec.components-reconnect-hide{display:none}
+/* Le pagine di SOLA LETTURA (30 settembre 2026): il riquadro non copre il documento. Si riprova in silenzio, e se
+   il collegamento non torna resta l'avviso discreto `#vipi-rec-quieta` (App.razor). Le due classi le mette
+   vipi-riconnessione.js sugli elementi stessi — non su <html>: il foglio resta dentro il suo contenitore (ADR-0005 D3,
+   ConfinoDelTemaTests). */
+.vipi-rec.vipi-rec-silenziosa{display:none !important}
+.vipi-rec-quieta{align-items:center}
+:where(.vipi-root) #blazor-error-ui.vipi-rec-zitto{display:none !important}
+.vipi-rec-quieta .vipi-rec-b{display:inline-block;margin:0 0 0 8px}
 .vipi-rec-box{max-width:420px;background:var(--surface);color:var(--ink);border:1px solid var(--line);
   border-radius:12px;padding:20px 22px;box-shadow:0 18px 44px rgba(0,0,0,.28);font-family:var(--font-body);
   font-size:13.5px;line-height:1.55;text-align:center}

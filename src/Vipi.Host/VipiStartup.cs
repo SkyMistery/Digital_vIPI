@@ -237,6 +237,10 @@ internal static class VipiStartup
         foreach (var (categoria, livello) in RegistroInformativo.Filtri)
             builder.Logging.AddFilter<RegistroInformativo>(categoria, livello);
         builder.Services.AddSingleton<RegistroRichieste>();
+        // Le disconnessioni viste dai browser (30 settembre 2026): il file, e il riassunto per la pagina Diagnostica.
+        builder.Services.AddSingleton<RegistroDisconnessioni>();
+        builder.Services.AddSingleton<Vipi.Application.Abstractions.IRiepilogoDisconnessioni>(
+            sp => sp.GetRequiredService<RegistroDisconnessioni>());
         // Quanta memoria usa il processo, ogni cinque minuti nel log del giorno: di un processo ucciso dall'hosting
         // resta l'ultima misura. Vedi MemoriaDelProcesso (25 settembre 2026).
         builder.Services.AddHostedService<MemoriaDelProcesso>();
@@ -702,6 +706,12 @@ internal static class VipiStartup
 
             return Results.Content(PaginaErrore.Build(codice), "text/html; charset=utf-8");
         });
+
+        // Il beacon del browser quando il riquadro «riconnessione» si chiude (vedi RegistroDisconnessioni). Dietro il
+        // login come il resto: il beacon porta il cookie, e chi non è entrato non ha circuiti da perdere.
+        // ⚠️ Niente antiforgery: `sendBeacon` non manda intestazioni, e la riga non cambia niente di nessuno.
+        app.MapPost(RegistroDisconnessioni.Rotta, (HttpContext ctx, RegistroDisconnessioni registro) => registro.RiceviAsync(ctx))
+            .DisableAntiforgery();
 
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode()

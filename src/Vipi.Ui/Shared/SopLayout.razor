@@ -8,7 +8,10 @@
 @inject IStringLocalizer<SharedResource> L
 @inject ILogger<SopLayout> Log
 
-<div class="vipi-root">
+@* `data-riconnessione`: una pagina SSR statica (i documenti, la home, la ricerca) ha al più qualche isola — il badge
+   Live, il meteo — e se il loro circuito cade non c'è niente di suo da perdere: vipi-riconnessione.js allora non
+   copre la pagina col riquadro (30 settembre 2026). Le pagine interattive (editor) lo tengono. *@
+<div class="vipi-root" data-riconnessione="@(PaginaDiLettura ? "silenziosa" : null)">
 <a class="skip-link" href="#vipi-main">@L["Chrome_SkipToContent"]</a>
 @if (Chrome.Value.RenderTopbar)
 {
@@ -282,6 +285,16 @@
 </div>
 
 @code {
+    [Inject] private IServiceProvider Servizi { get; set; } = default!;
+
+    /// <summary>
+    /// Vero se la pagina è SSR statica (vedi <see cref="Vipi.Ui.PaginaDiLettura"/>). ⚠️ Falso nel dubbio: senza chi
+    /// sa dire la pagina (un host che non lo registra, i test) si tiene il riquadro, che è il comportamento di prima.
+    /// </summary>
+    private bool PaginaDiLettura =>
+        (Servizi.GetService(typeof(Vipi.Ui.IPaginaCorrente)) as Vipi.Ui.IPaginaCorrente)?.Tipo is { } tipo
+        && Vipi.Ui.PaginaDiLettura.E(tipo);
+
     /// <summary>
     /// Il modulo delle richieste con QUESTA pagina (percorso e query). Null sulla pagina delle richieste stessa: segnalare
     /// il modulo dal modulo non porta da nessuna parte.

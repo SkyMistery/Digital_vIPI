@@ -63,6 +63,15 @@
     // un avviso raccolto domani in un'altra finestra parlerebbe di un gesto che nessuno ricorda.
     var CHIAVE_PERSO = "vipi.gesto-perso";
 
+    // Il punto di lettura che sopravvive a una ricarica automatica (30 settembre 2026, committente: sulla vIPI di
+    // LIRF o LIMC la pagina ripartiva dall'inizio). Vale due minuti e per la stessa pagina: una posizione raccolta
+    // più tardi, o altrove, porterebbe a un punto che nessuno cerca.
+    var CHIAVE_POSIZIONE = "vipi.posizione";
+    var POSIZIONE_VALIDA_MS = 120000;
+
+    // Una pagina di SOLA LETTURA (il layout lo scrive, vedi SopLayout): lì il riquadro non copre il documento.
+    var SILENZIOSA = !!document.querySelector('[data-riconnessione="silenziosa"]');
+
     // ── 1. L'avvio di Blazor, con i nostri tempi ─────────────────────────────────────────────────────
     if (window.Blazor && typeof window.Blazor.start === "function") {
         try {
@@ -100,17 +109,50 @@
     // Sul primo si ricarica da soli. Sul secondo NO: quasi sempre è la rete dell'utente che non c'è, e una
     // pagina ricaricata senza rete è una pagina di errore del browser — peggio del riquadro, che almeno
     // spiega e offre il tasto.
+    // ⚠️ Sulle pagine di SOLA LETTURA le cose cambiano (30 settembre 2026): il riquadro non si vede (CSS), e sul
+    // «rifiutato» non si ricarica da soli — chi sta leggendo la vIPI di LIRF perderebbe il filo per rimettere in
+    // piedi un badge. Resta l'avviso discreto in basso, col tasto per ricaricare allo stesso punto.
+    var quieta = document.getElementById("vipi-rec-quieta");
     var modale = document.getElementById("components-reconnect-modal");
+    if (modale && SILENZIOSA) modale.classList.add("vipi-rec-silenziosa");
+    function zittisciLaBarra(si) {
+        var barra = document.getElementById("blazor-error-ui");
+        if (barra) barra.classList.toggle("vipi-rec-zitto", si);
+    }
     if (modale) {
         var giaRicaricato = false;
         var osservatore = new MutationObserver(function () {
+            var c = modale.classList;
+            // Il registro PRIMA di tutto: una ricarica qui sotto porterebbe via la pagina, e il beacon deve partire.
+            if (c.contains("components-reconnect-show")) bucoAperto();
+            if (c.contains("components-reconnect-hide")) bucoChiuso("riagganciata");
+            if (c.contains("components-reconnect-rejected")) bucoChiuso("rifiutata");
+            if (c.contains("components-reconnect-failed")) bucoChiuso("fallita");
+
+            if (SILENZIOSA) {
+                // ⚠️ Con l'avviso discreto acceso, la barra rossa di Blazor («qualcosa è andato storto») dice la stessa
+                // cosa una seconda volta: la classe `vipi-rec-zitto` la nasconde finché l'avviso c'è (CSS).
+                if (quieta && (c.contains("components-reconnect-rejected") || c.contains("components-reconnect-failed"))) {
+                    quieta.hidden = false;
+                    zittisciLaBarra(true);
+                }
+                if (quieta && c.contains("components-reconnect-hide")) {
+                    quieta.hidden = true;
+                    zittisciLaBarra(false);
+                }
+                return;
+            }
             if (giaRicaricato) return;
-            if (!modale.classList.contains("components-reconnect-rejected")) return;
+            if (!c.contains("components-reconnect-rejected")) return;
             giaRicaricato = true;
             ricarica();
         });
         osservatore.observe(modale, { attributes: true, attributeFilter: ["class"] });
     }
+    var tastoQuieta = document.getElementById("vipi-rec-quieta-ricarica");
+    // ⚠️ Non `ricarica(true)`: quella pianta la bandierina del «gesto perso», e su una pagina di sola lettura non c'era
+    // nessun gesto da perdere — l'avviso direbbe una cosa falsa. Qui si tiene solo il punto di lettura.
+    if (tastoQuieta) tastoQuieta.addEventListener("click", function () { segnaLaPosizione(); location.reload(); });
 
     // Il tasto del riquadro: ricarica, non `Blazor.reconnect()`. Riconnettersi è quel che si è già provato
     // cinquantacinque volte; ricaricare è la sola mossa che funziona in entrambi i casi.
@@ -125,6 +167,7 @@
     /// Ricarica, contando le ricariche recenti per non entrare in un ciclo.
     /// <param>`chiesta`: la ricarica l'ha premuta un essere umano — si fa e basta, senza conteggio.</param>
     function ricarica(chiesta) {
+        segnaLaPosizione();
         if (chiesta) { piantaLaBandierina(); location.reload(); return; }
         try {
             var chiave = "vipi.ricariche";
@@ -154,6 +197,12 @@
     /// La traccia che sopravvive alla ricarica. ⚠️ Try suo, separato da quello del conteggio: quello
     /// protegge una PROTEZIONE (il ciclo di ricariche), questa è l'unica cosa che resta del gesto perduto,
     /// e scrivendole insieme un solo storage negato le spegnerebbe tutte e due.
+    function segnaLaPosizione() {
+        try {
+            sessionStorage.setItem(CHIAVE_POSIZIONE, JSON.stringify({ p: location.pathname + location.search, y: window.scrollY, t: Date.now() }));
+        } catch (e) { /* storage negato: si riparte dall'inizio, come prima */ }
+    }
+
     function piantaLaBandierina() {
         try { sessionStorage.setItem(CHIAVE_PERSO, "1"); } catch (e) { /* storage negato: nessun avviso */ }
     }
@@ -184,6 +233,83 @@
         var chiudi = document.getElementById("vipi-gesto-perso-chiudi");
         if (chiudi) chiudi.addEventListener("click", function () { avviso.hidden = true; });
     }
+
+    // ── 2-ter. Il punto di lettura, dopo una ricarica ─────────────────────────────────────────────────
+    //
+    // La posizione si rimette a pagina CARICATA (immagini e tabelle hanno la loro altezza) e di nuovo poco dopo:
+    // un documento lungo cresce ancora mentre le isole si disegnano. Se nel frattempo chi legge ha già scrollato,
+    // si lascia stare — la sua mano vince.
+    (function () {
+        var salvata = null;
+        try {
+            salvata = JSON.parse(sessionStorage.getItem(CHIAVE_POSIZIONE) || "null");
+            sessionStorage.removeItem(CHIAVE_POSIZIONE);
+        } catch (e) { salvata = null; }
+        if (!salvata || typeof salvata.y !== "number" || salvata.p !== location.pathname + location.search) return;
+        if (Date.now() - salvata.t > POSIZIONE_VALIDA_MS || salvata.y <= 0) return;
+        var toccato = false;
+        window.addEventListener("wheel", function () { toccato = true; }, { once: true, passive: true });
+        window.addEventListener("touchstart", function () { toccato = true; }, { once: true, passive: true });
+        window.addEventListener("keydown", function () { toccato = true; }, { once: true });
+        function vai() { if (!toccato) window.scrollTo(0, salvata.y); }
+        if (document.readyState === "complete") vai(); else window.addEventListener("load", vai, { once: true });
+        setTimeout(vai, 800);
+    })();
+
+    // ── 2-quater. Il registro delle disconnessioni ───────────────────────────────────────────────────
+    //
+    // A ogni riquadro che si chiude parte una riga verso il server (RegistroDisconnessioni): pagina, da quanto era
+    // aperta, quanto è durato il buco, com'è finita, se la scheda era in secondo piano, se il browser si diceva fuori
+    // rete, e il processo che aveva servito la pagina. È la misura che mancava per capire le disconnessioni
+    // (committente, 30 settembre 2026). ⚠️ `sendBeacon`: parte anche mentre la pagina se ne va — la ricarica del
+    // «rifiutato» arriva subito dopo. Niente VID e niente query: solo il percorso.
+    var indirizzoRegistro = new URL("vsop/diag/disconnessione", document.baseURI).href;
+    var pidMeta = document.querySelector('meta[name="vipi-pid"]');
+    var pidPagina = pidMeta ? parseInt(pidMeta.content, 10) : NaN;
+    var aperturaPagina = Date.now();
+    var nascostaDal = document.visibilityState === "hidden" ? Date.now() : 0;
+    document.addEventListener("visibilitychange", function () {
+        nascostaDal = document.visibilityState === "hidden" ? Date.now() : 0;
+    });
+    var buco = null;
+
+    function bucoAperto() {
+        if (buco) return;
+        var adesso = Date.now();
+        buco = {
+            inizio: adesso,
+            sp: Math.round((adesso - aperturaPagina) / 1000),
+            v: document.visibilityState === "hidden" ? 0 : 1,
+            n: nascostaDal ? Math.round((adesso - nascostaDal) / 1000) : -1,
+            r: navigator.onLine === false ? 0 : 1
+        };
+    }
+
+    function bucoChiuso(esito) {
+        if (!buco) return;
+        var tentativi = document.getElementById("components-reconnect-current-attempt");
+        var riga = {
+            p: location.pathname,
+            pid: isNaN(pidPagina) ? undefined : pidPagina,
+            e: esito,
+            sp: buco.sp,
+            d: Math.round((Date.now() - buco.inizio) / 1000),
+            t: tentativi ? (parseInt(tentativi.textContent, 10) || 0) : 0,
+            v: buco.v,
+            n: buco.n,
+            r: buco.r,
+            s: SILENZIOSA ? 1 : 0
+        };
+        buco = null;
+        try {
+            var corpo = JSON.stringify(riga);
+            if (navigator.sendBeacon) navigator.sendBeacon(indirizzoRegistro, new Blob([corpo], { type: "text/plain" }));
+            else fetch(indirizzoRegistro, { method: "POST", body: corpo, keepalive: true, credentials: "same-origin" }).catch(function () { });
+        } catch (e) { /* una riga persa non è un guasto */ }
+    }
+
+    // Chi chiude la scheda mentre si riprova: anche quella è una disconnessione, e la più brutta da vedere.
+    window.addEventListener("pagehide", function () { bucoChiuso("abbandonata"); });
 
     // ── 3. Il colpetto che tiene sveglio il processo ─────────────────────────────────────────────────
     //
