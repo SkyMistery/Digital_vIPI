@@ -1,6 +1,6 @@
 # Pacchetto 1.54.0 — solo i file cambiati
 
-> **Timbro:** `1.54.0 · d6eeab8` (30 settembre 2026), nel **piè di pagina** (staff), nella riga `Versione` della
+> **Timbro:** `1.54.0 · 722e7b4` (30 settembre 2026), nel **piè di pagina** (staff), nella riga `Versione` della
 > **Diagnostica** e in `diagnostica/avvio-diagnostica.txt`.
 
 > **Parte da 1.53.0** (`d4bbebd`, online dal 30 settembre). È una **MINOR con TRE migrazioni ADDITIVE**
@@ -38,6 +38,7 @@
   si conserva dieci anni · **S75** Ricerca senza pezzi di JSON negli estratti e in ordine di importanza (Guida in coda)
   · **S76** scheda «Prenotazioni ATC e FRA» in `/services` verso `https://atc.ivao.aero/` · **S77** bandierina
   «Segnala un problema su questa pagina» in barra e nel ☰, con la pagina salvata nella richiesta.
+- **S78** — le richieste dal campo **aperte** per VID salgono da 5 a **10**.
 - (S69: solo test.)
 
 ## I 19 file, e l'ordine
@@ -76,7 +77,7 @@ controllato per impronta e col `git diff`.
 `https://atc.it.ivao.aero/services/vsop/search`, scrivete **`LIRF`**: devono comparire **dei documenti** (vIPI Roma,
 LIRF…), non solo la riga «N risultati». «0 risultati per LIRF» è un **guasto**, anche se la riga è cambiata.
 
-- col login da staff: il timbro **`1.54.0 · d6eeab8`** nel piè di pagina; in Diagnostica **`Schema` = `0`** (se non è
+- col login da staff: il timbro **`1.54.0 · 722e7b4`** nel piè di pagina; in Diagnostica **`Schema` = `0`** (se non è
   0 manca `Vipi.Infrastructure.MySqlMigrations.dll`);
 - **da una finestra anonima**: `https://atc.it.ivao.aero/services` mostra solo «Entra con IVAO»;
   `https://atc.it.ivao.aero/services/vsop/search` non si apre senza login; `/services/cookies` si apre;
