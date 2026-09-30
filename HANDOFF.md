@@ -4,7 +4,16 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 30 settembre 2026, sera
+> ## ▶ Il punto — 30 settembre 2026, notte
+>
+> **📦 Pronto da caricare: 1.54.0** (§A142, timbro `1.54.0 · d6eeab8`, 19 file, zip `794c7935…`, MINOR con tre
+> migrazioni additive): Sito S65–S77. 🔴 **Da qui il sito si legge solo dopo il login IVAO** (S67; si riapre con
+> `VipiAuth__LoginObbligatorio=false`): la verifica da fuori non fa più la Ricerca, la fa il committente col login.
+> Registro degli accessi, «I miei dati», titolo del documento, statistiche nuove, ricerca in ordine, «Segnala» da ogni
+> pagina. Online resta 1.53.0 finché il committente non carica. ▶ Dopo: titolo LIML e ripubblicazione; LIRE/LIBG
+> aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, sera
 >
 > **Online: 1.53.0.** In `main` **c'è codice fuori pacchetto** (§A141): Sito S65 (vista live: campi solo vSOP, niente
 > «delegato» a chi guarda, SID del pannello dal documento) e S66 (pagina Chiavi API con gli indirizzi per chi

@@ -43,7 +43,30 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 🔀 A141 — in `main`, non ancora in pacchetto: vista live (S65) e pagina Chiavi API (S66) (30 settembre 2026)
+### 📦 A142 — 1.54.0: login obbligatorio, registro degli accessi, «I miei dati» e altro (S65–S77) (30 settembre 2026)
+
+MINOR con **tre migrazioni additive** (`RegistroAccessi`, `NomeBreveAccessi`, `PaginaDelleRichieste`: una tabella e
+due colonne; `Up` solo Create/Add), su 1.53.0 (`d4bbebd`). Timbro **`1.54.0 · d6eeab8`**. Dentro S65 e S66 (§A141) e,
+fusi da `fix/segnala-pagina` @ `d13038da` (CI verde run 36736896238, senza conflitti), S67–S77.
+- 🔴 **S67 login obbligatorio** (`CancelloDelLogin` nell'host): senza login solo la porta di `/services` con «Entra
+  con IVAO» e `/services/cookies`; aperti login, sonde, `/vsop/api/` con chiave, `/api/rfo/`. Si riapre con
+  `VipiAuth__LoginObbligatorio=false`. Da qui `pacchetto-verifica.js` con `SOLO_PUBBLICO=1` non può più fare la
+  Ricerca in produzione: la fa il committente col login.
+- **S68** registro degli accessi (12 mesi, solo admin, `/services/stats/logins`, nome breve per le classifiche) ·
+  **S69** WaitFor bUnit a 10 s per tutta la suite · **S70** «I miei dati» · **S71** titolo del documento dall'elenco
+  · **S72** statistiche nuove · **S73** ACC al buio · **S74** `AtcMonthRollup` potato a dieci anni · **S75** ricerca
+  senza JSON e in ordine · **S76** scheda «Prenotazioni ATC e FRA» · **S77** «Segnala un problema su questa pagina».
+
+**19 file** (`solo-19-file-1.54.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
+pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Fuori Aurora* (sorgente invariato). Zip 6,24 MB, sha256
+`794c7935387cad2b4034f482a53a686c479466342fade51b23544c8d8ed1fb81`. Build Release senza avvisi, test verdi, conteggi
+identici (Domain 167, App 3161, Infra 2074, Ui 1926, E2E 498). Prova sul publish win-x64: col login spento
+`pacchetto-verifica.js` verde (`TERMINE=LIBB`), tre migrazioni applicate, pagine nuove 200; col login acceso, da
+anonimo: `/` → `/services` con «Entra con IVAO», Ricerca/vIPI/«I miei dati» 401, cookie e `/vsop/health` 200, API
+401. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.0.md`. Storia: `docs/filoni/sito.md` S65–S77. ▶ Caricamento del
+committente; dopo: titolo di vIPI e vSOP MIL di LIML e ripubblicazione.
+
+### 🔀 A141 — in `main`, non ancora in pacchetto: vista live (S65) e pagina Chiavi API (S66) (30 settembre 2026) → in 1.54.0 (§A142)
 
 Fuso da `fix/pagina-chiavi-api` @ `bb5fb638` (CI verde run 36711311377), sha del cartellino del Sito. Il ramo era poi
 andato a `313794dc` allineandosi a `main` (solo i due file di doc già in `main`, stesso albero della fusione); la CI
