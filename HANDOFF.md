@@ -6,9 +6,9 @@
 >
 > ## ▶ Il punto — 30 settembre 2026, ultima
 >
-> **📦 Pronto da caricare: 1.54.2** (§A144, timbro `1.54.2 · 1a843c2`, 9 file, zip `361abdf6…`, PATCH senza
-> migrazioni): Sito S81, la finestra Trasferimenti della vista live solo allo staff di divisione. Online resta 1.54.1
-> finché il committente non carica. ▶ LIRE/LIBG aspettano il SOD.
+> **✅ Online: 1.54.2** (timbro e `Schema 0` confermati dal committente; tre 500 durante lo scambio dei file, nel
+> processo vecchio, spariti col riavvio; **in `main` non resta codice fuori pacchetto**) (§A144, timbro `1.54.2 · 1a843c2`, 9 file, zip `361abdf6…`, PATCH senza
+> migrazioni): Sito S81, la finestra Trasferimenti della vista live solo allo staff di divisione. ▶ LIRE/LIBG aspettano il SOD.
 >
 > ## Il punto — 30 settembre 2026, sera tardi
 >

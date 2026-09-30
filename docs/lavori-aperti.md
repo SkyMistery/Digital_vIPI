@@ -43,7 +43,15 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A144 — 1.54.2: Trasferimenti della vista live solo allo staff (S81) (30 settembre 2026)
+### ✅ A144 — 1.54.2 ONLINE: Trasferimenti della vista live solo allo staff (S81) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026 (avvio 19:39:29Z, pid 2273133): timbro e `Schema 0` confermati dal committente; da fuori
+porta «Entra con IVAO», Healthy, `vipi-theme.css?v=9b57e765`. ⚠️ **Tre 500 durante lo scambio** (19:39:23–27Z, `GET /`
+e `/services` col login): `BadImageFormatException: Index not found` nel processo **vecchio** (1.54.1, pid 2232929,
+ancora acceso) che ha caricato pigramente il `Vipi.Ui.dll` appena rinominato, di un'altra build
+(`ResourceManagerStringLocalizerFactory.Create`). Spariti col riavvio: dalle 19:40 tutto 200 sul pid nuovo. Stessa
+famiglia del 23 e 24 settembre: finestra di pochi secondi fra le rinomine e il `restart.txt`, non un difetto del
+pacchetto.
 
 PATCH **senza migrazioni**, su 1.54.1 (`cab7337`). Timbro **`1.54.2 · 1a843c2`**. Fuso da `fix/trasferimenti-staff` @
 `3fc98525` (CI verde run 36764206590), senza conflitti. **S81**, solo Vipi.Ui: nella vista live la finestra
@@ -52,7 +60,7 @@ Trasferimenti si apre solo allo staff di divisione; per gli altri una riga «In 
 **9 file** (`solo-9-file-1.54.2`): Ui e Host (dll + pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`.
 Zip 3,03 MB, sha256 `361abdf6eb05db43beeac062118d10907d55620764d65a42ba40f71e42e2cd41`. Build Release senza avvisi,
 test verdi, conteggi identici (Ui 1932). Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`).
-Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.2.md`. ▶ Caricamento del committente.
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.2.md`.
 
 ### ✅ A143 — 1.54.1 ONLINE: testi (S80) (30 settembre 2026)
 
