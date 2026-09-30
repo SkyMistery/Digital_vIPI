@@ -6,9 +6,10 @@
 >
 > ## ▶ Il punto — 30 settembre 2026, notte
 >
-> **📦 Pronto: 1.50.1** (§A137, timbro `1.50.1 · e666236`, 12 file, zip `264a8f6c…`, PATCH senza migrazioni): Sito S58,
-> vAWOS ancorato alla finestra, bandierina ⚑ «segnala» su ogni titolo di sezione, switch Errore/Suggerimento.
-> ▶ Caricamento del committente. Online resta 1.50.0.
+> **📦 Pronto: 1.51.0** (§A138, timbro `1.51.0 · b57fe44`, 22 file, zip `7b58e7c2…`, MINOR con la migrazione additiva
+> `ProfiliEvento`): Sito S58 (vAWOS ancorato alla finestra, bandierina ⚑, switch Errore/Suggerimento), S59 profili per
+> l'evento (`/services/event`), S60 link a IVAO Italia, S61 pagina dei cookie, S62 pulizia delle richieste dal campo.
+> La 1.50.1 (§A137) non è mai stata caricata. ▶ Caricamento del committente. Online resta 1.50.0.
 >
 > ## Il punto — 30 settembre 2026
 >

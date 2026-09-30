@@ -43,7 +43,29 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A137 — 1.50.1 PRONTO: vAWOS ancorato alla finestra, bandierina «segnala», switch Errore/Suggerimento (30 settembre 2026)
+### 📦 A138 — 1.51.0 PRONTO: profili per l'evento, pagina dei cookie, pulizia delle richieste, S58 (30 settembre 2026)
+
+MINOR con **una migrazione additiva** (`ProfiliEvento`: due tabelle e un indice), su 1.50.0 (`e7742ff`); la 1.50.1
+(§A137) non è mai stata caricata ed entra qui. Timbro **`1.51.0 · b57fe44`**. Fusi da `fix/profili-evento` @
+`8c1d9311` (S59, CI verde run 36648376364) e da `fix/richieste-pulizia` @ `6446d953` (S60–S62 in fila, CI verde run
+36651923564); i conflitti (registro del Sito, frasi IT/EN, `vipi-theme.css`) erano tutti aggiunte nello stesso punto:
+tenute entrambe. Conteggi rimisurati sul log: Ui 1899 (1895 + 4 di S61), Infrastructure 2041 (2039 + 2 di S62),
+Application 3125, E2E 463.
+- **S59** profili per l'evento: `/services/event` pubblica, accesa dallo staff (interruttore + date), file per
+  postazione fino a 3 MB e link Drive; «Evento in corso» nell'hub. Codice comune Application, Domain, Hosting,
+  Infrastructure, Host (la cache delle letture anonime esclude `/event/file`). Carta
+  `docs/feature/2026-09-30-profili-evento.md`.
+- **S60** link a IVAO Italia nel piè di pagina · **S61** `/services/cookies`, solo cookie tecnici, niente banner ·
+  **S62** richieste dal campo eliminabili dall'Admin, le chiuse cancellate dopo tre mesi dal giro notturno
+  (`TrafficRetentionHostedService`).
+
+**22 file** (`solo-22-file-1.51.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
+pdb), `en/`, endpoints.json, `vipi-awos.css` e `vipi-theme.css` con `.br`/`.gz`. Zip 6,10 MB, sha256
+`7b58e7c2997fbcae00d8ce68023aa008292cfd7fb6901a3271267d22906bf609`. Build Release senza avvisi, test verdi, conteggi
+identici. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.51.0.md`. Storia: `docs/filoni/sito.md` S59–S62.
+▶ Caricamento del committente.
+
+### ⛔ A137 — 1.50.1 MAI CARICATA (confluita in 1.51.0, §A138): vAWOS ancorato alla finestra, bandierina «segnala», switch Errore/Suggerimento (30 settembre 2026)
 
 PATCH senza migrazioni, su 1.50.0 (`e7742ff`). Timbro **`1.50.1 · e666236`**. Fuso da `fix/vawos-segnala` @ `03d566ff`
 (Sito S58, CI verde run 36644840764): il vAWOS è ancorato alla finestra (`position:fixed; inset:0`, via `vh` e

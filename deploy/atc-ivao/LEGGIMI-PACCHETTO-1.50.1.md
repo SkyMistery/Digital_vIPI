@@ -1,5 +1,8 @@
 # Pacchetto 1.50.1 — solo i file cambiati
 
+> ⛔ **MAI CARICATO**: il committente ha scelto di far entrare S58 nella **1.51.0** insieme a S59–S62. Questo foglio
+> resta come fotografia; si carica [`LEGGIMI-PACCHETTO-1.51.0.md`](LEGGIMI-PACCHETTO-1.51.0.md).
+
 > **Timbro:** `1.50.1 · e666236` (30 settembre 2026), nel **piè di pagina** (staff), nella riga `Versione` della
 > **Diagnostica** e in `diagnostica/avvio-diagnostica.txt`.
 
