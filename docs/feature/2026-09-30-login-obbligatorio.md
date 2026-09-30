@@ -1,7 +1,7 @@
 # Il sito si legge solo dopo il login IVAO — carta (30 settembre 2026)
 
-> **Stato: 🔨 in esecuzione** sul ramo `fix/login-obbligatorio` (filone Sito, S67). Nessuna migrazione, nessun
-> `deploy/`. Nasce da una segnalazione delle Public Relations girata dal committente: «il sito aperto a tutti senza
+> **Stato: ✅ ESEGUITA il 30 settembre 2026** sul ramo `fix/login-obbligatorio` (filone Sito, S67), provata col login
+> IVAO vero dal committente (§6). Nessuna migrazione, nessun `deploy/`. Da fondere. Nasce da una segnalazione delle Public Relations girata dal committente: «il sito aperto a tutti senza
 > login si espone a furto dati da parte di bot; renderlo accessibile solo previo login e con un account IVAO attivo».
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Guida del login: [standalone-auth-ivao.md](../guide/standalone-auth-ivao.md).
 >
@@ -65,7 +65,33 @@ apre comunque: dal 12 settembre il layout gli dà zero isole interattive, e la p
 
 Per riaprire il sito senza ricompilare: `VipiAuth__LoginObbligatorio=false`.
 
-## 5. Fuori da questo giro
+## 5. La misura del profilo (30 settembre 2026)
 
-- **Il controllo «account attivo»**, finché non si sa quale campo del profilo guardare (decisione 3).
+Al login vero del committente, `/v2/users/me` porta questi campi (solo i nomi):
+
+```
+id, firstName, lastName, centerId, countryId, createdAt, divisionId, isStaff, isSupervisor, languageId, email,
+rating{isPilot,isAtc,pilotRating,atcRating,networkRating}, gcas[], hours[]{type,hours},
+userStaffPositions[]{id,staffPositionId,divisionId,centerId,connectAs,onTrial,description,staffPosition},
+userStaffDetails{email,note,description,remark}, prCreator, ownedVirtualAirlines[], groups[],
+sub, given_name, family_name, nickname, profile, publicNickname
+```
+
+**Nessun campo dice «attivo» o «sospeso».** Resta quindi valido il login riuscito: è IVAO a decidere chi può
+entrare nel suo SSO. Se un giorno servisse un criterio in più, i candidati sono in `rating` (per esempio
+`isPilot`/`isAtc`), ma che cosa valgano per un account sospeso non lo sappiamo: si deciderebbe con IVAO, non
+indovinando. La nota nel registro resta (una per avvio, solo nomi): dice subito se IVAO cambia il profilo.
+
+## 6. Verifica
+
+- Test: regola pura caso per caso e cancello montato su un host col login acceso (`CancelloDelLoginTests`), porta in
+  bUnit (`ServicesHomeTests`). E2E 465 → 497, Ui 1905 → 1908.
+- A schermo con un'autorità finta: porta col solo accesso (IT, EN, 375 px), documenti/ricerca/vAWOS → 302 al login
+  col ritorno giusto, sonde aperte, API e ponte RFO dalla loro porta, `/_blazor` 401.
+- **Col login IVAO vero** (committente, http://localhost:5034, copia del DB poi cancellata): da un link a LIRF si va
+  a IVAO, si entra e si torna su LIRF; navigazione, ricerca e vista live normali; dopo il logout di nuovo al login.
+
+## 7. Fuori da questo giro
+
+- **Un controllo «account attivo» nostro**: IVAO non manda un campo che lo dica (§5).
 - **Limitare chi è entrato** (un account IVAO che scarica tutto): è un tetto di richieste per VID, altra cosa.

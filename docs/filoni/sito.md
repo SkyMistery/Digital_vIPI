@@ -1803,7 +1803,7 @@
   del tema allargava anche le caselle; ora `.api-eps`/`.api-ep` in `vipi-theme.css`, casella a sinistra del nome.
   **A schermo** su DB vuoto: spunte allineate, sezione leggibile, 375 px senza scorrimento di lato, inglese, creazione
   di una chiave «Aeroporti» funzionante. Test: Ui 1904 → 1905. Codice comune `Vipi.Domain` (ApiRotte).
-- 🔨 **S67** login obbligatorio (30-set, committente su segnalazione delle Public Relations: «il sito aperto a tutti
+- ✅ **S67** login obbligatorio (30-set, committente su segnalazione delle Public Relations: «il sito aperto a tutti
   senza login si espone a furto dati da parte di bot»). Ramo `fix/login-obbligatorio`. Carta
   `docs/feature/2026-09-30-login-obbligatorio.md`. Decisioni: senza login solo la porta `/services` con «Entra con
   IVAO»; entra qualunque account IVAO; «account attivo» prima si misura. `CancelloDelLogin` (Host/Auth), dopo
@@ -1814,8 +1814,9 @@
   l'avvio, i soli NOMI dei campi di `/v2/users/me` in `errori-richieste.txt`. **A schermo** col login acceso e
   un'autorità finta (`ivao.invalid`): `/` → porta, porta con il solo accesso (IT/EN, 375 px), documenti, ricerca e
   vAWOS → 302 al login col ritorno giusto, sonde 200/204, API e ponte RFO 401 dalla loro porta, `/_blazor` 401.
-  Test: E2E 465 → 497 (`CancelloDelLoginTests`), Ui 1905 → 1908. Non provato: il giro con IVAO vero (serve il login
-  del committente).
+  Test: E2E 465 → 497 (`CancelloDelLoginTests`), Ui 1905 → 1908. **Col login IVAO vero** (committente, localhost:5034,
+  copia DB cancellata): link a LIRF → IVAO → di nuovo su LIRF, tutto normale. Misura del profilo: nessun campo
+  «attivo/sospeso» (elenco dei nomi nella carta §5); resta il login riuscito.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
