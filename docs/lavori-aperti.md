@@ -43,6 +43,25 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A140 — 1.53.0: API degli aeroporti (S64) (30 settembre 2026)
+
+MINOR **senza migrazioni**, su 1.52.0 (`1a72e24`). Timbro **`1.53.0 · d4bbebd`**. Fuso da `fix/api-aeroporti` @
+`fd60631f` (CI verde run 36706270816), senza conflitti; il ramo portava anche il commit di sola documentazione
+`dbbafeff` di `sito/lavori`.
+- **S64**: `GET /vsop/api/v1/airports`, `/{icao}`, `/{icao}/sids`, `/{icao}/stars` (`?runway=`) — la vista pubblica
+  del documento dietro chiave API obbligatoria col permesso nuovo «Aeroporti»; 401 senza chiave, 403 senza permesso.
+  Il nome dei vSOP militari perde «MIL» per intero (`AwosGate.NomeDalTitolo`). Codice comune Domain (`ApiEndpoints`),
+  Application (`AwosGate`). Carta `docs/feature/2026-09-30-api-aeroporti.md`.
+- Nello stesso ramo il test a tempo di S63 (`SpaziAereiAdminUnGestoAllaVoltaTests`, doppio clic su «Metti in vigore»):
+  cerca e clicca dentro il dispatcher; la pagina era giusta.
+
+**11 file** (`solo-11-file-1.53.0`): Domain, Application, Hosting, Ui, Host (dll + pdb) e `en/`. Fuori Infrastructure,
+MySqlMigrations, Aurora* (solo ricompilazione) e tutto `wwwroot` con l'indice. Zip 4,25 MB, sha256
+`214c8a17143cf112b3d75fc64e8f5df7a6a8f272b3665e9644bf9e8bc3b4d6d4`. Build Release senza avvisi, test verdi (App 3145,
+Hosting 98, E2E 465), conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`),
+`/vsop/api/v1/airports` 401 senza chiave e con chiave sconosciuta. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.53.0.md`.
+Storia: `docs/filoni/sito.md` S64. ▶ Caricamento del committente.
+
 ### ✅ A139 — 1.52.0 ONLINE: correzioni a mano degli spazi aerei (S63) (30 settembre 2026)
 
 ✅ Online il 30 settembre 2026: `Schema 0` e Ricerca confermati dal committente. Da fuori `pacchetto-verifica.js` tutto
