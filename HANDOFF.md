@@ -4,7 +4,16 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 30 settembre 2026, notte
+> ## ▶ Il punto — 30 settembre 2026, mattina
+>
+> **📦 Pronto da caricare: 1.52.0** (§A139, timbro `1.52.0 · 1a72e24`, 17 file, zip `7d975e3c…`, MINOR con la
+> migrazione additiva `CorrezioniSpaziAerei`): Sito S63, correzioni a mano di tipo, classe, base e tetto degli spazi
+> aerei in `/services/vsop/admin/airspace`, con «Da controllare» dopo un nuovo caricamento. Fuso da
+> `fix/correzioni-spazi-aerei` @ `f4224893`. Online resta 1.51.0 finché il committente non carica. I gesti del
+> committente dopo 1.47.0 e 1.51.0 sono fatti (confermato il 30-set); restano quelli di §A134 su LIRE/LIBG, che
+> aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, notte
 >
 > **✅ Online: 1.51.0** (`Schema 0` confermato dal committente; `/vsop/health` Healthy, Ricerca LIRF, pagine nuove e CSS
 > serviti; **in `main` non resta codice fuori pacchetto**) (§A138, timbro `1.51.0 · b57fe44`, 22 file, zip `7b58e7c2…`, MINOR con la migrazione additiva

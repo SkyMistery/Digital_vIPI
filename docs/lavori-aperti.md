@@ -43,6 +43,27 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A139 — 1.52.0: correzioni a mano degli spazi aerei (S63) (30 settembre 2026)
+
+MINOR con **una migrazione additiva** (`CorrezioniSpaziAerei`: una tabella e un indice unico), su 1.51.0 (`b57fe44`).
+Timbro **`1.52.0 · 1a72e24`**. Fuso da `fix/correzioni-spazi-aerei` @ `f4224893` (CI verde run 36692566471), senza
+conflitti; il ramo portava anche il commit di sola documentazione `14bf29e9` di `sito/lavori`.
+- **S63**: in `/services/vsop/admin/airspace` si correggono a mano tipo, classe, base e tetto dei volumi che l'AIP
+  sbaglia. Le correzioni stanno in una tabella a parte, citano la chiave del file (`FAMIGLIA|NOME|BASE|TETTO`) e si
+  sovrappongono in lettura nel catalogo e negli agganci dei settori; dopo un caricamento il blocco «Da controllare»
+  segnala i campi corretti che il file ha cambiato, e «Va bene»/«Prendi il file» spostano gli agganci sulla chiave
+  nuova. La pagina dice che cosa sta facendo durante i gesti lunghi. Codice comune Application, Domain,
+  Infrastructure. Carta `docs/feature/2026-09-30-correzioni-spazi-aerei.md`.
+
+**17 file** (`solo-17-file-1.52.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui, Host (dll + pdb),
+`en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Fuori Hosting e Aurora* (cambiati solo per la
+ricompilazione); `IAirspaceCatalog` ha una sola implementazione, in Infrastructure. Zip 6,08 MB, sha256
+`7d975e3c49bc1f16b5646afddf36a6d0a82f64b3f76e3ebb4dd3e4e4c1d70de6`. Build Release senza avvisi, test verdi (App 3144,
+Infra 2052, Ui 1904, E2E 463), conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (la
+Ricerca con `TERMINE=LIBB`: la copia locale del DB non ha LIRF fra i pubblicati), migrazione applicata all'avvio,
+colonna «Correction» in inglese. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.52.0.md`. Storia: `docs/filoni/sito.md`
+S63. ▶ Caricamento del committente.
+
 ### ✅ A138 — 1.51.0 ONLINE: profili per l'evento, pagina dei cookie, pulizia delle richieste, S58 (30 settembre 2026)
 
 ✅ Online il 30 settembre 2026: `Schema 0` confermato dal committente (la migrazione `ProfiliEvento` è entrata). Da
