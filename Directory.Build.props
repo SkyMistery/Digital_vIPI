@@ -1544,8 +1544,10 @@
       accessi (12 mesi, solo admin, /services/stats/logins), S69 attese bUnit a 10 s, S70 «I miei dati», S71 titolo del
       documento dall'elenco, S72 nuova veste delle statistiche, S73 pagina ACC al buio, S74 riassunto mensile ATC potato
       a dieci anni, S75 ricerca senza JSON e in ordine di importanza, S76 scheda «Prenotazioni ATC e FRA», S77 «Segnala
-      un problema su questa pagina», S78 richieste aperte per VID da 5 a 10 (entrata dopo il primo publish, d6eeab8,
-      mai caricato: timbro e pacchetto rifatti). Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations),
+      un problema su questa pagina», S78 richieste aperte per VID da 5 a 10, S79 disconnessioni registrate dal
+      browser (diagnostica/disconnessioni-*.tsv, scheda in Diagnostica; niente riquadro di riconnessione sulle pagine
+      statiche; vipi-riconnessione.js cambiato). S78 e S79 sono entrate dopo i primi publish (d6eeab8, 722e7b4), mai
+      caricati: timbro e pacchetto rifatti. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations),
       Vipi.Hosting, Vipi.Ui (+ frasi IT/EN, CSS con l'indice degli asset) e Vipi.Host. Dettaglio:
       LEGGIMI-PACCHETTO-1.54.0.md, §A142.
     -->
