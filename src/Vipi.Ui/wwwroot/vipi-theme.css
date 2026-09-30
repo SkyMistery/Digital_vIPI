@@ -517,6 +517,12 @@
   font-size:12.5px;color:var(--ink-soft);margin-bottom:3px}
 :where(.vipi-root) .struct .perm-form .app-in{width:100%}
 :where(.vipi-root) .struct .perm-form .perm-go{width:100%;margin-top:4px}
+/* La porta d'ingresso per chi non è entrato (login obbligatorio, 30 settembre 2026): un riquadro solo, al centro. */
+:where(.vipi-root) .svc-login{max-width:520px;margin:48px auto;padding:28px 24px;text-align:center;display:flex;
+  flex-direction:column;align-items:center;gap:10px}
+:where(.vipi-root) .svc-login .ic{color:var(--accent)}
+:where(.vipi-root) .svc-login .h-card{margin:0}
+:where(.vipi-root) .svc-login p{margin:0 0 6px}
 /* Chiavi API: le spunte dei permessi in colonna, casella a sinistra del nome. ⚠️ `.field input` del tema allarga
    ogni input al 100%, anche le caselle: senza questa regola la casella stava al centro e il nome nell'angolo. */
 :where(.vipi-root) .struct .perm-form .api-eps{border:0;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:6px}

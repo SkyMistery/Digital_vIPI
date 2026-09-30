@@ -272,6 +272,13 @@ internal static class VipiStartup
         // Se attivo, il ClaimsPrincipal lo produce questo modulo e HostIdentityCurrentUserProvider lo legge.
         var authEnabled = builder.AddVipiStandaloneAuth();
 
+        // Il sito si legge solo dopo il login IVAO (committente, 30 settembre 2026). Solo se il login c'è: embedded
+        // e sviluppo con l'utente finto non hanno niente da chiudere. La porta d'ingresso lo chiede per sapere se
+        // mostrare le due documentazioni o il solo «Entra con IVAO». Vedi CancelloDelLogin.
+        var authOpt = builder.Configuration.GetSection(VipiAuthOptions.SectionName).Get<VipiAuthOptions>() ?? new VipiAuthOptions();
+        var loginObbligatorio = authEnabled && authOpt.LoginObbligatorio;
+        builder.Services.AddSingleton(new Vipi.Ui.AccessoConLogin(loginObbligatorio));
+
         // Persistenza chiavi Data Protection su DB (Postgres e MariaDB, cioè i due deploy): antiforgery, cookie di
         // auth e state OIDC sopravvivono a un riavvio su disco effimero. No-op in dev (SQLite → file-store di
         // default). Vedi VipiDataProtection.cs.
@@ -586,6 +593,10 @@ internal static class VipiStartup
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapVipiStandaloneAuth();
+
+            // Il cancello: dopo l'autenticazione (deve sapere chi è entrato), dopo i file statici (che non sono
+            // dati) e PRIMA del tetto dei circuiti, dell'antiforgery e di ogni pagina.
+            if (loginObbligatorio) app.UseCancelloDelLogin(authOpt);
         }
 
         // Il tetto dei circuiti anonimi (U-237). DOPO UseAuthentication, perché chi è entrato col VID non si conta

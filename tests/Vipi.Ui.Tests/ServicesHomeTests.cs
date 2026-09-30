@@ -24,11 +24,11 @@ public class ServicesHomeTests : TestContext
     }
 
     /// <summary>Autorizzazione finta: dal 29 agosto 2026 l'hub chiede il LIVELLO, perché una scheda è chiusa.</summary>
-    private sealed class FakeAuthz(VipiRole livello) : IEditAuthorizationService
+    private sealed class FakeAuthz(VipiRole livello, int? vid = 704798) : IEditAuthorizationService
     {
         public VipiRole Role { get; } = livello;
         public bool IsAdmin => Role >= VipiRole.Admin;
-        public int? CurrentUserId => 704798;
+        public int? CurrentUserId => vid;
         public string? CurrentName => "Tizio";
         public void EnsureAdmin() { }
     }
@@ -39,11 +39,13 @@ public class ServicesHomeTests : TestContext
     /// <c>DivisionStaff</c> i test sull'elenco completo proverebbero un elenco a cui manca una scheda.
     /// Le prove <i>per livello</i> restano i <c>Theory</c> qui sotto, che il livello lo dichiarano.
     /// </summary>
-    private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.Editor, bool evento = false)
+    private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.Editor, bool evento = false,
+                                                    bool? loginObbligatorio = null, bool entrato = true)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
-        Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
+        Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello, entrato ? 704798 : null));
+        if (loginObbligatorio is { } obbligo) Services.AddSingleton(new Vipi.Ui.AccessoConLogin(obbligo));
         Services.AddSingleton<Vipi.Application.EventKits.IEventKitService>(new FakeEvento(evento));
         return RenderComponent<ServicesHome>();
     }
@@ -276,5 +278,31 @@ public class ServicesHomeTests : TestContext
         Assert.Equal(atteso, indirizzi.Contains("/services/vsop/airspace"));
         // E il vecchio indirizzo pubblico non compare più in nessun caso.
         Assert.DoesNotContain("/services/airspace", indirizzi);
+    }
+
+    // ─── Login obbligatorio (30 settembre 2026) ─────────────────────────────────────
+
+    /// <summary>A chi non è entrato, su un sito che si legge solo dopo il login, la porta mostra «Entra con IVAO» e
+    /// nient'altro: nessun indirizzo di documento o strumento, che porterebbe comunque al login.</summary>
+    [Fact]
+    public void Da_fuori_con_il_login_obbligatorio_la_porta_mostra_solo_l_accesso()
+    {
+        var cut = Render(VipiRole.User, loginObbligatorio: true, entrato: false);
+
+        Assert.Empty(cut.FindAll("a.choice"));
+        var entra = Assert.Single(cut.FindAll(".svc-login a"));
+        Assert.Equal("/services/vsop/auth/login?returnUrl=/services", entra.GetAttribute("href"));
+        Assert.Contains("Services_LoginButton", entra.TextContent);
+    }
+
+    [Theory]
+    [InlineData(true, true)]    // obbligatorio, ma è entrato
+    [InlineData(false, false)]  // sito aperto (embedded, sviluppo): come sempre
+    public void Da_dentro_o_col_sito_aperto_la_porta_e_quella_di_sempre(bool obbligatorio, bool entrato)
+    {
+        var cut = Render(VipiRole.User, loginObbligatorio: obbligatorio, entrato: entrato);
+
+        Assert.Empty(cut.FindAll(".svc-login"));
+        Assert.Contains(cut.FindAll("a.choice"), a => a.GetAttribute("href") == "/services/vsop");
     }
 }

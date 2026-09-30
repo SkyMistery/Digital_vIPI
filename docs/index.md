@@ -364,6 +364,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-29-enti-atc.md`](feature/2026-09-29-enti-atc.md) — I documenti sono degli ENTI, non dei nominativi (29 settembre 2026)
 - [`feature/2026-09-30-api-aeroporti.md`](feature/2026-09-30-api-aeroporti.md) — API degli aeroporti: scali, scheda, SID e STAR per gli altri programmi — carta (30 settembre 2026)
 - [`feature/2026-09-30-correzioni-spazi-aerei.md`](feature/2026-09-30-correzioni-spazi-aerei.md) — Correzioni a mano degli spazi aerei (30 settembre 2026)
+- [`feature/2026-09-30-login-obbligatorio.md`](feature/2026-09-30-login-obbligatorio.md) — Il sito si legge solo dopo il login IVAO — carta (30 settembre 2026)
 - [`feature/2026-09-30-profili-evento.md`](feature/2026-09-30-profili-evento.md) — I profili per l'evento (30 settembre 2026)
 
 ### `filoni`

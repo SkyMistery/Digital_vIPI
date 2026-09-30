@@ -200,6 +200,10 @@ public static class VipiStandaloneAuthExtensions
                 // che il resto del sistema legge (HostIdentityOptions.NameClaims). Vedi ComposeDisplayName.
                 oidc.Events.OnUserInformationReceived = context =>
                 {
+                    // Una volta per avvio, i soli NOMI dei campi: serve a sapere se IVAO dice che un account è
+                    // sospeso (login obbligatorio, 30 settembre 2026). Vedi DiagnosticaErrori.RegistraCampiDelProfilo.
+                    DiagnosticaErrori.RegistraCampiDelProfilo(context.User.RootElement);
+
                     if (context.Principal?.Identity is ClaimsIdentity identity && identity.FindFirst("name") is null)
                     {
                         var vid = identity.FindFirst("id")?.Value ?? identity.FindFirst("sub")?.Value;
@@ -592,4 +596,12 @@ public sealed class VipiAuthOptions
     /// controllo omonimo del validator è inservibile in ASP.NET Core (vedi il commento sul validator).</para>
     /// </summary>
     public bool RelaxProtocolValidation { get; set; }
+
+    /// <summary>
+    /// Il sito si legge solo dopo il login IVAO (committente, 30 settembre 2026, su segnalazione delle Public
+    /// Relations: aperto a tutti, i bot se lo portano via). Default <c>true</c>: vale appena il login è acceso
+    /// (<see cref="Enabled"/>), e senza login (embedded, sviluppo con l'utente finto) non c'è niente da chiudere.
+    /// Si riapre scrivendo <c>VipiAuth__LoginObbligatorio=false</c>, senza ricompilare. Vedi <see cref="CancelloDelLogin"/>.
+    /// </summary>
+    public bool LoginObbligatorio { get; set; } = true;
 }
