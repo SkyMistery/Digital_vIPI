@@ -210,6 +210,8 @@ public class VipiDbContext : DbContext
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
     public DbSet<FieldRequest> FieldRequests => Set<FieldRequest>();
+    public DbSet<EventKit> EventKits => Set<EventKit>();
+    public DbSet<EventKitItem> EventKitItems => Set<EventKitItem>();
     public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
     public DbSet<DocumentImpact> DocumentImpacts => Set<DocumentImpact>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
@@ -766,6 +768,24 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.ReporterUserId);                 // «le mie»
             // Come DocumentImpact: eliminato il documento, una richiesta su di lui non è più un lavoro.
             e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Il pacchetto dell'evento (carta 2026-09-30-profili-evento.md). Nessuna stringa indicizzata: niente da
+        //     dimensionare in MySqlStringLengths. I byte come per MediaAsset (BLOB / longblob). ---
+        b.Entity<EventKit>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            e.Property(x => x.UpdatedByName).HasMaxLength(128).IsRequired();
+            e.HasMany(x => x.Items).WithOne(x => x.EventKit!).HasForeignKey(x => x.EventKitId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<EventKitItem>(e =>
+        {
+            e.Property(x => x.Label).HasMaxLength(128).IsRequired();
+            e.Property(x => x.Note).HasMaxLength(300).IsRequired();
+            e.Property(x => x.Url).HasMaxLength(1000).IsRequired();
+            e.Property(x => x.FileName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.CreatedByName).HasMaxLength(128).IsRequired();
+            e.HasIndex(x => new { x.EventKitId, x.SortOrder });
         });
 
         // --- Lock di editing esclusivo su risorse nominate (pagine admin di struttura, wizard nuovo doc). ---

@@ -62,6 +62,9 @@ internal static class CacheDelleLettureAnonime
         "/live", "/search", "/changed", "/auth", "/stats/world",
         // Da Editor e con la copia di LAVORO (T-061, 13 settembre 2026): come gli editor, non si tiene.
         "/aor3d",
+        // I file del pacchetto dell'evento (30 settembre 2026): escono `private, no-store` perché si tolgono e si
+        // sostituiscono, e una copia tenuta qui li servirebbe ancora a pacchetto spento.
+        "/event/file",
     };
 
     public static IApplicationBuilder UseVipiCacheDelleLettureAnonime(this WebApplication app)

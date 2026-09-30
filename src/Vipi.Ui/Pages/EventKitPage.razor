@@ -1,0 +1,57 @@
+@page "/services/event"
+@layout SopLayout
+@using Vipi.Application.EventKits
+@inject IEventKitService Pacchetto
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+@* ---- I profili per l'evento (committente, 30 settembre 2026) ------------------------------------------------------
+   Carta docs/feature/2026-09-30-profili-evento.md. Una pagina APERTA A TUTTI, accesa dallo staff vicino a un evento:
+   i profili Aurora per postazione da scaricare e i link (lo zip dello Stand Manager su Drive). Spenta, o fuori dalle
+   date, al pubblico dice solo che non c'è un evento in corso.
+   ⚠️ SSR STATICA per il pubblico: la sera dell'evento la aprono tutti insieme, e un circuito per ognuno sarebbe il
+   prezzo di un elenco di link. Lo staff di divisione ci trova sopra il pannello di gestione, che è un'isola sua. *@
+<PageTitle>@Titolo · IVAO Italy</PageTitle>
+
+<div class="wrap" style="max-width:1000px">
+    <div class="doc-head">
+        <h1 class="page-h1">@Titolo</h1>
+    </div>
+
+    @if (Authz.IsDivisionStaff)
+    {
+        <EventKitManager />
+    }
+    else if (_pubblico is null)
+    {
+        <div class="callout info"><span class="cic"><Icon Name="calendar" Size="18" /></span><div>@L["Evt_None"]</div></div>
+    }
+    else
+    {
+        @if (Finestra() is { Length: > 0 } finestra)
+        {
+            <p class="muted">@finestra</p>
+        }
+        <p>@L["Evt_Intro"]</p>
+        <EventKitList Items="_pubblico.Items" />
+    }
+</div>
+
+@code {
+    private EventKitView? _pubblico;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsDivisionStaff) _pubblico = await Pacchetto.PubblicoAsync();
+    }
+
+    /// <summary>«Profili per l'evento — Nome», o solo il titolo quando non c'è un evento da nominare.</summary>
+    private string Titolo => _pubblico is { Name.Length: > 0 } p ? $"{L["Evt_Title"]} — {p.Name}" : L["Evt_Title"];
+
+    private string Finestra() => _pubblico switch
+    {
+        { StartsUtc: DateTime da, EndsUtc: DateTime a } => L["Evt_FromTo", VipiTime.DayZ(da), VipiTime.DayZ(a)],
+        { EndsUtc: DateTime a } => L["Evt_Until", VipiTime.DayZ(a)],
+        _ => "",
+    };
+}

@@ -39,12 +39,50 @@ public class ServicesHomeTests : TestContext
     /// <c>DivisionStaff</c> i test sull'elenco completo proverebbero un elenco a cui manca una scheda.
     /// Le prove <i>per livello</i> restano i <c>Theory</c> qui sotto, che il livello lo dichiarano.
     /// </summary>
-    private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.Editor)
+    private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.Editor, bool evento = false)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
+        Services.AddSingleton<Vipi.Application.EventKits.IEventKitService>(new FakeEvento(evento));
         return RenderComponent<ServicesHome>();
+    }
+
+    /// <summary>Il pacchetto dell'evento finto: all'hub chiede solo se si vede (30 settembre 2026).</summary>
+    private sealed class FakeEvento(bool visibile) : Vipi.Application.EventKits.IEventKitService
+    {
+        public Task<string?> InCorsoAsync(CancellationToken ct = default) => Task.FromResult(visibile ? "Italian Night Ops" : null);
+        public Task<Vipi.Application.EventKits.EventKitView?> PubblicoAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Vipi.Application.EventKits.EventKitView> PerStaffAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task SalvaTestataAsync(string nome, bool attivo, DateTime? daUtc, DateTime? aUtc, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> AggiungiFileAsync(string etichetta, string? nota, string fileName, Stream contenuto, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> AggiungiLinkAsync(string etichetta, string? nota, string url, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task EliminaAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task SpostaAsync(int id, int verso, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Vipi.Application.Abstractions.EventKitFile?> FileAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
+    /// <summary>
+    /// L'evento in corso (committente, 30 settembre 2026): la sua sezione c'è SOLO quando il pacchetto si vede, e sta
+    /// sopra gli strumenti — in quei giorni è la cosa che si viene a cercare. Allo staff la scheda per gestirlo c'è
+    /// sempre, nella sua sezione.
+    /// </summary>
+    [Theory]
+    [InlineData(VipiRole.User, false, 0)]
+    [InlineData(VipiRole.User, true, 1)]
+    [InlineData(VipiRole.DivisionStaff, false, 1)]
+    [InlineData(VipiRole.DivisionStaff, true, 2)]
+    public void La_sezione_dell_evento_c_e_solo_quando_si_vede(VipiRole livello, bool visibile, int schede)
+    {
+        var cut = Render(livello, visibile);
+        Assert.Equal(schede, cut.FindAll("a.choice").Count(a => a.GetAttribute("href") == "/services/event"));
+        Assert.Equal(visibile, cut.Markup.Contains("Services_EventSection"));
+        if (visibile)
+        {
+            var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
+            Assert.True(indirizzi.IndexOf("/services/event") < indirizzi.IndexOf("/services/vawos"));   // sopra gli strumenti
+            Assert.Contains("Evt_Title — Italian Night Ops", cut.Find("a.evt-card").TextContent);      // col nome dell'evento
+        }
     }
 
     [Fact]
@@ -87,7 +125,9 @@ public class ServicesHomeTests : TestContext
             new[] { "/services/vsop", "/services/vsop/mil", "/services/vawos",
                     "/services/stats", "/services/profile-swapper", "https://the-eye.andreadalbero.it/",
                     "/services/vsop/airspace",
-                    "/services/coordinates", "/services/vsop/sectorfile" },
+                    // ⚠️ Il pacchetto dell'evento entra il 30 settembre 2026 fra gli attrezzi dello staff, prima della
+                    // coerenza col sectorfile (che resta ultima, per la ragione qui sopra).
+                    "/services/coordinates", "/services/event", "/services/vsop/sectorfile" },
             indirizzi);
     }
 

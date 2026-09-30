@@ -281,6 +281,11 @@ public static class VipiModuleExtensions
     private const int AwosRichiesteAlMinutoPerIp = 10;
     private const int AwosRichiesteAlMinutoTotali = 600;
 
+    /// <summary>Tetti dei file del pacchetto dell'evento: chi controlla scarica una manciata di profili, non centinaia
+    /// al minuto; il totale regge la sera dell'evento, quando arrivano tutti insieme.</summary>
+    private const int EventoFileAlMinutoPerIp = 60;
+    private const int EventoFileAlMinutoTotali = 3000;
+
     private const int ArchivioRichiesteAlMinutoPerIp = 30;
 
     /// <summary>Tetto complessivo dell'archivio ATC: è quello che regge davvero, l'IP dietro il proxy lo sceglie chi chiama.</summary>
@@ -667,6 +672,34 @@ public static class VipiModuleExtensions
             return Results.Redirect(
                 Vipi.Application.Content.AttachmentRules.UrlEsterno(voce.Provider, voce.ExternalId),
                 permanent: false);
+        });
+
+        // Il file di una voce del pacchetto dell'evento (carta 2026-09-30-profili-evento.md). Il nome in coda serve a chi
+        // scarica e non si guarda: il file lo decide l'Id. Al pubblico solo mentre il pacchetto si vede (il servizio
+        // decide), allo staff sempre, per provarlo prima di accenderlo.
+        // ⚠️ Sempre ALLEGATO, `application/octet-stream` e `nosniff`: questo dominio non deve mai «aprire» un file
+        // caricato, qualunque cosa ci sia dentro. `private, no-store`: la voce si toglie e si sostituisce, e una copia
+        // in una cache condivisa continuerebbe a servirla anche a pacchetto spento.
+        endpoints.MapGet(Vipi.Application.EventKits.EventKitRules.Rotta + "/file/{id:int}/{nome?}", async (
+            int id,
+            HttpContext ctx,
+            Vipi.Application.EventKits.IEventKitService pacchetto,
+            RequestRateLimiter limiter,
+            CancellationToken ct) =>
+        {
+            var chiamante = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
+            if (!limiter.PassaITetti("evento", chiamante, EventoFileAlMinutoPerIp, EventoFileAlMinutoTotali, ArchivioClientiTracciati))
+            {
+                ctx.Response.Headers.RetryAfter = "60";
+                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+            }
+
+            var file = await pacchetto.FileAsync(id, ct);
+            if (file is null) return Results.NotFound();
+
+            ctx.Response.Headers.CacheControl = "private, no-store";
+            ctx.Response.Headers.XContentTypeOptions = "nosniff";
+            return Results.File(file.Bytes, "application/octet-stream", file.FileName);
         });
 
         // La copia di sicurezza del database, per un Admin (§A47, carta 2026-09-16-copia-del-database.md).

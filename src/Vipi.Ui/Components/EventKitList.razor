@@ -1,0 +1,64 @@
+@* L'elenco delle voci del pacchetto dell'evento, come lo vede chi scarica (carta 2026-09-30-profili-evento.md).
+   Nessun @rendermode: la pagina pubblica è SSR statica — la aprono tutti i controllori la sera dell'evento, e un
+   circuito per ognuno sarebbe il prezzo di un elenco di link. Lo usa anche il pannello dello staff, per mostrare
+   le voci come le vedrà il pubblico, coi suoi tasti accanto (`Azioni`). *@
+@using Vipi.Application.Abstractions
+@using Vipi.Application.EventKits
+@inject IStringLocalizer<SharedResource> L
+
+@if (Items.Count == 0)
+{
+    <p class="muted">@L["Evt_Empty"]</p>
+}
+else
+{
+    <ul class="evt-list">
+        @foreach (var v in Items)
+        {
+            <li class="evt-item">
+                <span class="evt-ic"><Icon Name="@(v.Kind == EventKitItemKind.File ? "download" : "link")" Size="18" /></span>
+                <div class="evt-body">
+                    <div class="evt-label">@v.Label</div>
+                    @if (v.Note.Length > 0) { <div class="evt-note">@v.Note</div> }
+                    <div class="evt-meta muted">
+                        @if (v.Kind == EventKitItemKind.File)
+                        {
+                            <span>@v.FileName · @Peso(v.ByteSize)</span>
+                        }
+                        else
+                        {
+                            <span>@EventKitRules.Dominio(v.Url)</span>
+                        }
+                    </div>
+                </div>
+                <div class="evt-act">
+                    @if (v.Kind == EventKitItemKind.File)
+                    {
+                        @* `download` e il nome: il browser salva, non apre. L'endpoint lo dice comunque (allegato). *@
+                        <a class="btn primary" href="@EventKitRules.UrlFile(v.Id, v.FileName)" download="@v.FileName"
+                           data-enhance-nav="false">@L["Evt_Download"]</a>
+                    }
+                    else
+                    {
+                        <a class="btn" href="@v.Url" target="_blank" rel="noopener noreferrer">@L["Evt_Open"]</a>
+                    }
+                    @Azioni?.Invoke(v)
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<EventKitItemRow> Items { get; set; } = Array.Empty<EventKitItemRow>();
+
+    /// <summary>I tasti dello staff accanto a ogni voce (su, giù, elimina); null nella pagina pubblica.</summary>
+    [Parameter] public RenderFragment<EventKitItemRow>? Azioni { get; set; }
+
+    private static string Peso(int bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:0.#} KB",
+        _ => $"{bytes / (1024.0 * 1024):0.#} MB",
+    };
+}

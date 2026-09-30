@@ -2488,6 +2488,115 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("EditorTasks");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("EndsUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime?>("StartsUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("UpdatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EventKits");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKitItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ByteSize")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("Bytes")
+                        .HasColumnType("longblob");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("EventKitId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventKitId", "SortOrder");
+
+                    b.ToTable("EventKitItems");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.FieldRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -4266,6 +4375,17 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKitItem", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.EventKit", "EventKit")
+                        .WithMany("Items")
+                        .HasForeignKey("EventKitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EventKit");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.FieldRequest", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Document", "Document")
@@ -4447,6 +4567,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Blocks");
 
                     b.Navigation("Sections");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKit", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
