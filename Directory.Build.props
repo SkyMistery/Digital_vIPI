@@ -1535,6 +1535,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.52.0 — MINOR: una migrazione ADDITIVA (CorrezioniSpaziAerei: una tabella e un indice unico; niente tolto o
+      rinominato). Su 1.51.0 (b57fe44, online dal 30 settembre 2026). Sito S63: dalla pagina admin degli spazi aerei si
+      correggono a mano tipo, classe, base e tetto dei volumi che l'AIP sbaglia; le correzioni stanno in una tabella a
+      parte, citano la chiave del file e si sovrappongono in lettura (catalogo e agganci dei settori), e dopo un nuovo
+      caricamento la pagina mostra «Da controllare». La pagina dice anche che cosa sta facendo durante i gesti lunghi.
+      Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Ui (+ frasi IT/EN,
+      vipi-theme.css con l'indice degli asset) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.52.0.md, §A139.
+    -->
+    <!--
       1.51.0 — MINOR: una migrazione ADDITIVA (ProfiliEvento: due tabelle e un indice; niente tolto o rinominato).
       Su 1.50.0 (e7742ff, online dal 30 settembre 2026): la 1.50.1 (S58) non è mai stata caricata ed entra qui.
       Sito S58 (vAWOS ancorato alla finestra, bandierina «segnala», switch Errore/Suggerimento); S59 profili per
@@ -1852,7 +1861,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.51.0</VipiVersione>
+    <VipiVersione>1.52.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
