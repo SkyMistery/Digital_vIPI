@@ -19,8 +19,10 @@ public sealed record FieldRequestContext(int DocumentId, string DocumentTitle, s
 /// <summary>Gli argini (carta §4): contro il pestaggio, non contro l'uso.</summary>
 public static class FieldRequestRules
 {
-    /// <summary>Chi ne ha cinque in attesa non ha bisogno della sesta: ha bisogno di una risposta.</summary>
-    public const int MaxAperte = 5;
+    /// <summary>Chi ne ha dieci in attesa non ha bisogno dell'undicesima: ha bisogno di una risposta. ⚠️ Erano cinque
+    /// fino al 30 settembre 2026: il committente le ha portate a dieci, come il tetto delle 24 ore, quando la
+    /// bandierina è arrivata su ogni pagina e non solo sulle sezioni.</summary>
+    public const int MaxAperte = 10;
     public const int MaxAlGiorno = 10;
     public const int MaxCorpo = 2000;
     public const int MaxRisposta = 2000;

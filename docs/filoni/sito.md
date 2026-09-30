@@ -1883,7 +1883,8 @@
 - ✅ **S77** segnalare un problema su qualunque pagina (30-set, committente): bandierina in barra accanto alla
   Guida e voce nel ☰, link al modulo delle richieste con la pagina (`?p=`), come le sezioni. Colonna
   `FieldRequest.PageUrl` (migrazione `PaginaDelleRichieste`), ripulita a solo percorso del sito. Carta
-  `piano-segnalazioni.md` §11. Ramo `fix/segnala-pagina`, in fila su `fix/card-atc-ivao`.
+  `piano-segnalazioni.md` §11. Poi, sempre su richiesta: le richieste APERTE per VID passano da 5 a 10, come il
+  tetto delle 24 ore. Ramo `fix/segnala-pagina`, in fila su `fix/card-atc-ivao`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

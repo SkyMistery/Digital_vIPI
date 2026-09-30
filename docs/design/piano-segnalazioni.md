@@ -183,7 +183,7 @@ impatti (`WorkListServiceTests`), e va esteso — non riscritto — alla proveni
 | Argine | Valore | Perché |
 |---|---|---|
 | Solo connessi | — | §2/D1 |
-| Segnalazioni **aperte** per VID | **5** | chi ne ha cinque in attesa non ha bisogno della sesta: ha bisogno di una risposta |
+| Segnalazioni **aperte** per VID | **10** (5 fino al 30 settembre 2026) | chi ne ha dieci in attesa non ha bisogno dell'undicesima: ha bisogno di una risposta. Alzato dal committente quando la bandierina è arrivata su ogni pagina (§11) |
 | Segnalazioni al giorno per VID | **10** | tetto contro il pestaggio, non contro l'uso |
 | Lunghezza del corpo | **2000** caratteri | una segnalazione, non un trattato |
 | Formato | **testo semplice**, nessun HTML, nessun markdown, nessun allegato | niente da sanificare, niente da archiviare, niente immagini orfane da potare |
@@ -446,4 +446,5 @@ come funziona ora per le sezioni dei documenti».
   chiunque: `FieldRequestRules.Pagina` tiene solo un percorso del sito (una barra sola in testa, niente schema, niente
   `//`, niente caratteri di controllo), o la coda dello staff mostrerebbe collegamenti esterni.
 - **Nella coda**: «Pagina /services/…» col collegamento; presa in carico, l'incarico si intitola alla pagina.
-- **Argini**: gli stessi (cinque aperte, dieci al giorno), perché il servizio è lo stesso.
+- **Argini**: gli stessi, perché il servizio è lo stesso; le aperte passano da cinque a dieci (committente), come il tetto
+  delle 24 ore.
