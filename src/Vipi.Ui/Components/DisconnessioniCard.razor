@@ -1,0 +1,73 @@
+@* Le disconnessioni viste dai browser (committente, 30 settembre 2026). Legge il riassunto dei file
+   diagnostica/disconnessioni-*.tsv che scrive il beacon di vipi-riconnessione.js (RegistroDisconnessioni, nell'host).
+   ⚠️ Il servizio è FACOLTATIVO: lo registra l'host del sito, non il modulo. Dove manca (un host che aggancia il
+   modulo, i test) la scheda non c'è, invece di rompere la pagina. *@
+@using Vipi.Application.Abstractions
+@inject IStringLocalizer<SharedResource> L
+@inject IServiceProvider Servizi
+
+@if (_riepilogo is { } r)
+{
+    <DiagFold>
+        <Titolo><Icon Name="activity" Size="15" /> @L["Diag_DiscTitle"]</Titolo>
+        <ChildContent>
+        <div class="doc-head st-head diag-card-head">
+            <HelpHint AriaLabel="@L["Diag_DiscTitle"]" ExtraClass="wide">@L["Diag_DiscHint"]</HelpHint>
+        </div>
+        @if (r.Giorni.Count == 0)
+        {
+            <p class="muted">@L["Diag_DiscNone"]</p>
+        }
+        else
+        {
+            <table class="res-table tbl-cards diag-disc">
+                <thead>
+                    <tr>
+                        <th>@L["Diag_DiscDay"]</th><th>@L["Diag_DiscTotal"]</th><th>@L["Diag_DiscBack"]</th>
+                        <th>@L["Diag_DiscRejected"]</th><th>@L["Diag_DiscFailed"]</th><th>@L["Diag_DiscLeft"]</th>
+                        <th>@L["Diag_DiscProcess"]</th><th>@L["Diag_DiscHidden"]</th><th>@L["Diag_DiscOffline"]</th>
+                        <th>@L["Diag_DiscMedian"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in r.Giorni)
+                    {
+                        <tr>
+                            <td data-l="@L["Diag_DiscDay"]">@g.Giorno.ToString("yyyy-MM-dd")</td>
+                            <td data-l="@L["Diag_DiscTotal"]"><b>@g.Totale</b></td>
+                            <td data-l="@L["Diag_DiscBack"]">@g.Riagganciate</td>
+                            <td data-l="@L["Diag_DiscRejected"]">@g.Rifiutate</td>
+                            <td data-l="@L["Diag_DiscFailed"]">@g.Fallite</td>
+                            <td data-l="@L["Diag_DiscLeft"]">@g.Abbandonate</td>
+                            <td data-l="@L["Diag_DiscProcess"]">@g.ProcessoCambiato</td>
+                            <td data-l="@L["Diag_DiscHidden"]">@g.SchedaNascosta</td>
+                            <td data-l="@L["Diag_DiscOffline"]">@g.SenzaRete</td>
+                            <td data-l="@L["Diag_DiscMedian"]">@g.MedianaBuco.ToString("0.#") s</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (r.Pagine.Count > 0)
+            {
+                <p class="muted" style="margin:10px 0 4px">@L["Diag_DiscPages"]</p>
+                <ul class="sx-list">
+                    @foreach (var (pagina, volte) in r.Pagine)
+                    {
+                        <li><code>@pagina</code> · @volte</li>
+                    }
+                </ul>
+            }
+        }
+        </ChildContent>
+    </DiagFold>
+}
+
+@code {
+    private RiepilogoDisconnessioni? _riepilogo;
+
+    protected override void OnInitialized()
+    {
+        try { _riepilogo = (Servizi.GetService(typeof(IRiepilogoDisconnessioni)) as IRiepilogoDisconnessioni)?.Leggi(); }
+        catch { _riepilogo = null; }   // un file illeggibile non deve portarsi via la pagina Diagnostica
+    }
+}

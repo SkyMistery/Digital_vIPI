@@ -163,3 +163,36 @@ else:
     normalizza = lambda s: re.sub(r"\b(?!IVAO|NOAA|UTC)[A-Z]{4}\b", "ICAO", re.sub(r"\d+([.,]\d+)?", "#", s))[:110]
     conta = collections.Counter((l, c, normalizza(t)) for _, l, c, t in voci)
     tabella(("n", "liv", "categoria", "messaggio"), [(n, l, c, t) for (l, c, t), n in conta.most_common(20)])
+
+# ---------------------------------------------------------------- disconnessioni viste dai browser
+# (30 settembre 2026) Una riga ogni volta che a qualcuno è comparso il riquadro «riconnessione»: vedi
+# src/Vipi.Host/RegistroDisconnessioni.cs. Qui il riassunto; il file ha il dettaglio.
+disc = []
+for giorno, file in giorni("disconnessioni", "tsv"):
+    for riga in open(file, encoding="utf-8-sig"):
+        if not riga[:1].isdigit():
+            continue
+        c = riga.rstrip("\n").split("\t")
+        if len(c) >= 15:
+            disc.append((giorno, c))
+
+if disc:
+    print("Disconnessioni viste dai browser, per giorno")
+    per_giorno = collections.defaultdict(list)
+    for g, c in disc:
+        per_giorno[g].append(c)
+    tabella(("giorno", "totale", "riagganciate", "rifiutate", "fallite", "abbandonate", "processo cambiato",
+             "scheda nascosta", "fuori rete", "buco p50 s"),
+            [(g, len(v), sum(c[6] == "riagganciata" for c in v), sum(c[6] == "rifiutata" for c in v),
+              sum(c[6] == "fallita" for c in v), sum(c[6] == "abbandonata" for c in v), sum(c[3] == "0" for c in v),
+              sum(c[10] == "0" for c in v), sum(c[12] == "0" for c in v),
+              percentile([int(c[8]) for c in v if c[8].lstrip("-").isdigit() and int(c[8]) >= 0], 50))
+             for g, v in sorted(per_giorno.items())])
+
+    print("Disconnessioni per pagina")
+    conta = collections.Counter(c[5] for _, c in disc)
+    tabella(("pagina", "volte"), conta.most_common(15))
+
+    print("Da quanto era aperta la pagina quando è caduta (secondi)")
+    sp = [int(c[7]) for _, c in disc if c[7].lstrip("-").isdigit() and int(c[7]) >= 0]
+    tabella(("n", "p50", "p95", "max"), [(len(sp), percentile(sp, 50), percentile(sp, 95), max(sp) if sp else 0)])

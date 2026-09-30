@@ -152,6 +152,8 @@ public static class VipiModuleExtensions
         // serve anche con l'identità di sviluppo, e AddHttpContextAccessor si può chiamare due volte.
         services.AddHttpContextAccessor();
         services.AddScoped<Vipi.Ui.Components.IStatoDellaRisposta, StatoDellaRispostaHttp>();
+        // La pagina servita, per il layout: sulle pagine di sola lettura niente riquadro di riconnessione.
+        services.AddScoped<Vipi.Ui.IPaginaCorrente, PaginaCorrenteDallaRichiesta>();
 
         // Tracking dei login staff per il roster permessi.
         services.AddSingleton<StaffLoginThrottle>();

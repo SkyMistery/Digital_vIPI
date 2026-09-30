@@ -3560,6 +3560,22 @@
   <data name="Reconnect_Rejected" xml:space="preserve"><value>Il server è ripartito: ricarico la pagina.</value></data>
   <data name="Reconnect_Failed" xml:space="preserve"><value>Non riesco a ricollegarmi. Controlla la connessione, poi ricarica la pagina.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Ricarica la pagina</value></data>
+  <data name="Reconnect_QuietTitle" xml:space="preserve"><value>Collegamento con il server perso</value></data>
+  <data name="Reconnect_QuietBody" xml:space="preserve"><value>Il documento resta leggibile; stato Live e meteo non si aggiornano finché non ricarichi.</value></data>
+  <data name="Diag_DiscTitle" xml:space="preserve"><value>Disconnessioni viste dai browser</value></data>
+  <data name="Diag_DiscHint" xml:space="preserve"><value>Una riga ogni volta che a qualcuno è comparso il riquadro «riconnessione», negli ultimi sette giorni. Riagganciate: il collegamento è tornato da solo. Rifiutate: il processo del server era stato spento o riavviato. Fallite: server irraggiungibile. Il file completo è diagnostica/disconnessioni-*.tsv.</value></data>
+  <data name="Diag_DiscNone" xml:space="preserve"><value>Nessuna disconnessione registrata.</value></data>
+  <data name="Diag_DiscDay" xml:space="preserve"><value>Giorno</value></data>
+  <data name="Diag_DiscTotal" xml:space="preserve"><value>Totale</value></data>
+  <data name="Diag_DiscBack" xml:space="preserve"><value>Riagganciate</value></data>
+  <data name="Diag_DiscRejected" xml:space="preserve"><value>Rifiutate</value></data>
+  <data name="Diag_DiscFailed" xml:space="preserve"><value>Fallite</value></data>
+  <data name="Diag_DiscLeft" xml:space="preserve"><value>Abbandonate</value></data>
+  <data name="Diag_DiscProcess" xml:space="preserve"><value>Processo cambiato</value></data>
+  <data name="Diag_DiscHidden" xml:space="preserve"><value>Scheda nascosta</value></data>
+  <data name="Diag_DiscOffline" xml:space="preserve"><value>Fuori rete</value></data>
+  <data name="Diag_DiscMedian" xml:space="preserve"><value>Buco (mediana)</value></data>
+  <data name="Diag_DiscPages" xml:space="preserve"><value>Le pagine dove succede di più</value></data>
   <data name="Lost_Title" xml:space="preserve"><value>L'ultimo comando potrebbe non essere arrivato.</value></data>
   <data name="Lost_Body" xml:space="preserve"><value>Il collegamento col server si era interrotto e la pagina è stata ricaricata da sola. Controlla l'ultima modifica: se non c'è, rifalla.</value></data>
   <!-- Import di una tabella: incolla, CSV, XLSX, anteprima -->
