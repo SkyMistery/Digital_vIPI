@@ -62,7 +62,8 @@ public class PieDiPaginaTests : TestContext
         var link = cut.FindAll(".sf-links a").ToList();
         // ⚠️ Le tre pagine di ivao.aero (termini, privacy, regole) rispondono 404 dal 29 settembre 2026: tutto sta
         // sulla wiki di IVAO, sotto una pagina sola.
-        Assert.Equal(new[] { "https://www.ivao.aero", "https://wiki.ivao.aero/en/home/ivao/information" },
+        // Il sito della divisione italiana subito dopo quello di IVAO (committente, 30 settembre 2026).
+        Assert.Equal(new[] { "https://www.ivao.aero", "https://it.ivao.aero/", "https://wiki.ivao.aero/en/home/ivao/information" },
             link.Select(a => a.GetAttribute("href")));
         Assert.All(link, a =>
         {
@@ -113,6 +114,27 @@ public class PieDiPaginaTests : TestContext
             .Select(Path.GetFileName)
             .ToList();
         Assert.Equal(new[] { "AwosPage.razor" }, altri);
+    }
+
+    /// <summary>
+    /// I cookie (committente, 30 settembre 2026): solo tecnici, quindi niente banner ma una pagina che li elenca, col
+    /// suo link in fondo al piè di pagina. ⚠️ L'elenco è scritto a mano: il presidio lega almeno il cookie del login al
+    /// codice che lo scrive, perché un nome cambiato lì e non qui farebbe dire alla pagina una cosa falsa.
+    /// </summary>
+    [Fact]
+    public void Il_piede_porta_alla_pagina_dei_cookie_che_elenca_quelli_veri()
+    {
+        var cut = Rendi(staff: false);
+        var link = cut.FindAll(".sf-bottom a").Single(a => a.GetAttribute("href") == "/services/cookies");
+        Assert.Equal("Ck_Title", link.TextContent.Trim());
+        Assert.Null(link.GetAttribute("target"));                    // è una pagina nostra: stessa scheda
+
+        var nomi = Vipi.Ui.Pages.CookiePage.Cookie.Select(c => c.Nome).ToList();
+        Assert.Contains("vipi.auth", nomi);
+        Assert.Contains(".AspNetCore.Culture", nomi);
+        var auth = File.ReadAllText(Path.Combine(Radice(), "..", "Vipi.Host", "Auth", "VipiStandaloneAuthExtensions.cs"));
+        Assert.Contains("o.Cookie.Name = \"vipi.auth\";", auth);
+        Assert.Contains("o.ExpireTimeSpan = TimeSpan.FromDays(7);", auth);   // la durata scritta nella pagina
     }
 
     private static string Leggi(string relativo) =>

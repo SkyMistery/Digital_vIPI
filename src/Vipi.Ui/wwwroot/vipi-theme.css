@@ -5250,3 +5250,10 @@
   :where(.vipi-root) .evt-item{flex-wrap:wrap}
   :where(.vipi-root) .evt-act{width:100%;justify-content:flex-end}
 }
+/* ---------- La pagina dei cookie (/services/cookies, 30 settembre 2026) ----------
+   Una tabella di tre colonne; sul telefono scorre di lato dentro il suo riquadro, non la pagina. */
+:where(.vipi-root) .ck-scroll{overflow-x:auto;margin:8px 0 18px}
+:where(.vipi-root) .ck-table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+:where(.vipi-root) .ck-table th,:where(.vipi-root) .ck-table td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+:where(.vipi-root) .ck-table th{font-family:var(--font-head);font-weight:700;color:var(--ink-mid)}
+:where(.vipi-root) .ck-table code{font-size:12.5px;overflow-wrap:anywhere}

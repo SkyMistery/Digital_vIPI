@@ -81,6 +81,29 @@ public sealed class EfFieldRequestRepository : IFieldRequestRepository
         return true;
     }
 
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
+    {
+        var r = await _db.FieldRequests.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (r is null) return false;
+        _db.FieldRequests.Remove(r);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<int> PotaChiuseAsync(DateTime chiuseprimaDiUtc, CancellationToken ct = default)
+    {
+        // Righe piccole e poche (decine al mese): si caricano e si tolgono col contesto, senza ExecuteDelete — così
+        // restano visibili a chi osserva il contesto (audit), come ogni altra cancellazione del sito.
+        var vecchie = await _db.FieldRequests
+            .Where(r => r.Status != FieldRequestStatus.Nuova && r.Status != FieldRequestStatus.PresaInCarico
+                        && r.HandledUtc != null && r.HandledUtc < chiuseprimaDiUtc)
+            .ToListAsync(ct);
+        if (vecchie.Count == 0) return 0;
+        _db.FieldRequests.RemoveRange(vecchie);
+        await _db.SaveChangesAsync(ct);
+        return vecchie.Count;
+    }
+
     public async Task<string?> SectionTitleAsync(int documentId, string sectionKey, CancellationToken ct = default)
     {
         // La versione corrente (la pubblicata); se non c'è, la più recente.

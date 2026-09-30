@@ -142,9 +142,25 @@
                             {
                                 <div class="callout info" style="margin:6px 0 0"><div><b>@L["Req_ReplyFrom", r.HandledByName]</b><br /><span style="white-space:pre-wrap">@r.Reply</span></div></div>
                             }
+                            @* Eliminare: solo l'Admin (committente, 30 settembre 2026), con la conferma sul posto. Le chiuse
+                               se ne vanno comunque da sole dopo tre mesi: questo è per le prove e gli sbagli. *@
+                            @if (_admin)
+                            {
+                                <div style="display:flex;justify-content:flex-end;margin-top:6px">
+                                    @if (_daEliminare == r.Id)
+                                    {
+                                        <button class="btn danger" disabled="@_busy" @onclick="() => EliminaAsync(r.Id)">@L["Req_ConfirmDelete"]</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn ghost" disabled="@_busy" @onclick="() => _daEliminare = r.Id"><Icon Name="trash" /> @L["Req_Delete"]</button>
+                                    }
+                                </div>
+                            }
                         </div>
                     }
                 }
+                <p class="muted" style="font-size:12.5px;margin-top:8px">@L["Req_Retention", FieldRequestRules.MesiDiConservazione]</p>
             </section>
         }
     }
@@ -160,7 +176,8 @@
 
     private IFieldRequestService _richieste = default!;
     private IEditAuthorizationService _authz = default!;
-    private bool _connesso, _staff, _busy, _ancheChiuse;
+    private bool _connesso, _staff, _admin, _busy, _ancheChiuse;
+    private int? _daEliminare;
     private string? _errore, _esito;
     private FieldRequestContext? _contesto;
     private ReleaseTargetType? _tipoDoc;
@@ -178,6 +195,7 @@
         _authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
         _connesso = _authz.CurrentUserId is not null;
         _staff = _authz.IsEditor;
+        _admin = _authz.IsAdmin;
         if (!_connesso) return;
         try
         {
@@ -243,6 +261,13 @@
         }
         _risposte.Remove(id);
         _esito = L["Req_Closed", id];
+    });
+
+    private Task EliminaAsync(int id) => GestoAsync(async () =>
+    {
+        await _richieste.EliminaAsync(id);
+        _daEliminare = null;
+        _esito = L["Req_Deleted", id];
     });
 
     private Task CambiaFiltroAsync(ChangeEventArgs e) => GestoAsync(() =>

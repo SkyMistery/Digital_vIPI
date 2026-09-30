@@ -37,6 +37,9 @@
         <div class="sf-bottom">
             <span>
                 © @DateTime.UtcNow.Year @NomeDivisione. @L["Foot_Rights"]
+                @* La pagina dei cookie (committente, 30 settembre 2026): solo tecnici, quindi un elenco e non un banner. *@
+                <span class="sf-sep" aria-hidden="true">·</span>
+                <a href="/services/cookies">@L["Ck_Title"]</a>
                 @if (MostraVersione && Versione is { Length: > 0 } ver)
                 {
                     <span class="sf-sep" aria-hidden="true">·</span>
@@ -69,11 +72,13 @@
     internal static readonly (string Nome, int Vid, string Profilo) Autore =
         ("Carmine", 704798, "https://ivao.aero/Login.aspx?r=Member.aspx?Id=704798");
 
-    /// <summary>I collegamenti di IVAO: il sito, e la pagina della wiki con regole, regolamento e privacy. Le
-    /// etichette si traducono, gli indirizzi no (la wiki è in inglese).</summary>
+    /// <summary>I collegamenti di IVAO: il sito, quello della divisione italiana (committente, 30 settembre 2026), e la
+    /// pagina della wiki con regole, regolamento e privacy. Le etichette si traducono, gli indirizzi no (la wiki è in
+    /// inglese).</summary>
     internal static readonly (string Etichetta, string Indirizzo)[] Collegamenti =
     {
         ("Foot_Ivao", "https://www.ivao.aero"),
+        ("Foot_IvaoItaly", "https://it.ivao.aero/"),
         ("Foot_Info", "https://wiki.ivao.aero/en/home/ivao/information"),
     };
 }
