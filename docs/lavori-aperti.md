@@ -43,6 +43,22 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 🔀 A141 — in `main`, non ancora in pacchetto: vista live (S65) e pagina Chiavi API (S66) (30 settembre 2026)
+
+Fuso da `fix/pagina-chiavi-api` @ `bb5fb638` (CI verde run 36711311377), sha del cartellino del Sito. Il ramo era poi
+andato a `313794dc` allineandosi a `main` (solo i due file di doc già in `main`, stesso albero della fusione); la CI
+su quello sha è caduta su un test a tempo di S63 (`CorrezioniSpaziAereiPaginaTests.La_matita_apre_il_modulo…`,
+`WaitForAssertion` in timeout), segnalato al Sito. Build Release senza avvisi, test verdi, conteggi identici
+(Application 3155, Hosting 93, Ui 1905: i 5 test di Hosting tolti sono passati in `AwosGateTests`).
+- **S65** vista live: compaiono i campi che hanno solo il vSOP; uno scalo non risulta più «delegato» a chi lo guarda
+  (LIMF_WW0_APP); il pannello rapido mostra le SID del documento pubblicato; «vIPI, altrimenti vSOP» sta solo in
+  `AwosGate.Edizione`. Codice comune Application (AwosGate, Live, PisteDalPubblicato).
+- **S66** pagina Chiavi API: sezione «Indirizzi delle API» per chi integra, percorsi in un posto solo (`ApiRotte`,
+  Domain, usati anche dalle rotte vere); spunte dei permessi non più larghe al 100%.
+
+Niente migrazione, niente `deploy/`. ▶ Pacchetto **1.54.0** quando lo dice il committente (le `const` di `ApiRotte`
+in Domain sono copiate in Hosting: Hosting va spedito).
+
 ### ✅ A140 — 1.53.0 ONLINE: API degli aeroporti (S64) (30 settembre 2026)
 
 ✅ Online il 30 settembre 2026: `Schema 0` e Ricerca confermati dal committente. Da fuori `pacchetto-verifica.js` tutto
