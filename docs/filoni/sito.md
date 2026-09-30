@@ -1769,6 +1769,11 @@
   vSOP 10 su 10. Visto lì e corretto: «MIL — LIBG …» nei nomi (anche nella tendina vAWOS), `AwosGate.NomeDalTitolo`
   toglie ora «MIL» come parola intera. Test: Hosting 79 → 98, E2E 463 → 465, App 3144 → 3145. Codice comune
   `Vipi.Domain` (ApiEndpoints), `Vipi.Application` (AwosGate). Niente migrazione.
+  Sullo stesso ramo, un rosso a tempo di S63 segnalato dal Master (CI di `0f79bae9`):
+  `SpaziAereiAdminUnGestoAllaVoltaTests` «no event handler with ID '11'». Il `Task.Yield` di `Gesto` manda la ripresa
+  sul pool; se parte tardi il test sblocca il finto prima che lo aspetti, il primo gesto ridisegna e il secondo clic
+  (già accodato) trova il gestore buttato. Riprodotto a comando (pausa nel finto: vecchio rosso 3/3, nuovo verde 3/3);
+  ricerca e clic ora dentro `cut.InvokeAsync`, come dice il metodo. Solo il test: la pagina è giusta.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
