@@ -1892,7 +1892,7 @@
   punto di lettura tenuto alla ricarica. Carta [2026-09-30-disconnessioni](../feature/2026-09-30-disconnessioni.md).
   Ramo `fix/disconnessioni`.
 - ✅ **S80** testi (30-set, committente): la cancellazione dei dati si chiede a **IVAO HQ**, che la gira alla
-  divisione («I miei dati» ora rimanda alla pagina informativa IVAO, non al modulo); «Richieste dal campo» →
+  divisione («I miei dati» ora rimanda alla procedura IVAO di cancellazione dell'account, wiki FAQ membri, non al modulo); «Richieste dal campo» →
   **«Campo richieste»**; il campo del modulo → «Cosa ci vuoi segnalare?»; statistiche: «Presenze» → **«Voli
   visti»** e una riga che spiega voli visti contro movimenti (pagina personale e dettaglio del turno), testi
   degli aeroporti gestiti e di «Da dove vengono e dove vanno» riscritti. Ramo `fix/testi-dati-statistiche`.

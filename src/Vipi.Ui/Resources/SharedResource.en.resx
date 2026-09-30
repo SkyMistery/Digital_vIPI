@@ -170,7 +170,7 @@
   <data name="My_OtherAtcLink" xml:space="preserve"><value>your statistics</value></data>
   <data name="My_OtherStaff" xml:space="preserve"><value>If you are on the division staff, your name and staff positions decide what you can edit, and appear next to the changes you sign.</value></data>
   <data name="My_DeleteTitle" xml:space="preserve"><value>Asking for deletion</value></data>
-  <data name="My_Delete" xml:space="preserve"><value>Deletion of your data is requested from IVAO HQ, who forward the request to us: the division then deletes it. How to contact IVAO HQ is on the</value></data>
+  <data name="My_Delete" xml:space="preserve"><value>Deletion of your data is requested from IVAO HQ, who forward the request to us: the division then deletes it. How to ask is explained in</value></data>
   <data name="My_DeleteNote" xml:space="preserve"><value>The site can only be read after signing in: as long as you use it, a new sign-in writes your row again. Anyone who has not signed in for twelve months is deleted automatically.</value></data>
   <data name="Ck_DataLink" xml:space="preserve"><value>See your data.</value></data>
   <data name="Ck_StorageTitle" xml:space="preserve"><value>Preferences in your browser</value></data>
@@ -2913,7 +2913,7 @@
   <data name="Stats_AvgDivision" xml:space="preserve"><value>division average {0}</value></data>
   <data name="Stats_PresencesHint" xml:space="preserve"><value>parked ones included</value></data>
   <data name="Stats_FlightsVsMovements" xml:space="preserve"><value>Flights seen: every flight that was in your airspace while you were online, even if it never left its parking spot. Movements: those that moved at least once while you were there — taxi, take-off, landing or airborne. An aircraft parked the whole time is a flight seen, not a movement.</value></data>
-  <data name="My_DeleteLink" xml:space="preserve"><value>IVAO information page</value></data>
+  <data name="My_DeleteLink" xml:space="preserve"><value>IVAO's account deletion procedure</value></data>
   <data name="Stats_AvgShift" xml:space="preserve"><value>Average shift</value></data>
   <data name="Stats_AvgShiftDivision" xml:space="preserve"><value>division {0}</value></data>
   <data name="Stats_MonthHover" xml:space="preserve"><value>hover a bar for the month's detail</value></data>

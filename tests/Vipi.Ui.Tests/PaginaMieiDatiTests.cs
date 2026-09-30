@@ -61,7 +61,7 @@ public class PaginaMieiDatiTests : TestContext
         var link = cut.FindAll("a").Select(a => a.GetAttribute("href")).ToList();
         Assert.Contains("/services/stats/user/704798", link);
         // La cancellazione si chiede a IVAO HQ (committente, 30 settembre 2026), non allo staff dal Campo richieste.
-        Assert.Contains("https://wiki.ivao.aero/en/home/ivao/information", link);
+        Assert.Contains("https://wiki.ivao.aero/en/home/members/faqs#delete-account", link);
         Assert.DoesNotContain("/services/vsop/requests", link);
         Assert.Empty(cut.FindAll("button"));
         Assert.Empty(cut.FindAll("form"));

@@ -170,7 +170,7 @@
   <data name="My_OtherAtcLink" xml:space="preserve"><value>le tue statistiche</value></data>
   <data name="My_OtherStaff" xml:space="preserve"><value>Se sei nello staff della divisione, il tuo nome e le tue posizioni staff servono a decidere che cosa puoi modificare, e compaiono accanto alle modifiche che firmi.</value></data>
   <data name="My_DeleteTitle" xml:space="preserve"><value>Chiedere di cancellarli</value></data>
-  <data name="My_Delete" xml:space="preserve"><value>La cancellazione dei tuoi dati si chiede a IVAO HQ, che gira la richiesta a noi: la divisione provvede a cancellarli. Come contattare IVAO HQ lo trovi nella</value></data>
+  <data name="My_Delete" xml:space="preserve"><value>La cancellazione dei tuoi dati si chiede a IVAO HQ, che gira la richiesta a noi: la divisione provvede a cancellarli. Come chiederla lo spiega la</value></data>
   <data name="My_DeleteNote" xml:space="preserve"><value>Il sito si legge solo dopo il login: finché lo usi, un nuovo accesso scrive di nuovo la tua riga. Chi non entra da dodici mesi viene cancellato da solo.</value></data>
   <data name="Ck_DataLink" xml:space="preserve"><value>Vedi i tuoi dati.</value></data>
   <data name="Ck_StorageTitle" xml:space="preserve"><value>Le preferenze nel tuo browser</value></data>
@@ -2921,7 +2921,7 @@
   <data name="Stats_AvgDivision" xml:space="preserve"><value>media della divisione {0}</value></data>
   <data name="Stats_PresencesHint" xml:space="preserve"><value>anche fermi al parcheggio</value></data>
   <data name="Stats_FlightsVsMovements" xml:space="preserve"><value>Voli visti: ogni volo che era nel tuo spazio mentre eri in frequenza, anche se non si è mai mosso dal parcheggio. Movimenti: quelli che si sono mossi almeno una volta mentre c'eri tu — rullaggio, decollo, atterraggio o in volo. Un aereo fermo al parcheggio è un volo visto, non un movimento.</value></data>
-  <data name="My_DeleteLink" xml:space="preserve"><value>pagina informativa di IVAO</value></data>
+  <data name="My_DeleteLink" xml:space="preserve"><value>procedura di IVAO per cancellare l'account</value></data>
   <data name="Stats_AvgShift" xml:space="preserve"><value>Durata media turno</value></data>
   <data name="Stats_AvgShiftDivision" xml:space="preserve"><value>divisione {0}</value></data>
   <data name="Stats_MonthHover" xml:space="preserve"><value>passa sopra una barra per il dettaglio del mese</value></data>
