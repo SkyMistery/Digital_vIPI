@@ -57,4 +57,11 @@ public interface IAtcTrafficStore
     /// conterebbe una seconda volta, e le ore di un mese diventerebbero il doppio senza che nulla lo dica.</para>
     /// </summary>
     Task<int> RollupAndPruneSessionsAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default);
+
+    /// <summary>
+    /// Toglie le righe del riassunto mensile (<c>AtcMonthRollup</c>) dei mesi <b>prima</b> di
+    /// <paramref name="firstKeptMonth"/>, al più <paramref name="batch"/> per volta. Ritorna quante ne ha tolte.
+    /// Dal 30 settembre 2026 anche il riassunto ha una scadenza: dieci anni (decisione del committente).
+    /// </summary>
+    Task<int> PruneMonthRollupsAsync(DateTime firstKeptMonth, int batch, CancellationToken ct = default);
 }

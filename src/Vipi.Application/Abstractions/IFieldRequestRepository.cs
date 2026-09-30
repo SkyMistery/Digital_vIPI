@@ -9,7 +9,7 @@ namespace Vipi.Application.Abstractions;
 public sealed record FieldRequestRow(int Id, int ReporterUserId, string ReporterName, DateTime CreatedUtc,
     int? DocumentId, string? DocumentTitle, string SectionKey, int? ReleaseNumber, FieldRequestKind Kind, string Body,
     FieldRequestStatus Status, string HandledByName, DateTime? HandledUtc, string Reply, int? DuplicateOfId,
-    int? TaskId = null)
+    int? TaskId = null, string PageUrl = "")
 {
     /// <summary>Ancora da chiudere: nuova o presa in carico.</summary>
     public bool Aperta => Status is FieldRequestStatus.Nuova or FieldRequestStatus.PresaInCarico;

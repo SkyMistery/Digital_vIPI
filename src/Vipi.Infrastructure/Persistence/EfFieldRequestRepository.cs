@@ -48,6 +48,7 @@ public sealed class EfFieldRequestRepository : IFieldRequestRepository
                 r.Id, r.ReporterUserId, r.ReporterName, r.CreatedUtc, r.DocumentId,
                 Titolo = r.Document != null ? r.Document.Title : null,
                 r.SectionKey, r.ReleaseNumber, r.Kind, r.Body, r.Status, r.HandledByName, r.HandledUtc, r.Reply, r.DuplicateOfId,
+                r.PageUrl,
             })
             .ToListAsync(ct);
         if (righe.Count == 0) return Array.Empty<FieldRequestRow>();
@@ -62,7 +63,7 @@ public sealed class EfFieldRequestRepository : IFieldRequestRepository
 
         return righe.Select(r => new FieldRequestRow(r.Id, r.ReporterUserId, r.ReporterName, r.CreatedUtc, r.DocumentId,
                 r.Titolo, r.SectionKey, r.ReleaseNumber, r.Kind, r.Body, r.Status, r.HandledByName, r.HandledUtc, r.Reply,
-                r.DuplicateOfId, incarichi.TryGetValue(r.Id, out var t) ? t : null))
+                r.DuplicateOfId, incarichi.TryGetValue(r.Id, out var t) ? t : null, r.PageUrl))
             .ToList();
     }
 

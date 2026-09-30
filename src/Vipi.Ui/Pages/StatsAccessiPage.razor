@@ -1,0 +1,87 @@
+@page "/services/stats/logins"
+@layout SopLayout
+@using Vipi.Application.Auth
+@inject IEditAuthorizationService Authz
+@inject IRegistroAccessi Registro
+@inject IStringLocalizer<SharedResource> L
+
+@* Chi è entrato nel sito almeno una volta (committente, 30 settembre 2026; carta
+   docs/feature/2026-09-30-registro-accessi.md). SOLO AMMINISTRATORI: sono dati personali di chiunque entri, di
+   qualunque divisione. Il servizio lo ripete (EnsureAdmin): la pagina nasconde, il servizio rifiuta.
+
+   SSR statico, senza @rendermode: è un elenco da consultare, e la ricerca è un form in GET (?q=), che funziona anche
+   senza circuito e si può copiare come indirizzo. *@
+
+<PageTitle>@L["Logins_Title"] · vIPI IVAO Italy</PageTitle>
+
+<div class="wrap stats">
+    <div class="doc-head">
+        <div class="sh-title">
+            <h1 class="page-h1">@L["Logins_Title"]</h1>
+            <a class="btn ghost sh-go" href="/services/stats/division">
+                <Icon Name="activity" Size="15" /> @L["Stats_DivisionTitle"]
+            </a>
+        </div>
+        <p class="muted">@L["Logins_Subtitle"]</p>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <p class="muted">@L["Logins_AdminOnly"]</p>
+    }
+    else if (_elenco is { } elenco)
+    {
+        <form method="get" class="arch-filtri" action="/services/stats/logins">
+            <label>
+                <span>@L["Logins_Search"]</span>
+                <input type="search" name="q" value="@Q" placeholder="@L["Logins_SearchPh"]" aria-label="@L["Logins_Search"]" />
+            </label>
+            <button class="btn" type="submit"><Icon Name="search" Size="14" /> @L["Logins_SearchGo"]</button>
+        </form>
+
+        <p class="muted">@L["Logins_Found", elenco.Righe.Count, elenco.Totale]</p>
+
+        @if (elenco.Righe.Count > 0)
+        {
+            <table class="res-table tbl-cards">
+                <thead>
+                    <tr>
+                        <th>@L["Logins_Name"]</th>
+                        <th>@L["World_Vid"]</th>
+                        <th>@L["Logins_Division"]</th>
+                        <th>ACC</th>
+                        <th>@L["Logins_First"]</th>
+                        <th>@L["Logins_Last"]</th>
+                        <th>@L["Logins_Days"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in elenco.Righe)
+                    {
+                        <tr>
+                            <td data-l="@L["Logins_Name"]">@r.Nome</td>
+                            <td data-l="@L["World_Vid"]"><VidLink Vid="r.UserId" SoloNumero="true" /></td>
+                            <td data-l="@L["Logins_Division"]">@(r.Divisione ?? "—")</td>
+                            <td data-l="ACC">@(r.Acc ?? "—")</td>
+                            <td data-l="@L["Logins_First"]">@VipiTime.Day(r.PrimoUtc)</td>
+                            <td data-l="@L["Logins_Last"]">@VipiTime.DayZ(r.UltimoUtc)</td>
+                            <td data-l="@L["Logins_Days"]">@r.Giorni</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        <p class="muted">@L["Logins_Retention"]</p>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "q")] public string? Q { get; set; }
+
+    private ElencoAccessi? _elenco;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Authz.IsAdmin) _elenco = await Registro.ElencoAsync(Q);
+    }
+}

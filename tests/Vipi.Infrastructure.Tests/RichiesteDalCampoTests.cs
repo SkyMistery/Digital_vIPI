@@ -76,6 +76,34 @@ public class RichiesteDalCampoTests : IAsyncLifetime
         Assert.Empty(await Servizio(new Authz(VipiRole.User, 222222, "Altro")).MieAsync());   // «le mie» sono solo mie
     }
 
+    /// <summary>
+    /// Dal tasto in barra (committente, 30 settembre 2026): una segnalazione generica porta la PAGINA, e la presa in
+    /// carico ne fa il titolo dell'incarico.
+    /// </summary>
+    [Fact]
+    public async Task Una_segnalazione_di_pagina_porta_la_pagina_fino_all_incarico()
+    {
+        var id = await Servizio(Utente).ApriAsync(new FieldRequestInput(null, null, null, FieldRequestKind.Errore,
+            "La classifica non si carica", "/services/stats/division?p=30"));
+
+        var r = Assert.Single(await Servizio(Staff).CodaAsync());
+        Assert.Equal((id, "/services/stats/division?p=30", (int?)null), (r.Id, r.PageUrl, r.DocumentId));
+
+        var incarico = await Servizio(Staff).PrendiInCaricoAsync(id);
+        var titolo = await _db.EditorTasks.Where(x => x.Id == incarico).Select(x => x.Title).SingleAsync();
+        Assert.Contains("/services/stats/division?p=30", titolo);
+    }
+
+    /// <summary>La pagina arriva dall'indirizzo, cioè da chiunque: si tiene solo un percorso del sito.</summary>
+    [Theory]
+    [InlineData("https://evil.example/x", "")]
+    [InlineData("//evil.example/x", "")]
+    [InlineData("javascript:alert(1)", "")]
+    [InlineData("  /services/vsop/lirr  ", "/services/vsop/lirr")]
+    [InlineData(null, "")]
+    public void La_pagina_si_tiene_solo_se_e_un_percorso_del_sito(string? arriva, string resta) =>
+        Assert.Equal(resta, FieldRequestRules.Pagina(arriva));
+
     [Fact]
     public async Task Chi_non_e_connesso_non_scrive_e_un_testo_vuoto_o_lunghissimo_si_rifiuta()
     {

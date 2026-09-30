@@ -141,6 +141,44 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("AccSectors");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AccessoAlSito", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Acc")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Divisione")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Giorni")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NomeBreve")
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("PrimoUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UltimoUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("UltimoUtc");
+
+                    b.ToTable("AccessiAlSito", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementAirport", b =>
                 {
                     b.Property<int>("Id")
@@ -2357,6 +2395,13 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("PageUrl")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("");
 
                     b.Property<int?>("ReleaseNumber")
                         .HasColumnType("INTEGER");

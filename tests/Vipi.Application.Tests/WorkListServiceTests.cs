@@ -442,6 +442,7 @@ public class WorkListServiceTests
             Task.FromResult<DocumentLanguageState?>(null);
         public Task SetLanguageAsync(ManagedDocRef doc, Vipi.Domain.Language language, bool locked, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task SetTitleAsync(ManagedDocRef doc, string title, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default) => throw new NotSupportedException();
         public Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default) => throw new NotSupportedException();
     }

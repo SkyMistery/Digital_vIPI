@@ -35,8 +35,10 @@ public sealed class SearchService : ISearchService
 
         var docs = await _repo.SearchAsync(query, scope, Limit, ct);
 
-        // Le sezioni della Guida non sono documenti (nessuno scope doc): compaiono solo nel filtro "Tutti", in cima,
-        // perché rispondono all'intento "come si fa X". Vedi GuideSearchCatalog.
+        // Le sezioni della Guida non sono documenti (nessuno scope doc): compaiono solo nel filtro "Tutti", e IN CODA.
+        // ⚠️ Fino al 30 settembre 2026 stavano in cima («come si fa X»); il committente ha fissato l'ordine:
+        // titoli dei documenti, titoli di sezione, di sotto-sezione, testo, e infine la Guida. Non contano nel tetto
+        // dei documenti: con cinquanta risultati di testo sparirebbero proprio loro. Vedi GuideSearchCatalog.
         if (scope != SearchScope.All) return docs;
 
         // ⚠️ La Guida è scritta nelle due lingue, e il risultato di ricerca deve arrivare in quella di chi
@@ -49,6 +51,6 @@ public sealed class SearchService : ISearchService
             .Select(e => GuideSearchCatalog.ToHit(e, inglese)).ToList();
         if (guide.Count == 0) return docs;
 
-        return guide.Concat(docs).Take(Limit).ToList();
+        return docs.Concat(guide).ToList();
     }
 }

@@ -18,6 +18,9 @@ public sealed class HostIdentityOptions
     /// <summary>Claim della ACC/centro (opzionale). Default: "centerId".</summary>
     public string AccClaim { get; set; } = "centerId";
 
+    /// <summary>Claim della divisione (opzionale). Default: "divisionId".</summary>
+    public string DivisionClaim { get; set; } = "divisionId";
+
     /// <summary>
     /// Claim delle posizioni staff. Può essere presente più volte (claim multipli) oppure una sola volta
     /// con un array JSON (es. <c>["IT-DIR","IT-WM"]</c>): entrambe le forme sono supportate.

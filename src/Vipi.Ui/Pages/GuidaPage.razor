@@ -152,10 +152,14 @@
         new Sec("ricerca", "search",
             @"<p>La barra di ricerca in alto (o <code>/services/vsop/search</code>) è full-text: cerca <b>CoP, FIX, callsign,
                frequenze</b> e testo dei documenti. Servono almeno 2 caratteri. I filtri (chip) restringono l'ambito;
-               ogni risultato porta al punto esatto del documento. Anche le sezioni di questa Guida compaiono nei risultati.</p>",
+               ogni risultato porta al punto esatto del documento. I risultati vanno in ordine di importanza: prima i documenti
+               con il termine nel titolo, poi i titoli di sezione, poi di sotto-sezione, poi il testo; in fondo le sezioni di
+               questa Guida.</p>",
             @"<p>The search bar at the top (or <code>/services/vsop/search</code>) is full-text: it searches <b>CoPs, FIXes,
                callsigns, frequencies</b> and document text. At least 2 characters are needed. The chips narrow the scope;
-               each result jumps to the exact point in the document. Sections of this Guide appear in the results too.</p>"),
+               each result jumps to the exact point in the document. Results are ordered by importance: first the documents
+               with the term in their title, then section titles, then sub-section titles, then the text; this Guide's
+               sections come last.</p>"),
 
         new Sec("live", "radio",
             @"<p>Il badge in alto a destra mostra se sei <b>connesso</b> come ATC (col tuo callsign) o disconnesso.

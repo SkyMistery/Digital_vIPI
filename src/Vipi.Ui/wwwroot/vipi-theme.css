@@ -517,6 +517,18 @@
   font-size:12.5px;color:var(--ink-soft);margin-bottom:3px}
 :where(.vipi-root) .struct .perm-form .app-in{width:100%}
 :where(.vipi-root) .struct .perm-form .perm-go{width:100%;margin-top:4px}
+/* La porta d'ingresso per chi non è entrato (login obbligatorio, 30 settembre 2026): un riquadro solo, al centro. */
+:where(.vipi-root) .svc-login{max-width:520px;margin:48px auto;padding:28px 24px;text-align:center;display:flex;
+  flex-direction:column;align-items:center;gap:10px}
+:where(.vipi-root) .svc-login .ic{color:var(--accent)}
+:where(.vipi-root) .svc-login .h-card{margin:0}
+:where(.vipi-root) .svc-login p{margin:0 0 6px}
+/* Il titolo del documento, dall'elenco Documenti (30 settembre 2026). */
+:where(.vipi-root) .struct .ver-rename{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 10px}
+:where(.vipi-root) .struct .ver-rename label{flex-basis:100%;font-size:12.5px;color:var(--ink-soft)}
+:where(.vipi-root) .struct .ver-rename .app-in{flex:1 1 260px;min-width:0}
+:where(.vipi-root) .struct .ver-rename .ver-rename-acts{display:flex;gap:8px}
+:where(.vipi-root) .struct .ver-rename .help{flex-basis:100%;margin:0}
 /* Chiavi API: le spunte dei permessi in colonna, casella a sinistra del nome. ⚠️ `.field input` del tema allarga
    ogni input al 100%, anche le caselle: senza questa regola la casella stava al centro e il nome nell'angolo. */
 :where(.vipi-root) .struct .perm-form .api-eps{border:0;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:6px}
@@ -675,6 +687,95 @@
 :where(.vipi-root) .kpi-d.down{color:var(--ink-soft)}
 :where(.vipi-root) .kpi-d.flat{color:var(--ink-faint)}
 :where(.vipi-root) .kpi-spark{margin-top:9px}
+
+/* ============================================================================================
+   STATISTICHE — la veste del 30 settembre 2026 (tavole approvate dal committente: carta
+   docs/feature/2026-09-30-statistiche-nuova-grafica.md). Riquadri al posto dei titoli a tutta pagina, due
+   colonne dove due cose si leggono insieme, barre al posto delle tabelle corte. Stessi token di sopra: vale in
+   chiaro e in scuro. Le soglie guardano il CONTENITORE (vedi sopra: lo zoom non lo vede una @media).
+   ============================================================================================ */
+:where(.vipi-root) .sx-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);min-width:0;display:flex;flex-direction:column;gap:12px}
+:where(.vipi-root) .sx-card>h2,:where(.vipi-root) .sx-card .sx-h{margin:0;font-family:var(--font-head);font-weight:700;font-size:19px;color:var(--brand-ink-2)}
+:where(.vipi-root) .sx-card>.muted,:where(.vipi-root) .sx-card p{margin:0}
+:where(.vipi-root) .sx-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap}
+:where(.vipi-root) .sx-row{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;margin:16px 0}
+:where(.vipi-root) .sx-row.half{grid-template-columns:repeat(2,minmax(0,1fr))}
+:where(.vipi-root) .sx-block{margin:16px 0}
+:where(.vipi-root) .sx-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 20px;flex-wrap:wrap}
+:where(.vipi-root) .sx-top .stat-chips{margin:0}
+/* Identità: chi è, e le due cose che valgono più di un numero — posizione e costanza. */
+:where(.vipi-root) .sx-id{flex-direction:row;align-items:center;gap:20px;margin-top:16px}
+:where(.vipi-root) .sx-av{flex:none;width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:700;font-size:21px;color:var(--brand-ink-2);background:var(--tint-atmos);border:2px solid var(--brand-ink-2)}
+:where(.vipi-root) .sx-who{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+:where(.vipi-root) .sx-name{font-family:var(--font-head);font-weight:700;font-size:24px;color:var(--ink);line-height:1.2}
+:where(.vipi-root) .sx-tags{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--ink-soft)}
+:where(.vipi-root) .sx-tag{font-size:12px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--tint-atmos);color:var(--brand-ink-2);white-space:nowrap}
+:where(.vipi-root) .sx-tag.gold{background:var(--tint-yellow-soft);color:var(--warn-ink)}
+:where(.vipi-root) .sx-rank{flex:none;text-align:right;padding-left:22px;border-left:1px solid var(--line)}
+:where(.vipi-root) .sx-rank b{display:block;font-family:var(--font-head);font-weight:800;font-size:40px;line-height:1;color:var(--ink)}
+:where(.vipi-root) .sx-rank span{font-size:13px;color:var(--ink-soft)}
+:where(.vipi-root) .kpi-n{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+/* Righe a barra: etichetta, barra lunga quanto il valore rispetto al primo, valore; sotto, il dettaglio. */
+:where(.vipi-root) .sx-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+:where(.vipi-root) .sx-hr{display:grid;grid-template-columns:minmax(90px,140px) minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:13px}
+:where(.vipi-root) .sx-hr .k{font-family:var(--font-mono);font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:where(.vipi-root) .sx-hr .v{text-align:right;font-weight:600;color:var(--ink);white-space:nowrap}
+:where(.vipi-root) .sx-hr .d{grid-column:2 / 4;font-size:12px;color:var(--ink-soft)}
+:where(.vipi-root) .sx-bar{height:10px;border-radius:5px;background:var(--surface-muted);overflow:hidden}
+/* Il colore della barra: di serie quello del marchio; per le postazioni le classi p-* di sotto (le stesse del
+   pallino e della ciambella), che vincono perché l'elemento non ha un fondo suo. */
+:where(.vipi-root) .sx-bar>i{display:block;height:100%;border-radius:5px}
+:where(.vipi-root) .sx-bar>i:not([class]){background:var(--brand-ink-2)}
+/* La barra divisa per tipo di postazione, al posto della ciambella. */
+:where(.vipi-root) .sx-split{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--surface-muted)}
+:where(.vipi-root) .sx-split>i{display:block;height:100%}
+:where(.vipi-root) .sx-legend{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:13px;color:var(--ink-soft)}
+:where(.vipi-root) .sx-legend b{color:var(--ink)}
+:where(.vipi-root) .sx-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+:where(.vipi-root) .sx-chips{display:flex;flex-wrap:wrap;gap:6px}
+:where(.vipi-root) .sx-chips span{font-family:var(--font-mono);font-size:12px;padding:4px 9px;border-radius:7px;background:var(--tint-atmos);color:var(--brand-ink-2)}
+:where(.vipi-root) .sx-sub{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ink-soft);text-transform:uppercase;margin-top:4px}
+:where(.vipi-root) .sx-card details>summary{cursor:pointer;font-weight:600;color:var(--brand-ink-2);font-size:13px;list-style:none}
+:where(.vipi-root) .sx-card details>summary::-webkit-details-marker{display:none}
+:where(.vipi-root) .sx-card details[open]>summary{margin-bottom:10px}
+:where(.vipi-root) .sx-card .cov-wrap{margin:0}
+/* Il grafico dei mesi riempie il suo riquadro: accanto a «Dove controlli», più alto, restava un vuoto sotto. */
+:where(.vipi-root) .sx-card>.bars{flex:1 1 auto;height:auto;min-height:190px}
+:where(.vipi-root) .sx-name a{color:inherit}
+:where(.vipi-root) .cov-tot{text-align:right;padding-left:10px;font-weight:600;color:var(--ink);white-space:nowrap}
+:where(.vipi-root) .sx-foot{display:flex;align-items:flex-start;gap:12px 16px;flex-wrap:wrap}
+:where(.vipi-root) .sx-foot>.btn{flex:none}
+:where(.vipi-root) .sx-foot>p{flex:1 1 320px;margin:0}
+:where(.vipi-root) .sx-cell{display:flex;align-items:center;gap:8px;white-space:nowrap}
+:where(.vipi-root) .sx-cell>.sx-bar{flex:0 0 90px}
+:where(.vipi-root) .sx-air .icao{font-family:var(--font-mono);font-weight:500}
+:where(.vipi-root) .res-table :is(td,th).num{text-align:right}
+:where(.vipi-root) .sx-type{display:grid;grid-template-columns:12px 48px minmax(0,1fr) auto 44px;gap:10px;align-items:center;font-size:13px}
+:where(.vipi-root) .sx-type>i{width:12px;height:12px;border-radius:3px}
+:where(.vipi-root) .sx-type>.v{text-align:right;font-weight:600;color:var(--ink)}
+:where(.vipi-root) .sx-type>.muted:last-child{text-align:right}
+:where(.vipi-root) .sx-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 32px}
+:where(.vipi-root) .sx-who-c{display:inline-flex;flex-direction:column;gap:1px}
+:where(.vipi-root) .sx-who-c>b{font-weight:700;color:var(--ink)}
+:where(.vipi-root) .sx-who-c>b+.sx-vid{font-size:12px}
+:where(.vipi-root) .sx-vid{display:inline-flex;gap:6px;align-items:center}
+:where(.vipi-root) .pod.p2{background:var(--surface-muted)}
+:where(.vipi-root) .sx-tools-h{margin:28px 0 10px}
+:where(.vipi-root) .sx-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+:where(.vipi-root) a.sx-tool{text-decoration:none;color:var(--ink)}
+:where(.vipi-root) a.sx-tool:hover{border-color:var(--brand-ink-2)}
+:where(.vipi-root) .sx-tool{gap:6px}
+:where(.vipi-root) .sx-tool b{font-family:var(--font-head);font-size:16px;display:inline-flex;gap:8px;align-items:center}
+:where(.vipi-root) .sx-tool .inline-form{display:flex;gap:10px;align-items:center;margin:0}
+:where(.vipi-root) .sx-card .vid-find{margin:0}
+@container (max-width: 760px){
+  :where(.vipi-root) .sx-row,:where(.vipi-root) .sx-row.half{grid-template-columns:minmax(0,1fr)}
+  :where(.vipi-root) .sx-id{flex-wrap:wrap;gap:14px}
+  :where(.vipi-root) .sx-rank{flex-basis:100%;text-align:left;padding:12px 0 0;border-left:0;border-top:1px solid var(--line);display:flex;align-items:baseline;gap:10px}
+  :where(.vipi-root) .sx-rank b{display:inline;font-size:32px}
+  :where(.vipi-root) .sx-card{padding:16px}
+  :where(.vipi-root) .sx-cols{grid-template-columns:minmax(0,1fr)}
+}
 
 /* Sparkline. Il tratto NON si deforma con la scala orizzontale: `vector-effect` è quel che lo tiene
    spesso uguale quando l'SVG viene stirato (`preserveAspectRatio=none`), altrimenti su una card larga
@@ -852,6 +953,9 @@
   :where(.vipi-root) .tbl-cards td::before{content:attr(data-l);color:var(--ink-soft);font-size:12px;flex:none;min-width:38%}
   :where(.vipi-root) .tbl-cards td.cb::before{content:attr(data-l);position:static;background:none;width:auto}
   :where(.vipi-root) .tbl-cards td:empty{display:none}
+  :where(.vipi-root) .tbl-cards td.num{text-align:left}
+  :where(.vipi-root) .tbl-cards .sx-cell{flex:1 1 0;min-width:0}
+  :where(.vipi-root) .tbl-cards .sx-cell>.sx-bar{flex:0 1 70px}
   :where(.vipi-root) .stat-hero .sh-side{margin-left:0}
   :where(.vipi-root) .donut-wrap{gap:14px}
 }
@@ -864,7 +968,10 @@
 :where(.vipi-root) .breadcrumb{font-size:13px;color:var(--ink-soft);margin-bottom:18px}
 :where(.vipi-root) .breadcrumb a{color:var(--ink-soft)}
 :where(.vipi-root) .breadcrumb b{color:var(--brand-ink)}
-:where(.vipi-root) .airac{display:inline-flex;align-items:center;gap:7px;background:var(--tint-atmos);color:var(--brand-ink);border:1px solid var(--on-dark-soft);padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:600;font-family:var(--font-head)}
+/* Bordo trasparente (30 settembre 2026, committente): `--on-dark-soft` è quasi bianco anche al buio, e intorno
+   all'AIRAC disegnava un quadratino bianco. Resta lo spessore, così la variante sull'eroe (bordo chiaro su blu) non
+   sposta niente. */
+:where(.vipi-root) .airac{display:inline-flex;align-items:center;gap:7px;background:var(--tint-atmos);color:var(--brand-ink);border:1px solid transparent;padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:600;font-family:var(--font-head)}
 :where(.vipi-root) .muted{color:var(--ink-soft)}
 /* Ora locale del lettore, accodata all'orario UTC scritto dal server (vipi-time.js scrive data-loc).
    E' un ::after e non un nodo figlio perche' l'elemento lo possiede Blazor: un figlio estraneo finirebbe
@@ -1108,9 +1215,9 @@
 /* --- Rework card di navigazione ACC: accent bar per categoria, niente emoji/frecce --- */
 :where(.vipi-root) .nav-card{position:relative;overflow:hidden;display:flex;flex-direction:column;border-radius:20px;transition:box-shadow .15s,border-color .15s,transform .15s}
 :where(.vipi-root) .nav-card{--accent:var(--ivao-blue);--accent-ink:var(--brand-ink)}
-:where(.vipi-root) .nav-card.c-air{--accent:var(--cat-air);--accent-ink:var(--cat-air-ink)}
-:where(.vipi-root) .nav-card.c-app{--accent:var(--cat-app);--accent-ink:var(--cat-app-ink)}
-:where(.vipi-root) .nav-card.c-vloa{--accent:var(--cat-vloa);--accent-ink:var(--cat-vloa-ink)}
+:where(.vipi-root) .nav-card.c-air,:where(.vipi-root) .nav-card.c-app,:where(.vipi-root) .nav-card.c-vloa{--accent:var(--cat-air);--accent-ink:var(--cat-air-ink)}
+/* ⚠️ Aeroporti, avvicinamenti e vLoA della pagina dell'ACC hanno lo stesso colore (30 settembre 2026, committente):
+   bordo al passaggio del mouse e «Vedi tutti» erano blu, azzurro e verde, tre colori per tre riquadri gemelli. */
 :where(.vipi-root) .nav-card.c-admin{--accent:var(--cat-admin);--accent-ink:var(--cat-admin-ink)}
 :where(.vipi-root) .nav-card.c-vipi{--accent:var(--ivao-blue);--accent-ink:var(--brand-ink)}
 :where(.vipi-root) .nav-card:hover{border-color:var(--accent);box-shadow:0 8px 22px color-mix(in srgb,var(--ivao-blue) 10%,transparent);transform:translateY(-1px)}

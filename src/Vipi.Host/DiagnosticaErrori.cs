@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics;
 using Vipi.Application.Diagnostica;
 
@@ -171,6 +172,46 @@ public static class DiagnosticaErrori
         $"NOTA {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC · {ex.GetType().Name} · {PrimoFotogrammaNostro(ex)}"
         + $" · {metodo} {percorso} · utente {utente ?? "non collegato"} · codice {codice ?? "(nessuno)"}"
         + Environment.NewLine;
+
+    /// <summary>Vero dopo la prima misura dei campi del profilo: una per avvio basta, i campi non cambiano da un
+    /// login all'altro.</summary>
+    private static int _campiMisurati;
+
+    /// <summary>
+    /// I NOMI dei campi del profilo IVAO (<c>/v2/users/me</c>), al primo login dopo l'avvio. Committente, 30 settembre
+    /// 2026: il login obbligatorio deve far entrare solo gli account attivi, e non sappiamo se IVAO dica che un account
+    /// è sospeso — il profilo non l'abbiamo mai letto per intero. Si misura invece di indovinare.
+    ///
+    /// <para>⚠️ <b>Solo i nomi, mai i valori</b>: il profilo porta email, ore, note dello staff. Degli oggetti si
+    /// scrivono i nomi dei figli (<c>rating{atcRating,pilotRating}</c>), delle liste quelli del primo elemento.</para>
+    /// </summary>
+    public static void RegistraCampiDelProfilo(JsonElement profilo)
+    {
+        if (Interlocked.Exchange(ref _campiMisurati, 1) == 1) return;
+        try
+        {
+            var voce = $"NOTA {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC · campi del profilo IVAO (solo i nomi) · "
+                       + NomiDeiCampi(profilo) + Environment.NewLine;
+            lock (Serratura) Scrivi(voce);
+        }
+        catch { /* una misura che non riesce non deve fermare il login */ }
+    }
+
+    /// <summary>I nomi, due livelli. Separata per il test: che un valore non ci finisca mai.</summary>
+    internal static string NomiDeiCampi(JsonElement profilo)
+    {
+        if (profilo.ValueKind != JsonValueKind.Object) return "(il profilo non è un oggetto)";
+        return string.Join(", ", profilo.EnumerateObject().Select(c => c.Name + Figli(c.Value)));
+
+        static string Figli(JsonElement v) => v.ValueKind switch
+        {
+            JsonValueKind.Object => "{" + string.Join(",", v.EnumerateObject().Select(f => f.Name)) + "}",
+            JsonValueKind.Array when v.GetArrayLength() > 0 && v[0].ValueKind == JsonValueKind.Object =>
+                "[]{" + string.Join(",", v[0].EnumerateObject().Select(f => f.Name)) + "}",
+            JsonValueKind.Array => "[]",
+            _ => "",
+        };
+    }
 
     private static void Scrivi(string voce)
     {

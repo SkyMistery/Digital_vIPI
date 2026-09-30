@@ -185,6 +185,23 @@ VipiAuth__RelaxProtocolValidation=true
 Rimette la validazione lasca senza ricompilare né ridistribuire. È una toppa per mentre si indaga, non
 uno stato normale.
 
+## Il sito si legge solo dopo il login
+
+Dal 30 settembre 2026 (carta [`2026-09-30-login-obbligatorio.md`](../feature/2026-09-30-login-obbligatorio.md)):
+con il login acceso, chi non è entrato vede solo la porta `/services` con «Entra con IVAO», e ogni altra pagina lo
+manda al login e poi lo riporta dove voleva. Entra qualunque account IVAO. Restano aperti il giro del login, le
+sonde (`/vsop/health`, `/vsop/ping`), le API con chiave (`/vsop/api/…`) e il ponte RFO (`/api/rfo/…`). Il cancello
+è `CancelloDelLogin`, montato dopo `UseAuthentication`; chiude anche il circuito Blazor (`/_blazor`).
+
+Per riaprire il sito senza ricompilare:
+
+```
+VipiAuth__LoginObbligatorio=false
+```
+
+Al primo login dopo ogni avvio, `diagnostica/errori-richieste.txt` riceve una NOTA con i soli **nomi** dei campi
+del profilo IVAO: serve a sapere se IVAO dice che un account è sospeso. Mai i valori.
+
 ## Test svolto
 
 Verificato in locale (`http://localhost:5034`): build pulita, `AddOpenIdConnect` con Authority

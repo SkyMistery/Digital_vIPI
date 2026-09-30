@@ -78,46 +78,46 @@ public sealed class EfSearchRepository : ISearchRepository
         // filtrata per tipo vede una parte dei bersagli, e buttare il resto vorrebbe dire rileggerlo subito dopo.
         if (scope == SearchScope.All) _indice.TieniSolo(teste.Values);
 
-        var hits = new List<SearchHit>();
+        // 🔴 In ordine di IMPORTANZA (committente, 30 settembre 2026): prima i documenti che hanno il termine nel
+        // titolo, poi nel titolo di una sezione, poi di una sotto-sezione, poi nel testo. Prima uscivano documento
+        // per documento, e il cinquantesimo risultato poteva essere un titolo mentre il primo era una riga di
+        // tabella. Per questo si raccolgono TUTTI e si taglia dopo: tagliare prima vorrebbe dire ordinare i primi
+        // cinquanta trovati, non i cinquanta più importanti. L'ordine fra pari resta quello dei documenti.
+        var hits = new List<(int Peso, SearchHit Hit)>();
         bool Has(string? text) => !string.IsNullOrEmpty(text) && text.Contains(query, StringComparison.OrdinalIgnoreCase);
 
         foreach (var (doc, managed) in visible)
         {
-            if (hits.Count >= limit) break;
             if (!teste.TryGetValue((managed!.ReleaseTarget, managed.ReleaseKey), out var testa)) continue;
             var url = _routes.For(managed.Kind).PublicUrl(
                 managed.AccCode!.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
             if (url is null) continue;
             if (await _indice.VoceAsync(_db, testa, ct) is not { } voce) continue;
 
-            // 1) titolo documento
+            // 0) titolo documento
             if (Has(voce.Titolo))
-                hits.Add(new SearchHit { DocTitle = voce.Titolo, DocType = doc.Type, Where = voce.Titolo, Snippet = voce.Titolo, Url = url });
+                hits.Add((PesoTitolo, new SearchHit { DocTitle = voce.Titolo, DocType = doc.Type, Where = voce.Titolo, Snippet = voce.Titolo, Url = url }));
 
-            // 2) titoli sezione
+            // 1–2) titoli di sezione e di sotto-sezione
             foreach (var s in voce.Sezioni)
-            {
-                if (hits.Count >= limit) break;
                 if (Has(s.Titolo))
-                    hits.Add(Hit(voce.Titolo, doc.Type, s, s.Titolo, url));
-            }
+                    hits.Add((s.Livello == 0 ? PesoSezione : PesoSottoSezione, Hit(voce.Titolo, doc.Type, s, s.Titolo, url)));
 
             // 3) corpo dei blocchi: un risultato per blocco, col primo dei suoi testi che combacia
             foreach (var s in voce.Sezioni)
-            {
-                if (hits.Count >= limit) break;
                 foreach (var (primo, secondo) in s.Testi)
                 {
-                    if (hits.Count >= limit) break;
                     var testo = Has(primo) ? primo : Has(secondo) ? secondo : null;
                     if (testo is not null)
-                        hits.Add(Hit(voce.Titolo, doc.Type, s, Snippet(testo, query), url));
+                        hits.Add((PesoTesto, Hit(voce.Titolo, doc.Type, s, Snippet(testo, query), url)));
                 }
-            }
         }
 
-        return hits;
+        // OrderBy è stabile: fra risultati dello stesso peso resta l'ordine in cui sono stati trovati.
+        return hits.OrderBy(h => h.Peso).Take(limit).Select(h => h.Hit).ToList();
     }
+
+    private const int PesoTitolo = 0, PesoSezione = 1, PesoSottoSezione = 2, PesoTesto = 3;
 
     private static SearchHit Hit(string docTitle, DocumentType tipo, IndiceDelleRelease.Sezione s, string snippet, string url) =>
         new()

@@ -59,6 +59,7 @@ public static class DependencyInjection
         // di ogni chiamata. Scoped perché la verifica legge il database per impronta a ogni richiesta.
         services.AddScoped<Auth.IEmittentiChiaviApi, Auth.EmittentiChiaviApi>();
         services.AddScoped<Auth.IApiClientService, Auth.ApiClientService>();
+        services.AddScoped<Auth.IRegistroAccessi, Auth.RegistroAccessi>();
         services.AddScoped<Auth.IVerificaChiaveApi, Auth.VerificaChiaveApi>();
         services.AddScoped<IEditingService, EditingService>();
         // Il lock del documento per le scritture strutturate di APP, ACC e vSOP militare (T-004).

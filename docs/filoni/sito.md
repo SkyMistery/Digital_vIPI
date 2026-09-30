@@ -1803,6 +1803,87 @@
   del tema allargava anche le caselle; ora `.api-eps`/`.api-ep` in `vipi-theme.css`, casella a sinistra del nome.
   **A schermo** su DB vuoto: spunte allineate, sezione leggibile, 375 px senza scorrimento di lato, inglese, creazione
   di una chiave «Aeroporti» funzionante. Test: Ui 1904 → 1905. Codice comune `Vipi.Domain` (ApiRotte).
+- ✅ **S67** login obbligatorio (30-set, committente su segnalazione delle Public Relations: «il sito aperto a tutti
+  senza login si espone a furto dati da parte di bot»). Ramo `fix/login-obbligatorio`. Carta
+  `docs/feature/2026-09-30-login-obbligatorio.md`. Decisioni: senza login solo la porta `/services` con «Entra con
+  IVAO»; entra qualunque account IVAO; «account attivo» prima si misura. `CancelloDelLogin` (Host/Auth), dopo
+  `UseAuthentication` e i file statici: chiuso tutto quello che non è in `Liberi` (porta, giro del login, sonde, API
+  con chiave, ponte RFO, /Error); pagina da browser → 302 al login con `returnUrl`, il resto (circuito `/_blazor`,
+  fetch, POST) → 401. `VipiAuth:LoginObbligatorio` (default true, vale solo col login acceso). `AccessoConLogin` dice
+  alla porta di mostrare solo «Entra con IVAO». `DiagnosticaErrori.RegistraCampiDelProfilo`: al primo login dopo
+  l'avvio, i soli NOMI dei campi di `/v2/users/me` in `errori-richieste.txt`. **A schermo** col login acceso e
+  un'autorità finta (`ivao.invalid`): `/` → porta, porta con il solo accesso (IT/EN, 375 px), documenti, ricerca e
+  vAWOS → 302 al login col ritorno giusto, sonde 200/204, API e ponte RFO 401 dalla loro porta, `/_blazor` 401.
+  Test: E2E 465 → 497 (`CancelloDelLoginTests`), Ui 1905 → 1908. **Col login IVAO vero** (committente, localhost:5034,
+  copia DB cancellata): link a LIRF → IVAO → di nuovo su LIRF, tutto normale. Misura del profilo: nessun campo
+  «attivo/sospeso» (elenco dei nomi nella carta §5); resta il login riuscito.
+- ✅ **S68** registro degli accessi (30-set, committente: «registrare il nome di chi fa almeno un accesso e mostrarlo
+  nella pagina delle statistiche»; poi «vedi se ora bisogna aggiornare i cookies»). Ramo `fix/registro-accessi`, sopra
+  S67. Carta `docs/feature/2026-09-30-registro-accessi.md`. Prima si salvava il nome del solo staff IT (roster). Ora
+  `AccessiAlSito`, una riga per VID: nome, divisione, ACC, primo/ultimo accesso, giorni. **Migrazione**
+  `RegistroAccessi` (SQLite+MySQL, additiva). Scrive `StaffLoginTrackingMiddleware` (ogni 5 min per VID); potatura a
+  12 mesi una volta al giorno; divisione dal claim `divisionId` (nuovo, `CurrentUser.Division`). Pagina
+  `/services/stats/logins`, solo admin (servizio `EnsureAdmin`), SSR con ricerca `?q=`, link da Statistiche di
+  divisione. Informativa `/services/cookies`: libera dal cancello, `vipi.auth` riscritto, sezione «Che cosa registriamo
+  quando entri». A schermo su DB vuoto. Test: Domain 160, App 3158, Infra 2055, Ui 1915, E2E 498.
+- ✅ **S69** i `WaitFor` di bUnit a tempo (30-set, segnalato dal Master: `CorrezioniSpaziAereiPaginaTests.La_matita…`
+  rosso su `313794dc`, run 36711964233, verde al secondo giro). Il messaggio completo diceva «Check count: 0, render
+  count: 4»: nel secondo di default l'asserzione non era stata nemmeno provata — il controllo di bUnit non aveva avuto
+  il turno sul runner carico. Stessa famiglia di `DiagnosticaUnGiroAllaVoltaTests` e `PannelloUnioneUnGiroAllaVoltaTests`
+  (cartellino), e qua e là il timeout era già stato alzato a mano a 3 s. Cura unica: `AttesaDiBunit`, inizializzatore del
+  modulo in `Vipi.Ui.Tests` che porta `TestContextBase.DefaultWaitTimeout` a 10 s, più una guardia che lo verifica.
+  Non rallenta (la suite resta a 4–5 s: `WaitFor` esce alla prima verifica buona) e nessun test aspetta apposta un
+  `WaitFor` che scade. Il pool esaurito come causa l'ho provato a comando e NON riproduce: resta la spiegazione di
+  bUnit stesso. Ramo `fix/attesa-bunit`, in fila su `fix/registro-accessi` (stessa riga dei conteggi Ui). Ui → 1916.
+- ✅ **S70** «I miei dati» (30-set). Il committente ha girato a IVAO le domande sul registro degli accessi: titolare
+  IVAO, coperto dalla loro policy, legittimo interesse ok, durata libera, **diritti degli utenti gestiti da noi dal
+  sito**. Decisione: solo vedere; per cancellare «Richieste dal campo». Pagina `/services/my-data` (SSR): la propria riga
+  (VID dall'utente corrente, `IRegistroAccessi.MieiAsync`, mai da parametro), rimandi alle statistiche ATC e ai dati
+  staff, strada per la cancellazione. Link nel piè di pagina e dall'informativa. Ramo `fix/miei-dati`, in fila su
+  `fix/attesa-bunit`. A schermo su DB vuoto (anche 375 px). Test: App 3159, Infra 2056, Ui 1922.
+- ✅ **S71** il titolo dei documenti si cambia (30-set, committente: il titolo della vIPI di LIML è «MIlano Linate»).
+  Il titolo si scriveva solo alla nascita (per uno scalo `vIPI — {ICAO} {nome in anagrafica}`) e nessuna pagina lo
+  cambiava. Ora «Titolo» nell'elenco Documenti (`VersioniPage`), a chi può gestire il documento: modulo sotto la
+  testata, spazi ripuliti, vuoto e oltre 200 caratteri rifiutati, stessi cancelli di «Nascondi» (almeno Editor, nessun
+  lock altrui), audit col titolo di prima (`DocumentAdminService.SetTitleAsync`, `EfDocumentAdminRepository`). Vale
+  subito nell'elenco, nell'API degli aeroporti e nel vAWOS; pagina pubblica e ricerca leggono il titolo della release
+  e cambiano alla prossima pubblicazione (visto a schermo: la nota sotto il campo diceva il contrario per la ricerca,
+  corretta). **A schermo** su copia del DB (conservata su richiesta del committente): LIML rinominata, vAWOS «LIML —
+  Milano Linate». Nella copia anche il **vSOP MIL di LIML** ha «MIlano». Ramo `fix/titolo-documento`, in fila su
+  `fix/miei-dati`. Test: Infra 2056 → 2063; otto finti di test allineati all'interfaccia.
+- ✅ **S72** nuova veste delle statistiche ATC (30-set, committente: «ripensare la grafica… prima la progettazione»).
+  Tavole in Claude Design approvate, carta [2026-09-30-statistiche-nuova-grafica](../feature/2026-09-30-statistiche-nuova-grafica.md).
+  Primo pezzo: nome breve «Mario R.» nel registro degli accessi (migrazione `NomeBreveAccessi`). Secondo: pagina
+  personale (testata col nome, numeri con la media della divisione, mappa giorno × ora di nuovo qui). Trovato per
+  strada: la mappa della divisione non si era mai colorata (`cov-q@q` letterale). Ramo `fix/statistiche-grafica`,
+  in fila su `fix/titolo-documento`. Terzo: la pagina della divisione (nomi brevi in classifica, primi dieci più la
+  propria riga, aeroporti subito sotto i numeri). A schermo su copia del DB. Test: Domain 167, App 3160, Infra 2064,
+  Ui 1925.
+- ✅ **S73** pagina dell'ACC al buio (30-set, committente): intorno all'AIRAC un quadratino bianco (il bordo
+  `--on-dark-soft` è quasi bianco anche nel tema scuro → bordo trasparente, stesso spessore); Aeroporti, Avvicinamenti
+  e vLoA con tre colori diversi per bordo al passaggio e «Vedi tutti» → tutti col colore di Aeroporti (le classi
+  `c-app`/`c-vloa` vivono solo lì). Solo CSS. A schermo su copia del DB. Ramo `fix/vsop-notte`, in fila su
+  `fix/statistiche-grafica`.
+- ✅ **S74** conservazione delle statistiche ATC (30-set, committente: «ci sono dati conservati oltre i 12 mesi?»).
+  Sì: il riassunto mensile per VID e callsign (`AtcMonthRollup`) non scadeva mai. Ora **dieci anni** a mesi interi
+  (`AtcMonthRollupRetentionUseCase`, nella potatura notturna). Corretti il sottotitolo della divisione («oltre, la
+  sorgente non conserva» era vero solo per IVAO) e «I miei dati», che ora dice dodici mesi per esteso e dieci di
+  totali mensili. `modello-dati.md` ha la regola in una riga. Ramo `fix/riassunto-dieci-anni`, in fila su
+  `fix/vsop-notte`. Nessuna migrazione. Infra 2064 → 2066.
+- ✅ **S75** ricerca (30-set, committente, con schermata): 1) un blocco strutturato (aeroporti alternati di un vSOP MIL)
+  usciva nell'estratto come JSON grezzo → l'indice tiene i soli valori di testo, senza chiavi, campi tecnici
+  (`Key`, `Id`, sha…) e doppioni (`IndiceDelleRelease.Leggibile`); 2) ordine di importanza: titolo del documento,
+  titolo di sezione, di sotto-sezione, testo, e la Guida in coda (prima stava in cima) e fuori dal tetto dei 50.
+  Si raccolgono tutti i risultati e si taglia dopo. Guida del sito aggiornata. Provato sui dati veri della copia
+  (configurazioni e gruppi APP leggibili, «Brindisi» in ordine); la copia non ha il blocco degli alternati di
+  LIBN, quel caso è coperto dal test. Ramo `fix/ricerca-ordine`, in fila su `fix/riassunto-dieci-anni`.
+- ✅ **S76** scheda «Prenotazioni ATC e FRA» in `/services` (30-set, committente): porta a https://atc.ivao.aero/,
+  secondo collegamento esterno dopo The Eye, subito dopo di lui, stesse regole (`external`, scheda nuova,
+  `noopener`). `ServicesHomeTests` conta due esterni. Ramo `fix/card-atc-ivao`, in fila su `fix/ricerca-ordine`.
+- ✅ **S77** segnalare un problema su qualunque pagina (30-set, committente): bandierina in barra accanto alla
+  Guida e voce nel ☰, link al modulo delle richieste con la pagina (`?p=`), come le sezioni. Colonna
+  `FieldRequest.PageUrl` (migrazione `PaginaDelleRichieste`), ripulita a solo percorso del sito. Carta
+  `piano-segnalazioni.md` §11. Ramo `fix/segnala-pagina`, in fila su `fix/card-atc-ivao`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

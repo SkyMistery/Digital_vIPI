@@ -169,6 +169,48 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AccSectors");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AccessoAlSito", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Acc")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Divisione")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("Giorni")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("NomeBreve")
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("PrimoUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("UltimoUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("UltimoUtc");
+
+                    b.ToTable("AccessiAlSito", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementAirport", b =>
                 {
                     b.Property<int>("Id")
@@ -2727,6 +2769,14 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("PageUrl")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasDefaultValue("")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<int?>("ReleaseNumber")
