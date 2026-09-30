@@ -1,6 +1,7 @@
 # API degli aeroporti: scali, scheda, SID e STAR per gli altri programmi — carta (30 settembre 2026)
 
-> **Stato: 🔨 in esecuzione** sul ramo `fix/api-aeroporti` (filone Sito, S64). Nessuna migrazione, nessun `deploy/`.
+> **Stato: ✅ ESEGUITA il 30 settembre 2026** sul ramo `fix/api-aeroporti` (filone Sito, S64), provata dal vivo su una
+> copia del DB (§5). Nessuna migrazione, nessun `deploy/`. Da fondere.
 > Nasce da una richiesta del committente (30 settembre 2026): «un'API mediante la quale si possono richiedere le info su
 > un aeroporto (nel caso specifico tutte le info sulle SID, ma potrebbe tornare utile anche per altro)».
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Regole delle chiavi: [2026-09-13-chiavi-api.md](2026-09-13-chiavi-api.md).
@@ -61,48 +62,56 @@ I campi vuoti del documento (il «—» delle celle) sono `null`.
 ### Esempi
 
 ```bash
-curl -H "Authorization: Bearer vipi_…" https://atc.it.ivao.aero/vsop/api/v1/airports/LIRF/sids?runway=16L
+curl -H "Authorization: Bearer vipi_…" "https://atc.it.ivao.aero/vsop/api/v1/airports/LIBD/sids?runway=07"
 ```
+
+Risposta vera (copia del DB, 30 settembre 2026; tre righe delle venti):
 
 ```json
 {
-  "icao": "LIRF",
-  "transitionAltitudeFt": 6000,
-  "count": 1,
+  "icao": "LIBD",
+  "transitionAltitudeFt": 5000,
+  "count": 20,
   "sids": [
-    {
-      "runway": "16L", "fix": "ELKAP", "name": "ELKAP5A", "transition": null,
-      "initialClimb": "FL90 (to coord with APP)", "initialClimbFt": 9000, "initialClimbByApp": true,
-      "type": "RNAV", "cat": null, "wtc": null, "condition": null
-    }
+    { "runway": "07", "fix": "BANAV", "name": "BANA6W", "transition": null,
+      "initialClimb": "5000 ft", "initialClimbFt": 5000, "initialClimbByApp": false,
+      "type": "RNAV", "cat": "A, B, C, D, E", "wtc": "L, M, H, S", "condition": null },
+    { "runway": "07", "fix": "BANAV", "name": "BANA8A", "transition": null,
+      "initialClimb": "FL90", "initialClimbFt": 9000, "initialClimbByApp": false,
+      "type": "CONV", "cat": "A, B, C, D, E", "wtc": "L, M, H, S", "condition": null },
+    { "runway": "07", "fix": "EKMUR", "name": "EKMU5W", "transition": null,
+      "initialClimb": "to coord with APP", "initialClimbFt": null, "initialClimbByApp": true,
+      "type": "RNAV", "cat": "A, B, C, D, E", "wtc": "L, M, H, S", "condition": null }
   ]
 }
 ```
 
 - `initialClimb` è scritto **come nel documento**: in piedi fino alla TA, in livello di volo sopra, con la nota
-  dell'APP se c'è. `initialClimbFt` è la stessa quota in piedi, per i programmi; `initialClimbByApp` dice che va
-  concordata con l'APP. Nelle STAR i tre campi sono `null`/`false`.
+  dell'APP se c'è. `initialClimbFt` è la stessa quota in piedi, per i programmi (`null` se il documento dice solo
+  «to coord with APP»); `initialClimbByApp` dice che va concordata con l'APP. Nelle STAR i tre campi sono
+  `null`/`false`.
 - `/stars` ha la stessa forma, con `stars` al posto di `sids`.
 
-Scheda (`/vsop/api/v1/airports/LIRF`):
+Scheda (`/vsop/api/v1/airports/LIBD`, accorciata):
 
 ```json
 {
-  "icao": "LIRF", "name": "Roma Fiumicino", "acc": "LIRR", "document": "vipi",
-  "transitionAltitudeFt": 6000,
-  "transitionLevels": [ { "qnh": "1013-1031", "level": "FL70" } ],
+  "icao": "LIBD", "name": "Bari Palese", "acc": "LIBB", "document": "vipi",
+  "transitionAltitudeFt": 5000,
+  "transitionLevels": [ { "qnh": "≤ 976", "level": "FL75" }, { "qnh": "977 – 994", "level": "FL70" }, … ],
   "runways": [
-    { "ident": "16L", "lengthM": 3900, "tora": "3900", "lda": "3600", "approaches": ["ILS", "RNP"],
-      "patterns": null, "circling": null, "threshold": "41°50'…N 012°13'…E", "thresholdElevationFt": 14 }
+    { "ident": "07", "lengthM": 3000, "tora": "3000", "lda": "3000", "approaches": ["ILS", "LOC", "VOR", "RNAV"],
+      "patterns": "L", "circling": "N", "threshold": "N41°07'58.31''E016°44'26.26''", "thresholdElevationFt": 193 },
+    …
   ],
-  "frequencies": [ { "name": "Tower", "callsign": "LIRF_TWR", "frequency": "118.700", "primary": true } ]
+  "frequencies": [ { "name": "Bari ATIS", "callsign": "LIBD_ATIS", "frequency": "…", "primary": … }, … ]
 }
 ```
 
 `document` dice da quale documento si è letto: `vipi` (civile) o `vsop` (militare, per i campi che hanno solo quello).
 
-Elenco (`/vsop/api/v1/airports`): `{ "count": 2, "airports": [ { "icao": "LIBD", "name": "Bari Palese", "vipi": true,
-"vsop": false }, … ] }`.
+Elenco (`/vsop/api/v1/airports`): `{ "count": 10, "airports": [ { "icao": "LIBD", "name": "Bari Palese", "vipi": true,
+"vsop": false }, { "icao": "LIBG", "name": "Taranto Grottaglie", "vipi": false, "vsop": true }, … ] }`.
 
 ## 4. Fuori da questo giro
 
@@ -110,3 +119,18 @@ Elenco (`/vsop/api/v1/airports`): `{ "count": 2, "airports": [ { "icao": "LIBD",
   dire leggere la release programmata, che è un'anteprima di staff: se servirà, è una decisione a parte.
 - **Regole piste, minimi LVP, meteo**: la scheda porta oggi quello che serve per le SID (TA per l'initial climb, piste
   per il filtro) più le frequenze. Il resto si aggiunge nella stessa forma quando qualcuno lo chiede.
+
+## 5. Verifica dal vivo (30 settembre 2026)
+
+Su una copia del `vipi.db` di sviluppo (cancellata dopo), app locale con due chiavi di prova scritte nella copia:
+
+- porta: senza chiave **401**, chiave dell'archivio **403**, chiave Aeroporti in `X-Api-Key` **200**, `ZZZZ` **404**;
+- elenco: **10 scali**, sei vIPI e quattro solo vSOP, letti ognuno dal documento giusto (`document`);
+- **LIBD `?runway=07`: le 20 righe dell'API sono identiche, cella per cella, alle 20 della tabella della pagina pubblica**
+  (che si apre già filtrata sulla pista in uso); **LIRS** (solo vSOP) `?runway=03L`: 10 su 10 come la pagina del vSOP;
+- STAR: zero ovunque, ed è giusto: nella copia la tabella delle procedure ha solo SID (1 469 righe);
+- UTF-8 corretto nel JSON («≤ 976», «N41°07'…»).
+
+Un difetto visto lì e corretto: l'elenco diceva «MIL — LIBG Taranto Grottaglie». I vSOP militari nascono col titolo
+«vSOP MIL — …», e `AwosGate.NomeDalTitolo` toglieva «vSOP» ma non «MIL». Ora toglie anche «MIL», solo come parola
+intera («Milano» resta). Lo stesso nome lo usa la tendina del vAWOS, che si corregge insieme.

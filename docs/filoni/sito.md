@@ -1757,6 +1757,18 @@
   mai (23 s di pagina muta: le query finiscono subito e Blazor non ridisegna) — `Gesto` cede il passo una volta prima
   del lavoro. ⚠️ Un gesto che sposta agganci impiega 15–25 s sulla copia: è il ricalcolo dei confinanti, lo stesso
   dell'aggancio. Fusa in `main` (2f51875e), **online in 1.52.0** (§A139).
+- ✅ **S64** API degli aeroporti (30-set, committente: «un'API mediante la quale si possono richiedere le info su un
+  aeroporto, nel caso specifico tutte le info sulle SID»; per un programma di un altro reparto o divisione IVAO). Ramo
+  `fix/api-aeroporti`. Carta `docs/feature/2026-09-30-api-aeroporti.md`. `GET /vsop/api/v1/airports`, `/{icao}`,
+  `/{icao}/sids` e `/{icao}/stars` (`?runway=`), in `Vipi.Hosting/ApiAeroporti.cs`. **Vista pubblica** (decisione del
+  committente): la stessa `ResolveForViewAsync(icao, useFrozen: true, edizione)` della pagina e il cancello del vAWOS
+  (`AwosGate`), vIPI civile se pubblicata altrimenti vSOP. Chiave **sempre** obbligatoria, permesso nuovo `aeroporti`
+  (`ApiEndpoints`, voce della pagina chiavi in `.resx`), 60/min per chiave. Celle «—» → `null`; `initialClimb` come
+  nel documento (FL sopra la TA) più `initialClimbFt` e `initialClimbByApp`. **Dal vivo** su copia del DB: porta
+  401/403/200/404, 10 scali, LIBD `?runway=07` identico cella per cella alla tabella della pagina (20 righe), LIRS dal
+  vSOP 10 su 10. Visto lì e corretto: «MIL — LIBG …» nei nomi (anche nella tendina vAWOS), `AwosGate.NomeDalTitolo`
+  toglie ora «MIL» come parola intera. Test: Hosting 79 → 98, E2E 463 → 465, App 3144 → 3145. Codice comune
+  `Vipi.Domain` (ApiEndpoints), `Vipi.Application` (AwosGate). Niente migrazione.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

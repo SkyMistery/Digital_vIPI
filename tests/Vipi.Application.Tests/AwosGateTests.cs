@@ -118,6 +118,17 @@ public class AwosGateTests
         Assert.Equal("LIBC", AwosGate.NomeDalTitolo("LIBC", "LIBC"));
     }
 
+    /// <summary>I vSOP militari nascono «vSOP MIL — LIBG Taranto Grottaglie» (EfMilitaryDocumentService): il «MIL»
+    /// restava attaccato al nome, nella tendina del vAWOS e nell'elenco dell'API degli aeroporti (visto dal vivo il
+    /// 30 settembre 2026). ⚠️ Ma solo come PAROLA: «Milano» non perde niente.</summary>
+    [Fact]
+    public void Il_nome_perde_anche_il_MIL_dei_vSOP_militari_ma_non_Milano()
+    {
+        Assert.Equal("Taranto Grottaglie", AwosGate.NomeDalTitolo("vSOP MIL — LIBG Taranto Grottaglie", "LIBG"));
+        Assert.Equal("Milano Linate", AwosGate.NomeDalTitolo("Milano Linate", "LIML"));
+        Assert.Equal("Milano Linate", AwosGate.NomeDalTitolo("vIPI — Milano Linate", "LIML"));
+    }
+
     // ─── L'ATIS ────────────────────────────────────────────────────────────────────
 
     private static OnlineAtc Atc(string callsign, string? lettera = "C", string? piste = "26") =>
