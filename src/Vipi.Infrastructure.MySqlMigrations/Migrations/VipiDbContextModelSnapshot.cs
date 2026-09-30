@@ -1201,6 +1201,97 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AirspaceVolumes");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirspaceVolumeCorrection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AirspaceClass")
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("BaseRaw")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<bool>("ClassCorrected")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Family")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("FileBaseRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("FileClass")
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("FileFamily")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("FileTopRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TopRaw")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("VolumeKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("VolumeOrdinal")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VolumeKey", "VolumeOrdinal")
+                        .IsUnique();
+
+                    b.ToTable("AirspaceVolumeCorrections");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.ApiClient", b =>
                 {
                     b.Property<int>("Id")

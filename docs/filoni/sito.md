@@ -4,7 +4,11 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 23 settembre 2026
+## Dove siamo — 30 settembre 2026
+
+> Tutto quel che è elencato qui sotto, fino a **S62**, è in `main` e **online** (ultima: 1.51.0, S58–S62). Niente da
+> fondere. Prove che restano al committente: il vAWOS nel suo Edge (S57/S58) e il primo evento vero in `/services/event`
+> (S59).
 
 - ✅ **S1** editor APP unito, «sezioni comuni» non ricarica più la pagina: fuso e **online in 1.43.0**
   (`docs/lavori-aperti.md` §S1, §A118). Al prossimo scarico di diagnostica: che non tornino gli
@@ -1729,8 +1733,35 @@
   mia, detta al committente: sono lavoro che aspetta una risposta). Una riga sotto la coda lo dice. Test +2
   Infrastructure (2035). Codice comune `Vipi.Application`, `Vipi.Infrastructure`. A schermo da Admin: richiesta
   scritta, «Elimina» → «Conferma: elimina» → sparita, esito «Richiesta #1 eliminata».
+- 🟢 **S63** correzioni a mano degli spazi aerei (30-set, committente: «da /services/vsop/admin/airspace rendere
+  modificabile il tipo, la base, il tetto e la classe… quando se ne importa uno nuovo, se ci sono incongruenze il
+  programma lo segnala nella pagina, con la possibilità di marcarle come ok e farle sparire»; ramo
+  `fix/correzioni-spazi-aerei`). Carta `docs/feature/2026-09-30-correzioni-spazi-aerei.md`. ⚠️ La premessa «l'indice è
+  il nome» non regge: la chiave è `FAMIGLIA|NOME|BASE|TETTO` e gli agganci la citano, quindi la correzione **non** si
+  scrive sulla riga. Sta in `AirspaceVolumeCorrections`, con la chiave del file e i valori che il file aveva allora.
+  **Migrazione** `CorrezioniSpaziAerei` (SQLite+MySQL, solo additiva). Si sovrappone in lettura in `EfAirspaceCatalog`
+  ed `EfSectorAirspaceBindings` (regole pure in `AirspaceCorrections`). Dopo un caricamento: il file ha cambiato un
+  campo corretto / dice già così / il volume non c'è più; il volume si ritrova per chiave, poi per nome se unico, e
+  confermando gli agganci passano alla chiave nuova. Pagina: matita → modulo sotto la riga, pastiglia «corretto»,
+  filtro «Corretti a mano», blocco «Da controllare» in cima con «Va bene» e «Prendi il file». Test: App 3125 → 3144,
+  Infra 2041 → 2052, Ui 1899 → 1904. Codice comune `Vipi.Application`, `Vipi.Domain`, `Vipi.Infrastructure`.
+  **A schermo** su copia del DB (file vero, 1 536 volumi): AMENDOLA CTR Z1 (agganciato a LIBA_APP) corretto a FL115 e
+  classe D → pastiglia «corretto», aggancio intatto; «file nuovo» simulato nella copia col tetto a FL110 → blocco «Da
+  controllare» (ritrovato per nome, aggancio scoperto); «Va bene» → voce sparita, FL115 tenuto, LIBA_APP di nuovo con
+  le due zone. «Torna al file» con conferma «Sì, torna al file» (prima diceva «Sì, elimina»). Italiano e 375px senza
+  scorrimento di lato. Seconda prova, **caricamento vero dalla pagina**: il KMZ in vigore rizippato con il tetto di Z1
+  a FL110, passato a «Carica il file» (ciclo 2611) → «Da controllare» giusto, «Va bene» ok; «Metti in vigore» del file
+  vecchio → la correzione risalta fuori, «Prendi il file» la toglie e LIBA_APP torna con le due zone.
+  Due difetti visti lì e corretti: (1) la riga d'attesa diceva sempre «Sto leggendo il file» — ora ogni gesto dice il
+  suo («Un momento...», «Aggiorno gli agganci e ricalcolo i confinanti...»); (2) su SQLite la rotella non compariva
+  mai (23 s di pagina muta: le query finiscono subito e Blazor non ridisegna) — `Gesto` cede il passo una volta prima
+  del lavoro. ⚠️ Un gesto che sposta agganci impiega 15–25 s sulla copia: è il ricalcolo dei confinanti, lo stesso
+  dell'aggancio.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 30-set: da fondere `fix/enti-acc` (S53–S55) e poi `fix/richieste-campo` (S56, costruito sopra); dopo la
-  fusione si torna su `sito/lavori`. Futuro: vIPI ACC legata all'ACC (`lavori-aperti.md`, Sito), secondo canale
-  delle richieste (`piano-segnalazioni.md` §10, strada B-1).
+  Al 30-set sera: tutto fuso e online fino a S62 (1.51.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
+  lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
+  IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il vAWOS nell'Edge del committente — se scorre
+  ancora, farsi mandare `innerHeight` e l'altezza di `.awos` (causa mai misurata, l'Edge di questa macchina non
+  parte in headless); il primo evento vero in `/services/event`. Futuro: vIPI ACC legata all'ACC
+  (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -11,13 +11,17 @@ public sealed record AirspaceImportRow(
 /// <summary>
 /// Un volume in archivio. <paramref name="PolygonJson"/> è nella forma <c>regionMapPolygon</c> della sorgente,
 /// quindi si dà in pasto a <c>AorPolygonProjector</c> e alla mappa senza conversioni.
+///
+/// <para>⚠️ Chi lo legge dal catalogo lo riceve <b>con le correzioni a mano già sopra</b>
+/// (<see cref="AirspaceCorrections"/>): tipo, classe e quote sono quelli giusti, <c>IsCorrected</c> dice che non
+/// sono quelli del file. <c>NaturalKey</c> resta invece quella <b>del file</b>: è quel che citano gli agganci.</para>
 /// </summary>
 public sealed record AirspaceVolumeRow(
     int Id, int ImportId, AirspaceFamily Family, string Name, string Category, string? AirspaceClass,
     AirspaceDatum BaseDatum, int? BaseFeet, string BaseRaw,
     AirspaceDatum TopDatum, int? TopFeet, string TopRaw,
     string PolygonJson, int RingCount, int PointCount, string NaturalKey, int Ordinal,
-    double MinLat, double MinLon, double MaxLat, double MaxLon)
+    double MinLat, double MinLon, double MaxLat, double MaxLon, bool IsCorrected = false)
 {
     /// <summary>Si può agganciare a un settore e mostrare? Lo decide la famiglia, in un posto solo.</summary>
     public bool IsUsable => AirspaceFamilies.IsUsable(Family);
@@ -77,4 +81,33 @@ public interface IAirspaceCatalog
 
     /// <summary>Elimina un caricamento e i suoi volumi. ⚠️ Quello in vigore non si elimina.</summary>
     Task DeleteAsync(int importId, CancellationToken ct = default);
+
+    // --- Correzioni a mano (carta docs/feature/2026-09-30-correzioni-spazi-aerei.md) --------------------------
+
+    /// <summary>Tutte le correzioni a mano.</summary>
+    Task<IReadOnlyList<AirspaceCorrectionRow>> ListCorrectionsAsync(CancellationToken ct = default);
+
+    /// <summary>Le correzioni sotto cui il file in vigore è cambiato, o che non trovano più il loro volume.</summary>
+    Task<IReadOnlyList<AirspaceCorrectionFinding>> ReviewCorrectionsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Corregge un volume del file in vigore perché si legga come <paramref name="input"/>. Si salvano solo i campi
+    /// diversi dal file; se nessuno lo è, la correzione si toglie. ⚠️ Chiede l'Editor.
+    /// </summary>
+    Task CorrectAsync(AirspaceVolumeKey volume, AirspaceCorrectionInput input, int? userId, string? userName,
+        DateTime nowUtc, CancellationToken ct = default);
+
+    /// <summary>
+    /// «Prendi il file»: toglie la correzione. Se il file aveva cambiato la chiave del volume, gli agganci si
+    /// spostano sulla chiave nuova. ⚠️ Chiede l'Editor.
+    /// </summary>
+    Task RemoveCorrectionAsync(int correctionId, CancellationToken ct = default);
+
+    /// <summary>
+    /// «Va bene»: la segnalazione sparisce. Il file è cambiato → la correzione resta e si riallinea al file nuovo
+    /// (anche nella chiave, con gli agganci); il file dice già così, o il volume non c'è più → la correzione si
+    /// toglie, perché non ha più niente da correggere. ⚠️ Chiede l'Editor.
+    /// </summary>
+    Task AcknowledgeCorrectionAsync(int correctionId, int? userId, string? userName, DateTime nowUtc,
+        CancellationToken ct = default);
 }

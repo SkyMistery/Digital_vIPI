@@ -77,6 +77,15 @@ public class SpaziAereiAdminUnGestoAllaVoltaTests : TestContext
         public Task<(string FileName, byte[] Content)?> GetFileAsync(int importId, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task DeleteAsync(int importId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<Vipi.Application.Airspace.AirspaceCorrectionRow>> ListCorrectionsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Airspace.AirspaceCorrectionRow>>([]);
+        public Task<IReadOnlyList<Vipi.Application.Airspace.AirspaceCorrectionFinding>> ReviewCorrectionsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Airspace.AirspaceCorrectionFinding>>([]);
+        public Task CorrectAsync(Vipi.Application.Airspace.AirspaceVolumeKey volume, Vipi.Application.Airspace.AirspaceCorrectionInput input,
+            int? userId, string? userName, DateTime nowUtc, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task RemoveCorrectionAsync(int correctionId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task AcknowledgeCorrectionAsync(int correctionId, int? userId, string? userName, DateTime nowUtc,
+            CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     private sealed class AgganciFinti : ISectorAirspaceBindings

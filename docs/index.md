@@ -362,6 +362,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-23-vista-condivisa-sessioni-atc.md`](feature/2026-09-23-vista-condivisa-sessioni-atc.md) — §A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026)
 - [`feature/2026-09-24-mil-solo-traffico-militare.md`](feature/2026-09-24-mil-solo-traffico-militare.md) — Il MIL_CTR raccoglie solo il traffico militare — carta (24 settembre 2026)
 - [`feature/2026-09-29-enti-atc.md`](feature/2026-09-29-enti-atc.md) — I documenti sono degli ENTI, non dei nominativi (29 settembre 2026)
+- [`feature/2026-09-30-correzioni-spazi-aerei.md`](feature/2026-09-30-correzioni-spazi-aerei.md) — Correzioni a mano degli spazi aerei (30 settembre 2026)
 - [`feature/2026-09-30-profili-evento.md`](feature/2026-09-30-profili-evento.md) — I profili per l'evento (30 settembre 2026)
 
 ### `filoni`

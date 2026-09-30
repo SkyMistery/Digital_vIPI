@@ -75,6 +75,10 @@ non un punto in più.
 | 8 | sorgente «dal catalogo» nel convertitore | **sì** |
 | 9 | controincrocio radioassistenze/campi | **sì, ma solo segnalando**: le correzioni si fanno nel **sectorfile** e poi si reimporta |
 
+> Aggiunta del 30 settembre 2026: tipo, classe, base e tetto dei volumi **del file** si correggono a mano nella pagina,
+> sopra il file e senza toccarne le righe (carta [`2026-09-30-correzioni-spazi-aerei.md`](2026-09-30-correzioni-spazi-aerei.md)).
+> La 5 resta com'è: riguarda le aree di IVAO.
+
 E le tre che restavano aperte:
 
 - **la pagina è pubblica**, citando la fonte;

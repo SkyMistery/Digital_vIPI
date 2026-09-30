@@ -58,7 +58,7 @@
             <LiveRegion>
                 @if (_busy)
                 {
-                    <span class="st-msg prog"><span class="spin"></span><span class="st-msg-t">@L["Asp_Reading"]</span></span>
+                    <span class="st-msg prog"><span class="spin"></span><span class="st-msg-t">@_attesa</span></span>
                 }
                 else if (_messaggio is not null)
                 {
@@ -86,6 +86,67 @@
            cinque blocchi e quello dei volumi ne vale cinquecento righe: chi viene qui per agganciare un
            settore o per leggere il rapporto se lo scorreva tutto. `data-persist` (l'Id) ricorda aperto e
            chiuso fra una visita e l'altra. *@
+        @* Le correzioni a mano sotto cui il file è cambiato (carta 2026-09-30-correzioni-spazi-aerei). Sta IN CIMA e
+           c'è solo quando serve: è la domanda che un caricamento nuovo fa a chi l'ha portato. *@
+        @if (_revisione.Count > 0)
+        {
+            <CollapsibleBlock Id="asp-revisione">
+                <Header>
+                    <h2 class="h-sect">@L["Asp_Fix_Review"]&nbsp;<span class="pill amber">@_revisione.Count</span></h2>
+                </Header>
+                <ChildContent>
+                <p class="muted asp-scope">@L["Asp_Fix_ReviewScope"]</p>
+                <table class="res-table mil-table asp-review">
+                    <thead>
+                        <tr>
+                            <th class="c-name">@L["Asp_Name"]</th>
+                            <th class="c-what">@L["Asp_Fix_ColWhat"]</th>
+                            <th class="c-diff">@L["Asp_Fix_ColFields"]</th>
+                            <th class="c-act2"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var f in _revisione)
+                        {
+                            <tr>
+                                <td class="c-name">
+                                    <b>@f.Correction.Name</b>
+                                    @if (f.KeyChanged)
+                                    {
+                                        <div class="asp-missing"><Icon Name="warning" Size="12" /> @L["Asp_Fix_KeyChanged"]</div>
+                                    }
+                                </td>
+                                <td class="c-what">@L[$"Asp_Fix_Kind_{f.Kind}"]</td>
+                                <td class="c-diff">
+                                    @foreach (var d in f.Diffs)
+                                    {
+                                        <div>
+                                            <b>@L[$"Asp_Fix_Field_{d.Field}"]</b>:
+                                            @L["Asp_Fix_Diff", Valore(d.Field, d.FileBefore), Valore(d.Field, d.FileNow), Valore(d.Field, d.Corrected)]
+                                        </div>
+                                    }
+                                </td>
+                                <td class="c-act2">
+                                    <button type="button" class="btn" disabled="@_busy"
+                                            title="@L[$"Asp_Fix_OkTitle_{f.Kind}"]" @onclick="() => VaBene(f)">
+                                        @L["Asp_Fix_Ok"]
+                                    </button>
+                                    @if (f.Kind == AirspaceCorrectionFindingKind.FileChanged)
+                                    {
+                                        <button type="button" class="btn ghost" disabled="@_busy"
+                                                title="@L["Asp_Fix_TakeFileTitle"]" @onclick="() => PrendiIlFile(f)">
+                                            @L["Asp_Fix_TakeFile"]
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                </ChildContent>
+            </CollapsibleBlock>
+        }
+
         <CollapsibleBlock Id="asp-volumi">
             <Header>
                 <h2 class="h-sect">
@@ -107,6 +168,13 @@
                                 title="@(usabile ? L["Asp_FamilyUsable"] : L["Asp_FamilyNotUsable"])"
                                 @onclick="() => Alterna(famiglia)">
                             @Nome(famiglia) <span class="chip-n">@f.Value</span>
+                        </button>
+                    }
+                    @if (_correzioni.Count > 0)
+                    {
+                        <button type="button" class="sh-chip @(_soloCorretti ? "on" : "")"
+                                @onclick="() => _soloCorretti = !_soloCorretti">
+                            @L["Asp_Fix_OnlyCorrected"] <span class="chip-n">@_correzioni.Count</span>
                         </button>
                     }
                     @* Con un filtro acceso serve la strada per tornare indietro: è lo stesso tasto della barra
@@ -132,11 +200,13 @@
                         <th class="c-class">@L["Asp_Class"]</th>
                         <th class="c-pts">@L["Asp_Points"]</th>
                         <th class="c-use">@L["Asp_Usable"]</th>
+                        <th class="c-fix"><span class="sr-only">@L["Asp_Fix_Col"]</span></th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var v in Filtrati)
                     {
+                        var chiave = Chiave(v);
                         <tr class="@(_scelti.Contains(Chiave(v)) ? "asp-picked" : null)">
                             <td class="c-pick">
                                 @* La spunta c'e' solo dove puo' servire: un'area regolamentata non si aggancia. *@
@@ -148,7 +218,14 @@
                                 }
                             </td>
                             <td class="c-fam muted">@Nome(v.Family)</td>
-                            <td class="c-name"><b>@v.Name</b></td>
+                            <td class="c-name">
+                                <b>@v.Name</b>
+                                @if (v.IsCorrected)
+                                {
+                                    @* Il volume si legge corretto ovunque; qui si dice anche che cosa diceva il file. *@
+                                    <span class="pill amber asp-fixed" title="@DalFile(v)">@L["Asp_Fix_Corrected"]</span>
+                                }
+                            </td>
                             <td class="c-band c-nowrap">@v.BandLabel</td>
                             <td class="c-class muted">@(v.AirspaceClass ?? "—")</td>
                             <td class="c-pts">@v.PointCount</td>
@@ -162,11 +239,78 @@
                                     <span class="muted" title="@L["Asp_FamilyNotUsable"]">@L["Asp_No"]</span>
                                 }
                             </td>
+                            <td class="c-fix">
+                                <button type="button" class="btn ghost btn-icon" disabled="@_busy"
+                                        title="@L["Asp_Fix_Edit"]" aria-label="@L["Asp_Fix_Edit"]"
+                                        aria-expanded="@(_inModifica == chiave ? "true" : "false")"
+                                        @onclick="() => ApriModifica(v)">
+                                    <Icon Name="pencil" Size="13" />
+                                </button>
+                            </td>
                         </tr>
+                        @if (_inModifica == chiave)
+                        {
+                            @* La correzione si scrive sotto la sua riga: il nome resta sopra, e non si tocca. *@
+                            <tr class="asp-edit">
+                                <td colspan="8">
+                                    <div class="asp-edit-row">
+                                        <label>
+                                            <span>@L["Asp_Family"]</span>
+                                            <select class="htree-select" @bind="_fFamiglia">
+                                                @foreach (var f in Enum.GetValues<AirspaceFamily>())
+                                                {
+                                                    <option value="@f">@Nome(f)</option>
+                                                }
+                                            </select>
+                                        </label>
+                                        <label>
+                                            <span>@L["Asp_Class"]</span>
+                                            <input class="asp-in asp-in-class" maxlength="1" placeholder="@L["Asp_Fix_ClassPh"]"
+                                                   @bind="_fClasse" @bind:event="oninput" />
+                                        </label>
+                                        <label>
+                                            <span>@L["Asp_Fix_Field_Base"]</span>
+                                            <input class="asp-in" maxlength="32" placeholder="@L["Asp_Fix_BasePh"]"
+                                                   @bind="_fBase" @bind:event="oninput" />
+                                        </label>
+                                        <label>
+                                            <span>@L["Asp_Fix_Field_Top"]</span>
+                                            <input class="asp-in" maxlength="32" placeholder="@L["Asp_Fix_TopPh"]"
+                                                   @bind="_fTetto" @bind:event="oninput" />
+                                        </label>
+                                        <span class="asp-edit-act">
+                                            <button type="button" class="btn" disabled="@_busy" @onclick="() => SalvaModifica(v)">
+                                                @L["Common_Save"]
+                                            </button>
+                                            <button type="button" class="btn ghost" @onclick="() => _inModifica = null">
+                                                @L["Common_Cancel"]
+                                            </button>
+                                            @if (CorrezioneDi(v) is { } c)
+                                            {
+                                                <InlineConfirm TriggerClass="btn ghost" Disabled="@_busy"
+                                                               Prompt="@string.Format(L["Asp_Fix_RevertPrompt"].Value, v.Name)"
+                                                               TriggerTitle="@L["Asp_Fix_Revert"]" AriaLabel="@L["Asp_Fix_Revert"]"
+                                                               ConfirmLabel="@L["Asp_Fix_RevertConfirm"]" Danger="false"
+                                                               OnConfirm="() => TornaAlFile(c)">
+                                                    <Trigger>@L["Asp_Fix_Revert"]</Trigger>
+                                                </InlineConfirm>
+                                            }
+                                        </span>
+                                    </div>
+                                    <p class="muted asp-edit-hint">
+                                        @if (v.IsCorrected)
+                                        {
+                                            @DalFile(v)<br />
+                                        }
+                                        @L["Asp_Fix_Hint"]
+                                    </p>
+                                </td>
+                            </tr>
+                        }
                     }
                     @if (Filtrati.Count == 0)
                     {
-                        <tr><td colspan="7" class="muted">@L["Asp_Empty"]</td></tr>
+                        <tr><td colspan="8" class="muted">@L["Asp_Empty"]</td></tr>
                     }
                 </tbody>
             </table>
@@ -422,17 +566,33 @@
     private bool _ok;
     private bool _busy;
 
+    /// <summary>Che cosa sta facendo il gesto in corso: la riga con la rotella in testata. Prima diceva sempre
+    /// «Sto leggendo il file», anche mentre si spostavano agganci e si rifacevano i confinanti (visto a schermo il
+    /// 30 settembre 2026: 18 secondi di «leggo il file» dopo un «Va bene»).</summary>
+    private string _attesa = "";
+
+    // Le correzioni a mano (carta docs/feature/2026-09-30-correzioni-spazi-aerei.md).
+    private IReadOnlyList<AirspaceCorrectionRow> _correzioni = Array.Empty<AirspaceCorrectionRow>();
+    private IReadOnlyList<AirspaceCorrectionFinding> _revisione = Array.Empty<AirspaceCorrectionFinding>();
+    private bool _soloCorretti;
+    private string? _inModifica;
+    private AirspaceFamily _fFamiglia;
+    private string _fClasse = "";
+    private string _fBase = "";
+    private string _fTetto = "";
+
     /// <summary>La pagina è degli Editor, come le altre che toccano dati di tutti.</summary>
     private bool PuoScrivere => Authz.Role >= VipiRole.Editor;
 
     /// <summary>C'è un filtro acceso? Decide la pastiglia «visti / totali» sulla testata del blocco e la
     /// comparsa del tasto che li spegne.</summary>
-    private bool Filtrando => _famiglie.Count > 0 || _cerca.Trim().Length > 0;
+    private bool Filtrando => _famiglie.Count > 0 || _cerca.Trim().Length > 0 || _soloCorretti;
 
     private void PulisciFiltri()
     {
         _famiglie.Clear();
         _cerca = "";
+        _soloCorretti = false;
     }
 
     private IReadOnlyList<AirspaceVolumeRow> Filtrati
@@ -441,6 +601,7 @@
         {
             var q = _volumi.AsEnumerable();
             if (_famiglie.Count > 0) q = q.Where(v => _famiglie.Contains(v.Family));
+            if (_soloCorretti) q = q.Where(v => v.IsCorrected);
             var testo = _cerca.Trim();
             if (testo.Length > 0)
                 q = q.Where(v => v.Name.Contains(testo, StringComparison.OrdinalIgnoreCase)
@@ -468,6 +629,10 @@
             ? Array.Empty<AirspaceIssue>()
             : await Catalogo.GetIssuesAsync(_corrente.Id);
         _agganci = await Agganci.ListAsync();
+        _correzioni = await Catalogo.ListCorrectionsAsync();
+        _revisione = _corrente is null
+            ? Array.Empty<AirspaceCorrectionFinding>()
+            : await Catalogo.ReviewCorrectionsAsync();
 
         // I settori che possono avere un'area: CTR e FSS dai subcenter, APP e DEP dalle postazioni.
         // Le TWR restano fuori — hanno il loro ripiego, e agganciarle a mano qui vorrebbe dire due strade
@@ -505,7 +670,7 @@
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Bound"].Value, pezzi[2], volumi.Count);
-        });
+        }, L["Asp_Rebinding"]);
     }
 
     /// <summary>
@@ -514,12 +679,20 @@
     /// doppio clic (o un secondo tasto premuto mentre il primo lavora) non parte. Un guasto che il servizio non
     /// traduce resta un messaggio: prima c'era un <c>finally</c> e basta, e l'eccezione abbatteva il circuito.
     /// </summary>
-    private async Task Gesto(Func<Task> lavoro)
+    private async Task Gesto(Func<Task> lavoro, string? attesa = null)
     {
         if (_busy) return;
+        _attesa = attesa ?? L["Asp_Working"];
         _busy = true;
         _messaggio = null;
-        try { await lavoro(); }
+        try
+        {
+            // ⚠️ Si cede il passo UNA volta prima del lavoro, o la rotella non si disegna: Blazor ridisegna al primo
+            // await che non finisce subito, e su SQLite le query finiscono tutte subito. Visto a schermo il 30
+            // settembre 2026: 23 secondi di «Prendi il file» (confinanti rifatti) con la pagina muta.
+            await Task.Yield();
+            await lavoro();
+        }
         catch (Vipi.Application.Aor.ValidationException ex)
         {
             _ok = false;
@@ -560,7 +733,7 @@
             }
             _rapporto = NavaidAipReport.Confronta(daAip, await Radioassistenze.ListAsync());
             _rapportoFatto = true;
-        });
+        }, L["Asp_Reading"]);
     }
 
     private async Task Sgancia(SectorAirspaceBindingRow a)
@@ -573,7 +746,7 @@
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Unbound"].Value, a.Callsign);
-        });
+        }, L["Asp_Rebinding"]);
     }
 
     /// <summary>
@@ -589,6 +762,84 @@
     {
         try { await Confinanti.RecomputeFromArchiveAsync(); }
         catch (Exception ex) { Logger.LogWarning(ex, "Ricalcolo confinanti dopo l'aggancio non riuscito."); }
+    }
+
+    private AirspaceCorrectionRow? CorrezioneDi(AirspaceVolumeRow v) =>
+        _correzioni.FirstOrDefault(c => c.VolumeKey == v.NaturalKey && c.VolumeOrdinal == v.Ordinal);
+
+    /// <summary>Che cosa diceva il file, per un volume corretto: la riga sotto la pastiglia «corretto».</summary>
+    private string DalFile(AirspaceVolumeRow v) => CorrezioneDi(v) is { } c
+        ? string.Format(L["Asp_Fix_FromFile"].Value, Nome(c.FileFamily), c.FileBaseRaw, c.FileTopRaw, c.FileClass ?? "—")
+        : "";
+
+    /// <summary>Un valore di una segnalazione come si legge: il tipo col suo nome, il vuoto con la lineetta.</summary>
+    private string Valore(AirspaceCorrectionField campo, string? s) =>
+        string.IsNullOrWhiteSpace(s) ? "—"
+        : campo == AirspaceCorrectionField.Family && Enum.TryParse<AirspaceFamily>(s, out var f) ? Nome(f)
+        : s;
+
+    /// <summary>Il modulo parte dai valori che si vedono (già corretti, se c'è una correzione).</summary>
+    private void ApriModifica(AirspaceVolumeRow v)
+    {
+        if (_inModifica == Chiave(v)) { _inModifica = null; return; }
+        _inModifica = Chiave(v);
+        _fFamiglia = v.Family;
+        _fClasse = v.AirspaceClass ?? "";
+        _fBase = v.BaseRaw;
+        _fTetto = v.TopRaw;
+    }
+
+    private async Task SalvaModifica(AirspaceVolumeRow v)
+    {
+        await Gesto(async () =>
+        {
+            await Catalogo.CorrectAsync(new AirspaceVolumeKey(v.NaturalKey, v.Ordinal),
+                new AirspaceCorrectionInput(_fFamiglia, _fClasse, _fBase, _fTetto),
+                Authz.CurrentUserId, Authz.CurrentName, DateTime.UtcNow);
+            _inModifica = null;
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = string.Format(
+                (CorrezioneDi(v) is null ? L["Asp_Fix_Same"] : L["Asp_Fix_Saved"]).Value, v.Name);
+        });
+    }
+
+    private async Task TornaAlFile(AirspaceCorrectionRow c)
+    {
+        await Gesto(async () =>
+        {
+            await Catalogo.RemoveCorrectionAsync(c.Id);
+            _inModifica = null;
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = string.Format(L["Asp_Fix_Removed"].Value, c.Name);
+        });
+    }
+
+    private async Task VaBene(AirspaceCorrectionFinding f)
+    {
+        await Gesto(async () =>
+        {
+            await Catalogo.AcknowledgeCorrectionAsync(f.Correction.Id, Authz.CurrentUserId, Authz.CurrentName,
+                DateTime.UtcNow);
+            // Ritrovato per nome = gli agganci hanno cambiato chiave: i confinanti si rifanno come dopo un aggancio.
+            if (f.KeyChanged) await RifaiConfinantiAsync();
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = string.Format(L["Asp_Fix_Acked"].Value, f.Correction.Name);
+        }, f.KeyChanged ? L["Asp_Rebinding"].Value : null);
+    }
+
+    private async Task PrendiIlFile(AirspaceCorrectionFinding f)
+    {
+        await Gesto(async () =>
+        {
+            await Catalogo.RemoveCorrectionAsync(f.Correction.Id);
+            if (f.KeyChanged) await RifaiConfinantiAsync();
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = string.Format(L["Asp_Fix_Removed"].Value, f.Correction.Name);
+        }, f.KeyChanged ? L["Asp_Rebinding"].Value : null);
     }
 
     private void Alterna(AirspaceFamily f)
@@ -640,7 +891,7 @@
                 _ok = false;
                 _messaggio = $"{L["Asp_TooBig"]} ({ex.Message})";
             }
-        });
+        }, L["Asp_Reading"]);
     }
 
     private async Task MettiInVigore(int id)
