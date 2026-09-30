@@ -114,19 +114,19 @@ public class RichiesteDalCampoTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Cinque_in_attesa_bastano_e_dieci_al_giorno_pure()
+    public async Task Dieci_in_attesa_bastano_e_dieci_al_giorno_pure()
     {
+        // ⚠️ Dal 30 settembre 2026 i due tetti valgono uguale (dieci): a fermare è il PRIMO controllo, le aperte, e il
+        // messaggio lo dice. Il tetto delle 24 ore si vede quando lo staff ha già risposto a tutte.
+        Assert.Equal((10, 10), (FieldRequestRules.MaxAperte, FieldRequestRules.MaxAlGiorno));
         for (var i = 0; i < FieldRequestRules.MaxAperte; i++) await ApriAsync(Utente);
-        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => ApriAsync(Utente));
+        var aperte = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => ApriAsync(Utente));
+        Assert.Matches("in attesa|waiting", aperte.Message);   // la lingua dei messaggi è quella di chi legge
 
-        // Lo staff risponde a tutte: si può tornare a scrivere, fino al tetto delle 24 ore.
+        // Lo staff risponde a tutte: le aperte non fermano più, ma nelle 24 ore ne sono già state scritte dieci.
         foreach (var r in await Servizio(Staff).CodaAsync()) await Servizio(Staff).RisolviAsync(r.Id, "Corretto, grazie.");
-        for (var i = 0; i < FieldRequestRules.MaxAlGiorno - FieldRequestRules.MaxAperte; i++)
-        {
-            var id = await ApriAsync(Utente);
-            await Servizio(Staff).RisolviAsync(id, "Fatto.");
-        }
-        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => ApriAsync(Utente));
+        var giorno = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => ApriAsync(Utente));
+        Assert.Matches("24 ore|24 hours", giorno.Message);
 
         _adesso = _adesso.AddDays(1).AddMinutes(1);
         await ApriAsync(Utente);   // il giorno dopo sì
