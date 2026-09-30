@@ -3720,6 +3720,7 @@
   <data name="ApiKeys_Endpoints" xml:space="preserve"><value>API che può chiamare</value></data>
   <data name="ApiKeys_Ep_archivio" xml:space="preserve"><value>Archivio ATC</value></data>
   <data name="ApiKeys_Ep_bridge" xml:space="preserve"><value>Bridge Aurora</value></data>
+  <data name="ApiKeys_Ep_aeroporti" xml:space="preserve"><value>Aeroporti (scali, SID, STAR)</value></data>
   <data name="ApiKeys_CreateNeeds" xml:space="preserve"><value>Servono un nome e almeno un'API</value></data>
   <data name="ApiKeys_CreateTitle" xml:space="preserve"><value>Crea la chiave e mostrala una volta</value></data>
   <data name="ApiKeys_Create" xml:space="preserve"><value>Crea chiave</value></data>

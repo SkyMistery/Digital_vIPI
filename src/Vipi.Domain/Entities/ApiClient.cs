@@ -47,7 +47,10 @@ public static class ApiEndpoints
     /// <summary><c>POST /vsop/api/v1/transfers/resolve</c>.</summary>
     public const string Bridge = "bridge";
 
-    public static readonly IReadOnlyList<string> Tutti = new[] { Archivio, Bridge };
+    /// <summary><c>GET /vsop/api/v1/airports</c> e sotto: scali, schede, SID e STAR (carta 2026-09-30-api-aeroporti.md).</summary>
+    public const string Aeroporti = "aeroporti";
+
+    public static readonly IReadOnlyList<string> Tutti = new[] { Archivio, Bridge, Aeroporti };
 }
 
 /// <summary>Le lunghezze delle colonne, lette dal modello e dal servizio che valida.</summary>

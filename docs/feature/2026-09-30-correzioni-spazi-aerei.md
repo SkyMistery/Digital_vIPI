@@ -1,5 +1,8 @@
 # Correzioni a mano degli spazi aerei (30 settembre 2026)
 
+> **Online in 1.52.0** (S63, §A139). Provata a schermo sulla copia del DB, anche con un KMZ caricato dalla pagina;
+> in produzione resta da vedere la prima correzione vera e il primo file dell'AIP caricato dopo.
+
 **Chiesto dal committente**: in `/services/vsop/admin/airspace` rendere modificabili **tipo, base, tetto e
 classe** di un volume. Quando si carica un file nuovo, le incongruenze si segnalano nella pagina, con la
 possibilità di marcarle come a posto e farle sparire.
@@ -65,6 +68,9 @@ Vale anche rimettendo in vigore un caricamento vecchio.
 - Un volume corretto porta la pastiglia **«corretto»**. Il suo `title` dice che cosa diceva il file. Un filtro
   «Corretti a mano» li mette in fila.
 - Il blocco **«Da controllare dopo il caricamento»** sta in cima e c'è solo quando serve.
+
+- Mentre un gesto lavora, la riga in testata dice **che cosa** sta facendo («Aggiorno gli agganci e ricalcolo i
+  confinanti...»): un gesto che sposta agganci rifà i confinanti, e sulla copia ci mette 15–25 secondi.
 
 ## 5. Che cosa resta fuori
 

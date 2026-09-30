@@ -87,8 +87,11 @@ public static class AwosGate
     public static string NomeDalTitolo(string titolo, string icao)
     {
         var t = (titolo ?? "").Trim();
-        foreach (var prefisso in new[] { "vIPI", "vSOP", "vLOA" })
-            if (t.StartsWith(prefisso, StringComparison.OrdinalIgnoreCase))
+        // ⚠️ «MIL» dopo «vSOP»: i militari nascono «vSOP MIL — LIBG …», e il MIL restava nel nome (30 settembre
+        // 2026). Si toglie solo come PAROLA intera, seguita da un separatore: «Milano» resta Milano.
+        foreach (var prefisso in new[] { "vIPI", "vSOP", "vLOA", "MIL" })
+            if (t.StartsWith(prefisso, StringComparison.OrdinalIgnoreCase)
+                && (t.Length == prefisso.Length || Array.IndexOf(SEPARATORI, t[prefisso.Length]) >= 0))
                 t = t[prefisso.Length..].TrimStart(SEPARATORI);
         if (t.StartsWith(icao, StringComparison.OrdinalIgnoreCase))
             t = t[icao.Length..].TrimStart(SEPARATORI);

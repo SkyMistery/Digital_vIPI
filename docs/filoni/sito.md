@@ -6,9 +6,9 @@
 
 ## Dove siamo — 30 settembre 2026
 
-> Tutto quel che è elencato qui sotto, fino a **S62**, è in `main` e **online** (ultima: 1.51.0, S58–S62). Niente da
-> fondere. Prove che restano al committente: il vAWOS nel suo Edge (S57/S58) e il primo evento vero in `/services/event`
-> (S59).
+> Tutto quel che è elencato qui sotto, fino a **S63**, è in `main` e **online** (ultima: 1.52.0, S63). Niente da
+> fondere. Prove che restano al committente: la prima correzione vera in Spazi aerei e il primo KMZ dell'AIP caricato
+> dopo (S63), il primo evento vero in `/services/event` (S59). Il vAWOS nel suo Edge (S57/S58) l'ha confermato il 30-set.
 
 - ✅ **S1** editor APP unito, «sezioni comuni» non ricarica più la pagina: fuso e **online in 1.43.0**
   (`docs/lavori-aperti.md` §S1, §A118). Al prossimo scarico di diagnostica: che non tornino gli
@@ -1733,7 +1733,7 @@
   mia, detta al committente: sono lavoro che aspetta una risposta). Una riga sotto la coda lo dice. Test +2
   Infrastructure (2035). Codice comune `Vipi.Application`, `Vipi.Infrastructure`. A schermo da Admin: richiesta
   scritta, «Elimina» → «Conferma: elimina» → sparita, esito «Richiesta #1 eliminata».
-- 🟢 **S63** correzioni a mano degli spazi aerei (30-set, committente: «da /services/vsop/admin/airspace rendere
+- ✅ **S63** correzioni a mano degli spazi aerei (30-set, committente: «da /services/vsop/admin/airspace rendere
   modificabile il tipo, la base, il tetto e la classe… quando se ne importa uno nuovo, se ci sono incongruenze il
   programma lo segnala nella pagina, con la possibilità di marcarle come ok e farle sparire»; ramo
   `fix/correzioni-spazi-aerei`). Carta `docs/feature/2026-09-30-correzioni-spazi-aerei.md`. ⚠️ La premessa «l'indice è
@@ -1756,12 +1756,30 @@
   suo («Un momento...», «Aggiorno gli agganci e ricalcolo i confinanti...»); (2) su SQLite la rotella non compariva
   mai (23 s di pagina muta: le query finiscono subito e Blazor non ridisegna) — `Gesto` cede il passo una volta prima
   del lavoro. ⚠️ Un gesto che sposta agganci impiega 15–25 s sulla copia: è il ricalcolo dei confinanti, lo stesso
-  dell'aggancio.
+  dell'aggancio. Fusa in `main` (2f51875e), **online in 1.52.0** (§A139).
+- ✅ **S64** API degli aeroporti (30-set, committente: «un'API mediante la quale si possono richiedere le info su un
+  aeroporto, nel caso specifico tutte le info sulle SID»; per un programma di un altro reparto o divisione IVAO). Ramo
+  `fix/api-aeroporti`. Carta `docs/feature/2026-09-30-api-aeroporti.md`. `GET /vsop/api/v1/airports`, `/{icao}`,
+  `/{icao}/sids` e `/{icao}/stars` (`?runway=`), in `Vipi.Hosting/ApiAeroporti.cs`. **Vista pubblica** (decisione del
+  committente): la stessa `ResolveForViewAsync(icao, useFrozen: true, edizione)` della pagina e il cancello del vAWOS
+  (`AwosGate`), vIPI civile se pubblicata altrimenti vSOP. Chiave **sempre** obbligatoria, permesso nuovo `aeroporti`
+  (`ApiEndpoints`, voce della pagina chiavi in `.resx`), 60/min per chiave. Celle «—» → `null`; `initialClimb` come
+  nel documento (FL sopra la TA) più `initialClimbFt` e `initialClimbByApp`. **Dal vivo** su copia del DB: porta
+  401/403/200/404, 10 scali, LIBD `?runway=07` identico cella per cella alla tabella della pagina (20 righe), LIRS dal
+  vSOP 10 su 10. Visto lì e corretto: «MIL — LIBG …» nei nomi (anche nella tendina vAWOS), `AwosGate.NomeDalTitolo`
+  toglie ora «MIL» come parola intera. Test: Hosting 79 → 98, E2E 463 → 465, App 3144 → 3145. Codice comune
+  `Vipi.Domain` (ApiEndpoints), `Vipi.Application` (AwosGate). Niente migrazione.
+  Sullo stesso ramo, un rosso a tempo di S63 segnalato dal Master (CI di `0f79bae9`):
+  `SpaziAereiAdminUnGestoAllaVoltaTests` «no event handler with ID '11'». Il `Task.Yield` di `Gesto` manda la ripresa
+  sul pool; se parte tardi il test sblocca il finto prima che lo aspetti, il primo gesto ridisegna e il secondo clic
+  (già accodato) trova il gestore buttato. Riprodotto a comando (pausa nel finto: vecchio rosso 3/3, nuovo verde 3/3);
+  ricerca e clic ora dentro `cut.InvokeAsync`, come dice il metodo. Solo il test: la pagina è giusta.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 30-set sera: tutto fuso e online fino a S62 (1.51.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
+  Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
-  IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il vAWOS nell'Edge del committente — se scorre
-  ancora, farsi mandare `innerHeight` e l'altezza di `.awos` (causa mai misurata, l'Edge di questa macchina non
-  parte in headless); il primo evento vero in `/services/event`. Futuro: vIPI ACC legata all'ACC
+  IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il primo evento vero in `/services/event`; in
+  produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63). Resta al committente LIRE/LIBG (aspetta il
+  SOD). ⚠️ In Spazi aerei i gesti che spostano agganci rifanno i confinanti: 15–25 s (S63), da guardare se diventa un
+  fastidio. Futuro: vIPI ACC legata all'ACC
   (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
