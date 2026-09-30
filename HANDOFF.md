@@ -6,10 +6,12 @@
 >
 > ## ▶ Il punto — 30 settembre 2026, notte
 >
-> **📦 Pronto: 1.51.0** (§A138, timbro `1.51.0 · b57fe44`, 22 file, zip `7b58e7c2…`, MINOR con la migrazione additiva
+> **✅ Online: 1.51.0** (`Schema 0` confermato dal committente; `/vsop/health` Healthy, Ricerca LIRF, pagine nuove e CSS
+> serviti; **in `main` non resta codice fuori pacchetto**) (§A138, timbro `1.51.0 · b57fe44`, 22 file, zip `7b58e7c2…`, MINOR con la migrazione additiva
 > `ProfiliEvento`): Sito S58 (vAWOS ancorato alla finestra, bandierina ⚑, switch Errore/Suggerimento), S59 profili per
 > l'evento (`/services/event`), S60 link a IVAO Italia, S61 pagina dei cookie, S62 pulizia delle richieste dal campo.
-> La 1.50.1 (§A137) non è mai stata caricata. ▶ Caricamento del committente. Online resta 1.50.0.
+> La 1.50.1 (§A137) non è mai stata caricata. ▶ Cancellare le richieste di prova (Admin, «Elimina»); i gesti di §A134
+> e §A130.
 >
 > ## Il punto — 30 settembre 2026
 >

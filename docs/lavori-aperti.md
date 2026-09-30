@@ -43,7 +43,12 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A138 — 1.51.0 PRONTO: profili per l'evento, pagina dei cookie, pulizia delle richieste, S58 (30 settembre 2026)
+### ✅ A138 — 1.51.0 ONLINE: profili per l'evento, pagina dei cookie, pulizia delle richieste, S58 (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: `Schema 0` confermato dal committente (la migrazione `ProfiliEvento` è entrata). Da
+fuori: `/vsop/health` Healthy, Ricerca «13 results for LIRF», console pulita (`pacchetto-verifica.js` tutto verde);
+`/services/event` e `/services/cookies` rispondono; nel piè di pagina IVAO Italia e Cookie; `vipi-theme.css?v=bc9b9e88`
+con gli stili nuovi, `vipi-awos.css?v=d32a84cc` con `position:fixed`.
 
 MINOR con **una migrazione additiva** (`ProfiliEvento`: due tabelle e un indice), su 1.50.0 (`e7742ff`); la 1.50.1
 (§A137) non è mai stata caricata ed entra qui. Timbro **`1.51.0 · b57fe44`**. Fusi da `fix/profili-evento` @
