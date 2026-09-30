@@ -1877,6 +1877,9 @@
   Si raccolgono tutti i risultati e si taglia dopo. Guida del sito aggiornata. Provato sui dati veri della copia
   (configurazioni e gruppi APP leggibili, «Brindisi» in ordine); la copia non ha il blocco degli alternati di
   LIBN, quel caso è coperto dal test. Ramo `fix/ricerca-ordine`, in fila su `fix/riassunto-dieci-anni`.
+- ✅ **S76** scheda «Prenotazioni ATC e FRA» in `/services` (30-set, committente): porta a https://atc.ivao.aero/,
+  secondo collegamento esterno dopo The Eye, subito dopo di lui, stesse regole (`external`, scheda nuova,
+  `noopener`). `ServicesHomeTests` conta due esterni. Ramo `fix/card-atc-ivao`, in fila su `fix/ricerca-ordine`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

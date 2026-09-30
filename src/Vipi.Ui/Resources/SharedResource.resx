@@ -3768,6 +3768,8 @@
   <data name="Lvp_Togli" xml:space="preserve"><value>Togli i minimi</value></data>
   <data name="Services_EyeTitle" xml:space="preserve"><value>Vedi chi è online ora</value></data>
   <data name="Services_EyeDesc" xml:space="preserve"><value>Strumento non ufficiale, realizzato dalla divisione italiana.</value></data>
+  <data name="Services_AtcIvaoTitle" xml:space="preserve"><value>Prenotazioni ATC e FRA</value></data>
+  <data name="Services_AtcIvaoDesc" xml:space="preserve"><value>Sito ufficiale IVAO: prenota una posizione ATC e consulta le FRA.</value></data>
   <data name="Services_AwosDesc" xml:space="preserve"><value>Il quadro meteo di torre: vento per testata, QNH, TL, RVR e stato LVP, aggiornati dal METAR.</value></data>
   <data name="Apt_OpenAwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS di questo scalo in una scheda nuova</value></data>
   <data name="Live_AwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS del tuo aeroporto in una scheda nuova</value></data>

@@ -126,6 +126,8 @@ public class ServicesHomeTests : TestContext
             // ⚠️ The Eye (esterno) entra il 15 settembre 2026 IN CODA agli strumenti: è di un altro sito.
             new[] { "/services/vsop", "/services/vsop/mil", "/services/vawos",
                     "/services/stats", "/services/profile-swapper", "https://the-eye.andreadalbero.it/",
+                    // ⚠️ Il sito ATC di IVAO (prenotazioni e FRA) entra il 30 settembre 2026 subito dopo The Eye.
+                    "https://atc.ivao.aero/",
                     "/services/vsop/airspace",
                     // ⚠️ Il pacchetto dell'evento entra il 30 settembre 2026 fra gli attrezzi dello staff, prima della
                     // coerenza col sectorfile (che resta ultima, per la ragione qui sopra).
@@ -223,8 +225,8 @@ public class ServicesHomeTests : TestContext
     /// <summary>
     /// I collegamenti ESTERNI sono un'eccezione come le scorciatoie, e si contano allo stesso modo: l'hub non è
     /// un elenco di segnalibri. <b>Uno</b> dal 15 settembre 2026, THE EYE («chi è online ora», decisione del
-    /// committente). Esce dal sito, quindi apre una scheda nuova e non passa il riferimento né l'accesso alla
-    /// finestra di partenza.
+    /// committente); <b>due</b> dal 30 settembre, col sito ATC di IVAO (prenotazioni e FRA). Escono dal sito,
+    /// quindi aprono una scheda nuova e non passano il riferimento né l'accesso alla finestra di partenza.
     /// </summary>
     [Fact]
     public void I_collegamenti_esterni_sono_contati_e_aprono_una_scheda_nuova()
@@ -232,11 +234,16 @@ public class ServicesHomeTests : TestContext
         var cut = Render(VipiRole.User);
         var esterni = cut.FindAll("a.choice.external");
 
-        var eye = Assert.Single(esterni);
-        Assert.Equal("https://the-eye.andreadalbero.it/", eye.GetAttribute("href"));
-        Assert.Equal("_blank", eye.GetAttribute("target"));
-        Assert.Contains("noopener", eye.GetAttribute("rel"));
+        Assert.Equal(2, esterni.Count);
+        Assert.All(esterni, a =>
+        {
+            Assert.Equal("_blank", a.GetAttribute("target"));
+            Assert.Contains("noopener", a.GetAttribute("rel"));
+        });
+        var eye = esterni.First(a => a.GetAttribute("href") == "https://the-eye.andreadalbero.it/");
         Assert.Contains("Services_EyeTitle", eye.TextContent);
+        var atc = esterni.First(a => a.GetAttribute("href") == "https://atc.ivao.aero/");
+        Assert.Contains("Services_AtcIvaoTitle", atc.TextContent);
     }
 
     /// <summary>
