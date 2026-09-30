@@ -43,14 +43,16 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A142 — 1.54.0: login obbligatorio, registro degli accessi, «I miei dati» e altro (S65–S78) (30 settembre 2026)
+### 📦 A142 — 1.54.0: login obbligatorio, registro degli accessi, «I miei dati» e altro (S65–S79) (30 settembre 2026)
 
 MINOR con **tre migrazioni additive** (`RegistroAccessi`, `NomeBreveAccessi`, `PaginaDelleRichieste`: una tabella e
-due colonne; `Up` solo Create/Add), su 1.53.0 (`d4bbebd`). Timbro **`1.54.0 · 722e7b4`**. Dentro S65 e S66 (§A141) e,
+due colonne; `Up` solo Create/Add), su 1.53.0 (`d4bbebd`). Timbro **`1.54.0 · 919b965`**. Dentro S65 e S66 (§A141) e,
 fusi da `fix/segnala-pagina` @ `d13038da` (CI verde run 36736896238, senza conflitti), S67–S77, e da
-`fix/aperte-dieci` @ `6ebec388` (CI verde) S78: richieste aperte per VID da 5 a 10. ⚠️ S78 è entrata dopo il primo
-publish (timbro `d6eeab8`, zip `794c7935…`, MAI caricato, archiviato in `publish_old/20260930g-scartato-…`): timbro,
-publish e zip rifatti.
+`fix/aperte-dieci` @ `6ebec388` (CI verde) S78: richieste aperte per VID da 5 a 10, e da `fix/disconnessioni` @
+`a83ecceb` (CI verde) S79: disconnessioni registrate dal browser (`POST /vsop/diag/disconnessione`, dietro login;
+`diagnostica/disconnessioni-*.tsv`, scheda in Diagnostica), niente riquadro di riconnessione sulle pagine statiche.
+⚠️ S78 e S79 sono entrate dopo i primi publish (timbri `d6eeab8` e `722e7b4`, zip `794c7935…` e `faf623e9…`, MAI
+caricati, archiviati in `publish_old/20260930g-scartato-…` e `20260930h-scartato-…`): timbro, publish e zip rifatti.
 - 🔴 **S67 login obbligatorio** (`CancelloDelLogin` nell'host): senza login solo la porta di `/services` con «Entra
   con IVAO» e `/services/cookies`; aperti login, sonde, `/vsop/api/` con chiave, `/api/rfo/`. Si riapre con
   `VipiAuth__LoginObbligatorio=false`. Da qui `pacchetto-verifica.js` con `SOLO_PUBBLICO=1` non può più fare la
@@ -60,14 +62,16 @@ publish e zip rifatti.
   · **S72** statistiche nuove · **S73** ACC al buio · **S74** `AtcMonthRollup` potato a dieci anni · **S75** ricerca
   senza JSON e in ordine · **S76** scheda «Prenotazioni ATC e FRA» · **S77** «Segnala un problema su questa pagina».
 
-**19 file** (`solo-19-file-1.54.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
-pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Fuori Aurora* (sorgente invariato). Zip 6,24 MB, sha256
-`faf623e97e1e4c70a03be21309e8ca66040ead86f0bbb003b15e4826d775b7b1`. Build Release senza avvisi, test verdi, conteggi
+**22 file** (`solo-22-file-1.54.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
+pdb), `en/`, endpoints.json, `vipi-riconnessione.js` e `vipi-theme.css` con `.br`/`.gz`. Fuori Aurora* (sorgente invariato). Zip
+6,26 MB, sha256
+`cbfb3e74fb26f532d04893d10074f24a74efc114bc1c94038fb49fcb0380f98b`. Build Release senza avvisi, test verdi, conteggi
 identici (Domain 167, App 3161, Infra 2074, Ui 1926, E2E 498). Prova sul publish win-x64: col login spento
 `pacchetto-verifica.js` verde (`TERMINE=LIBB`), tre migrazioni applicate, pagine nuove 200; col login acceso, da
 anonimo: `/` → `/services` con «Entra con IVAO», Ricerca/vIPI/«I miei dati» 401, cookie e `/vsop/health` 200, API
-401; rifatta sul publish con S78 (login spento: verde, timbro `722e7b4`). Foglio
-`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.0.md`. Storia: `docs/filoni/sito.md` S65–S78. ▶ Caricamento del
+401; rifatta sul publish con S78 e S79 (login spento: verde, timbro `919b965`, `POST
+/vsop/diag/disconnessione` 204; processo ucciso e riavviato → la pagina si ricarica da sola, riquadro nascosto). Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.0.md`. Storia: `docs/filoni/sito.md` S65–S79. ▶ Caricamento del
 committente; dopo: titolo di vIPI e vSOP MIL di LIML e ripubblicazione.
 
 ### 🔀 A141 — in `main`, non ancora in pacchetto: vista live (S65) e pagina Chiavi API (S66) (30 settembre 2026) → in 1.54.0 (§A142)
