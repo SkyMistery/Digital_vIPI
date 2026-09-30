@@ -1896,6 +1896,9 @@
   **«Campo richieste»**; il campo del modulo → «Cosa ci vuoi segnalare?»; statistiche: «Presenze» → **«Voli
   visti»** e una riga che spiega voli visti contro movimenti (pagina personale e dettaglio del turno), testi
   degli aeroporti gestiti e di «Da dove vengono e dove vanno» riscritti. Ramo `fix/testi-dati-statistiche`.
+- ✅ **S81** vista live: la finestra «Trasferimenti» solo allo staff di divisione (30-set, committente: «feature in
+  sviluppo»). Agli altri resta la riga col titolo e «In sviluppo», che non si apre (nessun contenuto nel markup).
+  Test Ui 1930 → 1932. Ramo `fix/trasferimenti-staff`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

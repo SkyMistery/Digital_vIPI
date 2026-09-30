@@ -348,6 +348,8 @@
   <data name="Live_Delegated" xml:space="preserve"><value>delegati</value></data>
   <data name="Live_CollapsedBody" xml:space="preserve"><value>Compresso perché un settore di &lt;b&gt;{0}&lt;/b&gt; è online (collasso morbido). Sotto restano le frequenze per l'handoff.</value></data>
   <data name="Live_TransfersTitle" xml:space="preserve"><value>Trasferimenti · dove passo il traffico</value></data>
+  <data name="Live_InDevelopment" xml:space="preserve"><value>In sviluppo</value></data>
+  <data name="Live_TransfersInDevelopment" xml:space="preserve"><value>Funzione in sviluppo: per ora la vede solo lo staff di divisione.</value></data>
   <data name="Live_TransfersHint" xml:space="preserve"><value>Un ente interno compare solo se c'è qualcuno online; verso l'esterno si trasferisce sempre, rilasciando al livello concordato. Chi non è online è scritto in grigio: quel traffico resta a te.</value></data>
   <data name="Live_FilterApt" xml:space="preserve"><value>Filtra per aeroporto</value></data>
   <data name="Live_FilterClear" xml:space="preserve"><value>Togli il filtro</value></data>

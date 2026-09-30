@@ -255,12 +255,28 @@
                ⚠️ Nessuna fascia «online nel tuo intorno»: ripeteva, in 77px, ciò che ogni riga già dice nella
                pastiglia del ricevente. La regola che spiegava («interni solo se c'è qualcuno») è il «?»
                accanto al filtro. *@
-            <details class="acc-item" data-persist="live-xfer">
-                <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@_view.Transfers.Sum(t => t.Points.Count)</span></summary>
-                <div class="body">
-                    <TransfersLive Flows="_view.Transfers" EmptyText="@L["Live_NoCoord"]" Changed="ChangedCallsigns()" Online="_snapshot.Callsigns" />
+            @* 🔒 Solo allo staff di divisione (committente, 30 settembre 2026): la finestra dei trasferimenti è ancora in
+               sviluppo. Agli altri resta la riga col titolo, che NON si apre e lo dice — niente contenuto nel markup,
+               non un pannello nascosto col CSS. *@
+            @if (Authz.IsDivisionStaff)
+            {
+                <details class="acc-item" data-persist="live-xfer">
+                    <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@_view.Transfers.Sum(t => t.Points.Count)</span></summary>
+                    <div class="body">
+                        <TransfersLive Flows="_view.Transfers" EmptyText="@L["Live_NoCoord"]" Changed="ChangedCallsigns()" Online="_snapshot.Callsigns" />
+                    </div>
+                </details>
+            }
+            else
+            {
+                <div class="acc-item acc-chiuso" aria-disabled="true" title="@L["Live_TransfersInDevelopment"]">
+                    <div class="acc-chiuso-h">
+                        <span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span>
+                        <span class="tag-state tag-dev">@L["Live_InDevelopment"]</span>
+                    </div>
+                    <p class="muted acc-chiuso-p">@L["Live_TransfersInDevelopment"]</p>
                 </div>
-            </details>
+            }
         }
     }
 </div>
