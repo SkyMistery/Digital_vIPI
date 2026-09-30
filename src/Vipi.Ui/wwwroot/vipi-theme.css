@@ -2057,8 +2057,7 @@
 :where(.vipi-root) .acc-item>summary{cursor:pointer;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;list-style:none;font-family:var(--font-head);font-weight:700;color:var(--brand-ink)}
 :where(.vipi-root) .acc-item>summary::-webkit-details-marker{display:none}
 /* Una voce che NON si apre (funzione in sviluppo, visibile solo allo staff): stessa riga di un <summary>, senza mano. */
-:where(.vipi-root) .acc-chiuso-h{padding:13px 16px 4px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-head);font-weight:700;color:var(--ink-soft);cursor:not-allowed}
-:where(.vipi-root) .acc-chiuso-p{margin:0;padding:0 16px 12px;font-size:13px}
+:where(.vipi-root) .acc-chiuso-h{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-head);font-weight:700;color:var(--ink-soft);cursor:not-allowed}
 :where(.vipi-root) .acc-item .tag-dev{background:var(--tint-yellow-soft);color:var(--warn-ink)}
 :where(.vipi-root) .acc-item .body{padding:4px 16px 16px}
 :where(.vipi-root) .acc-item.collapsed-strip>summary{color:var(--ink-soft);background:var(--tint-atmos-soft);font-weight:500;font-size:13.5px}

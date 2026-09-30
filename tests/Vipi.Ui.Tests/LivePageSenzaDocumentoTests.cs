@@ -95,7 +95,7 @@ public class LivePageSenzaDocumentoTests : TestContext
 
     /// <summary>
     /// Committente, 30 settembre 2026: la finestra dei trasferimenti è in sviluppo. Chi non è staff vede la riga col
-    /// titolo e «in sviluppo», ma non la può aprire: nel markup non c'è né il &lt;details&gt; né il contenuto.
+    /// titolo e l'etichetta «In sviluppo», ma non la può aprire: nel markup non c'è né il &lt;details&gt; né il contenuto.
     /// </summary>
     [Fact]
     public void Chi_non_e_staff_non_apre_i_trasferimenti_e_legge_che_sono_in_sviluppo()
@@ -104,7 +104,7 @@ public class LivePageSenzaDocumentoTests : TestContext
         Assert.Empty(cut.FindAll("details[data-persist='live-xfer']"));
         var riga = cut.Find(".acc-chiuso");
         Assert.Contains("Live_TransfersTitle", riga.TextContent);
-        Assert.Contains("Live_TransfersInDevelopment", riga.TextContent);
+        Assert.Contains("Live_InDevelopment", riga.TextContent);
     }
 
     [Fact]
