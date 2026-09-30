@@ -6,10 +6,11 @@
 >
 > ## ▶ Il punto — 30 settembre 2026, mattina
 >
-> **📦 Pronto da caricare: 1.52.0** (§A139, timbro `1.52.0 · 1a72e24`, 17 file, zip `7d975e3c…`, MINOR con la
+> **✅ Online: 1.52.0** (`Schema 0` e Ricerca confermati dal committente; `/vsop/health` Healthy, Ricerca LIRF da
+> fuori; **in `main` non resta codice fuori pacchetto**) (§A139, timbro `1.52.0 · 1a72e24`, 17 file, zip `7d975e3c…`, MINOR con la
 > migrazione additiva `CorrezioniSpaziAerei`): Sito S63, correzioni a mano di tipo, classe, base e tetto degli spazi
 > aerei in `/services/vsop/admin/airspace`, con «Da controllare» dopo un nuovo caricamento. Fuso da
-> `fix/correzioni-spazi-aerei` @ `f4224893`. Online resta 1.51.0 finché il committente non carica. I gesti del
+> `fix/correzioni-spazi-aerei` @ `f4224893`. I gesti del
 > committente dopo 1.47.0 e 1.51.0 sono fatti (confermato il 30-set); restano quelli di §A134 su LIRE/LIBG, che
 > aspettano il SOD.
 >

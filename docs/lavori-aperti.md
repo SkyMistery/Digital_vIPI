@@ -43,7 +43,10 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A139 — 1.52.0: correzioni a mano degli spazi aerei (S63) (30 settembre 2026)
+### ✅ A139 — 1.52.0 ONLINE: correzioni a mano degli spazi aerei (S63) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: `Schema 0` e Ricerca confermati dal committente. Da fuori `pacchetto-verifica.js` tutto
+verde («13 results for LIRF», console pulita), `/vsop/health` Healthy, `vipi-theme.css?v=a02e6153` (nuovo).
 
 MINOR con **una migrazione additiva** (`CorrezioniSpaziAerei`: una tabella e un indice unico), su 1.51.0 (`b57fe44`).
 Timbro **`1.52.0 · 1a72e24`**. Fuso da `fix/correzioni-spazi-aerei` @ `f4224893` (CI verde run 36692566471), senza
@@ -62,7 +65,7 @@ ricompilazione); `IAirspaceCatalog` ha una sola implementazione, in Infrastructu
 Infra 2052, Ui 1904, E2E 463), conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (la
 Ricerca con `TERMINE=LIBB`: la copia locale del DB non ha LIRF fra i pubblicati), migrazione applicata all'avvio,
 colonna «Correction» in inglese. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.52.0.md`. Storia: `docs/filoni/sito.md`
-S63. ▶ Caricamento del committente.
+S63.
 
 ### ✅ A138 — 1.51.0 ONLINE: profili per l'evento, pagina dei cookie, pulizia delle richieste, S58 (30 settembre 2026)
 
