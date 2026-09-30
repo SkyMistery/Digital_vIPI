@@ -1535,7 +1535,17 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
-      1.50.1 — PATCH, nessuna migrazione. Su 1.50.0 (e7742ff, online dal 30 settembre 2026). Sito S58: il vAWOS è
+      1.51.0 — MINOR: una migrazione ADDITIVA (ProfiliEvento: due tabelle e un indice; niente tolto o rinominato).
+      Su 1.50.0 (e7742ff, online dal 30 settembre 2026): la 1.50.1 (S58) non è mai stata caricata ed entra qui.
+      Sito S58 (vAWOS ancorato alla finestra, bandierina «segnala», switch Errore/Suggerimento); S59 profili per
+      l'evento (/services/event accesa dallo staff, file per postazione e link Drive, «Evento in corso» nell'hub);
+      S60 link a IVAO Italia nel piè di pagina; S61 pagina dei cookie (/services/cookies); S62 le richieste dal campo
+      si eliminano (Admin) e le chiuse si cancellano da sole dopo tre mesi. Tocca Vipi.Domain, Vipi.Application,
+      Vipi.Infrastructure (+ MySqlMigrations), Vipi.Hosting, Vipi.Ui (+ frasi IT/EN, CSS con l'indice degli asset) e
+      Vipi.Host. Dettaglio: LEGGIMI-PACCHETTO-1.51.0.md, §A138.
+    -->
+    <!--
+      1.50.1 — PATCH, nessuna migrazione. ⚠️ MAI CARICATA: confluita in 1.51.0. Su 1.50.0 (e7742ff, online dal 30 settembre 2026). Sito S58: il vAWOS è
       ancorato alla finestra (position:fixed; inset:0), perché con S57 in Edge scorreva ancora; al posto della parola
       «Segnala» una bandierina con tooltip su ogni titolo di sezione (sotto-sezioni e vIPI ACC comprese); nel modulo
       delle richieste uno switch Errore/Suggerimento. Tocca solo Vipi.Ui (+ frasi IT/EN, vipi-awos.css e
@@ -1842,7 +1852,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.50.1</VipiVersione>
+    <VipiVersione>1.51.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
