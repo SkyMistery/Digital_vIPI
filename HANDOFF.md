@@ -6,9 +6,9 @@
 >
 > ## ▶ Il punto — 30 settembre 2026, sera tardi
 >
-> **📦 Pronto da caricare: 1.54.1** (§A143, timbro `1.54.1 · cab7337`, 9 file, zip `81e89039…`, PATCH senza
-> migrazioni): Sito S80, solo testi («I miei dati» verso la FAQ IVAO, «Campo richieste», «Voli visti»). Online resta
-> 1.54.0 finché il committente non carica. ▶ Titolo LIML; LIRE/LIBG aspettano il SOD.
+> **✅ Online: 1.54.1** (timbro e `Schema 0` confermati dal committente; da fuori porta, Healthy e CSS del pacchetto;
+> **in `main` non resta codice fuori pacchetto**) (§A143, timbro `1.54.1 · cab7337`, 9 file, zip `81e89039…`, PATCH senza
+> migrazioni): Sito S80, solo testi («I miei dati» verso la FAQ IVAO, «Campo richieste», «Voli visti»). ▶ Titolo LIML; LIRE/LIBG aspettano il SOD.
 >
 > ## Il punto — 30 settembre 2026, notte
 >

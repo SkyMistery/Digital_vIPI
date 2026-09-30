@@ -43,7 +43,10 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A143 — 1.54.1: testi (S80) (30 settembre 2026)
+### ✅ A143 — 1.54.1 ONLINE: testi (S80) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: timbro e `Schema 0` confermati dal committente. Da fuori, da anonimo: porta `/services`
+con «Entra con IVAO», Ricerca 401, `/vsop/health` Healthy, `vipi-theme.css?v=8aa52b0b` (quello del pacchetto).
 
 PATCH **senza migrazioni**, su 1.54.0 (`919b965`). Timbro **`1.54.1 · cab7337`**. Fuso da `fix/testi-dati-statistiche`
 @ `f6e9cd34` (CI verde run 36754025138), senza conflitti. **S80**, solo Vipi.Ui: «I miei dati» rimanda per la
@@ -53,7 +56,7 @@ cancellazione alla FAQ di IVAO (`wiki.ivao.aero/en/home/members/faqs#delete-acco
 **9 file** (`solo-9-file-1.54.1`): Ui e Host (dll + pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`.
 Zip 3,03 MB, sha256 `81e89039049a92802ad0280171887541dc19d2784be242dbb9771242bced6c31`. Build Release senza avvisi,
 test verdi, conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`), link FAQ e
-«Voli visti» a schermo. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.1.md`. ▶ Caricamento del committente.
+«Voli visti» a schermo. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.1.md`.
 
 ### ✅ A142 — 1.54.0 ONLINE: login obbligatorio, registro degli accessi, «I miei dati» e altro (S65–S79) (30 settembre 2026)
 
