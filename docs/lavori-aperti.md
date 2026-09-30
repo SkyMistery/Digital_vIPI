@@ -43,6 +43,17 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A144 — 1.54.2: Trasferimenti della vista live solo allo staff (S81) (30 settembre 2026)
+
+PATCH **senza migrazioni**, su 1.54.1 (`cab7337`). Timbro **`1.54.2 · 1a843c2`**. Fuso da `fix/trasferimenti-staff` @
+`3fc98525` (CI verde run 36764206590), senza conflitti. **S81**, solo Vipi.Ui: nella vista live la finestra
+Trasferimenti si apre solo allo staff di divisione; per gli altri una riga «In sviluppo» che non si apre.
+
+**9 file** (`solo-9-file-1.54.2`): Ui e Host (dll + pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`.
+Zip 3,03 MB, sha256 `361abdf6eb05db43beeac062118d10907d55620764d65a42ba40f71e42e2cd41`. Build Release senza avvisi,
+test verdi, conteggi identici (Ui 1932). Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`).
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.2.md`. ▶ Caricamento del committente.
+
 ### ✅ A143 — 1.54.1 ONLINE: testi (S80) (30 settembre 2026)
 
 ✅ Online il 30 settembre 2026: timbro e `Schema 0` confermati dal committente. Da fuori, da anonimo: porta `/services`
