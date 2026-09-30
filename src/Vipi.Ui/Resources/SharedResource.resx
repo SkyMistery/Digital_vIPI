@@ -161,6 +161,18 @@
   <data name="Ck_AntiforgeryDuration" xml:space="preserve"><value>Fino alla chiusura del browser</value></data>
   <data name="Ck_DataTitle" xml:space="preserve"><value>Che cosa registriamo quando entri</value></data>
   <data name="Ck_Data" xml:space="preserve"><value>Per leggere il sito serve il login con IVAO. Quando entri registriamo il tuo VID, il nome, la divisione e l'ACC come li manda IVAO, la data del primo e dell'ultimo accesso e in quanti giorni diversi sei entrato: una riga per persona, non l'elenco di che cosa leggi. Serve a sapere chi usa il sito e lo vedono solo gli amministratori. Chi non entra da dodici mesi viene cancellato.</value></data>
+  <data name="My_Title" xml:space="preserve"><value>I miei dati</value></data>
+  <data name="My_Intro" xml:space="preserve"><value>Quello che questo sito tiene di te. Il titolare dei dati è IVAO, e vale la sua informativa sulla privacy; questa pagina ti mostra che cosa c'è qui.</value></data>
+  <data name="My_NotSignedIn" xml:space="preserve"><value>Entra con IVAO per vedere i tuoi dati.</value></data>
+  <data name="My_NoRow" xml:space="preserve"><value>Non c'è ancora una riga per te: si scrive al primo accesso, entro qualche minuto.</value></data>
+  <data name="My_OtherTitle" xml:space="preserve"><value>Gli altri dati che ti riguardano</value></data>
+  <data name="My_OtherAtc" xml:space="preserve"><value>Le tue connessioni come controllore vengono dai dati pubblici della rete IVAO (chi era in frequenza e quando):</value></data>
+  <data name="My_OtherAtcLink" xml:space="preserve"><value>le tue statistiche</value></data>
+  <data name="My_OtherStaff" xml:space="preserve"><value>Se sei nello staff della divisione, il tuo nome e le tue posizioni staff servono a decidere che cosa puoi modificare, e compaiono accanto alle modifiche che firmi.</value></data>
+  <data name="My_DeleteTitle" xml:space="preserve"><value>Chiedere di cancellarli</value></data>
+  <data name="My_Delete" xml:space="preserve"><value>Per chiedere la cancellazione dei tuoi dati manda una richiesta allo staff da</value></data>
+  <data name="My_DeleteNote" xml:space="preserve"><value>Il sito si legge solo dopo il login: finché lo usi, un nuovo accesso scrive di nuovo la tua riga. Chi non entra da dodici mesi viene cancellato da solo.</value></data>
+  <data name="Ck_DataLink" xml:space="preserve"><value>Vedi i tuoi dati.</value></data>
   <data name="Ck_StorageTitle" xml:space="preserve"><value>Le preferenze nel tuo browser</value></data>
   <data name="Ck_Storage" xml:space="preserve"><value>Alcune scelte di visualizzazione restano nell'archivio locale del browser (non sono cookie e non vengono mandate a noi): tema chiaro o scuro, zoom, densità delle tabelle, sezioni aperte o chiuse, la guida già vista, il tema giorno/notte del vAWOS. Restano sul tuo dispositivo finché non le cancelli.</value></data>
   <data name="Ck_ThirdTitle" xml:space="preserve"><value>Servizi di terzi</value></data>

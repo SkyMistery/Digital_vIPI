@@ -21,6 +21,9 @@ public interface IRegistroAccessiStore
 
     /// <summary>I più recenti per primi; <paramref name="cerca"/> sul nome o sul VID.</summary>
     Task<ElencoAccessi> ElencoAsync(string? cerca, int limite, CancellationToken ct = default);
+
+    /// <summary>La riga di un VID, o null.</summary>
+    Task<AccessoAlSitoRiga?> TrovaAsync(int userId, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -33,6 +36,13 @@ public interface IRegistroAccessi
 
     /// <summary>Solo amministratori: gli altri ricevono un'eccezione, non un elenco vuoto.</summary>
     Task<ElencoAccessi> ElencoAsync(string? cerca, CancellationToken ct = default);
+
+    /// <summary>
+    /// La riga di CHI CHIEDE, e di nessun altro: la pagina «I miei dati» (30 settembre 2026). Il VID viene dall'utente
+    /// corrente, non da un parametro — così non esiste un modo di leggere la riga di un altro. Null se non è entrato o
+    /// se la riga non c'è (ancora, o già cancellata).
+    /// </summary>
+    Task<AccessoAlSitoRiga?> MieiAsync(CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IRegistroAccessi"/>
@@ -55,6 +65,9 @@ public sealed class RegistroAccessi : IRegistroAccessi
         _store = store;
         _authz = authz;
     }
+
+    public Task<AccessoAlSitoRiga?> MieiAsync(CancellationToken ct = default) =>
+        _authz.CurrentUserId is int vid ? _store.TrovaAsync(vid, ct) : Task.FromResult<AccessoAlSitoRiga?>(null);
 
     public async Task RegistraAsync(CurrentUser utente, CancellationToken ct = default)
     {

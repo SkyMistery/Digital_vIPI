@@ -161,6 +161,18 @@
   <data name="Ck_AntiforgeryDuration" xml:space="preserve"><value>Until you close the browser</value></data>
   <data name="Ck_DataTitle" xml:space="preserve"><value>What we record when you sign in</value></data>
   <data name="Ck_Data" xml:space="preserve"><value>Reading the site requires signing in with IVAO. When you sign in we record your VID, name, division and ACC as IVAO sends them, the date of your first and last sign-in and on how many different days you signed in: one row per person, not a list of what you read. It tells us who uses the site and only administrators can see it. Anyone who has not signed in for twelve months is deleted.</value></data>
+  <data name="My_Title" xml:space="preserve"><value>My data</value></data>
+  <data name="My_Intro" xml:space="preserve"><value>What this site keeps about you. The data controller is IVAO and its privacy policy applies; this page shows you what is stored here.</value></data>
+  <data name="My_NotSignedIn" xml:space="preserve"><value>Sign in with IVAO to see your data.</value></data>
+  <data name="My_NoRow" xml:space="preserve"><value>There is no row for you yet: it is written at your first sign-in, within a few minutes.</value></data>
+  <data name="My_OtherTitle" xml:space="preserve"><value>Other data about you</value></data>
+  <data name="My_OtherAtc" xml:space="preserve"><value>Your controller connections come from IVAO's public network data (who was on frequency and when):</value></data>
+  <data name="My_OtherAtcLink" xml:space="preserve"><value>your statistics</value></data>
+  <data name="My_OtherStaff" xml:space="preserve"><value>If you are on the division staff, your name and staff positions decide what you can edit, and appear next to the changes you sign.</value></data>
+  <data name="My_DeleteTitle" xml:space="preserve"><value>Asking for deletion</value></data>
+  <data name="My_Delete" xml:space="preserve"><value>To ask for your data to be deleted, send a request to the staff from</value></data>
+  <data name="My_DeleteNote" xml:space="preserve"><value>The site can only be read after signing in: as long as you use it, a new sign-in writes your row again. Anyone who has not signed in for twelve months is deleted automatically.</value></data>
+  <data name="Ck_DataLink" xml:space="preserve"><value>See your data.</value></data>
   <data name="Ck_StorageTitle" xml:space="preserve"><value>Preferences in your browser</value></data>
   <data name="Ck_Storage" xml:space="preserve"><value>Some display choices stay in the browser's local storage (they are not cookies and are not sent to us): light or dark theme, zoom, table density, open or closed sections, the guide already seen, the vAWOS day/night theme. They stay on your device until you clear them.</value></data>
   <data name="Ck_ThirdTitle" xml:space="preserve"><value>Third-party services</value></data>

@@ -135,6 +135,7 @@
 | `/services/coordinates` | `CoordinateConverterPage.razor` | Convertitore di coordinate | DivisionStaff |
 | `/services/stats/world` | `AtcWorldArchivePage.razor` | Archivio ATC mondiale | DivisionStaff |
 | `/services/stats/logins` | `StatsAccessiPage.razor` | Accessi al sito (chi è entrato, 12 mesi) | Admin |
+| `/services/my-data` | `MieiDatiPage.razor` | I miei dati (la propria riga del registro accessi) | chi è entrato |
 | `/services/vsop/airspace` | `AirspacePage.razor` | Spazi aerei (vista) | DivisionStaff |
 | `/services/vsop/mil` | `MilListPage.razor` | Elenco vSOP militari (le bozze le vede solo l'Editor) | tutti |
 | `/services/vsop/{acc}/mil` | `MilDocumentPage.razor` | Documento vSOP militare | tutti (edit: Editor) |

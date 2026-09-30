@@ -23,6 +23,11 @@ public sealed class EfRegistroAccessiStore : IRegistroAccessiStore
         await _db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    public Task<AccessoAlSitoRiga?> TrovaAsync(int userId, CancellationToken ct = default) =>
+        _db.AccessiAlSito.AsNoTracking().Where(a => a.UserId == userId)
+            .Select(a => new AccessoAlSitoRiga(a.UserId, a.Nome, a.Divisione, a.Acc, a.PrimoUtc, a.UltimoUtc, a.Giorni))
+            .FirstOrDefaultAsync(ct);
+
     public Task<int> PotaAsync(DateTime ultimoPrimaDi, CancellationToken ct = default) =>
         _db.AccessiAlSito.Where(a => a.UltimoUtc < ultimoPrimaDi).ExecuteDeleteAsync(ct);
 

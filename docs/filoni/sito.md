@@ -1835,6 +1835,12 @@
   Non rallenta (la suite resta a 4–5 s: `WaitFor` esce alla prima verifica buona) e nessun test aspetta apposta un
   `WaitFor` che scade. Il pool esaurito come causa l'ho provato a comando e NON riproduce: resta la spiegazione di
   bUnit stesso. Ramo `fix/attesa-bunit`, in fila su `fix/registro-accessi` (stessa riga dei conteggi Ui). Ui → 1916.
+- ✅ **S70** «I miei dati» (30-set). Il committente ha girato a IVAO le domande sul registro degli accessi: titolare
+  IVAO, coperto dalla loro policy, legittimo interesse ok, durata libera, **diritti degli utenti gestiti da noi dal
+  sito**. Decisione: solo vedere; per cancellare «Richieste dal campo». Pagina `/services/my-data` (SSR): la propria riga
+  (VID dall'utente corrente, `IRegistroAccessi.MieiAsync`, mai da parametro), rimandi alle statistiche ATC e ai dati
+  staff, strada per la cancellazione. Link nel piè di pagina e dall'informativa. Ramo `fix/miei-dati`, in fila su
+  `fix/attesa-bunit`. A schermo su DB vuoto (anche 375 px). Test: App 3159, Infra 2056, Ui 1922.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

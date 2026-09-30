@@ -23,13 +23,20 @@ public class RegistroAccessiTests
 
         public Task<ElencoAccessi> ElencoAsync(string? cerca, int limite, CancellationToken ct = default)
         { Letture++; return Task.FromResult(new ElencoAccessi(Array.Empty<AccessoAlSitoRiga>(), 0)); }
+
+        public List<int> Cercati { get; } = new();
+        public Task<AccessoAlSitoRiga?> TrovaAsync(int userId, CancellationToken ct = default)
+        {
+            Cercati.Add(userId);
+            return Task.FromResult<AccessoAlSitoRiga?>(new AccessoAlSitoRiga(userId, "X", "IT", "LIRR", DateTime.UtcNow, DateTime.UtcNow, 1));
+        }
     }
 
-    private sealed class Livello(VipiRole ruolo) : IEditAuthorizationService
+    private sealed class Livello(VipiRole ruolo, int? vid = 1) : IEditAuthorizationService
     {
         public VipiRole Role => ruolo;
         public bool IsAdmin => ruolo >= VipiRole.Admin;
-        public int? CurrentUserId => 1;
+        public int? CurrentUserId => vid;
         public string? CurrentName => "Prova";
         public void EnsureAdmin() { if (!IsAdmin) throw new EditNotAllowedException(); }
     }
@@ -54,6 +61,20 @@ public class RegistroAccessiTests
 
         Assert.Equal(1, d.Registrati);
         Assert.Equal("IT", d.Divisione);
+    }
+
+    /// <summary>«I miei dati»: la riga di chi chiede, presa dal VID dell'utente corrente e non da un parametro — non
+    /// esiste un modo di chiedere quella di un altro. Chi non è entrato non ottiene niente e non interroga niente.</summary>
+    [Fact]
+    public async Task I_miei_dati_sono_quelli_di_chi_chiede_e_di_nessun_altro()
+    {
+        var d = new Deposito();
+        var riga = await new RegistroAccessi(d, new Livello(VipiRole.User, vid: 704798)).MieiAsync();
+        Assert.Equal(704798, riga!.UserId);
+        Assert.Equal(new[] { 704798 }, d.Cercati);
+
+        Assert.Null(await new RegistroAccessi(d, new Livello(VipiRole.User, vid: null)).MieiAsync());
+        Assert.Single(d.Cercati);
     }
 
     [Fact]

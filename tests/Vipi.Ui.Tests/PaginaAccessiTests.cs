@@ -35,6 +35,7 @@ public class PaginaAccessiTests : TestContext
         public string? Cercato;
         public int Letture;
         public Task RegistraAsync(CurrentUser utente, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<AccessoAlSitoRiga?> MieiAsync(CancellationToken ct = default) => Task.FromResult<AccessoAlSitoRiga?>(null);
         public Task<ElencoAccessi> ElencoAsync(string? cerca, CancellationToken ct = default)
         {
             Letture++;

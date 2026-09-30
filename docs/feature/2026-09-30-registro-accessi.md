@@ -58,7 +58,24 @@ Il committente ha chiesto di verificare i cookie dopo il login obbligatorio. Tre
 
 Nessun cookie nuovo: il registro sta sul server. Il banner di consenso resta non necessario (cookie tecnici).
 
-## 6. Verifica
+## 6. La risposta di IVAO e «I miei dati» (30 settembre 2026)
+
+Il committente ha girato a IVAO le domande sul registro. Risposte:
+
+1. **Titolare è IVAO.**
+2. **La policy IVAO copre il registro**: l'infrastruttura è di IVAO e i dati restano sulla loro infrastruttura.
+3. **Base giuridica: legittimo interesse**, va bene.
+4. **Durata**: nessuna indicazione; restano i dodici mesi.
+5. **I diritti degli utenti li gestiamo noi, dal sito.**
+
+Da qui la pagina **«I miei dati»** (`/services/my-data`, `MieiDatiPage`), linkata dal piè di pagina e dall'informativa.
+Decisione del committente: **solo vedere**. Mostra la riga del registro di chi chiede — il VID lo prende il servizio
+dall'utente corrente (`IRegistroAccessi.MieiAsync`), non dall'indirizzo, quindi non si legge la riga di un altro — più
+due rimandi (le connessioni ATC vengono dai dati pubblici IVAO, con il link alle proprie statistiche; per lo staff nome
+e posizioni servono ai permessi). Per la cancellazione rimanda a «Richieste dal campo», il canale che il membro già usa
+con stato e risposta, e dice che finché si usa il sito un nuovo accesso riscrive la riga.
+
+## 7. Verifica
 
 Test: Domain 156 → 160, Application 3155 → 3158, Infrastructure 2052 → 2055, Ui 1908 → 1915, E2E 497 → 498. A
 schermo su DB vuoto con l'utente di sviluppo: la pagina elenca l'accesso (VID, ACC, date, un giorno), la ricerca per

@@ -59,6 +59,16 @@ public sealed class RegistroAccessiStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Trova_da_la_riga_del_VID_o_null()
+    {
+        var s = new EfRegistroAccessiStore(_db);
+        await s.RegistraAsync(704798, "Carmine Granato", "IT", "LIRR", Oggi);
+
+        Assert.Equal("Carmine Granato", (await s.TrovaAsync(704798))!.Nome);
+        Assert.Null(await s.TrovaAsync(123456));
+    }
+
+    [Fact]
     public async Task La_potatura_toglie_chi_non_entra_da_prima_della_soglia()
     {
         var s = new EfRegistroAccessiStore(_db);
