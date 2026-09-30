@@ -1826,6 +1826,15 @@
   `/services/stats/logins`, solo admin (servizio `EnsureAdmin`), SSR con ricerca `?q=`, link da Statistiche di
   divisione. Informativa `/services/cookies`: libera dal cancello, `vipi.auth` riscritto, sezione «Che cosa registriamo
   quando entri». A schermo su DB vuoto. Test: Domain 160, App 3158, Infra 2055, Ui 1915, E2E 498.
+- ✅ **S69** i `WaitFor` di bUnit a tempo (30-set, segnalato dal Master: `CorrezioniSpaziAereiPaginaTests.La_matita…`
+  rosso su `313794dc`, run 36711964233, verde al secondo giro). Il messaggio completo diceva «Check count: 0, render
+  count: 4»: nel secondo di default l'asserzione non era stata nemmeno provata — il controllo di bUnit non aveva avuto
+  il turno sul runner carico. Stessa famiglia di `DiagnosticaUnGiroAllaVoltaTests` e `PannelloUnioneUnGiroAllaVoltaTests`
+  (cartellino), e qua e là il timeout era già stato alzato a mano a 3 s. Cura unica: `AttesaDiBunit`, inizializzatore del
+  modulo in `Vipi.Ui.Tests` che porta `TestContextBase.DefaultWaitTimeout` a 10 s, più una guardia che lo verifica.
+  Non rallenta (la suite resta a 4–5 s: `WaitFor` esce alla prima verifica buona) e nessun test aspetta apposta un
+  `WaitFor` che scade. Il pool esaurito come causa l'ho provato a comando e NON riproduce: resta la spiegazione di
+  bUnit stesso. Ramo `fix/attesa-bunit`, in fila su `fix/registro-accessi` (stessa riga dei conteggi Ui). Ui → 1916.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
