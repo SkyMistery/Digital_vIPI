@@ -4,7 +4,13 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 30 settembre 2026, notte
+> ## ▶ Il punto — 30 settembre 2026, sera tardi
+>
+> **📦 Pronto da caricare: 1.54.1** (§A143, timbro `1.54.1 · cab7337`, 9 file, zip `81e89039…`, PATCH senza
+> migrazioni): Sito S80, solo testi («I miei dati» verso la FAQ IVAO, «Campo richieste», «Voli visti»). Online resta
+> 1.54.0 finché il committente non carica. ▶ Titolo LIML; LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, notte
 >
 > **✅ Online: 1.54.0** (timbro, `Schema 0` e Ricerca col login confermati dal committente; da fuori la porta dice
 > «Entra con IVAO», Healthy, asset del pacchetto; **in `main` non resta codice fuori pacchetto**) (§A142, timbro `1.54.0 · 919b965`, 22 file, zip `cbfb3e74…`, MINOR con tre
