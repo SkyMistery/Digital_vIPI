@@ -37,9 +37,9 @@ public sealed class AirportLiveStation : ILiveStationKind
         // torre è esattamente l'elenco che serve, dalla delivery all'avvicinamento.
         var freqs = await _parts.FrequenciesAsync(ctx.Acc.Code, new[] { ctx.Callsign }, null, ct);
 
-        var published = icao is not null && (await _docs.ListAsync(ct)).Any(m =>
-            m.Kind == ReleaseTargetType.Airport && m.HasEffectiveRelease && !m.IsHidden
-            && string.Equals(m.Scope, icao, StringComparison.OrdinalIgnoreCase));
+        // La vIPI civile se c'è, altrimenti il vSOP militare: una torre di un campo solo militare ha il suo
+        // documento, e fino al 30 settembre 2026 la vista diceva «nessun documento» e linkava una vIPI inesistente.
+        var edizione = icao is null ? null : Awos.AwosGate.Edizione(await _docs.ListAsync(ct), icao);
 
         return new LiveView
         {
@@ -52,8 +52,8 @@ public sealed class AirportLiveStation : ILiveStationKind
             Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ctx.Topology, ct),
             Aor = _parts.Aor(ctx.Topology, ctx.Callsign, ctx.Online),
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
-            ExtendedDoc = icao is null ? null : new LiveDocRef(ReleaseTargetType.Airport, ctx.Acc.Code, icao),
-            NoDocument = !published,
+            ExtendedDoc = icao is null ? null : new LiveDocRef(edizione ?? ReleaseTargetType.Airport, ctx.Acc.Code, icao),
+            NoDocument = edizione is null,
         };
     }
 

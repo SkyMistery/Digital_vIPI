@@ -106,6 +106,7 @@
   <data name="Struct_LeafAirport" xml:space="preserve"><value>L'aeroporto è una foglia: nessun sottoalbero.</value></data>
   <data name="Struct_NoSubtree" xml:space="preserve"><value>Nessun sottoalbero (copre solo sé stesso).</value></data>
   <data name="Apt_OpenFullVipi" xml:space="preserve"><value>Apri vIPI completa</value></data>
+  <data name="Apt_OpenFullVsop" xml:space="preserve"><value>Apri vSOP completo</value></data>
   <data name="Apt_Wind" xml:space="preserve"><value>Vento</value></data>
   <data name="Apt_SuggestedRunways" xml:space="preserve"><value>Piste suggerite</value></data>
   <data name="Apt_NobodyOnline" xml:space="preserve"><value>nessuno online — UNICOM</value></data>
@@ -3709,7 +3710,7 @@
   <data name="Live_AwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS del tuo aeroporto in una scheda nuova</value></data>
   <data name="ApiKeys_Nav" xml:space="preserve"><value>Chiavi API</value></data>
   <data name="ApiKeys_Title" xml:space="preserve"><value>Chiavi API</value></data>
-  <data name="ApiKeys_Subtitle" xml:space="preserve"><value>Le chiavi con cui altri programmi chiamano le API del sito (archivio ATC, bridge Aurora). Le API non sono mai anonime.</value></data>
+  <data name="ApiKeys_Subtitle" xml:space="preserve"><value>Le chiavi con cui altri programmi chiamano le API del sito (aeroporti, archivio ATC, bridge Aurora). Le API non sono mai anonime.</value></data>
   <data name="ApiKeys_Reserved" xml:space="preserve"><value>Le chiavi API le emettono solo HQ e WD della divisione.</value></data>
   <data name="ApiKeys_NewTitle" xml:space="preserve"><value>Chiave creata per «{0}»</value></data>
   <data name="ApiKeys_NewOnce" xml:space="preserve"><value>Copiala adesso: non si potrà più rivedere. Il sito ne conserva solo l'impronta.</value></data>
@@ -3721,6 +3722,15 @@
   <data name="ApiKeys_Ep_archivio" xml:space="preserve"><value>Archivio ATC</value></data>
   <data name="ApiKeys_Ep_bridge" xml:space="preserve"><value>Bridge Aurora</value></data>
   <data name="ApiKeys_Ep_aeroporti" xml:space="preserve"><value>Aeroporti (scali, SID, STAR)</value></data>
+  <data name="ApiKeys_RoutesTitle" xml:space="preserve"><value>Indirizzi delle API</value></data>
+  <data name="ApiKeys_RoutesHelp" xml:space="preserve"><value>Da dare a chi integra, insieme alla chiave. Ogni chiamata porta la chiave in uno dei due header qui sotto. Risposte: 401 senza chiave o con una chiave sbagliata o revocata, 403 con una chiave senza quel permesso, 404 scalo sconosciuto o senza documento pubblicato, 429 troppe richieste al minuto. Risposte in JSON.</value></data>
+  <data name="ApiKeys_RouteExample" xml:space="preserve"><value>Esempio:</value></data>
+  <data name="ApiKeys_Route_airports" xml:space="preserve"><value>Gli aeroporti con un documento pubblicato (vIPI o vSOP).</value></data>
+  <data name="ApiKeys_Route_airport" xml:space="preserve"><value>La scheda di uno scalo: TA, livelli di transizione, piste, frequenze.</value></data>
+  <data name="ApiKeys_Route_sids" xml:space="preserve"><value>Le SID come nel documento pubblicato. Facoltativo ?runway= per una pista (restano anche quelle valide per tutte).</value></data>
+  <data name="ApiKeys_Route_stars" xml:space="preserve"><value>Le STAR, stessa forma e stesso filtro delle SID.</value></data>
+  <data name="ApiKeys_Route_sessions" xml:space="preserve"><value>Le connessioni ATC archiviate. Filtri facoltativi: from e to (data e ora ISO 8601), callsign (prefisso), vid, open, scope (division o world), limit (al massimo 500), offset.</value></data>
+  <data name="ApiKeys_Route_resolve" xml:space="preserve"><value>I punti di trasferimento per un volo selezionato in Aurora (corpo JSON, ownerCallsign obbligatorio). Risponde solo se il bridge è acceso sul server.</value></data>
   <data name="ApiKeys_CreateNeeds" xml:space="preserve"><value>Servono un nome e almeno un'API</value></data>
   <data name="ApiKeys_CreateTitle" xml:space="preserve"><value>Crea la chiave e mostrala una volta</value></data>
   <data name="ApiKeys_Create" xml:space="preserve"><value>Crea chiave</value></data>

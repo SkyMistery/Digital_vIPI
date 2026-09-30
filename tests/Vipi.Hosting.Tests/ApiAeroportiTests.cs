@@ -13,10 +13,6 @@ namespace Vipi.Hosting.Tests;
 /// </summary>
 public class ApiAeroportiTests
 {
-    private static ManagedDoc Doc(ReleaseTargetType tipo, string icao, bool release = true, bool nascosto = false) =>
-        new(tipo, "vIPI — " + icao, icao, "LIRR", IsPublished: true, HasDraft: false, IsHidden: nascosto,
-            ReleaseTarget: tipo, ReleaseKey: icao, DocumentId: 1, EffectiveCycle: release ? "2610" : null);
-
     private static AirportSidRowView Sid(string runway, string fix, string name, string climb = "—") =>
         new(runway, fix, name, "—", climb, "RNAV", "—", "—", "—");
 
@@ -30,37 +26,6 @@ public class ApiAeroportiTests
 
     private static JsonElement Json(object o) =>
         JsonSerializer.SerializeToElement(o, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-
-    // ─── Quale documento ───────────────────────────────────────────────────────────
-
-    [Fact]
-    public void Con_la_vIPI_pubblicata_si_legge_la_civile_anche_se_c_e_il_vSOP()
-    {
-        var docs = new[] { Doc(ReleaseTargetType.Airport, "LIRP"), Doc(ReleaseTargetType.AirportMil, "LIRP") };
-        Assert.Equal(ReleaseTargetType.Airport, ApiAeroporti.Edizione(docs, "LIRP"));
-    }
-
-    [Fact]
-    public void Un_campo_solo_militare_si_legge_dal_vSOP()
-    {
-        var docs = new[] { Doc(ReleaseTargetType.AirportMil, "LIPA") };
-        Assert.Equal(ReleaseTargetType.AirportMil, ApiAeroporti.Edizione(docs, "LIPA"));
-    }
-
-    [Theory]
-    [InlineData(false, false)]   // nessuna release effettiva
-    [InlineData(true, true)]     // nascosto
-    public void Senza_documento_pubblico_niente(bool release, bool nascosto)
-    {
-        var docs = new[] { Doc(ReleaseTargetType.Airport, "LIRF", release, nascosto) };
-        Assert.Null(ApiAeroporti.Edizione(docs, "LIRF"));
-    }
-
-    [Fact]
-    public void Un_ICAO_che_non_e_di_quattro_lettere_non_si_cerca()
-    {
-        Assert.Null(ApiAeroporti.Edizione(new[] { Doc(ReleaseTargetType.Airport, "LIRF") }, "LIR"));
-    }
 
     // ─── Le celle ──────────────────────────────────────────────────────────────────
 

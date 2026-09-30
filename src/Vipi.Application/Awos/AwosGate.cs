@@ -31,6 +31,23 @@ public static class AwosGate
     }
 
     /// <summary>
+    /// Il documento pubblico da cui si legge uno scalo: la vIPI civile se è pubblicata, altrimenti il vSOP militare;
+    /// null se nessuno dei due è pubblico.
+    ///
+    /// <para>⚠️ L'edizione dice da quale RELEASE si leggono le sezioni congelate: su un campo solo militare chiedere
+    /// la civile ricadrebbe sempre sul vivo. Prima del 30 settembre 2026 la regola era scritta in due posti
+    /// (<c>PisteDalPubblicato</c>, API degli aeroporti) e la vista live non la conosceva affatto: guardava solo la
+    /// civile, e i campi militari senza vIPI non comparivano (committente, 30 settembre 2026).</para>
+    /// </summary>
+    public static ReleaseTargetType? Edizione(IEnumerable<ManagedDoc> documenti, string icao)
+    {
+        var id = (icao ?? "").Trim();
+        if (id.Length != 4) return null;
+        var (vipi, vsop) = Pubblicati(documenti, id);
+        return vipi ? ReleaseTargetType.Airport : vsop ? ReleaseTargetType.AirportMil : null;
+    }
+
+    /// <summary>
     /// Gli scali per cui il quadro si apre, in ordine di ICAO.
     /// <para>⚠️ E lo <b>stesso</b> insieme del cancello: un selettore che elencasse uno scalo che poi rifiuta
     /// di aprirsi sarebbe un gesto che non fa niente.</para>

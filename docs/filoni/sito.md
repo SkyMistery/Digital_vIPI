@@ -1774,6 +1774,35 @@
   sul pool; se parte tardi il test sblocca il finto prima che lo aspetti, il primo gesto ridisegna e il secondo clic
   (già accodato) trova il gestore buttato. Riprodotto a comando (pausa nel finto: vecchio rosso 3/3, nuovo verde 3/3);
   ricerca e clic ora dentro `cut.InvokeAsync`, come dice il metodo. Solo il test: la pagina è giusta.
+- ✅ **S65** vista live: campi militari e «delegato» (30-set, committente: «nella visione live non compaiono in
+  nessun modo gli aeroporti militari senza vIPI, nonostante nelle vSOP ci siano tutte le info» e «LIMF_WW0: LIMF appare
+  delegato anche senza settori sotto»). Ramo `fix/live-militari`. (1) La vista live conosceva solo la vIPI civile in
+  tre punti: chip degli scali (`LiveStationParts.AirportChipsAsync`, `Kind == Airport`), postazione d'aeroporto
+  (`AirportLiveStation`: «nessuna vIPI» e link a una vIPI inesistente), pannello rapido (`AirportQuickPanel`: solo
+  `BuildAirportVipiAsync`). Ora vIPI se pubblicata, altrimenti vSOP, con la regola in un posto solo:
+  `AwosGate.Edizione` (era scritta anche in `PisteDalPubblicato` e nell'API degli aeroporti). Il pannello legge il
+  vSOP, TA/TL dalla sua release, tasto «Apri vSOP completo». In più le SID del pannello escono dalla STESSA vista del
+  documento (congelata se la release la congela): prima si derivavano dal vivo e su LIRS il pannello diceva Cat
+  «A,B,C,D,E» dove il vSOP pubblicato dice «—». (2) `LIMF_WW0_APP` ha `AirportIcao = LIMF`: è una posizione dello scalo,
+  e il chip era `Delegated = Local.Count > 0`, quindi chi guardava da lì vedeva LIMF «delegato» a sé stesso (il padre
+  di LIMF è `LIMF_WN0_APP`, figlio di WW0: LIMF entra nei chip di WW0). Ora delegato = una posizione dello scalo online
+  che non è chi guarda e non sta sopra di lui (`LiveStationParts.Delegato`, `ScaloDelegatoTests`, rossi 2 su 5 con la
+  regola vecchia). **A schermo** su copia del DB con `Ivao:FakeOnlineCallsigns`: da `LIBD_CS0_APP` (posizione di LIBD,
+  come WW0 di LIMF) LIBD non più delegato; da `LIMC_ANE_APP` compare il chip LIMN (solo vSOP) col pannello pieno e il
+  link `/mil`; `LIRS_TWR` senza avviso, «Documento esteso» → `/mil?icao=LIRS`, 20 SID come il vSOP. Nella copia LIRS e
+  LIMS non hanno settore padre (non compaiono come chip da nessuna area: dato), e le piste di LIRS sono «03/21» in
+  anagrafica e «03L/21R» nelle SID, quindi il filtro sulla pista suggerita dice «Nessuna SID per la pista 21» (dato).
+  Test: App 3150 → 3155. Codice comune `Vipi.Application` (AwosGate, Live, PisteDalPubblicato).
+- ✅ **S66** pagina Chiavi API (30-set, committente: «mettili tutti nella pagina chiavi API, e sistema il form: il flag è a
+  centro pagina e il nome schiacciato nell'angolino»). Ramo `fix/pagina-chiavi-api`. Sezione «Indirizzi delle API» per
+  permesso, con metodo, indirizzo completo del sito (`NavigationManager.BaseUri`), descrizione ed esempio, più i due
+  header e i codici di risposta. Gli indirizzi stanno in UN posto, `ApiRotte` (Domain), e le rotte vere li usano
+  (`MapGet(ApiRotte.Sessioni)`, `MapPost(ApiRotte.Trasferimenti)`, `ApiAeroporti.Radice = ApiRotte.Aeroporti`): la
+  pagina non può dare un indirizzo a cui il server non risponde. Guardia in `SharedResourceIntegrityTests`: ogni
+  indirizzo ha la sua descrizione in due lingue, ogni permesso almeno un indirizzo. Il form: `.field input{width:100%}`
+  del tema allargava anche le caselle; ora `.api-eps`/`.api-ep` in `vipi-theme.css`, casella a sinistra del nome.
+  **A schermo** su DB vuoto: spunte allineate, sezione leggibile, 375 px senza scorrimento di lato, inglese, creazione
+  di una chiave «Aeroporti» funzionante. Test: Ui 1904 → 1905. Codice comune `Vipi.Domain` (ApiRotte).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

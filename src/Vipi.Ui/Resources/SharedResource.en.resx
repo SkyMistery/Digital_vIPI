@@ -106,6 +106,7 @@
   <data name="Struct_LeafAirport" xml:space="preserve"><value>An airport is a leaf: no subtree.</value></data>
   <data name="Struct_NoSubtree" xml:space="preserve"><value>No subtree (it covers only itself).</value></data>
   <data name="Apt_OpenFullVipi" xml:space="preserve"><value>Open the full vIPI</value></data>
+  <data name="Apt_OpenFullVsop" xml:space="preserve"><value>Open the full vSOP</value></data>
   <data name="Apt_Wind" xml:space="preserve"><value>Wind</value></data>
   <data name="Apt_SuggestedRunways" xml:space="preserve"><value>Suggested runways</value></data>
   <data name="Apt_NobodyOnline" xml:space="preserve"><value>nobody online — UNICOM</value></data>
@@ -3701,7 +3702,7 @@
   <data name="Live_AwosTitle" xml:space="preserve"><value>Open your airport's vAWOS panel in a new tab</value></data>
   <data name="ApiKeys_Nav" xml:space="preserve"><value>API keys</value></data>
   <data name="ApiKeys_Title" xml:space="preserve"><value>API keys</value></data>
-  <data name="ApiKeys_Subtitle" xml:space="preserve"><value>The keys other programs use to call the site's APIs (ATC archive, Aurora bridge). The APIs are never anonymous.</value></data>
+  <data name="ApiKeys_Subtitle" xml:space="preserve"><value>The keys other programs use to call the site's APIs (airports, ATC archive, Aurora bridge). The APIs are never anonymous.</value></data>
   <data name="ApiKeys_Reserved" xml:space="preserve"><value>API keys are issued only by the division's HQ and WD.</value></data>
   <data name="ApiKeys_NewTitle" xml:space="preserve"><value>Key created for «{0}»</value></data>
   <data name="ApiKeys_NewOnce" xml:space="preserve"><value>Copy it now: it cannot be shown again. The site keeps only its fingerprint.</value></data>
@@ -3713,6 +3714,15 @@
   <data name="ApiKeys_Ep_archivio" xml:space="preserve"><value>ATC archive</value></data>
   <data name="ApiKeys_Ep_bridge" xml:space="preserve"><value>Aurora bridge</value></data>
   <data name="ApiKeys_Ep_aeroporti" xml:space="preserve"><value>Airports (airports, SIDs, STARs)</value></data>
+  <data name="ApiKeys_RoutesTitle" xml:space="preserve"><value>API addresses</value></data>
+  <data name="ApiKeys_RoutesHelp" xml:space="preserve"><value>Give these to whoever integrates, together with the key. Every call carries the key in one of the two headers below. Responses: 401 without a key or with a wrong or revoked key, 403 with a key lacking that permission, 404 unknown airport or no published document, 429 too many requests per minute. Responses are JSON.</value></data>
+  <data name="ApiKeys_RouteExample" xml:space="preserve"><value>Example:</value></data>
+  <data name="ApiKeys_Route_airports" xml:space="preserve"><value>Airports with a published document (vIPI or vSOP).</value></data>
+  <data name="ApiKeys_Route_airport" xml:space="preserve"><value>An airport's sheet: TA, transition levels, runways, frequencies.</value></data>
+  <data name="ApiKeys_Route_sids" xml:space="preserve"><value>SIDs as in the published document. Optional ?runway= for one runway (those valid for all runways stay too).</value></data>
+  <data name="ApiKeys_Route_stars" xml:space="preserve"><value>STARs, same shape and filter as SIDs.</value></data>
+  <data name="ApiKeys_Route_sessions" xml:space="preserve"><value>Archived ATC connections. Optional filters: from and to (ISO 8601 date and time), callsign (prefix), vid, open, scope (division or world), limit (at most 500), offset.</value></data>
+  <data name="ApiKeys_Route_resolve" xml:space="preserve"><value>Transfer points for a flight selected in Aurora (JSON body, ownerCallsign required). Answers only if the bridge is enabled on the server.</value></data>
   <data name="ApiKeys_CreateNeeds" xml:space="preserve"><value>A name and at least one API are required</value></data>
   <data name="ApiKeys_CreateTitle" xml:space="preserve"><value>Create the key and show it once</value></data>
   <data name="ApiKeys_Create" xml:space="preserve"><value>Create key</value></data>

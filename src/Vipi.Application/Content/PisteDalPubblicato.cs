@@ -61,10 +61,8 @@ public sealed class PisteDalPubblicato : IPisteDalPubblicato
         var id = (icao ?? "").Trim().ToUpperInvariant();
         var escluseVive = RunwayRow.Esclusioni(pisteVive);
         var docs = documenti ?? (_letti ??= await _documenti.ListAsync(ct));
-        var (vipi, vsop) = AwosGate.Pubblicati(docs, id);
-        if (!vipi && !vsop) return new(regoleVive, lvpVivi, escluseVive);
+        if (AwosGate.Edizione(docs, id) is not { } edizione) return new(regoleVive, lvpVivi, escluseVive);
 
-        var edizione = vipi ? ReleaseTargetType.Airport : ReleaseTargetType.AirportMil;
         var snapshot = await _congelate.LoadAsync(edizione, id, ct);   // una lettura per tutte e tre
         var regole = snapshot.Get<AirportRulesView>("runwayrules")?.Regole ?? regoleVive;
         var lvp = snapshot.Get<AirportLvpView>("lvp") is { } congelata ? congelata.Minimi : lvpVivi;
