@@ -106,6 +106,7 @@
   <data name="Struct_LeafAirport" xml:space="preserve"><value>An airport is a leaf: no subtree.</value></data>
   <data name="Struct_NoSubtree" xml:space="preserve"><value>No subtree (it covers only itself).</value></data>
   <data name="Apt_OpenFullVipi" xml:space="preserve"><value>Open the full vIPI</value></data>
+  <data name="Apt_OpenFullVsop" xml:space="preserve"><value>Open the full vSOP</value></data>
   <data name="Apt_Wind" xml:space="preserve"><value>Wind</value></data>
   <data name="Apt_SuggestedRunways" xml:space="preserve"><value>Suggested runways</value></data>
   <data name="Apt_NobodyOnline" xml:space="preserve"><value>nobody online — UNICOM</value></data>

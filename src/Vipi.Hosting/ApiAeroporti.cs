@@ -66,7 +66,7 @@ public static class ApiAeroporti
             if (await PortaAsync(ctx, limiter, ct) is { } rifiuto) return rifiuto;
 
             var id = Norm(icao);
-            if (Edizione(await documenti.ListAsync(ct), id) is not { } edizione) return NonPubblicato(id);
+            if (AwosGate.Edizione(await documenti.ListAsync(ct), id) is not { } edizione) return NonPubblicato(id);
 
             var scalo = await scali.LoadForViewAsync(id, ct);
             if (scalo is null) return NonPubblicato(id);
@@ -95,7 +95,7 @@ public static class ApiAeroporti
         if (await PortaAsync(ctx, limiter, ct) is { } rifiuto) return rifiuto;
 
         var id = Norm(icao);
-        if (Edizione(await documenti.ListAsync(ct), id) is not { } edizione) return NonPubblicato(id);
+        if (AwosGate.Edizione(await documenti.ListAsync(ct), id) is not { } edizione) return NonPubblicato(id);
 
         var d = await viste.ResolveForViewAsync(id, useFrozen: true, edizione, ct: ct);
         return Results.Json(Proiezione.Procedure(id, kind, d, runway));
@@ -106,20 +106,6 @@ public static class ApiAeroporti
     private static Task<IResult?> PortaAsync(HttpContext ctx, RequestRateLimiter limiter, CancellationToken ct) =>
         PortaDelleApi.ControllaAsync(ctx, ApiEndpoints.Aeroporti, chiaveObbligatoria: true, limiter,
             RichiesteAlMinutoPerChiave, RichiesteAlMinutoTotali, ChiaviTracciate, ct);
-
-    /// <summary>
-    /// Da quale documento si legge: la vIPI civile se è pubblicata, altrimenti il vSOP militare. Null = nessuno dei
-    /// due è pubblico.
-    /// <para>⚠️ L'edizione non è un dettaglio: dice da quale RELEASE si leggono le sezioni congelate (vedi
-    /// <see cref="IAirportViewDerivationService"/>). Su un campo solo militare chiedere la civile ricadrebbe sempre
-    /// sul vivo, e l'API mostrerebbe modifiche che il vSOP pubblicato non ha ancora.</para>
-    /// </summary>
-    public static ReleaseTargetType? Edizione(IEnumerable<ManagedDoc> documenti, string icao)
-    {
-        if (icao.Length != 4) return null;
-        var (vipi, vsop) = AwosGate.Pubblicati(documenti, icao);
-        return vipi ? ReleaseTargetType.Airport : vsop ? ReleaseTargetType.AirportMil : null;
-    }
 
     private static IResult NonPubblicato(string icao) =>
         Results.NotFound(new { error = $"{icao}: aeroporto sconosciuto o senza documento pubblicato" });
