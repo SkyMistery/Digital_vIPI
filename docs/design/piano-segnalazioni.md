@@ -430,3 +430,20 @@ Farlo per primo vorrebbe dire scrivere due volte le stesse rotaie.
 |---|---|
 | S1-S5 | §8 di questa carta, invariate |
 | **S6** | `FieldReportTarget`, le tre colonne di contesto, il bottone dentro `PaginaErrore`, la coda filtrata per bersaglio, e **B-1 o B-2** secondo la risposta alla domanda 1 |
+
+## §11 — La segnalazione di PAGINA (30 settembre 2026)
+
+Committente: «in ogni pagina un tasto per riportare problemi generici a quella pagina (o al sito), deve funzionare
+come funziona ora per le sezioni dei documenti».
+
+- **Il tasto**: la stessa bandierina delle sezioni, in barra accanto alla Guida (`SopLayout`), e la voce «Segnala un
+  problema su questa pagina» nel ☰ per la barra stretta, dove le icone escono. Non c'è sulla pagina delle richieste
+  stessa, né sul vAWOS (layout suo, senza barra).
+- **La strada**: la stessa delle sezioni. Un LINK a `/services/vsop/requests?p=<percorso e query>`, niente circuito per
+  chi legge soltanto; il modulo dice «Sulla pagina …» al posto del documento.
+- **Il modello**: una colonna, `FieldRequest.PageUrl` (300, vuota di default; migrazione `PaginaDelleRichieste`). Solo
+  per le segnalazioni che non hanno un documento: una di sezione resta com'era. ⚠️ Arriva dall'indirizzo, quindi da
+  chiunque: `FieldRequestRules.Pagina` tiene solo un percorso del sito (una barra sola in testa, niente schema, niente
+  `//`, niente caratteri di controllo), o la coda dello staff mostrerebbe collegamenti esterni.
+- **Nella coda**: «Pagina /services/…» col collegamento; presa in carico, l'incarico si intitola alla pagina.
+- **Argini**: gli stessi (cinque aperte, dieci al giorno), perché il servizio è lo stesso.

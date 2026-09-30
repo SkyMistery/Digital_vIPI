@@ -9,8 +9,9 @@ namespace Vipi.Application.Content;
 /// <summary>Che cosa scrive chi apre una richiesta. Documento e sezione sono opzionali: esiste la richiesta libera.</summary>
 /// <param name="Tipo">La famiglia del documento (come nelle release); con <paramref name="Chiave"/> lo identifica.</param>
 /// <param name="Chiave">L'ICAO, il codice dell'ente, il codice dell'ACC, l'id della vLOA — quello che la pagina conosce.</param>
+/// <param name="Pagina">La pagina del sito da cui si segnala (il tasto in barra): un percorso relativo, o niente.</param>
 public sealed record FieldRequestInput(ReleaseTargetType? Tipo, string? Chiave, string? SectionKey,
-    FieldRequestKind Kind, string Body);
+    FieldRequestKind Kind, string Body, string? Pagina = null);
 
 /// <summary>Il documento e la sezione di cui si sta per scrivere, per la testata del modulo.</summary>
 public sealed record FieldRequestContext(int DocumentId, string DocumentTitle, string? SectionTitle);
@@ -23,6 +24,23 @@ public static class FieldRequestRules
     public const int MaxAlGiorno = 10;
     public const int MaxCorpo = 2000;
     public const int MaxRisposta = 2000;
+
+    /// <summary>Quanto è lunga al più la pagina di una segnalazione generica.</summary>
+    public const int MaxPagina = 300;
+
+    /// <summary>
+    /// La pagina come si salva: un percorso DEL SITO, o niente. ⚠️ Arriva dall'indirizzo, cioè da chiunque: un
+    /// <c>https://…</c> o un <c>//altro.sito</c> diventerebbe un collegamento esterno nella coda dello staff, e un
+    /// <c>javascript:</c> peggio. Si tiene solo quel che comincia con una barra sola.
+    /// </summary>
+    public static string Pagina(string? pagina)
+    {
+        var p = (pagina ?? "").Trim();
+        if (p.Length < 1 || p[0] != '/' || p.StartsWith("//", StringComparison.Ordinal) || p.Contains('\\')
+            || p.Any(char.IsControl))
+            return "";
+        return p.Length > MaxPagina ? p[..MaxPagina] : p;
+    }
 
     /// <summary>
     /// Per quanto si tiene una richiesta CHIUSA, dalla chiusura (committente, d'accordo con IT-HQ, 30 settembre 2026):
@@ -161,6 +179,7 @@ public sealed class FieldRequestService : IFieldRequestService
             DocumentId = docId,
             SectionKey = sezione,
             ReleaseNumber = rilascio,
+            PageUrl = FieldRequestRules.Pagina(input.Pagina),
             Kind = input.Kind,
             Body = corpo,
         }, ct);
@@ -198,7 +217,8 @@ public sealed class FieldRequestService : IFieldRequestService
         var io = _authz.CurrentUserId ?? 0;
         var doc = r.DocumentId is int d ? (await _documenti.ListAsync(ct)).FirstOrDefault(x => x.DocumentId == d) : null;
         var taskId = await _incarichi.AddAsync(new EditorTaskInput(
-            Title: doc?.Title ?? r.DocumentTitle ?? Lingua($"Richiesta #{r.Id}", $"Request #{r.Id}"),
+            Title: doc?.Title ?? r.DocumentTitle
+                   ?? (r.PageUrl.Length > 0 ? Lingua($"Pagina {r.PageUrl}", $"Page {r.PageUrl}") : Lingua($"Richiesta #{r.Id}", $"Request #{r.Id}")),
             Description: r.Body,
             AssigneeUserId: io,
             AssigneeName: _authz.CurrentName,
@@ -206,7 +226,7 @@ public sealed class FieldRequestService : IFieldRequestService
             DueAiracCycle: null,
             TargetType: doc?.ReleaseTarget,
             TargetKey: doc?.ReleaseKey,
-            TargetLabel: doc?.Title ?? r.DocumentTitle,
+            TargetLabel: doc?.Title ?? r.DocumentTitle ?? (r.PageUrl.Length > 0 ? r.PageUrl : null),
             FromRequestId: r.Id), io, ct);
         await _repo.SetStatusAsync(id, FieldRequestStatus.PresaInCarico, io, _authz.CurrentName ?? "", "", null, ct);
         return taskId;

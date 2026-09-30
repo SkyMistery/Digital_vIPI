@@ -42,6 +42,18 @@ public class BarraInAltoTests
             Assert.Contains(comando, regola.Groups[1].Value);
     }
 
+    /// <summary>
+    /// Committente, 30 settembre 2026: su ogni pagina un tasto per segnalare un problema di quella pagina. È un LINK al
+    /// modulo delle richieste con la pagina nell'indirizzo (come la bandierina delle sezioni), in barra e nel ☰.
+    /// </summary>
+    [Fact]
+    public void Ogni_pagina_ha_la_bandierina_per_segnalare_un_problema()
+    {
+        var layout = Leggi("Shared/SopLayout.razor");
+        Assert.Contains("\"/services/vsop/requests?p=\" + Uri.EscapeDataString(qui)", layout);
+        Assert.Equal(2, Regex.Matches(layout, "href=\"@segnala(Qui)?\"").Count);
+    }
+
     private static string Leggi(string relativo) =>
         File.ReadAllText(Path.Combine(Radice(), relativo.Replace('/', Path.DirectorySeparatorChar)));
 

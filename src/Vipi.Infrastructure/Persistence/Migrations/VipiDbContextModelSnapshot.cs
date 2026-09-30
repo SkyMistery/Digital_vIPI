@@ -2396,6 +2396,13 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PageUrl")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("");
+
                     b.Property<int?>("ReleaseNumber")
                         .HasColumnType("INTEGER");
 

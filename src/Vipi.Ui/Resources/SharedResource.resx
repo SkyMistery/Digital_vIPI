@@ -3911,6 +3911,9 @@
   <data name="Req_Status_Respinta" xml:space="preserve"><value>respinta</value></data>
   <data name="Req_Status_Doppione" xml:space="preserve"><value>doppione</value></data>
   <data name="Req_ReportTitle" xml:space="preserve"><value>Segnala un errore o un suggerimento su questa sezione</value></data>
+  <data name="Req_ReportPage" xml:space="preserve"><value>Segnala un problema su questa pagina</value></data>
+  <data name="Req_AboutPage" xml:space="preserve"><value>Sulla pagina</value></data>
+  <data name="Req_PageShort" xml:space="preserve"><value>Pagina</value></data>
   <data name="Req_Open" xml:space="preserve"><value>Rispondi</value></data>
   <data name="Services_EventSection" xml:space="preserve"><value>Evento in corso</value></data>
   <data name="Services_EventDesc" xml:space="preserve"><value>I profili Aurora per postazione e i file dell'evento: scaricali prima di aprire.</value></data>

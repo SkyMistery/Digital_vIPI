@@ -59,6 +59,10 @@
                 </div>
                 <a href="/services"><Icon Name="grid" /> @L["Chrome_Services"]</a>
                 <a href="/services/vsop/guide"><Icon Name="help-circle" /> @L["Chrome_Guide"]</a>
+                @if (SegnalaHref is { } segnala)
+                {
+                    <a href="@segnala" rel="nofollow"><Icon Name="flag" /> @L["Req_ReportPage"]</a>
+                }
                 <a href="/services/vsop/live"><Icon Name="radio" /> @L["Chrome_OpenLive"]</a>
                 <a href="/services/stats"><Icon Name="clipboard" /> @L["Stats_Title"]</a>
                 @if (_canEdit)
@@ -126,6 +130,14 @@
                portare all'hub, e due link identici a 100px di distanza sono ingombro, non ridondanza. Nel
                «☰» la voce resta, perche' li' il marchio e' ridotto al solo logo. *@
             <a class="editor-btn icon-only" href="/services/vsop/guide" title="@L["Chrome_Guide"]" aria-label="@L["Chrome_Guide"]"><Icon Name="help-circle" /></a>
+            @* SEGNALA UN PROBLEMA SU QUESTA PAGINA (committente, 30 settembre 2026: «in ogni pagina un tasto per riportare
+               problemi generici a quella pagina, come per le sezioni dei documenti»). La stessa bandierina delle
+               sezioni e la stessa strada: un LINK al modulo delle richieste, con la pagina nell'indirizzo — niente
+               circuito per chi legge soltanto. A barra stretta (tb-4) le icone escono: la voce resta nel ☰. *@
+            @if (SegnalaHref is { } segnalaQui)
+            {
+                <a class="editor-btn icon-only noprint" href="@segnalaQui" rel="nofollow" title="@L["Req_ReportPage"]" aria-label="@L["Req_ReportPage"]"><Icon Name="flag" /></a>
+            }
             <div class="zoom-ctrl" role="group" aria-label="@L["Chrome_ZoomPage"]">
                 <button type="button" onclick="vipiZoom(-0.1)" title="@L["Chrome_ZoomOut"]" aria-label="@L["Chrome_ZoomOut"]">−</button>
                 <span id="vipiZoomPct" role="status" aria-live="polite" aria-label="@L["Chrome_ZoomPage"]" onclick="vipiZoomReset()" title="@L["Chrome_ZoomReset"]">100%</span>
@@ -270,6 +282,20 @@
 </div>
 
 @code {
+    /// <summary>
+    /// Il modulo delle richieste con QUESTA pagina (percorso e query). Null sulla pagina delle richieste stessa: segnalare
+    /// il modulo dal modulo non porta da nessuna parte.
+    /// </summary>
+    private string? SegnalaHref
+    {
+        get
+        {
+            var qui = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('#')[0];
+            if (qui.StartsWith("/services/vsop/requests", StringComparison.OrdinalIgnoreCase)) return null;
+            return "/services/vsop/requests?p=" + Uri.EscapeDataString(qui);
+        }
+    }
+
     private string? _acc;
     private IReadOnlyList<AccInfo> _accs = Array.Empty<AccInfo>();
     private CurrentUser? _user;

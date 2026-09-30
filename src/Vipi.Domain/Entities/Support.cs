@@ -87,6 +87,13 @@ public class FieldRequest
     /// testo diverso e risponde «non c'è nessun errore» mentre in pubblico c'è ancora.</summary>
     public int? ReleaseNumber { get; set; }
 
+    /// <summary>
+    /// La pagina da cui è partita una segnalazione generica (committente, 30 settembre 2026: «in ogni pagina un tasto per
+    /// riportare problemi generici a quella pagina»): percorso e query del sito, sempre relativi (<c>/services/stats?p=30</c>).
+    /// Vuota per le segnalazioni di sezione e per le richieste libere.
+    /// </summary>
+    public string PageUrl { get; set; } = "";
+
     // Che cosa dice: prosa di una persona, si salva e si mostra com'è scritta (niente traduzione, niente .resx).
     public FieldRequestKind Kind { get; set; }
     public string Body { get; set; } = "";

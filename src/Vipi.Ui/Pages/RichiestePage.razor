@@ -45,6 +45,11 @@
             {
                 <p class="muted" style="margin:0 0 8px">@L["Req_About", c.DocumentTitle, c.SectionTitle ?? "—"]</p>
             }
+            else if (_pagina.Length > 0)
+            {
+                @* Dal tasto in barra (30 settembre 2026): una segnalazione generica su una pagina del sito. *@
+                <p class="muted" style="margin:0 0 8px">@L["Req_AboutPage"] <a href="@_pagina">@_pagina</a></p>
+            }
             else
             {
                 <p class="muted" style="margin:0 0 8px">@L["Req_Free"]</p>
@@ -173,6 +178,11 @@
     [SupplyParameterFromQuery(Name = "k")] public string? Chiave { get; set; }
     /// <summary>La chiave di catalogo della sezione.</summary>
     [SupplyParameterFromQuery(Name = "s")] public string? Sezione { get; set; }
+    /// <summary>La pagina da cui si segnala, dal tasto in barra: un percorso del sito (vedi FieldRequestRules.Pagina).</summary>
+    [SupplyParameterFromQuery(Name = "p")] public string? Pagina { get; set; }
+
+    /// <summary>La pagina già ripulita: vuota se non c'era o se non era un percorso del sito.</summary>
+    private string _pagina = "";
 
     private IFieldRequestService _richieste = default!;
     private IEditAuthorizationService _authz = default!;
@@ -196,6 +206,7 @@
         _connesso = _authz.CurrentUserId is not null;
         _staff = _authz.IsEditor;
         _admin = _authz.IsAdmin;
+        _pagina = FieldRequestRules.Pagina(Pagina);
         if (!_connesso) return;
         try
         {
@@ -230,6 +241,10 @@
             @if (r.SectionKey.Length > 0) { <span class="muted">· @r.SectionKey</span> }
             @if (r.ReleaseNumber is int n) { <span class="muted">· @L["Req_Release", n]</span> }
         }
+        else if (r.PageUrl.Length > 0)
+        {
+            <span>@L["Req_PageShort"] <a href="@r.PageUrl">@r.PageUrl</a></span>
+        }
         else
         {
             <span class="muted">@L["Req_FreeShort"]</span>
@@ -239,7 +254,8 @@
 
     private Task InviaAsync() => GestoAsync(async () =>
     {
-        await _richieste.ApriAsync(new FieldRequestInput(_tipoDoc, _contesto is null ? null : Chiave, Sezione, _tipo, _corpo));
+        await _richieste.ApriAsync(new FieldRequestInput(_tipoDoc, _contesto is null ? null : Chiave, Sezione, _tipo, _corpo,
+            _contesto is null ? _pagina : null));
         _corpo = "";
         _esito = L["Req_Sent"];
     });

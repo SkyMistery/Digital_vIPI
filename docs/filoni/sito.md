@@ -1880,6 +1880,10 @@
 - ✅ **S76** scheda «Prenotazioni ATC e FRA» in `/services` (30-set, committente): porta a https://atc.ivao.aero/,
   secondo collegamento esterno dopo The Eye, subito dopo di lui, stesse regole (`external`, scheda nuova,
   `noopener`). `ServicesHomeTests` conta due esterni. Ramo `fix/card-atc-ivao`, in fila su `fix/ricerca-ordine`.
+- ✅ **S77** segnalare un problema su qualunque pagina (30-set, committente): bandierina in barra accanto alla
+  Guida e voce nel ☰, link al modulo delle richieste con la pagina (`?p=`), come le sezioni. Colonna
+  `FieldRequest.PageUrl` (migrazione `PaginaDelleRichieste`), ripulita a solo percorso del sito. Carta
+  `piano-segnalazioni.md` §11. Ramo `fix/segnala-pagina`, in fila su `fix/card-atc-ivao`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

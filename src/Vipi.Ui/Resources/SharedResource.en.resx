@@ -3903,6 +3903,9 @@
   <data name="Req_Status_Respinta" xml:space="preserve"><value>rejected</value></data>
   <data name="Req_Status_Doppione" xml:space="preserve"><value>duplicate</value></data>
   <data name="Req_ReportTitle" xml:space="preserve"><value>Report an error or suggest a change in this section</value></data>
+  <data name="Req_ReportPage" xml:space="preserve"><value>Report a problem on this page</value></data>
+  <data name="Req_AboutPage" xml:space="preserve"><value>About the page</value></data>
+  <data name="Req_PageShort" xml:space="preserve"><value>Page</value></data>
   <data name="Req_Open" xml:space="preserve"><value>Reply</value></data>
   <data name="Services_EventSection" xml:space="preserve"><value>Current event</value></data>
   <data name="Services_EventDesc" xml:space="preserve"><value>Aurora profiles per position and the event files: download them before you open.</value></data>

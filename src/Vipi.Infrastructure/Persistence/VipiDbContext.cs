@@ -780,6 +780,7 @@ public class VipiDbContext : DbContext
         {
             e.Property(x => x.ReporterName).HasMaxLength(128).IsRequired();
             e.Property(x => x.SectionKey).HasMaxLength(64).IsRequired();
+            e.Property(x => x.PageUrl).HasMaxLength(300).IsRequired().HasDefaultValue("");
             e.Property(x => x.Body).HasMaxLength(2000).IsRequired();
             e.Property(x => x.HandledByName).HasMaxLength(128).IsRequired();
             e.Property(x => x.Reply).HasMaxLength(2000).IsRequired();
