@@ -62,7 +62,8 @@ public class PieDiPaginaTests : TestContext
         var link = cut.FindAll(".sf-links a").ToList();
         // ⚠️ Le tre pagine di ivao.aero (termini, privacy, regole) rispondono 404 dal 29 settembre 2026: tutto sta
         // sulla wiki di IVAO, sotto una pagina sola.
-        Assert.Equal(new[] { "https://www.ivao.aero", "https://wiki.ivao.aero/en/home/ivao/information" },
+        // Il sito della divisione italiana subito dopo quello di IVAO (committente, 30 settembre 2026).
+        Assert.Equal(new[] { "https://www.ivao.aero", "https://it.ivao.aero/", "https://wiki.ivao.aero/en/home/ivao/information" },
             link.Select(a => a.GetAttribute("href")));
         Assert.All(link, a =>
         {

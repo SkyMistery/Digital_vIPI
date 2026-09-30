@@ -143,6 +143,7 @@
   <data name="Foot_PartOf" xml:space="preserve"><value>Part of the International Virtual Aviation Organisation</value></data>
   <data name="Foot_BuiltBy" xml:space="preserve"><value>Built by</value></data>
   <data name="Foot_Ivao" xml:space="preserve"><value>IVAO</value></data>
+  <data name="Foot_IvaoItaly" xml:space="preserve"><value>IVAO Italy</value></data>
   <data name="Foot_Info" xml:space="preserve"><value>Rules, regulations and privacy</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Theme: automatic (follows the system)</value></data>
   <data name="Chrome_ThemeLight" xml:space="preserve"><value>Theme: light</value></data>

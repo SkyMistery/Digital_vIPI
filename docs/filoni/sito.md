@@ -1696,6 +1696,10 @@
   coi colori della pagina (guscio `--surface-muted`, scelto `--ivao-blue`), due tasti con `aria-pressed`.
   Test +2 Ui (1888): bandierina anche sulle figlie, switch; presidio del vAWOS riscritto. Provato a schermo sulla copia
   (LIBD: 16 bandierine in linea coi titoli; switch che commuta). ⚠️ Da confermare nell'Edge del committente.
+- ✅ **S60** piè di pagina: il sito di IVAO Italia (30-set, committente: «nel footer metti anche il sito di Ivao
+  Italia https://it.ivao.aero/»; ramo `fix/footer-ivao-italy`). Voce «IVAO Italia» / «IVAO Italy» fra IVAO e la
+  wiki, scheda nuova come le altre. Test del piè di pagina aggiornato (conteggio invariato, Ui 1888). A schermo in
+  italiano: tre collegamenti nell'ordine giusto.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: da fondere `fix/enti-acc` (S53–S55) e poi `fix/richieste-campo` (S56, costruito sopra); dopo la
   fusione si torna su `sito/lavori`. Futuro: vIPI ACC legata all'ACC (`lavori-aperti.md`, Sito), secondo canale
