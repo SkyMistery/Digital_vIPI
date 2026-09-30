@@ -348,6 +348,7 @@
   <data name="Live_Delegated" xml:space="preserve"><value>delegated</value></data>
   <data name="Live_CollapsedBody" xml:space="preserve"><value>Collapsed because a sector of &lt;b&gt;{0}&lt;/b&gt; is online (soft collapse). Frequencies for the handoff remain below.</value></data>
   <data name="Live_TransfersTitle" xml:space="preserve"><value>Transfers · where I hand off traffic</value></data>
+  <data name="Live_InDevelopment" xml:space="preserve"><value>In development</value></data>
   <data name="Live_TransfersHint" xml:space="preserve"><value>An internal unit shows up only when someone is online; traffic to an external unit is always transferred, released at the agreed level. Whoever is offline is greyed out: that traffic stays with you.</value></data>
   <data name="Live_FilterApt" xml:space="preserve"><value>Filter by airport</value></data>
   <data name="Live_FilterClear" xml:space="preserve"><value>Clear the filter</value></data>
