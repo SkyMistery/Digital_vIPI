@@ -523,6 +523,12 @@
 :where(.vipi-root) .svc-login .ic{color:var(--accent)}
 :where(.vipi-root) .svc-login .h-card{margin:0}
 :where(.vipi-root) .svc-login p{margin:0 0 6px}
+/* Il titolo del documento, dall'elenco Documenti (30 settembre 2026). */
+:where(.vipi-root) .struct .ver-rename{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 10px}
+:where(.vipi-root) .struct .ver-rename label{flex-basis:100%;font-size:12.5px;color:var(--ink-soft)}
+:where(.vipi-root) .struct .ver-rename .app-in{flex:1 1 260px;min-width:0}
+:where(.vipi-root) .struct .ver-rename .ver-rename-acts{display:flex;gap:8px}
+:where(.vipi-root) .struct .ver-rename .help{flex-basis:100%;margin:0}
 /* Chiavi API: le spunte dei permessi in colonna, casella a sinistra del nome. ⚠️ `.field input` del tema allarga
    ogni input al 100%, anche le caselle: senza questa regola la casella stava al centro e il nome nell'angolo. */
 :where(.vipi-root) .struct .perm-form .api-eps{border:0;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:6px}

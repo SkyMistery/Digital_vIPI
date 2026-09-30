@@ -1841,6 +1841,16 @@
   (VID dall'utente corrente, `IRegistroAccessi.MieiAsync`, mai da parametro), rimandi alle statistiche ATC e ai dati
   staff, strada per la cancellazione. Link nel piè di pagina e dall'informativa. Ramo `fix/miei-dati`, in fila su
   `fix/attesa-bunit`. A schermo su DB vuoto (anche 375 px). Test: App 3159, Infra 2056, Ui 1922.
+- ✅ **S71** il titolo dei documenti si cambia (30-set, committente: il titolo della vIPI di LIML è «MIlano Linate»).
+  Il titolo si scriveva solo alla nascita (per uno scalo `vIPI — {ICAO} {nome in anagrafica}`) e nessuna pagina lo
+  cambiava. Ora «Titolo» nell'elenco Documenti (`VersioniPage`), a chi può gestire il documento: modulo sotto la
+  testata, spazi ripuliti, vuoto e oltre 200 caratteri rifiutati, stessi cancelli di «Nascondi» (almeno Editor, nessun
+  lock altrui), audit col titolo di prima (`DocumentAdminService.SetTitleAsync`, `EfDocumentAdminRepository`). Vale
+  subito nell'elenco, nell'API degli aeroporti e nel vAWOS; pagina pubblica e ricerca leggono il titolo della release
+  e cambiano alla prossima pubblicazione (visto a schermo: la nota sotto il campo diceva il contrario per la ricerca,
+  corretta). **A schermo** su copia del DB (conservata su richiesta del committente): LIML rinominata, vAWOS «LIML —
+  Milano Linate». Nella copia anche il **vSOP MIL di LIML** ha «MIlano». Ramo `fix/titolo-documento`, in fila su
+  `fix/miei-dati`. Test: Infra 2056 → 2063; otto finti di test allineati all'interfaccia.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

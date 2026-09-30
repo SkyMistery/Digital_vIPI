@@ -568,6 +568,7 @@ public class DocumentUnionServiceTests
         public Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SetLanguageAsync(ManagedDocRef doc, Language language, bool locked, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task SetTitleAsync(ManagedDocRef doc, string title, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task DeleteAsync(ManagedDocRef doc, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
     }

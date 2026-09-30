@@ -310,6 +310,7 @@ public class EfStatoTraduzioneTests : IAsyncLifetime
         public Task SetLanguageAsync(ManagedDocRef doc, Language language, bool locked, int actorUserId,
             CancellationToken ct = default) => throw new NotSupportedException();
 
+        public Task SetTitleAsync(ManagedDocRef doc, string title, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default) =>
             throw new NotSupportedException();
 

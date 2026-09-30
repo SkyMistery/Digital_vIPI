@@ -163,6 +163,21 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task SetTitleAsync(ManagedDocRef doc, string title, int actorUserId, CancellationToken ct = default)
+    {
+        if (await IdDelDocumentoAsync(doc, ct) is not int id) return;
+        var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (d is null) return;
+        // Il non-evento non si scrive, come per «nascosto» e per la lingua.
+        if (string.Equals(d.Title, title, StringComparison.Ordinal)) return;
+
+        var prima = d.Title;
+        d.Title = title;
+        AuditScribe.Write(_db, actorUserId, AuditAction.Update, "Document", id.ToString(),
+            new { Title = title, TitoloPrima = prima, Kind = doc.Kind.ToString(), Acc = await GetAccCodeAsync(doc, ct) });
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default)
     {
         // Post-08 tutti i tipi sono su Document → un solo ramo: il flag vive sul Document.

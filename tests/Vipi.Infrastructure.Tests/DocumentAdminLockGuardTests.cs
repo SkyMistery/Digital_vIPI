@@ -171,6 +171,62 @@ public class DocumentAdminLockGuardTests : IAsyncLifetime
         Assert.True(d.LanguageLocked);
     }
 
+    // ─── Il titolo (30 settembre 2026: «vIPI — LIML MIlano Linate» non si poteva correggere) ────────────────
+
+    [Fact]
+    public async Task Il_titolo_si_cambia_ripulito_e_resta_nell_audit_col_titolo_di_prima()
+    {
+        await Servizio(Io).SetTitleAsync(_doc, "  vIPI —   Roma   Ciampino ");
+
+        Assert.Equal("vIPI — Roma Ciampino", (await RileggiAsync()).Title);
+        var voce = Assert.Single(await _db.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityType == "Document" && a.EntityId == _docId.ToString()).ToListAsync());
+        Assert.Equal(Io, voce.UserId);
+        Assert.Contains("vIPI Roma", voce.DetailsJson);            // quello di prima
+        Assert.Contains("vIPI — Roma Ciampino", voce.DetailsJson);  // quello nuovo
+    }
+
+    [Fact]
+    public async Task Lo_stesso_titolo_non_e_un_atto_e_non_si_scrive()
+    {
+        await Servizio(Io).SetTitleAsync(_doc, "vIPI Roma");
+        Assert.False(await _db.AuditLogs.AnyAsync(a => a.EntityType == "Document"));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Un_titolo_vuoto_si_rifiuta(string titolo)
+    {
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => Servizio(Io).SetTitleAsync(_doc, titolo));
+        Assert.Equal("vIPI Roma", (await RileggiAsync()).Title);
+    }
+
+    [Fact]
+    public async Task Un_titolo_troppo_lungo_si_rifiuta()
+    {
+        var lungo = new string('x', DocumentAdminService.TitoloMassimo + 1);
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => Servizio(Io).SetTitleAsync(_doc, lungo));
+        Assert.Equal("vIPI Roma", (await RileggiAsync()).Title);
+    }
+
+    [Fact]
+    public async Task ConLockAltrui_IlTitoloNonSiCambia()
+    {
+        await LockA(Altri);
+
+        await Assert.ThrowsAsync<EditConflictException>(() => Servizio(Io).SetTitleAsync(_doc, "vIPI Roma nuova"));
+        Assert.Equal("vIPI Roma", (await RileggiAsync()).Title);
+    }
+
+    [Fact]
+    public async Task Chi_non_e_editor_non_cambia_il_titolo()
+    {
+        var servizio = new DocumentAdminService(TestReleaseTargets.AdminRepo(_db), new AuthzFinta(Io, puo: false), _editing);
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => servizio.SetTitleAsync(_doc, "vIPI Roma nuova"));
+        Assert.Equal("vIPI Roma", (await RileggiAsync()).Title);
+    }
+
     /// <summary>Autorizzazione finta: il gate ACC è provato altrove, qui interessa solo il lock.</summary>
     private sealed class AuthzFinta : IEditAuthorizationService
     {

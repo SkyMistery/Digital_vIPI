@@ -1986,6 +1986,11 @@
   <data name="Ver_ReleasePublishedCycle" xml:space="preserve"><value>Release published at cycle {0}.</value></data>
   <data name="Ver_DocShown" xml:space="preserve"><value>Document shown.</value></data>
   <data name="Ver_DocHidden" xml:space="preserve"><value>Document hidden.</value></data>
+  <data name="Ver_Rename" xml:space="preserve"><value>Title</value></data>
+  <data name="Ver_RenameTitle" xml:space="preserve"><value>Change the document title</value></data>
+  <data name="Ver_RenameLabel" xml:space="preserve"><value>Document title</value></data>
+  <data name="Ver_RenameHelp" xml:space="preserve"><value>Applies right away to the list, vAWOS and the airports API. The public page and search show the release's title: they change at the next publication.</value></data>
+  <data name="Ver_Renamed" xml:space="preserve"><value>Title changed.</value></data>
   <data name="Ver_DeleteConfirm" xml:space="preserve"><value>Permanently delete «{0}»? The operation is irreversible (removes versions and releases).</value></data>
   <data name="Ver_DocDeleted" xml:space="preserve"><value>Document deleted.</value></data>
   <data name="Ver_Refresh" xml:space="preserve"><value>Refresh</value></data>

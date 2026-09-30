@@ -169,6 +169,7 @@ public class EditorTaskLinksTests
             Task.FromResult<DocumentLanguageState?>(null);
         public Task SetLanguageAsync(ManagedDocRef doc, Vipi.Domain.Language language, bool locked, int actorUserId, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task SetTitleAsync(ManagedDocRef doc, string title, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task DeleteAsync(ManagedDocRef doc, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
     }

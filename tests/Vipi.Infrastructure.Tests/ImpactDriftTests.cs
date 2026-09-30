@@ -546,6 +546,7 @@ public class ImpactDriftTests : IAsyncLifetime
             throw new NotSupportedException();
         public Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default) =>
             Task.FromResult<string?>("LIRR");
+        public Task SetTitleAsync(ManagedDocRef doc, string title, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default) => Task.CompletedTask;
         public Task DeleteAsync(ManagedDocRef doc, int actorUserId, CancellationToken ct = default) => Task.CompletedTask;
     }
