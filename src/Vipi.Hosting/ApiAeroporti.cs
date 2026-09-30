@@ -36,7 +36,7 @@ namespace Vipi.Hosting;
 /// </summary>
 public static class ApiAeroporti
 {
-    public const string Radice = "/vsop/api/v1/airports";
+    public const string Radice = ApiRotte.Aeroporti;
 
     /// <summary>Tetti per chiave: un programma che integra legge gli scali che gli servono, non tutti ogni minuto.
     /// Una richiesta costa l'elenco dei documenti più il profilo dello scalo.</summary>

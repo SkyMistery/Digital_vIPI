@@ -517,6 +517,20 @@
   font-size:12.5px;color:var(--ink-soft);margin-bottom:3px}
 :where(.vipi-root) .struct .perm-form .app-in{width:100%}
 :where(.vipi-root) .struct .perm-form .perm-go{width:100%;margin-top:4px}
+/* Chiavi API: le spunte dei permessi in colonna, casella a sinistra del nome. ⚠️ `.field input` del tema allarga
+   ogni input al 100%, anche le caselle: senza questa regola la casella stava al centro e il nome nell'angolo. */
+:where(.vipi-root) .struct .perm-form .api-eps{border:0;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:6px}
+:where(.vipi-root) .struct .perm-form .api-eps legend{font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;padding:0}
+:where(.vipi-root) .struct .perm-form .api-eps label.api-ep{display:flex;align-items:center;gap:8px;margin:0;font-size:13.5px;
+  color:var(--ink);cursor:pointer}
+:where(.vipi-root) .struct .perm-form .api-eps label.api-ep input{width:auto;flex:none;margin:0;padding:0}
+/* Gli indirizzi delle API: uno per riga, l'URL va a capo invece di allargare la pagina sul telefono. */
+:where(.vipi-root) .struct .api-routes .api-routes-h{font-size:17px;margin:0 0 4px}
+:where(.vipi-root) .struct .api-routes .api-route-grp{font-size:14px;margin:14px 0 6px}
+:where(.vipi-root) .struct .api-routes .api-route{padding:8px 0;border-top:1px solid var(--line)}
+:where(.vipi-root) .struct .api-routes .api-route-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+:where(.vipi-root) .struct .api-routes .api-route-url{word-break:break-all;user-select:all}
+:where(.vipi-root) .struct .api-routes .api-route-hdr{margin:0 0 6px;white-space:pre-wrap;word-break:break-all}
 /* «Un ACC in più a chi c'è già»: menu e tasto sulla stessa riga, in fondo all'elenco dei suoi permessi. */
 :where(.vipi-root) .struct .perm-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;
   border-top:1px solid var(--line)}

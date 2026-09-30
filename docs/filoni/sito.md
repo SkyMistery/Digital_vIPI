@@ -1793,6 +1793,16 @@
   LIMS non hanno settore padre (non compaiono come chip da nessuna area: dato), e le piste di LIRS sono «03/21» in
   anagrafica e «03L/21R» nelle SID, quindi il filtro sulla pista suggerita dice «Nessuna SID per la pista 21» (dato).
   Test: App 3150 → 3155. Codice comune `Vipi.Application` (AwosGate, Live, PisteDalPubblicato).
+- ✅ **S66** pagina Chiavi API (30-set, committente: «mettili tutti nella pagina chiavi API, e sistema il form: il flag è a
+  centro pagina e il nome schiacciato nell'angolino»). Ramo `fix/pagina-chiavi-api`. Sezione «Indirizzi delle API» per
+  permesso, con metodo, indirizzo completo del sito (`NavigationManager.BaseUri`), descrizione ed esempio, più i due
+  header e i codici di risposta. Gli indirizzi stanno in UN posto, `ApiRotte` (Domain), e le rotte vere li usano
+  (`MapGet(ApiRotte.Sessioni)`, `MapPost(ApiRotte.Trasferimenti)`, `ApiAeroporti.Radice = ApiRotte.Aeroporti`): la
+  pagina non può dare un indirizzo a cui il server non risponde. Guardia in `SharedResourceIntegrityTests`: ogni
+  indirizzo ha la sua descrizione in due lingue, ogni permesso almeno un indirizzo. Il form: `.field input{width:100%}`
+  del tema allargava anche le caselle; ora `.api-eps`/`.api-ep` in `vipi-theme.css`, casella a sinistra del nome.
+  **A schermo** su DB vuoto: spunte allineate, sezione leggibile, 375 px senza scorrimento di lato, inglese, creazione
+  di una chiave «Aeroporti» funzionante. Test: Ui 1904 → 1905. Codice comune `Vipi.Domain` (ApiRotte).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

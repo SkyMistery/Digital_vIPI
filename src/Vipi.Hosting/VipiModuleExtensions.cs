@@ -518,7 +518,7 @@ public static class VipiModuleExtensions
         // passaggio. Una chiave presentata però si verifica sempre, e una chiave sbagliata è un 401 comunque.
         // Tetti con lo stesso limitatore del bridge, per chiave quando c'è: qui una richiesta costa una COUNT
         // e una pagina di righe, non un file.
-        endpoints.MapGet("/vsop/api/v1/atc/sessions", async (
+        endpoints.MapGet(Vipi.Domain.Entities.ApiRotte.Sessioni, async (
             HttpContext ctx,
             IAtcArchiveQueries archivio,
             RequestRateLimiter limiter,
@@ -580,7 +580,7 @@ public static class VipiModuleExtensions
 
         if (bridge.Enabled)
         {
-            endpoints.MapPost("/vsop/api/v1/transfers/resolve", async (
+            endpoints.MapPost(Vipi.Domain.Entities.ApiRotte.Trasferimenti, async (
                 Vipi.AuroraBridge.Contracts.TransferResolveRequest request,
                 HttpContext ctx,
                 Vipi.Application.Content.ITransferMatchService service,
