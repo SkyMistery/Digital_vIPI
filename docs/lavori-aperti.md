@@ -43,7 +43,11 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A145 — 1.54.3: crediti nel piè di pagina (S82) (1 ottobre 2026)
+### ✅ A145 — 1.54.3 ONLINE: crediti nel piè di pagina (S82) (1 ottobre 2026)
+
+✅ Online il 1 ottobre 2026 (avvio 07:57:41Z, pid 1104952). Da fuori porta «Entra con IVAO», Ricerca 401, Healthy,
+`vipi-theme.css?v=eb3a1006` (quello del pacchetto). Scarico di `diagnostica/` dopo il carico: **nessun errore** dal
+30-set 19:40Z (stavolta niente 500 durante lo scambio); una sola disconnessione `rifiutata`, quella del riavvio.
 
 PATCH **senza migrazioni**, su 1.54.2 (`1a843c2`). Timbro **`1.54.3 · b6ae28b`**. Fuso da `fix/crediti-test` @
 `1950d288` (CI verde run 36830417031), senza conflitti. **S82**, solo Vipi.Ui: nel piè di pagina, sotto «Parte della
@@ -53,7 +57,7 @@ IVAO», «Realizzato da Carmine (704798) · Testato da Nicola (201143) e Carmine
 Zip 3,04 MB, sha256 `564f673234b60b46199fdc80b3df3558f2503832e818bccabd9e32332b75e292`. Build Release senza avvisi,
 test verdi, conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`), riga dei
 crediti nel piè di pagina. Il foglio ora dice di non aprire il sito fra le rinomine e il `restart.txt` (§A144).
-Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.3.md`. ▶ Caricamento del committente.
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.3.md`.
 
 ### ✅ A144 — 1.54.2 ONLINE: Trasferimenti della vista live solo allo staff (S81) (30 settembre 2026)
 

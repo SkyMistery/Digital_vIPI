@@ -6,8 +6,9 @@
 >
 > ## ▶ Il punto — 1 ottobre 2026, mattina
 >
-> **📦 Pronto da caricare: 1.54.3** (§A145, timbro `1.54.3 · b6ae28b`, 9 file, zip `564f6732…`, PATCH senza
-> migrazioni): Sito S82, i crediti nel piè di pagina. Online resta 1.54.2 finché il committente non carica.
+> **✅ Online: 1.54.3** (da fuori porta, Healthy e CSS del pacchetto; scarico pulito, nessun errore dal carico;
+> **in `main` non resta codice fuori pacchetto**) (§A145, timbro `1.54.3 · b6ae28b`, 9 file, zip `564f6732…`, PATCH senza
+> migrazioni): Sito S82, i crediti nel piè di pagina.
 > ▶ LIRE/LIBG aspettano il SOD.
 >
 > ## Il punto — 30 settembre 2026, ultima
