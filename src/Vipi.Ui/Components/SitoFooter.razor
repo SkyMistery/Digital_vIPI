@@ -49,11 +49,22 @@
                     <span class="ver-chip" title="@VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
                 }
             </span>
-            @* Chi l'ha fatto (committente, 29 settembre 2026): nome e VID portano al suo profilo IVAO. *@
-            <span>
-                @L["Foot_PartOf"]
-                <span class="sf-sep" aria-hidden="true">·</span>
-                @L["Foot_BuiltBy"] <a href="@Autore.Profilo" target="_blank" rel="noopener">@Autore.Nome (@Autore.Vid)</a>
+            @* Chi l'ha fatto (committente, 29 settembre 2026) e chi l'ha provato (1 ottobre 2026: Nicola ha fatto un collaudo
+               intensivo). Ogni nome porta al profilo IVAO del membro, VID compreso anche se ripetuto (committente).
+               La riga dei crediti sta SOTTO «Parte della IVAO», su riga sua. *@
+            <span class="sf-cred">
+                <span>@L["Foot_PartOf"]</span>
+                <span>
+                    @L["Foot_BuiltBy"] @Membro(Autore)
+                    <span class="sf-sep" aria-hidden="true">·</span>
+                    @* ⚠️ Gli spazi scritti: dentro il ciclo Razor taglia quelli del sorgente («Tested byNicola…&Carmine»). *@
+                    @L["Foot_TestedBy"]@(" ")
+                    @for (var i = 0; i < Collaudatori.Length; i++)
+                    {
+                        if (i > 0) { @(" " + L["Foot_And"].Value + " ") }
+                        @Membro(Collaudatori[i])
+                    }
+                </span>
             </span>
         </div>
     </div>
@@ -72,8 +83,20 @@
     private string NomeDivisione => $"IVAO {Divisione.Value.Name}";
 
     /// <summary>Chi ha realizzato il sito, e il suo profilo IVAO (la pagina membro passa dal login di IVAO).</summary>
-    internal static readonly (string Nome, int Vid, string Profilo) Autore =
-        ("Carmine", 704798, "https://ivao.aero/Login.aspx?r=Member.aspx?Id=704798");
+    internal static readonly (string Nome, int Vid, string Profilo) Autore = Persona("Carmine", 704798);
+
+    /// <summary>Chi ha collaudato il sito (committente, 1 ottobre 2026), nell'ordine in cui si leggono.</summary>
+    internal static readonly (string Nome, int Vid, string Profilo)[] Collaudatori =
+    {
+        Persona("Nicola", 201143),
+        Persona("Carmine", 704798),
+    };
+
+    private static (string Nome, int Vid, string Profilo) Persona(string nome, int vid) =>
+        (nome, vid, $"https://ivao.aero/Login.aspx?r=Member.aspx?Id={vid}");
+
+    private static RenderFragment Membro((string Nome, int Vid, string Profilo) p) =>
+        @<a href="@p.Profilo" target="_blank" rel="noopener">@p.Nome (@p.Vid)</a>;
 
     /// <summary>I collegamenti di IVAO: il sito, quello della divisione italiana (committente, 30 settembre 2026), e la
     /// pagina della wiki con regole, regolamento e privacy. Le etichette si traducono, gli indirizzi no (la wiki è in

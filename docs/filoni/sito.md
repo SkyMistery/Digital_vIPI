@@ -1899,6 +1899,9 @@
 - ✅ **S81** vista live: la finestra «Trasferimenti» solo allo staff di divisione (30-set, committente: «feature in
   sviluppo»). Agli altri resta la riga col titolo e la sola etichetta «In sviluppo» (senza frase, committente), che non si apre (nessun contenuto nel markup).
   Test Ui 1930 → 1932. Ramo `fix/trasferimenti-staff`.
+- ✅ **S82** crediti nel piè di pagina (1-ott, committente): sotto «Parte della IVAO», su riga sua, «Realizzato da
+  Carmine (704798) · Testato da Nicola (201143) e Carmine (704798)»; ogni nome al profilo IVAO del membro.
+  Ramo `fix/crediti-test`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

@@ -5353,6 +5353,8 @@
 :where(.vipi-root) .sito-foot .sf-bottom{margin-top:30px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2);display:flex;flex-wrap:wrap;
   justify-content:space-between;align-items:center;gap:8px 24px;font-size:13px}
 :where(.vipi-root) .sito-foot .sf-sep{margin:0 4px}
+:where(.vipi-root) .sito-foot .sf-cred{display:flex;flex-direction:column;gap:3px;text-align:right}
+:where(.vipi-root) .sito-foot .sf-cred a{white-space:nowrap}
 /* La versione: monospazio perche' e' un codice, e le cifre in colonna si leggono a colpo d'occhio. Si copia
    (serve dentro una segnalazione), quindi niente user-select:none. Vestita come i comandi della barra. */
 :where(.vipi-root) .sito-foot .ver-chip{font:12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--on-dark-soft);
