@@ -2089,12 +2089,12 @@
 :where(.vipi-root) .wrap.live.pw-600 .live-chain:not(.open)>:not(.lc-toggle){display:none}
 /* La ricerca rapida della vista live (LiveSearchPanel, 1 ottobre 2026): il campo in coda alle chip, risultati a
    righe-tasto, una tabella per le aree. Il campo ha la forma di una chip, per stare nella riga senza romperla. */
-:where(.vipi-root) .apt-quick .lsr-field{display:inline-flex;align-items:center;gap:4px}
-:where(.vipi-root) .apt-quick .lsr-field input{width:210px;margin:0;padding:6px 14px;border-radius:20px;font-size:13px;font-family:var(--font-body);
+:where(.vipi-root) .lsr-field{display:inline-flex;align-items:center;gap:4px}
+:where(.vipi-root) .lsr-field input{width:210px;margin:0;padding:6px 14px;border-radius:20px;font-size:13px;font-family:var(--font-body);
   border:1px solid var(--line);background:var(--surface);color:var(--ink)}
-:where(.vipi-root) .apt-quick .lsr-field input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
-:where(.vipi-root) .wrap.pw-600 .apt-quick .lsr-field{flex:1 1 100%}
-:where(.vipi-root) .wrap.pw-600 .apt-quick .lsr-field input{width:100%}
+:where(.vipi-root) .lsr-field input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
+:where(.vipi-root) .wrap.pw-600 .lsr-field{flex:1 1 100%}
+:where(.vipi-root) .wrap.pw-600 .lsr-field input{width:100%}
 :where(.vipi-root) .live-search .lsr-hint{font-size:13px;margin:6px 0 0}
 :where(.vipi-root) .live-search .lsr-h{font-family:var(--font-head);font-weight:700;font-size:13px;margin:14px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 :where(.vipi-root) .live-search .lsr-all{padding:3px 10px;font-size:12.5px}

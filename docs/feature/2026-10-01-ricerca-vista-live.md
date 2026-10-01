@@ -90,6 +90,8 @@ visibile, in un tasto dentro la scheda.
 - Il dettaglio di una postazione si ricalcola a ogni giro del feed (`RicercaLiveFiltro.Copertura`, pura).
 - Le sole cifre («128») cercano frequenze **e** nomi (l'area P128); le cifre col punto («128.») solo frequenze.
 - Uno scalo aperto dalla ricerca mostra ICAO, nome e ACC accanto a «← Risultati».
+- **TWR, GND, DEL** (committente): non hanno la riga delle chip, quindi il campo sta in testata, accanto alla postazione;
+  scrivendo, i risultati prendono il posto della «Vista rapida aeroporto» (frequenze e trasferimenti restano sotto).
 
 ## 5. Proposta, non fatta
 

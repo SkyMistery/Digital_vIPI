@@ -1967,7 +1967,9 @@
   clic; (4) il dettaglio di una postazione si ricalcola a ogni giro del feed; (5) le sole cifre («128») cercano anche
   i nomi (area P128), solo le cifre col punto sono soltanto frequenza; (6) verificata a schermo la finestra Trasferimenti
   in compatta (36 righe, una riga ciascuna); (7) pannello senza documento senza «vista rapida» in italiano fisso, e
-  nella ricerca ICAO/nome/ACC accanto a «Risultati». Il punto 8 (ricerca anche su TWR/GND/DEL) da discutere. App 3190.
+  nella ricerca ICAO/nome/ACC accanto a «Risultati». App 3190. (8) deciso col committente: sulle postazioni
+  d'aeroporto (TWR/GND/DEL) il campo sta in testata accanto alla postazione, e i risultati prendono il posto della vista
+  rapida dello scalo.
   Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per

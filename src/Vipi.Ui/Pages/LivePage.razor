@@ -54,6 +54,12 @@
                 <span class="live-badge off" title="@_view.Callsign · @L["Live_Offline"]"><span class="dot"></span> <span class="lb-t">@_view.Callsign · @L["Live_Offline"]</span></span>
             }
         }
+        @* TWR, GND, DEL: la riga delle chip non c'è (lo scalo è uno), quindi il campo di ricerca sta qui, accanto alla
+           postazione (committente, 1 ottobre 2026). Lo stesso campo, lo stesso pannello. *@
+        @if (_view?.AirportIcao is not null)
+        {
+            @CampoRicerca
+        }
         @* L'ora Z non sta più qui: è nella barra in alto, su ogni pagina (SopLayout, 1 ottobre 2026). *@
         <SimDisclaimer />
         <span class="muted" style="font-size:13px">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @FeedAge()</span>
@@ -204,7 +210,13 @@
             </div>
         }
 
-        @if (_view.AirportIcao is { } icao)
+        @if (_view.AirportIcao is not null && InRicerca)
+        {
+            @* Postazione d'aeroporto: il campo sta in testata, e i risultati prendono il posto della vista rapida dello
+               scalo; frequenze e trasferimenti restano sotto. Svuotando il campo lo scalo torna. *@
+            @PannelloRicerca
+        }
+        else if (_view.AirportIcao is { } icao)
         {
             <details class="acc-item" open data-persist="live-apt">
                 @* L'ICAO accanto al titolo e della sua misura: il pannello qui sotto non lo ripete più (committente, 1 ottobre 2026). *@
@@ -230,25 +242,15 @@
                           @onclick="() => { _selectedApt = ic; SvuotaRicerca(); }">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
                 }
                 @* Il campo, in coda a tutte le chip (committente, 1 ottobre 2026: non una chip che apre la ricerca, il
-                   campo stesso). 🔴 Niente `value`: come ogni campo che si scrive dal server mentre si digita
-                   (AirportQuickPanel), per svuotarlo si cambia `@key`. Scrivere toglie lo scalo scelto: i risultati
-                   compaiono al posto del settore, e svuotare il campo ci torna. *@
-                <span class="lsr-field">
-                    <input @key="_ricercaGen" type="search" autocomplete="off" @oninput="Ricerca"
-                           placeholder="🔎 @L["Lsr_Field"]" aria-label="@L["Lsr_Placeholder"]" title="@L["Lsr_Placeholder"]" />
-                    @if (InRicerca)
-                    {
-                        <button type="button" class="btn ghost sid-find-x" @onclick="SvuotaRicerca" title="@L["Aqp_ClearSearch"]">✕</button>
-                    }
-                </span>
+                   campo stesso). Scrivere toglie lo scalo scelto: i risultati compaiono al posto del settore, e svuotare
+                   il campo ci torna. *@
+                @CampoRicerca
             </div>
         }
 
         @if (InRicerca && _view.AirportIcao is null)
         {
-            @* I punti di trasferimento solo allo staff di divisione, come la finestra «Trasferimenti» qui sotto (S81). *@
-            <LiveSearchPanel Query="@_ricerca" ConTrasferimenti="Authz.IsDivisionStaff" Online="_snapshot.Callsigns" PuoAprire="PuoAprire"
-                             FeedScaduto="_snapshot.Expired" />
+            @PannelloRicerca
         }
         else if (_selectedApt is { } sel)
         {
@@ -326,6 +328,24 @@
     /// <summary>Il testo del campo di ricerca in coda alle chip: non vuoto = i risultati al posto del settore.</summary>
     private string _ricerca = "";
     private int _ricercaGen;
+
+    /// <summary>
+    /// Il campo di ricerca: in coda alle chip (APP, ACC) o in testata accanto alla postazione (TWR, GND, DEL). Uno solo,
+    /// scritto qui. 🔴 Niente `value`: come ogni campo che si scrive dal server mentre si digita (AirportQuickPanel), per
+    /// svuotarlo si cambia `@key`.
+    /// </summary>
+    private RenderFragment CampoRicerca => @<span class="lsr-field">
+        <input @key="_ricercaGen" type="search" autocomplete="off" @oninput="Ricerca"
+               placeholder="🔎 @L["Lsr_Field"]" aria-label="@L["Lsr_Placeholder"]" title="@L["Lsr_Placeholder"]" />
+        @if (InRicerca)
+        {
+            <button type="button" class="btn ghost sid-find-x" @onclick="SvuotaRicerca" title="@L["Aqp_ClearSearch"]">✕</button>
+        }
+    </span>;
+
+    /// <summary>I risultati. I punti di trasferimento solo allo staff di divisione, come la finestra «Trasferimenti» (S81).</summary>
+    private RenderFragment PannelloRicerca => @<LiveSearchPanel Query="@_ricerca" ConTrasferimenti="Authz.IsDivisionStaff"
+        Online="_snapshot.Callsigns" PuoAprire="PuoAprire" FeedScaduto="_snapshot.Expired" />;
     private bool InRicerca => _ricerca.Trim().Length > 0;
 
     private void Ricerca(ChangeEventArgs e)
