@@ -2006,21 +2006,27 @@
    Scorre via con la pagina. `max-height` per il telefono in orizzontale, dove anche un tablet e' basso. */
 :where(.vipi-root) .wrap.pw-760 .reduced-top{position:static}
 @media (max-height:520px){:where(.vipi-root) .reduced-top{position:static}}
-:where(.vipi-root) .reduced-top .live-pick input{margin-bottom:0;padding:4px 10px;font-size:12.5px}
+:where(.vipi-root) .reduced-top .live-pick input{margin-bottom:0;padding:4px 10px;font-size:12.5px;font-family:var(--font-body);
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .reduced-top .live-pick input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
 /* Il tasto «Compatta»: stava in uno `style` in linea, che nessuna regola del foglio puo' allargare al tocco. */
 :where(.vipi-root) .reduced-top .live-dense{padding:3px 10px;font-size:12.5px}
 
 /* Modalità compatta (persistita): la vista live vive spesso su un secondo monitor piccolo, dove servono
-   più righe a schermo che aria. Tocca solo densità, mai contenuto. */
-.vipi-dense .vipi-root{font-size:14px}
+   più righe a schermo che aria. Tocca solo densità, mai contenuto.
+   🔴 Solo il CONTENUTO della pagina (committente, 1 ottobre 2026): `#vipi-main`, non la barra in alto né il piè di
+   pagina, e non il titolo della pagina. Prima `.vipi-dense .vipi-root` prendeva tutto, e il titolo «IVAO» del piè
+   di pagina (un <h2>) passava a 23px. `:where(#vipi-main)` per non cambiare chi vince: la specificità resta quella
+   di prima. */
+.vipi-dense .vipi-root :where(#vipi-main){font-size:14px}
 /* ⚠️ `.page-h1` accanto a `h2` e non per conto suo: e' la stessa testata, che ha solo cambiato tag
    (vedi il commento alla classe, in cima al foglio). Senza, in compatta restava a 32px. */
 /* ⚠️ `:not()` sulle due classi: sono titoli di sezione e di scheda che hanno preso il tag <h2> per la
    gerarchia, non per l'aspetto. Prima erano <h3>/<h4>, che la compatta non tocca — e non deve toccarli
    nemmeno adesso, o si rimpicciolirebbero solo perche' e' cambiato il tag. */
-.vipi-dense .vipi-root h2:not(.h-sect):not(.h-card),.vipi-dense .vipi-root .page-h1{font-size:23px}
-.vipi-dense .vipi-root table{font-size:12.5px}
-.vipi-dense .vipi-root th,.vipi-dense .vipi-root td{padding:4px 7px}
+.vipi-dense .vipi-root :where(#vipi-main) h2:not(.h-sect):not(.h-card):not(.page-h1){font-size:23px}
+.vipi-dense .vipi-root :where(#vipi-main) table{font-size:12.5px}
+.vipi-dense .vipi-root :where(#vipi-main) th,.vipi-dense .vipi-root :where(#vipi-main) td{padding:4px 7px}
 :where(.vipi-root) .vipi-dense .acc-item>summary{padding:8px 12px}
 :where(.vipi-root) .vipi-dense .acc-item .body{padding:2px 12px 10px}
 :where(.vipi-root) .vipi-dense .rap-box{padding:5px 10px}
@@ -2369,7 +2375,11 @@
 
 /* Ricerca punto/SID sopra la tabella rapida: una riga sola, il campo prende lo spazio che resta. */
 :where(.vipi-root) .sid-find{display:flex;align-items:center;gap:8px;margin:0 0 8px}
-:where(.vipi-root) .sid-find input{flex:1 1 auto;min-width:0;margin-bottom:0;padding:4px 10px;font-size:13px}
+:where(.vipi-root) .sid-find input{flex:1 1 auto;min-width:0;margin-bottom:0;padding:7px 10px;font-size:13px;
+  font-family:var(--font-body);border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .sid-find input::placeholder{color:var(--ink-faint)}
+/* Lo stesso anello degli altri campi (vid-find): era il bordo di sistema, grigio e squadrato (committente, 1 ottobre). */
+:where(.vipi-root) .sid-find input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
 :where(.vipi-root) .sid-find-x{flex:0 0 auto;padding:3px 9px;font-size:12.5px;line-height:1.2}
 :where(.vipi-root) .sid-find-n{flex:0 0 auto;font-size:12.5px;font-variant-numeric:tabular-nums}
 :where(.vipi-root) .sid-table .star{color:var(--ivao-yellow);font-size:14px}
@@ -5343,11 +5353,13 @@
 :where(.vipi-root) .sito-foot .sf-cols{display:flex;flex-wrap:wrap;justify-content:center;gap:28px 96px;text-align:center}
 :where(.vipi-root) .sito-foot .sf-about{max-width:340px;display:flex;flex-direction:column;align-items:center;gap:10px}
 :where(.vipi-root) .sito-foot .sf-about p{margin:0;line-height:1.5}
-:where(.vipi-root) .sito-foot .sf-brand{display:inline-flex;align-items:center;gap:8px;color:var(--on-brand);text-decoration:none;font-family:var(--font-head)}
+/* Il marchio e il titolo «IVAO» sono le due testate delle colonne (committente, 1 ottobre 2026: non erano allineati né
+   per misura né sulla stessa linea): stessa altezza (quella del logo), stessa famiglia e misura del testo. */
+:where(.vipi-root) .sito-foot .sf-brand{display:inline-flex;align-items:center;gap:8px;min-height:30px;color:var(--on-brand);text-decoration:none;font-family:var(--font-head);font-size:15px}
 :where(.vipi-root) .sito-foot .sf-brand .logo{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--on-brand),var(--on-dark-soft));color:var(--ivao-blue);display:grid;place-items:center;font-weight:800;font-size:11px}
 :where(.vipi-root) .sito-foot .sf-brand small{color:var(--on-dark-soft);font-size:12px}
 :where(.vipi-root) .sito-foot .sf-links{display:flex;flex-direction:column;align-items:center;gap:10px}
-:where(.vipi-root) .sito-foot .sf-h{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--on-brand)}
+:where(.vipi-root) .sito-foot .sf-h{margin:0;min-height:30px;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--on-brand)}
 :where(.vipi-root) .sito-foot a:not(.sf-brand){color:var(--on-dark-soft);text-decoration:none}
 :where(.vipi-root) .sito-foot a:not(.sf-brand):hover{color:var(--on-brand);text-decoration:underline}
 :where(.vipi-root) .sito-foot .sf-bottom a{color:var(--on-brand)}

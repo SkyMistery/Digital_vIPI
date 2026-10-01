@@ -1908,7 +1908,10 @@
   sola (`CercaProcedura.Combacia`) per ricerca e vista live: codice ALAX7G, nome completo ALAXI 7G con o senza
   spazio, fix, transition. Vista live: nota radio sopra le SID con l'esempio dalla prima SID dello scalo («AGNI7G si
   dice AGNIS 7G (AGNIS seven golf)»). A schermo su LIRN (copia del DB). App 3161 → 3171, Infra 2074 → 2075.
-  Ramo `fix/sid-ricerca`.
+  Poi, stesso ramo (committente, con schermate): campo «Cerca un punto o una SID» e selettore di postazione della
+  vista live con bordo, angoli e anello degli altri campi; nel piè di pagina marchio e titolo «IVAO» alla stessa
+  altezza e misura; il «Compatta» tocca solo `#vipi-main` (non barra, piè di pagina, titolo della pagina — prima il
+  titolo «IVAO» del piè di pagina, un <h2>, passava a 23px). Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
