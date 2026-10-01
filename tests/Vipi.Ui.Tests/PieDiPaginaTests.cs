@@ -78,10 +78,20 @@ public class PieDiPaginaTests : TestContext
     {
         var cut = Rendi(staff: false);
 
-        var autore = cut.FindAll(".sf-bottom a").Single(a => a.TextContent == "Carmine (704798)");
-        Assert.Equal("https://ivao.aero/Login.aspx?r=Member.aspx?Id=704798", autore.GetAttribute("href"));
-        Assert.Equal("_blank", autore.GetAttribute("target"));
-        Assert.Contains("Foot_BuiltBy", cut.Find(".sf-bottom").TextContent);
+        // Carmine due volte (realizzato e testato), Nicola una: ognuno al suo profilo IVAO (1 ottobre 2026).
+        var carmine = cut.FindAll(".sf-bottom a").Where(a => a.TextContent == "Carmine (704798)").ToList();
+        Assert.Equal(2, carmine.Count);
+        Assert.All(carmine, a =>
+        {
+            Assert.Equal("https://ivao.aero/Login.aspx?r=Member.aspx?Id=704798", a.GetAttribute("href"));
+            Assert.Equal("_blank", a.GetAttribute("target"));
+        });
+        var nicola = cut.FindAll(".sf-bottom a").Single(a => a.TextContent == "Nicola (201143)");
+        Assert.Equal("https://ivao.aero/Login.aspx?r=Member.aspx?Id=201143", nicola.GetAttribute("href"));
+        var testo = cut.Find(".sf-cred").TextContent;
+        Assert.Contains("Foot_BuiltBy", testo);
+        Assert.Contains("Foot_TestedBy Nicola (201143) Foot_And Carmine (704798)", System.Text.RegularExpressions.Regex.Replace(testo, @"\s+", " "));
+        Assert.True(testo.IndexOf("Foot_PartOf", StringComparison.Ordinal) < testo.IndexOf("Foot_BuiltBy", StringComparison.Ordinal));
     }
 
     [Fact]

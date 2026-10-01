@@ -143,6 +143,8 @@
   <data name="Foot_Rights" xml:space="preserve"><value>All rights reserved.</value></data>
   <data name="Foot_PartOf" xml:space="preserve"><value>Part of the International Virtual Aviation Organisation</value></data>
   <data name="Foot_BuiltBy" xml:space="preserve"><value>Built by</value></data>
+  <data name="Foot_TestedBy" xml:space="preserve"><value>Tested by</value></data>
+  <data name="Foot_And" xml:space="preserve"><value>&amp;</value></data>
   <data name="Foot_Ivao" xml:space="preserve"><value>IVAO</value></data>
   <data name="Foot_IvaoItaly" xml:space="preserve"><value>IVAO Italy</value></data>
   <data name="Ck_Title" xml:space="preserve"><value>Cookies</value></data>
