@@ -114,10 +114,13 @@ public sealed class EventKitService : IEventKitService
     private readonly int _maxBytes;
     private readonly Func<DateTime> _adesso;
     private readonly AccountEventoRegistro? _account;
+    private readonly IAccountEventoArchivio? _archivio;
 
     public EventKitService(IEventKitRepository repo, IEditAuthorizationService authz, EventKitVisibilityCache cache,
-        IOptions<MediaOptions> media, Func<DateTime>? adesso = null, AccountEventoRegistro? account = null)
+        IOptions<MediaOptions> media, Func<DateTime>? adesso = null, AccountEventoRegistro? account = null,
+        IAccountEventoArchivio? archivio = null)
     {
+        _archivio = archivio;
         _account = account;
         _repo = repo;
         _authz = authz;
@@ -186,7 +189,7 @@ public sealed class EventKitService : IEventKitService
                 $"At most {EventKitRules.MaxVidEvento} VIDs."));
 
         await _repo.SaveVidAsync(testo, id, chi, _adesso(), ct);
-        Cambiato();
+        await CambiatoAsync(ct);
         return vid.Count;
     }
 
@@ -212,7 +215,7 @@ public sealed class EventKitService : IEventKitService
             throw new Aor.ValidationException(Lingua("La fine deve venire dopo l'inizio.", "The end must come after the start."));
 
         await _repo.SaveHeaderAsync(nome, attivo, daUtc, aUtc, id, chi, _adesso(), ct);
-        Cambiato();
+        await CambiatoAsync(ct);
     }
 
     public async Task<int> AggiungiFileAsync(string etichetta, string? nota, string fileName, Stream contenuto,
@@ -292,10 +295,12 @@ public sealed class EventKitService : IEventKitService
     /// account dell'evento in uso. ⚠️ Il secondo pezzo è il cancello vero: chi spegne l'evento, o toglie un VID dalla
     /// lista, deve togliere SUBITO la vista live a chi lo stava usando — non alla fine dell'evento.
     /// </summary>
-    private void Cambiato()
+    private async Task CambiatoAsync(CancellationToken ct)
     {
         _cache.Svuota();
         _account?.Svuota();
+        // ⚠️ Anche la copia nel database: senza, il primo riavvio rimetterebbe dentro chi è appena stato mandato fuori.
+        if (_archivio is not null) await _archivio.SvuotaAsync(ct);
     }
 
 

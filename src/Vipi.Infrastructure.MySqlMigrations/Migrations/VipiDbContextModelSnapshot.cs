@@ -211,6 +211,22 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AccessiAlSito", (string)null);
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AccountEventoInUso", b =>
+                {
+                    b.Property<int>("VidPersonale")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ScadeUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("VidEvento")
+                        .HasColumnType("int");
+
+                    b.HasKey("VidPersonale");
+
+                    b.ToTable("AccountEventoInUso", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementAirport", b =>
                 {
                     b.Property<int>("Id")

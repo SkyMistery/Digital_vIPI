@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Domain;
 using Vipi.Infrastructure.Persistence;
@@ -23,6 +24,35 @@ public sealed class AccountEventoTracciaTests : IAsyncLifetime
     {
         await _db.DisposeAsync();
         await _conn.DisposeAsync();
+    }
+
+    /// <summary>
+    /// 🔴 Il riavvio (committente, 1 ottobre 2026): la copia nel database si scrive, si aggiorna, si toglie, e all'avvio
+    /// <see cref="AccountEventoAvvio"/> la rimette in un registro nuovo.
+    /// </summary>
+    [Fact]
+    public async Task L_archivio_si_scrive_si_toglie_e_all_avvio_rimette_in_piedi_il_registro()
+    {
+        var log = Microsoft.Extensions.Logging.Abstractions.NullLogger<EfAccountEventoArchivio>.Instance;
+        var archivio = new EfAccountEventoArchivio(_db, log);
+        var fine = DateTime.UtcNow.AddHours(3);
+        await archivio.SalvaAsync(704798, 600100, fine);
+        await archivio.SalvaAsync(704798, 600101, fine);    // stessa persona: si aggiorna, non si raddoppia
+        await archivio.SalvaAsync(123456, 600200, fine);
+        await archivio.TogliAsync(123456);
+
+        var servizi = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+            .AddSingleton<Vipi.Application.EventKits.IAccountEventoArchivio>(archivio)
+            .BuildServiceProvider();
+        var registro = new Vipi.Application.EventKits.AccountEventoRegistro();
+        await new AccountEventoAvvio(servizi.GetRequiredService<Microsoft.Extensions.DependencyInjection.IServiceScopeFactory>(), registro)
+            .StartAsync(default);
+
+        Assert.Equal(600101, registro.VidPer(704798, DateTime.UtcNow));
+        Assert.Null(registro.VidPer(123456, DateTime.UtcNow));
+
+        await archivio.SvuotaAsync();
+        Assert.Empty(await archivio.TuttiAsync());
     }
 
     /// <summary>Una riga per persona e VID al giorno: chi riscrive il VID dopo un ricarico non ne lascia dieci.</summary>

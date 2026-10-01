@@ -121,6 +121,59 @@ public class AccountEventoTests
         Assert.Equal(EsitoAccountEvento.NonEntrato, (await s4.UsaAsync(DellEvento)).Esito);
     }
 
+    // ---- Il riavvio del sito (committente, 1 ottobre 2026) ---------------------------------------------------------
+
+    /// <summary>🔴 Un riavvio durante l'evento non fa riscrivere il VID: la scelta va anche nel database, e all'avvio un
+    /// registro NUOVO si rimette in piedi da lì.</summary>
+    [Fact]
+    public async Task Dopo_un_riavvio_il_registro_si_ricarica_dal_database()
+    {
+        var archivio = new Archivio();
+        var fine = Adesso.AddHours(3);
+        var (servizio, _, _) = Richiesta(new AccountDellEvento("Italian Night Ops",
+            new Dictionary<int, string> { [DellEvento] = "" }, fine), online: (DellEvento, "LIRF_TWR"), archivio: archivio);
+        await servizio.UsaAsync(DellEvento);
+
+        var dopoIlRiavvio = new AccountEventoRegistro();
+        dopoIlRiavvio.Carica(await archivio.TuttiAsync(), Adesso.AddMinutes(5));
+
+        Assert.Equal(DellEvento, dopoIlRiavvio.VidPer(Mio, Adesso.AddMinutes(5)));
+    }
+
+    /// <summary>Le voci già scadute non tornano: un riavvio il giorno dopo non riapre l'evento di ieri.</summary>
+    [Fact]
+    public void All_avvio_le_voci_scadute_restano_fuori()
+    {
+        var registro = new AccountEventoRegistro();
+        registro.Carica(new[]
+        {
+            new AccountEventoSalvato(Mio, DellEvento, Adesso.AddMinutes(-1)),
+            new AccountEventoSalvato(123456, 600200, Adesso.AddHours(1)),
+        }, Adesso);
+
+        Assert.Null(registro.VidPer(Mio, Adesso));
+        Assert.Equal(600200, registro.VidPer(123456, Adesso));
+    }
+
+    /// <summary>«Torna al mio VID» e chi cambia l'evento cancellano ANCHE la copia nel database: altrimenti il primo
+    /// riavvio rimetterebbe dentro chi era uscito.</summary>
+    [Fact]
+    public async Task Lasciare_o_cambiare_l_evento_toglie_anche_la_copia_nel_database()
+    {
+        var archivio = new Archivio();
+        var (servizio, _, _) = Richiesta(new AccountDellEvento("Italian Night Ops",
+            new Dictionary<int, string> { [DellEvento] = "" }, null), online: (DellEvento, "LIRF_TWR"), archivio: archivio);
+        await servizio.UsaAsync(DellEvento);
+        Assert.Single(archivio.Righe);
+        await servizio.LasciaAsync();
+        Assert.Empty(archivio.Righe);
+
+        archivio.Righe[Mio] = new(Mio, DellEvento, Adesso.AddHours(1));
+        var (evento, _, _) = Evento(attivo: true, vid: "600100", archivio: archivio);
+        await evento.SalvaVidAsync("600100");
+        Assert.Empty(archivio.Righe);
+    }
+
     // ---- La vista live --------------------------------------------------------------------------------------------
 
     /// <summary>🔴 Il punto di tutto: col VID dell'evento in uso la vista live trova la postazione di QUEL VID.</summary>
@@ -153,21 +206,32 @@ public class AccountEventoTests
             registry: null!, authz: new Staff(), sectors: null!, account: registro);
 
     private static (AccountEventoService, AccountEventoRegistro, Traccia) Richiesta(
-        AccountDellEvento? account, (int Vid, string Callsign)? online, bool entrato = true)
+        AccountDellEvento? account, (int Vid, string Callsign)? online, bool entrato = true, Archivio? archivio = null)
     {
         var registro = new AccountEventoRegistro();
         var traccia = new Traccia();
         var servizio = new AccountEventoService(new SoloAccount(account),
-            online is { } o ? new Online(o) : new Online(), new Utente(entrato), registro, traccia, () => Adesso);
+            online is { } o ? new Online(o) : new Online(), new Utente(entrato), registro, traccia, () => Adesso, archivio);
         return (servizio, registro, traccia);
     }
 
-    private static (EventKitService, Repo, AccountEventoRegistro) Evento(bool attivo, string? vid)
+    /// <summary>La copia nel database, in memoria.</summary>
+    private sealed class Archivio : IAccountEventoArchivio
+    {
+        public Dictionary<int, AccountEventoSalvato> Righe { get; } = new();
+        public Task SalvaAsync(int p, int e, DateTime s, CancellationToken ct = default) { Righe[p] = new(p, e, s); return Task.CompletedTask; }
+        public Task TogliAsync(int p, CancellationToken ct = default) { Righe.Remove(p); return Task.CompletedTask; }
+        public Task SvuotaAsync(CancellationToken ct = default) { Righe.Clear(); return Task.CompletedTask; }
+        public Task<IReadOnlyList<AccountEventoSalvato>> TuttiAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<AccountEventoSalvato>>(Righe.Values.ToList());
+    }
+
+    private static (EventKitService, Repo, AccountEventoRegistro) Evento(bool attivo, string? vid, Archivio? archivio = null)
     {
         var repo = new Repo { Kit = { Name = "Italian Night Ops", IsActive = attivo, VidEvento = vid } };
         var registro = new AccountEventoRegistro();
         var servizio = new EventKitService(repo, new Staff(), new EventKitVisibilityCache(),
-            Options.Create(new MediaOptions()), () => Adesso, registro);
+            Options.Create(new MediaOptions()), () => Adesso, registro, archivio);
         return (servizio, repo, registro);
     }
 

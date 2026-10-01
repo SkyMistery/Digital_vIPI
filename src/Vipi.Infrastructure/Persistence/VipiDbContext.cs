@@ -185,6 +185,9 @@ public class VipiDbContext : DbContext
     /// <summary>Quante volte si apre ogni documento, per giorno (carta del 1° ottobre 2026, aperture).</summary>
     public DbSet<AperturaDocumento> AperturaDocumenti => Set<AperturaDocumento>();
 
+    /// <summary>Chi controlla con un account dell'evento: la copia che sopravvive a un riavvio (1° ottobre 2026).</summary>
+    public DbSet<AccountEventoInUso> AccountEventoInUso => Set<AccountEventoInUso>();
+
     /// <summary>Il documento condiviso di ogni evento RFO e la sua storia. Carta del 18 settembre 2026.</summary>
     public DbSet<RfoSharedState> RfoSharedStates => Set<RfoSharedState>();
     public DbSet<RfoSharedStateHistory> RfoSharedStateHistory => Set<RfoSharedStateHistory>();
@@ -660,6 +663,13 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Divisione).HasMaxLength(AccessoAlSitoLimits.Divisione);
             e.Property(x => x.Acc).HasMaxLength(AccessoAlSitoLimits.Acc);
             e.HasIndex(x => x.UltimoUtc);
+        });
+
+        b.Entity<AccountEventoInUso>(e =>
+        {
+            e.ToTable("AccountEventoInUso");
+            e.HasKey(x => x.VidPersonale);
+            e.Property(x => x.VidPersonale).ValueGeneratedNever();
         });
 
         b.Entity<AperturaDocumento>(e =>

@@ -1,7 +1,8 @@
 # Controllare con un account dell'evento: la vista live col VID dell'evento — carta (1° ottobre 2026)
 
-> **Stato: ✅ ESEGUITA il 1° ottobre 2026** sul ramo `fix/vid-evento` (filone Sito, S95). **Migrazione additiva**
-> `VidAccountEvento` (una colonna `EventKits.VidEvento`, SQLite e MySQL; Postgres la allinea `PostgresSchemaReconciler`).
+> **Stato: ✅ ESEGUITA il 1° ottobre 2026** sul ramo `fix/vid-evento` (filone Sito, S95). **Due migrazioni additive**:
+> `VidAccountEvento` (colonna `EventKits.VidEvento`) e `AccountEventoInUso` (tabella, §4); SQLite e MySQL, Postgres le
+> allinea `PostgresSchemaReconciler`.
 > Nessun `deploy/`.
 > Richiesta del committente: «durante gli eventi live si controlla da pc con account e VID ad hoc. Durante gli eventi un
 > utente apre una finestra, inserisce il VID con cui si è connesso, e se è in una lista di VID validi per quell'evento e
@@ -44,9 +45,14 @@ Chi non è staff di divisione vede solo la propria postazione, quindi non c'era 
 
 - **La lista è un campo di testo** (`VidEvento`, 4000 caratteri, al massimo 200 VID) e non una tabella: arriva
   dall'organizzazione già fatta e si incolla; si legge sempre con la stessa regola (`LeggiVid`).
-- **Chi usa che cosa sta in memoria** (`AccountEventoRegistro`, singleton): è uno stato di poche ore, e se il processo
-  riparte basta riscrivere il VID. Singleton e non scoped: in Blazor Server lo scoped vive quanto il circuito, e una
-  seconda scheda o un ricarico perderebbero la scelta.
+- **Chi usa che cosa si legge dalla memoria e si salva anche nel database.** La vista live lo chiede a ogni giro del
+  feed, quindi la risposta viene da `AccountEventoRegistro` (singleton: in Blazor Server lo scoped vive quanto il
+  circuito, e una seconda scheda o un ricarico perderebbero la scelta). Ogni cambio si scrive anche nella tabella
+  `AccountEventoInUso` (una riga per persona), e all'avvio `AccountEventoAvvio` rimette in piedi il registro da lì:
+  **un riavvio durante l'evento non fa riscrivere il VID a nessuno** (committente, 1 ottobre 2026, dopo la prima
+  versione che lo accettava come limite). Le voci scadute restano fuori; «Torna al mio VID» e chi cambia l'evento
+  cancellano anche la copia nel database. Se il database non risponde, la vista va avanti dalla memoria e si perde solo
+  la sopravvivenza al riavvio.
 - **«Online adesso» si controlla sul feed**, che si aggiorna ogni 60 secondi: chi si è appena connesso può doverlo
   riprovare dopo un minuto, e la pagina lo dice. Senza questo controllo la lista basterebbe a guardare la postazione di
   chiunque vi compaia.
@@ -57,11 +63,12 @@ Chi non è staff di divisione vede solo la propria postazione, quindi non c'era 
 
 - Chi conosce un VID della lista e lo trova online vede la vista live di quella postazione: è sola lettura, e lo staff
   la vede già. L'audit dice chi l'ha fatto.
-- Un riavvio del sito durante l'evento fa riscrivere il VID a chi lo stava usando.
 
 ## 6. Reti
 
 `AccountEventoTests` (Application: lettura della lista, righe scartate, rifiuto senza scrivere, chi cambia l'evento
-manda fuori, i cinque esiti, dodici ore, la vista live col VID dell'evento e il ritorno al proprio) ·
-`AccountEventoTracciaTests` (Infrastructure: una riga al giorno con la postazione) · `ServicesHomeTests` (la scheda solo
+manda fuori, i cinque esiti, dodici ore, il riavvio e le voci scadute, la vista live col VID dell'evento e il ritorno
+al proprio) ·
+`AccountEventoTracciaTests` (Infrastructure: una riga al giorno con la postazione; l'archivio che si scrive, si toglie
+e all'avvio rimette in piedi il registro) · `ServicesHomeTests` (la scheda solo
 con evento e lista).

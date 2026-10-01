@@ -8,8 +8,10 @@ namespace Vipi.Application.EventKits;
 /// dall'organizzazione, e la vista live — che cerca nel feed IVAO il VID con cui si è entrati nel sito — non trova
 /// nessuno. Qui si ricorda «il VID personale X sta usando il VID dell'evento Y» fino alla fine dell'evento.
 ///
-/// <para>⚠️ <b>In memoria, non nel database</b>: è uno stato di poche ore, e se il processo riparte basta riscrivere il
-/// VID. Un singleton e non uno scoped: in Blazor Server lo scoped vive quanto il CIRCUITO, e una seconda scheda o un
+/// <para>⚠️ <b>Si legge dalla memoria, si salva anche nel database</b> (<see cref="IAccountEventoArchivio"/>): la vista
+/// live chiede a ogni giro del feed, e la risposta deve costare niente; il database serve solo a rimettere in piedi questa
+/// copia all'avvio, perché un riavvio durante l'evento non faccia riscrivere il VID a tutti (committente, 1 ottobre 2026).
+/// Un singleton e non uno scoped: in Blazor Server lo scoped vive quanto il CIRCUITO, e una seconda scheda o un
 /// ricarico perderebbero l'account appena scelto.</para>
 ///
 /// <para>⚠️ Più persone possono usare lo stesso VID dell'evento (scelta del committente): niente esclusiva.</para>
@@ -49,6 +51,33 @@ public sealed class AccountEventoRegistro
     {
         lock (_lock) _voci.Clear();
     }
+
+    /// <summary>All'avvio, dal database: le voci ancora valide prendono il posto di quel che c'era.</summary>
+    public void Carica(IEnumerable<AccountEventoSalvato> voci, DateTime adessoUtc)
+    {
+        lock (_lock)
+        {
+            _voci.Clear();
+            foreach (var v in voci.Where(v => v.ScadeUtc > adessoUtc))
+                _voci[v.VidPersonale] = (v.VidEvento, v.ScadeUtc);
+        }
+    }
+}
+
+/// <summary>Una voce del registro come sta nel database.</summary>
+public sealed record AccountEventoSalvato(int VidPersonale, int VidEvento, DateTime ScadeUtc);
+
+/// <summary>
+/// La copia nel database di <see cref="AccountEventoRegistro"/>: si scrive a ogni cambio, si legge solo all'avvio.
+/// <para>⚠️ Non lancia: se il database non risponde la vista live funziona lo stesso (dalla memoria), e si perde solo la
+/// sopravvivenza a un riavvio.</para>
+/// </summary>
+public interface IAccountEventoArchivio
+{
+    Task SalvaAsync(int vidPersonale, int vidEvento, DateTime scadeUtc, CancellationToken ct = default);
+    Task TogliAsync(int vidPersonale, CancellationToken ct = default);
+    Task SvuotaAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<AccountEventoSalvato>> TuttiAsync(CancellationToken ct = default);
 }
 
 /// <summary>Come è andata la richiesta di usare un account dell'evento.</summary>
@@ -76,7 +105,7 @@ public interface IAccountEventoService
     int? InUso();
 
     /// <summary>Torna al proprio VID.</summary>
-    void Lascia();
+    Task LasciaAsync(CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAccountEventoService"/>
@@ -87,11 +116,14 @@ public sealed class AccountEventoService : IAccountEventoService
     private readonly ICurrentUserProvider _utenti;
     private readonly AccountEventoRegistro _registro;
     private readonly IAccountEventoTraccia? _traccia;
+    private readonly IAccountEventoArchivio? _archivio;
     private readonly Func<DateTime> _adesso;
 
     public AccountEventoService(IEventKitService evento, IOnlineAtcProvider online, ICurrentUserProvider utenti,
-        AccountEventoRegistro registro, IAccountEventoTraccia? traccia = null, Func<DateTime>? adesso = null)
+        AccountEventoRegistro registro, IAccountEventoTraccia? traccia = null, Func<DateTime>? adesso = null,
+        IAccountEventoArchivio? archivio = null)
     {
+        _archivio = archivio;
         _evento = evento;
         _online = online;
         _utenti = utenti;
@@ -115,14 +147,17 @@ public sealed class AccountEventoService : IAccountEventoService
         var tetto = adesso + AccountEventoRegistro.DurataMassima;
         var scade = account.FineUtc is DateTime fine && fine < tetto ? fine : tetto;
         _registro.Usa(utente.UserId, vidEvento, scade);
+        if (_archivio is not null) await _archivio.SalvaAsync(utente.UserId, vidEvento, scade, ct);
         if (_traccia is not null) await _traccia.RegistraAsync(utente.UserId, vidEvento, callsign, ct);
         return new(EsitoAccountEvento.Usato, callsign);
     }
 
     public int? InUso() => _utenti.Get() is { } u ? _registro.VidPer(u.UserId, _adesso()) : null;
 
-    public void Lascia()
+    public async Task LasciaAsync(CancellationToken ct = default)
     {
-        if (_utenti.Get() is { } u) _registro.Lascia(u.UserId);
+        if (_utenti.Get() is not { } u) return;
+        _registro.Lascia(u.UserId);
+        if (_archivio is not null) await _archivio.TogliAsync(u.UserId, ct);
     }
 }
