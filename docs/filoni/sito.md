@@ -1958,6 +1958,7 @@
   chi le copre (topologia globale), punti delle SID/STAR pubblicate di tutti gli scali, punti di trasferimento di
   tutti gli ACC (solo staff di divisione), radioassistenze con un punto sulla mappa (`data-points` in vipi-aor.js).
   La proposta «settori» resta proposta (carta §5). Scheda gialla dei cambi: ✕ al posto di «scarta». App 3180 → 3188.
+  Poi (committente): i punti delle SID/STAR in coda, dopo le radioassistenze e prima delle aree.
   Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per

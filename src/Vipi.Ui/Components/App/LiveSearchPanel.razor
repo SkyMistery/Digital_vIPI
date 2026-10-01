@@ -172,21 +172,6 @@
                 }
             </div>
         }
-        @if (punti.Count > 0)
-        {
-            <p class="lsr-h">📍 @L["Lsr_Fixes"] <span class="muted">(@punti.Count)</span></p>
-            <div class="lsr-list">
-                @foreach (var p in punti.Take(RicercaLiveFiltro.MassimoRighe))
-                {
-                    var scalo = _aeroporti.FirstOrDefault(a => a.Icao == p.Icao);
-                    <button type="button" class="lsr-row" disabled="@(scalo is null)" @onclick="() => _aeroporto = scalo">
-                        <b>@p.Fix</b> <span class="tag-state tag-covered">@(p.Sid ? "SID" : "STAR")</span> <span>@p.Nome</span>
-                        @if (!string.IsNullOrWhiteSpace(p.Transizione) && p.Transizione != "—") { <span class="muted">· @p.Transizione</span> }
-                        <span class="muted lsr-acc">@p.Icao@(string.IsNullOrWhiteSpace(p.Pista) || p.Pista == "—" ? "" : " · RWY " + p.Pista)</span>
-                    </button>
-                }
-            </div>
-        }
         @if (cop.Count > 0)
         {
             <p class="lsr-h">🔁 @L["Lsr_Cops"] <span class="muted">(@cop.Count)</span></p>
@@ -211,6 +196,22 @@
                     <button type="button" class="lsr-row" @onclick="() => _navaid = scelto">
                         <b>@n.Codice</b> <span>@(n.Tipo ?? n.Natura)</span>
                         <span class="muted lsr-acc">@(n.Frequenza ?? (n.Canale is { } ch ? "CH " + ch : "—"))</span>
+                    </button>
+                }
+            </div>
+        }
+        @* I punti delle procedure dopo le radioassistenze (committente, 1 ottobre 2026). *@
+        @if (punti.Count > 0)
+        {
+            <p class="lsr-h">📍 @L["Lsr_Fixes"] <span class="muted">(@punti.Count)</span></p>
+            <div class="lsr-list">
+                @foreach (var p in punti.Take(RicercaLiveFiltro.MassimoRighe))
+                {
+                    var scalo = _aeroporti.FirstOrDefault(a => a.Icao == p.Icao);
+                    <button type="button" class="lsr-row" disabled="@(scalo is null)" @onclick="() => _aeroporto = scalo">
+                        <b>@p.Fix</b> <span class="tag-state tag-covered">@(p.Sid ? "SID" : "STAR")</span> <span>@p.Nome</span>
+                        @if (!string.IsNullOrWhiteSpace(p.Transizione) && p.Transizione != "—") { <span class="muted">· @p.Transizione</span> }
+                        <span class="muted lsr-acc">@p.Icao@(string.IsNullOrWhiteSpace(p.Pista) || p.Pista == "—" ? "" : " · RWY " + p.Pista)</span>
                     </button>
                 }
             </div>
