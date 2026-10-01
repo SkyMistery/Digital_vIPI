@@ -4,7 +4,13 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 30 settembre 2026, ultima
+> ## ▶ Il punto — 1 ottobre 2026, mattina
+>
+> **📦 Pronto da caricare: 1.54.3** (§A145, timbro `1.54.3 · b6ae28b`, 9 file, zip `564f6732…`, PATCH senza
+> migrazioni): Sito S82, i crediti nel piè di pagina. Online resta 1.54.2 finché il committente non carica.
+> ▶ LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, ultima
 >
 > **✅ Online: 1.54.2** (timbro e `Schema 0` confermati dal committente; tre 500 durante lo scambio dei file, nel
 > processo vecchio, spariti col riavvio; **in `main` non resta codice fuori pacchetto**) (§A144, timbro `1.54.2 · 1a843c2`, 9 file, zip `361abdf6…`, PATCH senza

@@ -43,6 +43,18 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A145 — 1.54.3: crediti nel piè di pagina (S82) (1 ottobre 2026)
+
+PATCH **senza migrazioni**, su 1.54.2 (`1a843c2`). Timbro **`1.54.3 · b6ae28b`**. Fuso da `fix/crediti-test` @
+`1950d288` (CI verde run 36830417031), senza conflitti. **S82**, solo Vipi.Ui: nel piè di pagina, sotto «Parte della
+IVAO», «Realizzato da Carmine (704798) · Testato da Nicola (201143) e Carmine (704798)», coi nomi al profilo IVAO.
+
+**9 file** (`solo-9-file-1.54.3`): Ui e Host (dll + pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`.
+Zip 3,04 MB, sha256 `564f673234b60b46199fdc80b3df3558f2503832e818bccabd9e32332b75e292`. Build Release senza avvisi,
+test verdi, conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`), riga dei
+crediti nel piè di pagina. Il foglio ora dice di non aprire il sito fra le rinomine e il `restart.txt` (§A144).
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.3.md`. ▶ Caricamento del committente.
+
 ### ✅ A144 — 1.54.2 ONLINE: Trasferimenti della vista live solo allo staff (S81) (30 settembre 2026)
 
 ✅ Online il 30 settembre 2026 (avvio 19:39:29Z, pid 2273133): timbro e `Schema 0` confermati dal committente; da fuori
