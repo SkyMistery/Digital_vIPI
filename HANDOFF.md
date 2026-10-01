@@ -6,9 +6,9 @@
 >
 > ## ▶ Il punto — 1 ottobre 2026, sera
 >
-> **📦 Pronto da caricare: 1.55.1** (§A147, timbro `1.55.1 · 5493151`, 4 file, zip `8ac4d35c…`, PATCH senza
-> migrazioni): Sito S91, la lingua dei membri nei documenti uniti (LIRP). Online resta 1.55.0 finché il committente
-> non carica. ▶ LIRE/LIBG aspettano il SOD.
+> **✅ Online: 1.55.1** (timbro confermato; **in `main` non resta codice fuori pacchetto**; ▶ lingua separata vIPI/vSOP
+> nell'editor dell'unione assegnata al Sito) (§A147, timbro `1.55.1 · 5493151`, 4 file, zip `8ac4d35c…`, PATCH senza
+> migrazioni): Sito S91, la lingua dei membri nei documenti uniti (LIRP). ▶ LIRE/LIBG aspettano il SOD.
 >
 > ## Il punto — 1 ottobre 2026, pomeriggio
 >
