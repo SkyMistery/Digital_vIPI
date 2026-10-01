@@ -46,12 +46,15 @@ public sealed class LiveViewService : ILiveViewService
     private readonly IEditAuthorizationService _authz;
     private readonly IStructureEditingRepository _sectors;
     private readonly IAtcUnitRepository? _enti;
+    private readonly Vipi.Application.EventKits.AccountEventoRegistro? _account;
 
     public LiveViewService(IStationResolver stations, IStructureEditingService structure,
         ITopologyProvider topology, IOnlineAtcProvider online, ICurrentUserProvider users,
         ILiveStationRegistry registry, IEditAuthorizationService authz,
-        IStructureEditingRepository sectors, IAtcUnitRepository? enti = null)
+        IStructureEditingRepository sectors, IAtcUnitRepository? enti = null,
+        Vipi.Application.EventKits.AccountEventoRegistro? account = null)
     {
+        _account = account;
         _enti = enti;
         _stations = stations;
         _structure = structure;
@@ -65,10 +68,19 @@ public sealed class LiveViewService : ILiveViewService
 
     public OnlineAtcSnapshot Snapshot() => _online.GetCurrent();
 
+    /// <summary>
+    /// ⚠️ Prima l'ACCOUNT DELL'EVENTO, se chi guarda ne sta usando uno (carta 2026-10-01-account-evento.md): durante un
+    /// evento si controlla con un VID dato dall'organizzazione, e il proprio non è connesso. Se quel VID non è più
+    /// online si torna al proprio — senza dimenticare la scelta: alla riconnessione la vista riprende da sé.
+    /// </summary>
     public string? MyCallsign()
     {
         if (_users.Get() is not { } user) return null;
-        return _online.GetCurrent().Details.FirstOrDefault(d => d.UserId == user.UserId)?.Callsign;
+        var dettagli = _online.GetCurrent().Details;
+        if (_account?.VidPer(user.UserId, DateTime.UtcNow) is int vidEvento
+            && dettagli.FirstOrDefault(d => d.UserId == vidEvento) is { } evento)
+            return evento.Callsign;
+        return dettagli.FirstOrDefault(d => d.UserId == user.UserId)?.Callsign;
     }
 
     public async Task<LiveViewResult> BuildAsync(string callsign, CancellationToken ct = default)

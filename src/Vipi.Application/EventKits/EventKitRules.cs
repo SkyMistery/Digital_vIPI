@@ -18,6 +18,40 @@ public static class EventKitRules
     /// <summary>Quante voci al massimo: un evento grande ha qualche decina di postazioni, non centinaia.</summary>
     public const int MaxVoci = 80;
 
+    /// <summary>Quanti VID di account dell'evento al massimo, e quanto testo: un evento grande ne ha qualche decina.</summary>
+    public const int MaxVidEvento = 200;
+    public const int MaxTestoVidEvento = 4000;
+
+    /// <summary>
+    /// I VID degli account dell'evento letti dal testo dello staff (committente, 1 ottobre 2026): uno o più per riga,
+    /// separati da spazi, virgole o punti e virgola; quel che segue i numeri sulla stessa riga è la nota
+    /// («704798 LIRF_TWR», «704798, 704799»). Le righe che non cominciano con un numero vanno fra gli scartati, così
+    /// la pagina può dire QUALI invece di ignorarle in silenzio.
+    /// </summary>
+    public static (IReadOnlyDictionary<int, string> Vid, IReadOnlyList<string> Scartati) LeggiVid(string? testo)
+    {
+        var vid = new Dictionary<int, string>();
+        var scartati = new List<string>();
+        foreach (var grezza in (testo ?? "").Split('\n'))
+        {
+            var riga = grezza.Trim();
+            if (riga.Length == 0) continue;
+            var pezzi = riga.Split(new[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var numeri = pezzi.TakeWhile(p => p.All(char.IsAsciiDigit)).ToList();
+            if (numeri.Count == 0 || numeri.Any(n => !VidValido(n)))
+            {
+                scartati.Add(riga);
+                continue;
+            }
+            var nota = string.Join(" ", pezzi.Skip(numeri.Count));
+            foreach (var n in numeri) vid[int.Parse(n)] = nota;
+        }
+        return (vid, scartati);
+    }
+
+    /// <summary>Un VID IVAO: solo cifre, da 3 a 8, non zero.</summary>
+    private static bool VidValido(string n) => n.Length is >= 3 and <= 8 && int.TryParse(n, out var v) && v > 0;
+
     /// <summary>L'indirizzo della pagina pubblica. Un servizio figlio diretto di <c>/services</c>.</summary>
     public const string Rotta = "/services/event";
 

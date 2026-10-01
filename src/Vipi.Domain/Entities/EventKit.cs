@@ -28,6 +28,15 @@ public class EventKit
     /// <summary>Fino a quando si vede (UTC, escluso); null = finché non lo si spegne.</summary>
     public DateTime? EndsUtc { get; set; }
 
+    /// <summary>
+    /// I VID degli ACCOUNT DELL'EVENTO, come li ha scritti lo staff: uno per riga, con una nota facoltativa accanto
+    /// («704798 LIRF_TWR»). Committente, 1 ottobre 2026: durante un evento si controlla con account e VID dati
+    /// dall'organizzazione, diversi da quelli con cui si entra nel sito, e senza questa lista la vista live non
+    /// riconosce chi sta controllando. Si legge con <c>EventKitRules.LeggiVid</c>; null o vuoto = nessuno.
+    /// <para>⚠️ Vale solo mentre il pacchetto si vede (acceso e dentro le date): fuori, la lista non apre niente.</para>
+    /// </summary>
+    public string? VidEvento { get; set; }
+
     public DateTime UpdatedUtc { get; set; }
     public int UpdatedByUserId { get; set; }
     public string UpdatedByName { get; set; } = "";

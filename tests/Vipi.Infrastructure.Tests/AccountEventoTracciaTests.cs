@@ -1,0 +1,42 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Vipi.Domain;
+using Vipi.Infrastructure.Persistence;
+using Xunit;
+
+namespace Vipi.Infrastructure.Tests;
+
+/// <summary>Chi ha usato quale account dell'evento finisce nel registro di audit (carta 2026-10-01-account-evento.md).</summary>
+public sealed class AccountEventoTracciaTests : IAsyncLifetime
+{
+    private readonly SqliteConnection _conn = new("Data Source=:memory:");
+    private VipiDbContext _db = default!;
+
+    public async Task InitializeAsync()
+    {
+        await _conn.OpenAsync();
+        _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
+        await _db.Database.EnsureCreatedAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _db.DisposeAsync();
+        await _conn.DisposeAsync();
+    }
+
+    /// <summary>Una riga per persona e VID al giorno: chi riscrive il VID dopo un ricarico non ne lascia dieci.</summary>
+    [Fact]
+    public async Task Una_riga_per_persona_e_VID_al_giorno_con_la_postazione()
+    {
+        var t = new EfAccountEventoTraccia(_db);
+        await t.RegistraAsync(704798, 600100, "LIRF_TWR");
+        await t.RegistraAsync(704798, 600100, "LIRF_TWR");
+        await t.RegistraAsync(704798, 600101, "LIRF_APP");
+
+        var righe = await _db.AuditLogs.AsNoTracking().Where(a => a.EntityType == "EventAccount").OrderBy(a => a.EntityId).ToListAsync();
+        Assert.Equal(new[] { "600100", "600101" }, righe.Select(r => r.EntityId));
+        Assert.All(righe, r => Assert.Equal(AuditAction.View, r.Action));
+        Assert.Contains("LIRF_TWR", righe[0].DetailsJson);
+    }
+}

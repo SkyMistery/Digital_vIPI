@@ -11,7 +11,8 @@ namespace Vipi.Application.EventKits;
 /// <summary>Il pacchetto come lo mostra una pagina.</summary>
 /// <param name="Visibile">Il pubblico lo vede adesso (acceso e dentro le date).</param>
 public sealed record EventKitView(string Name, bool IsActive, DateTime? StartsUtc, DateTime? EndsUtc,
-    DateTime? UpdatedUtc, string UpdatedByName, IReadOnlyList<EventKitItemRow> Items, bool Visibile)
+    DateTime? UpdatedUtc, string UpdatedByName, IReadOnlyList<EventKitItemRow> Items, bool Visibile,
+    string? VidEvento = null)
 {
     public static readonly EventKitView Vuoto = new("", false, null, null, null, "", Array.Empty<EventKitItemRow>(), false);
 }
@@ -32,6 +33,19 @@ public interface IEventKitService
     /// </summary>
     Task<string?> InCorsoAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Vero se l'evento si vede adesso E ha almeno un VID di account dell'evento: la domanda della scheda «Controlli con
+    /// un account dell'evento?» nell'hub. Tenuta in memoria come <see cref="InCorsoAsync"/>, con la stessa lettura.
+    /// </summary>
+    Task<bool> AccountInCorsoAsync(CancellationToken ct = default);
+
+    /// <summary>I VID degli account dell'evento validi ADESSO (evento acceso e dentro le date), con la fine dell'evento;
+    /// null se l'evento non si vede o la lista è vuota.</summary>
+    Task<AccountDellEvento?> AccountAsync(CancellationToken ct = default);
+
+    /// <summary>Scrive la lista dei VID degli account dell'evento (staff di divisione). Restituisce quanti sono.</summary>
+    Task<int> SalvaVidAsync(string? testo, CancellationToken ct = default);
+
     /// <summary>Tutto, anche spento: per chi lo gestisce (staff di divisione).</summary>
     Task<EventKitView> PerStaffAsync(CancellationToken ct = default);
 
@@ -50,6 +64,9 @@ public interface IEventKitService
     Task<EventKitFile?> FileAsync(int id, CancellationToken ct = default);
 }
 
+/// <summary>Gli account dell'evento validi adesso: VID → nota («LIRF_TWR»), il nome dell'evento e quando finisce.</summary>
+public sealed record AccountDellEvento(string NomeEvento, IReadOnlyDictionary<int, string> Vid, DateTime? FineUtc);
+
 /// <summary>
 /// La risposta di <see cref="IEventKitService.InCorsoAsync"/> tenuta per qualche secondo. ⚠️ Singleton: l'hub dei
 /// servizi è SSR statico, lo apre chiunque arrivi al sito, e senza questo ogni visita costerebbe una lettura.
@@ -58,24 +75,28 @@ public interface IEventKitService
 public sealed class EventKitVisibilityCache
 {
     private readonly object _lock = new();
-    private (string? Valore, DateTime Scade)? _voce;
+    private (string? Valore, bool Account, DateTime Scade)? _voce;
 
     public static readonly TimeSpan Durata = TimeSpan.FromSeconds(30);
 
     /// <summary>Il nome dell'evento in corso (null = nessuno), se la risposta tenuta è ancora buona.</summary>
-    public bool TryGet(DateTime adessoUtc, out string? valore)
+    public bool TryGet(DateTime adessoUtc, out string? valore) => TryGet(adessoUtc, out valore, out _);
+
+    /// <param name="account">Se l'evento in corso ha VID di account dell'evento (la seconda scheda dell'hub).</param>
+    public bool TryGet(DateTime adessoUtc, out string? valore, out bool account)
     {
         lock (_lock)
         {
-            if (_voce is { } v && adessoUtc < v.Scade) { valore = v.Valore; return true; }
+            if (_voce is { } v && adessoUtc < v.Scade) { valore = v.Valore; account = v.Account; return true; }
             valore = null;
+            account = false;
             return false;
         }
     }
 
-    public void Set(string? valore, DateTime adessoUtc)
+    public void Set(string? valore, DateTime adessoUtc, bool account = false)
     {
-        lock (_lock) _voce = (valore, adessoUtc + Durata);
+        lock (_lock) _voce = (valore, account, adessoUtc + Durata);
     }
 
     public void Svuota()
@@ -92,10 +113,12 @@ public sealed class EventKitService : IEventKitService
     private readonly EventKitVisibilityCache _cache;
     private readonly int _maxBytes;
     private readonly Func<DateTime> _adesso;
+    private readonly AccountEventoRegistro? _account;
 
     public EventKitService(IEventKitRepository repo, IEditAuthorizationService authz, EventKitVisibilityCache cache,
-        IOptions<MediaOptions> media, Func<DateTime>? adesso = null)
+        IOptions<MediaOptions> media, Func<DateTime>? adesso = null, AccountEventoRegistro? account = null)
     {
+        _account = account;
         _repo = repo;
         _authz = authz;
         _cache = cache;
@@ -113,10 +136,58 @@ public sealed class EventKitService : IEventKitService
     {
         var adesso = _adesso();
         if (_cache.TryGet(adesso, out var v)) return v;
+        return (await LeggiInCorsoAsync(adesso, ct)).Nome;
+    }
+
+    public async Task<bool> AccountInCorsoAsync(CancellationToken ct = default)
+    {
+        var adesso = _adesso();
+        if (_cache.TryGet(adesso, out _, out var account)) return account;
+        return (await LeggiInCorsoAsync(adesso, ct)).Account;
+    }
+
+    /// <summary>La lettura delle due domande dell'hub, fatta una volta e tenuta insieme.</summary>
+    private async Task<(string? Nome, bool Account)> LeggiInCorsoAsync(DateTime adesso, CancellationToken ct)
+    {
         var snap = await _repo.LoadAsync(ct);
-        var nome = EventKitRules.Visibile(snap?.Testata, adesso) ? snap!.Testata.Name : null;
-        _cache.Set(nome, adesso);
-        return nome;
+        var visibile = EventKitRules.Visibile(snap?.Testata, adesso);
+        var nome = visibile ? snap!.Testata.Name : null;
+        var account = visibile && EventKitRules.LeggiVid(snap!.Testata.VidEvento).Vid.Count > 0;
+        _cache.Set(nome, adesso, account);
+        return (nome, account);
+    }
+
+    public async Task<AccountDellEvento?> AccountAsync(CancellationToken ct = default)
+    {
+        var snap = await _repo.LoadAsync(ct);
+        if (!EventKitRules.Visibile(snap?.Testata, _adesso())) return null;
+        var vid = EventKitRules.LeggiVid(snap!.Testata.VidEvento).Vid;
+        return vid.Count == 0 ? null : new AccountDellEvento(snap.Testata.Name, vid, snap.Testata.EndsUtc);
+    }
+
+    public async Task<int> SalvaVidAsync(string? testo, CancellationToken ct = default)
+    {
+        var (id, chi) = Guardia();
+        testo = EventKitRules.Norm(testo);
+        if (testo.Length > EventKitRules.MaxTestoVidEvento)
+            throw new Aor.ValidationException(Lingua($"L'elenco dei VID supera i {EventKitRules.MaxTestoVidEvento} caratteri.",
+                $"The VID list is longer than {EventKitRules.MaxTestoVidEvento} characters."));
+        var (vid, scartati) = EventKitRules.LeggiVid(testo);
+        // ⚠️ Una riga che non si legge si DICE, non si salta: un VID scritto male salvato in silenzio è un controllore
+        // che a evento iniziato si sente dire «non sei nella lista» e non sa perché.
+        if (scartati.Count > 0)
+        {
+            var elenco = string.Join(" · ", scartati.Take(5)) + (scartati.Count > 5 ? " …" : "");
+            throw new Aor.ValidationException(Lingua($"Queste righe non cominciano con un VID: {elenco}",
+                $"These lines do not start with a VID: {elenco}"));
+        }
+        if (vid.Count > EventKitRules.MaxVidEvento)
+            throw new Aor.ValidationException(Lingua($"Al massimo {EventKitRules.MaxVidEvento} VID.",
+                $"At most {EventKitRules.MaxVidEvento} VIDs."));
+
+        await _repo.SaveVidAsync(testo, id, chi, _adesso(), ct);
+        Cambiato();
+        return vid.Count;
     }
 
     public async Task<EventKitView> PerStaffAsync(CancellationToken ct = default)
@@ -141,7 +212,7 @@ public sealed class EventKitService : IEventKitService
             throw new Aor.ValidationException(Lingua("La fine deve venire dopo l'inizio.", "The end must come after the start."));
 
         await _repo.SaveHeaderAsync(nome, attivo, daUtc, aUtc, id, chi, _adesso(), ct);
-        _cache.Svuota();
+        Cambiato();
     }
 
     public async Task<int> AggiungiFileAsync(string etichetta, string? nota, string fileName, Stream contenuto,
@@ -216,12 +287,24 @@ public sealed class EventKitService : IEventKitService
 
     // ---------------------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Dopo una scrittura che cambia chi vede che cosa: si svuota la risposta tenuta dell'hub e si dimenticano gli
+    /// account dell'evento in uso. ⚠️ Il secondo pezzo è il cancello vero: chi spegne l'evento, o toglie un VID dalla
+    /// lista, deve togliere SUBITO la vista live a chi lo stava usando — non alla fine dell'evento.
+    /// </summary>
+    private void Cambiato()
+    {
+        _cache.Svuota();
+        _account?.Svuota();
+    }
+
+
     private EventKitView Vista(EventKitSnapshot? snap)
     {
         if (snap is null) return EventKitView.Vuoto;
         var t = snap.Testata;
         return new EventKitView(t.Name, t.IsActive, t.StartsUtc, t.EndsUtc, t.UpdatedUtc == default ? null : t.UpdatedUtc,
-            t.UpdatedByName, snap.Voci, EventKitRules.Visibile(t, _adesso()));
+            t.UpdatedByName, snap.Voci, EventKitRules.Visibile(t, _adesso()), t.VidEvento);
     }
 
     /// <summary>

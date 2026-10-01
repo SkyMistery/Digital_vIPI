@@ -1,0 +1,14 @@
+@page "/services/event/account"
+@layout SopLayout
+@inject IStringLocalizer<SharedResource> L
+
+@* «Controlli con un account dell'evento?» (committente, 1 ottobre 2026; carta 2026-10-01-account-evento.md). Ci si
+   arriva dalla scheda accanto ai profili dell'evento in /services. La pagina è SSR statica, il pannello un'isola. *@
+<PageTitle>@L["EvtAcc_Title"] · IVAO Italy</PageTitle>
+
+<div class="wrap" style="max-width:760px">
+    <div class="doc-head">
+        <h1 class="page-h1">@L["EvtAcc_Title"]</h1>
+    </div>
+    <AccountEventoPanel />
+</div>

@@ -2314,6 +2314,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("UpdatedUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("VidEvento")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("EventKits");

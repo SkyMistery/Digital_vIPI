@@ -91,6 +91,15 @@
                 <h3 class="h-card"><span class="ic"><Icon Name="download" Size="18" /></span> @L["Evt_Title"]@(evento.Length > 0 ? " — " + evento : "")</h3>
                 <p class="muted">@L["Services_EventDesc"]</p>
             </a>
+            @* Accanto ai profili (committente, 1 ottobre 2026): chi controlla con un account dell'evento apre da qui la sua
+               vista live. Solo se lo staff ha scritto almeno un VID: senza lista la pagina direbbe soltanto di no. *@
+            @if (_accountEvento)
+            {
+                <a class="choice evt-card" href="/services/event/account">
+                    <h3 class="h-card"><span class="ic"><Icon Name="radio" Size="18" /></span> @L["EvtAcc_Title"]</h3>
+                    <p class="muted">@L["Services_EventAccountDesc"]</p>
+                </a>
+            }
         </div>
     }
 
@@ -209,6 +218,9 @@
     /// <summary>Il nome dell'evento in corso; null = nessuno, e la sezione non c'è.</summary>
     private string? _evento;
 
+    /// <summary>L'evento in corso ha VID di account dell'evento: c'è la seconda scheda.</summary>
+    private bool _accountEvento;
+
     /// <summary>Chi non è entrato, su un sito che si legge solo dopo il login: vede il solo «Entra con IVAO».</summary>
     private bool _soloLogin;
 
@@ -216,6 +228,9 @@
     {
         _soloLogin = (Servizi.GetService<Vipi.Ui.AccessoConLogin>() ?? Vipi.Ui.AccessoConLogin.Aperto).Obbligatorio
                      && Authz.CurrentUserId is null;
-        if (!_soloLogin) _evento = await Pacchetto.InCorsoAsync();
+        if (_soloLogin) return;
+        _evento = await Pacchetto.InCorsoAsync();
+        // ⚠️ Dopo InCorsoAsync, che ha già messo in memoria anche questa risposta: nessuna seconda lettura.
+        if (_evento is not null) _accountEvento = await Pacchetto.AccountInCorsoAsync();
     }
 }

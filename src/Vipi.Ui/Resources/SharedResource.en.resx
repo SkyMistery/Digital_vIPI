@@ -3930,6 +3930,19 @@
   <data name="Req_Open" xml:space="preserve"><value>Reply</value></data>
   <data name="Services_EventSection" xml:space="preserve"><value>Current event</value></data>
   <data name="Services_EventDesc" xml:space="preserve"><value>Aurora profiles per position and the event files: download them before you open.</value></data>
+  <data name="Services_EventAccountDesc" xml:space="preserve"><value>Controlling with the VID the event gave you? Write it here and open the live view of your position.</value></data>
+  <data name="EvtAcc_Title" xml:space="preserve"><value>Controlling with an event account?</value></data>
+  <data name="EvtAcc_Intro" xml:space="preserve"><value>Write the VID you are connected with on IVAO right now. If it is one of this event's accounts and it is online, the live view will show its position until the event ends.</value></data>
+  <data name="EvtAcc_VidLabel" xml:space="preserve"><value>Event account VID</value></data>
+  <data name="EvtAcc_Use" xml:space="preserve"><value>Open my live view</value></data>
+  <data name="EvtAcc_Help" xml:space="preserve"><value>Just connected? The site reads the online controllers once a minute: if it says the VID is not online, try again shortly.</value></data>
+  <data name="EvtAcc_None" xml:space="preserve"><value>There is no event with event accounts right now.</value></data>
+  <data name="EvtAcc_NotLoggedIn" xml:space="preserve"><value>Sign in with your IVAO account, then write the event VID.</value></data>
+  <data name="EvtAcc_NotInList" xml:space="preserve"><value>VID {0} is not one of this event's accounts. Check the number, or ask the staff to add it.</value></data>
+  <data name="EvtAcc_NotOnline" xml:space="preserve"><value>VID {0} is not connected as a controller right now. If you have just connected, try again in a minute.</value></data>
+  <data name="EvtAcc_Using" xml:space="preserve"><value>You are using event account {0}.</value></data>
+  <data name="EvtAcc_OpenLive" xml:space="preserve"><value>Open the live view</value></data>
+  <data name="EvtAcc_Release" xml:space="preserve"><value>Back to my VID</value></data>
   <data name="Services_EventStaffDesc" xml:space="preserve"><value>Switch on the event profiles page, upload files and Drive links.</value></data>
   <data name="Evt_Title" xml:space="preserve"><value>Event profiles</value></data>
   <data name="Evt_None" xml:space="preserve"><value>There is no event right now. This page switches on when the staff prepares the profiles for the next event.</value></data>
@@ -3949,6 +3962,10 @@
   <data name="Evt_EndUtc" xml:space="preserve"><value>End (UTC, optional)</value></data>
   <data name="Evt_Active" xml:space="preserve"><value>On</value></data>
   <data name="Evt_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Evt_VidTitle" xml:space="preserve"><value>Event account VIDs</value></data>
+  <data name="Evt_VidHelp" xml:space="preserve"><value>One per line, with the position next to it if you like («704798 LIRF_TWR»). While the event is visible, whoever controls with one of these VIDs can open their live view from the «Controlling with an event account?» card on the services page. Saving the list, or switching the event off, removes the view from whoever was using it.</value></data>
+  <data name="Evt_VidSave" xml:space="preserve"><value>Save VIDs</value></data>
+  <data name="Evt_VidSaved" xml:space="preserve"><value>VIDs saved: {0}.</value></data>
   <data name="Evt_Saved" xml:space="preserve"><value>Saved.</value></data>
   <data name="Evt_DatesHelp" xml:space="preserve"><value>On with no dates: visible right away, until you switch it off. With dates: visible only between start and end. Off: never visible. Items stay for the next event: remove the ones you no longer need.</value></data>
   <data name="Evt_AddFile" xml:space="preserve"><value>Add a file</value></data>

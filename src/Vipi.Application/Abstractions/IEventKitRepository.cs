@@ -23,6 +23,9 @@ public interface IEventKitRepository
     Task SaveHeaderAsync(string nome, bool attivo, DateTime? daUtc, DateTime? aUtc, int userId, string userName,
         DateTime adessoUtc, CancellationToken ct = default);
 
+    /// <summary>Scrive il testo dei VID degli account dell'evento. Se il pacchetto non c'è ancora, lo crea (spento).</summary>
+    Task SaveVidAsync(string? testo, int userId, string userName, DateTime adessoUtc, CancellationToken ct = default);
+
     /// <summary>Aggiunge una voce in fondo all'elenco; il pacchetto lo crea se manca (spento, senza nome).</summary>
     Task<int> AddItemAsync(EventKitItem voce, CancellationToken ct = default);
 

@@ -810,6 +810,7 @@ public class VipiDbContext : DbContext
         {
             e.Property(x => x.Name).HasMaxLength(128).IsRequired();
             e.Property(x => x.UpdatedByName).HasMaxLength(128).IsRequired();
+            e.Property(x => x.VidEvento).HasMaxLength(Vipi.Application.EventKits.EventKitRules.MaxTestoVidEvento);
             e.HasMany(x => x.Items).WithOne(x => x.EventKit!).HasForeignKey(x => x.EventKitId).OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<EventKitItem>(e =>
