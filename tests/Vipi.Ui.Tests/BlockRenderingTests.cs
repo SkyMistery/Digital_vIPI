@@ -72,7 +72,7 @@ public class BlockRenderingTests : TestContext
     // Trappola nota (memoria dev-process-gates): un attributo dinamico scritto come class="Kind" invece di
     // class="@Kind" renderebbe la stringa letterale "Kind". Questo test morde se qualcuno rompe l'interpolazione.
     [Theory]
-    [InlineData(CalloutKind.Danger, "danger", "octagon")]
+    [InlineData(CalloutKind.Danger, "danger", "octagon-alert")]   // «Importante»: punto esclamativo, non la X (1-ott-2026)
     [InlineData(CalloutKind.Success, "success", "check-circle")]
     [InlineData(CalloutKind.Info, "info", "info")]
     public void CalloutBlock_renders_dynamic_kind_class_and_icon(CalloutKind kind, string cssClass, string icon)

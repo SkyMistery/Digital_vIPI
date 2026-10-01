@@ -1932,6 +1932,9 @@
   limitrofi aperti, colonna condizione, frase radio intera, quattro valori in riga. Frequenze, gruppi e trasferimenti
   partono chiusi da telefono e tablet (`data-chiuso-telefono`, con una chiave di persistenza loro). A schermo su
   LIRN, LIML, LIBD, LIRR (copia del DB) a 1280, 768 e 375. Test Ui 1932 invariati. Ramo `fix/sid-ricerca`.
+- ✅ **S85** callout «Importante» dei documenti con l'ottagono col punto esclamativo (`octagon-alert`) invece della X
+  dello stop, che accanto a «Importante» diceva «vietato» (1-ott, committente). Vista e anteprime degli editor; la X
+  resta ai messaggi d'errore dell'interfaccia. Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
