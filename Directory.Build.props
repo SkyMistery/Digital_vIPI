@@ -1535,6 +1535,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.55.0 — MINOR, nessuna migrazione. Su 1.54.3 (b6ae28b, online dal 1 ottobre 2026). Sito S83–S90: SID e STAR
+      nella barra di ricerca (IProcedureCercabili, memoria 10 min) e nota radio sopra le SID; vista live compatta su una
+      riga con la ricerca rapida (scali, aree, postazioni/frequenze, punti SID/STAR, trasferimenti, radioassistenze);
+      avviso «ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE OPERATIONS» ovunque; ora Z nella barra per tutti; callout
+      «Importante»; riconnessione discreta sulle pagine pubbliche interattive; tasto vSOP accanto a Stampa nella vIPI
+      d'aeroporto. Tocca Vipi.Application, Vipi.Infrastructure, Vipi.Ui (+ frasi IT/EN, CSS e JS con l'indice degli
+      asset) e Vipi.Host. Dettaglio: LEGGIMI-PACCHETTO-1.55.0.md, §A146.
+    -->
+    <!--
       1.54.3 — PATCH, nessuna migrazione. Su 1.54.2 (1a843c2, online dal 30 settembre 2026). Sito S82: nel piè di
       pagina, sotto «Parte della IVAO», la riga «Realizzato da Carmine (704798) · Testato da Nicola (201143) e Carmine
       (704798)», coi nomi che portano al profilo IVAO. Tocca Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice degli
@@ -1904,7 +1913,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.54.3</VipiVersione>
+    <VipiVersione>1.55.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
