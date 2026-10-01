@@ -1535,6 +1535,12 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.54.3 — PATCH, nessuna migrazione. Su 1.54.2 (1a843c2, online dal 30 settembre 2026). Sito S82: nel piè di
+      pagina, sotto «Parte della IVAO», la riga «Realizzato da Carmine (704798) · Testato da Nicola (201143) e Carmine
+      (704798)», coi nomi che portano al profilo IVAO. Tocca Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice degli
+      asset) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.54.3.md, §A145.
+    -->
+    <!--
       1.54.2 — PATCH, nessuna migrazione. Su 1.54.1 (cab7337, online dal 30 settembre 2026). Sito S81: nella vista live
       la finestra Trasferimenti si apre solo allo staff di divisione; per gli altri una riga «In sviluppo» che non si
       apre. Tocca Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice degli asset) e Vipi.Host per il timbro. Dettaglio:
@@ -1898,7 +1904,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.54.2</VipiVersione>
+    <VipiVersione>1.54.3</VipiVersione>
   </PropertyGroup>
 
 </Project>
