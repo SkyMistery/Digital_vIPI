@@ -1535,6 +1535,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.56.0 — MINOR: una migrazione ADDITIVA (ApertureDocumenti: una tabella e un indice; niente tolto o rinominato).
+      Su 1.55.1 (5493151, online dal 1 ottobre 2026). Sito S92: nell'editor di un documento unito la lingua di
+      pubblicazione si imposta membro per membro (salvata per ID del documento). S93: contatore delle aperture dei
+      documenti (una riga per documento e per giorno, solo le pagine pubbliche) e, sulla pagina dell'ACC, i tre più
+      aperti per scheda negli ultimi 90 giorni dopo gli «in evidenza»; il numero lo vede solo lo staff. Tocca Vipi.Domain,
+      Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Ui (+ frasi IT/EN) e Vipi.Host per il timbro.
+      Dettaglio: LEGGIMI-PACCHETTO-1.56.0.md, §A148.
+    -->
+    <!--
       1.55.1 — PATCH, nessuna migrazione. Su 1.55.0 (395bce9, online dal 1 ottobre 2026). Sito S91: nei documenti uniti
       ogni membro tiene la sua regola di lingua (caso LIRP: vIPI bilingue + vSOP solo inglese), con la lingua passata in
       cascata ai componenti del documento. Tocca solo Vipi.Ui e Vipi.Host per il timbro. Dettaglio:
@@ -1919,7 +1928,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.55.1</VipiVersione>
+    <VipiVersione>1.56.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
