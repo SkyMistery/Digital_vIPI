@@ -1535,7 +1535,11 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
-      1.56.0 — MINOR: una migrazione ADDITIVA (ApertureDocumenti: una tabella e un indice; niente tolto o rinominato).
+      1.56.0 — MINOR: QUATTRO migrazioni ADDITIVE (ApertureDocumenti: una tabella e un indice; VidAccountEvento: colonna
+      EventKits.VidEvento; AccountEventoInUso: una tabella; VidSvuotaEvento: colonna EventKits.VidSvuotaUtc; niente tolto
+      o rinominato). S95, entrata dopo i publish 6ab77d4 ed e705d6e (mai caricati): controllare con un account
+      dell'evento (VID scritti dallo staff in /services/event, la vista live usa quel VID fino a fine evento, regge al
+      riavvio, la lista si svuota da sola 7 giorni dopo la fine).
       Su 1.55.1 (5493151, online dal 1 ottobre 2026). Sito S92: nell'editor di un documento unito la lingua di
       pubblicazione si imposta membro per membro (salvata per ID del documento). S93: contatore delle aperture dei
       documenti (una riga per documento e per giorno, solo le pagine pubbliche) e, sulla pagina dell'ACC, i tre più
