@@ -43,7 +43,14 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A148 — 1.56.0: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93), Discord (S94), account dell'evento (S95) (1 ottobre 2026)
+### ✅ A148 — 1.56.0 ONLINE: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93), Discord (S94), account dell'evento (S95) (1 ottobre 2026)
+
+✅ Online il 1 ottobre 2026 (avvio 22:23:11Z): `Schema 0` confermato dal committente (le quattro migrazioni ci sono). Da
+fuori porta «Entra con IVAO», Ricerca 401, Healthy, scheda «Discord di divisione», `vipi-theme.css?v=df802ad9`. Scarico
+del 2-ott: nessun errore dal carico. 🔎 Sul 1-ott (1.55.x) **45 login falliti per nonce/correlazione** (15:30–21:37Z,
+quasi tutti «utente non collegato», cookie del nonce non trovato e token con un nonce diverso): il secondo giro
+automatico li recupera — 98 ritorni `/signin-oidc` tutti 302 e una sola visita a `accesso-non-riuscito`. È il primo
+giorno col login obbligatorio: da tenere d'occhio negli scarichi.
 
 MINOR con **quattro migrazioni additive** (`ApertureDocumenti`, `AccountEventoInUso`: due tabelle; `VidAccountEvento`,
 `VidSvuotaEvento`: due colonne in `EventKits`; `Up` solo Create/Add), su 1.55.1
@@ -72,7 +79,7 @@ endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Zip 6,32 MB, sha256
 `631aa48e0056ac0ae9a1bf403b38d222074c6d67f61da69ecea64691eb14157e`. Build Release senza avvisi, test verdi, conteggi
 identici (App 3208, Infra 2083, Ui 1962). Prova sul publish win-x64: le quattro migrazioni applicate all'avvio,
 `pacchetto-verifica.js` verde (`TERMINE=LIBB`), pagina dell'ACC 200, scheda Discord in `/services`, `/services/event` 200. Foglio
-`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.56.0.md`. ▶ Caricamento del committente.
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.56.0.md`.
 
 ### ✅ A147 — 1.55.1 ONLINE: lingua dei membri nei documenti uniti (S91) (1 ottobre 2026)
 
