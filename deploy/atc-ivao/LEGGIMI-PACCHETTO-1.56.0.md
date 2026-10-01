@@ -1,6 +1,6 @@
 # Pacchetto 1.56.0 — solo i file cambiati
 
-> **Timbro:** `1.56.0 · 6ab77d4` (1 ottobre 2026), nel **piè di pagina** (staff), nella riga `Versione` della
+> **Timbro:** `1.56.0 · e705d6e` (1 ottobre 2026), nel **piè di pagina** (staff), nella riga `Versione` della
 > **Diagnostica** e in `diagnostica/avvio-diagnostica.txt`.
 
 > **Parte da 1.55.1** (`5493151`, online dal 1 ottobre). È una **MINOR con UNA migrazione ADDITIVA**
@@ -24,6 +24,8 @@
   e per giorno; niente bozze, anteprime, editor). Sulla pagina dell'ACC i tre di ogni scheda sono: prima gli «in
   evidenza» scelti a mano, poi i più aperti negli ultimi **90 giorni**. Il numero accanto alla voce lo vede **solo lo
   staff**.
+- **S94** — su `/services` la scheda esterna **«Discord di divisione»**, accanto a Prenotazioni ATC; nella tabella
+  delle SID, sugli schermi stretti, «Transition» diventa «Tran.».
 
 ## I 17 file, e l'ordine
 
@@ -63,7 +65,7 @@ solo da Application, Infrastructure e Ui, tutti dentro.
 `https://atc.it.ivao.aero/services/vsop/search`, scrivete **`LIRF`**: devono comparire **dei documenti** (vIPI Roma,
 LIRF…), non solo la riga «N risultati». «0 risultati per LIRF» è un **guasto**, anche se la riga è cambiata.
 
-- col login da staff: il timbro **`1.56.0 · 6ab77d4`** nel piè di pagina; in Diagnostica **`Schema` = `0`** (se non è
+- col login da staff: il timbro **`1.56.0 · e705d6e`** nel piè di pagina; in Diagnostica **`Schema` = `0`** (se non è
   0 manca `Vipi.Infrastructure.MySqlMigrations.dll`);
 - editor di LIRP, pannello di pubblicazione: una riga di lingua per la vIPI e una per il vSOP;
 - aprite due o tre vIPI, poi la pagina dell'ACC: da staff accanto alle voci compare il numero di aperture;

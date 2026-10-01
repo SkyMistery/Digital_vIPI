@@ -43,10 +43,10 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A148 — 1.56.0: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93) (1 ottobre 2026)
+### 📦 A148 — 1.56.0: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93), Discord (S94) (1 ottobre 2026)
 
 MINOR con **una migrazione additiva** (`ApertureDocumenti`: una tabella e un indice; `Up` solo Create), su 1.55.1
-(`5493151`). Timbro **`1.56.0 · 6ab77d4`**. Fusi da `fix/lingua-editor-unione` @ `cafbdf9b` (CI verde run 36885632830)
+(`5493151`). Timbro **`1.56.0 · e705d6e`**. Fusi da `fix/lingua-editor-unione` @ `cafbdf9b` (CI verde run 36885632830)
 e `fix/aperture-documenti` @ `1e26ccc5` (CI verde run 36888703335). Conflitti di sola aggiunta: registro del Sito
 (tenute entrambe le voci) e `tests/conteggi/Vipi.Ui.Tests.txt`, rimisurato sul log: **1955** (1947 + 3 di S92 + 5 di
 S93).
@@ -55,12 +55,16 @@ S93).
 - **S93**: `AperturaDocumento` (una riga per documento e per giorno, solo pagine pubbliche); sulla pagina dell'ACC i
   tre di ogni scheda: «in evidenza», poi i più aperti in 90 giorni (`ApertureDocumenti.Finestra`), poi per nome; numero
   solo allo staff. Codice comune Domain, Application, Infrastructure. Carta `docs/feature/2026-10-01-aperture-documenti.md`.
+- **S94** (fuso da `fix/discord-transition` @ `699ea739`, CI verde run 36891785240): scheda esterna «Discord di
+  divisione» su `/services`; nella tabella SID sotto i 760px «Transition» → «Tran.». ⚠️ Entrata dopo il primo publish
+  (timbro `6ab77d4`, zip `a24eb888…`, MAI caricato, in `publish_old/20261001d-scartato-…`): timbro, publish e zip
+  rifatti.
 
 **17 file** (`solo-17-file-1.56.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui, Host (dll + pdb), `en/`,
 endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Zip 6,25 MB, sha256
-`a24eb88861ef663de2c3b3cdedef476eb3d908fa906bf72327d701570f3eb440`. Build Release senza avvisi, test verdi, conteggi
-identici (App 3193, Infra 2080, Ui 1955). Prova sul publish win-x64: migrazione applicata all'avvio,
-`pacchetto-verifica.js` verde (`TERMINE=LIBB`), pagina dell'ACC 200. Foglio
+`b23a3cf8ff2ab2156850baeeb57d45cdf40e91c2d8211d68d8cd91f9e5c2edb7`. Build Release senza avvisi, test verdi, conteggi
+identici (App 3193, Infra 2080, Ui 1956). Prova sul publish win-x64: migrazione applicata all'avvio,
+`pacchetto-verifica.js` verde (`TERMINE=LIBB`), pagina dell'ACC 200, scheda Discord in `/services`. Foglio
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.56.0.md`. ▶ Caricamento del committente.
 
 ### ✅ A147 — 1.55.1 ONLINE: lingua dei membri nei documenti uniti (S91) (1 ottobre 2026)
