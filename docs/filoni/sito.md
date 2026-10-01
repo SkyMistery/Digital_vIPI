@@ -1912,6 +1912,26 @@
   vista live con bordo, angoli e anello degli altri campi; nel piè di pagina marchio e titolo «IVAO» alla stessa
   altezza e misura; il «Compatta» tocca solo `#vipi-main` (non barra, piè di pagina, titolo della pagina — prima il
   titolo «IVAO» del piè di pagina, un <h2>, passava a 23px). Ramo `fix/sid-ricerca`.
+- ✅ **S84** vista live più compatta, e da telefono/tablet (1-ott, committente, con schermate). **Testata su una
+  riga**: briciole, titolo, pallino della postazione, avviso di simulazione al centro, ATC online, selettore.
+  **Avviso**: «…REAL LIFE **OPERATIONS**» e non più NAVIGATION, ovunque (copre ogni operazione reale; R8 in
+  `regole-lingua.md`). **«Nessuna vIPI pubblicata»** chiuso, si apre sul titolo. **«Sopra di te» → «Enti limitrofi»**
+  («chi ti assorbe se chiudi, a chi trasferisci il traffico»). **Documenti in scheda nuova** (Documento esteso, vIPI,
+  vSOP): chi li apre dalla vista live la vuole tenere. **vSOP accanto alla vIPI** nel pannello dello scalo quando ci
+  sono tutti e due. Sulle postazioni d'aeroporto niente «Documento esteso» né vAWOS in testata (li porta il pannello).
+  **Pannello dello scalo**: chip delle piste, TA/TL/vento/piste suggerite e tasti su una riga; l'ICAO accanto al titolo
+  del riquadro; nota radio e ricerca SID sulla stessa riga. **Compatta sempre accesa** nella vista live e solo lì
+  (tasto tolto; prima, accesa, restava addosso a tutto il sito via localStorage). 🔴 Trovato strada facendo: le
+  regole `:where(.vipi-root) .vipi-dense …` non scattavano MAI (la classe è su `<html>`, antenato della radice):
+  riscritte `.vipi-dense :where(.vipi-root) …`, stessa specificità. **Ora Z nella barra in alto**, a tutti e su ogni
+  pagina; da telefono la barra è ☰ · ATC · 🔍 · ora Z · «● Live». **Telefono** (`.pw-600`, gradino nuovo in
+  `pwSoglie`): titolo piccolo e pallino, enti limitrofi chiusi dietro l'etichetta, valori due per riga, frase radio
+  a icona, SID senza «condizione» (si apre toccando il nome: un `<button>`, non la riga — lo pretende
+  `StructureAccessibilityTests`), tabella SID fissa a tutta larghezza (la regola del telefono, U-106, la faceva
+  scorrere). **Tablet in verticale** (601–900): come il telefono per testata, margini e riquadri chiusi, ma enti
+  limitrofi aperti, colonna condizione, frase radio intera, quattro valori in riga. Frequenze, gruppi e trasferimenti
+  partono chiusi da telefono e tablet (`data-chiuso-telefono`, con una chiave di persistenza loro). A schermo su
+  LIRN, LIML, LIBD, LIRR (copia del DB) a 1280, 768 e 375. Test Ui 1932 invariati. Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

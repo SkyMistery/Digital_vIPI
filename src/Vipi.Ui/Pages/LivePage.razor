@@ -26,16 +26,18 @@
 <PageTitle>@(_view?.Title ?? L["Live_Tab"].Value) — @L["Live_Tab"] · vIPI IVAO Italy</PageTitle>
 
 <div class="wrap live">
-    <div class="breadcrumb">
-        <a href="/services/vsop">@En["Common_Home"]</a>
-        @if (_view is not null)
-        {
-            <text> › </text><a href="/services/vsop/@_view.AccCode.ToLowerInvariant()">@_view.AccCode</a>
-        }
-        <text> › </text><b>@En["Live_Tab"]</b>
-    </div>
-
-    <div class="reduced-top">
+    @* UNA riga sola per tutta la testata (committente, 1 ottobre 2026): briciole, postazione, ora Z, avviso di
+       simulazione al centro, ATC online, selettore. Prima erano tre righe — briciole, titolo, avviso — su una
+       pagina che vive su un secondo monitor piccolo. Stretta, la riga va a capo da sola (flex-wrap). *@
+    <div class="reduced-top live-top">
+        <div class="breadcrumb">
+            <a href="/services/vsop">@En["Common_Home"]</a>
+            @if (_view is not null)
+            {
+                <text> › </text><a href="/services/vsop/@_view.AccCode.ToLowerInvariant()">@_view.AccCode</a>
+            }
+            <text> › </text><b>@En["Live_Tab"]</b>
+        </div>
         <h1 class="page-h1" style="margin:0">@(_view?.Title ?? L["Live_Tab"].Value)</h1>
         @if (_view is not null)
         {
@@ -43,29 +45,28 @@
                guardare una postazione spenta, un «Live ·» verde fisso direbbe il falso proprio nel caso nuovo. *@
             @if (_snapshot.Callsigns.Contains(_view.Callsign))
             {
-                <span class="live-badge" style="background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)"><span class="dot"></span> Live · @_view.Callsign</span>
+                <span class="live-badge" style="background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)" title="Live · @_view.Callsign"><span class="dot"></span> <span class="lb-t">Live · @_view.Callsign</span></span>
             }
             else
             {
-                <span class="live-badge off"><span class="dot"></span> @_view.Callsign · @L["Live_Offline"]</span>
+                <span class="live-badge off" title="@_view.Callsign · @L["Live_Offline"]"><span class="dot"></span> <span class="lb-t">@_view.Callsign · @L["Live_Offline"]</span></span>
             }
         }
-        <span class="muted" style="font-size:13px;margin-left:auto">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @FeedAge()</span>
-        <span class="utc-clock" title="@L["Live_UtcNow"]" data-utc-clock>--:--:--Z</span>
-        <button type="button" class="btn ghost live-dense" data-dense-toggle aria-pressed="false"
-                onclick="vipiToggleDense()" title="@L["Live_DenseTip"]">@L["Live_Dense"]</button>
-        @if (ExtendedDocHref() is { } href)
+        @* L'ora Z non sta più qui: è nella barra in alto, su ogni pagina (SopLayout, 1 ottobre 2026). *@
+        <SimDisclaimer />
+        <span class="muted" style="font-size:13px">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @FeedAge()</span>
+        @* Niente tasto «Compatta»: la vista live è sempre compatta (vipi-ui.js, applyDense; committente, 1 ottobre 2026). *@
+        @* Non sulle postazioni d'aeroporto (DEL, GND, TWR, torre informativa): il documento dello scalo lo aprono già i
+           tasti del pannello qui sotto, vIPI e vSOP, e un terzo in testata diceva la stessa cosa (committente,
+           1 ottobre 2026). Il collegamento resta nell'avviso «nessun documento pubblicato». *@
+        @if (!IsAirportSide() && ExtendedDocHref() is { } href)
         {
-            <a class="btn ghost" href="@href">@L["Live_ExtendedDoc"]</a>
+            @* Scheda NUOVA (committente, 1 ottobre 2026): chi apre il documento dalla vista live sta controllando,
+               e la vista live gli serve ancora. *@
+            <a class="btn ghost" href="@href" target="_blank">@L["Live_ExtendedDoc"]</a>
         }
-        @* Il quadro vAWOS, per chi sta su una posizione D'AEROPORTO: torre, torre informativa, ground,
-           delivery. Da un APP o da un'area lo scalo non e' uno solo, e il tasto sta sulla chip — cioe'
-           dentro <AirportQuickPanel>, che quella pagina monta gia'. *@
-        @if (_view?.AirportIcao is { Length: 4 } icaoAwos)
-        {
-            <a class="btn ghost" href="/services/vawos/@icaoAwos.ToLowerInvariant()" target="_blank"
-               title="@L["Live_AwosTitle"]">vAWOS ↗</a>
-        }
+        @* Niente vAWOS in testata (committente, 1 ottobre 2026): dove c'è uno scalo della postazione c'è anche il suo
+           <AirportQuickPanel>, che porta già il tasto vAWOS accanto a quelli del documento. Erano due tasti uguali. *@
         @* Il selettore di postazione esiste solo da DivisionStaff in su: per tutti gli altri la vista live
            è la propria postazione, quindi non c'è niente da scegliere. Riusa TypeaheadPicker — il campo a
            digitazione del prodotto, tastiera compresa — invece di scriverne un settimo.
@@ -84,9 +85,6 @@
                              NoMatch="@(_postazioni is null ? L["Common_Loading"].Value : L["Live_PickNoMatch"].Value)"
                              OnPick="VaiAllaPostazione" />
         }
-        @* La testata della vista live e' una riga sola in flex: `.sim-line` porta `flex-basis:100%` e
-           l'avviso scende sotto invece di stringere il titolo. *@
-        <div class="sim-line"><SimDisclaimer /></div>
     </div>
 
     @if (_view is null)
@@ -142,9 +140,11 @@
             <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span>
                 @* ⚠️ Senza indirizzo niente <a> (U-208): un href="#" lo risolve Blazor contro <base href="/"> e
                    porta il controllore all'hub, fuori dalla vista live. *@
-                <div><p class="ct">@L["Live_NoDocTitle", _view.AccCode]</p>@(ExtendedDocHref() is { } docHref
+                @* Chiuso: il titolo basta a chi controlla, la spiegazione la apre chi la vuole (committente,
+                   1 ottobre 2026). *@
+                <details class="callout-fold"><summary class="ct">@L["Live_NoDocTitle", _view.AccCode]</summary>@(ExtendedDocHref() is { } docHref
                     ? FraseHtml.Format(L["Live_NoDocBody"], docHref)
-                    : (MarkupString)System.Net.WebUtility.HtmlEncode(L["Live_NoDocBodyNoLink"].Value))</div>
+                    : (MarkupString)System.Net.WebUtility.HtmlEncode(L["Live_NoDocBodyNoLink"].Value))</details>
             </div>
         }
 
@@ -164,8 +164,13 @@
            l'informazione principale — quindi sta in alto e per esteso, non in coda. *@
         @if (_view.CoverageChain.Count > 0)
         {
-            <div class="live-chain @(IsAirportSide() ? "lead" : "")">
-                <span class="lc-lab">@L["Live_CoveredBy"]</span>
+            @* Da telefono gli enti limitrofi stanno CHIUSI e si aprono col tasto dell'etichetta (committente, 1 ottobre
+               2026); da schermo largo l'etichetta è un'etichetta e le chip si vedono sempre (vipi-theme.css, `.pw-600`; il tablet le vede come lo schermo largo).
+               Lo stato è del circuito e non di un <details>: il blocco nasce e muore col feed, e un `open` messo dal
+               browser su un elemento ricreato si perderebbe. *@
+            <div class="live-chain @(IsAirportSide() ? "lead" : "") @(_chainOpen ? "open" : "")">
+                <button type="button" class="lc-lab lc-toggle" aria-expanded="@(_chainOpen ? "true" : "false")"
+                        @onclick="() => _chainOpen = !_chainOpen">@L["Live_CoveredBy"] <span class="lc-n">@_view.CoverageChain.Count</span></button>
                 @foreach (var cs in _view.CoverageChain)
                 {
                     var online = _snapshot.Callsigns.Contains(cs);
@@ -197,14 +202,16 @@
         @if (_view.AirportIcao is { } icao)
         {
             <details class="acc-item" open data-persist="live-apt">
-                <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"]</span><span class="tag-state tag-covered">@icao</span></summary>
+                @* L'ICAO accanto al titolo e della sua misura: il pannello qui sotto non lo ripete più (committente, 1 ottobre 2026). *@
+                <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"] <span class="tag-state tag-covered sum-icao">@icao</span></span></summary>
                 <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" Presidency="@PresidenzaDi(icao)" /></div>
             </details>
         }
         else if (_view.AirportChips.Count > 0)
         {
-            <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Live_QuickView"]</p>
+            @* Il titolo sulla stessa riga delle chip: da solo sopra si prendeva una riga. *@
             <div class="apt-quick" style="margin-bottom:22px">
+                <span class="apt-quick-lab">@L["Live_QuickView"]</span>
                 <Chip Class="@($"ch sw {(_selectedApt is null ? "on" : "")}")" Active="_selectedApt is null" OnActivate="() => _selectedApt = null">📡 @L["Live_MySector"]</Chip>
                 @foreach (var chip in _view.AirportChips)
                 {
@@ -225,7 +232,9 @@
         else
         {
             <div class="red-top-grid">
-                <details class="acc-item" data-persist="live-freq">
+                @* Da telefono frequenze, gruppi e trasferimenti partono CHIUSI (vipi-ui.js, wireCollapse): la prima schermata è
+                   dello scalo e delle SID (committente, 1 ottobre 2026). *@
+                <details class="acc-item" data-persist="live-freq" data-chiuso-telefono>
                     <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@_view.Frequencies.Count</span></summary>
                     <div class="body">
                         @if (_view.Frequencies.Count > 0) { <AppFrequencies Rows="_view.Frequencies" /> }
@@ -235,7 +244,7 @@
 
                 @foreach (var g in _view.Groups)
                 {
-                    <details class="acc-item @(g.Delegated ? "collapsed-strip" : "")" open="@(!g.Delegated)" data-persist="@($"live-blk-{g.Block.Key}")">
+                    <details class="acc-item @(g.Delegated ? "collapsed-strip" : "")" open="@(!g.Delegated)" data-persist="@($"live-blk-{g.Block.Key}")" data-chiuso-telefono>
                         <summary>
                             <span>@(g.Delegated ? "🔇" : "📡") @g.Block.Title@(g.Delegated ? $" — {L["Live_Delegated"]}" : "")</span>
                             <span class="tag-state @(g.Delegated ? "tag-online" : "tag-covered")">@(g.Delegated ? L["Common_TagOnline"] : L["Common_TagCovered"])</span>
@@ -260,7 +269,7 @@
                non un pannello nascosto col CSS. *@
             @if (Authz.IsDivisionStaff)
             {
-                <details class="acc-item" data-persist="live-xfer">
+                <details class="acc-item" data-persist="live-xfer" data-chiuso-telefono>
                     <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@_view.Transfers.Sum(t => t.Points.Count)</span></summary>
                     <div class="body">
                         <TransfersLive Flows="_view.Transfers" EmptyText="@L["Live_NoCoord"]" Changed="ChangedCallsigns()" Online="_snapshot.Callsigns" />
@@ -288,6 +297,9 @@
     private string? _requested;              // callsign chiesto ma non trovato (per distinguere i due stati vuoti)
     private string? _myCallsign;
     private string? _selectedApt;
+
+    /// <summary>Enti limitrofi aperti da telefono (da schermo largo si vedono sempre).</summary>
+    private bool _chainOpen;
     private OnlineAtcSnapshot _snapshot = OnlineAtcSnapshot.Empty;
 
     /// <summary>Testo digitato nel selettore, e l'elenco da cui sceglie. Null = non ancora chiesto: si legge

@@ -128,6 +128,10 @@
            dito prima che il clic finisse. Misurato a 375px: nessuna navigazione. La pagina di ricerca ha il suo
            campo, e sul telefono è il posto giusto dove scrivere. *@
         <a class="top-search-go editor-btn icon-only" href="/services/vsop/search" title="@L["Chrome_Search"]" aria-label="@L["Chrome_Search"]"><Icon Name="search" /></a>
+        @* L'ORA Z, accanto alla ricerca, a TUTTI e su ogni pagina (committente, 1 ottobre 2026): un controllore ragiona in
+           Z, e prima la vedeva solo nella vista live. La scrive il browser ogni secondo (vipi-ui.js, wireUtcClock: ogni
+           `[data-utc-clock]`), niente circuito. Resta anche a barra da telefono: è uno stato, non un comando. *@
+        <span class="tb-utc" data-utc-clock title="@L["Live_UtcNow"]">--:--:--Z</span>
         <div class="right">
             @* ⚠️ Qui stava il tasto «Servizi», tolto insieme al cambio del marchio: adesso e' il marchio a
                portare all'hub, e due link identici a 100px di distanza sono ingombro, non ridondanza. Nel
