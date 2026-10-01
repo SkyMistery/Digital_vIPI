@@ -43,6 +43,25 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A146 — 1.55.0: SID nella ricerca, vista live compatta e ricerca rapida (S83–S90) (1 ottobre 2026)
+
+MINOR **senza migrazioni**, su 1.54.3 (`b6ae28b`). Timbro **`1.55.0 · 395bce9`**. Fuso da `fix/sid-ricerca` @
+`f8758ceb` (CI verde run 36869904638), senza conflitti. Dentro: **S83** SID e STAR nella barra di ricerca
+(`IProcedureCercabili`, memoria 10 min) e nota radio sopra le SID; **S84** vista live compatta su una riga, avviso
+«… REAL LIFE OPERATIONS» ovunque, ora Z nella barra per tutti, telefono/tablet; **S85** callout «Importante»;
+**S86** riconnessione discreta sulle pagine pubbliche interattive; **S87** tasto vSOP accanto a Stampa; **S88–S90**
+ricerca rapida della vista live (`IRicercaLive`: scali, aree, postazioni/frequenze, punti SID/STAR, trasferimenti,
+radioassistenze). Codice comune Application, Infrastructure.
+
+**22 file** (`solo-22-file-1.55.0`): Application, Infrastructure, Ui, Host (dll + pdb), `en/`, endpoints.json,
+`vipi-aor.js`, `vipi-riconnessione.js`, `vipi-ui.js`, `vipi-theme.css` con `.br`/`.gz`. Fuori Domain, Hosting,
+MySqlMigrations, Aurora* (solo ricompilazione). Zip 5,79 MB, sha256
+`a0a67e63387cf907382bbbacf25ea185ff973f7ea0ecdb8bbc86d6619fcdee1b`. Build Release senza avvisi, test verdi, conteggi
+identici (App 3190, Infra 2075, Ui 1944, E2E 507). Prova sul publish win-x64: `pacchetto-verifica.js` verde
+(`TERMINE=LIBB`), avviso «REAL LIFE OPERATIONS», vista live 200; processo ucciso e riavviato con la vista live aperta →
+pagina ricaricata da sola, riquadro nascosto. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.55.0.md`. ▶ Caricamento del
+committente.
+
 ### ✅ A145 — 1.54.3 ONLINE: crediti nel piè di pagina (S82) (1 ottobre 2026)
 
 ✅ Online il 1 ottobre 2026 (avvio 07:57:41Z, pid 1104952). Da fuori porta «Entra con IVAO», Ricerca 401, Healthy,
