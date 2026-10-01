@@ -43,10 +43,11 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A148 — 1.56.0: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93), Discord (S94) (1 ottobre 2026)
+### 📦 A148 — 1.56.0: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93), Discord (S94), account dell'evento (S95) (1 ottobre 2026)
 
-MINOR con **una migrazione additiva** (`ApertureDocumenti`: una tabella e un indice; `Up` solo Create), su 1.55.1
-(`5493151`). Timbro **`1.56.0 · e705d6e`**. Fusi da `fix/lingua-editor-unione` @ `cafbdf9b` (CI verde run 36885632830)
+MINOR con **quattro migrazioni additive** (`ApertureDocumenti`, `AccountEventoInUso`: due tabelle; `VidAccountEvento`,
+`VidSvuotaEvento`: due colonne in `EventKits`; `Up` solo Create/Add), su 1.55.1
+(`5493151`). Timbro **`1.56.0 · 2285a80`**. Fusi da `fix/lingua-editor-unione` @ `cafbdf9b` (CI verde run 36885632830)
 e `fix/aperture-documenti` @ `1e26ccc5` (CI verde run 36888703335). Conflitti di sola aggiunta: registro del Sito
 (tenute entrambe le voci) e `tests/conteggi/Vipi.Ui.Tests.txt`, rimisurato sul log: **1955** (1947 + 3 di S92 + 5 di
 S93).
@@ -59,12 +60,18 @@ S93).
   divisione» su `/services`; nella tabella SID sotto i 760px «Transition» → «Tran.». ⚠️ Entrata dopo il primo publish
   (timbro `6ab77d4`, zip `a24eb888…`, MAI caricato, in `publish_old/20261001d-scartato-…`): timbro, publish e zip
   rifatti.
+- **S95** (fuso da `fix/vid-evento` @ `5480f658`, CI verde run 36906204740): controllare con un account dell'evento —
+  lo staff scrive i VID in `/services/event`, in `/services` «Controlli con un account dell'evento?», la vista live usa
+  quel VID fino a fine evento, regge al riavvio (`AccountEventoInUso`), la lista si svuota da sola 7 giorni dopo la fine
+  (`VidSvuotaUtc`, pulizia oraria). `IEventKitRepository.ClearVidAsync` nuovo: unica implementazione in Infrastructure.
+  ⚠️ Entrata dopo il secondo publish (timbro `e705d6e`, zip `b23a3cf8…`, MAI caricato, in
+  `publish_old/20261001e-scartato-…`): timbro, publish e zip rifatti di nuovo.
 
 **17 file** (`solo-17-file-1.56.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui, Host (dll + pdb), `en/`,
-endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Zip 6,25 MB, sha256
-`b23a3cf8ff2ab2156850baeeb57d45cdf40e91c2d8211d68d8cd91f9e5c2edb7`. Build Release senza avvisi, test verdi, conteggi
-identici (App 3193, Infra 2080, Ui 1956). Prova sul publish win-x64: migrazione applicata all'avvio,
-`pacchetto-verifica.js` verde (`TERMINE=LIBB`), pagina dell'ACC 200, scheda Discord in `/services`. Foglio
+endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Zip 6,32 MB, sha256
+`631aa48e0056ac0ae9a1bf403b38d222074c6d67f61da69ecea64691eb14157e`. Build Release senza avvisi, test verdi, conteggi
+identici (App 3208, Infra 2083, Ui 1962). Prova sul publish win-x64: le quattro migrazioni applicate all'avvio,
+`pacchetto-verifica.js` verde (`TERMINE=LIBB`), pagina dell'ACC 200, scheda Discord in `/services`, `/services/event` 200. Foglio
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.56.0.md`. ▶ Caricamento del committente.
 
 ### ✅ A147 — 1.55.1 ONLINE: lingua dei membri nei documenti uniti (S91) (1 ottobre 2026)

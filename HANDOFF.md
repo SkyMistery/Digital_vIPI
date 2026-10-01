@@ -6,9 +6,9 @@
 >
 > ## ▶ Il punto — 1 ottobre 2026, sera tardi
 >
-> **📦 Pronto da caricare: 1.56.0** (§A148, timbro `1.56.0 · e705d6e`, 17 file, zip `b23a3cf8…`, MINOR con la
-> migrazione additiva `ApertureDocumenti`): Sito S92 (lingua per membro nell'editor dell'unione) e S93 (aperture dei
-> documenti, i più aperti sulla pagina dell'ACC) e S94 (Discord di divisione). Online resta 1.55.1 finché il committente non carica. ▶ LIRE/LIBG
+> **📦 Pronto da caricare: 1.56.0** (§A148, timbro `1.56.0 · 2285a80`, 17 file, zip `631aa48e…`, MINOR con
+> quattro migrazioni additive): Sito S92 (lingua per membro nell'editor dell'unione) e S93 (aperture dei
+> documenti, i più aperti sulla pagina dell'ACC) S94 (Discord di divisione) e S95 (controllare con un account dell'evento). Online resta 1.55.1 finché il committente non carica. ▶ LIRE/LIBG
 > aspettano il SOD.
 >
 > ## Il punto — 1 ottobre 2026, sera
