@@ -24,7 +24,11 @@ public interface IEventKitRepository
         DateTime adessoUtc, CancellationToken ct = default);
 
     /// <summary>Scrive il testo dei VID degli account dell'evento. Se il pacchetto non c'è ancora, lo crea (spento).</summary>
-    Task SaveVidAsync(string? testo, int userId, string userName, DateTime adessoUtc, CancellationToken ct = default);
+    Task SaveVidAsync(string? testo, DateTime? svuotaUtc, int userId, string userName, DateTime adessoUtc,
+        CancellationToken ct = default);
+
+    /// <summary>Cancella la lista dei VID e la sua data (la pulizia automatica). False se non c'era niente.</summary>
+    Task<bool> ClearVidAsync(CancellationToken ct = default);
 
     /// <summary>Aggiunge una voce in fondo all'elenco; il pacchetto lo crea se manca (spento, senza nome).</summary>
     Task<int> AddItemAsync(EventKitItem voce, CancellationToken ct = default);

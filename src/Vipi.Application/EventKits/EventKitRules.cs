@@ -22,6 +22,20 @@ public static class EventKitRules
     public const int MaxVidEvento = 200;
     public const int MaxTestoVidEvento = 4000;
 
+    /// <summary>Dopo quanti giorni dalla fine dell'evento la lista dei VID si cancella, se lo staff non dice altro.</summary>
+    public const int GiorniVidDopoLaFine = 7;
+
+    /// <summary>
+    /// Quando la lista dei VID si cancella: la data scritta dallo staff, o sette giorni dopo la fine dell'evento; null se
+    /// non c'è né l'una né l'altra (evento senza fine: la lista resta finché qualcuno non la svuota o non mette una data).
+    /// </summary>
+    public static DateTime? VidSiCancellaIl(EventKit? kit) =>
+        kit?.VidSvuotaUtc ?? kit?.EndsUtc?.AddDays(GiorniVidDopoLaFine);
+
+    /// <summary>Vero se c'è una lista e il suo giorno è arrivato.</summary>
+    public static bool VidDaCancellare(EventKit? kit, DateTime adessoUtc) =>
+        !string.IsNullOrWhiteSpace(kit?.VidEvento) && VidSiCancellaIl(kit) is DateTime il && adessoUtc >= il;
+
     /// <summary>
     /// I VID degli account dell'evento letti dal testo dello staff (committente, 1 ottobre 2026): uno o più per riga,
     /// separati da spazi, virgole o punti e virgola; quel che segue i numeri sulla stessa riga è la nota

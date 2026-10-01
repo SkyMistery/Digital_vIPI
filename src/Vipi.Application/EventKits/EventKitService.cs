@@ -12,7 +12,7 @@ namespace Vipi.Application.EventKits;
 /// <param name="Visibile">Il pubblico lo vede adesso (acceso e dentro le date).</param>
 public sealed record EventKitView(string Name, bool IsActive, DateTime? StartsUtc, DateTime? EndsUtc,
     DateTime? UpdatedUtc, string UpdatedByName, IReadOnlyList<EventKitItemRow> Items, bool Visibile,
-    string? VidEvento = null)
+    string? VidEvento = null, DateTime? VidSvuotaUtc = null, DateTime? VidSiCancellaIl = null)
 {
     public static readonly EventKitView Vuoto = new("", false, null, null, null, "", Array.Empty<EventKitItemRow>(), false);
 }
@@ -43,8 +43,17 @@ public interface IEventKitService
     /// null se l'evento non si vede o la lista è vuota.</summary>
     Task<AccountDellEvento?> AccountAsync(CancellationToken ct = default);
 
-    /// <summary>Scrive la lista dei VID degli account dell'evento (staff di divisione). Restituisce quanti sono.</summary>
-    Task<int> SalvaVidAsync(string? testo, CancellationToken ct = default);
+    /// <summary>
+    /// Scrive la lista dei VID degli account dell'evento (staff di divisione) e quando si cancella da sola: null = sette
+    /// giorni dopo la fine dell'evento. Restituisce quanti VID sono.
+    /// </summary>
+    Task<int> SalvaVidAsync(string? testo, DateTime? svuotaUtc = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// La pulizia automatica: se il giorno della lista dei VID è arrivato, la cancella (e manda fuori chi la stava usando).
+    /// Non chiede permessi: la chiama il sito da sé. Vero se ha cancellato qualcosa.
+    /// </summary>
+    Task<bool> CancellaVidScadutiAsync(CancellationToken ct = default);
 
     /// <summary>Tutto, anche spento: per chi lo gestisce (staff di divisione).</summary>
     Task<EventKitView> PerStaffAsync(CancellationToken ct = default);
@@ -168,7 +177,7 @@ public sealed class EventKitService : IEventKitService
         return vid.Count == 0 ? null : new AccountDellEvento(snap.Testata.Name, vid, snap.Testata.EndsUtc);
     }
 
-    public async Task<int> SalvaVidAsync(string? testo, CancellationToken ct = default)
+    public async Task<int> SalvaVidAsync(string? testo, DateTime? svuotaUtc = null, CancellationToken ct = default)
     {
         var (id, chi) = Guardia();
         testo = EventKitRules.Norm(testo);
@@ -188,7 +197,12 @@ public sealed class EventKitService : IEventKitService
             throw new Aor.ValidationException(Lingua($"Al massimo {EventKitRules.MaxVidEvento} VID.",
                 $"At most {EventKitRules.MaxVidEvento} VIDs."));
 
-        await _repo.SaveVidAsync(testo, id, chi, _adesso(), ct);
+        // ⚠️ Una data già passata cancellerebbe la lista al primo giro della pulizia: si dice adesso, non dopo.
+        if (svuotaUtc is DateTime il && il <= _adesso())
+            throw new Aor.ValidationException(Lingua("La data in cui cancellare i VID è già passata.",
+                "The date to delete the VIDs is already past."));
+
+        await _repo.SaveVidAsync(testo.Length == 0 ? null : testo, svuotaUtc, id, chi, _adesso(), ct);
         await CambiatoAsync(ct);
         return vid.Count;
     }
@@ -216,6 +230,15 @@ public sealed class EventKitService : IEventKitService
 
         await _repo.SaveHeaderAsync(nome, attivo, daUtc, aUtc, id, chi, _adesso(), ct);
         await CambiatoAsync(ct);
+    }
+
+    public async Task<bool> CancellaVidScadutiAsync(CancellationToken ct = default)
+    {
+        var snap = await _repo.LoadAsync(ct);
+        if (!EventKitRules.VidDaCancellare(snap?.Testata, _adesso())) return false;
+        if (!await _repo.ClearVidAsync(ct)) return false;
+        await CambiatoAsync(ct);
+        return true;
     }
 
     public async Task<int> AggiungiFileAsync(string etichetta, string? nota, string fileName, Stream contenuto,
@@ -309,7 +332,8 @@ public sealed class EventKitService : IEventKitService
         if (snap is null) return EventKitView.Vuoto;
         var t = snap.Testata;
         return new EventKitView(t.Name, t.IsActive, t.StartsUtc, t.EndsUtc, t.UpdatedUtc == default ? null : t.UpdatedUtc,
-            t.UpdatedByName, snap.Voci, EventKitRules.Visibile(t, _adesso()), t.VidEvento);
+            t.UpdatedByName, snap.Voci, EventKitRules.Visibile(t, _adesso()), t.VidEvento, t.VidSvuotaUtc,
+            EventKitRules.VidSiCancellaIl(t));
     }
 
     /// <summary>

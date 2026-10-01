@@ -1,8 +1,8 @@
 # Controllare con un account dell'evento: la vista live col VID dell'evento — carta (1° ottobre 2026)
 
-> **Stato: ✅ ESEGUITA il 1° ottobre 2026** sul ramo `fix/vid-evento` (filone Sito, S95). **Due migrazioni additive**:
-> `VidAccountEvento` (colonna `EventKits.VidEvento`) e `AccountEventoInUso` (tabella, §4); SQLite e MySQL, Postgres le
-> allinea `PostgresSchemaReconciler`.
+> **Stato: ✅ ESEGUITA il 1° ottobre 2026** sul ramo `fix/vid-evento` (filone Sito, S95). **Tre migrazioni additive**:
+> `VidAccountEvento` (colonna `EventKits.VidEvento`), `AccountEventoInUso` (tabella, §4) e `VidSvuotaEvento` (colonna
+> `EventKits.VidSvuotaUtc`, §3); SQLite e MySQL, Postgres le allinea `PostgresSchemaReconciler`.
 > Nessun `deploy/`.
 > Richiesta del committente: «durante gli eventi live si controlla da pc con account e VID ad hoc. Durante gli eventi un
 > utente apre una finestra, inserisce il VID con cui si è connesso, e se è in una lista di VID validi per quell'evento e
@@ -40,6 +40,11 @@ Chi non è staff di divisione vede solo la propria postazione, quindi non c'era 
   «Torna al mio VID» la cancella a mano.
 - **Chi cambia l'evento manda fuori tutti**: salvare la testata (spento, date) o la lista svuota gli account in uso.
 - **Audit**: una riga «EventAccount» per persona, VID dell'evento e giorno, con la postazione nei dettagli.
+- **La lista si cancella da sola** (committente, 1 ottobre 2026): **sette giorni dopo la fine dell'evento**, o alla data
+  che lo staff scrive accanto («Cancella la lista il», UTC; vuoto = la regola dei sette giorni). Si cancellano i soli VID
+  e chi li stava usando; nome, date, profili e file restano. Lo fa `VidEventoPulizia` ogni ora e all'avvio. Un evento
+  senza data di fine e senza data di cancellazione tiene la lista finché qualcuno non decide. Una data già passata si
+  rifiuta al salvataggio.
 
 ## 4. Le scelte di costruzione
 
@@ -66,7 +71,7 @@ Chi non è staff di divisione vede solo la propria postazione, quindi non c'era 
 
 ## 6. Reti
 
-`AccountEventoTests` (Application: lettura della lista, righe scartate, rifiuto senza scrivere, chi cambia l'evento
+`AccountEventoTests` (Application: la data di cancellazione e la pulizia, lettura della lista, righe scartate, rifiuto senza scrivere, chi cambia l'evento
 manda fuori, i cinque esiti, dodici ore, il riavvio e le voci scadute, la vista live col VID dell'evento e il ritorno
 al proprio) ·
 `AccountEventoTracciaTests` (Infrastructure: una riga al giorno con la postazione; l'archivio che si scrive, si toglie

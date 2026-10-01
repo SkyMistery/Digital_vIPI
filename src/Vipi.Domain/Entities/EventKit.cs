@@ -37,6 +37,12 @@ public class EventKit
     /// </summary>
     public string? VidEvento { get; set; }
 
+    /// <summary>
+    /// Quando la lista dei VID si cancella da sola (UTC), se lo staff l'ha scritto; null = la regola di sempre, sette
+    /// giorni dopo la fine dell'evento (committente, 1 ottobre 2026). Vedi <c>EventKitRules.VidSiCancellaIl</c>.
+    /// </summary>
+    public DateTime? VidSvuotaUtc { get; set; }
+
     public DateTime UpdatedUtc { get; set; }
     public int UpdatedByUserId { get; set; }
     public string UpdatedByName { get; set; } = "";

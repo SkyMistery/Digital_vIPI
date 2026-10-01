@@ -55,6 +55,27 @@ public sealed class AccountEventoTracciaTests : IAsyncLifetime
         Assert.Empty(await archivio.TuttiAsync());
     }
 
+    /// <summary>La lista dei VID con la sua data si salva, e la pulizia la cancella lasciando il resto dell'evento.</summary>
+    [Fact]
+    public async Task La_lista_si_salva_con_la_data_e_la_pulizia_la_cancella()
+    {
+        var repo = new EfEventKitRepository(_db);
+        var il = new DateTime(2026, 10, 9, 6, 0, 0, DateTimeKind.Utc);
+        await repo.SaveHeaderAsync("Italian Night Ops", true, null, null, 704798, "Prova", DateTime.UtcNow);
+        await repo.SaveVidAsync("600100 LIRF_TWR", il, 704798, "Prova", DateTime.UtcNow);
+
+        var kit = (await repo.LoadAsync())!.Testata;
+        Assert.Equal("600100 LIRF_TWR", kit.VidEvento);
+        Assert.Equal(il, kit.VidSvuotaUtc);
+
+        Assert.True(await repo.ClearVidAsync());
+        Assert.False(await repo.ClearVidAsync());
+        kit = (await repo.LoadAsync())!.Testata;
+        Assert.Null(kit.VidEvento);
+        Assert.Null(kit.VidSvuotaUtc);
+        Assert.Equal("Italian Night Ops", kit.Name);
+    }
+
     /// <summary>Una riga per persona e VID al giorno: chi riscrive il VID dopo un ricarico non ne lascia dieci.</summary>
     [Fact]
     public async Task Una_riga_per_persona_e_VID_al_giorno_con_la_postazione()

@@ -2695,6 +2695,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(4000)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<DateTime?>("VidSvuotaUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.HasKey("Id");
 
                     b.ToTable("EventKits");

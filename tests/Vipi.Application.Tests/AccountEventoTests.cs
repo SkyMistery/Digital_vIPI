@@ -121,6 +121,60 @@ public class AccountEventoTests
         Assert.Equal(EsitoAccountEvento.NonEntrato, (await s4.UsaAsync(DellEvento)).Esito);
     }
 
+    // ---- La lista si cancella da sola (committente, 1 ottobre 2026) ----------------------------------------------
+
+    [Fact]
+    public void La_lista_si_cancella_sette_giorni_dopo_la_fine_o_alla_data_dello_staff()
+    {
+        var fine = Adesso.AddHours(6);
+        var kit = new EventKit { VidEvento = "600100", EndsUtc = fine };
+        Assert.Equal(fine.AddDays(7), EventKitRules.VidSiCancellaIl(kit));
+        Assert.False(EventKitRules.VidDaCancellare(kit, fine.AddDays(7).AddSeconds(-1)));
+        Assert.True(EventKitRules.VidDaCancellare(kit, fine.AddDays(7)));
+
+        kit.VidSvuotaUtc = fine.AddDays(1);
+        Assert.Equal(fine.AddDays(1), EventKitRules.VidSiCancellaIl(kit));
+
+        // Senza fine e senza data: resta finché qualcuno non decide.
+        Assert.Null(EventKitRules.VidSiCancellaIl(new EventKit { VidEvento = "600100" }));
+        // Senza lista non c'è niente da cancellare, qualunque sia la data.
+        Assert.False(EventKitRules.VidDaCancellare(new EventKit { EndsUtc = Adesso.AddDays(-30) }, Adesso));
+    }
+
+    /// <summary>🔴 La pulizia cancella SOLO la lista (e manda fuori chi la usava): nome, date e interruttore restano.</summary>
+    [Fact]
+    public async Task La_pulizia_cancella_la_lista_quando_e_ora_e_non_prima()
+    {
+        var archivio = new Archivio();
+        var (servizio, repo, registro) = Evento(attivo: true, vid: "600100 LIRF_TWR", archivio: archivio);
+        repo.Kit.EndsUtc = Adesso.AddDays(-6);
+        registro.Usa(Mio, DellEvento, Adesso.AddHours(1));
+        archivio.Righe[Mio] = new(Mio, DellEvento, Adesso.AddHours(1));
+
+        Assert.False(await servizio.CancellaVidScadutiAsync());
+        Assert.Equal("600100 LIRF_TWR", repo.Kit.VidEvento);
+
+        repo.Kit.EndsUtc = Adesso.AddDays(-7);
+        Assert.True(await servizio.CancellaVidScadutiAsync());
+        Assert.Null(repo.Kit.VidEvento);
+        Assert.Equal("Italian Night Ops", repo.Kit.Name);
+        Assert.True(repo.Kit.IsActive);
+        Assert.Null(registro.VidPer(Mio, Adesso));
+        Assert.Empty(archivio.Righe);
+    }
+
+    [Fact]
+    public async Task Una_data_di_cancellazione_gia_passata_si_rifiuta()
+    {
+        var (servizio, repo, _) = Evento(attivo: true, vid: null);
+
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => servizio.SalvaVidAsync("600100", Adesso.AddMinutes(-1)));
+        Assert.Null(repo.Kit.VidEvento);
+
+        await servizio.SalvaVidAsync("600100", Adesso.AddDays(2));
+        Assert.Equal(Adesso.AddDays(2), repo.Kit.VidSvuotaUtc);
+    }
+
     // ---- Il riavvio del sito (committente, 1 ottobre 2026) ---------------------------------------------------------
 
     /// <summary>🔴 Un riavvio durante l'evento non fa riscrivere il VID: la scelta va anche nel database, e all'avvio un
@@ -274,7 +328,8 @@ public class AccountEventoTests
     {
         public Task<AccountDellEvento?> AccountAsync(CancellationToken ct = default) => Task.FromResult(account);
         public Task<bool> AccountInCorsoAsync(CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<int> SalvaVidAsync(string? testo, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> SalvaVidAsync(string? testo, DateTime? svuotaUtc = null, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> CancellaVidScadutiAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<string?> InCorsoAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EventKitView?> PubblicoAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<EventKitView> PerStaffAsync(CancellationToken ct = default) => throw new NotSupportedException();
@@ -297,10 +352,17 @@ public class AccountEventoTests
             Kit.Name = nome; Kit.IsActive = attivo; Kit.StartsUtc = daUtc; Kit.EndsUtc = aUtc;
             return Task.CompletedTask;
         }
-        public Task SaveVidAsync(string? testo, int userId, string userName, DateTime adessoUtc, CancellationToken ct = default)
+        public Task SaveVidAsync(string? testo, DateTime? svuotaUtc, int userId, string userName, DateTime adessoUtc, CancellationToken ct = default)
         {
             Kit.VidEvento = testo;
+            Kit.VidSvuotaUtc = svuotaUtc;
             return Task.CompletedTask;
+        }
+        public Task<bool> ClearVidAsync(CancellationToken ct = default)
+        {
+            var c = Kit.VidEvento is not null || Kit.VidSvuotaUtc is not null;
+            Kit.VidEvento = null; Kit.VidSvuotaUtc = null;
+            return Task.FromResult(c);
         }
         public Task<int> AddItemAsync(EventKitItem voce, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<int> CountItemsAsync(CancellationToken ct = default) => throw new NotSupportedException();

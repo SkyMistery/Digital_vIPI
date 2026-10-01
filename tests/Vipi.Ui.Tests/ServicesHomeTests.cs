@@ -57,7 +57,8 @@ public class ServicesHomeTests : TestContext
         public Task<string?> InCorsoAsync(CancellationToken ct = default) => Task.FromResult(visibile ? "Italian Night Ops" : null);
         public Task<bool> AccountInCorsoAsync(CancellationToken ct = default) => Task.FromResult(visibile && account);
         public Task<Vipi.Application.EventKits.AccountDellEvento?> AccountAsync(CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<int> SalvaVidAsync(string? testo, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> SalvaVidAsync(string? testo, DateTime? svuotaUtc = null, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> CancellaVidScadutiAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Vipi.Application.EventKits.EventKitView?> PubblicoAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Vipi.Application.EventKits.EventKitView> PerStaffAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task SalvaTestataAsync(string nome, bool attivo, DateTime? daUtc, DateTime? aUtc, CancellationToken ct = default) => throw new NotSupportedException();

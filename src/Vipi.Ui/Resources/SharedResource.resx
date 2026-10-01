@@ -3973,6 +3973,9 @@
   <data name="Evt_VidTitle" xml:space="preserve"><value>VID degli account dell'evento</value></data>
   <data name="Evt_VidHelp" xml:space="preserve"><value>Uno per riga, con la postazione accanto se vuoi («704798 LIRF_TWR»). Mentre l'evento si vede, chi controlla con uno di questi VID può aprire la sua vista live dalla scheda «Controlli con un account dell'evento?» nella pagina dei servizi. Salvare la lista, o spegnere l'evento, toglie la vista a chi la stava usando.</value></data>
   <data name="Evt_VidSave" xml:space="preserve"><value>Salva i VID</value></data>
+  <data name="Evt_VidClearUtc" xml:space="preserve"><value>Cancella la lista il (UTC)</value></data>
+  <data name="Evt_VidClearHelp" xml:space="preserve"><value>Vuoto = {0} giorni dopo la fine dell'evento. Quel giorno la lista dei VID si cancella da sola; profili e file restano.</value></data>
+  <data name="Evt_VidClearWhen" xml:space="preserve"><value>Si cancellerà il {0}.</value></data>
   <data name="Evt_VidSaved" xml:space="preserve"><value>VID salvati: {0}.</value></data>
   <data name="Evt_Saved" xml:space="preserve"><value>Salvato.</value></data>
   <data name="Evt_DatesHelp" xml:space="preserve"><value>Acceso e senza date: si vede subito, finché non lo spegni. Con le date: si vede solo fra inizio e fine. Spento: non si vede mai. Le voci restano per l'evento dopo: togli quelle che non servono.</value></data>

@@ -223,6 +223,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.EventKits.IAccountEventoTraccia, EfAccountEventoTraccia>();
         services.AddScoped<Vipi.Application.EventKits.IAccountEventoArchivio, EfAccountEventoArchivio>();
         services.AddHostedService<AccountEventoAvvio>();
+        services.AddHostedService<VidEventoPulizia>();
         services.AddScoped<Vipi.Application.Diagnostics.IDatabaseBackup, DatabaseCopy.DatabaseBackupService>();
         // Traffico d'aeroporto consolidato: quanto ce n'era e quanto ha trovato un controllore acceso.
         services.AddScoped<Vipi.Application.Abstractions.IAirportTrafficRollupStore, EfAirportTrafficRollupStore>();

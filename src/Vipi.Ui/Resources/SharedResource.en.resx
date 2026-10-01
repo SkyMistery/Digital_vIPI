@@ -3965,6 +3965,9 @@
   <data name="Evt_VidTitle" xml:space="preserve"><value>Event account VIDs</value></data>
   <data name="Evt_VidHelp" xml:space="preserve"><value>One per line, with the position next to it if you like («704798 LIRF_TWR»). While the event is visible, whoever controls with one of these VIDs can open their live view from the «Controlling with an event account?» card on the services page. Saving the list, or switching the event off, removes the view from whoever was using it.</value></data>
   <data name="Evt_VidSave" xml:space="preserve"><value>Save VIDs</value></data>
+  <data name="Evt_VidClearUtc" xml:space="preserve"><value>Delete the list on (UTC)</value></data>
+  <data name="Evt_VidClearHelp" xml:space="preserve"><value>Empty = {0} days after the event ends. On that day the VID list deletes itself; profiles and files stay.</value></data>
+  <data name="Evt_VidClearWhen" xml:space="preserve"><value>It will be deleted on {0}.</value></data>
   <data name="Evt_VidSaved" xml:space="preserve"><value>VIDs saved: {0}.</value></data>
   <data name="Evt_Saved" xml:space="preserve"><value>Saved.</value></data>
   <data name="Evt_DatesHelp" xml:space="preserve"><value>On with no dates: visible right away, until you switch it off. With dates: visible only between start and end. Off: never visible. Items stay for the next event: remove the ones you no longer need.</value></data>

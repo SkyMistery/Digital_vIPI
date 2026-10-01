@@ -44,15 +44,26 @@ public sealed class EfEventKitRepository : IEventKitRepository
         return new EventKitSnapshot(testata, voci);
     }
 
-    public async Task SaveVidAsync(string? testo, int userId, string userName, DateTime adessoUtc,
+    public async Task SaveVidAsync(string? testo, DateTime? svuotaUtc, int userId, string userName, DateTime adessoUtc,
         CancellationToken ct = default)
     {
         var kit = await PacchettoAsync(ct);
         kit.VidEvento = string.IsNullOrWhiteSpace(testo) ? null : testo.Trim();
+        kit.VidSvuotaUtc = svuotaUtc;
         kit.UpdatedUtc = adessoUtc;
         kit.UpdatedByUserId = userId;
         kit.UpdatedByName = userName;
         await SalvaAsync(ct);
+    }
+
+    public async Task<bool> ClearVidAsync(CancellationToken ct = default)
+    {
+        var kit = await _db.EventKits.OrderBy(k => k.Id).FirstOrDefaultAsync(ct);
+        if (kit is null || (kit.VidEvento is null && kit.VidSvuotaUtc is null)) return false;
+        kit.VidEvento = null;
+        kit.VidSvuotaUtc = null;
+        await SalvaAsync(ct);
+        return true;
     }
 
     public async Task SaveHeaderAsync(string nome, bool attivo, DateTime? daUtc, DateTime? aUtc, int userId,
