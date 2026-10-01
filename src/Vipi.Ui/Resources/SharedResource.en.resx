@@ -3557,6 +3557,7 @@
   <data name="Reconnect_Failed" xml:space="preserve"><value>Cannot reconnect. Check your connection, then reload the page.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Reload the page</value></data>
   <data name="Reconnect_QuietTitle" xml:space="preserve"><value>Connection to the server lost</value></data>
+  <data name="Reconnect_QuietBodyLive" xml:space="preserve"><value>The page stops updating until you reload it.</value></data>
   <data name="Reconnect_QuietBody" xml:space="preserve"><value>The document is still readable; Live status and weather stop updating until you reload.</value></data>
   <data name="Diag_DiscTitle" xml:space="preserve"><value>Disconnections seen by browsers</value></data>
   <data name="Diag_DiscHint" xml:space="preserve"><value>One row each time someone saw the «reconnecting» box, over the last seven days. Back: the connection came back by itself. Rejected: the server process had been stopped or restarted. Failed: server unreachable. The full file is diagnostica/disconnessioni-*.tsv.</value></data>

@@ -1935,6 +1935,16 @@
 - ✅ **S85** callout «Importante» dei documenti con l'ottagono col punto esclamativo (`octagon-alert`) invece della X
   dello stop, che accanto a «Importante» diceva «vietato» (1-ott, committente). Vista e anteprime degli editor; la X
   resta ai messaggi d'errore dell'interfaccia. Ramo `fix/sid-ricerca`.
+- ✅ **S86** riconnessione «discreta» sulle pagine pubbliche interattive (1-ott, committente: «le persone non se ne
+  devono accorgere nemmeno il 90% delle volte; l'avviso solo se serve ricaricare a mano, e nelle pagine di lavoro
+  sì»). Terzo modo accanto a «silenziosa» (documenti SSR) e riquadro (lavoro): `[RiconnessioneDiscreta]` su vista
+  live, ricerca, novità, spazi aerei, elenco vSOP, statistiche di divisione → `data-riconnessione="discreta"`
+  (`ModoRiconnessione.Di`). Lì niente riquadro; al circuito rifiutato (processo rinato) la pagina si ricarica DA
+  SOLA, in silenzio e allo stesso punto, senza la bandierina del «gesto perso»; l'avviso discreto in basso compare
+  solo a tentativi finiti (rete assente) o se le ricariche automatiche non risolvono, con la frase «la pagina non si
+  aggiorna più finché non la ricarichi». Editor, admin, richieste, attività, versioni: invariati. Nel dubbio una
+  pagina NON è discreta. Provato dal vivo sulla vista live di LIRN: server spento e riacceso, ricarica muta allo
+  stesso scroll, nessun avviso. Test Ui 1932 → 1944; E2E 507 verdi. Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

@@ -12,6 +12,8 @@
 @page "/services/vsop/live/{Callsign}"
 @layout SopLayout
 @rendermode InteractiveServer
+@* Pagina pubblica: un circuito caduto non si annuncia, se si rimette da solo (vipi-riconnessione.js). *@
+@attribute [RiconnessioneDiscreta]
 @using Vipi.Application.Live
 @using Vipi.Application.Routing
 @inject ILiveViewService Live

@@ -3565,6 +3565,7 @@
   <data name="Reconnect_Failed" xml:space="preserve"><value>Non riesco a ricollegarmi. Controlla la connessione, poi ricarica la pagina.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Ricarica la pagina</value></data>
   <data name="Reconnect_QuietTitle" xml:space="preserve"><value>Collegamento con il server perso</value></data>
+  <data name="Reconnect_QuietBodyLive" xml:space="preserve"><value>La pagina non si aggiorna più finché non la ricarichi.</value></data>
   <data name="Reconnect_QuietBody" xml:space="preserve"><value>Il documento resta leggibile; stato Live e meteo non si aggiornano finché non ricarichi.</value></data>
   <data name="Diag_DiscTitle" xml:space="preserve"><value>Disconnessioni viste dai browser</value></data>
   <data name="Diag_DiscHint" xml:space="preserve"><value>Una riga ogni volta che a qualcuno è comparso il riquadro «riconnessione», negli ultimi sette giorni. Riagganciate: il collegamento è tornato da solo. Rifiutate: il processo del server era stato spento o riavviato. Fallite: server irraggiungibile. Il file completo è diagnostica/disconnessioni-*.tsv.</value></data>

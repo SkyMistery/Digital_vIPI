@@ -1,6 +1,8 @@
 ﻿@page "/services/vsop/mil"
 @layout SopLayout
 @rendermode InteractiveServer
+@* Pagina pubblica: un circuito caduto non si annuncia, se si rimette da solo (vipi-riconnessione.js). *@
+@attribute [RiconnessioneDiscreta]
 @inherits OwningComponentBase
 @using Microsoft.Extensions.DependencyInjection
 @inject IEditAuthorizationService Authz

@@ -10,8 +10,10 @@
 
 @* `data-riconnessione`: una pagina SSR statica (i documenti, la home, la ricerca) ha al più qualche isola — il badge
    Live, il meteo — e se il loro circuito cade non c'è niente di suo da perdere: vipi-riconnessione.js allora non
-   copre la pagina col riquadro (30 settembre 2026). Le pagine interattive (editor) lo tengono. *@
-<div class="vipi-root" data-riconnessione="@(PaginaDiLettura ? "silenziosa" : null)">
+   copre la pagina col riquadro (30 settembre 2026). Le pagine interattive PUBBLICHE (vista live, ricerca…) sono
+   «discreta» (1 ottobre 2026, `[RiconnessioneDiscreta]`): niente riquadro, ricarica silenziosa, avviso solo se serve
+   ricaricare a mano. Le pagine di lavoro (editor, admin) tengono il riquadro. *@
+<div class="vipi-root" data-riconnessione="@ModoDiRiconnessione">
 <a class="skip-link" href="#vipi-main">@L["Chrome_SkipToContent"]</a>
 @if (Chrome.Value.RenderTopbar)
 {
@@ -292,12 +294,13 @@
     [Inject] private IServiceProvider Servizi { get; set; } = default!;
 
     /// <summary>
-    /// Vero se la pagina è SSR statica (vedi <see cref="Vipi.Ui.PaginaDiLettura"/>). ⚠️ Falso nel dubbio: senza chi
+    /// «silenziosa», «discreta» o null (vedi <see cref="Vipi.Ui.ModoRiconnessione"/>). ⚠️ Null nel dubbio: senza chi
     /// sa dire la pagina (un host che non lo registra, i test) si tiene il riquadro, che è il comportamento di prima.
     /// </summary>
-    private bool PaginaDiLettura =>
+    private string? ModoDiRiconnessione =>
         (Servizi.GetService(typeof(Vipi.Ui.IPaginaCorrente)) as Vipi.Ui.IPaginaCorrente)?.Tipo is { } tipo
-        && Vipi.Ui.PaginaDiLettura.E(tipo);
+            ? Vipi.Ui.ModoRiconnessione.Di(tipo)
+            : null;
 
     /// <summary>
     /// Il modulo delle richieste con QUESTA pagina (percorso e query). Null sulla pagina delle richieste stessa: segnalare

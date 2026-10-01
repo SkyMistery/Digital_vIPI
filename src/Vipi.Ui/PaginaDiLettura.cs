@@ -21,3 +21,26 @@ public static class PaginaDiLettura
 {
     public static bool E(Type pagina) => !pagina.IsDefined(typeof(RenderModeAttribute), inherit: true);
 }
+
+/// <summary>
+/// Una pagina INTERATTIVA ma pubblica, dove chi guarda non costruisce niente: la vista live, la ricerca, le novità, gli
+/// spazi aerei, l'elenco vSOP, le statistiche di divisione. Lì un circuito caduto non deve coprire la pagina né dire
+/// niente, se si rimette in piedi da solo (committente, 1 ottobre 2026: «le persone non se ne accorgono nemmeno il 90%
+/// delle volte»): il riquadro non si vede, al «circuito sconosciuto» si ricarica in silenzio allo stesso punto, e
+/// l'avviso discreto compare solo quando serve ricaricare A MANO.
+/// <para>⚠️ Si dichiara pagina per pagina, e nel dubbio NO: una pagina di lavoro (editor, admin, richieste, strumenti)
+/// che la prendesse per sbaglio perderebbe in silenzio il gesto appena fatto — esattamente il difetto che l'avviso
+/// «l'ultimo comando potrebbe non essere arrivato» esiste per dire.</para>
+/// </summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+public sealed class RiconnessioneDiscretaAttribute : Attribute;
+
+/// <summary>Il valore di <c>data-riconnessione</c> che il layout scrive per una pagina (vipi-riconnessione.js lo legge).</summary>
+public static class ModoRiconnessione
+{
+    /// <summary>«silenziosa» (SSR statica, i documenti), «discreta» (interattiva pubblica), null (pagina di lavoro).</summary>
+    public static string? Di(Type pagina) =>
+        PaginaDiLettura.E(pagina) ? "silenziosa"
+        : pagina.IsDefined(typeof(RiconnessioneDiscretaAttribute), inherit: true) ? "discreta"
+        : null;
+}

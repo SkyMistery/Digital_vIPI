@@ -71,6 +71,12 @@
 
     // Una pagina di SOLA LETTURA (il layout lo scrive, vedi SopLayout): lì il riquadro non copre il documento.
     var SILENZIOSA = !!document.querySelector('[data-riconnessione="silenziosa"]');
+    // Una pagina INTERATTIVA ma pubblica (vista live, ricerca…: `[RiconnessioneDiscreta]`, 1 ottobre 2026). Il riquadro
+    // non si vede nemmeno qui; ma a differenza dei documenti il «rifiutato» si ricarica DA SOLO, in silenzio e allo
+    // stesso punto — chi guarda la vista live non ha un gesto da perdere, e senza circuito la pagina è morta. L'avviso
+    // discreto resta per i soli casi in cui ricaricare tocca a lui: rete assente fino alla fine dei tentativi, o
+    // ricariche automatiche che non risolvono.
+    var DISCRETA = !!document.querySelector('[data-riconnessione="discreta"]');
 
     // ── 1. L'avvio di Blazor, con i nostri tempi ─────────────────────────────────────────────────────
     if (window.Blazor && typeof window.Blazor.start === "function") {
@@ -114,7 +120,18 @@
     // piedi un badge. Resta l'avviso discreto in basso, col tasto per ricaricare allo stesso punto.
     var quieta = document.getElementById("vipi-rec-quieta");
     var modale = document.getElementById("components-reconnect-modal");
-    if (modale && SILENZIOSA) modale.classList.add("vipi-rec-silenziosa");
+    if (modale && (SILENZIOSA || DISCRETA)) modale.classList.add("vipi-rec-silenziosa");
+    // La frase dell'avviso: per i documenti «il documento resta leggibile», per le pagine discrete «la pagina non si
+    // aggiorna più». Ci sono tutte e due in App.razor (tradotte dal server); qui se ne lascia una.
+    if (quieta) {
+        var frasi = quieta.querySelectorAll("[data-quieta]");
+        for (var i = 0; i < frasi.length; i++) frasi[i].hidden = frasi[i].getAttribute("data-quieta") !== (DISCRETA ? "discreta" : "silenziosa");
+    }
+    function mostraQuieta(si) {
+        if (!quieta) return;
+        quieta.hidden = !si;
+        zittisciLaBarra(si);
+    }
     function zittisciLaBarra(si) {
         var barra = document.getElementById("blazor-error-ui");
         if (barra) barra.classList.toggle("vipi-rec-zitto", si);
@@ -142,6 +159,16 @@
                 }
                 return;
             }
+            if (DISCRETA) {
+                if (c.contains("components-reconnect-failed")) mostraQuieta(true);    // rete assente: tocca a lui
+                if (c.contains("components-reconnect-hide")) mostraQuieta(false);
+                if (giaRicaricato || !c.contains("components-reconnect-rejected")) return;
+                giaRicaricato = true;
+                // In silenzio: niente bandierina del «gesto perso» (non c'era nessun gesto), e se le ricariche non
+                // risolvono si smette e si lascia l'avviso col tasto.
+                if (!ricarica(false, true)) mostraQuieta(true);
+                return;
+            }
             if (giaRicaricato) return;
             if (!c.contains("components-reconnect-rejected")) return;
             giaRicaricato = true;
@@ -164,9 +191,10 @@
     var tasto = document.getElementById("vipi-riconnessione-ricarica");
     if (tasto) tasto.addEventListener("click", function () { ricarica(true); });
 
-    /// Ricarica, contando le ricariche recenti per non entrare in un ciclo.
+    /// Ricarica, contando le ricariche recenti per non entrare in un ciclo. Falso se si è smesso (troppe ricariche).
     /// <param>`chiesta`: la ricarica l'ha premuta un essere umano — si fa e basta, senza conteggio.</param>
-    function ricarica(chiesta) {
+    /// <param>`muta`: pagina discreta — nessuna bandierina del «gesto perso», e nessun riquadro «arreso».</param>
+    function ricarica(chiesta, muta) {
         segnaLaPosizione();
         if (chiesta) { piantaLaBandierina(); location.reload(); return; }
         try {
@@ -178,9 +206,10 @@
 
             storia = storia.filter(function (t) { return typeof t === "number" && adesso - t < FINESTRA_RICARICHE_MS; });
             if (storia.length >= RICARICHE_MASSIME) {
-                // Si smette e si lascia parlare il riquadro: ricaricare non sta risolvendo niente.
-                if (modale) modale.classList.add("vipi-riconnessione-arresa");
-                return;
+                // Si smette e si lascia parlare il riquadro (o l'avviso, sulle pagine discrete): ricaricare non sta
+                // risolvendo niente.
+                if (modale && !muta) modale.classList.add("vipi-riconnessione-arresa");
+                return false;
             }
 
             storia.push(adesso);
@@ -190,8 +219,9 @@
             // non un permesso — vedi vipi-zoom.js, che sullo stesso storage ha lo stesso patto.
         }
 
-        piantaLaBandierina();
+        if (!muta) piantaLaBandierina();
         location.reload();
+        return true;
     }
 
     /// La traccia che sopravvive alla ricarica. ⚠️ Try suo, separato da quello del conteggio: quello
@@ -298,7 +328,7 @@
             v: buco.v,
             n: buco.n,
             r: buco.r,
-            s: SILENZIOSA ? 1 : 0
+            s: SILENZIOSA || DISCRETA ? 1 : 0     // 1 = senza riquadro (documenti e pagine discrete)
         };
         buco = null;
         try {

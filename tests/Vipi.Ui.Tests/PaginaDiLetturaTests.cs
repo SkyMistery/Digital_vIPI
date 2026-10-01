@@ -20,4 +20,30 @@ public class PaginaDiLetturaTests
     [InlineData(typeof(RichiestePage))]
     [InlineData(typeof(StatsDivisionPage))]
     public void Le_pagine_interattive_tengono_il_riquadro(Type pagina) => Assert.False(PaginaDiLettura.E(pagina));
+
+    /// <summary>
+    /// Le pagine interattive PUBBLICHE sono «discreta» (1 ottobre 2026): niente riquadro, ricarica silenziosa, avviso
+    /// solo se serve ricaricare a mano.
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(LivePage))]
+    [InlineData(typeof(SearchPage))]
+    [InlineData(typeof(ChangedPage))]
+    [InlineData(typeof(AirspacePage))]
+    [InlineData(typeof(MilListPage))]
+    [InlineData(typeof(StatsDivisionPage))]
+    public void Le_pagine_pubbliche_interattive_sono_discrete(Type pagina) =>
+        Assert.Equal("discreta", ModoRiconnessione.Di(pagina));
+
+    /// <summary>🔴 Le pagine di LAVORO tengono il riquadro e l'avviso del gesto perso: chi lavora deve saperlo.</summary>
+    [Theory]
+    [InlineData(typeof(RichiestePage))]
+    [InlineData(typeof(AccEditorPage))]
+    [InlineData(typeof(AdminTrasferimentiPage))]
+    [InlineData(typeof(VersioniPage))]
+    [InlineData(typeof(TasksPage))]
+    public void Le_pagine_di_lavoro_tengono_il_riquadro(Type pagina) => Assert.Null(ModoRiconnessione.Di(pagina));
+
+    [Fact]
+    public void I_documenti_restano_silenziosi() => Assert.Equal("silenziosa", ModoRiconnessione.Di(typeof(AeroportoPage)));
 }

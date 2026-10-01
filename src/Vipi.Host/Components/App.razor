@@ -138,7 +138,9 @@
         <span class="vipi-perso-i" aria-hidden="true">⟳</span>
         <div class="vipi-perso-t">
             <strong>@L["Reconnect_QuietTitle"]</strong>
-            <span>@L["Reconnect_QuietBody"]</span>
+            <span data-quieta="silenziosa">@L["Reconnect_QuietBody"]</span>
+            @* Le pagine discrete (vista live, ricerca…): lì non c'è un documento che resta leggibile. *@
+            <span data-quieta="discreta" hidden>@L["Reconnect_QuietBodyLive"]</span>
         </div>
         <button id="vipi-rec-quieta-ricarica" class="vipi-rec-b" type="button">@L["Reconnect_Reload"]</button>
     </div>
