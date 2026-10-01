@@ -1539,7 +1539,9 @@
       Su 1.55.1 (5493151, online dal 1 ottobre 2026). Sito S92: nell'editor di un documento unito la lingua di
       pubblicazione si imposta membro per membro (salvata per ID del documento). S93: contatore delle aperture dei
       documenti (una riga per documento e per giorno, solo le pagine pubbliche) e, sulla pagina dell'ACC, i tre più
-      aperti per scheda negli ultimi 90 giorni dopo gli «in evidenza»; il numero lo vede solo lo staff. Tocca Vipi.Domain,
+      aperti per scheda negli ultimi 90 giorni dopo gli «in evidenza»; il numero lo vede solo lo staff. S94: scheda
+      esterna «Discord di divisione» su /services; nella tabella SID sotto i 760px «Transition» → «Tran.». S94 è entrata
+      dopo il primo publish (6ab77d4), mai caricato: timbro e pacchetto rifatti. Tocca Vipi.Domain,
       Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Ui (+ frasi IT/EN) e Vipi.Host per il timbro.
       Dettaglio: LEGGIMI-PACCHETTO-1.56.0.md, §A148.
     -->
