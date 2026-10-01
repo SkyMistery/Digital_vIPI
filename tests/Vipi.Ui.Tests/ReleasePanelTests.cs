@@ -840,4 +840,96 @@ public class ReleasePanelTests : TestContext
 
         Assert.Empty(Render().FindAll(".rel-rilette"));
     }
+
+    // ---- Lingua di pubblicazione: una riga per documento dell'unione (S92) ------------------------------------
+
+    /// <summary>Lingua e blocco per ID del documento; chi chiede per sola chiave (documento solo) prende l'ID 1.</summary>
+    private sealed class FakeAdmin : IDocumentAdminService
+    {
+        public Dictionary<int, DocumentLanguageState> Stati { get; } = new();
+        public List<(int Id, Language Lingua, bool Bloccata)> Salvati { get; } = new();
+
+        private static int Id(ManagedDocRef d) => d.DocumentId ?? 1;
+
+        public Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default) =>
+            Task.FromResult(Stati.TryGetValue(Id(doc), out var s) ? s : null);
+
+        public Task SetLanguageAsync(ManagedDocRef doc, Language language, bool locked, CancellationToken ct = default)
+        {
+            Salvati.Add((Id(doc), language, locked));
+            Stati[Id(doc)] = new DocumentLanguageState(language, locked);
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ManagedDoc>>(Array.Empty<ManagedDoc>());
+        public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default) => Task.CompletedTask;
+        public Task SetTitleAsync(ManagedDocRef doc, string title, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    /// <summary>LIRP: la vIPI bilingue (34) e il vSOP militare bloccato in inglese (33), uniti.</summary>
+    private FakeAdmin ArrangeLirp(FakeReleases fake)
+    {
+        fake.Uniti.Add(new BersaglioUnito(ReleaseTargetType.Airport, "LIRP", 34, "vIPI — LIRP Pisa", null, null));
+        fake.Uniti.Add(new BersaglioUnito(ReleaseTargetType.AirportMil, "LIRP", 33, "vSOP MIL — LIRP Pisa", null, null));
+        var admin = new FakeAdmin();
+        admin.Stati[34] = new DocumentLanguageState(Language.It, Locked: false);
+        admin.Stati[33] = new DocumentLanguageState(Language.En, Locked: true);
+        Services.AddSingleton<IDocumentAdminService>(admin);
+        return admin;
+    }
+
+    /// <summary>
+    /// 🔴 Segnalato dal committente il 1° ottobre 2026 sull'editor di LIRP: la lingua si impostava solo per il
+    /// documento della porta, e il vSOP unito non aveva un posto dove dire «solo in inglese».
+    /// </summary>
+    [Fact]
+    public void In_un_UNIONE_ogni_documento_ha_la_SUA_riga_di_lingua()
+    {
+        var fake = Arrange(Rel(1, effective: true, status: ReleaseStatus.Effective));
+        ArrangeLirp(fake);
+
+        var righe = Render().FindAll(".lang-row").ToList();
+
+        Assert.Equal(2, righe.Count);
+        Assert.Contains("vIPI — LIRP Pisa", righe[0].TextContent);
+        Assert.Equal("it", righe[0].QuerySelector("select")!.GetAttribute("value"));
+        Assert.False(righe[0].QuerySelector("input[type=checkbox]")!.HasAttribute("checked"));
+        Assert.Contains("vSOP MIL — LIRP Pisa", righe[1].TextContent);
+        Assert.Equal("en", righe[1].QuerySelector("select")!.GetAttribute("value"));
+        Assert.True(righe[1].QuerySelector("input[type=checkbox]")!.HasAttribute("checked"));
+    }
+
+    /// <summary>⚠️ E il gesto su una riga scrive su QUEL documento, per ID: vIPI e vSOP dello stesso scalo
+    /// hanno la stessa chiave, e cercarli per chiave ne prenderebbe uno per l'altro.</summary>
+    [Fact]
+    public void Bloccare_la_vIPI_unita_scrive_sulla_vIPI_e_non_tocca_il_vSOP()
+    {
+        var fake = Arrange(Rel(1, effective: true, status: ReleaseStatus.Effective));
+        var admin = ArrangeLirp(fake);
+        var cut = Render();
+
+        cut.FindAll(".lang-row").First().QuerySelector("input[type=checkbox]")!.Change(true);
+
+        var salvato = Assert.Single(admin.Salvati);
+        Assert.Equal((34, Language.It, true), salvato);
+        Assert.Equal(new DocumentLanguageState(Language.En, true), admin.Stati[33]);
+        Assert.True(cut.FindAll(".lang-row").First().QuerySelector("input[type=checkbox]")!.HasAttribute("checked"));
+    }
+
+    /// <summary>Un documento solo resta com'era: una riga, senza titolo davanti.</summary>
+    [Fact]
+    public void Un_documento_SOLO_ha_una_riga_sola_senza_titolo()
+    {
+        Arrange(Rel(1, effective: true, status: ReleaseStatus.Effective));
+        var admin = new FakeAdmin();
+        admin.Stati[1] = new DocumentLanguageState(Language.En, Locked: true);
+        Services.AddSingleton<IDocumentAdminService>(admin);
+
+        var riga = Assert.Single(Render().FindAll(".lang-row"));
+
+        Assert.Null(riga.QuerySelector("span"));
+        Assert.Equal("en", riga.QuerySelector("select")!.GetAttribute("value"));
+    }
 }
