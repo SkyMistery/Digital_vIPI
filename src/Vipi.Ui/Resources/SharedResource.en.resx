@@ -4027,4 +4027,5 @@
   <data name="Lsr_PosOpenLive" xml:space="preserve"><value>Open its live view</value></data>
   <data name="Lsr_FeedOld" xml:space="preserve"><value>(online data not up to date)</value></data>
   <data name="Lsr_Indexing" xml:space="preserve"><value>Still reading procedures and transfers: those results will follow shortly.</value></data>
+  <data name="Aqp_NoDoc" xml:space="preserve"><value>No published document for {0}.</value></data>
 </root>

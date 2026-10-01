@@ -22,9 +22,9 @@
 @if (_view is null)
 {
     <div class="block">
-        <div class="rap-h" style="justify-content:space-between">
-            <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
-            <span style="display:flex;gap:6px;align-items:center">
+        @* Senza «ICAO vista rapida» in testa, come il ramo col documento: l'ICAO lo dice chi contiene il pannello. *@
+        <div class="rap-h rap-row">
+            <span class="rap-btns">
                 @* Il quadro vAWOS di questo scalo: scheda NUOVA, perche' e' una pagina da secondo monitor
                    che si tiene aperta mentre si continua a lavorare qui. *@
                 <a class="btn ghost" href="/services/vawos/@Icao.ToLowerInvariant()" target="_blank"
@@ -32,7 +32,7 @@
                 <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao" target="_blank">@L["Apt_OpenFullVipi"] ↗</a>
             </span>
         </div>
-        <p class="muted" style="margin:0">Nessun documento pubblicato per @Icao.</p>
+        <p class="muted" style="margin:0">@L["Aqp_NoDoc", Icao]</p>
     </div>
 }
 else

@@ -81,6 +81,16 @@ UNICOM), il VOR di Pescara sulla mappa. `RicercaLiveFiltroTests` +8.
 Insieme, dal committente: nella scheda gialla dei cambi della vista live la parola «scarta» è diventata una ✕ ben
 visibile, in un tasto dentro la scheda.
 
+## 4-bis. La review prima di pubblicare (1 ottobre 2026, S90)
+
+- 🔴 **Memoria condivisa** (`MemoriaRicercaLive` in `RicercaLive.cs`): ogni elenco della ricerca è uno solo per tutto il
+  processo, con un cancello — il primo che lo chiede lo carica, gli altri aspettano e ricevono lo stesso risultato — e
+  vale cinque minuti (la topologia uno). Prima ogni ricerca di ogni utente rileggeva tutto, compresi gli accordi di
+  tutti gli ACC: con dieci controllori insieme, dieci giri. Provato da `Dieci_richieste_insieme_caricano_una_volta`.
+- Il dettaglio di una postazione si ricalcola a ogni giro del feed (`RicercaLiveFiltro.Copertura`, pura).
+- Le sole cifre («128») cercano frequenze **e** nomi (l'area P128); le cifre col punto («128.») solo frequenze.
+- Uno scalo aperto dalla ricerca mostra ICAO, nome e ACC accanto a «← Risultati».
+
 ## 5. Proposta, non fatta
 
 **Settori**: un punto o un'area → quale settore lo copre (dalle forme AoR già usate per la mappa). Il committente l'ha

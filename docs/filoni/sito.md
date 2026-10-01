@@ -1959,6 +1959,15 @@
   tutti gli ACC (solo staff di divisione), radioassistenze con un punto sulla mappa (`data-points` in vipi-aor.js).
   La proposta «settori» resta proposta (carta §5). Scheda gialla dei cambi: ✕ al posto di «scarta». App 3180 → 3188.
   Poi (committente): i punti delle SID/STAR in coda, dopo le radioassistenze e prima delle aree.
+- ✅ **S90** review della vista live prima di pubblicare (1-ott, committente). Corretti: (1) elenco vSOP e statistiche di
+  divisione NON più a riconnessione discreta (hanno «Crea» e «pubblica»: un clic perso lì in silenzio sembrerebbe
+  riuscito); (2) 🔴 la ricerca ha una MEMORIA CONDIVISA di processo (`MemoriaRicercaLive`, 5 minuti, un cancello per
+  elenco): dieci utenti che cercano insieme caricano una volta, prima ognuno rileggeva accordi di tutti gli ACC e
+  procedure di tutti gli scali a ogni ricerca; (3) topologia globale in memoria (1 minuto) invece di ricostruirla a ogni
+  clic; (4) il dettaglio di una postazione si ricalcola a ogni giro del feed; (5) le sole cifre («128») cercano anche
+  i nomi (area P128), solo le cifre col punto sono soltanto frequenza; (6) verificata a schermo la finestra Trasferimenti
+  in compatta (36 righe, una riga ciascuna); (7) pannello senza documento senza «vista rapida» in italiano fisso, e
+  nella ricerca ICAO/nome/ACC accanto a «Risultati». Il punto 8 (ricerca anche su TWR/GND/DEL) da discutere. App 3190.
   Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per

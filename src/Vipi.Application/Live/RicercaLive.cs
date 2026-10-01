@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Domain;
 
@@ -50,8 +52,11 @@ public interface IRicercaLive
     /// <summary>Tutte le postazioni del catalogo (CTR, APP, TWR, GND, DEL di ogni ACC), col nominativo e la frequenza.</summary>
     Task<IReadOnlyList<LivePostazioneTrovata>> PostazioniAsync(CancellationToken ct = default);
 
-    /// <summary>Se la postazione è online adesso e, se no, chi la copre: la topologia GLOBALE, cross-ACC.</summary>
-    Task<LiveCopertura> CoperturaAsync(string callsign, CancellationToken ct = default);
+    /// <summary>
+    /// La topologia GLOBALE (cross-ACC), per dire chi copre una postazione chiusa (<see cref="RicercaLiveFiltro.Copertura"/>).
+    /// Dalla memoria condivisa: un minuto, poi si ricostruisce.
+    /// </summary>
+    Task<Topology> TopologiaAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Le SID e STAR pubblicate di tutti gli scali (le stesse righe dei documenti). ⚠️ Costa: una derivazione per scalo
@@ -70,12 +75,66 @@ public interface IRicercaLive
     Task<IReadOnlyList<LiveNavaidTrovato>> NavaidAsync(CancellationToken ct = default);
 }
 
+/// <summary>
+/// 🔴 LA MEMORIA CONDIVISA DELLA RICERCA, per tutto il processo. Gli elenchi della ricerca sono gli stessi per tutti
+/// (scali pubblicati, aree, postazioni, radioassistenze, procedure pubblicate, punti di trasferimento): ricaricarli per
+/// ogni utente e ogni ricerca voleva dire, con dieci controllori che cercano insieme, dieci giri sugli accordi di tutti gli
+/// ACC e dieci letture delle procedure di sessanta scali (review del 1 ottobre 2026, committente: «rischiamo di far
+/// esplodere tutto»). Qui ogni elenco ha un CANCELLO: il primo che lo chiede lo carica, chi arriva intanto aspetta e
+/// riceve lo stesso risultato, e per <see cref="Durata"/> nessuno torna sul database.
+/// <para>Stesso schema della memoria di <see cref="ProcedureCercabili"/> (statica, a scadenza). Il prezzo è un ritardo:
+/// una correzione dell'admin si vede nella ricerca entro cinque minuti.</para>
+/// </summary>
+internal static class MemoriaRicercaLive
+{
+    internal static readonly TimeSpan Durata = TimeSpan.FromMinutes(5);
+
+    private sealed record Valore(DateTime Quando, object Dati);
+
+    private sealed class Voce
+    {
+        public readonly SemaphoreSlim Cancello = new(1, 1);
+        public volatile Valore? Ultimo;
+    }
+
+    private static readonly ConcurrentDictionary<string, Voce> Voci = new(StringComparer.Ordinal);
+
+    public static async Task<T> PrendiAsync<T>(string chiave, TimeSpan durata, Func<Task<T>> carica, CancellationToken ct)
+        where T : class
+    {
+        var voce = Voci.GetOrAdd(chiave, _ => new Voce());
+        if (Fresco<T>(voce.Ultimo, durata) is { } pronto) return pronto;
+        await voce.Cancello.WaitAsync(ct);
+        try
+        {
+            // Chi ha aspettato al cancello trova quasi sempre il lavoro già fatto da chi c'era prima.
+            if (Fresco<T>(voce.Ultimo, durata) is { } intanto) return intanto;
+            var dati = await carica();
+            voce.Ultimo = new Valore(DateTime.UtcNow, dati);
+            return dati;
+        }
+        finally
+        {
+            voce.Cancello.Release();
+        }
+    }
+
+    private static T? Fresco<T>(Valore? v, TimeSpan durata) where T : class =>
+        v is not null && DateTime.UtcNow - v.Quando < durata ? v.Dati as T : null;
+
+    /// <summary>Per i test: si riparte da vuoto.</summary>
+    internal static void Svuota() => Voci.Clear();
+}
+
 internal sealed class RicercaLive(
     IDocumentAdminService documenti, ISpecialAreaRepository aree, IFrequenzeDegliEnti enti, ITopologyProvider topologie,
-    IOnlineAtcProvider online, IProcedureCercabili procedure, IAgreementService accordi,
+    IProcedureCercabili procedure, IAgreementService accordi,
     IStructureEditingRepository struttura, INavaidCatalog navaid) : IRicercaLive
 {
-    public async Task<IReadOnlyList<LiveAeroportoTrovato>> AeroportiAsync(CancellationToken ct = default)
+    public Task<IReadOnlyList<LiveAeroportoTrovato>> AeroportiAsync(CancellationToken ct = default) =>
+        MemoriaRicercaLive.PrendiAsync("aeroporti", MemoriaRicercaLive.Durata, () => CaricaAeroportiAsync(ct), ct);
+
+    private async Task<IReadOnlyList<LiveAeroportoTrovato>> CaricaAeroportiAsync(CancellationToken ct)
     {
         var docs = await documenti.ListAsync(ct);
         var trovati = new List<LiveAeroportoTrovato>();
@@ -95,7 +154,8 @@ internal sealed class RicercaLive(
         return trovati;
     }
 
-    public Task<IReadOnlyList<SpecialAreaPick>> AreeAsync(CancellationToken ct = default) => aree.ListAllSpecialAreasAsync(ct);
+    public Task<IReadOnlyList<SpecialAreaPick>> AreeAsync(CancellationToken ct = default) =>
+        MemoriaRicercaLive.PrendiAsync("aree", MemoriaRicercaLive.Durata, () => aree.ListAllSpecialAreasAsync(ct), ct);
 
     public async Task<IReadOnlyList<AccSpecialAreaView>> DettagliAreeAsync(IReadOnlyList<string> ivaoIds, CancellationToken ct = default)
     {
@@ -104,7 +164,10 @@ internal sealed class RicercaLive(
         return SpecialAreaProjection.Build(dettagli, ivaoIds);
     }
 
-    public async Task<IReadOnlyList<LivePostazioneTrovata>> PostazioniAsync(CancellationToken ct = default)
+    public Task<IReadOnlyList<LivePostazioneTrovata>> PostazioniAsync(CancellationToken ct = default) =>
+        MemoriaRicercaLive.PrendiAsync("postazioni", MemoriaRicercaLive.Durata, () => CaricaPostazioniAsync(ct), ct);
+
+    private async Task<IReadOnlyList<LivePostazioneTrovata>> CaricaPostazioniAsync(CancellationToken ct)
     {
         // Il nominativo da un elenco, la frequenza dall'altro: un ente senza frequenza dichiarata resta cercabile.
         var frequenze = (await enti.TutteAsync(ct))
@@ -118,15 +181,14 @@ internal sealed class RicercaLive(
             .ToList();
     }
 
-    public async Task<LiveCopertura> CoperturaAsync(string callsign, CancellationToken ct = default)
-    {
-        var foto = online.GetCurrent();
-        var catena = LiveStationParts.CoverageChain(await topologie.BuildGlobalAsync(ct), callsign);
-        var chi = catena.FirstOrDefault(c => foto.Callsigns.Contains(c));
-        return new LiveCopertura(callsign, foto.Callsigns.Contains(callsign), catena, chi, foto.Expired);
-    }
+    // Un minuto e non cinque: la gerarchia la cambia chi lavora sulla Struttura, e chi guarda «chi mi copre» la vuole fresca.
+    public Task<Topology> TopologiaAsync(CancellationToken ct = default) =>
+        MemoriaRicercaLive.PrendiAsync("topologia", TimeSpan.FromMinutes(1), () => topologie.BuildGlobalAsync(ct), ct);
 
-    public async Task<IReadOnlyList<LiveProceduraTrovata>> ProcedureAsync(CancellationToken ct = default)
+    public Task<IReadOnlyList<LiveProceduraTrovata>> ProcedureAsync(CancellationToken ct = default) =>
+        MemoriaRicercaLive.PrendiAsync("procedure", MemoriaRicercaLive.Durata, () => CaricaProcedureAsync(ct), ct);
+
+    private async Task<IReadOnlyList<LiveProceduraTrovata>> CaricaProcedureAsync(CancellationToken ct)
     {
         var righe = new List<LiveProceduraTrovata>();
         foreach (var a in await AeroportiAsync(ct))
@@ -140,7 +202,10 @@ internal sealed class RicercaLive(
         return righe;
     }
 
-    public async Task<IReadOnlyList<LiveTrasferimentoTrovato>> TrasferimentiAsync(CancellationToken ct = default)
+    public Task<IReadOnlyList<LiveTrasferimentoTrovato>> TrasferimentiAsync(CancellationToken ct = default) =>
+        MemoriaRicercaLive.PrendiAsync("trasferimenti", MemoriaRicercaLive.Durata, () => CaricaTrasferimentiAsync(ct), ct);
+
+    private async Task<IReadOnlyList<LiveTrasferimentoTrovato>> CaricaTrasferimentiAsync(CancellationToken ct)
     {
         var righe = new List<LiveTrasferimentoTrovato>();
         var visti = new HashSet<int>();
@@ -165,7 +230,10 @@ internal sealed class RicercaLive(
             .ToList();
     }
 
-    public async Task<IReadOnlyList<LiveNavaidTrovato>> NavaidAsync(CancellationToken ct = default) =>
+    public Task<IReadOnlyList<LiveNavaidTrovato>> NavaidAsync(CancellationToken ct = default) =>
+        MemoriaRicercaLive.PrendiAsync("navaid", MemoriaRicercaLive.Durata, () => CaricaNavaidAsync(ct), ct);
+
+    private async Task<IReadOnlyList<LiveNavaidTrovato>> CaricaNavaidAsync(CancellationToken ct) =>
         (await navaid.ListAsync(ct))
             .Select(n => new LiveNavaidTrovato(n.Code, n.Kind, n.Type, n.Frequency, n.Channel, n.Latitude, n.Longitude))
             .ToList();
@@ -196,7 +264,7 @@ public static class RicercaLiveFiltro
     public static IReadOnlyList<LiveAeroportoTrovato> Aeroporti(IEnumerable<LiveAeroportoTrovato> elenco, string? q)
     {
         var p = Pulito(q);
-        if (p.Length < MinimoCaratteri || SembraFrequenza(q)) return Array.Empty<LiveAeroportoTrovato>();
+        if (p.Length < MinimoCaratteri || SoloFrequenza(q)) return Array.Empty<LiveAeroportoTrovato>();
         return elenco
             .Select(a => (a, peso: a.Icao.Equals(p, StringComparison.OrdinalIgnoreCase) ? 0
                                  : a.Icao.StartsWith(p, StringComparison.OrdinalIgnoreCase) ? 1
@@ -210,11 +278,29 @@ public static class RicercaLiveFiltro
     /// <summary>Quante righe al massimo per gruppo di risultati (postazioni, punti, trasferimenti, radioassistenze).</summary>
     public const int MassimoRighe = 30;
 
-    /// <summary>Il testo è una frequenza? Cifre (e un punto), almeno tre: «128.7», «1287», «118.105».</summary>
+    /// <summary>Il testo può essere una frequenza? Cifre (e un punto), almeno tre: «128.7», «1287», «118.105».</summary>
     public static bool SembraFrequenza(string? q)
     {
         var t = (q ?? "").Trim();
         return t.Length >= 3 && t.All(c => char.IsDigit(c) || c is '.' or ',') && t.Count(char.IsDigit) >= 3;
+    }
+
+    /// <summary>
+    /// Il testo È una frequenza, e nient'altro: cifre COL punto («128.7»). Solo allora scali, aree, punti e trasferimenti
+    /// tacciono. Le sole cifre («120») possono essere una frequenza E un nome — «LI D120» — e cercano tutte e due le cose
+    /// (review del 1 ottobre 2026: prima «120» non trovava l'area D120).
+    /// </summary>
+    public static bool SoloFrequenza(string? q) => SembraFrequenza(q) && (q ?? "").IndexOfAny(new[] { '.', ',' }) >= 0;
+
+    /// <summary>
+    /// Chi c'è su una postazione adesso, dalla topologia globale e dagli online: se è chiusa, il primo online risalendo la
+    /// catena di copertura; nessuno = UNICOM. Pura: la pagina la rifà a ogni giro del feed, e il dettaglio non invecchia.
+    /// </summary>
+    public static LiveCopertura Copertura(Topology topologia, string callsign, IReadOnlySet<string> online, bool feedScaduto)
+    {
+        var catena = LiveStationParts.CoverageChain(topologia, callsign);
+        var chi = catena.FirstOrDefault(online.Contains);
+        return new LiveCopertura(callsign, online.Contains(callsign), catena, chi, feedScaduto);
     }
 
     /// <summary>
@@ -225,8 +311,13 @@ public static class RicercaLiveFiltro
     {
         var p = Pulito(q);
         if (p.Length < MinimoCaratteri) return Array.Empty<LivePostazioneTrovata>();
-        if (SembraFrequenza(q))
+        if (SoloFrequenza(q))
             return elenco.Where(x => Pulito(x.Frequenza).StartsWith(p, StringComparison.Ordinal))
+                .OrderBy(x => x.Frequenza, StringComparer.Ordinal).ThenBy(x => x.Callsign, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        if (SembraFrequenza(q))
+            return elenco.Where(x => Pulito(x.Frequenza).StartsWith(p, StringComparison.Ordinal)
+                                     || Pulito(x.Callsign).Contains(p, StringComparison.Ordinal))
                 .OrderBy(x => x.Frequenza, StringComparer.Ordinal).ThenBy(x => x.Callsign, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         return elenco
@@ -243,7 +334,7 @@ public static class RicercaLiveFiltro
     public static IReadOnlyList<LiveProceduraTrovata> Punti(IEnumerable<LiveProceduraTrovata> elenco, string? q)
     {
         var p = Pulito(q);
-        if (p.Length < 3 || SembraFrequenza(q)) return Array.Empty<LiveProceduraTrovata>();
+        if (p.Length < 3 || SoloFrequenza(q)) return Array.Empty<LiveProceduraTrovata>();
         return elenco
             .Where(x => Pulito(x.Fix).StartsWith(p, StringComparison.Ordinal) || Pulito(x.Transizione).StartsWith(p, StringComparison.Ordinal))
             .OrderBy(x => x.Fix, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.Icao).ThenBy(x => x.Sid ? 0 : 1)
@@ -255,7 +346,7 @@ public static class RicercaLiveFiltro
     public static IReadOnlyList<LiveTrasferimentoTrovato> Trasferimenti(IEnumerable<LiveTrasferimentoTrovato> elenco, string? q)
     {
         var p = Pulito(q);
-        if (p.Length < 3 || SembraFrequenza(q)) return Array.Empty<LiveTrasferimentoTrovato>();
+        if (p.Length < 3 || SoloFrequenza(q)) return Array.Empty<LiveTrasferimentoTrovato>();
         return elenco
             .Where(x => Pulito(x.Cop).StartsWith(p, StringComparison.Ordinal))
             .OrderBy(x => x.Cop, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.Da, StringComparer.OrdinalIgnoreCase)
@@ -268,9 +359,10 @@ public static class RicercaLiveFiltro
         var p = Pulito(q);
         if (p.Length < MinimoCaratteri) return Array.Empty<LiveNavaidTrovato>();
         var freq = SembraFrequenza(q);
+        var solo = SoloFrequenza(q);
         return elenco
-            .Where(x => freq ? Pulito(x.Frequenza).StartsWith(p, StringComparison.Ordinal)
-                             : Pulito(x.Codice).StartsWith(p, StringComparison.Ordinal))
+            .Where(x => (freq && Pulito(x.Frequenza).StartsWith(p, StringComparison.Ordinal))
+                        || (!solo && Pulito(x.Codice).StartsWith(p, StringComparison.Ordinal)))
             .OrderBy(x => x.Codice, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
@@ -282,7 +374,7 @@ public static class RicercaLiveFiltro
     public static IReadOnlyList<SpecialAreaPick> Aree(IEnumerable<SpecialAreaPick> elenco, string? q)
     {
         var p = Pulito(q);
-        if (p.Length == 0 || SembraFrequenza(q)) return Array.Empty<SpecialAreaPick>();
+        if (p.Length == 0 || SoloFrequenza(q)) return Array.Empty<SpecialAreaPick>();
         return elenco
             .Where(a => (p.Length >= MinimoCaratteri && Pulito(a.Name).Contains(p, StringComparison.Ordinal))
                         || string.Equals(Pulito(a.Type), p, StringComparison.Ordinal))

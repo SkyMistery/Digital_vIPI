@@ -30,13 +30,17 @@ public class PaginaDiLetturaTests
     [InlineData(typeof(SearchPage))]
     [InlineData(typeof(ChangedPage))]
     [InlineData(typeof(AirspacePage))]
-    [InlineData(typeof(MilListPage))]
-    [InlineData(typeof(StatsDivisionPage))]
     public void Le_pagine_pubbliche_interattive_sono_discrete(Type pagina) =>
         Assert.Equal("discreta", ModoRiconnessione.Di(pagina));
 
-    /// <summary>🔴 Le pagine di LAVORO tengono il riquadro e l'avviso del gesto perso: chi lavora deve saperlo.</summary>
+    /// <summary>
+    /// 🔴 Le pagine di LAVORO tengono il riquadro e l'avviso del gesto perso: chi lavora deve saperlo. Anche quelle
+    /// pubbliche con un gesto di lavoro dentro (review del 1 ottobre 2026): l'elenco vSOP ha «Crea» per gli editor, le
+    /// statistiche di divisione la casella «pubblica» per l'admin — un clic perso lì in silenzio sembrerebbe riuscito.
+    /// </summary>
     [Theory]
+    [InlineData(typeof(MilListPage))]
+    [InlineData(typeof(StatsDivisionPage))]
     [InlineData(typeof(RichiestePage))]
     [InlineData(typeof(AccEditorPage))]
     [InlineData(typeof(AdminTrasferimentiPage))]

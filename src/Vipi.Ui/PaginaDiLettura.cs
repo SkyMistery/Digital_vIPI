@@ -24,7 +24,7 @@ public static class PaginaDiLettura
 
 /// <summary>
 /// Una pagina INTERATTIVA ma pubblica, dove chi guarda non costruisce niente: la vista live, la ricerca, le novità, gli
-/// spazi aerei, l'elenco vSOP, le statistiche di divisione. Lì un circuito caduto non deve coprire la pagina né dire
+/// spazi aerei. (Non l'elenco vSOP né le statistiche di divisione: hanno un gesto di lavoro dentro, «Crea» e «pubblica».) Lì un circuito caduto non deve coprire la pagina né dire
 /// niente, se si rimette in piedi da solo (committente, 1 ottobre 2026: «le persone non se ne accorgono nemmeno il 90%
 /// delle volte»): il riquadro non si vede, al «circuito sconosciuto» si ricarica in silenzio allo stesso punto, e
 /// l'avviso discreto compare solo quando serve ricaricare A MANO.

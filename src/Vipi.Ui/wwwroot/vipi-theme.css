@@ -2108,6 +2108,7 @@
 :where(.vipi-root) .live-search .lsr-areas{margin-top:12px;font-size:13px}
 :where(.vipi-root) .live-search .lsr-band{white-space:nowrap}
 :where(.vipi-root) .live-search .lsr-static{cursor:default}
+:where(.vipi-root) .live-search .lsr-title .lsr-back{margin:0}
 :where(.vipi-root) .live-search .lsr-freq{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-variant-numeric:tabular-nums}
 :where(.vipi-root) .live-search .lsr-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-faint);flex:none;align-self:center}
 :where(.vipi-root) .live-search .lsr-dot.on{background:var(--ivao-green)}

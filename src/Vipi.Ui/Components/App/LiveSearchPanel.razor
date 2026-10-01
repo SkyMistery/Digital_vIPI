@@ -22,7 +22,10 @@
 <div class="block live-search">
     @if (_aeroporto is { } apt)
     {
-        <button type="button" class="btn ghost lsr-back" @onclick="Indietro">← @L["Lsr_Back"]</button>
+        @* L'ICAO e il nome accanto a «Risultati»: il pannello dello scalo non li ripete (lo fa il titolo del riquadro nel
+           settore, che qui non c'è). *@
+        <p class="lsr-title"><button type="button" class="btn ghost lsr-back" @onclick="Indietro">← @L["Lsr_Back"]</button>
+            <b>@apt.Icao</b> <span>@apt.Nome</span> <span class="muted lsr-acc">@apt.AccCode</span></p>
         <AirportQuickPanel Icao="@apt.Icao" Acc="@apt.AccCode" />
     }
     else if (_postazione is { } pos)
@@ -31,12 +34,15 @@
         <div class="lsr-detail">
             <p class="lsr-title"><b>@pos.Callsign</b> @if (!string.IsNullOrWhiteSpace(pos.Nominativo)) { <span>@pos.Nominativo</span> }
                 @if (!string.IsNullOrWhiteSpace(pos.Frequenza)) { <span class="lsr-freq">@pos.Frequenza</span> }</p>
-            @if (_copertura is not { } cop)
+            @* Ricalcolata a OGNI render dalla topologia in memoria e dagli online della pagina: chi si collega mentre il
+               dettaglio è aperto cambia la riga al giro successivo del feed (review del 1 ottobre 2026). *@
+            @if (_topologia is null)
             {
                 <p class="muted lsr-hint">@L["Common_Loading"]</p>
             }
             else
             {
+                var cop = RicercaLiveFiltro.Copertura(_topologia, pos.Callsign, Online ?? Vuoto, FeedScaduto);
                 <p class="lsr-state">
                     @if (cop.Online)
                     {
@@ -262,6 +268,11 @@
     /// <summary>Se chi guarda può aprire la vista live di quella postazione (la regola è della pagina, non di qui).</summary>
     [Parameter] public Func<string, bool>? PuoAprire { get; set; }
 
+    /// <summary>La fotografia degli online è scaduta: «nessuno» vuol dire «non si sa».</summary>
+    [Parameter] public bool FeedScaduto { get; set; }
+
+    private static readonly IReadOnlySet<string> Vuoto = new HashSet<string>();
+
     private IReadOnlyList<LiveAeroportoTrovato>? _aeroporti;
     private IReadOnlyList<SpecialAreaPick>? _aree;
     private IReadOnlyList<LivePostazioneTrovata>? _postazioni;
@@ -274,7 +285,7 @@
     /// <summary>Quello che è aperto: uno scalo, una postazione, una radioassistenza o le aree; nessuno = i risultati.</summary>
     private LiveAeroportoTrovato? _aeroporto;
     private LivePostazioneTrovata? _postazione;
-    private LiveCopertura? _copertura;
+    private Vipi.Application.Aor.Topology? _topologia;
     private LiveNavaidTrovato? _navaid;
     private IReadOnlyList<AccSpecialAreaView>? _areeViste;
     private bool _carico;
@@ -308,7 +319,6 @@
     {
         _aeroporto = null;
         _postazione = null;
-        _copertura = null;
         _navaid = null;
         _areeViste = null;
     }
@@ -316,9 +326,8 @@
     private async Task ApriPostazione(LivePostazioneTrovata p)
     {
         _postazione = p;
-        _copertura = null;
-        var c = await InFilaAsync(() => Ricerca.CoperturaAsync(p.Callsign));
-        if (_postazione == p) _copertura = c;   // nel frattempo può averne scelta un'altra
+        // La topologia è della divisione, non della postazione: una volta per pannello, e dalla memoria condivisa.
+        _topologia ??= await InFilaAsync(() => Ricerca.TopologiaAsync());
     }
 
     private async Task MostraAree(IReadOnlyList<SpecialAreaPick> scelte)

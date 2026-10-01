@@ -4035,4 +4035,5 @@
   <data name="Lsr_PosOpenLive" xml:space="preserve"><value>Apri la sua vista live</value></data>
   <data name="Lsr_FeedOld" xml:space="preserve"><value>(dato degli online non aggiornato)</value></data>
   <data name="Lsr_Indexing" xml:space="preserve"><value>Sto ancora leggendo procedure e trasferimenti: tra poco anche quei risultati.</value></data>
+  <data name="Aqp_NoDoc" xml:space="preserve"><value>Nessun documento pubblicato per {0}.</value></data>
 </root>

@@ -88,12 +88,45 @@ public class RicercaLiveFiltroTests
     }
 
     [Fact]
-    public void Una_frequenza_non_trova_scali_ne_aree()
+    public void Una_frequenza_col_punto_non_trova_scali_ne_aree()
     {
-        Assert.True(RicercaLiveFiltro.SembraFrequenza("118.1"));
+        Assert.True(RicercaLiveFiltro.SoloFrequenza("118.1"));
+        Assert.False(RicercaLiveFiltro.SoloFrequenza("120"));
         Assert.False(RicercaLiveFiltro.SembraFrequenza("R14"));
-        Assert.Empty(RicercaLiveFiltro.Aree(Aree, "120"));
+        Assert.Empty(RicercaLiveFiltro.Aree(Aree, "120.5"));
         Assert.Empty(RicercaLiveFiltro.Aeroporti(Scali, "118.1"));
+    }
+
+    /// <summary>Review del 1 ottobre 2026: le sole cifre sono anche un nome — «120» trova l'area D120.</summary>
+    [Fact]
+    public void Le_sole_cifre_trovano_anche_i_nomi() =>
+        Assert.Equal(new[] { "3" }, RicercaLiveFiltro.Aree(Aree, "120").Select(a => a.IvaoId));
+
+    /// <summary>
+    /// 🔴 La memoria condivisa: dieci richieste insieme caricano UNA volta (review del 1 ottobre 2026, «dieci utenti che
+    /// cercano insieme»), e chi arriva dopo, entro la durata, non carica affatto.
+    /// </summary>
+    [Fact]
+    public async Task Dieci_richieste_insieme_caricano_una_volta()
+    {
+        var chiave = "prova-" + Guid.NewGuid();
+        var caricamenti = 0;
+        var via = new TaskCompletionSource();
+        async Task<string[]> Carica()
+        {
+            Interlocked.Increment(ref caricamenti);
+            await via.Task;
+            return new[] { "ok" };
+        }
+        var richieste = Enumerable.Range(0, 10)
+            .Select(_ => MemoriaRicercaLive.PrendiAsync(chiave, TimeSpan.FromMinutes(5), Carica, CancellationToken.None))
+            .ToList();
+        via.SetResult();
+        var risposte = await Task.WhenAll(richieste);
+        Assert.Equal(1, caricamenti);
+        Assert.All(risposte, r => Assert.Same(risposte[0], r));
+        await MemoriaRicercaLive.PrendiAsync(chiave, TimeSpan.FromMinutes(5), Carica, CancellationToken.None);
+        Assert.Equal(1, caricamenti);
     }
 
     private static readonly LiveProceduraTrovata[] Procedure =
