@@ -72,6 +72,33 @@
         </div>
         <p class="muted evt-help">@L["Evt_DatesHelp"]</p>
 
+        @* ---- Gli account dell'evento (1 ottobre 2026) ----
+           ⚠️ Un campo di testo e non una riga per VID: la lista arriva dall'organizzazione già fatta, e si incolla. Le
+           righe che non si leggono le rifiuta il servizio dicendo QUALI. *@
+        <div class="evt-vid">
+            <h3 class="h-card">@L["Evt_VidTitle"]</h3>
+            <p class="muted evt-help">@L["Evt_VidHelp"]</p>
+            <textarea class="app-ta" rows="5" maxlength="@EventKitRules.MaxTestoVidEvento" disabled="@_busy"
+                      placeholder="704798 LIRF_TWR&#10;704799 LIRF_APP" aria-label="@L["Evt_VidTitle"]"
+                      @bind="_vid" @bind:event="oninput"></textarea>
+            @* Quando la lista si cancella da sola (committente, 1 ottobre 2026): vuoto = sette giorni dopo la fine. *@
+            <div class="evt-form">
+                <label class="evt-field">
+                    <span>@L["Evt_VidClearUtc"]</span>
+                    <input class="app-in" type="datetime-local" value="@Locale(_vidSvuota)" disabled="@_busy"
+                           @onchange="e => _vidSvuota = Data(e.Value)" />
+                </label>
+                <button class="btn primary" disabled="@_busy" @onclick="SalvaVidAsync">@L["Evt_VidSave"]</button>
+            </div>
+            <p class="muted evt-help">
+                @L["Evt_VidClearHelp", EventKitRules.GiorniVidDopoLaFine]
+                @if (_vista.VidSiCancellaIl is DateTime il && !string.IsNullOrWhiteSpace(_vista.VidEvento))
+                {
+                    @(" ")<b>@L["Evt_VidClearWhen", VipiTime.DayZ(il)]</b>
+                }
+            </p>
+        </div>
+
         @* ---- Aggiungere ---- *@
         <div class="evt-add">
             <div class="evt-add-box">
@@ -119,6 +146,8 @@
     private bool _busy, _attivo;
     private string? _errore, _esito;
     private string _nome = "";
+    private string _vid = "";
+    private DateTime? _vidSvuota;
     private DateTime? _da, _a;
     private IBrowserFile? _file;
     private int _fileKey;
@@ -137,6 +166,8 @@
                 _attivo = _vista.IsActive;
                 _da = _vista.StartsUtc;
                 _a = _vista.EndsUtc;
+                _vid = _vista.VidEvento ?? "";
+                _vidSvuota = _vista.VidSvuotaUtc;
             });
         }
         catch (Exception ex) { _errore = Messaggio(ex); }
@@ -157,6 +188,12 @@
     {
         await _servizio.SalvaTestataAsync(_nome, _attivo, _da, _a);
         _esito = L["Evt_Saved"];
+    });
+
+    private Task SalvaVidAsync() => GestoAsync(async () =>
+    {
+        var quanti = await _servizio.SalvaVidAsync(_vid, _vidSvuota);
+        _esito = L["Evt_VidSaved", quanti];
     });
 
     private Task AggiungiFileAsync() => GestoAsync(async () =>

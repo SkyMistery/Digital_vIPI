@@ -3938,6 +3938,19 @@
   <data name="Req_Open" xml:space="preserve"><value>Rispondi</value></data>
   <data name="Services_EventSection" xml:space="preserve"><value>Evento in corso</value></data>
   <data name="Services_EventDesc" xml:space="preserve"><value>I profili Aurora per postazione e i file dell'evento: scaricali prima di aprire.</value></data>
+  <data name="Services_EventAccountDesc" xml:space="preserve"><value>Controlli con il VID che ti ha dato l'evento? Scrivilo qui e apri la vista live della tua postazione.</value></data>
+  <data name="EvtAcc_Title" xml:space="preserve"><value>Controlli con un account dell'evento?</value></data>
+  <data name="EvtAcc_Intro" xml:space="preserve"><value>Scrivi il VID con cui sei connesso su IVAO adesso. Se è fra gli account di questo evento ed è online, la vista live mostrerà la sua postazione fino alla fine dell'evento.</value></data>
+  <data name="EvtAcc_VidLabel" xml:space="preserve"><value>VID dell'account dell'evento</value></data>
+  <data name="EvtAcc_Use" xml:space="preserve"><value>Apri la mia vista live</value></data>
+  <data name="EvtAcc_Help" xml:space="preserve"><value>Ti sei appena connesso? Il sito legge i controllori online una volta al minuto: se dice che il VID non è online, riprova fra poco.</value></data>
+  <data name="EvtAcc_None" xml:space="preserve"><value>Adesso non c'è un evento con account dell'evento.</value></data>
+  <data name="EvtAcc_NotLoggedIn" xml:space="preserve"><value>Entra nel sito con il tuo account IVAO, poi scrivi il VID dell'evento.</value></data>
+  <data name="EvtAcc_NotInList" xml:space="preserve"><value>Il VID {0} non è fra gli account di questo evento. Controlla il numero, o chiedi allo staff di aggiungerlo.</value></data>
+  <data name="EvtAcc_NotOnline" xml:space="preserve"><value>Il VID {0} adesso non risulta connesso come controllore. Se ti sei appena collegato, riprova fra un minuto.</value></data>
+  <data name="EvtAcc_Using" xml:space="preserve"><value>Stai usando l'account dell'evento {0}.</value></data>
+  <data name="EvtAcc_OpenLive" xml:space="preserve"><value>Apri la vista live</value></data>
+  <data name="EvtAcc_Release" xml:space="preserve"><value>Torna al mio VID</value></data>
   <data name="Services_EventStaffDesc" xml:space="preserve"><value>Accendi la pagina dei profili per un evento, carica i file e i link di Drive.</value></data>
   <data name="Evt_Title" xml:space="preserve"><value>Profili per l'evento</value></data>
   <data name="Evt_None" xml:space="preserve"><value>Adesso non c'è un evento in corso. Questa pagina si accende quando lo staff prepara i profili per il prossimo evento.</value></data>
@@ -3957,6 +3970,13 @@
   <data name="Evt_EndUtc" xml:space="preserve"><value>Fine (UTC, facoltativa)</value></data>
   <data name="Evt_Active" xml:space="preserve"><value>Acceso</value></data>
   <data name="Evt_Save" xml:space="preserve"><value>Salva</value></data>
+  <data name="Evt_VidTitle" xml:space="preserve"><value>VID degli account dell'evento</value></data>
+  <data name="Evt_VidHelp" xml:space="preserve"><value>Uno per riga, con la postazione accanto se vuoi («704798 LIRF_TWR»). Mentre l'evento si vede, chi controlla con uno di questi VID può aprire la sua vista live dalla scheda «Controlli con un account dell'evento?» nella pagina dei servizi. Salvare la lista, o spegnere l'evento, toglie la vista a chi la stava usando.</value></data>
+  <data name="Evt_VidSave" xml:space="preserve"><value>Salva i VID</value></data>
+  <data name="Evt_VidClearUtc" xml:space="preserve"><value>Cancella la lista il (UTC)</value></data>
+  <data name="Evt_VidClearHelp" xml:space="preserve"><value>Vuoto = {0} giorni dopo la fine dell'evento. Quel giorno la lista dei VID si cancella da sola; profili e file restano.</value></data>
+  <data name="Evt_VidClearWhen" xml:space="preserve"><value>Si cancellerà il {0}.</value></data>
+  <data name="Evt_VidSaved" xml:space="preserve"><value>VID salvati: {0}.</value></data>
   <data name="Evt_Saved" xml:space="preserve"><value>Salvato.</value></data>
   <data name="Evt_DatesHelp" xml:space="preserve"><value>Acceso e senza date: si vede subito, finché non lo spegni. Con le date: si vede solo fra inizio e fine. Spento: non si vede mai. Le voci restano per l'evento dopo: togli quelle che non servono.</value></data>
   <data name="Evt_AddFile" xml:space="preserve"><value>Aggiungi un file</value></data>

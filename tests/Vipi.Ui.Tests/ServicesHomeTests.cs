@@ -40,20 +40,25 @@ public class ServicesHomeTests : TestContext
     /// Le prove <i>per livello</i> restano i <c>Theory</c> qui sotto, che il livello lo dichiarano.
     /// </summary>
     private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.Editor, bool evento = false,
-                                                    bool? loginObbligatorio = null, bool entrato = true)
+                                                    bool? loginObbligatorio = null, bool entrato = true,
+                                                    bool account = false)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello, entrato ? 704798 : null));
         if (loginObbligatorio is { } obbligo) Services.AddSingleton(new Vipi.Ui.AccessoConLogin(obbligo));
-        Services.AddSingleton<Vipi.Application.EventKits.IEventKitService>(new FakeEvento(evento));
+        Services.AddSingleton<Vipi.Application.EventKits.IEventKitService>(new FakeEvento(evento, account));
         return RenderComponent<ServicesHome>();
     }
 
     /// <summary>Il pacchetto dell'evento finto: all'hub chiede solo se si vede (30 settembre 2026).</summary>
-    private sealed class FakeEvento(bool visibile) : Vipi.Application.EventKits.IEventKitService
+    private sealed class FakeEvento(bool visibile, bool account = false) : Vipi.Application.EventKits.IEventKitService
     {
         public Task<string?> InCorsoAsync(CancellationToken ct = default) => Task.FromResult(visibile ? "Italian Night Ops" : null);
+        public Task<bool> AccountInCorsoAsync(CancellationToken ct = default) => Task.FromResult(visibile && account);
+        public Task<Vipi.Application.EventKits.AccountDellEvento?> AccountAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> SalvaVidAsync(string? testo, DateTime? svuotaUtc = null, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> CancellaVidScadutiAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Vipi.Application.EventKits.EventKitView?> PubblicoAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Vipi.Application.EventKits.EventKitView> PerStaffAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task SalvaTestataAsync(string nome, bool attivo, DateTime? daUtc, DateTime? aUtc, CancellationToken ct = default) => throw new NotSupportedException();
@@ -85,6 +90,20 @@ public class ServicesHomeTests : TestContext
             Assert.True(indirizzi.IndexOf("/services/event") < indirizzi.IndexOf("/services/vawos"));   // sopra gli strumenti
             Assert.Contains("Evt_Title — Italian Night Ops", cut.Find("a.evt-card").TextContent);      // col nome dell'evento
         }
+    }
+
+    /// <summary>
+    /// «Controlli con un account dell'evento?» (committente, 1 ottobre 2026): accanto ai profili, e solo se l'evento in
+    /// corso ha VID di account dell'evento — senza lista la pagina direbbe soltanto di no.
+    /// </summary>
+    [Theory]
+    [InlineData(false, false, 0)]
+    [InlineData(true, false, 0)]
+    [InlineData(true, true, 1)]
+    public void La_scheda_account_evento_c_e_solo_con_l_evento_e_la_lista(bool visibile, bool account, int schede)
+    {
+        var cut = Render(VipiRole.User, visibile, account: account);
+        Assert.Equal(schede, cut.FindAll("a.choice").Count(a => a.GetAttribute("href") == "/services/event/account"));
     }
 
     [Fact]

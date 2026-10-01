@@ -2001,6 +2001,21 @@
   passano a tre. (2) Tabella SID del documento sul telefono: «Transition» finiva sopra «Initial climb» (colonna ~68px);
   sotto i 760px di schermo l'intestazione è «Tran.» (`<abbr title="Transition">`). A schermo su copia: a 390px «Tran.»
   finisce 16px prima di «Initial climb», su desktop resta «Transition». Ui 1955 → 1956. Ramo `fix/discord-transition`.
+- ✅ **S95** controllare con un account dell'evento (1-ott, committente). Durante un evento si controlla con VID dati
+  dall'organizzazione e la vista live non trovava nessuno. Lo staff scrive i VID degli account nel pannello di
+  `/services/event` (colonna `EventKits.VidEvento`, migrazione additiva `VidAccountEvento`); mentre l'evento si vede e
+  la lista non è vuota, in `/services` accanto ai profili c'è «Controlli con un account dell'evento?» →
+  `/services/event/account`: VID in lista e online adesso → la vista live usa quel VID fino alla fine dell'evento (max
+  12 h), torna al proprio se l'account cade, chi cambia l'evento manda fuori tutti, audit «EventAccount». Scelte del
+  committente: chiunque entrato, nessuna esclusiva, lista dentro l'evento dei profili, porta nell'hub e non nella vista
+  live. Carta `2026-10-01-account-evento.md`. App 3193 → 3202, Infra 2080 → 2081, Ui 1956 → 1962. A schermo su copia
+  (utente 123456 non staff, ATC finti LIBD_TWR=704798 e LIBD_APP=704799, lista «704798 LIBD_TWR»): scheda nell'hub,
+  999999 e 704799 rifiutati, 704798 → `/services/vsop/live/LIBD_TWR`, LIBD_APP resta chiusa; da staff la riga
+  «LIBD_APP 704799» si rifiuta dicendolo, la lista giusta si salva e regge al ricarico. Ramo `fix/vid-evento`.
+  Poi (committente): sopravvive a un RIAVVIO del sito — chi usa che cosa si salva anche nella tabella
+  `AccountEventoInUso` (seconda migrazione additiva) e all'avvio si ricarica; le voci scadute restano fuori.
+  Poi (committente): la lista dei VID si cancella da sola 7 giorni dopo la fine dell'evento, o alla data scritta dallo
+  staff nella scheda (colonna `EventKits.VidSvuotaUtc`, terza migrazione additiva); pulizia `VidEventoPulizia` ogni ora.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

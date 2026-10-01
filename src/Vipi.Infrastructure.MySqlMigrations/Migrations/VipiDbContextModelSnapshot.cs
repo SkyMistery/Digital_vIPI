@@ -211,6 +211,22 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AccessiAlSito", (string)null);
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AccountEventoInUso", b =>
+                {
+                    b.Property<int>("VidPersonale")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ScadeUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("VidEvento")
+                        .HasColumnType("int");
+
+                    b.HasKey("VidPersonale");
+
+                    b.ToTable("AccountEventoInUso", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementAirport", b =>
                 {
                     b.Property<int>("Id")
@@ -2672,6 +2688,14 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("VidEvento")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime?>("VidSvuotaUtc")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");

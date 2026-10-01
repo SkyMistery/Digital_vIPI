@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001164742_VidAccountEvento")]
+    partial class VidAccountEvento
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.31");
@@ -177,22 +180,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("UltimoUtc");
 
                     b.ToTable("AccessiAlSito", (string)null);
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AccountEventoInUso", b =>
-                {
-                    b.Property<int>("VidPersonale")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("ScadeUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("VidEvento")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("VidPersonale");
-
-                    b.ToTable("AccountEventoInUso", (string)null);
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementAirport", b =>
@@ -2332,9 +2319,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("VidEvento")
                         .HasMaxLength(4000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("VidSvuotaUtc")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

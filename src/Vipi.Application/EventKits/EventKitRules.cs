@@ -18,6 +18,54 @@ public static class EventKitRules
     /// <summary>Quante voci al massimo: un evento grande ha qualche decina di postazioni, non centinaia.</summary>
     public const int MaxVoci = 80;
 
+    /// <summary>Quanti VID di account dell'evento al massimo, e quanto testo: un evento grande ne ha qualche decina.</summary>
+    public const int MaxVidEvento = 200;
+    public const int MaxTestoVidEvento = 4000;
+
+    /// <summary>Dopo quanti giorni dalla fine dell'evento la lista dei VID si cancella, se lo staff non dice altro.</summary>
+    public const int GiorniVidDopoLaFine = 7;
+
+    /// <summary>
+    /// Quando la lista dei VID si cancella: la data scritta dallo staff, o sette giorni dopo la fine dell'evento; null se
+    /// non c'è né l'una né l'altra (evento senza fine: la lista resta finché qualcuno non la svuota o non mette una data).
+    /// </summary>
+    public static DateTime? VidSiCancellaIl(EventKit? kit) =>
+        kit?.VidSvuotaUtc ?? kit?.EndsUtc?.AddDays(GiorniVidDopoLaFine);
+
+    /// <summary>Vero se c'è una lista e il suo giorno è arrivato.</summary>
+    public static bool VidDaCancellare(EventKit? kit, DateTime adessoUtc) =>
+        !string.IsNullOrWhiteSpace(kit?.VidEvento) && VidSiCancellaIl(kit) is DateTime il && adessoUtc >= il;
+
+    /// <summary>
+    /// I VID degli account dell'evento letti dal testo dello staff (committente, 1 ottobre 2026): uno o più per riga,
+    /// separati da spazi, virgole o punti e virgola; quel che segue i numeri sulla stessa riga è la nota
+    /// («704798 LIRF_TWR», «704798, 704799»). Le righe che non cominciano con un numero vanno fra gli scartati, così
+    /// la pagina può dire QUALI invece di ignorarle in silenzio.
+    /// </summary>
+    public static (IReadOnlyDictionary<int, string> Vid, IReadOnlyList<string> Scartati) LeggiVid(string? testo)
+    {
+        var vid = new Dictionary<int, string>();
+        var scartati = new List<string>();
+        foreach (var grezza in (testo ?? "").Split('\n'))
+        {
+            var riga = grezza.Trim();
+            if (riga.Length == 0) continue;
+            var pezzi = riga.Split(new[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var numeri = pezzi.TakeWhile(p => p.All(char.IsAsciiDigit)).ToList();
+            if (numeri.Count == 0 || numeri.Any(n => !VidValido(n)))
+            {
+                scartati.Add(riga);
+                continue;
+            }
+            var nota = string.Join(" ", pezzi.Skip(numeri.Count));
+            foreach (var n in numeri) vid[int.Parse(n)] = nota;
+        }
+        return (vid, scartati);
+    }
+
+    /// <summary>Un VID IVAO: solo cifre, da 3 a 8, non zero.</summary>
+    private static bool VidValido(string n) => n.Length is >= 3 and <= 8 && int.TryParse(n, out var v) && v > 0;
+
     /// <summary>L'indirizzo della pagina pubblica. Un servizio figlio diretto di <c>/services</c>.</summary>
     public const string Rotta = "/services/event";
 

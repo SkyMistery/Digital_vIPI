@@ -1,0 +1,106 @@
+@* «Controlli con un account dell'evento?» (committente, 1 ottobre 2026; carta 2026-10-01-account-evento.md).
+   Durante un evento si controlla con un VID dato dall'organizzazione, e la vista live non riconosce chi è entrato nel
+   sito col proprio. Qui si scrive il VID con cui si è connessi: se è nella lista dello staff ed è online, la vista
+   live lo usa fino alla fine dell'evento, e questo pannello porta direttamente alla postazione.
+   ⚠️ Un'ISOLA interattiva dentro una pagina SSR statica, con scope proprio (ScopeProprioCheAspetta) come il pannello
+   dello staff: legge l'evento dal database. *@
+@rendermode InteractiveServer
+@inherits Vipi.Ui.ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.EventKits
+@inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Nav
+
+<section class="panel evt-account">
+    @if (_caricato && !_evento)
+    {
+        <div class="callout info"><span class="cic"><Icon Name="calendar" Size="18" /></span><div>@L["EvtAcc_None"]</div></div>
+    }
+    else if (_caricato)
+    {
+        @if (_inUso is int vid)
+        {
+            <div class="callout success">
+                <span class="cic"><Icon Name="check-circle" Size="18" /></span>
+                <div>
+                    <p class="ct">@L["EvtAcc_Using", vid]</p>
+                    <p>
+                        <a class="btn primary" href="/services/vsop/live">@L["EvtAcc_OpenLive"]</a>
+                        <button class="btn ghost" disabled="@_busy" @onclick="LasciaAsync">@L["EvtAcc_Release"]</button>
+                    </p>
+                </div>
+            </div>
+        }
+        <p>@L["EvtAcc_Intro"]</p>
+        <div class="evt-form">
+            <label class="evt-field">
+                <span>@L["EvtAcc_VidLabel"]</span>
+                <input class="app-in" inputmode="numeric" autocomplete="off" maxlength="8" disabled="@_busy"
+                       @bind="_vid" @bind:event="oninput" @onkeydown="Invio" />
+            </label>
+            <button class="btn primary" disabled="@(_busy || !int.TryParse(_vid, out _))" @onclick="UsaAsync">@L["EvtAcc_Use"]</button>
+        </div>
+        @if (_messaggio is { Length: > 0 })
+        {
+            <div class="callout warning" role="status"><span class="cic"><Icon Name="warning" Size="18" /></span><div>@_messaggio</div></div>
+        }
+        <p class="muted evt-help">@L["EvtAcc_Help"]</p>
+    }
+</section>
+
+@code {
+    private IAccountEventoService _account = default!;
+    private bool _caricato, _evento, _busy;
+    private int? _inUso;
+    private string _vid = "";
+    private string? _messaggio;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _account = ScopedServices.GetRequiredService<IAccountEventoService>();
+        var evento = ScopedServices.GetRequiredService<IEventKitService>();
+        await InFilaAsync(async () =>
+        {
+            _evento = await evento.AccountAsync() is not null;
+            _inUso = _account.InUso();
+            _caricato = true;
+        });
+    }
+
+    private async Task Invio(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await UsaAsync();
+    }
+
+    private async Task UsaAsync()
+    {
+        if (_busy || !int.TryParse(_vid.Trim(), out var vid)) return;
+        _busy = true;
+        _messaggio = null;
+        try
+        {
+            RispostaAccountEvento? r = null;
+            await InFilaAsync(async () => r = await _account.UsaAsync(vid));
+            if (r is { Esito: EsitoAccountEvento.Usato, Callsign: { } cs })
+            {
+                Nav.NavigateTo($"/services/vsop/live/{Uri.EscapeDataString(cs)}");
+                return;
+            }
+            _messaggio = r?.Esito switch
+            {
+                EsitoAccountEvento.NonEntrato => L["EvtAcc_NotLoggedIn"].Value,
+                EsitoAccountEvento.NessunEvento => L["EvtAcc_None"].Value,
+                EsitoAccountEvento.NonInLista => L["EvtAcc_NotInList", vid].Value,
+                EsitoAccountEvento.NonOnline => L["EvtAcc_NotOnline", vid].Value,
+                _ => null,
+            };
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task LasciaAsync()
+    {
+        await InFilaAsync(() => _account.LasciaAsync());
+        _inUso = null;
+    }
+}
