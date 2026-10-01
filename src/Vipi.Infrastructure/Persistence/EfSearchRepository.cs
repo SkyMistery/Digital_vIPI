@@ -18,12 +18,16 @@ public sealed class EfSearchRepository : ISearchRepository
     private readonly IDocRoutesRegistry _routes;
     private readonly IReleaseRepository _releases;
     private readonly IndiceDelleRelease _indice;
+    private readonly IProcedureCercabili? _procedure;
 
     /// <param name="indice">Singleton in produzione. Null = un indice proprio (test che costruiscono il
     /// repository a mano su database che si ripetono gli id).</param>
+    /// <param name="procedure">SID e STAR degli scali (1 ottobre 2026). Null = la ricerca non le guarda (test che non
+    /// se ne curano).</param>
     public EfSearchRepository(VipiDbContext db, IReleaseTargetRegistry targets, IDocRoutesRegistry routes,
-        IReleaseRepository releases, IndiceDelleRelease? indice = null)
+        IReleaseRepository releases, IndiceDelleRelease? indice = null, IProcedureCercabili? procedure = null)
     {
+        _procedure = procedure;
         _db = db;
         _targets = targets;
         _routes = routes;
@@ -103,6 +107,21 @@ public sealed class EfSearchRepository : ISearchRepository
                 if (Has(s.Titolo))
                     hits.Add((s.Livello == 0 ? PesoSezione : PesoSottoSezione, Hit(voce.Titolo, doc.Type, s, s.Titolo, url)));
 
+            // 2-bis) SID e STAR dello scalo (committente, 1 ottobre 2026: cercando ALAXI il documento di Napoli non
+            //       usciva). Una riga per procedura, agganciata alla sua sezione: se la sezione è nascosta non è
+            //       nell'indice, e la procedura non esce. Pesano come il testo: sono il contenuto della sezione.
+            if (_procedure is not null && managed.Kind is ReleaseTargetType.Airport or ReleaseTargetType.AirportMil)
+            {
+                var sezSid = voce.Sezioni.FirstOrDefault(s => s.Chiave == "sids");
+                var sezStar = voce.Sezioni.FirstOrDefault(s => s.Chiave == "stars");
+                if (sezSid is not null || sezStar is not null)
+                {
+                    var p = await _procedure.PerScaloAsync(managed.ReleaseKey, managed.ReleaseTarget, ct);
+                    if (sezSid is not null) Procedure(hits, voce.Titolo, doc.Type, sezSid, p.Sids, "SID", query, url);
+                    if (sezStar is not null) Procedure(hits, voce.Titolo, doc.Type, sezStar, p.Stars, "STAR", query, url);
+                }
+            }
+
             // 3) corpo dei blocchi: un risultato per blocco, col primo dei suoi testi che combacia
             foreach (var s in voce.Sezioni)
                 foreach (var (primo, secondo) in s.Testi)
@@ -118,6 +137,24 @@ public sealed class EfSearchRepository : ISearchRepository
     }
 
     private const int PesoTitolo = 0, PesoSezione = 1, PesoSottoSezione = 2, PesoTesto = 3;
+
+    /// <summary>Una riga per procedura che combacia: codice, nome completo, piste, punti di partenza e transition.</summary>
+    private static void Procedure(List<(int, SearchHit)> hits, string docTitle, DocumentType tipo, IndiceDelleRelease.Sezione s,
+        IReadOnlyList<AirportSidRowView> righe, string verso, string query, string url)
+    {
+        foreach (var g in righe.Where(r => CercaProcedura.Combacia(r, query)).GroupBy(r => r.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            static string Elenco(IEnumerable<string> v) =>
+                string.Join(" ", v.Where(x => !string.IsNullOrWhiteSpace(x) && x != "—").Distinct(StringComparer.OrdinalIgnoreCase));
+            var prima = g.First();
+            var completo = CercaProcedura.NomeCompleto(prima);
+            var nome = string.Equals(completo, prima.Name, StringComparison.OrdinalIgnoreCase) ? prima.Name : $"{prima.Name} ({completo})";
+            var piste = Elenco(g.Select(r => r.Runway));
+            var punti = Elenco(g.Select(r => r.Fix).Concat(g.Select(r => r.Transition)));
+            var snippet = $"{verso} {nome}" + (piste.Length > 0 ? $" · RWY {piste}" : "") + (punti.Length > 0 ? $" · {punti}" : "");
+            hits.Add((PesoTesto, Hit(docTitle, tipo, s, snippet, url)));
+        }
+    }
 
     private static SearchHit Hit(string docTitle, DocumentType tipo, IndiceDelleRelease.Sezione s, string snippet, string url) =>
         new()

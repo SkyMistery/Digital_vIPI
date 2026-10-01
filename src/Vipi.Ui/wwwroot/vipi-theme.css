@@ -715,6 +715,7 @@
 :where(.vipi-root) .sx-rank b{display:block;font-family:var(--font-head);font-weight:800;font-size:40px;line-height:1;color:var(--ink)}
 :where(.vipi-root) .sx-rank span{font-size:13px;color:var(--ink-soft)}
 :where(.vipi-root) .kpi-n{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+:where(.vipi-root) .sid-radio{font-size:12.5px;margin:0 0 8px;display:flex;gap:6px;align-items:center}
 :where(.vipi-root) .sx-note{font-size:13px;margin:10px 0 0;max-width:900px}
 /* Righe a barra: etichetta, barra lunga quanto il valore rispetto al primo, valore; sotto, il dettaglio. */
 :where(.vipi-root) .sx-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
@@ -1899,9 +1900,8 @@
 :where(.vipi-root) .live-changes .lc-chip.on{background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)}
 :where(.vipi-root) .live-changes .lc-chip.off{background:var(--tint-red);color:var(--danger-ink);border-color:var(--line-red-strong)}
 :where(.vipi-root) .live-changes .lc-chip .lc-t{font-weight:400;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
-:where(.vipi-root) .live-changes .lc-clear{margin-left:auto;background:none;border:0;cursor:pointer;font-size:12.5px;
-  color:var(--ink-soft);text-decoration:underline;padding:0}
-:where(.vipi-root) .live-changes .lc-clear:hover{color:var(--brand-ink)}
+:where(.vipi-root) .live-changes .lc-clear{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:1px solid currentColor;background:var(--surface);color:var(--ink);cursor:pointer;font-size:15px;font-weight:700;line-height:1;padding:0}
+:where(.vipi-root) .live-changes .lc-clear:hover,:where(.vipi-root) .live-changes .lc-clear:focus-visible{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
 /* Catena di copertura: chi ti assorbe se chiudi, e a chi passi salendo. Per ground e delivery — che di
    trasferimenti propri non ne hanno — è l'informazione principale, quindi `lead` la rende più marcata. */
 :where(.vipi-root) .live-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;font-size:13px}
@@ -2005,40 +2005,48 @@
    Scorre via con la pagina. `max-height` per il telefono in orizzontale, dove anche un tablet e' basso. */
 :where(.vipi-root) .wrap.pw-760 .reduced-top{position:static}
 @media (max-height:520px){:where(.vipi-root) .reduced-top{position:static}}
-:where(.vipi-root) .reduced-top .live-pick input{margin-bottom:0;padding:4px 10px;font-size:12.5px}
-/* Il tasto «Compatta»: stava in uno `style` in linea, che nessuna regola del foglio puo' allargare al tocco. */
-:where(.vipi-root) .reduced-top .live-dense{padding:3px 10px;font-size:12.5px}
+:where(.vipi-root) .reduced-top .live-pick input{margin-bottom:0;padding:4px 10px;font-size:12.5px;font-family:var(--font-body);
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .reduced-top .live-pick input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
 
-/* Modalità compatta (persistita): la vista live vive spesso su un secondo monitor piccolo, dove servono
-   più righe a schermo che aria. Tocca solo densità, mai contenuto. */
-.vipi-dense .vipi-root{font-size:14px}
+/* Modalità compatta (sempre accesa nella vista live e solo lì, vipi-ui.js applyDense): la vista live vive spesso su un secondo monitor piccolo, dove servono
+   più righe a schermo che aria. Tocca solo densità, mai contenuto.
+   🔴 Solo il CONTENUTO della pagina (committente, 1 ottobre 2026): `#vipi-main`, non la barra in alto né il piè di
+   pagina, e non il titolo della pagina. Prima `.vipi-dense .vipi-root` prendeva tutto, e il titolo «IVAO» del piè
+   di pagina (un <h2>) passava a 23px. `:where(#vipi-main)` per non cambiare chi vince: la specificità resta quella
+   di prima. */
+.vipi-dense .vipi-root :where(#vipi-main){font-size:14px}
 /* ⚠️ `.page-h1` accanto a `h2` e non per conto suo: e' la stessa testata, che ha solo cambiato tag
    (vedi il commento alla classe, in cima al foglio). Senza, in compatta restava a 32px. */
 /* ⚠️ `:not()` sulle due classi: sono titoli di sezione e di scheda che hanno preso il tag <h2> per la
    gerarchia, non per l'aspetto. Prima erano <h3>/<h4>, che la compatta non tocca — e non deve toccarli
    nemmeno adesso, o si rimpicciolirebbero solo perche' e' cambiato il tag. */
-.vipi-dense .vipi-root h2:not(.h-sect):not(.h-card),.vipi-dense .vipi-root .page-h1{font-size:23px}
-.vipi-dense .vipi-root table{font-size:12.5px}
-.vipi-dense .vipi-root th,.vipi-dense .vipi-root td{padding:4px 7px}
-:where(.vipi-root) .vipi-dense .acc-item>summary{padding:8px 12px}
-:where(.vipi-root) .vipi-dense .acc-item .body{padding:2px 12px 10px}
-:where(.vipi-root) .vipi-dense .rap-box{padding:5px 10px}
-:where(.vipi-root) .vipi-dense .reduced-top{gap:10px;padding:7px 0;margin-bottom:12px}
-:where(.vipi-root) .vipi-dense .callout{padding:8px 12px}
-:where(.vipi-root) .vipi-dense .apt-quick{margin-bottom:12px !important}
+.vipi-dense .vipi-root :where(#vipi-main) h2:not(.h-sect):not(.h-card):not(.page-h1){font-size:23px}
+.vipi-dense .vipi-root :where(#vipi-main) table{font-size:12.5px}
+.vipi-dense .vipi-root :where(#vipi-main) th,.vipi-dense .vipi-root :where(#vipi-main) td{padding:4px 7px}
+/* 🔴 `.vipi-dense` PRIMA di `.vipi-root`: la classe sta su <html>, che di `.vipi-root` e' l'antenato. Fino al 1 ottobre
+   2026 le righe qui sotto erano scritte `:where(.vipi-root) .vipi-dense …`, cioe' cercavano la compatta DENTRO la
+   radice, e non scattavano mai: il padding di cassette, riquadri e testata restava quello pieno (misurato: `.rap-box`
+   a 8px 14px in compatta). Stessa specificita' di prima, cambia solo che adesso valgono. */
+.vipi-dense :where(.vipi-root) .acc-item>summary{padding:8px 12px}
+.vipi-dense :where(.vipi-root) .acc-item .body{padding:2px 12px 10px}
+.vipi-dense :where(.vipi-root) .rap-box{padding:5px 10px}
+.vipi-dense :where(.vipi-root) .reduced-top{gap:10px;padding:7px 0;margin-bottom:12px}
+.vipi-dense :where(.vipi-root) .callout{padding:8px 12px}
+.vipi-dense :where(.vipi-root) .apt-quick{margin-bottom:12px !important}
 /* Coordinamenti live: prima di oggi la densità non toccava niente qui dentro, e «Compatta» valeva il 2%. */
-:where(.vipi-root) .vipi-dense .xl-bar{margin-bottom:7px}
-:where(.vipi-root) .vipi-dense .xl-filter input{width:170px;padding-top:2px;padding-bottom:2px}
-:where(.vipi-root) .vipi-dense #xl-cols{gap:8px}
-:where(.vipi-root) .vipi-dense .xl-kcol-h{padding:3px 9px;font-size:11px}
+.vipi-dense :where(.vipi-root) .xl-bar{margin-bottom:7px}
+.vipi-dense :where(.vipi-root) .xl-filter input{width:170px;padding-top:2px;padding-bottom:2px}
+.vipi-dense :where(.vipi-root) #xl-cols{gap:8px}
+.vipi-dense :where(.vipi-root) .xl-kcol-h{padding:3px 9px;font-size:11px}
 /* ⚠️ La colonna del CoP resta 70px anche in densa: a 62 «ALL to GR» andava a capo e la riga diventava
    alta il doppio: si perdeva più di quanto si guadagnasse. Il risparmio della densa sta nell'interlinea
    e nel padding, non nella larghezza. */
-:where(.vipi-root) .vipi-dense .xl-line{grid-template-columns:46px 70px minmax(0,1fr) auto;gap:6px;padding:0 8px;font-size:11.5px;line-height:1.42}
-:where(.vipi-root) .vipi-dense .xl-apt{font-size:12px}
-:where(.vipi-root) .vipi-dense .xl-line .fl{font-size:12.5px}
-:where(.vipi-root) .vipi-dense .xl-next{font-size:10.5px;padding:0 6px}
-:where(.vipi-root) .vipi-dense .xl-next b{font-size:11px}
+.vipi-dense :where(.vipi-root) .xl-line{grid-template-columns:46px 70px minmax(0,1fr) auto;gap:6px;padding:0 8px;font-size:11.5px;line-height:1.42}
+.vipi-dense :where(.vipi-root) .xl-apt{font-size:12px}
+.vipi-dense :where(.vipi-root) .xl-line .fl{font-size:12.5px}
+.vipi-dense :where(.vipi-root) .xl-next{font-size:10.5px;padding:0 6px}
+.vipi-dense :where(.vipi-root) .xl-next b{font-size:11px}
 :where(.vipi-root) .apt-quick{display:flex;gap:8px;flex-wrap:wrap}
 :where(.vipi-root) .apt-quick .ch{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:500;transition:.12s}
 :where(.vipi-root) .apt-quick .ch:hover{border-color:var(--ivao-lightblue);color:var(--brand-ink)}
@@ -2053,6 +2061,90 @@
 :where(.vipi-root) .rap-box{display:flex;flex-direction:column;background:var(--surface-soft);border:1px solid var(--line);border-radius:9px;padding:8px 14px;min-width:120px}
 :where(.vipi-root) .rap-box .muted{font-size:11px;text-transform:uppercase;letter-spacing:.03em}
 :where(.vipi-root) .rap-box b{font-family:var(--font-head);color:var(--brand-ink);font-size:16px}
+/* VISTA LIVE (committente, 1 ottobre 2026) — tutto per stare in meno righe su un secondo monitor piccolo.
+   Testata su una riga: le briciole perdono il loro margine, l'avviso di simulazione prende lo spazio avanzato e
+   sta centrato in quello. Stretta: va a capo. */
+:where(.vipi-root) .live-top .breadcrumb{margin:0}
+:where(.vipi-root) .live-top .page-h1{margin:0}
+:where(.vipi-root) .live-top .sim-disc{flex:1 1 auto;text-align:center;font-size:13px}
+/* VISTA LIVE DA TELEFONO o tablet in verticale (`.pw-760`, misurato sul riquadro come il resto del sito): titolo
+   piccolo accanto alle briciole, la postazione ridotta al pallino (il `title` la ridà intera), enti limitrofi
+   chiusi dietro il tasto dell'etichetta (committente, 1 ottobre 2026). */
+:where(.vipi-root) .live-chain .lc-toggle{border:0;background:none;padding:0;color:inherit;cursor:default}
+:where(.vipi-root) .live-chain .lc-n{display:none}
+:where(.vipi-root) .wrap.live.pw-760 .live-top{gap:8px 10px}
+:where(.vipi-root) .wrap.live.pw-760 .live-top .page-h1{font-size:19px}
+:where(.vipi-root) .wrap.live.pw-760 .live-top .live-badge{padding:0;border:0;background:none !important}
+:where(.vipi-root) .wrap.live.pw-760 .live-top .live-badge .lb-t{display:none}
+/* TABLET in verticale (601–900, cioè `.pw-760` senza `.pw-600`) e TELEFONO (`.pw-600`) sono due misure (committente,
+   1 ottobre 2026): il tablet ha titolo piccolo, pallino, margini stretti e frequenze chiuse come il telefono, ma tiene
+   aperti enti limitrofi, colonna «condizione», frase radio e i quattro valori in una riga, perché ci stanno.
+   Qui sotto, le regole a `.pw-600` valgono solo per il telefono. */
+:where(.vipi-root) .wrap.live.pw-760 .live-top .sim-disc{font-size:11.5px}
+:where(.vipi-root) .wrap.live.pw-600 .live-top .sim-disc{flex-basis:100%;text-align:left;font-size:11.5px}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain .lc-toggle{cursor:pointer}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain .lc-toggle::after{content:" ▸"}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain.open .lc-toggle::after{content:" ▾"}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain .lc-n{display:inline;font-weight:600;opacity:.75}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain:not(.open)>:not(.lc-toggle){display:none}
+/* La ricerca rapida della vista live (LiveSearchPanel, 1 ottobre 2026): il campo in coda alle chip, risultati a
+   righe-tasto, una tabella per le aree. Il campo ha la forma di una chip, per stare nella riga senza romperla. */
+:where(.vipi-root) .lsr-field{display:inline-flex;align-items:center;gap:4px}
+:where(.vipi-root) .lsr-field input{width:210px;margin:0;padding:6px 14px;border-radius:20px;font-size:13px;font-family:var(--font-body);
+  border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .lsr-field input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
+:where(.vipi-root) .wrap.pw-600 .lsr-field{flex:1 1 100%}
+:where(.vipi-root) .wrap.pw-600 .lsr-field input{width:100%}
+:where(.vipi-root) .live-search .lsr-hint{font-size:13px;margin:6px 0 0}
+:where(.vipi-root) .live-search .lsr-h{font-family:var(--font-head);font-weight:700;font-size:13px;margin:14px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+:where(.vipi-root) .live-search .lsr-all{padding:3px 10px;font-size:12.5px}
+:where(.vipi-root) .live-search .lsr-list{display:flex;flex-direction:column;gap:4px}
+:where(.vipi-root) .live-search .lsr-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;text-align:left;font:inherit;font-size:13.5px;color:var(--ink);
+  background:var(--surface-soft);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+:where(.vipi-root) .live-search .lsr-row:hover,:where(.vipi-root) .live-search .lsr-row:focus-visible{border-color:var(--ivao-lightblue)}
+:where(.vipi-root) .live-search .lsr-row b{font-family:var(--font-head);color:var(--brand-ink)}
+:where(.vipi-root) .live-search .lsr-acc{font-size:12px;margin-left:auto}
+:where(.vipi-root) .live-search .lsr-back{padding:3px 10px;font-size:12.5px;margin:2px 0 10px}
+:where(.vipi-root) .live-search .lsr-areas{margin-top:12px;font-size:13px}
+:where(.vipi-root) .live-search .lsr-band{white-space:nowrap}
+:where(.vipi-root) .live-search .lsr-static{cursor:default}
+:where(.vipi-root) .live-search .lsr-title .lsr-back{margin:0}
+:where(.vipi-root) .live-search .lsr-freq{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-variant-numeric:tabular-nums}
+:where(.vipi-root) .live-search .lsr-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-faint);flex:none;align-self:center}
+:where(.vipi-root) .live-search .lsr-dot.on{background:var(--ivao-green)}
+:where(.vipi-root) .live-search .lsr-detail{display:flex;flex-direction:column;gap:6px}
+:where(.vipi-root) .live-search .lsr-detail p{margin:0}
+:where(.vipi-root) .live-search .lsr-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:15px}
+:where(.vipi-root) .live-search .lsr-title b{font-family:var(--font-head);font-size:20px;color:var(--brand-ink)}
+:where(.vipi-root) .live-search .lsr-state,:where(.vipi-root) .live-search .lsr-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px}
+:where(.vipi-root) .live-search .lsr-map{height:280px;border-radius:10px;overflow:hidden;margin-top:4px}
+/* «Nessuna vIPI pubblicata»: chiuso, si apre sul titolo. */
+:where(.vipi-root) .callout-fold>summary{cursor:pointer;margin:0}
+:where(.vipi-root) .callout-fold[open]>summary{margin-bottom:4px}
+/* Pannello dello scalo: ICAO, i quattro valori e i tasti su una riga; a capo solo se non ci stanno. */
+:where(.vipi-root) .rap-row{flex-wrap:wrap}
+:where(.vipi-root) .rap-row .rap-quick{margin:0;flex:1 1 520px}
+/* La frase sulla radio: l'icona è un tasto, che conta solo da telefono (lì la frase si apre toccandola). */
+:where(.vipi-root) .sid-radio-btn{border:0;background:none;padding:0;color:inherit;cursor:default;display:inline-flex}
+:where(.vipi-root) .wrap.pw-600 .sid-radio-btn{cursor:pointer;padding:6px;margin:-6px;font-size:16px}
+:where(.vipi-root) .wrap.pw-600 .sid-radio:not(.open) .sid-radio-t{display:none}
+:where(.vipi-root) .wrap.pw-600 .sid-bar>.sid-radio.open{flex-basis:100%}
+:where(.vipi-root) .sid-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 8px}
+:where(.vipi-root) .sid-bar>.sid-radio,:where(.vipi-root) .sid-bar>.sid-find{margin:0}
+:where(.vipi-root) .sid-bar>.sid-find{flex:1 1 280px}
+:where(.vipi-root) .rap-rwy{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+:where(.vipi-root) .rap-rwy .sid-pill{margin:0}
+/* L'ICAO nel titolo del riquadro, della misura del titolo. */
+:where(.vipi-root) .acc-item .tag-state.sum-icao{font-size:inherit;font-weight:inherit;margin-left:6px;vertical-align:baseline}
+:where(.vipi-root) .rap-btns{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap}
+:where(.vipi-root) .rap-quick.rap-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+:where(.vipi-root) .rap-quick.rap-4 .rap-box{min-width:0}
+:where(.vipi-root) .wrap.pw-600 .rap-quick.rap-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* In «Compatta» etichetta e valore sulla stessa riga della cella: meta' altezza, e il valore sta nello spazio che
+   prima restava vuoto a destra dell'etichetta (committente, 1 ottobre 2026). */
+.vipi-dense :where(.vipi-root) .rap-quick.rap-4 .rap-box{flex-direction:row;align-items:baseline;gap:8px;padding:4px 10px}
+.vipi-dense :where(.vipi-root) .rap-quick.rap-4 .rap-box .muted{white-space:nowrap}
+.vipi-dense :where(.vipi-root) .rap-quick.rap-4 .rap-box b{font-size:14px;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 :where(.vipi-root) .acc-item{border:1px solid var(--line);border-radius:11px;margin-bottom:12px;background:var(--surface);overflow:hidden}
 :where(.vipi-root) .acc-item>summary{cursor:pointer;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;list-style:none;font-family:var(--font-head);font-weight:700;color:var(--brand-ink)}
 :where(.vipi-root) .acc-item>summary::-webkit-details-marker{display:none}
@@ -2365,10 +2457,57 @@
 :where(.vipi-root) .sid-quick .col-cat{width:7%}
 :where(.vipi-root) .sid-quick .col-wtc{width:7%}
 :where(.vipi-root) .sid-quick .col-cond{width:15%}
+/* Da telefono (committente, 1 ottobre 2026): niente colonna «condizione», la si apre toccando la SID (riga sotto,
+   AirportQuickPanel). La tabella smette di pretendere 520px e sta nello schermo. */
+:where(.vipi-root) .sid-quick .sid-cond-row{display:none}
+/* ⚠️ `display:table` e `table-layout:fixed` RIMESSI: da telefono il sito fa di ogni tabella un blocco che scorre e
+   si stringe al contenuto (media query del telefono, U-106), e lì le larghezze qui sotto non contano — «A, B, C, D,
+   E» andava a capo a ogni virgola, una riga alta cinque. Questa tabella, senza la condizione, ci sta. */
+:where(.vipi-root) .wrap.pw-760 .tbl-scroll>.sid-quick{display:table;table-layout:fixed;width:100%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick{min-width:0;font-size:11px}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-cond{display:none}
+:where(.vipi-root) .wrap.pw-600 .sid-quick th{white-space:normal;font-size:9px;padding:4px 3px;overflow-wrap:normal}
+:where(.vipi-root) .wrap.pw-600 .sid-quick td{padding:4px 3px}
+/* La quota iniziale può essere una frase («to coord with APP»): a tabella fissa va a capo, o sborda sulla Cat. */
+:where(.vipi-root) .wrap.pw-600 .sid-quick td.col-climb{white-space:normal}
+/* Tablet (`.pw-760`): tutte le colonne, condizione compresa, ma Cat. e WTC al 7% andavano su quattro righe. Le regole
+   del telefono, qui sotto, vengono DOPO apposta: stessa specificità, vince chi è scritto per ultimo. */
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-fix{width:13%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-sid{width:15%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-trans{width:15%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick th{overflow-wrap:normal}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-climb{width:16%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-cat{width:15%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-wtc{width:10%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-cond{width:16%}
+/* Senza la condizione le larghezze si ridistribuiscono: Cat. («A, B, C, D, E») e WTC si prendono quel che serve per
+   stare su una o due righe invece che su cinque. */
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-fix{width:16%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-sid{width:20%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-trans{width:15%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-climb{width:15%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-cat{width:20%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-wtc{width:14%}
+/* Riquadri dentro riquadri: da telefono i margini interni si mangiavano 124px su 375, e la tabella SID ne aveva 251. */
+:where(.vipi-root) .wrap.live.pw-760 .acc-item .body{padding:2px 2px 8px}
+:where(.vipi-root) .wrap.live.pw-760 .block{padding:10px 8px}
+/* Le quattro celle da telefono: due per riga, etichetta SOPRA il valore — in riga il valore non ci stava («F.», «VRB/…»). */
+.vipi-dense :where(.vipi-root) .wrap.pw-600 .rap-quick.rap-4 .rap-box{flex-direction:column;align-items:flex-start;gap:0}
+.vipi-dense :where(.vipi-root) .wrap.pw-600 .rap-quick.rap-4 .rap-box b{margin-left:0;white-space:normal}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .sid-cond-row{display:table-row}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .sid-cond-row td{padding-top:0;font-size:12px}
+:where(.vipi-root) .sid-quick .sid-cond-btn{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:default;text-align:left}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .sid-cond-btn{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .sid-cond-btn::after{content:" ▸";color:var(--ink-soft)}
+:where(.vipi-root) .wrap.pw-600 .sid-quick tr.cond-open .sid-cond-btn::after{content:" ▾"}
 
 /* Ricerca punto/SID sopra la tabella rapida: una riga sola, il campo prende lo spazio che resta. */
 :where(.vipi-root) .sid-find{display:flex;align-items:center;gap:8px;margin:0 0 8px}
-:where(.vipi-root) .sid-find input{flex:1 1 auto;min-width:0;margin-bottom:0;padding:4px 10px;font-size:13px}
+:where(.vipi-root) .sid-find input{flex:1 1 auto;min-width:0;margin-bottom:0;padding:7px 10px;font-size:13px;
+  font-family:var(--font-body);border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .sid-find input::placeholder{color:var(--ink-faint)}
+/* Lo stesso anello degli altri campi (vid-find): era il bordo di sistema, grigio e squadrato (committente, 1 ottobre). */
+:where(.vipi-root) .sid-find input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
 :where(.vipi-root) .sid-find-x{flex:0 0 auto;padding:3px 9px;font-size:12.5px;line-height:1.2}
 :where(.vipi-root) .sid-find-n{flex:0 0 auto;font-size:12.5px;font-variant-numeric:tabular-nums}
 :where(.vipi-root) .sid-table .star{color:var(--ivao-yellow);font-size:14px}
@@ -4591,6 +4730,11 @@
    2026). Fino ad allora era il modulo stesso, stretto a 38px su un campo largo 0 che al fuoco si riapriva
    `position:fixed` sotto la barra: toccare la lente non portava da nessuna parte (committente, misurato a 375px). */
 :where(.vipi-root) .top-search-go{display:none}
+/* L'ora Z della barra (SopLayout). Cifre a larghezza fissa, o la barra ballerebbe di un pixel a ogni secondo. */
+:where(.vipi-root) .topbar .tb-utc{flex:none;font-family:var(--font-head);font-weight:700;font-size:14px;color:var(--on-brand);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+/* «Live» corto: solo da telefono (tb-4), dove il gettone torna in riga accanto all'ora. */
+:where(.vipi-root) .live-badge .lb-s{display:none}
 :where(.vipi-root) .topbar.tb-3 .top-search{display:none}
 :where(.vipi-root) .topbar.tb-3 .top-search-go{display:inline-flex;flex:none}
 
@@ -4673,11 +4817,16 @@
 
 /* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
 
-:where(.vipi-root) .topbar.tb-4 .acc-nav,:where(.vipi-root) .topbar.tb-4 .zoom-ctrl,:where(.vipi-root) .topbar.tb-4 .live-badge,:where(.vipi-root) .topbar.tb-4 .lang-ctrl,
+:where(.vipi-root) .topbar.tb-4 .acc-nav,:where(.vipi-root) .topbar.tb-4 .zoom-ctrl,:where(.vipi-root) .topbar.tb-4 .lang-ctrl,
 
 :where(.vipi-root) .topbar.tb-4 .right>.editor-btn,:where(.vipi-root) .topbar.tb-4 .right>.user-chip{display:none}
 
 :where(.vipi-root) .topbar.tb-4 .right{margin-left:auto;gap:8px}
+/* Da telefono, accanto alla lente: l'ora Z e il gettone «● Live» (committente, 1 ottobre 2026). Il gettone resta in
+   riga — dice se sei in frequenza e porta alla vista live — e per stare accanto all'ora la colonna di destra
+   rinuncia al margine automatico: in tb-4 il gettone è l'unica cosa che le resta. */
+:where(.vipi-root) .topbar.tb-4 .right{margin-left:0}
+:where(.vipi-root) .topbar.tb-4 .live-badge .lb-s{display:inline}
 
 /* Il marchio resta, ma solo il logo: il nome per esteso e' 202px su 375 di schermo. */
 
@@ -5342,11 +5491,13 @@
 :where(.vipi-root) .sito-foot .sf-cols{display:flex;flex-wrap:wrap;justify-content:center;gap:28px 96px;text-align:center}
 :where(.vipi-root) .sito-foot .sf-about{max-width:340px;display:flex;flex-direction:column;align-items:center;gap:10px}
 :where(.vipi-root) .sito-foot .sf-about p{margin:0;line-height:1.5}
-:where(.vipi-root) .sito-foot .sf-brand{display:inline-flex;align-items:center;gap:8px;color:var(--on-brand);text-decoration:none;font-family:var(--font-head)}
+/* Il marchio e il titolo «IVAO» sono le due testate delle colonne (committente, 1 ottobre 2026: non erano allineati né
+   per misura né sulla stessa linea): stessa altezza (quella del logo), stessa famiglia e misura del testo. */
+:where(.vipi-root) .sito-foot .sf-brand{display:inline-flex;align-items:center;gap:8px;min-height:30px;color:var(--on-brand);text-decoration:none;font-family:var(--font-head);font-size:15px}
 :where(.vipi-root) .sito-foot .sf-brand .logo{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--on-brand),var(--on-dark-soft));color:var(--ivao-blue);display:grid;place-items:center;font-weight:800;font-size:11px}
 :where(.vipi-root) .sito-foot .sf-brand small{color:var(--on-dark-soft);font-size:12px}
 :where(.vipi-root) .sito-foot .sf-links{display:flex;flex-direction:column;align-items:center;gap:10px}
-:where(.vipi-root) .sito-foot .sf-h{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--on-brand)}
+:where(.vipi-root) .sito-foot .sf-h{margin:0;min-height:30px;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--on-brand)}
 :where(.vipi-root) .sito-foot a:not(.sf-brand){color:var(--on-dark-soft);text-decoration:none}
 :where(.vipi-root) .sito-foot a:not(.sf-brand):hover{color:var(--on-brand);text-decoration:underline}
 :where(.vipi-root) .sito-foot .sf-bottom a{color:var(--on-brand)}

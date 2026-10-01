@@ -1,6 +1,8 @@
 @page "/services/vsop/changed"
 @layout SopLayout
 @rendermode InteractiveServer
+@* Pagina pubblica: un circuito caduto non si annuncia, se si rimette da solo (vipi-riconnessione.js). *@
+@attribute [RiconnessioneDiscreta]
 @inject IChangesService Changes
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En

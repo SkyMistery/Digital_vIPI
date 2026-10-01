@@ -310,10 +310,8 @@
   <data name="Live_Tab" xml:space="preserve"><value>Operativa</value></data>
   <data name="Live_FollowMe" xml:space="preserve"><value>segui {0}</value></data>
   <data name="Live_ChangesLabel" xml:space="preserve"><value>Cambi</value></data>
-  <data name="Live_ChangesClear" xml:space="preserve"><value>scarta</value></data>
+  <data name="Live_ChangesClear" xml:space="preserve"><value>Chiudi i cambi</value></data>
   <data name="Live_UtcNow" xml:space="preserve"><value>Ora corrente UTC (Z)</value></data>
-  <data name="Live_Dense" xml:space="preserve"><value>Compatta</value></data>
-  <data name="Live_DenseTip" xml:space="preserve"><value>Vista più densa: più righe a schermo su monitor piccoli. La scelta viene ricordata.</value></data>
   <data name="Live_ShowUnicom" xml:space="preserve"><value>mostra i {0} rilasci a UNICOM</value></data>
   <data name="Live_HideUnicom" xml:space="preserve"><value>nascondi i rilasci a UNICOM</value></data>
   <data name="Live_OnlyUnicom" xml:space="preserve"><value>Nessun trasferimento verso un ente online: tutti i punti rilasciano a UNICOM.</value></data>
@@ -327,13 +325,12 @@
   <data name="Live_FeedExpired" xml:space="preserve"><value>{0} (scaduto: sorgente IVAO ferma, chi è online non si sa)</value></data>
   <data name="Live_NotYoursTitle" xml:space="preserve"><value>Stai guardando {0}</value></data>
   <data name="Live_NotYoursBody" xml:space="preserve"><value>Non è la postazione con cui sei connesso ({0}): questa vista è in sola consultazione e non ti segue.</value></data>
-  <data name="Live_CoveredBy" xml:space="preserve"><value>Sopra di te:</value></data>
-  <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, e a chi passi salendo</value></data>
+  <data name="Live_CoveredBy" xml:space="preserve"><value>Enti limitrofi:</value></data>
+  <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, a chi trasferisci il traffico</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>chiuso</value></data>
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>gerarchia non configurata per questa posizione — nessun ente sopra risulta impostato in Struttura</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
-  <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Documento esteso</value></data>
-  <data name="Live_QuickView" xml:space="preserve"><value>Vista rapida — il mio settore o un aeroporto sotto controllo diretto</value></data>
+  <data name="Live_ExtendedDoc" xml:space="preserve"><value>Documento esteso ↗</value></data>
   <data name="Live_MySector" xml:space="preserve"><value>Il mio settore</value></data>
   <data name="Live_PickPlaceholder" xml:space="preserve"><value>Apri un'altra postazione…</value></data>
   <data name="Live_PickTitle" xml:space="preserve"><value>Staff di divisione: apre la vista live di una qualsiasi postazione, anche spenta</value></data>
@@ -2485,6 +2482,7 @@
   <data name="AorBlock_ConfigHelp" xml:space="preserve"><value>Selezionando una configurazione si evidenziano, in "Configurazioni operative", i setting corrispondenti.</value></data>
   <data name="Aqp_SelectedRunway" xml:space="preserve"><value>Pista selezionata</value></data>
   <data name="Aqp_SearchSid" xml:space="preserve"><value>Cerca un punto o una SID…</value></data>
+  <data name="Aqp_SidRadio" xml:space="preserve"><value>In radio la SID si legge con il nome completo: {0} si dice «{1}» ({2}).</value></data>
   <data name="Aqp_ClearSearch" xml:space="preserve"><value>Togli la ricerca</value></data>
   <data name="Aqp_SidCount" xml:space="preserve"><value>{0} SID</value></data>
   <data name="Aqp_NoSidMatch" xml:space="preserve"><value>Nessuna SID per «{0}».</value></data>
@@ -3566,6 +3564,7 @@
   <data name="Reconnect_Failed" xml:space="preserve"><value>Non riesco a ricollegarmi. Controlla la connessione, poi ricarica la pagina.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Ricarica la pagina</value></data>
   <data name="Reconnect_QuietTitle" xml:space="preserve"><value>Collegamento con il server perso</value></data>
+  <data name="Reconnect_QuietBodyLive" xml:space="preserve"><value>La pagina non si aggiorna più finché non la ricarichi.</value></data>
   <data name="Reconnect_QuietBody" xml:space="preserve"><value>Il documento resta leggibile; stato Live e meteo non si aggiornano finché non ricarichi.</value></data>
   <data name="Diag_DiscTitle" xml:space="preserve"><value>Disconnessioni viste dai browser</value></data>
   <data name="Diag_DiscHint" xml:space="preserve"><value>Una riga ogni volta che a qualcuno è comparso il riquadro «riconnessione», negli ultimi sette giorni. Riagganciate: il collegamento è tornato da solo. Rifiutate: il processo del server era stato spento o riavviato. Fallite: server irraggiungibile. Il file completo è diagnostica/disconnessioni-*.tsv.</value></data>
@@ -3793,7 +3792,6 @@
   <data name="Services_AtcIvaoDesc" xml:space="preserve"><value>Sito ufficiale IVAO: prenota una posizione ATC e consulta le FRA.</value></data>
   <data name="Services_AwosDesc" xml:space="preserve"><value>Il quadro meteo di torre: vento per testata, QNH, TL, RVR e stato LVP, aggiornati dal METAR.</value></data>
   <data name="Apt_OpenAwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS di questo scalo in una scheda nuova</value></data>
-  <data name="Live_AwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS del tuo aeroporto in una scheda nuova</value></data>
   <data name="ApiKeys_Nav" xml:space="preserve"><value>Chiavi API</value></data>
   <data name="ApiKeys_Title" xml:space="preserve"><value>Chiavi API</value></data>
   <data name="ApiKeys_Subtitle" xml:space="preserve"><value>Le chiavi con cui altri programmi chiamano le API del sito (aeroporti, archivio ATC, bridge Aurora). Le API non sono mai anonime.</value></data>
@@ -4012,4 +4010,30 @@
   <data name="Asp_Fix_TakeFile" xml:space="preserve"><value>Prendi il file</value></data>
   <data name="Asp_Fix_TakeFileTitle" xml:space="preserve"><value>Togli la correzione e usa i valori del file nuovo</value></data>
   <data name="Asp_Fix_Acked" xml:space="preserve"><value>{0}: fatto.</value></data>
+  <data name="Lsr_Field" xml:space="preserve"><value>Altri scali o aree…</value></data>
+  <data name="Lsr_Placeholder" xml:space="preserve"><value>Cerca scalo, postazione o frequenza, punto, radioassistenza, area (LIPE, 128.705, AGNIS, PES, R14…)</value></data>
+  <data name="Lsr_Hint" xml:space="preserve"><value>Scali con vIPI o vSOP pubblicati di tutta la divisione, postazioni (callsign, nome o frequenza), punti delle SID e STAR, punti di trasferimento, radioassistenze e aree regolamentate. Scrivi almeno due caratteri.</value></data>
+  <data name="Lsr_None" xml:space="preserve"><value>Niente per «{0}».</value></data>
+  <data name="Lsr_Airports" xml:space="preserve"><value>Scali</value></data>
+  <data name="Lsr_Areas" xml:space="preserve"><value>Aree regolamentate</value></data>
+  <data name="Lsr_ShowAll" xml:space="preserve"><value>Mostra tutte e {0} sulla mappa</value></data>
+  <data name="Lsr_TooMany" xml:space="preserve"><value>Più di {0} aree: restringi la ricerca per vederle sulla mappa.</value></data>
+  <data name="Lsr_Back" xml:space="preserve"><value>Risultati</value></data>
+  <data name="Lsr_ColType" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Lsr_ColName" xml:space="preserve"><value>Nome</value></data>
+  <data name="Lsr_ColLimits" xml:space="preserve"><value>Limiti</value></data>
+  <data name="Lsr_ColActivation" xml:space="preserve"><value>Attivazione</value></data>
+  <data name="Lsr_ColDescription" xml:space="preserve"><value>Descrizione</value></data>
+  <data name="Lsr_Positions" xml:space="preserve"><value>Postazioni</value></data>
+  <data name="Lsr_Fixes" xml:space="preserve"><value>Punti nelle SID e STAR</value></data>
+  <data name="Lsr_Cops" xml:space="preserve"><value>Punti di trasferimento</value></data>
+  <data name="Lsr_Navaids" xml:space="preserve"><value>Radioassistenze</value></data>
+  <data name="Lsr_PosOnline" xml:space="preserve"><value>online adesso</value></data>
+  <data name="Lsr_PosClosed" xml:space="preserve"><value>chiusa — la copre</value></data>
+  <data name="Lsr_PosUnicom" xml:space="preserve"><value>Chiusa, nessuno la copre: UNICOM</value></data>
+  <data name="Lsr_PosChain" xml:space="preserve"><value>Copertura risalendo:</value></data>
+  <data name="Lsr_PosOpenLive" xml:space="preserve"><value>Apri la sua vista live</value></data>
+  <data name="Lsr_FeedOld" xml:space="preserve"><value>(dato degli online non aggiornato)</value></data>
+  <data name="Lsr_Indexing" xml:space="preserve"><value>Sto ancora leggendo procedure e trasferimenti: tra poco anche quei risultati.</value></data>
+  <data name="Aqp_NoDoc" xml:space="preserve"><value>Nessun documento pubblicato per {0}.</value></data>
 </root>

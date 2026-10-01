@@ -433,6 +433,18 @@
         Object.keys(secMap).forEach(function (k) { setSec(k, true); });
         refit();
         setTimeout(function () { map.invalidateSize(); refit(); }, 60);
+        // Una mappa nata a LARGHEZZA 0 (scheda in secondo piano, riquadro non ancora disegnato) si inquadra a zoom 19 sul
+        // niente: misurato il 1 ottobre 2026 sulla ricerca della vista live, aree di S. Severa. Alla prima larghezza vera
+        // si rifà l'inquadratura, una volta sola — dopo, lo zoom è di chi guarda.
+        if (window.ResizeObserver && !el.clientWidth) {
+            var nata0 = new ResizeObserver(function () {
+                if (!el.clientWidth) return;
+                nata0.disconnect();
+                map.invalidateSize();
+                refit();
+            });
+            nata0.observe(el);
+        }
     }
 
     // ── Tabella «spazi aerei» (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md §6) ─────────────────────────────
@@ -668,12 +680,53 @@
     window.vipiMappaViva = mappaViva;
     window.vipiStaccaAvanzoMappa = staccaAvanzo;
 
+    /// `data-points` = [[lat, lon, etichetta], …]: un pallino per punto con l'etichetta accanto. Un punto solo si
+    /// inquadra a zoom 9 (si vede dove sta rispetto alla costa); più punti, tutti nel riquadro.
+    function initPoints(el) {
+        var pts;
+        try { pts = (JSON.parse(el.dataset.points || '[]') || []).filter(function (p) { return p && p.length >= 2; }); }
+        catch (e) { return; }
+        if (!pts.length) return;
+        el.dataset.init = '1';
+        el.innerHTML = '';
+        var map = L.map(el, { scrollWheelZoom: false, dragging: !L.Browser.mobile, zoomControl: true, attributionControl: true });
+        el._leafletMap = map;
+        addBasemap(map);
+        var color = aorColor(null, '--ivao-lightblue');
+        var bounds = null;
+        pts.forEach(function (p) {
+            var m = L.circleMarker([p[0], p[1]], { radius: 7, color: color, weight: 2, fillColor: color, fillOpacity: 0.5 }).addTo(map);
+            if (p[2]) m.bindTooltip(esc(String(p[2])), { permanent: true, direction: 'right', offset: [8, 0] });
+            bounds = bounds ? bounds.extend([p[0], p[1]]) : L.latLngBounds([p[0], p[1]], [p[0], p[1]]);
+        });
+        function refit() {
+            if (pts.length === 1) map.setView([pts[0][0], pts[0][1]], 9);
+            else map.fitBounds(bounds, { padding: [24, 24], maxZoom: 9 });
+        }
+        refit();
+        el._aorBounds = bounds;
+        el._aorRefit = refit;
+        setTimeout(function () { map.invalidateSize(); refit(); }, 60);
+        // Come per le aree (initSectors): nata a larghezza 0, si reinquadra alla prima larghezza vera, una volta.
+        if (window.ResizeObserver && !el.clientWidth) {
+            var nata0 = new ResizeObserver(function () {
+                if (!el.clientWidth) return;
+                nata0.disconnect();
+                map.invalidateSize();
+                refit();
+            });
+            nata0.observe(el);
+        }
+    }
+
     function initOne(el) {
         if (!window.L || mappaViva(el)) return;
         staccaAvanzo(el);
 
         // ACC multi-settore: una mappa con anelli toggleabili.
         if (el.dataset.sectors != null) { initSectors(el); return; }
+        // Punti sciolti (ricerca della vista live, 1 ottobre 2026: la posizione di una radioassistenza).
+        if (el.dataset.points != null) { initPoints(el); return; }
 
         // Due modalità: data-poly = singolo anello (APP); data-polys = array di anelli (ACC, unione settori config).
         var rings = [];

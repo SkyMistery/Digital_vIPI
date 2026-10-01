@@ -87,6 +87,8 @@ public static class DependencyInjection
         services.AddScoped<Live.ILiveStationKind, Live.AirportLiveStation>();
         services.AddScoped<Live.ILiveStationRegistry, Live.LiveStationRegistry>();
         services.AddScoped<Live.ILiveViewService, Live.LiveViewService>();
+        // La ricerca rapida della vista live: scali pubblicati di tutta la divisione e aree regolamentate (1-ott-2026).
+        services.AddScoped<Live.IRicercaLive, Live.RicercaLive>();
         // «Chi controlla l'aeroporto adesso» per le pagine fuori dalla vista live (vista rapida, viewer).
         services.AddScoped<Live.IAirportPresidencyService, Live.AirportPresidencyService>();
         // vAWOS: il quadro meteo di torre (carta 2026-09-12). Sola lettura, nessuna entità sua.
@@ -121,6 +123,8 @@ public static class DependencyInjection
         services.AddScoped<IVloaViewDerivationService, VloaViewDerivationService>();
         services.AddScoped<IAirportSidDerivationService, AirportSidDerivationService>();
         services.AddScoped<IAirportViewDerivationService, AirportViewDerivationService>();
+        // SID e STAR per la barra di ricerca, dalla stessa vista della pagina (1 ottobre 2026).
+        services.AddScoped<IProcedureCercabili, ProcedureCercabili>();
         // §A73: le SID citate nel testo prendono il nome dalla tabella che il lettore vede.
         services.AddScoped<IProcedureReferenceResolver, ProcedureReferenceResolver>();
         services.AddScoped<IFrequenzeDegliEnti, FrequenzeDegliEnti>();

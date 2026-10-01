@@ -1902,6 +1902,75 @@
 - ✅ **S82** crediti nel piè di pagina (1-ott, committente): sotto «Parte della IVAO», su riga sua, «Realizzato da
   Carmine (704798) · Testato da Nicola (201143) e Carmine (704798)»; ogni nome al profilo IVAO del membro.
   Ramo `fix/crediti-test`.
+- ✅ **S83** SID nella ricerca (1-ott, committente: «se cerco ALAXI non mi dà Napoli»). Le procedure non sono nel
+  testo pubblicato: la barra di ricerca ora chiede SID e STAR alla stessa vista della pagina
+  (`IProcedureCercabili`, memoria di 10 minuti) e le aggancia alla loro sezione (se nascosta, niente). Una regola
+  sola (`CercaProcedura.Combacia`) per ricerca e vista live: codice ALAX7G, nome completo ALAXI 7G con o senza
+  spazio, fix, transition. Vista live: nota radio sopra le SID con l'esempio dalla prima SID dello scalo («AGNI7G si
+  dice AGNIS 7G (AGNIS seven golf)»). A schermo su LIRN (copia del DB). App 3161 → 3171, Infra 2074 → 2075.
+  Poi, stesso ramo (committente, con schermate): campo «Cerca un punto o una SID» e selettore di postazione della
+  vista live con bordo, angoli e anello degli altri campi; nel piè di pagina marchio e titolo «IVAO» alla stessa
+  altezza e misura; il «Compatta» tocca solo `#vipi-main` (non barra, piè di pagina, titolo della pagina — prima il
+  titolo «IVAO» del piè di pagina, un <h2>, passava a 23px). Ramo `fix/sid-ricerca`.
+- ✅ **S84** vista live più compatta, e da telefono/tablet (1-ott, committente, con schermate). **Testata su una
+  riga**: briciole, titolo, pallino della postazione, avviso di simulazione al centro, ATC online, selettore.
+  **Avviso**: «…REAL LIFE **OPERATIONS**» e non più NAVIGATION, ovunque (copre ogni operazione reale; R8 in
+  `regole-lingua.md`). **«Nessuna vIPI pubblicata»** chiuso, si apre sul titolo. **«Sopra di te» → «Enti limitrofi»**
+  («chi ti assorbe se chiudi, a chi trasferisci il traffico»). **Documenti in scheda nuova** (Documento esteso, vIPI,
+  vSOP): chi li apre dalla vista live la vuole tenere. **vSOP accanto alla vIPI** nel pannello dello scalo quando ci
+  sono tutti e due. Sulle postazioni d'aeroporto niente «Documento esteso» né vAWOS in testata (li porta il pannello).
+  **Pannello dello scalo**: chip delle piste, TA/TL/vento/piste suggerite e tasti su una riga; l'ICAO accanto al titolo
+  del riquadro; nota radio e ricerca SID sulla stessa riga. **Compatta sempre accesa** nella vista live e solo lì
+  (tasto tolto; prima, accesa, restava addosso a tutto il sito via localStorage). 🔴 Trovato strada facendo: le
+  regole `:where(.vipi-root) .vipi-dense …` non scattavano MAI (la classe è su `<html>`, antenato della radice):
+  riscritte `.vipi-dense :where(.vipi-root) …`, stessa specificità. **Ora Z nella barra in alto**, a tutti e su ogni
+  pagina; da telefono la barra è ☰ · ATC · 🔍 · ora Z · «● Live». **Telefono** (`.pw-600`, gradino nuovo in
+  `pwSoglie`): titolo piccolo e pallino, enti limitrofi chiusi dietro l'etichetta, valori due per riga, frase radio
+  a icona, SID senza «condizione» (si apre toccando il nome: un `<button>`, non la riga — lo pretende
+  `StructureAccessibilityTests`), tabella SID fissa a tutta larghezza (la regola del telefono, U-106, la faceva
+  scorrere). **Tablet in verticale** (601–900): come il telefono per testata, margini e riquadri chiusi, ma enti
+  limitrofi aperti, colonna condizione, frase radio intera, quattro valori in riga. Frequenze, gruppi e trasferimenti
+  partono chiusi da telefono e tablet (`data-chiuso-telefono`, con una chiave di persistenza loro). A schermo su
+  LIRN, LIML, LIBD, LIRR (copia del DB) a 1280, 768 e 375. Test Ui 1932 invariati. Ramo `fix/sid-ricerca`.
+- ✅ **S85** callout «Importante» dei documenti con l'ottagono col punto esclamativo (`octagon-alert`) invece della X
+  dello stop, che accanto a «Importante» diceva «vietato» (1-ott, committente). Vista e anteprime degli editor; la X
+  resta ai messaggi d'errore dell'interfaccia. Ramo `fix/sid-ricerca`.
+- ✅ **S86** riconnessione «discreta» sulle pagine pubbliche interattive (1-ott, committente: «le persone non se ne
+  devono accorgere nemmeno il 90% delle volte; l'avviso solo se serve ricaricare a mano, e nelle pagine di lavoro
+  sì»). Terzo modo accanto a «silenziosa» (documenti SSR) e riquadro (lavoro): `[RiconnessioneDiscreta]` su vista
+  live, ricerca, novità, spazi aerei, elenco vSOP, statistiche di divisione → `data-riconnessione="discreta"`
+  (`ModoRiconnessione.Di`). Lì niente riquadro; al circuito rifiutato (processo rinato) la pagina si ricarica DA
+  SOLA, in silenzio e allo stesso punto, senza la bandierina del «gesto perso»; l'avviso discreto in basso compare
+  solo a tentativi finiti (rete assente) o se le ricariche automatiche non risolvono, con la frase «la pagina non si
+  aggiorna più finché non la ricarichi». Editor, admin, richieste, attività, versioni: invariati. Nel dubbio una
+  pagina NON è discreta. Provato dal vivo sulla vista live di LIRN: server spento e riacceso, ricarica muta allo
+  stesso scroll, nessun avviso. Test Ui 1932 → 1944; E2E 507 verdi. Ramo `fix/sid-ricerca`.
+- ✅ **S87** vIPI d'aeroporto: tasto «vSOP militare» accanto a «Stampa» quando il vSOP è pubblicato (1-ott,
+  committente), lo specchio del «vIPI civile» che il vSOP ha nello stesso posto. Stessa condizione della voce nella
+  colonna di destra (`_haMilitare`). A schermo su LIML (c'è) e LIRN (non c'è). Ramo `fix/sid-ricerca`.
+- ✅ **S88** ricerca rapida nella vista live (1-ott, committente): chip «🔎 Cerca» per APP e ACC; trova gli scali con
+  vIPI/vSOP pubblicati di tutta la divisione (aperti nel pannello dello scalo col loro ACC) e le aree regolamentate
+  (mappa + tabella di attivazione che segue le chip). Mappe nate a larghezza 0 ora si reinquadrano. Carta
+  `docs/feature/2026-10-01-ricerca-vista-live.md`, con le prossime ricerche proposte. App 3171 → 3180. Ramo `fix/sid-ricerca`.
+  Poi (committente, provato sulla copia di produzione): il campo di ricerca sta direttamente in coda alle chip, al
+  posto della chip «Cerca»; tolta la scritta «Vista rapida — il mio settore o…».
+- ✅ **S89** ricerca della vista live, secondo giro (1-ott, committente): postazioni per callsign/nome/frequenza con
+  chi le copre (topologia globale), punti delle SID/STAR pubblicate di tutti gli scali, punti di trasferimento di
+  tutti gli ACC (solo staff di divisione), radioassistenze con un punto sulla mappa (`data-points` in vipi-aor.js).
+  La proposta «settori» resta proposta (carta §5). Scheda gialla dei cambi: ✕ al posto di «scarta». App 3180 → 3188.
+  Poi (committente): i punti delle SID/STAR in coda, dopo le radioassistenze e prima delle aree.
+- ✅ **S90** review della vista live prima di pubblicare (1-ott, committente). Corretti: (1) elenco vSOP e statistiche di
+  divisione NON più a riconnessione discreta (hanno «Crea» e «pubblica»: un clic perso lì in silenzio sembrerebbe
+  riuscito); (2) 🔴 la ricerca ha una MEMORIA CONDIVISA di processo (`MemoriaRicercaLive`, 5 minuti, un cancello per
+  elenco): dieci utenti che cercano insieme caricano una volta, prima ognuno rileggeva accordi di tutti gli ACC e
+  procedure di tutti gli scali a ogni ricerca; (3) topologia globale in memoria (1 minuto) invece di ricostruirla a ogni
+  clic; (4) il dettaglio di una postazione si ricalcola a ogni giro del feed; (5) le sole cifre («128») cercano anche
+  i nomi (area P128), solo le cifre col punto sono soltanto frequenza; (6) verificata a schermo la finestra Trasferimenti
+  in compatta (36 righe, una riga ciascuna); (7) pannello senza documento senza «vista rapida» in italiano fisso, e
+  nella ricerca ICAO/nome/ACC accanto a «Risultati». App 3190. (8) deciso col committente: sulle postazioni
+  d'aeroporto (TWR/GND/DEL) il campo sta in testata accanto alla postazione, e i risultati prendono il posto della vista
+  rapida dello scalo.
+  Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
