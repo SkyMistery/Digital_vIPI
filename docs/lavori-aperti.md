@@ -43,7 +43,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A146 — 1.55.0: SID nella ricerca, vista live compatta e ricerca rapida (S83–S90) (1 ottobre 2026)
+### ✅ A146 — 1.55.0 ONLINE: SID nella ricerca, vista live compatta e ricerca rapida (S83–S90) (1 ottobre 2026)
+
+✅ Online il 1 ottobre 2026 (avvio 14:21:39Z): timbro e `Schema 0` confermati dal committente. Da fuori porta «Entra con
+IVAO», Ricerca 401, Healthy, avviso «REAL LIFE OPERATIONS», `vipi-theme.css?v=24dacc67` e `vipi-ui.js?v=8e17bb72` (quelli
+del pacchetto). Scarico di `diagnostica/`: **nessun errore**; il processo 1.54.3 (pid 2049939) non si è spento in modo
+ordinato al cambio (nessuna riga ARRESTO): ucciso durante lo scambio, senza 500; tre disconnessioni alle 14:21:58,
+quelle del riavvio.
 
 MINOR **senza migrazioni**, su 1.54.3 (`b6ae28b`). Timbro **`1.55.0 · 395bce9`**. Fuso da `fix/sid-ricerca` @
 `f8758ceb` (CI verde run 36869904638), senza conflitti. Dentro: **S83** SID e STAR nella barra di ricerca
@@ -59,8 +65,7 @@ MySqlMigrations, Aurora* (solo ricompilazione). Zip 5,79 MB, sha256
 `a0a67e63387cf907382bbbacf25ea185ff973f7ea0ecdb8bbc86d6619fcdee1b`. Build Release senza avvisi, test verdi, conteggi
 identici (App 3190, Infra 2075, Ui 1944, E2E 507). Prova sul publish win-x64: `pacchetto-verifica.js` verde
 (`TERMINE=LIBB`), avviso «REAL LIFE OPERATIONS», vista live 200; processo ucciso e riavviato con la vista live aperta →
-pagina ricaricata da sola, riquadro nascosto. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.55.0.md`. ▶ Caricamento del
-committente.
+pagina ricaricata da sola, riquadro nascosto. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.55.0.md`.
 
 ### ✅ A145 — 1.54.3 ONLINE: crediti nel piè di pagina (S82) (1 ottobre 2026)
 
