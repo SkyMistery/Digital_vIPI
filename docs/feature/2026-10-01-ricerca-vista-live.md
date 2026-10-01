@@ -52,14 +52,36 @@
   `LIBB_ES_CTR` «LIRN» apre Napoli; «severa» trova P128, R14A, R14B, «Mostra tutte e 3» le disegna a zoom 11 con la
   tabella, e spegnendo R14A sparisce la sua riga.
 
-## 4. Prossime ricerche proposte (non fatte)
+## 4. Il secondo giro: postazioni, punti, trasferimenti, radioassistenze (1 ottobre 2026, S89)
 
-Elementi che il sito ha già e che un controllore cerca al volo:
+Quattro delle cinque ricerche proposte qui, approvate dal committente («1, 2, 3, 4 sì; la 5 come proposta, non ora»).
+Tutte nello stesso campo e nello stesso pannello, a gruppi dopo gli scali:
 
-1. **Postazioni e frequenze**: «chi è su 128.705?», «LIRR_NE_CTR» → frequenza, nome, chi la copre se chiusa, se è
-   online adesso. Il catalogo delle frequenze e la topologia live ci sono già.
-2. **Punti (fix e navaid)**: «AGNIS» → in quali SID/STAR compare (di tutti gli scali), e se è un punto di coordinamento
-   (CoP) fra chi e chi. Le procedure cercabili esistono già per la barra di ricerca (S83).
-3. **Punti di trasferimento (CoP)**: «a chi passo il traffico su BOL?» → i flussi che usano quel punto, con livelli.
-4. **Navaid**: «VOR 115.80» o «PES» → frequenza, posizione su mappa.
-5. **Settori**: un punto o un'area → quale settore lo copre (dalle forme AoR già usate per la mappa).
+1. **Postazioni** (`PostazioniAsync`, dal catalogo degli enti `IFrequenzeDegliEnti`): per callsign, nominativo radio o
+   **frequenza** — un testo fatto di cifre e punto («128.705», «128.7», «1287») cerca SOLO frequenze, dall'inizio, e
+   non trova scali né aree. Pallino verde se online adesso. Scelta una postazione: online o chiusa, e se chiusa **chi
+   la copre** (il primo online risalendo la topologia GLOBALE, cross-ACC: `CoperturaAsync`), la catena intera, UNICOM
+   se nessuno; il tasto per aprirne la vista live solo a chi può (la regola della pagina, `PuoAprire`). Il catalogo
+   comprende anche le postazioni straniere confinanti (LSAZ, DAAA…).
+2. **Punti nelle SID e STAR** (`ProcedureAsync`): le righe PUBBLICATE di tutti gli scali (le stesse dei documenti, da
+   `IProcedureCercabili`), cercate nel fix e nella transition dall'inizio, da tre lettere. Una riga apre lo scalo nel
+   pannello rapido. ⚠️ La prima lettura costa una derivazione per scalo: arriva in sottofondo dopo il resto, e finché
+   non c'è il pannello lo dice.
+3. **Punti di trasferimento** (`TrasferimentiAsync`): i flussi di tutti gli ACC, per nome del punto dall'inizio, con
+   da → a, livello, condizione e scali. **Solo allo staff di divisione**, come la finestra «Trasferimenti» della vista
+   live (S81). Le righe identiche (lo stesso accordo espanso due volte, visto su ASPIR) si tengono una volta.
+4. **Radioassistenze** (`NavaidAsync`, dall'anagrafica): per codice dall'inizio o per frequenza. Scelta una: frequenza o
+   canale, coordinate e **un punto sulla mappa** — `vipi-aor.js` ha un modo nuovo, `data-points` (pallino ed etichetta,
+   zoom 9), che si reinquadra anche se nasce a larghezza 0.
+
+Provato a schermo sulla copia SQLite: «128.» (17 postazioni), «AGNIS» (due SID di LIRN), «PES» (postazioni di Pescara,
+NDB e VOR, un'area), «ASPIR» e «NILTO» (trasferimenti LIBB → LIRR), «LIRF_TWR» (chiusa, catena fino a LIRR_NE_CTR,
+UNICOM), il VOR di Pescara sulla mappa. `RicercaLiveFiltroTests` +8.
+
+Insieme, dal committente: nella scheda gialla dei cambi della vista live la parola «scarta» è diventata una ✕ ben
+visibile, in un tasto dentro la scheda.
+
+## 5. Proposta, non fatta
+
+**Settori**: un punto o un'area → quale settore lo copre (dalle forme AoR già usate per la mappa). Il committente l'ha
+lasciata come proposta (1 ottobre 2026).

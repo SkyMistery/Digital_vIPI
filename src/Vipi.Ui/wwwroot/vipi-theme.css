@@ -1900,9 +1900,8 @@
 :where(.vipi-root) .live-changes .lc-chip.on{background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)}
 :where(.vipi-root) .live-changes .lc-chip.off{background:var(--tint-red);color:var(--danger-ink);border-color:var(--line-red-strong)}
 :where(.vipi-root) .live-changes .lc-chip .lc-t{font-weight:400;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
-:where(.vipi-root) .live-changes .lc-clear{margin-left:auto;background:none;border:0;cursor:pointer;font-size:12.5px;
-  color:var(--ink-soft);text-decoration:underline;padding:0}
-:where(.vipi-root) .live-changes .lc-clear:hover{color:var(--brand-ink)}
+:where(.vipi-root) .live-changes .lc-clear{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:1px solid currentColor;background:var(--surface);color:var(--ink);cursor:pointer;font-size:15px;font-weight:700;line-height:1;padding:0}
+:where(.vipi-root) .live-changes .lc-clear:hover,:where(.vipi-root) .live-changes .lc-clear:focus-visible{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
 /* Catena di copertura: chi ti assorbe se chiudi, e a chi passi salendo. Per ground e delivery — che di
    trasferimenti propri non ne hanno — è l'informazione principale, quindi `lead` la rende più marcata. */
 :where(.vipi-root) .live-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;font-size:13px}
@@ -2108,6 +2107,16 @@
 :where(.vipi-root) .live-search .lsr-back{padding:3px 10px;font-size:12.5px;margin:2px 0 10px}
 :where(.vipi-root) .live-search .lsr-areas{margin-top:12px;font-size:13px}
 :where(.vipi-root) .live-search .lsr-band{white-space:nowrap}
+:where(.vipi-root) .live-search .lsr-static{cursor:default}
+:where(.vipi-root) .live-search .lsr-freq{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-variant-numeric:tabular-nums}
+:where(.vipi-root) .live-search .lsr-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-faint);flex:none;align-self:center}
+:where(.vipi-root) .live-search .lsr-dot.on{background:var(--ivao-green)}
+:where(.vipi-root) .live-search .lsr-detail{display:flex;flex-direction:column;gap:6px}
+:where(.vipi-root) .live-search .lsr-detail p{margin:0}
+:where(.vipi-root) .live-search .lsr-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:15px}
+:where(.vipi-root) .live-search .lsr-title b{font-family:var(--font-head);font-size:20px;color:var(--brand-ink)}
+:where(.vipi-root) .live-search .lsr-state,:where(.vipi-root) .live-search .lsr-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px}
+:where(.vipi-root) .live-search .lsr-map{height:280px;border-radius:10px;overflow:hidden;margin-top:4px}
 /* «Nessuna vIPI pubblicata»: chiuso, si apre sul titolo. */
 :where(.vipi-root) .callout-fold>summary{cursor:pointer;margin:0}
 :where(.vipi-root) .callout-fold[open]>summary{margin-bottom:4px}

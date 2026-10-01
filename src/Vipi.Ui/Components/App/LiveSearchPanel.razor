@@ -1,9 +1,16 @@
 @* LA RICERCA RAPIDA DELLA VISTA LIVE (committente, 1 ottobre 2026). Il campo sta in coda alle chip degli scali del
-   settore (LivePage) e passa qui il testo; questo pannello mostra i risultati e cerca due cose:
-   - uno SCALO qualunque con vIPI o vSOP pubblicati, anche fuori dal proprio ACC («sono la NE e cerco LIPE»): lo apre
-     nello stesso pannello rapido degli scali del settore (<AirportQuickPanel>), col suo ACC;
-   - le AREE REGOLAMENTATE, tutte: una o tutte quelle trovate su una mappa, e sotto la tabella con limiti e attivazione.
-   Gli elenchi si chiedono una volta all'apertura e si filtrano in memoria (RicercaLiveFiltro): niente query a ogni tasto. *@
+   settore (LivePage) e passa qui il testo; questo pannello mostra i risultati, a gruppi:
+   - SCALI con vIPI o vSOP pubblicati, anche fuori dal proprio ACC («sono la NE e cerco LIPE»): si aprono nello stesso
+     pannello rapido degli scali del settore (<AirportQuickPanel>), col loro ACC;
+   - POSTAZIONI per callsign, nominativo o FREQUENZA («chi è su 128.705?»): se è online adesso e, se no, chi la copre;
+   - PUNTI nelle SID e STAR pubblicate di tutti gli scali («AGNIS»): in quali procedure compare, e lo scalo si apre;
+   - PUNTI DI TRASFERIMENTO («a chi passo il traffico su BOL?»), SOLO allo staff di divisione come la finestra
+     «Trasferimenti» della vista live (S81);
+   - RADIOASSISTENZE per codice o frequenza, con la posizione su mappa;
+   - AREE REGOLAMENTATE, tutte: su una mappa, con sotto la tabella di limiti e attivazione.
+   Gli elenchi si chiedono una volta all'apertura e si filtrano in memoria (RicercaLiveFiltro): niente query a ogni
+   tasto. Procedure e trasferimenti costano di più e arrivano DOPO, in sottofondo: il resto si usa già. *@
+@using System.Text.Json
 @using Vipi.Application.Aor
 @using Vipi.Application.Content
 @using Vipi.Application.Live
@@ -17,6 +24,65 @@
     {
         <button type="button" class="btn ghost lsr-back" @onclick="Indietro">← @L["Lsr_Back"]</button>
         <AirportQuickPanel Icao="@apt.Icao" Acc="@apt.AccCode" />
+    }
+    else if (_postazione is { } pos)
+    {
+        <button type="button" class="btn ghost lsr-back" @onclick="Indietro">← @L["Lsr_Back"]</button>
+        <div class="lsr-detail">
+            <p class="lsr-title"><b>@pos.Callsign</b> @if (!string.IsNullOrWhiteSpace(pos.Nominativo)) { <span>@pos.Nominativo</span> }
+                @if (!string.IsNullOrWhiteSpace(pos.Frequenza)) { <span class="lsr-freq">@pos.Frequenza</span> }</p>
+            @if (_copertura is not { } cop)
+            {
+                <p class="muted lsr-hint">@L["Common_Loading"]</p>
+            }
+            else
+            {
+                <p class="lsr-state">
+                    @if (cop.Online)
+                    {
+                        <span class="xo-chip on">@L["Lsr_PosOnline"]</span>
+                    }
+                    else if (cop.ChiCopre is { } chi)
+                    {
+                        <span class="muted">@L["Lsr_PosClosed"]</span> <span class="xo-chip on">@chi</span>
+                    }
+                    else
+                    {
+                        <b>@L["Lsr_PosUnicom"]</b>
+                    }
+                    @if (cop.FeedScaduto) { <span class="muted lsr-acc">@L["Lsr_FeedOld"]</span> }
+                </p>
+                @if (cop.Catena.Count > 0)
+                {
+                    <p class="lsr-chain"><span class="muted">@L["Lsr_PosChain"]</span>
+                        @foreach (var c in cop.Catena)
+                        {
+                            <span class="xo-chip @(string.Equals(c, cop.ChiCopre, StringComparison.OrdinalIgnoreCase) ? "on" : "")">@c</span>
+                        }
+                    </p>
+                }
+                @if (PuoAprire?.Invoke(pos.Callsign) == true)
+                {
+                    <a class="btn ghost lsr-all" href="/services/vsop/live/@pos.Callsign.ToLowerInvariant()">@L["Lsr_PosOpenLive"]</a>
+                }
+            }
+        </div>
+    }
+    else if (_navaid is { } nav)
+    {
+        <button type="button" class="btn ghost lsr-back" @onclick="Indietro">← @L["Lsr_Back"]</button>
+        <div class="lsr-detail">
+            <p class="lsr-title"><b>@nav.Codice</b> <span>@(nav.Tipo ?? nav.Natura)</span>
+                @if (!string.IsNullOrWhiteSpace(nav.Frequenza)) { <span class="lsr-freq">@nav.Frequenza</span> }
+                @if (!string.IsNullOrWhiteSpace(nav.Canale)) { <span class="muted">CH @nav.Canale</span> }</p>
+            @if (nav.Lat is double lat && nav.Lon is double lon)
+            {
+                <p class="muted lsr-hint">@Coordinate(lat, lon)</p>
+                @* Un punto solo sulla mappa delle aree (vipi-aor.js, `data-points`): Leaflet, tessere e ripieghi sono gli
+                   stessi. @key sul codice: un'altra radioassistenza è un'altra mappa, non questa spostata. *@
+                <div @key="nav.Codice" class="aor-leaflet lsr-map" data-points="@PuntiMappa(nav)"></div>
+            }
+        </div>
     }
     else if (_areeViste is { } viste)
     {
@@ -53,7 +119,7 @@
             </table>
         </div>
     }
-    else if (_aeroporti is null || _aree is null)
+    else if (_aeroporti is null || _aree is null || _postazioni is null || _navaid0 is null)
     {
         <p class="muted lsr-hint">@L["Common_Loading"]</p>
     }
@@ -64,16 +130,21 @@
     else
     {
         var scali = RicercaLiveFiltro.Aeroporti(_aeroporti, _q);
+        var postazioni = RicercaLiveFiltro.Postazioni(_postazioni, _q);
+        var punti = _procedure is null ? Array.Empty<LiveProceduraTrovata>() : RicercaLiveFiltro.Punti(_procedure, _q);
+        var cop = !ConTrasferimenti || _trasferimenti is null ? Array.Empty<LiveTrasferimentoTrovato>() : RicercaLiveFiltro.Trasferimenti(_trasferimenti, _q);
+        var navaid = RicercaLiveFiltro.Navaid(_navaid0, _q);
         var aree = RicercaLiveFiltro.Aree(_aree, _q);
-        @if (scali.Count == 0 && aree.Count == 0)
+        var inArrivo = _procedure is null || (ConTrasferimenti && _trasferimenti is null);
+        @if (scali.Count + postazioni.Count + punti.Count + cop.Count + navaid.Count + aree.Count == 0)
         {
-            <p class="muted lsr-hint">@L["Lsr_None", _q]</p>
+            <p class="muted lsr-hint">@(inArrivo ? L["Lsr_Indexing"] : L["Lsr_None", _q])</p>
         }
         @if (scali.Count > 0)
         {
             <p class="lsr-h">✈️ @L["Lsr_Airports"] <span class="muted">(@scali.Count)</span></p>
             <div class="lsr-list">
-                @foreach (var a in scali.Take(30))
+                @foreach (var a in scali.Take(RicercaLiveFiltro.MassimoRighe))
                 {
                     var scelto = a;
                     <button type="button" class="lsr-row" @onclick="() => _aeroporto = scelto">
@@ -81,6 +152,65 @@
                         <span class="muted lsr-acc">@a.AccCode</span>
                         @if (a.HaVipi) { <span class="tag-state tag-covered">vIPI</span> }
                         @if (a.HaVsop) { <span class="tag-state tag-covered">vSOP</span> }
+                    </button>
+                }
+            </div>
+        }
+        @if (postazioni.Count > 0)
+        {
+            <p class="lsr-h">📻 @L["Lsr_Positions"] <span class="muted">(@postazioni.Count)</span></p>
+            <div class="lsr-list">
+                @foreach (var p in postazioni.Take(RicercaLiveFiltro.MassimoRighe))
+                {
+                    var scelta = p;
+                    var on = Online?.Contains(p.Callsign) == true;
+                    <button type="button" class="lsr-row" @onclick="() => ApriPostazione(scelta)">
+                        <span class="lsr-dot @(on ? "on" : "")" title="@(on ? L["Lsr_PosOnline"] : L["Lsr_PosClosed"])"></span>
+                        <b>@p.Callsign</b> @if (!string.IsNullOrWhiteSpace(p.Nominativo)) { <span>@p.Nominativo</span> }
+                        <span class="muted lsr-acc">@(p.Frequenza ?? "—")</span>
+                    </button>
+                }
+            </div>
+        }
+        @if (punti.Count > 0)
+        {
+            <p class="lsr-h">📍 @L["Lsr_Fixes"] <span class="muted">(@punti.Count)</span></p>
+            <div class="lsr-list">
+                @foreach (var p in punti.Take(RicercaLiveFiltro.MassimoRighe))
+                {
+                    var scalo = _aeroporti.FirstOrDefault(a => a.Icao == p.Icao);
+                    <button type="button" class="lsr-row" disabled="@(scalo is null)" @onclick="() => _aeroporto = scalo">
+                        <b>@p.Fix</b> <span class="tag-state tag-covered">@(p.Sid ? "SID" : "STAR")</span> <span>@p.Nome</span>
+                        @if (!string.IsNullOrWhiteSpace(p.Transizione) && p.Transizione != "—") { <span class="muted">· @p.Transizione</span> }
+                        <span class="muted lsr-acc">@p.Icao@(string.IsNullOrWhiteSpace(p.Pista) || p.Pista == "—" ? "" : " · RWY " + p.Pista)</span>
+                    </button>
+                }
+            </div>
+        }
+        @if (cop.Count > 0)
+        {
+            <p class="lsr-h">🔁 @L["Lsr_Cops"] <span class="muted">(@cop.Count)</span></p>
+            <div class="lsr-list">
+                @foreach (var t in cop.Take(RicercaLiveFiltro.MassimoRighe))
+                {
+                    <div class="lsr-row lsr-static">
+                        <b>@t.Cop</b> <span>@t.Da → @(t.A ?? "—")</span> <span class="lsr-freq">@t.Livello</span>
+                        @if (!string.IsNullOrWhiteSpace(t.Condizione)) { <span class="muted">· @t.Condizione</span> }
+                        <span class="muted lsr-acc">@(t.Scali.Count > 0 ? string.Join(" ", t.Scali) : t.AccCode)</span>
+                    </div>
+                }
+            </div>
+        }
+        @if (navaid.Count > 0)
+        {
+            <p class="lsr-h">📡 @L["Lsr_Navaids"] <span class="muted">(@navaid.Count)</span></p>
+            <div class="lsr-list">
+                @foreach (var n in navaid.Take(RicercaLiveFiltro.MassimoRighe))
+                {
+                    var scelto = n;
+                    <button type="button" class="lsr-row" @onclick="() => _navaid = scelto">
+                        <b>@n.Codice</b> <span>@(n.Tipo ?? n.Natura)</span>
+                        <span class="muted lsr-acc">@(n.Frequenza ?? (n.Canale is { } ch ? "CH " + ch : "—"))</span>
                     </button>
                 }
             </div>
@@ -109,22 +239,42 @@
                 }
             </div>
         }
+        @if (inArrivo && scali.Count + postazioni.Count + navaid.Count + aree.Count > 0)
+        {
+            <p class="muted lsr-hint">@L["Lsr_Indexing"]</p>
+        }
     }
 </div>
 
 @code {
     private IRicercaLive Ricerca = default!;
 
-    private IReadOnlyList<LiveAeroportoTrovato>? _aeroporti;
-    private IReadOnlyList<SpecialAreaPick>? _aree;
-
     /// <summary>Il testo del campo, che sta nella riga delle chip (LivePage).</summary>
     [Parameter] public string Query { get; set; } = "";
 
+    /// <summary>I punti di trasferimento si cercano solo da staff di divisione in su (come la finestra della vista live).</summary>
+    [Parameter] public bool ConTrasferimenti { get; set; }
+
+    /// <summary>I callsign online adesso, dalla pagina: il pallino accanto alle postazioni trovate.</summary>
+    [Parameter] public IReadOnlySet<string>? Online { get; set; }
+
+    /// <summary>Se chi guarda può aprire la vista live di quella postazione (la regola è della pagina, non di qui).</summary>
+    [Parameter] public Func<string, bool>? PuoAprire { get; set; }
+
+    private IReadOnlyList<LiveAeroportoTrovato>? _aeroporti;
+    private IReadOnlyList<SpecialAreaPick>? _aree;
+    private IReadOnlyList<LivePostazioneTrovata>? _postazioni;
+    private IReadOnlyList<LiveNavaidTrovato>? _navaid0;
+    private IReadOnlyList<LiveProceduraTrovata>? _procedure;
+    private IReadOnlyList<LiveTrasferimentoTrovato>? _trasferimenti;
+
     private string _q = "";
 
-    /// <summary>Lo scalo aperto, o le aree mostrate: uno dei due, o nessuno (si vedono i risultati).</summary>
+    /// <summary>Quello che è aperto: uno scalo, una postazione, una radioassistenza o le aree; nessuno = i risultati.</summary>
     private LiveAeroportoTrovato? _aeroporto;
+    private LivePostazioneTrovata? _postazione;
+    private LiveCopertura? _copertura;
+    private LiveNavaidTrovato? _navaid;
     private IReadOnlyList<AccSpecialAreaView>? _areeViste;
     private bool _carico;
 
@@ -135,10 +285,17 @@
         {
             _aeroporti = await Ricerca.AeroportiAsync();
             _aree = await Ricerca.AreeAsync();
+            _postazioni = await Ricerca.PostazioniAsync();
+            _navaid0 = await Ricerca.NavaidAsync();
         });
+        StateHasChanged();
+        // Le due letture che costano (una derivazione per scalo, un giro per ACC) DOPO: i risultati veloci si vedono già.
+        await InFilaAsync(async () => { _procedure = await Ricerca.ProcedureAsync(); });
+        if (ConTrasferimenti)
+            await InFilaAsync(async () => { _trasferimenti = await Ricerca.TrasferimentiAsync(); });
     }
 
-    /// <summary>Digitare riporta ai risultati: chi cerca di nuovo non vuole restare sullo scalo di prima.</summary>
+    /// <summary>Digitare riporta ai risultati: chi cerca di nuovo non vuole restare su quello di prima.</summary>
     protected override void OnParametersSet()
     {
         if (Query == _q) return;
@@ -149,7 +306,18 @@
     private void Indietro()
     {
         _aeroporto = null;
+        _postazione = null;
+        _copertura = null;
+        _navaid = null;
         _areeViste = null;
+    }
+
+    private async Task ApriPostazione(LivePostazioneTrovata p)
+    {
+        _postazione = p;
+        _copertura = null;
+        var c = await InFilaAsync(() => Ricerca.CoperturaAsync(p.Callsign));
+        if (_postazione == p) _copertura = c;   // nel frattempo può averne scelta un'altra
     }
 
     private async Task MostraAree(IReadOnlyList<SpecialAreaPick> scelte)
@@ -158,5 +326,20 @@
         _carico = true;
         try { _areeViste = await InFilaAsync(() => Ricerca.DettagliAreeAsync(scelte.Select(a => a.IvaoId).ToList())); }
         finally { _carico = false; }
+    }
+
+    private static string PuntiMappa(LiveNavaidTrovato n) =>
+        JsonSerializer.Serialize(new[] { new object[] { n.Lat!.Value, n.Lon!.Value, n.Codice } });
+
+    /// <summary>Gradi, primi e secondi con l'emisfero, come le coordinate dei documenti.</summary>
+    private static string Coordinate(double lat, double lon)
+    {
+        static string Dms(double v, char pos, char neg, string gradi)
+        {
+            var a = Math.Abs(v);
+            var g = (int)a; var m = (int)((a - g) * 60); var s = (a - g - m / 60.0) * 3600;
+            return $"{(v >= 0 ? pos : neg)}{g.ToString(gradi)}°{m:00}'{s:00.0}\"";
+        }
+        return Dms(lat, 'N', 'S', "00") + " " + Dms(lon, 'E', 'W', "000");
     }
 }

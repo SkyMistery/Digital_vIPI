@@ -65,6 +65,75 @@ public class RicercaLiveFiltroTests
         Assert.Equal(new[] { "4" }, RicercaLiveFiltro.Aree(Aree, "tra").Select(a => a.IvaoId));
     }
 
+    private static readonly LivePostazioneTrovata[] Postazioni =
+    {
+        new("LIRR_NE_CTR", "Roma Radar", "128.705", null),
+        new("LIRR_NE1_CTR", "Roma Radar", "125.500", null),
+        new("LIRF_TWR", "Fiumicino Torre", "118.705", "LIRF"),
+        new("LIRF_GND", "Fiumicino Ground", null, "LIRF"),
+    };
+
+    [Theory]
+    [InlineData("128.705")]
+    [InlineData("128.7")]
+    [InlineData("1287")]
+    public void La_postazione_si_trova_per_frequenza_dall_inizio(string q) =>
+        Assert.Equal("LIRR_NE_CTR", Assert.Single(RicercaLiveFiltro.Postazioni(Postazioni, q)).Callsign);
+
+    [Fact]
+    public void La_postazione_si_trova_per_callsign_prima_poi_per_nominativo()
+    {
+        Assert.Equal(new[] { "LIRR_NE1_CTR", "LIRR_NE_CTR" }, RicercaLiveFiltro.Postazioni(Postazioni, "lirr ne").Select(p => p.Callsign));
+        Assert.Equal(new[] { "LIRF_GND", "LIRF_TWR" }, RicercaLiveFiltro.Postazioni(Postazioni, "fiumicino").Select(p => p.Callsign));
+    }
+
+    [Fact]
+    public void Una_frequenza_non_trova_scali_ne_aree()
+    {
+        Assert.True(RicercaLiveFiltro.SembraFrequenza("118.1"));
+        Assert.False(RicercaLiveFiltro.SembraFrequenza("R14"));
+        Assert.Empty(RicercaLiveFiltro.Aree(Aree, "120"));
+        Assert.Empty(RicercaLiveFiltro.Aeroporti(Scali, "118.1"));
+    }
+
+    private static readonly LiveProceduraTrovata[] Procedure =
+    {
+        new("LIRN", "LIRR", true, "AGNI7G", "AGNIS", "—", "24"),
+        new("LIRN", "LIRR", false, "ALAX1A", "ALAXI", "AGNIS", "24"),
+        new("LIRF", "LIRR", true, "BOL5A", "BOLSE", "—", "16L"),
+    };
+
+    [Fact]
+    public void Il_punto_si_trova_nel_fix_e_nella_transition_da_tre_lettere()
+    {
+        Assert.Equal(new[] { "AGNI7G", "ALAX1A" }, RicercaLiveFiltro.Punti(Procedure, "agn").Select(p => p.Nome));
+        Assert.Empty(RicercaLiveFiltro.Punti(Procedure, "AG"));
+    }
+
+    [Fact]
+    public void Il_punto_di_trasferimento_si_trova_dall_inizio_del_nome()
+    {
+        var cop = new[]
+        {
+            new LiveTrasferimentoTrovato("BOL", "LIRR_NE_CTR", "LIMM_E_CTR", "FL250", null, "LIRR", Array.Empty<string>()),
+            new LiveTrasferimentoTrovato("ELB", "LIRR_NW_CTR", "LIMM_W_CTR", "FL190", null, "LIRR", Array.Empty<string>()),
+        };
+        Assert.Equal("LIMM_E_CTR", Assert.Single(RicercaLiveFiltro.Trasferimenti(cop, "bol")).A);
+        Assert.Empty(RicercaLiveFiltro.Trasferimenti(cop, "BO"));
+    }
+
+    [Fact]
+    public void La_radioassistenza_si_trova_per_codice_o_per_frequenza()
+    {
+        var nav = new[]
+        {
+            new LiveNavaidTrovato("PES", "VHF", "VOR/DME", "115.800", null, 42.4, 14.2),
+            new LiveNavaidTrovato("PAL", "VHF", "VOR", "112.300", null, 38.1, 13.4),
+        };
+        Assert.Equal("PES", Assert.Single(RicercaLiveFiltro.Navaid(nav, "pe")).Codice);
+        Assert.Equal("PES", Assert.Single(RicercaLiveFiltro.Navaid(nav, "115.8")).Codice);
+    }
+
     [Fact]
     public void Testo_vuoto_nessun_risultato()
     {

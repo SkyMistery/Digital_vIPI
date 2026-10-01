@@ -158,7 +158,10 @@
                 {
                     <span class="lc-chip @(ch.Online ? "on" : "off")">@(ch.Online ? "▲" : "▼") @ch.Callsign <span class="lc-t">@Z(ch.At)</span></span>
                 }
-                <button type="button" class="lc-clear" @onclick="() => _changes.Clear()">@L["Live_ChangesClear"]</button>
+                @* Una ✕ ben visibile, dentro la scheda, al posto della parola «scarta» (committente, 1 ottobre 2026). La parola
+                   resta come nome del tasto per chi non vede l'icona. *@
+                <button type="button" class="lc-clear" @onclick="() => _changes.Clear()" title="@L["Live_ChangesClear"]"
+                        aria-label="@L["Live_ChangesClear"]">✕</button>
             </div>
         }
 
@@ -243,7 +246,8 @@
 
         @if (InRicerca && _view.AirportIcao is null)
         {
-            <LiveSearchPanel Query="@_ricerca" />
+            @* I punti di trasferimento solo allo staff di divisione, come la finestra «Trasferimenti» qui sotto (S81). *@
+            <LiveSearchPanel Query="@_ricerca" ConTrasferimenti="Authz.IsDivisionStaff" Online="_snapshot.Callsigns" PuoAprire="PuoAprire" />
         }
         else if (_selectedApt is { } sel)
         {

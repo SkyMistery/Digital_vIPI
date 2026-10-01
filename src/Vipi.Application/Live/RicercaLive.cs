@@ -9,6 +9,26 @@ namespace Vipi.Application.Live;
 /// un ACC diverso da quello di chi guarda (sono la NE di Roma e cerco LIPE).</param>
 public sealed record LiveAeroportoTrovato(string Icao, string Nome, string AccCode, bool HaVipi, bool HaVsop);
 
+/// <summary>Una postazione del catalogo: callsign, nominativo radio («Roma Radar») e frequenza, se dichiarata.</summary>
+public sealed record LivePostazioneTrovata(string Callsign, string? Nominativo, string? Frequenza, string? Icao);
+
+/// <summary>
+/// Chi c'è su una postazione adesso. <paramref name="Catena"/> è la copertura verso l'alto (dal padre alla radice);
+/// <paramref name="ChiCopre"/> il primo online di quella catena, null = nessuno (UNICOM).
+/// <paramref name="FeedScaduto"/>: la fotografia degli online è vecchia, e «nessuno» vuol dire «non si sa».
+/// </summary>
+public sealed record LiveCopertura(string Callsign, bool Online, IReadOnlyList<string> Catena, string? ChiCopre, bool FeedScaduto);
+
+/// <summary>Una riga di SID o STAR pubblicata, con lo scalo e il suo ACC: per «in quali procedure compare AGNIS».</summary>
+public sealed record LiveProceduraTrovata(string Icao, string AccCode, bool Sid, string Nome, string Fix, string Transizione, string Pista);
+
+/// <summary>Un punto di trasferimento: dove, da chi a chi, a che livello e a quale condizione.</summary>
+public sealed record LiveTrasferimentoTrovato(string Cop, string Da, string? A, string Livello, string? Condizione, string AccCode,
+    IReadOnlyList<string> Scali);
+
+/// <summary>Una radioassistenza dell'anagrafica: codice, natura, frequenza o canale, posizione.</summary>
+public sealed record LiveNavaidTrovato(string Codice, string Natura, string? Tipo, string? Frequenza, string? Canale, double? Lat, double? Lon);
+
 /// <summary>
 /// La RICERCA RAPIDA della vista live (committente, 1 ottobre 2026): da una postazione che ha scali sotto (APP, ACC)
 /// si cerca uno scalo qualunque con vIPI o vSOP pubblicati — e lo si apre come se fosse del proprio settore — o le
@@ -26,9 +46,34 @@ public interface IRicercaLive
 
     /// <summary>Le aree scelte, con poligono e testo di attivazione, nell'ordine degli id.</summary>
     Task<IReadOnlyList<AccSpecialAreaView>> DettagliAreeAsync(IReadOnlyList<string> ivaoIds, CancellationToken ct = default);
+
+    /// <summary>Tutte le postazioni del catalogo (CTR, APP, TWR, GND, DEL di ogni ACC), col nominativo e la frequenza.</summary>
+    Task<IReadOnlyList<LivePostazioneTrovata>> PostazioniAsync(CancellationToken ct = default);
+
+    /// <summary>Se la postazione è online adesso e, se no, chi la copre: la topologia GLOBALE, cross-ACC.</summary>
+    Task<LiveCopertura> CoperturaAsync(string callsign, CancellationToken ct = default);
+
+    /// <summary>
+    /// Le SID e STAR pubblicate di tutti gli scali (le stesse righe dei documenti). ⚠️ Costa: una derivazione per scalo
+    /// la prima volta (poi c'è la memoria di dieci minuti di <see cref="IProcedureCercabili"/>); il pannello la chiede
+    /// in sottofondo, dopo aver già mostrato il resto.
+    /// </summary>
+    Task<IReadOnlyList<LiveProceduraTrovata>> ProcedureAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// I punti di trasferimento di tutti gli ACC. ⚠️ Nella vista live i trasferimenti sono dello STAFF DI DIVISIONE
+    /// (S81): chi chiama questo metodo fuori da lì deve fare lo stesso cancello.
+    /// </summary>
+    Task<IReadOnlyList<LiveTrasferimentoTrovato>> TrasferimentiAsync(CancellationToken ct = default);
+
+    /// <summary>Le radioassistenze dell'anagrafica (VOR, DME, NDB) con frequenza e posizione.</summary>
+    Task<IReadOnlyList<LiveNavaidTrovato>> NavaidAsync(CancellationToken ct = default);
 }
 
-internal sealed class RicercaLive(IDocumentAdminService documenti, ISpecialAreaRepository aree) : IRicercaLive
+internal sealed class RicercaLive(
+    IDocumentAdminService documenti, ISpecialAreaRepository aree, IFrequenzeDegliEnti enti, ITopologyProvider topologie,
+    IOnlineAtcProvider online, IProcedureCercabili procedure, IAgreementService accordi,
+    IStructureEditingRepository struttura, INavaidCatalog navaid) : IRicercaLive
 {
     public async Task<IReadOnlyList<LiveAeroportoTrovato>> AeroportiAsync(CancellationToken ct = default)
     {
@@ -58,6 +103,72 @@ internal sealed class RicercaLive(IDocumentAdminService documenti, ISpecialAreaR
         var dettagli = await aree.GetSpecialAreasByIdsAsync(ivaoIds, ct);
         return SpecialAreaProjection.Build(dettagli, ivaoIds);
     }
+
+    public async Task<IReadOnlyList<LivePostazioneTrovata>> PostazioniAsync(CancellationToken ct = default)
+    {
+        // Il nominativo da un elenco, la frequenza dall'altro: un ente senza frequenza dichiarata resta cercabile.
+        var frequenze = (await enti.TutteAsync(ct))
+            .GroupBy(f => f.SectorId)
+            .ToDictionary(g => g.Key, g => g.First().FrequencyMhz);
+        return (await enti.NominativiAsync(ct))
+            .GroupBy(e => e.Callsign, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .Select(e => new LivePostazioneTrovata(e.Callsign, e.AtcCallsign,
+                frequenze.TryGetValue(e.SectorId, out var f) ? f : null, e.Icao))
+            .ToList();
+    }
+
+    public async Task<LiveCopertura> CoperturaAsync(string callsign, CancellationToken ct = default)
+    {
+        var foto = online.GetCurrent();
+        var catena = LiveStationParts.CoverageChain(await topologie.BuildGlobalAsync(ct), callsign);
+        var chi = catena.FirstOrDefault(c => foto.Callsigns.Contains(c));
+        return new LiveCopertura(callsign, foto.Callsigns.Contains(callsign), catena, chi, foto.Expired);
+    }
+
+    public async Task<IReadOnlyList<LiveProceduraTrovata>> ProcedureAsync(CancellationToken ct = default)
+    {
+        var righe = new List<LiveProceduraTrovata>();
+        foreach (var a in await AeroportiAsync(ct))
+        {
+            // L'edizione da cui si legge: la civile se c'è, altrimenti il vSOP militare (la stessa regola del pannello).
+            var edizione = a.HaVipi ? ReleaseTargetType.Airport : ReleaseTargetType.AirportMil;
+            var p = await procedure.PerScaloAsync(a.Icao, edizione, ct);
+            foreach (var s in p.Sids) righe.Add(new(a.Icao, a.AccCode, true, s.Name, s.Fix, s.Transition, s.Runway));
+            foreach (var s in p.Stars) righe.Add(new(a.Icao, a.AccCode, false, s.Name, s.Fix, s.Transition, s.Runway));
+        }
+        return righe;
+    }
+
+    public async Task<IReadOnlyList<LiveTrasferimentoTrovato>> TrasferimentiAsync(CancellationToken ct = default)
+    {
+        var righe = new List<LiveTrasferimentoTrovato>();
+        var visti = new HashSet<int>();
+        foreach (var acc in await struttura.ListAccsAsync(ct))
+        {
+            // ⚠️ Un accordo fra due ACC esce dall'elenco di tutti e due: si tiene una volta sola, per Id del flusso.
+            foreach (var flusso in await accordi.ListFlowsByAccAsync(acc.Code, ct))
+            {
+                if (!visti.Add(flusso.Id)) continue;
+                var scali = flusso.AirportIcaos.Count > 0 ? flusso.AirportIcaos
+                    : flusso.AirportIcao is { } un ? new[] { un } : Array.Empty<string>();
+                foreach (var p in flusso.Points)
+                    righe.Add(new(p.Cop, flusso.OwningSectorCallsign, p.NextSectorCallsign, p.LevelText, p.ConditionDisplay,
+                        flusso.AccCode, scali));
+            }
+        }
+        // ⚠️ Due flussi possono portare la STESSA riga (lo stesso accordo espanso per gruppo, visto su ASPIR il 1 ottobre
+        // 2026): a chi cerca serve una volta. `Scali` è una lista, quindi la chiave la si scrive a mano.
+        return righe
+            .GroupBy(r => (r.Cop, r.Da, r.A, r.Livello, r.Condizione, string.Join(" ", r.Scali)))
+            .Select(g => g.First())
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<LiveNavaidTrovato>> NavaidAsync(CancellationToken ct = default) =>
+        (await navaid.ListAsync(ct))
+            .Select(n => new LiveNavaidTrovato(n.Code, n.Kind, n.Type, n.Frequency, n.Channel, n.Latitude, n.Longitude))
+            .ToList();
 }
 
 /// <summary>
@@ -85,7 +196,7 @@ public static class RicercaLiveFiltro
     public static IReadOnlyList<LiveAeroportoTrovato> Aeroporti(IEnumerable<LiveAeroportoTrovato> elenco, string? q)
     {
         var p = Pulito(q);
-        if (p.Length < MinimoCaratteri) return Array.Empty<LiveAeroportoTrovato>();
+        if (p.Length < MinimoCaratteri || SembraFrequenza(q)) return Array.Empty<LiveAeroportoTrovato>();
         return elenco
             .Select(a => (a, peso: a.Icao.Equals(p, StringComparison.OrdinalIgnoreCase) ? 0
                                  : a.Icao.StartsWith(p, StringComparison.OrdinalIgnoreCase) ? 1
@@ -96,6 +207,74 @@ public static class RicercaLiveFiltro
             .ToList();
     }
 
+    /// <summary>Quante righe al massimo per gruppo di risultati (postazioni, punti, trasferimenti, radioassistenze).</summary>
+    public const int MassimoRighe = 30;
+
+    /// <summary>Il testo è una frequenza? Cifre (e un punto), almeno tre: «128.7», «1287», «118.105».</summary>
+    public static bool SembraFrequenza(string? q)
+    {
+        var t = (q ?? "").Trim();
+        return t.Length >= 3 && t.All(c => char.IsDigit(c) || c is '.' or ',') && t.Count(char.IsDigit) >= 3;
+    }
+
+    /// <summary>
+    /// Le postazioni: per FREQUENZA (le cifre senza punto, dall'inizio: «128.7» trova 128.705) se il testo sembra una
+    /// frequenza; altrimenti per callsign o nominativo che lo contengono. Prima chi comincia così, poi gli altri.
+    /// </summary>
+    public static IReadOnlyList<LivePostazioneTrovata> Postazioni(IEnumerable<LivePostazioneTrovata> elenco, string? q)
+    {
+        var p = Pulito(q);
+        if (p.Length < MinimoCaratteri) return Array.Empty<LivePostazioneTrovata>();
+        if (SembraFrequenza(q))
+            return elenco.Where(x => Pulito(x.Frequenza).StartsWith(p, StringComparison.Ordinal))
+                .OrderBy(x => x.Frequenza, StringComparer.Ordinal).ThenBy(x => x.Callsign, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        return elenco
+            .Select(x => (x, peso: Pulito(x.Callsign).StartsWith(p, StringComparison.Ordinal) ? 0
+                                 : Pulito(x.Callsign).Contains(p, StringComparison.Ordinal) ? 1
+                                 : Pulito(x.Nominativo).Contains(p, StringComparison.Ordinal) ? 2 : -1))
+            .Where(t => t.peso >= 0)
+            .OrderBy(t => t.peso).ThenBy(t => t.x.Callsign, StringComparer.OrdinalIgnoreCase)
+            .Select(t => t.x)
+            .ToList();
+    }
+
+    /// <summary>Le procedure in cui compare un PUNTO (fix iniziale/finale o transition), dall'inizio del nome, da tre lettere.</summary>
+    public static IReadOnlyList<LiveProceduraTrovata> Punti(IEnumerable<LiveProceduraTrovata> elenco, string? q)
+    {
+        var p = Pulito(q);
+        if (p.Length < 3 || SembraFrequenza(q)) return Array.Empty<LiveProceduraTrovata>();
+        return elenco
+            .Where(x => Pulito(x.Fix).StartsWith(p, StringComparison.Ordinal) || Pulito(x.Transizione).StartsWith(p, StringComparison.Ordinal))
+            .OrderBy(x => x.Fix, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.Icao).ThenBy(x => x.Sid ? 0 : 1)
+            .ThenBy(x => x.Nome, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>I punti di trasferimento col nome che comincia così, da tre lettere.</summary>
+    public static IReadOnlyList<LiveTrasferimentoTrovato> Trasferimenti(IEnumerable<LiveTrasferimentoTrovato> elenco, string? q)
+    {
+        var p = Pulito(q);
+        if (p.Length < 3 || SembraFrequenza(q)) return Array.Empty<LiveTrasferimentoTrovato>();
+        return elenco
+            .Where(x => Pulito(x.Cop).StartsWith(p, StringComparison.Ordinal))
+            .OrderBy(x => x.Cop, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.Da, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>Le radioassistenze: per codice dall'inizio («PES»), o per frequenza se il testo sembra una frequenza.</summary>
+    public static IReadOnlyList<LiveNavaidTrovato> Navaid(IEnumerable<LiveNavaidTrovato> elenco, string? q)
+    {
+        var p = Pulito(q);
+        if (p.Length < MinimoCaratteri) return Array.Empty<LiveNavaidTrovato>();
+        var freq = SembraFrequenza(q);
+        return elenco
+            .Where(x => freq ? Pulito(x.Frequenza).StartsWith(p, StringComparison.Ordinal)
+                             : Pulito(x.Codice).StartsWith(p, StringComparison.Ordinal))
+            .OrderBy(x => x.Codice, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     /// <summary>
     /// Le aree: il nome ripulito che contiene il testo ripulito, oppure il TIPO uguale al testo («TRA», «D»: tutte
     /// quelle di quel tipo). Ordinate per nome.
@@ -103,7 +282,7 @@ public static class RicercaLiveFiltro
     public static IReadOnlyList<SpecialAreaPick> Aree(IEnumerable<SpecialAreaPick> elenco, string? q)
     {
         var p = Pulito(q);
-        if (p.Length == 0) return Array.Empty<SpecialAreaPick>();
+        if (p.Length == 0 || SembraFrequenza(q)) return Array.Empty<SpecialAreaPick>();
         return elenco
             .Where(a => (p.Length >= MinimoCaratteri && Pulito(a.Name).Contains(p, StringComparison.Ordinal))
                         || string.Equals(Pulito(a.Type), p, StringComparison.Ordinal))

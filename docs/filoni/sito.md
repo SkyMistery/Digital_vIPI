@@ -1954,6 +1954,11 @@
   `docs/feature/2026-10-01-ricerca-vista-live.md`, con le prossime ricerche proposte. App 3171 → 3180. Ramo `fix/sid-ricerca`.
   Poi (committente, provato sulla copia di produzione): il campo di ricerca sta direttamente in coda alle chip, al
   posto della chip «Cerca»; tolta la scritta «Vista rapida — il mio settore o…».
+- ✅ **S89** ricerca della vista live, secondo giro (1-ott, committente): postazioni per callsign/nome/frequenza con
+  chi le copre (topologia globale), punti delle SID/STAR pubblicate di tutti gli scali, punti di trasferimento di
+  tutti gli ACC (solo staff di divisione), radioassistenze con un punto sulla mappa (`data-points` in vipi-aor.js).
+  La proposta «settori» resta proposta (carta §5). Scheda gialla dei cambi: ✕ al posto di «scarta». App 3180 → 3188.
+  Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
