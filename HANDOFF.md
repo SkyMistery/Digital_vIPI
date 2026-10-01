@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 1 ottobre 2026, sera
+> ## ▶ Il punto — 1 ottobre 2026, sera tardi
+>
+> **📦 Pronto da caricare: 1.56.0** (§A148, timbro `1.56.0 · 6ab77d4`, 17 file, zip `a24eb888…`, MINOR con la
+> migrazione additiva `ApertureDocumenti`): Sito S92 (lingua per membro nell'editor dell'unione) e S93 (aperture dei
+> documenti, i più aperti sulla pagina dell'ACC). Online resta 1.55.1 finché il committente non carica. ▶ LIRE/LIBG
+> aspettano il SOD.
+>
+> ## Il punto — 1 ottobre 2026, sera
 >
 > **✅ Online: 1.55.1** (timbro confermato; **in `main` non resta codice fuori pacchetto**; ▶ lingua separata vIPI/vSOP
 > nell'editor dell'unione assegnata al Sito) (§A147, timbro `1.55.1 · 5493151`, 4 file, zip `8ac4d35c…`, PATCH senza
