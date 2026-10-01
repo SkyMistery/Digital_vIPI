@@ -1,7 +1,7 @@
 ﻿@* Sezione «Piste». La tabella può venire da uno snapshot di release; l'evidenza della pista in uso no — quella
    è live e arriva da fuori (`DepIdents`/`ArrIdents`, calcolate dal vento del METAR e dalle regole piste).
    Sono due cose diverse e vanno tenute separate: la pista in uso adesso non è un dato di ciclo AIRAC. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 
 @if (Legend)
 {

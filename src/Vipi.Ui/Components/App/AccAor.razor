@@ -1,7 +1,7 @@
 @* AoR di ACC: UNA mappa con anelli per-settore toggleabili (chip sopra) + selettore configurazione (chip sotto).
    data-sectors = [{sec,name,color,rings:[[[lat,lng],…]]}]; l'interattività è client-side (vipi-aor.js). SVG di fallback. *@
 @using System.Text.Json
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @if (View.Sectors is { Count: > 0 })
 {
     <div class="aor-viewmode" data-aor-view>

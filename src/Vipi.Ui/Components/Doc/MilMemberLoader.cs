@@ -116,7 +116,6 @@ public sealed class MilMemberLoader
 
     public async Task<MilMemberDocument?> LoadAsync(string icao, PreviewMode mode, string? vista,
                                                     ReadingLanguageContext? linguaDelCircuito = null,
-                                                    bool fissaLaPagina = true,
                                                     CancellationToken ct = default)
     {
         var code = (icao ?? "").Trim().ToUpperInvariant();
@@ -164,7 +163,7 @@ public sealed class MilMemberLoader
         // ⚠️ SUBITO: se è bloccato la lingua vale anche per le DERIVAZIONI che partono qui sotto, che
         // compongono prosa ed etichette.
         var lettore = LinguaDelDocumento.Prepara(_lingua, view.LanguageLocked, view.Language, Language.It,
-                                                 linguaDelCircuito, fissaLaPagina);
+                                                 linguaDelCircuito);
         var bloccata = view.LanguageLocked ? lettore : null;
 
         var civile = await _militari.GetCivilEditionAsync(code, ct);

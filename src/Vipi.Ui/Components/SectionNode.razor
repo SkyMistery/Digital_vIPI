@@ -1,6 +1,6 @@
 @* Sezione adattiva: livello 0 = card .block; livelli annidati = .coord-sub / .coord-sub2 (stile mockup).
    Il corpo (blocchi + sotto-sezioni) è condiviso con i viewer che si fanno l'involucro da sé: SectionBody. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @{
     var depth = Section.Depth + DepthOffset;
 }

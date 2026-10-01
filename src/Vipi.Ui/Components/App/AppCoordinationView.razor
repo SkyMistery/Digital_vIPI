@@ -1,7 +1,7 @@
 @* Sezione Coordinamenti (derivata dai trasferimenti del settore APP): verso ACC (partenze+arrivi) · verso torri (solo arrivi). *@
 @* Nome del componente diverso dal DTO AppCoordination per evitare il mascheramento del tipo. *@
 @* Come nella vIPI ACC: aperto il solo primo livello (verso ACC / verso torri / sorvoli), dentro compresso. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 <p class="muted" style="margin-top:0;font-size:13.5px">@L["AppCoord_Intro"]</p>
 
 @{ var hasAny = Coord.TowardAcc.Count > 0 || Coord.TowardTowers.Count > 0

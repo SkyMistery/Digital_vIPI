@@ -1,6 +1,6 @@
 @* Sezione Separazioni (editoriale): ogni separazione = (Verticale, Laterale). Dalla 2ª in poi un free-text «Applicabilità»
    è mostrato SOPRA i valori (si legge prima la condizione, poi la separazione). La 1ª è la predefinita. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @if (Editing)
 {
     @foreach (var (row, i) in Rows.Select((r, i) => (r, i)))

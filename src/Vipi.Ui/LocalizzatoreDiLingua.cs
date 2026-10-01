@@ -44,17 +44,46 @@ public sealed class LocalizzatoreDiLingua : IStringLocalizer<SharedResource>
     private readonly IStringLocalizer<SharedResource> _standard;
     private readonly ReadingLanguageContext _lingua;
 
+    /// <summary>La lingua di UN documento dentro una pagina unita, se questo localizzatore è suo; vedi
+    /// <see cref="DelMembro"/>.</summary>
+    private readonly string? _delMembro;
+
     public LocalizzatoreDiLingua(IStringLocalizer<SharedResource> standard, ReadingLanguageContext lingua)
     {
         _standard = standard;
         _lingua = lingua;
     }
 
-    /// <summary>La cultura imposta dalla pagina, o <c>null</c> se si segue chi legge.</summary>
+    private LocalizzatoreDiLingua(IStringLocalizer<SharedResource> standard, string lingua)
+    {
+        _standard = standard;
+        _lingua = new ReadingLanguageContext();
+        _delMembro = lingua.ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// Il localizzatore di <b>un membro</b> di una pagina unita: risponde sempre nella lingua di quel
+    /// documento, qualunque cosa abbia imposto la pagina (carta <c>docs/feature/2026-09-03-documenti-uniti.md</c>
+    /// §3, «ogni documento la sua lingua»).
+    ///
+    /// <para>⚠️ <b>Sempre la cultura esplicita, anche quando coincide con quella di chi legge.</b> Il caso è
+    /// la porta bloccata in inglese e il membro bilingue letto da un italiano: la pagina ha imposto «en», e
+    /// ricadere sul localizzatore della pagina «perché il membro segue il lettore» darebbe al membro le
+    /// etichette inglesi — cioè la regola della porta, che è il difetto che questo esiste per togliere.</para>
+    /// </summary>
+    /// <param name="standard">Il localizzatore che la pagina ha iniettato: serve solo a
+    /// <see cref="GetAllStrings"/>.</param>
+    /// <param name="lingua">La lingua in cui si legge quel documento.</param>
+    public static IStringLocalizer<SharedResource> DelMembro(IStringLocalizer<SharedResource> standard, string lingua) =>
+        new LocalizzatoreDiLingua(standard, lingua);
+
+    /// <summary>La cultura imposta — dal membro, o dalla pagina —, o <c>null</c> se si segue chi legge.</summary>
     private CultureInfo? Imposta =>
-        _lingua.Fissata is { Length: > 0 } l && !string.Equals(l, LinguaDiLettura.DelLettore(), StringComparison.OrdinalIgnoreCase)
-            ? CultureInfo.GetCultureInfo(l)
-            : null;
+        _delMembro is { } m
+            ? CultureInfo.GetCultureInfo(m)
+            : _lingua.Fissata is { Length: > 0 } l && !string.Equals(l, LinguaDiLettura.DelLettore(), StringComparison.OrdinalIgnoreCase)
+                ? CultureInfo.GetCultureInfo(l)
+                : null;
 
     public LocalizedString this[string name]
     {
@@ -104,7 +133,7 @@ public sealed class LocalizzatoreDiLingua : IStringLocalizer<SharedResource>
     /// </summary>
     private Exception Illeggibile(string chiave, Exception causa) =>
         new InvalidOperationException(
-            $"Etichetta «{chiave}» non leggibile — lingua imposta: {_lingua.Fissata ?? "(nessuna)"}, "
+            $"Etichetta «{chiave}» non leggibile — lingua imposta: {_delMembro ?? _lingua.Fissata ?? "(nessuna)"}, "
             + $"lingua del lettore: {LinguaDiLettura.DelLettore()}.", causa);
 
     /// <summary>

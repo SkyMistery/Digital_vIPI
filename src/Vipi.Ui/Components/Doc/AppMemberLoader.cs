@@ -85,10 +85,7 @@ public sealed class AppMemberLoader
     /// </summary>
     /// <param name="mode">La modalità chiesta dall'indirizzo. Quella <b>ottenuta</b> può essere diversa —
     /// il degrado — e sta in <see cref="AppMemberDocument.Mode"/>: chi disegna il banner deve leggere quella.</param>
-    /// <param name="fissaLaPagina">Falso quando questo documento e' un MEMBRO di un'unione: la lingua
-    /// della pagina la decide l'OSPITE. Vedi <see cref="LinguaDelDocumento.Prepara"/>.</param>
     public async Task<AppMemberDocument?> LoadAsync(string callsign, PreviewMode mode, string? vista,
-                                                    bool fissaLaPagina = true,
                                                     CancellationToken ct = default)
     {
         var app = (callsign ?? "").Trim().ToUpperInvariant();
@@ -138,8 +135,7 @@ public sealed class AppMemberLoader
         // la lingua vale anche per le DERIVAZIONI che partono qui sotto, che compongono prosa ed etichette.
         // Deciderla in fondo vorrebbe dire derivare nella lingua di chi guarda e tradurre il resto nell'altra
         // — mezza schermata per lingua, e nessun errore da nessuna parte.
-        var lettore = LinguaDelDocumento.Prepara(_lingua, view.LanguageLocked, view.Language, Language.It,
-                                                 fissaLaPagina: fissaLaPagina);
+        var lettore = LinguaDelDocumento.Prepara(_lingua, view.LanguageLocked, view.Language, Language.It);
         var bloccata = view.LanguageLocked ? lettore : null;
 
         // Derivate: frozen dalla release effettiva nella vista pubblica, da quella release in anteprima di release

@@ -56,8 +56,8 @@ public class DocumentiUnitiTests : TestContext
         var doc = new ManagedDoc(tipo, titolo, chiave, "LIRR", IsPublished: true, HasDraft: false,
                                  IsHidden: false, tipo, chiave, documentId);
         var membro = new UnionMemberView(MemberId: documentId, Order: 1, doc);
-        return new MembroUnito(membro, titolo, sezioni, haMarcate,
-            b => b.AddMarkupContent(0, $"<p class=\"corpo\">{titolo}</p>"));
+        return new MembroUnito(membro, titolo, sezioni, haMarcate, Bloccata: null,
+            b =>b.AddMarkupContent(0, $"<p class=\"corpo\">{titolo}</p>"));
     }
 
     [Fact]

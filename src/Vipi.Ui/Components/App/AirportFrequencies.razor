@@ -3,7 +3,7 @@
 
    Stessa intestazione delle altre tre famiglie (Callsign · Position · Frequenza): la tabella è la stessa cosa,
    e leggerla in un ordine diverso a seconda del documento aperto è un costo che paga il lettore. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 
 <table class="freq-table">
     <thead><tr><th>Callsign</th><th>Position</th><th>@L["Airport_Frequency"]</th></tr></thead>

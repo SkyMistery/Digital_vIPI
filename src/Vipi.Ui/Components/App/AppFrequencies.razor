@@ -1,6 +1,6 @@
 ﻿@* Sezione Frequenze (derivata): ATIS·DEL·GND·TWR·APP(★) dal sottoalbero + link extra. In editor: riordino per riga + rimozione link.
    Con GroupOf (Aerovia ACC): colonna "Settore unico" con rowspan che accorpa le CTR per ramo dell'albero (#5). *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @{
     var rowsList = Rows as IReadOnlyList<AppFreqRow> ?? Rows.ToList();
     var grouped = GroupOf is not null;
