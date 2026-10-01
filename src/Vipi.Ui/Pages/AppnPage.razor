@@ -4,6 +4,7 @@
 @inject IEditAuthorizationService Authz
 @inject AppMemberLoader Loader
 @inject IDocLinkService Collegamenti
+@inject IApertureDocumenti Aperture
 @inject ILogger<AppnPage> Log
 @inject IDocumentUnionService Unioni
 @inject UnionLoader Membri
@@ -224,6 +225,11 @@ else
             : Array.Empty<MembroUnito>();
 
         _collegati = await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.App, _app, _doc.Mode);
+
+        // Un'apertura in più, solo sulla vista PUBBLICA (non bozza né anteprima: quelle le apre chi scrive). Carta
+        // 2026-10-01-aperture-documenti.md. ⚠️ In fondo, dopo tutte le letture: lo scope è quello della pagina, e il
+        // contatore non lancia mai.
+        if (_doc.Mode.Kind == PreviewKind.Public) await Aperture.SegnaAsync(ReleaseTargetType.App, _app);
     }
 
     /// <summary>I documenti collegati (§A109): vIPI ACC, vIPI e vSOP degli scali sotto questo APP.</summary>

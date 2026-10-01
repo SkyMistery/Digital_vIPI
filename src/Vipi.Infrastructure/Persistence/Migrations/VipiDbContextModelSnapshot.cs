@@ -1150,6 +1150,24 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("AirspaceVolumeCorrections");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AperturaDocumento", b =>
+                {
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Giorno")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Volte")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DocumentId", "Giorno");
+
+                    b.HasIndex("Giorno");
+
+                    b.ToTable("AperturaDocumenti", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.ApiClient", b =>
                 {
                     b.Property<int>("Id")
@@ -3716,6 +3734,15 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Import");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AperturaDocumento", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionRunway", b =>

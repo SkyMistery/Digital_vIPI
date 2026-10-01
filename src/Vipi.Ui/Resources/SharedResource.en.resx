@@ -1002,7 +1002,7 @@
   <data name="AccLanding_AirportsDesc" xml:space="preserve"><value>vIPIs and military vSOPs of individual airports under the ACC.</value></data>
   <data name="AccLanding_Apps" xml:space="preserve"><value>Standalone approaches</value></data>
   <data name="AccLanding_AppsDesc" xml:space="preserve"><value>APPs with their own documentation.</value></data>
-  <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Letters of agreement with neighbouring centres.</value></data>  <data name="AccLanding_OpsView" xml:space="preserve"><value>Operational view</value></data>
+  <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Letters of agreement with neighbouring centres.</value></data>  <data name="AccLanding_Opens" xml:space="preserve"><value>{0} opens</value></data>  <data name="AccLanding_OpensOne" xml:space="preserve"><value>1 open</value></data>  <data name="AccLanding_OpensTitle" xml:space="preserve"><value>Opens of the public page in the last {0} days. Visible to staff only.</value></data>  <data name="AccLanding_OpsView" xml:space="preserve"><value>Operational view</value></data>
   <data name="AccLanding_OpsViewOf" xml:space="preserve"><value>Operational view of {0}</value></data>
   <data name="AccLanding_OpsViewDesc" xml:space="preserve"><value>Live projection for your position: soft collapse of what is delegated to an online unit, plus transfers resolved in real time.</value></data>
   <data name="AccLanding_TransfersAdminDesc" xml:space="preserve"><value>Coordination agreements between units (admin page).</value></data>

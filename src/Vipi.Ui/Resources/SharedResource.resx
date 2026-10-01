@@ -1007,7 +1007,7 @@
   <data name="AccLanding_AirportsDesc" xml:space="preserve"><value>vIPI e vSOP militari dei singoli aeroporti sotto la ACC.</value></data>
   <data name="AccLanding_Apps" xml:space="preserve"><value>Avvicinamenti non remotizzati</value></data>
   <data name="AccLanding_AppsDesc" xml:space="preserve"><value>APP con documentazione propria.</value></data>
-  <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Lettere di accordo con i centri confinanti.</value></data>  <data name="AccLanding_OpsView" xml:space="preserve"><value>Vista operativa</value></data>
+  <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Lettere di accordo con i centri confinanti.</value></data>  <data name="AccLanding_Opens" xml:space="preserve"><value>{0} aperture</value></data>  <data name="AccLanding_OpensOne" xml:space="preserve"><value>1 apertura</value></data>  <data name="AccLanding_OpensTitle" xml:space="preserve"><value>Aperture della pagina pubblica negli ultimi {0} giorni. Lo vede solo lo staff.</value></data>  <data name="AccLanding_OpsView" xml:space="preserve"><value>Vista operativa</value></data>
   <data name="AccLanding_OpsViewOf" xml:space="preserve"><value>Vista operativa di {0}</value></data>
   <data name="AccLanding_OpsViewDesc" xml:space="preserve"><value>Proiezione live per la tua postazione: collasso morbido di ciò che è delegato a un ente online, più i trasferimenti risolti in tempo reale.</value></data>
   <data name="AccLanding_TransfersAdminDesc" xml:space="preserve"><value>Accordi di coordinamento fra enti (pagina admin).</value></data>

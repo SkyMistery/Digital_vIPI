@@ -7,6 +7,7 @@
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
 @inject IDocumentAdminService Docs
+@inject IApertureDocumenti Aperture
 @inject IStringLocalizer<SharedResource> L
 @inject StringheDelSito Sito
 @inject Vipi.Application.Translation.DocumentTranslator Translator
@@ -177,6 +178,11 @@ else
                     await LoadPublicAsync(row.DocId);
                     break;
             }
+            // Un'apertura in più, solo sulla vista PUBBLICA (non bozza né anteprima: quelle le apre chi scrive). Carta
+            // 2026-10-01-aperture-documenti.md. ⚠️ In fondo, dopo tutte le letture: lo scope è quello della pagina, e il
+            // contatore non lancia mai.
+            if (_mode.Kind == PreviewKind.Public && _view is not null)
+                await Aperture.SegnaAsync(ReleaseTargetType.Vloa, row.DocId.ToString());
             // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------
             // ⚠️ La lingua di lettura e' quella dell'INTERFACCIA, non un secondo selettore: un documento
             // inglese dentro una pagina italiana e' una schermata mezza tradotta. La sceglie la chip della

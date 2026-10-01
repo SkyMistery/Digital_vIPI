@@ -1982,6 +1982,14 @@
   `2026-09-03-documenti-uniti.md` §3. Test Ui 1944 → 1947 (3 rossi sul codice di prima). A schermo su copia del DB
   (LIBV, vSOP bloccato in inglese): dalla vIPI in italiano il vSOP ha «Field data / pilots only / No rows»; dal
   vSOP la vIPI ha «FREQUENZA / PISTA». Ramo `fix/lingua-unione`.
+- ✅ **S93** contatore delle aperture e i più letti sulla pagina dell'ACC (1-ott, committente). Una riga per documento
+  e per giorno (`AperturaDocumento`, migrazione additiva `ApertureDocumenti`), +1 su ogni richiesta della pagina
+  PUBBLICA (vIPI d'aeroporto, vSOP militare, APP, vLoA; niente bozze, anteprime, editor). Sulla pagina dell'ACC i tre di
+  ogni scheda sono: prima gli «in evidenza» a mano, poi i più aperti negli ultimi 90 giorni, poi per nome; lo scalo somma
+  vIPI e vSOP; il numero accanto alla voce solo allo staff. Pagine elenco invariate. Carta
+  `2026-10-01-aperture-documenti.md`. Test App 3190 → 3193, Infra 2075 → 2080, Ui 1947 → 1952. A schermo su copia
+  (LIBB, con un cookie per spegnere la cache anonima): LIBR 3 aperture e LIBD 2 salgono in cima, la bozza di LIBC non
+  conta. Ramo `fix/aperture-documenti`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
