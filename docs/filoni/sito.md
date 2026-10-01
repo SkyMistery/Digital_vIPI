@@ -1952,6 +1952,8 @@
   vIPI/vSOP pubblicati di tutta la divisione (aperti nel pannello dello scalo col loro ACC) e le aree regolamentate
   (mappa + tabella di attivazione che segue le chip). Mappe nate a larghezza 0 ora si reinquadrano. Carta
   `docs/feature/2026-10-01-ricerca-vista-live.md`, con le prossime ricerche proposte. App 3171 → 3180. Ramo `fix/sid-ricerca`.
+  Poi (committente, provato sulla copia di produzione): il campo di ricerca sta direttamente in coda alle chip, al
+  posto della chip «Cerca»; tolta la scritta «Vista rapida — il mio settore o…».
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

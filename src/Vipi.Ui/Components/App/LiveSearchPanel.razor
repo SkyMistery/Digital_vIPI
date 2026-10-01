@@ -1,5 +1,5 @@
-@* LA RICERCA RAPIDA DELLA VISTA LIVE (committente, 1 ottobre 2026). Si apre dalla chip «🔎 Cerca» accanto agli scali
-   del settore, e cerca due cose:
+@* LA RICERCA RAPIDA DELLA VISTA LIVE (committente, 1 ottobre 2026). Il campo sta in coda alle chip degli scali del
+   settore (LivePage) e passa qui il testo; questo pannello mostra i risultati e cerca due cose:
    - uno SCALO qualunque con vIPI o vSOP pubblicati, anche fuori dal proprio ACC («sono la NE e cerco LIPE»): lo apre
      nello stesso pannello rapido degli scali del settore (<AirportQuickPanel>), col suo ACC;
    - le AREE REGOLAMENTATE, tutte: una o tutte quelle trovate su una mappa, e sotto la tabella con limiti e attivazione.
@@ -13,18 +13,6 @@
 @inject IStringLocalizer<SharedResource> L
 
 <div class="block live-search">
-    @* 🔴 Niente `value="@_q"`: è la stessa regola della ricerca SID (AirportQuickPanel) — riscrivendo il valore a ogni
-       tasto il server rimanda il testo di un giro prima e i caratteri cancellati ricompaiono. Per svuotarlo si cambia
-       `@key`. *@
-    <div class="sid-find">
-        <input @key="_gen" type="search" @oninput="OnQuery" autocomplete="off" autofocus
-               placeholder="@L["Lsr_Placeholder"]" aria-label="@L["Lsr_Placeholder"]" />
-        @if (_q.Length > 0)
-        {
-            <button type="button" class="btn ghost sid-find-x" @onclick="Azzera" title="@L["Aqp_ClearSearch"]">✕</button>
-        }
-    </div>
-
     @if (_aeroporto is { } apt)
     {
         <button type="button" class="btn ghost lsr-back" @onclick="Indietro">← @L["Lsr_Back"]</button>
@@ -130,9 +118,10 @@
     private IReadOnlyList<LiveAeroportoTrovato>? _aeroporti;
     private IReadOnlyList<SpecialAreaPick>? _aree;
 
-    /// <summary>Testo cercato, specchio del campo (vedi il commento sull'input).</summary>
+    /// <summary>Il testo del campo, che sta nella riga delle chip (LivePage).</summary>
+    [Parameter] public string Query { get; set; } = "";
+
     private string _q = "";
-    private int _gen;
 
     /// <summary>Lo scalo aperto, o le aree mostrate: uno dei due, o nessuno (si vedono i risultati).</summary>
     private LiveAeroportoTrovato? _aeroporto;
@@ -150,17 +139,10 @@
     }
 
     /// <summary>Digitare riporta ai risultati: chi cerca di nuovo non vuole restare sullo scalo di prima.</summary>
-    private void OnQuery(ChangeEventArgs e)
+    protected override void OnParametersSet()
     {
-        _q = e.Value?.ToString() ?? "";
-        _aeroporto = null;
-        _areeViste = null;
-    }
-
-    private void Azzera()
-    {
-        _q = "";
-        _gen++;
+        if (Query == _q) return;
+        _q = Query ?? "";
         Indietro();
     }
 

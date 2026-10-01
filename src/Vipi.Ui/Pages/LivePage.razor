@@ -211,13 +211,12 @@
         }
         else
         {
-            @* Il titolo sulla stessa riga delle chip: da solo sopra si prendeva una riga.
-               Dal 1 ottobre 2026 la riga c'è per ogni postazione che non è d'aeroporto (APP, ACC), anche senza scali
-               propri: in coda c'è sempre «🔎 Cerca» (LiveSearchPanel), che apre uno scalo qualunque o le aree
+            @* Niente titolo davanti alle chip (committente, 1 ottobre 2026): «📡 Il mio settore» e gli ICAO si spiegano da
+               soli. Dal 1 ottobre 2026 la riga c'è per ogni postazione che non è d'aeroporto (APP, ACC), anche senza scali
+               propri: in coda c'è sempre il CAMPO di ricerca (LiveSearchPanel sotto), che apre uno scalo qualunque o le aree
                regolamentate. *@
             <div class="apt-quick" style="margin-bottom:22px">
-                <span class="apt-quick-lab">@L["Live_QuickView"]</span>
-                <Chip Class="@($"ch sw {(_selectedApt is null && !_cerca ? "on" : "")}")" Active="_selectedApt is null && !_cerca" OnActivate="() => { _selectedApt = null; _cerca = false; }">📡 @L["Live_MySector"]</Chip>
+                <Chip Class="@($"ch sw {(_selectedApt is null && !InRicerca ? "on" : "")}")" Active="_selectedApt is null && !InRicerca" OnActivate="() => { _selectedApt = null; SvuotaRicerca(); }">📡 @L["Live_MySector"]</Chip>
                 @foreach (var chip in _view.AirportChips)
                 {
                     var ic = chip.Icao;
@@ -225,15 +224,26 @@
                        per cui si guarda la chip. La forma resta invariata (nessun ridisegno). *@
                     <span class="ch sw @(chip.Delegated ? "ch-deleg" : "") @(_selectedApt == ic ? "on" : "")"
                           title="@ChiPresiede(chip)"
-                          @onclick="() => { _selectedApt = ic; _cerca = false; }">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
+                          @onclick="() => { _selectedApt = ic; SvuotaRicerca(); }">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
                 }
-                <Chip Class="@($"ch sw ch-cerca {(_cerca ? "on" : "")}")" Active="_cerca" OnActivate="() => { _cerca = true; _selectedApt = null; }">🔎 @L["Lsr_Chip"]</Chip>
+                @* Il campo, in coda a tutte le chip (committente, 1 ottobre 2026: non una chip che apre la ricerca, il
+                   campo stesso). 🔴 Niente `value`: come ogni campo che si scrive dal server mentre si digita
+                   (AirportQuickPanel), per svuotarlo si cambia `@key`. Scrivere toglie lo scalo scelto: i risultati
+                   compaiono al posto del settore, e svuotare il campo ci torna. *@
+                <span class="lsr-field">
+                    <input @key="_ricercaGen" type="search" autocomplete="off" @oninput="Ricerca"
+                           placeholder="🔎 @L["Lsr_Field"]" aria-label="@L["Lsr_Placeholder"]" title="@L["Lsr_Placeholder"]" />
+                    @if (InRicerca)
+                    {
+                        <button type="button" class="btn ghost sid-find-x" @onclick="SvuotaRicerca" title="@L["Aqp_ClearSearch"]">✕</button>
+                    }
+                </span>
             </div>
         }
 
-        @if (_cerca && _view.AirportIcao is null)
+        @if (InRicerca && _view.AirportIcao is null)
         {
-            <LiveSearchPanel />
+            <LiveSearchPanel Query="@_ricerca" />
         }
         else if (_selectedApt is { } sel)
         {
@@ -308,8 +318,23 @@
     private string? _myCallsign;
     private string? _selectedApt;
 
-    /// <summary>La ricerca rapida è aperta (chip «🔎 Cerca»): al posto del settore e degli scali.</summary>
-    private bool _cerca;
+    /// <summary>Il testo del campo di ricerca in coda alle chip: non vuoto = i risultati al posto del settore.</summary>
+    private string _ricerca = "";
+    private int _ricercaGen;
+    private bool InRicerca => _ricerca.Trim().Length > 0;
+
+    private void Ricerca(ChangeEventArgs e)
+    {
+        _ricerca = e.Value?.ToString() ?? "";
+        if (InRicerca) _selectedApt = null;
+    }
+
+    private void SvuotaRicerca()
+    {
+        if (_ricerca.Length == 0) return;
+        _ricerca = "";
+        _ricercaGen++;
+    }
 
     /// <summary>Enti limitrofi aperti da telefono (da schermo largo si vedono sempre).</summary>
     private bool _chainOpen;

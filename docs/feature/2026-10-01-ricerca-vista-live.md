@@ -12,9 +12,11 @@
 
 ## 1. Che cosa fa
 
-- Nella riga «Vista rapida» della vista live, in coda agli scali del settore, c'è la chip **🔎 Cerca**. La riga c'è
-  per ogni postazione che non è d'aeroporto (APP, ACC), anche senza scali propri: la ricerca serve proprio a chi
-  vuole uscire dal suo settore.
+- Nella riga delle chip della vista live («📡 Il mio settore» e gli scali sotto la postazione, diretti e indiretti,
+  con i delegati), in coda a tutte c'è il **campo di ricerca** (committente: il campo, non una chip che lo apre).
+  Scrivendo, i risultati compaiono al posto del settore; svuotando il campo, o scegliendo una chip, si torna lì. La
+  riga c'è per ogni postazione che non è d'aeroporto (APP, ACC), anche senza scali propri. La scritta «Vista rapida —
+  il mio settore o…» davanti alle chip è tolta (committente).
 - Un campo solo cerca due cose insieme, e i risultati escono a gruppi:
   - **Scali**: quelli con vIPI civile o vSOP militare pubblici, di tutta la divisione. Si trovano con l'ICAO
     (esatto, poi per prefisso) o col nome. Scelto uno scalo, si apre lo **stesso pannello** degli scali del settore

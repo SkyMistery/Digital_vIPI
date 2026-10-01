@@ -331,7 +331,6 @@
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>gerarchia non configurata per questa posizione — nessun ente sopra risulta impostato in Struttura</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>Documento esteso ↗</value></data>
-  <data name="Live_QuickView" xml:space="preserve"><value>Vista rapida — il mio settore o un aeroporto sotto controllo diretto:</value></data>
   <data name="Live_MySector" xml:space="preserve"><value>Il mio settore</value></data>
   <data name="Live_PickPlaceholder" xml:space="preserve"><value>Apri un'altra postazione…</value></data>
   <data name="Live_PickTitle" xml:space="preserve"><value>Staff di divisione: apre la vista live di una qualsiasi postazione, anche spenta</value></data>
@@ -4011,7 +4010,7 @@
   <data name="Asp_Fix_TakeFile" xml:space="preserve"><value>Prendi il file</value></data>
   <data name="Asp_Fix_TakeFileTitle" xml:space="preserve"><value>Togli la correzione e usa i valori del file nuovo</value></data>
   <data name="Asp_Fix_Acked" xml:space="preserve"><value>{0}: fatto.</value></data>
-  <data name="Lsr_Chip" xml:space="preserve"><value>Cerca</value></data>
+  <data name="Lsr_Field" xml:space="preserve"><value>Altri scali o aree…</value></data>
   <data name="Lsr_Placeholder" xml:space="preserve"><value>Cerca uno scalo (ICAO o nome) o un'area regolamentata (R14, TRA, nome…)</value></data>
   <data name="Lsr_Hint" xml:space="preserve"><value>Scali con vIPI o vSOP pubblicati, di tutta la divisione, e aree regolamentate: scrivi almeno due caratteri, o un tipo d'area (R, D, P, TRA…).</value></data>
   <data name="Lsr_None" xml:space="preserve"><value>Nessuno scalo e nessuna area per «{0}».</value></data>
