@@ -99,6 +99,15 @@ else
                     <AudienceChip Compatto="true" Visibile="@MembroUnito.QualcunoHaMarcate(_doc.HaMarcate, _altri)" Vista="_doc.Vista"
                                   BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_doc.Mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
                     <div class="dh-actions">
+                        @* Il ponte verso il vSOP militare dello stesso scalo, accanto a «Stampa»: lo specchio del tasto
+                           «vIPI civile» che il vSOP ha nello stesso posto (committente, 1 ottobre 2026). Stessa condizione
+                           della voce nella colonna di destra: solo se il vSOP è pubblicato. *@
+                        @if (_haMilitare)
+                        {
+                            <a class="btn ghost" href="/services/vsop/@Acc.ToLowerInvariant()/mil?icao=@_icao">
+                                <Icon Name="book-open" Size="14" /> @Sito["Mil_LinkFromCivil"]
+                            </a>
+                        }
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
                         @if (_canEdit)
                         {
