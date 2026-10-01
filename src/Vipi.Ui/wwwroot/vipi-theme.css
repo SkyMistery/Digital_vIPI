@@ -715,6 +715,7 @@
 :where(.vipi-root) .sx-rank b{display:block;font-family:var(--font-head);font-weight:800;font-size:40px;line-height:1;color:var(--ink)}
 :where(.vipi-root) .sx-rank span{font-size:13px;color:var(--ink-soft)}
 :where(.vipi-root) .kpi-n{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+:where(.vipi-root) .sid-radio{font-size:12.5px;margin:0 0 8px;display:flex;gap:6px;align-items:center}
 :where(.vipi-root) .sx-note{font-size:13px;margin:10px 0 0;max-width:900px}
 /* Righe a barra: etichetta, barra lunga quanto il valore rispetto al primo, valore; sotto, il dettaglio. */
 :where(.vipi-root) .sx-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}

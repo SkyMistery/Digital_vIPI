@@ -1902,6 +1902,13 @@
 - ✅ **S82** crediti nel piè di pagina (1-ott, committente): sotto «Parte della IVAO», su riga sua, «Realizzato da
   Carmine (704798) · Testato da Nicola (201143) e Carmine (704798)»; ogni nome al profilo IVAO del membro.
   Ramo `fix/crediti-test`.
+- ✅ **S83** SID nella ricerca (1-ott, committente: «se cerco ALAXI non mi dà Napoli»). Le procedure non sono nel
+  testo pubblicato: la barra di ricerca ora chiede SID e STAR alla stessa vista della pagina
+  (`IProcedureCercabili`, memoria di 10 minuti) e le aggancia alla loro sezione (se nascosta, niente). Una regola
+  sola (`CercaProcedura.Combacia`) per ricerca e vista live: codice ALAX7G, nome completo ALAXI 7G con o senza
+  spazio, fix, transition. Vista live: nota radio sopra le SID con l'esempio dalla prima SID dello scalo («AGNI7G si
+  dice AGNIS 7G (AGNIS seven golf)»). A schermo su LIRN (copia del DB). App 3161 → 3171, Infra 2074 → 2075.
+  Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

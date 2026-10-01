@@ -90,6 +90,12 @@ else
             var showCat = _sids.Any(s => s.Cat != "—");
             var showWtc = _sids.Any(s => s.Wtc != "—");
         }
+        @* In radio la SID si dice col nome COMPLETO (committente, 1 ottobre 2026), con l'esempio preso dalla prima SID
+           dello scalo che ha un nome completo diverso dal codice: cambia la tabella, cambia l'esempio. *@
+        @if (EsempioRadio is { } es)
+        {
+            <p class="muted sid-radio"><Icon Name="radio" Size="13" /> @L["Aqp_SidRadio", es.Codice, es.Completo, es.Fonia]</p>
+        }
         @if (_sids.Count > 0)
         {
             @* Cercare per PUNTO o per CODICE: in una lista di ottanta SID il filtro per pista non basta, e
@@ -321,6 +327,21 @@ else
     /// Le righe da mostrare: pista scelta (le SID senza pista valgono per tutte) più il testo cercato.
     /// L'ordine e il filtro AIRAC li ha già fatti la derivazione.
     /// </summary>
+    /// <summary>La prima SID dello scalo col nome completo diverso dal codice, per l'esempio della nota radio.</summary>
+    private (string Codice, string Completo, string Fonia)? EsempioRadio
+    {
+        get
+        {
+            foreach (var s in _sids)
+            {
+                var completo = Vipi.Application.Content.CercaProcedura.NomeCompleto(s);
+                if (string.Equals(completo, s.Name, StringComparison.OrdinalIgnoreCase)) continue;
+                if (Vipi.Application.Content.CercaProcedura.Fonia(completo) is { } fonia) return (s.Name, completo, fonia);
+            }
+            return null;
+        }
+    }
+
     private IEnumerable<AirportSidRowView> FilteredSids()
     {
         var q = _q.Trim();

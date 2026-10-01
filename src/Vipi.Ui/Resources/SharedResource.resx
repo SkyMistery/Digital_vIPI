@@ -2485,6 +2485,7 @@
   <data name="AorBlock_ConfigHelp" xml:space="preserve"><value>Selezionando una configurazione si evidenziano, in "Configurazioni operative", i setting corrispondenti.</value></data>
   <data name="Aqp_SelectedRunway" xml:space="preserve"><value>Pista selezionata</value></data>
   <data name="Aqp_SearchSid" xml:space="preserve"><value>Cerca un punto o una SID…</value></data>
+  <data name="Aqp_SidRadio" xml:space="preserve"><value>In radio la SID si legge con il nome completo: {0} si dice «{1}» ({2}).</value></data>
   <data name="Aqp_ClearSearch" xml:space="preserve"><value>Togli la ricerca</value></data>
   <data name="Aqp_SidCount" xml:space="preserve"><value>{0} SID</value></data>
   <data name="Aqp_NoSidMatch" xml:space="preserve"><value>Nessuna SID per «{0}».</value></data>

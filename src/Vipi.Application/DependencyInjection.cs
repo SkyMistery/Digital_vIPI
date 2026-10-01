@@ -121,6 +121,8 @@ public static class DependencyInjection
         services.AddScoped<IVloaViewDerivationService, VloaViewDerivationService>();
         services.AddScoped<IAirportSidDerivationService, AirportSidDerivationService>();
         services.AddScoped<IAirportViewDerivationService, AirportViewDerivationService>();
+        // SID e STAR per la barra di ricerca, dalla stessa vista della pagina (1 ottobre 2026).
+        services.AddScoped<IProcedureCercabili, ProcedureCercabili>();
         // §A73: le SID citate nel testo prendono il nome dalla tabella che il lettore vede.
         services.AddScoped<IProcedureReferenceResolver, ProcedureReferenceResolver>();
         services.AddScoped<IFrequenzeDegliEnti, FrequenzeDegliEnti>();

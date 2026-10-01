@@ -71,8 +71,9 @@ public sealed class IndiceDelleRelease
 {
     /// <summary>Un blocco ha fino a due testi (Body e BodyJson): un risultato per blocco, col primo che combacia.</summary>
     /// <param name="Livello">0 = sezione di primo livello, 1 e oltre = sotto-sezione: decide l'ordine dei risultati.</param>
+    /// <param name="Chiave">La chiave di catalogo (<c>sids</c>, <c>stars</c>…): la ricerca ci aggancia le procedure.</param>
     internal sealed record Sezione(int Id, string Titolo, string Percorso, IReadOnlyList<(string? Primo, string? Secondo)> Testi,
-        int Livello = 0);
+        int Livello = 0, string Chiave = "");
     internal sealed record Voce(string Titolo, IReadOnlyList<Sezione> Sezioni, int Blocchi, int TutteLeSezioni);
 
     private readonly ConcurrentDictionary<(int Id, DateTime Creata), Voce> _voci = new();
@@ -116,7 +117,7 @@ public sealed class IndiceDelleRelease
             // Una sezione nascosta si porta via il proprio sottoalbero, nel documento come nell'indice.
             var fuori = nascosta || s.IsHidden;
             if (!fuori)
-                sezioni.Add(new Sezione(s.Id, s.Title, percorso, s.Blocks.Select(TestiDi).ToList(), livello));
+                sezioni.Add(new Sezione(s.Id, s.Title, percorso, s.Blocks.Select(TestiDi).ToList(), livello, s.SectionKey ?? ""));
             foreach (var figlio in s.Children) Scendi(figlio, percorso, fuori, livello + 1);
         }
 

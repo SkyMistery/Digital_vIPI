@@ -548,4 +548,54 @@ public class SearchAndChangesTests : IAsyncLifetime
         var row = Assert.Single(rows, r => r.DocTitle.Contains("Pisa"));
         Assert.Equal("Nota della release T042", row.Note);
         Assert.True(row.CurrSections > 0);
-    }}
+    }
+    // ---- SID e STAR nella barra di ricerca (committente, 1 ottobre 2026) ----------------------------------------------
+
+    private sealed class ProcedureFinte : IProcedureCercabili
+    {
+        public List<(string, Vipi.Domain.ReleaseTargetType)> Chieste { get; } = new();
+        public Task<ProcedureDelloScalo> PerScaloAsync(string icao, Vipi.Domain.ReleaseTargetType edizione, CancellationToken ct = default)
+        {
+            Chieste.Add((icao, edizione));
+            return Task.FromResult(new ProcedureDelloScalo(
+                new[]
+                {
+                    new AirportSidRowView("16L", "ZZOPA", "ZZOP7G", "—", "—", "—", "—", "—", "—"),
+                    new AirportSidRowView("34R", "ZZOPA", "ZZOP7G", "—", "—", "—", "—", "—", "—"),
+                },
+                Array.Empty<AirportSidRowView>()));
+        }
+    }
+
+    /// <summary>Le SID non stanno nel testo pubblicato: la ricerca le chiede alla vista dello scalo e le aggancia alla
+    /// sezione SID. Una riga per procedura, con codice, nome completo e piste.</summary>
+    [Fact]
+    public async Task Una_SID_si_trova_col_fix_col_codice_e_col_nome_completo()
+    {
+        var docId = await _db.Airports.Where(a => a.Icao == "LIRF").Select(a => a.DocumentId).SingleAsync();
+        var versione = await _db.DocumentVersions.Where(v => v.DocumentId == docId).OrderByDescending(v => v.VersionNumber).FirstAsync();
+        if (!await _db.DocumentSections.AnyAsync(s => s.DocumentVersionId == versione.Id && s.SectionKey == "sids"))
+        {
+            _db.DocumentSections.Add(new Vipi.Domain.Entities.DocumentSection
+            {
+                DocumentVersionId = versione.Id, Title = "SID", Order = 50, Depth = 0, SectionKey = "sids",
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            });
+            await _db.SaveChangesAsync();
+        }
+        await PublishAllAsync();
+
+        var procedure = new ProcedureFinte();
+        var search = new EfSearchRepository(_db, TestReleaseTargets.Registry(_db), TestReleaseTargets.Routes(),
+            TestReleaseTargets.ReleaseRepo(_db), procedure: procedure);
+
+        foreach (var cercato in new[] { "ZZOPA", "ZZOP7G", "ZZOPA 7G" })
+        {
+            var hit = Assert.Single(await search.SearchAsync(cercato, SearchScope.All, 50));
+            Assert.Contains("ZZOP7G (ZZOPA 7G)", hit.Snippet);
+            Assert.Contains("RWY 16L 34R", hit.Snippet);
+            Assert.Contains("#s-", hit.Url);
+        }
+        Assert.Contains(("LIRF", Vipi.Domain.ReleaseTargetType.Airport), procedure.Chieste);
+    }
+}

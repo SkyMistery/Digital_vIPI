@@ -2477,6 +2477,7 @@
   <data name="AorBlock_ConfigHelp" xml:space="preserve"><value>Selecting a configuration highlights the matching settings under "Operational configurations".</value></data>
   <data name="Aqp_SelectedRunway" xml:space="preserve"><value>Selected runway</value></data>
   <data name="Aqp_SearchSid" xml:space="preserve"><value>Search a fix or a SID…</value></data>
+  <data name="Aqp_SidRadio" xml:space="preserve"><value>On the radio a SID is read by its full name: {0} is said «{1}» ({2}).</value></data>
   <data name="Aqp_ClearSearch" xml:space="preserve"><value>Clear the search</value></data>
   <data name="Aqp_SidCount" xml:space="preserve"><value>{0} SID</value></data>
   <data name="Aqp_NoSidMatch" xml:space="preserve"><value>No SID for “{0}”.</value></data>

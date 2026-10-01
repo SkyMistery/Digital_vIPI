@@ -124,11 +124,8 @@ public static class AirportViewFormat
     /// </summary>
     public static bool SidMatches(AirportSidRowView row, string? query)
     {
-        var q = (query ?? "").Trim();
-        if (q.Length == 0) return true;
-
-        return row.Fix.Contains(q, StringComparison.OrdinalIgnoreCase)
-            || row.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
-            || row.Transition.Contains(q, StringComparison.OrdinalIgnoreCase);
+        // 🔴 Committente, 1 ottobre 2026: la SID si deve trovare sia col codice (ALAX7G) sia col nome completo, con o senza
+        // spazio (ALAXI 7G). La regola è UNA, la stessa della barra di ricerca: CercaProcedura.
+        return Vipi.Application.Content.CercaProcedura.Combacia(row, query);
     }
 }
