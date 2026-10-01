@@ -6,9 +6,10 @@
 >
 > ## ▶ Il punto — 1 ottobre 2026, pomeriggio
 >
-> **📦 Pronto da caricare: 1.55.0** (§A146, timbro `1.55.0 · 395bce9`, 22 file, zip `a0a67e63…`, MINOR senza
+> **✅ Online: 1.55.0** (timbro e `Schema 0` confermati dal committente; da fuori porta, Healthy e asset del pacchetto;
+> scarico senza errori; **in `main` non resta codice fuori pacchetto**) (§A146, timbro `1.55.0 · 395bce9`, 22 file, zip `a0a67e63…`, MINOR senza
 > migrazioni): Sito S83–S90, SID e STAR nella ricerca, vista live compatta con la ricerca rapida, avviso «REAL LIFE
-> OPERATIONS». Online resta 1.54.3 finché il committente non carica. ▶ LIRE/LIBG aspettano il SOD.
+> OPERATIONS». ▶ LIRE/LIBG aspettano il SOD.
 >
 > ## Il punto — 1 ottobre 2026, mattina
 >
