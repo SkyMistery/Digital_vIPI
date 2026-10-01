@@ -182,6 +182,9 @@ public class VipiDbContext : DbContext
     /// <summary>Chi è entrato nel sito almeno una volta (registro degli accessi, 30 settembre 2026).</summary>
     public DbSet<AccessoAlSito> AccessiAlSito => Set<AccessoAlSito>();
 
+    /// <summary>Quante volte si apre ogni documento, per giorno (carta del 1° ottobre 2026, aperture).</summary>
+    public DbSet<AperturaDocumento> AperturaDocumenti => Set<AperturaDocumento>();
+
     /// <summary>Il documento condiviso di ogni evento RFO e la sua storia. Carta del 18 settembre 2026.</summary>
     public DbSet<RfoSharedState> RfoSharedStates => Set<RfoSharedState>();
     public DbSet<RfoSharedStateHistory> RfoSharedStateHistory => Set<RfoSharedStateHistory>();
@@ -657,6 +660,16 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Divisione).HasMaxLength(AccessoAlSitoLimits.Divisione);
             e.Property(x => x.Acc).HasMaxLength(AccessoAlSitoLimits.Acc);
             e.HasIndex(x => x.UltimoUtc);
+        });
+
+        b.Entity<AperturaDocumento>(e =>
+        {
+            e.ToTable("AperturaDocumenti");
+            e.HasKey(x => new { x.DocumentId, x.Giorno });
+            // ⚠️ Un documento cancellato si porta via i suoi numeri: senza, resterebbero righe di un ID che un
+            // giorno potrebbe tornare a un altro documento.
+            e.HasOne<Document>().WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.Giorno);
         });
 
         b.Entity<ApiClient>(e =>

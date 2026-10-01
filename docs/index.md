@@ -369,6 +369,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-30-profili-evento.md`](feature/2026-09-30-profili-evento.md) — I profili per l'evento (30 settembre 2026)
 - [`feature/2026-09-30-registro-accessi.md`](feature/2026-09-30-registro-accessi.md) — Registro degli accessi: chi è entrato nel sito — carta (30 settembre 2026)
 - [`feature/2026-09-30-statistiche-nuova-grafica.md`](feature/2026-09-30-statistiche-nuova-grafica.md) — Statistiche ATC: la nuova veste della pagina personale e di quella della divisione — carta (30 settembre 2026)
+- [`feature/2026-10-01-aperture-documenti.md`](feature/2026-10-01-aperture-documenti.md) — Aperture dei documenti: i più letti in cima alla pagina dell'ACC — carta (1° ottobre 2026)
 - [`feature/2026-10-01-ricerca-vista-live.md`](feature/2026-10-01-ricerca-vista-live.md) — Ricerca rapida nella vista live: scali e aree regolamentate — carta (1 ottobre 2026)
 
 ### `filoni`
