@@ -43,6 +43,18 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A147 — 1.55.1: lingua dei membri nei documenti uniti (S91) (1 ottobre 2026)
+
+PATCH **senza migrazioni**, su 1.55.0 (`395bce9`). Timbro **`1.55.1 · 5493151`**. Fuso da `fix/lingua-unione` @
+`94631ee8` (CI verde run 36877354788), senza conflitti. **S91**, solo Vipi.Ui: nei documenti uniti ogni membro tiene la
+sua regola di lingua (LIRP: vIPI bilingue, vSOP solo inglese), passata in cascata (`LinguaDelMembro`) ai componenti.
+
+**4 file** (`solo-4-file-1.55.1`): Ui e Host (dll + pdb). Fuori `en/` (nessuna `.resx` cambiata) e tutto `wwwroot`.
+Zip 2,81 MB, sha256 `8ac4d35c0a15f2c180ee1982bd6e72821d8a385f61dc9f07a371e4fb0f7ba0a3`. Build Release senza avvisi,
+test verdi, conteggi identici (Ui 1947). Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`).
+LIRP non è nella copia locale del DB: la prova a schermo è quella del Sito. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.55.1.md`. ▶ Caricamento del committente.
+
 ### ✅ A146 — 1.55.0 ONLINE: SID nella ricerca, vista live compatta e ricerca rapida (S83–S90) (1 ottobre 2026)
 
 ✅ Online il 1 ottobre 2026 (avvio 14:21:39Z): timbro e `Schema 0` confermati dal committente. Da fuori porta «Entra con

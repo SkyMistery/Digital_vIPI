@@ -4,7 +4,13 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 1 ottobre 2026, pomeriggio
+> ## ▶ Il punto — 1 ottobre 2026, sera
+>
+> **📦 Pronto da caricare: 1.55.1** (§A147, timbro `1.55.1 · 5493151`, 4 file, zip `8ac4d35c…`, PATCH senza
+> migrazioni): Sito S91, la lingua dei membri nei documenti uniti (LIRP). Online resta 1.55.0 finché il committente
+> non carica. ▶ LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 1 ottobre 2026, pomeriggio
 >
 > **✅ Online: 1.55.0** (timbro e `Schema 0` confermati dal committente; da fuori porta, Healthy e asset del pacchetto;
 > scarico senza errori; **in `main` non resta codice fuori pacchetto**) (§A146, timbro `1.55.0 · 395bce9`, 22 file, zip `a0a67e63…`, MINOR senza
