@@ -1996,6 +1996,11 @@
   `2026-10-01-aperture-documenti.md`. Test App 3190 → 3193, Infra 2075 → 2080, Ui 1947 → 1952. A schermo su copia
   (LIBB, con un cookie per spegnere la cache anonima): LIBR 3 aperture e LIBD 2 salgono in cima, la bozza di LIBC non
   conta. Ramo `fix/aperture-documenti`.
+- ✅ **S94** due ritocchi (1-ott, committente). (1) `/services`: scheda esterna «Discord di divisione»
+  (https://discord.ivao.it/) accanto a «Prenotazioni ATC e FRA», icona nuova `chat`; i collegamenti esterni contati
+  passano a tre. (2) Tabella SID del documento sul telefono: «Transition» finiva sopra «Initial climb» (colonna ~68px);
+  sotto i 760px di schermo l'intestazione è «Tran.» (`<abbr title="Transition">`). A schermo su copia: a 390px «Tran.»
+  finisce 16px prima di «Initial climb», su desktop resta «Transition». Ui 1955 → 1956. Ramo `fix/discord-transition`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

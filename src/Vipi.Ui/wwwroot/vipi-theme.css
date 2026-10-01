@@ -2439,6 +2439,12 @@
 :where(.vipi-root) .sid-view .col-sid{width:11.4%}
 :where(.vipi-root) .sid-view .col-trans{width:9.5%}
 :where(.vipi-root) .sid-view .col-climb{width:13.6%}
+/* «Transition» sul telefono (committente, 1 ottobre 2026): la tabella resta larga 720px e la colonna 9,5%, cioè
+   ~68px, dove la parola maiuscola non entra e finisce sopra «Initial climb». Sotto i 760px si legge «Tran.», col
+   nome intero nel title. Le due etichette stanno tutt'e due nel markup: la scelta la fa il foglio, non il server,
+   che la larghezza dello schermo non la sa. */
+:where(.vipi-root) .sid-view .th-corto{display:none;text-decoration:none;cursor:help}
+@media (max-width:760px){:where(.vipi-root) .sid-view .th-lungo{display:none}:where(.vipi-root) .sid-view .th-corto{display:inline}}
 :where(.vipi-root) .sid-view .col-type{width:5.8%}
 :where(.vipi-root) .sid-view .col-cat{width:9.3%}
 :where(.vipi-root) .sid-view .col-wtc{width:9%}

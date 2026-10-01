@@ -3790,6 +3790,8 @@
   <data name="Services_EyeDesc" xml:space="preserve"><value>Strumento non ufficiale, realizzato dalla divisione italiana.</value></data>
   <data name="Services_AtcIvaoTitle" xml:space="preserve"><value>Prenotazioni ATC e FRA</value></data>
   <data name="Services_AtcIvaoDesc" xml:space="preserve"><value>Sito ufficiale IVAO: prenota una posizione ATC e consulta le FRA.</value></data>
+  <data name="Services_DiscordTitle" xml:space="preserve"><value>Discord di divisione</value></data>
+  <data name="Services_DiscordDesc" xml:space="preserve"><value>Accedi al Discord di divisione per dei coordinamenti più efficaci, rimanere aggiornato e conoscere gli altri utenti della nostra divisione.</value></data>
   <data name="Services_AwosDesc" xml:space="preserve"><value>Il quadro meteo di torre: vento per testata, QNH, TL, RVR e stato LVP, aggiornati dal METAR.</value></data>
   <data name="Apt_OpenAwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS di questo scalo in una scheda nuova</value></data>
   <data name="ApiKeys_Nav" xml:space="preserve"><value>Chiavi API</value></data>

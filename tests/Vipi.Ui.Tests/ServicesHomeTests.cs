@@ -128,6 +128,8 @@ public class ServicesHomeTests : TestContext
                     "/services/stats", "/services/profile-swapper", "https://the-eye.andreadalbero.it/",
                     // ⚠️ Il sito ATC di IVAO (prenotazioni e FRA) entra il 30 settembre 2026 subito dopo The Eye.
                     "https://atc.ivao.aero/",
+                    // ⚠️ Il Discord di divisione entra il 1 ottobre 2026 accanto alle prenotazioni ATC.
+                    "https://discord.ivao.it/",
                     "/services/vsop/airspace",
                     // ⚠️ Il pacchetto dell'evento entra il 30 settembre 2026 fra gli attrezzi dello staff, prima della
                     // coerenza col sectorfile (che resta ultima, per la ragione qui sopra).
@@ -234,7 +236,7 @@ public class ServicesHomeTests : TestContext
         var cut = Render(VipiRole.User);
         var esterni = cut.FindAll("a.choice.external");
 
-        Assert.Equal(2, esterni.Count);
+        Assert.Equal(3, esterni.Count);
         Assert.All(esterni, a =>
         {
             Assert.Equal("_blank", a.GetAttribute("target"));
@@ -244,6 +246,9 @@ public class ServicesHomeTests : TestContext
         Assert.Contains("Services_EyeTitle", eye.TextContent);
         var atc = esterni.First(a => a.GetAttribute("href") == "https://atc.ivao.aero/");
         Assert.Contains("Services_AtcIvaoTitle", atc.TextContent);
+        // Il terzo, dal 1 ottobre 2026: il Discord della divisione.
+        var discord = esterni.First(a => a.GetAttribute("href") == "https://discord.ivao.it/");
+        Assert.Contains("Services_DiscordTitle", discord.TextContent);
     }
 
     /// <summary>
