@@ -1971,6 +1971,17 @@
   d'aeroporto (TWR/GND/DEL) il campo sta in testata accanto alla postazione, e i risultati prendono il posto della vista
   rapida dello scalo.
   Ramo `fix/sid-ricerca`.
+- ✅ **S91** documenti uniti: ogni documento tiene la SUA regola di lingua (1-ott, committente: «se unisco un documento
+  bloccato e uno bilingue si applica solo una regola delle due», LIRP: vIPI bilingue + vSOP solo inglese). Prima la
+  lingua della pagina era della porta, e il membro ne prendeva etichette, intestazioni e prosa generata (vSOP inglese
+  con le tabelle in italiano; dal vSOP, vIPI tradotta con le intestazioni inglesi). Rimedio in due tempi: il
+  caricamento di ogni membro sta in un blocco `ReadingLanguageContext.Rendering` (dentro decide il membro, alla
+  chiusura torna la porta; tolto `fissaLaPagina`); il corpo riceve la sua lingua per cascata e i 30 componenti del
+  corpo ereditano `ComponenteDelDocumento` (`L` per cascata; `ValidityStamp` con `Scegli`). Gettone «solo in
+  inglese» anche sotto il titolo del membro. Guardia che scende dai tre corpi e rifiuta un `@inject … L`. Carta
+  `2026-09-03-documenti-uniti.md` §3. Test Ui 1944 → 1947 (3 rossi sul codice di prima). A schermo su copia del DB
+  (LIBV, vSOP bloccato in inglese): dalla vIPI in italiano il vSOP ha «Field data / pilots only / No rows»; dal
+  vSOP la vIPI ha «FREQUENZA / PISTA». Ramo `fix/lingua-unione`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

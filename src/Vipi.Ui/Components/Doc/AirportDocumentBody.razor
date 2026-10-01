@@ -18,7 +18,7 @@
    quello che voleva, la pagina disegnava sempre la stessa cosa. *@
 @using Vipi.Domain
 @using Vipi.Application.Auth
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @inject IEditAuthorizationService Authz
 
 <div lang="@Doc.Bloccata">

@@ -10,7 +10,7 @@
    La mappa è quella dell'AoR, non una nuova: la traduzione area→«settore» la fa RegulatedAreasMap, e il
    legame chip→descrizione lo tiene vipi-aor.js (setCard, scoping per data-aor come già syncCfgDetails). *@
 @using Vipi.Application.Aor
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 
 @if (Areas.Count == 0)
 {

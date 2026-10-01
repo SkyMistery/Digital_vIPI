@@ -2,7 +2,7 @@
    configurazioni, scegli i settori aperti, imposta Center Point/Range per settore unificato; il sistema deriva
    l'accorpamento (Tables). In lettura: le tabelle accorpamento in <details>. Emette l'intera lista via ConfigsChanged. *@
 @using Vipi.Application.Content
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 
 @if (Editing)
 {

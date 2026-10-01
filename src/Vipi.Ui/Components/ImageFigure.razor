@@ -1,7 +1,7 @@
 @* Resa CONDIVISA di un'immagine editoriale: viewer (BlockRenderer), anteprime read-only dei due editor e viewer
    aeroporto passano tutti di qui, così documento, editor, anteprima di release e stampa non possono divergere.
    Senza riferimento valido si mostra il segnaposto: un blocco immagine appena creato esiste prima della sua foto. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 
 @if (Media is null)
 {

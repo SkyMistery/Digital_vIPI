@@ -6,7 +6,7 @@
    vipi-aor.js, che applica lo stato allo stage 3D via `_aorSetSec` esattamente come fa col layer Leaflet.
    Niente chip «configurazione» qui: nel 3D si accendono i singoli settori. *@
 @using System.Text.Json
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @if (View.Sectors is { Count: > 0 })
 {
     <div class="aor3d-wrap aor-block" data-aor3d="@Id" data-aor="@Id">

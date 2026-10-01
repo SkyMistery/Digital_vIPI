@@ -8,7 +8,7 @@
    vincendo: è un collegamento fra la tabella e il momento, e lo si vede da `DivisionStaff` in su. La TABELLA
    invece resta per chiunque — è contenuto pubblicato. *@
 @using Vipi.Application.Content
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 
 @* ⚠️ `Minimi is null` PRIMA di tutto, e non solo insieme a «non dichiarati»: questa vista arriva anche da
    uno snapshot di release DESERIALIZZATO, e una fotografia scritta da una versione futura (o corretta a

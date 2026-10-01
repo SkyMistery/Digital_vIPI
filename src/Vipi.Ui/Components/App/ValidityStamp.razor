@@ -10,7 +10,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @using Vipi.Ui.Shared
 @inherits ScopeProprioCheAspetta
-@inject IStringLocalizer<SharedResource> L
+@inject IStringLocalizer<SharedResource> Iniettato
 
 <table class="res-table validity-stamp">
     <tbody>
@@ -62,6 +62,13 @@
 
     /// <summary>Anteprima di una release precisa; null = la release effettiva adesso.</summary>
     [Parameter] public int? ReleaseId { get; set; }
+
+    /// <summary>La lingua del documento, se è un membro di una pagina unita. ⚠️ Questo componente ha già la
+    /// sua base (lo scope proprio), quindi prende la regola da <see cref="ComponenteDelDocumento.Scegli"/>
+    /// invece di ereditarla.</summary>
+    [CascadingParameter(Name = ComponenteDelDocumento.Cascata)] public string? LinguaDelMembro { get; set; }
+
+    private IStringLocalizer<SharedResource> L => ComponenteDelDocumento.Scegli(Iniettato, LinguaDelMembro);
 
     private DocumentValidityStamp _stamp = DocumentValidityStamp.NotPublished;
 

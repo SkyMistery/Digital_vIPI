@@ -11,7 +11,7 @@
    ⚠️ Nasce VUOTA su tutti i campi finché l'aeroporto non si ri-importa da IVAO: l'import delle piste è
    per-aeroporto e non automatico. Per questo, quando non c'è niente, lo dice invece di non comparire — una
    tabella che manca si scambia per una funzione che non c'è. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @using Vipi.Application.Content
 
 @if (Righe.Count == 0)

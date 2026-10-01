@@ -5,7 +5,7 @@
    ⚠️ Una BANDIERINA e non la parola «Segnala» (committente, 30 settembre 2026): sta su ogni titolo, anche delle
    sotto-sezioni, e una parola ripetuta venti volte in una pagina è rumore. Che cos'è lo dice il `title` al
    passaggio del mouse, e l'`aria-label` a chi usa un lettore di schermo. Lo stile sta nel foglio (`.req-link`). *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 
 @if (!string.IsNullOrEmpty(Href))
 {
