@@ -1982,6 +1982,12 @@
   `2026-09-03-documenti-uniti.md` §3. Test Ui 1944 → 1947 (3 rossi sul codice di prima). A schermo su copia del DB
   (LIBV, vSOP bloccato in inglese): dalla vIPI in italiano il vSOP ha «Field data / pilots only / No rows»; dal
   vSOP la vIPI ha «FREQUENZA / PISTA». Ramo `fix/lingua-unione`.
+- ✅ **S92** editor di un documento unito: la lingua si imposta documento per documento (1-ott, committente via
+  Master, LIRP). Il pannello di pubblicazione aveva una sola riga «Lingua di pubblicazione», che scriveva sulla porta:
+  ora una riga per membro (titolo, lingua, «solo in questa lingua»), salvata per ID del documento. Documento solo:
+  invariato. Test `ReleasePanelTests` 3 (rossi sul codice di prima); Ui 1947 → 1950. A schermo su copia (editor LIBV):
+  la casella del vSOP cambia solo il vSOP, quella della vIPI solo la vIPI, e reggono al ricarico. Ramo
+  `fix/lingua-editor-unione`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

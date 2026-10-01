@@ -161,6 +161,9 @@ Ora (S91, `docs/filoni/sito.md`), due tempi e due attrezzi:
 Il gettone «solo in inglese» di un membro bloccato sta sotto il suo titolo di gruppo (quello in testata è della
 porta). Rete: `LinguaDellaPaginaUnitaTests`, con la guardia che scende dai tre corpi e rifiuta ogni componente che
 torni a `@inject … L`.
+Nell'**editor** la stessa regola (S92, 1° ottobre 2026): il pannello di pubblicazione di un documento unito ha
+**una riga «Lingua di pubblicazione» per membro**, nell'ordine dell'unione, e ognuna scrive sul suo documento
+**per ID** — vIPI e vSOP dello stesso scalo hanno la stessa chiave. Prima la riga era una, e impostava solo la porta.
 
 ⚠️ `?as=rel:{id}` nomina **una** release, quella dell'ospite: gli altri membri mostrano la **propria** release
 dello **stesso ciclo**. E il degrado di un'anteprima non autorizzata deve restare quello di oggi — pubblica
