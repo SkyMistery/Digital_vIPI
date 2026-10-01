@@ -1948,6 +1948,10 @@
 - ✅ **S87** vIPI d'aeroporto: tasto «vSOP militare» accanto a «Stampa» quando il vSOP è pubblicato (1-ott,
   committente), lo specchio del «vIPI civile» che il vSOP ha nello stesso posto. Stessa condizione della voce nella
   colonna di destra (`_haMilitare`). A schermo su LIML (c'è) e LIRN (non c'è). Ramo `fix/sid-ricerca`.
+- ✅ **S88** ricerca rapida nella vista live (1-ott, committente): chip «🔎 Cerca» per APP e ACC; trova gli scali con
+  vIPI/vSOP pubblicati di tutta la divisione (aperti nel pannello dello scalo col loro ACC) e le aree regolamentate
+  (mappa + tabella di attivazione che segue le chip). Mappe nate a larghezza 0 ora si reinquadrano. Carta
+  `docs/feature/2026-10-01-ricerca-vista-live.md`, con le prossime ricerche proposte. App 3171 → 3180. Ramo `fix/sid-ricerca`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

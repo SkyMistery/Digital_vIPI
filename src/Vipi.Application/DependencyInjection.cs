@@ -87,6 +87,8 @@ public static class DependencyInjection
         services.AddScoped<Live.ILiveStationKind, Live.AirportLiveStation>();
         services.AddScoped<Live.ILiveStationRegistry, Live.LiveStationRegistry>();
         services.AddScoped<Live.ILiveViewService, Live.LiveViewService>();
+        // La ricerca rapida della vista live: scali pubblicati di tutta la divisione e aree regolamentate (1-ott-2026).
+        services.AddScoped<Live.IRicercaLive, Live.RicercaLive>();
         // «Chi controlla l'aeroporto adesso» per le pagine fuori dalla vista live (vista rapida, viewer).
         services.AddScoped<Live.IAirportPresidencyService, Live.AirportPresidencyService>();
         // vAWOS: il quadro meteo di torre (carta 2026-09-12). Sola lettura, nessuna entità sua.

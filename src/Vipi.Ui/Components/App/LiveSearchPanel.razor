@@ -1,0 +1,180 @@
+@* LA RICERCA RAPIDA DELLA VISTA LIVE (committente, 1 ottobre 2026). Si apre dalla chip «🔎 Cerca» accanto agli scali
+   del settore, e cerca due cose:
+   - uno SCALO qualunque con vIPI o vSOP pubblicati, anche fuori dal proprio ACC («sono la NE e cerco LIPE»): lo apre
+     nello stesso pannello rapido degli scali del settore (<AirportQuickPanel>), col suo ACC;
+   - le AREE REGOLAMENTATE, tutte: una o tutte quelle trovate su una mappa, e sotto la tabella con limiti e attivazione.
+   Gli elenchi si chiedono una volta all'apertura e si filtrano in memoria (RicercaLiveFiltro): niente query a ogni tasto. *@
+@using Vipi.Application.Aor
+@using Vipi.Application.Content
+@using Vipi.Application.Live
+@using Microsoft.Extensions.DependencyInjection
+@* Scope proprio CHE ASPETTA (TerzaPortaTests): chi chiude la ricerca a query aperta non si porta via il DbContext sotto. *@
+@inherits ScopeProprioCheAspetta
+@inject IStringLocalizer<SharedResource> L
+
+<div class="block live-search">
+    @* 🔴 Niente `value="@_q"`: è la stessa regola della ricerca SID (AirportQuickPanel) — riscrivendo il valore a ogni
+       tasto il server rimanda il testo di un giro prima e i caratteri cancellati ricompaiono. Per svuotarlo si cambia
+       `@key`. *@
+    <div class="sid-find">
+        <input @key="_gen" type="search" @oninput="OnQuery" autocomplete="off" autofocus
+               placeholder="@L["Lsr_Placeholder"]" aria-label="@L["Lsr_Placeholder"]" />
+        @if (_q.Length > 0)
+        {
+            <button type="button" class="btn ghost sid-find-x" @onclick="Azzera" title="@L["Aqp_ClearSearch"]">✕</button>
+        }
+    </div>
+
+    @if (_aeroporto is { } apt)
+    {
+        <button type="button" class="btn ghost lsr-back" @onclick="Indietro">← @L["Lsr_Back"]</button>
+        <AirportQuickPanel Icao="@apt.Icao" Acc="@apt.AccCode" />
+    }
+    else if (_areeViste is { } viste)
+    {
+        <button type="button" class="btn ghost lsr-back" @onclick="Indietro">← @L["Lsr_Back"]</button>
+        @* La mappa è quella delle sezioni «Aree regolamentate» dei documenti, con le chip per accendere e spegnere; le
+           schede sotto la mappa sono spente perché qui le informazioni stanno nella tabella. *@
+        <RegulatedAreas Areas="viste" BlockKey="live-search" ShowCards="false" />
+        <div class="tbl-scroll">
+            <table class="res-table lsr-areas">
+                <thead>
+                    <tr>
+                        <th>@L["Lsr_ColType"]</th>
+                        <th>@L["Lsr_ColName"]</th>
+                        <th>@L["Lsr_ColLimits"]</th>
+                        <th>@L["Lsr_ColActivation"]</th>
+                        <th>@L["Lsr_ColDescription"]</th>
+                    </tr>
+                </thead>
+                @* Le righe seguono le chip della mappa come le schede dei documenti (vipi-aor.js, setCard): spenta l'area,
+                   sparisce la sua riga. Lo scope è quello che RegulatedAreas dà alla mappa qui sopra. *@
+                <tbody data-areacards="@RegulatedAreas.ScopeOf("live-search")">
+                    @foreach (var a in viste)
+                    {
+                        var col = SpecialAreaColorScheme.For(a.Type, a.Range);
+                        <tr data-areacard="@a.IvaoId">
+                            <td><span class="reg-dot" style="background:@(col)33;border-color:@col"></span> <b>@a.Type</b></td>
+                            <td>@a.Name @if (a.Range) { <span class="reg-wr" title="@L["Area_WeaponRangeTitle"]">@L["Area_WeaponRange"]</span> }</td>
+                            <td class="lsr-band">@AorFlBand.FeetBand(a.MinimumAlt, a.MaximumAlt)</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.ActivationDetails) ? "—" : a.ActivationDetails)</td>
+                            <td>@(string.IsNullOrWhiteSpace(a.Description) ? "—" : a.Description)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (_aeroporti is null || _aree is null)
+    {
+        <p class="muted lsr-hint">@L["Common_Loading"]</p>
+    }
+    else if (RicercaLiveFiltro.Pulito(_q).Length == 0)
+    {
+        <p class="muted lsr-hint">@L["Lsr_Hint"]</p>
+    }
+    else
+    {
+        var scali = RicercaLiveFiltro.Aeroporti(_aeroporti, _q);
+        var aree = RicercaLiveFiltro.Aree(_aree, _q);
+        @if (scali.Count == 0 && aree.Count == 0)
+        {
+            <p class="muted lsr-hint">@L["Lsr_None", _q]</p>
+        }
+        @if (scali.Count > 0)
+        {
+            <p class="lsr-h">✈️ @L["Lsr_Airports"] <span class="muted">(@scali.Count)</span></p>
+            <div class="lsr-list">
+                @foreach (var a in scali.Take(30))
+                {
+                    var scelto = a;
+                    <button type="button" class="lsr-row" @onclick="() => _aeroporto = scelto">
+                        <b>@a.Icao</b> <span>@a.Nome</span>
+                        <span class="muted lsr-acc">@a.AccCode</span>
+                        @if (a.HaVipi) { <span class="tag-state tag-covered">vIPI</span> }
+                        @if (a.HaVsop) { <span class="tag-state tag-covered">vSOP</span> }
+                    </button>
+                }
+            </div>
+        }
+        @if (aree.Count > 0)
+        {
+            <p class="lsr-h">🛑 @L["Lsr_Areas"] <span class="muted">(@aree.Count)</span>
+                @if (aree.Count > 1 && aree.Count <= RicercaLiveFiltro.MassimoAree)
+                {
+                    <button type="button" class="btn ghost lsr-all" disabled="@_carico" @onclick="() => MostraAree(aree)">@L["Lsr_ShowAll", aree.Count]</button>
+                }
+            </p>
+            @if (aree.Count > RicercaLiveFiltro.MassimoAree)
+            {
+                <p class="muted lsr-hint">@L["Lsr_TooMany", RicercaLiveFiltro.MassimoAree]</p>
+            }
+            <div class="lsr-list">
+                @foreach (var a in aree.Take(RicercaLiveFiltro.MassimoAree))
+                {
+                    var scelta = a;
+                    <button type="button" class="lsr-row" disabled="@_carico" @onclick="() => MostraAree(new[] { scelta })">
+                        @if (!string.IsNullOrWhiteSpace(a.Type)) { <b>@a.Type</b> }
+                        <span>@a.Name</span>
+                        <span class="muted lsr-acc">@AorFlBand.FeetBand(a.MinimumAlt, a.MaximumAlt)</span>
+                    </button>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private IRicercaLive Ricerca = default!;
+
+    private IReadOnlyList<LiveAeroportoTrovato>? _aeroporti;
+    private IReadOnlyList<SpecialAreaPick>? _aree;
+
+    /// <summary>Testo cercato, specchio del campo (vedi il commento sull'input).</summary>
+    private string _q = "";
+    private int _gen;
+
+    /// <summary>Lo scalo aperto, o le aree mostrate: uno dei due, o nessuno (si vedono i risultati).</summary>
+    private LiveAeroportoTrovato? _aeroporto;
+    private IReadOnlyList<AccSpecialAreaView>? _areeViste;
+    private bool _carico;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Ricerca = ScopedServices.GetRequiredService<IRicercaLive>();
+        await InFilaAsync(async () =>
+        {
+            _aeroporti = await Ricerca.AeroportiAsync();
+            _aree = await Ricerca.AreeAsync();
+        });
+    }
+
+    /// <summary>Digitare riporta ai risultati: chi cerca di nuovo non vuole restare sullo scalo di prima.</summary>
+    private void OnQuery(ChangeEventArgs e)
+    {
+        _q = e.Value?.ToString() ?? "";
+        _aeroporto = null;
+        _areeViste = null;
+    }
+
+    private void Azzera()
+    {
+        _q = "";
+        _gen++;
+        Indietro();
+    }
+
+    private void Indietro()
+    {
+        _aeroporto = null;
+        _areeViste = null;
+    }
+
+    private async Task MostraAree(IReadOnlyList<SpecialAreaPick> scelte)
+    {
+        if (_carico) return;
+        _carico = true;
+        try { _areeViste = await InFilaAsync(() => Ricerca.DettagliAreeAsync(scelte.Select(a => a.IvaoId).ToList())); }
+        finally { _carico = false; }
+    }
+}

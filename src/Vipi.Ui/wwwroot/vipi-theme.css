@@ -2088,6 +2088,19 @@
 :where(.vipi-root) .wrap.live.pw-600 .live-chain.open .lc-toggle::after{content:" ▾"}
 :where(.vipi-root) .wrap.live.pw-600 .live-chain .lc-n{display:inline;font-weight:600;opacity:.75}
 :where(.vipi-root) .wrap.live.pw-600 .live-chain:not(.open)>:not(.lc-toggle){display:none}
+/* La ricerca rapida della vista live (LiveSearchPanel, 1 ottobre 2026): risultati a righe-tasto, una tabella per le aree. */
+:where(.vipi-root) .live-search .lsr-hint{font-size:13px;margin:6px 0 0}
+:where(.vipi-root) .live-search .lsr-h{font-family:var(--font-head);font-weight:700;font-size:13px;margin:14px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+:where(.vipi-root) .live-search .lsr-all{padding:3px 10px;font-size:12.5px}
+:where(.vipi-root) .live-search .lsr-list{display:flex;flex-direction:column;gap:4px}
+:where(.vipi-root) .live-search .lsr-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;text-align:left;font:inherit;font-size:13.5px;color:var(--ink);
+  background:var(--surface-soft);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+:where(.vipi-root) .live-search .lsr-row:hover,:where(.vipi-root) .live-search .lsr-row:focus-visible{border-color:var(--ivao-lightblue)}
+:where(.vipi-root) .live-search .lsr-row b{font-family:var(--font-head);color:var(--brand-ink)}
+:where(.vipi-root) .live-search .lsr-acc{font-size:12px;margin-left:auto}
+:where(.vipi-root) .live-search .lsr-back{padding:3px 10px;font-size:12.5px;margin:2px 0 10px}
+:where(.vipi-root) .live-search .lsr-areas{margin-top:12px;font-size:13px}
+:where(.vipi-root) .live-search .lsr-band{white-space:nowrap}
 /* «Nessuna vIPI pubblicata»: chiuso, si apre sul titolo. */
 :where(.vipi-root) .callout-fold>summary{cursor:pointer;margin:0}
 :where(.vipi-root) .callout-fold[open]>summary{margin-bottom:4px}

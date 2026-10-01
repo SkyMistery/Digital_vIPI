@@ -4011,4 +4011,18 @@
   <data name="Asp_Fix_TakeFile" xml:space="preserve"><value>Prendi il file</value></data>
   <data name="Asp_Fix_TakeFileTitle" xml:space="preserve"><value>Togli la correzione e usa i valori del file nuovo</value></data>
   <data name="Asp_Fix_Acked" xml:space="preserve"><value>{0}: fatto.</value></data>
+  <data name="Lsr_Chip" xml:space="preserve"><value>Cerca</value></data>
+  <data name="Lsr_Placeholder" xml:space="preserve"><value>Cerca uno scalo (ICAO o nome) o un'area regolamentata (R14, TRA, nome…)</value></data>
+  <data name="Lsr_Hint" xml:space="preserve"><value>Scali con vIPI o vSOP pubblicati, di tutta la divisione, e aree regolamentate: scrivi almeno due caratteri, o un tipo d'area (R, D, P, TRA…).</value></data>
+  <data name="Lsr_None" xml:space="preserve"><value>Nessuno scalo e nessuna area per «{0}».</value></data>
+  <data name="Lsr_Airports" xml:space="preserve"><value>Scali</value></data>
+  <data name="Lsr_Areas" xml:space="preserve"><value>Aree regolamentate</value></data>
+  <data name="Lsr_ShowAll" xml:space="preserve"><value>Mostra tutte e {0} sulla mappa</value></data>
+  <data name="Lsr_TooMany" xml:space="preserve"><value>Più di {0} aree: restringi la ricerca per vederle sulla mappa.</value></data>
+  <data name="Lsr_Back" xml:space="preserve"><value>Risultati</value></data>
+  <data name="Lsr_ColType" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Lsr_ColName" xml:space="preserve"><value>Nome</value></data>
+  <data name="Lsr_ColLimits" xml:space="preserve"><value>Limiti</value></data>
+  <data name="Lsr_ColActivation" xml:space="preserve"><value>Attivazione</value></data>
+  <data name="Lsr_ColDescription" xml:space="preserve"><value>Descrizione</value></data>
 </root>

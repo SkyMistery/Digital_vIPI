@@ -433,6 +433,18 @@
         Object.keys(secMap).forEach(function (k) { setSec(k, true); });
         refit();
         setTimeout(function () { map.invalidateSize(); refit(); }, 60);
+        // Una mappa nata a LARGHEZZA 0 (scheda in secondo piano, riquadro non ancora disegnato) si inquadra a zoom 19 sul
+        // niente: misurato il 1 ottobre 2026 sulla ricerca della vista live, aree di S. Severa. Alla prima larghezza vera
+        // si rifà l'inquadratura, una volta sola — dopo, lo zoom è di chi guarda.
+        if (window.ResizeObserver && !el.clientWidth) {
+            var nata0 = new ResizeObserver(function () {
+                if (!el.clientWidth) return;
+                nata0.disconnect();
+                map.invalidateSize();
+                refit();
+            });
+            nata0.observe(el);
+        }
     }
 
     // ── Tabella «spazi aerei» (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md §6) ─────────────────────────────

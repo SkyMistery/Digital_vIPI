@@ -209,12 +209,15 @@
                 <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" Presidency="@PresidenzaDi(icao)" /></div>
             </details>
         }
-        else if (_view.AirportChips.Count > 0)
+        else
         {
-            @* Il titolo sulla stessa riga delle chip: da solo sopra si prendeva una riga. *@
+            @* Il titolo sulla stessa riga delle chip: da solo sopra si prendeva una riga.
+               Dal 1 ottobre 2026 la riga c'è per ogni postazione che non è d'aeroporto (APP, ACC), anche senza scali
+               propri: in coda c'è sempre «🔎 Cerca» (LiveSearchPanel), che apre uno scalo qualunque o le aree
+               regolamentate. *@
             <div class="apt-quick" style="margin-bottom:22px">
                 <span class="apt-quick-lab">@L["Live_QuickView"]</span>
-                <Chip Class="@($"ch sw {(_selectedApt is null ? "on" : "")}")" Active="_selectedApt is null" OnActivate="() => _selectedApt = null">📡 @L["Live_MySector"]</Chip>
+                <Chip Class="@($"ch sw {(_selectedApt is null && !_cerca ? "on" : "")}")" Active="_selectedApt is null && !_cerca" OnActivate="() => { _selectedApt = null; _cerca = false; }">📡 @L["Live_MySector"]</Chip>
                 @foreach (var chip in _view.AirportChips)
                 {
                     var ic = chip.Icao;
@@ -222,12 +225,17 @@
                        per cui si guarda la chip. La forma resta invariata (nessun ridisegno). *@
                     <span class="ch sw @(chip.Delegated ? "ch-deleg" : "") @(_selectedApt == ic ? "on" : "")"
                           title="@ChiPresiede(chip)"
-                          @onclick="() => _selectedApt = ic">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
+                          @onclick="() => { _selectedApt = ic; _cerca = false; }">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
                 }
+                <Chip Class="@($"ch sw ch-cerca {(_cerca ? "on" : "")}")" Active="_cerca" OnActivate="() => { _cerca = true; _selectedApt = null; }">🔎 @L["Lsr_Chip"]</Chip>
             </div>
         }
 
-        @if (_selectedApt is { } sel)
+        @if (_cerca && _view.AirportIcao is null)
+        {
+            <LiveSearchPanel />
+        }
+        else if (_selectedApt is { } sel)
         {
             <AirportQuickPanel Icao="@sel" Acc="@_view.AccCode" Presidency="@PresidenzaDi(sel)" />
         }
@@ -299,6 +307,9 @@
     private string? _requested;              // callsign chiesto ma non trovato (per distinguere i due stati vuoti)
     private string? _myCallsign;
     private string? _selectedApt;
+
+    /// <summary>La ricerca rapida è aperta (chip «🔎 Cerca»): al posto del settore e degli scali.</summary>
+    private bool _cerca;
 
     /// <summary>Enti limitrofi aperti da telefono (da schermo largo si vedono sempre).</summary>
     private bool _chainOpen;
