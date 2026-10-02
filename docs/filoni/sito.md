@@ -4,11 +4,14 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 30 settembre 2026
+## Dove siamo — 2 ottobre 2026
 
-> Tutto quel che è elencato qui sotto, fino a **S63**, è in `main` e **online** (ultima: 1.52.0, S63). Niente da
-> fondere. Prove che restano al committente: la prima correzione vera in Spazi aerei e il primo KMZ dell'AIP caricato
-> dopo (S63), il primo evento vero in `/services/event` (S59). Il vAWOS nel suo Edge (S57/S58) l'ha confermato il 30-set.
+> Tutto quel che è elencato qui sotto, fino a **S95**, è in `main` e **online** (ultima: 1.56.0, S92–S95). Niente da
+> fondere. Prove che restano al committente: i numeri delle aperture sulla pagina dell'ACC man mano che si accumulano
+> (S93); il primo evento vero con gli account dell'evento — lo staff scrive i VID in `/services/event`, un controllore
+> prova «Controlli con un account dell'evento?» (S95); la prima correzione vera in Spazi aerei e il primo KMZ dell'AIP
+> caricato dopo (S63). In attesa di assegnazione, non preso: i 45 login falliti per nonce del 1-ott, recuperati dal
+> secondo giro (§A148).
 
 - ✅ **S1** editor APP unito, «sezioni comuni» non ricarica più la pagina: fuso e **online in 1.43.0**
   (`docs/lavori-aperti.md` §S1, §A118). Al prossimo scarico di diagnostica: che non tornino gli
@@ -2017,7 +2020,7 @@
   Poi (committente): la lista dei VID si cancella da sola 7 giorni dopo la fine dell'evento, o alla data scritta dallo
   staff nella scheda (colonna `EventKits.VidSvuotaUtc`, terza migrazione additiva); pulizia `VidEventoPulizia` ogni ora.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
+  Al 2-ott: tutto fuso e online fino a S95 (1.56.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
   IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il primo evento vero in `/services/event`; in
   produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63). Resta al committente LIRE/LIBG (aspetta il
