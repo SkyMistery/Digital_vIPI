@@ -2016,6 +2016,16 @@
   `AccountEventoInUso` (seconda migrazione additiva) e all'avvio si ricarica; le voci scadute restano fuori.
   Poi (committente): la lista dei VID si cancella da sola 7 giorni dopo la fine dell'evento, o alla data scritta dallo
   staff nella scheda (colonna `EventKits.VidSvuotaUtc`, terza migrazione additiva); pulizia `VidEventoPulizia` ogni ora.
+- 🔨 **S96** tabellone partenze/arrivi, i dati (2-ott, committente). `GET /api/tabellone/{ICAO}` pubblico, senza
+  chiave, una risposta ogni 15 s uguale per tutti, nel formato concordato in `Dep_arr_board/FORMATO-DATI.md`. Fonti:
+  i piloti della lettura del whazzup che il poller fa già (`FotografiaPiloti`; al client servivano `eet`, orari del
+  piano e distanza dall'arrivo), il booking di IVAO Italia (chiave nei segreti, al più una lettura al minuto, l'ultima
+  buona tenuta), lo stand del Gate Manager dalla voce `board` del documento del ponte RFO (`boardAt` < 10'). Per scalo:
+  evento RFO, nome dell'evento, `voli` tutti/prenotati. Stati in inglese, GATE CHANGE solo su uno stand prenotato,
+  uscite con una memoria di processo (DEPARTED/LANDED), ETag e 304 fuori dal registro, CORS aperto, fuori dal login.
+  Whazzup resta a 60 s (proposta, carta §5). Nessuna migrazione, nessun `deploy/`; **codice comune**: Application
+  (`Tabellone/`, `SourcePilotFix.Plan`). Carta `2026-10-02-tabellone-partenze-arrivi.md`. App 3208 → 3247, Hosting
+  93 → 99, Infra 2083 → 2085, E2E 507 → 514. Ramo `fix/tabellone`. Da provare dal vivo con la chiave del booking.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

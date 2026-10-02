@@ -1,0 +1,23 @@
+[
+  { "id": 1, "callsign": "AZA1", "origin_icao": "LIRN", "destination_icao": "LIRF", "aircraft_icao": "A320",
+    "eobt": "2026-10-03 11:30:00", "eat": "2026-10-03 12:30:00", "gate": "509", "booked_by": 100001, "type_of_flight": "arrival" },
+  { "id": 2, "callsign": "AZA2", "origin_icao": "LIRF", "destination_icao": "LIRN", "aircraft_icao": "A320",
+    "eobt": "2026-10-03 13:15:00", "eat": null, "gate": "509", "booked_by": "100001", "type_of_flight": "departure" },
+  { "id": 3, "callsign": "RYR3", "origin_icao": "LIRF", "destination_icao": "EGSS", "aircraft_icao": "B738",
+    "eobt": "2026-10-03 12:30:00", "eat": null, "gate": "TBD", "booked_by": 100002, "type_of_flight": "departure" },
+  { "id": 4, "callsign": "DLH4", "origin_icao": "EDDF", "destination_icao": "LIRF", "aircraft_icao": "A321",
+    "eobt": "2026-10-03 12:45:00", "eat": null, "gate": "TBD", "booked_by": 100003, "type_of_flight": "departure" },
+  { "id": 5, "callsign": "EZY5", "origin_icao": "LIRF", "destination_icao": "LFPG", "aircraft_icao": "A319",
+    "eobt": "2026-10-03 11:00:00", "eat": null, "gate": "512", "booked_by": null, "type_of_flight": "departure" },
+  { "id": 6, "callsign": "BAW6", "origin_icao": "EGLL", "destination_icao": "LIRF", "aircraft_icao": "A320",
+    "eobt": "2026-10-03 10:00:00", "eat": "2026-10-03 13:00:00", "gate": "513", "booked_by": 0, "type_of_flight": "arrival" },
+  { "id": 7, "callsign": "AFR7", "origin_icao": "LFPG", "destination_icao": "LIRF", "aircraft_icao": "A320",
+    "eobt": "2026-10-03 09:00:00", "eat": "2026-10-03 10:40:00", "gate": "514", "booked_by": 100004, "type_of_flight": "arrival" },
+  { "id": 8, "callsign": "KLM8", "origin_icao": "LIRF", "destination_icao": "EHAM", "aircraft_icao": "B378",
+    "eobt": "2026-10-03 20:00:00", "eat": null, "gate": "510", "booked_by": 100005, "type_of_flight": "departure" },
+  { "id": 9, "callsign": "ITY9", "origin_icao": "LIRF", "destination_icao": "LIML", "aircraft_icao": "A20N",
+    "eobt": "2026-10-03 12:10:00", "eat": null, "gate": "511", "booked_by": 100006, "type_of_flight": "departure" },
+  { "id": 10, "callsign": "AZA10", "origin_icao": "LIRN", "destination_icao": "LIMC", "aircraft_icao": "A320",
+    "eobt": "2026-10-03 12:00:00", "eat": "2026-10-03 13:10:00", "gate": "201", "booked_by": 100007, "type_of_flight": "departure" },
+  "una voce che non è un volo"
+]

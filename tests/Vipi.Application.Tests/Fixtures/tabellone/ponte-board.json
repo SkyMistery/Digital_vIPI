@@ -1,0 +1,7 @@
+{
+  "schema": 2,
+  "pins": { "AZA1": "507" },
+  "clearances": {},
+  "board": { "arr:AZA1": "507", "dep:AZA2": "509", "dep:RYR3": "510", "arr:DLH4": "512", "dep:XXX1": "" },
+  "boardAt": "2026-10-03T11:58:00Z"
+}

@@ -68,7 +68,26 @@ public sealed record SourcePilotFix(
     long? FlightPlanId,
     string? DepIcao,
     string? ArrIcao,
-    string? AircraftIcao);
+    string? AircraftIcao,
+    SourcePilotPlan? Plan = null);
+
+/// <summary>
+/// Gli orari del piano di volo e la distanza dall'arrivo: li usa il tabellone partenze/arrivi (carta
+/// <c>docs/feature/2026-10-02-tabellone-partenze-arrivi.md</c>). Arrivano nella stessa fotografia del poller, a
+/// costo zero.
+/// </summary>
+/// <param name="ArrivalDistanceNm">NM dal campo d'arrivo, se nota.</param>
+/// <param name="EetSeconds">Durata prevista del volo, in secondi.</param>
+/// <param name="DepartureTimeSec">Partenza del piano, <b>secondi dalla mezzanotte UTC</b> (il giorno lo dà
+/// <paramref name="CreatedAt"/>).</param>
+/// <param name="ActualDepartureTimeSec">Partenza effettiva, stessa unità.</param>
+/// <param name="CreatedAt">Quando il piano è stato depositato.</param>
+public sealed record SourcePilotPlan(
+    double? ArrivalDistanceNm,
+    int? EetSeconds,
+    int? DepartureTimeSec,
+    int? ActualDepartureTimeSec,
+    DateTimeOffset? CreatedAt);
 
 /// <summary>
 /// Fotografia della rete in un istante: chi controlla e chi vola. Immutabile.

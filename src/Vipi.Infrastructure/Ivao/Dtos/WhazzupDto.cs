@@ -48,10 +48,17 @@ internal sealed record WhazzupTrackDto(
     [property: JsonPropertyName("onGround")] bool OnGround,
     [property: JsonPropertyName("state")] string? State,
     /// <summary>NM dal campo di partenza: smaschera un «On Blocks» che in realtà è arrivato.</summary>
-    [property: JsonPropertyName("departureDistance")] double? DepartureDistance);
+    [property: JsonPropertyName("departureDistance")] double? DepartureDistance,
+    /// <summary>NM dal campo d'arrivo: la stima d'arrivo del tabellone.</summary>
+    [property: JsonPropertyName("arrivalDistance")] double? ArrivalDistance = null);
 
 internal sealed record WhazzupFlightPlanDto(
     [property: JsonPropertyName("id")] long? Id,
     [property: JsonPropertyName("departureId")] string? DepartureId,
     [property: JsonPropertyName("arrivalId")] string? ArrivalId,
-    [property: JsonPropertyName("aircraftId")] string? AircraftId);
+    [property: JsonPropertyName("aircraftId")] string? AircraftId,
+    // Per il tabellone: orari in SECONDI DALLA MEZZANOTTE UTC, il giorno da createdAt; eet in secondi.
+    [property: JsonPropertyName("eet")] int? Eet = null,
+    [property: JsonPropertyName("departureTime")] int? DepartureTime = null,
+    [property: JsonPropertyName("actualDepartureTime")] int? ActualDepartureTime = null,
+    [property: JsonPropertyName("createdAt")] DateTimeOffset? CreatedAt = null);

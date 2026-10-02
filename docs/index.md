@@ -372,6 +372,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-01-account-evento.md`](feature/2026-10-01-account-evento.md) — Controllare con un account dell'evento: la vista live col VID dell'evento — carta (1° ottobre 2026)
 - [`feature/2026-10-01-aperture-documenti.md`](feature/2026-10-01-aperture-documenti.md) — Aperture dei documenti: i più letti in cima alla pagina dell'ACC — carta (1° ottobre 2026)
 - [`feature/2026-10-01-ricerca-vista-live.md`](feature/2026-10-01-ricerca-vista-live.md) — Ricerca rapida nella vista live: scali e aree regolamentate — carta (1 ottobre 2026)
+- [`feature/2026-10-02-tabellone-partenze-arrivi.md`](feature/2026-10-02-tabellone-partenze-arrivi.md) — Tabellone partenze/arrivi: l'endpoint dei dati — carta (2 ottobre 2026)
 
 ### `filoni`
 

@@ -31,7 +31,8 @@ internal sealed class AtcPollingHostedService : BackgroundService
         OnlineAtcCache cache,
         IOptions<IvaoOptions> opt,
         IHostEnvironment env,
-        ILogger<AtcPollingHostedService> log)
+        ILogger<AtcPollingHostedService> log,
+        Vipi.Application.Tabellone.FotografiaPiloti? piloti = null)
     {
         _scopes = scopes;
         _traffico = traffico;
@@ -39,7 +40,11 @@ internal sealed class AtcPollingHostedService : BackgroundService
         _opt = opt.Value;
         _env = env;
         _log = log;
+        _piloti = piloti;
     }
+
+    /// <summary>I piloti della fotografia per il tabellone partenze/arrivi (carta 2026-10-02-tabellone-partenze-arrivi.md).</summary>
+    private readonly Vipi.Application.Tabellone.FotografiaPiloti? _piloti;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -107,6 +112,10 @@ internal sealed class AtcPollingHostedService : BackgroundService
                 return;
             }
             _ultimaFotografia = snapshot.AsOf;
+
+            // Il tabellone legge i piloti da qui: una fotografia ferma (sopra) non si ripubblica, e la sua data
+            // ferma fa scattare da sola la regola dei tre minuti del tabellone.
+            _piloti?.Pubblica(snapshot.Pilots, snapshot.AsOf);
 
             // ⚠️ La cache resta della DIVISIONE. Dal 28 agosto 2026 la fotografia porta tutte le postazioni
             // del mondo (si archiviano), ma la cache è quella che accende il pallino «in frequenza», risolve i
@@ -342,6 +351,10 @@ public static class IvaoServiceCollectionExtensions
         services.AddSingleton<OnlineAtcCache>(sp => new OnlineAtcCache(TimeProvider.System,
             OnlineAtcCache.ScadenzaPer(sp.GetRequiredService<IOptions<IvaoOptions>>().Value.PollPeriod)));
         services.AddSingleton<IOnlineAtcProvider>(sp => sp.GetRequiredService<OnlineAtcCache>());
+
+        // I piloti della stessa fotografia, per il tabellone partenze/arrivi: nessuna lettura in più del whazzup.
+        Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions
+            .TryAddSingleton<Vipi.Application.Tabellone.FotografiaPiloti>(services);
 
         // Un client per porta (doc refactor 01 §4.2): ognuno inietta IvaoHttp.
         // Riepilogo ATC online (fetch grezzo, endpoint autenticato: resta come porta di servizio).

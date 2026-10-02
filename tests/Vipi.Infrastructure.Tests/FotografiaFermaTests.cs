@@ -62,7 +62,29 @@ public class FotografiaFermaTests
         Assert.Equal(T.AddHours(-3), cache.GetCurrent().AsOf);
     }
 
-    private static AtcPollingHostedService Poller(Sorgente sorgente, Politica politica, OnlineAtcCache cache)
+    /// <summary>
+    /// Il tabellone partenze/arrivi legge i piloti dalla lettura che il poller fa già (committente, 2 ottobre 2026):
+    /// una fotografia nuova si pubblica, una ferma no — e la sua data ferma spegne da sola i dati dopo tre minuti.
+    /// </summary>
+    [Fact]
+    public async Task I_piloti_vanno_al_tabellone_solo_da_una_fotografia_nuova()
+    {
+        var piloti = new Vipi.Application.Tabellone.FotografiaPiloti();
+        var poller = Poller(new Sorgente(T, T, T.AddMinutes(1)), new Politica(), new OnlineAtcCache(), piloti);
+
+        await poller.PollOnceAsync(CancellationToken.None);
+        Assert.Equal(T, piloti.Corrente.AsOf);
+        var prima = piloti.Corrente;
+
+        await poller.PollOnceAsync(CancellationToken.None);      // ferma: non si ripubblica
+        Assert.Same(prima, piloti.Corrente);
+
+        await poller.PollOnceAsync(CancellationToken.None);
+        Assert.Equal(T.AddMinutes(1), piloti.Corrente.AsOf);
+    }
+
+    private static AtcPollingHostedService Poller(Sorgente sorgente, Politica politica, OnlineAtcCache cache,
+        Vipi.Application.Tabellone.FotografiaPiloti? piloti = null)
     {
         var sp = new ServiceCollection()
             .AddSingleton<IAtcActivitySource>(sorgente)
@@ -70,7 +92,7 @@ public class FotografiaFermaTests
             .BuildServiceProvider();
         return new AtcPollingHostedService(sp.GetRequiredService<IServiceScopeFactory>(),
             new AtcTrafficRecorder(new CatalogoVuoto()), cache,
-            Options.Create(new IvaoOptions()), new Ambiente(), NullLogger<AtcPollingHostedService>.Instance);
+            Options.Create(new IvaoOptions()), new Ambiente(), NullLogger<AtcPollingHostedService>.Instance, piloti);
     }
 
     private sealed class Sorgente(params DateTimeOffset[] date) : IAtcActivitySource

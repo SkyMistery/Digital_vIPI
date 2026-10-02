@@ -88,7 +88,13 @@ public sealed class IvaoWhazzupClient : IAtcActivitySource
                 FlightPlanId: p.FlightPlan?.Id,
                 DepIcao: p.FlightPlan?.DepartureId,
                 ArrIcao: p.FlightPlan?.ArrivalId,
-                AircraftIcao: p.FlightPlan?.AircraftId))
+                AircraftIcao: p.FlightPlan?.AircraftId,
+                Plan: new SourcePilotPlan(
+                    ArrivalDistanceNm: p.LastTrack.ArrivalDistance,
+                    EetSeconds: p.FlightPlan?.Eet,
+                    DepartureTimeSec: p.FlightPlan?.DepartureTime,
+                    ActualDepartureTimeSec: p.FlightPlan?.ActualDepartureTime,
+                    CreatedAt: p.FlightPlan?.CreatedAt)))
             .ToList();
 
         // 🔴 U-131: la fotografia porta la data in cui la sorgente l'ha GENERATA. Datata all'arrivo, un whazzup fermo

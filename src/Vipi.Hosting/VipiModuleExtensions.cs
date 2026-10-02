@@ -175,6 +175,8 @@ public static class VipiModuleExtensions
         services.Configure<ApiOptions>(configuration.GetSection(ApiOptions.SectionName));
         // Ponte RFO Gate Manager: le chiavi stanno nei segreti, sezione «Rfo» (carta 2026-09-18-ponte-rfo-gate-manager.md).
         services.Configure<RfoOptions>(configuration.GetSection(RfoOptions.SectionName));
+        // Tabellone partenze/arrivi: booking + piloti del poller + stand del Gate Manager (carta 2026-10-02-tabellone-partenze-arrivi.md).
+        services.AddVipiTabellone(configuration);
         services.AddSingleton<RequestRateLimiter>();
         services.AddSingleton<GlobalTopologyCache>();
         services.AddScoped<Vipi.Application.Content.ITransferMatchService>(sp =>
@@ -504,6 +506,9 @@ public static class VipiModuleExtensions
         // Ponte fra le copie di «RFO Gate Manager» delle postazioni di un evento RFO: un documento JSON per
         // evento, con la versione. Contratto del programma, seguito alla lettera: vedi PonteRfo.
         endpoints.MapPonteRfo();
+
+        // Il tabellone partenze/arrivi di uno scalo: pubblico, senza chiave, una risposta ogni 15 s uguale per tutti.
+        endpoints.MapTabellone();
 
         // Scali, schede, SID e STAR per gli altri programmi della divisione: la vista pubblica del documento, con
         // una chiave API (carta docs/feature/2026-09-30-api-aeroporti.md).

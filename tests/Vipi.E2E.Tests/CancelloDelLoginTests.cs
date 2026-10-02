@@ -57,6 +57,7 @@ public sealed class CancelloDelLoginTests
     [InlineData("/vsop/api/v1/airports/LIRF/sids")]
     [InlineData("/vsop/api/v1/atc/sessions")]
     [InlineData("/api/rfo/events/prova/state")]
+    [InlineData("/api/tabellone/LIRF")]
     [InlineData("/Error")]
     public void Restano_aperti_la_porta_il_login_le_sonde_e_le_API_con_chiave(string percorso)
     {

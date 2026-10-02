@@ -111,6 +111,37 @@ public class WhazzupClientTests
             FlightPhases.Of(aza.OnGround, aza.GroundSpeed, aza.State, aza.DepartureDistanceNm));
     }
 
+    /// <summary>
+    /// Il tabellone partenze/arrivi (carta 2026-10-02-tabellone-partenze-arrivi.md) vuole dal piano gli orari e la
+    /// durata, e dal tracciato la distanza dall'arrivo. Forma del whazzup v2 (FORMATO-DATI §7), dati inventati.
+    /// </summary>
+    [Fact]
+    public async Task Il_piano_porta_gli_orari_per_il_tabellone()
+    {
+        const string corpo = """
+        { "clients": { "atcs": [], "pilots": [
+          { "id": 1, "userId": 100001, "callsign": "AZA1",
+            "lastTrack": { "latitude": 41.5, "longitude": 13.0, "altitude": 9000, "groundSpeed": 300,
+                           "onGround": false, "state": "Approaching", "departureDistance": 100.5, "arrivalDistance": 25.0 },
+            "flightPlan": { "id": 9, "departureId": "LIRN", "arrivalId": "LIRF", "aircraftId": "A320",
+                            "eet": 3000, "departureTime": 39600, "actualDepartureTime": 40200,
+                            "createdAt": "2026-10-03T09:00:00.000Z" } },
+          { "id": 2, "userId": 100002, "callsign": "IABCD",
+            "lastTrack": { "latitude": 41.8, "longitude": 12.2, "altitude": 10, "groundSpeed": 0,
+                           "onGround": true, "state": "Boarding" },
+            "flightPlan": { "id": 10, "departureId": "LIRF", "arrivalId": "LIRU", "aircraftId": "C172" } }
+        ] } }
+        """;
+        var snap = await Client(corpo: corpo).GetSnapshotAsync();
+
+        var aza = snap.Pilots.Single(p => p.Callsign == "AZA1");
+        Assert.Equal(new SourcePilotPlan(25.0, 3000, 39600, 40200, new DateTimeOffset(2026, 10, 3, 9, 0, 0, TimeSpan.Zero)), aza.Plan);
+
+        // Un piano senza orari non è un errore: i campi restano vuoti.
+        var privato = snap.Pilots.Single(p => p.Callsign == "IABCD");
+        Assert.Equal(new SourcePilotPlan(null, null, null, null, null), privato.Plan);
+    }
+
     private static IvaoWhazzupClient Client(string prefix = "LI", string corpo = WhazzupReale)
     {
         var opt = Options.Create(new IvaoOptions { ClientId = "" /* endpoint pubblico: nessun token */ });

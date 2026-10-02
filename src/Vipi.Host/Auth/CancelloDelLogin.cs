@@ -49,6 +49,7 @@ public static class CancelloDelLogin
         "/vsop/health", "/vsop/health/ready", "/vsop/ping",
         "/vsop/api/",                          // API per altri programmi: hanno la chiave (ApiRotte)
         "/api/rfo/",                           // ponte RFO: ha le sue chiavi
+        "/api/tabellone/",                     // tabellone partenze/arrivi: pubblico per scelta (2 ottobre 2026)
         "/Error",
         "/_framework/", "/_content/",          // asset, se mai arrivassero fin qui
     };

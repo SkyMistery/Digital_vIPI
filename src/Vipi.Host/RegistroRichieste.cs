@@ -93,7 +93,10 @@ public sealed class RegistroRichieste
     /// </summary>
     internal static bool PollingVuoto(string percorso, int esito) =>
         esito is StatusCodes.Status304NotModified or StatusCodes.Status401Unauthorized or StatusCodes.Status429TooManyRequests
-        && percorso.StartsWith(Vipi.Hosting.PonteRfo.PrefissoRotta, StringComparison.OrdinalIgnoreCase);
+        && percorso.StartsWith(Vipi.Hosting.PonteRfo.PrefissoRotta, StringComparison.OrdinalIgnoreCase)
+        // Il tabellone: ogni schermo chiede ogni 30 secondi, e il «niente di nuovo» (304) non dice niente a nessuno.
+        || esito == StatusCodes.Status304NotModified
+        && percorso.StartsWith(Vipi.Hosting.Tabellone.PrefissoRotta, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>La riga, separata dall'I/O perché si provi da sola. I tab e gli a capo nei valori diventano spazi.</summary>
     internal static string Riga(DateTime ora, int pid, string versione, string metodo, string? rotta, string percorso,
