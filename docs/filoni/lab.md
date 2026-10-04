@@ -4,7 +4,7 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## 29 settembre 2026 — lotto «Subito» in corso (slice 0-8 fatte)
+## 4 ottobre 2026 — lotto «Subito» in corso (slice 0-12 fatte)
 
 Carta approvata: [`2026-09-27-lotto-subito.md`](../feature/2026-09-27-lotto-subito.md) (20 slice in tre ondate). Fatte
 la slice 0 (misure di partenza) e la **slice 1** intera: sintassi dei tag di §M nel motore (1a), tag sui file a una
@@ -60,8 +60,17 @@ nome, «a tutta la voce»; **9d** i vincoli dei punti (`//@@`), al passaggio del
 avvicinamento passa. Tre difetti del motore trovati scrivendo, tutti di prima (testa `.str` doppia, commento in coda
 letto come RNAV, record nuovo che rubava il commento della voce dopo). Slice 9 chiusa; poi, decisione del committente,
 **la consegna agli AOD**: lo zip (eseguibile `f27d4ed4` e i `SectorFiles` del fork al commit `8cf32c6`, con le
-istruzioni) è stato preparato e provato il 29 settembre, e lo manda il committente. Test: motore **694**, Lab **765**.
-Prossima: **slice 10** (NAVAIDS e attese). Il dettaglio di ogni passo sta in §6
+istruzioni) è stato preparato e provato il 29 settembre, e lo manda il committente. **Slice 10** (NAVAIDS e attese,
+29 settembre: 10a-10c) e **slice 11** (OTHER e PREFS, 29 settembre: 11a posizioni, 11b scali e piste, 11c CPDLC, 11d
+profili `.cpr` e PAR) chiuse. **Slice 12** (terra, 4 ottobre, dopo l'allineamento a `main` 1.56.0): **12a** i controlli
+(ICAO diverso dal file, stand ripetuto o lontano, etichetta lontana dalla taxiway, tipo vuoto o sconosciuto, `.pol`
+senza `.geo`); **12b** tipo e slot degli stand nel motore e nella scheda, i metadati di stand e taxiway coi valori
+chiusi, tipo e slot proposti dai metadati; **12c** i generi dentro gli strati della mappa (assi, bordi, edifici,
+marcature; riempimenti, etichette, stand) e l'ordine di disegno nella scheda del riempimento; **12d** l'ordine di
+disegno deciso (quello del fork: la carta «file per file» I3 è corretta), le marcature di una pista che il `.rw` non
+ha, la **vista per scalo** nella linguetta «Scali» con le marcature per pista. Slice 12 chiusa, salvo i punti di
+startup (R4: dopo la prova in Aurora). Test: motore **779**, Lab **798**; albero 235 errori, 978 avvisi.
+Prossima: **slice 13** (settori e spazi: `.tfl`, `.hartcc`, `.lartcc`). Il dettaglio di ogni passo sta in §6
 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
@@ -298,6 +307,15 @@ F2 → carta [`2026-09-22-f2-motore-del-sector.md`](../feature/2026-09-22-f2-mot
   da «Rinomina».
 - 🔴 Riscrivere una linea può cambiarne il numero di segmenti: i record dopo di lei, nel suo file, slittano. Più
   scritture nello stesso file si fanno dall'ultima alla prima, e la scelta segue il suo record (8d, `liaa.geo`).
+
+- 🔴 I numeri di una carta si rimisurano prima di scrivere la regola: nella slice 12 due non si ritrovavano (43
+  poligoni con meno di 3 vertici: erano 2; 3 `.pol` senza `.geo`: nessuno) e l'ordine di disegno «deciso» lo seguivano
+  16 file su 93 — il committente ha corretto la carta, non il sector.
+- 🔴 Un albero di prova che usa i campioni del motore ha già gli scali veri (LIRF, LIBP): uno scalo inventato con le
+  stesse coordinate perde contro quello vero in ogni controllo «il più vicino» (12d: i test della vista per scalo).
+- 🔴 Il lettore dei `.rw` conta come piste solo le righe sotto `//PISTE`: un `.rw` di prova senza quell'intestazione
+  non ha piste, e il controllo che le usa tace (12d).
+- 🔴 Il banco a schermo tiene bloccate le DLL del Lab: si ferma (`Stop-Process -Name banco`) prima di ricompilare.
 
 ### Dove lavorare
 
