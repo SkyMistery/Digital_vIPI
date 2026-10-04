@@ -74,6 +74,23 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
         Assert.DoesNotContain("BC404;N039.05.11.290;E017.03.27.750;3;", Righe("NAVAIDS/APT.fix"));
     }
 
+    // Slice 13b (D4): la posizione di un settore italiano che i .frq non definiscono si vede nella scheda.
+    [Fact]
+    public async Task UnaPosizioneDelSettoreFuoriDaiFrqSiVede()
+    {
+        const string settori = "SectorFiles/Include/IT/DYNAMIC_SEC/prova13.tfl";
+        _albero.Scrivi("SectorFiles/Include/IT/OTHER/prova13.frq", "LXXX_TWR;118.100;LIRF;PREFS\\TWR.cpr;;1;;\r\nLIYY_TWR;118.700;LIRF;PREFS\\TWR.cpr;;1;;\r\n");
+        _albero.Scrivi(settori, "LIYY_TWR:LIYY_I_TWR LFMM_S_CTR;TWR;1;TWR;1;\r\nN041.00.00.000;E012.00.00.000;\r\n"
+                                + "N042.00.00.000;E012.00.00.000;\r\nN042.00.00.000;E013.00.00.000;\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        Assert.Equal(["LIYY_I_TWR"], _lab.Elenchi()!.FuoriDaiFrq("LIYY_TWR:LIYY_I_TWR LFMM_S_CTR Static"));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli(settori, 0));
+
+        pagina.WaitForAssertion(() =>
+            Assert.Contains("non è in nessun .frq", pagina.Find("[data-fuori-elenco='LIYY_I_TWR']").TextContent, StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task UnValoreFuoriElencoRestaComEESiVede()
     {

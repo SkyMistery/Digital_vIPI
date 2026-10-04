@@ -301,6 +301,12 @@ public enum Regola
     /// Slice 12d, O3.
     /// </summary>
     MarcaturaDiUnaPistaAssente,
+
+    /// <summary>
+    /// Una posizione italiana nella testa di un settore dinamico che nessun <c>.frq</c> conosce, né definita né fra i
+    /// trasferimenti: il settore non si accende mai (slice 13b, D4: <c>LIBC_TWR</c>, <c>LIRE_APP</c>… 4 sul fork).
+    /// </summary>
+    SettoreSenzaPosizione,
 }
 
 public enum Gravita
@@ -338,7 +344,8 @@ public static class Regole
             or Regola.ChiaveFuoriSezione
             or Regola.ScaloDiversoDalFile or Regola.LontanoDalloScalo or Regola.StandRipetuto
             or Regola.EtichettaLontanaDallaTaxiway or Regola.TipoSconosciuto or Regola.RiempimentoSenzaDisegno
-            or Regola.StandPiuGrandeDellaTaxiway or Regola.OrdineDiDisegno or Regola.MarcaturaDiUnaPistaAssente => Validazione.Gravita.Avviso,
+            or Regola.StandPiuGrandeDellaTaxiway or Regola.OrdineDiDisegno or Regola.MarcaturaDiUnaPistaAssente
+            or Regola.SettoreSenzaPosizione => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

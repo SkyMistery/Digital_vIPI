@@ -1589,3 +1589,17 @@ named differently».
   invariato (235 errori, 978 avvisi). Test: motore 779 → **788**, Lab 798 → **799**. A schermo (banco, fork pulito):
   `GCI.tfl` 53 record; scelto il secondo si accende la sola Sardegna (1 412 punti); l'opacità a 1 dà il diff di una
   riga `…;GCI;1;GCI;` → `…;GCI;1;GCI;1;`; il campo «Filtro» c'è.
+
+- **13b (4 ottobre)** — il settore italiano legato ai `.frq` (D4, «la cosa più importante»). Codice comune toccato:
+  `Validazione/ControlloDeiSettori.cs` e `Regola.SettoreSenzaPosizione`, chiamato da `ValidatoreDellAlbero`.
+  - **`SettoreSenzaPosizione`** (avviso — la gravità è una scelta dell'agente, da confermare): una posizione italiana
+    (`LI??_…`) della testa di un `.tfl` che nessun `.frq` conosce, né definita né fra i trasferimenti. Sulla testa del
+    settore, e dice le posizioni che lo stesso scalo ha davvero nei `.frq` (spesso il nome è solo cambiato). Le estere
+    e `Static` non si guardano.
+  - Nella scheda, sotto «Posizioni», la nota «… non è in nessun .frq — il settore non si accende» (come le piste che
+    il `.rw` non ha).
+  Uscita sul fork: **4** avvisi, i quattro della misura — `twrs.tfl:69` `LIBC_TWR` (LIBC ha `LIBC_I_TWR`),
+  `limmapp.tfl:375` `LIMF_WW0_APP` (LIMF ha `LIMF_GND`, `LIMF_TWR`, `LIMF_WN0_APP`), `twrs.tfl:2769` `LIQW_I_TWR`,
+  `lirrctr.tfl:1` `LIRE_APP`. Validatore sull'albero: 235/978 → **235 errori, 982 avvisi**. Round-trip 718/718, tutto
+  toccato 0. Test: motore 788 → **790**, Lab 799 → **800**. A schermo (banco): in alto «235 errori · 982 avvisi»;
+  `twrs.tfl` → `LIBC_TWR`: la nota sotto il campo.

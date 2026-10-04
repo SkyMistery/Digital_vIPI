@@ -200,6 +200,14 @@ public static partial class Validatore
         problemi.AddRange(ControlloDellePosizioni.Di([.. frq.Select(p => (Relativo(p), Esito(p)!.Record))],
             (relativo, riga) => TestoDellaRiga(percorsoDi[relativo], riga)));
 
+        // I settori dinamici contro i .frq (slice 13b, D4): una posizione italiana che nessun .frq conosce.
+        var tfl = indice.Values.Where(p => p.EndsWith(".tfl", StringComparison.OrdinalIgnoreCase) && Esito(p) is not null)
+            .Order(StringComparer.Ordinal).ToList();
+        var percorsoDelTfl = tfl.ToDictionary(Relativo, p => p, StringComparer.Ordinal);
+        problemi.AddRange(ControlloDeiSettori.Di([.. tfl.Select(p => (Relativo(p), Esito(p)!.Record))],
+            frq.SelectMany(p => Esito(p)!.Record.OfType<AtcPosition>()),
+            (relativo, riga) => TestoDellaRiga(percorsoDelTfl[relativo], riga)));
+
         // Il CPDLC (lotto «Subito» slice 11c): gruppi senza messaggi, messaggi senza risposta, valori, elenchi del manuale.
         var cpdlc = indice.Values.Where(p => (p.EndsWith(".cpdlc", StringComparison.OrdinalIgnoreCase)
                                               || p.EndsWith(".cpdlcnames", StringComparison.OrdinalIgnoreCase)) && Esito(p) is not null)

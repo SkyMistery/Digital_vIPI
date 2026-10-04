@@ -122,6 +122,11 @@ else if (Campo.Descrizione is { Editor: Editor.Elenco, Fonte: { } fonte })
     {
         <span class="lab-nota lab-fuori-elenco" data-citato-assente="@Campo.Nome">non c'è nell'albero</span>
     }
+    else if (fonte == FonteDellElenco.Posizioni && Lab.Elenchi()?.FuoriDaiFrq(Campo.Scritto) is { Count: > 0 } senzaFrq)
+    {
+        @* Slice 13b (D4): la posizione di un settore italiano che i .frq non definiscono. *@
+        <span class="lab-nota lab-fuori-elenco" data-fuori-elenco="@string.Join(":", senzaFrq)">@string.Join(", ", senzaFrq): non è in nessun .frq — il settore non si accende</span>
+    }
 }
 else
 {

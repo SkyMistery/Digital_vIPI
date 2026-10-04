@@ -61,6 +61,16 @@ public sealed partial class VociDegliElenchi
     /// <summary>I nominativi delle posizioni ATC, in ordine alfabetico.</summary>
     public IReadOnlyList<string> Posizioni { get; }
 
+    /// <summary>
+    /// Le posizioni italiane di una testa di settore dinamico che nessun <c>.frq</c> definisce (slice 13b, D4): il
+    /// settore non si accenderebbe mai. Separate da spazio o da due punti; le estere e <c>Static</c> non si guardano.
+    /// </summary>
+    public IReadOnlyList<string> FuoriDaiFrq(string? testa)
+        => [.. (testa ?? string.Empty).Split([' ', ':'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(p => p.Length > 5 && p.StartsWith("LI", StringComparison.OrdinalIgnoreCase) && p[4] == '_'
+                        && !Posizioni.Contains(p, StringComparer.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)];
+
     /// <summary>I nomi delle attese in rotta di <c>[HOLDENR]</c>, in ordine alfabetico (slice 10a: il campo attesa dei NAVAIDS).</summary>
     public IReadOnlyList<string> Attese { get; }
 
