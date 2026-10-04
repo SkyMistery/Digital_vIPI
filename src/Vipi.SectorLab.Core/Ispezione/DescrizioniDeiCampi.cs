@@ -470,6 +470,12 @@ public static class DescrizioniDeiCampi
             C("Number", "Nome", "Il nome dello stand, al massimo 20 caratteri."),
             Scalo(),
             Posizione(cosa: "Lo stop point dello stand."),
+            C("Type", "Tipo", "5° campo, facoltativo: quali aerei Aurora ci assegna.", Editor.TipoFisso) with
+            {
+                Valori = [Vuoto, .. Valori(("L", "leggero"), ("M", "medio"), ("H", "pesante"), ("S", "super"), ("G", "aviazione generale"))],
+            },
+            C("Slot", "Slot", "6° campo, facoltativo: filtri separati da spazi — t_A320 tipo di aereo, c_OAL prefisso del nominativo, " +
+                "d_LIRF scalo di partenza, w_ cargo ammessi (senza w_ i voli cargo non entrano). Fra generi diversi vale E, dentro lo stesso genere vale O."),
             Commentato,
         ]),
         [typeof(TaxiwayLabel)] = new("Etichetta di taxiway",

@@ -23,6 +23,10 @@ public static class ControlloDellaTerra
     private const double MetriDalloScalo = 10_000;
     private const double MetriDallaTaxiway = 100;
 
+    // «La taxiway che porta allo stand» (R6) è l'etichetta col codice più vicina, entro 300 m: scelta dell'agente — il
+    // sector non dice quale taxiway serve uno stand, e sul fork i tag `code` sono ancora zero.
+    private const double MetriDallaTaxiwayDelloStand = 300;
+
     // I tipi dei .geo che fanno da taxiway per un'etichetta: l'asse e il bordo.
     private static readonly string[] TipiDiTaxiway = ["TAXI_CENTER", "TAXIWAY"];
 
@@ -33,7 +37,8 @@ public static class ControlloDellaTerra
     /// </summary>
     public static IEnumerable<ProblemaDelSector> Di(IReadOnlyList<(string Relativo, IReadOnlyList<object> Record)> file,
                                                     IEnumerable<AirportInfo> scali, IReadOnlySet<string> coloriDefiniti,
-                                                    Func<string, int, string> testoDellaRiga)
+                                                    Func<string, int, string> testoDellaRiga,
+                                                    Func<object, IReadOnlyDictionary<string, string>?>? chiaviDi = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(scali);
@@ -50,6 +55,10 @@ public static class ControlloDellaTerra
             .GroupBy(f => Path.GetFileNameWithoutExtension(f.Relativo), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().Record, StringComparer.OrdinalIgnoreCase);
 
+        var etichette = file.Where(f => Estensione(f.Relativo) == "txi")
+            .GroupBy(f => Path.GetFileNameWithoutExtension(f.Relativo), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Record, StringComparer.OrdinalIgnoreCase);
+
         foreach (var (relativo, record) in file)
         {
             string estensione = Estensione(relativo);
@@ -59,9 +68,25 @@ public static class ControlloDellaTerra
                 case "gts" when arp.ContainsKey(delFile):
                 {
                     var visti = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                    // Le etichette di taxiway dello scalo che dicono il loro codice massimo (R6).
+                    var conCodice = (etichette.GetValueOrDefault(delFile) ?? []).OfType<TaxiwayLabel>()
+                        .Select(t => (Etichetta: t, Codice: Codice(chiaviDi?.Invoke(t)))).Where(t => t.Codice is not null).ToList();
                     foreach (var stand in record.OfType<Stand>().Where(s => !s.IsDisabled))
                     {
                         int riga = stand.Source.LineNumber;
+                        foreach (string fuori in FuoriDalManuale(stand))
+                            yield return new(Regola.ValoreFuoriElenco, relativo, riga, testoDellaRiga(relativo, riga), fuori);
+                        if (Codice(chiaviDi?.Invoke(stand)) is { } delloStand && conCodice.Count > 0)
+                        {
+                            var (vicina, dellaTaxiway) = conCodice.MinBy(t => Validatore.Metri(t.Etichetta.Position, stand.Position));
+                            double metri = Validatore.Metri(vicina.Position, stand.Position);
+                            if (metri <= MetriDallaTaxiwayDelloStand && delloStand > dellaTaxiway)
+                            {
+                                yield return new(Regola.StandPiuGrandeDellaTaxiway, relativo, riga, testoDellaRiga(relativo, riga),
+                                    $"lo stand «{stand.Number.Trim()}» è di codice {delloStand}, la taxiway «{vicina.Name.Trim()}» che ha accanto ({Tondo(metri)} m) arriva al {dellaTaxiway}");
+                            }
+                        }
+
                         if (DelloScalo(relativo, riga, "lo stand", stand.Number, stand.IcaoCode, stand.Position, delFile, arp[delFile], testoDellaRiga) is { } problema)
                             yield return problema;
                         if (!visti.TryAdd(stand.Number.Trim(), riga))
@@ -175,6 +200,24 @@ public static class ControlloDellaTerra
                 $"{cosa} «{nome.Trim()}» è a {Tondo(metri / 1000)} km dal centro di {delFile}")
             : null;
     }
+
+    // Nome, tipo e slot di uno stand contro il manuale ([GATES], «Slots for Gates»).
+    private static IEnumerable<string> FuoriDalManuale(Stand stand)
+    {
+        if (stand.Number.Trim().Length > 20)
+            yield return $"il nome dello stand ha {stand.Number.Trim().Length} caratteri: al massimo 20";
+        if (stand.Type is { } tipo && (tipo.Length != 1 || !SlotDelloStand.Tipi.Contains(char.ToUpperInvariant(tipo[0]), StringComparison.Ordinal)))
+            yield return $"tipo «{tipo}» (5° campo): si scrive L, M, H, S o G";
+        if (SlotDelloStand.Problemi(stand.Slot) is { Count: > 0 } slot)
+            yield return "slot (6° campo): " + string.Join("; ", slot);
+    }
+
+    // Il codice ICAO (A-F) scritto nel tag `code` di uno stand o di una taxiway; null se non c'è o non è una lettera A-F.
+    private static char? Codice(IReadOnlyDictionary<string, string>? chiavi)
+        => chiavi is not null && chiavi.TryGetValue("code", out string? scritto) && IO.Metadati.Testo(scritto).Trim() is { Length: 1 } lettera
+           && char.ToUpperInvariant(lettera[0]) is >= 'A' and <= 'F' and var codice
+            ? codice
+            : null;
 
     // La riga con l'ICAO del file nel 2° campo; null se la riga non ha la forma attesa.
     private static string? ConLIcao(string riga, string icao)

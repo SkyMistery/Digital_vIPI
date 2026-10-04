@@ -4,7 +4,7 @@ using Vipi.Sectorfile.Shared;
 namespace Vipi.Sectorfile.IO;
 
 /// <summary>
-/// Parses .gts stand files. One record per line: <c>Number ; ICAO ; Lat ; Lon ;</c>
+/// Parses .gts stand files. One record per line: <c>Number ; ICAO ; Lat ; Lon ; [Type] ; [Slot] ;</c>
 /// A leading <c>//</c> marks the stand disabled (TEST_MATRIX §10).
 /// </summary>
 public sealed class GtsParser : LineRecordParser<Stand>
@@ -43,6 +43,8 @@ public sealed class GtsParser : LineRecordParser<Stand>
             Number = parts[0].Trim(),
             IcaoCode = parts[1].Trim(),
             Position = position,
+            Type = n > 4 && parts[4].Trim().Length > 0 ? parts[4].Trim() : null,
+            Slot = n > 5 && parts[5].Trim().Length > 0 ? parts[5].Trim() : null,
             IsDisabled = isDisabled,
             Source = new SourceRef(source, lineNumber),
         };

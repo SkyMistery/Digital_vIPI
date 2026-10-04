@@ -234,7 +234,8 @@ public static partial class Validatore
         problemi.AddRange(ControlloDellaTerra.Di([.. terra.Select(p => (Relativo(p), Esito(p)!.Record))],
             indice.Values.Where(p => p.EndsWith(".ap", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal)
                 .SelectMany(p => Esito(p)?.Record.OfType<AirportInfo>() ?? []),
-            coloriDefiniti, (relativo, riga) => TestoDellaRiga(percorsoDellaTerra[relativo], riga)));
+            coloriDefiniti, (relativo, riga) => TestoDellaRiga(percorsoDellaTerra[relativo], riga),
+            record => terra.Select(p => Esito(p)!.Chiavi.GetValueOrDefault(record)).FirstOrDefault(c => c is not null)));
 
         // Le copie gemelle diverse (carta F3-bis §2.1): uno scalo, una pista, una posizione con un altro valore nel file
         // nazionale e in quello della FIR. Una per copia fuori posto, col valore che hanno le altre.

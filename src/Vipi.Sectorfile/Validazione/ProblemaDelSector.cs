@@ -282,6 +282,12 @@ public enum Regola
 
     /// <summary>I riempimenti (<c>.pol</c>) di uno scalo che non ha il suo <c>.geo</c> coi bordi (slice 12a, I4).</summary>
     RiempimentoSenzaDisegno,
+
+    /// <summary>
+    /// Uno stand col tag <c>code</c> più grande di quello della taxiway che ha accanto (l'etichetta col codice più
+    /// vicina, entro 300 m): l'aereo che ci sta non ci arriva (slice 12b, R6).
+    /// </summary>
+    StandPiuGrandeDellaTaxiway,
 }
 
 public enum Gravita
@@ -318,7 +324,8 @@ public static class Regole
             or Regola.ParSenzaPista or Regola.RadialeDelPar or Regola.ElevazioneDelPar or Regola.ProfiloConMolteImpostazioni
             or Regola.ChiaveFuoriSezione
             or Regola.ScaloDiversoDalFile or Regola.LontanoDalloScalo or Regola.StandRipetuto
-            or Regola.EtichettaLontanaDallaTaxiway or Regola.TipoSconosciuto or Regola.RiempimentoSenzaDisegno => Validazione.Gravita.Avviso,
+            or Regola.EtichettaLontanaDallaTaxiway or Regola.TipoSconosciuto or Regola.RiempimentoSenzaDisegno
+            or Regola.StandPiuGrandeDellaTaxiway => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

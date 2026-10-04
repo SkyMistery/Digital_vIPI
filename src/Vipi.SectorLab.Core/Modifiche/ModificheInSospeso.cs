@@ -265,6 +265,14 @@ public sealed class ModificheInSospeso
         if (!Converti(proprieta.PropertyType, valore, out object? dopo, out string? perche))
             return new ModificaRifiutata(perche!);
 
+        // Slice 12b (R2): tipo e slot di uno stand hanno i valori del manuale, e vuoti non si scrivono.
+        if (record is Stand && campo is nameof(Stand.Type) or nameof(Stand.Slot))
+        {
+            if (!PropostaDelloStand.Normalizza(campo, valore, out string? delloStand, out string? nonVa))
+                return new ModificaRifiutata(nonVa!);
+            dopo = delloStand;
+        }
+
         if (Equals(prima, dopo))
             return new ModificaRifiutata("Il valore è già questo.");
 

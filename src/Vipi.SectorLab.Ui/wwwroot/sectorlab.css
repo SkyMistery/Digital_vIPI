@@ -958,6 +958,19 @@ body.lab-trascina * {
 }
 
 /* Lotto «Subito» slice 8: la stessa forma in altri record — le copie uguali, e in giallo quelle diverse. */
+/* Slice 12b: gli slot di uno stand, un filtro per riga col suo significato accanto. */
+.lab-filtri-slot {
+    list-style: none;
+    margin: .1rem 0 .3rem;
+    padding: 0;
+}
+
+.lab-filtri-slot li {
+    display: flex;
+    gap: .4rem;
+    align-items: baseline;
+}
+
 .lab-stessa-forma ul {
     list-style: none;
     margin: .1rem 0 .3rem 1rem;

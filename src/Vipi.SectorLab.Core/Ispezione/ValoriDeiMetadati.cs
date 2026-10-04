@@ -42,6 +42,9 @@ public static partial class ValoriDeiMetadati
         ["cat"] = "ABCDE",
     };
 
+    /// <summary>I versi di pushback e senso unico (§M: <c>oneway=E</c> = solo verso est). Prima di <see cref="Scelte"/>, che li usa.</summary>
+    private static readonly string[] Rosa = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+
     /// <summary>
     /// I valori chiusi (slice 9c): la specifica di navigazione (Q2b, P11) e il tipo di avvicinamento (Q2d), come li
     /// scrive la carta «file per file». Un valore fuori elenco già nel file si vede e resta.
@@ -51,6 +54,11 @@ public static partial class ValoriDeiMetadati
         ["nav"] = ["RNAV1", "RNP1", "RNP APCH"],
         ["type"] = ["ILS", "LOC", "RNP", "VOR", "NDB"],
         ["role"] = ["IAF", "IF", "FAF", "MAPt"],
+        // Slice 12b (R2b, R6): il codice ICAO di stand e taxiway, lo stand a contatto o remoto, i versi sulla rosa.
+        ["code"] = ["A", "B", "C", "D", "E", "F"],
+        ["kind"] = ["contact", "remote"],
+        ["pushdir"] = Rosa,
+        ["oneway"] = Rosa,
     };
 
     /// <summary>L'editor di una chiave (senza il numero di pista davanti).</summary>
@@ -110,6 +118,12 @@ public static partial class ValoriDeiMetadati
 
             case "spd":
                 return Velocita(scritto, out scritto, out perche);
+
+            case "use":
+                return Usi(scritto, out scritto, out perche);
+
+            case "airlines":
+                return Compagnie(scritto, out scritto, out perche);
 
             case var _ when Scelte.TryGetValue(chiave, out var scelte):
                 string cercato = string.Join(' ', scritto.Split(' ', StringSplitOptions.RemoveEmptyEntries));
@@ -256,6 +270,43 @@ public static partial class ValoriDeiMetadati
         scritto = null;
         perche = $"«{testo}»: la velocità si scrive in nodi col segno, -210 (al più), +180 (almeno) o =230, da 60 a 400.";
         return false;
+    }
+
+    /// <summary>
+    /// Gli usi di uno stand (R2b): uno o più fra quelli di <see cref="PropostaDelloStand.Usi"/>, con la virgola, nell'ordine
+    /// dell'elenco (<c>schengen,cargo</c>).
+    /// </summary>
+    private static bool Usi(string testo, out string? scritto, out string? perche)
+    {
+        var scelti = testo.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(u => u.ToLowerInvariant()).ToList();
+        if (scelti.FirstOrDefault(u => !PropostaDelloStand.Usi.ContainsKey(u)) is { } fuori)
+        {
+            scritto = null;
+            perche = $"«{fuori}» non è un uso: {string.Join(", ", PropostaDelloStand.Usi.Keys)} (anche più d'uno, con la virgola).";
+            return false;
+        }
+
+        perche = null;
+        scritto = scelti.Count == 0 ? null : string.Join(',', PropostaDelloStand.Usi.Keys.Where(scelti.Contains));
+        return true;
+    }
+
+    /// <summary>Le compagnie abituali di uno stand (R2b): i codici ICAO a tre lettere, con la virgola (<c>ITY,RYR</c>).</summary>
+    private static bool Compagnie(string testo, out string? scritto, out string? perche)
+    {
+        var codici = testo.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(c => c.ToUpperInvariant()).Distinct(StringComparer.Ordinal).ToList();
+        if (codici.FirstOrDefault(c => c.Length != 3 || !c.All(char.IsAsciiLetter)) is { } fuori)
+        {
+            scritto = null;
+            perche = $"«{fuori}»: una compagnia si scrive col codice ICAO di tre lettere (ITY, RYR), più d'una con la virgola.";
+            return false;
+        }
+
+        perche = null;
+        scritto = codici.Count == 0 ? null : string.Join(',', codici);
+        return true;
     }
 
     /// <summary>La pendenza del sentiero di discesa (Q2d), in gradi con un decimale: <c>3.0</c>. Da 1 a 10 gradi.</summary>

@@ -29,7 +29,7 @@ public sealed record MetadatoDellaScheda(string Chiave, string Nome, string Sign
 public static class MetadatiDellaScheda
 {
     /// <summary>Le chiavi che valgono <c>si</c> o mancano.</summary>
-    private static readonly HashSet<string> ChiaviSiNo = new(StringComparer.Ordinal) { "locked", Metadati.Whole, "vfronly" };
+    private static readonly HashSet<string> ChiaviSiNo = new(StringComparer.Ordinal) { "locked", Metadati.Whole, "vfronly", "push" };
 
     /// <summary>I metadati del record, nell'ordine del catalogo; vuoto se i record del file non portano tag.</summary>
     public static IReadOnlyList<MetadatoDellaScheda> Di(FileAperto file, int indice)
@@ -165,13 +165,13 @@ public static class MetadatiDellaScheda
         ["pref"] = ("Pista preferenziale", "AD 2.20."),
         ["tailwind"] = ("Vento in coda massimo", "AD 2.20."),
         ["ats"] = ("Orario ATS", "L'orario della TWR: H24 (AD 2.3)."),
-        ["code"] = ("Codice ICAO", "La dimensione massima, A-F."),
-        ["kind"] = ("Tipo di stand", "A contatto o remoto."),
-        ["use"] = ("Uso", "Schengen, extra-Schengen, cargo, aviazione generale, militare, elicotteri."),
-        ["airlines"] = ("Compagnie", "Le compagnie abituali."),
-        ["push"] = ("Pushback", "Obbligatorio o no."),
-        ["pushdir"] = ("Verso del pushback", "Il verso."),
+        ["code"] = ("Codice ICAO", "La dimensione massima, A-F (apertura alare: A fino a 15 m, B 24, C 36, D 52, E 65, F 80)."),
+        ["kind"] = ("Tipo di stand", "contact = a contatto (col finger), remote = remoto."),
+        ["use"] = ("Uso", "Uno o più, con la virgola: schengen, nonschengen (extra-Schengen), cargo, ga (aviazione generale), mil (militare), heli (elicotteri)."),
+        ["airlines"] = ("Compagnie", "Le compagnie abituali: codici ICAO di tre lettere, con la virgola (ITY,RYR)."),
+        ["push"] = ("Pushback", "push=si: il pushback è obbligatorio."),
+        ["pushdir"] = ("Verso del pushback", "Dove guarda il muso dopo il pushback: N, NE, E, SE, S, SW, W, NW."),
         ["apron"] = ("Piazzale", "Il piazzale dello stand."),
-        ["oneway"] = ("Senso unico", "oneway=E: solo verso est."),
+        ["oneway"] = ("Senso unico", "oneway=E: solo verso est (N, NE, E, SE, S, SW, W, NW)."),
     };
 }

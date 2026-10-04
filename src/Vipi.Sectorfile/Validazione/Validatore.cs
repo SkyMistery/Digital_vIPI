@@ -36,7 +36,12 @@ public static partial class Validatore
         IReadOnlyList<ProblemaDelSector> Problemi,
         IReadOnlyList<NomeUsato> Usati,
         IReadOnlyList<NomeDichiarato> Dichiarati,
-        IReadOnlyList<object> Record);
+        IReadOnlyList<object> Record)
+    {
+        /// <summary>Le chiavi <c>//@</c> dei record che ne hanno, per i controlli fra file (stand e taxiway, slice 12b).</summary>
+        public IReadOnlyDictionary<object, IReadOnlyDictionary<string, string>> Chiavi { get; init; }
+            = new Dictionary<object, IReadOnlyDictionary<string, string>>();
+    }
 
     /// <summary>Un punto per nome, alla riga dove compare.</summary>
     internal readonly record struct NomeUsato(string Nome, int Riga, string Testo);
@@ -525,7 +530,18 @@ public static partial class Validatore
                 }
             }
 
-            return new EsitoDelFile(problemi, usati, dichiarati, letto.Records.Cast<object>().ToList());
+            // I tag di stand ed etichette di taxiway, per i controlli fra i due file (slice 12b, R6: `code`).
+            var chiavi = new Dictionary<object, IReadOnlyDictionary<string, string>>(ReferenceEqualityComparer.Instance);
+            IEnumerable<(object Record, IReadOnlyDictionary<string, string> Chiavi)> conTag = letto switch
+            {
+                ParseResult<Stand> gts => Metadati.Leggi(gts).Record.SelectMany(m => m.Records.Select(r => ((object)r, m.Chiavi))),
+                ParseResult<TaxiwayLabel> txi => Metadati.Leggi(txi).Record.SelectMany(m => m.Records.Select(r => ((object)r, m.Chiavi))),
+                _ => [],
+            };
+            foreach (var (record, sue) in conTag)
+                chiavi[record] = sue;
+
+            return new EsitoDelFile(problemi, usati, dichiarati, letto.Records.Cast<object>().ToList()) { Chiavi = chiavi };
         }
     }
 

@@ -863,6 +863,31 @@ public sealed class SessioneDelLab
         return punto is AtcPosition ? null : Rinomina.NomeGiaUsato(Sessione, Cataloghi, punto is Attesa, nuovo);
     }
 
+    /// <summary>
+    /// Tipo e slot proposti per uno stand dai suoi metadati (slice 12b, R2b: codice, uso, compagnie); null se il record
+    /// non è uno stand, se i metadati non dicono niente o se lo stand è già così.
+    /// </summary>
+    public TipoESlotProposti? PropostaDelloStandDi(string fileRelativo, int record)
+        => StandDi(fileRelativo, record) is { } stand && Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file
+            ? PropostaDelloStand.Di(stand, file.ChiaviDi(record))
+            : null;
+
+    /// <summary>Lo stand del record, o null se il record non è uno stand.</summary>
+    public Stand? StandDi(string fileRelativo, int record)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file && record >= 0 && record < file.RecordDelModello.Count
+            ? file.RecordDelModello[record] as Stand
+            : null;
+
+    /// <summary>Scrive tipo e slot proposti nello stand, in una voce sola della storia.</summary>
+    public bool ApplicaLaPropostaDelloStand(string fileRelativo, int record)
+        => PropostaDelloStandDi(fileRelativo, record) is { } proposta
+           && NellaStoria($"tipo e slot proposti di {EtichettaDi(fileRelativo, record)}", () =>
+           {
+               bool tipo = proposta.Tipo is not null && CambiaCampoAdesso(fileRelativo, record, nameof(Stand.Type), proposta.Tipo);
+               bool slot = proposta.Slot is not null && CambiaCampoAdesso(fileRelativo, record, nameof(Stand.Slot), proposta.Slot);
+               return tipo || slot;
+           });
+
     /// <summary>I metadati di §M del record, per la scheda (lotto «Subito», slice 3d); vuoto se il file non porta tag.</summary>
     public IReadOnlyList<MetadatoDellaScheda> MetadatiDi(string fileRelativo, int record)
         => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? MetadatiDellaScheda.Di(file, record) : [];

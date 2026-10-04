@@ -1,0 +1,73 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Lo stand (lotto «Subito» slice 12b, «file per file» R2, R2b): gli slot letti filtro per filtro, col loro significato, e
+    il tipo e gli slot che i metadati propongono (codice → tipo, uso cargo → w_, compagnie → c_). La proposta si scrive con
+    un clic, in una voce sola della storia; quel che lo stand ha già resta.
+*@
+@if (Lab.StandDi(File, Record) is { } stand && (stand.Slot is not null || Lab.PropostaDelloStandDi(File, Record) is not null))
+{
+    var filtri = Vipi.Sectorfile.Models.SlotDelloStand.Leggi(stand.Slot);
+    var proposta = Lab.PropostaDelloStandDi(File, Record);
+    <Sezione Chiave="scheda-stand" data-stand="@stand.Number">
+    <Titolo>Slot <span class="lab-nota">@filtri.Count</span></Titolo>
+    <ChildContent>
+    @if (filtri.Count > 0)
+    {
+        <ul class="lab-filtri-slot">
+            @foreach (var filtro in filtri)
+            {
+                <li data-filtro="@filtro"><code class="lab-chiave">@filtro</code> @Significato(filtro)</li>
+            }
+        </ul>
+        @if (!filtri.Any(f => f.Genere == 'w'))
+        {
+            <p class="lab-nota" data-senza-cargo>Senza w_ i voli cargo (RMK CARGO) non entrano in questo stand.</p>
+        }
+    }
+    @if (proposta is not null)
+    {
+        <p class="lab-proposta" data-proposta-stand="@($"{proposta.Tipo};{proposta.Slot}")">
+            <span class="lab-nota">Dai metadati (@proposta.Perche):</span>
+            @if (proposta.Tipo is not null)
+            {
+                <span>tipo <code class="lab-chiave">@proposta.Tipo</code></span>
+            }
+            @if (proposta.Slot is not null)
+            {
+                <span>slot <code class="lab-chiave">@proposta.Slot</code></span>
+            }
+            <button class="lab-tasto lab-tasto-tenue" data-applica-proposta="stand" title="Scrive tipo e slot proposti nella riga dello stand"
+                    @onclick="() => Lab.ApplicaLaPropostaDelloStand(File, Record)">Scrivi</button>
+        </p>
+    }
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    // Solo parametri primitivi: si ridisegna da sé ai cambi del Lab (la lezione della 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private static string Significato(Vipi.Sectorfile.Models.FiltroDelloSlot filtro)
+        => Significati.TryGetValue(filtro.Genere, out string? cosa) ? Testo(cosa, filtro.Valore) : "";
+
+    private static string Testo(string cosa, string valore) => valore.Length == 0 ? cosa : $"{cosa} {valore}";
+
+    private static readonly Dictionary<char, string> Significati = new()
+    {
+        ['t'] = "tipo di aereo",
+        ['c'] = "nominativo che comincia con",
+        ['d'] = "partito da",
+        ['w'] = "cargo ammessi",
+    };
+}

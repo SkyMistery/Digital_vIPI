@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»); della slice 12 il passo 12a (4 ottobre). Dopo la 9, decisione del committente (29 settembre): **consegna
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»); della slice 12 i passi 12a e 12b (4 ottobre). Dopo la 9, decisione del committente (29 settembre): **consegna
 agli AOD** per una prima prova, uno zip con l'eseguibile e il sector. Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
@@ -1449,7 +1449,33 @@ e **filtro** (6°: COAST, RUNWAY, GATES, PIER, TAXIWAY, APRON, BUILDING), che il
   **28** etichette lontane, **11** tipi sconosciuti (i 10 di `liap.geo` e `limw.pol`, che riempie con `COAST`: non è in
   `colors.def`), **0** riempimenti senza disegno. Validatore sull'albero: 235/866 → **235 errori, 911 avvisi**.
   Round-trip 718/718, tutto toccato 0. Test: motore 747 → **754**, Lab **781**.
-- **Da decidere col committente prima dei passi dopo**: l'ordine di disegno (I3: quello della carta o quello del fork);
-  le marcature (O3: cosa fare delle parti fuori pista e della 05/23 di LIBR; le strisce senza larghezza); la vista per
-  scalo (I6: dove sta nell'app); tipo e slot degli stand (R2: il motore oggi non li legge, e scriverli vuol dire
-  toccare lettore e scrittore dei `.gts`).
+- **Da decidere col committente**: l'ordine di disegno (I3: quello della carta o quello del fork); le marcature (O3:
+  cosa fare delle parti fuori pista e della 05/23 di LIBR; le strisce senza larghezza); la vista per scalo (I6: dove
+  sta nell'app). Il committente (4 ottobre): «vai, fai 12b … e a lavoro chiuso parti con 12c» — per tipo e slot degli
+  stand il lettore e lo scrittore dei `.gts` si toccano.
+- **12b (4 ottobre)** — stand e taxiway (R2, R2b, R3, R6). Codice comune toccato: `Stand.Type` e `Stand.Slot` (5° e 6°
+  campo, null se mancano), `GtsParser`/`GtsSaver` (tipo e slot solo se ci sono; uno slot senza tipo lascia il 5° campo
+  vuoto), `Models/Airport/SlotDelloStand.cs` (i filtri `t_`, `c_`, `d_`, `w_` del manuale: letti, controllati, scritti
+  in maiuscolo senza doppioni), `EsitoDelFile.Chiavi` (i tag di stand ed etichette, per i controlli fra file), in
+  `ControlloDellaTerra` nome oltre 20 caratteri, tipo fuori da L/M/H/S/G e slot scritti male (`ValoreFuoriElenco`) e
+  una regola nuova, **`StandPiuGrandeDellaTaxiway`** (avviso).
+  - 🔴 **Misura prima di offrire i campi** (lezione della 9b): tipo e slot scritti su **ogni** stand del fork (52 file,
+    1 672 stand) cambiano la riga dello stand e nient'altro — i primi quattro campi byte per byte, le altre righe
+    intatte. Il test gira sul campione `lirf.gts` e, con `SECTORLAB_ALBERO_VERO`, su tutto l'albero.
+  - Nel Lab: la scheda dello stand ha **Tipo** (elenco col significato) e **Slot** (rifiutato col perché se un filtro
+    non è del manuale; vuoti non si scrivono, e la riga torna com'era); la sezione **Slot** spiega ogni filtro e dice
+    quando manca `w_` (i cargo non entrano). I **metadati** hanno i loro valori: `code` A-F, `kind` contact/remote,
+    `use` uno o più fra schengen, nonschengen, cargo, ga, mil, heli, `airlines` codici ICAO di tre lettere, `push`
+    sì/no, `pushdir` e `oneway` sulla rosa a otto venti; per la taxiway `code` e `oneway` (R6).
+  - **Tipo e slot proposti** (R2b), scritti con un clic in una voce sola della storia: 🔴 la corrispondenza è una
+    **proposta dell'agente, da confermare** — codice A e B → L, C → M, D ed E → H, F → S; uso `ga` → G; uso `cargo` →
+    `w_`; compagnie → `c_XXX`. Gli slot che lo stand ha già restano. I filtri `t_` (tipi di aereo per codice, come
+    nell'esempio della carta `t_A320 t_B738`) **non** si propongono: serve una tabella dei tipi per codice da una fonte
+    primaria.
+  - «La taxiway che porta allo stand» (R6) è l'etichetta col `code` più vicina allo stand, entro 300 m: scelta
+    dell'agente (il sector non dice quale taxiway serve uno stand).
+  Uscita sul fork: nessun avviso nuovo (tipo scritto solo come `M` in 48 stand, slot mai, tag `code` zero). Validatore
+  sull'albero invariato, **235 errori, 911 avvisi**; round-trip 718/718, tutto toccato 0. Test: motore 754 → **770**,
+  Lab 781 → **787**. A schermo (banco, fork pulito): `limc.gts` stand 101, codice C + uso cargo + compagnia DHK →
+  «codice C → M · uso cargo → w_ · compagnie → c_DHK», «Scrivi» mette tipo M e slot `w_ c_DHK`, la sezione Slot li
+  spiega, uno slot «boh» è rifiutato col perché; annullato tutto, copia intatta.
