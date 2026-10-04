@@ -39,11 +39,19 @@ internal static class ConfigTableProjector
         {
             var open = new HashSet<string>(cfg.OpenCallsigns, OIC);
 
-            // Union dell'ownership su tutte le radici (dopo la riduzione i domini sono disgiunti).
-            var ownership = new Dictionary<string, string>(OIC);
+            // Union di chi tiene cosa su tutte le radici (dopo la riduzione i domini sono disgiunti). Si leggono le
+            // FASCE e non l'ownership a una voce: un settore diviso per quota fra due aperti va scritto sotto
+            // tutti e due, ognuno con la sua fascia — con una voce sola una metà sparirebbe dalla tabella.
+            var tenuti = new List<(string Settore, string Chi, string Voce)>();
+            var visti = new HashSet<string>(OIC);
             foreach (var root in roots)
-                foreach (var kv in aor.Resolve(topology, root, open).Ownership)
-                    ownership[kv.Key] = kv.Value;
+                foreach (var (settore, fasce) in aor.Resolve(topology, root, open).Holdings)
+                {
+                    if (!visti.Add(settore)) continue;
+                    foreach (var f in fasce)
+                        tenuti.Add((settore, f.Owner,
+                            fasce.Count == 1 ? settore : $"{settore} ({Fascia(f.BaseFeet, f.TopFeet)})"));
+                }
 
             // Ordine di apertura per callsign, precomputato (lookup O(1) nell'OrderBy invece di FindIndex O(n) per confronto).
             var openOrder = new Dictionary<string, int>(OIC);
@@ -52,13 +60,13 @@ internal static class ConfigTableProjector
                 if (!openOrder.ContainsKey(cs)) openOrder[cs] = openIdx++;
             // Il "settore unificato" è per definizione un settore APERTO: si tengono solo le righe del pool il cui
             // proprietario è nell'insieme aperto (i rami senza aperti non compaiono come unificati).
-            var rows = ownership
-                .Where(kv => pool.Contains(kv.Key) && open.Contains(kv.Value))
-                .GroupBy(kv => kv.Value, OIC)
+            var rows = tenuti
+                .Where(t => pool.Contains(t.Settore) && open.Contains(t.Chi))
+                .GroupBy(t => t.Chi, OIC)
                 .Select(g =>
                 {
                     var cp = cfg.Open.FirstOrDefault(o => string.Equals(o.Callsign, g.Key, StringComparison.OrdinalIgnoreCase));
-                    var absorbed = g.Select(kv => kv.Key).OrderBy(c => c, OIC).ToList();   // callsign, non nomi
+                    var absorbed = g.Select(t => t.Voce).OrderBy(c => c, OIC).ToList();   // callsign, non nomi
                     return new AccConfigTableRow(g.Key, absorbed, cp?.CenterPoint, cp?.Range);
                 })
                 .OrderBy(r => openOrder.TryGetValue(r.UnifiedCallsign, out var i) ? i : int.MaxValue)
@@ -91,6 +99,22 @@ internal static class ConfigTableProjector
             massime.Add(r);
         }
         return massime.Count > 0 ? massime : roots;
+    }
+
+    /// <summary>
+    /// La fascia di un settore diviso, come sta accanto al suo callsign: <c>FL325–UNL</c>, <c>SFC–2500 ft</c>.
+    ///
+    /// <para>⚠️ Senza parole di una lingua e senza separatori di cultura: la tabella finisce <b>scritta</b> nelle
+    /// release pubblicate, che si leggono in italiano e in inglese. Sotto i 10 000 piedi si scrive in piedi, sopra
+    /// in livelli di volo — la convenzione che il sito usa già per le fasce dei ripieghi.</para>
+    /// </summary>
+    internal static string Fascia(int? baseFeet, int? topFeet)
+    {
+        static string Quota(int piedi) => piedi >= 10_000
+            ? "FL" + (piedi / 100).ToString("000", System.Globalization.CultureInfo.InvariantCulture)
+            : piedi.ToString(System.Globalization.CultureInfo.InvariantCulture) + " ft";
+
+        return $"{(baseFeet is int b && b > 0 ? Quota(b) : "SFC")}–{(topFeet is int t ? Quota(t) : "UNL")}";
     }
 
     /// <summary>Deserializza una lista di configurazioni dal BodyJson d'una sezione «configurations» (vuoto/malformato = nessuna).</summary>

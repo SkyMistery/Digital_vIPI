@@ -42,6 +42,7 @@ public sealed class TopologyBuilder : ITopologyProvider
             Parent = parent,
             Rules = Array.Empty<UnificationRuleSpec>(),
             Fallbacks = await RipieghiAsync(ct),
+            Bands = await BandeAsync(ct),
         };
     }
 
@@ -76,7 +77,28 @@ public sealed class TopologyBuilder : ITopologyProvider
             Parent = parent,
             Rules = ruleSpecs,
             Fallbacks = await RipieghiAsync(ct),
+            Bands = await BandeAsync(ct),
         };
+    }
+
+    /// <summary>
+    /// La banda dichiarata di ogni settore visibile dei due cataloghi, in piedi.
+    ///
+    /// <para>⚠️ Di <b>tutti</b>, come i ripieghi: una riga può portare il cielo di un settore a un altro centro,
+    /// e la sua fascia si confronta con la banda di chi cede. ⚠️ Lo stesso callsign nei due cataloghi: vince il
+    /// primo, cioè il settore d'area — la stessa scelta di <c>EffectiveHierarchy.ParentMap</c>.</para>
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, (int? BaseFeet, int? TopFeet)>> BandeAsync(CancellationToken ct)
+    {
+        var limiti = (await _db.AccSectors.AsNoTracking().Where(x => !x.IsHidden)
+                .Select(x => new { x.ComposePosition, x.LowerLimit, x.UpperLimit }).ToListAsync(ct))
+            .Concat(await _db.AirportSectors.AsNoTracking().Where(x => !x.IsHidden)
+                .Select(x => new { x.ComposePosition, x.LowerLimit, x.UpperLimit }).ToListAsync(ct));
+
+        var bande = new Dictionary<string, (int? BaseFeet, int? TopFeet)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var l in limiti)
+            bande.TryAdd(l.ComposePosition, AorFlBand.FeetOfLimits(l.LowerLimit, l.UpperLimit));
+        return bande;
     }
 
     /// <summary>

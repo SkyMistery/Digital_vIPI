@@ -27,6 +27,17 @@ public sealed class Topology
     public IReadOnlyDictionary<string, IReadOnlyList<Content.FallbackRow>> Fallbacks { get; init; }
         = new Dictionary<string, IReadOnlyList<Content.FallbackRow>>(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// La banda verticale <b>dichiarata</b> di ogni settore, in piedi (i limiti del catalogo). Assente = non nota.
+    ///
+    /// <para>Serve a chi chiede «chi tiene il cielo di questo settore» (<see cref="Content.FallbackChain.Holders"/>):
+    /// una riga di ripiego con la fascia vale per tutto il settore o solo per una sua parte secondo dove
+    /// comincia e finisce il settore stesso. Senza, <c>LIMM_ES5_CTR</c> (FL325–UNL) con la riga «FL325–UNL →
+    /// WS5» uscirebbe diviso in due, con una metà sotto FL325 che non esiste.</para>
+    /// </summary>
+    public IReadOnlyDictionary<string, (int? BaseFeet, int? TopFeet)> Bands { get; init; }
+        = new Dictionary<string, (int? BaseFeet, int? TopFeet)>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Padre di copertura, o <c>null</c> se è una radice o non è nella topologia.</summary>
     public string? ParentOf(string callsign) => Parent.TryGetValue(callsign, out var p) ? p : null;
 

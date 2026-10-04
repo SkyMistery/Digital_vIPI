@@ -35,7 +35,7 @@ public class LiveStationPartsTests
             Flow("LIRF_APP", "LIRF_APP"));          // figlio online: se li tiene
 
         var mine = await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_APP" }, Topo());
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_APP" });
 
         Assert.Equal(2, mine.Count);
         Assert.All(mine, f => Assert.Equal("LIRR_NE_CTR", f.ResolvedOwnerCallsign));
@@ -49,7 +49,7 @@ public class LiveStationPartsTests
         var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR"));
 
         await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase), Topo());
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
 
         Assert.Contains("LIRR_NE_CTR", transfers.LastOnline!, StringComparer.OrdinalIgnoreCase);
     }
@@ -58,11 +58,11 @@ public class LiveStationPartsTests
     public async Task Non_mostra_i_punti_verso_un_mio_figlio_CHIUSO()
     {
         // Se il figlio è chiuso lo sto coprendo io: non c'è niente da passare, e il punto sparisce invece di
-        // dire «passa a te stesso».
-        var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR", next: "LIRF_APP"));
+        // dire «passa a te stesso». A deciderlo è il ricevente RISOLTO, che per un figlio chiuso sono io.
+        var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR", next: "LIRF_APP", handler: "LIRR_NE_CTR"));
 
         var mine = await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase), Topo());
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
 
         Assert.Empty(mine);
     }
@@ -73,7 +73,7 @@ public class LiveStationPartsTests
         var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR", next: "LIRF_APP"));
 
         var mine = await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_APP" }, Topo());
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_APP" });
 
         Assert.Single(mine);
         Assert.Equal("LIRF_APP", mine[0].Points[0].Point.NextSectorCallsign);
@@ -86,9 +86,35 @@ public class LiveStationPartsTests
         var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR", next: "LIMM_CTR"));
 
         var mine = await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
-            new HashSet<string>(StringComparer.OrdinalIgnoreCase), Topo());
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
 
         Assert.Single(mine);
+    }
+
+    [Fact]
+    public async Task Non_mostra_i_punti_che_tengo_io_per_una_RIGA_DI_RIPIEGO()
+    {
+        // WS5 tiene il cielo di ES5 per una riga di ripiego, non perché ES5 gli stia sotto: guardando i soli
+        // discendenti il punto restava a schermo e diceva a WS5 di passare il traffico a WS5.
+        var transfers = new FakeTransfers(Flow("LIMM_WS5_CTR", "LIMM_WS5_CTR", next: "LIMM_ES5_CTR", handler: "LIMM_WS5_CTR"));
+
+        var mine = await Parts(transfers).TransfersAsync("LIMM", "LIMM_WS5_CTR",
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+
+        Assert.Empty(mine);
+    }
+
+    [Fact]
+    public async Task Mostra_il_punto_verso_un_figlio_chiuso_che_raccoglie_un_ALTRO()
+    {
+        // La torre è chiusa ma il suo avvicinamento, che sta in mezzo, è aperto: il traffico va a lui, ed è un
+        // trasferimento vero. Prima spariva, perché la torre è un mio discendente e non è online.
+        var transfers = new FakeTransfers(Flow("LIRR_NE_CTR", "LIRR_NE_CTR", next: "LIRF_TWR", handler: "LIRF_APP"));
+
+        var mine = await Parts(transfers).TransfersAsync("LIRR", "LIRR_NE_CTR",
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LIRF_APP" });
+
+        Assert.Equal("LIRF_APP", Assert.Single(Assert.Single(mine).Points).ResolvedHandler);
     }
 
     [Fact]
@@ -119,8 +145,10 @@ public class LiveStationPartsTests
         Assert.Equal(new[] { "B" }, LiveStationParts.CoverageChain(malata, "A"));
     }
 
-    /// <summary>Flusso con un punto: <paramref name="next"/> è il settore ricevente configurato.</summary>
-    private static ResolvedTransferFlow Flow(string owning, string resolvedOwner, string next = "LIMM_CTR") => new()
+    /// <summary>Flusso con un punto: <paramref name="next"/> è il settore ricevente configurato,
+    /// <paramref name="handler"/> chi lo raccoglie davvero (di suo, il ricevente stesso).</summary>
+    private static ResolvedTransferFlow Flow(string owning, string resolvedOwner, string next = "LIMM_CTR",
+        string? handler = null) => new()
     {
         Flow = new TransferFlowRow
         {
@@ -129,17 +157,17 @@ public class LiveStationPartsTests
         },
         ResolvedOwnerCallsign = resolvedOwner,
         OwnerOnline = true,
-        Points = new[] { Point(next) },
+        Points = new[] { Point(next, handler ?? next) },
     };
 
-    private static ResolvedTransferPoint Point(string next) => new()
+    private static ResolvedTransferPoint Point(string next, string handler) => new()
     {
         Point = new TransferPointRow
         {
             Id = 1, Cop = "ABCDE", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
             LevelText = "FL240", NextSectorCallsign = next, Order = 0,
         },
-        ResolvedHandler = next,
+        ResolvedHandler = handler,
         IsOnline = true,
     };
 

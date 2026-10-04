@@ -95,44 +95,8 @@ public sealed class AgreementService : IAgreementService
             ? CoverageFallbackContext.Nessuno
             : CoverageFallbackContext.Da(topo, await _volumi.GetAllAsync(ct), online, await _punti.GetAsync(ct));
 
-        // Catena di candidati di un settore A UNA QUOTA: sé stesso, i ripieghi dichiarati che valgono lì, poi
-        // gli antenati di copertura (cross-ACC). ⚠️ La quota è quella del PUNTO, non del flusso: un flusso una
-        // quota non ce l'ha, e due punti dello stesso flusso possono ricadere su due settori diversi.
-        IReadOnlyList<string> Chain(string? callsign, int? quotaFt, Func<IReadOnlyList<string>>? rinvioQui = null) =>
-            string.IsNullOrWhiteSpace(callsign)
-                ? Array.Empty<string>()
-                : FallbackChain.Candidates(callsign, quotaFt, topo.Fallbacks, topo.ParentOf, rinvioQui);
-
-        return flows.Select(f =>
-        {
-            // Il proprietario del flusso non ha una quota da opporre: si risolve senza, cioè per soli padri.
-            var ownerHit = TransferOnlineResolver.FirstOnline(Chain(f.OwningSectorCallsign, null), online);
-            var points = f.Points.Select(p =>
-            {
-                // ⚠️ La quota è quella AL TRASFERIMENTO: su una riga che distingue i due eventi è la seconda a
-                // dire di chi è quel cielo.
-                var quota = FallbackChain.HandoffFeetOf(p);
-                CoverageFallbackResult? esito = null;
-                var (handler, isOnline) = TransferOnlineResolver.Resolve(
-                    Chain(p.NextSectorCallsign, quota, () =>
-                    {
-                        esito = rinvio.Risolvi(p.Cop, quota, f.OwningSectorCallsign, p.NextSectorCallsign);
-                        return esito.Value.AsCandidates();
-                    }), online);
-                return new ResolvedTransferPoint
-                {
-                    Point = p, ResolvedHandler = handler, IsOnline = isOnline, Coverage = esito,
-                };
-            }).ToList();
-
-            return new ResolvedTransferFlow
-            {
-                Flow = f,
-                ResolvedOwnerCallsign = ownerHit ?? f.OwningSectorCallsign,
-                OwnerOnline = ownerHit is not null,
-                Points = points,
-            };
-        }).ToList();
+        // La risoluzione è una funzione pura a parte: la stessa che usa chi PROVA un insieme di aperti.
+        return TransferResolution.Resolve(flows, topo, online, rinvio);
     }
 
     public Task<int?> FindByPairAsync(string accCode, int sectorX, int sectorY, CancellationToken ct = default) =>

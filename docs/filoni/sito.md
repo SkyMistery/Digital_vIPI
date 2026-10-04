@@ -2016,6 +2016,24 @@
   `AccountEventoInUso` (seconda migrazione additiva) e all'avvio si ricarica; le voci scadute restano fuori.
   Poi (committente): la lista dei VID si cancella da sola 7 giorni dopo la fine dell'evento, o alla data scritta dallo
   staff nella scheda (colonna `EventKits.VidSvuotaUtc`, terza migrazione additiva); pulizia `VidEventoPulizia` ogni ora.
+- 🔨 **S97** coordinamenti e struttura, cinque passi (4-ott, committente: «dobbiamo tornare a rivedere i coordinamenti e
+  la sector-structure»). Carta [`2026-10-04-copertura-unica.md`](../feature/2026-10-04-copertura-unica.md), ramo
+  `fix/copertura-unica`. Piano deciso con lui: (1) un solo motore di copertura, (2) banco di prova in Struttura,
+  (3) banco sui trasferimenti, (4) sposta sezione/clausole fra accordi + avviso «quota fuori banda», (5) sezione
+  condivisa fra più accordi (Trapani ⇄ SU per i GAT e ⇄ MIL per gli OAT; nel documento una tabella per accordo).
+  Principio: lo scritto comanda, la geometria avvisa (i trasferimenti degli APP avvengono anche un po' fuori).
+  - ✅ **Passo 1 — un solo motore di copertura.** Il difetto: a Milano «WS2+ES2+WS5» e «WS2+ES2» non uscivano giuste
+    insieme, qualunque padre si desse a ES5, perché la tabella delle configurazioni (`AorService`) risaliva i soli
+    padri e le righe di ripiego con la fascia le leggevano solo i trasferimenti, dal lato di chi riceve. Ora
+    `FallbackChain.Holders` (chi tiene un settore, fascia per fascia) la usano AoR, tabella delle configurazioni
+    (un settore diviso per quota sta sotto tutti e due gli aperti, con la fascia), chi CEDE un trasferimento (alla
+    quota di ogni punto: `TransferResolution`, pura) e il filtro «non passare a te stesso» della vista live (decide
+    il ricevente risolto, non più «è un mio discendente chiuso»). `Topology.Bands` porta le bande dei cataloghi.
+    **Codice comune** `Vipi.Application` (`Aor/`, `Content/`, `Live/`) e `Vipi.Infrastructure` (`TopologyBuilder`).
+    Niente migrazione, niente `deploy/`. A tabella dei ripieghi vuota non cambia niente (S1–S10 dell'AoR verdi
+    senza toccarli). Rossi sul codice di prima: 8. App 3208 → 3233, Infra 2083 → 2084. ▶ Le vIPI ACC vanno
+    ripubblicate per vedere la tabella giusta nel documento pubblico. Aperto: `UnificationRule` resta (zero righe,
+    nessun editor): toglierla è una migrazione che cancella una tabella, slice a parte.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

@@ -61,6 +61,14 @@ public readonly record struct FallbackStep(
     FallbackTargetKind Kind = FallbackTargetKind.Callsign, bool Automatica = false);
 
 /// <summary>
+/// Una fascia del cielo di un settore e chi la tiene adesso.
+/// </summary>
+/// <param name="BaseFeet">Piede della fascia in piedi (incluso). Null = quello del settore, non noto o da terra.</param>
+/// <param name="TopFeet">Tetto della fascia in piedi (escluso). Null = quello del settore, non noto o illimitato.</param>
+/// <param name="Holder">Chi la tiene; <c>null</c> = nessuno della catena raccoglie.</param>
+public readonly record struct FallbackHolding(int? BaseFeet, int? TopFeet, string? Holder);
+
+/// <summary>
 /// La catena di ripiego di un settore <b>a una data quota</b>: i candidati a ricevere il suo traffico, in
 /// ordine di priorità, che <c>TransferOnlineResolver</c> poi confronta con chi è online.
 ///
@@ -272,6 +280,78 @@ public static class FallbackChain
         }
 
         return passi;
+    }
+
+    /// <summary>
+    /// Chi <b>tiene il cielo</b> di un settore, fascia per fascia: la stessa catena di <see cref="Candidates"/>,
+    /// chiesta a ogni quota che il settore possiede invece che a quella di un punto.
+    ///
+    /// <para><b>Perché esiste.</b> Fino al 4 ottobre 2026 la catena la leggevano solo i trasferimenti. La mappa
+    /// AoR e la tabella delle configurazioni della vIPI risalivano i <b>soli padri</b>, e a Milano non c'era
+    /// modo di farle uscire giuste tutte e due: con ES5 sotto ES2 la configurazione «WS2 + ES2 + WS5» dava ES5 a
+    /// ES2, con ES5 sotto WS5 la configurazione «WS2 + ES2» lo dava a WS2 — e le righe con la fascia scritte in
+    /// Struttura per dirlo non le guardava nessuno. Carta
+    /// <c>docs/feature/2026-10-04-copertura-unica.md</c>.</para>
+    ///
+    /// <para>⚠️ Di solito la risposta è <b>una fascia sola</b>. Sono più d'una quando una riga dichiarata vale
+    /// solo per una parte della banda del settore: allora il settore si divide, e chi disegna deve dirlo.</para>
+    ///
+    /// <para>⚠️ I <b>rinvii</b> qui non rispondono: chiedono chi copre un <i>punto</i>, e un settore un punto
+    /// non ce l'ha. La catena prosegue sul padre, come per il proprietario di un flusso.</para>
+    /// </summary>
+    /// <param name="sector">Il settore di cui si chiede il cielo.</param>
+    /// <param name="bandBaseFeet">Piede della sua banda in piedi; null = non noto, o da terra.</param>
+    /// <param name="bandTopFeet">Tetto della sua banda in piedi; null = non noto, o illimitato.</param>
+    /// <param name="tiene">Vero se quel candidato raccoglie: è in frequenza, o è la postazione che guarda.</param>
+    public static IReadOnlyList<FallbackHolding> Holders(
+        string sector,
+        int? bandBaseFeet,
+        int? bandTopFeet,
+        IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> declared,
+        Func<string, string?> parentOf,
+        Func<string, bool> tiene)
+    {
+        if (string.IsNullOrWhiteSpace(sector)) return Array.Empty<FallbackHolding>();
+
+        // I tagli possibili: i piedi e i tetti delle righe di OGNI settore che la catena può toccare. Si
+        // prendono dalle righe e non dalle voci della camminata, che ne perde una quando due strade portano
+        // allo stesso settore.
+        var raggiunti = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { sector.Trim() };
+        foreach (var passo in Cammina(sector, declared, parentOf, _ => true, resolveCoverage: null,
+                     mostraRinviiNonRisolti: false))
+            foreach (var voce in passo)
+                raggiunti.Add(voce.TargetCallsign);
+
+        var piede = bandBaseFeet ?? 0;
+        var tagli = new SortedSet<int>();
+        foreach (var cs in raggiunti)
+            if (declared.TryGetValue(cs, out var righe))
+                foreach (var r in righe)
+                {
+                    if (r.BaseFeet is int b && b > piede && (bandTopFeet is not int t1 || b < t1)) tagli.Add(b);
+                    if (r.TopFeet is int t && t > piede && (bandTopFeet is not int t2 || t < t2)) tagli.Add(t);
+                }
+
+        // Ogni fascia si chiede al SUO piede: fra due tagli nessuna riga cambia risposta, quindi una quota vale
+        // l'altra — e una riga «FL325–UNL» su un settore che parte da FL325 vale per tutto il settore.
+        var esito = new List<FallbackHolding>();
+        var bordi = new List<int?> { bandBaseFeet };
+        foreach (var t in tagli) bordi.Add(t);
+        bordi.Add(bandTopFeet);
+
+        for (var i = 0; i + 1 < bordi.Count; i++)
+        {
+            var da = bordi[i];
+            var a = bordi[i + 1];
+
+            var chi = Candidates(sector, da ?? piede, declared, parentOf).FirstOrDefault(tiene);
+            if (esito.Count > 0 && string.Equals(esito[^1].Holder, chi, StringComparison.OrdinalIgnoreCase))
+                esito[^1] = esito[^1] with { TopFeet = a };   // stessa mano della fascia sotto: è una fascia sola
+            else
+                esito.Add(new FallbackHolding(da, a, chi));
+        }
+
+        return esito;
     }
 
     /// <summary>Quota di un punto di trasferimento in piedi. <c>FL350</c> → 35000; <c>null</c> resta null.</summary>
