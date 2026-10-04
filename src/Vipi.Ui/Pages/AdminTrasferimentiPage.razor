@@ -189,6 +189,11 @@
                 <HelpHint Href="/services/vsop/guide#accordi" AriaLabel="@L["Xfer_Proc"]">
                     @((MarkupString)L["Xfer_ProcHelp"].Value)
                 </HelpHint>
+                @* Il banco di prova sta in Struttura, perché è la struttura che si prova; da qui ci si arriva con
+                   l'ACC già scelto: «con questi aperti, i miei trasferimenti a chi vanno». Un link e non un tasto:
+                   è un'altra pagina, e si deve poter aprire in una scheda accanto. *@
+                <a class="btn ghost" href="@($"/services/vsop/admin/sector-structure?bench={Uri.EscapeDataString(_acc.Code)}#banco-di-prova")"
+                   title="@L["Xfer_BenchTitle"]">⚗ @L["Bench_Title"]</a>
                 @if (_filtering) { <button class="btn ghost" @onclick="ResetFilters">↺ @L["Xfer_Reset"]</button> }
                 <span class="ln xt-grow"></span>
                 @* I due filtri diagnostici attraversano gli accordi: in ALBERO si trova l'accordo e si apre, in

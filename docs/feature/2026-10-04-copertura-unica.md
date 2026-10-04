@@ -47,8 +47,8 @@ da sola: serve agli avvisi e al rinvio «copertura del punto», che resta una ri
 | # | Cosa | Stato |
 |---|---|---|
 | 1 | **Un solo motore di copertura**: la catena la leggono anche AoR, tabella delle configurazioni, chi cede, filtro «a te stesso» | ✅ questa carta, §4 |
-| 2 | **Banco di prova in Struttura**: scelgo chi è aperto (o una configurazione già scritta in una vIPI) e vedo chi assorbe chi, con le fasce | ▶ |
-| 3 | **Banco sui trasferimenti**: stesso scenario, tutte le clausole dell'ACC con chi cede, chi riceve e perché | ▶ |
+| 2 | **Banco di prova in Struttura**: scelgo chi è aperto (o una configurazione già scritta in una vIPI) e vedo chi assorbe chi, con le fasce | ✅ §7 |
+| 3 | **Banco sui trasferimenti**: stesso scenario, tutte le clausole dell'ACC con chi cede e chi riceve | ✅ §7 |
 | 4 | **Sposta sezione o clausole in un altro accordo**, più l'avviso «quota fuori dalla banda del settore scritto» | ▶ |
 | 5 | **Sezione condivisa** fra più accordi (Trapani ⇄ `LIRR_SU` per i GAT e Trapani ⇄ `LIRR_MIL` per gli OAT): si scrive una volta | ▶ |
 
@@ -123,4 +123,56 @@ dallo stesso albero.
   corretto), `AccProfileTests.Config_Table_Legge_le_righe_di_ripiego…` (dal database alla tabella).
 - **Rossi sul codice di prima**: riportando le tre logiche a com'erano (soli padri in AoR, cedente senza quota,
   filtro spento) cadono 8 test, e solo quelli.
-- Dal vivo: ▶ da fare su una copia del database.
+- Dal vivo: §7.
+
+## 7. Passi 2 e 3 — il banco di prova
+
+In fondo a `/services/vsop/admin/sector-structure`, sezione richiudibile **«Banco di prova»** (nasce chiusa, e da
+chiusa non legge niente). Si sceglie un ACC, si aprono e chiudono i suoi settori d'area e i suoi avvicinamenti, e
+sotto escono due tabelle:
+
+- **chi tiene cosa** — una riga per aperto, con quel che assorbe (e la fascia, se un settore si divide); in fondo
+  chi raccoglie da **fuori dall'elenco** e, se c'è, quel che non raccoglie **nessuno**;
+- **i trasferimenti dell'ACC** con quegli aperti — cedente scritto e cedente vero, ricevente scritto e ricevente
+  vero, evidenziato dove non coincidono; di suo mostra solo i punti che **cambiano mano**.
+
+Dalla pagina Trasferimenti il link «⚗ Banco di prova» ci porta con l'ACC già scelto (`?bench=LIMM`).
+
+### Le scelte
+
+- ⚠️ **Non ha un motore suo.** `CoverageBenchService` chiama `FallbackChain.Holders` e
+  `IAgreementService.ResolveForAccAsync` con l'insieme di aperti dello scenario: le stesse due porte della mappa
+  AoR, della tabella delle configurazioni e della vista live. Un banco che calcolasse per conto suo proverebbe
+  un'altra cosa.
+- ⚠️ **Tutto ciò che è fuori dall'elenco si considera aperto** (altri centri, torri). La domanda è «come si divide
+  il mio cielo»: coi vicini chiusi ogni trasferimento verso fuori finirebbe su UNICOM e coprirebbe le sole
+  differenze che si vogliono vedere.
+- ⚠️ **Non scrive niente**, quindi non chiede il lock della struttura. Usa la struttura **salvata**.
+- ⚠️ **Gli scenari pronti sono le configurazioni della vIPI PUBBLICATA**, non della bozza: la porta della bozza
+  (`LoadForEditAsync`) garantisce il documento, cioè può scrivere. Chi sta ancora scrivendo una configurazione la
+  prova nell'editor della vIPI, dove la tabella si deriva dal vivo — e da questo giro, giusta.
+- Le letture passano dalla **fila della pagina** (`InFila`): il servizio è scoped come gli altri della pagina.
+- Si parte da **tutti aperti**: ognuno tiene il suo, e chiudendone uno si vede chi lo raccoglie.
+
+### Verifica
+
+- Test: `CoverageBenchTests` (8, il cuore puro), `StructureBenchTests` (7, il componente con un servizio finto).
+- **Dal vivo — 4 ottobre 2026**, host di sviluppo su un database **nuovo e inventato** (nessuna copia di dati
+  veri): struttura di Milano com'è in produzione (ES5 sotto ES2, riga «ES5, FL325–UNL → WS5»), un centro vicino e
+  un accordo ES5 → `LIPP_CE1_CTR` con due clausole (`ALTOP` a FL350, `BASSO` «as coordinated»).
+
+  | Aperti | Chi tiene cosa | Trasferimenti |
+  |---|---|---|
+  | tutti | ognuno il suo | 2 punti, 0 cambiano mano |
+  | WS2, ES2, WS5 | WS5 tiene ES5 | `ALTOP` lo cede **WS5**, `BASSO` lo cede **ES2** |
+  | WS2, ES2 | ES2 tiene ES5, WS2 tiene WS5 | tutti e due li cede **ES2** |
+  | nessuno | «Nobody (UNICOM)»: tutti e quattro | — |
+
+  ⚠️ La seconda riga è il banco che fa il suo mestiere: `BASSO` **non ha una quota**, quindi la riga con la fascia
+  non si può valutare e il punto resta al padre. Non è un difetto: è quel che succede davvero, e adesso si vede
+  prima che succeda. Guardato anche in Edge (tema scuro, pagina inglese): zero errori in console, zero risposte
+  ≥ 400; il link dai Trasferimenti porta `?bench=LIMM`.
+- 🔴 **Trovato per strada, non di questo giro**: su un database dove un import di catalogo non è **mai** riuscito
+  la pagina Struttura risponde 500 — `ImportStates.LastSuccessUtc` vale `0001-01-01`, `GetLastSuccessAsync` la
+  rende come data vera e `SogliaTimbro.Calcola` le toglie un giorno. Segnalato a parte; in produzione gli import
+  sono riusciti e il caso non si presenta.

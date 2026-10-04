@@ -4050,4 +4050,32 @@
   <data name="Lsr_FeedOld" xml:space="preserve"><value>(online data not up to date)</value></data>
   <data name="Lsr_Indexing" xml:space="preserve"><value>Still reading procedures and transfers: those results will follow shortly.</value></data>
   <data name="Aqp_NoDoc" xml:space="preserve"><value>No published document for {0}.</value></data>
+  <data name="Bench_Title" xml:space="preserve"><value>Test bench</value></data>
+  <data name="Bench_Intro" xml:space="preserve"><value>Pick an ACC and who is open: below, who holds the sky of the closed sectors and where the transfers go. It uses the saved structure. Everything outside the list (other centres, towers) counts as open. The bench writes nothing.</value></data>
+  <data name="Bench_Acc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Bench_PickAcc" xml:space="preserve"><value>— pick an ACC —</value></data>
+  <data name="Bench_AllOpen" xml:space="preserve"><value>All open</value></data>
+  <data name="Bench_AllClosed" xml:space="preserve"><value>All closed</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurations published in the vIPI</value></data>
+  <data name="Bench_NoPresets" xml:space="preserve"><value>No configuration in this ACC&apos;s published vIPI: open and close the sectors by hand.</value></data>
+  <data name="Bench_Area" xml:space="preserve"><value>Open area sectors</value></data>
+  <data name="Bench_App" xml:space="preserve"><value>Open approaches</value></data>
+  <data name="Bench_ColOpen" xml:space="preserve"><value>Open</value></data>
+  <data name="Bench_ColHolds" xml:space="preserve"><value>Also holds</value></data>
+  <data name="Bench_Outside" xml:space="preserve"><value>outside the list</value></data>
+  <data name="Bench_Nobody" xml:space="preserve"><value>Nobody (UNICOM)</value></data>
+  <data name="Bench_NothingOpen" xml:space="preserve"><value>No sector is open and nobody outside the list picks up.</value></data>
+  <data name="Bench_Transfers" xml:space="preserve"><value>The ACC&apos;s transfers with these open</value></data>
+  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} points, {1} change hands</value></data>
+  <data name="Bench_OnlyChanged" xml:space="preserve"><value>Only those that change hands</value></data>
+  <data name="Bench_NoTransfers" xml:space="preserve"><value>No transfer to show: with these open every point stays with the written unit.</value></data>
+  <data name="Bench_ColFlow" xml:space="preserve"><value>Flow</value></data>
+  <data name="Bench_ColWrittenFrom" xml:space="preserve"><value>Written sender</value></data>
+  <data name="Bench_ColFrom" xml:space="preserve"><value>Hands over</value></data>
+  <data name="Bench_ColPoint" xml:space="preserve"><value>Point</value></data>
+  <data name="Bench_ColLevel" xml:space="preserve"><value>Level</value></data>
+  <data name="Bench_ColWrittenTo" xml:space="preserve"><value>Written receiver</value></data>
+  <data name="Bench_ColTo" xml:space="preserve"><value>Receives</value></data>
+  <data name="Bench_ByCoverage" xml:space="preserve"><value>point coverage</value></data>
+  <data name="Xfer_BenchTitle" xml:space="preserve"><value>With these sectors open, where this ACC&apos;s transfers go: opens the test bench in Structure</value></data>
 </root>

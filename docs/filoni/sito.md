@@ -2034,6 +2034,19 @@
     senza toccarli). Rossi sul codice di prima: 8. App 3208 → 3233, Infra 2083 → 2084. ▶ Le vIPI ACC vanno
     ripubblicate per vedere la tabella giusta nel documento pubblico. Aperto: `UnificationRule` resta (zero righe,
     nessun editor): toglierla è una migrazione che cancella una tabella, slice a parte.
+  - ✅ **Passi 2 e 3 — il banco di prova.** In fondo a Struttura, sezione «Banco di prova» (chiusa di suo): scelto
+    un ACC si aprono e chiudono settori d'area e avvicinamenti, e sotto escono «chi tiene cosa» (con la fascia se
+    un settore si divide; chi raccoglie da fuori; quel che non raccoglie nessuno) e i trasferimenti dell'ACC con
+    cedente e ricevente veri, evidenziati dove non sono quelli scritti. Non ha un motore suo
+    (`CoverageBenchService` → `FallbackChain.Holders` + `ResolveForAccAsync`), non scrive, non chiede il lock;
+    fuori dall'elenco tutto è aperto; scenari pronti = configurazioni della vIPI pubblicata. Link «⚗ Banco di
+    prova» dai Trasferimenti (`?bench=<ACC>`). Guida `#struttura` (IT/EN): la catena di ripiego — che non c'era
+    scritta — e il banco. **Codice comune** `Vipi.Application` (`Content/CoverageBench.cs`, DI). App 3233 → 3241,
+    Ui 1962 → 1969. A schermo su un database nuovo e inventato (struttura di Milano, un accordo ES5 → LIPP): le
+    due configurazioni escono giuste; con ES5 chiuso e WS5 aperto il punto a FL350 lo cede WS5 e quello «as
+    coordinated» lo cede ES2 (senza quota la riga con la fascia non si valuta). 🔴 Per strada: Struttura dà 500 se
+    un import non è mai riuscito (`SogliaTimbro`, data 0001-01-01) — segnalato a parte, non corretto qui.
+  - ▶ Restano i passi 4 (sposta sezione/clausole fra accordi + avviso «quota fuori banda») e 5 (sezione condivisa).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

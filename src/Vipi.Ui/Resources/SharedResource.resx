@@ -4058,4 +4058,32 @@
   <data name="Lsr_FeedOld" xml:space="preserve"><value>(dato degli online non aggiornato)</value></data>
   <data name="Lsr_Indexing" xml:space="preserve"><value>Sto ancora leggendo procedure e trasferimenti: tra poco anche quei risultati.</value></data>
   <data name="Aqp_NoDoc" xml:space="preserve"><value>Nessun documento pubblicato per {0}.</value></data>
+  <data name="Bench_Title" xml:space="preserve"><value>Banco di prova</value></data>
+  <data name="Bench_Intro" xml:space="preserve"><value>Scegli un ACC e chi è aperto: qui sotto chi tiene il cielo dei settori chiusi, e a chi vanno i trasferimenti. Si usa la struttura salvata. Tutto ciò che sta fuori dall&apos;elenco (altri centri, torri) si considera aperto. Il banco non scrive niente.</value></data>
+  <data name="Bench_Acc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Bench_PickAcc" xml:space="preserve"><value>— scegli un ACC —</value></data>
+  <data name="Bench_AllOpen" xml:space="preserve"><value>Tutti aperti</value></data>
+  <data name="Bench_AllClosed" xml:space="preserve"><value>Tutti chiusi</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurazioni pubblicate nella vIPI</value></data>
+  <data name="Bench_NoPresets" xml:space="preserve"><value>Nessuna configurazione nella vIPI pubblicata di questo ACC: apri e chiudi i settori a mano.</value></data>
+  <data name="Bench_Area" xml:space="preserve"><value>Settori d&apos;area aperti</value></data>
+  <data name="Bench_App" xml:space="preserve"><value>Avvicinamenti aperti</value></data>
+  <data name="Bench_ColOpen" xml:space="preserve"><value>Aperto</value></data>
+  <data name="Bench_ColHolds" xml:space="preserve"><value>Tiene anche</value></data>
+  <data name="Bench_Outside" xml:space="preserve"><value>fuori dall&apos;elenco</value></data>
+  <data name="Bench_Nobody" xml:space="preserve"><value>Nessuno (UNICOM)</value></data>
+  <data name="Bench_NothingOpen" xml:space="preserve"><value>Nessun settore aperto e nessuno fuori dall&apos;elenco che raccolga.</value></data>
+  <data name="Bench_Transfers" xml:space="preserve"><value>Trasferimenti dell&apos;ACC con questi aperti</value></data>
+  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} punti, {1} cambiano mano</value></data>
+  <data name="Bench_OnlyChanged" xml:space="preserve"><value>Solo quelli che cambiano mano</value></data>
+  <data name="Bench_NoTransfers" xml:space="preserve"><value>Nessun trasferimento da mostrare: con questi aperti ogni punto resta a chi è scritto.</value></data>
+  <data name="Bench_ColFlow" xml:space="preserve"><value>Flusso</value></data>
+  <data name="Bench_ColWrittenFrom" xml:space="preserve"><value>Cedente scritto</value></data>
+  <data name="Bench_ColFrom" xml:space="preserve"><value>Cede</value></data>
+  <data name="Bench_ColPoint" xml:space="preserve"><value>Punto</value></data>
+  <data name="Bench_ColLevel" xml:space="preserve"><value>Livello</value></data>
+  <data name="Bench_ColWrittenTo" xml:space="preserve"><value>Ricevente scritto</value></data>
+  <data name="Bench_ColTo" xml:space="preserve"><value>Riceve</value></data>
+  <data name="Bench_ByCoverage" xml:space="preserve"><value>copertura del punto</value></data>
+  <data name="Xfer_BenchTitle" xml:space="preserve"><value>Con questi settori aperti, i trasferimenti di questo ACC a chi vanno: apre il banco di prova in Struttura</value></data>
 </root>

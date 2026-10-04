@@ -1239,7 +1239,7 @@
                unico</b> di tutta la divisione, anche fra ACC diversi: <b>Aeroporto → APP → settore ACC</b>.
                L'aeroporto è la <b>foglia</b> (DEL/GND/TWR condividono la sua vista rapida): quando un ente è
                chiuso, la vista live risale questa catena fino al primo online, altrimenti UNICOM.</p>
-              <p>Qui si imposta <b>soltanto il padre</b> di ogni nodo — il fallback immediato. Settori e
+              <p>Qui si imposta il <b>padre</b> di ogni nodo — il fallback immediato — e la sua catena di ripiego. Settori e
                aeroporti si <b>importano</b> dalle loro pagine (<code>/admin/acc</code>,
                <code>/admin/airports</code>): quello che si vede qui è la proiezione dei cataloghi.</p>
               <ul>
@@ -1289,13 +1289,27 @@
                gruppo APP. La vIPI APP resta pubblica finché la vIPI dell'ACC col gruppo non va in vigore; allora si
                nasconde da sola (la sua storia resta) e il suo indirizzo porta alla vIPI dell'ACC. Quello che si scrive
                nella vIPI APP dopo la copia non viene copiato.</p>
+              <p>Un padre solo non basta quando due settori <b>si sostituiscono a vicenda per quota</b>. Per questo ogni
+               settore ha anche una <b>catena di ripiego</b> (nel pannello di dettaglio): righe «da quota a quota →
+               settore» che si guardano <b>prima</b> del padre. Chiuso un settore, il suo cielo va al primo aperto:
+               si cerca fra le sue righe che valgono a quella quota, poi nel padre, e così a salire. Esempio, Milano:
+               <code>LIMM_ES5_CTR</code> ha per padre <code>LIMM_ES2_CTR</code> e la riga «FL325–UNL →
+               <code>LIMM_WS5_CTR</code>»: chiuso ES5, sopra FL325 lo tiene WS5 se è aperto, altrimenti ES2. La stessa
+               catena decide i trasferimenti della vista live (chi cede e chi riceve), la mappa AoR e la tabella
+               delle <b>configurazioni</b> della vIPI: se una configurazione esce sbagliata, è qui che si corregge.</p>
+              <p>In fondo alla pagina il <b>banco di prova</b> risponde a «con questi aperti, chi tiene cosa». Si
+               sceglie un ACC, si aprono e si chiudono i settori (o si parte da una configurazione pubblicata nella
+               vIPI) e la tabella dice chi raccoglie ogni settore chiuso, con la fascia se il settore si divide fra
+               due; sotto, i trasferimenti dell'ACC che con quegli aperti cambiano mano. Usa la struttura salvata,
+               non scrive niente — funziona anche senza il lock — e considera aperto tutto ciò che è fuori
+               dall'elenco (altri centri, torri).</p>
               <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta, Accordi di
                coordinamento compresi.</p>",
             @"<p>The <b>Structure</b> page (<code>/services/vsop/admin/sector-structure</code>) holds the <b>single fallback
                tree</b> for the whole division, across ACCs too: <b>Airport → APP → ACC sector</b>. The airport is
                the <b>leaf</b> (DEL/GND/TWR share its quick view): when a unit is closed, the live view climbs this
                chain up to the first online one, otherwise UNICOM.</p>
-              <p>Here you set <b>only the parent</b> of each node — the immediate fallback. Sectors and airports are
+              <p>Here you set the <b>parent</b> of each node — the immediate fallback — and its fallback chain. Sectors and airports are
                <b>imported</b> from their own pages (<code>/admin/acc</code>, <code>/admin/airports</code>): what you
                see here is the projection of those catalogues.</p>
               <ul>
@@ -1338,6 +1352,20 @@
                stays public until the ACC vIPI with the group comes into force; then it hides itself (its history
                stays) and its address leads to the ACC vIPI. What you write in the APP vIPI after the copy is not
                copied.</p>
+              <p>A single parent is not enough when two sectors <b>stand in for each other by level</b>. So every
+               sector also has a <b>fallback chain</b> (in the detail panel): rows «from level to level → sector»
+               that are looked at <b>before</b> the parent. When a sector is closed its sky goes to the first open
+               one: first among its rows valid at that level, then the parent, and so on upwards. Example, Milan:
+               <code>LIMM_ES5_CTR</code> has <code>LIMM_ES2_CTR</code> as parent and the row «FL325–UNL →
+               <code>LIMM_WS5_CTR</code>»: with ES5 closed, above FL325 WS5 holds it if open, otherwise ES2. The same
+               chain drives the live-view transfers (who hands over and who receives), the AoR map and the
+               <b>configurations</b> table of the vIPI: if a configuration comes out wrong, this is where to fix it.</p>
+              <p>At the bottom of the page the <b>test bench</b> answers «with these open, who holds what». Pick an
+               ACC, open and close the sectors (or start from a configuration published in the vIPI) and the table
+               says who picks up every closed sector, with the band when a sector is split between two; below, the
+               ACC's transfers that change hands with those open. It uses the saved structure, writes nothing — it
+               works without the lock too — and treats everything outside the list (other centres, towers) as
+               open.</p>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time, coordination
                agreements included.</p>"),
 
