@@ -254,6 +254,34 @@ public enum Regola
     /// un INI si legge per sezione e chiave, e lì Aurora non le legge (slice 11d, N3).
     /// </summary>
     ChiaveFuoriSezione,
+
+    /// <summary>
+    /// Uno stand o un'etichetta di taxiway con l'ICAO diverso da quello del suo file (<c>L3MC</c> in <c>limc.gts</c>,
+    /// <c>LINB</c> in <c>libn.txi</c>): Aurora non lo mette a quello scalo. Entro 10 km dallo scalo del file è un refuso, e
+    /// si propone l'ICAO del file; oltre (lo stand di <c>LIBP</c> in <c>libg.gts</c>) è nel file sbagliato (slice 12a, R3).
+    /// </summary>
+    ScaloDiversoDalFile,
+
+    /// <summary>Uno stand o un'etichetta col suo ICAO ma a più di 10 km dal centro dello scalo (slice 12a, R3).</summary>
+    LontanoDalloScalo,
+
+    /// <summary>Lo stesso stand due volte nello stesso <c>.gts</c> (<c>lipk.gts</c> «404»: slice 12a, R3).</summary>
+    StandRipetuto,
+
+    /// <summary>
+    /// Un'etichetta di taxiway a più di 100 m da ogni asse o bordo di taxiway del <c>.geo</c> del suo scalo (27 sul fork:
+    /// slice 12a, R1).
+    /// </summary>
+    EtichettaLontanaDallaTaxiway,
+
+    /// <summary>
+    /// Il tipo di un segmento <c>.geo</c> vuoto (10 in <c>liap.geo</c>) o che non è un tipo dei <c>.geo</c>, né un nome
+    /// di <c>colors.def</c>, né un colore; lo stesso per riempimento e bordo di un <c>.pol</c> (slice 12a, H2, I4).
+    /// </summary>
+    TipoSconosciuto,
+
+    /// <summary>I riempimenti (<c>.pol</c>) di uno scalo che non ha il suo <c>.geo</c> coi bordi (slice 12a, I4).</summary>
+    RiempimentoSenzaDisegno,
 }
 
 public enum Gravita
@@ -288,7 +316,9 @@ public static class Regole
             or Regola.RottaConDecimali or Regola.PrimariaOltre18 or Regola.RottaDiversaDalleSoglie
             or Regola.GruppoSenzaMessaggi or Regola.MessaggioSenzaRisposta or Regola.ValoriDelMessaggio
             or Regola.ParSenzaPista or Regola.RadialeDelPar or Regola.ElevazioneDelPar or Regola.ProfiloConMolteImpostazioni
-            or Regola.ChiaveFuoriSezione => Validazione.Gravita.Avviso,
+            or Regola.ChiaveFuoriSezione
+            or Regola.ScaloDiversoDalFile or Regola.LontanoDalloScalo or Regola.StandRipetuto
+            or Regola.EtichettaLontanaDallaTaxiway or Regola.TipoSconosciuto or Regola.RiempimentoSenzaDisegno => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»). Dopo la 9, decisione del committente (29 settembre): **consegna
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»); della slice 12 il passo 12a (4 ottobre). Dopo la 9, decisione del committente (29 settembre): **consegna
 agli AOD** per una prima prova, uno zip con l'eseguibile e il sector. Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
@@ -1408,3 +1408,48 @@ entro lo scarto. Voci del giro dei file chiuse: M1-M5, M9-M10 (scheda), N1-N4 (N
 Validatore sull'albero: 133/636 → **235 errori, 866 avvisi**. Round-trip **718/718** (nuovi lettori: `.cpdlc`,
 `.cpdlcnames`, `.cpr`). Test: motore 720 → **747**, Lab 771 → **781**. Da provare a mano: prove 138-150 in
 `SectorLab-prova\PROVE.md`.
+
+**Slice 12 — Terra (dal 4 ottobre).** `lab/f3` allineato a `main` 1.56.0 (`33a08df2`). Manuale IVAO riletto (`[GEO]`,
+`[FILLCOLOR]`, `[TAXIWAY]`, `[GATES]`, «Slots for Gates», «Referenced files»): il 5° campo di un `.geo` è il **colore**,
+facoltativo (i «tipi» del fork sono nomi dello schema di Aurora); la testa di un poligono ha anche **opacità** (5°, 0/1)
+e **filtro** (6°: COAST, RUNWAY, GATES, PIER, TAXIWAY, APRON, BUILDING), che il fork non usa mai; lo stand ha tipo
+(L/M/H/S/G) e slot facoltativi; `ICAO.gts` e `ICAO.txi` si caricano da sé.
+- **Misura** (`scratchpad/misura12.py` e `misura12b.py`, chat `2ac5b9f2`, fork `8cf32c6`):
+  - `.geo` di scalo: 95 file, 69 199 segmenti, tipi come in carta; **10 vuoti** (`liap.geo`), nessuno sconosciuto; un
+    solo gruppo con due tipi (`lipm.geo:8`, TAXIWAY e PIER).
+  - `.pol`: 1 753 poligoni, tutti con 5 campi (opacità e filtro mai scritti), bordo sempre 1; bordo diverso dal
+    riempimento in 8; colori tutti in `colors.def`. 🔴 **I «43 poligoni con meno di 3 vertici» della carta non si
+    ritrovano**: oggi sono **2** teste senza vertici (`eo_ad_gnd.pol:72`, `ml_ad_gnd.pol:1223`), più `limmctr.tfl:1772`
+    con 2 (li dice già `PoligonoConPochiVertici`). 🔴 **I «3 `.pol` senza `.geo`» nemmeno**: ogni `.pol` ha il `.geo` del
+    suo scalo (93 su 93; due `.geo` non hanno il `.pol`).
+  - 🔴 **Ordine di disegno (I3)**: quello deciso in carta (erba → cemento → piazzale → taxiway → pista → edifici → buchi)
+    **non è quello del fork**. Solo 16 file su 93 lo rispettano (152 inversioni); l'ordine più comune, in 36 file, è
+    erba → **taxiway → cemento → piazzale → edifici → pista** (BUILDING prima di RUNWAY in 64 casi, TAXIWAY prima di
+    CONCRETE in 54, HOLE prima di BUILDING in 7). Torna al committente prima di scrivere la regola.
+  - `RW_MARKINGS`: 34 file, 270 parti (una senza commento). **34 parti** non toccano una pista del `.rw` (oltre 40 m
+    dall'asse): frecce della soglia spostata prima della pista, e `br_mark.geo` (LIBR) che disegna una **05/23 che il
+    `.rw` non ha** (ha solo 13/31); pettine e numero stanno a una mediana di 38 m dalla soglia, 6 oltre 400 m (`LIBR`
+    05/23, `LIBD` 07). 14 commenti citano una pista che lo scalo non ha. Il numero di strisce del pettine si conta
+    (8, 12, 16 i più frequenti) ma la **larghezza della pista non è scritta da nessuna parte** (il tag `width` di M9 è a
+    zero): il controllo «strisce per larghezza» oggi non ha con cosa confrontarsi.
+  - `.txi`: 1 075 etichette; a una mediana di 1 m da un asse o da un bordo di taxiway, **27 oltre 100 m** (contro il
+    solo asse 71; contro ogni linea del `.geo` 4); `LINB` in `libn.txi`; 3 in gradi decimali in `lipz.txi` (già dette).
+  - `.gts`: 1 672 stand; tipo `M` in 48, slot mai; a una mediana di 750 m dall'ARP, mai oltre 2,4 km tranne lo stand di
+    `LIBP` in `libg.gts` (344 km); `L3MC`, `L4MC` in `limc.gts`; 2 nomi ripetuti (`lied` «ARM/DEARM», `lipk` «404»).
+- **12a (4 ottobre)** — i controlli della terra che non aspettano una decisione (H2, I4, R1, R3). Codice comune toccato:
+  `Validazione/ControlloDellaTerra.cs` (chiamato da `ValidatoreDellAlbero`) e sei regole, tutte avvisi.
+  - **`ScaloDiversoDalFile`** (stand o etichetta con l'ICAO di un altro scalo: entro 10 km dal centro dello scalo del
+    file è un refuso e si propone l'ICAO del file; oltre è «nel file sbagliato», senza proposta), **`LontanoDalloScalo`**
+    (oltre 10 km col suo ICAO: 5 km dava due falsi avvisi a LIRF, le etichette alla soglia 16L sono a 5,3 km),
+    **`StandRipetuto`**, **`EtichettaLontanaDallaTaxiway`** (oltre 100 m da ogni asse o bordo di taxiway del `.geo` dello
+    scalo), **`TipoSconosciuto`** (5° campo di un `.geo` vuoto, o né tipo dello schema, né nome di un `.def`, né colore;
+    lo stesso per riempimento e bordo di un `.pol`), **`RiempimentoSenzaDisegno`** (un `.pol` il cui scalo — riconosciuto
+    da dove sta, non dal nome — non ha il `.geo`). Le soglie sono scelte dell'agente dalla misura.
+  Uscita sul fork: **4** ICAO diversi (3 con la proposta, lo stand di LIBP senza), **0** lontani, **2** stand ripetuti,
+  **28** etichette lontane, **11** tipi sconosciuti (i 10 di `liap.geo` e `limw.pol`, che riempie con `COAST`: non è in
+  `colors.def`), **0** riempimenti senza disegno. Validatore sull'albero: 235/866 → **235 errori, 911 avvisi**.
+  Round-trip 718/718, tutto toccato 0. Test: motore 747 → **754**, Lab **781**.
+- **Da decidere col committente prima dei passi dopo**: l'ordine di disegno (I3: quello della carta o quello del fork);
+  le marcature (O3: cosa fare delle parti fuori pista e della 05/23 di LIBR; le strisce senza larghezza); la vista per
+  scalo (I6: dove sta nell'app); tipo e slot degli stand (R2: il motore oggi non li legge, e scriverli vuol dire
+  toccare lettore e scrittore dei `.gts`).

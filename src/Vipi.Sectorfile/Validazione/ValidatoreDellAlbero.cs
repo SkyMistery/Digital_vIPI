@@ -218,6 +218,24 @@ public static partial class Validatore
                 .SelectMany(p => Esito(p)?.Record.OfType<Runway>() ?? []),
             (relativo, riga) => TestoDellaRiga(percorsoDelProfilo[relativo], riga)));
 
+        // La terra (lotto «Subito» slice 12a): stand ed etichette contro il loro scalo e le sue taxiway, tipi e colori.
+        var terra = indice.Values.Where(p => Path.GetExtension(p).ToLowerInvariant() is ".txi" or ".gts" or ".geo" or ".pol"
+                                                 or ".danger" or ".restrict" or ".prohibit" && Esito(p) is not null)
+            .Order(StringComparer.Ordinal).ToList();
+        var percorsoDellaTerra = terra.ToDictionary(Relativo, p => p, StringComparer.Ordinal);
+        var coloriDefiniti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string def in indice.Values.Where(p => p.EndsWith(".def", StringComparison.OrdinalIgnoreCase)))
+        {
+            coloriDefiniti.UnionWith(SectorFileReader.Read(def).Lines.Select(r => r.Trim())
+                .Where(r => r.Length > 0 && !r.StartsWith("//", StringComparison.Ordinal) && r.Contains(';'))
+                .Select(r => r.Split(';')[0].Trim()));
+        }
+
+        problemi.AddRange(ControlloDellaTerra.Di([.. terra.Select(p => (Relativo(p), Esito(p)!.Record))],
+            indice.Values.Where(p => p.EndsWith(".ap", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal)
+                .SelectMany(p => Esito(p)?.Record.OfType<AirportInfo>() ?? []),
+            coloriDefiniti, (relativo, riga) => TestoDellaRiga(percorsoDellaTerra[relativo], riga)));
+
         // Le copie gemelle diverse (carta F3-bis §2.1): uno scalo, una pista, una posizione con un altro valore nel file
         // nazionale e in quello della FIR. Una per copia fuori posto, col valore che hanno le altre.
         var famiglie = indice.Values.Where(p => CopieGemelle.Famiglia(p) is not null && Esito(p) is not null)
