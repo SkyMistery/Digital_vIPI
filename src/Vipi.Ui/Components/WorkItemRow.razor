@@ -73,6 +73,10 @@
                 }
                 break;
 
+            case WorkAction.ApriRichiesta:
+                <a class="btn ghost" href="@Item.Url">@L["Req_Open"]</a>
+                break;
+
             case WorkAction.CambiaStato:
                 @if (Item.Stato is EditorTaskStatus.Todo)
                 {

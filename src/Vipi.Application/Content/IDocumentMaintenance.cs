@@ -237,6 +237,26 @@ public interface IDocumentMaintenance
     Task<int> LinkAirportDocumentsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Porta ogni vIPI APP sul suo <b>ente</b> (S49, committente, 29 settembre 2026): per ogni documento che un
+    /// settore APP porta ancora (<c>Sector.DocumentId</c>), nasce l'ente — codice = il nominativo del settore
+    /// principale, così le pubblicazioni già fatte restano valide; posizioni = i settori che lo portavano, il
+    /// principale per primo — e poi i settori si sganciano. Ritorna quanti enti sono nati. Idempotente: a regime
+    /// non trova niente.
+    /// <para>⚠️ Deve girare PRIMA delle passate che riconoscono le vIPI APP dall'ente (sezioni mancanti,
+    /// «Gestione del traffico»): su un database appena aggiornato, prima di questo passo, non ne vedrebbero
+    /// nessuna.</para>
+    /// </summary>
+    Task<int> LinkAppUnitsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Gli enti dei gruppi APP della vIPI ACC (S55, committente, 29 settembre 2026): ogni gruppo con membri ha il suo
+    /// ente, che vive nella vIPI dell'ACC e prende i membri come posizioni. Così un APP di ACC ha la stessa identità
+    /// di un APP con la vIPI propria: segue le rinomine, «Sostituisci con…», la pagina degli enti. Idempotente;
+    /// ritorna quanti enti sono nati. Gira DOPO <see cref="LinkAppUnitsAsync"/>.
+    /// </summary>
+    Task<int> LinkAccGroupUnitsAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Porta ogni aeroporto alla <b>categoria</b> che deve avere (carta 2026-09-11-categorie-aeroporto.md): il
     /// l'invariante con la presenza militare (fino al 16 settembre 2026 anche il travaso dal booleano
     /// <c>IsMilitaryOnly</c>, poi tolto).

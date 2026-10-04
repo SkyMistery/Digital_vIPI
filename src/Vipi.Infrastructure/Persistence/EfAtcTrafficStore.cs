@@ -274,6 +274,25 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         return righe.Count;
     }
 
+    public async Task<int> PruneMonthRollupsAsync(
+        DateTime firstKeptMonth, int batch, CancellationToken ct = default)
+    {
+        if (batch <= 0) return 0;
+
+        // ⚠️ `RemoveRange` e non `ExecuteDelete`, per la stessa ragione di `PruneTrafficAsync` qui sopra.
+        var righe = await _db.AtcMonthRollups
+            .Where(r => r.Month < firstKeptMonth)
+            .OrderBy(r => r.Month)
+            .Take(batch)
+            .ToListAsync(ct);
+
+        if (righe.Count == 0) return 0;
+
+        _db.AtcMonthRollups.RemoveRange(righe);
+        await _db.SaveChangesAsync(ct);
+        return righe.Count;
+    }
+
     public async Task<int> RollupAndPruneSessionsAsync(
         DateTimeOffset notAfter, int batch, CancellationToken ct = default)
     {

@@ -82,6 +82,12 @@ internal sealed class ReleaseSweepHostedService : BackgroundService
         var versioni = await sp.GetRequiredService<IReleaseService>().PruneAllAsync(ct);
         _log.LogInformation(
             "Sweep release: stati ricalcolati su tutti i bersagli, {Versioni} versioni archiviate potate.", versioni);
+
+        // Gli enti copiati nella vIPI dell'ACC (S52) si concludono quando quella va in vigore: una release
+        // pianificata a un ciclo futuro ci arriva da sola, senza che nessuno ripubblichi.
+        var conclusi = await sp.GetRequiredService<IRemotizzazioneService>().ConcludiSpostamentiAsync(ct);
+        if (conclusi > 0)
+            _log.LogInformation("Sweep release: {Conclusi} enti passati alla vIPI dell'ACC, la loro vIPI APP e' nascosta.", conclusi);
         return true;
     }
 }

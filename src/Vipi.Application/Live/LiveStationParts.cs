@@ -101,30 +101,43 @@ public sealed class LiveStationParts
 
     /// <summary>
     /// Chip «vista rapida aeroporto»: gli aeroporti PUBBLICATI appesi a un settore del dominio della postazione.
+    /// «Pubblicato» è la vIPI civile <b>o</b> il vSOP militare (<see cref="Awos.AwosGate.Edizione"/>): fino al 30
+    /// settembre 2026 si guardava la sola civile, e i campi militari senza vIPI non comparivano in nessun modo.
     /// Vale per ogni tipo che copre più di uno scalo — un'area, ma anche un avvicinamento (LIBD_CS0_APP tiene
     /// LIBD e LIBR). In coda i «delegati»: una posizione del loro ICAO è online, quindi li controlla qualcun altro.
     /// </summary>
     public async Task<IReadOnlyList<LiveAirportChip>> AirportChipsAsync(LiveStationContext ctx, CancellationToken ct = default)
     {
-        var published = (await _docs.ListAsync(ct))
-            .Where(m => m.Kind == ReleaseTargetType.Airport && m.HasEffectiveRelease && !m.IsHidden
-                        && string.Equals(m.AccCode, ctx.Acc.Code, StringComparison.OrdinalIgnoreCase))
-            .Select(m => m.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var docs = await _docs.ListAsync(ct);
 
         var domain = ctx.Topology.DomainOf(ctx.Callsign);
+        var sopra = CoverageChain(ctx.Topology, ctx.Callsign);
 
         return ctx.Structure.Airports
-            .Where(a => a.IsPublic && published.Contains(a.Icao))
+            .Where(a => a.IsPublic && Awos.AwosGate.Edizione(docs, a.Icao) is not null)
             .Where(a => a.ParentCallsign is { } pc && domain.Contains(pc))
             .Select(a =>
             {
                 var chi = Presidency(ctx, a.Icao, a.ParentCallsign);
-                return new LiveAirportChip(a.Icao, chi.Local.Count > 0, chi);
+                return new LiveAirportChip(a.Icao, Delegato(chi, ctx.Callsign, sopra), chi);
             })
             .OrderByDescending(c => !c.Delegated)
             .ThenBy(c => c.Icao, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
+
+    /// <summary>
+    /// Lo scalo è «delegato» se lo presiede <b>un altro</b>: una sua posizione online che non è chi guarda e non sta
+    /// sopra di lui.
+    ///
+    /// <para>🔴 Fino al 30 settembre 2026 bastava una posizione dello scalo online (<c>Local.Count &gt; 0</c>). Ma un
+    /// avvicinamento può essere lui stesso una posizione dello scalo — <c>LIMF_WW0_APP</c> ha <c>AirportIcao = LIMF</c>
+    /// — e allora chi guardava da lì vedeva LIMF «delegato» a sé stesso, senza nessuno sotto (committente). Una
+    /// posizione SOPRA chi guarda, poi, non gli toglie lo scalo: è lui che copre per lei.</para>
+    /// </summary>
+    internal static bool Delegato(AirportPresidency chi, string chiGuarda, IReadOnlyList<string> sopra) =>
+        chi.Local.Any(s => !string.Equals(s.Callsign, chiGuarda, StringComparison.OrdinalIgnoreCase)
+                           && !sopra.Contains(s.Callsign, StringComparer.OrdinalIgnoreCase));
 
     /// <summary>
     /// Chi presiede l'aeroporto adesso: posizioni sue online (dal gate in su) più chi copre il resto risalendo.

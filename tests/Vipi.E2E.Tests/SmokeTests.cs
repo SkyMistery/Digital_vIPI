@@ -85,7 +85,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     }
 
     /// <summary>
-    /// La spia della versione in barra, ai soli admin. Risponde a «che versione del sito è online?», che
+    /// La spia della versione — dal 29 settembre 2026 nel piè di pagina, allo staff (prima in barra, ai soli admin). Risponde a «che versione del sito è online?», che
     /// prima si poteva sapere solo scaricando un file via FTP — e nemmeno: la data lì dentro dice quando è
     /// RIPARTITO, e con Passenger che riavvia per inattività quella data si rinfresca da sola.
     ///
@@ -93,12 +93,12 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     /// vera che il layout riceve — e serve una build timbrata, che è quella che i test compilano.</para>
     /// </summary>
     [Fact]
-    public async Task La_barra_dice_all_admin_quale_versione_e_online()
+    public async Task Il_pie_di_pagina_dice_allo_staff_quale_versione_e_online()
     {
         var html = await _factory.CreateClient().GetStringAsync("/services");
 
         var m = Regex.Match(html, @"class=""ver-chip""[^>]*>([^<]+)<");
-        Assert.True(m.Success, "la spia della versione non è in barra: senza, «che versione è online?» torna "
+        Assert.True(m.Success, "la spia della versione non è nel piè di pagina: senza, «che versione è online?» torna "
                              + "a essere una domanda da FTP.\n" + html[..Math.Min(1200, html.Length)]);
         Assert.NotEmpty(m.Groups[1].Value.Trim());
 

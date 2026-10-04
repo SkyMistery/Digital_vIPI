@@ -76,9 +76,9 @@ public class CatalogoNonAffondaLaHomeTests : TestContext
         };
     }
 
-    private sealed class AuthzFinto : IEditAuthorizationService
+    private sealed class AuthzFinto(VipiRole ruolo = VipiRole.User) : IEditAuthorizationService
     {
-        public VipiRole Role => VipiRole.User;
+        public VipiRole Role => ruolo;
         public bool IsAdmin => false;
         public int? CurrentUserId => null;
         public string? CurrentName => null;
@@ -94,12 +94,12 @@ public class CatalogoNonAffondaLaHomeTests : TestContext
             Enumerable.Empty<LocalizedString>();
     }
 
-    private void Arrangia(IStationResolver stations)
+    private void Arrangia(IStationResolver stations, VipiRole ruolo = VipiRole.User)
     {
         Services.AddLogging();
         Services.AddSingleton<IAiracService>(new AiracService());
         Services.AddSingleton(stations);
-        Services.AddSingleton<IEditAuthorizationService>(new AuthzFinto());
+        Services.AddSingleton<IEditAuthorizationService>(new AuthzFinto(ruolo));
         Services.AddSingleton<IOnlineAtcProvider>(new OnlineFinto());
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
@@ -124,8 +124,27 @@ public class CatalogoNonAffondaLaHomeTests : TestContext
 
         // Il resto della pagina — gli strumenti, che col catalogo non c'entrano — è tutto lì.
         var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
-        Assert.Contains("/services/vsop/changed", indirizzi);
+        Assert.Contains("/services/profile-swapper", indirizzi);
         Assert.Contains("/services/stats", indirizzi);
+    }
+
+    /// <summary>
+    /// «Cosa è cambiato» è uno strumento dello staff (committente, 29 settembre 2026): l'utente non lo vede fra le
+    /// schede, l'Editor lo trova nella sezione Staff.
+    /// </summary>
+    [Theory]
+    [InlineData(VipiRole.User, false)]
+    [InlineData(VipiRole.Editor, true)]
+    public void Cosa_e_cambiato_sta_nella_sezione_staff(VipiRole ruolo, bool visto)
+    {
+        Arrangia(new ResolverRotto(), ruolo);
+
+        var cut = RenderComponent<SopHome>();
+
+        var fuori = cut.FindAll("a.choice").Where(a => a.Closest(".staff-sec") is null).Select(a => a.GetAttribute("href"));
+        Assert.DoesNotContain("/services/vsop/changed", fuori);
+        var staff = cut.FindAll(".staff-sec a.choice").Select(a => a.GetAttribute("href"));
+        Assert.Equal(visto, staff.Contains("/services/vsop/changed"));
     }
 
     /// <summary>

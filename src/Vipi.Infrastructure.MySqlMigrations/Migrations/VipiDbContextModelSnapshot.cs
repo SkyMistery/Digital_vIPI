@@ -169,6 +169,64 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AccSectors");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AccessoAlSito", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Acc")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Divisione")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("Giorni")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("NomeBreve")
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("PrimoUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("UltimoUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("UltimoUtc");
+
+                    b.ToTable("AccessiAlSito", (string)null);
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AccountEventoInUso", b =>
+                {
+                    b.Property<int>("VidPersonale")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ScadeUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("VidEvento")
+                        .HasColumnType("int");
+
+                    b.HasKey("VidPersonale");
+
+                    b.ToTable("AccountEventoInUso", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementAirport", b =>
                 {
                     b.Property<int>("Id")
@@ -1201,6 +1259,115 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AirspaceVolumes");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirspaceVolumeCorrection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AirspaceClass")
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("BaseRaw")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<bool>("ClassCorrected")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Family")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("FileBaseRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("FileClass")
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("FileFamily")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("FileTopRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TopRaw")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("VolumeKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("VolumeOrdinal")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VolumeKey", "VolumeOrdinal")
+                        .IsUnique();
+
+                    b.ToTable("AirspaceVolumeCorrections");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AperturaDocumento", b =>
+                {
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Giorno")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Volte")
+                        .HasColumnType("int");
+
+                    b.HasKey("DocumentId", "Giorno");
+
+                    b.HasIndex("Giorno");
+
+                    b.ToTable("AperturaDocumenti", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.ApiClient", b =>
                 {
                     b.Property<int>("Id")
@@ -1506,6 +1673,87 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasIndex("PilotCallsign");
 
                     b.ToTable("AtcSessionTraffic");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AccId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GroupKey")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("DocumentId")
+                        .IsUnique();
+
+                    b.HasIndex("AccId", "GroupKey")
+                        .IsUnique();
+
+                    b.ToTable("AtcUnits");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnitPosition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AtcUnitId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Callsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AtcUnitId");
+
+                    b.HasIndex("Callsign")
+                        .IsUnique();
+
+                    b.ToTable("AtcUnitPositions");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Attachment", b =>
@@ -2362,6 +2610,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int?>("FromImpactId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("FromRequestId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -2402,6 +2653,213 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("EditorTasks");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("EndsUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime?>("StartsUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("UpdatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("VidEvento")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime?>("VidSvuotaUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EventKits");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKitItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ByteSize")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("Bytes")
+                        .HasColumnType("longblob");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("EventKitId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventKitId", "SortOrder");
+
+                    b.ToTable("EventKitItems");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.FieldRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DuplicateOfId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HandledByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("HandledByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("HandledUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("PageUrl")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasDefaultValue("")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("ReleaseNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reply")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("ReporterName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("ReporterUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SectionKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("ReporterUserId");
+
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.ToTable("FieldRequests");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.GlossaryTerm", b =>
@@ -3855,6 +4313,15 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Import");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AperturaDocumento", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionRunway", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.AtcSession", "Session")
@@ -3875,6 +4342,35 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .IsRequired();
 
                     b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnit", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
+                        .WithMany()
+                        .HasForeignKey("AccId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithOne("AtcUnit")
+                        .HasForeignKey("Vipi.Domain.Entities.AtcUnit", "DocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Acc");
+
+                    b.Navigation("Document");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnitPosition", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.AtcUnit", "AtcUnit")
+                        .WithMany("Positions")
+                        .HasForeignKey("AtcUnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AtcUnit");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AttachmentVersion", b =>
@@ -4071,6 +4567,27 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKitItem", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.EventKit", "EventKit")
+                        .WithMany("Items")
+                        .HasForeignKey("EventKitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EventKit");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.FieldRequest", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
@@ -4193,6 +4710,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Traffic");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnit", b =>
+                {
+                    b.Navigation("Positions");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Attachment", b =>
                 {
                     b.Navigation("Versions");
@@ -4206,6 +4728,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>
                 {
                     b.Navigation("Airport");
+
+                    b.Navigation("AtcUnit");
 
                     b.Navigation("MilAirport");
 
@@ -4235,6 +4759,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Blocks");
 
                     b.Navigation("Sections");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKit", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>

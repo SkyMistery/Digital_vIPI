@@ -82,7 +82,7 @@ else
                            e un gestore inline la CSP vera lo blocca. Vale per le tre schede. *@
                         @foreach (var ap in _airports)
                         {
-                            <li><a href="@ap.Href(Acc)"><span class="tag">@ap.Scalo.Icao</span><span>@ap.Scalo.Name</span></a></li>
+                            <li><a href="@ap.Href(Acc)"><span class="tag">@ap.Scalo.Icao</span><span>@ap.Scalo.Name</span>@Volte(_volteScali.GetValueOrDefault(ap.Scalo.Icao))</a></li>
                         }
                     }
                 </ul>
@@ -101,7 +101,7 @@ else
                     {
                         @foreach (var ap in _apps)
                         {
-                            <li><a href="/services/vsop/@a/apps/vipi?app=@ap.Callsign"><span class="tag">@ap.Callsign</span><span>@ap.Name</span></a></li>
+                            <li><a href="/services/vsop/@a/apps/vipi?app=@ap.Callsign"><span class="tag">@ap.Callsign</span><span>@ap.Name</span>@Volte(_volteApp.GetValueOrDefault(ap.Callsign))</a></li>
                         }
                     }
                 </ul>
@@ -120,7 +120,7 @@ else
                     {
                         @foreach (var v in _vloas)
                         {
-                            <li><a href="/services/vsop/@a/vloa?acc=@v.NeighbourCode">@if (v.Neighbour is not null){<span class="tag">@v.Neighbour</span>}<span>@v.Title</span></a></li>
+                            <li><a href="/services/vsop/@a/vloa?acc=@v.NeighbourCode">@if (v.Neighbour is not null){<span class="tag">@v.Neighbour</span>}<span>@v.Title</span>@Volte(_volteVloa.GetValueOrDefault(v.DocId))</a></li>
                         }
                     }
                 </ul>
@@ -164,6 +164,24 @@ else
     private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();
 
     private int _airportsTotal, _appsTotal, _vloasTotal;
+
+    /// <summary>Le aperture degli ultimi 90 giorni, per scalo (ICAO), per APP (callsign) e per vLoA (ID).</summary>
+    private Dictionary<string, int> _volteScali = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, int> _volteApp = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<int, int> _volteVloa = new();
+
+    /// <summary>
+    /// Il numero di aperture accanto a una voce: <b>solo allo staff</b> (committente, 1° ottobre 2026). Al pubblico
+    /// non serve, e un «3» accanto a un documento poco letto sembrerebbe un giudizio.
+    /// </summary>
+    private RenderFragment? Volte(int n) => !_canEdit ? null : b =>
+    {
+        b.OpenElement(0, "span");
+        b.AddAttribute(1, "class", "muted aperture");
+        b.AddAttribute(2, "title", L["AccLanding_OpensTitle", ApertureDocumenti.Finestra].Value);
+        b.AddContent(3, n == 1 ? L["AccLanding_OpensOne"].Value : L["AccLanding_Opens", n].Value);
+        b.CloseElement();
+    };
     private bool _vipiPublished;
 
     // I servizi che interrogano il database: presi dallo SCOPE DI QUESTA PAGINA, non da quello
@@ -171,6 +189,7 @@ else
     private IEditAuthorizationService Authz = default!;
     private IStructureEditingService Structure = default!;
     private IDocumentAdminService Docs = default!;
+    private IAtcUnitRepository Enti = default!;
 
 
     /// <summary>
@@ -186,6 +205,7 @@ else
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
         Structure = ScopedServices.GetRequiredService<IStructureEditingService>();
         Docs = ScopedServices.GetRequiredService<IDocumentAdminService>();
+        Enti = ScopedServices.GetRequiredService<IAtcUnitRepository>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
     }
 
@@ -206,7 +226,7 @@ else
             // release effettiva). La regola è la stessa dell'elenco /airports, e sta in un posto solo.
             var airports = AeroportiDellAcc.Elenco(data.Airports, managed, _acc.Code);
             // APP: solo non remotizzati (Standalone) e pubblicati (non nascosti), con collasso d'albero (solo l'antenato).
-            var apps = StandaloneApps(data.Sectors, managed, _acc.Code);
+            var apps = AppDellAcc.Elenco(data.Sectors, managed, await Enti.ListAsync(_acc.Code), _acc.Code);
             // vLOA: solo quelle con release AIRAC effettiva e non nascoste (stessa regola di aeroporti/APP, doc 10 §3f).
             var publishedVloas = managed
                 .Where(m => m.Kind == ReleaseTargetType.Vloa && m.HasEffectiveRelease && !m.IsHidden && m.DocumentId is not null)
@@ -217,42 +237,29 @@ else
             _airportsTotal = airports.Count;
             _appsTotal = apps.Count;
             _vloasTotal = vloas.Count;
-            _airports = airports
-                .OrderBy(x => x.Scalo.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Scalo.Icao)
-                .Take(3).ToList();
-            _apps = apps
-                .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Callsign)
-                .Take(3).ToList();
-            _vloas = vloas
-                .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Title)
-                .Take(3).ToList();
+            // I tre di ogni gruppo: prima quelli in evidenza a mano, poi i più aperti negli ultimi 90 giorni, poi
+            // per nome (committente, 1° ottobre 2026; carta 2026-10-01-aperture-documenti.md). Senza numeri è
+            // l'ordine di prima.
+            var aperture = await ScopedServices.GetRequiredService<IApertureDocumenti>().RecentiAsync();
+            // ⚠️ Lo scalo somma vIPI e vSOP militare: la riga della scheda è lo SCALO, non uno dei due documenti.
+            int Di(ReleaseTargetType tipo, string chiave) => managed
+                .Where(m => m.ReleaseTarget == tipo && m.DocumentId is not null
+                            && string.Equals(m.ReleaseKey, chiave, StringComparison.OrdinalIgnoreCase))
+                .Sum(m => aperture.GetValueOrDefault(m.DocumentId!.Value));
+            _volteScali = airports.ToDictionary(x => x.Scalo.Icao,
+                x => Di(ReleaseTargetType.Airport, x.Scalo.Icao) + Di(ReleaseTargetType.AirportMil, x.Scalo.Icao),
+                StringComparer.OrdinalIgnoreCase);
+            _volteApp = apps.GroupBy(x => x.Callsign, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => Di(ReleaseTargetType.App, g.Key), StringComparer.OrdinalIgnoreCase);
+            _volteVloa = vloas.ToDictionary(x => x.DocId, x => aperture.GetValueOrDefault(x.DocId));
+
+            _airports = ApertureDocumenti.Primi(airports, x => x.Scalo.FeaturedRank,
+                x => _volteScali.GetValueOrDefault(x.Scalo.Icao), x => x.Scalo.Icao);
+            _apps = ApertureDocumenti.Primi(apps, x => x.FeaturedRank,
+                x => _volteApp.GetValueOrDefault(x.Callsign), x => x.Callsign);
+            _vloas = ApertureDocumenti.Primi(vloas, x => x.FeaturedRank,
+                x => _volteVloa.GetValueOrDefault(x.DocId), x => x.Title);
         }
     }
 
-    // APP non remotizzati (Standalone) e pubblicati (non nascosti), col collasso d'albero: se un APP standalone ha
-    // un antenato che è a sua volta un APP standalone mostrato, si tiene solo l'antenato. Stessa regola di /apps.
-    private static List<SectorRow> StandaloneApps(IReadOnlyList<SectorRow> all, IReadOnlyList<ManagedDoc> managed, string accCode)
-    {
-        var published = managed
-            .Where(m => m.Kind == ReleaseTargetType.App && m.HasEffectiveRelease && !m.IsHidden
-                        && string.Equals(m.AccCode, accCode, StringComparison.OrdinalIgnoreCase))
-            .Select(m => m.Scope)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var standalone = all
-            .Where(s => s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone && published.Contains(s.Callsign))
-            .ToList();
-        var standaloneIds = standalone.Select(s => s.Id).ToHashSet();
-        var byId = all.ToDictionary(s => s.Id);
-        bool HasStandaloneAncestor(SectorRow s)
-        {
-            var pid = s.ParentSectorId;
-            while (pid is int id && byId.TryGetValue(id, out var p))
-            {
-                if (standaloneIds.Contains(p.Id)) return true;
-                pid = p.ParentSectorId;
-            }
-            return false;
-        }
-        return standalone.Where(s => !HasStandaloneAncestor(s)).ToList();
-    }
 }

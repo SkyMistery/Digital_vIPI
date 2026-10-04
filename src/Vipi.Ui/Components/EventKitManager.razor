@@ -1,0 +1,260 @@
+@* Il pannello dello staff del pacchetto dell'evento (carta 2026-09-30-profili-evento.md): nome, interruttore, date,
+   file e link. ⚠️ Un'ISOLA interattiva dentro una pagina SSR statica: la pagina la mostra solo allo staff di divisione,
+   e il servizio rifiuta comunque chiunque altro — nascondere e basta è un cancello che non c'è.
+   Scope proprio che aspetta (ScopeProprioCheAspetta), come le altre pagine che scrivono. *@
+@rendermode InteractiveServer
+@inherits Vipi.Ui.ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.EventKits
+@using Vipi.Application.Media
+@inject IStringLocalizer<SharedResource> L
+@inject IOptions<MediaOptions> MediaOptions
+
+<section class="panel evt-manage" id="evt-manage">
+    <h2 class="h-card">@L["Evt_Manage"]</h2>
+
+    @if (_errore is { Length: > 0 })
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+    }
+    @if (_esito is { Length: > 0 })
+    {
+        <div class="callout info"><span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@_esito</div></div>
+    }
+
+    @if (_vista is null)
+    {
+        <LoadingState />
+    }
+    else
+    {
+        @* ---- Lo stato, in una riga: è la domanda che lo staff si fa aprendo la pagina ---- *@
+        <p class="evt-state">
+            @if (_vista.Visibile)
+            {
+                <span class="pill green">@L["Evt_StateVisible"]</span>
+            }
+            else if (_vista.IsActive)
+            {
+                <span class="pill amber">@L["Evt_StateOutside"]</span>
+            }
+            else
+            {
+                <span class="pill neutral">@L["Evt_StateOff"]</span>
+            }
+            @if (_vista.UpdatedUtc is DateTime quando)
+            {
+                <span class="muted">@L["Evt_LastEdit", VipiTime.DayZ(quando), _vista.UpdatedByName]</span>
+            }
+        </p>
+
+        @* ---- Testata ---- *@
+        <div class="evt-form">
+            <label class="evt-field evt-wide">
+                <span>@L["Evt_Name"]</span>
+                <CampoTesto class="app-in" maxlength="@EventKitRules.MaxNome" disabled="@_busy" Valore="@_nome" OnInput="e => _nome = e.Value?.ToString() ?? string.Empty" />
+            </label>
+            <label class="evt-field">
+                <span>@L["Evt_StartUtc"]</span>
+                <input class="app-in" type="datetime-local" value="@Locale(_da)" disabled="@_busy"
+                       @onchange="e => _da = Data(e.Value)" />
+            </label>
+            <label class="evt-field">
+                <span>@L["Evt_EndUtc"]</span>
+                <input class="app-in" type="datetime-local" value="@Locale(_a)" disabled="@_busy"
+                       @onchange="e => _a = Data(e.Value)" />
+            </label>
+            <label class="evt-check">
+                <input type="checkbox" checked="@_attivo" disabled="@_busy" @onchange="e => _attivo = e.Value is true" />
+                @L["Evt_Active"]
+            </label>
+            <button class="btn primary" disabled="@_busy" @onclick="SalvaAsync">@L["Evt_Save"]</button>
+        </div>
+        <p class="muted evt-help">@L["Evt_DatesHelp"]</p>
+
+        @* ---- Gli account dell'evento (1 ottobre 2026) ----
+           ⚠️ Un campo di testo e non una riga per VID: la lista arriva dall'organizzazione già fatta, e si incolla. Le
+           righe che non si leggono le rifiuta il servizio dicendo QUALI. *@
+        <div class="evt-vid">
+            <h3 class="h-card">@L["Evt_VidTitle"]</h3>
+            <p class="muted evt-help">@L["Evt_VidHelp"]</p>
+            <textarea class="app-ta" rows="5" maxlength="@EventKitRules.MaxTestoVidEvento" disabled="@_busy"
+                      placeholder="704798 LIRF_TWR&#10;704799 LIRF_APP" aria-label="@L["Evt_VidTitle"]"
+                      @bind="_vid" @bind:event="oninput"></textarea>
+            @* Quando la lista si cancella da sola (committente, 1 ottobre 2026): vuoto = sette giorni dopo la fine. *@
+            <div class="evt-form">
+                <label class="evt-field">
+                    <span>@L["Evt_VidClearUtc"]</span>
+                    <input class="app-in" type="datetime-local" value="@Locale(_vidSvuota)" disabled="@_busy"
+                           @onchange="e => _vidSvuota = Data(e.Value)" />
+                </label>
+                <button class="btn primary" disabled="@_busy" @onclick="SalvaVidAsync">@L["Evt_VidSave"]</button>
+            </div>
+            <p class="muted evt-help">
+                @L["Evt_VidClearHelp", EventKitRules.GiorniVidDopoLaFine]
+                @if (_vista.VidSiCancellaIl is DateTime il && !string.IsNullOrWhiteSpace(_vista.VidEvento))
+                {
+                    @(" ")<b>@L["Evt_VidClearWhen", VipiTime.DayZ(il)]</b>
+                }
+            </p>
+        </div>
+
+        @* ---- Aggiungere ---- *@
+        <div class="evt-add">
+            <div class="evt-add-box">
+                <h3 class="h-card">@L["Evt_AddFile"]</h3>
+                <CampoTesto class="app-in" placeholder="@L["Evt_Label"]" maxlength="@EventKitRules.MaxEtichetta" disabled="@_busy" Valore="@_fileTitolo" OnInput="e => _fileTitolo = e.Value?.ToString() ?? string.Empty" />
+                <CampoTesto class="app-in" placeholder="@L["Evt_Note"]" maxlength="@EventKitRules.MaxNota" disabled="@_busy" Valore="@_fileNota" OnInput="e => _fileNota = e.Value?.ToString() ?? string.Empty" />
+                <InputFile @key="_fileKey" OnChange="e => _file = e.File" accept="@EventKitRules.Accept" disabled="@_busy" />
+                <p class="muted evt-help">@L["Evt_FileHelp", MediaOptions.Value.MaxUploadLabel]</p>
+                <button class="btn primary" disabled="@(_busy || _file is null)" @onclick="AggiungiFileAsync">@L["Evt_Add"]</button>
+            </div>
+            <div class="evt-add-box">
+                <h3 class="h-card">@L["Evt_AddLink"]</h3>
+                <CampoTesto class="app-in" placeholder="@L["Evt_LinkLabel"]" maxlength="@EventKitRules.MaxEtichetta" disabled="@_busy" Valore="@_linkTitolo" OnInput="e => _linkTitolo = e.Value?.ToString() ?? string.Empty" />
+                <CampoTesto class="app-in" placeholder="@L["Evt_Note"]" maxlength="@EventKitRules.MaxNota" disabled="@_busy" Valore="@_linkNota" OnInput="e => _linkNota = e.Value?.ToString() ?? string.Empty" />
+                <CampoTesto class="app-in" type="url" placeholder="https://drive.google.com/…" maxlength="@EventKitRules.MaxUrl" disabled="@_busy" Valore="@_linkUrl" OnInput="e => _linkUrl = e.Value?.ToString() ?? string.Empty" />
+                <button class="btn primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_linkUrl))" @onclick="AggiungiLinkAsync">@L["Evt_Add"]</button>
+            </div>
+        </div>
+
+        @* ---- Le voci, come le vede il pubblico, coi tasti accanto ---- *@
+        <h3 class="h-card" style="margin-top:14px">@L["Evt_Items"] (@_vista.Items.Count)</h3>
+        <EventKitList Items="_vista.Items">
+            <Azioni Context="v">
+                <button class="btn evt-ib" title="@L["Evt_Up"]" aria-label="@L["Evt_Up"]" disabled="@_busy"
+                        @onclick="() => SpostaAsync(v.Id, -1)"><Icon Name="arrow-up" /></button>
+                <button class="btn evt-ib" title="@L["Evt_Down"]" aria-label="@L["Evt_Down"]" disabled="@_busy"
+                        @onclick="() => SpostaAsync(v.Id, 1)"><Icon Name="arrow-down" /></button>
+                @if (_daEliminare == v.Id)
+                {
+                    <button class="btn danger" disabled="@_busy" @onclick="() => EliminaAsync(v.Id)">@L["Evt_ConfirmDelete"]</button>
+                }
+                else
+                {
+                    <button class="btn evt-ib" title="@L["Evt_Delete"]" aria-label="@L["Evt_Delete"]" disabled="@_busy"
+                            @onclick="() => _daEliminare = v.Id"><Icon Name="trash" /></button>
+                }
+            </Azioni>
+        </EventKitList>
+    }
+</section>
+
+@code {
+    private IEventKitService _servizio = default!;
+    private EventKitView? _vista;
+    private bool _busy, _attivo;
+    private string? _errore, _esito;
+    private string _nome = "";
+    private string _vid = "";
+    private DateTime? _vidSvuota;
+    private DateTime? _da, _a;
+    private IBrowserFile? _file;
+    private int _fileKey;
+    private string _fileTitolo = "", _fileNota = "", _linkTitolo = "", _linkNota = "", _linkUrl = "";
+    private int? _daEliminare;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _servizio = ScopedServices.GetRequiredService<IEventKitService>();
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                await RileggiAsync();
+                _nome = _vista!.Name;
+                _attivo = _vista.IsActive;
+                _da = _vista.StartsUtc;
+                _a = _vista.EndsUtc;
+                _vid = _vista.VidEvento ?? "";
+                _vidSvuota = _vista.VidSvuotaUtc;
+            });
+        }
+        catch (Exception ex) { _errore = Messaggio(ex); }
+    }
+
+    private async Task RileggiAsync() => _vista = await _servizio.PerStaffAsync();
+
+    // ⚠️ Le date sono UTC e il campo le mostra COME SONO, senza fuso: un evento IVAO si annuncia in Zulu, e il campo
+    // «datetime-local» convertito all'ora del browser farebbe accendere la pagina un'ora o due prima o dopo.
+    private static string? Locale(DateTime? d) => d?.ToString("yyyy-MM-dd'T'HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static DateTime? Data(object? v) =>
+        DateTime.TryParse(v?.ToString(), System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var d)
+            ? DateTime.SpecifyKind(d, DateTimeKind.Utc) : null;
+
+    private Task SalvaAsync() => GestoAsync(async () =>
+    {
+        await _servizio.SalvaTestataAsync(_nome, _attivo, _da, _a);
+        _esito = L["Evt_Saved"];
+    });
+
+    private Task SalvaVidAsync() => GestoAsync(async () =>
+    {
+        var quanti = await _servizio.SalvaVidAsync(_vid, _vidSvuota);
+        _esito = L["Evt_VidSaved", quanti];
+    });
+
+    private Task AggiungiFileAsync() => GestoAsync(async () =>
+    {
+        if (_file is null) return;
+        var max = MediaOptions.Value.MaxUploadBytes;
+        try
+        {
+            // Un byte oltre il tetto: il servizio rifiuta senza leggere il resto.
+            await using var flusso = _file.OpenReadStream(max + 1);
+            await _servizio.AggiungiFileAsync(_fileTitolo, _fileNota, _file.Name, flusso);
+        }
+        catch (IOException)
+        {
+            // Il tetto scatta sul trasporto prima che il servizio veda i byte: stessa frase del rifiuto del servizio.
+            throw new ValidationException(L["Evt_TooBig", MediaOptions.Value.MaxUploadLabel]);
+        }
+        _file = null;
+        _fileKey++;                                    // un campo file nuovo: il vecchio terrebbe il nome scelto
+        _fileTitolo = _fileNota = "";
+        _esito = L["Evt_Added"];
+    });
+
+    private Task AggiungiLinkAsync() => GestoAsync(async () =>
+    {
+        await _servizio.AggiungiLinkAsync(_linkTitolo, _linkNota, _linkUrl);
+        _linkTitolo = _linkNota = _linkUrl = "";
+        _esito = L["Evt_Added"];
+    });
+
+    private Task SpostaAsync(int id, int verso) => GestoAsync(() => _servizio.SpostaAsync(id, verso));
+
+    private Task EliminaAsync(int id) => GestoAsync(async () =>
+    {
+        await _servizio.EliminaAsync(id);
+        _daEliminare = null;
+    });
+
+    /// <summary>Un gesto: in fila coi caricamenti, l'errore a schermo e non nel circuito, poi rilettura.</summary>
+    private async Task GestoAsync(Func<Task> gesto)
+    {
+        if (_busy) return;
+        _busy = true;
+        _errore = null;
+        _esito = null;
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                await gesto();
+                await RileggiAsync();
+            });
+        }
+        catch (Exception ex)
+        {
+            _esito = null;
+            _errore = Messaggio(ex);
+        }
+        finally { _busy = false; }
+    }
+
+    private string Messaggio(Exception ex) =>
+        ex is ValidationException or EditNotAllowedException ? ex.Message : L["Common_UnexpectedError"] + ex.Message;
+}

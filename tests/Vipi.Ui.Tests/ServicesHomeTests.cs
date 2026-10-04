@@ -24,11 +24,11 @@ public class ServicesHomeTests : TestContext
     }
 
     /// <summary>Autorizzazione finta: dal 29 agosto 2026 l'hub chiede il LIVELLO, perché una scheda è chiusa.</summary>
-    private sealed class FakeAuthz(VipiRole livello) : IEditAuthorizationService
+    private sealed class FakeAuthz(VipiRole livello, int? vid = 704798) : IEditAuthorizationService
     {
         public VipiRole Role { get; } = livello;
         public bool IsAdmin => Role >= VipiRole.Admin;
-        public int? CurrentUserId => 704798;
+        public int? CurrentUserId => vid;
         public string? CurrentName => "Tizio";
         public void EnsureAdmin() { }
     }
@@ -39,12 +39,71 @@ public class ServicesHomeTests : TestContext
     /// <c>DivisionStaff</c> i test sull'elenco completo proverebbero un elenco a cui manca una scheda.
     /// Le prove <i>per livello</i> restano i <c>Theory</c> qui sotto, che il livello lo dichiarano.
     /// </summary>
-    private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.Editor)
+    private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.Editor, bool evento = false,
+                                                    bool? loginObbligatorio = null, bool entrato = true,
+                                                    bool account = false)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
-        Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
+        Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello, entrato ? 704798 : null));
+        if (loginObbligatorio is { } obbligo) Services.AddSingleton(new Vipi.Ui.AccessoConLogin(obbligo));
+        Services.AddSingleton<Vipi.Application.EventKits.IEventKitService>(new FakeEvento(evento, account));
         return RenderComponent<ServicesHome>();
+    }
+
+    /// <summary>Il pacchetto dell'evento finto: all'hub chiede solo se si vede (30 settembre 2026).</summary>
+    private sealed class FakeEvento(bool visibile, bool account = false) : Vipi.Application.EventKits.IEventKitService
+    {
+        public Task<string?> InCorsoAsync(CancellationToken ct = default) => Task.FromResult(visibile ? "Italian Night Ops" : null);
+        public Task<bool> AccountInCorsoAsync(CancellationToken ct = default) => Task.FromResult(visibile && account);
+        public Task<Vipi.Application.EventKits.AccountDellEvento?> AccountAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> SalvaVidAsync(string? testo, DateTime? svuotaUtc = null, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> CancellaVidScadutiAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Vipi.Application.EventKits.EventKitView?> PubblicoAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Vipi.Application.EventKits.EventKitView> PerStaffAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task SalvaTestataAsync(string nome, bool attivo, DateTime? daUtc, DateTime? aUtc, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> AggiungiFileAsync(string etichetta, string? nota, string fileName, Stream contenuto, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> AggiungiLinkAsync(string etichetta, string? nota, string url, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task EliminaAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task SpostaAsync(int id, int verso, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Vipi.Application.Abstractions.EventKitFile?> FileAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
+    /// <summary>
+    /// L'evento in corso (committente, 30 settembre 2026): la sua sezione c'è SOLO quando il pacchetto si vede, e sta
+    /// sopra gli strumenti — in quei giorni è la cosa che si viene a cercare. Allo staff la scheda per gestirlo c'è
+    /// sempre, nella sua sezione.
+    /// </summary>
+    [Theory]
+    [InlineData(VipiRole.User, false, 0)]
+    [InlineData(VipiRole.User, true, 1)]
+    [InlineData(VipiRole.DivisionStaff, false, 1)]
+    [InlineData(VipiRole.DivisionStaff, true, 2)]
+    public void La_sezione_dell_evento_c_e_solo_quando_si_vede(VipiRole livello, bool visibile, int schede)
+    {
+        var cut = Render(livello, visibile);
+        Assert.Equal(schede, cut.FindAll("a.choice").Count(a => a.GetAttribute("href") == "/services/event"));
+        Assert.Equal(visibile, cut.Markup.Contains("Services_EventSection"));
+        if (visibile)
+        {
+            var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
+            Assert.True(indirizzi.IndexOf("/services/event") < indirizzi.IndexOf("/services/vawos"));   // sopra gli strumenti
+            Assert.Contains("Evt_Title — Italian Night Ops", cut.Find("a.evt-card").TextContent);      // col nome dell'evento
+        }
+    }
+
+    /// <summary>
+    /// «Controlli con un account dell'evento?» (committente, 1 ottobre 2026): accanto ai profili, e solo se l'evento in
+    /// corso ha VID di account dell'evento — senza lista la pagina direbbe soltanto di no.
+    /// </summary>
+    [Theory]
+    [InlineData(false, false, 0)]
+    [InlineData(true, false, 0)]
+    [InlineData(true, true, 1)]
+    public void La_scheda_account_evento_c_e_solo_con_l_evento_e_la_lista(bool visibile, bool account, int schede)
+    {
+        var cut = Render(VipiRole.User, visibile, account: account);
+        Assert.Equal(schede, cut.FindAll("a.choice").Count(a => a.GetAttribute("href") == "/services/event/account"));
     }
 
     [Fact]
@@ -86,8 +145,14 @@ public class ServicesHomeTests : TestContext
             // ⚠️ The Eye (esterno) entra il 15 settembre 2026 IN CODA agli strumenti: è di un altro sito.
             new[] { "/services/vsop", "/services/vsop/mil", "/services/vawos",
                     "/services/stats", "/services/profile-swapper", "https://the-eye.andreadalbero.it/",
+                    // ⚠️ Il sito ATC di IVAO (prenotazioni e FRA) entra il 30 settembre 2026 subito dopo The Eye.
+                    "https://atc.ivao.aero/",
+                    // ⚠️ Il Discord di divisione entra il 1 ottobre 2026 accanto alle prenotazioni ATC.
+                    "https://discord.ivao.it/",
                     "/services/vsop/airspace",
-                    "/services/coordinates", "/services/vsop/sectorfile" },
+                    // ⚠️ Il pacchetto dell'evento entra il 30 settembre 2026 fra gli attrezzi dello staff, prima della
+                    // coerenza col sectorfile (che resta ultima, per la ragione qui sopra).
+                    "/services/coordinates", "/services/event", "/services/vsop/sectorfile" },
             indirizzi);
     }
 
@@ -181,8 +246,8 @@ public class ServicesHomeTests : TestContext
     /// <summary>
     /// I collegamenti ESTERNI sono un'eccezione come le scorciatoie, e si contano allo stesso modo: l'hub non è
     /// un elenco di segnalibri. <b>Uno</b> dal 15 settembre 2026, THE EYE («chi è online ora», decisione del
-    /// committente). Esce dal sito, quindi apre una scheda nuova e non passa il riferimento né l'accesso alla
-    /// finestra di partenza.
+    /// committente); <b>due</b> dal 30 settembre, col sito ATC di IVAO (prenotazioni e FRA). Escono dal sito,
+    /// quindi aprono una scheda nuova e non passano il riferimento né l'accesso alla finestra di partenza.
     /// </summary>
     [Fact]
     public void I_collegamenti_esterni_sono_contati_e_aprono_una_scheda_nuova()
@@ -190,11 +255,19 @@ public class ServicesHomeTests : TestContext
         var cut = Render(VipiRole.User);
         var esterni = cut.FindAll("a.choice.external");
 
-        var eye = Assert.Single(esterni);
-        Assert.Equal("https://the-eye.andreadalbero.it/", eye.GetAttribute("href"));
-        Assert.Equal("_blank", eye.GetAttribute("target"));
-        Assert.Contains("noopener", eye.GetAttribute("rel"));
+        Assert.Equal(3, esterni.Count);
+        Assert.All(esterni, a =>
+        {
+            Assert.Equal("_blank", a.GetAttribute("target"));
+            Assert.Contains("noopener", a.GetAttribute("rel"));
+        });
+        var eye = esterni.First(a => a.GetAttribute("href") == "https://the-eye.andreadalbero.it/");
         Assert.Contains("Services_EyeTitle", eye.TextContent);
+        var atc = esterni.First(a => a.GetAttribute("href") == "https://atc.ivao.aero/");
+        Assert.Contains("Services_AtcIvaoTitle", atc.TextContent);
+        // Il terzo, dal 1 ottobre 2026: il Discord della divisione.
+        var discord = esterni.First(a => a.GetAttribute("href") == "https://discord.ivao.it/");
+        Assert.Contains("Services_DiscordTitle", discord.TextContent);
     }
 
     /// <summary>
@@ -236,5 +309,31 @@ public class ServicesHomeTests : TestContext
         Assert.Equal(atteso, indirizzi.Contains("/services/vsop/airspace"));
         // E il vecchio indirizzo pubblico non compare più in nessun caso.
         Assert.DoesNotContain("/services/airspace", indirizzi);
+    }
+
+    // ─── Login obbligatorio (30 settembre 2026) ─────────────────────────────────────
+
+    /// <summary>A chi non è entrato, su un sito che si legge solo dopo il login, la porta mostra «Entra con IVAO» e
+    /// nient'altro: nessun indirizzo di documento o strumento, che porterebbe comunque al login.</summary>
+    [Fact]
+    public void Da_fuori_con_il_login_obbligatorio_la_porta_mostra_solo_l_accesso()
+    {
+        var cut = Render(VipiRole.User, loginObbligatorio: true, entrato: false);
+
+        Assert.Empty(cut.FindAll("a.choice"));
+        var entra = Assert.Single(cut.FindAll(".svc-login a"));
+        Assert.Equal("/services/vsop/auth/login?returnUrl=/services", entra.GetAttribute("href"));
+        Assert.Contains("Services_LoginButton", entra.TextContent);
+    }
+
+    [Theory]
+    [InlineData(true, true)]    // obbligatorio, ma è entrato
+    [InlineData(false, false)]  // sito aperto (embedded, sviluppo): come sempre
+    public void Da_dentro_o_col_sito_aperto_la_porta_e_quella_di_sempre(bool obbligatorio, bool entrato)
+    {
+        var cut = Render(VipiRole.User, loginObbligatorio: obbligatorio, entrato: entrato);
+
+        Assert.Empty(cut.FindAll(".svc-login"));
+        Assert.Contains(cut.FindAll("a.choice"), a => a.GetAttribute("href") == "/services/vsop");
     }
 }

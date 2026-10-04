@@ -332,7 +332,7 @@
    contrasto fra i due stati e' un cambio di tinta, che chi ha una vista debole non coglie. L'anello
    chiaro (il fondo della barra e' di brand, quindi blu anche a tema scuro) lo rende inequivocabile. */
 :where(.vipi-root) .top-search:focus-within{background:rgba(255,255,255,.95);outline:2px solid var(--on-brand);outline-offset:2px}
-:where(.vipi-root) .top-search .ico{opacity:.85;font-size:13px}
+:where(.vipi-root) .top-search .ico{opacity:.85;font-size:13px;border:0;background:transparent;color:inherit;padding:0;margin:0;display:inline-flex;align-items:center;cursor:pointer;flex:none}
 :where(.vipi-root) .top-search:focus-within .ico{opacity:1}
 :where(.vipi-root) .top-search input{border:0;outline:0;flex:1;min-width:0;font-family:var(--font-body);font-size:13px;background:transparent;color:var(--on-brand)}
 :where(.vipi-root) .top-search input::placeholder{color:rgba(255,255,255,.7)}
@@ -345,13 +345,6 @@
 :where(.vipi-root) .live-badge:hover{background:color-mix(in srgb,var(--ivao-green) 30%,transparent);border-color:color-mix(in srgb,var(--ivao-green) 75%,transparent)}
 :where(.vipi-root) .live-badge.off:hover{background:var(--line);border-color:var(--ink-dim)}
 :where(.vipi-root) .live-badge .dot{width:9px;height:9px;border-radius:50%;background:var(--ivao-green);box-shadow:0 0 0 0 color-mix(in srgb,var(--ivao-green) 60%,transparent);animation:pulse 2s infinite}
-/* La spia della versione (soli admin). Deliberatamente SPENTA: e' una spia, non un comando, e nella barra
-   non deve competere con niente. Monospazio perche' quello che porta e' un codice, e i codici si leggono a
-   colpo d'occhio solo se le cifre stanno in colonna. `user-select` resta libero: serve poterlo copiare
-   dentro una segnalazione. */
-:where(.vipi-root) .ver-chip{font:12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ink-dim);
-          background:var(--surface-muted);border:1px solid var(--line);border-radius:6px;
-          padding:5px 8px;white-space:nowrap;cursor:default}
 
 /* variante "disconnesso" (U7): prima era override inline nel SopLayout */
 :where(.vipi-root) .live-badge.off{background:var(--surface-muted);color:var(--ink-soft);border-color:var(--ivao-grey)}
@@ -366,6 +359,16 @@
    di passaggio e' lo stesso di `.editor-btn:hover`, perche' e' lo stesso genere di comando. L'anello di
    fuoco arriva gia' da `:where(.topbar) :focus-visible`, non va riscritto qui. */
 :where(.vipi-root) .avatar{width:32px;height:32px;border-radius:50%;background:var(--ivao-lightblue);display:grid;place-items:center;font-family:var(--font-head);font-weight:700;font-size:13px;color:inherit;text-decoration:none;cursor:pointer}
+/* 🔴 UNA ALTEZZA per tutti i comandi della barra (committente, 29 settembre 2026: «non tutti i tasti hanno la
+   stessa altezza»). Misurati a 1900px prima di questa riga: tasti a icona 32, «Documenti» e ricerca 36, zoom 38,
+   lingua 32, badge 34. Ognuno la prendeva dal proprio padding e dal proprio contenuto, e un'icona e una riga di
+   testo non sono alte uguali. Ora la decide la barra: `--tb-ctl`, con `box-sizing` perché il bordo stia dentro.
+   ⚠️ La versione dal 29 settembre non sta più in barra: è nel piè di pagina (`.sito-foot`). */
+:where(.vipi-root) .topbar{--tb-ctl:34px}
+:where(.vipi-root) .topbar :is(.editor-btn,.zoom-ctrl,.lang-ctrl,.live-badge,.top-search,.acc-nav a,.tb-menu>summary){height:var(--tb-ctl);box-sizing:border-box}
+:where(.vipi-root) .topbar .acc-nav a{display:inline-flex;align-items:center}
+:where(.vipi-root) .topbar .avatar{width:var(--tb-ctl);height:var(--tb-ctl)}
+:where(.vipi-root) .topbar .zoom-ctrl button{height:26px}
 :where(.vipi-root) .avatar:hover{background:var(--on-brand);color:var(--ivao-blue)}
 
 /* ---------- Pagina Struttura (admin) ---------- */
@@ -514,6 +517,32 @@
   font-size:12.5px;color:var(--ink-soft);margin-bottom:3px}
 :where(.vipi-root) .struct .perm-form .app-in{width:100%}
 :where(.vipi-root) .struct .perm-form .perm-go{width:100%;margin-top:4px}
+/* La porta d'ingresso per chi non è entrato (login obbligatorio, 30 settembre 2026): un riquadro solo, al centro. */
+:where(.vipi-root) .svc-login{max-width:520px;margin:48px auto;padding:28px 24px;text-align:center;display:flex;
+  flex-direction:column;align-items:center;gap:10px}
+:where(.vipi-root) .svc-login .ic{color:var(--accent)}
+:where(.vipi-root) .svc-login .h-card{margin:0}
+:where(.vipi-root) .svc-login p{margin:0 0 6px}
+/* Il titolo del documento, dall'elenco Documenti (30 settembre 2026). */
+:where(.vipi-root) .struct .ver-rename{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 10px}
+:where(.vipi-root) .struct .ver-rename label{flex-basis:100%;font-size:12.5px;color:var(--ink-soft)}
+:where(.vipi-root) .struct .ver-rename .app-in{flex:1 1 260px;min-width:0}
+:where(.vipi-root) .struct .ver-rename .ver-rename-acts{display:flex;gap:8px}
+:where(.vipi-root) .struct .ver-rename .help{flex-basis:100%;margin:0}
+/* Chiavi API: le spunte dei permessi in colonna, casella a sinistra del nome. ⚠️ `.field input` del tema allarga
+   ogni input al 100%, anche le caselle: senza questa regola la casella stava al centro e il nome nell'angolo. */
+:where(.vipi-root) .struct .perm-form .api-eps{border:0;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:6px}
+:where(.vipi-root) .struct .perm-form .api-eps legend{font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;padding:0}
+:where(.vipi-root) .struct .perm-form .api-eps label.api-ep{display:flex;align-items:center;gap:8px;margin:0;font-size:13.5px;
+  color:var(--ink);cursor:pointer}
+:where(.vipi-root) .struct .perm-form .api-eps label.api-ep input{width:auto;flex:none;margin:0;padding:0}
+/* Gli indirizzi delle API: uno per riga, l'URL va a capo invece di allargare la pagina sul telefono. */
+:where(.vipi-root) .struct .api-routes .api-routes-h{font-size:17px;margin:0 0 4px}
+:where(.vipi-root) .struct .api-routes .api-route-grp{font-size:14px;margin:14px 0 6px}
+:where(.vipi-root) .struct .api-routes .api-route{padding:8px 0;border-top:1px solid var(--line)}
+:where(.vipi-root) .struct .api-routes .api-route-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+:where(.vipi-root) .struct .api-routes .api-route-url{word-break:break-all;user-select:all}
+:where(.vipi-root) .struct .api-routes .api-route-hdr{margin:0 0 6px;white-space:pre-wrap;word-break:break-all}
 /* «Un ACC in più a chi c'è già»: menu e tasto sulla stessa riga, in fondo all'elenco dei suoi permessi. */
 :where(.vipi-root) .struct .perm-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;
   border-top:1px solid var(--line)}
@@ -658,6 +687,97 @@
 :where(.vipi-root) .kpi-d.down{color:var(--ink-soft)}
 :where(.vipi-root) .kpi-d.flat{color:var(--ink-faint)}
 :where(.vipi-root) .kpi-spark{margin-top:9px}
+
+/* ============================================================================================
+   STATISTICHE — la veste del 30 settembre 2026 (tavole approvate dal committente: carta
+   docs/feature/2026-09-30-statistiche-nuova-grafica.md). Riquadri al posto dei titoli a tutta pagina, due
+   colonne dove due cose si leggono insieme, barre al posto delle tabelle corte. Stessi token di sopra: vale in
+   chiaro e in scuro. Le soglie guardano il CONTENITORE (vedi sopra: lo zoom non lo vede una @media).
+   ============================================================================================ */
+:where(.vipi-root) .sx-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);min-width:0;display:flex;flex-direction:column;gap:12px}
+:where(.vipi-root) .sx-card>h2,:where(.vipi-root) .sx-card .sx-h{margin:0;font-family:var(--font-head);font-weight:700;font-size:19px;color:var(--brand-ink-2)}
+:where(.vipi-root) .sx-card>.muted,:where(.vipi-root) .sx-card p{margin:0}
+:where(.vipi-root) .sx-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap}
+:where(.vipi-root) .sx-row{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;margin:16px 0}
+:where(.vipi-root) .sx-row.half{grid-template-columns:repeat(2,minmax(0,1fr))}
+:where(.vipi-root) .sx-block{margin:16px 0}
+:where(.vipi-root) .sx-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 20px;flex-wrap:wrap}
+:where(.vipi-root) .sx-top .stat-chips{margin:0}
+/* Identità: chi è, e le due cose che valgono più di un numero — posizione e costanza. */
+:where(.vipi-root) .sx-id{flex-direction:row;align-items:center;gap:20px;margin-top:16px}
+:where(.vipi-root) .sx-av{flex:none;width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:700;font-size:21px;color:var(--brand-ink-2);background:var(--tint-atmos);border:2px solid var(--brand-ink-2)}
+:where(.vipi-root) .sx-who{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+:where(.vipi-root) .sx-name{font-family:var(--font-head);font-weight:700;font-size:24px;color:var(--ink);line-height:1.2}
+:where(.vipi-root) .sx-tags{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--ink-soft)}
+:where(.vipi-root) .sx-tag{font-size:12px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--tint-atmos);color:var(--brand-ink-2);white-space:nowrap}
+:where(.vipi-root) .sx-tag.gold{background:var(--tint-yellow-soft);color:var(--warn-ink)}
+:where(.vipi-root) .sx-rank{flex:none;text-align:right;padding-left:22px;border-left:1px solid var(--line)}
+:where(.vipi-root) .sx-rank b{display:block;font-family:var(--font-head);font-weight:800;font-size:40px;line-height:1;color:var(--ink)}
+:where(.vipi-root) .sx-rank span{font-size:13px;color:var(--ink-soft)}
+:where(.vipi-root) .kpi-n{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+:where(.vipi-root) .sid-radio{font-size:12.5px;margin:0 0 8px;display:flex;gap:6px;align-items:center}
+:where(.vipi-root) .sx-note{font-size:13px;margin:10px 0 0;max-width:900px}
+/* Righe a barra: etichetta, barra lunga quanto il valore rispetto al primo, valore; sotto, il dettaglio. */
+:where(.vipi-root) .sx-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+:where(.vipi-root) .sx-hr{display:grid;grid-template-columns:minmax(90px,140px) minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:13px}
+:where(.vipi-root) .sx-hr .k{font-family:var(--font-mono);font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:where(.vipi-root) .sx-hr .v{text-align:right;font-weight:600;color:var(--ink);white-space:nowrap}
+:where(.vipi-root) .sx-hr .d{grid-column:2 / 4;font-size:12px;color:var(--ink-soft)}
+:where(.vipi-root) .sx-bar{height:10px;border-radius:5px;background:var(--surface-muted);overflow:hidden}
+/* Il colore della barra: di serie quello del marchio; per le postazioni le classi p-* di sotto (le stesse del
+   pallino e della ciambella), che vincono perché l'elemento non ha un fondo suo. */
+:where(.vipi-root) .sx-bar>i{display:block;height:100%;border-radius:5px}
+:where(.vipi-root) .sx-bar>i:not([class]){background:var(--brand-ink-2)}
+/* La barra divisa per tipo di postazione, al posto della ciambella. */
+:where(.vipi-root) .sx-split{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--surface-muted)}
+:where(.vipi-root) .sx-split>i{display:block;height:100%}
+:where(.vipi-root) .sx-legend{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:13px;color:var(--ink-soft)}
+:where(.vipi-root) .sx-legend b{color:var(--ink)}
+:where(.vipi-root) .sx-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+:where(.vipi-root) .sx-chips{display:flex;flex-wrap:wrap;gap:6px}
+:where(.vipi-root) .sx-chips span{font-family:var(--font-mono);font-size:12px;padding:4px 9px;border-radius:7px;background:var(--tint-atmos);color:var(--brand-ink-2)}
+:where(.vipi-root) .sx-sub{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ink-soft);text-transform:uppercase;margin-top:4px}
+:where(.vipi-root) .sx-card details>summary{cursor:pointer;font-weight:600;color:var(--brand-ink-2);font-size:13px;list-style:none}
+:where(.vipi-root) .sx-card details>summary::-webkit-details-marker{display:none}
+:where(.vipi-root) .sx-card details[open]>summary{margin-bottom:10px}
+:where(.vipi-root) .sx-card .cov-wrap{margin:0}
+/* Il grafico dei mesi riempie il suo riquadro: accanto a «Dove controlli», più alto, restava un vuoto sotto. */
+:where(.vipi-root) .sx-card>.bars{flex:1 1 auto;height:auto;min-height:190px}
+:where(.vipi-root) .sx-name a{color:inherit}
+:where(.vipi-root) .cov-tot{text-align:right;padding-left:10px;font-weight:600;color:var(--ink);white-space:nowrap}
+:where(.vipi-root) .sx-foot{display:flex;align-items:flex-start;gap:12px 16px;flex-wrap:wrap}
+:where(.vipi-root) .sx-foot>.btn{flex:none}
+:where(.vipi-root) .sx-foot>p{flex:1 1 320px;margin:0}
+:where(.vipi-root) .sx-cell{display:flex;align-items:center;gap:8px;white-space:nowrap}
+:where(.vipi-root) .sx-cell>.sx-bar{flex:0 0 90px}
+:where(.vipi-root) .sx-air .icao{font-family:var(--font-mono);font-weight:500}
+:where(.vipi-root) .res-table :is(td,th).num{text-align:right}
+:where(.vipi-root) .sx-type{display:grid;grid-template-columns:12px 48px minmax(0,1fr) auto 44px;gap:10px;align-items:center;font-size:13px}
+:where(.vipi-root) .sx-type>i{width:12px;height:12px;border-radius:3px}
+:where(.vipi-root) .sx-type>.v{text-align:right;font-weight:600;color:var(--ink)}
+:where(.vipi-root) .sx-type>.muted:last-child{text-align:right}
+:where(.vipi-root) .sx-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 32px}
+:where(.vipi-root) .sx-who-c{display:inline-flex;flex-direction:column;gap:1px}
+:where(.vipi-root) .sx-who-c>b{font-weight:700;color:var(--ink)}
+:where(.vipi-root) .sx-who-c>b+.sx-vid{font-size:12px}
+:where(.vipi-root) .sx-vid{display:inline-flex;gap:6px;align-items:center}
+:where(.vipi-root) .pod.p2{background:var(--surface-muted)}
+:where(.vipi-root) .sx-tools-h{margin:28px 0 10px}
+:where(.vipi-root) .sx-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+:where(.vipi-root) a.sx-tool{text-decoration:none;color:var(--ink)}
+:where(.vipi-root) a.sx-tool:hover{border-color:var(--brand-ink-2)}
+:where(.vipi-root) .sx-tool{gap:6px}
+:where(.vipi-root) .sx-tool b{font-family:var(--font-head);font-size:16px;display:inline-flex;gap:8px;align-items:center}
+:where(.vipi-root) .sx-tool .inline-form{display:flex;gap:10px;align-items:center;margin:0}
+:where(.vipi-root) .sx-card .vid-find{margin:0}
+@container (max-width: 760px){
+  :where(.vipi-root) .sx-row,:where(.vipi-root) .sx-row.half{grid-template-columns:minmax(0,1fr)}
+  :where(.vipi-root) .sx-id{flex-wrap:wrap;gap:14px}
+  :where(.vipi-root) .sx-rank{flex-basis:100%;text-align:left;padding:12px 0 0;border-left:0;border-top:1px solid var(--line);display:flex;align-items:baseline;gap:10px}
+  :where(.vipi-root) .sx-rank b{display:inline;font-size:32px}
+  :where(.vipi-root) .sx-card{padding:16px}
+  :where(.vipi-root) .sx-cols{grid-template-columns:minmax(0,1fr)}
+}
 
 /* Sparkline. Il tratto NON si deforma con la scala orizzontale: `vector-effect` è quel che lo tiene
    spesso uguale quando l'SVG viene stirato (`preserveAspectRatio=none`), altrimenti su una card larga
@@ -835,6 +955,9 @@
   :where(.vipi-root) .tbl-cards td::before{content:attr(data-l);color:var(--ink-soft);font-size:12px;flex:none;min-width:38%}
   :where(.vipi-root) .tbl-cards td.cb::before{content:attr(data-l);position:static;background:none;width:auto}
   :where(.vipi-root) .tbl-cards td:empty{display:none}
+  :where(.vipi-root) .tbl-cards td.num{text-align:left}
+  :where(.vipi-root) .tbl-cards .sx-cell{flex:1 1 0;min-width:0}
+  :where(.vipi-root) .tbl-cards .sx-cell>.sx-bar{flex:0 1 70px}
   :where(.vipi-root) .stat-hero .sh-side{margin-left:0}
   :where(.vipi-root) .donut-wrap{gap:14px}
 }
@@ -847,7 +970,10 @@
 :where(.vipi-root) .breadcrumb{font-size:13px;color:var(--ink-soft);margin-bottom:18px}
 :where(.vipi-root) .breadcrumb a{color:var(--ink-soft)}
 :where(.vipi-root) .breadcrumb b{color:var(--brand-ink)}
-:where(.vipi-root) .airac{display:inline-flex;align-items:center;gap:7px;background:var(--tint-atmos);color:var(--brand-ink);border:1px solid var(--on-dark-soft);padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:600;font-family:var(--font-head)}
+/* Bordo trasparente (30 settembre 2026, committente): `--on-dark-soft` è quasi bianco anche al buio, e intorno
+   all'AIRAC disegnava un quadratino bianco. Resta lo spessore, così la variante sull'eroe (bordo chiaro su blu) non
+   sposta niente. */
+:where(.vipi-root) .airac{display:inline-flex;align-items:center;gap:7px;background:var(--tint-atmos);color:var(--brand-ink);border:1px solid transparent;padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:600;font-family:var(--font-head)}
 :where(.vipi-root) .muted{color:var(--ink-soft)}
 /* Ora locale del lettore, accodata all'orario UTC scritto dal server (vipi-time.js scrive data-loc).
    E' un ::after e non un nodo figlio perche' l'elemento lo possiede Blazor: un figlio estraneo finirebbe
@@ -991,9 +1117,17 @@
 /* Riga della pill militare sulla card d'aeroporto: sta fra il nome e il meteo, e non deve toccarli. */
 :where(.vipi-root) .apt-mil{margin:6px 0 0}
 /* Scheda di uno scalo con vIPI E vSOP militare: non e' un link unico (un <a> dentro un <a> non e' HTML), ma
-   un riquadro con due voci ACCANTO AL NOME, che vanno a capo se il nome e' lungo. Non si solleva al passaggio,
-   o prometterebbe un clic che sul riquadro non c'e'. La voce militare prende l'oliva dell'edizione militare. */
-:where(.vipi-root) .apt-card.apt-two:hover{transform:none}
+   un riquadro con due voci ACCANTO AL NOME, che vanno a capo se il nome e' lungo. La voce militare prende
+   l'oliva dell'edizione militare.
+   Dal 29 settembre 2026 il riquadro si clicca fuori dalle voci (apre il documento principale per categoria): il
+   collegamento `.apt-main` e' steso su tutta la scheda SOTTO il contenuto, e le due voci gli stanno sopra. Il
+   resto del contenuto non prende i clic (`pointer-events:none`), cosi' arrivano al collegamento; per questo la
+   scheda torna a sollevarsi al passaggio come le altre. */
+:where(.vipi-root) .apt-card.apt-two{position:relative}
+:where(.vipi-root) .apt-card.apt-two>.apt-main{position:absolute;inset:0;border-radius:inherit;z-index:0}
+:where(.vipi-root) .apt-card.apt-two>:not(.apt-main){position:relative;z-index:1;pointer-events:none}
+:where(.vipi-root) .apt-card.apt-two .apt-docs{pointer-events:auto}
+:where(.vipi-root) .apt-card.apt-two>.apt-main:focus-visible{outline:2px solid var(--ivao-lightblue);outline-offset:2px}
 :where(.vipi-root) .apt-name{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;margin-top:4px}
 :where(.vipi-root) .apt-card .apt-name p.muted{margin:0}
 /* ⚠️ I filtri per categoria: una categoria a zero e' NEUTRA, non verde — il verde di `button.sh-chip:disabled`
@@ -1083,9 +1217,9 @@
 /* --- Rework card di navigazione ACC: accent bar per categoria, niente emoji/frecce --- */
 :where(.vipi-root) .nav-card{position:relative;overflow:hidden;display:flex;flex-direction:column;border-radius:20px;transition:box-shadow .15s,border-color .15s,transform .15s}
 :where(.vipi-root) .nav-card{--accent:var(--ivao-blue);--accent-ink:var(--brand-ink)}
-:where(.vipi-root) .nav-card.c-air{--accent:var(--cat-air);--accent-ink:var(--cat-air-ink)}
-:where(.vipi-root) .nav-card.c-app{--accent:var(--cat-app);--accent-ink:var(--cat-app-ink)}
-:where(.vipi-root) .nav-card.c-vloa{--accent:var(--cat-vloa);--accent-ink:var(--cat-vloa-ink)}
+:where(.vipi-root) .nav-card.c-air,:where(.vipi-root) .nav-card.c-app,:where(.vipi-root) .nav-card.c-vloa{--accent:var(--cat-air);--accent-ink:var(--cat-air-ink)}
+/* ⚠️ Aeroporti, avvicinamenti e vLoA della pagina dell'ACC hanno lo stesso colore (30 settembre 2026, committente):
+   bordo al passaggio del mouse e «Vedi tutti» erano blu, azzurro e verde, tre colori per tre riquadri gemelli. */
 :where(.vipi-root) .nav-card.c-admin{--accent:var(--cat-admin);--accent-ink:var(--cat-admin-ink)}
 :where(.vipi-root) .nav-card.c-vipi{--accent:var(--ivao-blue);--accent-ink:var(--brand-ink)}
 :where(.vipi-root) .nav-card:hover{border-color:var(--accent);box-shadow:0 8px 22px color-mix(in srgb,var(--ivao-blue) 10%,transparent);transform:translateY(-1px)}
@@ -1101,6 +1235,8 @@
 /* U-210: la riga è un collegamento vero; il <a> occupa tutta la riga, così l'area del clic resta quella di prima. */
 :where(.vipi-root) .linklist li>a{display:flex;align-items:center;flex:1;margin:-9px -12px;padding:9px 12px;border-radius:inherit;color:inherit;text-decoration:none}
 :where(.vipi-root) .linklist li>a:focus-visible{outline:2px solid var(--brand-ink-2);outline-offset:-2px}
+/* Le aperture degli ultimi 90 giorni, accanto a una voce: solo allo staff (S93, 1-ott-2026). */
+:where(.vipi-root) .linklist li .aperture{margin-left:auto;padding-left:10px;font-size:12px;white-space:nowrap}
 :where(.vipi-root) .see-all{align-self:flex-start;margin-top:10px;font-size:12.5px;font-weight:600;color:var(--accent-ink);text-decoration:none}
 :where(.vipi-root) .see-all::after{content:" ›";font-weight:700}
 :where(.vipi-root) .see-all:hover{text-decoration:underline}
@@ -1766,9 +1902,8 @@
 :where(.vipi-root) .live-changes .lc-chip.on{background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)}
 :where(.vipi-root) .live-changes .lc-chip.off{background:var(--tint-red);color:var(--danger-ink);border-color:var(--line-red-strong)}
 :where(.vipi-root) .live-changes .lc-chip .lc-t{font-weight:400;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
-:where(.vipi-root) .live-changes .lc-clear{margin-left:auto;background:none;border:0;cursor:pointer;font-size:12.5px;
-  color:var(--ink-soft);text-decoration:underline;padding:0}
-:where(.vipi-root) .live-changes .lc-clear:hover{color:var(--brand-ink)}
+:where(.vipi-root) .live-changes .lc-clear{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:1px solid currentColor;background:var(--surface);color:var(--ink);cursor:pointer;font-size:15px;font-weight:700;line-height:1;padding:0}
+:where(.vipi-root) .live-changes .lc-clear:hover,:where(.vipi-root) .live-changes .lc-clear:focus-visible{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
 /* Catena di copertura: chi ti assorbe se chiudi, e a chi passi salendo. Per ground e delivery — che di
    trasferimenti propri non ne hanno — è l'informazione principale, quindi `lead` la rende più marcata. */
 :where(.vipi-root) .live-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;font-size:13px}
@@ -1872,40 +2007,48 @@
    Scorre via con la pagina. `max-height` per il telefono in orizzontale, dove anche un tablet e' basso. */
 :where(.vipi-root) .wrap.pw-760 .reduced-top{position:static}
 @media (max-height:520px){:where(.vipi-root) .reduced-top{position:static}}
-:where(.vipi-root) .reduced-top .live-pick input{margin-bottom:0;padding:4px 10px;font-size:12.5px}
-/* Il tasto «Compatta»: stava in uno `style` in linea, che nessuna regola del foglio puo' allargare al tocco. */
-:where(.vipi-root) .reduced-top .live-dense{padding:3px 10px;font-size:12.5px}
+:where(.vipi-root) .reduced-top .live-pick input{margin-bottom:0;padding:4px 10px;font-size:12.5px;font-family:var(--font-body);
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .reduced-top .live-pick input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
 
-/* Modalità compatta (persistita): la vista live vive spesso su un secondo monitor piccolo, dove servono
-   più righe a schermo che aria. Tocca solo densità, mai contenuto. */
-.vipi-dense .vipi-root{font-size:14px}
+/* Modalità compatta (sempre accesa nella vista live e solo lì, vipi-ui.js applyDense): la vista live vive spesso su un secondo monitor piccolo, dove servono
+   più righe a schermo che aria. Tocca solo densità, mai contenuto.
+   🔴 Solo il CONTENUTO della pagina (committente, 1 ottobre 2026): `#vipi-main`, non la barra in alto né il piè di
+   pagina, e non il titolo della pagina. Prima `.vipi-dense .vipi-root` prendeva tutto, e il titolo «IVAO» del piè
+   di pagina (un <h2>) passava a 23px. `:where(#vipi-main)` per non cambiare chi vince: la specificità resta quella
+   di prima. */
+.vipi-dense .vipi-root :where(#vipi-main){font-size:14px}
 /* ⚠️ `.page-h1` accanto a `h2` e non per conto suo: e' la stessa testata, che ha solo cambiato tag
    (vedi il commento alla classe, in cima al foglio). Senza, in compatta restava a 32px. */
 /* ⚠️ `:not()` sulle due classi: sono titoli di sezione e di scheda che hanno preso il tag <h2> per la
    gerarchia, non per l'aspetto. Prima erano <h3>/<h4>, che la compatta non tocca — e non deve toccarli
    nemmeno adesso, o si rimpicciolirebbero solo perche' e' cambiato il tag. */
-.vipi-dense .vipi-root h2:not(.h-sect):not(.h-card),.vipi-dense .vipi-root .page-h1{font-size:23px}
-.vipi-dense .vipi-root table{font-size:12.5px}
-.vipi-dense .vipi-root th,.vipi-dense .vipi-root td{padding:4px 7px}
-:where(.vipi-root) .vipi-dense .acc-item>summary{padding:8px 12px}
-:where(.vipi-root) .vipi-dense .acc-item .body{padding:2px 12px 10px}
-:where(.vipi-root) .vipi-dense .rap-box{padding:5px 10px}
-:where(.vipi-root) .vipi-dense .reduced-top{gap:10px;padding:7px 0;margin-bottom:12px}
-:where(.vipi-root) .vipi-dense .callout{padding:8px 12px}
-:where(.vipi-root) .vipi-dense .apt-quick{margin-bottom:12px !important}
+.vipi-dense .vipi-root :where(#vipi-main) h2:not(.h-sect):not(.h-card):not(.page-h1){font-size:23px}
+.vipi-dense .vipi-root :where(#vipi-main) table{font-size:12.5px}
+.vipi-dense .vipi-root :where(#vipi-main) th,.vipi-dense .vipi-root :where(#vipi-main) td{padding:4px 7px}
+/* 🔴 `.vipi-dense` PRIMA di `.vipi-root`: la classe sta su <html>, che di `.vipi-root` e' l'antenato. Fino al 1 ottobre
+   2026 le righe qui sotto erano scritte `:where(.vipi-root) .vipi-dense …`, cioe' cercavano la compatta DENTRO la
+   radice, e non scattavano mai: il padding di cassette, riquadri e testata restava quello pieno (misurato: `.rap-box`
+   a 8px 14px in compatta). Stessa specificita' di prima, cambia solo che adesso valgono. */
+.vipi-dense :where(.vipi-root) .acc-item>summary{padding:8px 12px}
+.vipi-dense :where(.vipi-root) .acc-item .body{padding:2px 12px 10px}
+.vipi-dense :where(.vipi-root) .rap-box{padding:5px 10px}
+.vipi-dense :where(.vipi-root) .reduced-top{gap:10px;padding:7px 0;margin-bottom:12px}
+.vipi-dense :where(.vipi-root) .callout{padding:8px 12px}
+.vipi-dense :where(.vipi-root) .apt-quick{margin-bottom:12px !important}
 /* Coordinamenti live: prima di oggi la densità non toccava niente qui dentro, e «Compatta» valeva il 2%. */
-:where(.vipi-root) .vipi-dense .xl-bar{margin-bottom:7px}
-:where(.vipi-root) .vipi-dense .xl-filter input{width:170px;padding-top:2px;padding-bottom:2px}
-:where(.vipi-root) .vipi-dense #xl-cols{gap:8px}
-:where(.vipi-root) .vipi-dense .xl-kcol-h{padding:3px 9px;font-size:11px}
+.vipi-dense :where(.vipi-root) .xl-bar{margin-bottom:7px}
+.vipi-dense :where(.vipi-root) .xl-filter input{width:170px;padding-top:2px;padding-bottom:2px}
+.vipi-dense :where(.vipi-root) #xl-cols{gap:8px}
+.vipi-dense :where(.vipi-root) .xl-kcol-h{padding:3px 9px;font-size:11px}
 /* ⚠️ La colonna del CoP resta 70px anche in densa: a 62 «ALL to GR» andava a capo e la riga diventava
    alta il doppio: si perdeva più di quanto si guadagnasse. Il risparmio della densa sta nell'interlinea
    e nel padding, non nella larghezza. */
-:where(.vipi-root) .vipi-dense .xl-line{grid-template-columns:46px 70px minmax(0,1fr) auto;gap:6px;padding:0 8px;font-size:11.5px;line-height:1.42}
-:where(.vipi-root) .vipi-dense .xl-apt{font-size:12px}
-:where(.vipi-root) .vipi-dense .xl-line .fl{font-size:12.5px}
-:where(.vipi-root) .vipi-dense .xl-next{font-size:10.5px;padding:0 6px}
-:where(.vipi-root) .vipi-dense .xl-next b{font-size:11px}
+.vipi-dense :where(.vipi-root) .xl-line{grid-template-columns:46px 70px minmax(0,1fr) auto;gap:6px;padding:0 8px;font-size:11.5px;line-height:1.42}
+.vipi-dense :where(.vipi-root) .xl-apt{font-size:12px}
+.vipi-dense :where(.vipi-root) .xl-line .fl{font-size:12.5px}
+.vipi-dense :where(.vipi-root) .xl-next{font-size:10.5px;padding:0 6px}
+.vipi-dense :where(.vipi-root) .xl-next b{font-size:11px}
 :where(.vipi-root) .apt-quick{display:flex;gap:8px;flex-wrap:wrap}
 :where(.vipi-root) .apt-quick .ch{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:500;transition:.12s}
 :where(.vipi-root) .apt-quick .ch:hover{border-color:var(--ivao-lightblue);color:var(--brand-ink)}
@@ -1920,9 +2063,96 @@
 :where(.vipi-root) .rap-box{display:flex;flex-direction:column;background:var(--surface-soft);border:1px solid var(--line);border-radius:9px;padding:8px 14px;min-width:120px}
 :where(.vipi-root) .rap-box .muted{font-size:11px;text-transform:uppercase;letter-spacing:.03em}
 :where(.vipi-root) .rap-box b{font-family:var(--font-head);color:var(--brand-ink);font-size:16px}
+/* VISTA LIVE (committente, 1 ottobre 2026) — tutto per stare in meno righe su un secondo monitor piccolo.
+   Testata su una riga: le briciole perdono il loro margine, l'avviso di simulazione prende lo spazio avanzato e
+   sta centrato in quello. Stretta: va a capo. */
+:where(.vipi-root) .live-top .breadcrumb{margin:0}
+:where(.vipi-root) .live-top .page-h1{margin:0}
+:where(.vipi-root) .live-top .sim-disc{flex:1 1 auto;text-align:center;font-size:13px}
+/* VISTA LIVE DA TELEFONO o tablet in verticale (`.pw-760`, misurato sul riquadro come il resto del sito): titolo
+   piccolo accanto alle briciole, la postazione ridotta al pallino (il `title` la ridà intera), enti limitrofi
+   chiusi dietro il tasto dell'etichetta (committente, 1 ottobre 2026). */
+:where(.vipi-root) .live-chain .lc-toggle{border:0;background:none;padding:0;color:inherit;cursor:default}
+:where(.vipi-root) .live-chain .lc-n{display:none}
+:where(.vipi-root) .wrap.live.pw-760 .live-top{gap:8px 10px}
+:where(.vipi-root) .wrap.live.pw-760 .live-top .page-h1{font-size:19px}
+:where(.vipi-root) .wrap.live.pw-760 .live-top .live-badge{padding:0;border:0;background:none !important}
+:where(.vipi-root) .wrap.live.pw-760 .live-top .live-badge .lb-t{display:none}
+/* TABLET in verticale (601–900, cioè `.pw-760` senza `.pw-600`) e TELEFONO (`.pw-600`) sono due misure (committente,
+   1 ottobre 2026): il tablet ha titolo piccolo, pallino, margini stretti e frequenze chiuse come il telefono, ma tiene
+   aperti enti limitrofi, colonna «condizione», frase radio e i quattro valori in una riga, perché ci stanno.
+   Qui sotto, le regole a `.pw-600` valgono solo per il telefono. */
+:where(.vipi-root) .wrap.live.pw-760 .live-top .sim-disc{font-size:11.5px}
+:where(.vipi-root) .wrap.live.pw-600 .live-top .sim-disc{flex-basis:100%;text-align:left;font-size:11.5px}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain .lc-toggle{cursor:pointer}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain .lc-toggle::after{content:" ▸"}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain.open .lc-toggle::after{content:" ▾"}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain .lc-n{display:inline;font-weight:600;opacity:.75}
+:where(.vipi-root) .wrap.live.pw-600 .live-chain:not(.open)>:not(.lc-toggle){display:none}
+/* La ricerca rapida della vista live (LiveSearchPanel, 1 ottobre 2026): il campo in coda alle chip, risultati a
+   righe-tasto, una tabella per le aree. Il campo ha la forma di una chip, per stare nella riga senza romperla. */
+:where(.vipi-root) .lsr-field{display:inline-flex;align-items:center;gap:4px}
+:where(.vipi-root) .lsr-field input{width:210px;margin:0;padding:6px 14px;border-radius:20px;font-size:13px;font-family:var(--font-body);
+  border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .lsr-field input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
+:where(.vipi-root) .wrap.pw-600 .lsr-field{flex:1 1 100%}
+:where(.vipi-root) .wrap.pw-600 .lsr-field input{width:100%}
+:where(.vipi-root) .live-search .lsr-hint{font-size:13px;margin:6px 0 0}
+:where(.vipi-root) .live-search .lsr-h{font-family:var(--font-head);font-weight:700;font-size:13px;margin:14px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+:where(.vipi-root) .live-search .lsr-all{padding:3px 10px;font-size:12.5px}
+:where(.vipi-root) .live-search .lsr-list{display:flex;flex-direction:column;gap:4px}
+:where(.vipi-root) .live-search .lsr-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;text-align:left;font:inherit;font-size:13.5px;color:var(--ink);
+  background:var(--surface-soft);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+:where(.vipi-root) .live-search .lsr-row:hover,:where(.vipi-root) .live-search .lsr-row:focus-visible{border-color:var(--ivao-lightblue)}
+:where(.vipi-root) .live-search .lsr-row b{font-family:var(--font-head);color:var(--brand-ink)}
+:where(.vipi-root) .live-search .lsr-acc{font-size:12px;margin-left:auto}
+:where(.vipi-root) .live-search .lsr-back{padding:3px 10px;font-size:12.5px;margin:2px 0 10px}
+:where(.vipi-root) .live-search .lsr-areas{margin-top:12px;font-size:13px}
+:where(.vipi-root) .live-search .lsr-band{white-space:nowrap}
+:where(.vipi-root) .live-search .lsr-static{cursor:default}
+:where(.vipi-root) .live-search .lsr-title .lsr-back{margin:0}
+:where(.vipi-root) .live-search .lsr-freq{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-variant-numeric:tabular-nums}
+:where(.vipi-root) .live-search .lsr-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-faint);flex:none;align-self:center}
+:where(.vipi-root) .live-search .lsr-dot.on{background:var(--ivao-green)}
+:where(.vipi-root) .live-search .lsr-detail{display:flex;flex-direction:column;gap:6px}
+:where(.vipi-root) .live-search .lsr-detail p{margin:0}
+:where(.vipi-root) .live-search .lsr-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:15px}
+:where(.vipi-root) .live-search .lsr-title b{font-family:var(--font-head);font-size:20px;color:var(--brand-ink)}
+:where(.vipi-root) .live-search .lsr-state,:where(.vipi-root) .live-search .lsr-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px}
+:where(.vipi-root) .live-search .lsr-map{height:280px;border-radius:10px;overflow:hidden;margin-top:4px}
+/* «Nessuna vIPI pubblicata»: chiuso, si apre sul titolo. */
+:where(.vipi-root) .callout-fold>summary{cursor:pointer;margin:0}
+:where(.vipi-root) .callout-fold[open]>summary{margin-bottom:4px}
+/* Pannello dello scalo: ICAO, i quattro valori e i tasti su una riga; a capo solo se non ci stanno. */
+:where(.vipi-root) .rap-row{flex-wrap:wrap}
+:where(.vipi-root) .rap-row .rap-quick{margin:0;flex:1 1 520px}
+/* La frase sulla radio: l'icona è un tasto, che conta solo da telefono (lì la frase si apre toccandola). */
+:where(.vipi-root) .sid-radio-btn{border:0;background:none;padding:0;color:inherit;cursor:default;display:inline-flex}
+:where(.vipi-root) .wrap.pw-600 .sid-radio-btn{cursor:pointer;padding:6px;margin:-6px;font-size:16px}
+:where(.vipi-root) .wrap.pw-600 .sid-radio:not(.open) .sid-radio-t{display:none}
+:where(.vipi-root) .wrap.pw-600 .sid-bar>.sid-radio.open{flex-basis:100%}
+:where(.vipi-root) .sid-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 8px}
+:where(.vipi-root) .sid-bar>.sid-radio,:where(.vipi-root) .sid-bar>.sid-find{margin:0}
+:where(.vipi-root) .sid-bar>.sid-find{flex:1 1 280px}
+:where(.vipi-root) .rap-rwy{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+:where(.vipi-root) .rap-rwy .sid-pill{margin:0}
+/* L'ICAO nel titolo del riquadro, della misura del titolo. */
+:where(.vipi-root) .acc-item .tag-state.sum-icao{font-size:inherit;font-weight:inherit;margin-left:6px;vertical-align:baseline}
+:where(.vipi-root) .rap-btns{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap}
+:where(.vipi-root) .rap-quick.rap-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+:where(.vipi-root) .rap-quick.rap-4 .rap-box{min-width:0}
+:where(.vipi-root) .wrap.pw-600 .rap-quick.rap-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* In «Compatta» etichetta e valore sulla stessa riga della cella: meta' altezza, e il valore sta nello spazio che
+   prima restava vuoto a destra dell'etichetta (committente, 1 ottobre 2026). */
+.vipi-dense :where(.vipi-root) .rap-quick.rap-4 .rap-box{flex-direction:row;align-items:baseline;gap:8px;padding:4px 10px}
+.vipi-dense :where(.vipi-root) .rap-quick.rap-4 .rap-box .muted{white-space:nowrap}
+.vipi-dense :where(.vipi-root) .rap-quick.rap-4 .rap-box b{font-size:14px;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 :where(.vipi-root) .acc-item{border:1px solid var(--line);border-radius:11px;margin-bottom:12px;background:var(--surface);overflow:hidden}
 :where(.vipi-root) .acc-item>summary{cursor:pointer;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;list-style:none;font-family:var(--font-head);font-weight:700;color:var(--brand-ink)}
 :where(.vipi-root) .acc-item>summary::-webkit-details-marker{display:none}
+/* Una voce che NON si apre (funzione in sviluppo, visibile solo allo staff): stessa riga di un <summary>, senza mano. */
+:where(.vipi-root) .acc-chiuso-h{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-head);font-weight:700;color:var(--ink-soft);cursor:not-allowed}
+:where(.vipi-root) .acc-item .tag-dev{background:var(--tint-yellow-soft);color:var(--warn-ink)}
 :where(.vipi-root) .acc-item .body{padding:4px 16px 16px}
 :where(.vipi-root) .acc-item.collapsed-strip>summary{color:var(--ink-soft);background:var(--tint-atmos-soft);font-weight:500;font-size:13.5px}
 :where(.vipi-root) .acc-item .tag-state{font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px}
@@ -2209,6 +2439,12 @@
 :where(.vipi-root) .sid-view .col-sid{width:11.4%}
 :where(.vipi-root) .sid-view .col-trans{width:9.5%}
 :where(.vipi-root) .sid-view .col-climb{width:13.6%}
+/* «Transition» sul telefono (committente, 1 ottobre 2026): la tabella resta larga 720px e la colonna 9,5%, cioè
+   ~68px, dove la parola maiuscola non entra e finisce sopra «Initial climb». Sotto i 760px si legge «Tran.», col
+   nome intero nel title. Le due etichette stanno tutt'e due nel markup: la scelta la fa il foglio, non il server,
+   che la larghezza dello schermo non la sa. */
+:where(.vipi-root) .sid-view .th-corto{display:none;text-decoration:none;cursor:help}
+@media (max-width:760px){:where(.vipi-root) .sid-view .th-lungo{display:none}:where(.vipi-root) .sid-view .th-corto{display:inline}}
 :where(.vipi-root) .sid-view .col-type{width:5.8%}
 :where(.vipi-root) .sid-view .col-cat{width:9.3%}
 :where(.vipi-root) .sid-view .col-wtc{width:9%}
@@ -2229,10 +2465,57 @@
 :where(.vipi-root) .sid-quick .col-cat{width:7%}
 :where(.vipi-root) .sid-quick .col-wtc{width:7%}
 :where(.vipi-root) .sid-quick .col-cond{width:15%}
+/* Da telefono (committente, 1 ottobre 2026): niente colonna «condizione», la si apre toccando la SID (riga sotto,
+   AirportQuickPanel). La tabella smette di pretendere 520px e sta nello schermo. */
+:where(.vipi-root) .sid-quick .sid-cond-row{display:none}
+/* ⚠️ `display:table` e `table-layout:fixed` RIMESSI: da telefono il sito fa di ogni tabella un blocco che scorre e
+   si stringe al contenuto (media query del telefono, U-106), e lì le larghezze qui sotto non contano — «A, B, C, D,
+   E» andava a capo a ogni virgola, una riga alta cinque. Questa tabella, senza la condizione, ci sta. */
+:where(.vipi-root) .wrap.pw-760 .tbl-scroll>.sid-quick{display:table;table-layout:fixed;width:100%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick{min-width:0;font-size:11px}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-cond{display:none}
+:where(.vipi-root) .wrap.pw-600 .sid-quick th{white-space:normal;font-size:9px;padding:4px 3px;overflow-wrap:normal}
+:where(.vipi-root) .wrap.pw-600 .sid-quick td{padding:4px 3px}
+/* La quota iniziale può essere una frase («to coord with APP»): a tabella fissa va a capo, o sborda sulla Cat. */
+:where(.vipi-root) .wrap.pw-600 .sid-quick td.col-climb{white-space:normal}
+/* Tablet (`.pw-760`): tutte le colonne, condizione compresa, ma Cat. e WTC al 7% andavano su quattro righe. Le regole
+   del telefono, qui sotto, vengono DOPO apposta: stessa specificità, vince chi è scritto per ultimo. */
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-fix{width:13%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-sid{width:15%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-trans{width:15%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick th{overflow-wrap:normal}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-climb{width:16%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-cat{width:15%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-wtc{width:10%}
+:where(.vipi-root) .wrap.pw-760 .sid-quick .col-cond{width:16%}
+/* Senza la condizione le larghezze si ridistribuiscono: Cat. («A, B, C, D, E») e WTC si prendono quel che serve per
+   stare su una o due righe invece che su cinque. */
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-fix{width:16%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-sid{width:20%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-trans{width:15%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-climb{width:15%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-cat{width:20%}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .col-wtc{width:14%}
+/* Riquadri dentro riquadri: da telefono i margini interni si mangiavano 124px su 375, e la tabella SID ne aveva 251. */
+:where(.vipi-root) .wrap.live.pw-760 .acc-item .body{padding:2px 2px 8px}
+:where(.vipi-root) .wrap.live.pw-760 .block{padding:10px 8px}
+/* Le quattro celle da telefono: due per riga, etichetta SOPRA il valore — in riga il valore non ci stava («F.», «VRB/…»). */
+.vipi-dense :where(.vipi-root) .wrap.pw-600 .rap-quick.rap-4 .rap-box{flex-direction:column;align-items:flex-start;gap:0}
+.vipi-dense :where(.vipi-root) .wrap.pw-600 .rap-quick.rap-4 .rap-box b{margin-left:0;white-space:normal}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .sid-cond-row{display:table-row}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .sid-cond-row td{padding-top:0;font-size:12px}
+:where(.vipi-root) .sid-quick .sid-cond-btn{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:default;text-align:left}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .sid-cond-btn{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+:where(.vipi-root) .wrap.pw-600 .sid-quick .sid-cond-btn::after{content:" ▸";color:var(--ink-soft)}
+:where(.vipi-root) .wrap.pw-600 .sid-quick tr.cond-open .sid-cond-btn::after{content:" ▾"}
 
 /* Ricerca punto/SID sopra la tabella rapida: una riga sola, il campo prende lo spazio che resta. */
 :where(.vipi-root) .sid-find{display:flex;align-items:center;gap:8px;margin:0 0 8px}
-:where(.vipi-root) .sid-find input{flex:1 1 auto;min-width:0;margin-bottom:0;padding:4px 10px;font-size:13px}
+:where(.vipi-root) .sid-find input{flex:1 1 auto;min-width:0;margin-bottom:0;padding:7px 10px;font-size:13px;
+  font-family:var(--font-body);border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .sid-find input::placeholder{color:var(--ink-faint)}
+/* Lo stesso anello degli altri campi (vid-find): era il bordo di sistema, grigio e squadrato (committente, 1 ottobre). */
+:where(.vipi-root) .sid-find input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
 :where(.vipi-root) .sid-find-x{flex:0 0 auto;padding:3px 9px;font-size:12.5px;line-height:1.2}
 :where(.vipi-root) .sid-find-n{flex:0 0 auto;font-size:12.5px;font-variant-numeric:tabular-nums}
 :where(.vipi-root) .sid-table .star{color:var(--ivao-yellow);font-size:14px}
@@ -4010,6 +4293,25 @@
 :where(.vipi-root) .res-table.mil-table.asp-table th.c-class,:where(.vipi-root) .res-table.mil-table.asp-table td.c-class{width:70px}
 :where(.vipi-root) .res-table.mil-table.asp-table th.c-pts,:where(.vipi-root) .res-table.mil-table.asp-table td.c-pts{width:78px;text-align:right}
 :where(.vipi-root) .res-table.mil-table.asp-table th.c-use,:where(.vipi-root) .res-table.mil-table.asp-table td.c-use{width:104px}
+/* Le correzioni a mano (carta 2026-09-30-correzioni-spazi-aerei): la matita in fondo alla riga, e il modulo
+   in una riga sotto, a tutta larghezza — dentro le colonne fisse della tabella quattro campi non ci stanno. */
+:where(.vipi-root) .res-table.mil-table.asp-table th.c-fix,:where(.vipi-root) .res-table.mil-table.asp-table td.c-fix{width:48px;text-align:right}
+:where(.vipi-root) .struct .asp-table .c-fix .btn{padding:4px 7px}
+:where(.vipi-root) .struct .asp-fixed{margin-left:6px;cursor:help}
+:where(.vipi-root) .struct .asp-table tr.asp-edit>td{background:var(--tint-atmos)}
+:where(.vipi-root) .struct .asp-edit-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
+:where(.vipi-root) .struct .asp-edit-row label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-mid)}
+:where(.vipi-root) .struct .asp-in{width:170px;border:1px solid var(--line);border-radius:8px;padding:5px 9px;
+  font-family:var(--font-body);font-size:12.5px;background:var(--surface);color:var(--ink)}
+:where(.vipi-root) .struct .asp-in.asp-in-class{width:110px}
+:where(.vipi-root) .struct .asp-in:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
+:where(.vipi-root) .struct .asp-edit-act{display:flex;gap:6px;margin-left:auto;align-items:center}
+:where(.vipi-root) .struct .asp-edit-hint{font-size:12px;margin:8px 0 0;max-width:80ch}
+:where(.vipi-root) .res-table.mil-table.asp-review th.c-name,:where(.vipi-root) .res-table.mil-table.asp-review td.c-name{width:26%}
+:where(.vipi-root) .res-table.mil-table.asp-review th.c-what,:where(.vipi-root) .res-table.mil-table.asp-review td.c-what{width:24%}
+:where(.vipi-root) .res-table.mil-table.asp-review th.c-diff,:where(.vipi-root) .res-table.mil-table.asp-review td.c-diff{width:auto;font-size:12.5px}
+:where(.vipi-root) .res-table.mil-table.asp-review th.c-act2,:where(.vipi-root) .res-table.mil-table.asp-review td.c-act2{width:230px;text-align:right}
+:where(.vipi-root) .struct .asp-review td.c-act2 .btn{margin-left:4px}
 :where(.vipi-root) .res-table.mil-table.asp-bindings th.c-sec,:where(.vipi-root) .res-table.mil-table.asp-bindings td.c-sec{width:150px}
 :where(.vipi-root) .res-table.mil-table.asp-bindings th.c-vols,:where(.vipi-root) .res-table.mil-table.asp-bindings td.c-vols{width:auto}
 :where(.vipi-root) .res-table.mil-table.asp-bindings th.c-who,:where(.vipi-root) .res-table.mil-table.asp-bindings td.c-who{width:250px}
@@ -4414,7 +4716,6 @@
    niente — la stessa riga sta in diagnostica/avvio-diagnostica.txt e nel `title` finche' si vede.
    ⚠️ Qui NON c'e' un numero di pixel come nelle regole vicine: quelli sono misurati, questo non lo e'
    ancora. Chi passa di qui con un browser aperto lo misuri e lo scriva. */
-:where(.vipi-root) .topbar.tb-2 .ver-chip{display:none}
 
 /* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
 
@@ -4426,35 +4727,24 @@
 
 
 
-/* Scaglione 3: la ricerca si chiude in un'icona e si riapre a piena riga sotto la barra.
+/* Scaglione 3: la ricerca si chiude in un'icona.
 
    ⚠️ E' uno scaglione SUO, e non insieme alle etichette, perche' chiudere la ricerca costa molto piu' che
-
    accorciare un nome: e' misurato, vale 212px in un colpo. Tenendoli insieme il gradino era di 500px e a
-
    1440 la barra passava da sfondare a essere mezza vuota — funzionante e brutta, con un buco di 700px in
+   mezzo. La scaletta serve a cedere UN pezzo alla volta: se il gradino e' troppo alto, non e' una scaletta.
 
-   mezzo. La scaletta serve a cedere UN pezzo alla volta: se il gradino e' troppo alto, non e' una scaletta. */
-
-:where(.vipi-root) .topbar.tb-3 .top-search{flex:none;min-width:0;max-width:none;width:38px;padding:7px 10px;
-
-  transition:width .15s}
-
-:where(.vipi-root) .topbar.tb-3 .top-search input{width:0;min-width:0;padding:0;opacity:0;transition:opacity .1s}
-
-/* ⚠️ `fixed` e non `absolute`, ed e' obbligatorio da quando la barra ha un `overflow` di sicurezza: un
-
-   discendente assoluto ci verrebbe TAGLIATO dentro, e il campo di ricerca aperto si vedrebbe a meta'. Da
-
-   `fixed` la quota non puo' piu' essere `100%` (non c'e' piu' un padre a cui riferirla): e' l'altezza della
-
-   barra, che ora ha un nome. */
-
-:where(.vipi-root) .topbar.tb-3 .top-search:focus-within{position:fixed;left:12px;right:12px;top:calc(var(--tb-h) + 6px);
-
-  width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
-
-:where(.vipi-root) .topbar.tb-3 .top-search:focus-within input{width:auto;flex:1;opacity:1}
+   🔴 L'icona e' un COLLEGAMENTO alla pagina di ricerca (`.top-search-go`), e il modulo non si rende (29 settembre
+   2026). Fino ad allora era il modulo stesso, stretto a 38px su un campo largo 0 che al fuoco si riapriva
+   `position:fixed` sotto la barra: toccare la lente non portava da nessuna parte (committente, misurato a 375px). */
+:where(.vipi-root) .top-search-go{display:none}
+/* L'ora Z della barra (SopLayout). Cifre a larghezza fissa, o la barra ballerebbe di un pixel a ogni secondo. */
+:where(.vipi-root) .topbar .tb-utc{flex:none;font-family:var(--font-head);font-weight:700;font-size:14px;color:var(--on-brand);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+/* «Live» corto: solo da telefono (tb-4), dove il gettone torna in riga accanto all'ora. */
+:where(.vipi-root) .live-badge .lb-s{display:none}
+:where(.vipi-root) .topbar.tb-3 .top-search{display:none}
+:where(.vipi-root) .topbar.tb-3 .top-search-go{display:inline-flex;flex:none}
 
 /* ---- Il correttore delle traduzioni dentro l'editor ----
    Due colonne: a sinistra la frase com'e' scritta (non si tocca: e' la chiave della memoria), a destra come
@@ -4535,27 +4825,22 @@
 
 /* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
 
-:where(.vipi-root) .topbar.tb-4 .acc-nav,:where(.vipi-root) .topbar.tb-4 .zoom-ctrl,:where(.vipi-root) .topbar.tb-4 .live-badge,:where(.vipi-root) .topbar.tb-4 .lang-ctrl,
+:where(.vipi-root) .topbar.tb-4 .acc-nav,:where(.vipi-root) .topbar.tb-4 .zoom-ctrl,:where(.vipi-root) .topbar.tb-4 .lang-ctrl,
 
 :where(.vipi-root) .topbar.tb-4 .right>.editor-btn,:where(.vipi-root) .topbar.tb-4 .right>.user-chip{display:none}
 
 :where(.vipi-root) .topbar.tb-4 .right{margin-left:auto;gap:8px}
+/* Da telefono, accanto alla lente: l'ora Z e il gettone «● Live» (committente, 1 ottobre 2026). Il gettone resta in
+   riga — dice se sei in frequenza e porta alla vista live — e per stare accanto all'ora la colonna di destra
+   rinuncia al margine automatico: in tb-4 il gettone è l'unica cosa che le resta. */
+:where(.vipi-root) .topbar.tb-4 .right{margin-left:0}
+:where(.vipi-root) .topbar.tb-4 .live-badge .lb-s{display:inline}
 
 /* Il marchio resta, ma solo il logo: il nome per esteso e' 202px su 375 di schermo. */
 
 :where(.vipi-root) .topbar.tb-4 .brand div{display:none}
 
-/* La ricerca resta in riga, chiusa in un'icona: e' il gesto piu' probabile da telefono. */
-
-:where(.vipi-root) .topbar.tb-4 .top-search{flex:none;width:38px;min-width:0;max-width:none;padding:7px 10px;margin-left:0}
-
-:where(.vipi-root) .topbar.tb-4 .top-search input{width:0;min-width:0;padding:0;opacity:0}
-
-:where(.vipi-root) .topbar.tb-4 .top-search:focus-within{position:fixed;left:10px;right:10px;top:calc(var(--tb-h) + 6px);
-
-  width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
-
-:where(.vipi-root) .topbar.tb-4 .top-search:focus-within input{width:auto;flex:1;opacity:1}
+/* La ricerca resta in riga, chiusa nella sua icona (scaglione 3): e' il gesto piu' probabile da telefono. */
 
 
 
@@ -5055,6 +5340,14 @@
 .vipi-rec.components-reconnect-failed{display:flex;position:fixed;inset:0;z-index:3000;align-items:center;
   justify-content:center;padding:20px;background:color-mix(in srgb,var(--ivao-color-fuselage-950) 55%,transparent)}
 .vipi-rec.components-reconnect-hide{display:none}
+/* Le pagine di SOLA LETTURA (30 settembre 2026): il riquadro non copre il documento. Si riprova in silenzio, e se
+   il collegamento non torna resta l'avviso discreto `#vipi-rec-quieta` (App.razor). Le due classi le mette
+   vipi-riconnessione.js sugli elementi stessi — non su <html>: il foglio resta dentro il suo contenitore (ADR-0005 D3,
+   ConfinoDelTemaTests). */
+.vipi-rec.vipi-rec-silenziosa{display:none !important}
+.vipi-rec-quieta{align-items:center}
+:where(.vipi-root) #blazor-error-ui.vipi-rec-zitto{display:none !important}
+.vipi-rec-quieta .vipi-rec-b{display:inline-block;margin:0 0 0 8px}
 .vipi-rec-box{max-width:420px;background:var(--surface);color:var(--ink);border:1px solid var(--line);
   border-radius:12px;padding:20px 22px;box-shadow:0 18px 44px rgba(0,0,0,.28);font-family:var(--font-body);
   font-size:13.5px;line-height:1.55;text-align:center}
@@ -5191,3 +5484,89 @@
   box-shadow:0 -1px 2px rgba(0,0,0,.2);font-size:13.5px}
 :where(.vipi-root) #blazor-error-ui .reload{margin-left:8px;font-weight:600;color:var(--brand-ink)}
 :where(.vipi-root) #blazor-error-ui .dismiss{position:absolute;right:12px;top:8px;cursor:pointer}
+
+/* ---- Il piè di pagina del sito (SitoFooter, 29 settembre 2026) ----
+   Lo stesso disegno di quello dell'hub IVAO Italy: marchio e due frasi a sinistra, i collegamenti di IVAO a
+   destra, in fondo diritti, appartenenza e chi l'ha fatto. Stesso COLORE della barra in alto (committente: «per
+   uniformita'»): fondo `--ivao-blue` in entrambi i temi, e quindi i colori del testo sono quelli della barra
+   (`--on-brand`, `--on-dark-soft`), non quelli della pagina. */
+:where(.vipi-root):has(> .sito-foot){display:flex;flex-direction:column;min-height:100vh}
+/* Su una pagina corta il piè di pagina resta in fondo alla finestra invece di lasciare una fascia vuota sotto:
+   la pagina cresce, il piè no. Solo dove il piè c'è (`:has`), cioè non quando un host aggancia il modulo. */
+:where(.vipi-root):has(> .sito-foot)>#vipi-main{flex:1 0 auto}
+:where(.vipi-root) .sito-foot{margin-top:48px;background:var(--ivao-blue);color:var(--on-dark-soft);font-size:14px}
+:where(.vipi-root) .sito-foot .sf-in{max-width:1120px;margin:0 auto;padding:36px 16px 22px}
+:where(.vipi-root) .sito-foot .sf-cols{display:flex;flex-wrap:wrap;justify-content:center;gap:28px 96px;text-align:center}
+:where(.vipi-root) .sito-foot .sf-about{max-width:340px;display:flex;flex-direction:column;align-items:center;gap:10px}
+:where(.vipi-root) .sito-foot .sf-about p{margin:0;line-height:1.5}
+/* Il marchio e il titolo «IVAO» sono le due testate delle colonne (committente, 1 ottobre 2026: non erano allineati né
+   per misura né sulla stessa linea): stessa altezza (quella del logo), stessa famiglia e misura del testo. */
+:where(.vipi-root) .sito-foot .sf-brand{display:inline-flex;align-items:center;gap:8px;min-height:30px;color:var(--on-brand);text-decoration:none;font-family:var(--font-head);font-size:15px}
+:where(.vipi-root) .sito-foot .sf-brand .logo{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--on-brand),var(--on-dark-soft));color:var(--ivao-blue);display:grid;place-items:center;font-weight:800;font-size:11px}
+:where(.vipi-root) .sito-foot .sf-brand small{color:var(--on-dark-soft);font-size:12px}
+:where(.vipi-root) .sito-foot .sf-links{display:flex;flex-direction:column;align-items:center;gap:10px}
+:where(.vipi-root) .sito-foot .sf-h{margin:0;min-height:30px;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--on-brand)}
+:where(.vipi-root) .sito-foot a:not(.sf-brand){color:var(--on-dark-soft);text-decoration:none}
+:where(.vipi-root) .sito-foot a:not(.sf-brand):hover{color:var(--on-brand);text-decoration:underline}
+:where(.vipi-root) .sito-foot .sf-bottom a{color:var(--on-brand)}
+:where(.vipi-root) .sito-foot .sf-bottom{margin-top:30px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2);display:flex;flex-wrap:wrap;
+  justify-content:space-between;align-items:center;gap:8px 24px;font-size:13px}
+:where(.vipi-root) .sito-foot .sf-sep{margin:0 4px}
+:where(.vipi-root) .sito-foot .sf-cred{display:flex;flex-direction:column;gap:3px;text-align:right}
+:where(.vipi-root) .sito-foot .sf-cred a{white-space:nowrap}
+/* La versione: monospazio perche' e' un codice, e le cifre in colonna si leggono a colpo d'occhio. Si copia
+   (serve dentro una segnalazione), quindi niente user-select:none. Vestita come i comandi della barra. */
+:where(.vipi-root) .sito-foot .ver-chip{font:12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--on-dark-soft);
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:4px 7px;white-space:nowrap}
+
+/* ---------- Richieste dal campo (S56, ritocco del 30 settembre 2026) ----------
+   La BANDIERINA accanto al titolo di ogni sezione pubblica (`ReportLink`): discreta finche' non la si cerca,
+   blu al passaggio. In linea col titolo, a qualunque livello (h2 delle radici, summary delle sotto-sezioni). */
+:where(.vipi-root) .req-link{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;
+  width:24px;height:24px;margin-left:6px;border-radius:6px;color:var(--ink-faint);opacity:.75;text-decoration:none;flex:none}
+:where(.vipi-root) .req-link:hover,:where(.vipi-root) .req-link:focus-visible{opacity:1;color:var(--ivao-blue);background:var(--tint-blue)}
+/* Lo SWITCH errore / suggerimento del modulo: la forma della scelta della lingua in barra (`.lang-ctrl`: un
+   guscio arrotondato e due segmenti, quello scelto pieno), ma coi colori della PAGINA e non della barra blu. */
+:where(.vipi-root) .req-kind{display:inline-flex;align-items:center;gap:2px;background:var(--surface-muted);
+  border:1px solid var(--line);border-radius:9px;padding:3px}
+:where(.vipi-root) .req-kind button{display:inline-flex;align-items:center;justify-content:center;min-width:96px;height:28px;
+  padding:0 12px;border:0;border-radius:7px;background:none;color:var(--ink-mid);cursor:pointer;
+  font-family:var(--font-head);font-weight:600;font-size:13px;white-space:nowrap}
+:where(.vipi-root) .req-kind button:hover:not(:disabled){background:var(--tint-blue);color:var(--ink)}
+:where(.vipi-root) .req-kind button[aria-pressed="true"]{background:var(--ivao-blue);color:var(--on-brand);font-weight:700}
+
+/* ---------- Il pacchetto dell'evento (/services/event, carta 2026-09-30-profili-evento.md) ----------
+   Un elenco di righe, una per voce: icona, titolo con nota e dettaglio (nome del file e peso, o il dominio del
+   link), il tasto a destra. Sul telefono il tasto va sotto. Il pannello dello staff mette in griglia i campi. */
+:where(.vipi-root) .evt-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+:where(.vipi-root) .evt-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--radius)}
+:where(.vipi-root) .evt-ic{display:inline-flex;color:var(--ivao-blue);flex:none}
+:where(.vipi-root) .evt-body{flex:1;min-width:0}
+:where(.vipi-root) .evt-label{font-family:var(--font-head);font-weight:700;overflow-wrap:anywhere}
+:where(.vipi-root) .evt-note{font-size:13.5px;margin-top:2px}
+:where(.vipi-root) .evt-meta{font-size:12.5px;margin-top:2px;overflow-wrap:anywhere}
+:where(.vipi-root) .evt-act{display:flex;align-items:center;gap:6px;flex:none}
+:where(.vipi-root) .evt-act .evt-ib{padding:4px 8px;min-width:0}
+:where(.vipi-root) .evt-state{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+:where(.vipi-root) .evt-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+:where(.vipi-root) .evt-field{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0}
+:where(.vipi-root) .evt-field.evt-wide{grid-column:1/-1}
+:where(.vipi-root) .evt-check{display:flex;align-items:center;gap:6px;font-weight:600}
+:where(.vipi-root) .evt-help{font-size:12.5px;margin:6px 0 0}
+:where(.vipi-root) .evt-add{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+:where(.vipi-root) .evt-add-box{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px dashed var(--line-strong);
+  border-radius:var(--radius);min-width:0}
+:where(.vipi-root) .evt-add-box .btn{align-self:flex-start}
+@media (max-width:720px){
+  :where(.vipi-root) .evt-form,:where(.vipi-root) .evt-add{grid-template-columns:minmax(0,1fr)}
+  :where(.vipi-root) .evt-item{flex-wrap:wrap}
+  :where(.vipi-root) .evt-act{width:100%;justify-content:flex-end}
+}
+/* ---------- La pagina dei cookie (/services/cookies, 30 settembre 2026) ----------
+   Una tabella di tre colonne; sul telefono scorre di lato dentro il suo riquadro, non la pagina. */
+:where(.vipi-root) .ck-scroll{overflow-x:auto;margin:8px 0 18px}
+:where(.vipi-root) .ck-table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+:where(.vipi-root) .ck-table th,:where(.vipi-root) .ck-table td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+:where(.vipi-root) .ck-table th{font-family:var(--font-head);font-weight:700;color:var(--ink-mid)}
+:where(.vipi-root) .ck-table code{font-size:12.5px;overflow-wrap:anywhere}

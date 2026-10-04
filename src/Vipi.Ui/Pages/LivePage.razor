@@ -12,6 +12,8 @@
 @page "/services/vsop/live/{Callsign}"
 @layout SopLayout
 @rendermode InteractiveServer
+@* Pagina pubblica: un circuito caduto non si annuncia, se si rimette da solo (vipi-riconnessione.js). *@
+@attribute [RiconnessioneDiscreta]
 @using Vipi.Application.Live
 @using Vipi.Application.Routing
 @inject ILiveViewService Live
@@ -26,16 +28,18 @@
 <PageTitle>@(_view?.Title ?? L["Live_Tab"].Value) — @L["Live_Tab"] · vIPI IVAO Italy</PageTitle>
 
 <div class="wrap live">
-    <div class="breadcrumb">
-        <a href="/services/vsop">@En["Common_Home"]</a>
-        @if (_view is not null)
-        {
-            <text> › </text><a href="/services/vsop/@_view.AccCode.ToLowerInvariant()">@_view.AccCode</a>
-        }
-        <text> › </text><b>@En["Live_Tab"]</b>
-    </div>
-
-    <div class="reduced-top">
+    @* UNA riga sola per tutta la testata (committente, 1 ottobre 2026): briciole, postazione, ora Z, avviso di
+       simulazione al centro, ATC online, selettore. Prima erano tre righe — briciole, titolo, avviso — su una
+       pagina che vive su un secondo monitor piccolo. Stretta, la riga va a capo da sola (flex-wrap). *@
+    <div class="reduced-top live-top">
+        <div class="breadcrumb">
+            <a href="/services/vsop">@En["Common_Home"]</a>
+            @if (_view is not null)
+            {
+                <text> › </text><a href="/services/vsop/@_view.AccCode.ToLowerInvariant()">@_view.AccCode</a>
+            }
+            <text> › </text><b>@En["Live_Tab"]</b>
+        </div>
         <h1 class="page-h1" style="margin:0">@(_view?.Title ?? L["Live_Tab"].Value)</h1>
         @if (_view is not null)
         {
@@ -43,29 +47,34 @@
                guardare una postazione spenta, un «Live ·» verde fisso direbbe il falso proprio nel caso nuovo. *@
             @if (_snapshot.Callsigns.Contains(_view.Callsign))
             {
-                <span class="live-badge" style="background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)"><span class="dot"></span> Live · @_view.Callsign</span>
+                <span class="live-badge" style="background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)" title="Live · @_view.Callsign"><span class="dot"></span> <span class="lb-t">Live · @_view.Callsign</span></span>
             }
             else
             {
-                <span class="live-badge off"><span class="dot"></span> @_view.Callsign · @L["Live_Offline"]</span>
+                <span class="live-badge off" title="@_view.Callsign · @L["Live_Offline"]"><span class="dot"></span> <span class="lb-t">@_view.Callsign · @L["Live_Offline"]</span></span>
             }
         }
-        <span class="muted" style="font-size:13px;margin-left:auto">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @FeedAge()</span>
-        <span class="utc-clock" title="@L["Live_UtcNow"]" data-utc-clock>--:--:--Z</span>
-        <button type="button" class="btn ghost live-dense" data-dense-toggle aria-pressed="false"
-                onclick="vipiToggleDense()" title="@L["Live_DenseTip"]">@L["Live_Dense"]</button>
-        @if (ExtendedDocHref() is { } href)
+        @* TWR, GND, DEL: la riga delle chip non c'è (lo scalo è uno), quindi il campo di ricerca sta qui, accanto alla
+           postazione (committente, 1 ottobre 2026). Lo stesso campo, lo stesso pannello. *@
+        @if (_view?.AirportIcao is not null)
         {
-            <a class="btn ghost" href="@href">@L["Live_ExtendedDoc"]</a>
+            @CampoRicerca
         }
-        @* Il quadro vAWOS, per chi sta su una posizione D'AEROPORTO: torre, torre informativa, ground,
-           delivery. Da un APP o da un'area lo scalo non e' uno solo, e il tasto sta sulla chip — cioe'
-           dentro <AirportQuickPanel>, che quella pagina monta gia'. *@
-        @if (_view?.AirportIcao is { Length: 4 } icaoAwos)
+        @* L'ora Z non sta più qui: è nella barra in alto, su ogni pagina (SopLayout, 1 ottobre 2026). *@
+        <SimDisclaimer />
+        <span class="muted" style="font-size:13px">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @FeedAge()</span>
+        @* Niente tasto «Compatta»: la vista live è sempre compatta (vipi-ui.js, applyDense; committente, 1 ottobre 2026). *@
+        @* Non sulle postazioni d'aeroporto (DEL, GND, TWR, torre informativa): il documento dello scalo lo aprono già i
+           tasti del pannello qui sotto, vIPI e vSOP, e un terzo in testata diceva la stessa cosa (committente,
+           1 ottobre 2026). Il collegamento resta nell'avviso «nessun documento pubblicato». *@
+        @if (!IsAirportSide() && ExtendedDocHref() is { } href)
         {
-            <a class="btn ghost" href="/services/vawos/@icaoAwos.ToLowerInvariant()" target="_blank"
-               title="@L["Live_AwosTitle"]">vAWOS ↗</a>
+            @* Scheda NUOVA (committente, 1 ottobre 2026): chi apre il documento dalla vista live sta controllando,
+               e la vista live gli serve ancora. *@
+            <a class="btn ghost" href="@href" target="_blank">@L["Live_ExtendedDoc"]</a>
         }
+        @* Niente vAWOS in testata (committente, 1 ottobre 2026): dove c'è uno scalo della postazione c'è anche il suo
+           <AirportQuickPanel>, che porta già il tasto vAWOS accanto a quelli del documento. Erano due tasti uguali. *@
         @* Il selettore di postazione esiste solo da DivisionStaff in su: per tutti gli altri la vista live
            è la propria postazione, quindi non c'è niente da scegliere. Riusa TypeaheadPicker — il campo a
            digitazione del prodotto, tastiera compresa — invece di scriverne un settimo.
@@ -84,9 +93,6 @@
                              NoMatch="@(_postazioni is null ? L["Common_Loading"].Value : L["Live_PickNoMatch"].Value)"
                              OnPick="VaiAllaPostazione" />
         }
-        @* La testata della vista live e' una riga sola in flex: `.sim-line` porta `flex-basis:100%` e
-           l'avviso scende sotto invece di stringere il titolo. *@
-        <div class="sim-line"><SimDisclaimer /></div>
     </div>
 
     @if (_view is null)
@@ -142,9 +148,11 @@
             <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span>
                 @* ⚠️ Senza indirizzo niente <a> (U-208): un href="#" lo risolve Blazor contro <base href="/"> e
                    porta il controllore all'hub, fuori dalla vista live. *@
-                <div><p class="ct">@L["Live_NoDocTitle", _view.AccCode]</p>@(ExtendedDocHref() is { } docHref
+                @* Chiuso: il titolo basta a chi controlla, la spiegazione la apre chi la vuole (committente,
+                   1 ottobre 2026). *@
+                <details class="callout-fold"><summary class="ct">@L["Live_NoDocTitle", _view.AccCode]</summary>@(ExtendedDocHref() is { } docHref
                     ? FraseHtml.Format(L["Live_NoDocBody"], docHref)
-                    : (MarkupString)System.Net.WebUtility.HtmlEncode(L["Live_NoDocBodyNoLink"].Value))</div>
+                    : (MarkupString)System.Net.WebUtility.HtmlEncode(L["Live_NoDocBodyNoLink"].Value))</details>
             </div>
         }
 
@@ -156,7 +164,10 @@
                 {
                     <span class="lc-chip @(ch.Online ? "on" : "off")">@(ch.Online ? "▲" : "▼") @ch.Callsign <span class="lc-t">@Z(ch.At)</span></span>
                 }
-                <button type="button" class="lc-clear" @onclick="() => _changes.Clear()">@L["Live_ChangesClear"]</button>
+                @* Una ✕ ben visibile, dentro la scheda, al posto della parola «scarta» (committente, 1 ottobre 2026). La parola
+                   resta come nome del tasto per chi non vede l'icona. *@
+                <button type="button" class="lc-clear" @onclick="() => _changes.Clear()" title="@L["Live_ChangesClear"]"
+                        aria-label="@L["Live_ChangesClear"]">✕</button>
             </div>
         }
 
@@ -164,8 +175,13 @@
            l'informazione principale — quindi sta in alto e per esteso, non in coda. *@
         @if (_view.CoverageChain.Count > 0)
         {
-            <div class="live-chain @(IsAirportSide() ? "lead" : "")">
-                <span class="lc-lab">@L["Live_CoveredBy"]</span>
+            @* Da telefono gli enti limitrofi stanno CHIUSI e si aprono col tasto dell'etichetta (committente, 1 ottobre
+               2026); da schermo largo l'etichetta è un'etichetta e le chip si vedono sempre (vipi-theme.css, `.pw-600`; il tablet le vede come lo schermo largo).
+               Lo stato è del circuito e non di un <details>: il blocco nasce e muore col feed, e un `open` messo dal
+               browser su un elemento ricreato si perderebbe. *@
+            <div class="live-chain @(IsAirportSide() ? "lead" : "") @(_chainOpen ? "open" : "")">
+                <button type="button" class="lc-lab lc-toggle" aria-expanded="@(_chainOpen ? "true" : "false")"
+                        @onclick="() => _chainOpen = !_chainOpen">@L["Live_CoveredBy"] <span class="lc-n">@_view.CoverageChain.Count</span></button>
                 @foreach (var cs in _view.CoverageChain)
                 {
                     var online = _snapshot.Callsigns.Contains(cs);
@@ -194,18 +210,28 @@
             </div>
         }
 
-        @if (_view.AirportIcao is { } icao)
+        @if (_view.AirportIcao is not null && InRicerca)
+        {
+            @* Postazione d'aeroporto: il campo sta in testata, e i risultati prendono il posto della vista rapida dello
+               scalo; frequenze e trasferimenti restano sotto. Svuotando il campo lo scalo torna. *@
+            @PannelloRicerca
+        }
+        else if (_view.AirportIcao is { } icao)
         {
             <details class="acc-item" open data-persist="live-apt">
-                <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"]</span><span class="tag-state tag-covered">@icao</span></summary>
+                @* L'ICAO accanto al titolo e della sua misura: il pannello qui sotto non lo ripete più (committente, 1 ottobre 2026). *@
+                <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"] <span class="tag-state tag-covered sum-icao">@icao</span></span></summary>
                 <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" Presidency="@PresidenzaDi(icao)" /></div>
             </details>
         }
-        else if (_view.AirportChips.Count > 0)
+        else
         {
-            <p class="muted" style="font-size:13.5px;margin-bottom:7px">@L["Live_QuickView"]</p>
+            @* Niente titolo davanti alle chip (committente, 1 ottobre 2026): «📡 Il mio settore» e gli ICAO si spiegano da
+               soli. Dal 1 ottobre 2026 la riga c'è per ogni postazione che non è d'aeroporto (APP, ACC), anche senza scali
+               propri: in coda c'è sempre il CAMPO di ricerca (LiveSearchPanel sotto), che apre uno scalo qualunque o le aree
+               regolamentate. *@
             <div class="apt-quick" style="margin-bottom:22px">
-                <Chip Class="@($"ch sw {(_selectedApt is null ? "on" : "")}")" Active="_selectedApt is null" OnActivate="() => _selectedApt = null">📡 @L["Live_MySector"]</Chip>
+                <Chip Class="@($"ch sw {(_selectedApt is null && !InRicerca ? "on" : "")}")" Active="_selectedApt is null && !InRicerca" OnActivate="() => { _selectedApt = null; SvuotaRicerca(); }">📡 @L["Live_MySector"]</Chip>
                 @foreach (var chip in _view.AirportChips)
                 {
                     var ic = chip.Icao;
@@ -213,19 +239,29 @@
                        per cui si guarda la chip. La forma resta invariata (nessun ridisegno). *@
                     <span class="ch sw @(chip.Delegated ? "ch-deleg" : "") @(_selectedApt == ic ? "on" : "")"
                           title="@ChiPresiede(chip)"
-                          @onclick="() => _selectedApt = ic">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
+                          @onclick="() => { _selectedApt = ic; SvuotaRicerca(); }">@ic@(chip.Delegated ? L["Live_DelegSuffix"] : "")</span>
                 }
+                @* Il campo, in coda a tutte le chip (committente, 1 ottobre 2026: non una chip che apre la ricerca, il
+                   campo stesso). Scrivere toglie lo scalo scelto: i risultati compaiono al posto del settore, e svuotare
+                   il campo ci torna. *@
+                @CampoRicerca
             </div>
         }
 
-        @if (_selectedApt is { } sel)
+        @if (InRicerca && _view.AirportIcao is null)
+        {
+            @PannelloRicerca
+        }
+        else if (_selectedApt is { } sel)
         {
             <AirportQuickPanel Icao="@sel" Acc="@_view.AccCode" Presidency="@PresidenzaDi(sel)" />
         }
         else
         {
             <div class="red-top-grid">
-                <details class="acc-item" data-persist="live-freq">
+                @* Da telefono frequenze, gruppi e trasferimenti partono CHIUSI (vipi-ui.js, wireCollapse): la prima schermata è
+                   dello scalo e delle SID (committente, 1 ottobre 2026). *@
+                <details class="acc-item" data-persist="live-freq" data-chiuso-telefono>
                     <summary><span>📻 @L["Common_Frequencies"]</span><span class="tag-state tag-covered">@_view.Frequencies.Count</span></summary>
                     <div class="body">
                         @if (_view.Frequencies.Count > 0) { <AppFrequencies Rows="_view.Frequencies" /> }
@@ -235,7 +271,7 @@
 
                 @foreach (var g in _view.Groups)
                 {
-                    <details class="acc-item @(g.Delegated ? "collapsed-strip" : "")" open="@(!g.Delegated)" data-persist="@($"live-blk-{g.Block.Key}")">
+                    <details class="acc-item @(g.Delegated ? "collapsed-strip" : "")" open="@(!g.Delegated)" data-persist="@($"live-blk-{g.Block.Key}")" data-chiuso-telefono>
                         <summary>
                             <span>@(g.Delegated ? "🔇" : "📡") @g.Block.Title@(g.Delegated ? $" — {L["Live_Delegated"]}" : "")</span>
                             <span class="tag-state @(g.Delegated ? "tag-online" : "tag-covered")">@(g.Delegated ? L["Common_TagOnline"] : L["Common_TagCovered"])</span>
@@ -255,12 +291,27 @@
                ⚠️ Nessuna fascia «online nel tuo intorno»: ripeteva, in 77px, ciò che ogni riga già dice nella
                pastiglia del ricevente. La regola che spiegava («interni solo se c'è qualcuno») è il «?»
                accanto al filtro. *@
-            <details class="acc-item" data-persist="live-xfer">
-                <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@_view.Transfers.Sum(t => t.Points.Count)</span></summary>
-                <div class="body">
-                    <TransfersLive Flows="_view.Transfers" EmptyText="@L["Live_NoCoord"]" Changed="ChangedCallsigns()" Online="_snapshot.Callsigns" />
+            @* 🔒 Solo allo staff di divisione (committente, 30 settembre 2026): la finestra dei trasferimenti è ancora in
+               sviluppo. Agli altri resta la riga col titolo, che NON si apre e lo dice — niente contenuto nel markup,
+               non un pannello nascosto col CSS. *@
+            @if (Authz.IsDivisionStaff)
+            {
+                <details class="acc-item" data-persist="live-xfer" data-chiuso-telefono>
+                    <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@_view.Transfers.Sum(t => t.Points.Count)</span></summary>
+                    <div class="body">
+                        <TransfersLive Flows="_view.Transfers" EmptyText="@L["Live_NoCoord"]" Changed="ChangedCallsigns()" Online="_snapshot.Callsigns" />
+                    </div>
+                </details>
+            }
+            else
+            {
+                <div class="acc-item acc-chiuso" aria-disabled="true">
+                    <div class="acc-chiuso-h">
+                        <span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span>
+                        <span class="tag-state tag-dev">@L["Live_InDevelopment"]</span>
+                    </div>
                 </div>
-            </details>
+            }
         }
     }
 </div>
@@ -273,6 +324,45 @@
     private string? _requested;              // callsign chiesto ma non trovato (per distinguere i due stati vuoti)
     private string? _myCallsign;
     private string? _selectedApt;
+
+    /// <summary>Il testo del campo di ricerca in coda alle chip: non vuoto = i risultati al posto del settore.</summary>
+    private string _ricerca = "";
+    private int _ricercaGen;
+
+    /// <summary>
+    /// Il campo di ricerca: in coda alle chip (APP, ACC) o in testata accanto alla postazione (TWR, GND, DEL). Uno solo,
+    /// scritto qui. 🔴 Niente `value`: come ogni campo che si scrive dal server mentre si digita (AirportQuickPanel), per
+    /// svuotarlo si cambia `@key`.
+    /// </summary>
+    private RenderFragment CampoRicerca => @<span class="lsr-field">
+        <input @key="_ricercaGen" type="search" autocomplete="off" @oninput="Ricerca"
+               placeholder="🔎 @L["Lsr_Field"]" aria-label="@L["Lsr_Placeholder"]" title="@L["Lsr_Placeholder"]" />
+        @if (InRicerca)
+        {
+            <button type="button" class="btn ghost sid-find-x" @onclick="SvuotaRicerca" title="@L["Aqp_ClearSearch"]">✕</button>
+        }
+    </span>;
+
+    /// <summary>I risultati. I punti di trasferimento solo allo staff di divisione, come la finestra «Trasferimenti» (S81).</summary>
+    private RenderFragment PannelloRicerca => @<LiveSearchPanel Query="@_ricerca" ConTrasferimenti="Authz.IsDivisionStaff"
+        Online="_snapshot.Callsigns" PuoAprire="PuoAprire" FeedScaduto="_snapshot.Expired" />;
+    private bool InRicerca => _ricerca.Trim().Length > 0;
+
+    private void Ricerca(ChangeEventArgs e)
+    {
+        _ricerca = e.Value?.ToString() ?? "";
+        if (InRicerca) _selectedApt = null;
+    }
+
+    private void SvuotaRicerca()
+    {
+        if (_ricerca.Length == 0) return;
+        _ricerca = "";
+        _ricercaGen++;
+    }
+
+    /// <summary>Enti limitrofi aperti da telefono (da schermo largo si vedono sempre).</summary>
+    private bool _chainOpen;
     private OnlineAtcSnapshot _snapshot = OnlineAtcSnapshot.Empty;
 
     /// <summary>Testo digitato nel selettore, e l'elenco da cui sceglie. Null = non ancora chiesto: si legge

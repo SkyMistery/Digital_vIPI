@@ -1,0 +1,74 @@
+@page "/services/my-data"
+@layout SopLayout
+@using Vipi.Application.Auth
+@inject IEditAuthorizationService Authz
+@inject IRegistroAccessi Registro
+@inject IStringLocalizer<SharedResource> L
+
+@* ---- I miei dati (committente, 30 settembre 2026) ----------------------------------------------------------------------
+   Il titolare è IVAO e la sua policy copre il sito; i diritti degli utenti però li gestiamo NOI, dal sito. Decisione del
+   committente: la pagina fa VEDERE, e per cancellare si chiede allo staff da «Richieste dal campo» (il canale che il
+   membro già usa, con stato e risposta). Carta docs/feature/2026-09-30-registro-accessi.md §7.
+   ⚠️ Mostra la riga di CHI CHIEDE e di nessun altro: il VID lo prende il servizio dall'utente corrente
+   (IRegistroAccessi.MieiAsync), non dall'indirizzo.
+   SSR statica: è testo, e a chi non è entrato il cancello del login la chiude prima. *@
+
+<PageTitle>@L["My_Title"] · IVAO Italy</PageTitle>
+
+<div class="wrap" style="max-width:900px">
+    <div class="doc-head">
+        <h1 class="page-h1">@L["My_Title"]</h1>
+    </div>
+
+    <p>@L["My_Intro"]</p>
+
+    @if (Authz.CurrentUserId is not int vid)
+    {
+        <p class="muted">@L["My_NotSignedIn"]</p>
+    }
+    else
+    {
+        <h2 class="h-sect">@L["Ck_DataTitle"]</h2>
+        @if (_riga is { } r)
+        {
+            <table class="ck-table my-data">
+                <tbody>
+                    <tr><th>VID</th><td>@r.UserId</td></tr>
+                    <tr><th>@L["Logins_Name"]</th><td>@r.Nome</td></tr>
+                    <tr><th>@L["Logins_Division"]</th><td>@(r.Divisione ?? "—")</td></tr>
+                    <tr><th>ACC</th><td>@(r.Acc ?? "—")</td></tr>
+                    <tr><th>@L["Logins_First"]</th><td>@VipiTime.DayZ(r.PrimoUtc)</td></tr>
+                    <tr><th>@L["Logins_Last"]</th><td>@VipiTime.DayZ(r.UltimoUtc)</td></tr>
+                    <tr><th>@L["Logins_Days"]</th><td>@r.Giorni</td></tr>
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="muted">@L["My_NoRow"]</p>
+        }
+
+        <h2 class="h-sect">@L["My_OtherTitle"]</h2>
+        <ul>
+            <li>@L["My_OtherAtc"] <a href="/services/stats/user/@vid">@L["My_OtherAtcLink"]</a></li>
+            <li>@L["My_OtherStaff"]</li>
+        </ul>
+
+        <h2 class="h-sect">@L["My_DeleteTitle"]</h2>
+        @* 🔴 Committente, 30 settembre 2026: la cancellazione NON si chiede allo staff dal Campo richieste. Si chiede a
+           IVAO HQ (titolare del trattamento), che la gira alla divisione. La procedura è nelle FAQ dei membri della wiki. *@
+        <p>@L["My_Delete"] <a href="@ProceduraCancellazione" target="_blank" rel="noopener">@L["My_DeleteLink"]</a>.</p>
+        <p class="muted">@L["My_DeleteNote"]</p>
+    }
+
+    <p class="muted"><a href="/services/cookies">@L["Ck_Title"]</a></p>
+</div>
+
+@code {
+    /// <summary>La procedura IVAO per cancellare l'account (committente, 30 settembre 2026).</summary>
+    internal const string ProceduraCancellazione = "https://wiki.ivao.aero/en/home/members/faqs#delete-account";
+
+    private AccessoAlSitoRiga? _riga;
+
+    protected override async Task OnInitializedAsync() => _riga = await Registro.MieiAsync();
+}

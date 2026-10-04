@@ -216,16 +216,18 @@ public class DeletionRulesTests : IDisposable
         Assert.Equal("/x", b.Href);
     }
 
-    // ── D6: la torre ─────────────────────────────────────────────────────────────────────────────────
+    // ── D6: la torre — tolta il 29 settembre 2026 (S48) ──────────────────────────────────────────────
 
     [Fact]
-    public void La_torre_non_si_elimina_da_sola()
+    public void La_torre_si_elimina_da_sola_come_ogni_posizione()
     {
+        // 🔴 Prima la torre cadeva solo con lo scalo: teneva in piedi il documento dell'aeroporto. Oggi il
+        // documento è dello scalo, e dove l'APP fa da torre (LIBG, LIRE) IVAO la torre l'ha tolta davvero.
         var p = DeletionRules.PerSettore(
             Settore("LIRF_TWR", SectorType.Twr, SectorKind.Airport, airportId: 3), Penultimo);
 
-        Assert.False(p.Eliminabile);
-        Assert.Contains("solo insieme all'intero aeroporto", Assert.Single(p.Blocca).Testo);
+        Assert.True(p.Eliminabile);
+        Assert.Empty(p.Blocca);
     }
 
     [Fact]
@@ -313,16 +315,13 @@ public class DeletionRulesTests : IDisposable
     public void La_prova_della_sorgente_non_scioglie_nessun_altro_blocco()
     {
         // ⚠️ Il cuore della protezione: la sorgente ha voce sulla SUA anagrafica, non sulle nostre scelte
-        // editoriali. Un accordo di coordinamento, un documento all'ultimo aggancio, una torre senza il suo
-        // scalo restano dove sono anche quando IVAO giura che il settore non esiste più.
+        // editoriali. Un accordo di coordinamento e un documento all'ultimo aggancio restano dove sono anche
+        // quando IVAO giura che il settore non esiste più. (La torre non è più fra questi: S48.)
         var conAccordo = Settore(timbro: Adesso.AddHours(-1),
             accordi: new[] { new AgreementFacts(5, "LIRR_W_CTR ↔ LIMM_S_CTR", "/x") });
         var p = DeletionRules.PerSettore(conAccordo, Penultimo, provaDiAssenza: true);
         Assert.False(p.Eliminabile);
         Assert.Contains("accordo di coordinamento", Assert.Single(p.Blocca).Testo);
-
-        var torre = Settore("LIRF_TWR", SectorType.Twr, SectorKind.Airport, airportId: 3, timbro: Adesso);
-        Assert.False(DeletionRules.PerSettore(torre, Penultimo, provaDiAssenza: true).Eliminabile);
 
         var ultimoAggancio = Settore(timbro: Adesso,
             documenti: new[] { Documento(ancoraQui: true, restaAncorato: false) });

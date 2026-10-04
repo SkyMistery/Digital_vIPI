@@ -153,6 +153,8 @@ public class VipiDbContext : DbContext
     public DbSet<Acc> Accs => Set<Acc>();
     public DbSet<Airport> Airports => Set<Airport>();
     public DbSet<Sector> Sectors => Set<Sector>();
+    public DbSet<AtcUnit> AtcUnits => Set<AtcUnit>();
+    public DbSet<AtcUnitPosition> AtcUnitPositions => Set<AtcUnitPosition>();
     public DbSet<UnificationRule> UnificationRules => Set<UnificationRule>();
 
     /// <summary>Righe di ripiego con fascia di quota: la catena che sta DAVANTI al padre. Nasce vuota.</summary>
@@ -176,6 +178,15 @@ public class VipiDbContext : DbContext
 
     /// <summary>I programmi con una chiave per le API. Carta del 13 settembre 2026 (T-017).</summary>
     public DbSet<ApiClient> ApiClients => Set<ApiClient>();
+
+    /// <summary>Chi è entrato nel sito almeno una volta (registro degli accessi, 30 settembre 2026).</summary>
+    public DbSet<AccessoAlSito> AccessiAlSito => Set<AccessoAlSito>();
+
+    /// <summary>Quante volte si apre ogni documento, per giorno (carta del 1° ottobre 2026, aperture).</summary>
+    public DbSet<AperturaDocumento> AperturaDocumenti => Set<AperturaDocumento>();
+
+    /// <summary>Chi controlla con un account dell'evento: la copia che sopravvive a un riavvio (1° ottobre 2026).</summary>
+    public DbSet<AccountEventoInUso> AccountEventoInUso => Set<AccountEventoInUso>();
 
     /// <summary>Il documento condiviso di ogni evento RFO e la sua storia. Carta del 18 settembre 2026.</summary>
     public DbSet<RfoSharedState> RfoSharedStates => Set<RfoSharedState>();
@@ -207,6 +218,9 @@ public class VipiDbContext : DbContext
 
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
+    public DbSet<FieldRequest> FieldRequests => Set<FieldRequest>();
+    public DbSet<EventKit> EventKits => Set<EventKit>();
+    public DbSet<EventKitItem> EventKitItems => Set<EventKitItem>();
     public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
     public DbSet<DocumentImpact> DocumentImpacts => Set<DocumentImpact>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
@@ -248,6 +262,9 @@ public class VipiDbContext : DbContext
 
     /// <summary>I volumi di spazio aereo letti dal file caricato.</summary>
     public DbSet<AirspaceVolume> AirspaceVolumes => Set<AirspaceVolume>();
+
+    /// <summary>Le correzioni a mano dei volumi: citano la chiave del file e gli si sovrappongono (carta 30-set-2026).</summary>
+    public DbSet<AirspaceVolumeCorrection> AirspaceVolumeCorrections => Set<AirspaceVolumeCorrection>();
 
     /// <summary>Gli agganci settore → volumi dell'AIP: la scelta di una persona (carta §6-bis).</summary>
     public DbSet<SectorAirspaceBinding> SectorAirspaceBindings => Set<SectorAirspaceBinding>();
@@ -432,6 +449,32 @@ public class VipiDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // L'ente ATC (S49, 29 settembre 2026): l'aggancio della vIPI APP al posto del nominativo.
+        b.Entity<AtcUnit>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            // Il codice è la chiave di pubblicazione: due enti con lo stesso codice pubblicherebbero uno sopra l'altro.
+            e.HasIndex(x => x.Code).IsUnique();
+            e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Restrict);
+            // Unico come Airport.DocumentId: un documento descrive un ente solo. Cancellare il documento non
+            // cancella l'ente — resta, pronto a riaverne uno.
+            e.HasIndex(x => x.DocumentId).IsUnique();
+            e.HasOne(x => x.Document).WithOne(d => d.AtcUnit).HasForeignKey<AtcUnit>(x => x.DocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
+            // Un gruppo APP della vIPI di un ACC è di un ente solo (S55).
+            e.Property(x => x.GroupKey).HasMaxLength(32);
+            e.HasIndex(x => new { x.AccId, x.GroupKey }).IsUnique();
+        });
+        b.Entity<AtcUnitPosition>(e =>
+        {
+            e.Property(x => x.Callsign).HasMaxLength(32).IsRequired();
+            // Una posizione appartiene a un ente solo: altrimenti un controllore online aprirebbe due documenti.
+            e.HasIndex(x => x.Callsign).IsUnique();
+            e.HasOne(x => x.AtcUnit).WithMany(u => u.Positions).HasForeignKey(x => x.AtcUnitId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // NB: niente token di concorrenza qui — decisione del 14 agosto 2026, come per CoordinationAgreement,
         // SharedBlock e DocumentProfile. Vedi il commento esteso su SharedBlock più sotto.
         b.Entity<UnificationRule>(e =>
@@ -608,6 +651,37 @@ public class VipiDbContext : DbContext
             e.Property(x => x.DisplayName).HasMaxLength(120);
         });
 
+        // Registro degli accessi: una riga per VID, la chiave è il VID stesso (viene da IVAO, non si genera).
+        // L'indice sull'ultimo accesso regge sia l'elenco (più recenti per primi) sia la potatura dei dodici mesi.
+        b.Entity<AccessoAlSito>(e =>
+        {
+            e.ToTable("AccessiAlSito");
+            e.HasKey(x => x.UserId);
+            e.Property(x => x.UserId).ValueGeneratedNever();
+            e.Property(x => x.Nome).HasMaxLength(AccessoAlSitoLimits.Nome).IsRequired();
+            e.Property(x => x.NomeBreve).HasMaxLength(AccessoAlSitoLimits.NomeBreve);
+            e.Property(x => x.Divisione).HasMaxLength(AccessoAlSitoLimits.Divisione);
+            e.Property(x => x.Acc).HasMaxLength(AccessoAlSitoLimits.Acc);
+            e.HasIndex(x => x.UltimoUtc);
+        });
+
+        b.Entity<AccountEventoInUso>(e =>
+        {
+            e.ToTable("AccountEventoInUso");
+            e.HasKey(x => x.VidPersonale);
+            e.Property(x => x.VidPersonale).ValueGeneratedNever();
+        });
+
+        b.Entity<AperturaDocumento>(e =>
+        {
+            e.ToTable("AperturaDocumenti");
+            e.HasKey(x => new { x.DocumentId, x.Giorno });
+            // ⚠️ Un documento cancellato si porta via i suoi numeri: senza, resterebbero righe di un ID che un
+            // giorno potrebbe tornare a un altro documento.
+            e.HasOne<Document>().WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.Giorno);
+        });
+
         b.Entity<ApiClient>(e =>
         {
             e.Property(x => x.Nome).HasMaxLength(ApiClientLimits.Nome).IsRequired();
@@ -722,6 +796,41 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => x.AssigneeUserId);
             e.HasIndex(x => x.Status);
+        });
+
+        // --- Richieste dal campo (S56, carta piano-segnalazioni.md §3). ---
+        b.Entity<FieldRequest>(e =>
+        {
+            e.Property(x => x.ReporterName).HasMaxLength(128).IsRequired();
+            e.Property(x => x.SectionKey).HasMaxLength(64).IsRequired();
+            e.Property(x => x.PageUrl).HasMaxLength(300).IsRequired().HasDefaultValue("");
+            e.Property(x => x.Body).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.HandledByName).HasMaxLength(128).IsRequired();
+            e.Property(x => x.Reply).HasMaxLength(2000).IsRequired();
+            e.HasIndex(x => new { x.Status, x.CreatedUtc });   // la coda
+            e.HasIndex(x => x.DocumentId);                     // il banner dell'editor
+            e.HasIndex(x => x.ReporterUserId);                 // «le mie»
+            // Come DocumentImpact: eliminato il documento, una richiesta su di lui non è più un lavoro.
+            e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Il pacchetto dell'evento (carta 2026-09-30-profili-evento.md). Nessuna stringa indicizzata: niente da
+        //     dimensionare in MySqlStringLengths. I byte come per MediaAsset (BLOB / longblob). ---
+        b.Entity<EventKit>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            e.Property(x => x.UpdatedByName).HasMaxLength(128).IsRequired();
+            e.Property(x => x.VidEvento).HasMaxLength(Vipi.Application.EventKits.EventKitRules.MaxTestoVidEvento);
+            e.HasMany(x => x.Items).WithOne(x => x.EventKit!).HasForeignKey(x => x.EventKitId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<EventKitItem>(e =>
+        {
+            e.Property(x => x.Label).HasMaxLength(128).IsRequired();
+            e.Property(x => x.Note).HasMaxLength(300).IsRequired();
+            e.Property(x => x.Url).HasMaxLength(1000).IsRequired();
+            e.Property(x => x.FileName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.CreatedByName).HasMaxLength(128).IsRequired();
+            e.HasIndex(x => new { x.EventKitId, x.SortOrder });
         });
 
         // --- Lock di editing esclusivo su risorse nominate (pagine admin di struttura, wizard nuovo doc). ---
@@ -1144,6 +1253,25 @@ public class VipiDbContext : DbContext
 
             // ⚠️ Nessuna FK verso AirspaceVolume: l'aggancio cita la CHIAVE, non la riga, e deve sopravvivere
             // al ri-caricamento del file — che le righe le rifa' tutte.
+        });
+
+        b.Entity<AirspaceVolumeCorrection>(e =>
+        {
+            // Una correzione per volume: l'identita' e' quella del file, chiave+ordinale. Nessuna FK, per lo
+            // stesso motivo degli agganci: le righe dei volumi le rifa' ogni caricamento.
+            e.HasIndex(x => new { x.VolumeKey, x.VolumeOrdinal }).IsUnique();
+
+            e.Property(x => x.VolumeKey).HasMaxLength(300);    // come AirspaceVolume.NaturalKey
+            e.Property(x => x.Name).HasMaxLength(200);         // come AirspaceVolume.Name
+            e.Property(x => x.Family).HasMaxLength(32);        // enum -> stringa (SPEC §6)
+            e.Property(x => x.FileFamily).HasMaxLength(32);
+            e.Property(x => x.AirspaceClass).HasMaxLength(4);
+            e.Property(x => x.FileClass).HasMaxLength(4);
+            e.Property(x => x.BaseRaw).HasMaxLength(32);
+            e.Property(x => x.TopRaw).HasMaxLength(32);
+            e.Property(x => x.FileBaseRaw).HasMaxLength(32);
+            e.Property(x => x.FileTopRaw).HasMaxLength(32);
+            e.Property(x => x.UpdatedByName).HasMaxLength(128);
         });
 
         b.Entity<SectorShapePart>(e =>

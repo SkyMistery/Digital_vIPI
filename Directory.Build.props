@@ -1535,6 +1535,161 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.56.0 — MINOR: QUATTRO migrazioni ADDITIVE (ApertureDocumenti: una tabella e un indice; VidAccountEvento: colonna
+      EventKits.VidEvento; AccountEventoInUso: una tabella; VidSvuotaEvento: colonna EventKits.VidSvuotaUtc; niente tolto
+      o rinominato). S95, entrata dopo i publish 6ab77d4 ed e705d6e (mai caricati): controllare con un account
+      dell'evento (VID scritti dallo staff in /services/event, la vista live usa quel VID fino a fine evento, regge al
+      riavvio, la lista si svuota da sola 7 giorni dopo la fine).
+      Su 1.55.1 (5493151, online dal 1 ottobre 2026). Sito S92: nell'editor di un documento unito la lingua di
+      pubblicazione si imposta membro per membro (salvata per ID del documento). S93: contatore delle aperture dei
+      documenti (una riga per documento e per giorno, solo le pagine pubbliche) e, sulla pagina dell'ACC, i tre più
+      aperti per scheda negli ultimi 90 giorni dopo gli «in evidenza»; il numero lo vede solo lo staff. S94: scheda
+      esterna «Discord di divisione» su /services; nella tabella SID sotto i 760px «Transition» → «Tran.». S94 è entrata
+      dopo il primo publish (6ab77d4), mai caricato: timbro e pacchetto rifatti. Tocca Vipi.Domain,
+      Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Ui (+ frasi IT/EN) e Vipi.Host per il timbro.
+      Dettaglio: LEGGIMI-PACCHETTO-1.56.0.md, §A148.
+    -->
+    <!--
+      1.55.1 — PATCH, nessuna migrazione. Su 1.55.0 (395bce9, online dal 1 ottobre 2026). Sito S91: nei documenti uniti
+      ogni membro tiene la sua regola di lingua (caso LIRP: vIPI bilingue + vSOP solo inglese), con la lingua passata in
+      cascata ai componenti del documento. Tocca solo Vipi.Ui e Vipi.Host per il timbro. Dettaglio:
+      LEGGIMI-PACCHETTO-1.55.1.md, §A147.
+    -->
+    <!--
+      1.55.0 — MINOR, nessuna migrazione. Su 1.54.3 (b6ae28b, online dal 1 ottobre 2026). Sito S83–S90: SID e STAR
+      nella barra di ricerca (IProcedureCercabili, memoria 10 min) e nota radio sopra le SID; vista live compatta su una
+      riga con la ricerca rapida (scali, aree, postazioni/frequenze, punti SID/STAR, trasferimenti, radioassistenze);
+      avviso «ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE OPERATIONS» ovunque; ora Z nella barra per tutti; callout
+      «Importante»; riconnessione discreta sulle pagine pubbliche interattive; tasto vSOP accanto a Stampa nella vIPI
+      d'aeroporto. Tocca Vipi.Application, Vipi.Infrastructure, Vipi.Ui (+ frasi IT/EN, CSS e JS con l'indice degli
+      asset) e Vipi.Host. Dettaglio: LEGGIMI-PACCHETTO-1.55.0.md, §A146.
+    -->
+    <!--
+      1.54.3 — PATCH, nessuna migrazione. Su 1.54.2 (1a843c2, online dal 30 settembre 2026). Sito S82: nel piè di
+      pagina, sotto «Parte della IVAO», la riga «Realizzato da Carmine (704798) · Testato da Nicola (201143) e Carmine
+      (704798)», coi nomi che portano al profilo IVAO. Tocca Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice degli
+      asset) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.54.3.md, §A145.
+    -->
+    <!--
+      1.54.2 — PATCH, nessuna migrazione. Su 1.54.1 (cab7337, online dal 30 settembre 2026). Sito S81: nella vista live
+      la finestra Trasferimenti si apre solo allo staff di divisione; per gli altri una riga «In sviluppo» che non si
+      apre. Tocca Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice degli asset) e Vipi.Host per il timbro. Dettaglio:
+      LEGGIMI-PACCHETTO-1.54.2.md, §A144.
+    -->
+    <!--
+      1.54.1 — PATCH, nessuna migrazione. Su 1.54.0 (919b965, online dal 30 settembre 2026). Sito S80, solo testi:
+      «I miei dati» rimanda per la cancellazione alla FAQ di IVAO (wiki.ivao.aero, delete-account); «Richieste dal
+      campo» → «Campo richieste»; «Presenze» → «Voli visti», con la riga che spiega voli visti e movimenti; testi degli
+      aeroporti riscritti. Tocca Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice degli asset) e Vipi.Host per il
+      timbro. Dettaglio: LEGGIMI-PACCHETTO-1.54.1.md, §A143.
+    -->
+    <!--
+      1.54.0 — MINOR: tre migrazioni ADDITIVE (RegistroAccessi: tabella AccessiAlSito; NomeBreveAccessi: una colonna;
+      PaginaDelleRichieste: colonna FieldRequests.PageUrl; niente tolto o rinominato). Su 1.53.0 (d4bbebd, online dal
+      30 settembre 2026). ⚠️ Da qui il sito si legge SOLO dopo il login IVAO (S67): senza login resta la porta di
+      /services con «Entra con IVAO», più login, sonde, /vsop/api con chiave e /api/rfo; si riapre con
+      VipiAuth__LoginObbligatorio=false. Sito S65 vista live (campi solo vSOP, niente «delegato» a chi guarda, SID del
+      pannello dal documento), S66 pagina Chiavi API con gli indirizzi, S67 login obbligatorio, S68 registro degli
+      accessi (12 mesi, solo admin, /services/stats/logins), S69 attese bUnit a 10 s, S70 «I miei dati», S71 titolo del
+      documento dall'elenco, S72 nuova veste delle statistiche, S73 pagina ACC al buio, S74 riassunto mensile ATC potato
+      a dieci anni, S75 ricerca senza JSON e in ordine di importanza, S76 scheda «Prenotazioni ATC e FRA», S77 «Segnala
+      un problema su questa pagina», S78 richieste aperte per VID da 5 a 10, S79 disconnessioni registrate dal
+      browser (diagnostica/disconnessioni-*.tsv, scheda in Diagnostica; niente riquadro di riconnessione sulle pagine
+      statiche; vipi-riconnessione.js cambiato). S78 e S79 sono entrate dopo i primi publish (d6eeab8, 722e7b4), mai
+      caricati: timbro e pacchetto rifatti. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations),
+      Vipi.Hosting, Vipi.Ui (+ frasi IT/EN, CSS con l'indice degli asset) e Vipi.Host. Dettaglio:
+      LEGGIMI-PACCHETTO-1.54.0.md, §A142.
+    -->
+    <!--
+      1.53.0 — MINOR, nessuna migrazione. Su 1.52.0 (1a72e24, online dal 30 settembre 2026). Sito S64: API degli
+      aeroporti per gli altri programmi (GET /vsop/api/v1/airports, /{icao}, /{icao}/sids, /{icao}/stars?runway=), la
+      vista pubblica del documento dietro chiave API obbligatoria col permesso nuovo «aeroporti»; il nome dei vSOP
+      militari perde «MIL» per intero (si vedeva anche nella tendina del vAWOS). Tocca Vipi.Domain, Vipi.Application,
+      Vipi.Hosting, Vipi.Ui (frasi IT/EN) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.53.0.md, §A140.
+    -->
+    <!--
+      1.52.0 — MINOR: una migrazione ADDITIVA (CorrezioniSpaziAerei: una tabella e un indice unico; niente tolto o
+      rinominato). Su 1.51.0 (b57fe44, online dal 30 settembre 2026). Sito S63: dalla pagina admin degli spazi aerei si
+      correggono a mano tipo, classe, base e tetto dei volumi che l'AIP sbaglia; le correzioni stanno in una tabella a
+      parte, citano la chiave del file e si sovrappongono in lettura (catalogo e agganci dei settori), e dopo un nuovo
+      caricamento la pagina mostra «Da controllare». La pagina dice anche che cosa sta facendo durante i gesti lunghi.
+      Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Ui (+ frasi IT/EN,
+      vipi-theme.css con l'indice degli asset) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.52.0.md, §A139.
+    -->
+    <!--
+      1.51.0 — MINOR: una migrazione ADDITIVA (ProfiliEvento: due tabelle e un indice; niente tolto o rinominato).
+      Su 1.50.0 (e7742ff, online dal 30 settembre 2026): la 1.50.1 (S58) non è mai stata caricata ed entra qui.
+      Sito S58 (vAWOS ancorato alla finestra, bandierina «segnala», switch Errore/Suggerimento); S59 profili per
+      l'evento (/services/event accesa dallo staff, file per postazione e link Drive, «Evento in corso» nell'hub);
+      S60 link a IVAO Italia nel piè di pagina; S61 pagina dei cookie (/services/cookies); S62 le richieste dal campo
+      si eliminano (Admin) e le chiuse si cancellano da sole dopo tre mesi. Tocca Vipi.Domain, Vipi.Application,
+      Vipi.Infrastructure (+ MySqlMigrations), Vipi.Hosting, Vipi.Ui (+ frasi IT/EN, CSS con l'indice degli asset) e
+      Vipi.Host. Dettaglio: LEGGIMI-PACCHETTO-1.51.0.md, §A138.
+    -->
+    <!--
+      1.50.1 — PATCH, nessuna migrazione. ⚠️ MAI CARICATA: confluita in 1.51.0. Su 1.50.0 (e7742ff, online dal 30 settembre 2026). Sito S58: il vAWOS è
+      ancorato alla finestra (position:fixed; inset:0), perché con S57 in Edge scorreva ancora; al posto della parola
+      «Segnala» una bandierina con tooltip su ogni titolo di sezione (sotto-sezioni e vIPI ACC comprese); nel modulo
+      delle richieste uno switch Errore/Suggerimento. Tocca solo Vipi.Ui (+ frasi IT/EN, vipi-awos.css e
+      vipi-theme.css con l'indice degli asset) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.50.1.md, §A137.
+    -->
+    <!--
+      1.50.0 — MINOR: una migrazione ADDITIVA (RichiesteDalCampo: tabella FieldRequests, colonna
+      EditorTask.FromRequestId; niente tolto o rinominato). Su 1.49.0 (89bfb04, online dal 30 settembre 2026).
+      Sito S56: richieste dal campo, canale utente → staff — link «Segnala» accanto ai titoli delle sezioni nelle
+      viste pubbliche, pagina nuova /services/vsop/requests, richieste nuove in «Da fare»; chiudere la richiesta
+      chiude il suo incarico. Sito S57: il vAWOS prende l'altezza visibile (100dvh: in Edge 100vh superava la
+      finestra) e il tasto TEST METAR esce dal quadro. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure
+      (+ MySqlMigrations), Vipi.Ui (+ frasi IT/EN, vipi-awos.css/.js con l'indice degli asset) e Vipi.Host per il
+      timbro; Vipi.Hosting solo in un commento (non si spedisce). Dettaglio: LEGGIMI-PACCHETTO-1.50.0.md, §A136.
+    -->
+    <!--
+      1.49.0 — MINOR: una migrazione (EntiGruppiAcc: un indice composto al posto di quello su AccId; niente tabelle né
+      colonne tolte o rinominate), rollback a due rinomine valido. Su 1.48.0 (e292a1e, online dal 29 settembre 2026).
+      Sito S53–S55: pagina nuova «Enti ATC» (/services/vsop/admin/units); «Sostituisci con…» dagli orfani della
+      Struttura (una posizione IVAO sostituita da un'altra); enti anche per i gruppi APP della vIPI ACC. Tocca
+      Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Hosting, Vipi.Ui (+ frasi IT/EN) e
+      Vipi.Host. Dettaglio: LEGGIMI-PACCHETTO-1.49.0.md, §A135.
+    -->
+    <!--
+      1.48.0 — MINOR: UNA migrazione ADDITIVA (EntiAtc: 2 tabelle, 5 indici), rollback a due rinomine valido, niente
+      «NON SI TORNA INDIETRO». Su 1.47.3 (de51b76, online dal 29 settembre 2026). Sito S47–S52: vAWOS in uno schermo con
+      una pista come con tre (S47); la vIPI e il vSOP sono dello scalo, le posizioni sparite da IVAO escono da sole —
+      al primo import escono LIBG_TWR e LIRE_TWR (S48); enti ATC fasi 1–3: la vIPI APP è di un ente e non di un
+      nominativo, «Remotizza», la vIPI APP deriva da tutte le posizioni dell'ente, più la revisione (S49–S52). Tocca
+      Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Hosting, Vipi.Ui (+ frasi IT/EN,
+      vipi-awos.css) e Vipi.Host. Dettaglio e gesti: LEGGIMI-PACCHETTO-1.48.0.md, §A134.
+    -->
+    <!--
+      1.47.3 — PATCH, NESSUNA migrazione. Su 1.47.2 (5bc663d, online dal 29 settembre 2026). Sito S46: i link legali
+      del piè di pagina portano alla wiki di IVAO (le pagine su ivao.aero rispondevano 404); piè di pagina dello stesso
+      colore della barra in alto, con la riga «Realizzato da Carmine (704798)» e il link al profilo IVAO. Tocca Vipi.Ui
+      (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
+    -->
+    <!--
+      1.47.2 — PATCH, NESSUNA migrazione. Su 1.47.1 (c41e6e7, online dal 29 settembre 2026). Sito S44–S45: il piè di
+      pagina del sito, dove passa la versione (visibile allo staff, prima in barra ai soli admin); nella scheda di uno
+      scalo con vIPI e vSOP un clic fuori dalle due voci apre il documento della sua categoria. Tocca Vipi.Ui (+ frasi
+      IT/EN, vipi-theme.css, vipi-print.css) e Vipi.Host per il timbro.
+    -->
+    <!--
+      1.47.1 — PATCH, NESSUNA migrazione. Su 1.47.0 (067a737, online dal 29 settembre 2026). Sito S41–S43:
+      il rilievo «Trasferimento senza ripiego» non conta i settori di un ACC estero (era il Degraded di /vsop/health,
+      LIMM_WS2_CTR → LSAG_TST_CTR); login: se la pagina di consenso IVAO perde il nonce il sito rifà il giro una volta
+      (come l'hub, PR 174); sei punti della vSOP (Cosa è cambiato in Staff, «Nessun documento» nell'elenco MIL, barra
+      in alto, Documenti collegati senza pagine chiuse, Guida per ruolo). Tocca Vipi.Application, Vipi.Ui (+ wwwroot)
+      e Vipi.Host.
+    -->
+    <!--
+      1.47.0 — MINOR: TRE migrazioni ADDITIVE (AliasPerScalo, ProcedureSostituite, SectorfileDifferito; l'unica
+      cosa tolta è un indice), rollback a due rinomine valido, niente «NON SI TORNA INDIETRO». Su 1.46.5 (e24557e,
+      online dal 25 settembre 2026). La revisione totale 3 (registro docs/history/audit-2026-09-26-revisione-totale-3.md,
+      lotti L1…L11, sito S9–S40) più il login IVAO «nonce» recuperato dallo state (S29). Tocca Vipi.Domain,
+      Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Hosting, Vipi.Ui (+ frasi IT/EN, wwwroot) e
+      Vipi.Host. Al primo avvio girano passate una tantum (StarCiviliLive, PubblicoDiCatalogo, StoricoStatistiche) e
+      le riconciliazioni documentali della build nuova. Dettaglio e gesti: LEGGIMI-PACCHETTO-1.47.0.md, §A130.
+    -->
+    <!--
       1.46.5 — PATCH, NESSUNA migrazione. Su 1.46.4 (60e782a, online dal 25 settembre 2026). Due rami fusi:
       fix/atc-nominativo-doppio (statistiche ATC: lo stesso nominativo due volte nella fotografia IVAO sollevava
       «An item with the same key» e il giro del minuto saltava intero — firma f45fedc38cea; ora vince la sessione
@@ -1779,7 +1934,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.46.5</VipiVersione>
+    <VipiVersione>1.56.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

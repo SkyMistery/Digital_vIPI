@@ -24,6 +24,7 @@ public sealed class CacheDelleLettureAnonimeTests : IClassFixture<SmokeTests.Vip
     [InlineData("/services/vsop/libb/airports")]
     [InlineData("/services/vsop/libb/vloa")]
     [InlineData("/services/vsop/libb/apps")]
+    [InlineData("/services/event")]   // la pagina sì: al pubblico al massimo un minuto di ritardo
     public void Una_lettura_anonima_di_un_documento_pubblico_si_puo_tenere(string percorso)
         => Assert.True(CacheDelleLettureAnonime.Riutilizzabile(Richiesta(percorso)));
 
@@ -47,6 +48,7 @@ public sealed class CacheDelleLettureAnonimeTests : IClassFixture<SmokeTests.Vip
     [InlineData("/services/vsop/auth/login")]
     [InlineData("/services/stats/world")]
     [InlineData("/services/vsop/aor3d/vloa/42")]
+    [InlineData("/services/event/file/7/LIRF_TWR.cpr")]   // pacchetto dell'evento: si toglie e si sostituisce
     public void Le_pagine_che_dipendono_da_chi_guarda_non_si_tengono(string percorso)
         => Assert.False(CacheDelleLettureAnonime.Riutilizzabile(Richiesta(percorso)));
 

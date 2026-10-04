@@ -87,9 +87,6 @@
       // il dato di quando se n'e' andato. L'orologio e l'eta' continuano a girare: sono locali.
       ogni(60000, function () { if (!document.hidden) leggi(icao); });
     }
-    // Con `?test=` in coda all'indirizzo il pannello del bollettino finto si apre da se': ci si e' appena
-    // arrivati premendo APPLY, e trovarlo chiuso costringe a riaprirlo per leggere che cosa si e' scritto.
-    if (new URLSearchParams(location.search).get('test')) apri('prova');
     $$('[data-awos-wind]').forEach(pianificaVariazione);
     ogni(1000, orologio);
     ogni(1000, eta);
@@ -128,8 +125,6 @@
   function leggi(icao) {
     var url = '/services/vawos/api/' + encodeURIComponent(icao);
     var q = [];
-    var prova = new URLSearchParams(location.search).get('test');
-    if (prova) q.push('test=' + encodeURIComponent(prova));
     if (lvpInVigore) q.push('inforce=true');
     if (q.length) url += '?' + q.join('&');
 

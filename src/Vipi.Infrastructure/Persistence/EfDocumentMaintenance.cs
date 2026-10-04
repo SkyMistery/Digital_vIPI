@@ -237,6 +237,14 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
     public async Task<int> LinkAirportDocumentsAsync(CancellationToken ct = default)
     {
+        var collegati = await CollegaDaiSettoriAsync(ct);
+        await SganciaDaiSettoriAsync(ct);
+        return collegati;
+    }
+
+    /// <summary>Il ponte: gli aeroporti ancora scollegati prendono il documento che un loro settore portava.</summary>
+    private async Task<int> CollegaDaiSettoriAsync(CancellationToken ct)
+    {
         // Solo quelli ancora scollegati: il giro è idempotente e non tocca chi è già a posto.
         var airports = await _db.Airports.Where(a => a.DocumentId == null).ToListAsync(ct);
         if (airports.Count == 0) return 0;
@@ -262,6 +270,84 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
         if (collegati > 0) await _db.SaveChangesAsync(ct);
         return collegati;
+    }
+
+    /// <summary>
+    /// 🔴 Dopo il ponte, nessuna POSIZIONE porta più la vIPI del suo aeroporto (S48, 29 settembre 2026): il
+    /// documento è dello scalo, e una posizione legata al documento non si poteva togliere nemmeno quando IVAO
+    /// l'aveva tolta (LIBG_TWR). Si sganciano solo i settori che portano il documento del LORO aeroporto: gli
+    /// APP non remotizzati e le vIPI ACC hanno un documento proprio, e restano come sono.
+    /// <para>⚠️ Gira DOPO <see cref="CollegaDaiSettoriAsync"/>, e non prima: il ponte legge proprio questi legami.</para>
+    /// </summary>
+    private async Task SganciaDaiSettoriAsync(CancellationToken ct)
+    {
+        var agganciati = await _db.Sectors
+            .Where(s => s.AirportId != null && s.DocumentId != null
+                        && _db.Airports.Any(a => a.Id == s.AirportId && a.DocumentId == s.DocumentId))
+            .ToListAsync(ct);
+        if (agganciati.Count == 0) return;
+        foreach (var s in agganciati) { s.DocumentId = null; s.IsPrimary = false; }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public Task<int> LinkAccGroupUnitsAsync(CancellationToken ct = default) =>
+        new EfAtcUnitRepository(_db).AllineaGruppiAccAsync(null, ct);
+
+    public async Task<int> LinkAppUnitsAsync(CancellationToken ct = default)
+    {
+        // I documenti che un settore APP porta ancora. ⚠️ Non quelli di uno scalo (Airport.DocumentId) né quelli
+        // che porta anche un settore non-APP (la vIPI ACC sta sul CTR radice): quelli non sono vIPI APP.
+        var scali = (await _db.Airports.Where(a => a.DocumentId != null).Select(a => a.DocumentId!.Value)
+                .ToListAsync(ct)).ToHashSet();
+        var nonApp = (await _db.Sectors.Where(s => s.Type != SectorType.App && s.DocumentId != null)
+                .Select(s => s.DocumentId!.Value).ToListAsync(ct)).ToHashSet();
+        var settori = (await _db.Sectors.Where(s => s.Type == SectorType.App && s.DocumentId != null).ToListAsync(ct))
+            .Where(s => !scali.Contains(s.DocumentId!.Value) && !nonApp.Contains(s.DocumentId!.Value))
+            .ToList();
+        if (settori.Count == 0) return 0;
+
+        var conEnte = (await _db.AtcUnits.Where(u => u.DocumentId != null).Select(u => u.DocumentId!.Value)
+                .ToListAsync(ct)).ToHashSet();
+        var codiciUsati = (await _db.AtcUnits.Select(u => u.Code).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var posizioniUsate = (await _db.AtcUnitPositions.Select(p => p.Callsign).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var nomi = await _db.AirportSectors.AsNoTracking().Where(a => a.AtcCallsign != null)
+            .Select(a => new { a.ComposePosition, a.AtcCallsign }).ToListAsync(ct);
+        var nomeDi = nomi.GroupBy(a => a.ComposePosition, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().AtcCallsign!, StringComparer.OrdinalIgnoreCase);
+
+        var nati = 0;
+        foreach (var g in settori.GroupBy(s => s.DocumentId!.Value))
+        {
+            var ordinati = g.OrderByDescending(s => s.IsPrimary).ThenBy(s => s.Id).ToList();
+            if (!conEnte.Contains(g.Key))
+            {
+                var principale = ordinati[0];
+                // Il codice è il nominativo che portava il documento: è la chiave sotto cui è già pubblicato.
+                var codice = principale.Callsign.ToUpperInvariant();
+                if (!codiciUsati.Add(codice)) codice = $"{codice}-{g.Key}";   // mai visto: non si ferma l'avvio per questo
+                var ente = new AtcUnit
+                {
+                    Code = codice,
+                    Name = nomeDi.GetValueOrDefault(principale.Callsign)
+                           ?? (string.IsNullOrWhiteSpace(principale.Name) ? principale.Callsign : principale.Name),
+                    AccId = principale.AccId,
+                    DocumentId = g.Key,
+                };
+                var ordine = 0;
+                foreach (var s in ordinati)
+                    if (posizioniUsate.Add(s.Callsign))
+                        ente.Positions.Add(new AtcUnitPosition { Callsign = s.Callsign.ToUpperInvariant(), Order = ordine++ });
+                _db.AtcUnits.Add(ente);
+                nati++;
+            }
+            // Il documento è dell'ente: il settore non lo porta più (e resta libero di cambiare o sparire).
+            foreach (var s in ordinati) { s.DocumentId = null; s.IsPrimary = false; }
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return nati;
     }
 
     public async Task<int> ReconcileAirportCategoriesAsync(CancellationToken ct = default)
@@ -591,8 +677,8 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             .Where(d => d.Type == Vipi.Domain.DocumentType.Vloa
                         || airportDocIds.Contains(d.Id)
                         || milDocIds.Contains(d.Id)
-                        || d.Sectors.Any(x => x.IsPrimary && x.Type == SectorType.App
-                                              && x.ApproachKind == ApproachKind.Standalone))
+                        // La vIPI APP è dell'ENTE (S49), non più del settore APP primario.
+                        || _db.AtcUnits.Any(u => u.DocumentId == d.Id))
             .ToListAsync(ct);
         // ⚠️ Niente ritorno anticipato a elenco vuoto: il passo delle vIPI ACC, in coda, sta FUORI da questo
         // elenco, e un database con le sole vIPI ACC lo avrebbe saltato. L'ha visto il test, non il sito.
@@ -794,14 +880,13 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
     {
         const string vfrKey = "vfr";
 
-        // Gli stessi documenti che AddMissingCatalogSections riconosce come APP: settore primario APP
-        // standalone. ⚠️ Qui solo loro: i gruppi APP delle vIPI ACC li sposta RiparentaVfrDeiBlocchiAppAccAsync, in
+        // Gli stessi documenti che AddMissingCatalogSections riconosce come APP: le vIPI degli ENTI (S49; prima il
+        // settore primario APP standalone). ⚠️ Qui solo loro: i gruppi APP delle vIPI ACC li sposta RiparentaVfrDeiBlocchiAppAccAsync, in
         // fondo a questo stesso passo (dal 21 settembre 2026; U-172 della revisione 3 — il commento diceva che la
         // vIPI ACC teneva il suo VFR come radice del blocco, e due righe sotto lo si spostava).
         var docs = await _db.Documents
             .Where(d => d.Type != Vipi.Domain.DocumentType.Vloa
-                        && d.Sectors.Any(x => x.IsPrimary && x.Type == SectorType.App
-                                              && x.ApproachKind == ApproachKind.Standalone))
+                        && _db.AtcUnits.Any(u => u.DocumentId == d.Id))
             .Select(d => new { d.Id, d.Language })
             .ToListAsync(ct);
 

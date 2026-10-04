@@ -135,6 +135,74 @@ public class SearchAndChangesTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// 🔴 Committente, 30 settembre 2026: un blocco strutturato (qui gli aeroporti alternati di un vSOP) usciva
+    /// nell'estratto come JSON grezzo. Ora ne restano i soli valori di testo, e le chiavi non pescano niente.
+    /// </summary>
+    [Fact]
+    public async Task Un_blocco_strutturato_esce_come_testo_e_non_come_json()
+    {
+        var section = await _db.DocumentSections.FirstAsync();
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = section.DocumentVersionId, SectionId = section.Id, Order = 9001,
+            Format = Vipi.Domain.BlockFormat.Table, Tier = Vipi.Domain.BlockTier.Extended,
+            Visibility = Vipi.Domain.BlockVisibility.Always,
+            BodyJson = "{\"alternates\":[{\"icao\":\"QQZZ\",\"name\":\"Lamezia Prova\",\"bearing\":309,\"navaids\":[{\"code\":\"LMT\"}]}]}",
+        });
+        await _db.SaveChangesAsync();
+        await PublishAllAsync();
+
+        var hit = Assert.Single(await _search.SearchAsync("QQZZ", SearchScope.All, 50));
+        Assert.Contains("QQZZ · Lamezia Prova · LMT", hit.Snippet);
+        Assert.DoesNotContain("{", hit.Snippet);
+        Assert.DoesNotContain("\"", hit.Snippet);
+
+        // Le chiavi non sono testo: «alternates» non si trova.
+        Assert.Empty(await _search.SearchAsync("alternates", SearchScope.All, 50));
+    }
+
+    /// <summary>
+    /// 🔴 Committente, 30 settembre 2026: i risultati in ordine di importanza — titolo del documento, titolo di
+    /// sezione, di sotto-sezione, testo — anche quando il titolo sta in un documento che si legge DOPO.
+    /// </summary>
+    [Fact]
+    public async Task I_risultati_vanno_in_ordine_di_importanza()
+    {
+        var radice = await _db.DocumentSections.OrderBy(s => s.Id).FirstAsync(s => s.ParentSectionId == null);
+        var versione = await _db.DocumentVersions.FirstAsync(v => v.Id == radice.DocumentVersionId);
+        var altro = await _db.Documents.OrderByDescending(d => d.Id).FirstAsync(d => d.Id != versione.DocumentId);
+
+        // Nel primo documento: testo, sotto-sezione e sezione; il titolo nell'ultimo.
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = radice.DocumentVersionId, SectionId = radice.Id, Order = 9002,
+            Format = Vipi.Domain.BlockFormat.Prose, Tier = Vipi.Domain.BlockTier.Extended,
+            Visibility = Vipi.Domain.BlockVisibility.Always, Body = "testo con ORDTOK dentro",
+        });
+        _db.DocumentSections.Add(new Vipi.Domain.Entities.DocumentSection
+        {
+            DocumentVersionId = radice.DocumentVersionId, ParentSectionId = radice.Id,
+            Title = "Figlia ORDTOK", Order = 99, Depth = 1, SectionKey = SectionKeys.NewCustom(),
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        radice.Title += " ORDTOK";
+        altro.Title += " ORDTOK";
+        await _db.SaveChangesAsync();
+        await PublishAllAsync();
+
+        var hits = await _search.SearchAsync("ORDTOK", SearchScope.All, 50);
+
+        int Dove(Func<Vipi.Application.Content.SearchHit, bool> p) => hits.ToList().FindIndex(h => p(h));
+        var titolo = Dove(h => !h.Url.Contains("#s-"));
+        var sezione = Dove(h => h.Snippet == radice.Title);
+        var figlia = Dove(h => h.Snippet == "Figlia ORDTOK");
+        var testo = Dove(h => h.Snippet.Contains("testo con ORDTOK"));
+
+        Assert.True(titolo >= 0 && sezione >= 0 && figlia >= 0 && testo >= 0, string.Join(" | ", hits.Select(h => h.Snippet)));
+        Assert.True(titolo < sezione && sezione < figlia && figlia < testo, $"{titolo} {sezione} {figlia} {testo}");
+    }
+
+    /// <summary>
     /// Un blocco immagine ha per testo il suo alternativo e la didascalia. Il BodyJson porta lo sha: se finisse
     /// nell'indice, cercare una sequenza qualsiasi pescherebbe immagini a caso e il risultato mostrerebbe JSON.
     /// </summary>
@@ -315,15 +383,21 @@ public class SearchAndChangesTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// 🔴 U-142 (revisione totale 3): l'APP che la proiezione disattiva (nascosto o sparito dalla sorgente) chiude
-    /// la sua pagina, e il cancello di ricerca e novità non lo guardava: link a «non disponibile».
+    /// 🔴 U-142 (revisione totale 3): ricerca e novità seguono la porta della pagina. Dal 29 settembre 2026 (S49) la
+    /// vIPI APP è dell'ENTE e un APP disattivato non la chiude più: resta in ricerca e novità, come la sua pagina.
+    /// La si toglie nascondendo il documento.
     /// </summary>
     [Fact]
-    public async Task Un_APP_disattivato_sparisce_da_ricerca_e_novita()
+    public async Task Un_APP_disattivato_resta_in_ricerca_finche_il_documento_non_si_nasconde()
     {
         await SeedPublishedAppDocumentAsync();
         var app = await _db.Sectors.FirstAsync(s => s.Callsign == "LIRP_APP");
         app.IsActive = false;
+        await _db.SaveChangesAsync();
+        Assert.NotEmpty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
+
+        var doc = await _db.Documents.FirstAsync(d => d.AtcUnit!.Code == "LIRP_APP");
+        doc.IsHidden = true;
         await _db.SaveChangesAsync();
 
         Assert.Empty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
@@ -474,4 +548,54 @@ public class SearchAndChangesTests : IAsyncLifetime
         var row = Assert.Single(rows, r => r.DocTitle.Contains("Pisa"));
         Assert.Equal("Nota della release T042", row.Note);
         Assert.True(row.CurrSections > 0);
-    }}
+    }
+    // ---- SID e STAR nella barra di ricerca (committente, 1 ottobre 2026) ----------------------------------------------
+
+    private sealed class ProcedureFinte : IProcedureCercabili
+    {
+        public List<(string, Vipi.Domain.ReleaseTargetType)> Chieste { get; } = new();
+        public Task<ProcedureDelloScalo> PerScaloAsync(string icao, Vipi.Domain.ReleaseTargetType edizione, CancellationToken ct = default)
+        {
+            Chieste.Add((icao, edizione));
+            return Task.FromResult(new ProcedureDelloScalo(
+                new[]
+                {
+                    new AirportSidRowView("16L", "ZZOPA", "ZZOP7G", "—", "—", "—", "—", "—", "—"),
+                    new AirportSidRowView("34R", "ZZOPA", "ZZOP7G", "—", "—", "—", "—", "—", "—"),
+                },
+                Array.Empty<AirportSidRowView>()));
+        }
+    }
+
+    /// <summary>Le SID non stanno nel testo pubblicato: la ricerca le chiede alla vista dello scalo e le aggancia alla
+    /// sezione SID. Una riga per procedura, con codice, nome completo e piste.</summary>
+    [Fact]
+    public async Task Una_SID_si_trova_col_fix_col_codice_e_col_nome_completo()
+    {
+        var docId = await _db.Airports.Where(a => a.Icao == "LIRF").Select(a => a.DocumentId).SingleAsync();
+        var versione = await _db.DocumentVersions.Where(v => v.DocumentId == docId).OrderByDescending(v => v.VersionNumber).FirstAsync();
+        if (!await _db.DocumentSections.AnyAsync(s => s.DocumentVersionId == versione.Id && s.SectionKey == "sids"))
+        {
+            _db.DocumentSections.Add(new Vipi.Domain.Entities.DocumentSection
+            {
+                DocumentVersionId = versione.Id, Title = "SID", Order = 50, Depth = 0, SectionKey = "sids",
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            });
+            await _db.SaveChangesAsync();
+        }
+        await PublishAllAsync();
+
+        var procedure = new ProcedureFinte();
+        var search = new EfSearchRepository(_db, TestReleaseTargets.Registry(_db), TestReleaseTargets.Routes(),
+            TestReleaseTargets.ReleaseRepo(_db), procedure: procedure);
+
+        foreach (var cercato in new[] { "ZZOPA", "ZZOP7G", "ZZOPA 7G" })
+        {
+            var hit = Assert.Single(await search.SearchAsync(cercato, SearchScope.All, 50));
+            Assert.Contains("ZZOP7G (ZZOPA 7G)", hit.Snippet);
+            Assert.Contains("RWY 16L 34R", hit.Snippet);
+            Assert.Contains("#s-", hit.Url);
+        }
+        Assert.Contains(("LIRF", Vipi.Domain.ReleaseTargetType.Airport), procedure.Chieste);
+    }
+}

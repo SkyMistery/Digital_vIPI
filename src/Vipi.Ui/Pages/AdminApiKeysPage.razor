@@ -19,6 +19,7 @@
 @inject IEmittentiChiaviApi Emittenti
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <PageTitle>@L["ApiKeys_Title"] · IVAO Italy</PageTitle>
 
@@ -71,12 +72,14 @@
                     <label for="api-key-nome">@L["ApiKeys_Name"]</label>
                     <input id="api-key-nome" class="app-in" maxlength="@ApiClientLimits.Nome" placeholder="@L["ApiKeys_NamePh"]" @bind="_nome" />
                 </div>
-                <fieldset class="field" style="border:0;padding:0;margin:0">
+                @* ⚠️ Le spunte hanno una classe loro: `.field input` del tema le allarga al 100%, e la casella finiva al
+                   centro della riga col nome schiacciato nell'angolo (visto in produzione, 30 settembre 2026). *@
+                <fieldset class="field api-eps">
                     <legend>@L["ApiKeys_Endpoints"]</legend>
                     @foreach (var e in ApiEndpoints.Tutti)
                     {
                         var id = "api-key-ep-" + e;
-                        <label for="@id" style="display:flex;gap:6px;align-items:center">
+                        <label for="@id" class="api-ep">
                             <input id="@id" type="checkbox" checked="@_scelti.Contains(e)" @onchange="ev => Scegli(e, ev.Value is true)" />
                             <span>@L[$"ApiKeys_Ep_{e}"]</span>
                         </label>
@@ -86,6 +89,32 @@
                         title="@(string.IsNullOrWhiteSpace(_nome) || _scelti.Count == 0 ? L["ApiKeys_CreateNeeds"] : L["ApiKeys_CreateTitle"])"
                         @onclick="Crea"><Icon Name="plus" Size="14" /> @L["ApiKeys_Create"]</button>
             </div>
+        </div>
+
+        @* Gli indirizzi da dare a chi integra, per permesso. Dalla stessa lista delle rotte vere (ApiRotte). *@
+        <div class="panel st-pane api-routes">
+            <h2 class="api-routes-h">@L["ApiKeys_RoutesTitle"]</h2>
+            <p class="help">@L["ApiKeys_RoutesHelp"]</p>
+            <pre class="api-route-hdr"><code>Authorization: Bearer vipi_…
+X-Api-Key: vipi_…</code></pre>
+            @foreach (var gruppo in ApiRotte.Tutte.GroupBy(r => r.Endpoint))
+            {
+                <h3 class="api-route-grp">@L[$"ApiKeys_Ep_{gruppo.Key}"]</h3>
+                @foreach (var r in gruppo)
+                {
+                    <div class="api-route">
+                        <div class="api-route-line">
+                            <span class="pill @(r.Metodo == "GET" ? "green" : "blue")">@r.Metodo</span>
+                            <code class="api-route-url">@Base@r.Percorso</code>
+                        </div>
+                        <div class="vmeta">@L[$"ApiKeys_Route_{r.Id}"]</div>
+                        @if (r.Esempio != r.Percorso)
+                        {
+                            <div class="vmeta">@L["ApiKeys_RouteExample"] <code class="api-route-url">@Base@r.Esempio</code></div>
+                        }
+                    </div>
+                }
+            }
         </div>
 
         <div class="panel st-pane">
@@ -135,6 +164,9 @@
 </div>
 
 @code {
+    /// <summary>L'indirizzo del sito, senza la barra finale: in produzione https://atc.it.ivao.aero, in locale il suo.</summary>
+    private string Base => Nav.BaseUri.TrimEnd('/');
+
     private IReadOnlyList<ApiClientRow>? _righe;
     private ChiaveEmessa? _emessa;
     private bool _busy;

@@ -99,6 +99,15 @@ else
                     <AudienceChip Compatto="true" Visibile="@MembroUnito.QualcunoHaMarcate(_doc.HaMarcate, _altri)" Vista="_doc.Vista"
                                   BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_doc.Mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
                     <div class="dh-actions">
+                        @* Il ponte verso il vSOP militare dello stesso scalo, accanto a «Stampa»: lo specchio del tasto
+                           «vIPI civile» che il vSOP ha nello stesso posto (committente, 1 ottobre 2026). Stessa condizione
+                           della voce nella colonna di destra: solo se il vSOP è pubblicato. *@
+                        @if (_haMilitare)
+                        {
+                            <a class="btn ghost" href="/services/vsop/@Acc.ToLowerInvariant()/mil?icao=@_icao">
+                                <Icon Name="book-open" Size="14" /> @Sito["Mil_LinkFromCivil"]
+                            </a>
+                        }
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
                         @if (_canEdit)
                         {
@@ -203,6 +212,7 @@ else
     /// <summary>I documenti collegati (§A109): vIPI ACC, APP che controlla lo scalo, vSOP dello stesso scalo.</summary>
     private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();
     private IDocLinkService Collegamenti = default!;
+    private IApertureDocumenti Aperture = default!;
 
     /// <summary>Vero se questo scalo ha anche un vSOP MILITARE: allora nel riquadro dei collegamenti compare
     /// il ponte verso l'altra edizione. Senza il controllo, il collegamento porterebbe a una pagina vuota —
@@ -246,6 +256,7 @@ else
         Militari = ScopedServices.GetRequiredService<IMilitaryDocumentService>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
         Collegamenti = ScopedServices.GetRequiredService<IDocLinkService>();
+        Aperture = ScopedServices.GetRequiredService<IApertureDocumenti>();
         // ⚠️ Anche il caricatore dei membri esce dallo scope della pagina: dentro istanzia i caricatori di
         // famiglia, e uno di quelli è proprio quello d'aeroporto — che sul circuito non deve stare.
         Membri = ActivatorUtilities.CreateInstance<UnionLoader>(ScopedServices);
@@ -312,6 +323,11 @@ else
             : Array.Empty<MembroUnito>();
 
         _collegati = await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.Airport, _icao, _doc.Mode);
+
+        // Un'apertura in più, solo sulla vista PUBBLICA (non bozza né anteprima: quelle le apre chi scrive). Carta
+        // 2026-10-01-aperture-documenti.md. ⚠️ In fondo, dopo tutte le letture: lo scope è quello della pagina, e il
+        // contatore non lancia mai.
+        if (_doc.Mode.Kind == PreviewKind.Public) await Aperture.SegnaAsync(ReleaseTargetType.Airport, _icao);
     }
 
     /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.

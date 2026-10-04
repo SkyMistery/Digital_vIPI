@@ -143,7 +143,9 @@ public sealed class EfDeletionRepository : IDeletionRepository
         return new AccFacts(acc.Code, acc.Name, acc.ImportedAtUtc,
             await _db.Sectors.CountAsync(s => s.AccId == acc.Id, ct),
             await _db.Airports.CountAsync(a => a.AccId == acc.Id, ct),
-            acc.IsForeign);
+            acc.IsForeign,
+            await _db.AtcUnits.Where(u => u.AccId == acc.Id && u.DocumentId != null)
+                .OrderBy(u => u.Code).Select(u => u.Code).ToListAsync(ct));
     }
 
     public async Task<DocumentFacts?> DocumentFactsAsync(int documentId, CancellationToken ct = default)
@@ -159,9 +161,11 @@ public sealed class EfDeletionRepository : IDeletionRepository
             .Select(x => x.Callsign).ToListAsync(ct);
         var aeroporto = await _db.Airports.AsNoTracking()
             .Where(x => x.DocumentId == documentId).Select(x => x.Icao).FirstOrDefaultAsync(ct);
+        var ente = await _db.AtcUnits.AsNoTracking()
+            .Where(x => x.DocumentId == documentId).Select(x => x.Code).FirstOrDefaultAsync(ct);
 
         return new DocumentFacts(d.Id, d.Title, d.Type, d.Status == DocumentStatus.Published,
-            Release: 0, settori, aeroporto);
+            Release: 0, settori, aeroporto, EnteCheLoPerde: ente);
     }
 
     public async Task<IReadOnlyList<AffectedDoc>> AllDocumentsAsync(CancellationToken ct = default) =>
@@ -474,7 +478,14 @@ public sealed class EfDeletionRepository : IDeletionRepository
         if (a.AccDaEliminare is { } code2)
         {
             var acc = await _db.Accs.FirstOrDefaultAsync(x => x.Code == code2, ct);
-            if (acc is not null) _db.Accs.Remove(acc);
+            if (acc is not null)
+            {
+                // Gli enti rimasti senza documento (il piano ha già fermato quelli che ne hanno uno): la loro
+                // chiave esterna sull'ACC è Restrict (S52).
+                _db.AtcUnits.RemoveRange(await _db.AtcUnits.Include(u => u.Positions)
+                    .Where(u => u.AccId == acc.Id && u.DocumentId == null).ToListAsync(ct));
+                _db.Accs.Remove(acc);
+            }
         }
 
         await _db.SaveChangesAsync(ct);

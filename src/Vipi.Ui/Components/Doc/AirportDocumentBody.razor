@@ -18,7 +18,7 @@
    quello che voleva, la pagina disegnava sempre la stessa cosa. *@
 @using Vipi.Domain
 @using Vipi.Application.Auth
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @inject IEditAuthorizationService Authz
 
 <div lang="@Doc.Bloccata">
@@ -28,7 +28,8 @@
                               IsDraft="@(Doc.Mode.Kind == PreviewKind.Draft)"
                               AnchorOf="AnchorOf"
                               ExtraClass="ClasseExtra" HeaderContent="Intestazione"
-                              DerivedContent="CorpoDerivato" />
+                              DerivedContent="CorpoDerivato"
+                              ReportHrefOf="@(Doc.Mode.Kind == PreviewKind.Public ? s => ReportLink.Per(ReleaseTargetType.Airport, Doc.Icao, s.SectionKey) : null)" />
     </CascadingValue>
 </div>
 

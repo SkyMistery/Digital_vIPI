@@ -1,6 +1,20 @@
 # Piano — le segnalazioni dal campo 🟣
 
-**Stato:** **carta, non eseguita — RIMANDATA** (vedi §10.0) · **Aggiornato:** 9 settembre 2026
+**Stato:** **canale 1 in esecuzione dal 29 settembre 2026 (S56)** · canale 2 rimandato · **Aggiornato:** 29 settembre 2026
+
+> **Decisioni del committente, 29 settembre 2026** (riapertura dopo la finestra cieca):
+> 1. **Nome**: «**richiesta dal campo**» (§10.5, opzione a). «Segnalazione» resta alle righe del sistema. In codice
+>    l'entità si chiama `FieldRequest` (non `FieldReport`), `EditorTask.FromRequestId`.
+> 2. **Secondo canale** (staff → sviluppatore, §10): **dopo**. Per ora lo staff scrive allo sviluppatore in privato.
+> 3. **Lo sviluppatore avrà un login admin in produzione**: quando si farà il secondo canale, la strada è **B-1**
+>    (§10.3), la coda letta dal sito.
+>
+> **Scostamenti dal piano, decisi eseguendo:**
+> - **Il pulsante nelle pagine pubbliche è un LINK, non un'isola interattiva** (§5, trappola 1): un'isola per
+>   sezione aprirebbe un circuito a ogni visitatore di ogni documento, anche a chi legge soltanto. Il link porta
+>   famiglia, chiave e sezione a una pagina-modulo, interattiva solo lei.
+> - **Il numero di rilascio lo ricava il servizio all'invio** (la pubblicazione in vigore), non la pagina: le pagine
+>   pubbliche conoscono il ciclo AIRAC, non l'id della release. È la stessa che il lettore aveva davanti.
 **Metodo:** [FEATURE-PROCESS](../FEATURE-PROCESS.md) · **Perimetro:** [regole-perimetro-servizi](regole-perimetro-servizi.md) §P1
 **Richiesta del committente (1 set 2026):** *«sì, sarebbe molto utile, così da non dover passare dalle mail»*
 
@@ -169,7 +183,7 @@ impatti (`WorkListServiceTests`), e va esteso — non riscritto — alla proveni
 | Argine | Valore | Perché |
 |---|---|---|
 | Solo connessi | — | §2/D1 |
-| Segnalazioni **aperte** per VID | **5** | chi ne ha cinque in attesa non ha bisogno della sesta: ha bisogno di una risposta |
+| Segnalazioni **aperte** per VID | **10** (5 fino al 30 settembre 2026) | chi ne ha dieci in attesa non ha bisogno dell'undicesima: ha bisogno di una risposta. Alzato dal committente quando la bandierina è arrivata su ogni pagina (§11) |
 | Segnalazioni al giorno per VID | **10** | tetto contro il pestaggio, non contro l'uso |
 | Lunghezza del corpo | **2000** caratteri | una segnalazione, non un trattato |
 | Formato | **testo semplice**, nessun HTML, nessun markdown, nessun allegato | niente da sanificare, niente da archiviare, niente immagini orfane da potare |
@@ -245,6 +259,13 @@ Il lavoro **tocca il database**, quindi va letto insieme alla memoria `finestra-
 ---
 
 ## §8 — Le slice
+
+> ✅ **Eseguite il 29 settembre 2026 (S56), ramo `fix/richieste-campo`**, con i nomi decisi dal committente
+> (`FieldRequest`, «richiesta dal campo»): S1–S2 `86c86f99`, S3–S5 `6a4b0f2e`, prova a schermo `d1e963c2`, e
+> **chiudere la richiesta chiude anche il suo incarico** (decisione del committente dopo la prova) `26e3f0db`.
+> Migrazione `RichiesteDalCampo`. Pagina `/services/vsop/requests`; link «Segnala» (non isola) accanto alle sezioni
+> radice in vista pubblica; righe `WorkOrigin.Campo` in «Da fare». Storia: `docs/filoni/sito.md` S56.
+> **Resta**: S6 (secondo canale, staff → sviluppatore), rimandata; quando si farà, strada B-1 (login admin).
 
 1. **S1 — lo schema**: entità, mappatura, la migrazione (una), il presidio della finestra verde. Nulla di
    visibile.
@@ -409,3 +430,21 @@ Farlo per primo vorrebbe dire scrivere due volte le stesse rotaie.
 |---|---|
 | S1-S5 | §8 di questa carta, invariate |
 | **S6** | `FieldReportTarget`, le tre colonne di contesto, il bottone dentro `PaginaErrore`, la coda filtrata per bersaglio, e **B-1 o B-2** secondo la risposta alla domanda 1 |
+
+## §11 — La segnalazione di PAGINA (30 settembre 2026)
+
+Committente: «in ogni pagina un tasto per riportare problemi generici a quella pagina (o al sito), deve funzionare
+come funziona ora per le sezioni dei documenti».
+
+- **Il tasto**: la stessa bandierina delle sezioni, in barra accanto alla Guida (`SopLayout`), e la voce «Segnala un
+  problema su questa pagina» nel ☰ per la barra stretta, dove le icone escono. Non c'è sulla pagina delle richieste
+  stessa, né sul vAWOS (layout suo, senza barra).
+- **La strada**: la stessa delle sezioni. Un LINK a `/services/vsop/requests?p=<percorso e query>`, niente circuito per
+  chi legge soltanto; il modulo dice «Sulla pagina …» al posto del documento.
+- **Il modello**: una colonna, `FieldRequest.PageUrl` (300, vuota di default; migrazione `PaginaDelleRichieste`). Solo
+  per le segnalazioni che non hanno un documento: una di sezione resta com'era. ⚠️ Arriva dall'indirizzo, quindi da
+  chiunque: `FieldRequestRules.Pagina` tiene solo un percorso del sito (una barra sola in testa, niente schema, niente
+  `//`, niente caratteri di controllo), o la coda dello staff mostrerebbe collegamenti esterni.
+- **Nella coda**: «Pagina /services/…» col collegamento; presa in carico, l'incarico si intitola alla pagina.
+- **Argini**: gli stessi, perché il servizio è lo stesso; le aperte passano da cinque a dieci (committente), come il tetto
+  delle 24 ore.

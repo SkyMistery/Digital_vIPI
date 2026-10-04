@@ -94,6 +94,9 @@
        dimensione sbagliata e poi salta. *@
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-zoom.js")"></script>
     <HeadOutlet />
+    @* Il processo che ha servito la pagina: il registro delle disconnessioni lo confronta con quello che riceve la
+       riga, e dice se il circuito è caduto perché il processo non c'è più (RegistroDisconnessioni). *@
+    <meta name="vipi-pid" content="@Environment.ProcessId" />
 </head>
 
 <body>
@@ -128,6 +131,19 @@
 
        ⚠️ `hidden` e non `display:none` in linea: lo si toglie con `el.hidden = false`, e il reset di pagina
        garantisce `[hidden]{display:none}` anche quando il CSS del tema non è ancora arrivato. *@
+    @* L'avviso DISCRETO delle pagine di sola lettura (30 settembre 2026): lì il riquadro che copre la pagina non si
+       mostra più — chi legge la vIPI di LIRF non ha niente da perdere se si stacca il badge Live — e quando il
+       collegamento non torna resta solo questa riga in basso, col tasto per ricaricare allo stesso punto. *@
+    <div id="vipi-rec-quieta" class="vipi-perso vipi-rec-quieta" role="status" aria-live="polite" hidden>
+        <span class="vipi-perso-i" aria-hidden="true">⟳</span>
+        <div class="vipi-perso-t">
+            <strong>@L["Reconnect_QuietTitle"]</strong>
+            <span data-quieta="silenziosa">@L["Reconnect_QuietBody"]</span>
+            @* Le pagine discrete (vista live, ricerca…): lì non c'è un documento che resta leggibile. *@
+            <span data-quieta="discreta" hidden>@L["Reconnect_QuietBodyLive"]</span>
+        </div>
+        <button id="vipi-rec-quieta-ricarica" class="vipi-rec-b" type="button">@L["Reconnect_Reload"]</button>
+    </div>
     <div id="vipi-gesto-perso" class="vipi-perso" role="status" aria-live="polite" hidden>
         <span class="vipi-perso-i" aria-hidden="true">⚠️</span>
         <div class="vipi-perso-t">

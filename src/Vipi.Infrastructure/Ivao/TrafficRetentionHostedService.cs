@@ -65,10 +65,27 @@ internal sealed class TrafficRetentionHostedService : BackgroundService
         // La storia del ponte RFO degli eventi finiti (U-104/U-121, scelta del committente il 28 settembre 2026):
         // RfoLimits.GiorniDiStoria giorni dopo l'ultima scrittura, via tutta. Nello stesso giro perché è la stessa
         // domanda — «che cosa non serve più tenere» — e un giro in più sarebbe una categoria di stato in più.
+        var riassunti = await sp.GetRequiredService<AtcMonthRollupRetentionUseCase>()
+            .RunAsync(DateTimeOffset.UtcNow, Math.Max(1, _opt.SessionRetentionPerRun), ct: ct);
+
+        if (riassunti.Removed > 0)
+            _log.LogInformation(
+                "Potatura del riassunto mensile ATC: {Tolte} righe oltre i {Anni} anni{Ancora}.",
+                riassunti.Removed, AtcMonthRollupRetentionUseCase.AnniDiRiassunto,
+                riassunti.MoreToGo ? ", altre ne restano" : "");
+
         var storia = await sp.GetRequiredService<IRfoSharedStateStore>()
             .PotaStoriaAsync(DateTime.UtcNow.AddDays(-Vipi.Domain.Entities.RfoLimits.GiorniDiStoria), ct);
         if (storia > 0)
             _log.LogInformation("Potatura della storia del ponte RFO: {Tolte} righe di eventi finiti.", storia);
+
+        // Le richieste dal campo chiuse da più di tre mesi (committente, d'accordo con IT-HQ, 30 settembre 2026). Stessa
+        // domanda, stesso giro. Le aperte restano: sono lavoro, non spazio.
+        var richieste = await sp.GetRequiredService<IFieldRequestRepository>()
+            .PotaChiuseAsync(DateTime.UtcNow.AddMonths(-Vipi.Application.Content.FieldRequestRules.MesiDiConservazione), ct);
+        if (richieste > 0)
+            _log.LogInformation("Potatura delle richieste dal campo: {Tolte} chiuse da più di {Mesi} mesi.",
+                richieste, Vipi.Application.Content.FieldRequestRules.MesiDiConservazione);
 
         return true;
     }

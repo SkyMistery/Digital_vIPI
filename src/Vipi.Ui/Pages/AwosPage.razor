@@ -17,9 +17,9 @@
    DIR, SPEED, GUST, CROSS, TAIL, RVR, QNH, TL sono sigle ICAO, uguali in ogni torre del mondo. Le uniche
    parole vere — i codici di tempo presente — le traduce WxText, che c'è già.
 
-   ⚠️ Il METAR di prova (`?test=`) è per lo STAFF: inietta un bollettino che non esiste, e su una pagina
-   pubblica dev'essere impossibile per sbaglio. La guardia è qui, alla porta, e il servizio non ne ha una
-   seconda. *@
+   ⚠️ Il tasto TEST METAR non c'è più (committente, 30 settembre 2026): sul quadro era un gesto da banco
+   di prova, e lo staff lo trovava accanto ai tasti che si usano davvero. Il bollettino finto resta solo
+   all'API (`/services/vawos/api/{icao}?test=`, staff), dove lo usano gli script di verifica. *@
 @page "/services/vawos"
 @page "/services/vawos/{Icao}"
 @layout AwosLayout
@@ -68,18 +68,14 @@
 
         @if (_vista is not null)
         {
-            @if (_diProva is not null)
-            {
-                <span class="awos-pastiglia bozza">TEST METAR</span>
-            }
-            else if (_vista.MetarSource is { Length: > 0 } sorgente && Authz.IsDivisionStaff)
+            @if (_vista.MetarSource is { Length: > 0 } sorgente && Authz.IsDivisionStaff)
             {
                 @* Come nel riquadro METAR delle vIPI: la provenienza si scrive solo quando NON è la
                    principale, e la si mostra da DivisionStaff in su — è meccanica di servizio. *@
                 <span class="awos-pastiglia sorgente" title="METAR from @sorgente">@sorgente</span>
             }
             @* Il METAR di un altro campo si dice a tutti, come nel riquadro delle vIPI: è parte del dato. *@
-            @if (_diProva is null && _vista.MetarStation is { Length: > 0 } stazione)
+            @if (_vista.MetarStation is { Length: > 0 } stazione)
             {
                 <span class="awos-pastiglia sorgente" title="METAR/TAF from @stazione: @_vista.Icao has no report of its own">METAR @stazione</span>
             }
@@ -98,10 +94,6 @@
             <button type="button" class="awos-btn" data-awos-mask="report">LOCAL REP.</button>
             <button type="button" class="awos-btn" data-awos-mask="atis">ATIS MSG</button>
             <button type="button" class="awos-btn" data-awos-mask="ext">EXT. DATA</button>
-            @if (Authz.IsDivisionStaff)
-            {
-                <button type="button" class="awos-btn" data-awos-mask="prova">TEST METAR</button>
-            }
         }
         <span class="awos-orologio" data-awos-clock>--:--:--Z</span>
     </div>
@@ -140,19 +132,6 @@
         // (revisione del 12 settembre 2026, sera).
         var scritte = AwosTesto.Scritte(_vista, Authz.IsDivisionStaff);
 
-        @if (Authz.IsDivisionStaff)
-        {
-            @* Il pannello del METAR di prova vive nella pagina ma nasce spento: lo accende il tasto. È un
-               form GET, quindi l'indirizzo che ne esce si può incollare in una nota di verifica. *@
-            <form method="get" action="/services/vawos/@_vista.Icao.ToLowerInvariant()" class="awos-prova"
-                  data-awos-pan="prova" hidden>
-                <label for="awos-test">TEST METAR</label>
-                <input id="awos-test" name="test" value="@_diProva"
-                       placeholder="LIRF 121250Z 24018G32KT 200V280 0500 R16R/0350U -SHRA FG VV002 09/08 Q0998" />
-                <button class="awos-btn" type="submit">APPLY</button>
-                <a class="awos-btn" href="/services/vawos/@_vista.Icao.ToLowerInvariant()">CLEAR</a>
-            </form>
-        }
 
         @if (_vista.Piste.Count < 2)
         {
@@ -311,14 +290,10 @@
     /// <summary>ICAO dalla query: è così che torna il form del selettore, che senza circuito non ha altro modo.</summary>
     [SupplyParameterFromQuery(Name = "icao")] public string? IcaoQuery { get; set; }
 
-    /// <summary>Il bollettino iniettato a mano. Solo staff: qui è dove la guardia si applica.</summary>
-    [SupplyParameterFromQuery(Name = "test")] public string? Test { get; set; }
-
     private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
 
     private AwosView? _vista;
     private AwosOutcome _esito = AwosOutcome.Ok;
-    private string? _diProva;
     private IReadOnlyList<AwosAirport> _scali = Array.Empty<AwosAirport>();
 
     protected override async Task OnParametersSetAsync()
@@ -328,9 +303,7 @@
         var id = string.IsNullOrWhiteSpace(Icao) ? IcaoQuery : Icao;
         if (string.IsNullOrWhiteSpace(id)) { _vista = null; _esito = AwosOutcome.Ok; return; }
 
-        _diProva = Authz.IsDivisionStaff && !string.IsNullOrWhiteSpace(Test) ? Test!.Trim() : null;
-
-        var esito = await Awos.BuildAsync(id!, Authz.IsEditor, _diProva);
+        var esito = await Awos.BuildAsync(id!, Authz.IsEditor);
         _vista = esito.Vista;
         _esito = esito.Esito;
     }
@@ -495,26 +468,30 @@
 
         <div class="awos-pannello" data-awos-wind="@blocco-@lato" data-awos-hdg="@hdg">
             <div class="awos-pannello-t">WIND @(end?.Ident ?? "—")</div>
-            <div class="awos-wrow">
-                <div class="awos-wf"><div class="awos-wl">DIR (°)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="dir">@Dir(w)</div></div></div>
-                <div class="awos-wf"><div class="awos-wl">SPEED (kt)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="spd">@Spd(w)</div></div></div>
-            </div>
-            <div class="awos-wrow">
-                <div class="awos-wf">
-                    <div class="awos-wl">EXTREMES (°)</div>
-                    <div class="awos-wpair">
-                        <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmin">@Deg(w?.VarFromDeg)</div></div>
-                        <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmax">@Deg(w?.VarToDeg)</div></div>
+            @* `awos-wcorpo`: le tre righe una sotto l'altra, oppure in fila quando il pannello è basso — lo
+               decide il foglio (`@container`), non la pagina. *@
+            <div class="awos-wcorpo">
+                <div class="awos-wrow">
+                    <div class="awos-wf"><div class="awos-wl">DIR (°)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="dir">@Dir(w)</div></div></div>
+                    <div class="awos-wf"><div class="awos-wl">SPEED (kt)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="spd">@Spd(w)</div></div></div>
+                </div>
+                <div class="awos-wrow">
+                    <div class="awos-wf">
+                        <div class="awos-wl">EXTREMES (°)</div>
+                        <div class="awos-wpair">
+                            <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmin">@Deg(w?.VarFromDeg)</div></div>
+                            <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmax">@Deg(w?.VarToDeg)</div></div>
+                        </div>
+                    </div>
+                    <div class="awos-wf">
+                        <div class="awos-wl">GUST (kt)</div>
+                        <div class="awos-box-sm"><div class="awos-n-sm ambra" data-awos-w="gust">@(w?.GustKt is int g ? g.ToString("00", Inv) : "--")</div></div>
                     </div>
                 </div>
-                <div class="awos-wf">
-                    <div class="awos-wl">GUST (kt)</div>
-                    <div class="awos-box-sm"><div class="awos-n-sm ambra" data-awos-w="gust">@(w?.GustKt is int g ? g.ToString("00", Inv) : "--")</div></div>
+                <div class="awos-wrow">
+                    <div class="awos-wf"><div class="awos-wl">CROSS (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp is { } cc ? Colore(cc.Cross, 8, 15) : "")" data-awos-w="cross">@AwosTesto.Kt(comp?.Cross)</div></div></div>
+                    <div class="awos-wf"><div class="awos-wl">TAIL (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp?.Tail > 0 ? "rosso" : "")" data-awos-w="tail">@AwosTesto.Kt(comp?.Tail)</div></div></div>
                 </div>
-            </div>
-            <div class="awos-wrow">
-                <div class="awos-wf"><div class="awos-wl">CROSS (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp is { } cc ? Colore(cc.Cross, 8, 15) : "")" data-awos-w="cross">@AwosTesto.Kt(comp?.Cross)</div></div></div>
-                <div class="awos-wf"><div class="awos-wl">TAIL (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp?.Tail > 0 ? "rosso" : "")" data-awos-w="tail">@AwosTesto.Kt(comp?.Tail)</div></div></div>
             </div>
         </div>
     };

@@ -3,7 +3,7 @@
    - TA / TL·QNH → dalla STESSA vista del documento pubblico (IAirportViewDerivationService, congelata o derivata:
      U-015, la sezione «transition» è Host e nello snapshot non ha blocchi da leggere)
    - Piste suggerite → dal profilo strutturato (come /airports)
-   - SID → dalla STESSA derivazione del documento completo (IAirportSidDerivationService): stesse colonne,
+   - SID → dalla STESSA vista del documento pubblico (IAirportViewDerivationService, vIPI o vSOP): stesse colonne,
      stesso filtro AIRAC, stesse note. Qui c'era una seconda derivazione scritta a mano, e diceva una cosa
      diversa — la nota «to coord with APP» sull'initial climb non usciva mai.
    METAR live solo per la pista consigliata e l'evidenza della riga TL col QNH corrente. *@
@@ -16,65 +16,76 @@
 @inherits OwningComponentBase
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
 @inject IStringLocalizer<SharedResource> L
+@inject IDocRoutesRegistry DocRoutes
 @* ViewService e AirportProfile risolti dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
 @if (_view is null)
 {
     <div class="block">
-        <div class="rap-h" style="justify-content:space-between">
-            <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
-            <span style="display:flex;gap:6px;align-items:center">
+        @* Senza «ICAO vista rapida» in testa, come il ramo col documento: l'ICAO lo dice chi contiene il pannello. *@
+        <div class="rap-h rap-row">
+            <span class="rap-btns">
                 @* Il quadro vAWOS di questo scalo: scheda NUOVA, perche' e' una pagina da secondo monitor
                    che si tiene aperta mentre si continua a lavorare qui. *@
                 <a class="btn ghost" href="/services/vawos/@Icao.ToLowerInvariant()" target="_blank"
                    title="@L["Apt_OpenAwosTitle"]">vAWOS ↗</a>
-                <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">@L["Apt_OpenFullVipi"] →</a>
+                <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao" target="_blank">@L["Apt_OpenFullVipi"] ↗</a>
             </span>
         </div>
-        <p class="muted" style="margin:0">Nessun documento pubblicato per @Icao.</p>
+        <p class="muted" style="margin:0">@L["Aqp_NoDoc", Icao]</p>
     </div>
 }
 else
 {
     <div class="block">
-        <div class="rap-h" style="justify-content:space-between">
-            <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
-            <span style="display:flex;gap:6px;align-items:center">
+        @* Piste, i quattro valori e i tasti su UNA riga (committente, 1 ottobre 2026): prima erano tre righe, e la vista
+           live vive su un secondo monitor piccolo. Niente più «LIRN vista rapida» in testa: l'ICAO lo dice già il titolo
+           del riquadro che contiene il pannello (vista live) o la chip accesa sopra (vista d'area), e al suo posto
+           stanno le chip della pista, che prima avevano una riga e un'etichetta loro.
+           In «Compatta» ogni cella mette etichetta e valore sulla stessa riga (vipi-theme.css, `.rap-4`). *@
+        <div class="rap-h rap-row">
+            @if (_runways.Count > 0)
+            {
+                <span class="rap-rwy" role="group" aria-label="@L["Aqp_SelectedRunway"]" title="@L["Aqp_SelectedRunway"]">
+                    <Chip Class="@($"sid-pill {(_selRwy == "all" ? "on" : "")}")" Active='_selRwy == "all"' OnActivate='() => _selRwy = "all"'>@L["Common_All"]</Chip>
+                    @foreach (var r in _runways)
+                    {
+                        var rwy = r;
+                        <Chip Class="@($"sid-pill {(_selRwy == rwy ? "on" : "")}")" Active="_selRwy == rwy" OnActivate="() => _selRwy = rwy">@rwy</Chip>
+                    }
+                </span>
+            }
+            <div class="rap-quick rap-4">
+                @{ var taTxt = _ta is int ta ? $"{ta} ft" : "N/A"; var tlTxt = TlNow(); var wTxt = WindText(); var sTxt = SuggText(); }
+                <div class="rap-box" title="TA: @taTxt"><span class="muted">TA</span><b>@taTxt</b></div>
+                <div class="rap-box" title="TL: @tlTxt"><span class="muted">TL@(_qnh is int q ? $" · QNH {q}" : "")</span><b>@tlTxt</b></div>
+                @* Il vento accanto alla pista suggerita: la pista si sceglie per il vento, e senza vederlo la
+                   riga «piste suggerite» e' un numero da prendere per buono. *@
+                <div class="rap-box" title="@L["Apt_Wind"]: @wTxt"><span class="muted">@L["Apt_Wind"]</span><b>@wTxt</b></div>
+                <div class="rap-box" title="@L["Apt_SuggestedRunways"]: @sTxt"><span class="muted">@L["Apt_SuggestedRunways"]</span><b>@sTxt</b></div>
+            </div>
+            <span class="rap-btns">
                 @* Il quadro vAWOS di questo scalo: scheda NUOVA, perche' e' una pagina da secondo monitor
                    che si tiene aperta mentre si continua a lavorare qui. *@
                 <a class="btn ghost" href="/services/vawos/@Icao.ToLowerInvariant()" target="_blank"
                    title="@L["Apt_OpenAwosTitle"]">vAWOS ↗</a>
-                <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">@L["Apt_OpenFullVipi"] →</a>
+                @* Anche i documenti in scheda nuova: chi li apre dalla vista live la vuole tenere aperta. Se lo scalo ha
+                   vIPI E vSOP pubblicati, i tasti sono due; con il solo vSOP, il tasto è quello (committente, 1 ottobre 2026). *@
+                <a class="btn primary" href="@DocHref()" target="_blank">@(_edizione == ReleaseTargetType.AirportMil ? L["Apt_OpenFullVsop"] : L["Apt_OpenFullVipi"]) ↗</a>
+                @if (_vsopAncheLui)
+                {
+                    <a class="btn primary" href="@DocRoutes.For(ReleaseTargetType.AirportMil).PublicUrl(Acc.ToLowerInvariant(), Icao, null)" target="_blank">@L["Apt_OpenFullVsop"] ↗</a>
+                }
             </span>
         </div>
 
-        <div class="rap-quick">
-            @* Chi chiamare adesso: è la domanda per cui si apre questa vista, e prima non c'era risposta.
-               Le posizioni dello scalo online dal gate in su; se manca qualcosa, chi copre risalendo. *@
-            @if (Presidency is not null)
-            {
-                <div class="rap-box" style="flex-basis:100%"><span class="muted">Adesso</span><b>@ChiPresiede()</b></div>
-            }
-            <div class="rap-box"><span class="muted">TA</span><b>@(_ta is int ta ? $"{ta} ft" : "N/A")</b></div>
-            <div class="rap-box"><span class="muted">TL@(_qnh is int q ? $" · QNH {q}" : "")</span><b>@TlNow()</b></div>
-            @* Il vento accanto alla pista suggerita: la pista si sceglie per il vento, e senza vederlo la
-               riga «piste suggerite» e' un numero da prendere per buono. *@
-            <div class="rap-box"><span class="muted">@L["Apt_Wind"]</span><b>@WindText()</b></div>
-            <div class="rap-box"><span class="muted">@L["Apt_SuggestedRunways"]</span><b>@SuggText()</b></div>
-        </div>
-
-        @if (_runways.Count > 0)
+        @* Chi chiamare adesso: è la domanda per cui si apre questa vista, e prima non c'era risposta.
+           Le posizioni dello scalo online dal gate in su; se manca qualcosa, chi copre risalendo. *@
+        @if (Presidency is not null)
         {
-            <p class="muted" style="font-size:12.5px;margin:14px 0 6px">@L["Aqp_SelectedRunway"]</p>
-            <div class="rap-quick" style="margin-bottom:12px">
-                <Chip Class="@($"sid-pill {(_selRwy == "all" ? "on" : "")}")" Active='_selRwy == "all"' OnActivate='() => _selRwy = "all"'>@L["Common_All"]</Chip>
-                @foreach (var r in _runways)
-                {
-                    var rwy = r;
-                    <Chip Class="@($"sid-pill {(_selRwy == rwy ? "on" : "")}")" Active="_selRwy == rwy" OnActivate="() => _selRwy = rwy">@rwy</Chip>
-                }
-            </div>
+            <div class="rap-quick"><div class="rap-box" style="flex-basis:100%"><span class="muted">Adesso</span><b>@ChiPresiede()</b></div></div>
         }
+
 
         @{
             var sids = FilteredSids().ToList();
@@ -88,6 +99,19 @@ else
             // legge come «qui non c'e' il dato», si legge come un guasto.
             var showCat = _sids.Any(s => s.Cat != "—");
             var showWtc = _sids.Any(s => s.Wtc != "—");
+        }
+        @* In radio la SID si dice col nome COMPLETO (committente, 1 ottobre 2026), con l'esempio preso dalla prima SID
+           dello scalo che ha un nome completo diverso dal codice: cambia la tabella, cambia l'esempio.
+           Nota e ricerca sulla stessa riga (`.sid-bar`, committente, 1 ottobre 2026); stretto, la ricerca va a capo. *@
+        <div class="sid-bar">
+        @if (EsempioRadio is { } es)
+        {
+            @* Da telefono la frase si riduce all'icona, e si apre toccandola (committente, 1 ottobre 2026): erano tre
+               righe sopra la tabella. Da schermo largo l'icona non fa niente e la frase c'è sempre (`.pw-600`; il tablet la vede intera). *@
+            var frase = L["Aqp_SidRadio", es.Codice, es.Completo, es.Fonia].Value;
+            <p class="muted sid-radio @(_radioAperta ? "open" : null)"><button type="button" class="sid-radio-btn"
+                    aria-expanded="@(_radioAperta ? "true" : "false")" title="@frase" aria-label="@frase"
+                    @onclick="() => _radioAperta = !_radioAperta"><Icon Name="radio" Size="13" /></button> <span class="sid-radio-t">@frase</span></p>
         }
         @if (_sids.Count > 0)
         {
@@ -113,6 +137,7 @@ else
                 }
             </div>
         }
+        </div>
         @if (sids.Count > 0)
         {
             <div class="tbl-scroll">
@@ -132,17 +157,34 @@ else
                     </tr>
                 </thead>
                 <tbody>
+                    @* Da telefono la colonna «condizione» non c'è: la condizione si apre TOCCANDO la riga, in una riga sotto
+                       (committente, 1 ottobre 2026). Da schermo largo la colonna c'è e la riga sotto non si vede mai
+                       (vipi-theme.css, `.pw-600`; il tablet le vede come lo schermo largo). Solo le SID che una condizione ce l'hanno si aprono. *@
                     @foreach (var s in sids)
                     {
-                        <tr>
+                        var row = s;
+                        var conCond = !string.IsNullOrWhiteSpace(s.Condition) && s.Condition != "—";
+                        var aperta = conCond && _condAperte.Contains(row);
+                        <tr class="@(conCond ? "has-cond" : null) @(aperta ? "cond-open" : null)">
                             <td class="col-fix"><b>@s.Fix</b></td>
-                            <td class="col-sid">@s.Name</td>
+                            @* Il gesto è un <button> sul NOME della SID, non un clic sulla riga: tastiera e lettore di schermo
+                               lo devono raggiungere (StructureAccessibilityTests). Da schermo largo ha l'aspetto del testo. *@
+                            <td class="col-sid">@if (conCond)
+                                {
+                                    <button type="button" class="sid-cond-btn" aria-expanded="@(aperta ? "true" : "false")"
+                                            @onclick="() => ApriCondizione(row)">@s.Name</button>
+                                }
+                                else { @s.Name }</td>
                             <td class="col-trans">@s.Transition</td>
                             <td class="col-climb">@FormatInitialClimb(s.InitialClimb)</td>
                             @if (showCat) { <td class="col-cat">@s.Cat</td> }
                             @if (showWtc) { <td class="col-wtc">@s.Wtc</td> }
                             <td class="col-cond">@s.Condition</td>
                         </tr>
+                        @if (aperta)
+                        {
+                            <tr class="sid-cond-row"><td colspan="7"><span class="muted">@L["Ape_Condition"]:</span> @s.Condition</td></tr>
+                        }
                     }
                 </tbody>
             </table>
@@ -172,6 +214,11 @@ else
     [Parameter] public AirportPresidency? Presidency { get; set; }
 
     private DocumentView? _view;                    // documento PUBBLICO (release-aware): fonte di TA/TL
+    // Da quale documento: la vIPI civile se è pubblicata, altrimenti il vSOP militare. Fino al 30 settembre 2026 si
+    // cercava la sola civile, e un campo solo militare restava «Nessun documento pubblicato» (committente).
+    private ReleaseTargetType _edizione = ReleaseTargetType.Airport;
+    // Lo scalo ha ANCHE il vSOP militare pubblicato, oltre alla vIPI: secondo tasto accanto al primo.
+    private bool _vsopAncheLui;
     private AirportData? _profile;           // profilo LIVE: fonte di piste/SID (come /airports)
     private PisteDecisive? _decisive;        // regole e soglie escluse del documento PUBBLICATO (come il vAWOS)
     private int? _ta;
@@ -198,19 +245,31 @@ else
     /// svuota senza riscrivergli dentro mentre si digita (vedi il commento accanto all'input).</summary>
     private int _gen;
 
+    /// <summary>SID con la condizione aperta (da telefono, dove la colonna non c'è).</summary>
+    private readonly HashSet<AirportSidRowView> _condAperte = new();
+
+    /// <summary>Frase sulla radio aperta (da telefono, dove di partenza è solo l'icona).</summary>
+    private bool _radioAperta;
+
+    private void ApriCondizione(AirportSidRowView s)
+    {
+        if (string.IsNullOrWhiteSpace(s.Condition) || s.Condition == "—") return;
+        if (!_condAperte.Remove(s)) _condAperte.Add(s);
+    }
+
     // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IVipiViewService ViewService = default!;
     private IAirportEditingService AirportProfile = default!;
-    private IAirportSidDerivationService SidView = default!;
     private IPisteDalPubblicato PisteDalPubblicato = default!;
     private IAirportViewDerivationService AirportView = default!;
+    private IDocumentAdminService Docs = default!;
     protected override void OnInitialized()
     {
         PisteDalPubblicato = ScopedServices.GetRequiredService<IPisteDalPubblicato>();
         AirportView = ScopedServices.GetRequiredService<IAirportViewDerivationService>();
         ViewService = ScopedServices.GetRequiredService<IVipiViewService>();
         AirportProfile = ScopedServices.GetRequiredService<IAirportEditingService>();
-        SidView = ScopedServices.GetRequiredService<IAirportSidDerivationService>();
+        Docs = ScopedServices.GetRequiredService<IDocumentAdminService>();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -223,14 +282,24 @@ else
         _sids = Array.Empty<AirportSidRowView>(); Azzera();   // aeroporto diverso: il campo si svuota davvero
 
         // Documento pubblico dell'aeroporto (rispetta la release effettiva del ciclo, come /airports).
+        _vsopAncheLui = false;
+        _edizione = ReleaseTargetType.Airport;
         _view = await ViewService.BuildAirportVipiAsync(Icao, BlockTier.Extended, live: false);
+        if (_view is null)
+        {
+            _edizione = ReleaseTargetType.AirportMil;
+            _view = await ViewService.BuildAirportMilVipiAsync(Icao, BlockTier.Extended, live: false);
+        }
         if (_view is null) return;
+        if (_edizione == ReleaseTargetType.Airport)
+            _vsopAncheLui = Vipi.Application.Awos.AwosGate.Pubblicati(await Docs.ListAsync(), Icao).Vsop;
 
         // 🔴 U-015 (revisione totale 3): TA e fasce TL dalla STESSA vista del documento pubblico — congelata nella
         // release o derivata, come la sezione che il documento completo mostra (AirportMemberLoader: pubblico =
         // frozen). Prima si cercavano nei BLOCCHI della sezione «transition», che dalla carta del 26 agosto è Host e
         // nello snapshot non ne ha: TA sempre «N/A», TL «—», initial climb in piedi sopra la TA.
-        _transition = (await AirportView.ResolveForViewAsync(Icao, useFrozen: true, ReleaseTargetType.Airport)).Transition;
+        var derivate = await AirportView.ResolveForViewAsync(Icao, useFrozen: true, _edizione);
+        _transition = derivate.Transition;
         _ta = _transition.TransitionAltitudeFt;
 
         _profile = await AirportProfile.LoadForViewAsync(Icao);
@@ -242,7 +311,10 @@ else
 
         // La tabella SID è la STESSA del documento completo: stesse colonne, stesso filtro AIRAC, stesso
         // ordine. Al ciclo corrente, che qui è sempre «adesso»: il pannello rapido non ha anteprime.
-        _sids = (await SidView.DeriveAsync(Icao)).Rows;
+        // ⚠️ Dalla stessa vista di TA/TL, cioè congelata se la release congela la sezione. Fino al 30 settembre 2026
+        // si derivava dal vivo, e dove la sezione SID è congelata il pannello diceva una cosa diversa dal documento
+        // (LIRS: Cat «A,B,C,D,E» nel pannello, «—» nel vSOP pubblicato).
+        _sids = derivate.Sids.Rows;
 
         var wx = await Weather.GetAsync(Icao);
         var metar = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
@@ -251,6 +323,9 @@ else
         _sugg = SuggestRwy(metar);
         _selRwy = _sugg.Dep is string dep && _runways.Contains(dep) ? dep : "all";
     }
+
+    /// <summary>Il documento completo da cui il pannello legge: vIPI civile o vSOP militare.</summary>
+    private string? DocHref() => DocRoutes.For(_edizione).PublicUrl(Acc.ToLowerInvariant(), Icao, null);
 
     /// <summary>Una riga: le posizioni locali online, e chi copre il resto. Nessuno dei due ⇒ UNICOM.</summary>
     private string ChiPresiede()
@@ -306,6 +381,21 @@ else
     /// Le righe da mostrare: pista scelta (le SID senza pista valgono per tutte) più il testo cercato.
     /// L'ordine e il filtro AIRAC li ha già fatti la derivazione.
     /// </summary>
+    /// <summary>La prima SID dello scalo col nome completo diverso dal codice, per l'esempio della nota radio.</summary>
+    private (string Codice, string Completo, string Fonia)? EsempioRadio
+    {
+        get
+        {
+            foreach (var s in _sids)
+            {
+                var completo = Vipi.Application.Content.CercaProcedura.NomeCompleto(s);
+                if (string.Equals(completo, s.Name, StringComparison.OrdinalIgnoreCase)) continue;
+                if (Vipi.Application.Content.CercaProcedura.Fonia(completo) is { } fonia) return (s.Name, completo, fonia);
+            }
+            return null;
+        }
+    }
+
     private IEnumerable<AirportSidRowView> FilteredSids()
     {
         var q = _q.Trim();

@@ -109,12 +109,13 @@ else
                         var isHidden = s.IsHidden;
                         <CollapsibleBlock Id="@AnchorOf(block, s)" Style="@(isHidden ? "opacity:.65" : null)"
                                           InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.Key))">
-                            <Header><h3>@s.Title @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }<AudienceBadge Audience="s.Audience" /></h3></Header>
+                            <Header><h3>@s.Title @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }<AudienceBadge Audience="s.Audience" />@if (_mode.Kind == PreviewKind.Public && !isHidden) { <ReportLink Href="@ReportLink.Per(ReleaseTargetType.AccVipi, Acc, s.Key)" /> }</h3></Header>
                             <ChildContent>
                                 <AccSectionBody Block="block" Key="@s.Key" Root="@_root" Acc="@Acc"
                                                 ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
                                                 Editorial="s.Editorial"
                                                 IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                                                ReportHrefOf="@(_mode.Kind == PreviewKind.Public ? sv => ReportLink.Per(ReleaseTargetType.AccVipi, Acc, sv.SectionKey) : null)"
                                                 Freqs="_freqs.GetValueOrDefault(block.Key)"
                                                 Coord="_coord.GetValueOrDefault(block.Key)"
                                                 Aor="_aors.GetValueOrDefault(block.Key)"

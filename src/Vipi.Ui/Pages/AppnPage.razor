@@ -4,6 +4,7 @@
 @inject IEditAuthorizationService Authz
 @inject AppMemberLoader Loader
 @inject IDocLinkService Collegamenti
+@inject IApertureDocumenti Aperture
 @inject ILogger<AppnPage> Log
 @inject IDocumentUnionService Unioni
 @inject UnionLoader Membri
@@ -13,6 +14,7 @@
 @inject IAiracService Airac
 @inject StringheDelSito Sito
 @inject EnglishStrings En
+@inject IAtcUnitRepository Enti
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
@@ -187,6 +189,21 @@ else
         _doc = null;
         if (string.IsNullOrWhiteSpace(_app)) return;
 
+        // L'indirizzo canonico dice il CODICE dell'ente (S49): è la chiave sotto cui è pubblicato. Arrivando da una
+        // sua posizione (?app=LIRE_TWR) si passa al codice, e da lì in giù ogni lettura vede la stessa chiave.
+        var ente = await Enti.FindAsync(_app);
+        // Un ente remotizzato (S50) vive nella vIPI dell'ACC: il suo vecchio indirizzo porta lì.
+        if (ente is { Mode: AtcUnitMode.InAccVipi })
+        {
+            Nav.NavigateTo($"/services/vsop/{ente.AccCode.ToLowerInvariant()}/vipi", replace: true);
+            return;
+        }
+        if (ente is not null && !string.Equals(ente.Code, _app, StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo(Nav.GetUriWithQueryParameter("app", ente.Code), replace: true);
+            return;
+        }
+
         _mil = Stations.AirportOfCallsign(_app);
         _canEdit = Authz.IsEditor;
 
@@ -208,6 +225,11 @@ else
             : Array.Empty<MembroUnito>();
 
         _collegati = await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.App, _app, _doc.Mode);
+
+        // Un'apertura in più, solo sulla vista PUBBLICA (non bozza né anteprima: quelle le apre chi scrive). Carta
+        // 2026-10-01-aperture-documenti.md. ⚠️ In fondo, dopo tutte le letture: lo scope è quello della pagina, e il
+        // contatore non lancia mai.
+        if (_doc.Mode.Kind == PreviewKind.Public) await Aperture.SegnaAsync(ReleaseTargetType.App, _app);
     }
 
     /// <summary>I documenti collegati (§A109): vIPI ACC, vIPI e vSOP degli scali sotto questo APP.</summary>

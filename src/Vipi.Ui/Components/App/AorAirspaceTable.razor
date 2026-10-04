@@ -11,7 +11,7 @@
    Il pallino a inizio riga ACCENDE E SPEGNE lo spazio sulla mappa 2D e 3D (carta §6). È JavaScript di pagina
    (`vipi-aor.js`), non Blazor: la pagina del lettore è SSR statica. ⚠️ Lo stato vive QUI, in `aria-pressed`, e le
    mappe lo rileggono quando nascono: una mappa ricreata non deve ripartire accesa sotto una riga spenta. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @using Vipi.Application.Content
 
 @if (Rows.Count > 0)

@@ -141,15 +141,29 @@ cui poggiano le due edizioni con cicli indipendenti. Confrontare la sola chiave 
 pagina civile l'unione del militare.
 ⚠️ Le sezioni con la **stessa chiave** nei due documenti restano **tutte e due**, distinte dal gruppo: chi non
 le vuole le nasconde (`DocumentSection.IsHidden` esiste già). Decisione del committente.
-🔴 **La lingua della PAGINA è dell'ospite; quella del CONTENUTO è di ogni membro.** Un documento a
-lingua bloccata chiama `ReadingLanguageContext.Fissa`, che non ha un blocco che lo chiuda e vale per il
-**resto della richiesta**: la sua stessa documentazione dice che regge perché una pagina documentale mostra
-**un documento solo**, e l'unione ha rotto quella premessa senza che nessuno rileggesse quella riga. Trovato
-in supervisione: con N membri, l'**ultimo caricato** con la lingua bloccata decideva la lingua delle
-etichette e della prosa generata di **tutta** la pagina — ospite compreso — in base all'**ordine di
-caricamento**, e nessun errore lo diceva. Ora i membri si caricano con `fissaLaPagina: false`; il loro
-contenuto resta nella loro lingua perché traduzione, titoli di catalogo e derivate ricevono il codice come
-**argomento**, non dal contesto. Rete: `LinguaDellaPaginaUnitaTests`.
+🔴 **Ogni documento la sua lingua; il chrome è della porta.** Un documento a lingua bloccata chiama
+`ReadingLanguageContext.Fissa`, che non ha un blocco che lo chiuda e vale per il **resto della richiesta**: regge
+perché una pagina documentale mostra **un documento solo**, e l'unione ha rotto quella premessa. Prima versione
+(supervisione del 3 settembre): l'**ultimo caricato** con la lingua bloccata decideva per tutta la pagina, in base
+all'**ordine di caricamento**; rimedio di allora, `fissaLaPagina: false` sui membri — «la lingua della pagina è
+dell'ospite». Era metà rimedio: il **testo** del membro restava suo, ma **etichette, intestazioni e prosa
+generata** seguivano la porta. Segnalato dal committente il 1° ottobre 2026 su LIRP (vIPI bilingue + vSOP bloccato
+in inglese): «si applica solo una regola delle due».
+Ora (S91, `docs/filoni/sito.md`), due tempi e due attrezzi:
+- **caricamento**: `UnionLoader` carica ogni membro dentro `ReadingLanguageContext.Rendering(<lingua di chi
+  legge>)`; lì il membro bloccato fa il suo `Fissa` (le derivate lo vedono), quello bilingue segue chi legge
+  anche sotto una porta bloccata, e alla chiusura la pagina torna della porta. `fissaLaPagina` non esiste più;
+- **disegno**: il corpo del membro sta in una cascata `ComponenteDelDocumento.Cascata` con la sua lingua, e i
+  componenti del corpo ereditano `ComponenteDelDocumento`, il cui `L` la legge. ⚠️ Cambiare il contesto mentre si
+  disegna non funziona: la coda di render di Blazor va in larghezza, i figli di un membro si disegnano dopo i
+  fratelli del padre (la «pagina a chiazze» già vista con la lingua bloccata). Le isole interattive (SID/STAR,
+  METAR) la lingua la ricevono per parametro, come prima.
+Il gettone «solo in inglese» di un membro bloccato sta sotto il suo titolo di gruppo (quello in testata è della
+porta). Rete: `LinguaDellaPaginaUnitaTests`, con la guardia che scende dai tre corpi e rifiuta ogni componente che
+torni a `@inject … L`.
+Nell'**editor** la stessa regola (S92, 1° ottobre 2026): il pannello di pubblicazione di un documento unito ha
+**una riga «Lingua di pubblicazione» per membro**, nell'ordine dell'unione, e ognuna scrive sul suo documento
+**per ID** — vIPI e vSOP dello stesso scalo hanno la stessa chiave. Prima la riga era una, e impostava solo la porta.
 
 ⚠️ `?as=rel:{id}` nomina **una** release, quella dell'ospite: gli altri membri mostrano la **propria** release
 dello **stesso ciclo**. E il degrado di un'anteprima non autorizzata deve restare quello di oggi — pubblica

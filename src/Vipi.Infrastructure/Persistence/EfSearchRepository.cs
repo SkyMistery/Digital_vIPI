@@ -18,12 +18,16 @@ public sealed class EfSearchRepository : ISearchRepository
     private readonly IDocRoutesRegistry _routes;
     private readonly IReleaseRepository _releases;
     private readonly IndiceDelleRelease _indice;
+    private readonly IProcedureCercabili? _procedure;
 
     /// <param name="indice">Singleton in produzione. Null = un indice proprio (test che costruiscono il
     /// repository a mano su database che si ripetono gli id).</param>
+    /// <param name="procedure">SID e STAR degli scali (1 ottobre 2026). Null = la ricerca non le guarda (test che non
+    /// se ne curano).</param>
     public EfSearchRepository(VipiDbContext db, IReleaseTargetRegistry targets, IDocRoutesRegistry routes,
-        IReleaseRepository releases, IndiceDelleRelease? indice = null)
+        IReleaseRepository releases, IndiceDelleRelease? indice = null, IProcedureCercabili? procedure = null)
     {
+        _procedure = procedure;
         _db = db;
         _targets = targets;
         _routes = routes;
@@ -40,6 +44,7 @@ public sealed class EfSearchRepository : ISearchRepository
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             // L'aeroporto descritto: da qui il descrittore prende ICAO e ACC (vedi AirportReleaseTarget).
             .Include(d => d.Airport).ThenInclude(a => a!.Acc)
+            .Include(d => d.AtcUnit).ThenInclude(u => u!.Acc)
             // ⚠️ E quello dell'edizione MILITARE: legame diverso, navigazione diversa. Senza, il documento
             // militare non viene descritto da nessuno e sparisce di qui in silenzio — la spiegazione lunga
             // sta su `EfDocumentAdminRepository.ListAsync`, che fa la stessa query.
@@ -77,45 +82,78 @@ public sealed class EfSearchRepository : ISearchRepository
         // filtrata per tipo vede una parte dei bersagli, e buttare il resto vorrebbe dire rileggerlo subito dopo.
         if (scope == SearchScope.All) _indice.TieniSolo(teste.Values);
 
-        var hits = new List<SearchHit>();
+        // 🔴 In ordine di IMPORTANZA (committente, 30 settembre 2026): prima i documenti che hanno il termine nel
+        // titolo, poi nel titolo di una sezione, poi di una sotto-sezione, poi nel testo. Prima uscivano documento
+        // per documento, e il cinquantesimo risultato poteva essere un titolo mentre il primo era una riga di
+        // tabella. Per questo si raccolgono TUTTI e si taglia dopo: tagliare prima vorrebbe dire ordinare i primi
+        // cinquanta trovati, non i cinquanta più importanti. L'ordine fra pari resta quello dei documenti.
+        var hits = new List<(int Peso, SearchHit Hit)>();
         bool Has(string? text) => !string.IsNullOrEmpty(text) && text.Contains(query, StringComparison.OrdinalIgnoreCase);
 
         foreach (var (doc, managed) in visible)
         {
-            if (hits.Count >= limit) break;
             if (!teste.TryGetValue((managed!.ReleaseTarget, managed.ReleaseKey), out var testa)) continue;
             var url = _routes.For(managed.Kind).PublicUrl(
                 managed.AccCode!.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
             if (url is null) continue;
             if (await _indice.VoceAsync(_db, testa, ct) is not { } voce) continue;
 
-            // 1) titolo documento
+            // 0) titolo documento
             if (Has(voce.Titolo))
-                hits.Add(new SearchHit { DocTitle = voce.Titolo, DocType = doc.Type, Where = voce.Titolo, Snippet = voce.Titolo, Url = url });
+                hits.Add((PesoTitolo, new SearchHit { DocTitle = voce.Titolo, DocType = doc.Type, Where = voce.Titolo, Snippet = voce.Titolo, Url = url }));
 
-            // 2) titoli sezione
+            // 1–2) titoli di sezione e di sotto-sezione
             foreach (var s in voce.Sezioni)
-            {
-                if (hits.Count >= limit) break;
                 if (Has(s.Titolo))
-                    hits.Add(Hit(voce.Titolo, doc.Type, s, s.Titolo, url));
+                    hits.Add((s.Livello == 0 ? PesoSezione : PesoSottoSezione, Hit(voce.Titolo, doc.Type, s, s.Titolo, url)));
+
+            // 2-bis) SID e STAR dello scalo (committente, 1 ottobre 2026: cercando ALAXI il documento di Napoli non
+            //       usciva). Una riga per procedura, agganciata alla sua sezione: se la sezione è nascosta non è
+            //       nell'indice, e la procedura non esce. Pesano come il testo: sono il contenuto della sezione.
+            if (_procedure is not null && managed.Kind is ReleaseTargetType.Airport or ReleaseTargetType.AirportMil)
+            {
+                var sezSid = voce.Sezioni.FirstOrDefault(s => s.Chiave == "sids");
+                var sezStar = voce.Sezioni.FirstOrDefault(s => s.Chiave == "stars");
+                if (sezSid is not null || sezStar is not null)
+                {
+                    var p = await _procedure.PerScaloAsync(managed.ReleaseKey, managed.ReleaseTarget, ct);
+                    if (sezSid is not null) Procedure(hits, voce.Titolo, doc.Type, sezSid, p.Sids, "SID", query, url);
+                    if (sezStar is not null) Procedure(hits, voce.Titolo, doc.Type, sezStar, p.Stars, "STAR", query, url);
+                }
             }
 
             // 3) corpo dei blocchi: un risultato per blocco, col primo dei suoi testi che combacia
             foreach (var s in voce.Sezioni)
-            {
-                if (hits.Count >= limit) break;
                 foreach (var (primo, secondo) in s.Testi)
                 {
-                    if (hits.Count >= limit) break;
                     var testo = Has(primo) ? primo : Has(secondo) ? secondo : null;
                     if (testo is not null)
-                        hits.Add(Hit(voce.Titolo, doc.Type, s, Snippet(testo, query), url));
+                        hits.Add((PesoTesto, Hit(voce.Titolo, doc.Type, s, Snippet(testo, query), url)));
                 }
-            }
         }
 
-        return hits;
+        // OrderBy è stabile: fra risultati dello stesso peso resta l'ordine in cui sono stati trovati.
+        return hits.OrderBy(h => h.Peso).Take(limit).Select(h => h.Hit).ToList();
+    }
+
+    private const int PesoTitolo = 0, PesoSezione = 1, PesoSottoSezione = 2, PesoTesto = 3;
+
+    /// <summary>Una riga per procedura che combacia: codice, nome completo, piste, punti di partenza e transition.</summary>
+    private static void Procedure(List<(int, SearchHit)> hits, string docTitle, DocumentType tipo, IndiceDelleRelease.Sezione s,
+        IReadOnlyList<AirportSidRowView> righe, string verso, string query, string url)
+    {
+        foreach (var g in righe.Where(r => CercaProcedura.Combacia(r, query)).GroupBy(r => r.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            static string Elenco(IEnumerable<string> v) =>
+                string.Join(" ", v.Where(x => !string.IsNullOrWhiteSpace(x) && x != "—").Distinct(StringComparer.OrdinalIgnoreCase));
+            var prima = g.First();
+            var completo = CercaProcedura.NomeCompleto(prima);
+            var nome = string.Equals(completo, prima.Name, StringComparison.OrdinalIgnoreCase) ? prima.Name : $"{prima.Name} ({completo})";
+            var piste = Elenco(g.Select(r => r.Runway));
+            var punti = Elenco(g.Select(r => r.Fix).Concat(g.Select(r => r.Transition)));
+            var snippet = $"{verso} {nome}" + (piste.Length > 0 ? $" · RWY {piste}" : "") + (punti.Length > 0 ? $" · {punti}" : "");
+            hits.Add((PesoTesto, Hit(docTitle, tipo, s, snippet, url)));
+        }
     }
 
     private static SearchHit Hit(string docTitle, DocumentType tipo, IndiceDelleRelease.Sezione s, string snippet, string url) =>

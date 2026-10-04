@@ -15,7 +15,7 @@
 @using Vipi.Application.Content
 @using Vipi.Ui.Components.App
 @using Vipi.Application.Auth
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @inject IEditAuthorizationService Authz
 
 <div lang="@Doc.Bloccata">
@@ -24,7 +24,8 @@
         <DocumentSectionsView Sections="Doc.View.Sections" Profile="SectionProfile.AirportMil"
                               IsDraft="@(Doc.Mode.Kind == PreviewKind.Draft)"
                               AnchorOf="AnchorOf"
-                              DerivedContent="CorpoDerivato" />
+                              DerivedContent="CorpoDerivato"
+                              ReportHrefOf="@(Doc.Mode.Kind == PreviewKind.Public ? s => ReportLink.Per(ReleaseTargetType.AirportMil, Doc.Icao, s.SectionKey) : null)" />
     </CascadingValue>
 </div>
 

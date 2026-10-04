@@ -19,7 +19,8 @@
     <CascadingValue Value="Doc.Risolti">
         <DocumentSectionsView Sections="Doc.View.Sections" Profile="SectionProfile.App"
                               IsDraft="@(Doc.Mode.Kind == PreviewKind.Draft)"
-                              AnchorOf="AnchorOf" DerivedContent="CorpoDerivato" />
+                              AnchorOf="AnchorOf" DerivedContent="CorpoDerivato"
+                              ReportHrefOf="@(Doc.Mode.Kind == PreviewKind.Public ? s => ReportLink.Per(ReleaseTargetType.App, Doc.Callsign, s.SectionKey) : null)" />
     </CascadingValue>
 </div>
 

@@ -33,6 +33,13 @@ public enum FallbackTargetKind
 /// <summary>Per gli APP (<see cref="SectorType.App"/>): la doc vive nella vIPI di ACC (Remotized) o in un documento proprio (Standalone).</summary>
 public enum ApproachKind { Remotized, Standalone }
 
+/// <summary>
+/// Dove vive il contenuto di un ente (<see cref="Entities.AtcUnit"/>): nel documento suo, o dentro la vIPI
+/// dell'ACC. Lo decide lo staff, e non la casella «remotizzato» di IVAO: sono due fatti diversi, e il secondo
+/// cambiava il documento da solo (committente, 29 settembre 2026).
+/// </summary>
+public enum AtcUnitMode { OwnDocument, InAccVipi }
+
 /// <summary>vIPI (istruzioni di posizione) o vLOA (lettera di accordo).</summary>
 public enum DocumentType { Vipi, Vloa }
 
@@ -543,6 +550,15 @@ public enum SourceCatalog
 /// rinumerando, ma il valore finisce in banca dati (<c>RoleOverride</c>): rinumerare senza migrazione
 /// promuove o declassa delle persone in silenzio.</para>
 /// </summary>
+/// <summary>Di che cosa parla una richiesta dal campo (S56).</summary>
+public enum FieldRequestKind { Errore, Suggerimento }
+
+/// <summary>Il ciclo di una richiesta dal campo (S56): nuova, presa in carico, poi una delle tre chiusure.</summary>
+public enum FieldRequestStatus { Nuova, PresaInCarico, Risolta, Respinta, Doppione }
+
+/// <summary>Una voce del pacchetto dell'evento: un file caricato sul sito, o un link (Drive).</summary>
+public enum EventKitItemKind { File, Link }
+
 public enum VipiRole
 {
     /// <summary>Chiunque, anche anonimo: le pagine e i documenti pubblici.</summary>

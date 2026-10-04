@@ -11,7 +11,7 @@
 @inject IStringLocalizer<SharedResource> L
 @if (IsStructured(Key) && Editorial is not null)
 {
-    <SectionBody Section="Editorial" ShowBlocks="@(Key == "validity")" Scheda="Scheda" DepthOffset="-1" IsDraft="IsDraft" />
+    <SectionBody Section="Editorial" ShowBlocks="@(Key == "validity")" Scheda="Scheda" DepthOffset="-1" IsDraft="IsDraft" ReportHrefOf="ReportHrefOf" />
 }
 else if (IsStructured(Key))
 {
@@ -20,7 +20,7 @@ else if (IsStructured(Key))
 else if (Editorial is not null)
 {
     @* Editoriale/libera: resa condivisa con APP e vLOA (prosa/callout/tabella + sotto-sezioni). *@
-    <SectionBody Section="Editorial" DepthOffset="-1" IsDraft="IsDraft" />
+    <SectionBody Section="Editorial" DepthOffset="-1" IsDraft="IsDraft" ReportHrefOf="ReportHrefOf" />
 }
 
 @code {
@@ -85,6 +85,10 @@ else if (Editorial is not null)
     /// (4 settembre 2026)</para>
     /// </summary>
     [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>L'indirizzo della bandierina «segnala» per una sezione (S56): si passa alle sotto-sezioni, che la
+    /// mettono anche loro accanto al titolo. <c>null</c> = niente bandierina (bozza, anteprime, editor).</summary>
+    [Parameter] public Func<SectionView, string?>? ReportHrefOf { get; set; }
 
     // Chi rende il corpo lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie dell'insieme.
     private bool IsStructured(string key) =>

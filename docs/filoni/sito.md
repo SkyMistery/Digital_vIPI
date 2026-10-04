@@ -4,7 +4,11 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 23 settembre 2026
+## Dove siamo — 30 settembre 2026
+
+> Tutto quel che è elencato qui sotto, fino a **S63**, è in `main` e **online** (ultima: 1.52.0, S63). Niente da
+> fondere. Prove che restano al committente: la prima correzione vera in Spazi aerei e il primo KMZ dell'AIP caricato
+> dopo (S63), il primo evento vero in `/services/event` (S59). Il vAWOS nel suo Edge (S57/S58) l'ha confermato il 30-set.
 
 - ✅ **S1** editor APP unito, «sezioni comuni» non ricarica più la pagina: fuso e **online in 1.43.0**
   (`docs/lavori-aperti.md` §S1, §A118). Al prossimo scarico di diagnostica: che non tornino gli
@@ -1463,5 +1467,561 @@
   - **Test**: rossi sul codice di prima (U-236 servizio di HEAD; U-232 le quattro mutazioni; U-123 lo script
     vecchio). Suite intere verdi: Application 3084, Infrastructure **1984**, Hosting 79 (net8 e net10), E2E 454.
     Nessuna migrazione, `deploy/` no, nessuna UI (niente prova a schermo: il comportamento è di processo e di script).
+- ✅ **S40** rosso intermittente segnalato dal Master dopo la fusione (29-set): `TranslationReviewPanelTests.
+  Due_clic_ravvicinati_sulle_righe_ne_aprono_una`, rosso su net8 nella corsa intera della soluzione (Release,
+  `--no-build`), verde da solo. Non riprodotto qui (suite Ui 6 volte, e 4 sotto carico con Application e
+  Infrastructure in parallelo); l'unica dipendenza dal tempo era il finto, con `Task.Delay(40)` nel conto e 3 s
+  di attesa. Ora il conto resta fermo su un `TaskCompletionSource` finché il secondo clic non è passato (un giro a
+  vuoto sul dispatcher lo garantisce), attese a 10 s, e le due righe si aspettano prima di cliccare. Controprova:
+  tolta la sentinella `_busy` da `ApriAsync`, il test è rosso (`Conti` 2) invece di piantarsi. Solo test.
+  ⚠️ `StrutturaUnaOperazionePerVoltaTests` (stesso commit `334267c0`) ha la stessa forma a tempo: non è segnalato
+  rosso, resta da rifare allo stesso modo se lo diventa.
+- ✅ **S41** diagnostica della 1.47.0 (29-set, file scaricati dal committente in `diagnostica/`). `/vsop/health`
+  «Degraded» = un solo errore, «Transfer with no fallback» su LIMM: `LIMM_WS2_CTR → LSAG_TST_CTR`. Scelta del
+  committente: «Ginevra si gestisce lo spazio aereo svizzero, WS2 quello italiano più Lugano» → il rilievo non conta
+  un settore di un ACC **estero** come chi copre il punto (`CoverageFallbackContext.AccDi`, prefissi della divisione
+  passati ad `Analyze`; `ConsistencyReportService` legge `IOptions<DivisionOptions>`). Codice comune `Vipi.Application`.
+  Test +1 rosso sul codice di prima; Application **3085**, Infrastructure 1984, Hosting 79, E2E 454. Nessuna UI.
+  Dagli stessi file: passate d'avvio 1.47 tutte riuscite; U-236 visto al lavoro («allo spegnimento», 23 segnalazioni);
+  Azure Translator 401 dal 27-set 09:18Z (segreti, non codice); U-105 Perugia Approach sez. 5716 da fare a mano.
+- ✅ **S42** login di un utente nuovo (29-set 09:16Z): «The sign-in expired along the way», motivo `nonce`, al
+  «riprova» entra. Registro: «Cookie del nonce: non trovato (1 in richiesta); token con un nonce DIVERSO da quello
+  mandato» — non il cookie perso del 28-set (quello lo recupera `NonceNelloStato`), ma la pagina di **consenso** di
+  `sso.ivao.aero/authorize`, che al primo accesso di un membro a un client rimanda avanti state, redirectUrl e PKCE
+  ma **non il nonce**. Stessa causa misurata sull'hub IVAO Italy (SkyMistery/Ivao-Italy-Hub, PR 174, nota
+  `2026-09-28-il-nonce-e-il-consenso-di-ivao.md`), stessa cura: `HandleIvaoRemoteFailure` su un guasto `nonce`, con
+  lo stato letto e senza il segno `vipi.secondo-giro` (nelle proprietà, quindi nello state cifrato), rifà il
+  challenge con lo stesso ritorno e `IsPersistent`; un secondo guasto va alla pagina come prima. Il segno esce in
+  `OnTicketReceived`. Il nonce resta validato; `RelaxProtocolValidation` resta la via di fuga in config, spenta.
+  Test +7 (giro intero col finto IVAO: riparte ed entra, estraneo anche al secondo giro resta fuori; la decisione
+  `DeveRipartire`), 4 rossi senza la correzione; E2E **461**. Da provare sul server: un VID mai entrato nel client
+  (o revocando il consenso dal profilo IVAO) entra al primo clic; nel registro «Secondo giro: False» e poi «si
+  riparte una volta».
+- ✅ **S43** giro di sei punti del committente (29-set) sulla porta della vSOP:
+  1. «Cosa è cambiato» esce dalle schede pubbliche di `/services/vsop` e va nella sezione **Staff** (la pagina resta
+     raggiungibile dal suo indirizzo).
+  2. `/services/vsop/mil`: al pubblico, accanto a «Pubblicato», usciva «Nessun documento». L'ultimo ramo della
+     colonna Stato era un `else` nudo legato ai tasti dello staff e scattava per ogni non Editor.
+  3. Barra in alto: un'altezza sola per i comandi (`--tb-ctl` 34px; misurati prima 32/34/36/38) e, da `tb-3`, la
+     lente è un collegamento a `/services/vsop/search` (prima toccarla non faceva niente). Verificato a schermo a 1900,
+     1000 e 375px su un database vuoto. Carta `2026-08-22-topbar-misurata.md` aggiornata.
+  4. Nascosti nei collegati (verifica): i «Documenti collegati» filtravano documento nascosto e release, e i link nel
+     testo possono puntare solo agli allegati; ma due buchi — la vIPI ACC elencava anche un APP disattivato, e nei
+     posti **congelati** di una release uno scalo nascosto o un APP disattivato dopo la pubblicazione restava fra i
+     collegati. Ora `DocumentiCollegati.PaginaAperta` al disegno (struttura in cache, 2 minuti) e `PerAcc` sui soli
+     APP attivi. Codice comune `Vipi.Application`. Resta, minore: `PubblicatoAsync`/`GetCivilEditionAsync` (ponte
+     civile↔militare) non escludono una release `Superseded`.
+  5. Nascosti e non pubblicati nella ricerca (verifica): no. Cancello `PublicDocumentGate` a ogni ricerca, testo
+     solo dalla release in vigore, sezioni nascoste fuori dall'indice; lo stesso per «Cosa è cambiato». Già coperto
+     da `SearchAndChangesTests`.
+  6. La Guida per ruolo: la parte «Modificare» (e le anteprime di bozza, spostate lì) solo a chi può modificare
+     (`IsEditor`), e lo stesso confine nella ricerca (`GuideSearchCatalog.AncorePubbliche`: l'elenco è dei pubblici,
+     un capitolo nuovo nasce riservato). Codice comune `Vipi.Application` (SearchService).
+- ✅ **S44** il piè di pagina del sito (29-set, committente, con davanti quello dell'hub): `SitoFooter` in
+  `SopLayout`, quindi su ogni pagina tranne il vAWOS (layout suo, `AwosLayout`); non si rende quando un host
+  aggancia il modulo senza la nostra barra, né in stampa. Marchio, a che cosa serve il sito, l'avviso di simulazione;
+  i collegamenti di IVAO (ivao.aero e la pagina della wiki con regole, regolamento e privacy, in una scheda nuova —
+  le tre pagine dell'hub su ivao.aero rispondono 404; un link solo all'indice, scelta del committente); in
+  fondo diritti e «Parte della International Virtual Aviation Organisation». La **versione** esce dalla barra e va
+  qui, allo **staff** (chi può modificare; prima ai soli admin), con la stessa classe `ver-chip`. Su pagina corta il
+  piè resta in fondo alla finestra. Verificato a schermo a 1500 (scuro, IT/EN) e 375px; `/services/vawos` senza.
+  Test +5 (`PieDiPaginaTests`); Ui **1863**.
+  Poi (S46, stesso giorno): i link legali passano alla wiki di IVAO (le pagine su ivao.aero rispondono 404); in fondo
+  «Realizzato da Carmine (704798)» col link al profilo IVAO; il piè prende il colore della barra (`--ivao-blue`),
+  per uniformità, in entrambi i temi. Test +1; Ui **1870**.
+- ✅ **S45** scheda di uno scalo con vIPI **e** vSOP nell'elenco aeroporti di un'ACC (29-set, committente): il clic
+  fuori dalle due voci apre il documento principale per categoria — la vIPI su uno scalo civile (anche con presenza
+  militare), il vSOP su un campo militare (anche aperto al civile). Prima il riquadro non si cliccava, e dove si
+  apriva un solo documento vinceva sempre la vIPI (anche nei «in evidenza» della landing ACC, che usano la stessa
+  regola `AeroportoInElenco.Href`). Un collegamento `.apt-main` steso sotto il contenuto, le voci sopra: niente `<a>`
+  annidati. Impilamento dei clic provato in Edge (ICAO, nome, meteo, badge, angolo → principale; voci → la loro).
+  Test +6; Ui **1869**.
+- ✅ **S47** il vAWOS in uno schermo, con una pista come con tre (29-set, committente): prima una pista lasciava
+  spazio vuoto sopra e sotto il vento con un riquadro fisso da 420px, e con due o tre piste la pagina scorreva. Il pannello del
+  vento non scendeva sotto i 204px delle sue tre righe. Ora `.awos` è alto 100vh (con `min-height: max-content` come
+  rete) e il pannello vento è lo stesso in tutti e due gli impianti: `container-type: size`, minimo 96px, e sotto i
+  204px d'altezza (`@container`) le tre righe diventano **una fila** (DIR SPEED · EXTREMES GUST · CROSS TAIL) con i
+  caratteri legati ad altezza e larghezza. Pista sola: il vento prende l'altezza che resta, fino a 480px. Più piste:
+  colonne fisse a `clamp(…, 14vw, 270px)` e colonna visibilità/nubi più compatta. Nuovo `awos-wcorpo` attorno alle
+  tre righe (JS invariato). Provato in Edge su copie statiche di LIBF/LIRP/LIRF col foglio nuovo: nessuno scorrimento
+  e nessun pannello tagliato a 1900×920, 1536×730, 2560×1300 (e a 1366×650 e 1280×600 con una o due piste); con tre
+  piste sotto i ~700px la pagina scorre di poco invece di tagliare; telefono senza scorrimento orizzontale. Test
+  invariati; Ui **1870**.
+- ✅ **S48** la vIPI e il vSOP sono dello **scalo**, non di una posizione; le posizioni sparite da IVAO escono da sole
+  (29-set, committente). Il caso: a LIBG e LIRE IVAO ha tolto la TWR il 21-set (l'APP fa da torre, «Tower/Approach»).
+  Il nostro catalogo non potava mai, quindi la torre fantasma restava nelle frequenze della vIPI. E non si poteva
+  eliminare: la regola D6 («la torre cade solo con lo scalo») la proteggeva, e il documento le veniva riagganciato
+  a ogni apertura dell'editor. Dal 25-ago il legame vero era già `Airport.DocumentId`; restava il legame vecchio sui settori.
+  Ora: (1) `EnsureDocumentAsync` sgancia invece di riagganciare DEL/GND/TWR; (2) il giro d'avvio
+  `LinkAirportDocumentsAsync`, dopo il ponte, sgancia i settori che portano la vIPI del loro scalo (sulla copia del
+  29-set: 70 settori in 46 scali; restano legati solo gli APP non remotizzati al loro documento); (3) via la D6,
+  l'«unica torre» di `DeleteSectorAsync` e la `{ICAO}_TWR` inventata quando uno scalo non ha posizioni; (4) l'import
+  toglie dal catalogo d'aeroporto le posizioni che IVAO non manda da due giri (`SogliaEliminazione`), solo se la risposta
+  non è vuota, mai le manuali, figli al nonno, riga nel registro (sulla copia usciranno solo `LIBG_TWR` e `LIRE_TWR`).
+  La proiezione spegne il settore e lo segnala; la vIPI dello scalo ora riceve la segnalazione passando dal settore
+  (`DocsForCallsignsAsync`), e la deriva segnala la sezione Frequenze congelata da ripubblicare. Badge «no TWR» in
+  Aeroporti: filtro neutro, non più un avviso. Le frequenze restano derivate dal catalogo, come nella vIPI ACC.
+  Test +8 (import, ponte, generazione, segnalazione; i 4 del comportamento nuovo ROSSI sul codice di prima), 4
+  riscritti sulla regola nuova. Infrastructure **1992**. Migrazione no. Codice comune `Vipi.Application`
+  (DeletionRules, StructureEditModels, StaleCatalogRow). Resta com'è il catalogo ACC (non pota).
+- ✅ **S49** enti ATC, fase 1 (29-set, committente, ramo `fix/enti-atc`): la vIPI APP è di un **ente** (`AtcUnit`:
+  codice stabile = chiave di pubblicazione e indirizzo, nome, ACC, modo, documento; posizioni IVAO per nome, la
+  prima è la principale), non del settore APP. Casi: Pratica di Mare vuole `LIRE_TWR` (torre che fa l'APP) e non
+  `LIRE_APP`; Palermo remotizzato non deve riscrivere la vIPI. Trovato e chiuso un guasto vero: spuntare
+  «remotizzato» su un APP con vIPI la rendeva irraggiungibile (descrittore → aeroporto con ICAO vuoto). Ponte
+  d'avvio `LinkAppUnitsAsync` (copia 29-set: 18 enti), tutti i punti «è una vIPI APP» dall'ente, derivazione dalla
+  posizione principale, vista live per posizione dell'ente, `?app=` posizione → codice, rinomina IVAO che non
+  riscrive più la chiave APP, pannello «Ente» nell'editor. Scelta: la pagina APP non chiude più quando una
+  posizione sparisce (si nasconde il documento). Migrazione `EntiAtc` (SQLite+MySQL, additiva). Provato a schermo
+  sulla copia del 29-set travasata in SQLite (la guardia vieta l'identità dev su MySQL). Carta
+  `docs/feature/2026-09-29-enti-atc.md` (fasi 2 e 3). Test +6 (Infrastructure 1997, Application 3098), 10 file di test
+  portati al modello nuovo. Codice comune `Vipi.Application`, `Vipi.Domain`.
+- ✅ **S50** enti ATC, fase 2: «Remotizza» (29-set, committente: «gli app remotizzati si spostano nella vIPI di ACC e
+  lì rimangono»; ramo `fix/enti-atc`). Riquadro «Ente» → «Sposta nella vIPI dell'ACC»: l'albero intero della vIPI APP
+  (sezioni, flag, contenuti) si copia sotto un gruppo APP nuovo nella bozza della vIPI ACC
+  (`IEditingRepository.CopyVersionIntoBlockAsync`), il blockmeta prende membri = posizioni dell'ente, ordine e
+  collegamenti delle frequenze, `UnitId`; l'ente passa a `InAccVipi`, la vIPI APP esce dall'unione, si nasconde e
+  restituisce il lock. Lock della vIPI ACC preso per il gesto (rifiuta se è di un altro). Dopo: `?app=` ed editor APP
+  portano alla vIPI ACC, vista live sul gruppo (anche da una torre), elenco APP e documenti collegati la trattano da
+  remotizzata. Niente migrazione (`Mode` c'era; blockmeta in JSON). Provato a schermo su Palermo con la copia del
+  29-set: 15/15 sezioni e 18/18 blocchi identici, vista live «Palermo Radar» dopo la pubblicazione della vIPI di Roma
+  (nella copia la vIPI di Roma è nascosta, come in produzione). Test +4 (Infrastructure 2000, Application 3099).
+- ✅ **S51** enti ATC, fase 3: pulizia (29-set, committente; ramo `fix/enti-atc`). La derivazione della vIPI APP parte
+  da **tutte** le posizioni dell'ente (`AppDocumentIdentity.Posizioni`), non dalla sola principale: dominio =
+  unione dei domini, antenati posizione per posizione, ★ su ogni posizione dell'ente, scalo di ogni posizione;
+  vale per frequenze, coordinamenti, AoR, configurazioni e minime. Via le ultime letture degli APP dal settore:
+  `ScopeOf`, «Nuovo documento» (solo l'ente dice «ha già un documento»), e `CreateDocumentAsync` che rifiuta un APP
+  non remotizzato nello scope. Restano di proposito il ponte, gli orfani (vIPI ACC) e il vSOP militare. Test +3
+  (Infrastructure 2003), tutti ROSSI sul codice di prima; uno portato alla regola nuova (sceglieva `LIRP_APP` come
+  «primo settore libero»). Niente migrazione. Codice comune `Vipi.Application`. Opzionale non fatto: vIPI ACC
+  legata all'ACC. Carta `docs/feature/2026-09-29-enti-atc.md` §5.
+- ✅ **S52** revisione delle fasi 1–3 degli enti ATC (29-set, committente: «rivedi il lavoro… fai finta di non averlo
+  scritto tu»; ramo `fix/enti-atc`). Tre revisori indipendenti, rilievi verificati sul codice: due gravi, otto medi,
+  una decina lievi. Scelte del committente: **A** «Sposta» in due tempi (copia nella bozza ACC, la vIPI APP resta
+  pubblica e si nasconde da sola quando la vIPI ACC col gruppo va in vigore: `ConcludiSpostamentiAsync` dopo la
+  pubblicazione e nel giro delle release); **B** un ACC con enti che hanno una vIPI APP non si elimina (frase), gli
+  enti vuoti se ne vanno con lui. Gravi: ordine dei ponti d'avvio (una vIPI APP diventava vIPI dello scalo),
+  «Sposta» senza transazione (due gruppi riprovando). Medi: codice come posizione altrui, lock nel riquadro «Ente»,
+  pagina dell'ACC, segnalazioni di un ente spostato, vIPI APP nascosta fuori da Gestione documenti, scelte salvate
+  per nominativo (avviso), rifiuti tardivi. `EfUnitOfWork` ripulisce il tracker al rollback. Test +19 (Application
+  3102, Infrastructure 2014, Ui 1875), una guardia dei nomi aggiornata (`WhereCitedAsync` è una lettura); i test
+  rossi sul codice di prima dove compilavano contro di esso (ponti, codice-posizione, ACC con enti, lock), gli altri
+  usano API nuove. Niente migrazione. Codice comune `Vipi.Application`, `Vipi.Hosting`. Carta §6.
+  **Provato a schermo** sulla copia del 29-set (SQLite dalle migrazioni + travaso): 18 enti all'avvio, nessuno scalo
+  con la vIPI di un ente; Pratica passata a `LIRE_TWR` dal riquadro e ancora in pagina ACC sotto `LIRE_TWR`;
+  `LIRE_APP` rifiutato a Catania («è il codice di Pratica Tower»); «Sposta» di `LIBG_APP` → gruppo nella bozza di
+  Brindisi, vIPI APP ancora pubblica, riquadro «copiata…» senza tasto; pubblicata la vIPI di Brindisi NASCOSTA →
+  niente conclusione; resa visibile e «Pubblica ora» → ente `InAccVipi`, vIPI APP nascosta, `?app=LIBG_APP` → vIPI
+  di Brindisi col gruppo, Grottaglie ancora in «Bozze & versioni» come Nascosto. Log senza errori.
+- ✅ **S53** pagina «Enti ATC» (29-set, committente: «fai la pagina di amministrazione degli enti»; ramo
+  `fix/enti-acc`). `/services/vsop/admin/units`, voce del menu accanto ad Aeroporti (Editor). Per ACC: ente e
+  codice, posizioni (principale in testa, «non su IVAO» se nessun settore attivo ha quel nominativo), dove vive il
+  contenuto (vIPI propria · copiato nella bozza della vIPI ACC · gruppo nella vIPI ACC · senza documento), stato del
+  documento com'è in «Bozze & versioni», link all'editor giusto. Sola lettura e pagina statica (le posizioni si
+  cambiano dal riquadro «Ente», dove c'è il lock). `IAtcUnitOverviewService`; `SpostamentiInCorsoAsync` in un giro
+  per ACC. Test +1 Infrastructure (2015), Ui 1878 (guardie: menu 17/12 voci, pagina senza circuito). Codice comune
+  `Vipi.Application`.
+- ✅ **S54** «Sostituisci con…» (29-set, committente: «un domani LIRN_US0_APP diventerà LIRR_US0_APP e non vorrei
+  esploda tutto»; ramo `fix/enti-acc`). Se IVAO rinomina la STESSA riga, la rinomina automatica (26-ago) fa già tutto.
+  Se toglie la vecchia e ne crea una nuova (identità, o catalogo, diversi), tutto restava sul settore vecchio. Ora
+  dagli orfani di Struttura si sceglie il settore nuovo e si preme «Sostituisci con…» (`ISectorSubstitution`, in
+  `EfCallsignRenameService`): PER NUMERO passano accordi (forma canonica e versi delle sezioni ribaltati se i lati si
+  scambiano), blocchi (scope/da/a), parti vLOA, figli, documento, link di frequenza (anche nel profilo); il nuovo
+  prende il padre del vecchio (settore e riga di catalogo) se non ne ha; PER NOME la stessa riscrittura della
+  rinomina (estratta in `RiscriviRiferimentiAsync`: gerarchia, ripieghi, agganci AIP, profili, chiavi di release
+  ACC, posizioni degli enti, segnalazioni, gruppi APP e configurazioni nei blocchi) + alias + avviso «rinominato»
+  ai documenti + audit. Rifiuta prima di scrivere: accordo che il nuovo ha già con lo stesso ente, accordo fra i
+  due, due documenti, due enti diversi, nuovo spento. Transazione, lock della struttura, Editor. Il selettore
+  degli orfani c'è ora per tutti (non solo per chi porta un documento). Guida (IT/EN): tolto il «forse rinominato
+  in…» che non esisteva più dal 26-ago. Test +4 (+5 guardie lock/porte): Infrastructure 2024.
+- ✅ **S55** enti anche per gli APP della vIPI ACC (29-set, committente: «estendere gli enti agli APP di ACC»;
+  ramo `fix/enti-acc`). Ogni gruppo APP della vIPI ACC con membri ha il suo ente: vive nella vIPI dell'ACC
+  (`InAccVipi`, niente documento proprio), codice = il primo membro libero, nome = titolo del gruppo, legato al
+  gruppo dalla sua chiave (`AtcUnit.GroupKey` = `grp:…`, la stessa in bozza, pubblicata e release). I MEMBRI restano
+  la verità (li gestisce l'editor della vIPI ACC) e diventano le posizioni dell'ente: all'avvio
+  (`LinkAccGroupUnitsAsync`, dopo gli enti delle vIPI APP) e a ogni `SaveBlockMetaAsync` di un gruppo. Un membro già
+  di un altro ente, o che ne è il codice, resta suo; un ente con la vIPI APP ancora in vigore (spostamento in corso)
+  si lega al gruppo ma non si tocca. La vista live ritrova il gruppo per chiave, poi per ente d'origine, poi per
+  membro. Effetti: la pagina «Enti ATC» li elenca, rinomine e «Sostituisci con…» li seguono, le segnalazioni vanno
+  alla vIPI ACC (S52). **Migrazione** `EntiGruppiAcc` (SQLite+MySQL, additiva: colonna + indice unico (AccId,
+  GroupKey); in MySQL l'indice su AccId si toglie DOPO aver creato il composto, o MariaDB rifiuta). Test +4:
+  Infrastructure 2028. Codice comune `Vipi.Application`, `Vipi.Domain`, `Vipi.Hosting`.
+  **S53–S55 provati a schermo** sulla copia del 29-set: all'avvio 18 enti dalle vIPI APP e 7 dai gruppi APP (fra cui
+  «Napoli APP» con LIRN_US0_APP); pagina «Enti ATC» con 25 enti per ACC; simulato IVAO che spegne LIRN_US0_APP e crea
+  LIRR_US0_APP, «Sostituisci con…» da Struttura → 3 figli (LIRI_I_TWR, LIRM_APP, LIRN_TWR) e padre LIRR_US_CTR passati
+  al nuovo, gruppo APP della vIPI di Roma e posizione dell'ente riscritti, alias annotato. Log senza errori.
+- ✅ **S56** richieste dal campo, canale utente → staff (29-set, committente: riapre `piano-segnalazioni.md` con tre
+  decisioni: nome «richiesta dal campo», secondo canale dopo, sviluppatore con login admin). Ramo
+  `fix/richieste-campo` (sopra `fix/enti-acc`, per non litigare sullo snapshot delle migrazioni). Cinque fette:
+  (1) `FieldRequest` + `EditorTask.FromRequestId`, migrazione `RichiesteDalCampo` (SQLite+MySQL, additiva; `Status`
+  32 su MySQL, guardia degli indici); (2) `IFieldRequestService`: solo da connessi, 5 aperte e 10 al giorno per VID,
+  2000 caratteri, il rilascio IN VIGORE registrato all'invio, presa in carico → incarico legato, chiusure con
+  risposta obbligatoria, doppione col rimando; (3) pagina `/services/vsop/requests` (modulo, «le mie», coda dello
+  staff), voce del menu; (4) link «Segnala» accanto ai titoli delle sezioni radice nelle cinque famiglie, SOLO in
+  vista pubblica e `noprint` — un link e non un'isola, per non aprire un circuito a ogni lettore; (5) le richieste
+  NUOVE in «Da fare» e nel banner dell'editor (`WorkOrigin.Campo`, `WorkAction.ApriRichiesta`, testo di chi scrive
+  stampato com'è; prese in carico → le rappresenta l'incarico). Test +5 Infrastructure (2033), +1 Application
+  (3103), +2 Ui (1884) e guardie (menu 18/13; campi con `CampoTesto`). Codice comune `Vipi.Application`,
+  `Vipi.Domain`.
+  **Provato a schermo** sulla copia del 29-set, impersonando con `DevIdentity` (VID 111111 senza posizioni staff, poi
+  704798): «Segnala» nelle vIPI APP e d'aeroporto in vista pubblica (assente in bozza per lo staff); modulo con
+  documento e sezione giusti, niente coda per il non staff; invio → #1 col rilascio in vigore (3); in «Da fare»
+  come «da rileggere» col testo e il tasto «Rispondi»; presa in carico → incarico legato (App/LICC_APP); chiusura
+  senza risposta rifiutata, con risposta chiusa; l'utente legge «risolta» e la risposta. Log senza errori.
+  Poi, decisione del committente: **chiudere la richiesta chiude anche il suo incarico** (prima restava in «Da fare»
+  dimenticato). Prova estesa, rossa sul codice di prima.
+- ✅ **S57** vAWOS: in uno schermo anche nell'Edge del committente, e senza TEST METAR (30-set, committente: «vedi
+  vAWOS che devo ancora scrollare per vedere tutto» e «test metar andrebbe tolto»; ramo `fix/vawos-schermo`).
+  (1) Dalle sue schermate, a 1920×917 visibili, il quadro misurava ~1003px con LICB (una pista) come con LICG (due),
+  coi blocchi pieni di spazio vuoto: l'altezza non la spingeva il contenuto (S47 regge), la imponeva `100vh`, che in
+  quell'Edge valeva più della finestra. Nel browser integrato, in locale e in produzione, 100vh = 917 e non scorre:
+  il difetto lì non si riproduce. `.awos` prende `100dvh` (l'altezza visibile), con `100vh` sopra come ripiego; lo
+  stesso nel `min-height` del telefono. (2) Via il tasto TEST METAR, il suo pannello, la pastiglia e il `?test=`
+  della pagina e del modulo JS; il bollettino finto resta SOLO all'API (`/services/vawos/api/{icao}?test=`, staff),
+  dove lo usa `mai-usare-verifica.js`. Test +2 Ui (1886, presidi sul sorgente, rossi sul codice di prima).
+  **A schermo** (copia del DB, 1920×917): LICB e LICG stanno intere, RVR comprese; in barra GO, DAY, LOCAL REP.,
+  ATIS MSG, EXT. DATA. ⚠️ Da confermare nell'Edge del committente dopo il pacchetto.
+- ✅ **S58** vAWOS ancorato alla finestra, bandierina «segnala», switch errore/suggerimento (30-set, committente, con la
+  1.50.0 online: «l'awos è ancora così»; «invece di segnala… un flag all'altezza del titolo di ogni sezione»; «uno switch
+  tra errore e suggerimento con lo stesso stile dello switch della lingua»; ramo `fix/vawos-segnala`).
+  (1) S57 non è bastato: nell'Edge del committente LIBN misurava ancora ~1003px su 917, col vento centrato in uno spazio
+  vuoto. Nel browser integrato la stessa pagina di produzione misura 917 e il suo contenuto naturale 384; l'Edge di
+  questa macchina da qui non si avvia (headless, profilo a parte), quindi la causa esatta non è misurata. Tolti allora
+  TUTTI i punti in cui l'altezza la decide il browser: `.awos` è `position: fixed; inset: 0` (è la finestra, in
+  qualunque motore) con `overflow-y: auto`; via `height: 100vh/100dvh` e la rete `min-height: max-content`; le righe
+  dei blocchi a più piste da `minmax(min-content, 1fr)` a `minmax(220px, 1fr)`, e un minimo di 250px al blocco a pista
+  sola. Sul telefono il quadro torna nel flusso. Misurato: LIBN a 917 e 640, LICG a 917 e 700, LIRF (tre piste) a 917
+  interi; LIRF a 700 scorre di 9px DENTRO il quadro (la rete).
+  (2) `ReportLink` è una bandierina (icona `flag`, nuova nel set) con `title` e `aria-label` «Segnala un errore o un
+  suggerimento su questa sezione», anche sulle SOTTO-sezioni: `ReportHrefOf` ora scende da `DocumentSectionsView`/
+  `SectionNode` a `SectionBody` e da `AccSectionBody` (vIPI ACC). Nel `summary` delle figlie sta dentro lo span del
+  titolo, o il summary la metteva a metà riga. Stile `.req-link` nel foglio; tolta la chiave `Req_Report`.
+  (3) Nel modulo delle richieste il tipo si sceglie con `.req-kind`: la forma di `.lang-ctrl` (guscio e due segmenti),
+  coi colori della pagina (guscio `--surface-muted`, scelto `--ivao-blue`), due tasti con `aria-pressed`.
+  Test +2 Ui (1888): bandierina anche sulle figlie, switch; presidio del vAWOS riscritto. Provato a schermo sulla copia
+  (LIBD: 16 bandierine in linea coi titoli; switch che commuta). ⚠️ Da confermare nell'Edge del committente.
+- ✅ **S59** profili per l'evento (30-set, committente: «una sezione a /services… attivabile in prossimità degli eventi.
+  Io carico i profili per postazione… un posto per caricare un link dal drive»; ramo `fix/profili-evento`). Carta
+  `docs/feature/2026-09-30-profili-evento.md`. Scelte del committente: file e link; interruttore più date; le voci
+  restano da un evento all'altro; gestione allo staff di divisione. `EventKit` + `EventKitItem`, **migrazione**
+  `ProfiliEvento` (SQLite+MySQL, solo additiva). `/services/event` SSR statica per il pubblico, isola
+  `EventKitManager` per lo staff; endpoint `/services/event/file/{id}/{nome}` (allegato, nosniff, no-store, tetti per
+  IP, fuori dalla cache anonima). Hub: sezione «Evento in corso» col nome, sopra gli strumenti, solo quando si vede
+  (risposta tenuta 30 s, svuotata a ogni scrittura); scheda «Pacchetto dell'evento» sempre nella sezione staff.
+  Test: App 3125, Infra 2039, Ui 1895, E2E 463. Codice comune `Vipi.Application`, `Vipi.Domain`, `Vipi.Hosting`,
+  `Vipi.Infrastructure`, `Vipi.Host`. **A schermo** su copia del DB: da staff pannello, «Acceso», link Drive e file .cpr,
+  scaricamento con le intestazioni giuste; da VID 111111 pagina pubblica col nome e hub con la sezione.
+- ✅ **S60** piè di pagina: il sito di IVAO Italia (30-set, committente: «nel footer metti anche il sito di Ivao
+  Italia https://it.ivao.aero/»; ramo `fix/footer-ivao-italy`). Voce «IVAO Italia» / «IVAO Italy» fra IVAO e la
+  wiki, scheda nuova come le altre. Test del piè di pagina aggiornato (conteggio invariato, Ui 1888). A schermo in
+  italiano: tre collegamenti nell'ordine giusto.
+- ✅ **S61** pagina dei cookie (30-set, committente: «metti una paginetta cookie con link a piè di pagina»; ramo
+  `fix/pagina-cookie`, sopra S60). Il sito scrive solo cookie tecnici (`vipi.auth` 7 giorni a scorrimento, i due del
+  giro OpenID Connect, `.AspNetCore.Culture` un anno, `.AspNetCore.Antiforgery.*` di sessione): niente banner di
+  consenso, una pagina `/services/cookies` (SSR statica, IT/EN) che li elenca, dice delle preferenze nell'archivio
+  locale e delle tessere di Esri (verificato: nessun `Set-Cookie`), e rimanda alla privacy di IVAO. Link «Cookie» in
+  fondo al piè di pagina, accanto ai diritti. ⚠️ L'elenco è scritto a mano: il presidio lega nome e durata di
+  `vipi.auth` a `VipiStandaloneAuthExtensions`. Test Ui 1892. A schermo in italiano, inglese e a 375px (niente
+  scorrimento di lato).
+- ✅ **S62** richieste dal campo: eliminare e pulizia automatica (30-set, committente: «come amministratore… eliminare
+  delle segnalazioni? Ne ho fatte alcune di test» e «si eliminano in automatico dopo 3 mesi? IT-HQ è d'accordo»; ramo
+  `fix/richieste-pulizia`, sopra S61). (1) `IFieldRequestService.EliminaAsync`, solo **Admin**: toglie la richiesta,
+  aperta o chiusa, e chiude prima il suo incarico se era ancora aperto. Nella coda dello staff il tasto «Elimina» con
+  la conferma sul posto, solo all'Admin. (2) `FieldRequestRules.MesiDiConservazione = 3`: il giro notturno di
+  conservazione (`TrafficRetentionHostedService`, la stessa domanda «che cosa non serve più tenere») toglie le
+  richieste **chiuse** da più di tre mesi, contati dalla **chiusura**. Le aperte restano a qualunque età (decisione
+  mia, detta al committente: sono lavoro che aspetta una risposta). Una riga sotto la coda lo dice. Test +2
+  Infrastructure (2035). Codice comune `Vipi.Application`, `Vipi.Infrastructure`. A schermo da Admin: richiesta
+  scritta, «Elimina» → «Conferma: elimina» → sparita, esito «Richiesta #1 eliminata».
+- ✅ **S63** correzioni a mano degli spazi aerei (30-set, committente: «da /services/vsop/admin/airspace rendere
+  modificabile il tipo, la base, il tetto e la classe… quando se ne importa uno nuovo, se ci sono incongruenze il
+  programma lo segnala nella pagina, con la possibilità di marcarle come ok e farle sparire»; ramo
+  `fix/correzioni-spazi-aerei`). Carta `docs/feature/2026-09-30-correzioni-spazi-aerei.md`. ⚠️ La premessa «l'indice è
+  il nome» non regge: la chiave è `FAMIGLIA|NOME|BASE|TETTO` e gli agganci la citano, quindi la correzione **non** si
+  scrive sulla riga. Sta in `AirspaceVolumeCorrections`, con la chiave del file e i valori che il file aveva allora.
+  **Migrazione** `CorrezioniSpaziAerei` (SQLite+MySQL, solo additiva). Si sovrappone in lettura in `EfAirspaceCatalog`
+  ed `EfSectorAirspaceBindings` (regole pure in `AirspaceCorrections`). Dopo un caricamento: il file ha cambiato un
+  campo corretto / dice già così / il volume non c'è più; il volume si ritrova per chiave, poi per nome se unico, e
+  confermando gli agganci passano alla chiave nuova. Pagina: matita → modulo sotto la riga, pastiglia «corretto»,
+  filtro «Corretti a mano», blocco «Da controllare» in cima con «Va bene» e «Prendi il file». Test: App 3125 → 3144,
+  Infra 2041 → 2052, Ui 1899 → 1904. Codice comune `Vipi.Application`, `Vipi.Domain`, `Vipi.Infrastructure`.
+  **A schermo** su copia del DB (file vero, 1 536 volumi): AMENDOLA CTR Z1 (agganciato a LIBA_APP) corretto a FL115 e
+  classe D → pastiglia «corretto», aggancio intatto; «file nuovo» simulato nella copia col tetto a FL110 → blocco «Da
+  controllare» (ritrovato per nome, aggancio scoperto); «Va bene» → voce sparita, FL115 tenuto, LIBA_APP di nuovo con
+  le due zone. «Torna al file» con conferma «Sì, torna al file» (prima diceva «Sì, elimina»). Italiano e 375px senza
+  scorrimento di lato. Seconda prova, **caricamento vero dalla pagina**: il KMZ in vigore rizippato con il tetto di Z1
+  a FL110, passato a «Carica il file» (ciclo 2611) → «Da controllare» giusto, «Va bene» ok; «Metti in vigore» del file
+  vecchio → la correzione risalta fuori, «Prendi il file» la toglie e LIBA_APP torna con le due zone.
+  Due difetti visti lì e corretti: (1) la riga d'attesa diceva sempre «Sto leggendo il file» — ora ogni gesto dice il
+  suo («Un momento...», «Aggiorno gli agganci e ricalcolo i confinanti...»); (2) su SQLite la rotella non compariva
+  mai (23 s di pagina muta: le query finiscono subito e Blazor non ridisegna) — `Gesto` cede il passo una volta prima
+  del lavoro. ⚠️ Un gesto che sposta agganci impiega 15–25 s sulla copia: è il ricalcolo dei confinanti, lo stesso
+  dell'aggancio. Fusa in `main` (2f51875e), **online in 1.52.0** (§A139).
+- ✅ **S64** API degli aeroporti (30-set, committente: «un'API mediante la quale si possono richiedere le info su un
+  aeroporto, nel caso specifico tutte le info sulle SID»; per un programma di un altro reparto o divisione IVAO). Ramo
+  `fix/api-aeroporti`. Carta `docs/feature/2026-09-30-api-aeroporti.md`. `GET /vsop/api/v1/airports`, `/{icao}`,
+  `/{icao}/sids` e `/{icao}/stars` (`?runway=`), in `Vipi.Hosting/ApiAeroporti.cs`. **Vista pubblica** (decisione del
+  committente): la stessa `ResolveForViewAsync(icao, useFrozen: true, edizione)` della pagina e il cancello del vAWOS
+  (`AwosGate`), vIPI civile se pubblicata altrimenti vSOP. Chiave **sempre** obbligatoria, permesso nuovo `aeroporti`
+  (`ApiEndpoints`, voce della pagina chiavi in `.resx`), 60/min per chiave. Celle «—» → `null`; `initialClimb` come
+  nel documento (FL sopra la TA) più `initialClimbFt` e `initialClimbByApp`. **Dal vivo** su copia del DB: porta
+  401/403/200/404, 10 scali, LIBD `?runway=07` identico cella per cella alla tabella della pagina (20 righe), LIRS dal
+  vSOP 10 su 10. Visto lì e corretto: «MIL — LIBG …» nei nomi (anche nella tendina vAWOS), `AwosGate.NomeDalTitolo`
+  toglie ora «MIL» come parola intera. Test: Hosting 79 → 98, E2E 463 → 465, App 3144 → 3145. Codice comune
+  `Vipi.Domain` (ApiEndpoints), `Vipi.Application` (AwosGate). Niente migrazione.
+  Sullo stesso ramo, un rosso a tempo di S63 segnalato dal Master (CI di `0f79bae9`):
+  `SpaziAereiAdminUnGestoAllaVoltaTests` «no event handler with ID '11'». Il `Task.Yield` di `Gesto` manda la ripresa
+  sul pool; se parte tardi il test sblocca il finto prima che lo aspetti, il primo gesto ridisegna e il secondo clic
+  (già accodato) trova il gestore buttato. Riprodotto a comando (pausa nel finto: vecchio rosso 3/3, nuovo verde 3/3);
+  ricerca e clic ora dentro `cut.InvokeAsync`, come dice il metodo. Solo il test: la pagina è giusta.
+- ✅ **S65** vista live: campi militari e «delegato» (30-set, committente: «nella visione live non compaiono in
+  nessun modo gli aeroporti militari senza vIPI, nonostante nelle vSOP ci siano tutte le info» e «LIMF_WW0: LIMF appare
+  delegato anche senza settori sotto»). Ramo `fix/live-militari`. (1) La vista live conosceva solo la vIPI civile in
+  tre punti: chip degli scali (`LiveStationParts.AirportChipsAsync`, `Kind == Airport`), postazione d'aeroporto
+  (`AirportLiveStation`: «nessuna vIPI» e link a una vIPI inesistente), pannello rapido (`AirportQuickPanel`: solo
+  `BuildAirportVipiAsync`). Ora vIPI se pubblicata, altrimenti vSOP, con la regola in un posto solo:
+  `AwosGate.Edizione` (era scritta anche in `PisteDalPubblicato` e nell'API degli aeroporti). Il pannello legge il
+  vSOP, TA/TL dalla sua release, tasto «Apri vSOP completo». In più le SID del pannello escono dalla STESSA vista del
+  documento (congelata se la release la congela): prima si derivavano dal vivo e su LIRS il pannello diceva Cat
+  «A,B,C,D,E» dove il vSOP pubblicato dice «—». (2) `LIMF_WW0_APP` ha `AirportIcao = LIMF`: è una posizione dello scalo,
+  e il chip era `Delegated = Local.Count > 0`, quindi chi guardava da lì vedeva LIMF «delegato» a sé stesso (il padre
+  di LIMF è `LIMF_WN0_APP`, figlio di WW0: LIMF entra nei chip di WW0). Ora delegato = una posizione dello scalo online
+  che non è chi guarda e non sta sopra di lui (`LiveStationParts.Delegato`, `ScaloDelegatoTests`, rossi 2 su 5 con la
+  regola vecchia). **A schermo** su copia del DB con `Ivao:FakeOnlineCallsigns`: da `LIBD_CS0_APP` (posizione di LIBD,
+  come WW0 di LIMF) LIBD non più delegato; da `LIMC_ANE_APP` compare il chip LIMN (solo vSOP) col pannello pieno e il
+  link `/mil`; `LIRS_TWR` senza avviso, «Documento esteso» → `/mil?icao=LIRS`, 20 SID come il vSOP. Nella copia LIRS e
+  LIMS non hanno settore padre (non compaiono come chip da nessuna area: dato), e le piste di LIRS sono «03/21» in
+  anagrafica e «03L/21R» nelle SID, quindi il filtro sulla pista suggerita dice «Nessuna SID per la pista 21» (dato).
+  Test: App 3150 → 3155. Codice comune `Vipi.Application` (AwosGate, Live, PisteDalPubblicato).
+- ✅ **S66** pagina Chiavi API (30-set, committente: «mettili tutti nella pagina chiavi API, e sistema il form: il flag è a
+  centro pagina e il nome schiacciato nell'angolino»). Ramo `fix/pagina-chiavi-api`. Sezione «Indirizzi delle API» per
+  permesso, con metodo, indirizzo completo del sito (`NavigationManager.BaseUri`), descrizione ed esempio, più i due
+  header e i codici di risposta. Gli indirizzi stanno in UN posto, `ApiRotte` (Domain), e le rotte vere li usano
+  (`MapGet(ApiRotte.Sessioni)`, `MapPost(ApiRotte.Trasferimenti)`, `ApiAeroporti.Radice = ApiRotte.Aeroporti`): la
+  pagina non può dare un indirizzo a cui il server non risponde. Guardia in `SharedResourceIntegrityTests`: ogni
+  indirizzo ha la sua descrizione in due lingue, ogni permesso almeno un indirizzo. Il form: `.field input{width:100%}`
+  del tema allargava anche le caselle; ora `.api-eps`/`.api-ep` in `vipi-theme.css`, casella a sinistra del nome.
+  **A schermo** su DB vuoto: spunte allineate, sezione leggibile, 375 px senza scorrimento di lato, inglese, creazione
+  di una chiave «Aeroporti» funzionante. Test: Ui 1904 → 1905. Codice comune `Vipi.Domain` (ApiRotte).
+- ✅ **S67** login obbligatorio (30-set, committente su segnalazione delle Public Relations: «il sito aperto a tutti
+  senza login si espone a furto dati da parte di bot»). Ramo `fix/login-obbligatorio`. Carta
+  `docs/feature/2026-09-30-login-obbligatorio.md`. Decisioni: senza login solo la porta `/services` con «Entra con
+  IVAO»; entra qualunque account IVAO; «account attivo» prima si misura. `CancelloDelLogin` (Host/Auth), dopo
+  `UseAuthentication` e i file statici: chiuso tutto quello che non è in `Liberi` (porta, giro del login, sonde, API
+  con chiave, ponte RFO, /Error); pagina da browser → 302 al login con `returnUrl`, il resto (circuito `/_blazor`,
+  fetch, POST) → 401. `VipiAuth:LoginObbligatorio` (default true, vale solo col login acceso). `AccessoConLogin` dice
+  alla porta di mostrare solo «Entra con IVAO». `DiagnosticaErrori.RegistraCampiDelProfilo`: al primo login dopo
+  l'avvio, i soli NOMI dei campi di `/v2/users/me` in `errori-richieste.txt`. **A schermo** col login acceso e
+  un'autorità finta (`ivao.invalid`): `/` → porta, porta con il solo accesso (IT/EN, 375 px), documenti, ricerca e
+  vAWOS → 302 al login col ritorno giusto, sonde 200/204, API e ponte RFO 401 dalla loro porta, `/_blazor` 401.
+  Test: E2E 465 → 497 (`CancelloDelLoginTests`), Ui 1905 → 1908. **Col login IVAO vero** (committente, localhost:5034,
+  copia DB cancellata): link a LIRF → IVAO → di nuovo su LIRF, tutto normale. Misura del profilo: nessun campo
+  «attivo/sospeso» (elenco dei nomi nella carta §5); resta il login riuscito.
+- ✅ **S68** registro degli accessi (30-set, committente: «registrare il nome di chi fa almeno un accesso e mostrarlo
+  nella pagina delle statistiche»; poi «vedi se ora bisogna aggiornare i cookies»). Ramo `fix/registro-accessi`, sopra
+  S67. Carta `docs/feature/2026-09-30-registro-accessi.md`. Prima si salvava il nome del solo staff IT (roster). Ora
+  `AccessiAlSito`, una riga per VID: nome, divisione, ACC, primo/ultimo accesso, giorni. **Migrazione**
+  `RegistroAccessi` (SQLite+MySQL, additiva). Scrive `StaffLoginTrackingMiddleware` (ogni 5 min per VID); potatura a
+  12 mesi una volta al giorno; divisione dal claim `divisionId` (nuovo, `CurrentUser.Division`). Pagina
+  `/services/stats/logins`, solo admin (servizio `EnsureAdmin`), SSR con ricerca `?q=`, link da Statistiche di
+  divisione. Informativa `/services/cookies`: libera dal cancello, `vipi.auth` riscritto, sezione «Che cosa registriamo
+  quando entri». A schermo su DB vuoto. Test: Domain 160, App 3158, Infra 2055, Ui 1915, E2E 498.
+- ✅ **S69** i `WaitFor` di bUnit a tempo (30-set, segnalato dal Master: `CorrezioniSpaziAereiPaginaTests.La_matita…`
+  rosso su `313794dc`, run 36711964233, verde al secondo giro). Il messaggio completo diceva «Check count: 0, render
+  count: 4»: nel secondo di default l'asserzione non era stata nemmeno provata — il controllo di bUnit non aveva avuto
+  il turno sul runner carico. Stessa famiglia di `DiagnosticaUnGiroAllaVoltaTests` e `PannelloUnioneUnGiroAllaVoltaTests`
+  (cartellino), e qua e là il timeout era già stato alzato a mano a 3 s. Cura unica: `AttesaDiBunit`, inizializzatore del
+  modulo in `Vipi.Ui.Tests` che porta `TestContextBase.DefaultWaitTimeout` a 10 s, più una guardia che lo verifica.
+  Non rallenta (la suite resta a 4–5 s: `WaitFor` esce alla prima verifica buona) e nessun test aspetta apposta un
+  `WaitFor` che scade. Il pool esaurito come causa l'ho provato a comando e NON riproduce: resta la spiegazione di
+  bUnit stesso. Ramo `fix/attesa-bunit`, in fila su `fix/registro-accessi` (stessa riga dei conteggi Ui). Ui → 1916.
+- ✅ **S70** «I miei dati» (30-set). Il committente ha girato a IVAO le domande sul registro degli accessi: titolare
+  IVAO, coperto dalla loro policy, legittimo interesse ok, durata libera, **diritti degli utenti gestiti da noi dal
+  sito**. Decisione: solo vedere; per cancellare «Richieste dal campo». Pagina `/services/my-data` (SSR): la propria riga
+  (VID dall'utente corrente, `IRegistroAccessi.MieiAsync`, mai da parametro), rimandi alle statistiche ATC e ai dati
+  staff, strada per la cancellazione. Link nel piè di pagina e dall'informativa. Ramo `fix/miei-dati`, in fila su
+  `fix/attesa-bunit`. A schermo su DB vuoto (anche 375 px). Test: App 3159, Infra 2056, Ui 1922.
+- ✅ **S71** il titolo dei documenti si cambia (30-set, committente: il titolo della vIPI di LIML è «MIlano Linate»).
+  Il titolo si scriveva solo alla nascita (per uno scalo `vIPI — {ICAO} {nome in anagrafica}`) e nessuna pagina lo
+  cambiava. Ora «Titolo» nell'elenco Documenti (`VersioniPage`), a chi può gestire il documento: modulo sotto la
+  testata, spazi ripuliti, vuoto e oltre 200 caratteri rifiutati, stessi cancelli di «Nascondi» (almeno Editor, nessun
+  lock altrui), audit col titolo di prima (`DocumentAdminService.SetTitleAsync`, `EfDocumentAdminRepository`). Vale
+  subito nell'elenco, nell'API degli aeroporti e nel vAWOS; pagina pubblica e ricerca leggono il titolo della release
+  e cambiano alla prossima pubblicazione (visto a schermo: la nota sotto il campo diceva il contrario per la ricerca,
+  corretta). **A schermo** su copia del DB (conservata su richiesta del committente): LIML rinominata, vAWOS «LIML —
+  Milano Linate». Nella copia anche il **vSOP MIL di LIML** ha «MIlano». Ramo `fix/titolo-documento`, in fila su
+  `fix/miei-dati`. Test: Infra 2056 → 2063; otto finti di test allineati all'interfaccia.
+- ✅ **S72** nuova veste delle statistiche ATC (30-set, committente: «ripensare la grafica… prima la progettazione»).
+  Tavole in Claude Design approvate, carta [2026-09-30-statistiche-nuova-grafica](../feature/2026-09-30-statistiche-nuova-grafica.md).
+  Primo pezzo: nome breve «Mario R.» nel registro degli accessi (migrazione `NomeBreveAccessi`). Secondo: pagina
+  personale (testata col nome, numeri con la media della divisione, mappa giorno × ora di nuovo qui). Trovato per
+  strada: la mappa della divisione non si era mai colorata (`cov-q@q` letterale). Ramo `fix/statistiche-grafica`,
+  in fila su `fix/titolo-documento`. Terzo: la pagina della divisione (nomi brevi in classifica, primi dieci più la
+  propria riga, aeroporti subito sotto i numeri). A schermo su copia del DB. Test: Domain 167, App 3160, Infra 2064,
+  Ui 1925.
+- ✅ **S73** pagina dell'ACC al buio (30-set, committente): intorno all'AIRAC un quadratino bianco (il bordo
+  `--on-dark-soft` è quasi bianco anche nel tema scuro → bordo trasparente, stesso spessore); Aeroporti, Avvicinamenti
+  e vLoA con tre colori diversi per bordo al passaggio e «Vedi tutti» → tutti col colore di Aeroporti (le classi
+  `c-app`/`c-vloa` vivono solo lì). Solo CSS. A schermo su copia del DB. Ramo `fix/vsop-notte`, in fila su
+  `fix/statistiche-grafica`.
+- ✅ **S74** conservazione delle statistiche ATC (30-set, committente: «ci sono dati conservati oltre i 12 mesi?»).
+  Sì: il riassunto mensile per VID e callsign (`AtcMonthRollup`) non scadeva mai. Ora **dieci anni** a mesi interi
+  (`AtcMonthRollupRetentionUseCase`, nella potatura notturna). Corretti il sottotitolo della divisione («oltre, la
+  sorgente non conserva» era vero solo per IVAO) e «I miei dati», che ora dice dodici mesi per esteso e dieci di
+  totali mensili. `modello-dati.md` ha la regola in una riga. Ramo `fix/riassunto-dieci-anni`, in fila su
+  `fix/vsop-notte`. Nessuna migrazione. Infra 2064 → 2066.
+- ✅ **S75** ricerca (30-set, committente, con schermata): 1) un blocco strutturato (aeroporti alternati di un vSOP MIL)
+  usciva nell'estratto come JSON grezzo → l'indice tiene i soli valori di testo, senza chiavi, campi tecnici
+  (`Key`, `Id`, sha…) e doppioni (`IndiceDelleRelease.Leggibile`); 2) ordine di importanza: titolo del documento,
+  titolo di sezione, di sotto-sezione, testo, e la Guida in coda (prima stava in cima) e fuori dal tetto dei 50.
+  Si raccolgono tutti i risultati e si taglia dopo. Guida del sito aggiornata. Provato sui dati veri della copia
+  (configurazioni e gruppi APP leggibili, «Brindisi» in ordine); la copia non ha il blocco degli alternati di
+  LIBN, quel caso è coperto dal test. Ramo `fix/ricerca-ordine`, in fila su `fix/riassunto-dieci-anni`.
+- ✅ **S76** scheda «Prenotazioni ATC e FRA» in `/services` (30-set, committente): porta a https://atc.ivao.aero/,
+  secondo collegamento esterno dopo The Eye, subito dopo di lui, stesse regole (`external`, scheda nuova,
+  `noopener`). `ServicesHomeTests` conta due esterni. Ramo `fix/card-atc-ivao`, in fila su `fix/ricerca-ordine`.
+- ✅ **S77** segnalare un problema su qualunque pagina (30-set, committente): bandierina in barra accanto alla
+  Guida e voce nel ☰, link al modulo delle richieste con la pagina (`?p=`), come le sezioni. Colonna
+  `FieldRequest.PageUrl` (migrazione `PaginaDelleRichieste`), ripulita a solo percorso del sito. Carta
+  `piano-segnalazioni.md` §11. Poi, sempre su richiesta: le richieste APERTE per VID passano da 5 a 10, come il
+  tetto delle 24 ore. Ramo `fix/segnala-pagina`, in fila su `fix/card-atc-ivao`.
+- ✅ **S79** disconnessioni mentre si legge (30-set, committente, coi file di `diagnostica/`). Analisi: processo
+  spento con SIGTERM ogni ~minuto per ore di notte, più processi Passenger insieme, metà dei circuiti sotto il
+  minuto ma solo il 2% morto col processo. Fatto: registro `disconnessioni-*.tsv` dal beacon del browser +
+  scheda in Diagnostica + `registro-del-giorno.py`; niente riquadro sulle pagine di lettura (avviso discreto);
+  punto di lettura tenuto alla ricarica. Carta [2026-09-30-disconnessioni](../feature/2026-09-30-disconnessioni.md).
+  Ramo `fix/disconnessioni`.
+- ✅ **S80** testi (30-set, committente): la cancellazione dei dati si chiede a **IVAO HQ**, che la gira alla
+  divisione («I miei dati» ora rimanda alla procedura IVAO di cancellazione dell'account, wiki FAQ membri, non al modulo); «Richieste dal campo» →
+  **«Campo richieste»**; il campo del modulo → «Cosa ci vuoi segnalare?»; statistiche: «Presenze» → **«Voli
+  visti»** e una riga che spiega voli visti contro movimenti (pagina personale e dettaglio del turno), testi
+  degli aeroporti gestiti e di «Da dove vengono e dove vanno» riscritti. Ramo `fix/testi-dati-statistiche`.
+- ✅ **S81** vista live: la finestra «Trasferimenti» solo allo staff di divisione (30-set, committente: «feature in
+  sviluppo»). Agli altri resta la riga col titolo e la sola etichetta «In sviluppo» (senza frase, committente), che non si apre (nessun contenuto nel markup).
+  Test Ui 1930 → 1932. Ramo `fix/trasferimenti-staff`.
+- ✅ **S82** crediti nel piè di pagina (1-ott, committente): sotto «Parte della IVAO», su riga sua, «Realizzato da
+  Carmine (704798) · Testato da Nicola (201143) e Carmine (704798)»; ogni nome al profilo IVAO del membro.
+  Ramo `fix/crediti-test`.
+- ✅ **S83** SID nella ricerca (1-ott, committente: «se cerco ALAXI non mi dà Napoli»). Le procedure non sono nel
+  testo pubblicato: la barra di ricerca ora chiede SID e STAR alla stessa vista della pagina
+  (`IProcedureCercabili`, memoria di 10 minuti) e le aggancia alla loro sezione (se nascosta, niente). Una regola
+  sola (`CercaProcedura.Combacia`) per ricerca e vista live: codice ALAX7G, nome completo ALAXI 7G con o senza
+  spazio, fix, transition. Vista live: nota radio sopra le SID con l'esempio dalla prima SID dello scalo («AGNI7G si
+  dice AGNIS 7G (AGNIS seven golf)»). A schermo su LIRN (copia del DB). App 3161 → 3171, Infra 2074 → 2075.
+  Poi, stesso ramo (committente, con schermate): campo «Cerca un punto o una SID» e selettore di postazione della
+  vista live con bordo, angoli e anello degli altri campi; nel piè di pagina marchio e titolo «IVAO» alla stessa
+  altezza e misura; il «Compatta» tocca solo `#vipi-main` (non barra, piè di pagina, titolo della pagina — prima il
+  titolo «IVAO» del piè di pagina, un <h2>, passava a 23px). Ramo `fix/sid-ricerca`.
+- ✅ **S84** vista live più compatta, e da telefono/tablet (1-ott, committente, con schermate). **Testata su una
+  riga**: briciole, titolo, pallino della postazione, avviso di simulazione al centro, ATC online, selettore.
+  **Avviso**: «…REAL LIFE **OPERATIONS**» e non più NAVIGATION, ovunque (copre ogni operazione reale; R8 in
+  `regole-lingua.md`). **«Nessuna vIPI pubblicata»** chiuso, si apre sul titolo. **«Sopra di te» → «Enti limitrofi»**
+  («chi ti assorbe se chiudi, a chi trasferisci il traffico»). **Documenti in scheda nuova** (Documento esteso, vIPI,
+  vSOP): chi li apre dalla vista live la vuole tenere. **vSOP accanto alla vIPI** nel pannello dello scalo quando ci
+  sono tutti e due. Sulle postazioni d'aeroporto niente «Documento esteso» né vAWOS in testata (li porta il pannello).
+  **Pannello dello scalo**: chip delle piste, TA/TL/vento/piste suggerite e tasti su una riga; l'ICAO accanto al titolo
+  del riquadro; nota radio e ricerca SID sulla stessa riga. **Compatta sempre accesa** nella vista live e solo lì
+  (tasto tolto; prima, accesa, restava addosso a tutto il sito via localStorage). 🔴 Trovato strada facendo: le
+  regole `:where(.vipi-root) .vipi-dense …` non scattavano MAI (la classe è su `<html>`, antenato della radice):
+  riscritte `.vipi-dense :where(.vipi-root) …`, stessa specificità. **Ora Z nella barra in alto**, a tutti e su ogni
+  pagina; da telefono la barra è ☰ · ATC · 🔍 · ora Z · «● Live». **Telefono** (`.pw-600`, gradino nuovo in
+  `pwSoglie`): titolo piccolo e pallino, enti limitrofi chiusi dietro l'etichetta, valori due per riga, frase radio
+  a icona, SID senza «condizione» (si apre toccando il nome: un `<button>`, non la riga — lo pretende
+  `StructureAccessibilityTests`), tabella SID fissa a tutta larghezza (la regola del telefono, U-106, la faceva
+  scorrere). **Tablet in verticale** (601–900): come il telefono per testata, margini e riquadri chiusi, ma enti
+  limitrofi aperti, colonna condizione, frase radio intera, quattro valori in riga. Frequenze, gruppi e trasferimenti
+  partono chiusi da telefono e tablet (`data-chiuso-telefono`, con una chiave di persistenza loro). A schermo su
+  LIRN, LIML, LIBD, LIRR (copia del DB) a 1280, 768 e 375. Test Ui 1932 invariati. Ramo `fix/sid-ricerca`.
+- ✅ **S85** callout «Importante» dei documenti con l'ottagono col punto esclamativo (`octagon-alert`) invece della X
+  dello stop, che accanto a «Importante» diceva «vietato» (1-ott, committente). Vista e anteprime degli editor; la X
+  resta ai messaggi d'errore dell'interfaccia. Ramo `fix/sid-ricerca`.
+- ✅ **S86** riconnessione «discreta» sulle pagine pubbliche interattive (1-ott, committente: «le persone non se ne
+  devono accorgere nemmeno il 90% delle volte; l'avviso solo se serve ricaricare a mano, e nelle pagine di lavoro
+  sì»). Terzo modo accanto a «silenziosa» (documenti SSR) e riquadro (lavoro): `[RiconnessioneDiscreta]` su vista
+  live, ricerca, novità, spazi aerei, elenco vSOP, statistiche di divisione → `data-riconnessione="discreta"`
+  (`ModoRiconnessione.Di`). Lì niente riquadro; al circuito rifiutato (processo rinato) la pagina si ricarica DA
+  SOLA, in silenzio e allo stesso punto, senza la bandierina del «gesto perso»; l'avviso discreto in basso compare
+  solo a tentativi finiti (rete assente) o se le ricariche automatiche non risolvono, con la frase «la pagina non si
+  aggiorna più finché non la ricarichi». Editor, admin, richieste, attività, versioni: invariati. Nel dubbio una
+  pagina NON è discreta. Provato dal vivo sulla vista live di LIRN: server spento e riacceso, ricarica muta allo
+  stesso scroll, nessun avviso. Test Ui 1932 → 1944; E2E 507 verdi. Ramo `fix/sid-ricerca`.
+- ✅ **S87** vIPI d'aeroporto: tasto «vSOP militare» accanto a «Stampa» quando il vSOP è pubblicato (1-ott,
+  committente), lo specchio del «vIPI civile» che il vSOP ha nello stesso posto. Stessa condizione della voce nella
+  colonna di destra (`_haMilitare`). A schermo su LIML (c'è) e LIRN (non c'è). Ramo `fix/sid-ricerca`.
+- ✅ **S88** ricerca rapida nella vista live (1-ott, committente): chip «🔎 Cerca» per APP e ACC; trova gli scali con
+  vIPI/vSOP pubblicati di tutta la divisione (aperti nel pannello dello scalo col loro ACC) e le aree regolamentate
+  (mappa + tabella di attivazione che segue le chip). Mappe nate a larghezza 0 ora si reinquadrano. Carta
+  `docs/feature/2026-10-01-ricerca-vista-live.md`, con le prossime ricerche proposte. App 3171 → 3180. Ramo `fix/sid-ricerca`.
+  Poi (committente, provato sulla copia di produzione): il campo di ricerca sta direttamente in coda alle chip, al
+  posto della chip «Cerca»; tolta la scritta «Vista rapida — il mio settore o…».
+- ✅ **S89** ricerca della vista live, secondo giro (1-ott, committente): postazioni per callsign/nome/frequenza con
+  chi le copre (topologia globale), punti delle SID/STAR pubblicate di tutti gli scali, punti di trasferimento di
+  tutti gli ACC (solo staff di divisione), radioassistenze con un punto sulla mappa (`data-points` in vipi-aor.js).
+  La proposta «settori» resta proposta (carta §5). Scheda gialla dei cambi: ✕ al posto di «scarta». App 3180 → 3188.
+  Poi (committente): i punti delle SID/STAR in coda, dopo le radioassistenze e prima delle aree.
+- ✅ **S90** review della vista live prima di pubblicare (1-ott, committente). Corretti: (1) elenco vSOP e statistiche di
+  divisione NON più a riconnessione discreta (hanno «Crea» e «pubblica»: un clic perso lì in silenzio sembrerebbe
+  riuscito); (2) 🔴 la ricerca ha una MEMORIA CONDIVISA di processo (`MemoriaRicercaLive`, 5 minuti, un cancello per
+  elenco): dieci utenti che cercano insieme caricano una volta, prima ognuno rileggeva accordi di tutti gli ACC e
+  procedure di tutti gli scali a ogni ricerca; (3) topologia globale in memoria (1 minuto) invece di ricostruirla a ogni
+  clic; (4) il dettaglio di una postazione si ricalcola a ogni giro del feed; (5) le sole cifre («128») cercano anche
+  i nomi (area P128), solo le cifre col punto sono soltanto frequenza; (6) verificata a schermo la finestra Trasferimenti
+  in compatta (36 righe, una riga ciascuna); (7) pannello senza documento senza «vista rapida» in italiano fisso, e
+  nella ricerca ICAO/nome/ACC accanto a «Risultati». App 3190. (8) deciso col committente: sulle postazioni
+  d'aeroporto (TWR/GND/DEL) il campo sta in testata accanto alla postazione, e i risultati prendono il posto della vista
+  rapida dello scalo.
+  Ramo `fix/sid-ricerca`.
+- ✅ **S91** documenti uniti: ogni documento tiene la SUA regola di lingua (1-ott, committente: «se unisco un documento
+  bloccato e uno bilingue si applica solo una regola delle due», LIRP: vIPI bilingue + vSOP solo inglese). Prima la
+  lingua della pagina era della porta, e il membro ne prendeva etichette, intestazioni e prosa generata (vSOP inglese
+  con le tabelle in italiano; dal vSOP, vIPI tradotta con le intestazioni inglesi). Rimedio in due tempi: il
+  caricamento di ogni membro sta in un blocco `ReadingLanguageContext.Rendering` (dentro decide il membro, alla
+  chiusura torna la porta; tolto `fissaLaPagina`); il corpo riceve la sua lingua per cascata e i 30 componenti del
+  corpo ereditano `ComponenteDelDocumento` (`L` per cascata; `ValidityStamp` con `Scegli`). Gettone «solo in
+  inglese» anche sotto il titolo del membro. Guardia che scende dai tre corpi e rifiuta un `@inject … L`. Carta
+  `2026-09-03-documenti-uniti.md` §3. Test Ui 1944 → 1947 (3 rossi sul codice di prima). A schermo su copia del DB
+  (LIBV, vSOP bloccato in inglese): dalla vIPI in italiano il vSOP ha «Field data / pilots only / No rows»; dal
+  vSOP la vIPI ha «FREQUENZA / PISTA». Ramo `fix/lingua-unione`.
+- ✅ **S92** editor di un documento unito: la lingua si imposta documento per documento (1-ott, committente via
+  Master, LIRP). Il pannello di pubblicazione aveva una sola riga «Lingua di pubblicazione», che scriveva sulla porta:
+  ora una riga per membro (titolo, lingua, «solo in questa lingua»), salvata per ID del documento. Documento solo:
+  invariato. Test `ReleasePanelTests` 3 (rossi sul codice di prima); Ui 1947 → 1950. A schermo su copia (editor LIBV):
+  la casella del vSOP cambia solo il vSOP, quella della vIPI solo la vIPI, e reggono al ricarico. Ramo
+  `fix/lingua-editor-unione`.
+- ✅ **S93** contatore delle aperture e i più letti sulla pagina dell'ACC (1-ott, committente). Una riga per documento
+  e per giorno (`AperturaDocumento`, migrazione additiva `ApertureDocumenti`), +1 su ogni richiesta della pagina
+  PUBBLICA (vIPI d'aeroporto, vSOP militare, APP, vLoA; niente bozze, anteprime, editor). Sulla pagina dell'ACC i tre di
+  ogni scheda sono: prima gli «in evidenza» a mano, poi i più aperti negli ultimi 90 giorni, poi per nome; lo scalo somma
+  vIPI e vSOP; il numero accanto alla voce solo allo staff. Pagine elenco invariate. Carta
+  `2026-10-01-aperture-documenti.md`. Test App 3190 → 3193, Infra 2075 → 2080, Ui 1947 → 1952. A schermo su copia
+  (LIBB, con un cookie per spegnere la cache anonima): LIBR 3 aperture e LIBD 2 salgono in cima, la bozza di LIBC non
+  conta. Ramo `fix/aperture-documenti`.
+- ✅ **S94** due ritocchi (1-ott, committente). (1) `/services`: scheda esterna «Discord di divisione»
+  (https://discord.ivao.it/) accanto a «Prenotazioni ATC e FRA», icona nuova `chat`; i collegamenti esterni contati
+  passano a tre. (2) Tabella SID del documento sul telefono: «Transition» finiva sopra «Initial climb» (colonna ~68px);
+  sotto i 760px di schermo l'intestazione è «Tran.» (`<abbr title="Transition">`). A schermo su copia: a 390px «Tran.»
+  finisce 16px prima di «Initial climb», su desktop resta «Transition». Ui 1955 → 1956. Ramo `fix/discord-transition`.
+- ✅ **S95** controllare con un account dell'evento (1-ott, committente). Durante un evento si controlla con VID dati
+  dall'organizzazione e la vista live non trovava nessuno. Lo staff scrive i VID degli account nel pannello di
+  `/services/event` (colonna `EventKits.VidEvento`, migrazione additiva `VidAccountEvento`); mentre l'evento si vede e
+  la lista non è vuota, in `/services` accanto ai profili c'è «Controlli con un account dell'evento?» →
+  `/services/event/account`: VID in lista e online adesso → la vista live usa quel VID fino alla fine dell'evento (max
+  12 h), torna al proprio se l'account cade, chi cambia l'evento manda fuori tutti, audit «EventAccount». Scelte del
+  committente: chiunque entrato, nessuna esclusiva, lista dentro l'evento dei profili, porta nell'hub e non nella vista
+  live. Carta `2026-10-01-account-evento.md`. App 3193 → 3202, Infra 2080 → 2081, Ui 1956 → 1962. A schermo su copia
+  (utente 123456 non staff, ATC finti LIBD_TWR=704798 e LIBD_APP=704799, lista «704798 LIBD_TWR»): scheda nell'hub,
+  999999 e 704799 rifiutati, 704798 → `/services/vsop/live/LIBD_TWR`, LIBD_APP resta chiusa; da staff la riga
+  «LIBD_APP 704799» si rifiuta dicendolo, la lista giusta si salva e regge al ricarico. Ramo `fix/vid-evento`.
+  Poi (committente): sopravvive a un RIAVVIO del sito — chi usa che cosa si salva anche nella tabella
+  `AccountEventoInUso` (seconda migrazione additiva) e all'avvio si ricarica; le voci scadute restano fuori.
+  Poi (committente): la lista dei VID si cancella da sola 7 giorni dopo la fine dell'evento, o alla data scritta dallo
+  staff nella scheda (colonna `EventKits.VidSvuotaUtc`, terza migrazione additiva); pulizia `VidEventoPulizia` ogni ora.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
+  Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
+  lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
+  IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il primo evento vero in `/services/event`; in
+  produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63). Resta al committente LIRE/LIBG (aspetta il
+  SOD). ⚠️ In Spazi aerei i gesti che spostano agganci rifanno i confinanti: 15–25 s (S63), da guardare se diventa un
+  fastidio. Futuro: vIPI ACC legata all'ACC
+  (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

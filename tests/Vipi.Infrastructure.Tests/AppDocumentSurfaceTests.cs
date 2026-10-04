@@ -41,7 +41,7 @@ public class AppDocumentSurfaceTests : IAsyncLifetime
         var id = await _repo.ResolveForDocumentAsync("LIRP_APP");
 
         Assert.NotNull(id);
-        Assert.Equal("LIRP_APP", id!.Callsign);
+        Assert.Equal("LIRP_APP", id!.Code);
     }
 
     [Fact]

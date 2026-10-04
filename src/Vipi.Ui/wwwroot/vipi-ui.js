@@ -241,10 +241,22 @@ window.vipiScorrimento = function () {
             if (d._persistWired) return;
             d._persistWired = true;
             var key = 'vipi-collapse:' + d.getAttribute('data-persist');
+            // `data-chiuso-telefono` (vista live, 1 ottobre 2026): da telefono il riquadro PARTE chiuso, e quello che
+            // il telefono apre o chiude lo ricorda il telefono, con una chiave sua — aprire le frequenze sul telefono
+            // non deve lasciarle aperte sul monitor, né il contrario. «Telefono» = il riquadro della pagina largo
+            // al massimo 760 unità di layout, la stessa misura di `.pw-760` (lo zoom una @media non lo vede).
+            var tel = d.hasAttribute('data-chiuso-telefono');
+            if (tel) { var w = d.closest('.wrap'); tel = !!w && w.clientWidth > 0 && w.clientWidth <= 760; }
+            if (tel) key += ':tel';
             var saved = null;
             try { saved = localStorage.getItem(key); } catch (e) { }
-            if (saved !== null) d.open = saved === '1';
+            if (saved === null && tel) saved = '0';
+            // ⚠️ Chiudere qui fa partire un `toggle` (asincrono, dopo l'aggancio qui sotto): non è un gesto di chi
+            // legge e non va salvato come tale. Il segno si mette solo se lo stato cambia davvero, o il primo
+            // gesto vero verrebbe ingoiato.
+            if (saved !== null && d.open !== (saved === '1')) { d._persistAuto = true; d.open = saved === '1'; }
             d.addEventListener('toggle', function () {
+                if (d._persistAuto) { d._persistAuto = false; return; }
                 if (suppressPersist) return;
                 try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { }
             });
@@ -754,7 +766,9 @@ window.vipiScorrimento = function () {
     // stavano, in vipi-theme.css: qui si decide solo QUANDO valgono.
     // ⚠️ Le soglie sono quelle che c'erano: non si è colta l'occasione per «razionalizzarle» (1200 e 1180
     // sono vicine ma governano due pagine diverse, e ognuna era stata misurata dov'è).
-    var pwSoglie = [1200, 1180, 1080, 900, 760];
+    // 600 (1 ottobre 2026): separa il TELEFONO dal tablet in verticale nella vista live — a 768 il riquadro è 753, e
+    // con 760 soltanto il tablet prendeva la forma da telefono pur avendo il doppio dello spazio.
+    var pwSoglie = [1200, 1180, 1080, 900, 760, 600];
     function pwFit(el) {
         // ⚠️ `clientWidth` del RIQUADRO, non di `documentElement`: in Edge 151 quello della radice non è in
         // unità di layout sotto `zoom` e risponde con i px di finestra — una misura presa da lì dice che
@@ -814,28 +828,26 @@ window.vipiScorrimento = function () {
             var t = e.target;
             if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
             var input = document.querySelector('.top-search input');
-            if (!input) return;
+            // A barra stretta il modulo non si rende e la ricerca è il collegamento alla sua pagina: si va lì.
+            if (!input || !input.offsetParent) {
+                var go = document.querySelector('.top-search-go');
+                if (go && go.offsetParent) { e.preventDefault(); location.href = go.href; }
+                return;
+            }
             e.preventDefault();
             input.focus();
             input.select();
         });
     }
 
-    // Modalità compatta: classe su <html> (non su .vipi-root, che Blazor ricostruisce) + localStorage.
-    // Fuori dal circuito Blazor come lo zoom: sopravvive a re-render e navigazioni senza round-trip.
+    // Modalità compatta: classe su <html> (non su .vipi-root, che Blazor ricostruisce). Dal 1 ottobre 2026 non è più
+    // una scelta: la vista live è SEMPRE compatta e le altre pagine mai (committente: «si legge bene, chi ha bisogno
+    // zooma tutto»). Prima era un tasto ricordato in localStorage, e acceso dalla vista live restava addosso a TUTTO il
+    // sito, dove nessun tasto lo spegneva. La chiave vecchia si cancella, così non resta in giro.
     function applyDense() {
-        var on = false;
-        try { on = localStorage.getItem('vipiDense') === '1'; } catch (e) { }
-        document.documentElement.classList.toggle('vipi-dense', on);
-        document.querySelectorAll('[data-dense-toggle]').forEach(function (b) {
-            b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        });
+        try { localStorage.removeItem('vipiDense'); } catch (e) { }
+        document.documentElement.classList.toggle('vipi-dense', !!document.querySelector('.wrap.live'));
     }
-    window.vipiToggleDense = function () {
-        var on = document.documentElement.classList.contains('vipi-dense');
-        try { localStorage.setItem('vipiDense', on ? '0' : '1'); } catch (e) { }
-        applyDense();
-    };
 
     // Orologio UTC: i controllori ragionano in Z. Aggiornato dal browser, non dal server (nessun tick sul circuito).
     var clockTimer = null;

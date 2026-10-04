@@ -52,6 +52,9 @@ public sealed class EfContentRepository : IContentRepository
     public Task<RawDocument?> LoadAppVipiAsync(string appCallsign, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
     {
         var app = (appCallsign ?? "").Trim().ToUpperInvariant();
+        // 🔴 Dal 29 settembre 2026 (S49) la vIPI APP è dell'ENTE, trovato per codice o per una sua posizione, e
+        // non chiude più quando una posizione sparisce: il documento non dipende dai nominativi IVAO, ed è il
+        // punto (a Pratica di Mare `LIRE_APP` può sparire e l'ente restare, con `LIRE_TWR`). Sotto, com'era:
         // ⚠️ `s.IsActive` non è un dettaglio: è l'equivalente, per questa porta, del filtro
         // sull'aeroporto nascosto che hanno le due gemelle. L'APP è l'unica delle quattro porte pubbliche
         // che passa da un settore, cioè dalla proiezione dei cataloghi — e la proiezione DISATTIVA la
@@ -63,9 +66,8 @@ public sealed class EfContentRepository : IContentRepository
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
                  && (preferWorking || ignoreRelease || !d.IsHidden)
-                 && d.Sectors.Any(s => s.IsPrimary && s.Type == SectorType.App
-                        && s.ApproachKind == ApproachKind.Standalone && s.Callsign == app
-                        && (preferWorking || ignoreRelease || s.IsActive)),
+                 && _db.AtcUnits.Any(u => u.DocumentId == d.Id && u.Mode == AtcUnitMode.OwnDocument
+                        && (u.Code == app || u.Positions.Any(p => p.Callsign == app))),
             ignoreRelease, preferWorking, ct);
     }
 
@@ -257,12 +259,11 @@ public sealed class EfContentRepository : IContentRepository
             return milIcao is not null ? (ReleaseTargetType.AirportMil, milIcao) : (null, null);
         }
 
-        // APP non remotizzato su Document (doc 08e): target release = callsign APP.
-        var appCallsign = await _db.Sectors.AsNoTracking()
-            .Where(s => s.DocumentId == doc.Id && s.IsPrimary && s.Type == SectorType.App
-                        && s.ApproachKind == ApproachKind.Standalone)
-            .Select(s => s.Callsign).FirstOrDefaultAsync(ct);
-        if (appCallsign is not null) return (ReleaseTargetType.App, appCallsign);
+        // La vIPI APP: target release = il codice dell'ENTE (S49; prima il callsign del settore APP primario).
+        var codice = await _db.AtcUnits.AsNoTracking()
+            .Where(u => u.DocumentId == doc.Id && u.Mode == AtcUnitMode.OwnDocument)
+            .Select(u => u.Code).FirstOrDefaultAsync(ct);
+        if (codice is not null) return (ReleaseTargetType.App, codice);
 
         var icao = await _db.Airports.AsNoTracking()
             .Where(a => a.DocumentId == doc.Id).Select(a => a.Icao).FirstOrDefaultAsync(ct);

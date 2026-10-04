@@ -46,6 +46,7 @@
      coperto); `.noprint` è la valvola per i testi che spiegano un'interazione (es. «accendi/spegni i settori
      sopra la mappa»), che a schermo servono e su carta no. */
   .vipi-root .topbar,
+  .vipi-root .sito-foot,
   .vipi-root .skip-link,
   .vipi-root .toc,
   .vipi-root .doc-rail,

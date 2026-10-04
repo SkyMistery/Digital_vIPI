@@ -141,6 +141,60 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("AccSectors");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AccessoAlSito", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Acc")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Divisione")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Giorni")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NomeBreve")
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("PrimoUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UltimoUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("UltimoUtc");
+
+                    b.ToTable("AccessiAlSito", (string)null);
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AccountEventoInUso", b =>
+                {
+                    b.Property<int>("VidPersonale")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ScadeUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VidEvento")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("VidPersonale");
+
+                    b.ToTable("AccountEventoInUso", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementAirport", b =>
                 {
                     b.Property<int>("Id")
@@ -1034,6 +1088,102 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("AirspaceVolumes");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirspaceVolumeCorrection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AirspaceClass")
+                        .HasMaxLength(4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BaseRaw")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ClassCorrected")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Family")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileBaseRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileClass")
+                        .HasMaxLength(4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileFamily")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileTopRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TopRaw")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VolumeKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VolumeOrdinal")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VolumeKey", "VolumeOrdinal")
+                        .IsUnique();
+
+                    b.ToTable("AirspaceVolumeCorrections");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AperturaDocumento", b =>
+                {
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Giorno")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Volte")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DocumentId", "Giorno");
+
+                    b.HasIndex("Giorno");
+
+                    b.ToTable("AperturaDocumenti", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.ApiClient", b =>
                 {
                     b.Property<int>("Id")
@@ -1310,6 +1460,77 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("PilotCallsign");
 
                     b.ToTable("AtcSessionTraffic");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("GroupKey")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("DocumentId")
+                        .IsUnique();
+
+                    b.HasIndex("AccId", "GroupKey")
+                        .IsUnique();
+
+                    b.ToTable("AtcUnits");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnitPosition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AtcUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Callsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AtcUnitId");
+
+                    b.HasIndex("Callsign")
+                        .IsUnique();
+
+                    b.ToTable("AtcUnitPositions");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Attachment", b =>
@@ -2042,6 +2263,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("FromImpactId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("FromRequestId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -2073,6 +2297,187 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("EditorTasks");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("EndsUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StartsUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UpdatedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VidEvento")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("VidSvuotaUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EventKits");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKitItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ByteSize")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("Bytes")
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EventKitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventKitId", "SortOrder");
+
+                    b.ToTable("EventKitItems");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.FieldRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("DuplicateOfId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("HandledByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("HandledByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("HandledUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PageUrl")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("");
+
+                    b.Property<int?>("ReleaseNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reply")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReporterName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ReporterUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SectionKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("ReporterUserId");
+
+                    b.HasIndex("Status", "CreatedUtc");
+
+                    b.ToTable("FieldRequests");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.GlossaryTerm", b =>
@@ -3354,6 +3759,15 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Import");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AperturaDocumento", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionRunway", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.AtcSession", "Session")
@@ -3374,6 +3788,35 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnit", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
+                        .WithMany()
+                        .HasForeignKey("AccId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithOne("AtcUnit")
+                        .HasForeignKey("Vipi.Domain.Entities.AtcUnit", "DocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Acc");
+
+                    b.Navigation("Document");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnitPosition", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.AtcUnit", "AtcUnit")
+                        .WithMany("Positions")
+                        .HasForeignKey("AtcUnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AtcUnit");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AttachmentVersion", b =>
@@ -3570,6 +4013,27 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKitItem", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.EventKit", "EventKit")
+                        .WithMany("Items")
+                        .HasForeignKey("EventKitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EventKit");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.FieldRequest", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
@@ -3692,6 +4156,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Traffic");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcUnit", b =>
+                {
+                    b.Navigation("Positions");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Attachment", b =>
                 {
                     b.Navigation("Versions");
@@ -3705,6 +4174,8 @@ namespace Vipi.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>
                 {
                     b.Navigation("Airport");
+
+                    b.Navigation("AtcUnit");
 
                     b.Navigation("MilAirport");
 
@@ -3734,6 +4205,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Blocks");
 
                     b.Navigation("Sections");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.EventKit", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>

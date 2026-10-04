@@ -63,7 +63,7 @@ a mano: li sceglie il confronto fra quanto la barra **pretende** e quanto **ha**
 |---|---|---|---|
 | `tb-1` | spazi più stretti, badge staff a icona | `@media (max-width:1500px)` | la misura |
 | `tb-2` | marchio senza sottotitolo, «Editor»/«Incarichi» a icone, badge live a pallino | `@media (max-width:1300px)` | la misura |
-| `tb-3` | la ricerca si chiude in un'icona e si riapre a piena riga | idem, **nello stesso scaglione** | la misura |
+| `tb-3` | la ricerca si chiude in un'icona (dal 29-set-2026 un collegamento a `/services/vsop/search`, vedi in fondo) | idem, **nello stesso scaglione** | la misura |
 | `tb-4` | forma telefono: ACC e comandi dentro il «☰» | `@media (max-width:900px)` | la misura |
 
 Le classi sono **cumulative** (`tb-4` implica `tb-1 tb-2 tb-3`): così ogni blocco di regole resta scritto
@@ -232,3 +232,14 @@ Dove cade oggi la scaletta a zoom 1: **1920** livello 0 · **1600** livello 1 ·
   Il chrome resta giusto perché è SSR statico — ed è per questo che non se n'era accorto nessuno: sbaglia
   solo la parte interattiva. Preesistente e trasversale a ogni pagina `InteractiveServer`; merita una carta
   sua, non una riga in questa.
+
+## 29 settembre 2026: la lente a barra stretta, e un'altezza sola
+
+- **La lente chiusa non portava da nessuna parte** (segnalato dal committente). Da `tb-3` il modulo era stretto a
+  38px su un campo largo 0 che al fuoco si riapriva `position:fixed` sotto la barra: la lente era uno `<span>`, e
+  anche fatta tasto il fuoco spostava il modulo sotto il dito prima che il clic finisse (misurato a 375px: nessuna
+  navigazione). Ora da `tb-3` il modulo non si rende e al suo posto c'è `.top-search-go`, un collegamento alla
+  pagina di ricerca, che ha il suo campo. A barra larga la lente è un tasto che invia il modulo.
+- **Un'altezza sola per i comandi** (`--tb-ctl`, 34px). Misurati a 1900px prima: tasti a icona 32, «Documenti» e
+  ricerca 36, zoom 38, lingua 32, badge 34. Dopo: tutti 34, a 1900, 1000 e 375px. La versione resta più bassa: è
+  una spia, non un comando.

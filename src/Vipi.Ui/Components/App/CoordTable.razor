@@ -19,7 +19,7 @@
 
    SEZIONI (24 agosto 2026). Il componente rende UNA SEZIONE PER VERSO: vedi Sections(). Tutto ciò che segue è
    scritto per la sezione corrente (`sec`), non per l'intero `Rows`. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 
 @foreach (var sec in Sections())
 {

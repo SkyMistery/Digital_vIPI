@@ -5,6 +5,16 @@
 > Sezione dell'agente che lavora sul SITO nel worktree `vIPI-sito`. Le voci qui sotto hanno il prefisso **S**
 > per non incrociare la numerazione §A del Sector Lab, che lavora su `main`. Si fonde in `main` a lavoro finito.
 
+### 💤 Da fare in futuro — la vIPI ACC legata all'ACC, non ai settori d'area (29 settembre 2026)
+
+Rimandato dal committente alla chiusura degli enti ATC (S51, «lascialo com'è per ora»). Oggi la vIPI ACC è
+l'ultimo documento che vive sui settori (`Sector.DocumentId` + `IsPrimary` sui CTR e sugli APP remotizzati) e la
+sua chiave di pubblicazione è `ACC|CTR radice`: se IVAO rinomina o toglie il CTR radice, la chiave cambia. Lo
+stesso passo già fatto per gli scali (`Airport.DocumentId`, 25 agosto) e per gli APP (enti, S49): `Acc.DocumentId`,
+ponte d'avvio che porta i documenti sul legame nuovo e sgancia i settori, chiave = codice dell'ACC con le
+pubblicazioni già fatte che restano valide, lettori da spostare (descrittore, porta pubblica, `ScopeOf`, orfani,
+«Nuovo documento», segnalazioni). Migrazione sì. Carta: `docs/feature/2026-09-29-enti-atc.md` §5.
+
 ### ✅ S1 — Editor APP unito: «sezioni comuni» ricaricava la pagina (23 settembre 2026) — ONLINE in 1.43.0 (§A118)
 
 Segnalato su **LIRE** (APP unito al vSOP militare): premendo il tasto delle sezioni in comune la pagina si
@@ -32,6 +42,394 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
   (35849871249). Alla fusione in `main`, se il Lab ha cambiato lo stesso script, tenere tutt'e due le correzioni.
 
 ## Dove siamo — 22 settembre 2026 (mattina)
+
+### ✅ A148 — 1.56.0 ONLINE: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93), Discord (S94), account dell'evento (S95) (1 ottobre 2026)
+
+✅ Online il 1 ottobre 2026 (avvio 22:23:11Z): `Schema 0` confermato dal committente (le quattro migrazioni ci sono). Da
+fuori porta «Entra con IVAO», Ricerca 401, Healthy, scheda «Discord di divisione», `vipi-theme.css?v=df802ad9`. Scarico
+del 2-ott: nessun errore dal carico. 🔎 Sul 1-ott (1.55.x) **45 login falliti per nonce/correlazione** (15:30–21:37Z,
+quasi tutti «utente non collegato», cookie del nonce non trovato e token con un nonce diverso): il secondo giro
+automatico li recupera — 98 ritorni `/signin-oidc` tutti 302 e una sola visita a `accesso-non-riuscito`. È il primo
+giorno col login obbligatorio: da tenere d'occhio negli scarichi.
+
+MINOR con **quattro migrazioni additive** (`ApertureDocumenti`, `AccountEventoInUso`: due tabelle; `VidAccountEvento`,
+`VidSvuotaEvento`: due colonne in `EventKits`; `Up` solo Create/Add), su 1.55.1
+(`5493151`). Timbro **`1.56.0 · 2285a80`**. Fusi da `fix/lingua-editor-unione` @ `cafbdf9b` (CI verde run 36885632830)
+e `fix/aperture-documenti` @ `1e26ccc5` (CI verde run 36888703335). Conflitti di sola aggiunta: registro del Sito
+(tenute entrambe le voci) e `tests/conteggi/Vipi.Ui.Tests.txt`, rimisurato sul log: **1955** (1947 + 3 di S92 + 5 di
+S93).
+- **S92**: nel pannello di pubblicazione di un documento unito una riga «Lingua di pubblicazione» per membro, salvata
+  per ID del documento (assegnata dopo 1.55.1, caso LIRP).
+- **S93**: `AperturaDocumento` (una riga per documento e per giorno, solo pagine pubbliche); sulla pagina dell'ACC i
+  tre di ogni scheda: «in evidenza», poi i più aperti in 90 giorni (`ApertureDocumenti.Finestra`), poi per nome; numero
+  solo allo staff. Codice comune Domain, Application, Infrastructure. Carta `docs/feature/2026-10-01-aperture-documenti.md`.
+- **S94** (fuso da `fix/discord-transition` @ `699ea739`, CI verde run 36891785240): scheda esterna «Discord di
+  divisione» su `/services`; nella tabella SID sotto i 760px «Transition» → «Tran.». ⚠️ Entrata dopo il primo publish
+  (timbro `6ab77d4`, zip `a24eb888…`, MAI caricato, in `publish_old/20261001d-scartato-…`): timbro, publish e zip
+  rifatti.
+- **S95** (fuso da `fix/vid-evento` @ `5480f658`, CI verde run 36906204740): controllare con un account dell'evento —
+  lo staff scrive i VID in `/services/event`, in `/services` «Controlli con un account dell'evento?», la vista live usa
+  quel VID fino a fine evento, regge al riavvio (`AccountEventoInUso`), la lista si svuota da sola 7 giorni dopo la fine
+  (`VidSvuotaUtc`, pulizia oraria). `IEventKitRepository.ClearVidAsync` nuovo: unica implementazione in Infrastructure.
+  ⚠️ Entrata dopo il secondo publish (timbro `e705d6e`, zip `b23a3cf8…`, MAI caricato, in
+  `publish_old/20261001e-scartato-…`): timbro, publish e zip rifatti di nuovo.
+
+**17 file** (`solo-17-file-1.56.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui, Host (dll + pdb), `en/`,
+endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Zip 6,32 MB, sha256
+`631aa48e0056ac0ae9a1bf403b38d222074c6d67f61da69ecea64691eb14157e`. Build Release senza avvisi, test verdi, conteggi
+identici (App 3208, Infra 2083, Ui 1962). Prova sul publish win-x64: le quattro migrazioni applicate all'avvio,
+`pacchetto-verifica.js` verde (`TERMINE=LIBB`), pagina dell'ACC 200, scheda Discord in `/services`, `/services/event` 200. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.56.0.md`.
+
+### ✅ A147 — 1.55.1 ONLINE: lingua dei membri nei documenti uniti (S91) (1 ottobre 2026)
+
+✅ Online il 1 ottobre 2026: timbro confermato dal committente; da fuori porta, Healthy, asset invariati. ▶ Il committente
+nota che nell'**editor** dell'unione (LIRP) la lingua di vIPI e vSOP non si sceglie separatamente: S91 copre la vista,
+non l'editor → assegnato al Sito.
+
+PATCH **senza migrazioni**, su 1.55.0 (`395bce9`). Timbro **`1.55.1 · 5493151`**. Fuso da `fix/lingua-unione` @
+`94631ee8` (CI verde run 36877354788), senza conflitti. **S91**, solo Vipi.Ui: nei documenti uniti ogni membro tiene la
+sua regola di lingua (LIRP: vIPI bilingue, vSOP solo inglese), passata in cascata (`LinguaDelMembro`) ai componenti.
+
+**4 file** (`solo-4-file-1.55.1`): Ui e Host (dll + pdb). Fuori `en/` (nessuna `.resx` cambiata) e tutto `wwwroot`.
+Zip 2,81 MB, sha256 `8ac4d35c0a15f2c180ee1982bd6e72821d8a385f61dc9f07a371e4fb0f7ba0a3`. Build Release senza avvisi,
+test verdi, conteggi identici (Ui 1947). Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`).
+LIRP non è nella copia locale del DB: la prova a schermo è quella del Sito. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.55.1.md`.
+
+### ✅ A146 — 1.55.0 ONLINE: SID nella ricerca, vista live compatta e ricerca rapida (S83–S90) (1 ottobre 2026)
+
+✅ Online il 1 ottobre 2026 (avvio 14:21:39Z): timbro e `Schema 0` confermati dal committente. Da fuori porta «Entra con
+IVAO», Ricerca 401, Healthy, avviso «REAL LIFE OPERATIONS», `vipi-theme.css?v=24dacc67` e `vipi-ui.js?v=8e17bb72` (quelli
+del pacchetto). Scarico di `diagnostica/`: **nessun errore**; il processo 1.54.3 (pid 2049939) non si è spento in modo
+ordinato al cambio (nessuna riga ARRESTO): ucciso durante lo scambio, senza 500; tre disconnessioni alle 14:21:58,
+quelle del riavvio.
+
+MINOR **senza migrazioni**, su 1.54.3 (`b6ae28b`). Timbro **`1.55.0 · 395bce9`**. Fuso da `fix/sid-ricerca` @
+`f8758ceb` (CI verde run 36869904638), senza conflitti. Dentro: **S83** SID e STAR nella barra di ricerca
+(`IProcedureCercabili`, memoria 10 min) e nota radio sopra le SID; **S84** vista live compatta su una riga, avviso
+«… REAL LIFE OPERATIONS» ovunque, ora Z nella barra per tutti, telefono/tablet; **S85** callout «Importante»;
+**S86** riconnessione discreta sulle pagine pubbliche interattive; **S87** tasto vSOP accanto a Stampa; **S88–S90**
+ricerca rapida della vista live (`IRicercaLive`: scali, aree, postazioni/frequenze, punti SID/STAR, trasferimenti,
+radioassistenze). Codice comune Application, Infrastructure.
+
+**22 file** (`solo-22-file-1.55.0`): Application, Infrastructure, Ui, Host (dll + pdb), `en/`, endpoints.json,
+`vipi-aor.js`, `vipi-riconnessione.js`, `vipi-ui.js`, `vipi-theme.css` con `.br`/`.gz`. Fuori Domain, Hosting,
+MySqlMigrations, Aurora* (solo ricompilazione). Zip 5,79 MB, sha256
+`a0a67e63387cf907382bbbacf25ea185ff973f7ea0ecdb8bbc86d6619fcdee1b`. Build Release senza avvisi, test verdi, conteggi
+identici (App 3190, Infra 2075, Ui 1944, E2E 507). Prova sul publish win-x64: `pacchetto-verifica.js` verde
+(`TERMINE=LIBB`), avviso «REAL LIFE OPERATIONS», vista live 200; processo ucciso e riavviato con la vista live aperta →
+pagina ricaricata da sola, riquadro nascosto. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.55.0.md`.
+
+### ✅ A145 — 1.54.3 ONLINE: crediti nel piè di pagina (S82) (1 ottobre 2026)
+
+✅ Online il 1 ottobre 2026 (avvio 07:57:41Z, pid 1104952). Da fuori porta «Entra con IVAO», Ricerca 401, Healthy,
+`vipi-theme.css?v=eb3a1006` (quello del pacchetto). Scarico di `diagnostica/` dopo il carico: **nessun errore** dal
+30-set 19:40Z (stavolta niente 500 durante lo scambio); una sola disconnessione `rifiutata`, quella del riavvio.
+
+PATCH **senza migrazioni**, su 1.54.2 (`1a843c2`). Timbro **`1.54.3 · b6ae28b`**. Fuso da `fix/crediti-test` @
+`1950d288` (CI verde run 36830417031), senza conflitti. **S82**, solo Vipi.Ui: nel piè di pagina, sotto «Parte della
+IVAO», «Realizzato da Carmine (704798) · Testato da Nicola (201143) e Carmine (704798)», coi nomi al profilo IVAO.
+
+**9 file** (`solo-9-file-1.54.3`): Ui e Host (dll + pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`.
+Zip 3,04 MB, sha256 `564f673234b60b46199fdc80b3df3558f2503832e818bccabd9e32332b75e292`. Build Release senza avvisi,
+test verdi, conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`), riga dei
+crediti nel piè di pagina. Il foglio ora dice di non aprire il sito fra le rinomine e il `restart.txt` (§A144).
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.3.md`.
+
+### ✅ A144 — 1.54.2 ONLINE: Trasferimenti della vista live solo allo staff (S81) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026 (avvio 19:39:29Z, pid 2273133): timbro e `Schema 0` confermati dal committente; da fuori
+porta «Entra con IVAO», Healthy, `vipi-theme.css?v=9b57e765`. ⚠️ **Tre 500 durante lo scambio** (19:39:23–27Z, `GET /`
+e `/services` col login): `BadImageFormatException: Index not found` nel processo **vecchio** (1.54.1, pid 2232929,
+ancora acceso) che ha caricato pigramente il `Vipi.Ui.dll` appena rinominato, di un'altra build
+(`ResourceManagerStringLocalizerFactory.Create`). Spariti col riavvio: dalle 19:40 tutto 200 sul pid nuovo. Stessa
+famiglia del 23 e 24 settembre: finestra di pochi secondi fra le rinomine e il `restart.txt`, non un difetto del
+pacchetto.
+
+PATCH **senza migrazioni**, su 1.54.1 (`cab7337`). Timbro **`1.54.2 · 1a843c2`**. Fuso da `fix/trasferimenti-staff` @
+`3fc98525` (CI verde run 36764206590), senza conflitti. **S81**, solo Vipi.Ui: nella vista live la finestra
+Trasferimenti si apre solo allo staff di divisione; per gli altri una riga «In sviluppo» che non si apre.
+
+**9 file** (`solo-9-file-1.54.2`): Ui e Host (dll + pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`.
+Zip 3,03 MB, sha256 `361abdf6eb05db43beeac062118d10907d55620764d65a42ba40f71e42e2cd41`. Build Release senza avvisi,
+test verdi, conteggi identici (Ui 1932). Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`).
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.2.md`.
+
+### ✅ A143 — 1.54.1 ONLINE: testi (S80) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: timbro e `Schema 0` confermati dal committente. Da fuori, da anonimo: porta `/services`
+con «Entra con IVAO», Ricerca 401, `/vsop/health` Healthy, `vipi-theme.css?v=8aa52b0b` (quello del pacchetto).
+
+PATCH **senza migrazioni**, su 1.54.0 (`919b965`). Timbro **`1.54.1 · cab7337`**. Fuso da `fix/testi-dati-statistiche`
+@ `f6e9cd34` (CI verde run 36754025138), senza conflitti. **S80**, solo Vipi.Ui: «I miei dati» rimanda per la
+cancellazione alla FAQ di IVAO (`wiki.ivao.aero/en/home/members/faqs#delete-account`); «Richieste dal campo» →
+«Campo richieste»; «Presenze» → «Voli visti» con la riga che spiega voli visti e movimenti; testi degli aeroporti.
+
+**9 file** (`solo-9-file-1.54.1`): Ui e Host (dll + pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`.
+Zip 3,03 MB, sha256 `81e89039049a92802ad0280171887541dc19d2784be242dbb9771242bced6c31`. Build Release senza avvisi,
+test verdi, conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`), link FAQ e
+«Voli visti» a schermo. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.1.md`.
+
+### ✅ A142 — 1.54.0 ONLINE: login obbligatorio, registro degli accessi, «I miei dati» e altro (S65–S79) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: timbro, `Schema 0` e Ricerca (col login) confermati dal committente. Da fuori, da
+anonimo: `/` → `/services` con «Entra con IVAO», `/services/vsop/search` 401, `/services/cookies` 200, `/vsop/health`
+Healthy, `/vsop/api/v1/airports` 401; `vipi-riconnessione.js?v=35b01d25` e `vipi-theme.css?v=d6225e05`, con le
+impronte dei file del pacchetto.
+
+MINOR con **tre migrazioni additive** (`RegistroAccessi`, `NomeBreveAccessi`, `PaginaDelleRichieste`: una tabella e
+due colonne; `Up` solo Create/Add), su 1.53.0 (`d4bbebd`). Timbro **`1.54.0 · 919b965`**. Dentro S65 e S66 (§A141) e,
+fusi da `fix/segnala-pagina` @ `d13038da` (CI verde run 36736896238, senza conflitti), S67–S77, e da
+`fix/aperte-dieci` @ `6ebec388` (CI verde) S78: richieste aperte per VID da 5 a 10, e da `fix/disconnessioni` @
+`a83ecceb` (CI verde) S79: disconnessioni registrate dal browser (`POST /vsop/diag/disconnessione`, dietro login;
+`diagnostica/disconnessioni-*.tsv`, scheda in Diagnostica), niente riquadro di riconnessione sulle pagine statiche.
+⚠️ S78 e S79 sono entrate dopo i primi publish (timbri `d6eeab8` e `722e7b4`, zip `794c7935…` e `faf623e9…`, MAI
+caricati, archiviati in `publish_old/20260930g-scartato-…` e `20260930h-scartato-…`): timbro, publish e zip rifatti.
+- 🔴 **S67 login obbligatorio** (`CancelloDelLogin` nell'host): senza login solo la porta di `/services` con «Entra
+  con IVAO» e `/services/cookies`; aperti login, sonde, `/vsop/api/` con chiave, `/api/rfo/`. Si riapre con
+  `VipiAuth__LoginObbligatorio=false`. Da qui `pacchetto-verifica.js` con `SOLO_PUBBLICO=1` non può più fare la
+  Ricerca in produzione: la fa il committente col login.
+- **S68** registro degli accessi (12 mesi, solo admin, `/services/stats/logins`, nome breve per le classifiche) ·
+  **S69** WaitFor bUnit a 10 s per tutta la suite · **S70** «I miei dati» · **S71** titolo del documento dall'elenco
+  · **S72** statistiche nuove · **S73** ACC al buio · **S74** `AtcMonthRollup` potato a dieci anni · **S75** ricerca
+  senza JSON e in ordine · **S76** scheda «Prenotazioni ATC e FRA» · **S77** «Segnala un problema su questa pagina».
+
+**22 file** (`solo-22-file-1.54.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
+pdb), `en/`, endpoints.json, `vipi-riconnessione.js` e `vipi-theme.css` con `.br`/`.gz`. Fuori Aurora* (sorgente invariato). Zip
+6,26 MB, sha256
+`cbfb3e74fb26f532d04893d10074f24a74efc114bc1c94038fb49fcb0380f98b`. Build Release senza avvisi, test verdi, conteggi
+identici (Domain 167, App 3161, Infra 2074, Ui 1926, E2E 498). Prova sul publish win-x64: col login spento
+`pacchetto-verifica.js` verde (`TERMINE=LIBB`), tre migrazioni applicate, pagine nuove 200; col login acceso, da
+anonimo: `/` → `/services` con «Entra con IVAO», Ricerca/vIPI/«I miei dati» 401, cookie e `/vsop/health` 200, API
+401; rifatta sul publish con S78 e S79 (login spento: verde, timbro `919b965`, `POST
+/vsop/diag/disconnessione` 204; processo ucciso e riavviato → la pagina si ricarica da sola, riquadro nascosto). Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.54.0.md`. Storia: `docs/filoni/sito.md` S65–S79. ▶ Dopo: titolo di vIPI e vSOP
+MIL di LIML e ripubblicazione.
+
+### 🔀 A141 — in `main`, non ancora in pacchetto: vista live (S65) e pagina Chiavi API (S66) (30 settembre 2026) → in 1.54.0 (§A142)
+
+Fuso da `fix/pagina-chiavi-api` @ `bb5fb638` (CI verde run 36711311377), sha del cartellino del Sito. Il ramo era poi
+andato a `313794dc` allineandosi a `main` (solo i due file di doc già in `main`, stesso albero della fusione); la CI
+su quello sha è caduta su un test a tempo di S63 (`CorrezioniSpaziAereiPaginaTests.La_matita_apre_il_modulo…`,
+`WaitForAssertion` in timeout), segnalato al Sito. Build Release senza avvisi, test verdi, conteggi identici
+(Application 3155, Hosting 93, Ui 1905: i 5 test di Hosting tolti sono passati in `AwosGateTests`).
+- **S65** vista live: compaiono i campi che hanno solo il vSOP; uno scalo non risulta più «delegato» a chi lo guarda
+  (LIMF_WW0_APP); il pannello rapido mostra le SID del documento pubblicato; «vIPI, altrimenti vSOP» sta solo in
+  `AwosGate.Edizione`. Codice comune Application (AwosGate, Live, PisteDalPubblicato).
+- **S66** pagina Chiavi API: sezione «Indirizzi delle API» per chi integra, percorsi in un posto solo (`ApiRotte`,
+  Domain, usati anche dalle rotte vere); spunte dei permessi non più larghe al 100%.
+
+Niente migrazione, niente `deploy/`. ▶ Pacchetto **1.54.0** quando lo dice il committente (le `const` di `ApiRotte`
+in Domain sono copiate in Hosting: Hosting va spedito).
+
+### ✅ A140 — 1.53.0 ONLINE: API degli aeroporti (S64) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: `Schema 0` e Ricerca confermati dal committente. Da fuori `pacchetto-verifica.js` tutto
+verde, `/vsop/health` Healthy, `/vsop/api/v1/airports` 401 senza chiave (con 1.52.0 era 404).
+
+MINOR **senza migrazioni**, su 1.52.0 (`1a72e24`). Timbro **`1.53.0 · d4bbebd`**. Fuso da `fix/api-aeroporti` @
+`fd60631f` (CI verde run 36706270816), senza conflitti; il ramo portava anche il commit di sola documentazione
+`dbbafeff` di `sito/lavori`.
+- **S64**: `GET /vsop/api/v1/airports`, `/{icao}`, `/{icao}/sids`, `/{icao}/stars` (`?runway=`) — la vista pubblica
+  del documento dietro chiave API obbligatoria col permesso nuovo «Aeroporti»; 401 senza chiave, 403 senza permesso.
+  Il nome dei vSOP militari perde «MIL» per intero (`AwosGate.NomeDalTitolo`). Codice comune Domain (`ApiEndpoints`),
+  Application (`AwosGate`). Carta `docs/feature/2026-09-30-api-aeroporti.md`.
+- Nello stesso ramo il test a tempo di S63 (`SpaziAereiAdminUnGestoAllaVoltaTests`, doppio clic su «Metti in vigore»):
+  cerca e clicca dentro il dispatcher; la pagina era giusta.
+
+**11 file** (`solo-11-file-1.53.0`): Domain, Application, Hosting, Ui, Host (dll + pdb) e `en/`. Fuori Infrastructure,
+MySqlMigrations, Aurora* (solo ricompilazione) e tutto `wwwroot` con l'indice. Zip 4,25 MB, sha256
+`214c8a17143cf112b3d75fc64e8f5df7a6a8f272b3665e9644bf9e8bc3b4d6d4`. Build Release senza avvisi, test verdi (App 3145,
+Hosting 98, E2E 465), conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (`TERMINE=LIBB`),
+`/vsop/api/v1/airports` 401 senza chiave e con chiave sconosciuta. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.53.0.md`.
+Storia: `docs/filoni/sito.md` S64.
+
+### ✅ A139 — 1.52.0 ONLINE: correzioni a mano degli spazi aerei (S63) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: `Schema 0` e Ricerca confermati dal committente. Da fuori `pacchetto-verifica.js` tutto
+verde («13 results for LIRF», console pulita), `/vsop/health` Healthy, `vipi-theme.css?v=a02e6153` (nuovo).
+
+MINOR con **una migrazione additiva** (`CorrezioniSpaziAerei`: una tabella e un indice unico), su 1.51.0 (`b57fe44`).
+Timbro **`1.52.0 · 1a72e24`**. Fuso da `fix/correzioni-spazi-aerei` @ `f4224893` (CI verde run 36692566471), senza
+conflitti; il ramo portava anche il commit di sola documentazione `14bf29e9` di `sito/lavori`.
+- **S63**: in `/services/vsop/admin/airspace` si correggono a mano tipo, classe, base e tetto dei volumi che l'AIP
+  sbaglia. Le correzioni stanno in una tabella a parte, citano la chiave del file (`FAMIGLIA|NOME|BASE|TETTO`) e si
+  sovrappongono in lettura nel catalogo e negli agganci dei settori; dopo un caricamento il blocco «Da controllare»
+  segnala i campi corretti che il file ha cambiato, e «Va bene»/«Prendi il file» spostano gli agganci sulla chiave
+  nuova. La pagina dice che cosa sta facendo durante i gesti lunghi. Codice comune Application, Domain,
+  Infrastructure. Carta `docs/feature/2026-09-30-correzioni-spazi-aerei.md`.
+
+**17 file** (`solo-17-file-1.52.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui, Host (dll + pdb),
+`en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Fuori Hosting e Aurora* (cambiati solo per la
+ricompilazione); `IAirspaceCatalog` ha una sola implementazione, in Infrastructure. Zip 6,08 MB, sha256
+`7d975e3c49bc1f16b5646afddf36a6d0a82f64b3f76e3ebb4dd3e4e4c1d70de6`. Build Release senza avvisi, test verdi (App 3144,
+Infra 2052, Ui 1904, E2E 463), conteggi identici. Prova sul publish win-x64: `pacchetto-verifica.js` verde (la
+Ricerca con `TERMINE=LIBB`: la copia locale del DB non ha LIRF fra i pubblicati), migrazione applicata all'avvio,
+colonna «Correction» in inglese. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.52.0.md`. Storia: `docs/filoni/sito.md`
+S63.
+
+### ✅ A138 — 1.51.0 ONLINE: profili per l'evento, pagina dei cookie, pulizia delle richieste, S58 (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: `Schema 0` confermato dal committente (la migrazione `ProfiliEvento` è entrata). Da
+fuori: `/vsop/health` Healthy, Ricerca «13 results for LIRF», console pulita (`pacchetto-verifica.js` tutto verde);
+`/services/event` e `/services/cookies` rispondono; nel piè di pagina IVAO Italia e Cookie; `vipi-theme.css?v=bc9b9e88`
+con gli stili nuovi, `vipi-awos.css?v=d32a84cc` con `position:fixed`.
+
+MINOR con **una migrazione additiva** (`ProfiliEvento`: due tabelle e un indice), su 1.50.0 (`e7742ff`); la 1.50.1
+(§A137) non è mai stata caricata ed entra qui. Timbro **`1.51.0 · b57fe44`**. Fusi da `fix/profili-evento` @
+`8c1d9311` (S59, CI verde run 36648376364) e da `fix/richieste-pulizia` @ `6446d953` (S60–S62 in fila, CI verde run
+36651923564); i conflitti (registro del Sito, frasi IT/EN, `vipi-theme.css`) erano tutti aggiunte nello stesso punto:
+tenute entrambe. Conteggi rimisurati sul log: Ui 1899 (1895 + 4 di S61), Infrastructure 2041 (2039 + 2 di S62),
+Application 3125, E2E 463.
+- **S59** profili per l'evento: `/services/event` pubblica, accesa dallo staff (interruttore + date), file per
+  postazione fino a 3 MB e link Drive; «Evento in corso» nell'hub. Codice comune Application, Domain, Hosting,
+  Infrastructure, Host (la cache delle letture anonime esclude `/event/file`). Carta
+  `docs/feature/2026-09-30-profili-evento.md`.
+- **S60** link a IVAO Italia nel piè di pagina · **S61** `/services/cookies`, solo cookie tecnici, niente banner ·
+  **S62** richieste dal campo eliminabili dall'Admin, le chiuse cancellate dopo tre mesi dal giro notturno
+  (`TrafficRetentionHostedService`).
+
+**22 file** (`solo-22-file-1.51.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
+pdb), `en/`, endpoints.json, `vipi-awos.css` e `vipi-theme.css` con `.br`/`.gz`. Zip 6,10 MB, sha256
+`7b58e7c2997fbcae00d8ce68023aa008292cfd7fb6901a3271267d22906bf609`. Build Release senza avvisi, test verdi, conteggi
+identici. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.51.0.md`. Storia: `docs/filoni/sito.md` S59–S62.
+▶ Caricamento del committente.
+
+### ⛔ A137 — 1.50.1 MAI CARICATA (confluita in 1.51.0, §A138): vAWOS ancorato alla finestra, bandierina «segnala», switch Errore/Suggerimento (30 settembre 2026)
+
+PATCH senza migrazioni, su 1.50.0 (`e7742ff`). Timbro **`1.50.1 · e666236`**. Fuso da `fix/vawos-segnala` @ `03d566ff`
+(Sito S58, CI verde run 36644840764): il vAWOS è ancorato alla finestra (`position:fixed; inset:0`, via `vh` e
+`min-height:max-content`: con S57 in Edge scorreva ancora); al posto della parola «Segnala» una bandierina ⚑ con
+tooltip su ogni titolo di sezione, sotto-sezioni e vIPI ACC comprese; switch Errore/Suggerimento nel modulo delle
+richieste. **12 file** (`solo-12-file-1.50.1`): Ui e Host (dll + pdb), `en/`, endpoints.json, `vipi-awos.css` e
+`vipi-theme.css` con `.br`/`.gz`. Zip 2,95 MB, sha256
+`264a8f6cbf51b363f120138b91409be98e74a52145322ef2f1e4a168c3b073dd`. Build Release senza avvisi, test verdi (Ui 1888),
+conteggi identici. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.50.1.md`. Storia: `docs/filoni/sito.md` S58.
+▶ Caricamento del committente.
+
+### ✅ A136 — 1.50.0 ONLINE: richieste dal campo (S56) e vAWOS in Edge (S57) (30 settembre 2026)
+
+✅ Online il 30 settembre 2026: timbro, `Schema 0` e il link «Report» confermati dal committente (la migrazione
+`RichiesteDalCampo` è entrata). Da fuori: `/vsop/health` Healthy, Ricerca «13 results for LIRF», console pulita
+(`pacchetto-verifica.js`, tutto verde); la pagina vAWOS chiede `vipi-awos.css?v=f36639b1`, che è il file nuovo
+(`100dvh`), e non ha più TEST METAR. ⚠️ L'URL **senza** `?v=` restava il vecchio nella cache di Cloudflare: innocuo,
+il sito chiede sempre quello con l'impronta.
+
+**Pacchetto 1.50.0**, MINOR con **una migrazione additiva** (`RichiesteDalCampo`), su 1.49.0 (`89bfb04`). Timbro
+**`1.50.0 · e7742ff`**. **20 file** (`solo-20-file-1.50.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui,
+Host (dll + pdb), `en/`, `Vipi.Host.staticwebassets.endpoints.json` e `vipi-awos.css/.js` con `.br`/`.gz`; Hosting fuori
+(solo un commento). Zip 5,87 MB, sha256 `30fb29b6ae4d6e81d1d3c651dd53934dad358994facbcbc9345a30ec197727ad`. Build
+Release senza avvisi, test verdi, conteggi identici. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.50.0.md`.
+▶ Caricamento del committente.
+
+**S57** (fuso da `fix/vawos-schermo` @ `5792ec17`, CI verde run 36639468032): il vAWOS prende l'altezza visibile
+(`100dvh`: in Edge `100vh` superava la finestra e il quadro scorreva) e il tasto TEST METAR esce dal quadro (il
+`?test=` resta all'API, per lo staff). Conteggi Ui 1886. Storia: `docs/filoni/sito.md` S57.
+
+**S56** fuso da `fix/richieste-campo` @ `6986f071` (CI verde, run 36637362166). Chi è connesso manda una «richiesta dal campo» su una sezione (link «Segnala» accanto ai titoli delle
+sezioni radice, solo in vista pubblica e `noprint`) dalla pagina `/services/vsop/requests`; lo staff la vede lì e in
+«Da fare», la prende in carico (nasce un incarico legato) e la chiude con una risposta obbligatoria, e chiudendola
+chiude anche l'incarico. Limiti: 5 aperte e 10 al giorno per VID, 2000 caratteri. Registra il rilascio in vigore
+all'invio. **Migrazione additiva** `RichiesteDalCampo` (SQLite + MySQL: tabella `FieldRequests`,
+`EditorTask.FromRequestId`). Codice comune `Vipi.Application`, `Vipi.Domain`. Conteggi Application 3103,
+Infrastructure 2033, Ui 1884: build Release senza avvisi, tutti i test verdi, `conta-test.sh` identico all'atteso.
+Provato a schermo dal Sito sulla copia del 29-set. Il secondo canale (staff → sviluppatore) resta rimandato (§CJ,
+strada B-1). Storia: `docs/filoni/sito.md` S56, `docs/design/piano-segnalazioni.md`.
+
+### ✅ A135 — 1.49.0 ONLINE: pagina Enti ATC, «Sostituisci con…», enti dei gruppi APP (29–30 settembre 2026)
+
+✅ Online il 30 settembre 2026: timbro e `Schema 0` confermati dal committente (la migrazione `EntiGruppiAcc` è
+entrata). Da fuori: `/vsop/health` Healthy, Ricerca «13 results for LIRF». CI di `main` verde (run 36636587162).
+
+MINOR con **una migrazione** (`EntiGruppiAcc`: indice composto al posto di quello su `AccId`, nessuna tabella o
+colonna tolta; rollback valido). Su 1.48.0 (`e292a1e`). Timbro **`1.49.0 · 89bfb04`**. Fuso da `fix/enti-acc` (S53
+pagina `/services/vsop/admin/units`, S54 «Sostituisci con…» dagli orfani della Struttura, S55 enti per i gruppi APP
+della vIPI ACC). **15 file** (`solo-15-file-1.49.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting,
+Ui, Host (dll + pdb) e `en/`; niente `wwwroot`. Zip 5,85 MB, sha256
+`08799c5e26cba54a2e9227b347b5e3565554e7d2c445f8d32d232699fc1ebb83`. Test verdi, conteggi identici. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.49.0.md`. ▶ Caricamento del committente. `lab/f3` NON fuso (consegna del Lab
+decisa dal committente).
+
+### ✅ A134 — 1.48.0 ONLINE: enti ATC, vIPI/vSOP dello scalo, vAWOS in uno schermo (29 settembre 2026)
+
+✅ Online il 29 settembre 2026: timbro e `Schema 0` confermati dal committente (la migrazione `EntiAtc` è entrata). Da
+fuori: `/vsop/health` Healthy, Ricerca «13 results for LIRF». CI di `main` verde (run 36604692802).
+
+MINOR con **una migrazione additiva** (`EntiAtc`: 2 tabelle, 5 indici; rollback valido). Su 1.47.3 (`de51b76`).
+Timbro **`1.48.0 · e292a1e`**. Fusi da `fix/enti-atc` (che contiene `sito/lavori`): S47 vAWOS in uno schermo con una
+pista come con tre; S48 la vIPI e il vSOP sono dello scalo e le posizioni sparite da IVAO escono da sole (al primo
+import **LIBG_TWR** e **LIRE_TWR**: risponde alla domanda del committente sul «LIBG_TWR che non esiste più»); S49–S52
+enti ATC fasi 1–3 (la vIPI APP è di un ente, «Remotizza», derivazione da tutte le posizioni) e revisione.
+**19 file** (`solo-19-file-1.48.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
+pdb), `en/`, `vipi-awos.css` con `.br`/`.gz`, `Vipi.Host.staticwebassets.endpoints.json`. Zip 5,83 MB, sha256
+`4cbc457b682623d31b47ebe8c73099e7174929a965b42505efdaf09b14149d28`. Test verdi, conteggi identici. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.48.0.md`. ▶ Caricamento del committente; poi gesti: LIRE_APP → ente con LIRE_TWR
+principale; ripubblicare vIPI/vSOP di LIBG e LIRE dopo il primo import; «Remotizza» al posto della spunta a mano.
+Rimandata dal committente: la vIPI ACC legata all'ACC (Sito, «Da fare in futuro»).
+
+### ✅ A133 — 1.47.3 ONLINE: piè di pagina sistemato (29 settembre 2026)
+
+✅ Online il 29 settembre 2026: timbro e `Schema 0` confermati dal committente. Da fuori: `vipi-theme.css?v=1e7773f0`
+come nel pacchetto, link legali verso `wiki.ivao.aero`, riga «Realizzato da», `/vsop/health` Healthy, Ricerca
+«13 results for LIRF». CI di `main` verde (`8da09d67`).
+
+PATCH, **nessuna migrazione**, su 1.47.2 (`5bc663d`). Timbro **`1.47.3 · de51b76`**. Fuso da `sito/lavori` S46: link
+legali del piè di pagina verso la wiki di IVAO (ivao.aero rispondeva 404), stesso colore della barra, riga «Realizzato
+da Carmine (704798)». **9 file** (`solo-9-file-1.47.3`): Ui, Host (dll + pdb), `en/`, `vipi-theme.css` con
+`.br`/`.gz`, `Vipi.Host.staticwebassets.endpoints.json`. Zip 2,89 MB, sha256
+`94bd9cfa59a3867a1f860831f695c857cf1feccf29215befc42b63330cf4d7c0`. Test verdi, conteggi identici.
+
+### ✅ A132 — 1.47.2 ONLINE: piè di pagina, scheda dello scalo con vIPI e vSOP (29 settembre 2026)
+
+✅ Online il 29 settembre 2026 (caricato dal committente prima che il Sito segnalasse i link del piè di pagina: da fuori
+`vipi-theme.css?v=7e11464f`, come nel pacchetto). PATCH, nessuna migrazione, su 1.47.1. Timbro **`1.47.2 · 5bc663d`**,
+ora nel **piè di pagina** (staff) e non più in barra. S44 (piè di pagina) e S45 (clic fuori dalle due voci della scheda
+di uno scalo con vIPI e vSOP → documento della categoria). **12 file**, zip 2,90 MB, sha256
+`2bf0caa8f76437c8478ba416e2d8e2e2610a450acfd0ab1134f1cc8befc876d1`. ⚠️ I link legali del piè di pagina rispondevano
+404 → corretti in 1.47.3.
+
+### ✅ A131 — 1.47.1 ONLINE: /vsop/health di nuovo Healthy, nonce del consenso IVAO, sei punti vSOP (29 settembre 2026)
+
+✅ Online il 29 settembre 2026. Il committente conferma timbro e `Schema 0`. Da fuori: `/vsop/health` = **Healthy**
+(era `Degraded` su 1.47.0), asset del pacchetto serviti (`vipi-theme.css?v=f2e56ea8`, `vipi-ui.js?v=e2b4b80c`), Ricerca
+«13 results for LIRF». ▶ Resta: il login col VID 704798 (consenso IVAO revocato apposta) deve entrare al primo clic,
+registro «Secondo giro: False»; Azure Translator 401 dal 27-set (chiave nei segreti, gesto del committente).
+
+PATCH, **nessuna migrazione**, su 1.47.0 (`067a737`). Timbro **`1.47.1 · c41e6e7`**. Fusi da `sito/lavori` S41
+(rilievo «Trasferimento senza ripiego» senza settori di ACC esteri: era il Degraded, LIMM_WS2_CTR → LSAG_TST_CTR), S42
+(nonce perso dalla pagina di consenso IVAO: il sito rifà il giro una volta, come l'hub PR 174), S43 (sei punti della
+vSOP). **13 file** (`solo-13-file-1.47.1`): Application, Ui, Host (dll + pdb), `vipi-theme.css` e `vipi-ui.js` con
+`.br`/`.gz`, `Vipi.Host.staticwebassets.endpoints.json`. Zip 3,97 MB, sha256
+`3e61979085f2680e6af5950ad1a2b19f4d637508022e75b285b8cc238c61dacf`. Test verdi, conteggi identici (`conta-test.sh`,
+che col cancello corretto il 29-set torna a partire).
+
+### ✅ A130 — 1.47.0 ONLINE: la revisione totale 3 (29 settembre 2026)
+
+✅ Online il 29 settembre 2026, prima della scadenza U-009 (1-ott 00:00Z). Verificato da fuori: il sito serve gli
+asset del pacchetto (`vipi-boot.js?v=1fd64a8d`, `vipi-aor.js?v=59274ecb`, come in `IMPRONTE.txt`) e la Ricerca
+**trova** («13 results for LIRF», documenti di LIRF), circuito Blazor aperto. ▶ Da confermare col login: timbro
+`1.47.0 · 067a737`, `Schema 0`, #187 di LIBV_APP superata, passate d'avvio finite nel log. ▶ `/vsop/health` risponde
+`Degraded` (da 1.47.0 solo per un controllo in `Error`, U-100): guardare in Diagnostica quale.
+
+MINOR con **tre migrazioni additive** (`AliasPerScalo`, `ProcedureSostituite`, `SectorfileDifferito`; tolto solo un
+indice), rollback a due rinomine valido. Su 1.46.5 (`e24557e`). Timbro **`1.47.0 · 067a737`**. Fusi da
+`sito/lavori`: `3b9389c4` (S9–S39, 82 commit) e S40 (test stabilizzato); CI verde su `main` (run 36498019635).
+**52 file** (`solo-52-file-1.47.0`): Domain, Application, Infrastructure, Infrastructure.MySqlMigrations, Hosting,
+Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`, 12 file di `wwwroot` con `.br`/`.gz` e
+`Vipi.Host.staticwebassets.endpoints.json`. Fuori, per impronta e diff: `Vipi.AuroraBridge.Contracts`,
+`Vipi.AuroraProfiles` (solo MVID). Zip `vipi-1.47.0-solo-file-cambiati.zip`, 5,94 MB, sha256
+`c75ca416c80e834b2f69d1c7f4f0cfe73c26dcac6a4f381ba78961a7672912ef`. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.47.0.md`.
+
+Contenuto: il registro `docs/history/audit-2026-09-26-revisione-totale-3.md` (256 voci, 0 S1, 18 S2), lotti L1…L11
+corretti, dettaglio voce per voce in `docs/filoni/sito.md` S9–S40; più il login IVAO «nonce» recuperato dallo state
+(S29). ⚠️ La prova del PACCHETTO in locale (passo 6) non è stata fatta: il committente aveva già caricato; al suo
+posto la prova su produzione (6-bis) qui sopra.
+
+▶ **Gesti del committente dopo il caricamento** (dal foglio): ricaricare `it.kmz` (U-119); LIRS/LIRL sciogliere o
+riapplicare la scheda e ripubblicare; LICT ripuntare `TRP|VHF|25X` → `TRP|VHF|`; U-105 Brindisi CS0 e Perugia
+Approach; occhiata alle 2 torri su 68 non riconosciute; U-094 recupero delle 198 sessioni (da decidere); 512 KB
+all'host di ivao.it (U-016); riga «Nonce» del registro dei login al prossimo scarico; U-021 da misurare.
 
 ### ✅ A129 — 1.46.5 ONLINE: nominativo doppio ATC, Versioni per tutta l'unione, «Modifica» (25 settembre 2026)
 
@@ -14362,6 +14760,11 @@ valido. Il suggerimento c'è nei primi cinque, sparisce nel sesto, e il modulo r
 esiste — non il rettangolo giallo sullo schermo.
 
 ## §CJ — Un sistema di feedback a due canali: carta ragionata e RIMANDATA — 9 settembre 2026
+
+> ▶ **Ripresa il 29 settembre 2026 (Sito, S56):** il canale 1 (utente → staff) è **fatto** sul ramo
+> `fix/richieste-campo` — nome «richiesta dal campo», provato a schermo. Il canale 2 (staff → sviluppatore) resta
+> **rimandato** per decisione del committente; lo sviluppatore avrà un login admin, quindi sarà la strada B-1.
+> Dettagli: `docs/design/piano-segnalazioni.md` §8 e intestazione, `docs/filoni/sito.md` S56.
 
 **Non è un lavoro fatto: è una decisione presa e messa per iscritto perché non si ripensi da zero.**
 Nessuna riga di codice, nessuna migrazione, niente in `main` oltre a questa pagina e a

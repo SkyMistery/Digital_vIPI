@@ -1,6 +1,6 @@
 @* Sezione adattiva: livello 0 = card .block; livelli annidati = .coord-sub / .coord-sub2 (stile mockup).
    Il corpo (blocchi + sotto-sezioni) è condiviso con i viewer che si fanno l'involucro da sé: SectionBody. *@
-@inject IStringLocalizer<SharedResource> L
+@inherits ComponenteDelDocumento
 @{
     var depth = Section.Depth + DepthOffset;
 }
@@ -23,6 +23,7 @@ else if (depth <= 0)
                 @* Il badge del destinatario vale anche sulle SOTTO-sezioni: nel vSOP militare venti delle
                    ventisei sezioni sono figlie, e marcare solo le radici lascerebbe fuori quasi tutto. *@
                 <AudienceBadge Audience="Section.Audience" />
+                @if (!Section.IsHidden) { <ReportLink Href="@ReportHrefOf?.Invoke(Section)" /> }
             </h3>
         </Header>
         <ChildContent>@Corpo()</ChildContent>
@@ -33,7 +34,9 @@ else
     <details class="@(depth == 1 ? "coord-sub" : "coord-sub2")" id="@Section.Id" open
              style="@(Section.IsHidden ? "opacity:.65" : null)">
         <summary>
-            <span>@Section.Title</span>
+            @* La bandierina anche sulle SOTTO-sezioni (committente, 30 settembre 2026: «su ogni sezione»), DENTRO lo
+               span del titolo: il summary distribuisce i suoi figli sulla riga, e da figlio a sé finiva a metà. *@
+            <span>@Section.Title@if (!Section.IsHidden) { <ReportLink Href="@ReportHrefOf?.Invoke(Section)" /> }</span>
             @if (Section.IsHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
             <AudienceBadge Audience="Section.Audience" />
             <span class="sum-right"><span class="chev">▸</span></span>
@@ -65,12 +68,13 @@ else
                figlia «sopra il corpo» uscita SOTTO la scheda (4 settembre 2026), e figlie rese due volte. *@
             <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft"
                          ShowBlocks="SectionCatalog.KeepsOwnBlocks(Profile!.Value, Section.SectionKey)"
-                         Scheda="DerivedContent!(Section)" Profile="Profile" DerivedContent="DerivedContent" />
+                         Scheda="DerivedContent!(Section)" Profile="Profile" DerivedContent="DerivedContent"
+                         ReportHrefOf="ReportHrefOf" />
         }
         else
         {
             <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft"
-                         Profile="Profile" DerivedContent="DerivedContent" />
+                         Profile="Profile" DerivedContent="DerivedContent" ReportHrefOf="ReportHrefOf" />
         }
     };
 
@@ -94,6 +98,10 @@ else
     /// <summary>Vista bozza: le sezioni nascoste si vedono, marcate. ⚠️ Il default <c>false</c> è quello
     /// prudente — chi dimentica di passarlo <b>nasconde</b>, non pubblica per sbaglio.</summary>
     [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>Il link «Segnala» (S56), solo sulle radici: le sotto-sezioni stanno dentro, e la richiesta porta
+    /// comunque la chiave della radice. Null = niente link.</summary>
+    [Parameter] public Func<SectionView, string?>? ReportHrefOf { get; set; }
 
     /// <summary>
     /// Se la sezione RADICE nasce aperta. Null = decide il catalogo (le sezioni di documento che nascono

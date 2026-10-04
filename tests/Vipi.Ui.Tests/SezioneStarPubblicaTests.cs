@@ -80,4 +80,20 @@ public class SezioneStarPubblicaTests : TestContext
         Assert.Contains("Airport_NoStarsTitle", cut.Markup);
         Assert.DoesNotContain("Airport_NoSidsTitle", cut.Markup);
     }
+
+    /// <summary>
+    /// «Transition» sul telefono (committente, 1 ottobre 2026): la colonna è stretta e la parola finiva sopra
+    /// «Initial climb». L'intestazione porta tutt'e due le forme — il foglio sceglie «Tran.» sotto i 760px — e quella
+    /// corta dice per esteso che cosa abbrevia.
+    /// </summary>
+    [Fact]
+    public void Transition_ha_anche_la_forma_corta_per_il_telefono()
+    {
+        var th = Rendi(ProcedureKind.Sid).Find("th.col-trans");
+
+        Assert.Equal("Transition", th.QuerySelector(".th-lungo")!.TextContent);
+        var corta = th.QuerySelector("abbr.th-corto")!;
+        Assert.Equal("Tran.", corta.TextContent);
+        Assert.Equal("Transition", corta.GetAttribute("title"));
+    }
 }

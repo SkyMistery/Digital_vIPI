@@ -102,20 +102,32 @@
     @* ---- Lingua di pubblicazione (carta 2026-08-31-lingua-bloccata.md §6) ------------------------------
        ⚠️ STA QUI, accanto ai tasti che pubblicano, e non in un pannello suo: la domanda è «in che lingua
        esce questo documento», e ci si pensa nel momento in cui lo si manda fuori. *@
-    @if (_lingua is { } stato)
+    @*  ⚠️ In un'UNIONE una riga per documento (S92, 1-ott): la regola di lingua è di ogni documento — LIRP ha la
+        vIPI bilingue e il vSOP solo in inglese — e la vista la rispetta membro per membro dalla S91. Una riga sola
+        avrebbe impostato solo il documento della porta, e il vSOP restava senza un posto dove dirlo. *@
+    @if (_lingue.Count > 0)
     {
-        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px">
+        <div style="margin-top:10px">
             <b><Icon Name="globe" /> @L["Lang_LockLabel"]</b>
-            <select class="app-in" style="max-width:180px" disabled="@_busy"
-                    value="@(stato.Language == Vipi.Domain.Language.En ? "en" : "it")"
-                    @onchange="CambiaLingua">
-                <option value="it">@L["Lang_NameIt"]</option>
-                <option value="en">@L["Lang_NameEn"]</option>
-            </select>
-            <label style="display:flex;align-items:center;gap:6px">
-                <input type="checkbox" checked="@stato.Locked" disabled="@_busy" @onchange="CambiaBlocco" />
-                @L["Lang_LockToggle"]
-            </label>
+            @foreach (var riga in _lingue)
+            {
+                <div class="lang-row" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px">
+                    @if (_lingue.Count > 1)
+                    {
+                        <span style="min-width:280px">@riga.Titolo</span>
+                    }
+                    <select class="app-in" style="max-width:180px" disabled="@_busy"
+                            value="@(riga.Stato.Language == Vipi.Domain.Language.En ? "en" : "it")"
+                            @onchange="e => CambiaLingua(riga, e)">
+                        <option value="it">@L["Lang_NameIt"]</option>
+                        <option value="en">@L["Lang_NameEn"]</option>
+                    </select>
+                    <label style="display:flex;align-items:center;gap:6px">
+                        <input type="checkbox" checked="@riga.Stato.Locked" disabled="@_busy" @onchange="e => CambiaBlocco(riga, e)" />
+                        @L["Lang_LockToggle"]
+                    </label>
+                </div>
+            }
         </div>
         <p class="help" style="margin:4px 0 0">@L["Lang_LockHelp"]</p>
     }
@@ -365,9 +377,6 @@
     private IReadOnlyList<ReleaseInfo> Vecchie =>
         _rels.Where(r => !r.IsEffectiveNow && r.Status != ReleaseStatus.Scheduled).Skip(3).ToList();
 
-    /// <summary>Lingua e blocco del documento di questo bersaglio; null = non risolto (o servizio assente),
-    /// e allora il controllo non si mostra invece di mostrarne uno che non salva.</summary>
-    private Vipi.Application.Content.DocumentLanguageState? _lingua;
 
     private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
@@ -467,7 +476,7 @@
         // ⚠️ Il servizio si RISOLVE, come il roster qui sopra e per la stessa ragione: questo pannello lo
         // montano cinque editor più i test, e renderlo obbligatorio lo renderebbe non montabile per chi non
         // l'ha registrato. Assente ⇒ niente controllo della lingua, non un errore.
-        _lingua = Admin is null ? null : await Admin.GetLanguageAsync(Documento());
+        await RicaricaLingue();
         await RicaricaAvviso();
     }
 
@@ -486,24 +495,51 @@
         Servizi.GetService(typeof(Vipi.Application.Content.IDocumentAdminService))
             as Vipi.Application.Content.IDocumentAdminService;
 
+    /// <summary>Una riga del controllo della lingua: un documento — questo, o un membro della sua unione.</summary>
+    internal sealed record RigaLingua(Vipi.Application.Content.ManagedDocRef Doc, string Titolo,
+                                      Vipi.Application.Content.DocumentLanguageState Stato);
+
+    /// <summary>
+    /// Le righe: il solo documento di questo pannello, o tutti i membri dell'unione nell'ordine in cui la
+    /// pubblicazione li tocca. Vuoto = servizio assente o documento non risolto: niente controllo, non un errore.
+    /// <para>⚠️ I membri per ID DEL DOCUMENTO, non per chiave: è quello che <c>BersagliUnitiAsync</c> sa con
+    /// certezza, e un vSOP militare e una vIPI civile dello stesso scalo hanno la STESSA chiave (l'ICAO).</para>
+    /// </summary>
+    private List<RigaLingua> _lingue = new();
+
+    private async Task RicaricaLingue()
+    {
+        var righe = new List<RigaLingua>();
+        if (Admin is { } admin)
+        {
+            var documenti = _uniti.Count > 1
+                ? _uniti.Select(m => (new Vipi.Application.Content.ManagedDocRef(m.Type, m.Key, m.DocumentId), m.Titolo)).ToList()
+                : new List<(Vipi.Application.Content.ManagedDocRef, string)> { (Documento(), "") };
+            foreach (var (doc, titolo) in documenti)
+                if (await admin.GetLanguageAsync(doc) is { } stato)
+                    righe.Add(new RigaLingua(doc, titolo, stato));
+        }
+        _lingue = righe;
+    }
+
     /// <summary>La lingua in cui il documento si REDIGE. ⚠️ Cambiarla non traduce niente e non pretende di
     /// farlo: dice da quale lingua si parte, e su un documento già scritto va cambiata sapendolo.</summary>
-    private Task CambiaLingua(ChangeEventArgs e) =>
-        SalvaLingua(
+    private Task CambiaLingua(RigaLingua riga, ChangeEventArgs e) =>
+        SalvaLingua(riga,
             (e.Value?.ToString() ?? "it") == "en" ? Vipi.Domain.Language.En : Vipi.Domain.Language.It,
-            _lingua?.Locked ?? false);
+            riga.Stato.Locked);
 
-    private Task CambiaBlocco(ChangeEventArgs e) =>
-        SalvaLingua(_lingua?.Language ?? Vipi.Domain.Language.It, e.Value is true);
+    private Task CambiaBlocco(RigaLingua riga, ChangeEventArgs e) =>
+        SalvaLingua(riga, riga.Stato.Language, e.Value is true);
 
-    private async Task SalvaLingua(Vipi.Domain.Language lingua, bool bloccata)
+    private async Task SalvaLingua(RigaLingua riga, Vipi.Domain.Language lingua, bool bloccata)
     {
         if (Admin is not { } admin || _busy) return;   // sentinella: vedi Run
         _busy = true; _error = _ok = null;
         try
         {
-            await admin.SetLanguageAsync(Documento(), lingua, bloccata);
-            _lingua = await admin.GetLanguageAsync(Documento());
+            await admin.SetLanguageAsync(riga.Doc, lingua, bloccata);
+            await RicaricaLingue();
             _ok = L["Lang_Saved"];
             // L'host ridisegna: la pagina che ospita l'editor mostra la lingua anche altrove.
             await Published.InvokeAsync();

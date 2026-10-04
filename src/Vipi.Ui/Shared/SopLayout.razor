@@ -8,7 +8,12 @@
 @inject IStringLocalizer<SharedResource> L
 @inject ILogger<SopLayout> Log
 
-<div class="vipi-root">
+@* `data-riconnessione`: una pagina SSR statica (i documenti, la home, la ricerca) ha al più qualche isola — il badge
+   Live, il meteo — e se il loro circuito cade non c'è niente di suo da perdere: vipi-riconnessione.js allora non
+   copre la pagina col riquadro (30 settembre 2026). Le pagine interattive PUBBLICHE (vista live, ricerca…) sono
+   «discreta» (1 ottobre 2026, `[RiconnessioneDiscreta]`): niente riquadro, ricarica silenziosa, avviso solo se serve
+   ricaricare a mano. Le pagine di lavoro (editor, admin) tengono il riquadro. *@
+<div class="vipi-root" data-riconnessione="@ModoDiRiconnessione">
 <a class="skip-link" href="#vipi-main">@L["Chrome_SkipToContent"]</a>
 @if (Chrome.Value.RenderTopbar)
 {
@@ -59,6 +64,10 @@
                 </div>
                 <a href="/services"><Icon Name="grid" /> @L["Chrome_Services"]</a>
                 <a href="/services/vsop/guide"><Icon Name="help-circle" /> @L["Chrome_Guide"]</a>
+                @if (SegnalaHref is { } segnala)
+                {
+                    <a href="@segnala" rel="nofollow"><Icon Name="flag" /> @L["Req_ReportPage"]</a>
+                }
                 <a href="/services/vsop/live"><Icon Name="radio" /> @L["Chrome_OpenLive"]</a>
                 <a href="/services/stats"><Icon Name="clipboard" /> @L["Stats_Title"]</a>
                 @if (_canEdit)
@@ -110,14 +119,34 @@
             }
         </nav>
         <form class="top-search" action="/services/vsop/search" method="get" role="search">
-            <span class="ico"><Icon Name="search" /></span>
+            @* La lente invia il modulo: col testo scritto, cerca quello. *@
+            <button type="submit" class="ico" title="@L["Chrome_Search"]" aria-label="@L["Chrome_Search"]"><Icon Name="search" /></button>
             <input name="q" placeholder="@L["Chrome_SearchPh"]" aria-label="@L["Chrome_Search"]" />
         </form>
+        @* 🔴 A barra stretta (scaglioni tb-3/tb-4) la ricerca chiusa è QUESTO collegamento, e il modulo sopra non si
+           rende (committente, 29 settembre 2026: «il tasto cerca non porta alla pagina search»). Prima era il
+           modulo ridotto a un'icona sopra un campo largo 0px, che si apriva sotto la barra al fuoco: toccare la
+           lente non la apriva (uno `<span>`), e con un tasto al suo posto il fuoco spostava il modulo sotto il
+           dito prima che il clic finisse. Misurato a 375px: nessuna navigazione. La pagina di ricerca ha il suo
+           campo, e sul telefono è il posto giusto dove scrivere. *@
+        <a class="top-search-go editor-btn icon-only" href="/services/vsop/search" title="@L["Chrome_Search"]" aria-label="@L["Chrome_Search"]"><Icon Name="search" /></a>
+        @* L'ORA Z, accanto alla ricerca, a TUTTI e su ogni pagina (committente, 1 ottobre 2026): un controllore ragiona in
+           Z, e prima la vedeva solo nella vista live. La scrive il browser ogni secondo (vipi-ui.js, wireUtcClock: ogni
+           `[data-utc-clock]`), niente circuito. Resta anche a barra da telefono: è uno stato, non un comando. *@
+        <span class="tb-utc" data-utc-clock title="@L["Live_UtcNow"]">--:--:--Z</span>
         <div class="right">
             @* ⚠️ Qui stava il tasto «Servizi», tolto insieme al cambio del marchio: adesso e' il marchio a
                portare all'hub, e due link identici a 100px di distanza sono ingombro, non ridondanza. Nel
                «☰» la voce resta, perche' li' il marchio e' ridotto al solo logo. *@
             <a class="editor-btn icon-only" href="/services/vsop/guide" title="@L["Chrome_Guide"]" aria-label="@L["Chrome_Guide"]"><Icon Name="help-circle" /></a>
+            @* SEGNALA UN PROBLEMA SU QUESTA PAGINA (committente, 30 settembre 2026: «in ogni pagina un tasto per riportare
+               problemi generici a quella pagina, come per le sezioni dei documenti»). La stessa bandierina delle
+               sezioni e la stessa strada: un LINK al modulo delle richieste, con la pagina nell'indirizzo — niente
+               circuito per chi legge soltanto. A barra stretta (tb-4) le icone escono: la voce resta nel ☰. *@
+            @if (SegnalaHref is { } segnalaQui)
+            {
+                <a class="editor-btn icon-only noprint" href="@segnalaQui" rel="nofollow" title="@L["Req_ReportPage"]" aria-label="@L["Req_ReportPage"]"><Icon Name="flag" /></a>
+            }
             <div class="zoom-ctrl" role="group" aria-label="@L["Chrome_ZoomPage"]">
                 <button type="button" onclick="vipiZoom(-0.1)" title="@L["Chrome_ZoomOut"]" aria-label="@L["Chrome_ZoomOut"]">−</button>
                 <span id="vipiZoomPct" role="status" aria-live="polite" aria-label="@L["Chrome_ZoomPage"]" onclick="vipiZoomReset()" title="@L["Chrome_ZoomReset"]">100%</span>
@@ -171,16 +200,7 @@
                 <Icon Name="moon" Class="ti ti-dark" />
             </button>
             @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /services/vsop, Round 12). *@
-            @* La versione, ai SOLI admin. Risponde a una domanda che si è posta di continuo — «che versione
-               è online?» — e che finora si rispondeva scaricando un file via FTP.
-               ⚠️ Non è per tutti: a un socio non dice niente, e a chi passa di qui direbbe con quale build
-               precisa sta parlando, che è informazione da regalare solo se serve a qualcuno.
-               ⚠️ È la PRIMA cosa che esce dalla barra quando lo spazio manca (CSS, scaglione tb-2): è una
-               spia, non un comando, e la stessa riga sta in diagnostica/avvio-diagnostica.txt. *@
-            @if (_isAdmin && Chrome.Value.Versione is { Length: > 0 } ver)
-            {
-                <span class="ver-chip" title="@Chrome.Value.VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
-            }
+            @* ⚠️ La versione non sta più qui: dal 29 settembre 2026 è nel piè di pagina, allo staff (SitoFooter). *@
             @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
                da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha.
 
@@ -245,6 +265,11 @@
 }
 
 <main id="vipi-main">@Body</main>
+@* Il piè di pagina, a schermo. Come la barra, solo quando il modulo è il sito: un host che lo aggancia ha il suo. *@
+@if (Chrome.Value.RenderTopbar)
+{
+    <SitoFooter MostraVersione="_canEdit" Versione="@Chrome.Value.Versione" VersioneDettaglio="@Chrome.Value.VersioneDettaglio" />
+}
 @* IL PIE' DI OGNI FOGLIO STAMPATO. A schermo non esiste (`.print-only`).
 
    ⚠️ Sta nel LAYOUT e non nei documenti perche' vale per OGNI pagina del sito, non solo per i cinque
@@ -266,6 +291,31 @@
 </div>
 
 @code {
+    [Inject] private IServiceProvider Servizi { get; set; } = default!;
+
+    /// <summary>
+    /// «silenziosa», «discreta» o null (vedi <see cref="Vipi.Ui.ModoRiconnessione"/>). ⚠️ Null nel dubbio: senza chi
+    /// sa dire la pagina (un host che non lo registra, i test) si tiene il riquadro, che è il comportamento di prima.
+    /// </summary>
+    private string? ModoDiRiconnessione =>
+        (Servizi.GetService(typeof(Vipi.Ui.IPaginaCorrente)) as Vipi.Ui.IPaginaCorrente)?.Tipo is { } tipo
+            ? Vipi.Ui.ModoRiconnessione.Di(tipo)
+            : null;
+
+    /// <summary>
+    /// Il modulo delle richieste con QUESTA pagina (percorso e query). Null sulla pagina delle richieste stessa: segnalare
+    /// il modulo dal modulo non porta da nessuna parte.
+    /// </summary>
+    private string? SegnalaHref
+    {
+        get
+        {
+            var qui = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('#')[0];
+            if (qui.StartsWith("/services/vsop/requests", StringComparison.OrdinalIgnoreCase)) return null;
+            return "/services/vsop/requests?p=" + Uri.EscapeDataString(qui);
+        }
+    }
+
     private string? _acc;
     private IReadOnlyList<AccInfo> _accs = Array.Empty<AccInfo>();
     private CurrentUser? _user;

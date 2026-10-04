@@ -152,6 +152,8 @@ public static class VipiModuleExtensions
         // serve anche con l'identità di sviluppo, e AddHttpContextAccessor si può chiamare due volte.
         services.AddHttpContextAccessor();
         services.AddScoped<Vipi.Ui.Components.IStatoDellaRisposta, StatoDellaRispostaHttp>();
+        // La pagina servita, per il layout: sulle pagine di sola lettura niente riquadro di riconnessione.
+        services.AddScoped<Vipi.Ui.IPaginaCorrente, PaginaCorrenteDallaRichiesta>();
 
         // Tracking dei login staff per il roster permessi.
         services.AddSingleton<StaffLoginThrottle>();
@@ -280,6 +282,11 @@ public static class VipiModuleExtensions
     /// </summary>
     private const int AwosRichiesteAlMinutoPerIp = 10;
     private const int AwosRichiesteAlMinutoTotali = 600;
+
+    /// <summary>Tetti dei file del pacchetto dell'evento: chi controlla scarica una manciata di profili, non centinaia
+    /// al minuto; il totale regge la sera dell'evento, quando arrivano tutti insieme.</summary>
+    private const int EventoFileAlMinutoPerIp = 60;
+    private const int EventoFileAlMinutoTotali = 3000;
 
     private const int ArchivioRichiesteAlMinutoPerIp = 30;
 
@@ -443,8 +450,8 @@ public static class VipiModuleExtensions
                 return Results.StatusCode(StatusCodes.Status429TooManyRequests);
             }
 
-            // Il METAR di prova è dello staff, come il tasto che lo apre: qui la guardia si ripete perché
-            // questa è una porta sua, e una porta non si fida di chi ha bussato all'altra.
+            // Il METAR di prova è dello staff. Dal 30 settembre 2026 il quadro non ha più il tasto TEST METAR:
+            // resta solo qui, per gli script di verifica (`mai-usare-verifica.js`), e la guardia è questa.
             var prova = authz.IsDivisionStaff && !string.IsNullOrWhiteSpace(test) ? test!.Trim() : null;
             // ⚠️ `inforce` è la MEMORIA del quadro, non un permesso: dice che un minuto fa le LVP erano in
             // vigore, e serve all'isteresi delle soglie di cancellazione. Chi lo falsifica ottiene, al
@@ -498,6 +505,10 @@ public static class VipiModuleExtensions
         // evento, con la versione. Contratto del programma, seguito alla lettera: vedi PonteRfo.
         endpoints.MapPonteRfo();
 
+        // Scali, schede, SID e STAR per gli altri programmi della divisione: la vista pubblica del documento, con
+        // una chiave API (carta docs/feature/2026-09-30-api-aeroporti.md).
+        endpoints.MapApiAeroporti();
+
         // Archivio delle connessioni ATC, per le macchine (carta docs/feature/2026-08-28-archivio-atc-mondiale.md).
         // Dal 28 agosto 2026 il poller registra TUTTE le postazioni aperte, non le sole italiane: questo
         // endpoint è il modo di rileggerle da fuori — nasce perché altri strumenti della divisione (il
@@ -509,7 +520,7 @@ public static class VipiModuleExtensions
         // passaggio. Una chiave presentata però si verifica sempre, e una chiave sbagliata è un 401 comunque.
         // Tetti con lo stesso limitatore del bridge, per chiave quando c'è: qui una richiesta costa una COUNT
         // e una pagina di righe, non un file.
-        endpoints.MapGet("/vsop/api/v1/atc/sessions", async (
+        endpoints.MapGet(Vipi.Domain.Entities.ApiRotte.Sessioni, async (
             HttpContext ctx,
             IAtcArchiveQueries archivio,
             RequestRateLimiter limiter,
@@ -571,7 +582,7 @@ public static class VipiModuleExtensions
 
         if (bridge.Enabled)
         {
-            endpoints.MapPost("/vsop/api/v1/transfers/resolve", async (
+            endpoints.MapPost(Vipi.Domain.Entities.ApiRotte.Trasferimenti, async (
                 Vipi.AuroraBridge.Contracts.TransferResolveRequest request,
                 HttpContext ctx,
                 Vipi.Application.Content.ITransferMatchService service,
@@ -667,6 +678,34 @@ public static class VipiModuleExtensions
             return Results.Redirect(
                 Vipi.Application.Content.AttachmentRules.UrlEsterno(voce.Provider, voce.ExternalId),
                 permanent: false);
+        });
+
+        // Il file di una voce del pacchetto dell'evento (carta 2026-09-30-profili-evento.md). Il nome in coda serve a chi
+        // scarica e non si guarda: il file lo decide l'Id. Al pubblico solo mentre il pacchetto si vede (il servizio
+        // decide), allo staff sempre, per provarlo prima di accenderlo.
+        // ⚠️ Sempre ALLEGATO, `application/octet-stream` e `nosniff`: questo dominio non deve mai «aprire» un file
+        // caricato, qualunque cosa ci sia dentro. `private, no-store`: la voce si toglie e si sostituisce, e una copia
+        // in una cache condivisa continuerebbe a servirla anche a pacchetto spento.
+        endpoints.MapGet(Vipi.Application.EventKits.EventKitRules.Rotta + "/file/{id:int}/{nome?}", async (
+            int id,
+            HttpContext ctx,
+            Vipi.Application.EventKits.IEventKitService pacchetto,
+            RequestRateLimiter limiter,
+            CancellationToken ct) =>
+        {
+            var chiamante = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
+            if (!limiter.PassaITetti("evento", chiamante, EventoFileAlMinutoPerIp, EventoFileAlMinutoTotali, ArchivioClientiTracciati))
+            {
+                ctx.Response.Headers.RetryAfter = "60";
+                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+            }
+
+            var file = await pacchetto.FileAsync(id, ct);
+            if (file is null) return Results.NotFound();
+
+            ctx.Response.Headers.CacheControl = "private, no-store";
+            ctx.Response.Headers.XContentTypeOptions = "nosniff";
+            return Results.File(file.Bytes, "application/octet-stream", file.FileName);
         });
 
         // La copia di sicurezza del database, per un Admin (§A47, carta 2026-09-16-copia-del-database.md).
@@ -990,7 +1029,22 @@ public static class VipiModuleExtensions
         var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
             ?.CreateLogger("Vipi.DocumentMaintenance");
 
-        // PRIMA di tutto il resto: è il legame che tutte le letture del documento d'aeroporto useranno da qui in
+        // PRIMA di tutto il resto, le vIPI APP sui loro ENTI (S49): le passate sulle sezioni le riconoscono dall'ente,
+        // e su un database appena aggiornato, prima di qui, non ce n'è nessuno. ⚠️ E prima degli scali (revisione,
+        // S52): il ponte degli scali legge i documenti dai settori, e una vIPI APP ancora sul suo settore non è sua.
+        var enti = maintenance.LinkAppUnitsAsync().GetAwaiter().GetResult();
+        if (enti > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Nati {Count} enti ATC dalle vIPI APP (il documento passa dall'ente, non piu' dal settore APP).", enti);
+
+        // Gli enti dei gruppi APP della vIPI ACC (S55): dopo gli enti delle vIPI APP, che hanno la precedenza sulle
+        // posizioni (un membro che è già di un ente resta suo).
+        var gruppi = maintenance.LinkAccGroupUnitsAsync().GetAwaiter().GetResult();
+        if (gruppi > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Nati {Count} enti ATC dai gruppi APP delle vIPI ACC.", gruppi);
+
+        // Subito dopo: è il legame che tutte le letture del documento d'aeroporto useranno da qui in
         // avanti. Un passo che lo presupponesse, girando prima, lavorerebbe su aeroporti ancora scollegati.
         var collegati = maintenance.LinkAirportDocumentsAsync().GetAwaiter().GetResult();
         if (collegati > 0 && log is not null)

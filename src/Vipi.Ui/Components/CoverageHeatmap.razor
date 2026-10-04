@@ -8,10 +8,10 @@
    tutto il resto — e le stesse chiavi le usa il grafico «che giorno» della pagina personale, o i due
    disegni chiamerebbero lo stesso giorno in due modi.
 
-   ⚠️ Dal 25 agosto 2026 questa griglia vive SOLO nella pagina della divisione: sulla pagina personale l'ha
-   sostituita la coppia di grafici (a che ora / che giorno). Qui resta perché la domanda della divisione è
-   davvero quella incrociata — «dove manca qualcuno il giovedì sera» — e due grafici separati non la
-   sanno dire.
+   ⚠️ Dal 25 al 30 settembre 2026 questa griglia è vissuta solo nella pagina della divisione; il 30 settembre il
+   committente l'ha riportata anche sulla pagina personale, nella nuova veste delle statistiche, SENZA i numeri
+   nelle caselle (`Numeri=false`: erano quel che la rendeva illeggibile) e con le ore per giorno a destra
+   (`Totali`), che prima stavano nel grafico «che giorno».
 
    ⚠️ Numeri E colore, non solo colore: una scala di intensità da sola non si legge a chi ha una visione dei
    colori diversa, e non si legge affatto in stampa. Il titolo di ogni casella dice la percentuale per esteso. *@
@@ -23,8 +23,11 @@
                 <th scope="col"></th>
                 @for (var h = 0; h < 24; h++)
                 {
-                    <th scope="col">@h</th>
+                    @* Senza numeri nelle caselle bastano le ore ogni tre: ventiquattro etichette sopra caselle
+                       mute sono rumore. *@
+                    <th scope="col">@(Numeri || h % 3 == 0 ? h.ToString() : "")</th>
                 }
+                @if (Totali is not null) { <th scope="col" class="cov-tot">@TitoloTotali</th> }
             </tr>
         </thead>
         <tbody>
@@ -36,8 +39,15 @@
                     @for (var h = 0; h < 24; h++)
                     {
                         var c = Cella(giorno, h);
-                        var q = Quinto(c.Ratio);
-                        <td class="cov-c cov-q@q" title="@Descrizione(giorno, h, c)">@Etichetta(c)</td>
+                        var q = Quinto(Copertura ? c.Ratio : Relativo(c.Ratio));
+                        @* 🔴 `cov-q@(q)` e non `cov-q@q`: Razor legge «q@q» come un indirizzo email e lo scrive
+                           com'è. Fino al 30 settembre 2026 ogni casella aveva la classe «cov-q@q», che non esiste:
+                           la griglia della divisione non si è MAI colorata, si leggevano solo i numeri. *@
+                        <td class="cov-c cov-q@(q)" title="@Descrizione(giorno, h, c)">@(Numeri ? Etichetta(c) : "")</td>
+                    }
+                    @if (Totali is not null)
+                    {
+                        <td class="cov-tot">@(giorno - 1 < Totali.Count ? Totali[giorno - 1] : "")</td>
                     }
                 </tr>
             }
@@ -53,8 +63,29 @@
 
     [Parameter] public string Titolo { get; set; } = "";
 
+    /// <summary>La percentuale scritta nella casella. Falso sulla pagina personale: il colore basta, il numero
+    /// resta nel titolo della casella.</summary>
+    [Parameter] public bool Numeri { get; set; } = true;
+
+    /// <summary>Una colonna in fondo a ogni riga, lunedì prima: le ore di quel giorno. Null = niente colonna.</summary>
+    [Parameter] public IReadOnlyList<string>? Totali { get; set; }
+
+    [Parameter] public string TitoloTotali { get; set; } = "";
+
     private CoverageCell Cella(int giorno, int ora) =>
         Celle.FirstOrDefault(c => c.DayOfWeek == giorno && c.Hour == ora) ?? new CoverageCell(giorno, ora, 0, 0);
+
+    /// <summary>
+    /// Le ore di una persona si colorano rispetto alla SUA casella più piena, non in assoluto: chi controlla
+    /// copre al massimo qualche percento di ogni fascia dell'anno (il 3% la domenica sera, per un controllore fra i
+    /// primi dieci), e con le soglie della copertura sarebbe tutto chiarissimo. La copertura della divisione resta
+    /// in assoluto: lì «il 96%» è il dato.
+    /// </summary>
+    private double Relativo(double r)
+    {
+        var massimo = Celle.Count == 0 ? 0 : Celle.Max(x => x.Ratio);
+        return massimo <= 0 ? 0 : r / massimo;
+    }
 
     // Cinque scaglioni: sotto questa granularità il colore smette di dire qualcosa e diventa decorazione.
     private static int Quinto(double r) => r <= 0 ? 0 : r < 0.2 ? 1 : r < 0.45 ? 2 : r < 0.75 ? 3 : 4;

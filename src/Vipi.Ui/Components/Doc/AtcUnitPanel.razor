@@ -1,0 +1,247 @@
+@* L'ENTE della vIPI APP (S49, committente, 29 settembre 2026): a chi appartiene il documento e con quali posizioni
+   IVAO. Il documento è dell'ente, non di un nominativo: a Pratica di Mare si aggiunge LIRE_TWR, la si fa principale
+   e si toglie LIRE_APP, e documento e pubblicazioni restano dove sono.
+
+   ⚠️ SCOPE PROPRIO e caricamenti in fila, come il pannello dell'unione: qui si SCRIVE, e un servizio di scrittura
+   preso col circuito è il difetto già pagato tre volte.
+   ⚠️ I comandi si accendono solo IN MODIFICA, come tutti gli altri dell'editor. *@
+@inherits Vipi.Ui.ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Nav
+
+@* ⚠️ L'errore si vede anche senza ente (revisione, S52): stava DENTRO il ramo dell'ente, e un caricamento fallito
+   faceva sparire il pannello senza una parola. *@
+@if (_ente is null && _errore is { Length: > 0 })
+{
+    <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+}
+@if (_ente is not null)
+{
+    <div class="rel-panel" id="sec-ente">
+        <div class="doc-head" style="margin:0 0 10px">
+            <h3 class="h-card" style="margin:0">@L["Unit_Title"]
+                <HelpHint ExtraClass="wide">@L["Unit_Help"]</HelpHint>
+            </h3>
+        </div>
+
+        @if (_errore is { Length: > 0 })
+        {
+            <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+        }
+
+        @if (_avviso is { Length: > 0 })
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div>@_avviso</div></div>
+        }
+
+        <p class="muted" style="margin:0 0 6px">@L["Unit_CodeLine", _ente.Name, _ente.Code]</p>
+
+        @if (_spostamentoVerso is { } acc)
+        {
+            <p class="help" style="margin:0 0 6px">@L["Unit_MovePending", acc]</p>
+        }
+
+        @if (_ente.Positions.Count == 0)
+        {
+            <p class="muted">@L["Unit_NoPositions"]</p>
+        }
+        else
+        {
+            <ol class="union-list unit-positions">
+                @for (var i = 0; i < _ente.Positions.Count; i++)
+                {
+                    var cs = _ente.Positions[i];
+                    var principale = i == 0;
+                    <li>
+                        <b>@cs</b>
+                        @if (principale)
+                        {
+                            <span class="pill neutral" title="@L["Unit_PrimaryTitle"]">@L["Unit_Primary"]</span>
+                        }
+                        @if (IsEditing)
+                        {
+                            <span class="union-cmds">
+                                @if (!principale)
+                                {
+                                    <button class="btn ghost" disabled="@_busy" title="@L["Unit_MakePrimary"]"
+                                            @onclick="() => Principale(cs)">@L["Unit_MakePrimary"]</button>
+                                }
+                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Unit_Remove"]"
+                                               AriaLabel="@L["Unit_Remove"]" Prompt="@L["Unit_RemovePrompt", cs]"
+                                               ConfirmLabel="@L["Unit_RemoveYes"]" CancelLabel="@L["Common_Close"]"
+                                               Disabled="@_busy" OnConfirm="() => Togli(cs)">
+                                    <Trigger>✕</Trigger>
+                                </InlineConfirm>
+                            </span>
+                        }
+                    </li>
+                }
+            </ol>
+        }
+
+        @if (IsEditing)
+        {
+            <div class="union-add">
+                <label for="unit-add-@Key">@L["Unit_AddLabel"]</label>
+                <CampoTesto id="@($"unit-add-{Key}")" class="app-in" type="text" autocomplete="off"
+                            placeholder="LIRE_TWR" aria-label="@L["Unit_AddLabel"]"
+                            Valore="@_nuova" OnInput="e => _nuova = e.Value?.ToString() ?? string.Empty" disabled="@_busy" />
+                <button class="btn primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_nuova))"
+                        @onclick="Aggiungi">@L["Unit_AddAction"]</button>
+            </div>
+
+            @* «Remotizza» (S50): il contenuto si SPOSTA nella vIPI dell'ACC come gruppo APP, e lì resta. Già copiato
+               (S52): il tasto non c'è più, farebbe un secondo gruppo. *@
+            @if (_spostamentoVerso is null)
+            {
+            <div class="unit-remote" style="margin-top:12px">
+                <p class="help" style="margin:0 0 6px">@L["Unit_RemoteHelp", _ente.AccCode]</p>
+                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Unit_Remote"]" AriaLabel="@L["Unit_Remote"]"
+                               Prompt="@L["Unit_RemotePrompt", _ente.AccCode]" ConfirmLabel="@L["Unit_RemoteYes"]"
+                               CancelLabel="@L["Common_Close"]" Disabled="@_busy" OnConfirm="Remotizza">
+                    <Trigger>@L["Unit_Remote"]</Trigger>
+                </InlineConfirm>
+            </div>
+            }
+        }
+        else
+        {
+            <p class="muted" style="margin-top:8px">@L["Unit_EditToChange"]</p>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>La chiave della vIPI APP: il codice dell'ente (o, finché l'ente non c'è, il nominativo dell'APP).</summary>
+    [Parameter, EditorRequired] public string Key { get; set; } = "";
+
+    /// <summary>Vero mentre l'editor è in modifica: i comandi si accendono solo allora.</summary>
+    [Parameter] public bool IsEditing { get; set; }
+
+    /// <summary>L'host ricarica: le posizioni decidono frequenze, AoR e coordinamenti del documento.</summary>
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private IAtcUnitService _enti = default!;
+    private AtcUnitRow? _ente;
+    private string _nuova = "";
+    private string? _errore;
+    /// <summary>Dopo «togli»: dove il documento cita ancora la posizione tolta (configurazioni, mappa, frequenze).</summary>
+    private string? _avviso;
+    /// <summary>L'ACC in cui l'ente è già copiato, finché la vIPI ACC non va in vigore (S52); null altrimenti.</summary>
+    private string? _spostamentoVerso;
+    private bool _busy;
+    private string _caricato = "";
+
+    protected override void OnInitialized() => _enti = ScopedServices.GetRequiredService<IAtcUnitService>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // La guardia PRIMA dell'await, come nel pannello dell'unione: ogni ridisegno richiama questo metodo.
+        var chiave = $"{Key}|{IsEditing}";
+        if (_caricato == chiave) return;
+        _caricato = chiave;
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                if (_caricato == chiave) await RileggiAsync();
+            });
+        }
+        catch (Exception ex)
+        {
+            _errore = L["Common_UnexpectedError"] + ex.Message;
+            _caricato = "";
+        }
+    }
+
+    private Task Aggiungi() => EseguiAsync(async () =>
+    {
+        await _enti.AddPositionAsync(_ente!.Id, _nuova);
+        _nuova = "";
+    });
+
+    private Task Togli(string cs) => EseguiAsync(async () =>
+    {
+        await _enti.RemovePositionAsync(_ente!.Id, cs);
+        // Le scelte salvate per nominativo non seguono la posizione (S52): lo si dice, invece di lasciarle orfane.
+        var dove = await ScopedServices.GetRequiredService<IAppDocumentService>().WhereCitedAsync(_ente.Code, cs);
+        if (dove.Count > 0) _avviso = L["Unit_StillCited", cs, string.Join(", ", dove)];
+    });
+
+    private Task Principale(string cs) => EseguiAsync(() => _enti.MakePrimaryAsync(_ente!.Id, cs));
+
+    /// <summary>L'ente e, se è già copiato nella vIPI ACC, verso quale. Dentro la fila dei caricamenti.</summary>
+    private async Task RileggiAsync()
+    {
+        _ente = await _enti.FindAsync(Key);
+        _spostamentoVerso = _ente is not null && IsEditing
+            ? await ScopedServices.GetRequiredService<IRemotizzazioneService>().SpostamentoInCorsoAsync(_ente.Id)
+            : null;
+    }
+
+    /// <summary>Copia il contenuto nella vIPI dell'ACC e apre il suo editor: è lì che si pubblica il gruppo, e con la
+    /// pubblicazione lo spostamento si conclude (S52).</summary>
+    private async Task Remotizza()
+    {
+        if (_ente is null) return;
+        _busy = true;
+        _errore = null;
+        _avviso = null;
+        try
+        {
+            RemotizzazioneEsito? esito = null;
+            await InFilaAsync(async () =>
+                esito = await ScopedServices.GetRequiredService<IRemotizzazioneService>().RemotizzaAsync(_ente.Id));
+            if (esito is not null)
+                Nav.NavigateTo($"/services/vsop/{esito.AccCode.ToLowerInvariant()}/editor", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            _errore = ex is Vipi.Application.Aor.ValidationException or EditConflictException
+                ? ex.Message : L["Common_UnexpectedError"] + ex.Message;
+            await RileggiDopoErroreAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>Dopo un errore si rilegge (S52): il pannello mostrava lo stato di prima del gesto, che può non essere
+    /// più vero. Un secondo guasto qui non copre il primo.</summary>
+    private async Task RileggiDopoErroreAsync()
+    {
+        try { await InFilaAsync(RileggiAsync); }
+        catch (Exception) { /* l'errore da mostrare è quello del gesto */ }
+    }
+
+    /// <summary>Un gesto: in fila col caricamento, l'errore a schermo e non nel circuito, poi rilettura e host.</summary>
+    private async Task EseguiAsync(Func<Task> gesto)
+    {
+        if (_ente is null) return;
+        _busy = true;
+        _errore = null;
+        _avviso = null;
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                await gesto();
+                await RileggiAsync();
+            });
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            // Il lock scaduto o preso da un altro (S52: i gesti sull'ente lo pretendono) si legge com'è.
+            _errore = ex is Vipi.Application.Aor.ValidationException or EditConflictException
+                ? ex.Message : L["Common_UnexpectedError"] + ex.Message;
+            await RileggiDopoErroreAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

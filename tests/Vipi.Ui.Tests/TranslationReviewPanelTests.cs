@@ -72,8 +72,10 @@ public class TranslationReviewPanelTests : TestContext
         /// <summary>Vero: il documento ha due frasi da rivedere invece di una.</summary>
         public bool DueRighe { get; set; }
 
-        /// <summary>Vero: il conto dei documenti toccati prende tempo, come la query vera sul DB remoto.</summary>
-        public bool ContoLento { get; set; }
+        /// <summary>Se c'è, il conto dei documenti toccati resta fermo finché il test non lo lascia andare: la
+        /// query vera sul DB remoto. ⚠️ Un cancello e non un <c>Task.Delay</c>: col ritardo a tempo la prova era
+        /// rossa a intermittenza nella corsa intera della soluzione (29 settembre 2026), verde da sola.</summary>
+        public TaskCompletionSource? ContoFermo { get; set; }
         public int Conti;
         public int MassimoInsieme;
         private int _dentro;
@@ -83,7 +85,7 @@ public class TranslationReviewPanelTests : TestContext
             Interlocked.Increment(ref Conti);
             var ora = Interlocked.Increment(ref _dentro);
             if (ora > MassimoInsieme) MassimoInsieme = ora;
-            try { if (ContoLento) await Task.Delay(40); return 1; }
+            try { if (ContoFermo is { } fermo) await fermo.Task; return 1; }
             finally { Interlocked.Decrement(ref _dentro); }
         }
 
@@ -216,17 +218,23 @@ public class TranslationReviewPanelTests : TestContext
     public async Task Due_clic_ravvicinati_sulle_righe_ne_aprono_una()
     {
         var revisione = Arrangia();
-        revisione.ContoLento = true;
+        revisione.ContoFermo = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         revisione.DueRighe = true;
 
         var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
+        cut.WaitForState(() => cut.FindAll("button.tr-open").Count == 2, TimeSpan.FromSeconds(10));
 
         // ⚠️ Ricerca e clic sul dispatcher (cut.InvokeAsync): fra le due, un render arrivato da un altro thread
         // cambiava l'albero e il gestore trovato non c'era più — rosso intermittente sul runner, 27 settembre 2026.
+        // Il primo clic resta dentro il conto finché il secondo non è passato: nessun tempo in gioco.
         var primo = cut.InvokeAsync(() => cut.FindAll("button.tr-open").First().ClickAsync(new()));
         var secondo = cut.InvokeAsync(() => cut.FindAll("button.tr-open").Last().ClickAsync(new()));
+        // Un giro a vuoto dopo i due clic: quando torna, il secondo gestore ha già deciso (uscito, o in fila dietro
+        // la porta). Aspettare il secondo clic stesso, senza sentinella, sarebbe aspettare per sempre.
+        await cut.InvokeAsync(() => { });
+        revisione.ContoFermo.SetResult();
         await Task.WhenAll(primo, secondo);
-        cut.WaitForElement("textarea.tr-edit", TimeSpan.FromSeconds(3));
+        cut.WaitForElement("textarea.tr-edit", TimeSpan.FromSeconds(10));
 
         Assert.Equal(1, revisione.MassimoInsieme);
         Assert.Equal(1, revisione.Conti);

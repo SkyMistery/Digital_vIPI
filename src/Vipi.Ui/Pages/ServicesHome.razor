@@ -1,8 +1,11 @@
 ﻿@page "/services"
 @layout SopLayout
 @using Vipi.Application.Auth
+@using Microsoft.Extensions.DependencyInjection
 @inject IEditAuthorizationService Authz
+@inject Vipi.Application.EventKits.IEventKitService Pacchetto
 @inject IStringLocalizer<SharedResource> L
+@inject IServiceProvider Servizi
 
 @* La porta d'ingresso: le due documentazioni, una per pubblico (controllori, piloti militari), e sotto gli
    strumenti.
@@ -21,6 +24,23 @@
        topbar e spingeva sotto le due porte, che sono la sola cosa che chi arriva deve scegliere. Il titolo
        resta per i lettori di schermo e per la struttura della pagina. *@
     <h1 class="sr-only">@L["Services_Title"]</h1>
+
+    @* 🔴 Il sito si legge solo dopo il login IVAO (committente, 30 settembre 2026): a chi non è entrato la porta
+       mostra questo e nient'altro. Il cancello vero è nell'host (CancelloDelLogin); qui si decide solo che cosa
+       disegnare, e il link del login è un <a> semplice — la pagina è statica, niente circuito per chi non è entrato. *@
+    @if (_soloLogin)
+    {
+        <div class="panel svc-login">
+            <span class="ic"><Icon Name="key" Size="28" /></span>
+            <h2 class="h-card">@L["Services_LoginTitle"]</h2>
+            <p class="muted">@L["Services_LoginBody"]</p>
+            <a class="btn primary" href="@($"{VsopRoutes.Prefix}/auth/login?returnUrl={VsopRoutes.ServicesHome}")" data-enhance-nav="false">
+                <Icon Name="log-in" Size="16" /> @L["Services_LoginButton"]
+            </a>
+        </div>
+    }
+    else
+    {
 
     @* ---- Le due PORTE, una per pubblico ------------------------------------------------------------------
 
@@ -57,6 +77,32 @@
         </a>
     </div>
 
+    @* ---- L'EVENTO IN CORSO (committente, 30 settembre 2026; carta 2026-09-30-profili-evento.md) --------------------
+       Una sezione che c'è SOLO quando lo staff ha acceso il pacchetto dell'evento e si è dentro le sue date: sta
+       sopra gli strumenti perché in quei giorni è la cosa che si viene a cercare. Spenta, non lascia traccia.
+       La domanda non costa una lettura a ogni visita: la risposta si tiene per qualche secondo (EventKitVisibilityCache). *@
+    @if (_evento is { } evento)
+    {
+        <div class="section-title" style="margin-top:26px">
+            <h2 class="h-sect">@L["Services_EventSection"]</h2><span class="ln"></span>
+        </div>
+        <div class="choice-grid">
+            <a class="choice evt-card" href="/services/event">
+                <h3 class="h-card"><span class="ic"><Icon Name="download" Size="18" /></span> @L["Evt_Title"]@(evento.Length > 0 ? " — " + evento : "")</h3>
+                <p class="muted">@L["Services_EventDesc"]</p>
+            </a>
+            @* Accanto ai profili (committente, 1 ottobre 2026): chi controlla con un account dell'evento apre da qui la sua
+               vista live. Solo se lo staff ha scritto almeno un VID: senza lista la pagina direbbe soltanto di no. *@
+            @if (_accountEvento)
+            {
+                <a class="choice evt-card" href="/services/event/account">
+                    <h3 class="h-card"><span class="ic"><Icon Name="radio" Size="18" /></span> @L["EvtAcc_Title"]</h3>
+                    <p class="muted">@L["Services_EventAccountDesc"]</p>
+                </a>
+            }
+        </div>
+    }
+
     <div class="section-title" style="margin-top:26px">
         <h2 class="h-sect">@L["Services_ToolsSection"]</h2><span class="ln"></span>
     </div>
@@ -91,6 +137,18 @@
         <a class="choice external" href="https://the-eye.andreadalbero.it/" target="_blank" rel="noopener noreferrer">
             <h3 class="h-card"><span class="ic"><Icon Name="map" Size="18" /></span> @L["Services_EyeTitle"]</h3>
             <p class="muted">@L["Services_EyeDesc"]</p>
+        </a>
+        @* Il sito ATC di IVAO: prenotazioni delle posizioni e FRA (committente, 30 settembre 2026). Il secondo
+           collegamento esterno, dopo The Eye e con le stesse regole: `external`, scheda nuova, `noopener`. *@
+        <a class="choice external" href="https://atc.ivao.aero/" target="_blank" rel="noopener noreferrer">
+            <h3 class="h-card"><span class="ic"><Icon Name="calendar" Size="18" /></span> @L["Services_AtcIvaoTitle"]</h3>
+            <p class="muted">@L["Services_AtcIvaoDesc"]</p>
+        </a>
+        @* Il Discord della divisione (committente, 1 ottobre 2026), accanto alle prenotazioni ATC. Terzo
+           collegamento esterno, con le stesse regole: `external`, scheda nuova, `noopener`. *@
+        <a class="choice external" href="https://discord.ivao.it/" target="_blank" rel="noopener noreferrer">
+            <h3 class="h-card"><span class="ic"><Icon Name="chat" Size="18" /></span> @L["Services_DiscordTitle"]</h3>
+            <p class="muted">@L["Services_DiscordDesc"]</p>
         </a>
     </div>
 
@@ -139,6 +197,11 @@
                di divisione (decisione del committente, 1 settembre 2026). Sta comunque qui dentro — un
                Editor è anche staff — ma con la sua guardia, perché la pagina rifiuta chi non è Editor e una
                scheda che porta a una porta chiusa è peggio di nessuna scheda. *@
+            @* Il pannello del pacchetto dell'evento: sempre qui per lo staff, acceso o spento — è da qui che lo si accende. *@
+            <a class="choice" href="/services/event">
+                <h3 class="h-card"><span class="ic"><Icon Name="calendar" Size="18" /></span> @L["Evt_Manage"]</h3>
+                <p class="muted">@L["Services_EventStaffDesc"]</p>
+            </a>
             @if (Authz.IsEditor)
             {
                 <a class="choice shortcut" href="/services/vsop/sectorfile">
@@ -148,4 +211,26 @@
             }
         </div>
     }
+    }
 </div>
+
+@code {
+    /// <summary>Il nome dell'evento in corso; null = nessuno, e la sezione non c'è.</summary>
+    private string? _evento;
+
+    /// <summary>L'evento in corso ha VID di account dell'evento: c'è la seconda scheda.</summary>
+    private bool _accountEvento;
+
+    /// <summary>Chi non è entrato, su un sito che si legge solo dopo il login: vede il solo «Entra con IVAO».</summary>
+    private bool _soloLogin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _soloLogin = (Servizi.GetService<Vipi.Ui.AccessoConLogin>() ?? Vipi.Ui.AccessoConLogin.Aperto).Obbligatorio
+                     && Authz.CurrentUserId is null;
+        if (_soloLogin) return;
+        _evento = await Pacchetto.InCorsoAsync();
+        // ⚠️ Dopo InCorsoAsync, che ha già messo in memoria anche questa risposta: nessuna seconda lettura.
+        if (_evento is not null) _accountEvento = await Pacchetto.AccountInCorsoAsync();
+    }
+}

@@ -133,7 +133,9 @@
                                 title="@L["Apt_ChipHiddenTitle"]" @onclick="() => ToggleState(StateFilter.Hidden)">@L["Apt_ChipHidden", nHidden]</button>
                         <button class="sh-chip @(nNoSec > 0 ? "warn" : "") @(_stateFilter == StateFilter.NoSectors ? "on" : "")" disabled="@(nNoSec == 0)"
                                 title="@L["Apt_ChipNoSectorsTitle"]" @onclick="() => ToggleState(StateFilter.NoSectors)">@L["Apt_ChipNoSectors", nNoSec]</button>
-                        <button class="sh-chip @(nNoTwr > 0 ? "warn" : "") @(_stateFilter == StateFilter.NoTwr ? "on" : "")" disabled="@(nNoTwr == 0)"
+                        @* Un filtro, non un avviso (S48, 29 settembre 2026): uno scalo senza torre non è più un
+                           difetto — dove l'APP fa da torre (LIBG, LIRE) IVAO la torre non ce l'ha. *@
+                        <button class="sh-chip @(_stateFilter == StateFilter.NoTwr ? "on" : "")" disabled="@(nNoTwr == 0)"
                                 title="@L["Apt_ChipNoTwrTitle"]" @onclick="() => ToggleState(StateFilter.NoTwr)">@L["Apt_ChipNoTwr", nNoTwr]</button>
                         @* «Militari» conta la PRESENZA militare, non gli scali soli militari: sono 34 contro una
                            dozzina, e chi cerca «dove c'è il militare» vuole i 34. Il taglio più stretto lo dà la
@@ -209,7 +211,7 @@
                                             @a.Sectors
                                             @if (!a.HasTower)
                                             {
-                                                <span class="pill amber apt-flag" title="@L["Apt_NoTwrTitle"]"><Icon Name="warning" Size="11" /> @L["Apt_NoTwr"]</span>
+                                                <span class="pill neutral apt-flag" title="@L["Apt_NoTwrTitle"]">@L["Apt_NoTwr"]</span>
                                             }
                                         </td>
                                         <td class="col-state">

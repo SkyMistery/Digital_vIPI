@@ -331,10 +331,28 @@
                     @* Le azioni del documento: erano dentro la riga d'elenco, e con loro la conferma in linea
                        da ~500px che comprimeva il titolo fino a mandarlo a capo una parola per riga. Qui hanno
                        una riga propria e vanno a capo insieme. *@
+                    @if (_rinomina == RowKey(sel) && CanManage(sel))
+                    {
+                        <div class="ver-rename">
+                            <label for="ver-rename-in">@L["Ver_RenameLabel"]</label>
+                            <input id="ver-rename-in" class="app-in" maxlength="@DocumentAdminService.TitoloMassimo" @bind="_nuovoTitolo" @bind:event="oninput" />
+                            <span class="ver-rename-acts">
+                                <button class="btn primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_nuovoTitolo))"
+                                        @onclick="() => SalvaTitolo(sel)"><Icon Name="check-circle" Size="14" /> @L["Common_Save"]</button>
+                                <button class="btn ghost" @onclick="() => _rinomina = null">@L["Common_Cancel"]</button>
+                            </span>
+                            <p class="help">@L["Ver_RenameHelp"]</p>
+                        </div>
+                    }
                     <div class="ver-acts">
                         <a class="btn ghost" href="@EditorLink(sel)">@L["Nd_OpenEditor"]</a>
                         @if (CanManage(sel))
                         {
+                            @* Il titolo del documento (30 settembre 2026, «vIPI — LIML MIlano Linate»): prima si scriveva
+                               solo alla nascita e nessuna pagina lo cambiava. *@
+                            <button class="btn ghost" disabled="@ActionsBlocked(sel)" title="@BlockedTitle(sel, L["Ver_RenameTitle"].Value)"
+                                    aria-expanded="@(_rinomina == RowKey(sel) ? "true" : "false")"
+                                    @onclick="() => ApriRinomina(sel)"><Icon Name="pencil" /> @L["Ver_Rename"]</button>
                             @if (sel.IsHidden)
                             {
                                 @* Rimettere a vista non distrugge niente: resta immediato. *@
@@ -1218,6 +1236,27 @@
         var acc = (d.AccCode ?? Acc ?? "lirr").ToLowerInvariant();
         return DocRoutes.For(d.Kind).ViewerUrl(acc, d.ReleaseKey, d.NeighbourCode, releaseId)
             ?? $"/services/vsop/release/{releaseId}";
+    }
+
+    /// <summary>Il documento di cui si sta cambiando il titolo (la sua RowKey), e il testo scritto.</summary>
+    private string? _rinomina;
+    private string _nuovoTitolo = "";
+
+    private void ApriRinomina(ManagedDoc d)
+    {
+        if (_rinomina == RowKey(d)) { _rinomina = null; return; }
+        _rinomina = RowKey(d);
+        _nuovoTitolo = d.Title;
+    }
+
+    private async Task SalvaTitolo(ManagedDoc d)
+    {
+        // Il lock si rilegge al clic, come per «Mostra»: l'elenco è una fotografia. Il servizio lo ricontrolla comunque.
+        if (!await RefreshLockAsync(d)) return;
+        await Run(() => DocAdmin.SetTitleAsync(new ManagedDocRef(d.Kind, d.ReleaseKey, d.DocumentId), _nuovoTitolo),
+            L["Ver_Renamed"]);
+        if (_error is null) _rinomina = null;
+        await LoadAsync();
     }
 
     private async Task ToggleHidden(ManagedDoc d)

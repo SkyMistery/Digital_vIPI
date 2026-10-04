@@ -466,7 +466,7 @@ enum BlockFormat  { Table, Prose, Image, List, AorMap, Callout }
 ## 8. Aggiornamenti round 10/11 (27 giugno 2026)
 
 ### 8.1 `SectorType` — torre informativa (round 10)
-Aggiunto **`ITwr`** (torre informativa / AFIS) dopo `Twr`: `enum SectorType { Del, Gnd, Twr, ITwr, App, Ctr }`. Stesso livello operativo della TWR (frequenza primaria, etichetta), ma servizio informazioni. Enum salvati come stringa ⇒ nessuna migrazione. Invariante applicativo: **ogni `Airport` ha almeno un settore `Twr` o `ITwr`** (badge in gestione aeroporti; blocco eliminazione dell'unica torre in `EfStructureEditingRepository.DeleteSectorAsync`).
+Aggiunto **`ITwr`** (torre informativa / AFIS) dopo `Twr`: `enum SectorType { Del, Gnd, Twr, ITwr, App, Ctr }`. Stesso livello operativo della TWR (frequenza primaria, etichetta), ma servizio informazioni. Enum salvati come stringa ⇒ nessuna migrazione. Invariante applicativo: **ogni `Airport` ha almeno un settore `Twr` o `ITwr`** (badge in gestione aeroporti; blocco eliminazione dell'unica torre in `EfStructureEditingRepository.DeleteSectorAsync`). ⚠️ **Tolto il 29 settembre 2026 (S48)**: la vIPI d'aeroporto è legata solo a `Airport.DocumentId` e nessuna posizione la porta più (`Sector.DocumentId`/`IsPrimary` restano per APP non remotizzati e ACC); la torre si elimina come ogni posizione, e il badge «no TWR» è un filtro, non un avviso — dove l'APP fa da torre (LIBG, LIRE) IVAO la TWR non ce l'ha. Le posizioni d'aeroporto che IVAO non manda da due giri escono da sole dal catalogo (`EfAirportSectorRepository.TogliLeSpariteAsync`). **S49 (stesso giorno)**: la vIPI APP è di un **ente** (`AtcUnit` + `AtcUnitPosition`, carta `docs/feature/2026-09-29-enti-atc.md`), non più del settore APP: `Sector.DocumentId` resta solo per la vIPI ACC (CTR radice).
 
 ### 8.2 `Vid` → `UserId` (round 11)
 Rinominati **tutti** i campi VID a `UserId` (codice + colonne DB, migrazione `Rename_Vid_To_UserId` con `RENAME COLUMN` nativo, incl. PK `StaffMembers`):
@@ -1115,6 +1115,12 @@ aereo comparirebbe in ogni spezzone.
 ⚠️ **`TrafficCount` / `MovementCount` / `TrafficMinutes` sono denormalizzati sulla riga sessione, apposta.**
 Sono la condizione perché la potatura del dettaglio (12 mesi) **non azzeri le ore di un anno fa**. Non è la
 «tabella dei totali» vietata dal §5.
+
+**Conservazione, in una riga** (aggiornata il 30 settembre 2026): dettaglio delle tratte e sessioni **12 mesi**
+(`TrafficRetentionUseCase`, `AtcSessionRetentionUseCase`); il riassunto mensile `AtcMonthRollup` (mese · VID ·
+callsign) **10 anni**, a mesi interi (`AtcMonthRollupRetentionUseCase`, decisione del committente: prima non
+scadeva mai ed era l'unico dato legato al VID senza scadenza); `AirportDayTraffic` senza scadenza (numeri per
+scalo, nessuna persona). Tutte e tre girano nella potatura notturna (`TrafficRetentionHostedService`).
 
 ⚠️ **`TrafficFilledUtc`**: una sessione senza traffico e senza quella data è «da riempire», una **con** la
 data e zero traffico è «riempita, non c'era nessuno». Senza la marca i due casi sarebbero indistinguibili e

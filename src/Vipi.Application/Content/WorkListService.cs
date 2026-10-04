@@ -58,10 +58,15 @@ public sealed class WorkListService : IWorkListService
     // la stessa cosa sono due racconti che iniziano a divergere, ed e' gia' costato in questo progetto.
     private readonly IEditorTaskService _regoleIncarichi;
 
+    /// <summary>Le richieste dal campo (S56): le nuove, non ancora prese in carico, entrano nella lista come terza
+    /// natura. Opzionale per i banchi che non le usano.</summary>
+    private readonly IFieldRequestRepository? _richieste;
+
     public WorkListService(IDocumentImpactRepository impatti, IEditorTaskRepository incarichi,
         IDocumentAdminService documenti, IDocRoutesRegistry rotte, IEditAuthorizationService authz,
-        IEditorTaskService regoleIncarichi)
+        IEditorTaskService regoleIncarichi, IFieldRequestRepository? richieste = null)
     {
+        _richieste = richieste;
         _impatti = impatti;
         _incarichi = incarichi;
         _documenti = documenti;
@@ -124,6 +129,14 @@ public sealed class WorkListService : IWorkListService
             righe.Add(DaIncarico(t, doc, Origine(perId, t)));
         }
 
+        // ── Le richieste dal campo (S56) ─────────────────────────────────────────────────────────────
+        // Le nuove, a chi le può valutare. ⚠️ Quelle prese in carico NON si ripetono: le rappresenta l'incarico
+        // nato da loro, come per le segnalazioni del sistema.
+        if (_richieste is not null && _authz.IsEditor)
+            foreach (var r in await _richieste.ListAsync(soloAperte: true, ct: ct))
+                if (r.Status == FieldRequestStatus.Nuova && r.TaskId is null)
+                    righe.Add(DaRichiesta(r, r.DocumentId is int d ? perDoc.GetValueOrDefault(d) : null));
+
         return WorkOrdering.Ordina(righe);
     }
 
@@ -160,7 +173,38 @@ public sealed class WorkListService : IWorkListService
             }
         }
 
+        // Le richieste dal campo su questo documento, nel banner in cima al suo editor (S56).
+        if (_richieste is not null && _authz.IsEditor)
+            foreach (var r in await _richieste.ListAsync(documentId: documentId, soloAperte: true, ct: ct))
+                if (r.Status == FieldRequestStatus.Nuova && r.TaskId is null)
+                    righe.Add(DaRichiesta(r, doc));
+
         return WorkOrdering.Ordina(righe);
+    }
+
+    /// <summary>
+    /// Una richiesta dal campo come riga di lista. ⚠️ La frase è il testo di chi l'ha scritta, stampato com'è
+    /// (<see cref="WorkPhrases.Raw"/>): è prosa di una persona, non si traduce (carta §2/D7). Urgenza: un errore
+    /// va riletto, un suggerimento è ordinario — nessun valore nuovo nella scala, che è l'ordine della lista.
+    /// </summary>
+    private static WorkItem DaRichiesta(FieldRequestRow r, ManagedDoc? doc) => new(
+        WorkOrigin.Campo,
+        $"req:{r.Id}",
+        r.DocumentId,
+        doc?.Title ?? r.DocumentTitle ?? $"#{r.Id}",
+        doc?.AccCode,
+        $"/services/vsop/requests#req-{r.Id}",
+        WorkPhrases.Raw,
+        new[] { $"#{r.Id} · {r.ReporterName}: {Estratto(r.Body)}" },
+        r.Kind == FieldRequestKind.Errore ? WorkSeverity.DaRileggere : WorkSeverity.Normale,
+        WorkAction.ApriRichiesta,
+        r.CreatedUtc,
+        RequestId: r.Id);
+
+    private static string Estratto(string testo)
+    {
+        var riga = testo.ReplaceLineEndings(" ").Trim();
+        return riga.Length <= 140 ? riga : riga[..140].TrimEnd() + "…";
     }
 
     public async Task<int> PrendiInCaricoAsync(int impactId, int assegnatarioId, string? assegnatarioNome,

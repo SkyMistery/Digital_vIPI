@@ -78,6 +78,8 @@ public class AtcPollingShutdownTests
 
         public Task<int> RollupAndPruneSessionsAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default) =>
             Task.FromResult(0);
+        public Task<int> PruneMonthRollupsAsync(DateTime firstKeptMonth, int batch, CancellationToken ct = default) =>
+            Task.FromResult(0);
     }
 
     private sealed class AmbienteFinto : IHostEnvironment
@@ -192,6 +194,8 @@ public class AtcPollingShutdownTests
             Task.FromResult(0);
 
         public Task<int> RollupAndPruneSessionsAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default) =>
+            Task.FromResult(0);
+        public Task<int> PruneMonthRollupsAsync(DateTime firstKeptMonth, int batch, CancellationToken ct = default) =>
             Task.FromResult(0);
     }
 

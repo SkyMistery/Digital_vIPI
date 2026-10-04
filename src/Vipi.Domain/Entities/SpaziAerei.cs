@@ -179,3 +179,56 @@ public class SectorAirspaceBinding
     /// <summary>Chi ha scelto, congelato: la pagina deve poterlo dire anche fra un anno.</summary>
     public string? CreatedByName { get; set; }
 }
+
+/// <summary>
+/// La correzione a mano di un volume dell'AIP: tipo, classe, base e tetto come li vuole lo staff quando il file
+/// sbaglia (carta <c>docs/feature/2026-09-30-correzioni-spazi-aerei.md</c>).
+///
+/// <para>⚠️ <b>Non si scrive sulla riga del volume.</b> La riga la rifà ogni caricamento, e la chiave naturale
+/// contiene famiglia, base e tetto: correggerli lì cambierebbe la chiave e scoprirebbe gli agganci dei settori.
+/// La correzione sta qui, cita la chiave <b>del file</b>, e si sovrappone al volume quando lo si legge.</para>
+///
+/// <para>Un campo corretto è un campo non nullo (per la classe, <see cref="ClassCorrected"/>: «nessuna classe» è
+/// una correzione anche lei). Accanto resta <b>quel che il file diceva</b> quando la correzione è stata fatta
+/// (<c>File*</c>): è il confronto che al caricamento successivo dice se il file è cambiato sotto la correzione.</para>
+/// </summary>
+public class AirspaceVolumeCorrection
+{
+    public int Id { get; set; }
+
+    /// <summary>La chiave naturale del volume nel file: <c>FAMIGLIA|NOME|BASE|TETTO</c>.</summary>
+    public string VolumeKey { get; set; } = default!;
+
+    public int VolumeOrdinal { get; set; }
+
+    /// <summary>Il nome del volume nel file: come si mostra, e come lo si ritrova se il file ne cambia la chiave.</summary>
+    public string Name { get; set; } = default!;
+
+    /// <summary>Il tipo corretto; null = quello del file.</summary>
+    public AirspaceFamily? Family { get; set; }
+
+    /// <summary>La classe è corretta? (La classe corretta può essere «nessuna»: <see cref="AirspaceClass"/> null.)</summary>
+    public bool ClassCorrected { get; set; }
+
+    public string? AirspaceClass { get; set; }
+
+    /// <summary>La base corretta, come si scrive (<c>1500 FT AMSL</c>); null = quella del file.</summary>
+    public string? BaseRaw { get; set; }
+
+    /// <summary>Il tetto corretto; null = quello del file.</summary>
+    public string? TopRaw { get; set; }
+
+    /// <summary>Il tipo che il file diceva quando la correzione è stata fatta (o riconfermata).</summary>
+    public AirspaceFamily FileFamily { get; set; }
+
+    public string? FileClass { get; set; }
+    public string FileBaseRaw { get; set; } = default!;
+    public string FileTopRaw { get; set; } = default!;
+
+    public DateTime CreatedUtc { get; set; }
+    public DateTime UpdatedUtc { get; set; }
+    public int? UpdatedByUserId { get; set; }
+
+    /// <summary>Chi ha corretto per ultimo, congelato.</summary>
+    public string? UpdatedByName { get; set; }
+}

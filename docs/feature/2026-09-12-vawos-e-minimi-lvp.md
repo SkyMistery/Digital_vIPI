@@ -11,7 +11,7 @@
 
 **Le sei decisioni del committente**, prese il 12 settembre e recepite qui dentro:
 
-1. **Pubblico**, col **Test METAR riservato allo staff**.
+1. **Pubblico**, col **Test METAR riservato allo staff**. ⚠️ Dal 30 settembre 2026 il tasto non c'è più (committente): il bollettino finto resta solo all'API, `/services/vawos/api/{icao}?test=`, staff (S57 in `docs/filoni/sito.md`).
 2. Rotta **fuori da `/vsop`**, e il servizio si chiama **vAWOS** — «v» come le vIPI, le vSOP e le vLOA: sono
    **operazioni virtuali**, e il nome lo deve dire prima che lo chieda qualcuno.
 3. ~~Il **movimento** si tiene (interpolazione, §4.3).~~ → **Ribaltata la sera stessa** (§11): il vento è quello del bollettino e **non si muove**. «Non abbiamo modo di sapere il vento reale istantaneo nei pressi dell'aeroporto».
@@ -820,6 +820,9 @@ sola andava bene, ma due piste (LIMC) e tre (LIRF) devono rispettare `awos_2rwy`
   unità `cq` di un elemento si risolvono sul contenitore **antenato**, e qui cadevano sul viewport (7 px invece
   di 3) — su LIRF la riga TAIL usciva dal fondo. `min-height: 204px` **misurato**, non stimato. RVR con
   l'etichetta accanto al valore. A 1400×860 con tre piste la pagina scorre invece di tagliare.
+- 🟢 **29 settembre 2026 (S47)**: il quadro sta in **uno schermo** in tutti e tre gli impianti. Il pannello vento
+  è lo stesso ovunque (`size`, minimo 96px) e sotto i 204px d'altezza mette i sei valori in **una fila**; `.awos`
+  è alto 100vh. Con tre piste non scorre fino a ~730px di finestra (1080p al 125%). Storia in `docs/filoni/sito.md` S47.
 
 ### Sei decisioni del committente
 

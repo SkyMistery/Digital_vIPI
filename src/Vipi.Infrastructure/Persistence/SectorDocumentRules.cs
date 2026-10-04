@@ -21,10 +21,12 @@ namespace Vipi.Infrastructure.Persistence;
 /// </summary>
 internal static class SectorDocumentRules
 {
-    /// <summary>Settore che può identificare il documento di AEROPORTO: aeroportuale, ma non un APP standalone.</summary>
+    /// <summary>Settore che può identificare il documento di AEROPORTO: aeroportuale, ma non un APP.</summary>
+    /// <remarks>⚠️ Nessun APP, nemmeno remotizzato (revisione degli enti ATC, S52): un APP spuntato «remotizzato»
+    /// prima del carico porta ancora la SUA vIPI, e il ponte la dava allo scalo. La vIPI di uno scalo la porta
+    /// anche la torre, quindi escludere gli APP non perde niente.</remarks>
     internal static readonly Expression<Func<Sector, bool>> IsAirportDocSector =
-        s => s.Kind == SectorKind.Airport
-             && !(s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone);
+        s => s.Kind == SectorKind.Airport && s.Type != SectorType.App;
 
     /// <summary>Filtra i settori che identificano documenti d'aeroporto (esclude gli APP standalone).</summary>
     internal static IQueryable<Sector> AirportDocSectors(this IQueryable<Sector> sectors) =>

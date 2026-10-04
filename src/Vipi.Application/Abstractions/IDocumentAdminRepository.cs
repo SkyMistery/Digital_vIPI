@@ -63,6 +63,10 @@ public interface IDocumentAdminRepository
     /// di audit: cambiare la visibilità pubblica di un documento è un atto amministrativo, non una preferenza.</summary>
     Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default);
 
+    /// <summary>Cambia il titolo del documento (30 settembre 2026: «MIlano Linate»). Con l'audit, col titolo di prima
+    /// e quello nuovo. Il titolo già valido si scrive e si controlla nel servizio.</summary>
+    Task SetTitleAsync(ManagedDocRef doc, string title, int actorUserId, CancellationToken ct = default);
+
     /// <summary>Cancella definitivamente il documento (+ release orfane, + cascade EF per i Document).
     /// <paramref name="actorUserId"/> finisce nel registro di audit: è l'atto meno reversibile dell'applicazione.</summary>
     Task DeleteAsync(ManagedDocRef doc, int actorUserId, CancellationToken ct = default);

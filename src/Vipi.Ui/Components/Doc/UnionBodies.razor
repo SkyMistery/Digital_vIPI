@@ -12,6 +12,12 @@
 {
     <section id="@m.Ancora" class="union-part">
         <h2 class="union-part-h">@m.Titolo</h2>
+        @* ⚠️ Il gettone «solo in inglese» della testata è della PORTA: un membro bloccato lo dice qui, sotto il
+           suo titolo, o chi legge una pagina bilingue non saprebbe perché quel gruppo non si traduce. *@
+        @if (m.Bloccata is not null)
+        {
+            <div class="sim-line"><LinguaBloccataNotice Lingua="@m.Bloccata" Compatto="true" /></div>
+        }
         @m.Corpo
     </section>
 }

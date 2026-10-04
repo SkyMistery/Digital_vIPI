@@ -8,7 +8,7 @@ using Xunit;
 namespace Vipi.Ui.Tests;
 
 /// <summary>
-/// <b>«ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION» sta ovunque.</b> È la richiesta del
+/// <b>«ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE OPERATIONS» sta ovunque.</b> È la richiesta del
 /// committente del 1º settembre 2026, e la parola era <i>«in tutti, nessuno escluso»</i>: sotto il titolo di
 /// ogni documento pubblico, della vista live e della mappa degli spazi aerei; e a piè di <b>ogni foglio
 /// stampato di ogni pagina del sito</b>.
@@ -163,7 +163,7 @@ public sealed class AvvisoDiSimulazioneTests
         var cut = ctx.RenderComponent<SimDisclaimer>();
 
         Assert.Equal(SimDisclaimer.Testo, cut.Find("span.sim-disc").TextContent.Trim());
-        Assert.Equal("ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION", SimDisclaimer.Testo);
+        Assert.Equal("ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE OPERATIONS", SimDisclaimer.Testo);
     }
 
     /// <summary>

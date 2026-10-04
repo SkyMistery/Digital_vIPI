@@ -47,7 +47,38 @@ public static class ApiEndpoints
     /// <summary><c>POST /vsop/api/v1/transfers/resolve</c>.</summary>
     public const string Bridge = "bridge";
 
-    public static readonly IReadOnlyList<string> Tutti = new[] { Archivio, Bridge };
+    /// <summary><c>GET /vsop/api/v1/airports</c> e sotto: scali, schede, SID e STAR (carta 2026-09-30-api-aeroporti.md).</summary>
+    public const string Aeroporti = "aeroporti";
+
+    public static readonly IReadOnlyList<string> Tutti = new[] { Archivio, Bridge, Aeroporti };
+}
+
+/// <summary>Un indirizzo delle API, come si scrive a chi integra.</summary>
+/// <param name="Endpoint">Il permesso della chiave che lo apre (<see cref="ApiEndpoints"/>).</param>
+/// <param name="Id">Il nome della voce: la sua descrizione è la stringa <c>ApiKeys_Route_{Id}</c>.</param>
+/// <param name="Esempio">L'indirizzo con un esempio dei parametri, da copiare.</param>
+public sealed record ApiRotta(string Endpoint, string Id, string Metodo, string Percorso, string Esempio);
+
+/// <summary>
+/// Gli indirizzi delle API. <b>Un posto solo</b>: li usano le rotte vere (Hosting) e la pagina delle chiavi che li
+/// elenca a chi le emette (30 settembre 2026, committente: «mettili tutti nella pagina chiavi API»). Scritti in due
+/// posti, la pagina finirebbe per dare un indirizzo a cui il server non risponde.
+/// </summary>
+public static class ApiRotte
+{
+    public const string Sessioni = "/vsop/api/v1/atc/sessions";
+    public const string Trasferimenti = "/vsop/api/v1/transfers/resolve";
+    public const string Aeroporti = "/vsop/api/v1/airports";
+
+    public static readonly IReadOnlyList<ApiRotta> Tutte = new ApiRotta[]
+    {
+        new(ApiEndpoints.Aeroporti, "airports", "GET", Aeroporti, Aeroporti),
+        new(ApiEndpoints.Aeroporti, "airport", "GET", Aeroporti + "/{icao}", Aeroporti + "/LIRF"),
+        new(ApiEndpoints.Aeroporti, "sids", "GET", Aeroporti + "/{icao}/sids", Aeroporti + "/LIRF/sids?runway=16L"),
+        new(ApiEndpoints.Aeroporti, "stars", "GET", Aeroporti + "/{icao}/stars", Aeroporti + "/LIRF/stars?runway=16L"),
+        new(ApiEndpoints.Archivio, "sessions", "GET", Sessioni, Sessioni + "?callsign=LIRR&from=2026-09-01T00:00:00Z&limit=100"),
+        new(ApiEndpoints.Bridge, "resolve", "POST", Trasferimenti, Trasferimenti),
+    };
 }
 
 /// <summary>Le lunghezze delle colonne, lette dal modello e dal servizio che valida.</summary>

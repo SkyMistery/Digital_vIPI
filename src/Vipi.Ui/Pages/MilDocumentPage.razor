@@ -2,6 +2,7 @@
 @layout SopLayout
 @inject MilMemberLoader Loader
 @inject IDocLinkService Collegamenti
+@inject IApertureDocumenti Aperture
 @inject ILogger<MilDocumentPage> Log
 @inject IDocumentUnionService Unioni
 @inject UnionLoader Membri
@@ -311,6 +312,11 @@
             : Array.Empty<MembroUnito>();
 
         _collegati = await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.AirportMil, _icao, _doc.Mode);
+
+        // Un'apertura in più, solo sulla vista PUBBLICA (non bozza né anteprima: quelle le apre chi scrive). Carta
+        // 2026-10-01-aperture-documenti.md. ⚠️ In fondo, dopo tutte le letture: lo scope è quello della pagina, e il
+        // contatore non lancia mai.
+        if (_doc.Mode.Kind == PreviewKind.Public) await Aperture.SegnaAsync(ReleaseTargetType.AirportMil, _icao);
     }
 
     /// <summary>I documenti collegati (§A109): vIPI ACC, APP che controlla lo scalo, vIPI dello stesso scalo.</summary>

@@ -62,6 +62,7 @@ public sealed class EfEditorTaskRepository : IEditorTaskRepository
             TargetKey = input.TargetKey,
             TargetLabel = input.TargetLabel,
             FromImpactId = input.FromImpactId,
+            FromRequestId = input.FromRequestId,
             CreatedUtc = now,
             UpdatedUtc = now,
         };

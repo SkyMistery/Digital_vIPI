@@ -218,6 +218,7 @@ public sealed class RegistroAvvisi : ILoggerProvider
     internal static bool DaNonRicordare(string percorso) =>
         percorso.StartsWith("/vsop/health", StringComparison.OrdinalIgnoreCase)
         || percorso.Equals("/vsop/ping", StringComparison.OrdinalIgnoreCase)
+        || percorso.StartsWith("/vsop/diag/", StringComparison.OrdinalIgnoreCase)   // i beacon hanno il loro file
         || percorso.StartsWith("/_blazor/", StringComparison.OrdinalIgnoreCase)
         || percorso.StartsWith("/_framework/", StringComparison.OrdinalIgnoreCase)
         || percorso.StartsWith("/_content/", StringComparison.OrdinalIgnoreCase)

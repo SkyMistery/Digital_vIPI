@@ -20,7 +20,7 @@
 | **R5** | Gli **indirizzi** non si localizzano | nessuna rotta per lingua, ed è così da sempre |
 | **R6** | **Tutto il resto** segue la lingua scelta nella barra | i `.resx`, e la memoria di traduzione per i documenti |
 | **R7** | Le stringhe **dell'applicazione** si traducono **a mano** nei `.resx`; al motore automatico va **solo la prosa dei documenti** | `SharedResource.resx` / `.en.resx` |
-| **R8** | L'**avviso di simulazione** («ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION») è **sempre in inglese**, in entrambe le versioni del sito | `SimDisclaimer.razor` |
+| **R8** | L'**avviso di simulazione** («ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE OPERATIONS») è **sempre in inglese**, in entrambe le versioni del sito | `SimDisclaimer.razor` |
 | **R9** | I **titoli delle sezioni di catalogo** seguono la lingua in cui si **legge il documento**, e li decide il **catalogo** — non la memoria di traduzione, e non quel che il documento si porta scritto | `TitoliDiCatalogo`, `SectionCatalog` |
 
 ## Il perché, regola per regola
@@ -73,11 +73,12 @@ scrive lo staff, cambia a ogni ciclo AIRAC, e nessuno può ritradurla ogni volta
 
 ### R8 — l'avviso di simulazione è un cartello, non prosa
 
-> ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION
+> ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE OPERATIONS
 
 Sta sotto il titolo di ogni documento pubblico, della vista live e della mappa degli spazi aerei, e a piè di
 **ogni foglio stampato di ogni pagina del sito**. È dell'1 settembre 2026, ed è una richiesta del
-committente: *«in tutti, nessuno escluso»*.
+committente: *«in tutti, nessuno escluso»*. Dal 1 ottobre 2026 dice **OPERATIONS** e non più *NAVIGATION* (committente): l'avviso copre
+ogni operazione reale, non solo la navigazione aerea. Nella vista live sta sulla riga della testata, non sotto il titolo.
 
 ⚠️ **Non passa dai `.resx`**, e quindi è un'eccezione dichiarata a R7. La ragione è la stessa di R3: non è
 prosa del sito, è un **cartello**. Dice che cosa NON si può fare con questa documentazione, e lo dice a

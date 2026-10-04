@@ -131,6 +131,29 @@ public class NewDocumentOptionsTests : IAsyncLifetime
         Assert.False(acc.Airports.Single(a => a.Key == senza).HasDocument);
     }
 
+    /// <summary>
+    /// S51 (enti ATC, fase 3): per un APP «ha già un documento» lo dice solo l'ENTE. Un legame vecchio rimasto sul
+    /// settore non conta più; prima bastava quello, e l'APP risultava coperto anche senza nessun ente.
+    /// </summary>
+    [Fact]
+    public async Task Per_un_app_il_documento_lo_dice_l_ente_non_il_settore()
+    {
+        var roma = await _db.Documents.Where(d => d.Type == DocumentType.Vipi).Select(d => d.Id).FirstAsync();
+        var app = await _db.Sectors.SingleAsync(s => s.Callsign == "LIRP_APP");
+        app.DocumentId = roma;   // un legame di prima del 29 settembre, dimenticato
+        await _db.SaveChangesAsync();
+        var enti = new EfAtcUnitRepository(_db);
+
+        var opts = await new NewDocumentOptionsService(_repo, new Authz(VipiRole.Editor), enti).LoadAsync();
+        Assert.False(opts.MyAccs.Single(a => a.Code == "LIRR").StandaloneApps.Single(s => s.Key == "LIRP_APP").HasDocument);
+
+        app.DocumentId = null;
+        await _db.SaveChangesAsync();
+        await enti.EnsureDocumentAsync("LIRP_APP", "Pisa Approach", "LIRR", SectionProfile.App, 0);
+        opts = await new NewDocumentOptionsService(_repo, new Authz(VipiRole.Editor), enti).LoadAsync();
+        Assert.True(opts.MyAccs.Single(a => a.Code == "LIRR").StandaloneApps.Single(s => s.Key == "LIRP_APP").HasDocument);
+    }
+
     private async Task<string> NuovoAeroportoSenzaDocumentoAsync(string icao, string nome)
     {
         var accId = await _db.Accs.Where(a => a.Code == "LIRR").Select(a => a.Id).FirstAsync();

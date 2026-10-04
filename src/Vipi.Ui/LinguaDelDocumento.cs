@@ -31,24 +31,20 @@ public static class LinguaDelDocumento
     /// <see cref="ReadingLanguageContext"/>, non quella iniettata nella pagina. Imporne una sola vorrebbe dire
     /// documento nella lingua giusta e prosa DERIVATA nell'altra — sulla stessa schermata, senza errore.
     /// </param>
-    /// <param name="fissaLaPagina">
-    /// 🔴 <b>Falso per un MEMBRO di un'unione di documenti.</b> <c>Fissa</c> è appiccicoso per il resto
-    /// della richiesta — non ha un blocco che lo chiuda — e regge <b>solo</b> finché una pagina mostra un
-    /// documento solo, come dice <see cref="ReadingLanguageContext.Fissa"/>. Una pagina unita ne mostra N e
-    /// chiama questo metodo N volte: l'ULTIMO membro con la lingua bloccata deciderebbe la lingua delle
-    /// etichette e della prosa generata di <b>tutta</b> la pagina, ospite compreso, e la deciderebbe in base
-    /// all'ordine di caricamento.
-    ///
-    /// <para>⚠️ Il valore restituito non cambia: la lingua di <i>quel</i> documento resta la sua, e i suoi
-    /// contenuti la seguono — traduzione, titoli di catalogo, derivate la ricevono come <b>argomento</b>, non
-    /// dal contesto. Quel che non si impone è la lingua della PAGINA, che nell'unione è dell'ospite.</para>
-    /// </param>
+    /// <remarks>
+    /// ⚠️ <b>In una pagina UNITA questo gesto si fa dentro un blocco.</b> <c>Fissa</c> non ha un blocco che lo
+    /// chiuda e vale per il resto della richiesta; con N documenti nella stessa pagina l'ultimo bloccato
+    /// deciderebbe per tutti. Per questo <c>UnionLoader</c> carica ogni membro dentro
+    /// <see cref="ReadingLanguageContext.Rendering"/>, che alla chiusura rimette la lingua della porta: dentro,
+    /// il membro decide la SUA lingua (prosa generata e derivate comprese), fuori la pagina resta della porta.
+    /// Le etichette del suo corpo, che si leggono dopo, le porta la cascata di <see cref="ComponenteDelDocumento"/>.
+    /// </remarks>
     public static string Prepara(
         ReadingLanguageContext? lingua, bool bloccato, Language? sorgente, Language predefinita,
-        ReadingLanguageContext? ancheQui = null, bool fissaLaPagina = true)
+        ReadingLanguageContext? ancheQui = null)
     {
         var codice = LinguaDiLettura.PerIlDocumento(bloccato, sorgente, predefinita);
-        if (bloccato && fissaLaPagina)
+        if (bloccato)
         {
             lingua?.Fissa(codice);
             ancheQui?.Fissa(codice);

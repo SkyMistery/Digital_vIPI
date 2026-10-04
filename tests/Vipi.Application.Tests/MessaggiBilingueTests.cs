@@ -61,8 +61,9 @@ public class MessaggiBilingueTests
                 .Blocca[0].Testo;
         }
 
-        Assert.Contains("una torre si elimina solo insieme", Motivo(inglese: false));
-        Assert.Contains("a tower can only be deleted together", Motivo(inglese: true));
+        // La D8 (la regola della torre, D6, è uscita il 29 settembre 2026 — S48).
+        Assert.Contains("interrogata con successo meno di due volte", Motivo(inglese: false));
+        Assert.Contains("queried successfully fewer than two times", Motivo(inglese: true));
     }
 
     /// <summary>

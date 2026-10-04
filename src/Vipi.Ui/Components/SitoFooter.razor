@@ -1,0 +1,110 @@
+@* IL PIÈ DI PAGINA DEL SITO (committente, 29 settembre 2026: «in fondo al sito dobbiamo mettere una cosa così»,
+   con davanti quello dell'hub IVAO Italy). Marchio, a che cosa serve il sito, l'avviso che è simulazione; i
+   collegamenti di IVAO; in fondo i diritti e l'appartenenza a IVAO.
+
+   ⚠️ Sta in SopLayout, cioè su OGNI pagina tranne il vAWOS, che ha un layout suo (AwosLayout) ed è fatto per
+   stare a schermo intero dentro una finestra di Aurora: lì un piè di pagina ruba righe al meteo.
+
+   ⚠️ La VERSIONE sta qui e non più in barra, e solo allo staff (chi può modificare): è una spia per chi
+   segnala un guasto, e a un lettore direbbe soltanto con quale build precisa sta parlando. Mantiene la classe
+   `ver-chip`, che è la stringa che i test E2E e chi segnala cercano.
+
+   ⚠️ Le frasi sono quelle dell'hub (locales/*/common.json, `footer`): i due siti della divisione devono dire la
+   stessa cosa con le stesse parole.
+   🔴 I COLLEGAMENTI invece no, e non per scelta: le tre pagine dell'hub (ivao.aero/termsandconditions.htm,
+   privacy.htm, rules.htm) rispondono 404, misurato il 29 settembre 2026. Termini, regolamento e privacy ora stanno
+   sulla wiki di IVAO, sotto una pagina che li elenca tutti: un collegamento solo lì (committente) si rompe meno di
+   tre collegamenti diretti, perché l'indice lo tiene aggiornato IVAO. *@
+@inject IStringLocalizer<SharedResource> L
+@inject IOptions<DivisionOptions> Divisione
+
+<footer class="sito-foot">
+    <div class="sf-in">
+        <div class="sf-cols">
+            <div class="sf-about">
+                <a class="sf-brand" href="/services"><span class="logo">ATC</span> <b>ATC Services</b> <small>@NomeDivisione</small></a>
+                <p>@L["Foot_About", NomeDivisione]</p>
+                <p>@L["Foot_Disclaimer", NomeDivisione]</p>
+            </div>
+            <nav class="sf-links" aria-label="IVAO">
+                <h2 class="sf-h">IVAO</h2>
+                @foreach (var (etichetta, indirizzo) in Collegamenti)
+                {
+                    <a href="@indirizzo" target="_blank" rel="noopener">@L[etichetta]</a>
+                }
+            </nav>
+        </div>
+        <div class="sf-bottom">
+            <span>
+                © @DateTime.UtcNow.Year @NomeDivisione. @L["Foot_Rights"]
+                @* La pagina dei cookie (committente, 30 settembre 2026): solo tecnici, quindi un elenco e non un banner. *@
+                <span class="sf-sep" aria-hidden="true">·</span>
+                <a href="/services/cookies">@L["Ck_Title"]</a>
+                @* I dati che il sito tiene di chi entra (30 settembre 2026): si vedono da qui, si cancellano chiedendo. *@
+                <span class="sf-sep" aria-hidden="true">·</span>
+                <a href="/services/my-data">@L["My_Title"]</a>
+                @if (MostraVersione && Versione is { Length: > 0 } ver)
+                {
+                    <span class="sf-sep" aria-hidden="true">·</span>
+                    <span class="ver-chip" title="@VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
+                }
+            </span>
+            @* Chi l'ha fatto (committente, 29 settembre 2026) e chi l'ha provato (1 ottobre 2026: Nicola ha fatto un collaudo
+               intensivo). Ogni nome porta al profilo IVAO del membro, VID compreso anche se ripetuto (committente).
+               La riga dei crediti sta SOTTO «Parte della IVAO», su riga sua. *@
+            <span class="sf-cred">
+                <span>@L["Foot_PartOf"]</span>
+                <span>
+                    @L["Foot_BuiltBy"] @Membro(Autore)
+                    <span class="sf-sep" aria-hidden="true">·</span>
+                    @* ⚠️ Gli spazi scritti: dentro il ciclo Razor taglia quelli del sorgente («Tested byNicola…&Carmine»). *@
+                    @L["Foot_TestedBy"]@(" ")
+                    @for (var i = 0; i < Collaudatori.Length; i++)
+                    {
+                        if (i > 0) { @(" " + L["Foot_And"].Value + " ") }
+                        @Membro(Collaudatori[i])
+                    }
+                </span>
+            </span>
+        </div>
+    </div>
+</footer>
+
+@code {
+    /// <summary>Vero per lo staff (chi può modificare): solo allora si mostra la versione.</summary>
+    [Parameter] public bool MostraVersione { get; set; }
+
+    /// <summary>La versione corta (<c>1.47.0 · 067a737</c>). Vuota ⇒ niente, anche allo staff.</summary>
+    [Parameter] public string? Versione { get; set; }
+
+    /// <summary>Per esteso, nel <c>title</c>: pacchetto, commit, e da quando è in servizio.</summary>
+    [Parameter] public string? VersioneDettaglio { get; set; }
+
+    private string NomeDivisione => $"IVAO {Divisione.Value.Name}";
+
+    /// <summary>Chi ha realizzato il sito, e il suo profilo IVAO (la pagina membro passa dal login di IVAO).</summary>
+    internal static readonly (string Nome, int Vid, string Profilo) Autore = Persona("Carmine", 704798);
+
+    /// <summary>Chi ha collaudato il sito (committente, 1 ottobre 2026), nell'ordine in cui si leggono.</summary>
+    internal static readonly (string Nome, int Vid, string Profilo)[] Collaudatori =
+    {
+        Persona("Nicola", 201143),
+        Persona("Carmine", 704798),
+    };
+
+    private static (string Nome, int Vid, string Profilo) Persona(string nome, int vid) =>
+        (nome, vid, $"https://ivao.aero/Login.aspx?r=Member.aspx?Id={vid}");
+
+    private static RenderFragment Membro((string Nome, int Vid, string Profilo) p) =>
+        @<a href="@p.Profilo" target="_blank" rel="noopener">@p.Nome (@p.Vid)</a>;
+
+    /// <summary>I collegamenti di IVAO: il sito, quello della divisione italiana (committente, 30 settembre 2026), e la
+    /// pagina della wiki con regole, regolamento e privacy. Le etichette si traducono, gli indirizzi no (la wiki è in
+    /// inglese).</summary>
+    internal static readonly (string Etichetta, string Indirizzo)[] Collegamenti =
+    {
+        ("Foot_Ivao", "https://www.ivao.aero"),
+        ("Foot_IvaoItaly", "https://it.ivao.aero/"),
+        ("Foot_Info", "https://wiki.ivao.aero/en/home/ivao/information"),
+    };
+}

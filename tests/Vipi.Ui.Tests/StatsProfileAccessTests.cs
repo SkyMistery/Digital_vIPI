@@ -149,6 +149,7 @@ public class StatsProfileAccessTests : TestContext
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz { IsAdmin = staff });
         Services.AddSingleton<IStatsAccessLog>(_registro);
         Services.AddSingleton<IStaffRosterRepository>(_roster);
+        Services.AddSingleton<IRegistroAccessi>(_accessi);
 
         return RenderComponent<StatsHome>(p =>
         {
@@ -184,6 +185,19 @@ public class StatsProfileAccessTests : TestContext
         Assert.Contains("555003", cut.Markup);
         Assert.DoesNotContain("Stats_ProfileForbidden", cut.Markup);
         Assert.Contains(555003, archivio.VidChiesti);       // i numeri sono i SUOI, non i miei
+    }
+
+    /// <summary>
+    /// In testata il nome di chi è guardato: il nome breve del registro degli accessi (chi è entrato nel sito), non
+    /// il solo VID — 30 settembre 2026, nuova veste delle statistiche.
+    /// </summary>
+    [Fact]
+    public void In_testata_c_e_il_nome_breve_di_chi_e_guardato()
+    {
+        _accessi.Nomi[555003] = "Mario R.";
+        var cut = Render(staff: true, vidGuardato: 555003, new ArchivioVuoto(), io: 704798);
+
+        Assert.Equal("Mario R.", cut.Find(".sx-name").TextContent.Trim());
     }
 
     /// <summary>La riga di audit si scrive: è ciò che la fascia promette a chi viene guardato.</summary>
@@ -331,5 +345,17 @@ public class StatsProfileAccessTests : TestContext
 
         Assert.Empty(_registro.Accessi);
         Assert.DoesNotContain("Stats_StaffViewingSessionTitle", cut.Markup);
+    }
+
+    private readonly AccessiFinti _accessi = new();
+
+    private sealed class AccessiFinti : IRegistroAccessi
+    {
+        public Dictionary<int, string> Nomi { get; } = new();
+        public Task RegistraAsync(CurrentUser utente, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<ElencoAccessi> ElencoAsync(string? cerca, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<AccessoAlSitoRiga?> MieiAsync(CancellationToken ct = default) => Task.FromResult<AccessoAlSitoRiga?>(null);
+        public Task<IReadOnlyDictionary<int, string>> NomiBreviAsync(IReadOnlyCollection<int> userIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, string>>(userIds.Where(Nomi.ContainsKey).ToDictionary(v => v, v => Nomi[v]));
     }
 }

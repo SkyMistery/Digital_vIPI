@@ -4,7 +4,136 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 29 settembre 2026
+> ## ▶ Il punto — 1 ottobre 2026, sera tardi
+>
+> **✅ Online: 1.56.0** (`Schema 0` confermato; scarico senza errori dal carico; **in `main` non resta codice fuori
+> pacchetto**; 🔎 login per nonce falliti al primo giro e recuperati dal secondo, da tenere d'occhio) (§A148, timbro `1.56.0 · 2285a80`, 17 file, zip `631aa48e…`, MINOR con
+> quattro migrazioni additive): Sito S92 (lingua per membro nell'editor dell'unione) e S93 (aperture dei
+> documenti, i più aperti sulla pagina dell'ACC) S94 (Discord di divisione) e S95 (controllare con un account dell'evento). ▶ LIRE/LIBG
+> aspettano il SOD.
+>
+> ## Il punto — 1 ottobre 2026, sera
+>
+> **✅ Online: 1.55.1** (timbro confermato; **in `main` non resta codice fuori pacchetto**; ▶ lingua separata vIPI/vSOP
+> nell'editor dell'unione assegnata al Sito) (§A147, timbro `1.55.1 · 5493151`, 4 file, zip `8ac4d35c…`, PATCH senza
+> migrazioni): Sito S91, la lingua dei membri nei documenti uniti (LIRP). ▶ LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 1 ottobre 2026, pomeriggio
+>
+> **✅ Online: 1.55.0** (timbro e `Schema 0` confermati dal committente; da fuori porta, Healthy e asset del pacchetto;
+> scarico senza errori; **in `main` non resta codice fuori pacchetto**) (§A146, timbro `1.55.0 · 395bce9`, 22 file, zip `a0a67e63…`, MINOR senza
+> migrazioni): Sito S83–S90, SID e STAR nella ricerca, vista live compatta con la ricerca rapida, avviso «REAL LIFE
+> OPERATIONS». ▶ LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 1 ottobre 2026, mattina
+>
+> **✅ Online: 1.54.3** (da fuori porta, Healthy e CSS del pacchetto; scarico pulito, nessun errore dal carico;
+> **in `main` non resta codice fuori pacchetto**) (§A145, timbro `1.54.3 · b6ae28b`, 9 file, zip `564f6732…`, PATCH senza
+> migrazioni): Sito S82, i crediti nel piè di pagina.
+> ▶ LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, ultima
+>
+> **✅ Online: 1.54.2** (timbro e `Schema 0` confermati dal committente; tre 500 durante lo scambio dei file, nel
+> processo vecchio, spariti col riavvio; **in `main` non resta codice fuori pacchetto**) (§A144, timbro `1.54.2 · 1a843c2`, 9 file, zip `361abdf6…`, PATCH senza
+> migrazioni): Sito S81, la finestra Trasferimenti della vista live solo allo staff di divisione. ▶ LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, sera tardi
+>
+> **✅ Online: 1.54.1** (timbro e `Schema 0` confermati dal committente; da fuori porta, Healthy e CSS del pacchetto;
+> **in `main` non resta codice fuori pacchetto**) (§A143, timbro `1.54.1 · cab7337`, 9 file, zip `81e89039…`, PATCH senza
+> migrazioni): Sito S80, solo testi («I miei dati» verso la FAQ IVAO, «Campo richieste», «Voli visti»). ▶ Titolo LIML; LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, notte
+>
+> **✅ Online: 1.54.0** (timbro, `Schema 0` e Ricerca col login confermati dal committente; da fuori la porta dice
+> «Entra con IVAO», Healthy, asset del pacchetto; **in `main` non resta codice fuori pacchetto**) (§A142, timbro `1.54.0 · 919b965`, 22 file, zip `cbfb3e74…`, MINOR con tre
+> migrazioni additive): Sito S65–S79. 🔴 **Da qui il sito si legge solo dopo il login IVAO** (S67; si riapre con
+> `VipiAuth__LoginObbligatorio=false`): la verifica da fuori non fa più la Ricerca, la fa il committente col login.
+> Registro degli accessi, «I miei dati», titolo del documento, statistiche nuove, ricerca in ordine, «Segnala» da ogni
+> pagina. ▶ Dopo: titolo LIML e ripubblicazione; LIRE/LIBG
+> aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, sera
+>
+> **Online: 1.53.0.** In `main` **c'è codice fuori pacchetto** (§A141): Sito S65 (vista live: campi solo vSOP, niente
+> «delegato» a chi guarda, SID del pannello dal documento) e S66 (pagina Chiavi API con gli indirizzi per chi
+> integra), fusi da `fix/pagina-chiavi-api` @ `bb5fb638`. Niente migrazione. ▶ Pacchetto 1.54.0 al via del
+> committente; test a tempo `CorrezioniSpaziAereiPaginaTests` assegnato al Sito.
+>
+> ## Il punto — 30 settembre 2026, pomeriggio
+>
+> **✅ Online: 1.53.0** (`Schema 0` e Ricerca confermati dal committente; Healthy, API 401 senza chiave da fuori;
+> **in `main` non resta codice fuori pacchetto**) (§A140, timbro `1.53.0 · d4bbebd`, 11 file, zip `214c8a17…`, MINOR senza
+> migrazioni): Sito S64, API degli aeroporti (`/vsop/api/v1/airports`, scheda, SID, STAR) dietro chiave col permesso
+> «Aeroporti»; il nome dei vSOP militari senza «MIL». Fuso da `fix/api-aeroporti` @ `fd60631f`. ▶ Restano i gesti di §A134 su LIRE/LIBG, che aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, mattina
+>
+> **✅ Online: 1.52.0** (`Schema 0` e Ricerca confermati dal committente; `/vsop/health` Healthy, Ricerca LIRF da
+> fuori; **in `main` non resta codice fuori pacchetto**) (§A139, timbro `1.52.0 · 1a72e24`, 17 file, zip `7d975e3c…`, MINOR con la
+> migrazione additiva `CorrezioniSpaziAerei`): Sito S63, correzioni a mano di tipo, classe, base e tetto degli spazi
+> aerei in `/services/vsop/admin/airspace`, con «Da controllare» dopo un nuovo caricamento. Fuso da
+> `fix/correzioni-spazi-aerei` @ `f4224893`. I gesti del
+> committente dopo 1.47.0 e 1.51.0 sono fatti (confermato il 30-set); restano quelli di §A134 su LIRE/LIBG, che
+> aspettano il SOD.
+>
+> ## Il punto — 30 settembre 2026, notte
+>
+> **✅ Online: 1.51.0** (`Schema 0` confermato dal committente; `/vsop/health` Healthy, Ricerca LIRF, pagine nuove e CSS
+> serviti; **in `main` non resta codice fuori pacchetto**) (§A138, timbro `1.51.0 · b57fe44`, 22 file, zip `7b58e7c2…`, MINOR con la migrazione additiva
+> `ProfiliEvento`): Sito S58 (vAWOS ancorato alla finestra, bandierina ⚑, switch Errore/Suggerimento), S59 profili per
+> l'evento (`/services/event`), S60 link a IVAO Italia, S61 pagina dei cookie, S62 pulizia delle richieste dal campo.
+> La 1.50.1 (§A137) non è mai stata caricata. ▶ Cancellare le richieste di prova (Admin, «Elimina»); i gesti di §A134
+> e §A130.
+>
+> ## Il punto — 30 settembre 2026
+>
+> **✅ Online: 1.50.0** (timbro, `Schema 0` e «Report» confermati dal committente; `/vsop/health` Healthy, Ricerca LIRF,
+> CSS nuovo del vAWOS servito; **in `main` non resta codice fuori pacchetto**) (§A136, timbro `1.50.0 · e7742ff`, 20 file, zip `30fb29b6…`, MINOR con la
+> migrazione additiva `RichiesteDalCampo`): **S56 richieste dal campo** (link «Segnala» nelle sezioni pubbliche,
+> pagina `/services/vsop/requests`, richieste nuove in «Da fare»; chiudere la richiesta chiude il suo incarico) e
+> **S57 vAWOS** all'altezza visibile in Edge, senza il tasto TEST METAR. `lab/f3` non fuso. ▶ I gesti di §A134 e
+> §A130.
+>
+> ## Il punto — 29 settembre 2026, notte
+>
+> **✅ Online: 1.49.0** (§A135, timbro `1.49.0 · 89bfb04`, 15 file, zip `08799c5e…`, MINOR con la migrazione
+> `EntiGruppiAcc`; timbro e `Schema 0` confermati, `/vsop/health` Healthy, Ricerca LIRF): pagina «Enti ATC»,
+> «Sostituisci con…», enti dei gruppi APP. **In `main` non resta codice fuori pacchetto.** `lab/f3` non fuso (consegna
+> del Lab: la decide il committente). ▶ I gesti di §A134 e §A130.
+>
+> ## Il punto — 29 settembre 2026, sera tardi
+>
+> **✅ Online: 1.48.0** (timbro e `Schema 0` confermati, `/vsop/health` Healthy, Ricerca LIRF; **in `main` non resta
+> codice fuori pacchetto**) (§A134, timbro `1.48.0 · e292a1e`, 19 file, zip `4cbc457b…`, MINOR con una migrazione additiva
+> `EntiAtc`): enti ATC (la vIPI APP è di un ente), vIPI/vSOP dello scalo con le posizioni sparite da IVAO che escono da
+> sole (LIBG_TWR, LIRE_TWR), vAWOS in uno schermo. Fusi da `fix/enti-atc` (S47–S52). ▶ I gesti del foglio: LIRE_APP → ente con LIRE_TWR
+> principale, ripubblicare vIPI/vSOP di LIBG e LIRE dopo il primo import, «Remotizza» al posto della spunta a mano.
+>
+> ## Il punto — 29 settembre 2026, tardi
+>
+> **✅ Online: 1.47.3** (§A133, timbro `1.47.3 · de51b76`, nel piè di pagina; 9 file, zip `94bd9cfa…`, PATCH): il piè
+> di pagina della 1.47.2 (§A132) coi link alla wiki IVAO, il colore della barra e «Realizzato da». Timbro e
+> `Schema 0` confermati dal committente, `/vsop/health` Healthy, Ricerca LIRF. **In `main` non resta codice fuori
+> pacchetto.** ▶ Restano: login VID 704798 al primo clic, Azure Translator 401, i gesti di §A130, LIBG_TWR.
+>
+> ## Il punto — 29 settembre 2026, notte
+>
+> **✅ Online: 1.47.1** (§A131, timbro `1.47.1 · c41e6e7`, 13 file, zip `3e619790…`, PATCH): `/vsop/health` di nuovo
+> **Healthy**, login IVAO che rifà il giro se il consenso perde il nonce, sei punti della vSOP. Timbro e `Schema 0`
+> confermati dal committente, Ricerca LIRF verificata da fuori. **In `main` non resta codice fuori pacchetto.**
+> ▶ Login col VID 704798 al primo clic; Azure Translator 401 (segreti); i gesti di §A130.
+>
+> ## Il punto — 29 settembre 2026, sera
+>
+> **✅ Online: 1.47.0** (§A130, timbro `1.47.0 · 067a737`, 52 file, zip `c75ca416…`, tre migrazioni additive):
+> la revisione totale 3 è in produzione, prima della scadenza U-009 di LIBV_APP. Verificato da fuori (asset del
+> pacchetto serviti, Ricerca che trova LIRF). ▶ Col login: timbro, `Schema 0`, #187 superata, passate d'avvio;
+> `/vsop/health` dice `Degraded`: in Diagnostica quale controllo è in `Error`. ▶ I gesti del committente stanno in
+> §A130. **In `main` non resta codice fuori pacchetto.** Rami: `sito/lavori` fuso fino a S40, `lab/f3` in corso.
+>
+> ## Il punto — 29 settembre 2026 (fusione)
 >
 > **Fusa in `main` la revisione totale 3** (`3b9389c4`, da `sito/lavori` @ `8d2308cb`, 82 commit, S9–S39): registro
 > `docs/history/audit-2026-09-26-revisione-totale-3.md`, lotti L1…L11 chiusi, più il login IVAO «nonce» (S29). Il

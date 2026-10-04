@@ -235,6 +235,41 @@ public class RilieviDellaRicadutaTests
         Assert.Empty(Rilievi(d, "Trasferimento senza ripiego", rinvio: contesto));
     }
 
+    /// <summary>
+    /// 🔴 Il caso della produzione del 29 settembre 2026 (1.47.0): la radice italiana chiusa, e sopra quel punto
+    /// c'è solo un settore ESTERO (<c>LSAG_TST_CTR</c> sopra <c>LIMM_WS2_CTR</c>). Non è un ripiego mancante: il
+    /// committente, «Ginevra si gestisce lo spazio aereo svizzero, WS2 quello italiano più Lugano».
+    /// </summary>
+    [Fact]
+    public void Una_radice_coperta_solo_da_un_settore_estero_non_si_segnala()
+    {
+        const string quadrato = "[[8,44],[12,44],[12,46],[8,46]]";
+        SectorVolumeRow riga(string cs, string? padre, SectorType tipo, string acc) =>
+            new(cs, padre, tipo, null,
+                new[] { new ShapePart(quadrato, 0, null, AirspaceDatum.Amsl, AirspaceDatum.Amsl, "", "") },
+                ShapeSource.Source, acc);
+
+        var settori = new List<SectorVolumeRow>
+        {
+            riga(Radice, null, SectorType.Ctr, "LIMM"),
+            riga(Cedente, Radice, SectorType.App, "LIMM"),
+            riga("LSAG_TST_CTR", null, SectorType.Ctr, "LSAG"),
+        };
+        var padri = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Radice] = null, [Cedente] = Radice, ["LSAG_TST_CTR"] = null,
+        };
+        var contesto = new CoverageFallbackContext(settori,
+            new HashSet<string>(settori.Select(x => x.Callsign), StringComparer.OrdinalIgnoreCase),
+            new CopPositions(new[] { ("GHE", 45.0, 10.0) }),
+            new Dictionary<string, IReadOnlyList<FallbackRow>>(StringComparer.OrdinalIgnoreCase),
+            cs => padri.GetValueOrDefault(cs));
+
+        var d = ConPunti(new TransferLadderRow("LIMM", 1, "GHE", Radice, Cedente, 14000));
+
+        Assert.Empty(Rilievi(d, "Trasferimento senza ripiego", rinvio: contesto));
+    }
+
     /// <summary>Con un padre sotto, la scala continua e non si segnala niente.</summary>
     [Fact]
     public void Un_ricevente_col_padre_non_si_segnala()

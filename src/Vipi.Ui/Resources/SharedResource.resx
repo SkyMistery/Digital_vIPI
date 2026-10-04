@@ -106,6 +106,7 @@
   <data name="Struct_LeafAirport" xml:space="preserve"><value>L'aeroporto è una foglia: nessun sottoalbero.</value></data>
   <data name="Struct_NoSubtree" xml:space="preserve"><value>Nessun sottoalbero (copre solo sé stesso).</value></data>
   <data name="Apt_OpenFullVipi" xml:space="preserve"><value>Apri vIPI completa</value></data>
+  <data name="Apt_OpenFullVsop" xml:space="preserve"><value>Apri vSOP completo</value></data>
   <data name="Apt_Wind" xml:space="preserve"><value>Vento</value></data>
   <data name="Apt_SuggestedRunways" xml:space="preserve"><value>Piste suggerite</value></data>
   <data name="Apt_NobodyOnline" xml:space="preserve"><value>nessuno online — UNICOM</value></data>
@@ -136,6 +137,52 @@
   <data name="TrEd_ToReview" xml:space="preserve"><value>da rileggere</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Tema</value></data>
   <data name="Chrome_Version" xml:space="preserve"><value>Versione del sito</value></data>
+  <!-- Piè di pagina del sito (SitoFooter), 29-set-2026: frasi e collegamenti dell'hub IVAO Italy -->
+  <data name="Foot_About" xml:space="preserve"><value>Il sito dei servizi ATC di {0}: la documentazione operativa (vIPI, vLOA e vSOP), le statistiche e gli strumenti per chi controlla.</value></data>
+  <data name="Foot_Disclaimer" xml:space="preserve"><value>{0} è una divisione di IVAO, una rete di simulazione di volo senza scopo di lucro. Niente di quanto pubblicato qui è destinato all'aviazione reale.</value></data>
+  <data name="Foot_Rights" xml:space="preserve"><value>Tutti i diritti riservati.</value></data>
+  <data name="Foot_PartOf" xml:space="preserve"><value>Parte della International Virtual Aviation Organisation</value></data>
+  <data name="Foot_BuiltBy" xml:space="preserve"><value>Realizzato da</value></data>
+  <data name="Foot_TestedBy" xml:space="preserve"><value>Testato da</value></data>
+  <data name="Foot_And" xml:space="preserve"><value>e</value></data>
+  <data name="Foot_Ivao" xml:space="preserve"><value>IVAO</value></data>
+  <data name="Foot_IvaoItaly" xml:space="preserve"><value>IVAO Italia</value></data>
+  <data name="Ck_Title" xml:space="preserve"><value>Cookie</value></data>
+  <data name="Ck_Intro" xml:space="preserve"><value>Questo sito usa solo cookie tecnici, necessari a farlo funzionare: il login con IVAO, la lingua che scegli, la protezione dei moduli. Niente statistiche, pubblicità o traccianti di terzi. Per questo non ti chiediamo un consenso: i cookie strettamente necessari non lo richiedono, ma è giusto che tu sappia quali sono.</value></data>
+  <data name="Ck_CookiesTitle" xml:space="preserve"><value>I cookie</value></data>
+  <data name="Ck_Name" xml:space="preserve"><value>Nome</value></data>
+  <data name="Ck_Purpose" xml:space="preserve"><value>A che serve</value></data>
+  <data name="Ck_Duration" xml:space="preserve"><value>Durata</value></data>
+  <data name="Ck_AuthPurpose" xml:space="preserve"><value>Ti tiene connesso dopo il login con IVAO, che serve per leggere il sito.</value></data>
+  <data name="Ck_AuthDuration" xml:space="preserve"><value>7 giorni dall'ultima visita</value></data>
+  <data name="Ck_OidcPurpose" xml:space="preserve"><value>Proteggono il passaggio dalla pagina di login di IVAO al sito.</value></data>
+  <data name="Ck_OidcDuration" xml:space="preserve"><value>Pochi minuti, solo durante il login</value></data>
+  <data name="Ck_CulturePurpose" xml:space="preserve"><value>Ricorda la lingua che hai scelto (italiano o inglese).</value></data>
+  <data name="Ck_CultureDuration" xml:space="preserve"><value>1 anno</value></data>
+  <data name="Ck_AntiforgeryPurpose" xml:space="preserve"><value>Protegge i moduli da invii falsificati da altri siti.</value></data>
+  <data name="Ck_AntiforgeryDuration" xml:space="preserve"><value>Fino alla chiusura del browser</value></data>
+  <data name="Ck_DataTitle" xml:space="preserve"><value>Che cosa registriamo quando entri</value></data>
+  <data name="Ck_Data" xml:space="preserve"><value>Per leggere il sito serve il login con IVAO. Quando entri registriamo il tuo VID, il nome, la divisione e l'ACC come li manda IVAO, la data del primo e dell'ultimo accesso e in quanti giorni diversi sei entrato: una riga per persona, non l'elenco di che cosa leggi. Serve a sapere chi usa il sito e la vedono solo gli amministratori. Il tuo nome breve (nome e iniziale del cognome, «Mario R.») compare anche accanto al VID nella classifica della divisione, per chi può vederla: lo staff, e tutti i membri entrati se la classifica è resa pubblica. Chi non entra da dodici mesi viene cancellato.</value></data>
+  <data name="My_Title" xml:space="preserve"><value>I miei dati</value></data>
+  <data name="My_Intro" xml:space="preserve"><value>Quello che questo sito tiene di te. Il titolare dei dati è IVAO, e vale la sua informativa sulla privacy; questa pagina ti mostra che cosa c'è qui.</value></data>
+  <data name="My_NotSignedIn" xml:space="preserve"><value>Entra con IVAO per vedere i tuoi dati.</value></data>
+  <data name="My_NoRow" xml:space="preserve"><value>Non c'è ancora una riga per te: si scrive al primo accesso, entro qualche minuto.</value></data>
+  <data name="My_OtherTitle" xml:space="preserve"><value>Gli altri dati che ti riguardano</value></data>
+  <data name="My_OtherAtc" xml:space="preserve"><value>Le tue connessioni come controllore vengono dai dati pubblici della rete IVAO (chi era in frequenza e quando). Le teniamo per esteso dodici mesi; poi restano solo i totali di ogni mese (ore, sessioni e movimenti per callsign), per dieci anni:</value></data>
+  <data name="My_OtherAtcLink" xml:space="preserve"><value>le tue statistiche</value></data>
+  <data name="My_OtherStaff" xml:space="preserve"><value>Se sei nello staff della divisione, il tuo nome e le tue posizioni staff servono a decidere che cosa puoi modificare, e compaiono accanto alle modifiche che firmi.</value></data>
+  <data name="My_DeleteTitle" xml:space="preserve"><value>Chiedere di cancellarli</value></data>
+  <data name="My_Delete" xml:space="preserve"><value>La cancellazione dei tuoi dati si chiede a IVAO HQ, che gira la richiesta a noi: la divisione provvede a cancellarli. Come chiederla lo spiega la</value></data>
+  <data name="My_DeleteNote" xml:space="preserve"><value>Il sito si legge solo dopo il login: finché lo usi, un nuovo accesso scrive di nuovo la tua riga. Chi non entra da dodici mesi viene cancellato da solo.</value></data>
+  <data name="Ck_DataLink" xml:space="preserve"><value>Vedi i tuoi dati.</value></data>
+  <data name="Ck_StorageTitle" xml:space="preserve"><value>Le preferenze nel tuo browser</value></data>
+  <data name="Ck_Storage" xml:space="preserve"><value>Alcune scelte di visualizzazione restano nell'archivio locale del browser (non sono cookie e non vengono mandate a noi): tema chiaro o scuro, zoom, densità delle tabelle, sezioni aperte o chiuse, la guida già vista, il tema giorno/notte del vAWOS. Restano sul tuo dispositivo finché non le cancelli.</value></data>
+  <data name="Ck_ThirdTitle" xml:space="preserve"><value>Servizi di terzi</value></data>
+  <data name="Ck_Third" xml:space="preserve"><value>Le mappe caricano le immagini di sfondo dal servizio di Esri (ArcGIS): è il tuo browser a chiederle, e quel servizio vede il tuo indirizzo IP come per qualunque immagine sul web. Le immagini arrivano senza cookie, e il sito non usa altri servizi di terzi.</value></data>
+  <data name="Ck_ControlTitle" xml:space="preserve"><value>Come toglierli</value></data>
+  <data name="Ck_Control" xml:space="preserve"><value>Puoi cancellare cookie e archivio locale dalle impostazioni del browser: il sito continua a funzionare, ti chiederà di nuovo il login e tornerà alla lingua del browser. Per il trattamento dei dati da parte di IVAO vedi</value></data>
+  <data name="Ck_Updated" xml:space="preserve"><value>Ultimo aggiornamento: 30 settembre 2026.</value></data>
+  <data name="Foot_Info" xml:space="preserve"><value>Regole, regolamento e privacy</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Tema: automatico (segue il sistema)</value></data>
   <data name="Chrome_ThemeLight" xml:space="preserve"><value>Tema: chiaro</value></data>
   <data name="Chrome_ThemeDark" xml:space="preserve"><value>Tema: scuro</value></data>
@@ -263,10 +310,8 @@
   <data name="Live_Tab" xml:space="preserve"><value>Operativa</value></data>
   <data name="Live_FollowMe" xml:space="preserve"><value>segui {0}</value></data>
   <data name="Live_ChangesLabel" xml:space="preserve"><value>Cambi</value></data>
-  <data name="Live_ChangesClear" xml:space="preserve"><value>scarta</value></data>
+  <data name="Live_ChangesClear" xml:space="preserve"><value>Chiudi i cambi</value></data>
   <data name="Live_UtcNow" xml:space="preserve"><value>Ora corrente UTC (Z)</value></data>
-  <data name="Live_Dense" xml:space="preserve"><value>Compatta</value></data>
-  <data name="Live_DenseTip" xml:space="preserve"><value>Vista più densa: più righe a schermo su monitor piccoli. La scelta viene ricordata.</value></data>
   <data name="Live_ShowUnicom" xml:space="preserve"><value>mostra i {0} rilasci a UNICOM</value></data>
   <data name="Live_HideUnicom" xml:space="preserve"><value>nascondi i rilasci a UNICOM</value></data>
   <data name="Live_OnlyUnicom" xml:space="preserve"><value>Nessun trasferimento verso un ente online: tutti i punti rilasciano a UNICOM.</value></data>
@@ -280,13 +325,12 @@
   <data name="Live_FeedExpired" xml:space="preserve"><value>{0} (scaduto: sorgente IVAO ferma, chi è online non si sa)</value></data>
   <data name="Live_NotYoursTitle" xml:space="preserve"><value>Stai guardando {0}</value></data>
   <data name="Live_NotYoursBody" xml:space="preserve"><value>Non è la postazione con cui sei connesso ({0}): questa vista è in sola consultazione e non ti segue.</value></data>
-  <data name="Live_CoveredBy" xml:space="preserve"><value>Sopra di te:</value></data>
-  <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, e a chi passi salendo</value></data>
+  <data name="Live_CoveredBy" xml:space="preserve"><value>Enti limitrofi:</value></data>
+  <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, a chi trasferisci il traffico</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>chiuso</value></data>
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>gerarchia non configurata per questa posizione — nessun ente sopra risulta impostato in Struttura</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
-  <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Documento esteso</value></data>
-  <data name="Live_QuickView" xml:space="preserve"><value>Vista rapida — il mio settore o un aeroporto sotto controllo diretto</value></data>
+  <data name="Live_ExtendedDoc" xml:space="preserve"><value>Documento esteso ↗</value></data>
   <data name="Live_MySector" xml:space="preserve"><value>Il mio settore</value></data>
   <data name="Live_PickPlaceholder" xml:space="preserve"><value>Apri un'altra postazione…</value></data>
   <data name="Live_PickTitle" xml:space="preserve"><value>Staff di divisione: apre la vista live di una qualsiasi postazione, anche spenta</value></data>
@@ -303,6 +347,7 @@
   <data name="Live_Delegated" xml:space="preserve"><value>delegati</value></data>
   <data name="Live_CollapsedBody" xml:space="preserve"><value>Compresso perché un settore di &lt;b&gt;{0}&lt;/b&gt; è online (collasso morbido). Sotto restano le frequenze per l'handoff.</value></data>
   <data name="Live_TransfersTitle" xml:space="preserve"><value>Trasferimenti · dove passo il traffico</value></data>
+  <data name="Live_InDevelopment" xml:space="preserve"><value>In sviluppo</value></data>
   <data name="Live_TransfersHint" xml:space="preserve"><value>Un ente interno compare solo se c'è qualcuno online; verso l'esterno si trasferisce sempre, rilasciando al livello concordato. Chi non è online è scritto in grigio: quel traffico resta a te.</value></data>
   <data name="Live_FilterApt" xml:space="preserve"><value>Filtra per aeroporto</value></data>
   <data name="Live_FilterClear" xml:space="preserve"><value>Togli il filtro</value></data>
@@ -962,7 +1007,7 @@
   <data name="AccLanding_AirportsDesc" xml:space="preserve"><value>vIPI e vSOP militari dei singoli aeroporti sotto la ACC.</value></data>
   <data name="AccLanding_Apps" xml:space="preserve"><value>Avvicinamenti non remotizzati</value></data>
   <data name="AccLanding_AppsDesc" xml:space="preserve"><value>APP con documentazione propria.</value></data>
-  <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Lettere di accordo con i centri confinanti.</value></data>  <data name="AccLanding_OpsView" xml:space="preserve"><value>Vista operativa</value></data>
+  <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Lettere di accordo con i centri confinanti.</value></data>  <data name="AccLanding_Opens" xml:space="preserve"><value>{0} aperture</value></data>  <data name="AccLanding_OpensOne" xml:space="preserve"><value>1 apertura</value></data>  <data name="AccLanding_OpensTitle" xml:space="preserve"><value>Aperture della pagina pubblica negli ultimi {0} giorni. Lo vede solo lo staff.</value></data>  <data name="AccLanding_OpsView" xml:space="preserve"><value>Vista operativa</value></data>
   <data name="AccLanding_OpsViewOf" xml:space="preserve"><value>Vista operativa di {0}</value></data>
   <data name="AccLanding_OpsViewDesc" xml:space="preserve"><value>Proiezione live per la tua postazione: collasso morbido di ciò che è delegato a un ente online, più i trasferimenti risolti in tempo reale.</value></data>
   <data name="AccLanding_TransfersAdminDesc" xml:space="preserve"><value>Accordi di coordinamento fra enti (pagina admin).</value></data>
@@ -1067,11 +1112,11 @@
   <data name="Stats_WhenYouControl" xml:space="preserve"><value>Quando controlli</value></data>
   <data name="Stats_Coverage" xml:space="preserve"><value>Quando c'è copertura</value></data>
   <data name="Stats_CoverageHint" xml:space="preserve"><value>Percentuale di tempo con almeno un controllore italiano in frequenza, per ora UTC e giorno della settimana. Le caselle vuote sono i buchi.</value></data>
-  <data name="Stats_TopAirports" xml:space="preserve"><value>Aeroporti visti</value></data>
+  <data name="Stats_TopAirports" xml:space="preserve"><value>Da dove vengono e dove vanno</value></data>
   <data name="Stats_ManagedAirports" xml:space="preserve"><value>Aeroporti gestiti</value></data>
-  <data name="Stats_ManagedAirportsHint" xml:space="preserve"><value>Voli in partenza o in arrivo dagli aeroporti che coprivi: quello scritto nel callsign per torre e avvicinamento, quelli dentro il poligono per i settori d’area. I sorvoli non compaiono qui, ma restano nei totali.</value></data>
+  <data name="Stats_ManagedAirportsHint" xml:space="preserve"><value>Gli aeroporti di cui eri responsabile: per torre e avvicinamento quello del tuo callsign, per i settori d'area quelli dentro il tuo spazio. Si contano i voli partiti da lì o diretti lì; chi è solo passato sopra non compare qui, ma è nei totali in alto.</value></data>
   <data name="Stats_ManagedAirportsNone" xml:space="preserve"><value>Nessuno in questo periodo: il traffico che hai gestito non risulta partito da o diretto a un aeroporto dei settori che coprivi.</value></data>
-  <data name="Stats_SeenAirportsHint" xml:space="preserve"><value>I due capi del piano di volo di ogni traffico gestito, anche fuori Italia: da dove viene e dove va chi ti passa davanti.</value></data>
+  <data name="Stats_SeenAirportsHint" xml:space="preserve"><value>La partenza e la destinazione scritte nel piano di volo dei voli che hai gestito, anche fuori Italia.</value></data>
   <data name="Stats_TopAircraft" xml:space="preserve"><value>I tipi che vedi di più</value></data>
   <data name="Stats_Airport" xml:space="preserve"><value>Aeroporto</value></data>
   <data name="Stats_Flights" xml:space="preserve"><value>Voli</value></data>
@@ -1083,7 +1128,7 @@
   <data name="Stats_Hours" xml:space="preserve"><value>Ore</value></data>
   <data name="Stats_Shifts" xml:space="preserve"><value>Turni</value></data>
   <data name="Stats_Movements" xml:space="preserve"><value>Movimenti</value></data>
-  <data name="Stats_Presences" xml:space="preserve"><value>Presenze</value></data>
+  <data name="Stats_Presences" xml:space="preserve"><value>Voli visti</value></data>
   <data name="Stats_BusyMinutes" xml:space="preserve"><value>Minuti con traffico</value></data>
   <data name="Stats_ByPosition" xml:space="preserve"><value>Per postazione</value></data>
   <data name="Stats_ByMonth" xml:space="preserve"><value>Per mese</value></data>
@@ -1105,14 +1150,14 @@
   <data name="Stats_Gap" xml:space="preserve"><value>dati incompleti</value></data>
   <data name="Stats_GapHint" xml:space="preserve"><value>Fra due avvistamenti di questo volo c'è un buco: i suoi minuti sono per difetto.</value></data>
   <data name="Stats_Parked" xml:space="preserve"><value>fermo</value></data>
-  <data name="Stats_ParkedHint" xml:space="preserve"><value>Non si è mai mosso mentre eri in frequenza: conta come presenza, non come movimento.</value></data>
+  <data name="Stats_ParkedHint" xml:space="preserve"><value>Non si è mai mosso mentre eri in frequenza: conta come volo visto, non come movimento.</value></data>
   <data name="Stats_Rebuilt" xml:space="preserve"><value>ricostruito</value></data>
   <data name="Stats_RebuiltHint" xml:space="preserve"><value>Ricostruito dai movimenti dell'aeroporto: si sa che il volo c'è stato, non per quanti minuti.</value></data>
   <data name="Stats_StillOpen" xml:space="preserve"><value>in corso</value></data>
   <data name="Stats_BackToMine" xml:space="preserve"><value>Le mie statistiche</value></data>
   <data name="Stats_DivisionLink" xml:space="preserve"><value>Statistiche di divisione</value></data>
   <data name="Stats_DivisionTitle" xml:space="preserve"><value>Statistiche di divisione</value></data>
-  <data name="Stats_DivisionSubtitle" xml:space="preserve"><value>Ultimi dodici mesi: oltre, la sorgente non conserva le connessioni.</value></data>
+  <data name="Stats_DivisionSubtitle" xml:space="preserve"><value>Il dettaglio copre gli ultimi dodici mesi (IVAO non conserva le connessioni più vecchie); oltre, ore, sessioni e movimenti restano come totali mensili per dieci anni.</value></data>
   <data name="Stats_TopControllers" xml:space="preserve"><value>Classifica per ore</value></data>
   <data name="Stats_LeaderboardOff" xml:space="preserve"><value>La classifica di divisione non è pubblica. Può renderla visibile lo staff.</value></data>
   <data name="Stats_Visibility" xml:space="preserve"><value>Visibilità</value></data>
@@ -1412,7 +1457,7 @@
   <data name="Apt_Deselect" xml:space="preserve"><value>Deseleziona tutte le righe</value></data>
   <data name="Apt_ColSectors" xml:space="preserve"><value>Settori</value></data>
   <data name="Apt_OpenEditorTitle" xml:space="preserve"><value>Apri editor aeroporto {0}</value></data>
-  <data name="Apt_NoTwrTitle" xml:space="preserve"><value>Ogni aeroporto deve avere almeno una torre (TWR o I_TWR). Genera i documenti o aggiungi la torre dalla pagina Struttura.</value></data>
+  <data name="Apt_NoTwrTitle" xml:space="preserve"><value>Nessuna torre (TWR o I_TWR) su IVAO. Non è un difetto: dove l'APP fa anche da torre la TWR non c'è, e la vIPI dello scalo non ne ha bisogno.</value></data>
   <data name="Apt_NoTwr" xml:space="preserve"><value>no TWR</value></data>
   <data name="Apt_HiddenNoSectorsTitle" xml:space="preserve"><value>Nascosto di default: l'aeroporto non ha nemmeno un settore, la pagina pubblica resta inaccessibile finché non genera i documenti.</value></data>
   <data name="Apt_HiddenNoSectors" xml:space="preserve"><value>nascosto (no settori)</value></data>
@@ -1771,8 +1816,13 @@
   <data name="Orph_Gone" xml:space="preserve"><value>sparito dalla sorgente</value></data>
   <data name="Orph_CarriesDoc" xml:space="preserve"><value>porta il documento</value></data>
   <data name="Orph_NoDocs" xml:space="preserve"><value>nessun documento</value></data>
-  <data name="Orph_PickTarget" xml:space="preserve"><value>Riaggancia a…</value></data>
+  <data name="Orph_PickTarget" xml:space="preserve"><value>Settore…</value></data>
   <data name="Orph_Reattach" xml:space="preserve"><value>Riaggancia</value></data>
+  <data name="Orph_Substitute" xml:space="preserve"><value>Sostituisci con…</value></data>
+  <data name="Orph_SubstituteTitle" xml:space="preserve"><value>IVAO ha tolto questa posizione e ne ha creata una nuova al suo posto: tutto passa a quella scelta nell'elenco</value></data>
+  <data name="Orph_SubstitutePrompt" xml:space="preserve"><value>{0} è diventato {1}? Tutto passa a {1}: accordi, blocchi, figli, documento, gruppi APP, configurazioni, gerarchia ed enti. {0} resta vuoto, da eliminare.</value></data>
+  <data name="Orph_SubstituteYes" xml:space="preserve"><value>Sostituisci</value></data>
+  <data name="Orph_Substituted" xml:space="preserve"><value>{0} → {1}: {2} accordi, {3} blocchi, {4} figli spostati. Ora {0} è vuoto: puoi eliminarlo.</value></data>
   <data name="Orph_Remove" xml:space="preserve"><value>Rimuovi</value></data>
   <data name="Orph_RemoveTitle" xml:space="preserve"><value>Toglie il settore dall'archivio (torna se la sorgente lo rimanda)</value></data>
   <data name="Rel_AiracRelease" xml:space="preserve"><value>Release AIRAC</value></data>
@@ -1941,6 +1991,11 @@
   <data name="Ver_ReleasePublishedCycle" xml:space="preserve"><value>Release pubblicata al ciclo {0}.</value></data>
   <data name="Ver_DocShown" xml:space="preserve"><value>Documento mostrato.</value></data>
   <data name="Ver_DocHidden" xml:space="preserve"><value>Documento nascosto.</value></data>
+  <data name="Ver_Rename" xml:space="preserve"><value>Titolo</value></data>
+  <data name="Ver_RenameTitle" xml:space="preserve"><value>Cambia il titolo del documento</value></data>
+  <data name="Ver_RenameLabel" xml:space="preserve"><value>Titolo del documento</value></data>
+  <data name="Ver_RenameHelp" xml:space="preserve"><value>Vale subito nell'elenco, nel vAWOS e nell'API degli aeroporti. La pagina pubblica e la ricerca mostrano il titolo della release: cambiano alla prossima pubblicazione.</value></data>
+  <data name="Ver_Renamed" xml:space="preserve"><value>Titolo cambiato.</value></data>
   <data name="Ver_DeleteConfirm" xml:space="preserve"><value>Eliminare definitivamente «{0}»? L'operazione è irreversibile (rimuove versioni e release).</value></data>
   <data name="Ver_DocDeleted" xml:space="preserve"><value>Documento eliminato.</value></data>
   <data name="Ver_Refresh" xml:space="preserve"><value>Aggiorna</value></data>
@@ -2427,6 +2482,7 @@
   <data name="AorBlock_ConfigHelp" xml:space="preserve"><value>Selezionando una configurazione si evidenziano, in "Configurazioni operative", i setting corrispondenti.</value></data>
   <data name="Aqp_SelectedRunway" xml:space="preserve"><value>Pista selezionata</value></data>
   <data name="Aqp_SearchSid" xml:space="preserve"><value>Cerca un punto o una SID…</value></data>
+  <data name="Aqp_SidRadio" xml:space="preserve"><value>In radio la SID si legge con il nome completo: {0} si dice «{1}» ({2}).</value></data>
   <data name="Aqp_ClearSearch" xml:space="preserve"><value>Togli la ricerca</value></data>
   <data name="Aqp_SidCount" xml:space="preserve"><value>{0} SID</value></data>
   <data name="Aqp_NoSidMatch" xml:space="preserve"><value>Nessuna SID per «{0}».</value></data>
@@ -2733,6 +2789,9 @@
   <data name="Swap_Done" xml:space="preserve"><value>Fatto: {0} sezioni copiate in {1} profili, scaricate in «{2}».</value></data>
   <data name="Swap_Note" xml:space="preserve"><value>Le sezioni non selezionate restano identiche byte per byte.</value></data>
   <data name="Services_Title" xml:space="preserve"><value>Servizi ATC</value></data>
+  <data name="Services_LoginTitle" xml:space="preserve"><value>Accesso riservato ai membri IVAO</value></data>
+  <data name="Services_LoginBody" xml:space="preserve"><value>La documentazione ATC di IVAO Italy si legge dopo il login: entra con il tuo account IVAO, di qualunque divisione.</value></data>
+  <data name="Services_LoginButton" xml:space="preserve"><value>Entra con IVAO</value></data>
   <data name="Services_VsopTitle" xml:space="preserve"><value>vSOP — documentazione operativa</value></data>
   <data name="Services_VsopDesc" xml:space="preserve"><value>vIPI di ACC, aeroporti (con i vSOP militari), APP e vLOA: le procedure con cui si lavora in frequenza.</value></data>
   <data name="Services_ForAtc" xml:space="preserve"><value>Per i controllori del traffico aereo</value></data>
@@ -2848,7 +2907,37 @@
   <data name="Stats_PositionShare" xml:space="preserve"><value>Come si divide il tuo tempo</value></data>
   <data name="Stats_PositionShareDivision" xml:space="preserve"><value>Come si divide il tempo della divisione</value></data>
   <data name="Stats_SliceTitle" xml:space="preserve"><value>{0}: {1} ore su {2} sessioni</value></data>
-  <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} ore, {2} movimenti</value></data>
+  <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} ore, {2} sessioni, {3} movimenti</value></data>
+  <data name="Stats_PerController" xml:space="preserve"><value>{0} per controllore</value></data>
+  <data name="Stats_ControllersHint" xml:space="preserve"><value>almeno un turno nel periodo</value></data>
+  <data name="Stats_AllPositionsHint" xml:space="preserve"><value>tutte le postazioni</value></data>
+  <data name="Stats_SessionsN" xml:space="preserve"><value>{0} sessioni</value></data>
+  <data name="Stats_Controller" xml:space="preserve"><value>Controllore</value></data>
+  <data name="Stats_ShowFirst" xml:space="preserve"><value>Mostra i primi {0}</value></data>
+  <data name="Stats_ShowAllAirports" xml:space="preserve"><value>Mostra tutti i {0}</value></data>
+  <data name="Stats_YouAre" xml:space="preserve"><value>La riga evidenziata sei tu: {0}° su {1}.</value></data>
+  <data name="Stats_NamesHint" xml:space="preserve"><value>Il nome compare per chi è entrato nel sito almeno una volta; gli altri restano col VID.</value></data>
+  <data name="Stats_StaffTools" xml:space="preserve"><value>Strumenti dello staff</value></data>
+  <data name="Stats_RankOf" xml:space="preserve"><value>su {0} in divisione · per ore</value></data>
+  <data name="Stats_AvgDivision" xml:space="preserve"><value>media della divisione {0}</value></data>
+  <data name="Stats_PresencesHint" xml:space="preserve"><value>anche fermi al parcheggio</value></data>
+  <data name="Stats_FlightsVsMovements" xml:space="preserve"><value>Voli visti: ogni volo che era nel tuo spazio mentre eri in frequenza, anche se non si è mai mosso dal parcheggio. Movimenti: quelli che si sono mossi almeno una volta mentre c'eri tu — rullaggio, decollo, atterraggio o in volo. Un aereo fermo al parcheggio è un volo visto, non un movimento.</value></data>
+  <data name="My_DeleteLink" xml:space="preserve"><value>procedura di IVAO per cancellare l'account</value></data>
+  <data name="Stats_AvgShift" xml:space="preserve"><value>Durata media turno</value></data>
+  <data name="Stats_AvgShiftDivision" xml:space="preserve"><value>divisione {0}</value></data>
+  <data name="Stats_MonthHover" xml:space="preserve"><value>passa sopra una barra per il dettaglio del mese</value></data>
+  <data name="Stats_Where" xml:space="preserve"><value>Dove controlli</value></data>
+  <data name="Stats_WhereOther" xml:space="preserve"><value>Dove controlla</value></data>
+  <data name="Stats_PositionDetail" xml:space="preserve"><value>{0} sessioni · {1} movimenti</value></data>
+  <data name="Stats_AllPositions" xml:space="preserve"><value>Tutte le {0} postazioni</value></data>
+  <data name="Stats_HeatLess" xml:space="preserve"><value>meno</value></data>
+  <data name="Stats_HeatMore" xml:space="preserve"><value>più ore</value></data>
+  <data name="Stats_DayTotal" xml:space="preserve"><value>totale</value></data>
+  <data name="Stats_AirportsCard" xml:space="preserve"><value>Aeroporti</value></data>
+  <data name="Stats_FlightsMov" xml:space="preserve"><value>{0} voli · {1} mov.</value></data>
+  <data name="Stats_LastShifts" xml:space="preserve"><value>Ultimi turni</value></data>
+  <data name="Stats_ShiftsInPeriod" xml:space="preserve"><value>{0} nel periodo</value></data>
+  <data name="Stats_ShowAllShifts" xml:space="preserve"><value>Mostra tutti i {0} turni</value></data>
   <data name="Stats_CovLegend" xml:space="preserve"><value>Copertura:</value></data>
   <data name="Stats_CovNone" xml:space="preserve"><value>nessuna</value></data>
   <data name="Stats_CovFull" xml:space="preserve"><value>piena</value></data>
@@ -2912,7 +3001,7 @@
   <data name="Stats_TagHint_HandedOff" xml:space="preserve"><value>È uscito dalla tua area ancora in volo, e l'ha preso un'altra postazione.</value></data>
   <data name="Stats_TagHint_LeftAirborne" xml:space="preserve"><value>È uscito dalla tua area ancora in volo, e dopo di te non l'ha preso nessuno.</value></data>
   <data name="Stats_TagHint_TaxiOnly" xml:space="preserve"><value>Si è mosso ma non l'hai mai visto in volo.</value></data>
-  <data name="Stats_TagHint_Parked" xml:space="preserve"><value>Non si è mai mosso: conta come presenza, non come movimento.</value></data>
+  <data name="Stats_TagHint_Parked" xml:space="preserve"><value>Non si è mai mosso: conta come volo visto, non come movimento.</value></data>
   <data name="Stats_TagHint_NoFlightPlan" xml:space="preserve"><value>Nessun piano di volo mentre era da te.</value></data>
   <data name="Stats_TagHint_SecondLeg" xml:space="preserve"><value>Secondo volo dello stesso callsign durante la tua sessione.</value></data>
   <data name="Stats_TagHint_Gap" xml:space="preserve"><value>Fra due avvistamenti c'è un buco: i minuti sono per difetto.</value></data>
@@ -3108,6 +3197,19 @@
   <data name="Mil_CreateFromCivil" xml:space="preserve"><value>Crea il vSOP militare</value></data>
   <data name="Mil_OpenFromCivil" xml:space="preserve"><value>vSOP militare</value></data>
   <data name="Mil_CreatedGoEditor" xml:space="preserve"><value>vSOP militare creato: è una bozza, va compilata e pubblicata.</value></data>
+  <data name="Logins_Title" xml:space="preserve"><value>Accessi al sito</value></data>
+  <data name="Logins_Subtitle" xml:space="preserve"><value>Chi è entrato nel sito almeno una volta, con il login IVAO: i più recenti per primi.</value></data>
+  <data name="Logins_AdminOnly" xml:space="preserve"><value>Riservato agli amministratori.</value></data>
+  <data name="Logins_Search" xml:space="preserve"><value>Cerca</value></data>
+  <data name="Logins_SearchPh" xml:space="preserve"><value>Nome o VID</value></data>
+  <data name="Logins_SearchGo" xml:space="preserve"><value>Cerca</value></data>
+  <data name="Logins_Found" xml:space="preserve"><value>{0} mostrati su {1}.</value></data>
+  <data name="Logins_Name" xml:space="preserve"><value>Nome</value></data>
+  <data name="Logins_Division" xml:space="preserve"><value>Divisione</value></data>
+  <data name="Logins_First" xml:space="preserve"><value>Primo accesso</value></data>
+  <data name="Logins_Last" xml:space="preserve"><value>Ultimo accesso</value></data>
+  <data name="Logins_Days" xml:space="preserve"><value>Giorni</value></data>
+  <data name="Logins_Retention" xml:space="preserve"><value>Si registra al più una volta ogni cinque minuti per VID. Chi non entra da dodici mesi viene cancellato.</value></data>
   <data name="World_Title" xml:space="preserve"><value>Archivio ATC</value></data>
   <data name="World_Subtitle" xml:space="preserve"><value>Tutte le postazioni ATC viste dal poller, divisione e resto del mondo: quando hanno aperto e quando le abbiamo perse di vista. Dodici mesi.</value></data>
   <data name="World_StaffOnly" xml:space="preserve"><value>L'archivio delle connessioni lo vede lo staff.</value></data>
@@ -3341,8 +3443,10 @@
   <data name="Asp_AdminTitle" xml:space="preserve"><value>Spazi aerei</value></data>
   <data name="Asp_AdminNav" xml:space="preserve"><value>Spazi aerei</value></data>
   <data name="Asp_AdminSubtitle" xml:space="preserve"><value>Gli spazi aerei dell'AIP, dal file caricato a mano.</value></data>
-  <data name="Asp_AdminIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Il file dell'AIP (KMZ) lo carica una persona: dentro ci sono i confini veri di CTR, CTA, TMA, ATZ e FIR.&lt;/p&gt;&lt;p style='margin:0'&gt;Le aree regolamentate (R, P, D) e le altre aree si leggono ma &lt;b&gt;non si usano&lt;/b&gt;: quelle vengono dal catalogo IVAO. Il ciclo AIRAC lo dichiari tu, perché il file non lo porta.&lt;/p&gt;</value></data>
+  <data name="Asp_AdminIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Il file dell'AIP (KMZ) lo carica una persona: dentro ci sono i confini veri di CTR, CTA, TMA, ATZ e FIR.&lt;/p&gt;&lt;p style='margin:0'&gt;Le aree regolamentate (R, P, D) e le altre aree si leggono ma &lt;b&gt;non si usano&lt;/b&gt;: quelle vengono dal catalogo IVAO. Il ciclo AIRAC lo dichiari tu, perché il file non lo porta.&lt;/p&gt;&lt;p style='margin:6px 0 0'&gt;Con la matita correggi tipo, classe, base e tetto di un volume: la correzione resta ai caricamenti successivi, e se il file nuovo cambia qualcosa sotto di lei la pagina te lo segnala.&lt;/p&gt;</value></data>
   <data name="Asp_Upload" xml:space="preserve"><value>Carica il file</value></data>
+  <data name="Asp_Working" xml:space="preserve"><value>Un momento...</value></data>
+  <data name="Asp_Rebinding" xml:space="preserve"><value>Aggiorno gli agganci e ricalcolo i confinanti...</value></data>
   <data name="Asp_Reading" xml:space="preserve"><value>Sto leggendo il file...</value></data>
   <data name="Asp_Cycle" xml:space="preserve"><value>Ciclo AIRAC</value></data>
   <data name="Asp_CyclePh" xml:space="preserve"><value>AIRAC</value></data>
@@ -3459,6 +3563,23 @@
   <data name="Reconnect_Rejected" xml:space="preserve"><value>Il server è ripartito: ricarico la pagina.</value></data>
   <data name="Reconnect_Failed" xml:space="preserve"><value>Non riesco a ricollegarmi. Controlla la connessione, poi ricarica la pagina.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Ricarica la pagina</value></data>
+  <data name="Reconnect_QuietTitle" xml:space="preserve"><value>Collegamento con il server perso</value></data>
+  <data name="Reconnect_QuietBodyLive" xml:space="preserve"><value>La pagina non si aggiorna più finché non la ricarichi.</value></data>
+  <data name="Reconnect_QuietBody" xml:space="preserve"><value>Il documento resta leggibile; stato Live e meteo non si aggiornano finché non ricarichi.</value></data>
+  <data name="Diag_DiscTitle" xml:space="preserve"><value>Disconnessioni viste dai browser</value></data>
+  <data name="Diag_DiscHint" xml:space="preserve"><value>Una riga ogni volta che a qualcuno è comparso il riquadro «riconnessione», negli ultimi sette giorni. Riagganciate: il collegamento è tornato da solo. Rifiutate: il processo del server era stato spento o riavviato. Fallite: server irraggiungibile. Il file completo è diagnostica/disconnessioni-*.tsv.</value></data>
+  <data name="Diag_DiscNone" xml:space="preserve"><value>Nessuna disconnessione registrata.</value></data>
+  <data name="Diag_DiscDay" xml:space="preserve"><value>Giorno</value></data>
+  <data name="Diag_DiscTotal" xml:space="preserve"><value>Totale</value></data>
+  <data name="Diag_DiscBack" xml:space="preserve"><value>Riagganciate</value></data>
+  <data name="Diag_DiscRejected" xml:space="preserve"><value>Rifiutate</value></data>
+  <data name="Diag_DiscFailed" xml:space="preserve"><value>Fallite</value></data>
+  <data name="Diag_DiscLeft" xml:space="preserve"><value>Abbandonate</value></data>
+  <data name="Diag_DiscProcess" xml:space="preserve"><value>Processo cambiato</value></data>
+  <data name="Diag_DiscHidden" xml:space="preserve"><value>Scheda nascosta</value></data>
+  <data name="Diag_DiscOffline" xml:space="preserve"><value>Fuori rete</value></data>
+  <data name="Diag_DiscMedian" xml:space="preserve"><value>Buco (mediana)</value></data>
+  <data name="Diag_DiscPages" xml:space="preserve"><value>Le pagine dove succede di più</value></data>
   <data name="Lost_Title" xml:space="preserve"><value>L'ultimo comando potrebbe non essere arrivato.</value></data>
   <data name="Lost_Body" xml:space="preserve"><value>Il collegamento col server si era interrotto e la pagina è stata ricaricata da sola. Controlla l'ultima modifica: se non c'è, rifalla.</value></data>
   <!-- Import di una tabella: incolla, CSV, XLSX, anteprima -->
@@ -3667,12 +3788,15 @@
   <data name="Lvp_Togli" xml:space="preserve"><value>Togli i minimi</value></data>
   <data name="Services_EyeTitle" xml:space="preserve"><value>Vedi chi è online ora</value></data>
   <data name="Services_EyeDesc" xml:space="preserve"><value>Strumento non ufficiale, realizzato dalla divisione italiana.</value></data>
+  <data name="Services_AtcIvaoTitle" xml:space="preserve"><value>Prenotazioni ATC e FRA</value></data>
+  <data name="Services_AtcIvaoDesc" xml:space="preserve"><value>Sito ufficiale IVAO: prenota una posizione ATC e consulta le FRA.</value></data>
+  <data name="Services_DiscordTitle" xml:space="preserve"><value>Discord di divisione</value></data>
+  <data name="Services_DiscordDesc" xml:space="preserve"><value>Accedi al Discord di divisione per dei coordinamenti più efficaci, rimanere aggiornato e conoscere gli altri utenti della nostra divisione.</value></data>
   <data name="Services_AwosDesc" xml:space="preserve"><value>Il quadro meteo di torre: vento per testata, QNH, TL, RVR e stato LVP, aggiornati dal METAR.</value></data>
   <data name="Apt_OpenAwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS di questo scalo in una scheda nuova</value></data>
-  <data name="Live_AwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS del tuo aeroporto in una scheda nuova</value></data>
   <data name="ApiKeys_Nav" xml:space="preserve"><value>Chiavi API</value></data>
   <data name="ApiKeys_Title" xml:space="preserve"><value>Chiavi API</value></data>
-  <data name="ApiKeys_Subtitle" xml:space="preserve"><value>Le chiavi con cui altri programmi chiamano le API del sito (archivio ATC, bridge Aurora). Le API non sono mai anonime.</value></data>
+  <data name="ApiKeys_Subtitle" xml:space="preserve"><value>Le chiavi con cui altri programmi chiamano le API del sito (aeroporti, archivio ATC, bridge Aurora). Le API non sono mai anonime.</value></data>
   <data name="ApiKeys_Reserved" xml:space="preserve"><value>Le chiavi API le emettono solo HQ e WD della divisione.</value></data>
   <data name="ApiKeys_NewTitle" xml:space="preserve"><value>Chiave creata per «{0}»</value></data>
   <data name="ApiKeys_NewOnce" xml:space="preserve"><value>Copiala adesso: non si potrà più rivedere. Il sito ne conserva solo l'impronta.</value></data>
@@ -3683,6 +3807,16 @@
   <data name="ApiKeys_Endpoints" xml:space="preserve"><value>API che può chiamare</value></data>
   <data name="ApiKeys_Ep_archivio" xml:space="preserve"><value>Archivio ATC</value></data>
   <data name="ApiKeys_Ep_bridge" xml:space="preserve"><value>Bridge Aurora</value></data>
+  <data name="ApiKeys_Ep_aeroporti" xml:space="preserve"><value>Aeroporti (scali, SID, STAR)</value></data>
+  <data name="ApiKeys_RoutesTitle" xml:space="preserve"><value>Indirizzi delle API</value></data>
+  <data name="ApiKeys_RoutesHelp" xml:space="preserve"><value>Da dare a chi integra, insieme alla chiave. Ogni chiamata porta la chiave in uno dei due header qui sotto. Risposte: 401 senza chiave o con una chiave sbagliata o revocata, 403 con una chiave senza quel permesso, 404 scalo sconosciuto o senza documento pubblicato, 429 troppe richieste al minuto. Risposte in JSON.</value></data>
+  <data name="ApiKeys_RouteExample" xml:space="preserve"><value>Esempio:</value></data>
+  <data name="ApiKeys_Route_airports" xml:space="preserve"><value>Gli aeroporti con un documento pubblicato (vIPI o vSOP).</value></data>
+  <data name="ApiKeys_Route_airport" xml:space="preserve"><value>La scheda di uno scalo: TA, livelli di transizione, piste, frequenze.</value></data>
+  <data name="ApiKeys_Route_sids" xml:space="preserve"><value>Le SID come nel documento pubblicato. Facoltativo ?runway= per una pista (restano anche quelle valide per tutte).</value></data>
+  <data name="ApiKeys_Route_stars" xml:space="preserve"><value>Le STAR, stessa forma e stesso filtro delle SID.</value></data>
+  <data name="ApiKeys_Route_sessions" xml:space="preserve"><value>Le connessioni ATC archiviate. Filtri facoltativi: from e to (data e ora ISO 8601), callsign (prefisso), vid, open, scope (division o world), limit (al massimo 500), offset.</value></data>
+  <data name="ApiKeys_Route_resolve" xml:space="preserve"><value>I punti di trasferimento per un volo selezionato in Aurora (corpo JSON, ownerCallsign obbligatorio). Risponde solo se il bridge è acceso sul server.</value></data>
   <data name="ApiKeys_CreateNeeds" xml:space="preserve"><value>Servono un nome e almeno un'API</value></data>
   <data name="ApiKeys_CreateTitle" xml:space="preserve"><value>Crea la chiave e mostrala una volta</value></data>
   <data name="ApiKeys_Create" xml:space="preserve"><value>Crea chiave</value></data>
@@ -3723,4 +3857,205 @@
   <data name="Audit_Cat_CopiaDatabase" xml:space="preserve"><value>Copia del database</value></data>
   <data name="Audit_Fr_BackupStart" xml:space="preserve"><value>copia del database richiesta</value></data>
   <data name="Audit_Fr_BackupDone" xml:space="preserve"><value>copia del database completata: {0} tabelle, {1} righe, sha256 {2}</value></data>
+  <data name="Unit_Title" xml:space="preserve"><value>Ente</value></data>
+  <data name="Unit_Help" xml:space="preserve"><value>La vIPI APP è dell'ente, non di un nominativo IVAO. Le posizioni dicono chi apre questo documento quando è online e da dove si derivano frequenze, AoR e coordinamenti: da tutte, la principale per prima. Cambiarle non tocca il documento né le sue pubblicazioni.</value></data>
+  <data name="Unit_CodeLine" xml:space="preserve"><value>{0} · codice {1} (chiave di pubblicazione e indirizzo, non cambia)</value></data>
+  <data name="Unit_NoPositions" xml:space="preserve"><value>Nessuna posizione: il documento resta e lo apre solo chi è online col codice; le derivate partono dal codice.</value></data>
+  <data name="Unit_Primary" xml:space="preserve"><value>principale</value></data>
+  <data name="Unit_PrimaryTitle" xml:space="preserve"><value>La prima posizione dell'ente: viene per prima in frequenze, AoR e configurazioni</value></data>
+  <data name="Unit_MakePrimary" xml:space="preserve"><value>Rendi principale</value></data>
+  <data name="Unit_Remove" xml:space="preserve"><value>Togli la posizione</value></data>
+  <data name="Unit_RemovePrompt" xml:space="preserve"><value>Togliere {0} dall'ente? Il documento resta.</value></data>
+  <data name="Unit_RemoveYes" xml:space="preserve"><value>Togli</value></data>
+  <data name="Unit_AddLabel" xml:space="preserve"><value>Aggiungi una posizione</value></data>
+  <data name="Unit_AddAction" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="Unit_EditToChange" xml:space="preserve"><value>Premi «Modifica» per cambiare le posizioni.</value></data>
+  <data name="Unit_Remote" xml:space="preserve"><value>Sposta nella vIPI dell'ACC</value></data>
+  <data name="Unit_RemoteHelp" xml:space="preserve"><value>Se l'APP passa sotto l'ACC {0} (remotizzato), il suo contenuto si copia nella vIPI dell'ACC come gruppo APP: da lì si scrive e si pubblica, e quando quella va in vigore questa vIPI APP si nasconde.</value></data>
+  <data name="Unit_RemotePrompt" xml:space="preserve"><value>Copiare tutto il contenuto nella bozza della vIPI dell'ACC {0}? Questa vIPI APP resta pubblica finché non pubblichi la vIPI dell'ACC col gruppo: allora si nasconde da sola (la sua storia resta).</value></data>
+  <data name="Unit_RemoteYes" xml:space="preserve"><value>Sposta</value></data>
+  <data name="Unit_StillCited" xml:space="preserve"><value>{0} è ancora citata in: {1}. Quelle scelte sono salvate per nominativo: aggiornale.</value></data>
+  <data name="Unit_MovePending" xml:space="preserve"><value>Copiata nella bozza della vIPI dell'ACC {0}: resta pubblica finché non pubblichi quella. Quello che scrivi qui adesso non viene copiato.</value></data>
+  <data name="Units_Title" xml:space="preserve"><value>Enti ATC</value></data>
+  <data name="Units_Intro" xml:space="preserve"><value>A chi appartiene ogni vIPI APP: l'ente, con le sue posizioni IVAO (la principale per prima) e dove vive il contenuto. Il codice è la chiave di pubblicazione e non cambia. Le posizioni si cambiano dal riquadro «Ente» dell'editor della vIPI APP.</value></data>
+  <data name="Units_None" xml:space="preserve"><value>Nessun ente</value></data>
+  <data name="Units_ColUnit" xml:space="preserve"><value>Ente · codice</value></data>
+  <data name="Units_ColPositions" xml:space="preserve"><value>Posizioni</value></data>
+  <data name="Units_ColWhere" xml:space="preserve"><value>Contenuto</value></data>
+  <data name="Units_ColDoc" xml:space="preserve"><value>Documento</value></data>
+  <data name="Units_NoPositions" xml:space="preserve"><value>nessuna posizione</value></data>
+  <data name="Units_Gone" xml:space="preserve"><value>non su IVAO</value></data>
+  <data name="Units_GoneTitle" xml:space="preserve"><value>Nessun settore attivo con questo nominativo: IVAO non lo manda (più), e nessun controllore online apre la vIPI da qui.</value></data>
+  <data name="Units_OwnDoc" xml:space="preserve"><value>vIPI APP propria</value></data>
+  <data name="Units_Moving" xml:space="preserve"><value>copiato nella bozza della vIPI {0}</value></data>
+  <data name="Units_InAcc" xml:space="preserve"><value>gruppo APP nella vIPI {0}</value></data>
+  <data name="Units_NoDoc" xml:space="preserve"><value>senza documento</value></data>
+  <data name="Units_DocHidden" xml:space="preserve"><value>nascosta</value></data>
+  <data name="Units_DocPublic" xml:space="preserve"><value>pubblica</value></data>
+  <data name="Units_DocDraft" xml:space="preserve"><value>solo bozza</value></data>
+  <data name="Units_OpenEditor" xml:space="preserve"><value>Apri editor →</value></data>
+  <data name="Units_EditorsOnly" xml:space="preserve"><value>Pagina riservata agli editor.</value></data>
+  <data name="Req_Title" xml:space="preserve"><value>Campo richieste</value></data>
+  <data name="Req_Intro" xml:space="preserve"><value>Hai visto un errore in un documento, o hai un suggerimento? Scrivilo qui: lo legge lo staff che scrive i documenti, e la risposta la trovi in questa pagina. Si scrive da connessi con IVAO. Niente posta, niente notifiche: torna qui a vedere.</value></data>
+  <data name="Req_LoginNeeded" xml:space="preserve"><value>Per scrivere una richiesta, e per vedere le tue, accedi con IVAO.</value></data>
+  <data name="Req_New" xml:space="preserve"><value>Nuova richiesta</value></data>
+  <data name="Req_About" xml:space="preserve"><value>Su «{0}», sezione «{1}».</value></data>
+  <data name="Req_Free" xml:space="preserve"><value>Richiesta libera: per parlare di una sezione precisa, usa la bandierina ⚑ accanto al suo titolo nel documento.</value></data>
+  <data name="Req_KindError" xml:space="preserve"><value>Errore</value></data>
+  <data name="Req_KindSuggestion" xml:space="preserve"><value>Suggerimento</value></data>
+  <data name="Req_KindLabel" xml:space="preserve"><value>Tipo di richiesta</value></data>
+  <data name="Req_BodyLabel" xml:space="preserve"><value>Cosa ci vuoi segnalare?</value></data>
+  <data name="Req_BodyPlaceholder" xml:space="preserve"><value>Cosa ci vuoi segnalare?</value></data>
+  <data name="Req_Send" xml:space="preserve"><value>Invia</value></data>
+  <data name="Req_Sent" xml:space="preserve"><value>Inviata. La risposta la trovi qui sotto, in «Le mie richieste».</value></data>
+  <data name="Req_Mine" xml:space="preserve"><value>Le mie richieste</value></data>
+  <data name="Req_MineNone" xml:space="preserve"><value>Non hai ancora scritto nessuna richiesta.</value></data>
+  <data name="Req_ReplyFrom" xml:space="preserve"><value>Risposta di {0}</value></data>
+  <data name="Req_Queue" xml:space="preserve"><value>Coda dello staff</value></data>
+  <data name="Req_ShowClosed" xml:space="preserve"><value>anche le chiuse</value></data>
+  <data name="Req_QueueEmpty" xml:space="preserve"><value>Nessuna richiesta in attesa</value></data>
+  <data name="Req_By" xml:space="preserve"><value>di {0} (VID {1})</value></data>
+  <data name="Req_Take" xml:space="preserve"><value>Prendi in carico</value></data>
+  <data name="Req_Taken" xml:space="preserve"><value>Richiesta #{0} presa in carico: trovi l'incarico in «Da fare».</value></data>
+  <data name="Req_ReplyLabel" xml:space="preserve"><value>Risposta</value></data>
+  <data name="Req_ReplyPlaceholder" xml:space="preserve"><value>La risposta che legge chi l'ha scritta (obbligatoria)</value></data>
+  <data name="Req_Resolve" xml:space="preserve"><value>Risolta</value></data>
+  <data name="Req_Reject" xml:space="preserve"><value>Respingi</value></data>
+  <data name="Req_DuplicateOf" xml:space="preserve"><value>Doppione di</value></data>
+  <data name="Req_Duplicate" xml:space="preserve"><value>Doppione</value></data>
+  <data name="Req_Closed" xml:space="preserve"><value>Richiesta #{0} chiusa: chi l'ha scritta legge la tua risposta.</value></data>
+  <data name="Req_Release" xml:space="preserve"><value>pubblicazione {0}</value></data>
+  <data name="Req_FreeShort" xml:space="preserve"><value>richiesta libera</value></data>
+  <data name="Req_Status_Nuova" xml:space="preserve"><value>nuova</value></data>
+  <data name="Req_Status_PresaInCarico" xml:space="preserve"><value>presa in carico</value></data>
+  <data name="Req_Status_Risolta" xml:space="preserve"><value>risolta</value></data>
+  <data name="Req_Status_Respinta" xml:space="preserve"><value>respinta</value></data>
+  <data name="Req_Status_Doppione" xml:space="preserve"><value>doppione</value></data>
+  <data name="Req_ReportTitle" xml:space="preserve"><value>Segnala un errore o un suggerimento su questa sezione</value></data>
+  <data name="Req_ReportPage" xml:space="preserve"><value>Segnala un problema su questa pagina</value></data>
+  <data name="Req_AboutPage" xml:space="preserve"><value>Sulla pagina</value></data>
+  <data name="Req_PageShort" xml:space="preserve"><value>Pagina</value></data>
+  <data name="Req_Open" xml:space="preserve"><value>Rispondi</value></data>
+  <data name="Services_EventSection" xml:space="preserve"><value>Evento in corso</value></data>
+  <data name="Services_EventDesc" xml:space="preserve"><value>I profili Aurora per postazione e i file dell'evento: scaricali prima di aprire.</value></data>
+  <data name="Services_EventAccountDesc" xml:space="preserve"><value>Controlli con il VID che ti ha dato l'evento? Scrivilo qui e apri la vista live della tua postazione.</value></data>
+  <data name="EvtAcc_Title" xml:space="preserve"><value>Controlli con un account dell'evento?</value></data>
+  <data name="EvtAcc_Intro" xml:space="preserve"><value>Scrivi il VID con cui sei connesso su IVAO adesso. Se è fra gli account di questo evento ed è online, la vista live mostrerà la sua postazione fino alla fine dell'evento.</value></data>
+  <data name="EvtAcc_VidLabel" xml:space="preserve"><value>VID dell'account dell'evento</value></data>
+  <data name="EvtAcc_Use" xml:space="preserve"><value>Apri la mia vista live</value></data>
+  <data name="EvtAcc_Help" xml:space="preserve"><value>Ti sei appena connesso? Il sito legge i controllori online una volta al minuto: se dice che il VID non è online, riprova fra poco.</value></data>
+  <data name="EvtAcc_None" xml:space="preserve"><value>Adesso non c'è un evento con account dell'evento.</value></data>
+  <data name="EvtAcc_NotLoggedIn" xml:space="preserve"><value>Entra nel sito con il tuo account IVAO, poi scrivi il VID dell'evento.</value></data>
+  <data name="EvtAcc_NotInList" xml:space="preserve"><value>Il VID {0} non è fra gli account di questo evento. Controlla il numero, o chiedi allo staff di aggiungerlo.</value></data>
+  <data name="EvtAcc_NotOnline" xml:space="preserve"><value>Il VID {0} adesso non risulta connesso come controllore. Se ti sei appena collegato, riprova fra un minuto.</value></data>
+  <data name="EvtAcc_Using" xml:space="preserve"><value>Stai usando l'account dell'evento {0}.</value></data>
+  <data name="EvtAcc_OpenLive" xml:space="preserve"><value>Apri la vista live</value></data>
+  <data name="EvtAcc_Release" xml:space="preserve"><value>Torna al mio VID</value></data>
+  <data name="Services_EventStaffDesc" xml:space="preserve"><value>Accendi la pagina dei profili per un evento, carica i file e i link di Drive.</value></data>
+  <data name="Evt_Title" xml:space="preserve"><value>Profili per l'evento</value></data>
+  <data name="Evt_None" xml:space="preserve"><value>Adesso non c'è un evento in corso. Questa pagina si accende quando lo staff prepara i profili per il prossimo evento.</value></data>
+  <data name="Evt_Intro" xml:space="preserve"><value>Scarica il profilo della postazione che controlli e i file dell'evento. I link si aprono su Google Drive.</value></data>
+  <data name="Evt_FromTo" xml:space="preserve"><value>Dal {0} al {1}</value></data>
+  <data name="Evt_Until" xml:space="preserve"><value>Fino al {0}</value></data>
+  <data name="Evt_Download" xml:space="preserve"><value>Scarica</value></data>
+  <data name="Evt_Open" xml:space="preserve"><value>Apri</value></data>
+  <data name="Evt_Empty" xml:space="preserve"><value>Ancora nessun file.</value></data>
+  <data name="Evt_Manage" xml:space="preserve"><value>Pacchetto dell'evento</value></data>
+  <data name="Evt_StateVisible" xml:space="preserve"><value>Visibile adesso al pubblico</value></data>
+  <data name="Evt_StateOutside" xml:space="preserve"><value>Acceso, ma fuori dalle date: il pubblico non lo vede</value></data>
+  <data name="Evt_StateOff" xml:space="preserve"><value>Spento: il pubblico non lo vede</value></data>
+  <data name="Evt_LastEdit" xml:space="preserve"><value>Ultima modifica {0}, {1}</value></data>
+  <data name="Evt_Name" xml:space="preserve"><value>Nome dell'evento</value></data>
+  <data name="Evt_StartUtc" xml:space="preserve"><value>Inizio (UTC, facoltativo)</value></data>
+  <data name="Evt_EndUtc" xml:space="preserve"><value>Fine (UTC, facoltativa)</value></data>
+  <data name="Evt_Active" xml:space="preserve"><value>Acceso</value></data>
+  <data name="Evt_Save" xml:space="preserve"><value>Salva</value></data>
+  <data name="Evt_VidTitle" xml:space="preserve"><value>VID degli account dell'evento</value></data>
+  <data name="Evt_VidHelp" xml:space="preserve"><value>Uno per riga, con la postazione accanto se vuoi («704798 LIRF_TWR»). Mentre l'evento si vede, chi controlla con uno di questi VID può aprire la sua vista live dalla scheda «Controlli con un account dell'evento?» nella pagina dei servizi. Salvare la lista, o spegnere l'evento, toglie la vista a chi la stava usando.</value></data>
+  <data name="Evt_VidSave" xml:space="preserve"><value>Salva i VID</value></data>
+  <data name="Evt_VidClearUtc" xml:space="preserve"><value>Cancella la lista il (UTC)</value></data>
+  <data name="Evt_VidClearHelp" xml:space="preserve"><value>Vuoto = {0} giorni dopo la fine dell'evento. Quel giorno la lista dei VID si cancella da sola; profili e file restano.</value></data>
+  <data name="Evt_VidClearWhen" xml:space="preserve"><value>Si cancellerà il {0}.</value></data>
+  <data name="Evt_VidSaved" xml:space="preserve"><value>VID salvati: {0}.</value></data>
+  <data name="Evt_Saved" xml:space="preserve"><value>Salvato.</value></data>
+  <data name="Evt_DatesHelp" xml:space="preserve"><value>Acceso e senza date: si vede subito, finché non lo spegni. Con le date: si vede solo fra inizio e fine. Spento: non si vede mai. Le voci restano per l'evento dopo: togli quelle che non servono.</value></data>
+  <data name="Evt_AddFile" xml:space="preserve"><value>Aggiungi un file</value></data>
+  <data name="Evt_AddLink" xml:space="preserve"><value>Aggiungi un link</value></data>
+  <data name="Evt_Label" xml:space="preserve"><value>Titolo (es. LIRF_TWR)</value></data>
+  <data name="Evt_LinkLabel" xml:space="preserve"><value>Titolo (es. Stand Manager)</value></data>
+  <data name="Evt_Note" xml:space="preserve"><value>Nota (facoltativa)</value></data>
+  <data name="Evt_FileHelp" xml:space="preserve"><value>Fino a {0}: profili .cpr, file di Aurora, zip. Più grande? Caricalo su Drive e aggiungi il link.</value></data>
+  <data name="Evt_Add" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="Evt_Added" xml:space="preserve"><value>Aggiunto.</value></data>
+  <data name="Evt_TooBig" xml:space="preserve"><value>Il file supera {0}: caricalo su Drive e aggiungi il link.</value></data>
+  <data name="Evt_Items" xml:space="preserve"><value>Voci</value></data>
+  <data name="Evt_Up" xml:space="preserve"><value>Su</value></data>
+  <data name="Evt_Down" xml:space="preserve"><value>Giù</value></data>
+  <data name="Evt_Delete" xml:space="preserve"><value>Elimina</value></data>
+  <data name="Evt_ConfirmDelete" xml:space="preserve"><value>Conferma: elimina</value></data>
+  <data name="Req_Delete" xml:space="preserve"><value>Elimina</value></data>
+  <data name="Req_ConfirmDelete" xml:space="preserve"><value>Conferma: elimina</value></data>
+  <data name="Req_Deleted" xml:space="preserve"><value>Richiesta #{0} eliminata.</value></data>
+  <data name="Req_Retention" xml:space="preserve"><value>Le richieste chiuse si cancellano da sole {0} mesi dopo la chiusura. Le aperte restano finché qualcuno non risponde.</value></data>
+  <data name="Asp_Fix_Col" xml:space="preserve"><value>Correzione</value></data>
+  <data name="Asp_Fix_Edit" xml:space="preserve"><value>Correggi tipo, classe, base e tetto</value></data>
+  <data name="Asp_Fix_Corrected" xml:space="preserve"><value>corretto</value></data>
+  <data name="Asp_Fix_FromFile" xml:space="preserve"><value>Dal file: {0} · {1} → {2} · classe {3}</value></data>
+  <data name="Asp_Fix_Hint" xml:space="preserve"><value>Si salvano solo i campi diversi dal file. Il nome non si tocca: è quel che ritrova il volume al prossimo caricamento, e gli agganci restano.</value></data>
+  <data name="Asp_Fix_ClassPh" xml:space="preserve"><value>A–G o vuota</value></data>
+  <data name="Asp_Fix_BasePh" xml:space="preserve"><value>GND, 1500 FT AMSL, FL95</value></data>
+  <data name="Asp_Fix_TopPh" xml:space="preserve"><value>2500 FT AMSL, FL195, UNL</value></data>
+  <data name="Asp_Fix_Revert" xml:space="preserve"><value>Torna al file</value></data>
+  <data name="Asp_Fix_RevertConfirm" xml:space="preserve"><value>Sì, torna al file</value></data>
+  <data name="Asp_Fix_RevertPrompt" xml:space="preserve"><value>Togliere la correzione di {0} e tornare ai valori del file?</value></data>
+  <data name="Asp_Fix_Saved" xml:space="preserve"><value>{0}: correzione salvata.</value></data>
+  <data name="Asp_Fix_Same" xml:space="preserve"><value>{0}: uguale al file, nessuna correzione.</value></data>
+  <data name="Asp_Fix_Removed" xml:space="preserve"><value>{0}: si torna ai valori del file.</value></data>
+  <data name="Asp_Fix_OnlyCorrected" xml:space="preserve"><value>Corretti a mano</value></data>
+  <data name="Asp_Fix_Review" xml:space="preserve"><value>Da controllare dopo il caricamento</value></data>
+  <data name="Asp_Fix_ReviewScope" xml:space="preserve"><value>Volumi corretti a mano su cui il file nuovo dice qualcosa di diverso. «Va bene» fa sparire la voce; «Prendi il file» toglie la correzione.</value></data>
+  <data name="Asp_Fix_ColWhat" xml:space="preserve"><value>Che cosa è successo</value></data>
+  <data name="Asp_Fix_ColFields" xml:space="preserve"><value>Campi corretti</value></data>
+  <data name="Asp_Fix_Kind_FileChanged" xml:space="preserve"><value>Il file ha cambiato un campo che avevi corretto</value></data>
+  <data name="Asp_Fix_Kind_FileAgrees" xml:space="preserve"><value>Il file ora dice già quel che dice la correzione</value></data>
+  <data name="Asp_Fix_Kind_VolumeMissing" xml:space="preserve"><value>Il volume non c'è più nel file in vigore</value></data>
+  <data name="Asp_Fix_KeyChanged" xml:space="preserve"><value>Ritrovato per nome: il file gli ha cambiato tipo o quote. Gli agganci lo seguono quando confermi.</value></data>
+  <data name="Asp_Fix_Diff" xml:space="preserve"><value>file prima {0} → ora {1} · correzione {2}</value></data>
+  <data name="Asp_Fix_Field_Family" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Asp_Fix_Field_Class" xml:space="preserve"><value>Classe</value></data>
+  <data name="Asp_Fix_Field_Base" xml:space="preserve"><value>Base</value></data>
+  <data name="Asp_Fix_Field_Top" xml:space="preserve"><value>Tetto</value></data>
+  <data name="Asp_Fix_Ok" xml:space="preserve"><value>Va bene</value></data>
+  <data name="Asp_Fix_OkTitle_FileChanged" xml:space="preserve"><value>Tieni la correzione: si riallinea al file nuovo e la voce sparisce</value></data>
+  <data name="Asp_Fix_OkTitle_FileAgrees" xml:space="preserve"><value>La correzione non serve più: si toglie e la voce sparisce</value></data>
+  <data name="Asp_Fix_OkTitle_VolumeMissing" xml:space="preserve"><value>La correzione non ha più un volume: si toglie e la voce sparisce</value></data>
+  <data name="Asp_Fix_TakeFile" xml:space="preserve"><value>Prendi il file</value></data>
+  <data name="Asp_Fix_TakeFileTitle" xml:space="preserve"><value>Togli la correzione e usa i valori del file nuovo</value></data>
+  <data name="Asp_Fix_Acked" xml:space="preserve"><value>{0}: fatto.</value></data>
+  <data name="Lsr_Field" xml:space="preserve"><value>Altri scali o aree…</value></data>
+  <data name="Lsr_Placeholder" xml:space="preserve"><value>Cerca scalo, postazione o frequenza, punto, radioassistenza, area (LIPE, 128.705, AGNIS, PES, R14…)</value></data>
+  <data name="Lsr_Hint" xml:space="preserve"><value>Scali con vIPI o vSOP pubblicati di tutta la divisione, postazioni (callsign, nome o frequenza), punti delle SID e STAR, punti di trasferimento, radioassistenze e aree regolamentate. Scrivi almeno due caratteri.</value></data>
+  <data name="Lsr_None" xml:space="preserve"><value>Niente per «{0}».</value></data>
+  <data name="Lsr_Airports" xml:space="preserve"><value>Scali</value></data>
+  <data name="Lsr_Areas" xml:space="preserve"><value>Aree regolamentate</value></data>
+  <data name="Lsr_ShowAll" xml:space="preserve"><value>Mostra tutte e {0} sulla mappa</value></data>
+  <data name="Lsr_TooMany" xml:space="preserve"><value>Più di {0} aree: restringi la ricerca per vederle sulla mappa.</value></data>
+  <data name="Lsr_Back" xml:space="preserve"><value>Risultati</value></data>
+  <data name="Lsr_ColType" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Lsr_ColName" xml:space="preserve"><value>Nome</value></data>
+  <data name="Lsr_ColLimits" xml:space="preserve"><value>Limiti</value></data>
+  <data name="Lsr_ColActivation" xml:space="preserve"><value>Attivazione</value></data>
+  <data name="Lsr_ColDescription" xml:space="preserve"><value>Descrizione</value></data>
+  <data name="Lsr_Positions" xml:space="preserve"><value>Postazioni</value></data>
+  <data name="Lsr_Fixes" xml:space="preserve"><value>Punti nelle SID e STAR</value></data>
+  <data name="Lsr_Cops" xml:space="preserve"><value>Punti di trasferimento</value></data>
+  <data name="Lsr_Navaids" xml:space="preserve"><value>Radioassistenze</value></data>
+  <data name="Lsr_PosOnline" xml:space="preserve"><value>online adesso</value></data>
+  <data name="Lsr_PosClosed" xml:space="preserve"><value>chiusa — la copre</value></data>
+  <data name="Lsr_PosUnicom" xml:space="preserve"><value>Chiusa, nessuno la copre: UNICOM</value></data>
+  <data name="Lsr_PosChain" xml:space="preserve"><value>Copertura risalendo:</value></data>
+  <data name="Lsr_PosOpenLive" xml:space="preserve"><value>Apri la sua vista live</value></data>
+  <data name="Lsr_FeedOld" xml:space="preserve"><value>(dato degli online non aggiornato)</value></data>
+  <data name="Lsr_Indexing" xml:space="preserve"><value>Sto ancora leggendo procedure e trasferimenti: tra poco anche quei risultati.</value></data>
+  <data name="Aqp_NoDoc" xml:space="preserve"><value>Nessun documento pubblicato per {0}.</value></data>
 </root>

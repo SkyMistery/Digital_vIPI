@@ -20,9 +20,12 @@ public static class RomaAirportSeed
 
     public static async Task SeedAsync(VipiDbContext db, CancellationToken ct = default)
     {
+        // Il seme lavora finché c'è la torre di Roma (è il segno che il resto del seme è passato), ma il documento lo
+        // prende l'AEROPORTO: nessuna posizione porta la vIPI d'aeroporto (S48, 29 settembre 2026).
         var twr = await db.Sectors.FirstOrDefaultAsync(p => p.Callsign == TowerCallsign, ct);
-        if (twr is null) return;
-        if (twr.DocumentId is not null) return;
+        if (twr?.AirportId is not int airportId) return;
+        var airport = await db.Airports.FirstAsync(a => a.Id == airportId, ct);
+        if (airport.DocumentId is not null) return;
 
         var now = DateTime.UtcNow;
         var cycle = Airac.GetCycle(now);
@@ -106,9 +109,7 @@ public static class RomaAirportSeed
 
         await db.SaveChangesAsync(ct);
         doc.CurrentVersionId = ver.Id;
-        // Aggancia il settore-torre al documento (scope vIPI uno-a-molti, qui un solo settore primario).
-        twr.DocumentId = doc.Id;
-        twr.IsPrimary = true;
+        airport.DocumentId = doc.Id;
         await db.SaveChangesAsync(ct);
     }
 

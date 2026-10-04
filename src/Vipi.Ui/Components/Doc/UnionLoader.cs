@@ -21,11 +21,15 @@ namespace Vipi.Ui.Components.Doc;
 /// e un documento con le sezioni marcate finito in seconda posizione perdeva il selettore — il filtro
 /// continuava a funzionare da URL (<c>?vista=</c> arriva ai membri), ma nessuno poteva più chiederlo con un
 /// clic.</para></param>
+/// <param name="Bloccata">La lingua in cui <b>questo</b> membro è bloccato, o null se segue chi legge.
+/// <para>⚠️ Esce di qui per la stessa ragione di <c>HaMarcate</c>: il gettone «solo in inglese» della testata
+/// è della porta, e un membro bloccato sotto una porta bilingue non lo diceva a nessuno.</para></param>
 public sealed record MembroUnito(
     UnionMemberView Membro,
     string Titolo,
     IReadOnlyList<SectionView> Sezioni,
     bool HaMarcate,
+    string? Bloccata,
     RenderFragment Corpo)
 {
     /// <summary>L'ancora del gruppo di questo membro: è dove atterra chi arriva dalla sua vecchia URL.</summary>
@@ -120,45 +124,54 @@ public sealed class UnionLoader
     }
 
     /// <summary>
-    /// Carica un membro. 🔴 <c>fissaLaPagina: false</c> su tutti e tre, ed è la riga che tiene insieme una
-    /// pagina con DUE documenti: un documento a lingua <b>bloccata</b> chiama
-    /// <c>ReadingLanguageContext.Fissa</c>, che non ha un blocco che lo chiuda e vale per il resto della
-    /// richiesta. Con N membri, l'ULTIMO caricato che avesse la lingua bloccata deciderebbe la lingua delle
-    /// etichette e della prosa generata di <b>tutta</b> la pagina — quello della porta compreso — e la
-    /// deciderebbe in base all'ordine di caricamento. Nell'unione la lingua della pagina è quella del
-    /// documento della PORTA.
+    /// Carica un membro <b>nella sua lingua</b>: ogni documento dell'unione tiene la propria regola — la vIPI
+    /// di LIRP bilingue segue chi legge, il suo vSOP bloccato resta in inglese — qualunque sia la porta.
     ///
-    /// <para>⚠️ Il <i>contenuto</i> del membro resta nella sua lingua: traduzione, titoli di catalogo e
-    /// derivate ricevono il codice come argomento, non dal contesto.</para>
+    /// <para>🔴 <b>Due tempi, due attrezzi.</b> Il <i>caricamento</i> (traduzione, titoli di catalogo, prosa
+    /// generata, derivate) avviene qui, in sequenza: lo si chiude in un blocco
+    /// <see cref="ReadingLanguageContext.Rendering"/> che parte dalla lingua di chi legge — così un membro
+    /// bilingue sotto una porta bloccata non eredita la sua — e dentro il quale il membro bloccato fa il suo
+    /// <c>Fissa</c>. Alla chiusura il blocco rimette la lingua della porta: la pagina resta sua. Il
+    /// <i>disegno</i> invece avviene dopo, quando il blocco è chiuso da un pezzo: le etichette del corpo le
+    /// porta la cascata <see cref="ComponenteDelDocumento.Cascata"/>, che vale solo sotto questo membro.</para>
+    ///
+    /// <para>⚠️ Fino al 1° ottobre 2026 i membri si caricavano senza imporre niente («la lingua della pagina
+    /// è dell'ospite»): il testo di un membro bloccato restava suo, ma etichette, intestazioni e prosa
+    /// generata seguivano la porta — e su LIRP il vSOP inglese aveva le tabelle in italiano.</para>
     /// </summary>
     private async Task<MembroUnito?> CaricaAsync(UnionMemberView m, PreviewMode mode, string? vista,
                                                  ReadingLanguageContext? linguaDelCircuito, CancellationToken ct)
     {
+        var lettore = LinguaDiLettura.DelLettore();
+        // ⚠️ I due contesti, se sono due: vedi `linguaDelCircuito` su AirportMemberLoader. Chiusi in ordine
+        // inverso (`using var`), e se sono lo stesso oggetto l'annidamento li rimette a posto comunque.
+        using var dellaPagina = _sp.GetRequiredService<ReadingLanguageContext>().Rendering(lettore);
+        using var delCircuito = linguaDelCircuito?.Rendering(lettore);
+
         switch (m.Doc.ReleaseTarget)
         {
             case ReleaseTargetType.App:
             {
                 var loader = ActivatorUtilities.CreateInstance<AppMemberLoader>(_sp);
-                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, fissaLaPagina: false, ct)
-                                      .ConfigureAwait(false);
+                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, ct).ConfigureAwait(false);
                 return doc is null ? null : new MembroUnito(m, doc.DisplayName, doc.View.Sections, doc.HaMarcate,
-                    b => { b.OpenComponent<AppDocumentBody>(0); b.AddComponentParameter(1, nameof(AppDocumentBody.Doc), doc); b.CloseComponent(); });
+                    doc.Bloccata, NellaSuaLingua<AppDocumentBody>(nameof(AppDocumentBody.Doc), doc, doc.Bloccata ?? lettore));
             }
             case ReleaseTargetType.Airport:
             {
                 var loader = ActivatorUtilities.CreateInstance<AirportMemberLoader>(_sp);
-                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito,
-                                                 fissaLaPagina: false, ct).ConfigureAwait(false);
+                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito, ct)
+                                      .ConfigureAwait(false);
                 return doc is null ? null : new MembroUnito(m, doc.View.Title, doc.Sezioni, doc.HaMarcate,
-                    b => { b.OpenComponent<AirportDocumentBody>(0); b.AddComponentParameter(1, nameof(AirportDocumentBody.Doc), doc); b.CloseComponent(); });
+                    doc.Bloccata, NellaSuaLingua<AirportDocumentBody>(nameof(AirportDocumentBody.Doc), doc, doc.Bloccata ?? lettore));
             }
             case ReleaseTargetType.AirportMil:
             {
                 var loader = ActivatorUtilities.CreateInstance<MilMemberLoader>(_sp);
-                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito,
-                                                 fissaLaPagina: false, ct).ConfigureAwait(false);
+                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito, ct)
+                                      .ConfigureAwait(false);
                 return doc is null ? null : new MembroUnito(m, doc.View.Title, doc.View.Sections, doc.HaMarcate,
-                    b => { b.OpenComponent<MilDocumentBody>(0); b.AddComponentParameter(1, nameof(MilDocumentBody.Doc), doc); b.CloseComponent(); });
+                    doc.Bloccata, NellaSuaLingua<MilDocumentBody>(nameof(MilDocumentBody.Doc), doc, doc.Bloccata ?? lettore));
             }
             // ⚠️ Nessun `default` che disegna un segnaposto: le famiglie ammesse le decide
             // `DocumentUnionService.FamiglieAmmesse`, e un membro di un'altra famiglia non può esistere in
@@ -168,6 +181,26 @@ public sealed class UnionLoader
                 return null;
         }
     }
+
+    /// <summary>
+    /// Il corpo di un membro dentro la cascata della sua lingua. Un posto solo per le tre famiglie: un corpo
+    /// montato senza cascata non dà errore, si prende le etichette della porta.
+    /// </summary>
+    internal static RenderFragment NellaSuaLingua<TCorpo>(string parametro, object doc, string lingua)
+        where TCorpo : IComponent => b =>
+    {
+        b.OpenComponent<CascadingValue<string>>(0);
+        b.AddComponentParameter(1, nameof(CascadingValue<string>.Name), ComponenteDelDocumento.Cascata);
+        b.AddComponentParameter(2, nameof(CascadingValue<string>.Value), lingua);
+        b.AddComponentParameter(3, nameof(CascadingValue<string>.IsFixed), true);
+        b.AddComponentParameter(4, nameof(CascadingValue<string>.ChildContent), (RenderFragment)(c =>
+        {
+            c.OpenComponent<TCorpo>(0);
+            c.AddComponentParameter(1, parametro, doc);
+            c.CloseComponent();
+        }));
+        b.CloseComponent();
+    };
 
     /// <summary>
     /// In che modalità si mostra <b>questo</b> membro, dato quello che sta guardando il documento della porta.

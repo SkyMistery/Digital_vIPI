@@ -118,6 +118,46 @@ public class AwosGateTests
         Assert.Equal("LIBC", AwosGate.NomeDalTitolo("LIBC", "LIBC"));
     }
 
+    /// <summary>I vSOP militari nascono «vSOP MIL — LIBG Taranto Grottaglie» (EfMilitaryDocumentService): il «MIL»
+    /// restava attaccato al nome, nella tendina del vAWOS e nell'elenco dell'API degli aeroporti (visto dal vivo il
+    /// 30 settembre 2026). ⚠️ Ma solo come PAROLA: «Milano» non perde niente.</summary>
+    [Fact]
+    public void Il_nome_perde_anche_il_MIL_dei_vSOP_militari_ma_non_Milano()
+    {
+        Assert.Equal("Taranto Grottaglie", AwosGate.NomeDalTitolo("vSOP MIL — LIBG Taranto Grottaglie", "LIBG"));
+        Assert.Equal("Milano Linate", AwosGate.NomeDalTitolo("Milano Linate", "LIML"));
+        Assert.Equal("Milano Linate", AwosGate.NomeDalTitolo("vIPI — Milano Linate", "LIML"));
+    }
+
+    // ─── Da quale documento si legge uno scalo ─────────────────────────────────────
+
+    [Fact]
+    public void Con_la_vIPI_pubblicata_si_legge_la_civile_anche_se_c_e_il_vSOP()
+    {
+        var docs = new[] { Doc(ReleaseTargetType.Airport, "LIRP"), Doc(ReleaseTargetType.AirportMil, "LIRP") };
+        Assert.Equal(ReleaseTargetType.Airport, AwosGate.Edizione(docs, "LIRP"));
+    }
+
+    [Fact]
+    public void Un_campo_solo_militare_si_legge_dal_vSOP()
+    {
+        Assert.Equal(ReleaseTargetType.AirportMil, AwosGate.Edizione(new[] { Doc(ReleaseTargetType.AirportMil, "LIPA") }, "LIPA"));
+    }
+
+    [Theory]
+    [InlineData(false, false)]   // nessuna release effettiva
+    [InlineData(true, true)]     // nascosto
+    public void Senza_documento_pubblico_nessuna_edizione(bool release, bool nascosto)
+    {
+        Assert.Null(AwosGate.Edizione(new[] { Doc(ReleaseTargetType.Airport, "LIRF", release, nascosto) }, "LIRF"));
+    }
+
+    [Fact]
+    public void Un_ICAO_che_non_e_di_quattro_lettere_non_ha_edizione()
+    {
+        Assert.Null(AwosGate.Edizione(new[] { Doc(ReleaseTargetType.Airport, "LIRF") }, "LIR"));
+    }
+
     // ─── L'ATIS ────────────────────────────────────────────────────────────────────
 
     private static OnlineAtc Atc(string callsign, string? lettera = "C", string? piste = "26") =>

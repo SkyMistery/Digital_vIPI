@@ -343,6 +343,55 @@ public class DeletionRepositoryTests : IAsyncLifetime
         Assert.False(DeletionRules.PerAcc(f, Penultimo).Eliminabile);
     }
 
+    /// <summary>
+    /// Revisione degli enti ATC (S52): un ACC vuoto che ha ancora degli enti. Prima la conferma finiva in un
+    /// errore del database (la chiave esterna dell'ente sull'ACC è Restrict) e con lei il resto del piano. Ora
+    /// l'ente con la sua vIPI APP blocca con una frase; l'ente rimasto senza documento se ne va con l'ACC.
+    /// </summary>
+    [Fact]
+    public async Task Un_acc_con_enti_blocca_finche_hanno_una_vipi_e_poi_se_li_porta_via()
+    {
+        var acc = new Acc { Code = "LIXX", Name = "Prova", CountryPrefix = "LI", ImportedAtUtc = Vecchio };
+        var vipiApp = new Document { Type = DocumentType.Vipi, Title = "Prova Approach", LastUpdatedAiracCycle = "2608" };
+        _db.Accs.Add(acc);
+        _db.Documents.Add(vipiApp);
+        await _db.SaveChangesAsync();
+        var ente = new AtcUnit { Code = "LIXX_APP", Name = "Prova Approach", AccId = acc.Id, DocumentId = vipiApp.Id };
+        ente.Positions.Add(new AtcUnitPosition { Callsign = "LIXX_APP", Order = 0 });
+        _db.AtcUnits.Add(ente);
+        await _db.SaveChangesAsync();
+
+        var piano = DeletionRules.PerAcc((await _repo.AccFactsAsync("LIXX"))!, Penultimo);
+        Assert.False(piano.Eliminabile);
+        Assert.Contains(piano.Blocca, b => b.Testo.Contains("LIXX_APP"));
+
+        ente.DocumentId = null;   // la vIPI APP eliminata: l'ente resta, vuoto
+        await _db.SaveChangesAsync();
+        piano = DeletionRules.PerAcc((await _repo.AccFactsAsync("LIXX"))!, Penultimo);
+        Assert.True(piano.Eliminabile);
+        await _repo.ApplyAsync(piano.Azioni, actorUserId: 7);
+
+        Assert.False(await _db.Accs.AnyAsync(a => a.Code == "LIXX"));
+        Assert.False(await _db.AtcUnits.AnyAsync(u => u.Code == "LIXX_APP"));
+    }
+
+    /// <summary>Revisione degli enti ATC (S52): una vIPI APP non la porta più nessun settore, e la conferma non
+    /// diceva che l'ente restava senza documento.</summary>
+    [Fact]
+    public async Task I_fatti_di_una_vipi_app_dicono_quale_ente_la_perde()
+    {
+        var vipiApp = new Document { Type = DocumentType.Vipi, Title = "Pratica Tower", LastUpdatedAiracCycle = "2608" };
+        _db.Documents.Add(vipiApp);
+        await _db.SaveChangesAsync();
+        _db.AtcUnits.Add(new AtcUnit { Code = "LIRE_APP", Name = "Pratica Tower", AccId = _lirr.Id, DocumentId = vipiApp.Id });
+        await _db.SaveChangesAsync();
+
+        var f = await _repo.DocumentFactsAsync(vipiApp.Id);
+
+        Assert.Equal("LIRE_APP", f!.EnteCheLoPerde);
+        Assert.Contains(DeletionRules.PerDocumento(f).Muore, m => m.Contains("LIRE_APP"));
+    }
+
     [Fact]
     public async Task I_fatti_di_un_documento_dicono_chi_lo_perde()
     {

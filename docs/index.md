@@ -363,6 +363,17 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-24-file-per-file.md`](feature/2026-09-24-file-per-file.md) — File per file — cosa serve a ogni file del sector, e in che fase (dal 24 settembre 2026)
 - [`feature/2026-09-24-mil-solo-traffico-militare.md`](feature/2026-09-24-mil-solo-traffico-militare.md) — Il MIL_CTR raccoglie solo il traffico militare — carta (24 settembre 2026)
 - [`feature/2026-09-27-lotto-subito.md`](feature/2026-09-27-lotto-subito.md) — Lotto «Subito» — le voci «Subito» del giro dei file, in slice e in ordine (dal 27 settembre 2026)
+- [`feature/2026-09-29-enti-atc.md`](feature/2026-09-29-enti-atc.md) — I documenti sono degli ENTI, non dei nominativi (29 settembre 2026)
+- [`feature/2026-09-30-api-aeroporti.md`](feature/2026-09-30-api-aeroporti.md) — API degli aeroporti: scali, scheda, SID e STAR per gli altri programmi — carta (30 settembre 2026)
+- [`feature/2026-09-30-correzioni-spazi-aerei.md`](feature/2026-09-30-correzioni-spazi-aerei.md) — Correzioni a mano degli spazi aerei (30 settembre 2026)
+- [`feature/2026-09-30-disconnessioni.md`](feature/2026-09-30-disconnessioni.md) — Le disconnessioni mentre si legge: che cosa dicono i registri, un registro nuovo, e la pagina che non si blocca — carta (30 settembre 2026)
+- [`feature/2026-09-30-login-obbligatorio.md`](feature/2026-09-30-login-obbligatorio.md) — Il sito si legge solo dopo il login IVAO — carta (30 settembre 2026)
+- [`feature/2026-09-30-profili-evento.md`](feature/2026-09-30-profili-evento.md) — I profili per l'evento (30 settembre 2026)
+- [`feature/2026-09-30-registro-accessi.md`](feature/2026-09-30-registro-accessi.md) — Registro degli accessi: chi è entrato nel sito — carta (30 settembre 2026)
+- [`feature/2026-09-30-statistiche-nuova-grafica.md`](feature/2026-09-30-statistiche-nuova-grafica.md) — Statistiche ATC: la nuova veste della pagina personale e di quella della divisione — carta (30 settembre 2026)
+- [`feature/2026-10-01-account-evento.md`](feature/2026-10-01-account-evento.md) — Controllare con un account dell'evento: la vista live col VID dell'evento — carta (1° ottobre 2026)
+- [`feature/2026-10-01-aperture-documenti.md`](feature/2026-10-01-aperture-documenti.md) — Aperture dei documenti: i più letti in cima alla pagina dell'ACC — carta (1° ottobre 2026)
+- [`feature/2026-10-01-ricerca-vista-live.md`](feature/2026-10-01-ricerca-vista-live.md) — Ricerca rapida nella vista live: scali e aree regolamentate — carta (1 ottobre 2026)
 
 ### `filoni`
 

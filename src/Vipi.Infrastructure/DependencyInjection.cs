@@ -125,6 +125,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAirportProfileReader>(
             sp => sp.GetRequiredService<Vipi.Application.Abstractions.IAirportRepository>());
         services.AddScoped<Vipi.Application.Abstractions.IAppDerivationRepository, EfAppDerivationRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IAtcUnitRepository, EfAtcUnitRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAccDerivationRepository, EfAccDerivationRepository>();
         services.AddScoped<Vipi.Application.Abstractions.ISpecialAreaRepository, EfSpecialAreaRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStationDirectory, EfStationDirectory>();
@@ -195,6 +196,9 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAirportSectorRepository, EfAirportSectorRepository>();
         // La rinomina: un motore solo, come l'eliminazione. Lo chiamano i due upsert di catalogo, in cima.
         services.AddScoped<Vipi.Application.Content.ICallsignRenameService, EfCallsignRenameService>();
+        services.AddScoped<Vipi.Application.Abstractions.ISectorSubstitution, EfCallsignRenameService>();
+        services.AddScoped<Vipi.Application.Abstractions.IFieldRequestRepository, EfFieldRequestRepository>();
+        services.AddScoped<Vipi.Application.Abstractions.IEventKitRepository, EfEventKitRepository>();
         services.AddScoped<Vipi.Application.Content.ISectorShapeRepository, EfSectorShapeRepository>();
         services.AddScoped<Vipi.Application.Content.IShapeGateRepository, EfShapeGateRepository>();
         // U-037: radioassistenze e carte MRVA nell'avviso a chi pubblica, e la loro forzatura.
@@ -216,6 +220,10 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAtcArchiveQueries, EfAtcArchiveQueries>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsSettingsStore, EfStatsSettingsStore>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsAccessLog, EfStatsAccessLog>();
+        services.AddScoped<Vipi.Application.EventKits.IAccountEventoTraccia, EfAccountEventoTraccia>();
+        services.AddScoped<Vipi.Application.EventKits.IAccountEventoArchivio, EfAccountEventoArchivio>();
+        services.AddHostedService<AccountEventoAvvio>();
+        services.AddHostedService<VidEventoPulizia>();
         services.AddScoped<Vipi.Application.Diagnostics.IDatabaseBackup, DatabaseCopy.DatabaseBackupService>();
         // Traffico d'aeroporto consolidato: quanto ce n'era e quanto ha trovato un controllore acceso.
         services.AddScoped<Vipi.Application.Abstractions.IAirportTrafficRollupStore, EfAirportTrafficRollupStore>();
@@ -277,6 +285,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IGlossaryStore, EfGlossaryStore>();
         services.AddScoped<Vipi.Application.Abstractions.IRoleOverrideStore, EfRoleOverrideStore>();
         services.AddScoped<Vipi.Application.Abstractions.IApiClientStore, EfApiClientStore>();
+        services.AddScoped<Vipi.Application.Auth.IRegistroAccessiStore, EfRegistroAccessiStore>();
+        services.AddScoped<Vipi.Application.Content.IApertureDocumenti, EfApertureDocumenti>();
         services.AddScoped<Vipi.Application.Abstractions.IRfoSharedStateStore, EfRfoSharedStateStore>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
         services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();

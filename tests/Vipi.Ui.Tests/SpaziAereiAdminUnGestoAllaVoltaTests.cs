@@ -77,6 +77,15 @@ public class SpaziAereiAdminUnGestoAllaVoltaTests : TestContext
         public Task<(string FileName, byte[] Content)?> GetFileAsync(int importId, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task DeleteAsync(int importId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<Vipi.Application.Airspace.AirspaceCorrectionRow>> ListCorrectionsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Airspace.AirspaceCorrectionRow>>([]);
+        public Task<IReadOnlyList<Vipi.Application.Airspace.AirspaceCorrectionFinding>> ReviewCorrectionsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Airspace.AirspaceCorrectionFinding>>([]);
+        public Task CorrectAsync(Vipi.Application.Airspace.AirspaceVolumeKey volume, Vipi.Application.Airspace.AirspaceCorrectionInput input,
+            int? userId, string? userName, DateTime nowUtc, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task RemoveCorrectionAsync(int correctionId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task AcknowledgeCorrectionAsync(int correctionId, int? userId, string? userName, DateTime nowUtc,
+            CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     private sealed class AgganciFinti : ISectorAirspaceBindings
@@ -126,8 +135,18 @@ public class SpaziAereiAdminUnGestoAllaVoltaTests : TestContext
 
         // Due righe e non due clic sullo stesso tasto: bUnit smaltisce subito i gestori di un elemento ridisegnato, il
         // server no finché il browser non conferma. Il secondo gesto arriva con il primo ancora in volo.
-        var primo = MettiInVigore(cut, 0).ClickAsync(new());
-        var secondo = MettiInVigore(cut, 1).ClickAsync(new());
+        // ⚠️ Ricerca e clic DENTRO il dispatcher. Da S63 `Gesto` cede il passo (`Task.Yield`) prima del lavoro, e la
+        // ripresa del primo gesto gira su un thread del pool. Se parte in ritardo, da fuori il test trovava il secondo
+        // tasto, ne accodava il clic e sbloccava `Trattieni` prima che la ripresa arrivasse ad aspettarlo: il primo
+        // gesto finiva di colpo e ridisegnava, e il clic accodato trovava il gestore già buttato («no event handler
+        // with ID '11'», CI del 30-set, a tempo). Riprodotto a comando con una pausa nel finto prima di
+        // `MesseInVigore++`. Dentro InvokeAsync la ripresa aspetta che i due clic siano partiti.
+        Task primo = Task.CompletedTask, secondo = Task.CompletedTask;
+        await cut.InvokeAsync(() =>
+        {
+            primo = MettiInVigore(cut, 0).ClickAsync(new());
+            secondo = MettiInVigore(cut, 1).ClickAsync(new());
+        });
         _catalogo.Trattieni.SetResult();
         await Task.WhenAll(primo, secondo);
 

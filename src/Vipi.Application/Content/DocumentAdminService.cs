@@ -15,6 +15,14 @@ public interface IDocumentAdminService
     Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default);
     Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default);
 
+    /// <summary>
+    /// Il titolo del documento. Prima del 30 settembre 2026 si scriveva solo alla nascita (per uno scalo, dal nome in
+    /// anagrafica) e nessuna pagina lo cambiava: «vIPI — LIML MIlano Linate» restava così. Vale subito nell'elenco,
+    /// nell'API degli aeroporti e nel vAWOS; la pagina pubblica e la ricerca leggono quello della release, quindi
+    /// cambiano alla prossima pubblicazione — come ogni altra cosa pubblicata (visto a schermo il 30 settembre 2026).
+    /// </summary>
+    Task SetTitleAsync(ManagedDocRef doc, string title, CancellationToken ct = default);
+
     /// <inheritdoc cref="IDocumentAdminRepository.GetLanguageAsync"/>
     Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default);
 
@@ -63,6 +71,27 @@ public sealed class DocumentAdminService : IDocumentAdminService
         await EnsureCanEditAsync(doc, ct);
         await EnsureNotLockedByOtherAsync(doc, ct);
         await _repo.SetHiddenAsync(doc, hidden, _authz.CurrentUserId ?? 0, ct);
+    }
+
+    /// <summary>Quanto può essere lungo un titolo: una riga d'elenco, non un paragrafo.</summary>
+    public const int TitoloMassimo = 200;
+
+    public async Task SetTitleAsync(ManagedDocRef doc, string title, CancellationToken ct = default)
+    {
+        // Spazi ripetuti ridotti a uno: un titolo incollato da un altro documento se li porta dietro.
+        var titolo = string.Join(' ', (title ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        if (titolo.Length == 0)
+            throw new Aor.ValidationException(Lingua("Il titolo non può essere vuoto.", "The title cannot be empty."));
+        if (titolo.Length > TitoloMassimo)
+            throw new Aor.ValidationException(Lingua(
+                $"Il titolo è troppo lungo: al massimo {TitoloMassimo} caratteri.",
+                $"The title is too long: at most {TitoloMassimo} characters."));
+
+        // Gli stessi due cancelli di «nascondi» e della lingua: è un attributo del documento, e non si cambia mentre
+        // un'altra persona lo sta scrivendo.
+        await EnsureCanEditAsync(doc, ct);
+        await EnsureNotLockedByOtherAsync(doc, ct);
+        await _repo.SetTitleAsync(doc, titolo, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default)

@@ -10,6 +10,9 @@ public enum WorkOrigin
 
     /// <summary>L'ha scritta una persona: è un <b>impegno</b>, e lo chiude una persona.</summary>
     Persona,
+
+    /// <summary>L'ha scritta qualcuno da fuori (S56): è una <b>richiesta dal campo</b>, e la apre un triage.</summary>
+    Campo,
 }
 
 /// <summary>
@@ -63,6 +66,10 @@ public enum WorkAction
 
     /// <summary>Un incarico: si muove di stato (Todo → InProgress → Done) dove sta.</summary>
     CambiaStato,
+
+    /// <summary>Una richiesta dal campo (S56): non si chiude dall'elenco — ha bisogno di una risposta, e la risposta
+    /// si scrive nella sua pagina.</summary>
+    ApriRichiesta,
 }
 
 /// <summary>
@@ -118,7 +125,8 @@ public sealed record WorkItem(
     string? Causa = null,
     IReadOnlyList<string>? CausaArgs = null,
     ReleaseTargetType? Bersaglio = null,
-    string? ChiaveRelease = null)
+    string? ChiaveRelease = null,
+    int? RequestId = null)
 {
     /// <summary>Il ✓ ha senso su questa riga.</summary>
     public bool SiSpunta => Azione == WorkAction.SegnaFatto;

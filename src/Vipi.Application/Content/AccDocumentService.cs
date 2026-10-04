@@ -79,15 +79,19 @@ public sealed class AccDocumentService : IAccDocumentService
     private readonly IEditAuthorizationService _authz;
     private readonly IReleaseRepository _releases;
     private readonly IDocumentLockGuard _lock;
+    private readonly IAtcUnitRepository? _enti;
 
+    /// <param name="enti">Gli enti dei gruppi APP (S55): si riallineano quando cambiano i membri di un gruppo.
+    /// Opzionale per i banchi che non li usano.</param>
     public AccDocumentService(IAccDerivationRepository repo, IEditingRepository editing, IEditAuthorizationService authz,
-        IReleaseRepository releases, IDocumentLockGuard lockGuard)
+        IReleaseRepository releases, IDocumentLockGuard lockGuard, IAtcUnitRepository? enti = null)
     {
         _repo = repo;
         _editing = editing;
         _authz = authz;
         _releases = releases;
         _lock = lockGuard;
+        _enti = enti;
     }
 
     /// <summary>
@@ -205,8 +209,12 @@ public sealed class AccDocumentService : IAccDocumentService
 
     // --- Salvataggi editoriali by-section (ACC-gated). Il BodyJson vive nel blocco della sezione indicata. ---
 
-    public Task SaveBlockMetaAsync(string accCode, int blockSectionId, AccBlockMeta meta, CancellationToken ct = default) =>
-        SaveJsonAsync(accCode, blockSectionId, meta, ct);
+    public async Task SaveBlockMetaAsync(string accCode, int blockSectionId, AccBlockMeta meta, CancellationToken ct = default)
+    {
+        await SaveJsonAsync(accCode, blockSectionId, meta, ct);
+        // I membri di un gruppo APP sono le posizioni del suo ente (S55): l'ente segue subito, non al prossimo avvio.
+        if (_enti is not null && meta.Kind == AccBlockKind.AppGroup) await _enti.AllineaGruppiAccAsync(accCode, ct);
+    }
 
     public Task SaveConfigurationsAsync(string accCode, int configSectionId, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default) =>
         SaveJsonAsync(accCode, configSectionId, (configs?.Count ?? 0) == 0 ? null : configs, ct);

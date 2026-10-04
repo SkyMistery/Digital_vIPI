@@ -59,6 +59,7 @@ public static class DependencyInjection
         // di ogni chiamata. Scoped perché la verifica legge il database per impronta a ogni richiesta.
         services.AddScoped<Auth.IEmittentiChiaviApi, Auth.EmittentiChiaviApi>();
         services.AddScoped<Auth.IApiClientService, Auth.ApiClientService>();
+        services.AddScoped<Auth.IRegistroAccessi, Auth.RegistroAccessi>();
         services.AddScoped<Auth.IVerificaChiaveApi, Auth.VerificaChiaveApi>();
         services.AddScoped<IEditingService, EditingService>();
         // Il lock del documento per le scritture strutturate di APP, ACC e vSOP militare (T-004).
@@ -86,6 +87,8 @@ public static class DependencyInjection
         services.AddScoped<Live.ILiveStationKind, Live.AirportLiveStation>();
         services.AddScoped<Live.ILiveStationRegistry, Live.LiveStationRegistry>();
         services.AddScoped<Live.ILiveViewService, Live.LiveViewService>();
+        // La ricerca rapida della vista live: scali pubblicati di tutta la divisione e aree regolamentate (1-ott-2026).
+        services.AddScoped<Live.IRicercaLive, Live.RicercaLive>();
         // «Chi controlla l'aeroporto adesso» per le pagine fuori dalla vista live (vista rapida, viewer).
         services.AddScoped<Live.IAirportPresidencyService, Live.AirportPresidencyService>();
         // vAWOS: il quadro meteo di torre (carta 2026-09-12). Sola lettura, nessuna entità sua.
@@ -120,6 +123,8 @@ public static class DependencyInjection
         services.AddScoped<IVloaViewDerivationService, VloaViewDerivationService>();
         services.AddScoped<IAirportSidDerivationService, AirportSidDerivationService>();
         services.AddScoped<IAirportViewDerivationService, AirportViewDerivationService>();
+        // SID e STAR per la barra di ricerca, dalla stessa vista della pagina (1 ottobre 2026).
+        services.AddScoped<IProcedureCercabili, ProcedureCercabili>();
         // §A73: le SID citate nel testo prendono il nome dalla tabella che il lettore vede.
         services.AddScoped<IProcedureReferenceResolver, ProcedureReferenceResolver>();
         services.AddScoped<IFrequenzeDegliEnti, FrequenzeDegliEnti>();
@@ -191,6 +196,18 @@ public static class DependencyInjection
         services.AddScoped<IImportPolicyService, ImportPolicyService>();
         services.AddScoped<IImportOverviewService, ImportOverviewService>();
         services.AddScoped<INewDocumentOptionsService, NewDocumentOptionsService>();
+        services.AddScoped<IAtcUnitService, AtcUnitService>();
+        services.AddScoped<IRemotizzazioneService, RemotizzazioneService>();
+        services.AddScoped<IAtcUnitOverviewService, AtcUnitOverviewService>();
+        services.AddScoped<IFieldRequestService, FieldRequestService>();
+        // Il pacchetto dell'evento (carta 2026-09-30-profili-evento.md): la cache della visibilità è UNA per processo.
+        services.AddSingleton<Vipi.Application.EventKits.EventKitVisibilityCache>();
+        services.AddScoped<Vipi.Application.EventKits.IEventKitService, Vipi.Application.EventKits.EventKitService>();
+        // Chi controlla con un account dell'evento (1 ottobre 2026): singleton, vedi AccountEventoRegistro.
+        services.AddSingleton<Vipi.Application.EventKits.AccountEventoRegistro>();
+        services.AddScoped<Vipi.Application.EventKits.IAccountEventoService, Vipi.Application.EventKits.AccountEventoService>();
+        // Pigro: la pubblicazione lo chiede solo dopo una vIPI ACC (S52), e il servizio tira dietro mezzo editing.
+        services.AddScoped(sp => new Lazy<IRemotizzazioneService>(sp.GetRequiredService<IRemotizzazioneService>));
         services.AddScoped<Vipi.Application.Diagnostics.IConsistencyReportService, Vipi.Application.Diagnostics.ConsistencyReportService>();
         // Un confronto col sectorfile, uno solo: lo chiamano il giro delle 24 ore e il tasto della pagina.
         services.AddScoped<Vipi.Application.Diagnostics.ISectorfileComparisonRunner,

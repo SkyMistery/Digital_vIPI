@@ -309,7 +309,8 @@ public class WorkListServiceTests
         IReadOnlyList<DocumentImpactRow>? impatti = null,
         IReadOnlyList<ManagedDoc>? documenti = null,
         IReadOnlyList<EditorTask>? incarichi = null,
-        IncarichiFinti? repoIncarichi = null)
+        IncarichiFinti? repoIncarichi = null,
+        IReadOnlyList<FieldRequestRow>? richieste = null)
     {
         var repo = repoIncarichi ?? new IncarichiFinti();
         repo.Esistenti = incarichi ?? Array.Empty<EditorTask>();
@@ -320,7 +321,62 @@ public class WorkListServiceTests
             new DocumentiFinti(documenti ?? Array.Empty<ManagedDoc>()),
             new DocRoutesRegistry(new IDocKindRoutes[] { new RotteFinte() }),
             new AuthzFinta(livello, io),
-            new RegoleIncarichiFinte());
+            new RegoleIncarichiFinte(),
+            richieste is null ? null : new RichiesteFinte(richieste));
+    }
+
+    private sealed class RichiesteFinte(IReadOnlyList<FieldRequestRow> righe) : IFieldRequestRepository
+    {
+        public Task<IReadOnlyList<FieldRequestRow>> ListAsync(int? reporterUserId = null, int? documentId = null,
+            bool soloAperte = false, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<FieldRequestRow>>(righe
+                .Where(r => (documentId is null || r.DocumentId == documentId) && (!soloAperte || r.Aperta)).ToList());
+        public Task<int> AddAsync(FieldRequest richiesta, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> CountOpenAsync(int reporterUserId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> CountSinceAsync(int reporterUserId, DateTime sinceUtc, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<FieldRequestRow?> GetAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> SetStatusAsync(int id, FieldRequestStatus status, int handledByUserId, string handledByName, string reply, int? duplicateOfId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<string?> SectionTitleAsync(int documentId, string sectionKey, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> PotaChiuseAsync(DateTime chiuseprimaDiUtc, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
+    private static FieldRequestRow Richiesta(int id, int? doc, FieldRequestKind tipo = FieldRequestKind.Errore,
+        FieldRequestStatus stato = FieldRequestStatus.Nuova, int? incarico = null) =>
+        new(id, 111111, "Mario Pilota", new DateTime(2026, 9, 29, 12, 0, 0, DateTimeKind.Utc), doc, "vIPI Roma", "runways", 3,
+            tipo, "La pista 16L è chiusa", stato, "", null, "", null, incarico);
+
+    /// <summary>
+    /// S56: le richieste dal campo NUOVE entrano in «Da fare» come terza natura — con il testo di chi le ha scritte,
+    /// un tasto che porta alla risposta, e l'urgenza di un errore da rileggere. Quelle prese in carico no: le
+    /// rappresenta il loro incarico. A chi non valuta non arrivano.
+    /// </summary>
+    [Fact]
+    public async Task Le_richieste_dal_campo_nuove_entrano_in_da_fare_e_quelle_prese_in_carico_no()
+    {
+        var richieste = new[]
+        {
+            Richiesta(1, 10),
+            Richiesta(2, 10, FieldRequestKind.Suggerimento),
+            Richiesta(3, 10, stato: FieldRequestStatus.PresaInCarico, incarico: 77),
+            Richiesta(4, null),
+        };
+        var documenti = new[] { Doc(10, "vIPI Roma", "LIRR") };
+
+        var righe = await Costruisci(VipiRole.Editor, documenti: documenti, richieste: richieste).MieAsync();
+
+        var campo = righe.Where(r => r.Origine == WorkOrigin.Campo).ToList();
+        Assert.Equal(new[] { 1, 4, 2 }, campo.Select(r => r.RequestId!.Value));   // l'errore prima del suggerimento
+        var prima = campo[0];
+        Assert.Equal((WorkAction.ApriRichiesta, WorkSeverity.DaRileggere, "/services/vsop/requests#req-1", WorkPhrases.Raw),
+            (prima.Azione, prima.Severita, prima.Url, prima.FraseKey));
+        Assert.Contains("La pista 16L è chiusa", prima.FraseArgs[0]);
+
+        var banner = await Costruisci(VipiRole.Editor, documenti: documenti, richieste: richieste).PerDocumentoAsync(10);
+        Assert.Equal(new[] { 1, 2 }, banner.Where(r => r.Origine == WorkOrigin.Campo).Select(r => r.RequestId!.Value).OrderBy(i => i));
+
+        Assert.DoesNotContain(await Costruisci(VipiRole.User, documenti: documenti, richieste: richieste).MieAsync(),
+            r => r.Origine == WorkOrigin.Campo);
     }
 
     private sealed class RotteFinte : IDocKindRoutes
@@ -386,6 +442,7 @@ public class WorkListServiceTests
             Task.FromResult<DocumentLanguageState?>(null);
         public Task SetLanguageAsync(ManagedDocRef doc, Vipi.Domain.Language language, bool locked, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task SetTitleAsync(ManagedDocRef doc, string title, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default) => throw new NotSupportedException();
         public Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default) => throw new NotSupportedException();
     }

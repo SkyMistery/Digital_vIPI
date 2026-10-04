@@ -386,6 +386,30 @@ public sealed class SharedResourceIntegrityTests
             string.Join("\n  ", mancanti));
     }
 
+    /// <summary>
+    /// La pagina delle chiavi API elenca gli indirizzi per permesso (<see cref="ApiRotte"/>), con le chiavi composte
+    /// <c>ApiKeys_Ep_{permesso}</c> e <c>ApiKeys_Route_{voce}</c>: composte, la guardia sulle chiavi usate nel codice
+    /// non le vede. E ogni permesso che una chiave può avere deve avere almeno un indirizzo, o a chi integra si dà
+    /// una chiave senza dirgli dove usarla (30 settembre 2026).
+    /// </summary>
+    [Fact]
+    public void Ogni_indirizzo_delle_API_ha_la_sua_descrizione_e_ogni_permesso_un_indirizzo()
+    {
+        var it = Chiavi(PercorsoIt).ToHashSet(StringComparer.Ordinal);
+        var en = Chiavi(PercorsoEn).ToHashSet(StringComparer.Ordinal);
+
+        var attese = ApiRotte.Tutte.Select(r => $"ApiKeys_Route_{r.Id}")
+            .Concat(ApiEndpoints.Tutti.Select(e => $"ApiKeys_Ep_{e}"))
+            .ToList();
+        var mancanti = attese.Where(k => !it.Contains(k) || !en.Contains(k)).ToList();
+        Assert.True(mancanti.Count == 0, "Senza riga nelle risorse:\n  " + string.Join("\n  ", mancanti));
+
+        var senzaIndirizzo = ApiEndpoints.Tutti.Where(e => ApiRotte.Tutte.All(r => r.Endpoint != e)).ToList();
+        var permessoIgnoto = ApiRotte.Tutte.Where(r => !ApiEndpoints.Tutti.Contains(r.Endpoint)).Select(r => r.Id).ToList();
+        Assert.True(senzaIndirizzo.Count == 0, "Permessi senza indirizzo: " + string.Join(", ", senzaIndirizzo));
+        Assert.True(permessoIgnoto.Count == 0, "Indirizzi con un permesso che non esiste: " + string.Join(", ", permessoIgnoto));
+    }
+
     private static IReadOnlyList<string> Chiavi(string percorsoRelativo)
     {
         var percorso = Path.Combine(RadiceDelRepo(), percorsoRelativo.Replace('/', Path.DirectorySeparatorChar));
