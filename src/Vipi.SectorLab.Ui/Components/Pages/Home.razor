@@ -77,6 +77,23 @@
                         <span>@strato.Tipo.Nome</span>
                         <span class="lab-nota">@strato.Forme.Count.ToString("N0")</span>
                     </label>
+                    @* Slice 12c (H1): i generi dello strato acceso — assi, bordi, edifici, marcature… — uno per casella. *@
+                    @if (Lab.Accesi.Contains(strato.Id) && Lab.GeneriDi(strato.Id) is { Count: > 0 } generi)
+                    {
+                        <div class="lab-generi" data-generi="@strato.Id">
+                            @foreach (var genere in generi)
+                            {
+                                string stratoId = strato.Id, genereId = genere.Id;
+                                <label class="lab-strato lab-genere">
+                                    <input type="checkbox" checked="@Lab.GenereAcceso(stratoId, genereId)"
+                                           @onchange="e => Lab.AccendiIlGenere(stratoId, genereId, e.Value is true)"
+                                           data-genere="@($"{stratoId}:{genereId}")" />
+                                    <span>@genere.Nome</span>
+                                    <span class="lab-nota">@genere.Forme.ToString("N0")</span>
+                                </label>
+                            }
+                        </div>
+                    }
                 }
                 </ChildContent>
                 </Sezione>

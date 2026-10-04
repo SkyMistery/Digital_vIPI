@@ -45,7 +45,15 @@ public sealed record FormaDellaMappa(
     string? Chiave = null,
     string? Punto = null,
     IReadOnlyList<int>? Parti = null,
-    string? Vincoli = null)
+    string? Vincoli = null,
+    string? Genere = null)
 {
+    /// <summary>
+    /// Il tipo della forma dentro il suo strato (lotto «Subito» slice 12c, H1): <c>TAXI_CENTER</c>, <c>BUILDING</c>… per le
+    /// linee dei <c>.geo</c> di scalo, <c>MARKINGS</c> per le marcature, <c>POL</c>, <c>TXI</c>, <c>GTS</c> per la terra.
+    /// La mappa accende e spegne un genere per volta (<see cref="GeneriDellaMappa"/>). Null: lo strato non ha generi.
+    /// </summary>
+    public string? Genere { get; init; } = Genere;
+
     public int Punti => Tratti.Sum(t => t.Count);
 }

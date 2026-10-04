@@ -152,7 +152,8 @@
         }
     }
 
-    /// Le voci e le parti spente (lotto «Subito» slice 6): 'file#3' un record, 'file#3.1' il suo secondo poligono. Una
+    /// Le voci e le parti spente (lotto «Subito» slice 6): 'file#3' un record, 'file#3.1' il suo secondo poligono; e i
+    /// generi spenti di uno strato (slice 12c): '§geo:TAXI_CENTER', contro il genere 'h' della forma. Una
     /// forma spenta esce dal suo gruppo (la vista e i colori non la vedono più); una con qualche parte spenta si ridisegna
     /// coi tratti accesi. Si rifà per ogni strato quando cambiano le spente, e quando uno strato arriva.
     function applicaSpenti(id) {
@@ -161,7 +162,8 @@
         var spenti = stato.spenti || {};
         for (var i = 0; i < tutte.length; i++) {
             var l = tutte[i], f = l.sectorlab, base = f.p + '#' + f.r;
-            var via = !!spenti[base], accesi = null;
+            // Slice 12c (H1): un genere spento del suo strato ('§geo:TAXI_CENTER') toglie tutte le sue forme.
+            var via = !!spenti[base] || (!!f.h && !!spenti['§' + id + ':' + f.h]), accesi = null;
             if (!via && f.t !== 'p') {
                 accesi = [];
                 for (var t = 0; t < f.c.length; t++) {

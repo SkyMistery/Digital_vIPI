@@ -960,6 +960,21 @@ public sealed class ModificheInSospeso
             prepara = r => r.GetType().GetProperty(campo)!.SetValue(r, nome);
         }
 
+        // Slice 12c (I3): in un .pol vince l'ultimo del file, quindi un poligono nuovo va DOPO l'ultimo del suo
+        // riempimento, dovunque si sia cliccato — l'ordine resta quello che il file ha già (erba, poi taxiway…).
+        if (conRecord.RecordDelModello[modello] is Polygon delModello)
+        {
+            string riempimento = (tipo ?? delModello.FillColor).Trim();
+            for (int i = conRecord.RecordDelModello.Count - 1; i >= 0; i--)
+            {
+                if (conRecord.RecordDelModello[i] is Polygon altro && string.Equals(altro.FillColor.Trim(), riempimento, StringComparison.OrdinalIgnoreCase))
+                {
+                    dopo = i == modello ? null : i;
+                    break;
+                }
+            }
+        }
+
         if (scriviIlTipo is not null)
         {
             var conIlNome = prepara;

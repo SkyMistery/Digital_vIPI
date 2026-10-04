@@ -45,7 +45,12 @@ public static class Geometria
         for (int i = 0; i < record.Count; i++)
         {
             if (Forma(file.Relativo, i, record[i], catalogo) is { } forma)
+            {
+                // Slice 12c (H1): riempimenti, etichette e stand sono generi dello strato della terra.
+                if (GeneriDellaMappa.DelRecord(record[i]) is { } genere)
+                    forma = forma with { Genere = genere };
                 forme.Add(vincoli.TryGetValue(i, out var punti) ? forma with { Vincoli = Vincoli(punti) } : forma);
+            }
         }
 
         return forme;
@@ -298,7 +303,8 @@ public static class Geometria
             if (!continua)
             {
                 if (punti.Count > 1)
-                    yield return new FormaDellaMappa(file, primo, TipoDiForma.Linea, etichetta, [punti.ToList()], [], Tratto: colore);
+                    yield return new FormaDellaMappa(file, primo, TipoDiForma.Linea, etichetta, [punti.ToList()], [], Tratto: colore,
+                    Genere: GeneriDellaMappa.DelGeo(file, colore));
                 punti.Clear();
                 primo = i;
                 etichetta = suo;
@@ -310,7 +316,8 @@ public static class Geometria
         }
 
         if (punti.Count > 1)
-            yield return new FormaDellaMappa(file, primo, TipoDiForma.Linea, etichetta, [punti.ToList()], [], Tratto: colore);
+            yield return new FormaDellaMappa(file, primo, TipoDiForma.Linea, etichetta, [punti.ToList()], [], Tratto: colore,
+                    Genere: GeneriDellaMappa.DelGeo(file, colore));
     }
 
     /// <summary>Lo stesso punto scritto due volte: il sector arrotonda ai millesimi di secondo.</summary>

@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»); della slice 12 i passi 12a e 12b (4 ottobre). Dopo la 9, decisione del committente (29 settembre): **consegna
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»); della slice 12 i passi 12a, 12b e 12c (4 ottobre). Dopo la 9, decisione del committente (29 settembre): **consegna
 agli AOD** per una prima prova, uno zip con l'eseguibile e il sector. Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
@@ -1479,3 +1479,26 @@ e **filtro** (6°: COAST, RUNWAY, GATES, PIER, TAXIWAY, APRON, BUILDING), che il
   Lab 781 → **787**. A schermo (banco, fork pulito): `limc.gts` stand 101, codice C + uso cargo + compagnia DHK →
   «codice C → M · uso cargo → w_ · compagnie → c_DHK», «Scrivi» mette tipo M e slot `w_ c_DHK`, la sezione Slot li
   spiega, uno slot «boh» è rifiutato col perché; annullato tutto, copia intatta.
+- **12c (4 ottobre)** — strati per tipo e ordine di disegno (H1, I1, I3). Solo il Lab: nessun codice comune toccato.
+  - **Generi dentro uno strato** (H1): sotto la casella di «Disegni .geo» e di «Aeroporti a terra», quando lo strato è
+    acceso, una casella per genere col suo conto — piste, bordi e assi delle taxiway, piazzali, edifici, moli, stop bar,
+    linee d'arresto, **marcature delle piste** (i file di `RW_MARKINGS`: lì il 5° campo è sempre `RUNWAY`, e spegnere
+    le piste non deve spegnere i numeri), «senza tipo»; e riempimenti, etichette, stand. Il genere di una linea è il suo
+    5° campo; viaggia con la forma (`h` nel JSON della mappa) e si spegne senza riprendere le coordinate, per la stessa
+    via delle voci spente della slice 6 (chiave `§strato:genere`). Scegliere un record di un genere spento lo riaccende.
+    I colori restano quelli di Aurora della slice 4. Sul fork: 975 piste, 456 bordi, 1 487 assi, 196 piazzali, 882
+    edifici, 1 947 moli, 119 stop bar, 558 linee d'arresto, 2 210 marcature, 2 senza tipo (polilinee); 1 753
+    riempimenti, 1 075 etichette, 1 674 stand.
+  - **Scheda del poligono** (I1): riempimento e bordo coi nomi di `colors.def` e il selettore c'erano già dalla slice 4c
+    (verificato a schermo su `rf_ad_gnd.pol`). Opacità e filtro della testa (5° e 6° campo del manuale) il modello non
+    li ha, e il fork non li scrive mai: restano fuori.
+  - **Ordine di disegno** (I3): la scheda di un riempimento dice a che posto si disegna («4° di 73») e cosa ha sopra,
+    per riempimento, con la nota su `HOLE`. Un **poligono nuovo nasce dopo l'ultimo del suo riempimento**, dovunque si
+    sia cliccato: l'ordine resta quello che il file ha già. 🔴 Il controllo «ordine sbagliato» **non** è scritto: quale
+    sia l'ordine giusto (quello della carta o quello del fork, misura sopra) lo deve dire il committente.
+  Test: Lab 787 → **793**, motore **770**. A schermo (banco, fork pulito): LIRF coi generi tutti accesi; spenti assi,
+  stand ed etichette spariscono solo quelli; `rf_ad_gnd.pol` record 3 «4° di 73 — sopra: TAXIWAY 10, CONCRETE 2, APRON 2,
+  HOLE 3, BUILDING 49, RUNWAY 3».
+- **Resta della slice 12**: **12d** vista per scalo e per pista con i controlli delle marcature (I6, O1, O3) — aspetta
+  le risposte del committente su dove sta la vista per scalo e su cosa segnalare delle marcature; il controllo
+  dell'ordine di disegno (I3) aspetta la sua scelta; i punti di startup (R4) la prova in Aurora.

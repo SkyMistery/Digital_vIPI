@@ -1,0 +1,48 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    L'ordine di disegno di un riempimento (lotto «Subito» slice 12c, «file per file» I3): in Aurora vince l'ultimo del
+    file. La scheda dice a che posto sta il poligono e cosa gli si disegna sopra; HOLE buca quel che ha sotto.
+*@
+@if (Lab.PostoNelDisegnoDi(File, Record) is { } posto)
+{
+    <Sezione Chiave="scheda-ordine" data-ordine-di-disegno="@($"{posto.Posto}/{posto.Quanti}")">
+    <Titolo>Ordine di disegno <span class="lab-nota">@posto.Posto° di @posto.Quanti</span></Titolo>
+    <ChildContent>
+    <p class="lab-nota">In Aurora vince l'ultimo del file: questo riempimento copre i @(posto.Posto - 1) scritti prima di lui.</p>
+    @if (posto.Sopra.Count == 0)
+    {
+        <p class="lab-nota" data-sopra="0">Sopra di lui non si disegna niente: è l'ultimo.</p>
+    }
+    else
+    {
+        <p data-sopra="@posto.Sopra.Sum(s => s.Quanti)">Sopra di lui:
+            @foreach (var (riempimento, quanti) in posto.Sopra)
+            {
+                <span class="lab-sopra"><code class="lab-chiave">@riempimento</code> @quanti</span>
+            }
+        </p>
+        @if (posto.Sopra.Any(s => s.Riempimento == Buco))
+        {
+            <p class="lab-nota">HOLE buca quel che ha sotto: dove c'è un HOLE, questo riempimento non si vede.</p>
+        }
+    }
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    private const string Buco = "HOLE";
+
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    // Solo parametri primitivi: si ridisegna da sé ai cambi del Lab (la lezione della 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

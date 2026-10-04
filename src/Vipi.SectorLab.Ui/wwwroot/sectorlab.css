@@ -958,6 +958,23 @@ body.lab-trascina * {
 }
 
 /* Lotto «Subito» slice 8: la stessa forma in altri record — le copie uguali, e in giallo quelle diverse. */
+/* Slice 12c: i generi di uno strato acceso, rientrati sotto la sua casella. */
+.lab-generi {
+    margin: 0 0 .25rem 1.1rem;
+    border-left: 1px solid var(--lab-bordo, currentColor);
+    padding-left: .45rem;
+}
+
+.lab-genere {
+    font-size: .92em;
+}
+
+/* Slice 12c: i riempimenti che si disegnano sopra un poligono, in fila. */
+.lab-sopra {
+    display: inline-block;
+    margin-right: .6rem;
+}
+
 /* Slice 12b: gli slot di uno stand, un filtro per riga col suo significato accanto. */
 .lab-filtri-slot {
     list-style: none;

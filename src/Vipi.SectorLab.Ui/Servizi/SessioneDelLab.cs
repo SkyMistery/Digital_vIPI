@@ -326,7 +326,15 @@ public sealed class SessioneDelLab
             // E accende il suo strato: i punti sono spenti di base, e un fix scelto dall'elenco non si vedeva — sulla
             // mappa non c'era niente da evidenziare (prove a mano del committente, 23 settembre).
             if (StratiDellaMappa.DiFile(file) is { } tipo && Strati.Any(s => s.Tipo.Id == tipo.Id))
+            {
                 _accesi.Add(tipo.Id);
+                // Slice 12c: e il suo genere, se era spento — un asse di taxiway scelto dall'elenco deve vedersi.
+                if (Sessione?.File.GetValueOrDefault(file) is IFileConRecord conRecord && record >= 0 && record < conRecord.RecordDelModello.Count
+                    && (conRecord.RecordDelModello[record] is Line linea ? GeneriDellaMappa.DelGeo(file, linea.Color) : GeneriDellaMappa.DelRecord(conRecord.RecordDelModello[record])) is { } genere
+                    && _spenti.Remove(ChiaveDelGenere(tipo.Id, genere)))
+                    VersioneDeiSpenti++;
+            }
+
             // Ogni scelta chiede di inquadrare, anche quella dello stesso record: il secondo clic sull'elenco riporta lì.
             Inquadrature++;
         }
@@ -871,6 +879,10 @@ public sealed class SessioneDelLab
         => StandDi(fileRelativo, record) is { } stand && Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file
             ? PropostaDelloStand.Di(stand, file.ChiaviDi(record))
             : null;
+
+    /// <summary>Il posto di un riempimento nell'ordine di disegno del suo .pol (slice 12c, I3); null se non lo è.</summary>
+    public PostoNelDisegno? PostoNelDisegnoDi(string fileRelativo, int record)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? OrdineDiDisegno.Di(file, record) : null;
 
     /// <summary>Lo stand del record, o null se il record non è uno stand.</summary>
     public Stand? StandDi(string fileRelativo, int record)
@@ -1891,6 +1903,38 @@ public sealed class SessioneDelLab
     public IReadOnlyCollection<string> Spenti => _spenti;
 
     public int VersioneDeiSpenti { get; private set; }
+
+    // --- i generi di uno strato (lotto «Subito» slice 12c, H1) -----------------------------------------------------
+
+    /// <summary>
+    /// I generi dentro uno strato (assi e bordi delle taxiway, edifici, marcature…; riempimenti, etichette e stand),
+    /// con le loro forme; vuoto se lo strato ne ha meno di due.
+    /// </summary>
+    public IReadOnlyList<GenereDelloStrato> GeneriDi(string strato)
+        => Strati.FirstOrDefault(s => s.Id == strato) is { } suo ? GeneriDellaMappa.Di(suo) : [];
+
+    /// <summary>Vero se il genere di quello strato si vede (di base sì: si spegne, non si accende).</summary>
+    public bool GenereAcceso(string strato, string genere) => !_spenti.Contains(ChiaveDelGenere(strato, genere));
+
+    /// <summary>
+    /// Accende o spegne un genere di uno strato sulla mappa. Passa dalle voci spente (<see cref="Spenti"/>), con la
+    /// chiave <c>§strato:genere</c>: la mappa lo toglie senza riprendere le coordinate.
+    /// </summary>
+    public void AccendiIlGenere(string strato, string genere, bool acceso)
+    {
+        if (acceso)
+            _spenti.Remove(ChiaveDelGenere(strato, genere));
+        else
+            _spenti.Add(ChiaveDelGenere(strato, genere));
+        // Toccare un genere vuol dire guardare il suo strato: se è spento, si accende.
+        if (acceso && Strati.Any(s => s.Id == strato))
+            _accesi.Add(strato);
+        Registro.Scrivi("generi", $"{strato}: {genere} {(acceso ? "acceso" : "spento")}");
+        VersioneDeiSpenti++;
+        Avvisa();
+    }
+
+    private static string ChiaveDelGenere(string strato, string genere) => "§" + GeneriDellaMappa.Chiave(strato, genere);
 
     /// <summary>Vero se nessuna di quelle parti del file è spenta.</summary>
     public bool Acceso(string fileRelativo, IEnumerable<string> parti)

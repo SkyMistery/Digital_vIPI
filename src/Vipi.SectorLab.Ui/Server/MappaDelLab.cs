@@ -82,6 +82,9 @@ public static class MappaDelLab
             // Slice 9d (Q2): i vincoli dei punti, per il passaggio del mouse.
             if (forma.Vincoli is { } vincoli)
                 json.WriteString("v", vincoli);
+            // Slice 12c (H1): il genere dentro lo strato, per accenderlo e spegnerlo da solo.
+            if (forma.Genere is { } genere)
+                json.WriteString("h", genere);
 
             if (colori is not null)
             {
