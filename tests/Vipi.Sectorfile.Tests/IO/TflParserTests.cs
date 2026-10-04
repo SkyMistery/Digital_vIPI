@@ -1,5 +1,6 @@
 using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Models;
+using Vipi.Sectorfile.Shared;
 using Xunit;
 
 namespace Vipi.Sectorfile.IO.Tests;
@@ -97,5 +98,81 @@ public sealed class TflParserTests
         {
             if (File.Exists(tmp)) File.Delete(tmp);
         }
+    }
+
+    // Lotto «Subito» slice 13a — l'opacità è facoltativa (manuale IVAO, [FILLCOLOR]): una testa a quattro campi apre un
+    // settore. Prima si leggeva come un vertice per nome, e le 52 teste così di GCI.tfl finivano nel primo settore.
+    [Fact]
+    public void TestaSenzaOpacita_ApreUnSettore()
+    {
+        var letti = Parse("A_CTR:B_CTR;GCI;1;GCI;0;\r\n" + V + "\r\nA_CTR:B_CTR;GCI;1;GCI;\r\n" + V).Records;
+
+        Assert.Equal(2, letti.Count);
+        Assert.Equal(3, letti[0].Vertices.Count);
+        Assert.Equal(3, letti[1].Vertices.Count);
+        Assert.False(letti[0].SenzaOpacita);
+        Assert.True(letti[1].SenzaOpacita);
+        Assert.Equal(0, _warnings.Count);
+    }
+
+    // La testa senza opacità si riscrive com'era; scritta l'opacità o il filtro, il campo compare.
+    [Fact]
+    public void TestaSenzaOpacita_SiRiscriveComEra()
+    {
+        var settore = Parse("A_CTR;GCI;1;GCI;\r\n" + V).Records[0];
+        Assert.Equal("A_CTR;GCI;1;GCI;", new TflSaver().Serialize(settore)[0]);
+
+        settore.Flags = 1;
+        Assert.Equal("A_CTR;GCI;1;GCI;1;", new TflSaver().Serialize(settore)[0]);
+
+        settore.Flags = 0;
+        settore.Filtro = "TAXIWAY";
+        Assert.Equal("A_CTR;GCI;1;GCI;0;TAXIWAY;", new TflSaver().Serialize(settore)[0]);
+    }
+
+    // Il 6° campo è il filtro (COAST, RUNWAY, GATES, PIER, TAXIWAY, APRON, BUILDING); un commento in coda non lo è.
+    [Fact]
+    public void Filtro_Letto_E_Scritto()
+    {
+        var conFiltro = Parse("Static;#00404040;1;#00404040;1;TAXIWAY;\r\n" + V).Records[0];
+        Assert.Equal("TAXIWAY", conFiltro.Filtro);
+        Assert.Equal("Static;#00404040;1;#00404040;1;TAXIWAY;", new TflSaver().Serialize(conFiltro)[0]);
+
+        var conCommento = Parse("LIRR_NE_CTR;CTR;1;CTR;1; //NE cnf.1\r\n" + V).Records[0];
+        Assert.Null(conCommento.Filtro);
+        Assert.Equal("LIRR_NE_CTR;CTR;1;CTR;1;", new TflSaver().Serialize(conCommento)[0]);
+    }
+
+    // Le posizioni della testa: separate da spazio (manuale) o da due punti (GCI.tfl, i confini di limmctr.tfl).
+    [Theory]
+    [InlineData("LGAV_APP LGAV_DEP", "LGAV_APP,LGAV_DEP")]
+    [InlineData("LIZZ_AEW_CTR:LIRO_CRC_CTR:LIVK_CRC_CTR", "LIZZ_AEW_CTR,LIRO_CRC_CTR,LIVK_CRC_CTR")]
+    [InlineData("LIBN_APP ", "LIBN_APP")]
+    [InlineData("Static", "")]
+    public void Posizioni_DellaTesta(string testa, string attese)
+    {
+        var settore = new TflSector { SectorCode = testa };
+        Assert.Equal(attese, string.Join(",", settore.Posizioni()));
+        Assert.Equal(attese.Length == 0, settore.Statico);
+    }
+
+    // Un vertice per nome resta un vertice (due campi), anche dopo una testa a quattro campi.
+    [Fact]
+    public void VerticePerNome_DopoUnaTestaCorta()
+    {
+        var settore = Parse("A_CTR;GCI;1;GCI;\r\nAMSOR;AMSOR;\r\n" + V).Records[0];
+        Assert.Equal(4, settore.Vertices.Count);
+        Assert.True(settore.Vertices[0].PerNome);
+    }
+
+    // GCI.tfl: 53 poligoni (la penisola e le isole), non uno.
+    [Fact]
+    public void Gci_Vero_HaTuttiISuoiSettori()
+    {
+        string? path = RealSectorFiles.Path("OTHER/GCI.tfl");
+        if (path is null) return;
+        var letti = Parser.Parse(path, new ColorPalette()).Records;
+        Assert.Equal(File.ReadLines(path).Count(r => r.Contains(";GCI;1;GCI;", StringComparison.Ordinal)), letti.Count);
+        Assert.DoesNotContain(letti, s => s.Vertices.Any(v => v.PerNome));
     }
 }

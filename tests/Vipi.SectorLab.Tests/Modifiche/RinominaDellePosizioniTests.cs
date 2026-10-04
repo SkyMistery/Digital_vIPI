@@ -65,6 +65,27 @@ public sealed class RinominaDellePosizioniTests : IDisposable
         Assert.Equal(1, modifiche.Quante);
     }
 
+    // Slice 13a: le posizioni di una testa separate dai due punti (GCI.tfl, i confini di limmctr.tfl) e senza opacità.
+    [Fact]
+    public void LaTestaCoiDuePuntiSiTrovaESiRinomina()
+    {
+        const string confini = "SectorFiles/Include/IT/DYNAMIC_SEC/confini.tfl";
+        _albero.Scrivi(confini, "LXXX_NC_CTR:LXXX_NW_CTR:LXXX_NW_CTRX;LIMMLIM;1;LIMMLIM;\r\nN041.00.00.000;E012.00.00.000;\r\n"
+                                + "N042.00.00.000;E012.00.00.000;\r\nN042.00.00.000;E013.00.00.000;\r\n");
+        var (sessione, cataloghi, indice) = Apri();
+        var modifiche = new ModificheInSospeso();
+
+        var usi = indice.Di(sessione, cataloghi, Prova, 0, _ => [])!;
+        Assert.Contains((confini, 1, "settore dinamico"), usi.Citazioni.Select(c => (c.File, c.Riga, c.Come)));
+
+        var pronta = Assert.IsType<RinominaPronta>(
+            Rinomina.Prepara(sessione, indice, cataloghi, Prova, 0, "LXXX_NW_CTR", "LXXX_WN_CTR", null, modifiche.SporchiDi));
+        Assert.IsType<ModificaDelTesto>(modifiche.CambiaInPiuFile([.. pronta.PerFile.Select(f => (sessione.File[f.File], f.Righe))], "rinomina"));
+
+        Assert.Equal("LXXX_NC_CTR:LXXX_WN_CTR:LXXX_NW_CTRX;LIMMLIM;1;LIMMLIM;",
+            ((IFileConRecord)sessione.File[confini]).RigheDelFile(modifiche.SporchiDi(confini))[0]);
+    }
+
     [Theory]
     [InlineData("LXXX_NC_CTR", "C'è già")]
     [InlineData("LXXX NW", "spazi")]

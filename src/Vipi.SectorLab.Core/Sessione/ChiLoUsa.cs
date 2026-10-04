@@ -266,7 +266,10 @@ public sealed class ChiLoUsa
         {
             if (righe[i].TrimStart().StartsWith("//", StringComparison.Ordinal))
                 continue;
-            var parole = soloIlPrimoCampo ? Parole(righe[i].Split(';')[0]) : Parole(righe[i]);
+            // Nella testa di un .tfl le posizioni si separano anche coi due punti (slice 13a: GCI.tfl, limmctr.tfl).
+            var parole = soloIlPrimoCampo
+                ? righe[i].Split(';')[0].Split([' ', ':'], StringSplitOptions.RemoveEmptyEntries)
+                : Parole(righe[i]);
             if (parole.Any(p => string.Equals(p.TrimStart('-'), nome, StringComparison.OrdinalIgnoreCase)))
             {
                 yield return i;
@@ -443,7 +446,7 @@ public sealed class ChiLoUsa
     private static IEnumerable<string> PosizioniCitate(object record) => record switch
     {
         AtcPosition posizione => posizione.TransferList.Select(t => t.PositionCode.Trim()).Where(c => c.Length > 0),
-        TflSector settore => settore.SectorCode.Split(' ', StringSplitOptions.RemoveEmptyEntries),
+        TflSector settore => settore.Posizioni(),
         _ => [],
     };
 

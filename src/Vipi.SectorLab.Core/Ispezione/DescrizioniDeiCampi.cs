@@ -131,11 +131,12 @@ public static class DescrizioniDeiCampi
 {
     /// <summary>
     /// Le proprietà del motore che non sono campi della riga: da dove viene il record (la scheda lo dice già in testa,
-    /// con le righe) e il segno di un conflitto fra copie, che è del motore.
+    /// con le righe) e il segno di un conflitto fra copie, che è del motore. Della testa di un settore dinamico (slice
+    /// 13a): l'opacità non scritta è una forma della riga, «statico» si legge dal 1° campo.
     /// </summary>
     public static IReadOnlySet<string> Nascoste { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        "Source", "Sources", "HasConflict", "TipoNonScritto",
+        "Source", "Sources", "HasConflict", "TipoNonScritto", "SenzaOpacita", "Statico",
     };
 
     /// <summary>La descrizione di un record in QUEL file (le MVA di ACC e di scalo leggono la quota da campi diversi).</summary>
@@ -186,6 +187,10 @@ public static class DescrizioniDeiCampi
 
     /// <summary>La visibilità di VOR e NDB (manuale IVAO: 0 Show, 1 Hide).</summary>
     private static readonly IReadOnlyList<ValoreFisso> Visibilita = [Vuoto, .. Valori(("0", "mostrato"), ("1", "nascosto"))];
+
+    /// <summary>I filtri di un poligono <c>[FILLCOLOR]</c> (manuale IVAO): sul fork nessuna testa ne scrive uno.</summary>
+    private static readonly IReadOnlyList<ValoreFisso> FiltriDelTfl =
+        [Vuoto, .. Valori(("COAST", "costa"), ("RUNWAY", "piste"), ("GATES", "stand"), ("PIER", "moli"), ("TAXIWAY", "taxiway"), ("APRON", "piazzali"), ("BUILDING", "edifici"))];
 
     /// <summary>Un file citato da un .frq (slice 11a, M1, N4): scelto fra quelli che ci sono, e da lì si apre.</summary>
     private static DescrizioneDelCampo FileCitato(string proprieta, string nome, string significato, FonteDellElenco fonte)
@@ -514,7 +519,8 @@ public static class DescrizioniDeiCampi
         C("FillColor", "Riempimento", "2° campo: un nome di colors.def o un colore. Con l'opacità a 1 non si riempie (convenzione italiana: si vede il bordo).", Editor.Colore),
         C("LineWeight", "Spessore del bordo", "3° campo.", Editor.Numero),
         C("StrokeColor", "Colore del bordo", "4° campo: un nome di colors.def o un colore.", Editor.Colore),
-        C("Flags", "Opacità", "5° campo, 0 o 1.", Editor.TipoFisso) with { Valori = Valori(("0", "0"), ("1", "1")) },
+        C("Flags", "Opacità", "5° campo, facoltativo: 0 = di base, 1 = con l'opacità. Una testa che non lo scrive resta senza finché vale 0.", Editor.TipoFisso) with { Valori = Valori(("0", "0"), ("1", "1")) },
+        C("Filtro", "Filtro", "6° campo, facoltativo: lo strato di Aurora col quale il poligono si accende e si spegne.", Editor.TipoFisso) with { Valori = FiltriDelTfl },
         C("Type", "Tipo di settore", "Calcolato dal riempimento (CTR, APP, TMA…).", Editor.SolaLettura),
         .. inPiu,
         Vertici("Vertices"),

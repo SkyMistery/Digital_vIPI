@@ -51,6 +51,25 @@ public class TflSector
 
     public int Flags { get; set; }
 
+    /// <summary>
+    /// La testa non scrive l'opacità (5° campo, facoltativo nel manuale IVAO): 52 teste di <c>GCI.tfl</c>. Si riscrive
+    /// senza finché <see cref="Flags"/> resta 0 e non c'è un <see cref="Filtro"/> (lotto «Subito» slice 13a).
+    /// </summary>
+    public bool SenzaOpacita { get; set; }
+
+    /// <summary>Il filtro (6° campo, facoltativo): COAST, RUNWAY, GATES, PIER, TAXIWAY, APRON, BUILDING.</summary>
+    public string? Filtro { get; set; }
+
+    /// <summary>
+    /// Le posizioni che accendono il settore: il 1° campo diviso allo spazio (manuale IVAO) o ai due punti (la scrittura
+    /// di <c>GCI.tfl</c> e dei confini di <c>limmctr.tfl</c>). Nessuna per un poligono <c>Static</c>.
+    /// </summary>
+    public IReadOnlyList<string> Posizioni()
+        => Statico ? [] : SectorCode.Split([' ', ':'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>Un poligono sempre disegnato (<c>Static</c> al posto delle posizioni).</summary>
+    public bool Statico => string.Equals(SectorCode.Trim(), "STATIC", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Inferred from <see cref="SectorCode"/> + <see cref="FillColor"/>; see <see cref="SectorTypeInference"/>.</summary>
     public SectorType Type => SectorTypeInference.Infer(SectorCode, FillColor);
 

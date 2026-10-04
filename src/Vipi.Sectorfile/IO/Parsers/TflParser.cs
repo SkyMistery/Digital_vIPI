@@ -164,8 +164,10 @@ public abstract class TflParserBase<T> : IFileParser<T>
     /// <remarks>
     /// A vertex may be given by name (<c>AMSOR;AMSOR;</c>, 315 lines on the master of 22 September 2026, F2 slice
     /// 4). In A such a line was malformed and CLOSED the sector: the vertices after it fell out of the record. A
-    /// name is only a vertex on a line too short to be a header (fewer than 5 fields): read as names, the two
-    /// first fields of a header (<c>LIBB_ES_CTR LIBB_EU_CTR;CTR;…</c>) would pass for a point.
+    /// name is only a vertex on a line too short to be a header (fewer than 4 fields): read as names, the two
+    /// first fields of a header (<c>LIBB_ES_CTR LIBB_EU_CTR;CTR;…</c>) would pass for a point. Four, not five: the
+    /// opacity is optional (IVAO manual), and the 52 headers of <c>GCI.tfl</c> written without it were read as
+    /// vertices of the sector above (lotto «Subito» slice 13a).
     /// </remarks>
     private static bool TryParseVertex(string line, out Punto vertex)
     {
@@ -191,8 +193,11 @@ public abstract class TflParserBase<T> : IFileParser<T>
         {
         }
 
-        return n < 5 && Punto.TryLeggi(parts[0], parts[1], out vertex) && vertex.PerNome;
+        return n < CampiMinimiDellaTesta && Punto.TryLeggi(parts[0], parts[1], out vertex) && vertex.PerNome;
     }
+
+    // Tipo;Riempimento;Bordo;ColoreBordo; — l'opacità (5°) e il filtro (6°) sono facoltativi.
+    private const int CampiMinimiDellaTesta = 4;
 
     private static bool TryParseHeader(string line, out T sector)
     {
@@ -204,7 +209,7 @@ public abstract class TflParserBase<T> : IFileParser<T>
             n--;
         }
 
-        if (n < 5)
+        if (n < CampiMinimiDellaTesta)
         {
             return false;
         }
@@ -213,7 +218,12 @@ public abstract class TflParserBase<T> : IFileParser<T>
         sector.FillColor = parts[1].Trim();                     // palette name OR hex (#0C0C0C)
         sector.LineWeight = int.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int w) ? w : 0;
         sector.StrokeColor = parts[3].Trim();
-        sector.Flags = int.TryParse(parts[4].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int f) ? f : 0;
+
+        // A trailing comment (`…;1; //NE cnf.1`) is neither the opacity nor the filter.
+        string? Campo(int i) => i < n && parts[i].Trim() is { Length: > 0 } testo && !testo.StartsWith("//", StringComparison.Ordinal) ? testo : null;
+        sector.SenzaOpacita = Campo(4) is null;
+        sector.Flags = int.TryParse(Campo(4), NumberStyles.Integer, CultureInfo.InvariantCulture, out int f) ? f : 0;
+        sector.Filtro = Campo(5);
         return true;
     }
 }

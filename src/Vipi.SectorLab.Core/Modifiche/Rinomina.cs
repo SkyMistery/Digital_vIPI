@@ -274,6 +274,9 @@ public static partial class Rinomina
     /// (<c>-LIRR_EW_CTR</c>), o nella testa di un .tfl (solo il primo campo). Il primo campo di un .frq è la posizione
     /// della riga, non una citazione: non si tocca. Null se non cambia.
     /// </summary>
+    // Lo spazio o i due punti fra le posizioni di una testa, tenuti fra i pezzi (il gruppo li rimette al loro posto).
+    private static readonly System.Text.RegularExpressions.Regex SeparatoriDellaTesta = new("([ :])", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     public static string? NellaParola(string riga, string vecchio, string nuovo, bool soloIlPrimoCampo)
     {
         ArgumentNullException.ThrowIfNull(riga);
@@ -283,18 +286,20 @@ public static partial class Rinomina
         bool cambiata = false;
         for (int c = soloIlPrimoCampo ? 0 : 1; c < (soloIlPrimoCampo ? Math.Min(1, campi.Length) : campi.Length); c++)
         {
-            string[] parole = campi[c].Split(' ');
-            for (int i = 0; i < parole.Length; i++)
+            // Slice 13a: nella testa di un .tfl le posizioni si separano anche coi due punti (GCI.tfl, i confini di
+            // limmctr.tfl); i separatori restano come sono.
+            string[] pezzi = soloIlPrimoCampo ? SeparatoriDellaTesta.Split(campi[c]) : campi[c].Split(' ');
+            for (int i = 0; i < pezzi.Length; i++)
             {
-                string meno = parole[i].StartsWith('-') ? "-" : "";
-                if (parole[i].Length > 0 && string.Equals(parole[i][meno.Length..], vecchio, StringComparison.OrdinalIgnoreCase))
+                string meno = pezzi[i].StartsWith('-') ? "-" : "";
+                if (pezzi[i].Length > 0 && string.Equals(pezzi[i][meno.Length..], vecchio, StringComparison.OrdinalIgnoreCase))
                 {
-                    parole[i] = meno + nuovo;
+                    pezzi[i] = meno + nuovo;
                     cambiata = true;
                 }
             }
 
-            campi[c] = string.Join(' ', parole);
+            campi[c] = soloIlPrimoCampo ? string.Concat(pezzi) : string.Join(' ', pezzi);
         }
 
         return cambiata ? string.Join(';', campi) : null;

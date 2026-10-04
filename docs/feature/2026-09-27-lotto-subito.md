@@ -1534,3 +1534,58 @@ H1-H2 (H3 dalla slice 6), I1, I3, I4, I6, O1, O3 (le strisce quando ci sarà la 
 R3, R6. Validatore sull'albero: 235/866 → **235 errori, 978 avvisi**. Test: motore 747 → **779**, Lab 781 → **798**.
 🔴 Proposte dell'agente ancora da confermare: codice → tipo dello stand e niente filtri `t_` (12b); «la taxiway dello
 stand» (12b); le soglie dei 10 km e dei 100 m (12a). Da provare a mano: prove 151-168 in `SectorLab-prova\PROVE.md`.
+
+### Slice 13 — Settori e spazi (`.tfl`, `.hartcc`, `.lartcc`) — dal 4 ottobre
+
+**Manuale IVAO** (riletto il 4 ottobre, `[FILLCOLOR]`, `[ARTCC HIGH]`, `[ARTCC LOW]`): la testa di un poligono è
+`Tipo;Riempimento;Bordo;ColoreBordo;[Opacità];[Filtro]` — tipo `Static` o l'elenco delle posizioni **separate da
+spazio** (`LGAV_APP LGAV_DEP`); opacità e filtro sono **facoltativi**; i vertici in DMS o per nome. Un `ICAO.tfl` col
+nome di uno scalo di `[AIRPORTS]` si carica da solo. Nei confini `T/L;Identificativo;Lat;Lon;[Font]`, «each … shall be
+named differently».
+
+**Misura sul fork** (`8cf32c6`, `scratchpad/misura13.py`; i numeri della carta rimisurati):
+
+- **234 settori dinamici** in 28 file: **181** nei 27 file di `DYNAMIC_SEC` (il numero della carta) e **53** in
+  `OTHER\GCI.tfl` (la penisola e le isole), di cui **52 con la testa a quattro campi** (`…;GCI;1;GCI;`, senza
+  l'opacità). Spessore sempre 1; opacità scritta 1 in 177 teste e 0 in 5 (i 4 laghi di `limmfic.tfl` e il primo di
+  `GCI.tfl`); **nessun filtro, nessun `Static`**; riempimento ≠ bordo in 3 (i due `LIBB_FSS`, `LIRH_APP`); 6 teste
+  col commento in coda (`lirr_ne_ctr.tfl`).
+- **Separatore delle posizioni**: una sola posizione in 162 teste, **spazio in 16** (15 estere e `LIBB_ES_CTR
+  LIBB_EU_CTR`), **due punti in 4** di `DYNAMIC_SEC` (i tre confini `LIMMLIM` di `limmctr.tfl`) più le 53 di `GCI.tfl`.
+  I due punti non sono nel manuale. Due teste con uno spazio in fondo al nome (`LIBN_APP `, `LIBV_APP `).
+- **D4 — posizioni italiane e `.frq`**: 151 posizioni italiane diverse nelle teste, **147 definite** in un `.frq`,
+  nessuna «solo citata», **4 assenti**: `LIBC_TWR` (`twrs.tfl:69`), `LIMF_WW0_APP` (`limmapp.tfl:375`), `LIQW_I_TWR`
+  (`twrs.tfl:2769`), `LIRE_APP` (`lirrctr.tfl:1`) — le quattro della carta. Estere: 55 (20 citate nei trasferimenti,
+  35 no; la regola non le guarda). Verso opposto, non in carta: 27 posizioni italiane dei `.frq` senza settore (17
+  TWR, e `LICD_APP`, `LIMC_ANW_APP`, `LIMC_MAR_APP`, `LIRF_AET_APP`, `LIRF_AWL_APP`, `LIRF_PS1_APP`, `LIVK_RCC_CTR`,
+  `LIZZ_AAR_CTR`, `LIZZ_JTA_CTR`, `LIZZ_NVY_CTR`).
+- **R-4 — testa ripetuta nello stesso file**: tre casi, di tre nature. `LIBB_FSS` due volte in `libb_es_ctr.tfl`
+  (righe 147 e 254) **con la stessa forma**: una copia vera. `LIMM_FSS` cinque volte in `limmfic.tfl`: la FIC e i
+  quattro laghi (`//GARDA`, `//LAGO DI COMO`…, colore `LIMMFIC`). I tre confini `LIMMLIM` di `limmctr.tfl` (2, 6 e 4
+  vertici: linee, non aree).
+- **Difetti dei dati** (per la lista R-10): `lfmm.tfl:1105` `LFMN_APP` ha una riga vuota dopo il primo vertice, e il
+  settore resta con 1 vertice (gli altri sono righe senza testa); `lovv.tfl:48` secondi a 60; `lipp.hartcc:2047` idem.
+- **Confini**: `HI_AIRSPACE` 4 file con 25 voci più i `DUMMY` (`lirr.hartcc` 13, `lipp` 7, `limm` 3, `libb` 2);
+  `LOW_AIRSPACE` 15 file, 22 voci. Nessuna etichetta `L`. Nomi: `RR CONF1`, `RR CONF1M`, `RR CONF2` (HI) · `RR CNF1`,
+  `RR CNF2.1`, `RR CNF2.2`, `RR CNF3` (LOW) · `MM CONF 1`, `MM CONF 2.1`, `MM CONF 2.2`, `MM CONF 3` (LOW): tre scritture.
+- **J5 — il file giusto**: i nomi delle voci non sono nomi di posizione (`RR NE`, `LIBB CS0`), quindi `_CTR`/`_APP`
+  non si legge dal nome. Legando ogni voce al settore dinamico della stessa forma (≥ 90% dei vertici) se ne trovano
+  25 su 43, e **nessuna è nel file sbagliato** (le voci di HI coi `_CTR`/`_FSS`, quelle di LOW con gli `_APP`).
+- **D9/J7/Q8**: zero tag `lower`/`upper`/`class` nell'albero. Voci del `MAPS` negli `.str`: 336, di cui **87 ATZ** (6°
+  campo 5) e **45 CTR** (6° campo 1).
+
+- **13a (4 ottobre)** — la testa del settore dinamico (D1). Codice comune toccato: `TflSector.SenzaOpacita`, `Filtro`,
+  `Posizioni()`, `Statico`; `TflParser` (testa da quattro campi, opacità e filtro facoltativi, il commento in coda non
+  è un filtro); `TflSaver` (scrive fino all'ultimo campo che c'è).
+  - 🔴 **Trovato misurando**: il lettore voleva cinque campi per una testa, e una riga a quattro campi con due «nomi»
+    davanti la leggeva come un **vertice per nome**. Le 52 teste senza opacità di `GCI.tfl` finivano così nel primo
+    settore: un poligono solo di oltre 9 000 vertici con 52 punti inesistenti, senza un avviso (il round-trip era esatto,
+    perché le righe non cambiavano). Ora una testa ha da quattro campi in su e un vertice per nome ne ha meno di quattro.
+  - L'opacità non scritta resta non scritta finché vale 0 e non c'è un filtro: toccare un settore di `GCI.tfl` non gli
+    aggiunge un campo. Il filtro (6° campo) è nella scheda, coi sette valori del manuale.
+  - Le posizioni di una testa si separano allo spazio **e ai due punti**: «chi lo usa» e la rinomina di una posizione
+    non vedevano le teste `A:B:C` (i confini `LIMMLIM`, `GCI.tfl`); la rinomina tiene il separatore che c'è.
+  Uscita sul fork: i record dell'albero 115 568 → **115 620** (+52), round-trip 718/718, tutto toccato 0, validatore
+  invariato (235 errori, 978 avvisi). Test: motore 779 → **788**, Lab 798 → **799**. A schermo (banco, fork pulito):
+  `GCI.tfl` 53 record; scelto il secondo si accende la sola Sardegna (1 412 punti); l'opacità a 1 dà il diff di una
+  riga `…;GCI;1;GCI;` → `…;GCI;1;GCI;1;`; il campo «Filtro» c'è.

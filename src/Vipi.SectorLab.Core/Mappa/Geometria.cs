@@ -154,7 +154,7 @@ public static class Geometria
                     {
                         Tratto = settore.StrokeColor,
                         Riempimento = settore.FillColor,
-                        SoloBordo = !string.Equals(settore.SectorCode.Trim(), "STATIC", StringComparison.OrdinalIgnoreCase)
+                        SoloBordo = !settore.Statico
                                     || settore.Flags == 1,
                     }
                     : null;
