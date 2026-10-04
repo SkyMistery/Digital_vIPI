@@ -22,11 +22,18 @@ internal static class SogliaTimbro
     ///
     /// <para>Si prende il giro più <b>vecchio</b> fra i due: col più recente si segnalerebbero le righe
     /// dell'altra famiglia solo perché il suo giro è slittato di qualche ora.</para>
+    ///
+    /// <para>⚠️ Anche una data da cui il margine <b>non si può togliere</b> è «non lo sappiamo»: è
+    /// <c>default(DateTime)</c> arrivato fin qui al posto di un giro, e sottrarre lancerebbe (4 ottobre 2026:
+    /// 500 su Struttura). La sorgente del guasto è chiusa nel repository degli stati; qui resta la regola.</para>
     /// </summary>
-    public static DateTime? Calcola(DateTime? ultimoGiroAeroporti, DateTime? ultimoGiroAcc) =>
-        ultimoGiroAeroporti is not { } a || ultimoGiroAcc is not { } c
-            ? null
-            : (a < c ? a : c) - Margine;
+    public static DateTime? Calcola(DateTime? ultimoGiroAeroporti, DateTime? ultimoGiroAcc)
+    {
+        if (ultimoGiroAeroporti is not { } a || ultimoGiroAcc is not { } c) return null;
+
+        var piuVecchio = a < c ? a : c;
+        return piuVecchio.Ticks < Margine.Ticks ? null : piuVecchio - Margine;
+    }
 
     /// <summary>Quota di righe che possono risultare non più elencate senza che la cosa sia presa per buona.</summary>
     public const double QuotaSospetta = 0.25;

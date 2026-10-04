@@ -14,7 +14,13 @@ public sealed class EfImportStateStore : IImportStateStore
     public async Task<DateTime?> GetLastSuccessAsync(string category, CancellationToken ct = default)
     {
         var row = await _db.ImportStates.AsNoTracking().FirstOrDefaultAsync(x => x.Category == category, ct);
-        return row?.LastSuccessUtc;
+
+        // ⚠️ La riga può esistere senza che un giro sia mai riuscito: la crea anche MarkFailureAsync, e la
+        // colonna non è nullable, quindi lì dentro c'è default(DateTime). Quello non è un giro del primo
+        // gennaio dell'anno 1: è «mai riuscito», e si dice null come quando la riga manca. Restituito tale e
+        // quale (fino al 4 ottobre 2026) faceva lanciare chi ci toglieva un margine — 500 su Struttura con
+        // database nuovo e sorgente irraggiungibile — e rispondere «no» a chi chiedeva se era il primo giro.
+        return row is null || row.LastSuccessUtc == default ? null : row.LastSuccessUtc;
     }
 
     public async Task<DateTime?> GetPrevSuccessAsync(string category, CancellationToken ct = default)

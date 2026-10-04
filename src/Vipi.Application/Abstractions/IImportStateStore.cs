@@ -5,7 +5,10 @@ namespace Vipi.Application.Abstractions;
 /// <summary>Traccia l'ultima esecuzione (riuscita o fallita) di ciascun import periodico: gating dei fetch all'avvio + osservabilità dei fallimenti.</summary>
 public interface IImportStateStore
 {
-    /// <summary>Ultima esecuzione riuscita della categoria, o null se mai eseguita.</summary>
+    /// <summary>
+    /// Ultima esecuzione riuscita della categoria, o null se non è <b>mai riuscita</b> — anche quando è stata
+    /// tentata ed è fallita: un fallimento lascia la riga, non un successo.
+    /// </summary>
     Task<DateTime?> GetLastSuccessAsync(string category, CancellationToken ct = default);
 
     /// <summary>
