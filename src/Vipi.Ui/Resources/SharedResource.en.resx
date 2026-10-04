@@ -4078,4 +4078,18 @@
   <data name="Bench_ColTo" xml:space="preserve"><value>Receives</value></data>
   <data name="Bench_ByCoverage" xml:space="preserve"><value>point coverage</value></data>
   <data name="Xfer_BenchTitle" xml:space="preserve"><value>With these sectors open, where this ACC&apos;s transfers go: opens the test bench in Structure</value></data>
+  <data name="Xfer_Move" xml:space="preserve"><value>Move</value></data>
+  <data name="Xfer_MoveSectionTitle" xml:space="preserve"><value>Move this section into the agreement of another pair of units</value></data>
+  <data name="Xfer_MoveSectionIntro" xml:space="preserve"><value>The section, with its {0} clauses, goes into the agreement between these two units (created if missing). Usually only one unit changes.</value></data>
+  <data name="Xfer_MoveBulk" xml:space="preserve"><value>Move…</value></data>
+  <data name="Xfer_MoveBulkTitle" xml:space="preserve"><value>Move the selected clauses into the agreement of another pair of units</value></data>
+  <data name="Xfer_MoveBulkIntro" xml:space="preserve"><value>The selected clauses go into the agreement between these two units, in the section with the same traffic and the same airports (agreement and section are created if missing). A variant group moves as a whole.</value></data>
+  <data name="Xfer_MoveFrom" xml:space="preserve"><value>Hands over</value></data>
+  <data name="Xfer_MoveTo" xml:space="preserve"><value>Receives</value></data>
+  <data name="Xfer_MoveNothing" xml:space="preserve"><value>Nothing to move: they are already in that pair&apos;s agreement, in that direction.</value></data>
+  <data name="Xfer_SectionMoved" xml:space="preserve"><value>Section moved into the agreement {0}.</value></data>
+  <data name="Xfer_ClausesMoved" xml:space="preserve"><value>{0} clauses moved into the agreement {1}.</value></data>
+  <data name="Xfer_ClausesMoved_One" xml:space="preserve"><value>{0} clause moved into the agreement {1}.</value></data>
+  <data name="Xfer_MoveCreated" xml:space="preserve"><value>The agreement did not exist and has been created.</value></data>
+  <data name="Xfer_MoveUndone" xml:space="preserve"><value>Move undone: everything is back where it was.</value></data>
 </root>

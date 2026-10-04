@@ -4086,4 +4086,18 @@
   <data name="Bench_ColTo" xml:space="preserve"><value>Riceve</value></data>
   <data name="Bench_ByCoverage" xml:space="preserve"><value>copertura del punto</value></data>
   <data name="Xfer_BenchTitle" xml:space="preserve"><value>Con questi settori aperti, i trasferimenti di questo ACC a chi vanno: apre il banco di prova in Struttura</value></data>
+  <data name="Xfer_Move" xml:space="preserve"><value>Sposta</value></data>
+  <data name="Xfer_MoveSectionTitle" xml:space="preserve"><value>Sposta questa sezione nell&apos;accordo di un&apos;altra coppia di enti</value></data>
+  <data name="Xfer_MoveSectionIntro" xml:space="preserve"><value>La sezione, con le sue {0} clausole, passa nell&apos;accordo fra questi due enti (nasce se non c&apos;è). Di solito si cambia un ente solo.</value></data>
+  <data name="Xfer_MoveBulk" xml:space="preserve"><value>Sposta…</value></data>
+  <data name="Xfer_MoveBulkTitle" xml:space="preserve"><value>Sposta le clausole scelte nell&apos;accordo di un&apos;altra coppia di enti</value></data>
+  <data name="Xfer_MoveBulkIntro" xml:space="preserve"><value>Le clausole scelte passano nell&apos;accordo fra questi due enti, nella sezione con lo stesso traffico e gli stessi aeroporti (accordo e sezione nascono se non ci sono). Un gruppo di varianti si sposta intero.</value></data>
+  <data name="Xfer_MoveFrom" xml:space="preserve"><value>Cede</value></data>
+  <data name="Xfer_MoveTo" xml:space="preserve"><value>Riceve</value></data>
+  <data name="Xfer_MoveNothing" xml:space="preserve"><value>Niente da spostare: stanno già nell&apos;accordo di quella coppia, in quel verso.</value></data>
+  <data name="Xfer_SectionMoved" xml:space="preserve"><value>Sezione spostata nell&apos;accordo {0}.</value></data>
+  <data name="Xfer_ClausesMoved" xml:space="preserve"><value>{0} clausole spostate nell&apos;accordo {1}.</value></data>
+  <data name="Xfer_ClausesMoved_One" xml:space="preserve"><value>{0} clausola spostata nell&apos;accordo {1}.</value></data>
+  <data name="Xfer_MoveCreated" xml:space="preserve"><value>L&apos;accordo non c&apos;era ed è stato creato.</value></data>
+  <data name="Xfer_MoveUndone" xml:space="preserve"><value>Spostamento annullato: tutto è tornato dov&apos;era.</value></data>
 </root>

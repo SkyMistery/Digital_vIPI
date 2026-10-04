@@ -77,6 +77,20 @@ public interface IAgreementRepository
     /// Scendendo si va DOPO il bersaglio, salendo PRIMA. No-op fra sezioni diverse.</summary>
     Task MoveClauseToAsync(string accCode, int clauseId, int targetClauseId, CancellationToken ct = default);
 
+    /// <summary>Porta una sezione, con le sue clausole, nell'accordo della coppia «chi cede → chi riceve», che nasce
+    /// se non c'è. I gruppi di varianti prendono numeri nuovi nell'accordo di arrivo.</summary>
+    Task<AgreementMoveResult> MoveSectionAsync(string accCode, int sectionId, int senderSectorId, int receiverSectorId,
+        CancellationToken ct = default);
+
+    /// <summary>Porta delle clausole — coi loro gruppi di varianti, interi — nella sezione gemella (stesso traffico,
+    /// stessi scali) dell'accordo della coppia «chi cede → chi riceve». Accordo e sezione nascono se non ci sono.</summary>
+    Task<AgreementMoveResult> MoveClausesAsync(string accCode, IReadOnlyList<int> clauseIds, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default);
+
+    /// <summary>Disfa uno spostamento: rimette sezione e clausole ai posti di prima, e toglie quel che era nato per
+    /// fare posto se è rimasto vuoto.</summary>
+    Task UndoMoveAsync(string accCode, AgreementMoveUndo undo, CancellationToken ct = default);
+
     /// <summary>Alternativa pari-grado alla clausola, dopo tutto il suo sottoalbero. Copia tutto tranne la
     /// condizione — che è ciò che l'alternativa deve dire di diverso. Il gruppo, se non c'è, nasce qui.</summary>
     Task<int> AddAlternativeAsync(string accCode, int clauseId, CancellationToken ct = default);

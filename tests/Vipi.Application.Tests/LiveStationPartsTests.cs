@@ -225,6 +225,12 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task MoveClauseToAsync(string a, int id, int t, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<AgreementMoveResult> MoveSectionAsync(string a, int id, int s, int r, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<AgreementMoveResult> MoveClausesAsync(string a, IReadOnlyList<int> ids, int s, int r, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task UndoMoveAsync(string a, AgreementMoveUndo u, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task<int> AddAlternativeAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int> AddExceptionAsync(string a, int id, CancellationToken ct = default) =>

@@ -408,11 +408,26 @@
                         <button class="btn ghost" disabled="@(_busy || _puntiSelezionati == 0 || _puntiSelezionati > Vipi.Application.Content.RisalitaScala.MassimoPunti)"
                                 title="@TitoloRisalita()" @onclick="MostraRisalitaAsync">@L["Xfer_Ladder_Show"]</button>
 
+                        @* Le clausole scelte, in un altro accordo: «a questa quota il settore non è ES2, è ES5». *@
+                        <button class="btn @(_moveBulkOpen ? "primary" : "ghost")" disabled="@(_busy || !_canEdit)"
+                                title="@L["Xfer_MoveBulkTitle"]" @onclick="ToggleMoveBulk">⇢ @L["Xfer_MoveBulk"]</button>
+
                         <span class="ln xt-grow"></span>
                         <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_BulkDeleteAria"]" Disabled="@(_busy || !_canEdit)"
                                        Prompt="@(string.Format(L["Xfer_BulkDeletePrompt"].Value, _selected.Count))"
                                        OnConfirm="DeleteBulk"><Trigger><Icon Name="x" /> @L["Common_Delete"]</Trigger></InlineConfirm>
                         <button class="btn ghost" @onclick="SvuotaSelezione">@L["Xfer_BulkClear"]</button>
+
+                        @if (_moveBulkOpen)
+                        {
+                            <div class="xt-subform xt-bulkmove">
+                                @MoveFields(L["Xfer_MoveBulkIntro"].Value)
+                                <div class="xt-foot">
+                                    <button class="btn primary" disabled="@(_busy || !_canEdit || !_moveForm.Ready)" @onclick="MoveBulk">⇢ @L["Xfer_Move"]</button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => _moveBulkOpen = false">@L["Common_Cancel"]</button>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
             }
@@ -1658,6 +1673,10 @@
                         @onclick="() => TogglePaste(sec)">⎘ @L["Xfer_Paste"]</button>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_SectionEditTitle"]"
                         @onclick="() => OpenEditSection(sec)">✎</button>
+                @* Sposta la sezione nell'accordo di un'ALTRA coppia: un accordo è una coppia di enti, e una tabella
+                   scritta sotto quella sbagliata si poteva solo riscrivere (4 ottobre 2026). *@
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_MoveSectionTitle"]"
+                        aria-label="@L["Xfer_MoveSectionTitle"]" @onclick="() => OpenMoveSection(ag, sec)">⇢</button>
                 <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_SectionDeleteAria"]" Disabled="@(_busy || !_canEdit)"
                                Prompt="@(string.Format(L["Xfer_SectionDeletePrompt"].Value, sec.Clauses.Count))"
                                OnConfirm="() => DeleteSection(ag, sec)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
@@ -1671,6 +1690,17 @@
                         <button class="btn primary" disabled="@(_busy || !_canEdit || !_sectionForm.Ready)" @onclick="() => SaveSection(sec)">💾 @L["Common_Save"]</button>
                         <button class="btn ghost" disabled="@_busy" @onclick="() => _editSectionId = null">@L["Common_Cancel"]</button>
                         @if (_canEdit && !_sectionForm.Ready) { <span class="muted xt-hint xt-selfc">@L["Xfer_AirportRequired"]</span> }
+                    </div>
+                </div>
+            }
+
+            @if (_moveSectionId == sec.Id)
+            {
+                <div class="xt-subform">
+                    @MoveFields(string.Format(L["Xfer_MoveSectionIntro"].Value, sec.Clauses.Count))
+                    <div class="xt-foot">
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || !_moveForm.Ready)" @onclick="() => MoveSection(sec)">⇢ @L["Xfer_Move"]</button>
+                        <button class="btn ghost" disabled="@_busy" @onclick="() => _moveSectionId = null">@L["Common_Cancel"]</button>
                     </div>
                 </div>
             }
@@ -2046,6 +2076,143 @@
             _pasteText = "";
         }, string.Format(L["Xfer_PasteDone"].Value, parsed.Count));
     }
+
+    // ---- Spostare fra accordi ------------------------------------------------------------------------
+    // Si dice «chi cede → chi riceve», e sezione o clausole vanno nell'accordo di QUELLA coppia (che nasce se non
+    // c'è). I due campi partono da chi cede e chi riceve adesso: di solito se ne cambia uno solo.
+
+    private sealed class MoveForm
+    {
+        public string From { get; set; } = "";
+        public string To { get; set; } = "";
+        public string FromText { get; set; } = "";
+        public string ToText { get; set; } = "";
+
+        public bool Ready => From.Length > 0 && To.Length > 0
+                             && !string.Equals(From, To, StringComparison.OrdinalIgnoreCase);
+
+        public void Load(string from, string to) { From = from; To = to; FromText = ""; ToText = ""; }
+    }
+
+    private readonly MoveForm _moveForm = new();
+    private int? _moveSectionId;      // la sezione di cui è aperto il form «sposta»
+    private bool _moveBulkOpen;       // il form «sposta» della barra delle clausole scelte
+
+    private void OpenMoveSection(AgreementRow ag, AgreementSectionRow sec)
+    {
+        ClosePanel();
+        _editHeaderId = null; _newSectionFor = null; _editSectionId = null; _moveBulkOpen = false;
+        _moveForm.Load(ag.Sender(sec.Direction).Callsign, ag.Receiver(sec.Direction).Callsign);
+        _moveSectionId = _moveSectionId == sec.Id ? null : sec.Id;
+    }
+
+    private void ToggleMoveBulk()
+    {
+        _moveBulkOpen = !_moveBulkOpen;
+        if (!_moveBulkOpen) return;
+        _moveSectionId = null;
+        // Si parte dalla coppia della prima clausola scelta: di solito le scelte stanno tutte nella stessa tabella.
+        foreach (var a in _agreements)
+            foreach (var s in a.Sections)
+                if (s.Clauses.Any(c => _selected.Contains(c.Id)))
+                {
+                    _moveForm.Load(a.Sender(s.Direction).Callsign, a.Receiver(s.Direction).Callsign);
+                    return;
+                }
+        _moveForm.Load("", "");
+    }
+
+    private void SetMove(bool sender, string? callsign)
+    {
+        var cs = (callsign ?? "").Trim();
+        if (sender) { _moveForm.From = cs; _moveForm.FromText = ""; }
+        else { _moveForm.To = cs; _moveForm.ToText = ""; }
+    }
+
+    private async Task MoveSection(AgreementSectionRow sec)
+    {
+        var (da, a) = (_moveForm.From, _moveForm.To);
+        AgreementMoveResult? esito = null;
+        if (!await Guarded(async () =>
+            {
+                esito = await Agreements.MoveSectionAsync(_acc!.Code, sec.Id, SectorIdOf(da), SectorIdOf(a));
+                _moveSectionId = null;
+            }, null)) return;
+        DopoLoSpostamento(esito, da, a, sezione: true);
+    }
+
+    private async Task MoveBulk()
+    {
+        if (_selected.Count == 0) return;
+        var (da, a) = (_moveForm.From, _moveForm.To);
+        var ids = _selected.ToList();
+        AgreementMoveResult? esito = null;
+        if (!await Guarded(async () =>
+            {
+                esito = await Agreements.MoveClausesAsync(_acc!.Code, ids, SectorIdOf(da), SectorIdOf(a));
+                _moveBulkOpen = false;
+                _selected.Clear();
+            }, null)) return;
+        DopoLoSpostamento(esito, da, a, sezione: false);
+    }
+
+    /// <summary>Dice che cosa è successo DAVVERO — niente, una sezione, tante clausole, un accordo nato apposta —
+    /// arma l'annulla e porta dove il lavoro è andato: uno spostamento che non si vede arrivare sembra una perdita.</summary>
+    private void DopoLoSpostamento(AgreementMoveResult? esito, string da, string a, bool sezione)
+    {
+        if (esito is null) return;
+        if (esito.SectionId is null) { _status = L["Xfer_MoveNothing"].Value; return; }
+
+        var coppia = $"{da} → {a}";
+        _status = (sezione
+                      ? string.Format(L["Xfer_SectionMoved"].Value, coppia)
+                      : string.Format(esito.Clauses == 1 ? L["Xfer_ClausesMoved_One"].Value : L["Xfer_ClausesMoved"].Value, esito.Clauses, coppia))
+                  + (esito.AgreementCreated ? " " + L["Xfer_MoveCreated"].Value : "");
+        var disfa = esito.Undo;
+        _undo = (() => Agreements.UndoMoveAsync(_acc!.Code, disfa), L["Xfer_MoveUndone"].Value);
+
+        if (_agreements.Any(x => x.Id == esito.AgreementId))
+        {
+            SelectAgreement(esito.AgreementId);
+            _focusSectionId = esito.SectionId;
+            _collapsedSections.Remove(esito.SectionId.Value);
+        }
+    }
+
+    private RenderFragment MoveFields(string intro) => __builder =>
+    {
+        <p class="muted xt-hint xt-moveintro">@intro</p>
+        <div class="inline-form xt-flat">
+            @MovePicker(true)
+            @MovePicker(false)
+        </div>
+    };
+
+    /// <summary>Un capo dello spostamento: chi cede, o chi riceve.</summary>
+    private RenderFragment MovePicker(bool sender) => __builder =>
+    {
+        var current = sender ? _moveForm.From : _moveForm.To;
+        var text = sender ? _moveForm.FromText : _moveForm.ToText;
+
+        <div class="field">
+            <label>@(sender ? L["Xfer_MoveFrom"] : L["Xfer_MoveTo"])</label>
+            <div class="xt-chips">
+                @if (current.Length > 0)
+                {
+                    <span class="pill neutral">@current
+                        <button type="button" class="xt-chipx" title="@L["Xfer_RemoveParty"]"
+                                @onclick="() => SetMove(sender, string.Empty)">✕</button>
+                    </span>
+                }
+                else { <span class="muted">—</span> }
+            </div>
+            <TypeaheadPicker Placeholder="@L["Xfer_SearchCallsign"]"
+                             Items="@SectorItems(text)"
+                             Text="@text"
+                             TextChanged="t => { if (sender) _moveForm.FromText = t; else _moveForm.ToText = t; }"
+                             OnPick="i => SetMove(sender, i?.Value)" />
+        </div>
+    };
 
     /// <summary>I campi dell'accordo: i due capi e una nota. Nient'altro — il traffico sta nelle sezioni.</summary>
     private RenderFragment PairFields(PairForm form) => __builder =>

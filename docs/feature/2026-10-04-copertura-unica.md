@@ -49,7 +49,8 @@ da sola: serve agli avvisi e al rinvio «copertura del punto», che resta una ri
 | 1 | **Un solo motore di copertura**: la catena la leggono anche AoR, tabella delle configurazioni, chi cede, filtro «a te stesso» | ✅ questa carta, §4 |
 | 2 | **Banco di prova in Struttura**: scelgo chi è aperto (o una configurazione già scritta in una vIPI) e vedo chi assorbe chi, con le fasce | ✅ §7 |
 | 3 | **Banco sui trasferimenti**: stesso scenario, tutte le clausole dell'ACC con chi cede e chi riceve | ✅ §7 |
-| 4 | **Sposta sezione o clausole in un altro accordo**, più l'avviso «quota fuori dalla banda del settore scritto» | ▶ |
+| 4 | **Sposta sezione o clausole in un altro accordo** | ✅ §8 |
+| 4b | L'avviso «quota fuori dalla banda del settore scritto», col tasto per spostare | ▶ |
 | 5 | **Sezione condivisa** fra più accordi (Trapani ⇄ `LIRR_SU` per i GAT e Trapani ⇄ `LIRR_MIL` per gli OAT): si scrive una volta | ▶ |
 
 Decisione del committente sul passo 5 (4 ottobre): nel documento e nella vista live la sezione condivisa esce come
@@ -176,3 +177,56 @@ Dalla pagina Trasferimenti il link «⚗ Banco di prova» ci porta con l'ACC gi�
   la pagina Struttura risponde 500 — `ImportStates.LastSuccessUtc` vale `0001-01-01`, `GetLastSuccessAsync` la
   rende come data vera e `SogliaTimbro.Calcola` le toglie un giorno. Segnalato a parte; in produzione gli import
   sono riusciti e il caso non si presenta.
+
+## 8. Passo 4 — spostare fra accordi
+
+Un accordo è **una coppia di enti**. Una clausola scritta sotto la coppia sbagliata — ES2 ⇄ Padova quando a FL350 il
+settore è ES5 — fino a qui si poteva solo riscrivere, e lo stesso valeva ogni volta che uno split cambiava quota.
+
+**Il gesto è uno solo: si dice «chi cede → chi riceve».** I due campi partono da chi cede e chi riceve adesso (di
+solito se ne cambia uno), e il lavoro va nell'accordo di **quella** coppia:
+
+| Cosa | Dove | Che succede |
+|---|---|---|
+| una **sezione** | tasto ⇢ sulla sua testata | passa intera nell'accordo della coppia, in coda |
+| delle **clausole** | «⇢ Sposta…» nella barra delle scelte | passano nella sezione **gemella** (stesso traffico, stessi aeroporti, verso nuovo) |
+
+### Le scelte
+
+- **L'accordo di arrivo nasce se non c'è**, e la sezione gemella pure — vuota di prosa: la descrizione era dell'altra
+  tabella. Una coppia già scritta non è un errore, è la destinazione.
+- ⚠️ **Il verso si ricalcola sull'accordo di arrivo.** I suoi lati sono canonici (id minore = A) in un ordine che non
+  ha niente a che vedere con quello di partenza: portando il verso tale e quale la tabella direbbe il contrario di
+  quel che si è chiesto, senza un errore. Chi cede resta chi è stato indicato.
+- ⚠️ **I gruppi di varianti prendono numeri nuovi**, perché sono progressivi per accordo: tali e quali si
+  fonderebbero con quelli dell'accordo di arrivo che portano lo stesso numero.
+- ⚠️ **Un gruppo di varianti si sposta intero**, anche se ne è scelta una riga sola: portarne via una lascerebbe di
+  qua un'alternativa senza sorelle e di là una riga che non è più l'eccezione di nessuno.
+- ⚠️ **L'annulla rimette i POSTI di prima, non «risposta all'indietro»**: rispostando, sezione e clausole
+  finirebbero in coda, e negli accordi l'ordine è struttura. Lo spostamento restituisce i posti che ha lasciato
+  (`AgreementMoveUndo`), e l'annulla toglie ciò che era nato per fare posto **solo se è rimasto vuoto**.
+- L'accordo o la sezione di partenza restano, anche vuoti: toglierli è una scelta di chi scrive.
+- «Stessa coppia, verso opposto» è «gira il verso» e si fa; «stessa coppia, stesso verso» dice che non c'è niente
+  da spostare, e non arma nessun annulla.
+- ⚠️ La coppia è unica **in tutto l'archivio**: se l'accordo di arrivo esiste ma non riguarda l'ACC da cui si
+  lavora, lo spostamento si rifiuta con una frase.
+
+### Verifica
+
+- Test: `AgreementMoveTests` (12, dal repository: verso, gruppi, gemella, annulla) — tre mutazioni (verso sul lato
+  sbagliato, gruppi non rinumerati, annulla senza l'ordine) fanno cadere 7 test; `SpostaFraAccordiTests` (5, presidi
+  sul sorgente della pagina: la fila, l'annulla per posti, niente annulla se non si è spostato niente). E le tre
+  scritture nuove sono entrate da sole nei presidi che provano **ogni** scrittura degli accordi contro ruolo e
+  lock (`PorteTutteLeScrittureTests`, `LockDelleScrittureStrutturateTests`): sei casi in più, verdi.
+- **Dal vivo — 4 ottobre 2026**, database nuovo e inventato, Edge: accordo `LIMM_ES2_CTR ⇄ LIPP_CE1_CTR` con tre
+  clausole (FL250, FL350, FL290). Scelta quella a FL350, «⇢ Move…», cambiato chi cede in `LIMM_ES5_CTR` →
+  «1 clause moved into the agreement LIMM_ES5_CTR → LIPP_CE1_CTR. The agreement did not exist and has been
+  created.», la pagina si sposta sul nuovo accordo; «Undo» → un accordo solo, le tre clausole nell'ordine di prima.
+  Poi la sezione intera verso `LIMM_WS5_CTR`: tre clausole nel nuovo accordo, quello di partenza resta vuoto; «Undo»
+  rimette tutto. Zero errori in console, zero risposte ≥ 400.
+
+### Aperto (4b)
+
+L'avviso «quota fuori dalla banda del settore scritto» non è fatto. Regola pensata, da confermare scrivendola: solo
+per i capi **d'area** (per gli APP un trasferimento un po' fuori è la norma), solo quando la quota è **tutta** fuori
+(«esattamente FL350» su un settore che finisce a FL325; non «FL350 o inferiore»), e mai sul confine esatto.

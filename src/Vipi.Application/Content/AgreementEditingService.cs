@@ -208,6 +208,26 @@ public sealed class AgreementService : IAgreementService
         await _repo.MoveClauseToAsync(accCode, clauseId, targetClauseId, ct);
     }
 
+    public async Task<AgreementMoveResult> MoveSectionAsync(string accCode, int sectionId, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.MoveSectionAsync(accCode, sectionId, senderSectorId, receiverSectorId, ct);
+    }
+
+    public async Task<AgreementMoveResult> MoveClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int senderSectorId, int receiverSectorId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.MoveClausesAsync(accCode, clauseIds, senderSectorId, receiverSectorId, ct);
+    }
+
+    public async Task UndoMoveAsync(string accCode, AgreementMoveUndo undo, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        await _repo.UndoMoveAsync(accCode, undo, ct);
+    }
+
     public async Task<int> AddAlternativeAsync(string accCode, int clauseId, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);

@@ -3773,6 +3773,9 @@
 :where(.vipi-root) .xt-pick{width:26px;text-align:center}
 :where(.vipi-root) .xt-bulk{margin:0 0 12px}
 :where(.vipi-root) .xt-bulkbody{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* Il form «sposta in un altro accordo» dentro la barra delle scelte: una riga sua, larga quanto la barra. */
+:where(.vipi-root) .xt-bulkmove{flex-basis:100%;margin:4px 0 0}
+:where(.vipi-root) .xt-moveintro{margin:0 0 6px}
 :where(.vipi-root) .xt-bulkpick{margin:0;min-width:200px}
 :where(.vipi-root) .xt-bulkpick input{margin:0}
 

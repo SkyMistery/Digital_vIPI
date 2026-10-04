@@ -758,6 +758,211 @@ public sealed class EfAgreementRepository : IAgreementRepository
     private static PostoInOutline PostoDi(AgreementClause c) =>
         new(c.SectionId, c.Order, c.VariantGroup, c.VariantDepth, c.IsGroupWide, c.Cops);
 
+    // ---- spostare fra accordi -----------------------------------------------------------------------
+    // Un accordo è UNA coppia di enti: una clausola scritta sotto la coppia sbagliata (ES2 ⇄ Padova quando a quella
+    // quota il settore è ES5) fino al 4 ottobre 2026 si poteva solo riscrivere. Qui si dice a chi appartiene
+    // davvero — «chi cede → chi riceve» — e sezione o clausole vanno nell'accordo di QUELLA coppia, che nasce se
+    // non c'è. Carta docs/feature/2026-10-04-copertura-unica.md §8.
+
+    public async Task<AgreementMoveResult> MoveSectionAsync(string accCode, int sectionId, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default)
+    {
+        var section = await SectionsOf(accCode).Include(s => s.Agreement)
+                          .FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+                      ?? throw new InvalidOperationException(Lingua($"Sezione {sectionId} non riguarda la ACC {accCode}.", $"Section {sectionId} does not belong to ACC {accCode}."));
+
+        var prima = new AgreementSectionPlacement(section.Id, section.AgreementId, section.Direction, section.Order);
+        var (arrivo, creato) = await AccordoDellaCoppiaAsync(accCode, senderSectorId, receiverSectorId, ct);
+        var verso = VersoDi(arrivo, senderSectorId);
+
+        var clausole = await Scope(section.Id).OrderBy(c => c.Order).ToListAsync(ct);
+        var posti = clausole.Select(c => new AgreementClausePlacement(c.Id, c.SectionId, c.Order, c.VariantGroup)).ToList();
+        var disfa = new AgreementMoveUndo(prima, posti, Array.Empty<int>(), creato ? arrivo.Id : null);
+
+        // Stessa coppia e stesso verso: non c'è niente da spostare. Stessa coppia e verso opposto: è «gira il
+        // verso», e si fa — è quel che è stato chiesto.
+        if (arrivo.Id == section.AgreementId)
+        {
+            if (verso == section.Direction) return new AgreementMoveResult(arrivo.Id, null, 0, false, disfa);
+            section.Direction = verso;
+            await _db.SaveChangesAsync(ct);
+            return new AgreementMoveResult(arrivo.Id, section.Id, 0, false, disfa);
+        }
+
+        // ⚠️ I gruppi di varianti sono progressivi PER ACCORDO: portati tali e quali si fonderebbero con quelli
+        // dell'accordo di arrivo che hanno lo stesso numero, e due tabelle diverse diventerebbero varianti l'una
+        // dell'altra senza un errore. Stessa rinumerazione di MergeSectionsAsync.
+        var prossimo = await ClausesOfAgreement(arrivo.Id).MaxAsync(c => (int?)c.VariantGroup, ct) ?? 0;
+        Rinumera(clausole, ref prossimo);
+
+        section.Order = (await _db.AgreementSections.Where(s => s.AgreementId == arrivo.Id)
+            .MaxAsync(s => (int?)s.Order, ct) ?? 0) + 1;
+        section.AgreementId = arrivo.Id;
+        section.Direction = verso;
+        await _db.SaveChangesAsync(ct);
+
+        return new AgreementMoveResult(arrivo.Id, section.Id, clausole.Count, creato, disfa);
+    }
+
+    public async Task<AgreementMoveResult> MoveClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int senderSectorId, int receiverSectorId, CancellationToken ct = default)
+    {
+        var scelte = await ClausesInAccAsync(accCode, clauseIds, ct);
+        var (arrivo, creato) = await AccordoDellaCoppiaAsync(accCode, senderSectorId, receiverSectorId, ct);
+        var verso = VersoDi(arrivo, senderSectorId);
+
+        var posti = new List<AgreementClausePlacement>();
+        var sezioniCreate = new List<int>();
+        int? sezioneDiArrivo = null;
+        var spostate = 0;
+        var prossimo = await ClausesOfAgreement(arrivo.Id).MaxAsync(c => (int?)c.VariantGroup, ct) ?? 0;
+
+        foreach (var daSezione in scelte.GroupBy(c => c.SectionId))
+        {
+            var origine = await _db.AgreementSections.Include(s => s.Airports).FirstAsync(s => s.Id == daSezione.Key, ct);
+            // Già al suo posto: la sezione sta nell'accordo di quella coppia, in quel verso.
+            if (origine.AgreementId == arrivo.Id && origine.Direction == verso) continue;
+
+            // ⚠️ Un gruppo di varianti si sposta INTERO: sono righe che dicono la stessa cosa a condizioni diverse,
+            // e portarne via una lascerebbe di qua un'alternativa senza le sue sorelle e di là una riga che non è
+            // più l'eccezione di nessuno.
+            var righe = await Scope(origine.Id).OrderBy(c => c.Order).ToListAsync(ct);
+            var gruppi = daSezione.Where(c => c.VariantGroup is not null).Select(c => c.VariantGroup).ToHashSet();
+            var singole = daSezione.Where(c => c.VariantGroup is null).Select(c => c.Id).ToHashSet();
+            var blocco = righe.Where(c => singole.Contains(c.Id) || (c.VariantGroup is not null && gruppi.Contains(c.VariantGroup))).ToList();
+            if (blocco.Count == 0) continue;
+
+            // La sezione di arrivo è quella che dice la STESSA cosa — stesso traffico, stessi scali — nell'accordo
+            // e nel verso nuovi. Se non c'è nasce, vuota di prosa: la descrizione era dell'altra tabella.
+            var chiave = AirportKey(origine.Airports.Select(a => a.Icao));
+            var candidate = await _db.AgreementSections.Include(s => s.Airports)
+                .Where(s => s.AgreementId == arrivo.Id && s.Kind == origine.Kind && s.Direction == verso)
+                .OrderBy(s => s.Order).ToListAsync(ct);
+            var destinazione = candidate.FirstOrDefault(s => AirportKey(s.Airports.Select(a => a.Icao)) == chiave);
+            if (destinazione is null)
+            {
+                destinazione = new AgreementSection
+                {
+                    AgreementId = arrivo.Id, Kind = origine.Kind, Direction = verso,
+                    Order = (await _db.AgreementSections.Where(s => s.AgreementId == arrivo.Id)
+                        .MaxAsync(s => (int?)s.Order, ct) ?? 0) + 1,
+                    Airports = origine.Airports.OrderBy(a => a.Order)
+                        .Select(a => new AgreementAirport { Icao = a.Icao, Name = a.Name, Order = a.Order }).ToList(),
+                };
+                _db.AgreementSections.Add(destinazione);
+                await _db.SaveChangesAsync(ct);
+                sezioniCreate.Add(destinazione.Id);
+            }
+
+            posti.AddRange(blocco.Select(c => new AgreementClausePlacement(c.Id, c.SectionId, c.Order, c.VariantGroup)));
+            Rinumera(blocco, ref prossimo);
+            var ordine = await Scope(destinazione.Id).MaxAsync(c => (int?)c.Order, ct) ?? 0;
+            foreach (var c in blocco)
+            {
+                c.SectionId = destinazione.Id;
+                c.Order = ++ordine;
+            }
+            sezioneDiArrivo ??= destinazione.Id;
+            spostate += blocco.Count;
+            // Si salva sezione per sezione: la prossima legge l'ordine e i gruppi che questa ha appena scritto.
+            await _db.SaveChangesAsync(ct);
+        }
+
+        return new AgreementMoveResult(arrivo.Id, sezioneDiArrivo, spostate, creato,
+            new AgreementMoveUndo(null, posti, sezioniCreate, creato ? arrivo.Id : null));
+    }
+
+    public async Task UndoMoveAsync(string accCode, AgreementMoveUndo undo, CancellationToken ct = default)
+    {
+        if (undo.Section is { } s
+            && await SectionsOf(accCode).FirstOrDefaultAsync(x => x.Id == s.SectionId, ct) is { } sezione)
+        {
+            sezione.AgreementId = s.AgreementId;
+            sezione.Direction = s.Direction;
+            sezione.Order = s.Order;
+        }
+
+        var ids = undo.Clauses.Select(p => p.ClauseId).ToList();
+        var clausole = (await ClausesInAccAsync(accCode, ids, ct)).ToDictionary(c => c.Id);
+        foreach (var p in undo.Clauses)
+            if (clausole.TryGetValue(p.ClauseId, out var c))
+            {
+                c.SectionId = p.SectionId;
+                c.Order = p.Order;
+                c.VariantGroup = p.VariantGroup;
+            }
+        await _db.SaveChangesAsync(ct);
+
+        // Quel che era nato per fare posto se ne va, ma SOLO se è rimasto vuoto: nel frattempo qualcuno può
+        // averci scritto, e annullare uno spostamento non autorizza a cancellare il lavoro di un altro.
+        foreach (var id in undo.CreatedSectionIds)
+            if (await _db.AgreementSections.FirstOrDefaultAsync(x => x.Id == id, ct) is { } nata
+                && !await _db.AgreementClauses.AnyAsync(c => c.SectionId == id, ct))
+                _db.AgreementSections.Remove(nata);
+        await _db.SaveChangesAsync(ct);
+
+        if (undo.CreatedAgreementId is int accordo
+            && await _db.CoordinationAgreements.FirstOrDefaultAsync(x => x.Id == accordo, ct) is { } nato
+            && !await _db.AgreementSections.AnyAsync(x => x.AgreementId == accordo, ct))
+        {
+            _db.CoordinationAgreements.Remove(nato);
+            await _db.SaveChangesAsync(ct);
+        }
+    }
+
+    /// <summary>
+    /// L'accordo della coppia «chi cede, chi riceve»: quello che c'è, o uno nuovo della ACC.
+    /// <para>⚠️ La coppia è unica in tutto l'archivio, non per ACC: se l'accordo esiste ma non riguarda questa ACC
+    /// (nessuno dei due enti è suo, e non ne è responsabile) non ci si scrive dentro da qui.</para>
+    /// </summary>
+    private async Task<(CoordinationAgreement Accordo, bool Creato)> AccordoDellaCoppiaAsync(string accCode,
+        int senderSectorId, int receiverSectorId, CancellationToken ct)
+    {
+        if (senderSectorId <= 0 || receiverSectorId <= 0)
+            throw new ValidationException(Lingua("Indica chi cede e chi riceve.", "Say who hands over and who receives."));
+        if (senderSectorId == receiverSectorId)
+            throw new ValidationException(Lingua("Chi cede e chi riceve non possono essere lo stesso ente.", "The sender and the receiver cannot be the same unit."));
+        if (await _db.Sectors.CountAsync(x => x.Id == senderSectorId || x.Id == receiverSectorId, ct) != 2)
+            throw new ValidationException(Lingua("Uno dei due enti non esiste più.", "One of the two units no longer exists."));
+
+        var (a, b) = Canonical(senderSectorId, receiverSectorId);
+        var esistente = await _db.CoordinationAgreements.FirstOrDefaultAsync(x => x.SideASectorId == a && x.SideBSectorId == b, ct);
+        if (esistente is not null)
+        {
+            if (!await AgreementsOf(accCode).AnyAsync(x => x.Id == esistente.Id, ct))
+                throw new ValidationException(Lingua(
+                    $"Fra questi due enti esiste già un accordo, ma non riguarda la ACC {accCode}.",
+                    $"These two units already have an agreement, but it does not belong to ACC {accCode}."));
+            return (esistente, false);
+        }
+
+        var accId = await AccIdAsync(accCode, ct);
+        var nuovo = new CoordinationAgreement
+        {
+            OwnerAccId = accId, SideASectorId = a, SideBSectorId = b,
+            Order = (await _db.CoordinationAgreements.Where(x => x.OwnerAccId == accId).MaxAsync(x => (int?)x.Order, ct) ?? 0) + 1,
+        };
+        _db.CoordinationAgreements.Add(nuovo);
+        await _db.SaveChangesAsync(ct);
+        return (nuovo, true);
+    }
+
+    /// <summary>Il verso in cui, in quell'accordo, cede quell'ente: i lati sono canonici, il verso no.</summary>
+    private static AgreementDirection VersoDi(CoordinationAgreement accordo, int senderSectorId) =>
+        accordo.SideASectorId == senderSectorId ? AgreementDirection.AtoB : AgreementDirection.BtoA;
+
+    /// <summary>Dà numeri nuovi ai gruppi di varianti delle clausole che cambiano accordo, uno per gruppo.</summary>
+    private static void Rinumera(IEnumerable<AgreementClause> clausole, ref int prossimo)
+    {
+        var mappa = new Dictionary<int, int>();
+        foreach (var c in clausole)
+            if (c.VariantGroup is int g)
+            {
+                if (!mappa.TryGetValue(g, out var nuovo)) mappa[g] = nuovo = ++prossimo;
+                c.VariantGroup = nuovo;
+            }
+    }
+
     // ---- attrezzi dell'outline ----------------------------------------------------------------------
 
     /// <summary>Le clausole di una <b>sezione</b>: è lo scopo dentro cui l'ordine ha significato.</summary>

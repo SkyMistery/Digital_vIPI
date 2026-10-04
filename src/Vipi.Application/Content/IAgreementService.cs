@@ -66,6 +66,18 @@ public interface IAgreementService
     Task MoveClauseAsync(string accCode, int clauseId, bool up, CancellationToken ct = default);
     Task MoveClauseToAsync(string accCode, int clauseId, int targetClauseId, CancellationToken ct = default);
 
+    /// <summary>Porta una sezione nell'accordo della coppia «chi cede → chi riceve» (nasce se non c'è).</summary>
+    Task<AgreementMoveResult> MoveSectionAsync(string accCode, int sectionId, int senderSectorId, int receiverSectorId,
+        CancellationToken ct = default);
+
+    /// <summary>Porta delle clausole, coi loro gruppi di varianti interi, nella sezione gemella dell'accordo della
+    /// coppia «chi cede → chi riceve». Accordo e sezione nascono se non ci sono.</summary>
+    Task<AgreementMoveResult> MoveClausesAsync(string accCode, IReadOnlyList<int> clauseIds, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default);
+
+    /// <summary>Disfa uno spostamento fra accordi, rimettendo i posti di prima.</summary>
+    Task UndoMoveAsync(string accCode, AgreementMoveUndo undo, CancellationToken ct = default);
+
     Task<int> AddAlternativeAsync(string accCode, int clauseId, CancellationToken ct = default);
     Task<int> AddExceptionAsync(string accCode, int clauseId, CancellationToken ct = default);
     Task<int> DuplicateVariantGroupAsync(string accCode, int clauseId, CancellationToken ct = default);

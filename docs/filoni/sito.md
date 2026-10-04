@@ -2046,7 +2046,18 @@
     due configurazioni escono giuste; con ES5 chiuso e WS5 aperto il punto a FL350 lo cede WS5 e quello «as
     coordinated» lo cede ES2 (senza quota la riga con la fascia non si valuta). 🔴 Per strada: Struttura dà 500 se
     un import non è mai riuscito (`SogliaTimbro`, data 0001-01-01) — segnalato a parte, non corretto qui.
-  - ▶ Restano i passi 4 (sposta sezione/clausole fra accordi + avviso «quota fuori banda») e 5 (sezione condivisa).
+  - ✅ **Passo 4 — spostare fra accordi.** Nei Trasferimenti: ⇢ sulla testata di una sezione la sposta intera,
+    «⇢ Sposta…» nella barra delle clausole scelte sposta quelle. Si indica «chi cede → chi riceve» (i campi partono
+    da quelli di adesso) e il lavoro va nell'accordo di quella coppia, che nasce se non c'è; le clausole entrano
+    nella sezione gemella (stesso traffico, stessi scali). Il verso si ricalcola sui lati canonici dell'accordo di
+    arrivo, i gruppi di varianti prendono numeri nuovi e si spostano interi, l'annulla rimette i POSTI di prima
+    (`AgreementMoveUndo`) e toglie quel che era nato solo se è rimasto vuoto. **Codice comune**
+    `Vipi.Application` (`AgreementMove.cs`, porte) e `Vipi.Infrastructure` (`EfAgreementRepository`). Niente
+    migrazione. Guida `#accordi` (IT/EN). Infra 2084 → 2102 (12 suoi, più 6 dei presidi che provano OGNI scrittura
+    degli accordi contro ruolo e lock: le tre nuove ci sono entrate da sole, verdi), Ui 1969 → 1974. A schermo su database inventato:
+    clausola a FL350 da ES2 ⇄ LIPP a ES5 ⇄ LIPP (accordo creato) e annulla; sezione intera verso WS5 e annulla.
+  - ▶ Restano 4b (avviso «quota fuori dalla banda del settore scritto», col tasto per spostare) e 5 (sezione
+    condivisa fra più accordi, migrazione additiva).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
