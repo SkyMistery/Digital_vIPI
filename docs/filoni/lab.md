@@ -73,7 +73,9 @@ startup (R4: dopo la prova in Aurora). **Slice 13** (settori e spazi, dal 4 otto
 testa dei `.tfl` con l'opacità e il filtro facoltativi (le 52 teste a quattro campi di `GCI.tfl` si leggevano come
 vertici: un poligono solo al posto di 53), le posizioni separate anche dai due punti in «chi lo usa» e nella rinomina;
 **13b** — `SettoreSenzaPosizione` (D4): le 4 posizioni italiane dei settori che nessun `.frq` conosce, sulla testa e
-nella scheda. Test: motore **790**, Lab **800**; albero 235 errori, 982 avvisi. Il dettaglio di ogni passo sta in §6
+nella scheda; **13c** — limiti verticali e classe coi valori chiusi (`SFC`, `GND`, `1500ft`, `FL195`, `UNL`; classe
+A-G). Test: motore **790**, Lab **814**; albero 235 errori, 982 avvisi. Restano R-4, J5, K1 e i limiti sulla mappa,
+che aspettano sei risposte del committente (cartellino). Il dettaglio di ogni passo sta in §6
 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 

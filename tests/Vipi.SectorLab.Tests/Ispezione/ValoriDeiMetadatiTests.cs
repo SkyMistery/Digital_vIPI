@@ -54,6 +54,42 @@ public sealed class ValoriDeiMetadatiTests
     public void LaSalitaInizialeEInPiediOFlOCooApp(string scritto, string atteso)
         => Assert.Equal((true, atteso, null), Normalizza("initialclimb", scritto));
 
+    // Slice 13c (D9, J7, Q8; §M regola 8): i limiti verticali «come nel PDF, in piedi» — SFC, GND, 1500ft, FL195, UNL.
+    [Theory]
+    [InlineData("lower", "sfc", "SFC")]
+    [InlineData("lower", "gnd", "GND")]
+    [InlineData("lower", "1500", "1500ft")]
+    [InlineData("lower", "1500 FT", "1500ft")]
+    [InlineData("upper", "fl 195", "FL195")]
+    [InlineData("upper", "FL095", "FL95")]
+    [InlineData("upper", "unl", "UNL")]
+    [InlineData("upper", "2000ft", "2000ft")]
+    public void ILimitiVerticaliSiScrivonoComeNelPdf(string chiave, string scritto, string atteso)
+        => Assert.Equal((true, atteso, null), Normalizza(chiave, scritto));
+
+    [Theory]
+    [InlineData("lower", "basso")]
+    [InlineData("upper", "FL700")]
+    [InlineData("upper", "600m")]
+    [InlineData("lower", "UNL")]
+    [InlineData("upper", "SFC")]
+    public void UnLimiteCheNonEUnaQuotaSiRifiutaColPerche(string chiave, string scritto)
+    {
+        var (ok, _, perche) = Normalizza(chiave, scritto);
+
+        Assert.False(ok);
+        Assert.Contains("SFC", perche, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LaClasseDelloSpazioAereoEUnaSceltaDaAaG()
+    {
+        Assert.Equal(EditorDelMetadato.Scelta, ValoriDeiMetadati.EditorDi("class", siNo: false));
+        Assert.Equal((true, "D", null), Normalizza("class", "d"));
+        Assert.False(Normalizza("class", "H").Ok);
+        Assert.Equal(["A", "B", "C", "D", "E", "F", "G"], ValoriDeiMetadati.Scelte["class"]);
+    }
+
     [Theory]
     [InlineData("seimila")]
     [InlineData("FL700")]

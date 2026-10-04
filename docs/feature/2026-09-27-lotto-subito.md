@@ -1603,3 +1603,16 @@ named differently».
   `lirrctr.tfl:1` `LIRE_APP`. Validatore sull'albero: 235/978 → **235 errori, 982 avvisi**. Round-trip 718/718, tutto
   toccato 0. Test: motore 788 → **790**, Lab 799 → **800**. A schermo (banco): in alto «235 errori · 982 avvisi»;
   `twrs.tfl` → `LIBC_TWR`: la nota sotto il campo.
+
+- **13c (4 ottobre)** — limiti verticali e classe nella scheda (D9, J7, Q8; la mappa aspetta la risposta del
+  committente). Solo il Lab: nessun codice comune toccato. Le chiavi `lower`, `upper`, `class` erano già nel catalogo
+  e nella scheda di settori dinamici, confini e mappe ATZ/CTR del `MAPS` (slice 1 e 3d), ma come testo libero: sul
+  fork i tag sono zero, quindi la forma si decide adesso.
+  - **`lower`/`upper`** secondo §M regola 8 («come nel PDF, in piedi»): `SFC` e `GND` solo per l'inferiore, `UNL` solo
+    per il superiore, piedi (`1500` → `1500ft`) o FL (`fl 195` → `FL195`). Il resto si rifiuta col perché. Vale anche
+    per i tratti di aerovie e rotte VFR, che usano le stesse chiavi.
+  - **`class`**: una scelta chiusa, A-G.
+  - 🟡 Da chiedere: l'AIP scrive i limiti di ATZ e CTR anche come «2000 FT **AGL**» / «**AMSL**»; §M non lo prevede e
+    oggi si rifiuta. Non si controlla ancora che l'inferiore stia sotto il superiore.
+  Test: Lab 800 → **814**. A schermo (banco): `liap.str` → `LIAP ATZ`: `upper` 2000, `lower` sfc, classe D dal menu →
+  `//@"LIAP ATZ" lower=SFC upper=2000ft class=D`; `lower` = `unl` rifiutato («il limite inferiore non può essere UNL»).

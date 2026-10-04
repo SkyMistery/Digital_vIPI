@@ -59,6 +59,8 @@ public static partial class ValoriDeiMetadati
         ["kind"] = ["contact", "remote"],
         ["pushdir"] = Rosa,
         ["oneway"] = Rosa,
+        // Slice 13c (D9, J7, Q8, G5): la classe dello spazio aereo di settori, confini, ATZ/CTR del MAPS e aree.
+        ["class"] = ["A", "B", "C", "D", "E", "F", "G"],
     };
 
     /// <summary>L'editor di una chiave (senza il numero di pista davanti).</summary>
@@ -118,6 +120,9 @@ public static partial class ValoriDeiMetadati
 
             case "spd":
                 return Velocita(scritto, out scritto, out perche);
+
+            case "lower" or "upper":
+                return Limite(chiave, scritto, out scritto, out perche);
 
             case "use":
                 return Usi(scritto, out scritto, out perche);
@@ -179,6 +184,34 @@ public static partial class ValoriDeiMetadati
 
         scritto = null;
         perche = $"«{testo}» non è una quota: si scrive in piedi (6000, 6000ft) o in FL (FL80), oppure si spunta {CooApp}.";
+        return false;
+    }
+
+    /// <summary>
+    /// Un limite verticale (slice 13c; §M regola 8, «come nel PDF, in piedi»): <c>SFC</c> e <c>GND</c> per quello
+    /// inferiore, <c>UNL</c> per quello superiore, e per tutti e due piedi (<c>1500ft</c>) o FL (<c>FL195</c>). Vale per
+    /// settori, confini, ATZ/CTR del MAPS, aree P/R/D e per i tratti di aerovie e rotte VFR.
+    /// </summary>
+    private static bool Limite(string chiave, string testo, out string? scritto, out string? perche)
+    {
+        string t = testo.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
+        bool inferiore = chiave == "lower";
+        if (t is "SFC" or "GND" or "UNL")
+        {
+            scritto = (t == "UNL") == inferiore ? null : t;
+            perche = scritto is null
+                ? $"«{testo}»: {(inferiore ? "il limite inferiore non può essere UNL — SFC, GND, piedi (1500ft) o FL (FL195)" : "il limite superiore non può essere SFC o GND — UNL, piedi (1500ft) o FL (FL195)")}."
+                : null;
+            return scritto is not null;
+        }
+
+        if (Salita(t, out scritto, out _))
+        {
+            perche = null;
+            return true;
+        }
+
+        perche = $"«{testo}» non è un limite: si scrive come nell'AIP, {(inferiore ? "SFC, GND" : "UNL")}, in piedi (1500ft) o in FL (FL195). (Per SFC e GND: solo il limite inferiore.)";
         return false;
     }
 
