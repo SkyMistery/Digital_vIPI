@@ -1,6 +1,8 @@
 # Tabellone partenze/arrivi: l'endpoint dei dati — carta (2 ottobre 2026)
 
-> **Stato: 🔨 IN CORSO** sul ramo `fix/tabellone` (filone Sito, S96). Nessuna migrazione, nessun `deploy/`.
+> **Stato: ⏸ IN PAUSA dal 4 ottobre 2026** (il committente ha un lavoro più urgente; qui si torna). Codice fatto sul
+> ramo `fix/tabellone` @ `42fbf451`, CI verde (run 37026833358), **non fuso**. Manca solo la prova col booking vero:
+> vedi §7. Filone Sito, S96. Nessuna migrazione, nessun `deploy/`.
 > **Codice comune toccato**: `Vipi.Application` (cartella `Tabellone/`, e `SourcePilotFix` con il campo facoltativo
 > `Plan`).
 > Richiesta del committente (2 ottobre 2026): l'endpoint che alimenta il tabellone a palette partenze/arrivi. Il formato
@@ -172,3 +174,18 @@ giro minimo è 15 s, e statistiche e scadenze si adattano già.
 - Da fare dal vivo, quando il committente inserisce la chiave del booking: i nomi dei campi di città e IATA del booking
   (il formato li dà «da verificare»: oggi si provano `origin_city`/`origin_iata`/`destination_city`/`destination_iata`
   e simili, poi l'anagrafica), il `board` vero del documento `prova-ponte-rfo` (fermo al 2 ottobre).
+
+## 7. Per riprendere
+
+1. **Chiave del booking** (la inserisce il committente, mai in chat né nel repo): in locale
+   `dotnet user-secrets set Tabellone:BookingApiKey "<chiave>" --project src/Vipi.Host`.
+2. Prova dal vivo come in §6 (sito locale su database vuoto, Whazzup vero) e guardare nella risposta del booking i
+   **nomi veri dei campi di città e IATA**: se non sono fra i candidati di `BookingParser`, aggiungerli lì e nella
+   risposta salvata `Fixtures/tabellone/booking-lirf.json`.
+3. Il `board` vero di `prova-ponte-rfo` sta solo in produzione: serve una copia del documento, o si guarda dopo il
+   caricamento.
+4. Decisioni che aspettano il committente: Whazzup a 60 s (§5); le scelte del filone in §3.4 (GATE CHANGE solo su
+   uno stand prenotato), §3.5 (il «−30'» solo per chi è online; DEPARTED che resta dopo la disconnessione) e §3.6
+   (quando `evento` è attivo).
+5. Poi: `git merge main` nel ramo, suite, voce S96 a ✅, e si passa al Master da fondere. In produzione: sezione
+   `Tabellone` nel file dei segreti (§4). La pagina del tabellone (grafica a palette) è un lavoro a parte.
