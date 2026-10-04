@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»); della slice 12 i passi 12a, 12b e 12c (4 ottobre). Dopo la 9, decisione del committente (29 settembre): **consegna
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»); e la slice 12 (12a-12d, 4 ottobre; restano i punti di startup, R4, dopo la prova in Aurora). Dopo la 9, decisione del committente (29 settembre): **consegna
 agli AOD** per una prima prova, uno zip con l'eseguibile e il sector. Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
@@ -1499,6 +1499,38 @@ e **filtro** (6°: COAST, RUNWAY, GATES, PIER, TAXIWAY, APRON, BUILDING), che il
   Test: Lab 787 → **793**, motore **770**. A schermo (banco, fork pulito): LIRF coi generi tutti accesi; spenti assi,
   stand ed etichette spariscono solo quelli; `rf_ad_gnd.pol` record 3 «4° di 73 — sopra: TAXIWAY 10, CONCRETE 2, APRON 2,
   HOLE 3, BUILDING 49, RUNWAY 3».
-- **Resta della slice 12**: **12d** vista per scalo e per pista con i controlli delle marcature (I6, O1, O3) — aspetta
-  le risposte del committente su dove sta la vista per scalo e su cosa segnalare delle marcature; il controllo
-  dell'ordine di disegno (I3) aspetta la sua scelta; i punti di startup (R4) la prova in Aurora.
+- **Decisioni del committente (4 ottobre)**: (1) l'ordine di disegno è **quello del fork**, e la carta si corregge
+  («file per file» I3: fatto); (2) delle marcature si segnala la pista che il `.rw` non ha — a LIBR la 05/23 c'è ma è
+  chiusa, per questo è stata tolta dal `.rw` — e non le frecce della soglia spostata; le strisce per larghezza quando
+  la larghezza sarà fra i metadati delle piste; (3) la vista per scalo in una «finestra a parte», e sulla UI si
+  ragiona una seconda volta.
+- **12d (4 ottobre)** — ordine di disegno, marcature, vista per scalo e per pista (I3, I6, O1, O3). Codice comune
+  toccato: `Shared/OrdineDeiRiempimenti.cs` (l'ordine deciso), in `ControlloDellaTerra` due regole nuove (avvisi) e
+  `PisteCitate` (i versi nominati da un commento, dopo «rw», «rwy» o «runway»).
+  - **Misura** (`scratchpad/misura12d.py`): con l'ordine erba → taxiway → cemento → piazzale → edifici → pista, il posto
+    di `HOLE` che dà meno poligoni fuori posto è **fra piazzali ed edifici** (49 in 14 file; in ogni altro posto 109 o
+    più; con l'ordine della carta del 25 settembre 595): sul fork un buco segue un altro buco 55 volte, un piazzale 8,
+    e precede un edificio 7. Scelta dell'agente dalla misura, dentro la decisione del committente.
+  - **`OrdineDiDisegno`**: un riempimento scritto dopo uno che gli sta sopra, sulla testa del poligono, con chi lo
+    precede e la sua riga. **`MarcaturaDiUnaPistaAssente`**: un commento di un `.geo` che nomina una pista che il `.rw`
+    dello scalo non ha (lo scalo di `br_mark.geo` si riconosce da dove sta; «rw 11» con 11L e 11R nel `.rw` va bene).
+  - **Vista per scalo** (I6), linguetta **Scali** accanto a Sfoglia e Problemi: scelto lo scalo (i 134 degli `.ap`),
+    le sezioni **Scalo**, **Piste**, **Posizioni** (i record, anche le copie delle FIR), **File dello scalo** (quelli
+    col suo nome), **Disegni e riempimenti** (il suo `.geo`, e i `.pol` e i `.geo` senza il suo nome che stanno entro
+    10 km dal suo centro), e le **Marcature per pista** (O1) con le parti dai commenti — nei file di `RW_MARKINGS`
+    una parte che non nomina una pista è della pista nominata prima; nel `.geo` dello scalo contano solo i commenti
+    che nominano una pista e una parte. Un record si sceglie (scheda e mappa); un file si apre in Sfoglia. La vista
+    non sposta niente: il Lab scrive nei file dove le cose stanno già, con qualunque organizzazione (I7).
+  Uscita sul fork: **49** riempimenti fuori ordine in 14 file, **18** marcature di piste che il `.rw` non ha (LIBR
+  05/23 ×6, LIRP 04/22 ×4 contro 03/21, LILN 18/36 ×4 contro 17/35, LIDE 12/30 contro 11/29, `eo_mark` 18 contro
+  23/05, `mw_mark` 28 contro 27/09, `mz_mark` 27 contro 21/03). Validatore sull'albero: 235/911 → **235 errori, 978
+  avvisi**. Round-trip 718/718, tutto toccato 0. Test: motore 770 → **779**, Lab 793 → **798**. A schermo (banco, fork
+  pulito): Scali → LIRF (2 righe di `.ap`, 6 piste, 22 posizioni, 5 file, `lirf.geo` e `rf_ad_gnd.pol`, marcature di
+  16L, 16R, 34L, 34R dal `.geo`); LIBR (marcature di 05, 13, 23, 31 da `br_mark.geo`); clic su «designator rw 05» →
+  il record scelto, lo «0» evidenziato sulla mappa, la colonna resta su Scali.
+
+**Slice 12 chiusa**, salvo i punti di startup (R4), che aspettano la prova in Aurora. Voci del giro dei file chiuse:
+H1-H2 (H3 dalla slice 6), I1, I3, I4, I6, O1, O3 (le strisce quando ci sarà la larghezza), R1 (il controllo), R2, R2b,
+R3, R6. Validatore sull'albero: 235/866 → **235 errori, 978 avvisi**. Test: motore 747 → **779**, Lab 781 → **798**.
+🔴 Proposte dell'agente ancora da confermare: codice → tipo dello stand e niente filtri `t_` (12b); «la taxiway dello
+stand» (12b); le soglie dei 10 km e dei 100 m (12a). Da provare a mano: prove 151-168 in `SectorLab-prova\PROVE.md`.

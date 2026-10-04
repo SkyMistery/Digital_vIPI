@@ -18,7 +18,7 @@ namespace Vipi.Sectorfile.Validazione;
 /// sconosciuto. Colori dei <c>.pol</c>: tutti in <c>colors.def</c>. Ogni <c>.pol</c> ha il <c>.geo</c> del suo scalo.
 /// Soglie scelte dall'agente dalla misura.
 /// </remarks>
-public static class ControlloDellaTerra
+public static partial class ControlloDellaTerra
 {
     private const double MetriDalloScalo = 10_000;
     private const double MetriDallaTaxiway = 100;
@@ -38,7 +38,9 @@ public static class ControlloDellaTerra
     public static IEnumerable<ProblemaDelSector> Di(IReadOnlyList<(string Relativo, IReadOnlyList<object> Record)> file,
                                                     IEnumerable<AirportInfo> scali, IReadOnlySet<string> coloriDefiniti,
                                                     Func<string, int, string> testoDellaRiga,
-                                                    Func<object, IReadOnlyDictionary<string, string>?>? chiaviDi = null)
+                                                    Func<object, IReadOnlyDictionary<string, string>?>? chiaviDi = null,
+                                                    IEnumerable<Runway>? piste = null,
+                                                    Func<string, IReadOnlyList<string>>? righeDi = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(scali);
@@ -54,6 +56,16 @@ public static class ControlloDellaTerra
         var disegni = file.Where(f => Estensione(f.Relativo) == "geo")
             .GroupBy(f => Path.GetFileNameWithoutExtension(f.Relativo), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().Record, StringComparer.OrdinalIgnoreCase);
+
+        // I versi di pista di ogni scalo, per le marcature (slice 12d, O3).
+        var versi = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pista in piste ?? [])
+        {
+            if (!versi.TryGetValue(pista.IcaoCode.Trim(), out var suoi))
+                versi[pista.IcaoCode.Trim()] = suoi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            suoi.Add(pista.Designator1.Trim());
+            suoi.Add(pista.Designator2.Trim());
+        }
 
         var etichette = file.Where(f => Estensione(f.Relativo) == "txi")
             .GroupBy(f => Path.GetFileNameWithoutExtension(f.Relativo), StringComparer.OrdinalIgnoreCase)
@@ -142,6 +154,27 @@ public static class ControlloDellaTerra
                         }
                     }
 
+                    // Slice 12d (O3): i commenti delle marcature che nominano una pista che il .rw dello scalo non ha
+                    // (rinumerata, o chiusa e tolta dal .rw come la 05/23 di LIBR).
+                    if (estensione == "geo" && righeDi is not null && ScaloDelDisegno(delFile, record, arp) is { } scaloDelGeo
+                        && versi.TryGetValue(scaloDelGeo, out var suoiVersi))
+                    {
+                        var righe = righeDi(relativo);
+                        for (int i = 0; i < righe.Count; i++)
+                        {
+                            string riga = righe[i].TrimStart();
+                            if (!riga.StartsWith("//", StringComparison.Ordinal))
+                                continue;
+                            var assenti = PisteCitate(riga).Where(v => !Ha(suoiVersi, v)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                            if (assenti.Count > 0)
+                            {
+                                yield return new(Regola.MarcaturaDiUnaPistaAssente, relativo, i + 1, righe[i],
+                                    $"il commento nomina la pista {string.Join(" e ", assenti)}, e il .rw dà a {scaloDelGeo.ToUpperInvariant()} " +
+                                    $"{string.Join(", ", suoiVersi.Where(v => v.Length > 0).Order(StringComparer.Ordinal))}: pista rinumerata, o chiusa e tolta dal .rw");
+                            }
+                        }
+                    }
+
                     break;
 
                 case "pol":
@@ -156,6 +189,29 @@ public static class ControlloDellaTerra
                             int riga = poligono.Source.LineNumber;
                             yield return new(Regola.TipoSconosciuto, relativo, riga, testoDellaRiga(relativo, riga),
                                 $"colore «{string.Join("», «", ignoti.Select(c => c.Length == 0 ? "vuoto" : c))}»: non è un nome di colors.def né un colore");
+                        }
+                    }
+
+                    // Slice 12d (I3): l'ordine di disegno. Un riempimento scritto dopo uno che gli sta sopra lo copre.
+                    int piuAlto = -1;
+                    string? chiE = null;
+                    int doveE = 0;
+                    foreach (var poligono in poligoni)
+                    {
+                        if (OrdineDeiRiempimenti.Posto(poligono.FillColor) is not { } posto)
+                            continue;
+                        if (posto < piuAlto)
+                        {
+                            int riga = poligono.Source.LineNumber;
+                            yield return new(Regola.OrdineDiDisegno, relativo, riga, testoDellaRiga(relativo, riga),
+                                $"{poligono.FillColor.Trim().ToUpperInvariant()} scritto dopo {chiE} (riga {doveE}): in Aurora vince l'ultimo del file, " +
+                                $"e questo copre quello — l'ordine è {OrdineDeiRiempimenti.InParole}");
+                        }
+                        else
+                        {
+                            piuAlto = posto;
+                            chiE = poligono.FillColor.Trim().ToUpperInvariant();
+                            doveE = poligono.Source.LineNumber;
                         }
                     }
 
@@ -200,6 +256,39 @@ public static class ControlloDellaTerra
                 $"{cosa} «{nome.Trim()}» è a {Tondo(metri / 1000)} km dal centro di {delFile}")
             : null;
     }
+
+    // Lo scalo di un .geo: quello del suo nome (`lirf.geo`), o il più vicino al suo primo punto (`br_mark.geo`).
+    private static string? ScaloDelDisegno(string delFile, IReadOnlyList<object> record, Dictionary<string, Coordinate> arp)
+    {
+        if (arp.ContainsKey(delFile))
+            return delFile;
+        if (record.OfType<Line>().FirstOrDefault() is not { } prima || arp.Count == 0)
+            return null;
+        var (scalo, metri) = arp.Select(a => (a.Key, Metri: Validatore.Metri(a.Value, prima.Start))).MinBy(a => a.Metri);
+        return metri <= MetriDalloScalo ? scalo : null;
+    }
+
+    /// <summary>
+    /// I versi di pista nominati da un commento di marcature: <c>//designator rw 05</c>, <c>//Runway 04R designator</c>,
+    /// <c>//rwy 18/36</c>. Solo dopo «rw», «rwy» o «runway»: un <c>//2</c> o un <c>//Taxiway 12</c> non sono piste.
+    /// </summary>
+    public static IEnumerable<string> PisteCitate(string commento)
+    {
+        ArgumentNullException.ThrowIfNull(commento);
+        foreach (System.Text.RegularExpressions.Match m in PistaNelCommento().Matches(commento))
+        {
+            yield return m.Groups[1].Value.ToUpperInvariant();
+            if (m.Groups[2].Success)
+                yield return m.Groups[2].Value.ToUpperInvariant();
+        }
+    }
+
+    // «rw 11» a uno scalo con 11L e 11R nomina tutte e due: non è una pista che manca.
+    private static bool Ha(HashSet<string> versi, string citato)
+        => versi.Contains(citato) || (char.IsAsciiDigit(citato[^1]) && versi.Any(v => v.Length == 3 && v.StartsWith(citato, StringComparison.OrdinalIgnoreCase)));
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\b(?:rw|rwy|runway)\s*(\d\d[LRC]?)\b(?:\s*[-/]\s*(\d\d[LRC]?)\b)?", System.Text.RegularExpressions.RegexOptions.IgnoreCase)]
+    private static partial System.Text.RegularExpressions.Regex PistaNelCommento();
 
     // Nome, tipo e slot di uno stand contro il manuale ([GATES], «Slots for Gates»).
     private static IEnumerable<string> FuoriDalManuale(Stand stand)

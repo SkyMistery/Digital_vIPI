@@ -958,6 +958,16 @@ body.lab-trascina * {
 }
 
 /* Lotto «Subito» slice 8: la stessa forma in altri record — le copie uguali, e in giallo quelle diverse. */
+/* Slice 12d: la vista per scalo — il menu degli scali largo come la colonna, la voce scelta in evidenza. */
+.lab-scali > select {
+    width: 100%;
+    margin-bottom: .4rem;
+}
+
+.lab-voce-scelta {
+    font-weight: 700;
+}
+
 /* Slice 12c: i generi di uno strato acceso, rientrati sotto la sua casella. */
 .lab-generi {
     margin: 0 0 .25rem 1.1rem;

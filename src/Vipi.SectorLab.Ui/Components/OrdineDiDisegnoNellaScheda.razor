@@ -10,7 +10,8 @@
     <Sezione Chiave="scheda-ordine" data-ordine-di-disegno="@($"{posto.Posto}/{posto.Quanti}")">
     <Titolo>Ordine di disegno <span class="lab-nota">@posto.Posto° di @posto.Quanti</span></Titolo>
     <ChildContent>
-    <p class="lab-nota">In Aurora vince l'ultimo del file: questo riempimento copre i @(posto.Posto - 1) scritti prima di lui.</p>
+    <p class="lab-nota">In Aurora vince l'ultimo del file: questo riempimento copre i @(posto.Posto - 1) scritti prima di lui.
+        L'ordine è @Vipi.Sectorfile.Shared.OrdineDeiRiempimenti.InParole.</p>
     @if (posto.Sopra.Count == 0)
     {
         <p class="lab-nota" data-sopra="0">Sopra di lui non si disegna niente: è l'ultimo.</p>

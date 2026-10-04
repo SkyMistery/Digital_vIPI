@@ -2,15 +2,19 @@
 @inject SessioneDelLab Lab
 
 @*
-    Sfoglia o Problemi, con le loro linguette (slice 5 e 10). Sta nella finestra principale o, coi due schermi, in quella
-    dei pannelli: lo stesso componente, così le due non si separano. Si iscrive da sé a Cambiata (vedi Mappa.razor).
+    Sfoglia, Scali o Problemi, con le loro linguette (slice 5, 10 e 12d). Sta nella finestra principale o, coi due schermi,
+    in quella dei pannelli: lo stesso componente, così le due non si separano. Si iscrive da sé a Cambiata (vedi Mappa.razor).
 *@
 <aside class="lab-colonna lab-colonna-sfoglia">
     <nav class="lab-linguette" role="tablist">
-        <button role="tab" aria-selected="@(!_problemi)" class="@(!_problemi ? "lab-linguetta-scelta" : null)"
-                @onclick="() => _problemi = false" data-linguetta="sfoglia">Sfoglia</button>
-        <button role="tab" aria-selected="@_problemi" class="@(_problemi ? "lab-linguetta-scelta" : null)"
-                @onclick="() => _problemi = true" data-linguetta="problemi">
+        <button role="tab" aria-selected="@(_linguetta == Linguetta.Sfoglia)" class="@(_linguetta == Linguetta.Sfoglia ? "lab-linguetta-scelta" : null)"
+                @onclick="() => _linguetta = Linguetta.Sfoglia" data-linguetta="sfoglia">Sfoglia</button>
+        @* Slice 12d (I6): la vista per scalo, in una linguetta sua. *@
+        <button role="tab" aria-selected="@(_linguetta == Linguetta.Scali)" class="@(_linguetta == Linguetta.Scali ? "lab-linguetta-scelta" : null)"
+                @onclick="() => _linguetta = Linguetta.Scali" data-linguetta="scali"
+                title="Tutto quello che riguarda uno scalo, da qualunque file">Scali</button>
+        <button role="tab" aria-selected="@(_linguetta == Linguetta.Problemi)" class="@(_linguetta == Linguetta.Problemi ? "lab-linguetta-scelta" : null)"
+                @onclick="() => _linguetta = Linguetta.Problemi" data-linguetta="problemi">
             Problemi
             @if (Lab.StaValidando)
             {
@@ -26,9 +30,13 @@
             }
         </button>
     </nav>
-    @if (_problemi)
+    @if (_linguetta == Linguetta.Problemi)
     {
         <PannelloDeiProblemi />
+    }
+    else if (_linguetta == Linguetta.Scali)
+    {
+        <ScaliVista OnApriUnFile="_ => _linguetta = Linguetta.Sfoglia" />
     }
     else
     {
@@ -37,8 +45,15 @@
 </aside>
 
 @code {
-    /// <summary>La colonna mostra i problemi invece di Sfoglia (slice 10).</summary>
-    private bool _problemi;
+    private enum Linguetta
+    {
+        Sfoglia,
+        Scali,
+        Problemi,
+    }
+
+    /// <summary>Che cosa mostra la colonna: l'albero (slice 5), la vista per scalo (12d) o i problemi (10).</summary>
+    private Linguetta _linguetta;
 
     private int Errori => Lab.ProblemiDellAlbero.Count(p => p.Gravita == Gravita.Errore);
 

@@ -288,6 +288,19 @@ public enum Regola
     /// vicina, entro 300 m): l'aereo che ci sta non ci arriva (slice 12b, R6).
     /// </summary>
     StandPiuGrandeDellaTaxiway,
+
+    /// <summary>
+    /// Un riempimento di un <c>.pol</c> scritto dopo uno che gli sta sopra (<see cref="Shared.OrdineDeiRiempimenti"/>): in
+    /// Aurora vince l'ultimo del file, e lo copre (slice 12d, I3; l'ordine è quello del fork, committente 4 ottobre 2026).
+    /// </summary>
+    OrdineDiDisegno,
+
+    /// <summary>
+    /// Un commento di marcature che nomina una pista che il <c>.rw</c> dello scalo non ha: rinumerata (<c>lirp.geo</c>
+    /// 04/22, il <c>.rw</c> ha 03/21), o chiusa e tolta dal <c>.rw</c> (la 05/23 di LIBR: committente, 4 ottobre 2026).
+    /// Slice 12d, O3.
+    /// </summary>
+    MarcaturaDiUnaPistaAssente,
 }
 
 public enum Gravita
@@ -325,7 +338,7 @@ public static class Regole
             or Regola.ChiaveFuoriSezione
             or Regola.ScaloDiversoDalFile or Regola.LontanoDalloScalo or Regola.StandRipetuto
             or Regola.EtichettaLontanaDallaTaxiway or Regola.TipoSconosciuto or Regola.RiempimentoSenzaDisegno
-            or Regola.StandPiuGrandeDellaTaxiway => Validazione.Gravita.Avviso,
+            or Regola.StandPiuGrandeDellaTaxiway or Regola.OrdineDiDisegno or Regola.MarcaturaDiUnaPistaAssente => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

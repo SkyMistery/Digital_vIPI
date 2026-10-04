@@ -301,6 +301,9 @@ public sealed class SessioneDelLab
         VersioneDeiSpenti++;
         UltimoSalvataggio = null;
         _perse.Clear();
+        ScaloScelto = null;
+        _scali = null;
+        _vista = null;
         ScordaIProblemi();
         Avvisa();
     }
@@ -1904,6 +1907,52 @@ public sealed class SessioneDelLab
 
     public int VersioneDeiSpenti { get; private set; }
 
+    // --- la vista per scalo (lotto «Subito» slice 12d, I6, O1) -----------------------------------------------------
+
+    /// <summary>Lo scalo scelto nella vista per scalo, o null.</summary>
+    public string? ScaloScelto { get; private set; }
+
+    /// <summary>Gli scali fra cui scegliere: quelli degli <c>.ap</c> dell'albero.</summary>
+    public IReadOnlyList<ScaloDellaVista> ScaliDellaVista()
+    {
+        if (Sessione is null)
+            return [];
+        if (_scali is null || !ReferenceEquals(_scaliDi, Strati) || _scaliAlla != _versioneDeiFile)
+            (_scali, _scaliDi, _scaliAlla) = (VistaPerScalo.Scali(Sessione), Strati, _versioneDeiFile);
+        return _scali;
+    }
+
+    /// <summary>Sceglie lo scalo della vista (null: nessuno).</summary>
+    public void ScegliLoScalo(string? icao)
+    {
+        ScaloScelto = string.IsNullOrWhiteSpace(icao) ? null : icao.Trim().ToUpperInvariant();
+        Registro.Scrivi("scalo", ScaloScelto ?? "nessuno");
+        Avvisa();
+    }
+
+    /// <summary>
+    /// Tutto quello che riguarda lo scalo scelto, da qualunque file, in sezioni. Si tiene finché i file non cambiano:
+    /// le marcature per pista rileggono le righe dei <c>.geo</c>, e la pagina si ridisegna a ogni scelta.
+    /// </summary>
+    public IReadOnlyList<SezioneDelloScalo> VistaDelloScalo()
+    {
+        if (Sessione is null || ScaloScelto is null)
+            return [];
+        if (_vista is null || _vistaDi != (ScaloScelto, _versioneDeiFile) || !ReferenceEquals(_vistaCon, Strati))
+            (_vista, _vistaDi, _vistaCon) = (VistaPerScalo.Di(Sessione, ScaloScelto), (ScaloScelto, _versioneDeiFile), Strati);
+        return _vista;
+    }
+
+    private IReadOnlyList<ScaloDellaVista>? _scali;
+    private object? _scaliDi;
+    private int _scaliAlla;
+    private IReadOnlyList<SezioneDelloScalo>? _vista;
+    private (string Scalo, int Versione) _vistaDi;
+    private object? _vistaCon;
+
+    /// <summary>Cresce a ogni file rifatto (<see cref="RifaiLaGeometria"/>): chi tiene qualcosa calcolato dai file lo butta.</summary>
+    private int _versioneDeiFile;
+
     // --- i generi di uno strato (lotto «Subito» slice 12c, H1) -----------------------------------------------------
 
     /// <summary>
@@ -2673,6 +2722,7 @@ public sealed class SessioneDelLab
 
         var tipo = StratiDellaMappa.DiFile(fileRelativo);
         _etichette.Remove(fileRelativo);
+        _versioneDeiFile++;
         _elenchi = null;
         foreach (var chiave in _stime.Keys.Where(k => k.File == fileRelativo).ToList())
             _stime.Remove(chiave);

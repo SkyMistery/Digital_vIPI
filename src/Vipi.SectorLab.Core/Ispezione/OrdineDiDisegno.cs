@@ -16,9 +16,9 @@ public sealed record PostoNelDisegno(int Posto, int Quanti, IReadOnlyList<(strin
 /// riempimento (<c>ModificheInSospeso.AggiungiRecord</c>).
 /// </summary>
 /// <remarks>
-/// Quale sia l'ordine «giusto» fra i riempimenti non è deciso: la carta dice erba → cemento → piazzale → taxiway → pista
-/// → edifici → buchi, il fork fa per lo più erba → taxiway → cemento → piazzale → edifici → pista (misura della slice
-/// 12). Qui non si giudica: si mostra l'ordine che il file ha.
+/// L'ordine giusto fra i riempimenti è quello del fork (committente, 4 ottobre 2026): erba → taxiway → cemento →
+/// piazzale → buchi → edifici → pista (<c>Vipi.Sectorfile.Shared.OrdineDeiRiempimenti</c>). Chi è fuori posto lo dice
+/// il validatore (<c>Regola.OrdineDiDisegno</c>, slice 12d); qui si mostra l'ordine che il file ha.
 /// </remarks>
 public static class OrdineDiDisegno
 {

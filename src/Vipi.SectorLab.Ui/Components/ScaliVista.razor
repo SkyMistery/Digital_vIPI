@@ -1,0 +1,78 @@
+@inject SessioneDelLab Lab
+
+@*
+    La vista per scalo (lotto «Subito» slice 12d, «file per file» I6, O1): scelto uno scalo, tutto quello che lo riguarda
+    da qualunque file — la sua riga dell'.ap, le piste, le posizioni, i file col suo nome, disegni e riempimenti, e le
+    marcature per pista. Una voce che è un record lo sceglie (scheda e mappa); una che è un file lo apre in Sfoglia.
+    Sta in una linguetta sua (committente, 4 ottobre 2026: «la finestra a parte, poi sulla UI ragioneremo»).
+*@
+<div class="lab-scali" data-scalo="@Lab.ScaloScelto">
+    <select class="lab-campo" value="@Lab.ScaloScelto" @onchange="e => Lab.ScegliLoScalo(e.Value?.ToString())" data-campo="scalo"
+            title="Lo scalo di cui vedere tutto, da qualunque file">
+        <option value="">— scegli uno scalo</option>
+        @foreach (var scalo in Lab.ScaliDellaVista())
+        {
+            <option value="@scalo.Icao">@scalo.Icao · @scalo.Nome</option>
+        }
+    </select>
+
+    @if (Lab.ScaloScelto is null)
+    {
+        <p class="lab-nota">Scegli uno scalo: qui compare tutto quello che lo riguarda — la riga dell'.ap, le piste, le
+            posizioni, i suoi file, i disegni di terra e le marcature per pista.</p>
+    }
+    else if (Lab.VistaDelloScalo() is { Count: > 0 } sezioni)
+    {
+        @foreach (var sezione in sezioni)
+        {
+            <Sezione Chiave="@Chiave(sezione)" data-sezione-scalo="@sezione.Id">
+            <Titolo>@sezione.Nome <span class="lab-nota">@sezione.Voci.Count</span></Titolo>
+            <ChildContent>
+            <div class="lab-stessa-forma">
+            <ul>
+                @foreach (var voce in sezione.Voci)
+                {
+                    var questa = voce;
+                    <li>
+                        <button type="button" class="lab-citazione @(Scelta(questa) ? "lab-voce-scelta" : null)"
+                                data-voce-scalo="@Indirizzo(questa)" @onclick="() => Apri(questa)"
+                                title="@(questa.Record is null ? "Apre il file in Sfoglia" : "Sceglie il record: scheda e mappa")">
+                            @questa.Titolo <span class="lab-nota">@questa.Nota</span>
+                        </button>
+                    </li>
+                }
+            </ul>
+            </div>
+            </ChildContent>
+            </Sezione>
+        }
+    }
+    else
+    {
+        <p class="lab-nota" data-scalo-vuoto>Di @Lab.ScaloScelto in questo albero non c'è niente.</p>
+    }
+</div>
+
+@code {
+    /// <summary>Si è aperto un file: la colonna passa a Sfoglia, dove stanno i suoi record.</summary>
+    [Parameter] public EventCallback<string> OnApriUnFile { get; set; }
+
+    // Una chiave per genere di sezione: «Marcature · pista 16L» chiusa a LIRF resta chiusa per le altre marcature.
+    private static string Chiave(SezioneDelloScalo sezione) => "scalo-" + sezione.Id.Split(':')[0];
+
+    private static string Indirizzo(VoceDelloScalo voce) => voce.Record is { } record ? voce.File + "#" + record : voce.File;
+
+    private bool Scelta(VoceDelloScalo voce) => voce.Record is { } record && Lab.Scelta == (voce.File, record);
+
+    private async Task Apri(VoceDelloScalo voce)
+    {
+        if (voce.Record is { } record)
+        {
+            Lab.Scegli(voce.File, record);
+            return;
+        }
+
+        Lab.ApriIlFileCitato(voce.File);
+        await OnApriUnFile.InvokeAsync(voce.File);
+    }
+}
