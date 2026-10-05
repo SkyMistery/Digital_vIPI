@@ -88,6 +88,9 @@
         @* Slice 8: la stessa forma in altri record (D5, I2): il confine del settore, l'ATZ del MAPS, il bordo e l'erba. *@
         <StessaFormaNellaScheda File="@scheda.File" Record="scheda.Indice" />
 
+        @* Slice 13e (J5): dove va il confine di un settore dinamico, e quale voce è. *@
+        <ConfineNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
         @* Slice 8e (F2): il gemello del punto .vfi nel file dei fix nascosti, e viceversa. *@
         <GemelloNellaScheda File="@scheda.File" Record="scheda.Indice" />
 

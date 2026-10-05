@@ -42,6 +42,9 @@ public static class Geometria
         var vincoli = record.Count > 0 && record[0] is SidProcedure or StrRecord
             ? conRecord.PuntiConTagDelFile()
             : new Dictionary<int, IReadOnlyList<PuntoConTag>>();
+        // Slice 13g (D9, J7, Q8): limiti verticali e classe di settori, confini e ATZ/CTR del MAPS, nello stesso
+        // suggerimento, sopra i vincoli dei punti.
+        var chiavi = conRecord.CatalogoDeiTag?.AmmetteDelRecord("lower") == true ? conRecord.ChiaviDeiRecord() : null;
         for (int i = 0; i < record.Count; i++)
         {
             if (Forma(file.Relativo, i, record[i], catalogo) is { } forma)
@@ -49,11 +52,27 @@ public static class Geometria
                 // Slice 12c (H1): riempimenti, etichette e stand sono generi dello strato della terra.
                 if (GeneriDellaMappa.DelRecord(record[i]) is { } genere)
                     forma = forma with { Genere = genere };
-                forme.Add(vincoli.TryGetValue(i, out var punti) ? forma with { Vincoli = Vincoli(punti) } : forma);
+                string?[] righe = [chiavi is not null && i < chiavi.Count ? LimitiEClasse(chiavi[i]) : null,
+                                   vincoli.TryGetValue(i, out var punti) ? Vincoli(punti) : null];
+                forme.Add(righe.Any(r => r is not null) ? forma with { Vincoli = string.Join("\n", righe.Where(r => r is not null)) } : forma);
             }
         }
 
         return forme;
+    }
+
+    /// <summary>
+    /// I limiti verticali e la classe di uno spazio in una riga (<c>SFC – 2000ft · classe D</c>); un limite che manca
+    /// accanto all'altro si vede (<c>?</c>). Null se il record non ne ha.
+    /// </summary>
+    internal static string? LimitiEClasse(IReadOnlyDictionary<string, string>? chiavi)
+    {
+        if (chiavi is null)
+            return null;
+        string? Valore(string chiave) => chiavi.TryGetValue(chiave, out string? scritto) && Metadati.Testo(scritto).Trim() is { Length: > 0 } testo ? testo : null;
+        string? sotto = Valore("lower"), sopra = Valore("upper"), classe = Valore("class");
+        string?[] pezzi = [sotto is null && sopra is null ? null : $"{sotto ?? "?"} – {sopra ?? "?"}", classe is null ? null : $"classe {classe}"];
+        return pezzi.Any(p => p is not null) ? string.Join(" · ", pezzi.Where(p => p is not null)) : null;
     }
 
     /// <summary>I vincoli dei punti in una riga per punto: <c>BIBEK role=IAF alt=+FL80</c>.</summary>

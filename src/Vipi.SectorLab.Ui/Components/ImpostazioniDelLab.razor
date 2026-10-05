@@ -1,0 +1,43 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Le impostazioni dell'app (lotto «Subito» slice 13f): quello che è una scelta degli AOD e può cambiare, e che quindi
+    non sta nel codice. Si ricordano nei dati del Lab, fuori dal sector. La prima: come si scrive il nome di una
+    configurazione nei confini (K1; committente, 5 ottobre 2026).
+*@
+<details class="lab-impostazioni" data-impostazioni>
+    <summary class="lab-tasto lab-tasto-tenue" title="Le scelte degli AOD che il Lab ricorda: non stanno nel sector">Impostazioni</summary>
+    <div class="lab-impostazioni-riquadro">
+        <label>
+            Nomi delle configurazioni
+            <input class="lab-campo" value="@Lab.ModelloDelleConfigurazioni" data-impostazione="configurazioni"
+                   placeholder="@NomiDelleConfigurazioni.DiBase" @onchange="Cambia" />
+        </label>
+        <p class="lab-nota">
+            Il modello dei nomi delle configurazioni in HI_AIRSPACE e LOW_AIRSPACE: <code>{ACC}</code> è la sigla (RR, MM),
+            <code>{N}</code> il numero. Con «@Lab.ModelloDelleConfigurazioni»: <strong data-esempio>@Esempio()</strong>.
+            Una voce scritta in un altro modo è un avviso nel pannello dei problemi. Vuoto = «@NomiDelleConfigurazioni.DiBase».
+        </p>
+        @if (_rifiuto is not null)
+        {
+            <p class="lab-avviso-breve" data-impostazione-rifiutata>@_rifiuto</p>
+        }
+    </div>
+</details>
+
+@code {
+    private string? _rifiuto;
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private void Cambia(ChangeEventArgs e)
+        => _rifiuto = Lab.CambiaIlModelloDelleConfigurazioni(e.Value?.ToString()) ? null : Lab.Rifiuto;
+
+    private string Esempio()
+        => NomiDelleConfigurazioni.Scrivi(new NomeDiConfigurazione("RR", "CONF", "2.1", ""), Lab.ModelloDelleConfigurazioni);
+}

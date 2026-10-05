@@ -307,6 +307,27 @@ public enum Regola
     /// trasferimenti: il settore non si accende mai (slice 13b, D4: <c>LIBC_TWR</c>, <c>LIRE_APP</c>… 4 sul fork).
     /// </summary>
     SettoreSenzaPosizione,
+
+    /// <summary>
+    /// Lo stesso settore dinamico due volte nello stesso file: stesse posizioni e stessa forma (<c>LIBB_FSS</c> in
+    /// <c>libb_es_ctr.tfl</c>). La stessa testa con forme diverse è voluta — la FIC e i suoi laghi, i pezzi di un
+    /// confine — e non si segnala (slice 13d, R-4; committente, 5 ottobre 2026).
+    /// </summary>
+    SettoreRipetuto,
+
+    /// <summary>
+    /// Una voce di <c>.hartcc</c>/<c>.lartcc</c> con la forma di un settore dinamico dell'altro tipo: un avvicinamento
+    /// (<c>_APP</c>) in <c>HI_AIRSPACE</c>, o un settore di aerovia (<c>_CTR</c>, <c>_FSS</c>) in <c>LOW_AIRSPACE</c>
+    /// (slice 13e, J5). La calcola il Lab, sulle forme della mappa.
+    /// </summary>
+    ConfineNelFileSbagliato,
+
+    /// <summary>
+    /// Una configurazione in un <c>.hartcc</c>/<c>.lartcc</c> col nome scritto in un'altra forma (<c>RR CNF1</c>,
+    /// <c>MM CONF 1</c> contro <c>RR CONF1</c>: slice 13f, K1). La forma giusta è un'impostazione del Lab, che calcola
+    /// la regola (committente, 5 ottobre 2026).
+    /// </summary>
+    NomeDellaConfigurazione,
 }
 
 public enum Gravita
@@ -345,7 +366,8 @@ public static class Regole
             or Regola.ScaloDiversoDalFile or Regola.LontanoDalloScalo or Regola.StandRipetuto
             or Regola.EtichettaLontanaDallaTaxiway or Regola.TipoSconosciuto or Regola.RiempimentoSenzaDisegno
             or Regola.StandPiuGrandeDellaTaxiway or Regola.OrdineDiDisegno or Regola.MarcaturaDiUnaPistaAssente
-            or Regola.SettoreSenzaPosizione => Validazione.Gravita.Avviso,
+            or Regola.SettoreSenzaPosizione or Regola.SettoreRipetuto
+            or Regola.ConfineNelFileSbagliato or Regola.NomeDellaConfigurazione => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

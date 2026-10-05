@@ -38,6 +38,28 @@ public static class ControlloDeiSettori
 
         foreach (var (relativo, record) in settori)
         {
+            // Slice 13d (R-4): lo stesso settore due volte nel file — stesse posizioni E stessa forma. Sul fork la stessa
+            // testa torna in tre file, e solo LIBB_FSS in libb_es_ctr.tfl è una copia: i cinque LIMM_FSS di limmfic.tfl
+            // sono la FIC e i quattro laghi, i tre LIMMLIM di limmctr.tfl i pezzi di un confine.
+            var visti = new Dictionary<string, List<(int Riga, string[] Anello)>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var settore in record.OfType<TflSector>())
+            {
+                string testa = settore.Statico ? "STATIC" : string.Join(' ', settore.Posizioni().Order(StringComparer.OrdinalIgnoreCase));
+                string[] anello = Anello(settore);
+                int suaRiga = settore.Source.LineNumber;
+                if (!visti.TryGetValue(testa, out var prima))
+                    visti[testa] = prima = [];
+                if (anello.Length >= 3 && prima.FirstOrDefault(p => StessoAnello(p.Anello, anello)) is { Riga: > 0 } copia)
+                {
+                    yield return new(Regola.SettoreRipetuto, relativo, suaRiga, testoDellaRiga(relativo, suaRiga),
+                        $"«{settore.SectorCode.Trim()}» c'è già alla riga {copia.Riga} con la stessa forma ({anello.Length} vertici): è una copia");
+                }
+                else
+                {
+                    prima.Add((suaRiga, anello));
+                }
+            }
+
             foreach (var settore in record.OfType<TflSector>())
             {
                 foreach (string posizione in settore.Posizioni().Distinct(StringComparer.OrdinalIgnoreCase))
@@ -56,6 +78,48 @@ public static class ControlloDeiSettori
                 }
             }
         }
+    }
+
+    // I vertici come chiavi (al decimo di metro, o il nome), senza le ripetizioni di seguito e senza quello che chiude.
+    private static string[] Anello(TflSector settore)
+    {
+        var chiavi = new List<string>(settore.Vertices.Count);
+        foreach (var vertice in settore.Vertices)
+        {
+            string chiave = vertice.Posizione is { } c
+                ? FormattableString.Invariant($"{c.LatitudeDeg:F6};{c.LongitudeDeg:F6}")
+                : (vertice.Nome + ";" + vertice.NomeLongitudine).ToUpperInvariant();
+            if (chiavi.Count == 0 || chiavi[^1] != chiave)
+                chiavi.Add(chiave);
+        }
+
+        if (chiavi.Count > 1 && chiavi[0] == chiavi[^1])
+            chiavi.RemoveAt(chiavi.Count - 1);
+        return [.. chiavi];
+    }
+
+    // Lo stesso anello: stessi vertici nello stesso giro, da qualunque vertice e in qualunque verso (come D5).
+    private static bool StessoAnello(string[] a, string[] b)
+    {
+        if (a.Length != b.Length)
+            return false;
+        int n = a.Length;
+        for (int inizio = 0; inizio < n; inizio++)
+        {
+            if (b[inizio] != a[0])
+                continue;
+            bool avanti = true, indietro = true;
+            for (int k = 0; k < n && (avanti || indietro); k++)
+            {
+                avanti &= b[(inizio + k) % n] == a[k];
+                indietro &= b[((inizio - k) % n + n) % n] == a[k];
+            }
+
+            if (avanti || indietro)
+                return true;
+        }
+
+        return false;
     }
 
     // Come nei trasferimenti dei .frq (ControlloDellePosizioni): una posizione dei nostri scali, col suo tipo.

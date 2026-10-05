@@ -447,7 +447,7 @@ si caricano da soli se lo scalo è in `[AIRPORTS]`** → da verificare nelle pro
 | J2 | Tipo fisso T/L, punti coi suggerimenti, etichetta col font facoltativo | Subito — comune | ✅ deciso |
 | J3 | **Famiglie con `DYNAMIC_SEC`** (D5): settore colorato e confine restano uguali | Subito + F4 (adozione) | ✅ deciso · **fatto** (lotto, slice 8a-8c) |
 | J4 | Controlli: commento in coda (avviso). Nome in più blocchi **non** è un errore (pezzi dello stesso settore) | Subito | ✅ deciso |
-| J5 | **Il file giusto per un settore nuovo**: `…_CTR` → `HI_AIRSPACE`, `…_APP` → `LOW_AIRSPACE`; avviso se un settore sta nell'altro | Subito | ✅ deciso |
+| J5 | **Il file giusto per un settore nuovo**: `…_CTR` → `HI_AIRSPACE`, `…_APP` → `LOW_AIRSPACE`; avviso se un settore sta nell'altro | Subito | ✅ deciso · i nomi delle voci non sono posizioni: la voce si lega al **settore dinamico della stessa forma** (committente, 5 ottobre) · **fatto** (lotto, slice 13e) |
 | J6 | **Configurazioni composte**: `//@"RR CONF2" compose="RR NE","RR TS"` (§M) — la forma della configurazione si calcola dall'unione dei settori (come le mappe composte di F3-bis); le regole di Roma (EW mai diviso, SU solo con ES) diventano controlli. 🔴 L'unione ha bisogno di confini che coincidono (saldatura bordi) | F8 | ✅ deciso (dipende dalla saldatura) |
 | J7 | **Limiti verticali e classe** dei settori (come D9); le configurazioni composte li ricavano dalle parti | Subito (tag e scheda) | ✅ deciso (revisione 27 settembre) |
 
@@ -472,7 +472,7 @@ Stesso formato di §10. Qui i **settori di avvicinamento** (`…_APP`).
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
 | — | J1-J6 di §10 valgono anche qui (vista, campi, famiglie con `DYNAMIC_SEC`, controlli, file giusto per `_APP`, configurazioni composte) | come in §10 | ✅ deciso |
-| K1 | **Nomi coerenti delle configurazioni** (`CONF`/`CNF`, spazi): il Lab segnala le differenze e propone una forma | Subito (controllo) + F4 (rinomina) | ✅ deciso |
+| K1 | **Nomi coerenti delle configurazioni** (`CONF`/`CNF`, spazi): il Lab segnala le differenze e propone una forma | Subito (controllo) + F4 (rinomina) | ✅ deciso · **la forma è un'impostazione dell'app**, non del codice (committente, 5 ottobre: un modello `{ACC} CONF{N}` che l'AOD cambia dal Lab) · **fatto** (lotto, slice 13f) |
 | K2 | **Un file per ACC anche per gli APP** (`limm.lartcc` coi settori di Milano) invece di un file per settore: **proposta E di organizzazione**, da provare insieme ad A-D (I7) | F4, da provare | 🟡 da provare |
 | K3 | Togliere `limc_star.lartcc` e `lirf_star.lartcc` (file, righe degli `.isc`, `delete.upd` — C4) | F4 (o a mano, quando l'AOD lo fa) | ✅ deciso in AOD |
 | K4 | Configurazioni nascoste di `limm_tma` (276 righe): restano commentate; nel Lab visibili come «nascoste» (B3) | — | ✅ per ora così |

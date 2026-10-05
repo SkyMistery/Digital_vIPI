@@ -56,6 +56,29 @@ public sealed class ControlloDeiSettoriTests : IDisposable
         Assert.Equal("LIBC_TWR;TWR;1;TWR;1;", problemi[0].Testo);
     }
 
+    // Slice 13d (R-4; committente, 5 ottobre: solo la copia vera). La stessa testa due volte nello stesso file è un
+    // avviso quando ha anche la stessa forma (LIBB_FSS in libb_es_ctr.tfl); la FIC coi suoi laghi e i pezzi di un
+    // confine hanno la stessa testa e forme diverse, e sono voluti.
+    [Fact]
+    public void LaStessaTestaConLaStessaFormaEUnaCopia_ConFormeDiverseNo()
+    {
+        const string altra = "N043.00.00.000;E012.00.00.000;\r\nN044.00.00.000;E012.00.00.000;\r\nN044.00.00.000;E013.00.00.000;";
+        // La copia parte da un altro vertice e gira al contrario: è lo stesso anello.
+        const string rovescia = "N042.00.00.000;E013.00.00.000;\r\nN042.00.00.000;E012.00.00.000;\r\nN041.00.00.000;E012.00.00.000;";
+        Scrivi(@"Include\IT\DYNAMIC_SEC\fic.tfl", Righe(
+            "LIRF_TWR;CTR;1;CTR;1;", Vertici, "",
+            "LIRF_TWR;LIMMFIC;1;LIMMFIC;0;", altra, "",
+            "lirf_twr;#2f2f2f;1;#646464;1;", rovescia, "",
+            "LIRF_TWR LIBC_GND;CTR;1;CTR;1;", Vertici));
+
+        var p = Assert.Single(Di(Regola.SettoreRipetuto));
+
+        Assert.EndsWith("fic.tfl", p.File, StringComparison.Ordinal);
+        Assert.Equal(11, p.Riga);
+        Assert.Equal(Gravita.Avviso, p.Gravita);
+        Assert.Contains("riga 1", p.Dettaglio, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void LAvvisoDiceLePosizioniDelloStessoScaloCheCiSono()
     {

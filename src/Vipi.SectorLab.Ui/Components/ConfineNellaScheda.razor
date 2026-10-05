@@ -1,0 +1,64 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Il confine di un settore dinamico (lotto «Subito» slice 13e, «file per file» J5): un settore di aerovia (…_CTR, …_FSS)
+    ha il confine in HI_AIRSPACE, uno di avvicinamento (…_APP) in LOW_AIRSPACE. La voce non porta il nome della
+    posizione: è quella con la stessa forma. Qui si vede dov'è, se è al suo posto, e dove andrebbe se non c'è.
+*@
+@if (Lab.PostoDelConfineDi(File, Record) is { } posto)
+{
+    <Sezione Chiave="scheda-confine" data-confine-in="@posto.Cartella">
+    <Titolo>Il confine <span class="lab-nota">@posto.Cartella</span></Titolo>
+    <ChildContent>
+    <p class="lab-nota">Per il tipo delle posizioni: @posto.Perche.</p>
+    @if (posto.Confini.Count == 0)
+    {
+        <p class="lab-nota" data-senza-confine>Nessuna voce di .hartcc o .lartcc ha questa forma: un confine nuovo va in @posto.Cartella.</p>
+    }
+    else
+    {
+        <ul class="lab-stessa-forma">
+            @foreach (var confine in posto.Confini)
+            {
+                var questo = confine;
+                <li>
+                    <button type="button" class="lab-citazione @Classe(questo)" data-confine="@Chiave(questo)" data-al-suo-posto="@SiNo(questo.AlSuoPosto)"
+                            @onclick="() => Lab.Scegli(questo.File, questo.Record)">
+                        @NomeDelFile(questo.File) <span class="lab-nota">@questo.Etichetta</span>
+                        <span class="lab-nota">@Come(questo)</span>
+                        @if (!questo.AlSuoPosto)
+                        {
+                            <span class="lab-avviso-breve">nel file sbagliato: va in @posto.Cartella</span>
+                        }
+                    </button>
+                </li>
+            }
+        </ul>
+    }
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    // Parametri primitivi: la sezione si iscrive da sé ai cambi del Lab (lezione della slice 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private static string? Classe(ConfineDelSettore confine) => confine.AlSuoPosto ? null : "lab-forma-diversa";
+
+    private static string Chiave(ConfineDelSettore confine) => $"{confine.File}#{confine.Record}";
+
+    private static string SiNo(bool vero) => vero ? "si" : "no";
+
+    private static string Come(ConfineDelSettore confine) => confine.Uguale ? "stessa forma" : "forma simile";
+
+    private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
+}

@@ -378,6 +378,26 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
         pagina.WaitForAssertion(() => Assert.Equal(["ELKA3A", "HLD-ELVAD"], pagina.FindAll("[data-legame]").Select(b => b.GetAttribute("data-legame"))));
     }
 
+    // Slice 13g: scritti dalla scheda, limiti e classe arrivano alla forma della mappa (il passaggio del mouse) senza
+    // riaprire niente; tolti, spariscono. Visto a schermo sul banco: il tag c'era e il suggerimento no.
+    [Fact]
+    public async Task ILimitiScrittiDallaSchedaArrivanoAllaMappa()
+    {
+        const string settori = "SectorFiles/Include/IT/DYNAMIC_SEC/prova13g.tfl";
+        _albero.Scrivi(settori, "LZZZ_NE_CTR;CTR;1;CTR;1;\r\nN041.00.00.000;E012.00.00.000;\r\nN042.00.00.000;E012.00.00.000;\r\nN042.00.00.000;E013.00.00.000;\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        _lab.Scegli(settori, 0);
+        Assert.Null(_lab.FormaScelta()?.Vincoli);
+
+        Assert.True(_lab.CambiaIlMetadato(settori, 0, "lower", "fl195"));
+        Assert.True(_lab.CambiaIlMetadato(settori, 0, "class", "c"));
+        Assert.Equal("FL195 – ? · classe C", _lab.FormaScelta()?.Vincoli);
+
+        Assert.True(_lab.CambiaIlMetadato(settori, 0, "lower", null));
+        Assert.True(_lab.CambiaIlMetadato(settori, 0, "class", null));
+        Assert.Null(_lab.FormaScelta()?.Vincoli);
+    }
+
     [Fact]
     public async Task UnaMappaDelMapsNonHaVincoliDeiPunti()
     {

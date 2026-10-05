@@ -515,6 +515,7 @@ public sealed class SessioneDelLab
         int giro = ++_giroDellaValidazione;
         // Le famiglie di forme (slice 8b) le calcola il Lab sulle forme della mappa, coi nomi già risolti.
         var strati = Strati;
+        string modelloDelleConfigurazioni = ModelloDelleConfigurazioni;
         StaValidando = true;
         ErroreDellaValidazione = null;
         Avvisa();
@@ -528,7 +529,11 @@ public sealed class SessioneDelLab
                 var forme = FormeUguali.Di(strati);
                 problemi = [.. ProblemiDelLab.DellAlbero(sessione),
                     .. ProblemiDelLab.Aggancia(sessione, Core.Copie.FamiglieDichiarate.Problemi(Core.Copie.FamiglieDichiarate.Di(sessione, forme), sessione)),
-                    .. ProblemiDelLab.Aggancia(sessione, UsciteDellaForma.Problemi(sessione, strati, forme))];
+                    .. ProblemiDelLab.Aggancia(sessione, UsciteDellaForma.Problemi(sessione, strati, forme)),
+                    // Slice 13e (J5): un confine con la forma di un settore dell'altro tipo.
+                    .. ProblemiDelLab.Aggancia(sessione, PostoDelConfine.Problemi(sessione, forme)),
+                    // Slice 13f (K1): i nomi delle configurazioni, col modello scelto nelle impostazioni.
+                    .. ProblemiDelLab.Aggancia(sessione, NomiDelleConfigurazioni.Problemi(sessione, modelloDelleConfigurazioni))];
                 Registro.Scrivi("validazione", $"{problemi.Count} problemi ({problemi.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore)} errori) in {orologio.ElapsedMilliseconds} ms");
             }
             catch (Exception e)
@@ -1083,6 +1088,9 @@ public sealed class SessioneDelLab
         var esito = Modifiche.CambiaIlMetadato(file, record, chiave, valore, EtichettaDi(fileRelativo, record));
         Registro.Scrivi("modifica", $"{fileRelativo}#{record} tag {chiave} = «{valore}»: {Descrivi(esito)}");
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        // Slice 13g: limiti e classe viaggiano con la forma della mappa (il passaggio del mouse), come i vincoli dei punti.
+        if (esito is ModificaDelMetadato && chiave is "lower" or "upper" or "class")
+            RifaiLaGeometria(fileRelativo);
         RicontrollaLeModifiche();
         Avvisa();
         return esito is ModificaDelMetadato;
@@ -1593,6 +1601,19 @@ public sealed class SessioneDelLab
         if (_formeUguali is not { } fatto || !ReferenceEquals(fatto.Strati, Strati))
             _formeUguali = fatto = (Strati, FormeUguali.Di(Strati));
         return fatto.Indice.Di(fileRelativo, record);
+    }
+
+    /// <summary>
+    /// Dove va il confine di un settore dinamico (slice 13e, J5: aerovia → <c>HI_AIRSPACE</c>, avvicinamento →
+    /// <c>LOW_AIRSPACE</c>) e i confini che hanno la sua forma; null se il record non è un settore di quei tipi.
+    /// </summary>
+    public PostoDelSettore? PostoDelConfineDi(string fileRelativo, int record)
+    {
+        if (Sessione is null)
+            return null;
+        if (_formeUguali is not { } fatto || !ReferenceEquals(fatto.Strati, Strati))
+            _formeUguali = fatto = (Strati, FormeUguali.Di(Strati));
+        return PostoDelConfine.Di(Sessione, fatto.Indice, fileRelativo, record);
     }
 
     // Le famiglie dichiarate (slice 8b) si rileggono quando cambiano gli strati o un metadato: leggere i tag di tutti i
@@ -2887,6 +2908,69 @@ public sealed class SessioneDelLab
             ColoriMancanti = $"Lo schema «{SchemaScelto}» non si legge: {e.Message}";
             Registro.Errore("colori", e);
         }
+    }
+
+    // ── Impostazioni dell'app (slice 13f) ────────────────────────────────────────────────────────────────────
+
+    private string FileDelleConfigurazioni => Path.Combine(_cartellaDeiDati, "nomi-delle-configurazioni.txt");
+
+    private string? _modelloDelleConfigurazioni;
+
+    /// <summary>
+    /// Come si scrive il nome di una configurazione nei confini (K1): un modello con <c>{ACC}</c> e <c>{N}</c>, scelto
+    /// dall'AOD nelle impostazioni e ricordato fra un avvio e l'altro — non sta nel codice (committente, 5 ottobre 2026).
+    /// </summary>
+    public string ModelloDelleConfigurazioni => _modelloDelleConfigurazioni ??= ModelloRicordato();
+
+    private string ModelloRicordato()
+    {
+        try
+        {
+            return File.Exists(FileDelleConfigurazioni)
+                ? NomiDelleConfigurazioni.Pulito(File.ReadAllText(FileDelleConfigurazioni))
+                : NomiDelleConfigurazioni.DiBase;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return NomiDelleConfigurazioni.DiBase;
+        }
+    }
+
+    /// <summary>
+    /// Cambia il modello dei nomi delle configurazioni: lo ricorda e rifà i problemi dell'albero. Falso, col perché in
+    /// <see cref="Rifiuto"/>, se il modello non ha sigla, parola e numero. Vuoto = quello di base.
+    /// </summary>
+    public bool CambiaIlModelloDelleConfigurazioni(string? modello)
+    {
+        string scritto = string.IsNullOrWhiteSpace(modello) ? NomiDelleConfigurazioni.DiBase : modello.Trim();
+        if (NomiDelleConfigurazioni.PercheNonVa(scritto) is { } perche)
+        {
+            Rifiuto = perche;
+            Registro.Scrivi("impostazioni", $"nomi delle configurazioni = «{modello}»: rifiutato, {perche}");
+            Avvisa();
+            return false;
+        }
+
+        Rifiuto = null;
+        string pulito = NomiDelleConfigurazioni.Pulito(scritto);
+        if (pulito == ModelloDelleConfigurazioni)
+            return true;
+        _modelloDelleConfigurazioni = pulito;
+        try
+        {
+            Directory.CreateDirectory(_cartellaDeiDati);
+            File.WriteAllText(FileDelleConfigurazioni, pulito);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Vale per questa sessione anche se il disco non lo ricorda; il registro lo dice.
+            Registro.Errore("impostazioni", e);
+        }
+
+        Registro.Scrivi("impostazioni", $"nomi delle configurazioni = «{pulito}»");
+        _ = ValidaLAlberoAsync();
+        Avvisa();
+        return true;
     }
 
     /// <summary>Lo schema scelto nell'avvio di prima: vale finché questo clone lo ha.</summary>

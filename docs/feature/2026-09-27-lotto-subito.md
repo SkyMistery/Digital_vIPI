@@ -1616,3 +1616,50 @@ named differently».
     oggi si rifiuta. Non si controlla ancora che l'inferiore stia sotto il superiore.
   Test: Lab 800 → **814**. A schermo (banco): `liap.str` → `LIAP ATZ`: `upper` 2000, `lower` sfc, classe D dal menu →
   `//@"LIAP ATZ" lower=SFC upper=2000ft class=D`; `lower` = `unl` rifiutato («il limite inferiore non può essere UNL»).
+
+**Decisioni del committente del 5 ottobre** (sulle domande nate dalla misura): la testa ripetuta è un avviso **solo
+per la copia vera** (stessa forma), non per i laghi di una FIC né per i pezzi di un confine; il file giusto di un
+confine si decide **legando la voce al settore dinamico della stessa forma**, e per un settore nuovo si propone la
+cartella dal tipo della posizione; la forma dei nomi delle configurazioni **è un'impostazione dell'app** («la farei
+impostabile dall'app, così se cambia non devo ricorrere al codice»); limiti e classe sulla mappa **al passaggio del
+mouse**, come i vincoli dei punti. Ancora aperte: i due punti fra le posizioni, il verso opposto di D4, avviso o
+errore per `SettoreSenzaPosizione`, AGL/AMSL nei limiti.
+
+- **13d (5 ottobre)** — la copia di un settore (R-4). Codice comune toccato: `Regola.SettoreRipetuto`, in
+  `ControlloDeiSettori`. Stesse posizioni (in qualunque ordine e scrittura) e **stessa forma** come anello, nello
+  stesso file. Sul fork **2**: `libb_es_ctr.tfl:254` (`LIBB_FSS`, già alla riga 147, 47 vertici) e — non era nella
+  misura, che non leggeva le teste a quattro campi — `GCI.tfl:9707`, un'isola della laguna veneta scritta due volte
+  (già alla riga 9660). I cinque `LIMM_FSS` e i tre `LIMMLIM` non si segnalano.
+- **13e (5 ottobre)** — il file giusto per un confine (J5). Codice comune toccato: `Regola.ConfineNelFileSbagliato`
+  (la calcola il Lab). `Core/Copie/PostoDelConfine.cs`: un settore con sole posizioni `_CTR`/`_FSS` ha il confine in
+  `HI_AIRSPACE`, con sole `_APP` in `LOW_AIRSPACE`; torri e tipi misti non dicono niente. L'avviso tocca la voce che ha
+  la forma (uguale, o 9 vertici su 10) di settori di un tipo solo e sta nella cartella dell'altro. Nella scheda del
+  settore la sezione **«Il confine»**: dove va, e le voci che hanno la sua forma (clic → la voce), o «nessuna voce ha
+  questa forma: un confine nuovo va in …». Sul fork **0** avvisi, come nella misura.
+  🔴 Trovato scrivendo i test: due voci di un `.hartcc` senza una riga vuota fra loro non danno due forme alla mappa
+  (sul fork sono sempre separate).
+- **13f (5 ottobre)** — i nomi delle configurazioni (K1) e le **impostazioni dell'app**. Codice comune toccato:
+  `Regola.NomeDellaConfigurazione` (la calcola il Lab). `Core/Ispezione/NomiDelleConfigurazioni.cs`: il modello è un
+  testo con `{ACC}` e `{N}` (`{ACC} CONF{N}`, `{ACC} CNF {N}`…); una voce è una configurazione se è sigla + parola
+  (`CONF`, `CNF`, `CONFIG`, `CFG` o quella del modello) + numero (+ una lettera: `CONF1M`). Il modello si cambia dal
+  riquadro **Impostazioni** della barra (nelle due finestre), si ricorda in `nomi-delle-configurazioni.txt` fra i dati
+  del Lab — fuori dal sector — e gli avvisi si rifanno subito. Quello di base, `{ACC} CONF{N}`, è una **scelta
+  dell'agente** (la scrittura di `HI_AIRSPACE`): si cambia senza toccare il codice. Un avviso per nome e per file
+  (una configurazione in più pezzi ne dà uno, «3 pezzi»). Sul fork, col modello di base, **8**: `MM CONF 1`, `2.1`,
+  `2.2`, `3` di `limm_tma.lartcc` e `RR CNF1`, `CNF2.1`, `CNF2.2`, `CNF3` di `lirr_tma.lartcc`; con `{ACC} CNF{N}`
+  diventano i tre di `lirr.hartcc` e i quattro di Milano.
+- **13g (5 ottobre)** — limiti e classe sulla mappa (D9, J7, Q8). Solo il Lab. `Geometria.LimitiEClasse`: una riga nel
+  suggerimento della forma, sopra i vincoli dei punti (`FL195 – UNL · classe C`; un limite solo: `? – FL195`), per
+  settori dinamici, confini e mappe del `MAPS`. 🔴 Preso a schermo: scritto il tag, il suggerimento restava quello di
+  prima — la geometria del file non si rifaceva dopo un metadato. Ora si rifà per `lower`, `upper`, `class`.
+
+Uscita della slice sul fork: validatore 235/978 → **235 errori, 992 avvisi** (+4 `SettoreSenzaPosizione`, +2
+`SettoreRipetuto`, +8 `NomeDellaConfigurazione`, 0 `ConfineNelFileSbagliato`); round-trip 718/718, tutto toccato 0.
+Test: motore 779 → **791**, Lab 798 → **853**. A schermo (banco): «235 errori · 992 avvisi»; Impostazioni → modello
+`{acc} cnf{n}` accettato e scritto `{ACC} CNF{N}` (esempio `RR CNF2.1`), `CONF{N}` rifiutato col perché, vuoto = di
+base; `LIRR_EW_CTR` → «Il confine · HI_AIRSPACE»: `lirr.hartcc` RR EW, stessa forma; limiti e classe scritti dalla
+scheda e letti sulla mappa passando sul bordo.
+
+**Slice 13 chiusa** per le voci D1, D4, D9, J4 (commento in coda: slice 2), J5, J7, K1, Q8, R-4, salvo le quattro
+domande aperte qui sopra. 🔴 Scelte dell'agente da confermare: `SettoreSenzaPosizione` avviso e non errore; limiti
+senza AGL/AMSL; `{ACC} CONF{N}` come modello di base. Da provare a mano: prove 169-183 in `SectorLab-prova\PROVE.md`.
