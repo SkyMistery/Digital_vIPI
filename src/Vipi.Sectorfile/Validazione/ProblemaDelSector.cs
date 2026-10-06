@@ -334,6 +334,48 @@ public enum Regola
     /// collegata, in Aurora non accende niente (slice 13h, il verso opposto di D4; committente, 6 ottobre 2026: 27 sul fork).
     /// </summary>
     PosizioneSenzaSettore,
+
+    /// <summary>
+    /// Il cerchio di un gate in un <c>.artcc</c> a cui manca il punto che lo chiude (<c>//X07-X08</c> di
+    /// <c>FRA-gates.artcc</c>: slice 14a, A4). Gli altri 84 chiudono a meno di 20 metri.
+    /// </summary>
+    CerchioNonChiuso,
+
+    /// <summary>
+    /// Il cerchio di un gate col centro lontano dal confine: un gate sta sul confine fra due ACC (slice 14a, A4; sul fork
+    /// lo scarto massimo è 0,26 NM).
+    /// </summary>
+    CentroFuoriDalConfine,
+
+    /// <summary>
+    /// La stanghetta di un'AOCC — il tratto di traverso in fondo al gambo — che non è di 15 NM (slice 14a, A4;
+    /// committente: la stanghetta è di 15 NM. Sul fork le cinque vanno da 14,93 a 15,08).
+    /// </summary>
+    StanghettaDellAocc,
+
+    /// <summary>
+    /// Un'etichetta <c>L;</c> di un <c>.artcc</c> col nome di un fix, VOR o NDB e una posizione diversa dalla sua
+    /// (slice 14a, A4): spostato il fix, l'etichetta è rimasta dov'era. Con la riga corretta.
+    /// </summary>
+    EtichettaLontanaDalFix,
+
+    /// <summary>
+    /// Un'aerovia che nessuna etichetta <c>L;</c> nomina, nemmeno fra i nomi uniti di un tratto condiviso: in Aurora si
+    /// vede la linea e non si sa che cosa sia (slice 14b, B12: 12 sul fork — <c>Q482</c>, <c>T345</c>, le <c>Y…</c>).
+    /// </summary>
+    AeroviaSenzaEtichetta,
+
+    /// <summary>
+    /// Un'etichetta che nomina un'aerovia che il file non ha: sul fork le vecchie «U» (<c>UL81-L81</c>) e <c>Y11</c>, 24
+    /// etichette (slice 14b, B12). Con la riga senza quel nome, se ne resta uno vero.
+    /// </summary>
+    EtichettaDiUnAeroviaAssente,
+
+    /// <summary>
+    /// Un'etichetta a più di mezzo miglio da ogni tratto delle aerovie che nomina: l'aerovia è stata spostata e
+    /// l'etichetta no (slice 14b, B12: 25 sul fork).
+    /// </summary>
+    EtichettaLontanaDallAerovia,
 }
 
 public enum Gravita
@@ -374,7 +416,11 @@ public static class Regole
             or Regola.StandPiuGrandeDellaTaxiway or Regola.OrdineDiDisegno or Regola.MarcaturaDiUnaPistaAssente
             or Regola.SettoreSenzaPosizione or Regola.SettoreRipetuto
             or Regola.ConfineNelFileSbagliato or Regola.NomeDellaConfigurazione
-            or Regola.PosizioneSenzaSettore => Validazione.Gravita.Avviso,
+            or Regola.PosizioneSenzaSettore
+            or Regola.CerchioNonChiuso or Regola.CentroFuoriDalConfine or Regola.StanghettaDellAocc
+            or Regola.EtichettaLontanaDalFix
+            or Regola.AeroviaSenzaEtichetta or Regola.EtichettaDiUnAeroviaAssente
+            or Regola.EtichettaLontanaDallAerovia => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

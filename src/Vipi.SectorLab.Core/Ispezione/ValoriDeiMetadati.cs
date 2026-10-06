@@ -61,6 +61,8 @@ public static partial class ValoriDeiMetadati
         ["oneway"] = Rosa,
         // Slice 13c (D9, J7, Q8, G5): la classe dello spazio aereo di settori, confini, ATZ/CTR del MAPS e aree.
         ["class"] = ["A", "B", "C", "D", "E", "F", "G"],
+        // Slice 14c (B2, F8, S6): il verso di un tratto di aerovia o di rotta VFR, rispetto all'ordine dei punti nel file.
+        ["dir"] = ["both", "fwd", "back"],
     };
 
     /// <summary>L'editor di una chiave (senza il numero di pista davanti).</summary>

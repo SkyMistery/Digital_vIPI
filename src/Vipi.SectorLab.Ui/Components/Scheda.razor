@@ -249,6 +249,58 @@
             </Sezione>
         }
 
+        @* Slice 14c (B2): i tratti di un'aerovia, ognuno col suo verso e le sue quote come nel PDF — nel tag //@@ del punto
+           che apre il tratto, mai a schermo in Aurora. *@
+        @if (Lab.TrattiDellAeroviaDi(scheda.File, scheda.Indice) is { Count: > 0 } tratti)
+        {
+            <Sezione Chiave="scheda-tratti" data-tratti="@tratti.Count">
+            <Titolo>Tratti <span class="lab-nota">@tratti.Count(t => t.ConDati) di @tratti.Count con verso o quote · mai in Aurora</span></Titolo>
+            <ChildContent>
+            <table class="lab-campi lab-vincoli">
+                <thead>
+                    <tr>
+                        <th>Tratto</th>
+                        <th title="Rispetto all'ordine dei punti nel file">Verso</th>
+                        <th title="Come nell'AIP: SFC, GND, 1500ft, FL95">Minima</th>
+                        <th title="Come nell'AIP: UNL, 2000ft, FL195">Massima</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tratto in tratti)
+                    {
+                        int ordinale = tratto.Ordinale;
+                        <tr data-tratto="@ordinale">
+                            <th>@tratto.Da → @tratto.A</th>
+                            <td>
+                                <select class="lab-campo" value="@tratto.Verso" data-scrivi-tratto="@($"{ordinale}.dir")"
+                                        @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, TrattiDelleAerovie.Verso, e.Value?.ToString())">
+                                    <option value="">—</option>
+                                    @foreach (var verso in TrattiDelleAerovie.Versi)
+                                    {
+                                        <option value="@verso.Valore">@verso.Segno @verso.Significato</option>
+                                    }
+                                    @if (VersoFuoriElenco(tratto.Verso))
+                                    {
+                                        <option value="@tratto.Verso">@tratto.Verso — non è nell'elenco</option>
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                <input class="lab-campo" value="@tratto.Inferiore" placeholder="FL95" data-scrivi-tratto="@($"{ordinale}.lower")"
+                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, TrattiDelleAerovie.Inferiore, e.Value?.ToString())" />
+                            </td>
+                            <td>
+                                <input class="lab-campo" value="@tratto.Superiore" placeholder="FL195" data-scrivi-tratto="@($"{ordinale}.upper")"
+                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, TrattiDelleAerovie.Superiore, e.Value?.ToString())" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </ChildContent>
+            </Sezione>
+        }
+
         @if (Lab.Rifiuto is { } rifiuto)
         {
             <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
@@ -487,6 +539,10 @@ else
     }
 
     private const string RuoloChiave = "role", QuotaChiave = "alt", VelocitaChiave = "spd";
+
+    // Un verso già nel file che non è fra i tre di §M: si vede e resta.
+    private static bool VersoFuoriElenco(string? verso)
+        => verso is not null && !TrattiDelleAerovie.Versi.Any(v => v.Valore == verso);
 
     private static string? Valore(PuntoConTag punto, string chiave)
         => punto.Chiavi.TryGetValue(chiave, out string? scritto) ? Vipi.Sectorfile.IO.Metadati.Testo(scritto) : null;

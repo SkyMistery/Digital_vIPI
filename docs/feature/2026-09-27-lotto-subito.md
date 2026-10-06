@@ -1694,3 +1694,73 @@ se in Aurora i due punti non valgono, quelle 56 teste non si accendono mai: serv
 
 🔴 Scelte dell'agente da confermare: `{ACC} CONF{N}` come modello di base; la scrittura `2000ft AGL`. Da provare a
 mano: prove 169-185 in `SectorLab-prova\PROVE.md`.
+
+### Slice 14 — ACC e aerovie (`.artcc`, `.lairway`, `.hairway`) — dal 6 ottobre
+
+**Manuale IVAO** (riletto il 6 ottobre, `[ARTCC]`, `[LOW AIRWAY]`, `[HIGH AIRWAY]`): `T/L;Identificativo;Lat;Lon;[Font]`
+negli ACC e `T/L;Aerovia;Lat;Lon;` nelle aerovie, coi punti in DMS o per nome («highly recommended»); «you can set
+multiple labels for the same airway», e nell'esempio le etichette sono **per nome** (`L;V200;REPUK;REPUK;`).
+🔴 Il lettore delle aerovie vuole le coordinate nelle righe `L;`: un'etichetta per nome oggi è una riga illeggibile
+(sul fork non ce ne sono; servirà con A8 e B4).
+
+**Misura sul fork** (`8cf32c6`, `scratchpad/misura14.py` e `misura14b.py`):
+
+- **`FRA.artcc`**: 104 etichette `L;` (tutte per coordinate, **tutte sul fix che ha il loro nome**: scarto massimo
+  sotto 0,05 NM); `FRA BDRY` 1 589 punti in 5 pezzi, `LIMITROFI` 14 tratti (15-44 NM), `NPZ` 2 poligoni chiusi,
+  `AOCC` 10 tratti = **5 AOCC**, ognuna un gambo che parte dal confine (0,00 NM) e una stanghetta di traverso che il
+  gambo tocca **a metà** (7,5 / 7,5 NM). Le stanghette: 15,08 · 14,93 · 15,00 · 14,97 · 14,98 NM. I gambi: 18,07 ·
+  14,59 · 14,99 · 15,01 · 14,97.
+- **`FRA-gates.artcc`**: 85 cerchi di raggio 0,499-0,500 NM (61 di 38 punti, 24 di 37), 90 etichette. 84 cerchi
+  chiudono a meno di 0,01 NM (16 metri: arrotondamenti); **uno è aperto**, `//X07-X08` alla riga 702, a cui manca un
+  passo (0,085 NM) — quello della carta. Tutti i centri a meno di 0,3 NM dal confine.
+- **`itawlow.lairway`**: **246 aerovie** in 274 pezzi (28 `BREAK`, 27 aerovie in più pezzi), 1 385 punti tutti per
+  nome e tutti trovati (resta `KPT`, che è il VOR con le coordinate sbagliate di `itvor.vor:109`); **1 089 tratti
+  distinti, 21 condivisi** da più aerovie. **896 etichette**, tutte per coordinate, 34 col nome unito.
+  - **12 aerovie senza etichetta** (la carta ne contava 22, guardando il nome esatto: `A145`, `A725`, `N1`… ce l'hanno
+    dentro un nome unito): `Q482`, `T345`, `T369`, `Y480`, `Y498`, `Y526`, `Y662`, `Y769`, `Y801`, `Y831`, `Y842`, `Y99`.
+  - **18 etichette nominano un'aerovia che non c'è** (23 nomi: 22 vecchie «U» e `Y11`), sempre accanto a una vera.
+  - **25 etichette a più di mezzo miglio** dalla loro aerovia (`M740` a 38 NM, `M985` a 12 e 10, `M730` a 12, `Y138` a
+    11, `L153` a 3,3…): l'aerovia è stata spostata, l'etichetta no.
+  - 🔴 **La regola che il file segue già**: 773 etichette stanno a metà del loro tratto, e **nessun tratto più corto
+    di 10 NM ha un'etichetta** (il più corto etichettato misura 10,0 NM). 218 tratti non ne hanno: 166 sono sotto i
+    10 NM, **52 sopra** (33 sopra i 15). Chi ha fatto le etichette ha usato una soglia di 10 NM: un'etichetta «a metà
+    di ogni tratto» (B4) ne aggiungerebbe 166 su tratti corti.
+  - Sui 21 tratti condivisi: 13 hanno l'etichetta coi nomi uniti, 7 nessuna, 1 col nome di una sola (`M730` su
+    `M730`-`T648`).
+- **`itawhigh.hairway`**: 129 righe, tutte commentate; nessun `.isc` lo carica (B11: non si tocca).
+
+- **14a (6 ottobre)** — gli avvisi degli `.artcc` (A4). Codice comune toccato: `Validazione/ControlloDegliAcc.cs` e
+  quattro regole (avvisi). Si legge dalle righe: un gruppo è un record solo, e l'avviso va sulla riga del tratto, col
+  nome che gli dà il commento sopra.
+  - **`CerchioNonChiuso`**: un tratto è un cerchio se ha almeno 12 punti alla stessa distanza dal loro centro (entro
+    2 NM); è aperto se fra l'ultimo punto e il primo manca più di mezzo passo.
+  - **`CentroFuoriDalConfine`**: il centro a più di 0,3 NM dal tratto più vicino che non è un cerchio.
+  - **`StanghettaDellAocc`**: nei gruppi `AOCC…`, il tratto che un altro tocca con un estremo lontano dalle sue punte
+    deve misurare 15 NM ± 0,25.
+  - **`EtichettaLontanaDalFix`**: un'etichetta per coordinate col nome di un fix, VOR o NDB a più di 0,1 NM da lui,
+    con la riga corretta (le coordinate del punto). Il nome di un gate non è un fix e non si guarda.
+  - 🔴 Non «gate ≠ 10 NM» né «etichetta fuori centro» (committente, 24 settembre).
+  Uscita sul fork: **1** cerchio aperto (`X07-X08`), 0 centri fuori, 0 stanghette, 0 etichette: i dati sono a posto, e
+  le regole ci sono per quando qualcuno li tocca.
+- **14b (6 ottobre)** — i controlli delle aerovie (B12). Codice comune toccato: `Validazione/ControlloDelleAerovie.cs`
+  e tre regole (avvisi), sui tracciati `T;` contro le etichette `L;` dello stesso file.
+  - **`AeroviaSenzaEtichetta`** (12), sulla prima riga dell'aerovia; un `BREAK` non è un'aerovia.
+  - **`EtichettaDiUnAeroviaAssente`** (18), con la riga senza i nomi che non ci sono (`L;UA145-A145;…` → `L;A145;…`):
+    «Correggi tutte le 18» dal pannello.
+  - **`EtichettaLontanaDallAerovia`** (25): a più di 0,5 NM da ogni tratto delle aerovie che nomina; il buco di un
+    `BREAK` non è un tratto.
+- **14c (6 ottobre)** — i tratti di un'aerovia (B2). Solo il Lab. Nella scheda di un pezzo di aerovia la sezione
+  **Tratti**: una riga per tratto (`TOP → ROKUD`) col **verso** (`both` ↔, `fwd` →, `back` ←, rispetto all'ordine del
+  file), la **minima** e la **massima** (le regole dei limiti della 13: `FL95`, `2000ft AGL`…). Si scrivono nel tag
+  `//@@"PUNTO" dir=… lower=… upper=…` del punto che apre il tratto (§M regola 4), e si leggono sulla mappa passando
+  sull'aerovia (`ROKUD → DIVIP: solo da ROKUD a DIVIP, FL95 – FL195`). L'interruzione e le righe delle etichette non
+  hanno tratti. `Core/Ispezione/TrattiDelleAerovie.cs`.
+
+Uscita sul fork: validatore 235/1 019 → **235 errori, 1 075 avvisi** nel pannello del Lab (1 067 in
+`Vipi.SectorfileProva`): +1 `CerchioNonChiuso`, +12, +18, +25. Round-trip 718/718, tutto toccato 0. Test: motore 792 →
+**800**, Lab 862 → **865**. A schermo (banco): i quattro conti nel pannello; `KY139` → dieci tratti, il secondo con
+`fwd`, `fl 95`, `fl195` → `//@@"ROKUD" dir=fwd lower=FL95 upper=FL195`.
+
+🟡 **Da decidere col committente prima di B4, B14, B15** (le etichette calcolate, aggiungere e togliere un'aerovia):
+la soglia dei 10 NM; dove si scrivono le etichette finché il file resta in due parti (tracciati sopra, etichette
+sotto: l'ordine a blocchi aspetta la prova B9 in Aurora); che cosa fare delle 25 lontane e delle 18 coi nomi «U».

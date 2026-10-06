@@ -1032,6 +1032,13 @@ public sealed class SessioneDelLab
             ? file.PuntiConTag(record)
             : [];
 
+    /// <summary>
+    /// I tratti di un pezzo di aerovia col loro verso e le loro quote (slice 14c, B2); vuoto per gli altri record. Si
+    /// scrivono con <see cref="CambiaIlTagDelPunto"/>, sul punto che apre il tratto.
+    /// </summary>
+    public IReadOnlyList<TrattoDiAerovia> TrattiDellAeroviaDi(string fileRelativo, int record)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file ? TrattiDelleAerovie.Di(file, record) : [];
+
     private static bool EUnaProcedura(object record) => record switch
     {
         Vipi.Sectorfile.Models.SidProcedure => true,

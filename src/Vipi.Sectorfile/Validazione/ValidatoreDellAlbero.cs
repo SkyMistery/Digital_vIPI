@@ -208,6 +208,31 @@ public static partial class Validatore
             [.. frq.Select(p => (Relativo(p), Esito(p)!.Record))],
             (relativo, riga) => TestoDellaRiga(percorsoDelTfl.GetValueOrDefault(relativo) ?? percorsoDi[relativo], riga)));
 
+        // Gli ACC (lotto «Subito» slice 14a, A4): cerchi dei gate, AOCC, etichette dei fix di confine. La posizione di
+        // un nome è quella del primo fix, VOR o NDB dell'albero che lo dichiara: qui serve la geometria, e due punti
+        // omonimi lontani li dice già NomeDuplicato.
+        var doveSta = new Dictionary<string, Shared.Coordinate>(StringComparer.OrdinalIgnoreCase);
+        foreach (string percorso in indice.Values.Order(StringComparer.Ordinal))
+        {
+            foreach (var dichiarato in Esito(percorso)?.Dichiarati ?? [])
+            {
+                if (CataloghiUnici.Contains(dichiarato.Catalogo))
+                    doveSta.TryAdd(dichiarato.Nome, dichiarato.Posizione);
+            }
+        }
+
+        Shared.Coordinate? Punto(string nome) => doveSta.TryGetValue(nome.Trim(), out var posizione) ? posizione : null;
+        problemi.AddRange(ControlloDegliAcc.Di(
+            [.. indice.Values.Where(p => p.EndsWith(".artcc", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal)
+                .Select(p => (Relativo(p), SectorFileReader.Read(p).Lines))],
+            Punto));
+
+        // Le aerovie (slice 14b, B12): senza etichetta, etichette con nomi che non ci sono o rimaste lontane.
+        problemi.AddRange(ControlloDelleAerovie.Di(
+            [.. indice.Values.Where(p => Path.GetExtension(p).ToLowerInvariant() is ".lairway" or ".hairway").Order(StringComparer.Ordinal)
+                .Select(p => (Relativo(p), SectorFileReader.Read(p).Lines))],
+            Punto));
+
         // Il CPDLC (lotto «Subito» slice 11c): gruppi senza messaggi, messaggi senza risposta, valori, elenchi del manuale.
         var cpdlc = indice.Values.Where(p => (p.EndsWith(".cpdlc", StringComparison.OrdinalIgnoreCase)
                                               || p.EndsWith(".cpdlcnames", StringComparison.OrdinalIgnoreCase)) && Esito(p) is not null)
