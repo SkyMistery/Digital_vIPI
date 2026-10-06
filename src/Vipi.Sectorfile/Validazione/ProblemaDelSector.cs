@@ -419,6 +419,37 @@ public enum Regola
     /// per zona, ognuno una voce nella <i>MVA Selection</i>. Un avviso per file: sul fork tutti e 24.
     /// </summary>
     MvaNonDelloScalo,
+
+    /// <summary>
+    /// Un punto VFR col codice (<c>COLOMBO;RFS3;</c>) senza il suo fix nascosto in <c>NAVAIDS/VFR_NASCOSTI.fix</c>: un
+    /// piano di volo che lo cita non lo riconosce (slice 16b, F4: 6 sul fork).
+    /// </summary>
+    GemelloVfrMancante,
+
+    /// <summary>Il fix nascosto di un punto VFR sta in un altro posto: uno dei due è stato spostato (slice 16b, F4).</summary>
+    GemelloVfrDiverso,
+
+    /// <summary>Un fix di <c>VFR_NASCOSTI.fix</c> senza un punto VFR con quel codice in nessun <c>.vfi</c> (slice 16b, F4).</summary>
+    FixNascostoSenzaPunto,
+
+    /// <summary>
+    /// Lo stesso codice su due punti VFR (<c>MJNW1</c> in <c>limj.vfi</c>, <c>PKS1</c> in <c>lipk.vfi</c>): il fix
+    /// nascosto è uno solo (slice 16b, F4).
+    /// </summary>
+    CodiceVfrRipetuto,
+
+    /// <summary>
+    /// Il codice di un punto VFR nel campo sbagliato: scambiato col nome (<c>PASW1;CONEGLIANO;</c>, <c>lipa.vfi</c>) o
+    /// finito in coda al nome per un <c>;</c> che manca (<c>MAZARA DEL VALLOCTSE3;;</c>, <c>lict.vfi</c>). Con la riga
+    /// corretta (slice 16b, F4).
+    /// </summary>
+    CodiceVfrFuoriPosto,
+
+    /// <summary>
+    /// Una rotta VFR col 5° campo (militare) a 1 solo su alcune righe: Aurora la disegna a pezzi di due colori, e il
+    /// modello tiene un valore solo. Con la riga corretta (slice 16b, S4: sul fork nessuna).
+    /// </summary>
+    RottaMilitareAMeta,
 }
 
 public enum Gravita
@@ -465,7 +496,9 @@ public static class Regole
             or Regola.AeroviaSenzaEtichetta or Regola.EtichettaDiUnAeroviaAssente
             or Regola.EtichettaLontanaDallAerovia or Regola.TrattoSenzaQuote
             or Regola.EtichettaFuoriDallaZona or Regola.ZonaSenzaEtichetta or Regola.QuotaNonValida
-            or Regola.QuotaNonInCentinaia or Regola.GruppoMancanteNellaMva or Regola.MvaNonDelloScalo => Validazione.Gravita.Avviso,
+            or Regola.QuotaNonInCentinaia or Regola.GruppoMancanteNellaMva or Regola.MvaNonDelloScalo
+            or Regola.GemelloVfrMancante or Regola.GemelloVfrDiverso or Regola.FixNascostoSenzaPunto
+            or Regola.CodiceVfrRipetuto or Regola.CodiceVfrFuoriPosto or Regola.RottaMilitareAMeta => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

@@ -65,6 +65,35 @@ public sealed class CatalogoDeiPunti : IFixResolver
     }
 
     /// <summary>
+    /// I nomi da proporre per un punto di una rotta VFR di <paramref name="vfiDelloScalo"/> (slice 16e, «file per file»
+    /// S4): prima i punti VFR di quel <c>.vfi</c>, poi quelli degli altri <c>.vfi</c> dal più vicino allo scalo (sul
+    /// fork 13 punti di rotta su 123 vengono dal <c>.vfi</c> di uno scalo accanto), poi fix, VOR, NDB e scali. Senza
+    /// testo propone i soli punti dello scalo: sono pochi, e sono quelli che servono.
+    /// </summary>
+    public IReadOnlyList<PuntoDelCatalogo> SuggerisciPerUnaRottaVfr(string? testo, string vfiDelloScalo, int quanti = 20)
+    {
+        string cercato = (testo ?? "").Trim();
+        if (quanti <= 0)
+            return [];
+        var delloScalo = _perNome.Values.Where(p => p.Catalogo == "vrp" && string.Equals(p.File, vfiDelloScalo, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (cercato.Length == 0)
+            // Le rotte citano i punti per nome (sul fork tutte): i codici si trovano scrivendoli.
+            return [.. delloScalo.Where(p => !Sectorfile.Validazione.ControlloDeiVfr.EUnCodice(p.Nome)).OrderBy(p => p.Nome, StringComparer.OrdinalIgnoreCase).Take(quanti)];
+
+        // Il «centro» dello scalo: la media dei suoi punti VFR. Senza punti suoi, gli altri restano in ordine di nome.
+        Coordinate? centro = delloScalo.Count == 0 ? null
+            : new Coordinate(delloScalo.Average(p => p.Posizione.LatitudeDeg), delloScalo.Average(p => p.Posizione.LongitudeDeg));
+        int Rango(PuntoDelCatalogo p) => p.Catalogo != "vrp" ? 2 : string.Equals(p.File, vfiDelloScalo, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+        double Lontano(PuntoDelCatalogo p) => Rango(p) == 1 && centro is { } c ? Distanze.Nm(c, p.Posizione) : 0;
+        return [.. _perNome.Values.Where(p => p.Nome.Contains(cercato, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(Rango)
+            .ThenBy(Lontano)
+            .ThenBy(p => !p.Nome.StartsWith(cercato, StringComparison.OrdinalIgnoreCase))
+            .ThenBy(p => p.Nome, StringComparer.OrdinalIgnoreCase)
+            .Take(quanti)];
+    }
+
+    /// <summary>
     /// Come lo chiede il motore (<see cref="Sectorfile.Shared.Punto.TryRisolvi"/>), che con due nomi diversi fa come
     /// Aurora: la latitudine dal primo, la longitudine dal secondo.
     /// </summary>

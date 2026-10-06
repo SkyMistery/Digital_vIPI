@@ -1,3 +1,4 @@
+using Vipi.SectorLab.Core.Copie;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.Models;
 
@@ -11,6 +12,9 @@ namespace Vipi.SectorLab.Core.Modifiche;
 /// prefisso del nome (<see cref="NellaSezioneGiusta"/>), non il record da cui si parte.
 /// <para>Per ora solo i punti col nome (fix, VOR, NDB, punti VFR): l'ordine degli altri file si discute file per file
 /// col committente.</para>
+/// <para>Slice 16c (F3): i punti VFR si chiamano col nome ma stanno in ordine di CODICE (<see cref="Chiave"/>): 67
+/// <c>.vfi</c> su 77 del fork sono così, e solo 4 in ordine di nome. Il numero del codice conta come numero
+/// (<c>RFS4</c> prima di <c>RFS10</c>).</para>
 /// </summary>
 public static class OrdineAlfabetico
 {
@@ -29,6 +33,9 @@ public static class OrdineAlfabetico
             ? record.GetType().GetProperty(campo)?.GetValue(record) as string ?? ""
             : "";
 
+    /// <summary>Quel che mette in ordine il record nel suo file: il nome, o il codice per un punto VFR.</summary>
+    public static string Chiave(object record) => record is VfrPoint punto ? punto.Code.Trim() : Nome(record);
+
     /// <summary>Un nome che si può scrivere in un campo del sector: non vuoto, senza <c>;</c> né spazi ai bordi.</summary>
     public static string? PercheNonVa(string? nome)
         => string.IsNullOrWhiteSpace(nome) ? "Il nome non può essere vuoto."
@@ -38,8 +45,9 @@ public static class OrdineAlfabetico
             : null;
 
     /// <summary>
-    /// Il record, fra tutti quelli del file, che per nome viene subito prima di <paramref name="nome"/> (o il primo, se
-    /// nessuno viene prima): è il modello del nuovo, e la sua sezione è quella dove il nuovo andrà.
+    /// Il record, fra tutti quelli del file, che per chiave (il nome; il codice per un punto VFR) viene subito prima di
+    /// <paramref name="nome"/> (o il primo, se nessuno viene prima): è il modello del nuovo, e la sua sezione è quella
+    /// dove il nuovo andrà.
     /// </summary>
     public static int IlVicino(IFileConRecord file, string nome)
     {
@@ -48,7 +56,7 @@ public static class OrdineAlfabetico
         string? suoNome = null;
         for (int i = 0; i < file.RecordDelModello.Count; i++)
         {
-            string suo = Nome(file.RecordDelModello[i]);
+            string suo = Chiave(file.RecordDelModello[i]);
             if (Confronta(suo, nome) <= 0 && (suoNome is null || Confronta(suo, suoNome) >= 0))
             {
                 vicino = i;
@@ -72,7 +80,7 @@ public static class OrdineAlfabetico
         int scelto = modello, meglio = -1;
         for (int i = 0; i < file.RecordDelModello.Count; i++)
         {
-            int suo = Prefisso(Nome(file.RecordDelModello[i]), nome);
+            int suo = Prefisso(Chiave(file.RecordDelModello[i]), nome);
             bool aParitaNelModello = suo == meglio && sezioni[i] == sezioni[modello] && sezioni[scelto] != sezioni[modello];
             if (suo > meglio || aParitaNelModello)
             {
@@ -110,12 +118,17 @@ public static class OrdineAlfabetico
 
         for (int i = primo; i <= ultimo; i++)
         {
-            if (Confronta(Nome(file.RecordDelModello[i]), nome) > 0)
+            if (Confronta(Chiave(file.RecordDelModello[i]), nome) > 0)
                 return i == primo ? (null, i) : (i - 1, null);
         }
 
         return (ultimo, null);
     }
 
-    private static int Confronta(string a, string b) => string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+    // Due codici VFR con le stesse lettere si confrontano per numero; tutto il resto per alfabeto.
+    private static int Confronta(string a, string b)
+        => CodiciVfr.Parti(a) is (var lettereA, var numeroA) && CodiciVfr.Parti(b) is (var lettereB, var numeroB)
+           && string.Equals(lettereA, lettereB, StringComparison.OrdinalIgnoreCase)
+            ? numeroA.CompareTo(numeroB)
+            : string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
 }

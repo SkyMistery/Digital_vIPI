@@ -10,7 +10,14 @@ namespace Vipi.SectorLab.Core.Ispezione;
 /// </summary>
 /// <param name="Proprieta">Il campo che il tipo scrive nel nuovo; null quando il tipo è la FORMA del record (negli
 /// <c>.artcc</c> un'etichetta L e una traccia T sono record diversi, e il nuovo si copia da uno del tipo scelto).</param>
-public sealed record SceltaDelTipo(string Domanda, string? Proprieta, IReadOnlyList<ValoreFisso> Valori);
+public sealed record SceltaDelTipo(string Domanda, string? Proprieta, IReadOnlyList<ValoreFisso> Valori)
+{
+    /// <summary>
+    /// Il tipo può restare non scritto (slice 16c): per il manuale il tipo di un punto VFR è facoltativo, e sul fork
+    /// non lo scrive nessuno dei 586 punti. La domanda c'è, ma non ferma «Aggiungi».
+    /// </summary>
+    public bool Facoltativo { get; init; }
+}
 
 /// <summary>Quale tipo chiede il nuovo record di un file, e da quale record di quel tipo si copia.</summary>
 public static class TipoDelNuovo
@@ -59,7 +66,7 @@ public static class TipoDelNuovo
 
         // Il vuoto («non scritto») e i valori che il manuale non ha non sono un tipo da scegliere per un record nuovo.
         var valori = campo.Valori.Where(v => v.Valore.Length > 0 && v.Valore != nameof(InstallationType.Custom)).ToList();
-        return new SceltaDelTipo($"{campo.Nome} del nuovo record", proprieta, valori);
+        return new SceltaDelTipo($"{campo.Nome} del nuovo record", proprieta, valori) { Facoltativo = primo is VfrPoint };
     }
 
     /// <summary>

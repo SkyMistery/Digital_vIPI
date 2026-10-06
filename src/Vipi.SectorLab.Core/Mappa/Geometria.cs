@@ -39,8 +39,8 @@ public static class Geometria
         }
 
         // Slice 9d (Q2): i vincoli dei punti delle procedure viaggiano con la forma, per il passaggio del mouse.
-        // Slice 14c (B2): anche i tratti delle aerovie, col loro verso e le loro quote.
-        var vincoli = record.Count > 0 && record[0] is SidProcedure or StrRecord or Airway
+        // Slice 14c (B2): anche i tratti delle aerovie, col loro verso e le loro quote; 16d (F8, S6): e delle rotte VFR.
+        var vincoli = record.Count > 0 && record[0] is SidProcedure or StrRecord or Airway or RottaVfr
             ? conRecord.PuntiConTagDelFile()
             : new Dictionary<int, IReadOnlyList<PuntoConTag>>();
         // Slice 13g (D9, J7, Q8): limiti verticali e classe di settori, confini e ATZ/CTR del MAPS, nello stesso
@@ -55,7 +55,7 @@ public static class Geometria
                     forma = forma with { Genere = genere };
                 string?[] righe = [chiavi is not null && i < chiavi.Count ? LimitiEClasse(chiavi[i]) : null,
                                    !vincoli.TryGetValue(i, out var punti) ? null
-                                       : record[i] is Airway ? Ispezione.TrattiDelleAerovie.Suggerimento(punti) : Vincoli(punti)];
+                                       : record[i] is Airway or RottaVfr ? Ispezione.TrattiDelleAerovie.Suggerimento(punti) : Vincoli(punti)];
                 forme.Add(righe.Any(r => r is not null) ? forma with { Vincoli = string.Join("\n", righe.Where(r => r is not null)) } : forma);
             }
         }

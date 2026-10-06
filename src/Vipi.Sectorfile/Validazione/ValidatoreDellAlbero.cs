@@ -239,6 +239,14 @@ public static partial class Validatore
                 .Select(p => (Relativo(p), SectorFileReader.Read(p).Lines, p.Replace('\\', '/').Contains("/ENRMVA/", StringComparison.OrdinalIgnoreCase)))],
             Punto));
 
+        // I punti e le rotte VFR (slice 16b; F4, S4): i codici dei .vfi contro i fix nascosti, le rotte militari a metà.
+        IReadOnlyList<(string, IReadOnlyList<string>)> Con(string estensione)
+            => [.. indice.Values.Where(p => p.EndsWith(estensione, StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal)
+                .Select(p => (Relativo(p), SectorFileReader.Read(p).Lines))];
+        string? nascosti = indice.Values.Where(ControlloDeiVfr.ENascosti).Order(StringComparer.Ordinal).FirstOrDefault();
+        problemi.AddRange(ControlloDeiVfr.Di(Con(".vfi"),
+            nascosti is null ? null : (Relativo(nascosti), SectorFileReader.Read(nascosti).Lines), Con(".vrt")));
+
         // Il CPDLC (lotto «Subito» slice 11c): gruppi senza messaggi, messaggi senza risposta, valori, elenchi del manuale.
         var cpdlc = indice.Values.Where(p => (p.EndsWith(".cpdlc", StringComparison.OrdinalIgnoreCase)
                                               || p.EndsWith(".cpdlcnames", StringComparison.OrdinalIgnoreCase)) && Esito(p) is not null)

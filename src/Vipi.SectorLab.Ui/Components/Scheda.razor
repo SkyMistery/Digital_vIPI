@@ -250,7 +250,7 @@
         }
 
         @* Slice 14c (B2): i tratti di un'aerovia, ognuno col suo verso e le sue quote come nel PDF — nel tag //@@ del punto
-           che apre il tratto, mai a schermo in Aurora. *@
+           che apre il tratto, mai a schermo in Aurora. Slice 16d (F8, S6): lo stesso per una rotta VFR. *@
         @if (Lab.TrattiDellAeroviaDi(scheda.File, scheda.Indice) is { Count: > 0 } tratti)
         {
             <Sezione Chiave="scheda-tratti" data-tratti="@tratti.Count">
@@ -379,7 +379,7 @@
                         @if (elenco.AmmetteNomi)
                         {
                             @* Slice 3c: dove il file sa scrivere un nome, il vertice propone i punti del master. *@
-                            <CampoPunto Valore="@vertici[posizione]" data-vertice="@posizione"
+                            <CampoPunto Valore="@vertici[posizione]" data-vertice="@posizione" File="@scheda.File"
                                         OnCambia="t => Gesto(scheda, chiave, GestoDeiVertici.Cambia, posizione, t)" />
                         }
                         else

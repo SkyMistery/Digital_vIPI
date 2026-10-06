@@ -142,7 +142,7 @@ public static class DescrizioniDeiCampi
     /// </summary>
     public static IReadOnlySet<string> Nascoste { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        "Source", "Sources", "HasConflict", "TipoNonScritto", "SenzaOpacita", "Statico", "EtichetteDiverse",
+        "Source", "Sources", "HasConflict", "TipoNonScritto", "SenzaOpacita", "Statico", "EtichetteDiverse", "MilitareAMeta",
     };
 
     /// <summary>La descrizione di un record in QUEL file (le MVA di ACC e di scalo leggono la quota da campi diversi).</summary>
@@ -501,7 +501,7 @@ public static class DescrizioniDeiCampi
         [typeof(VfrPoint)] = new("Punto VFR",
         [
             C("Name", "Nome", "Il nome del punto, anche con spazi (PONTE GALERIA)."),
-            C("Code", "Codice", "2° campo: per il manuale la quota, nei file italiani il codice (MMN1), mostrato sotto il nome."),
+            C("Code", "Codice", "2° campo: per il manuale la quota, nei file italiani il codice (MMN1), mostrato sotto il nome. È anche il nome del fix nascosto del punto (VFR_NASCOSTI.fix): vale in tutto il sector."),
             Posizione(),
             C("Type", "Tipo", "5° campo.", Editor.TipoFisso) with
             {
@@ -511,6 +511,12 @@ public static class DescrizioniDeiCampi
         [typeof(RottaVfr)] = new("Rotta VFR",
         [
             C("Numero", "Numero", "Il numero della rotta (1° campo di ogni riga)."),
+            // Slice 16a (S4): il 5° campo di ogni riga (il 4° è riservato). Il manuale: 1 = sì, 0 o vuoto = no.
+            C("Militare", "Militare", "Rotta militare (5° campo di ogni riga: 1 = sì). Si scrive su tutte le righe della rotta.", Editor.SiNo) with
+            {
+                SiScriveSe = r => r is not RottaVfr { MilitareAMeta: true },
+                PercheNo = "Solo alcune righe di questa rotta dicono «militare»: prima si mettono d'accordo (avviso RottaMilitareAMeta, con la riga corretta).",
+            },
             Vertici("Punti", "Punti"),
         ]),
         [typeof(AtisData)] = new("Modello ATIS",

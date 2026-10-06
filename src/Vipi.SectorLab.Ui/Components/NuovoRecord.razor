@@ -9,6 +9,8 @@
     Lotto «Subito», slice 3e (A1): prima di tutto chiede il TIPO FISSO del nuovo, col suo significato — negli .artcc
     etichetta (L) o traccia (T), da scegliere per forza; negli altri file (tipo del fix, della voce .str, del segmento
     .geo…) parte dal tipo del record che si copia.
+    Slice 16c (F3): un punto VFR chiede anche il CODICE, già scritto col primo numero libero dopo quello del punto da
+    cui si parte; il punto nasce al suo posto in ordine di codice.
 *@
 @if (_chiede)
 {
@@ -17,7 +19,7 @@
         {
             <select class="lab-campo" value="@(_tipo ?? "")" @ref="_campoDelTipo" title="@scelta.Domanda"
                     @onchange="SceltoIlTipo" data-campo="tipo-nuovo">
-                <option value="">— @scelta.Domanda</option>
+                <option value="">— @(scelta.Facoltativo ? "tipo non scritto" : scelta.Domanda)</option>
                 @foreach (var voce in scelta.Valori)
                 {
                     <option value="@voce.Valore">@voce.Voce</option>
@@ -29,8 +31,14 @@
             <input class="lab-campo" placeholder="@($"{Campo} del nuovo")" value="@_nome" @ref="_campo"
                    @oninput="e => _nome = e.Value?.ToString()" @onkeydown="Tasto" data-campo="nome-nuovo" />
         }
+        @if (ChiedeIlCodice)
+        {
+            <input class="lab-campo lab-campo-corto" placeholder="Codice" value="@(_codice ?? Proposto)"
+                   title="Il codice del punto (2° campo): è il nome del suo fix nascosto, e mette il punto in ordine nel file. Proposto: le lettere del punto da cui parti e il primo numero libero."
+                   @oninput="e => _codice = e.Value?.ToString()" @onkeydown="Tasto" data-campo="codice-nuovo" />
+        }
         <button class="lab-tasto" @onclick="Aggiungi" disabled="@(PercheNo is not null)"
-                title="@(PercheNo ?? (Campo is null ? "Lo aggiunge sotto quello da cui parte" : "Lo mette al suo posto in ordine alfabetico"))"
+                title="@(PercheNo ?? DoveVa)"
                 data-tasto="aggiungi-con-nome">Aggiungi</button>
         <button class="lab-annulla" @onclick="() => _chiede = false" data-tasto="non-aggiungere">annulla</button>
         @if (Lab.Rifiuto is { } rifiuto)
@@ -55,6 +63,9 @@ else
     private bool _chiede;
     private string? _nome;
     private string? _tipo;
+
+    /// <summary>Il codice scritto dall'AOD; null = quello proposto.</summary>
+    private string? _codice;
     private ElementReference _campo;
     private ElementReference _campoDelTipo;
     private bool _mettiIlFuoco;
@@ -63,9 +74,18 @@ else
 
     private SceltaDelTipo? Scelta => Lab.TipoDelNuovoDi(File);
 
+    private bool ChiedeIlCodice => Campo is not null && Lab.ChiedeIlCodice(File);
+
+    private string? Proposto => Lab.CodiceProposto(File, Modello);
+
+    private string DoveVa
+        => Campo is null ? "Lo aggiunge sotto quello da cui parte"
+            : ChiedeIlCodice ? "Lo mette al suo posto in ordine di codice"
+            : "Lo mette al suo posto in ordine alfabetico";
+
     /// <summary>Perché «Aggiungi» non si può ancora premere, o null.</summary>
     private string? PercheNo
-        => Scelta is { } scelta && _tipo is null ? $"Scegli prima: {scelta.Domanda.ToLowerInvariant()}"
+        => Scelta is { Facoltativo: false } scelta && _tipo is null ? $"Scegli prima: {scelta.Domanda.ToLowerInvariant()}"
             : Campo is not null && string.IsNullOrWhiteSpace(_nome) ? "Scrivi prima il nome"
             : null;
 
@@ -82,6 +102,7 @@ else
 
         _chiede = true;
         _nome = null;
+        _codice = null;
         // Il tipo del record da copiare, dove il tipo è un campo; negli .artcc la forma si sceglie sempre.
         _tipo = Scelta is { Proprieta: not null }
             ? Lab.TipoDelRecord(File, Modello ?? Lab.EtichetteDi(File).Count - 1)
@@ -96,7 +117,8 @@ else
         if (PercheNo is not null)
             return;
         string? nome = Campo is null ? null : (_nome ?? "").Trim();
-        bool fatto = Modello is { } modello ? Lab.AggiungiRecord(File, modello, nome, _tipo) : Lab.AggiungiAlFile(File, nome, _tipo);
+        string? codice = ChiedeIlCodice ? _codice : null;
+        bool fatto = Modello is { } modello ? Lab.AggiungiRecord(File, modello, nome, _tipo, codice) : Lab.AggiungiAlFile(File, nome, _tipo, codice);
         if (fatto)
             _chiede = false;
     }
@@ -117,7 +139,7 @@ else
         try
         {
             // Prima la domanda che manca: il tipo se non c'è, se no il nome.
-            await (Scelta is not null && (_tipo is null || Campo is null) ? _campoDelTipo : _campo).FocusAsync();
+            await (Scelta is { Facoltativo: false } && (_tipo is null || Campo is null) ? _campoDelTipo : _campo).FocusAsync();
         }
         catch (InvalidOperationException)
         {

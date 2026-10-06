@@ -40,6 +40,9 @@ public sealed class VrtParser : IFileParser<RottaVfr>
         var currentLines = new List<string>();
         var currentLeading = new List<string>();
 
+        // Quante righe della rotta aperta hanno il 5° campo a 1 (slice 16a): tutte = militare, alcune = a metà.
+        int militari = 0;
+
         // I //@@ in attesa del loro punto (come in AirwayParser): finché il punto non arriva non sono di nessuno, e
         // qualunque altra riga li fa tornare commenti, come prima.
         var tagDeiPunti = new List<string>();
@@ -72,6 +75,9 @@ public sealed class VrtParser : IFileParser<RottaVfr>
                 return;
             }
 
+            current.Militare = militari == current.Punti.Count;
+            current.MilitareAMeta = militari > 0 && militari < current.Punti.Count;
+            militari = 0;
             FlushRaw();
             chunks.Add(new RecordChunk<RottaVfr>(current, currentLines.ToArray(), hasMarkers: false, currentLeading.ToArray()));
             records.Add(current);
@@ -109,7 +115,7 @@ public sealed class VrtParser : IFileParser<RottaVfr>
                 continue;
             }
 
-            if (!TryParseLine(line, out string numero, out Punto punto))
+            if (!TryParseLine(line, out string numero, out Punto punto, out bool militare))
             {
                 FinalizeCurrent();
                 TagComeCommenti();
@@ -133,6 +139,7 @@ public sealed class VrtParser : IFileParser<RottaVfr>
             }
 
             current.Punti.Add(punto);
+            militari += militare ? 1 : 0;
             currentLines.AddRange(tagDeiPunti);
             tagDeiPunti.Clear();
             currentLines.Add(line);
@@ -150,10 +157,11 @@ public sealed class VrtParser : IFileParser<RottaVfr>
         };
     }
 
-    private static bool TryParseLine(string line, out string numero, out Punto punto)
+    private static bool TryParseLine(string line, out string numero, out Punto punto, out bool militare)
     {
         numero = string.Empty;
         punto = default;
+        militare = false;
         string[] parts = line.Split(';');
         int n = parts.Length;
         if (n > 0 && parts[^1].Length == 0)
@@ -167,6 +175,8 @@ public sealed class VrtParser : IFileParser<RottaVfr>
         }
 
         numero = parts[0].Trim();
+        // Manuale IVAO, [VFRROUTE]: il 4° campo è riservato, il 5° «Route Military» (1 = sì, 0 o vuoto = no).
+        militare = n >= 5 && parts[4].Trim() == "1";
         return numero.Length > 0 && numero.All(char.IsAsciiDigit) && Punto.TryLeggi(parts[1], parts[2], out punto);
     }
 }

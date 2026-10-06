@@ -151,7 +151,14 @@ public sealed record ModificaDelMetadato(string File, int Record, string Etichet
 {
     internal const string Prefisso = "§tag:";
 
-    public override string Descrizione => $"{Chiave}: {Prima} → {Dopo}";
+    /// <summary>
+    /// Come si legge la chiave nella voce, quando non è lei: per il tag di un punto «ELVAD alt», mentre la chiave è
+    /// <c>@@3.alt</c> (il numero del punto e la sua chiave). 🔴 Slice 16: la chiave era il nome leggibile, la voce stava
+    /// sotto l'altra, e una modifica al tag di un punto non si annullava più — né da sola né con «Annulla tutto».
+    /// </summary>
+    public string? Nome { get; init; }
+
+    public override string Descrizione => $"{Nome ?? Chiave}: {Prima} → {Dopo}";
 }
 
 /// <summary>Perché una modifica non si è potuta fare. Il campo resta com'era.</summary>
@@ -665,7 +672,10 @@ public sealed class ModificheInSospeso
 
         string? partenza = _tagDiPartenza[suaPartenza];
         var voce = (file.Relativo, indice, ModificaDelMetadato.Prefisso + campo);
-        var modifica = new ModificaDelMetadato(file.Relativo, indice, etichetta, $"{punti[ordinale].Punto} {chiave}", Leggibile(partenza), Leggibile(dopo));
+        var modifica = new ModificaDelMetadato(file.Relativo, indice, etichetta, campo, Leggibile(partenza), Leggibile(dopo))
+        {
+            Nome = $"{punti[ordinale].Punto} {chiave}",
+        };
         if (dopo == partenza)
         {
             _fatte.Remove(voce);
@@ -855,8 +865,15 @@ public sealed class ModificheInSospeso
         if (modifica is ModificaDelMetadato metadato
             && _tagDiPartenza.TryGetValue((modifica.File, modifica.Record, metadato.Chiave), out string? valoreDiPartenza))
         {
-            return CambiaIlMetadato(file, modifica.Record, metadato.Chiave,
-                valoreDiPartenza is null ? null : Metadati.Testo(valoreDiPartenza), modifica.Etichetta) is Modifica;
+            string? comEra = valoreDiPartenza is null ? null : Metadati.Testo(valoreDiPartenza);
+            // Il tag di un punto (`@@3.alt`): torna com'era sul suo punto.
+            if (metadato.Chiave.StartsWith("@@", StringComparison.Ordinal) && metadato.Chiave.IndexOf('.', StringComparison.Ordinal) is > 2 and var punto
+                && int.TryParse(metadato.Chiave.AsSpan(2, punto - 2), NumberStyles.None, CultureInfo.InvariantCulture, out int ordinale))
+            {
+                return CambiaIlTagDelPunto(file, modifica.Record, ordinale, metadato.Chiave[(punto + 1)..], comEra, modifica.Etichetta) is Modifica;
+            }
+
+            return CambiaIlMetadato(file, modifica.Record, metadato.Chiave, comEra, modifica.Etichetta) is Modifica;
         }
 
         // I vertici non si annullano rifacendo i gesti al contrario: si rimette l'elenco com'era all'apertura.
@@ -923,7 +940,9 @@ public sealed class ModificheInSospeso
     /// forma) invece che subito sotto il modello. Null = sotto il modello.</param>
     /// <param name="tipo">Il tipo fisso del nuovo (slice 3e, <see cref="TipoDelNuovo"/>): il valore del campo-tipo, o
     /// <c>L</c>/<c>T</c> negli <c>.artcc</c>. Null = il tipo del record copiato.</param>
-    public object AggiungiRecord(FileAperto file, int indice, string? nome = null, string? tipo = null)
+    /// <param name="codice">Per un punto VFR (slice 16c, F3): il codice del nuovo, che è anche quel che lo mette in
+    /// ordine nel file. Null = il 2° campo del modello, e il nuovo va dopo di lui.</param>
+    public object AggiungiRecord(FileAperto file, int indice, string? nome = null, string? tipo = null, string? codice = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         if (file is not IFileConRecord conRecord)
@@ -960,10 +979,28 @@ public sealed class ModificheInSospeso
                 return new ModificaRifiutata("Questi record non hanno un nome da mettere in ordine.");
             if (OrdineAlfabetico.PercheNonVa(nome) is { } perche)
                 return new ModificaRifiutata(perche);
+            // Un punto VFR sta in ordine di codice, non di nome (slice 16c): il posto lo decide il codice.
+            string chiave = nome;
+            if (conRecord.RecordDelModello[indice] is VfrPoint delVicino)
+            {
+                chiave = codice?.Trim() ?? delVicino.Code.Trim();
+                if (chiave.Contains(';', StringComparison.Ordinal) || chiave.StartsWith("//", StringComparison.Ordinal))
+                    return new ModificaRifiutata("Il codice non può avere il «;» né cominciare con «//».");
+            }
+            else if (codice is not null)
+            {
+                return new ModificaRifiutata("Solo i punti VFR hanno un codice.");
+            }
+
             // La sezione la decide il NOME, non il record scelto: «+ Record come questo» da un fix di LIBC chiamato
             // BD430 va fra i BD di LIBD (prove 40-41 del committente). Dal record scelto si copia solo la forma.
-            (dopo, primaDi) = OrdineAlfabetico.Posto(conRecord, OrdineAlfabetico.NellaSezioneGiusta(conRecord, indice, nome), nome);
-            prepara = r => r.GetType().GetProperty(campo)!.SetValue(r, nome);
+            (dopo, primaDi) = OrdineAlfabetico.Posto(conRecord, OrdineAlfabetico.NellaSezioneGiusta(conRecord, indice, chiave), chiave);
+            prepara = r =>
+            {
+                r.GetType().GetProperty(campo)!.SetValue(r, nome);
+                if (r is VfrPoint nuovo)
+                    nuovo.Code = chiave;
+            };
         }
 
         // Slice 12c (I3): in un .pol vince l'ultimo del file, quindi un poligono nuovo va DOPO l'ultimo del suo

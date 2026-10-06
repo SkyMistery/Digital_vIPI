@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.Models;
 using Vipi.Sectorfile.Validazione;
@@ -35,14 +34,11 @@ public static class GemelliVfr
     /// <summary>L'unico campo che passa fra i due gemelli.</summary>
     public const string Campo = nameof(VfrPoint.Position);
 
-    private static readonly Regex UnCodice = new(@"^[A-Z]{2,5}\d{1,2}$", RegexOptions.CultureInvariant);
-
-    /// <summary>Vero se il file è quello dei fix nascosti dei VFR.</summary>
-    public static bool ENascosti(string relativo)
-        => relativo.Replace('\\', '/').EndsWith("/NAVAIDS/VFR_NASCOSTI.fix", StringComparison.OrdinalIgnoreCase);
+    /// <summary>Vero se il file è quello dei fix nascosti dei VFR (lo dice il motore: <see cref="ControlloDeiVfr"/>).</summary>
+    public static bool ENascosti(string relativo) => ControlloDeiVfr.ENascosti(relativo);
 
     /// <summary>Vero se il 2° campo di un <c>.vfi</c> è un codice (e chiede un gemello).</summary>
-    public static bool EUnCodice(string? codice) => codice is not null && UnCodice.IsMatch(codice.Trim());
+    public static bool EUnCodice(string? codice) => ControlloDeiVfr.EUnCodice(codice);
 
     /// <summary>
     /// I gruppi di gemelli: per ogni codice che sta in un <c>.vfi</c> e nel file dei nascosti, le copie dei due lati.

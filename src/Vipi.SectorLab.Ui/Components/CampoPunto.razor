@@ -5,13 +5,15 @@
     il Lab propone i fix, VOR, NDB e scali che il master scelto conosce, filtrati man mano; scelto un nome, il file lo
     scrive NOME;NOME;. Le coordinate si scrivono come prima. La modifica parte, come negli altri campi, quando il campo
     perde il fuoco o si preme Invio (o si sceglie una voce).
+    Slice 16e (S4): col File di una rotta VFR propone prima i punti del .vfi dello scalo (anche prima di scrivere), poi
+    quelli degli scali vicini, e dice da che file viene ognuno.
 *@
 <input class="lab-campo" value="@Valore" list="@_lista" autocomplete="off" @attributes="Attributi"
        @oninput="e => _scritto = e.Value?.ToString()" @onchange="e => OnCambia.InvokeAsync(e.Value?.ToString())" />
 <datalist id="@_lista" data-suggerimenti="@_lista">
-    @foreach (var punto in Lab.Suggerimenti(_scritto))
+    @foreach (var punto in Lab.SuggerimentiPer(File, _scritto))
     {
-        <option value="@punto.Nome">@punto.Catalogo</option>
+        <option value="@punto.Nome">@Detto(punto)</option>
     }
 </datalist>
 
@@ -20,6 +22,13 @@
     [Parameter] public string? Valore { get; set; }
 
     [Parameter] public EventCallback<string?> OnCambia { get; set; }
+
+    /// <summary>Il file del record che si sta scrivendo: in una rotta VFR decide l'ordine dei suggerimenti. Null = nessuno.</summary>
+    [Parameter] public string? File { get; set; }
+
+    // Un punto VFR dice il suo file (lira.vfi): lo stesso nome può stare in due scali.
+    private static string Detto(PuntoDelCatalogo punto)
+        => punto.Catalogo == "vrp" ? "VFR · " + System.IO.Path.GetFileName(punto.File) : punto.Catalogo;
 
     /// <summary>Gli attributi del campo (<c>data-scrivi</c>, <c>data-vertice</c>): i test e le prove li cercano.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributi { get; set; }

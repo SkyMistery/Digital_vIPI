@@ -20,9 +20,11 @@ public sealed record TrattoDiAerovia(int Ordinale, string Da, string A, string? 
 /// che apre il tratto (§M regola 4 e catalogo): Aurora lo legge come un commento.
 /// </summary>
 /// <remarks>
-/// Il verso è rispetto all'ordine dei punti nel file: <c>both</c> nei due versi, <c>fwd</c> solo da questo punto al
+/// <para>Il verso è rispetto all'ordine dei punti nel file: <c>both</c> nei due versi, <c>fwd</c> solo da questo punto al
 /// successivo, <c>back</c> solo al contrario. L'ultimo punto di un pezzo non apre un tratto; un'interruzione
-/// (<c>T;BREAK</c>) e le righe delle etichette non ne hanno.
+/// (<c>T;BREAK</c>) e le righe delle etichette non ne hanno.</para>
+/// <para>Slice 16d («file per file» F8, S6): lo stesso per le rotte VFR dei <c>.vrt</c> — un tratto fra due punti di
+/// seguito, col verso e le quote nel tag del punto che lo apre.</para>
 /// </remarks>
 public static class TrattiDelleAerovie
 {
@@ -61,9 +63,13 @@ public static class TrattiDelleAerovie
         return tratti;
     }
 
-    /// <summary>Vero per un pezzo di tracciato (righe <c>T;</c> con almeno due punti), non per un'interruzione o un'etichetta.</summary>
+    /// <summary>
+    /// Vero per un pezzo di tracciato (righe <c>T;</c> con almeno due punti), non per un'interruzione o un'etichetta;
+    /// e per una rotta VFR con almeno due punti (slice 16d).
+    /// </summary>
     public static bool EUnPezzo(object record)
-        => record is Airway { FixLabels.Count: >= 2 } aerovia && !string.Equals(aerovia.Name.Trim(), "BREAK", StringComparison.OrdinalIgnoreCase);
+        => record is RottaVfr { Punti.Count: >= 2 }
+           || (record is Airway { FixLabels.Count: >= 2 } aerovia && !string.Equals(aerovia.Name.Trim(), "BREAK", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// I tratti che hanno un dato, uno per riga, per il passaggio del mouse sulla mappa
@@ -85,14 +91,19 @@ public static class TrattiDelleAerovie
         ArgumentNullException.ThrowIfNull(sessione);
         foreach (var file in sessione.File.Values.OrderBy(f => f.Relativo, StringComparer.Ordinal))
         {
-            if (Path.GetExtension(file.Relativo).ToLowerInvariant() is not (".lairway" or ".hairway") || file is not IFileConRecord conRecord)
+            string estensione = Path.GetExtension(file.Relativo).ToLowerInvariant();
+            if (estensione is not (".lairway" or ".hairway" or ".vrt") || file is not IFileConRecord conRecord)
                 continue;
+            bool rotta = estensione == ".vrt";
             for (int i = 0; i < conRecord.RecordDelModello.Count; i++)
             {
                 var tratti = Di(conRecord, i);
                 if (!tratti.Any(t => t.Verso is not null && (t.Inferiore is null || t.Superiore is null)))
                     continue;
-                var dati = conRecord.RigheDelRecord(i, 0).Where(r => r.DelRecord && r.Testo.TrimStart().StartsWith("T;", StringComparison.Ordinal)).ToList();
+                // Le righe dei punti: nelle aerovie le T;, in una rotta VFR tutte quelle che non sono commenti o tag.
+                var dati = conRecord.RigheDelRecord(i, 0).Where(r => r.DelRecord && (rotta
+                    ? r.Testo.Trim().Length > 0 && !r.Testo.TrimStart().StartsWith("//", StringComparison.Ordinal)
+                    : r.Testo.TrimStart().StartsWith("T;", StringComparison.Ordinal))).ToList();
                 foreach (var tratto in tratti.Where(t => t.Verso is not null && (t.Inferiore is null || t.Superiore is null)))
                 {
                     var riga = tratto.Ordinale < dati.Count ? dati[tratto.Ordinale] : dati.FirstOrDefault();
@@ -103,7 +114,7 @@ public static class TrattiDelleAerovie
                         _ => "la quota massima",
                     };
                     yield return new ProblemaDelSector(Regola.TrattoSenzaQuote, file.Relativo, riga?.Numero ?? 0, riga?.Testo ?? "",
-                        $"il tratto {tratto.Da} → {tratto.A} dice il verso e non {manca}: si scrivono nella scheda dell'aerovia, come nell'AIP");
+                        $"il tratto {tratto.Da} → {tratto.A} dice il verso e non {manca}: si scrivono nella scheda {(rotta ? "della rotta" : "dell'aerovia")}, come nell'AIP");
                 }
             }
         }

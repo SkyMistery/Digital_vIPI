@@ -1892,3 +1892,95 @@ mostra). 🔴 **Non fatto, e detto al committente**:
   una zona è chiusa; il gruppo di un file di ACC preso dal nome che le sue righe portano più spesso.
 
 Da provare a mano: prove 201-211.
+
+### Slice 16 — VFR (`.vfi`, `.vrt`, `ENRVFI`) — dal 6 ottobre
+
+**Manuale IVAO** (riletto il 6 ottobre: `[VFRFIX]`, `[VFRROUTE]`, `[VFRENR]`, `[VFRRTEENR]`):
+
+- `[VFRFIX]`: `Nome;Quota;Lat;Lon;[Tipo]` — la quota è «string or number» (`2500-4000`, `MAX 2500`), obbligatoria; le
+  coordinate anche per riferimento a un fix; il tipo (`0` obbligatorio, `1` VFR, `2` eli, `3` area) è **facoltativo**.
+- `[VFRROUTE]`: `Numero;Lat;Lon;Riservato;Militare` — il 4° campo è riservato, il 5° è **«Route Military»** (`1` = sì,
+  `0` o vuoto = no). I due campi `…;;1;` di `libv.vrt` e `licz.vrt`, che il modello teneva come «sconosciuti», sono questi.
+- `[VFRENR]`: come `[VFRROUTE]` col 4° campo «Group filter», in un `.vfi`; `[VFRRTEENR]`: `Nome rotta;Gruppo;Lat;Lon`.
+  🔴 Sul fork **nessun file** ha queste due forme (i tre di `ENRVFI` hanno la forma dei punti: F5, F6).
+
+**Misura sul fork** (`8cf32c6`, `scratchpad/misura16.py`; poi il validatore vero, `scratchpad/valida`):
+
+- **Punti**: 74 `.vfi` di scalo e 3 di `ENRVFI`, **586 righe**, tutte di quattro campi: **il tipo non lo scrive
+  nessuno**. Coordinate: 488 compatte, 95 coi punti, 3 scritte male (`lipx.vfi:7`, `lirf.vfi:6`, `lirn.vfi:5`: le dicono
+  già `CoordinataFuoriForma` e `CoordinataLettaAltrove`).
+- **Il 2° campo**: 510 codici (due-cinque lettere e una o due cifre: le due lettere dello scalo, una direzione, un
+  numero — `RFS3`, `BNNW1`); **72 con altro** (quasi sempre le due lettere dello scalo senza numero: `ED` in
+  `lied.vfi`, `PA`, `PL`…; `MASW` e `RZNE` senza numero), 2 numeri (`2500` in `liba.vfi`), 2 vuoti.
+- **Sei righe col codice fuori posto**: in `lipa.vfi` quattro con nome e codice **scambiati** (`PASW1;CONEGLIANO;`), in
+  `lict.vfi:8` e `liph.vfi:2` il codice **in coda al nome** (`MAZARA DEL VALLOCTSE3;;`, `CAORLE - PHE2;;`). Spiegano sei
+  dei sette «fix nascosti senza punto» della carta «file per file».
+- **Ordine**: 67 file su 77 sono in ordine di **codice** (3 anche di nome), 1 solo di nome, 9 in nessuno.
+- **Gemelli** (`VFR_NASCOSTI.fix`, 510 fix): **5 diversi** (`BNNW1` 47 m, `BNSW1` 24 m, `BNW1` 4,2 NM, `RPNE1`
+  2,5 NM, `RPSE1` 6,8 NM); **6 punti senza gemello** (`CZE1`, `MCE1`, `PYSW2`, `RFE2`, `RFS4`, `RPSW1`); **1 fix senza
+  punto** (`PRNW5`); **2 codici su due punti** (`MJNW1` in `limj.vfi`, `PKS1` in `lipk.vfi`).
+- **Rotte**: 16 `.vrt` (uno vuoto, `lirm.vrt`), **52 rotte, 123 punti**: 83 dal `.vfi` dello scalo (per nome, mai per
+  codice), 13 dal `.vfi` di uno scalo vicino (`licc` ↔ `licz`, `lire` → `lirl`, `lirn` → `lirm`), 19 fix o navaid, 8 per
+  coordinate. **8 rotte militari** (`libv`, `licz`), col 5° campo a 1 su tutte le righe: nessuna a metà.
+
+- **16a (6 ottobre)** — la rotta militare (S4). Codice comune toccato: `Models/Airport/RottaVfr.cs`, `VrtParser`,
+  `VrtSaver`. `RottaVfr.Militare` = il 5° campo a 1 su tutte le righe; lo scrittore lo mette su ogni riga, anche su
+  quella di un punto aggiunto (prima nasceva senza: la rotta diventava militare a metà). `MilitareAMeta` quando le
+  righe non sono d'accordo: la scheda allora non lo fa scrivere. Nella scheda della rotta la casella **Militare**.
+- **16b (6 ottobre)** — i controlli (F4, S4). Codice comune toccato: `Validazione/ControlloDeiVfr.cs` e sei regole
+  (avvisi). Senza `VFR_NASCOSTI.fix` il sector non segue la convenzione italiana e dei codici non si dice niente.
+  - **`GemelloVfrMancante`** (6), **`GemelloVfrDiverso`** (5: a più di un metro), **`FixNascostoSenzaPunto`** (1).
+  - **`CodiceVfrRipetuto`** (2), sul secondo punto; il punto «di casa» è quello dello scalo che ha le sue lettere nel
+    codice. Di un codice ripetuto non si confronta il gemello.
+  - **`CodiceVfrFuoriPosto`** (6), con la riga corretta (`CONEGLIANO;PASW1;…`, `MAZARA DEL VALLO;CTSE3;…`,
+    `CAORLE;PHE2;…`): «Correggi tutte le 4 di lipa.vfi». Il codice si riconosce solo se è un fix nascosto o comincia
+    con le due lettere dello scalo — 🔴 misurando: `IP31;PL;` e `IP13;PL;` di `lipl.vfi` sono punti che si chiamano
+    così, e la prima stesura li dava per scambiati.
+  - **`RottaMilitareAMeta`** (0), con la riga corretta verso la maggioranza delle righe.
+  - Le coordinate scritte male e i file sotto la sezione sbagliata hanno già le loro regole (slice 2c, F6).
+- **16c (6 ottobre)** — il punto nuovo (F3). Solo il Lab: `Core/Copie/CodiciVfr.cs`, `OrdineAlfabetico` (la chiave
+  dell'ordine: per un punto VFR il codice, col numero che conta come numero), `NuovoRecord.razor`.
+  - «+ Record come questo» in un `.vfi` chiede il nome e il **codice, già scritto**: le lettere del punto da cui si
+    parte e il **primo numero libero dopo il suo** — libero in tutto il sector: in nessun `.vfi` e non fra i fix
+    nascosti. Da un punto senza codice (`ED`) resta il suo 2° campo. Un codice già preso si rifiuta, dicendo di chi è.
+  - Il punto nasce **in ordine di codice** (prima andava in ordine di nome, che è l'ordine di 4 file su 77; di
+    codice sono 67).
+  - 🔴 Preso sul banco: «Aggiungi» restava spento finché non si sceglieva un **tipo** 0-3. Il tipo è facoltativo e
+    non lo scrive nessun punto: ora la domanda c'è («— tipo non scritto») e non ferma (`SceltaDelTipo.Facoltativo`).
+  - Il gemello del punto nuovo si crea dalla scheda (**Crea il gemello**, slice 8e), come prima.
+- **16d (6 ottobre)** — i tratti delle rotte (F8, S6). Solo il Lab: `TrattiDelleAerovie` vale anche per una
+  `RottaVfr`. Nella scheda di una rotta la sezione **Tratti** (verso, minima, massima per tratto), nel file
+  `//@@"FOCE DEL SIMETO" dir=both lower="1000ft AGL" upper=2000ft` sopra il punto che apre il tratto, sulla mappa il
+  suggerimento al passaggio del mouse, e `TrattoSenzaQuote` per un tratto col verso e senza quote.
+- **16e (6 ottobre)** — i punti di una rotta (S4). Solo il Lab: `CatalogoDeiPunti.SuggerisciPerUnaRottaVfr`,
+  `CampoPunto.razor`. Scrivendo un punto di una rotta il Lab propone **prima i punti del `.vfi` dello scalo** (anche
+  senza scrivere niente), **poi quelli degli altri `.vfi` dal più vicino**, poi fix e navaid; ogni punto VFR dice il
+  suo file (`VFR · licz.vfi`). «Chi lo usa» attraversava già gli scali (slice 7): `LENTINI` di `licz.vfi` → 2 righe
+  in `licc.vrt`, 3 in `licz.vrt`.
+- 🔴 **Trovato a schermo, e non era della slice**: una modifica al **tag di un punto** (i vincoli di SID e STAR della
+  9d, i tratti delle aerovie della 14c, ora quelli delle rotte) **non si annullava** dalle modifiche — né l'«annulla»
+  della voce né «Annulla tutto». La voce stava sotto una chiave (`@@0.dir`) e si cercava sotto un'altra (il nome
+  leggibile, `FOCE DEL SIMETO dir`). Ora la chiave è una, e il nome leggibile è a parte (`ModificaDelMetadato.Nome`).
+
+Uscita sul fork: validatore 235/1 221 → **235 errori, 1 241 avvisi** in `Vipi.SectorfileProva` (**1 249** nel pannello
+del Lab): +6, +5, +1, +2, +6. Test: motore 819 → **827**, Lab 907 → **921**. A schermo (banco, copia del fork): i conti
+nel pannello; **Correggi tutte le 4 di lipa.vfi**; da `COLOMBO` (`RFS3`, `lirf.vfi`) il codice proposto `RFS5`
+(`RFS4` c'è), `PROVA DEL LAB;RFS5;…` dopo `COLOMBO`, e nella scheda «gemello manca · Crea il gemello RFS5»; `libv.vrt`
+rotta 1 **Militare** spuntata, tolta la spunta le due righe perdono `;;1;`; `licc.vrt` rotta 7: senza scrivere i
+cinque punti di `licc.vfi`, con `LEN` `LENTINI (VFR · licz.vfi)` per primo; il tratto con `both`, `1000ft agl`,
+`2000ft`; l'«annulla» di una voce e «Annulla tutto» sui tag.
+
+**Slice 16 chiusa** per le voci F1 (le due strutture che il fork ha), F3, F4, F8, S4, S6. 🔴 **Non fatto, e detto al
+committente**:
+
+- **Le altre due strutture** (F1): le rotte en-route di `[VFRENR]` e quelle di `[VFRRTEENR]`. Sul fork non c'è un
+  file con quella forma: un lettore senza un caso vero non si può misurare. Si fa quando ne nasce uno (o con F5).
+- **Una settantina di punti senza codice** (`ED`, `PA`, `2500`…) non hanno un avviso: non chiedono un gemello, e un
+  piano di volo non li riconosce. Se è voluto o no lo dice il committente.
+- **Il gemello del punto nuovo** non nasce da solo: resta il tasto della scheda (e fino ad allora `GemelloVfrMancante`).
+- 🔴 Scelte dell'agente da confermare: il codice proposto è «stesse lettere, primo numero libero dopo quello del
+  punto da cui si parte»; due gemelli sono diversi oltre un metro; i punti VFR degli altri scali si propongono in
+  ordine di distanza dalla media dei punti dello scalo; la riga corretta di una rotta militare a metà va verso la
+  maggioranza delle righe.
+
+Da provare a mano: prove 212-222.

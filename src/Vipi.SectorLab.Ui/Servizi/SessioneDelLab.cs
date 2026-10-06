@@ -8,6 +8,7 @@ using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Models;
 using Vipi.Sectorfile.Shared;
+using Vipi.Sectorfile.Validazione;
 
 namespace Vipi.SectorLab.Ui.Servizi;
 
@@ -1393,12 +1394,36 @@ public sealed class SessioneDelLab
     /// ordine alfabetico nella sezione dove lo mette il nome, anche se il modello sta in un'altra (prove 6 e 40-41 del
     /// committente). Null = subito sotto il modello.</param>
     /// <param name="tipo">Il tipo fisso scelto per il nuovo (slice 3e, <see cref="TipoDelNuovoDi"/>); null = quello del modello.</param>
-    public bool AggiungiRecord(string fileRelativo, int record, string? nome = null, string? tipo = null)
+    /// <param name="codice">Per un punto VFR col nome (slice 16c, F3): il suo codice, che lo mette anche in ordine nel
+    /// file; null = quello che il Lab propone (<see cref="CodiceProposto"/>). Un codice già preso si rifiuta.</param>
+    public bool AggiungiRecord(string fileRelativo, int record, string? nome = null, string? tipo = null, string? codice = null)
         => NellaStoria(nome is null ? $"record aggiunto in {NomeDelFile(fileRelativo)}" : $"{nome} aggiunto in {NomeDelFile(fileRelativo)}",
             () => GestoDiStruttura(fileRelativo,
-                () => Sessione!.File[fileRelativo] is { } file
-                    ? Modifiche.AggiungiRecord(file, record, nome, tipo)
-                    : new ModificaRifiutata("Questo file non è aperto.")));
+                () =>
+                {
+                    if (Sessione!.File[fileRelativo] is not { } file)
+                        return new ModificaRifiutata("Questo file non è aperto.");
+                    if (nome is not null && ChiedeIlCodice(fileRelativo))
+                    {
+                        codice = string.IsNullOrWhiteSpace(codice) ? CodiceProposto(fileRelativo, record) : codice.Trim();
+                        if (ControlloDeiVfr.EUnCodice(codice) && CodiciVfr.ChiLoHa(Sessione, codice!) is { } chi)
+                            return new ModificaRifiutata($"Il codice {codice} è già di {chi}: un codice vale in tutto il sector, è il nome del fix nascosto.");
+                    }
+
+                    return Modifiche.AggiungiRecord(file, record, nome, tipo, codice);
+                }));
+
+    /// <summary>Vero se il record nuovo di quel file chiede anche un codice: i punti VFR dei <c>.vfi</c> (slice 16c).</summary>
+    public bool ChiedeIlCodice(string fileRelativo)
+        => fileRelativo.EndsWith(".vfi", StringComparison.OrdinalIgnoreCase)
+           && Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord { RecordDelModello: [VfrPoint, ..] };
+
+    /// <summary>
+    /// Il codice che il Lab propone a un punto VFR nuovo (slice 16c, F3): le lettere del punto da cui si parte (null:
+    /// l'ultimo del file) e il primo numero libero dopo il suo, in tutto il sector.
+    /// </summary>
+    public string? CodiceProposto(string fileRelativo, int? modello)
+        => Sessione is null ? null : CodiciVfr.Proposto(Sessione, fileRelativo, modello);
 
     /// <summary>
     /// Una procedura nuova in una voce della vista per pista e tipo (slice 9b, P2): copia l'ultima di quella pista e va
@@ -1427,15 +1452,18 @@ public sealed class SessioneDelLab
     /// Un record nuovo dal FILE, senza sceglierne uno prima (prova 6 del committente). Il modello è il vicino per nome
     /// (quello che in ordine alfabetico viene subito prima), o l'ultimo record per i file senza nomi da ordinare.
     /// </summary>
-    public bool AggiungiAlFile(string fileRelativo, string? nome = null, string? tipo = null)
+    public bool AggiungiAlFile(string fileRelativo, string? nome = null, string? tipo = null, string? codice = null)
     {
         if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord { RecordDelModello.Count: > 0 } file)
             return false;
 
+        // Un punto VFR sta in ordine di codice (slice 16c): il vicino si cerca per codice, quello detto o quello proposto.
+        if (nome is not null && ChiedeIlCodice(fileRelativo))
+            codice = string.IsNullOrWhiteSpace(codice) ? CodiceProposto(fileRelativo, null) : codice.Trim();
         int modello = nome is not null && NomeDelRecordNuovo(fileRelativo) is not null
-            ? OrdineAlfabetico.IlVicino(file, nome)
+            ? OrdineAlfabetico.IlVicino(file, codice ?? nome)
             : file.RecordDelModello.Count - 1;
-        return AggiungiRecord(fileRelativo, modello, NomeDelRecordNuovo(fileRelativo) is null ? null : nome, tipo);
+        return AggiungiRecord(fileRelativo, modello, NomeDelRecordNuovo(fileRelativo) is null ? null : nome, tipo, codice);
     }
 
     /// <summary>Il campo che il nuovo record di quel file chiede per primo (il nome), o null se non ne chiede.</summary>
@@ -2800,6 +2828,15 @@ public sealed class SessioneDelLab
     /// scelto conosce — quelli che Aurora risolverebbe — filtrati col testo scritto fin qui.
     /// </summary>
     public IReadOnlyList<PuntoDelCatalogo> Suggerimenti(string? testo) => CatalogoScelto?.Suggerisci(testo) ?? [];
+
+    /// <summary>
+    /// I punti da proporre mentre si scrive un punto in QUEL file (slice 16e, S4): in una rotta VFR prima i punti del
+    /// <c>.vfi</c> dello scalo e poi quelli degli scali vicini; negli altri file come <see cref="Suggerimenti"/>.
+    /// </summary>
+    public IReadOnlyList<PuntoDelCatalogo> SuggerimentiPer(string? fileRelativo, string? testo)
+        => fileRelativo is not null && fileRelativo.EndsWith(".vrt", StringComparison.OrdinalIgnoreCase) && CatalogoScelto is { } catalogo
+            ? catalogo.SuggerisciPerUnaRottaVfr(testo, fileRelativo[..^4] + ".vfi")
+            : Suggerimenti(testo);
 
     private readonly Dictionary<string, IReadOnlyList<string>> _etichette = new(StringComparer.Ordinal);
 
