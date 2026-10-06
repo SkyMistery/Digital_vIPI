@@ -1976,7 +1976,7 @@ committente**:
 - **Le altre due strutture** (F1): le rotte en-route di `[VFRENR]` e quelle di `[VFRRTEENR]`. Sul fork non c'è un
   file con quella forma: un lettore senza un caso vero non si può misurare. Si fa quando ne nasce uno (o con F5).
 - **Una settantina di punti senza codice** (`ED`, `PA`, `2500`…) non hanno un avviso: non chiedono un gemello, e un
-  piano di volo non li riconosce. Se è voluto o no lo dice il committente.
+  piano di volo non li riconosce. ✅ Committente, 6 ottobre: **va bene così**, nessun avviso.
 - **Il gemello del punto nuovo** non nasce da solo: resta il tasto della scheda (e fino ad allora `GemelloVfrMancante`).
 - 🔴 Scelte dell'agente da confermare: il codice proposto è «stesse lettere, primo numero libero dopo quello del
   punto da cui si parte»; due gemelli sono diversi oltre un metro; i punti VFR degli altri scali si propongono in
@@ -1984,3 +1984,12 @@ committente**:
   maggioranza delle righe.
 
 Da provare a mano: prove 212-222.
+
+**Decisioni del committente del 6 ottobre** (sulle domande nate dalla misura): i punti senza codice restano senza
+avviso; dei cinque gemelli diversi **è giusto il fix**.
+
+- **16f (6 ottobre)** — la riga corretta dei gemelli diversi. Codice comune toccato: `ControlloDeiVfr`.
+  `GemelloVfrDiverso` porta la riga del `.vfi` col punto **dov'è il fix nascosto**, scritta nella forma della riga
+  (compatta o coi punti): `PORTO CESAREO;BNW1;N0401651000;E0175025000;` → `…;N0401407000;E0175437000;`. «Correggi
+  tutte le 3 di libn.vfi», le 2 di `lirp.vfi`. 🔴 La decisione è sui cinque del fork: per un caso nuovo la riga è
+  una proposta, e chi sa che è giusto il punto sposta il fix dalla scheda (il gemello lo segue).

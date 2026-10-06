@@ -58,6 +58,9 @@ public sealed class ControlloDeiVfrTests : IDisposable
         Assert.Equal(3, diverso.Riga);
         Assert.Contains("VFR_NASCOSTI.fix:2", diverso.Dettaglio, StringComparison.Ordinal);
         Assert.Contains("1 NM", diverso.Dettaglio, StringComparison.Ordinal);
+        // Committente, 6 ottobre: nei cinque del fork è giusto il fix. La riga corretta porta il punto dov'è il fix,
+        // scritto nella forma della riga (qui compatta, mentre il fix è scritto coi punti).
+        Assert.Equal("CHARLIE;ZZS1;N0412100000;E0120000000;", diverso.Proposta);
 
         var orfano = Assert.Single(Di(Regola.FixNascostoSenzaPunto));
         Assert.Equal((3, "ZZW9;N041.50.00.000;E012.00.00.000;3;"), (orfano.Riga, orfano.Testo));

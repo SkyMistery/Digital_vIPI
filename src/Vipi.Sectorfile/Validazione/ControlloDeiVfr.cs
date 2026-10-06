@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Shared;
 
 namespace Vipi.Sectorfile.Validazione;
@@ -25,7 +26,7 @@ public static partial class ControlloDeiVfr
     // Lo stesso punto scritto in due forme (compatta, coi punti) si legge uguale al millesimo di secondo: un metro basta.
     private const double StessoPuntoMetri = 1;
 
-    private sealed record PuntoVfr(string Relativo, int Riga, string Testo, string Nome, string Codice, Coordinate? Dove);
+    private sealed record PuntoVfr(string Relativo, int Riga, string Testo, string Nome, string Codice, Coordinate? Dove, string[] Campi);
 
     private sealed record FixNascosto(int Riga, string Testo, string Nome, Coordinate? Dove);
 
@@ -92,7 +93,7 @@ public static partial class ControlloDeiVfr
                 }
 
                 if (EUnCodice(codice))
-                    punti.Add(new PuntoVfr(relativo, i + 1, righe[i], nome, codice, Leggi(campi[2], campi[3])));
+                    punti.Add(new PuntoVfr(relativo, i + 1, righe[i], nome, codice, Leggi(campi[2], campi[3]), campi));
             }
         }
 
@@ -121,8 +122,15 @@ public static partial class ControlloDeiVfr
             else if (gemelli is [{ Dove: { } delFix } gemello] && punto.Dove is { } delPunto
                      && Validatore.Metri(delPunto, delFix) is var metri && metri > StessoPuntoMetri)
             {
+                // Committente, 6 ottobre (sui cinque del fork): è giusto il fix. La riga corretta porta il punto dov'è
+                // il fix, nella forma in cui la riga scrive le sue coordinate; chi sa che è giusto il punto sposta il fix.
+                string[] corretti = [.. punto.Campi];
+                corretti[2] = CoordinateConverter.LatitudeToDottedDms(delFix.LatitudeDeg);
+                corretti[3] = CoordinateConverter.LongitudeToDottedDms(delFix.LongitudeDeg);
+                string proposta = FormaDelPunto.In([string.Join(';', corretti) + ";"], FormaDelPunto.Di([punto.Testo]) ?? FormaDelPunto.Forma.Puntata).First();
                 yield return new(Regola.GemelloVfrDiverso, punto.Relativo, punto.Riga, punto.Testo,
-                    $"il fix nascosto {codice} ({Path.GetFileName(nascosti.Relativo)}:{gemello.Riga}) è a {Distanza(metri)} dal punto «{punto.Nome}»: uno dei due è stato spostato");
+                    $"il fix nascosto {codice} ({Path.GetFileName(nascosti.Relativo)}:{gemello.Riga}) è a {Distanza(metri)} dal punto «{punto.Nome}»: la riga corretta porta il punto dov'è il fix",
+                    proposta);
             }
         }
 

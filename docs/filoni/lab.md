@@ -102,7 +102,8 @@ ordine di codice, e il tipo che può restare non scritto, **16d** i tratti delle
 `//@@`, come le aerovie), **16e** i punti di una rotta proposti dal `.vfi` dello scalo e poi da quelli vicini.
 🔴 Trovato a schermo: una modifica al tag di un punto (vincoli di SID e STAR, tratti) non si annullava dalle
 modifiche — corretto. Slice 16 chiusa (6 ottobre); non fatte e dette: le strutture `[VFRENR]` e `[VFRRTEENR]` (sul
-fork nessun file), l'avviso per i punti senza codice. Test: motore **827**, Lab **921**; albero 235 errori, 1 249
+fork nessun file). Decisioni del 6 ottobre: i punti senza codice restano senza avviso; dei cinque gemelli diversi
+è giusto il fix (**16f**: `GemelloVfrDiverso` porta la riga col punto dov'è il fix). Test: motore **827**, Lab **921**; albero 235 errori, 1 249
 avvisi. Prossima: **slice 17** (simboli; prima la prova T3 in Aurora). Il dettaglio di ogni passo sta in §6
 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
