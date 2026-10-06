@@ -450,6 +450,27 @@ public enum Regola
     /// modello tiene un valore solo. Con la riga corretta (slice 16b, S4: sul fork nessuna).
     /// </summary>
     RottaMilitareAMeta,
+
+    /// <summary>
+    /// Un segnaposto di un modello <c>.atis</c> o <c>.datis</c> che Aurora non conosce e nessun <c>.fds</c> dichiara:
+    /// nell'ATIS resta scritto com'è (slice 18a, W4: sul fork nessuno).
+    /// </summary>
+    SegnapostoSconosciuto,
+
+    /// <summary>
+    /// Parentesi quadre che non tornano in un modello ATIS: una <c>]</c> in più (<c>[Runway in use [ARR]]].</c> in
+    /// <c>default.atis</c>, con la riga corretta) o una <c>[</c> mai chiusa (slice 18a, W4).
+    /// </summary>
+    ParentesiNonBilanciate,
+
+    /// <summary>Un campo di un <c>.fds</c> che nessun modello usa: il controllore lo riempie per niente (slice 18a, W4).</summary>
+    CampoDellAtisMaiUsato,
+
+    /// <summary>
+    /// Il modello a voce e il D-ATIS che una posizione usa insieme non hanno gli stessi segnaposto (slice 18a, W3).
+    /// <c>[STATION_NAME]</c> e <c>[CPDLC]</c> non contano: il nome si può dire a voce, il CPDLC si legge soltanto.
+    /// </summary>
+    AtisEDatisDiversi,
 }
 
 public enum Gravita
@@ -498,7 +519,9 @@ public static class Regole
             or Regola.EtichettaFuoriDallaZona or Regola.ZonaSenzaEtichetta or Regola.QuotaNonValida
             or Regola.QuotaNonInCentinaia or Regola.GruppoMancanteNellaMva or Regola.MvaNonDelloScalo
             or Regola.GemelloVfrMancante or Regola.GemelloVfrDiverso or Regola.FixNascostoSenzaPunto
-            or Regola.CodiceVfrRipetuto or Regola.CodiceVfrFuoriPosto or Regola.RottaMilitareAMeta => Validazione.Gravita.Avviso,
+            or Regola.CodiceVfrRipetuto or Regola.CodiceVfrFuoriPosto or Regola.RottaMilitareAMeta
+            or Regola.SegnapostoSconosciuto or Regola.ParentesiNonBilanciate or Regola.CampoDellAtisMaiUsato
+            or Regola.AtisEDatisDiversi => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

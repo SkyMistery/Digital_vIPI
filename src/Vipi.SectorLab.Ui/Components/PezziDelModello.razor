@@ -1,0 +1,35 @@
+@using Vipi.Sectorfile.IO
+
+@*
+    I pezzi di un modello ATIS, disegnati (lotto «Subito» slice 18b, «file per file» W1): il testo com'è, i segnaposto
+    come etichette, le parti facoltative in un riquadro tenue — anche una dentro l'altra. Un segnaposto che nessuno
+    conosce è segnato.
+*@
+@foreach (var pezzo in Pezzi)
+{
+    switch (pezzo)
+    {
+        case TestoDelModello testo:
+            <span>@testo.Testo</span>
+            break;
+        case SegnapostoDelModello segnaposto:
+            <mark class="lab-segnaposto @(Conosciuti.Contains(segnaposto.Nome) ? null : "lab-segnaposto-ignoto")"
+                  title="@(Significati.GetValueOrDefault(segnaposto.Nome) ?? "Nessuno lo conosce: nell'ATIS resta scritto com'è")"
+                  data-segnaposto="@segnaposto.Nome">@segnaposto.Nome</mark>
+            break;
+        case ParteFacoltativa parte:
+            <span class="lab-facoltativa" title="Parte facoltativa: c'è solo se il suo segnaposto ha un valore" data-facoltativa>
+                <PezziDelModello Pezzi="parte.Pezzi" Conosciuti="Conosciuti" Significati="Significati" />
+            </span>
+            break;
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PezzoDelModello> Pezzi { get; set; } = null!;
+
+    /// <summary>I segnaposto che Aurora o un .fds conoscono.</summary>
+    [Parameter, EditorRequired] public IReadOnlySet<string> Conosciuti { get; set; } = null!;
+
+    [Parameter, EditorRequired] public IReadOnlyDictionary<string, string> Significati { get; set; } = null!;
+}

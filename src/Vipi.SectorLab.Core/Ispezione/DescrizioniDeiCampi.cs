@@ -153,6 +153,7 @@ public static class DescrizioniDeiCampi
         return record switch
         {
             MvaSector => diAcc ? MvaDiAcc : MvaDiScalo,
+            AtisData when relativo is not null && relativo.EndsWith(".datis", StringComparison.OrdinalIgnoreCase) => ModelloDatis,
             StrRecord { RunwaySpec: var piste } voce when EUnaMappa(piste) => MappeDelMaps[voce.GetType()],
             _ => PerTipo.GetValueOrDefault(record.GetType()),
         };
@@ -165,6 +166,7 @@ public static class DescrizioniDeiCampi
             yield return (tipo, descrizione);
         yield return (typeof(MvaSector), MvaDiAcc);
         yield return (typeof(MvaSector), MvaDiScalo);
+        yield return (typeof(AtisData), ModelloDatis);
         foreach (var (tipo, descrizione) in MappeDelMaps)
             yield return (tipo, descrizione);
     }
@@ -245,6 +247,12 @@ public static class DescrizioniDeiCampi
 
     private static DescrizioneDelCampo Vertici(string proprieta, string nome = "Vertici")
         => C(proprieta, nome, "I punti, uno per riga: si scrivono nella loro sezione qui sotto, e si vedono sulla mappa.", Editor.SolaLettura);
+
+    // Slice 18a: il D-ATIS ha la forma dell'ATIS, ma si legge: niente pronunce.
+    private static readonly DescrizioneDelTipo ModelloDatis = new("Modello D-ATIS",
+    [
+        C("Template", "Modello", "Il testo del D-ATIS, coi segnaposto fra parentesi quadre e le parti facoltative: si legge, quindi si scrive normale."),
+    ]);
 
     // Slice 15a: un blocco che raccoglie le etichette di più zone ha una quota per riga, e il modello ne tiene una.
     private static bool UnaQuotaSola(object record) => record is not MvaSector { EtichetteDiverse: true };
@@ -521,7 +529,13 @@ public static class DescrizioniDeiCampi
         ]),
         [typeof(AtisData)] = new("Modello ATIS",
         [
-            C("Template", "Modello", "Il testo, coi segnaposto."),
+            C("Template", "Modello", "Il testo, coi segnaposto fra parentesi quadre e le parti facoltative: si scrive per la voce, com'è pronunciato."),
+        ]),
+        // Slice 18a (§22): un campo in più della finestra ATIS, da un .fds ([ATISFIELD]).
+        [typeof(CampoDellAtis)] = new("Campo dell'ATIS",
+        [
+            C("Etichetta", "Etichetta", "Il testo che il controllore vede accanto alla casella nella finestra ATIS (1° campo)."),
+            C("Segnaposto", "Segnaposto", "Il nome col quale i modelli .atis e .datis citano quel che il controllore ci scrive (2° campo, fra parentesi quadre nel file)."),
         ]),
     };
 

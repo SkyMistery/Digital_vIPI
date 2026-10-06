@@ -86,6 +86,11 @@ public static class Ispettore
     public static string Etichetta(object record)
     {
         ArgumentNullException.ThrowIfNull(record);
+        // Slice 18: un modello ATIS non ha un nome (uno per file), un campo dei .fds si chiama col suo segnaposto.
+        if (record is Vipi.Sectorfile.Models.AtisData)
+            return "Modello";
+        if (record is Vipi.Sectorfile.Models.CampoDellAtis campo)
+            return campo.Segnaposto;
         foreach (string nome in NomiCheFannoDaEtichetta)
         {
             if (record.GetType().GetProperty(nome, BindingFlags.Public | BindingFlags.Instance)?.GetValue(record) is { } valore

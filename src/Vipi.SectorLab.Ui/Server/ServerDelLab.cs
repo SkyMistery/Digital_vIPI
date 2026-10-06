@@ -59,7 +59,8 @@ public static class ServerDelLab
         builder.Services.AddSingleton(segreto);
         builder.Services.AddSingleton(registro);
         // La cartella aperta è dell'applicazione, non della pagina: un Ctrl+F5 non rilegge 102 MB d'albero.
-        builder.Services.AddSingleton(_ => new SessioneDelLab(cartellaDeiDati, registro));
+        // «Ascolta» (slice 18c): nel Lab vero la voce è quella di Windows; dove non c'è, il tasto resta spento.
+        builder.Services.AddSingleton(_ => new SessioneDelLab(cartellaDeiDati, registro) { Voce = VoceDiWindows.Crea() is { } voce ? voce : new VoceMuta() });
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.Configure<HubOptions>(o => o.MaximumReceiveMessageSize = TettoDelMessaggio);
 

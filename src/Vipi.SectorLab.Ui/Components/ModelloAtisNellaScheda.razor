@@ -1,0 +1,224 @@
+@using Vipi.Sectorfile.IO
+@implements IDisposable
+@inject SessioneDelLab Lab
+@inject IJSRuntime Js
+
+@*
+    Il modello di un ATIS o di un D-ATIS (lotto «Subito» slice 18; «file per file» §22, W1-W3). Tre sezioni:
+    – Modello: il testo da scrivere, com'è fatto (segnaposto, parti facoltative, parentesi che non tornano) e i
+      segnaposto da scegliere, che si infilano dove sta il cursore;
+    – Anteprima: il testo che esce con dei valori d'esempio, che si possono cambiare, e «Ascolta» con una voce di
+      Windows — i .atis sono scritti per la voce, e una pronuncia si giudica a orecchio;
+    – accanto: il D-ATIS (o l'ATIS) che le posizioni dei .frq usano insieme a questo, con la stessa anteprima e i
+      segnaposto che ha solo l'uno o solo l'altro. Le pronunce non si correggono da sole.
+*@
+@if (Lab.ModelloAtisDi(File, Record) is { } modello)
+{
+    var conosciuti = modello.Offerti.Select(o => o.Nome).ToHashSet(StringComparer.Ordinal);
+    var significati = modello.Offerti.ToDictionary(o => o.Nome, o => o.Significato, StringComparer.Ordinal);
+    var ignoti = modello.Letto.Segnaposto.Distinct(StringComparer.Ordinal).Where(n => !conosciuti.Contains(n)).ToList();
+    string anteprima = Lab.AnteprimaDellAtis(modello.Testo);
+
+    <Sezione Chiave="scheda-modello-atis" data-modello-atis="@Tipo(modello)">
+    <Titolo>@Titolo(modello) <span class="lab-nota">@Quanti(modello) segnaposto</span></Titolo>
+    <ChildContent>
+    <textarea id="@_campo" class="lab-campo lab-modello-atis" rows="5" spellcheck="false" value="@modello.Testo"
+              title="@ComeSiScrive(modello)"
+              @onchange="e => Lab.CambiaCampo(File, Record, Campo, e.Value?.ToString())" data-scrivi-modello></textarea>
+
+    <p class="lab-modello-letto" data-struttura>
+        <PezziDelModello Pezzi="modello.Letto.Pezzi" Conosciuti="conosciuti" Significati="significati" />
+    </p>
+    @if (modello.Letto.ChiuseInPiu.Count > 0)
+    {
+        <p class="lab-avviso-breve" data-parentesi="in-piu">Una «]» in più al carattere @Caratteri(modello.Letto.ChiuseInPiu): non chiude nessuna parte, e nell'ATIS si legge.</p>
+    }
+    @if (modello.Letto.MaiChiuse.Count > 0)
+    {
+        <p class="lab-avviso-breve" data-parentesi="mai-chiusa">Una «[» mai chiusa al carattere @Caratteri(modello.Letto.MaiChiuse): la parte facoltativa che apre non finisce.</p>
+    }
+    @if (ignoti.Count > 0)
+    {
+        <p class="lab-avviso-breve" data-segnaposto-ignoti>@FraParentesi(ignoti) — nessuno lo conosce: non è di Aurora e nessun .fds lo dichiara.</p>
+    }
+
+    <div class="lab-segnaposti" data-segnaposti>
+        @foreach (var offerto in modello.Offerti)
+        {
+            string nome = offerto.Nome;
+            <button type="button" class="lab-segnaposto-tasto @(offerto.Usato ? "lab-segnaposto-usato" : null)" data-inserisci="@nome"
+                    title="@TitoloDi(offerto)"
+                    @onclick="() => Inserisci(nome, modello.Testo)">@nome</button>
+        }
+    </div>
+    </ChildContent>
+    </Sezione>
+
+    <Sezione Chiave="scheda-anteprima-atis">
+    <Titolo>Anteprima <span class="lab-nota">con valori d'esempio</span></Titolo>
+    <Accanto>
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="ascolta" disabled="@(Lab.Voce.PercheNo is not null)"
+                title="@(Lab.Voce.PercheNo ?? "Legge l'anteprima con la voce scelta: per sentire le pronunce")"
+                @onclick="() => Lab.Ascolta(anteprima, _voce)">▶ Ascolta</button>
+        <button type="button" class="lab-annulla" data-tasto="ferma-la-voce" title="Smette di leggere" @onclick="() => Lab.Voce.Ferma()">■</button>
+    </Accanto>
+    <ChildContent>
+    <p class="lab-anteprima-atis" data-anteprima>@anteprima</p>
+    @if (Lab.Voce.Voci.Count > 0)
+    {
+        <label class="lab-nota lab-voce">Voce
+            <select class="lab-campo" value="@(_voce ?? Lab.Voce.DiBase)" @onchange="e => _voce = e.Value?.ToString()" data-campo="voce">
+                @foreach (string voce in Lab.Voce.Voci)
+                {
+                    <option value="@voce">@voce</option>
+                }
+            </select>
+        </label>
+    }
+    <p class="lab-nota">Lettera, ora e METAR Aurora li trasforma prima di leggerli (come, il manuale non lo dice): qui entrano come li scrivi sotto.</p>
+    <table class="lab-campi lab-valori-atis">
+        <tbody>
+            @foreach (string nome in modello.DaRiempire)
+            {
+                string chiave = nome;
+                <tr data-valore-atis="@chiave">
+                    <th title="@significati.GetValueOrDefault(chiave)">@chiave</th>
+                    <td>
+                        <input class="lab-campo" value="@Lab.ValoriDellAtis.GetValueOrDefault(chiave)" placeholder="vuoto: la sua parte sparisce"
+                               @onchange="e => Lab.CambiaIlValoreDellAtis(chiave, e.Value?.ToString())" data-scrivi-valore="@chiave" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </ChildContent>
+    </Sezione>
+
+    @if (modello.Compagni.Count > 0)
+    {
+        <Sezione Chiave="scheda-compagni-atis" data-compagni="@modello.Compagni.Count">
+        <Titolo>@Accanto(modello) <span class="lab-nota">@Riassunto(modello.Compagni)</span></Titolo>
+        <ChildContent>
+        @foreach (var compagno in modello.Compagni)
+        {
+            var suo = compagno;
+            <div class="lab-compagno-atis" data-compagno="@NomeDelFile(suo.File)">
+                <button type="button" class="lab-citazione" title="Clic per aprire il suo modello" disabled="@(suo.Record is null)"
+                        @onclick="() => Vai(suo)">
+                    @NomeDelFile(suo.File) <span class="lab-nota">@Insieme(suo)</span>
+                </button>
+                @if (suo.Record is null)
+                {
+                    <p class="lab-nota" data-compagno-vuoto>È vuoto: per quelle posizioni nessun D-ATIS (voluto).</p>
+                }
+                else
+                {
+                    <p class="lab-modello-letto">
+                        <PezziDelModello Pezzi="ModelloAtis.Leggi(suo.Modello).Pezzi" Conosciuti="conosciuti" Significati="significati" />
+                    </p>
+                    <p class="lab-anteprima-atis" data-anteprima-compagno>@Lab.AnteprimaDellAtis(suo.Modello)</p>
+                    @if (suo.Uguali)
+                    {
+                        <p class="lab-nota" data-stessi-segnaposto>Gli stessi segnaposto<span>@DiversiPerScelta(modello.Testo, suo.Modello)</span>.</p>
+                    }
+                    else
+                    {
+                        <p class="lab-avviso-breve" data-segnaposto-diversi>
+                            @if (suo.SoloQui.Count > 0)
+                            {
+                                <span>Solo qui: @FraParentesi(suo.SoloQui). </span>
+                            }
+                            @if (suo.SoloLa.Count > 0)
+                            {
+                                <span>Solo in @NomeDelFile(suo.File): @FraParentesi(suo.SoloLa).</span>
+                            }
+                        </p>
+                    }
+                }
+            </div>
+        }
+        </ChildContent>
+        </Sezione>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    private const string Campo = "Template";
+
+    private readonly string _campo = "modello-atis-" + Guid.NewGuid().ToString("N")[..8];
+
+    /// <summary>La voce scelta; null = quella proposta.</summary>
+    private string? _voce;
+
+    // Solo parametri primitivi: si ridisegna da sé ai cambi del Lab (la lezione della 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    /// <summary>
+    /// Mette il segnaposto dove sta il cursore del campo (lo fa la pagina, che sa dov'è); se la pagina non risponde —
+    /// il campo non ha mai avuto il fuoco — in fondo al modello.
+    /// </summary>
+    private async Task Inserisci(string nome, string modello)
+    {
+        bool messo = false;
+        try
+        {
+            messo = await Js.InvokeAsync<bool>("sectorlab.inserisci", _campo, $"[{nome}]");
+        }
+        catch (JSException)
+        {
+            // Senza la pagina (o senza la funzione) si va in fondo.
+        }
+
+        if (!messo)
+            Lab.CambiaCampo(File, Record, Campo, modello.Length == 0 || modello.EndsWith(' ') ? $"{modello}[{nome}]" : $"{modello} [{nome}]");
+    }
+
+    private void Vai(CompagnoDelModello compagno)
+    {
+        if (compagno.Record is { } indice)
+            Lab.Scegli(compagno.File, indice);
+    }
+
+    private static string Riassunto(IReadOnlyList<CompagnoDelModello> compagni)
+        => string.Join(" · ", compagni.Select(c => NomeDelFile(c.File) + (c.Record is null ? " (vuoto)" : c.Uguali ? "" : " ≠")));
+
+    // Le due differenze che non contano, dette quando ci sono: così si sa che il confronto le ha viste.
+    private static string DiversiPerScelta(string suo, string altro)
+    {
+        var a = ModelloAtis.Leggi(suo).Segnaposto.ToHashSet(StringComparer.Ordinal);
+        var b = ModelloAtis.Leggi(altro).Segnaposto.ToHashSet(StringComparer.Ordinal);
+        var volute = new[] { "STATION_NAME", "CPDLC" }.Where(n => a.Contains(n) != b.Contains(n)).Select(n => $"[{n}]").ToList();
+        return volute.Count == 0 ? "" : $" (a parte {string.Join(" e ", volute)}, che è giusto siano diversi)";
+    }
+
+    private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
+
+    private static string Tipo(ModelloNellaScheda modello) => modello.Datis ? "datis" : "atis";
+
+    private static string Titolo(ModelloNellaScheda modello) => modello.Datis ? "Modello del D-ATIS" : "Modello dell'ATIS";
+
+    private static string Accanto(ModelloNellaScheda modello) => modello.Datis ? "L'ATIS a voce accanto" : "Il D-ATIS accanto";
+
+    private static int Quanti(ModelloNellaScheda modello) => modello.Letto.Segnaposto.Distinct(StringComparer.Ordinal).Count();
+
+    private static string ComeSiScrive(ModelloNellaScheda modello)
+        => modello.Datis ? "Il testo del D-ATIS: si legge, quindi si scrive normale" : "Il testo dell'ATIS a voce: si scrive com'è pronunciato";
+
+    private static string Caratteri(IReadOnlyList<int> posizioni) => string.Join(", ", posizioni.Select(k => k + 1));
+
+    private static string FraParentesi(IEnumerable<string> nomi) => string.Join(" ", nomi.Select(n => $"[{n}]"));
+
+    private static string TitoloDi(SegnapostoOfferto offerto)
+        => $"[{offerto.Nome}] — {offerto.Significato}. Clic: lo mette dove sta il cursore" + (offerto.Usato ? " (il modello lo usa già)" : "");
+
+    private static string Insieme(CompagnoDelModello compagno)
+        => compagno.Posizioni == 1 ? "una posizione li usa insieme" : $"{compagno.Posizioni} posizioni li usano insieme";
+}

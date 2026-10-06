@@ -42,11 +42,12 @@ public sealed class DescrizioniDeiCampiTests : IDisposable
             .Select(p => p.Name);
 
     [Fact]
-    public void IlMotoreHaIVentisetteTipiDiRecordDiOggi()
+    public void IlMotoreHaIVentottoTipiDiRecordDiOggi()
     {
         // Se il numero cambia, un tipo è nato o sparito: il test qui sotto dice quale descrizione manca. Lotto «Subito»
-        // slice 11c: 24 → 26, i messaggi CPDLC e i nomi dei loro gruppi; 11d: 27, le impostazioni dei profili .cpr.
-        Assert.Equal(27, TipiDiRecordDelMotore().Count);
+        // slice 11c: 24 → 26, i messaggi CPDLC e i nomi dei loro gruppi; 11d: 27, le impostazioni dei profili .cpr;
+        // 18a: 28, i campi in più della finestra ATIS (.fds).
+        Assert.Equal(28, TipiDiRecordDelMotore().Count);
     }
 
     [Fact]

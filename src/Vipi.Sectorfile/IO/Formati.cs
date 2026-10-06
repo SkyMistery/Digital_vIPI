@@ -49,7 +49,9 @@ public static class Formati
             "gts" => Con(new GtsParser(avvisi), new GtsSaver()),
             "sid" => Con(new SidParser(avvisi), new SidSaver()),
             "vfi" => Con(new VfiParser(avvisi), new VfiSaver()),
-            "atis" => Con(new AtisParser(avvisi), new AtisSaver()),
+            // Slice 18a (§22): il D-ATIS ha la forma dell'ATIS; i .fds dichiarano i campi in più della finestra ATIS.
+            "atis" or "datis" => Con(new AtisParser(avvisi), new AtisSaver()),
+            "fds" => Con(new FdsParser(avvisi), new FdsSaver()),
             "vor" => Con(new VorParser(avvisi), new VorSaver()),
             "ndb" => Con(new NdbParser(avvisi), new NdbSaver()),
             "fix" => Con(new FixParser(avvisi), new FixSaver()),

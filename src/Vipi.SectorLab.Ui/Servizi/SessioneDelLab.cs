@@ -2375,6 +2375,65 @@ public sealed class SessioneDelLab
         return indice >= 0 && TogliRecordEBasta(domanda.File, indice);
     }
 
+    // --- i modelli ATIS e D-ATIS (slice 18) -------------------------------------------------------------------
+
+    /// <summary>La voce di «Ascolta» (slice 18c, W2): di base nessuna; il Lab vero mette quella di Windows.</summary>
+    public IVoce Voce { get; set; } = new VoceMuta();
+
+    private Dictionary<string, string>? _valoriDellAtis;
+
+    /// <summary>I valori con cui si riempie l'anteprima di un modello: quelli d'esempio, e quelli scritti dall'AOD.</summary>
+    public IReadOnlyDictionary<string, string> ValoriDellAtis
+        => _valoriDellAtis ??= Sessione is null ? [] : ModelliAtisDelLab.Esempio(Sessione);
+
+    /// <summary>Cambia un valore dell'anteprima (vuoto: la parte facoltativa di quel segnaposto sparisce).</summary>
+    public void CambiaIlValoreDellAtis(string nome, string? valore)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(nome);
+        _ = ValoriDellAtis;
+        _valoriDellAtis![nome] = (valore ?? "").Trim();
+        Avvisa();
+    }
+
+    /// <summary>Il testo che esce da un modello coi valori dell'anteprima.</summary>
+    public string AnteprimaDellAtis(string modello)
+        => ModelloAtis.Riempi(ModelloAtis.Leggi(modello ?? ""), ValoriDellAtis);
+
+    /// <summary>
+    /// Il modello di un <c>.atis</c> o di un <c>.datis</c> come lo mostra la scheda (slice 18b-18d; W1, W3): com'è
+    /// fatto, i segnaposto da offrire, quelli da riempire nell'anteprima e i modelli che gli stanno accanto. Null se il
+    /// record non è un modello.
+    /// </summary>
+    public ModelloNellaScheda? ModelloAtisDi(string fileRelativo, int record)
+    {
+        if (Sessione is null || !ModelliAtisDelLab.EUnModello(fileRelativo)
+            || Sessione.File.GetValueOrDefault(fileRelativo) is not IFileConRecord file
+            || record < 0 || record >= file.RecordDelModello.Count || file.RecordDelModello[record] is not AtisData dato)
+        {
+            return null;
+        }
+
+        var letto = ModelloAtis.Leggi(dato.Template);
+        var offerti = ModelliAtisDelLab.Segnaposto(Sessione, dato.Template);
+        var compagni = ModelliAtisDelLab.Compagni(Sessione, fileRelativo, dato.Template);
+        // Da riempire: i segnaposto di questo modello e dei suoi compagni, nell'ordine in cui si offrono; in coda
+        // quelli che nessuno conosce.
+        var usati = letto.Segnaposto.Concat(compagni.SelectMany(c => ModelloAtis.Leggi(c.Modello).Segnaposto)).ToHashSet(StringComparer.Ordinal);
+        List<string> daRiempire = [.. offerti.Select(o => o.Nome).Where(usati.Contains),
+                                   .. usati.Where(n => offerti.All(o => o.Nome != n)).Order(StringComparer.Ordinal)];
+        return new ModelloNellaScheda(dato.Template, ModelliAtisDelLab.EUnDatis(fileRelativo), letto, offerti, daRiempire, compagni);
+    }
+
+    /// <summary>«Ascolta» (slice 18c, W2): la voce legge il testo. Falso, col perché in <see cref="Rifiuto"/>, se non può.</summary>
+    public bool Ascolta(string testo, string? voce = null)
+    {
+        bool letto = Voce.Leggi(testo, voce);
+        Registro.Scrivi("voce", letto ? $"letti {testo.Length} caratteri con {voce ?? Voce.DiBase}" : "non letta: " + (Voce.PercheNo ?? "niente da leggere"));
+        Rifiuto = letto ? null : Voce.PercheNo ?? "Non c'è niente da leggere.";
+        Avvisa();
+        return letto;
+    }
+
     /// <summary>Il gemello di un punto .vfi o di un fix nascosto (slice 8e, F2), o null se il record non ne chiede.</summary>
     public GemelloVfr? GemelloDi(string fileRelativo, int record)
         => Sessione is null ? null : GemelliVfr.Di(Sessione, fileRelativo, record);
@@ -3232,6 +3291,13 @@ public sealed class SessioneDelLab
 /// definizione, null se non c'è; <see cref="Proposta"/> l'attesa col nome del punto (<c>HLD-EKLAP</c>) quando quella
 /// citata non c'è.
 /// </summary>
+/// <summary>
+/// Il modello di un ATIS o di un D-ATIS per la scheda (slice 18): il testo, com'è fatto, i segnaposto offerti, quelli
+/// da riempire nell'anteprima e i modelli accanto.
+/// </summary>
+public sealed record ModelloNellaScheda(string Testo, bool Datis, ModelloAtisLetto Letto, IReadOnlyList<SegnapostoOfferto> Offerti,
+                                        IReadOnlyList<string> DaRiempire, IReadOnlyList<CompagnoDelModello> Compagni);
+
 public sealed record AttesaDellaScheda(string Nome, string? File, int Indice, string? Info, string? Proposta);
 
 /// <summary>Un legame della voce scelta con un'altra dello stesso .str (slice 9e): <see cref="Arriva"/> = si arriva da lei.</summary>

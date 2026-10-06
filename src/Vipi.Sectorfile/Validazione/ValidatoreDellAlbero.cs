@@ -158,7 +158,9 @@ public static partial class Validatore
         // che il motore legge: un testo vuoto non è un problema.
         foreach (string percorso in indice.Values.Order(StringComparer.Ordinal))
         {
-            if (Esito(percorso) is not null && SectorFileReader.Read(percorso).Lines
+            // Un D-ATIS vuoto è voluto (W4): `datis.datis` è il «nessun D-ATIS» di 180 posizioni.
+            if (Esito(percorso) is not null && !percorso.EndsWith(".datis", StringComparison.OrdinalIgnoreCase)
+                && SectorFileReader.Read(percorso).Lines
                     .All(r => r.Trim().Length == 0 || r.TrimStart().StartsWith("//", StringComparison.Ordinal)))
             {
                 problemi.Add(new(Regola.FileVuoto, Relativo(percorso), 0, string.Empty,
@@ -246,6 +248,9 @@ public static partial class Validatore
         string? nascosti = indice.Values.Where(ControlloDeiVfr.ENascosti).Order(StringComparer.Ordinal).FirstOrDefault();
         problemi.AddRange(ControlloDeiVfr.Di(Con(".vfi"),
             nascosti is null ? null : (Relativo(nascosti), SectorFileReader.Read(nascosti).Lines), Con(".vrt")));
+
+        // I modelli ATIS e D-ATIS (slice 18a; W3, W4): segnaposto, parentesi, campi dei .fds, l'ATIS contro il suo D-ATIS.
+        problemi.AddRange(ControlloDegliAtis.Di([.. Con(".atis"), .. Con(".datis")], Con(".fds"), Con(".frq")));
 
         // Il CPDLC (lotto «Subito» slice 11c): gruppi senza messaggi, messaggi senza risposta, valori, elenchi del manuale.
         var cpdlc = indice.Values.Where(p => (p.EndsWith(".cpdlc", StringComparison.OrdinalIgnoreCase)

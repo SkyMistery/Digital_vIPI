@@ -1993,3 +1993,81 @@ avviso; dei cinque gemelli diversi **è giusto il fix**.
   (compatta o coi punti): `PORTO CESAREO;BNW1;N0401651000;E0175025000;` → `…;N0401407000;E0175437000;`. «Correggi
   tutte le 3 di libn.vfi», le 2 di `lirp.vfi`. 🔴 La decisione è sui cinque del fork: per un caso nuovo la riga è
   una proposta, e chi sa che è giusto il punto sposta il fix dalla scheda (il gemello lo segue).
+
+### Slice 18 — ATIS e D-ATIS (`.atis`, `.datis`, `atisextra.fds`) — dal 6 ottobre
+
+Fatta prima della 17 (i simboli aspettano la prova T3 del committente in Aurora).
+
+**Manuale IVAO** (riletto il 6 ottobre): `[ATIS]` dice solo di guardare lo strumento «ATIS Creator» (già esaminato,
+carta «file per file» §22: dieci segnaposto); `[ATISFIELD]` e i `.fds` **non ci sono**; di `[ATC]` l'8° campo è
+«DAtis: Assign Digital ATIS structure». Come Aurora riempia e legga un modello non sta scritto da nessuna parte.
+
+**Misura sul fork** (`8cf32c6`):
+
+- **7 `.atis`**, tutti di una riga: `default` e `arrdep` generici (con `[STATION_NAME]`), `lica`, `lied`, `limc`,
+  `liml`, `lipz` col nome dello scalo scritto per la voce («mlpainsa», «lee,NAH,teh», «Venetziah»). **4 `.datis`**:
+  `datis-ad`, `datis-arrdep`, `datis-acc` (solo `CPDLC ID [CPDLC]`) e `datis.datis`, **vuoto e voluto**.
+- **Segnaposto usati**: `STATION_NAME`, `ATIS_LETTER`, `ATIS_TIME`, `ARR_TYPE`, `ARR`, `DEP`, `TL`, `METAR`, `QFE`,
+  `REMARK`, `CPDLC`. Mai `DEP_FREQ` e `TA`. `ARR_TYPE` viene da `atisextra.fds` (`Type of Approach;[ARR_TYPE];`).
+- **Parti facoltative**: `[Arrival runway [ARR]]`, `[Q F Echo [QFE]]`… un livello solo, un segnaposto per parte.
+- 🔴 **Una parentesi in più in `default.atis`**: `[Runway in use [ARR]]].` — è il modello di **102 posizioni**. Con
+  i valori d'esempio esce «Runway in use 16L].».
+- **Chi usa cosa** (righe dei `.frq`): `default.atis` + `datis-ad` 98, `arrdep` + `datis-arrdep` 22, `limc` +
+  `datis-arrdep` 18, `lipz` 8, `liml` 8, `lied` 6, `lica` 2 (tutti con `datis-ad`), `default` + `datis.datis` 4; 176
+  posizioni col solo `datis.datis`, 39 col solo `datis-acc`. Le sette coppie differiscono **solo** per
+  `[STATION_NAME]` (il modello di uno scalo dice il nome) e per `[CPDLC]` (solo nel D-ATIS).
+
+- **18a (6 ottobre)** — il motore. Codice comune toccato: `IO/ModelloAtis.cs` (nuovo), `IO/Parsers/FdsParser.cs`,
+  `IO/Savers/FdsSaver.cs`, `Models/Airport/CampoDellAtis.cs` (nuovi), `IO/Formati.cs`,
+  `Validazione/ControlloDegliAtis.cs` (nuovo), quattro regole (avvisi), `ValidatoreDellAlbero`.
+  - **I `.datis` si leggono come gli `.atis`** e i **`.fds`** hanno il loro lettore (`Etichetta;[SEGNAPOSTO];`):
+    prima erano testo. Il 28° tipo di record del motore.
+  - **`ModelloAtis.Leggi`**: un modello in testo, segnaposto e parti facoltative (anche annidate), con le posizioni
+    delle parentesi che non tornano; non fallisce mai. Una parentesi che tiene solo un nome in maiuscole è un
+    segnaposto, se no una parte facoltativa. **`Riempi`**: un segnaposto vuoto sparisce con la sua parte; uno che
+    nessuno conosce resta scritto com'è.
+  - **`SegnapostoSconosciuto`**: non è fra i dodici di Aurora (i dieci di ATIS Creator, `QFE`, `CPDLC`) né in un `.fds`.
+  - **`ParentesiNonBilanciate`**: una `]` in più, con la riga corretta; una `[` mai chiusa, senza.
+  - **`CampoDellAtisMaiUsato`**: un campo di un `.fds` che nessun modello cita.
+  - **`AtisEDatisDiversi`** (W3): l'ATIS e il D-ATIS che una posizione usa insieme non hanno gli stessi segnaposto;
+    `STATION_NAME` e `CPDLC` non contano. Uno per coppia, sull'ATIS.
+  - `datis.datis` vuoto **non** è `FileVuoto` (W4). `\liml.atis` resta dov'era: Aurora lo trova (R-10, slice 11).
+  Uscita sul fork: **1** `ParentesiNonBilanciate` (`default.atis`), 0 gli altri tre.
+- **18b (6 ottobre)** — l'editor (W1). Solo il Lab: `ModelloAtisNellaScheda.razor`, `PezziDelModello.razor`,
+  `Core/Ispezione/ModelliAtisDelLab.cs`. Nella scheda di un modello la sezione **Modello**: il testo in un campo
+  largo; sotto, lo stesso testo **fatto a pezzi** — i segnaposto come etichette (col significato al passaggio del
+  mouse), le parti facoltative in un riquadro tratteggiato, la parentesi che non torna detta col suo carattere, il
+  segnaposto che nessuno conosce segnato; e i **segnaposto da scegliere** (i dodici di Aurora e quelli dei `.fds`,
+  tenui quelli già usati): un clic lo mette **dove sta il cursore**. Il record nell'elenco si chiama «Modello», non
+  più `AtisData`.
+- **18c (6 ottobre)** — anteprima e «Ascolta» (W1, W2). `Ui/Servizi/Voce.cs`. **Anteprima**: il modello riempito con
+  valori d'esempio (stazione, lettera, ora, piste, livello, un METAR, QFE, `ILS` per i campi dei `.fds`; note e TA
+  vuote), che si cambiano lì sotto senza toccare il sector: svuotato un valore, la sua parte sparisce. **▶ Ascolta**
+  la legge con una voce di Windows (SAPI 5, chiamata per nome: nessun pacchetto in più), scelta fra quelle
+  installate — di base la prima inglese; **■** la ferma. Dove non c'è una voce il tasto è spento, col perché.
+- **18d (6 ottobre)** — il modello accanto (W3). Nella scheda di un ATIS **Il D-ATIS accanto** (e viceversa): i
+  modelli che le posizioni dei `.frq` usano insieme a questo, con quante posizioni, il loro testo a pezzi, la loro
+  anteprima con gli stessi valori, e i segnaposto che ha solo l'uno o solo l'altro. Le pronunce non si toccano.
+
+Uscita sul fork: validatore 235/1 241 → **235 errori, 1 242 avvisi** in `Vipi.SectorfileProva` (**1 250** nel pannello
+del Lab): +1. Round-trip **723/723** (erano 718: i quattro `.datis` e il `.fds` ora hanno un lettore; restano 25 file
+senza), tutto toccato 0, una modifica per record 115 620. Test: motore 827 → **839**, Lab 921 → **930**. A schermo (banco, copia del fork): `default.atis` →
+nove segnaposto, quattro parti facoltative, «Una «]» in più al carattere 141», l'anteprima con «Runway in use 16L].»;
+`[DEP]` messo al cursore dopo «This is »; il D-ATIS accanto `datis-ad.datis` «98 posizioni li usano insieme» e
+`datis.datis` «vuoto (voluto)»; **Correggi la riga** dal pannello toglie la parentesi; le voci offerte sul PC del
+committente sono Hazel (inglese britannico, di base) e Zira (americano).
+
+**Slice 18 chiusa** per le voci W1-W4. 🔴 **Non fatto, e detto al committente**:
+
+- **«Un METAR vero»**: l'anteprima ha un METAR d'esempio scritto nel codice, non quello di adesso: il Lab non va in
+  rete. Si scrive a mano nel suo campo.
+- **Come legge Aurora**: lettera, ora e METAR Aurora li trasforma prima di dirli (la lettera in «Alfa»? il METAR
+  decodificato?), e non si sa come. Nell'anteprima entrano come sono scritti: per sentire una pronuncia basta; per
+  sentire l'ATIS intero com'è in Aurora no.
+- **Quale voce**: che Aurora usi le voci di Windows, e quale, non è scritto. Il Lab le offre tutte.
+- **«Ascolta» sulle casse** l'agente non l'ha provato (per non far parlare il PC del committente): la voce è provata
+  scrivendo la lettura in un file `.wav`.
+- 🔴 Scelte dell'agente da confermare: `STATION_NAME` e `CPDLC` non contano nel confronto fra ATIS e D-ATIS; i valori
+  d'esempio; la voce di base (la prima inglese); il segnaposto riconosciuto solo se è tutto maiuscolo.
+
+Da provare a mano: prove 223-230.

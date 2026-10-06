@@ -25,6 +25,19 @@
         /// Chiede al guscio di chiudere la finestra dei pannelli; chiudendola, lui dice al Lab «di nuovo qui».
         riportaIPannelli: function () { allaFinestra('pannelli: chiudi'); },
 
+        /// Slice 18: mette un testo (un segnaposto, [ATIS_LETTER]) dove sta il cursore di un campo, al posto di quel che è
+        /// selezionato, e lo dice a Blazor con un «change». Falso se il campo non c'è: allora ci pensa il Lab.
+        inserisci: function (id, testo) {
+            var campo = document.getElementById(id);
+            if (!campo || typeof campo.selectionStart !== 'number') return false;
+            var da = campo.selectionStart, a = campo.selectionEnd;
+            campo.value = campo.value.slice(0, da) + testo + campo.value.slice(a);
+            campo.selectionStart = campo.selectionEnd = da + testo.length;
+            campo.focus();
+            campo.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+        },
+
         /// Il tasto del tema: automatico → chiaro → scuro (sectorlab-tema.js, caricato nel <head>).
         cambiaTema: function () { if (window.sectorlabTema) window.sectorlabTema.cambia(); },
 

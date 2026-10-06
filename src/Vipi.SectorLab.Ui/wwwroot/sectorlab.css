@@ -1681,3 +1681,90 @@ body.lab-trascina * {
 .lab-impostazioni-riquadro p {
     margin: .45rem 0 0;
 }
+
+/* Slice 18: il modello di un ATIS. Il testo si scrive in un campo largo; sotto, lo stesso testo coi segnaposto come
+   etichette e le parti facoltative in un riquadro tenue (anche una dentro l'altra). */
+.lab-modello-atis {
+    width: 100%;
+    box-sizing: border-box;
+    font: 12px/1.5 var(--lab-mono);
+    resize: vertical;
+}
+
+.lab-modello-letto,
+.lab-anteprima-atis {
+    margin: .4rem 0;
+    line-height: 1.9;
+    overflow-wrap: anywhere;
+}
+
+.lab-anteprima-atis {
+    padding: .45rem .6rem;
+    line-height: 1.5;
+    background: var(--lab-fondo);
+    border-left: 3px solid var(--lab-accento);
+    border-radius: 0 .3rem .3rem 0;
+}
+
+.lab-segnaposto {
+    padding: .05rem .3rem;
+    font: 11px/1.4 var(--lab-mono);
+    color: var(--lab-su-accento);
+    background: var(--lab-accento);
+    border-radius: .2rem;
+}
+
+.lab-segnaposto-ignoto {
+    background: var(--lab-avviso);
+}
+
+.lab-facoltativa {
+    padding: .1rem .25rem;
+    border: 1px dashed var(--lab-linea-forte);
+    border-radius: .25rem;
+    background: var(--lab-toccato-fondo);
+}
+
+.lab-segnaposti {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    margin: .4rem 0 .2rem;
+}
+
+.lab-segnaposto-tasto {
+    padding: .1rem .4rem;
+    font: 11px/1.5 var(--lab-mono);
+    color: var(--lab-testo);
+    background: var(--lab-superficie);
+    border: 1px solid var(--lab-linea-forte);
+    border-radius: .25rem;
+    cursor: pointer;
+}
+
+.lab-segnaposto-tasto:hover {
+    border-color: var(--lab-accento);
+}
+
+.lab-segnaposto-usato {
+    color: var(--lab-tenue);
+    border-style: dashed;
+}
+
+.lab-voce {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin: .3rem 0;
+}
+
+.lab-valori-atis th {
+    font: 11px/1.4 var(--lab-mono);
+    white-space: nowrap;
+}
+
+.lab-compagno-atis + .lab-compagno-atis {
+    margin-top: .7rem;
+    padding-top: .6rem;
+    border-top: 1px solid var(--lab-linea);
+}
