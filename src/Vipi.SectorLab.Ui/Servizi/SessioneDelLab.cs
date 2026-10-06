@@ -533,7 +533,9 @@ public sealed class SessioneDelLab
                     // Slice 13e (J5): un confine con la forma di un settore dell'altro tipo.
                     .. ProblemiDelLab.Aggancia(sessione, PostoDelConfine.Problemi(sessione, forme)),
                     // Slice 13f (K1): i nomi delle configurazioni, col modello scelto nelle impostazioni.
-                    .. ProblemiDelLab.Aggancia(sessione, NomiDelleConfigurazioni.Problemi(sessione, modelloDelleConfigurazioni))];
+                    .. ProblemiDelLab.Aggancia(sessione, NomiDelleConfigurazioni.Problemi(sessione, modelloDelleConfigurazioni)),
+                    // Slice 14e (B14): i tratti che dicono il verso e non le quote.
+                    .. ProblemiDelLab.Aggancia(sessione, TrattiDelleAerovie.Problemi(sessione))];
                 Registro.Scrivi("validazione", $"{problemi.Count} problemi ({problemi.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore)} errori) in {orologio.ElapsedMilliseconds} ms");
             }
             catch (Exception e)
@@ -2979,6 +2981,162 @@ public sealed class SessioneDelLab
         Avvisa();
         return true;
     }
+
+    private string FileDellaSogliaDelleEtichette => Path.Combine(_cartellaDeiDati, "etichette-delle-aerovie.txt");
+
+    private double? _sogliaDelleEtichette;
+
+    /// <summary>
+    /// Il tratto più corto che riceve un'etichetta, in miglia (slice 14d, B4): di base 10, la soglia che il file segue già.
+    /// Un'impostazione dell'app (committente, 6 ottobre 2026), ricordata fra un avvio e l'altro.
+    /// </summary>
+    public double SogliaDelleEtichette => _sogliaDelleEtichette ??= SogliaRicordata();
+
+    private double SogliaRicordata()
+    {
+        try
+        {
+            return File.Exists(FileDellaSogliaDelleEtichette)
+                   && double.TryParse(File.ReadAllText(FileDellaSogliaDelleEtichette).Trim(), System.Globalization.NumberStyles.Float,
+                       System.Globalization.CultureInfo.InvariantCulture, out double nm) && nm is >= 0 and <= 500
+                ? nm
+                : EtichetteDelleAerovie.SogliaDiBaseNm;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return EtichetteDelleAerovie.SogliaDiBaseNm;
+        }
+    }
+
+    /// <summary>Cambia la soglia delle etichette delle aerovie (NM, da 0 a 500; vuoto = 10). Falso col perché in <see cref="Rifiuto"/>.</summary>
+    public bool CambiaLaSogliaDelleEtichette(string? testo)
+    {
+        double nm = EtichetteDelleAerovie.SogliaDiBaseNm;
+        if (!string.IsNullOrWhiteSpace(testo)
+            && (!double.TryParse(testo.Trim().Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out nm)
+                || nm is < 0 or > 500))
+        {
+            Rifiuto = $"«{testo}» non è una lunghezza in miglia: un numero da 0 a 500 (0 = un'etichetta su ogni tratto).";
+            Registro.Scrivi("impostazioni", $"soglia delle etichette = «{testo}»: rifiutata");
+            Avvisa();
+            return false;
+        }
+
+        Rifiuto = null;
+        if (nm.Equals(SogliaDelleEtichette))
+            return true;
+        _sogliaDelleEtichette = nm;
+        try
+        {
+            Directory.CreateDirectory(_cartellaDeiDati);
+            File.WriteAllText(FileDellaSogliaDelleEtichette, nm.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Registro.Errore("impostazioni", e);
+        }
+
+        Registro.Scrivi("impostazioni", $"soglia delle etichette delle aerovie = {nm.ToString(System.Globalization.CultureInfo.InvariantCulture)} NM");
+        Avvisa();
+        return true;
+    }
+
+    // ── Le aerovie: etichette calcolate, aggiungere e togliere (slice 14d-14f) ───────────────────────────────
+
+    /// <summary>Vero per un file di aerovie.</summary>
+    public static bool EUnFileDiAerovie(string fileRelativo)
+        => Path.GetExtension(fileRelativo).ToLowerInvariant() is ".lairway" or ".hairway";
+
+    // La posizione di un punto per nome, nel master scelto.
+    private Vipi.Sectorfile.Shared.Coordinate? PuntoPerNome(string nome)
+        => IscScelto is not null && Cataloghi.GetValueOrDefault(IscScelto) is { } master && master.TryResolve(nome.Trim(), out var dove) ? dove : null;
+
+    /// <summary>
+    /// Che cosa cambierebbe nelle etichette del file per metterle a posto (B4): tratti senza etichetta, nomi sbagliati,
+    /// etichette lontane. Null se il file non è di aerovie.
+    /// </summary>
+    public PianoDelleEtichette? PianoDelleEtichetteDi(string fileRelativo)
+        => Sessione is not null && EUnFileDiAerovie(fileRelativo) && Sessione.File.ContainsKey(fileRelativo)
+            ? EtichetteDelleAerovie.Piano(RigheDiAdesso(fileRelativo), PuntoPerNome, SogliaDelleEtichette)
+            : null;
+
+    /// <summary>Applica il piano delle etichette al file, in una voce sola.</summary>
+    public bool SistemaLeEtichette(string fileRelativo)
+    {
+        if (PianoDelleEtichetteDi(fileRelativo) is not { Vuoto: false } piano)
+        {
+            Rifiuto = "Le etichette di questo file sono già a posto.";
+            Avvisa();
+            return false;
+        }
+
+        string cosa = $"etichette di {NomeDelFile(fileRelativo)}: {piano.DaAggiungere.Count} nuove, {piano.DaRinominare.Count} rinominate, {piano.DaTogliere.Count} tolte";
+        return NellaStoria(cosa, () => GestoSulTesto(fileRelativo, "etichette",
+            f => Modifiche.CambiaRighe(f, piano.Sostituzioni(RigheDiAdesso(fileRelativo)), cosa)));
+    }
+
+    /// <summary>
+    /// Aggiunge un'aerovia a mano (B14): il suo blocco coi tag, in ordine di nome, e le sue etichette. Le quote dei
+    /// tratti restano da scrivere nella scheda.
+    /// </summary>
+    public bool AggiungiUnAerovia(string fileRelativo, string? nome, string? punti)
+    {
+        if (Sessione is null || !EUnFileDiAerovie(fileRelativo) || !Sessione.File.ContainsKey(fileRelativo))
+            return false;
+        string n = (nome ?? "").Trim();
+        bool fatto = NellaStoria($"aerovia {n} aggiunta a {NomeDelFile(fileRelativo)}", () =>
+        {
+            var gesto = AerovieAMano.Nuova(RigheDiAdesso(fileRelativo), n, AerovieAMano.Punti(punti), PuntoPerNome);
+            if (!GestoSulTesto(fileRelativo, "aerovia", f => gesto.Sostituzioni is null
+                    ? new ModificaRifiutata(gesto.Perche!)
+                    : Modifiche.CambiaRighe(f, gesto.Sostituzioni, $"aerovia {n} aggiunta", anchiITag: true)))
+            {
+                return false;
+            }
+
+            // Le sue etichette (e il suo nome su quelle dei tratti che condivide), col file com'è adesso.
+            var piano = EtichetteDelleAerovie.Piano(RigheDiAdesso(fileRelativo), PuntoPerNome, SogliaDelleEtichette, solo: n);
+            if (!piano.Vuoto)
+                GestoSulTesto(fileRelativo, "etichette", f => Modifiche.CambiaRighe(f, piano.Sostituzioni(RigheDiAdesso(fileRelativo)), $"etichette di {n}"));
+            return true;
+        });
+        if (fatto && Sessione.File[fileRelativo] is IFileConRecord conRecord
+            && conRecord.RecordDelModello.Select((r, i) => (r, i)).FirstOrDefault(v => v.r is Vipi.Sectorfile.Models.Airway { FixLabels.Count: > 0 } a && a.Name == n) is { r: not null } nuovo)
+        {
+            Scegli(fileRelativo, nuovo.i);
+        }
+
+        return fatto;
+    }
+
+    /// <summary>Toglie un'aerovia dal file (B15): tracciati, tag, e il suo nome dalle etichette.</summary>
+    public bool TogliLAerovia(string fileRelativo, string? nome)
+    {
+        if (Sessione is null || !EUnFileDiAerovie(fileRelativo) || !Sessione.File.ContainsKey(fileRelativo))
+            return false;
+        string n = (nome ?? "").Trim();
+        bool fatto = NellaStoria($"aerovia {n} tolta da {NomeDelFile(fileRelativo)}", () =>
+        {
+            var gesto = AerovieAMano.Togli(RigheDiAdesso(fileRelativo), n, PuntoPerNome);
+            return GestoSulTesto(fileRelativo, "aerovia", f => gesto.Sostituzioni is null
+                ? new ModificaRifiutata(gesto.Perche!)
+                : Modifiche.CambiaRighe(f, gesto.Sostituzioni, $"aerovia {n} tolta", anchiITag: true));
+        });
+        // Il record scelto era suo e non c'è più: al suo numero ora ce n'è un altro (visto a schermo: la scheda
+        // mostrava ancora il nome dell'aerovia tolta).
+        if (fatto && Scelta is { } scelta && scelta.File == fileRelativo)
+            Scegli(null, 0);
+        return fatto;
+    }
+
+    /// <summary>L'aerovia di un record (un pezzo di tracciato, o un'etichetta che ne nomina una sola), o null.</summary>
+    public string? AeroviaDi(string fileRelativo, int record)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file && record >= 0 && record < file.RecordDelModello.Count
+           && file.RecordDelModello[record] is Vipi.Sectorfile.Models.Airway { Name: var nome }
+           && !string.Equals(nome.Trim(), Vipi.Sectorfile.IO.RigheDelleAerovie.Interruzione, StringComparison.OrdinalIgnoreCase)
+           && !nome.Contains('-', StringComparison.Ordinal)
+            ? nome.Trim()
+            : null;
 
     /// <summary>Lo schema scelto nell'avvio di prima: vale finché questo clone lo ha.</summary>
     private readonly string? _schemaRicordato;

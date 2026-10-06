@@ -1,0 +1,111 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Le aerovie come le pensa un AOD (lotto «Subito» slice 14d-14f; B4, B14, B15): nel file sono righe sparse — i pezzi
+    del tracciato sopra, le etichette sotto —, qui sono un'aerovia. Tre gesti sul FILE: mettere a posto le etichette
+    (una a metà di ogni tratto sopra la soglia, coi nomi giusti; le lontane rifatte), aggiungere un'aerovia a mano,
+    togliere quella del record scelto.
+*@
+@if (SessioneDelLab.EUnFileDiAerovie(File) && Lab.PianoDelleEtichetteDi(File) is { } piano)
+{
+    string? aerovia = Lab.AeroviaDi(File, Record);
+    <Sezione Chiave="scheda-aerovie" data-aerovie="@File">
+    <Titolo>Aerovie del file <span class="lab-nota">@Conto(piano)</span></Titolo>
+    <ChildContent>
+    <div class="lab-stessa-forma" data-piano-etichette="@Chiave(piano)">
+        @if (piano.Vuoto)
+        {
+            <p class="lab-nota">Le etichette sono a posto: una per ogni tratto di almeno @Nm(piano.SogliaNm) NM, coi nomi giusti.</p>
+        }
+        else
+        {
+            <p>
+                Etichette da sistemare:
+                @if (piano.DaAggiungere.Count > 0)
+                {
+                    <span title="@DaAggiungere(piano)">@piano.DaAggiungere.Count da aggiungere a metà del tratto · </span>
+                }
+                @if (piano.DaRinominare.Count > 0)
+                {
+                    <span title="@DaRinominare(piano)">@piano.DaRinominare.Count col nome da correggere · </span>
+                }
+                @if (piano.DaTogliere.Count > 0)
+                {
+                    <span title="@DaTogliere(piano)">@piano.DaTogliere.Count lontane dalla loro aerovia, da rifare · </span>
+                }
+                <span class="lab-nota">tratti di almeno @Nm(piano.SogliaNm) NM (Impostazioni)</span>
+            </p>
+            <button class="lab-tasto" data-sistema-etichette="@piano.DaAggiungere.Count"
+                    title="Scrive le etichette che mancano fra le altre, in ordine di nome; corregge i nomi; toglie quelle rimaste lontane. I tracciati non si toccano. Una voce sola nelle modifiche."
+                    @onclick="() => Lab.SistemaLeEtichette(File)">Sistema le etichette</button>
+        }
+    </div>
+
+    <div class="lab-rinomina" data-nuova-aerovia>
+        <label>
+            Nuova aerovia
+            <input class="lab-campo" placeholder="nome (KY139)" value="@_nome" data-nome-aerovia @onchange="e => _nome = e.Value?.ToString()" />
+        </label>
+        <label>
+            Punti, in ordine
+            <input class="lab-campo" placeholder="TOP ROKUD DIVIP…" value="@_punti" data-punti-aerovia @onchange="e => _punti = e.Value?.ToString()" />
+        </label>
+        <button class="lab-tasto" data-aggiungi-aerovia
+                title="Scrive il blocco dell'aerovia in ordine di nome, segnata «a mano» (locked=si), un tag per tratto col verso «nei due versi» e le sue etichette. Le quote restano da scrivere nei Tratti."
+                @onclick="Aggiungi">+ Aggiungi</button>
+    </div>
+
+    @if (aerovia is not null)
+    {
+        <p class="lab-rinomina">
+            <button class="lab-tasto lab-tasto-tenue" data-togli-aerovia="@aerovia"
+                    title="Toglie tutti i pezzi di @aerovia, i suoi tag e le sue etichette; un'etichetta condivisa perde solo il suo nome"
+                    @onclick="() => Lab.TogliLAerovia(File, aerovia)">− Togli l'aerovia @aerovia</button>
+        </p>
+    }
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    private string? _nome;
+    private string? _punti;
+
+    // Parametri primitivi: la sezione si iscrive da sé ai cambi del Lab (lezione della slice 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private void Aggiungi()
+    {
+        if (Lab.AggiungiUnAerovia(File, _nome, _punti))
+            (_nome, _punti) = (null, null);
+    }
+
+    private static string Conto(PianoDelleEtichette piano)
+        => piano.Vuoto ? "etichette a posto" : $"{piano.DaAggiungere.Count + piano.DaRinominare.Count + piano.DaTogliere.Count} etichette da sistemare";
+
+    private static string Chiave(PianoDelleEtichette piano) => $"{piano.DaAggiungere.Count}+{piano.DaRinominare.Count}+{piano.DaTogliere.Count}";
+
+    private static string Nm(double nm) => nm.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string DaAggiungere(PianoDelleEtichette piano) => Elenco(piano.DaAggiungere.Select(a => $"{a.Nome}  {a.Tratto}"));
+
+    private static string DaRinominare(PianoDelleEtichette piano) => Elenco(piano.DaRinominare.Select(r => $"{r.Prima} → {r.Dopo}"));
+
+    private static string DaTogliere(PianoDelleEtichette piano) => Elenco(piano.DaTogliere.Select(t => $"{t.Testo} (a {Nm(t.LontanaNm)} NM)"));
+
+    // Le prime venti, una per riga: il resto si vede nel diff.
+    private static string Elenco(IEnumerable<string> voci)
+    {
+        var tutte = voci.ToList();
+        return string.Join("\n", tutte.Take(20)) + (tutte.Count > 20 ? $"\n… e altre {tutte.Count - 20}" : "");
+    }
+}

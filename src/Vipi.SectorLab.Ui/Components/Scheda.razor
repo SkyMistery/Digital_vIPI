@@ -301,6 +301,9 @@
             </Sezione>
         }
 
+        @* Slice 14d-14f (B4, B14, B15): le etichette calcolate, aggiungere e togliere un'aerovia. *@
+        <AerovieNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
         @if (Lab.Rifiuto is { } rifiuto)
         {
             <p class="lab-errore" data-rifiuto="1">@rifiuto</p>

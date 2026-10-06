@@ -1,6 +1,7 @@
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Models;
+using Vipi.Sectorfile.Validazione;
 
 namespace Vipi.SectorLab.Core.Ispezione;
 
@@ -72,6 +73,40 @@ public static class TrattiDelleAerovie
     {
         var righe = Di(punti).Where(t => t.ConDati).Select(Detto).ToList();
         return righe.Count > 0 ? string.Join("\n", righe) : null;
+    }
+
+    /// <summary>
+    /// L'avviso <see cref="Regola.TrattoSenzaQuote"/> (slice 14e, B14): un tratto che dice il suo verso e non le sue
+    /// quote — quello di un'aerovia aggiunta a mano, a cui il Lab scrive il verso di base e non inventa le quote. Un
+    /// tratto senza nessun tag non si segnala: sul fork sono tutti così, finché non arriva l'import dall'AIP.
+    /// </summary>
+    public static IEnumerable<ProblemaDelSector> Problemi(SessioneAperta sessione)
+    {
+        ArgumentNullException.ThrowIfNull(sessione);
+        foreach (var file in sessione.File.Values.OrderBy(f => f.Relativo, StringComparer.Ordinal))
+        {
+            if (Path.GetExtension(file.Relativo).ToLowerInvariant() is not (".lairway" or ".hairway") || file is not IFileConRecord conRecord)
+                continue;
+            for (int i = 0; i < conRecord.RecordDelModello.Count; i++)
+            {
+                var tratti = Di(conRecord, i);
+                if (!tratti.Any(t => t.Verso is not null && (t.Inferiore is null || t.Superiore is null)))
+                    continue;
+                var dati = conRecord.RigheDelRecord(i, 0).Where(r => r.DelRecord && r.Testo.TrimStart().StartsWith("T;", StringComparison.Ordinal)).ToList();
+                foreach (var tratto in tratti.Where(t => t.Verso is not null && (t.Inferiore is null || t.Superiore is null)))
+                {
+                    var riga = tratto.Ordinale < dati.Count ? dati[tratto.Ordinale] : dati.FirstOrDefault();
+                    string manca = (tratto.Inferiore, tratto.Superiore) switch
+                    {
+                        (null, null) => "la quota minima e la massima",
+                        (null, _) => "la quota minima",
+                        _ => "la quota massima",
+                    };
+                    yield return new ProblemaDelSector(Regola.TrattoSenzaQuote, file.Relativo, riga?.Numero ?? 0, riga?.Testo ?? "",
+                        $"il tratto {tratto.Da} → {tratto.A} dice il verso e non {manca}: si scrivono nella scheda dell'aerovia, come nell'AIP");
+                }
+            }
+        }
     }
 
     private static string Detto(TrattoDiAerovia tratto)

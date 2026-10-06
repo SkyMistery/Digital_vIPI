@@ -19,6 +19,15 @@
             <code>{N}</code> il numero. Con «@Lab.ModelloDelleConfigurazioni»: <strong data-esempio>@Esempio()</strong>.
             Una voce scritta in un altro modo è un avviso nel pannello dei problemi. Vuoto = «@NomiDelleConfigurazioni.DiBase».
         </p>
+        <label>
+            Etichette delle aerovie: tratto minimo (NM)
+            <input class="lab-campo" inputmode="decimal" value="@Soglia()" data-impostazione="soglia-etichette"
+                   placeholder="10" @onchange="CambiaLaSoglia" />
+        </label>
+        <p class="lab-nota">
+            Un tratto di aerovia più corto non riceve un'etichetta quando il Lab le calcola (di base 10: è la regola che il
+            file segue già). 0 = un'etichetta su ogni tratto. Vuoto = 10.
+        </p>
         @if (_rifiuto is not null)
         {
             <p class="lab-avviso-breve" data-impostazione-rifiutata>@_rifiuto</p>
@@ -37,6 +46,11 @@
 
     private void Cambia(ChangeEventArgs e)
         => _rifiuto = Lab.CambiaIlModelloDelleConfigurazioni(e.Value?.ToString()) ? null : Lab.Rifiuto;
+
+    private void CambiaLaSoglia(ChangeEventArgs e)
+        => _rifiuto = Lab.CambiaLaSogliaDelleEtichette(e.Value?.ToString()) ? null : Lab.Rifiuto;
+
+    private string Soglia() => Lab.SogliaDelleEtichette.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
 
     private string Esempio()
         => NomiDelleConfigurazioni.Scrivi(new NomeDiConfigurazione("RR", "CONF", "2.1", ""), Lab.ModelloDelleConfigurazioni);

@@ -95,6 +95,27 @@ public sealed class ControlloDelleAerovieTests : IDisposable
         Assert.Null(problemi[1].Proposta);
     }
 
+    // Slice 14d: i tag dei tratti (//@@) stanno fra un punto e l'altro e non spezzano l'aerovia. Prima il controllo
+    // chiudeva il pezzo a ogni commento: scritto un verso su un tratto, la sua etichetta risultava «lontana».
+    [Fact]
+    public void UnTagFraDuePuntiNonSpezzaLAerovia()
+    {
+        Scrivi(@"Include\IT\AIRWAY\itawlow.lairway", Righe(
+            "//@\"L1\" locked=si",
+            "//@START",
+            "T;L1;AAAAA;AAAAA;",
+            "//@@\"BBBBB\" dir=both lower=FL95",
+            "T;L1;BBBBB;BBBBB;",
+            "T;L1;CCCCC;CCCCC;",
+            "//@END \"L1\"",
+            "",
+            "L;L1;N045.00.00.000;E010.15.00.000;",
+            "L;L1;N045.00.00.000;E010.45.00.000;"));
+
+        Assert.Empty(Di(Regola.EtichettaLontanaDallAerovia));
+        Assert.Empty(Di(Regola.AeroviaSenzaEtichetta));
+    }
+
     [Fact]
     public void UnEtichettaLontanaDallaSuaAeroviaEUnAvviso()
     {

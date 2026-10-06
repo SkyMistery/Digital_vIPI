@@ -1761,6 +1761,53 @@ Uscita sul fork: validatore 235/1 019 → **235 errori, 1 075 avvisi** nel panne
 **800**, Lab 862 → **865**. A schermo (banco): i quattro conti nel pannello; `KY139` → dieci tratti, il secondo con
 `fwd`, `fl 95`, `fl195` → `//@@"ROKUD" dir=fwd lower=FL95 upper=FL195`.
 
-🟡 **Da decidere col committente prima di B4, B14, B15** (le etichette calcolate, aggiungere e togliere un'aerovia):
-la soglia dei 10 NM; dove si scrivono le etichette finché il file resta in due parti (tracciati sopra, etichette
-sotto: l'ordine a blocchi aspetta la prova B9 in Aurora); che cosa fare delle 25 lontane e delle 18 coi nomi «U».
+**Decisioni del committente del 6 ottobre** (sulle tre domande nate dalla misura): le etichette calcolate tengono la
+**soglia dei 10 NM**, che è un'impostazione dell'app; le etichette nuove si scrivono **nella parte delle etichette, in
+ordine di nome**, senza toccare il resto del file (l'ordine a blocchi aspetta la prova B9 in Aurora); le 25 lontane
+**si rifanno a metà** del tratto giusto.
+
+- **14d (6 ottobre)** — le etichette calcolate (B4). Codice comune toccato: `IO/RigheDelleAerovie.cs` (un file di
+  aerovie letto dalle righe, per aerovia: pezzi, etichette, interruzioni — lo usano il controllo del motore e il Lab),
+  `Shared/Distanze.cs` (le distanze del validatore, pubbliche). `Core/Modifiche/EtichetteDelleAerovie.cs`.
+  - **Il piano**: un tratto lungo almeno la soglia e senza etichetta ne riceve una a metà, coi nomi delle aerovie che
+    lo condividono in ordine alfabetico (`L53-P873`); un'etichetta a più di mezzo miglio dalla sua aerovia si toglie
+    (e il suo tratto riceve la nuova); un'etichetta sul suo tratto col nome sbagliato prende quello giusto e **resta
+    dov'è** — 98 etichette del fork stanno sul tratto ma non a metà, e non si spostano.
+  - **Dove scrive**: dopo l'ultima etichetta col nome più grande fra quelli che non superano il suo. I tracciati non
+    cambiano di un byte. Rifatto sul file sistemato, il piano è vuoto.
+  - **La soglia** è nelle **Impostazioni** («Etichette delle aerovie: tratto minimo», di base 10, 0 = ogni tratto) e
+    si ricorda in `etichette-delle-aerovie.txt` fra i dati del Lab.
+  - Nella scheda di ogni record di un file di aerovie la sezione **Aerovie del file**: il piano coi numeri (al
+    passaggio del mouse, quali) e **Sistema le etichette** — una voce sola nelle modifiche.
+  - 🔴 Trovato scrivendo: il controllo della 14b chiudeva un pezzo di aerovia a ogni commento, **anche a un tag
+    `//@@`**: scritto il verso di un tratto (14c), le etichette di quell'aerovia diventavano «lontane». Ora i tag non
+    chiudono niente (`RigheDelleAerovie`), e c'è il test.
+  - 🟡 Il tag `gen=labels` di §M-G non si scrive ancora: le etichette stanno sparse in una parte del file, non in un
+    blocco. Arriva con l'ordine a blocchi (B1, dopo B9); fino ad allora il parametro è l'impostazione dell'app.
+  Uscita sul fork (`itawlow.lairway`, soglia 10): **53** etichette nuove (5 di `KY139`, che ne aveva 3 su 10 tratti),
+  **24** rinominate (i nomi «U» che non ci sono più, e un'aerovia in più o in meno su un tratto condiviso), **25**
+  tolte perché lontane.
+- **14e (6 ottobre)** — aggiungere un'aerovia a mano (B14, B5). Codice comune toccato: `Regola.TrattoSenzaQuote` (la
+  calcola il Lab). `Core/Modifiche/AerovieAMano.cs`: nome e punti in ordine (per nome: fix, VOR, NDB del master); il
+  Lab scrive `//@"NOME" locked=si`, `//@START`, un tag `//@@"PUNTO" dir=both` per tratto, le righe `T;`, `//@END` —
+  fra i tracciati, in ordine di nome — e poi le sue etichette (anche il suo nome su quella di un tratto che condivide).
+  Le quote non si inventano: `TrattoSenzaQuote` avvisa per ogni tratto che dice il verso e non le quote (0 sul fork: i
+  tratti senza tag non si segnalano). Rifiuti col perché: nome che c'è già, con spazi o col trattino, `BREAK`, meno di
+  due punti, un punto che il master non ha, lo stesso punto due volte di seguito.
+- **14f (6 ottobre)** — togliere un'aerovia (B15): tutti i suoi pezzi, i `BREAK` fra loro, il blocco e i tag; un'etichetta
+  solo sua sparisce, una condivisa perde il suo nome. I commenti scritti a mano restano. Anche un'aerovia `locked` si
+  toglie (B5: quel segno ferma l'import, non l'AOD). 🔴 Preso a schermo: tolta l'aerovia, la scheda mostrava ancora il
+  suo nome sul record che ne aveva preso il numero — ora la scelta si svuota.
+
+Test: motore 800 → **801**, Lab 865 → **884**. Validatore invariato (235 errori, 1 075 avvisi nel Lab). A schermo
+(banco, fork pulito): `KY139` → «53 da aggiungere · 24 col nome da correggere · 25 lontane», **Sistema le etichette** →
+una voce «53 nuove, 24 rinominate, 25 tolte» e il piano a zero; **+ Aggiungi** `KZ1` con `top rokud chi` → il blocco
+dopo `KY139`, due tratti `both`, le etichette `L;KY139-KZ1;…` (il tratto condiviso) e `L;KZ1;…`; **Togli l'aerovia KZ1**
+→ l'etichetta condivisa torna `L;KY139;…`.
+
+**Slice 14 chiusa** per le voci A4, B2, B4, B12, B14, B15. 🔴 Non fatto, e detto al committente: il lettore delle
+aerovie non legge ancora un'etichetta scritta per nome (`L;V200;REPUK;REPUK;`, la forma del manuale): nel modello
+un'etichetta è una coordinata, e cambiarlo tocca lettore, scrittore, mappa e scheda. Sul fork non ce ne sono; i
+controlli e le etichette calcolate, che leggono le righe, le capiscono già. Va insieme ad A8 (le etichette per
+riferimento, dopo la prova in Aurora). 🔴 Scelte dell'agente da confermare: le soglie degli ACC (0,3 NM dal confine,
+15 ± 0,25 NM, 0,1 NM dal fix) e il mezzo miglio delle etichette. Da provare a mano: prove 186-200.

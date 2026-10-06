@@ -376,6 +376,12 @@ public enum Regola
     /// l'etichetta no (slice 14b, B12: 25 sul fork).
     /// </summary>
     EtichettaLontanaDallAerovia,
+
+    /// <summary>
+    /// Un tratto di aerovia che dice il suo verso e non le sue quote: quello di un'aerovia aggiunta a mano, a cui il Lab
+    /// scrive il verso di base e non inventa le quote (slice 14e, B14). La calcola il Lab; un tratto senza tag non si segnala.
+    /// </summary>
+    TrattoSenzaQuote,
 }
 
 public enum Gravita
@@ -420,7 +426,7 @@ public static class Regole
             or Regola.CerchioNonChiuso or Regola.CentroFuoriDalConfine or Regola.StanghettaDellAocc
             or Regola.EtichettaLontanaDalFix
             or Regola.AeroviaSenzaEtichetta or Regola.EtichettaDiUnAeroviaAssente
-            or Regola.EtichettaLontanaDallAerovia => Validazione.Gravita.Avviso,
+            or Regola.EtichettaLontanaDallAerovia or Regola.TrattoSenzaQuote => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }
