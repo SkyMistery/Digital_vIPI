@@ -27,8 +27,9 @@ namespace Vipi.Infrastructure.Tests;
 /// è «passare dal context basta», ed è quello che questi test pretendono.</para>
 ///
 /// <para>Diventano verdi con la rotazione centralizzata in <c>SaveChangesAsync</c> (passo 2 del blocco 1).
-/// Le quattro entità per cui il committente ha confermato che il <b>last-write-wins è voluto</b>
-/// (<c>UnificationRule</c>, <c>TransferFlow</c>, <c>SharedBlock</c>, <c>DocumentProfile</c>) perderanno il
+/// Le entità per cui il committente ha confermato che il <b>last-write-wins è voluto</b>
+/// (<c>TransferFlow</c>, <c>SharedBlock</c>, <c>DocumentProfile</c>; c'era anche <c>UnificationRule</c>, tolta il
+/// 6 ottobre 2026) perderanno il
 /// token e la colonna: i loro test qui spariranno, e a presidiarle resterà
 /// <see cref="Solo_le_entita_decise_dichiarano_un_token_di_concorrenza"/>.</para>
 /// </summary>
@@ -119,15 +120,13 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
             RowVersion = Guid.NewGuid().ToByteArray(),   // come AddBlockAsync
         });
 
-        // Le quattro qui sotto non hanno (più) un token: servono al test speculare, quello che pretende che
+        // Quelle qui sotto non hanno (più) un token: servono al test speculare, quello che pretende che
         // il secondo salvataggio passi.
         db.SharedBlocks.Add(new SharedBlock
         {
             Key = "minime-generali", Title = "Minime generali", Format = BlockFormat.Prose,
             Body = "corpo iniziale",
         });
-
-        db.UnificationRules.Add(new UnificationRule { AccId = acc.Id, Name = "Split WS2/WS5", Priority = 1 });
 
         db.DocumentProfiles.Add(new DocumentProfile { DocumentId = doc.Id });
 
@@ -198,7 +197,6 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
     /// </summary>
     [Theory]
     [InlineData(nameof(SharedBlock))]
-    [InlineData(nameof(UnificationRule))]
     [InlineData(nameof(CoordinationAgreement))]
     [InlineData(nameof(DocumentProfile))]
     public async Task Dove_il_last_write_wins_e_voluto_il_secondo_salvataggio_passa(string entita)
@@ -206,7 +204,6 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
         var esito = entita switch
         {
             nameof(SharedBlock) => await ConflittoFraDueEditor(db => db.SharedBlocks.FirstAsync(), (x, s) => x.Body = s),
-            nameof(UnificationRule) => await ConflittoFraDueEditor(db => db.UnificationRules.FirstAsync(), (x, s) => x.Name = s),
             nameof(CoordinationAgreement) => await ConflittoFraDueEditor(db => db.CoordinationAgreements.FirstAsync(), (x, s) => x.Note = s),
             _ => await ConflittoFraDueEditor(db => db.DocumentProfiles.FirstAsync(), (x, s) => x.FreqOrderJson = s),
         };

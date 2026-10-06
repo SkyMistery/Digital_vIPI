@@ -2076,7 +2076,18 @@
     `Vipi.Domain`, `Vipi.Application`, `Vipi.Infrastructure`. Guida `#accordi` (IT/EN). App 3241 → 3242, Infra
     2102 → 2132, Ui 1974 → 1985. A schermo su database inventato: condividi, altro accordo, elenco a 6 righe,
     togli e annulla, stacca e annulla. Non aperto a schermo il documento reso con una sezione condivisa.
-  - ▶ Restano 4b (da ridisegnare, vedi sopra) e la rimozione delle regole di unificazione (carta del passo 5, §7).
+  - ✅ **Via le regole di unificazione** (6-ott, carta del passo 5 §7 e §9). `UnificationRule` era un secondo modo
+    di dire chi tiene chi: nessun editor, zero righe in sviluppo e in produzione. Tolti entità, `Topology.Rules`,
+    il passo in `AorService`, la lettura in `TopologyBuilder`; **migrazione distruttiva**
+    `ViaLeRegoleDiUnificazione` (una `DropTable`, due provider), separata da quella additiva. Trovato togliendola:
+    `AgreementSectionShare` mancava fra le entità che segnalano «Coordinamenti» in `ModificheInAttesa` —
+    condividere una sezione non avrebbe rimesso «da rivedere» i documenti. **Codice comune** come sopra. App
+    3242 → 3241, Infra 2132 → 2131 (i casi che provavano il motore tolto).
+    **Sulla copia della produzione del 1° ottobre** (seconda base, buttata dopo): sei migrazioni applicate, la
+    tabella aveva zero righe e non c'è più; le due sezioni vere di Trapani (`LIRR_SU_CTR ⇄ LICT_APP`, 19 clausole)
+    condivise con `LIRR_MIL_CTR` — accordo creato alla prima, riusato alla seconda, stessi id di clausola nei due
+    accordi, 19 punti derivati per parte.
+  - ▶ Resta 4b (da ridisegnare, vedi sopra).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Content;
@@ -8,8 +7,8 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Aor;
 
 /// <summary>
-/// Costruisce la <see cref="Topology"/> pura (Application) leggendo l'anagrafica di una ACC dal DB.
-/// Qui vive la conoscenza del formato JSON delle <c>UnificationRule</c>; la logica AoR resta DB-agnostica.
+/// Costruisce la <see cref="Topology"/> pura (Application) leggendo l'anagrafica di una ACC dal DB: padri,
+/// righe di ripiego e bande. La logica AoR resta DB-agnostica.
 /// Implementa <see cref="ITopologyProvider"/> (porta usata da Application/UI).
 /// </summary>
 public sealed class TopologyBuilder : ITopologyProvider
@@ -26,7 +25,7 @@ public sealed class TopologyBuilder : ITopologyProvider
 
     public async Task<Topology> BuildGlobalAsync(CancellationToken ct = default)
     {
-        // Tutti i settori attivi, padre = ParentSectorId (può puntare cross-ACC, Round 20). Niente regole.
+        // Tutti i settori attivi, padre = ParentSectorId (può puntare cross-ACC, Round 20).
         var sectors = await _db.Sectors.Where(s => s.IsActive)
             .Select(s => new { s.Id, s.Callsign, s.ParentSectorId }).ToListAsync(ct);
         var callsignById = sectors.ToDictionary(s => s.Id, s => s.Callsign);
@@ -40,7 +39,6 @@ public sealed class TopologyBuilder : ITopologyProvider
         {
             Sectors = sectors.Select(s => s.Callsign).ToList(),
             Parent = parent,
-            Rules = Array.Empty<UnificationRuleSpec>(),
             Fallbacks = await RipieghiAsync(ct),
             Bands = await BandeAsync(ct),
         };
@@ -62,20 +60,10 @@ public sealed class TopologyBuilder : ITopologyProvider
             .ToDictionary(s => s.Callsign, s => callsignById[s.ParentSectorId!.Value],
                 StringComparer.OrdinalIgnoreCase);
 
-        var rules = await _db.UnificationRules.Where(u => u.AccId == accId && u.IsActive)
-            .OrderBy(u => u.Priority).ToListAsync(ct);
-
-        var ruleSpecs = rules.Select(r => new UnificationRuleSpec(
-            r.Name,
-            r.Priority,
-            ParseRequiredOnline(r.ConditionJson),
-            ParseAssignment(r.AssignmentJson))).ToList();
-
         return new Topology
         {
             Sectors = allCallsigns,
             Parent = parent,
-            Rules = ruleSpecs,
             Fallbacks = await RipieghiAsync(ct),
             Bands = await BandeAsync(ct),
         };
@@ -129,31 +117,5 @@ public sealed class TopologyBuilder : ITopologyProvider
         // + le righe automatiche «APP militare → MIL_CTR fratello» (carta 2026-09-24-mil-solo-traffico-militare):
         // qui, e non in chi risolve, perché da qui passano la ricaduta dei trasferimenti e il rinvio della Diagnostica.
         return RipiegoMilitare.ConAutomatiche(dichiarate, await RipieghiMilitariQuery.FratelliAsync(_db, ct));
-    }
-
-    private static IReadOnlyCollection<string> ParseRequiredOnline(string json)
-    {
-        // Forma attesa: {"online":["LIMM_WS5_CTR", ...]}
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("online", out var arr) && arr.ValueKind == JsonValueKind.Array)
-                return arr.EnumerateArray().Select(e => e.GetString()!).Where(s => s is not null).ToList();
-        }
-        catch (JsonException) { /* regola malformata → condizione vuota (mai attivata) */ }
-        return Array.Empty<string>();
-    }
-
-    private static IReadOnlyDictionary<string, string> ParseAssignment(string json)
-    {
-        // Forma attesa: {"WS2":"LIMM_WS2_CTR","ES2":"LIMM_WS2_CTR", ...}
-        try
-        {
-            var map = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-            if (map is not null)
-                return new Dictionary<string, string>(map, StringComparer.OrdinalIgnoreCase);
-        }
-        catch (JsonException) { }
-        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 }

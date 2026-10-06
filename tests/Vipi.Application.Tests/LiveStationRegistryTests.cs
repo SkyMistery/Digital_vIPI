@@ -20,7 +20,6 @@ public class LiveStationRegistryTests
         {
             Sectors = new[] { "LIRR_NE_CTR" },
             Parent = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-            Rules = Array.Empty<UnificationRuleSpec>(),
         };
         var structure = new StructureData
         {

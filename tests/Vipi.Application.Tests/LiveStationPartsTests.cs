@@ -20,7 +20,6 @@ public class LiveStationPartsTests
             ["LIRF_APP"] = "LIRR_NE_CTR",
             ["LIRF_TWR"] = "LIRF_APP",
         },
-        Rules = Array.Empty<UnificationRuleSpec>(),
     };
 
     private static LiveStationParts Parts(FakeTransfers transfers) =>
@@ -138,7 +137,6 @@ public class LiveStationPartsTests
         {
             Sectors = new[] { "A", "B" },
             Parent = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["A"] = "B", ["B"] = "A" },
-            Rules = Array.Empty<UnificationRuleSpec>(),
         };
 
         // Si ferma prima di reinserire il punto di partenza: nessuno è antenato di sé stesso.

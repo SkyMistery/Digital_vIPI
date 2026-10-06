@@ -171,6 +171,8 @@ Relazione top-down **manuale** padre→figlio tra posizioni (es. `LIRR_NE_CTR` �
 Vincoli: coppia (Parent, Child) univoca; nessun ciclo (validato a livello applicativo).
 
 ### 3.7 `UnificationRule`
+> ⛔ **Rimossa il 6 ottobre 2026** (migrazione `ViaLeRegoleDiUnificazione`, §9.35). Quel che segue è storia.
+
 Regola dichiarativa **editabile** che riassegna l'ownership dei settori in base a quali callsign sono online (§20.5 del piano).
 
 | Campo | Tipo | Note |
@@ -1357,3 +1359,34 @@ provider si pubblicherebbe senza congelare niente **in silenzio**; `AccVipi` per
 **Manutenzione**: `IDocumentUnionRepository.TidyAsync` chiude le unioni rimaste con **meno di due membri** —
 gira all'avvio (`TidyVipiDocumentUnions`) e dopo ogni rimozione. La cascata toglie già la riga insieme al
 documento eliminato; quel che resta da chiudere è l'unione che quella riga teneva in piedi.
+
+### 9.34 `AgreementSectionShare` — sezioni condivise fra più accordi (6 ott 2026) 🟢
+
+Estende §9.25-bis in un punto. Una sezione resta **di casa** in un accordo (`AgreementSections.AgreementId`), e una
+riga di `AgreementSectionShares` dice che **compare anche** in un altro — l'accordo che la *ospita*. Carta
+[`../feature/2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md).
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `SectionId` | int FK → `AgreementSections`, cascade | la sezione condivisa |
+| `AgreementId` | int FK → `CoordinationAgreements`, cascade | l'accordo ospite; mai quello di casa |
+| `Direction` | enum-stringa `AgreementDirection` | il verso **in questo accordo**: i lati sono canonici in un ordine suo |
+| `Order` | int | posto fra le sezioni di questo accordo |
+
+Indici: `(SectionId, AgreementId)` **unico**; `(AgreementId, Order)`.
+
+- **Chi legge non cambia**: `EfAgreementRepository.ListByAccAsync` dà a ogni accordo le sezioni di casa e le ospiti;
+  `AgreementSectionRow.SharedWith` elenca gli altri accordi in cui la sezione compare.
+- ⚠️ **Il contenuto si distrugge solo con l'ultima presenza.** Lo schema protegge un verso solo (eliminato
+  l'accordo ospite se ne va la riga); l'altro — eliminato l'accordo di casa mentre la sezione ha ospiti — lo fa il
+  repository, che prima sposta la casa al primo ospite.
+- Migrazione `SezioniCondivise`: una `CreateTable` e due indici, sui due provider. Additiva.
+
+### 9.35 Via `UnificationRule` (6 ott 2026) 🟢
+
+La tabella `UnificationRules` (§3.7) è cancellata dalla migrazione `ViaLeRegoleDiUnificazione`, sui due provider:
+zero righe in sviluppo e nella copia di produzione del 1° ottobre, nessun editor. «Chi tiene chi» lo dice la catena
+di ripiego (`SectorFallbacks`, §9 della ricaduta verticale), che dal 4 ottobre leggono anche AoR e tabella delle
+configurazioni. ⚠️ È l'unica operazione di quella consegna che non si disfa: il `Down` ricrea la tabella vuota.
+

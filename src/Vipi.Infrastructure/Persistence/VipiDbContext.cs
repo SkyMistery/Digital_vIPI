@@ -155,7 +155,6 @@ public class VipiDbContext : DbContext
     public DbSet<Sector> Sectors => Set<Sector>();
     public DbSet<AtcUnit> AtcUnits => Set<AtcUnit>();
     public DbSet<AtcUnitPosition> AtcUnitPositions => Set<AtcUnitPosition>();
-    public DbSet<UnificationRule> UnificationRules => Set<UnificationRule>();
 
     /// <summary>Righe di ripiego con fascia di quota: la catena che sta DAVANTI al padre. Nasce vuota.</summary>
     public DbSet<SectorFallback> SectorFallbacks => Set<SectorFallback>();
@@ -476,14 +475,6 @@ public class VipiDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // NB: niente token di concorrenza qui — decisione del 14 agosto 2026, come per CoordinationAgreement,
-        // SharedBlock e DocumentProfile. Vedi il commento esteso su SharedBlock più sotto.
-        b.Entity<UnificationRule>(e =>
-        {
-            e.HasIndex(x => new { x.AccId, x.Priority });
-            e.HasOne(x => x.Acc).WithMany(f => f.UnificationRules).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
-        });
-
         b.Entity<Document>(e =>
         {
             e.HasIndex(x => new { x.Type, x.Status });
@@ -527,9 +518,9 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.SharedBlock).WithMany().HasForeignKey(x => x.SharedBlockId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ─── Perché queste quattro entità NON hanno un token di concorrenza ─────────────────────────────
-        // SharedBlock, UnificationRule, TransferFlow (oggi CoordinationAgreement) e DocumentProfile
-        // dichiaravano un RowVersion che
+        // ─── Perché queste entità NON hanno un token di concorrenza ────────────────────────────────────
+        // SharedBlock, TransferFlow (oggi CoordinationAgreement) e DocumentProfile — e con loro UnificationRule,
+        // tolta il 6 ottobre 2026 — dichiaravano un RowVersion che
         // nessun percorso di scrittura ha mai valorizzato: colonna sempre NULL, `WHERE … AND RowVersion IS
         // NULL` sempre vera, quindi una difesa solo nominale. Messi davanti alla scelta — ruotarlo o
         // toglierlo — il 14 agosto 2026 si è deciso di toglierlo: sono modificate da un editor alla volta,

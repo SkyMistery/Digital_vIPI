@@ -103,6 +103,9 @@ dallo stesso albero.
 
 ### Aperto
 
+> ✅ **Chiuso il 6 ottobre 2026**: le regole di unificazione sono state tolte, con la loro migrazione
+> ([`2026-10-06-sezioni-condivise.md`](2026-10-06-sezioni-condivise.md) §7 e §9, fetta 6).
+
 - **`UnificationRule`**: resta com'era — motore senza editor, zero righe nell'archivio di sviluppo — e si applica
   ancora prima della catena. Toglierla vuol dire una migrazione che cancella una tabella sui due provider: una
   slice sua, non dentro questa. Finché c'è, è il secondo modo di dire «chi tiene chi» che il pre-flight §1 non vuole.

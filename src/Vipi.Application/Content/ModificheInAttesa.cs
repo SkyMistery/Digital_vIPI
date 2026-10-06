@@ -142,8 +142,8 @@ public static class FamiglieDiModifica
     public static string? Di(object entita) => entita switch
     {
         CoordinationPoint or CoordinationAgreement or AgreementSection or AgreementAirport or AgreementClause
-            => Coordinamenti,
-        Acc or Sector or AccSector or AirportSector or UnificationRule or SectorFallback or CallsignAlias
+            or AgreementSectionShare => Coordinamenti,
+        Acc or Sector or AccSector or AirportSector or SectorFallback or CallsignAlias
             => Settori,
         AirportProcedure or SidFixAlias => Procedure,
         Airport or AirportTransitionLevel or AirportRunway or AirportRunwayRule or AirportLvpMinima

@@ -153,8 +153,8 @@ non si disfa: sta in una migrazione **sua**, dopo quella additiva.
 | 3 | Scrittura: condividi, togli con promozione, stacca, verso per presenza, elimina accordo, annulla, rifiuti | ✅ |
 | 4 | Le altre porte: lati che si scambiano (accordo e sostituzione del settore) | ✅ |
 | 5 | La pagina: etichetta, «Condividi con…», «Stacca», chiavi (accordo, sezione), gemelle | ✅ |
-| 6 | Via le regole di unificazione, con la loro migrazione | ▶ |
-| 7 | Guida, carte, memoria; prova a schermo | ▶ |
+| 6 | Via le regole di unificazione, con la loro migrazione | ✅ |
+| 7 | Guida, carte, memoria; prova a schermo e sulla copia della produzione | ✅ |
 
 ## 9. Com'è andata
 
@@ -225,3 +225,40 @@ Zero errori in console, zero risposte ≥ 400.
 ⚠️ **Non provato a schermo**: la tabella nella vIPI e nella vista live dell'altro accordo. Che la sezione ospite
 arrivi a chi legge lo provano i test del repository (è `AgreementRow.Sections`, da cui tutti derivano); il documento
 reso con una sezione condivisa non l'ho aperto.
+
+### Fetta 6: via le regole di unificazione
+
+Tolti `UnificationRule` e `Acc.UnificationRules` (dominio), `Topology.Rules` e `UnificationRuleSpec`, il passo che
+le applicava in `AorService`, la lettura e i due parser JSON in `TopologyBuilder`, il `DbSet` e la mappatura.
+Migrazione `ViaLeRegoleDiUnificazione` sui due provider: una `DropTable`, in una migrazione sua dopo quella
+additiva.
+
+Nei test se ne va il caso «la regola riassegna TS a ES» (provava un motore che non c'è più) e la voce
+`UnificationRule` fra le entità col last-write-wins voluto; tredici `Topology` di prova perdono la riga `Rules`.
+
+⚠️ **`AgreementSectionShare` è entrata fra le modifiche che segnalano «Coordinamenti»** (`ModificheInAttesa.Di`):
+la riga elencava a mano le entità degli accordi, e quella nuova non c'era — condividere una sezione non avrebbe
+fatto partire il giro che rimette «da rivedere» i documenti. Trovato togliendo `UnificationRule` dalla riga accanto.
+
+### Sulla copia della produzione — 6 ottobre 2026
+
+La copia del 1° ottobre caricata in una **seconda** base di un MariaDB privato (quella che usa il committente non
+si tocca), poi buttata. Una prova temporanea, non versionata, apre il contesto col provider MySql e fa due cose.
+
+**Le migrazioni.** `UnificationRules` aveva **zero righe**. Sei migrazioni in attesa, applicate in ordine senza
+errori — le quattro già online dopo la copia, poi `SezioniCondivise` e `ViaLeRegoleDiUnificazione`. Dopo: la
+tabella delle regole non c'è più, `AgreementSectionShares` c'è.
+
+**Il caso che ha fatto nascere il passo.** L'accordo `LIRR_SU_CTR ⇄ LICT_APP` ha due sezioni — arrivi LICT (13
+clausole) e partenze LICT (6). Condivise tutte e due con la coppia Trapani ⇄ `LIRR_MIL_CTR`, lasciando chi cede e
+mettendo il MIL al posto del SU:
+
+- la prima **crea** l'accordo ospite, la seconda lo **riusa**;
+- l'accordo ospite legge 2 sezioni e 19 clausole, con **gli stessi id di clausola** dell'accordo di casa: è un
+  collegamento, non una copia;
+- i versi sono giusti nei lati dell'ospite (`LIRR_MIL_CTR → LICT_APP` gli arrivi, `LICT_APP → LIRR_MIL_CTR` le
+  partenze), e ogni sezione dice «condivisa con LIRR_SU_CTR ⇄ LICT_APP»;
+- `AgreementExpansion` — quel che leggono documenti, vista live e matcher — dà 2 flussi e 19 punti per parte.
+
+Non provato lì: la pagina (chiede l'accesso IVAO) e il documento reso.
+

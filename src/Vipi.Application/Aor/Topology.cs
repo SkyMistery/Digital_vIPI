@@ -1,7 +1,7 @@
 ﻿namespace Vipi.Application.Aor;
 
 /// <summary>
-/// Vista in-memory, pura e DB-agnostica, della topologia di una ACC: contenimento (albero) + regole.
+/// Vista in-memory, pura e DB-agnostica, della topologia di una ACC: contenimento (albero) + catena di ripiego.
 /// Settore == posizione: ogni settore è identificato dal proprio callsign e possiede sé stesso di default.
 /// SPEC_Logica_AoR §2-3.
 /// </summary>
@@ -12,9 +12,6 @@ public sealed class Topology
 
     /// <summary>Padre top-down (contenimento) di ogni settore (childCallsign → parentCallsign). Radici assenti.</summary>
     public required IReadOnlyDictionary<string, string> Parent { get; init; }
-
-    /// <summary>Regole di unificazione ordinabili per Priority.</summary>
-    public required IReadOnlyList<UnificationRuleSpec> Rules { get; init; }
 
     /// <summary>
     /// Le righe di ripiego <b>dichiarate</b> di ogni settore, già in ordine: la catena che sta DAVANTI al
@@ -71,10 +68,3 @@ public sealed class Topology
         }
     }
 }
-
-/// <summary>Regola di unificazione già deserializzata (la forma JSON vive in Infrastructure). PIANO §20.5.</summary>
-public sealed record UnificationRuleSpec(
-    string Name,
-    int Priority,
-    IReadOnlyCollection<string> RequiredOnline,            // condizione: tutti online
-    IReadOnlyDictionary<string, string> Assignment);       // settoreCallsign → ownerCallsign

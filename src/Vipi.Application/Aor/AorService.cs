@@ -55,34 +55,22 @@ public sealed class AorService : IAorService
         // Settore == posizione: i settori del dominio sono i settori stessi di Dom(P).
         var sectors = new HashSet<string>(domain, StringComparer.OrdinalIgnoreCase);
 
-        // 1. Ownership di default: ogni settore possiede sé stesso.
-        var assegnato = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var s in sectors) assegnato[s] = s;
-
-        // 2. Applica le regole di unificazione (per Priority) la cui condizione è soddisfatta da O.
-        foreach (var rule in topology.Rules.OrderBy(r => r.Priority))
-        {
-            if (rule.RequiredOnline.All(online.Contains))
-                foreach (var (sector, owner) in rule.Assignment)
-                    if (sectors.Contains(sector)) assegnato[sector] = owner;
-        }
-
-        // 3. Chi non è online cede il suo cielo lungo la CATENA DI RIPIEGO — le righe dichiarate che valgono a
-        //    quella quota, poi il padre — e non più lungo i soli padri: è la stessa strada che fanno i
-        //    trasferimenti (FallbackChain), così la mappa, la tabella delle configurazioni e la vista live non
-        //    possono dire tre cose diverse. P raccoglie quando la catena arriva a lui, e quando non raccoglie
-        //    nessuno (top-down completo).
+        // 1. Ogni settore possiede sé stesso; chi non è online cede il suo cielo lungo la CATENA DI RIPIEGO — le
+        //    righe dichiarate che valgono a quella quota, poi il padre — e non più lungo i soli padri: è la
+        //    stessa strada che fanno i trasferimenti (FallbackChain), così la mappa, la tabella delle
+        //    configurazioni e la vista live non possono dire tre cose diverse. P raccoglie quando la catena
+        //    arriva a lui, e quando non raccoglie nessuno (top-down completo).
+        //    ⚠️ Fino al 6 ottobre 2026 qui in mezzo si applicavano le «regole di unificazione»: un secondo modo di
+        //    dire chi tiene chi, senza editor e senza una riga in archivio. Tolte: lo dice la catena.
         bool Tiene(string c) => c.Equals(p, StringComparison.OrdinalIgnoreCase) || online.Contains(c);
 
         var ownership = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var holdings = new Dictionary<string, IReadOnlyList<AorHolding>>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in sectors)
         {
-            // ⚠️ La banda è quella del settore S, anche quando una regola l'ha assegnato ad altri: è il SUO cielo
-            // che si sta dividendo.
             var banda = topology.Bands.TryGetValue(s, out var b) ? b : (null, null);
             var fasce = Unisci(FallbackChain
-                .Holders(assegnato[s], banda.BaseFeet, banda.TopFeet, topology.Fallbacks, topology.ParentOf, Tiene)
+                .Holders(s, banda.BaseFeet, banda.TopFeet, topology.Fallbacks, topology.ParentOf, Tiene)
                 .Select(h => new AorHolding(h.BaseFeet, h.TopFeet, h.Holder ?? p)));
 
             if (fasce.Count == 0) fasce = new[] { new AorHolding(banda.BaseFeet, banda.TopFeet, p) };
@@ -91,7 +79,7 @@ public sealed class AorService : IAorService
             ownership[s] = fasce.Any(f => f.Owner.Equals(p, StringComparison.OrdinalIgnoreCase)) ? p : fasce[0].Owner;
         }
 
-        // 4. Stato: Online se gestito da un subordinato online diverso da P, altrimenti Covered.
+        // 2. Stato: Online se gestito da un subordinato online diverso da P, altrimenti Covered.
         var state = new Dictionary<string, SectorState>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in sectors)
         {

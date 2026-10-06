@@ -3567,40 +3567,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("TranslationUnits");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AccId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AssignmentJson")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ConditionJson")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccId", "Priority");
-
-                    b.ToTable("UnificationRules");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.AccSector", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
@@ -4142,17 +4108,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Area");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
-                        .WithMany("UnificationRules")
-                        .HasForeignKey("AccId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Acc");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
                     b.Navigation("AccSectors");
@@ -4160,8 +4115,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Airports");
 
                     b.Navigation("Sectors");
-
-                    b.Navigation("UnificationRules");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementSection", b =>

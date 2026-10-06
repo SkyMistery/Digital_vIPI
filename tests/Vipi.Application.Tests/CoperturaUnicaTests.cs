@@ -27,7 +27,6 @@ public class CoperturaUnicaTests
     {
         Sectors = new[] { Ws2, Es2, Ws5, Es5 },
         Parent = new Dictionary<string, string>(OIC) { [Es2] = Ws2, [Ws5] = Ws2, [Es5] = Es2 },
-        Rules = Array.Empty<UnificationRuleSpec>(),
         Fallbacks = new Dictionary<string, IReadOnlyList<FallbackRow>>(OIC)
         {
             [Es5] = new[] { new FallbackRow(Ws5, BaseFeet: Split, TopFeet: null) },
@@ -85,7 +84,6 @@ public class CoperturaUnicaTests
     {
         Sectors = new[] { "XX_CTR", "ALTO_CTR", "PADRE_CTR" },
         Parent = new Dictionary<string, string>(OIC) { ["XX_CTR"] = "PADRE_CTR" },
-        Rules = Array.Empty<UnificationRuleSpec>(),
         Fallbacks = new Dictionary<string, IReadOnlyList<FallbackRow>>(OIC)
         {
             ["XX_CTR"] = new[] { new FallbackRow("ALTO_CTR", BaseFeet: Split, TopFeet: null) },
@@ -172,7 +170,7 @@ public class CoperturaUnicaTests
         // La rete: a tabella dei ripieghi vuota il risultato è quello di sempre.
         var soliPadri = new Topology
         {
-            Sectors = Milano().Sectors, Parent = Milano().Parent, Rules = Array.Empty<UnificationRuleSpec>(),
+            Sectors = Milano().Sectors, Parent = Milano().Parent,
         };
 
         var r = _aor.Resolve(soliPadri, Ws2, Online(Ws2, Es2, Ws5));

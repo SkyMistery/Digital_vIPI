@@ -26,7 +26,6 @@ public class CoverageBenchTests
         {
             Sectors = new[] { Ws2, Es2, Ws5, Es5, Padova },
             Parent = padri,
-            Rules = Array.Empty<UnificationRuleSpec>(),
             Fallbacks = new Dictionary<string, IReadOnlyList<FallbackRow>>(OIC)
             {
                 [Es5] = new[] { new FallbackRow(Ws5, BaseFeet: 32500, TopFeet: null) },
@@ -116,7 +115,6 @@ public class CoverageBenchTests
         {
             Sectors = new[] { "XX_CTR", "ALTO_CTR", "PADRE_CTR" },
             Parent = new Dictionary<string, string>(OIC) { ["XX_CTR"] = "PADRE_CTR" },
-            Rules = Array.Empty<UnificationRuleSpec>(),
             Fallbacks = new Dictionary<string, IReadOnlyList<FallbackRow>>(OIC)
             {
                 ["XX_CTR"] = new[] { new FallbackRow("ALTO_CTR", BaseFeet: 32500, TopFeet: null) },
