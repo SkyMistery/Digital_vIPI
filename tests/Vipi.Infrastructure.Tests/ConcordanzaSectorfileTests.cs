@@ -100,6 +100,96 @@ public sealed class ConcordanzaSectorfileTests : IDisposable
         Assert.Equal("ELKAP1A pista 16L", Assert.Single(esito.SoloVipi));
     }
 
+    // ── Lotto «Subito» slice 19: la lettura di prova dei tag (carta del lotto §5.3; «file per file» §M regola 10) ──
+    // Il Lab scrive i metadati nel sector come righe `//@`; vIPI li leggerà per riempire i suoi campi (fix intero,
+    // salita iniziale). Nessun cambio al sito: qui si prova che (1) per il lettore di produzione di OGGI un file coi
+    // tag è lo stesso file, e (2) ogni SID e STAR che vIPI legge ritrova i suoi tag per nome.
+
+    [Theory]
+    [InlineData("lirf.sid")]
+    [InlineData("lied.sid")]
+    [InlineData("lirf.str")]
+    [InlineData("NAVAIDS/APT.fix")]
+    [InlineData("NAVAIDS/VFR_NASCOSTI.fix")]
+    [InlineData("NAVAIDS/itvor.vor")]
+    [InlineData("NAVAIDS/itndb.ndb")]
+    [InlineData("OTHER/itfreq.frq")]
+    [InlineData("OTHER/itap.ap")]
+    [InlineData("OTHER/itrw.rw")]
+    [InlineData("ENRMVA/lirr.mva")]
+    [InlineData("liba.mva")]
+    [InlineData("DYNAMIC_SEC/lirrctr.tfl")]
+    [InlineData("DYNAMIC_SEC/twrs.tfl")]
+    [InlineData("DYNAMIC_SEC/limmfic.tfl")]
+    public void UnCampioneCoiTagVipiLoLeggeComePrima(string campione)
+    {
+        var esito = Concordanza.DeiTag(Campione(campione));
+
+        Assert.True(esito.Etichettati > 0, "nessun record etichettato: la prova sarebbe verde a vuoto");
+        Assert.True(esito.Oggetti > 0, "vIPI non legge niente da questo campione");
+        Assert.True(esito.Pulita, string.Join("\n", esito.Cambiati.Concat(esito.ProcedureSenza.Select(p => "senza i suoi tag: " + p))));
+    }
+
+    [Theory]
+    [InlineData("lirf.sid")]
+    [InlineData("lirf.str")]
+    public void OgniProceduraDiVipiRitrovaISuoiTagPerNome(string campione)
+    {
+        var esito = Concordanza.DeiTag(Campione(campione));
+
+        // Tante quante ne legge vIPI: una per pista, come le tiene lui.
+        Assert.Equal(esito.Oggetti, esito.ProcedureCoiLoroTag);
+        Assert.Empty(esito.ProcedureSenza);
+    }
+
+    // La stessa prova scritta per esteso, su un file come lo lascia il Lab (prova 68 di PROVE.md): il blocco col fix
+    // intero e la salita iniziale, e un vincolo su un punto.
+    [Fact]
+    public void UnaSidColBloccoDelLab_VipiLaLeggeUguale_EITagDiconoFixESalita()
+    {
+        string[] senza =
+        [
+            "LIRF;16R;EKLO8R;;;0;;1;",
+            "N041.48.01.000;E012.14.20.000;",
+            "EKLOS;EKLOS;",
+            "LIRF;25;OST1E;;;;OST;1;",
+            "OST;OST;",
+        ];
+        string[] coiTag =
+        [
+            "//@source=AIRAC2610",
+            "//@\"EKLO8R\" fix=EKLOS initialclimb=\"COO APP\"",
+            "//@START",
+            "LIRF;16R;EKLO8R;;;0;;1;",
+            "N041.48.01.000;E012.14.20.000;",
+            "//@@\"EKLOS\" role=IAF alt=+FL80",
+            "EKLOS;EKLOS;",
+            "//@END \"EKLO8R\"",
+            "//@\"OST1E\" fix=OST initialclimb=5000",
+            "LIRF;25;OST1E;;;;OST;1;",
+            "OST;OST;",
+        ];
+        var nessunNome = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var nessunAlias = new Dictionary<string, string>();
+
+        var diVipiSenza = Vipi.Infrastructure.Sectorfile.AuroraSectorfileParser.ParseSids("LIRF", string.Join("\r\n", senza), nessunNome, nessunAlias);
+        var diVipiCoiTag = Vipi.Infrastructure.Sectorfile.AuroraSectorfileParser.ParseSids("LIRF", string.Join("\r\n", coiTag), nessunNome, nessunAlias);
+
+        // (1) Oggi vIPI non se ne accorge.
+        Assert.Equal(["EKLO8R", "OST1E"], diVipiSenza.Select(p => p.Name));
+        Assert.Equal(diVipiSenza, diVipiCoiTag);
+
+        // (2) La lettura di prova: il motore legge i tag, e il nome della procedura di vIPI è la chiave.
+        var tag = Concordanza.TagDiUnSid(Scrivi("lirf.sid", coiTag));
+        Assert.Empty(tag.Problemi);
+        Assert.Equal("AIRAC2610", tag.DelFile["source"]);
+        var perNome = tag.Record.ToDictionary(m => m.Nome, m => m.Chiavi);
+        Assert.Equal(("EKLOS", "COO APP"), (perNome[diVipiCoiTag[0].Name]["fix"], Vipi.Sectorfile.IO.Metadati.Testo(perNome[diVipiCoiTag[0].Name]["initialclimb"])));
+        Assert.Equal(("OST", "5000"), (perNome[diVipiCoiTag[1].Name]["fix"], perNome[diVipiCoiTag[1].Name]["initialclimb"]));
+        var vincolo = Assert.Single(tag.Punti);
+        Assert.Equal(("EKLOS", "IAF", "+FL80"), (vincolo.Punto, vincolo.Chiavi["role"], vincolo.Chiavi["alt"]));
+    }
+
     private string Scrivi(string nome, params string[] righe)
     {
         string percorso = Path.Combine(_cartella, nome);

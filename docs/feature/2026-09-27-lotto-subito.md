@@ -2071,3 +2071,43 @@ committente sono Hazel (inglese britannico, di base) e Zira (americano).
   d'esempio; la voce di base (la prima inglese); il segnaposto riconosciuto solo se è tutto maiuscolo.
 
 Da provare a mano: prove 223-230.
+
+### Slice 19 — La prova del lotto intero — dal 6 ottobre
+
+Due cose (carta §3 riga 19, §5.3): la **lettura di prova dei tag da parte di vIPI**, senza cambiare il sito, e il
+**giro di prove del committente**. La prima è fatta; il giro è preparato e aspetta lui. La slice 17 (simboli) resta
+ferma sulla prova T3 in Aurora.
+
+- **19a (6 ottobre)** — i tag letti da vIPI. Codice comune toccato: `tools/Vipi.SectorfileProva/Concordanza.cs` e
+  `Program.cs` (misura 8), `tests/Vipi.Infrastructure.Tests/ConcordanzaSectorfileTests.cs` (il file della
+  concordanza è compilato nei due posti, come dalla slice 9 di F2). **Nessun file di `src/` del sito è cambiato.**
+  - **Cosa si prova.** «vIPI legge, non scrive» (§M regola 10): il Lab scrive i metadati nel sector come righe `//@`,
+    e vIPI riempirà i suoi campi (fix intero, salita iniziale) leggendoli. Prima di toccare il sito servono due
+    certezze: che per il lettore di produzione di **oggi** (`AuroraSectorfileParser`) un file coi tag sia lo stesso
+    file, e che il **nome** con cui vIPI tiene una procedura sia la chiave buona per ritrovare i suoi tag.
+  - **Come.** `Concordanza.DeiTag(file)`: il motore etichetta ogni record come farebbe il Lab — `//@source` in testa,
+    la dichiarazione `//@"NOME" …` con le sue chiavi (per SID e STAR `fix=`, `initialclimb="COO APP"` con lo spazio,
+    `nav=`; per gli altri `note=`), i `//@@` coi vincoli su ogni punto di SID e STAR — poi il lettore di vIPI legge il
+    file com'è e coi tag, e i due esiti si confrontano oggetto per oggetto. Per SID e STAR, ogni procedura letta da
+    vIPI cerca per nome i tag che il motore rilegge, e deve trovarci i valori scritti.
+  - **Tutti i lettori di vIPI**: `ParseSids`, `ParseStars`, `ParseNavaids` (fix, VOR, NDB), `ParseMva`,
+    `ParseTowerShapes` e `ParseSectorShapes` (`.tfl`), `ParseAtcPositions` (`.frq`), `ParseAirports` (`.ap`),
+    `ParseRunwayEnds` (`.rw`).
+  - **In CI**: 15 campioni letti uguali coi tag, le procedure di `lirf.sid` e `lirf.str` che ritrovano tutte i loro
+    tag, e la stessa prova scritta per esteso su una SID col blocco come lo lascia il Lab (`fix=EKLOS`,
+    `initialclimb="COO APP"`, `//@@"EKLOS" role=IAF alt=+FL80`).
+  Uscita sul fork: **231 file** etichettati (8 458 record), il lettore di vIPI legge **gli stessi 7 860 oggetti**
+  (0 cambiati); **1 516** voci di SID e **863** di STAR — tutte quelle che vIPI legge, una per pista — ritrovano i
+  loro tag per nome, **0** no. Il sito può leggere i metadati quando vorrà: i tag non rompono niente di quel che
+  legge oggi, e il nome della procedura basta come chiave.
+- **19b (6 ottobre)** — il giro preparato. In `SectorLab-prova\\PROVE.md`, in testa, **Il giro del lotto**: come farlo
+  (153 prove, dalla 78 alla 230, 17 con Aurora), le nove cose da guardare in Aurora e le tredici da decidere, ognuna
+  col numero della sua prova, e le scelte dell'agente che aspettano un sì o un no. 🔴 Preparandolo: i conti «in alto»
+  di dieci prove erano rimasti a quelli del giorno in cui la prova era nata (982, 1 019, 1 075… contro i 1 250 di
+  oggi), e tre domande avevano già avuto risposta (`SettoreSenzaPosizione` resta un avviso, AGL e AMSL servono, le
+  etichette lontane si rifanno a metà): riallineati.
+
+Test: `Vipi.Infrastructure.Tests` 2 083 → **2 101** (net8.0 e net10.0); motore 839 e Lab 930 invariati.
+
+**Stato del lotto** (6 ottobre): slice 0-16 e 18 chiuse; la **17** aspetta la prova T3; della **19** resta il giro del
+committente. Il lotto si chiude quando il giro è ✅ e la 17 è fatta.

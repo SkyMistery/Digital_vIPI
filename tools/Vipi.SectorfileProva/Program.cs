@@ -26,6 +26,7 @@ using Vipi.Sectorfile.Shared;
 //         procedura, e il file lungo uguale.
 //   5. I TAG //@ di .sid e .str (slice 7). 6. IL VALIDATORE (slice 8).
 //   7. CONCORDANZA col lettore di vIPI (slice 9): punti, SID e STAR contro AuroraSectorfileParser (Concordanza.cs).
+//   8. TAG LETTI DA vIPI (lotto «Subito» slice 19): i file etichettati dal motore riletti dal lettore di vIPI.
 //
 // Nato da RealFileIntegrationTests (§27.1) della libreria A, che nei test tornava verde quando l'albero
 // mancava, cioè sempre in CI.
@@ -576,6 +577,33 @@ foreach (var (cosa, file, esito) in colLettoreDiVipi.Where(p => !p.Esito.Pulito)
     foreach (string riga in esito.SoloMotore)
     {
         Console.WriteLine($"  {file}  solo motore   {riga}");
+    }
+}
+
+// 8. I TAG LETTI DA vIPI (lotto «Subito» slice 19, carta del lotto §5.3): ogni file che il lettore di produzione di
+//    vIPI legge viene etichettato dal motore come lo farebbe il Lab e passato a vIPI, com'è e coi tag. Deve leggere
+//    le stesse cose (per lui un tag è un commento), e ogni SID e STAR deve ritrovare i suoi tag per nome: è la chiave
+//    con cui vIPI potrà riempire fix e salita iniziale dal sector («vIPI legge, non scrive», §M regola 10).
+//    Come la misura 7, non fa uscire 1: una differenza sarebbe da portare al sito, non da correggere qui.
+var lettiDaVipi = Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories)
+    .Where(p => Vipi.SectorfileProva.Concordanza.EstensioniLetteDaVipi.Contains(Path.GetExtension(p).ToLowerInvariant()))
+    .Order(StringComparer.Ordinal)
+    .Select(p => (File: p, Esito: Vipi.SectorfileProva.Concordanza.DeiTag(p)))
+    .ToList();
+Console.WriteLine($"\nTAG LETTI DA vIPI: {lettiDaVipi.Count} file etichettati ({lettiDaVipi.Sum(l => l.Esito.Etichettati)} record), " +
+    $"{lettiDaVipi.Sum(l => l.Esito.Oggetti)} oggetti letti dal lettore di vIPI, {lettiDaVipi.Sum(l => l.Esito.Cambiati.Count)} cambiati coi tag; " +
+    $"{lettiDaVipi.Sum(l => l.Esito.ProcedureCoiLoroTag)} SID e STAR di vIPI ritrovano i loro tag per nome, " +
+    $"{lettiDaVipi.Sum(l => l.Esito.ProcedureSenza.Count)} no");
+foreach (var (file, esito) in lettiDaVipi.Where(l => !l.Esito.Pulita))
+{
+    foreach (string riga in esito.Cambiati.Take(5))
+    {
+        Console.WriteLine($"  {Relativo(file)}  cambiato      {riga}");
+    }
+
+    foreach (string riga in esito.ProcedureSenza.Take(5))
+    {
+        Console.WriteLine($"  {Relativo(file)}  senza i tag   {riga}");
     }
 }
 
