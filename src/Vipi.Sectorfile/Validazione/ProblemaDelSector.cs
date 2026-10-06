@@ -328,6 +328,12 @@ public enum Regola
     /// la regola (committente, 5 ottobre 2026).
     /// </summary>
     NomeDellaConfigurazione,
+
+    /// <summary>
+    /// Una posizione italiana di torre, avvicinamento o ACC definita in un <c>.frq</c> che nessun settore dinamico nomina:
+    /// collegata, in Aurora non accende niente (slice 13h, il verso opposto di D4; committente, 6 ottobre 2026: 27 sul fork).
+    /// </summary>
+    PosizioneSenzaSettore,
 }
 
 public enum Gravita
@@ -367,7 +373,8 @@ public static class Regole
             or Regola.EtichettaLontanaDallaTaxiway or Regola.TipoSconosciuto or Regola.RiempimentoSenzaDisegno
             or Regola.StandPiuGrandeDellaTaxiway or Regola.OrdineDiDisegno or Regola.MarcaturaDiUnaPistaAssente
             or Regola.SettoreSenzaPosizione or Regola.SettoreRipetuto
-            or Regola.ConfineNelFileSbagliato or Regola.NomeDellaConfigurazione => Validazione.Gravita.Avviso,
+            or Regola.ConfineNelFileSbagliato or Regola.NomeDellaConfigurazione
+            or Regola.PosizioneSenzaSettore => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

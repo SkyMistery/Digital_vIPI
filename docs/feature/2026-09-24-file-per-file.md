@@ -865,7 +865,9 @@ procedura** (`StrParser`). **Committente: una sintassi sola, questa.** Gli esemp
    procedura con spazi nelle composte (63 su 1 169, 51 SID militari).
 6. **Sì/no sempre `chiave=si`**, mai una parola da sola.
 7. **Per verso di pista**: il numero della pista e il punto davanti alla chiave (`06.tora=2628`).
-8. **Quote come nel PDF, in piedi**: `SFC`, `GND`, `1500ft`, `FL195`, `UNL`.
+8. **Quote come nel PDF, in piedi**: `SFC`, `GND`, `1500ft`, `FL195`, `UNL`. Un limite in piedi può dire il
+   riferimento, come lo dà l'AIP per ATZ e CTR: `"2000ft AGL"`, `"1500ft AMSL"` (committente, 6 ottobre: «sì,
+   servono»; con lo spazio, quindi fra virgolette per la regola 5 — la scrittura è una scelta dell'agente).
 9. **Chiavi in inglese**, come la colonna inglese dell'AIP e il catalogo della carta madre (§8.2). `composta` e
    `intere` diventano `compose` e `whole`: nel sector vero le righe `//@` sono zero, quindi niente migrazione.
 10. **vIPI legge, non scrive** (committente, 27 settembre): i dati entrano dalla fonte primaria (DB IVAO, AIP) o a

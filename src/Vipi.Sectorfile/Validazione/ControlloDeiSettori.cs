@@ -16,24 +16,52 @@ namespace Vipi.Sectorfile.Validazione;
 public static class ControlloDeiSettori
 {
     /// <summary>
-    /// I settori con una posizione italiana che i <c>.frq</c> non conoscono. <paramref name="settori"/>: per ogni
-    /// <c>.tfl</c> il percorso da mostrare e i record; <paramref name="posizioni"/>: i record di tutti i <c>.frq</c>;
-    /// <paramref name="testoDellaRiga"/>: la riga del disco (percorso da mostrare, da 1).
+    /// I problemi fra settori e posizioni, nei due versi: il settore con una posizione italiana che i <c>.frq</c> non
+    /// conoscono, la posizione che nessun settore nomina, il settore scritto due volte. <paramref name="settori"/> e
+    /// <paramref name="frq"/>: per ogni file il percorso da mostrare e i record; <paramref name="testoDellaRiga"/>: la
+    /// riga del disco (percorso da mostrare, da 1).
     /// </summary>
     public static IEnumerable<ProblemaDelSector> Di(IReadOnlyList<(string Relativo, IReadOnlyList<object> Record)> settori,
-                                                    IEnumerable<AtcPosition> posizioni, Func<string, int, string> testoDellaRiga)
+                                                    IReadOnlyList<(string Relativo, IReadOnlyList<object> Record)> frq,
+                                                    Func<string, int, string> testoDellaRiga)
     {
         ArgumentNullException.ThrowIfNull(settori);
-        ArgumentNullException.ThrowIfNull(posizioni);
+        ArgumentNullException.ThrowIfNull(frq);
         ArgumentNullException.ThrowIfNull(testoDellaRiga);
 
         var definite = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var conosciute = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var posizione in posizioni)
+        foreach (var posizione in frq.SelectMany(f => f.Record.OfType<AtcPosition>()))
         {
             definite.Add(posizione.Code.Trim());
             conosciute.Add(posizione.Code.Trim());
             conosciute.UnionWith(posizione.TransferList.Select(t => t.PositionCode.Trim()));
+        }
+
+        // Slice 13h (il verso opposto di D4; committente, 6 ottobre 2026): una posizione italiana che controlla uno
+        // spazio — torre, avvicinamento, partenze, ACC, FIC — e che nessun settore dinamico nomina. Terra e delivery non
+        // hanno un settore. Una volta per posizione: lo stesso nominativo nel .frq di una FIR è una copia. Sul fork 27
+        // (17 torri; LICD_APP, LIMC_ANW_APP, LIMC_MAR_APP, LIRF_AET_APP, LIRF_AWL_APP, LIRF_PS1_APP; 4 CTR militari).
+        var accese = settori.SelectMany(s => s.Record.OfType<TflSector>()).SelectMany(s => s.Posizioni())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var dette = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (relativo, record) in frq)
+        {
+            foreach (var posizione in record.OfType<AtcPosition>())
+            {
+                string codice = posizione.Code.Trim();
+                if (!Italiana(codice) || !ConUnoSpazio(codice) || accese.Contains(codice) || !dette.Add(codice))
+                    continue;
+
+                // I settori che lo stesso scalo ha davvero: spesso è lui, col nome di prima (LIBC_I_TWR ↔ LIBC_TWR).
+                string scalo = codice[..4];
+                var vicini = accese.Where(a => a.StartsWith(scalo + "_", StringComparison.OrdinalIgnoreCase))
+                    .Order(StringComparer.OrdinalIgnoreCase).ToList();
+                int riga = posizione.Sources.Count > 0 ? posizione.Sources[0].LineNumber : 0;
+                yield return new(Regola.PosizioneSenzaSettore, relativo, riga, testoDellaRiga(relativo, riga),
+                    $"«{codice}» non ha un settore dinamico: collegata, in Aurora non accende niente"
+                    + (vicini.Count > 0 ? $" — nei .tfl {scalo} ha {string.Join(", ", vicini)}" : string.Empty));
+            }
         }
 
         foreach (var (relativo, record) in settori)
@@ -121,6 +149,10 @@ public static class ControlloDeiSettori
 
         return false;
     }
+
+    // I tipi di posizione che controllano uno spazio: gli altri (GND, DEL) non hanno un settore da accendere.
+    private static bool ConUnoSpazio(string posizione)
+        => posizione[(posizione.LastIndexOf('_') + 1)..].ToUpperInvariant() is "TWR" or "APP" or "DEP" or "CTR" or "FSS";
 
     // Come nei trasferimenti dei .frq (ControlloDellePosizioni): una posizione dei nostri scali, col suo tipo.
     private static bool Italiana(string posizione)

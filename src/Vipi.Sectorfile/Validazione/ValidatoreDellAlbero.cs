@@ -205,8 +205,8 @@ public static partial class Validatore
             .Order(StringComparer.Ordinal).ToList();
         var percorsoDelTfl = tfl.ToDictionary(Relativo, p => p, StringComparer.Ordinal);
         problemi.AddRange(ControlloDeiSettori.Di([.. tfl.Select(p => (Relativo(p), Esito(p)!.Record))],
-            frq.SelectMany(p => Esito(p)!.Record.OfType<AtcPosition>()),
-            (relativo, riga) => TestoDellaRiga(percorsoDelTfl[relativo], riga)));
+            [.. frq.Select(p => (Relativo(p), Esito(p)!.Record))],
+            (relativo, riga) => TestoDellaRiga(percorsoDelTfl.GetValueOrDefault(relativo) ?? percorsoDi[relativo], riga)));
 
         // Il CPDLC (lotto «Subito» slice 11c): gruppi senza messaggi, messaggi senza risposta, valori, elenchi del manuale.
         var cpdlc = indice.Values.Where(p => (p.EndsWith(".cpdlc", StringComparison.OrdinalIgnoreCase)

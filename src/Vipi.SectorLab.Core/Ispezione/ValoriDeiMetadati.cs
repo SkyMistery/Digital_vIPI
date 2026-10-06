@@ -192,6 +192,8 @@ public static partial class ValoriDeiMetadati
     /// inferiore, <c>UNL</c> per quello superiore, e per tutti e due piedi (<c>1500ft</c>) o FL (<c>FL195</c>). Vale per
     /// settori, confini, ATZ/CTR del MAPS, aree P/R/D e per i tratti di aerovie e rotte VFR.
     /// </summary>
+    private static readonly string[] Riferimenti = ["AGL", "AMSL"];
+
     private static bool Limite(string chiave, string testo, out string? scritto, out string? perche)
     {
         string t = testo.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
@@ -205,13 +207,19 @@ public static partial class ValoriDeiMetadati
             return scritto is not null;
         }
 
-        if (Salita(t, out scritto, out _))
+        // Slice 13i (committente, 6 ottobre 2026): l'AIP dà i limiti di ATZ e CTR anche riferiti al suolo o al mare
+        // («2000 FT AGL», «1500 FT AMSL»). Il riferimento sta dopo i piedi, con uno spazio; un FL non ne ha.
+        string? riferimento = Riferimenti.FirstOrDefault(r => t.EndsWith(r, StringComparison.Ordinal));
+        string quota = riferimento is null ? t : t[..^riferimento.Length];
+        if (Salita(quota, out scritto, out _) && (riferimento is null || scritto!.EndsWith("ft", StringComparison.Ordinal)))
         {
+            scritto = riferimento is null ? scritto : $"{scritto} {riferimento}";
             perche = null;
             return true;
         }
 
-        perche = $"«{testo}» non è un limite: si scrive come nell'AIP, {(inferiore ? "SFC, GND" : "UNL")}, in piedi (1500ft) o in FL (FL195). (Per SFC e GND: solo il limite inferiore.)";
+        scritto = null;
+        perche = $"«{testo}» non è un limite: si scrive come nell'AIP, {(inferiore ? "SFC, GND" : "UNL")}, in piedi (1500ft, 2000ft AGL, 1500ft AMSL) o in FL (FL195). (Per SFC e GND: solo il limite inferiore.)";
         return false;
     }
 

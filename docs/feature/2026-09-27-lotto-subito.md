@@ -1661,5 +1661,36 @@ base; `LIRR_EW_CTR` → «Il confine · HI_AIRSPACE»: `lirr.hartcc` RR EW, stes
 scheda e letti sulla mappa passando sul bordo.
 
 **Slice 13 chiusa** per le voci D1, D4, D9, J4 (commento in coda: slice 2), J5, J7, K1, Q8, R-4, salvo le quattro
-domande aperte qui sopra. 🔴 Scelte dell'agente da confermare: `SettoreSenzaPosizione` avviso e non errore; limiti
-senza AGL/AMSL; `{ACC} CONF{N}` come modello di base. Da provare a mano: prove 169-183 in `SectorLab-prova\PROVE.md`.
+domande aperte qui sopra.
+
+**Decisioni del committente del 6 ottobre** (tre delle quattro domande): per le posizioni dei `.frq` senza settore
+**sì, un avviso**; `SettoreSenzaPosizione` **resta un avviso**; AGL e AMSL nei limiti **servono**. Sui due punti fra
+le posizioni ha chiesto un esempio: resta aperta (vedi sotto).
+
+- **13h (6 ottobre)** — il verso opposto di D4. Codice comune toccato: `Regola.PosizioneSenzaSettore`, in
+  `ControlloDeiSettori` (che ora prende i `.frq` coi loro file). Una posizione italiana che controlla uno spazio —
+  `_TWR`, `_APP`, `_DEP`, `_CTR`, `_FSS`; terra e delivery no — definita in un `.frq` e che nessuna testa di `.tfl`
+  nomina. Una volta per posizione (lo stesso nominativo nel `.frq` di una FIR è una copia), sulla sua riga, coi
+  settori che lo stesso scalo ha davvero. Sul fork **27**, i numeri della misura: 17 torri, 6 avvicinamenti
+  (`LICD_APP`, `LIMC_ANW_APP`, `LIMC_MAR_APP`, `LIRF_AET_APP`, `LIRF_AWL_APP`, `LIRF_PS1_APP`), 4 CTR militari.
+  Tre fanno coppia con gli avvisi della 13b, e dicono che cosa è successo: `LIBC_I_TWR` (il `.tfl` ha `LIBC_TWR`),
+  `LIQW_TWR` (il `.tfl` ha `LIQW_I_TWR`), `LIRE_TWR` (il `.tfl` ha `LIRE_APP`).
+- **13i (6 ottobre)** — AGL e AMSL nei limiti. Solo il Lab. `lower`/`upper` in piedi accettano il riferimento:
+  `2000 ft agl`, `2000ftAGL`, `2000 AGL` → `2000ft AGL`; scritto nel file fra virgolette (`upper="2000ft AGL"`, §M
+  regola 5). Un FL, `SFC`, `GND`, `UNL` non ne hanno, e un altro riferimento (`QNH`) si rifiuta. §M regola 8 aggiornata.
+
+Uscita sul fork: validatore 235/992 → **235 errori, 1 019 avvisi** (+27 `PosizioneSenzaSettore`) — è il conto del
+pannello del Lab; `tools/Vipi.SectorfileProva`, che non ha le regole calcolate dal Lab (gli 8 nomi delle
+configurazioni), dà 1 011. Round-trip 718/718, tutto toccato 0. Test: motore 791 →
+**792**, Lab 853 → **862**. A schermo (banco): «235 errori · 1019 avvisi»; i 27 nel pannello; `LIAP ATZ` con
+`2000 ft agl` → `//@"LIAP ATZ" lower=SFC upper="2000ft AGL"`.
+
+🟡 **Aperta: i due punti fra le posizioni.** Il manuale separa le posizioni di una testa con lo spazio
+(`LGAV_APP LGAV_DEP;#00120000;1;#00120000;1;`), e così fanno 16 teste del fork
+(`LIBB_ES_CTR LIBB_EU_CTR;CTR;1;CTR;1;`); i tre confini di `limmctr.tfl` e le 53 teste di `GCI.tfl` usano i due punti
+(`LIMM_WS2_CTR:LIMM_WS5_CTR:LIMM_ES2_CTR:LIMM_ES5_CTR;LIMMLIM;1;LIMMLIM;1;`). Il Lab legge tutte e due le scritture;
+se in Aurora i due punti non valgono, quelle 56 teste non si accendono mai: serve una prova in Aurora (con
+`LIMM_WS2_CTR` collegata, i confini `LIMMLIM` si vedono?).
+
+🔴 Scelte dell'agente da confermare: `{ACC} CONF{N}` come modello di base; la scrittura `2000ft AGL`. Da provare a
+mano: prove 169-185 in `SectorLab-prova\PROVE.md`.

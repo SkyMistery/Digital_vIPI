@@ -79,6 +79,27 @@ public sealed class ControlloDeiSettoriTests : IDisposable
         Assert.Contains("riga 1", p.Dettaglio, StringComparison.Ordinal);
     }
 
+    // Slice 13h (il verso opposto di D4; committente, 6 ottobre): una posizione italiana di torre, avvicinamento o ACC
+    // che nessun settore dinamico nomina — collegata, in Aurora non accende niente. Terra e delivery non hanno un settore.
+    [Fact]
+    public void UnaPosizioneDeiFrqSenzaSettoreEUnAvviso_UnaVoltaSola()
+    {
+        // La stessa posizione nel .frq di una FIR: una copia, non un secondo avviso. Una estera non si guarda.
+        Scrivi(@"Include\IT\OTHER\libb.frq", Righe(
+            @"LIBC_I_TWR;118.100;LIBC;PREFS\TWR.cpr;;1;;",
+            @"LFMM_S_CTR;128.100;LFMM;PREFS\CTR.cpr;;1;;"));
+
+        var p = Assert.Single(Di(Regola.PosizioneSenzaSettore));
+
+        Assert.EndsWith("itfreq.frq", p.File, StringComparison.Ordinal);
+        Assert.Equal(1, p.Riga);
+        Assert.Equal(Gravita.Avviso, p.Gravita);
+        Assert.Contains("«LIBC_I_TWR»", p.Dettaglio, StringComparison.Ordinal);
+        // Il settore dello stesso scalo che c'è: spesso è lui, col nome di prima.
+        Assert.Contains("LIBC_TWR", p.Dettaglio, StringComparison.Ordinal);
+        Assert.DoesNotContain("LIBC_GND", p.Dettaglio, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void LAvvisoDiceLePosizioniDelloStessoScaloCheCiSono()
     {

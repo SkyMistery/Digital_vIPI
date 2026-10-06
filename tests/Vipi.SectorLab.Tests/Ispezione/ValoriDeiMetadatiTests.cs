@@ -67,6 +67,24 @@ public sealed class ValoriDeiMetadatiTests
     public void ILimitiVerticaliSiScrivonoComeNelPdf(string chiave, string scritto, string atteso)
         => Assert.Equal((true, atteso, null), Normalizza(chiave, scritto));
 
+    // Slice 13i (committente, 6 ottobre: «sì, servono»): l'AIP scrive i limiti di ATZ e CTR anche «2000 FT AGL» e
+    // «1500 FT AMSL». Il riferimento sta dopo i piedi, con uno spazio; un FL non ne ha.
+    [Theory]
+    [InlineData("upper", "2000 ft agl", "2000ft AGL")]
+    [InlineData("upper", "2000ftAGL", "2000ft AGL")]
+    [InlineData("upper", "2000 AGL", "2000ft AGL")]
+    [InlineData("lower", "1500 FT AMSL", "1500ft AMSL")]
+    [InlineData("lower", "1500amsl", "1500ft AMSL")]
+    public void UnLimiteInPiediPuoDireAglOAmsl(string chiave, string scritto, string atteso)
+        => Assert.Equal((true, atteso, null), Normalizza(chiave, scritto));
+
+    [Theory]
+    [InlineData("upper", "FL195 AGL")]
+    [InlineData("lower", "SFC AGL")]
+    [InlineData("upper", "2000ft QNH")]
+    [InlineData("upper", "AGL")]
+    public void IlRiferimentoValeSoloDopoIPiedi(string chiave, string scritto) => Assert.False(Normalizza(chiave, scritto).Ok);
+
     [Theory]
     [InlineData("lower", "basso")]
     [InlineData("upper", "FL700")]
