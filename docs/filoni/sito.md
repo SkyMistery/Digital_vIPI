@@ -2056,8 +2056,14 @@
     migrazione. Guida `#accordi` (IT/EN). Infra 2084 → 2102 (12 suoi, più 6 dei presidi che provano OGNI scrittura
     degli accordi contro ruolo e lock: le tre nuove ci sono entrate da sole, verdi), Ui 1969 → 1974. A schermo su database inventato:
     clausola a FL350 da ES2 ⇄ LIPP a ES5 ⇄ LIPP (accordo creato) e annulla; sezione intera verso WS5 e annulla.
-  - ▶ Restano 4b (avviso «quota fuori dalla banda del settore scritto», col tasto per spostare) e 5 (sezione
-    condivisa fra più accordi, migrazione additiva).
+  - ✅ **Sulla copia di produzione** (6-ott, copia del 1° ottobre in un MariaDB dello scratchpad; l'interfaccia no,
+    serve il login vero: ho fatto girare il motore dalle porte delle pagine, adesso e coi soli padri). 28
+    configurazioni in 11 blocchi: cambiano 2 tabelle, la stessa — LIMM «Conf 2 b» (WS2 + WS5), pubblicata e bozza:
+    ES5 passa da WS2 a WS5. Le altre 26 identiche. 232 punti di trasferimento: zero cedenti diversi da prima (ES5 e
+    WS5 in produzione non cedono ancora niente). 🔴 Ha smentito la regola di 4b: in produzione ES2 e WS2 sono
+    SFC–UNL, quindi «FL350 fuori dalla banda di ES2» è falso; va confrontato con il settore più specifico che tiene
+    quel cielo a quella quota. `UnificationRules`: zero righe in produzione. Carta §9.
+  - ▶ Restano 4b (da ridisegnare, vedi sopra) e 5 (sezione condivisa fra più accordi, migrazione additiva).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

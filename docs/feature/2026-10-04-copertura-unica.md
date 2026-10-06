@@ -124,7 +124,7 @@ dallo stesso albero.
   corretto), `AccProfileTests.Config_Table_Legge_le_righe_di_ripiego…` (dal database alla tabella).
 - **Rossi sul codice di prima**: riportando le tre logiche a com'erano (soli padri in AoR, cedente senza quota,
   filtro spento) cadono 8 test, e solo quelli.
-- Dal vivo: §7.
+- Dal vivo: §7. Sui dati veri: §9.
 
 ## 7. Passi 2 e 3 — il banco di prova
 
@@ -230,3 +230,42 @@ solito se ne cambia uno), e il lavoro va nell'accordo di **quella** coppia:
 L'avviso «quota fuori dalla banda del settore scritto» non è fatto. Regola pensata, da confermare scrivendola: solo
 per i capi **d'area** (per gli APP un trasferimento un po' fuori è la norma), solo quando la quota è **tutta** fuori
 («esattamente FL350» su un settore che finisce a FL325; non «FL350 o inferiore»), e mai sul confine esatto.
+
+## 9. Sulla copia di produzione — 6 ottobre 2026
+
+Il committente: «non riesci a farla tu se ti copi il db di produzione?». La copia c'era già
+(`vipi-copia-2026-10-01-1201Z-1.54.3`, verificata INTERA con `tools/Vipi.DbBackup`), montata in un MariaDB privato
+nello scratchpad e poi spenta. ⚠️ Su MariaDB l'identità di sviluppo è rifiutata (`ProductionIdentityGuard`) e il
+login IVAO vero non è mio: **l'interfaccia su quella copia non l'ho guidata**. Ho fatto girare il **motore**, con un
+test temporaneo (non committato) che passa dalle stesse porte delle pagine — `AccDerivationService.DeriveConfigTableAsync`,
+`CoverageBench`, `FallbackChain` — due volte: com'è adesso, e coi soli padri com'era prima.
+
+**Le configurazioni scritte nelle vIPI ACC: 28, in 11 blocchi, su LIBB, LIMM, LIPP, LIRR.**
+
+| | |
+|---|---|
+| tabelle che cambiano | **2**, ed è la stessa: `LIMM` «Conf 2 b» (aperti WS2 + WS5), pubblicata e bozza |
+| prima | `WS2: ES2, ES5` · `WS5: —` |
+| adesso | `WS2: ES2` · `WS5: ES5` |
+| le altre 26 | identiche, riga per riga |
+
+«Conf 2» (ES2 + WS2) dava già `ES2: ES5` · `WS2: WS5` e continua a darlo: le due configurazioni di Milano escono
+giuste dallo stesso albero, sui dati veri. Il banco (`CoverageBench`) dice lo stesso per tutte e quattro.
+
+**I trasferimenti: 232 punti in 74 flussi.** Per ogni configurazione d'area pubblicata, chi cede oggi e chi cedeva
+col codice di prima: **zero differenze**. Non perché la correzione non serva, ma perché in produzione ES5 e WS5 non
+cedono ancora niente (Milano ha quattro accordi, tutti di ES2 e WS2 con gli avvicinamenti). Con tutti aperti ogni
+punto resta a chi è scritto.
+
+**Tre cose che i dati veri hanno detto, e che la carta non sapeva.**
+
+1. 🔴 **L'avviso 4b, così com'è pensato, a Milano non scatterebbe mai.** In produzione quasi tutti i settori
+   d'area hanno il tetto **vuoto** (`UpperLimit` NULL = UNL): ES2 e WS2 sono SFC–UNL, e solo gli alti partono da
+   FL325 (ES5, WS5, NE3, SD5). È coerente — in «Conf 2» ES2 e WS2 arrivano davvero a UNL — ma vuol dire che «FL350
+   è fuori dalla banda di ES2» è falso per il catalogo. Il confronto giusto non è con la banda del settore scritto:
+   è «esiste un settore **più specifico** che a quella quota tiene lo stesso cielo» (ES5 sta sotto ES2 e parte da
+   FL325). Da ridisegnare prima di scriverlo.
+2. `UnificationRules` in produzione ha **zero righe**: toglierla non perde niente.
+3. Le quattro migrazioni fra 1.54.3 e `main` si applicano alla copia senza errori (controllo di passaggio).
+
+Il caso del passo 5 esiste già: `LIRR_SU_CTR ⇄ LICT_APP` ha 19 clausole, e l'accordo con `LIRR_MIL_CTR` non c'è.
