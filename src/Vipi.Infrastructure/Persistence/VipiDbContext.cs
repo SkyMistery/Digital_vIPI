@@ -172,6 +172,7 @@ public class VipiDbContext : DbContext
     public DbSet<AgreementSection> AgreementSections => Set<AgreementSection>();
     public DbSet<AgreementAirport> AgreementAirports => Set<AgreementAirport>();
     public DbSet<AgreementClause> AgreementClauses => Set<AgreementClause>();
+    public DbSet<AgreementSectionShare> AgreementSectionShares => Set<AgreementSectionShare>();
 
     /// <summary>Le promozioni a mano: una riga per persona promossa. Carta del 28 agosto 2026 §5.</summary>
     public DbSet<RoleOverride> RoleOverrides => Set<RoleOverride>();
@@ -576,6 +577,22 @@ public class VipiDbContext : DbContext
             // Il traffico e il verso entrano nella chiave di lettura: l'editor cerca «la sezione gemella» e «il
             // verso opposto» a ogni render del riquadro.
             e.HasIndex(x => new { x.AgreementId, x.Kind, x.Direction });
+        });
+
+        // Una sezione che compare ANCHE in un altro accordo (carta 2026-10-06-sezioni-condivise.md).
+        b.Entity<AgreementSectionShare>(e =>
+        {
+            // Una presenza per accordo: la stessa sezione non compare due volte nella stessa scheda.
+            e.HasIndex(x => new { x.SectionId, x.AgreementId }).IsUnique();
+            e.HasIndex(x => new { x.AgreementId, x.Order });
+            // Se la sezione sparisce, le sue presenze non hanno più niente da mostrare.
+            e.HasOne(x => x.Section).WithMany(s => s.Shares).HasForeignKey(x => x.SectionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // Se sparisce l'accordo OSPITE se ne va la sola presenza: la sezione resta di casa dov'era.
+            // ⚠️ Il verso opposto — sparisce l'accordo di CASA e la sezione ha ospiti — non lo protegge lo schema:
+            // lo fa il repository, che prima sposta la casa (EfAgreementRepository, «promozione»).
+            e.HasOne(x => x.Agreement).WithMany(a => a.SharedSections).HasForeignKey(x => x.AgreementId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<AgreementAirport>(e =>

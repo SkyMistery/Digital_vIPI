@@ -207,11 +207,19 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task<int> AddSectionAsync(string a, int id, AgreementSectionInput i, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task UpdateSectionAsync(string a, int id, AgreementSectionInput i, CancellationToken ct = default) =>
+        public Task UpdateSectionAsync(string a, int id, AgreementSectionInput i, int? g = null, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task DeleteSectionAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int?> CopySectionToReverseAsync(string a, int id, CancellationToken ct = default) =>
+        public Task<AgreementPresenceUndo?> RemoveSectionAsync(string a, int id, int g, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<AgreementShareResult> ShareSectionAsync(string a, int id, int s, int r, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<AgreementDetachResult> DetachSectionAsync(string a, int id, int g, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task UndoPresenceAsync(string a, AgreementPresenceUndo u, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<int?> CopySectionToReverseAsync(string a, int id, int? g = null, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int> MergeSectionsAsync(string a, int keep, int absorb, CancellationToken ct = default) =>
             throw new NotSupportedException();

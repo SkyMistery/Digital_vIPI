@@ -379,6 +379,35 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("AgreementSections");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AgreementSectionShare", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AgreementId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgreementId", "Order");
+
+                    b.HasIndex("SectionId", "AgreementId")
+                        .IsUnique();
+
+                    b.ToTable("AgreementSectionShares");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
                 {
                     b.Property<int>("Id")
@@ -3617,6 +3646,25 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Agreement");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AgreementSectionShare", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.CoordinationAgreement", "Agreement")
+                        .WithMany("SharedSections")
+                        .HasForeignKey("AgreementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vipi.Domain.Entities.AgreementSection", "Section")
+                        .WithMany("Shares")
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agreement");
+
+                    b.Navigation("Section");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
@@ -4121,6 +4169,8 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Airports");
 
                     b.Navigation("Clauses");
+
+                    b.Navigation("Shares");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
@@ -4169,6 +4219,8 @@ namespace Vipi.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.CoordinationAgreement", b =>
                 {
                     b.Navigation("Sections");
+
+                    b.Navigation("SharedSections");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>

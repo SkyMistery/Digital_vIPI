@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Vipi.Domain;
 
@@ -22,6 +23,16 @@ public sealed record AgreementSectionRow
 
     public required IReadOnlyList<AgreementAirportRow> Airports { get; init; }
     public required IReadOnlyList<AgreementClauseRow> Clauses { get; init; }
+
+    /// <summary>
+    /// Gli <b>altri</b> accordi in cui questa stessa sezione compare. Vuoto = sta in questo solo.
+    /// <para>⚠️ Una sezione condivisa è <b>una</b>: le sue clausole hanno gli stessi id in ogni accordo che la
+    /// porta, e modificarle da uno le modifica per tutti. Il verso e il posto, invece, sono di questa presenza.</para>
+    /// </summary>
+    public IReadOnlyList<AgreementShareRef> SharedWith { get; init; } = Array.Empty<AgreementShareRef>();
+
+    /// <summary>Vero se la sezione compare anche in un altro accordo.</summary>
+    public bool IsShared => SharedWith.Count > 0;
 
     /// <summary>Gli scali in una riga sola («LIBD · LIBR»); vuoto se non ne ha.</summary>
     public string AirportsLabel => string.Join(" · ", Airports.Select(a => a.Icao));

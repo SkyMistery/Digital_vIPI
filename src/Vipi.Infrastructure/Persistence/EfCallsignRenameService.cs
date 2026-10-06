@@ -351,6 +351,7 @@ public sealed class EfCallsignRenameService : ICallsignRenameService, ISectorSub
             a.SideASectorId = sideA;
             a.SideBSectorId = sideB;
             if (scambiati)
+            {
                 foreach (var s in a.Sections)
                     s.Direction = s.Direction switch
                     {
@@ -358,6 +359,16 @@ public sealed class EfCallsignRenameService : ICallsignRenameService, ISectorSub
                         AgreementDirection.BtoA => AgreementDirection.AtoB,
                         var d => d,
                     };
+                // Anche le sezioni che l'accordo OSPITA (condivise con un altro): il loro verso è scritto sui lati
+                // di questo accordo, come quello delle sue.
+                foreach (var h in await _db.AgreementSectionShares.Where(h => h.AgreementId == a.Id).ToListAsync(ct))
+                    h.Direction = h.Direction switch
+                    {
+                        AgreementDirection.AtoB => AgreementDirection.BtoA,
+                        AgreementDirection.BtoA => AgreementDirection.AtoB,
+                        var d => d,
+                    };
+            }
         }
 
         var blocchi = 0;

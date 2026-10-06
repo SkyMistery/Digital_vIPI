@@ -63,11 +63,16 @@ public class CoordinationAgreement
     // Nessun RowVersion: last-write-wins voluto sotto il lock di editing (14 agosto 2026). Vedi VipiDbContext.
 
     public ICollection<AgreementSection> Sections { get; set; } = new List<AgreementSection>();
+
+    /// <summary>Le sezioni che questo accordo <b>ospita</b>: stanno di casa in un altro accordo e compaiono anche
+    /// qui (<see cref="AgreementSectionShare"/>). Chi legge le riceve insieme a <see cref="Sections"/>.</summary>
+    public ICollection<AgreementSectionShare> SharedSections { get; set; } = new List<AgreementSectionShare>();
 }
 
 /// <summary>
 /// Una **sezione** dell'accordo: un tipo di traffico, in un verso, per un gruppo di aeroporti — cioè una
-/// tabella di clausole. «Arrivi verso LIBD·LIBR», «partenze da LIRF», «sorvoli A→B», «sorvoli B→A».
+/// tabella di clausole. Sta di casa in un accordo, e dal 6 ottobre 2026 può comparire anche in altri
+/// (<see cref="AgreementSectionShare"/>). «Arrivi verso LIBD·LIBR», «partenze da LIRF», «sorvoli A→B», «sorvoli B→A».
 ///
 /// <para><b>Il verso sta qui, ed è un dato.</b> Una sezione «arrivi verso LIRF» ha un verso solo: cede chi non
 /// ha LIRF, riceve chi ce l'ha. Non si ricalcola a ogni lettura (l'AoR cambia, l'accordo scritto no): si
@@ -101,6 +106,46 @@ public class AgreementSection
 
     public ICollection<AgreementAirport> Airports { get; set; } = new List<AgreementAirport>();
     public ICollection<AgreementClause> Clauses { get; set; } = new List<AgreementClause>();
+
+    /// <summary>Gli altri accordi in cui questa sezione compare, oltre a quello di casa (<see cref="AgreementId"/>).</summary>
+    public ICollection<AgreementSectionShare> Shares { get; set; } = new List<AgreementSectionShare>();
+}
+
+/// <summary>
+/// Una sezione che <b>compare anche in un altro accordo</b>: lo stesso contenuto — traffico, aeroporti, prosa,
+/// clausole — vale per più coppie di enti, e si scrive una volta sola.
+///
+/// <para><b>Perché esiste</b> (committente, 4 ottobre 2026). A Trapani gli stessi coordinamenti valgono verso
+/// <c>LIRR_SU_CTR</c>, che controlla i GAT, e verso <c>LIRR_MIL_CTR</c>, che controlla gli OAT. Un accordo è una
+/// coppia e una sezione sta in un accordo solo: le clausole andavano scritte due volte e tenute uguali a mano — e in
+/// produzione l'accordo coi militari infatti non c'era. Carta
+/// <c>docs/feature/2026-10-06-sezioni-condivise.md</c>.</para>
+///
+/// <para><b>Casa e ospiti.</b> La sezione resta di casa nel suo accordo (<see cref="AgreementSection.AgreementId"/>);
+/// ogni riga qui è un accordo che la <b>ospita</b>. Chi legge non vede la differenza: le riceve tutte e due.
+/// ⚠️ Il contenuto si distrugge solo quando se ne va l'<b>ultima</b> presenza: togliere la sezione dall'accordo di
+/// casa mentre ha ospiti ne sposta la casa al primo ospite, e questa riga sparisce.</para>
+///
+/// <para>⚠️ <b>Il verso sta qui, non sulla sezione.</b> I lati di ogni accordo sono canonici (id minore = A) in un
+/// ordine che non c'entra con quello dell'altro: lo stesso «Trapani cede» può essere <c>AtoB</c> di qua e
+/// <c>BtoA</c> di là.</para>
+/// </summary>
+public class AgreementSectionShare
+{
+    public int Id { get; set; }
+
+    public int SectionId { get; set; }
+    public AgreementSection? Section { get; set; }
+
+    /// <summary>L'accordo che ospita la sezione. Mai quello di casa.</summary>
+    public int AgreementId { get; set; }
+    public CoordinationAgreement? Agreement { get; set; }
+
+    /// <summary>In che verso la sezione vale in <b>questo</b> accordo.</summary>
+    public AgreementDirection Direction { get; set; }
+
+    /// <summary>Posto fra le sezioni di questo accordo.</summary>
+    public int Order { get; set; }
 }
 
 /// <summary>

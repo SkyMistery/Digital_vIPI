@@ -41,15 +41,40 @@ public interface IAgreementRepository
     // ---- sezioni ----------------------------------------------------------------------------------------
 
     Task<int> AddSectionAsync(string accCode, int agreementId, AgreementSectionInput input, CancellationToken ct = default);
-    Task UpdateSectionAsync(string accCode, int sectionId, AgreementSectionInput input, CancellationToken ct = default);
+    /// <summary>Modifica una sezione. Traffico, aeroporti e prosa valgono per <b>tutti</b> gli accordi che la
+    /// portano; il verso vale per la presenza nell'accordo indicato (quello di casa, se non si dice).</summary>
+    Task UpdateSectionAsync(string accCode, int sectionId, AgreementSectionInput input, int? agreementId = null,
+        CancellationToken ct = default);
+
+    /// <summary>Toglie la sezione dal suo accordo di casa. ⚠️ Se è condivisa <b>non</b> la distrugge: la casa passa
+    /// al primo accordo che la ospita.</summary>
     Task DeleteSectionAsync(string accCode, int sectionId, CancellationToken ct = default);
+
+    /// <summary>Toglie la sezione da <b>quell'</b>accordo. Se vive anche altrove si stacca soltanto, e torna come
+    /// rimetterla; se era l'ultima presenza la sezione se ne va per intero, e torna <c>null</c>.</summary>
+    Task<AgreementPresenceUndo?> RemoveSectionAsync(string accCode, int sectionId, int agreementId,
+        CancellationToken ct = default);
+
+    /// <summary>Fa comparire la sezione anche nell'accordo della coppia «chi cede → chi riceve», che nasce se non
+    /// c'è. Il contenuto resta uno: si scrive e si corregge una volta.</summary>
+    Task<AgreementShareResult> ShareSectionAsync(string accCode, int sectionId, int senderSectorId, int receiverSectorId,
+        CancellationToken ct = default);
+
+    /// <summary>«Stacca»: in quell'accordo la sezione diventa una copia indipendente, con le stesse clausole; negli
+    /// altri resta com'è.</summary>
+    Task<AgreementDetachResult> DetachSectionAsync(string accCode, int sectionId, int agreementId,
+        CancellationToken ct = default);
+
+    /// <summary>Rimette le presenze di una sezione com'erano prima di condividere, togliere o staccare.</summary>
+    Task UndoPresenceAsync(string accCode, AgreementPresenceUndo undo, CancellationToken ct = default);
 
     /// <summary>
     /// Copia la sezione nel verso opposto, come punto di partenza per il reciproco. Non è un «rendi bilaterale»
     /// automatico: i livelli dei due versi sono diversi quasi sempre, e indovinarli sarebbe scrivere un accordo
     /// che nessuno ha concordato. Ritorna l'id della sezione nuova, o <c>null</c> se il reciproco esiste già.
     /// </summary>
-    Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, CancellationToken ct = default);
+    Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, int? agreementId = null,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Porta le clausole di <paramref name="absorbId"/> in fondo a <paramref name="keepId"/> e cancella la

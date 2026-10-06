@@ -45,8 +45,13 @@ public sealed record AgreementOutlineRestore(int ClauseId, int VariantGroup, int
 }
 
 /// <summary>Una sezione com'era: la sua intestazione e tutte le sue clausole con la loro struttura.</summary>
+/// <param name="SharedSectionId">
+/// L'id della sezione, se era <b>condivisa</b> con altri accordi. Il ripristino allora la rimette come presenza di
+/// quella che vive ancora altrove; rimetterne il contenuto ne farebbe una copia destinata a divergere. Se nel
+/// frattempo è sparita anche là, torna dal contenuto.
+/// </param>
 public sealed record AgreementSectionSnapshot(
-    AgreementSectionInput Data, int Order, IReadOnlyList<AgreementClauseSnapshot> Clauses);
+    AgreementSectionInput Data, int Order, IReadOnlyList<AgreementClauseSnapshot> Clauses, int? SharedSectionId = null);
 
 /// <summary>Un accordo com'era: i due capi e tutte le sue sezioni.</summary>
 public sealed record AgreementSnapshot(AgreementInput Data, IReadOnlyList<AgreementSectionSnapshot> Sections);

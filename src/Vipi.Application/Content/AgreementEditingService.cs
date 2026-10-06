@@ -131,11 +131,11 @@ public sealed class AgreementService : IAgreementService
     }
 
     public async Task UpdateSectionAsync(string accCode, int sectionId, AgreementSectionInput input,
-        CancellationToken ct = default)
+        int? agreementId = null, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
         ValidateSection(input);
-        await _repo.UpdateSectionAsync(accCode, sectionId, input, ct);
+        await _repo.UpdateSectionAsync(accCode, sectionId, input, agreementId, ct);
     }
 
     public async Task DeleteSectionAsync(string accCode, int sectionId, CancellationToken ct = default)
@@ -144,10 +144,38 @@ public sealed class AgreementService : IAgreementService
         await _repo.DeleteSectionAsync(accCode, sectionId, ct);
     }
 
-    public async Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, CancellationToken ct = default)
+    public async Task<AgreementPresenceUndo?> RemoveSectionAsync(string accCode, int sectionId, int agreementId,
+        CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        return await _repo.CopySectionToReverseAsync(accCode, sectionId, ct);
+        return await _repo.RemoveSectionAsync(accCode, sectionId, agreementId, ct);
+    }
+
+    public async Task<AgreementShareResult> ShareSectionAsync(string accCode, int sectionId, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.ShareSectionAsync(accCode, sectionId, senderSectorId, receiverSectorId, ct);
+    }
+
+    public async Task<AgreementDetachResult> DetachSectionAsync(string accCode, int sectionId, int agreementId,
+        CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.DetachSectionAsync(accCode, sectionId, agreementId, ct);
+    }
+
+    public async Task UndoPresenceAsync(string accCode, AgreementPresenceUndo undo, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        await _repo.UndoPresenceAsync(accCode, undo, ct);
+    }
+
+    public async Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, int? agreementId = null,
+        CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.CopySectionToReverseAsync(accCode, sectionId, agreementId, ct);
     }
 
     public async Task<int> MergeSectionsAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default)
