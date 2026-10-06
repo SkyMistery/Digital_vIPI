@@ -103,6 +103,12 @@ public sealed record DescrizioneDelCampo(string Proprieta, string Nome, string S
     public bool InCentinaia { get; init; }
 
     /// <summary>
+    /// Per <see cref="Editor.Quota"/>: è la quota di una zona MVA (slice 15c, E2) — in centinaia, coi valori speciali
+    /// (<c>TRL</c>, <c>NO MINIMA</c>, <c>70/TRL</c>), e una quota piena senza unità si legge in piedi.
+    /// </summary>
+    public bool DiMva { get; init; }
+
+    /// <summary>
     /// Quando il campo si scrive, se dipende dal record (slice 3c): il testo di un'etichetta L arriva nella riga solo
     /// se l'etichetta mostra un testo scelto. Null = sempre. La scheda non offre mai una scrittura che non scrive.
     /// </summary>
@@ -136,7 +142,7 @@ public static class DescrizioniDeiCampi
     /// </summary>
     public static IReadOnlySet<string> Nascoste { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        "Source", "Sources", "HasConflict", "TipoNonScritto", "SenzaOpacita", "Statico",
+        "Source", "Sources", "HasConflict", "TipoNonScritto", "SenzaOpacita", "Statico", "EtichetteDiverse",
     };
 
     /// <summary>La descrizione di un record in QUEL file (le MVA di ACC e di scalo leggono la quota da campi diversi).</summary>
@@ -240,25 +246,28 @@ public static class DescrizioniDeiCampi
     private static DescrizioneDelCampo Vertici(string proprieta, string nome = "Vertici")
         => C(proprieta, nome, "I punti, uno per riga: si scrivono nella loro sezione qui sotto, e si vedono sulla mappa.", Editor.SolaLettura);
 
+    // Slice 15a: un blocco che raccoglie le etichette di più zone ha una quota per riga, e il modello ne tiene una.
+    private static bool UnaQuotaSola(object record) => record is not MvaSector { EtichetteDiverse: true };
+
+    private const string PiuQuote = "Questo blocco raccoglie etichette con quote diverse (una per riga): si cambiano dalle righe del file, qui sotto.";
+
     private static readonly DescrizioneDelTipo MvaDiAcc = new("Zona MVA di ACC",
     [
         C("Nome", "Nome", "Il 2° campo della prima riga (lo scalo o il gruppo, LIMM): è il nome col quale il blocco si aggancia ai tag.", Editor.SolaLettura),
-        C("AltLabel", "Quota", "La quota minima scritta sull'etichetta (5° campo della riga L), in centinaia di piedi: 25 = 2 500 ft.", Editor.Quota) with { InCentinaia = true },
-        C("LabelSize", "Carattere", "La grandezza del testo dell'etichetta (6° campo della riga L).", Editor.Numero),
+        C("AltLabel", "Quota", "La quota minima scritta sull'etichetta (5° campo della riga L), in centinaia di piedi: 25 = 2 500 ft. Valori speciali: TRL, NO MINIMA, 70/TRL.", Editor.Quota) with { InCentinaia = true, DiMva = true, SiScriveSe = UnaQuotaSola, PercheNo = PiuQuote },
+        C("LabelSize", "Carattere", "La grandezza del testo dell'etichetta (6° campo della riga L).", Editor.Numero) with { SiScriveSe = UnaQuotaSola, PercheNo = PiuQuote },
         C("LabelAnchors", "Etichette", "Dove sta la scritta della quota: le righe L della zona.", Editor.SolaLettura),
         Vertici("Vertices"),
     ]);
 
     private static readonly DescrizioneDelTipo MvaDiScalo = new("Zona MVA di scalo",
     [
-        C("Nome", "Nome", "Il 2° campo della prima riga: è il nome col quale il blocco si aggancia ai tag.", Editor.SolaLettura),
-        // 🔴 Slice 3b: il motore legge le MVA di scalo col 2° campo della L come quota e lo RISCRIVE anche nel 5°; sul fork
-        // 194 etichette su 226 hanno invece il gruppo nel 2° (BB CS0) e la quota nel 5° (45), come le ACC. Cambiare
-        // la quota o il carattere cancellerebbe la quota vera: si leggono e basta finché la slice 15 (S1-S2) non legge
-        // queste MVA come quelle di ACC.
-        C("AltLabel", "Etichetta", "Il 2° campo della riga L. Sul fork quasi sempre il gruppo (BB CS0), con la quota nel 5° campo: si scriverà con la slice 15, quando il Lab leggerà le MVA di scalo come quelle di ACC.", Editor.SolaLettura),
-        C("LabelSize", "Carattere", "La grandezza del testo dell'etichetta (6° campo della riga L); si scriverà con la slice 15, come l'etichetta.", Editor.SolaLettura),
-        C("LabelAnchors", "Etichette", "Dove sta la scritta: le righe L della zona.", Editor.SolaLettura),
+        // Slice 15a (S1): di scalo come di ACC — il 2° campo è il nome, la quota sta nel 5°. Così sono tutte le 226
+        // etichette del fork; fino alla 15 il motore leggeva il 2° campo come quota, e questi campi erano in sola lettura.
+        C("Nome", "Nome", "Il 2° campo della prima riga: oggi il gruppo (RR US0) o il nome della zona (ZONA13, 3500); deciso: l'ICAO dello scalo. È il nome col quale il blocco si aggancia ai tag; si cambia dalla voce, qui sotto.", Editor.SolaLettura),
+        C("AltLabel", "Quota", "La quota minima scritta sull'etichetta (5° campo della riga L), in centinaia di piedi: 25 = 2 500 ft. Valori speciali: TRL, NO MINIMA, 70/TRL.", Editor.Quota) with { InCentinaia = true, DiMva = true, SiScriveSe = UnaQuotaSola, PercheNo = PiuQuote },
+        C("LabelSize", "Carattere", "La grandezza del testo dell'etichetta (6° campo della riga L).", Editor.Numero) with { SiScriveSe = UnaQuotaSola, PercheNo = PiuQuote },
+        C("LabelAnchors", "Etichette", "Dove sta la scritta della quota: le righe L della zona.", Editor.SolaLettura),
         Vertici("Vertices"),
     ]);
 

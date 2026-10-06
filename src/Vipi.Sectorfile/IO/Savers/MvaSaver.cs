@@ -31,7 +31,9 @@ public sealed class MvaSaver : IFileSaver<MvaSector>
 
         string fir = record.Vertices.FirstOrDefault(v => v.ExtraField is not null)?.ExtraField
                      ?? (record.Nome.Length > 0 ? record.Nome : record.AltLabel);
-        string labelField1 = _enroute ? fir : record.AltLabel;
+        // Slice 15a (S1): di scalo come di ACC, il 2° campo della L è il nome (il gruppo, o la zona) e la quota sta nel
+        // 5°. Solo una zona senza nome (un'etichetta nuova in un file vuoto) ci mette la quota, come prima.
+        string labelField1 = _enroute ? fir : record.Nome.Length > 0 ? record.Nome : record.AltLabel;
         string size = record.LabelSize.ToString(CultureInfo.InvariantCulture);
 
         var lines = new List<string>();
@@ -57,8 +59,11 @@ public sealed class MvaSaver : IFileSaver<MvaSector>
             // aggiunto usciva `T;;N…;E…;` — senza nome, un'altra zona per Aurora.
             string ident = vertex.ExtraField ?? (_enroute ? fir : record.Nome.Length > 0 ? record.Nome : record.AltLabel);
 
-            lines.Add(vertex.ExtraField is not null
-                ? $"T;{ident};{lat};{lon};{vertex.ExtraField};"
+            // E3: in una MVA di ACC il 5° campo è il gruppo della MVA Selection. Un vertice nuovo lo porta; uno letto
+            // senza resta senza.
+            string? gruppo = vertex.ExtraField ?? (_enroute && !vertex.LettoSenzaGruppo ? fir : null);
+            lines.Add(gruppo is not null
+                ? $"T;{ident};{lat};{lon};{gruppo};"
                 : $"T;{ident};{lat};{lon};");
         }
 

@@ -382,6 +382,43 @@ public enum Regola
     /// scrive il verso di base e non inventa le quote (slice 14e, B14). La calcola il Lab; un tratto senza tag non si segnala.
     /// </summary>
     TrattoSenzaQuote,
+
+    /// <summary>
+    /// Un'etichetta di una MVA che non sta dentro nessuna zona del suo file: da rivedere (slice 15b, E5: 12 sul fork,
+    /// quasi tutte sole nel loro blocco).
+    /// </summary>
+    EtichettaFuoriDallaZona,
+
+    /// <summary>
+    /// Una zona chiusa di una MVA senza un'etichetta dentro: non si sa che quota vale (slice 15b, E5). Solo nei file con
+    /// un nome solo: in quelli «un nome per zona» le zone non si ricavano dai poligoni.
+    /// </summary>
+    ZonaSenzaEtichetta,
+
+    /// <summary>
+    /// La quota di un'etichetta MVA che non è una quota né un valore speciale (<c>TRL</c>, <c>NO MINIMA</c>,
+    /// <c>70/TRL</c>): slice 15b, E5.
+    /// </summary>
+    QuotaNonValida,
+
+    /// <summary>
+    /// Una quota MVA scritta in piedi (<c>2500</c>) o come livello (<c>FL85</c>): le MVA si scrivono in centinaia, come
+    /// le altre (slice 15b, S2-S3: 13 sul fork, in <c>libn</c>, <c>libv</c>, <c>lict</c>). Con la riga corretta.
+    /// </summary>
+    QuotaNonInCentinaia,
+
+    /// <summary>
+    /// In una MVA di ACC una riga <c>T;</c> senza il gruppo nel 5° campo, o con un altro; anche un separatore
+    /// <c>T;DUMMY</c>, che senza gruppo fa comparire la voce DUMMY nella <i>MVA Selection</i> di Aurora (slice 15b, E3 ed
+    /// E7: i 104 separatori del fork). Con la riga corretta.
+    /// </summary>
+    GruppoMancanteNellaMva,
+
+    /// <summary>
+    /// Una MVA di scalo che non si chiama come lo scalo (slice 15b, S2-S3): un nome di settore (<c>RR US0</c>) o un nome
+    /// per zona, ognuno una voce nella <i>MVA Selection</i>. Un avviso per file: sul fork tutti e 24.
+    /// </summary>
+    MvaNonDelloScalo,
 }
 
 public enum Gravita
@@ -426,7 +463,9 @@ public static class Regole
             or Regola.CerchioNonChiuso or Regola.CentroFuoriDalConfine or Regola.StanghettaDellAocc
             or Regola.EtichettaLontanaDalFix
             or Regola.AeroviaSenzaEtichetta or Regola.EtichettaDiUnAeroviaAssente
-            or Regola.EtichettaLontanaDallAerovia or Regola.TrattoSenzaQuote => Validazione.Gravita.Avviso,
+            or Regola.EtichettaLontanaDallAerovia or Regola.TrattoSenzaQuote
+            or Regola.EtichettaFuoriDallaZona or Regola.ZonaSenzaEtichetta or Regola.QuotaNonValida
+            or Regola.QuotaNonInCentinaia or Regola.GruppoMancanteNellaMva or Regola.MvaNonDelloScalo => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

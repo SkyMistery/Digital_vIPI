@@ -1811,3 +1811,84 @@ un'etichetta è una coordinata, e cambiarlo tocca lettore, scrittore, mappa e sc
 controlli e le etichette calcolate, che leggono le righe, le capiscono già. Va insieme ad A8 (le etichette per
 riferimento, dopo la prova in Aurora). 🔴 Scelte dell'agente da confermare: le soglie degli ACC (0,3 NM dal confine,
 15 ± 0,25 NM, 0,1 NM dal fix) e il mezzo miglio delle etichette. Da provare a mano: prove 186-200.
+
+### Slice 15 — MVA di ACC e di scalo (`ENRMVA/*.mva`, `{icao}.mva`) — dal 6 ottobre
+
+**Manuale IVAO** (riletto il 6 ottobre, `[MVA]`): `T/L;Identificativo;Lat;Lon;[Descrizione];[Font]`, con descrizione e
+carattere solo sulle righe `L;`. La descrizione è quel che si legge sullo schermo: la quota. Il 5° campo delle `T;` il
+manuale non lo nomina: è il gruppo della *MVA Selection*, provato dal committente (carta «file per file» §6, E3 ed E7).
+
+**Misura sul fork** (`8cf32c6`, `scratchpad/misura15.py`, `misura15b.py`, `misura15c.py`):
+
+- **MVA di ACC** (4 file): 119 etichette, 4 225 righe `T;` **tutte col gruppo** nel 5° campo; **104 separatori
+  `T;DUMMY` senza gruppo** (E7); 382 commenti in coda; 9 etichette fuori da ogni poligono (5 sole nel loro blocco, senza un vertice).
+- **MVA di scalo** (24 file): **226 etichette, tutte con la quota nel 5° campo** — il 2° è il nome (il settore, o la
+  zona), non la quota: in `licj.mva` `L;5000TPS;…;50;7;`. Le `T;` non hanno il 5° campo (4 944). **8 file** hanno un
+  nome solo e le zone separate dai `DUMMY` (`BB CS0`, `RR ES0`, `RR EW0`, `MM WN0`, `PP CE0`, `MM ES0`, `PP SE0`,
+  `RR US0`), **16** un nome per zona; **nessuno** si chiama come lo scalo.
+- **Quote**: in centinaia dappertutto, tranne **13** piene o come livello (`libn` 1, `libv` 6 — `FL85` —, `lict` 6).
+  Valori speciali: `TRL`, `NO MINIMA`, `70/TRL`, `80/TRL`, `*30/40`.
+- **8 blocchi** raccolgono in fondo al file le etichette di più zone, con quote diverse (`liba`, `licj`, `lict`,
+  `lipa`, `lipe`, `liph`, `lipi`, `lirs`): per il modello sono una zona sola con una quota sola.
+- Due scritture che la misura a mano non leggeva e il motore sì: un'etichetta in **gradi decimali**
+  (`lipx.mva:14`, `L;MM ES0;45.55756591;10.27902575;60;8;`) e le coordinate **senza punti** di `libv.mva`
+  (`N0410300000`, già `CoordinataFuoriForma`).
+
+- **15a (6 ottobre)** — le MVA di scalo lette come quelle di ACC (S1) e il gruppo sui vertici nuovi (E3). Codice comune
+  toccato: `IO/Parsers/MvaParser.cs`, `IO/Savers/MvaSaver.cs`, `Models/Airport/MvaSector.cs`.
+  - 🔴 Fino a qui il lettore prendeva la quota di una MVA di scalo dal **2° campo** (`RR US0`, `5000TPS`,
+    `CERCHIO-BA`): la scheda mostrava un nome al posto della quota, e per questo dalla slice 3 quota e carattere erano
+    in sola lettura. Ora la quota è il **5° campo** in tutti e due i tipi di file; il 2° è il nome (`MvaSector.Nome`) e
+    lo scrittore lo rimette com'era. Solo una `L;` di scalo senza 5° campo ricade sul 2°.
+  - Un blocco con più righe `L;` che non dicono lo stesso nome, la stessa quota e lo stesso carattere si riconosce
+    (`EtichetteDiverse`): lo scrittore le riscriverebbe tutte uguali, quindi la scheda **non fa scrivere** quota e
+    carattere di quel blocco e dice perché («si cambiano dalle righe del file, qui sotto»). Il rifiuto sta anche in
+    `ModificheInSospeso.Cambia` (`SiScriveSe` della descrizione del campo), non solo nella scheda.
+  - Un vertice **nuovo** di una MVA di ACC esce col gruppo nel 5° campo; uno letto senza resta senza
+    (`MvaVertex.LettoSenzaGruppo`), così un file toccato cambia solo dove si è messa mano.
+- **15b (6 ottobre)** — i controlli (E3, E5, S2, S3). Codice comune toccato: `Validazione/ControlloDelleMva.cs` e sei
+  regole (avvisi), lette dalle righe come quelle degli ACC.
+  - **`EtichettaFuoriDallaZona`**: un'etichetta che non sta dentro nessun poligono (di almeno tre punti) del suo file.
+  - **`ZonaSenzaEtichetta`**: un poligono **chiuso** (primo e ultimo punto a meno di 20 m) senza etichette dentro, solo
+    nei file con un nome solo — in quelli «un nome per zona» i tratti sono linee, cerchi, pezzi di confine.
+  - **`QuotaNonValida`**: il 5° campo che non è una quota in centinaia né `TRL`, `NO MINIMA`, `70/TRL`, `*30/40`.
+  - **`QuotaNonInCentinaia`**: in piedi o come livello, con la riga corretta (`2500` → `25`, `FL85` → `85`).
+  - **`GruppoMancanteNellaMva`**: in una MVA di ACC, una `T;` senza il gruppo del file nel 5° campo o con un altro,
+    **separatori `DUMMY` compresi**; con la riga corretta (`T;DUMMY;…;LIBB;`), e il commento in coda resta in coda.
+  - **`MvaNonDelloScalo`**: una MVA di scalo che non si chiama come lo scalo — uno per file, sulla prima riga che ha
+    un altro nome, coi nomi che trova.
+  - Il commento in coda (S3) lo dice già `CommentoInCoda` dalla slice 2.
+  Uscita sul fork: **13** etichette fuori (9 di ACC, 4 di scalo: la quarta è `libv.mva:10`, che la misura a mano non
+  leggeva), **0** zone senza etichetta (quella di `lipx.mva` ha l'etichetta in gradi decimali, dentro), **0** quote
+  non valide, **13** piene, **104** separatori senza gruppo, **24** MVA di scalo.
+- **15c (6 ottobre)** — la quota nella scheda (E2, S2). Solo il Lab: `Core/Ispezione/Quote.cs` (`LeggiDiMva`,
+  `SignificatoDiMva`), `EditorDelCampo.razor`. La quota di una zona si scrive sempre **in centinaia**: `25`, e anche
+  `2500`, `2500ft`, `FL85` (diventano `25` e `85`: nelle centinaia nessuna MVA arriva a 1 000, quindi un numero pieno è
+  in piedi); i valori speciali si scelgono dall'elenco o si scrivono (`trl` → `TRL`, `no minima`, `70/trl`); `*30/40`
+  resta com'è. Sotto il campo il significato: «= 2 500 ft», «= il livello di transizione», «= 7 000 ft, o il livello
+  di transizione se è più alto». `2550` e `pippo` si rifiutano col perché.
+
+Uscita sul fork: validatore 235/1 067 → **235 errori, 1 221 avvisi** in `Vipi.SectorfileProva` (**1 229** nel pannello
+del Lab): +13, +13, +104, +24. Round-trip 718/718, tutto toccato 0, una modifica per record 115 620/115 620: la nuova
+lettura delle MVA di scalo non sposta una riga. Test: motore 801 → **819**, Lab 884 → **907**. A schermo (banco, copia
+del fork): i sei conti nel pannello; `lirn.mva` record 0 (`RR US0`, quota 110) → `2500` diventa `25`, `70/trl` →
+`70/TRL`, `FL85` → `85`, `no minima` → la riga `L;RR US0;…;NO MINIMA;8;` col nome al suo posto, `2550` e `pippo`
+rifiutati; `lirs.mva` record 14 (il blocco delle etichette) con quota e carattere fermi e il perché; `licj.mva`
+record 3 (`5000TPS`) quota `50` → `60`, riga `L;5000TPS;…;60;7;`; in `limm.mva` un vertice in fondo → `T;LIMM;…;LIMM;`;
+**Correggi tutte le 7 di libb.mva** → una voce «−7 +7», ogni `T;DUMMY;…;` col suo `LIBB;`.
+
+**Slice 15 chiusa** per le voci E2, E3, E5, S1, S2 (le regole), S3. Già fatte dalle slice comuni: E1 (il blocco
+`//@"LIMM" zone="…"` e il soprannome nella scheda, slice 1d) ed E4 (tipo fisso, punti coi suggerimenti, nascondi e
+mostra). 🔴 **Non fatto, e detto al committente**:
+
+- **Spezza / unisci nelle MVA di ACC** (E4): resta fermo (le forbici non compaiono). Una zona è un poligono solo con la sua
+  etichetta, il `T;DUMMY` la chiude, e sul fork nessuno sta in mezzo a una zona; il modello non tiene un'interruzione
+  dentro una zona. Per farne due si aggiunge una zona.
+- **«Il Lab propone i tratti intorno all'etichetta»** (E1): serve nei 16 file «un nome per zona», dove le etichette
+  stanno in fondo e la zona non è un poligono. È il lavoro dell'adozione (E6, S2: F4, in un ramo).
+- **Una zona nuova** nasce copiando la vicina, separatore compreso: se il separatore della vicina non ha il gruppo,
+  nemmeno il suo. Lo dice `GruppoMancanteNellaMva`, e si corregge con un clic.
+- 🔴 Scelte dell'agente da confermare: un numero pieno senza unità letto in piedi sopra 660; venti metri per dire che
+  una zona è chiusa; il gruppo di un file di ACC preso dal nome che le sue righe portano più spesso.
+
+Da provare a mano: prove 201-211.

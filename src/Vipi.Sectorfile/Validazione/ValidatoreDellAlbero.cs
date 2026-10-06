@@ -233,6 +233,12 @@ public static partial class Validatore
                 .Select(p => (Relativo(p), SectorFileReader.Read(p).Lines))],
             Punto));
 
+        // Le MVA (slice 15b; E3, E5, S3): etichette e zone, quote, gruppo delle MVA di ACC, nome di quelle di scalo.
+        problemi.AddRange(ControlloDelleMva.Di(
+            [.. indice.Values.Where(p => p.EndsWith(".mva", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal)
+                .Select(p => (Relativo(p), SectorFileReader.Read(p).Lines, p.Replace('\\', '/').Contains("/ENRMVA/", StringComparison.OrdinalIgnoreCase)))],
+            Punto));
+
         // Il CPDLC (lotto «Subito» slice 11c): gruppi senza messaggi, messaggi senza risposta, valori, elenchi del manuale.
         var cpdlc = indice.Values.Where(p => (p.EndsWith(".cpdlc", StringComparison.OrdinalIgnoreCase)
                                               || p.EndsWith(".cpdlcnames", StringComparison.OrdinalIgnoreCase)) && Esito(p) is not null)

@@ -245,4 +245,84 @@ public sealed class MvaParserTests
 
         Assert.Equal(["L;LIRR;N041.00.00.000;E012.00.00.000;90;8;", "T;LIRR;N041.10.00.000;E012.10.00.000;"], righe);
     }
+
+    // ── Lotto «Subito» slice 15a (S1) ─────────────────────────────────────────────────────────────────────────────
+    // Le MVA di scalo si leggono come quelle di ACC: il 2° campo della L è il nome (il gruppo, o la zona), il 5° la
+    // quota scritta a schermo — il formato del manuale, e così sono tutte le 226 etichette del fork. Prima la quota era
+    // il 2° campo: «RR US0» al posto di «110», e cambiarla avrebbe cancellato quella vera (per questo erano in sola
+    // lettura dalla slice 3b).
+    [Fact]
+    public void Airport_LaQuotaEIlQuintoCampo_IlSecondoEIlNome()
+    {
+        var letto = Airport(
+            "L;RR US0;N041.09.33.780;E015.00.54.430;110;8;\r\n" +
+            "T;RR US0;N041.16.00.000;E014.53.00.000;\r\n" +
+            "T;RR US0;N041.12.00.000;E015.07.00.000;\r\n" +
+            "T;DUMMY;N000.00.00.000;E000.00.00.000;\r\n").FissaLeBasi(new MvaSaver(enroute: false));
+        var zona = Assert.Single(letto.Records);
+        Assert.Equal("110", zona.AltLabel);
+        Assert.Equal("RR US0", zona.Nome);
+        Assert.Equal(8, zona.LabelSize);
+
+        zona.AltLabel = "90";
+        var righe = new FileSaverOrchestrator().Righe(letto, new HashSet<MvaSector> { zona }, new MvaSaver(enroute: false));
+
+        Assert.Equal(
+            ["L;RR US0;N041.09.33.780;E015.00.54.430;90;8;", "T;RR US0;N041.16.00.000;E014.53.00.000;",
+             "T;RR US0;N041.12.00.000;E015.07.00.000;", "T;DUMMY;N000.00.00.000;E000.00.00.000;"], righe);
+    }
+
+    // Nei file «un nome per zona» il nome somiglia a una quota (3500) e la quota vera è nel 5° campo (35): cambiata la
+    // quota, il nome della zona resta.
+    [Fact]
+    public void Airport_UnNomeCheSembraUnaQuotaRestaIlNome()
+    {
+        var letto = Airport(
+            "L;3500;N041.00.00.000;E012.00.00.000;35;7;\r\n" +
+            "T;3500;N041.10.00.000;E012.10.00.000;\r\n").FissaLeBasi(new MvaSaver(enroute: false));
+        var zona = Assert.Single(letto.Records);
+        Assert.Equal("35", zona.AltLabel);
+
+        zona.AltLabel = "40";
+        var righe = new FileSaverOrchestrator().Righe(letto, new HashSet<MvaSector> { zona }, new MvaSaver(enroute: false));
+
+        Assert.Equal(["L;3500;N041.00.00.000;E012.00.00.000;40;7;", "T;3500;N041.10.00.000;E012.10.00.000;"], righe);
+    }
+
+    // Un blocco che raccoglie le etichette di più zone (liba.mva: sei L con sei quote, in fondo al file) ha una quota
+    // per riga, e il modello ne tiene una: il lettore lo dice, e la scheda non la fa scrivere (8 blocchi sul fork).
+    [Fact]
+    public void UnBloccoConEtichetteDiQuoteDiverseLoDice()
+    {
+        var raccolta = Assert.Single(Airport(
+            "L;90;N041.43.34.000;E014.14.55.000;90;7;\r\n" +
+            "L;60;N041.35.56.000;E014.47.57.000;60;7;\r\n").Records);
+        Assert.True(raccolta.EtichetteDiverse);
+
+        // Due etichette della stessa zona, con la stessa quota (libb.mva): è una zona sola.
+        var zona = Assert.Single(Enroute(
+            "L;LIBB;N041.27.11.041;E017.53.31.105;100;8;\r\n" +
+            "L;LIBB;N039.21.59.653;E017.29.40.855;100;8;\r\n" +
+            "T;LIBB;N042.03.45.000;E016.57.44.000;LIBB;\r\n").Records);
+        Assert.False(zona.EtichetteDiverse);
+    }
+
+    // E3: un vertice che il Lab aggiunge a una zona di ACC porta il gruppo nel 5° campo, come gli altri; uno letto
+    // senza resta senza (la riga non cambia sotto le mani di chi non l'ha toccata).
+    [Fact]
+    public void Enroute_UnVerticeNuovoPortaIlGruppo()
+    {
+        var zona = Assert.Single(Enroute(
+            "L;LIRR;N041.00.00.000;E012.00.00.000;100;8;\r\n" +
+            "T;LIRR;N041.10.00.000;E012.10.00.000;LIRR;\r\n" +
+            "T;LIRR;N041.20.00.000;E012.20.00.000;\r\n" +
+            "T;DUMMY;N000.00.00.000;E000.00.00.000;\r\n").Records);
+        zona.Vertices.Add(new MvaVertex { Position = Punto.Da(new Coordinate(41.5, 12.5)) });
+
+        var righe = new MvaSaver(enroute: true).Serialize(zona);
+
+        Assert.Equal(
+            ["L;LIRR;N041.00.00.000;E012.00.00.000;100;8;", "T;LIRR;N041.10.00.000;E012.10.00.000;LIRR;",
+             "T;LIRR;N041.20.00.000;E012.20.00.000;", "T;LIRR;N041.30.00.000;E012.30.00.000;LIRR;"], righe);
+    }
 }

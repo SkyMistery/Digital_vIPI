@@ -27,6 +27,14 @@ public sealed class MvaSector
     /// <summary>Last field of the L line (display size, e.g. 7 or 8).</summary>
     public int LabelSize { get; set; }
 
+    /// <summary>
+    /// Il blocco ha più righe <c>L;</c> e non dicono tutte lo stesso nome, la stessa quota e lo stesso carattere: è una
+    /// raccolta di etichette di zone diverse (in fondo a <c>liba.mva</c>, <c>lirs.mva</c>… 8 blocchi sul fork), e
+    /// <see cref="AltLabel"/> è solo la prima. Lo scrittore le riscriverebbe tutte uguali: la scheda non fa scrivere
+    /// quota e carattere di un blocco così (lotto «Subito» slice 15a).
+    /// </summary>
+    public bool EtichetteDiverse { get; internal set; }
+
     /// <summary>Label anchor positions; airport = exactly 1, enroute = 1 or more.</summary>
     public IList<Punto> LabelAnchors { get; } = new List<Punto>();
 
@@ -46,4 +54,10 @@ public sealed class MvaVertex
     /// null for DUMMY rows; preserved verbatim for round-trip fidelity.
     /// </summary>
     public string? ExtraField { get; set; }
+
+    /// <summary>
+    /// La riga del file non aveva il 5° campo: resta senza. Un vertice che il Lab aggiunge a una zona di ACC (falso)
+    /// porta invece il gruppo, come vuole la <i>MVA Selection</i> di Aurora (lotto «Subito» slice 15a, E3).
+    /// </summary>
+    public bool LettoSenzaGruppo { get; set; }
 }

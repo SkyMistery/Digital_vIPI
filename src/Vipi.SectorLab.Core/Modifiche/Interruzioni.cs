@@ -52,11 +52,12 @@ public static class Interruzioni
 
     /// <summary>
     /// Perché in quell'elenco non si spezza, dove il perché conta: nelle MVA di ACC il <c>T;DUMMY</c> chiude la zona e
-    /// il motore non lo tiene in mezzo (sul fork 169 in coda, nessuno in mezzo): se ne parla con la slice 15.
+    /// il motore non lo tiene in mezzo (sul fork 169 in coda, nessuno in mezzo). Slice 15: resta così — una zona è un
+    /// poligono solo con la sua etichetta, e due zone sono due blocchi (si aggiunge una zona, non si spezza questa).
     /// </summary>
     public static string? PercheNo(FileAperto file, int indice, string campo)
         => Record(file, indice) is MvaSector && campo == nameof(MvaSector.Vertices) && DiAcc(file)
-            ? "Nelle MVA di ACC il T;DUMMY chiude la zona, e in mezzo a una zona il Lab non lo sa ancora tenere (slice 15)."
+            ? "Nelle MVA di ACC una zona è un poligono solo, chiuso dal suo T;DUMMY: per farne due si aggiunge una zona, non si spezza questa."
             : null;
 
     /// <summary>Le posizioni k dell'elenco dopo le quali, DENTRO l'elenco, la linea è interrotta (fra k e k+1).</summary>

@@ -164,10 +164,13 @@ public sealed class DescrizioniDeiCampiTests : IDisposable
 
         var quotaDiAcc = diAcc.Campi.Single(c => c.Proprieta == "AltLabel");
         Assert.Equal((Editor.Quota, true), (quotaDiAcc.Editor, quotaDiAcc.InCentinaia));
-        // Negli scali il motore legge la quota dal 2° campo e la riscrive nel 5°, dove sul fork c'è quasi sempre la quota
-        // vera: finché la slice 15 non le legge come le ACC, quota e carattere non si scrivono dalla scheda.
-        Assert.Equal(Editor.SolaLettura, diScalo.Campi.Single(c => c.Proprieta == "AltLabel").Editor);
-        Assert.Equal(Editor.SolaLettura, diScalo.Campi.Single(c => c.Proprieta == "LabelSize").Editor);
+        // Slice 15a (S1): di scalo come di ACC — la quota è il 5° campo, in centinaia, coi valori speciali. Fino alla 15
+        // il motore la leggeva dal 2° campo, e quota e carattere erano in sola lettura.
+        var quotaDiScalo = diScalo.Campi.Single(c => c.Proprieta == "AltLabel");
+        Assert.Equal((Editor.Quota, true, true), (quotaDiScalo.Editor, quotaDiScalo.InCentinaia, quotaDiScalo.DiMva));
+        Assert.True(quotaDiAcc.DiMva);
+        Assert.Equal(Editor.Numero, diScalo.Campi.Single(c => c.Proprieta == "LabelSize").Editor);
+        Assert.True(quotaDiScalo.SiScriveIn(zona));
     }
 
     [Fact]

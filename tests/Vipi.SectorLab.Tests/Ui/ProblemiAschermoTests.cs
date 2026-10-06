@@ -94,6 +94,8 @@ public sealed class ProblemiAschermoTests : IDisposable
     {
         var pagina = await ConIProblemi();
         var illeggibile = _lab.ProblemiDellAlbero.Single(p => p.File == Fix && p.Problema.Regola == Regola.CoordinataIllegibile);
+        // Il pannello ne disegna duecento: con gli avvisi delle MVA (slice 15b) i campioni ne hanno di più, e si filtra.
+        pagina.Find("[data-campo='filtro-problemi']").Input("CoordinataIllegibile");
 
         pagina.Find($"[data-file='{Fix}'][data-riga='{illeggibile.Problema.Riga}']").Click();
 

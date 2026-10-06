@@ -197,16 +197,26 @@ public abstract class MvaParser : IFileParser<MvaSector>
 
         if (!labelSet)
         {
-            // Airport: AltLabel = field 2 (index 1). Enroute: AltLabel = field 5 (index 4).
-            sector.AltLabel = _enroute ? (n >= 5 ? parts[4] : string.Empty) : parts[1];
+            // AltLabel = field 5, the description shown on screen (IVAO manual: `L;id;lat;lon;description;font`), in
+            // airport files too (lotto «Subito» slice 15a, S1): all 226 labels of the fork write it there, with the
+            // group or the zone name in field 2. Only an airport L without field 5 falls back to field 2.
+            sector.AltLabel = n >= 5 ? parts[4] : _enroute ? string.Empty : parts[1];
             if (n >= 6 && int.TryParse(parts[5].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int size))
             {
                 sector.LabelSize = size;
             }
 
             labelSet = true;
+            _primaEtichetta = (parts[1].Trim(), n >= 5 ? parts[4].Trim() : string.Empty, n >= 6 ? parts[5].Trim() : string.Empty);
+        }
+        else if (_primaEtichetta != (parts[1].Trim(), n >= 5 ? parts[4].Trim() : string.Empty, n >= 6 ? parts[5].Trim() : string.Empty))
+        {
+            sector.EtichetteDiverse = true;
         }
     }
+
+    // Nome, quota e carattere della prima L del blocco aperto: le altre si confrontano con lei.
+    private (string Nome, string Quota, string Carattere) _primaEtichetta;
 
     private void ParseActiveT(string line, string source, int lineNumber, MvaSector sector)
     {
@@ -249,6 +259,8 @@ public abstract class MvaParser : IFileParser<MvaSector>
             // (`T;110;N…;E…; //FL110`, lipe.mva): read as one, the saver wrote it back as data, twice (lotto «Subito»
             // slice 2a — 74 lines in 8 airport .mva of the fork).
             ExtraField = n >= 5 && !parts[4].TrimStart().StartsWith("//", StringComparison.Ordinal) ? parts[4] : null,
+            // Read from the file without its group: it stays as it is (slice 15a, E3 — only NEW vertices get the group).
+            LettoSenzaGruppo = n < 5 || parts[4].TrimStart().StartsWith("//", StringComparison.Ordinal),
         });
     }
 }

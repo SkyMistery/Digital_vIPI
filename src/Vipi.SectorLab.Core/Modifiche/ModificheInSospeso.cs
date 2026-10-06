@@ -255,9 +255,15 @@ public sealed class ModificheInSospeso
         object? prima = proprieta.GetValue(record);
         // Slice 3b: una quota si scrive come sulla carta (FL80, 2500ft) e diventa il numero nell'unità del campo.
         var descritto = DescrizioniDeiCampi.Di(record, file.Relativo)?.Campi.FirstOrDefault(c => c.Proprieta == campo);
+        // Slice 15a: un campo che per QUESTO record non si scrive (la quota di un blocco che raccoglie più etichette)
+        // non si scrive nemmeno da qui. Prima lo fermava solo la scheda, che non mostrava l'editor.
+        if (descritto?.SiScriveSe is { } siScrive && !siScrive(record))
+            return new ModificaRifiutata(descritto.PercheNo ?? $"Il campo «{descritto.Nome}» non si scrive in questo record.");
         if (descritto is { Editor: Editor.Quota } quota)
         {
-            if (!Quote.Leggi(valore, quota.InCentinaia, out string inUnita, out string? nonEUnaQuota))
+            // Slice 15c (E2): la quota di una MVA ha i suoi valori speciali, e si scrive sempre in centinaia.
+            if (!(quota.DiMva ? Quote.LeggiDiMva(valore, out string inUnita, out string? nonEUnaQuota)
+                              : Quote.Leggi(valore, quota.InCentinaia, out inUnita, out nonEUnaQuota)))
                 return new ModificaRifiutata(nonEUnaQuota!);
             valore = inUnita;
         }

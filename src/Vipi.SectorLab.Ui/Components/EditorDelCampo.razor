@@ -54,9 +54,19 @@ else if (Campo.Descrizione is { Editor: Editor.Quota } quota)
 {
     <span class="lab-campo-con-nota">
         <input class="lab-campo" value="@Campo.Scritto" data-scrivi="@Campo.Nome" @onchange="e => Cambia(e.Value?.ToString())"
-               placeholder="@(quota.InCentinaia ? "centinaia di piedi, FL80, 2500ft" : "piedi, FL80, 2500ft")"
+               placeholder="@SegnapostoDellaQuota(quota)" list="@ElencoDellaQuota(quota)"
                title="Si scrive anche FL80 o 2500ft: il Lab la mette nell'unità del campo" />
-        @if (Quote.Significato(Campo.Scritto, quota.InCentinaia) is { } significato)
+        @if (quota.DiMva)
+        {
+            @* Slice 15c (E2): i valori speciali di una MVA, da scegliere. *@
+            <datalist id="@ElencoDellaQuota(quota)">
+                @foreach (string speciale in Quote.SpecialiDelleMva)
+                {
+                    <option value="@speciale"></option>
+                }
+            </datalist>
+        }
+        @if (SignificatoDellaQuota(quota) is { } significato)
         {
             <span class="lab-nota" data-quota="@Campo.Nome">@significato</span>
         }
@@ -171,6 +181,14 @@ else
     }
 
     private void Cambia(string? valore) => Lab.CambiaCampo(Scheda.File, Scheda.Indice, Campo.Nome, valore);
+
+    private static string SegnapostoDellaQuota(DescrizioneDelCampo quota)
+        => quota.DiMva ? "centinaia di piedi, FL80, 2500ft, TRL" : quota.InCentinaia ? "centinaia di piedi, FL80, 2500ft" : "piedi, FL80, 2500ft";
+
+    private string? ElencoDellaQuota(DescrizioneDelCampo quota) => quota.DiMva ? $"speciali-{Campo.Nome}" : null;
+
+    private string? SignificatoDellaQuota(DescrizioneDelCampo quota)
+        => quota.DiMva ? Quote.SignificatoDiMva(Campo.Scritto) : Quote.Significato(Campo.Scritto, quota.InCentinaia);
 
     private static bool EUnFile(FonteDellElenco fonte)
         => fonte is FonteDellElenco.Profili or FonteDellElenco.Atis or FonteDellElenco.Datis or FonteDellElenco.Loa;

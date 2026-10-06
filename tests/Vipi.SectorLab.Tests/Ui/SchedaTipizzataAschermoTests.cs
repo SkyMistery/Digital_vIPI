@@ -166,17 +166,40 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
     }
 
     [Fact]
-    public async Task LaQuotaDiUnaMvaDiScaloNonSiScriveFinoAllaSlice15()
+    public async Task LaQuotaDiUnaMvaDiScaloSiScriveComeQuellaDiAcc()
     {
-        // Il motore la legge dal 2° campo e la riscrive nel 5°, dove sul fork sta quasi sempre la quota vera.
+        // Slice 15a (S1): il gruppo nel 2° campo, la quota nel 5° — com'è nel fork. Prima era in sola lettura.
+        const string mva = "SectorFiles/Include/IT/lizz.mva";
+        _albero.Scrivi(mva, "L;RR US0;N041.09.33.780;E015.00.54.430;110;8;\r\nT;RR US0;N041.16.00.000;E014.53.00.000;\r\n"
+                            + "T;RR US0;N041.12.00.000;E015.07.00.000;\r\nT;RR US0;N041.00.11.000;E015.14.01.000;\r\n");
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
-        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/liba.mva", 0));
+        await pagina.InvokeAsync(() => _lab.Scegli(mva, 0));
+        pagina.WaitForAssertion(() => Assert.Equal("= 11 000 ft", pagina.Find("[data-quota='AltLabel']").TextContent));
+
+        pagina.Find("[data-scrivi='AltLabel']").Change("2500");
+        pagina.WaitForAssertion(() => Assert.Contains("L;RR US0;N041.09.33.780;E015.00.54.430;25;8;", _lab.RigheDiAdesso(mva)));
+        // I valori speciali si scelgono da un elenco, e dicono cosa vogliono dire.
+        Assert.NotNull(pagina.Find($"datalist#{pagina.Find("[data-scrivi='AltLabel']").GetAttribute("list")} option[value='TRL']"));
+        pagina.Find("[data-scrivi='AltLabel']").Change("70/trl");
+        pagina.WaitForAssertion(() => Assert.Contains("L;RR US0;N041.09.33.780;E015.00.54.430;70/TRL;8;", _lab.RigheDiAdesso(mva)));
+        Assert.StartsWith("= 7 000 ft", pagina.Find("[data-quota='AltLabel']").TextContent, StringComparison.Ordinal);
+        Assert.Equal(3, _lab.RigheDiAdesso(mva).Count(r => r.StartsWith("T;RR US0;", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task InUnBloccoConPiuQuoteLaQuotaNonSiScriveDallaScheda()
+    {
+        // Il blocco in fondo a liba.mva raccoglie sei etichette con sei quote: «la quota» non è una sola.
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/liba.mva", 6));
         pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-campo-record='AltLabel']")));
 
         Assert.Empty(pagina.FindAll("[data-scrivi='AltLabel']"));
         Assert.Empty(pagina.FindAll("[data-scrivi='LabelSize']"));
-        Assert.Contains("slice 15", pagina.Find("[data-campo-record='AltLabel'] th").GetAttribute("title"), StringComparison.Ordinal);
+        Assert.False(_lab.CambiaCampo("SectorFiles/Include/IT/liba.mva", 6, "AltLabel", "80"));
+        Assert.Contains("quote diverse", _lab.Rifiuto, StringComparison.Ordinal);
     }
 
     // --- slice 3c: il punto coi suggerimenti ---------------------------------------------------------------------
