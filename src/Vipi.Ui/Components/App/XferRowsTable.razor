@@ -70,7 +70,10 @@
             var c = r.Clause;
             var gv = r.Group;
             var sel = EditClauseId == c.Id;
-            <tr class="@RowClass(r, sel)" @key="c.Id"
+            @* ⚠️ La chiave è (accordo, clausola): una sezione condivisa porta la STESSA clausola sotto più accordi, e
+               nella vista a elenco le due righe stanno nella stessa tabella — con la sola clausola Blazor rifiuta
+               il render («more than one sibling has the same key»). *@
+            <tr class="@RowClass(r, sel)" @key="(r.Agreement.Id, c.Id)"
                 @ondragover:preventDefault="true"
                 @ondragenter="() => OnDragOver.InvokeAsync(c.Id)" @ondrop="() => OnDrop.InvokeAsync(c)">
                 @* Riordino per trascinamento: con l'outline l'ordine è la struttura, e quattro frecce per riga

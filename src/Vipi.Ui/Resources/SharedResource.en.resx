@@ -4092,4 +4092,23 @@
   <data name="Xfer_ClausesMoved_One" xml:space="preserve"><value>{0} clause moved into the agreement {1}.</value></data>
   <data name="Xfer_MoveCreated" xml:space="preserve"><value>The agreement did not exist and has been created.</value></data>
   <data name="Xfer_MoveUndone" xml:space="preserve"><value>Move undone: everything is back where it was.</value></data>
+  <data name="Xfer_SharedWith" xml:space="preserve"><value>shared with {0}</value></data>
+  <data name="Xfer_SharedWithN" xml:space="preserve"><value>shared with {0} agreements</value></data>
+  <data name="Xfer_SharedTitle" xml:space="preserve"><value>This section also appears in: {0}. The clauses are the same: editing them here edits them there too. The direction, instead, belongs to each agreement.</value></data>
+  <data name="Xfer_ShareSectionTitle" xml:space="preserve"><value>Share this section with the agreement of another pair of units: same clauses, written once</value></data>
+  <data name="Xfer_ShareSectionIntro" xml:space="preserve"><value>The section will also appear in the agreement between these two units (created if missing), with the same {0} clauses: from then on they are written and fixed once. Usually only one unit changes.</value></data>
+  <data name="Xfer_Share" xml:space="preserve"><value>Share</value></data>
+  <data name="Xfer_SectionShared" xml:space="preserve"><value>Section shared with the agreement {0}.</value></data>
+  <data name="Xfer_ShareAlready" xml:space="preserve"><value>The section already appears in that agreement: nothing to do.</value></data>
+  <data name="Xfer_ShareUndone" xml:space="preserve"><value>Sharing undone.</value></data>
+  <data name="Xfer_SecDetachTitle" xml:space="preserve"><value>Detach: in this agreement it becomes an independent copy; in the others it stays as it is</value></data>
+  <data name="Xfer_SecDetachPrompt" xml:space="preserve"><value>Detach the section? Here it becomes an independent copy with the same clauses; it stays shared in: {0}.</value></data>
+  <data name="Xfer_SecDetachYes" xml:space="preserve"><value>Yes, detach</value></data>
+  <data name="Xfer_SectionDetached" xml:space="preserve"><value>Section detached: in this agreement it is now an independent copy.</value></data>
+  <data name="Xfer_SecDetachUndone" xml:space="preserve"><value>Detach undone: the section is shared again.</value></data>
+  <data name="Xfer_SectionRemovePrompt" xml:space="preserve"><value>Remove the section from this agreement? Its {0} clauses stay in: {1}.</value></data>
+  <data name="Xfer_SectionRemoveYes" xml:space="preserve"><value>Yes, remove from here</value></data>
+  <data name="Xfer_SectionRemoved" xml:space="preserve"><value>Section removed from this agreement; it stays in {0}.</value></data>
+  <data name="Xfer_SectionPutBack" xml:space="preserve"><value>Section put back into this agreement.</value></data>
+  <data name="Xfer_MoveSharedTitle" xml:space="preserve"><value>It is shared with another agreement: detach it, or remove it from one of the two, before moving it</value></data>
 </root>

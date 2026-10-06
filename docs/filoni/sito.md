@@ -2063,7 +2063,20 @@
     WS5 in produzione non cedono ancora niente). 🔴 Ha smentito la regola di 4b: in produzione ES2 e WS2 sono
     SFC–UNL, quindi «FL350 fuori dalla banda di ES2» è falso; va confrontato con il settore più specifico che tiene
     quel cielo a quella quota. `UnificationRules`: zero righe in produzione. Carta §9.
-  - ▶ Restano 4b (da ridisegnare, vedi sopra) e 5 (sezione condivisa fra più accordi, migrazione additiva).
+  - ✅ **Passo 5 — sezioni condivise fra più accordi** (6-ott). Carta
+    [`2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md). Trapani ha coordinamenti che
+    valgono uguali verso `LIRR_SU` (GAT) e `LIRR_MIL` (OAT); una sezione stava in un accordo solo. Deciso col
+    committente: collegata, non copiata — modificarla cambia in tutti, toglierla da un accordo la stacca da quello,
+    «Stacca» ne fa una copia, nel documento una tabella per accordo. Tabella nuova `AgreementSectionShares`
+    (**migrazione additiva** `SezioniCondivise`, due provider), col verso sulla presenza. `ListByAccAsync` dà a ogni
+    accordo le sezioni di casa e le ospiti: chi legge (documenti, vista live, matcher, banco) non cambia. Il
+    contenuto si distrugge solo con l'ultima presenza: tolta dall'accordo di casa, o eliminato quell'accordo, la
+    casa passa al primo ospite. Pagina: etichetta «⛓ condivisa con …», ⛓ condividi, ✂ stacca, ✕ che toglie da
+    questo accordo, annulla per ogni gesto; vista a elenco con chiave (accordo, clausola). **Codice comune**
+    `Vipi.Domain`, `Vipi.Application`, `Vipi.Infrastructure`. Guida `#accordi` (IT/EN). App 3241 → 3242, Infra
+    2102 → 2132, Ui 1974 → 1985. A schermo su database inventato: condividi, altro accordo, elenco a 6 righe,
+    togli e annulla, stacca e annulla. Non aperto a schermo il documento reso con una sezione condivisa.
+  - ▶ Restano 4b (da ridisegnare, vedi sopra) e la rimozione delle regole di unificazione (carta del passo 5, §7).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

@@ -122,7 +122,9 @@ public static class AgreementGaps
             }
 
             // 2) Sezioni gemelle: stesso traffico, stesso verso, stessi scali. Avviso, non errore.
-            foreach (var twins in a.Sections
+            // ⚠️ Le sezioni CONDIVISE con un altro accordo restano fuori: una condivisa accanto a una dell'accordo
+            // con lo stesso traffico è «le clausole comuni, più quelle solo mie», non due tabelle da unire.
+            foreach (var twins in a.Sections.Where(s => !s.IsShared)
                          .GroupBy(s => (s.Kind, s.Direction, Airports: Key(s)))
                          .Where(g => g.Count() > 1))
             {

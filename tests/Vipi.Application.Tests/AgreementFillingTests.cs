@@ -244,6 +244,24 @@ public class AgreementFillingTests
     }
 
     [Fact]
+    public void Una_sezione_condivisa_accanto_a_una_dell_accordo_non_e_una_gemella()
+    {
+        // Sezioni condivise (carta 2026-10-06): «le clausole comuni, più quelle solo mie» è proprio una sezione
+        // condivisa con un altro accordo accanto a una di questo con lo stesso traffico e gli stessi scali.
+        // Segnalarle come gemelle offrirebbe di versare le clausole di un accordo dentro quelle di tutti.
+        var comune = Section(1, TransferFlowKind.Arrival, AgreementDirection.AtoB, "LIBD", "EKMUR") with
+        {
+            SharedWith = new[] { new AgreementShareRef(9, "LIBB_MIL_CTR", "LIBD_CS0_APP") },
+        };
+        var a = Agreement(1, "LIBD_CS0_APP", comune,
+            Section(2, TransferFlowKind.Arrival, AgreementDirection.AtoB, "LIBD", "PISIP"));
+
+        var gaps = AgreementGaps.Find("LIBB", new[] { a }, Sectors, new[] { "LIBD" }, Set(), Types);
+
+        Assert.DoesNotContain(gaps, g => g.Kind == AgreementGapKind.TwinSections);
+    }
+
+    [Fact]
     public void Due_sezioni_gemelle_si_segnalano_e_si_possono_unire()
     {
         // Stesso traffico, stesso verso, stessi scali: e' la «relazione spezzata» che il travaso ha ereditato

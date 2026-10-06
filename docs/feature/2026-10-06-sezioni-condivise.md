@@ -148,10 +148,80 @@ non si disfa: sta in una migrazione **sua**, dopo quella additiva.
 
 | # | Fetta | Stato |
 |---|---|---|
-| 1 | Entità, mappatura, migrazione additiva (due provider) | ▶ |
-| 2 | Lettura: le presenze ospiti in `ListByAccAsync`, `SharedWith` | ▶ |
-| 3 | Scrittura: condividi, togli con promozione, stacca, verso per presenza, elimina accordo, annulla, rifiuti | ▶ |
-| 4 | Le altre porte: lati che si scambiano (accordo e sostituzione del settore) | ▶ |
-| 5 | La pagina: etichetta, «Condividi con…», «Stacca», chiavi (accordo, sezione), gemelle | ▶ |
+| 1 | Entità, mappatura, migrazione additiva (due provider) | ✅ |
+| 2 | Lettura: le presenze ospiti in `ListByAccAsync`, `SharedWith` | ✅ |
+| 3 | Scrittura: condividi, togli con promozione, stacca, verso per presenza, elimina accordo, annulla, rifiuti | ✅ |
+| 4 | Le altre porte: lati che si scambiano (accordo e sostituzione del settore) | ✅ |
+| 5 | La pagina: etichetta, «Condividi con…», «Stacca», chiavi (accordo, sezione), gemelle | ✅ |
 | 6 | Via le regole di unificazione, con la loro migrazione | ▶ |
 | 7 | Guida, carte, memoria; prova a schermo | ▶ |
+
+## 9. Com'è andata
+
+### Fette 1–4: schema, lettura, scrittura
+
+`AgreementSectionShare` e la sua migrazione `SezioniCondivise` (una `CreateTable` e due indici, su tutti e due i
+provider). `EfAgreementRepository.ListByAccAsync` dà a ogni accordo le sezioni di casa più le ospiti; le scritture
+nuove sono `ShareSectionAsync`, `RemoveSectionAsync`, `DetachSectionAsync`, `UndoPresenceAsync`.
+
+⚠️ **L'annulla è uno stato, non un gesto all'indietro** (`AgreementPresenceUndo`: casa e ospiti com'erano). Togliere
+la sezione dall'accordo di casa ne sposta la casa al primo ospite: «ricondividi con l'accordo di prima» la
+rimetterebbe ospite e in coda, mentre deve tornare di casa dov'era.
+
+⚠️ **Le guardie per ACC si sono allargate**: una sezione ospite in un accordo dell'ACC la riguarda quanto le sue
+(`SectionsOf`, `ClausesOf`). Senza, da quell'ACC la si leggeva e non la si poteva scrivere.
+
+🔴 **Due test erano verdi per caso, e li ha smascherati una mutazione.** «Il verso è della presenza» e «i lati che
+si scambiano» passavano anche col verso copiato tale e quale dalla sezione di casa: nel seed l'ente comune ha l'id
+più basso, quindi sta a sinistra in **tutti** gli accordi e i due versi coincidono. Rifatti scegliendo gli enti
+**per ordine di id** — il comune in mezzo — così nell'accordo di casa sta a destra e in quello ospite a sinistra.
+Cinque mutazioni (niente promozione, verso copiato, casa non rimessa dall'annulla, presenze non ribaltate, verso
+dell'ospite scritto sulla sezione) fanno ora cadere sei test.
+
+Test: `AgreementShareTests` (21), più un caso in `SostituisciSettoreTests`. Le quattro scritture nuove sono entrate
+da sole nei presidi che provano ogni scrittura degli accordi contro ruolo e lock.
+
+### Fetta 5: la pagina
+
+Sulla testata di una sezione: l'etichetta «⛓ condivisa con …», il tasto **⛓** (condividi: lo stesso form «chi cede →
+chi riceve» dello spostamento), **✂** (stacca) e una **✕** che per una sezione condivisa chiede «Togliere la sezione
+da questo accordo? Le sue N clausole restano in: …». Il tasto ⇢ resta al suo posto, spento, e dice perché.
+L'etichetta sta anche nel pannello della clausola: chi corregge deve sapere che corregge anche di là.
+
+🔴 **Quattro modi in cui la pagina poteva sbagliare senza un errore**, tutti presidiati sul sorgente
+(`SezioniCondiviseNellaPaginaTests`):
+
+1. **Scrivere il verso senza dire in quale accordo.** «Gira il verso», il salvataggio della sezione e quello dei
+   suoi aeroporti mandano il verso della presenza che si guarda: senza l'accordo finirebbe sulla sezione di casa, e
+   girerebbe il verso **in un altro accordo**. Ora tutte e tre le chiamate passano `AccordoDi(sec)`.
+2. **Eliminare invece di togliere.** La pagina non chiama più `DeleteSectionAsync`: toglie la sezione dall'accordo
+   che si guarda, e arma l'annulla giusto per ciascuno dei due esiti.
+3. **Cercare un id fra tutti gli accordi.** La stessa clausola sta sotto due accordi: `AgreementOf`, `SectionOf`,
+   `SectionById` e la sezione a fuoco partono dall'accordo aperto, o il pannello mostrerebbe la frase dell'altro.
+4. **L'id della clausola come chiave di riga.** Nella vista a elenco le due righe stanno nella stessa tabella:
+   Blazor rifiuta il render. La chiave è (accordo, clausola).
+
+E le **gemelle**: una sezione condivisa accanto a una dell'accordo con lo stesso traffico e gli stessi scali non si
+segnala più (né sulla sezione, né nel cruscotto delle lacune).
+
+### Dal vivo — 6 ottobre 2026
+
+Host di sviluppo su un database **nuovo e inventato** (struttura di Milano, accordo `LIMM_ES2_CTR ⇄ LIPP_CE1_CTR` con
+tre clausole), guidato con Edge:
+
+| Gesto | Esito a schermo |
+|---|---|
+| ⛓, cambiato chi cede in `LIMM_WS2_CTR` | «Section shared with the agreement LIMM_WS2_CTR → LIPP_CE1_CTR. The agreement did not exist and has been created.»; due accordi nel navigatore, tutti e due «1 ▤ 3»; etichetta «⛓ shared with …» |
+| Aperto l'altro accordo | stesse tre clausole, `LIMM_WS2_CTR → LIPP_CE1_CTR`, etichetta che nomina il primo |
+| Vista a elenco | **6 righe** (tre clausole × due accordi), nessun errore |
+| ✕ dall'accordo ospite | «Remove the section from this agreement? Its 3 clauses stay in: …» → «Section removed from this agreement; it stays in …»; l'ospite resta «0 ▤ 0» |
+| Annulla | «Section put back into this agreement.», di nuovo condivisa |
+| ✂ | «Section detached: in this agreement it is now an independent copy.», etichetta sparita |
+| Annulla | «Detach undone: the section is shared again.» |
+| ⛓ una seconda volta verso la stessa coppia | «The section already appears in that agreement: nothing to do.», nessun annulla |
+
+Zero errori in console, zero risposte ≥ 400.
+
+⚠️ **Non provato a schermo**: la tabella nella vIPI e nella vista live dell'altro accordo. Che la sezione ospite
+arrivi a chi legge lo provano i test del repository (è `AgreementRow.Sections`, da cui tutti derivano); il documento
+reso con una sezione condivisa non l'ho aperto.
