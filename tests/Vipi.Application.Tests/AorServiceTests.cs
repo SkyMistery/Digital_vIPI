@@ -22,7 +22,6 @@ public class AorServiceTests
             ["LIRP_APP"]    = "LIRR_NE_CTR",
             ["LIRP_TWR"]    = "LIRP_APP",
         },
-        Rules = Array.Empty<UnificationRuleSpec>(),
     };
 
     private static IReadOnlySet<string> Online(params string[] cs) =>
@@ -80,7 +79,7 @@ public class AorServiceTests
 }
 
 /// <summary>S4 — split di settore ACC. Con la fusione settore/posizione lo split SU/ES è puro contenimento
-/// (ES figlio di SU); la <see cref="UnificationRuleSpec"/> resta per riassegnazioni arbitrarie non esprimibili dall'albero.</summary>
+/// (ES figlio di SU).</summary>
 public class AorUnificationTests
 {
     private readonly AorService _sut = new();
@@ -93,7 +92,6 @@ public class AorUnificationTests
         {
             ["LIRR_ES_CTR"] = "LIRR_SU_CTR",
         },
-        Rules = Array.Empty<UnificationRuleSpec>(),
     };
 
     private static IReadOnlySet<string> Online(params string[] cs) =>
@@ -116,31 +114,5 @@ public class AorUnificationTests
         Assert.Equal(SectorState.Covered, r.State["LIRR_SU_CTR"]);
         Assert.Equal(SectorState.Online, r.State["LIRR_ES_CTR"]);
         Assert.Equal("LIRR_ES_CTR", r.Ownership["LIRR_ES_CTR"]);
-    }
-
-    // Riassegnazione arbitraria: quando LIRR_ES_CTR è online, prende anche TS (normalmente figlio di NE).
-    private static Topology ReassignTopology() => new()
-    {
-        Sectors = new[] { "LIRR_NE_CTR", "LIRR_TS_CTR", "LIRR_ES_CTR" },
-        Parent = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["LIRR_TS_CTR"] = "LIRR_NE_CTR",
-            ["LIRR_ES_CTR"] = "LIRR_NE_CTR",
-        },
-        Rules = new[]
-        {
-            new UnificationRuleSpec("ES assorbe TS", 10,
-                RequiredOnline: new[] { "LIRR_ES_CTR" },
-                Assignment: new Dictionary<string, string> { ["LIRR_TS_CTR"] = "LIRR_ES_CTR" }),
-        },
-    };
-
-    [Fact] // La regola riassegna TS a ES (che l'albero da solo non potrebbe esprimere)
-    public void Rule_ReassignsSectorToNonParentOwner()
-    {
-        var r = _sut.Resolve(ReassignTopology(), "LIRR_NE_CTR", Online("LIRR_NE_CTR", "LIRR_ES_CTR"));
-
-        Assert.Equal("LIRR_ES_CTR", r.Ownership["LIRR_TS_CTR"]);
-        Assert.Equal(SectorState.Online, r.State["LIRR_TS_CTR"]);
     }
 }

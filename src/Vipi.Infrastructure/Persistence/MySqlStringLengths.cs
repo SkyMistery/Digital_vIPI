@@ -139,6 +139,7 @@ public static class MySqlStringLengths
             // «l'accordo ha già una sezione così?» è la domanda che l'editor fa a ogni render del riquadro.
             [("AgreementSection", "Kind")] = 32,           // indice, oltre che default
             [("AgreementSection", "Direction")] = 32,      // indice, oltre che default
+            [("AgreementSection", "ClauseOrder")] = 32,    // default (`Manual`): l'ordine dichiarato delle clausole
             [("AgreementClause", "HandoffKind")] = 32,
             [("AgreementClause", "CommsHandoffKind")] = 32,
             [("AgreementClause", "HandoffLevelUnit")] = 32,

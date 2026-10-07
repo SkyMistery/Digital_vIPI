@@ -570,6 +570,30 @@
             </table>
         </div>
     }
+
+    @* ---- Il banco di prova: «con questi aperti, chi tiene cosa» ----
+       In fondo e CHIUSO: è una domanda che si fa ogni tanto, e la gerarchia è già alta quanto lo schermo.
+       ⚠️ Niente `_canEdit`: il banco non scrive, quindi si usa anche senza tenere il lock della struttura.
+       ⚠️ Il componente nasce solo all'apertura: da chiuso non legge niente. *@
+    @if (Authz.IsEditor)
+    {
+        <div class="section-title">
+            <h2 class="h-sect">
+                <button type="button" class="sect-toggle" aria-expanded="@_bancoAperto.ToString().ToLowerInvariant()"
+                        aria-label="@L["Struct_ToggleSection", L["Bench_Title"].Value]"
+                        @onclick="() => _bancoAperto = !_bancoAperto">
+                    <span class="grp-chev">@(_bancoAperto ? "▾" : "▸")</span>@L["Bench_Title"]
+                </button>
+            </h2>
+            <span class="ln"></span>
+        </div>
+        @if (_bancoAperto)
+        {
+            <div class="panel" id="banco-di-prova">
+                <StructureBench Accs="_accs" InFila="InFilaAsync" AccIniziale="@BenchAcc" />
+            </div>
+        }
+    }
 </div>
 
 @code {
@@ -607,6 +631,10 @@
 
     private bool _scrollPending;   // dopo una ricerca: porta in vista il primo match
     private bool _canEdit;         // true = questa sessione tiene il lock di struttura (EditLockBar)
+    private bool _bancoAperto;     // il banco di prova nasce chiuso, e da chiuso non legge niente
+
+    /// <summary><c>?bench=LIMM</c>: chi arriva dai Trasferimenti trova il banco aperto sul suo ACC.</summary>
+    [SupplyParameterFromQuery(Name = "bench")] public string? BenchAcc { get; set; }
 
     private void OnLockChanged(bool mine) { _canEdit = mine; StateHasChanged(); }
 
@@ -633,6 +661,7 @@
         // ⚠️ Il cancello di PAGINA, non solo dei comandi: senza, un socio apriva la gerarchia in sola
         // lettura. Prima non si vedeva perché ogni comando era dietro `IsAdmin` — ma i dati c'erano.
         if (!Authz.IsEditor) return;
+        _bancoAperto = !string.IsNullOrWhiteSpace(BenchAcc);
 
         await InFilaAsync(async () =>
         {

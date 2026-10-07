@@ -2016,6 +2016,111 @@
   `AccountEventoInUso` (seconda migrazione additiva) e all'avvio si ricarica; le voci scadute restano fuori.
   Poi (committente): la lista dei VID si cancella da sola 7 giorni dopo la fine dell'evento, o alla data scritta dallo
   staff nella scheda (colonna `EventKits.VidSvuotaUtc`, terza migrazione additiva); pulizia `VidEventoPulizia` ogni ora.
+- 🔨 **S97** coordinamenti e struttura, cinque passi (4-ott, committente: «dobbiamo tornare a rivedere i coordinamenti e
+  la sector-structure»). Carta [`2026-10-04-copertura-unica.md`](../feature/2026-10-04-copertura-unica.md), ramo
+  `fix/copertura-unica`. Piano deciso con lui: (1) un solo motore di copertura, (2) banco di prova in Struttura,
+  (3) banco sui trasferimenti, (4) sposta sezione/clausole fra accordi + avviso «quota fuori banda», (5) sezione
+  condivisa fra più accordi (Trapani ⇄ SU per i GAT e ⇄ MIL per gli OAT; nel documento una tabella per accordo).
+  Principio: lo scritto comanda, la geometria avvisa (i trasferimenti degli APP avvengono anche un po' fuori).
+  - ✅ **Passo 1 — un solo motore di copertura.** Il difetto: a Milano «WS2+ES2+WS5» e «WS2+ES2» non uscivano giuste
+    insieme, qualunque padre si desse a ES5, perché la tabella delle configurazioni (`AorService`) risaliva i soli
+    padri e le righe di ripiego con la fascia le leggevano solo i trasferimenti, dal lato di chi riceve. Ora
+    `FallbackChain.Holders` (chi tiene un settore, fascia per fascia) la usano AoR, tabella delle configurazioni
+    (un settore diviso per quota sta sotto tutti e due gli aperti, con la fascia), chi CEDE un trasferimento (alla
+    quota di ogni punto: `TransferResolution`, pura) e il filtro «non passare a te stesso» della vista live (decide
+    il ricevente risolto, non più «è un mio discendente chiuso»). `Topology.Bands` porta le bande dei cataloghi.
+    **Codice comune** `Vipi.Application` (`Aor/`, `Content/`, `Live/`) e `Vipi.Infrastructure` (`TopologyBuilder`).
+    Niente migrazione, niente `deploy/`. A tabella dei ripieghi vuota non cambia niente (S1–S10 dell'AoR verdi
+    senza toccarli). Rossi sul codice di prima: 8. App 3208 → 3233, Infra 2083 → 2084. ▶ Le vIPI ACC vanno
+    ripubblicate per vedere la tabella giusta nel documento pubblico. Aperto: `UnificationRule` resta (zero righe,
+    nessun editor): toglierla è una migrazione che cancella una tabella, slice a parte.
+  - ✅ **Passi 2 e 3 — il banco di prova.** In fondo a Struttura, sezione «Banco di prova» (chiusa di suo): scelto
+    un ACC si aprono e chiudono settori d'area e avvicinamenti, e sotto escono «chi tiene cosa» (con la fascia se
+    un settore si divide; chi raccoglie da fuori; quel che non raccoglie nessuno) e i trasferimenti dell'ACC con
+    cedente e ricevente veri, evidenziati dove non sono quelli scritti. Non ha un motore suo
+    (`CoverageBenchService` → `FallbackChain.Holders` + `ResolveForAccAsync`), non scrive, non chiede il lock;
+    fuori dall'elenco tutto è aperto; scenari pronti = configurazioni della vIPI pubblicata. Link «⚗ Banco di
+    prova» dai Trasferimenti (`?bench=<ACC>`). Guida `#struttura` (IT/EN): la catena di ripiego — che non c'era
+    scritta — e il banco. **Codice comune** `Vipi.Application` (`Content/CoverageBench.cs`, DI). App 3233 → 3241,
+    Ui 1962 → 1969. A schermo su un database nuovo e inventato (struttura di Milano, un accordo ES5 → LIPP): le
+    due configurazioni escono giuste; con ES5 chiuso e WS5 aperto il punto a FL350 lo cede WS5 e quello «as
+    coordinated» lo cede ES2 (senza quota la riga con la fascia non si valuta). 🔴 Per strada: Struttura dà 500 se
+    un import non è mai riuscito (`SogliaTimbro`, data 0001-01-01) — segnalato a parte, non corretto qui.
+  - ✅ **Passo 4 — spostare fra accordi.** Nei Trasferimenti: ⇢ sulla testata di una sezione la sposta intera,
+    «⇢ Sposta…» nella barra delle clausole scelte sposta quelle. Si indica «chi cede → chi riceve» (i campi partono
+    da quelli di adesso) e il lavoro va nell'accordo di quella coppia, che nasce se non c'è; le clausole entrano
+    nella sezione gemella (stesso traffico, stessi scali). Il verso si ricalcola sui lati canonici dell'accordo di
+    arrivo, i gruppi di varianti prendono numeri nuovi e si spostano interi, l'annulla rimette i POSTI di prima
+    (`AgreementMoveUndo`) e toglie quel che era nato solo se è rimasto vuoto. **Codice comune**
+    `Vipi.Application` (`AgreementMove.cs`, porte) e `Vipi.Infrastructure` (`EfAgreementRepository`). Niente
+    migrazione. Guida `#accordi` (IT/EN). Infra 2084 → 2102 (12 suoi, più 6 dei presidi che provano OGNI scrittura
+    degli accordi contro ruolo e lock: le tre nuove ci sono entrate da sole, verdi), Ui 1969 → 1974. A schermo su database inventato:
+    clausola a FL350 da ES2 ⇄ LIPP a ES5 ⇄ LIPP (accordo creato) e annulla; sezione intera verso WS5 e annulla.
+  - ✅ **Sulla copia di produzione** (6-ott, copia del 1° ottobre in un MariaDB dello scratchpad; l'interfaccia no,
+    serve il login vero: ho fatto girare il motore dalle porte delle pagine, adesso e coi soli padri). 28
+    configurazioni in 11 blocchi: cambiano 2 tabelle, la stessa — LIMM «Conf 2 b» (WS2 + WS5), pubblicata e bozza:
+    ES5 passa da WS2 a WS5. Le altre 26 identiche. 232 punti di trasferimento: zero cedenti diversi da prima (ES5 e
+    WS5 in produzione non cedono ancora niente). 🔴 Ha smentito la regola di 4b: in produzione ES2 e WS2 sono
+    SFC–UNL, quindi «FL350 fuori dalla banda di ES2» è falso; va confrontato con il settore più specifico che tiene
+    quel cielo a quella quota. `UnificationRules`: zero righe in produzione. Carta §9.
+  - ✅ **Passo 5 — sezioni condivise fra più accordi** (6-ott). Carta
+    [`2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md). Trapani ha coordinamenti che
+    valgono uguali verso `LIRR_SU` (GAT) e `LIRR_MIL` (OAT); una sezione stava in un accordo solo. Deciso col
+    committente: collegata, non copiata — modificarla cambia in tutti, toglierla da un accordo la stacca da quello,
+    «Stacca» ne fa una copia, nel documento una tabella per accordo. Tabella nuova `AgreementSectionShares`
+    (**migrazione additiva** `SezioniCondivise`, due provider), col verso sulla presenza. `ListByAccAsync` dà a ogni
+    accordo le sezioni di casa e le ospiti: chi legge (documenti, vista live, matcher, banco) non cambia. Il
+    contenuto si distrugge solo con l'ultima presenza: tolta dall'accordo di casa, o eliminato quell'accordo, la
+    casa passa al primo ospite. Pagina: etichetta «⛓ condivisa con …», ⛓ condividi, ✂ stacca, ✕ che toglie da
+    questo accordo, annulla per ogni gesto; vista a elenco con chiave (accordo, clausola). **Codice comune**
+    `Vipi.Domain`, `Vipi.Application`, `Vipi.Infrastructure`. Guida `#accordi` (IT/EN). App 3241 → 3242, Infra
+    2102 → 2132, Ui 1974 → 1985. A schermo su database inventato: condividi, altro accordo, elenco a 6 righe,
+    togli e annulla, stacca e annulla. Non aperto a schermo il documento reso con una sezione condivisa.
+  - ✅ **Via le regole di unificazione** (6-ott, carta del passo 5 §7 e §9). `UnificationRule` era un secondo modo
+    di dire chi tiene chi: nessun editor, zero righe in sviluppo e in produzione. Tolti entità, `Topology.Rules`,
+    il passo in `AorService`, la lettura in `TopologyBuilder`; **migrazione distruttiva**
+    `ViaLeRegoleDiUnificazione` (una `DropTable`, due provider), separata da quella additiva. Trovato togliendola:
+    `AgreementSectionShare` mancava fra le entità che segnalano «Coordinamenti» in `ModificheInAttesa` —
+    condividere una sezione non avrebbe rimesso «da rivedere» i documenti. **Codice comune** come sopra. App
+    3242 → 3241, Infra 2132 → 2131 (i casi che provavano il motore tolto).
+    **Sulla copia della produzione del 1° ottobre** (seconda base, buttata dopo): sei migrazioni applicate, la
+    tabella aveva zero righe e non c'è più; le due sezioni vere di Trapani (`LIRR_SU_CTR ⇄ LICT_APP`, 19 clausole)
+    condivise con `LIRR_MIL_CTR` — accordo creato alla prima, riusato alla seconda, stessi id di clausola nei due
+    accordi, 19 punti derivati per parte.
+  - ✅ **Passo 5 rifatto: si condivide la CLAUSOLA, non la sezione** (7-ott). Il committente ha provato il primo
+    giro: «deve essere possibile condividere anche la singola clausola… se esiste una sezione uguale si linka a
+    quella, non se ne crea una nuova». Carta del passo 5, **§10**. Tabella `AgreementClauseShares` (clausola →
+    sezione ospite di un altro accordo); `AgreementSectionShares` se ne va (**migrazione `ClausoleCondivise`**, due
+    provider: crea l'una, cancella l'altra — che in produzione non è mai esistita). Nell'accordo di arrivo la
+    clausola entra nella sezione con stesso traffico/verso/scali, che nasce solo se manca. Un gruppo di varianti
+    viaggia intero; i numeri di gruppo nuovi sono unici in tutto l'archivio. ✕ guardando un accordo toglie da
+    quello; in elenco, e per una variante sola di un gruppo condiviso, elimina ovunque (la conferma lo dice).
+    Annulla come stato: la fotografia della clausola ricorda dov'era. Via `RemoveSectionAsync`,
+    `DetachSectionAsync`, `UndoPresenceAsync` e il verso per presenza. Trovato rifacendolo: l'annulla
+    dell'eliminazione in blocco esplodeva con la prima clausola condivisa in elenco (sorelle doppie).
+    **Codice comune** `Vipi.Domain`, `Vipi.Application`, `Vipi.Infrastructure`. Venti mutazioni, venti rosse.
+    Sulla copia della produzione: 7 migrazioni, Trapani ⇄ MIL a clausole (1, poi 12 nella sezione già nata, poi 6).
+    A schermo su database inventato: condividi nella sezione che c'era, togli e annulla, stacca e annulla, elenco.
+  - ✅ **4b — l'avviso «quota di un altro settore»** (7-ott, carta della copertura §10). Non «quota fuori dalla
+    banda del settore scritto» (ES2/WS2 sono SFC–UNL: non scatterebbe mai) ma «su quel punto, a quella quota, c'è
+    un settore più specifico che pende da quello scritto e tiene quel cielo»: lo dice la geometria
+    (`AgreementLevelCheck`, puro), solo per gli enti d'area, mai sul confine esatto, mai per l'altro capo
+    dell'accordo. Voce del cruscotto delle lacune col tasto ⇢ che prepara lo spostamento; non sposta da solo.
+    **Codice comune** `Vipi.Application`. Sulla copia della produzione: 3 avvisi su 198 clausole (Zagabria
+    `LDZO_CTR`/`LDZO_S_CTR` su AIOSA, Milano `WS2`/`ES2` su NELAB).
+    App 3241 → 3256, Infra 2131 → 2142, Ui 1985 → 1988.
+  - ✅ **Secondo giro del 7-ott: il tasto dove lo si cerca, l'accordo intero, l'ordine** (carta del passo 5, §11).
+    Il committente non aveva trovato come condividere una clausola sola (il gesto stava solo nella barra delle
+    scelte): ora **⛓ è sulla riga**, oltre che sulla sezione, e c'è **⛓ Condividi… sull'accordo intero**
+    (`ShareAgreementAsync`: si cambia uno dei due enti, ogni sezione va nella sezione uguale dell'altro accordo,
+    un annulla solo). E ha chiesto «diversi modi di ordinarli, tipo quello alfabetico»: ogni sezione ha un
+    **ordine dichiarato** (`AgreementSection.ClauseOrder`: a mano · alfabetico per punto · per quota), salvato,
+    che vale nella pagina, nei documenti e nella vista live — ed è quel che mette le clausole ospiti al loro posto
+    invece che in coda. L'ordine scritto a mano non si tocca (`StoredOrder`). **Migrazione additiva
+    `OrdineDelleClausole`** (una colonna, default `Manual`), due provider. **Codice comune** `Vipi.Domain`,
+    `Vipi.Application`, `Vipi.Infrastructure`. La suite ha fermato una colonna con default senza lunghezza su
+    MySQL (`MySqlStringLengths`). App 3256 → 3263, Infra 2142 → 2150, Ui 1988 → 1991. A schermo su database
+    inventato: i tre gesti, annulla compreso.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

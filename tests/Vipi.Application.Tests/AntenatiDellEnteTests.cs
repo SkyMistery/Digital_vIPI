@@ -14,7 +14,6 @@ public class AntenatiDellEnteTests
     {
         Sectors = archi.SelectMany(a => new[] { a.Figlio, a.Padre }).Distinct().ToList(),
         Parent = archi.ToDictionary(a => a.Figlio, a => a.Padre, StringComparer.OrdinalIgnoreCase),
-        Rules = Array.Empty<UnificationRuleSpec>(),
     };
 
     [Fact]

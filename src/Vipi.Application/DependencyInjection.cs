@@ -191,6 +191,8 @@ public static class DependencyInjection
         services.AddScoped<IAirportSectorService, AirportSectorService>();
         services.AddScoped<IAirportLockGuard, AirportLockGuard>();
         services.AddScoped<IAgreementService, AgreementService>();
+        // Il banco di prova della struttura: sola lettura, sopra le stesse porte di AoR e vista live.
+        services.AddScoped<ICoverageBenchService, CoverageBenchService>();
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IChangesService, ChangesService>();
         services.AddScoped<IImportPolicyService, ImportPolicyService>();

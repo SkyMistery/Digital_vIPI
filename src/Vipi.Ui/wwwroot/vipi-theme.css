@@ -2700,6 +2700,10 @@
 
 :where(.vipi-root) .fb-seq{background:var(--surface-soft);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13px}
 :where(.vipi-root) .fb-seq-me{display:flex;align-items:center;gap:6px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+/* Banco di prova (Struttura): quel che NON resta a chi è scritto si deve vedere a colpo d'occhio. */
+:where(.vipi-root) .struct .bench .bench-diff{font-weight:700;color:var(--warn-ink-strong);background:var(--tint-yellow)}
+:where(.vipi-root) .struct .bench .bench-warn{color:var(--danger-ink);font-weight:700}
+:where(.vipi-root) .struct .bench .cfg-table .uni{font-size:14px;white-space:nowrap}
 :where(.vipi-root) .fb-seq-tag{font-size:10.5px;color:var(--ink-soft);font-family:var(--font-head);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 /* Un PASSO della catena: il numero a sinistra, e a destra tutte le voci di quel passo incolonnate. Sono i
    settori che a quel punto si dividono il traffico per fascia: stanno alla stessa altezza perche' non si
@@ -3769,6 +3773,13 @@
 :where(.vipi-root) .xt-pick{width:26px;text-align:center}
 :where(.vipi-root) .xt-bulk{margin:0 0 12px}
 :where(.vipi-root) .xt-bulkbody{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* Il form «sposta in un altro accordo» dentro la barra delle scelte: una riga sua, larga quanto la barra. */
+:where(.vipi-root) .xt-bulkmove{flex-basis:100%;margin:4px 0 0}
+:where(.vipi-root) .xt-moveintro{margin:0 0 6px}
+/* L'etichetta «condivisa con …» sulla testata di una sezione: non va a capo dentro, e non si stringe. */
+:where(.vipi-root) .xt-shared{white-space:nowrap;flex:0 0 auto}
+/* L'ordine delle clausole della sezione: un selettore piccolo sulla testata, accanto ai tasti. */
+:where(.vipi-root) .xt-ordsel{flex:0 0 auto;width:auto;max-width:190px;padding:2px 6px;font-size:.85rem}
 :where(.vipi-root) .xt-bulkpick{margin:0;min-width:200px}
 :where(.vipi-root) .xt-bulkpick input{margin:0}
 

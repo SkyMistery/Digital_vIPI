@@ -155,7 +155,6 @@ public class VipiDbContext : DbContext
     public DbSet<Sector> Sectors => Set<Sector>();
     public DbSet<AtcUnit> AtcUnits => Set<AtcUnit>();
     public DbSet<AtcUnitPosition> AtcUnitPositions => Set<AtcUnitPosition>();
-    public DbSet<UnificationRule> UnificationRules => Set<UnificationRule>();
 
     /// <summary>Righe di ripiego con fascia di quota: la catena che sta DAVANTI al padre. Nasce vuota.</summary>
     public DbSet<SectorFallback> SectorFallbacks => Set<SectorFallback>();
@@ -172,6 +171,7 @@ public class VipiDbContext : DbContext
     public DbSet<AgreementSection> AgreementSections => Set<AgreementSection>();
     public DbSet<AgreementAirport> AgreementAirports => Set<AgreementAirport>();
     public DbSet<AgreementClause> AgreementClauses => Set<AgreementClause>();
+    public DbSet<AgreementClauseShare> AgreementClauseShares => Set<AgreementClauseShare>();
 
     /// <summary>Le promozioni a mano: una riga per persona promossa. Carta del 28 agosto 2026 §5.</summary>
     public DbSet<RoleOverride> RoleOverrides => Set<RoleOverride>();
@@ -475,14 +475,6 @@ public class VipiDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // NB: niente token di concorrenza qui — decisione del 14 agosto 2026, come per CoordinationAgreement,
-        // SharedBlock e DocumentProfile. Vedi il commento esteso su SharedBlock più sotto.
-        b.Entity<UnificationRule>(e =>
-        {
-            e.HasIndex(x => new { x.AccId, x.Priority });
-            e.HasOne(x => x.Acc).WithMany(f => f.UnificationRules).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
-        });
-
         b.Entity<Document>(e =>
         {
             e.HasIndex(x => new { x.Type, x.Status });
@@ -526,9 +518,9 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.SharedBlock).WithMany().HasForeignKey(x => x.SharedBlockId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ─── Perché queste quattro entità NON hanno un token di concorrenza ─────────────────────────────
-        // SharedBlock, UnificationRule, TransferFlow (oggi CoordinationAgreement) e DocumentProfile
-        // dichiaravano un RowVersion che
+        // ─── Perché queste entità NON hanno un token di concorrenza ────────────────────────────────────
+        // SharedBlock, TransferFlow (oggi CoordinationAgreement) e DocumentProfile — e con loro UnificationRule,
+        // tolta il 6 ottobre 2026 — dichiaravano un RowVersion che
         // nessun percorso di scrittura ha mai valorizzato: colonna sempre NULL, `WHERE … AND RowVersion IS
         // NULL` sempre vera, quindi una difesa solo nominale. Messi davanti alla scelta — ruotarlo o
         // toglierlo — il 14 agosto 2026 si è deciso di toglierlo: sono modificate da un editor alla volta,
@@ -576,6 +568,24 @@ public class VipiDbContext : DbContext
             // Il traffico e il verso entrano nella chiave di lettura: l'editor cerca «la sezione gemella» e «il
             // verso opposto» a ogni render del riquadro.
             e.HasIndex(x => new { x.AgreementId, x.Kind, x.Direction });
+            // Le sezioni che esistono già restano «a mano»: è quel che facevano.
+            e.Property(x => x.ClauseOrder).HasDefaultValue(AgreementClauseOrder.Manual);
+        });
+
+        // Una clausola che compare ANCHE in una sezione di un altro accordo (carta 2026-10-06-sezioni-condivise.md).
+        b.Entity<AgreementClauseShare>(e =>
+        {
+            // Una presenza per sezione: la stessa clausola non compare due volte nella stessa tabella.
+            e.HasIndex(x => new { x.ClauseId, x.SectionId }).IsUnique();
+            e.HasIndex(x => x.SectionId);
+            // Se la clausola sparisce, le sue presenze non hanno più niente da mostrare.
+            e.HasOne(x => x.Clause).WithMany(c => c.Shares).HasForeignKey(x => x.ClauseId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // Se sparisce la sezione OSPITE se ne va la sola presenza: la clausola resta di casa dov'era.
+            // ⚠️ Il verso opposto — sparisce la sezione di CASA e la clausola ha ospiti — non lo protegge lo schema:
+            // lo fa il repository, che prima sposta la casa (EfAgreementRepository, «promozione»).
+            e.HasOne(x => x.Section).WithMany(s => s.GuestClauses).HasForeignKey(x => x.SectionId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<AgreementAirport>(e =>

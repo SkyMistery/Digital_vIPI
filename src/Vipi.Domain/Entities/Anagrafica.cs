@@ -45,7 +45,6 @@ public class Acc
 
     public ICollection<Sector> Sectors { get; set; } = new List<Sector>();
     public ICollection<Airport> Airports { get; set; } = new List<Airport>();
-    public ICollection<UnificationRule> UnificationRules { get; set; } = new List<UnificationRule>();
     public ICollection<AccSector> AccSectors { get; set; } = new List<AccSector>();
 }
 
@@ -524,20 +523,6 @@ public class SectorFallback
     /// Il tetto escluso e il piede incluso fanno sì che «SFC–FL305» e «FL305–UNL» non si contendano FL305.
     /// </summary>
     public int? TopFeet { get; set; }
-}
-
-/// <summary>Regola dichiarativa editabile che riassegna l'ownership dei settori in base ai callsign online. SPEC §3.7, PIANO §20.5.</summary>
-public class UnificationRule
-{
-    public int Id { get; set; }
-    public int AccId { get; set; }
-    public Acc? Acc { get; set; }
-    public string Name { get; set; } = default!;       // es. "Split WS2/WS5"
-    public int Priority { get; set; }                  // ordine di applicazione
-    public string ConditionJson { get; set; } = "{}";  // predicato su callsign online
-    public string AssignmentJson { get; set; } = "{}"; // mappa settore→ownerCallsign
-    public bool IsActive { get; set; } = true;
-    // Nessun RowVersion: last-write-wins voluto (14 ago 2026). Vedi VipiDbContext, commento su SharedBlock.
 }
 
 // =========================================================================================

@@ -52,7 +52,7 @@ public sealed class ApproachLiveStation : ILiveStationKind
             AccCode = ctx.Acc.Code,
             Type = LiveStationType.Approach,
             AirportChips = await _parts.AirportChipsAsync(ctx, ct),
-            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ctx.Topology, ct),
+            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ct),
             Aor = _parts.Aor(ctx.Topology, ctx.Callsign, ctx.Online),
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
         };

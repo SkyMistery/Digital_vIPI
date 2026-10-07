@@ -15,7 +15,6 @@ public class GlobalTopologyCacheTests
     {
         Sectors = new List<string> { marcatore },
         Parent = new Dictionary<string, string>(),
-        Rules = Array.Empty<UnificationRuleSpec>(),
     };
 
     [Fact]

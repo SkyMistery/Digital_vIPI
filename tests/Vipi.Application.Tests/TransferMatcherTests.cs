@@ -25,7 +25,6 @@ public class TransferMatcherTests
             ["LIBP_APP"] = "LIBB_ES_CTR",
             ["LIBP_TWR"] = "LIBP_APP",
         },
-        Rules = Array.Empty<UnificationRuleSpec>(),
     };
 
     private static HashSet<string> Online(params string[] cs) => new(cs, StringComparer.OrdinalIgnoreCase);

@@ -64,7 +64,7 @@ public sealed class AreaLiveStation : ILiveStationKind
             AirportChips = await _parts.AirportChipsAsync(ctx, ct),
             Frequencies = Dedup(rows),
             Groups = groups,
-            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ctx.Topology, ct),
+            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ct),
             Aor = aor,
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
             TreeRoot = root,

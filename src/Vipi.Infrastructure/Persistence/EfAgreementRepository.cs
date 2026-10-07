@@ -34,7 +34,49 @@ public sealed class EfAgreementRepository : IAgreementRepository
             .OrderBy(a => a.Order).ThenBy(a => a.Id)
             .ToListAsync(ct);
 
-        return agreements.Select(Map).ToList();
+        // Le clausole che le sezioni di questi accordi OSPITANO: stanno di casa in un altro accordo e compaiono
+        // anche qui. Chi legge le riceve in coda a quelle di casa — ed è per questo che derivazione, frasi, vista
+        // live e matcher non sanno niente della condivisione.
+        var ids = agreements.Select(a => a.Id).ToList();
+        var ospiti = ids.Count == 0
+            ? new List<AgreementClauseShare>()
+            : await _db.AgreementClauseShares.AsNoTracking()
+                .Where(h => ids.Contains(h.Section!.AgreementId))
+                .Include(h => h.Clause)
+                .ToListAsync(ct);
+
+        var presenze = await PresenzeAsync(ids, ospiti.Select(h => h.ClauseId).Distinct().ToList(), ct);
+        var ospitiPerSezione = ospiti.Where(h => h.Clause is not null).ToLookup(h => h.SectionId);
+
+        return agreements.Select(a => Map(a, ospitiPerSezione, presenze)).ToList();
+    }
+
+    /// <summary>
+    /// Per ogni clausola <b>condivisa</b> che questi accordi mostrano — di casa o da ospite — tutte le sezioni in
+    /// cui compare: prima quella di casa, poi le ospiti. Una clausola che sta in una sezione sola non c'è.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<int, IReadOnlyList<AgreementShareRef>>> PresenzeAsync(
+        IReadOnlyCollection<int> agreementIds, IReadOnlyCollection<int> guestClauseIds, CancellationToken ct)
+    {
+        if (agreementIds.Count == 0) return new Dictionary<int, IReadOnlyList<AgreementShareRef>>();
+
+        var righe = await _db.AgreementClauseShares.AsNoTracking()
+            .Where(h => agreementIds.Contains(h.Clause!.Section!.AgreementId) || guestClauseIds.Contains(h.ClauseId))
+            .Select(h => new
+            {
+                h.Id, h.ClauseId,
+                Ospite = h.SectionId, OspiteAccordo = h.Section!.AgreementId,
+                OspiteA = h.Section.Agreement!.SideASector!.Callsign, OspiteB = h.Section.Agreement.SideBSector!.Callsign,
+                Casa = h.Clause!.SectionId, CasaAccordo = h.Clause.Section!.AgreementId,
+                CasaA = h.Clause.Section.Agreement!.SideASector!.Callsign, CasaB = h.Clause.Section.Agreement.SideBSector!.Callsign,
+            })
+            .ToListAsync(ct);
+
+        return righe.GroupBy(r => r.ClauseId).ToDictionary(g => g.Key, g => (IReadOnlyList<AgreementShareRef>)
+            new[] { new AgreementShareRef(g.First().CasaAccordo, g.First().CasaA, g.First().CasaB, g.First().Casa) }
+                .Concat(g.OrderBy(r => r.Id)
+                    .Select(r => new AgreementShareRef(r.OspiteAccordo, r.OspiteA, r.OspiteB, r.Ospite)))
+                .ToList());
     }
 
     public async Task<int?> FindByPairAsync(string accCode, int sectorX, int sectorY, CancellationToken ct = default)
@@ -112,9 +154,21 @@ public sealed class EfAgreementRepository : IAgreementRepository
 
     public async Task DeleteAgreementAsync(string accCode, int agreementId, CancellationToken ct = default)
     {
-        var a = await AgreementsOf(accCode).FirstOrDefaultAsync(x => x.Id == agreementId, ct);
-        if (a is null) return;
-        _db.CoordinationAgreements.Remove(a);   // sezioni, aeroporti e clausole seguono in cascade
+        if (!await AgreementsOf(accCode).AnyAsync(x => x.Id == agreementId, ct)) return;
+
+        // 🔴 Le clausole di casa qui che compaiono ANCHE altrove non devono andarsene con l'accordo: la cancellazione
+        // scende in cascata su sezioni e clausole, e porterebbe via un contenuto che altri accordi stanno mostrando.
+        // Prima la casa di ognuna passa alla sezione che la ospita, e si salva — solo dopo l'accordo se ne va.
+        var condivise = await _db.AgreementClauses.Include(c => c.Shares)
+            .Where(c => c.Section!.AgreementId == agreementId && c.Shares.Any()).ToListAsync(ct);
+        if (condivise.Count > 0)
+        {
+            await PromuoviAsync(condivise, ct);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        var a = await _db.CoordinationAgreements.FirstAsync(x => x.Id == agreementId, ct);
+        _db.CoordinationAgreements.Remove(a);   // sezioni, aeroporti, clausole e presenze ospiti seguono in cascade
         await _db.SaveChangesAsync(ct);
     }
 
@@ -137,20 +191,380 @@ public sealed class EfAgreementRepository : IAgreementRepository
     public async Task UpdateSectionAsync(string accCode, int sectionId, AgreementSectionInput input,
         CancellationToken ct = default)
     {
-        var section = await SectionsOf(accCode).Include(s => s.Airports)
-                          .FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+        var section = await SectionsOf(accCode).Include(s => s.Airports).FirstOrDefaultAsync(s => s.Id == sectionId, ct)
                       ?? throw new InvalidOperationException(Lingua($"Sezione {sectionId} non riguarda la ACC {accCode}.", $"Section {sectionId} does not belong to ACC {accCode}."));
-
         ApplySection(section, input);
         await _db.SaveChangesAsync(ct);
     }
 
     public async Task DeleteSectionAsync(string accCode, int sectionId, CancellationToken ct = default)
     {
-        var section = await SectionsOf(accCode).FirstOrDefaultAsync(s => s.Id == sectionId, ct);
-        if (section is null) return;
+        if (!await SectionsOf(accCode).AnyAsync(s => s.Id == sectionId, ct)) return;
+
+        // 🔴 Come per l'accordo: le clausole di casa qui che compaiono anche altrove cambiano casa PRIMA, o la
+        // cascata se le porterebbe via. Quelle che la sezione ospitava perdono la sola presenza, da sé.
+        var condivise = await Scope(sectionId).Include(c => c.Shares).Where(c => c.Shares.Any()).ToListAsync(ct);
+        if (condivise.Count > 0)
+        {
+            await PromuoviAsync(condivise, ct);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        var section = await _db.AgreementSections.FirstAsync(s => s.Id == sectionId, ct);
         _db.AgreementSections.Remove(section);
         await _db.SaveChangesAsync(ct);
+    }
+
+    // ---- clausole condivise -------------------------------------------------------------------------
+    // Una clausola COMPARE in una sezione o perché è di casa (AgreementClause.SectionId) o perché è ospite
+    // (AgreementClauseShare). La regola che regge tutto: il contenuto si distrugge solo quando se ne va l'ULTIMA
+    // presenza. Un gruppo di varianti si condivide INTERO. Carta docs/feature/2026-10-06-sezioni-condivise.md §10.
+
+    public async Task<AgreementShareResult> ShareSectionAsync(string accCode, int sectionId, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default)
+    {
+        if (!await SectionsOf(accCode).AnyAsync(s => s.Id == sectionId, ct))
+            throw new InvalidOperationException(Lingua($"Sezione {sectionId} non riguarda la ACC {accCode}.", $"Section {sectionId} does not belong to ACC {accCode}."));
+
+        // Tutte le clausole che la sezione MOSTRA: le sue e quelle che ospita.
+        var ids = await _db.AgreementClauses
+            .Where(c => c.SectionId == sectionId || c.Shares.Any(h => h.SectionId == sectionId))
+            .Select(c => c.Id).ToListAsync(ct);
+        return await ShareClausesAsync(accCode, ids, senderSectorId, receiverSectorId, ct);
+    }
+
+    public async Task<AgreementShareResult> ShareAgreementAsync(string accCode, int agreementId, int insteadOfSectorId,
+        int withSectorId, CancellationToken ct = default)
+    {
+        var a = await AgreementsOf(accCode).Include(x => x.Sections).FirstOrDefaultAsync(x => x.Id == agreementId, ct)
+                ?? throw new InvalidOperationException(Lingua($"Accordo {agreementId} non riguarda la ACC {accCode}.", $"Agreement {agreementId} does not belong to ACC {accCode}."));
+        if (insteadOfSectorId != a.SideASectorId && insteadOfSectorId != a.SideBSectorId)
+            throw new ValidationException(Lingua(
+                "L'ente da sostituire non è uno dei due dell'accordo.",
+                "The unit to replace is not one of the two of the agreement."));
+        if (withSectorId == a.SideASectorId || withSectorId == a.SideBSectorId)
+            throw new ValidationException(Lingua(
+                "Indica un ente diverso dai due dell'accordo: è con un'altra coppia che si condivide.",
+                "Pick a unit other than the two of the agreement: sharing is with another pair."));
+
+        // Chi cede resta chi cede, in ogni sezione: cambia solo l'ente sostituito, dovunque stia.
+        int Li(int ente) => ente == insteadOfSectorId ? withSectorId : ente;
+
+        var aggiunte = new List<AgreementClausePresence>();
+        var sezioniCreate = new List<int>();
+        int? accordoNato = null, primaSezione = null, arrivo = null;
+        foreach (var s in a.Sections.OrderBy(x => x.Order).ThenBy(x => x.Id).ToList())
+        {
+            // Una sezione vuota non ha niente da condividere, e non è un errore dell'accordo intero.
+            if (!await _db.AgreementClauses.AnyAsync(c => c.SectionId == s.Id || c.Shares.Any(h => h.SectionId == s.Id), ct))
+                continue;
+
+            var (cede, riceve) = s.Direction == AgreementDirection.AtoB
+                ? (a.SideASectorId, a.SideBSectorId)
+                : (a.SideBSectorId, a.SideASectorId);
+            var r = await ShareSectionAsync(accCode, s.Id, Li(cede), Li(riceve), ct);
+            arrivo = r.AgreementId;
+            aggiunte.AddRange(r.Undo.Added);
+            sezioniCreate.AddRange(r.Undo.CreatedSectionIds);
+            accordoNato ??= r.Undo.CreatedAgreementId;
+            primaSezione ??= r.SectionId;
+        }
+
+        if (arrivo is not int accordo)
+            throw new ValidationException(Lingua("Non c'è niente da condividere.", "There is nothing to share."));
+        return new AgreementShareResult(accordo, primaSezione, aggiunte.Count, accordoNato is not null,
+            new AgreementShareUndo(aggiunte, sezioniCreate, accordoNato));
+    }
+
+    public async Task<AgreementShareResult> ShareClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int senderSectorId, int receiverSectorId, CancellationToken ct = default)
+    {
+        var scelte = await ClausesInAccAsync(accCode, clauseIds, ct);
+        if (scelte.Count == 0)
+            throw new ValidationException(Lingua("Non c'è niente da condividere.", "There is nothing to share."));
+
+        var (arrivo, creato) = await AccordoDellaCoppiaAsync(accCode, senderSectorId, receiverSectorId, ct);
+        var verso = VersoDi(arrivo, senderSectorId);
+
+        var aggiunte = new List<AgreementClausePresence>();
+        var sezioniCreate = new List<int>();
+        int? sezioneDiArrivo = null;
+        var prossimo = await MassimoGruppoAsync(ct);
+
+        foreach (var daSezione in scelte.GroupBy(c => c.SectionId))
+        {
+            var origine = await _db.AgreementSections.Include(s => s.Airports).FirstAsync(s => s.Id == daSezione.Key, ct);
+            // La stessa coppia: lì la clausola c'è già, ed è di casa.
+            if (origine.AgreementId == arrivo.Id) continue;
+
+            // ⚠️ Un gruppo di varianti si condivide INTERO: sono righe che dicono la stessa cosa a condizioni diverse,
+            // e la struttura è contenuto — deve essere la stessa in ogni accordo che lo porta.
+            var righe = await Scope(origine.Id).Include(c => c.Shares).OrderBy(c => c.Order).ToListAsync(ct);
+            var gruppi = daSezione.Where(c => c.VariantGroup is not null).Select(c => c.VariantGroup).ToHashSet();
+            var singole = daSezione.Where(c => c.VariantGroup is null).Select(c => c.Id).ToHashSet();
+
+            // Una presenza per accordo: quel che lì compare già — in qualunque sua sezione — non si aggiunge.
+            var sezioniLi = (await _db.AgreementSections.Where(s => s.AgreementId == arrivo.Id).Select(s => s.Id).ToListAsync(ct))
+                .ToHashSet();
+            var blocco = righe
+                .Where(c => singole.Contains(c.Id) || (c.VariantGroup is not null && gruppi.Contains(c.VariantGroup)))
+                .Where(c => !c.Shares.Any(h => sezioniLi.Contains(h.SectionId)))
+                .ToList();
+            if (blocco.Count == 0) continue;
+
+            // La sezione di arrivo è quella che dice la STESSA cosa nell'accordo e nel verso nuovi; nasce solo se
+            // non c'è, e allora con la stessa prosa: è la stessa tabella, vista dall'altra coppia.
+            var destinazione = await SezioneUgualeAsync(arrivo, origine, verso, conLaProsa: true, sezioniCreate, ct);
+
+            // ⚠️ Un gruppo che entra nella sezione di un altro accordo deve avere un numero che lì non c'è. I gruppi
+            // nati prima del 7 ottobre 2026 erano progressivi per accordo: se il numero è usato anche altrove, cambia.
+            foreach (var g in blocco.Where(c => c.VariantGroup is not null).GroupBy(c => c.VariantGroup!.Value).ToList())
+                if (await _db.AgreementClauses.AnyAsync(x => x.VariantGroup == g.Key && x.SectionId != origine.Id, ct))
+                {
+                    var nuovo = ++prossimo;
+                    foreach (var c in g) c.VariantGroup = nuovo;
+                }
+
+            foreach (var c in blocco)
+            {
+                c.Shares.Add(new AgreementClauseShare { SectionId = destinazione.Id });
+                aggiunte.Add(new AgreementClausePresence(c.Id, destinazione.Id));
+            }
+            sezioneDiArrivo ??= destinazione.Id;
+            await _db.SaveChangesAsync(ct);
+        }
+
+        // L'accordo nato per ospitarle e rimasto vuoto — c'erano già tutte, o era la stessa coppia — non resta lì.
+        if (aggiunte.Count == 0 && creato)
+        {
+            _db.CoordinationAgreements.Remove(arrivo);
+            await _db.SaveChangesAsync(ct);
+            creato = false;
+        }
+
+        return new AgreementShareResult(arrivo.Id, sezioneDiArrivo, aggiunte.Count, creato,
+            new AgreementShareUndo(aggiunte, sezioniCreate, creato ? arrivo.Id : null));
+    }
+
+    public async Task UndoShareAsync(string accCode, AgreementShareUndo undo, CancellationToken ct = default)
+    {
+        var ids = undo.Added.Select(p => p.ClauseId).Distinct().ToList();
+        var mie = (await ClausesInAccAsync(accCode, ids, ct)).Select(c => c.Id).ToHashSet();
+        var righe = ids.Count == 0
+            ? new List<AgreementClauseShare>()
+            : await _db.AgreementClauseShares.Where(h => ids.Contains(h.ClauseId)).ToListAsync(ct);
+
+        // Solo le presenze che il gesto aveva aggiunto: una che nel frattempo è diventata la casa non c'è più come
+        // riga, e non si tocca.
+        foreach (var p in undo.Added.Where(p => mie.Contains(p.ClauseId)))
+            if (righe.FirstOrDefault(h => h.ClauseId == p.ClauseId && h.SectionId == p.SectionId) is { } h)
+                _db.AgreementClauseShares.Remove(h);
+        await _db.SaveChangesAsync(ct);
+
+        // Quel che era nato per ospitarle se ne va, ma SOLO se è rimasto vuoto.
+        foreach (var id in undo.CreatedSectionIds)
+            if (await SectionsOf(accCode).FirstOrDefaultAsync(x => x.Id == id, ct) is { } nata
+                && !await _db.AgreementClauses.AnyAsync(c => c.SectionId == id, ct)
+                && !await _db.AgreementClauseShares.AnyAsync(h => h.SectionId == id, ct))
+                _db.AgreementSections.Remove(nata);
+        await _db.SaveChangesAsync(ct);
+
+        if (undo.CreatedAgreementId is int nato
+            && await AgreementsOf(accCode).FirstOrDefaultAsync(a => a.Id == nato, ct) is { } accordo
+            && !await _db.AgreementSections.AnyAsync(s => s.AgreementId == nato, ct))
+        {
+            _db.CoordinationAgreements.Remove(accordo);
+            await _db.SaveChangesAsync(ct);
+        }
+    }
+
+    public async Task<AgreementDetachResult> DetachClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int agreementId, CancellationToken ct = default)
+    {
+        await AgreementAsync(accCode, agreementId, ct);
+        var scelte = clauseIds.Count == 0
+            ? new List<AgreementClause>()
+            : await ClausesOf(accCode).Include(c => c.Shares).Where(c => clauseIds.Contains(c.Id)).ToListAsync(ct);
+
+        // Il gruppo di varianti si stacca intero, come si condivide intero.
+        var blocco = new List<AgreementClause>();
+        foreach (var diCasa in scelte.Where(c => c.Shares.Count > 0).GroupBy(c => c.SectionId))
+        {
+            var righe = await Scope(diCasa.Key).Include(c => c.Shares).OrderBy(c => c.Order).ToListAsync(ct);
+            var gruppi = diCasa.Where(c => c.VariantGroup is not null).Select(c => c.VariantGroup).ToHashSet();
+            var singole = diCasa.Where(c => c.VariantGroup is null).Select(c => c.Id).ToHashSet();
+            blocco.AddRange(righe.Where(c => c.Shares.Count > 0
+                && (singole.Contains(c.Id) || (c.VariantGroup is not null && gruppi.Contains(c.VariantGroup)))));
+        }
+
+        var sezioniQui = (await _db.AgreementSections.Where(s => s.AgreementId == agreementId).Select(s => s.Id).ToListAsync(ct))
+            .ToHashSet();
+        var prossimo = await MassimoGruppoAsync(ct);
+        var gruppiNuovi = new Dictionary<(int Sezione, int Gruppo), int>();
+        var code = new Dictionary<int, int>();
+        var copie = new List<AgreementClause>();
+        var presenze = new List<AgreementDetachedPresence>();
+        var daPromuovere = new List<AgreementClause>();
+        int? sezione = null;
+
+        foreach (var c in blocco)
+        {
+            var ospite = c.Shares.FirstOrDefault(h => sezioniQui.Contains(h.SectionId));
+            var diCasaQui = sezioniQui.Contains(c.SectionId);
+            if (ospite is null && !diCasaQui) continue;   // in questo accordo non compare
+            var qui = ospite?.SectionId ?? c.SectionId;
+
+            var copia = CopyOf(c);
+            copia.SectionId = qui;
+            copia.VariantDepth = c.VariantDepth;
+            copia.IsGroupWide = c.IsGroupWide;
+            // La copia è un'altra clausola: il suo gruppo non è più quello condiviso.
+            if (c.VariantGroup is int g)
+            {
+                if (!gruppiNuovi.TryGetValue((c.SectionId, g), out var nuovo)) gruppiNuovi[(c.SectionId, g)] = nuovo = ++prossimo;
+                copia.VariantGroup = nuovo;
+            }
+            if (diCasaQui)
+                copia.Order = c.Order;   // prende il posto dell'originale, che cambia casa
+            else
+            {
+                if (!code.TryGetValue(qui, out var coda)) coda = await Scope(qui).MaxAsync(x => (int?)x.Order, ct) ?? 0;
+                copia.Order = code[qui] = coda + 1;
+            }
+            copie.Add(copia);
+            presenze.Add(new AgreementDetachedPresence(c.Id, qui, WasGuest: !diCasaQui, c.Order));
+
+            if (ospite is not null) { c.Shares.Remove(ospite); _db.AgreementClauseShares.Remove(ospite); }
+            else daPromuovere.Add(c);
+            sezione ??= qui;
+        }
+
+        if (copie.Count == 0)
+            throw new ValidationException(Lingua(
+                "Nessuna delle clausole scelte è condivisa: non c'è niente da staccare.",
+                "None of the chosen clauses is shared: there is nothing to detach."));
+
+        if (daPromuovere.Count > 0) await PromuoviAsync(daPromuovere, ct);
+        _db.AgreementClauses.AddRange(copie);
+        await _db.SaveChangesAsync(ct);
+        return new AgreementDetachResult(copie.Count, sezione,
+            new AgreementDetachUndo(copie.Select(c => c.Id).ToList(), presenze));
+    }
+
+    public async Task UndoDetachAsync(string accCode, AgreementDetachUndo undo, CancellationToken ct = default)
+    {
+        var copie = await ClausesInAccAsync(accCode, undo.CopyIds, ct);
+        _db.AgreementClauses.RemoveRange(copie);
+        await _db.SaveChangesAsync(ct);
+
+        var sezioni = undo.Presences.Select(p => p.SectionId).Distinct().ToList();
+        var vive = (await SectionsOf(accCode).Where(s => sezioni.Contains(s.Id)).Select(s => s.Id).ToListAsync(ct)).ToHashSet();
+        var ids = undo.Presences.Select(p => p.ClauseId).Distinct().ToList();
+        var clausole = await _db.AgreementClauses.Include(c => c.Shares).Where(c => ids.Contains(c.Id)).ToDictionaryAsync(c => c.Id, ct);
+
+        foreach (var p in undo.Presences)
+            if (vive.Contains(p.SectionId) && clausole.TryGetValue(p.ClauseId, out var c))
+                RimettiPresenza(c, p.SectionId, p.WasGuest, p.Order);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Le clausole lasciano la loro sezione di casa ma hanno ospiti: la casa passa alla prima sezione che le ospita
+    /// (quella con l'id più basso: la stessa per tutte le righe di un gruppo, che si condivide intero), in coda alle
+    /// sue. È l'unico punto dove «casa» e «ospite» si scambiano, e nessun lettore se ne accorge. Non salva.
+    /// </summary>
+    private async Task PromuoviAsync(IReadOnlyCollection<AgreementClause> clausole, CancellationToken ct)
+    {
+        // I gruppi com'erano di casa, PRIMA di toccare niente: servono a sapere se arrivano interi.
+        var gruppi = clausole.Where(c => c.VariantGroup is not null)
+            .GroupBy(c => (Sezione: c.SectionId, Gruppo: c.VariantGroup!.Value))
+            .Select(g => (g.Key, Righe: g.ToList())).ToList();
+        var interi = new Dictionary<(int, int), int>();
+        foreach (var (chiave, _) in gruppi)
+            interi[chiave] = await Scope(chiave.Sezione).CountAsync(x => x.VariantGroup == chiave.Gruppo, ct);
+
+        foreach (var perErede in clausole.GroupBy(c => c.Shares.Min(h => h.SectionId)).ToList())
+        {
+            var ordine = await Scope(perErede.Key).MaxAsync(c => (int?)c.Order, ct) ?? 0;
+            foreach (var c in perErede.OrderBy(c => c.SectionId).ThenBy(c => c.Order).ToList())
+            {
+                var erede = c.Shares.First(h => h.SectionId == perErede.Key);
+                c.Shares.Remove(erede);
+                _db.AgreementClauseShares.Remove(erede);
+                c.SectionId = perErede.Key;
+                c.Order = ++ordine;
+            }
+        }
+
+        // Un gruppo che non arriva intero nella stessa sezione non è più un gruppo: un'eccezione senza la sua
+        // capofila direbbe un'altra cosa. Non dovrebbe succedere — si condivide intero — ma una riga rotta qui
+        // romperebbe il documento di un altro accordo.
+        foreach (var (chiave, righe) in gruppi)
+            if (righe.Count != interi[chiave] || righe.Select(c => c.SectionId).Distinct().Count() > 1)
+                foreach (var c in righe) { c.VariantGroup = null; c.VariantDepth = 0; c.IsGroupWide = false; }
+    }
+
+    /// <summary>
+    /// Rimette la presenza di una clausola che vive ancora, in una sezione dove non compare più. Se lì era ospite,
+    /// torna ospite; se ci stava di casa, torna di casa al suo posto — e la sezione che nel frattempo l'aveva presa
+    /// in casa torna a ospitarla. Non salva.
+    /// </summary>
+    private void RimettiPresenza(AgreementClause c, int sectionId, bool eraOspite, int ordine)
+    {
+        if (c.SectionId == sectionId) return;   // è già di casa qui
+
+        var qui = c.Shares.FirstOrDefault(h => h.SectionId == sectionId);
+        if (eraOspite)
+        {
+            if (qui is null) c.Shares.Add(new AgreementClauseShare { SectionId = sectionId });
+            return;
+        }
+
+        var promossaIn = c.SectionId;
+        if (qui is not null) { c.Shares.Remove(qui); _db.AgreementClauseShares.Remove(qui); }
+        if (c.Shares.All(h => h.SectionId != promossaIn)) c.Shares.Add(new AgreementClauseShare { SectionId = promossaIn });
+        c.SectionId = sectionId;
+        c.Order = ordine;
+    }
+
+    /// <summary>Una clausola nata da un'altra — alternativa, eccezione, copia — compare dove compare quella: è lo
+    /// stesso coordinamento, e in un gruppo condiviso una variante in più è contenuto di tutti.</summary>
+    private async Task CopiaPresenzeAsync(int daClauseId, AgreementClause a, CancellationToken ct)
+    {
+        foreach (var sezione in await _db.AgreementClauseShares.Where(h => h.ClauseId == daClauseId)
+                     .Select(h => h.SectionId).ToListAsync(ct))
+            a.Shares.Add(new AgreementClauseShare { SectionId = sezione });
+    }
+
+    /// <summary>
+    /// La sezione dell'accordo che dice la STESSA cosa di <paramref name="origine"/> — stesso traffico, stessi scali —
+    /// in quel verso. Se non c'è nasce, e il suo id finisce in <paramref name="create"/>.
+    /// </summary>
+    private async Task<AgreementSection> SezioneUgualeAsync(CoordinationAgreement arrivo, AgreementSection origine,
+        AgreementDirection verso, bool conLaProsa, List<int> create, CancellationToken ct)
+    {
+        var chiave = AirportKey(origine.Airports.Select(a => a.Icao));
+        var candidate = await _db.AgreementSections.Include(s => s.Airports)
+            .Where(s => s.AgreementId == arrivo.Id && s.Kind == origine.Kind && s.Direction == verso)
+            .OrderBy(s => s.Order).ToListAsync(ct);
+        var uguale = candidate.FirstOrDefault(s => AirportKey(s.Airports.Select(a => a.Icao)) == chiave);
+        if (uguale is not null) return uguale;
+
+        var nuova = new AgreementSection
+        {
+            AgreementId = arrivo.Id, Kind = origine.Kind, Direction = verso,
+            Description = conLaProsa ? origine.Description : null,
+            // La stessa tabella vista dall'altra coppia si legge nello stesso ordine.
+            ClauseOrder = conLaProsa ? origine.ClauseOrder : AgreementClauseOrder.Manual,
+            Order = (await _db.AgreementSections.Where(s => s.AgreementId == arrivo.Id)
+                .MaxAsync(s => (int?)s.Order, ct) ?? 0) + 1,
+            Airports = origine.Airports.OrderBy(a => a.Order)
+                .Select(a => new AgreementAirport { Icao = a.Icao, Name = a.Name, Order = a.Order }).ToList(),
+        };
+        _db.AgreementSections.Add(nuova);
+        await _db.SaveChangesAsync(ct);
+        create.Add(nuova.Id);
+        return nuova;
     }
 
     public async Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, CancellationToken ct = default)
@@ -179,26 +593,36 @@ public sealed class EfAgreementRepository : IAgreementRepository
             Kind = src.Kind,
             Direction = reverse,
             Description = src.Description,
+            ClauseOrder = src.ClauseOrder,
             Order = order,
         };
         var airportOrder = 0;
         foreach (var apt in src.Airports.OrderBy(x => x.Order))
             copy.Airports.Add(new AgreementAirport { Icao = apt.Icao, Name = apt.Name, Order = ++airportOrder });
 
-        // I gruppi di varianti si rinumerano dentro la copia: sono progressivi per accordo, e riusarli farebbe
-        // sembrare le clausole del verso opposto varianti delle prime.
-        var nextGroup = await ClausesOfAgreement(src.AgreementId).MaxAsync(c => (int?)c.VariantGroup, ct) ?? 0;
-        var groupMap = new Dictionary<int, int>();
+        // Si copia quel che la sezione MOSTRA: le sue clausole e quelle che ospita, come copie indipendenti — il
+        // reciproco è un'altra cosa, e i suoi livelli sono quasi sempre diversi.
+        var ospiti = await _db.AgreementClauseShares.Where(h => h.SectionId == src.Id).Select(h => h.Clause!).ToListAsync(ct);
+        var tutte = src.Clauses.OrderBy(x => x.Order)
+            .Concat(ospiti.OrderBy(x => x.SectionId).ThenBy(x => x.Order)).ToList();
 
-        foreach (var c in src.Clauses.OrderBy(x => x.Order))
+        // I gruppi di varianti prendono numeri nuovi: riusarli farebbe sembrare le clausole del verso opposto
+        // varianti delle prime.
+        var nextGroup = await MassimoGruppoAsync(ct);
+        var groupMap = new Dictionary<(int, int), int>();
+        var clauseOrder = 0;
+
+        foreach (var c in tutte)
         {
             var copia = CopyOf(c);
-            copia.Order = c.Order;
+            // CopyOf porta con sé la sezione di origine: la copia è figlia della sezione nuova.
+            copia.SectionId = 0;
+            copia.Order = ++clauseOrder;
             copia.VariantDepth = c.VariantDepth;
             copia.IsGroupWide = c.IsGroupWide;
             if (c.VariantGroup is int g)
             {
-                if (!groupMap.TryGetValue(g, out var mapped)) groupMap[g] = mapped = ++nextGroup;
+                if (!groupMap.TryGetValue((c.SectionId, g), out var mapped)) groupMap[(c.SectionId, g)] = mapped = ++nextGroup;
                 copia.VariantGroup = mapped;
             }
             copy.Clauses.Add(copia);
@@ -232,7 +656,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
 
         var order = await _db.AgreementClauses.Where(c => c.SectionId == keepId)
             .MaxAsync(c => (int?)c.Order, ct) ?? 0;
-        var nextGroup = await ClausesOfAgreement(keep.AgreementId).MaxAsync(c => (int?)c.VariantGroup, ct) ?? 0;
+        var nextGroup = await MassimoGruppoAsync(ct);
         var groupMap = new Dictionary<int, int>();
 
         foreach (var c in moving)
@@ -244,6 +668,16 @@ public sealed class EfAgreementRepository : IAgreementRepository
                 if (!groupMap.TryGetValue(g, out var mapped)) groupMap[g] = mapped = ++nextGroup;
                 c.VariantGroup = mapped;
             }
+        }
+
+        // Le clausole che la sezione assorbita OSPITAVA passano a quella che resta: sono righe di quella tabella
+        // quanto le sue, e col guscio se ne andrebbe la loro presenza in questo accordo.
+        var giaLi = (await _db.AgreementClauseShares.Where(h => h.SectionId == keepId).Select(h => h.ClauseId).ToListAsync(ct))
+            .ToHashSet();
+        foreach (var h in await _db.AgreementClauseShares.Where(h => h.SectionId == absorbId).ToListAsync(ct))
+        {
+            if (giaLi.Add(h.ClauseId)) h.SectionId = keepId;
+            else _db.AgreementClauseShares.Remove(h);
         }
 
         // Il guscio se ne va DOPO che le clausole hanno cambiato padre: cancellarlo prima le porterebbe con sé
@@ -266,6 +700,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         s.Kind = i.Kind;
         s.Direction = i.Direction;
         s.Description = NullIfBlank(i.Description);
+        s.ClauseOrder = i.ClauseOrder;
 
         _db.AgreementAirports.RemoveRange(s.Airports);
         s.Airports.Clear();
@@ -339,15 +774,8 @@ public sealed class EfAgreementRepository : IAgreementRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteClauseAsync(string accCode, int clauseId, CancellationToken ct = default)
-    {
-        var c = await ClausesOf(accCode).FirstOrDefaultAsync(x => x.Id == clauseId, ct);
-        if (c is null) return;
-        var group = c.VariantGroup;
-        _db.AgreementClauses.Remove(c);
-        if (group is int g) await DissolveIfAloneAsync(c.SectionId, g, ct);
-        await _db.SaveChangesAsync(ct);
-    }
+    public Task DeleteClauseAsync(string accCode, int clauseId, int? agreementId = null, CancellationToken ct = default) =>
+        DeleteClausesAsync(accCode, new[] { clauseId }, agreementId, ct);
 
     public Task<int> AddAlternativeAsync(string accCode, int clauseId, CancellationToken ct = default) =>
         AddVariantAsync(accCode, clauseId, asException: false, ct);
@@ -365,10 +793,10 @@ public sealed class EfAgreementRepository : IAgreementRepository
     {
         var src = await ClauseInAccAsync(accCode, clauseId, ct);
 
-        // Il gruppo nasce alla prima variante: progressivo per ACCORDO (non per sezione), così due gruppi «1» di
-        // sezioni diverse non si somigliano leggendo l'archivio a mano.
+        // Il gruppo nasce alla prima variante, con un numero unico in tutto l'archivio: una clausola condivisa lo
+        // porta nella sezione di un altro accordo, e lì non deve somigliare a un gruppo di casa.
         if (src.VariantGroup is null)
-            src.VariantGroup = await NextGroupAsync(src.SectionId, ct);
+            src.VariantGroup = await NextGroupAsync(ct);
         var group = src.VariantGroup.Value;
 
         // Un'alternativa di una clausola annidata resta al livello di QUELLA clausola, non torna a 0:
@@ -394,6 +822,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
             x.Order++;
 
         _db.AgreementClauses.Add(copy);
+        await CopiaPresenzeAsync(src.Id, copy, ct);
         await _db.SaveChangesAsync(ct);
         return copy.Id;
     }
@@ -424,6 +853,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
             x.Order++;
 
         _db.AgreementClauses.Add(copy);
+        await CopiaPresenzeAsync(src.Id, copy, ct);
         await _db.SaveChangesAsync(ct);
         return copy.Id;
     }
@@ -441,7 +871,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         foreach (var x in moved) { x.VariantDepth -= shift; x.IsGroupWide = false; }
 
         // Resta un gruppo solo se ha ancora qualcosa da tenere insieme; una clausola sola non è un gruppo.
-        var newGroup = moved.Count > 1 ? await NextGroupAsync(c.SectionId, ct) : (int?)null;
+        var newGroup = moved.Count > 1 ? await NextGroupAsync(ct) : (int?)null;
         foreach (var x in moved) x.VariantGroup = newGroup;
 
         await DissolveIfAloneAsync(c.SectionId, group, ct);
@@ -506,7 +936,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         var rows = await GroupRowsAsync(c, group, ct);
         if (rows.Count == 0) return 0;
 
-        var newGroup = await NextGroupAsync(c.SectionId, ct);
+        var newGroup = await NextGroupAsync(ct);
         var order = await Scope(c.SectionId).MaxAsync(x => (int?)x.Order, ct) ?? 0;
 
         foreach (var src in rows)
@@ -519,6 +949,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
             copy.IsGroupWide = src.IsGroupWide;
             copy.Order = ++order;
             _db.AgreementClauses.Add(copy);
+            await CopiaPresenzeAsync(src.Id, copy, ct);
         }
 
         await _db.SaveChangesAsync(ct);
@@ -577,19 +1008,63 @@ public sealed class EfAgreementRepository : IAgreementRepository
         return rows.Count;
     }
 
-    public async Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, CancellationToken ct = default)
+    public async Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, int? agreementId = null,
+        CancellationToken ct = default)
     {
-        var rows = await ClausesInAccAsync(accCode, clauseIds, ct);
+        var rows = clauseIds.Count == 0
+            ? new List<AgreementClause>()
+            : await ClausesOf(accCode).Include(c => c.Shares).Where(x => clauseIds.Contains(x.Id)).ToListAsync(ct);
         if (rows.Count == 0) return 0;
 
-        var groups = rows.Where(r => r.VariantGroup is not null)
+        // Una clausola condivisa, guardata da UN accordo, si toglie da quello e resta negli altri. Le altre — e
+        // tutte, se non si dice da dove le si guarda — se ne vanno per davvero.
+        var daStaccare = new List<AgreementClause>();
+        var sezioniQui = new HashSet<int>();
+        if (agreementId is int qui)
+        {
+            sezioniQui = (await _db.AgreementSections.Where(s => s.AgreementId == qui).Select(s => s.Id).ToListAsync(ct))
+                .ToHashSet();
+            var scelte = rows.Select(r => r.Id).ToHashSet();
+            foreach (var r in rows.Where(r => r.Shares.Count > 0))
+            {
+                // ⚠️ Una variante SOLA di un gruppo condiviso non si «toglie da qui»: il gruppo si condivide intero,
+                // e la sua struttura è contenuto. Eliminarla è cambiare il gruppo, per tutti.
+                if (r.VariantGroup is int g
+                    && !(await Scope(r.SectionId).Where(x => x.VariantGroup == g).Select(x => x.Id).ToListAsync(ct))
+                        .All(scelte.Contains))
+                    continue;
+                daStaccare.Add(r);
+            }
+        }
+
+        var toccate = 0;
+        var daPromuovere = new List<AgreementClause>();
+        foreach (var r in daStaccare)
+        {
+            if (r.Shares.FirstOrDefault(h => sezioniQui.Contains(h.SectionId)) is { } ospite)
+            {
+                r.Shares.Remove(ospite);
+                _db.AgreementClauseShares.Remove(ospite);
+                toccate++;
+            }
+            else if (sezioniQui.Contains(r.SectionId))
+            {
+                daPromuovere.Add(r);
+                toccate++;
+            }
+            // Altrimenti in quell'accordo non compare: non c'è niente da togliere.
+        }
+        if (daPromuovere.Count > 0) await PromuoviAsync(daPromuovere, ct);
+
+        var eliminate = rows.Except(daStaccare).ToList();
+        var groups = eliminate.Where(r => r.VariantGroup is not null)
             .Select(r => (r.SectionId, Group: r.VariantGroup!.Value)).Distinct().ToList();
 
-        _db.AgreementClauses.RemoveRange(rows);
+        _db.AgreementClauses.RemoveRange(eliminate);
         foreach (var (sectionId, group) in groups)
             await DissolveIfAloneAsync(sectionId, group, ct);
         await _db.SaveChangesAsync(ct);
-        return rows.Count;
+        return eliminate.Count + toccate;
     }
 
     // ---- ripristino ---------------------------------------------------------------------------------
@@ -604,6 +1079,9 @@ public sealed class EfAgreementRepository : IAgreementRepository
         var order = (await _db.CoordinationAgreements.Where(a => a.OwnerAccId == accId)
             .MaxAsync(a => (int?)a.Order, ct) ?? 0) + 1;
 
+        // Prima di scrivere (U-061): rifiutata dopo il SaveChanges, la fotografia rotta restava salvata.
+        foreach (var s in snapshot.Sections) ControllaOutline(s.Clauses.Select(c => ClauseFrom(0, c)));
+
         var a = new CoordinationAgreement
         {
             OwnerAccId = accId,
@@ -612,13 +1090,15 @@ public sealed class EfAgreementRepository : IAgreementRepository
             Note = NullIfBlank(snapshot.Data.Note),
             Order = order,
         };
-        foreach (var s in snapshot.Sections.OrderBy(x => x.Order))
-            a.Sections.Add(SectionFrom(s));
-
-        // Prima di scrivere (U-061): rifiutata dopo il SaveChanges, la fotografia rotta restava salvata.
-        foreach (var s in a.Sections) ControllaOutline(s.Clauses);
+        var sezioni = snapshot.Sections.OrderBy(x => x.Order).Select(s => (Foto: s, Sezione: SectionFrom(s))).ToList();
+        foreach (var (_, sezione) in sezioni) a.Sections.Add(sezione);
         _db.CoordinationAgreements.Add(a);
         await _db.SaveChangesAsync(ct);
+
+        // Le clausole rientrano DOPO, quando le sezioni hanno un id: una che era condivisa e vive ancora altrove
+        // torna come PRESENZA — rimetterne il contenuto ne farebbe una copia destinata a divergere.
+        await RimettiAsync(sezioni.SelectMany(x => x.Foto.Clauses.Select(c => new AgreementClauseRestore(x.Sezione.Id, c))).ToList(),
+            null, ct);
         return a.Id;
     }
 
@@ -629,12 +1109,15 @@ public sealed class EfAgreementRepository : IAgreementRepository
         var a = await AgreementsOf(accCode).FirstOrDefaultAsync(x => x.Id == restore.AgreementId, ct);
         if (a is null) return null;
 
+        // L'outline vive dentro la sezione, e questa arriva intera: si controlla da sola, prima di scrivere.
+        ControllaOutline(restore.Section.Clauses.Select(c => ClauseFrom(0, c)));
+
         var section = SectionFrom(restore.Section);
         section.AgreementId = a.Id;
-        // L'outline vive dentro la sezione, e questa arriva intera: si controlla da sola, prima di scrivere.
-        ControllaOutline(section.Clauses);
         _db.AgreementSections.Add(section);
         await _db.SaveChangesAsync(ct);
+
+        await RimettiAsync(restore.Section.Clauses.Select(c => new AgreementClauseRestore(section.Id, c)).ToList(), null, ct);
         return section.Id;
     }
 
@@ -646,17 +1129,63 @@ public sealed class EfAgreementRepository : IAgreementRepository
         var ids = clauses.Select(c => c.SectionId).Distinct().ToList();
         var alive = (await SectionsOf(accCode).Where(s => ids.Contains(s.Id)).Select(s => s.Id).ToListAsync(ct))
             .ToHashSet();
+        return await RimettiAsync(clauses.Where(c => alive.Contains(c.SectionId)).ToList(), sorelle, ct);
+    }
 
-        var restored = clauses.Where(c => alive.Contains(c.SectionId)).Select(c => ClauseFrom(c.SectionId, c.Clause)).ToList();
-        var esistenti = await _db.AgreementClauses.Where(c => alive.Contains(c.SectionId)).ToListAsync(ct);
+    /// <summary>
+    /// Rimette delle clausole fotografate in sezioni che esistono. Due strade, decise clausola per clausola:
+    /// <list type="bullet">
+    /// <item>era <b>condivisa</b> e vive ancora altrove → torna la sua <b>presenza</b> (<see cref="RimettiPresenza"/>);</item>
+    /// <item>altrimenti torna il <b>contenuto</b>: di casa dov'era, e ospite nelle sezioni che la ospitavano e ci
+    /// sono ancora.</item>
+    /// </list>
+    /// </summary>
+    private async Task<int> RimettiAsync(IReadOnlyList<AgreementClauseRestore> voci,
+        IReadOnlyList<AgreementOutlineRestore>? sorelle, CancellationToken ct)
+    {
+        if (voci.Count == 0) return 0;
+
+        var collegate = voci.Where(v => v.Clause.LinkedClauseId is not null)
+            .Select(v => v.Clause.LinkedClauseId!.Value).Distinct().ToList();
+        var vive = collegate.Count == 0
+            ? new Dictionary<int, AgreementClause>()
+            : await _db.AgreementClauses.Include(c => c.Shares).Where(c => collegate.Contains(c.Id)).ToDictionaryAsync(c => c.Id, ct);
+
+        var presenze = voci.Where(v => v.Clause.LinkedClauseId is int id && vive.ContainsKey(id)).ToList();
+        var contenuti = voci.Except(presenze).ToList();
+
+        var citate = contenuti
+            .SelectMany(v => (v.Clause.HostSectionIds ?? Array.Empty<int>()).Append(v.Clause.HomeSectionId ?? v.SectionId).Append(v.SectionId))
+            .Distinct().ToList();
+        var sezioniVive = (await _db.AgreementSections.Where(s => citate.Contains(s.Id)).Select(s => s.Id).ToListAsync(ct))
+            .ToHashSet();
+
+        // Una clausola che si guardava da OSPITE torna di casa dov'era, se quella sezione c'è ancora.
+        int CasaDi(AgreementClauseRestore v) =>
+            v.Clause.WasGuest && v.Clause.HomeSectionId is int casa && sezioniVive.Contains(casa) ? casa : v.SectionId;
+
+        var caseToccate = contenuti.Select(CasaDi).Distinct().ToList();
+        var esistenti = await _db.AgreementClauses.Where(c => caseToccate.Contains(c.SectionId)).ToListAsync(ct);
+        var code = esistenti.GroupBy(c => c.SectionId).ToDictionary(g => g.Key, g => g.Max(c => c.Order));
+
+        var restored = new List<(AgreementClauseRestore Voce, AgreementClause Riga)>();
+        foreach (var v in contenuti)
+        {
+            var casa = CasaDi(v);
+            var riga = ClauseFrom(casa, v.Clause);
+            // Rientra in una sezione che non è quella da cui la si guardava: il posto della fotografia era di là.
+            if (casa != v.SectionId) riga.Order = code[casa] = (code.TryGetValue(casa, out var coda) ? coda : 0) + 1;
+            restored.Add((v, riga));
+        }
 
         // U-061: l'eliminazione ha sciolto il gruppo rimasto di una, e la superstite ha perso gruppo, profondità e
         // «in ogni caso». Si rimettono solo a chi è ancora fuori da ogni gruppo: una sorella messa altrove nel
         // frattempo è una scelta successiva, e l'annulla non la disfa.
         var perId = esistenti.ToDictionary(c => c.Id);
+        // ⚠️ La stessa sorella può arrivare due volte: una clausola condivisa è una riga in ogni accordo che la porta.
         var rientri = (sorelle ?? [])
             .Where(o => perId.TryGetValue(o.ClauseId, out var c) && c.VariantGroup is null)
-            .ToDictionary(o => o.ClauseId);
+            .GroupBy(o => o.ClauseId).ToDictionary(g => g.Key, g => g.First());
 
         // L'outline come SARÀ, controllato prima di toccare qualunque riga tracciata: rifiutato dopo il
         // SaveChanges, l'orfano restava salvato; rifiutato dopo aver modificato le sorelle, un salvataggio
@@ -664,7 +1193,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         ControllaOutline(esistenti.Select(c => rientri.TryGetValue(c.Id, out var o)
                 ? new PostoInOutline(c.SectionId, c.Order, o.VariantGroup, o.VariantDepth, o.IsGroupWide, c.Cops)
                 : PostoDi(c))
-            .Concat(restored.Select(PostoDi)));
+            .Concat(restored.Select(r => PostoDi(r.Riga))));
 
         foreach (var o in rientri.Values)
         {
@@ -673,11 +1202,22 @@ public sealed class EfAgreementRepository : IAgreementRepository
             c.VariantDepth = o.VariantDepth;
             c.IsGroupWide = o.IsGroupWide;
         }
-        _db.AgreementClauses.AddRange(restored);
+        foreach (var (v, riga) in restored)
+        {
+            foreach (var ospite in (v.Clause.HostSectionIds ?? Array.Empty<int>()).Append(v.SectionId).Distinct()
+                         .Where(s => s != riga.SectionId && sezioniVive.Contains(s)))
+                riga.Shares.Add(new AgreementClauseShare { SectionId = ospite });
+            _db.AgreementClauses.Add(riga);
+        }
+        foreach (var v in presenze)
+            RimettiPresenza(vive[v.Clause.LinkedClauseId!.Value], v.SectionId, v.Clause.WasGuest, v.Clause.Order);
+
         await _db.SaveChangesAsync(ct);
-        return restored.Count;
+        return restored.Count + presenze.Count;
     }
 
+    /// <summary>L'intestazione di una sezione dalla sua fotografia. Le clausole rientrano dopo, da
+    /// <see cref="RimettiAsync"/>: per ognuna va deciso se torna il contenuto o la presenza.</summary>
     private static AgreementSection SectionFrom(AgreementSectionSnapshot s)
     {
         var section = new AgreementSection
@@ -685,6 +1225,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
             Kind = s.Data.Kind,
             Direction = s.Data.Direction,
             Description = NullIfBlank(s.Data.Description),
+            ClauseOrder = s.Data.ClauseOrder,
             Order = s.Order,
         };
         var order = 0;
@@ -695,8 +1236,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
                 Name = NullIfBlank(apt.Name),
                 Order = ++order,
             });
-        foreach (var c in s.Clauses.OrderBy(x => x.Order))
-            section.Clauses.Add(ClauseFrom(0, c));
         return section;
     }
 
@@ -758,24 +1297,223 @@ public sealed class EfAgreementRepository : IAgreementRepository
     private static PostoInOutline PostoDi(AgreementClause c) =>
         new(c.SectionId, c.Order, c.VariantGroup, c.VariantDepth, c.IsGroupWide, c.Cops);
 
+    // ---- spostare fra accordi -----------------------------------------------------------------------
+    // Un accordo è UNA coppia di enti: una clausola scritta sotto la coppia sbagliata (ES2 ⇄ Padova quando a quella
+    // quota il settore è ES5) fino al 4 ottobre 2026 si poteva solo riscrivere. Qui si dice a chi appartiene
+    // davvero — «chi cede → chi riceve» — e sezione o clausole vanno nell'accordo di QUELLA coppia, che nasce se
+    // non c'è. Carta docs/feature/2026-10-04-copertura-unica.md §8.
+
+    public async Task<AgreementMoveResult> MoveSectionAsync(string accCode, int sectionId, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default)
+    {
+        var section = await SectionsOf(accCode).Include(s => s.Agreement)
+                          .FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+                      ?? throw new InvalidOperationException(Lingua($"Sezione {sectionId} non riguarda la ACC {accCode}.", $"Section {sectionId} does not belong to ACC {accCode}."));
+
+        // Una sezione con clausole condivise non si sposta: finirebbe nell'accordo che già le ospita, o porterebbe
+        // via di qui la casa di righe che altri mostrano. Prima si staccano, o si toglie la condivisione.
+        if (await _db.AgreementClauseShares.AnyAsync(h => h.SectionId == section.Id || h.Clause!.SectionId == section.Id, ct))
+            throw new ValidationException(Lingua(
+                "La sezione ha clausole condivise con un altro accordo: staccale, o togli la condivisione, prima di spostarla.",
+                "The section has clauses shared with another agreement: detach them, or remove the sharing, before moving it."));
+
+        var prima = new AgreementSectionPlacement(section.Id, section.AgreementId, section.Direction, section.Order);
+        var (arrivo, creato) = await AccordoDellaCoppiaAsync(accCode, senderSectorId, receiverSectorId, ct);
+        var verso = VersoDi(arrivo, senderSectorId);
+
+        var clausole = await Scope(section.Id).OrderBy(c => c.Order).ToListAsync(ct);
+        var posti = clausole.Select(c => new AgreementClausePlacement(c.Id, c.SectionId, c.Order, c.VariantGroup)).ToList();
+        var disfa = new AgreementMoveUndo(prima, posti, Array.Empty<int>(), creato ? arrivo.Id : null);
+
+        // Stessa coppia e stesso verso: non c'è niente da spostare. Stessa coppia e verso opposto: è «gira il
+        // verso», e si fa — è quel che è stato chiesto.
+        if (arrivo.Id == section.AgreementId)
+        {
+            if (verso == section.Direction) return new AgreementMoveResult(arrivo.Id, null, 0, false, disfa);
+            section.Direction = verso;
+            await _db.SaveChangesAsync(ct);
+            return new AgreementMoveResult(arrivo.Id, section.Id, 0, false, disfa);
+        }
+
+        // ⚠️ I gruppi di varianti nati prima del 7 ottobre 2026 sono progressivi PER ACCORDO: portati tali e quali
+        // si fonderebbero con quelli dell'accordo di arrivo che hanno lo stesso numero, e due tabelle diverse
+        // diventerebbero varianti l'una dell'altra senza un errore. Stessa rinumerazione di MergeSectionsAsync.
+        var prossimo = await MassimoGruppoAsync(ct);
+        Rinumera(clausole, ref prossimo);
+
+        section.Order = (await _db.AgreementSections.Where(s => s.AgreementId == arrivo.Id)
+            .MaxAsync(s => (int?)s.Order, ct) ?? 0) + 1;
+        section.AgreementId = arrivo.Id;
+        section.Direction = verso;
+        await _db.SaveChangesAsync(ct);
+
+        return new AgreementMoveResult(arrivo.Id, section.Id, clausole.Count, creato, disfa);
+    }
+
+    public async Task<AgreementMoveResult> MoveClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int senderSectorId, int receiverSectorId, CancellationToken ct = default)
+    {
+        var scelte = await ClausesInAccAsync(accCode, clauseIds, ct);
+
+        // Una clausola condivisa non si sposta: «spostare» una presenza sola si legge in due modi (portarla via a
+        // tutti, o solo a questo accordo) e nessuno dei due è ovvio. Si guarda PRIMA di far nascere l'accordo di
+        // arrivo; basta guardare le scelte, perché un gruppo si condivide intero.
+        var idScelte = scelte.Select(c => c.Id).ToList();
+        if (await _db.AgreementClauseShares.AnyAsync(h => idScelte.Contains(h.ClauseId), ct))
+            throw new ValidationException(Lingua(
+                "Una delle clausole è condivisa con un altro accordo: staccala, o togli la condivisione, prima di spostarla.",
+                "One of the clauses is shared with another agreement: detach it, or remove the sharing, before moving it."));
+
+        var (arrivo, creato) = await AccordoDellaCoppiaAsync(accCode, senderSectorId, receiverSectorId, ct);
+        var verso = VersoDi(arrivo, senderSectorId);
+
+        var posti = new List<AgreementClausePlacement>();
+        var sezioniCreate = new List<int>();
+        int? sezioneDiArrivo = null;
+        var spostate = 0;
+        var prossimo = await MassimoGruppoAsync(ct);
+
+        foreach (var daSezione in scelte.GroupBy(c => c.SectionId))
+        {
+            var origine = await _db.AgreementSections.Include(s => s.Airports).FirstAsync(s => s.Id == daSezione.Key, ct);
+            // Già al suo posto: stessa coppia, stesso verso.
+            if (origine.AgreementId == arrivo.Id && origine.Direction == verso) continue;
+
+            // ⚠️ Un gruppo di varianti si sposta INTERO: sono righe che dicono la stessa cosa a condizioni diverse,
+            // e portarne via una lascerebbe di qua un'alternativa senza le sue sorelle e di là una riga che non è
+            // più l'eccezione di nessuno.
+            var righe = await Scope(origine.Id).OrderBy(c => c.Order).ToListAsync(ct);
+            var gruppi = daSezione.Where(c => c.VariantGroup is not null).Select(c => c.VariantGroup).ToHashSet();
+            var singole = daSezione.Where(c => c.VariantGroup is null).Select(c => c.Id).ToHashSet();
+            var blocco = righe.Where(c => singole.Contains(c.Id) || (c.VariantGroup is not null && gruppi.Contains(c.VariantGroup))).ToList();
+            if (blocco.Count == 0) continue;
+
+            // La sezione di arrivo è quella che dice la STESSA cosa — stesso traffico, stessi scali — nell'accordo
+            // e nel verso nuovi. Se non c'è nasce, vuota di prosa: la descrizione era dell'altra tabella.
+            var destinazione = await SezioneUgualeAsync(arrivo, origine, verso, conLaProsa: false, sezioniCreate, ct);
+
+            posti.AddRange(blocco.Select(c => new AgreementClausePlacement(c.Id, c.SectionId, c.Order, c.VariantGroup)));
+            Rinumera(blocco, ref prossimo);
+            var ordine = await Scope(destinazione.Id).MaxAsync(c => (int?)c.Order, ct) ?? 0;
+            foreach (var c in blocco)
+            {
+                c.SectionId = destinazione.Id;
+                c.Order = ++ordine;
+            }
+            sezioneDiArrivo ??= destinazione.Id;
+            spostate += blocco.Count;
+            // Si salva sezione per sezione: la prossima legge l'ordine e i gruppi che questa ha appena scritto.
+            await _db.SaveChangesAsync(ct);
+        }
+
+        return new AgreementMoveResult(arrivo.Id, sezioneDiArrivo, spostate, creato,
+            new AgreementMoveUndo(null, posti, sezioniCreate, creato ? arrivo.Id : null));
+    }
+
+    public async Task UndoMoveAsync(string accCode, AgreementMoveUndo undo, CancellationToken ct = default)
+    {
+        if (undo.Section is { } s
+            && await SectionsOf(accCode).FirstOrDefaultAsync(x => x.Id == s.SectionId, ct) is { } sezione)
+        {
+            sezione.AgreementId = s.AgreementId;
+            sezione.Direction = s.Direction;
+            sezione.Order = s.Order;
+        }
+
+        var ids = undo.Clauses.Select(p => p.ClauseId).ToList();
+        var clausole = (await ClausesInAccAsync(accCode, ids, ct)).ToDictionary(c => c.Id);
+        foreach (var p in undo.Clauses)
+            if (clausole.TryGetValue(p.ClauseId, out var c))
+            {
+                c.SectionId = p.SectionId;
+                c.Order = p.Order;
+                c.VariantGroup = p.VariantGroup;
+            }
+        await _db.SaveChangesAsync(ct);
+
+        // Quel che era nato per fare posto se ne va, ma SOLO se è rimasto vuoto: nel frattempo qualcuno può
+        // averci scritto, e annullare uno spostamento non autorizza a cancellare il lavoro di un altro.
+        foreach (var id in undo.CreatedSectionIds)
+            if (await _db.AgreementSections.FirstOrDefaultAsync(x => x.Id == id, ct) is { } nata
+                && !await _db.AgreementClauses.AnyAsync(c => c.SectionId == id, ct))
+                _db.AgreementSections.Remove(nata);
+        await _db.SaveChangesAsync(ct);
+
+        if (undo.CreatedAgreementId is int accordo
+            && await _db.CoordinationAgreements.FirstOrDefaultAsync(x => x.Id == accordo, ct) is { } nato
+            && !await _db.AgreementSections.AnyAsync(x => x.AgreementId == accordo, ct))
+        {
+            _db.CoordinationAgreements.Remove(nato);
+            await _db.SaveChangesAsync(ct);
+        }
+    }
+
+    /// <summary>
+    /// L'accordo della coppia «chi cede, chi riceve»: quello che c'è, o uno nuovo della ACC.
+    /// <para>⚠️ La coppia è unica in tutto l'archivio, non per ACC: se l'accordo esiste ma non riguarda questa ACC
+    /// (nessuno dei due enti è suo, e non ne è responsabile) non ci si scrive dentro da qui.</para>
+    /// </summary>
+    private async Task<(CoordinationAgreement Accordo, bool Creato)> AccordoDellaCoppiaAsync(string accCode,
+        int senderSectorId, int receiverSectorId, CancellationToken ct)
+    {
+        if (senderSectorId <= 0 || receiverSectorId <= 0)
+            throw new ValidationException(Lingua("Indica chi cede e chi riceve.", "Say who hands over and who receives."));
+        if (senderSectorId == receiverSectorId)
+            throw new ValidationException(Lingua("Chi cede e chi riceve non possono essere lo stesso ente.", "The sender and the receiver cannot be the same unit."));
+        if (await _db.Sectors.CountAsync(x => x.Id == senderSectorId || x.Id == receiverSectorId, ct) != 2)
+            throw new ValidationException(Lingua("Uno dei due enti non esiste più.", "One of the two units no longer exists."));
+
+        var (a, b) = Canonical(senderSectorId, receiverSectorId);
+        var esistente = await _db.CoordinationAgreements.FirstOrDefaultAsync(x => x.SideASectorId == a && x.SideBSectorId == b, ct);
+        if (esistente is not null)
+        {
+            if (!await AgreementsOf(accCode).AnyAsync(x => x.Id == esistente.Id, ct))
+                throw new ValidationException(Lingua(
+                    $"Fra questi due enti esiste già un accordo, ma non riguarda la ACC {accCode}.",
+                    $"These two units already have an agreement, but it does not belong to ACC {accCode}."));
+            return (esistente, false);
+        }
+
+        var accId = await AccIdAsync(accCode, ct);
+        var nuovo = new CoordinationAgreement
+        {
+            OwnerAccId = accId, SideASectorId = a, SideBSectorId = b,
+            Order = (await _db.CoordinationAgreements.Where(x => x.OwnerAccId == accId).MaxAsync(x => (int?)x.Order, ct) ?? 0) + 1,
+        };
+        _db.CoordinationAgreements.Add(nuovo);
+        await _db.SaveChangesAsync(ct);
+        return (nuovo, true);
+    }
+
+    /// <summary>Il verso in cui, in quell'accordo, cede quell'ente: i lati sono canonici, il verso no.</summary>
+    private static AgreementDirection VersoDi(CoordinationAgreement accordo, int senderSectorId) =>
+        accordo.SideASectorId == senderSectorId ? AgreementDirection.AtoB : AgreementDirection.BtoA;
+
+    /// <summary>Dà numeri nuovi ai gruppi di varianti delle clausole che cambiano accordo, uno per gruppo.</summary>
+    private static void Rinumera(IEnumerable<AgreementClause> clausole, ref int prossimo)
+    {
+        var mappa = new Dictionary<int, int>();
+        foreach (var c in clausole)
+            if (c.VariantGroup is int g)
+            {
+                if (!mappa.TryGetValue(g, out var nuovo)) mappa[g] = nuovo = ++prossimo;
+                c.VariantGroup = nuovo;
+            }
+    }
+
     // ---- attrezzi dell'outline ----------------------------------------------------------------------
 
     /// <summary>Le clausole di una <b>sezione</b>: è lo scopo dentro cui l'ordine ha significato.</summary>
     private IQueryable<AgreementClause> Scope(int sectionId) =>
         _db.AgreementClauses.Where(x => x.SectionId == sectionId);
 
-    /// <summary>Le clausole di tutto l'accordo: i gruppi di varianti sono progressivi per accordo, e per
-    /// numerarne uno nuovo bisogna vederli tutti.</summary>
-    private IQueryable<AgreementClause> ClausesOfAgreement(int agreementId) =>
-        _db.AgreementClauses.Where(x => x.Section!.Agreement!.Id == agreementId);
+    /// <summary>Il numero di gruppo più alto in tutto l'archivio. Un gruppo nuovo prende il successivo: così è
+    /// unico ovunque, e una clausola condivisa può portarlo nella sezione di un altro accordo senza somigliare a
+    /// un gruppo di casa.</summary>
+    private async Task<int> MassimoGruppoAsync(CancellationToken ct) =>
+        await _db.AgreementClauses.MaxAsync(x => (int?)x.VariantGroup, ct) ?? 0;
 
-    private Task<int> AgreementIdOfAsync(int sectionId, CancellationToken ct) =>
-        _db.AgreementSections.Where(s => s.Id == sectionId).Select(s => s.AgreementId).FirstAsync(ct);
-
-    /// <summary>Il prossimo numero di gruppo libero nell'accordo che ospita la sezione.</summary>
-    private async Task<int> NextGroupAsync(int sectionId, CancellationToken ct) =>
-        (await ClausesOfAgreement(await AgreementIdOfAsync(sectionId, ct))
-            .MaxAsync(x => (int?)x.VariantGroup, ct) ?? 0) + 1;
+    private async Task<int> NextGroupAsync(CancellationToken ct) => await MassimoGruppoAsync(ct) + 1;
 
     private Task<List<AgreementClause>> ScopeRowsAsync(AgreementClause c, CancellationToken ct) =>
         Scope(c.SectionId).OrderBy(x => x.Order).ToListAsync(ct);
@@ -877,17 +1615,21 @@ public sealed class EfAgreementRepository : IAgreementRepository
                                               || a.SideASector!.Acc!.Code == accCode
                                               || a.SideBSector!.Acc!.Code == accCode);
 
+    /// <summary>Le sezioni degli accordi che riguardano la ACC.</summary>
     private IQueryable<AgreementSection> SectionsOf(string accCode) =>
         _db.AgreementSections.Where(s => s.Agreement!.OwnerAcc!.Code == accCode
                                          || s.Agreement!.SideASector!.Acc!.Code == accCode
                                          || s.Agreement!.SideBSector!.Acc!.Code == accCode);
 
-    /// <summary>Le clausole degli accordi che riguardano la ACC. Stessa regola di <see cref="AgreementsOf"/>,
-    /// due relazioni più in là.</summary>
+    /// <summary>Le clausole che riguardano la ACC: quelle di casa in un suo accordo e quelle che un suo accordo
+    /// <b>ospita</b>. Chi le vede le può scrivere — una clausola condivisa è di tutti gli accordi che la portano.</summary>
     private IQueryable<AgreementClause> ClausesOf(string accCode) =>
         _db.AgreementClauses.Where(x => x.Section!.Agreement!.OwnerAcc!.Code == accCode
                                         || x.Section!.Agreement!.SideASector!.Acc!.Code == accCode
-                                        || x.Section!.Agreement!.SideBSector!.Acc!.Code == accCode);
+                                        || x.Section!.Agreement!.SideBSector!.Acc!.Code == accCode
+                                        || x.Shares.Any(h => h.Section!.Agreement!.OwnerAcc!.Code == accCode
+                                                             || h.Section!.Agreement!.SideASector!.Acc!.Code == accCode
+                                                             || h.Section!.Agreement!.SideBSector!.Acc!.Code == accCode));
 
     private async Task<int> AccIdAsync(string accCode, CancellationToken ct) =>
         await _db.Accs.Where(a => a.Code == accCode).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct)
@@ -957,7 +1699,9 @@ public sealed class EfAgreementRepository : IAgreementRepository
 
     private static string? NullIfBlank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
-    private static AgreementRow Map(CoordinationAgreement a) => new()
+    /// <summary>L'accordo com'è letto: le sue sezioni, ognuna con le clausole di casa e — in coda — quelle che ospita.</summary>
+    private static AgreementRow Map(CoordinationAgreement a, ILookup<int, AgreementClauseShare> ospiti,
+        IReadOnlyDictionary<int, IReadOnlyList<AgreementShareRef>> presenze) => new()
     {
         Id = a.Id,
         OwnerAccCode = a.OwnerAcc?.Code ?? "",
@@ -965,24 +1709,48 @@ public sealed class EfAgreementRepository : IAgreementRepository
         SideB = new AgreementEndpoint(a.SideBSectorId, a.SideBSector?.Callsign ?? $"#{a.SideBSectorId}"),
         Note = a.Note,
         Order = a.Order,
-        Sections = AgreementSectionOrder.Sort(a.Sections.Select(MapSection)),
+        Sections = AgreementSectionOrder.Sort(a.Sections.Select(s => MapSection(s, ospiti[s.Id], presenze))),
     };
 
-    private static AgreementSectionRow MapSection(AgreementSection s) => new()
+    private static AgreementSectionRow MapSection(AgreementSection s, IEnumerable<AgreementClauseShare> ospiti,
+        IReadOnlyDictionary<int, IReadOnlyList<AgreementShareRef>> presenze)
     {
-        Id = s.Id,
-        Kind = s.Kind,
-        Direction = s.Direction,
-        Description = s.Description,
-        Order = s.Order,
-        Airports = s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportRow(x.Icao, x.Name, x.Order)).ToList(),
-        Clauses = s.Clauses.OrderBy(c => c.Order).ThenBy(c => c.Id).Select(MapClause).ToList(),
-    };
+        IReadOnlyList<AgreementShareRef> Altre(int clauseId) => presenze.TryGetValue(clauseId, out var tutte)
+            ? tutte.Where(x => x.SectionId != s.Id).ToList()
+            : Array.Empty<AgreementShareRef>();
 
-    private static AgreementClauseRow MapClause(AgreementClause c) => new()
+        var sue = s.Clauses.OrderBy(c => c.Order).ThenBy(c => c.Id)
+            .Select(c => MapClause(c, s.Id, c.Order, Altre(c.Id))).ToList();
+
+        // Le ospiti in coda, nell'ordine che hanno di casa. ⚠️ Il loro posto qui NON è il numero salvato: quello
+        // vale nella sezione di casa, e accanto a quelli di questa tabella le metterebbe in mezzo a caso.
+        var posto = s.Clauses.Count == 0 ? 0 : s.Clauses.Max(c => c.Order);
+        var ospitate = ospiti.Select(h => h.Clause!)
+            .OrderBy(c => c.SectionId).ThenBy(c => c.Order).ThenBy(c => c.Id).ToList()
+            .Select(c => MapClause(c, s.Id, ++posto, Altre(c.Id))).ToList();
+
+        return new AgreementSectionRow
+        {
+            Id = s.Id,
+            Kind = s.Kind,
+            Direction = s.Direction,
+            Description = s.Description,
+            Order = s.Order,
+            ClauseOrder = s.ClauseOrder,
+            Airports = s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportRow(x.Icao, x.Name, x.Order)).ToList(),
+            // A mano: le sue, poi le ospiti in coda. Con un ordine dichiarato ognuna va al suo posto, di casa o ospite.
+            Clauses = AgreementClauseOrdering.Sort(sue.Concat(ospitate).ToList(), s.ClauseOrder),
+        };
+    }
+
+    private static AgreementClauseRow MapClause(AgreementClause c, int sectionId, int order,
+        IReadOnlyList<AgreementShareRef> sharedWith) => new()
     {
         Id = c.Id,
-        SectionId = c.SectionId,
+        SectionId = sectionId,
+        HomeSectionId = c.SectionId == sectionId ? null : c.SectionId,
+        SharedWith = sharedWith,
+        StoredOrder = c.Order,
         Cops = c.Cops,
         LevelValue = c.LevelValue,
         LevelUnit = c.LevelUnit,
@@ -1008,6 +1776,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
         VariantGroup = c.VariantGroup,
         VariantDepth = c.VariantDepth,
         IsGroupWide = c.IsGroupWide,
-        Order = c.Order,
+        Order = order,
     };
 }

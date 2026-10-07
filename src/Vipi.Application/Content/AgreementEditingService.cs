@@ -84,6 +84,27 @@ public sealed class AgreementService : IAgreementService
         return ProceduraNeiPunti.NonTrovate(accordi, oggi, entrante, DateTime.UtcNow);
     }
 
+    /// <summary>
+    /// Volumi dei settori e posizioni dei punti per l'avviso «quota di un altro settore». Cambiano coi cataloghi
+    /// (una volta al giorno), l'editor ricarica a ogni scrittura: si tengono qualche minuto, e i poligoni si
+    /// leggono dal JSON una volta sola.
+    /// </summary>
+    private (DateTime Presa, IReadOnlyList<SectorVolumeRow> Settori, CopPositions Punti,
+        Dictionary<SectorVolumeRow, Vipi.Application.Stats.SectorVolume?> Volumi)? _geometria;
+
+    public async Task<IReadOnlyList<AgreementLevelWarning>> LevelWarningsAsync(IReadOnlyList<AgreementRow> accordi,
+        CancellationToken ct = default)
+    {
+        if (_volumi is null || _punti is null || accordi.Count == 0) return Array.Empty<AgreementLevelWarning>();
+
+        if (_geometria is not { } g || DateTime.UtcNow - g.Presa > TimeSpan.FromMinutes(5))
+            _geometria = g = (DateTime.UtcNow, await _volumi.GetAllAsync(ct), await _punti.GetAsync(ct),
+                new Dictionary<SectorVolumeRow, Vipi.Application.Stats.SectorVolume?>(ReferenceEqualityComparer.Instance));
+
+        var topo = await _topology.BuildGlobalAsync(ct);
+        return AgreementLevelCheck.Find(accordi, g.Settori, g.Punti, topo.Fallbacks, topo.ParentOf, g.Volumi);
+    }
+
     public async Task<IReadOnlyList<ResolvedTransferFlow>> ResolveForAccAsync(
         string accCode, IReadOnlySet<string> online, CancellationToken ct = default)
     {
@@ -95,44 +116,8 @@ public sealed class AgreementService : IAgreementService
             ? CoverageFallbackContext.Nessuno
             : CoverageFallbackContext.Da(topo, await _volumi.GetAllAsync(ct), online, await _punti.GetAsync(ct));
 
-        // Catena di candidati di un settore A UNA QUOTA: sé stesso, i ripieghi dichiarati che valgono lì, poi
-        // gli antenati di copertura (cross-ACC). ⚠️ La quota è quella del PUNTO, non del flusso: un flusso una
-        // quota non ce l'ha, e due punti dello stesso flusso possono ricadere su due settori diversi.
-        IReadOnlyList<string> Chain(string? callsign, int? quotaFt, Func<IReadOnlyList<string>>? rinvioQui = null) =>
-            string.IsNullOrWhiteSpace(callsign)
-                ? Array.Empty<string>()
-                : FallbackChain.Candidates(callsign, quotaFt, topo.Fallbacks, topo.ParentOf, rinvioQui);
-
-        return flows.Select(f =>
-        {
-            // Il proprietario del flusso non ha una quota da opporre: si risolve senza, cioè per soli padri.
-            var ownerHit = TransferOnlineResolver.FirstOnline(Chain(f.OwningSectorCallsign, null), online);
-            var points = f.Points.Select(p =>
-            {
-                // ⚠️ La quota è quella AL TRASFERIMENTO: su una riga che distingue i due eventi è la seconda a
-                // dire di chi è quel cielo.
-                var quota = FallbackChain.HandoffFeetOf(p);
-                CoverageFallbackResult? esito = null;
-                var (handler, isOnline) = TransferOnlineResolver.Resolve(
-                    Chain(p.NextSectorCallsign, quota, () =>
-                    {
-                        esito = rinvio.Risolvi(p.Cop, quota, f.OwningSectorCallsign, p.NextSectorCallsign);
-                        return esito.Value.AsCandidates();
-                    }), online);
-                return new ResolvedTransferPoint
-                {
-                    Point = p, ResolvedHandler = handler, IsOnline = isOnline, Coverage = esito,
-                };
-            }).ToList();
-
-            return new ResolvedTransferFlow
-            {
-                Flow = f,
-                ResolvedOwnerCallsign = ownerHit ?? f.OwningSectorCallsign,
-                OwnerOnline = ownerHit is not null,
-                Points = points,
-            };
-        }).ToList();
+        // La risoluzione è una funzione pura a parte: la stessa che usa chi PROVA un insieme di aperti.
+        return TransferResolution.Resolve(flows, topo, online, rinvio);
     }
 
     public Task<int?> FindByPairAsync(string accCode, int sectorX, int sectorY, CancellationToken ct = default) =>
@@ -178,6 +163,46 @@ public sealed class AgreementService : IAgreementService
     {
         await StrutturaAsync(ct);
         await _repo.DeleteSectionAsync(accCode, sectionId, ct);
+    }
+
+    public async Task<AgreementShareResult> ShareSectionAsync(string accCode, int sectionId, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.ShareSectionAsync(accCode, sectionId, senderSectorId, receiverSectorId, ct);
+    }
+
+    public async Task<AgreementShareResult> ShareAgreementAsync(string accCode, int agreementId, int insteadOfSectorId,
+        int withSectorId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.ShareAgreementAsync(accCode, agreementId, insteadOfSectorId, withSectorId, ct);
+    }
+
+    public async Task<AgreementShareResult> ShareClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int senderSectorId, int receiverSectorId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.ShareClausesAsync(accCode, clauseIds, senderSectorId, receiverSectorId, ct);
+    }
+
+    public async Task UndoShareAsync(string accCode, AgreementShareUndo undo, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        await _repo.UndoShareAsync(accCode, undo, ct);
+    }
+
+    public async Task<AgreementDetachResult> DetachClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int agreementId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.DetachClausesAsync(accCode, clauseIds, agreementId, ct);
+    }
+
+    public async Task UndoDetachAsync(string accCode, AgreementDetachUndo undo, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        await _repo.UndoDetachAsync(accCode, undo, ct);
     }
 
     public async Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, CancellationToken ct = default)
@@ -226,10 +251,10 @@ public sealed class AgreementService : IAgreementService
         await _repo.UpdateClauseAsync(accCode, clauseId, ProceduraNeiPunti.Normalizza(input), ct);
     }
 
-    public async Task DeleteClauseAsync(string accCode, int clauseId, CancellationToken ct = default)
+    public async Task DeleteClauseAsync(string accCode, int clauseId, int? agreementId = null, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        await _repo.DeleteClauseAsync(accCode, clauseId, ct);
+        await _repo.DeleteClauseAsync(accCode, clauseId, agreementId, ct);
     }
 
     public async Task MoveClauseAsync(string accCode, int clauseId, bool up, CancellationToken ct = default)
@@ -242,6 +267,26 @@ public sealed class AgreementService : IAgreementService
     {
         await StrutturaAsync(ct);
         await _repo.MoveClauseToAsync(accCode, clauseId, targetClauseId, ct);
+    }
+
+    public async Task<AgreementMoveResult> MoveSectionAsync(string accCode, int sectionId, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.MoveSectionAsync(accCode, sectionId, senderSectorId, receiverSectorId, ct);
+    }
+
+    public async Task<AgreementMoveResult> MoveClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int senderSectorId, int receiverSectorId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.MoveClausesAsync(accCode, clauseIds, senderSectorId, receiverSectorId, ct);
+    }
+
+    public async Task UndoMoveAsync(string accCode, AgreementMoveUndo undo, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        await _repo.UndoMoveAsync(accCode, undo, ct);
     }
 
     public async Task<int> AddAlternativeAsync(string accCode, int clauseId, CancellationToken ct = default)
@@ -290,10 +335,11 @@ public sealed class AgreementService : IAgreementService
         return await _repo.SetConditionAsync(accCode, clauseIds, areaLabel, areaNegated, areaAll, customLabel, ct);
     }
 
-    public async Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, CancellationToken ct = default)
+    public async Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, int? agreementId = null,
+        CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        return await _repo.DeleteClausesAsync(accCode, clauseIds, ct);
+        return await _repo.DeleteClausesAsync(accCode, clauseIds, agreementId, ct);
     }
 
     public async Task<int> RestoreAgreementAsync(string accCode, AgreementSnapshot snapshot, CancellationToken ct = default)
