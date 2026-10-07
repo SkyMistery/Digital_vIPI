@@ -68,4 +68,25 @@ public class ImportStateStoreTests : IAsyncLifetime
         Assert.Equal(default, row.LastSuccessUtc);     // nessun successo mai avvenuto
         Assert.Equal("mai riuscito", row.LastError);
     }
+
+    /// <summary>
+    /// 🔴 4 ottobre 2026: database nuovo e sorgente irraggiungibile. La riga creata dal primo fallimento ha
+    /// l'ultimo successo a <c>default(DateTime)</c>, e la lettura lo restituiva tale e quale: <c>0001-01-01</c>
+    /// al posto di «mai riuscito». Chi ci toglieva un margine lanciava (Struttura e Pendenti in 500, il giro
+    /// della deriva e lo storico ATC fermi a ogni ritentativo); chi chiedeva «è il primo giro?» si sentiva
+    /// rispondere di no.
+    /// </summary>
+    [Fact]
+    public async Task Failure_on_new_category_reads_as_never_succeeded()
+    {
+        await _store.MarkFailureAsync(ImportCategories.Acc, DateTime.UtcNow, "sorgente irraggiungibile");
+
+        Assert.Null(await _store.GetLastSuccessAsync(ImportCategories.Acc));
+        Assert.Null(await _store.GetPrevSuccessAsync(ImportCategories.Acc));
+
+        var riuscito = new DateTime(2026, 10, 4, 3, 0, 0, DateTimeKind.Utc);
+        await _store.MarkSuccessAsync(ImportCategories.Acc, riuscito);
+
+        Assert.Equal(riuscito, await _store.GetLastSuccessAsync(ImportCategories.Acc));
+    }
 }

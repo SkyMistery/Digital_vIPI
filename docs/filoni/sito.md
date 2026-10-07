@@ -2121,6 +2121,28 @@
     `Vipi.Application`, `Vipi.Infrastructure`. La suite ha fermato una colonna con default senza lunghezza su
     MySQL (`MySqlStringLengths`). App 3256 → 3263, Infra 2142 → 2150, Ui 1988 → 1991. A schermo su database
     inventato: i tre gesti, annulla compreso.
+- ✅ **S98** un import mai riuscito non è un giro dell'anno 1 (4-ott, il difetto trovato per strada in S97). Ramo
+  `fix/import-mai-riuscito`, costruito SOPRA `fix/copertura-unica` @ `cf603201` (stessi conteggi, stesso registro).
+  - **Difetto**: database nuovo e sorgente IVAO irraggiungibile → Struttura rispondeva 500
+    (`ArgumentOutOfRangeException` in `SogliaTimbro.Calcola`).
+  - **Causa**: il primo tentativo fallito crea la riga in `ImportStates` (`MarkFailureAsync`) con `LastSuccessUtc` a
+    `default(DateTime)` — la colonna non è nullable — e `EfImportStateStore.GetLastSuccessAsync` la restituiva tale e
+    quale: `0001-01-01` al posto di «mai riuscito». Chi ci toglie un margine lancia.
+  - **Non era solo Struttura** (letti tutti i chiamanti): Pendenti (`PendingOverviewService`, stessa sottrazione su
+    `AirportDirectory`); il giro della deriva (`ImpactDriftUseCase`, che di `SogliaTimbro` aveva una COPIA della
+    formula, e falliva ogni notte); lo storico ATC, che dopo un primo fallimento non ripartiva più
+    (`InizioFinestra` lanciava a ogni ritentativo, e `primoGiro` risultava falso). I cancelli «già fatto» delle
+    riconciliazioni non c'entrano: per quelle chiavi un fallimento non si registra mai.
+  - **Rimedio**: (1) alla sorgente, `GetLastSuccessAsync` dice `null` se la riga c'è ma nessun giro è riuscito — è il
+    contratto che l'interfaccia aveva già scritto; (2) rete in `SogliaTimbro.Calcola`: una data da cui il margine non
+    si toglie è «non lo sappiamo»; (3) la deriva usa `Calcola` invece della copia (tolto `MargineDelTimbro`).
+    **Codice comune** `Vipi.Application` (`Abstractions/IImportStateStore`, `Content/SogliaTimbro`,
+    `Content/ImpactDriftUseCase`) e `Vipi.Infrastructure` (`EfImportStateStore`). Niente migrazione, niente `deploy/`.
+  - **Test**: rossi sul codice di prima 2 (`SogliaTimbroTests`, puro, con la stessa eccezione dello stack;
+    `ImportStateStoreTests`, che leggeva `0001-01-01`). App 3241 → 3244, Infra 2102 → 2103, net8 e net10.
+  - **Prova**: host isolato su database nuovo con `Ivao__BaseUrl=http://127.0.0.1:9`: con `Acc` a `0001-01-01` e
+    `AirportSector` riuscito (lo stato del difetto) Struttura risponde 200 e il giro `ImpactDrift` riesce. Solo via
+    HTTP (il prerender, dove nasceva il 500), non in un browser; Pendenti non provata a schermo.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
