@@ -1395,3 +1395,16 @@ zero righe in sviluppo e nella copia di produzione del 1° ottobre, nessun edito
 di ripiego (`SectorFallbacks`, §9 della ricaduta verticale), che dal 4 ottobre leggono anche AoR e tabella delle
 configurazioni. ⚠️ È l'unica operazione di quella consegna che non si disfa: il `Down` ricrea la tabella vuota.
 
+### 9.36 `AgreementSections.ClauseOrder` — l'ordine dichiarato delle clausole (7 ott 2026) 🟢
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `ClauseOrder` | enum-stringa `AgreementClauseOrder`, NOT NULL, default `Manual` | `Manual` · `Points` (alfabetico per punto) · `Level` (per quota) |
+
+In che ordine la sezione **mostra** le clausole, le sue e quelle che ospita (§9.34). Lo applica la lettura
+(`AgreementClauseOrdering.Sort`, in `EfAgreementRepository.ListByAccAsync`): chi deriva — documenti, vista live,
+matcher — riceve le righe già in quell'ordine. ⚠️ `AgreementClauses.Order` **non si tocca**: resta l'ordine scritto a
+mano, quello che regge l'outline delle varianti; la riga in lettura lo porta in `StoredOrder`. Migrazione
+`OrdineDelleClausole`, additiva, sui due provider. Carta
+[`../feature/2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md) §11.
+

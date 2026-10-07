@@ -117,6 +117,39 @@ public sealed class ClausoleCondiviseNellaPaginaTests
     }
 
     [Fact]
+    public void Condividere_si_puo_anche_dalla_riga_e_per_l_accordo_intero()
+    {
+        // Il gesto sulla riga: il committente nella barra delle scelte non l'aveva trovato (7 ottobre 2026).
+        Assert.Contains("OnShare.InvokeAsync(r)", Tabella);
+        Assert.Contains("OnShare=\"OpenShareRow\"", Pagina);
+        Assert.Contains("Agreements.ShareClausesAsync(_acc!.Code, new[] { c.Id }, SectorIdOf(da), SectorIdOf(a))", Pagina);
+        Assert.Contains("Agreements.ShareAgreementAsync(_acc!.Code, ag.Id,", Pagina);
+        // Dell'accordo si cambia UN ente: con due, o nessuno, non è «lo stesso accordo con un altro».
+        Assert.Contains("if (cambiaA == cambiaB)", Corpo(Pagina, "private async Task ShareAgreement(AgreementRow ag)"));
+    }
+
+    [Fact]
+    public void Chi_riscrive_una_sezione_ne_riporta_l_ordine_delle_clausole()
+    {
+        // UpdateSectionAsync riscrive la sezione intera: omesso, l'ordine tornerebbe «a mano» girando il verso,
+        // togliendo un aeroporto o salvando il form — senza che nessuno l'abbia chiesto.
+        var chiamate = Regex.Matches(Pagina, @"Agreements\.UpdateSectionAsync\(_acc!\.Code, sec\.Id, new AgreementSectionInput\s*\{(?<corpo>[^}]*)\}");
+
+        Assert.Equal(3, chiamate.Count);
+        Assert.All(chiamate, c => Assert.Contains("ClauseOrder = ", c.Groups["corpo"].Value));
+        Assert.Contains("ClauseOrder = f.ClauseOrder,", Corpo(Pagina, "private static AgreementSectionInput ToSectionInput(SectionForm f)", finoA: ';'));
+        Assert.Contains("ClauseOrder = s.ClauseOrder;", Corpo(Pagina, "public void LoadFrom(AgreementSectionRow s)"));
+    }
+
+    [Fact]
+    public void Con_un_ordine_dichiarato_non_si_riordina_a_mano_e_la_fotografia_porta_il_posto_salvato()
+    {
+        Assert.Contains("canDrag: _sort == RowSort.Manual && sec.ClauseOrder == AgreementClauseOrder.Manual", Pagina);
+        Assert.Equal(2, Regex.Matches(Pagina, @"sec\.ClauseOrder != AgreementClauseOrder\.Manual\)"" title=""@L\[""Xfer_Move(Up|Down)""\]").Count);
+        Assert.Contains("c.StoredOrder ?? c.Order", Corpo(Pagina, "private static AgreementClauseSnapshot SnapshotOf(AgreementClauseRow c)", finoA: ';'));
+    }
+
+    [Fact]
     public void Niente_annulla_se_le_clausole_comparivano_gia_la()
     {
         var corpo = Corpo(Pagina, "private void DopoLaCondivisione(");

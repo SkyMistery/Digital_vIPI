@@ -100,6 +100,10 @@ public class AgreementSection
 
     public int Order { get; set; }
 
+    /// <summary>In che ordine la sezione mostra le clausole — le sue e quelle che ospita. <c>Manual</c> = quello
+    /// scritto (<see cref="AgreementClause.Order"/>, con le ospiti in coda).</summary>
+    public AgreementClauseOrder ClauseOrder { get; set; }
+
     public ICollection<AgreementAirport> Airports { get; set; } = new List<AgreementAirport>();
     public ICollection<AgreementClause> Clauses { get; set; } = new List<AgreementClause>();
 

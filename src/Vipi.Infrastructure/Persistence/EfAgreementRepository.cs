@@ -233,6 +233,49 @@ public sealed class EfAgreementRepository : IAgreementRepository
         return await ShareClausesAsync(accCode, ids, senderSectorId, receiverSectorId, ct);
     }
 
+    public async Task<AgreementShareResult> ShareAgreementAsync(string accCode, int agreementId, int insteadOfSectorId,
+        int withSectorId, CancellationToken ct = default)
+    {
+        var a = await AgreementsOf(accCode).Include(x => x.Sections).FirstOrDefaultAsync(x => x.Id == agreementId, ct)
+                ?? throw new InvalidOperationException(Lingua($"Accordo {agreementId} non riguarda la ACC {accCode}.", $"Agreement {agreementId} does not belong to ACC {accCode}."));
+        if (insteadOfSectorId != a.SideASectorId && insteadOfSectorId != a.SideBSectorId)
+            throw new ValidationException(Lingua(
+                "L'ente da sostituire non è uno dei due dell'accordo.",
+                "The unit to replace is not one of the two of the agreement."));
+        if (withSectorId == a.SideASectorId || withSectorId == a.SideBSectorId)
+            throw new ValidationException(Lingua(
+                "Indica un ente diverso dai due dell'accordo: è con un'altra coppia che si condivide.",
+                "Pick a unit other than the two of the agreement: sharing is with another pair."));
+
+        // Chi cede resta chi cede, in ogni sezione: cambia solo l'ente sostituito, dovunque stia.
+        int Li(int ente) => ente == insteadOfSectorId ? withSectorId : ente;
+
+        var aggiunte = new List<AgreementClausePresence>();
+        var sezioniCreate = new List<int>();
+        int? accordoNato = null, primaSezione = null, arrivo = null;
+        foreach (var s in a.Sections.OrderBy(x => x.Order).ThenBy(x => x.Id).ToList())
+        {
+            // Una sezione vuota non ha niente da condividere, e non è un errore dell'accordo intero.
+            if (!await _db.AgreementClauses.AnyAsync(c => c.SectionId == s.Id || c.Shares.Any(h => h.SectionId == s.Id), ct))
+                continue;
+
+            var (cede, riceve) = s.Direction == AgreementDirection.AtoB
+                ? (a.SideASectorId, a.SideBSectorId)
+                : (a.SideBSectorId, a.SideASectorId);
+            var r = await ShareSectionAsync(accCode, s.Id, Li(cede), Li(riceve), ct);
+            arrivo = r.AgreementId;
+            aggiunte.AddRange(r.Undo.Added);
+            sezioniCreate.AddRange(r.Undo.CreatedSectionIds);
+            accordoNato ??= r.Undo.CreatedAgreementId;
+            primaSezione ??= r.SectionId;
+        }
+
+        if (arrivo is not int accordo)
+            throw new ValidationException(Lingua("Non c'è niente da condividere.", "There is nothing to share."));
+        return new AgreementShareResult(accordo, primaSezione, aggiunte.Count, accordoNato is not null,
+            new AgreementShareUndo(aggiunte, sezioniCreate, accordoNato));
+    }
+
     public async Task<AgreementShareResult> ShareClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
         int senderSectorId, int receiverSectorId, CancellationToken ct = default)
     {
@@ -511,6 +554,8 @@ public sealed class EfAgreementRepository : IAgreementRepository
         {
             AgreementId = arrivo.Id, Kind = origine.Kind, Direction = verso,
             Description = conLaProsa ? origine.Description : null,
+            // La stessa tabella vista dall'altra coppia si legge nello stesso ordine.
+            ClauseOrder = conLaProsa ? origine.ClauseOrder : AgreementClauseOrder.Manual,
             Order = (await _db.AgreementSections.Where(s => s.AgreementId == arrivo.Id)
                 .MaxAsync(s => (int?)s.Order, ct) ?? 0) + 1,
             Airports = origine.Airports.OrderBy(a => a.Order)
@@ -548,6 +593,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
             Kind = src.Kind,
             Direction = reverse,
             Description = src.Description,
+            ClauseOrder = src.ClauseOrder,
             Order = order,
         };
         var airportOrder = 0;
@@ -654,6 +700,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         s.Kind = i.Kind;
         s.Direction = i.Direction;
         s.Description = NullIfBlank(i.Description);
+        s.ClauseOrder = i.ClauseOrder;
 
         _db.AgreementAirports.RemoveRange(s.Airports);
         s.Airports.Clear();
@@ -1178,6 +1225,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
             Kind = s.Data.Kind,
             Direction = s.Data.Direction,
             Description = NullIfBlank(s.Data.Description),
+            ClauseOrder = s.Data.ClauseOrder,
             Order = s.Order,
         };
         var order = 0;
@@ -1688,8 +1736,10 @@ public sealed class EfAgreementRepository : IAgreementRepository
             Direction = s.Direction,
             Description = s.Description,
             Order = s.Order,
+            ClauseOrder = s.ClauseOrder,
             Airports = s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportRow(x.Icao, x.Name, x.Order)).ToList(),
-            Clauses = sue.Concat(ospitate).ToList(),
+            // A mano: le sue, poi le ospiti in coda. Con un ordine dichiarato ognuna va al suo posto, di casa o ospite.
+            Clauses = AgreementClauseOrdering.Sort(sue.Concat(ospitate).ToList(), s.ClauseOrder),
         };
     }
 
@@ -1700,6 +1750,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         SectionId = sectionId,
         HomeSectionId = c.SectionId == sectionId ? null : c.SectionId,
         SharedWith = sharedWith,
+        StoredOrder = c.Order,
         Cops = c.Cops,
         LevelValue = c.LevelValue,
         LevelUnit = c.LevelUnit,

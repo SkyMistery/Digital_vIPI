@@ -174,6 +174,13 @@
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddExceptionTitle"]" @onclick="() => OnAddException.InvokeAsync(c.Id)">↳</button>
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_DuplicateRow"]"
                             aria-label="@L["Xfer_DuplicateRow"]" @onclick="() => OnDuplicate.InvokeAsync(c.Id)">⧉</button>
+                    @* Condividi QUESTA clausola con un altro accordo: il gesto sta sulla riga, dove lo si cerca
+                       (committente, 7 ottobre 2026 — nella barra delle scelte non l'aveva trovato). *@
+                    @if (OnShare.HasDelegate)
+                    {
+                        <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_ShareRowTitle"]"
+                                aria-label="@L["Xfer_ShareRowTitle"]" @onclick="() => OnShare.InvokeAsync(r)">⛓</button>
+                    }
                     <button class="btn @(sel ? "primary" : "ghost")" disabled="@Disabled" title="@L["Xfer_EditRowTitle"]" @onclick="() => OnEdit.InvokeAsync(r)">✎</button>
                     @* ⚠️ L'eliminazione era SOLO nel pannello: per togliere una riga bisognava aprirla,
                        premere un tasto e richiudere. Chiesta sulla riga dal committente (9 settembre 2026),
@@ -248,6 +255,9 @@
     /// <summary>«Copia questa riga qui sotto». ⚠️ La RIGA, non il suo gruppo di varianti: quello è il ⧉ del
     /// pannello, e i due gesti si somigliano abbastanza da meritare due titoli che li distinguano.</summary>
     [Parameter] public EventCallback<int> OnDuplicate { get; set; }
+
+    /// <summary>«Condividi questa clausola con…»: la riga intera, perché la pagina deve sapere in quale sezione sta.</summary>
+    [Parameter] public EventCallback<XferTableRow> OnShare { get; set; }
 
     /// <summary>
     /// «Elimina questa riga e ciò che pende da lei». Non impostato = il tasto non c'è: la tabella si usa

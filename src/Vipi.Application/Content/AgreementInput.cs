@@ -46,6 +46,10 @@ public sealed record AgreementSectionInput
     /// <summary>Gli aeroporti della sezione, nell'ordine voluto. Obbligatori per arrivi e partenze, vietati sui
     /// sorvoli, facoltativi su VFR/Altro.</summary>
     public IReadOnlyList<AgreementAirportInput> Airports { get; init; } = Array.Empty<AgreementAirportInput>();
+
+    /// <summary>In che ordine la sezione mostra le clausole. ⚠️ Chi riscrive una sezione che esiste lo deve
+    /// riportare: omesso vale «a mano», e la tabella tornerebbe all'ordine scritto senza che nessuno l'abbia chiesto.</summary>
+    public AgreementClauseOrder ClauseOrder { get; init; } = AgreementClauseOrder.Manual;
 }
 
 /// <summary>Un aeroporto della sezione. <paramref name="Name"/> serve solo agli scali fuori catalogo: per gli

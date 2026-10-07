@@ -387,3 +387,72 @@ già la sua tabella di sorvoli):
 Zero errori in console, zero risposte ≥ 400. ⚠️ **Non aperto a schermo** il documento reso con clausole condivise:
 che arrivino a chi legge lo provano i test del repository e i punti derivati sulla copia.
 
+## 11. Il tasto dove lo si cerca, l'accordo intero, e l'ordine — 7 ottobre 2026, secondo giro
+
+Il committente, provando il §10: «non avevamo detto che doveva essere condivisibile anche la singola clausola
+oltre che l'intero agreement? Inoltre non avevamo detto di poter mettere diversi modi di ordinarli? Tipo quello
+alfabetico?».
+
+**La clausola singola si condivideva già, ma non si trovava.** Il gesto stava solo nella barra delle clausole
+scelte: bisognava spuntare la riga e cercare «⛓ Condividi…» in cima alla pagina. Sulla riga c'erano ⑂ ↳ ⧉ ✎ ✕, e
+⛓ no. Una funzione che chi l'ha chiesta non trova è una funzione che non c'è.
+
+| Dove | Che cosa condivide |
+|---|---|
+| **⛓ sulla riga** (nuovo) | quella clausola (col suo gruppo). Il form si apre sotto la testata della sua sezione; in elenco, dove le sezioni non ci sono, sceglie la clausola e apre il form della barra |
+| ⛓ sulla testata della sezione | tutte le clausole che la sezione mostra |
+| **⛓ Condividi… sulla testata dell'accordo** (nuovo) | tutte le sezioni: `ShareAgreementAsync(accordo, al posto di, con)`. Si cambia **uno** dei due enti; ogni sezione va nella sezione uguale dell'altro accordo, e chi cede resta chi cede in ognuna. Un esito e un annulla solo |
+| ⛓ Condividi… nella barra | le clausole spuntate |
+
+**L'ordine.** Nel §10 le ospiti stavano in coda, e lo si era scritto come limite accettato. Non lo era. Un ordine
+per presenza (ogni ospite col suo posto nella tabella che la ospita) avrebbe voluto ogni operazione dell'outline —
+sposta, annida, sciogli — consapevole delle presenze. Il committente ha indicato la strada più corta: un ordine
+**dichiarato**.
+
+- `AgreementSection.ClauseOrder`: `Manual` · `Points` (alfabetico per punto) · `Level` (per quota). Si sceglie col
+  selettore ⇅ sulla testata della sezione, ed è **salvato**: vale nella pagina, nei documenti e nella vista live.
+- Lo applica la lettura, in un posto (`AgreementClauseOrdering.Sort`): con un ordine dichiarato le clausole di casa
+  e le ospiti si ordinano insieme, e ognuna va al suo posto.
+- **Un gruppo di varianti si muove intero**, e dentro resta com'era: lì l'ordine è la struttura.
+- **L'ordine scritto a mano non si perde**: `AgreementClause.Order` non si tocca, e tornando a `Manual` si ritrova.
+  La riga in lettura porta il posto a schermo (`Order`) e quello salvato (`StoredOrder`); la fotografia per
+  l'annulla usa il secondo.
+- Con un ordine dichiarato il trascinamento e ↑↓ sono spenti: scriverebbero un ordine che non si vede.
+- La sezione che nasce per ospitare prende l'ordine di quella di casa.
+- ⚠️ `UpdateSectionAsync` riscrive la sezione intera: ogni chiamata della pagina che ne parte da una riga riporta
+  `ClauseOrder`, o girando il verso la tabella tornerebbe «a mano» (presidiato sul sorgente).
+- ⚠️ Non è «Ordina per» in cima alla pagina, che c'era già: quello cambia solo come si guarda.
+
+Migrazione `OrdineDelleClausole`, additiva (una colonna, default `Manual`), sui due provider.
+
+### Com'è andata
+
+Test: `AgreementClauseOrderingTests` (7, puri), sei casi in più in `AgreementShareTests` (l'ospite al suo posto e
+così anche nelle righe piatte che leggono i documenti; tornando a mano l'ordine scritto si ritrova; l'annulla in
+una sezione ordinata rimette il posto salvato; la sezione nata per ospitare prende l'ordine; l'accordo intero coi
+due versi, e i suoi rifiuti), tre presìdi sul sorgente della pagina.
+
+Mutazioni: il posto non si riscrive, il gruppo non si muove intero, la quota confrontata come numero e non in
+piedi, l'ordine che non si salva, l'ordine dichiarato che sovrascrive il posto salvato, la sezione nata che non
+prende l'ordine, l'accordo intero che non sostituisce l'ente — tutte rosse. ⚠️ «Il gruppo non si muove intero» al
+primo giro era verde: in ordine alfabetico le righe di un gruppo hanno gli stessi punti e restano vicine anche
+ordinate una per una. Lo vede solo l'ordine per quota, e il caso è stato aggiunto.
+
+🔴 **Trovato dalla suite, non da me**: `ClauseOrder` è un enum-stringa con un default, e su MySQL una colonna
+`longtext` non può averne uno. Il presidio `IndexedStringLengthTests` l'ha fermato; la lunghezza ora è dichiarata
+in `MySqlStringLengths`.
+
+**A schermo**, sul database inventato:
+
+| Gesto | Esito a schermo |
+|---|---|
+| ⛓ sulla riga di `BASSO`, chi cede → `LIMM_WS2_CTR` | il form si apre sotto la testata della sezione («The clause «BASSO» …»); «Clause shared with the agreement LIMM_WS2_CTR → LIPP_CE1_CTR. Into the section that was already there: no new one was created.» |
+| nell'altro accordo, ⇅ → «alphabetical (point)» | da `SUOVE`, `BASSO ⛓` a `BASSO ⛓`, `SUOVE`; «Table order saved.»; le righe non si trascinano più |
+| ⇄ due volte | l'ordine resta «alphabetical» |
+| ⇅ → «by hand» | di nuovo `SUOVE`, `BASSO ⛓` |
+| ⛓ Share… sull'accordo, senza cambiare niente | «Change only one of the two units: the other stays the one of the agreement.» |
+| ⛓ Share… sull'accordo, `LIMM_WS5_CTR` al posto di `LIMM_ES2_CTR` | «3 clauses shared with the agreement LIMM_WS5_CTR ⇄ LIPP_CE1_CTR. The agreement did not exist and has been created.»; nel nuovo accordo le tre clausole, tutte ⛓ |
+| Annulla | «Sharing undone.», gli accordi tornano due |
+
+Zero errori in console, zero risposte ≥ 400.
+

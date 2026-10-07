@@ -21,6 +21,10 @@ public sealed record AgreementSectionRow
 
     public required int Order { get; init; }
 
+    /// <summary>In che ordine stanno le <see cref="Clauses"/>: quello scritto a mano, o uno dichiarato
+    /// (<see cref="AgreementClauseOrdering"/>). Le righe arrivano <b>già</b> in quell'ordine.</summary>
+    public AgreementClauseOrder ClauseOrder { get; init; }
+
     public required IReadOnlyList<AgreementAirportRow> Airports { get; init; }
     public required IReadOnlyList<AgreementClauseRow> Clauses { get; init; }
 

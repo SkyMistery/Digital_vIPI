@@ -172,6 +172,13 @@ public sealed class AgreementService : IAgreementService
         return await _repo.ShareSectionAsync(accCode, sectionId, senderSectorId, receiverSectorId, ct);
     }
 
+    public async Task<AgreementShareResult> ShareAgreementAsync(string accCode, int agreementId, int insteadOfSectorId,
+        int withSectorId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.ShareAgreementAsync(accCode, agreementId, insteadOfSectorId, withSectorId, ct);
+    }
+
     public async Task<AgreementShareResult> ShareClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
         int senderSectorId, int receiverSectorId, CancellationToken ct = default)
     {

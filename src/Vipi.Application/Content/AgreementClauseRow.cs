@@ -73,6 +73,11 @@ public sealed record AgreementClauseRow : IOutlineRow
     /// per loro non è il numero salvato.</summary>
     public required int Order { get; init; }
 
+    /// <summary>Il posto <b>salvato</b> nella sezione di casa: quello che regge l'outline delle varianti e che un
+    /// annulla deve rimettere. Coincide con <see cref="Order"/> solo per una clausola di casa in una sezione
+    /// ordinata a mano. Null = la riga non viene dall'archivio.</summary>
+    public int? StoredOrder { get; init; }
+
     // ---- come si legge -------------------------------------------------------------------------------
     // Le stesse proprietà calcolate di TransferPointRow, e per la stessa ragione: tabella, frase e vista live
     // confrontano questi testi a occhio, quindi la formattazione vive in un posto solo (LevelFormatting).

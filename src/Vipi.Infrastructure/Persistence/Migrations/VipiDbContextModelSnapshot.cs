@@ -378,6 +378,12 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("AgreementId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ClauseOrder")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Manual");
+
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 

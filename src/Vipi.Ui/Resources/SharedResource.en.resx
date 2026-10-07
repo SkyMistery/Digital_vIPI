@@ -4131,4 +4131,15 @@
   <data name="Xfer_GapLevel" xml:space="preserve"><value>level of another sector</value></data>
   <data name="Xfer_GapLevelDetail" xml:space="preserve"><value>There, at that level, the sky belongs to {0} when it is open; the clause is written for {1}: {2}.</value></data>
   <data name="Xfer_GapLevelMoveTitle" xml:space="preserve"><value>Select these clauses and open «Move» with {0} in place of the written unit</value></data>
+  <data name="Xfer_ClauseOrderTitle" xml:space="preserve"><value>Order of the clauses of this table: it applies here, in the documents and in the live view. With a declared order the shared clauses go to their place instead of the end</value></data>
+  <data name="Xfer_ClauseOrderManual" xml:space="preserve"><value>by hand</value></data>
+  <data name="Xfer_ClauseOrderPoints" xml:space="preserve"><value>alphabetical (point)</value></data>
+  <data name="Xfer_ClauseOrderLevel" xml:space="preserve"><value>by level</value></data>
+  <data name="Xfer_ClauseOrderSaved" xml:space="preserve"><value>Table order saved.</value></data>
+  <data name="Xfer_ShareRowTitle" xml:space="preserve"><value>Share this clause with the agreement of another pair of units</value></data>
+  <data name="Xfer_ShareRowIntro" xml:space="preserve"><value>The clause «{0}» — with its variant group, if it has one — will also appear in the agreement between these two units, in the section with the same traffic and the same airports. Agreement and section are created only if missing. Usually only one unit changes.</value></data>
+  <data name="Xfer_ShareAgreement" xml:space="preserve"><value>Share…</value></data>
+  <data name="Xfer_ShareAgreementTitle" xml:space="preserve"><value>Share ALL the clauses of the agreement with that of another pair: one of the two units changes</value></data>
+  <data name="Xfer_ShareAgreementIntro" xml:space="preserve"><value>The {0} clauses of all the sections will also appear in the agreement with another unit. Below are the two units of the agreement: change ONE, the other stays. Each section goes into the matching section of the other agreement, created only if missing.</value></data>
+  <data name="Xfer_ShareAgreementOneSide" xml:space="preserve"><value>Change only one of the two units: the other stays the one of the agreement.</value></data>
 </root>

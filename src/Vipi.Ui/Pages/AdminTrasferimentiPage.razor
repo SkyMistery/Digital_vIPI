@@ -698,6 +698,10 @@
         public AgreementDirection Direction { get; set; } = AgreementDirection.AtoB;
         public string Description { get; set; } = "";
 
+        /// <summary>L'ordine delle clausole non si sceglie nel form (sta sulla testata della sezione), ma il form
+        /// RISCRIVE la sezione: lo porta con sé, o salvando tornerebbe «a mano».</summary>
+        public AgreementClauseOrder ClauseOrder { get; set; }
+
         /// <summary>Gli aeroporti (ICAO → nome libero per quelli fuori catalogo).</summary>
         public List<AgreementAirportInput> Airports { get; } = new();
         public string AirportText { get; set; } = "";
@@ -709,6 +713,7 @@
         public void Reset()
         {
             Kind = TransferFlowKind.Arrival; Direction = AgreementDirection.AtoB; Description = "";
+            ClauseOrder = AgreementClauseOrder.Manual;
             Airports.Clear(); AirportText = ""; AirportName = "";
         }
 
@@ -716,6 +721,7 @@
         {
             Reset();
             Kind = s.Kind; Direction = s.Direction; Description = s.Description ?? "";
+            ClauseOrder = s.ClauseOrder;
             Airports.AddRange(s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportInput(x.Icao, x.Name)));
         }
     }
@@ -1639,12 +1645,25 @@
             <button class="btn ghost" title="@L["Xfer_ExpandSections"]" @onclick="() => ExpandAllSections(ag)">⊞</button>
             <button class="btn ghost" title="@L["Xfer_CollapseSections"]" @onclick="() => CollapseAllSections(ag)">⊟</button>
             <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenNewSection(ag)">+ @L["Xfer_Section"]</button>
+            @* Tutto l'accordo, con un'altra coppia: «vale uguale verso SU e verso MIL» in un gesto solo. *@
+            <button class="btn @(_shareAgreementId == ag.Id ? "primary" : "ghost")" disabled="@(_busy || !_canEdit)"
+                    title="@L["Xfer_ShareAgreementTitle"]" @onclick="() => OpenShareAgreement(ag)">⛓ @L["Xfer_ShareAgreement"]</button>
             <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => OpenEditHeader(ag)">✎ @L["Xfer_AgreementEdit"]</button>
             <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_DeleteGroupAria"]" Disabled="@(_busy || !_canEdit)"
                            Prompt="@(string.Format(L["Xfer_DeleteAgreementPrompt"].Value, ag.Sections.Sum(x => x.Clauses.Count)))" OnConfirm="() => DeleteAgreement(ag)"><Trigger><Icon Name="x" /> @L["Xfer_AgreementDelete"]</Trigger></InlineConfirm>
         </div>
 
         <div class="xt-pane-body">
+            @if (_shareAgreementId == ag.Id)
+            {
+                <div class="xt-subform">
+                    @MoveFields(string.Format(L["Xfer_ShareAgreementIntro"].Value, ag.Sections.Sum(x => x.Clauses.Count)))
+                    <div class="xt-foot">
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || !_moveForm.Ready)" @onclick="() => ShareAgreement(ag)">⛓ @L["Xfer_Share"]</button>
+                        <button class="btn ghost" disabled="@_busy" @onclick="() => _shareAgreementId = null">@L["Common_Cancel"]</button>
+                    </div>
+                </div>
+            }
             @if (_editHeaderId == ag.Id)
             {
                 <div class="xt-subform">
@@ -1742,6 +1761,15 @@
 
                 <span class="muted xt-hint">@XferLabels.Clauses(L, rows.Count)</span>
                 <span class="ln xt-grow"></span>
+                @* L'ordine di QUESTA tabella, salvato: vale qui, nei documenti e nella vista live. Con un ordine
+                   dichiarato le clausole ospiti vanno al loro posto invece che in coda. ⚠️ Non è «Ordina per» in
+                   cima alla pagina: quello cambia solo come si guarda. *@
+                <select class="xt-ordsel" disabled="@(_busy || !_canEdit)" title="@L["Xfer_ClauseOrderTitle"]"
+                        aria-label="@L["Xfer_ClauseOrderTitle"]" @onchange="e => SetClauseOrder(sec, e)">
+                    <option value="@AgreementClauseOrder.Manual" selected="@(sec.ClauseOrder == AgreementClauseOrder.Manual)">⇅ @L["Xfer_ClauseOrderManual"]</option>
+                    <option value="@AgreementClauseOrder.Points" selected="@(sec.ClauseOrder == AgreementClauseOrder.Points)">⇅ @L["Xfer_ClauseOrderPoints"]</option>
+                    <option value="@AgreementClauseOrder.Level" selected="@(sec.ClauseOrder == AgreementClauseOrder.Level)">⇅ @L["Xfer_ClauseOrderLevel"]</option>
+                </select>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)"
                         @onclick="() => OpenAddClause(ag, sec)">+ @L["Xfer_AddClause"]</button>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_PasteTitle"]"
@@ -1797,6 +1825,17 @@
                     <div class="xt-foot">
                         <button class="btn primary" disabled="@(_busy || !_canEdit || !_moveForm.Ready)" @onclick="() => ShareSection(sec)">⛓ @L["Xfer_Share"]</button>
                         <button class="btn ghost" disabled="@_busy" @onclick="() => _shareSectionId = null">@L["Common_Cancel"]</button>
+                    </div>
+                </div>
+            }
+
+            @if (_shareRow is { } riga && riga.Section == sec.Id && sec.Clauses.FirstOrDefault(x => x.Id == riga.Clause) is { } daCondividere)
+            {
+                <div class="xt-subform">
+                    @MoveFields(string.Format(L["Xfer_ShareRowIntro"].Value, daCondividere.Cops))
+                    <div class="xt-foot">
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || !_moveForm.Ready)" @onclick="() => ShareRow(daCondividere)">⛓ @L["Xfer_Share"]</button>
+                        <button class="btn ghost" disabled="@_busy" @onclick="() => _shareRow = null">@L["Common_Cancel"]</button>
                     </div>
                 </div>
             }
@@ -1881,7 +1920,7 @@
                     @* Il trascinamento vale solo con l'ordinamento manuale: riordinare una vista ordinata per
                        punto scriverebbe un ordine che non è quello che si vede. Fra sezioni diverse il
                        repository lo rifiuta già, e i blocchi sono tabelle separate: il gesto non li attraversa. *@
-                    @RowsTable(rows, showContext: false, canDrag: _sort == RowSort.Manual)
+                    @RowsTable(rows, showContext: false, canDrag: _sort == RowSort.Manual && sec.ClauseOrder == AgreementClauseOrder.Manual)
                 }
 
                 @if (_pasteSectionId == sec.Id) { @PasteForm(ag, sec) }
@@ -2045,6 +2084,7 @@
             Direction = sec.Direction,
             Description = sec.Description,
             Airports = airports,
+            ClauseOrder = sec.ClauseOrder,
         }), null);
         await InFilaAsync(() => LoadRunwaysAsync(FocusSection()?.Section));
     }
@@ -2059,7 +2099,23 @@
             Description = sec.Description,
             Airports = sec.Airports.OrderBy(x => x.Order)
                 .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
+            ClauseOrder = sec.ClauseOrder,
         }), null);
+
+    /// <summary>Cambia l'ordine in cui la sezione mostra le clausole. Passa dalla stessa porta del form, col resto
+    /// della sezione com'è.</summary>
+    private Task SetClauseOrder(AgreementSectionRow sec, ChangeEventArgs e) =>
+        Enum.TryParse<AgreementClauseOrder>(e.Value?.ToString(), out var ordine) && ordine != sec.ClauseOrder
+            ? Guarded(() => Agreements.UpdateSectionAsync(_acc!.Code, sec.Id, new AgreementSectionInput
+            {
+                Kind = sec.Kind,
+                Direction = sec.Direction,
+                Description = sec.Description,
+                Airports = sec.Airports.OrderBy(x => x.Order)
+                    .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
+                ClauseOrder = ordine,
+            }), L["Xfer_ClauseOrderSaved"].Value)
+            : Task.CompletedTask;
 
     /// <summary>La sezione gemella: stesso traffico, stesso verso, stessi scali. Null se non ce n'è.</summary>
     private static AgreementSectionRow? TwinOf(AgreementRow a, AgreementSectionRow s) =>
@@ -2072,6 +2128,8 @@
 
     private int? _shareSectionId;     // la sezione di cui è aperto il form «condividi con…»
     private bool _shareBulkOpen;      // il form «condividi» della barra delle clausole scelte
+    private (int Section, int Clause)? _shareRow;   // la riga di cui è aperto il form «condividi questa clausola»
+    private int? _shareAgreementId;   // l'accordo di cui è aperto il form «condividi tutto»
 
     /// <summary>Gli accordi nell'ordine in cui cercare «a quale appartiene questo id»: prima quello aperto.
     /// <para>⚠️ Una clausola condivisa sta in più accordi con lo stesso id: chi la cerca fra tutti senza partire da
@@ -2126,16 +2184,80 @@
     {
         ClosePanel();
         _editHeaderId = null; _newSectionFor = null; _editSectionId = null; _moveBulkOpen = false; _moveSectionId = null;
-        _shareBulkOpen = false;
+        _shareBulkOpen = false; _shareRow = null; _shareAgreementId = null;
         _moveForm.Load(ag.Sender(sec.Direction).Callsign, ag.Receiver(sec.Direction).Callsign);
         _shareSectionId = _shareSectionId == sec.Id ? null : sec.Id;
+    }
+
+    /// <summary>Il ⛓ sulla riga. Nella vista ad accordo apre il form sotto la testata della sua sezione; in
+    /// elenco le sezioni non ci sono, e allora sceglie la clausola e apre il form della barra.</summary>
+    private void OpenShareRow(XferTableRow r)
+    {
+        ClosePanel();
+        _editHeaderId = null; _newSectionFor = null; _editSectionId = null; _moveBulkOpen = false; _moveSectionId = null;
+        _shareSectionId = null; _shareAgreementId = null;
+        if (_view == XferView.Flat)
+        {
+            _shareRow = null;
+            _selected.Clear(); _selected.Add(r.Clause.Id);
+            RicalcolaPuntiSelezionati();
+            _risalita = null;
+            _shareBulkOpen = true;
+            _moveForm.Load(r.Agreement.Sender(r.Section.Direction).Callsign, r.Agreement.Receiver(r.Section.Direction).Callsign);
+            return;
+        }
+
+        _shareBulkOpen = false;
+        _moveForm.Load(r.Agreement.Sender(r.Section.Direction).Callsign, r.Agreement.Receiver(r.Section.Direction).Callsign);
+        _shareRow = _shareRow == (r.Section.Id, r.Clause.Id) ? null : (r.Section.Id, r.Clause.Id);
+        _collapsedSections.Remove(r.Section.Id);
+    }
+
+    private async Task ShareRow(AgreementClauseRow c)
+    {
+        var (da, a) = (_moveForm.From, _moveForm.To);
+        AgreementShareResult? esito = null;
+        if (!await Guarded(async () =>
+            {
+                esito = await Agreements.ShareClausesAsync(_acc!.Code, new[] { c.Id }, SectorIdOf(da), SectorIdOf(a));
+                _shareRow = null;
+            }, null)) return;
+        DopoLaCondivisione(esito, $"{da} → {a}");
+    }
+
+    private void OpenShareAgreement(AgreementRow ag)
+    {
+        ClosePanel();
+        _editHeaderId = null; _newSectionFor = null; _editSectionId = null; _moveBulkOpen = false; _moveSectionId = null;
+        _shareSectionId = null; _shareBulkOpen = false; _shareRow = null;
+        // I due campi qui sono i due capi dell'accordo, nell'ordine in cui sono scritti: se ne cambia UNO.
+        _moveForm.Load(ag.SideA.Callsign, ag.SideB.Callsign);
+        _shareAgreementId = _shareAgreementId == ag.Id ? null : ag.Id;
+    }
+
+    private async Task ShareAgreement(AgreementRow ag)
+    {
+        var (uno, due) = (_moveForm.From, _moveForm.To);
+        var cambiaA = !string.Equals(uno, ag.SideA.Callsign, StringComparison.OrdinalIgnoreCase);
+        var cambiaB = !string.Equals(due, ag.SideB.Callsign, StringComparison.OrdinalIgnoreCase);
+        // Uno, e uno solo: con tutti e due cambiati non è più «lo stesso accordo con un altro ente».
+        if (cambiaA == cambiaB) { _status = null; _error = L["Xfer_ShareAgreementOneSide"].Value; return; }
+
+        AgreementShareResult? esito = null;
+        if (!await Guarded(async () =>
+            {
+                esito = await Agreements.ShareAgreementAsync(_acc!.Code, ag.Id,
+                    cambiaA ? ag.SideA.SectorId : ag.SideB.SectorId, SectorIdOf(cambiaA ? uno : due));
+                _shareAgreementId = null;
+            }, null)) return;
+        DopoLaCondivisione(esito, $"{uno} ⇄ {due}");
     }
 
     private void ToggleShareBulk()
     {
         _shareBulkOpen = !_shareBulkOpen;
         if (!_shareBulkOpen) return;
-        _moveBulkOpen = false; _moveSectionId = null; _shareSectionId = null;
+        _moveBulkOpen = false; _moveSectionId = null; _shareSectionId = null; _shareRow = null; _shareAgreementId = null;
         CaricaLaCoppiaDelleScelte();
     }
 
@@ -2148,7 +2270,7 @@
                 esito = await Agreements.ShareSectionAsync(_acc!.Code, sec.Id, SectorIdOf(da), SectorIdOf(a));
                 _shareSectionId = null;
             }, null)) return;
-        DopoLaCondivisione(esito, da, a);
+        DopoLaCondivisione(esito, $"{da} → {a}");
     }
 
     private async Task ShareBulk()
@@ -2163,19 +2285,19 @@
                 _shareBulkOpen = false;
                 _selected.Clear();
             }, null)) return;
-        DopoLaCondivisione(esito, da, a);
+        DopoLaCondivisione(esito, $"{da} → {a}");
     }
 
     /// <summary>Dice che cosa è successo DAVVERO — niente, tante clausole, in una sezione che c'era o nata apposta —
     /// e arma l'annulla. Non porta nell'altro accordo: chi condivide sta lavorando su questo.</summary>
-    private void DopoLaCondivisione(AgreementShareResult? esito, string da, string a)
+    private void DopoLaCondivisione(AgreementShareResult? esito, string coppia)
     {
         if (esito is null) return;
         // «Ci compaiono già» non è un'azione: niente annulla, o farebbe credere il contrario.
         if (!esito.Added) { _status = L["Xfer_ShareAlready"].Value; return; }
 
         _status = string.Format(esito.Clauses == 1 ? L["Xfer_ClausesShared_One"].Value : L["Xfer_ClausesShared"].Value,
-                      esito.Clauses, $"{da} → {a}")
+                      esito.Clauses, coppia)
                   + " " + (esito.AgreementCreated ? L["Xfer_MoveCreated"].Value
                       : esito.SectionCreated ? L["Xfer_ShareSectionCreated"].Value
                       : L["Xfer_ShareIntoExisting"].Value);
@@ -2351,7 +2473,7 @@
     {
         ClosePanel();
         _editHeaderId = null; _newSectionFor = null; _editSectionId = null; _moveBulkOpen = false;
-        _shareBulkOpen = false; _shareSectionId = null;
+        _shareBulkOpen = false; _shareSectionId = null; _shareRow = null; _shareAgreementId = null;
         _moveForm.Load(ag.Sender(sec.Direction).Callsign, ag.Receiver(sec.Direction).Callsign);
         _moveSectionId = _moveSectionId == sec.Id ? null : sec.Id;
     }
@@ -2360,7 +2482,7 @@
     {
         _moveBulkOpen = !_moveBulkOpen;
         if (!_moveBulkOpen) return;
-        _moveSectionId = null; _shareBulkOpen = false; _shareSectionId = null;
+        _moveSectionId = null; _shareBulkOpen = false; _shareSectionId = null; _shareRow = null; _shareAgreementId = null;
         CaricaLaCoppiaDelleScelte();
     }
 
@@ -2618,6 +2740,7 @@
                        EditingCell="_cellEdit" CellEditor="@(_canEdit ? CellEditor : null)" OnCellClick="OpenCell"
                        OnEdit="OnEditRow" OnGoToAgreement="GoToAgreement"
                        OnAddAlternative="AddAlternative" OnAddException="AddException" OnDuplicate="DuplicateRow"
+                       OnShare="OpenShareRow"
                        OnDelete="DeleteRow" DeletePrompt="PromptEliminaRiga"
                        OnToggleSelect="ToggleSelect"
                        OnDragStart="id => _dragId = id" OnDragOver="id => _dragOver = id" OnDrop="DropOn" />
@@ -2950,8 +3073,9 @@
             <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SavePanel">💾 @L["Common_Save"]</button>
             @if (editing)
             {
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_MoveUp"]" @onclick="() => MoveClause(true)">↑</button>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_MoveDown"]" @onclick="() => MoveClause(false)">↓</button>
+                @* Con un ordine dichiarato il posto lo decide la regola: spostare a mano scriverebbe un ordine che non si vede. *@
+                <button class="btn ghost" disabled="@(_busy || !_canEdit || sec.ClauseOrder != AgreementClauseOrder.Manual)" title="@L["Xfer_MoveUp"]" @onclick="() => MoveClause(true)">↑</button>
+                <button class="btn ghost" disabled="@(_busy || !_canEdit || sec.ClauseOrder != AgreementClauseOrder.Manual)" title="@L["Xfer_MoveDown"]" @onclick="() => MoveClause(false)">↓</button>
                 @* ⧉⑂ e non ⧉: dal 7 settembre 2026 il ⧉ nudo sta sulla RIGA e copia LA RIGA. Due gesti che si
                    somigliano e fanno cose diverse devono avere due segni diversi — il ⑂ è già la lingua delle
                    varianti in questa pagina (la pastiglia del gruppo, il tasto «alternativa»). *@
@@ -4265,6 +4389,7 @@
         Kind = f.Kind,
         Direction = f.Direction,
         Description = NullIfBlank(f.Description),
+        ClauseOrder = f.ClauseOrder,
         // I sorvoli non hanno scali: se ne erano rimasti addosso cambiando tipo, la sezione non si salverebbe.
         // Si tolgono qui e non a ogni digitazione, perché un campo che si svuota da solo mentre lo si guarda è
         // il modo più rapido di perdere un dato senza accorgersene.
@@ -4296,7 +4421,9 @@
 
     private static AgreementClauseSnapshot SnapshotOf(AgreementClauseRow c) =>
         // Una clausola condivisa ricorda dov'era: l'annulla ne rimette la presenza, non una copia.
-        new AgreementClauseSnapshot(EditableCopy(c), c.Order, c.VariantGroup, c.VariantDepth).ConLePresenzeDi(c);
+        // ⚠️ Il posto SALVATO, non quello a schermo: con un ordine dichiarato sono diversi, e l'outline delle
+        // varianti si regge sul primo.
+        new AgreementClauseSnapshot(EditableCopy(c), c.StoredOrder ?? c.Order, c.VariantGroup, c.VariantDepth).ConLePresenzeDi(c);
 
     private static AgreementSectionSnapshot SnapshotOf(AgreementSectionRow s) => new(
         new AgreementSectionInput
@@ -4305,6 +4432,7 @@
             Direction = s.Direction,
             Description = s.Description,
             Airports = s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
+            ClauseOrder = s.ClauseOrder,
         },
         s.Order,
         s.Clauses.OrderBy(c => c.Order).Select(SnapshotOf).ToList());

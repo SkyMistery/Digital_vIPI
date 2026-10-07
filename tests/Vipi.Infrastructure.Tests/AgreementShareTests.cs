@@ -555,7 +555,125 @@ public class AgreementShareTests : IAsyncLifetime
         Assert.DoesNotContain(valma, copiate.Select(c => c.Id));
     }
 
+    // ---- l'ordine dichiarato della sezione ----------------------------------------------------------
+
+    [Fact]
+    public async Task Con_l_ordine_alfabetico_la_clausola_ospite_va_al_suo_posto_e_non_in_coda()
+    {
+        // La richiesta del 7 ottobre: le ospiti stavano in coda e non si potevano mettere fra le clausole di casa.
+        var (casa, _) = await SezioneAsync(_ne, _ew, "MEDIO");
+        var (altro, sua) = await SezioneAsync(_ne, _su, "ZETAS", "ALFAS");
+        await _repo.ShareClausesAsync("LIRR", new[] { await IdAsync(casa, "MEDIO") }, _ne, _su);
+        Assert.Equal(new[] { "ZETAS", "ALFAS", "MEDIO" }, (await SezioneInAsync(altro, sua)).Clauses.Select(c => c.Cops));
+
+        await OrdineAsync(altro, sua, AgreementClauseOrder.Points);
+
+        var ordinata = await SezioneInAsync(altro, sua);
+        Assert.Equal(AgreementClauseOrder.Points, ordinata.ClauseOrder);
+        Assert.Equal(new[] { "ALFAS", "MEDIO", "ZETAS" }, ordinata.Clauses.Select(c => c.Cops));
+        Assert.Equal(new[] { false, true, false }, ordinata.Clauses.Select(c => c.IsGuest));
+        // Così la leggono anche i documenti e la vista live: le righe piatte escono nello stesso ordine.
+        var flusso = AgreementExpansion.Expand(await _repo.ListByAccAsync("LIRR")).Single(f => f.Points.Any(p => p.Cop == "ZETAS"));
+        Assert.Equal(new[] { "ALFAS", "MEDIO", "ZETAS" }, flusso.Points.Select(p => p.Cop));
+    }
+
+    [Fact]
+    public async Task Tornando_a_mano_le_clausole_ritrovano_il_posto_che_avevano()
+    {
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "ZETAS", "ALFAS", "MEDIO");
+
+        await OrdineAsync(casa, sezione, AgreementClauseOrder.Points);
+        await OrdineAsync(casa, sezione, AgreementClauseOrder.Manual);
+
+        Assert.Equal(new[] { "ZETAS", "ALFAS", "MEDIO" }, (await SezioneInAsync(casa, sezione)).Clauses.Select(c => c.Cops));
+    }
+
+    [Fact]
+    public async Task L_annulla_di_un_eliminazione_in_una_sezione_ordinata_rimette_la_clausola_al_posto_salvato()
+    {
+        // La fotografia porta il posto SALVATO, non quello a schermo: col secondo, tornando «a mano» la clausola
+        // rimessa finirebbe dove non era.
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "ZETAS", "ALFAS", "MEDIO");
+        await OrdineAsync(casa, sezione, AgreementClauseOrder.Points);
+        var zetas = (await SezioneInAsync(casa, sezione)).Clauses.Single(c => c.Cops == "ZETAS");
+        Assert.Equal((3, 1), (zetas.Order, zetas.StoredOrder));
+
+        await _repo.DeleteClausesAsync("LIRR", new[] { zetas.Id }, casa);
+        await _repo.RestoreClausesAsync("LIRR", new[] { new AgreementClauseRestore(sezione, Foto(zetas)) });
+        await OrdineAsync(casa, sezione, AgreementClauseOrder.Manual);
+
+        Assert.Equal(new[] { "ZETAS", "ALFAS", "MEDIO" }, (await SezioneInAsync(casa, sezione)).Clauses.Select(c => c.Cops));
+    }
+
+    [Fact]
+    public async Task La_sezione_nata_per_ospitare_si_legge_nello_stesso_ordine_di_quella_di_casa()
+    {
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "ZETAS", "ALFAS");
+        await OrdineAsync(casa, sezione, AgreementClauseOrder.Points);
+
+        var esito = await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su);
+
+        var nata = Assert.Single((await AccordoAsync(esito.AgreementId)).Sections);
+        Assert.Equal((AgreementClauseOrder.Points, "ALFAS"), (nata.ClauseOrder, nata.Clauses[0].Cops));
+    }
+
+    // ---- l'accordo intero ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Condividere_l_accordo_intero_porta_ogni_sezione_nell_altro_cambiando_un_ente_solo()
+    {
+        // Trapani: «tutto quel che vale con SU vale anche con MIL». Due sezioni, nei due versi.
+        var (casa, arrivi) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var sorvoli = await _repo.AddSectionAsync("LIRR", casa, new AgreementSectionInput
+        {
+            Kind = TransferFlowKind.Overflight, Direction = Verso(_ew, _ne),   // qui cede l'ALTRO capo
+        });
+        await _repo.AddClauseAsync("LIRR", sorvoli, Clausola("GIKIN"));
+        var prima = await FotoAsync();
+
+        var esito = await _repo.ShareAgreementAsync("LIRR", casa, insteadOfSectorId: _ew, withSectorId: _su);
+
+        Assert.Equal((3, true), (esito.Clauses, esito.AgreementCreated));
+        var altro = await AccordoAsync(esito.AgreementId);
+        Assert.Equal(2, altro.Sections.Count);
+        // Chi cede resta chi cede, sezione per sezione: negli arrivi NE, nei sorvoli l'ente che ha preso il posto di EW.
+        var arriviLi = altro.Sections.Single(s => s.Kind == TransferFlowKind.Arrival);
+        var sorvoliLi = altro.Sections.Single(s => s.Kind == TransferFlowKind.Overflight);
+        Assert.Equal((_ne, _su), (altro.Sender(arriviLi.Direction).SectorId, altro.Receiver(arriviLi.Direction).SectorId));
+        Assert.Equal((_su, _ne), (altro.Sender(sorvoliLi.Direction).SectorId, altro.Receiver(sorvoliLi.Direction).SectorId));
+        Assert.Equal((await AccordoAsync(casa)).AllClauses.Select(c => c.Id).OrderBy(x => x), altro.AllClauses.Select(c => c.Id).OrderBy(x => x));
+
+        // Un annulla solo, per tutto il gesto.
+        await _repo.UndoShareAsync("LIRR", esito.Undo);
+        Assert.Equal(prima, await FotoAsync());
+        Assert.Null(await _repo.FindByPairAsync("LIRR", _ne, _su));
+        _ = arrivi;
+    }
+
+    [Fact]
+    public async Task L_accordo_intero_si_condivide_solo_cambiando_uno_dei_suoi_due_enti_con_un_terzo()
+    {
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+
+        // L'ente da sostituire non è dell'accordo; il sostituto è già uno dei due.
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _repo.ShareAgreementAsync("LIRR", casa, _ts, _su));
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _repo.ShareAgreementAsync("LIRR", casa, _ew, _ne));
+        Assert.Null(await _repo.FindByPairAsync("LIRR", _ne, _su));
+    }
+
     // ---- attrezzi -----------------------------------------------------------------------------------
+
+    /// <summary>Cambia il solo ordine delle clausole della sezione, lasciando il resto com'è — come fa la pagina.</summary>
+    private async Task OrdineAsync(int accordo, int sezione, AgreementClauseOrder ordine)
+    {
+        var s = await SezioneInAsync(accordo, sezione);
+        await _repo.UpdateSectionAsync("LIRR", sezione, new AgreementSectionInput
+        {
+            Kind = s.Kind, Direction = s.Direction, Description = s.Description, ClauseOrder = ordine,
+            Airports = s.Airports.Select(a => new AgreementAirportInput(a.Icao, a.Name)).ToList(),
+        });
+    }
+
 
     private static AgreementClauseInput Clausola(string cops) => new()
     {
@@ -613,12 +731,12 @@ public class AgreementShareTests : IAsyncLifetime
                 Cops = c.Cops, LevelValue = c.LevelValue, LevelUnit = c.LevelUnit, LevelConstraint = c.LevelConstraint,
                 IsGroupWide = c.IsGroupWide,
             },
-            c.Order, c.VariantGroup, c.VariantDepth).ConLePresenzeDi(c);
+            c.StoredOrder ?? c.Order, c.VariantGroup, c.VariantDepth).ConLePresenzeDi(c);
 
     private static AgreementSectionSnapshot Foto(AgreementSectionRow s) => new(
         new AgreementSectionInput
         {
-            Kind = s.Kind, Direction = s.Direction, Description = s.Description,
+            Kind = s.Kind, Direction = s.Direction, Description = s.Description, ClauseOrder = s.ClauseOrder,
             Airports = s.Airports.Select(a => new AgreementAirportInput(a.Icao, a.Name)).ToList(),
         },
         s.Order, s.Clauses.Select(Foto).ToList());

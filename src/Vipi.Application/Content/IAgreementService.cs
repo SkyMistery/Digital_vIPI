@@ -69,6 +69,14 @@ public interface IAgreementService
     Task<AgreementShareResult> ShareSectionAsync(string accCode, int sectionId, int senderSectorId, int receiverSectorId,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Condivide <b>tutto l'accordo</b> con quello di un'altra coppia: al posto di uno dei due enti,
+    /// <paramref name="withSectorId"/>. Ogni sezione va nella sezione uguale dell'altro accordo, col suo verso.
+    /// È <see cref="ShareSectionAsync"/> per ogni sezione, in un gesto e con un annulla solo.
+    /// </summary>
+    Task<AgreementShareResult> ShareAgreementAsync(string accCode, int agreementId, int insteadOfSectorId, int withSectorId,
+        CancellationToken ct = default);
+
     /// <summary>Disfa un «Condividi con…»: toglie le presenze aggiunte, e quel che era nato per ospitarle se è
     /// rimasto vuoto.</summary>
     Task UndoShareAsync(string accCode, AgreementShareUndo undo, CancellationToken ct = default);

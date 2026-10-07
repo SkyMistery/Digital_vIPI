@@ -568,6 +568,8 @@ public class VipiDbContext : DbContext
             // Il traffico e il verso entrano nella chiave di lettura: l'editor cerca «la sezione gemella» e «il
             // verso opposto» a ogni render del riquadro.
             e.HasIndex(x => new { x.AgreementId, x.Kind, x.Direction });
+            // Le sezioni che esistono già restano «a mano»: è quel che facevano.
+            e.Property(x => x.ClauseOrder).HasDefaultValue(AgreementClauseOrder.Manual);
         });
 
         // Una clausola che compare ANCHE in una sezione di un altro accordo (carta 2026-10-06-sezioni-condivise.md).

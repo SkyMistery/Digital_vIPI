@@ -2109,6 +2109,18 @@
     **Codice comune** `Vipi.Application`. Sulla copia della produzione: 3 avvisi su 198 clausole (Zagabria
     `LDZO_CTR`/`LDZO_S_CTR` su AIOSA, Milano `WS2`/`ES2` su NELAB).
     App 3241 → 3256, Infra 2131 → 2142, Ui 1985 → 1988.
+  - ✅ **Secondo giro del 7-ott: il tasto dove lo si cerca, l'accordo intero, l'ordine** (carta del passo 5, §11).
+    Il committente non aveva trovato come condividere una clausola sola (il gesto stava solo nella barra delle
+    scelte): ora **⛓ è sulla riga**, oltre che sulla sezione, e c'è **⛓ Condividi… sull'accordo intero**
+    (`ShareAgreementAsync`: si cambia uno dei due enti, ogni sezione va nella sezione uguale dell'altro accordo,
+    un annulla solo). E ha chiesto «diversi modi di ordinarli, tipo quello alfabetico»: ogni sezione ha un
+    **ordine dichiarato** (`AgreementSection.ClauseOrder`: a mano · alfabetico per punto · per quota), salvato,
+    che vale nella pagina, nei documenti e nella vista live — ed è quel che mette le clausole ospiti al loro posto
+    invece che in coda. L'ordine scritto a mano non si tocca (`StoredOrder`). **Migrazione additiva
+    `OrdineDelleClausole`** (una colonna, default `Manual`), due provider. **Codice comune** `Vipi.Domain`,
+    `Vipi.Application`, `Vipi.Infrastructure`. La suite ha fermato una colonna con default senza lunghezza su
+    MySQL (`MySqlStringLengths`). App 3256 → 3263, Infra 2142 → 2150, Ui 1988 → 1991. A schermo su database
+    inventato: i tre gesti, annulla compreso.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

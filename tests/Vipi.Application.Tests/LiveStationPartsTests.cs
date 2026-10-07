@@ -213,6 +213,8 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task<AgreementShareResult> ShareClausesAsync(string a, IReadOnlyList<int> ids, int s, int r, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<AgreementShareResult> ShareAgreementAsync(string a, int id, int x, int y, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task UndoShareAsync(string a, AgreementShareUndo u, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<AgreementDetachResult> DetachClausesAsync(string a, IReadOnlyList<int> ids, int g, CancellationToken ct = default) =>

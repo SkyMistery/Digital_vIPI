@@ -3778,6 +3778,8 @@
 :where(.vipi-root) .xt-moveintro{margin:0 0 6px}
 /* L'etichetta «condivisa con …» sulla testata di una sezione: non va a capo dentro, e non si stringe. */
 :where(.vipi-root) .xt-shared{white-space:nowrap;flex:0 0 auto}
+/* L'ordine delle clausole della sezione: un selettore piccolo sulla testata, accanto ai tasti. */
+:where(.vipi-root) .xt-ordsel{flex:0 0 auto;width:auto;max-width:190px;padding:2px 6px;font-size:.85rem}
 :where(.vipi-root) .xt-bulkpick{margin:0;min-width:200px}
 :where(.vipi-root) .xt-bulkpick input{margin:0}
 
