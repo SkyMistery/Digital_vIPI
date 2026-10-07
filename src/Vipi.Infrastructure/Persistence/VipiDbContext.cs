@@ -171,7 +171,7 @@ public class VipiDbContext : DbContext
     public DbSet<AgreementSection> AgreementSections => Set<AgreementSection>();
     public DbSet<AgreementAirport> AgreementAirports => Set<AgreementAirport>();
     public DbSet<AgreementClause> AgreementClauses => Set<AgreementClause>();
-    public DbSet<AgreementSectionShare> AgreementSectionShares => Set<AgreementSectionShare>();
+    public DbSet<AgreementClauseShare> AgreementClauseShares => Set<AgreementClauseShare>();
 
     /// <summary>Le promozioni a mano: una riga per persona promossa. Carta del 28 agosto 2026 §5.</summary>
     public DbSet<RoleOverride> RoleOverrides => Set<RoleOverride>();
@@ -570,19 +570,19 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => new { x.AgreementId, x.Kind, x.Direction });
         });
 
-        // Una sezione che compare ANCHE in un altro accordo (carta 2026-10-06-sezioni-condivise.md).
-        b.Entity<AgreementSectionShare>(e =>
+        // Una clausola che compare ANCHE in una sezione di un altro accordo (carta 2026-10-06-sezioni-condivise.md).
+        b.Entity<AgreementClauseShare>(e =>
         {
-            // Una presenza per accordo: la stessa sezione non compare due volte nella stessa scheda.
-            e.HasIndex(x => new { x.SectionId, x.AgreementId }).IsUnique();
-            e.HasIndex(x => new { x.AgreementId, x.Order });
-            // Se la sezione sparisce, le sue presenze non hanno più niente da mostrare.
-            e.HasOne(x => x.Section).WithMany(s => s.Shares).HasForeignKey(x => x.SectionId)
+            // Una presenza per sezione: la stessa clausola non compare due volte nella stessa tabella.
+            e.HasIndex(x => new { x.ClauseId, x.SectionId }).IsUnique();
+            e.HasIndex(x => x.SectionId);
+            // Se la clausola sparisce, le sue presenze non hanno più niente da mostrare.
+            e.HasOne(x => x.Clause).WithMany(c => c.Shares).HasForeignKey(x => x.ClauseId)
                 .OnDelete(DeleteBehavior.Cascade);
-            // Se sparisce l'accordo OSPITE se ne va la sola presenza: la sezione resta di casa dov'era.
-            // ⚠️ Il verso opposto — sparisce l'accordo di CASA e la sezione ha ospiti — non lo protegge lo schema:
+            // Se sparisce la sezione OSPITE se ne va la sola presenza: la clausola resta di casa dov'era.
+            // ⚠️ Il verso opposto — sparisce la sezione di CASA e la clausola ha ospiti — non lo protegge lo schema:
             // lo fa il repository, che prima sposta la casa (EfAgreementRepository, «promozione»).
-            e.HasOne(x => x.Agreement).WithMany(a => a.SharedSections).HasForeignKey(x => x.AgreementId)
+            e.HasOne(x => x.Section).WithMany(s => s.GuestClauses).HasForeignKey(x => x.SectionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

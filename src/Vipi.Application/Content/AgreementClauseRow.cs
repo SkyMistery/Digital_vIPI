@@ -13,8 +13,25 @@ public sealed record AgreementClauseRow : IOutlineRow
 {
     public required int Id { get; init; }
 
-    /// <summary>La sezione che la ospita: è lo scopo dentro cui l'ordine e l'outline hanno significato.</summary>
+    /// <summary>La sezione in cui questa riga <b>sta</b>: quella che si sta leggendo. Per una clausola condivisa
+    /// non è per forza quella di casa (<see cref="HomeSectionId"/>).</summary>
     public required int SectionId { get; init; }
+
+    /// <summary>La sezione di casa, se non è questa: la clausola qui è <b>ospite</b>. Null = è di casa qui.</summary>
+    public int? HomeSectionId { get; init; }
+
+    /// <summary>
+    /// Le <b>altre</b> sezioni — di altri accordi — in cui questa stessa clausola compare. Vuoto = sta qui e basta.
+    /// <para>⚠️ Una clausola condivisa è <b>una</b>: ha lo stesso id in ogni accordo che la porta, e modificarla da
+    /// uno la modifica per tutti.</para>
+    /// </summary>
+    public IReadOnlyList<AgreementShareRef> SharedWith { get; init; } = Array.Empty<AgreementShareRef>();
+
+    /// <summary>Vero se la clausola compare anche in un altro accordo.</summary>
+    public bool IsShared => SharedWith.Count > 0;
+
+    /// <summary>Vero se in questa sezione la clausola è ospite: sta di casa in un altro accordo.</summary>
+    public bool IsGuest => HomeSectionId is int casa && casa != SectionId;
 
     /// <summary>I punti d'ingresso, in elenco (vedi <see cref="CopList"/>).</summary>
     public required string Cops { get; init; }
@@ -52,6 +69,8 @@ public sealed record AgreementClauseRow : IOutlineRow
     public int VariantDepth { get; init; }
     public bool IsGroupWide { get; init; }
 
+    /// <summary>Il posto in <b>questa</b> tabella. Le clausole ospiti stanno in coda, nell'ordine che hanno di casa:
+    /// per loro non è il numero salvato.</summary>
     public required int Order { get; init; }
 
     // ---- come si legge -------------------------------------------------------------------------------

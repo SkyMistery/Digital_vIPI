@@ -70,7 +70,7 @@
             var c = r.Clause;
             var gv = r.Group;
             var sel = EditClauseId == c.Id;
-            @* ⚠️ La chiave è (accordo, clausola): una sezione condivisa porta la STESSA clausola sotto più accordi, e
+            @* ⚠️ La chiave è (accordo, clausola): una clausola condivisa sta, con lo stesso id, sotto più accordi, e
                nella vista a elenco le due righe stanno nella stessa tabella — con la sola clausola Blazor rifiuta
                il render («more than one sibling has the same key»). *@
             <tr class="@RowClass(r, sel)" @key="(r.Agreement.Id, c.Id)"
@@ -106,6 +106,12 @@
                    per differenza, che due righe con una condizione ciascuna ma senza pill NON lo sono. *@
                 <td>
                     @Cell(r, XferCell.Points)
+                    @* Condivisa: la stessa clausola compare anche in altri accordi. Va detto SULLA RIGA: chi la
+                       corregge la corregge anche là. *@
+                    @if (c.IsShared)
+                    {
+                        <span class="pill blue xt-shared" title="@(string.Format(L["Xfer_SharedTitle"].Value, string.Join(" · ", c.SharedWith.Select(s => s.Label).Distinct())))">⛓</span>
+                    }
                     @if (gv.First && gv.Count > 1)
                     {
                         <span class="pill blue xt-grouppill" title="@L["Xfer_VariantsTitle"]">⑂ @L["Xfer_VariantsN", gv.Count]</span>

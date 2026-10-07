@@ -70,7 +70,7 @@ public class PorteTutteLeScrittureTests : IAsyncLifetime
     private static readonly HashSet<string> NonScritture = new(StringComparer.Ordinal)
     {
         "IAgreementService.FindByPairAsync", "IAgreementService.ListByAccAsync", "IAgreementService.ListFlowsByAccAsync",
-        "IAgreementService.ProcedureNonTrovateAsync", "IAgreementService.ResolveForAccAsync",
+        "IAgreementService.ProcedureNonTrovateAsync", "IAgreementService.LevelWarningsAsync", "IAgreementService.ResolveForAccAsync",
         "IStructureEditingService.ListAccsAsync", "IStructureEditingService.ListAllAirportsAsync",
         "IStructureEditingService.ListAllSectorsAsync", "IStructureEditingService.ListSectorNodesAsync",
         "IStructureEditingService.LoadAsync", "IStructureEditingService.LookupExternalAirportAsync",

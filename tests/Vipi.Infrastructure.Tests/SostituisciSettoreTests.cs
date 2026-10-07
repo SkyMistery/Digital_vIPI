@@ -125,39 +125,6 @@ public class SostituisciSettoreTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Una_sezione_OSPITE_segue_i_lati_che_si_scambiano_come_quelle_di_casa()
-    {
-        // Sezioni condivise (carta 2026-10-06): il verso di una presenza ospite è scritto sui lati dell'accordo che
-        // la ospita. Qui quell'accordo è vecchio ↔ torre, col vecchio a sinistra; il sostituto ha un id PIÙ ALTO
-        // della torre, quindi dopo la sostituzione finisce a destra — e «cede il settore APP» deve restare vero.
-        var sostituto = new Sector
-        {
-            Acc = _lirr, Callsign = "LIRR_US9_APP", Name = "Roma US9", Type = SectorType.App, Kind = SectorKind.Acc,
-            ApproachKind = ApproachKind.Remotized, IsActive = true, IsProjected = true,
-        };
-        _db.Sectors.Add(sostituto);
-        _db.AccSectors.Add(new AccSector { IvaoId = 9109, ComposePosition = "LIRR_US9_APP", CenterId = "LIRR", Position = "APP" });
-        await _db.SaveChangesAsync();
-        Assert.True(_vecchio.Id < _torre.Id && _torre.Id < sostituto.Id, "la prova regge solo se i lati si scambiano");
-
-        var ospite = new CoordinationAgreement { OwnerAccId = _lirr.Id, SideASectorId = _vecchio.Id, SideBSectorId = _torre.Id };
-        _db.CoordinationAgreements.Add(ospite);
-        await _db.SaveChangesAsync();
-        var sezione = await _db.AgreementSections.SingleAsync(s => s.AgreementId == _accordoId);
-        _db.AgreementSectionShares.Add(new AgreementSectionShare
-        {
-            SectionId = sezione.Id, AgreementId = ospite.Id, Direction = AgreementDirection.AtoB, Order = 1,   // cede il vecchio
-        });
-        await _db.SaveChangesAsync();
-
-        await new EfCallsignRenameService(_db).SostituisciAsync(_vecchio.Id, sostituto.Id, actorUserId: 7);
-
-        var dopo = await _db.CoordinationAgreements.AsNoTracking().Include(a => a.SharedSections).SingleAsync(a => a.Id == ospite.Id);
-        Assert.Equal((_torre.Id, sostituto.Id), (dopo.SideASectorId, dopo.SideBSectorId));
-        Assert.Equal(AgreementDirection.BtoA, dopo.SharedSections.Single().Direction);   // cede ancora il settore APP, ora a destra
-    }
-
-    [Fact]
     public async Task La_posizione_di_un_ente_segue_e_il_documento_del_vecchio_passa_al_nuovo()
     {
         var doc = new Document { Type = DocumentType.Vipi, Title = "vIPI Napoli", Language = Language.It, LastUpdatedAiracCycle = "2610" };

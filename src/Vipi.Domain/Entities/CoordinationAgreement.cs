@@ -63,16 +63,12 @@ public class CoordinationAgreement
     // Nessun RowVersion: last-write-wins voluto sotto il lock di editing (14 agosto 2026). Vedi VipiDbContext.
 
     public ICollection<AgreementSection> Sections { get; set; } = new List<AgreementSection>();
-
-    /// <summary>Le sezioni che questo accordo <b>ospita</b>: stanno di casa in un altro accordo e compaiono anche
-    /// qui (<see cref="AgreementSectionShare"/>). Chi legge le riceve insieme a <see cref="Sections"/>.</summary>
-    public ICollection<AgreementSectionShare> SharedSections { get; set; } = new List<AgreementSectionShare>();
 }
 
 /// <summary>
 /// Una **sezione** dell'accordo: un tipo di traffico, in un verso, per un gruppo di aeroporti — cioè una
-/// tabella di clausole. Sta di casa in un accordo, e dal 6 ottobre 2026 può comparire anche in altri
-/// (<see cref="AgreementSectionShare"/>). «Arrivi verso LIBD·LIBR», «partenze da LIRF», «sorvoli A→B», «sorvoli B→A».
+/// tabella di clausole. Sta in <b>un</b> accordo; quel che si condivide fra accordi sono le <b>clausole</b>
+/// (<see cref="AgreementClauseShare"/>). «Arrivi verso LIBD·LIBR», «partenze da LIRF», «sorvoli A→B», «sorvoli B→A».
 ///
 /// <para><b>Il verso sta qui, ed è un dato.</b> Una sezione «arrivi verso LIRF» ha un verso solo: cede chi non
 /// ha LIRF, riceve chi ce l'ha. Non si ricalcola a ogni lettura (l'AoR cambia, l'accordo scritto no): si
@@ -107,45 +103,44 @@ public class AgreementSection
     public ICollection<AgreementAirport> Airports { get; set; } = new List<AgreementAirport>();
     public ICollection<AgreementClause> Clauses { get; set; } = new List<AgreementClause>();
 
-    /// <summary>Gli altri accordi in cui questa sezione compare, oltre a quello di casa (<see cref="AgreementId"/>).</summary>
-    public ICollection<AgreementSectionShare> Shares { get; set; } = new List<AgreementSectionShare>();
+    /// <summary>Le clausole che questa sezione <b>ospita</b>: stanno di casa in una sezione di un altro accordo e
+    /// compaiono anche qui (<see cref="AgreementClauseShare"/>). Chi legge le riceve in coda a <see cref="Clauses"/>.</summary>
+    public ICollection<AgreementClauseShare> GuestClauses { get; set; } = new List<AgreementClauseShare>();
 }
 
 /// <summary>
-/// Una sezione che <b>compare anche in un altro accordo</b>: lo stesso contenuto — traffico, aeroporti, prosa,
-/// clausole — vale per più coppie di enti, e si scrive una volta sola.
+/// Una clausola che <b>compare anche in un'altra sezione</b>, di un altro accordo: lo stesso coordinamento vale per
+/// più coppie di enti, e si scrive una volta sola.
 ///
 /// <para><b>Perché esiste</b> (committente, 4 ottobre 2026). A Trapani gli stessi coordinamenti valgono verso
 /// <c>LIRR_SU_CTR</c>, che controlla i GAT, e verso <c>LIRR_MIL_CTR</c>, che controlla gli OAT. Un accordo è una
-/// coppia e una sezione sta in un accordo solo: le clausole andavano scritte due volte e tenute uguali a mano — e in
-/// produzione l'accordo coi militari infatti non c'era. Carta
-/// <c>docs/feature/2026-10-06-sezioni-condivise.md</c>.</para>
+/// coppia: le clausole andavano scritte due volte e tenute uguali a mano — e in produzione l'accordo coi militari
+/// infatti non c'era. Carta <c>docs/feature/2026-10-06-sezioni-condivise.md</c>.</para>
 ///
-/// <para><b>Casa e ospiti.</b> La sezione resta di casa nel suo accordo (<see cref="AgreementSection.AgreementId"/>);
-/// ogni riga qui è un accordo che la <b>ospita</b>. Chi legge non vede la differenza: le riceve tutte e due.
-/// ⚠️ Il contenuto si distrugge solo quando se ne va l'<b>ultima</b> presenza: togliere la sezione dall'accordo di
-/// casa mentre ha ospiti ne sposta la casa al primo ospite, e questa riga sparisce.</para>
+/// <para><b>Perché la clausola e non la sezione</b> (committente, 7 ottobre 2026). Il primo giro condivideva la
+/// sezione intera: l'accordo che aveva già la sua tabella «arrivi LICT» se ne ritrovava una seconda accanto, e non
+/// si poteva condividere un coordinamento solo. Qui l'unità è la clausola, e nell'accordo di arrivo va nella sezione
+/// che dice la stessa cosa — stesso traffico, stesso verso, stessi scali — che nasce solo se non c'è.</para>
 ///
-/// <para>⚠️ <b>Il verso sta qui, non sulla sezione.</b> I lati di ogni accordo sono canonici (id minore = A) in un
-/// ordine che non c'entra con quello dell'altro: lo stesso «Trapani cede» può essere <c>AtoB</c> di qua e
-/// <c>BtoA</c> di là.</para>
+/// <para><b>Casa e ospiti.</b> La clausola resta di casa nella sua sezione (<see cref="AgreementClause.SectionId"/>);
+/// ogni riga qui è una sezione che la <b>ospita</b>. Chi legge non vede la differenza. ⚠️ Il contenuto si distrugge
+/// solo quando se ne va l'<b>ultima</b> presenza: togliere la clausola dalla sezione di casa mentre ha ospiti ne
+/// sposta la casa al primo ospite, e questa riga sparisce.</para>
+///
+/// <para>⚠️ <b>Un gruppo di varianti si condivide intero.</b> Varianti ed eccezioni dicono la stessa cosa a
+/// condizioni diverse: la struttura è contenuto, ed è la stessa in ogni sezione che lo porta. Per questo qui non c'è
+/// né un ordine né un gruppo: le ospiti stanno in coda alla sezione, nell'ordine che hanno di casa.</para>
 /// </summary>
-public class AgreementSectionShare
+public class AgreementClauseShare
 {
     public int Id { get; set; }
 
+    public int ClauseId { get; set; }
+    public AgreementClause? Clause { get; set; }
+
+    /// <summary>La sezione che ospita la clausola. Mai quella di casa, e mai una dello stesso accordo.</summary>
     public int SectionId { get; set; }
     public AgreementSection? Section { get; set; }
-
-    /// <summary>L'accordo che ospita la sezione. Mai quello di casa.</summary>
-    public int AgreementId { get; set; }
-    public CoordinationAgreement? Agreement { get; set; }
-
-    /// <summary>In che verso la sezione vale in <b>questo</b> accordo.</summary>
-    public AgreementDirection Direction { get; set; }
-
-    /// <summary>Posto fra le sezioni di questo accordo.</summary>
-    public int Order { get; set; }
 }
 
 /// <summary>
@@ -266,7 +261,9 @@ public class AgreementClause
     // Clausole della stessa sezione che differiscono per condizione, organizzate a OUTLINE: le alternative di
     // primo livello sono pari-grado (pista 07 · pista 25, nessuna è lo standard dell'altra), le eccezioni si
     // annidano a profondità libera, e una clausola può scavalcarle tutte. L'ordine È la struttura.
-    /// <summary>null = clausola singola; progressivo per accordo.</summary>
+    /// <summary>null = clausola singola. Dal 7 ottobre 2026 un gruppo nuovo prende un numero <b>unico in tutto
+    /// l'archivio</b> (prima era progressivo per accordo): una clausola condivisa porta il suo gruppo dentro la
+    /// sezione di un altro accordo, e lì non deve somigliare a un gruppo di casa.</summary>
     public int? VariantGroup { get; set; }
     /// <summary>0 = alternativa di primo livello, 1 = sua eccezione, 2 = eccezione dell'eccezione, …
     /// Una clausola di profondità N appartiene all'ultima di profondità N-1 che la precede.</summary>
@@ -275,4 +272,7 @@ public class AgreementClause
     public bool IsGroupWide { get; set; }
 
     public int Order { get; set; }
+
+    /// <summary>Le altre sezioni in cui questa clausola compare, oltre a quella di casa (<see cref="SectionId"/>).</summary>
+    public ICollection<AgreementClauseShare> Shares { get; set; } = new List<AgreementClauseShare>();
 }

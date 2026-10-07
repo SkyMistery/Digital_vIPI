@@ -16,6 +16,12 @@ namespace Vipi.Application.Content;
 /// <param name="PairSectionId">La <b>seconda</b> sezione, quando la lacuna è una relazione fra due — le gemelle
 /// da unire, i due versi da confrontare. Senza di lei la voce potrebbe solo indicare, non offrire di
 /// sistemare.</param>
+/// <param name="ClauseIds">Le clausole di cui parla la lacuna, quando parla di clausole precise: servono al tasto
+/// che le sposta.</param>
+/// <param name="Written">Per <see cref="AgreementGapKind.LevelOutsideSector"/>: l'ente scritto nell'accordo.</param>
+/// <param name="Holder">Per <see cref="AgreementGapKind.LevelOutsideSector"/>: il settore che a quella quota
+/// tiene quel cielo.</param>
+/// <param name="WrittenIsSender">Vero se l'ente scritto è chi cede.</param>
 /// <remarks>
 /// ⚠️ Nessun campo porta <b>parole</b>: le lacune si mostrano in un'interfaccia che esiste anche in inglese, e
 /// una frase composta qui uscirebbe in italiano dentro una pagina inglese. È lo stesso motivo per cui la frase
@@ -23,7 +29,8 @@ namespace Vipi.Application.Content;
 /// </remarks>
 public sealed record AgreementGap(
     AgreementGapKind Kind, string Subject, int Count, IReadOnlyList<string> Items, int? AgreementId,
-    int? SectionId = null, int? PairSectionId = null);
+    int? SectionId = null, int? PairSectionId = null,
+    IReadOnlyList<int>? ClauseIds = null, string? Written = null, string? Holder = null, bool WrittenIsSender = false);
 
 /// <summary>
 /// I generi di lacuna, in ordine di gravità. L'ordine dell'enum <b>è</b> l'ordine di presentazione: prima ciò
@@ -52,6 +59,14 @@ public enum AgreementGapKind
     /// sezione non lo insegnerebbe a nessuno — lo direbbe soltanto «no». Si segnala, e si offre «unisci».</para>
     /// </summary>
     TwinSections,
+
+    /// <summary>
+    /// Clausole scritte per un ente d'area che, su quel punto e a quella quota, quel cielo <b>non lo tiene</b>: lo
+    /// tiene un settore più specifico che da lui pende («ES2 ⇄ Padova a FL350», quando sopra FL325 c'è ES5).
+    /// <para>Lo dice la geometria (<see cref="AgreementLevelCheck"/>), ed è un <b>avviso</b>: lo scritto comanda.
+    /// Accanto ha il tasto che porta quelle clausole nell'accordo della coppia giusta.</para>
+    /// </summary>
+    LevelOutsideSector,
 
     /// <summary>Una clausola verso un APP che non dice ancora dove avviene il trasferimento: il suo livello può
     /// voler dire «autorizzato» o «al trasferimento», e solo chi l'ha scritta lo sa.</summary>
@@ -91,7 +106,8 @@ public static class AgreementGaps
         IReadOnlyList<SuggestionSector> accSectors,
         IReadOnlyList<string> accAirports,
         IReadOnlySet<string> confirmedNeighbourAccs,
-        IReadOnlyDictionary<string, SectorType> sectorTypes)
+        IReadOnlyDictionary<string, SectorType> sectorTypes,
+        IReadOnlyList<AgreementLevelWarning>? levelWarnings = null)
     {
         var gaps = new List<AgreementGap>();
 
@@ -122,9 +138,7 @@ public static class AgreementGaps
             }
 
             // 2) Sezioni gemelle: stesso traffico, stesso verso, stessi scali. Avviso, non errore.
-            // ⚠️ Le sezioni CONDIVISE con un altro accordo restano fuori: una condivisa accanto a una dell'accordo
-            // con lo stesso traffico è «le clausole comuni, più quelle solo mie», non due tabelle da unire.
-            foreach (var twins in a.Sections.Where(s => !s.IsShared)
+            foreach (var twins in a.Sections
                          .GroupBy(s => (s.Kind, s.Direction, Airports: Key(s)))
                          .Where(g => g.Count() > 1))
             {
@@ -144,6 +158,20 @@ public static class AgreementGaps
             foreach (var s in a.Sections.Where(s => s.Clauses.Count == 0).OrderBy(s => s.Order))
                 gaps.Add(new AgreementGap(AgreementGapKind.EmptySection, Describe(a, s), 0,
                     Array.Empty<string>(), a.Id, s.Id));
+        }
+
+        // 4b) Quota di un altro settore. Una voce per sezione e per settore che «tiene davvero»: sono le clausole
+        //     che il tasto accanto sposterà insieme, nella stessa coppia.
+        foreach (var g in (levelWarnings ?? Array.Empty<AgreementLevelWarning>())
+                     .GroupBy(w => (w.AgreementId, w.SectionId, w.Written, w.Holder, w.WrittenIsSender)))
+        {
+            var a = agreements.FirstOrDefault(x => x.Id == g.Key.AgreementId);
+            var s = a?.Sections.FirstOrDefault(x => x.Id == g.Key.SectionId);
+            if (a is null || s is null) continue;
+            var clausole = g.Select(w => w.ClauseId).Distinct().ToList();
+            gaps.Add(new AgreementGap(AgreementGapKind.LevelOutsideSector, Describe(a, s), clausole.Count,
+                g.Select(w => $"{w.Cop} {w.LevelText}".Trim()).Distinct().ToList(), a.Id, s.Id,
+                ClauseIds: clausole, Written: g.Key.Written, Holder: g.Key.Holder, WrittenIsSender: g.Key.WrittenIsSender));
         }
 
         // 5) Confinanti confermati senza nessun accordo. Il confronto è per ACC dell'ente, non per callsign:

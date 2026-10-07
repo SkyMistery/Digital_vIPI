@@ -11,9 +11,35 @@ namespace Vipi.Application.Content;
 /// si sta restituendo. Un annulla che restituisce righe appiattite non è un annulla: è un secondo danno con un
 /// nome rassicurante.</para>
 /// <para>Il <b>verso</b> non è più qui: lo dice la sezione che la ospita.</para>
+/// <para>⚠️ <b>Una clausola condivisa ricorda dov'era.</b> Toglierla da un accordo non la distrugge — vive negli
+/// altri — e l'annulla deve rimettere la <b>presenza</b>, non una copia destinata a divergere. Se invece nel
+/// frattempo è sparita ovunque, torna dal contenuto, di casa dov'era e ospite dov'era ospite.</para>
 /// </summary>
+/// <param name="LinkedClauseId">L'id della clausola, se era <b>condivisa</b>. Se vive ancora, il ripristino ne
+/// rimette la presenza.</param>
+/// <param name="WasGuest">Nella sezione da cui si fotografa era ospite, non di casa.</param>
+/// <param name="HomeSectionId">La sezione di casa, se era ospite.</param>
+/// <param name="HostSectionIds">Le sezioni che la ospitavano.</param>
 public sealed record AgreementClauseSnapshot(
-    AgreementClauseInput Data, int Order, int? VariantGroup, int VariantDepth);
+    AgreementClauseInput Data, int Order, int? VariantGroup, int VariantDepth,
+    int? LinkedClauseId = null, bool WasGuest = false, int? HomeSectionId = null,
+    IReadOnlyList<int>? HostSectionIds = null)
+{
+    /// <summary>La stessa fotografia, con le presenze della riga da cui è stata scattata.</summary>
+    public AgreementClauseSnapshot ConLePresenzeDi(AgreementClauseRow riga)
+    {
+        if (!riga.IsShared) return this;
+        var casa = riga.HomeSectionId ?? riga.SectionId;
+        return this with
+        {
+            LinkedClauseId = riga.Id,
+            WasGuest = riga.IsGuest,
+            HomeSectionId = casa,
+            HostSectionIds = riga.SharedWith.Select(x => x.SectionId).Append(riga.SectionId)
+                .Where(s => s != casa).Distinct().ToList(),
+        };
+    }
+}
 
 /// <summary>Una clausola da rimettere in una sezione che esiste ancora (eliminazione singola o in blocco).</summary>
 /// <param name="SectionId">La sezione a cui tornava. Se non esiste più, la clausola non si ripristina —
@@ -44,14 +70,10 @@ public sealed record AgreementOutlineRestore(int ClauseId, int VariantGroup, int
     }
 }
 
-/// <summary>Una sezione com'era: la sua intestazione e tutte le sue clausole con la loro struttura.</summary>
-/// <param name="SharedSectionId">
-/// L'id della sezione, se era <b>condivisa</b> con altri accordi. Il ripristino allora la rimette come presenza di
-/// quella che vive ancora altrove; rimetterne il contenuto ne farebbe una copia destinata a divergere. Se nel
-/// frattempo è sparita anche là, torna dal contenuto.
-/// </param>
+/// <summary>Una sezione com'era: la sua intestazione e tutte le sue clausole con la loro struttura. Le clausole
+/// condivise ricordano dov'erano (<see cref="AgreementClauseSnapshot.LinkedClauseId"/>).</summary>
 public sealed record AgreementSectionSnapshot(
-    AgreementSectionInput Data, int Order, IReadOnlyList<AgreementClauseSnapshot> Clauses, int? SharedSectionId = null);
+    AgreementSectionInput Data, int Order, IReadOnlyList<AgreementClauseSnapshot> Clauses);
 
 /// <summary>Un accordo com'era: i due capi e tutte le sue sezioni.</summary>
 public sealed record AgreementSnapshot(AgreementInput Data, IReadOnlyList<AgreementSectionSnapshot> Sections);

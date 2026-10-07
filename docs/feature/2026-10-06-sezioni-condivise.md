@@ -1,5 +1,10 @@
 # Sezioni condivise fra più accordi
 
+> ⚠️ **7 ottobre 2026 — l'unità che si condivide è diventata la CLAUSOLA.** Il committente ha provato il primo giro
+> e ha chiesto due cose che il modello «sezione condivisa» non sapeva fare: condividere un coordinamento solo, e
+> farlo entrare nella sezione uguale che l'altro accordo ha già. I §3–§5 qui sotto raccontano il primo giro e
+> restano come storia; **quel che vale oggi è il §10**. Le decisioni del §2 valgono ancora, dette della clausola.
+
 **6 ottobre 2026.** Carta di lavoro. È il passo 5 di [`2026-10-04-copertura-unica.md`](2026-10-04-copertura-unica.md);
 il modello degli accordi è quello di [`2026-08-18-accordi-a-sezioni.md`](2026-08-18-accordi-a-sezioni.md), che
 questa carta **estende** in un punto solo.
@@ -261,4 +266,124 @@ mettendo il MIL al posto del SU:
 - `AgreementExpansion` — quel che leggono documenti, vista live e matcher — dà 2 flussi e 19 punti per parte.
 
 Non provato lì: la pagina (chiede l'accesso IVAO) e il documento reso.
+
+## 10. Dalla sezione alla clausola — 7 ottobre 2026
+
+### Il fatto
+
+Il committente, dopo aver provato il §9 sulla copia di produzione: «deve essere possibile condividere anche la
+singola clausola, non solo le singole sezioni. Inoltre se esiste una sezione uguale a quella con cui voglio
+condividere si linka a quella, non se ne crea una nuova».
+
+Le due richieste sono la stessa. Con la sezione come unità:
+
+- l'accordo che aveva già la **sua** tabella «arrivi LICT» se ne ritrovava accanto una seconda, ospite — due
+  tabelle uguali nello stesso documento;
+- «le clausole comuni, più quelle solo mie» era possibile solo così, con due sezioni gemelle;
+- un coordinamento solo non si poteva condividere.
+
+### Perché non i due modi insieme
+
+Tenere la sezione condivisa **e** aggiungere la clausola condivisa era la strada più corta, ed è sbagliata: una
+sezione ospite nell'accordo B è, per chi cerca «la sezione uguale di B», la candidata naturale — ma è la stessa
+riga che compare anche in A. Una clausola di un terzo accordo fatta entrare lì finirebbe anche in A, senza che
+nessuno l'abbia chiesto. Per evitarlo le sezioni ospiti andrebbero escluse dalla ricerca, e si tornerebbe a
+creare la gemella. Due meccanismi che si pestano i piedi: ne resta **uno**.
+
+### Il modello
+
+```
+CoordinationAgreement
+└── AgreementSection            sta in UN accordo, come prima del 6 ottobre
+    ├── AgreementAirport
+    ├── AgreementClause         SectionId è la sezione DI CASA
+    │   └── AgreementClauseShare   NUOVA: (ClauseId, SectionId) — una sezione OSPITE, di un altro accordo
+```
+
+- **Condividere** = dire «chi cede → chi riceve». Nell'accordo di quella coppia la clausola entra nella sezione che
+  dice la stessa cosa — stesso traffico, stesso verso, stessi scali — che nasce (con la stessa prosa) **solo se non
+  c'è**. Anche l'accordo nasce solo se manca. «Condividi» sulla testata di una sezione è lo stesso gesto per tutte
+  le clausole che mostra.
+- **Il verso non serve più sulla presenza**: lo dice la sezione che ospita, che è dell'altro accordo.
+- **Una presenza per accordo**: una clausola che lì compare già, in qualunque sezione, non si aggiunge.
+- **Le ospiti stanno in coda** alla sezione, nell'ordine che hanno di casa. Non c'è un ordine per presenza: si
+  riordinano di casa. (Limite accettato: non si può infilare un'ospite fra due clausole della sezione che la ospita.)
+- **Un gruppo di varianti viaggia intero.** Varianti ed eccezioni dicono la stessa cosa a condizioni diverse: la
+  struttura è **contenuto**, uguale in ogni accordo. Si condivide il gruppo anche scegliendone una riga; una
+  variante aggiunta dopo eredita le presenze; una variante sola **eliminata** se ne va per tutti.
+- **Numeri di gruppo unici nell'archivio.** `VariantGroup` era progressivo per accordo: portato nella tabella di un
+  altro, il gruppo «1» ospite si fonderebbe col gruppo «1» di casa. I gruppi nuovi prendono il massimo di tutto
+  l'archivio più uno; un gruppo vecchio cambia numero la prima volta che viene condiviso, se il suo è usato altrove.
+
+### La regola, detta della clausola
+
+> **Il contenuto si distrugge solo quando se ne va l'ULTIMA presenza.**
+
+| Gesto | Che succede |
+|---|---|
+| **✕ guardando un accordo** | la clausola condivisa si toglie **da quello**; se lì era di casa, la casa passa alla sezione che la ospita («promozione») |
+| **✕ su una variante sola** di un gruppo condiviso | eliminazione vera, ovunque: è una modifica al gruppo |
+| **✕ nella vista a elenco** | eliminazione vera, ovunque: lì non c'è un accordo da cui si guarda — la stessa clausola è due righe con una spunta sola. La conferma lo dice |
+| **Elimina la sezione / l'accordo** | le clausole condivise che ci stavano di casa cambiano casa prima; le altre se ne vanno; quelle ospitate perdono la sola presenza |
+| **✂ Stacca** | qui le clausole (coi gruppi interi) diventano copie indipendenti; negli altri accordi restano |
+| **Annulla** | uno stato, non un gesto all'indietro: la fotografia di una clausola condivisa ricorda che lo era, se era ospite e dove. Se vive ancora torna la **presenza** (di casa dov'era di casa); se è sparita ovunque torna il contenuto, con le sue presenze |
+| **⇢ Sposta** | rifiutato per le clausole condivise e per le sezioni che ne portano: prima si stacca |
+| **Unisci gemelle** | le clausole che la sezione assorbita ospitava passano a quella che resta |
+| **Copia nel verso opposto** | copia quel che la sezione mostra, ospiti comprese, come clausole sue |
+
+### Che cosa è stato tolto
+
+`AgreementSectionShare` con verso e ordine per presenza, `RemoveSectionAsync`, `DetachSectionAsync`,
+`UndoPresenceAsync`, l'`agreementId` di `UpdateSectionAsync` e `CopySectionToReverseAsync`, il ribaltamento delle
+presenze ospiti quando i lati si scambiano, l'eccezione «una sezione condivisa non è una gemella». Con loro i
+quattro modi di sbagliare del §9 «la pagina» che riguardavano il verso per presenza.
+
+Migrazione `ClausoleCondivise` sui due provider: crea `AgreementClauseShares`, cancella `AgreementSectionShares`.
+⚠️ La tabella che se ne va era nata il giorno prima e in produzione non è mai esistita: le condivisioni fatte per
+prova sulla copia del committente si perdono (le clausole restano di casa dov'erano).
+
+### Com'è andata
+
+Test: `AgreementShareTests` riscritto (30 casi), `ClausoleCondiviseNellaPaginaTests` (presidi sul sorgente: ogni
+eliminazione dice da quale accordo si guarda; in elenco «Stacca» è spento; la fotografia ricorda le presenze;
+l'eliminazione in blocco fotografa ogni clausola una volta sola).
+
+🔴 **L'annulla dell'eliminazione in blocco poteva esplodere**, e non per il modello nuovo: le «sorelle» di un
+gruppo sciolto arrivavano al ripristino una volta per accordo che mostrava la clausola, e il ripristino le metteva
+in un dizionario per id. Con la prima clausola condivisa in elenco, chiave doppia. Ora si prende la prima.
+
+**Mutazioni.** Quattordici ritocchi al solo comportamento del repository — niente promozione, il gruppo non
+viaggia intero, la sezione uguale non si cerca, il gruppo vecchio tiene il suo numero, la variante nuova non segue
+le presenze, l'annulla rimette ospite chi era di casa, sezione e accordo eliminati portano via le condivise, la
+variante sola si toglie «da qui», il verso copiato dalla sezione di casa, la stessa coppia non si salta, lo stacco
+non toglie la presenza, l'unione perde le ospiti, la clausola condivisa si sposta — fanno cadere ciascuno almeno un
+test. ⚠️ Al primo giro risultavano tutti verdi: lo script leggeva l'esito in un formato che `dotnet test -v q` non
+stampa. Un cancello che non scatta mai va provato una volta rotto.
+
+**Sulla copia della produzione** (seconda base, poi buttata; quella del committente non si tocca). Sette migrazioni
+applicate in ordine, `ClausoleCondivise` compresa: `AgreementClauseShares` c'è, `AgreementSectionShares` no.
+Trapani, a clausole:
+
+| Gesto | Esito |
+|---|---|
+| condividi **una** clausola degli arrivi (`MEGAN 1A`) con `LIRR_MIL_CTR` | 1 condivisa; nascono l'accordo e la sezione «arrivi LICT» |
+| condividi la sezione degli arrivi (13 clausole) | **12** condivise, nella sezione che c'era già: quella di prima non si ripete |
+| condividi la sezione delle partenze (6) | 6 condivise; nasce la sezione «partenze LICT» |
+| l'accordo coi militari | 2 sezioni, 19 clausole, tutte ospiti, stessi id di quello di casa; 19 punti derivati |
+| ✕ su una clausola guardando l'accordo coi militari | lì 18, di casa restano 19 |
+
+**A schermo**, su un database nuovo e inventato (Milano coi volumi, due accordi verso Padova di cui il secondo ha
+già la sua tabella di sorvoli):
+
+| Gesto | Esito a schermo |
+|---|---|
+| spunta `BASSO`, **⛓ Share…**, chi cede → `LIMM_WS2_CTR` | «Clause shared with the agreement LIMM_WS2_CTR → LIPP_CE1_CTR. Into the section that was already there…»; ⛓ sulla riga, «⛓ 1 shared clause» sulla testata |
+| aperto l'altro accordo | **una** sezione: `SUOVE`, poi `BASSO ⛓` in coda |
+| ✕ su `BASSO` lì | «Remove the clause from this agreement? It stays in: LIMM_ES2_CTR ⇄ LIPP_CE1_CTR.» → resta `SUOVE`; **Annulla** la rimette |
+| spunta `BASSO`, **✂ Detach** | la riga resta, senza ⛓; **Annulla** rimette la condivisione |
+| condividi `MEDIO` e **Annulla** | «Sharing undone.», `MEDIO` senza ⛓ |
+| vista a elenco | `BASSO ⛓` è due righe, una spunta le prende tutte e due; «Detach» spento («applies to one agreement: open one»); la conferma dice «will disappear from every agreement», quella di riga «It is shared: it will also disappear from: …» |
+
+Zero errori in console, zero risposte ≥ 400. ⚠️ **Non aperto a schermo** il documento reso con clausole condivise:
+che arrivino a chi legge lo provano i test del repository e i punti derivati sulla copia.
 

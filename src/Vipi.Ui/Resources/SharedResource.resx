@@ -4102,21 +4102,41 @@
   <data name="Xfer_MoveUndone" xml:space="preserve"><value>Spostamento annullato: tutto è tornato dov&apos;era.</value></data>
   <data name="Xfer_SharedWith" xml:space="preserve"><value>condivisa con {0}</value></data>
   <data name="Xfer_SharedWithN" xml:space="preserve"><value>condivisa con {0} accordi</value></data>
-  <data name="Xfer_SharedTitle" xml:space="preserve"><value>Questa sezione compare anche in: {0}. Le clausole sono le stesse: modificarle qui le modifica anche là. Il verso, invece, è di ogni accordo.</value></data>
-  <data name="Xfer_ShareSectionTitle" xml:space="preserve"><value>Condividi questa sezione con l&apos;accordo di un&apos;altra coppia di enti: stesse clausole, scritte una volta</value></data>
-  <data name="Xfer_ShareSectionIntro" xml:space="preserve"><value>La sezione comparirà anche nell&apos;accordo fra questi due enti (nasce se non c&apos;è), con le stesse {0} clausole: da lì in poi si scrivono e si correggono una volta sola. Di solito si cambia un ente solo.</value></data>
+  <data name="Xfer_SharedTitle" xml:space="preserve"><value>Questa clausola compare anche in: {0}. È la stessa: correggerla qui la corregge anche là.</value></data>
+  <data name="Xfer_ShareSectionTitle" xml:space="preserve"><value>Condividi le clausole di questa sezione con l&apos;accordo di un&apos;altra coppia di enti: scritte una volta, valgono per tutti e due</value></data>
+  <data name="Xfer_ShareSectionIntro" xml:space="preserve"><value>Le {0} clausole di questa sezione compariranno anche nell&apos;accordo fra questi due enti, nella sezione con lo stesso traffico e gli stessi scali. Accordo e sezione nascono solo se non ci sono. Da lì in poi si correggono una volta sola. Di solito si cambia un ente solo.</value></data>
   <data name="Xfer_Share" xml:space="preserve"><value>Condividi</value></data>
-  <data name="Xfer_SectionShared" xml:space="preserve"><value>Sezione condivisa con l&apos;accordo {0}.</value></data>
-  <data name="Xfer_ShareAlready" xml:space="preserve"><value>La sezione compare già in quell&apos;accordo: niente da fare.</value></data>
+  <data name="Xfer_ShareAlready" xml:space="preserve"><value>Quelle clausole compaiono già in quell&apos;accordo: niente da fare.</value></data>
   <data name="Xfer_ShareUndone" xml:space="preserve"><value>Condivisione annullata.</value></data>
-  <data name="Xfer_SecDetachTitle" xml:space="preserve"><value>Stacca: in questo accordo diventa una copia indipendente; negli altri resta com&apos;è</value></data>
-  <data name="Xfer_SecDetachPrompt" xml:space="preserve"><value>Staccare la sezione? Qui diventa una copia indipendente con le stesse clausole; resta condivisa in: {0}.</value></data>
+  <data name="Xfer_SecDetachTitle" xml:space="preserve"><value>Stacca le clausole condivise di questa sezione: qui diventano copie indipendenti; negli altri accordi restano com&apos;erano</value></data>
+  <data name="Xfer_SecDetachPrompt" xml:space="preserve"><value>Staccare le {0} clausole condivise di questa sezione? Qui diventano copie indipendenti; negli altri accordi restano com&apos;erano.</value></data>
   <data name="Xfer_SecDetachYes" xml:space="preserve"><value>Sì, stacca</value></data>
-  <data name="Xfer_SectionDetached" xml:space="preserve"><value>Sezione staccata: in questo accordo ora è una copia indipendente.</value></data>
-  <data name="Xfer_SecDetachUndone" xml:space="preserve"><value>Stacco annullato: la sezione è di nuovo condivisa.</value></data>
-  <data name="Xfer_SectionRemovePrompt" xml:space="preserve"><value>Togliere la sezione da questo accordo? Le sue {0} clausole restano in: {1}.</value></data>
-  <data name="Xfer_SectionRemoveYes" xml:space="preserve"><value>Sì, togli da qui</value></data>
-  <data name="Xfer_SectionRemoved" xml:space="preserve"><value>Sezione tolta da questo accordo; resta in {0}.</value></data>
-  <data name="Xfer_SectionPutBack" xml:space="preserve"><value>Sezione rimessa in questo accordo.</value></data>
-  <data name="Xfer_MoveSharedTitle" xml:space="preserve"><value>È condivisa con un altro accordo: staccala, o toglila da uno dei due, prima di spostarla</value></data>
+  <data name="Xfer_SecDetachUndone" xml:space="preserve"><value>Stacco annullato: le clausole sono di nuovo condivise.</value></data>
+  <data name="Xfer_SectionRemovePrompt" xml:space="preserve"><value>Eliminare la sezione? Le {0} clausole condivise restano negli altri accordi; le altre {1} se ne vanno.</value></data>
+  <data name="Xfer_SectionRemoveYes" xml:space="preserve"><value>Sì, elimina</value></data>
+  <data name="Xfer_MoveSharedTitle" xml:space="preserve"><value>Ha clausole condivise con un altro accordo: staccale, o togli la condivisione, prima di spostarla</value></data>
+  <data name="Xfer_SharedClauses" xml:space="preserve"><value>{0} clausole condivise</value></data>
+  <data name="Xfer_SharedClauses_One" xml:space="preserve"><value>1 clausola condivisa</value></data>
+  <data name="Xfer_SharedClausesTitle" xml:space="preserve"><value>Alcune clausole di questa tabella compaiono anche in altri accordi (hanno ⛓ sulla riga): correggerle qui le corregge anche là.</value></data>
+  <data name="Xfer_ShareBulk" xml:space="preserve"><value>Condividi…</value></data>
+  <data name="Xfer_ShareBulkTitle" xml:space="preserve"><value>Fai comparire le clausole scelte anche nell&apos;accordo di un&apos;altra coppia di enti</value></data>
+  <data name="Xfer_ShareBulkIntro" xml:space="preserve"><value>Le clausole scelte — coi loro gruppi di varianti, interi — compariranno anche nell&apos;accordo fra questi due enti, nella sezione con lo stesso traffico e gli stessi scali. Accordo e sezione nascono solo se non ci sono. Di solito si cambia un ente solo.</value></data>
+  <data name="Xfer_ClausesShared" xml:space="preserve"><value>{0} clausole condivise con l&apos;accordo {1}.</value></data>
+  <data name="Xfer_ClausesShared_One" xml:space="preserve"><value>Clausola condivisa con l&apos;accordo {1}.</value></data>
+  <data name="Xfer_ShareIntoExisting" xml:space="preserve"><value>Nella sezione che c&apos;era già: non ne è nata un&apos;altra.</value></data>
+  <data name="Xfer_ShareSectionCreated" xml:space="preserve"><value>La sezione non c&apos;era ed è stata creata.</value></data>
+  <data name="Xfer_DetachBulk" xml:space="preserve"><value>Stacca</value></data>
+  <data name="Xfer_DetachBulkTitle" xml:space="preserve"><value>Stacca: in questo accordo le clausole condivise scelte diventano copie indipendenti; negli altri restano com&apos;erano</value></data>
+  <data name="Xfer_DetachBulkPrompt" xml:space="preserve"><value>Staccare le clausole condivise scelte? Qui diventano copie indipendenti; negli altri accordi restano com&apos;erano.</value></data>
+  <data name="Xfer_DetachNeedsAgreement" xml:space="preserve"><value>«Stacca» vale in un accordo: aprine uno (vista ad accordo)</value></data>
+  <data name="Xfer_ClausesDetached" xml:space="preserve"><value>{0} clausole staccate: in questo accordo ora sono copie indipendenti.</value></data>
+  <data name="Xfer_ClausesDetached_One" xml:space="preserve"><value>Clausola staccata: in questo accordo ora è una copia indipendente.</value></data>
+  <data name="Xfer_DeleteRowSharedPrompt" xml:space="preserve"><value>Togliere la clausola da questo accordo? Resta in: {0}.</value></data>
+  <data name="Xfer_DeleteRowSharedEverywherePrompt" xml:space="preserve"><value>Eliminare la clausola? È condivisa: sparirà anche da: {0}.</value></data>
+  <data name="Xfer_RowRemovedHere" xml:space="preserve"><value>Clausola tolta da questo accordo; resta in {0}.</value></data>
+  <data name="Xfer_BulkDeleteSharedNote" xml:space="preserve"><value>Quelle condivise si tolgono solo da questo accordo e restano negli altri; una variante sola di un gruppo condiviso, invece, sparisce ovunque.</value></data>
+  <data name="Xfer_BulkDeleteSharedEverywhere" xml:space="preserve"><value>Quelle condivise spariranno da tutti gli accordi: per toglierle da uno solo, apri quell&apos;accordo.</value></data>
+  <data name="Xfer_GapLevel" xml:space="preserve"><value>quota di un altro settore</value></data>
+  <data name="Xfer_GapLevelDetail" xml:space="preserve"><value>Lì, a quella quota, il cielo è di {0} quando è aperto; la clausola è scritta per {1}: {2}.</value></data>
+  <data name="Xfer_GapLevelMoveTitle" xml:space="preserve"><value>Scegli queste clausole e apri «Sposta» con {0} al posto dell&apos;ente scritto</value></data>
 </root>

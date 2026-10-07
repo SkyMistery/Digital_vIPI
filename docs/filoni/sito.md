@@ -2087,7 +2087,28 @@
     tabella aveva zero righe e non c'è più; le due sezioni vere di Trapani (`LIRR_SU_CTR ⇄ LICT_APP`, 19 clausole)
     condivise con `LIRR_MIL_CTR` — accordo creato alla prima, riusato alla seconda, stessi id di clausola nei due
     accordi, 19 punti derivati per parte.
-  - ▶ Resta 4b (da ridisegnare, vedi sopra).
+  - ✅ **Passo 5 rifatto: si condivide la CLAUSOLA, non la sezione** (7-ott). Il committente ha provato il primo
+    giro: «deve essere possibile condividere anche la singola clausola… se esiste una sezione uguale si linka a
+    quella, non se ne crea una nuova». Carta del passo 5, **§10**. Tabella `AgreementClauseShares` (clausola →
+    sezione ospite di un altro accordo); `AgreementSectionShares` se ne va (**migrazione `ClausoleCondivise`**, due
+    provider: crea l'una, cancella l'altra — che in produzione non è mai esistita). Nell'accordo di arrivo la
+    clausola entra nella sezione con stesso traffico/verso/scali, che nasce solo se manca. Un gruppo di varianti
+    viaggia intero; i numeri di gruppo nuovi sono unici in tutto l'archivio. ✕ guardando un accordo toglie da
+    quello; in elenco, e per una variante sola di un gruppo condiviso, elimina ovunque (la conferma lo dice).
+    Annulla come stato: la fotografia della clausola ricorda dov'era. Via `RemoveSectionAsync`,
+    `DetachSectionAsync`, `UndoPresenceAsync` e il verso per presenza. Trovato rifacendolo: l'annulla
+    dell'eliminazione in blocco esplodeva con la prima clausola condivisa in elenco (sorelle doppie).
+    **Codice comune** `Vipi.Domain`, `Vipi.Application`, `Vipi.Infrastructure`. Venti mutazioni, venti rosse.
+    Sulla copia della produzione: 7 migrazioni, Trapani ⇄ MIL a clausole (1, poi 12 nella sezione già nata, poi 6).
+    A schermo su database inventato: condividi nella sezione che c'era, togli e annulla, stacca e annulla, elenco.
+  - ✅ **4b — l'avviso «quota di un altro settore»** (7-ott, carta della copertura §10). Non «quota fuori dalla
+    banda del settore scritto» (ES2/WS2 sono SFC–UNL: non scatterebbe mai) ma «su quel punto, a quella quota, c'è
+    un settore più specifico che pende da quello scritto e tiene quel cielo»: lo dice la geometria
+    (`AgreementLevelCheck`, puro), solo per gli enti d'area, mai sul confine esatto, mai per l'altro capo
+    dell'accordo. Voce del cruscotto delle lacune col tasto ⇢ che prepara lo spostamento; non sposta da solo.
+    **Codice comune** `Vipi.Application`. Sulla copia della produzione: 3 avvisi su 198 clausole (Zagabria
+    `LDZO_CTR`/`LDZO_S_CTR` su AIOSA, Milano `WS2`/`ES2` su NELAB).
+    App 3241 → 3256, Infra 2131 → 2142, Ui 1985 → 1988.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

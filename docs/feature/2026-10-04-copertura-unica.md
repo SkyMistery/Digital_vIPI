@@ -50,8 +50,8 @@ da sola: serve agli avvisi e al rinvio «copertura del punto», che resta una ri
 | 2 | **Banco di prova in Struttura**: scelgo chi è aperto (o una configurazione già scritta in una vIPI) e vedo chi assorbe chi, con le fasce | ✅ §7 |
 | 3 | **Banco sui trasferimenti**: stesso scenario, tutte le clausole dell'ACC con chi cede e chi riceve | ✅ §7 |
 | 4 | **Sposta sezione o clausole in un altro accordo** | ✅ §8 |
-| 4b | L'avviso «quota fuori dalla banda del settore scritto», col tasto per spostare | ▶ |
-| 5 | **Sezione condivisa** fra più accordi (Trapani ⇄ `LIRR_SU` per i GAT e Trapani ⇄ `LIRR_MIL` per gli OAT): si scrive una volta | ▶ |
+| 4b | L'avviso «quota di un altro settore», col tasto per spostare | ✅ §10 |
+| 5 | **Clausole condivise** fra più accordi (Trapani ⇄ `LIRR_SU` per i GAT e Trapani ⇄ `LIRR_MIL` per gli OAT): si scrivono una volta | ✅ [`2026-10-06-sezioni-condivise.md`](2026-10-06-sezioni-condivise.md) |
 
 Decisione del committente sul passo 5 (4 ottobre): nel documento e nella vista live la sezione condivisa esce come
 **una tabella per accordo** — due tabelle uguali, scritte una volta sola — e non come una riga con i due riceventi
@@ -230,6 +230,8 @@ solito se ne cambia uno), e il lavoro va nell'accordo di **quella** coppia:
 
 ### Aperto (4b)
 
+> ✅ **Fatto il 7 ottobre 2026, con un'altra regola**: §10.
+
 L'avviso «quota fuori dalla banda del settore scritto» non è fatto. Regola pensata, da confermare scrivendola: solo
 per i capi **d'area** (per gli APP un trasferimento un po' fuori è la norma), solo quando la quota è **tutta** fuori
 («esattamente FL350» su un settore che finisce a FL325; non «FL350 o inferiore»), e mai sul confine esatto.
@@ -272,3 +274,73 @@ punto resta a chi è scritto.
 3. Le quattro migrazioni fra 1.54.3 e `main` si applicano alla copia senza errori (controllo di passaggio).
 
 Il caso del passo 5 esiste già: `LIRR_SU_CTR ⇄ LICT_APP` ha 19 clausole, e l'accordo con `LIRR_MIL_CTR` non c'è.
+
+## 10. L'avviso «quota di un altro settore» (4b) — 7 ottobre 2026
+
+### La regola che c'era, e perché non andava
+
+«La quota della clausola è fuori dalla banda del settore scritto». I dati veri l'hanno smentita (§9): in produzione
+ES2 e WS2 vanno da SFC a **UNL**. Il committente lo ha confermato: «ES2 e WS2 vanno GND–UNL senza i settori WS5 e
+ES5 aperti». Per il catalogo FL350 è dentro ES2, e l'avviso non sarebbe scattato mai.
+
+### La regola nuova
+
+> Una clausola scritta per un ente d'area è da guardare quando, **su quel punto e a quella quota**, esiste un
+> settore **più specifico** — uno che da lui pende — che quel cielo lo tiene.
+
+«Pende» è la catena di ripiego, non un secondo albero: il settore S pende da X a una quota se la catena di S a
+quella quota passa da X (se S chiude, il suo cielo torna a X). «Tiene» lo dice la geometria, con tutti aperti:
+`TrafficAttribution.AttributeClaim` fra i volumi dei soli settori che pendono dall'ente scritto. È lo stesso
+attrezzo del rinvio geometrico (`2026-09-10-rinvio-geometrico.md`), fatto girare al contrario: lì si chiede «chi
+raccoglie se il ricevente è chiuso», qui «di chi è questo cielo quando ci sono tutti».
+
+`AgreementLevelCheck.Find` — puro, nessun I/O. Quando **tace**, di proposito:
+
+| Caso | Perché |
+|---|---|
+| l'ente scritto non è d'area (APP, TWR) | per un APP un trasferimento un po' fuori è la norma (committente, 4 ottobre) |
+| il punto non è un punto (`ALL`, un'aerovia, una STAR) o il catalogo non sa dov'è | la geometria non ha dove guardare |
+| il punto non sta in nessuno dei settori che pendono dall'ente scritto | è fuori, o sul confine laterale: non c'è niente da dire |
+| l'ente scritto tiene quel cielo ad **almeno una** delle quote ammesse | «FL350 o inferiore» vale anche sotto FL325 |
+| il confine esatto | si guarda 50 ft sotto e 50 ft sopra: «esattamente FL325» non è un avviso |
+| il più specifico è l'altro capo dell'accordo, o pende da lui | è il trasferimento stesso (WS2 → ES2) |
+| FSS e militari | stanno sopra il cielo di tutti: «più specifici» lo sarebbero sempre |
+
+La quota è quella a cui il traffico **passa di mano**: la faccetta trasferimento se c'è, altrimenti il livello
+autorizzato (`FallbackChain.HandoffFeetOf`).
+
+### Dove si vede
+
+Una voce del cruscotto delle lacune (◎), `AgreementGapKind.LevelOutsideSector`: una riga per sezione e per settore
+che tiene davvero, coi punti e le quote. Accanto, **⇢**: sceglie quelle clausole e apre «Sposta» con la coppia
+giusta già scritta — al posto dell'ente scritto, il settore più specifico. **Non sposta niente da solo**: lo
+scritto comanda, la geometria avvisa, chi guarda conferma.
+
+Il calcolo vuole i volumi dei settori e le posizioni dei punti: lo fa il servizio a ogni ricarico della pagina
+(`LevelWarningsAsync`), tenendo la geometria in memoria per cinque minuti.
+
+### Com'è andata
+
+Test `AgreementLevelCheckTests` (16), su Milano com'è in produzione — ES2 e WS2 da SFC a UNL. Sei mutazioni
+(l'altro capo conta come più specifico, FSS e MIL contano, si giudica sul confine, basta la prima quota, la
+faccetta non conta, chi pende da un altro conta lo stesso) fanno cadere ciascuna almeno un test.
+
+**Sulla copia della produzione del 1° ottobre**, col catalogo intero dei punti (3742) e 314 settori: su **198
+clausole, 3 avvisi**.
+
+| ACC | Scritto | Lì lo tiene | Punti |
+|---|---|---|---|
+| LIBB | `LDZO_CTR` (cede) | `LDZO_S_CTR` | `AIOSA` a FL230 e a FL250 o inferiore |
+| LIMM | `LIMM_WS2_CTR` (cede) | `LIMM_ES2_CTR` | `NELAB` a FL150 |
+
+Nessuna valanga, e nessuno dei tre è il caso ES5: in produzione ES5 e WS5 non cedono ancora niente (§9). Sono
+clausole scritte per il settore «grande» su un punto che sta nel cielo di un suo settore più piccolo — che è quel
+che l'avviso deve far guardare. Tempo: 0,9 s la prima lettura della geometria (scarica il catalogo dei punti, poi
+resta in memoria), circa 0,1 s il controllo di un'ACC.
+
+**A schermo**, sul database inventato: la voce «level of another sector — LIMM_ES2_CTR → LIPP_CE1_CTR — There, at
+that level, the sky belongs to LIMM_ES5_CTR when it is open; the clause is written for LIMM_ES2_CTR: ALTOP FL350.»;
+il tasto ⇢ spunta `ALTOP` e apre «Sposta» con `LIMM_ES5_CTR → LIPP_CE1_CTR` già scritto.
+
+⚠️ La pagina sui dati veri non l'ho guidata (chiede l'accesso IVAO): i tre avvisi li ha contati il motore.
+

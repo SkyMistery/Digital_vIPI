@@ -1360,28 +1360,33 @@ provider si pubblicherebbe senza congelare niente **in silenzio**; `AccVipi` per
 gira all'avvio (`TidyVipiDocumentUnions`) e dopo ogni rimozione. La cascata toglie già la riga insieme al
 documento eliminato; quel che resta da chiudere è l'unione che quella riga teneva in piedi.
 
-### 9.34 `AgreementSectionShare` — sezioni condivise fra più accordi (6 ott 2026) 🟢
+### 9.34 `AgreementClauseShare` — clausole condivise fra più accordi (7 ott 2026) 🟢
 
-Estende §9.25-bis in un punto. Una sezione resta **di casa** in un accordo (`AgreementSections.AgreementId`), e una
-riga di `AgreementSectionShares` dice che **compare anche** in un altro — l'accordo che la *ospita*. Carta
-[`../feature/2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md).
+Estende §9.25-bis in un punto. Una clausola resta **di casa** nella sua sezione (`AgreementClauses.SectionId`), e
+una riga di `AgreementClauseShares` dice che **compare anche** in una sezione di un altro accordo — quella che la
+*ospita*. Carta [`../feature/2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md) §10.
 
 | Campo | Tipo | Note |
 |---|---|---|
 | `Id` | int PK | |
-| `SectionId` | int FK → `AgreementSections`, cascade | la sezione condivisa |
-| `AgreementId` | int FK → `CoordinationAgreements`, cascade | l'accordo ospite; mai quello di casa |
-| `Direction` | enum-stringa `AgreementDirection` | il verso **in questo accordo**: i lati sono canonici in un ordine suo |
-| `Order` | int | posto fra le sezioni di questo accordo |
+| `ClauseId` | int FK → `AgreementClauses`, cascade | la clausola condivisa |
+| `SectionId` | int FK → `AgreementSections`, cascade | la sezione ospite; mai quella di casa, mai una dello stesso accordo |
 
-Indici: `(SectionId, AgreementId)` **unico**; `(AgreementId, Order)`.
+Indici: `(ClauseId, SectionId)` **unico**; `(SectionId)`.
 
-- **Chi legge non cambia**: `EfAgreementRepository.ListByAccAsync` dà a ogni accordo le sezioni di casa e le ospiti;
-  `AgreementSectionRow.SharedWith` elenca gli altri accordi in cui la sezione compare.
-- ⚠️ **Il contenuto si distrugge solo con l'ultima presenza.** Lo schema protegge un verso solo (eliminato
-  l'accordo ospite se ne va la riga); l'altro — eliminato l'accordo di casa mentre la sezione ha ospiti — lo fa il
-  repository, che prima sposta la casa al primo ospite.
-- Migrazione `SezioniCondivise`: una `CreateTable` e due indici, sui due provider. Additiva.
+- **Chi legge non cambia**: `EfAgreementRepository.ListByAccAsync` dà a ogni sezione le clausole di casa e — in coda,
+  nell'ordine che hanno di casa — le ospiti. `AgreementClauseRow.SharedWith` elenca le altre sezioni in cui la
+  clausola compare, `IsGuest` dice se qui è ospite.
+- ⚠️ **Niente verso, niente ordine, niente gruppo sulla riga**: il verso è della sezione ospite; un gruppo di
+  varianti si condivide **intero** e la sua struttura è contenuto, uguale ovunque.
+- ⚠️ **`VariantGroup` è unico in tutto l'archivio** per i gruppi nati dal 7 ottobre 2026 (prima era progressivo per
+  accordo); un gruppo vecchio prende un numero nuovo la prima volta che viene condiviso.
+- ⚠️ **Il contenuto si distrugge solo con l'ultima presenza.** Lo schema protegge un verso solo (eliminata la
+  sezione ospite se ne va la riga); l'altro — eliminata la sezione di casa mentre la clausola ha ospiti — lo fa il
+  repository, che prima sposta la casa alla sezione ospite («promozione»).
+- Migrazione `ClausoleCondivise`, sui due provider: crea `AgreementClauseShares` e cancella
+  `AgreementSectionShares`. Quest'ultima era nata il giorno prima (`SezioniCondivise`: il primo giro condivideva la
+  sezione intera) e non è mai arrivata in produzione con dei dati.
 
 ### 9.35 Via `UnificationRule` (6 ott 2026) 🟢
 

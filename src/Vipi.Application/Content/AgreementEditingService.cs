@@ -84,6 +84,27 @@ public sealed class AgreementService : IAgreementService
         return ProceduraNeiPunti.NonTrovate(accordi, oggi, entrante, DateTime.UtcNow);
     }
 
+    /// <summary>
+    /// Volumi dei settori e posizioni dei punti per l'avviso «quota di un altro settore». Cambiano coi cataloghi
+    /// (una volta al giorno), l'editor ricarica a ogni scrittura: si tengono qualche minuto, e i poligoni si
+    /// leggono dal JSON una volta sola.
+    /// </summary>
+    private (DateTime Presa, IReadOnlyList<SectorVolumeRow> Settori, CopPositions Punti,
+        Dictionary<SectorVolumeRow, Vipi.Application.Stats.SectorVolume?> Volumi)? _geometria;
+
+    public async Task<IReadOnlyList<AgreementLevelWarning>> LevelWarningsAsync(IReadOnlyList<AgreementRow> accordi,
+        CancellationToken ct = default)
+    {
+        if (_volumi is null || _punti is null || accordi.Count == 0) return Array.Empty<AgreementLevelWarning>();
+
+        if (_geometria is not { } g || DateTime.UtcNow - g.Presa > TimeSpan.FromMinutes(5))
+            _geometria = g = (DateTime.UtcNow, await _volumi.GetAllAsync(ct), await _punti.GetAsync(ct),
+                new Dictionary<SectorVolumeRow, Vipi.Application.Stats.SectorVolume?>(ReferenceEqualityComparer.Instance));
+
+        var topo = await _topology.BuildGlobalAsync(ct);
+        return AgreementLevelCheck.Find(accordi, g.Settori, g.Punti, topo.Fallbacks, topo.ParentOf, g.Volumi);
+    }
+
     public async Task<IReadOnlyList<ResolvedTransferFlow>> ResolveForAccAsync(
         string accCode, IReadOnlySet<string> online, CancellationToken ct = default)
     {
@@ -131,24 +152,17 @@ public sealed class AgreementService : IAgreementService
     }
 
     public async Task UpdateSectionAsync(string accCode, int sectionId, AgreementSectionInput input,
-        int? agreementId = null, CancellationToken ct = default)
+        CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
         ValidateSection(input);
-        await _repo.UpdateSectionAsync(accCode, sectionId, input, agreementId, ct);
+        await _repo.UpdateSectionAsync(accCode, sectionId, input, ct);
     }
 
     public async Task DeleteSectionAsync(string accCode, int sectionId, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
         await _repo.DeleteSectionAsync(accCode, sectionId, ct);
-    }
-
-    public async Task<AgreementPresenceUndo?> RemoveSectionAsync(string accCode, int sectionId, int agreementId,
-        CancellationToken ct = default)
-    {
-        await StrutturaAsync(ct);
-        return await _repo.RemoveSectionAsync(accCode, sectionId, agreementId, ct);
     }
 
     public async Task<AgreementShareResult> ShareSectionAsync(string accCode, int sectionId, int senderSectorId,
@@ -158,24 +172,36 @@ public sealed class AgreementService : IAgreementService
         return await _repo.ShareSectionAsync(accCode, sectionId, senderSectorId, receiverSectorId, ct);
     }
 
-    public async Task<AgreementDetachResult> DetachSectionAsync(string accCode, int sectionId, int agreementId,
-        CancellationToken ct = default)
+    public async Task<AgreementShareResult> ShareClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int senderSectorId, int receiverSectorId, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        return await _repo.DetachSectionAsync(accCode, sectionId, agreementId, ct);
+        return await _repo.ShareClausesAsync(accCode, clauseIds, senderSectorId, receiverSectorId, ct);
     }
 
-    public async Task UndoPresenceAsync(string accCode, AgreementPresenceUndo undo, CancellationToken ct = default)
+    public async Task UndoShareAsync(string accCode, AgreementShareUndo undo, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        await _repo.UndoPresenceAsync(accCode, undo, ct);
+        await _repo.UndoShareAsync(accCode, undo, ct);
     }
 
-    public async Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, int? agreementId = null,
-        CancellationToken ct = default)
+    public async Task<AgreementDetachResult> DetachClausesAsync(string accCode, IReadOnlyList<int> clauseIds,
+        int agreementId, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        return await _repo.CopySectionToReverseAsync(accCode, sectionId, agreementId, ct);
+        return await _repo.DetachClausesAsync(accCode, clauseIds, agreementId, ct);
+    }
+
+    public async Task UndoDetachAsync(string accCode, AgreementDetachUndo undo, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        await _repo.UndoDetachAsync(accCode, undo, ct);
+    }
+
+    public async Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, CancellationToken ct = default)
+    {
+        await StrutturaAsync(ct);
+        return await _repo.CopySectionToReverseAsync(accCode, sectionId, ct);
     }
 
     public async Task<int> MergeSectionsAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default)
@@ -218,10 +244,10 @@ public sealed class AgreementService : IAgreementService
         await _repo.UpdateClauseAsync(accCode, clauseId, ProceduraNeiPunti.Normalizza(input), ct);
     }
 
-    public async Task DeleteClauseAsync(string accCode, int clauseId, CancellationToken ct = default)
+    public async Task DeleteClauseAsync(string accCode, int clauseId, int? agreementId = null, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        await _repo.DeleteClauseAsync(accCode, clauseId, ct);
+        await _repo.DeleteClauseAsync(accCode, clauseId, agreementId, ct);
     }
 
     public async Task MoveClauseAsync(string accCode, int clauseId, bool up, CancellationToken ct = default)
@@ -302,10 +328,11 @@ public sealed class AgreementService : IAgreementService
         return await _repo.SetConditionAsync(accCode, clauseIds, areaLabel, areaNegated, areaAll, customLabel, ct);
     }
 
-    public async Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, CancellationToken ct = default)
+    public async Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, int? agreementId = null,
+        CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
-        return await _repo.DeleteClausesAsync(accCode, clauseIds, ct);
+        return await _repo.DeleteClausesAsync(accCode, clauseIds, agreementId, ct);
     }
 
     public async Task<int> RestoreAgreementAsync(string accCode, AgreementSnapshot snapshot, CancellationToken ct = default)

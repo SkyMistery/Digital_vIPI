@@ -9,13 +9,14 @@ using Xunit;
 namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
-/// Le sezioni <b>condivise</b> fra più accordi: lo stesso contenuto vale per più coppie di enti e si scrive una
+/// Le clausole <b>condivise</b> fra più accordi: lo stesso coordinamento vale per più coppie di enti e si scrive una
 /// volta. Il caso è Trapani — gli stessi coordinamenti verso <c>LIRR_SU</c> (GAT) e verso <c>LIRR_MIL</c> (OAT).
-/// Carta <c>docs/feature/2026-10-06-sezioni-condivise.md</c>.
+/// Carta <c>docs/feature/2026-10-06-sezioni-condivise.md</c> §10.
 ///
 /// <para>Qui i settori sono quelli del seed di Roma: <c>NE</c> fa la parte di chi cede sempre, <c>EW</c> e
-/// <c>SU</c> quella dei due riceventi. La regola che ogni test tiene in piedi è una: <b>il contenuto si distrugge
-/// solo quando se ne va l'ultima presenza</b>.</para>
+/// <c>SU</c> quella dei due riceventi. Le regole che ogni test tiene in piedi sono tre: <b>il contenuto si distrugge
+/// solo quando se ne va l'ultima presenza</b>; <b>nell'accordo di arrivo la clausola va nella sezione che dice la
+/// stessa cosa</b>, che nasce solo se non c'è; <b>un gruppo di varianti viaggia intero</b>.</para>
 /// </summary>
 public class AgreementShareTests : IAsyncLifetime
 {
@@ -27,7 +28,7 @@ public class AgreementShareTests : IAsyncLifetime
     /// <summary>Gli stessi quattro settori in ordine di id. I lati di un accordo sono canonici (id minore = A): per
     /// provare che un verso segue l'accordo giusto serve una coppia in cui l'ente comune sta a sinistra e una in
     /// cui sta a destra — e questo lo decide l'ordine degli id, non il nome.</summary>
-    private int _primo, _secondo, _terzo, _quarto;
+    private int _primo, _secondo, _terzo;
 
     public async Task InitializeAsync()
     {
@@ -41,7 +42,7 @@ public class AgreementShareTests : IAsyncLifetime
         int Id(string cs) => settori.First(s => s.Callsign == cs).Id;
         (_ne, _ts, _ew, _su) = (Id("LIRR_NE_CTR"), Id("LIRR_TS_CTR"), Id("LIRR_EW_CTR"), Id("LIRR_SU_CTR"));
         var perId = new[] { _ne, _ts, _ew, _su }.OrderBy(x => x).ToArray();
-        (_primo, _secondo, _terzo, _quarto) = (perId[0], perId[1], perId[2], perId[3]);
+        (_primo, _secondo, _terzo) = (perId[0], perId[1], perId[2]);
     }
 
     public async Task DisposeAsync()
@@ -53,189 +54,368 @@ public class AgreementShareTests : IAsyncLifetime
     // ---- condividere --------------------------------------------------------------------------------
 
     [Fact]
-    public async Task Una_sezione_condivisa_compare_in_tutti_e_due_gli_accordi_ed_e_la_stessa()
+    public async Task Una_clausola_condivisa_compare_in_tutti_e_due_gli_accordi_ed_e_la_stessa()
     {
         var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var valma = await IdAsync(casa, "VALMA");
 
-        var esito = await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su);
+        var esito = await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su);
 
-        Assert.True(esito.Added);
-        Assert.True(esito.AgreementCreated);
-        var (diCasa, ospite) = (await SezioneInAsync(casa, sezione), await SezioneInAsync(esito.AgreementId, sezione));
-        // Stesse clausole, con gli STESSI id: non è una copia.
-        Assert.Equal(diCasa.Clauses.Select(c => c.Id), ospite.Clauses.Select(c => c.Id));
-        Assert.Equal(new[] { "VALMA", "BIRSU" }, ospite.Clauses.Select(c => c.Cops));
-        // Ognuna dice dove ALTRO compare, e non nomina sé stessa.
-        Assert.Equal(esito.AgreementId, Assert.Single(diCasa.SharedWith).AgreementId);
-        Assert.Equal(casa, Assert.Single(ospite.SharedWith).AgreementId);
-        Assert.True(diCasa.IsShared && ospite.IsShared);
+        Assert.Equal((1, true, true), (esito.Clauses, esito.AgreementCreated, esito.SectionCreated));
+        var diCasa = (await SezioneInAsync(casa, sezione)).Clauses;
+        var ospite = Assert.Single((await AccordoAsync(esito.AgreementId)).Sections);
+        // La STESSA clausola, con lo stesso id: non è una copia. E solo quella: BIRSU non è stata chiesta.
+        var riga = Assert.Single(ospite.Clauses);
+        Assert.Equal(valma, riga.Id);
+        Assert.Equal((true, true), (riga.IsGuest, riga.IsShared));
+        Assert.Equal(casa, Assert.Single(riga.SharedWith).AgreementId);
+        // Di casa lo sa anche lei, e solo lei.
+        Assert.Equal(new[] { (true, false), (false, false) }, diCasa.Select(c => (c.IsShared, c.IsGuest)));
+        Assert.Equal(esito.AgreementId, Assert.Single(diCasa[0].SharedWith).AgreementId);
+        // La sezione nata per ospitarla dice la stessa cosa di quella di casa.
+        var origine = await SezioneInAsync(casa, sezione);
+        Assert.Equal((origine.Kind, origine.AirportsLabel), (ospite.Kind, ospite.AirportsLabel));
+    }
+
+    [Fact]
+    public async Task Se_la_sezione_uguale_c_e_gia_la_clausola_entra_li_e_non_ne_nasce_un_altra()
+    {
+        // 🔴 La richiesta del 7 ottobre: l'accordo coi militari ha già la SUA tabella «arrivi LIRF». Il primo giro
+        // condivideva la sezione intera, e gliene metteva accanto una seconda uguale.
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+        var (altro, sua) = await SezioneAsync(_ne, _su, "GIKIN");
+
+        var esito = await _repo.ShareClausesAsync("LIRR", new[] { await IdAsync(casa, "VALMA") }, _ne, _su);
+
+        Assert.Equal((altro, sua, false, false), (esito.AgreementId, esito.SectionId, esito.AgreementCreated, esito.SectionCreated));
+        var tabella = Assert.Single((await AccordoAsync(altro)).Sections);
+        // Le sue prima, le ospiti in coda — e il posto in tabella lo dice.
+        Assert.Equal(new[] { "GIKIN", "VALMA" }, tabella.Clauses.Select(c => c.Cops));
+        Assert.Equal(new[] { false, true }, tabella.Clauses.Select(c => c.IsGuest));
+        Assert.True(tabella.Clauses[0].Order < tabella.Clauses[1].Order);
+    }
+
+    [Fact]
+    public async Task Una_sezione_con_altri_scali_non_e_la_stessa_tabella()
+    {
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+        var altro = await _repo.AddAgreementAsync("LIRR", new AgreementInput { SideASectorId = _ne, SideBSectorId = _su });
+        var napoli = await _repo.AddSectionAsync("LIRR", altro, new AgreementSectionInput
+        {
+            Kind = TransferFlowKind.Arrival, Direction = Verso(_ne, _su), Airports = new[] { new AgreementAirportInput("LIRN") },
+        });
+
+        var esito = await _repo.ShareClausesAsync("LIRR", new[] { await IdAsync(casa, "VALMA") }, _ne, _su);
+
+        Assert.True(esito.SectionCreated);
+        Assert.NotEqual(napoli, esito.SectionId);
+        Assert.Equal(2, (await AccordoAsync(altro)).Sections.Count);
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Il_verso_e_della_presenza_chi_cede_resta_chi_cede_in_ogni_accordo(bool cedeIlComune)
+    public async Task Chi_cede_resta_chi_cede_anche_nell_altro_accordo(bool cedeIlComune)
     {
-        // ⚠️ I lati di ogni accordo sono canonici (id minore = A) in un ordine suo. L'ente comune qui è il SECONDO
-        // per id: nell'accordo col primo sta a destra, in quello col terzo sta a sinistra — quindi lo stesso «il
-        // comune cede» è BtoA di qua e AtoB di là. Il verso va scritto sulla presenza, o la tabella ospite direbbe
-        // il contrario. (Con un ente comune che sta dalla stessa parte in tutti e due, copiare il verso di casa
-        // passerebbe per giusto: la prima stesura di questo test era così, e una mutazione l'ha smascherata.)
-        var (comune, altroCasa, altroOspite) = (_secondo, _primo, _terzo);
-        var (cede, riceve) = cedeIlComune ? (comune, altroCasa) : (altroCasa, comune);
-        var (casa, sezione) = await SezioneAsync(cede, riceve, "VALMA");
-        var (cedeLa, riceveLa) = cedeIlComune ? (comune, altroOspite) : (altroOspite, comune);
+        // L'ente comune sta in MEZZO per id: nell'accordo di casa è a sinistra, in quello di arrivo a destra. Il
+        // verso della sezione di arrivo va calcolato sui lati di QUELL'accordo, o direbbe il contrario.
+        var (cede, riceve) = cedeIlComune ? (_secondo, _terzo) : (_terzo, _secondo);
+        var (casa, _) = await SezioneAsync(cede, riceve, "VALMA");
+        var (cedeLi, riceveLi) = cedeIlComune ? (_secondo, _primo) : (_primo, _secondo);
 
-        var esito = await _repo.ShareSectionAsync("LIRR", sezione, cedeLa, riceveLa);
+        var esito = await _repo.ShareClausesAsync("LIRR", new[] { await IdAsync(casa, "VALMA") }, cedeLi, riceveLi);
 
-        var accordi = await _repo.ListByAccAsync("LIRR");
-        var (a, b) = (accordi.Single(x => x.Id == casa), accordi.Single(x => x.Id == esito.AgreementId));
-        var (versoCasa, versoOspite) = (a.Sections.Single(s => s.Id == sezione).Direction, b.Sections.Single(s => s.Id == sezione).Direction);
-        Assert.NotEqual(versoCasa, versoOspite);   // è il punto: lo stesso senso, due versi scritti
-        Assert.Equal(cede, a.Sender(versoCasa).SectorId);
-        Assert.Equal(cedeLa, b.Sender(versoOspite).SectorId);
-        Assert.Equal(riceveLa, b.Receiver(versoOspite).SectorId);
+        var accordo = await AccordoAsync(esito.AgreementId);
+        var sezione = Assert.Single(accordo.Sections);
+        Assert.Equal((cedeLi, riceveLi), (accordo.Sender(sezione.Direction).SectorId, accordo.Receiver(sezione.Direction).SectorId));
     }
 
     [Fact]
-    public async Task Condividere_dove_compare_gia_non_fa_niente()
+    public async Task Condividere_dove_compare_gia_non_fa_niente_e_non_lascia_un_accordo_vuoto()
     {
-        var (_, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var prima = await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su);
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+        var valma = new[] { await IdAsync(casa, "VALMA") };
+        await _repo.ShareClausesAsync("LIRR", valma, _ne, _su);
+        var prima = await FotoAsync();
 
-        var dinuovo = await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su);
-        var inCasa = await _repo.ShareSectionAsync("LIRR", sezione, _ne, _ew);
+        var diNuovo = await _repo.ShareClausesAsync("LIRR", valma, _ne, _su);
+        // La stessa coppia di casa: lì la clausola c'è già. E un accordo nato per niente non resta lì.
+        var aCasa = await _repo.ShareClausesAsync("LIRR", valma, _ne, _ew);
+        var nelVersoOpposto = await _repo.ShareClausesAsync("LIRR", valma, _su, _ne);
 
-        Assert.False(dinuovo.Added);
-        Assert.False(inCasa.Added);
-        Assert.Single((await SezioneInAsync(prima.AgreementId, sezione)).SharedWith);
+        Assert.All(new[] { diNuovo, aCasa, nelVersoOpposto }, e => Assert.Equal((false, 0, false), (e.Added, e.Clauses, e.AgreementCreated)));
+        Assert.Equal(prima, await FotoAsync());
     }
 
     [Fact]
-    public async Task Una_clausola_scritta_da_un_accordo_si_legge_anche_nell_altro()
+    public async Task Condividere_la_sezione_condivide_tutte_le_clausole_che_mostra()
+    {
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+
+        var esito = await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su);
+
+        Assert.Equal(2, esito.Clauses);
+        Assert.Equal((await SezioneInAsync(casa, sezione)).Clauses.Select(c => c.Id),
+            Assert.Single((await AccordoAsync(esito.AgreementId)).Sections).Clauses.Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task Una_clausola_corretta_da_un_accordo_si_legge_corretta_anche_nell_altro()
     {
         var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
 
-        await _repo.AddClauseAsync("LIRR", sezione, Clausola("NUOVA"));
+        await _repo.UpdateClauseAsync("LIRR", valma, Clausola("VALMA2"));
 
-        Assert.Equal(new[] { "VALMA", "NUOVA" }, (await SezioneInAsync(casa, sezione)).Clauses.Select(c => c.Cops));
-        Assert.Equal(new[] { "VALMA", "NUOVA" }, (await SezioneInAsync(ospite, sezione)).Clauses.Select(c => c.Cops));
+        Assert.Equal("VALMA2", Assert.Single((await SezioneInAsync(casa, sezione)).Clauses).Cops);
+        Assert.Equal("VALMA2", Assert.Single(Assert.Single((await AccordoAsync(altro)).Sections).Clauses).Cops);
     }
 
-    // ---- togliere: il contenuto se ne va solo con l'ultima presenza ----------------------------------
+    // ---- i gruppi di varianti viaggiano interi ------------------------------------------------------
+
+    [Fact]
+    public async Task Un_gruppo_di_varianti_si_condivide_intero()
+    {
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var alternativa = await _repo.AddAlternativeAsync("LIRR", await IdAsync(casa, "VALMA"));
+
+        // Si sceglie UNA variante: arriva il gruppo.
+        var esito = await _repo.ShareClausesAsync("LIRR", new[] { alternativa }, _ne, _su);
+
+        Assert.Equal(2, esito.Clauses);
+        var righe = Assert.Single((await AccordoAsync(esito.AgreementId)).Sections).Clauses;
+        Assert.Equal(new[] { "VALMA", "VALMA" }, righe.Select(c => c.Cops));
+        Assert.NotNull(righe[0].VariantGroup);
+        Assert.Equal(righe[0].VariantGroup, righe[1].VariantGroup);
+    }
+
+    [Fact]
+    public async Task Il_gruppo_condiviso_non_si_confonde_con_un_gruppo_dell_accordo_di_arrivo()
+    {
+        // I gruppi nati prima del 7 ottobre erano progressivi PER ACCORDO: due accordi hanno entrambi un gruppo «1».
+        // Portato tale e quale nella tabella dell'altro, il gruppo ospite diventerebbe variante del suo.
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+        await _repo.AddAlternativeAsync("LIRR", await IdAsync(casa, "VALMA"));
+        var (altro, _) = await SezioneAsync(_ne, _su, "GIKIN");
+        await _repo.AddAlternativeAsync("LIRR", await IdAsync(altro, "GIKIN"));
+        foreach (var c in await _db.AgreementClauses.ToListAsync()) c.VariantGroup = 1;
+        await _db.SaveChangesAsync();
+
+        await _repo.ShareClausesAsync("LIRR", new[] { await IdAsync(casa, "VALMA") }, _ne, _su);
+
+        var righe = Assert.Single((await AccordoAsync(altro)).Sections).Clauses;
+        Assert.Equal(4, righe.Count);
+        Assert.Equal(2, righe.Select(c => c.VariantGroup).Distinct().Count());
+        Assert.All(righe.GroupBy(c => c.VariantGroup), g => Assert.Single(g.Select(c => c.Cops).Distinct()));
+    }
+
+    [Fact]
+    public async Task Una_variante_aggiunta_a_una_clausola_condivisa_compare_anche_nell_altro_accordo()
+    {
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
+
+        var alternativa = await _repo.AddAlternativeAsync("LIRR", valma);
+        var eccezione = await _repo.AddExceptionAsync("LIRR", valma);
+
+        // Varianti ed eccezioni sono contenuto del gruppo: lasciate a casa, l'altro accordo ne mostrerebbe un pezzo.
+        var righe = Assert.Single((await AccordoAsync(altro)).Sections).Clauses;
+        Assert.Equal(new[] { valma, eccezione, alternativa }, righe.Select(c => c.Id));
+        Assert.Equal(new[] { 0, 1, 0 }, righe.Select(c => c.VariantDepth));
+        Assert.Single(righe.Select(c => c.VariantGroup).Distinct());
+    }
+
+    [Fact]
+    public async Task Una_variante_sola_di_un_gruppo_condiviso_se_ne_va_per_tutti()
+    {
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
+        var valma = await IdAsync(casa, "VALMA");
+        var alternativa = await _repo.AddAlternativeAsync("LIRR", valma);
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
+
+        // Guardando dall'accordo ospite, e dicendolo: la struttura di un gruppo è contenuto, non una presenza.
+        await _repo.DeleteClausesAsync("LIRR", new[] { alternativa }, altro);
+
+        foreach (var righe in new[] { (await SezioneInAsync(casa, sezione)).Clauses, Assert.Single((await AccordoAsync(altro)).Sections).Clauses })
+        {
+            var rimasta = Assert.Single(righe);
+            Assert.Equal((valma, (int?)null), (rimasta.Id, rimasta.VariantGroup));   // un gruppo di una non è un gruppo
+        }
+    }
+
+    [Fact]
+    public async Task Il_gruppo_intero_tolto_da_un_accordo_resta_nell_altro_e_arriva_intero()
+    {
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var valma = await IdAsync(casa, "VALMA");
+        var eccezione = await _repo.AddExceptionAsync("LIRR", valma);
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
+
+        // Dall'accordo di CASA: la casa del gruppo passa all'altro, tutta insieme.
+        await _repo.DeleteClausesAsync("LIRR", new[] { valma, eccezione }, casa);
+
+        Assert.Equal("BIRSU", Assert.Single((await SezioneInAsync(casa, sezione)).Clauses).Cops);
+        var righe = Assert.Single((await AccordoAsync(altro)).Sections).Clauses;
+        Assert.Equal(new[] { valma, eccezione }, righe.Select(c => c.Id));
+        Assert.Equal(new[] { 0, 1 }, righe.Select(c => c.VariantDepth));
+        Assert.NotNull(righe[0].VariantGroup);
+        Assert.All(righe, c => Assert.Equal((false, false), (c.IsGuest, c.IsShared)));
+    }
+
+    // ---- togliere -----------------------------------------------------------------------------------
 
     [Fact]
     public async Task Tolta_dall_accordo_ospite_resta_in_quello_di_casa_e_l_annulla_la_rimette()
     {
-        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
         var prima = await FotoAsync();
+        var ospite = Assert.Single((await AccordoAsync(altro)).Sections);
+        var foto = new[] { new AgreementClauseRestore(ospite.Id, Foto(ospite.Clauses[0])) };
 
-        var disfa = await _repo.RemoveSectionAsync("LIRR", sezione, ospite);
+        var tolte = await _repo.DeleteClausesAsync("LIRR", new[] { valma }, altro);
 
-        Assert.NotNull(disfa);
-        Assert.False((await SezioneInAsync(casa, sezione)).IsShared);
-        Assert.DoesNotContain((await AccordoAsync(ospite)).Sections, s => s.Id == sezione);
+        Assert.Equal(1, tolte);
+        Assert.Empty(Assert.Single((await AccordoAsync(altro)).Sections).Clauses);
+        Assert.Equal(new[] { (valma, false) }, (await SezioneInAsync(casa, sezione)).Clauses.Take(1).Select(c => (c.Id, c.IsShared)));
 
-        await _repo.UndoPresenceAsync("LIRR", disfa!);
+        await _repo.RestoreClausesAsync("LIRR", foto);
         Assert.Equal(prima, await FotoAsync());
     }
 
     [Fact]
-    public async Task Tolta_dall_accordo_di_casa_la_casa_passa_all_ospite_e_il_contenuto_resta()
+    public async Task Tolta_dall_accordo_di_casa_la_casa_passa_all_ospite_e_l_annulla_la_riporta_dov_era()
     {
         var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _su, _ne)).AgreementId;
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
         var prima = await FotoAsync();
+        var foto = new[] { new AgreementClauseRestore(sezione, Foto((await SezioneInAsync(casa, sezione)).Clauses[0])) };
 
-        var disfa = await _repo.RemoveSectionAsync("LIRR", sezione, casa);
+        await _repo.DeleteClausesAsync("LIRR", new[] { valma }, casa);
 
-        Assert.NotNull(disfa);
-        Assert.Empty((await AccordoAsync(casa)).Sections);
-        var rimasta = await SezioneInAsync(ospite, sezione);
-        Assert.Equal(new[] { "VALMA", "BIRSU" }, rimasta.Clauses.Select(c => c.Cops));
-        Assert.False(rimasta.IsShared);
-        // E nell'accordo che l'ha ereditata cede ancora chi cedeva lì.
-        var b = await AccordoAsync(ospite);
-        Assert.Equal(_su, b.Sender(rimasta.Direction).SectorId);
+        // Il contenuto non è andato da nessuna parte: stesso id, ora di casa nell'altro accordo e non più condiviso.
+        Assert.Equal("BIRSU", Assert.Single((await SezioneInAsync(casa, sezione)).Clauses).Cops);
+        var rimasta = Assert.Single(Assert.Single((await AccordoAsync(altro)).Sections).Clauses);
+        Assert.Equal((valma, false, false), (rimasta.Id, rimasta.IsGuest, rimasta.IsShared));
 
-        // L'annulla la rimette di CASA dov'era, non in coda come un'ospite qualunque.
-        await _repo.UndoPresenceAsync("LIRR", disfa!);
+        // ⚠️ L'annulla è uno stato, non «ricondividi»: torna di casa dov'era, PRIMA di BIRSU, e l'altro la ospita.
+        await _repo.RestoreClausesAsync("LIRR", foto);
         Assert.Equal(prima, await FotoAsync());
-        Assert.Equal(casa, await _db.AgreementSections.Where(s => s.Id == sezione).Select(s => s.AgreementId).SingleAsync());
     }
 
     [Fact]
-    public async Task L_ultima_presenza_tolta_elimina_la_sezione()
+    public async Task Senza_dire_da_dove_la_si_guarda_se_ne_va_ovunque_e_l_annulla_la_rimette_condivisa()
     {
         var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
+        var foto = new[] { new AgreementClauseRestore(sezione, Foto((await SezioneInAsync(casa, sezione)).Clauses[0])) };
 
-        var disfa = await _repo.RemoveSectionAsync("LIRR", sezione, casa);
+        await _repo.DeleteClausesAsync("LIRR", new[] { valma });
 
-        Assert.Null(disfa);   // niente da rimettere come presenza: si annulla dalla fotografia, come sempre
-        Assert.False(await _db.AgreementSections.AnyAsync(s => s.Id == sezione));
+        Assert.Empty((await SezioneInAsync(casa, sezione)).Clauses);
+        Assert.Empty(Assert.Single((await AccordoAsync(altro)).Sections).Clauses);
+
+        // Il contenuto non c'è più da nessuna parte: torna dalla fotografia, di casa dov'era e ospite dov'era ospite.
+        await _repo.RestoreClausesAsync("LIRR", foto);
+        var diCasa = Assert.Single((await SezioneInAsync(casa, sezione)).Clauses);
+        var ospite = Assert.Single(Assert.Single((await AccordoAsync(altro)).Sections).Clauses);
+        Assert.Equal((diCasa.Id, "VALMA", true), (ospite.Id, ospite.Cops, ospite.IsGuest));
+        Assert.False(diCasa.IsGuest);
     }
 
     [Fact]
-    public async Task L_eliminazione_di_sempre_non_distrugge_una_sezione_che_vive_anche_altrove()
+    public async Task Eliminare_la_sezione_di_casa_non_porta_via_le_clausole_che_altri_mostrano()
     {
-        var (_, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
+        var prima = await SezioneInAsync(casa, sezione);
+        var foto = new AgreementSectionRestore(casa, Foto(prima));
 
         await _repo.DeleteSectionAsync("LIRR", sezione);
 
-        Assert.Equal("VALMA", Assert.Single((await SezioneInAsync(ospite, sezione)).Clauses).Cops);
+        Assert.Empty((await AccordoAsync(casa)).Sections);
+        var rimasta = Assert.Single(Assert.Single((await AccordoAsync(altro)).Sections).Clauses);
+        Assert.Equal((valma, false, false), (rimasta.Id, rimasta.IsGuest, rimasta.IsShared));
+
+        // L'annulla rimette la sezione: VALMA torna come la STESSA clausola (di casa qui, ospite là), BIRSU dal contenuto.
+        var rimessa = await _repo.RestoreSectionAsync("LIRR", foto);
+        var tornate = (await SezioneInAsync(casa, rimessa!.Value)).Clauses;
+        Assert.Equal(new[] { "VALMA", "BIRSU" }, tornate.Select(c => c.Cops));
+        Assert.Equal((valma, true, false), (tornate[0].Id, tornate[0].IsShared, tornate[0].IsGuest));
+        Assert.True(Assert.Single(Assert.Single((await AccordoAsync(altro)).Sections).Clauses).IsGuest);
     }
 
     [Fact]
-    public async Task Eliminare_l_accordo_di_casa_non_porta_via_le_sezioni_che_altri_stanno_mostrando()
+    public async Task Eliminare_la_sezione_che_la_ospita_la_lascia_a_casa_non_piu_condivisa()
     {
-        // 🔴 La cancellazione dell'accordo scende in cascata sulle sue sezioni: senza la promozione, il contenuto
-        // sparirebbe anche dall'accordo che lo ospita.
-        var (casa, condivisa) = await SezioneAsync(_ne, _ew, "VALMA");
-        var (_, solaSua) = await SezioneAsync(_ne, _ew, "BIRSU", kind: TransferFlowKind.Overflight);
-        var ospite = (await _repo.ShareSectionAsync("LIRR", condivisa, _ne, _su)).AgreementId;
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
+        var esito = await _repo.ShareClausesAsync("LIRR", new[] { await IdAsync(casa, "VALMA") }, _ne, _su);
+
+        await _repo.DeleteSectionAsync("LIRR", esito.SectionId!.Value);
+
+        Assert.False(Assert.Single((await SezioneInAsync(casa, sezione)).Clauses).IsShared);
+        Assert.Empty(await _db.AgreementClauseShares.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Eliminare_l_accordo_di_casa_non_porta_via_le_clausole_e_rimesso_le_riprende_come_presenze()
+    {
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
+        var prima = await AccordoAsync(casa);
+        var foto = new AgreementSnapshot(
+            new AgreementInput { SideASectorId = prima.SideA.SectorId, SideBSectorId = prima.SideB.SectorId },
+            prima.Sections.Select(Foto).ToList());
 
         await _repo.DeleteAgreementAsync("LIRR", casa);
 
-        Assert.Equal("VALMA", Assert.Single((await SezioneInAsync(ospite, condivisa)).Clauses).Cops);
-        Assert.False(await _db.AgreementSections.AnyAsync(s => s.Id == solaSua));
-        Assert.False(await _db.CoordinationAgreements.AnyAsync(a => a.Id == casa));
-    }
-
-    [Fact]
-    public async Task Eliminare_l_accordo_ospite_lascia_la_sezione_a_casa_e_non_piu_condivisa()
-    {
-        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
-
-        await _repo.DeleteAgreementAsync("LIRR", ospite);
-
-        var rimasta = await SezioneInAsync(casa, sezione);
-        Assert.False(rimasta.IsShared);
-        Assert.Equal("VALMA", Assert.Single(rimasta.Clauses).Cops);
-    }
-
-    [Fact]
-    public async Task L_accordo_eliminato_e_rimesso_riprende_la_sezione_come_presenza_non_come_copia()
-    {
-        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
-        var prima = await AccordoAsync(ospite);
-        var foto = new AgreementSnapshot(
-            new AgreementInput { SideASectorId = prima.SideA.SectorId, SideBSectorId = prima.SideB.SectorId },
-            prima.Sections.Select(s => new AgreementSectionSnapshot(
-                new AgreementSectionInput { Kind = s.Kind, Direction = s.Direction, Airports = s.Airports.Select(a => new AgreementAirportInput(a.Icao)).ToList() },
-                s.Order, Array.Empty<AgreementClauseSnapshot>(), SharedSectionId: s.IsShared ? s.Id : null)).ToList());
-        await _repo.DeleteAgreementAsync("LIRR", ospite);
+        var rimasta = Assert.Single(Assert.Single((await AccordoAsync(altro)).Sections).Clauses);
+        Assert.Equal((valma, false), (rimasta.Id, rimasta.IsShared));
 
         var rimesso = await _repo.RestoreAgreementAsync("LIRR", foto);
+        var tornate = Assert.Single((await AccordoAsync(rimesso)).Sections).Clauses;
+        Assert.Equal(new[] { "VALMA", "BIRSU" }, tornate.Select(c => c.Cops));
+        // Non una copia: la stessa clausola, di nuovo in tutti e due.
+        Assert.Equal(valma, tornate[0].Id);
+        Assert.Equal(valma, Assert.Single(Assert.Single((await AccordoAsync(altro)).Sections).Clauses).Id);
+    }
 
-        var tornata = await SezioneInAsync(rimesso, sezione);
-        Assert.Equal((await SezioneInAsync(casa, sezione)).Clauses.Select(c => c.Id), tornata.Clauses.Select(c => c.Id));
-        Assert.Equal(prima.Sender(prima.Sections.Single().Direction).SectorId,
-            (await AccordoAsync(rimesso)).Sender(tornata.Direction).SectorId);
+    [Fact]
+    public async Task Annullare_la_condivisione_toglie_presenze_sezione_e_accordo_nati_per_ospitarla()
+    {
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var prima = await FotoAsync();
+
+        var esito = await _repo.ShareClausesAsync("LIRR", new[] { await IdAsync(casa, "VALMA") }, _ne, _su);
+        await _repo.UndoShareAsync("LIRR", esito.Undo);
+
+        Assert.Equal(prima, await FotoAsync());
+        Assert.Null(await _repo.FindByPairAsync("LIRR", _ne, _su));
+    }
+
+    [Fact]
+    public async Task Annullare_la_condivisione_non_tocca_la_sezione_che_c_era_gia_ne_quel_che_ci_e_stato_scritto()
+    {
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+        var (altro, sua) = await SezioneAsync(_ne, _su);
+        var esito = await _repo.ShareClausesAsync("LIRR", new[] { await IdAsync(casa, "VALMA") }, _ne, _su);
+        // Nel frattempo qualcuno ha condiviso ANCHE verso TS, e la sezione nata là ha ricevuto una clausola sua.
+        var versoTs = await _repo.ShareClausesAsync("LIRR", new[] { await IdAsync(casa, "VALMA") }, _ne, _ts);
+        await _repo.AddClauseAsync("LIRR", versoTs.SectionId!.Value, Clausola("SOLOTS"));
+
+        await _repo.UndoShareAsync("LIRR", esito.Undo);
+        await _repo.UndoShareAsync("LIRR", versoTs.Undo);
+
+        // La sezione che c'era resta, vuota com'era; quella nata per ospitare resta perché non è più vuota.
+        Assert.Empty(Assert.Single((await AccordoAsync(altro)).Sections, s => s.Id == sua).Clauses);
+        Assert.Equal("SOLOTS", Assert.Single(Assert.Single((await AccordoAsync(versoTs.AgreementId)).Sections).Clauses).Cops);
     }
 
     // ---- staccare -----------------------------------------------------------------------------------
@@ -243,160 +423,136 @@ public class AgreementShareTests : IAsyncLifetime
     [Fact]
     public async Task Staccata_diventa_una_copia_indipendente_e_l_altra_resta_com_era()
     {
-        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
-        var capofila = (await SezioneInAsync(casa, sezione)).Clauses[0].Id;
-        await _repo.AddAlternativeAsync("LIRR", capofila);
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
-        var versoOspite = (await SezioneInAsync(ospite, sezione)).Direction;
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
 
-        var esito = await _repo.DetachSectionAsync("LIRR", sezione, ospite);
+        var esito = await _repo.DetachClausesAsync("LIRR", new[] { valma }, altro);
 
-        var copia = await SezioneInAsync(ospite, esito.NewSectionId);
-        var originale = await SezioneInAsync(casa, sezione);
-        Assert.False(copia.IsShared);
-        Assert.False(originale.IsShared);
-        Assert.Equal(originale.Clauses.Select(c => c.Cops), copia.Clauses.Select(c => c.Cops));
-        Assert.Empty(originale.Clauses.Select(c => c.Id).Intersect(copia.Clauses.Select(c => c.Id)));
-        Assert.Equal(versoOspite, copia.Direction);
-        // L'outline viaggia con la copia: stesse profondità, e un gruppo suo.
-        Assert.Equal(originale.Clauses.Select(c => c.VariantDepth), copia.Clauses.Select(c => c.VariantDepth));
-        Assert.Equal(originale.Clauses.Select(c => c.VariantGroup is null), copia.Clauses.Select(c => c.VariantGroup is null));
-
-        // Da qui in poi sono due tabelle: scrivere nell'una non tocca l'altra.
-        await _repo.AddClauseAsync("LIRR", esito.NewSectionId, Clausola("SOLOQUI"));
-        Assert.DoesNotContain((await SezioneInAsync(casa, sezione)).Clauses, c => c.Cops == "SOLOQUI");
+        Assert.Equal(1, esito.Clauses);
+        var copia = Assert.Single(Assert.Single((await AccordoAsync(altro)).Sections).Clauses);
+        Assert.NotEqual(valma, copia.Id);
+        Assert.Equal(("VALMA", false, false), (copia.Cops, copia.IsShared, copia.IsGuest));
+        // Da qui in poi dicono cose diverse senza toccarsi.
+        await _repo.UpdateClauseAsync("LIRR", copia.Id, Clausola("SOLOMIL"));
+        var originale = Assert.Single((await SezioneInAsync(casa, sezione)).Clauses);
+        Assert.Equal((valma, "VALMA", false), (originale.Id, originale.Cops, originale.IsShared));
     }
 
-    [Fact]
-    public async Task Annullare_lo_stacco_toglie_la_copia_e_rimette_la_condivisione()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Annullare_lo_stacco_toglie_la_copia_e_rimette_la_condivisione_com_era(bool dallAccordoDiCasa)
     {
-        var (_, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
         var prima = await FotoAsync();
 
-        var esito = await _repo.DetachSectionAsync("LIRR", sezione, ospite);
-        await _repo.UndoPresenceAsync("LIRR", esito.Undo);
+        var esito = await _repo.DetachClausesAsync("LIRR", new[] { valma }, dallAccordoDiCasa ? casa : altro);
+        Assert.NotEqual(prima, await FotoAsync());
+        await _repo.UndoDetachAsync("LIRR", esito.Undo);
 
         Assert.Equal(prima, await FotoAsync());
-        Assert.False(await _db.AgreementSections.AnyAsync(s => s.Id == esito.NewSectionId));
     }
 
     [Fact]
-    public async Task Staccare_dall_accordo_di_casa_lascia_il_contenuto_all_ospite()
+    public async Task Staccare_dall_accordo_di_casa_lascia_l_originale_all_altro_e_la_copia_al_suo_posto()
     {
-        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA", "BIRSU");
+        var valma = await IdAsync(casa, "VALMA");
+        var altro = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).AgreementId;
 
-        var esito = await _repo.DetachSectionAsync("LIRR", sezione, casa);
+        await _repo.DetachClausesAsync("LIRR", new[] { valma }, casa);
 
-        Assert.Equal("VALMA", Assert.Single((await SezioneInAsync(casa, esito.NewSectionId)).Clauses).Cops);
-        Assert.Equal("VALMA", Assert.Single((await SezioneInAsync(ospite, sezione)).Clauses).Cops);
-        Assert.DoesNotContain((await AccordoAsync(casa)).Sections, s => s.Id == sezione);
+        var diCasa = (await SezioneInAsync(casa, sezione)).Clauses;
+        Assert.Equal(new[] { "VALMA", "BIRSU" }, diCasa.Select(c => c.Cops));   // la copia sta dove stava l'originale
+        Assert.NotEqual(valma, diCasa[0].Id);
+        var rimasta = Assert.Single(Assert.Single((await AccordoAsync(altro)).Sections).Clauses);
+        Assert.Equal((valma, false, false), (rimasta.Id, rimasta.IsGuest, rimasta.IsShared));
     }
 
     [Fact]
-    public async Task Una_sezione_che_non_e_condivisa_non_si_stacca()
+    public async Task Una_clausola_che_non_e_condivisa_non_si_stacca()
     {
-        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+        var valma = await IdAsync(casa, "VALMA");
 
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => _repo.DetachSectionAsync("LIRR", sezione, casa));
+            () => _repo.DetachClausesAsync("LIRR", new[] { valma }, casa));
     }
 
-    // ---- modificare ---------------------------------------------------------------------------------
+    // ---- le altre porte -----------------------------------------------------------------------------
 
     [Fact]
-    public async Task Girare_il_verso_da_un_accordo_non_lo_gira_nell_altro_ma_traffico_e_scali_valgono_per_tutti()
+    public async Task Una_clausola_ospite_si_scrive_anche_dalla_ACC_dell_accordo_che_la_ospita()
     {
-        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
-        var versoCasa = (await SezioneInAsync(casa, sezione)).Direction;
-        var versoOspite = (await SezioneInAsync(ospite, sezione)).Direction;
-        var girato = versoOspite == AgreementDirection.AtoB ? AgreementDirection.BtoA : AgreementDirection.AtoB;
-
-        await _repo.UpdateSectionAsync("LIRR", sezione, new AgreementSectionInput
-        {
-            Kind = TransferFlowKind.Departure, Direction = girato,
-            Airports = new[] { new AgreementAirportInput("LIRA") },
-        }, agreementId: ospite);
-
-        var (a, b) = (await SezioneInAsync(casa, sezione), await SezioneInAsync(ospite, sezione));
-        Assert.Equal(versoCasa, a.Direction);
-        Assert.Equal(girato, b.Direction);
-        Assert.All(new[] { a, b }, s =>
-        {
-            Assert.Equal(TransferFlowKind.Departure, s.Kind);
-            Assert.Equal(new[] { "LIRA" }, s.Airports.Select(x => x.Icao));
-        });
-    }
-
-    [Fact]
-    public async Task Se_i_lati_dell_accordo_ospite_si_scambiano_chi_cede_resta_chi_cede()
-    {
-        // Stessa trappola di UpdateAgreementAsync sulle sezioni di casa: cambiare un capo può spostare l'altro
-        // dall'altra parte della forma canonica, e il verso della presenza va ribaltato con lui. L'ospite nasce
-        // fra il secondo e il quarto (il comune è A); sostituendo il quarto col primo, il comune diventa B.
-        var comune = _secondo;
-        var (_, sezione) = await SezioneAsync(comune, _terzo, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, comune, _quarto)).AgreementId;
-        var versoPrima = (await SezioneInAsync(ospite, sezione)).Direction;
-
-        await _repo.UpdateAgreementAsync("LIRR", ospite, new AgreementInput { SideASectorId = comune, SideBSectorId = _primo });
-
-        var accordo = await AccordoAsync(ospite);
-        var versoDopo = accordo.Sections.Single(s => s.Id == sezione).Direction;
-        Assert.NotEqual(versoPrima, versoDopo);
-        Assert.Equal(comune, accordo.Sender(versoDopo).SectorId);
-    }
-
-    [Fact]
-    public async Task Il_reciproco_copiato_da_un_accordo_ospite_nasce_in_quell_accordo_ed_e_suo()
-    {
-        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA", kind: TransferFlowKind.Overflight);
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su)).AgreementId;
-
-        var reciproco = await _repo.CopySectionToReverseAsync("LIRR", sezione, ospite);
-
-        var accordo = await AccordoAsync(ospite);
-        var nata = accordo.Sections.Single(s => s.Id == reciproco);
-        Assert.False(nata.IsShared);
-        Assert.Equal(_su, accordo.Sender(nata.Direction).SectorId);
-        Assert.Single((await AccordoAsync(casa)).Sections);
-    }
-
-    [Fact]
-    public async Task Una_sezione_ospite_si_scrive_anche_dalla_ACC_dell_accordo_che_la_ospita()
-    {
-        // La sezione sta di casa in un accordo tutto di Roma, ed è ospite in uno con un ente di Parigi. Da Parigi
+        // La clausola sta di casa in un accordo tutto di Roma, ed è ospite in uno con un ente di Parigi. Da Parigi
         // la si legge — sta in un suo accordo — e quindi la si deve poter scrivere: «chi la vede la può scrivere».
         var parigi = await SettoreEsteroAsync();
-        var (_, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var ospite = (await _repo.ShareSectionAsync("LIRR", sezione, _ne, parigi)).AgreementId;
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
+        var valma = await IdAsync(casa, "VALMA");
+        var ospite = (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, parigi)).AgreementId;
 
-        var vista = (await _repo.ListByAccAsync("LFFF")).Single(a => a.Id == ospite).Sections.Single(s => s.Id == sezione);
+        var vista = Assert.Single((await _repo.ListByAccAsync("LFFF")).Single(a => a.Id == ospite).Sections);
         Assert.Equal("VALMA", Assert.Single(vista.Clauses).Cops);
 
-        await _repo.AddClauseAsync("LFFF", sezione, Clausola("DAPARIGI"));
-        await _repo.UpdateClauseAsync("LFFF", vista.Clauses[0].Id, Clausola("VALMA2"));
+        await _repo.UpdateClauseAsync("LFFF", valma, Clausola("VALMA2"));
 
-        Assert.Equal(new[] { "VALMA2", "DAPARIGI" },
-            (await SezioneInAsync((await _repo.FindByPairAsync("LIRR", _ne, _ew))!.Value, sezione)).Clauses.Select(c => c.Cops));
+        Assert.Equal("VALMA2", Assert.Single((await SezioneInAsync(casa, sezione)).Clauses).Cops);
     }
 
-    // ---- i rifiuti ----------------------------------------------------------------------------------
-
     [Fact]
-    public async Task Una_sezione_condivisa_non_si_sposta_e_non_si_unisce()
+    public async Task Una_clausola_condivisa_non_si_sposta_e_la_sua_sezione_nemmeno()
     {
         var (casa, sezione) = await SezioneAsync(_ne, _ew, "VALMA");
-        var (_, gemella) = await SezioneAsync(_ne, _ew, "BIRSU");
-        await _repo.ShareSectionAsync("LIRR", sezione, _ne, _su);
+        var valma = await IdAsync(casa, "VALMA");
+        var esito = await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su);
+        var prima = await FotoAsync();
 
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => _repo.MoveSectionAsync("LIRR", sezione, _ne, _ts));
+            () => _repo.MoveClausesAsync("LIRR", new[] { valma }, _ne, _ts));
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => _repo.MergeSectionsAsync("LIRR", gemella, sezione));
-        Assert.Equal(2, (await AccordoAsync(casa)).Sections.Count);
+            () => _repo.MoveSectionAsync("LIRR", sezione, _ne, _ts));
+        // Nemmeno la sezione che la OSPITA: porterebbe la presenza in un terzo accordo senza che nessuno l'abbia chiesto.
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => _repo.MoveSectionAsync("LIRR", esito.SectionId!.Value, _ne, _ts));
+
+        // E il rifiuto non lascia in giro l'accordo di arrivo.
+        Assert.Equal(prima, await FotoAsync());
+        Assert.Null(await _repo.FindByPairAsync("LIRR", _ne, _ts));
+    }
+
+    [Fact]
+    public async Task Unire_due_gemelle_porta_con_se_le_clausole_che_l_assorbita_ospitava()
+    {
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+        var valma = await IdAsync(casa, "VALMA");
+        var (altro, prima) = await SezioneAsync(_ne, _su, "GIKIN");
+        var (_, seconda) = await SezioneAsync(_ne, _su, "ELKAP");
+        Assert.Equal(prima, (await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su)).SectionId);
+
+        await _repo.MergeSectionsAsync("LIRR", seconda, prima);
+
+        var tabella = Assert.Single((await AccordoAsync(altro)).Sections);
+        Assert.Equal(new[] { "ELKAP", "GIKIN", "VALMA" }, tabella.Clauses.Select(c => c.Cops));
+        Assert.Equal((valma, true), (tabella.Clauses[2].Id, tabella.Clauses[2].IsGuest));
+    }
+
+    [Fact]
+    public async Task Il_reciproco_copia_anche_le_clausole_ospiti_come_clausole_sue()
+    {
+        var (casa, _) = await SezioneAsync(_ne, _ew, "VALMA");
+        var valma = await IdAsync(casa, "VALMA");
+        var (altro, sua) = await SezioneAsync(_ne, _su, "GIKIN");
+        await _repo.ShareClausesAsync("LIRR", new[] { valma }, _ne, _su);
+
+        var reciproco = await _repo.CopySectionToReverseAsync("LIRR", sua);
+
+        var copiate = (await SezioneInAsync(altro, reciproco!.Value)).Clauses;
+        Assert.Equal(new[] { "GIKIN", "VALMA" }, copiate.Select(c => c.Cops));
+        Assert.All(copiate, c => Assert.Equal((false, false), (c.IsShared, c.IsGuest)));
+        Assert.DoesNotContain(valma, copiate.Select(c => c.Id));
     }
 
     // ---- attrezzi -----------------------------------------------------------------------------------
@@ -406,22 +562,19 @@ public class AgreementShareTests : IAsyncLifetime
         Cops = cops, LevelValue = 130, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow,
     };
 
-    /// <summary>L'accordo fra i due enti (se non c'è) e una sezione in cui cede il primo, con quelle clausole.</summary>
-    private async Task<(int Accordo, int Sezione)> SezioneAsync(int cede, int riceve, params string[] cops) =>
-        await SezioneAsync(cede, riceve, cops, TransferFlowKind.Arrival);
+    private static AgreementDirection Verso(int cede, int riceve) =>
+        cede < riceve ? AgreementDirection.AtoB : AgreementDirection.BtoA;
 
-    private Task<(int Accordo, int Sezione)> SezioneAsync(int cede, int riceve, string cop, TransferFlowKind kind) =>
-        SezioneAsync(cede, riceve, new[] { cop }, kind);
-
-    private async Task<(int Accordo, int Sezione)> SezioneAsync(int cede, int riceve, string[] cops, TransferFlowKind kind)
+    /// <summary>L'accordo fra i due enti (se non c'è) e una sezione «arrivi LIRF» in cui cede il primo, con quelle clausole.</summary>
+    private async Task<(int Accordo, int Sezione)> SezioneAsync(int cede, int riceve, params string[] cops)
     {
         var accordo = await _repo.FindByPairAsync("LIRR", cede, riceve)
                       ?? await _repo.AddAgreementAsync("LIRR", new AgreementInput { SideASectorId = cede, SideBSectorId = riceve });
         var sezione = await _repo.AddSectionAsync("LIRR", accordo, new AgreementSectionInput
         {
-            Kind = kind,
-            Direction = cede < riceve ? AgreementDirection.AtoB : AgreementDirection.BtoA,
-            Airports = kind == TransferFlowKind.Overflight ? Array.Empty<AgreementAirportInput>() : new[] { new AgreementAirportInput("LIRF") },
+            Kind = TransferFlowKind.Arrival,
+            Direction = Verso(cede, riceve),
+            Airports = new[] { new AgreementAirportInput("LIRF") },
         });
         foreach (var c in cops) await _repo.AddClauseAsync("LIRR", sezione, Clausola(c));
         return (accordo, sezione);
@@ -447,10 +600,35 @@ public class AgreementShareTests : IAsyncLifetime
     private async Task<AgreementSectionRow> SezioneInAsync(int accordo, int sezione) =>
         (await AccordoAsync(accordo)).Sections.Single(s => s.Id == sezione);
 
+    /// <summary>L'id della prima clausola dell'accordo con quei punti.</summary>
+    private async Task<int> IdAsync(int accordo, string cops) =>
+        (await AccordoAsync(accordo)).AllClauses.First(c => c.Cops == cops).Id;
+
+    /// <summary>La fotografia che la pagina scatta prima di eliminare: i dati, il posto, e — per una clausola
+    /// condivisa — dov'era.</summary>
+    private static AgreementClauseSnapshot Foto(AgreementClauseRow c) =>
+        new AgreementClauseSnapshot(
+            new AgreementClauseInput
+            {
+                Cops = c.Cops, LevelValue = c.LevelValue, LevelUnit = c.LevelUnit, LevelConstraint = c.LevelConstraint,
+                IsGroupWide = c.IsGroupWide,
+            },
+            c.Order, c.VariantGroup, c.VariantDepth).ConLePresenzeDi(c);
+
+    private static AgreementSectionSnapshot Foto(AgreementSectionRow s) => new(
+        new AgreementSectionInput
+        {
+            Kind = s.Kind, Direction = s.Direction, Description = s.Description,
+            Airports = s.Airports.Select(a => new AgreementAirportInput(a.Icao, a.Name)).ToList(),
+        },
+        s.Order, s.Clauses.Select(Foto).ToList());
+
     /// <summary>Tutto l'archivio degli accordi come lo legge chi lo usa: quel che un annulla deve restituire uguale.</summary>
     private async Task<string> FotoAsync() => string.Join("\n",
         (await _repo.ListByAccAsync("LIRR")).OrderBy(a => a.Id).Select(a => $"accordo {a.Id}: " + string.Join(" | ",
             a.Sections.OrderBy(s => s.Id).Select(s =>
-                $"sezione {s.Id} verso {s.Direction} ordine {s.Order} con [{string.Join(",", s.SharedWith.Select(x => x.AgreementId))}] "
-                + string.Join(" · ", s.Clauses.Select(c => $"{c.Id}@{c.Order} {c.Cops}"))))));
+                $"sezione {s.Id} verso {s.Direction} ordine {s.Order}: "
+                + string.Join(" · ", s.Clauses.Select(c =>
+                    $"{c.Id}@{c.Order} {c.Cops} g{c.VariantGroup}/{c.VariantDepth}{(c.IsGuest ? " ospite" : "")}"
+                    + $" con[{string.Join(",", c.SharedWith.Select(x => x.SectionId).OrderBy(x => x))}]"))))));
 }
