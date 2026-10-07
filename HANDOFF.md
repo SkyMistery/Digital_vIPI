@@ -4,7 +4,16 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 1 ottobre 2026, sera tardi
+> ## ▶ Il punto — 7 ottobre 2026, sera
+>
+> **📦 Pronto da caricare: 1.57.0** (§A149, timbro `1.57.0 · 397b7a1`, 19 file, zip `b2dde5fe…`, MINOR): Sito S97
+> (coordinamenti e struttura: motore unico, banco di prova, clausole condivise, ordine delle clausole) e S98 (import
+> mai riuscito). 🔴 **Prima migrazione distruttiva** (`DropTable UnificationRules`, zero righe in produzione): copia
+> del database PRIMA del carico, e il rollback a due rinomine non basta più da solo. Online resta 1.56.0 finché il
+> committente non carica. ▶ Dopo: ripubblicare le vIPI ACC. S96 tabellone in pausa (chiave del booking). LIRE/LIBG
+> aspettano il SOD.
+>
+> ## Il punto — 1 ottobre 2026, sera tardi
 >
 > **✅ Online: 1.56.0** (`Schema 0` confermato; scarico senza errori dal carico; **in `main` non resta codice fuori
 > pacchetto**; 🔎 login per nonce falliti al primo giro e recuperati dal secondo, da tenere d'occhio) (§A148, timbro `1.56.0 · 2285a80`, 17 file, zip `631aa48e…`, MINOR con

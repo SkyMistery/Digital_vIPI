@@ -58,15 +58,11 @@ public sealed class LiveStationParts
     /// risulterebbe vuota proprio quando serve.
     /// </summary>
     public async Task<IReadOnlyList<ResolvedTransferFlow>> TransfersAsync(
-        string accCode, string callsign, IReadOnlySet<string> online, Topology topology,
+        string accCode, string callsign, IReadOnlySet<string> online,
         CancellationToken ct = default)
     {
         var asIfOnline = new HashSet<string>(online, StringComparer.OrdinalIgnoreCase) { callsign };
         var all = await _transfers.ResolveForAccAsync(accCode, asIfOnline, ct);
-
-        // Discendenti: il traffico verso un settore che sto già coprendo non si passa a nessuno.
-        var below = new HashSet<string>(topology.DomainOf(callsign), StringComparer.OrdinalIgnoreCase);
-        below.Remove(callsign);
 
         return all
             .Where(r => string.Equals(r.ResolvedOwnerCallsign, callsign, StringComparison.OrdinalIgnoreCase))
@@ -75,29 +71,29 @@ public sealed class LiveStationParts
                 Flow = r.Flow,
                 ResolvedOwnerCallsign = r.ResolvedOwnerCallsign,
                 OwnerOnline = r.OwnerOnline,
-                Points = r.Points.Where(p => IsRealHandoff(p, below, online)).ToList(),
+                Points = r.Points.Where(p => IsRealHandoff(p, callsign)).ToList(),
             })
             .Where(r => r.Points.Count > 0)
             .ToList();
     }
 
     /// <summary>
-    /// Un punto verso un MIO discendente è un handoff solo se quel settore è davvero aperto: se è chiuso lo sto
-    /// coprendo io, quindi non c'è niente da passare.
+    /// Un punto è un handoff solo se a raccoglierlo è <b>qualcun altro</b>. Se il ricevente scritto è chiuso e la
+    /// sua catena di ripiego porta a chi sta guardando, quel cielo lo sta già tenendo lui: non c'è niente da
+    /// passare, e il punto sparirebbe dicendo «passa a te stesso» — un'istruzione che non significa nulla e che
+    /// sporca l'elenco proprio dove servono i trasferimenti veri.
     ///
-    /// Senza questo filtro il punto restava a schermo con il destinatario risolto risalendo la gerarchia — che
-    /// per un figlio chiuso è la postazione stessa che sta guardando: «passa a te stesso», un'istruzione che non
-    /// significa nulla e che sporca l'elenco proprio dove servono i trasferimenti veri.
+    /// <para>🔴 Fino al 4 ottobre 2026 la domanda era «il ricevente è un mio <b>discendente</b> chiuso?», cioè si
+    /// guardavano i soli padri. Sbagliava in due versi: WS5 che tiene ES5 per una <b>riga di ripiego</b> (ES5 non è
+    /// suo discendente) si vedeva passare il traffico a sé stesso; e un punto verso una torre chiusa spariva anche
+    /// quando a raccoglierlo era il suo avvicinamento aperto, che sta in mezzo. Ora decide il ricevente
+    /// <b>risolto</b>, che viene dalla stessa catena dei trasferimenti.</para>
     ///
-    /// Vale SOLO per i discendenti: verso un ente fuori dal mio dominio la risalita è informazione utile
-    /// (chi prende il traffico adesso, fino a UNICOM) e il punto resta.
+    /// Verso chiunque altro la risalita è informazione utile (chi prende il traffico adesso, fino a UNICOM) e il
+    /// punto resta.
     /// </summary>
-    private static bool IsRealHandoff(ResolvedTransferPoint point, IReadOnlySet<string> below, IReadOnlySet<string> online)
-    {
-        var next = point.Point.NextSectorCallsign;
-        if (string.IsNullOrWhiteSpace(next) || !below.Contains(next)) return true;
-        return online.Contains(next);
-    }
+    private static bool IsRealHandoff(ResolvedTransferPoint point, string chiGuarda) =>
+        !(point.IsOnline && string.Equals(point.ResolvedHandler, chiGuarda, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Chip «vista rapida aeroporto»: gli aeroporti PUBBLICATI appesi a un settore del dominio della postazione.

@@ -351,6 +351,7 @@ public sealed class EfCallsignRenameService : ICallsignRenameService, ISectorSub
             a.SideASectorId = sideA;
             a.SideBSectorId = sideB;
             if (scambiati)
+            {
                 foreach (var s in a.Sections)
                     s.Direction = s.Direction switch
                     {
@@ -358,6 +359,7 @@ public sealed class EfCallsignRenameService : ICallsignRenameService, ISectorSub
                         AgreementDirection.BtoA => AgreementDirection.AtoB,
                         var d => d,
                     };
+            }
         }
 
         var blocchi = 0;

@@ -43,14 +43,18 @@ LIRR_EW_CTR  (radice senza figli)
 
 Ogni settore **possiede sé stesso** di default; quando un figlio è offline, il suo spazio ricade
 top-down sul primo antenato online (o su P). Lo **split SU/ES** è quindi pura gerarchia (`LIRR_ES_CTR`
-figlio di `LIRR_SU_CTR`) e **non richiede più una `UnificationRule`**.
+figlio di `LIRR_SU_CTR`).
 
-## Regole di unificazione (UnificationRule)
+## Quel che l'albero non sa dire: la catena di ripiego
 
-Le `UnificationRule` restano per le **riassegnazioni arbitrarie** che l'albero non può esprimere (un
-settore assegnato a un owner che non è un suo antenato). Formato JSON nel DB, ora con **callsign** sia
-come chiave settore sia come owner: `ConditionJson = {"online":["LIRR_ES_CTR"]}`,
-`AssignmentJson = {"LIRR_TS_CTR":"LIRR_ES_CTR"}`. Il seed di Roma non ne contiene (lo split è gerarchia).
+Un settore assegnato a chi **non** è un suo antenato — due settori alti che si sostituiscono a vicenda, come
+`LIMM_ES5_CTR` e `LIMM_WS5_CTR` — si scrive con una **riga di ripiego** in Struttura: «da quota a quota →
+settore», guardata prima del padre. La stessa catena la leggono trasferimenti, mappa AoR e tabella delle
+configurazioni (`FallbackChain`, carta `../feature/2026-10-04-copertura-unica.md`).
+
+> ⛔ **Le `UnificationRule` non esistono più** (6 ottobre 2026, migrazione `ViaLeRegoleDiUnificazione`). Erano
+> un motore senza editor, con zero righe in sviluppo e in produzione: un secondo modo, invisibile, di dire chi
+> tiene chi. Carta `../feature/2026-10-06-sezioni-condivise.md` §7.
 
 ## Scenari verificati (test d'integrazione)
 

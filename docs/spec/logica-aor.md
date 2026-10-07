@@ -4,6 +4,12 @@
 
 > 🔀 **Round 5 — Settore == Posizione.** Con la fusione delle entità, l'identificatore di un settore è il suo **`Callsign`**. La `Topology` non ha più `DefaultSectors`: ogni settore **possiede sé stesso** di default (ownership identità) e l'albero `Parent` (da `Sector.ParentSectorId`) regge il top-down. L'algoritmo §3 è invariato salvo il passo 1 (ownership di default = identità anziché lettura da `PositionSector`). `Sec(X)` coincide ora con `{X}` ∪ discendenti coperti via top-down. Lo split SU/ES (S4) è **puro contenimento** e non richiede una `UnificationRule`; il meccanismo regole resta per riassegnazioni arbitrarie (chiavi = callsign).
 
+> ⛔ **6 ottobre 2026 — le `UnificationRule` non esistono più.** Dove questa specifica scrive
+> `ApplyUnificationRules`, oggi ogni settore possiede sé stesso e chi è offline cede il suo cielo lungo la
+> **catena di ripiego** — righe dichiarate con la fascia di quota, poi il padre (`FallbackChain.Holders`). Gli
+> scenari S1–S10 restano veri e coperti; le carte sono `../feature/2026-10-04-copertura-unica.md` e
+> `../feature/2026-10-06-sezioni-condivise.md` §7.
+
 **Documento:** Specifica funzionale + scenari di test della logica di visibilità (la parte più critica del sistema)
 **Versione:** 0.1
 **Data:** 13 giugno 2026

@@ -43,6 +43,36 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A149 — 1.57.0: coordinamenti e struttura (S97), import mai riuscito (S98) — 🔴 prima migrazione distruttiva (7 ottobre 2026)
+
+MINOR con **quattro migrazioni, due con una `DropTable`**, su 1.56.0 (`2285a80`). Timbro **`1.57.0 · 397b7a1`**.
+🔴 `ViaLeRegoleDiUnificazione` cancella `UnificationRules` (zero righe in produzione); `ClausoleCondivise` crea
+`AgreementClauseShares` e cancella `AgreementSectionShares`, nata con `SezioniCondivise` nello stesso carico;
+`OrdineDelleClausole` aggiunge `AgreementSections.ClauseOrder`. Deciso col committente il 7-ott: si consegna, con la
+**copia del database prima del carico**; il rollback a due rinomine non basta più da solo (la 1.56.0 legge
+`UnificationRules` in `TopologyBuilder`: serve anche il ripristino della copia). Provate dal Sito sulla copia di
+produzione.
+- **S97** (fuso da `fix/copertura-unica` @ `485bbb8f`, CI verde run 37659538927; il committente ha confermato la prova a
+  schermo): motore unico per chi tiene chi, banco di prova, sposta fra accordi, clausole condivise per riga, sezione o
+  accordo intero con «Stacca», ordine dichiarato delle clausole, avviso «quota di un altro settore», via le regole di
+  unificazione. Codice comune Domain, Application, Infrastructure. Carte `docs/feature/2026-10-04-copertura-unica.md` e
+  `2026-10-06-sezioni-condivise.md`.
+- **S98** (fuso da `fix/import-mai-riuscito` @ `08fc5bdc`, CI verde run 37211002788): un import mai riuscito non è un
+  giro dell'anno 1 (500 di Struttura, Pendenti, deriva notturna, storico ATC). Il ramo divergeva da S97 a `cf603201`:
+  fusi uno dopo l'altro; conflitti sui conteggi (rimisurati sul log: **Application 3266, Infrastructure 2151**) e sul
+  registro del Sito (tenute le voci di S97 e di S98; tolta la sola riga «Restano 4b e 5», superata).
+- ⏸ **S96** tabellone resta fuori: aspetta la chiave del booking (`fix/tabellone` @ `52e50f1e`).
+
+**19 file** (`solo-19-file-1.57.0`): Domain, Application, Infrastructure, MySqlMigrations, **Hosting**, Ui, Host (dll +
+pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Hosting entra col sorgente invariato: si appoggia alle
+porte degli accordi di Application, che cambiano. Fuori Aurora* (nessun riferimento agli altri progetti). Zip 6,57 MB,
+sha256 `b2dde5fe13ecf102461ff3a37987cb0b9a9acbb6b01d32f4a970fb58018c66c0`. Build Release senza avvisi, test verdi,
+conteggi identici (App 3266, Infra 2151, Ui 1991). Prova sul publish win-x64: le quattro migrazioni applicate all'avvio
+(`DROP TABLE "UnificationRules"` nel log), `pacchetto-verifica.js` verde (`TERMINE=LIBB`), a schermo Struttura col banco
+di prova e la pagina degli accordi, console pulita. Non rifatti a schermo i gesti di condivisione: li ha provati il
+committente sulla copia di produzione. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.57.0.md`. ▶ Caricamento del
+committente, **dopo la copia del database**; poi ripubblicare le vIPI ACC (cambia LIMM «Conf 2 b»).
+
 ### ✅ A148 — 1.56.0 ONLINE: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93), Discord (S94), account dell'evento (S95) (1 ottobre 2026)
 
 ✅ Online il 1 ottobre 2026 (avvio 22:23:11Z): `Schema 0` confermato dal committente (le quattro migrazioni ci sono). Da

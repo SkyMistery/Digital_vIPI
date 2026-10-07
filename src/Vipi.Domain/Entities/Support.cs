@@ -170,7 +170,7 @@ public class AuditLog
     public long Id { get; set; }
     public int UserId { get; set; }                       // utente IVAO
     public AuditAction Action { get; set; }
-    public string EntityType { get; set; } = default!; // es. "Document", "UnificationRule"
+    public string EntityType { get; set; } = default!; // es. "Document", "SectorFallback"
     public string EntityId { get; set; } = default!;
     public DateTime TimestampUtc { get; set; }
     public string? DetailsJson { get; set; }           // diff/contesto

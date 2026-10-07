@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Vipi.Domain;
 
@@ -20,8 +21,16 @@ public sealed record AgreementSectionRow
 
     public required int Order { get; init; }
 
+    /// <summary>In che ordine stanno le <see cref="Clauses"/>: quello scritto a mano, o uno dichiarato
+    /// (<see cref="AgreementClauseOrdering"/>). Le righe arrivano <b>già</b> in quell'ordine.</summary>
+    public AgreementClauseOrder ClauseOrder { get; init; }
+
     public required IReadOnlyList<AgreementAirportRow> Airports { get; init; }
     public required IReadOnlyList<AgreementClauseRow> Clauses { get; init; }
+
+    /// <summary>Quante delle clausole di questa tabella compaiono anche in un altro accordo
+    /// (<see cref="AgreementClauseRow.IsShared"/>). La sezione in sé sta in un accordo solo.</summary>
+    public int SharedClauses => Clauses.Count(c => c.IsShared);
 
     /// <summary>Gli scali in una riga sola («LIBD · LIBR»); vuoto se non ne ha.</summary>
     public string AirportsLabel => string.Join(" · ", Airports.Select(a => a.Icao));

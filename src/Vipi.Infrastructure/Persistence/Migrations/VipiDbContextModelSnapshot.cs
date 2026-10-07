@@ -347,6 +347,28 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("AgreementClauses");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AgreementClauseShare", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ClauseId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SectionId");
+
+                    b.HasIndex("ClauseId", "SectionId")
+                        .IsUnique();
+
+                    b.ToTable("AgreementClauseShares");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementSection", b =>
                 {
                     b.Property<int>("Id")
@@ -355,6 +377,12 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("AgreementId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("ClauseOrder")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Manual");
 
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
@@ -3538,40 +3566,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("TranslationUnits");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AccId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AssignmentJson")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ConditionJson")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccId", "Priority");
-
-                    b.ToTable("UnificationRules");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.AccSector", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
@@ -3602,6 +3596,25 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasForeignKey("SectionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AgreementClauseShare", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.AgreementClause", "Clause")
+                        .WithMany("Shares")
+                        .HasForeignKey("ClauseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vipi.Domain.Entities.AgreementSection", "Section")
+                        .WithMany("GuestClauses")
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Clause");
 
                     b.Navigation("Section");
                 });
@@ -4094,17 +4107,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Area");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
-                        .WithMany("UnificationRules")
-                        .HasForeignKey("AccId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Acc");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
                     b.Navigation("AccSectors");
@@ -4112,8 +4114,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Airports");
 
                     b.Navigation("Sectors");
+                });
 
-                    b.Navigation("UnificationRules");
+            modelBuilder.Entity("Vipi.Domain.Entities.AgreementClause", b =>
+                {
+                    b.Navigation("Shares");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementSection", b =>
@@ -4121,6 +4126,8 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Airports");
 
                     b.Navigation("Clauses");
+
+                    b.Navigation("GuestClauses");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>
