@@ -50,8 +50,15 @@ sono passate, `UnificationRules` non c'è più. Da fuori, da anonimo: porta «En
 `/vsop/health/ready` Healthy, `vipi-theme.css?v=f27ce52a` (quello del pacchetto). Scarico dell'8-ott: zero ERR/CRT
 dall'avvio, riconciliazioni documentali concluse senza cambiamenti, poll IVAO regolare, un solo login per nonce.
 🔎 **`/vsop/health` risponde `Degraded`**: «1 errori nel report di consistenza» (avvisi-log, 8-ott 07:34Z). Il log non
-dice quale; S97 non ha toccato le sonde. Il rilievo si legge in Diagnostica: aspetta il committente, poi si decide se
-è un dato da sistemare o un lavoro per il Sito.
+dice quale: si legge solo in Diagnostica. **Letto l'8-ott**: «Trasferimento senza ripiego», ACC LIMM, «Chiuso il
+ricevente il traffico va su UNICOM, ma quel punto lo copre qualcun altro: manca un ripiego (`LIMM_WS2_CTR →
+LIMM_ES2_CTR`)». La freccia è «ricevente → chi copre il punto»: una clausola ha WS2 come ricevente su un punto che,
+chiuso WS2 e aperti gli altri, la geometria dà a ES2. Il committente: è falso, quello scenario non esiste («WS5 non
+può essere aperto se non è aperto il WS2»). Il codice della sonda (4-quinquies di `ConsistencyReportService`) e dei
+suoi ingressi non è stato toccato dalla 1.57.0, e il 2-ott la salute era Healthy: o sono cambiati i dati di Milano, o
+c'entra un pezzo indiretto. **Assegnato al Sito** (ramo `fix/senza-ripiego-falso`, vuoto): la regola di dominio la
+decide il committente con lui, su una copia fresca del database → 1.57.1. Il sito funziona: Degraded è solo il
+verdetto di salute.
 
 MINOR con **quattro migrazioni, due con una `DropTable`**, su 1.56.0 (`2285a80`). Timbro **`1.57.0 · 397b7a1`**.
 🔴 `ViaLeRegoleDiUnificazione` cancella `UnificationRules` (zero righe in produzione); `ClausoleCondivise` crea

@@ -7,7 +7,8 @@
 > ## ▶ Il punto — 7 ottobre 2026, sera
 >
 > **✅ Online: 1.57.0** (`Schema 0` confermato, scarico senza errori; **in `main` non resta codice fuori pacchetto**;
-> 🔎 `/vsop/health` Degraded per UN errore nel report di consistenza, da leggere in Diagnostica) (§A149, timbro `1.57.0 · 397b7a1`, 19 file, zip `b2dde5fe…`, MINOR): Sito S97
+> 🔎 `/vsop/health` Degraded per UN errore nel report di consistenza: «Trasferimento senza ripiego» su LIMM, falso
+> secondo il committente, assegnato al Sito su `fix/senza-ripiego-falso` → 1.57.1) (§A149, timbro `1.57.0 · 397b7a1`, 19 file, zip `b2dde5fe…`, MINOR): Sito S97
 > (coordinamenti e struttura: motore unico, banco di prova, clausole condivise, ordine delle clausole) e S98 (import
 > mai riuscito). 🔴 **Prima migrazione distruttiva** (`DropTable UnificationRules`, zero righe in produzione): copia
 > del database PRIMA del carico, e il rollback a due rinomine non basta più da solo. ▶ Dopo: ripubblicare le vIPI ACC. S96 tabellone in pausa (chiave del booking). LIRE/LIBG
