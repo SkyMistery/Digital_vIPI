@@ -10,6 +10,8 @@
 > dall'8 ottobre: il committente «schema 0, tutto ok», quattro migrazioni passate in produzione — §A149). Niente da
 > fondere. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi, sul ramo `fix/tabellone` (aspetta la
 > chiave del booking; carta `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
+> **Aperto**: **S99**, il falso «Trasferimento senza ripiego» di LIMM che tiene `/vsop/health` in Degraded — ramo
+> `fix/senza-ripiego-falso`, niente ancora corretto: aspetta la regola di dominio dal committente (voce S99, in fondo).
 >
 > Prove che restano al committente, da S97: **ripubblicare le vIPI ACC** (la tabella delle configurazioni segue il
 > motore unico: sulla copia di produzione cambiava solo LIMM «Conf 2 b»); guardare i **3 avvisi «quota di un altro
