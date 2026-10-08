@@ -4,7 +4,28 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## 6 ottobre 2026 — lotto «Subito» in corso (slice 0-14 fatte)
+## Dove siamo — 9 ottobre 2026: il lotto «Subito» aspetta il committente
+
+Del lotto (20 slice, 0-19) sono **fatte la 0-16, la 18 e la 19a**; l'ultimo commit di lavoro è `3e659591` (6 ottobre),
+poi il ramo è stato allineato a `main` 1.58.0. Restano due cose, tutte e due ferme sul committente:
+
+1. **La slice 17 — simboli** (lettore `.sym`, editor a pixel 13×13; voci T1, T2 della carta «file per file» §20).
+   Aspetta la **prova T3 in Aurora**: come Aurora riconosce i simboli di `symbols.sym`, che nel file non hanno un nome
+   che lei legga (solo un commento sopra). Il materiale è fuori dal repo, in `IVAO_Test\SectorLab-prova\T3\`:
+   `LEGGIMI-T3.md` coi passi T3-1…T3-5, la tavola `simboli-numerati.html` (i 23 simboli col loro numero), e due
+   varianti del file — **A** coi disegni del 1° (APT) e del 14° (VOR2) scambiati, **B** con `//` davanti ai due nomi
+   che non l'hanno (`AC_comb SEL`, `AC_DUPE`). Dall'esito dipende il disegno dell'editor: se conta la posizione
+   (1° = scalo…) l'ordine si mostra e si sposta solo di proposito, col suo numero; se le due righe senza `//` spostano
+   la numerazione, aggiungerle è una correzione da fare con cautela.
+2. **Il giro di prove del committente** (slice 19b): 153 prove, dalla 78 alla 230, in
+   `IVAO_Test\SectorLab-prova\PROVE.md`, con in testa «Il giro del lotto» — le nove cose da guardare in Aurora, le
+   tredici da decidere, le scelte dell'agente che aspettano un sì o un no.
+
+Numeri di oggi: motore **839** test, Lab **930**, `Vipi.Infrastructure.Tests` **2 202** (2 184 di `main` più i 18 della
+lettura dei tag); sul fork `8cf32c6` round-trip **723/723**, **235 errori e 1 250 avvisi** nel pannello del Lab (1 242
+nello strumento). L'eseguibile di prova è quello di `3464e9db`; lo zip dato agli AOD è ancora `f27d4ed4` (slice 0-9).
+
+## Dal 27 settembre al 6 ottobre 2026 — il lotto «Subito», slice per slice
 
 Carta approvata: [`2026-09-27-lotto-subito.md`](../feature/2026-09-27-lotto-subito.md) (20 slice in tre ondate). Fatte
 la slice 0 (misure di partenza) e la **slice 1** intera: sintassi dei tag di §M nel motore (1a), tag sui file a una
@@ -313,6 +334,16 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
   dal commit «LIMF: Revisione SIDs»). Il validatore oggi non lo dice: ora è la P3 della carta «file per file» (§16).
 - Tutti gli altri aperti del giro dei file (26 settembre) stanno nella carta «file per file», voce per voce con lo
   stato (🟡 = da provare o da confermare).
+- **Aperti del lotto «Subito» (9 ottobre)**: l'elenco che fa fede è «Il giro del lotto» in testa a `PROVE.md` (nove
+  cose da guardare in Aurora, tredici da decidere). In fondo a ogni slice della carta del lotto (§6) stanno le
+  scelte dell'agente da confermare e quel che non è stato fatto, detto al committente.
+- 🟡 **Dati del fork da correggere** (R-10, in un ramo, quando lo dice il committente) emersi dalle slice 13-18:
+  `default.atis` con una `]` in più (102 posizioni); `lipa.vfi` 3-6 con nome e codice scambiati, `lict.vfi:8` e
+  `liph.vfi:2` col codice in coda al nome, `lips.vfi:3` con un punto che si chiama «.»; i codici doppi `MJNW1` e
+  `PKS1`, il fix nascosto `PRNW5` senza punto, sei punti VFR senza gemello, cinque gemelli da portare sul fix; 104
+  separatori `T;DUMMY` senza gruppo nelle MVA di ACC, 13 quote MVA piene, `lipx.mva:14` in gradi decimali; il
+  cerchio `X07-X08` aperto; le etichette delle aerovie (53 da aggiungere, 24 da rinominare, 25 lontane). Ognuno ha
+  il suo avviso nel Lab, quasi tutti con «Correggi».
 
 ### Codice comune toccato (per l'integratore, alla fusione)
 
@@ -364,8 +395,56 @@ F2 → carta [`2026-09-22-f2-motore-del-sector.md`](../feature/2026-09-22-f2-mot
   non ha piste, e il controllo che le usa tace (12d).
 - 🔴 Il banco a schermo tiene bloccate le DLL del Lab: si ferma (`Stop-Process -Name banco`) prima di ricompilare.
 
+Dalle slice 13-19 (6 ottobre):
+
+- 🔴 Una scelta degli AOD che può cambiare va nelle **Impostazioni dell'app** (`ImpostazioniDelLab.razor`, un file per
+  impostazione fra i dati del Lab), non nel codice: il modello dei nomi delle configurazioni, la soglia delle
+  etichette. Le regole che ne dipendono le calcola il Lab (`ValidaLAlberoAsync`), non il motore.
+- Un gesto su un FILE intero è una sostituzione di righe (`Modifiche.CambiaRighe` dentro `GestoSulTesto` e
+  `NellaStoria`: una voce, un annulla), e la funzione che fa il piano è pura (`EtichetteDelleAerovie`, `AerovieAMano`).
+  Dopo aver TOLTO record, `Scegli(null, 0)`: la scheda mostrava il record che ne aveva preso il numero.
+- 🔴 Un controllo che legge le righe non chiude un pezzo a una riga di tag (`//@`, `//@@`): la 14b lo faceva, e
+  scritto il verso di un tratto le etichette di quell'aerovia diventavano «lontane».
+- 🔴 Una misura in Python si confronta con quel che legge il MOTORE: le coordinate in gradi decimali (`lipx.mva:14`)
+  e senza punti (`libv.mva`) lo script non le leggeva, e contava una zona senza etichetta che non c'era (15b).
+- 🔴 Una regola con la riga corretta si misura sul fork prima di fidarsi: `IP31;PL;` di `lipl.vfi` sembrava un
+  codice scambiato col nome, ed è un punto che si chiama così (16b).
+- 🔴 Il pannello dei problemi disegna i primi duecento: un test a schermo che clicca un problema prima filtra per
+  regola, sennò cade quando una slice aggiunge avvisi ai campioni (15b).
+- 🔴 I test del Lab che passano dal catalogo dei nomi (mappa, suggerimenti) vogliono scali veri dell'`.ap` dei
+  campioni (`lira`, `liru`, `licc`…): il master carica da sé solo i file degli scali che dichiara (16e).
+- 🔴 Il banco trova quel che i test non vedono — il tipo che teneva spento «Aggiungi» nei `.vfi`, l'annulla dei tag
+  dei punti rotto dalla 9d: ogni gesto nuovo si prova lì fino in fondo, **annulla compreso**.
+- Un campo che non si scrive per QUEL record: `SiScriveSe` + `PercheNo` nella descrizione, e il rifiuto sta anche in
+  `ModificheInSospeso.Cambia`. Una domanda del record nuovo che può restare senza risposta:
+  `SceltaDelTipo.Facoltativo`. La voce di modifica del tag di un punto ha per chiave `@@N.chiave` e un `Nome` a parte.
+- Razor: un componente che richiama sé stesso disegna le parti annidate (`PezziDelModello`); uno `switch` col markup
+  nei `case` funziona; `parola@(…)` è preso per un'email, serve `<span>@…</span>`; niente stringhe fra virgolette
+  dentro un attributo, si passa da un metodo. `Sezione` mette i `data-*` sul titolo, non sul contenitore.
+- 🔴 La voce di «Ascolta» (`Ui/Servizi/Voce.cs`) si prova scrivendo la lettura in un `.wav` (`ScriviSuFile`); sul banco
+  il tasto non si preme: parlerebbe dalle casse del committente.
+- 🔴 I conti «in alto» scritti in una prova invecchiano a ogni slice che aggiunge avvisi: quando il totale cambia si
+  riallineano tutti in `PROVE.md`, e le domande 🟡 che hanno avuto risposta si segnano ✅ (19b: dieci prove su 153).
+- 🔴 Uno script con apostrofi, backslash o `\n` dentro le stringhe va in un file, mai in un heredoc della shell.
+
 ### Dove lavorare
 
-- Conteggi del filone: `tests/conteggi/Vipi.SectorLab.Tests.txt` e, se si tocca il motore, `Vipi.Sectorfile.Tests.txt`
-  (`bash tools/conta-test.sh <log> --scrivi <Assieme>`, nello stesso commit dei test).
+- Conteggi del filone: `tests/conteggi/Vipi.SectorLab.Tests.txt`, `Vipi.Sectorfile.Tests.txt` se si tocca il motore,
+  `Vipi.Infrastructure.Tests.txt` se si tocca la concordanza (`tools/Vipi.SectorfileProva/Concordanza.cs` è compilato
+  anche lì). Si scrivono a mano dai «Passed!» del log, nello stesso commit dei test: il cancello di `main` rifiuta
+  `bash tools/conta-test.sh` da questa cartella, e la CI li ricontrolla.
 - Prova sull'albero intero: `dotnet run --project tools/Vipi.SectorfileProva -c Release -- <…\SectorFiles\Include\IT>`.
+  Dura più di dieci minuti: in background, da sola, una volta a fine slice. Esce 1 per il solo `limf.sid` (il nome
+  vuoto alla riga 28). Attese di oggi: round-trip 723 esatti e 25 senza lettore, tutto toccato 0, una modifica per
+  record 115 620, una testa per procedura 2 811, tag 118 521, punti 38 330, blocchi 107 256, 235 errori e 1 242
+  avvisi, tag letti da vIPI 231 file con 0 cambiati e 2 379 procedure coi loro tag.
+- **Il solo validatore, in tre secondi** (per misurare una regola mentre la si scrive): un progetto console di venti
+  righe che referenzia `Vipi.Sectorfile` e chiama `Validatore.ValidaLAlbero(<fork>\SectorFiles)`, stampando i conti
+  per regola e, per le regole chieste, ogni problema con la sua proposta. Sta nello scratchpad dell'agente
+  (`valida`), fuori dal repo: se non c'è più si riscrive.
+- **Il banco a schermo**: un progetto `Sdk.Web` di dieci righe che avvia `ServerDelLab` su una copia del fork e
+  scrive l'indirizzo d'ingresso in un file; si apre col browser del pannello e si guida leggendo il DOM. Anche lui
+  nello scratchpad (`banco` e `copia`); la copia dev'essere pari al fork, file vuoti compresi.
+- L'eseguibile di prova: `dotnet publish src/Vipi.SectorLab -c Release -r win-x64 --self-contained -o
+  <IVAO_Test>\SectorLab-prova`, poi `VipiSectorLab.exe --autoprova --cartella <fork>` (esito 0). Prima si guarda che
+  il Lab non sia aperto (`Get-Process VipiSectorLab`): è un programma che il committente usa.

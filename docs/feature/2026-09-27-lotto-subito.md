@@ -6,7 +6,11 @@
 > [F3](2026-09-22-f3-l-app.md), [F3-bis](2026-09-23-f3-bis-copie-e-mappe-composte.md). Metodo:
 > [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 
-## Stato — 27 settembre 2026
+## Stato — 9 ottobre 2026
+
+**Fatte le slice 0-16, la 18 e la 19a** (ultimo commit di lavoro `3e659591`, 6 ottobre). **Restano**: la **17**
+(simboli), ferma sulla prova T3 del committente in Aurora, e il **giro di prove del committente** (19b: 153 prove,
+guida in testa a `PROVE.md`). La traccia di ogni slice è in §6; quel che segue è lo stato com'era scritto via via.
 
 **Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c), la slice 3 (3a-3e), la slice 4 (4a-4d), la slice 5 (5a-5d), la slice 6 (6a-6c), la slice 7 (7a-7f) la slice 8 (8a-8e), la slice 9 (9a-9e), la slice 10 (10a-10c) e la slice 11 (11a-11d, §6 «Traccia»); e la slice 12 (12a-12d, 4 ottobre; restano i punti di startup, R4, dopo la prova in Aurora). Dopo la 9, decisione del committente (29 settembre): **consegna
 agli AOD** per una prima prova, uno zip con l'eseguibile e il sector. Tutte le voci
