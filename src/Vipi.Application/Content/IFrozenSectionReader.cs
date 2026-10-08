@@ -30,12 +30,20 @@ public sealed class FrozenSections
     private Dictionary<string, int>? _idsByKey;
 
     private FrozenSections(IReadOnlyDictionary<int, string>? byId, RawDocument? doc,
-        IReadOnlyDictionary<string, string>? byKey = null)
+        IReadOnlyDictionary<string, string>? byKey = null, bool configurazioniDallaStruttura = false)
     {
         _byId = byId;
         _doc = doc;
         _byKey = byKey;
+        ConfigurazioniDallaStruttura = configurazioniDallaStruttura;
     }
+
+    /// <summary>
+    /// Vero se lo snapshot è di una release nata con le configurazioni in Struttura
+    /// (<see cref="DocReleasePayload.ConfigurazioniDallaStruttura"/>): la sezione <c>configurations</c> senza una
+    /// voce congelata è una sezione Live, non una release di prima.
+    /// </summary>
+    public bool ConfigurazioniDallaStruttura { get; }
 
     /// <summary>
     /// Lotto da uno snapshot di release: le sezioni congelate per Id, più il documento congelato da cui si
@@ -43,8 +51,14 @@ public sealed class FrozenSections
     /// <see cref="IFrozenSectionReader"/> ritorna: qualunque implementazione deve poterlo costruire, non solo
     /// quella su EF.
     /// </summary>
-    public static FrozenSections FromSnapshot(IReadOnlyDictionary<int, string>? byId, RawDocument? doc) =>
-        byId is { Count: > 0 } ? new FrozenSections(byId, doc) : Empty;
+    /// <param name="configurazioniDallaStruttura">Il segno della release (vedi
+    /// <see cref="ConfigurazioniDallaStruttura"/>). ⚠️ Con il segno il lotto esiste anche senza nessuna sezione
+    /// congelata: «niente di congelato» e «release di prima» non sono la stessa risposta.</param>
+    public static FrozenSections FromSnapshot(IReadOnlyDictionary<int, string>? byId, RawDocument? doc,
+        bool configurazioniDallaStruttura = false) =>
+        byId is { Count: > 0 } || configurazioniDallaStruttura
+            ? new FrozenSections(byId, doc, configurazioniDallaStruttura: configurazioniDallaStruttura)
+            : Empty;
 
     /// <summary>Lotto keyed direttamente per chiave di sezione, per le sorgenti che gli Id non li hanno.</summary>
     public static FrozenSections FromKeys(IReadOnlyDictionary<string, string>? byKey) =>
@@ -153,6 +167,7 @@ public sealed class FrozenSectionReader : IFrozenSectionReader
         try { payload = JsonSerializer.Deserialize<DocReleasePayload>(rel.PayloadJson); }
         catch (JsonException) { return FrozenSections.Empty; }
 
-        return FrozenSections.FromSnapshot(payload?.FrozenSections, payload?.Doc);
+        return FrozenSections.FromSnapshot(payload?.FrozenSections, payload?.Doc,
+            payload?.ConfigurazioniDallaStruttura ?? false);
     }
 }

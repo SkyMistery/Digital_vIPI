@@ -6,8 +6,9 @@ namespace Vipi.Application.Content;
 /// <summary>
 /// Cattura Frozen delle sezioni derivate dell'APP standalone (doc 10 §3b). Chiave di release = callsign del settore APP
 /// primario. Deriva AoR/Frequenze/Coordinamenti via <see cref="IAppDocumentService"/> e serializza il view-model.
-/// Le sezioni editoriali (separazioni/configurazioni/vfr) vivono già nei blocchi statici del <c>Doc</c>; il config-table
-/// si deriva dalla config congelata → non va catturato qui.
+/// Le sezioni editoriali (separazioni/vfr) vivono già nei blocchi statici del <c>Doc</c>. Le <b>configurazioni</b>
+/// dall'8 ottobre 2026 sono una derivata (stanno in Struttura) e si catturano qui; il config-table si deriva al
+/// view dalla lista congelata, e non va catturato.
 /// </summary>
 internal sealed class AppFrozenSectionProvider : IFrozenSectionProvider
 {
@@ -27,6 +28,9 @@ internal sealed class AppFrozenSectionProvider : IFrozenSectionProvider
                 "frequencies" => await _app.DeriveFrequenciesAsync(key, ct),
                 "coordination" => await _app.DeriveCoordinationAsync(key, ct),
                 "minima" => MinimaCharts.DaCongelare(await _app.DeriveMinimaAsync(key, ct)),
+                // Le configurazioni dell'ente, come le ha la Struttura al momento della pubblicazione (carta
+                // 2026-10-08-configurazioni-possibili): la lista com'è, la tabella d'accorpamento si ricalcola al view.
+                ConfigurazioniDelDocumento.Chiave => (await _app.GetConfigurationsAsync(key, ct)).ToList(),
                 _ => null,
             };
             if (vm is not null) result[s.Id] = JsonSerializer.Serialize(vm);

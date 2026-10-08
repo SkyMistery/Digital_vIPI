@@ -354,7 +354,6 @@ else
     private readonly Dictionary<int, MinimaView> _minima = new();
     private readonly Dictionary<int, IReadOnlyList<AccConfigTableView>> _configTables = new();
 
-    private IReadOnlyList<AccSectorPick> _ctrSectors = Array.Empty<AccSectorPick>();
     private IReadOnlyList<AccSectorPick> _appSectors = Array.Empty<AccSectorPick>();
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private IReadOnlyList<SpecialAreaPick> _specialAreaPicks = Array.Empty<SpecialAreaPick>();   // aree del proprio ACC
@@ -385,7 +384,6 @@ else
         catch (ValidationException) { _denied = true; return; }
 
         _appSectors = await Profile.ListAppSectorsAsync(Acc);
-        _ctrSectors = await Profile.GetBlockPoolAsync(Acc, new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia }, _root);
         _linkable = await Profile.ListLinkableFrequenciesAsync();
         _specialAreaPicks = await Profile.ListSpecialAreasByAccAsync(Acc);
         _otherAreaPicks = await Profile.ListOtherAccSpecialAreasAsync(Acc);
@@ -569,15 +567,9 @@ else
         await LoadAsync();
     });
 
-    // ---- configurazioni (editor condiviso AppConfigurations: emette l'intera lista, l'host salva) ----
-    private Task SaveConfigs(AccAssembledBlock blk, IReadOnlyList<AccConfiguration> configs) => _shell.GuardAsync(async () =>
-    {
-        blk.Block.Configurations = configs.ToList();
-        await AccDoc.SaveConfigurationsAsync(Acc, ChildId(blk, "configurations"), blk.Block.Configurations);
-        await LoadAsync();
-    });
-
-    private Task<bool> ConfirmRemoveConfig(AccConfiguration c) => Confirm(string.Format(L["App_RemoveConfigConfirm"].Value, c.Name));
+    // ---- configurazioni: dall'8 ottobre 2026 si dichiarano in Struttura («Configurazioni possibili») e qui si
+    //      LEGGONO — il blocco le porta già (AccDocumentService.LoadForEditAsync), l'accorpamento si deriva.
+    //      Carta docs/feature/2026-10-08-configurazioni-possibili.md.
 
     // ---- shape AoR extra (settori DB scelti a mano) + colori ----
     private Task SaveAorExtras(AccAssembledBlock blk, IReadOnlyList<string> callsigns) => _shell.GuardAsync(async () =>
@@ -616,10 +608,6 @@ else
         await AccDoc.SaveRegulatedAsync(Acc, ChildId(blk, "regulated"), sel);
         await LoadAsync();
     });
-
-    private IReadOnlyList<AccSectorPick> PoolOf(AccAssembledBlock blk) =>
-        blk.Block.Kind == AccBlockKind.Aerovia ? _ctrSectors
-            : _appSectors.Where(a => blk.Block.MemberCallsigns.Contains(a.Callsign, StringComparer.OrdinalIgnoreCase)).ToList();
 
     // ---- infra ----
     // Firma a 1 parametro preservata: passata come Run= a DocumentSectionsEditor (Func<Func<Task>,Task>).
@@ -666,10 +654,16 @@ else
                 <AppSeparations Rows="blk.Block.Separations" Editing="_shell.IsEditing" RowsChanged="rows => SaveSeparations(blk, rows)" />
                 break;
             case "configurations":
-                <AppConfigurations Configs="blk.Block.Configurations" Pool="PoolOf(blk)"
+                @if (_shell.IsEditing)
+                {
+                    <p class="muted cfg-from-structure" style="margin-top:0">
+                        @L["AppCfg_FromStructure"]
+                        <a href="/services/vsop/admin/sector-structure" target="_blank" rel="noopener">@L["AppCfg_OpenStructure"]</a>
+                    </p>
+                }
+                <AppConfigurations Configs="blk.Block.Configurations"
                                    Tables="_configTables.GetValueOrDefault(bsId) ?? Array.Empty<AccConfigTableView>()"
-                                   Editing="_shell.IsEditing" MapScope="@($"b{bsId}")" ConfigsChanged="configs => SaveConfigs(blk, configs)"
-                                   ConfirmRemove="ConfirmRemoveConfig" />
+                                   Editing="false" MapScope="@($"b{bsId}")" />
                 break;
             case "aor":
                 <AccAor @key="@($"aor-{bsId}")" View="_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty" Id="@($"b{bsId}")"

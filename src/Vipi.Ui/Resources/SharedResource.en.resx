@@ -548,7 +548,7 @@
   <data name="AppSep_Remove" xml:space="preserve"><value>Remove separation</value></data>
   <data name="AppSep_Add" xml:space="preserve"><value>+ Add separation</value></data>
   <data name="AppSep_None" xml:space="preserve"><value>No separation specified.</value></data>
-  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Create a configuration, name it and choose the open sectors. The system computes the merging.</value></data>
+  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Configurations are declared in Structure, section «Possible configurations»: name, open sectors, Center Point and Range. The document reports them here and works out the merging. With the section frozen, the public sees those of the time of publication.</value></data>
   <data name="AppCfg_EditHelpAria" xml:space="preserve"><value>Help on configurations</value></data>
   <data name="AppCfg_NamePlaceholder" xml:space="preserve"><value>Configuration name</value></data>
   <data name="AppCfg_Remove" xml:space="preserve"><value>Remove configuration</value></data>
@@ -4161,4 +4161,6 @@
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>
   <data name="Bench_NotForeseen" xml:space="preserve"><value>Not a foreseen configuration — {0}: {1}</value></data>
+  <data name="AppCfg_FromStructure" xml:space="preserve"><value>This group&apos;s configurations are declared in Structure, section «Possible configurations»: here they are read, with the merging that follows.</value></data>
+  <data name="AppCfg_OpenStructure" xml:space="preserve"><value>Open Structure</value></data>
 </root>

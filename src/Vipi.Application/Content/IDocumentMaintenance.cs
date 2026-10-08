@@ -257,6 +257,17 @@ public interface IDocumentMaintenance
     Task<int> LinkAccGroupUnitsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Il <b>travaso</b> delle configurazioni dal documento alla Struttura (carta
+    /// 2026-10-08-configurazioni-possibili.md §5): per ogni gruppo di settori — i settori d'area di un ACC, un
+    /// ente con le sue posizioni — che in Struttura non ha ancora un elenco, copia quello scritto nella versione
+    /// di lavoro del suo documento. Idempotente: un gruppo che ha già una riga, anche vuota, non si tocca; dal
+    /// documento non si cancella niente. Ritorna quanti gruppi hanno ricevuto l'elenco.
+    /// Gira DOPO <see cref="LinkAccGroupUnitsAsync"/>: i gruppi APP si riconoscono dal loro ente.
+    /// </summary>
+    Task<int> TravasaConfigurazioniAsync(CancellationToken ct = default);
+
+
+    /// <summary>
     /// Porta ogni aeroporto alla <b>categoria</b> che deve avere (carta 2026-09-11-categorie-aeroporto.md): il
     /// l'invariante con la presenza militare (fino al 16 settembre 2026 anche il travaso dal booleano
     /// <c>IsMilitaryOnly</c>, poi tolto).

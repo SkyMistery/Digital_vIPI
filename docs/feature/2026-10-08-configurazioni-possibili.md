@@ -118,8 +118,34 @@ Così in produzione le quattro configurazioni di Milano arrivano in struttura da
 sparisce senza che nessuno riscriva niente. A Torino arriva l'elenco incompleto che c'è oggi: le conseguenze
 ricavate lo mostreranno, e si aggiungono {WN0} e {WS0}.
 
-Il `BodyJson` della sezione `configurations` resta dov'è e non lo legge più nessuno; le release congelate hanno
-la loro tabella già scritta.
+⚠️ **Dal documento non si cancella niente.** Il `BodyJson` della sezione `configurations` resta dov'è: il travaso
+copia, non sposta. Un passo che non distrugge si può rifare, e un ritorno alla versione precedente del sito
+ritrova le configurazioni dove le aveva lasciate.
+
+### 5-bis. Che cosa legge il documento
+
+La sezione `configurations` diventa una sezione **derivata** come AOR e frequenze (`SectionCatalog`): ha il suo
+interruttore Live/Frozen, e alla pubblicazione si cattura. In produzione le 68 sezioni esistenti sono tutte
+Frozen. La regola è una, per la vIPI dell'ACC e per la vIPI APP (`ConfigurazioniDelDocumento`):
+
+| Che cosa si mostra | Da dove vengono le configurazioni |
+|---|---|
+| Versione di lavoro (editor, anteprima di una bozza, cattura alla pubblicazione) | la Struttura di adesso |
+| Release **nuova**, sezione Frozen | la voce congelata nella release (`FrozenSections`) |
+| Release **nuova**, sezione Live | la Struttura di adesso |
+| Release **di prima** dell'8 ottobre 2026 | il `BodyJson` della sezione dentro il suo snapshot, com'è |
+
+«Nuova» lo dice un segno scritto nella release alla sua nascita (`DocReleasePayload.ConfigurazioniDallaStruttura`).
+Serve perché il `BodyJson` non si cancella: senza il segno, quello rimasto nella versione di lavoro finirebbe in
+ogni snapshot futuro e passerebbe per buono — una sezione Live mostrerebbe per sempre le configurazioni di
+ottobre 2026. Col segno non serve toccare niente di già uscito.
+
+Conseguenza cercata: **non esiste più una bozza delle configurazioni.** Il difetto «sulla pagina pubblica le
+configurazioni di una bozza mai pubblicata» (doc 13 §3g, T-028) non può più darsi; resta vero che una
+configurazione cambiata in Struttura arriva al pubblico di un documento Frozen solo alla pubblicazione
+successiva — come ogni altra derivata.
+
+Negli editor dei due documenti la sezione è in sola lettura, con il rimando a Struttura.
 
 ## 6. Le fette
 
@@ -129,9 +155,43 @@ la loro tabella già scritta.
 4. Struttura: l'editor e le conseguenze; il banco.
 5. Il documento legge dalla struttura; il travaso.
 
-## 7. Perché il rilievo è nato l'8 ottobre
+## 7. Limiti noti
 
-Il committente non ha toccato la struttura di Milano. Con la 1.57.0 (S97) sono però cambiati l'espansione degli
-accordi e il motore di copertura, che alimentano la sonda: è la spiegazione più probabile, **non provata** —
-il sito non è stato fatto girare sulla copia per vedere quale clausola fa scattare il rilievo. Il difetto della
-sonda (uno scenario che non esiste) c'era comunque da prima.
+- **Vista live**: «configurazione non prevista» su un gruppo online fuori elenco non c'è ancora (§4).
+- **Un settore cancellato dai cataloghi resta scritto nell'elenco** che lo nominava. Non fa danni ai calcoli
+  (un settore che non esiste non è mai aperto), ma la prima riscrittura dell'elenco viene rifiutata finché non
+  lo si toglie — e il messaggio dice quale. La Diagnostica non lo segnala ancora.
+- **I settori fra cui un gruppo sceglie** li calcola `EfSectorConfigurationService`; i due servizi dei documenti
+  hanno ancora i loro (`GetBlockPoolAsync`, `ListSectorsAsync`), che l'interfaccia non usa più. Sono la stessa
+  regola scritta due volte: da unire.
+- **Un gruppo APP senza membri** non ha un ente, quindi non ha un gruppo in Struttura: le sue configurazioni,
+  se ne aveva, non si travasano finché non ha un membro.
+
+## 8. Perché il rilievo è nato l'8 ottobre
+
+Il committente non ha toccato la struttura di Milano. Due cose che alimentano la sonda sono però cambiate senza
+che nessuno toccasse i dati: con la 1.57.0 (S97) l'espansione degli accordi e il motore di copertura; e, in
+ogni momento, il **sectorfile** — le coordinate dei punti di trasferimento vengono da lì (`CopPositionsProvider`),
+non dal database, e un punto che prima non aveva una posizione la sonda non lo vedeva. Quale delle due sia stata
+**non è provato**. Il difetto della sonda (uno scenario che non esiste) c'era comunque da prima.
+
+## 9. La prova sulla copia di produzione
+
+Copia dell'8 ottobre 2026 (07:48Z, sito 1.57.0) in un MariaDB isolato, con la build di questo ramo:
+
+| Passo | Esito |
+|---|---|
+| Migrazione `20261008082613_ConfigurazioniPossibili` | applicata all'avvio |
+| Travaso | 8 gruppi: LIMM, LIRR, LIPP, LIBB (settori d'area); LIMF_WW0_APP, LIPZ_SE0_APP, LIPE_W_APP, LIBD_CS0_APP (enti) |
+| Travaso al riavvio dopo | 0 |
+| `/vsop/health` con l'elenco di Milano **vuotato** | «1 errori nel report di consistenza» — il rilievo di produzione |
+| `/vsop/health` con l'elenco travasato | nessun errore di consistenza |
+
+⚠️ **Col sectorfile acceso.** Il primo giro era col sectorfile spento (è l'abitudine delle prove dal vivo): il
+catalogo dei punti arriva vuoto, la sonda non colloca niente, e i due casi davano la stessa risposta. Una prova
+che non distingue non è una prova.
+
+⚠️ Sul banco la salute resta «Degraded» per «Cache ATC online non aggiornata»: l'API IVAO era spenta apposta, e
+quel controllo viene **dopo** il conteggio degli errori di consistenza — se ce ne fossero, direbbe quelli.
+
+Non provato: l'interfaccia a schermo su questa copia (serve il login IVAO vero).

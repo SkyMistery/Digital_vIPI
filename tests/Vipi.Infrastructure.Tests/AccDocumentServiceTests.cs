@@ -19,8 +19,18 @@ public class AccDocumentServiceTests : IAsyncLifetime
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
     private VipiDbContext _db = default!;
     private AccDocumentService _service = default!;
+    private EfSectorConfigurationService _configurazioni = default!;
 
     private const string Acc = "LIRR";
+
+    private static AccConfiguration Conf(string nome) => new()
+    {
+        Key = "cfg:" + nome, Name = nome, Open = new() { new AccConfigOpen { Callsign = "LIRR_NE_CTR" } },
+    };
+
+    /// <summary>Scrive le configurazioni dei settori d'area dove si scrivono dall'8 ottobre 2026: in Struttura.</summary>
+    private Task InStruttura(params string[] nomi) =>
+        _configurazioni.ReplaceAsync(ConfigurationGroupKind.AccArea, Acc, nomi.Select(Conf).ToList());
 
     public async Task InitializeAsync()
     {
@@ -33,8 +43,9 @@ public class AccDocumentServiceTests : IAsyncLifetime
         var repo = new EfAccDerivationRepository(_db);
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var authz = new AllowAuthz();
+        _configurazioni = new EfSectorConfigurationService(_db, authz, LockDiRisorsaConcesso.Instance);
         _service = new AccDocumentService(repo, editing, authz, TestReleaseTargets.ReleaseRepo(_db),
-            LockConcesso.Instance);
+            LockConcesso.Instance, new EfAtcUnitRepository(_db), _configurazioni);
     }
 
     public async Task DisposeAsync()
@@ -106,18 +117,19 @@ public class AccDocumentServiceTests : IAsyncLifetime
         Assert.True(block.ChildSectionIdsByKey.ContainsKey("frequencies"));
     }
 
+    /// <summary>
+    /// Le configurazioni la versione di lavoro le legge dalla <b>Struttura</b> (carta
+    /// 2026-10-08-configurazioni-possibili): il documento non le scrive più. Le separazioni restano sue.
+    /// </summary>
     [Fact]
-    public async Task Save_Configurations_And_Separations_RoundTrip_Through_Document()
+    public async Task Configurations_Come_From_Structure_And_Separations_RoundTrip_Through_Document()
     {
         var model = await _service.LoadForEditAsync(Acc);
         var block = Assert.Single(model.Blocks);
-        var configId = block.ChildSectionIdsByKey["configurations"];
         var sepId = block.ChildSectionIdsByKey["separations"];
+        Assert.Empty(block.Block.Configurations);
 
-        await _service.SaveConfigurationsAsync(Acc, configId, new[]
-        {
-            new AccConfiguration { Key = "cfg:1", Name = "Conf 1", Open = new() { new AccConfigOpen { Callsign = "LIRR_CTR" } } },
-        });
+        await InStruttura("Conf 1");
         await _service.SaveSeparationsAsync(Acc, sepId, new[] { new AppSeparationRow("1000 ft", "5 NM") });
 
         var reloaded = Assert.Single((await _service.LoadForEditAsync(Acc)).Blocks).Block;
@@ -222,39 +234,104 @@ public class AccDocumentServiceTests : IAsyncLifetime
         Assert.Null(await _service.LoadForViewAsync(Acc));
     }
 
-    [Fact]
-    public async Task Release_Snapshot_Is_Frozen_Then_Served_By_View()
+    /// <summary>
+    /// Pubblica una release della vIPI ACC e la rende in vigore. <paramref name="comeNasceOggi"/> = col segno
+    /// «configurazioni in Struttura» e, se <paramref name="congelate"/> non è null, con quella voce congelata nella
+    /// sezione <c>configurations</c> — quel che fa <c>ReleaseService</c> con la cattura; senza = una release di
+    /// prima dell'8 ottobre 2026, com'è in archivio.
+    /// </summary>
+    private async Task<string> PubblicaAsync(string ciclo, bool comeNasceOggi, string? congelate)
     {
         var releases = TestReleaseTargets.ReleaseRepo(_db);
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
-
-        // Migra + edita (config "Conf A") + pubblica.
         var model = await _service.LoadForEditAsync(Acc);
-        var block = Assert.Single(model.Blocks);
-        await _service.SaveConfigurationsAsync(Acc, block.ChildSectionIdsByKey["configurations"], new[]
-        {
-            new AccConfiguration { Key = "cfg:a", Name = "Conf A", Open = new() { new AccConfigOpen { Callsign = "LIRR_CTR" } } },
-        });
-        var draftVer = await _db.DocumentVersions.Where(v => v.DocumentId == model.DocumentId).Select(v => v.Id).FirstAsync();
-        await editing.PublishAsync(draftVer, actorUserId: 1, note: null);
+        var bozza = await _db.DocumentVersions.Where(v => v.DocumentId == model.DocumentId && v.Status == DocumentStatus.Draft)
+            .Select(v => v.Id).FirstAsync();
+        await editing.PublishAsync(bozza, actorUserId: 1, note: null);
 
         var key = $"{Acc}|{(await _service.GetIdentityAsync(Acc))!.RootCallsign}";
-
-        // Release AIRAC in vigore ORA: snapshot dello stato pubblicato.
-        var snap = await releases.SnapshotWorkingAsync(ReleaseTargetType.AccVipi, key, "2607");
+        var snap = await releases.SnapshotWorkingAsync(ReleaseTargetType.AccVipi, key, ciclo);
         Assert.NotNull(snap);
-        await releases.SaveReleaseAsync(ReleaseTargetType.AccVipi, key, "2607", DateTime.UtcNow.AddMinutes(-1), snap!, createdByUserId: 1, note: null);
-
-        // Ora modifico e RIpubblico "Conf B" (stato live cambia dopo la release). Serve una nuova bozza (come StartEditing).
-        await editing.CreateDraftAsync(model.DocumentId, authorUserId: 1);
-        var m2 = await _service.LoadForEditAsync(Acc);
-        var b2 = Assert.Single(m2.Blocks);
-        await _service.SaveConfigurationsAsync(Acc, b2.ChildSectionIdsByKey["configurations"], new[]
+        if (comeNasceOggi)
         {
-            new AccConfiguration { Key = "cfg:b", Name = "Conf B", Open = new() { new AccConfigOpen { Callsign = "LIRR_CTR" } } },
-        });
-        var draft2 = await _db.DocumentVersions.Where(v => v.DocumentId == m2.DocumentId && v.Status == DocumentStatus.Draft).Select(v => v.Id).FirstAsync();
-        await editing.PublishAsync(draft2, actorUserId: 1, note: null);
+            var payload = System.Text.Json.JsonSerializer.Deserialize<DocReleasePayload>(snap!)!;
+            payload.ConfigurazioniDallaStruttura = true;
+            if (congelate is not null)
+                payload.FrozenSections[Assert.Single(model.Blocks).ChildSectionIdsByKey["configurations"]] =
+                    System.Text.Json.JsonSerializer.Serialize(new[] { Conf(congelate) });
+            snap = System.Text.Json.JsonSerializer.Serialize(payload);
+        }
+        await releases.SaveReleaseAsync(ReleaseTargetType.AccVipi, key, ciclo, DateTime.UtcNow.AddMinutes(-1), snap!, createdByUserId: 1, note: null);
+        return key;
+    }
+
+    /// <summary>Scrive nel documento il <c>BodyJson</c> della sezione <c>configurations</c>, com'era prima.</summary>
+    private async Task NelDocumentoComePrima(string nome)
+    {
+        var model = await _service.LoadForEditAsync(Acc);
+        var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
+        await editing.SaveSectionBlockJsonBySectionAsync(Assert.Single(model.Blocks).ChildSectionIdsByKey["configurations"],
+            System.Text.Json.JsonSerializer.Serialize(new[] { Conf(nome) }), 1);
+    }
+
+    /// <summary>
+    /// 🔴 Una release <b>di prima</b> dell'8 ottobre 2026 dice le configurazioni che aveva: quelle scritte nel suo
+    /// snapshot. Che in Struttura oggi ce ne siano altre non la cambia — non si tocca niente di già uscito.
+    /// </summary>
+    [Fact]
+    public async Task Una_release_di_prima_tiene_le_configurazioni_del_suo_snapshot()
+    {
+        await NelDocumentoComePrima("Conf A");
+        await PubblicaAsync("2607", comeNasceOggi: false, congelate: null);
+        await InStruttura("Conf B");
+
+        var view = await _service.LoadForViewAsync(Acc);
+        Assert.Equal("Conf A", Assert.Single(Assert.Single(view!.Blocks).Block.Configurations).Name);
+    }
+
+    /// <summary>
+    /// Una release <b>nuova</b> con la sezione congelata dice le configurazioni del momento della pubblicazione,
+    /// anche se poi in Struttura cambiano — e non guarda il <c>BodyJson</c> rimasto nel documento.
+    /// </summary>
+    [Fact]
+    public async Task Una_release_nuova_congelata_tiene_le_configurazioni_di_allora()
+    {
+        await NelDocumentoComePrima("Rimasta nel documento");
+        await InStruttura("Conf A");
+        var key = await PubblicaAsync("2607", comeNasceOggi: true, congelate: "Conf A");
+        await InStruttura("Conf B");
+
+        var view = await _service.LoadForViewAsync(Acc);
+        Assert.Equal("Conf A", Assert.Single(Assert.Single(view!.Blocks).Block.Configurations).Name);
+
+        var relId = await _db.DocReleases.Where(r => r.TargetKey == key).Select(r => r.Id).FirstAsync();
+        var rv = await _service.LoadForReleaseAsync(Acc, relId);
+        Assert.Equal("Conf A", Assert.Single(Assert.Single(rv!.Data.Blocks).Configurations).Name);
+    }
+
+    /// <summary>
+    /// Una release nuova con la sezione <b>Live</b> (nessuna voce congelata) segue la Struttura di adesso — e,
+    /// di nuovo, non il <c>BodyJson</c> rimasto nel documento: è il segno della release a dirlo.
+    /// </summary>
+    [Fact]
+    public async Task Una_release_nuova_con_la_sezione_live_segue_la_struttura()
+    {
+        await NelDocumentoComePrima("Rimasta nel documento");
+        await InStruttura("Conf A");
+        await PubblicaAsync("2607", comeNasceOggi: true, congelate: null);
+        await InStruttura("Conf B");
+
+        var view = await _service.LoadForViewAsync(Acc);
+        Assert.Equal("Conf B", Assert.Single(Assert.Single(view!.Blocks).Block.Configurations).Name);
+    }
+
+    [Fact]
+    public async Task Release_Snapshot_Is_Frozen_Then_Served_By_View()
+    {
+        // Una release di prima (il BodyJson nel suo snapshot), e in Struttura oggi un'altra configurazione.
+        await NelDocumentoComePrima("Conf A");
+        var key = await PubblicaAsync("2607", comeNasceOggi: false, congelate: null);
+        await InStruttura("Conf B");
 
         // La vista pubblica serve lo snapshot CONGELATO (Conf A), non il live (Conf B).
         var view = await _service.LoadForViewAsync(Acc);

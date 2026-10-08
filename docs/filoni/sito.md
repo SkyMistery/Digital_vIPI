@@ -10,8 +10,10 @@
 > dall'8 ottobre: il committente «schema 0, tutto ok», quattro migrazioni passate in produzione — §A149). Niente da
 > fondere. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi, sul ramo `fix/tabellone` (aspetta la
 > chiave del booking; carta `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
-> **Aperto**: **S99**, il falso «Trasferimento senza ripiego» di LIMM che tiene `/vsop/health` in Degraded — ramo
-> `fix/senza-ripiego-falso`, niente ancora corretto: aspetta la regola di dominio dal committente (voce S99, in fondo).
+> **In prova**: **S99**, nato dal falso «Trasferimento senza ripiego» di LIMM che tiene `/vsop/health` in Degraded e
+> diventato «le configurazioni possibili di un gruppo di settori, dichiarate in Struttura» — ramo
+> `fix/senza-ripiego-falso`, cinque fette fatte, **c'è una migrazione**; resta la prova a schermo del committente
+> (voce S99, in fondo; carta `docs/feature/2026-10-08-configurazioni-possibili.md`).
 >
 > Prove che restano al committente, da S97: **ripubblicare le vIPI ACC** (la tabella delle configurazioni segue il
 > motore unico: sulla copia di produzione cambiava solo LIMM «Conf 2 b»); guardare i **3 avvisi «quota di un altro
@@ -2159,8 +2161,9 @@
     `AirportSector` riuscito (lo stato del difetto) Struttura risponde 200 e il giro `ImpactDrift` riesce. Solo via
     HTTP (il prerender, dove nasceva il 500), non in un browser; Pendenti non provata a schermo.
 - 🧪 **S99** falso «Trasferimento senza ripiego» su LIMM, che tiene `/vsop/health` in Degraded (8-ott, assegnato dal
-  Master con la 1.57.0 online; pacchetto previsto 1.57.1). Ramo `fix/senza-ripiego-falso`, da `main` @ `ad490b3e`.
-  **Aperto: solo letto il codice, niente corretto** — la regola di dominio la decide il committente.
+  Master con la 1.57.0 online; pacchetto previsto 1.57.1 — **non lo è più: c'è una migrazione**). Ramo
+  `fix/senza-ripiego-falso`, da `main` @ `ad490b3e`. Il committente ha dato la regola e l'ha allargata: vedi «Com'è
+  finita», in fondo a questa voce. Le righe qui sotto sono quel che si sapeva prima di parlargli.
   - **Il rilievo** (produzione, unico «grave» in Diagnostica): ACC LIMM, «Chiuso il ricevente il traffico va su
     UNICOM, ma quel punto lo copre qualcun altro: manca un ripiego (LIMM_WS2_CTR → LIMM_ES2_CTR)».
   - ⚠️ **Come si legge**: la freccia è «**ricevente** → chi copre il punto», non cedente → ricevente. Una clausola
@@ -2186,6 +2189,40 @@
     per riprodurre il rilievo e vedere quale clausola lo fa scattare (quella di S97 è stata cancellata).
   - Sulla stessa schermata, solo avvisi, non muovono la salute e non sono in questo lavoro: «CoP senza posizione»
     (LIBB: UKOVA, LIMM: GEN) e «Area fantasma» LI R40x sulla clausola #28 di LIBB.
+  - **Com'è finita (8-ott).** Il committente: non è «il figlio non apre senza il padre» — ES5 apre solo con WS5,
+    che non è suo padre; LIMF_WW0 esclude LIMF_WN0, che è suo figlio: «la gerarchia non ci aiuta». E ha proposto di
+    **dichiarare in Struttura le configurazioni possibili di ogni gruppo di settori** e riportarle da sole nel
+    documento. Fatto così; nessun vincolo fra gruppi («no»). Carta: `docs/feature/2026-10-08-configurazioni-possibili.md`.
+    - **Che cosa c'è**: il modello puro `ConfigurazioniPossibili` (un elenco parla dei soli settori che nomina,
+      «tutti chiusi» è sempre previsto, un gruppo senza elenco non ha vincoli; le regole «apre solo con / mai
+      insieme a / da solo» si **ricavano** e si mostrano); la tabella `SectorConfigurationSets`, una riga per
+      gruppo (settori d'area di un ACC, o un ente con le sue posizioni), col suo servizio sotto il lock della
+      struttura; in **Struttura** la sezione «Configurazioni possibili» (lo stesso editor che stava nel documento,
+      con «Applica») e il banco di prova che prende da lì gli scenari e dice «non prevista»; la **Diagnostica**
+      (sonda di «Trasferimento senza ripiego» e scala di risalita) che, chiuso un settore, chiude anche chi senza
+      di lui non può stare aperto; il **documento** (vIPI ACC e vIPI APP) che le legge dalla struttura — sezione
+      `configurations` diventata derivata, in sola lettura negli editor — e il **travaso** all'avvio.
+    - **Le release già uscite non cambiano**: leggono il `BodyJson` del loro snapshot. Quelle nuove portano un
+      segno (`DocReleasePayload.ConfigurazioniDallaStruttura`) e leggono la voce congelata, o la struttura se la
+      sezione è Live. Dal documento non si cancella niente (carta §5 e §5-bis).
+    - **Codice comune**: `Vipi.Application` (`Aor/Topology`, `Content/*`, `Diagnostics`). **Migrazione sì**:
+      `20261008082602_ConfigurazioniPossibili` (SQLite) / `20261008082613_…` (MariaDB), solo `CREATE TABLE`.
+      Niente `deploy/`.
+    - **Test**: Application 3266 → 3298, Infrastructure 2151 → 2182, Ui 1991 → 1999, net8 e net10; E2E 507.
+    - **Prova sulla copia di produzione** dell'8 ottobre (MariaDB isolato, build di questo ramo): la migrazione
+      passa; il travaso porta in Struttura gli elenchi di **8 gruppi** (LIMM, LIRR, LIPP, LIBB d'area; gli enti
+      LIMF_WW0_APP, LIPZ_SE0_APP, LIPE_W_APP, LIBD_CS0_APP) e al riavvio dopo nessuno. `/vsop/health`, riavviando
+      con l'elenco di Milano **vuotato**: «1 errori nel report di consistenza» — il rilievo di produzione,
+      riprodotto; con l'elenco travasato: zero errori. ⚠️ La prova va fatta col **sectorfile acceso**: le
+      coordinate dei punti vengono da lì (`CopPositionsProvider`), e spento la sonda è cieca — il primo giro, col
+      sectorfile spento, non distingueva i due casi. ⚠️ Sul banco la salute resta Degraded per «Cache ATC online
+      non aggiornata»: è l'API IVAO spenta apposta, e in `VipiHealthCheck` viene **dopo** il conteggio degli errori.
+    - **Non provato**: l'interfaccia a schermo sulla copia di produzione (serve il login IVAO vero, che è del
+      committente); il rilievo con la build 1.57.0 sulla stessa copia (si è riprodotto con questa build e
+      l'elenco vuoto, che percorre lo stesso codice di prima).
+    - **Resta al committente, in produzione dopo il pacchetto**: a Torino–Genova il documento porta tre
+      configurazioni e ne mancano due — {WN0} e {WS0} da soli, che lui ha detto valide: in Struttura le
+      conseguenze lo mostrano («WN0: apre solo con LIMJ_WS0»), vanno aggiunte. Poi ripubblicare le vIPI ACC.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   All'8-ott: tutto fuso e online fino a S98 (1.57.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
