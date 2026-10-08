@@ -3134,6 +3134,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsExhaustive")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("TEXT");
 

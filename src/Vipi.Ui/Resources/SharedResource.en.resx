@@ -4143,11 +4143,11 @@
   <data name="Xfer_ShareAgreementIntro" xml:space="preserve"><value>The {0} clauses of all the sections will also appear in the agreement with another unit. Below are the two units of the agreement: change ONE, the other stays. Each section goes into the matching section of the other agreement, created only if missing.</value></data>
   <data name="Xfer_ShareAgreementOneSide" xml:space="preserve"><value>Change only one of the two units: the other stays the one of the agreement.</value></data>
   <data name="Cfgs_Title" xml:space="preserve"><value>Possible configurations</value></data>
-  <data name="Cfgs_Intro" xml:space="preserve"><value>For each group of sectors, which sets of open sectors exist. A list only speaks of the sectors it names; «all closed» is always allowed; a group without a list has no constraints. The document&apos;s configuration table, the test bench and Diagnostics read them from here.</value></data>
+  <data name="Cfgs_Intro" xml:space="preserve"><value>For each group of sectors, the opening configurations: name, open sectors, Center Point and Range. The document reports them in its table and the test bench offers them as scenarios. A list declared complete, in addition, constrains: Diagnostics and the fallback ladder do not probe combinations that are not written in it. A list only speaks of the sectors it names, and «all closed» is always allowed.</value></data>
   <data name="Cfgs_ReadOnly" xml:space="preserve"><value>Read only: to edit, take the structure lock at the top of the page.</value></data>
   <data name="Cfgs_NoGroups" xml:space="preserve"><value>This ACC has no area sectors and no units.</value></data>
   <data name="Cfgs_Unsaved" xml:space="preserve"><value>not applied</value></data>
-  <data name="Cfgs_NoList" xml:space="preserve"><value>No configuration declared: no constraints.</value></data>
+  <data name="Cfgs_NoList" xml:space="preserve"><value>No configuration declared.</value></data>
   <data name="Cfgs_ColConfig" xml:space="preserve"><value>Configuration</value></data>
   <data name="Cfgs_Consequences" xml:space="preserve"><value>What follows from it</value></data>
   <data name="Cfgs_ColSector" xml:space="preserve"><value>Sector</value></data>
@@ -4157,10 +4157,15 @@
   <data name="Cfgs_Yes" xml:space="preserve"><value>yes</value></data>
   <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
-  <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector: the group has no constraints.</value></data>
+  <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector.</value></data>
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>
-  <data name="Bench_NotForeseen" xml:space="preserve"><value>Not a foreseen configuration — {0}: {1}</value></data>
+  <data name="Bench_NotForeseen" xml:space="preserve"><value>Not a configuration foreseen by the complete list — {0}: {1}</value></data>
   <data name="AppCfg_FromStructure" xml:space="preserve"><value>This group&apos;s configurations are declared in Structure, section «Possible configurations»: here they are read, with the merging that follows.</value></data>
   <data name="AppCfg_OpenStructure" xml:space="preserve"><value>Open Structure</value></data>
+  <data name="Cfgs_Exhaustive" xml:space="preserve"><value>The list is complete</value></data>
+  <data name="Cfgs_ExhaustiveHelp" xml:space="preserve"><value>A combination of open sectors that is not written here does not exist. Turn it on only after reading below what follows from it: if a row says something false, a configuration is missing.</value></data>
+  <data name="Cfgs_StateExhaustive" xml:space="preserve"><value>complete: constrains</value></data>
+  <data name="Cfgs_StateExamples" xml:space="preserve"><value>examples: does not constrain</value></data>
+  <data name="Cfgs_ConsequencesIf" xml:space="preserve"><value>What would follow from it, if the list were complete</value></data>
 </root>

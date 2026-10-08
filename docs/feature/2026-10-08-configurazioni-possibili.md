@@ -68,8 +68,10 @@ il genere di buco che il disegno deve far **vedere** (§4).
 **Un elenco** è la lista delle configurazioni di un gruppo: per ognuna un nome e i settori aperti, ognuno col
 suo Center Point e Range. È lo stesso `AccConfiguration` che il documento usava già: si sposta, non si affianca.
 
-**Che cosa dice un elenco** — tre regole, e sono tutta la semantica:
+**Che cosa dice un elenco** — quattro regole, e sono tutta la semantica:
 
+0. Un elenco **vincola solo se è dichiarato completo** (§3-bis). Spento, è un elenco di esempi: il documento lo
+   riporta, il banco lo offre come scenari, e nient'altro cambia.
 1. Un elenco parla dei **soli settori che nomina**. A Milano nessuna configurazione nomina `LIMM_MIL_CTR` o
    `LIMM_FSS` (hanno le loro sezioni): restano liberi, non «mai aperti».
 2. Fra i settori nominati, un insieme di aperti è **previsto** se è una delle configurazioni scritte — oppure
@@ -86,6 +88,34 @@ E la domanda che serve ai calcoli — «chiusi questi, chi **non può** restare 
 cui ogni configurazione che lo contiene contiene anche un chiuso. Chiuso WS2 cadono ES2, WS5 ed ES5; chiuso ES5
 non cade nessuno.
 
+### 3-bis. «L'elenco è completo»: l'interruttore, e perché c'è
+
+La prima stesura non l'aveva: ogni elenco vincolava. L'ha fatta cadere la prova sulla copia di produzione (§9).
+Il travaso porta in Struttura gli elenchi che stavano nei documenti, e nei documenti le configurazioni erano
+scritte come **esempi**, non come elenco chiuso. Misurato sulle sessioni vere (6 ottobre 2025 – 8 ottobre 2026),
+quanto tempo ogni gruppo è stato in una configurazione scritta nel suo elenco:
+
+| Gruppo | Configurazioni | Tempo «previsto» | Lo stato più frequente |
+|---|---|---|---|
+| LIMM, settori d'area | 4 | 100% | WS2 da solo, 97,7% ✅ |
+| LIPP, settori d'area | 4 | 100% | CE1 da solo, 96,8% ✅ |
+| LIPE_W_APP (Bologna) | 3 | 100% | W da solo, 96,9% ✅ |
+| LIBB, LIBD_CS0_APP | 1 | 100% | l'unico settore ✅ |
+| LIMF_WW0_APP (Torino–Genova) | 3 | 5% | WN0 da solo, 76,7% ❌ |
+| LIPZ_SE0_APP (Venezia) | 3 | 2% | SE0 da solo, 95,0% ❌ |
+| **LIRR, settori d'area** | 3 | **2%** | **EW da solo, 42,0%** ❌ |
+
+Le tre di Roma hanno tutte EW + NE1 + SU: come vincolo dicono «EW apre solo con NE1 e SU». Con quell'elenco
+acceso, chiuso NE1 la scala di risalita farebbe cadere EW e SU e direbbe UNICOM — al rilascio, su un gruppo per
+cui nessuno ha deciso niente. Una regola vera per Milano non lo è per Roma, e a saperlo è chi scrive l'elenco.
+
+Quindi: ogni elenco ha una casella «L'elenco è completo». **Il travaso li porta tutti spenti.** Le conseguenze
+ricavate si mostrano comunque — al condizionale, «che cosa ne seguirebbe» — perché sono quello che va letto
+prima di accenderla. Un elenco senza nemmeno un settore aperto non si può dichiarare completo.
+
+⚠️ **Conseguenza per S99**: il falso «Trasferimento senza ripiego» di Milano non sparisce col rilascio, sparisce
+quando il committente accende l'elenco dei settori d'area di LIMM. È un gesto, ed è suo.
+
 ⚠️ **Vincoli fra gruppi non ce ne sono** (chiesto: «no»). Un APP che apre solo con un certo CTR, se un giorno
 servirà, non entra in questo modello.
 
@@ -93,9 +123,9 @@ servirà, non entra in questo modello.
 
 | Dove | Che cosa cambia |
 |---|---|
-| **Struttura** | Si scrivono lì, sotto il lock della struttura. Sotto ogni elenco, le conseguenze ricavate: è il modo di accorgersi che manca {WN0} leggendo «WN0: sempre con LIMJ_WS0». |
-| **Banco di prova** | Gli scenari pronti vengono dalla struttura (prima: dalla vIPI pubblicata). Una combinazione non prevista si dice. |
-| **Diagnostica** | La sonda di «Trasferimento senza ripiego» e la scala di risalita, chiuso un settore, chiudono anche chi senza di lui non può stare aperto. |
+| **Struttura** | Si scrivono lì, sotto il lock della struttura, con la casella «L'elenco è completo». Sotto ogni elenco, le conseguenze ricavate: è il modo di accorgersi che manca {WN0} leggendo «WN0: sempre con LIMJ_WS0». |
+| **Banco di prova** | Gli scenari pronti vengono dalla struttura (prima: dalla vIPI pubblicata), completi o no. Una combinazione che un elenco **completo** non prevede si dice. |
+| **Diagnostica** | La sonda di «Trasferimento senza ripiego» e la scala di risalita, chiuso un settore, chiudono anche chi senza di lui non può stare aperto — per i soli elenchi **completi**. |
 | **Documento** | La sezione Configurazioni legge l'elenco dalla struttura. Si congela alla pubblicazione come le altre sezioni derivate: le release già uscite restano come sono. |
 | **Vista live** | «Configurazione non prevista» su un gruppo online fuori elenco. **Secondo giro**, non in questo lavoro. |
 
@@ -114,9 +144,10 @@ All'avvio, una volta: per ogni gruppo **senza** elenco in struttura si copia que
 lavoro del suo documento (la bozza più recente, altrimenti la pubblicata). Idempotente: un gruppo che ha già una
 riga non si tocca, nemmeno se la riga è un elenco vuoto.
 
-Così in produzione le quattro configurazioni di Milano arrivano in struttura da sole, e il rilievo di S99
-sparisce senza che nessuno riscriva niente. A Torino arriva l'elenco incompleto che c'è oggi: le conseguenze
-ricavate lo mostreranno, e si aggiungono {WN0} e {WS0}.
+Così in produzione le quattro configurazioni di Milano arrivano in struttura da sole, e nessuno le riscrive.
+**Arrivano spente** (§3-bis): il rilievo di S99 sparisce quando il committente dichiara completo l'elenco di
+Milano. A Torino arriva l'elenco incompleto che c'è oggi: le conseguenze lo mostrano, si aggiungono {WN0} e
+{WS0}, e poi si accende.
 
 ⚠️ **Dal documento non si cancella niente.** Il `BodyJson` della sezione `configurations` resta dov'è: il travaso
 copia, non sposta. Un passo che non distrugge si può rifare, e un ritorno alla versione precedente del sito
@@ -179,13 +210,29 @@ non dal database, e un punto che prima non aveva una posizione la sonda non lo v
 
 Copia dell'8 ottobre 2026 (07:48Z, sito 1.57.0) in un MariaDB isolato, con la build di questo ramo:
 
+Due giri. Il **primo**, con la stesura in cui ogni elenco vincolava:
+
 | Passo | Esito |
 |---|---|
-| Migrazione `20261008082613_ConfigurazioniPossibili` | applicata all'avvio |
+| Migrazione | applicata all'avvio |
 | Travaso | 8 gruppi: LIMM, LIRR, LIPP, LIBB (settori d'area); LIMF_WW0_APP, LIPZ_SE0_APP, LIPE_W_APP, LIBD_CS0_APP (enti) |
 | Travaso al riavvio dopo | 0 |
 | `/vsop/health` con l'elenco di Milano **vuotato** | «1 errori nel report di consistenza» — il rilievo di produzione |
 | `/vsop/health` con l'elenco travasato | nessun errore di consistenza |
+
+Poi, entrati col login vero, si sono **letti gli elenchi travasati** in Struttura: quelli di Roma, Venezia e
+Torino dicevano vincoli che la realtà smentisce (§3-bis, con la misura sulle sessioni). Da lì l'interruttore.
+
+Il **secondo** giro, con l'interruttore (copia ricaricata da capo, migrazione `20261008093953_ConfigurazioniPossibili`):
+
+| Passo | Esito |
+|---|---|
+| Migrazione e travaso | applicata; 8 gruppi, **tutti spenti** |
+| `/vsop/health` subito dopo | «1 errori nel report di consistenza»: come in produzione oggi, niente è cambiato da solo |
+| In Struttura: lock, LIMM, casella «L'elenco è completo» sui settori d'area, «Applica» | scritto; lo stato passa da «esempi: non vincola» a «completo: vincola» |
+| Diagnostica, ricaricata | nessun «Trasferimento senza ripiego» |
+| `/vsop/health`, rinnovata la cache del report | **Healthy** |
+| Anteprima della vIPI Milano (`?as=draft`) | le tabelle delle configurazioni dei due blocchi, dalla Struttura |
 
 ⚠️ **Col sectorfile acceso.** Il primo giro era col sectorfile spento (è l'abitudine delle prove dal vivo): il
 catalogo dei punti arriva vuoto, la sonda non colloca niente, e i due casi davano la stessa risposta. Una prova

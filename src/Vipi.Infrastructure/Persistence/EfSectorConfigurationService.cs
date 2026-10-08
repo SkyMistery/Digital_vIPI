@@ -22,12 +22,14 @@ internal static class ConfigurazioniQuery
     {
         var righe = await db.SectorConfigurationSets.AsNoTracking()
             .OrderBy(r => r.GroupKind).ThenBy(r => r.GroupCode)
-            .Select(r => new { r.GroupKind, r.GroupCode, r.BodyJson })
+            .Select(r => new { r.GroupKind, r.GroupCode, r.BodyJson, r.IsExhaustive })
             .ToListAsync(ct);
-        if (righe.Count == 0) return ConfigurazioniPossibili.Nessuna;
+        // ⚠️ Solo gli elenchi COMPLETI vincolano (ConfigurazioniPossibili li filtra da sé): gli altri si leggono
+        // comunque, perché costa una riga e il filtro deve stare in un posto solo.
+        if (!righe.Any(r => r.IsExhaustive)) return ConfigurazioniPossibili.Nessuna;
 
         return new ConfigurazioniPossibili(righe.Select(r =>
-            new ElencoDiConfigurazioni(r.GroupKind, r.GroupCode, ConfigurazioniJson.Leggi(r.BodyJson))));
+            new ElencoDiConfigurazioni(r.GroupKind, r.GroupCode, ConfigurazioniJson.Leggi(r.BodyJson), r.IsExhaustive)));
     }
 }
 
@@ -66,17 +68,19 @@ public sealed class EfSectorConfigurationService : ISectorConfigurationService
         var acc = Norm(accCode);
         var settori = await SettoriAttiviAsync(ct);
         var scritti = (await _db.SectorConfigurationSets.AsNoTracking()
-                .Select(r => new { r.GroupKind, r.GroupCode, r.BodyJson }).ToListAsync(ct))
-            .ToDictionary(r => (r.GroupKind, r.GroupCode.ToUpperInvariant()), r => r.BodyJson);
+                .Select(r => new { r.GroupKind, r.GroupCode, r.BodyJson, r.IsExhaustive }).ToListAsync(ct))
+            .ToDictionary(r => (r.GroupKind, r.GroupCode.ToUpperInvariant()), r => (r.BodyJson, r.IsExhaustive));
         List<AccConfiguration> ElencoDi(ConfigurationGroupKind g, string c) =>
-            ConfigurazioniJson.Leggi(scritti.GetValueOrDefault((g, c.ToUpperInvariant())));
+            ConfigurazioniJson.Leggi(scritti.GetValueOrDefault((g, c.ToUpperInvariant())).BodyJson);
+        bool Completo(ConfigurationGroupKind g, string c) =>
+            scritti.GetValueOrDefault((g, c.ToUpperInvariant())).IsExhaustive;
 
         var gruppi = new List<GruppoDiSettori>();
 
         var area = SettoriDArea(settori, acc);
         if (area.Count > 0)
             gruppi.Add(new GruppoDiSettori(ConfigurationGroupKind.AccArea, acc, acc, area,
-                ElencoDi(ConfigurationGroupKind.AccArea, acc)));
+                ElencoDi(ConfigurationGroupKind.AccArea, acc), Completo(ConfigurationGroupKind.AccArea, acc)));
 
         var enti = await _db.AtcUnits.AsNoTracking()
             .Where(u => u.Acc!.Code == acc)
@@ -85,13 +89,14 @@ public sealed class EfSectorConfigurationService : ISectorConfigurationService
             .ToListAsync(ct);
         foreach (var e in enti)
             gruppi.Add(new GruppoDiSettori(ConfigurationGroupKind.AtcUnit, e.Code, e.Name,
-                SettoriDellEnte(settori, e.Posizioni), ElencoDi(ConfigurationGroupKind.AtcUnit, e.Code)));
+                SettoriDellEnte(settori, e.Posizioni), ElencoDi(ConfigurationGroupKind.AtcUnit, e.Code),
+                Completo(ConfigurationGroupKind.AtcUnit, e.Code)));
 
         return gruppi;
     }
 
     public async Task ReplaceAsync(ConfigurationGroupKind genere, string codice,
-        IReadOnlyList<AccConfiguration> configurazioni, CancellationToken ct = default)
+        IReadOnlyList<AccConfiguration> configurazioni, bool completo, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
         // È struttura quanto i ripieghi (T-025): si scrive sotto lo stesso lock.
@@ -140,6 +145,9 @@ public sealed class EfSectorConfigurationService : ISectorConfigurationService
         // ⚠️ La riga resta anche con l'elenco vuoto: dice che per questo gruppo si è già deciso, e il travaso
         // dal documento non deve riportare indietro quel che qui è stato tolto.
         riga.BodyJson = ConfigurazioniJson.Scrivi(pulite);
+        // Un elenco senza nemmeno un settore aperto non può essere «completo»: vorrebbe dire che il gruppo non
+        // apre mai, e non è quello che ha scritto chi ha lasciato una riga vuota.
+        riga.IsExhaustive = completo && pulite.Any(p => p.Open.Count > 0);
         riga.UpdatedAtUtc = DateTime.UtcNow;
 
         AuditScribe.Write(_db, _authz.CurrentUserId ?? 0, AuditAction.HierarchyChange, nameof(SectorConfigurationSet),
@@ -148,6 +156,7 @@ public sealed class EfSectorConfigurationService : ISectorConfigurationService
             {
                 Gruppo = codiceNorm,
                 Genere = genere.ToString(),
+                Completo = riga.IsExhaustive,
                 Configurazioni = pulite.Select(p => $"{p.Name}: {string.Join(" + ", p.OpenCallsigns)}").ToList(),
             });
 

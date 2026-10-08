@@ -73,7 +73,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
     private async Task InStruttura(params AccConfiguration[] configurazioni)
     {
         await _service.EnsureAsync(App);
-        await _configurazioni.ReplaceAsync(ConfigurationGroupKind.AtcUnit, App, configurazioni);
+        await _configurazioni.ReplaceAsync(ConfigurationGroupKind.AtcUnit, App, configurazioni, completo: false);
     }
 
     public async Task DisposeAsync()

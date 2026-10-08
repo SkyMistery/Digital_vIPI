@@ -13,12 +13,17 @@ namespace Vipi.Infrastructure.Persistence;
 ///
 /// <para><b>Perché esiste.</b> Fino all'8 ottobre 2026 le configurazioni erano il <c>BodyJson</c> della sezione
 /// <c>configurations</c> della vIPI. Spostando la scrittura in Struttura, la tabella nasce vuota: senza questo
-/// passo Milano perderebbe le sue quattro configurazioni alla prima pubblicazione — e la Diagnostica
-/// continuerebbe a dare il falso «Trasferimento senza ripiego» finché qualcuno non le riscrive.</para>
+/// passo Milano perderebbe le sue quattro configurazioni alla prima pubblicazione, e chi vuole dichiararle
+/// complete dovrebbe prima riscriverle.</para>
 ///
 /// <para>⚠️ <b>Idempotente, e non riporta indietro niente.</b> Un gruppo che ha già una riga non si tocca, nemmeno
 /// se la riga è un elenco vuoto: vuol dire che lì qualcuno ha già deciso (<c>ReplaceAsync</c> la lascia apposta).
 /// Un gruppo il cui documento non ha configurazioni non riceve nessuna riga: non c'è niente da portare.</para>
+///
+/// <para>🔴 <b>Porta esempi, non vincoli.</b> Ogni elenco arriva con <see cref="SectorConfigurationSet.IsExhaustive"/>
+/// spento: il documento continua a mostrarlo com'era, il banco lo offre come scenario, ma sonda e scala non
+/// cambiano finché qualcuno, in Struttura, non lo dichiara completo. Quindi il falso «Trasferimento senza
+/// ripiego» di Milano sparisce quando si accende l'elenco di Milano, non al riavvio.</para>
 ///
 /// <para>⚠️ <b>Non cancella niente dal documento.</b> Il <c>BodyJson</c> resta dov'è: le release già uscite lo
 /// leggono dal loro snapshot, e quelle nuove lo ignorano per il segno
@@ -53,6 +58,10 @@ internal static class TravasoDelleConfigurazioni
             {
                 GroupKind = genere, GroupCode = chiave.Item2,
                 BodyJson = ConfigurazioniJson.Scrivi(elenco), UpdatedAtUtc = DateTime.UtcNow,
+                // 🔴 SPENTO, sempre: nel documento le configurazioni erano esempi, non un elenco chiuso. Misurato
+                // sulla copia di produzione dell'8 ottobre 2026: Roma sta in una configurazione scritta il 2% del
+                // tempo. Portarle come vincoli cambierebbe la scala di risalita di chi non ha mai deciso niente.
+                IsExhaustive = false,
             });
         }
 

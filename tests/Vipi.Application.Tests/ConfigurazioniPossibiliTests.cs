@@ -40,8 +40,8 @@ public class ConfigurazioniPossibiliTests
 
     private static ConfigurazioniPossibili Tutte() => new(new[]
     {
-        new ElencoDiConfigurazioni(ConfigurationGroupKind.AccArea, "LIMM", Milano),
-        new ElencoDiConfigurazioni(ConfigurationGroupKind.AtcUnit, Ww0, Torino),
+        new ElencoDiConfigurazioni(ConfigurationGroupKind.AccArea, "LIMM", Milano, Completo: true),
+        new ElencoDiConfigurazioni(ConfigurationGroupKind.AtcUnit, Ww0, Torino, Completo: true),
     });
 
     private static string[] Ordinati(IEnumerable<string> x) => x.OrderBy(s => s, StringComparer.Ordinal).ToArray();
@@ -105,9 +105,35 @@ public class ConfigurazioniPossibiliTests
     {
         var soloVuota = new ConfigurazioniPossibili(new[]
         {
-            new ElencoDiConfigurazioni(ConfigurationGroupKind.AtcUnit, "LIBG_APP", new[] { Cfg("New configuration") }),
+            new ElencoDiConfigurazioni(ConfigurationGroupKind.AtcUnit, "LIBG_APP", new[] { Cfg("New configuration") }, Completo: true),
         });
         Assert.True(soloVuota.Vuote);
+    }
+
+    /// <summary>
+    /// 🔴 Un elenco che non è dichiarato <b>completo</b> non vincola niente. Nel documento le configurazioni erano
+    /// esempi: sulla copia di produzione dell'8 ottobre 2026 Roma sta in una configurazione scritta il 2% del tempo
+    /// (<c>LIRR_EW_CTR</c> da solo il 42%). Portate come vincoli, avrebbero fatto dire UNICOM alla sua scala.
+    /// </summary>
+    [Fact]
+    public void Un_elenco_di_esempi_non_fa_cadere_nessuno_e_non_dice_non_previsto()
+    {
+        var esempi = new ConfigurazioniPossibili(new[]
+        {
+            new ElencoDiConfigurazioni(ConfigurationGroupKind.AccArea, "LIMM", Milano),            // spento
+            new ElencoDiConfigurazioni(ConfigurationGroupKind.AtcUnit, Ww0, Torino, Completo: true),
+        });
+
+        Assert.False(esempi.Vuote);                                   // Torino vincola
+        Assert.Empty(esempi.ChiusiCon(new[] { Ws2 }));                // Milano no
+        Assert.Empty(esempi.NonPreviste(new[] { Es2 }));
+        Assert.Single(esempi.NonPreviste(new[] { Es2, Ww0, Wn0 }));   // e Torino sì
+        Assert.Equal(Ww0, Assert.Single(esempi.Elenchi).Codice);
+
+        Assert.True(new ConfigurazioniPossibili(new[]
+        {
+            new ElencoDiConfigurazioni(ConfigurationGroupKind.AccArea, "LIMM", Milano),
+        }).Vuote);
     }
 
     // ---- lo scenario è previsto? ----

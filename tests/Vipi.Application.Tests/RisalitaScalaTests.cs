@@ -75,7 +75,7 @@ public class RisalitaScalaTests
         new ElencoDiConfigurazioni(ConfigurationGroupKind.AccArea, "LIMM", new[]
         {
             Cfg(Ws2), Cfg(Es2, Ws2), Cfg(Ws2, Ws5), Cfg(Es2, Es5, Ws2, Ws5),
-        }),
+        }, Completo: true),
     });
 
     private static AccConfiguration Cfg(params string[] aperti) => new()

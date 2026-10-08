@@ -87,7 +87,8 @@ public class ConfigurazioniInStrutturaTests : IAsyncLifetime
         Cfg("Conf 1", Ws2), Cfg("Conf 2", Es2, Ws2), Cfg("Conf 2 b", Ws2, Ws5), Cfg("Conf 3", Es2, Es5, Ws2, Ws5),
     };
 
-    private Task ScriviMilano() => _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", Milano);
+    private Task ScriviMilano(bool completo = true) =>
+        _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", Milano, completo);
 
     // =====================================================================================================
 
@@ -106,7 +107,7 @@ public class ConfigurazioniInStrutturaTests : IAsyncLifetime
     public async Task Riscrivere_sostituisce_e_non_lascia_due_righe_per_lo_stesso_gruppo()
     {
         await ScriviMilano();
-        await _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", new[] { Cfg("Sola", Ws2) });
+        await _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", new[] { Cfg("Sola", Ws2) }, completo: false);
 
         Assert.Equal("Sola", Assert.Single(await _svc.ListAsync(ConfigurationGroupKind.AccArea, "LIMM")).Name);
         Assert.Equal(1, await _db.SectorConfigurationSets.CountAsync());
@@ -125,7 +126,7 @@ public class ConfigurazioniInStrutturaTests : IAsyncLifetime
                 new AccConfigOpen { Callsign = "  " },         // una riga a metà
             },
         };
-        await _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", new[] { cfg });
+        await _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", new[] { cfg }, completo: false);
 
         var letta = Assert.Single(await _svc.ListAsync(ConfigurationGroupKind.AccArea, "LIMM"));
         var aperto = Assert.Single(letta.Open);
@@ -146,7 +147,7 @@ public class ConfigurazioniInStrutturaTests : IAsyncLifetime
     public async Task Un_settore_che_non_e_del_gruppo_e_un_errore_e_non_si_scrive_niente(string intruso)
     {
         var ex = await Assert.ThrowsAsync<ValidationException>(() =>
-            _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", new[] { Cfg("Conf 1", Ws2), Cfg("Storta", Ws2, intruso) }));
+            _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", new[] { Cfg("Conf 1", Ws2), Cfg("Storta", Ws2, intruso) }, completo: false));
 
         Assert.Contains(intruso, ex.Message);
         Assert.Contains("Storta", ex.Message);
@@ -158,16 +159,19 @@ public class ConfigurazioniInStrutturaTests : IAsyncLifetime
     [InlineData(ConfigurationGroupKind.AtcUnit, "LIMM")]         // LIMM è un ACC, non un ente
     [InlineData(ConfigurationGroupKind.AccArea, Ww0)]            // e l'ente non è un ACC
     public async Task Un_gruppo_che_non_esiste_e_un_errore(ConfigurationGroupKind genere, string codice) =>
-        await Assert.ThrowsAsync<ValidationException>(() => _svc.ReplaceAsync(genere, codice, Array.Empty<AccConfiguration>()));
+        await Assert.ThrowsAsync<ValidationException>(() => _svc.ReplaceAsync(genere, codice, Array.Empty<AccConfiguration>(), completo: false));
 
     [Fact]
     public async Task Svuotare_l_elenco_lascia_la_riga_cosi_il_travaso_non_lo_riporta_indietro()
     {
         await ScriviMilano();
-        await _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", Array.Empty<AccConfiguration>());
+        await _svc.ReplaceAsync(ConfigurationGroupKind.AccArea, "LIMM", Array.Empty<AccConfiguration>(), completo: true);
 
         Assert.Empty(await _svc.ListAsync(ConfigurationGroupKind.AccArea, "LIMM"));
-        Assert.Equal("", (await _db.SectorConfigurationSets.AsNoTracking().SingleAsync()).BodyJson);
+        var riga = await _db.SectorConfigurationSets.AsNoTracking().SingleAsync();
+        Assert.Equal("", riga.BodyJson);
+        // ⚠️ Chiesto «completo», ma un elenco senza settori non può esserlo: vorrebbe dire che il gruppo non apre mai.
+        Assert.False(riga.IsExhaustive);
         Assert.True((await _svc.TutteAsync()).Vuote);
     }
 
@@ -202,12 +206,32 @@ public class ConfigurazioniInStrutturaTests : IAsyncLifetime
         {
             Cfg("Unico", Ww0), Cfg("Unico + Genova", Ww0, Ws0), Cfg("Torino", Wn0), Cfg("Torino + Genova", Wn0, Ws0),
             Cfg("Genova", Ws0),
-        });
+        }, completo: true);
 
         var c = ConfigurazioniPossibili.Conseguenze(await _svc.ListAsync(ConfigurationGroupKind.AtcUnit, Ww0))
             .ToDictionary(x => x.Settore);
         Assert.Equal(new[] { Wn0 }, c[Ww0].MaiCon);
         Assert.True(c[Ws0].DaSolo);
+    }
+
+    /// <summary>
+    /// 🔴 Scritto ma NON dichiarato completo, l'elenco non vincola: si rilegge, il gruppo dice «non completo», e
+    /// nella topologia non arriva nessun vincolo. È lo stato in cui il travaso lascia ogni elenco.
+    /// </summary>
+    [Fact]
+    public async Task Un_elenco_non_completo_si_rilegge_ma_non_vincola()
+    {
+        await ScriviMilano(completo: false);
+
+        Assert.Equal(4, (await _svc.ListAsync(ConfigurationGroupKind.AccArea, "LIMM")).Count);
+        Assert.False((await _svc.GruppiAsync("LIMM"))[0].Completo);
+        Assert.True((await _svc.TutteAsync()).Vuote);
+        Assert.True((await new TopologyBuilder(_db).BuildGlobalAsync()).Configurazioni.Vuote);
+
+        await ScriviMilano(completo: true);
+
+        Assert.True((await _svc.GruppiAsync("LIMM"))[0].Completo);
+        Assert.False((await _svc.TutteAsync()).Vuote);
     }
 
     // ---- arrivano dove servono ----

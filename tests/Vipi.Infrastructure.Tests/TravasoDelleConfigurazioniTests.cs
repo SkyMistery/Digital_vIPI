@@ -90,13 +90,37 @@ public class TravasoDelleConfigurazioniTests : IAsyncLifetime
         Assert.Equal("Pisa unico", Assert.Single(await _struttura.ListAsync(ConfigurationGroupKind.AtcUnit, "LIRP_APP")).Name);
     }
 
+    /// <summary>
+    /// 🔴 Il travaso porta <b>esempi, non vincoli</b>: ogni elenco arriva spento, e nella topologia non c'è nessun
+    /// vincolo finché qualcuno non lo dichiara completo. Sulla copia di produzione dell'8 ottobre 2026 gli elenchi
+    /// di Roma, Venezia e Torino stanno alla realtà per il 2–5% del tempo: accesi da soli, al rilascio avrebbero
+    /// cambiato la scala di risalita di gruppi su cui nessuno ha deciso niente.
+    /// </summary>
+    [Fact]
+    public async Task Gli_elenchi_travasati_non_vincolano_finche_qualcuno_non_li_dichiara_completi()
+    {
+        await NelDocumento(_cfgAerovia, Cfg("Conf 1", "LIRR_NE_CTR"), Cfg("Conf 2", "LIRR_NE_CTR", "LIRR_EW_CTR"));
+        await _manutenzione.TravasaConfigurazioniAsync();
+
+        Assert.False((await _db.SectorConfigurationSets.AsNoTracking().SingleAsync()).IsExhaustive);
+        Assert.False((await _struttura.GruppiAsync(Acc))[0].Completo);
+        var topologia = await new Vipi.Infrastructure.Aor.TopologyBuilder(_db).BuildGlobalAsync();
+        Assert.Empty(topologia.Configurazioni.ChiusiCon(new[] { "LIRR_NE_CTR" }));
+
+        // Dichiarato completo in Struttura, vincola: EW apre solo con NE.
+        await _struttura.ReplaceAsync(ConfigurationGroupKind.AccArea, Acc,
+            await _struttura.ListAsync(ConfigurationGroupKind.AccArea, Acc), completo: true);
+        topologia = await new Vipi.Infrastructure.Aor.TopologyBuilder(_db).BuildGlobalAsync();
+        Assert.Equal(new[] { "LIRR_EW_CTR" }, topologia.Configurazioni.ChiusiCon(new[] { "LIRR_NE_CTR" }));
+    }
+
     [Fact]
     public async Task Rifatto_non_porta_niente_e_non_tocca_quel_che_in_struttura_e_stato_cambiato()
     {
         await NelDocumento(_cfgAerovia, Cfg("Conf 1", "LIRR_NE_CTR"));
         Assert.Equal(1, await _manutenzione.TravasaConfigurazioniAsync());
 
-        await _struttura.ReplaceAsync(ConfigurationGroupKind.AccArea, Acc, new[] { Cfg("Cambiata in Struttura", "LIRR_NE_CTR") });
+        await _struttura.ReplaceAsync(ConfigurationGroupKind.AccArea, Acc, new[] { Cfg("Cambiata in Struttura", "LIRR_NE_CTR") }, completo: false);
 
         Assert.Equal(0, await _manutenzione.TravasaConfigurazioniAsync());
         Assert.Equal("Cambiata in Struttura",
@@ -112,7 +136,7 @@ public class TravasoDelleConfigurazioniTests : IAsyncLifetime
     {
         await NelDocumento(_cfgAerovia, Cfg("Conf 1", "LIRR_NE_CTR"));
         await _manutenzione.TravasaConfigurazioniAsync();
-        await _struttura.ReplaceAsync(ConfigurationGroupKind.AccArea, Acc, Array.Empty<AccConfiguration>());
+        await _struttura.ReplaceAsync(ConfigurationGroupKind.AccArea, Acc, Array.Empty<AccConfiguration>(), completo: false);
 
         Assert.Equal(0, await _manutenzione.TravasaConfigurazioniAsync());
         Assert.Empty(await _struttura.ListAsync(ConfigurationGroupKind.AccArea, Acc));

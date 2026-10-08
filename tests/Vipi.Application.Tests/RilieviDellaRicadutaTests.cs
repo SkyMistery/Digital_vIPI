@@ -226,7 +226,7 @@ public class RilieviDellaRicadutaTests
                     Name = "Conf 2",
                     Open = { new AccConfigOpen { Callsign = Radice }, new AccConfigOpen { Callsign = ConPadre } },
                 },
-            }),
+            }, Completo: true),
         });
 
         Assert.Empty(Rilievi(d, "Trasferimento senza ripiego", rinvio: ContestoDiProva(soloConLaRadice)));
@@ -246,7 +246,7 @@ public class RilieviDellaRicadutaTests
             {
                 new AccConfiguration { Name = "Conf 1", Open = { new AccConfigOpen { Callsign = Radice } } },
                 new AccConfiguration { Name = "Conf 2", Open = { new AccConfigOpen { Callsign = ConPadre } } },
-            }),
+            }, Completo: true),
         });
 
         var f = Assert.Single(Rilievi(d, "Trasferimento senza ripiego", rinvio: ContestoDiProva(ancheDaSolo)));

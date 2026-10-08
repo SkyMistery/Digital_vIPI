@@ -2205,10 +2205,18 @@
     - **Le release già uscite non cambiano**: leggono il `BodyJson` del loro snapshot. Quelle nuove portano un
       segno (`DocReleasePayload.ConfigurazioniDallaStruttura`) e leggono la voce congelata, o la struttura se la
       sezione è Live. Dal documento non si cancella niente (carta §5 e §5-bis).
+    - 🔴 **«L'elenco è completo»: un elenco vincola solo se lo si dichiara** (aggiunto l'8-ott, dopo la prova
+      vera). La prima stesura faceva vincolare ogni elenco, e il travaso portava come vincoli quelli che nei
+      documenti erano esempi: sulle sessioni vere Milano, Padova e Bologna stanno in una configurazione scritta
+      il 100% del tempo, Roma il 2% (EW da solo il 42%), Venezia il 2%, Torino il 5%. Al rilascio la scala di
+      risalita di Roma avrebbe detto UNICOM. Ora ogni elenco ha la casella (`SectorConfigurationSet.IsExhaustive`),
+      il travaso li porta **tutti spenti**, e le conseguenze si mostrano al condizionale finché non è accesa
+      (carta §3-bis). ⚠️ Quindi il rilievo di Milano **non sparisce col rilascio**: sparisce quando il committente
+      accende l'elenco dei settori d'area di LIMM.
     - **Codice comune**: `Vipi.Application` (`Aor/Topology`, `Content/*`, `Diagnostics`). **Migrazione sì**:
-      `20261008082602_ConfigurazioniPossibili` (SQLite) / `20261008082613_…` (MariaDB), solo `CREATE TABLE`.
-      Niente `deploy/`.
-    - **Test**: Application 3266 → 3298, Infrastructure 2151 → 2182, Ui 1991 → 1999, net8 e net10; E2E 507.
+      `20261008093938_ConfigurazioniPossibili` (SQLite) / `20261008093953_…` (MariaDB), solo `CREATE TABLE`
+      (rigenerata sul ramo per la colonna della casella: quella di prima non è mai uscita dal ramo). Niente `deploy/`.
+    - **Test**: Application 3266 → 3299, Infrastructure 2151 → 2184, Ui 1991 → 2000, net8 e net10; E2E 507.
     - **Prova sulla copia di produzione** dell'8 ottobre (MariaDB isolato, build di questo ramo): la migrazione
       passa; il travaso porta in Struttura gli elenchi di **8 gruppi** (LIMM, LIRR, LIPP, LIBB d'area; gli enti
       LIMF_WW0_APP, LIPZ_SE0_APP, LIPE_W_APP, LIBD_CS0_APP) e al riavvio dopo nessuno. `/vsop/health`, riavviando
@@ -2217,6 +2225,13 @@
       coordinate dei punti vengono da lì (`CopPositionsProvider`), e spento la sonda è cieca — il primo giro, col
       sectorfile spento, non distingueva i due casi. ⚠️ Sul banco la salute resta Degraded per «Cache ATC online
       non aggiornata»: è l'API IVAO spenta apposta, e in `VipiHealthCheck` viene **dopo** il conteggio degli errori.
+    - **Secondo giro sulla stessa copia, con la casella e col login vero** (il committente è entrato nel browser
+      della chat): migrazione e travaso, 8 gruppi tutti spenti, salute «1 errori nel report di consistenza» come
+      in produzione; in Struttura, preso il lock, accesa la casella sui settori d'area di LIMM e applicato;
+      Diagnostica senza il rilievo, `/vsop/health` **Healthy** al rinnovo della cache del report. L'anteprima
+      della vIPI Milano mostra le tabelle delle configurazioni dei due blocchi, prese dalla Struttura. ⚠️ La vIPI
+      pubblica di Milano risponde «non disponibile» perché in produzione il documento è **nascosto**: non è di
+      questo lavoro.
     - **Prova a schermo** (host isolato su database nuovo, Milano inventata seminata: 5 CTR, 3 APP, l'ente
       Torino–Genova; browser vero, misure dal DOM): in Struttura, preso il lock, la sezione «Configurazioni
       possibili» mostra i due gruppi (i settori d'area senza il MIL; l'ente con le sue tre posizioni); scritte le
@@ -2229,12 +2244,14 @@
     - ⚠️ **Visto a schermo, da sapere**: il banco parte da «tutti aperti», e con un'esclusione (WW0 e WN0) quello
       scenario è per forza «non previsto»: l'avviso c'è fin dall'apertura. È vero, ma è rumore: da decidere col
       committente se partire da una configurazione prevista.
-    - **Non provato**: l'interfaccia sulla copia di produzione (serve il login IVAO vero, che è del
-      committente); la vIPI APP propria a schermo (solo i suoi test); il rilievo con la build 1.57.0 sulla stessa
-      copia (si è riprodotto con questa build e l'elenco vuoto, che percorre lo stesso codice di prima).
-    - **Resta al committente, in produzione dopo il pacchetto**: a Torino–Genova il documento porta tre
-      configurazioni e ne mancano due — {WN0} e {WS0} da soli, che lui ha detto valide: in Struttura le
-      conseguenze lo mostrano («WN0: apre solo con LIMJ_WS0»), vanno aggiunte. Poi ripubblicare le vIPI ACC.
+    - **Non provato**: una pubblicazione vera sulla copia (la release nuova col suo segno: solo i test); la vIPI
+      APP propria a schermo (solo i suoi test); il rilievo con la build 1.57.0 sulla stessa copia (si è
+      riprodotto con questa build e l'elenco spento, che percorre lo stesso codice di prima).
+    - **Resta al committente, in produzione dopo il pacchetto**: (1) accendere «L'elenco è completo» sui settori
+      d'area di **LIMM** — è il gesto che chiude il rilievo; (2) a Torino–Genova aggiungere {WN0} e {WS0} da soli
+      (le conseguenze lo mostrano: «WN0: apre solo con LIMJ_WS0»), e solo dopo accendere; (3) Roma e Venezia:
+      lasciare spento, o riscrivere l'elenco; Padova e Bologna tornano con la realtà e si possono accendere;
+      (4) ripubblicare le vIPI ACC.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   All'8-ott: tutto fuso e online fino a S98 (1.57.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo

@@ -30,7 +30,7 @@ public class AccDocumentServiceTests : IAsyncLifetime
 
     /// <summary>Scrive le configurazioni dei settori d'area dove si scrivono dall'8 ottobre 2026: in Struttura.</summary>
     private Task InStruttura(params string[] nomi) =>
-        _configurazioni.ReplaceAsync(ConfigurationGroupKind.AccArea, Acc, nomi.Select(Conf).ToList());
+        _configurazioni.ReplaceAsync(ConfigurationGroupKind.AccArea, Acc, nomi.Select(Conf).ToList(), completo: false);
 
     public async Task InitializeAsync()
     {

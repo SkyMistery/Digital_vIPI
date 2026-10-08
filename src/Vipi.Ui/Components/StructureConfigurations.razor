@@ -11,6 +11,11 @@
    modo di accorgersi che manca una configurazione — chi legge «WN0: sempre con LIMJ_WS0» e sa che non è vero, sa
    anche quale riga aggiungere.
 
+   🔴 Un elenco VINCOLA solo se è dichiarato completo (la casella). Nel documento le configurazioni erano esempi:
+   sulle sessioni vere Roma sta in una configurazione scritta il 2% del tempo. Spento, l'elenco serve al documento
+   e al banco come scenari; le conseguenze si mostrano lo stesso, dette al condizionale — sono quello che si
+   deve leggere prima di accenderlo.
+
    ⚠️ Le letture e le scritture passano dalla FILA della pagina (`InFila`), come il banco di prova (U-012). *@
 
 <div class="bench">
@@ -52,6 +57,10 @@
         <div class="block cfgs-group" style="margin-top:12px" data-cfgs-group="@gruppo.Gruppo.Codice">
             <div class="fb-block-h">
                 <span class="fb-block-t">@Titolo(gruppo.Gruppo)</span>
+                @if (gruppo.Lavoro.Any(c => c.Open.Count > 0))
+                {
+                    <span class="pill @(gruppo.Completo ? "green" : null) cfgs-state">@(gruppo.Completo ? L["Cfgs_StateExhaustive"] : L["Cfgs_StateExamples"])</span>
+                }
                 @if (gruppo.Sporco)
                 {
                     <span class="pill amber">@L["Cfgs_Unsaved"]</span>
@@ -62,6 +71,14 @@
             {
                 <AppConfigurations Configs="gruppo.Lavoro" Pool="gruppo.Gruppo.Settori" Editing="true"
                                    ConfigsChanged="c => Cambia(gruppo, c)" />
+                <label class="cfgs-exhaustive" style="display:flex;gap:8px;align-items:flex-start;margin:10px 0 0">
+                    <input type="checkbox" checked="@gruppo.Completo" disabled="@_busy"
+                           @onchange="e => gruppo.Completo = e.Value is true" />
+                    <span>
+                        <b>@L["Cfgs_Exhaustive"]</b>
+                        <span class="muted" style="display:block">@L["Cfgs_ExhaustiveHelp"]</span>
+                    </span>
+                </label>
                 <div class="fb-acts">
                     <button class="btn primary" disabled="@(_busy || !gruppo.Sporco)" @onclick="() => SalvaAsync(gruppo)">@L["Common_Apply"]</button>
                     @if (gruppo.Sporco)
@@ -92,7 +109,7 @@
 
             @if (conseguenze.Count > 0)
             {
-                <p class="app-lbl" style="margin:12px 0 4px">@L["Cfgs_Consequences"]</p>
+                <p class="app-lbl" style="margin:12px 0 4px">@(gruppo.Completo ? L["Cfgs_Consequences"] : L["Cfgs_ConsequencesIf"])</p>
                 <table class="cfg-table cfgs-cons">
                     <thead>
                         <tr>
@@ -144,7 +161,12 @@
         public required GruppoDiSettori Gruppo { get; init; }
         public required string Salvato { get; set; }
         public required List<AccConfiguration> Lavoro { get; set; }
-        public bool Sporco => ConfigurazioniJson.Scrivi(Lavoro) != Salvato;
+
+        /// <summary>«L'elenco è completo» come sta a schermo e come sta scritto: è la casella che lo fa vincolare.</summary>
+        public bool Completo { get; set; }
+        public bool CompletoSalvato { get; set; }
+
+        public bool Sporco => ConfigurazioniJson.Scrivi(Lavoro) != Salvato || Completo != CompletoSalvato;
     }
 
     private string? _acc;
@@ -185,21 +207,31 @@
     private static Stato Nuovo(GruppoDiSettori g)
     {
         var scritto = ConfigurazioniJson.Scrivi(g.Configurazioni);
-        return new Stato { Gruppo = g, Salvato = scritto, Lavoro = ConfigurazioniJson.Leggi(scritto) };
+        return new Stato
+        {
+            Gruppo = g, Salvato = scritto, Lavoro = ConfigurazioniJson.Leggi(scritto),
+            Completo = g.Completo, CompletoSalvato = g.Completo,
+        };
     }
 
     private void Cambia(Stato g, IReadOnlyList<AccConfiguration> configurazioni) => g.Lavoro = configurazioni.ToList();
 
-    private void Annulla(Stato g) => g.Lavoro = ConfigurazioniJson.Leggi(g.Salvato);
+    private void Annulla(Stato g)
+    {
+        g.Lavoro = ConfigurazioniJson.Leggi(g.Salvato);
+        g.Completo = g.CompletoSalvato;
+    }
 
     private Task SalvaAsync(Stato g) => GuardatoAsync(async () =>
     {
-        await Configurazioni.ReplaceAsync(g.Gruppo.Genere, g.Gruppo.Codice, g.Lavoro);
-        // Si rilegge quel che è stato scritto: il servizio ripulisce (nomi vuoti, doppioni), e a schermo deve
-        // restare quello che c'è davvero.
-        var scritte = await Configurazioni.ListAsync(g.Gruppo.Genere, g.Gruppo.Codice);
-        g.Salvato = ConfigurazioniJson.Scrivi(scritte);
+        await Configurazioni.ReplaceAsync(g.Gruppo.Genere, g.Gruppo.Codice, g.Lavoro, g.Completo);
+        // Si rilegge quel che è stato scritto: il servizio ripulisce (nomi vuoti, doppioni) e un elenco senza
+        // settori non resta «completo» — a schermo deve restare quello che c'è davvero.
+        var scritto = (await Configurazioni.GruppiAsync(_acc!))
+            .First(x => x.Genere == g.Gruppo.Genere && string.Equals(x.Codice, g.Gruppo.Codice, StringComparison.OrdinalIgnoreCase));
+        g.Salvato = ConfigurazioniJson.Scrivi(scritto.Configurazioni);
         g.Lavoro = ConfigurazioniJson.Leggi(g.Salvato);
+        g.Completo = g.CompletoSalvato = scritto.Completo;
     });
 
     /// <summary>Ogni gesto: in fila con la pagina, e un guasto del servizio diventa una frase invece di un circuito giù.</summary>

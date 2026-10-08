@@ -24,6 +24,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     BodyJson = table.Column<string>(type: "longtext", nullable: false, collation: "utf8mb4_uca1400_as_cs")
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsExhaustive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     UpdatedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>

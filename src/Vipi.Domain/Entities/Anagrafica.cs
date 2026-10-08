@@ -555,6 +555,19 @@ public class SectorConfigurationSet
     /// </summary>
     public string BodyJson { get; set; } = "";
 
+    /// <summary>
+    /// Vero se l'elenco è dichiarato <b>completo</b>: una combinazione di aperti che non c'è scritta non esiste.
+    /// Solo allora l'elenco <b>vincola</b> gli scenari che il sistema si inventa (sonda, scala di risalita, avviso
+    /// del banco); spento, serve al documento e come scenari pronti, e basta.
+    ///
+    /// <para>🔴 <b>Perché non è sempre vero</b> (8 ottobre 2026, prova sulla copia di produzione). Nel documento le
+    /// configurazioni erano scritte come <i>esempi</i>, non come elenco chiuso: misurato sulle sessioni vere,
+    /// Milano e Padova stanno in una configurazione scritta il 100% del tempo, ma Roma il 2% (<c>LIRR_EW_CTR</c> da
+    /// solo il 42%), Venezia il 2%, Torino il 5%. Travasate come vincoli, avrebbero fatto dire UNICOM alla scala
+    /// di risalita di Roma. Il travaso le porta <b>spente</b>; le accende chi le ha guardate.</para>
+    /// </summary>
+    public bool IsExhaustive { get; set; }
+
     public DateTime UpdatedAtUtc { get; set; }
 }
 

@@ -44,6 +44,7 @@ public class StructureConfigurationsTests : TestContext
             [Ww0] = new() { Cfg("Conf 1", Ww0), Cfg("Conf 2", Ww0, Ws0), Cfg("Conf 3", Wn0, Ws0) },
         };
         public List<(string Codice, string[] Nomi)> Scritture { get; } = new();
+        public HashSet<string> Completi { get; } = new(StringComparer.OrdinalIgnoreCase) { "LIMM" };
         public int Letture { get; private set; }
         public string? Rifiuta { get; set; }
 
@@ -54,8 +55,8 @@ public class StructureConfigurationsTests : TestContext
             Letture++;
             IReadOnlyList<GruppoDiSettori> gruppi = new[]
             {
-                new GruppoDiSettori(ConfigurationGroupKind.AccArea, "LIMM", "LIMM", new[] { P(Es2), P(Mil), P(Ws2) }, Copia("LIMM")),
-                new GruppoDiSettori(ConfigurationGroupKind.AtcUnit, Ww0, "Torino - Genova", new[] { P(Ww0), P(Wn0), P(Ws0) }, Copia(Ww0)),
+                new GruppoDiSettori(ConfigurationGroupKind.AccArea, "LIMM", "LIMM", new[] { P(Es2), P(Mil), P(Ws2) }, Copia("LIMM"), Completi.Contains("LIMM")),
+                new GruppoDiSettori(ConfigurationGroupKind.AtcUnit, Ww0, "Torino - Genova", new[] { P(Ww0), P(Wn0), P(Ws0) }, Copia(Ww0), Completi.Contains(Ww0)),
             };
             return Task.FromResult(gruppi);
         }
@@ -66,9 +67,10 @@ public class StructureConfigurationsTests : TestContext
             Task.FromResult<IReadOnlyList<AccConfiguration>>(Copia(codice));
 
         public Task ReplaceAsync(ConfigurationGroupKind genere, string codice, IReadOnlyList<AccConfiguration> configurazioni,
-            CancellationToken ct = default)
+            bool completo, CancellationToken ct = default)
         {
             if (Rifiuta is not null) throw new Vipi.Application.Aor.ValidationException(Rifiuta);
+            if (completo) Completi.Add(codice); else Completi.Remove(codice);
             Scritture.Add((codice, configurazioni.Select(c => c.Name + "=" + string.Join("+", c.OpenCallsigns)).ToArray()));
             Elenchi[codice] = ConfigurazioniJson.Leggi(ConfigurazioniJson.Scrivi(configurazioni.ToList()));
             return Task.CompletedTask;
@@ -169,6 +171,42 @@ public class StructureConfigurationsTests : TestContext
         Assert.EndsWith("=" + Wn0, nomi[3]);
         Assert.False(cut.Instance.Sporco);
         Assert.Empty(cut.FindAll(".pill.amber"));
+    }
+
+    /// <summary>
+    /// 🔴 La casella «l'elenco è completo» è quella che fa vincolare. Spenta, le conseguenze si dicono al
+    /// condizionale; accenderla è una modifica come le altre — si applica, e arriva al servizio.
+    /// </summary>
+    [Fact]
+    public async Task La_casella_completo_si_applica_e_cambia_come_si_dicono_le_conseguenze()
+    {
+        var cut = Monta(canEdit: true);
+        await ScegliMilano(cut);
+
+        // Milano è completo, Torino è un elenco di esempi (come dopo il travaso).
+        Assert.Contains("Cfgs_StateExhaustive", Gruppo(cut, "LIMM").TextContent);
+        Assert.Contains("Cfgs_Consequences", Gruppo(cut, "LIMM").QuerySelectorAll(".app-lbl").Select(p => p.TextContent.Trim()));
+        Assert.Contains("Cfgs_StateExamples", Gruppo(cut, Ww0).TextContent);
+        Assert.Contains("Cfgs_ConsequencesIf", Gruppo(cut, Ww0).QuerySelectorAll(".app-lbl").Select(p => p.TextContent.Trim()));
+        Assert.False(cut.Instance.Sporco);
+
+        await cut.InvokeAsync(() => Gruppo(cut, Ww0).QuerySelector(".cfgs-exhaustive input")!.Change(true));
+
+        Assert.True(cut.Instance.Sporco);
+        Assert.DoesNotContain(Ww0, _servizio.Completi);          // non ancora scritto
+        Assert.Contains("Cfgs_StateExhaustive", Gruppo(cut, Ww0).TextContent);
+
+        await cut.InvokeAsync(() => Gruppo(cut, Ww0).QuerySelectorAll(".fb-acts .btn.primary").First().Click());
+
+        Assert.Contains(Ww0, _servizio.Completi);
+        Assert.False(cut.Instance.Sporco);
+
+        // «Annulla» riporta anche la casella.
+        await cut.InvokeAsync(() => Gruppo(cut, "LIMM").QuerySelector(".cfgs-exhaustive input")!.Change(false));
+        Assert.True(cut.Instance.Sporco);
+        await cut.InvokeAsync(() => Gruppo(cut, "LIMM").QuerySelectorAll(".fb-acts .btn.ghost").First().Click());
+        Assert.False(cut.Instance.Sporco);
+        Assert.Contains("LIMM", _servizio.Completi);
     }
 
     [Fact]

@@ -20,6 +20,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     GroupKind = table.Column<string>(type: "TEXT", nullable: false),
                     GroupCode = table.Column<string>(type: "TEXT", maxLength: 32, nullable: false),
                     BodyJson = table.Column<string>(type: "TEXT", nullable: false),
+                    IsExhaustive = table.Column<bool>(type: "INTEGER", nullable: false),
                     UpdatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>

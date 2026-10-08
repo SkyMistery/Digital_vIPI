@@ -3618,6 +3618,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(32)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<bool>("IsExhaustive")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("datetime(6)");
 

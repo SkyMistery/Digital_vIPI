@@ -8,8 +8,11 @@ namespace Vipi.Application.Content;
 /// <param name="Genere">Di che cosa è fatto il gruppo: i settori d'area di un ACC, o le posizioni di un ente.</param>
 /// <param name="Codice">Il codice dell'ACC o dell'ente.</param>
 /// <param name="Configurazioni">Le configurazioni, nell'ordine in cui sono scritte.</param>
+/// <param name="Completo">Vero se l'elenco è dichiarato completo: solo allora <b>vincola</b>
+/// (<see cref="ConfigurazioniPossibili"/>). Spento, è un elenco di esempi: serve al documento e al banco.</param>
 public sealed record ElencoDiConfigurazioni(
-    ConfigurationGroupKind Genere, string Codice, IReadOnlyList<AccConfiguration> Configurazioni);
+    ConfigurationGroupKind Genere, string Codice, IReadOnlyList<AccConfiguration> Configurazioni,
+    bool Completo = false);
 
 /// <summary>Che cosa un elenco dice di un settore che nomina — ricavato, mai scritto.</summary>
 /// <param name="SempreCon">Gli altri settori presenti in <b>tutte</b> le configurazioni che lo contengono.</param>
@@ -30,8 +33,11 @@ public sealed record GruppoFuoriElenco(ElencoDiConfigurazioni Elenco, IReadOnlyL
 /// figlio), e un APP sta aperto col suo CTR chiuso. Il committente, l'8 ottobre 2026: «la gerarchia non ci
 /// aiuta». Carta <c>docs/feature/2026-10-08-configurazioni-possibili.md</c>.</para>
 ///
-/// <para>La semantica sono tre regole, e stanno tutte qui:</para>
+/// <para>La semantica sono quattro regole, e stanno tutte qui:</para>
 /// <list type="number">
+/// <item>vincola solo un elenco dichiarato <b>completo</b> (<see cref="ElencoDiConfigurazioni.Completo"/>): gli
+/// altri sono esempi, e qui dentro non entrano — a Roma <c>LIRR_EW_CTR</c> sta da solo il 42% del tempo, e
+/// nessuna delle tre configurazioni scritte nel suo documento lo dice;</item>
 /// <item>un elenco parla dei <b>soli settori che nomina</b> — <c>LIMM_MIL_CTR</c>, che nessuna configurazione
 /// di Milano nomina, resta libero e non «mai aperto»;</item>
 /// <item>fra i nominati, un insieme di aperti è previsto se è una delle configurazioni scritte, <b>oppure se è
@@ -58,16 +64,17 @@ public sealed class ConfigurazioniPossibili
     {
         foreach (var e in elenchi)
         {
+            if (!e.Completo) continue;          // un elenco di esempi non vincola niente
             var insiemi = InsiemiDi(e.Configurazioni);
             if (insiemi.Count == 0) continue;   // un elenco senza nemmeno un settore non dice niente
             _gruppi.Add((e, insiemi, new HashSet<string>(insiemi.SelectMany(i => i), OIC)));
         }
     }
 
-    /// <summary>Gli elenchi che dicono qualcosa (quelli vuoti non ci sono).</summary>
+    /// <summary>Gli elenchi che vincolano: completi, e con almeno un settore.</summary>
     public IReadOnlyList<ElencoDiConfigurazioni> Elenchi => _gruppi.Select(g => g.Elenco).ToList();
 
-    /// <summary>Vero se nessun gruppo ha un elenco: tutto si comporta come prima.</summary>
+    /// <summary>Vero se nessun gruppo ha un elenco completo: tutto si comporta come prima.</summary>
     public bool Vuote => _gruppi.Count == 0;
 
     /// <summary>
@@ -168,9 +175,10 @@ public sealed class ConfigurazioniPossibili
 /// ente è il suo nome.</param>
 /// <param name="Settori">I settori fra cui scegliere: i CTR ordinari dell'ACC, o le posizioni dell'ente più gli
 /// avvicinamenti che stanno sotto di loro.</param>
+/// <param name="Completo">Vero se l'elenco è dichiarato completo, cioè se vincola.</param>
 public sealed record GruppoDiSettori(
     ConfigurationGroupKind Genere, string Codice, string Nome,
-    IReadOnlyList<AccSectorPick> Settori, IReadOnlyList<AccConfiguration> Configurazioni);
+    IReadOnlyList<AccSectorPick> Settori, IReadOnlyList<AccConfiguration> Configurazioni, bool Completo = false);
 
 /// <summary>
 /// Le configurazioni possibili <b>dichiarate</b>: leggerle e riscriverle, gruppo per gruppo.
@@ -192,8 +200,10 @@ public interface ISectorConfigurationService
     /// Sostituisce <b>tutto</b> l'elenco di un gruppo (lista vuota = nessun vincolo). Struttura: vuole il ruolo
     /// e il lock della struttura. Un settore che non è del gruppo è un errore, e si dice quale.
     /// </summary>
+    /// <param name="completo">Vero se l'elenco è completo e quindi <b>vincola</b>. Un elenco senza nemmeno un
+    /// settore aperto non può esserlo: si scrive spento.</param>
     Task ReplaceAsync(ConfigurationGroupKind genere, string codice, IReadOnlyList<AccConfiguration> configurazioni,
-        CancellationToken ct = default);
+        bool completo, CancellationToken ct = default);
 
     /// <summary>Tutti gli elenchi, pronti per chi deve chiedere «chi non può restare aperto».</summary>
     Task<ConfigurazioniPossibili> TutteAsync(CancellationToken ct = default);
