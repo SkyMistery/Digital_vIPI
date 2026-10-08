@@ -482,8 +482,16 @@ public sealed class EfDeletionRepository : IDeletionRepository
             {
                 // Gli enti rimasti senza documento (il piano ha già fermato quelli che ne hanno uno): la loro
                 // chiave esterna sull'ACC è Restrict (S52).
-                _db.AtcUnits.RemoveRange(await _db.AtcUnits.Include(u => u.Positions)
-                    .Where(u => u.AccId == acc.Id && u.DocumentId == null).ToListAsync(ct));
+                var enti = await _db.AtcUnits.Include(u => u.Positions)
+                    .Where(u => u.AccId == acc.Id && u.DocumentId == null).ToListAsync(ct);
+                // Gli elenchi delle configurazioni dell'ACC e dei suoi enti: legati per codice, senza chiave
+                // esterna, quindi non se ne va niente da solo — e un elenco orfano tornerebbe a un ACC ricreato.
+                var codiciEnti = enti.Select(u => u.Code).ToList();
+                _db.SectorConfigurationSets.RemoveRange(await _db.SectorConfigurationSets
+                    .Where(x => (x.GroupKind == ConfigurationGroupKind.AccArea && x.GroupCode == acc.Code)
+                                || (x.GroupKind == ConfigurationGroupKind.AtcUnit && codiciEnti.Contains(x.GroupCode)))
+                    .ToListAsync(ct));
+                _db.AtcUnits.RemoveRange(enti);
                 _db.Accs.Remove(acc);
             }
         }

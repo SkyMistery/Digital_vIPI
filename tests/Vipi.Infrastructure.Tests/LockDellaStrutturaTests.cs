@@ -81,7 +81,7 @@ public class LockDellaStrutturaTests : IAsyncLifetime
     {
         "Accordi.AddAgreement", "Accordi.UpdateClause", "Accordi.DeleteClauses", "Accordi.RestoreClauses",
         "Struttura.SetAirportHidden", "Struttura.MoveAirport", "Struttura.GenerateAirportDocument",
-        "Orfani.Reattach", "Orfani.Substitute", "Gerarchia.SetParent", "Ripieghi.Replace",
+        "Orfani.Reattach", "Orfani.Substitute", "Gerarchia.SetParent", "Ripieghi.Replace", "Configurazioni.Replace",
         "Acc.SetHidden", "Acc.SetSubcenterLimits", "Acc.ImportFromSource",
         "Confinanti.SetStatus", "Confinanti.AddManual", "Confinanti.ImportAndCompute",
     };
@@ -110,6 +110,8 @@ public class LockDellaStrutturaTests : IAsyncLifetime
             .SetParentAsync(HierarchyNodeKind.Acc, 1, "LIRR_CTR"),
         "Ripieghi.Replace" => Servizio<ISectorFallbackService>(typeof(EfSectorFallbackService))
             .ReplaceAsync("LIRR_NE_CTR", Array.Empty<FallbackRowEdit>()),
+        "Configurazioni.Replace" => Servizio<ISectorConfigurationService>(typeof(EfSectorConfigurationService))
+            .ReplaceAsync(ConfigurationGroupKind.AccArea, "LIRR", Array.Empty<AccConfiguration>()),
         "Acc.SetHidden" => Servizio<IAccAdminService>(Interno("AccAdminService")).SetHiddenAsync(1, true),
         "Acc.SetSubcenterLimits" => Servizio<IAccAdminService>(Interno("AccAdminService")).SetSubcenterLimitsAsync(1, 0, 245),
         "Acc.ImportFromSource" => Servizio<IAccAdminService>(Interno("AccAdminService")).ImportFromSourceAsync(),

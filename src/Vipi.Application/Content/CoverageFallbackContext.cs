@@ -35,6 +35,7 @@ public sealed class CoverageFallbackContext
     private readonly CopPositions _punti;
     private readonly IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> _dichiarate;
     private readonly Func<string, string?> _padreDi;
+    private readonly ConfigurazioniPossibili _configurazioni;
 
     private readonly Dictionary<string, SectorVolumeRow> _perCallsign;
     private readonly Dictionary<int, IReadOnlyList<SectorClaim>> _claimsPerQuota = new();
@@ -53,9 +54,11 @@ public sealed class CoverageFallbackContext
         IReadOnlySet<string> online,
         CopPositions punti,
         IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> dichiarate,
-        Func<string, string?> padreDi)
+        Func<string, string?> padreDi,
+        ConfigurazioniPossibili? configurazioni = null)
         : this(settori, online, punti, dichiarate, padreDi,
-            new Dictionary<SectorVolumeRow, SectorVolume?>(ReferenceEqualityComparer.Instance))
+            new Dictionary<SectorVolumeRow, SectorVolume?>(ReferenceEqualityComparer.Instance),
+            configurazioni ?? ConfigurazioniPossibili.Nessuna)
     {
     }
 
@@ -65,9 +68,11 @@ public sealed class CoverageFallbackContext
         CopPositions punti,
         IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> dichiarate,
         Func<string, string?> padreDi,
-        Dictionary<SectorVolumeRow, SectorVolume?> volumi)
+        Dictionary<SectorVolumeRow, SectorVolume?> volumi,
+        ConfigurazioniPossibili configurazioni)
     {
         _volumi = volumi;
+        _configurazioni = configurazioni;
         _settori = settori;
         _online = online;
         _punti = punti;
@@ -81,7 +86,7 @@ public sealed class CoverageFallbackContext
     /// <summary>Il contesto di una <see cref="Topology"/>: le righe dichiarate e i padri vengono da lì.</summary>
     public static CoverageFallbackContext Da(
         Topology topologia, IReadOnlyList<SectorVolumeRow> settori, IReadOnlySet<string> online, CopPositions punti) =>
-        new(settori, online, punti, topologia.Fallbacks, topologia.ParentOf);
+        new(settori, online, punti, topologia.Fallbacks, topologia.ParentOf, topologia.Configurazioni);
 
     /// <summary>
     /// Lo stesso contesto con un <b>altro</b> insieme di stazioni online: volumi, punti e topologia si
@@ -96,11 +101,37 @@ public sealed class CoverageFallbackContext
     /// richiesta di pretese. Ora la memoria dei volumi passa al contesto derivato insieme alle righe.</para>
     /// </summary>
     public CoverageFallbackContext Con(IReadOnlySet<string> online) =>
-        new(_settori, online, _punti, _dichiarate, _padreDi, _volumi);
+        new(_settori, online, _punti, _dichiarate, _padreDi, _volumi, _configurazioni);
 
     /// <summary>I callsign di tutti i settori che hanno un volume: l'insieme «tutti aperti».</summary>
     public IReadOnlySet<string> TuttiISettori =>
         new HashSet<string>(_perCallsign.Keys, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Le configurazioni possibili dichiarate in Struttura. ⚠️ Le guarda chi si <b>inventa</b> uno scenario
+    /// (<see cref="TuttiTranne"/>); <see cref="Risolvi"/> non le guarda mai: risponde per chi è online, e basta.
+    /// </summary>
+    public ConfigurazioniPossibili Configurazioni => _configurazioni;
+
+    /// <summary>
+    /// Lo scenario «tutti aperti <b>tranne</b> questi»: senza i chiusi, e senza chi — chiusi loro — non può
+    /// restare aperto (<see cref="ConfigurazioniPossibili.ChiusiCon"/>).
+    ///
+    /// <para>🔴 <b>Perché non basta togliere i chiusi</b> (S99, 8 ottobre 2026). La sonda di «Trasferimento
+    /// senza ripiego» chiudeva il solo <c>LIMM_WS2_CTR</c> e trovava <c>LIMM_ES2_CTR</c> a coprire il punto: un
+    /// errore in produzione, su uno scenario che non esiste — <c>ES2</c> non apre senza <c>WS2</c>. Chi chiede
+    /// «e se questo fosse chiuso?» deve chiederlo di una configurazione che può esserci.</para>
+    /// </summary>
+    /// <param name="tutti">L'insieme «tutti aperti», se il chiamante l'ha già in mano
+    /// (<see cref="TuttiISettori"/> ne costruisce uno nuovo a ogni lettura).</param>
+    public IReadOnlySet<string> TuttiTranne(IReadOnlyCollection<string> chiusi, IReadOnlySet<string>? tutti = null)
+    {
+        var cadono = _configurazioni.ChiusiCon(chiusi);
+        var fuori = new HashSet<string>(chiusi, StringComparer.OrdinalIgnoreCase);
+        return new HashSet<string>(
+            (tutti ?? TuttiISettori).Where(c => !fuori.Contains(c) && !cadono.Contains(c)),
+            StringComparer.OrdinalIgnoreCase);
+    }
 
     /// <summary>Le righe dichiarate, per chi deve camminare la catena accanto a questo contesto.</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> Dichiarate => _dichiarate;

@@ -3593,6 +3593,42 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("SectorAirspaceBindings");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.SectorConfigurationSet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BodyJson")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("GroupCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("GroupKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupKind", "GroupCode")
+                        .IsUnique();
+
+                    b.ToTable("SectorConfigurationSets");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.SectorFallback", b =>
                 {
                     b.Property<int>("Id")

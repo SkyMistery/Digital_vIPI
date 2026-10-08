@@ -207,6 +207,53 @@ public class RilieviDellaRicadutaTests
     }
 
     /// <summary>
+    /// 🔴 S99 (8 ottobre 2026), l'errore che teneva la produzione in Degraded: <c>LIMM_WS2_CTR →
+    /// LIMM_ES2_CTR</c>. Chiuso il ricevente il punto lo copre suo figlio — ma il figlio <b>non apre senza di
+    /// lui</b>: lo dicono le configurazioni possibili scritte in Struttura. Lo scenario non esiste, quindi non
+    /// manca nessun ripiego.
+    /// </summary>
+    [Fact]
+    public void Se_chi_copre_il_punto_non_apre_senza_il_ricevente_non_si_segnala()
+    {
+        var d = ConPunti(new TransferLadderRow("LIMM", 1, "GHE", Radice, Cedente, 14000));
+        var soloConLaRadice = new ConfigurazioniPossibili(new[]
+        {
+            new ElencoDiConfigurazioni(ConfigurationGroupKind.AccArea, "LIMM", new[]
+            {
+                new AccConfiguration { Name = "Conf 1", Open = { new AccConfigOpen { Callsign = Radice } } },
+                new AccConfiguration
+                {
+                    Name = "Conf 2",
+                    Open = { new AccConfigOpen { Callsign = Radice }, new AccConfigOpen { Callsign = ConPadre } },
+                },
+            }),
+        });
+
+        Assert.Empty(Rilievi(d, "Trasferimento senza ripiego", rinvio: ContestoDiProva(soloConLaRadice)));
+    }
+
+    /// <summary>
+    /// La controprova: se il figlio può stare aperto <b>da solo</b>, lo scenario esiste e il ripiego manca
+    /// davvero. Un elenco non spegne il rilievo: dice quali scenari provare.
+    /// </summary>
+    [Fact]
+    public void Se_chi_copre_il_punto_puo_stare_aperto_da_solo_si_segnala_ancora()
+    {
+        var d = ConPunti(new TransferLadderRow("LIMM", 1, "GHE", Radice, Cedente, 14000));
+        var ancheDaSolo = new ConfigurazioniPossibili(new[]
+        {
+            new ElencoDiConfigurazioni(ConfigurationGroupKind.AccArea, "LIMM", new[]
+            {
+                new AccConfiguration { Name = "Conf 1", Open = { new AccConfigOpen { Callsign = Radice } } },
+                new AccConfiguration { Name = "Conf 2", Open = { new AccConfigOpen { Callsign = ConPadre } } },
+            }),
+        });
+
+        var f = Assert.Single(Rilievi(d, "Trasferimento senza ripiego", rinvio: ContestoDiProva(ancheDaSolo)));
+        Assert.Contains($"{Radice} → {ConPadre}", f.Detail);
+    }
+
+    /// <summary>
     /// 🔴 <b>«Finisce su UNICOM» da solo NON e' un difetto</b>, e questa e' la lezione del primo giro dal
     /// vivo: sopra un ACC non c'e' niente per costruzione, quindi una radice che non e' sovrapposta a nessuno
     /// finisce su UNICOM ed e' giusto cosi'. Misurato: otto riceventi segnalati su LIBB, sei erano ACC esteri.
@@ -292,7 +339,7 @@ public class RilieviDellaRicadutaTests
         new() { TransferLadders = righe };
 
     /// <summary>Un contesto minimo: una radice senza ripieghi, un figlio, e un cedente.</summary>
-    private static CoverageFallbackContext ContestoDiProva()
+    private static CoverageFallbackContext ContestoDiProva(ConfigurazioniPossibili? configurazioni = null)
     {
         const string quadrato = "[[8,44],[12,44],[12,46],[8,46]]";
         SectorVolumeRow riga(string cs, string? padre, SectorType tipo) =>
@@ -315,6 +362,6 @@ public class RilieviDellaRicadutaTests
             new HashSet<string>(settori.Select(x => x.Callsign), StringComparer.OrdinalIgnoreCase),
             new CopPositions(new[] { ("GHE", 45.0, 10.0) }),
             new Dictionary<string, IReadOnlyList<FallbackRow>>(StringComparer.OrdinalIgnoreCase),
-            cs => padri.GetValueOrDefault(cs));
+            cs => padri.GetValueOrDefault(cs), configurazioni);
     }
 }

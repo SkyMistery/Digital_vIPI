@@ -105,7 +105,11 @@ public static class RisalitaScala
         while (gradini.Count < MassimoGradini)
         {
             // «Tutti aperti tranne i già presi»: è la domanda «e se anche questo fosse chiuso?».
-            var online = new HashSet<string>(tutti.Where(c => !chiusi.Contains(c)), StringComparer.OrdinalIgnoreCase);
+            // ⚠️ E tranne chi, chiusi loro, non può restare aperto: le configurazioni possibili dichiarate in
+            // Struttura (carta 2026-10-08-configurazioni-possibili). Chiuso WS2, ES2 non è un gradino.
+            var cadono = contesto.Configurazioni.ChiusiCon(chiusi);
+            var online = new HashSet<string>(tutti.Where(c => !chiusi.Contains(c) && !cadono.Contains(c)),
+                StringComparer.OrdinalIgnoreCase);
             var giro = contesto.Con(online);
 
             // ⚠️ Il rinvio si RICHIEDE a ogni giro, con l'insieme di questo giro: è tutto il punto.
@@ -117,7 +121,11 @@ public static class RisalitaScala
                     return r.AsCandidates();
                 });
 
-            var vinto = passi.FirstOrDefault(p => !chiusi.Contains(p.TargetCallsign));
+            // ⚠️ Anche un padre o una riga dichiarata si saltano se non possono essere aperti in questo giro:
+            // `online` lo dice già al rinvio, ma la catena scritta non passa da lì. Si guarda `cadono` e non
+            // `online`: un gradino senza volume (un centro estero) in «tutti» non c'è, e resta un gradino.
+            var vinto = passi.FirstOrDefault(p =>
+                !chiusi.Contains(p.TargetCallsign) && !cadono.Contains(p.TargetCallsign));
             if (vinto.TargetCallsign is null or "") break;
 
             gradini.Add(new RisalitaGradino(vinto.TargetCallsign, MotivoDi(vinto), vinto.BaseFeet, vinto.TopFeet));

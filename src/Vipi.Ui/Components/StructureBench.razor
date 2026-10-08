@@ -76,6 +76,13 @@
 
         @if (_esito is not null)
         {
+            @* Lo scenario non è una configurazione possibile dichiarata: si dice, e si risponde lo stesso. *@
+            @foreach (var fuori in _esito.NonPreviste)
+            {
+                <p class="st-msg warn bench-notforeseen" style="margin-top:12px">
+                    @L["Bench_NotForeseen", fuori.Elenco.Codice, string.Join(" + ", fuori.Aperti)]
+                </p>
+            }
             <table class="cfg-table" style="margin-top:14px">
                 <thead><tr><th>@L["Bench_ColOpen"]</th><th>@L["Bench_ColHolds"]</th></tr></thead>
                 <tbody>

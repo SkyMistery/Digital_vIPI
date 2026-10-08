@@ -41,6 +41,7 @@ public sealed class TopologyBuilder : ITopologyProvider
             Parent = parent,
             Fallbacks = await RipieghiAsync(ct),
             Bands = await BandeAsync(ct),
+            Configurazioni = await ConfigurazioniQuery.TutteAsync(_db, ct),
         };
     }
 
@@ -66,6 +67,8 @@ public sealed class TopologyBuilder : ITopologyProvider
             Parent = parent,
             Fallbacks = await RipieghiAsync(ct),
             Bands = await BandeAsync(ct),
+            // ⚠️ Tutte, anche per una sola ACC: come i ripieghi, sono poche righe e filtrarle non serve a niente.
+            Configurazioni = await ConfigurazioniQuery.TutteAsync(_db, ct),
         };
     }
 

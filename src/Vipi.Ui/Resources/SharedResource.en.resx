@@ -4056,8 +4056,8 @@
   <data name="Bench_PickAcc" xml:space="preserve"><value>— pick an ACC —</value></data>
   <data name="Bench_AllOpen" xml:space="preserve"><value>All open</value></data>
   <data name="Bench_AllClosed" xml:space="preserve"><value>All closed</value></data>
-  <data name="Bench_Presets" xml:space="preserve"><value>Configurations published in the vIPI</value></data>
-  <data name="Bench_NoPresets" xml:space="preserve"><value>No configuration in this ACC&apos;s published vIPI: open and close the sectors by hand.</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurations declared in Structure</value></data>
+  <data name="Bench_NoPresets" xml:space="preserve"><value>No configuration declared for this ACC: open and close the sectors by hand.</value></data>
   <data name="Bench_Area" xml:space="preserve"><value>Open area sectors</value></data>
   <data name="Bench_App" xml:space="preserve"><value>Open approaches</value></data>
   <data name="Bench_ColOpen" xml:space="preserve"><value>Open</value></data>
@@ -4142,4 +4142,23 @@
   <data name="Xfer_ShareAgreementTitle" xml:space="preserve"><value>Share ALL the clauses of the agreement with that of another pair: one of the two units changes</value></data>
   <data name="Xfer_ShareAgreementIntro" xml:space="preserve"><value>The {0} clauses of all the sections will also appear in the agreement with another unit. Below are the two units of the agreement: change ONE, the other stays. Each section goes into the matching section of the other agreement, created only if missing.</value></data>
   <data name="Xfer_ShareAgreementOneSide" xml:space="preserve"><value>Change only one of the two units: the other stays the one of the agreement.</value></data>
+  <data name="Cfgs_Title" xml:space="preserve"><value>Possible configurations</value></data>
+  <data name="Cfgs_Intro" xml:space="preserve"><value>For each group of sectors, which sets of open sectors exist. A list only speaks of the sectors it names; «all closed» is always allowed; a group without a list has no constraints. The document&apos;s configuration table, the test bench and Diagnostics read them from here.</value></data>
+  <data name="Cfgs_ReadOnly" xml:space="preserve"><value>Read only: to edit, take the structure lock at the top of the page.</value></data>
+  <data name="Cfgs_NoGroups" xml:space="preserve"><value>This ACC has no area sectors and no units.</value></data>
+  <data name="Cfgs_Unsaved" xml:space="preserve"><value>not applied</value></data>
+  <data name="Cfgs_NoList" xml:space="preserve"><value>No configuration declared: no constraints.</value></data>
+  <data name="Cfgs_ColConfig" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Cfgs_Consequences" xml:space="preserve"><value>What follows from it</value></data>
+  <data name="Cfgs_ColSector" xml:space="preserve"><value>Sector</value></data>
+  <data name="Cfgs_ColAlwaysWith" xml:space="preserve"><value>Opens only with</value></data>
+  <data name="Cfgs_ColNeverWith" xml:space="preserve"><value>Never together with</value></data>
+  <data name="Cfgs_ColAlone" xml:space="preserve"><value>Can be open alone</value></data>
+  <data name="Cfgs_Yes" xml:space="preserve"><value>yes</value></data>
+  <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
+  <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
+  <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector: the group has no constraints.</value></data>
+  <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
+  <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>
+  <data name="Bench_NotForeseen" xml:space="preserve"><value>Not a foreseen configuration — {0}: {1}</value></data>
 </root>

@@ -12,8 +12,8 @@ namespace Vipi.Application.Content;
 /// <param name="Area">Vero per un settore d'area (CTR), falso per un avvicinamento.</param>
 public sealed record BenchSector(string Callsign, string Name, bool Area);
 
-/// <summary>Una configurazione già scritta in una vIPI dell'ACC: uno scenario pronto.</summary>
-/// <param name="Block">Il blocco della vIPI che la porta (aerovia, o il titolo di un gruppo APP).</param>
+/// <summary>Una configurazione possibile dichiarata in Struttura: uno scenario pronto.</summary>
+/// <param name="Block">Il gruppo che la porta (il codice dell'ACC per i settori d'area, o il nome dell'ente).</param>
 public sealed record BenchPreset(string Name, string Block, IReadOnlyList<string> Open);
 
 /// <summary>Quel che il banco di un ACC mette sul tavolo: i settori da aprire e gli scenari già scritti.</summary>
@@ -30,7 +30,11 @@ public sealed record BenchItem(string Sector, string? Band);
 public sealed record BenchGroup(string? Holder, bool Outside, IReadOnlyList<BenchItem> Items);
 
 /// <summary>L'esito di uno scenario: chi tiene cosa, e i trasferimenti dell'ACC risolti con quegli aperti.</summary>
-public sealed record BenchOutcome(IReadOnlyList<BenchGroup> Coverage, IReadOnlyList<ResolvedTransferFlow> Transfers);
+/// <param name="NonPreviste">I gruppi i cui aperti non sono una delle configurazioni possibili dichiarate. Il banco
+/// lo <b>dice</b> e risponde lo stesso: serve anche a vedere che cosa succede quando qualcuno lo fa davvero.</param>
+public sealed record BenchOutcome(
+    IReadOnlyList<BenchGroup> Coverage, IReadOnlyList<ResolvedTransferFlow> Transfers,
+    IReadOnlyList<GruppoFuoriElenco> NonPreviste);
 
 /// <summary>
 /// Il <b>banco di prova</b> della struttura: «con questi aperti, chi tiene cosa — e i trasferimenti a chi vanno».
@@ -47,7 +51,7 @@ public sealed record BenchOutcome(IReadOnlyList<BenchGroup> Coverage, IReadOnlyL
 /// </summary>
 public interface ICoverageBenchService
 {
-    /// <summary>I settori dell'ACC e le configurazioni già scritte nella sua vIPI pubblicata. Null se l'ACC non c'è.</summary>
+    /// <summary>I settori dell'ACC e le configurazioni possibili dei suoi gruppi. Null se l'ACC non c'è.</summary>
     Task<BenchScope?> ScopeAsync(string accCode, CancellationToken ct = default);
 
     /// <summary>
@@ -122,16 +126,16 @@ public sealed class CoverageBenchService : ICoverageBenchService
 {
     private readonly IAccDerivationRepository _repo;
     private readonly ITopologyProvider _topology;
-    private readonly IAccDocumentService _documenti;
+    private readonly ISectorConfigurationService _configurazioni;
     private readonly IAgreementService _accordi;
     private readonly IEditAuthorizationService _authz;
 
     public CoverageBenchService(IAccDerivationRepository repo, ITopologyProvider topology,
-        IAccDocumentService documenti, IAgreementService accordi, IEditAuthorizationService authz)
+        ISectorConfigurationService configurazioni, IAgreementService accordi, IEditAuthorizationService authz)
     {
         _repo = repo;
         _topology = topology;
-        _documenti = documenti;
+        _configurazioni = configurazioni;
         _accordi = accordi;
         _authz = authz;
     }
@@ -142,15 +146,14 @@ public sealed class CoverageBenchService : ICoverageBenchService
         var settori = await SettoriAsync(accCode, ct);
         if (settori.Count == 0) return null;
 
-        // ⚠️ Le configurazioni si leggono dalla vIPI PUBBLICATA, e non dalla bozza: la porta della bozza
-        // (`LoadForEditAsync`) garantisce il documento, cioè può scrivere — e un banco di prova non scrive. Chi sta
-        // ancora scrivendo una configurazione la prova nell'editor della vIPI, dove la tabella si deriva dal vivo.
+        // Gli scenari pronti sono le configurazioni possibili dichiarate in Struttura, gruppo per gruppo. Fino
+        // all'8 ottobre 2026 venivano dalla vIPI pubblicata, che ne era l'unica copia (carta
+        // 2026-10-08-configurazioni-possibili): ora il documento le legge dallo stesso posto.
         var presets = new List<BenchPreset>();
-        if (await _documenti.LoadForViewAsync(accCode, ct) is { } vipi)
-            foreach (var blocco in vipi.Blocks)
-                foreach (var cfg in blocco.Block.Configurations)
-                    if (cfg.Open.Count > 0)
-                        presets.Add(new BenchPreset(cfg.Name, blocco.Block.Title, cfg.OpenCallsigns.ToList()));
+        foreach (var gruppo in await _configurazioni.GruppiAsync(accCode, ct))
+            foreach (var cfg in gruppo.Configurazioni)
+                if (cfg.Open.Count > 0)
+                    presets.Add(new BenchPreset(cfg.Name, gruppo.Nome, cfg.OpenCallsigns.ToList()));
 
         return new BenchScope(accCode.Trim().ToUpperInvariant(), settori, presets);
     }
@@ -165,7 +168,12 @@ public sealed class CoverageBenchService : ICoverageBenchService
 
         var copertura = CoverageBench.Copertura(topo, scenario, aperti);
         var online = CoverageBench.OnlineDi(topo.Sectors, scenario, aperti);
-        return new BenchOutcome(copertura, await _accordi.ResolveForAccAsync(accCode, online, ct));
+        // ⚠️ «Non prevista» si chiede dei soli aperti SCELTI, non di `online`: quello contiene anche tutto ciò
+        // che sta fuori dallo scenario (gli altri centri, aperti per costruzione), e ogni loro gruppo con un
+        // elenco risulterebbe fuori elenco.
+        var scelti = aperti.Where(a => scenario.Contains(a, StringComparer.OrdinalIgnoreCase)).ToList();
+        return new BenchOutcome(copertura, await _accordi.ResolveForAccAsync(accCode, online, ct),
+            topo.Configurazioni.NonPreviste(scelti));
     }
 
     /// <summary>I settori d'area e gli avvicinamenti dell'ACC, senza doppioni: è l'insieme che si può aprire.</summary>
