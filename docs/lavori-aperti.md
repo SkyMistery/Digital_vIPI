@@ -43,7 +43,14 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A150 — 1.58.0 PRONTA, da caricare: le configurazioni possibili dei gruppi di settori, in Struttura (S99) (8 ottobre 2026)
+### ✅ A150 — 1.58.0 ONLINE: le configurazioni possibili dei gruppi di settori, in Struttura (S99) (8 ottobre 2026)
+
+✅ Online dall'8 ottobre 2026, sera: il committente conferma il timbro 1.58 e `Schema 0` (la tabella
+`SectorConfigurationSets` c'è). Da fuori, da anonimo, alle 20:58Z: `/` 302, porta «Entra con IVAO», Ricerca 401,
+`/services/cookies` 200, API aeroporti 401, `/vsop/health/ready` Healthy, `vipi-theme.css?v=f27ce52a` (invariato: il
+pacchetto non porta asset). 🔎 `/vsop/health` risponde ancora `Degraded`, come scritto nel foglio: torna Healthy quando
+il committente accende «L'elenco è completo» sui settori d'area di LIMM. Non ancora guardati: lo scarico della
+diagnostica dopo l'avvio, e la Ricerca col login.
 
 MINOR con **una migrazione additiva** (`ConfigurazioniPossibili`: `CREATE TABLE SectorConfigurationSets` e un indice
 unico su gruppo; nessun `Drop`, `Rename`, `Alter` o `Sql` nell'`Up`, guardato nei due provider), su 1.57.0 (`397b7a1`).

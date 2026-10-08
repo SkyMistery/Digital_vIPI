@@ -6,9 +6,10 @@
 >
 > ## ▶ Il punto — 8 ottobre 2026, pomeriggio
 >
-> **📦 Pronta da caricare: 1.58.0** (§A150, timbro `1.58.0 · 2ecbdd6`, 15 file, zip `ea49ca83…`, MINOR con una
+> **✅ Online: 1.58.0** dall'8 ottobre sera (`Schema 0` confermato; **in `main` non resta codice fuori pacchetto**;
+> 🔎 `/vsop/health` ancora Degraded finché non si accende l'elenco di LIMM) (§A150, timbro `1.58.0 · 2ecbdd6`, 15 file, zip `ea49ca83…`, MINOR con una
 > migrazione additiva): Sito S99, le configurazioni possibili dei gruppi di settori dichiarate in Struttura, con la
-> casella «L'elenco è completo». Online resta la **1.57.0** finché il committente non carica. ⚠️ Il carico **non**
+> casella «L'elenco è completo». ⚠️ Il carico **non**
 > riporta `/vsop/health` a Healthy: il travaso porta gli elenchi spenti, e il rilievo di Milano sparisce quando il
 > committente accende quello dei settori d'area di LIMM. ▶ Dopo: Torino (aggiungere {WN0} e {WS0}), Padova e Bologna
 > si possono accendere, Roma e Venezia spente; ripubblicare le vIPI ACC. S96 tabellone in pausa (chiave del booking).
