@@ -43,6 +43,42 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A150 — 1.58.0 PRONTA, da caricare: le configurazioni possibili dei gruppi di settori, in Struttura (S99) (8 ottobre 2026)
+
+MINOR con **una migrazione additiva** (`ConfigurazioniPossibili`: `CREATE TABLE SectorConfigurationSets` e un indice
+unico su gruppo; nessun `Drop`, `Rename`, `Alter` o `Sql` nell'`Up`, guardato nei due provider), su 1.57.0 (`397b7a1`).
+Timbro **`1.58.0 · 2ecbdd6`**. Non è la 1.57.1 annunciata in §A149: il difetto si è chiuso con una funzione, una tabella
+e una sezione nuova in una pagina.
+- **S99** (fuso da `fix/senza-ripiego-falso` @ `e23bb718`, CI verde run 37792052686; il committente l'8-ott: «va bene
+  così, chiudi»): le configurazioni possibili di un gruppo (settori d'area di un ACC, o un ente con le sue posizioni)
+  si dichiarano in Struttura, con la casella «L'elenco è completo»; la sezione Configurazioni dei documenti le legge
+  da lì; il banco di prova prende gli scenari dalla Struttura; la sonda di «Trasferimento senza ripiego» e la scala di
+  risalita, chiuso un settore, chiudono chi senza di lui non può stare aperto — per i soli elenchi completi. Codice
+  comune: Domain, Application (`Aor/Topology`, `Content/*`, `Diagnostics`), Infrastructure. Carta
+  `docs/feature/2026-10-08-configurazioni-possibili.md`, storia in `docs/filoni/sito.md` (voce S99).
+- ⚠️ **Il carico non spegne il `Degraded`.** All'avvio il travaso copia in Struttura gli elenchi scritti nei documenti,
+  **tutti spenti** (nei documenti erano esempi: accesi alla cieca, a Roma direbbero «EW apre solo con NE1 e SU»). Il
+  rilievo di Milano sparisce quando il committente accende «L'elenco è completo» sui settori d'area di LIMM.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`, chiave del booking). `lab/f3` non toccato.
+
+**15 file** (`solo-15-file-1.58.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
+pdb) e `en/Vipi.Ui.resources.dll` (frasi IT/EN cambiate). **Niente `wwwroot`**, quindi `endpoints.json` resta fuori:
+482 file nel publish come nel precedente, 19 con impronta diversa, di cui i quattro Aurora* solo per la ricompilazione
+(nessun riferimento agli altri progetti). Due `const` nuove nel diff (`Chiave = "configurations"`), nessuna cambiata;
+le interfacce toccate (`IDocumentMaintenance`, `IFrozenSectionReader`) hanno implementatori solo in assiemi spediti.
+Zip 6,49 MB, sha256 `ea49ca833efb7b8301dec6dfcab1dd2703149f104ccc98805bed1a7517fb3f05`. Build Release senza avvisi;
+`dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3299, Infra 2184, Ui 2000, E2E 507).
+Prova sul publish win-x64 (copia del database di sviluppo, fermo al 15-set: 27 migrazioni applicate all'avvio, l'ultima
+è `ConfigurazioniPossibili`; il travaso ha scritto tre righe): `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`); a schermo la pagina Struttura con «Configurazioni possibili» aperta su LIMM — l'elenco travasato di
+Torino–Genova con «non vincola» e le conseguenze ricavate — console pulita. **Non rifatto qui**: scrivere un elenco,
+accendere la casella e vedere il rilievo sparire (lo ha provato il Sito, tre giri sulla copia di produzione, e il
+committente a schermo). Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.58.0.md`.
+
+▶ **Dopo il carico** (committente, in Struttura): LIMM settori d'area → accendere; Torino–Genova → aggiungere {WN0} e
+{WS0}, poi accendere; Padova e Bologna si possono accendere; Roma e Venezia spente (o riscritte); ripubblicare le vIPI
+ACC. Rollback: bastano le due rinomine (la migrazione aggiunge soltanto, il travaso non cancella niente dai documenti).
+
 ### ✅ A149 — 1.57.0 ONLINE: coordinamenti e struttura (S97), import mai riuscito (S98) — 🔴 prima migrazione distruttiva (7 ottobre 2026)
 
 ✅ Online dal 7 ottobre 2026 (primo avvio 19:12:46Z): `Schema 0` confermato dal committente — le quattro migrazioni
