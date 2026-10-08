@@ -2143,6 +2143,34 @@
   - **Prova**: host isolato su database nuovo con `Ivao__BaseUrl=http://127.0.0.1:9`: con `Acc` a `0001-01-01` e
     `AirportSector` riuscito (lo stato del difetto) Struttura risponde 200 e il giro `ImpactDrift` riesce. Solo via
     HTTP (il prerender, dove nasceva il 500), non in un browser; Pendenti non provata a schermo.
+- 🧪 **S99** falso «Trasferimento senza ripiego» su LIMM, che tiene `/vsop/health` in Degraded (8-ott, assegnato dal
+  Master con la 1.57.0 online; pacchetto previsto 1.57.1). Ramo `fix/senza-ripiego-falso`, da `main` @ `ad490b3e`.
+  **Aperto: solo letto il codice, niente corretto** — la regola di dominio la decide il committente.
+  - **Il rilievo** (produzione, unico «grave» in Diagnostica): ACC LIMM, «Chiuso il ricevente il traffico va su
+    UNICOM, ma quel punto lo copre qualcun altro: manca un ripiego (LIMM_WS2_CTR → LIMM_ES2_CTR)».
+  - ⚠️ **Come si legge**: la freccia è «**ricevente** → chi copre il punto», non cedente → ricevente. Una clausola
+    ha `LIMM_WS2_CTR` come ricevente; chiuso lui la catena non porta a nessuno (è radice), ma con tutti gli **altri**
+    aperti la geometria dà quel punto a `LIMM_ES2_CTR`, che da WS2 pende.
+  - **Dove nasce**: `ConsistencyReportService.Analyze`, blocco «4-septies» (il commento del Master dice
+    «4-quinquies»): `RisalitaScala.FinisceSubitoSuUnicom`, poi `rinvio.Con(SenzaDiLui(tutti, ricevente)).Risolvi(…)`.
+    La sonda toglie il **solo** ricevente e lascia aperti i settori che ne dipendono.
+  - **Il committente**: «secondo me è un errore, WS% non può essere aperto se non è aperto il WS2» — lo scenario
+    «WS2 chiuso e un suo settore aperto» non esiste, quindi non manca nessun ripiego.
+  - **Correzione candidata, da NON scrivere prima della sua risposta**: chiuso il ricevente, un settore che da lui
+    pende non conta come «qualcun altro» (o si chiude con lui). ⚠️ «Il figlio non apre senza il padre» non è vero in
+    generale — un APP sta aperto col suo CTR chiuso — ma per un ricevente CTR la sonda guarda solo i CTR (filtro di
+    rango di `CoverageFallback`): la regola riguarderebbe i soli CTR che pendono da un CTR.
+  - **Da capire**: il codice della sonda e dei suoi ingressi (`ConsistencyReportService`,
+    `EfConsistencyReportRepository`, `RisalitaScala`, `CoverageFallback*`) **non è cambiato** con la 1.57.0, e il
+    2 ottobre la salute era Healthy. O sono cambiati i dati di Milano, o c'entra un pezzo indiretto (topologia, catena
+    di ripiego). Sulla copia del 1° ottobre il 4b di S97 dava `NELAB FL150` scritto per WS2 e tenuto da ES2, ma lì
+    WS2 **cedeva**: può essere lo stesso punto o un altro.
+  - **Chiesto al committente**: (1) «WS%» era WS5 o ES2 — quali settori di Milano aprono solo con WS2 aperto; (2) se
+    la regola vale per tutti gli ACC o solo per alcune coppie (nel secondo caso va dichiarata in Struttura); (3) se
+    dopo la 1.57.0 ha toccato accordi o struttura di Milano; (4) una copia fresca della produzione da Diagnostica,
+    per riprodurre il rilievo e vedere quale clausola lo fa scattare (quella di S97 è stata cancellata).
+  - Sulla stessa schermata, solo avvisi, non muovono la salute e non sono in questo lavoro: «CoP senza posizione»
+    (LIBB: UKOVA, LIMM: GEN) e «Area fantasma» LI R40x sulla clausola #28 di LIBB.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
   lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
