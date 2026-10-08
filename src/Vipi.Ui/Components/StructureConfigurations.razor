@@ -1,0 +1,250 @@
+@inject ISectorConfigurationService Configurazioni
+@inject IStringLocalizer<SharedResource> L
+@* Le configurazioni possibili dei gruppi di settori di un ACC: quali insiemi di aperti esistono.
+   Carta docs/feature/2026-10-08-configurazioni-possibili.md.
+
+   ⚠️ L'editor è lo STESSO del documento (`AppConfigurations`): le configurazioni sono la stessa cosa di prima,
+   si scrivono solo in un altro posto. Lui cambia gli oggetti in place e riemette la lista; qui si lavora su una
+   COPIA e si scrive con «Applica», come i ripieghi — è struttura, e sta sotto il lock della pagina.
+
+   ⚠️ Sotto ogni elenco c'è quello che ne segue, calcolato sulla copia di lavoro: si vede PRIMA di applicare. È il
+   modo di accorgersi che manca una configurazione — chi legge «WN0: sempre con LIMJ_WS0» e sa che non è vero, sa
+   anche quale riga aggiungere.
+
+   🔴 Un elenco VINCOLA solo se è dichiarato completo (la casella). Nel documento le configurazioni erano esempi:
+   sulle sessioni vere Roma sta in una configurazione scritta il 2% del tempo. Spento, l'elenco serve al documento
+   e al banco come scenari; le conseguenze si mostrano lo stesso, dette al condizionale — sono quello che si
+   deve leggere prima di accenderlo.
+
+   ⚠️ Le letture e le scritture passano dalla FILA della pagina (`InFila`), come il banco di prova (U-012). *@
+
+<div class="bench">
+    <p class="muted" style="margin:0 0 10px">@L["Cfgs_Intro"]</p>
+
+    <div class="inline-form" style="align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <div class="field">
+            <label class="app-lbl" for="cfgs-acc">@L["Bench_Acc"]</label>
+            <select id="cfgs-acc" class="app-in" disabled="@(_busy || Sporco)" @onchange="e => ScegliAccAsync(e.Value?.ToString())">
+                <option value="" selected="@(_acc is null)">@L["Bench_PickAcc"]</option>
+                @foreach (var a in Accs.OrderBy(x => x.Code, StringComparer.OrdinalIgnoreCase))
+                {
+                    <option value="@a.Code" selected="@(a.Code == _acc)">@a.Code — @a.Name</option>
+                }
+            </select>
+        </div>
+        @if (_acc is not null && !CanEdit)
+        {
+            <span class="muted">@L["Cfgs_ReadOnly"]</span>
+        }
+    </div>
+
+    @if (_errore is not null)
+    {
+        <p class="st-msg warn" role="alert">@_errore</p>
+    }
+
+    @if (_acc is not null && _gruppi.Count == 0 && !_busy)
+    {
+        <p class="muted" style="margin:12px 0 0">@L["Cfgs_NoGroups"]</p>
+    }
+
+    @foreach (var g in _gruppi)
+    {
+        var gruppo = g;
+        var conseguenze = ConfigurazioniPossibili.Conseguenze(gruppo.Lavoro);
+        var nominati = conseguenze.Select(c => c.Settore).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var liberi = gruppo.Gruppo.Settori.Select(s => s.Callsign).Where(cs => !nominati.Contains(cs)).ToList();
+        <div class="block cfgs-group" style="margin-top:12px" data-cfgs-group="@gruppo.Gruppo.Codice">
+            <div class="fb-block-h">
+                <span class="fb-block-t">@Titolo(gruppo.Gruppo)</span>
+                @if (gruppo.Lavoro.Any(c => c.Open.Count > 0))
+                {
+                    <span class="pill @(gruppo.Completo ? "green" : null) cfgs-state">@(gruppo.Completo ? L["Cfgs_StateExhaustive"] : L["Cfgs_StateExamples"])</span>
+                }
+                @if (gruppo.Sporco)
+                {
+                    <span class="pill amber">@L["Cfgs_Unsaved"]</span>
+                }
+            </div>
+
+            @if (CanEdit)
+            {
+                <AppConfigurations Configs="gruppo.Lavoro" Pool="gruppo.Gruppo.Settori" Editing="true"
+                                   ConfigsChanged="c => Cambia(gruppo, c)" />
+                <label class="cfgs-exhaustive" style="display:flex;gap:8px;align-items:flex-start;margin:10px 0 0">
+                    <input type="checkbox" checked="@gruppo.Completo" disabled="@_busy"
+                           @onchange="e => gruppo.Completo = e.Value is true" />
+                    <span>
+                        <b>@L["Cfgs_Exhaustive"]</b>
+                        <span class="muted" style="display:block">@L["Cfgs_ExhaustiveHelp"]</span>
+                    </span>
+                </label>
+                <div class="fb-acts">
+                    <button class="btn primary" disabled="@(_busy || !gruppo.Sporco)" @onclick="() => SalvaAsync(gruppo)">@L["Common_Apply"]</button>
+                    @if (gruppo.Sporco)
+                    {
+                        <button class="btn ghost" disabled="@_busy" @onclick="() => Annulla(gruppo)">@L["Common_Cancel"]</button>
+                    }
+                </div>
+            }
+            else if (gruppo.Lavoro.Count == 0)
+            {
+                <p class="muted" style="margin:0">@L["Cfgs_NoList"]</p>
+            }
+            else
+            {
+                <table class="cfg-table">
+                    <thead><tr><th>@L["Cfgs_ColConfig"]</th><th>@L["AppCfg_OpenSectors"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in gruppo.Lavoro)
+                        {
+                            <tr class="grp-start">
+                                <td class="uni">@c.Name</td>
+                                <td>@(c.Open.Count == 0 ? "—" : string.Join(" + ", c.OpenCallsigns))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+
+            @if (conseguenze.Count > 0)
+            {
+                <p class="app-lbl" style="margin:12px 0 4px">@(gruppo.Completo ? L["Cfgs_Consequences"] : L["Cfgs_ConsequencesIf"])</p>
+                <table class="cfg-table cfgs-cons">
+                    <thead>
+                        <tr>
+                            <th>@L["Cfgs_ColSector"]</th>
+                            <th>@L["Cfgs_ColAlwaysWith"]</th>
+                            <th>@L["Cfgs_ColNeverWith"]</th>
+                            <th>@L["Cfgs_ColAlone"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in conseguenze)
+                        {
+                            <tr class="grp-start">
+                                <td class="uni">@c.Settore</td>
+                                <td>@(c.SempreCon.Count == 0 ? "—" : string.Join(", ", c.SempreCon))</td>
+                                <td>@(c.MaiCon.Count == 0 ? "—" : string.Join(", ", c.MaiCon))</td>
+                                <td>@(c.DaSolo ? L["Cfgs_Yes"] : L["Cfgs_No"])</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (liberi.Count > 0)
+                {
+                    <p class="muted" style="margin:6px 0 0">@L["Cfgs_Unnamed", string.Join(", ", liberi)]</p>
+                }
+            }
+            else if (CanEdit)
+            {
+                <p class="muted" style="margin:8px 0 0">@L["Cfgs_NoConstraint"]</p>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Gli ACC fra cui scegliere: quelli che la pagina ha già letto.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<AccRow> Accs { get; set; } = Array.Empty<AccRow>();
+
+    /// <summary>La fila della pagina ospite: ogni lettura e ogni scrittura ci passa dentro.</summary>
+    [Parameter, EditorRequired] public Func<Func<Task>, Task> InFila { get; set; } = op => op();
+
+    /// <summary>Vero se questa sessione tiene il lock della struttura: senza, si legge e basta.</summary>
+    [Parameter] public bool CanEdit { get; set; }
+
+    /// <summary>Un gruppo con la sua copia di lavoro. «Sporco» si decide sulla forma scritta, non sui riferimenti:
+    /// l'editor cambia gli oggetti in place.</summary>
+    private sealed class Stato
+    {
+        public required GruppoDiSettori Gruppo { get; init; }
+        public required string Salvato { get; set; }
+        public required List<AccConfiguration> Lavoro { get; set; }
+
+        /// <summary>«L'elenco è completo» come sta a schermo e come sta scritto: è la casella che lo fa vincolare.</summary>
+        public bool Completo { get; set; }
+        public bool CompletoSalvato { get; set; }
+
+        public bool Sporco => ConfigurazioniJson.Scrivi(Lavoro) != Salvato || Completo != CompletoSalvato;
+    }
+
+    private string? _acc;
+    private List<Stato> _gruppi = new();
+    private bool _busy;
+    private bool _eraInModifica;
+    private string? _errore;
+
+    /// <summary>Vero se un elenco è stato cambiato e non applicato: la pagina lo chiede prima di lasciare il lock.</summary>
+    public bool Sporco => _gruppi.Any(g => g.Sporco);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // «Inizia modifica»: si rilegge PRIMA di poter scrivere (U-011) — nel frattempo il lock l'ha tenuto un
+        // altro, e la prima «Applica» riporterebbe indietro il suo lavoro. Gli elenchi si riscrivono per intero.
+        var presa = CanEdit && !_eraInModifica;
+        _eraInModifica = CanEdit;
+        if (presa && _acc is not null) await CaricaAsync();
+    }
+
+    private string Titolo(GruppoDiSettori g) => g.Genere == ConfigurationGroupKind.AccArea
+        ? L["Cfgs_AreaGroup", g.Codice]
+        : $"{g.Nome} · {g.Codice}";
+
+    private Task ScegliAccAsync(string? acc)
+    {
+        _acc = string.IsNullOrWhiteSpace(acc) ? null : acc;
+        return CaricaAsync();
+    }
+
+    private Task CaricaAsync() => GuardatoAsync(async () =>
+    {
+        _gruppi = new();
+        if (_acc is null) return;
+        _gruppi = (await Configurazioni.GruppiAsync(_acc)).Select(Nuovo).ToList();
+    });
+
+    private static Stato Nuovo(GruppoDiSettori g)
+    {
+        var scritto = ConfigurazioniJson.Scrivi(g.Configurazioni);
+        return new Stato
+        {
+            Gruppo = g, Salvato = scritto, Lavoro = ConfigurazioniJson.Leggi(scritto),
+            Completo = g.Completo, CompletoSalvato = g.Completo,
+        };
+    }
+
+    private void Cambia(Stato g, IReadOnlyList<AccConfiguration> configurazioni) => g.Lavoro = configurazioni.ToList();
+
+    private void Annulla(Stato g)
+    {
+        g.Lavoro = ConfigurazioniJson.Leggi(g.Salvato);
+        g.Completo = g.CompletoSalvato;
+    }
+
+    private Task SalvaAsync(Stato g) => GuardatoAsync(async () =>
+    {
+        await Configurazioni.ReplaceAsync(g.Gruppo.Genere, g.Gruppo.Codice, g.Lavoro, g.Completo);
+        // Si rilegge quel che è stato scritto: il servizio ripulisce (nomi vuoti, doppioni) e un elenco senza
+        // settori non resta «completo» — a schermo deve restare quello che c'è davvero.
+        var scritto = (await Configurazioni.GruppiAsync(_acc!))
+            .First(x => x.Genere == g.Gruppo.Genere && string.Equals(x.Codice, g.Gruppo.Codice, StringComparison.OrdinalIgnoreCase));
+        g.Salvato = ConfigurazioniJson.Scrivi(scritto.Configurazioni);
+        g.Lavoro = ConfigurazioniJson.Leggi(g.Salvato);
+        g.Completo = g.CompletoSalvato = scritto.Completo;
+    });
+
+    /// <summary>Ogni gesto: in fila con la pagina, e un guasto del servizio diventa una frase invece di un circuito giù.</summary>
+    private async Task GuardatoAsync(Func<Task> gesto)
+    {
+        if (_busy) return;
+        _busy = true;
+        _errore = null;
+        try { await InFila(gesto); }
+        catch (ValidationException ex) { _errore = ex.Message; }
+        catch (EditNotAllowedException ex) { _errore = ex.Message; }
+        catch (InvalidOperationException ex) { _errore = ex.Message; }
+        catch (Exception ex) { _errore = L["Common_UnexpectedError"] + ex.Message; }
+        finally { _busy = false; }
+    }
+}

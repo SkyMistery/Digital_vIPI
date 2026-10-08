@@ -1113,12 +1113,18 @@
                another unit's frequency (it stays a live reference: if it changes there, it changes here).</p>"),
 
         new Sec("editor-configurazioni", "grid",
-            @"<p>Una <b>configurazione</b> è un assetto di apertura: le dai un nome e scegli quali settori sono
-               <b>aperti</b>. Il sistema calcola l'<b>accorpamento</b> — chi assorbe chi — e la tabella che ne esce è
-               quella che si legge nel documento. Center Point e Range si impostano per settore unificato.</p>",
-            @"<p>A <b>configuration</b> is an opening layout: you name it and choose which sectors are <b>open</b>.
-               The system computes the <b>merging</b> — who absorbs whom — and the resulting table is the one read in
-               the document. Center Point and Range are set per unified sector.</p>"),
+            @"<p>Una <b>configurazione</b> è un assetto di apertura: un nome e i settori <b>aperti</b>, ognuno col
+               suo Center Point e Range. Le configurazioni <b>non si scrivono nel documento</b>: si dichiarano in
+               <a href=""#struttura"">Struttura</a>, sezione «Configurazioni possibili», e il documento le riporta.
+               Qui il sistema calcola l'<b>accorpamento</b> — chi assorbe chi — e la tabella che ne esce è quella che
+               si legge nel documento. La sezione è derivata come AOR e frequenze: <b>congelata</b>, il pubblico vede
+               le configurazioni del momento della pubblicazione; <b>live</b>, quelle di adesso.</p>",
+            @"<p>A <b>configuration</b> is an opening layout: a name and the <b>open</b> sectors, each with its
+               Center Point and Range. Configurations are <b>not written in the document</b>: they are declared in
+               <a href=""#struttura"">Structure</a>, section «Possible configurations», and the document reports
+               them. Here the system computes the <b>merging</b> — who absorbs whom — and the resulting table is the
+               one read in the document. The section is derived like AOR and frequencies: <b>frozen</b>, the public
+               sees the configurations of the time of publication; <b>live</b>, the current ones.</p>"),
 
         new Sec("editor-aor", "map",
             @"<p>La mappa AOR mostra gli anelli dei settori del blocco. Puoi <b>aggiungere shape di altri enti</b>
@@ -1373,12 +1379,28 @@
                <code>LIMM_WS5_CTR</code>»: chiuso ES5, sopra FL325 lo tiene WS5 se è aperto, altrimenti ES2. La stessa
                catena decide i trasferimenti della vista live (chi cede e chi riceve), la mappa AoR e la tabella
                delle <b>configurazioni</b> della vIPI: se una configurazione esce sbagliata, è qui che si corregge.</p>
+              <p>Le <b>configurazioni possibili</b> sono le configurazioni di apertura di ogni gruppo: i settori
+               d'area di un ACC, oppure un ente con le sue posizioni. Si sceglie un ACC e per ogni gruppo si scrive
+               l'elenco: nome, settori aperti, Center Point e Range. Il documento lo riporta nella sua tabella e il
+               banco di prova lo offre come scenari. In più, un elenco si può dichiarare <b>completo</b>: allora
+               dice quali insiemi di settori aperti esistono, e <b>vincola</b> — la Diagnostica e la scala di
+               risalita non provano più combinazioni che non ci sono scritte. Serve perché la gerarchia non lo
+               dice: a Milano <code>LIMM_ES5_CTR</code> apre solo con <code>LIMM_WS5_CTR</code>, che non è suo
+               padre, e un avvicinamento sta aperto col suo CTR chiuso. Un elenco completo parla dei <b>soli
+               settori che nomina</b>, e «tutti chiusi» è sempre previsto. Sotto ogni elenco c'è <b>che cosa ne
+               segue</b> — «apre solo con», «mai insieme a», «può stare da solo» — calcolato prima di applicare, e
+               detto al condizionale finché l'elenco non è completo: va letto prima di accendere la casella. Se
+               una riga dice una cosa falsa, manca una configurazione; un elenco di soli esempi (le tre
+               configurazioni «tipiche» di un centro dove di solito c'è un settore solo) va lasciato spento. Chi è
+               online davvero non viene mai corretto: se un settore è in frequenza fuori elenco, il traffico va
+               a lui.</p>
               <p>In fondo alla pagina il <b>banco di prova</b> risponde a «con questi aperti, chi tiene cosa». Si
-               sceglie un ACC, si aprono e si chiudono i settori (o si parte da una configurazione pubblicata nella
-               vIPI) e la tabella dice chi raccoglie ogni settore chiuso, con la fascia se il settore si divide fra
-               due; sotto, i trasferimenti dell'ACC che con quegli aperti cambiano mano. Usa la struttura salvata,
-               non scrive niente — funziona anche senza il lock — e considera aperto tutto ciò che è fuori
-               dall'elenco (altri centri, torri).</p>
+               sceglie un ACC, si aprono e si chiudono i settori (o si parte da una configurazione possibile
+               dichiarata qui sopra) e la tabella dice chi raccoglie ogni settore chiuso, con la fascia se il
+               settore si divide fra due; sotto, i trasferimenti dell'ACC che con quegli aperti cambiano mano. Se
+               lo scenario non è fra quelli di un elenco completo lo dice, e risponde lo stesso. Usa la struttura
+               salvata, non scrive niente — funziona anche senza il lock — e considera aperto tutto ciò che è
+               fuori dall'elenco (altri centri, torri).</p>
               <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta, Accordi di
                coordinamento compresi.</p>",
             @"<p>The <b>Structure</b> page (<code>/services/vsop/admin/sector-structure</code>) holds the <b>single fallback
@@ -1436,12 +1458,26 @@
                <code>LIMM_WS5_CTR</code>»: with ES5 closed, above FL325 WS5 holds it if open, otherwise ES2. The same
                chain drives the live-view transfers (who hands over and who receives), the AoR map and the
                <b>configurations</b> table of the vIPI: if a configuration comes out wrong, this is where to fix it.</p>
+              <p>The <b>possible configurations</b> are the opening configurations of each group: the area sectors
+               of an ACC, or a unit with its positions. Pick an ACC and write the list for each group: name, open
+               sectors, Center Point and Range. The document reports it in its table and the test bench offers it
+               as scenarios. In addition, a list can be declared <b>complete</b>: it then says which sets of open
+               sectors exist, and it <b>constrains</b> — Diagnostics and the fallback ladder no longer probe
+               combinations that are not written in it. This is needed because the hierarchy does not say it: in
+               Milan <code>LIMM_ES5_CTR</code> only opens with <code>LIMM_WS5_CTR</code>, which is not its parent,
+               and an approach stays open with its CTR closed. A complete list only speaks of the <b>sectors it
+               names</b>, and «all closed» is always allowed. Below each list is <b>what follows from it</b> —
+               «opens only with», «never together with», «can be open alone» — worked out before applying, and
+               phrased as a conditional until the list is complete: read it before ticking the box. If a row says
+               something false, a configuration is missing; a list of mere examples (the three «typical»
+               configurations of a centre where usually a single sector is open) should stay off. Who is really
+               online is never corrected: if a sector is on frequency outside the list, the traffic goes to it.</p>
               <p>At the bottom of the page the <b>test bench</b> answers «with these open, who holds what». Pick an
-               ACC, open and close the sectors (or start from a configuration published in the vIPI) and the table
-               says who picks up every closed sector, with the band when a sector is split between two; below, the
-               ACC's transfers that change hands with those open. It uses the saved structure, writes nothing — it
-               works without the lock too — and treats everything outside the list (other centres, towers) as
-               open.</p>
+               ACC, open and close the sectors (or start from a possible configuration declared above) and the
+               table says who picks up every closed sector, with the band when a sector is split between two;
+               below, the ACC's transfers that change hands with those open. If the scenario is not among those of
+               a complete list it says so, and answers anyway. It uses the saved structure, writes nothing — it works
+               without the lock too — and treats everything outside the list (other centres, towers) as open.</p>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time, coordination
                agreements included.</p>"),
 

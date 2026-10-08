@@ -58,9 +58,22 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var docProfiles = new EfDocumentProfileRepository(_db);
         _agganciAip = new EfSectorAirspaceBindings(_db, LivelloFisso.Editor);
         var forme = new EfSectorShapeResolver(_db, _agganciAip, new EfSectorShapeParts(_db));
+        _configurazioni = new EfSectorConfigurationService(_db, authz, LockDiRisorsaConcesso.Instance);
         _service = new AppDocumentService(repo, new EfSpecialAreaRepository(_db), editing, authz, topo, transfers,
             new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService(),
-            new NoMinimaSource(), forme, LockConcesso.Instance);
+            new NoMinimaSource(), forme, LockConcesso.Instance, configurazioni: _configurazioni);
+    }
+
+    private EfSectorConfigurationService _configurazioni = default!;
+
+    /// <summary>
+    /// Le configurazioni dell'ente, scritte dove si scrivono dall'8 ottobre 2026: in Struttura (carta
+    /// 2026-10-08-configurazioni-possibili). ⚠️ L'ente nasce col documento: prima si garantisce quello.
+    /// </summary>
+    private async Task InStruttura(params AccConfiguration[] configurazioni)
+    {
+        await _service.EnsureAsync(App);
+        await _configurazioni.ReplaceAsync(ConfigurationGroupKind.AtcUnit, App, configurazioni, completo: false);
     }
 
     public async Task DisposeAsync()
@@ -251,9 +264,9 @@ public class AppDocumentServiceTests : IAsyncLifetime
         // Salva una configurazione col settore APP primario aperto + Center Point/Range manuali.
         var cfg = new AccConfiguration { Key = "cfg:1", Name = "APP unico" };
         cfg.Open.Add(new AccConfigOpen { Callsign = App, CenterPoint = "GINEL", Range = "140" });
-        await _service.SaveConfigurationsAsync(App, new[] { cfg });
+        await InStruttura(cfg);
 
-        // Round-trip storage (blocco keyed "configurations").
+        // Il documento le legge dalla Struttura, per il codice dell'ente.
         var loaded = await _service.GetConfigurationsAsync(App);
         Assert.Single(loaded);
         Assert.Equal("APP unico", loaded[0].Name);
@@ -514,7 +527,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
 
         var cfg = new AccConfiguration { Key = "cfg:1", Name = "APP unico" };
         cfg.Open.Add(new AccConfigOpen { Callsign = App });
-        await _service.SaveConfigurationsAsync(App, new[] { cfg });
+        await InStruttura(cfg);
         await _service.SaveAorCustomizationAsync(App, new AorExtraShapes { Colors = { [App] = "#123456" } });
 
         var dove = await _service.WhereCitedAsync(App, "lirp_app");

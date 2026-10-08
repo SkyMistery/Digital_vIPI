@@ -525,6 +525,52 @@ public class SectorFallback
     public int? TopFeet { get; set; }
 }
 
+/// <summary>
+/// L'<b>elenco delle configurazioni possibili</b> di un gruppo di settori: quali insiemi di aperti esistono.
+/// Una riga per gruppo. Carta <c>docs/feature/2026-10-08-configurazioni-possibili.md</c>.
+///
+/// <para><b>Perché non sta più nel documento.</b> Fino all'8 ottobre 2026 le configurazioni erano il
+/// <c>BodyJson</c> della sezione <c>configurations</c> della vIPI: scritte a mano, lette solo dalla tabella
+/// d'accorpamento. Ma «ES2 non apre senza WS2» è struttura, e serve a chi il documento non lo legge — la sonda
+/// della Diagnostica, la scala di risalita, il banco di prova. Si dichiarano qui e il documento le riporta.</para>
+///
+/// <para>⚠️ <b>Legame per codice, nessuna chiave esterna</b>, come <see cref="SectorFallback"/>: il gruppo è un
+/// ACC o un ente, due tabelle diverse, e i settori dentro <see cref="BodyJson"/> sono nominativi dei cataloghi.
+/// Chi rinomina un nominativo riscrive anche qui (<c>EfCallsignRenameService</c>).</para>
+/// </summary>
+public class SectorConfigurationSet
+{
+    public int Id { get; set; }
+
+    /// <summary>Di che cosa è fatto il gruppo: i settori d'area di un ACC, o le posizioni di un ente.</summary>
+    public ConfigurationGroupKind GroupKind { get; set; }
+
+    /// <summary><see cref="Acc.Code"/> o <see cref="AtcUnit.Code"/>, secondo <see cref="GroupKind"/>.</summary>
+    public string GroupCode { get; set; } = default!;
+
+    /// <summary>
+    /// Le configurazioni, nella stessa forma che avevano nel documento (lista di <c>AccConfiguration</c>: chiave,
+    /// nome, settori aperti con Center Point e Range). <b>Vuoto</b> = «nessuna»: la riga resta, e dice che il
+    /// travaso dal documento per questo gruppo è già stato fatto.
+    /// </summary>
+    public string BodyJson { get; set; } = "";
+
+    /// <summary>
+    /// Vero se l'elenco è dichiarato <b>completo</b>: una combinazione di aperti che non c'è scritta non esiste.
+    /// Solo allora l'elenco <b>vincola</b> gli scenari che il sistema si inventa (sonda, scala di risalita, avviso
+    /// del banco); spento, serve al documento e come scenari pronti, e basta.
+    ///
+    /// <para>🔴 <b>Perché non è sempre vero</b> (8 ottobre 2026, prova sulla copia di produzione). Nel documento le
+    /// configurazioni erano scritte come <i>esempi</i>, non come elenco chiuso: misurato sulle sessioni vere,
+    /// Milano e Padova stanno in una configurazione scritta il 100% del tempo, ma Roma il 2% (<c>LIRR_EW_CTR</c> da
+    /// solo il 42%), Venezia il 2%, Torino il 5%. Travasate come vincoli, avrebbero fatto dire UNICOM alla scala
+    /// di risalita di Roma. Il travaso le porta <b>spente</b>; le accende chi le ha guardate.</para>
+    /// </summary>
+    public bool IsExhaustive { get; set; }
+
+    public DateTime UpdatedAtUtc { get; set; }
+}
+
 // =========================================================================================
 //  Profilo strutturato dell'aeroporto: sorgente di verità editoriale da cui si rigenerano
 //  le sezioni del documento vIPI aeroporto. Editabili da AeroportoEditorPage; il merge da IVAO

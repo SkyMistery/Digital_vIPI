@@ -62,6 +62,7 @@ public class PorteTutteLeScrittureTests : IAsyncLifetime
         (typeof(IOrphanSectorService), typeof(OrphanSectorService)),
         (typeof(IHierarchyEditingService), typeof(EfHierarchyEditingService)),
         (typeof(ISectorFallbackService), typeof(EfSectorFallbackService)),
+        (typeof(ISectorConfigurationService), typeof(EfSectorConfigurationService)),
         (typeof(IAccAdminService), Interno("AccAdminService")),
         (typeof(INeighbourImportService), Interno("NeighbourImportService")),
     };
@@ -77,6 +78,7 @@ public class PorteTutteLeScrittureTests : IAsyncLifetime
         "IOrphanSectorService.ListAsync", "IOrphanSectorService.ReattachTargetsAsync",
         "IHierarchyEditingService.ListConfiningForeignCallsignsAsync", "IHierarchyEditingService.LoadTreeAsync",
         "ISectorFallbackService.ListAsync", "ISectorFallbackService.RipiegoAutomaticoAsync", "ISectorFallbackService.SuggestAsync",
+        "ISectorConfigurationService.GruppiAsync", "ISectorConfigurationService.ListAsync", "ISectorConfigurationService.TutteAsync",
         "IAccAdminService.ListAccsAsync", "IAccAdminService.ListSubcentersAsync",
         "INeighbourImportService.GetPairDetailAsync",
         // Scrive, ma la chiama la pagina degli spazi aerei, che il lock della struttura non lo tiene (commento su

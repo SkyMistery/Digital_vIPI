@@ -158,6 +158,9 @@ public class VipiDbContext : DbContext
 
     /// <summary>Righe di ripiego con fascia di quota: la catena che sta DAVANTI al padre. Nasce vuota.</summary>
     public DbSet<SectorFallback> SectorFallbacks => Set<SectorFallback>();
+
+    /// <summary>Le configurazioni possibili di ogni gruppo di settori: una riga per gruppo. Nasce vuota.</summary>
+    public DbSet<SectorConfigurationSet> SectorConfigurationSets => Set<SectorConfigurationSet>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentParty> DocumentParties => Set<DocumentParty>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
@@ -350,6 +353,14 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => new { x.SectorCallsign, x.Order });
             // ⚠️ NON unico su (settore, bersaglio): lo stesso bersaglio può comparire due volte con due fasce
             // diverse — «sotto FL195 → A» e «sopra FL305 → A» è una configurazione legittima, non un doppione.
+        });
+
+        b.Entity<SectorConfigurationSet>(e =>
+        {
+            // Legame per CODICE, come i ripieghi: il gruppo è un ACC o un ente, due tabelle diverse.
+            e.Property(x => x.GroupCode).IsRequired().HasMaxLength(32);
+            // Un elenco per gruppo: due righe per lo stesso gruppo sarebbero due verità.
+            e.HasIndex(x => new { x.GroupKind, x.GroupCode }).IsUnique();
         });
 
         b.Entity<AccSector>(e =>

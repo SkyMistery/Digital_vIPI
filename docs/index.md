@@ -374,6 +374,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-01-ricerca-vista-live.md`](feature/2026-10-01-ricerca-vista-live.md) — Ricerca rapida nella vista live: scali e aree regolamentate — carta (1 ottobre 2026)
 - [`feature/2026-10-04-copertura-unica.md`](feature/2026-10-04-copertura-unica.md) — Un solo motore di copertura — e il piano per coordinamenti e struttura
 - [`feature/2026-10-06-sezioni-condivise.md`](feature/2026-10-06-sezioni-condivise.md) — Sezioni condivise fra più accordi
+- [`feature/2026-10-08-configurazioni-possibili.md`](feature/2026-10-08-configurazioni-possibili.md) — Le configurazioni possibili di un gruppo di settori — dichiarate in Struttura
 
 ### `filoni`
 

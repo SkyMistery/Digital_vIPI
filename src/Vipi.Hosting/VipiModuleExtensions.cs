@@ -1044,6 +1044,16 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Nati {Count} enti ATC dai gruppi APP delle vIPI ACC.", gruppi);
 
+        // Le configurazioni possibili passano dal documento alla Struttura (carta 2026-10-08-configurazioni-possibili
+        // §5). ⚠️ DOPO gli enti dei gruppi: un gruppo APP si riconosce dal suo ente. ⚠️ Fuori dal gate, come le
+        // passate qui sopra: costa una manciata di query, non tocca i gruppi che hanno già una riga, e un ente
+        // nato a runtime da un gruppo nuovo deve trovare il suo elenco al riavvio dopo.
+        var elenchi = maintenance.TravasaConfigurazioniAsync().GetAwaiter().GetResult();
+        if (elenchi > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Portati in Struttura gli elenchi delle configurazioni di {Count} gruppi di settori (prima stavano nel documento).", elenchi);
+
+
         // Subito dopo: è il legame che tutte le letture del documento d'aeroporto useranno da qui in
         // avanti. Un passo che lo presupponesse, girando prima, lavorerebbe su aeroporti ancora scollegati.
         var collegati = maintenance.LinkAirportDocumentsAsync().GetAwaiter().GetResult();

@@ -548,7 +548,7 @@
   <data name="AppSep_Remove" xml:space="preserve"><value>Remove separation</value></data>
   <data name="AppSep_Add" xml:space="preserve"><value>+ Add separation</value></data>
   <data name="AppSep_None" xml:space="preserve"><value>No separation specified.</value></data>
-  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Create a configuration, name it and choose the open sectors. The system computes the merging.</value></data>
+  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Configurations are declared in Structure, section «Possible configurations»: name, open sectors, Center Point and Range. The document reports them here and works out the merging. With the section frozen, the public sees those of the time of publication.</value></data>
   <data name="AppCfg_EditHelpAria" xml:space="preserve"><value>Help on configurations</value></data>
   <data name="AppCfg_NamePlaceholder" xml:space="preserve"><value>Configuration name</value></data>
   <data name="AppCfg_Remove" xml:space="preserve"><value>Remove configuration</value></data>
@@ -4056,8 +4056,8 @@
   <data name="Bench_PickAcc" xml:space="preserve"><value>— pick an ACC —</value></data>
   <data name="Bench_AllOpen" xml:space="preserve"><value>All open</value></data>
   <data name="Bench_AllClosed" xml:space="preserve"><value>All closed</value></data>
-  <data name="Bench_Presets" xml:space="preserve"><value>Configurations published in the vIPI</value></data>
-  <data name="Bench_NoPresets" xml:space="preserve"><value>No configuration in this ACC&apos;s published vIPI: open and close the sectors by hand.</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurations declared in Structure</value></data>
+  <data name="Bench_NoPresets" xml:space="preserve"><value>No configuration declared for this ACC: open and close the sectors by hand.</value></data>
   <data name="Bench_Area" xml:space="preserve"><value>Open area sectors</value></data>
   <data name="Bench_App" xml:space="preserve"><value>Open approaches</value></data>
   <data name="Bench_ColOpen" xml:space="preserve"><value>Open</value></data>
@@ -4142,4 +4142,30 @@
   <data name="Xfer_ShareAgreementTitle" xml:space="preserve"><value>Share ALL the clauses of the agreement with that of another pair: one of the two units changes</value></data>
   <data name="Xfer_ShareAgreementIntro" xml:space="preserve"><value>The {0} clauses of all the sections will also appear in the agreement with another unit. Below are the two units of the agreement: change ONE, the other stays. Each section goes into the matching section of the other agreement, created only if missing.</value></data>
   <data name="Xfer_ShareAgreementOneSide" xml:space="preserve"><value>Change only one of the two units: the other stays the one of the agreement.</value></data>
+  <data name="Cfgs_Title" xml:space="preserve"><value>Possible configurations</value></data>
+  <data name="Cfgs_Intro" xml:space="preserve"><value>For each group of sectors, the opening configurations: name, open sectors, Center Point and Range. The document reports them in its table and the test bench offers them as scenarios. A list declared complete, in addition, constrains: Diagnostics and the fallback ladder do not probe combinations that are not written in it. A list only speaks of the sectors it names, and «all closed» is always allowed.</value></data>
+  <data name="Cfgs_ReadOnly" xml:space="preserve"><value>Read only: to edit, take the structure lock at the top of the page.</value></data>
+  <data name="Cfgs_NoGroups" xml:space="preserve"><value>This ACC has no area sectors and no units.</value></data>
+  <data name="Cfgs_Unsaved" xml:space="preserve"><value>not applied</value></data>
+  <data name="Cfgs_NoList" xml:space="preserve"><value>No configuration declared.</value></data>
+  <data name="Cfgs_ColConfig" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Cfgs_Consequences" xml:space="preserve"><value>What follows from it</value></data>
+  <data name="Cfgs_ColSector" xml:space="preserve"><value>Sector</value></data>
+  <data name="Cfgs_ColAlwaysWith" xml:space="preserve"><value>Opens only with</value></data>
+  <data name="Cfgs_ColNeverWith" xml:space="preserve"><value>Never together with</value></data>
+  <data name="Cfgs_ColAlone" xml:space="preserve"><value>Can be open alone</value></data>
+  <data name="Cfgs_Yes" xml:space="preserve"><value>yes</value></data>
+  <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
+  <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
+  <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector.</value></data>
+  <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
+  <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>
+  <data name="Bench_NotForeseen" xml:space="preserve"><value>Not a configuration foreseen by the complete list — {0}: {1}</value></data>
+  <data name="AppCfg_FromStructure" xml:space="preserve"><value>This group&apos;s configurations are declared in Structure, section «Possible configurations»: here they are read, with the merging that follows.</value></data>
+  <data name="AppCfg_OpenStructure" xml:space="preserve"><value>Open Structure</value></data>
+  <data name="Cfgs_Exhaustive" xml:space="preserve"><value>The list is complete</value></data>
+  <data name="Cfgs_ExhaustiveHelp" xml:space="preserve"><value>A combination of open sectors that is not written here does not exist. Turn it on only after reading below what follows from it: if a row says something false, a configuration is missing.</value></data>
+  <data name="Cfgs_StateExhaustive" xml:space="preserve"><value>complete: constrains</value></data>
+  <data name="Cfgs_StateExamples" xml:space="preserve"><value>examples: does not constrain</value></data>
+  <data name="Cfgs_ConsequencesIf" xml:space="preserve"><value>What would follow from it, if the list were complete</value></data>
 </root>

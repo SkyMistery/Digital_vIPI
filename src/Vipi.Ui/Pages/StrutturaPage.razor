@@ -575,6 +575,30 @@
        In fondo e CHIUSO: è una domanda che si fa ogni tanto, e la gerarchia è già alta quanto lo schermo.
        ⚠️ Niente `_canEdit`: il banco non scrive, quindi si usa anche senza tenere il lock della struttura.
        ⚠️ Il componente nasce solo all'apertura: da chiuso non legge niente. *@
+    @* Le configurazioni possibili dei gruppi di settori (carta 2026-10-08-configurazioni-possibili): prima del
+       banco, che le usa come scenari pronti. Chiusa come lui, e da chiusa non legge niente.
+       ⚠️ Si SCRIVE sotto il lock della struttura (`_canEdit`); senza, si legge. Una volta aperta non si richiude
+       con un elenco non applicato: il componente sparirebbe con le righe dentro. *@
+    @if (Authz.IsEditor)
+    {
+        <div class="section-title">
+            <h2 class="h-sect">
+                <button type="button" class="sect-toggle" aria-expanded="@_configurazioniAperte.ToString().ToLowerInvariant()"
+                        aria-label="@L["Struct_ToggleSection", L["Cfgs_Title"].Value]"
+                        @onclick="ApriOChiudiConfigurazioni">
+                    <span class="grp-chev">@(_configurazioniAperte ? "▾" : "▸")</span>@L["Cfgs_Title"]
+                </button>
+            </h2>
+            <span class="ln"></span>
+        </div>
+        @if (_configurazioniAperte)
+        {
+            <div class="panel" id="configurazioni-possibili">
+                <StructureConfigurations @ref="_configurazioni" Accs="_accs" InFila="InFilaAsync" CanEdit="_canEdit" />
+            </div>
+        }
+    }
+
     @if (Authz.IsEditor)
     {
         <div class="section-title">
@@ -632,6 +656,15 @@
     private bool _scrollPending;   // dopo una ricerca: porta in vista il primo match
     private bool _canEdit;         // true = questa sessione tiene il lock di struttura (EditLockBar)
     private bool _bancoAperto;     // il banco di prova nasce chiuso, e da chiuso non legge niente
+    private bool _configurazioniAperte;                 // idem le configurazioni possibili
+    private StructureConfigurations? _configurazioni;
+
+    /// <summary>Con un elenco non applicato la sezione non si richiude: sparirebbe con le righe dentro.</summary>
+    private void ApriOChiudiConfigurazioni()
+    {
+        if (_configurazioniAperte && _configurazioni?.Sporco == true) { _msg = L["Cfgs_UnsavedRelease"]; return; }
+        _configurazioniAperte = !_configurazioniAperte;
+    }
 
     /// <summary><c>?bench=LIMM</c>: chi arriva dai Trasferimenti trova il banco aperto sul suo ACC.</summary>
     [SupplyParameterFromQuery(Name = "bench")] public string? BenchAcc { get; set; }
@@ -1241,8 +1274,9 @@
     /// </summary>
     private async Task<bool> PrimaDelRilascioAsync()
     {
-        if (!_ripieghiSporchi) return true;
-        _msg = L["Struct_Fallback_UnsavedRelease"];
+        var elenchiSporchi = _configurazioni?.Sporco == true;
+        if (!_ripieghiSporchi && !elenchiSporchi) return true;
+        _msg = _ripieghiSporchi ? L["Struct_Fallback_UnsavedRelease"] : L["Cfgs_UnsavedRelease"];
         // ⚠️ La barra chiama un Func, non un EventCallback: la pagina non si ridisegna da sé, e il perché del no
         // restava invisibile fino al gesto dopo (visto dal vivo il 28 settembre 2026).
         await InvokeAsync(StateHasChanged);

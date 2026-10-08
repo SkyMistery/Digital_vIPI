@@ -122,6 +122,13 @@ public class RinominaSettoreTests : IAsyncLifetime
         };
         _db.ContentBlocks.Add(blocco);
 
+        // L'elenco delle configurazioni possibili dell'ente, in Struttura: per nominativo anche lui.
+        _db.SectorConfigurationSets.Add(new SectorConfigurationSet
+        {
+            GroupKind = ConfigurationGroupKind.AtcUnit, GroupCode = Vecchio,
+            BodyJson = $$"""[{"Key":"cfg:1","Name":"Conf 1","Open":[{"Callsign":"{{Vecchio}}","CenterPoint":"BAR","Range":"60"}],"OpenCallsigns":["{{Vecchio}}"]}]""",
+        });
+
         // Una sessione ATC: è STORIA, e dev'essere ancora lì col nominativo di allora.
         _db.AtcSessions.Add(new AtcSession
         {
@@ -161,6 +168,25 @@ public class RinominaSettoreTests : IAsyncLifetime
     }
 
     // ---- il cuore ----------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Le configurazioni possibili dichiarate in Struttura (8 ottobre 2026) portano i settori per nominativo:
+    /// rimaste al vecchio nome, la prima riscrittura dell'elenco verrebbe rifiutata («non è un settore del gruppo»).
+    /// ⚠️ Il codice del gruppo NON segue: quello di un ente non cambia quando cambiano le sue posizioni.
+    /// </summary>
+    [Fact]
+    public async Task L_elenco_delle_configurazioni_segue_il_nominativo_ma_il_codice_del_gruppo_resta()
+    {
+        await Rinomina();
+
+        var elenco = await _db.SectorConfigurationSets.AsNoTracking().SingleAsync();
+        Assert.Equal(Vecchio, elenco.GroupCode);
+        var cfg = Assert.Single(ConfigurazioniJson.Leggi(elenco.BodyJson));
+        Assert.Equal(Nuovo, Assert.Single(cfg.Open).Callsign);
+        Assert.Equal("BAR", cfg.Open[0].CenterPoint);
+        Assert.DoesNotContain(Vecchio, elenco.BodyJson);
+    }
+
 
     [Fact]
     public async Task Il_settore_cambia_nome_ma_non_identita()

@@ -4,11 +4,27 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 30 settembre 2026
+## Dove siamo — 8 ottobre 2026
 
-> Tutto quel che è elencato qui sotto, fino a **S63**, è in `main` e **online** (ultima: 1.52.0, S63). Niente da
-> fondere. Prove che restano al committente: la prima correzione vera in Spazi aerei e il primo KMZ dell'AIP caricato
-> dopo (S63), il primo evento vero in `/services/event` (S59). Il vAWOS nel suo Edge (S57/S58) l'ha confermato il 30-set.
+> Tutto quel che è elencato qui sotto, fino a **S98**, è in `main` e **online** (ultima: **1.57.0**, S97–S98, online
+> dall'8 ottobre: il committente «schema 0, tutto ok», quattro migrazioni passate in produzione — §A149). Niente da
+> fondere. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi, sul ramo `fix/tabellone` (aspetta la
+> chiave del booking; carta `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
+> **Pronto da fondere**: **S99**, nato dal falso «Trasferimento senza ripiego» di LIMM che tiene `/vsop/health` in
+> Degraded e diventato «le configurazioni possibili di un gruppo di settori, dichiarate in Struttura» — ramo
+> `fix/senza-ripiego-falso`, **c'è una migrazione**; provato sulla copia di produzione col login del committente,
+> che l'8 ottobre ha detto «va bene così, chiudi» (voce S99, in fondo; carta
+> `docs/feature/2026-10-08-configurazioni-possibili.md`). ⚠️ Il rilievo sparisce in produzione quando lui accende
+> «L'elenco è completo» sui settori d'area di LIMM, non col rilascio.
+>
+> Prove che restano al committente, da S97: **ripubblicare le vIPI ACC** (la tabella delle configurazioni segue il
+> motore unico: sulla copia di produzione cambiava solo LIMM «Conf 2 b»); guardare i **3 avvisi «quota di un altro
+> settore»** nel cruscotto ◎ dei Trasferimenti (Zagabria `LDZO_CTR`/`LDZO_S_CTR` su AIOSA, Milano `WS2`/`ES2` su
+> NELAB); aprire un **documento reso con clausole condivise**, alla prima che si condivide davvero — è il solo pezzo
+> di S97 mai visto a schermo. Dalle precedenti: i numeri delle aperture sulla pagina dell'ACC man mano che si
+> accumulano (S93); il primo evento vero con gli account dell'evento (S95); la prima correzione vera in Spazi aerei e
+> il primo KMZ dell'AIP caricato dopo (S63). In attesa di assegnazione, non preso: i 45 login falliti per nonce del
+> 1-ott, recuperati dal secondo giro (§A148).
 
 - ✅ **S1** editor APP unito, «sezioni comuni» non ricarica più la pagina: fuso e **online in 1.43.0**
   (`docs/lavori-aperti.md` §S1, §A118). Al prossimo scarico di diagnostica: che non tornino gli
@@ -2016,9 +2032,11 @@
   `AccountEventoInUso` (seconda migrazione additiva) e all'avvio si ricarica; le voci scadute restano fuori.
   Poi (committente): la lista dei VID si cancella da sola 7 giorni dopo la fine dell'evento, o alla data scritta dallo
   staff nella scheda (colonna `EventKits.VidSvuotaUtc`, terza migrazione additiva); pulizia `VidEventoPulizia` ogni ora.
-- 🔨 **S97** coordinamenti e struttura, cinque passi (4-ott, committente: «dobbiamo tornare a rivedere i coordinamenti e
-  la sector-structure»). Carta [`2026-10-04-copertura-unica.md`](../feature/2026-10-04-copertura-unica.md), ramo
-  `fix/copertura-unica`. Piano deciso con lui: (1) un solo motore di copertura, (2) banco di prova in Struttura,
+- ✅ **S97** coordinamenti e struttura, cinque passi (4-ott, committente: «dobbiamo tornare a rivedere i coordinamenti e
+  la sector-structure») — fuso e **online in 1.57.0** (8-ott, §A149). Carte
+  [`2026-10-04-copertura-unica.md`](../feature/2026-10-04-copertura-unica.md) (motore, banco, sposta, avviso 4b) e
+  [`2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md) (clausole condivise e ordine: vale
+  il §10 e il §11, i §3–§5 sono il primo giro). Ramo `fix/copertura-unica`, cancellato dopo la fusione. Piano deciso con lui: (1) un solo motore di copertura, (2) banco di prova in Struttura,
   (3) banco sui trasferimenti, (4) sposta sezione/clausole fra accordi + avviso «quota fuori banda», (5) sezione
   condivisa fra più accordi (Trapani ⇄ SU per i GAT e ⇄ MIL per gli OAT; nel documento una tabella per accordo).
   Principio: lo scritto comanda, la geometria avvisa (i trasferimenti degli APP avvengono anche un po' fuori).
@@ -2121,8 +2139,9 @@
     `Vipi.Application`, `Vipi.Infrastructure`. La suite ha fermato una colonna con default senza lunghezza su
     MySQL (`MySqlStringLengths`). App 3256 → 3263, Infra 2142 → 2150, Ui 1988 → 1991. A schermo su database
     inventato: i tre gesti, annulla compreso.
-- ✅ **S98** un import mai riuscito non è un giro dell'anno 1 (4-ott, il difetto trovato per strada in S97). Ramo
-  `fix/import-mai-riuscito`, costruito SOPRA `fix/copertura-unica` @ `cf603201` (stessi conteggi, stesso registro).
+- ✅ **S98** un import mai riuscito non è un giro dell'anno 1 (4-ott, il difetto trovato per strada in S97) — fuso e
+  **online in 1.57.0** (8-ott). Ramo `fix/import-mai-riuscito`, costruito SOPRA `fix/copertura-unica` @ `cf603201`
+  (stessi conteggi, stesso registro).
   - **Difetto**: database nuovo e sorgente IVAO irraggiungibile → Struttura rispondeva 500
     (`ArgumentOutOfRangeException` in `SogliaTimbro.Calcola`).
   - **Causa**: il primo tentativo fallito crea la riga in `ImportStates` (`MarkFailureAsync`) con `LastSuccessUtc` a
@@ -2143,11 +2162,117 @@
   - **Prova**: host isolato su database nuovo con `Ivao__BaseUrl=http://127.0.0.1:9`: con `Acc` a `0001-01-01` e
     `AirportSector` riuscito (lo stato del difetto) Struttura risponde 200 e il giro `ImpactDrift` riesce. Solo via
     HTTP (il prerender, dove nasceva il 500), non in un browser; Pendenti non provata a schermo.
+- ✅ **S99** falso «Trasferimento senza ripiego» su LIMM, che tiene `/vsop/health` in Degraded (8-ott, assegnato dal
+  Master con la 1.57.0 online; pacchetto previsto 1.57.1 — **non lo è più: c'è una migrazione**). Ramo
+  `fix/senza-ripiego-falso`, da `main` @ `ad490b3e`. Il committente ha dato la regola e l'ha allargata: vedi «Com'è
+  finita», in fondo a questa voce. Le righe qui sotto sono quel che si sapeva prima di parlargli.
+  - **Il rilievo** (produzione, unico «grave» in Diagnostica): ACC LIMM, «Chiuso il ricevente il traffico va su
+    UNICOM, ma quel punto lo copre qualcun altro: manca un ripiego (LIMM_WS2_CTR → LIMM_ES2_CTR)».
+  - ⚠️ **Come si legge**: la freccia è «**ricevente** → chi copre il punto», non cedente → ricevente. Una clausola
+    ha `LIMM_WS2_CTR` come ricevente; chiuso lui la catena non porta a nessuno (è radice), ma con tutti gli **altri**
+    aperti la geometria dà quel punto a `LIMM_ES2_CTR`, che da WS2 pende.
+  - **Dove nasce**: `ConsistencyReportService.Analyze`, blocco «4-septies» (il commento del Master dice
+    «4-quinquies»): `RisalitaScala.FinisceSubitoSuUnicom`, poi `rinvio.Con(SenzaDiLui(tutti, ricevente)).Risolvi(…)`.
+    La sonda toglie il **solo** ricevente e lascia aperti i settori che ne dipendono.
+  - **Il committente**: «secondo me è un errore, WS% non può essere aperto se non è aperto il WS2» — lo scenario
+    «WS2 chiuso e un suo settore aperto» non esiste, quindi non manca nessun ripiego.
+  - **Correzione candidata, da NON scrivere prima della sua risposta**: chiuso il ricevente, un settore che da lui
+    pende non conta come «qualcun altro» (o si chiude con lui). ⚠️ «Il figlio non apre senza il padre» non è vero in
+    generale — un APP sta aperto col suo CTR chiuso — ma per un ricevente CTR la sonda guarda solo i CTR (filtro di
+    rango di `CoverageFallback`): la regola riguarderebbe i soli CTR che pendono da un CTR.
+  - **Da capire**: il codice della sonda e dei suoi ingressi (`ConsistencyReportService`,
+    `EfConsistencyReportRepository`, `RisalitaScala`, `CoverageFallback*`) **non è cambiato** con la 1.57.0, e il
+    2 ottobre la salute era Healthy. O sono cambiati i dati di Milano, o c'entra un pezzo indiretto (topologia, catena
+    di ripiego). Sulla copia del 1° ottobre il 4b di S97 dava `NELAB FL150` scritto per WS2 e tenuto da ES2, ma lì
+    WS2 **cedeva**: può essere lo stesso punto o un altro.
+  - **Chiesto al committente**: (1) «WS%» era WS5 o ES2 — quali settori di Milano aprono solo con WS2 aperto; (2) se
+    la regola vale per tutti gli ACC o solo per alcune coppie (nel secondo caso va dichiarata in Struttura); (3) se
+    dopo la 1.57.0 ha toccato accordi o struttura di Milano; (4) una copia fresca della produzione da Diagnostica,
+    per riprodurre il rilievo e vedere quale clausola lo fa scattare (quella di S97 è stata cancellata).
+  - Sulla stessa schermata, solo avvisi, non muovono la salute e non sono in questo lavoro: «CoP senza posizione»
+    (LIBB: UKOVA, LIMM: GEN) e «Area fantasma» LI R40x sulla clausola #28 di LIBB.
+  - **Com'è finita (8-ott).** Il committente: non è «il figlio non apre senza il padre» — ES5 apre solo con WS5,
+    che non è suo padre; LIMF_WW0 esclude LIMF_WN0, che è suo figlio: «la gerarchia non ci aiuta». E ha proposto di
+    **dichiarare in Struttura le configurazioni possibili di ogni gruppo di settori** e riportarle da sole nel
+    documento. Fatto così; nessun vincolo fra gruppi («no»). Carta: `docs/feature/2026-10-08-configurazioni-possibili.md`.
+    - **Che cosa c'è**: il modello puro `ConfigurazioniPossibili` (un elenco parla dei soli settori che nomina,
+      «tutti chiusi» è sempre previsto, un gruppo senza elenco non ha vincoli; le regole «apre solo con / mai
+      insieme a / da solo» si **ricavano** e si mostrano); la tabella `SectorConfigurationSets`, una riga per
+      gruppo (settori d'area di un ACC, o un ente con le sue posizioni), col suo servizio sotto il lock della
+      struttura; in **Struttura** la sezione «Configurazioni possibili» (lo stesso editor che stava nel documento,
+      con «Applica») e il banco di prova che prende da lì gli scenari e dice «non prevista»; la **Diagnostica**
+      (sonda di «Trasferimento senza ripiego» e scala di risalita) che, chiuso un settore, chiude anche chi senza
+      di lui non può stare aperto; il **documento** (vIPI ACC e vIPI APP) che le legge dalla struttura — sezione
+      `configurations` diventata derivata, in sola lettura negli editor — e il **travaso** all'avvio.
+    - **Le release già uscite non cambiano**: leggono il `BodyJson` del loro snapshot. Quelle nuove portano un
+      segno (`DocReleasePayload.ConfigurazioniDallaStruttura`) e leggono la voce congelata, o la struttura se la
+      sezione è Live. Dal documento non si cancella niente (carta §5 e §5-bis).
+    - 🔴 **«L'elenco è completo»: un elenco vincola solo se lo si dichiara** (aggiunto l'8-ott, dopo la prova
+      vera). La prima stesura faceva vincolare ogni elenco, e il travaso portava come vincoli quelli che nei
+      documenti erano esempi: sulle sessioni vere Milano, Padova e Bologna stanno in una configurazione scritta
+      il 100% del tempo, Roma il 2% (EW da solo il 42%), Venezia il 2%, Torino il 5%. Al rilascio la scala di
+      risalita di Roma avrebbe detto UNICOM. Ora ogni elenco ha la casella (`SectorConfigurationSet.IsExhaustive`),
+      il travaso li porta **tutti spenti**, e le conseguenze si mostrano al condizionale finché non è accesa
+      (carta §3-bis). ⚠️ Quindi il rilievo di Milano **non sparisce col rilascio**: sparisce quando il committente
+      accende l'elenco dei settori d'area di LIMM.
+    - **Codice comune**: `Vipi.Application` (`Aor/Topology`, `Content/*`, `Diagnostics`). **Migrazione sì**:
+      `20261008093938_ConfigurazioniPossibili` (SQLite) / `20261008093953_…` (MariaDB), solo `CREATE TABLE`
+      (rigenerata sul ramo per la colonna della casella: quella di prima non è mai uscita dal ramo). Niente `deploy/`.
+    - **Test**: Application 3266 → 3299, Infrastructure 2151 → 2184, Ui 1991 → 2000, net8 e net10; E2E 507.
+    - **Prova sulla copia di produzione** dell'8 ottobre (MariaDB isolato, build di questo ramo): la migrazione
+      passa; il travaso porta in Struttura gli elenchi di **8 gruppi** (LIMM, LIRR, LIPP, LIBB d'area; gli enti
+      LIMF_WW0_APP, LIPZ_SE0_APP, LIPE_W_APP, LIBD_CS0_APP) e al riavvio dopo nessuno. `/vsop/health`, riavviando
+      con l'elenco di Milano **vuotato**: «1 errori nel report di consistenza» — il rilievo di produzione,
+      riprodotto; con l'elenco travasato: zero errori. ⚠️ La prova va fatta col **sectorfile acceso**: le
+      coordinate dei punti vengono da lì (`CopPositionsProvider`), e spento la sonda è cieca — il primo giro, col
+      sectorfile spento, non distingueva i due casi. ⚠️ Sul banco la salute resta Degraded per «Cache ATC online
+      non aggiornata»: è l'API IVAO spenta apposta, e in `VipiHealthCheck` viene **dopo** il conteggio degli errori.
+    - **Secondo giro sulla stessa copia, con la casella e col login vero** (il committente è entrato nel browser
+      della chat): migrazione e travaso, 8 gruppi tutti spenti, salute «1 errori nel report di consistenza» come
+      in produzione; in Struttura, preso il lock, accesa la casella sui settori d'area di LIMM e applicato;
+      Diagnostica senza il rilievo, `/vsop/health` **Healthy** al rinnovo della cache del report. L'anteprima
+      della vIPI Milano mostra le tabelle delle configurazioni dei due blocchi, prese dalla Struttura. ⚠️ La vIPI
+      pubblica di Milano risponde «non disponibile» perché in produzione il documento è **nascosto**: non è di
+      questo lavoro.
+    - **Prova a schermo** (host isolato su database nuovo, Milano inventata seminata: 5 CTR, 3 APP, l'ente
+      Torino–Genova; browser vero, misure dal DOM): in Struttura, preso il lock, la sezione «Configurazioni
+      possibili» mostra i due gruppi (i settori d'area senza il MIL; l'ente con le sue tre posizioni); scritte le
+      quattro di Milano le conseguenze dicono ES2 e WS5 «solo con WS2», ES5 «solo con WS2, ES2, WS5», e «Applica»
+      le scrive; a Torino con le tre del documento esce «WN0 apre solo con LIMJ_WS0» e «LIMJ_WS0 non da solo», e
+      aggiunte {WN0} e {WS0} spariscono — **prima** di applicare. Il banco di prova elenca le nove configurazioni
+      come scenari pronti e, chiuso WS2 a mano, dice «Non è una configurazione prevista — LIMM: ES2 + ES5 + WS5».
+      Nell'editor della vIPI ACC la sezione Configurazioni mostra le quattro tabelle dalla Struttura, in modifica
+      il rimando a Struttura e nessun campo. Nessun errore in console.
+    - ⚠️ **Visto a schermo, da sapere**: il banco parte da «tutti aperti», e con un elenco completo che ha
+      un'esclusione (WW0 e WN0) quello scenario è per forza «non previsto»: l'avviso c'è fin dall'apertura.
+      Chiesto al committente (8-ott): «lascia così».
+    - **Terzo giro, stessa copia, stesso login**: a Torino–Genova aggiunte {WN0} e {WS0} e accesa la casella —
+      le conseguenze perdono «WN0 solo con LIMJ_WS0» prima di applicare; il **banco** su LIMM elenca le nove
+      configurazioni, con «Conf 2» (ES2 + WS2) non avvisa, chiuso WS2 a mano dice «non prevista dall'elenco
+      completo — LIMM: LIMM_ES2_CTR». **Pubblicata la vIPI Milano** dall'editor: la release nuova (#2, AIRAC 2610)
+      porta il segno `ConfigurazioniDallaStruttura` e quattro voci congelate in più (22 contro 18), una per
+      blocco — quella di Torino con le **cinque** configurazioni della Struttura, mentre il `BodyJson` rimasto
+      nel documento ne ha ancora tre; la release di prima (#1) non ha segno e tiene il suo `BodyJson`. **vIPI APP
+      propria** (Bologna, `LIPE_W_APP`): l'anteprima mostra le tre tabelle dalla Struttura, l'editor in modifica
+      il rimando e nessun campo. Nessun errore in console.
+    - **Non provato**: la vista pubblica di una release nuova con un documento visibile (Milano in produzione è
+      nascosto: la release è stata letta dal database, non dalla pagina); il rilievo con la build 1.57.0 sulla
+      stessa copia (si è riprodotto con questa build e l'elenco spento, che percorre lo stesso codice di prima).
+    - **Resta al committente, in produzione dopo il pacchetto**: (1) accendere «L'elenco è completo» sui settori
+      d'area di **LIMM** — è il gesto che chiude il rilievo; (2) a Torino–Genova aggiungere {WN0} e {WS0} da soli
+      (le conseguenze lo mostrano: «WN0: apre solo con LIMJ_WS0»), e solo dopo accendere; (3) Roma e Venezia:
+      lasciare spento, o riscrivere l'elenco; Padova e Bologna tornano con la realtà e si possono accendere;
+      (4) ripubblicare le vIPI ACC.
+    - **Chiuso l'8 ottobre** («va bene così, chiudi»): build Release senza avvisi, suite degli assiemi toccati
+      verdi, CI verde. La copia di produzione usata per le prove è rimasta nello scratchpad della chat, a MariaDB
+      spento: cancellarla è da chiedere al committente (dati personali veri).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
-  lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
+  All'8-ott: tutto fuso e online fino a S98 (1.57.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
+  alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
+  `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
   IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il primo evento vero in `/services/event`; in
-  produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63). Resta al committente LIRE/LIBG (aspetta il
+  produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63); le vIPI ACC da ripubblicare e i tre
+  avvisi «quota di un altro settore» da guardare (S97). Resta al committente LIRE/LIBG (aspetta il
   SOD). ⚠️ In Spazi aerei i gesti che spostano agganci rifanno i confinanti: 15–25 s (S63), da guardare se diventa un
   fastidio. Futuro: vIPI ACC legata all'ACC
   (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).

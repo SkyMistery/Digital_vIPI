@@ -660,3 +660,16 @@ public enum AirspaceDatum
     /// <summary>Illimitato (<c>UNL</c>). Nel file dell'AIP si scrive <c>FL999</c>.</summary>
     Unlimited,
 }
+
+/// <summary>
+/// Di che cosa è fatto un <b>gruppo</b> di settori che ha le sue configurazioni possibili
+/// (<c>SectorConfigurationSet</c>). Carta <c>docs/feature/2026-10-08-configurazioni-possibili.md</c> §3.
+/// </summary>
+public enum ConfigurationGroupKind
+{
+    /// <summary>I settori d'area di un ACC (il blocco Aerovia della sua vIPI). Il codice è quello dell'ACC.</summary>
+    AccArea,
+
+    /// <summary>Un ente con le sue posizioni (<c>AtcUnit</c>). Il codice è quello dell'ente, che non cambia mai.</summary>
+    AtcUnit,
+}

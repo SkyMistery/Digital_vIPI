@@ -35,6 +35,16 @@ public sealed class Topology
     public IReadOnlyDictionary<string, (int? BaseFeet, int? TopFeet)> Bands { get; init; }
         = new Dictionary<string, (int? BaseFeet, int? TopFeet)>(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Le <b>configurazioni possibili</b> dei gruppi di settori: quali insiemi di aperti esistono. Nessuna =
+    /// nessun vincolo, com'era prima.
+    ///
+    /// <para>Sta qui per la stessa ragione dei ripieghi: è struttura, e chi ha in mano una <see cref="Topology"/>
+    /// non deve ricordarsi di chiederla a parte. ⚠️ La legge chi si <b>inventa</b> uno scenario (la sonda, la
+    /// scala, il banco); chi risolve su stazioni vere non la guarda.</para>
+    /// </summary>
+    public Content.ConfigurazioniPossibili Configurazioni { get; init; } = Content.ConfigurazioniPossibili.Nessuna;
+
     /// <summary>Padre di copertura, o <c>null</c> se è una radice o non è nella topologia.</summary>
     public string? ParentOf(string callsign) => Parent.TryGetValue(callsign, out var p) ? p : null;
 

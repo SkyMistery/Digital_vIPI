@@ -22,4 +22,15 @@ public sealed class DocReleasePayload
     /// <para>⚠️ <c>null</c> = release di prima del 21 settembre 2026: i collegamenti si calcolano dalla struttura
     /// di adesso, così non bisogna ripubblicare tutto per vederli.</para></summary>
     public DocLinkSnapshot? Collegamenti { get; set; }
+
+    /// <summary>
+    /// Vero se questa release è nata quando le configurazioni stavano già in <b>Struttura</b> (dall'8 ottobre
+    /// 2026, carta <c>2026-10-08-configurazioni-possibili</c>): la sezione <c>configurations</c> è una derivata
+    /// come le altre — la sua voce congelata sta in <see cref="FrozenSections"/>, e se non c'è (sezione Live) si
+    /// legge la struttura di adesso.
+    /// <para>⚠️ <c>false</c> = release di prima: le configurazioni sono il <c>BodyJson</c> di quella sezione
+    /// dentro <see cref="Doc"/>, e si leggono da lì. È il segno che permette di non toccare niente di già uscito:
+    /// senza, un <c>BodyJson</c> rimasto nella versione di lavoro passerebbe per buono in ogni release futura.</para>
+    /// </summary>
+    public bool ConfigurazioniDallaStruttura { get; set; }
 }

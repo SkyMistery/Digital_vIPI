@@ -553,7 +553,7 @@
   <data name="AppSep_Remove" xml:space="preserve"><value>Rimuovi separazione</value></data>
   <data name="AppSep_Add" xml:space="preserve"><value>+ Aggiungi separazione</value></data>
   <data name="AppSep_None" xml:space="preserve"><value>Nessuna separazione indicata.</value></data>
-  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Crea una configurazione, dai un nome e scegli i settori aperti. Il sistema calcola l'accorpamento.</value></data>
+  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Le configurazioni si dichiarano in Struttura, sezione «Configurazioni possibili»: nome, settori aperti, Center Point e Range. Qui il documento le riporta e calcola l&apos;accorpamento. Con la sezione congelata, il pubblico vede quelle del momento della pubblicazione.</value></data>
   <data name="AppCfg_EditHelpAria" xml:space="preserve"><value>Aiuto sulle configurazioni</value></data>
   <data name="AppCfg_NamePlaceholder" xml:space="preserve"><value>Nome configurazione</value></data>
   <data name="AppCfg_Remove" xml:space="preserve"><value>Rimuovi configurazione</value></data>
@@ -4064,8 +4064,8 @@
   <data name="Bench_PickAcc" xml:space="preserve"><value>— scegli un ACC —</value></data>
   <data name="Bench_AllOpen" xml:space="preserve"><value>Tutti aperti</value></data>
   <data name="Bench_AllClosed" xml:space="preserve"><value>Tutti chiusi</value></data>
-  <data name="Bench_Presets" xml:space="preserve"><value>Configurazioni pubblicate nella vIPI</value></data>
-  <data name="Bench_NoPresets" xml:space="preserve"><value>Nessuna configurazione nella vIPI pubblicata di questo ACC: apri e chiudi i settori a mano.</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurazioni dichiarate in Struttura</value></data>
+  <data name="Bench_NoPresets" xml:space="preserve"><value>Nessuna configurazione dichiarata per questo ACC: apri e chiudi i settori a mano.</value></data>
   <data name="Bench_Area" xml:space="preserve"><value>Settori d&apos;area aperti</value></data>
   <data name="Bench_App" xml:space="preserve"><value>Avvicinamenti aperti</value></data>
   <data name="Bench_ColOpen" xml:space="preserve"><value>Aperto</value></data>
@@ -4150,4 +4150,30 @@
   <data name="Xfer_ShareAgreementTitle" xml:space="preserve"><value>Condividi TUTTE le clausole dell&apos;accordo con quello di un&apos;altra coppia: si cambia uno dei due enti</value></data>
   <data name="Xfer_ShareAgreementIntro" xml:space="preserve"><value>Le {0} clausole di tutte le sezioni compariranno anche nell&apos;accordo con un altro ente. Qui sotto ci sono i due enti dell&apos;accordo: cambiane UNO, l&apos;altro resta. Ogni sezione va nella sezione uguale dell&apos;altro accordo, che nasce solo se manca.</value></data>
   <data name="Xfer_ShareAgreementOneSide" xml:space="preserve"><value>Cambia uno solo dei due enti: l&apos;altro resta quello dell&apos;accordo.</value></data>
+  <data name="Cfgs_Title" xml:space="preserve"><value>Configurazioni possibili</value></data>
+  <data name="Cfgs_Intro" xml:space="preserve"><value>Per ogni gruppo di settori, le configurazioni di apertura: nome, settori aperti, Center Point e Range. Il documento le riporta nella sua tabella e il banco di prova le offre come scenari. Un elenco dichiarato completo, in più, vincola: Diagnostica e scala di risalita non provano combinazioni che non ci sono scritte. Un elenco parla dei soli settori che nomina, e «tutti chiusi» è sempre previsto.</value></data>
+  <data name="Cfgs_ReadOnly" xml:space="preserve"><value>Sola lettura: per modificare prendi il lock della struttura, in cima alla pagina.</value></data>
+  <data name="Cfgs_NoGroups" xml:space="preserve"><value>Questo ACC non ha settori d&apos;area né enti.</value></data>
+  <data name="Cfgs_Unsaved" xml:space="preserve"><value>non applicato</value></data>
+  <data name="Cfgs_NoList" xml:space="preserve"><value>Nessuna configurazione dichiarata.</value></data>
+  <data name="Cfgs_ColConfig" xml:space="preserve"><value>Configurazione</value></data>
+  <data name="Cfgs_Consequences" xml:space="preserve"><value>Che cosa ne segue</value></data>
+  <data name="Cfgs_ColSector" xml:space="preserve"><value>Settore</value></data>
+  <data name="Cfgs_ColAlwaysWith" xml:space="preserve"><value>Apre solo con</value></data>
+  <data name="Cfgs_ColNeverWith" xml:space="preserve"><value>Mai insieme a</value></data>
+  <data name="Cfgs_ColAlone" xml:space="preserve"><value>Può stare da solo</value></data>
+  <data name="Cfgs_Yes" xml:space="preserve"><value>sì</value></data>
+  <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
+  <data name="Cfgs_Unnamed" xml:space="preserve"><value>Settori che l&apos;elenco non nomina, quindi senza vincoli: {0}.</value></data>
+  <data name="Cfgs_NoConstraint" xml:space="preserve"><value>Nessuna configurazione con un settore aperto.</value></data>
+  <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Settori d&apos;area · {0}</value></data>
+  <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>Le configurazioni possibili non sono applicate: applicale o annullale prima di «Fine modifica».</value></data>
+  <data name="Bench_NotForeseen" xml:space="preserve"><value>Non è una configurazione prevista dall&apos;elenco completo — {0}: {1}</value></data>
+  <data name="AppCfg_FromStructure" xml:space="preserve"><value>Le configurazioni di questo gruppo si dichiarano in Struttura, sezione «Configurazioni possibili»: qui si leggono, con l&apos;accorpamento che ne segue.</value></data>
+  <data name="AppCfg_OpenStructure" xml:space="preserve"><value>Apri Struttura</value></data>
+  <data name="Cfgs_Exhaustive" xml:space="preserve"><value>L&apos;elenco è completo</value></data>
+  <data name="Cfgs_ExhaustiveHelp" xml:space="preserve"><value>Una combinazione di aperti che non è scritta qui non esiste. Accendilo solo dopo aver letto qui sotto che cosa ne segue: se una riga dice una cosa falsa, manca una configurazione.</value></data>
+  <data name="Cfgs_StateExhaustive" xml:space="preserve"><value>completo: vincola</value></data>
+  <data name="Cfgs_StateExamples" xml:space="preserve"><value>esempi: non vincola</value></data>
+  <data name="Cfgs_ConsequencesIf" xml:space="preserve"><value>Che cosa ne seguirebbe, se l&apos;elenco fosse completo</value></data>
 </root>

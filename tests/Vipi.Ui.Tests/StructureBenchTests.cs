@@ -33,6 +33,9 @@ public class StructureBenchTests : TestContext
         public List<string[]> Scenari { get; } = new();
         public IReadOnlyList<ResolvedTransferFlow> Trasferimenti { get; set; } = Array.Empty<ResolvedTransferFlow>();
 
+        /// <summary>Quel che il banco dice «non previsto» quando ES2 è aperto senza WS2 — come farebbe l'elenco vero.</summary>
+        public bool ConElenco { get; set; }
+
         public Task<BenchScope?> ScopeAsync(string accCode, CancellationToken ct = default) =>
             Task.FromResult<BenchScope?>(new BenchScope(accCode,
                 new[]
@@ -48,7 +51,15 @@ public class StructureBenchTests : TestContext
             Scenari.Add(aperti);
             var gruppi = aperti.Select(a => new BenchGroup(a, Outside: false, Array.Empty<BenchItem>())).ToList();
             if (!open.Contains(Es5)) gruppi.Add(new BenchGroup(null, Outside: false, new[] { new BenchItem(Es5, "FL325–UNL") }));
-            return Task.FromResult(new BenchOutcome(gruppi, Trasferimenti));
+            var fuori = ConElenco && open.Contains(Es2) && !open.Contains(Ws2)
+                ? new[]
+                {
+                    new GruppoFuoriElenco(
+                        new ElencoDiConfigurazioni(ConfigurationGroupKind.AccArea, "LIMM", Array.Empty<AccConfiguration>()),
+                        aperti),
+                }
+                : Array.Empty<GruppoFuoriElenco>();
+            return Task.FromResult(new BenchOutcome(gruppi, Trasferimenti, fuori));
         }
     }
 
@@ -67,6 +78,27 @@ public class StructureBenchTests : TestContext
 
     private static async Task ScegliMilano(IRenderedComponent<StructureBench> cut) =>
         await cut.InvokeAsync(() => cut.Find("#bench-acc").Change("LIMM"));
+
+    /// <summary>
+    /// Uno scenario che non è una configurazione possibile dichiarata si DICE — e la tabella esce lo stesso: il
+    /// banco serve anche a vedere che cosa succede quando qualcuno lo fa davvero (carta
+    /// 2026-10-08-configurazioni-possibili §4).
+    /// </summary>
+    [Fact]
+    public async Task Uno_scenario_non_previsto_si_dice_e_la_tabella_esce_lo_stesso()
+    {
+        _banco.ConElenco = true;
+        var cut = Monta();
+        await ScegliMilano(cut);
+        Assert.Empty(cut.FindAll(".bench-notforeseen"));   // tutti aperti: previsto
+
+        await cut.InvokeAsync(() => cut.FindAll(".sp-item").First(b => b.TextContent.Trim() == Ws2).Click());
+
+        var avviso = Assert.Single(cut.FindAll(".bench-notforeseen"));
+        Assert.Contains("LIMM", avviso.TextContent);
+        Assert.Contains(Es2, avviso.TextContent);
+        Assert.NotEmpty(cut.FindAll(".cfg-table tbody tr"));
+    }
 
     [Fact]
     public void Senza_un_ACC_scelto_non_chiede_niente()

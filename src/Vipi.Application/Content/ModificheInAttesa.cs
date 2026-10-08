@@ -143,7 +143,7 @@ public static class FamiglieDiModifica
     {
         CoordinationPoint or CoordinationAgreement or AgreementSection or AgreementAirport or AgreementClause
             or AgreementClauseShare => Coordinamenti,
-        Acc or Sector or AccSector or AirportSector or SectorFallback or CallsignAlias
+        Acc or Sector or AccSector or AirportSector or SectorFallback or SectorConfigurationSet or CallsignAlias
             => Settori,
         AirportProcedure or SidFixAlias => Procedure,
         Airport or AirportTransitionLevel or AirportRunway or AirportRunwayRule or AirportLvpMinima

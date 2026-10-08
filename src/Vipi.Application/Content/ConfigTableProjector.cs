@@ -118,10 +118,5 @@ internal static class ConfigTableProjector
     }
 
     /// <summary>Deserializza una lista di configurazioni dal BodyJson d'una sezione «configurations» (vuoto/malformato = nessuna).</summary>
-    public static List<AccConfiguration> Deserialize(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return new List<AccConfiguration>();
-        try { return JsonSerializer.Deserialize<List<AccConfiguration>>(json) ?? new List<AccConfiguration>(); }
-        catch (JsonException) { return new List<AccConfiguration>(); }
-    }
+    public static List<AccConfiguration> Deserialize(string? json) => ConfigurazioniJson.Leggi(json);
 }

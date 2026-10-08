@@ -55,7 +55,15 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         // Gli enti ATC (S52): con la vIPI APP si fermano qui, senza se ne vanno con l'ACC (FK Restrict).
         if (await _db.AtcUnits.AnyAsync(u => u.AccId == fid && u.DocumentId != null, ct))
             throw new InvalidOperationException(Lingua("Impossibile eliminare la ACC: ha ancora una vIPI APP.", "The ACC cannot be deleted: it still has an APP vIPI."));
-        _db.AtcUnits.RemoveRange(await _db.AtcUnits.Include(u => u.Positions).Where(u => u.AccId == fid).ToListAsync(ct));
+        var enti = await _db.AtcUnits.Include(u => u.Positions).Where(u => u.AccId == fid).ToListAsync(ct);
+        // Gli elenchi delle configurazioni dell'ACC e dei suoi enti se ne vanno con loro: sono legati per
+        // codice, senza chiave esterna (stesso gesto di EfDeletionRepository).
+        var codiciEnti = enti.Select(u => u.Code).ToList();
+        _db.SectorConfigurationSets.RemoveRange(await _db.SectorConfigurationSets
+            .Where(x => (x.GroupKind == ConfigurationGroupKind.AccArea && x.GroupCode == accCode)
+                        || (x.GroupKind == ConfigurationGroupKind.AtcUnit && codiciEnti.Contains(x.GroupCode)))
+            .ToListAsync(ct));
+        _db.AtcUnits.RemoveRange(enti);
         // Gli aeroporti (spesso auto-assegnati in blocco) seguono la ACC: FK Sector.AirportId è SetNull.
         var airports = await _db.Airports.Where(a => a.AccId == fid).ToListAsync(ct);
         if (airports.Count > 0) _db.Airports.RemoveRange(airports);
