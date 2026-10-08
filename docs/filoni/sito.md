@@ -2217,9 +2217,21 @@
       coordinate dei punti vengono da lì (`CopPositionsProvider`), e spento la sonda è cieca — il primo giro, col
       sectorfile spento, non distingueva i due casi. ⚠️ Sul banco la salute resta Degraded per «Cache ATC online
       non aggiornata»: è l'API IVAO spenta apposta, e in `VipiHealthCheck` viene **dopo** il conteggio degli errori.
-    - **Non provato**: l'interfaccia a schermo sulla copia di produzione (serve il login IVAO vero, che è del
-      committente); il rilievo con la build 1.57.0 sulla stessa copia (si è riprodotto con questa build e
-      l'elenco vuoto, che percorre lo stesso codice di prima).
+    - **Prova a schermo** (host isolato su database nuovo, Milano inventata seminata: 5 CTR, 3 APP, l'ente
+      Torino–Genova; browser vero, misure dal DOM): in Struttura, preso il lock, la sezione «Configurazioni
+      possibili» mostra i due gruppi (i settori d'area senza il MIL; l'ente con le sue tre posizioni); scritte le
+      quattro di Milano le conseguenze dicono ES2 e WS5 «solo con WS2», ES5 «solo con WS2, ES2, WS5», e «Applica»
+      le scrive; a Torino con le tre del documento esce «WN0 apre solo con LIMJ_WS0» e «LIMJ_WS0 non da solo», e
+      aggiunte {WN0} e {WS0} spariscono — **prima** di applicare. Il banco di prova elenca le nove configurazioni
+      come scenari pronti e, chiuso WS2 a mano, dice «Non è una configurazione prevista — LIMM: ES2 + ES5 + WS5».
+      Nell'editor della vIPI ACC la sezione Configurazioni mostra le quattro tabelle dalla Struttura, in modifica
+      il rimando a Struttura e nessun campo. Nessun errore in console.
+    - ⚠️ **Visto a schermo, da sapere**: il banco parte da «tutti aperti», e con un'esclusione (WW0 e WN0) quello
+      scenario è per forza «non previsto»: l'avviso c'è fin dall'apertura. È vero, ma è rumore: da decidere col
+      committente se partire da una configurazione prevista.
+    - **Non provato**: l'interfaccia sulla copia di produzione (serve il login IVAO vero, che è del
+      committente); la vIPI APP propria a schermo (solo i suoi test); il rilievo con la build 1.57.0 sulla stessa
+      copia (si è riprodotto con questa build e l'elenco vuoto, che percorre lo stesso codice di prima).
     - **Resta al committente, in produzione dopo il pacchetto**: a Torino–Genova il documento porta tre
       configurazioni e ne mancano due — {WN0} e {WS0} da soli, che lui ha detto valide: in Struttura le
       conseguenze lo mostrano («WN0: apre solo con LIMJ_WS0»), vanno aggiunte. Poi ripubblicare le vIPI ACC.

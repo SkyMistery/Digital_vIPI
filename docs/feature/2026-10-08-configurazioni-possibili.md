@@ -194,4 +194,4 @@ che non distingue non è una prova.
 ⚠️ Sul banco la salute resta «Degraded» per «Cache ATC online non aggiornata»: l'API IVAO era spenta apposta, e
 quel controllo viene **dopo** il conteggio degli errori di consistenza — se ce ne fossero, direbbe quelli.
 
-Non provato: l'interfaccia a schermo su questa copia (serve il login IVAO vero).
+Non provato: l'interfaccia a schermo su questa copia (serve il login IVAO vero). A schermo si è provata su un database nuovo seminato: vedi la voce S99 in `docs/filoni/sito.md`.
