@@ -1535,6 +1535,37 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.58.0 — MINOR: UNA migrazione ADDITIVA (ConfigurazioniPossibili: crea la tabella SectorConfigurationSets e un
+      indice; niente tolto o rinominato). Su 1.57.0 (397b7a1, online dal 7 ottobre 2026). Sito S99: le configurazioni
+      possibili di un gruppo di settori si dichiarano in Struttura (settori d'area di un ACC, o un ente con le sue
+      posizioni), con la casella «L'elenco è completo»; la sezione Configurazioni dei documenti le legge da lì; il banco
+      di prova prende gli scenari dalla struttura; la sonda di «Trasferimento senza ripiego» e la scala di risalita,
+      chiuso un settore, chiudono anche chi senza di lui non può stare aperto — per i soli elenchi dichiarati completi.
+      Nasce dal falso «Trasferimento senza ripiego» di LIMM (WS2 → ES2) che tiene /vsop/health in Degraded dalla 1.57.0.
+      ⚠️ AL PRIMO AVVIO gira il travaso: copia in Struttura gli elenchi scritti nei documenti, TUTTI SPENTI. Il rilievo
+      di Milano e il Degraded NON spariscono col carico: spariscono quando il committente accende «L'elenco è completo»
+      sui settori d'area di LIMM. Non è la 1.57.1 annunciata: c'è una migrazione e una pagina che cambia. Tocca
+      Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Hosting, Vipi.Ui (+ frasi IT/EN) e
+      Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.58.0.md, §A150.
+    -->
+    <!--
+      1.57.0 — MINOR: quattro migrazioni, DUE con una DropTable. 🔴 PRIMA CONSEGNA CON UNA MIGRAZIONE DISTRUTTIVA:
+      ViaLeRegoleDiUnificazione cancella la tabella UnificationRules (zero righe in produzione, nessun editor l'ha mai
+      scritta); ClausoleCondivise crea AgreementClauseShares e cancella AgreementSectionShares, che nasce con
+      SezioniCondivise nello stesso carico e in produzione non è mai esistita; OrdineDelleClausole aggiunge la colonna
+      AgreementSections.ClauseOrder. Conseguenze: copia del database PRIMA del carico (Diagnostica), e il rollback a due
+      rinomine NON basta più da solo — la 1.56.0 legge UnificationRules, che non c'è più: per tornare indietro serve
+      anche la copia del database. Si consegna comunque da sola via FTP, per questo resta MINOR. Provate sulla copia di
+      produzione. Su 1.56.0 (2285a80, online dal 1 ottobre 2026). Sito S97: coordinamenti e struttura — un motore solo
+      per chi tiene chi, banco di prova, sposta fra accordi, clausole condivise fra più accordi (per riga, sezione o
+      accordo intero) con «Stacca», ordine dichiarato delle clausole (a mano, alfabetico per punto, per quota), avviso
+      «quota di un altro settore», via le regole di unificazione. S98: un import mai riuscito non è più un giro
+      dell'anno 1 (il 500 di Struttura, Pendenti, la deriva notturna, lo storico ATC). Tocca Vipi.Domain,
+      Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations), Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice
+      degli asset), Vipi.Host per il timbro, e Vipi.Hosting ricompilato (sorgente invariato, ma si appoggia alle porte
+      di Application che cambiano). Dettaglio: LEGGIMI-PACCHETTO-1.57.0.md, §A149.
+    -->
+    <!--
       1.56.0 — MINOR: QUATTRO migrazioni ADDITIVE (ApertureDocumenti: una tabella e un indice; VidAccountEvento: colonna
       EventKits.VidEvento; AccountEventoInUso: una tabella; VidSvuotaEvento: colonna EventKits.VidSvuotaUtc; niente tolto
       o rinominato). S95, entrata dopo i publish 6ab77d4 ed e705d6e (mai caricati): controllare con un account
@@ -1934,7 +1965,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.56.0</VipiVersione>
+    <VipiVersione>1.58.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

@@ -293,6 +293,10 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
     public Task<int> LinkAccGroupUnitsAsync(CancellationToken ct = default) =>
         new EfAtcUnitRepository(_db).AllineaGruppiAccAsync(null, ct);
 
+    /// <inheritdoc cref="IDocumentMaintenance.TravasaConfigurazioniAsync"/>
+    public Task<int> TravasaConfigurazioniAsync(CancellationToken ct = default) =>
+        TravasoDelleConfigurazioni.EseguiAsync(_db, ct);
+
     public async Task<int> LinkAppUnitsAsync(CancellationToken ct = default)
     {
         // I documenti che un settore APP porta ancora. ⚠️ Non quelli di uno scalo (Airport.DocumentId) né quelli

@@ -73,6 +73,17 @@ public static class AorFlBand
     public static string FeetBand(int? lowerFeet, int? upperFeet) =>
         lowerFeet == upperFeet ? FeetLabel(upperFeet) : $"{FeetLabel(lowerFeet)} – {FeetLabel(upperFeet)}";
 
+    /// <summary>
+    /// La banda di un settore <b>in piedi</b>, dai limiti grezzi del catalogo: stessa euristica di
+    /// <see cref="Normalize"/> (fino a 660 è un FL, sopra sono piedi), ma i lati aperti restano <c>null</c> —
+    /// a chi confronta una quota con una fascia serve sapere che un limite non c'è, non un tetto convenzionale.
+    /// </summary>
+    public static (int? BaseFeet, int? TopFeet) FeetOfLimits(int? lower, int? upper)
+    {
+        static int? Piedi(int? v) => v is not int x ? null : x < 0 ? 0 : x > Unlimited ? x : x * 100;
+        return (Piedi(lower), Piedi(upper));
+    }
+
     /// <summary>Piedi → FL, senza euristica: è la conversione, non un'ipotesi.</summary>
     private static int FeetToFl(int feet) =>
         feet <= 0 ? Ground : (int)System.Math.Round(feet / 100.0);

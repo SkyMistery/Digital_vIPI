@@ -43,6 +43,93 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### ✅ A150 — 1.58.0 ONLINE: le configurazioni possibili dei gruppi di settori, in Struttura (S99) (8 ottobre 2026)
+
+✅ Online dall'8 ottobre 2026, sera: il committente conferma il timbro 1.58 e `Schema 0` (la tabella
+`SectorConfigurationSets` c'è). Da fuori, da anonimo, alle 20:58Z: `/` 302, porta «Entra con IVAO», Ricerca 401,
+`/services/cookies` 200, API aeroporti 401, `/vsop/health/ready` Healthy, `vipi-theme.css?v=f27ce52a` (invariato: il
+pacchetto non porta asset). 🔎 `/vsop/health` risponde ancora `Degraded`, come scritto nel foglio: torna Healthy quando
+il committente accende «L'elenco è completo» sui settori d'area di LIMM. Non ancora guardati: lo scarico della
+diagnostica dopo l'avvio, e la Ricerca col login.
+
+MINOR con **una migrazione additiva** (`ConfigurazioniPossibili`: `CREATE TABLE SectorConfigurationSets` e un indice
+unico su gruppo; nessun `Drop`, `Rename`, `Alter` o `Sql` nell'`Up`, guardato nei due provider), su 1.57.0 (`397b7a1`).
+Timbro **`1.58.0 · 2ecbdd6`**. Non è la 1.57.1 annunciata in §A149: il difetto si è chiuso con una funzione, una tabella
+e una sezione nuova in una pagina.
+- **S99** (fuso da `fix/senza-ripiego-falso` @ `e23bb718`, CI verde run 37792052686; il committente l'8-ott: «va bene
+  così, chiudi»): le configurazioni possibili di un gruppo (settori d'area di un ACC, o un ente con le sue posizioni)
+  si dichiarano in Struttura, con la casella «L'elenco è completo»; la sezione Configurazioni dei documenti le legge
+  da lì; il banco di prova prende gli scenari dalla Struttura; la sonda di «Trasferimento senza ripiego» e la scala di
+  risalita, chiuso un settore, chiudono chi senza di lui non può stare aperto — per i soli elenchi completi. Codice
+  comune: Domain, Application (`Aor/Topology`, `Content/*`, `Diagnostics`), Infrastructure. Carta
+  `docs/feature/2026-10-08-configurazioni-possibili.md`, storia in `docs/filoni/sito.md` (voce S99).
+- ⚠️ **Il carico non spegne il `Degraded`.** All'avvio il travaso copia in Struttura gli elenchi scritti nei documenti,
+  **tutti spenti** (nei documenti erano esempi: accesi alla cieca, a Roma direbbero «EW apre solo con NE1 e SU»). Il
+  rilievo di Milano sparisce quando il committente accende «L'elenco è completo» sui settori d'area di LIMM.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`, chiave del booking). `lab/f3` non toccato.
+
+**15 file** (`solo-15-file-1.58.0`): Domain, Application, Infrastructure, MySqlMigrations, Hosting, Ui, Host (dll +
+pdb) e `en/Vipi.Ui.resources.dll` (frasi IT/EN cambiate). **Niente `wwwroot`**, quindi `endpoints.json` resta fuori:
+482 file nel publish come nel precedente, 19 con impronta diversa, di cui i quattro Aurora* solo per la ricompilazione
+(nessun riferimento agli altri progetti). Due `const` nuove nel diff (`Chiave = "configurations"`), nessuna cambiata;
+le interfacce toccate (`IDocumentMaintenance`, `IFrozenSectionReader`) hanno implementatori solo in assiemi spediti.
+Zip 6,49 MB, sha256 `ea49ca833efb7b8301dec6dfcab1dd2703149f104ccc98805bed1a7517fb3f05`. Build Release senza avvisi;
+`dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3299, Infra 2184, Ui 2000, E2E 507).
+Prova sul publish win-x64 (copia del database di sviluppo, fermo al 15-set: 27 migrazioni applicate all'avvio, l'ultima
+è `ConfigurazioniPossibili`; il travaso ha scritto tre righe): `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`); a schermo la pagina Struttura con «Configurazioni possibili» aperta su LIMM — l'elenco travasato di
+Torino–Genova con «non vincola» e le conseguenze ricavate — console pulita. **Non rifatto qui**: scrivere un elenco,
+accendere la casella e vedere il rilievo sparire (lo ha provato il Sito, tre giri sulla copia di produzione, e il
+committente a schermo). Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.58.0.md`.
+
+▶ **Dopo il carico** (committente, in Struttura): LIMM settori d'area → accendere; Torino–Genova → aggiungere {WN0} e
+{WS0}, poi accendere; Padova e Bologna si possono accendere; Roma e Venezia spente (o riscritte); ripubblicare le vIPI
+ACC. Rollback: bastano le due rinomine (la migrazione aggiunge soltanto, il travaso non cancella niente dai documenti).
+
+### ✅ A149 — 1.57.0 ONLINE: coordinamenti e struttura (S97), import mai riuscito (S98) — 🔴 prima migrazione distruttiva (7 ottobre 2026)
+
+✅ Online dal 7 ottobre 2026 (primo avvio 19:12:46Z): `Schema 0` confermato dal committente — le quattro migrazioni
+sono passate, `UnificationRules` non c'è più. Da fuori, da anonimo: porta «Entra con IVAO», Ricerca 401,
+`/vsop/health/ready` Healthy, `vipi-theme.css?v=f27ce52a` (quello del pacchetto). Scarico dell'8-ott: zero ERR/CRT
+dall'avvio, riconciliazioni documentali concluse senza cambiamenti, poll IVAO regolare, un solo login per nonce.
+🔎 **`/vsop/health` risponde `Degraded`**: «1 errori nel report di consistenza» (avvisi-log, 8-ott 07:34Z). Il log non
+dice quale: si legge solo in Diagnostica. **Letto l'8-ott**: «Trasferimento senza ripiego», ACC LIMM, «Chiuso il
+ricevente il traffico va su UNICOM, ma quel punto lo copre qualcun altro: manca un ripiego (`LIMM_WS2_CTR →
+LIMM_ES2_CTR`)». La freccia è «ricevente → chi copre il punto»: una clausola ha WS2 come ricevente su un punto che,
+chiuso WS2 e aperti gli altri, la geometria dà a ES2. Il committente: è falso, quello scenario non esiste («WS5 non
+può essere aperto se non è aperto il WS2»). Il codice della sonda (4-quinquies di `ConsistencyReportService`) e dei
+suoi ingressi non è stato toccato dalla 1.57.0, e il 2-ott la salute era Healthy: o sono cambiati i dati di Milano, o
+c'entra un pezzo indiretto. **Assegnato al Sito** (ramo `fix/senza-ripiego-falso`, vuoto): la regola di dominio la
+decide il committente con lui, su una copia fresca del database → 1.57.1. Il sito funziona: Degraded è solo il
+verdetto di salute.
+
+MINOR con **quattro migrazioni, due con una `DropTable`**, su 1.56.0 (`2285a80`). Timbro **`1.57.0 · 397b7a1`**.
+🔴 `ViaLeRegoleDiUnificazione` cancella `UnificationRules` (zero righe in produzione); `ClausoleCondivise` crea
+`AgreementClauseShares` e cancella `AgreementSectionShares`, nata con `SezioniCondivise` nello stesso carico;
+`OrdineDelleClausole` aggiunge `AgreementSections.ClauseOrder`. Deciso col committente il 7-ott: si consegna, con la
+**copia del database prima del carico**; il rollback a due rinomine non basta più da solo (la 1.56.0 legge
+`UnificationRules` in `TopologyBuilder`: serve anche il ripristino della copia). Provate dal Sito sulla copia di
+produzione.
+- **S97** (fuso da `fix/copertura-unica` @ `485bbb8f`, CI verde run 37659538927; il committente ha confermato la prova a
+  schermo): motore unico per chi tiene chi, banco di prova, sposta fra accordi, clausole condivise per riga, sezione o
+  accordo intero con «Stacca», ordine dichiarato delle clausole, avviso «quota di un altro settore», via le regole di
+  unificazione. Codice comune Domain, Application, Infrastructure. Carte `docs/feature/2026-10-04-copertura-unica.md` e
+  `2026-10-06-sezioni-condivise.md`.
+- **S98** (fuso da `fix/import-mai-riuscito` @ `08fc5bdc`, CI verde run 37211002788): un import mai riuscito non è un
+  giro dell'anno 1 (500 di Struttura, Pendenti, deriva notturna, storico ATC). Il ramo divergeva da S97 a `cf603201`:
+  fusi uno dopo l'altro; conflitti sui conteggi (rimisurati sul log: **Application 3266, Infrastructure 2151**) e sul
+  registro del Sito (tenute le voci di S97 e di S98; tolta la sola riga «Restano 4b e 5», superata).
+- ⏸ **S96** tabellone resta fuori: aspetta la chiave del booking (`fix/tabellone` @ `52e50f1e`).
+
+**19 file** (`solo-19-file-1.57.0`): Domain, Application, Infrastructure, MySqlMigrations, **Hosting**, Ui, Host (dll +
+pdb), `en/`, endpoints.json, `vipi-theme.css` con `.br`/`.gz`. Hosting entra col sorgente invariato: si appoggia alle
+porte degli accordi di Application, che cambiano. Fuori Aurora* (nessun riferimento agli altri progetti). Zip 6,57 MB,
+sha256 `b2dde5fe13ecf102461ff3a37987cb0b9a9acbb6b01d32f4a970fb58018c66c0`. Build Release senza avvisi, test verdi,
+conteggi identici (App 3266, Infra 2151, Ui 1991). Prova sul publish win-x64: le quattro migrazioni applicate all'avvio
+(`DROP TABLE "UnificationRules"` nel log), `pacchetto-verifica.js` verde (`TERMINE=LIBB`), a schermo Struttura col banco
+di prova e la pagina degli accordi, console pulita. Non rifatti a schermo i gesti di condivisione: li ha provati il
+committente sulla copia di produzione. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.57.0.md`. ▶ Ripubblicare le vIPI ACC (cambia LIMM «Conf 2 b»).
+
 ### ✅ A148 — 1.56.0 ONLINE: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93), Discord (S94), account dell'evento (S95) (1 ottobre 2026)
 
 ✅ Online il 1 ottobre 2026 (avvio 22:23:11Z): `Schema 0` confermato dal committente (le quattro migrazioni ci sono). Da

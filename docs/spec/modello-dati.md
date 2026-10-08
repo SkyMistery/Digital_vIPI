@@ -171,6 +171,8 @@ Relazione top-down **manuale** padre→figlio tra posizioni (es. `LIRR_NE_CTR` �
 Vincoli: coppia (Parent, Child) univoca; nessun ciclo (validato a livello applicativo).
 
 ### 3.7 `UnificationRule`
+> ⛔ **Rimossa il 6 ottobre 2026** (migrazione `ViaLeRegoleDiUnificazione`, §9.35). Quel che segue è storia.
+
 Regola dichiarativa **editabile** che riassegna l'ownership dei settori in base a quali callsign sono online (§20.5 del piano).
 
 | Campo | Tipo | Note |
@@ -1357,3 +1359,52 @@ provider si pubblicherebbe senza congelare niente **in silenzio**; `AccVipi` per
 **Manutenzione**: `IDocumentUnionRepository.TidyAsync` chiude le unioni rimaste con **meno di due membri** —
 gira all'avvio (`TidyVipiDocumentUnions`) e dopo ogni rimozione. La cascata toglie già la riga insieme al
 documento eliminato; quel che resta da chiudere è l'unione che quella riga teneva in piedi.
+
+### 9.34 `AgreementClauseShare` — clausole condivise fra più accordi (7 ott 2026) 🟢
+
+Estende §9.25-bis in un punto. Una clausola resta **di casa** nella sua sezione (`AgreementClauses.SectionId`), e
+una riga di `AgreementClauseShares` dice che **compare anche** in una sezione di un altro accordo — quella che la
+*ospita*. Carta [`../feature/2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md) §10.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `ClauseId` | int FK → `AgreementClauses`, cascade | la clausola condivisa |
+| `SectionId` | int FK → `AgreementSections`, cascade | la sezione ospite; mai quella di casa, mai una dello stesso accordo |
+
+Indici: `(ClauseId, SectionId)` **unico**; `(SectionId)`.
+
+- **Chi legge non cambia**: `EfAgreementRepository.ListByAccAsync` dà a ogni sezione le clausole di casa e — in coda,
+  nell'ordine che hanno di casa — le ospiti. `AgreementClauseRow.SharedWith` elenca le altre sezioni in cui la
+  clausola compare, `IsGuest` dice se qui è ospite.
+- ⚠️ **Niente verso, niente ordine, niente gruppo sulla riga**: il verso è della sezione ospite; un gruppo di
+  varianti si condivide **intero** e la sua struttura è contenuto, uguale ovunque.
+- ⚠️ **`VariantGroup` è unico in tutto l'archivio** per i gruppi nati dal 7 ottobre 2026 (prima era progressivo per
+  accordo); un gruppo vecchio prende un numero nuovo la prima volta che viene condiviso.
+- ⚠️ **Il contenuto si distrugge solo con l'ultima presenza.** Lo schema protegge un verso solo (eliminata la
+  sezione ospite se ne va la riga); l'altro — eliminata la sezione di casa mentre la clausola ha ospiti — lo fa il
+  repository, che prima sposta la casa alla sezione ospite («promozione»).
+- Migrazione `ClausoleCondivise`, sui due provider: crea `AgreementClauseShares` e cancella
+  `AgreementSectionShares`. Quest'ultima era nata il giorno prima (`SezioniCondivise`: il primo giro condivideva la
+  sezione intera) e non è mai arrivata in produzione con dei dati.
+
+### 9.35 Via `UnificationRule` (6 ott 2026) 🟢
+
+La tabella `UnificationRules` (§3.7) è cancellata dalla migrazione `ViaLeRegoleDiUnificazione`, sui due provider:
+zero righe in sviluppo e nella copia di produzione del 1° ottobre, nessun editor. «Chi tiene chi» lo dice la catena
+di ripiego (`SectorFallbacks`, §9 della ricaduta verticale), che dal 4 ottobre leggono anche AoR e tabella delle
+configurazioni. ⚠️ È l'unica operazione di quella consegna che non si disfa: il `Down` ricrea la tabella vuota.
+
+### 9.36 `AgreementSections.ClauseOrder` — l'ordine dichiarato delle clausole (7 ott 2026) 🟢
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `ClauseOrder` | enum-stringa `AgreementClauseOrder`, NOT NULL, default `Manual` | `Manual` · `Points` (alfabetico per punto) · `Level` (per quota) |
+
+In che ordine la sezione **mostra** le clausole, le sue e quelle che ospita (§9.34). Lo applica la lettura
+(`AgreementClauseOrdering.Sort`, in `EfAgreementRepository.ListByAccAsync`): chi deriva — documenti, vista live,
+matcher — riceve le righe già in quell'ordine. ⚠️ `AgreementClauses.Order` **non si tocca**: resta l'ordine scritto a
+mano, quello che regge l'outline delle varianti; la riga in lettura lo porta in `StoredOrder`. Migrazione
+`OrdineDelleClausole`, additiva, sui due provider. Carta
+[`../feature/2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md) §11.
+

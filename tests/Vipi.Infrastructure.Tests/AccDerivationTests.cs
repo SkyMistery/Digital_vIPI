@@ -205,6 +205,58 @@ public class AccProfileTests : IAsyncLifetime
         Assert.Equal(new[] { "LIRR_WN0", "LIRR_WS0", "LIRR_WW0" }, row.Absorbed);
     }
 
+    [Fact]
+    public async Task Config_Table_Legge_le_righe_di_ripiego_le_due_configurazioni_di_Milano()
+    {
+        // Milano com'è in produzione (4 ottobre 2026): ES5 figlio di ES2, e UNA riga «ES5, FL325–UNL → WS5».
+        // Con i soli padri la configurazione che apre WS5 dava ES5 a ES2 — e mettendo ES5 sotto WS5 si rompeva
+        // l'altra. Dal database alla tabella: bande dal catalogo, riga dalla Struttura, padri dalla proiezione.
+        var accId = (await _db.Accs.FirstAsync(a => a.Code == Acc)).Id;
+        var ws2 = Ctr(accId, "LIMM_WS2_CTR");
+        _db.Sectors.Add(ws2);
+        await _db.SaveChangesAsync();
+        var es2 = Ctr(accId, "LIMM_ES2_CTR"); es2.ParentSectorId = ws2.Id;
+        var ws5 = Ctr(accId, "LIMM_WS5_CTR"); ws5.ParentSectorId = ws2.Id;
+        _db.Sectors.AddRange(es2, ws5);
+        await _db.SaveChangesAsync();
+        var es5 = Ctr(accId, "LIMM_ES5_CTR"); es5.ParentSectorId = es2.Id;
+        _db.Sectors.Add(es5);
+
+        AccSector Banda(string cs, int? piede, int? tetto) =>
+            new() { ComposePosition = cs, CenterId = "LIRR", LowerLimit = piede, UpperLimit = tetto };
+        _db.AccSectors.AddRange(
+            Banda("LIMM_WS2_CTR", 0, 32500), Banda("LIMM_ES2_CTR", 0, 32500),
+            Banda("LIMM_WS5_CTR", 32500, null), Banda("LIMM_ES5_CTR", 32500, null));
+        _db.SectorFallbacks.Add(new SectorFallback
+        {
+            SectorCallsign = "LIMM_ES5_CTR", Order = 0, TargetCallsign = "LIMM_WS5_CTR", BaseFeet = 32500,
+        });
+        await _db.SaveChangesAsync();
+
+        static AccConfiguration Cfg(string key, params string[] aperti) => new()
+        {
+            Key = key, Name = key, Open = aperti.Select(a => new AccConfigOpen { Callsign = a }).ToList(),
+        };
+        var block = new AccBlock
+        {
+            Key = "aerovia", Kind = AccBlockKind.Aerovia,
+            Configurations =
+            {
+                Cfg("alto-a-ws5", "LIMM_WS2_CTR", "LIMM_ES2_CTR", "LIMM_WS5_CTR"),
+                Cfg("fino-a-unl", "LIMM_WS2_CTR", "LIMM_ES2_CTR"),
+            },
+        };
+
+        var tabelle = await _service.DeriveConfigTableAsync(Acc, block);
+        IReadOnlyList<string> Assorbiti(string cfg, string unificato) =>
+            tabelle.Single(t => t.ConfigKey == cfg).Rows.Single(r => r.UnifiedCallsign == unificato).Absorbed;
+
+        Assert.Equal(new[] { "LIMM_ES5_CTR", "LIMM_WS5_CTR" }, Assorbiti("alto-a-ws5", "LIMM_WS5_CTR"));
+        Assert.Equal(new[] { "LIMM_ES2_CTR" }, Assorbiti("alto-a-ws5", "LIMM_ES2_CTR"));
+        Assert.Equal(new[] { "LIMM_ES2_CTR", "LIMM_ES5_CTR" }, Assorbiti("fino-a-unl", "LIMM_ES2_CTR"));
+        Assert.Equal(new[] { "LIMM_WS2_CTR", "LIMM_WS5_CTR" }, Assorbiti("fino-a-unl", "LIMM_WS2_CTR"));
+    }
+
     private static Sector Sec(int accId, string callsign, int? parent) => new()
     {
         Callsign = callsign, Name = callsign, AccId = accId, Type = SectorType.App,

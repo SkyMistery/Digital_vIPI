@@ -369,7 +369,6 @@ else
     private MinimaView _minima = MinimaView.Empty;    // carta MRVA dell'aeroporto, dal sectorfile (sola lettura)
 
     // Configurazioni (APP multi-settore, es. LIPE_APP con LIPE_W/LIPE_E). Pool + salvate + accorpamento derivato.
-    private IReadOnlyList<AccSectorPick> _sectorPool = Array.Empty<AccSectorPick>();
     private List<AccConfiguration> _configs = new();
     private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
 
@@ -448,7 +447,6 @@ else
         catch (ValidationException) { _notFound = true; return; }
 
         _linkable = await AppDoc.ListLinkableFrequenciesAsync();
-        _sectorPool = await AppDoc.ListSectorsAsync(_app);
         _shapeCatalog = await AppDoc.ListSelectableSectorShapesAsync();
         _areaPicks = await AppDoc.ListSpecialAreasAsync(_app);
         _otherAreaPicks = await AppDoc.ListOtherAccSpecialAreasAsync(_app);
@@ -511,14 +509,8 @@ else
         await AppDoc.SaveSeparationsAsync(_app, _separations);
     });
 
-    // ---- configurazioni ----
-    private Task SaveConfigs(IReadOnlyList<AccConfiguration> configs) => _shell.GuardAsync(async () =>
-    {
-        _configs = configs.ToList();
-        await AppDoc.SaveConfigurationsAsync(_app, _configs);
-        _configTable = await AppDoc.DeriveConfigTableAsync(_app);   // ri-deriva l'accorpamento
-        _aorView = await AppDoc.GetAorViewAsync(_app);              // e i selettori config sulla mappa
-    });
+    // ---- configurazioni: dall'8 ottobre 2026 si dichiarano in Struttura («Configurazioni possibili») e qui si
+    //      LEGGONO (carta docs/feature/2026-10-08-configurazioni-possibili.md). ----
 
     // ---- aree regolamentate (picker condiviso con la vIPI ACC, senza modo automatico) ----
     private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
@@ -555,9 +547,6 @@ else
             new AorExtraShapes { Callsigns = _aorExtras, Colors = _aorColors, AirspaceEdits = _aorAirspaceEdits });
         _aorView = await AppDoc.GetAorViewAsync(_app);   // ri-deriva gli anelli sulla mappa
     }
-
-    private async Task<bool> ConfirmRemoveConfig(AccConfiguration c) =>
-        await JS.InvokeAsync<bool>("confirm", string.Format(L["App_RemoveConfigConfirm"].Value, c.Name));
 
     // ---- frequenze (derivate + override/link) ----
     private Task MoveFreq((int Index, int Dir) m) => _shell.GuardAsync(async () =>
@@ -643,8 +632,14 @@ else
                 <AppSeparations Rows="_separations" Editing="_shell.IsEditing" RowsChanged="SaveSeparations" />
                 break;
             case "configurations":
-                <AppConfigurations Configs="_configs" Pool="_sectorPool" Tables="_configTable" Editing="_shell.IsEditing"
-                                   MapScope="@($"app-aor-{_app}")" ConfigsChanged="SaveConfigs" ConfirmRemove="ConfirmRemoveConfig" />
+                @if (_shell.IsEditing)
+                {
+                    <p class="muted cfg-from-structure" style="margin-top:0">
+                        @L["AppCfg_FromStructure"]
+                        <a href="/services/vsop/admin/sector-structure" target="_blank" rel="noopener">@L["AppCfg_OpenStructure"]</a>
+                    </p>
+                }
+                <AppConfigurations Configs="_configs" Tables="_configTable" Editing="false" MapScope="@($"app-aor-{_app}")" />
                 break;
             case "aor":
                 <AccAor View="_aorView" Id="@($"app-aor-{_app}")" Editing="_shell.IsEditing" OnSetAirspace="SaveAorAirspace" />

@@ -95,13 +95,6 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         _stati = stati;
     }
 
-    /// <summary>
-    /// Quanto margine si dà a un timbro prima di chiamarlo vecchio. Un giorno: gli import girano ogni 24 ore e
-    /// un giro può slittare (retry, riavvio, sorgente lenta) — senza margine la prima notte storta produrrebbe
-    /// una segnalazione per ogni riga di catalogo.
-    /// </summary>
-    private static readonly TimeSpan MargineDelTimbro = TimeSpan.FromDays(1);
-
     /// <summary>Per quanti cicli AIRAC si tengono le righe già chiuse. Due: il tempo di accorgersi che una
     /// cosa era stata segnalata, non tanto da far diventare la tabella un archivio storico.</summary>
     private const int CicliDiRitenzione = 2;
@@ -342,13 +335,13 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     {
         if (_cataloghi is null || _stati is null) return (0, 0, 0);
 
-        var aeroporti = await _stati.GetLastSuccessAsync(ImportCategories.AirportSector, ct);
-        var acc = await _stati.GetLastSuccessAsync(ImportCategories.Acc, ct);
-        if (aeroporti is null || acc is null) return (0, 0, 0);
-
-        // Il metro è il giro più VECCHIO fra i due: usare il più recente segnalerebbe le righe dell'altra
-        // famiglia solo perché il suo giro è slittato di qualche ora.
-        var soglia = (aeroporti < acc ? aeroporti.Value : acc.Value) - MargineDelTimbro;
+        // Il metro è quello di SogliaTimbro, lo stesso che legge la pagina degli orfani: fino al 4 ottobre 2026
+        // qui c'era una copia della formula, cioè proprio le «due letture dello stesso metro» che quella
+        // classe esiste per impedire.
+        if (SogliaTimbro.Calcola(
+                await _stati.GetLastSuccessAsync(ImportCategories.AirportSector, ct),
+                await _stati.GetLastSuccessAsync(ImportCategories.Acc, ct)) is not { } soglia)
+            return (0, 0, 0);
 
         var stantie = await _cataloghi.ListStaleCatalogRowsAsync(soglia, ct);
 

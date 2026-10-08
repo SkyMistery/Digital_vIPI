@@ -70,7 +70,10 @@
             var c = r.Clause;
             var gv = r.Group;
             var sel = EditClauseId == c.Id;
-            <tr class="@RowClass(r, sel)" @key="c.Id"
+            @* ⚠️ La chiave è (accordo, clausola): una clausola condivisa sta, con lo stesso id, sotto più accordi, e
+               nella vista a elenco le due righe stanno nella stessa tabella — con la sola clausola Blazor rifiuta
+               il render («more than one sibling has the same key»). *@
+            <tr class="@RowClass(r, sel)" @key="(r.Agreement.Id, c.Id)"
                 @ondragover:preventDefault="true"
                 @ondragenter="() => OnDragOver.InvokeAsync(c.Id)" @ondrop="() => OnDrop.InvokeAsync(c)">
                 @* Riordino per trascinamento: con l'outline l'ordine è la struttura, e quattro frecce per riga
@@ -103,6 +106,12 @@
                    per differenza, che due righe con una condizione ciascuna ma senza pill NON lo sono. *@
                 <td>
                     @Cell(r, XferCell.Points)
+                    @* Condivisa: la stessa clausola compare anche in altri accordi. Va detto SULLA RIGA: chi la
+                       corregge la corregge anche là. *@
+                    @if (c.IsShared)
+                    {
+                        <span class="pill blue xt-shared" title="@(string.Format(L["Xfer_SharedTitle"].Value, string.Join(" · ", c.SharedWith.Select(s => s.Label).Distinct())))">⛓</span>
+                    }
                     @if (gv.First && gv.Count > 1)
                     {
                         <span class="pill blue xt-grouppill" title="@L["Xfer_VariantsTitle"]">⑂ @L["Xfer_VariantsN", gv.Count]</span>
@@ -165,6 +174,13 @@
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddExceptionTitle"]" @onclick="() => OnAddException.InvokeAsync(c.Id)">↳</button>
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_DuplicateRow"]"
                             aria-label="@L["Xfer_DuplicateRow"]" @onclick="() => OnDuplicate.InvokeAsync(c.Id)">⧉</button>
+                    @* Condividi QUESTA clausola con un altro accordo: il gesto sta sulla riga, dove lo si cerca
+                       (committente, 7 ottobre 2026 — nella barra delle scelte non l'aveva trovato). *@
+                    @if (OnShare.HasDelegate)
+                    {
+                        <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_ShareRowTitle"]"
+                                aria-label="@L["Xfer_ShareRowTitle"]" @onclick="() => OnShare.InvokeAsync(r)">⛓</button>
+                    }
                     <button class="btn @(sel ? "primary" : "ghost")" disabled="@Disabled" title="@L["Xfer_EditRowTitle"]" @onclick="() => OnEdit.InvokeAsync(r)">✎</button>
                     @* ⚠️ L'eliminazione era SOLO nel pannello: per togliere una riga bisognava aprirla,
                        premere un tasto e richiudere. Chiesta sulla riga dal committente (9 settembre 2026),
@@ -239,6 +255,9 @@
     /// <summary>«Copia questa riga qui sotto». ⚠️ La RIGA, non il suo gruppo di varianti: quello è il ⧉ del
     /// pannello, e i due gesti si somigliano abbastanza da meritare due titoli che li distinguano.</summary>
     [Parameter] public EventCallback<int> OnDuplicate { get; set; }
+
+    /// <summary>«Condividi questa clausola con…»: la riga intera, perché la pagina deve sapere in quale sezione sta.</summary>
+    [Parameter] public EventCallback<XferTableRow> OnShare { get; set; }
 
     /// <summary>
     /// «Elimina questa riga e ciò che pende da lei». Non impostato = il tasto non c'è: la tabella si usa

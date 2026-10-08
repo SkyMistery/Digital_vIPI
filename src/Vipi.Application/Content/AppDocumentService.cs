@@ -76,11 +76,12 @@ public interface IAppDocumentService
     /// <summary>Settori APP selezionabili nelle configurazioni (i settori APP del dominio di copertura, primario incluso).</summary>
     Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string appCallsign, CancellationToken ct = default);
 
-    /// <summary>Configurazioni operative salvate (blocco keyed <c>configurations</c>). Vuoto se assente/non migrato.</summary>
+    /// <summary>
+    /// Le configurazioni dell'ente, come le ha <b>adesso</b> la Struttura (<see cref="ISectorConfigurationService"/>).
+    /// Vuoto se non ne ha. ⚠️ Non si scrivono più da qui: dall'8 ottobre 2026 il documento le legge
+    /// (carta <c>2026-10-08-configurazioni-possibili</c>).
+    /// </summary>
     Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string appCallsign, CancellationToken ct = default);
-
-    /// <summary>Salva le configurazioni nel blocco keyed <c>configurations</c> del Document (garantisce prima il documento; ACC-gated).</summary>
-    Task SaveConfigurationsAsync(string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
 
     /// <summary>Tabella accorpamento per ogni configurazione (settore unificato → assorbiti), derivata sul sottoalbero
     /// APP a partire dalle configurazioni della versione di LAVORO. Per l'editor: chi mostra un documento pubblicato
@@ -133,6 +134,9 @@ public sealed class AppDocumentService : IAppDocumentService
     /// nella lingua della sorgente — il comportamento di prima.</summary>
     private readonly Translation.TranslationLookup? _traduzioni;
 
+    /// <summary>Le configurazioni possibili dichiarate in Struttura. Opzionale per i banchi che guardano altro:
+    /// senza, si legge quel che è scritto nella sezione del documento, come prima dell'8 ottobre 2026.</summary>
+    private readonly ISectorConfigurationService? _configurazioni;
 
     public AppDocumentService(IAppDerivationRepository apps, ISpecialAreaRepository areas, IEditingRepository editing,
         IEditAuthorizationService authz, ITopologyProvider topology, IAgreementService transfers,
@@ -140,8 +144,10 @@ public sealed class AppDocumentService : IAppDocumentService
         IVectoringMinimaSource minima, Airspace.ISectorShapeResolver forme,
         IDocumentLockGuard lockGuard,
         ReadingLanguageContext? lingua = null,
-        Translation.TranslationLookup? traduzioni = null)
+        Translation.TranslationLookup? traduzioni = null,
+        ISectorConfigurationService? configurazioni = null)
     {
+        _configurazioni = configurazioni;
         _apps = apps;
         _areas = areas;
         _editing = editing;
@@ -478,7 +484,7 @@ public sealed class AppDocumentService : IAppDocumentService
             await _areas.GetSpecialAreasByIdsAsync(orderedIds, ct), orderedIds, traduci);
     }
 
-    // --- Configurazioni (blocco keyed "configurations"): storage editoriale + accorpamento derivato. ---
+    // --- Configurazioni: dichiarate in Struttura (per ente), qui lette; l'accorpamento si deriva. ---
 
     // Settori APP del dominio di copertura (posizioni dell'ente incluse), con nome: pool dei picker, delle righe
     // accorpamento e dell'AoR.
@@ -506,16 +512,19 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public async Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string appCallsign, CancellationToken ct = default)
     {
+        if (_configurazioni is not null)
+        {
+            // Il gruppo è l'ENTE, per codice: quello che non cambia quando cambiano le sue posizioni. Un ente che
+            // non è ancora nato (nasce col documento) non ha un elenco, e la risposta è «nessuna».
+            var ente = await _apps.ResolveForDocumentAsync(Norm(appCallsign), ct);
+            return ente is null
+                ? Array.Empty<AccConfiguration>()
+                : await _configurazioni.ListAsync(ConfigurationGroupKind.AtcUnit, ente.Code, ct);
+        }
+
         if (await ResolveDocIdAsync(appCallsign, ct) is not int docId) return Array.Empty<AccConfiguration>();
         var json = await _editing.GetSectionBlockJsonAsync(docId, "configurations", ct);
         return ConfigTableProjector.Deserialize(json);
-    }
-
-    public async Task SaveConfigurationsAsync(string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
-    {
-        var docId = await EnsureWritableAsync(appCallsign, ct);   // ruolo + Document + lock (T-004)
-        var json = (configs?.Count ?? 0) == 0 ? null : JsonSerializer.Serialize(configs);
-        await _editing.SaveSectionBlockJsonAsync(docId, "configurations", json, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string appCallsign, CancellationToken ct = default) =>

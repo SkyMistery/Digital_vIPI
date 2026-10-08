@@ -926,6 +926,10 @@ public sealed class ReleaseService : IReleaseService
         using (_linguaProsa?.Rendering(linguaSorgente))
             frozen = await _frozen.CaptureAsync(type, key, payload.Doc, ct);
         foreach (var kv in frozen) payload.FrozenSections[kv.Key] = kv.Value;
+        // Da questa release in poi le configurazioni sono una sezione derivata dalla Struttura: chi legge lo
+        // snapshot non deve più guardare il BodyJson della sezione (vedi DocReleasePayload).
+        payload.ConfigurazioniDallaStruttura = true;
+
 
         payload.Doc = await ConTraduzioniCongelateAsync(payload.Doc, ct).ConfigureAwait(false);
 

@@ -410,6 +410,30 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AgreementClauses");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AgreementClauseShare", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClauseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SectionId");
+
+                    b.HasIndex("ClauseId", "SectionId")
+                        .IsUnique();
+
+                    b.ToTable("AgreementClauseShares");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementSection", b =>
                 {
                     b.Property<int>("Id")
@@ -420,6 +444,14 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
                     b.Property<int>("AgreementId")
                         .HasColumnType("int");
+
+                    b.Property<string>("ClauseOrder")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasDefaultValue("Manual")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<string>("Description")
                         .HasColumnType("longtext")
@@ -3561,6 +3593,45 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("SectorAirspaceBindings");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.SectorConfigurationSet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BodyJson")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("GroupCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("GroupKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<bool>("IsExhaustive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupKind", "GroupCode")
+                        .IsUnique();
+
+                    b.ToTable("SectorConfigurationSets");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.SectorFallback", b =>
                 {
                     b.Property<int>("Id")
@@ -4087,45 +4158,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("TranslationUnits");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AccId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("AssignmentJson")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("ConditionJson")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccId", "Priority");
-
-                    b.ToTable("UnificationRules");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.AccSector", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
@@ -4156,6 +4188,25 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasForeignKey("SectionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AgreementClauseShare", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.AgreementClause", "Clause")
+                        .WithMany("Shares")
+                        .HasForeignKey("ClauseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vipi.Domain.Entities.AgreementSection", "Section")
+                        .WithMany("GuestClauses")
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Clause");
 
                     b.Navigation("Section");
                 });
@@ -4648,17 +4699,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Area");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
-                        .WithMany("UnificationRules")
-                        .HasForeignKey("AccId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Acc");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
                     b.Navigation("AccSectors");
@@ -4666,8 +4706,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Airports");
 
                     b.Navigation("Sectors");
+                });
 
-                    b.Navigation("UnificationRules");
+            modelBuilder.Entity("Vipi.Domain.Entities.AgreementClause", b =>
+                {
+                    b.Navigation("Shares");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AgreementSection", b =>
@@ -4675,6 +4718,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Airports");
 
                     b.Navigation("Clauses");
+
+                    b.Navigation("GuestClauses");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Airport", b =>

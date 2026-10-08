@@ -548,7 +548,7 @@
   <data name="AppSep_Remove" xml:space="preserve"><value>Remove separation</value></data>
   <data name="AppSep_Add" xml:space="preserve"><value>+ Add separation</value></data>
   <data name="AppSep_None" xml:space="preserve"><value>No separation specified.</value></data>
-  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Create a configuration, name it and choose the open sectors. The system computes the merging.</value></data>
+  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Configurations are declared in Structure, section «Possible configurations»: name, open sectors, Center Point and Range. The document reports them here and works out the merging. With the section frozen, the public sees those of the time of publication.</value></data>
   <data name="AppCfg_EditHelpAria" xml:space="preserve"><value>Help on configurations</value></data>
   <data name="AppCfg_NamePlaceholder" xml:space="preserve"><value>Configuration name</value></data>
   <data name="AppCfg_Remove" xml:space="preserve"><value>Remove configuration</value></data>
@@ -4050,4 +4050,122 @@
   <data name="Lsr_FeedOld" xml:space="preserve"><value>(online data not up to date)</value></data>
   <data name="Lsr_Indexing" xml:space="preserve"><value>Still reading procedures and transfers: those results will follow shortly.</value></data>
   <data name="Aqp_NoDoc" xml:space="preserve"><value>No published document for {0}.</value></data>
+  <data name="Bench_Title" xml:space="preserve"><value>Test bench</value></data>
+  <data name="Bench_Intro" xml:space="preserve"><value>Pick an ACC and who is open: below, who holds the sky of the closed sectors and where the transfers go. It uses the saved structure. Everything outside the list (other centres, towers) counts as open. The bench writes nothing.</value></data>
+  <data name="Bench_Acc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Bench_PickAcc" xml:space="preserve"><value>— pick an ACC —</value></data>
+  <data name="Bench_AllOpen" xml:space="preserve"><value>All open</value></data>
+  <data name="Bench_AllClosed" xml:space="preserve"><value>All closed</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurations declared in Structure</value></data>
+  <data name="Bench_NoPresets" xml:space="preserve"><value>No configuration declared for this ACC: open and close the sectors by hand.</value></data>
+  <data name="Bench_Area" xml:space="preserve"><value>Open area sectors</value></data>
+  <data name="Bench_App" xml:space="preserve"><value>Open approaches</value></data>
+  <data name="Bench_ColOpen" xml:space="preserve"><value>Open</value></data>
+  <data name="Bench_ColHolds" xml:space="preserve"><value>Also holds</value></data>
+  <data name="Bench_Outside" xml:space="preserve"><value>outside the list</value></data>
+  <data name="Bench_Nobody" xml:space="preserve"><value>Nobody (UNICOM)</value></data>
+  <data name="Bench_NothingOpen" xml:space="preserve"><value>No sector is open and nobody outside the list picks up.</value></data>
+  <data name="Bench_Transfers" xml:space="preserve"><value>The ACC&apos;s transfers with these open</value></data>
+  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} points, {1} change hands</value></data>
+  <data name="Bench_OnlyChanged" xml:space="preserve"><value>Only those that change hands</value></data>
+  <data name="Bench_NoTransfers" xml:space="preserve"><value>No transfer to show: with these open every point stays with the written unit.</value></data>
+  <data name="Bench_ColFlow" xml:space="preserve"><value>Flow</value></data>
+  <data name="Bench_ColWrittenFrom" xml:space="preserve"><value>Written sender</value></data>
+  <data name="Bench_ColFrom" xml:space="preserve"><value>Hands over</value></data>
+  <data name="Bench_ColPoint" xml:space="preserve"><value>Point</value></data>
+  <data name="Bench_ColLevel" xml:space="preserve"><value>Level</value></data>
+  <data name="Bench_ColWrittenTo" xml:space="preserve"><value>Written receiver</value></data>
+  <data name="Bench_ColTo" xml:space="preserve"><value>Receives</value></data>
+  <data name="Bench_ByCoverage" xml:space="preserve"><value>point coverage</value></data>
+  <data name="Xfer_BenchTitle" xml:space="preserve"><value>With these sectors open, where this ACC&apos;s transfers go: opens the test bench in Structure</value></data>
+  <data name="Xfer_Move" xml:space="preserve"><value>Move</value></data>
+  <data name="Xfer_MoveSectionTitle" xml:space="preserve"><value>Move this section into the agreement of another pair of units</value></data>
+  <data name="Xfer_MoveSectionIntro" xml:space="preserve"><value>The section, with its {0} clauses, goes into the agreement between these two units (created if missing). Usually only one unit changes.</value></data>
+  <data name="Xfer_MoveBulk" xml:space="preserve"><value>Move…</value></data>
+  <data name="Xfer_MoveBulkTitle" xml:space="preserve"><value>Move the selected clauses into the agreement of another pair of units</value></data>
+  <data name="Xfer_MoveBulkIntro" xml:space="preserve"><value>The selected clauses go into the agreement between these two units, in the section with the same traffic and the same airports (agreement and section are created if missing). A variant group moves as a whole.</value></data>
+  <data name="Xfer_MoveFrom" xml:space="preserve"><value>Hands over</value></data>
+  <data name="Xfer_MoveTo" xml:space="preserve"><value>Receives</value></data>
+  <data name="Xfer_MoveNothing" xml:space="preserve"><value>Nothing to move: they are already in that pair&apos;s agreement, in that direction.</value></data>
+  <data name="Xfer_SectionMoved" xml:space="preserve"><value>Section moved into the agreement {0}.</value></data>
+  <data name="Xfer_ClausesMoved" xml:space="preserve"><value>{0} clauses moved into the agreement {1}.</value></data>
+  <data name="Xfer_ClausesMoved_One" xml:space="preserve"><value>{0} clause moved into the agreement {1}.</value></data>
+  <data name="Xfer_MoveCreated" xml:space="preserve"><value>The agreement did not exist and has been created.</value></data>
+  <data name="Xfer_MoveUndone" xml:space="preserve"><value>Move undone: everything is back where it was.</value></data>
+  <data name="Xfer_SharedWith" xml:space="preserve"><value>shared with {0}</value></data>
+  <data name="Xfer_SharedWithN" xml:space="preserve"><value>shared with {0} agreements</value></data>
+  <data name="Xfer_SharedTitle" xml:space="preserve"><value>This clause also appears in: {0}. It is the same one: fixing it here fixes it there too.</value></data>
+  <data name="Xfer_ShareSectionTitle" xml:space="preserve"><value>Share the clauses of this section with the agreement of another pair of units: written once, valid for both</value></data>
+  <data name="Xfer_ShareSectionIntro" xml:space="preserve"><value>The {0} clauses of this section will also appear in the agreement between these two units, in the section with the same traffic and the same airports. Agreement and section are created only if missing. From then on they are fixed once. Usually only one unit changes.</value></data>
+  <data name="Xfer_Share" xml:space="preserve"><value>Share</value></data>
+  <data name="Xfer_ShareAlready" xml:space="preserve"><value>Those clauses already appear in that agreement: nothing to do.</value></data>
+  <data name="Xfer_ShareUndone" xml:space="preserve"><value>Sharing undone.</value></data>
+  <data name="Xfer_SecDetachTitle" xml:space="preserve"><value>Detach the shared clauses of this section: here they become independent copies; in the other agreements they stay as they were</value></data>
+  <data name="Xfer_SecDetachPrompt" xml:space="preserve"><value>Detach the {0} shared clauses of this section? Here they become independent copies; in the other agreements they stay as they were.</value></data>
+  <data name="Xfer_SecDetachYes" xml:space="preserve"><value>Yes, detach</value></data>
+  <data name="Xfer_SecDetachUndone" xml:space="preserve"><value>Detach undone: the clauses are shared again.</value></data>
+  <data name="Xfer_SectionRemovePrompt" xml:space="preserve"><value>Delete the section? Its {0} shared clauses stay in the other agreements; the other {1} are deleted.</value></data>
+  <data name="Xfer_SectionRemoveYes" xml:space="preserve"><value>Yes, delete</value></data>
+  <data name="Xfer_MoveSharedTitle" xml:space="preserve"><value>It has clauses shared with another agreement: detach them, or remove the sharing, before moving it</value></data>
+  <data name="Xfer_SharedClauses" xml:space="preserve"><value>{0} shared clauses</value></data>
+  <data name="Xfer_SharedClauses_One" xml:space="preserve"><value>1 shared clause</value></data>
+  <data name="Xfer_SharedClausesTitle" xml:space="preserve"><value>Some clauses of this table also appear in other agreements (they carry ⛓ on the row): fixing them here fixes them there too.</value></data>
+  <data name="Xfer_ShareBulk" xml:space="preserve"><value>Share…</value></data>
+  <data name="Xfer_ShareBulkTitle" xml:space="preserve"><value>Make the chosen clauses also appear in the agreement of another pair of units</value></data>
+  <data name="Xfer_ShareBulkIntro" xml:space="preserve"><value>The chosen clauses — with their variant groups, whole — will also appear in the agreement between these two units, in the section with the same traffic and the same airports. Agreement and section are created only if missing. Usually only one unit changes.</value></data>
+  <data name="Xfer_ClausesShared" xml:space="preserve"><value>{0} clauses shared with the agreement {1}.</value></data>
+  <data name="Xfer_ClausesShared_One" xml:space="preserve"><value>Clause shared with the agreement {1}.</value></data>
+  <data name="Xfer_ShareIntoExisting" xml:space="preserve"><value>Into the section that was already there: no new one was created.</value></data>
+  <data name="Xfer_ShareSectionCreated" xml:space="preserve"><value>The section did not exist and has been created.</value></data>
+  <data name="Xfer_DetachBulk" xml:space="preserve"><value>Detach</value></data>
+  <data name="Xfer_DetachBulkTitle" xml:space="preserve"><value>Detach: in this agreement the chosen shared clauses become independent copies; in the others they stay as they were</value></data>
+  <data name="Xfer_DetachBulkPrompt" xml:space="preserve"><value>Detach the chosen shared clauses? Here they become independent copies; in the other agreements they stay as they were.</value></data>
+  <data name="Xfer_DetachNeedsAgreement" xml:space="preserve"><value>«Detach» applies to one agreement: open one (agreement view)</value></data>
+  <data name="Xfer_ClausesDetached" xml:space="preserve"><value>{0} clauses detached: in this agreement they are now independent copies.</value></data>
+  <data name="Xfer_ClausesDetached_One" xml:space="preserve"><value>Clause detached: in this agreement it is now an independent copy.</value></data>
+  <data name="Xfer_DeleteRowSharedPrompt" xml:space="preserve"><value>Remove the clause from this agreement? It stays in: {0}.</value></data>
+  <data name="Xfer_DeleteRowSharedEverywherePrompt" xml:space="preserve"><value>Delete the clause? It is shared: it will also disappear from: {0}.</value></data>
+  <data name="Xfer_RowRemovedHere" xml:space="preserve"><value>Clause removed from this agreement; it stays in {0}.</value></data>
+  <data name="Xfer_BulkDeleteSharedNote" xml:space="preserve"><value>The shared ones are removed from this agreement only and stay in the others; a single variant of a shared group, however, disappears everywhere.</value></data>
+  <data name="Xfer_BulkDeleteSharedEverywhere" xml:space="preserve"><value>The shared ones will disappear from every agreement: to remove them from one only, open that agreement.</value></data>
+  <data name="Xfer_GapLevel" xml:space="preserve"><value>level of another sector</value></data>
+  <data name="Xfer_GapLevelDetail" xml:space="preserve"><value>There, at that level, the sky belongs to {0} when it is open; the clause is written for {1}: {2}.</value></data>
+  <data name="Xfer_GapLevelMoveTitle" xml:space="preserve"><value>Select these clauses and open «Move» with {0} in place of the written unit</value></data>
+  <data name="Xfer_ClauseOrderTitle" xml:space="preserve"><value>Order of the clauses of this table: it applies here, in the documents and in the live view. With a declared order the shared clauses go to their place instead of the end</value></data>
+  <data name="Xfer_ClauseOrderManual" xml:space="preserve"><value>by hand</value></data>
+  <data name="Xfer_ClauseOrderPoints" xml:space="preserve"><value>alphabetical (point)</value></data>
+  <data name="Xfer_ClauseOrderLevel" xml:space="preserve"><value>by level</value></data>
+  <data name="Xfer_ClauseOrderSaved" xml:space="preserve"><value>Table order saved.</value></data>
+  <data name="Xfer_ShareRowTitle" xml:space="preserve"><value>Share this clause with the agreement of another pair of units</value></data>
+  <data name="Xfer_ShareRowIntro" xml:space="preserve"><value>The clause «{0}» — with its variant group, if it has one — will also appear in the agreement between these two units, in the section with the same traffic and the same airports. Agreement and section are created only if missing. Usually only one unit changes.</value></data>
+  <data name="Xfer_ShareAgreement" xml:space="preserve"><value>Share…</value></data>
+  <data name="Xfer_ShareAgreementTitle" xml:space="preserve"><value>Share ALL the clauses of the agreement with that of another pair: one of the two units changes</value></data>
+  <data name="Xfer_ShareAgreementIntro" xml:space="preserve"><value>The {0} clauses of all the sections will also appear in the agreement with another unit. Below are the two units of the agreement: change ONE, the other stays. Each section goes into the matching section of the other agreement, created only if missing.</value></data>
+  <data name="Xfer_ShareAgreementOneSide" xml:space="preserve"><value>Change only one of the two units: the other stays the one of the agreement.</value></data>
+  <data name="Cfgs_Title" xml:space="preserve"><value>Possible configurations</value></data>
+  <data name="Cfgs_Intro" xml:space="preserve"><value>For each group of sectors, the opening configurations: name, open sectors, Center Point and Range. The document reports them in its table and the test bench offers them as scenarios. A list declared complete, in addition, constrains: Diagnostics and the fallback ladder do not probe combinations that are not written in it. A list only speaks of the sectors it names, and «all closed» is always allowed.</value></data>
+  <data name="Cfgs_ReadOnly" xml:space="preserve"><value>Read only: to edit, take the structure lock at the top of the page.</value></data>
+  <data name="Cfgs_NoGroups" xml:space="preserve"><value>This ACC has no area sectors and no units.</value></data>
+  <data name="Cfgs_Unsaved" xml:space="preserve"><value>not applied</value></data>
+  <data name="Cfgs_NoList" xml:space="preserve"><value>No configuration declared.</value></data>
+  <data name="Cfgs_ColConfig" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Cfgs_Consequences" xml:space="preserve"><value>What follows from it</value></data>
+  <data name="Cfgs_ColSector" xml:space="preserve"><value>Sector</value></data>
+  <data name="Cfgs_ColAlwaysWith" xml:space="preserve"><value>Opens only with</value></data>
+  <data name="Cfgs_ColNeverWith" xml:space="preserve"><value>Never together with</value></data>
+  <data name="Cfgs_ColAlone" xml:space="preserve"><value>Can be open alone</value></data>
+  <data name="Cfgs_Yes" xml:space="preserve"><value>yes</value></data>
+  <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
+  <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
+  <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector.</value></data>
+  <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
+  <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>
+  <data name="Bench_NotForeseen" xml:space="preserve"><value>Not a configuration foreseen by the complete list — {0}: {1}</value></data>
+  <data name="AppCfg_FromStructure" xml:space="preserve"><value>This group&apos;s configurations are declared in Structure, section «Possible configurations»: here they are read, with the merging that follows.</value></data>
+  <data name="AppCfg_OpenStructure" xml:space="preserve"><value>Open Structure</value></data>
+  <data name="Cfgs_Exhaustive" xml:space="preserve"><value>The list is complete</value></data>
+  <data name="Cfgs_ExhaustiveHelp" xml:space="preserve"><value>A combination of open sectors that is not written here does not exist. Turn it on only after reading below what follows from it: if a row says something false, a configuration is missing.</value></data>
+  <data name="Cfgs_StateExhaustive" xml:space="preserve"><value>complete: constrains</value></data>
+  <data name="Cfgs_StateExamples" xml:space="preserve"><value>examples: does not constrain</value></data>
+  <data name="Cfgs_ConsequencesIf" xml:space="preserve"><value>What would follow from it, if the list were complete</value></data>
 </root>

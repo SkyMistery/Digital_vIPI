@@ -59,11 +59,93 @@ public class RisalitaScalaTests
     });
 
     private static CoverageFallbackContext Contesto(
-        IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>>? righe = null)
+        IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>>? righe = null,
+        ConfigurazioniPossibili? configurazioni = null)
     {
         var tutti = new HashSet<string>(Settori.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
         return new CoverageFallbackContext(Settori, tutti, Punti,
-            righe ?? RinvioSuMil, cs => Padri.GetValueOrDefault(cs));
+            righe ?? RinvioSuMil, cs => Padri.GetValueOrDefault(cs), configurazioni);
+    }
+
+    // ---- le configurazioni possibili (carta 2026-10-08-configurazioni-possibili) ----
+
+    /// <summary>Le quattro di Milano come stanno in produzione: ES2 e WS5 solo con WS2, ES5 solo con tutti.</summary>
+    private static readonly ConfigurazioniPossibili DiMilano = new(new[]
+    {
+        new ElencoDiConfigurazioni(ConfigurationGroupKind.AccArea, "LIMM", new[]
+        {
+            Cfg(Ws2), Cfg(Es2, Ws2), Cfg(Ws2, Ws5), Cfg(Es2, Es5, Ws2, Ws5),
+        }, Completo: true),
+    });
+
+    private static AccConfiguration Cfg(params string[] aperti) => new()
+    {
+        Name = string.Join("+", aperti),
+        Open = aperti.Select(a => new AccConfigOpen { Callsign = a }).ToList(),
+    };
+
+    /// <summary>Un rinvio scritto su WS2: chiuso lui, «chi copre il punto».</summary>
+    private static readonly Dictionary<string, IReadOnlyList<FallbackRow>> RinvioSuWs2 =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            [Ws2] = new[] { new FallbackRow("", null, null, FallbackTargetKind.Coverage) },
+        };
+
+    /// <summary>
+    /// Senza elenco la scala è quella di sempre: chiuso WS2, un punto a est lo raccoglie ES2 — anche se ES2 non
+    /// apre senza WS2. È lo scenario che non esiste, e fino all'8 ottobre 2026 la scala lo mostrava.
+    /// </summary>
+    [Fact]
+    public void Senza_elenco_chiuso_WS2_la_scala_scende_su_ES2()
+    {
+        var scala = RisalitaScala.Costruisci(Ws2, "GHE", 14000, Ane, Contesto(RinvioSuWs2));
+
+        Assert.Equal(new[] { Ws2, Es2, TransferOnlineResolver.Unicom }, Nomi(scala));
+    }
+
+    [Fact]
+    public void Con_l_elenco_chiuso_WS2_non_resta_nessuno_e_la_scala_finisce_su_UNICOM()
+    {
+        var scala = RisalitaScala.Costruisci(Ws2, "GHE", 14000, Ane, Contesto(RinvioSuWs2, DiMilano));
+
+        Assert.Equal(new[] { Ws2, TransferOnlineResolver.Unicom }, Nomi(scala));
+        Assert.True(RisalitaScala.FinisceSubitoSuUnicom(scala));
+    }
+
+    /// <summary>
+    /// L'elenco non accorcia le scale che esistono: chiuso ES5 raccoglie ES2 (suo padre), e chiuso anche ES2
+    /// raccoglie WS2. Nessuno dei due «cade» finché WS2 è aperto.
+    /// </summary>
+    [Fact]
+    public void Con_l_elenco_una_scala_che_esiste_resta_la_stessa()
+    {
+        var nessunaRiga = new Dictionary<string, IReadOnlyList<FallbackRow>>(StringComparer.OrdinalIgnoreCase);
+
+        var senza = RisalitaScala.Costruisci(Es5, "GHE", 35000, Ane, Contesto(nessunaRiga));
+        var con = RisalitaScala.Costruisci(Es5, "GHE", 35000, Ane, Contesto(nessunaRiga, DiMilano));
+
+        Assert.Equal(new[] { Es5, Es2, Ws2, TransferOnlineResolver.Unicom }, Nomi(senza));
+        Assert.Equal(Nomi(senza), Nomi(con));
+    }
+
+    /// <summary>
+    /// 🔴 Anche un gradino della catena SCRITTA si salta, non solo quello del rinvio: con la riga «ES5 → WS5»
+    /// e WS5 che non apre senza ES2… qui no — WS5 apre con il solo WS2 — ma ES5, chiuso ES2, non può stare
+    /// aperto: una scala verso ES2 con la riga «ES2 → ES5» non passa da ES5.
+    /// </summary>
+    [Fact]
+    public void Con_l_elenco_una_riga_dichiarata_verso_chi_non_puo_restare_aperto_si_salta()
+    {
+        var es2SuEs5 = new Dictionary<string, IReadOnlyList<FallbackRow>>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Es2] = new[] { new FallbackRow(Es5, null, null, FallbackTargetKind.Callsign) },
+        };
+
+        var senza = RisalitaScala.Costruisci(Es2, "GHE", 14000, Ane, Contesto(es2SuEs5));
+        var con = RisalitaScala.Costruisci(Es2, "GHE", 14000, Ane, Contesto(es2SuEs5, DiMilano));
+
+        Assert.Equal(new[] { Es2, Es5, Ws2, TransferOnlineResolver.Unicom }, Nomi(senza));
+        Assert.Equal(new[] { Es2, Ws2, TransferOnlineResolver.Unicom }, Nomi(con));
     }
 
     /// <summary>La riga che si scrive sul MIL: una sola, per tutti i punti.</summary>

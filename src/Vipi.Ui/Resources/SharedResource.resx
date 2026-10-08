@@ -553,7 +553,7 @@
   <data name="AppSep_Remove" xml:space="preserve"><value>Rimuovi separazione</value></data>
   <data name="AppSep_Add" xml:space="preserve"><value>+ Aggiungi separazione</value></data>
   <data name="AppSep_None" xml:space="preserve"><value>Nessuna separazione indicata.</value></data>
-  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Crea una configurazione, dai un nome e scegli i settori aperti. Il sistema calcola l'accorpamento.</value></data>
+  <data name="AppCfg_EditHelp" xml:space="preserve"><value>Le configurazioni si dichiarano in Struttura, sezione «Configurazioni possibili»: nome, settori aperti, Center Point e Range. Qui il documento le riporta e calcola l&apos;accorpamento. Con la sezione congelata, il pubblico vede quelle del momento della pubblicazione.</value></data>
   <data name="AppCfg_EditHelpAria" xml:space="preserve"><value>Aiuto sulle configurazioni</value></data>
   <data name="AppCfg_NamePlaceholder" xml:space="preserve"><value>Nome configurazione</value></data>
   <data name="AppCfg_Remove" xml:space="preserve"><value>Rimuovi configurazione</value></data>
@@ -4058,4 +4058,122 @@
   <data name="Lsr_FeedOld" xml:space="preserve"><value>(dato degli online non aggiornato)</value></data>
   <data name="Lsr_Indexing" xml:space="preserve"><value>Sto ancora leggendo procedure e trasferimenti: tra poco anche quei risultati.</value></data>
   <data name="Aqp_NoDoc" xml:space="preserve"><value>Nessun documento pubblicato per {0}.</value></data>
+  <data name="Bench_Title" xml:space="preserve"><value>Banco di prova</value></data>
+  <data name="Bench_Intro" xml:space="preserve"><value>Scegli un ACC e chi è aperto: qui sotto chi tiene il cielo dei settori chiusi, e a chi vanno i trasferimenti. Si usa la struttura salvata. Tutto ciò che sta fuori dall&apos;elenco (altri centri, torri) si considera aperto. Il banco non scrive niente.</value></data>
+  <data name="Bench_Acc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Bench_PickAcc" xml:space="preserve"><value>— scegli un ACC —</value></data>
+  <data name="Bench_AllOpen" xml:space="preserve"><value>Tutti aperti</value></data>
+  <data name="Bench_AllClosed" xml:space="preserve"><value>Tutti chiusi</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurazioni dichiarate in Struttura</value></data>
+  <data name="Bench_NoPresets" xml:space="preserve"><value>Nessuna configurazione dichiarata per questo ACC: apri e chiudi i settori a mano.</value></data>
+  <data name="Bench_Area" xml:space="preserve"><value>Settori d&apos;area aperti</value></data>
+  <data name="Bench_App" xml:space="preserve"><value>Avvicinamenti aperti</value></data>
+  <data name="Bench_ColOpen" xml:space="preserve"><value>Aperto</value></data>
+  <data name="Bench_ColHolds" xml:space="preserve"><value>Tiene anche</value></data>
+  <data name="Bench_Outside" xml:space="preserve"><value>fuori dall&apos;elenco</value></data>
+  <data name="Bench_Nobody" xml:space="preserve"><value>Nessuno (UNICOM)</value></data>
+  <data name="Bench_NothingOpen" xml:space="preserve"><value>Nessun settore aperto e nessuno fuori dall&apos;elenco che raccolga.</value></data>
+  <data name="Bench_Transfers" xml:space="preserve"><value>Trasferimenti dell&apos;ACC con questi aperti</value></data>
+  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} punti, {1} cambiano mano</value></data>
+  <data name="Bench_OnlyChanged" xml:space="preserve"><value>Solo quelli che cambiano mano</value></data>
+  <data name="Bench_NoTransfers" xml:space="preserve"><value>Nessun trasferimento da mostrare: con questi aperti ogni punto resta a chi è scritto.</value></data>
+  <data name="Bench_ColFlow" xml:space="preserve"><value>Flusso</value></data>
+  <data name="Bench_ColWrittenFrom" xml:space="preserve"><value>Cedente scritto</value></data>
+  <data name="Bench_ColFrom" xml:space="preserve"><value>Cede</value></data>
+  <data name="Bench_ColPoint" xml:space="preserve"><value>Punto</value></data>
+  <data name="Bench_ColLevel" xml:space="preserve"><value>Livello</value></data>
+  <data name="Bench_ColWrittenTo" xml:space="preserve"><value>Ricevente scritto</value></data>
+  <data name="Bench_ColTo" xml:space="preserve"><value>Riceve</value></data>
+  <data name="Bench_ByCoverage" xml:space="preserve"><value>copertura del punto</value></data>
+  <data name="Xfer_BenchTitle" xml:space="preserve"><value>Con questi settori aperti, i trasferimenti di questo ACC a chi vanno: apre il banco di prova in Struttura</value></data>
+  <data name="Xfer_Move" xml:space="preserve"><value>Sposta</value></data>
+  <data name="Xfer_MoveSectionTitle" xml:space="preserve"><value>Sposta questa sezione nell&apos;accordo di un&apos;altra coppia di enti</value></data>
+  <data name="Xfer_MoveSectionIntro" xml:space="preserve"><value>La sezione, con le sue {0} clausole, passa nell&apos;accordo fra questi due enti (nasce se non c&apos;è). Di solito si cambia un ente solo.</value></data>
+  <data name="Xfer_MoveBulk" xml:space="preserve"><value>Sposta…</value></data>
+  <data name="Xfer_MoveBulkTitle" xml:space="preserve"><value>Sposta le clausole scelte nell&apos;accordo di un&apos;altra coppia di enti</value></data>
+  <data name="Xfer_MoveBulkIntro" xml:space="preserve"><value>Le clausole scelte passano nell&apos;accordo fra questi due enti, nella sezione con lo stesso traffico e gli stessi aeroporti (accordo e sezione nascono se non ci sono). Un gruppo di varianti si sposta intero.</value></data>
+  <data name="Xfer_MoveFrom" xml:space="preserve"><value>Cede</value></data>
+  <data name="Xfer_MoveTo" xml:space="preserve"><value>Riceve</value></data>
+  <data name="Xfer_MoveNothing" xml:space="preserve"><value>Niente da spostare: stanno già nell&apos;accordo di quella coppia, in quel verso.</value></data>
+  <data name="Xfer_SectionMoved" xml:space="preserve"><value>Sezione spostata nell&apos;accordo {0}.</value></data>
+  <data name="Xfer_ClausesMoved" xml:space="preserve"><value>{0} clausole spostate nell&apos;accordo {1}.</value></data>
+  <data name="Xfer_ClausesMoved_One" xml:space="preserve"><value>{0} clausola spostata nell&apos;accordo {1}.</value></data>
+  <data name="Xfer_MoveCreated" xml:space="preserve"><value>L&apos;accordo non c&apos;era ed è stato creato.</value></data>
+  <data name="Xfer_MoveUndone" xml:space="preserve"><value>Spostamento annullato: tutto è tornato dov&apos;era.</value></data>
+  <data name="Xfer_SharedWith" xml:space="preserve"><value>condivisa con {0}</value></data>
+  <data name="Xfer_SharedWithN" xml:space="preserve"><value>condivisa con {0} accordi</value></data>
+  <data name="Xfer_SharedTitle" xml:space="preserve"><value>Questa clausola compare anche in: {0}. È la stessa: correggerla qui la corregge anche là.</value></data>
+  <data name="Xfer_ShareSectionTitle" xml:space="preserve"><value>Condividi le clausole di questa sezione con l&apos;accordo di un&apos;altra coppia di enti: scritte una volta, valgono per tutti e due</value></data>
+  <data name="Xfer_ShareSectionIntro" xml:space="preserve"><value>Le {0} clausole di questa sezione compariranno anche nell&apos;accordo fra questi due enti, nella sezione con lo stesso traffico e gli stessi scali. Accordo e sezione nascono solo se non ci sono. Da lì in poi si correggono una volta sola. Di solito si cambia un ente solo.</value></data>
+  <data name="Xfer_Share" xml:space="preserve"><value>Condividi</value></data>
+  <data name="Xfer_ShareAlready" xml:space="preserve"><value>Quelle clausole compaiono già in quell&apos;accordo: niente da fare.</value></data>
+  <data name="Xfer_ShareUndone" xml:space="preserve"><value>Condivisione annullata.</value></data>
+  <data name="Xfer_SecDetachTitle" xml:space="preserve"><value>Stacca le clausole condivise di questa sezione: qui diventano copie indipendenti; negli altri accordi restano com&apos;erano</value></data>
+  <data name="Xfer_SecDetachPrompt" xml:space="preserve"><value>Staccare le {0} clausole condivise di questa sezione? Qui diventano copie indipendenti; negli altri accordi restano com&apos;erano.</value></data>
+  <data name="Xfer_SecDetachYes" xml:space="preserve"><value>Sì, stacca</value></data>
+  <data name="Xfer_SecDetachUndone" xml:space="preserve"><value>Stacco annullato: le clausole sono di nuovo condivise.</value></data>
+  <data name="Xfer_SectionRemovePrompt" xml:space="preserve"><value>Eliminare la sezione? Le {0} clausole condivise restano negli altri accordi; le altre {1} se ne vanno.</value></data>
+  <data name="Xfer_SectionRemoveYes" xml:space="preserve"><value>Sì, elimina</value></data>
+  <data name="Xfer_MoveSharedTitle" xml:space="preserve"><value>Ha clausole condivise con un altro accordo: staccale, o togli la condivisione, prima di spostarla</value></data>
+  <data name="Xfer_SharedClauses" xml:space="preserve"><value>{0} clausole condivise</value></data>
+  <data name="Xfer_SharedClauses_One" xml:space="preserve"><value>1 clausola condivisa</value></data>
+  <data name="Xfer_SharedClausesTitle" xml:space="preserve"><value>Alcune clausole di questa tabella compaiono anche in altri accordi (hanno ⛓ sulla riga): correggerle qui le corregge anche là.</value></data>
+  <data name="Xfer_ShareBulk" xml:space="preserve"><value>Condividi…</value></data>
+  <data name="Xfer_ShareBulkTitle" xml:space="preserve"><value>Fai comparire le clausole scelte anche nell&apos;accordo di un&apos;altra coppia di enti</value></data>
+  <data name="Xfer_ShareBulkIntro" xml:space="preserve"><value>Le clausole scelte — coi loro gruppi di varianti, interi — compariranno anche nell&apos;accordo fra questi due enti, nella sezione con lo stesso traffico e gli stessi scali. Accordo e sezione nascono solo se non ci sono. Di solito si cambia un ente solo.</value></data>
+  <data name="Xfer_ClausesShared" xml:space="preserve"><value>{0} clausole condivise con l&apos;accordo {1}.</value></data>
+  <data name="Xfer_ClausesShared_One" xml:space="preserve"><value>Clausola condivisa con l&apos;accordo {1}.</value></data>
+  <data name="Xfer_ShareIntoExisting" xml:space="preserve"><value>Nella sezione che c&apos;era già: non ne è nata un&apos;altra.</value></data>
+  <data name="Xfer_ShareSectionCreated" xml:space="preserve"><value>La sezione non c&apos;era ed è stata creata.</value></data>
+  <data name="Xfer_DetachBulk" xml:space="preserve"><value>Stacca</value></data>
+  <data name="Xfer_DetachBulkTitle" xml:space="preserve"><value>Stacca: in questo accordo le clausole condivise scelte diventano copie indipendenti; negli altri restano com&apos;erano</value></data>
+  <data name="Xfer_DetachBulkPrompt" xml:space="preserve"><value>Staccare le clausole condivise scelte? Qui diventano copie indipendenti; negli altri accordi restano com&apos;erano.</value></data>
+  <data name="Xfer_DetachNeedsAgreement" xml:space="preserve"><value>«Stacca» vale in un accordo: aprine uno (vista ad accordo)</value></data>
+  <data name="Xfer_ClausesDetached" xml:space="preserve"><value>{0} clausole staccate: in questo accordo ora sono copie indipendenti.</value></data>
+  <data name="Xfer_ClausesDetached_One" xml:space="preserve"><value>Clausola staccata: in questo accordo ora è una copia indipendente.</value></data>
+  <data name="Xfer_DeleteRowSharedPrompt" xml:space="preserve"><value>Togliere la clausola da questo accordo? Resta in: {0}.</value></data>
+  <data name="Xfer_DeleteRowSharedEverywherePrompt" xml:space="preserve"><value>Eliminare la clausola? È condivisa: sparirà anche da: {0}.</value></data>
+  <data name="Xfer_RowRemovedHere" xml:space="preserve"><value>Clausola tolta da questo accordo; resta in {0}.</value></data>
+  <data name="Xfer_BulkDeleteSharedNote" xml:space="preserve"><value>Quelle condivise si tolgono solo da questo accordo e restano negli altri; una variante sola di un gruppo condiviso, invece, sparisce ovunque.</value></data>
+  <data name="Xfer_BulkDeleteSharedEverywhere" xml:space="preserve"><value>Quelle condivise spariranno da tutti gli accordi: per toglierle da uno solo, apri quell&apos;accordo.</value></data>
+  <data name="Xfer_GapLevel" xml:space="preserve"><value>quota di un altro settore</value></data>
+  <data name="Xfer_GapLevelDetail" xml:space="preserve"><value>Lì, a quella quota, il cielo è di {0} quando è aperto; la clausola è scritta per {1}: {2}.</value></data>
+  <data name="Xfer_GapLevelMoveTitle" xml:space="preserve"><value>Scegli queste clausole e apri «Sposta» con {0} al posto dell&apos;ente scritto</value></data>
+  <data name="Xfer_ClauseOrderTitle" xml:space="preserve"><value>Ordine delle clausole di questa tabella: vale qui, nei documenti e nella vista live. Con un ordine dichiarato le clausole condivise vanno al loro posto invece che in coda</value></data>
+  <data name="Xfer_ClauseOrderManual" xml:space="preserve"><value>a mano</value></data>
+  <data name="Xfer_ClauseOrderPoints" xml:space="preserve"><value>alfabetico (punto)</value></data>
+  <data name="Xfer_ClauseOrderLevel" xml:space="preserve"><value>per quota</value></data>
+  <data name="Xfer_ClauseOrderSaved" xml:space="preserve"><value>Ordine della tabella salvato.</value></data>
+  <data name="Xfer_ShareRowTitle" xml:space="preserve"><value>Condividi questa clausola con l&apos;accordo di un&apos;altra coppia di enti</value></data>
+  <data name="Xfer_ShareRowIntro" xml:space="preserve"><value>La clausola «{0}» — col suo gruppo di varianti, se ne ha uno — comparirà anche nell&apos;accordo fra questi due enti, nella sezione con lo stesso traffico e gli stessi scali. Accordo e sezione nascono solo se non ci sono. Di solito si cambia un ente solo.</value></data>
+  <data name="Xfer_ShareAgreement" xml:space="preserve"><value>Condividi…</value></data>
+  <data name="Xfer_ShareAgreementTitle" xml:space="preserve"><value>Condividi TUTTE le clausole dell&apos;accordo con quello di un&apos;altra coppia: si cambia uno dei due enti</value></data>
+  <data name="Xfer_ShareAgreementIntro" xml:space="preserve"><value>Le {0} clausole di tutte le sezioni compariranno anche nell&apos;accordo con un altro ente. Qui sotto ci sono i due enti dell&apos;accordo: cambiane UNO, l&apos;altro resta. Ogni sezione va nella sezione uguale dell&apos;altro accordo, che nasce solo se manca.</value></data>
+  <data name="Xfer_ShareAgreementOneSide" xml:space="preserve"><value>Cambia uno solo dei due enti: l&apos;altro resta quello dell&apos;accordo.</value></data>
+  <data name="Cfgs_Title" xml:space="preserve"><value>Configurazioni possibili</value></data>
+  <data name="Cfgs_Intro" xml:space="preserve"><value>Per ogni gruppo di settori, le configurazioni di apertura: nome, settori aperti, Center Point e Range. Il documento le riporta nella sua tabella e il banco di prova le offre come scenari. Un elenco dichiarato completo, in più, vincola: Diagnostica e scala di risalita non provano combinazioni che non ci sono scritte. Un elenco parla dei soli settori che nomina, e «tutti chiusi» è sempre previsto.</value></data>
+  <data name="Cfgs_ReadOnly" xml:space="preserve"><value>Sola lettura: per modificare prendi il lock della struttura, in cima alla pagina.</value></data>
+  <data name="Cfgs_NoGroups" xml:space="preserve"><value>Questo ACC non ha settori d&apos;area né enti.</value></data>
+  <data name="Cfgs_Unsaved" xml:space="preserve"><value>non applicato</value></data>
+  <data name="Cfgs_NoList" xml:space="preserve"><value>Nessuna configurazione dichiarata.</value></data>
+  <data name="Cfgs_ColConfig" xml:space="preserve"><value>Configurazione</value></data>
+  <data name="Cfgs_Consequences" xml:space="preserve"><value>Che cosa ne segue</value></data>
+  <data name="Cfgs_ColSector" xml:space="preserve"><value>Settore</value></data>
+  <data name="Cfgs_ColAlwaysWith" xml:space="preserve"><value>Apre solo con</value></data>
+  <data name="Cfgs_ColNeverWith" xml:space="preserve"><value>Mai insieme a</value></data>
+  <data name="Cfgs_ColAlone" xml:space="preserve"><value>Può stare da solo</value></data>
+  <data name="Cfgs_Yes" xml:space="preserve"><value>sì</value></data>
+  <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
+  <data name="Cfgs_Unnamed" xml:space="preserve"><value>Settori che l&apos;elenco non nomina, quindi senza vincoli: {0}.</value></data>
+  <data name="Cfgs_NoConstraint" xml:space="preserve"><value>Nessuna configurazione con un settore aperto.</value></data>
+  <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Settori d&apos;area · {0}</value></data>
+  <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>Le configurazioni possibili non sono applicate: applicale o annullale prima di «Fine modifica».</value></data>
+  <data name="Bench_NotForeseen" xml:space="preserve"><value>Non è una configurazione prevista dall&apos;elenco completo — {0}: {1}</value></data>
+  <data name="AppCfg_FromStructure" xml:space="preserve"><value>Le configurazioni di questo gruppo si dichiarano in Struttura, sezione «Configurazioni possibili»: qui si leggono, con l&apos;accorpamento che ne segue.</value></data>
+  <data name="AppCfg_OpenStructure" xml:space="preserve"><value>Apri Struttura</value></data>
+  <data name="Cfgs_Exhaustive" xml:space="preserve"><value>L&apos;elenco è completo</value></data>
+  <data name="Cfgs_ExhaustiveHelp" xml:space="preserve"><value>Una combinazione di aperti che non è scritta qui non esiste. Accendilo solo dopo aver letto qui sotto che cosa ne segue: se una riga dice una cosa falsa, manca una configurazione.</value></data>
+  <data name="Cfgs_StateExhaustive" xml:space="preserve"><value>completo: vincola</value></data>
+  <data name="Cfgs_StateExamples" xml:space="preserve"><value>esempi: non vincola</value></data>
+  <data name="Cfgs_ConsequencesIf" xml:space="preserve"><value>Che cosa ne seguirebbe, se l&apos;elenco fosse completo</value></data>
 </root>

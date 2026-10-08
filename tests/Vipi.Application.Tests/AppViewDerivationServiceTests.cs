@@ -53,7 +53,7 @@ public class AppViewDerivationServiceTests
     public async Task Live_When_Not_UseFrozen()
     {
         var reader = new FakeReader { Frozen = { ["frequencies"] = new List<AppFreqRow> { Freq("A"), Freq("B") } } };
-        var svc = new AppViewDerivationService(new FakeApp(), reader);
+        var svc = new AppViewDerivationService(new FakeApp { DellaStruttura = Array.Empty<AccConfiguration>() }, reader);
 
         var d = await svc.ResolveForViewAsync("LIRP_APP", Doc(), useFrozen: false);
 
@@ -70,9 +70,15 @@ public class AppViewDerivationServiceTests
         public int Letture { get; private set; }
         public bool WasQueried => Letture > 0;
 
+        /// <summary>Vero = lo snapshot è di una release nata con le configurazioni in Struttura, e non ha
+        /// nessuna sezione congelata (la sezione <c>configurations</c> è Live).</summary>
+        public bool NuovaSenzaCongelate { get; set; }
+
         public Task<FrozenSections> LoadAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
         {
             Letture++;
+            if (NuovaSenzaCongelate)
+                return Task.FromResult(FrozenSections.FromSnapshot(null, null, configurazioniDallaStruttura: true));
             // Si passa per il JSON vero, non per gli oggetti: cosi' la prova copre anche la deserializzazione.
             return Task.FromResult(FrozenSections.FromKeys(
                 Frozen.ToDictionary(kv => kv.Key, kv => System.Text.Json.JsonSerializer.Serialize(kv.Value, kv.Value.GetType()))));
@@ -116,8 +122,12 @@ public class AppViewDerivationServiceTests
         public Task SaveFrequencyOrderAsync(string a, IReadOnlyList<AppFreqOrderOverride> o, CancellationToken ct = default) => throw new NotImplementedException();
         public Task SaveFrequencyLinksAsync(string a, IReadOnlyList<int> s, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task SaveConfigurationsAsync(string a, IReadOnlyList<AccConfiguration> c, CancellationToken ct = default) => throw new NotImplementedException();
+        /// <summary>Le configurazioni che la Struttura ha adesso per l'ente; null = chiederle è un errore del test.</summary>
+        public IReadOnlyList<AccConfiguration>? DellaStruttura { get; set; }
+        public Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string a, CancellationToken ct = default) =>
+            DellaStruttura is { } s
+                ? Task.FromResult(s)
+                : throw new InvalidOperationException("Una release di prima non deve chiedere le configurazioni alla Struttura.");
         /// <summary>Configurazioni con cui la pagina ha chiesto la tabella: è ciò che il test vuole osservare.</summary>
         public IReadOnlyList<AccConfiguration>? ConfigsAsked { get; private set; }
 
@@ -198,6 +208,55 @@ public class AppViewDerivationServiceTests
         Assert.Equal("LIRP_TWR", Assert.Single(custom.Callsigns));
         Assert.Equal("#123456", custom.Colors["LIRP_APP"]);
         Assert.Equal("nord", Assert.Single(configs).Key);
+    }
+
+    // ---- 8 ottobre 2026: le configurazioni stanno in Struttura (carta 2026-10-08-configurazioni-possibili) ----
+
+    private static IReadOnlyList<AccConfiguration> Una(string chiave) =>
+        new[] { new AccConfiguration { Key = chiave, Name = chiave, Open = { new AccConfigOpen { Callsign = "LIRP_APP" } } } };
+
+    private const string RimastaNelDocumento = """[{"Key":"vecchia","Name":"Vecchia","OpenCallsigns":["LIRP_APP"]}]""";
+
+    /// <summary>La versione di lavoro (anteprima di una bozza) mostra la Struttura di adesso: una bozza delle
+    /// configurazioni non esiste più, e il <c>BodyJson</c> rimasto nel documento non conta.</summary>
+    [Fact]
+    public async Task La_versione_di_lavoro_legge_le_configurazioni_dalla_struttura()
+    {
+        var app = new FakeApp { DellaStruttura = Una("struttura") };
+        var svc = new AppViewDerivationService(app, new FakeReader());
+
+        var d = await svc.ResolveForViewAsync("LIRP_APP", Doc(RimastaNelDocumento), useFrozen: false);
+
+        Assert.Equal("struttura", Assert.Single(app.ConfigsAsked!).Key);
+        Assert.Equal("struttura", Assert.Single(app.AorAsked!.Value.Configs).Key);
+        Assert.Equal("struttura", Assert.Single(d.ConfigTable).ConfigKey);
+    }
+
+    /// <summary>Una release nuova con la sezione congelata dice le configurazioni di allora: né la Struttura di
+    /// adesso, né il <c>BodyJson</c> rimasto nel documento.</summary>
+    [Fact]
+    public async Task Una_release_nuova_congelata_usa_la_voce_congelata()
+    {
+        var app = new FakeApp();   // la Struttura non va chiesta
+        var reader = new FakeReader { Frozen = { ["configurations"] = Una("congelata").ToList() } };
+        var svc = new AppViewDerivationService(app, reader);
+
+        await svc.ResolveForViewAsync("LIRP_APP", Doc(RimastaNelDocumento), useFrozen: true);
+
+        Assert.Equal("congelata", Assert.Single(app.ConfigsAsked!).Key);
+    }
+
+    /// <summary>🔴 Una release nuova con la sezione Live non ha una voce congelata — ma non è una release di prima:
+    /// lo dice il suo segno. Segue la Struttura, e il <c>BodyJson</c> rimasto nel documento NON passa per buono.</summary>
+    [Fact]
+    public async Task Una_release_nuova_con_la_sezione_live_segue_la_struttura()
+    {
+        var app = new FakeApp { DellaStruttura = Una("struttura") };
+        var svc = new AppViewDerivationService(app, new FakeReader { NuovaSenzaCongelate = true });
+
+        await svc.ResolveForViewAsync("LIRP_APP", Doc(RimastaNelDocumento), useFrozen: true);
+
+        Assert.Equal("struttura", Assert.Single(app.ConfigsAsked!).Key);
     }
 
     [Fact]

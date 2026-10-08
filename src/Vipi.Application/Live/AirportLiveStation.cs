@@ -49,7 +49,7 @@ public sealed class AirportLiveStation : ILiveStationKind
             Type = ctx.Sector.Type is SectorType.Twr or SectorType.ITwr ? LiveStationType.Tower : LiveStationType.Ground,
             AirportIcao = icao,
             Frequencies = freqs,
-            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ctx.Topology, ct),
+            Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ct),
             Aor = _parts.Aor(ctx.Topology, ctx.Callsign, ctx.Online),
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
             ExtendedDoc = icao is null ? null : new LiveDocRef(edizione ?? ReleaseTargetType.Airport, ctx.Acc.Code, icao),

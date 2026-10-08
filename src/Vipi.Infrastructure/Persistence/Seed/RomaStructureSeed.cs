@@ -8,7 +8,7 @@ namespace Vipi.Infrastructure.Persistence.Seed;
 /// Seed strutturale (no contenuti) della ACC pilota Roma (LIRR): settori (entità unificata) + contenimento
 /// top-down (ParentSectorId) + frequenze. PIANO §17.1. Idempotente: no-op se LIRR esiste già.
 /// In produzione i settori arriveranno dalle API IVAO; il contenimento resta dato manuale.
-/// Lo split SU/ES è ora pura gerarchia (ES figlio di SU): nessuna UnificationRule necessaria nel seed.
+/// Lo split SU/ES è ora pura gerarchia (ES figlio di SU): nessuna regola a parte nel seed.
 /// </summary>
 public static class RomaStructureSeed
 {

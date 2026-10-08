@@ -46,7 +46,7 @@ public static class SectionCatalog
             ["minima"] = SectionKind.Derived,
             ["purpose"] = SectionKind.Editorial,   // vLOA: scopo dell'accordo, prosa (doc 13 §3c)
             ["separations"] = SectionKind.Editorial,
-            ["configurations"] = SectionKind.Editorial,
+            ["configurations"] = SectionKind.Derived,   // dall'8 ottobre 2026: le legge dalla Struttura (carta configurazioni-possibili)
             ["vfr"] = SectionKind.Editorial,
             ["regulated"] = SectionKind.Editorial,
             ["operationaltechnique"] = SectionKind.Editorial,

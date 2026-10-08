@@ -12,7 +12,16 @@ namespace Vipi.Application.Content;
 internal sealed class AccFrozenSectionProvider : IFrozenSectionProvider
 {
     private readonly IAccDerivationService _acc;
-    public AccFrozenSectionProvider(IAccDerivationService acc) => _acc = acc;
+    private readonly ISectorConfigurationService _configurazioni;
+    private readonly Abstractions.IAtcUnitRepository _enti;
+
+    public AccFrozenSectionProvider(IAccDerivationService acc, ISectorConfigurationService configurazioni,
+        Abstractions.IAtcUnitRepository enti)
+    {
+        _acc = acc;
+        _configurazioni = configurazioni;
+        _enti = enti;
+    }
 
     public ReleaseTargetType Type => ReleaseTargetType.AccVipi;
 
@@ -26,8 +35,18 @@ internal sealed class AccFrozenSectionProvider : IFrozenSectionProvider
         var accCode = parts[0];
         var root = parts.Length > 1 ? parts[1] : null;
 
-        foreach (var ab in AccDocumentAssembler.Assemble(doc))
+        var blocchi = AccDocumentAssembler.Assemble(doc);
+        // ⚠️ PRIMA di derivare qualunque cosa: la mappa AoR porta le chip delle configurazioni, e quelle sono le
+        // configurazioni della Struttura — non il BodyJson che può essere rimasto nella sezione del documento
+        // (carta 2026-10-08-configurazioni-possibili §5).
+        await ConfigurazioniDelDocumento.DallaStrutturaAsync(_configurazioni, _enti, accCode, blocchi.Select(b => b.Block), ct);
+
+        foreach (var ab in blocchi)
         {
+            // Le configurazioni si congelano come le altre derivate: la release dice quelle di ALLORA, anche se
+            // in Struttura poi cambiano. Il valore è la lista com'è; la tabella d'accorpamento si ricalcola al view.
+            if (ab.ChildSectionIdsByKey.TryGetValue(ConfigurazioniDelDocumento.Chiave, out var cfgId) && frozenIds.Contains(cfgId))
+                result[cfgId] = JsonSerializer.Serialize(ab.Block.Configurations);
             // ⚠️ Le AoR dei settori MIL e FSS (21 settembre 2026) si congelano come quella principale: sono geometrie,
             // e un documento pubblicato che le mostrasse vive direbbe «oggi» accanto a una AoR che dice «allora».
             foreach (var secKey in new[] { "aor", SectionKeys.AorMil, SectionKeys.AorFss, "frequencies", "coordination", "minima" })

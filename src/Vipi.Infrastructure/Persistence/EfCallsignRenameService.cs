@@ -255,6 +255,15 @@ public sealed class EfCallsignRenameService : ICallsignRenameService, ISectorSub
                      .ToListAsync(ct))
             if (JsonCallsignRewriter.Rewrite(b.BodyJson, vecchio, nuovo) is { } riscritto)
                 b.BodyJson = riscritto;
+
+        // 6-bis. Le configurazioni possibili dichiarate in Struttura: stessa forma JSON, stesso riscrittore.
+        //        ⚠️ Solo i settori DENTRO l'elenco: la chiave del gruppo è il codice dell'ACC o dell'ente, e
+        //        quello di un ente non segue le sue posizioni (è il punto di `AtcUnit.Code`).
+        foreach (var e in await _db.SectorConfigurationSets
+                     .Where(x => EF.Functions.Like(x.BodyJson, $"%{vecchio}%"))
+                     .ToListAsync(ct))
+            if (JsonCallsignRewriter.Rewrite(e.BodyJson, vecchio, nuovo) is { } riscritto)
+                e.BodyJson = riscritto;
     }
 
     /// <summary>Il passo 7 della rinomina: l'alias vecchio → nuovo, per lo storico.</summary>
@@ -351,6 +360,7 @@ public sealed class EfCallsignRenameService : ICallsignRenameService, ISectorSub
             a.SideASectorId = sideA;
             a.SideBSectorId = sideB;
             if (scambiati)
+            {
                 foreach (var s in a.Sections)
                     s.Direction = s.Direction switch
                     {
@@ -358,6 +368,7 @@ public sealed class EfCallsignRenameService : ICallsignRenameService, ISectorSub
                         AgreementDirection.BtoA => AgreementDirection.AtoB,
                         var d => d,
                     };
+            }
         }
 
         var blocchi = 0;

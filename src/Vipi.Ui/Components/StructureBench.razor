@@ -1,0 +1,266 @@
+@inject ICoverageBenchService Bench
+@inject IStringLocalizer<SharedResource> L
+@* Il banco di prova della struttura: «con questi aperti, chi tiene cosa — e i trasferimenti a chi vanno».
+
+   ⚠️ Non calcola niente da sé: chiede a `ICoverageBenchService`, che usa le stesse due porte della mappa AoR, della
+   tabella delle configurazioni e della vista live. E non scrive niente: è una domanda, non una modifica — per
+   questo funziona anche senza il lock della struttura.
+
+   ⚠️ Le letture passano dalla FILA della pagina (`InFila`): il servizio è scoped come gli altri della pagina, e
+   due letture insieme sullo stesso DbContext sono «A second operation was started» (U-012). *@
+
+<div class="bench">
+    <p class="muted" style="margin:0 0 10px">@L["Bench_Intro"]</p>
+
+    <div class="inline-form" style="align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <div class="field">
+            <label class="app-lbl" for="bench-acc">@L["Bench_Acc"]</label>
+            <select id="bench-acc" class="app-in" @onchange="e => ScegliAccAsync(e.Value?.ToString())">
+                <option value="" selected="@(_acc is null)">@L["Bench_PickAcc"]</option>
+                @foreach (var a in Accs.OrderBy(x => x.Code, StringComparer.OrdinalIgnoreCase))
+                {
+                    <option value="@a.Code" selected="@(a.Code == _acc)">@a.Code — @a.Name</option>
+                }
+            </select>
+        </div>
+        @if (_scope is not null)
+        {
+            <button type="button" class="btn ghost" disabled="@_busy" @onclick="() => ApriAsync(_scope.Sectors.Select(s => s.Callsign))">@L["Bench_AllOpen"]</button>
+            <button type="button" class="btn ghost" disabled="@_busy" @onclick="() => ApriAsync(Array.Empty<string>())">@L["Bench_AllClosed"]</button>
+        }
+    </div>
+
+    @if (_errore is not null)
+    {
+        <p class="st-msg warn" role="alert">@_errore</p>
+    }
+
+    @if (_scope is not null)
+    {
+        @if (_scope.Presets.Count > 0)
+        {
+            <p class="app-lbl" style="margin:12px 0 4px">@L["Bench_Presets"]</p>
+            <div class="sector-pick">
+                @foreach (var p in _scope.Presets)
+                {
+                    var preset = p;
+                    <button type="button" class="sp-item @(Uguale(preset.Open) ? "on" : null)" disabled="@_busy"
+                            title="@string.Join(" · ", preset.Open)" @onclick="() => ApriAsync(preset.Open)">
+                        @preset.Name
+                    </button>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="muted" style="margin:12px 0 0">@L["Bench_NoPresets"]</p>
+        }
+
+        @foreach (var area in new[] { true, false })
+        {
+            var gruppo = _scope.Sectors.Where(s => s.Area == area).ToList();
+            if (gruppo.Count == 0) continue;
+            <p class="app-lbl" style="margin:12px 0 4px">@(area ? L["Bench_Area"] : L["Bench_App"])</p>
+            <div class="sector-pick">
+                @foreach (var s in gruppo)
+                {
+                    var settore = s;
+                    <button type="button" class="sp-item @(_open.Contains(settore.Callsign) ? "on" : null)" disabled="@_busy"
+                            aria-pressed="@_open.Contains(settore.Callsign).ToString().ToLowerInvariant()"
+                            title="@settore.Name" @onclick="() => CambiaAsync(settore.Callsign)">
+                        @settore.Callsign
+                    </button>
+                }
+            </div>
+        }
+
+        @if (_esito is not null)
+        {
+            @* Lo scenario non è una configurazione possibile dichiarata: si dice, e si risponde lo stesso. *@
+            @foreach (var fuori in _esito.NonPreviste)
+            {
+                <p class="st-msg warn bench-notforeseen" style="margin-top:12px">
+                    @L["Bench_NotForeseen", fuori.Elenco.Codice, string.Join(" + ", fuori.Aperti)]
+                </p>
+            }
+            <table class="cfg-table" style="margin-top:14px">
+                <thead><tr><th>@L["Bench_ColOpen"]</th><th>@L["Bench_ColHolds"]</th></tr></thead>
+                <tbody>
+                    @foreach (var g in _esito.Coverage)
+                    {
+                        <tr class="grp-start">
+                            <td class="uni">
+                                @(g.Holder ?? L["Bench_Nobody"].Value)
+                                @if (g.Outside) { <span class="acc-tag">@L["Bench_Outside"]</span> }
+                            </td>
+                            <td class="@(g.Holder is null ? "bench-warn" : null)">
+                                @(g.Items.Count == 0 ? "—" : string.Join(", ", g.Items.Select(Voce)))
+                            </td>
+                        </tr>
+                    }
+                    @if (_esito.Coverage.Count == 0)
+                    {
+                        <tr><td colspan="2" class="muted">@L["Bench_NothingOpen"]</td></tr>
+                    }
+                </tbody>
+            </table>
+
+            var righe = Righe(_esito.Transfers);
+            var cambiati = righe.Count(r => r.Cambia);
+            <details class="cfg-collapse coord-sub" style="margin-top:14px">
+                <summary>
+                    <span>@L["Bench_Transfers"] — @L["Bench_TransfersCount", righe.Count, cambiati]</span><span class="chev">▸</span>
+                </summary>
+                <div class="body">
+                    <label class="muted" style="display:inline-flex;gap:6px;align-items:center;margin-bottom:8px">
+                        <input type="checkbox" checked="@_soloCambiati" @onchange="e => _soloCambiati = e.Value is true" />
+                        @L["Bench_OnlyChanged"]
+                    </label>
+                    @{ var mostrate = righe.Where(r => !_soloCambiati || r.Cambia).ToList(); }
+                    @if (mostrate.Count == 0)
+                    {
+                        <p class="muted">@L["Bench_NoTransfers"]</p>
+                    }
+                    else
+                    {
+                        <table class="res-table">
+                            <thead>
+                                <tr>
+                                    <th>@L["Bench_ColFlow"]</th>
+                                    <th>@L["Bench_ColWrittenFrom"]</th>
+                                    <th>@L["Bench_ColFrom"]</th>
+                                    <th>@L["Bench_ColPoint"]</th>
+                                    <th>@L["Bench_ColLevel"]</th>
+                                    <th>@L["Bench_ColWrittenTo"]</th>
+                                    <th>@L["Bench_ColTo"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in mostrate)
+                                {
+                                    <tr>
+                                        <td>@r.Flusso</td>
+                                        <td>@r.CedenteScritto</td>
+                                        <td class="@(r.CedeAltro ? "bench-diff" : null)">@r.Cede</td>
+                                        <td>@r.Punto</td>
+                                        <td>@r.Livello</td>
+                                        <td>@r.RiceventeScritto</td>
+                                        <td class="@(r.RiceveAltro ? "bench-diff" : null)">
+                                            @r.Riceve
+                                            @if (r.PerCopertura) { <span class="fb-seq-tag">@L["Bench_ByCoverage"]</span> }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </details>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>Gli ACC fra cui scegliere: quelli che la pagina ha già letto.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<AccRow> Accs { get; set; } = Array.Empty<AccRow>();
+
+    /// <summary>La fila della pagina ospite: ogni lettura del banco ci passa dentro.</summary>
+    [Parameter, EditorRequired] public Func<Func<Task>, Task> InFila { get; set; } = op => op();
+
+    /// <summary>L'ACC su cui aprirsi (chi arriva dai Trasferimenti). Sconosciuto o vuoto = nessuno scelto.</summary>
+    [Parameter] public string? AccIniziale { get; set; }
+
+    private string? _acc;
+    private BenchScope? _scope;
+    private BenchOutcome? _esito;
+    private readonly HashSet<string> _open = new(StringComparer.OrdinalIgnoreCase);
+    private bool _busy;
+    private bool _soloCambiati = true;
+    private string? _errore;
+
+    /// <summary>Una riga della tabella dei trasferimenti: un punto, con chi lo cede e chi lo riceve davvero.</summary>
+    private sealed record Riga(string Flusso, string CedenteScritto, string Cede, bool CedeAltro, string Punto,
+        string Livello, string RiceventeScritto, string Riceve, bool RiceveAltro, bool PerCopertura)
+    {
+        public bool Cambia => CedeAltro || RiceveAltro;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var iniziale = Accs.FirstOrDefault(a => string.Equals(a.Code, AccIniziale?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (iniziale is not null) await ScegliAccAsync(iniziale.Code);
+    }
+
+    private static string Voce(BenchItem i) => i.Band is null ? i.Sector : $"{i.Sector} ({i.Band})";
+
+    private bool Uguale(IReadOnlyList<string> aperti) => _scope is not null && _open.SetEquals(
+        aperti.Where(a => _scope.Sectors.Any(s => string.Equals(s.Callsign, a, StringComparison.OrdinalIgnoreCase))));
+
+    private List<Riga> Righe(IReadOnlyList<ResolvedTransferFlow> flussi)
+    {
+        var righe = new List<Riga>();
+        foreach (var f in flussi)
+        {
+            var flusso = XferLabels.Kind(L, f.Flow.Kind)
+                         + (string.IsNullOrWhiteSpace(f.Flow.AirportIcao) ? "" : " " + f.Flow.AirportIcao);
+            var cede = f.OwnerOnline ? f.ResolvedOwnerCallsign : L["Bench_Nobody"].Value;
+            var cedeAltro = !f.OwnerOnline
+                || !string.Equals(f.ResolvedOwnerCallsign, f.Flow.OwningSectorCallsign, StringComparison.OrdinalIgnoreCase);
+            foreach (var p in f.Points)
+            {
+                var scritto = p.Point.NextSectorCallsign ?? "";
+                righe.Add(new Riga(flusso, f.Flow.OwningSectorCallsign, cede, cedeAltro, p.Point.Cop,
+                    p.Point.LevelText ?? "", scritto, p.ResolvedHandler,
+                    RiceveAltro: !string.Equals(p.ResolvedHandler, scritto, StringComparison.OrdinalIgnoreCase),
+                    PerCopertura: p.Coverage is { Outcome: CoverageFallbackOutcome.Resolved } c
+                                  && string.Equals(c.TargetCallsign, p.ResolvedHandler, StringComparison.OrdinalIgnoreCase)));
+            }
+        }
+        return righe;
+    }
+
+    private Task ScegliAccAsync(string? acc) => GuardatoAsync(async () =>
+    {
+        _acc = string.IsNullOrWhiteSpace(acc) ? null : acc;
+        _scope = null;
+        _esito = null;
+        _open.Clear();
+        if (_acc is null) return;
+
+        _scope = await Bench.ScopeAsync(_acc);
+        if (_scope is null) return;
+        // Si parte da «tutti aperti»: ognuno tiene il suo, e chiudendone uno si vede chi lo raccoglie.
+        foreach (var s in _scope.Sectors) _open.Add(s.Callsign);
+        _esito = await Bench.SimulateAsync(_acc, _open);
+    });
+
+    private Task CambiaAsync(string callsign) => GuardatoAsync(async () =>
+    {
+        if (!_open.Remove(callsign)) _open.Add(callsign);
+        _esito = await Bench.SimulateAsync(_acc!, _open);
+    });
+
+    private Task ApriAsync(IEnumerable<string> aperti) => GuardatoAsync(async () =>
+    {
+        if (_scope is null) return;
+        _open.Clear();
+        foreach (var a in aperti)
+            if (_scope.Sectors.Any(s => string.Equals(s.Callsign, a, StringComparison.OrdinalIgnoreCase)))
+                _open.Add(a);
+        _esito = await Bench.SimulateAsync(_acc!, _open);
+    });
+
+    /// <summary>Ogni gesto: in fila con la pagina, e un guasto del servizio diventa una frase invece di un circuito giù.</summary>
+    private async Task GuardatoAsync(Func<Task> gesto)
+    {
+        if (_busy) return;
+        _busy = true;
+        _errore = null;
+        try { await InFila(gesto); }
+        catch (ValidationException ex) { _errore = ex.Message; }
+        catch (EditNotAllowedException ex) { _errore = ex.Message; }
+        catch (InvalidOperationException ex) { _errore = ex.Message; }
+        catch (Exception ex) { _errore = L["Common_UnexpectedError"] + ex.Message; }
+        finally { _busy = false; }
+    }
+}

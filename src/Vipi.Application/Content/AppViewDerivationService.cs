@@ -56,20 +56,42 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
         // 🔴 T-028 (revisione del 13 settembre 2026): anche la mappa AoR live parte dal documento MOSTRATO — shape
         // extra, colori e configurazioni. Chiedendola al service si leggeva la versione di lavoro, e la pagina
         // pubblica disegnava la personalizzazione di una bozza: lo stesso difetto della tabella qui sotto.
+        // Le configurazioni, UNA volta: servono alla mappa AoR (le chip) e alla tabella d'accorpamento.
+        var configurazioni = await ConfigurazioniAsync(app, view, frozen, useFrozen, ct);
         var aor = frozen.Get<AccAorView>("aor")
-            ?? await _app.GetAorViewAsync(app, AorCustomizationOf(view), ConfigurationsOf(view), ct);
+            ?? await _app.GetAorViewAsync(app, AorCustomizationOf(view), configurazioni, ct);
         var minima = frozen.Get<MinimaView>("minima")
             ?? await _app.DeriveMinimaAsync(app, ct);
 
         // L'accorpamento non si congela — si ricalcola da input già congelati — ma le CONFIGURAZIONI da cui parte
-        // devono essere quelle del documento mostrato. Prendendole dal service si leggeva la versione di lavoro:
-        // sulla pagina pubblica comparivano le configurazioni di una bozza mai pubblicata (doc 13 §3g).
-        var configTable = await _app.DeriveConfigTableAsync(app, ConfigurationsOf(view), ct);
+        // devono essere quelle del documento mostrato (doc 13 §3g): vedi ConfigurazioniAsync.
+        var configTable = await _app.DeriveConfigTableAsync(app, configurazioni, ct);
 
         return new AppViewDerived(freqs, coord, aor, configTable, minima);
     }
 
-    /// <summary>Configurazioni salvate nella sezione keyed del documento mostrato (vuote se la sezione manca).</summary>
+    /// <summary>
+    /// Le configurazioni del documento <b>mostrato</b> (carta 2026-10-08-configurazioni-possibili §4–§5, la
+    /// stessa regola di <see cref="ConfigurazioniDelDocumento"/>):
+    /// <list type="bullet">
+    /// <item>versione di lavoro → la Struttura di adesso (non c'è più una bozza delle configurazioni: il difetto
+    /// del doc 13 §3g, «sulla pagina pubblica le configurazioni di una bozza», non può più darsi);</item>
+    /// <item>release nata con le configurazioni in Struttura → la voce congelata, o la Struttura se la sezione
+    /// è Live;</item>
+    /// <item>release di prima → il <c>BodyJson</c> della sezione nello snapshot, com'è.</item>
+    /// </list>
+    /// </summary>
+    private async Task<IReadOnlyList<AccConfiguration>> ConfigurazioniAsync(
+        string app, DocumentView view, FrozenSections frozen, bool useFrozen, CancellationToken ct)
+    {
+        if (!useFrozen) return await _app.GetConfigurationsAsync(app, ct);
+        if (frozen.Get<List<AccConfiguration>>(ConfigurationsKey) is { } congelate) return congelate;
+        if (frozen.ConfigurazioniDallaStruttura) return await _app.GetConfigurationsAsync(app, ct);
+        return ConfigurationsOf(view);
+    }
+
+    /// <summary>Configurazioni scritte nella sezione keyed del documento mostrato (vuote se la sezione manca):
+    /// vale per le sole release di prima dell'8 ottobre 2026.</summary>
     private static IReadOnlyList<AccConfiguration> ConfigurationsOf(DocumentView view)
     {
         var section = view?.Sections.FirstOrDefault(s =>

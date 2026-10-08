@@ -39,8 +39,8 @@ public interface IAccDocumentService
     /// <summary>Salva il metadata del blocco (natura/membri/override) nel <c>BodyJson</c> del blocco proprio della sezione-blocco. ACC-gated.</summary>
     Task SaveBlockMetaAsync(string accCode, int blockSectionId, AccBlockMeta meta, CancellationToken ct = default);
 
-    /// <summary>Salva le configurazioni di un blocco nel <c>BodyJson</c> della sua sezione figlia <c>configurations</c>. ACC-gated.</summary>
-    Task SaveConfigurationsAsync(string accCode, int configSectionId, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
+    // ⚠️ Qui c'era `SaveConfigurationsAsync`: dall'8 ottobre 2026 le configurazioni si scrivono in Struttura
+    // (`ISectorConfigurationService`) e il documento le legge — vedi `ConfigurazioniDelDocumento`.
 
     /// <summary>Salva la selezione aree regolamentate (proprio ACC auto/manuale + extra) nel <c>BodyJson</c> della sezione
     /// figlia <c>regulated</c>. «Puro automatico senza extra» azzera il BodyJson (resta dinamico). ACC-gated.</summary>
@@ -80,11 +80,16 @@ public sealed class AccDocumentService : IAccDocumentService
     private readonly IReleaseRepository _releases;
     private readonly IDocumentLockGuard _lock;
     private readonly IAtcUnitRepository? _enti;
+    private readonly ISectorConfigurationService? _configurazioni;
 
     /// <param name="enti">Gli enti dei gruppi APP (S55): si riallineano quando cambiano i membri di un gruppo.
     /// Opzionale per i banchi che non li usano.</param>
+    /// <param name="configurazioni">Le configurazioni possibili dichiarate in Struttura: il documento le legge da
+    /// lì (<see cref="ConfigurazioniDelDocumento"/>). Opzionale per i banchi che guardano altro: senza, i blocchi
+    /// tengono quel che sta scritto nella loro sezione, come le release di prima dell'8 ottobre 2026.</param>
     public AccDocumentService(IAccDerivationRepository repo, IEditingRepository editing, IEditAuthorizationService authz,
-        IReleaseRepository releases, IDocumentLockGuard lockGuard, IAtcUnitRepository? enti = null)
+        IReleaseRepository releases, IDocumentLockGuard lockGuard, IAtcUnitRepository? enti = null,
+        ISectorConfigurationService? configurazioni = null)
     {
         _repo = repo;
         _editing = editing;
@@ -92,6 +97,7 @@ public sealed class AccDocumentService : IAccDocumentService
         _releases = releases;
         _lock = lockGuard;
         _enti = enti;
+        _configurazioni = configurazioni;
     }
 
     /// <summary>
@@ -148,6 +154,10 @@ public sealed class AccDocumentService : IAccDocumentService
             ?? throw new Aor.ValidationException(Lingua($"vIPI ACC {accCode} senza versione di lavoro.", $"ACC vIPI {accCode} has no working version."));
 
         var blocks = AccDocumentAssembler.Assemble(doc);
+        // La versione di lavoro mostra le configurazioni che la Struttura ha ADESSO: sono quelle che la prossima
+        // pubblicazione congelerà.
+        if (_configurazioni is not null)
+            await ConfigurazioniDelDocumento.DallaStrutturaAsync(_configurazioni, _enti, accCode, blocks.Select(b => b.Block), ct);
         return new AccDocumentModel(doc.DocumentId, doc.VersionId, doc.IsEditable, accCode, id.AccName, blocks,
             Language: doc.Language, LanguageLocked: doc.LanguageLocked);
     }
@@ -168,9 +178,11 @@ public sealed class AccDocumentService : IAccDocumentService
         // release effettiva la vIPI ACC è invisibile (null) — rimosso il fallback storico alla versione pubblicata
         // live e il guscio sintetico vuoto. La migrazione A (backfill al boot) garantisce una release ai Published.
         var rel = await _releases.GetEffectiveAsync(ReleaseTargetType.AccVipi, $"{accCode}|{id.RootCallsign}", DateTime.UtcNow, ct);
-        if (rel is not null && DeserializeSnapshot(rel.PayloadJson) is { } snapRaw)
+        if (rel is not null && DeserializePayload(rel.PayloadJson) is { Doc: { } snapRaw } payload)
         {
             var blocks = AccDocumentAssembler.Assemble(snapRaw);
+            if (_configurazioni is not null)
+                await ConfigurazioniDelDocumento.DellaReleaseAsync(_configurazioni, _enti, accCode, blocks, payload, ct);
             // Le traduzioni congelate viaggiano con lo SNAPSHOT (sono ciò che quella release ha pubblicato);
             // la lingua e il blocco vengono invece dal documento VIVO. ⚠️ Non è una preferenza di stile: gli
             // snapshot scritti prima del 31 agosto 2026 portano `Language` nulla — misurato, 13 su 13 — e il
@@ -190,20 +202,24 @@ public sealed class AccDocumentService : IAccDocumentService
         var rel = await _releases.GetByIdAsync(releaseId, ct);
         if (rel is null || rel.TargetType != ReleaseTargetType.AccVipi) return null;
         if (!rel.TargetKey.StartsWith(accCode + "|", StringComparison.OrdinalIgnoreCase)) return null;
-        if (DeserializeSnapshot(rel.PayloadJson) is not { } raw) return null;
+        if (DeserializePayload(rel.PayloadJson) is not { Doc: { } raw } payload) return null;
 
         var ident = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct);
         var name = ident?.AccName ?? accCode;
         var blocks = AccDocumentAssembler.Assemble(raw);
+        if (_configurazioni is not null)
+            await ConfigurazioniDelDocumento.DellaReleaseAsync(_configurazioni, _enti, accCode, blocks, payload, ct);
         var data = new AccVipiData { AccCode = accCode, AccName = name, Blocks = blocks.Select(b => b.Block).ToList() };
         return new AccReleaseView(data, rel.ReleaseAiracCycle, ident?.Language ?? raw.Language, raw.Translations,
             ident?.LanguageLocked ?? raw.LanguageLocked, blocks, rel.TargetKey);
     }
 
-    // Snapshot release ACC = DocReleasePayload (ramo Document, doc 08e-acc): estrae il RawDocument congelato.
-    private static RawDocument? DeserializeSnapshot(string payloadJson)
+    // Snapshot release ACC = DocReleasePayload (ramo Document, doc 08e-acc): il RawDocument congelato sta in `Doc`.
+    // ⚠️ Si rende il payload INTERO: le configurazioni dei blocchi si leggono dalle sue sezioni congelate, e il
+    // segno `ConfigurazioniDallaStruttura` dice se quella release è nata dopo che hanno cambiato casa.
+    private static DocReleasePayload? DeserializePayload(string payloadJson)
     {
-        try { return JsonSerializer.Deserialize<DocReleasePayload>(payloadJson)?.Doc; }
+        try { return JsonSerializer.Deserialize<DocReleasePayload>(payloadJson); }
         catch (JsonException) { return null; }
     }
 
@@ -216,8 +232,6 @@ public sealed class AccDocumentService : IAccDocumentService
         if (_enti is not null && meta.Kind == AccBlockKind.AppGroup) await _enti.AllineaGruppiAccAsync(accCode, ct);
     }
 
-    public Task SaveConfigurationsAsync(string accCode, int configSectionId, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default) =>
-        SaveJsonAsync(accCode, configSectionId, (configs?.Count ?? 0) == 0 ? null : configs, ct);
 
     public Task SaveRegulatedAsync(string accCode, int regulatedSectionId, RegulatedSelection selection, CancellationToken ct = default)
     {

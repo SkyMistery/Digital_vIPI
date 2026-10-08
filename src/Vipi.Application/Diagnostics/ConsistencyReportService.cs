@@ -618,8 +618,14 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 // ⚠️ NON era questo il grosso della Diagnostica lenta, anche se la prima misura lo faceva
                 // sembrare: il costo stava dentro le pretese, che ricostruivano i volumi dal JSON dei poligoni
                 // a ogni chiamata. Vedi il parametro `volumi` di `SectorVolumeMap.BuildClaims`.
+                // 🔴 S99 (8 ottobre 2026): «senza di lui» vuol dire anche senza chi, chiuso lui, non può stare
+                // aperto. La sonda toglieva il solo ricevente, e in produzione dava un errore su Milano —
+                // `LIMM_WS2_CTR → LIMM_ES2_CTR` — per uno scenario che non esiste: ES2 non apre senza WS2. Le
+                // configurazioni possibili stanno in Struttura e arrivano qui dentro il contesto; un gruppo
+                // senza elenco si comporta come prima. Carta 2026-10-08-configurazioni-possibili.
                 if (!senzaDi.TryGetValue(t.NextSectorCallsign!, out var contestoSenza))
-                    senzaDi[t.NextSectorCallsign!] = contestoSenza = rinvio.Con(SenzaDiLui(tutti, t.NextSectorCallsign!));
+                    senzaDi[t.NextSectorCallsign!] = contestoSenza =
+                        rinvio.Con(rinvio.TuttiTranne(new[] { t.NextSectorCallsign! }, tutti));
                 var chiAltro = contestoSenza
                     .Risolvi(t.Cop, t.LevelFeet, t.OwningSectorCallsign, t.NextSectorCallsign);
                 if (chiAltro.Outcome != Content.CoverageFallbackOutcome.Resolved) continue;
@@ -887,11 +893,4 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         return Content.CoverageFallbackContext.Da(
             await _topologia.BuildGlobalAsync(ct), settori, tutti, await _punti.GetAsync(ct));
     }
-
-
-    /// <summary>L'insieme dei settori senza uno: serve a chiedere «e se questo non ci fosse, chi lo copre?».</summary>
-    private static IReadOnlySet<string> SenzaDiLui(IReadOnlySet<string> tutti, string escluso) =>
-        new HashSet<string>(tutti.Where(c => !string.Equals(c, escluso, StringComparison.OrdinalIgnoreCase)),
-            StringComparer.OrdinalIgnoreCase);
-
 }

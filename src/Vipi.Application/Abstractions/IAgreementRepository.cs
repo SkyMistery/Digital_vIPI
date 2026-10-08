@@ -42,7 +42,42 @@ public interface IAgreementRepository
 
     Task<int> AddSectionAsync(string accCode, int agreementId, AgreementSectionInput input, CancellationToken ct = default);
     Task UpdateSectionAsync(string accCode, int sectionId, AgreementSectionInput input, CancellationToken ct = default);
+
+    /// <summary>Elimina la sezione. ⚠️ Le sue clausole <b>condivise</b> non se ne vanno con lei: la casa di
+    /// ognuna passa alla prima sezione che la ospita. Le clausole che ospitava restano dove stanno di casa.</summary>
     Task DeleteSectionAsync(string accCode, int sectionId, CancellationToken ct = default);
+
+    // ---- clausole condivise fra accordi -----------------------------------------------------------------
+
+    /// <summary>Fa comparire delle clausole — coi loro gruppi di varianti, interi — anche nell'accordo della coppia
+    /// «chi cede → chi riceve». Vanno nella sezione che lì dice la stessa cosa (stesso traffico, stesso verso,
+    /// stessi scali); accordo e sezione nascono solo se non ci sono. Il contenuto resta uno: si corregge una volta.</summary>
+    Task<AgreementShareResult> ShareClausesAsync(string accCode, IReadOnlyList<int> clauseIds, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default);
+
+    /// <summary>Come <see cref="ShareClausesAsync"/>, per tutte le clausole che la sezione mostra.</summary>
+    Task<AgreementShareResult> ShareSectionAsync(string accCode, int sectionId, int senderSectorId, int receiverSectorId,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Condivide <b>tutto l'accordo</b> con quello di un'altra coppia: al posto di uno dei due enti,
+    /// <paramref name="withSectorId"/>. Ogni sezione va nella sezione uguale dell'altro accordo, col suo verso.
+    /// È <see cref="ShareSectionAsync"/> per ogni sezione, in un gesto e con un annulla solo.
+    /// </summary>
+    Task<AgreementShareResult> ShareAgreementAsync(string accCode, int agreementId, int insteadOfSectorId, int withSectorId,
+        CancellationToken ct = default);
+
+    /// <summary>Disfa un «Condividi con…»: toglie le presenze aggiunte, e quel che era nato per ospitarle se è
+    /// rimasto vuoto.</summary>
+    Task UndoShareAsync(string accCode, AgreementShareUndo undo, CancellationToken ct = default);
+
+    /// <summary>«Stacca»: in quell'accordo le clausole condivise scelte — coi loro gruppi interi — diventano copie
+    /// indipendenti; negli altri restano com'erano.</summary>
+    Task<AgreementDetachResult> DetachClausesAsync(string accCode, IReadOnlyList<int> clauseIds, int agreementId,
+        CancellationToken ct = default);
+
+    /// <summary>Disfa uno «Stacca»: via le copie, tornano le presenze.</summary>
+    Task UndoDetachAsync(string accCode, AgreementDetachUndo undo, CancellationToken ct = default);
 
     /// <summary>
     /// Copia la sezione nel verso opposto, come punto di partenza per il reciproco. Non è un «rendi bilaterale»
@@ -68,7 +103,13 @@ public interface IAgreementRepository
     Task<int> AddClausesAsync(string accCode, int sectionId, IReadOnlyList<AgreementClauseInput> inputs,
         CancellationToken ct = default);
     Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default);
-    Task DeleteClauseAsync(string accCode, int clauseId, CancellationToken ct = default);
+    /// <summary>
+    /// Elimina delle clausole. Con <paramref name="agreementId"/> si dice <b>da quale accordo</b> le si sta
+    /// guardando, e una clausola condivisa si toglie solo da quello — resta negli altri. Senza, la clausola se ne
+    /// va ovunque. ⚠️ Una variante sola di un gruppo condiviso si elimina sempre per davvero: la struttura di un
+    /// gruppo è contenuto, ed è la stessa in ogni accordo che lo porta.
+    /// </summary>
+    Task DeleteClauseAsync(string accCode, int clauseId, int? agreementId = null, CancellationToken ct = default);
 
     /// <summary>Sposta una clausola (col suo sottoalbero) su o giù dentro la propria sezione. No-op agli estremi.</summary>
     Task MoveClauseAsync(string accCode, int clauseId, bool up, CancellationToken ct = default);
@@ -76,6 +117,20 @@ public interface IAgreementRepository
     /// <summary>Sposta una clausola (col suo sottoalbero) dove sta un'altra: è il gesto del trascinamento.
     /// Scendendo si va DOPO il bersaglio, salendo PRIMA. No-op fra sezioni diverse.</summary>
     Task MoveClauseToAsync(string accCode, int clauseId, int targetClauseId, CancellationToken ct = default);
+
+    /// <summary>Porta una sezione, con le sue clausole, nell'accordo della coppia «chi cede → chi riceve», che nasce
+    /// se non c'è. I gruppi di varianti prendono numeri nuovi nell'accordo di arrivo.</summary>
+    Task<AgreementMoveResult> MoveSectionAsync(string accCode, int sectionId, int senderSectorId, int receiverSectorId,
+        CancellationToken ct = default);
+
+    /// <summary>Porta delle clausole — coi loro gruppi di varianti, interi — nella sezione gemella (stesso traffico,
+    /// stessi scali) dell'accordo della coppia «chi cede → chi riceve». Accordo e sezione nascono se non ci sono.</summary>
+    Task<AgreementMoveResult> MoveClausesAsync(string accCode, IReadOnlyList<int> clauseIds, int senderSectorId,
+        int receiverSectorId, CancellationToken ct = default);
+
+    /// <summary>Disfa uno spostamento: rimette sezione e clausole ai posti di prima, e toglie quel che era nato per
+    /// fare posto se è rimasto vuoto.</summary>
+    Task UndoMoveAsync(string accCode, AgreementMoveUndo undo, CancellationToken ct = default);
 
     /// <summary>Alternativa pari-grado alla clausola, dopo tutto il suo sottoalbero. Copia tutto tranne la
     /// condizione — che è ciò che l'alternativa deve dire di diverso. Il gruppo, se non c'è, nasce qui.</summary>
@@ -107,7 +162,8 @@ public interface IAgreementRepository
         CancellationToken ct = default);
 
     /// <summary>Elimina più clausole, sciogliendo i gruppi che restino di una sola.</summary>
-    Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, CancellationToken ct = default);
+    Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, int? agreementId = null,
+        CancellationToken ct = default);
 
     // ---- ripristino -------------------------------------------------------------------------------------
 

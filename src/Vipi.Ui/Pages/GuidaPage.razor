@@ -1113,12 +1113,18 @@
                another unit's frequency (it stays a live reference: if it changes there, it changes here).</p>"),
 
         new Sec("editor-configurazioni", "grid",
-            @"<p>Una <b>configurazione</b> è un assetto di apertura: le dai un nome e scegli quali settori sono
-               <b>aperti</b>. Il sistema calcola l'<b>accorpamento</b> — chi assorbe chi — e la tabella che ne esce è
-               quella che si legge nel documento. Center Point e Range si impostano per settore unificato.</p>",
-            @"<p>A <b>configuration</b> is an opening layout: you name it and choose which sectors are <b>open</b>.
-               The system computes the <b>merging</b> — who absorbs whom — and the resulting table is the one read in
-               the document. Center Point and Range are set per unified sector.</p>"),
+            @"<p>Una <b>configurazione</b> è un assetto di apertura: un nome e i settori <b>aperti</b>, ognuno col
+               suo Center Point e Range. Le configurazioni <b>non si scrivono nel documento</b>: si dichiarano in
+               <a href=""#struttura"">Struttura</a>, sezione «Configurazioni possibili», e il documento le riporta.
+               Qui il sistema calcola l'<b>accorpamento</b> — chi assorbe chi — e la tabella che ne esce è quella che
+               si legge nel documento. La sezione è derivata come AOR e frequenze: <b>congelata</b>, il pubblico vede
+               le configurazioni del momento della pubblicazione; <b>live</b>, quelle di adesso.</p>",
+            @"<p>A <b>configuration</b> is an opening layout: a name and the <b>open</b> sectors, each with its
+               Center Point and Range. Configurations are <b>not written in the document</b>: they are declared in
+               <a href=""#struttura"">Structure</a>, section «Possible configurations», and the document reports
+               them. Here the system computes the <b>merging</b> — who absorbs whom — and the resulting table is the
+               one read in the document. The section is derived like AOR and frequencies: <b>frozen</b>, the public
+               sees the configurations of the time of publication; <b>live</b>, the current ones.</p>"),
 
         new Sec("editor-aor", "map",
             @"<p>La mappa AOR mostra gli anelli dei settori del blocco. Puoi <b>aggiungere shape di altri enti</b>
@@ -1188,7 +1194,45 @@
                  traffico&#8230;» — e la colonna dell'altro ente si intitola <b>Da</b> invece di <b>Prossimo</b>,
                  perche&#769; li&#768; porta chi <b>consegna</b>. Se sotto lo stesso aeroporto (o sotto «Sorvoli»)
                  ci sono tutt'e due i versi, la tabella si <b>sdoppia</b>: «&#8230; che cediamo» e
-                 «&#8230; che riceviamo».</p>",
+                 «&#8230; che riceviamo».</p>
+              <p>Un accordo è una <b>coppia di enti</b>. Se una sezione o delle clausole sono finite sotto la
+                 coppia sbagliata — a quella quota il settore non è ES2, è ES5 — non si riscrivono: si
+                 <b>spostano</b>. Il tasto <b>⇢</b> sulla testata della sezione la sposta intera; <b>⇢ Sposta…</b>
+                 nella barra delle clausole scelte sposta quelle (un gruppo di varianti si sposta sempre intero).
+                 Si indica <b>chi cede</b> e <b>chi riceve</b> — i due campi partono da quelli di adesso, di solito
+                 se ne cambia uno — e il lavoro va nell'accordo di quella coppia, che nasce se non c'è; le clausole
+                 entrano nella sezione con lo stesso traffico e gli stessi aeroporti. <b>Annulla</b> rimette tutto
+                 dov'era, nell'ordine di prima. Per vedere prima a chi vanno davvero i trasferimenti con certi
+                 settori aperti c'è il <b>⚗ Banco di prova</b>.</p>
+              <p>Quando gli <b>stessi</b> coordinamenti valgono verso due enti — Trapani verso
+                 <code>LIRR_SU_CTR</code> per i GAT e verso <code>LIRR_MIL_CTR</code> per gli OAT — le clausole non
+                 si ricopiano: si <b>condividono</b>. Il tasto <b>⛓</b> c'è a tre livelli: sulla <b>riga</b> (quella
+                 clausola), sulla testata della <b>sezione</b> (tutte le sue) e sulla testata dell'<b>accordo</b>
+                 (tutto: lì si cambia uno dei due enti); più clausole insieme si scelgono con la spunta e
+                 <b>⛓ Condividi…</b> nella barra. Chiede chi cede e chi riceve
+                 nell'altro accordo, e lì le clausole entrano nella sezione con lo <b>stesso traffico e gli stessi
+                 aeroporti</b>. Se quella sezione c'è già vanno lì, in coda alle sue; accordo e sezione nascono solo
+                 se mancano. Da quel momento la riga porta <b>⛓</b>: è la <b>stessa</b> clausola in tutti e due gli
+                 accordi, correggerla da uno la corregge anche nell'altro, e nei documenti esce nella tabella di
+                 ciascuno. Un gruppo di varianti si condivide <b>intero</b>, e una variante aggiunta dopo compare
+                 anche di là.</p>
+              <p>Ogni sezione ha il suo <b>ordine</b> (il selettore <b>⇅</b> sulla testata): <i>a mano</i>,
+                 <i>alfabetico per punto</i> o <i>per quota</i>. È salvato, e vale anche nei documenti e nella
+                 vista live. A mano le clausole condivise da un altro accordo stanno in coda; con un ordine
+                 dichiarato ognuna va al suo posto. Un gruppo di varianti si muove intero. Tornando a mano si
+                 ritrova l'ordine scritto. («Ordina per» in cima alla pagina è un'altra cosa: cambia solo come si
+                 guarda.)</p>
+              <p>La <b>✕</b> su una clausola condivisa, guardando un accordo, la toglie <b>da quello</b> e basta:
+                 resta negli altri, e sparisce davvero solo quando la togli dall'ultimo. Fanno eccezione una
+                 variante sola di un gruppo condiviso (eliminarla cambia il gruppo, per tutti) e la vista a elenco,
+                 dove non c'è un accordo aperto: lì eliminare vuol dire eliminare ovunque, e la conferma lo dice.
+                 <b>✂ Stacca</b> ne fa qui una copia indipendente, per quando i due devono dire cose diverse.
+                 Una clausola condivisa non si sposta (⇢): prima si stacca, o si toglie la condivisione.</p>
+              <p>Fra le lacune (◎) c'è la voce <b>quota di un altro settore</b>: una clausola scritta per un ente
+                 d'area che, su quel punto e a quella quota, quel cielo non lo tiene — lo tiene un settore più
+                 specifico che da lui pende («ES2 ⇄ Padova a FL350», quando sopra FL325 c'è ES5). È un avviso: lo
+                 scritto comanda. Il tasto <b>⇢</b> accanto sceglie quelle clausole e apre «Sposta» con la coppia
+                 giusta già scritta; confermi tu.</p>",
             @"<p>An <b>agreement</b> binds <b>two lists of units</b> for one kind of traffic, over <b>every
                airport</b> listed. Inside are the <b>clauses</b>: each says which <b>points</b> it applies to, at
                what level, where the transfer happens and under which conditions.</p>
@@ -1232,14 +1276,52 @@
                  from</b> Y the traffic&#8230;» — and the other unit's column is headed <b>From</b> instead of
                  <b>Next</b>, because there it carries whoever <b>hands over</b>. When both directions sit under
                  the same airport (or under «Overflights»), the table <b>splits in two</b>: «&#8230; we hand
-                 over» and «&#8230; we receive».</p>"),
+                 over» and «&#8230; we receive».</p>
+              <p>An agreement is a <b>pair of units</b>. If a section or some clauses ended up under the wrong
+                 pair — at that level the sector is not ES2, it is ES5 — you do not rewrite them: you <b>move</b>
+                 them. The <b>⇢</b> button on the section header moves the whole section; <b>⇢ Move…</b> in the
+                 bar of the selected clauses moves those (a variant group always moves as a whole). You say
+                 <b>who hands over</b> and <b>who receives</b> — both fields start from the current ones, usually
+                 only one changes — and the work goes into that pair's agreement, created if missing; clauses go
+                 into the section with the same traffic and the same airports. <b>Undo</b> puts everything back
+                 where it was, in the same order. To see beforehand where the transfers really go with given
+                 sectors open, use the <b>⚗ Test bench</b>.</p>
+              <p>When the <b>same</b> coordination holds towards two units — Trapani towards
+                 <code>LIRR_SU_CTR</code> for GAT and towards <code>LIRR_MIL_CTR</code> for OAT — you do not copy
+                 the clauses: you <b>share</b> them. The <b>⛓</b> button exists at three levels: on the <b>row</b>
+                 (that clause), on the <b>section</b> header (all of its clauses) and on the <b>agreement</b> header
+                 (everything: there you change one of the two units); several clauses at once are picked with the
+                 checkbox and <b>⛓ Share…</b> in the bar. It asks who hands over and who receives in
+                 the other agreement, and there the clauses go into the section with the <b>same traffic and the
+                 same airports</b>. If that section already exists they go there, after its own; agreement and
+                 section are created only if missing. From then on the row carries <b>⛓</b>: it is the <b>same</b>
+                 clause in both agreements, fixing it from one fixes it in the other too, and the documents show
+                 it in the table of each. A variant group is shared <b>whole</b>, and a variant added later appears
+                 there too.</p>
+              <p>Each section has its own <b>order</b> (the <b>⇅</b> selector on the header): <i>by hand</i>,
+                 <i>alphabetical by point</i> or <i>by level</i>. It is saved, and it also applies to the documents
+                 and the live view. By hand, clauses shared from another agreement sit at the end; with a declared
+                 order each goes to its place. A variant group moves whole. Going back to by hand brings the
+                 written order back. («Sort by» at the top of the page is something else: it only changes how you
+                 look.)</p>
+              <p><b>✕</b> on a shared clause, while looking at one agreement, removes it <b>from that one</b>
+                 only: it stays in the others, and is really gone only when you remove it from the last. Two
+                 exceptions: a single variant of a shared group (deleting it changes the group, for everyone) and
+                 the list view, where no agreement is open: there deleting means deleting everywhere, and the
+                 confirmation says so. <b>✂ Detach</b> makes an independent copy here, for when the two must say
+                 different things. A shared clause cannot be moved (⇢): detach it first, or remove the sharing.</p>
+              <p>Among the gaps (◎) there is <b>level of another sector</b>: a clause written for an area unit
+                 that, at that point and level, does not hold that sky — a more specific sector hanging from it
+                 does («ES2 ⇄ Padova at FL350», when ES5 is above FL325). It is a warning: what is written rules.
+                 The <b>⇢</b> button next to it selects those clauses and opens «Move» with the right pair already
+                 filled in; you confirm.</p>"),
 
         new Sec("struttura", "link",
             @"<p>La pagina <b>Struttura</b> (<code>/services/vsop/admin/sector-structure</code>) tiene l'<b>albero di fallback
                unico</b> di tutta la divisione, anche fra ACC diversi: <b>Aeroporto → APP → settore ACC</b>.
                L'aeroporto è la <b>foglia</b> (DEL/GND/TWR condividono la sua vista rapida): quando un ente è
                chiuso, la vista live risale questa catena fino al primo online, altrimenti UNICOM.</p>
-              <p>Qui si imposta <b>soltanto il padre</b> di ogni nodo — il fallback immediato. Settori e
+              <p>Qui si imposta il <b>padre</b> di ogni nodo — il fallback immediato — e la sua catena di ripiego. Settori e
                aeroporti si <b>importano</b> dalle loro pagine (<code>/admin/acc</code>,
                <code>/admin/airports</code>): quello che si vede qui è la proiezione dei cataloghi.</p>
               <ul>
@@ -1289,13 +1371,43 @@
                gruppo APP. La vIPI APP resta pubblica finché la vIPI dell'ACC col gruppo non va in vigore; allora si
                nasconde da sola (la sua storia resta) e il suo indirizzo porta alla vIPI dell'ACC. Quello che si scrive
                nella vIPI APP dopo la copia non viene copiato.</p>
+              <p>Un padre solo non basta quando due settori <b>si sostituiscono a vicenda per quota</b>. Per questo ogni
+               settore ha anche una <b>catena di ripiego</b> (nel pannello di dettaglio): righe «da quota a quota →
+               settore» che si guardano <b>prima</b> del padre. Chiuso un settore, il suo cielo va al primo aperto:
+               si cerca fra le sue righe che valgono a quella quota, poi nel padre, e così a salire. Esempio, Milano:
+               <code>LIMM_ES5_CTR</code> ha per padre <code>LIMM_ES2_CTR</code> e la riga «FL325–UNL →
+               <code>LIMM_WS5_CTR</code>»: chiuso ES5, sopra FL325 lo tiene WS5 se è aperto, altrimenti ES2. La stessa
+               catena decide i trasferimenti della vista live (chi cede e chi riceve), la mappa AoR e la tabella
+               delle <b>configurazioni</b> della vIPI: se una configurazione esce sbagliata, è qui che si corregge.</p>
+              <p>Le <b>configurazioni possibili</b> sono le configurazioni di apertura di ogni gruppo: i settori
+               d'area di un ACC, oppure un ente con le sue posizioni. Si sceglie un ACC e per ogni gruppo si scrive
+               l'elenco: nome, settori aperti, Center Point e Range. Il documento lo riporta nella sua tabella e il
+               banco di prova lo offre come scenari. In più, un elenco si può dichiarare <b>completo</b>: allora
+               dice quali insiemi di settori aperti esistono, e <b>vincola</b> — la Diagnostica e la scala di
+               risalita non provano più combinazioni che non ci sono scritte. Serve perché la gerarchia non lo
+               dice: a Milano <code>LIMM_ES5_CTR</code> apre solo con <code>LIMM_WS5_CTR</code>, che non è suo
+               padre, e un avvicinamento sta aperto col suo CTR chiuso. Un elenco completo parla dei <b>soli
+               settori che nomina</b>, e «tutti chiusi» è sempre previsto. Sotto ogni elenco c'è <b>che cosa ne
+               segue</b> — «apre solo con», «mai insieme a», «può stare da solo» — calcolato prima di applicare, e
+               detto al condizionale finché l'elenco non è completo: va letto prima di accendere la casella. Se
+               una riga dice una cosa falsa, manca una configurazione; un elenco di soli esempi (le tre
+               configurazioni «tipiche» di un centro dove di solito c'è un settore solo) va lasciato spento. Chi è
+               online davvero non viene mai corretto: se un settore è in frequenza fuori elenco, il traffico va
+               a lui.</p>
+              <p>In fondo alla pagina il <b>banco di prova</b> risponde a «con questi aperti, chi tiene cosa». Si
+               sceglie un ACC, si aprono e si chiudono i settori (o si parte da una configurazione possibile
+               dichiarata qui sopra) e la tabella dice chi raccoglie ogni settore chiuso, con la fascia se il
+               settore si divide fra due; sotto, i trasferimenti dell'ACC che con quegli aperti cambiano mano. Se
+               lo scenario non è fra quelli di un elenco completo lo dice, e risponde lo stesso. Usa la struttura
+               salvata, non scrive niente — funziona anche senza il lock — e considera aperto tutto ciò che è
+               fuori dall'elenco (altri centri, torri).</p>
               <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta, Accordi di
                coordinamento compresi.</p>",
             @"<p>The <b>Structure</b> page (<code>/services/vsop/admin/sector-structure</code>) holds the <b>single fallback
                tree</b> for the whole division, across ACCs too: <b>Airport → APP → ACC sector</b>. The airport is
                the <b>leaf</b> (DEL/GND/TWR share its quick view): when a unit is closed, the live view climbs this
                chain up to the first online one, otherwise UNICOM.</p>
-              <p>Here you set <b>only the parent</b> of each node — the immediate fallback. Sectors and airports are
+              <p>Here you set the <b>parent</b> of each node — the immediate fallback — and its fallback chain. Sectors and airports are
                <b>imported</b> from their own pages (<code>/admin/acc</code>, <code>/admin/airports</code>): what you
                see here is the projection of those catalogues.</p>
               <ul>
@@ -1338,6 +1450,34 @@
                stays public until the ACC vIPI with the group comes into force; then it hides itself (its history
                stays) and its address leads to the ACC vIPI. What you write in the APP vIPI after the copy is not
                copied.</p>
+              <p>A single parent is not enough when two sectors <b>stand in for each other by level</b>. So every
+               sector also has a <b>fallback chain</b> (in the detail panel): rows «from level to level → sector»
+               that are looked at <b>before</b> the parent. When a sector is closed its sky goes to the first open
+               one: first among its rows valid at that level, then the parent, and so on upwards. Example, Milan:
+               <code>LIMM_ES5_CTR</code> has <code>LIMM_ES2_CTR</code> as parent and the row «FL325–UNL →
+               <code>LIMM_WS5_CTR</code>»: with ES5 closed, above FL325 WS5 holds it if open, otherwise ES2. The same
+               chain drives the live-view transfers (who hands over and who receives), the AoR map and the
+               <b>configurations</b> table of the vIPI: if a configuration comes out wrong, this is where to fix it.</p>
+              <p>The <b>possible configurations</b> are the opening configurations of each group: the area sectors
+               of an ACC, or a unit with its positions. Pick an ACC and write the list for each group: name, open
+               sectors, Center Point and Range. The document reports it in its table and the test bench offers it
+               as scenarios. In addition, a list can be declared <b>complete</b>: it then says which sets of open
+               sectors exist, and it <b>constrains</b> — Diagnostics and the fallback ladder no longer probe
+               combinations that are not written in it. This is needed because the hierarchy does not say it: in
+               Milan <code>LIMM_ES5_CTR</code> only opens with <code>LIMM_WS5_CTR</code>, which is not its parent,
+               and an approach stays open with its CTR closed. A complete list only speaks of the <b>sectors it
+               names</b>, and «all closed» is always allowed. Below each list is <b>what follows from it</b> —
+               «opens only with», «never together with», «can be open alone» — worked out before applying, and
+               phrased as a conditional until the list is complete: read it before ticking the box. If a row says
+               something false, a configuration is missing; a list of mere examples (the three «typical»
+               configurations of a centre where usually a single sector is open) should stay off. Who is really
+               online is never corrected: if a sector is on frequency outside the list, the traffic goes to it.</p>
+              <p>At the bottom of the page the <b>test bench</b> answers «with these open, who holds what». Pick an
+               ACC, open and close the sectors (or start from a possible configuration declared above) and the
+               table says who picks up every closed sector, with the band when a sector is split between two;
+               below, the ACC's transfers that change hands with those open. If the scenario is not among those of
+               a complete list it says so, and answers anyway. It uses the saved structure, writes nothing — it works
+               without the lock too — and treats everything outside the list (other centres, towers) as open.</p>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time, coordination
                agreements included.</p>"),
 

@@ -138,7 +138,6 @@ public class PannelloEnteTests : TestContext
         public Task SaveFrequencyLinksAsync(string a, IReadOnlyList<int> s, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<IReadOnlyList<AccSectorPick>> ListSectorsAsync(string a, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<IReadOnlyList<AccConfiguration>> GetConfigurationsAsync(string a, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task SaveConfigurationsAsync(string a, IReadOnlyList<AccConfiguration> c, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string a, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string a, IReadOnlyList<AccConfiguration> c, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<RegulatedSelection> GetRegulatedAsync(string a, CancellationToken ct = default) => throw new NotSupportedException();

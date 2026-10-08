@@ -282,6 +282,15 @@ public enum AgreementSide { A, B }
 /// suo gemello opposto).</summary>
 public enum AgreementDirection { AtoB, BtoA }
 
+/// <summary>
+/// In che ordine una sezione di accordo <b>mostra</b> le sue clausole: quello scritto a mano, o uno dichiarato —
+/// alfabetico per punto, per quota. Vale nella pagina, nei documenti e nella vista live.
+/// <para>Esiste per le clausole <b>ospiti</b> (condivise da un altro accordo): con l'ordine a mano stanno in coda,
+/// con uno dichiarato ognuna va al suo posto, come quelle di casa. L'ordine salvato non si perde: tornando a
+/// <see cref="Manual"/> si ritrova.</para>
+/// </summary>
+public enum AgreementClauseOrder { Manual, Points, Level }
+
 /// <summary>Parità dei livelli di crociera cui si applica una riga di trasferimento (regola semicircolare:
 /// tipicamente est = dispari, ovest = pari). Any = indifferente (tutti i livelli). Distinto da
 /// <see cref="DateParity"/> (parità del giorno del mese per le piste): stessa forma, semantica diversa.</summary>
@@ -650,4 +659,17 @@ public enum AirspaceDatum
 
     /// <summary>Illimitato (<c>UNL</c>). Nel file dell'AIP si scrive <c>FL999</c>.</summary>
     Unlimited,
+}
+
+/// <summary>
+/// Di che cosa è fatto un <b>gruppo</b> di settori che ha le sue configurazioni possibili
+/// (<c>SectorConfigurationSet</c>). Carta <c>docs/feature/2026-10-08-configurazioni-possibili.md</c> §3.
+/// </summary>
+public enum ConfigurationGroupKind
+{
+    /// <summary>I settori d'area di un ACC (il blocco Aerovia della sua vIPI). Il codice è quello dell'ACC.</summary>
+    AccArea,
+
+    /// <summary>Un ente con le sue posizioni (<c>AtcUnit</c>). Il codice è quello dell'ente, che non cambia mai.</summary>
+    AtcUnit,
 }

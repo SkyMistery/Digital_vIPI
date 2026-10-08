@@ -1,7 +1,7 @@
 ﻿namespace Vipi.Application.Aor;
 
 /// <summary>
-/// Vista in-memory, pura e DB-agnostica, della topologia di una ACC: contenimento (albero) + regole.
+/// Vista in-memory, pura e DB-agnostica, della topologia di una ACC: contenimento (albero) + catena di ripiego.
 /// Settore == posizione: ogni settore è identificato dal proprio callsign e possiede sé stesso di default.
 /// SPEC_Logica_AoR §2-3.
 /// </summary>
@@ -13,9 +13,6 @@ public sealed class Topology
     /// <summary>Padre top-down (contenimento) di ogni settore (childCallsign → parentCallsign). Radici assenti.</summary>
     public required IReadOnlyDictionary<string, string> Parent { get; init; }
 
-    /// <summary>Regole di unificazione ordinabili per Priority.</summary>
-    public required IReadOnlyList<UnificationRuleSpec> Rules { get; init; }
-
     /// <summary>
     /// Le righe di ripiego <b>dichiarate</b> di ogni settore, già in ordine: la catena che sta DAVANTI al
     /// padre quando si cerca chi riceve un trasferimento. Vuota = ricaduta per soli padri, com'era prima.
@@ -26,6 +23,27 @@ public sealed class Topology
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyList<Content.FallbackRow>> Fallbacks { get; init; }
         = new Dictionary<string, IReadOnlyList<Content.FallbackRow>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// La banda verticale <b>dichiarata</b> di ogni settore, in piedi (i limiti del catalogo). Assente = non nota.
+    ///
+    /// <para>Serve a chi chiede «chi tiene il cielo di questo settore» (<see cref="Content.FallbackChain.Holders"/>):
+    /// una riga di ripiego con la fascia vale per tutto il settore o solo per una sua parte secondo dove
+    /// comincia e finisce il settore stesso. Senza, <c>LIMM_ES5_CTR</c> (FL325–UNL) con la riga «FL325–UNL →
+    /// WS5» uscirebbe diviso in due, con una metà sotto FL325 che non esiste.</para>
+    /// </summary>
+    public IReadOnlyDictionary<string, (int? BaseFeet, int? TopFeet)> Bands { get; init; }
+        = new Dictionary<string, (int? BaseFeet, int? TopFeet)>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Le <b>configurazioni possibili</b> dei gruppi di settori: quali insiemi di aperti esistono. Nessuna =
+    /// nessun vincolo, com'era prima.
+    ///
+    /// <para>Sta qui per la stessa ragione dei ripieghi: è struttura, e chi ha in mano una <see cref="Topology"/>
+    /// non deve ricordarsi di chiederla a parte. ⚠️ La legge chi si <b>inventa</b> uno scenario (la sonda, la
+    /// scala, il banco); chi risolve su stazioni vere non la guarda.</para>
+    /// </summary>
+    public Content.ConfigurazioniPossibili Configurazioni { get; init; } = Content.ConfigurazioniPossibili.Nessuna;
 
     /// <summary>Padre di copertura, o <c>null</c> se è una radice o non è nella topologia.</summary>
     public string? ParentOf(string callsign) => Parent.TryGetValue(callsign, out var p) ? p : null;
@@ -60,10 +78,3 @@ public sealed class Topology
         }
     }
 }
-
-/// <summary>Regola di unificazione già deserializzata (la forma JSON vive in Infrastructure). PIANO §20.5.</summary>
-public sealed record UnificationRuleSpec(
-    string Name,
-    int Priority,
-    IReadOnlyCollection<string> RequiredOnline,            // condizione: tutti online
-    IReadOnlyDictionary<string, string> Assignment);       // settoreCallsign → ownerCallsign

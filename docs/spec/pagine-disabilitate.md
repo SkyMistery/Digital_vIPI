@@ -30,6 +30,7 @@ ripristinare gli eventuali link in `SopHome`/`AccLanding`/`ScreensIndex`, ricomp
 - Gli **editor** (vIPI, trasferimenti, vLOA, profilo aeroporto) **restano attivi**.
 - **Rimossa** `/vsop/{acc}/topologia` (`TopologiaPage`): la gerarchia si gestisce da `/services/vsop/admin/sector-structure`
   (per callsign, round 20); regole di unificazione + simulatore AoR erano legacy e non hanno più UI (il motore
-  `IAorService` + `UnificationRule` e i test S1–S10 restano).
+  `IAorService` e i test S1–S10 restano; le `UnificationRule` sono state tolte il 6 ottobre 2026, e il simulatore
+  è tornato come «banco di prova» in Struttura).
 - La rotta APP è passata da `/vsop/{acc}/app` a **`/services/vsop/{acc}/apps/vipi`** (più la nuova `/apps` elenco).
 - La rotta viewer aeroporto è passata da `/vsop/{acc}/aeroporto` a **`/services/vsop/{acc}/airports?icao=`**.
