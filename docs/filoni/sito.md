@@ -4,11 +4,21 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 30 settembre 2026
+## Dove siamo — 8 ottobre 2026
 
-> Tutto quel che è elencato qui sotto, fino a **S63**, è in `main` e **online** (ultima: 1.52.0, S63). Niente da
-> fondere. Prove che restano al committente: la prima correzione vera in Spazi aerei e il primo KMZ dell'AIP caricato
-> dopo (S63), il primo evento vero in `/services/event` (S59). Il vAWOS nel suo Edge (S57/S58) l'ha confermato il 30-set.
+> Tutto quel che è elencato qui sotto, fino a **S98**, è in `main` e **online** (ultima: **1.57.0**, S97–S98, online
+> dall'8 ottobre: il committente «schema 0, tutto ok», quattro migrazioni passate in produzione — §A149). Niente da
+> fondere. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi, sul ramo `fix/tabellone` (aspetta la
+> chiave del booking; carta `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
+>
+> Prove che restano al committente, da S97: **ripubblicare le vIPI ACC** (la tabella delle configurazioni segue il
+> motore unico: sulla copia di produzione cambiava solo LIMM «Conf 2 b»); guardare i **3 avvisi «quota di un altro
+> settore»** nel cruscotto ◎ dei Trasferimenti (Zagabria `LDZO_CTR`/`LDZO_S_CTR` su AIOSA, Milano `WS2`/`ES2` su
+> NELAB); aprire un **documento reso con clausole condivise**, alla prima che si condivide davvero — è il solo pezzo
+> di S97 mai visto a schermo. Dalle precedenti: i numeri delle aperture sulla pagina dell'ACC man mano che si
+> accumulano (S93); il primo evento vero con gli account dell'evento (S95); la prima correzione vera in Spazi aerei e
+> il primo KMZ dell'AIP caricato dopo (S63). In attesa di assegnazione, non preso: i 45 login falliti per nonce del
+> 1-ott, recuperati dal secondo giro (§A148).
 
 - ✅ **S1** editor APP unito, «sezioni comuni» non ricarica più la pagina: fuso e **online in 1.43.0**
   (`docs/lavori-aperti.md` §S1, §A118). Al prossimo scarico di diagnostica: che non tornino gli
@@ -2016,9 +2026,11 @@
   `AccountEventoInUso` (seconda migrazione additiva) e all'avvio si ricarica; le voci scadute restano fuori.
   Poi (committente): la lista dei VID si cancella da sola 7 giorni dopo la fine dell'evento, o alla data scritta dallo
   staff nella scheda (colonna `EventKits.VidSvuotaUtc`, terza migrazione additiva); pulizia `VidEventoPulizia` ogni ora.
-- 🔨 **S97** coordinamenti e struttura, cinque passi (4-ott, committente: «dobbiamo tornare a rivedere i coordinamenti e
-  la sector-structure»). Carta [`2026-10-04-copertura-unica.md`](../feature/2026-10-04-copertura-unica.md), ramo
-  `fix/copertura-unica`. Piano deciso con lui: (1) un solo motore di copertura, (2) banco di prova in Struttura,
+- ✅ **S97** coordinamenti e struttura, cinque passi (4-ott, committente: «dobbiamo tornare a rivedere i coordinamenti e
+  la sector-structure») — fuso e **online in 1.57.0** (8-ott, §A149). Carte
+  [`2026-10-04-copertura-unica.md`](../feature/2026-10-04-copertura-unica.md) (motore, banco, sposta, avviso 4b) e
+  [`2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md) (clausole condivise e ordine: vale
+  il §10 e il §11, i §3–§5 sono il primo giro). Ramo `fix/copertura-unica`, cancellato dopo la fusione. Piano deciso con lui: (1) un solo motore di copertura, (2) banco di prova in Struttura,
   (3) banco sui trasferimenti, (4) sposta sezione/clausole fra accordi + avviso «quota fuori banda», (5) sezione
   condivisa fra più accordi (Trapani ⇄ SU per i GAT e ⇄ MIL per gli OAT; nel documento una tabella per accordo).
   Principio: lo scritto comanda, la geometria avvisa (i trasferimenti degli APP avvengono anche un po' fuori).
@@ -2121,8 +2133,9 @@
     `Vipi.Application`, `Vipi.Infrastructure`. La suite ha fermato una colonna con default senza lunghezza su
     MySQL (`MySqlStringLengths`). App 3256 → 3263, Infra 2142 → 2150, Ui 1988 → 1991. A schermo su database
     inventato: i tre gesti, annulla compreso.
-- ✅ **S98** un import mai riuscito non è un giro dell'anno 1 (4-ott, il difetto trovato per strada in S97). Ramo
-  `fix/import-mai-riuscito`, costruito SOPRA `fix/copertura-unica` @ `cf603201` (stessi conteggi, stesso registro).
+- ✅ **S98** un import mai riuscito non è un giro dell'anno 1 (4-ott, il difetto trovato per strada in S97) — fuso e
+  **online in 1.57.0** (8-ott). Ramo `fix/import-mai-riuscito`, costruito SOPRA `fix/copertura-unica` @ `cf603201`
+  (stessi conteggi, stesso registro).
   - **Difetto**: database nuovo e sorgente IVAO irraggiungibile → Struttura rispondeva 500
     (`ArgumentOutOfRangeException` in `SogliaTimbro.Calcola`).
   - **Causa**: il primo tentativo fallito crea la riga in `ImportStates` (`MarkFailureAsync`) con `LastSuccessUtc` a
@@ -2172,10 +2185,12 @@
   - Sulla stessa schermata, solo avvisi, non muovono la salute e non sono in questo lavoro: «CoP senza posizione»
     (LIBB: UKOVA, LIMM: GEN) e «Area fantasma» LI R40x sulla clausola #28 di LIBB.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 30-set: tutto fuso e online fino a S63 (1.52.0); si lavora da `sito/lavori`, un ramo `fix/<cosa>` per
-  lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
+  All'8-ott: tutto fuso e online fino a S98 (1.57.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
+  alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
+  `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
   IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il primo evento vero in `/services/event`; in
-  produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63). Resta al committente LIRE/LIBG (aspetta il
+  produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63); le vIPI ACC da ripubblicare e i tre
+  avvisi «quota di un altro settore» da guardare (S97). Resta al committente LIRE/LIBG (aspetta il
   SOD). ⚠️ In Spazi aerei i gesti che spostano agganci rifanno i confinanti: 15–25 s (S63), da guardare se diventa un
   fastidio. Futuro: vIPI ACC legata all'ACC
   (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).
