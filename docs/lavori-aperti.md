@@ -43,7 +43,15 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A149 — 1.57.0: coordinamenti e struttura (S97), import mai riuscito (S98) — 🔴 prima migrazione distruttiva (7 ottobre 2026)
+### ✅ A149 — 1.57.0 ONLINE: coordinamenti e struttura (S97), import mai riuscito (S98) — 🔴 prima migrazione distruttiva (7 ottobre 2026)
+
+✅ Online dal 7 ottobre 2026 (primo avvio 19:12:46Z): `Schema 0` confermato dal committente — le quattro migrazioni
+sono passate, `UnificationRules` non c'è più. Da fuori, da anonimo: porta «Entra con IVAO», Ricerca 401,
+`/vsop/health/ready` Healthy, `vipi-theme.css?v=f27ce52a` (quello del pacchetto). Scarico dell'8-ott: zero ERR/CRT
+dall'avvio, riconciliazioni documentali concluse senza cambiamenti, poll IVAO regolare, un solo login per nonce.
+🔎 **`/vsop/health` risponde `Degraded`**: «1 errori nel report di consistenza» (avvisi-log, 8-ott 07:34Z). Il log non
+dice quale; S97 non ha toccato le sonde. Il rilievo si legge in Diagnostica: aspetta il committente, poi si decide se
+è un dato da sistemare o un lavoro per il Sito.
 
 MINOR con **quattro migrazioni, due con una `DropTable`**, su 1.56.0 (`2285a80`). Timbro **`1.57.0 · 397b7a1`**.
 🔴 `ViaLeRegoleDiUnificazione` cancella `UnificationRules` (zero righe in produzione); `ClausoleCondivise` crea
@@ -70,8 +78,7 @@ sha256 `b2dde5fe13ecf102461ff3a37987cb0b9a9acbb6b01d32f4a970fb58018c66c0`. Build
 conteggi identici (App 3266, Infra 2151, Ui 1991). Prova sul publish win-x64: le quattro migrazioni applicate all'avvio
 (`DROP TABLE "UnificationRules"` nel log), `pacchetto-verifica.js` verde (`TERMINE=LIBB`), a schermo Struttura col banco
 di prova e la pagina degli accordi, console pulita. Non rifatti a schermo i gesti di condivisione: li ha provati il
-committente sulla copia di produzione. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.57.0.md`. ▶ Caricamento del
-committente, **dopo la copia del database**; poi ripubblicare le vIPI ACC (cambia LIMM «Conf 2 b»).
+committente sulla copia di produzione. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.57.0.md`. ▶ Ripubblicare le vIPI ACC (cambia LIMM «Conf 2 b»).
 
 ### ✅ A148 — 1.56.0 ONLINE: lingua per membro nell'editor dell'unione (S92), aperture dei documenti (S93), Discord (S94), account dell'evento (S95) (1 ottobre 2026)
 

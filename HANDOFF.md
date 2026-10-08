@@ -6,11 +6,11 @@
 >
 > ## ▶ Il punto — 7 ottobre 2026, sera
 >
-> **📦 Pronto da caricare: 1.57.0** (§A149, timbro `1.57.0 · 397b7a1`, 19 file, zip `b2dde5fe…`, MINOR): Sito S97
+> **✅ Online: 1.57.0** (`Schema 0` confermato, scarico senza errori; **in `main` non resta codice fuori pacchetto**;
+> 🔎 `/vsop/health` Degraded per UN errore nel report di consistenza, da leggere in Diagnostica) (§A149, timbro `1.57.0 · 397b7a1`, 19 file, zip `b2dde5fe…`, MINOR): Sito S97
 > (coordinamenti e struttura: motore unico, banco di prova, clausole condivise, ordine delle clausole) e S98 (import
 > mai riuscito). 🔴 **Prima migrazione distruttiva** (`DropTable UnificationRules`, zero righe in produzione): copia
-> del database PRIMA del carico, e il rollback a due rinomine non basta più da solo. Online resta 1.56.0 finché il
-> committente non carica. ▶ Dopo: ripubblicare le vIPI ACC. S96 tabellone in pausa (chiave del booking). LIRE/LIBG
+> del database PRIMA del carico, e il rollback a due rinomine non basta più da solo. ▶ Dopo: ripubblicare le vIPI ACC. S96 tabellone in pausa (chiave del booking). LIRE/LIBG
 > aspettano il SOD.
 >
 > ## Il punto — 1 ottobre 2026, sera tardi
