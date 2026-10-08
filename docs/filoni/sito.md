@@ -10,10 +10,12 @@
 > dall'8 ottobre: il committente «schema 0, tutto ok», quattro migrazioni passate in produzione — §A149). Niente da
 > fondere. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi, sul ramo `fix/tabellone` (aspetta la
 > chiave del booking; carta `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
-> **In prova**: **S99**, nato dal falso «Trasferimento senza ripiego» di LIMM che tiene `/vsop/health` in Degraded e
-> diventato «le configurazioni possibili di un gruppo di settori, dichiarate in Struttura» — ramo
-> `fix/senza-ripiego-falso`, cinque fette fatte, **c'è una migrazione**; resta la prova a schermo del committente
-> (voce S99, in fondo; carta `docs/feature/2026-10-08-configurazioni-possibili.md`).
+> **Pronto da fondere**: **S99**, nato dal falso «Trasferimento senza ripiego» di LIMM che tiene `/vsop/health` in
+> Degraded e diventato «le configurazioni possibili di un gruppo di settori, dichiarate in Struttura» — ramo
+> `fix/senza-ripiego-falso`, **c'è una migrazione**; provato sulla copia di produzione col login del committente,
+> che l'8 ottobre ha detto «va bene così, chiudi» (voce S99, in fondo; carta
+> `docs/feature/2026-10-08-configurazioni-possibili.md`). ⚠️ Il rilievo sparisce in produzione quando lui accende
+> «L'elenco è completo» sui settori d'area di LIMM, non col rilascio.
 >
 > Prove che restano al committente, da S97: **ripubblicare le vIPI ACC** (la tabella delle configurazioni segue il
 > motore unico: sulla copia di produzione cambiava solo LIMM «Conf 2 b»); guardare i **3 avvisi «quota di un altro
@@ -2160,7 +2162,7 @@
   - **Prova**: host isolato su database nuovo con `Ivao__BaseUrl=http://127.0.0.1:9`: con `Acc` a `0001-01-01` e
     `AirportSector` riuscito (lo stato del difetto) Struttura risponde 200 e il giro `ImpactDrift` riesce. Solo via
     HTTP (il prerender, dove nasceva il 500), non in un browser; Pendenti non provata a schermo.
-- 🧪 **S99** falso «Trasferimento senza ripiego» su LIMM, che tiene `/vsop/health` in Degraded (8-ott, assegnato dal
+- ✅ **S99** falso «Trasferimento senza ripiego» su LIMM, che tiene `/vsop/health` in Degraded (8-ott, assegnato dal
   Master con la 1.57.0 online; pacchetto previsto 1.57.1 — **non lo è più: c'è una migrazione**). Ramo
   `fix/senza-ripiego-falso`, da `main` @ `ad490b3e`. Il committente ha dato la regola e l'ha allargata: vedi «Com'è
   finita», in fondo a questa voce. Le righe qui sotto sono quel che si sapeva prima di parlargli.
@@ -2241,9 +2243,9 @@
       come scenari pronti e, chiuso WS2 a mano, dice «Non è una configurazione prevista — LIMM: ES2 + ES5 + WS5».
       Nell'editor della vIPI ACC la sezione Configurazioni mostra le quattro tabelle dalla Struttura, in modifica
       il rimando a Struttura e nessun campo. Nessun errore in console.
-    - ⚠️ **Visto a schermo, da sapere**: il banco parte da «tutti aperti», e con un'esclusione (WW0 e WN0) quello
-      scenario è per forza «non previsto»: l'avviso c'è fin dall'apertura. È vero, ma è rumore: da decidere col
-      committente se partire da una configurazione prevista.
+    - ⚠️ **Visto a schermo, da sapere**: il banco parte da «tutti aperti», e con un elenco completo che ha
+      un'esclusione (WW0 e WN0) quello scenario è per forza «non previsto»: l'avviso c'è fin dall'apertura.
+      Chiesto al committente (8-ott): «lascia così».
     - **Terzo giro, stessa copia, stesso login**: a Torino–Genova aggiunte {WN0} e {WS0} e accesa la casella —
       le conseguenze perdono «WN0 solo con LIMJ_WS0» prima di applicare; il **banco** su LIMM elenca le nove
       configurazioni, con «Conf 2» (ES2 + WS2) non avvisa, chiuso WS2 a mano dice «non prevista dall'elenco
@@ -2261,6 +2263,9 @@
       (le conseguenze lo mostrano: «WN0: apre solo con LIMJ_WS0»), e solo dopo accendere; (3) Roma e Venezia:
       lasciare spento, o riscrivere l'elenco; Padova e Bologna tornano con la realtà e si possono accendere;
       (4) ripubblicare le vIPI ACC.
+    - **Chiuso l'8 ottobre** («va bene così, chiudi»): build Release senza avvisi, suite degli assiemi toccati
+      verdi, CI verde. La copia di produzione usata per le prove è rimasta nello scratchpad della chat, a MariaDB
+      spento: cancellarla è da chiedere al committente (dati personali veri).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   All'8-ott: tutto fuso e online fino a S98 (1.57.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
