@@ -2244,9 +2244,18 @@
     - ⚠️ **Visto a schermo, da sapere**: il banco parte da «tutti aperti», e con un'esclusione (WW0 e WN0) quello
       scenario è per forza «non previsto»: l'avviso c'è fin dall'apertura. È vero, ma è rumore: da decidere col
       committente se partire da una configurazione prevista.
-    - **Non provato**: una pubblicazione vera sulla copia (la release nuova col suo segno: solo i test); la vIPI
-      APP propria a schermo (solo i suoi test); il rilievo con la build 1.57.0 sulla stessa copia (si è
-      riprodotto con questa build e l'elenco spento, che percorre lo stesso codice di prima).
+    - **Terzo giro, stessa copia, stesso login**: a Torino–Genova aggiunte {WN0} e {WS0} e accesa la casella —
+      le conseguenze perdono «WN0 solo con LIMJ_WS0» prima di applicare; il **banco** su LIMM elenca le nove
+      configurazioni, con «Conf 2» (ES2 + WS2) non avvisa, chiuso WS2 a mano dice «non prevista dall'elenco
+      completo — LIMM: LIMM_ES2_CTR». **Pubblicata la vIPI Milano** dall'editor: la release nuova (#2, AIRAC 2610)
+      porta il segno `ConfigurazioniDallaStruttura` e quattro voci congelate in più (22 contro 18), una per
+      blocco — quella di Torino con le **cinque** configurazioni della Struttura, mentre il `BodyJson` rimasto
+      nel documento ne ha ancora tre; la release di prima (#1) non ha segno e tiene il suo `BodyJson`. **vIPI APP
+      propria** (Bologna, `LIPE_W_APP`): l'anteprima mostra le tre tabelle dalla Struttura, l'editor in modifica
+      il rimando e nessun campo. Nessun errore in console.
+    - **Non provato**: la vista pubblica di una release nuova con un documento visibile (Milano in produzione è
+      nascosto: la release è stata letta dal database, non dalla pagina); il rilievo con la build 1.57.0 sulla
+      stessa copia (si è riprodotto con questa build e l'elenco spento, che percorre lo stesso codice di prima).
     - **Resta al committente, in produzione dopo il pacchetto**: (1) accendere «L'elenco è completo» sui settori
       d'area di **LIMM** — è il gesto che chiude il rilievo; (2) a Torino–Genova aggiungere {WN0} e {WS0} da soli
       (le conseguenze lo mostrano: «WN0: apre solo con LIMJ_WS0»), e solo dopo accendere; (3) Roma e Venezia:

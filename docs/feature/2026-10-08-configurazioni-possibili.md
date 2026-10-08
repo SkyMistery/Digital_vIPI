@@ -233,6 +233,10 @@ Il **secondo** giro, con l'interruttore (copia ricaricata da capo, migrazione `2
 | Diagnostica, ricaricata | nessun «Trasferimento senza ripiego» |
 | `/vsop/health`, rinnovata la cache del report | **Healthy** |
 | Anteprima della vIPI Milano (`?as=draft`) | le tabelle delle configurazioni dei due blocchi, dalla Struttura |
+| Torino–Genova: aggiunte {WN0} e {WS0}, accesa la casella | le conseguenze perdono «WN0 solo con LIMJ_WS0» prima di applicare |
+| Banco su LIMM | nove scenari; «Conf 2» non avvisa; ES2 da solo: «non prevista dall'elenco completo» |
+| **Pubblicazione** della vIPI Milano | release #2 col segno, 22 sezioni congelate contro 18: una voce `configurations` per blocco, quella di Torino con le cinque della Struttura (il `BodyJson` nel documento ne ha ancora tre); la release #1 senza segno, col suo `BodyJson` |
+| vIPI APP propria (Bologna) | anteprima con le tre tabelle dalla Struttura; editor in sola lettura col rimando |
 
 ⚠️ **Col sectorfile acceso.** Il primo giro era col sectorfile spento (è l'abitudine delle prove dal vivo): il
 catalogo dei punti arriva vuoto, la sonda non colloca niente, e i due casi davano la stessa risposta. Una prova
