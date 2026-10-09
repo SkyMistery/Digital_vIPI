@@ -578,6 +578,26 @@ public class AgreementShareTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Il_verso_opposto_si_salva_si_rilegge_e_arriva_a_documenti_e_vista_live()
+    {
+        // Committente, 9 ottobre 2026: ogni ordine si deve poter leggere al contrario. Il verso è SALVATO (per
+        // nome, nella colonna di testo che c'era già: nessuna migrazione) e vale dove vale l'ordine.
+        var (casa, sezione) = await SezioneAsync(_ne, _ew, "MEDIO", "ZETAS", "ALFAS");
+
+        await OrdineAsync(casa, sezione, AgreementClauseOrder.PointsDescending);
+
+        var ordinata = await SezioneInAsync(casa, sezione);
+        Assert.Equal(AgreementClauseOrder.PointsDescending, ordinata.ClauseOrder);
+        Assert.Equal(new[] { "ZETAS", "MEDIO", "ALFAS" }, ordinata.Clauses.Select(c => c.Cops));
+        var flusso = AgreementExpansion.Expand(await _repo.ListByAccAsync("LIRR")).Single(f => f.Points.Any(p => p.Cop == "ZETAS"));
+        Assert.Equal(new[] { "ZETAS", "MEDIO", "ALFAS" }, flusso.Points.Select(p => p.Cop));
+
+        // …e tornando «a mano» il posto scritto c'è ancora.
+        await OrdineAsync(casa, sezione, AgreementClauseOrder.Manual);
+        Assert.Equal(new[] { "MEDIO", "ZETAS", "ALFAS" }, (await SezioneInAsync(casa, sezione)).Clauses.Select(c => c.Cops));
+    }
+
+    [Fact]
     public async Task Tornando_a_mano_le_clausole_ritrovano_il_posto_che_avevano()
     {
         var (casa, sezione) = await SezioneAsync(_ne, _ew, "ZETAS", "ALFAS", "MEDIO");

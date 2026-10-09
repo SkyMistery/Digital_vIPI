@@ -288,8 +288,11 @@ public enum AgreementDirection { AtoB, BtoA }
 /// <para>Esiste per le clausole <b>ospiti</b> (condivise da un altro accordo): con l'ordine a mano stanno in coda,
 /// con uno dichiarato ognuna va al suo posto, come quelle di casa. L'ordine salvato non si perde: tornando a
 /// <see cref="Manual"/> si ritrova.</para>
+/// <para>Ogni ordine dichiarato ha il suo <b>verso opposto</b> (committente, 9 ottobre 2026): dalla Z alla A, dalla
+/// quota più alta. ⚠️ I valori sono salvati <b>per nome</b> (colonna di testo, 32 caratteri su MySQL): i due
+/// nuovi si aggiungono <b>in coda</b> e senza migrazione, e i tre di prima non cambiano nome.</para>
 /// </summary>
-public enum AgreementClauseOrder { Manual, Points, Level }
+public enum AgreementClauseOrder { Manual, Points, Level, PointsDescending, LevelDescending }
 
 /// <summary>Parità dei livelli di crociera cui si applica una riga di trasferimento (regola semicircolare:
 /// tipicamente est = dispari, ovest = pari). Any = indifferente (tutti i livelli). Distinto da

@@ -22,6 +22,9 @@ namespace Vipi.Application.Content;
 /// <para>⚠️ L'ordine <b>salvato</b> non si tocca: tornando a «a mano» le clausole di casa riprendono il posto che
 /// avevano. Per questo la riga porta anche <see cref="AgreementClauseRow.StoredOrder"/>.</para>
 ///
+/// <para>Ogni ordine dichiarato si legge anche <b>al contrario</b> (committente, 9 ottobre 2026): dalla Z alla A,
+/// dalla quota più alta.</para>
+///
 /// <para>Puro e deterministico.</para>
 /// </summary>
 public static class AgreementClauseOrdering
@@ -39,15 +42,53 @@ public static class AgreementClauseOrdering
             blocco.Add(r);
         }
 
-        // OrderBy è stabile: a parità di chiave resta l'ordine di prima, cioè quello scritto a mano.
-        var ordinati = order == AgreementClauseOrder.Level
-            ? blocchi.OrderBy(b => FallbackChain.FeetOf(b[0].LevelValue, b[0].LevelUnit) ?? int.MaxValue)
-                .ThenBy(b => b[0].Cops, StringComparer.OrdinalIgnoreCase)
-            : blocchi.OrderBy(b => string.IsNullOrWhiteSpace(b[0].Cops))
+        // OrderBy è stabile, in tutti e due i versi: a parità di chiave resta l'ordine di prima, cioè quello
+        // scritto a mano.
+        // ⚠️ Chi NON ha la chiave — niente punti, niente quota — sta in fondo in tutti e due i versi: il verso
+        // opposto capovolge l'ordine di chi un valore ce l'ha, non porta in testa le righe ancora da scrivere.
+        var alContrario = IsDescending(order);
+        IOrderedEnumerable<List<AgreementClauseRow>> ordinati;
+        if (KeyOf(order) == AgreementClauseOrder.Level)
+        {
+            var conQuota = blocchi.OrderBy(b => Piedi(b) is null);
+            ordinati = (alContrario ? conQuota.ThenByDescending(b => Piedi(b) ?? 0) : conQuota.ThenBy(b => Piedi(b) ?? 0))
+                // A pari quota decide il punto, e sempre dalla A: è lo spareggio, non la chiave.
                 .ThenBy(b => b[0].Cops, StringComparer.OrdinalIgnoreCase);
+        }
+        else
+        {
+            var conPunti = blocchi.OrderBy(b => string.IsNullOrWhiteSpace(b[0].Cops));
+            ordinati = alContrario
+                ? conPunti.ThenByDescending(b => b[0].Cops, StringComparer.OrdinalIgnoreCase)
+                : conPunti.ThenBy(b => b[0].Cops, StringComparer.OrdinalIgnoreCase);
+        }
 
         // ⚠️ Il posto si riscrive: chi legge (AgreementExpansion, la pagina) riordina per Order.
         var posto = 0;
         return ordinati.SelectMany(b => b).ToList().Select(r => r with { Order = ++posto }).ToList();
     }
+
+    private static int? Piedi(List<AgreementClauseRow> blocco) => FallbackChain.FeetOf(blocco[0].LevelValue, blocco[0].LevelUnit);
+
+    /// <summary>La <b>chiave</b> di un ordine, senza il verso: a mano, per punto o per quota.</summary>
+    public static AgreementClauseOrder KeyOf(AgreementClauseOrder order) => order switch
+    {
+        AgreementClauseOrder.PointsDescending => AgreementClauseOrder.Points,
+        AgreementClauseOrder.LevelDescending => AgreementClauseOrder.Level,
+        _ => order,
+    };
+
+    /// <summary>L'ordine va al contrario: dalla Z alla A, dalla quota più alta.</summary>
+    public static bool IsDescending(AgreementClauseOrder order) =>
+        order is AgreementClauseOrder.PointsDescending or AgreementClauseOrder.LevelDescending;
+
+    /// <summary>Lo stesso ordine nel verso opposto. «A mano» non ne ha uno: resta com'è.</summary>
+    public static AgreementClauseOrder Reverse(AgreementClauseOrder order) => order switch
+    {
+        AgreementClauseOrder.Points => AgreementClauseOrder.PointsDescending,
+        AgreementClauseOrder.PointsDescending => AgreementClauseOrder.Points,
+        AgreementClauseOrder.Level => AgreementClauseOrder.LevelDescending,
+        AgreementClauseOrder.LevelDescending => AgreementClauseOrder.Level,
+        _ => order,
+    };
 }

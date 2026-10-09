@@ -2536,8 +2536,14 @@
   <data name="Xfer_SortBy" xml:space="preserve"><value>Sort</value></data>
   <data name="Xfer_SortManual" xml:space="preserve"><value>manual</value></data>
   <data name="Xfer_SortCop" xml:space="preserve"><value>points</value></data>
-  <data name="Xfer_SortLevel" xml:space="preserve"><value>by level</value></data>
-  <data name="Xfer_SortNote" xml:space="preserve"><value>Sorting only changes how you look at the list: the saved order — which in variants is the structure — is untouched.</value></data>
+  <data name="Xfer_SortLevel" xml:space="preserve"><value>level</value></data>
+  <data name="Xfer_SortSender" xml:space="preserve"><value>sender</value></data>
+  <data name="Xfer_SortReceiver" xml:space="preserve"><value>receiver</value></data>
+  <data name="Xfer_SortAirport" xml:space="preserve"><value>airport</value></data>
+  <data name="Xfer_SortKind" xml:space="preserve"><value>kind</value></data>
+  <data name="Xfer_SortDirTitle" xml:space="preserve"><value>Direction: {0}. Press to reverse it.</value></data>
+  <data name="Xfer_SortDirNone" xml:space="preserve"><value>Nothing to reverse: the order is the written one.</value></data>
+  <data name="Xfer_SortNote" xml:space="preserve"><value>Sorts the view, in tree and in list; the button next to it reverses the direction. It only changes how you look: the saved order — which in variants is the structure — is untouched.</value></data>
   <data name="Xfer_BulkSelected" xml:space="preserve"><value>{0} clauses selected</value></data>
   <data name="Xfer_BulkReceiver" xml:space="preserve"><value>Change receiver</value></data>
   <data name="Xfer_BulkApply" xml:space="preserve"><value>Apply to all</value></data>
@@ -4133,7 +4139,7 @@
   <data name="Xfer_GapLevelMoveTitle" xml:space="preserve"><value>Select these clauses and open «Move» with {0} in place of the written unit</value></data>
   <data name="Xfer_ClauseOrderTitle" xml:space="preserve"><value>Order of the clauses of this table: it applies here, in the documents and in the live view. With a declared order the shared clauses go to their place instead of the end</value></data>
   <data name="Xfer_ClauseOrderManual" xml:space="preserve"><value>by hand</value></data>
-  <data name="Xfer_ClauseOrderPoints" xml:space="preserve"><value>alphabetical (point)</value></data>
+  <data name="Xfer_ClauseOrderPoints" xml:space="preserve"><value>by point</value></data>
   <data name="Xfer_ClauseOrderLevel" xml:space="preserve"><value>by level</value></data>
   <data name="Xfer_ClauseOrderSaved" xml:space="preserve"><value>Table order saved.</value></data>
   <data name="Xfer_ShareRowTitle" xml:space="preserve"><value>Share this clause with the agreement of another pair of units</value></data>

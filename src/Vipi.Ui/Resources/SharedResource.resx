@@ -2544,8 +2544,14 @@
   <data name="Xfer_SortBy" xml:space="preserve"><value>Ordina</value></data>
   <data name="Xfer_SortManual" xml:space="preserve"><value>manuale</value></data>
   <data name="Xfer_SortCop" xml:space="preserve"><value>punti</value></data>
-  <data name="Xfer_SortLevel" xml:space="preserve"><value>per livello</value></data>
-  <data name="Xfer_SortNote" xml:space="preserve"><value>L&apos;ordinamento cambia solo come guardi l&apos;elenco: l&apos;ordine salvato — che nelle varianti è la struttura — non si tocca.</value></data>
+  <data name="Xfer_SortLevel" xml:space="preserve"><value>quota</value></data>
+  <data name="Xfer_SortSender" xml:space="preserve"><value>mittente</value></data>
+  <data name="Xfer_SortReceiver" xml:space="preserve"><value>ricevente</value></data>
+  <data name="Xfer_SortAirport" xml:space="preserve"><value>aeroporto</value></data>
+  <data name="Xfer_SortKind" xml:space="preserve"><value>tipo</value></data>
+  <data name="Xfer_SortDirTitle" xml:space="preserve"><value>Verso: {0}. Premi per invertirlo.</value></data>
+  <data name="Xfer_SortDirNone" xml:space="preserve"><value>Niente da invertire: l&apos;ordine è quello scritto.</value></data>
+  <data name="Xfer_SortNote" xml:space="preserve"><value>Ordina la vista, in albero e in elenco; il tasto accanto ne inverte il verso. Cambia solo come guardi: l&apos;ordine salvato — che nelle varianti è la struttura — non si tocca.</value></data>
   <data name="Xfer_BulkSelected" xml:space="preserve"><value>{0} clausole selezionate</value></data>
   <data name="Xfer_BulkReceiver" xml:space="preserve"><value>Cambia ricevente</value></data>
   <data name="Xfer_BulkApply" xml:space="preserve"><value>Applica a tutte</value></data>
@@ -4141,7 +4147,7 @@
   <data name="Xfer_GapLevelMoveTitle" xml:space="preserve"><value>Scegli queste clausole e apri «Sposta» con {0} al posto dell&apos;ente scritto</value></data>
   <data name="Xfer_ClauseOrderTitle" xml:space="preserve"><value>Ordine delle clausole di questa tabella: vale qui, nei documenti e nella vista live. Con un ordine dichiarato le clausole condivise vanno al loro posto invece che in coda</value></data>
   <data name="Xfer_ClauseOrderManual" xml:space="preserve"><value>a mano</value></data>
-  <data name="Xfer_ClauseOrderPoints" xml:space="preserve"><value>alfabetico (punto)</value></data>
+  <data name="Xfer_ClauseOrderPoints" xml:space="preserve"><value>per punto</value></data>
   <data name="Xfer_ClauseOrderLevel" xml:space="preserve"><value>per quota</value></data>
   <data name="Xfer_ClauseOrderSaved" xml:space="preserve"><value>Ordine della tabella salvato.</value></data>
   <data name="Xfer_ShareRowTitle" xml:space="preserve"><value>Condividi questa clausola con l&apos;accordo di un&apos;altra coppia di enti</value></data>

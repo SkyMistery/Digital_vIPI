@@ -4,18 +4,20 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 8 ottobre 2026
+## Dove siamo — 9 ottobre 2026
 
-> Tutto quel che è elencato qui sotto, fino a **S98**, è in `main` e **online** (ultima: **1.57.0**, S97–S98, online
-> dall'8 ottobre: il committente «schema 0, tutto ok», quattro migrazioni passate in produzione — §A149). Niente da
-> fondere. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi, sul ramo `fix/tabellone` (aspetta la
-> chiave del booking; carta `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
-> **Pronto da fondere**: **S99**, nato dal falso «Trasferimento senza ripiego» di LIMM che tiene `/vsop/health` in
-> Degraded e diventato «le configurazioni possibili di un gruppo di settori, dichiarate in Struttura» — ramo
-> `fix/senza-ripiego-falso`, **c'è una migrazione**; provato sulla copia di produzione col login del committente,
-> che l'8 ottobre ha detto «va bene così, chiudi» (voce S99, in fondo; carta
-> `docs/feature/2026-10-08-configurazioni-possibili.md`). ⚠️ Il rilievo sparisce in produzione quando lui accende
-> «L'elenco è completo» sui settori d'area di LIMM, non col rilascio.
+> Tutto quel che è elencato qui sotto, fino a **S99**, è in `main` e **online** (ultima: **1.58.0**, S99, online
+> dall'8 ottobre sera: il committente ha confermato timbro e Schema 0, una migrazione additiva — §A150). Niente da
+> fondere, niente in corso. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi, sul ramo
+> `fix/tabellone` (aspetta la chiave del booking; carta `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7,
+> che sta su quel ramo).
+>
+> **Gesti che restano al committente, da S99** (carta `docs/feature/2026-10-08-configurazioni-possibili.md`; voce
+> S99, in fondo): in Struttura, «Configurazioni possibili», **accendere «L'elenco è completo» sui settori d'area di
+> LIMM** — è quello che toglie il falso «Trasferimento senza ripiego» e riporta `/vsop/health` a Healthy: il
+> travaso ha portato gli elenchi dei documenti **tutti spenti**, e finché restano spenti niente è cambiato. Poi: a
+> Torino–Genova aggiungere {WN0} e {WS0} da soli e solo dopo accendere; Roma e Venezia lasciarle spente o
+> riscriverle (sulle sessioni vere stanno all'elenco il 2% del tempo); Padova e Bologna si possono accendere.
 >
 > Prove che restano al committente, da S97: **ripubblicare le vIPI ACC** (la tabella delle configurazioni segue il
 > motore unico: sulla copia di produzione cambiava solo LIMM «Conf 2 b»); guardare i **3 avvisi «quota di un altro
@@ -2264,15 +2266,90 @@
       lasciare spento, o riscrivere l'elenco; Padova e Bologna tornano con la realtà e si possono accendere;
       (4) ripubblicare le vIPI ACC.
     - **Chiuso l'8 ottobre** («va bene così, chiudi»): build Release senza avvisi, suite degli assiemi toccati
-      verdi, CI verde. La copia di produzione usata per le prove è rimasta nello scratchpad della chat, a MariaDB
-      spento: cancellarla è da chiedere al committente (dati personali veri).
+      verdi, CI verde. Fuso dal Master lo stesso giorno e **online con la 1.58.0** dall'8 ottobre sera (§A150);
+      il ramo `fix/senza-ripiego-falso` non c'è più. La copia di produzione usata per le prove è stata
+      **cancellata** dallo scratchpad il 9 ottobre, su «sì» del committente (dati, log, MariaDB isolato).
+    - **Per chi riprende il tema** — quel che non è stato fatto, tutto in carta §7: la vista live che dice
+      «configurazione non prevista»; un rilievo di Diagnostica per un settore cancellato dai cataloghi e rimasto
+      in un elenco; i settori fra cui un gruppo sceglie, calcolati in due posti; i gruppi APP senza membri, che non
+      si travasano. E una cosa da ricordare prima di provare la sonda dei trasferimenti dal vivo: **il sectorfile
+      va lasciato acceso**, perché le coordinate dei punti vengono da lì.
+- 🧪 **S100** accordi: l'ordinamento col verso, in albero e in elenco, e i tasti di riga che non escono più dal
+  bordo (9-ott, chiesto dal committente con due foto). Sul ramo `sito/lavori`; aspetta il suo sguardo.
+  - **Cosa chiedeva**: (1) il selettore d'ordine della sezione «adeguato alla UI» — era il `select` nudo del
+    browser, bianco nel tema scuro accanto a tasti che non lo sono; (2) ordinare **anche in elenco**: per
+    mittente, ricevente, tipo, punti, quota; (3) **ogni** ordinamento anche al contrario (A→Z e Z→A), in tutte
+    e due le viste; (4) «la cosa grafica delle icone»: la colonna dei tasti di riga tagliata a destra.
+  - **Cos'era**. In elenco si ordinava già — cliccando le intestazioni — ma niente lo diceva (la freccia compare
+    solo sulla colonna che sta già ordinando) e il committente non l'ha trovato. In albero il verso non c'era:
+    `_sortDesc` valeva solo in elenco. L'ordine **salvato** della sezione (7 ottobre, nato con le clausole condivise)
+    aveva tre valori e nessun verso. I tasti di riga erano glifi — ↗ ⑂ ↳ ⧉ ⛓ ✎ — presi ognuno dal font che
+    capitava: larghezze diverse, separati dagli spazi del markup, in una colonna a `table-layout:fixed`. Il
+    commento nel foglio lo prevedeva («un tasto in più = 44px, e lo fa in silenzio»): col settimo tasto (la
+    condivisione, 7-ott) la misura non era stata rifatta, l'ultimo usciva e la tabella scorreva di lato.
+  - **Cos'è ora**.
+    - `XferSortChip` (nuovo): chiave (un `select` vero, senza la veste del browser) + verso (un tasto: **A→Z** /
+      **Z→A**, per la quota **1→9** / **9→1**), con la faccia di un `.btn.ghost`. Lo stesso pezzo nei due posti:
+      la **barra** (come si guarda: «Ordina», ora anche in elenco, con mittente · ricevente · aeroporto · tipo
+      in più) e la **testata della sezione** (l'ordine salvato). Su «a mano» il verso resta al suo posto, spento.
+    - Tendina della barra e intestazioni dell'elenco leggono e scrivono lo **stesso** stato (`_sort`,
+      `_sortDesc`): due maniglie, una verità. Tornando in albero una chiave solo-elenco cade su «manuale» e il
+      verso si azzera.
+    - **Il verso dell'ordine salvato è salvato**: `AgreementClauseOrder` ha due valori in più, in coda —
+      `PointsDescending`, `LevelDescending`. ⚠️ La colonna è **testo** (per nome; `varchar(32)` su MySQL):
+      **nessuna migrazione**. `AgreementClauseOrdering` ha `KeyOf` / `IsDescending` / `Reverse`.
+    - **Chi non ha la chiave resta in fondo in tutti e due i versi** — niente punti, niente quota — nell'ordine
+      salvato e nella vista: capovolgere non porta in testa le righe ancora da scrivere. (Prima, in elenco, il
+      verso opposto per quota le metteva per prime.) Un gruppo di varianti si muove intero e dentro **non** si
+      capovolge. In elenco la quota ora si confronta in piedi (FL e ft sulla stessa scala), come nell'ordine salvato.
+    - Tasti di riga e tasti senza parole della testata: icone del set (`Icon`: `arrow-up-right`, `split`,
+      `corner-down-right`, `copy`, `link`, `pencil`, `x`; in testata anche `arrow-right-left`, `arrow-right`,
+      `scissors`), quadrati 28×26 in una riga flessibile (`.xt-actrow`). La larghezza della colonna è un
+      **conto**: n × 28 + (n−1) × 4 + 18 → 208px in albero (6 tasti), 240px in elenco (7). Le due pastiglie di
+      riga (⛓ condivisa, ⑂ varianti) portano lo stesso segno del tasto.
+    - Voci della tendina di sezione accorciate («per punto», «per quota»): con «alfabetico (punto)» il comando
+      era largo 200px e a 1366 la ✕ della testata andava a capo.
+  - **Codice comune**: `Vipi.Domain` (`AgreementClauseOrder`, due valori in coda) e `Vipi.Application`
+    (`AgreementClauseOrdering`). Niente migrazione, niente `deploy/`. ⚠️ **Tornare a una versione precedente
+    dopo che qualcuno ha salvato un verso opposto** non si può senza rimettere «a mano» quelle sezioni: il
+    codice di prima non conosce i due nomi nuovi e leggendo la colonna si ferma.
+  - **Test**: App 3299 → 3308 (verso opposto per punto e per quota, vuoti in fondo, gruppo intero, i nomi
+    salvati che non cambiano), Infra 2184 → 2185 (il verso si salva, si rilegge, arriva a documenti e vista live,
+    e tornando a mano l'ordine scritto c'è), Ui 2000 → 2012 (`XferSortChipTests`: il comando, e il filo con la
+    pagina). net8 e net10; suite intera verde, conteggi identici all'atteso.
+  - **Prova a schermo** (app locale su una copia del database, Edge guidato; LIBB ⇄ LGGG_W_CTR): tema scuro e
+    chiaro, 1860 e 1366px, italiano e inglese. Colonna dei tasti: tutti 28×26, l'ultimo 9px dentro il bordo,
+    scorrimento laterale **0** in albero e in elenco. Comando alto quanto i tasti accanto (37px in barra, 22 in
+    testata). Barra in albero: punti A→Z e Z→A, quota. Sezione «Sorvoli»: per punto nei due versi, salvato,
+    **ritrovato dopo un ricarico**, maniglie di trascinamento via con l'ordine dichiarato e tornate «a mano».
+    Elenco: mittente, ricevente, tipo, punti, quota nei due versi; clic su un'intestazione → la tendina la
+    segue. Nessun errore in console. Non provato: la stampa, e il comando con la tastiera sola.
+  - **Non toccato, e si vede**: i glifi della barra (⊞ ⊟ ¶ ▤ ☰) e quelli nei pannelli (⇢ ⧉ nel cruscotto, «⛓
+    Condividi…»); la Guida dice ancora «il tasto ⛓» — il segno ora è la catena del set, stessa cosa disegnata.
+- 🧪 **S101** il motto della divisione nel piè di pagina (9-ott, chiesto dal committente: «it takes time»). Sul
+  ramo `sito/lavori`, sopra S100; aspetta il suo sguardo.
+  - **Dove**: sotto il marchio «ATC Services · IVAO Italy», prima delle due frasi di descrizione, su una riga
+    sua — corsivo, un filo più piccolo del marchio, nello stesso bianco. Gli avevo proposto quel posto (è
+    l'unico punto del piè di pagina in cui parla la divisione; la striscia in fondo, con diritti e crediti, è
+    già piena e andrebbe a capo) e ha detto «mettilo lì».
+  - **Com'è fatto**: `DivisionOptions.Motto` (sezione `Division`, default «it takes time», scritto com'è, in
+    minuscolo): è della divisione come il nome, e **non si traduce** — per questo non sta nei `.resx`. La riga
+    porta `lang="en"`, o in una pagina italiana un lettore di schermo lo leggerebbe all'italiana. Motto vuoto =
+    la riga non c'è. ⚠️ È una riga che il piè di pagina dell'hub IVAO Italy non ha: le altre frasi restano le sue.
+  - **Codice comune**: `Vipi.Application` (`DivisionOptions`, una proprietà). Niente migrazione, niente `deploy/`.
+  - **Test**: Ui 2012 → 2014 (`PieDiPaginaTests`: il motto sta fra il marchio e la prosa, una volta sola, con
+    `lang`; una divisione senza motto non ha la riga). Suite intera verde.
+  - **Prova a schermo** (app locale su un database **nuovo e vuoto**, Edge guidato; `/services`): tema scuro e
+    chiaro, italiano e inglese, 1366 e 390px. Una riga sola, a 4px dal marchio e 12 dalla prosa, nessuno
+    scorrimento laterale; il piè di pagina cresce di una riga (350px a 1366).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  All'8-ott: tutto fuso e online fino a S98 (1.57.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
+  Al 9-ott: tutto fuso e online fino a S99 (1.58.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
   IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il primo evento vero in `/services/event`; in
   produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63); le vIPI ACC da ripubblicare e i tre
-  avvisi «quota di un altro settore» da guardare (S97). Resta al committente LIRE/LIBG (aspetta il
+  avvisi «quota di un altro settore» da guardare (S97); gli elenchi delle configurazioni da dichiarare completi
+  in Struttura, LIMM per primo (S99). Resta al committente LIRE/LIBG (aspetta il
   SOD). ⚠️ In Spazi aerei i gesti che spostano agganci rifanno i confinanti: 15–25 s (S63), da guardare se diventa un
   fastidio. Futuro: vIPI ACC legata all'ACC
   (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).
