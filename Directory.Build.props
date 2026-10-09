@@ -1535,6 +1535,19 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.59.0 — MINOR, NESSUNA migrazione. Su 1.58.0 (2ecbdd6, online dall'8 ottobre 2026). Sito S100: negli accordi
+      l'ordinamento ha un verso (A→Z / Z→A, 1→9 / 9→1), in albero e in elenco, dove «Ordina» ordina anche per mittente,
+      ricevente, aeroporto, tipo, punti e quota; il verso dell'ordine salvato di una sezione sono due valori nuovi di
+      AgreementClauseOrder (PointsDescending, LevelDescending), aggiunti in coda e salvati per nome: la colonna è di
+      testo, per questo non c'è migrazione; i tasti di riga diventano icone quadrate che non escono più dal bordo.
+      S101: il motto della divisione, «it takes time», nel piè di pagina sotto il marchio (DivisionOptions.Motto, non si
+      traduce; vuoto = niente riga). È MINOR e non PATCH perché sono funzioni, non correzioni. ⚠️ ROLLBACK: se dopo il
+      carico qualcuno salva una sezione col verso opposto, la 1.58.0 non conosce quei due nomi — tornando indietro quelle
+      sezioni vanno prima rimesse «a mano». Fuso il 9 ottobre su richiesta del committente prima del suo sguardo a
+      schermo: li guarda online. Tocca Vipi.Domain, Vipi.Application, Vipi.Ui (+ frasi IT/EN, vipi-theme.css con
+      l'indice degli asset) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.59.0.md, §A151.
+    -->
+    <!--
       1.58.0 — MINOR: UNA migrazione ADDITIVA (ConfigurazioniPossibili: crea la tabella SectorConfigurationSets e un
       indice; niente tolto o rinominato). Su 1.57.0 (397b7a1, online dal 7 ottobre 2026). Sito S99: le configurazioni
       possibili di un gruppo di settori si dichiarano in Struttura (settori d'area di un ACC, o un ente con le sue
@@ -1965,7 +1978,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.58.0</VipiVersione>
+    <VipiVersione>1.59.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
