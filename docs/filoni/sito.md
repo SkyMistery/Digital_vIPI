@@ -2326,6 +2326,22 @@
     segue. Nessun errore in console. Non provato: la stampa, e il comando con la tastiera sola.
   - **Non toccato, e si vede**: i glifi della barra (⊞ ⊟ ¶ ▤ ☰) e quelli nei pannelli (⇢ ⧉ nel cruscotto, «⛓
     Condividi…»); la Guida dice ancora «il tasto ⛓» — il segno ora è la catena del set, stessa cosa disegnata.
+- 🧪 **S101** il motto della divisione nel piè di pagina (9-ott, chiesto dal committente: «it takes time»). Sul
+  ramo `sito/lavori`, sopra S100; aspetta il suo sguardo.
+  - **Dove**: sotto il marchio «ATC Services · IVAO Italy», prima delle due frasi di descrizione, su una riga
+    sua — corsivo, un filo più piccolo del marchio, nello stesso bianco. Gli avevo proposto quel posto (è
+    l'unico punto del piè di pagina in cui parla la divisione; la striscia in fondo, con diritti e crediti, è
+    già piena e andrebbe a capo) e ha detto «mettilo lì».
+  - **Com'è fatto**: `DivisionOptions.Motto` (sezione `Division`, default «it takes time», scritto com'è, in
+    minuscolo): è della divisione come il nome, e **non si traduce** — per questo non sta nei `.resx`. La riga
+    porta `lang="en"`, o in una pagina italiana un lettore di schermo lo leggerebbe all'italiana. Motto vuoto =
+    la riga non c'è. ⚠️ È una riga che il piè di pagina dell'hub IVAO Italy non ha: le altre frasi restano le sue.
+  - **Codice comune**: `Vipi.Application` (`DivisionOptions`, una proprietà). Niente migrazione, niente `deploy/`.
+  - **Test**: Ui 2012 → 2014 (`PieDiPaginaTests`: il motto sta fra il marchio e la prosa, una volta sola, con
+    `lang`; una divisione senza motto non ha la riga). Suite intera verde.
+  - **Prova a schermo** (app locale su un database **nuovo e vuoto**, Edge guidato; `/services`): tema scuro e
+    chiaro, italiano e inglese, 1366 e 390px. Una riga sola, a 4px dal marchio e 12 dalla prosa, nessuno
+    scorrimento laterale; il piè di pagina cresce di una riga (350px a 1366).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 9-ott: tutto fuso e online fino a S99 (1.58.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
