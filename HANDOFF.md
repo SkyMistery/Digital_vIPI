@@ -4,7 +4,16 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 8 ottobre 2026, pomeriggio
+> ## ▶ Il punto — 9 ottobre 2026, sera
+>
+> **📦 Pronta da caricare: 1.59.0** (§A151, timbro `1.59.0 · fc442f2`, 13 file, zip `6b1b7569…`, MINOR senza
+> migrazioni): Sito S100 (accordi: ordinamento col verso in albero ed elenco, tasti di riga a icone) e S101 (motto
+> «it takes time» nel piè di pagina), fusi prima dello sguardo del committente, che li guarda online. Online resta la
+> **1.58.0** finché non carica. ⚠️ Rollback: la 1.58.0 non conosce i due versi nuovi dell'ordine salvato. ▶ Restano i
+> gesti della 1.58.0 (accendere l'elenco di LIMM: fino ad allora `/vsop/health` è Degraded). S96 in pausa. LIRE/LIBG
+> aspettano il SOD.
+>
+> ## Il punto — 8 ottobre 2026, pomeriggio
 >
 > **✅ Online: 1.58.0** dall'8 ottobre sera (`Schema 0` confermato; **in `main` non resta codice fuori pacchetto**;
 > 🔎 `/vsop/health` ancora Degraded finché non si accende l'elenco di LIMM) (§A150, timbro `1.58.0 · 2ecbdd6`, 15 file, zip `ea49ca83…`, MINOR con una

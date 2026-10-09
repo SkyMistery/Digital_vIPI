@@ -43,6 +43,35 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A151 — 1.59.0 PRONTA, da caricare: accordi ordinati col verso e tasti di riga a icone (S100), motto nel piè di pagina (S101) (9 ottobre 2026)
+
+MINOR **senza migrazioni**, su 1.58.0 (`2ecbdd6`). Timbro **`1.59.0 · fc442f2`**.
+- **S100** e **S101** (fusi da `sito/lavori` @ `c7b1b332`, CI verde run 37973506093). ⚠️ Il cartellino del Sito era 🧪:
+  aspettavano lo sguardo del committente, che il 9-ott ha detto «procedi, chiudiamo tutto, fondi e fai il pacchetto» —
+  li guarda online. S100: negli accordi il comando «Ordina» ha un verso (A→Z / Z→A, 1→9 / 9→1), in barra, in testata di
+  sezione e nella vista Elenco (mittente, ricevente, aeroporto, tipo, punti, quota); l'ordine salvato della sezione
+  ricorda il verso (`AgreementClauseOrder.PointsDescending` / `LevelDescending`, in coda, salvati per nome in una
+  colonna di testo: per questo niente migrazione); tasti di riga a icone quadrate. S101: `DivisionOptions.Motto`,
+  «it takes time», nel piè di pagina. Codice comune: Domain, Application. Storia in `docs/filoni/sito.md`.
+- ⚠️ **Rollback**: la 1.58.0 non conosce i due valori nuovi. Se qualcuno salva un verso opposto, prima di tornare
+  indietro quelle sezioni vanno rimesse «a mano» o sul verso diretto. Scritto in testa al foglio.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**13 file** (`solo-13-file-1.59.0`): Domain, Application, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`,
+`vipi-theme.css` con `.br`/`.gz` e `endpoints.json`. **Fuori** Infrastructure, MySqlMigrations e Hosting: sorgente
+invariato, e in Application ci sono solo aggiunte (`KeyOf`, `IsDescending`, `Reverse`, `Motto`); l'unica chiamata da
+Infrastructure è `AgreementClauseOrdering.Sort`, firma invariata. Nessuna `const` nel diff. 482 file nel publish come
+nel precedente, 23 con impronta diversa. Zip 4,55 MB, sha256 `6b1b7569b93c534d862274c58d44cd3a0ae304fa705d9b76ecdb06d3a5276d4f`. Build Release
+senza avvisi; `dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3308, Infra 2185, Ui 2014,
+E2E 507). Prova sul publish win-x64 (copia del database di sviluppo): `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`); `ordina-verifica.js` senza problemi — albero ed elenco nei due versi, ordine della sezione salvato e
+ritrovato dopo un ricarico, tasti di riga dentro il bordo (foto guardata); il motto nel piè di pagina; CSS servito con
+`?v=abf90f76`, lo stesso del pacchetto. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.59.0.md`.
+
+▶ **Dopo il carico** (committente): guardare S100 e S101 e dire se le scelte del Sito vanno (senza punti o quota in
+fondo nei due versi; etichette del verso; motto in minuscolo). Restano i gesti della 1.58.0 (LIMM e gli altri elenchi,
+ripubblicare le vIPI ACC).
+
 ### ✅ A150 — 1.58.0 ONLINE: le configurazioni possibili dei gruppi di settori, in Struttura (S99) (8 ottobre 2026)
 
 ✅ Online dall'8 ottobre 2026, sera: il committente conferma il timbro 1.58 e `Schema 0` (la tabella
