@@ -110,11 +110,11 @@
                        corregge la corregge anche là. *@
                     @if (c.IsShared)
                     {
-                        <span class="pill blue xt-shared" title="@(string.Format(L["Xfer_SharedTitle"].Value, string.Join(" · ", c.SharedWith.Select(s => s.Label).Distinct())))">⛓</span>
+                        <span class="pill blue xt-shared" title="@(string.Format(L["Xfer_SharedTitle"].Value, string.Join(" · ", c.SharedWith.Select(s => s.Label).Distinct())))"><Icon Name="link" Size="12" /></span>
                     }
                     @if (gv.First && gv.Count > 1)
                     {
-                        <span class="pill blue xt-grouppill" title="@L["Xfer_VariantsTitle"]">⑂ @L["Xfer_VariantsN", gv.Count]</span>
+                        <span class="pill blue xt-grouppill" title="@L["Xfer_VariantsTitle"]"><Icon Name="split" Size="12" /> @L["Xfer_VariantsN", gv.Count]</span>
                     }
                 </td>
                 <td>
@@ -162,26 +162,36 @@
                        ⚠️ La copia è entrata qui il 7 settembre 2026, su richiesta del committente: si duplica
                        una riga per scriverne una quasi uguale, e passare dal pannello vuol dire aprirlo per
                        premere un tasto e richiuderlo. Il ⧉ del pannello NON è questo: quello copia tutto il
-                       gruppo di varianti — e su una riga senza gruppo non fa niente. *@
+                       gruppo di varianti — e su una riga senza gruppo non fa niente.
+
+                       ⚠️ I tasti sono ICONE del set (`Icon`) in una riga flessibile, tutti della stessa misura
+                       (9 ottobre 2026). Prima erano glifi — ↗ ⑂ ↳ ⧉ ⛓ ✎ — ciascuno dal font che capitava: larghi
+                       e alti a modo loro, separati dagli spazi del markup, in una colonna a larghezza fissa. Col
+                       settimo tasto (la condivisione, 7 ottobre) l'ultimo usciva dal bordo e la tabella
+                       scorreva di lato. Ora la larghezza è un conto: n tasti × 28 + (n−1) × 4. *@
+                    <div class="xt-actrow">
                     @if (ShowContext)
                     {
                         @* Solo in elenco, e solo lì ha senso: si trova una riga col filtro «senza ricevente», la
                            si sistema — e per sapere se è giusta bisogna vedere le sorelle, che l'elenco non
                            mostra come blocco. Questo è il ponte fra le due viste. *@
-                        <button class="btn ghost" title="@L["Xfer_GoToGroupTitle"]" @onclick="() => OnGoToAgreement.InvokeAsync(r)">↗</button>
+                        <button class="btn ghost" title="@L["Xfer_GoToGroupTitle"]" aria-label="@L["Xfer_GoToGroupTitle"]"
+                                @onclick="() => OnGoToAgreement.InvokeAsync(r)"><Icon Name="arrow-up-right" Size="14" /></button>
                     }
-                    <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddAlternativeTitle"]" @onclick="() => OnAddAlternative.InvokeAsync(c.Id)">⑂</button>
-                    <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddExceptionTitle"]" @onclick="() => OnAddException.InvokeAsync(c.Id)">↳</button>
+                    <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddAlternativeTitle"]" aria-label="@L["Xfer_AddAlternativeTitle"]"
+                            @onclick="() => OnAddAlternative.InvokeAsync(c.Id)"><Icon Name="split" Size="14" /></button>
+                    <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddExceptionTitle"]" aria-label="@L["Xfer_AddExceptionTitle"]"
+                            @onclick="() => OnAddException.InvokeAsync(c.Id)"><Icon Name="corner-down-right" Size="14" /></button>
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_DuplicateRow"]"
-                            aria-label="@L["Xfer_DuplicateRow"]" @onclick="() => OnDuplicate.InvokeAsync(c.Id)">⧉</button>
+                            aria-label="@L["Xfer_DuplicateRow"]" @onclick="() => OnDuplicate.InvokeAsync(c.Id)"><Icon Name="copy" Size="14" /></button>
                     @* Condividi QUESTA clausola con un altro accordo: il gesto sta sulla riga, dove lo si cerca
                        (committente, 7 ottobre 2026 — nella barra delle scelte non l'aveva trovato). *@
                     @if (OnShare.HasDelegate)
                     {
                         <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_ShareRowTitle"]"
-                                aria-label="@L["Xfer_ShareRowTitle"]" @onclick="() => OnShare.InvokeAsync(r)">⛓</button>
+                                aria-label="@L["Xfer_ShareRowTitle"]" @onclick="() => OnShare.InvokeAsync(r)"><Icon Name="link" Size="14" /></button>
                     }
-                    <button class="btn @(sel ? "primary" : "ghost")" disabled="@Disabled" title="@L["Xfer_EditRowTitle"]" @onclick="() => OnEdit.InvokeAsync(r)">✎</button>
+                    <button class="btn @(sel ? "primary" : "ghost")" disabled="@Disabled" title="@L["Xfer_EditRowTitle"]" aria-label="@L["Xfer_EditRowTitle"]" @onclick="() => OnEdit.InvokeAsync(r)"><Icon Name="pencil" Size="14" /></button>
                     @* ⚠️ L'eliminazione era SOLO nel pannello: per togliere una riga bisognava aprirla,
                        premere un tasto e richiudere. Chiesta sulla riga dal committente (9 settembre 2026),
                        come il ⧉ due giorni prima.
@@ -195,9 +205,10 @@
                                        AriaLabel="@L["Xfer_DeleteRowAria"]" Disabled="@Disabled"
                                        Prompt="@(DeletePrompt?.Invoke(c.Id) ?? L["Xfer_DeleteRowPrompt"].Value)"
                                        OnConfirm="() => OnDelete.InvokeAsync(c.Id)">
-                            <Trigger><Icon Name="x" /></Trigger>
+                            <Trigger><Icon Name="x" Size="14" /></Trigger>
                         </InlineConfirm>
                     }
+                    </div>
                 </td>
             </tr>
             @if (r.HasPreview)

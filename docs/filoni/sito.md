@@ -2274,6 +2274,58 @@
       in un elenco; i settori fra cui un gruppo sceglie, calcolati in due posti; i gruppi APP senza membri, che non
       si travasano. E una cosa da ricordare prima di provare la sonda dei trasferimenti dal vivo: **il sectorfile
       va lasciato acceso**, perché le coordinate dei punti vengono da lì.
+- 🧪 **S100** accordi: l'ordinamento col verso, in albero e in elenco, e i tasti di riga che non escono più dal
+  bordo (9-ott, chiesto dal committente con due foto). Sul ramo `sito/lavori`; aspetta il suo sguardo.
+  - **Cosa chiedeva**: (1) il selettore d'ordine della sezione «adeguato alla UI» — era il `select` nudo del
+    browser, bianco nel tema scuro accanto a tasti che non lo sono; (2) ordinare **anche in elenco**: per
+    mittente, ricevente, tipo, punti, quota; (3) **ogni** ordinamento anche al contrario (A→Z e Z→A), in tutte
+    e due le viste; (4) «la cosa grafica delle icone»: la colonna dei tasti di riga tagliata a destra.
+  - **Cos'era**. In elenco si ordinava già — cliccando le intestazioni — ma niente lo diceva (la freccia compare
+    solo sulla colonna che sta già ordinando) e il committente non l'ha trovato. In albero il verso non c'era:
+    `_sortDesc` valeva solo in elenco. L'ordine **salvato** della sezione (7 ottobre, nato con le clausole condivise)
+    aveva tre valori e nessun verso. I tasti di riga erano glifi — ↗ ⑂ ↳ ⧉ ⛓ ✎ — presi ognuno dal font che
+    capitava: larghezze diverse, separati dagli spazi del markup, in una colonna a `table-layout:fixed`. Il
+    commento nel foglio lo prevedeva («un tasto in più = 44px, e lo fa in silenzio»): col settimo tasto (la
+    condivisione, 7-ott) la misura non era stata rifatta, l'ultimo usciva e la tabella scorreva di lato.
+  - **Cos'è ora**.
+    - `XferSortChip` (nuovo): chiave (un `select` vero, senza la veste del browser) + verso (un tasto: **A→Z** /
+      **Z→A**, per la quota **1→9** / **9→1**), con la faccia di un `.btn.ghost`. Lo stesso pezzo nei due posti:
+      la **barra** (come si guarda: «Ordina», ora anche in elenco, con mittente · ricevente · aeroporto · tipo
+      in più) e la **testata della sezione** (l'ordine salvato). Su «a mano» il verso resta al suo posto, spento.
+    - Tendina della barra e intestazioni dell'elenco leggono e scrivono lo **stesso** stato (`_sort`,
+      `_sortDesc`): due maniglie, una verità. Tornando in albero una chiave solo-elenco cade su «manuale» e il
+      verso si azzera.
+    - **Il verso dell'ordine salvato è salvato**: `AgreementClauseOrder` ha due valori in più, in coda —
+      `PointsDescending`, `LevelDescending`. ⚠️ La colonna è **testo** (per nome; `varchar(32)` su MySQL):
+      **nessuna migrazione**. `AgreementClauseOrdering` ha `KeyOf` / `IsDescending` / `Reverse`.
+    - **Chi non ha la chiave resta in fondo in tutti e due i versi** — niente punti, niente quota — nell'ordine
+      salvato e nella vista: capovolgere non porta in testa le righe ancora da scrivere. (Prima, in elenco, il
+      verso opposto per quota le metteva per prime.) Un gruppo di varianti si muove intero e dentro **non** si
+      capovolge. In elenco la quota ora si confronta in piedi (FL e ft sulla stessa scala), come nell'ordine salvato.
+    - Tasti di riga e tasti senza parole della testata: icone del set (`Icon`: `arrow-up-right`, `split`,
+      `corner-down-right`, `copy`, `link`, `pencil`, `x`; in testata anche `arrow-right-left`, `arrow-right`,
+      `scissors`), quadrati 28×26 in una riga flessibile (`.xt-actrow`). La larghezza della colonna è un
+      **conto**: n × 28 + (n−1) × 4 + 18 → 208px in albero (6 tasti), 240px in elenco (7). Le due pastiglie di
+      riga (⛓ condivisa, ⑂ varianti) portano lo stesso segno del tasto.
+    - Voci della tendina di sezione accorciate («per punto», «per quota»): con «alfabetico (punto)» il comando
+      era largo 200px e a 1366 la ✕ della testata andava a capo.
+  - **Codice comune**: `Vipi.Domain` (`AgreementClauseOrder`, due valori in coda) e `Vipi.Application`
+    (`AgreementClauseOrdering`). Niente migrazione, niente `deploy/`. ⚠️ **Tornare a una versione precedente
+    dopo che qualcuno ha salvato un verso opposto** non si può senza rimettere «a mano» quelle sezioni: il
+    codice di prima non conosce i due nomi nuovi e leggendo la colonna si ferma.
+  - **Test**: App 3299 → 3308 (verso opposto per punto e per quota, vuoti in fondo, gruppo intero, i nomi
+    salvati che non cambiano), Infra 2184 → 2185 (il verso si salva, si rilegge, arriva a documenti e vista live,
+    e tornando a mano l'ordine scritto c'è), Ui 2000 → 2012 (`XferSortChipTests`: il comando, e il filo con la
+    pagina). net8 e net10; suite intera verde, conteggi identici all'atteso.
+  - **Prova a schermo** (app locale su una copia del database, Edge guidato; LIBB ⇄ LGGG_W_CTR): tema scuro e
+    chiaro, 1860 e 1366px, italiano e inglese. Colonna dei tasti: tutti 28×26, l'ultimo 9px dentro il bordo,
+    scorrimento laterale **0** in albero e in elenco. Comando alto quanto i tasti accanto (37px in barra, 22 in
+    testata). Barra in albero: punti A→Z e Z→A, quota. Sezione «Sorvoli»: per punto nei due versi, salvato,
+    **ritrovato dopo un ricarico**, maniglie di trascinamento via con l'ordine dichiarato e tornate «a mano».
+    Elenco: mittente, ricevente, tipo, punti, quota nei due versi; clic su un'intestazione → la tendina la
+    segue. Nessun errore in console. Non provato: la stampa, e il comando con la tastiera sola.
+  - **Non toccato, e si vede**: i glifi della barra (⊞ ⊟ ¶ ▤ ☰) e quelli nei pannelli (⇢ ⧉ nel cruscotto, «⛓
+    Condividi…»); la Guida dice ancora «il tasto ⛓» — il segno ora è la catena del set, stessa cosa disegnata.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 9-ott: tutto fuso e online fino a S99 (1.58.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo

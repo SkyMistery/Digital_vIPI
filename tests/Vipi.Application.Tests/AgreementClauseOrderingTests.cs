@@ -104,6 +104,77 @@ public class AgreementClauseOrderingTests
         Assert.Equal(new[] { "GIKIN", "ELKAP", "VALMA", "BIRSU" }, ordinate.Select(r => r.Cops));
     }
 
+    // ---- Il verso opposto (committente, 9 ottobre 2026) ----
+
+    [Fact]
+    public void Dalla_Z_alla_A_capovolge_i_punti_ma_i_vuoti_restano_in_fondo()
+    {
+        // Il verso opposto capovolge chi un punto ce l'ha: una riga ancora da scrivere non sale in testa.
+        var righe = new[] { Riga(1, "VALMA", 130), Riga(2, "", 90), Riga(3, "birsu", 110), Riga(4, "GIKIN", 150) };
+
+        var ordinate = AgreementClauseOrdering.Sort(righe, AgreementClauseOrder.PointsDescending);
+
+        Assert.Equal(new[] { "VALMA", "GIKIN", "birsu", "" }, ordinate.Select(r => r.Cops));
+        Assert.Equal(new[] { 1, 2, 3, 4 }, ordinate.Select(r => r.Order));
+    }
+
+    [Fact]
+    public void Dalla_quota_piu_alta_chi_non_ha_quota_resta_in_fondo_e_a_pari_quota_il_punto_va_dalla_A()
+    {
+        var righe = new[]
+        {
+            Riga(1, "VALMA", 130),
+            Riga(2, "BIRSU", null),
+            Riga(3, "GIKIN", 5000, LevelUnit.Feet),
+            Riga(4, "ELKAP", 130),                         // pari quota: lo spareggio non si capovolge
+        };
+
+        var ordinate = AgreementClauseOrdering.Sort(righe, AgreementClauseOrder.LevelDescending);
+
+        Assert.Equal(new[] { "ELKAP", "VALMA", "GIKIN", "BIRSU" }, ordinate.Select(r => r.Cops));
+    }
+
+    [Fact]
+    public void Al_contrario_un_gruppo_di_varianti_si_muove_intero_e_dentro_NON_si_capovolge()
+    {
+        // L'ordine dentro il gruppo è la struttura: capofila, la sua eccezione, l'alternativa. Capovolto,
+        // l'eccezione starebbe sopra la riga di cui è eccezione.
+        var righe = new[]
+        {
+            Riga(4, "BIRSU", 200),
+            Riga(1, "VALMA", 130, gruppo: 7), Riga(2, "VALMA", 110, gruppo: 7, profondita: 1), Riga(3, "VALMA", 150, gruppo: 7),
+        };
+
+        var ordinate = AgreementClauseOrdering.Sort(righe, AgreementClauseOrder.PointsDescending);
+
+        Assert.Equal(new[] { 1, 2, 3, 4 }, ordinate.Select(r => r.Id));
+    }
+
+    [Theory]
+    [InlineData(AgreementClauseOrder.Manual, AgreementClauseOrder.Manual, false, AgreementClauseOrder.Manual)]
+    [InlineData(AgreementClauseOrder.Points, AgreementClauseOrder.Points, false, AgreementClauseOrder.PointsDescending)]
+    [InlineData(AgreementClauseOrder.PointsDescending, AgreementClauseOrder.Points, true, AgreementClauseOrder.Points)]
+    [InlineData(AgreementClauseOrder.Level, AgreementClauseOrder.Level, false, AgreementClauseOrder.LevelDescending)]
+    [InlineData(AgreementClauseOrder.LevelDescending, AgreementClauseOrder.Level, true, AgreementClauseOrder.Level)]
+    public void Chiave_verso_e_ordine_opposto(AgreementClauseOrder ordine, AgreementClauseOrder chiave, bool alContrario,
+        AgreementClauseOrder opposto)
+    {
+        Assert.Equal(chiave, AgreementClauseOrdering.KeyOf(ordine));
+        Assert.Equal(alContrario, AgreementClauseOrdering.IsDescending(ordine));
+        Assert.Equal(opposto, AgreementClauseOrdering.Reverse(ordine));
+    }
+
+    [Fact]
+    public void I_nomi_salvati_non_cambiano_e_stanno_nella_colonna()
+    {
+        // ⚠️ L'ordine è salvato PER NOME in una colonna di testo (32 caratteri su MySQL): rinominare un valore
+        // lascerebbe nel database righe che non si leggono più, e un nome più lungo non entrerebbe.
+        Assert.Equal(
+            new[] { "Manual", "Points", "Level", "PointsDescending", "LevelDescending" },
+            System.Enum.GetNames<AgreementClauseOrder>());
+        Assert.All(System.Enum.GetNames<AgreementClauseOrder>(), n => Assert.True(n.Length <= 32));
+    }
+
     private static AgreementClauseRow Riga(int id, string cops, int? quota, LevelUnit unita = LevelUnit.Fl,
         int? gruppo = null, int profondita = 0, int? posto = null) => new()
     {

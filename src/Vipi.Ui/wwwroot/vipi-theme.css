@@ -2226,7 +2226,12 @@
    `white-space:nowrap`: lasciata com'era, l'ultimo usciva dalla cella invece di stringerla -- e usciva in
    SILENZIO, che e' il motivo per cui questa riga ha un commento. Lo spazio lo cede la condizione, che prende
    cio' che resta. */
-:where(.vipi-root) .xt-c-acts{width:220px}
+/* ⚠️ 9 ottobre 2026: col SETTIMO tasto (la condivisione, 7 ottobre) la misura non era stata rifatta, e il
+   silenzio promesso qui sopra c'e' stato -- l'ultimo tasto fuori dal bordo, la tabella che scorre di lato. Ora
+   i tasti sono icone a misura fissa in una riga flessibile (`.xt-actrow`), e la larghezza e' un CONTO, non una
+   misura a schermo: n tasti x 28 + (n-1) x 4 di stacco + 18 di cella. Albero 6 tasti = 206; elenco 7 = 238.
+   Un tasto in piu' = 32px in piu' su tutte e due. */
+:where(.vipi-root) .xt-c-acts{width:208px}
 /* 🔴 La conferma di riga si STACCA dal flusso della cella. Aperta, `InlineConfirm` non e' piu' un'icona: e'
    una frase piu' due tasti, e in 220px a `table-layout:fixed` non ci sta -- usciva dal bordo destro tagliata
    a meta', col tasto rosso mezzo fuori. Visto SOLO a schermo (9 settembre 2026): nessun test guarda la
@@ -2239,7 +2244,7 @@
   flex-wrap:nowrap;white-space:nowrap;
   background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 8px;
   box-shadow:0 8px 24px rgba(0,0,0,.28)}
-:where(.vipi-root) .xt-c-acts-ctx{width:256px}
+:where(.vipi-root) .xt-c-acts-ctx{width:240px}
 :where(.vipi-root) .xt-c-pts{width:34%}
 :where(.vipi-root) .xt-c-lvl{width:20%}
 /* In elenco le colonne di contesto dicono DI CHI è la riga, e il dato deve restare il protagonista. */
@@ -3585,6 +3590,14 @@
    azioni sono TRE, in elenco QUATTRO — la quarta è il salto all'accordo — e una misura sola per due
    contenuti diversi tagliava l'ultimo tasto. Misurate a schermo: servono 128px e 163px. */
 :where(.vipi-root) .xt-acts{white-space:nowrap;text-align:right}
+/* I tasti di riga: quadrati uguali, icona al centro. La regola generale dei tasti in tabella
+   (`.struct .res-table td .btn`: padding 5/11 e un margine a sinistra) li faceva larghi quanto il glifo che
+   portavano -- sette larghezze diverse -- e va battuta per intero, margine compreso: lo stacco e' il `gap`. */
+:where(.vipi-root) .xt-actrow{display:flex;justify-content:flex-end;align-items:center;gap:4px}
+:where(.vipi-root) .struct .xfe-table .xt-actrow .btn{display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 28px;width:28px;height:26px;padding:0;margin:0;border-radius:7px}
+:where(.vipi-root) .xt-actrow .inline-confirm{flex:0 0 auto}
+:where(.vipi-root) .xt-actrow .ic-svg{vertical-align:0}
 :where(.vipi-root) .xt-facet{color:var(--ink-soft);font-size:11.5px}
 :where(.vipi-root) .res-table tr.xt-sel>td{background:var(--tint-blue);box-shadow:inset 3px 0 0 var(--ivao-blue)}
 :where(.vipi-root) .res-table tr.xt-dragover>td{border-top:2px solid var(--ivao-blue)}
@@ -3778,8 +3791,46 @@
 :where(.vipi-root) .xt-moveintro{margin:0 0 6px}
 /* L'etichetta «condivisa con …» sulla testata di una sezione: non va a capo dentro, e non si stringe. */
 :where(.vipi-root) .xt-shared{white-space:nowrap;flex:0 0 auto}
-/* L'ordine delle clausole della sezione: un selettore piccolo sulla testata, accanto ai tasti. */
-:where(.vipi-root) .xt-ordsel{flex:0 0 auto;width:auto;max-width:190px;padding:2px 6px;font-size:.85rem}
+/* ---- Il comando dell'ordinamento (XferSortChip): chiave + verso in un pezzo solo ----
+   Ha la faccia di un `.btn.ghost` -- stesso fondo, stesso inchiostro, stesso raggio -- perche' sta in mezzo a
+   quelli: prima era il `select` nudo del browser, bianco nel tema scuro accanto a tasti che non lo sono
+   (committente, 9 ottobre 2026). La tendina dentro e' un select VERO, senza la sua veste: tastiera, lettori di
+   schermo e l'elenco del sistema restano quelli di sempre.
+   Due misure: in barra pesa quanto i tasti della barra, in testata di sezione quanto i suoi (vedi
+   `.xt-dirhead .btn`). ⚠️ L'altezza e' SCRITTA (37 e 22, misurate a schermo sui tasti accanto) e non lasciata
+   al padding: un select ha un'interlinea sua, e con lo stesso padding dei tasti usciva 2-3px piu' alto di
+   loro -- abbastanza da far ballare la riga. */
+:where(.vipi-root) .xt-sortchip{display:inline-flex;align-items:stretch;flex:0 0 auto;border-radius:9px;
+  background:var(--tint-atmos);color:var(--brand-ink);font-family:var(--font-body);font-size:13.5px;font-weight:500}
+:where(.vipi-root) .xt-sortchip-key{position:relative;display:inline-flex;align-items:center;gap:6px;
+  padding-left:11px;border-radius:9px 0 0 9px}
+:where(.vipi-root) .xt-sortchip-lab{white-space:nowrap;font-weight:400}
+/* ⚠️ `background`, `border` e `font` vanno riscritti qui: il select sta dentro `.xfe-filters`, che gli da' bordo
+   e fondo da campo, e senza `font:inherit` un controllo di modulo torna al font di sistema. */
+:where(.vipi-root) .xt-sortchip select{-webkit-appearance:none;appearance:none;border:0;border-radius:0;background:transparent;
+  color:inherit;font:inherit;font-weight:600;margin:0;padding:0 26px 0 0;height:37px;width:auto;max-width:190px;cursor:pointer}
+/* L'elenco aperto e' del sistema e non eredita il fondo trasparente: gli si dice che carta usare. */
+:where(.vipi-root) .xt-sortchip select option{background:var(--surface);color:var(--ink);font-weight:400}
+:where(.vipi-root) .xt-sortchip-chev{position:absolute;right:8px;top:50%;margin-top:-6px;pointer-events:none}
+:where(.vipi-root) .xt-sortchip-dir{border:0;border-left:1px solid color-mix(in srgb,currentColor 24%,transparent);
+  border-radius:0 9px 9px 0;background:transparent;color:inherit;font:inherit;font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap;padding:0 10px;min-width:48px;cursor:pointer}
+:where(.vipi-root) .xt-sortchip-key:hover,:where(.vipi-root) .xt-sortchip-dir:hover:not(:disabled){background:var(--line-atmos-soft)}
+:where(.vipi-root) .xt-sortchip select:focus-visible,:where(.vipi-root) .xt-sortchip-dir:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+/* Verso spento («a mano» non ne ha uno): resta leggibile, come i tasti spenti della barra. */
+:where(.vipi-root) .xt-sortchip-dir:disabled{opacity:.45;cursor:default}
+:where(.vipi-root) .xt-sortchip.is-off{opacity:.55}
+:where(.vipi-root) .xt-sortchip.is-off select{cursor:not-allowed}
+:where(.vipi-root) .xt-sortchip.is-off .xt-sortchip-key:hover{background:transparent}
+:where(.vipi-root) .xt-dirhead .xt-sortchip{font-size:12px}
+:where(.vipi-root) .xt-dirhead .xt-sortchip-key{padding-left:9px;gap:5px}
+:where(.vipi-root) .xt-dirhead .xt-sortchip select{padding:0 19px 0 0;height:22px}
+:where(.vipi-root) .xt-dirhead .xt-sortchip-chev{right:6px}
+:where(.vipi-root) .xt-dirhead .xt-sortchip-dir{padding:0 6px;min-width:36px}
+/* I tasti senza parole della testata: quadrati, icona al centro (stesso disegno dei tasti di riga). */
+:where(.vipi-root) .xt-dirhead .btn.xt-ib{display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:22px;padding:0}
+:where(.vipi-root) .xt-dirhead .btn.xt-ib .ic-svg{vertical-align:0}
 :where(.vipi-root) .xt-bulkpick{margin:0;min-width:200px}
 :where(.vipi-root) .xt-bulkpick input{margin:0}
 
