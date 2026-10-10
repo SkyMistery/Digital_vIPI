@@ -1133,6 +1133,13 @@ il riempimento a posteriori riproverebbe per sempre.
 aperte, non i soli prefissi di divisione: la fotografia le porta già tutte, e quel che si buttava non lo
 ridava più nessuno.
 
+**Aggiunta del 10 ottobre** (migrazione `CentroDelleSessioniAtc`, doppia emissione): `AtcSession.Latitude` e
+`AtcSession.Longitude`, `double` **nullable** — il **centro** della postazione come lo dichiara il whazzup
+(`lastTrack`), scritto la prima volta che il poller lo vede. È un punto, non l'area: serve a chi legge
+l'archivio per scartare in fretta le postazioni lontane da una rotta. Sempre in coppia; `null` sulle righe
+scritte prima della colonna, su quelle dello storico (`Backfill`) e sulle connessioni che la sorgente dà
+senza posizione (carta `docs/feature/2026-08-28-archivio-atc-mondiale.md` §11).
+
 ⚠️ **La colonna è dichiarata in NEGATIVO** perché un `bool NOT NULL` nuovo nasce `false` su tutti e tre i
 percorsi che creano schema qui dentro (migrazione, `EnsureCreated`, `PostgresSchemaReconciler`) e le 21 133
 righe già in archivio sono **tutte** di divisione (verificato: zero callsign non-`LI`). Con la forma

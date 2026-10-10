@@ -62,6 +62,55 @@ public sealed class ChiaviApiTests : IClassFixture<ChiaviApiTests.ApiChiusaFacto
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
     }
 
+    /// <summary>
+    /// Il CONTRATTO di una riga, sul filo (10 ottobre 2026): chi integra legge <c>latitude</c> e <c>longitude</c>,
+    /// e quando il centro non si sa trova <c>null</c> — non il campo che manca, e non uno zero che sarebbe un punto
+    /// nel Golfo di Guinea. ⚠️ Si guarda il JSON e non il record: i nomi li decide la serializzazione, e un record
+    /// rinominato per pulizia cambierebbe il contratto senza che un test di libreria se ne accorga.
+    /// </summary>
+    [Fact]
+    public async Task Archivio_ogni_riga_porta_il_centro_della_postazione_o_null()
+    {
+        var inizio = new DateTime(2026, 10, 10, 15, 0, 0, DateTimeKind.Utc);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<VipiDbContext>();
+            db.AtcSessions.Add(new Vipi.Domain.Entities.AtcSession
+            {
+                SessionId = 990_001, UserId = 111111, Callsign = "QQZA_TWR", Position = "TWR",
+                StartUtc = inizio, DurationSeconds = 600, ShiftKey = 990_001, IsOutsideDivision = true,
+                Latitude = -22.91, Longitude = -43.1625,
+            });
+            db.AtcSessions.Add(new Vipi.Domain.Entities.AtcSession
+            {
+                SessionId = 990_002, UserId = 111111, Callsign = "QQZB_TWR", Position = "TWR",
+                StartUtc = inizio.AddMinutes(-5), DurationSeconds = 600, ShiftKey = 990_002, IsOutsideDivision = true,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var chiave = await EmettiAsync(_factory.Services, "archivio");
+        var res = await ConBearer(chiave).GetAsync(Archivio + "?callsign=QQZ");
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+        using var json = System.Text.Json.JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var righe = json.RootElement.GetProperty("sessions").EnumerateArray().ToList();
+        Assert.Equal(2, righe.Count);
+
+        var conCentro = righe.Single(r => r.GetProperty("callsign").GetString() == "QQZA_TWR");
+        Assert.Equal(-22.91, conCentro.GetProperty("latitude").GetDouble());
+        Assert.Equal(-43.1625, conCentro.GetProperty("longitude").GetDouble());
+
+        var senza = righe.Single(r => r.GetProperty("callsign").GetString() == "QQZB_TWR");
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, senza.GetProperty("latitude").ValueKind);
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, senza.GetProperty("longitude").ValueKind);
+
+        // I campi di prima restano, con gli stessi nomi: chi integrava ieri non si accorge di niente.
+        foreach (var campo in new[] { "sessionId", "userId", "callsign", "position", "frequency", "rating",
+                     "startUtc", "endUtc", "durationSeconds", "isOutsideDivision" })
+            Assert.True(conCentro.TryGetProperty(campo, out _), campo);
+    }
+
     [Fact]
     public async Task Archivio_con_la_chiave_giusta_in_X_Api_Key_200()
     {
