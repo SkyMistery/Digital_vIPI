@@ -4,7 +4,15 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 9 ottobre 2026, sera
+> ## ▶ Il punto — 10 ottobre 2026, sera
+>
+> **📦 Pronta da caricare: 1.60.0** (§A152, timbro `1.60.0 · 3ea92b2`, 10 file, zip `60f73b8a…`, MINOR con una
+> migrazione additiva): Sito S102, l'archivio ATC dà `latitude` e `longitude` della postazione, per il validatore dei
+> tour. Online è la **1.59.0** finché il committente non carica. ⚠️ Migrazione non provata su una copia del database
+> vero (due colonne nullable su `AtcSessions`). ▶ Restano i gesti della 1.58.0 (accendere l'elenco di LIMM: fino ad
+> allora `/vsop/health` è Degraded) e le scelte di S100/S101 da confermare. S96 in pausa. LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 9 ottobre 2026, sera
 >
 > **✅ Online: 1.59.0** (`Schema 0` confermato il 10-ott) (§A151, timbro `1.59.0 · fc442f2`, 13 file, zip `6b1b7569…`, MINOR senza
 > migrazioni): Sito S100 (accordi: ordinamento col verso in albero ed elenco, tasti di riga a icone) e S101 (motto

@@ -43,6 +43,38 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A152 — 1.60.0 PRONTA, da caricare: l'archivio ATC dà il centro della postazione (S102) (10 ottobre 2026)
+
+MINOR con **una migrazione additiva** (`CentroDelleSessioniAtc`: due `AddColumn` nullable, `AtcSessions.Latitude` e
+`AtcSessions.Longitude`; guardato l'`Up` nei due provider, nessun `Drop`, `Rename`, `Alter` o `Sql`), su 1.59.0
+(`fc442f2`). Timbro **`1.60.0 · 3ea92b2`**.
+- **S102** (fuso da `sito/lavori` @ `20a33703`, CI verde run 38068279875), chiesto dal validatore dei tour:
+  `GET /vsop/api/v1/atc/sessions` dà in coda a ogni riga `latitude` e `longitude`, il centro della postazione letto dal
+  `lastTrack` del whazzup; `null` quando non si sa; in coppia o niente; 0,0 esatto e fuori scala scartati; le righe di
+  prima del carico e lo storico restano senza. Codice comune: Domain, Application, Infrastructure. Carta
+  `docs/feature/2026-08-28-archivio-atc-mondiale.md` §11, storia in `docs/filoni/sito.md` (voce S102).
+- ⚠️ Il cartellino del Sito era 🧪: la prova che aspetta è quella del validatore, possibile solo dopo il carico. Fuso
+  su conferma del committente il 10-ott.
+- ⚠️ La migrazione **non è stata provata su una copia del database di produzione**: SQLite qui sul pacchetto, schema
+  MariaDB nel job `mariadb-schema` della CI. `AtcSessions` è la tabella che cresce: scritto nel foglio.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**10 file** (`solo-10-file-1.60.0`), tutti in radice: Domain, Application, Infrastructure, MySqlMigrations, Host (dll +
+pdb). **Fuori** Hosting e Ui, col sorgente invariato: tre record di Application hanno due parametri in più in coda
+(`SourceAtcConnection`, `AtcSessionUpsert`, `AtcArchiveRow`), cioè un costruttore diverso, ma li costruiscono solo
+Application e Infrastructure; Hosting serializza `pagina.Rows` così com'è e costruisce `AtcArchiveFilter`, che non
+cambia; Ui tiene la lista e legge le proprietà. Nessuna `const`, nessuna frase, nessun asset. 482 file nel publish come
+nel precedente, 19 con impronta diversa. Zip 3,53 MB, sha256
+`60f73b8aaf9bb995a9e8fe9c8863c7a1896fc35ae379888fd17b53c18eb8daec`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3309, Infra 2198, Ui 2014, E2E 508). Prova sul publish
+win-x64 (copia del database di sviluppo, lettore IVAO acceso sul whazzup vero, `Api:RichiediChiave=false`): 28
+migrazioni all'avvio, l'ultima con i due `ALTER TABLE "AtcSessions" ADD`; `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`, da PowerShell: da Git Bash Edge non si è agganciato); `/vsop/api/v1/atc/sessions?open=true` → 96 righe,
+96 col centro, nessuna con una sola delle due (EHAM_N_GND 52.30806, 4.76417). Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.60.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; dire al validatore che può provare. Rollback: le due rinomine.
+
 ### ✅ A151 — 1.59.0 ONLINE: accordi ordinati col verso e tasti di riga a icone (S100), motto nel piè di pagina (S101) (9 ottobre 2026)
 
 ✅ Online: il committente il 10 ottobre conferma il timbro 1.59 e `Schema 0`. Da fuori, da anonimo, il 10-ott alle
