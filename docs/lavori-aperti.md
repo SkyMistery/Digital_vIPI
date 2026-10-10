@@ -43,7 +43,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A151 — 1.59.0 PRONTA, da caricare: accordi ordinati col verso e tasti di riga a icone (S100), motto nel piè di pagina (S101) (9 ottobre 2026)
+### ✅ A151 — 1.59.0 ONLINE: accordi ordinati col verso e tasti di riga a icone (S100), motto nel piè di pagina (S101) (9 ottobre 2026)
+
+✅ Online: il committente il 10 ottobre conferma il timbro 1.59 e `Schema 0`. Da fuori, da anonimo, il 10-ott alle
+16:51Z: `/` 302, porta 200 col motto «it takes time» nel piè di pagina, `vipi-theme.css?v=abf90f76` (quello del
+pacchetto), Ricerca 401, API aeroporti e archivio ATC 401, `/vsop/health/ready` Healthy. 🔎 `/vsop/health` ancora
+`Degraded`: l'elenco dei settori d'area di LIMM non è stato ancora acceso (gesto della 1.58.0). Non guardati: lo
+scarico della diagnostica e la Ricerca col login. Le scelte del Sito su S100/S101 restano da confermare.
 
 MINOR **senza migrazioni**, su 1.58.0 (`2ecbdd6`). Timbro **`1.59.0 · fc442f2`**.
 - **S100** e **S101** (fusi da `sito/lavori` @ `c7b1b332`, CI verde run 37973506093). ⚠️ Il cartellino del Sito era 🧪:
