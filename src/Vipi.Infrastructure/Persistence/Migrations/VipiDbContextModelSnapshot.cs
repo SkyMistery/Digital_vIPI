@@ -1327,6 +1327,12 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsOutsideDivision")
                         .HasColumnType("INTEGER");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("REAL");
+
                     b.Property<int>("MovementCount")
                         .HasColumnType("INTEGER");
 

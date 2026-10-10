@@ -2342,6 +2342,29 @@
   - **Prova a schermo** (app locale su un database **nuovo e vuoto**, Edge guidato; `/services`): tema scuro e
     chiaro, italiano e inglese, 1366 e 390px. Una riga sola, a 4px dal marchio e 12 dalla prosa, nessuno
     scorrimento laterale; il piè di pagina cresce di una riga (350px a 1366).
+- 🧪 **S102** archivio ATC: ogni riga dice **dove** sta la postazione (10-ott, chiesto dal committente con la
+  segnalazione del validatore dei tour). Sul ramo `sito/lavori`; aspetta la prova del validatore.
+  - **La segnalazione**: «Il nuovo archivio non dà lat/lon […] niente centerpoint, che qui è quello che fa
+    funzionare il prefiltro a 400 NM e i cerchi di TWR/GND/DEL senza chiamare IVAO». Senza, il validatore
+    avrebbe scaricato da IVAO la forma di ogni postazione aperta nella finestra del volo (~100 per tre ore), e
+    si stava scrivendo un ripiego locale (ICAO dal callsign + navdata; da chiedere solo CTR e FSS).
+  - **Cos'era**: il whazzup porta il centro di ogni ATC nel `lastTrack` (79 su 79 il 10 ottobre) e
+    l'adattatore lo leggeva solo per i piloti. Nessuna chiamata in più.
+  - **Cos'è ora**: `latitude` e `longitude` in coda a ogni riga di `GET /vsop/api/v1/atc/sessions`, gradi
+    decimali, **`null`** quando non si sa. I dieci campi di prima restano uguali. Dettaglio, regole («in
+    coppia o niente», lo 0,0 esatto scartato, si scrive la prima volta e non si sposta) e la prova dal vivo:
+    carta `docs/feature/2026-08-28-archivio-atc-mondiale.md` §11.
+  - ⚠️ **Per il validatore**: è un **punto**, non l'area (per un CTR può stare lontano dal bordo); e **manca**
+    sulle righe scritte prima del carico (dal 1° settembre), su quelle dello storico e su qualche connessione
+    che il whazzup dà senza posizione (1 su 90 nella prova). Il suo ripiego locale serve ancora, per quelle.
+  - **Migrazione sì**: `CentroDelleSessioniAtc`, SQLite e MySQL, due `AddColumn` nullable su `AtcSessions`
+    (additiva: il codice di prima gira sullo schema nuovo). **Codice comune**: `Vipi.Domain` (`AtcSession`),
+    `Vipi.Application` (`SourceAtcConnection`, `AtcSessionUpsert`, `AtcArchiveRow`), `Vipi.Infrastructure`
+    (`IvaoWhazzupClient`, `EfAtcSessionStore`, `EfAtcArchiveQueries`). Niente `deploy/`.
+  - **Test**: App 3308 → 3309, Infra 2185 → 2198, E2E 507 → 508 (il JSON sul filo). Suite intera verde.
+  - **Prova dal vivo**: host su database nuovo, poller sul whazzup vero, 89 righe aperte su 90 col centro.
+    Non provata la migrazione su una copia del database vero né su MariaDB. La pagina staff
+    `/services/stats/world` non mostra il centro (non chiesto).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 9-ott: tutto fuso e online fino a S99 (1.58.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo

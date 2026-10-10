@@ -22,7 +22,19 @@ internal sealed record WhazzupAtcDto(
     [property: JsonPropertyName("createdAt")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("time")] int Time,
     [property: JsonPropertyName("atcSession")] WhazzupAtcSessionDto? AtcSession,
-    [property: JsonPropertyName("atis")] WhazzupAtisDto? Atis);
+    [property: JsonPropertyName("atis")] WhazzupAtisDto? Atis,
+    // Il centro della postazione (10 ottobre 2026). Verificato sul whazzup vero di quel giorno: tutte e 79 le
+    // postazioni online lo portano, nessuna a 0,0. Fino ad allora si leggeva solo per i piloti.
+    [property: JsonPropertyName("lastTrack")] WhazzupAtcTrackDto? LastTrack = null);
+
+/// <summary>
+/// Dove sta una postazione ATC: del suo <c>lastTrack</c> servono solo le coordinate. ⚠️ Non è
+/// <see cref="WhazzupTrackDto"/>: lì latitudine e longitudine sono obbligatorie perché un pilota senza posizione
+/// si scarta; qui mancare è ammesso, e la postazione si archivia lo stesso.
+/// </summary>
+internal sealed record WhazzupAtcTrackDto(
+    [property: JsonPropertyName("latitude")] double? Latitude,
+    [property: JsonPropertyName("longitude")] double? Longitude);
 
 internal sealed record WhazzupAtisDto(
     [property: JsonPropertyName("lines")] List<string>? Lines);

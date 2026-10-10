@@ -111,6 +111,95 @@ public class WhazzupClientTests
             FlightPhases.Of(aza.OnGround, aza.GroundSpeed, aza.State, aza.DepartureDistanceNm));
     }
 
+    // ---- Il centro della postazione (10 ottobre 2026) ----
+
+    /// <summary>La forma e le coordinate sono quelle VERE, lette sul whazzup del 10 ottobre 2026 (79 postazioni
+    /// online, tutte col <c>lastTrack</c>, nessuna a 0,0; <c>LIME_TWR</c> e <c>SBRJ_TWR</c> c'erano). Id, VID e
+    /// orari invece sono di prova.</summary>
+    private const string WhazzupColCentro = """
+    {
+      "clients": {
+        "atcs": [
+          { "id": 64011201, "userId": 704798, "callsign": "LIME_TWR", "rating": 5,
+            "createdAt": "2026-10-10T15:02:11.000Z", "time": 3600,
+            "lastTrack": { "altitude": 0, "groundSpeed": 0, "heading": 0, "latitude": 45.66889, "longitude": 9.70028,
+                           "onGround": false, "state": null, "transponder": 0 },
+            "atcSession": { "frequency": 120.5, "position": "TWR" } },
+          { "id": 64011377, "userId": 111111, "callsign": "SBRJ_TWR", "rating": 4,
+            "createdAt": "2026-10-10T15:40:00.000Z", "time": 900,
+            "lastTrack": { "latitude": -22.91, "longitude": -43.1625 },
+            "atcSession": { "frequency": 118.7, "position": "TWR" } }
+        ],
+        "pilots": []
+      }
+    }
+    """;
+
+    /// <summary>
+    /// Committente, 10 ottobre 2026: il validatore dei tour, passando a questo archivio, non trovava più DOVE stava
+    /// una postazione — e senza, per scartare quelle lontane da una rotta avrebbe dovuto chiedere a IVAO la forma
+    /// di ognuna. Il centro sta nel whazzup, nella stessa chiamata: prima l'adattatore lo buttava.
+    /// </summary>
+    [Fact]
+    public async Task Il_centro_della_postazione_arriva_dalla_fotografia_anche_per_il_resto_del_mondo()
+    {
+        var snap = await Client(corpo: WhazzupColCentro).GetSnapshotAsync();
+
+        var orio = snap.Atc.Single(a => a.Callsign == "LIME_TWR");
+        Assert.Equal((45.66889, 9.70028), (orio.Latitude, orio.Longitude));
+        // Emisfero sud e ovest: i segni restano quelli.
+        var rio = snap.Atc.Single(a => a.Callsign == "SBRJ_TWR");
+        Assert.Equal((-22.91, -43.1625), (rio.Latitude, rio.Longitude));
+        Assert.True(rio.IsOutsideDivision);
+    }
+
+    [Fact]
+    public async Task Una_postazione_senza_tracciato_si_archivia_lo_stesso_e_il_centro_non_si_sa()
+    {
+        // ⚠️ Non è la regola dei piloti: un pilota senza posizione si scarta, una postazione no — che c'era lo
+        // dice il callsign, e l'archivio la deve tenere.
+        var snap = await Client().GetSnapshotAsync();
+
+        Assert.Equal(2, snap.Atc.Count);
+        Assert.All(snap.Atc, a => Assert.Equal(((double?)null, (double?)null), (a.Latitude, a.Longitude)));
+    }
+
+    /// <summary>
+    /// Una coordinata sbagliata è peggio di una che manca: chi la riceve la usa per SCARTARE le postazioni lontane.
+    /// Lo 0,0 esatto è il valore di chi non ha impostato niente; mezza coordinata non è un punto.
+    /// </summary>
+    [Theory]
+    [InlineData("""{ "latitude": 0, "longitude": 0 }""")]
+    [InlineData("""{ "latitude": 91.5, "longitude": 9.7 }""")]
+    [InlineData("""{ "latitude": 45.6, "longitude": -181 }""")]
+    [InlineData("""{ "latitude": 45.6 }""")]
+    [InlineData("""{ "latitude": null, "longitude": 9.7 }""")]
+    [InlineData("""{ }""")]
+    public async Task Un_centro_che_non_si_puo_usare_diventa_non_si_sa(string tracciato)
+    {
+        var corpo = WhazzupColCentro.Replace("""{ "latitude": -22.91, "longitude": -43.1625 }""", tracciato);
+
+        var snap = await Client(corpo: corpo).GetSnapshotAsync();
+
+        var rio = snap.Atc.Single(a => a.Callsign == "SBRJ_TWR");
+        Assert.Equal(((double?)null, (double?)null), (rio.Latitude, rio.Longitude));
+        // …e l'altra postazione della stessa fotografia non ne risente.
+        Assert.Equal(45.66889, snap.Atc.Single(a => a.Callsign == "LIME_TWR").Latitude);
+    }
+
+    [Fact]
+    public async Task L_equatore_e_il_meridiano_zero_sono_posti_veri()
+    {
+        // Solo lo 0,0 ESATTO è «non impostato»: una torre sull'equatore o a Greenwich ha una coordinata a zero.
+        var corpo = WhazzupColCentro.Replace("""{ "latitude": -22.91, "longitude": -43.1625 }""",
+            """{ "latitude": 0, "longitude": 6.73 }""");
+
+        var snap = await Client(corpo: corpo).GetSnapshotAsync();
+
+        var saoTome = snap.Atc.Single(a => a.Callsign == "SBRJ_TWR");
+        Assert.Equal((0d, 6.73), (saoTome.Latitude, saoTome.Longitude));
+    }
+
     private static IvaoWhazzupClient Client(string prefix = "LI", string corpo = WhazzupReale)
     {
         var opt = Options.Create(new IvaoOptions { ClientId = "" /* endpoint pubblico: nessun token */ });

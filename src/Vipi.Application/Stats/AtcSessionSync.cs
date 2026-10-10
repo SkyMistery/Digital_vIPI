@@ -18,7 +18,8 @@ public readonly record struct KnownAtcSession(
 // espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AtcSessionUpsert(
     long SessionId, int UserId, string Callsign, string? Position, string? Frequency, int Rating,
-    DateTimeOffset StartUtc, int DurationSeconds, long ShiftKey, bool IsNew, bool IsOutsideDivision = false);
+    DateTimeOffset StartUtc, int DurationSeconds, long ShiftKey, bool IsNew, bool IsOutsideDivision = false,
+    double? Latitude = null, double? Longitude = null);
 
 /// <summary>Sessione da chiudere: era aperta in archivio e non è più in frequenza.</summary>
 // ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
@@ -85,7 +86,10 @@ public static class AtcSessionSync
                 // riavvio dell'applicazione lo riscriverebbe a ogni giro.
                 ShiftKey: esiste ? precedente.ShiftKey : ShiftKeyFor(c, known, inLinea, now),
                 IsNew: !esiste,
-                IsOutsideDivision: c.IsOutsideDivision));
+                IsOutsideDivision: c.IsOutsideDivision,
+                // Il centro viaggia com'è, come la marca qui sopra: questa classe non lo interpreta.
+                Latitude: c.Latitude,
+                Longitude: c.Longitude));
         }
 
         // Chiudo quelle che l'archivio ha aperte e che non sono più in frequenza. La fine vera la sistemerà il

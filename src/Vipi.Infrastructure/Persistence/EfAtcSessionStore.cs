@@ -70,6 +70,14 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
                 riga.DurationSeconds = u.DurationSeconds;
                 riga.Position ??= u.Position;
                 riga.Frequency ??= u.Frequency;
+                // Il centro si scrive la prima volta che c'è, come posizione e frequenza — ed è anche ciò che
+                // riempie le sessioni ancora aperte il giorno in cui la colonna è nata. ⚠️ In coppia: una
+                // latitudine di oggi con una longitudine di ieri sarebbe un punto che non è mai esistito.
+                if ((riga.Latitude is null || riga.Longitude is null) && u is { Latitude: { } lat, Longitude: { } lon })
+                {
+                    riga.Latitude = lat;
+                    riga.Longitude = lon;
+                }
                 riga.UpdatedAtUtc = DateTime.UtcNow;
             }
             else
@@ -87,6 +95,9 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
                     Source = AtcSessionSource.Live,
                     ShiftKey = u.ShiftKey,
                     IsOutsideDivision = u.IsOutsideDivision,
+                    // In coppia o niente (vedi sopra).
+                    Latitude = u.Longitude is null ? null : u.Latitude,
+                    Longitude = u.Latitude is null ? null : u.Longitude,
                     UpdatedAtUtc = DateTime.UtcNow,
                 });
             }

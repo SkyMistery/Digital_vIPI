@@ -217,6 +217,24 @@ public class AtcSessionSyncTests
     }
 
     [Fact]
+    public void Il_centro_della_postazione_viaggia_dalla_sorgente_alla_riga()
+    {
+        // 10 ottobre 2026: il centro serve a chi legge l'archivio per scartare le postazioni lontane. Il piano non
+        // lo interpreta: lo porta com'è, nuovo o già noto, e «non si sa» resta «non si sa».
+        var conCentro = Conn(100, T0, 600) with { Latitude = 41.80028, Longitude = 12.23889 };
+        var senza = Conn(200, T0, 600, callsign: "EDDF_TWR");
+        var known = new[] { Nota(100, T0, null, turno: 100) };
+
+        var p = AtcSessionSync.Plan(new[] { conCentro, senza }, known, T0.AddMinutes(10));
+
+        var nota = p.Upserts.Single(u => u.SessionId == 100);
+        Assert.False(nota.IsNew);
+        Assert.Equal((41.80028, 12.23889), (nota.Latitude, nota.Longitude));
+        var nuova = p.Upserts.Single(u => u.SessionId == 200);
+        Assert.Equal(((double?)null, (double?)null), (nuova.Latitude, nuova.Longitude));
+    }
+
+    [Fact]
     public void Anche_una_postazione_estera_si_chiude_quando_sparisce()
     {
         // ⚠️ È il difetto che si pagherebbe filtrando troppo presto: se la lettura delle sessioni note

@@ -198,7 +198,8 @@ I tetti per giro non cambiano (`SessionRetentionPerRun` = 2000): a regime scadon
   aggiunge è il **passato**. Parametri: `from`, `to`, `callsign`, `vid`, `open`, `scope`, `limit`, `offset`.
   Tetto duro a 500 righe, `total` sempre accanto alle righe (una pagina piena non deve poter sembrare tutto
   quel che c'è), tetto per chiave (per IP senza chiave, 30/min) e complessivo (300/min) con lo stesso
-  limitatore del bridge Aurora.
+  limitatore del bridge Aurora. Dal 10 ottobre 2026 ogni riga porta anche `latitude` e `longitude`, il
+  **centro** della postazione (§11).
 
 ⚠️ La finestra `from`/`to` seleziona per **sovrapposizione**, non per inizio: chi ha aperto alle 19:50 e
 chiuso alle 22:00 fa parte di «cosa c'era alle 21».
@@ -218,7 +219,61 @@ chiuso alle 22:00 fa parte di «cosa c'era alle 21».
 
 ## 10. Cosa resta
 
+- Le righe scritte **prima** del centro (§11) restano senza coordinate finché non escono dalla ritenzione
+  (dodici mesi). Riempirle col centro di una sessione più recente dello stesso callsign si può, ma sarebbe un
+  dato **dedotto** in mezzo a dati osservati: non fatto, e da decidere solo se il validatore lo chiede.
 - Il campione del rapporto mondo/Italia copre **giugno-agosto**: un anno intero può essere più magro.
   Si ricontrolla fra qualche mese sul nostro archivio, che a quel punto è la misura diretta.
 - I due archiviatori girano **in parallelo fino al 2027**, per decisione del committente: due processi che
   chiedono lo stesso file allo stesso server. È il prezzo accettato per non dipendere da un travaso.
+
+## 11. Il centro della postazione (10 ottobre 2026)
+
+**Perché.** Il validatore dei tour, provando a leggere da questo archivio invece che dal suo, ha segnalato
+che le righe non dicono **dove** sta la postazione. Il suo archiviatore lo teneva, ed è ciò che gli fa
+funzionare il prefiltro a 400 NM e i cerchi di TWR/GND/DEL senza chiamare IVAO: senza, per ogni volo
+avrebbe dovuto scaricare da IVAO la forma di ogni postazione aperta nel mondo nella finestra del volo — un
+centinaio per un volo di tre ore. Il committente: «Serve che gli diamo anche il centerpoint per filtrare
+più rapidamente».
+
+**Da dove viene.** Dal `lastTrack` del whazzup, che per un ATC porta `latitude` e `longitude`: era nell'elenco
+dei campi del §4 e l'adattatore lo leggeva solo per i piloti. Stessa chiamata, nessun byte in più. Misurato
+sul whazzup vero del 10 ottobre: **79 postazioni su 79** col centro, nessuna a 0,0. Un'ora dopo, una su 90
+aveva `lastTrack: null` — una seconda connessione sullo stesso callsign, appena aperta.
+
+**Cosa si è aggiunto.**
+
+- `AtcSession.Latitude` / `Longitude`, `double` **nullable** (migrazione `CentroDelleSessioniAtc`, doppia
+  emissione, solo `AddColumn`). Nullable e senza default: una riga che non lo sa deve dire «non si sa», e
+  uno zero sarebbe un punto nel Golfo di Guinea.
+- Il centro si scrive **la prima volta che c'è**, come posizione e frequenza, e poi non si sposta. È anche
+  quello che riempie da sé le sessioni ancora aperte il giorno del carico.
+- **In coppia o niente**, in tre posti (adattatore, scrittura, lettura): mezza coordinata non è un punto.
+- L'adattatore scarta ciò che non si può usare — fuori scala, non-numeri, lo **0,0 esatto** — perché chi
+  riceve il centro lo usa per **scartare** le postazioni lontane: una coordinata sbagliata farebbe sparire
+  una postazione dal conto di qualcuno senza un avviso, una che manca no. ⚠️ Solo lo 0,0 esatto: una torre
+  sull'equatore o a Greenwich ha una coordinata a zero ed è un posto vero.
+- Una postazione **senza** `lastTrack` si archivia lo stesso. ⚠️ Non è la regola dei piloti (che senza
+  posizione si scartano): che la postazione c'era lo dice il callsign.
+- L'endpoint: due campi in più in coda a ogni riga, `latitude` e `longitude`, in gradi decimali, **`null`**
+  quando non si sa. I dieci campi di prima non cambiano nome né ordine.
+
+⚠️ **È un punto, non l'area.** Per una torre è il campo; per un centro di controllo è dove il controllore ha
+messo il centro, e può stare a centinaia di miglia dal bordo del settore. Serve a scartare in fretta, non a
+dire chi copre un punto: per quello resta la forma.
+
+⚠️ **Cosa resta vuoto, e chi legge lo deve reggere**: le righe scritte fra il 1° settembre e il giorno del
+carico; quelle arrivate dallo storico (`Source = Backfill`: la lista di `/v2/tracker/sessions` non porta
+coordinate); le connessioni che il whazzup dà senza `lastTrack`.
+
+**Verifica.** Test lungo tutto il percorso: `WhazzupClientTests` (il centro arriva, anche a sud e a ovest;
+senza tracciato si archivia lo stesso; sei forme di centro inservibile; l'equatore è un posto vero),
+`AtcSessionSyncTests` (viaggia dalla sorgente alla riga), `AtcSessionStoreTests` (si scrive all'apertura e
+non si sposta; una sessione aperta senza lo prende al primo giro; mezza coordinata non si scrive),
+`ArchivioAtcMondialeTests` (la lettura lo dà, e vuoto quando non c'è), `ChiaviApiTests` (il **JSON** sul
+filo: i nomi dei campi e `null`). **Dal vivo**, 10 ottobre: host su un database **nuovo** (la migrazione
+applicata dall'avvio), tre giri del poller sul whazzup vero senza errori, poi
+`GET /vsop/api/v1/atc/sessions?open=true`: 90 righe, **89 col centro** — `EGPH_GND 55.95 −3.3725`,
+`LFLL_APP 45.72556 5.08111`, `LIML_TWR 45.44944 9.27833` — e l'una senza è la connessione che il whazzup
+stesso dava con `lastTrack: null`. ⚠️ **Non provata** la migrazione su una copia del database vero né su
+MariaDB: sono due `AddColumn` nullable, ma non è stato visto.
