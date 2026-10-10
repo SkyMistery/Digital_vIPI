@@ -6,9 +6,10 @@
 >
 > ## ▶ Il punto — 10 ottobre 2026, sera
 >
-> **📦 Pronta da caricare: 1.60.0** (§A152, timbro `1.60.0 · 3ea92b2`, 10 file, zip `60f73b8a…`, MINOR con una
+> **✅ Online: 1.60.0** (`Schema 0` confermato; `/vsop/health` di nuovo **Healthy**; **in `main` non resta codice
+> fuori pacchetto**) (§A152, timbro `1.60.0 · 3ea92b2`, 10 file, zip `60f73b8a…`, MINOR con una
 > migrazione additiva): Sito S102, l'archivio ATC dà `latitude` e `longitude` della postazione, per il validatore dei
-> tour. Online è la **1.59.0** finché il committente non carica. ⚠️ Migrazione non provata su una copia del database
+> tour. ⚠️ Migrazione non provata su una copia del database
 > vero (due colonne nullable su `AtcSessions`). ▶ Restano i gesti della 1.58.0 (accendere l'elenco di LIMM: fino ad
 > allora `/vsop/health` è Degraded) e le scelte di S100/S101 da confermare. S96 in pausa. LIRE/LIBG aspettano il SOD.
 >

@@ -43,7 +43,16 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A152 — 1.60.0 PRONTA, da caricare: l'archivio ATC dà il centro della postazione (S102) (10 ottobre 2026)
+### ✅ A152 — 1.60.0 ONLINE: l'archivio ATC dà il centro della postazione (S102) (10 ottobre 2026)
+
+✅ Online dal 10 ottobre 2026, sera: il committente conferma il timbro 1.60.0 e `Schema 0` (le due colonne di
+`AtcSessions` ci sono: la migrazione è passata anche sul database vero). Da fuori, da anonimo, alle 20:37Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti e archivio ATC 401, `vipi-theme.css?v=abf90f76` (invariato: il
+pacchetto non porta asset), `/vsop/health/ready` Healthy. ✅ **`/vsop/health` risponde `Healthy`**: il Degraded
+aperto dalla 1.57.0 è chiuso (era `Degraded` alle 16:51Z dello stesso giorno; il gesto previsto era accendere
+l'elenco dei settori d'area di LIMM — da farsi confermare dal committente). Non guardati: una risposta
+dell'archivio con una chiave (`latitude`/`longitude` sulle sessioni aperte), lo scarico della diagnostica, la
+Ricerca col login.
 
 MINOR con **una migrazione additiva** (`CentroDelleSessioniAtc`: due `AddColumn` nullable, `AtcSessions.Latitude` e
 `AtcSessions.Longitude`; guardato l'`Up` nei due provider, nessun `Drop`, `Rename`, `Alter` o `Sql`), su 1.59.0
