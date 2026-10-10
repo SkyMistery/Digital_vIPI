@@ -1535,6 +1535,17 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.60.0 — MINOR: UNA migrazione ADDITIVA (CentroDelleSessioniAtc: due colonne nullable, AtcSessions.Latitude e
+      AtcSessions.Longitude; niente tolto o rinominato). Su 1.59.0 (fc442f2, online dal 10 ottobre 2026). Sito S102,
+      chiesto dal validatore dei tour: GET /vsop/api/v1/atc/sessions dà in coda a ogni riga `latitude` e `longitude`,
+      il CENTRO della postazione letto dal whazzup (lastTrack, che l'adattatore leggeva solo per i piloti); `null`
+      quando non si sa. Si scrivono la prima volta che ci sono, in coppia o niente; 0,0 esatto e i valori fuori scala
+      si scartano. ⚠️ Mancano sulle righe scritte PRIMA del carico e su quelle dello storico: non si riempiono
+      all'indietro. Nessuna pagina cambia. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure (+ MySqlMigrations)
+      e Vipi.Host per il timbro. Vipi.Hosting e Vipi.Ui restano fuori: l'endpoint serializza le righe così come
+      arrivano e la pagina staff le legge soltanto. Dettaglio: LEGGIMI-PACCHETTO-1.60.0.md, §A152.
+    -->
+    <!--
       1.59.0 — MINOR, NESSUNA migrazione. Su 1.58.0 (2ecbdd6, online dall'8 ottobre 2026). Sito S100: negli accordi
       l'ordinamento ha un verso (A→Z / Z→A, 1→9 / 9→1), in albero e in elenco, dove «Ordina» ordina anche per mittente,
       ricevente, aeroporto, tipo, punti e quota; il verso dell'ordine salvato di una sezione sono due valori nuovi di
@@ -1978,7 +1989,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.59.0</VipiVersione>
+    <VipiVersione>1.60.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
