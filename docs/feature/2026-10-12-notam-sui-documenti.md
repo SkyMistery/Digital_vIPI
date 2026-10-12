@@ -14,7 +14,17 @@
 > `IvaoNotamClient`, `NotamImportHostedService` (Infrastructure/Ivao: la sorgente e il giro) · `EfNotamStore`,
 > `NotamDeiDocumenti` (Infrastructure: l'archivio e chi lo legge) · `NotamBox` (Ui: il riquadro) · le quattro sedi
 > dei documenti (`AeroportoPage`, `MilDocumentPage`, `AppnPage`, `AccVipiPage`) · la vista live (`LiveView.AmbitoNotam`
-> e `LiveView.Notam`, i tre descrittori `*LiveStation`, `LiveViewService`, `LivePage`).
+> e `LiveView.Notam`, i tre descrittori `*LiveStation`, `LiveViewService`, `LivePage`, `vipiApriDettaglio` in
+> `vipi-ui.js`) · gli editor (`NotamNellEditor`, lo slot `BeforeSections` di `DocumentSectionsEditor`, i quattro
+> editor che lo montano).
+>
+> **Come leggerla**: §1 la sorgente · §2 le decisioni del committente · §3 le scelte del filone · §4 non fatto ·
+> §5 come si prova · §6 la vista live · §7 la vIPI di ACC (blocco dell'APP) · §8 gli editor. §6–§8 hanno cambiato
+> cose scritte prima: dove due paragrafi dissentono, vale il più in basso.
+>
+> **Aperte al 12 ottobre sera** (scelte del filone dette al committente, senza risposta; non bloccano): nella vista
+> live di un APP remotizzato conta il blocco e non il singolo APP (§7); negli editor non è una sezione del catalogo
+> come il meteo (§8); nella vista live la sezione c'è anche a zero NOTAM (§6).
 
 ## 1. Che cosa dà la sorgente (misurato il 12 ottobre 2026)
 

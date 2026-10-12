@@ -6,28 +6,40 @@
 
 ## Dove siamo — 12 ottobre 2026
 
-> 🟢 **Pronti da fondere — S105 e S106**, tre ritocchi ai NOTAM chiesti dal committente il 12 ottobre sera, **dopo**
-> la 1.61.0 (quindi **non ci sono dentro**): nella vIPI di ACC il NOTAM di uno scalo sta **dentro il blocco
-> dell'APP** a cui si riferisce, e la vista live dell'APP mostra quelli del suo blocco (S105); la sezione NOTAM
-> **si vede negli editor**, come il meteo, e nella **vista live è sempre in fondo, chiusa**, con la chip che la apre
-> e ci porta la finestra (S106). Nessuna migrazione. Voci S105 e S106 in fondo; carta dei NOTAM §6–§8.
+> **In una riga**: i NOTAM della divisione sono **online** (1.61.0: S103 sui documenti pubblici, S104 nella vista
+> live); sopra ci sono **tre ritocchi pronti da fondere e non ancora in `main`** (S105, S106). Niente in corso.
+> Tutto il lavoro è del 12 ottobre; la carta è una sola, `docs/feature/2026-10-12-notam-sui-documenti.md`.
 >
-> ✅ **Online in 1.61.0 dal 12 ottobre — S103 e S104, i NOTAM della divisione** (§A153; conferma del committente su
-> timbro e Schema 0). Com'erano al momento della fusione: in
-> testa ai documenti pubblici (S103) e nella vista live, con una chip rossa «! NOTAM» che apre il riquadro in fondo
-> (S104). Chiesti dal committente il 12 ottobre, fusi dal Master lo stesso giorno (`main` @ `24fe0b0e`, §A153).
-> Portano **una migrazione additiva** (`NotamDellaDivisione`: la tabella `Notams`). Le **vLOA restano fuori** e
-> nella vista live la chip c'è **solo a documento pubblico**: tutte e due decisioni del committente. Sul publish
-> il Master ha visto il giro contro IVAO vero («4 creati»), il riquadro sulla vIPI ACC di Milano e la chip su
-> `LIMM_WS2_CTR`. **Resta, quando è online**: guardare la riga «NOTAM» in Sorgenti e uno scalo con un NOTAM; mai
-> visti da nessuno la chip che compare da sola a un tick live e la vista live da telefono. Carta
-> `docs/feature/2026-10-12-notam-sui-documenti.md`; voci S103 e S104, in fondo.
+> 🟢 **Pronti da fondere — S105 e S106** (`sito/lavori`; il Master è avvisato con sha e conteggi). Chiesti dal
+> committente il 12 ottobre sera, **dopo** la 1.61.0, quindi **non ci sono dentro**. Nessuna migrazione.
+> - **S105**: nella vIPI di ACC il NOTAM di uno scalo sta **dentro il blocco dell'APP** a cui si riferisce (in testa
+>   restano quelli dell'ACC); la vista live dell'APP remotizzato mostra quelli del suo blocco. Carta §7.
+> - **S106**: la sezione NOTAM **si vede negli editor**, come il meteo (carta §8); nella **vista live è sempre in
+>   fondo, chiusa**, e la chip la apre e ci porta la finestra (carta §6).
+> - **Tre scelte del filone dette al committente e senza risposta** (non bloccano la fusione; se risponde sono
+>   ritocchi): (1) nella vista live di un APP remotizzato conta il **blocco**, non il singolo APP — APP di scali
+>   diversi nello stesso blocco condividono i NOTAM; (2) negli editor **non è una sezione del catalogo** come il
+>   meteo (niente indice, non si sposta, non entra nella release); (3) nella vista live la sezione c'è **anche a
+>   zero NOTAM** («Nessun NOTAM…»), la chip no.
+> - **Mai visti**: lo scorrimento animato in un browser vero (misurata la sola posizione d'arrivo), la vista live
+>   da telefono, l'editor della vIPI di ACC mentre si aggiunge un APP a un blocco.
 >
-> Tutto quel che è elencato qui sotto, fino a **S102**, è in `main` e **online**. Ultima: **1.60.0** (S102,
-> l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato timbro
-> e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo stesso
-> giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna migrazione
-> — §A151). Da fondere: S105 e S106 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
+> ✅ **Online in 1.61.0 dal 12 ottobre — S103 e S104** (§A153; il committente ha confermato timbro e Schema 0, cioè
+> la migrazione `NotamDellaDivisione` — la tabella `Notams` — è passata sul database vero). S103: i NOTAM in testa
+> ai documenti pubblici (aeroporto, vSOP, APP, vIPI di ACC); S104: nella vista live la chip rossa «! NOTAM».
+> Decisioni del committente: le **vLOA restano fuori**; nella vista live **solo a documento pubblico**; da 7 giorni
+> prima dell'inizio fino alla scadenza. Sul publish il Master ha visto il giro contro IVAO vero («4 creati»), il
+> riquadro sulla vIPI ACC di Milano e la chip su `LIMM_WS2_CTR`. **Resta da guardare col login, online**: la riga
+> «NOTAM» in Sorgenti («aggiornata», giro ogni 30 minuti), uno scalo con un NOTAM (oggi LIRQ, LIPC/LIPE/LIPK/LIPR,
+> LIMG/LIMJ; vIPI ACC di LIMM, LIPP, LIRR — dove pubblicati) e la chip sulle sue postazioni. Mai vista da nessuno:
+> la chip che compare da sola a un tick live. ⚠️ I «PERM» scadono il 31 dicembre / 1° gennaio se nessuno li
+> rinnova su IVAO: quel giorno spariscono dai documenti.
+>
+> Tutto quel che è elencato qui sotto, fino a **S104**, è in `main` e **online**. Prima della 1.61.0: la **1.60.0**
+> (S102, l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato
+> timbro e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo
+> stesso giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna
+> migrazione — §A151). Da fondere: S105 e S106 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
 > sul ramo `fix/tabellone` (aspetta la chiave del booking; carta
 > `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
 >
@@ -2404,9 +2416,9 @@
     confermato dal committente il 10-ott sera. **Non fatto, e da fare solo se il validatore lo chiede**: riempire
     le righe scritte prima del carico col centro di una sessione più recente dello stesso callsign (sarebbe un
     dato dedotto in mezzo a dati osservati); un filtro lato server «vicino a un punto».
-- 🧪 **S103** i **NOTAM della divisione** in testa ai documenti pubblici (12-ott, chiesto dal committente: «in cima
+- ✅ **S103** i **NOTAM della divisione** in testa ai documenti pubblici (12-ott, chiesto dal committente: «in cima
   ai documenti, in una sezione ben visibile, i NOTAM che interessano quell'aeroporto, fino a quando non scadono»).
-  **Fuso in `main`** il 12-ott, nel pacchetto **1.61.0** (§A153), non ancora online. ⚠️ Le righe qui sotto raccontano la
+  Fuso e **online in 1.61.0** dal 12-ott (§A153). ⚠️ Le righe qui sotto raccontano la
   prima stesura; **le vLOA sono poi state tolte** e il resto è stato visto a schermo: vedi «Seguito» in fondo alla voce.
   - **La sorgente** (provata il 12-ott): `GET /v2/divisions/IT/notams/all`, pubblico, 4 voci, 3 KB. Tiene gli
     **scaduti** in elenco; `?now=true` sulla divisione è rotto (dà i 166 NOTAM del mondo); i nostri non cominciano
@@ -2447,10 +2459,11 @@
     PDF di Edge (il riquadro esce aperto sotto l'intestazione). Le 29 migrazioni che mancavano alla copia sono
     passate. La CI di S103 è verde, col job `mariadb-schema`. Resta non visto: il giro contro IVAO vero dentro
     l'host (la sorgente della prova era finta e locale, col corpo vero).
-- 🧪 **S104** i NOTAM **nella vista live** (12-ott, chiesto dal committente: «dato che sono importanti, finiscano
+- ✅ **S104** i NOTAM **nella vista live** (12-ott, chiesto dal committente: «dato che sono importanti, finiscano
   anche nella pagina live»: una chip rossa «! NOTAM» fra il nome della postazione e il campo di ricerca, che si
-  vede se un NOTAM riguarda l'ente e apre sotto una sezione dove leggerlo come nel documento). **Fuso in `main`**
-  il 12-ott, nel pacchetto **1.61.0** (§A153), non ancora online.
+  vede se un NOTAM riguarda l'ente e apre sotto una sezione dove leggerlo come nel documento). Fuso e **online in
+  1.61.0** dal 12-ott (§A153). ⚠️ Il pannello che nasceva al clic è poi diventato una sezione sempre presente e
+  chiusa: vedi S106.
   - **La regola**: la stessa del documento di riferimento, dichiarata dal descrittore del tipo di postazione
     (`LiveView.AmbitoNotam`): TWR/GND/DEL → lo scalo; APP → lo scalo del suo ente; CTR → l'ACC più gli scali degli
     APP della sua vIPI (gli stessi blocchi che usa la pagina del documento).
@@ -2530,13 +2543,16 @@
     pannello disegna: la posizione d'arrivo è giusta, il movimento non l'ho potuto guardare); la vista live da
     telefono; l'editor della vIPI di ACC mentre si aggiunge un APP a un blocco.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 12-ott: tutto fuso e online fino a S102 (1.60.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
-  alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
+  Al 12-ott sera: tutto fuso e online fino a S104 (1.61.0); **S105 e S106** pronti da fondere su `sito/lavori`;
+  **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
+  `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
   IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il primo evento vero in `/services/event`; in
   produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63); le vIPI ACC da ripubblicare e i tre
   avvisi «quota di un altro settore» da guardare (S97); gli elenchi delle configurazioni da dichiarare completi
-  in Struttura, LIMM per primo (S99); la prova del validatore dei tour sull'archivio ATC (S102). Resta al committente LIRE/LIBG (aspetta il
+  in Struttura, LIMM per primo (S99); la prova del validatore dei tour sull'archivio ATC (S102); la riga «NOTAM» in
+  Sorgenti, il riquadro sui documenti e la chip nella vista live da guardare online, e le tre scelte del filone su
+  S105/S106 (in testa a questa pagina). Resta al committente LIRE/LIBG (aspetta il
   SOD). ⚠️ In Spazi aerei i gesti che spostano agganci rifanno i confinanti: 15–25 s (S63), da guardare se diventa un
   fastidio. Futuro: vIPI ACC legata all'ACC
   (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).
