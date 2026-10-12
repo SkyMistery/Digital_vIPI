@@ -328,6 +328,7 @@
   <data name="Live_CoveredBy" xml:space="preserve"><value>Enti limitrofi:</value></data>
   <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, a chi trasferisci il traffico</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>chiuso</value></data>
+  <data name="Live_NotamChipTitle" xml:space="preserve"><value>NOTAM che riguardano questa postazione: {0}. Premi per leggerli</value></data>
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>gerarchia non configurata per questa posizione — nessun ente sopra risulta impostato in Struttura</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>Documento esteso ↗</value></data>
@@ -1318,6 +1319,8 @@
   <data name="Sorg_AccDesc" xml:space="preserve"><value>Elenco ACC e subcenter: non ha una spunta, è sempre di sorgente</value></data>
   <data name="Sorg_AptLabel" xml:space="preserve"><value>Aeroporti (anagrafica)</value></data>
   <data name="Sorg_AptDesc" xml:space="preserve"><value>Assegna alla ACC gli aeroporti nuovi della divisione, col loro catalogo settori. ⚠️ È l'unico giro che crea: aggiunge, non toglie mai</value></data>
+  <data name="Sorg_NotamLabel" xml:space="preserve"><value>NOTAM</value></data>
+  <data name="Sorg_NotamDesc" xml:space="preserve"><value>I NOTAM della divisione, mostrati in testa ai documenti pubblici che riguardano: non ha una spunta, è sempre di sorgente</value></data>
   <data name="Sorg_LastAndNext" xml:space="preserve"><value>{0} · prossimo {1}</value></data>
   <data name="Sorg_LastData" xml:space="preserve"><value>ultimo dato {0}</value></data>
   <data name="Sorg_LastAndMissed" xml:space="preserve"><value>{0} · atteso {1}, non arrivato</value></data>
@@ -1674,6 +1677,13 @@
   <data name="Preview_DraftTitle" xml:space="preserve"><value>Anteprima bozza live</value></data>
   <data name="Preview_DraftBody" xml:space="preserve"><value>Stai vedendo lo stato editoriale &lt;b&gt;corrente&lt;/b&gt; (non la versione pubblica). I dati derivati (frequenze/coordinamenti/AoR) usano i cataloghi correnti.</value></data>
   <data name="Preview_OpenPublic" xml:space="preserve"><value>Apri la versione pubblica →</value></data>
+  <data name="Notam_Sub" xml:space="preserve"><value>Avvisi della divisione, in vigore o in arrivo · orari UTC</value></data>
+  <data name="Notam_Active" xml:space="preserve"><value>In vigore</value></data>
+  <data name="Notam_Upcoming" xml:space="preserve"><value>In arrivo</value></data>
+  <data name="Notam_From" xml:space="preserve"><value>dal</value></data>
+  <data name="Notam_To" xml:space="preserve"><value>al</value></data>
+  <data name="Notam_NoEnd" xml:space="preserve"><value>senza scadenza</value></data>
+  <data name="Notam_Airports" xml:space="preserve"><value>Aeroporti</value></data>
   <data name="Preview_ReleaseTitle" xml:space="preserve"><value>Anteprima release AIRAC {0}</value></data>
   <data name="Preview_ReleaseBody" xml:space="preserve"><value>Come apparirà il documento quando questa release entrerà in vigore. I dati derivati usano i cataloghi correnti.</value></data>
   <data name="Preview_Public" xml:space="preserve"><value>[Pubblica]</value></data>

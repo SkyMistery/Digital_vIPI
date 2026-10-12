@@ -70,6 +70,10 @@ public sealed class AreaLiveStation : ILiveStationKind
             TreeRoot = root,
             ExtendedDoc = new LiveDocRef(ReleaseTargetType.AccVipi, ctx.Acc.Code, null),
             NoDocument = model is null,
+            // I NOTAM della vIPI di ACC: quelli dell'ACC e quelli degli scali dei suoi APP — gli stessi blocchi da cui
+            // la pagina del documento prende i suoi, così le due sedi mostrano gli stessi.
+            AmbitoNotam = AmbitoNotam.Acc(ctx.Acc.Code,
+                (blocks ?? new List<AccBlock>()).SelectMany(b => b.MemberCallsigns).Select(cs => AmbitoNotam.AeroportoDi(cs))),
         };
     }
 

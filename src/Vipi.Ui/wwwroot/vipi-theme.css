@@ -1546,6 +1546,51 @@
 :where(.vipi-root) .freq-picker-empty{padding:8px 10px;font-size:13px}
 :where(.vipi-root) .callout.danger{background:var(--tint-red);border-color:var(--ivao-red)}
 :where(.vipi-root) .callout.danger .ct{color:var(--danger-ink)}
+/* I NOTAM in testa ai documenti pubblici (NotamBox, carta 2026-10-12-notam-sui-documenti). Un riquadro giallo
+   con dentro una scheda per NOTAM: numero, stato e VALIDITÀ sempre in vista (è la riga che il committente ha
+   chiesto in evidenza), il testo intero dietro un <details>. */
+:where(.vipi-root) .notam-box{margin:16px 0;border:1px solid var(--line-yellow);border-left:5px solid var(--ivao-yellow);border-radius:11px;background:var(--tint-yellow-soft);padding:12px 14px 6px}
+:where(.vipi-root) .notam-head{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-bottom:8px}
+:where(.vipi-root) .notam-head .cic{align-self:center;line-height:1;color:var(--warn-ink)}
+:where(.vipi-root) .notam-head .ct{font-family:var(--font-head);font-weight:700;margin:0;font-size:15px;color:var(--warn-ink)}
+:where(.vipi-root) .notam-n{display:inline-block;min-width:20px;text-align:center;padding:0 6px;border-radius:10px;background:var(--ivao-yellow);color:var(--warn-ink-strong);font-size:12px}
+:where(.vipi-root) .notam-sub{font-size:12.5px;color:var(--ink-mid)}
+:where(.vipi-root) .notam{background:var(--surface);border:1px solid var(--line);border-radius:9px;margin:0 0 8px}
+:where(.vipi-root) .notam>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:auto auto auto 1fr;align-items:center;gap:4px 10px;padding:9px 12px}
+:where(.vipi-root) .notam>summary::-webkit-details-marker{display:none}
+:where(.vipi-root) .notam-chev{color:var(--ink-mid);transition:transform .15s}
+:where(.vipi-root) .notam[open] .notam-chev{transform:rotate(90deg)}
+:where(.vipi-root) .notam-num{font-family:var(--font-mono);font-size:14px;white-space:nowrap}
+/* La pastiglia resta larga quanto la sua parola: sul telefono sta nella colonna elastica e si allargava a tutta
+   la riga (visto a schermo a 375px). */
+:where(.vipi-root) .notam>summary .pill{justify-self:start}
+:where(.vipi-root) .notam .k{font-family:var(--font-head);font-weight:600;font-size:11px;color:var(--ink-mid);text-transform:uppercase;letter-spacing:.04em}
+:where(.vipi-root) .notam-val{font-size:13px;justify-self:end;text-align:right}
+:where(.vipi-root) .notam-val time{font-family:var(--font-mono);font-weight:600;background:var(--tint-yellow);color:var(--warn-ink-strong);padding:2px 7px;border-radius:5px;white-space:nowrap}
+:where(.vipi-root) .notam.soon .notam-val time:first-of-type{outline:1px dashed var(--line-yellow)}
+/* La riga di che cosa parla, per chi non apre: una riga sola, tagliata. Aperto il NOTAM c'è il testo intero, e
+   la riga sarebbe la stessa frase due volte. */
+:where(.vipi-root) .notam-first{grid-column:2 / -1;font-size:13px;color:var(--ink-mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:where(.vipi-root) .notam[open] .notam-first{display:none}
+:where(.vipi-root) .notam-body{padding:0 12px 10px;border-top:1px dashed var(--line)}
+:where(.vipi-root) .notam-text{font-family:var(--font-mono);font-size:12.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 8px;padding:0;background:none;border:0;color:var(--ink)}
+:where(.vipi-root) .notam-scope{display:flex;gap:4px 18px;flex-wrap:wrap;margin:0;font-family:var(--font-mono);font-size:12.5px}
+/* La chip «! NOTAM» nella testata della vista live (committente, 12 ottobre 2026): rossa piena, perché è l'unica
+   cosa della riga che chiede di essere letta; il punto esclamativo sta in un cerchio suo. Accesa (pannello aperto)
+   prende un alone, come le altre chip che reggono un pannello. Il pannello sta in fondo alla pagina: il margine di
+   scorrimento lo tiene fuori da sotto la testata appiccicata. */
+:where(.vipi-root) .notam-chip{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;font-family:var(--font-head);font-weight:700;font-size:13px;line-height:1;letter-spacing:.02em;padding:5px 12px 5px 6px;margin:0;border-radius:20px;border:1px solid var(--ivao-red);background:var(--ivao-red);color:var(--on-brand);cursor:pointer;white-space:nowrap;transition:.15s}
+:where(.vipi-root) .notam-chip:hover{filter:brightness(1.12)}
+:where(.vipi-root) .notam-chip:focus-visible{outline:2px solid var(--ivao-lightblue);outline-offset:2px}
+:where(.vipi-root) .notam-chip.on{box-shadow:0 0 0 3px color-mix(in srgb,var(--ivao-red) 38%,transparent)}
+:where(.vipi-root) .notam-chip .nc-bang{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border:1.5px solid currentColor;border-radius:50%;font-size:12px;font-weight:800;line-height:1}
+:where(.vipi-root) .live-notam{margin-top:14px;scroll-margin:90px}
+:where(.vipi-root) .live-notam .notam-box{margin:0}
+@media (max-width:760px){
+  :where(.vipi-root) .notam>summary{grid-template-columns:auto auto 1fr}
+  :where(.vipi-root) .notam-val{grid-column:1 / -1;justify-self:start;text-align:left}
+  :where(.vipi-root) .notam-first{grid-column:1 / -1}
+}
 /* Toast fisso dell'editor: i messaggi salva/errore restano visibili anche in fondo a tabelle lunghe. */
 :where(.vipi-root) .editor-toast{position:fixed;right:18px;bottom:18px;z-index:1200;display:flex;flex-direction:column;gap:8px;max-width:min(420px,92vw)}
 :where(.vipi-root) .editor-toast .callout{margin:0;box-shadow:0 6px 24px color-mix(in srgb,var(--ink) 18%,transparent);animation:xpop .18s ease-out}

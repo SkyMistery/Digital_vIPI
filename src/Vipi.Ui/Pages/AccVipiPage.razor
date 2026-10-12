@@ -15,6 +15,7 @@
 @inject EnglishStrings En
 @inject IDocLinkService Collegamenti
 @inject ILogger<AccVipiPage> Log
+@inject INotamDeiDocumenti Notam
 @using System.Globalization
 @using Vipi.Ui.Shared
 
@@ -82,6 +83,10 @@ else
                                    PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi")"
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
                 }
+
+                @* I NOTAM che riguardano l'ACC o lo scalo di uno dei suoi APP: vuoto fuori dalla vista pubblica,
+                   e allora non disegna niente. *@
+                <NotamBox Avvisi="_notam" />
 
                 @* ⚠️ Tre cartelli — «tradotto a macchina», «una lingua sola» e il filtro pilota/ATC —
                    stanno tutti nella TESTATA: vedi la `.doc-head.with-aud` piu' sopra. Il filtro
@@ -184,6 +189,9 @@ else
     private PreviewMode _mode;
     private RiferimentiRisolti? _nomiSid;
     private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();   // §A109
+
+    /// <summary>I NOTAM in vigore o in arrivo per questa vIPI (carta 2026-10-12-notam-sui-documenti.md).</summary>
+    private IReadOnlyList<NotamAvviso> _notam = Array.Empty<NotamAvviso>();
     private string? _relCycle;      // anteprima release: ciclo di quella release
     private string? _relKey;        // anteprima release: la sua chiave, per leggerne le congelate (U-053)
     private string? _docCycle;      // vista pubblica: ciclo della release effettiva da cui viene lo snapshot
@@ -271,6 +279,16 @@ else
         _collegati = _root is null
             ? Array.Empty<ResolvedDocLink>()
             : await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.AccVipi, $"{_acc.Code}|{_root}", _mode);
+
+        // I NOTAM, solo sulla vista PUBBLICA. ⚠️ Due regole insieme (committente, 12 ottobre 2026): il NOTAM
+        // riguarda l'ACC, oppure riguarda lo scalo di un APP che questa vIPI contiene — «per gli APP nelle vIPI
+        // di ACC vale quello detto per gli APP». Lo scalo è la testa del callsign: LIMJ_WS0_APP → LIMJ.
+        _notam = _mode.Kind == PreviewKind.Public && !_notAvailable
+            ? await Notam.PerAsync(AmbitoNotam.Acc(_acc.Code,
+                _data.Blocks.Where(b => b.Kind == AccBlockKind.AppGroup)
+                            .SelectMany(b => b.MemberCallsigns)
+                            .Select(cs => AmbitoNotam.AeroportoDi(cs))))
+            : Array.Empty<NotamAvviso>();
 
         // ---- In che lingua si legge QUESTA vIPI (carta 2026-08-31-lingua-bloccata.md §3-4) --------------
         // ⚠️ PRIMA delle derivazioni, che qui sono parecchie e compongono prosa: frasi di coordinamento,

@@ -20,11 +20,11 @@ public class ImportOverviewTests
         new(new PolicyFinta(policy), new StatiFinti(stati), new CadenzaFinta());
 
     [Fact]
-    public async Task Ci_sono_nove_righe_e_le_due_anagrafiche_stanno_in_testa()
+    public async Task Ci_sono_dieci_righe_le_due_anagrafiche_in_testa_e_i_NOTAM_in_fondo()
     {
         var righe = await Servizio(ImportPolicySnapshot.AllImported).ListAsync();
 
-        Assert.Equal(9, righe.Count);
+        Assert.Equal(10, righe.Count);
         Assert.Equal(new[] { ImportAnagrafica.Acc, ImportAnagrafica.Aeroporti },
             righe.Take(2).Select(r => r.Anagrafica!.Value));
         Assert.Equal(ImportCategories.Acc, righe[0].StateKey);
@@ -33,7 +33,14 @@ public class ImportOverviewTests
         {
             ImportCategory.TransitionAltitude, ImportCategory.Runways, ImportCategory.Sectors,
             ImportCategory.Sids, ImportCategory.Navaids, ImportCategory.SpecialAreas, ImportCategory.AtcSessions,
-        }, righe.Skip(2).Select(r => r.Categoria!.Value));
+        }, righe.Skip(2).Take(7).Select(r => r.Categoria!.Value));
+
+        // I NOTAM (12 ottobre 2026): in fondo, senza spunta — escluderli vorrebbe dire nascondere ai lettori un
+        // NOTAM in vigore — e con la loro chiave di stato, che è quella del giro.
+        var notam = righe[^1];
+        Assert.Equal(ImportAnagrafica.Notam, notam.Anagrafica);
+        Assert.Equal(ImportCategories.Notam, notam.StateKey);
+        Assert.True(notam.DaSorgente);
     }
 
     /// <summary>
@@ -250,6 +257,7 @@ public class ImportOverviewTests
             ImportCategories.Acc or ImportCategories.AirportSector or ImportCategories.SpecialArea
                 or ImportCategories.Sid or ImportCategories.Navaid or ImportCategories.AirportData
                 or ImportCategories.AirportDirectory or ImportCategories.AtcHistory => TimeSpan.FromHours(24),
+            ImportCategories.Notam => TimeSpan.FromMinutes(30),   // l'unico giro in minuti
             _ => null,
         };
     }

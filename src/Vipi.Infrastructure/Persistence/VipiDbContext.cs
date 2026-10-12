@@ -188,6 +188,9 @@ public class VipiDbContext : DbContext
     /// <summary>Quante volte si apre ogni documento, per giorno (carta del 1° ottobre 2026, aperture).</summary>
     public DbSet<AperturaDocumento> AperturaDocumenti => Set<AperturaDocumento>();
 
+    /// <summary>I NOTAM della divisione, specchio dell'elenco della sorgente (carta del 12 ottobre 2026).</summary>
+    public DbSet<Notam> Notams => Set<Notam>();
+
     /// <summary>Chi controlla con un account dell'evento: la copia che sopravvive a un riavvio (1° ottobre 2026).</summary>
     public DbSet<AccountEventoInUso> AccountEventoInUso => Set<AccountEventoInUso>();
 
@@ -701,6 +704,16 @@ public class VipiDbContext : DbContext
             // giorno potrebbe tornare a un altro documento.
             e.HasOne<Document>().WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.Giorno);
+        });
+
+        b.Entity<Notam>(e =>
+        {
+            e.HasIndex(x => x.IvaoId).IsUnique();             // chiave naturale: è con questa che il giro ritrova la riga
+            // Misurato sull'elenco mondiale il 12 ottobre 2026: il numero più lungo è di 24 caratteri.
+            e.Property(x => x.Name).HasMaxLength(Notam.NomeMassimo).IsRequired();
+            // ⚠️ Testo, aeroporti e centri restano SENZA misura, e di proposito: non sono indicizzati, e un NOTAM
+            // di un'altra divisione arriva a 146 aeroporti e 1 700 caratteri di testo — un tetto qui sarebbe solo
+            // il punto in cui un giorno un NOTAM vero non entra.
         });
 
         b.Entity<ApiClient>(e =>
