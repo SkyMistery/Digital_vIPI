@@ -25,8 +25,10 @@ public sealed record NotamAvviso(
 /// e la vista live:
 /// <list type="bullet">
 /// <item>vIPI d'aeroporto, vSOP militare, APP: il NOTAM <b>riguarda l'aeroporto</b>;</item>
-/// <item>vIPI di ACC: il NOTAM <b>riguarda l'ACC</b>, oppure l'aeroporto di uno degli APP che quella vIPI contiene
-/// («per gli APP nelle vIPI di ACC vale quello detto per gli APP»);</item>
+/// <item>vIPI di ACC: in testa i NOTAM che <b>riguardano l'ACC</b>; <b>dentro il blocco di ogni APP</b> quelli che
+/// riguardano lo scalo di quell'APP («per gli APP nelle vIPI di ACC vale quello detto per gli APP», e «se il
+/// blocco compare dentro l'APP a cui si riferisce è meglio»). La vista live dell'APP mostra quelli del suo blocco;
+/// quella di un settore d'area tutti quelli del documento, in testa e nei blocchi;</item>
 /// <item>vLOA: <b>niente</b> («per le vLOA non prevediamo nulla per ora»). Non c'è un ambito per gli accordi, e
 /// non è una dimenticanza.</item>
 /// </list>
@@ -48,8 +50,20 @@ public sealed class AmbitoNotam
     /// <summary>I documenti di uno scalo (o di più scali, in una pagina unita).</summary>
     public static AmbitoNotam Aeroporti(IEnumerable<string?> icao) => new(icao, null);
 
-    /// <summary>La vIPI di un ACC, con gli scali degli APP che contiene.</summary>
+    /// <summary>
+    /// Un ACC, con gli scali degli APP che la sua vIPI contiene. Senza scali è la <b>testa</b> della vIPI di ACC
+    /// (i soli NOTAM dell'ACC); con gli scali di tutti i suoi APP è <b>il documento intero</b>, cioè quel che vede
+    /// la vista live di un settore d'area.
+    /// </summary>
     public static AmbitoNotam Acc(string acc, IEnumerable<string?> aeroportiDegliApp) => new(aeroportiDegliApp, acc);
+
+    /// <summary>
+    /// Il <b>blocco di un APP</b> dentro una vIPI di ACC: gli scali dei suoi membri, dai loro nominativi. È la
+    /// stessa regola per la pagina del documento e per la vista live di quell'APP — per questo sta qui e non in
+    /// tutt'e due.
+    /// </summary>
+    public static AmbitoNotam BloccoApp(IEnumerable<string?> nominativi) =>
+        new(nominativi.Select(n => AeroportoDi(n)), null);
 
     /// <summary>
     /// Lo scalo di un callsign o del codice di un ente: la testa prima del primo <c>_</c>
@@ -104,6 +118,14 @@ public interface INotamDeiDocumenti
     /// documento che il lettore ha chiesto. L'errore va nel registro e la pagina esce senza riquadro.
     /// </summary>
     Task<IReadOnlyList<NotamAvviso>> PerAsync(AmbitoNotam ambito, CancellationToken ct = default);
+
+    /// <summary>
+    /// Più ambiti con <b>una sola lettura</b> dell'archivio: la vIPI di un ACC ne chiede uno per la testa e uno per
+    /// ogni blocco di APP, e una lettura per blocco sarebbero dieci domande uguali. L'esito ha lo stesso numero e
+    /// lo stesso ordine degli ambiti. ⚠️ Non lancia mai, come l'altra: tanti elenchi vuoti.
+    /// </summary>
+    Task<IReadOnlyList<IReadOnlyList<NotamAvviso>>> PerAsync(IReadOnlyList<AmbitoNotam> ambiti,
+                                                            CancellationToken ct = default);
 }
 
 /// <summary>

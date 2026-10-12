@@ -6,6 +6,11 @@
 
 ## Dove siamo — 12 ottobre 2026
 
+> 🟢 **Pronto da fondere — S105**: nella vIPI di ACC il NOTAM di uno scalo sta **dentro il blocco dell'APP** a cui
+> si riferisce (in testa restano quelli dell'ACC), e la vista live dell'APP remotizzato mostra quelli del suo
+> blocco. Chiesto dal committente il 12 ottobre sera, **dopo** la fusione di S103 e S104: **NON è nel pacchetto
+> 1.61.0**. Nessuna migrazione. Voce S105 in fondo; carta dei NOTAM §7.
+>
 > 📦 **Fusi in `main`, pacchetto 1.61.0 pronto e NON ancora online — S103 e S104, i NOTAM della divisione**: in
 > testa ai documenti pubblici (S103) e nella vista live, con una chip rossa «! NOTAM» che apre il riquadro in fondo
 > (S104). Chiesti dal committente il 12 ottobre, fusi dal Master lo stesso giorno (`main` @ `24fe0b0e`, §A153).
@@ -20,7 +25,7 @@
 > l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato timbro
 > e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo stesso
 > giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna migrazione
-> — §A151). Niente da fondere, niente in corso. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
+> — §A151). Da fondere: S105 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
 > sul ramo `fix/tabellone` (aspetta la chiave del booking; carta
 > `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
 >
@@ -2473,6 +2478,29 @@
     LIML_TWR e LIBA_APP (il suo era scaduto).
   - ⚠️ **Non visto**: la chip che compare da sola a un tick live mentre la pagina è aperta (il modello si
     ricompone a ogni tick, ma non l'ho aspettato a schermo); la vista live da telefono.
+- 🟢 **S105** nella **vIPI di ACC** il NOTAM di uno scalo sta **dentro il blocco dell'APP** (12-ott sera, chiesto
+  dal committente dopo aver letto com'era: «se il blocco compare dentro l'APP a cui si riferisce è meglio. E se
+  compare lì allora darà anche nella pagina live di quell'ente»). Su `sito/lavori`, **non in `main`** e **non nel
+  pacchetto 1.61.0**. ▶ Pronto da fondere.
+  - **Com'era** (S103): un riquadro solo in testa alla vIPI di ACC, coi NOTAM dell'ACC e quelli degli scali dei
+    suoi APP mescolati.
+  - **Com'è**: in testa i soli NOTAM dell'**ACC**; **sotto il titolo di ogni blocco APP** quelli dello scalo dei
+    suoi membri (`AmbitoNotam.BloccoApp`). Un NOTAM che nomina l'ACC **e** lo scalo sta in tutti e due i posti;
+    uno del solo scalo sta solo nel blocco. Una lettura sola dell'archivio per testa e blocchi
+    (`INotamDeiDocumenti.PerAsync` con più ambiti).
+  - **Vista live**: l'APP remotizzato mostra i NOTAM **del suo blocco** (prima: del solo proprio scalo); i CTR
+    come prima, tutto il documento. Resta «solo a documento pubblico».
+  - ⚠️ **Da sapere**: è il *blocco*, non l'APP — se un blocco tiene insieme APP di scali diversi, la chip di
+    ognuno conta i NOTAM di tutti. Nella copia di sviluppo `LIMF_WN0_APP` (Torino) conta il NOTAM di Genova perché
+    stanno nello stesso «Nuovo gruppo APP». Carta `docs/feature/2026-10-12-notam-sui-documenti.md` §7.
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (`AmbitoNotam.BloccoApp`,
+    `INotamDeiDocumenti`, `ApproachLiveStation`), `Vipi.Infrastructure` (`NotamDeiDocumenti`).
+  - **Test**: App 3344 → 3347, Infra 2225 → 2226, Ui 2048 → 2050. Suite intera verde, build Release pulita.
+  - **Prova dal vivo** (copia del database di sviluppo, sorgente finta locale): vIPI di Milano con IT-A002/26 e
+    IT-A003/25 in testa e IT-A002/26 dentro il blocco dell'APP di Genova — dati **veri**; vIPI di Brindisi con un
+    NOTAM inventato sul solo scalo di Bari dentro «Brindisi CS0» e non in testa; bozza senza riquadri; chip su
+    `LIBD_CS0_APP` (1), `LIBB_ES_CTR` (2), `LIMJ_WS0_APP` (1), `LIMM_WS2_CTR` (2), nessuna su `LIRN_US0_APP`
+    (vIPI di LIRR non pubblicata).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 12-ott: tutto fuso e online fino a S102 (1.60.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo

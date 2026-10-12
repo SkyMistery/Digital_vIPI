@@ -79,18 +79,28 @@ public sealed class NotamDeiDocumenti : INotamDeiDocumenti
         _clock = clock ?? TimeProvider.System;
     }
 
-    public async Task<IReadOnlyList<NotamAvviso>> PerAsync(AmbitoNotam ambito, CancellationToken ct = default)
+    public async Task<IReadOnlyList<NotamAvviso>> PerAsync(AmbitoNotam ambito, CancellationToken ct = default) =>
+        (await PerAsync(new[] { ambito }, ct).ConfigureAwait(false))[0];
+
+    public async Task<IReadOnlyList<IReadOnlyList<NotamAvviso>>> PerAsync(IReadOnlyList<AmbitoNotam> ambiti,
+                                                                         CancellationToken ct = default)
     {
         try
         {
+            // UNA lettura per tutti gli ambiti, e un solo «adesso»: due blocchi della stessa pagina non devono
+            // poter dissentire su un NOTAM che scade in quell'istante.
             var tutti = await _store.ListAsync(ct).ConfigureAwait(false);
-            return NotamInVista.Scegli(tutti, ambito, _clock.GetUtcNow().UtcDateTime);
+            var adesso = _clock.GetUtcNow().UtcDateTime;
+            return ambiti.Select(a => NotamInVista.Scegli(tutti, a, adesso)).ToList();
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested) { return Array.Empty<NotamAvviso>(); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { return Vuoti(ambiti); }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "NOTAM non letti: il documento esce senza riquadro.");
-            return Array.Empty<NotamAvviso>();
+            return Vuoti(ambiti);
         }
     }
+
+    private static IReadOnlyList<IReadOnlyList<NotamAvviso>> Vuoti(IReadOnlyList<AmbitoNotam> ambiti) =>
+        ambiti.Select(_ => (IReadOnlyList<NotamAvviso>)Array.Empty<NotamAvviso>()).ToList();
 }

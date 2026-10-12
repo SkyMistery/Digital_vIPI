@@ -53,7 +53,8 @@ nell'elenco IT (i 4 «per paese» coincidevano coi 4 «per divisione»).
 
 1. **vIPI d'aeroporto, vSOP e APP**: il NOTAM si mostra se riguarda **l'aeroporto**.
 2. **vIPI di ACC**: se riguarda **l'ACC**. «Per gli APP nelle vIPI di ACC vale quello detto per gli APP»: una vIPI di
-   ACC mostra anche i NOTAM dello scalo di ogni APP che contiene.
+   ACC mostra anche i NOTAM dello scalo di ogni APP che contiene — **dentro il blocco di quell'APP**, non in testa
+   (§7: «se il blocco compare dentro l'APP a cui si riferisce è meglio»).
 3. **vLOA: niente.** «Per le vLOA non prevediamo nulla per ora.» (La prima stesura le copriva con una regola del
    filone — «riguarda tutte e due le parti» — tolta lo stesso giorno. Un test dice che le due sedi delle vLOA non
    montano il riquadro, perché non lo si rimetta «per completezza».)
@@ -118,9 +119,10 @@ nell'elenco IT (i 4 «per paese» coincidevano coi 4 «per divisione»).
 ## 6. Nella vista live (S104)
 
 - **La regola è la stessa del documento di riferimento**, e la dichiara il descrittore del tipo di postazione
-  (`LiveView.AmbitoNotam`): TWR, GND, DEL → lo scalo; APP → lo scalo del suo ente (anche quando l'APP vive nella
-  vIPI di ACC); CTR → l'ACC più gli scali degli APP della sua vIPI, presi dagli **stessi blocchi** da cui li prende
-  la pagina del documento. Una postazione e il suo documento mostrano gli stessi NOTAM.
+  (`LiveView.AmbitoNotam`): TWR, GND, DEL → lo scalo; APP col documento proprio → lo scalo del suo ente; APP che
+  vive nella vIPI di ACC → i NOTAM del **suo blocco** in quella vIPI (§7); CTR → l'ACC più gli scali degli APP
+  della sua vIPI, cioè il documento intero, testa e blocchi. Una postazione e il suo documento mostrano gli stessi
+  NOTAM.
 - 🔴 **Solo se il documento di riferimento è pubblico** (committente, 12 ottobre 2026: «solo a documento
   pubblico»). La prima stesura mostrava la chip anche senza documento online — il filone aveva letto «il NOTAM si
   vede qui se c'è nel relativo documento pubblico» come «stessa regola» — e il committente l'ha corretta: nella
@@ -141,3 +143,30 @@ nell'elenco IT (i 4 «per paese» coincidevano coi 4 «per divisione»).
   tick live, non a un ricarico. Premere di nuovo la chip lo chiude.
 - La riga sotto il titolo del riquadro dice «Avvisi della divisione, in vigore o in arrivo»: prima diceva «che
   riguardano questo documento», che nella vista live non è vero.
+
+## 7. Nella vIPI di ACC: il NOTAM dentro il blocco dell'APP (S105)
+
+Fino alla 1.61.0 la vIPI di un ACC aveva **un riquadro solo, in testa**, con dentro due cose insieme: i NOTAM
+dell'ACC e quelli degli scali dei suoi APP. Il committente, 12 ottobre 2026: «se il blocco compare dentro l'APP a
+cui si riferisce è meglio. E se compare lì allora darà anche nella pagina live di quell'ente».
+
+- **In testa** restano i soli NOTAM che riguardano **l'ACC** (`AmbitoNotam.Acc(acc, nessuno scalo)`).
+- **Dentro il blocco di ogni APP**, sotto il titolo del blocco e sopra le sue sezioni, i NOTAM che riguardano lo
+  **scalo dei suoi membri** (`AmbitoNotam.BloccoApp`: la testa di ogni nominativo del blocco).
+- ⚠️ Un NOTAM che nomina **sia l'ACC sia lo scalo** sta in **tutti e due** i posti, e non è un doppione da
+  togliere: riguarda l'uno e l'altro (oggi IT-A002/26: Milano e Genova). Uno che nomina **solo lo scalo** sta solo
+  nel blocco: in testa non si vede più, ed è voluto.
+- **La vista live** segue il documento: la postazione di un APP remotizzato mostra i NOTAM **del suo blocco**
+  (prima: del solo proprio scalo); un settore d'area continua a mostrare tutti quelli del documento. La regola del
+  blocco è una sola (`AmbitoNotam.BloccoApp`), usata dalla pagina e dal descrittore live.
+- ⚠️ **Il blocco, non l'APP**: se un blocco raggruppa APP di scali diversi, il suo riquadro porta i NOTAM di tutti
+  quegli scali, e la vista live di ognuno dei suoi APP li mostra tutti. Nella copia di sviluppo c'è un blocco
+  «Nuovo gruppo APP» con dentro due APP di Torino e uno di Genova: la chip di `LIMF_WN0_APP` conta il NOTAM di
+  Genova. È la conseguenza di «se compare lì, dà anche nella live di quell'ente»; se i blocchi veri tengono
+  insieme APP dello stesso scalo, non si nota.
+- **Una lettura sola** per la testa e per tutti i blocchi (`INotamDeiDocumenti.PerAsync` con più ambiti), e un solo
+  «adesso»: due blocchi della stessa pagina non possono dissentire su un NOTAM che scade in quell'istante.
+- Provato sulla copia del database di sviluppo: vIPI di Milano con IT-A002/26 e IT-A003/25 in testa e IT-A002/26
+  nel blocco dell'APP di Genova (dati veri); vIPI di Brindisi con un NOTAM inventato sul solo scalo di Bari nel
+  blocco «Brindisi CS0» e non in testa; bozza senza riquadri; chip su `LIBD_CS0_APP` (1), `LIBB_ES_CTR` (2),
+  `LIMJ_WS0_APP` (1), `LIMM_WS2_CTR` (2).

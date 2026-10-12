@@ -191,7 +191,6 @@ public class NotamBoxTests : TestContext
     [InlineData("Pages/AeroportoPage.razor", "AmbitoNotam.Aeroporti(ScaliPerNotam.Di(_icao, _altri))")]
     [InlineData("Pages/MilDocumentPage.razor", "AmbitoNotam.Aeroporti(ScaliPerNotam.Di(_icao, _altri))")]
     [InlineData("Pages/AppnPage.razor", "AmbitoNotam.Aeroporti(ScaliPerNotam.Di(_app, _altri))")]
-    [InlineData("Pages/AccVipiPage.razor", "AmbitoNotam.Acc(_acc.Code,")]
     public void Ogni_sede_chiede_i_NOTAM_solo_sulla_vista_pubblica(string relativo, string ambito)
     {
         var righe = Leggi(relativo).Split('\n');
@@ -235,6 +234,43 @@ public class NotamBoxTests : TestContext
         Assert.InRange(riquadro, 0, sorgente.IndexOf(corpo, StringComparison.Ordinal));
     }
 
+    // ---- La vIPI di ACC --------------------------------------------------------------------------------
+
+    /// <summary>
+    /// La vIPI di ACC ha DUE posti (committente, 12 ottobre 2026): in testa i NOTAM dell'ACC, dentro il blocco di
+    /// ogni APP quelli del suo scalo. Li chiede insieme, una volta, e solo sulla vista pubblica.
+    /// </summary>
+    [Fact]
+    public void La_vIPI_di_ACC_chiede_la_testa_e_un_blocco_per_APP_solo_sulla_vista_pubblica()
+    {
+        var sorgente = Leggi("Pages/AccVipiPage.razor");
+        var chiamata = sorgente.IndexOf("await Notam.PerAsync(ambiti)", StringComparison.Ordinal);
+        var cancello = sorgente.IndexOf("if (_mode.Kind == PreviewKind.Public && !_notAvailable)", StringComparison.Ordinal);
+
+        Assert.Single(Regex.Matches(sorgente, Regex.Escape("Notam.PerAsync(")));
+        Assert.InRange(cancello, 0, chiamata);
+        // Fra il cancello e la chiamata: la testa è il SOLO ACC, e i blocchi prendono gli scali dai loro membri.
+        var corpo = sorgente[cancello..chiamata];
+        Assert.Contains("AmbitoNotam.Acc(_acc.Code, Array.Empty<string>())", corpo, StringComparison.Ordinal);
+        Assert.Contains("AmbitoNotam.BloccoApp(b.MemberCallsigns)", corpo, StringComparison.Ordinal);
+        Assert.Contains("b.Kind == AccBlockKind.AppGroup", corpo, StringComparison.Ordinal);
+    }
+
+    /// <summary>Il riquadro del blocco sta DENTRO il blocco: sotto il suo titolo e sopra le sue sezioni.</summary>
+    [Fact]
+    public void Nella_vIPI_di_ACC_il_riquadro_di_un_APP_sta_dentro_il_suo_blocco()
+    {
+        var sorgente = Leggi("Pages/AccVipiPage.razor");
+        var titolo = sorgente.IndexOf("<h2 class=\"acc-block-h\">", StringComparison.Ordinal);
+        var riquadro = sorgente.IndexOf("<NotamBox Avvisi=\"notamDelBlocco\" />", StringComparison.Ordinal);
+        var sezioni = sorgente.IndexOf("@foreach (var s in VisibleSections(block))", StringComparison.Ordinal);
+
+        Assert.Single(Regex.Matches(sorgente, Regex.Escape("<NotamBox Avvisi=\"notamDelBlocco\" />")));
+        Assert.InRange(riquadro, titolo, sezioni);
+        Assert.Contains("_notamDeiBlocchi.TryGetValue(block.Key, out var notamDelBlocco)", sorgente[titolo..riquadro],
+            StringComparison.Ordinal);
+    }
+
     // ---- La vista live --------------------------------------------------------------------------------
 
     /// <summary>
@@ -246,6 +282,7 @@ public class NotamBoxTests : TestContext
     [Theory]
     [InlineData("AirportLiveStation.cs", "AmbitoNotam = icao is null ? AmbitoNotam.Nessuno : AmbitoNotam.Aeroporti(new[] { icao })")]
     [InlineData("ApproachLiveStation.cs", "AmbitoNotam = AmbitoNotam.Aeroporti(new[] { AmbitoNotam.AeroportoDi(chiave) })")]
+    [InlineData("ApproachLiveStation.cs", "AmbitoNotam = block is null ? view.AmbitoNotam : AmbitoNotam.BloccoApp(block.MemberCallsigns)")]
     [InlineData("AreaLiveStation.cs", "AmbitoNotam = AmbitoNotam.Acc(ctx.Acc.Code,")]
     public void Ogni_tipo_di_postazione_dichiara_il_suo_ambito(string file, string dichiarazione) =>
         Assert.Single(Regex.Matches(LeggiApplication("Live/" + file), Regex.Escape(dichiarazione)));

@@ -137,6 +137,41 @@ public class NotamSuiDocumentiTests
         Assert.Equal(new[] { "IT-B002/25" }, con);
     }
 
+    /// <summary>
+    /// Dentro una vIPI di ACC il NOTAM di uno scalo sta <b>nel blocco dell'APP</b> di quello scalo (committente, 12
+    /// ottobre 2026: «se il blocco compare dentro l'APP a cui si riferisce è meglio»). Il blocco prende gli scali
+    /// dai nominativi dei suoi membri; i NOTAM del solo ACC non gli appartengono, e stanno in testa.
+    /// </summary>
+    [Fact]
+    public void Il_blocco_di_un_APP_vede_quelli_dei_suoi_scali_e_non_quelli_del_solo_ACC()
+    {
+        var genova = AmbitoNotam.BloccoApp(new[] { "LIMJ_WS0_APP", "limg_app" });
+        var testa = AmbitoNotam.Acc("LIMM", Array.Empty<string>());
+
+        // IT-A002/26 nomina LIMG e LIMJ: sta nel blocco di Genova. IT-A003/25 è di Bologna: no.
+        Assert.Equal(new[] { "IT-A002/26" }, Nomi(genova));
+        // In testa stanno i due che nominano LIMM. ⚠️ IT-A002/26 sta in TUTTI E DUE i posti, e non è un doppione
+        // da togliere: riguarda l'ACC e riguarda quello scalo.
+        Assert.Equal(new[] { "IT-A002/26", "IT-A003/25" }, Nomi(testa).OrderBy(n => n).ToArray());
+    }
+
+    /// <summary>Un NOTAM che nomina lo scalo ma non l'ACC sta SOLO nel blocco: è il caso che in testa non si
+    /// vedeva più una volta spostato, ed è voluto.</summary>
+    [Fact]
+    public void Un_NOTAM_del_solo_scalo_sta_nel_blocco_e_non_in_testa()
+    {
+        var soloScalo = new[] { Riga("IT-C001/26", "LIMJ", "") };
+
+        Assert.Equal(new[] { "IT-C001/26" }, Nomi(AmbitoNotam.BloccoApp(new[] { "LIMJ_WS0_APP" }), soloScalo));
+        Assert.Empty(Nomi(AmbitoNotam.Acc("LIMM", Array.Empty<string>()), soloScalo));
+        // La vista live di un settore d'area mostra il documento intero: testa e blocchi.
+        Assert.Equal(new[] { "IT-C001/26" }, Nomi(AmbitoNotam.Acc("LIMM", new[] { "LIMJ" }), soloScalo));
+    }
+
+    [Fact]
+    public void Un_blocco_senza_membri_non_vede_niente() =>
+        Assert.Empty(Nomi(AmbitoNotam.BloccoApp(Array.Empty<string>())));
+
     /// <summary>L'ambito di chi non ha né scalo né ACC da dichiarare (una postazione senza ICAO): niente.</summary>
     [Fact]
     public void L_ambito_vuoto_non_vede_niente() => Assert.Empty(Nomi(AmbitoNotam.Nessuno));
