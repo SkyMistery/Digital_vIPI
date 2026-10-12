@@ -6,12 +6,14 @@
 
 ## Dove siamo — 12 ottobre 2026
 
-> 🟢 **Pronto da fondere — S105**: nella vIPI di ACC il NOTAM di uno scalo sta **dentro il blocco dell'APP** a cui
-> si riferisce (in testa restano quelli dell'ACC), e la vista live dell'APP remotizzato mostra quelli del suo
-> blocco. Chiesto dal committente il 12 ottobre sera, **dopo** la fusione di S103 e S104: **NON è nel pacchetto
-> 1.61.0**. Nessuna migrazione. Voce S105 in fondo; carta dei NOTAM §7.
+> 🟢 **Pronti da fondere — S105 e S106**, tre ritocchi ai NOTAM chiesti dal committente il 12 ottobre sera, **dopo**
+> la 1.61.0 (quindi **non ci sono dentro**): nella vIPI di ACC il NOTAM di uno scalo sta **dentro il blocco
+> dell'APP** a cui si riferisce, e la vista live dell'APP mostra quelli del suo blocco (S105); la sezione NOTAM
+> **si vede negli editor**, come il meteo, e nella **vista live è sempre in fondo, chiusa**, con la chip che la apre
+> e ci porta la finestra (S106). Nessuna migrazione. Voci S105 e S106 in fondo; carta dei NOTAM §6–§8.
 >
-> 📦 **Fusi in `main`, pacchetto 1.61.0 pronto e NON ancora online — S103 e S104, i NOTAM della divisione**: in
+> ✅ **Online in 1.61.0 dal 12 ottobre — S103 e S104, i NOTAM della divisione** (§A153; conferma del committente su
+> timbro e Schema 0). Com'erano al momento della fusione: in
 > testa ai documenti pubblici (S103) e nella vista live, con una chip rossa «! NOTAM» che apre il riquadro in fondo
 > (S104). Chiesti dal committente il 12 ottobre, fusi dal Master lo stesso giorno (`main` @ `24fe0b0e`, §A153).
 > Portano **una migrazione additiva** (`NotamDellaDivisione`: la tabella `Notams`). Le **vLOA restano fuori** e
@@ -25,7 +27,7 @@
 > l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato timbro
 > e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo stesso
 > giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna migrazione
-> — §A151). Da fondere: S105 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
+> — §A151). Da fondere: S105 e S106 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
 > sul ramo `fix/tabellone` (aspetta la chiave del booking; carta
 > `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
 >
@@ -2501,6 +2503,32 @@
     NOTAM inventato sul solo scalo di Bari dentro «Brindisi CS0» e non in testa; bozza senza riquadri; chip su
     `LIBD_CS0_APP` (1), `LIBB_ES_CTR` (2), `LIMJ_WS0_APP` (1), `LIMM_WS2_CTR` (2), nessuna su `LIRN_US0_APP`
     (vIPI di LIRR non pubblicata).
+- 🟢 **S106** la sezione NOTAM **negli editor** e, nella vista live, **sempre in fondo e chiusa** (12-ott sera, due
+  richieste del committente: «la sezione NOTAM deve essere visibile nell'editor, come lo è la sezione METAR/TAF» e
+  «nella visuale live la sezione NOTAM deve essere sempre visibile in fondo al documento ma compressa. Se si clicca
+  sul pulsante NOTAM si apre e la finestra scorre al NOTAM»). Su `sito/lavori`, **non in `main`**. ▶ Pronto da
+  fondere.
+  - **Editor**: una nota «NOTAM dal vivo» (non c'è niente da compilare, in bozza non si vede) e sotto il riquadro
+    com'è nel documento pubblico, sempre presente — senza NOTAM lo dice. In testa alla colonna negli editor
+    d'aeroporto, vSOP e APP (slot nuovo `BeforeSections` di `DocumentSectionsEditor`); nell'editor della vIPI di
+    ACC in testa e dentro ogni blocco di gruppo APP. Componente `NotamNellEditor`, scope proprio che aspetta.
+    ⚠️ Non è una sezione del documento come il meteo: non sta nell'indice, non si sposta, non entra nella release.
+  - **Vista live**: la sezione è un `details.acc-item` come le altre, **sempre** in fondo e **chiusa** a ogni
+    apertura (niente `data-persist`); senza NOTAM dice che non ce ne sono (conto 0). La chip **apre** e scorre
+    (`vipiApriDettaglio`): non è più un interruttore. Il margine sopra lo misura il JavaScript sulla testata
+    appiccicata — col numero fisso l'intestazione della sezione finiva coperta (visto a schermo).
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: nessuno oltre S105. Toccati `vipi-ui.js`,
+    `vipi-theme.css` e i due `.resx`.
+  - **Test**: Ui 2050 → 2065 (`NotamNellEditorTests`, `LivePageNotamTests` riscritti). App e Infra come S105.
+    Suite intera verde, build Release pulita. Presi dai presidi: `TerzaPortaTests` ha fermato il componente
+    dell'editor finché non ha avuto la base che aspetta le letture in volo.
+  - **Prova dal vivo** (copia del database di sviluppo): `LIRN_GND` con la sezione chiusa in fondo («NOTAM 2»), la
+    chip che la apre e la porta sotto la testata; `LIML_TWR` e `LIRR_TS_CTR` con la sezione a 0 e senza chip;
+    editor di LIRN (due NOTAM sopra «METAR & TAF»), di LIML («nessuno»), del vSOP di LIBG, di LICC_APP, della
+    vIPI di Milano (testa e blocco APP).
+  - ⚠️ **Non visto**: lo scorrimento in un browser vero (nel pannello della chat l'animazione parte solo quando il
+    pannello disegna: la posizione d'arrivo è giusta, il movimento non l'ho potuto guardare); la vista live da
+    telefono; l'editor della vIPI di ACC mentre si aggiunge un APP a un blocco.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 12-ott: tutto fuso e online fino a S102 (1.60.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo

@@ -92,6 +92,14 @@ else
     /// </summary>
     [Parameter] public RenderFragment? AfterSections { get; set; }
 
+    /// <summary>
+    /// Contenuto reso IN TESTA alla colonna delle sezioni, sopra la prima. Lo specchio di
+    /// <see cref="AfterSections"/>, e per la stessa ragione sta dentro la colonna: è il posto di ciò che nel
+    /// documento pubblico sta sopra il corpo senza essere una sezione — oggi la sezione NOTAM
+    /// (<c>NotamNellEditor</c>).
+    /// </summary>
+    [Parameter] public RenderFragment? BeforeSections { get; set; }
+
     /// <summary>Comandi in coda al TOC (espandi/comprimi tutto). L'editor ACC costruisce il proprio TOC e li
     /// mette da sé; gli editor a singola istanza montano il TOC da qui, quindi glieli passano.</summary>
     [Parameter] public RenderFragment? TocFooter { get; set; }
@@ -206,6 +214,7 @@ else
 
     private RenderFragment SectionsBody => __builder =>
     {
+        @BeforeSections
         @* §A73: le SID citate da ricontrollare, in cima — in lettura e in modifica. Fuori da qui nessuno lo dice:
            la pagina pubblica mostra l'ultimo nome visto senza segni, apposta. *@
         @if (_sidDaRivedere.Count > 0)

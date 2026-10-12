@@ -147,6 +147,10 @@ else
                                     IsMandatory="IsMandatory" Profile="SectionProfile.AirportMil"
                                     IsRenderModeToggleable="IsRenderModeToggleable"
                                     ShowToc="Chrome" ExtraTocItems="_tocExtra" TocFooter="@TocCommands">
+                @* La sezione NOTAM, dove sta nel documento pubblico: in testa. Non si compila, come il meteo. *@
+                <BeforeSections>
+                    <NotamNellEditor Chiave="@($"apt:{_icao}")" Ambito="@AmbitoNotam.Aeroporti(new[] { _icao })" />
+                </BeforeSections>
                 <RightRail>
                     @* ⚠️ Solo col chrome: in un editor unito il rail e' dell'OSPITE, e il lock si prende su
                        TUTTI i membri in un gesto — non uno per ciascuno. *@

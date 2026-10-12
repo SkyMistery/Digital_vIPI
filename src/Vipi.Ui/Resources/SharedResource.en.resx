@@ -329,6 +329,7 @@
   <data name="Live_CoveredByHint" xml:space="preserve"><value>— who absorbs you if you close, who you hand traffic to</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>closed</value></data>
   <data name="Live_NotamChipTitle" xml:space="preserve"><value>NOTAMs affecting this station: {0}. Press to read them</value></data>
+  <data name="Live_NoNotam" xml:space="preserve"><value>No NOTAM in force or upcoming for this station.</value></data>
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>hierarchy not configured for this position — no parent unit is set in Structure</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>Extended document ↗</value></data>
@@ -1679,6 +1680,9 @@
   <data name="Notam_To" xml:space="preserve"><value>to</value></data>
   <data name="Notam_NoEnd" xml:space="preserve"><value>no end date</value></data>
   <data name="Notam_Airports" xml:space="preserve"><value>Airports</value></data>
+  <data name="NotamEd_Title" xml:space="preserve"><value>Live NOTAMs</value></data>
+  <data name="NotamEd_Body" xml:space="preserve"><value>At this point of the public version the division’s NOTAMs that affect it appear on their own, read from IVAO: there is nothing to fill in. They stay from seven days before they come into force until they expire; they do not show in the draft or in a release preview.</value></data>
+  <data name="NotamEd_None" xml:space="preserve"><value>Right now none is in force or upcoming.</value></data>
   <data name="Preview_ReleaseTitle" xml:space="preserve"><value>AIRAC {0} release preview</value></data>
   <data name="Preview_ReleaseBody" xml:space="preserve"><value>How the document will look when this release comes into effect. Derived data use the current catalogs.</value></data>
   <data name="Preview_Public" xml:space="preserve"><value>[Public]</value></data>

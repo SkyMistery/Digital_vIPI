@@ -55,13 +55,14 @@
             }
         }
         @* I NOTAM della postazione (committente, 12 ottobre 2026): una chip ROSSA fra il nome della postazione e il
-           campo di ricerca, che c'è SOLO se un NOTAM la riguarda — la stessa regola del suo documento — e apre il
-           pannello in fondo alla pagina. ⚠️ Un tasto e non un collegamento: il pannello nasce al clic, e un'ancora
-           verso un elemento che non c'è ancora non porterebbe da nessuna parte. *@
+           campo di ricerca, che c'è SOLO se un NOTAM la riguarda — la stessa regola del suo documento — e apre la
+           sezione NOTAM in fondo alla pagina, portandola in vista. ⚠️ Apre e basta, non fa da interruttore: la
+           sezione è un <details> nativo che chi legge chiude dalla sua intestazione, e Blazor non ne conosce lo
+           stato — un interruttore qui sarebbe, una volta su due, un clic che non fa niente. *@
         @if (_view is { Notam.Count: > 0 })
         {
-            <button type="button" class="notam-chip @(_notamAperti ? "on" : "")" aria-controls="live-notam"
-                    aria-expanded="@(_notamAperti ? "true" : "false")" title="@L["Live_NotamChipTitle", _view.Notam.Count]"
+            <button type="button" class="notam-chip" aria-controls="live-notam"
+                    title="@L["Live_NotamChipTitle", _view.Notam.Count]"
                     @onclick="ApriNotam"><span class="nc-bang" aria-hidden="true">!</span> NOTAM</button>
         }
         @* TWR, GND, DEL: la riga delle chip non c'è (lo scalo è uno), quindi il campo di ricerca sta qui, accanto alla
@@ -324,13 +325,19 @@
             }
         }
 
-        @* I NOTAM, in fondo e sotto ogni ramo della pagina (scalo scelto, ricerca, settore): li apre la chip della
-           testata. È lo STESSO riquadro dei documenti, coi NOTAM già aperti — chi ha premuto la chip li vuole
-           leggere, non aprirli uno per uno. *@
-        @if (_notamAperti && _view.Notam.Count > 0)
-        {
-            <div id="live-notam" class="live-notam"><NotamBox Avvisi="_view.Notam" Aperti="true" /></div>
-        }
+        @* La sezione NOTAM: SEMPRE in fondo alla pagina, sotto ogni ramo (scalo scelto, ricerca, settore), e
+           CHIUSA (committente, 12 ottobre 2026) — la apre chi legge, o la chip della testata. Dentro c'è lo STESSO
+           riquadro dei documenti, coi NOTAM già aperti: chi ha aperto la sezione li vuole leggere, non aprirli uno
+           per uno.
+           ⚠️ Senza `data-persist`, a differenza delle altre: deve nascere chiusa a ogni apertura della pagina,
+           non ricordarsi com'era. E senza `open` nel markup: lo stato è del browser, e un tick live non lo tocca. *@
+        <details class="acc-item live-notam" id="live-notam">
+            <summary><span><Icon Name="megaphone" /> NOTAM</span><span class="tag-state tag-covered">@_view.Notam.Count</span></summary>
+            <div class="body">
+                @if (_view.Notam.Count > 0) { <NotamBox Avvisi="_view.Notam" Aperti="true" /> }
+                else { <p class="muted" style="font-size:13px;margin:0">@L["Live_NoNotam"]</p> }
+            </div>
+        </details>
     }
 </div>
 
@@ -382,18 +389,13 @@
     /// <summary>Enti limitrofi aperti da telefono (da schermo largo si vedono sempre).</summary>
     private bool _chainOpen;
 
-    /// <summary>Il pannello dei NOTAM in fondo alla pagina: aperto dalla chip della testata. Stato del circuito, come
-    /// <see cref="_chainOpen"/>: sopravvive ai tick live, non a un ricarico.</summary>
-    private bool _notamAperti;
-
-    /// <summary>Vero per un solo render dopo l'apertura: il pannello sta in fondo, e chi ha premuto la chip in
-    /// testata non deve andarselo a cercare.</summary>
-    private bool _scorriAiNotam;
-
-    private void ApriNotam()
+    /// <summary>La chip della testata: apre la sezione NOTAM in fondo e ci porta la finestra. Lo fa il browser
+    /// (<c>vipiApriDettaglio</c>): la sezione è un <c>details</c> nativo, e il suo stato non è del circuito.</summary>
+    private async Task ApriNotam()
     {
-        _notamAperti = !_notamAperti;
-        _scorriAiNotam = _notamAperti;
+        try { await JS.InvokeVoidAsync("vipiApriDettaglio", "live-notam"); }
+        catch (JSDisconnectedException) { /* circuito chiuso */ }
+        catch (OperationCanceledException) { /* circuito che si sta chiudendo */ }
     }
     private OnlineAtcSnapshot _snapshot = OnlineAtcSnapshot.Empty;
 
@@ -621,15 +623,6 @@
                 await CaricaPostazioniAsync();
                 StateHasChanged();
             }
-        }
-
-        // Appena aperto il pannello dei NOTAM, lo si porta in vista: DOPO il render, perché prima non esiste.
-        if (_scorriAiNotam)
-        {
-            _scorriAiNotam = false;
-            try { await JS.InvokeVoidAsync("vipiScrollToId", "live-notam"); }
-            catch (JSDisconnectedException) { /* circuito chiuso */ }
-            catch (OperationCanceledException) { /* circuito che si sta chiudendo */ }
         }
 
         // A ogni render: i <details> ricreati a un tick live perderebbero la persistenza del collasso.

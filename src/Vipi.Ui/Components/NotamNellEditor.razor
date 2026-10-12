@@ -1,0 +1,60 @@
+@* La sezione NOTAM vista DALL'EDITOR (committente, 12 ottobre 2026: «la sezione NOTAM deve essere visibile
+   nell'editor, come lo è la sezione METAR/TAF»; carta docs/feature/2026-10-12-notam-sui-documenti.md §8).
+
+   Come il meteo, non è una sezione che si compila: arriva da fuori e si mostra da sé. Chi redige deve però
+   SAPERE che in quel punto del documento pubblico c'è — e vedere che cosa c'è adesso — senza aprire la pagina
+   pubblica. Per questo c'è SEMPRE, anche quando NOTAM non ce ne sono: lo dice.
+
+   ⚠️ Scope PROPRIO, come gli editor che lo montano: legge dal database nel suo ciclo di vita, mentre l'editor
+   intorno sta facendo le sue letture. Sul DbContext del circuito sarebbero due operazioni insieme — «A second
+   operation was started on this context instance». E la base è `ScopeProprioCheAspetta`, con la lettura dentro
+   `InFilaAsync`: chi lascia l'editor mentre la lettura è in volo non deve portarsi via il DbContext sotto la
+   query (la terza porta: vedi TerzaPortaTests).
+
+   ⚠️ Rilegge solo quando cambia `Chiave`: un editor si ridisegna a ogni tasto, e l'ambito è un oggetto nuovo a
+   ogni render. La chiave la scrive chi monta il componente (lo scalo, l'ACC, i membri del blocco). *@
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.Content
+@inherits ScopeProprioCheAspetta
+@inject IStringLocalizer<SharedResource> L
+
+<div class="notam-ed">
+    <div class="callout info">
+        <span class="cic"><Icon Name="megaphone" Size="18" /></span>
+        <div>
+            <p class="ct">@L["NotamEd_Title"]</p>
+            @L["NotamEd_Body"]
+            @if (_letti && _avvisi.Count == 0)
+            {
+                <p class="notam-ed-none">@L["NotamEd_None"]</p>
+            }
+        </div>
+    </div>
+    <NotamBox Avvisi="_avvisi" />
+</div>
+
+@code {
+    /// <summary>Quali NOTAM riguardano questo punto del documento: lo stesso ambito della pagina pubblica.</summary>
+    [Parameter, EditorRequired] public AmbitoNotam Ambito { get; set; } = AmbitoNotam.Nessuno;
+
+    /// <summary>Che cosa identifica l'ambito («apt:LIRN», «acc:LIMM», «blk:LIMJ_WS0_APP»): si rilegge solo se cambia.</summary>
+    [Parameter, EditorRequired] public string Chiave { get; set; } = "";
+
+    private IReadOnlyList<NotamAvviso> _avvisi = Array.Empty<NotamAvviso>();
+    private string? _chiaveLetta;
+    private bool _letti;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.Equals(_chiaveLetta, Chiave, StringComparison.Ordinal)) return;
+        _chiaveLetta = Chiave;
+
+        // Il lettore non lancia mai: senza archivio l'editor mostra la nota e nessun NOTAM, non un errore.
+        var ambito = Ambito;
+        await InFilaAsync(async () =>
+        {
+            _avvisi = await ScopedServices.GetRequiredService<INotamDeiDocumenti>().PerAsync(ambito);
+            _letti = true;
+        });
+    }
+}
