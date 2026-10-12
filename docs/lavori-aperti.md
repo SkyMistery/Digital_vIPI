@@ -43,7 +43,14 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A153 — 1.61.0 PRONTA, da caricare: i NOTAM della divisione sui documenti pubblici (S103) e nella vista live (S104) (12 ottobre 2026)
+### ✅ A153 — 1.61.0 ONLINE: i NOTAM della divisione sui documenti pubblici (S103) e nella vista live (S104) (12 ottobre 2026)
+
+✅ Online dal 12 ottobre 2026: il committente conferma il timbro 1.61.0 e `Schema 0` (la tabella `Notams` c'è). Da
+fuori, da anonimo, alle 17:02Z: `/` 302, porta «Entra con IVAO», Ricerca 401, API aeroporti e archivio ATC 401, la
+vIPI ACC di Milano 401 (dietro login), `vipi-theme.css?v=c3d2feac` (quello del pacchetto), `/vsop/health` e
+`/vsop/health/ready` Healthy. **Non guardati da qui**, perché stanno dietro il login: la riga «NOTAM» in Sorgenti
+(dice se il giro verso IVAO riesce dalla produzione), il riquadro sui documenti e la chip nella vista live; lo
+scarico della diagnostica.
 
 MINOR con **una migrazione additiva** (`NotamDellaDivisione`: `CREATE TABLE Notams` e un indice univoco su `IvaoId`;
 guardato l'`Up` nei due provider, nessun `Drop`, `Rename`, `Alter` o `Sql`), su 1.60.0 (`3ea92b2`). Timbro
