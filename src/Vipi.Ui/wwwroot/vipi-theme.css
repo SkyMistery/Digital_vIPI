@@ -1561,6 +1561,9 @@
 :where(.vipi-root) .notam-chev{color:var(--ink-mid);transition:transform .15s}
 :where(.vipi-root) .notam[open] .notam-chev{transform:rotate(90deg)}
 :where(.vipi-root) .notam-num{font-family:var(--font-mono);font-size:14px;white-space:nowrap}
+/* La pastiglia resta larga quanto la sua parola: sul telefono sta nella colonna elastica e si allargava a tutta
+   la riga (visto a schermo a 375px). */
+:where(.vipi-root) .notam>summary .pill{justify-self:start}
 :where(.vipi-root) .notam .k{font-family:var(--font-head);font-weight:600;font-size:11px;color:var(--ink-mid);text-transform:uppercase;letter-spacing:.04em}
 :where(.vipi-root) .notam-val{font-size:13px;justify-self:end;text-align:right}
 :where(.vipi-root) .notam-val time{font-family:var(--font-mono);font-weight:600;background:var(--tint-yellow);color:var(--warn-ink-strong);padding:2px 7px;border-radius:5px;white-space:nowrap}

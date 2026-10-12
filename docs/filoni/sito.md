@@ -6,11 +6,18 @@
 
 ## Dove siamo — 12 ottobre 2026
 
+> 🧪 **In corso — S103, i NOTAM della divisione in testa ai documenti pubblici** (chiesto dal committente il 12
+> ottobre). Costruito e provato a schermo su `sito/lavori`; **non è in `main`**. Porta **una migrazione additiva**
+> (`NotamDellaDivisione`: la tabella `Notams`) e tocca codice comune (`Vipi.Domain`, `Vipi.Application`). Aspetta
+> due cose dal committente: **guardarlo**, e dire **la regola delle vLOA** (lui ha detto «tutti i documenti» ma le
+> vLOA non le ha nominate; il filone ha scelto «riguarda tutte e due le parti»). Carta
+> `docs/feature/2026-10-12-notam-sui-documenti.md`; voce S103, in fondo.
+>
 > Tutto quel che è elencato qui sotto, fino a **S102**, è in `main` e **online**. Ultima: **1.60.0** (S102,
 > l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato timbro
 > e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo stesso
 > giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna migrazione
-> — §A151). Niente da fondere, niente in corso. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
+> — §A151). Da fondere, quando il committente l'ha visto: S103 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
 > sul ramo `fix/tabellone` (aspetta la chiave del booking; carta
 > `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
 >
@@ -2387,6 +2394,39 @@
     confermato dal committente il 10-ott sera. **Non fatto, e da fare solo se il validatore lo chiede**: riempire
     le righe scritte prima del carico col centro di una sessione più recente dello stesso callsign (sarebbe un
     dato dedotto in mezzo a dati osservati); un filtro lato server «vicino a un punto».
+- 🧪 **S103** i **NOTAM della divisione** in testa ai documenti pubblici (12-ott, chiesto dal committente: «in cima
+  ai documenti, in una sezione ben visibile, i NOTAM che interessano quell'aeroporto, fino a quando non scadono»).
+  Su `sito/lavori`, **non in `main`**. ▶ Aspetta che il committente lo guardi e dica la regola delle vLOA.
+  - **La sorgente** (provata il 12-ott): `GET /v2/divisions/IT/notams/all`, pubblico, 4 voci, 3 KB. Tiene gli
+    **scaduti** in elenco; `?now=true` sulla divisione è rotto (dà i 166 NOTAM del mondo); i nostri non cominciano
+    tutti per `IT-`; i «PERM» scadono il 31 dicembre. Carta `docs/feature/2026-10-12-notam-sui-documenti.md` §1.
+  - **Le regole del committente**: aeroporto, vSOP e APP → il NOTAM riguarda lo scalo; vIPI ACC → riguarda l'ACC, o
+    lo scalo di un APP che contiene; da **7 giorni prima** dell'inizio, con dal/al in evidenza; solo nella versione
+    pubblica. **Scelta del filone, da confermare**: vLOA → riguarda **tutte e due** le parti (`AmbitoNotam`).
+  - **Com'è fatto**: un giro ogni 30 minuti (`NotamImportHostedService`, `Ivao:NotamImportMinutes`) copia l'elenco
+    nella tabella `Notams`; **chi è in vigore lo decide la data, alla lettura** (`NotamInVista`), così un NOTAM
+    sparisce al suo minuto anche con la sorgente muta. Riquadro `NotamBox`, un componente per le cinque sedi; riga
+    «NOTAM» in Sorgenti, senza spunta.
+  - **Migrazione sì**: `NotamDellaDivisione`, SQLite e MySQL, una `CREATE TABLE` (additiva). **Codice comune**:
+    `Vipi.Domain` (`Notam`), `Vipi.Application` (`INotamSource`, `INotamStore`, `AmbitoNotam`, `NotamInVista`,
+    `NotamImportUseCase`, `ImportCategories.Notam`, `ImportAnagrafica.Notam`), `Vipi.Infrastructure`
+    (`IvaoNotamClient`, `EfNotamStore`, `IvaoOptions`, `ImportSchedule`). Niente `deploy/`.
+  - **Test**: App 3309 → 3338, Infra 2198 → 2225, Ui 2014 → 2039 (net8 e net10). Suite intera verde, build
+    Release `--no-incremental` pulita. Presi dai test: lo spazio mancante fra le due date («00:00Zal 1 gen») e la
+    cadenza che la pagina Sorgenti non conosceva.
+  - **Prova dal vivo**: host su database nuovo, sorgente **finta locale** che serve il corpo **vero** scaricato
+    quel giorno più un NOTAM inventato «in arrivo» (nessuna chiamata a IVAO). Le 153 migrazioni SQLite passano da zero; il
+    giro parte a 50 secondi dall'avvio, **senza token**, e scrive 5 righe; Sorgenti dice «NOTAM · aggiornata ·
+    prossimo fra 30 minuti». Seminati `LIRR` e `LIRQ`, pubblicata la vIPI di LIRQ dall'editor: sulla pagina
+    pubblica il riquadro c'è, coi due NOTAM (uno in vigore, uno in arrivo), in italiano e in inglese, tema chiaro
+    e scuro, a 375px; in **bozza** e in **anteprima di release** non c'è. Dal telefono è uscito un ritocco (la
+    pastiglia si allargava a tutta la riga).
+  - ⚠️ **Non visto a schermo**: il riquadro su **vIPI ACC, APP, vSOP e vLOA** (nel database nuovo non c'erano quei
+    documenti: le quattro pagine rispondono, ma senza documento non lo disegnano — lì reggono i presidi sul
+    sorgente e le regole provate in `NotamSuiDocumentiTests`); la **stampa**; la migrazione su **MariaDB**; il
+    giro contro **IVAO vero** dentro l'host (il corpo vero sì, la chiamata vera l'ho fatta a mano con `curl`).
+  - **Non fatto** (carta §4): i NOTAM degli altri scali serviti da un APP; l'area disegnata; un tasto «rileggi
+    adesso»; un avviso a chi redige quando un NOTAM cambia un documento.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 12-ott: tutto fuso e online fino a S102 (1.60.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo

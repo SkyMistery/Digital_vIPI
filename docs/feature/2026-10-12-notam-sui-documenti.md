@@ -1,6 +1,6 @@
 # I NOTAM della divisione in testa ai documenti pubblici — carta (12 ottobre 2026)
 
-> **Stato: 🧪 COSTRUITA il 12 ottobre 2026** sul ramo `fix/notam-documenti` (filone Sito, S103); aspetta la prova
+> **Stato: 🧪 COSTRUITA e provata a schermo il 12 ottobre 2026** sul ramo `fix/notam-documenti` (filone Sito, S103); aspetta la prova
 > del committente e la sua parola sulle vLOA (§3). **Migrazione additiva** `NotamDellaDivisione` (SQLite e MySQL: una
 > tabella nuova, `Notams`). Nessun `deploy/`.
 > Richiesta del committente: «aggiungere, in cima ai documenti, in una sezione ben visibile, i NOTAM che interessano
