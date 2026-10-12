@@ -1,7 +1,7 @@
 # I NOTAM della divisione in testa ai documenti pubblici — carta (12 ottobre 2026)
 
-> **Stato: 🧪 COSTRUITA e provata a schermo il 12 ottobre 2026** (filone Sito: S103 i documenti, S104 la vista live);
-> aspetta che il committente la guardi. **Migrazione additiva** `NotamDellaDivisione` (SQLite e MySQL: una tabella
+> **Stato: ✅ ESEGUITA il 12 ottobre 2026** (filone Sito: S103 i documenti, S104 la vista live); fusa in `main` lo stesso giorno,
+> pacchetto 1.61.0 (§A153), non ancora online. **Migrazione additiva** `NotamDellaDivisione` (SQLite e MySQL: una tabella
 > nuova, `Notams`). Nessun `deploy/`.
 > Richiesta del committente: «aggiungere, in cima ai documenti, in una sezione ben visibile, i NOTAM che interessano
 > quell'aeroporto e che rimangano lì (nella versione pubblica del documento) fino a quando non scadono»; e poi, lo

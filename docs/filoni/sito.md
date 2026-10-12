@@ -6,20 +6,21 @@
 
 ## Dove siamo — 12 ottobre 2026
 
-> 🧪 **In corso — S103 e S104, i NOTAM della divisione**: in testa ai documenti pubblici (S103) e nella vista live,
-> con una chip rossa «! NOTAM» che apre il riquadro in fondo (S104). Chiesti dal committente il 12 ottobre.
-> Costruiti e provati a schermo su `sito/lavori`, anche su una copia del database di sviluppo; **non sono in
-> `main`**. Portano **una migrazione additiva** (`NotamDellaDivisione`: la tabella `Notams`) e toccano codice
-> comune (`Vipi.Domain`, `Vipi.Application`). Le **vLOA restano fuori** per decisione del committente («non
-> prevediamo nulla per ora»), e nella vista live la chip c'è **solo a documento pubblico** (anche questo deciso da
-> lui). Aspettano che il committente **li guardi**: di scelte del filone aperte non ne restano. Carta
+> 📦 **Fusi in `main`, pacchetto 1.61.0 pronto e NON ancora online — S103 e S104, i NOTAM della divisione**: in
+> testa ai documenti pubblici (S103) e nella vista live, con una chip rossa «! NOTAM» che apre il riquadro in fondo
+> (S104). Chiesti dal committente il 12 ottobre, fusi dal Master lo stesso giorno (`main` @ `24fe0b0e`, §A153).
+> Portano **una migrazione additiva** (`NotamDellaDivisione`: la tabella `Notams`). Le **vLOA restano fuori** e
+> nella vista live la chip c'è **solo a documento pubblico**: tutte e due decisioni del committente. Sul publish
+> il Master ha visto il giro contro IVAO vero («4 creati»), il riquadro sulla vIPI ACC di Milano e la chip su
+> `LIMM_WS2_CTR`. **Resta, quando è online**: guardare la riga «NOTAM» in Sorgenti e uno scalo con un NOTAM; mai
+> visti da nessuno la chip che compare da sola a un tick live e la vista live da telefono. Carta
 > `docs/feature/2026-10-12-notam-sui-documenti.md`; voci S103 e S104, in fondo.
 >
 > Tutto quel che è elencato qui sotto, fino a **S102**, è in `main` e **online**. Ultima: **1.60.0** (S102,
 > l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato timbro
 > e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo stesso
 > giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna migrazione
-> — §A151). Da fondere, quando il committente li ha visti: S103 e S104 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
+> — §A151). Niente da fondere, niente in corso. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
 > sul ramo `fix/tabellone` (aspetta la chiave del booking; carta
 > `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
 >
@@ -2398,7 +2399,7 @@
     dato dedotto in mezzo a dati osservati); un filtro lato server «vicino a un punto».
 - 🧪 **S103** i **NOTAM della divisione** in testa ai documenti pubblici (12-ott, chiesto dal committente: «in cima
   ai documenti, in una sezione ben visibile, i NOTAM che interessano quell'aeroporto, fino a quando non scadono»).
-  Su `sito/lavori`, **non in `main`**. ▶ Aspetta che il committente lo guardi. ⚠️ Le righe qui sotto raccontano la
+  **Fuso in `main`** il 12-ott, nel pacchetto **1.61.0** (§A153), non ancora online. ⚠️ Le righe qui sotto raccontano la
   prima stesura; **le vLOA sono poi state tolte** e il resto è stato visto a schermo: vedi «Seguito» in fondo alla voce.
   - **La sorgente** (provata il 12-ott): `GET /v2/divisions/IT/notams/all`, pubblico, 4 voci, 3 KB. Tiene gli
     **scaduti** in elenco; `?now=true` sulla divisione è rotto (dà i 166 NOTAM del mondo); i nostri non cominciano
@@ -2441,8 +2442,8 @@
     l'host (la sorgente della prova era finta e locale, col corpo vero).
 - 🧪 **S104** i NOTAM **nella vista live** (12-ott, chiesto dal committente: «dato che sono importanti, finiscano
   anche nella pagina live»: una chip rossa «! NOTAM» fra il nome della postazione e il campo di ricerca, che si
-  vede se un NOTAM riguarda l'ente e apre sotto una sezione dove leggerlo come nel documento). Su `sito/lavori`,
-  **non in `main`**. ▶ Aspetta che il committente lo guardi.
+  vede se un NOTAM riguarda l'ente e apre sotto una sezione dove leggerlo come nel documento). **Fuso in `main`**
+  il 12-ott, nel pacchetto **1.61.0** (§A153), non ancora online.
   - **La regola**: la stessa del documento di riferimento, dichiarata dal descrittore del tipo di postazione
     (`LiveView.AmbitoNotam`): TWR/GND/DEL → lo scalo; APP → lo scalo del suo ente; CTR → l'ACC più gli scali degli
     APP della sua vIPI (gli stessi blocchi che usa la pagina del documento).
