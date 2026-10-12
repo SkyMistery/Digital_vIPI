@@ -2760,6 +2760,15 @@
 :where(.vipi-root) .struct .bench .bench-diff{font-weight:700;color:var(--warn-ink-strong);background:var(--tint-yellow)}
 :where(.vipi-root) .struct .bench .bench-warn{color:var(--danger-ink);font-weight:700}
 :where(.vipi-root) .struct .bench .cfg-table .uni{font-size:14px;white-space:nowrap}
+/* Una riga di tasti per gruppo, col nome davanti a larghezza fissa: le righe si leggono in colonna. */
+:where(.vipi-root) .struct .bench .bench-grp{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:4px 0}
+:where(.vipi-root) .struct .bench .bench-grp-name{min-width:220px;font-size:13px;font-weight:600;color:var(--ink-soft)}
+:where(.vipi-root) .struct .bench .bench-filter{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+/* «A sé stesso» non è un passaggio: resta in elenco, ma non deve farsi guardare. */
+:where(.vipi-root) .struct .bench .bench-self td{color:var(--ink-soft)}
+:where(.vipi-root) .struct .bench .bench-state{white-space:nowrap;font-size:12.5px}
+/* Un callsign spezzato a metà (LIMM_WS2_C / TR) non si legge: `.struct .res-table td` va a capo ovunque. */
+:where(.vipi-root) .struct .bench .res-table td.bench-cs{white-space:nowrap;word-break:normal}
 :where(.vipi-root) .fb-seq-tag{font-size:10.5px;color:var(--ink-soft);font-family:var(--font-head);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 /* Un PASSO della catena: il numero a sinistra, e a destra tutte le voci di quel passo incolonnate. Sono i
    settori che a quel punto si dividono il traffico per fascia: stanno alla stessa altezza perche' non si

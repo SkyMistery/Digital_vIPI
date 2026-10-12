@@ -12,12 +12,56 @@ namespace Vipi.Application.Content;
 /// <param name="Area">Vero per un settore d'area (CTR), falso per un avvicinamento.</param>
 public sealed record BenchSector(string Callsign, string Name, bool Area);
 
-/// <summary>Una configurazione possibile dichiarata in Struttura: uno scenario pronto.</summary>
-/// <param name="Block">Il gruppo che la porta (il codice dell'ACC per i settori d'area, o il nome dell'ente).</param>
-public sealed record BenchPreset(string Name, string Block, IReadOnlyList<string> Open);
+/// <summary>Una configurazione possibile dichiarata in Struttura: uno scenario pronto <b>per il suo gruppo</b>.</summary>
+public sealed record BenchPreset(string Name, IReadOnlyList<string> Open);
 
-/// <summary>Quel che il banco di un ACC mette sul tavolo: i settori da aprire e gli scenari già scritti.</summary>
-public sealed record BenchScope(string AccCode, IReadOnlyList<BenchSector> Sectors, IReadOnlyList<BenchPreset> Presets);
+/// <summary>
+/// Un gruppo di settori con le sue configurazioni possibili: i settori d'area dell'ACC, oppure un ente con le sue
+/// posizioni.
+/// <para>⚠️ Una configurazione parla dei <b>soli settori del suo gruppo</b>: sceglierla non apre e non chiude
+/// nient'altro (<see cref="CoverageBench.ConPreset"/>). Fino al 12 ottobre 2026 i tasti erano un elenco solo, e
+/// «Conf 2» dell'area chiudeva tutti gli avvicinamenti — uno scenario che non esiste.</para>
+/// </summary>
+/// <param name="Name">Il codice dell'ACC per i settori d'area, o il nome dell'ente.</param>
+/// <param name="Sectors">I settori del gruppo che il banco sa aprire e chiudere.</param>
+public sealed record BenchPresetGroup(string Name, IReadOnlyList<string> Sectors, IReadOnlyList<BenchPreset> Presets);
+
+/// <summary>Quel che il banco di un ACC mette sul tavolo: i settori da aprire e gli scenari già scritti, gruppo per gruppo.</summary>
+public sealed record BenchScope(string AccCode, IReadOnlyList<BenchSector> Sectors, IReadOnlyList<BenchPresetGroup> Groups);
+
+/// <summary>Che cosa succede a una clausola in uno scenario.</summary>
+public enum BenchTransferState
+{
+    /// <summary>Cede chi è scritto, riceve chi è scritto.</summary>
+    AsWritten,
+
+    /// <summary>Uno dei due capi è chiuso e al suo posto c'è un altro: il trasferimento avviene, fra altre mani.</summary>
+    PickedUp,
+
+    /// <summary>Chi cede e chi riceve sono la stessa postazione: quel cielo lo tiene già lei, non c'è niente da passare.
+    /// È lo stesso caso che la vista live toglie dall'elenco (<c>LiveStationParts.IsRealHandoff</c>).</summary>
+    ToItself,
+
+    /// <summary>Nessuno cede (il cielo del cedente non lo tiene nessuno) o nessuno riceve (UNICOM).</summary>
+    Uncovered,
+}
+
+/// <summary>
+/// Una riga della tabella dei trasferimenti del banco: <b>una clausola</b>, con chi la cede e chi la riceve davvero.
+/// </summary>
+/// <param name="Airports">Gli scali della sezione; vuoto per i sorvoli.</param>
+/// <param name="Sender">Chi cede davvero; <c>null</c> = nessuno.</param>
+/// <param name="Points">I punti della clausola che hanno questo esito, nell'ordine in cui sono scritti.</param>
+/// <param name="Receiver">Chi riceve davvero; <c>null</c> = nessuno (UNICOM).</param>
+/// <param name="ByCoverage">A decidere il ricevente è stato un rinvio «copertura del punto».</param>
+public sealed record BenchTransferRow(
+    TransferFlowKind Kind, IReadOnlyList<string> Airports, string WrittenSender, string? Sender,
+    IReadOnlyList<string> Points, string Level, string? Condition, string WrittenReceiver, string? Receiver,
+    bool ByCoverage, BenchTransferState State)
+{
+    public bool SenderDiffers => !string.Equals(Sender, WrittenSender, StringComparison.OrdinalIgnoreCase);
+    public bool ReceiverDiffers => !string.Equals(Receiver, WrittenReceiver, StringComparison.OrdinalIgnoreCase);
+}
 
 /// <summary>Un settore (o una sua fascia) tenuto da qualcuno.</summary>
 /// <param name="Band">La fascia, scritta, quando il settore è diviso fra più mani; null se è tenuto per intero.</param>
@@ -119,6 +163,91 @@ public static class CoverageBench
         if (nessuno.Count > 0) gruppi.Add(new BenchGroup(null, Outside: false, nessuno));
         return gruppi;
     }
+
+    /// <summary>
+    /// Gli aperti dopo aver scelto una configurazione di un gruppo: cambiano i <b>soli settori di quel gruppo</b>,
+    /// gli altri restano come sono.
+    /// <para>È quel che fa di uno scenario una <b>combinazione</b> — una configurazione dell'area, una per ogni
+    /// ente — invece che un tasto solo: con i 12 avvicinamenti di Milano chiusi, 51 degli 80 punti che «cambiavano
+    /// mano» erano WS2 ed ES2 che passavano il traffico a sé stessi.</para>
+    /// </summary>
+    public static IReadOnlyList<string> ConPreset(
+        IEnumerable<string> aperti, IEnumerable<string> delGruppo, IEnumerable<string> delPreset)
+    {
+        var oic = StringComparer.OrdinalIgnoreCase;
+        var gruppo = new HashSet<string>(delGruppo, oic);
+        var esito = aperti.Where(a => !gruppo.Contains(a)).Distinct(oic).ToList();
+        // ⚠️ Un nome che non è più del gruppo (un elenco rimasto indietro rispetto alla struttura) non si apre:
+        // aprirlo da qui vorrebbe dire toccare un settore di cui questa configurazione non può parlare.
+        foreach (var p in delPreset)
+            if (gruppo.Contains(p) && !esito.Contains(p, oic)) esito.Add(p);
+        return esito;
+    }
+
+    /// <summary>
+    /// I flussi risolti, <b>una riga per clausola</b>: sette STAR scritte nella stessa clausola sono una riga, e lo
+    /// stesso vale per gli scali di una sezione che ne nomina più d'uno. La clausola si divide solo quando i suoi
+    /// punti hanno esiti diversi (due cedenti, o un rinvio che risponde punto per punto).
+    ///
+    /// <para><b>Perché non per punto.</b> Il banco mostrava un punto per riga e, di suo, i soli punti che
+    /// cambiavano mano: una clausola che funziona come è scritta non compariva, e chi cercava «il trasferimento
+    /// WS2 → Genova» non lo trovava (committente, 12 ottobre 2026). Ora compaiono tutte, con l'esito.</para>
+    /// </summary>
+    public static IReadOnlyList<BenchTransferRow> Trasferimenti(IReadOnlyList<ResolvedTransferFlow> flussi)
+    {
+        var oic = StringComparer.OrdinalIgnoreCase;
+        var righe = new List<(BenchTransferRow Riga, List<string> Scali, List<string> Punti)>();
+        var perChiave = new Dictionary<(int Clausola, TransferFlowKind Kind, string Scritto, string Cede, string A,
+            string Riceve, string Livello, bool Rinvio), int>();
+        var senzaClausola = 0;
+
+        foreach (var f in flussi)
+        {
+            var cede = f.OwnerOnline ? f.ResolvedOwnerCallsign : null;
+            foreach (var p in f.Points)
+            {
+                var scritto = p.Point.NextSectorCallsign ?? "";
+                var riceve = p.IsOnline ? p.ResolvedHandler : null;
+                var rinvio = p.Coverage is { Outcome: CoverageFallbackOutcome.Resolved } c
+                             && oic.Equals(c.TargetCallsign, p.ResolvedHandler);
+                var livello = p.Point.LevelText ?? "";
+
+                // Un punto senza clausola (righe di prima degli accordi) non si riunisce con niente.
+                var chiave = (p.Point.ClauseId ?? --senzaClausola, f.Flow.Kind, f.Flow.OwningSectorCallsign.ToUpperInvariant(),
+                    (cede ?? "").ToUpperInvariant(), scritto.ToUpperInvariant(), (riceve ?? "").ToUpperInvariant(),
+                    livello, rinvio);
+                if (!perChiave.TryGetValue(chiave, out var i))
+                {
+                    perChiave[chiave] = i = righe.Count;
+                    var scali = new List<string>();
+                    var punti = new List<string>();
+                    righe.Add((new BenchTransferRow(f.Flow.Kind, scali, f.Flow.OwningSectorCallsign, cede, punti, livello,
+                        string.IsNullOrWhiteSpace(p.Point.ConditionDisplay) ? null : p.Point.ConditionDisplay,
+                        scritto, riceve, rinvio, StatoDi(f.Flow.OwningSectorCallsign, cede, scritto, riceve)), scali, punti));
+                }
+
+                var (_, scaliDellaRiga, puntiDellaRiga) = righe[i];
+                if (f.Flow.AirportIcao is { Length: > 0 } icao && !scaliDellaRiga.Contains(icao, oic)) scaliDellaRiga.Add(icao);
+                if (!puntiDellaRiga.Contains(p.Point.Cop, oic)) puntiDellaRiga.Add(p.Point.Cop);
+            }
+        }
+
+        return righe.Select(r => r.Riga).ToList();
+    }
+
+    /// <summary>
+    /// L'esito di una clausola. ⚠️ L'ordine dei controlli conta: «nessuno» viene prima di tutto, e «a sé stesso»
+    /// prima di «come scritto» — che non può più essere, se i due capi sono la stessa postazione.
+    /// </summary>
+    private static BenchTransferState StatoDi(string cedenteScritto, string? cede, string riceventeScritto, string? riceve)
+    {
+        var oic = StringComparer.OrdinalIgnoreCase;
+        if (cede is null || riceve is null) return BenchTransferState.Uncovered;
+        if (oic.Equals(cede, riceve)) return BenchTransferState.ToItself;
+        return oic.Equals(cede, cedenteScritto) && oic.Equals(riceve, riceventeScritto)
+            ? BenchTransferState.AsWritten
+            : BenchTransferState.PickedUp;
+    }
 }
 
 /// <inheritdoc cref="ICoverageBenchService"/>
@@ -149,13 +278,21 @@ public sealed class CoverageBenchService : ICoverageBenchService
         // Gli scenari pronti sono le configurazioni possibili dichiarate in Struttura, gruppo per gruppo. Fino
         // all'8 ottobre 2026 venivano dalla vIPI pubblicata, che ne era l'unica copia (carta
         // 2026-10-08-configurazioni-possibili): ora il documento le legge dallo stesso posto.
-        var presets = new List<BenchPreset>();
+        // ⚠️ Restano divise PER GRUPPO: una configurazione dell'area non dice niente degli avvicinamenti, e
+        // viceversa. Un gruppo senza configurazioni non esce: i suoi settori si aprono e si chiudono a mano.
+        var delBanco = new HashSet<string>(settori.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
+        var gruppi = new List<BenchPresetGroup>();
         foreach (var gruppo in await _configurazioni.GruppiAsync(accCode, ct))
-            foreach (var cfg in gruppo.Configurazioni)
-                if (cfg.Open.Count > 0)
-                    presets.Add(new BenchPreset(cfg.Name, gruppo.Nome, cfg.OpenCallsigns.ToList()));
+        {
+            var presets = gruppo.Configurazioni.Where(cfg => cfg.Open.Count > 0)
+                .Select(cfg => new BenchPreset(cfg.Name, cfg.OpenCallsigns.ToList())).ToList();
+            if (presets.Count == 0) continue;
+            // Un ente può avere per posizione una torre, che il banco non apre e non chiude: resta fuori.
+            gruppi.Add(new BenchPresetGroup(gruppo.Nome,
+                gruppo.Settori.Select(s => s.Callsign).Where(delBanco.Contains).ToList(), presets));
+        }
 
-        return new BenchScope(accCode.Trim().ToUpperInvariant(), settori, presets);
+        return new BenchScope(accCode.Trim().ToUpperInvariant(), settori, gruppi);
     }
 
     public async Task<BenchOutcome> SimulateAsync(string accCode, IReadOnlyCollection<string> open,

@@ -7,7 +7,7 @@
 ## Dove siamo — 12 ottobre 2026
 
 > **In una riga**: i NOTAM della divisione sono **online** (1.61.0: S103 sui documenti pubblici, S104 nella vista
-> live); sopra ci sono **tre ritocchi pronti da fondere e non ancora in `main`** (S105, S106). Niente in corso.
+> live); sopra ci sono **tre lavori pronti da fondere e non ancora in `main`** (S105, S106, S107). Niente in corso.
 > Tutto il lavoro è del 12 ottobre; la carta è una sola, `docs/feature/2026-10-12-notam-sui-documenti.md`.
 >
 > 🟢 **Pronti da fondere — S105 e S106** (`sito/lavori`; il Master è avvisato con sha e conteggi). Chiesti dal
@@ -24,6 +24,11 @@
 > - **Mai visti**: lo scorrimento animato in un browser vero (misurata la sola posizione d'arrivo), la vista live
 >   da telefono, l'editor della vIPI di ACC mentre si aggiunge un APP a un blocco.
 >
+> 🟢 **Pronto da fondere — S107** (12 ottobre notte, sopra S105 e S106; nessuna migrazione): il **banco di prova**
+> di Struttura mostra **tutte** le clausole degli accordi, una riga ciascuna con l'esito, e i tasti delle
+> configurazioni sono **divisi per gruppo** — uno scenario è una configurazione dell'area più una per ente. Prima un
+> trasferimento che funziona come è scritto non compariva. Carta `docs/feature/2026-10-04-copertura-unica.md` §11.
+>
 > ✅ **Online in 1.61.0 dal 12 ottobre — S103 e S104** (§A153; il committente ha confermato timbro e Schema 0, cioè
 > la migrazione `NotamDellaDivisione` — la tabella `Notams` — è passata sul database vero). S103: i NOTAM in testa
 > ai documenti pubblici (aeroporto, vSOP, APP, vIPI di ACC); S104: nella vista live la chip rossa «! NOTAM».
@@ -39,7 +44,7 @@
 > (S102, l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato
 > timbro e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo
 > stesso giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna
-> migrazione — §A151). Da fondere: S105 e S106 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
+> migrazione — §A151). Da fondere: S105, S106 e S107 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
 > sul ramo `fix/tabellone` (aspetta la chiave del booking; carta
 > `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
 >
@@ -2542,8 +2547,35 @@
   - ⚠️ **Non visto**: lo scorrimento in un browser vero (nel pannello della chat l'animazione parte solo quando il
     pannello disegna: la posizione d'arrivo è giusta, il movimento non l'ho potuto guardare); la vista live da
     telefono; l'editor della vIPI di ACC mentre si aggiunge un APP a un blocco.
+- 🟢 **S107** il **banco di prova** mostra tutti i trasferimenti, e le configurazioni si compongono (12-ott notte,
+  committente con davanti l'accordo `LIMM_WS2_CTR ⇄ LIMJ_WS0_APP`: «vorrei rivedere il meccanismo del test bench
+  per testare la copertura: ci sono dei trasferimenti che non compaiono»). Su `sito/lavori`, **non in `main`**.
+  ▶ Pronto da fondere.
+  - **La causa**: il motore la clausola la risolveva sempre (sulla copia di produzione di quella sera: Milano, 103
+    punti in 40 flussi, i sette di Genova in ogni scenario). La nascondeva il banco: di suo mostrava i **soli punti
+    che cambiano mano**; i tasti delle configurazioni erano **un elenco solo** e ognuno chiudeva il resto dell'ACC
+    («Conf 2» dell'area chiudeva i dodici avvicinamenti: 80 punti «cambiati», di cui 51 `WS2 → WS2`); e «a sé
+    stesso» contava come cambio.
+  - **Fatto** (i tre punti proposti e accettati: «vai, proviamo con i tre suggerimenti tuoi»): i tasti sono **una
+    riga per gruppo** e cambiano i soli settori del loro gruppo (`CoverageBench.ConPreset`); la tabella ha **una
+    riga per clausola, tutte**, con l'esito — come scritto, raccolto da un altro, a sé stesso, non coperto
+    (`CoverageBench.Trasferimenti`); il filtro è a tre tasti col conto (Tutte di suo, Cambiano mano, Non coperte);
+    «a sé stesso» è attenuato e fuori dai cambi, con la regola della vista live. Il riquadro nasce aperto.
+  - **Non toccato**: il motore (`TransferResolution`, `FallbackChain`, `ResolveForAccAsync`) e la partenza da
+    «tutti aperti», decisa l'8 ottobre — avevo chiesto se partire dalla prima configurazione di ogni gruppo, non ha
+    risposto, resta com'era. A Milano «tutti aperti» è «non previsto» per Milano West: il banco lo dice subito.
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (`CoverageBench.cs`:
+    `BenchScope.Groups` al posto di `Presets`, `BenchPresetGroup`, `BenchTransferRow`, `BenchTransferState`).
+    Toccati `vipi-theme.css`, i due `.resx`, la Guida (Struttura, nelle due lingue).
+  - **Test**: App 3347 → 3357, Ui 2065 → 2068. Cinque mutazioni, una alla volta, fanno cadere ciascuna almeno un
+    test. Suite intere verdi.
+  - **Prova**: sulla copia di produzione del 12 ottobre (MariaDB privato nello scratchpad) il motore dalle stesse
+    porte del banco — Milano 46 clausole, la tabella degli scenari è nella carta; **a schermo** sugli stessi dati,
+    con le sole tabelle di struttura e accordi travasate in un SQLite di prova, in italiano e in inglese. Carta
+    `docs/feature/2026-10-04-copertura-unica.md` §11.
+  - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina sulla copia MariaDB col login vero.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 12-ott sera: tutto fuso e online fino a S104 (1.61.0); **S105 e S106** pronti da fondere su `sito/lavori`;
+  Al 12-ott notte: tutto fuso e online fino a S104 (1.61.0); **S105, S106 e S107** pronti da fondere su `sito/lavori`;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
   `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
