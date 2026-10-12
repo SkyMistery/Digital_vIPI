@@ -4,20 +4,35 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 9 ottobre 2026
+## Dove siamo — 12 ottobre 2026
 
-> Tutto quel che è elencato qui sotto, fino a **S99**, è in `main` e **online** (ultima: **1.58.0**, S99, online
-> dall'8 ottobre sera: il committente ha confermato timbro e Schema 0, una migrazione additiva — §A150). Niente da
-> fondere, niente in corso. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi, sul ramo
-> `fix/tabellone` (aspetta la chiave del booking; carta `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7,
-> che sta su quel ramo).
+> Tutto quel che è elencato qui sotto, fino a **S102**, è in `main` e **online**. Ultima: **1.60.0** (S102,
+> l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato timbro
+> e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo stesso
+> giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna migrazione
+> — §A151). Niente da fondere, niente in corso. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
+> sul ramo `fix/tabellone` (aspetta la chiave del booking; carta
+> `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
+>
+> **Resta al committente, da S102**: la **prova del validatore dei tour** sull'archivio, con la sua chiave
+> (`GET /vsop/api/v1/atc/sessions`: i campi nuovi `latitude` e `longitude`). Cosa dirgli sta nella voce S102, in
+> fondo, e nella carta `docs/feature/2026-08-28-archivio-atc-mondiale.md` §11: è un punto e non l'area, e manca
+> sulle righe scritte prima del carico. Se segnala qualcosa è il seguito di S102.
+>
+> **S100 e S101 sono chiusi**: il committente li ha guardati online il 10 ottobre e ha confermato le scelte del
+> filone («sì, vanno bene») — chi non ha punti o quota resta in fondo nei due versi, il verso si legge «A→Z / Z→A»
+> e «1→9 / 9→1», il motto è in minuscolo. Mai toccati, se un giorno li chiede: i glifi della barra degli accordi
+> (⊞ ⊟ ¶ ▤ ☰) e dei pannelli.
 >
 > **Gesti che restano al committente, da S99** (carta `docs/feature/2026-10-08-configurazioni-possibili.md`; voce
 > S99, in fondo): in Struttura, «Configurazioni possibili», **accendere «L'elenco è completo» sui settori d'area di
 > LIMM** — è quello che toglie il falso «Trasferimento senza ripiego» e riporta `/vsop/health` a Healthy: il
-> travaso ha portato gli elenchi dei documenti **tutti spenti**, e finché restano spenti niente è cambiato. Poi: a
+> travaso ha portato gli elenchi dei documenti **tutti spenti**, e finché restano spenti niente è cambiato.
+> ⚠️ Al 10 ottobre sera `/vsop/health` da fuori **è tornato Healthy** (letto dal Master alle 20:37Z): se è perché
+> l'elenco di LIMM è stato acceso, il committente non l'ha ancora detto — chiederlo prima di darlo per fatto. Poi: a
 > Torino–Genova aggiungere {WN0} e {WS0} da soli e solo dopo accendere; Roma e Venezia lasciarle spente o
-> riscriverle (sulle sessioni vere stanno all'elenco il 2% del tempo); Padova e Bologna si possono accendere.
+> riscriverle (sulle sessioni vere stanno all'elenco il 2% del tempo); Padova e Bologna si possono accendere. Su
+> questi e sulla ripubblicazione delle vIPI ACC il committente il 10 ottobre ha detto «poi provo».
 >
 > Prove che restano al committente, da S97: **ripubblicare le vIPI ACC** (la tabella delle configurazioni segue il
 > motore unico: sulla copia di produzione cambiava solo LIMM «Conf 2 b»); guardare i **3 avvisi «quota di un altro
@@ -2274,8 +2289,9 @@
       in un elenco; i settori fra cui un gruppo sceglie, calcolati in due posti; i gruppi APP senza membri, che non
       si travasano. E una cosa da ricordare prima di provare la sonda dei trasferimenti dal vivo: **il sectorfile
       va lasciato acceso**, perché le coordinate dei punti vengono da lì.
-- 🧪 **S100** accordi: l'ordinamento col verso, in albero e in elenco, e i tasti di riga che non escono più dal
-  bordo (9-ott, chiesto dal committente con due foto). Sul ramo `sito/lavori`; aspetta il suo sguardo.
+- ✅ **S100** accordi: l'ordinamento col verso, in albero e in elenco, e i tasti di riga che non escono più dal
+  bordo (9-ott, chiesto dal committente con due foto). Fuso e **online in 1.59.0** dal 10-ott (§A151); il
+  committente l'ha guardato online e ha confermato le scelte del filone («sì, vanno bene»).
   - **Cosa chiedeva**: (1) il selettore d'ordine della sezione «adeguato alla UI» — era il `select` nudo del
     browser, bianco nel tema scuro accanto a tasti che non lo sono; (2) ordinare **anche in elenco**: per
     mittente, ricevente, tipo, punti, quota; (3) **ogni** ordinamento anche al contrario (A→Z e Z→A), in tutte
@@ -2326,8 +2342,8 @@
     segue. Nessun errore in console. Non provato: la stampa, e il comando con la tastiera sola.
   - **Non toccato, e si vede**: i glifi della barra (⊞ ⊟ ¶ ▤ ☰) e quelli nei pannelli (⇢ ⧉ nel cruscotto, «⛓
     Condividi…»); la Guida dice ancora «il tasto ⛓» — il segno ora è la catena del set, stessa cosa disegnata.
-- 🧪 **S101** il motto della divisione nel piè di pagina (9-ott, chiesto dal committente: «it takes time»). Sul
-  ramo `sito/lavori`, sopra S100; aspetta il suo sguardo.
+- ✅ **S101** il motto della divisione nel piè di pagina (9-ott, chiesto dal committente: «it takes time»). Fuso e
+  **online in 1.59.0** dal 10-ott (§A151); visto online e confermato, minuscolo compreso.
   - **Dove**: sotto il marchio «ATC Services · IVAO Italy», prima delle due frasi di descrizione, su una riga
     sua — corsivo, un filo più piccolo del marchio, nello stesso bianco. Gli avevo proposto quel posto (è
     l'unico punto del piè di pagina in cui parla la divisione; la striscia in fondo, con diritti e crediti, è
@@ -2342,8 +2358,9 @@
   - **Prova a schermo** (app locale su un database **nuovo e vuoto**, Edge guidato; `/services`): tema scuro e
     chiaro, italiano e inglese, 1366 e 390px. Una riga sola, a 4px dal marchio e 12 dalla prosa, nessuno
     scorrimento laterale; il piè di pagina cresce di una riga (350px a 1366).
-- 🧪 **S102** archivio ATC: ogni riga dice **dove** sta la postazione (10-ott, chiesto dal committente con la
-  segnalazione del validatore dei tour). Sul ramo `sito/lavori`; aspetta la prova del validatore.
+- ✅ **S102** archivio ATC: ogni riga dice **dove** sta la postazione (10-ott, chiesto dal committente con la
+  segnalazione del validatore dei tour). Fuso e **online in 1.60.0** dal 10-ott sera (§A152). ▶ Resta la **prova
+  del validatore** sull'archivio, con la sua chiave.
   - **La segnalazione**: «Il nuovo archivio non dà lat/lon […] niente centerpoint, che qui è quello che fa
     funzionare il prefiltro a 400 NM e i cerchi di TWR/GND/DEL senza chiamare IVAO». Senza, il validatore
     avrebbe scaricato da IVAO la forma di ogni postazione aperta nella finestra del volo (~100 per tre ore), e
@@ -2365,14 +2382,19 @@
   - **Prova dal vivo**: host su database nuovo, poller sul whazzup vero, 89 righe aperte su 90 col centro.
     Non provata la migrazione su una copia del database vero né su MariaDB. La pagina staff
     `/services/stats/world` non mostra il centro (non chiesto).
+  - **Com'è finita**: il Master l'ha riprovato sul publish col whazzup vero (96 sessioni aperte su 96 col centro)
+    e la migrazione, che qui non era stata provata sui dati veri, **è passata in produzione** (MariaDB): Schema 0
+    confermato dal committente il 10-ott sera. **Non fatto, e da fare solo se il validatore lo chiede**: riempire
+    le righe scritte prima del carico col centro di una sessione più recente dello stesso callsign (sarebbe un
+    dato dedotto in mezzo a dati osservati); un filtro lato server «vicino a un punto».
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 9-ott: tutto fuso e online fino a S99 (1.58.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
+  Al 12-ott: tutto fuso e online fino a S102 (1.60.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
   IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il primo evento vero in `/services/event`; in
   produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63); le vIPI ACC da ripubblicare e i tre
   avvisi «quota di un altro settore» da guardare (S97); gli elenchi delle configurazioni da dichiarare completi
-  in Struttura, LIMM per primo (S99). Resta al committente LIRE/LIBG (aspetta il
+  in Struttura, LIMM per primo (S99); la prova del validatore dei tour sull'archivio ATC (S102). Resta al committente LIRE/LIBG (aspetta il
   SOD). ⚠️ In Spazi aerei i gesti che spostano agganci rifanno i confinanti: 15–25 s (S63), da guardare se diventa un
   fastidio. Futuro: vIPI ACC legata all'ACC
   (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).

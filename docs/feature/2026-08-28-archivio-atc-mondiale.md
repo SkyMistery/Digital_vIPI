@@ -275,5 +275,16 @@ filo: i nomi dei campi e `null`). **Dal vivo**, 10 ottobre: host su un database 
 applicata dall'avvio), tre giri del poller sul whazzup vero senza errori, poi
 `GET /vsop/api/v1/atc/sessions?open=true`: 90 righe, **89 col centro** — `EGPH_GND 55.95 −3.3725`,
 `LFLL_APP 45.72556 5.08111`, `LIML_TWR 45.44944 9.27833` — e l'una senza è la connessione che il whazzup
-stesso dava con `lastTrack: null`. ⚠️ **Non provata** la migrazione su una copia del database vero né su
-MariaDB: sono due `AddColumn` nullable, ma non è stato visto.
+stesso dava con `lastTrack: null`. ⚠️ **Non provata**, prima della consegna, la migrazione su una copia del
+database vero né su MariaDB: sono due `AddColumn` nullable, ma non era stato visto.
+
+**Com'è finita.** Fuso e **online con la 1.60.0** dal 10 ottobre sera (§A152 di `docs/lavori-aperti.md`). Il
+Master l'ha riprovato sul publish col whazzup vero (96 sessioni aperte su 96 col centro), e la migrazione **è
+passata sul database vero** (MariaDB): Schema 0 confermato dal committente. Resta la prova del validatore dei
+tour, con la sua chiave.
+
+**Per rifare la prova dal vivo senza copiare nessun database**: avviare l'host da PowerShell su un file
+SQLite **nuovo** (l'avvio applica tutte le migrazioni) con `VipiAuth__Enabled=false`,
+`ASPNETCORE_URLS=http://localhost:5199`, `Sectorfile__RawBaseUrl=" "`, `Api__RichiediChiave=false` (l'archivio
+risponde senza chiave) e **senza** `Ivao__BaseUrl`: il whazzup è pubblico e il poller lo legge davvero, un giro
+al minuto. Poi `curl.exe "http://localhost:5199/vsop/api/v1/atc/sessions?open=true&limit=500"`.
