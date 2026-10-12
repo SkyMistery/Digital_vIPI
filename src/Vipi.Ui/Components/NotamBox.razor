@@ -1,5 +1,5 @@
 @* I NOTAM che riguardano il documento, in testa alla sua versione PUBBLICA (carta
-   docs/feature/2026-10-12-notam-sui-documenti.md). Un componente solo per le cinque sedi: la pagina decide
+   docs/feature/2026-10-12-notam-sui-documenti.md) e, su richiesta, in fondo alla vista live. Un componente solo per tutte le sedi: la pagina decide
    QUALI NOTAM (la regola è in AmbitoNotam) e li legge nel suo ciclo di vita; qui si disegna e basta —
    nessuna lettura dal database durante il render.
 
@@ -24,7 +24,7 @@
         </div>
         @foreach (var n in Avvisi)
         {
-            <details class="notam @(n.InArrivo ? "soon" : "now")">
+            <details class="notam @(n.InArrivo ? "soon" : "now")" open="@Aperti" @key="n.IvaoId">
                 <summary>
                     <span class="notam-chev" aria-hidden="true">▸</span>
                     <b class="notam-num">@n.Nome</b>
@@ -62,6 +62,12 @@
 @code {
     /// <summary>I NOTAM da mostrare, già scelti e ordinati. Vuoto = il riquadro non c'è.</summary>
     [Parameter, EditorRequired] public IReadOnlyList<NotamAvviso> Avvisi { get; set; } = Array.Empty<NotamAvviso>();
+
+    /// <summary>
+    /// Vero = ogni NOTAM nasce col testo aperto. Nei documenti no (in cima deve restare una riga per NOTAM); nella
+    /// vista live sì, perché lì il riquadro compare solo dopo che qualcuno ha premuto la chip per leggerli.
+    /// </summary>
+    [Parameter] public bool Aperti { get; set; }
 
     private static string Iso(DateTime utc) => utc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 

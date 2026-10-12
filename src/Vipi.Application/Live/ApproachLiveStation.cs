@@ -55,6 +55,10 @@ public sealed class ApproachLiveStation : ILiveStationKind
             Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ct),
             Aor = _parts.Aor(ctx.Topology, ctx.Callsign, ctx.Online),
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
+            // I NOTAM di un APP sono quelli del suo scalo, col documento proprio o dentro la vIPI di ACC («per gli APP
+            // nelle vIPI di ACC vale quello detto per gli APP»). Lo scalo è la testa del codice dell'ENTE se c'è, come
+            // nella pagina del documento: a Pratica di Mare chi è su LIRE_TWR vede i NOTAM di LIRE.
+            AmbitoNotam = AmbitoNotam.Aeroporti(new[] { AmbitoNotam.AeroportoDi(chiave) }),
         };
 
         if (standalone)

@@ -10,7 +10,7 @@ namespace Vipi.Ui.Tests;
 
 /// <summary>
 /// Il riquadro dei NOTAM in testa ai documenti pubblici (carta
-/// <c>docs/feature/2026-10-12-notam-sui-documenti.md</c>): che cosa disegna, e che le cinque sedi lo montano solo
+/// <c>docs/feature/2026-10-12-notam-sui-documenti.md</c>): che cosa disegna, e che le quattro sedi dei documenti lo montano solo
 /// sulla vista pubblica.
 /// </summary>
 public class NotamBoxTests : TestContext
@@ -153,6 +153,22 @@ public class NotamBoxTests : TestContext
         Assert.Contains("&lt;script&gt;", c.Markup);
     }
 
+    /// <summary>Nella vista live il riquadro compare dopo che qualcuno ha premuto la chip per leggere: i NOTAM
+    /// nascono aperti. Nei documenti no.</summary>
+    [Fact]
+    public void Su_richiesta_i_NOTAM_nascono_aperti()
+    {
+        var prima = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("it");
+            var c = RenderComponent<NotamBox>(p => p.Add(x => x.Avvisi, new[] { Firenze() }).Add(x => x.Aperti, true));
+
+            Assert.True(c.Find("details.notam").HasAttribute("open"));
+        }
+        finally { CultureInfo.CurrentUICulture = prima; }
+    }
+
     [Fact]
     public void Un_NOTAM_per_scheda_e_il_conto_in_testa()
     {
@@ -163,7 +179,7 @@ public class NotamBoxTests : TestContext
         Assert.Equal(new[] { "IT-B002/25", "IT-A009/26" }, c.FindAll(".notam-num").Select(e => e.TextContent));
     }
 
-    // ---- Le cinque sedi --------------------------------------------------------------------------------
+    // ---- Le sedi dei documenti --------------------------------------------------------------------------------
 
     /// <summary>
     /// Guardie sul sorgente, e di proposito: una pagina che smette di chiedere i NOTAM non dà nessun errore —
@@ -176,7 +192,6 @@ public class NotamBoxTests : TestContext
     [InlineData("Pages/MilDocumentPage.razor", "AmbitoNotam.Aeroporti(ScaliPerNotam.Di(_icao, _altri))")]
     [InlineData("Pages/AppnPage.razor", "AmbitoNotam.Aeroporti(ScaliPerNotam.Di(_app, _altri))")]
     [InlineData("Pages/AccVipiPage.razor", "AmbitoNotam.Acc(_acc.Code,")]
-    [InlineData("Pages/VloaListPage.razor", "AmbitoNotam.Accordo(_acc.Code, _foreign)")]
     public void Ogni_sede_chiede_i_NOTAM_solo_sulla_vista_pubblica(string relativo, string ambito)
     {
         var righe = Leggi(relativo).Split('\n');
@@ -187,24 +202,31 @@ public class NotamBoxTests : TestContext
         Assert.Matches(new Regex(@"_notam = .*[Mm]ode\.Kind == PreviewKind\.Public"), righe[indice - 1]);
     }
 
-    /// <summary>Il riquadro è montato una volta per sede. La vLOA lo disegna nel suo componente, sotto la
-    /// testata che è lì dentro, e la pagina glielo passa.</summary>
+    /// <summary>Il riquadro è montato una volta per sede.</summary>
     [Theory]
     [InlineData("Pages/AeroportoPage.razor", "<NotamBox Avvisi=\"_notam\" />")]
     [InlineData("Pages/MilDocumentPage.razor", "<NotamBox Avvisi=\"_notam\" />")]
     [InlineData("Pages/AppnPage.razor", "<NotamBox Avvisi=\"_notam\" />")]
     [InlineData("Pages/AccVipiPage.razor", "<NotamBox Avvisi=\"_notam\" />")]
-    [InlineData("Components/VloaDocumentView.razor", "<NotamBox Avvisi=\"Notam\" />")]
-    [InlineData("Pages/VloaListPage.razor", "Notam=\"_notam\"")]
+    [InlineData("Pages/LivePage.razor", "<NotamBox Avvisi=\"_view.Notam\" Aperti=\"true\" />")]
     public void Ogni_sede_monta_il_riquadro_una_volta(string relativo, string montaggio) =>
         Assert.Single(Regex.Matches(Leggi(relativo), Regex.Escape(montaggio)));
+
+    /// <summary>
+    /// Le vLOA NO, ed è una decisione del committente (12 ottobre 2026: «per le vLOA non prevediamo nulla per
+    /// ora»), non una sede dimenticata: chi le aggiunge «per completezza» lo trova scritto qui.
+    /// </summary>
+    [Theory]
+    [InlineData("Pages/VloaListPage.razor")]
+    [InlineData("Components/VloaDocumentView.razor")]
+    public void Le_vLOA_non_mostrano_NOTAM(string relativo) =>
+        Assert.DoesNotContain("Notam", Leggi(relativo), StringComparison.Ordinal);
 
     /// <summary>Il riquadro sta SOPRA il corpo del documento: «in cima», come chiesto.</summary>
     [Theory]
     [InlineData("Pages/AeroportoPage.razor", "<AirportDocumentBody ")]
     [InlineData("Pages/AppnPage.razor", "<AppDocumentBody ")]
     [InlineData("Pages/AccVipiPage.razor", "@foreach (var block in _data.Blocks)")]
-    [InlineData("Components/VloaDocumentView.razor", "<DocumentSectionsView ")]
     public void Il_riquadro_sta_sopra_il_corpo(string relativo, string corpo)
     {
         var sorgente = Leggi(relativo);
@@ -213,12 +235,43 @@ public class NotamBoxTests : TestContext
         Assert.InRange(riquadro, 0, sorgente.IndexOf(corpo, StringComparison.Ordinal));
     }
 
-    private static string Leggi(string relativo)
+    // ---- La vista live --------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Ogni tipo di postazione dichiara il SUO ambito, con la stessa regola del suo documento: lo scalo per le
+    /// postazioni d'aeroporto e per gli APP, l'ACC (più gli scali dei suoi APP) per i settori d'area. Guardia sul
+    /// sorgente: un descrittore che se ne dimentica non dà errore — la sua postazione resta senza chip, come
+    /// quando NOTAM non ce ne sono.
+    /// </summary>
+    [Theory]
+    [InlineData("AirportLiveStation.cs", "AmbitoNotam = icao is null ? AmbitoNotam.Nessuno : AmbitoNotam.Aeroporti(new[] { icao })")]
+    [InlineData("ApproachLiveStation.cs", "AmbitoNotam = AmbitoNotam.Aeroporti(new[] { AmbitoNotam.AeroportoDi(chiave) })")]
+    [InlineData("AreaLiveStation.cs", "AmbitoNotam = AmbitoNotam.Acc(ctx.Acc.Code,")]
+    public void Ogni_tipo_di_postazione_dichiara_il_suo_ambito(string file, string dichiarazione) =>
+        Assert.Single(Regex.Matches(LeggiApplication("Live/" + file), Regex.Escape(dichiarazione)));
+
+    /// <summary>I NOTAM li legge il servizio, una volta, con l'ambito dichiarato dal descrittore: la pagina riceve
+    /// il modello già pronto e non interroga l'archivio per conto suo.</summary>
+    [Fact]
+    public void La_vista_live_riceve_i_NOTAM_dal_modello()
+    {
+        Assert.Single(Regex.Matches(LeggiApplication("Live/LiveViewService.cs"),
+            Regex.Escape("Notam = await _notam.PerAsync(view.AmbitoNotam, ct)")));
+        Assert.DoesNotContain("INotamDeiDocumenti", Leggi("Pages/LivePage.razor"), StringComparison.Ordinal);
+    }
+
+    private static string LeggiApplication(string relativo) =>
+        File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(PercorsoUi("x")))!,
+            "Vipi.Application", relativo.Replace('/', Path.DirectorySeparatorChar)));
+
+    private static string Leggi(string relativo) => File.ReadAllText(PercorsoUi(relativo));
+
+    private static string PercorsoUi(string relativo)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "src", "Vipi.Ui")))
             dir = dir.Parent;
         var radice = dir?.FullName ?? throw new DirectoryNotFoundException("Radice del repo non trovata.");
-        return File.ReadAllText(Path.Combine(radice, "src", "Vipi.Ui", relativo.Replace('/', Path.DirectorySeparatorChar)));
+        return Path.Combine(radice, "src", "Vipi.Ui", relativo.Replace('/', Path.DirectorySeparatorChar));
     }
 }

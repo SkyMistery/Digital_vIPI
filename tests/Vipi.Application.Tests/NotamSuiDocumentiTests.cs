@@ -137,26 +137,9 @@ public class NotamSuiDocumentiTests
         Assert.Equal(new[] { "IT-B002/25" }, con);
     }
 
-    /// <summary>
-    /// vLOA: tutte e due le parti (scelta del filone). I tre accordi che IT-A003/25 modifica davvero —
-    /// LIMM-LIPE, LIPP-LIPE, LIRR-LIPE — lo vedono; un accordo di Milano con chi non c'entra, no.
-    /// </summary>
-    [Theory]
-    [InlineData("LIMM", "LIPE", true)]
-    [InlineData("LIPP", "LIPE", true)]
-    [InlineData("LIRR", "LIPE", true)]
-    [InlineData("LIPE", "LIMM", true)]      // il verso dell'accordo non conta
-    [InlineData("LIMM", "LSAS", false)]
-    [InlineData("LIMM", "LIMJ", false)]     // quello è di Genova
-    public void L_accordo_vuole_tutte_e_due_le_parti(string casa, string vicino, bool atteso) =>
-        Assert.Equal(atteso, Nomi(AmbitoNotam.Accordo(casa, vicino)).Contains("IT-A003/25"));
-
+    /// <summary>L'ambito di chi non ha né scalo né ACC da dichiarare (una postazione senza ICAO): niente.</summary>
     [Fact]
-    public void Un_accordo_senza_una_parte_non_vede_niente()
-    {
-        Assert.Empty(Nomi(AmbitoNotam.Accordo("LIMM", "")));
-        Assert.Empty(Nomi(AmbitoNotam.Accordo(null, "LIPE")));
-    }
+    public void L_ambito_vuoto_non_vede_niente() => Assert.Empty(Nomi(AmbitoNotam.Nessuno));
 
     [Theory]
     [InlineData("LIRQ_NN0_APP", "LIRQ")]

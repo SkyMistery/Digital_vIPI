@@ -54,6 +54,7 @@ public sealed class AirportLiveStation : ILiveStationKind
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
             ExtendedDoc = icao is null ? null : new LiveDocRef(edizione ?? ReleaseTargetType.Airport, ctx.Acc.Code, icao),
             NoDocument = edizione is null,
+            AmbitoNotam = icao is null ? AmbitoNotam.Nessuno : AmbitoNotam.Aeroporti(new[] { icao }),
         };
     }
 

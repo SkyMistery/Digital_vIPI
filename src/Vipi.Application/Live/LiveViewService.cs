@@ -47,14 +47,17 @@ public sealed class LiveViewService : ILiveViewService
     private readonly IStructureEditingRepository _sectors;
     private readonly IAtcUnitRepository? _enti;
     private readonly Vipi.Application.EventKits.AccountEventoRegistro? _account;
+    private readonly INotamDeiDocumenti? _notam;
 
     public LiveViewService(IStationResolver stations, IStructureEditingService structure,
         ITopologyProvider topology, IOnlineAtcProvider online, ICurrentUserProvider users,
         ILiveStationRegistry registry, IEditAuthorizationService authz,
         IStructureEditingRepository sectors, IAtcUnitRepository? enti = null,
-        Vipi.Application.EventKits.AccountEventoRegistro? account = null)
+        Vipi.Application.EventKits.AccountEventoRegistro? account = null,
+        INotamDeiDocumenti? notam = null)
     {
         _account = account;
+        _notam = notam;
         _enti = enti;
         _stations = stations;
         _structure = structure;
@@ -113,7 +116,15 @@ public sealed class LiveViewService : ILiveViewService
         var kind = _registry.For(ctx);
         if (kind is null) return LiveViewResult.NotFound(callsign);
 
-        return new LiveViewResult(await kind.BuildAsync(ctx, ct), callsign);
+        var view = await kind.BuildAsync(ctx, ct);
+
+        // I NOTAM della postazione, DOPO la composizione e in un posto solo: il descrittore dichiara l'ambito, qui si
+        // legge l'archivio. ⚠️ In fila con le altre letture e non in parallelo: il DbContext è quello del circuito.
+        // Il lettore non lancia mai — senza NOTAM la vista esce senza chip, non in errore.
+        if (_notam is not null)
+            view = view with { Notam = await _notam.PerAsync(view.AmbitoNotam, ct) };
+
+        return new LiveViewResult(view, callsign);
     }
 
     public async Task<IReadOnlyList<LiveStationOption>> ListStationsAsync(CancellationToken ct = default)

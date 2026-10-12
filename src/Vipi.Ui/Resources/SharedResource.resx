@@ -328,6 +328,7 @@
   <data name="Live_CoveredBy" xml:space="preserve"><value>Enti limitrofi:</value></data>
   <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, a chi trasferisci il traffico</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>chiuso</value></data>
+  <data name="Live_NotamChipTitle" xml:space="preserve"><value>NOTAM che riguardano questa postazione: {0}. Premi per leggerli</value></data>
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>gerarchia non configurata per questa posizione — nessun ente sopra risulta impostato in Struttura</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>Documento esteso ↗</value></data>
@@ -1676,7 +1677,7 @@
   <data name="Preview_DraftTitle" xml:space="preserve"><value>Anteprima bozza live</value></data>
   <data name="Preview_DraftBody" xml:space="preserve"><value>Stai vedendo lo stato editoriale &lt;b&gt;corrente&lt;/b&gt; (non la versione pubblica). I dati derivati (frequenze/coordinamenti/AoR) usano i cataloghi correnti.</value></data>
   <data name="Preview_OpenPublic" xml:space="preserve"><value>Apri la versione pubblica →</value></data>
-  <data name="Notam_Sub" xml:space="preserve"><value>Avvisi della divisione che riguardano questo documento · orari UTC</value></data>
+  <data name="Notam_Sub" xml:space="preserve"><value>Avvisi della divisione, in vigore o in arrivo · orari UTC</value></data>
   <data name="Notam_Active" xml:space="preserve"><value>In vigore</value></data>
   <data name="Notam_Upcoming" xml:space="preserve"><value>In arrivo</value></data>
   <data name="Notam_From" xml:space="preserve"><value>dal</value></data>

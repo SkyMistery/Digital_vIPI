@@ -20,41 +20,36 @@ public sealed record NotamAvviso(
     IReadOnlyList<string> Centri);
 
 /// <summary>
-/// <b>Quali NOTAM riguardano un documento.</b> La regola è del committente (12 ottobre 2026) e sta qui, in un posto
-/// solo, perché le sedi che la chiedono sono cinque:
+/// <b>Quali NOTAM riguardano un documento</b> — o la postazione che su quel documento lavora. La regola è del
+/// committente (12 ottobre 2026) e sta qui, in un posto solo, perché a chiederla sono quattro pagine di documento
+/// e la vista live:
 /// <list type="bullet">
 /// <item>vIPI d'aeroporto, vSOP militare, APP: il NOTAM <b>riguarda l'aeroporto</b>;</item>
 /// <item>vIPI di ACC: il NOTAM <b>riguarda l'ACC</b>, oppure l'aeroporto di uno degli APP che quella vIPI contiene
 /// («per gli APP nelle vIPI di ACC vale quello detto per gli APP»);</item>
-/// <item>vLOA: il NOTAM riguarda <b>tutte e due</b> le parti dell'accordo. ⚠️ Questa è una scelta del filone, non
-/// del committente (che le vLOA non le ha nominate): con «una delle due» un NOTAM su Bologna comparirebbe su
-/// ogni accordo di Milano, Padova e Roma.</item>
+/// <item>vLOA: <b>niente</b> («per le vLOA non prevediamo nulla per ora»). Non c'è un ambito per gli accordi, e
+/// non è una dimenticanza.</item>
 /// </list>
 /// </summary>
 public sealed class AmbitoNotam
 {
     private readonly HashSet<string> _aeroporti;
     private readonly string? _acc;
-    private readonly (string A, string B)? _parti;
 
-    private AmbitoNotam(IEnumerable<string?> aeroporti, string? acc, (string, string)? parti)
+    private AmbitoNotam(IEnumerable<string?> aeroporti, string? acc)
     {
         _aeroporti = aeroporti.Select(Pulito).Where(c => c.Length > 0).ToHashSet(StringComparer.Ordinal);
         _acc = Pulito(acc) is { Length: > 0 } a ? a : null;
-        _parti = parti;
     }
 
+    /// <summary>Non riguarda nessun NOTAM: è l'ambito di chi non ha né uno scalo né un ACC da dichiarare.</summary>
+    public static AmbitoNotam Nessuno { get; } = new(Array.Empty<string?>(), null);
+
     /// <summary>I documenti di uno scalo (o di più scali, in una pagina unita).</summary>
-    public static AmbitoNotam Aeroporti(IEnumerable<string?> icao) => new(icao, null, null);
+    public static AmbitoNotam Aeroporti(IEnumerable<string?> icao) => new(icao, null);
 
     /// <summary>La vIPI di un ACC, con gli scali degli APP che contiene.</summary>
-    public static AmbitoNotam Acc(string acc, IEnumerable<string?> aeroportiDegliApp) => new(aeroportiDegliApp, acc, null);
-
-    /// <summary>Una vLOA: le due parti, ciascuna ACC o scalo.</summary>
-    public static AmbitoNotam Accordo(string? casa, string? vicino) =>
-        Pulito(casa) is { Length: > 0 } a && Pulito(vicino) is { Length: > 0 } b
-            ? new(Array.Empty<string>(), null, (a, b))
-            : new(Array.Empty<string>(), null, null);
+    public static AmbitoNotam Acc(string acc, IEnumerable<string?> aeroportiDegliApp) => new(aeroportiDegliApp, acc);
 
     /// <summary>
     /// Lo scalo di un callsign o del codice di un ente: la testa prima del primo <c>_</c>
@@ -62,13 +57,8 @@ public sealed class AmbitoNotam
     /// </summary>
     public static string AeroportoDi(string? callsign) => Pulito((callsign ?? "").Split('_', 2)[0]);
 
-    public bool Riguarda(IReadOnlyCollection<string> aeroporti, IReadOnlyCollection<string> centri)
-    {
-        if (_parti is { } p) return Tocca(p.A) && Tocca(p.B);
-        return (_acc is not null && centri.Contains(_acc)) || aeroporti.Any(_aeroporti.Contains);
-
-        bool Tocca(string codice) => centri.Contains(codice) || aeroporti.Contains(codice);
-    }
+    public bool Riguarda(IReadOnlyCollection<string> aeroporti, IReadOnlyCollection<string> centri) =>
+        (_acc is not null && centri.Contains(_acc)) || aeroporti.Any(_aeroporti.Contains);
 
     private static string Pulito(string? codice) => (codice ?? "").Trim().ToUpperInvariant();
 }

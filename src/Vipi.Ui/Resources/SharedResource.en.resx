@@ -328,6 +328,7 @@
   <data name="Live_CoveredBy" xml:space="preserve"><value>Adjacent units:</value></data>
   <data name="Live_CoveredByHint" xml:space="preserve"><value>— who absorbs you if you close, who you hand traffic to</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>closed</value></data>
+  <data name="Live_NotamChipTitle" xml:space="preserve"><value>NOTAMs affecting this station: {0}. Press to read them</value></data>
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>hierarchy not configured for this position — no parent unit is set in Structure</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>Extended document ↗</value></data>
@@ -1671,7 +1672,7 @@
   <data name="Preview_DraftTitle" xml:space="preserve"><value>Live draft preview</value></data>
   <data name="Preview_DraftBody" xml:space="preserve"><value>You are viewing the &lt;b&gt;current&lt;/b&gt; editorial state (not the public version). Derived data (frequencies/coordinations/AoR) use the current catalogs.</value></data>
   <data name="Preview_OpenPublic" xml:space="preserve"><value>Open the public version →</value></data>
-  <data name="Notam_Sub" xml:space="preserve"><value>Division notices affecting this document · times in UTC</value></data>
+  <data name="Notam_Sub" xml:space="preserve"><value>Division notices, in force or upcoming · times in UTC</value></data>
   <data name="Notam_Active" xml:space="preserve"><value>In force</value></data>
   <data name="Notam_Upcoming" xml:space="preserve"><value>Upcoming</value></data>
   <data name="Notam_From" xml:space="preserve"><value>from</value></data>

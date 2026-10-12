@@ -6,18 +6,20 @@
 
 ## Dove siamo — 12 ottobre 2026
 
-> 🧪 **In corso — S103, i NOTAM della divisione in testa ai documenti pubblici** (chiesto dal committente il 12
-> ottobre). Costruito e provato a schermo su `sito/lavori`; **non è in `main`**. Porta **una migrazione additiva**
-> (`NotamDellaDivisione`: la tabella `Notams`) e tocca codice comune (`Vipi.Domain`, `Vipi.Application`). Aspetta
-> due cose dal committente: **guardarlo**, e dire **la regola delle vLOA** (lui ha detto «tutti i documenti» ma le
-> vLOA non le ha nominate; il filone ha scelto «riguarda tutte e due le parti»). Carta
-> `docs/feature/2026-10-12-notam-sui-documenti.md`; voce S103, in fondo.
+> 🧪 **In corso — S103 e S104, i NOTAM della divisione**: in testa ai documenti pubblici (S103) e nella vista live,
+> con una chip rossa «! NOTAM» che apre il riquadro in fondo (S104). Chiesti dal committente il 12 ottobre.
+> Costruiti e provati a schermo su `sito/lavori`, anche su una copia del database di sviluppo; **non sono in
+> `main`**. Portano **una migrazione additiva** (`NotamDellaDivisione`: la tabella `Notams`) e toccano codice
+> comune (`Vipi.Domain`, `Vipi.Application`). Le **vLOA restano fuori** per decisione del committente («non
+> prevediamo nulla per ora»). Aspettano che il committente **li guardi**, e una sua parola su **una scelta del
+> filone**: nella vista live la chip c'è anche se il documento della postazione non è pubblicato. Carta
+> `docs/feature/2026-10-12-notam-sui-documenti.md`; voci S103 e S104, in fondo.
 >
 > Tutto quel che è elencato qui sotto, fino a **S102**, è in `main` e **online**. Ultima: **1.60.0** (S102,
 > l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato timbro
 > e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo stesso
 > giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna migrazione
-> — §A151). Da fondere, quando il committente l'ha visto: S103 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
+> — §A151). Da fondere, quando il committente li ha visti: S103 e S104 (qui sopra). **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
 > sul ramo `fix/tabellone` (aspetta la chiave del booking; carta
 > `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
 >
@@ -2396,7 +2398,8 @@
     dato dedotto in mezzo a dati osservati); un filtro lato server «vicino a un punto».
 - 🧪 **S103** i **NOTAM della divisione** in testa ai documenti pubblici (12-ott, chiesto dal committente: «in cima
   ai documenti, in una sezione ben visibile, i NOTAM che interessano quell'aeroporto, fino a quando non scadono»).
-  Su `sito/lavori`, **non in `main`**. ▶ Aspetta che il committente lo guardi e dica la regola delle vLOA.
+  Su `sito/lavori`, **non in `main`**. ▶ Aspetta che il committente lo guardi. ⚠️ Le righe qui sotto raccontano la
+  prima stesura; **le vLOA sono poi state tolte** e il resto è stato visto a schermo: vedi «Seguito» in fondo alla voce.
   - **La sorgente** (provata il 12-ott): `GET /v2/divisions/IT/notams/all`, pubblico, 4 voci, 3 KB. Tiene gli
     **scaduti** in elenco; `?now=true` sulla divisione è rotto (dà i 166 NOTAM del mondo); i nostri non cominciano
     tutti per `IT-`; i «PERM» scadono il 31 dicembre. Carta `docs/feature/2026-10-12-notam-sui-documenti.md` §1.
@@ -2427,6 +2430,42 @@
     giro contro **IVAO vero** dentro l'host (il corpo vero sì, la chiamata vera l'ho fatta a mano con `curl`).
   - **Non fatto** (carta §4): i NOTAM degli altri scali serviti da un APP; l'area disegnata; un tasto «rileggi
     adesso»; un avviso a chi redige quando un NOTAM cambia un documento.
+  - **Seguito, lo stesso giorno** (insieme a S104): il committente ha risposto «per le vLOA non prevediamo nulla
+    per ora» → **tolto** il riquadro dalle vLOA (`VloaListPage` e `VloaDocumentView` tornano com'erano) e tolta
+    la regola `AmbitoNotam.Accordo`; un test dice che quelle due sedi non lo montano. Con il suo ok, la prova è
+    stata rifatta su una **copia del database di sviluppo** (cancellata a fine prova): LIRN aeroporto (uno in
+    vigore e uno in arrivo; uno a nove giorni non c'è), LIBG vSOP, LICC_APP, vIPI ACC di LIBB e di LIMM (LIMM coi
+    due NOTAM **veri**), bozza e vLOA senza riquadro, lo scaduto ITW004/26 da nessuna parte; e la **stampa**, sul
+    PDF di Edge (il riquadro esce aperto sotto l'intestazione). Le 29 migrazioni che mancavano alla copia sono
+    passate. La CI di S103 è verde, col job `mariadb-schema`. Resta non visto: il giro contro IVAO vero dentro
+    l'host (la sorgente della prova era finta e locale, col corpo vero).
+- 🧪 **S104** i NOTAM **nella vista live** (12-ott, chiesto dal committente: «dato che sono importanti, finiscano
+  anche nella pagina live»: una chip rossa «! NOTAM» fra il nome della postazione e il campo di ricerca, che si
+  vede se un NOTAM riguarda l'ente e apre sotto una sezione dove leggerlo come nel documento). Su `sito/lavori`,
+  **non in `main`**. ▶ Aspetta che il committente lo guardi.
+  - **La regola**: la stessa del documento di riferimento, dichiarata dal descrittore del tipo di postazione
+    (`LiveView.AmbitoNotam`): TWR/GND/DEL → lo scalo; APP → lo scalo del suo ente; CTR → l'ACC più gli scali degli
+    APP della sua vIPI (gli stessi blocchi che usa la pagina del documento).
+  - ⚠️ **Scelta del filone, da confermare**: la chip c'è **anche se il documento non è pubblicato**. Il committente
+    ha scritto «il NOTAM si vede qui se c'è nel relativo documento pubblico»; l'ho letto come «stessa regola», non
+    come «solo se quel documento è online» — un controllore su una postazione senza documento il NOTAM lo deve
+    leggere lo stesso. Se lo vuole legato alla pubblicazione è una riga in `LiveViewService` (`view.NoDocument`).
+  - **Com'è fatto**: i NOTAM li legge `LiveViewService` dopo la composizione e li mette in `LiveView.Notam`; la
+    pagina non tocca l'archivio (e i finti dei suoi test restano com'erano). Chip = un tasto, subito dopo lo
+    stato della postazione; pannello = lo stesso `NotamBox` dei documenti coi NOTAM già aperti (`Aperti`), in
+    fondo alla pagina, che nasce al clic e a cui la pagina scorre (`vipiScrollToId`). La riga sotto il titolo del
+    riquadro ora dice «Avvisi della divisione, in vigore o in arrivo» (prima «che riguardano questo documento»).
+  - **Nessuna migrazione in più**, nessun `deploy/`. **Codice comune**: `Vipi.Application` (`LiveModels`,
+    `LiveViewService`, i tre `*LiveStation`, `AmbitoNotam.Nessuno`).
+  - **Test**: App 3338 → 3332 (via i sette delle vLOA, uno nuovo), Ui 2039 → 2047 (`LivePageNotamTests`, i
+    presidi sui descrittori e sulle vLOA). Infra 2225 invariato. Suite intera verde, build Release pulita.
+  - **Prova dal vivo** (copia del database di sviluppo, da staff): `LIRN_GND` — la chip sta fra «LIRN_GND · chiuso»
+    e il campo di ricerca, dove il committente ha messo la freccia; premuta apre in fondo i due NOTAM aperti e la
+    pagina ci scorre. Chip presente su LIRN_TWR, LIRN_US0_APP (APP nella vIPI di ACC: scalo LIRN), LICC_APP,
+    LIMM_WS2_CTR (i due veri), LIBB_ES_CTR, LIRR_TS_CTR (vIPI non pubblicata: i due dell'ACC); assente su
+    LIML_TWR e LIBA_APP (il suo era scaduto).
+  - ⚠️ **Non visto**: la chip che compare da sola a un tick live mentre la pagina è aperta (il modello si
+    ricompone a ogni tick, ma non l'ho aspettato a schermo); la vista live da telefono.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 12-ott: tutto fuso e online fino a S102 (1.60.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
   alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
