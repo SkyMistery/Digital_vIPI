@@ -1576,16 +1576,22 @@
 :where(.vipi-root) .notam-text{font-family:var(--font-mono);font-size:12.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 8px;padding:0;background:none;border:0;color:var(--ink)}
 :where(.vipi-root) .notam-scope{display:flex;gap:4px 18px;flex-wrap:wrap;margin:0;font-family:var(--font-mono);font-size:12.5px}
 /* La chip «! NOTAM» nella testata della vista live (committente, 12 ottobre 2026): rossa piena, perché è l'unica
-   cosa della riga che chiede di essere letta; il punto esclamativo sta in un cerchio suo. Accesa (pannello aperto)
-   prende un alone, come le altre chip che reggono un pannello. Il pannello sta in fondo alla pagina: il margine di
-   scorrimento lo tiene fuori da sotto la testata appiccicata. */
+   cosa della riga che chiede di essere letta; il punto esclamativo sta in un cerchio suo. Apre la sezione NOTAM,
+   che sta in fondo alla pagina. ⚠️ Quanto margine lasciare sopra la sezione quando la pagina ci scorre lo MISURA
+   il JavaScript (vipiApriDettaglio): la testata appiccicata va a capo e cambia altezza. Il numero qui sotto è
+   solo il ripiego per chi ci arriva da un'ancora. */
 :where(.vipi-root) .notam-chip{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;font-family:var(--font-head);font-weight:700;font-size:13px;line-height:1;letter-spacing:.02em;padding:5px 12px 5px 6px;margin:0;border-radius:20px;border:1px solid var(--ivao-red);background:var(--ivao-red);color:var(--on-brand);cursor:pointer;white-space:nowrap;transition:.15s}
 :where(.vipi-root) .notam-chip:hover{filter:brightness(1.12)}
 :where(.vipi-root) .notam-chip:focus-visible{outline:2px solid var(--ivao-lightblue);outline-offset:2px}
-:where(.vipi-root) .notam-chip.on{box-shadow:0 0 0 3px color-mix(in srgb,var(--ivao-red) 38%,transparent)}
 :where(.vipi-root) .notam-chip .nc-bang{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border:1.5px solid currentColor;border-radius:50%;font-size:12px;font-weight:800;line-height:1}
-:where(.vipi-root) .live-notam{margin-top:14px;scroll-margin:90px}
+:where(.vipi-root) .live-notam{scroll-margin:170px}
 :where(.vipi-root) .live-notam .notam-box{margin:0}
+/* La sezione NOTAM negli editor (NotamNellEditor): la nota che dice che non si compila, e sotto il riquadro com'è
+   nel documento pubblico. Stretti fra loro: sono una cosa sola. */
+:where(.vipi-root) .notam-ed{margin:0 0 16px}
+:where(.vipi-root) .notam-ed>.callout{margin:0 0 8px}
+:where(.vipi-root) .notam-ed>.notam-box{margin:0}
+:where(.vipi-root) .notam-ed-none{margin:6px 0 0;font-weight:600}
 @media (max-width:760px){
   :where(.vipi-root) .notam>summary{grid-template-columns:auto auto 1fr}
   :where(.vipi-root) .notam-val{grid-column:1 / -1;justify-self:start;text-align:left}
@@ -2754,6 +2760,15 @@
 :where(.vipi-root) .struct .bench .bench-diff{font-weight:700;color:var(--warn-ink-strong);background:var(--tint-yellow)}
 :where(.vipi-root) .struct .bench .bench-warn{color:var(--danger-ink);font-weight:700}
 :where(.vipi-root) .struct .bench .cfg-table .uni{font-size:14px;white-space:nowrap}
+/* Una riga di tasti per gruppo, col nome davanti a larghezza fissa: le righe si leggono in colonna. */
+:where(.vipi-root) .struct .bench .bench-grp{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:4px 0}
+:where(.vipi-root) .struct .bench .bench-grp-name{min-width:220px;font-size:13px;font-weight:600;color:var(--ink-soft)}
+:where(.vipi-root) .struct .bench .bench-filter{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+/* «A sé stesso» non è un passaggio: resta in elenco, ma non deve farsi guardare. */
+:where(.vipi-root) .struct .bench .bench-self td{color:var(--ink-soft)}
+:where(.vipi-root) .struct .bench .bench-state{white-space:nowrap;font-size:12.5px}
+/* Un callsign spezzato a metà (LIMM_WS2_C / TR) non si legge: `.struct .res-table td` va a capo ovunque. */
+:where(.vipi-root) .struct .bench .res-table td.bench-cs{white-space:nowrap;word-break:normal}
 :where(.vipi-root) .fb-seq-tag{font-size:10.5px;color:var(--ink-soft);font-family:var(--font-head);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 /* Un PASSO della catena: il numero a sinistra, e a destra tutte le voci di quel passo incolonnate. Sono i
    settori che a quel punto si dividono il traffico per fascia: stanno alla stessa altezza perche' non si

@@ -84,8 +84,8 @@ else
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
                 }
 
-                @* I NOTAM che riguardano l'ACC o lo scalo di uno dei suoi APP: vuoto fuori dalla vista pubblica,
-                   e allora non disegna niente. *@
+                @* I NOTAM che riguardano l'ACC: vuoto fuori dalla vista pubblica, e allora non disegna niente.
+                   Quelli dello scalo di un APP stanno DENTRO il blocco di quell'APP, più sotto. *@
                 <NotamBox Avvisi="_notam" />
 
                 @* ⚠️ Tre cartelli — «tradotto a macchina», «una lingua sola» e il filtro pilota/ATC —
@@ -109,6 +109,13 @@ else
                         }
                     }
                     <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</h2>
+                    @* I NOTAM dello scalo di questo APP, dentro il suo blocco (committente, 12 ottobre 2026: «se il
+                       blocco compare dentro l'APP a cui si riferisce è meglio»). Sono gli stessi che mostra la vista
+                       live dell'APP. *@
+                    @if (_notamDeiBlocchi.TryGetValue(block.Key, out var notamDelBlocco))
+                    {
+                        <NotamBox Avvisi="notamDelBlocco" />
+                    }
                     @foreach (var s in VisibleSections(block))
                     {
                         var isHidden = s.IsHidden;
@@ -190,8 +197,13 @@ else
     private RiferimentiRisolti? _nomiSid;
     private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();   // §A109
 
-    /// <summary>I NOTAM in vigore o in arrivo per questa vIPI (carta 2026-10-12-notam-sui-documenti.md).</summary>
+    /// <summary>I NOTAM in vigore o in arrivo che riguardano l'ACC: stanno in testa (carta
+    /// 2026-10-12-notam-sui-documenti.md §7).</summary>
     private IReadOnlyList<NotamAvviso> _notam = Array.Empty<NotamAvviso>();
+
+    /// <summary>I NOTAM dello scalo di ogni APP della vIPI, per chiave del suo blocco: stanno dentro il blocco.</summary>
+    private IReadOnlyDictionary<string, IReadOnlyList<NotamAvviso>> _notamDeiBlocchi =
+        new Dictionary<string, IReadOnlyList<NotamAvviso>>();
     private string? _relCycle;      // anteprima release: ciclo di quella release
     private string? _relKey;        // anteprima release: la sua chiave, per leggerne le congelate (U-053)
     private string? _docCycle;      // vista pubblica: ciclo della release effettiva da cui viene lo snapshot
@@ -280,15 +292,22 @@ else
             ? Array.Empty<ResolvedDocLink>()
             : await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.AccVipi, $"{_acc.Code}|{_root}", _mode);
 
-        // I NOTAM, solo sulla vista PUBBLICA. ⚠️ Due regole insieme (committente, 12 ottobre 2026): il NOTAM
-        // riguarda l'ACC, oppure riguarda lo scalo di un APP che questa vIPI contiene — «per gli APP nelle vIPI
-        // di ACC vale quello detto per gli APP». Lo scalo è la testa del callsign: LIMJ_WS0_APP → LIMJ.
-        _notam = _mode.Kind == PreviewKind.Public && !_notAvailable
-            ? await Notam.PerAsync(AmbitoNotam.Acc(_acc.Code,
-                _data.Blocks.Where(b => b.Kind == AccBlockKind.AppGroup)
-                            .SelectMany(b => b.MemberCallsigns)
-                            .Select(cs => AmbitoNotam.AeroportoDi(cs))))
-            : Array.Empty<NotamAvviso>();
+        // I NOTAM, solo sulla vista PUBBLICA. ⚠️ Due posti (committente, 12 ottobre 2026): in TESTA quelli che
+        // riguardano l'ACC; DENTRO il blocco di ogni APP quelli che riguardano il suo scalo — «per gli APP nelle
+        // vIPI di ACC vale quello detto per gli APP». Lo scalo è la testa del callsign: LIMJ_WS0_APP → LIMJ.
+        // Una lettura sola per la testa e per tutti i blocchi.
+        _notam = Array.Empty<NotamAvviso>();
+        _notamDeiBlocchi = new Dictionary<string, IReadOnlyList<NotamAvviso>>();
+        if (_mode.Kind == PreviewKind.Public && !_notAvailable)
+        {
+            var gruppi = _data.Blocks.Where(b => b.Kind == AccBlockKind.AppGroup).ToList();
+            var ambiti = new List<AmbitoNotam> { AmbitoNotam.Acc(_acc.Code, Array.Empty<string>()) };
+            ambiti.AddRange(gruppi.Select(b => AmbitoNotam.BloccoApp(b.MemberCallsigns)));
+            var letti = await Notam.PerAsync(ambiti);
+            _notam = letti[0];
+            _notamDeiBlocchi = gruppi.Select((b, i) => (b.Key, Notam: letti[i + 1]))
+                                     .GroupBy(x => x.Key).ToDictionary(g => g.Key, g => g.First().Notam);
+        }
 
         // ---- In che lingua si legge QUESTA vIPI (carta 2026-08-31-lingua-bloccata.md §3-4) --------------
         // ⚠️ PRIMA delle derivazioni, che qui sono parecchie e compongono prosa: frasi di coordinamento,

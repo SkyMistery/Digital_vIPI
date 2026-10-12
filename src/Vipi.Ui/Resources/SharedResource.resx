@@ -329,6 +329,7 @@
   <data name="Live_CoveredByHint" xml:space="preserve"><value>— chi ti assorbe se chiudi, a chi trasferisci il traffico</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>chiuso</value></data>
   <data name="Live_NotamChipTitle" xml:space="preserve"><value>NOTAM che riguardano questa postazione: {0}. Premi per leggerli</value></data>
+  <data name="Live_NoNotam" xml:space="preserve"><value>Nessun NOTAM in vigore o in arrivo per questa postazione.</value></data>
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>gerarchia non configurata per questa posizione — nessun ente sopra risulta impostato in Struttura</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>Documento esteso ↗</value></data>
@@ -1684,6 +1685,9 @@
   <data name="Notam_To" xml:space="preserve"><value>al</value></data>
   <data name="Notam_NoEnd" xml:space="preserve"><value>senza scadenza</value></data>
   <data name="Notam_Airports" xml:space="preserve"><value>Aeroporti</value></data>
+  <data name="NotamEd_Title" xml:space="preserve"><value>NOTAM dal vivo</value></data>
+  <data name="NotamEd_Body" xml:space="preserve"><value>In questo punto della versione pubblica compaiono da soli i NOTAM della divisione che lo riguardano, letti da IVAO: non c’è niente da compilare. Restano dal settimo giorno prima dell’entrata in vigore fino alla scadenza; in bozza e in anteprima di release non si vedono.</value></data>
+  <data name="NotamEd_None" xml:space="preserve"><value>Adesso non ce n’è nessuno in vigore o in arrivo.</value></data>
   <data name="Preview_ReleaseTitle" xml:space="preserve"><value>Anteprima release AIRAC {0}</value></data>
   <data name="Preview_ReleaseBody" xml:space="preserve"><value>Come apparirà il documento quando questa release entrerà in vigore. I dati derivati usano i cataloghi correnti.</value></data>
   <data name="Preview_Public" xml:space="preserve"><value>[Pubblica]</value></data>
@@ -4075,12 +4079,12 @@
   <data name="Lsr_Indexing" xml:space="preserve"><value>Sto ancora leggendo procedure e trasferimenti: tra poco anche quei risultati.</value></data>
   <data name="Aqp_NoDoc" xml:space="preserve"><value>Nessun documento pubblicato per {0}.</value></data>
   <data name="Bench_Title" xml:space="preserve"><value>Banco di prova</value></data>
-  <data name="Bench_Intro" xml:space="preserve"><value>Scegli un ACC e chi è aperto: qui sotto chi tiene il cielo dei settori chiusi, e a chi vanno i trasferimenti. Si usa la struttura salvata. Tutto ciò che sta fuori dall&apos;elenco (altri centri, torri) si considera aperto. Il banco non scrive niente.</value></data>
+  <data name="Bench_Intro" xml:space="preserve"><value>Scegli un ACC e chi è aperto: qui sotto chi tiene il cielo dei settori chiusi, e ogni trasferimento dell&apos;ACC con chi lo cede e chi lo riceve davvero. Una configurazione cambia i soli settori del suo gruppo: lo scenario è la combinazione. Si usa la struttura salvata. Tutto ciò che sta fuori dall&apos;elenco (altri centri, torri) si considera aperto. Il banco non scrive niente.</value></data>
   <data name="Bench_Acc" xml:space="preserve"><value>ACC</value></data>
   <data name="Bench_PickAcc" xml:space="preserve"><value>— scegli un ACC —</value></data>
   <data name="Bench_AllOpen" xml:space="preserve"><value>Tutti aperti</value></data>
   <data name="Bench_AllClosed" xml:space="preserve"><value>Tutti chiusi</value></data>
-  <data name="Bench_Presets" xml:space="preserve"><value>Configurazioni dichiarate in Struttura</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurazioni dichiarate in Struttura, gruppo per gruppo</value></data>
   <data name="Bench_NoPresets" xml:space="preserve"><value>Nessuna configurazione dichiarata per questo ACC: apri e chiudi i settori a mano.</value></data>
   <data name="Bench_Area" xml:space="preserve"><value>Settori d&apos;area aperti</value></data>
   <data name="Bench_App" xml:space="preserve"><value>Avvicinamenti aperti</value></data>
@@ -4090,13 +4094,22 @@
   <data name="Bench_Nobody" xml:space="preserve"><value>Nessuno (UNICOM)</value></data>
   <data name="Bench_NothingOpen" xml:space="preserve"><value>Nessun settore aperto e nessuno fuori dall&apos;elenco che raccolga.</value></data>
   <data name="Bench_Transfers" xml:space="preserve"><value>Trasferimenti dell&apos;ACC con questi aperti</value></data>
-  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} punti, {1} cambiano mano</value></data>
-  <data name="Bench_OnlyChanged" xml:space="preserve"><value>Solo quelli che cambiano mano</value></data>
-  <data name="Bench_NoTransfers" xml:space="preserve"><value>Nessun trasferimento da mostrare: con questi aperti ogni punto resta a chi è scritto.</value></data>
+  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} clausole: {1} come scritto, {2} raccolte da un altro, {3} a sé stesso, {4} non coperte</value></data>
+  <data name="Bench_Filter" xml:space="preserve"><value>Quali clausole mostrare</value></data>
+  <data name="Bench_FilterAll" xml:space="preserve"><value>Tutte</value></data>
+  <data name="Bench_FilterChanged" xml:space="preserve"><value>Cambiano mano</value></data>
+  <data name="Bench_FilterUncovered" xml:space="preserve"><value>Non coperte</value></data>
+  <data name="Bench_ColState" xml:space="preserve"><value>Esito</value></data>
+  <data name="Bench_StateWritten" xml:space="preserve"><value>come scritto</value></data>
+  <data name="Bench_StatePicked" xml:space="preserve"><value>raccolto da un altro</value></data>
+  <data name="Bench_StateSelf" xml:space="preserve"><value>a sé stesso: niente da passare</value></data>
+  <data name="Bench_StateNobody" xml:space="preserve"><value>non coperto</value></data>
+  <data name="Bench_NoAgreements" xml:space="preserve"><value>Questo ACC non ha clausole scritte negli accordi.</value></data>
+  <data name="Bench_NoTransfers" xml:space="preserve"><value>Nessuna clausola con questo filtro: con questi aperti le altre restano a chi è scritto, o a chi tiene già quel cielo.</value></data>
   <data name="Bench_ColFlow" xml:space="preserve"><value>Flusso</value></data>
   <data name="Bench_ColWrittenFrom" xml:space="preserve"><value>Cedente scritto</value></data>
   <data name="Bench_ColFrom" xml:space="preserve"><value>Cede</value></data>
-  <data name="Bench_ColPoint" xml:space="preserve"><value>Punto</value></data>
+  <data name="Bench_ColPoint" xml:space="preserve"><value>Punti</value></data>
   <data name="Bench_ColLevel" xml:space="preserve"><value>Livello</value></data>
   <data name="Bench_ColWrittenTo" xml:space="preserve"><value>Ricevente scritto</value></data>
   <data name="Bench_ColTo" xml:space="preserve"><value>Riceve</value></data>

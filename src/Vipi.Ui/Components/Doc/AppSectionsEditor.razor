@@ -125,6 +125,11 @@ else
                                     IsRenderModeToggleable="IsRenderModeToggleable"
                                     ShowToc="Chrome" ExtraTocItems="_tocExtra" Wide="_wide"
                                     TocFooter="@TocCommands">
+                @* La sezione NOTAM, dove sta nel documento pubblico: in testa. Per un APP sono i NOTAM del suo
+                   scalo, la testa del codice dell'ente. Non si compila, come il meteo. *@
+                <BeforeSections>
+                    <NotamNellEditor Chiave="@($"app:{_app}")" Ambito="@AmbitoNotam.Aeroporti(new[] { AmbitoNotam.AeroportoDi(_app) })" />
+                </BeforeSections>
                 <RightRail>
                     @* ⚠️ Solo con il chrome: in un editor unito il rail e' dell'OSPITE, e i comandi del lock
                        sono UNO per tutti i membri — non uno per ciascuno. *@

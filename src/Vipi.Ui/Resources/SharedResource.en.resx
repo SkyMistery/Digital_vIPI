@@ -329,6 +329,7 @@
   <data name="Live_CoveredByHint" xml:space="preserve"><value>— who absorbs you if you close, who you hand traffic to</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>closed</value></data>
   <data name="Live_NotamChipTitle" xml:space="preserve"><value>NOTAMs affecting this station: {0}. Press to read them</value></data>
+  <data name="Live_NoNotam" xml:space="preserve"><value>No NOTAM in force or upcoming for this station.</value></data>
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>hierarchy not configured for this position — no parent unit is set in Structure</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>Extended document ↗</value></data>
@@ -1679,6 +1680,9 @@
   <data name="Notam_To" xml:space="preserve"><value>to</value></data>
   <data name="Notam_NoEnd" xml:space="preserve"><value>no end date</value></data>
   <data name="Notam_Airports" xml:space="preserve"><value>Airports</value></data>
+  <data name="NotamEd_Title" xml:space="preserve"><value>Live NOTAMs</value></data>
+  <data name="NotamEd_Body" xml:space="preserve"><value>At this point of the public version the division’s NOTAMs that affect it appear on their own, read from IVAO: there is nothing to fill in. They stay from seven days before they come into force until they expire; they do not show in the draft or in a release preview.</value></data>
+  <data name="NotamEd_None" xml:space="preserve"><value>Right now none is in force or upcoming.</value></data>
   <data name="Preview_ReleaseTitle" xml:space="preserve"><value>AIRAC {0} release preview</value></data>
   <data name="Preview_ReleaseBody" xml:space="preserve"><value>How the document will look when this release comes into effect. Derived data use the current catalogs.</value></data>
   <data name="Preview_Public" xml:space="preserve"><value>[Public]</value></data>
@@ -4067,12 +4071,12 @@
   <data name="Lsr_Indexing" xml:space="preserve"><value>Still reading procedures and transfers: those results will follow shortly.</value></data>
   <data name="Aqp_NoDoc" xml:space="preserve"><value>No published document for {0}.</value></data>
   <data name="Bench_Title" xml:space="preserve"><value>Test bench</value></data>
-  <data name="Bench_Intro" xml:space="preserve"><value>Pick an ACC and who is open: below, who holds the sky of the closed sectors and where the transfers go. It uses the saved structure. Everything outside the list (other centres, towers) counts as open. The bench writes nothing.</value></data>
+  <data name="Bench_Intro" xml:space="preserve"><value>Pick an ACC and who is open: below, who holds the sky of the closed sectors, and every transfer of the ACC with who really hands it over and who really receives it. A configuration only changes the sectors of its own group: the scenario is the combination. It uses the saved structure. Everything outside the list (other centres, towers) counts as open. The bench writes nothing.</value></data>
   <data name="Bench_Acc" xml:space="preserve"><value>ACC</value></data>
   <data name="Bench_PickAcc" xml:space="preserve"><value>— pick an ACC —</value></data>
   <data name="Bench_AllOpen" xml:space="preserve"><value>All open</value></data>
   <data name="Bench_AllClosed" xml:space="preserve"><value>All closed</value></data>
-  <data name="Bench_Presets" xml:space="preserve"><value>Configurations declared in Structure</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurations declared in Structure, group by group</value></data>
   <data name="Bench_NoPresets" xml:space="preserve"><value>No configuration declared for this ACC: open and close the sectors by hand.</value></data>
   <data name="Bench_Area" xml:space="preserve"><value>Open area sectors</value></data>
   <data name="Bench_App" xml:space="preserve"><value>Open approaches</value></data>
@@ -4082,13 +4086,22 @@
   <data name="Bench_Nobody" xml:space="preserve"><value>Nobody (UNICOM)</value></data>
   <data name="Bench_NothingOpen" xml:space="preserve"><value>No sector is open and nobody outside the list picks up.</value></data>
   <data name="Bench_Transfers" xml:space="preserve"><value>The ACC&apos;s transfers with these open</value></data>
-  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} points, {1} change hands</value></data>
-  <data name="Bench_OnlyChanged" xml:space="preserve"><value>Only those that change hands</value></data>
-  <data name="Bench_NoTransfers" xml:space="preserve"><value>No transfer to show: with these open every point stays with the written unit.</value></data>
+  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} clauses: {1} as written, {2} picked up by another unit, {3} to itself, {4} not covered</value></data>
+  <data name="Bench_Filter" xml:space="preserve"><value>Which clauses to show</value></data>
+  <data name="Bench_FilterAll" xml:space="preserve"><value>All</value></data>
+  <data name="Bench_FilterChanged" xml:space="preserve"><value>Change hands</value></data>
+  <data name="Bench_FilterUncovered" xml:space="preserve"><value>Not covered</value></data>
+  <data name="Bench_ColState" xml:space="preserve"><value>Outcome</value></data>
+  <data name="Bench_StateWritten" xml:space="preserve"><value>as written</value></data>
+  <data name="Bench_StatePicked" xml:space="preserve"><value>picked up by another unit</value></data>
+  <data name="Bench_StateSelf" xml:space="preserve"><value>to itself: nothing to hand over</value></data>
+  <data name="Bench_StateNobody" xml:space="preserve"><value>not covered</value></data>
+  <data name="Bench_NoAgreements" xml:space="preserve"><value>This ACC has no clauses written in its agreements.</value></data>
+  <data name="Bench_NoTransfers" xml:space="preserve"><value>No clause with this filter: with these open the others stay with the written unit, or with the one already holding that sky.</value></data>
   <data name="Bench_ColFlow" xml:space="preserve"><value>Flow</value></data>
   <data name="Bench_ColWrittenFrom" xml:space="preserve"><value>Written sender</value></data>
   <data name="Bench_ColFrom" xml:space="preserve"><value>Hands over</value></data>
-  <data name="Bench_ColPoint" xml:space="preserve"><value>Point</value></data>
+  <data name="Bench_ColPoint" xml:space="preserve"><value>Points</value></data>
   <data name="Bench_ColLevel" xml:space="preserve"><value>Level</value></data>
   <data name="Bench_ColWrittenTo" xml:space="preserve"><value>Written receiver</value></data>
   <data name="Bench_ColTo" xml:space="preserve"><value>Receives</value></data>

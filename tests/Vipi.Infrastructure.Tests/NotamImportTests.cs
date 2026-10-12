@@ -349,6 +349,56 @@ public sealed class NotamImportTests : IAsyncLifetime
         var lettore = new NotamDeiDocumenti(new ArchivioRotto(), NullLogger<NotamDeiDocumenti>.Instance);
 
         Assert.Empty(await lettore.PerAsync(AmbitoNotam.Aeroporti(new[] { "LIRQ" })));
+
+        // Più ambiti insieme: tanti elenchi vuoti quanti ambiti, nello stesso ordine — chi li spacchetta per
+        // posizione (la vIPI di ACC: testa, poi un blocco per APP) non deve trovare un elenco più corto.
+        var tanti = await lettore.PerAsync(new[] { AmbitoNotam.Nessuno, AmbitoNotam.Aeroporti(new[] { "LIRQ" }) });
+        Assert.Equal(2, tanti.Count);
+        Assert.All(tanti, Assert.Empty);
+    }
+
+    private sealed class ArchivioCheConta(IReadOnlyList<Notam> righe) : INotamStore
+    {
+        public int Letture { get; private set; }
+
+        public Task<IReadOnlyList<Notam>> ListAsync(CancellationToken ct = default)
+        {
+            Letture++;
+            return Task.FromResult(righe);
+        }
+
+        public Task<NotamImportResult> SincronizzaAsync(IReadOnlyList<NotamDaSorgente> arrivati, DateTime adessoUtc,
+                                                        CancellationToken ct = default) =>
+            throw new NotSupportedException();
+    }
+
+    /// <summary>
+    /// La vIPI di un ACC chiede la testa e un blocco per ogni APP: <b>una lettura sola</b> dell'archivio per tutti,
+    /// e gli esiti nell'ordine degli ambiti.
+    /// </summary>
+    [Fact]
+    public async Task Piu_ambiti_si_leggono_con_una_sola_lettura_e_nello_stesso_ordine()
+    {
+        var inizio = Adesso.AddDays(-10);
+        var archivio = new ArchivioCheConta(new[]
+        {
+            new Notam { IvaoId = 1, Name = "IT-A002/26", Airports = "LIMG LIMJ", Centers = "LIMM", StartUtc = inizio },
+            new Notam { IvaoId = 2, Name = "IT-A003/25", Airports = "LIPC LIPE LIPK LIPR", Centers = "LIMM LIPP LIRR", StartUtc = inizio },
+        });
+        var lettore = new NotamDeiDocumenti(archivio, NullLogger<NotamDeiDocumenti>.Instance, new Orologio(Adesso));
+
+        var letti = await lettore.PerAsync(new[]
+        {
+            AmbitoNotam.Acc("LIMM", Array.Empty<string>()),          // la testa
+            AmbitoNotam.BloccoApp(new[] { "LIMJ_WS0_APP" }),         // il blocco di Genova
+            AmbitoNotam.BloccoApp(new[] { "LIML_APP" }),             // un blocco senza NOTAM
+        });
+
+        Assert.Equal(1, archivio.Letture);
+        Assert.Equal(3, letti.Count);
+        Assert.Equal(new[] { "IT-A002/26", "IT-A003/25" }, letti[0].Select(n => n.Nome).OrderBy(n => n));
+        Assert.Equal(new[] { "IT-A002/26" }, letti[1].Select(n => n.Nome));
+        Assert.Empty(letti[2]);
     }
 
     // ---- La cadenza ------------------------------------------------------------------------------------
