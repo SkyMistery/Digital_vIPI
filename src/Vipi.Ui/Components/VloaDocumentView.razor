@@ -47,6 +47,9 @@
                 }
             </div>
         </div>
+        @* I NOTAM che riguardano le due parti dell'accordo: li sceglie la PAGINA, qui si disegnano sotto la
+           testata come nelle altre quattro sedi. Vuoto = niente. *@
+        <NotamBox Avvisi="Notam" />
         <div class="callout info"><span class="cic"><Icon Name="globe" Size="18" /></span><div><p class="ct">@L["Vloa_BilateralNoteTitle"]</p>@L["Vloa_BilateralNoteBody"]</div></div>
 
         @* Il ciclo delle sezioni lo fa il componente condiviso (doc 14 §3e): nascosta/bozza, «nasce chiusa»,
@@ -119,6 +122,11 @@
 
     /// <summary>Anteprima bozza: le sezioni nascoste restano visibili, marcate (doc 11 §3c).</summary>
     [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>I NOTAM da mostrare sotto la testata (carta 2026-10-12-notam-sui-documenti.md). Li passa la pagina,
+    /// già scelti; il default vuoto non disegna niente — è il caso dell'editor, che questo componente lo usa anche lui.</summary>
+    [Parameter] public IReadOnlyList<Vipi.Application.Content.NotamAvviso> Notam { get; set; }
+        = Array.Empty<Vipi.Application.Content.NotamAvviso>();
 
     /// <summary>Anteprima di una release precisa; null = la release effettiva adesso.</summary>
     [Parameter] public int? ReleaseId { get; set; }

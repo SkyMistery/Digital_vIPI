@@ -1313,6 +1313,8 @@
   <data name="Sorg_AccDesc" xml:space="preserve"><value>ACC and subcenter list: no checkbox, always from the source</value></data>
   <data name="Sorg_AptLabel" xml:space="preserve"><value>Airports (directory)</value></data>
   <data name="Sorg_AptDesc" xml:space="preserve"><value>Assigns new division airports to their ACC, with their sector catalogue. ⚠️ The only run that creates: it adds, never removes</value></data>
+  <data name="Sorg_NotamLabel" xml:space="preserve"><value>NOTAMs</value></data>
+  <data name="Sorg_NotamDesc" xml:space="preserve"><value>The division's NOTAMs, shown at the top of the public documents they affect: no checkbox, always from the source</value></data>
   <data name="Sorg_LastAndNext" xml:space="preserve"><value>{0} · next {1}</value></data>
   <data name="Sorg_LastData" xml:space="preserve"><value>last data {0}</value></data>
   <data name="Sorg_LastAndMissed" xml:space="preserve"><value>{0} · due {1}, never arrived</value></data>
@@ -1669,6 +1671,13 @@
   <data name="Preview_DraftTitle" xml:space="preserve"><value>Live draft preview</value></data>
   <data name="Preview_DraftBody" xml:space="preserve"><value>You are viewing the &lt;b&gt;current&lt;/b&gt; editorial state (not the public version). Derived data (frequencies/coordinations/AoR) use the current catalogs.</value></data>
   <data name="Preview_OpenPublic" xml:space="preserve"><value>Open the public version →</value></data>
+  <data name="Notam_Sub" xml:space="preserve"><value>Division notices affecting this document · times in UTC</value></data>
+  <data name="Notam_Active" xml:space="preserve"><value>In force</value></data>
+  <data name="Notam_Upcoming" xml:space="preserve"><value>Upcoming</value></data>
+  <data name="Notam_From" xml:space="preserve"><value>from</value></data>
+  <data name="Notam_To" xml:space="preserve"><value>to</value></data>
+  <data name="Notam_NoEnd" xml:space="preserve"><value>no end date</value></data>
+  <data name="Notam_Airports" xml:space="preserve"><value>Airports</value></data>
   <data name="Preview_ReleaseTitle" xml:space="preserve"><value>AIRAC {0} release preview</value></data>
   <data name="Preview_ReleaseBody" xml:space="preserve"><value>How the document will look when this release comes into effect. Derived data use the current catalogs.</value></data>
   <data name="Preview_Public" xml:space="preserve"><value>[Public]</value></data>

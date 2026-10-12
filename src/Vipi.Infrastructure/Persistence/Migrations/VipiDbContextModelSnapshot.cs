@@ -2885,6 +2885,55 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("NeighbourCandidates");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.Notam", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Airports")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Centers")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EndUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ImportedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("IvaoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Military")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("SourceUpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StartUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IvaoId")
+                        .IsUnique();
+
+                    b.ToTable("Notams");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.RfoSharedState", b =>
                 {
                     b.Property<string>("EventId")

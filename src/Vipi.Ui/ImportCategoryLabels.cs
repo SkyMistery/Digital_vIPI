@@ -53,6 +53,7 @@ internal static class ImportCategoryLabels
             _ => r.Anagrafica switch
             {
                 ImportAnagrafica.Aeroporti => new(L["Sorg_AptLabel"].Value, L["Sorg_AptDesc"].Value, new[] { aeroporti }),
+                ImportAnagrafica.Notam => new(L["Sorg_NotamLabel"].Value, L["Sorg_NotamDesc"].Value, Array.Empty<(string, string)>()),
                 _ => new(L["Sorg_AccLabel"].Value, L["Sorg_AccDesc"].Value, new[] { acc }),
             },
         };

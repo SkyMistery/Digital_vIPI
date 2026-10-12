@@ -392,6 +392,11 @@ public static class IvaoServiceCollectionExtensions
         // permette di autorizzare una cancellazione senza aspettare due giri d'import.
         services.AddScoped<ISourcePresenceProbe, IvaoSourcePresenceProbe>();
 
+        // NOTAM della divisione, dall'endpoint pubblico: è la sorgente del riquadro in testa ai documenti.
+        services.AddScoped<IvaoNotamClient>();
+        services.AddScoped<INotamSource>(sp => sp.GetRequiredService<IvaoNotamClient>());
+        services.AddScoped<Vipi.Application.Content.NotamImportUseCase>();
+
         services.AddHostedService<AtcPollingHostedService>();
         services.AddHostedService<StaffRosterVerificationService>();
         services.AddHostedService<AccImportHostedService>();
@@ -403,6 +408,7 @@ public static class IvaoServiceCollectionExtensions
         services.AddHostedService<AirportTrafficRollupHostedService>();
         services.AddHostedService<TrafficRetentionHostedService>();
         services.AddHostedService<SpecialAreaImportHostedService>();
+        services.AddHostedService<NotamImportHostedService>();
         // ⚠️ Non è un import — non interroga nessuna sorgente — ma vive nella stessa lista perché è un giro
         // gestito uguale agli altri, e parte per ultimo: guarda il mondo DOPO che gli import l'hanno aggiornato.
         services.AddHostedService<ImpactDriftHostedService>();

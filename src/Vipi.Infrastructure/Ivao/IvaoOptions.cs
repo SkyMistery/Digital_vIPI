@@ -107,6 +107,28 @@ public sealed class IvaoOptions
     /// <summary>Template dei movimenti d'aeroporto: <c>{0}</c> = ICAO. Es. <c>/v2/airports/LIRF/traffics</c>.</summary>
     public string AirportTrafficsPathFormat { get; set; } = "/v2/airports/{0}/traffics";
 
+    /// <summary>
+    /// Template dell'elenco dei NOTAM di una divisione: <c>{0}</c> = codice divisione. Es.
+    /// <c>/v2/divisions/IT/notams/all</c>. <b>Endpoint pubblico</b>: non richiede token.
+    /// <para>🔴 <b>Senza <c>?now=true</c>, e non per dimenticanza</b>: con quel parametro la sorgente perde il filtro
+    /// della divisione e restituisce i NOTAM attivi di tutto il mondo (misurato il 12 ottobre 2026: 166 voci e
+    /// 481 KB al posto di 4 voci e 3 KB). Chi è attivo lo decidiamo noi dalle date.</para>
+    /// </summary>
+    public string DivisionNotamsPathFormat { get; set; } = "/v2/divisions/{0}/notams/all";
+
+    /// <summary>
+    /// Ogni quanti <b>minuti</b> rileggere i NOTAM della divisione. Una chiamata da 3 KB (misurato). ⚠️ La
+    /// scadenza di un NOTAM <b>non</b> dipende da questo numero: la decide la sua data, alla lettura della pagina.
+    /// Qui si decide solo dopo quanto compare un NOTAM nuovo o corretto.
+    /// </summary>
+    public int NotamImportMinutes { get; set; } = 30;
+
+    /// <summary>
+    /// Il giro VERO dei NOTAM: <see cref="NotamImportMinutes"/> col minimo di cinque minuti. ⚠️ Una definizione
+    /// sola, perché la leggono in due — il giro e la pagina Sorgenti che ne annuncia la cadenza.
+    /// </summary>
+    public TimeSpan NotamImportPeriod => TimeSpan.FromMinutes(Math.Max(5, NotamImportMinutes));
+
     /// <summary>Ogni quante ore girare il riempimento retroattivo del traffico d'aeroporto.</summary>
     public int AirportTrafficBackfillHours { get; set; } = 24;
 

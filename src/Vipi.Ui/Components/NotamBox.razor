@@ -1,0 +1,102 @@
+@* I NOTAM che riguardano il documento, in testa alla sua versione PUBBLICA (carta
+   docs/feature/2026-10-12-notam-sui-documenti.md). Un componente solo per le cinque sedi: la pagina decide
+   QUALI NOTAM (la regola è in AmbitoNotam) e li legge nel suo ciclo di vita; qui si disegna e basta —
+   nessuna lettura dal database durante il render.
+
+   ⚠️ <details> NATIVO, come CollapsibleBlock: le pagine dei documenti sono SSR statico, e un testo che si
+   apre con un gesto di Blazor lì non si aprirebbe mai. In stampa si apre da sé ('beforeprint' in vipi-ui.js
+   più la regola su `details::details-content` in vipi-print.css).
+
+   ⚠️ Il testo è della SORGENTE e si scrive com'è, come testo: mai MarkupString. I soli collegamenti sono
+   quelli che cominciano per http(s)://, ricostruiti qui pezzo per pezzo. *@
+@using System.Globalization
+@using System.Text.RegularExpressions
+@using Vipi.Application.Content
+@inject StringheDelSito Sito
+
+@if (Avvisi.Count > 0)
+{
+    <section class="notam-box" aria-label="NOTAM">
+        <div class="notam-head">
+            <span class="cic"><Icon Name="megaphone" Size="18" /></span>
+            <p class="ct">NOTAM <span class="notam-n">@Avvisi.Count</span></p>
+            <span class="notam-sub">@Sito["Notam_Sub"]</span>
+        </div>
+        @foreach (var n in Avvisi)
+        {
+            <details class="notam @(n.InArrivo ? "soon" : "now")">
+                <summary>
+                    <span class="notam-chev" aria-hidden="true">▸</span>
+                    <b class="notam-num">@n.Nome</b>
+                    <span class="pill @(n.InArrivo ? "future" : "green")">@(n.InArrivo ? Sito["Notam_Upcoming"] : Sito["Notam_Active"])</span>
+                    <span class="notam-val">
+                        @* ⚠️ Lo spazio fra inizio e fine è scritto a mano (@(" ")): fra due blocchi @if Razor non ne
+                           lascia, e la riga usciva «00:00Zal 1 gen» — visto dal test, non a occhio. *@
+                        @if (n.InizioUtc is { } inizio)
+                        {
+                            <span class="k">@Sito["Notam_From"]</span> <time datetime="@Iso(inizio)">@Quando(inizio)</time>
+                        }
+                        @if (n.FineUtc is { } fine)
+                        {
+                            @(" ")<span class="k">@Sito["Notam_To"]</span> <time datetime="@Iso(fine)">@Quando(fine)</time>
+                        }
+                        else
+                        {
+                            @(" ")<span class="k">@Sito["Notam_NoEnd"]</span>
+                        }
+                    </span>
+                    <span class="notam-first">@PrimaRiga(n.Testo)</span>
+                </summary>
+                <div class="notam-body">
+                    <pre class="notam-text">@foreach (var p in Pezzi(n.Testo)) { if (p.Link) { <a href="@p.Testo" target="_blank" rel="noopener noreferrer">@p.Testo</a> } else { @p.Testo } }</pre>
+                    <p class="notam-scope">
+                        @if (n.Aeroporti.Count > 0) { <span><span class="k">@Sito["Notam_Airports"]</span> @string.Join(" ", n.Aeroporti)</span> }
+                        @if (n.Centri.Count > 0) { <span><span class="k">ACC</span> @string.Join(" ", n.Centri)</span> }
+                    </p>
+                </div>
+            </details>
+        }
+    </section>
+}
+
+@code {
+    /// <summary>I NOTAM da mostrare, già scelti e ordinati. Vuoto = il riquadro non c'è.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<NotamAvviso> Avvisi { get; set; } = Array.Empty<NotamAvviso>();
+
+    private static string Iso(DateTime utc) => utc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+
+    /// <summary>Giorno e ora in UTC, col mese nella lingua di chi guarda: «27 nov 2025 00:00Z».</summary>
+    private static string Quando(DateTime utc) =>
+        utc.ToString("d MMM yyyy HH:mm", CultureInfo.CurrentUICulture) + "Z";
+
+    /// <summary>
+    /// La riga che dice di che cosa parla il NOTAM, per chi non lo apre. Nel formato ICAO è il campo <c>E)</c>
+    /// — le righe prima sono <c>Q) A) B) C)</c>, cioè codici e date che il riquadro dice già per esteso; in un
+    /// testo libero è la prima riga.
+    /// </summary>
+    internal static string PrimaRiga(string testo)
+    {
+        var righe = testo.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var e = righe.FirstOrDefault(r => r.StartsWith("E)", StringComparison.OrdinalIgnoreCase));
+        return e is not null ? e[2..].Trim() : righe.FirstOrDefault() ?? "";
+    }
+
+    private static readonly Regex Indirizzo = new(@"https?://[^\s<>""']+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>Il testo a pezzi: testo semplice e indirizzi. La punteggiatura in coda a un indirizzo («…/loa.»)
+    /// resta testo, o il collegamento porterebbe a una pagina che non esiste.</summary>
+    internal static IReadOnlyList<(string Testo, bool Link)> Pezzi(string testo)
+    {
+        var pezzi = new List<(string, bool)>();
+        var da = 0;
+        foreach (Match m in Indirizzo.Matches(testo))
+        {
+            var url = m.Value.TrimEnd('.', ',', ';', ':', ')', ']', '!', '?');
+            if (m.Index > da) pezzi.Add((testo[da..m.Index], false));
+            pezzi.Add((url, true));
+            da = m.Index + url.Length;
+        }
+        if (da < testo.Length) pezzi.Add((testo[da..], false));
+        return pezzi;
+    }
+}
