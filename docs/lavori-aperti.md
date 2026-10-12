@@ -43,7 +43,14 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A154 — 1.62.0 PRONTA, da caricare: NOTAM nel blocco dell'APP, negli editor e in fondo alla vista live (S105, S106); banco di prova con tutte le clausole (S107) (12 ottobre 2026)
+### ✅ A154 — 1.62.0 ONLINE: NOTAM nel blocco dell'APP, negli editor e in fondo alla vista live (S105, S106); banco di prova con tutte le clausole (S107) (12 ottobre 2026)
+
+✅ Online dal 12 ottobre 2026, notte: il committente scrive «online 1.62». Da fuori, da anonimo, alle 21:25Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti e archivio ATC 401, `vipi-theme.css?v=c4d0d06a` e
+`vipi-ui.js?v=ff9de306` (quelli del pacchetto), `/vsop/health` e `/vsop/health/ready` Healthy. ⚠️ Timbro e `Schema`
+questa volta **non riferiti** dal committente (non c'è migrazione: `Schema` deve essere rimasto 0); gli asset
+dicono che `wwwroot` e l'indice sono arrivati, non che siano arrivati i tre assiemi. Non guardati da qui, dietro il
+login: il banco di prova su Milano con le clausole vere, la sezione NOTAM negli editor e nella vista live.
 
 MINOR **senza migrazioni**, su 1.61.0 (`89bd1da`). Timbro **`1.62.0 · f1aeaf5`**.
 - **S105, S106, S107** (fusi da `sito/lavori` @ `17e840fe`, cartellino 🟢, CI verde run 38299170859; il committente:

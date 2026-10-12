@@ -6,10 +6,10 @@
 >
 > ## ▶ Il punto — 12 ottobre 2026, notte
 >
-> **📦 Pronta da caricare: 1.62.0** (§A154, timbro `1.62.0 · f1aeaf5`, 16 file, zip `a71980b6…`, MINOR senza
+> **✅ Online: 1.62.0** (asset del pacchetto e `/vsop/health` Healthy da fuori; timbro e `Schema` non riferiti; **in
+> `main` non resta codice fuori pacchetto**) (§A154, timbro `1.62.0 · f1aeaf5`, 16 file, zip `a71980b6…`, MINOR senza
 > migrazioni): Sito S105 e S106 (NOTAM dentro il blocco dell'APP nella vIPI di ACC, negli editor, in fondo alla vista
-> live) e S107 (banco di prova di Struttura con tutte le clausole e l'esito). Online è la **1.61.0** finché il
-> committente non carica. ▶ Restano: la riga «NOTAM» in Sorgenti da confermare, la prova del validatore sull'archivio
+> live) e S107 (banco di prova di Struttura con tutte le clausole e l'esito). ▶ Restano: la riga «NOTAM» in Sorgenti da confermare, la prova del validatore sull'archivio
 > ATC, gli elenchi di Torino, Padova e Bologna, ripubblicare le vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.
 >
 > ## Il punto — 12 ottobre 2026, sera
