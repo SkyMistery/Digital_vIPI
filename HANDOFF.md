@@ -6,9 +6,10 @@
 >
 > ## ▶ Il punto — 12 ottobre 2026, sera
 >
-> **📦 Pronta da caricare: 1.61.0** (§A153, timbro `1.61.0 · 89bd1da`, 17 file, zip `08db4c3b…`, MINOR con una
+> **✅ Online: 1.61.0** (`Schema 0` confermato; `/vsop/health` Healthy; **in `main` non resta codice fuori
+> pacchetto**; da confermare col login la riga «NOTAM» in Sorgenti) (§A153, timbro `1.61.0 · 89bd1da`, 17 file, zip `08db4c3b…`, MINOR con una
 > migrazione additiva): Sito S103 (NOTAM della divisione in testa ai documenti pubblici, vLOA escluse) e S104 (chip
-> NOTAM nella vista live, solo a documento pubblico). Online è la **1.60.0** finché il committente non carica. ⚠️ Un
+> NOTAM nella vista live, solo a documento pubblico). ⚠️ Un
 > lettore nuovo verso IVAO ogni 30 minuti, senza token. ▶ Restano la prova del validatore sull'archivio ATC, gli
 > elenchi di Torino, Padova e Bologna e la ripubblicazione delle vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.
 >
