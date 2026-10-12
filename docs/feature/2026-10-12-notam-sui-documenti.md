@@ -111,8 +111,9 @@ nell'elenco IT (i 4 «per paese» coincidevano coi 4 «per divisione»).
   (o dopo 60 secondi): l'identità di sviluppo è anonima, e la cache serve la copia di prima.
 - Fatto il 12 ottobre su una copia del database di sviluppo: LIRN (aeroporto, uno in vigore e uno in arrivo; uno a
   nove giorni non c'è), LIBG (vSOP), LICC_APP, LIBB e LIMM (vIPI ACC, LIMM coi due NOTAM veri), bozza e vLOA senza
-  riquadro, lo scaduto ITW004/26 da nessuna parte; vista live di LIRN_GND, LIRN_TWR, LIRN_US0_APP, LICC_APP,
-  LIMM_WS2_CTR, LIBB_ES_CTR; la stampa in PDF.
+  riquadro, lo scaduto ITW004/26 da nessuna parte; vista live con la chip su LIRN_GND, LIRN_TWR, LICC_APP,
+  LIMM_WS2_CTR, LIBB_ES_CTR e senza su LIML_TWR, LIBA_APP (nessun NOTAM in vigore) e su LIRR_TS_CTR, LIRR_NE_CTR,
+  LIRN_US0_APP (vIPI di LIRR non pubblicata); la stampa in PDF.
 
 ## 6. Nella vista live (S104)
 
@@ -120,11 +121,15 @@ nell'elenco IT (i 4 «per paese» coincidevano coi 4 «per divisione»).
   (`LiveView.AmbitoNotam`): TWR, GND, DEL → lo scalo; APP → lo scalo del suo ente (anche quando l'APP vive nella
   vIPI di ACC); CTR → l'ACC più gli scali degli APP della sua vIPI, presi dagli **stessi blocchi** da cui li prende
   la pagina del documento. Una postazione e il suo documento mostrano gli stessi NOTAM.
-- ⚠️ **Anche se il documento non è pubblicato.** Il committente ha scritto «il NOTAM si vede qui se c'è nel relativo
-  documento pubblico»; il filone l'ha letto come «stessa regola», non come «solo se quel documento è online»: un
-  controllore su una postazione senza documento un NOTAM sul suo scalo lo deve leggere lo stesso. Per un CTR senza
-  vIPI pubblicata restano i soli NOTAM dell'ACC (gli APP li dice il documento). ▶ Se il committente lo vuole legato
-  alla pubblicazione, è una riga in `LiveViewService` (`view.NoDocument`).
+- 🔴 **Solo se il documento di riferimento è pubblico** (committente, 12 ottobre 2026: «solo a documento
+  pubblico»). La prima stesura mostrava la chip anche senza documento online — il filone aveva letto «il NOTAM si
+  vede qui se c'è nel relativo documento pubblico» come «stessa regola» — e il committente l'ha corretta: nella
+  vista live il NOTAM si vede se lo si leggerebbe in testa a quel documento. La domanda «è pubblico?» è **una per
+  tutti i tipi** (`LiveViewService.Pubblico`): una release in vigore e non nascosto, sulla chiave che il
+  descrittore mette in `LiveView.ExtendedDoc` — lo scalo, il codice dell'ente, o l'ACC per la vIPI di ACC.
+  ⚠️ `NoDocument` da solo non bastava: per un APP col documento proprio vuol dire «il documento non esiste», non
+  «non è pubblicato». Conseguenza da sapere: un APP che vive nella vIPI di un ACC non pubblicata non ha la chip,
+  nemmeno se il suo scalo ha la vIPI online (nella prova: `LIRN_US0_APP` con la vIPI di LIRR non pubblicata).
 - **I NOTAM li legge il servizio**, non la pagina: `LiveViewService` compone la vista e poi chiede all'archivio con
   l'ambito dichiarato, in fila con le altre letture (il `DbContext` è quello del circuito). La pagina riceve
   `LiveView.Notam` già scelto e ordinato — e i finti dei test della pagina non hanno dovuto imparare niente.

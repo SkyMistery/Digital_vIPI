@@ -255,9 +255,27 @@ public class NotamBoxTests : TestContext
     [Fact]
     public void La_vista_live_riceve_i_NOTAM_dal_modello()
     {
-        Assert.Single(Regex.Matches(LeggiApplication("Live/LiveViewService.cs"),
-            Regex.Escape("Notam = await _notam.PerAsync(view.AmbitoNotam, ct)")));
+        var servizio = LeggiApplication("Live/LiveViewService.cs");
+
+        Assert.Single(Regex.Matches(servizio, Regex.Escape("await _notam.PerAsync(view.AmbitoNotam, ct)")));
         Assert.DoesNotContain("INotamDeiDocumenti", Leggi("Pages/LivePage.razor"), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 🔴 Nella vista live i NOTAM si mettono nel modello <b>solo se il documento di riferimento è pubblico</b>
+    /// (committente, 12 ottobre 2026: «solo a documento pubblico»). La regola «è pubblico?» ha i suoi test
+    /// (<c>NotamNellaVistaLiveTests</c>); qui si presidia che il servizio la chieda davvero prima di scrivere
+    /// <c>Notam</c>, e che lo scriva in quel punto solo.
+    /// </summary>
+    [Fact]
+    public void La_vista_live_mostra_i_NOTAM_solo_a_documento_pubblico()
+    {
+        var servizio = LeggiApplication("Live/LiveViewService.cs");
+
+        Assert.Contains("!view.NoDocument && view.ExtendedDoc is { } riferimento", servizio, StringComparison.Ordinal);
+        Assert.Contains("if (notam.Count > 0 && Pubblico(await _documenti.ListAsync(ct), riferimento))", servizio,
+            StringComparison.Ordinal);
+        Assert.Single(Regex.Matches(servizio, Regex.Escape("view with { Notam = ")));
     }
 
     private static string LeggiApplication(string relativo) =>

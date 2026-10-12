@@ -11,8 +11,8 @@
 > Costruiti e provati a schermo su `sito/lavori`, anche su una copia del database di sviluppo; **non sono in
 > `main`**. Portano **una migrazione additiva** (`NotamDellaDivisione`: la tabella `Notams`) e toccano codice
 > comune (`Vipi.Domain`, `Vipi.Application`). Le **vLOA restano fuori** per decisione del committente («non
-> prevediamo nulla per ora»). Aspettano che il committente **li guardi**, e una sua parola su **una scelta del
-> filone**: nella vista live la chip c'è anche se il documento della postazione non è pubblicato. Carta
+> prevediamo nulla per ora»), e nella vista live la chip c'è **solo a documento pubblico** (anche questo deciso da
+> lui). Aspettano che il committente **li guardi**: di scelte del filone aperte non ne restano. Carta
 > `docs/feature/2026-10-12-notam-sui-documenti.md`; voci S103 e S104, in fondo.
 >
 > Tutto quel che è elencato qui sotto, fino a **S102**, è in `main` e **online**. Ultima: **1.60.0** (S102,
@@ -2446,10 +2446,14 @@
   - **La regola**: la stessa del documento di riferimento, dichiarata dal descrittore del tipo di postazione
     (`LiveView.AmbitoNotam`): TWR/GND/DEL → lo scalo; APP → lo scalo del suo ente; CTR → l'ACC più gli scali degli
     APP della sua vIPI (gli stessi blocchi che usa la pagina del documento).
-  - ⚠️ **Scelta del filone, da confermare**: la chip c'è **anche se il documento non è pubblicato**. Il committente
-    ha scritto «il NOTAM si vede qui se c'è nel relativo documento pubblico»; l'ho letto come «stessa regola», non
-    come «solo se quel documento è online» — un controllore su una postazione senza documento il NOTAM lo deve
-    leggere lo stesso. Se lo vuole legato alla pubblicazione è una riga in `LiveViewService` (`view.NoDocument`).
+  - 🔴 **Solo a documento pubblico** (deciso dal committente, lo stesso giorno). La prima stesura mostrava la chip
+    anche senza documento online (avevo letto «si vede qui se c'è nel relativo documento pubblico» come «stessa
+    regola»): lui ha risposto «solo a documento pubblico». Ora `LiveViewService` mette i NOTAM nel modello solo se
+    il documento di riferimento ha una release in vigore e non è nascosto (`LiveViewService.Pubblico`, una
+    domanda per tutti i tipi). ⚠️ Non bastava `NoDocument`: per un APP col documento proprio dice «non esiste»,
+    non «non è pubblicato». Conseguenza: un APP dentro la vIPI di un ACC non pubblicata non ha la chip, anche se
+    il suo scalo ha la vIPI online. Riprovato sulla copia del database: via la chip da `LIRR_TS_CTR`,
+    `LIRR_NE_CTR` e `LIRN_US0_APP` (vIPI di LIRR non pubblicata); invariate le altre e i documenti.
   - **Com'è fatto**: i NOTAM li legge `LiveViewService` dopo la composizione e li mette in `LiveView.Notam`; la
     pagina non tocca l'archivio (e i finti dei suoi test restano com'erano). Chip = un tasto, subito dopo lo
     stato della postazione; pannello = lo stesso `NotamBox` dei documenti coi NOTAM già aperti (`Aperti`), in
@@ -2457,8 +2461,10 @@
     riquadro ora dice «Avvisi della divisione, in vigore o in arrivo» (prima «che riguardano questo documento»).
   - **Nessuna migrazione in più**, nessun `deploy/`. **Codice comune**: `Vipi.Application` (`LiveModels`,
     `LiveViewService`, i tre `*LiveStation`, `AmbitoNotam.Nessuno`).
-  - **Test**: App 3338 → 3332 (via i sette delle vLOA, uno nuovo), Ui 2039 → 2047 (`LivePageNotamTests`, i
-    presidi sui descrittori e sulle vLOA). Infra 2225 invariato. Suite intera verde, build Release pulita.
+  - **Test**: App 3338 → 3332 (via i sette delle vLOA, uno nuovo) → **3344** (`NotamNellaVistaLiveTests`: la
+    regola «è pubblico?»); Ui 2039 → 2047 (`LivePageNotamTests`, i presidi sui descrittori e sulle vLOA) →
+    **2048** (il presidio «solo a documento pubblico»). Infra 2225 invariato. Suite intera verde, build Release
+    pulita.
   - **Prova dal vivo** (copia del database di sviluppo, da staff): `LIRN_GND` — la chip sta fra «LIRN_GND · chiuso»
     e il campo di ricerca, dove il committente ha messo la freccia; premuta apre in fondo i due NOTAM aperti e la
     pagina ci scorre. Chip presente su LIRN_TWR, LIRN_US0_APP (APP nella vIPI di ACC: scalo LIRN), LICC_APP,

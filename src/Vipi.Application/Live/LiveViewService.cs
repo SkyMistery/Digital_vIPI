@@ -48,16 +48,19 @@ public sealed class LiveViewService : ILiveViewService
     private readonly IAtcUnitRepository? _enti;
     private readonly Vipi.Application.EventKits.AccountEventoRegistro? _account;
     private readonly INotamDeiDocumenti? _notam;
+    private readonly IDocumentAdminService? _documenti;
 
     public LiveViewService(IStationResolver stations, IStructureEditingService structure,
         ITopologyProvider topology, IOnlineAtcProvider online, ICurrentUserProvider users,
         ILiveStationRegistry registry, IEditAuthorizationService authz,
         IStructureEditingRepository sectors, IAtcUnitRepository? enti = null,
         Vipi.Application.EventKits.AccountEventoRegistro? account = null,
-        INotamDeiDocumenti? notam = null)
+        INotamDeiDocumenti? notam = null,
+        IDocumentAdminService? documenti = null)
     {
         _account = account;
         _notam = notam;
+        _documenti = documenti;
         _enti = enti;
         _stations = stations;
         _structure = structure;
@@ -121,11 +124,34 @@ public sealed class LiveViewService : ILiveViewService
         // I NOTAM della postazione, DOPO la composizione e in un posto solo: il descrittore dichiara l'ambito, qui si
         // legge l'archivio. ⚠️ In fila con le altre letture e non in parallelo: il DbContext è quello del circuito.
         // Il lettore non lancia mai — senza NOTAM la vista esce senza chip, non in errore.
-        if (_notam is not null)
-            view = view with { Notam = await _notam.PerAsync(view.AmbitoNotam, ct) };
+        //
+        // ⚠️ SOLO se il documento di riferimento è PUBBLICO (committente, 12 ottobre 2026: «solo a documento
+        // pubblico»): nella vista live il NOTAM si vede se lo si leggerebbe in testa a quel documento, e un
+        // documento che non è online non lo mostra a nessuno. L'elenco dei documenti si chiede DOPO i NOTAM e solo
+        // se ce n'è almeno uno: quasi sempre non ce ne sono, e la domanda in più non si paga.
+        if (_notam is not null && _documenti is not null && !view.NoDocument && view.ExtendedDoc is { } riferimento)
+        {
+            var notam = await _notam.PerAsync(view.AmbitoNotam, ct);
+            if (notam.Count > 0 && Pubblico(await _documenti.ListAsync(ct), riferimento))
+                view = view with { Notam = notam };
+        }
 
         return new LiveViewResult(view, callsign);
     }
+
+    /// <summary>
+    /// Il documento di riferimento di una postazione è pubblico <b>adesso</b>: ha una release in vigore e non è
+    /// nascosto — la stessa condizione con cui la sua pagina pubblica si apre.
+    /// <para>⚠️ <c>NoDocument</c> da solo non basta: per un APP col documento proprio vuol dire «il documento non
+    /// esiste», non «non è pubblicato», e un APP con la sola bozza avrebbe mostrato i NOTAM. Qui la domanda è una
+    /// per tutti i tipi, sulla chiave che il descrittore ha già messo in <see cref="LiveView.ExtendedDoc"/>: lo scalo,
+    /// il codice dell'ente, o — per la vIPI di ACC, che ha una chiave per albero — l'ACC.</para>
+    /// </summary>
+    internal static bool Pubblico(IEnumerable<ManagedDoc> documenti, LiveDocRef riferimento) =>
+        documenti.Any(m => m.ReleaseTarget == riferimento.Kind && m.HasEffectiveRelease && !m.IsHidden
+            && (riferimento.Scope is { Length: > 0 } chiave
+                ? string.Equals(m.ReleaseKey, chiave, StringComparison.OrdinalIgnoreCase)
+                : string.Equals(m.AccCode, riferimento.AccCode, StringComparison.OrdinalIgnoreCase)));
 
     public async Task<IReadOnlyList<LiveStationOption>> ListStationsAsync(CancellationToken ct = default)
     {
