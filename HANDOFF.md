@@ -4,7 +4,15 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 10 ottobre 2026, sera
+> ## ▶ Il punto — 12 ottobre 2026, sera
+>
+> **📦 Pronta da caricare: 1.61.0** (§A153, timbro `1.61.0 · 89bd1da`, 17 file, zip `08db4c3b…`, MINOR con una
+> migrazione additiva): Sito S103 (NOTAM della divisione in testa ai documenti pubblici, vLOA escluse) e S104 (chip
+> NOTAM nella vista live, solo a documento pubblico). Online è la **1.60.0** finché il committente non carica. ⚠️ Un
+> lettore nuovo verso IVAO ogni 30 minuti, senza token. ▶ Restano la prova del validatore sull'archivio ATC, gli
+> elenchi di Torino, Padova e Bologna e la ripubblicazione delle vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 10 ottobre 2026, sera
 >
 > **✅ Online: 1.60.0** (`Schema 0` confermato; `/vsop/health` di nuovo **Healthy**; **in `main` non resta codice
 > fuori pacchetto**) (§A152, timbro `1.60.0 · 3ea92b2`, 10 file, zip `60f73b8a…`, MINOR con una

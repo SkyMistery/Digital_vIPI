@@ -43,6 +43,43 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A153 — 1.61.0 PRONTA, da caricare: i NOTAM della divisione sui documenti pubblici (S103) e nella vista live (S104) (12 ottobre 2026)
+
+MINOR con **una migrazione additiva** (`NotamDellaDivisione`: `CREATE TABLE Notams` e un indice univoco su `IvaoId`;
+guardato l'`Up` nei due provider, nessun `Drop`, `Rename`, `Alter` o `Sql`), su 1.60.0 (`3ea92b2`). Timbro
+**`1.61.0 · 89bd1da`**.
+- **S103** e **S104** (fusi da `sito/lavori` @ `7beebcaa`, CI verde run 38276550136). S103: il riquadro NOTAM in testa
+  alla vIPI d'aeroporto, al vSOP e all'APP se il NOTAM nomina lo scalo, alla vIPI ACC se nomina l'ACC o lo scalo di un
+  suo APP; da sette giorni prima; solo vista pubblica; **vLOA escluse** (committente: «per ora non prevediamo nulla»).
+  S104: chip rossa «! NOTAM» nella testata della vista live, **solo a documento pubblico** (scelta del committente del
+  12-ott, commit `7beebcaa`, che corregge `1ab251a3`). Codice comune: Domain, Application, Infrastructure. Carta
+  `docs/feature/2026-10-12-notam-sui-documenti.md`, storia in `docs/filoni/sito.md` (voci S103 e S104).
+- ⚠️ **Un lettore nuovo verso IVAO**: 50 s dopo l'avvio e poi ogni 30 minuti (`Ivao:NotamImportMinutes`, minimo 5) su
+  `GET /v2/divisions/IT/notams/all`, pubblico e senza token. Default nel codice: `appsettings` non si tocca. Se la
+  sorgente non risponde lancia, e l'archivio resta com'è; un elenco letto e vuoto invece lo svuota (è voluto).
+- ⚠️ Il committente ha detto «vai di 1.61.0 appena il Sito ha finito»: ha visto le schermate del Sito e ha deciso le
+  scelte aperte, non ha fatto una prova a schermo sua.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**17 file** (`solo-17-file-1.61.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui, Host (dll + pdb),
+`en/Vipi.Ui.resources.dll`, `vipi-theme.css` con `.br`/`.gz` e `endpoints.json`. **Fuori** Hosting: sorgente invariato
+e non nomina niente di quel che cambia (`LiveViewService` ha un parametro in più nel costruttore, ma lo costruisce il
+contenitore; `IImportStateStore` cambia e lo implementa solo Infrastructure). Tre `const` nuove, nessuna cambiata. 482
+file nel publish come nel precedente, 23 con impronta diversa. Zip 6,62 MB, sha256
+`08db4c3b77ec3c3830af490141a1576bf59ba0a8f8c344436b088fc2fa28350c`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3344, Infra 2225, Ui 2048, E2E 508). Prova sul publish
+win-x64 (copia del database di sviluppo, lettori IVAO accesi): 29 migrazioni all'avvio, l'ultima `CREATE TABLE
+"Notams"`; **il giro contro IVAO vero, che il Sito non aveva visto**: «Import NOTAM: 4 creati, 0 aggiornati, 0 tolti»;
+`pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); a schermo il riquadro sulla vIPI ACC di Milano (2 NOTAM:
+IT-A002/26, IT-A003/25, foto guardata) e nella vista live la chip su `LIMM_WS2_CTR`, che apre il riquadro; nessuna
+chip su `LIBB_ES_CTR` (nessun NOTAM) né su `LIMJ_TWR` (in locale il documento non è pubblicato). CSS servito con
+`?v=c3d2feac`. **Non visto**: la chip che compare da sola a un aggiornamento live, la vista live da telefono, le altre
+pagine attese (in locale quei documenti non sono pubblicati), la riga «NOTAM» in Sorgenti. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.61.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; Sorgenti → «NOTAM» aggiornata; guardare S103/S104 e dire se va.
+Rollback: le due rinomine.
+
 ### ✅ A152 — 1.60.0 ONLINE: l'archivio ATC dà il centro della postazione (S102) (10 ottobre 2026)
 
 ✅ Online dal 10 ottobre 2026, sera: il committente conferma il timbro 1.60.0 e `Schema 0` (le due colonne di
