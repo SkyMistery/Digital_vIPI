@@ -4,7 +4,15 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 12 ottobre 2026, sera
+> ## ▶ Il punto — 12 ottobre 2026, notte
+>
+> **📦 Pronta da caricare: 1.62.0** (§A154, timbro `1.62.0 · f1aeaf5`, 16 file, zip `a71980b6…`, MINOR senza
+> migrazioni): Sito S105 e S106 (NOTAM dentro il blocco dell'APP nella vIPI di ACC, negli editor, in fondo alla vista
+> live) e S107 (banco di prova di Struttura con tutte le clausole e l'esito). Online è la **1.61.0** finché il
+> committente non carica. ▶ Restano: la riga «NOTAM» in Sorgenti da confermare, la prova del validatore sull'archivio
+> ATC, gli elenchi di Torino, Padova e Bologna, ripubblicare le vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 12 ottobre 2026, sera
 >
 > **✅ Online: 1.61.0** (`Schema 0` confermato; `/vsop/health` Healthy; **in `main` non resta codice fuori
 > pacchetto**; da confermare col login la riga «NOTAM» in Sorgenti) (§A153, timbro `1.61.0 · 89bd1da`, 17 file, zip `08db4c3b…`, MINOR con una

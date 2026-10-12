@@ -43,6 +43,39 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A154 — 1.62.0 PRONTA, da caricare: NOTAM nel blocco dell'APP, negli editor e in fondo alla vista live (S105, S106); banco di prova con tutte le clausole (S107) (12 ottobre 2026)
+
+MINOR **senza migrazioni**, su 1.61.0 (`89bd1da`). Timbro **`1.62.0 · f1aeaf5`**.
+- **S105, S106, S107** (fusi da `sito/lavori` @ `17e840fe`, cartellino 🟢, CI verde run 38299170859; il committente:
+  «fondi sito e fammi il pacchetto»). S105: nella vIPI di ACC il NOTAM di uno scalo sta dentro il blocco del suo APP,
+  in testa i soli NOTAM dell'ACC. S106: la sezione NOTAM negli editor (nota «NOTAM dal vivo» e riquadro), e nella vista
+  live sempre in fondo, chiusa, aperta dalla chip (`vipiApriDettaglio` in `vipi-ui.js`). S107: banco di prova di
+  Struttura con i tasti delle configurazioni per gruppo, una riga per ogni clausola con l'esito e un filtro a tre
+  tasti; il motore (`TransferResolution`, `FallbackChain`, `ResolveForAccAsync`) non è toccato. Codice comune:
+  Application, Infrastructure. Carte `docs/feature/2026-10-12-notam-sui-documenti.md` §6–§8 e
+  `2026-10-04-copertura-unica.md` §11; storia in `docs/filoni/sito.md`.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**16 file** (`solo-16-file-1.62.0`): Application, Infrastructure, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`,
+`vipi-theme.css` e `vipi-ui.js` con `.br`/`.gz`, `endpoints.json`. ⚠️ Application, Infrastructure e Ui vanno insieme:
+cambiano `BenchScope` (via `BenchPreset`, `Groups` al posto di `Presets`) e `INotamDeiDocumenti.PerAsync`. **Fuori**
+Domain, MySqlMigrations e Hosting: sorgente invariato, e nessuno nomina `CoverageBench`, `BenchScope`,
+`INotamDeiDocumenti` o `AmbitoNotam` (cercato). Nessuna `const` nel diff. 482 file nel publish come nel precedente, 26
+con impronta diversa. Zip 6,07 MB, sha256 `a71980b69bc4f4b8c23713e248524b5d98fe5beddf9faaa9fb00d4acd931243e`.
+Build Release senza avvisi; `dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3357,
+Infra 2226, Ui 2068, E2E 508). Prova sul publish win-x64 (copia del database di sviluppo, lettori IVAO accesi; 4 NOTAM
+letti da IVAO vero): `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); **S105** sulla vIPI ACC di Milano il
+riquadro in testa (IT-A002/26, IT-A003/25) e un secondo più giù col solo IT-A002/26; **S106** vista live
+`LIMM_WS2_CTR`: sezione «NOTAM 2» chiusa, la chip la apre e la pagina scende (da 0 a 264 px, sezione a 170 px dalla
+cima), su `LIBB_ES_CTR` niente chip e «NOTAM 0»; nell'editor della vIPI di Milano la nota «NOTAM dal vivo» e il
+riquadro; **S107** banco su LIBB: «Tutte 50», tabella di 50 righe con la colonna Esito («come scritto»); chiuso
+`LIBB_ES_CTR` → «Cambiano mano 48, Non coperte 48», e il filtro stringe la tabella a 48 righe. Console pulita.
+**Non visto**: la vista live dal telefono; il banco su Milano con le clausole vere (in locale LIMM non ne ha: «Tutte
+0»), cioè il caso `LIMM_WS2_CTR → LIMJ_WS0_APP` da cui nasce S107 — lo ha provato il Sito su una copia di produzione.
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.62.0.md`.
+
+▶ **Dopo il carico** (committente): guardare banco, editor e vista live. Rollback: le due rinomine.
+
 ### ✅ A153 — 1.61.0 ONLINE: i NOTAM della divisione sui documenti pubblici (S103) e nella vista live (S104) (12 ottobre 2026)
 
 ✅ Online dal 12 ottobre 2026: il committente conferma il timbro 1.61.0 e `Schema 0` (la tabella `Notams` c'è). Da
