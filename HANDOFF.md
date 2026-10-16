@@ -6,9 +6,8 @@
 >
 > ## ▶ Il punto — 16 ottobre 2026
 >
-> **📦 Pronta da caricare: 1.63.0** (§A155, timbro `1.63.0 · 099b0df`, 11 file, zip `21bcc96c…`, MINOR senza
-> migrazioni): Sito S108, nel banco di prova anche gli enti degli altri centri. Online è la **1.62.0** finché il
-> committente non carica. Nello stesso giro, fuori dal pacchetto: la CI Docker torna verde con le immagini fissate a
+> **✅ Online: 1.63.0** (`Schema 0` confermato; health Healthy; **in `main` non resta codice fuori pacchetto**) (§A155, timbro `1.63.0 · 099b0df`, 11 file, zip `21bcc96c…`, MINOR senza
+> migrazioni): Sito S108, nel banco di prova anche gli enti degli altri centri. Nello stesso giro, fuori dal pacchetto: la CI Docker torna verde con le immagini fissate a
 > `sdk:10.0.401`/`aspnet:10.0.12`. ⚠️ Aperto: aggiornare l'SDK a 10.0.402 (runtime 10.0.13) — un pacchetto a sé.
 > ▶ Restano: riga «NOTAM» in Sorgenti, vista live dal telefono, prova del validatore sull'archivio ATC, elenchi di
 > Torino, Padova e Bologna, ripubblicare le vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.

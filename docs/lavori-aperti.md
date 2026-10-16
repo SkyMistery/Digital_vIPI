@@ -43,7 +43,12 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A155 — 1.63.0 PRONTA, da caricare: nel banco di prova anche gli enti degli altri centri (S108); CI Docker con le immagini fissate (16 ottobre 2026)
+### ✅ A155 — 1.63.0 ONLINE: nel banco di prova anche gli enti degli altri centri (S108); CI Docker con le immagini fissate (16 ottobre 2026)
+
+✅ Online dal 16 ottobre 2026: il committente conferma la 1.63.0 e `Schema 0`. Da fuori, da anonimo, alle 10:34Z: `/`
+302, porta «Entra con IVAO», Ricerca 401, API aeroporti e archivio ATC 401, `vipi-theme.css?v=a1b78434` (quello del
+pacchetto), `vipi-ui.js?v=ff9de306` (invariato), `/vsop/health` e `/vsop/health/ready` Healthy. Non guardati da qui,
+dietro il login: il banco su Milano con le clausole vere.
 
 MINOR **senza migrazioni**, su 1.62.0 (`f1aeaf5`). Timbro **`1.63.0 · 099b0df`**.
 - **S108** (fuso da `sito/lavori` @ `0711c4f5`; build-test, test-net8 e mariadb-schema verdi nella run 38877759564,
