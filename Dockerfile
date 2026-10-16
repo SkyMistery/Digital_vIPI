@@ -4,7 +4,11 @@ WORKDIR /src
 COPY . .
 # Restore del solo Host (+ i suoi ProjectReference): l'immagine ora leggerebbe anche Vipi.slnx, ma
 # restorare la soluzione intera tirerebbe dentro i pacchetti dei progetti di test, inutili nell'immagine.
-RUN dotnet restore src/Vipi.Host/Vipi.Host.csproj
+# --locked-mode come nei job dei test: l'immagine usa le versioni dei packages.lock.json committati. Senza, il 16
+# ottobre 2026 il restore ha preso Microsoft.EntityFrameworkCore.Sqlite 8.0.32 (uscita dopo il lock a 8.0.31), che
+# vuole SQLitePCLRaw 2.1.13 contro il 2.1.12 fissato in Vipi.Infrastructure: NU1605, e il job docker-image rosso
+# senza che il codice fosse cambiato. Se si ferma qui, il lock va rifatto (`dotnet restore --force-evaluate`).
+RUN dotnet restore src/Vipi.Host/Vipi.Host.csproj --locked-mode
 # Il publish lancia tools/Vipi.Assets (net8) per minificare gli asset, e sdk:10.0 porta il SOLO runtime 10:
 # senza questa riga l'attrezzo muore con «Framework 'Microsoft.NETCore.App', version '8.0.0' not found»
 # (codice 150) e il publish con lui. Vale solo in questo stadio.
