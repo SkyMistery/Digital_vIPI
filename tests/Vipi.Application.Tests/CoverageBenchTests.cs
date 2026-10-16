@@ -277,4 +277,98 @@ public class CoverageBenchTests
 
         Assert.Equal(4, righe.Count);
     }
+
+    // ---- gli altri enti degli accordi: si aprono e si chiudono anche loro (12 ottobre 2026) ----
+
+    private const string Firenze = "LIRQ_NN0_APP", RomaNe = "LIRR_NE_CTR", RomaNc = "LIRR_NC_CTR", RomaEw = "LIRR_EW_CTR";
+    private const string RomaEs = "LIRR_ES_CTR", RomaSu = "LIRR_SU_CTR";
+
+    /// <summary>Milano, Padova e un pezzo di Roma: Firenze pende da NE, NE da NC, NC da EW; sopra FL325 NE va a ES.</summary>
+    private static Topology ConRoma(string? padreDiWs2 = null)
+    {
+        var t = Topo(padreDiWs2);
+        var padri = new Dictionary<string, string>(t.Parent, OIC) { [Firenze] = RomaNe, [RomaNe] = RomaNc, [RomaNc] = RomaEw };
+        var ripieghi = new Dictionary<string, IReadOnlyList<FallbackRow>>(t.Fallbacks, OIC)
+        {
+            [RomaNe] = new[] { new FallbackRow(RomaEs, BaseFeet: 32500, TopFeet: null) },
+        };
+        return new Topology
+        {
+            Sectors = t.Sectors.Concat(new[] { Firenze, RomaNe, RomaNc, RomaEw, RomaEs, RomaSu }).ToArray(),
+            Parent = padri, Fallbacks = ripieghi,
+            // Firenze ha una banda sua, bassa: senza, la riga «sopra FL325» di NE la dividerebbe in due.
+            Bands = new Dictionary<string, (int? BaseFeet, int? TopFeet)>(t.Bands, OIC) { [Firenze] = (0, 10000) },
+        };
+    }
+
+    private static TransferFlowRow Scritto(string cede, params string[] riceventi) => new()
+    {
+        Id = 1, AccCode = "LIMM", OwningSectorId = 1, OwningSectorCallsign = cede,
+        Kind = Vipi.Domain.TransferFlowKind.Arrival, Order = 0,
+        Points = riceventi.Select((r, i) => new TransferPointRow
+        {
+            Id = i + 1, Cop = "P" + i, LevelUnit = Vipi.Domain.LevelUnit.Fl,
+            LevelConstraint = Vipi.Domain.LevelConstraint.Exact, LevelText = "FL120", NextSectorCallsign = r, Order = i,
+        }).ToList(),
+    };
+
+    [Fact]
+    public void Il_ricevente_di_un_altro_centro_entra_nel_banco_con_tutta_la_sua_catena()
+    {
+        // Milano → Firenze. Per chiedere «e se Firenze è chiusa? e se è chiusa anche Roma NE?» devono essere sul
+        // tavolo Firenze e tutti quelli che la sua catena può toccare — anche ES, che la raccoglie solo in quota.
+        var altri = CoverageBench.AltriEnti(new[] { Scritto(Ws2, Firenze) }, ConRoma(), Milano);
+
+        Assert.Equal(new[] { Firenze, RomaNe, RomaEs, RomaNc, RomaEw }.OrderBy(x => x), altri.OrderBy(x => x));
+        Assert.Equal(Firenze, altri[0]);            // prima il capo scritto, poi chi lo raccoglie
+        Assert.DoesNotContain(RomaSu, altri);       // non è su nessuna catena: aperto o chiuso non cambia niente
+        Assert.DoesNotContain(Ws2, altri);          // i settori dell'ACC hanno già il loro interruttore
+    }
+
+    [Fact]
+    public void Anche_chi_cede_da_un_altro_centro_entra_nel_banco()
+    {
+        var altri = CoverageBench.AltriEnti(new[] { Scritto(Padova, Es2) }, ConRoma(), Milano);
+
+        Assert.Equal(new[] { Padova }, altri);
+    }
+
+    [Fact]
+    public void Chi_raccoglie_un_settore_dell_ACC_da_fuori_entra_nel_banco()
+    {
+        // WS2 pende da Padova: l'accordo è tutto di Milano, ma chiuso WS2 il suo traffico lo cede Padova.
+        var altri = CoverageBench.AltriEnti(new[] { Scritto(Ws2, Es2) }, ConRoma(padreDiWs2: Padova), Milano);
+
+        Assert.Equal(new[] { Padova }, altri);
+    }
+
+    [Fact]
+    public void Un_capo_che_la_struttura_non_conosce_non_entra_nel_banco()
+    {
+        // Un settore cancellato dal catalogo e rimasto in un accordo: non si può aprire, e nello scenario farebbe
+        // solo credere di averlo chiuso.
+        var altri = CoverageBench.AltriEnti(new[] { Scritto(Ws2, "LIXX_SPARITO_APP", Firenze) }, ConRoma(), Milano);
+
+        Assert.DoesNotContain("LIXX_SPARITO_APP", altri);
+        Assert.Contains(Firenze, altri);
+    }
+
+    [Fact]
+    public void Un_altro_ente_chiuso_lo_raccoglie_la_sua_catena_e_la_tabella_lo_dice()
+    {
+        var topo = ConRoma();
+        var altri = CoverageBench.AltriEnti(new[] { Scritto(Ws2, Firenze) }, topo, Milano);
+        var scenario = Milano.Concat(altri).ToArray();
+
+        // Chiuse Firenze e Roma NE: Firenze sale a NC, e NE si divide fra NC e ES.
+        var aperti = scenario.Where(s => s != Firenze && s != RomaNe).ToArray();
+        var gruppi = CoverageBench.SenzaAltriEntiVuoti(CoverageBench.Copertura(topo, scenario, aperti), altri);
+
+        Assert.Contains(Firenze, Tenuti(gruppi, RomaNc));
+        Assert.Contains(RomaNe, Tenuti(gruppi, RomaNc));
+        Assert.Equal(new[] { RomaNe }, Tenuti(gruppi, RomaEs));
+        // Un altro ente aperto che non raccoglie niente non fa riga; un settore dell'ACC sì, è un'informazione.
+        Assert.DoesNotContain(gruppi, g => g.Holder == RomaEw);
+        Assert.Contains(gruppi, g => g.Holder == Ws5 && g.Items.Count == 0);
+    }
 }

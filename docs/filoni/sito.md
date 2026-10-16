@@ -7,9 +7,14 @@
 ## Dove siamo — 12 ottobre 2026
 
 > **In una riga**: tutto il lavoro del filone è **online** fino a **S107**, nella **1.62.0** (12 ottobre notte:
-> i tre ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107). Niente in corso, niente da fondere.
+> i tre ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107). Sopra c'è **S108**, pronto da fondere.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
-> §11 (banco).
+> §11–§12 (banco).
+>
+> 🟢 **Pronto da fondere — S108** (16 ottobre; nessuna migrazione): nel **banco di prova** si aprono e si chiudono
+> anche gli **enti degli altri centri** che compaiono negli accordi dell'ACC, con chi li raccoglie e le
+> configurazioni del loro centro. Il committente: «nel test bench mancano i trasferimenti tra ACC» — c'erano, ma
+> l'altro lato era sempre aperto. Carta §12.
 >
 > ✅ **Online in 1.62.0 dal 12 ottobre notte — S105, S106 e S107** (fusi dal Master in `main` @ `9105d607`, pacchetto
 > §A154, 16 file, **nessuna migrazione**; il committente al filone: «1.62 online»; da fuori `/vsop/health` risponde
@@ -2556,6 +2561,26 @@
   committente con davanti l'accordo `LIMM_WS2_CTR ⇄ LIMJ_WS0_APP`: «vorrei rivedere il meccanismo del test bench
   per testare la copertura: ci sono dei trasferimenti che non compaiono»). **Online in 1.62.0** dal 12-ott
   notte (§A154); il committente, visti numeri e schermata: «va bene così».
+- 🟢 **S108** nel **banco di prova** si chiudono anche gli **altri centri** (16-ott, il committente col banco nuovo
+  online: «nel test bench mancano i trasferimenti tra ACC»; fra tre letture ha scelto «chiudere l'altro ACC»). Su
+  `sito/lavori`, **non in `main`**. ▶ Pronto da fondere.
+  - **La causa**: i trasferimenti fra ACC erano in elenco (a Padova 12 verso Roma e 10 da Roma), ma fuori dall'ACC
+    tutto era aperto per costruzione: restavano sempre «come scritto», da tutti e due i banchi.
+  - **Fatto**: riquadro «Altri enti degli accordi», un blocco per centro — i capi degli accordi che non sono
+    settori dell'ACC, tutta la loro catena di ripiego, chi raccoglie da fuori un settore dell'ACC, e il gruppo
+    intero di un centro che ha configurazioni, coi suoi tasti (`CoverageBench.AltriEnti`, `BenchScope.Neighbours`).
+    Partono aperti; «Tutti chiusi» chiude solo l'ACC; ogni centro ha «Chiudi tutti / Apri tutti». Un altro ente
+    aperto che non raccoglie niente non fa riga in «chi tiene cosa». «Non prevista» resta dei soli settori dell'ACC.
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (`CoverageBench.cs`:
+    `AltriEnti`, `SenzaAltriEntiVuoti`, `BenchNeighbour`, `BenchScope.Neighbours`, `SimulateAsync` con un parametro
+    in più). Toccati `vipi-theme.css`, i due `.resx`, la Guida (Struttura, nelle due lingue).
+  - **Test**: App 3357 → 3362, Ui 2068 → 2074. Sei mutazioni, una alla volta, fanno cadere ciascuna almeno un test.
+    Suite intere verdi.
+  - **Prova a schermo** sulla copia di produzione del 12 ottobre (rimontata per la prova, cancellata subito dopo):
+    a Padova, chiusa Roma NE, le 16 clausole fra `LIPP_SW1` e `LIRR_NE` passano a `LIRR_NE1_CTR`; a Milano, chiusa
+    Firenze, `WS2`/`ES2 → LIRQ_NN0_APP` passano a `LIRR_NE_CTR`. Italiano e inglese. Carta
+    `docs/feature/2026-10-04-copertura-unica.md` §12.
+  - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina online col login vero.
   - **La causa**: il motore la clausola la risolveva sempre (sulla copia di produzione di quella sera: Milano, 103
     punti in 40 flussi, i sette di Genova in ogni scenario). La nascondeva il banco: di suo mostrava i **soli punti
     che cambiano mano**; i tasti delle configurazioni erano **un elenco solo** e ognuno chiudeva il resto dell'ACC
@@ -2580,7 +2605,7 @@
     `docs/feature/2026-10-04-copertura-unica.md` §11.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina sulla copia MariaDB col login vero.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 12-ott notte: tutto fuso e online fino a **S107** (1.62.0); niente da fondere;
+  Al 16-ott: tutto fuso e online fino a **S107** (1.62.0); **S108** pronto da fondere su `sito/lavori`;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
   `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
