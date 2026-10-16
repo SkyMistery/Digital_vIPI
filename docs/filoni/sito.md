@@ -4,7 +4,7 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 12 ottobre 2026
+## Dove siamo — 16 ottobre 2026
 
 > **In una riga**: tutto il lavoro del filone è **online** fino a **S108**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
@@ -28,7 +28,8 @@
 >   restano quelli dell'ACC); la vista live dell'APP remotizzato mostra quelli del suo blocco. Carta §7.
 > - **S106**: la sezione NOTAM **si vede negli editor**, come il meteo (carta §8); nella **vista live è sempre in
 >   fondo, chiusa**, e la chip la apre e ci porta la finestra (carta §6).
-> - **Tre scelte del filone dette al committente e senza risposta** (se risponde sono ritocchi): (1) nella vista live di un APP remotizzato conta il **blocco**, non il singolo APP — APP di scali
+> - **Tre scelte del filone dette al committente e senza risposta** (se risponde sono ritocchi): (1) nella vista
+>   live di un APP remotizzato conta il **blocco**, non il singolo APP — APP di scali
 >   diversi nello stesso blocco condividono i NOTAM; (2) negli editor **non è una sezione del catalogo** come il
 >   meteo (niente indice, non si sposta, non entra nella release); (3) nella vista live la sezione c'è **anche a
 >   zero NOTAM** («Nessun NOTAM…»), la chip no.
@@ -55,7 +56,7 @@
 > la chip che compare da sola a un tick live. ⚠️ I «PERM» scadono il 31 dicembre / 1° gennaio se nessuno li
 > rinnova su IVAO: quel giorno spariscono dai documenti.
 >
-> Tutto quel che è elencato qui sotto, fino a **S104**, è in `main` e **online**. Prima della 1.61.0: la **1.60.0**
+> Tutto quel che è elencato qui sotto, fino a **S108**, è in `main` e **online**. Prima della 1.61.0: la **1.60.0**
 > (S102, l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato
 > timbro e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo
 > stesso giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna
