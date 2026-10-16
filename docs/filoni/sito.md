@@ -8,7 +8,9 @@
 
 > **In una riga**: tutto il lavoro del filone è **online** fino a **S108**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
-> centri nel banco. Niente in corso, niente da fondere.
+> centri nel banco. Niente in corso. **Da fondere: S109** (16 ottobre), la revisione delle configurazioni possibili
+> chiesta per Milano APP — niente perso, il documento mostrava la scelta «Tutti i settori» della mappa; ora la
+> Struttura lo dice e la scelta si traduce. Voce S109 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2609,6 +2611,31 @@
     con le sole tabelle di struttura e accordi travasate in un SQLite di prova, in italiano e in inglese. Carta
     `docs/feature/2026-10-04-copertura-unica.md` §11.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina sulla copia MariaDB col login vero.
+- 🟢 **S109** revisione delle **configurazioni possibili** (16-ott, il committente: «nelle possible configurations
+  per Milano manca quello con ANE ecc nonostante ci sia nel documento. Puoi fare una revisione del meccanismo?»).
+  - **Cosa c'era**: niente di perso. Sulla copia di produzione del 12 ottobre (rimontata col suo ok, cancellata
+    subito dopo) il blocco «Milano APP» della vIPI di Milano ha la sezione Configurazioni **vuota**, in bozza e
+    nella pubblicata del 29 settembre. Quello che si vede nel documento è «Tutti i settori»: la scelta che la
+    **mappa AOR** si dà da sola quando un gruppo non ha configurazioni (`AccDerivationService.DeriveAorViewAsync`,
+    `AppDocumentService`) — ANE + ANW + ASW + MAR + LIME_ADE + LIML_LAR. Non è una configurazione, e la Struttura
+    giustamente non ce l'ha.
+  - **Il resto del meccanismo, controllato sugli stessi dati**: ogni documento con configurazioni scritte ha la
+    sua riga in Struttura (otto travasati, più LIMP_APP e LIPX_ES0_APP scritti a mano); nessun elenco nomina un
+    settore che non sia più del suo gruppo. Il travaso riconosce l'ente di un gruppo dalla sola chiave, il
+    documento anche dall'ente di «Remotizza»: oggi senza effetti (non resta niente da travasare), lasciato.
+  - **Fatto**: (1) «Tutti i settori» era scritto in italiano nel servizio, anche nella pagina inglese: ora ha una
+    chiave fissa (`AccConfigSelection.TuttiISettori`) e il nome lo mette `AccAor.razor` (`Aor_AllSectors`), anche
+    sulle sezioni AOR già congelate; (2) in Struttura un gruppo **senza elenco scritto** dice che intanto il
+    documento mostra «Tutti i settori» e che non è una configurazione (`Cfgs_DocShowsAll`, con e senza lock;
+    conta lo scritto, non la copia di lavoro).
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (la costante in
+    `AccVipiModels.cs`, usata da `AccDerivationService` e `AppDocumentService`). Toccati i due `.resx`.
+  - **Test**: Ui 2074 → 2078 (`AorTuttiISettoriTests`, due in `StructureConfigurationsTests`); App 3362 invariato.
+    Suite Ui e App intere verdi, soluzione compilata senza avvisi.
+  - **Prova a schermo** su un database nuovo seminato (ACC LIMM, ente Milano APP senza elenco), in inglese:
+    l'avviso c'è senza lock e col lock, resta con una riga aggiunta e non applicata, sparisce dopo «Applica».
+  - ⚠️ **Non visto**: la mappa AOR di un documento vero in inglese (coperta dal test bUnit); il telefono.
+  - **Resta al committente**: scrivere in Struttura le configurazioni di Milano APP (quali, lo sa lui).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 16-ott: tutto fuso e online fino a **S108** (1.63.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
