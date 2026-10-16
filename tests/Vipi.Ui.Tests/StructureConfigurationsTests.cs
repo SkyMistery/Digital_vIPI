@@ -18,6 +18,7 @@ public class StructureConfigurationsTests : TestContext
 {
     private const string Ws2 = "LIMM_WS2_CTR", Es2 = "LIMM_ES2_CTR", Mil = "LIMM_MIL_CTR";
     private const string Ww0 = "LIMF_WW0_APP", Wn0 = "LIMF_WN0_APP", Ws0 = "LIMJ_WS0_APP";
+    private const string Ane = "LIMC_ANE_APP", Asw = "LIMC_ASW_APP";
 
     private sealed class ChiaveComeValore : IStringLocalizer<SharedResource>
     {
@@ -42,6 +43,8 @@ public class StructureConfigurationsTests : TestContext
             ["LIMM"] = new() { Cfg("Conf 1", Ws2), Cfg("Conf 2", Es2, Ws2) },
             // Come sta oggi nel documento: mancano {WN0} e {WS0}.
             [Ww0] = new() { Cfg("Conf 1", Ww0), Cfg("Conf 2", Ww0, Ws0), Cfg("Conf 3", Wn0, Ws0) },
+            // Come in produzione al 12 ottobre 2026: un ente senza nessuna configurazione scritta.
+            [Ane] = new(),
         };
         public List<(string Codice, string[] Nomi)> Scritture { get; } = new();
         public HashSet<string> Completi { get; } = new(StringComparer.OrdinalIgnoreCase) { "LIMM" };
@@ -57,6 +60,7 @@ public class StructureConfigurationsTests : TestContext
             {
                 new GruppoDiSettori(ConfigurationGroupKind.AccArea, "LIMM", "LIMM", new[] { P(Es2), P(Mil), P(Ws2) }, Copia("LIMM"), Completi.Contains("LIMM")),
                 new GruppoDiSettori(ConfigurationGroupKind.AtcUnit, Ww0, "Torino - Genova", new[] { P(Ww0), P(Wn0), P(Ws0) }, Copia(Ww0), Completi.Contains(Ww0)),
+                new GruppoDiSettori(ConfigurationGroupKind.AtcUnit, Ane, "Milano APP", new[] { P(Ane), P(Asw) }, Copia(Ane), Completi.Contains(Ane)),
             };
             return Task.FromResult(gruppi);
         }
@@ -119,7 +123,7 @@ public class StructureConfigurationsTests : TestContext
         var cut = Monta(canEdit: false);
         await ScegliMilano(cut);
 
-        Assert.Equal(2, cut.FindAll(".cfgs-group").Count);
+        Assert.Equal(3, cut.FindAll(".cfgs-group").Count);
         Assert.Empty(cut.FindAll(".cfgs-group button"));
         Assert.Empty(cut.FindAll(".cfgs-group input"));
 
@@ -207,6 +211,42 @@ public class StructureConfigurationsTests : TestContext
         await cut.InvokeAsync(() => Gruppo(cut, "LIMM").QuerySelectorAll(".fb-acts .btn.ghost").First().Click());
         Assert.False(cut.Instance.Sporco);
         Assert.Contains("LIMM", _servizio.Completi);
+    }
+
+    /// <summary>
+    /// 🔴 Un gruppo senza elenco dice che cosa mostra intanto il documento: la mappa AOR offre «Tutti i settori».
+    /// Il committente, il 16 ottobre 2026, ha cercato quella scelta fra le configurazioni di Milano APP e non c'era
+    /// — perché non è una configurazione. L'avviso segue lo SCRITTO: una riga aggiunta e non applicata non cambia
+    /// il documento, quindi non lo spegne.
+    /// </summary>
+    [Fact]
+    public async Task Un_gruppo_senza_elenco_dice_che_il_documento_mostra_tutti_i_settori()
+    {
+        var cut = Monta(canEdit: true);
+        await ScegliMilano(cut);
+
+        Assert.NotNull(Gruppo(cut, Ane).QuerySelector(".cfgs-doc-all"));
+        Assert.Null(Gruppo(cut, "LIMM").QuerySelector(".cfgs-doc-all"));
+        Assert.Null(Gruppo(cut, Ww0).QuerySelector(".cfgs-doc-all"));
+
+        await cut.InvokeAsync(() => Gruppo(cut, Ane).QuerySelectorAll("button").First(b => b.TextContent.Trim() == "AppCfg_Add").Click());
+        await cut.InvokeAsync(() => Gruppo(cut, Ane).QuerySelectorAll(".block").Last()
+            .QuerySelectorAll(".sp-item").First(b => b.TextContent.Trim() == Ane).Click());
+        Assert.NotNull(Gruppo(cut, Ane).QuerySelector(".cfgs-doc-all"));   // non ancora applicata
+
+        await cut.InvokeAsync(() => Gruppo(cut, Ane).QuerySelectorAll(".fb-acts .btn.primary").First().Click());
+
+        Assert.Null(Gruppo(cut, Ane).QuerySelector(".cfgs-doc-all"));
+    }
+
+    [Fact]
+    public async Task Senza_lock_anche_un_gruppo_senza_elenco_dice_che_cosa_mostra_il_documento()
+    {
+        var cut = Monta(canEdit: false);
+        await ScegliMilano(cut);
+
+        Assert.Contains("Cfgs_NoList", Gruppo(cut, Ane).TextContent);
+        Assert.NotNull(Gruppo(cut, Ane).QuerySelector(".cfgs-doc-all"));
     }
 
     [Fact]

@@ -223,7 +223,7 @@ public sealed class AccDerivationService : IAccDerivationService
             // accenderebbe niente, e il lettore penserebbe a un guasto.
             configs = block.Configurations.Count > 0
                 ? block.Configurations.Select(c => new AccConfigSelection(c.Key, c.Name, c.OpenCallsigns.Where(DiQuesta).ToList())).ToList()
-                : new List<AccConfigSelection> { new("all", "Tutti i settori", (await MembersOfAsync(accCode, block, rootCallsign, ct)).Where(DiQuesta).ToList()) };
+                : new List<AccConfigSelection> { new(AccConfigSelection.TuttiISettori, "Tutti i settori", (await MembersOfAsync(accCode, block, rootCallsign, ct)).Where(DiQuesta).ToList()) };
 
             // Union dei settori referenziati; fallback ai membri del blocco.
             callsigns = configs.SelectMany(c => c.OpenCallsigns).Distinct(StringComparer.OrdinalIgnoreCase).ToList();

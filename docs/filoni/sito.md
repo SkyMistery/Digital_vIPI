@@ -4,17 +4,23 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 12 ottobre 2026
+## Dove siamo — 16 ottobre 2026
 
-> **In una riga**: tutto il lavoro del filone è **online** fino a **S107**, nella **1.62.0** (12 ottobre notte:
-> i tre ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107). Sopra c'è **S108**, pronto da fondere.
+> **In una riga**: tutto il lavoro del filone è **online** fino a **S108**: nella **1.62.0** (12 ottobre notte) i tre
+> ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
+> centri nel banco. Niente in corso. **Da fondere: S109** (16 ottobre), la revisione delle configurazioni possibili
+> chiesta per Milano APP — niente perso, il documento mostrava la scelta «Tutti i settori» della mappa; ora la
+> Struttura lo dice e la scelta si traduce. Voce S109 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
-> 🟢 **Pronto da fondere — S108** (16 ottobre; nessuna migrazione): nel **banco di prova** si aprono e si chiudono
+> ✅ **Online in 1.63.0 dal 16 ottobre — S108** (§A155, 11 file, nessuna migrazione; il committente ha confermato
+> Schema 0): nel **banco di prova** si aprono e si chiudono
 > anche gli **enti degli altri centri** che compaiono negli accordi dell'ACC, con chi li raccoglie e le
 > configurazioni del loro centro. Il committente: «nel test bench mancano i trasferimenti tra ACC» — c'erano, ma
-> l'altro lato era sempre aperto. Carta §12.
+> l'altro lato era sempre aperto. Carta §12. **Resta da guardare online, col login**: il banco su Milano con le
+> clausole vere (il Master sul publish ha visto LIBB: 16 enti di altri centri, chiuso `LGGG_W_CTR` 14 clausole
+> cambiano mano).
 >
 > ✅ **Online in 1.62.0 dal 12 ottobre notte — S105, S106 e S107** (fusi dal Master in `main` @ `9105d607`, pacchetto
 > §A154, 16 file, **nessuna migrazione**; il committente al filone: «1.62 online»; da fuori `/vsop/health` risponde
@@ -24,7 +30,8 @@
 >   restano quelli dell'ACC); la vista live dell'APP remotizzato mostra quelli del suo blocco. Carta §7.
 > - **S106**: la sezione NOTAM **si vede negli editor**, come il meteo (carta §8); nella **vista live è sempre in
 >   fondo, chiusa**, e la chip la apre e ci porta la finestra (carta §6).
-> - **Tre scelte del filone dette al committente e senza risposta** (se risponde sono ritocchi): (1) nella vista live di un APP remotizzato conta il **blocco**, non il singolo APP — APP di scali
+> - **Tre scelte del filone dette al committente e senza risposta** (se risponde sono ritocchi): (1) nella vista
+>   live di un APP remotizzato conta il **blocco**, non il singolo APP — APP di scali
 >   diversi nello stesso blocco condividono i NOTAM; (2) negli editor **non è una sezione del catalogo** come il
 >   meteo (niente indice, non si sposta, non entra nella release); (3) nella vista live la sezione c'è **anche a
 >   zero NOTAM** («Nessun NOTAM…»), la chip no.
@@ -51,7 +58,7 @@
 > la chip che compare da sola a un tick live. ⚠️ I «PERM» scadono il 31 dicembre / 1° gennaio se nessuno li
 > rinnova su IVAO: quel giorno spariscono dai documenti.
 >
-> Tutto quel che è elencato qui sotto, fino a **S104**, è in `main` e **online**. Prima della 1.61.0: la **1.60.0**
+> Tutto quel che è elencato qui sotto, fino a **S108**, è in `main` e **online**. Prima della 1.61.0: la **1.60.0**
 > (S102, l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato
 > timbro e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo
 > stesso giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna
@@ -2561,9 +2568,9 @@
   committente con davanti l'accordo `LIMM_WS2_CTR ⇄ LIMJ_WS0_APP`: «vorrei rivedere il meccanismo del test bench
   per testare la copertura: ci sono dei trasferimenti che non compaiono»). **Online in 1.62.0** dal 12-ott
   notte (§A154); il committente, visti numeri e schermata: «va bene così».
-- 🟢 **S108** nel **banco di prova** si chiudono anche gli **altri centri** (16-ott, il committente col banco nuovo
-  online: «nel test bench mancano i trasferimenti tra ACC»; fra tre letture ha scelto «chiudere l'altro ACC»). Su
-  `sito/lavori`, **non in `main`**. ▶ Pronto da fondere.
+- ✅ **S108** nel **banco di prova** si chiudono anche gli **altri centri** (16-ott, il committente col banco nuovo
+  online: «nel test bench mancano i trasferimenti tra ACC»; fra tre letture ha scelto «chiudere l'altro ACC»; visto il
+  riquadro: «sì, va bene»). **Online in 1.63.0** dal 16-ott (§A155).
   - **La causa**: i trasferimenti fra ACC erano in elenco (a Padova 12 verso Roma e 10 da Roma), ma fuori dall'ACC
     tutto era aperto per costruzione: restavano sempre «come scritto», da tutti e due i banchi.
   - **Fatto**: riquadro «Altri enti degli accordi», un blocco per centro — i capi degli accordi che non sono
@@ -2604,8 +2611,33 @@
     con le sole tabelle di struttura e accordi travasate in un SQLite di prova, in italiano e in inglese. Carta
     `docs/feature/2026-10-04-copertura-unica.md` §11.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina sulla copia MariaDB col login vero.
+- 🟢 **S109** revisione delle **configurazioni possibili** (16-ott, il committente: «nelle possible configurations
+  per Milano manca quello con ANE ecc nonostante ci sia nel documento. Puoi fare una revisione del meccanismo?»).
+  - **Cosa c'era**: niente di perso. Sulla copia di produzione del 12 ottobre (rimontata col suo ok, cancellata
+    subito dopo) il blocco «Milano APP» della vIPI di Milano ha la sezione Configurazioni **vuota**, in bozza e
+    nella pubblicata del 29 settembre. Quello che si vede nel documento è «Tutti i settori»: la scelta che la
+    **mappa AOR** si dà da sola quando un gruppo non ha configurazioni (`AccDerivationService.DeriveAorViewAsync`,
+    `AppDocumentService`) — ANE + ANW + ASW + MAR + LIME_ADE + LIML_LAR. Non è una configurazione, e la Struttura
+    giustamente non ce l'ha.
+  - **Il resto del meccanismo, controllato sugli stessi dati**: ogni documento con configurazioni scritte ha la
+    sua riga in Struttura (otto travasati, più LIMP_APP e LIPX_ES0_APP scritti a mano); nessun elenco nomina un
+    settore che non sia più del suo gruppo. Il travaso riconosce l'ente di un gruppo dalla sola chiave, il
+    documento anche dall'ente di «Remotizza»: oggi senza effetti (non resta niente da travasare), lasciato.
+  - **Fatto**: (1) «Tutti i settori» era scritto in italiano nel servizio, anche nella pagina inglese: ora ha una
+    chiave fissa (`AccConfigSelection.TuttiISettori`) e il nome lo mette `AccAor.razor` (`Aor_AllSectors`), anche
+    sulle sezioni AOR già congelate; (2) in Struttura un gruppo **senza elenco scritto** dice che intanto il
+    documento mostra «Tutti i settori» e che non è una configurazione (`Cfgs_DocShowsAll`, con e senza lock;
+    conta lo scritto, non la copia di lavoro).
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (la costante in
+    `AccVipiModels.cs`, usata da `AccDerivationService` e `AppDocumentService`). Toccati i due `.resx`.
+  - **Test**: Ui 2074 → 2078 (`AorTuttiISettoriTests`, due in `StructureConfigurationsTests`); App 3362 invariato.
+    Suite Ui e App intere verdi, soluzione compilata senza avvisi.
+  - **Prova a schermo** su un database nuovo seminato (ACC LIMM, ente Milano APP senza elenco), in inglese:
+    l'avviso c'è senza lock e col lock, resta con una riga aggiunta e non applicata, sparisce dopo «Applica».
+  - ⚠️ **Non visto**: la mappa AOR di un documento vero in inglese (coperta dal test bUnit); il telefono.
+  - **Resta al committente**: scrivere in Struttura le configurazioni di Milano APP (quali, lo sa lui).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 16-ott: tutto fuso e online fino a **S107** (1.62.0); **S108** pronto da fondere su `sito/lavori`;
+  Al 16-ott: tutto fuso e online fino a **S108** (1.63.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
   `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

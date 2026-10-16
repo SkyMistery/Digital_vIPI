@@ -227,6 +227,7 @@
   <data name="AccAor_NoFss" xml:space="preserve"><value>Nessun settore FIC in questo ACC.</value></data>
   <data name="Aor_ConfigLabel" xml:space="preserve"><value>Configurazione:</value></data>
   <data name="Aor_Clear" xml:space="preserve"><value>azzera</value></data>
+  <data name="Aor_AllSectors" xml:space="preserve"><value>Tutti i settori</value></data>
   <data name="Aor_MapHint" xml:space="preserve"><value>Accendi/spegni i settori sopra la mappa; scegli una configurazione sotto per applicarne l'assetto.</value></data>
   <data name="Reg_NoneSelected" xml:space="preserve"><value>Nessuna area regolamentata selezionata.</value></data>
   <data name="Reg_MapHint" xml:space="preserve"><value>Accendi/spegni le aree sopra la mappa; i tasti per tipo accendono solo quelle di quel tipo. Sotto trovi la descrizione delle sole aree accese.</value></data>
@@ -4202,6 +4203,7 @@
   <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Settori che l&apos;elenco non nomina, quindi senza vincoli: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>Nessuna configurazione con un settore aperto.</value></data>
+  <data name="Cfgs_DocShowsAll" xml:space="preserve"><value>Finché qui non c&apos;è un elenco, la mappa AOR del documento offre una sola scelta, «Tutti i settori», che accende tutto il gruppo. Non è una configurazione: è la mappa che si arrangia.</value></data>
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Settori d&apos;area · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>Le configurazioni possibili non sono applicate: applicale o annullale prima di «Fine modifica».</value></data>
   <data name="Bench_NotForeseen" xml:space="preserve"><value>Non è una configurazione prevista dall&apos;elenco completo — {0}: {1}</value></data>

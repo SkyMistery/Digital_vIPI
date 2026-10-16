@@ -227,6 +227,7 @@
   <data name="AccAor_NoFss" xml:space="preserve"><value>No FIC sector in this ACC.</value></data>
   <data name="Aor_ConfigLabel" xml:space="preserve"><value>Configuration:</value></data>
   <data name="Aor_Clear" xml:space="preserve"><value>clear</value></data>
+  <data name="Aor_AllSectors" xml:space="preserve"><value>All sectors</value></data>
   <data name="Aor_MapHint" xml:space="preserve"><value>Toggle the sectors above the map; pick a configuration below to apply its layout.</value></data>
   <data name="Reg_NoneSelected" xml:space="preserve"><value>No regulated area selected.</value></data>
   <data name="Reg_MapHint" xml:space="preserve"><value>Toggle the areas above the map; the per-type buttons light up only areas of that type. Below you get the description of the lit areas only.</value></data>
@@ -4194,6 +4195,7 @@
   <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector.</value></data>
+  <data name="Cfgs_DocShowsAll" xml:space="preserve"><value>Until a list is written here, the document's AOR map offers a single choice, «All sectors», which lights up the whole group. It is not a configuration: it is the map making do.</value></data>
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>
   <data name="Bench_NotForeseen" xml:space="preserve"><value>Not a configuration foreseen by the complete list — {0}: {1}</value></data>

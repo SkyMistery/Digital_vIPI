@@ -140,6 +140,14 @@
             {
                 <p class="muted" style="margin:8px 0 0">@L["Cfgs_NoConstraint"]</p>
             }
+
+            @* Senza un elenco SCRITTO il documento non resta vuoto: la sua mappa AOR offre «Tutti i settori». Senza
+               dirlo qui, chi la vede la cerca fra le configurazioni e non la trova (Milano APP, 16 ottobre 2026).
+               ⚠️ Conta lo scritto, non la copia di lavoro: il documento legge quello. *@
+            @if (gruppo.Salvato.Length == 0)
+            {
+                <p class="muted cfgs-doc-all" style="margin:6px 0 0">@L["Cfgs_DocShowsAll"]</p>
+            }
         </div>
     }
 </div>
