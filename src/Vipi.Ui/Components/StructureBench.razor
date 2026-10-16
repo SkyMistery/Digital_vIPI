@@ -25,8 +25,8 @@
         </div>
         @if (_scope is not null)
         {
-            <button type="button" class="btn ghost" disabled="@_busy" @onclick="() => ApriAsync(_scope.Sectors.Select(s => s.Callsign))">@L["Bench_AllOpen"]</button>
-            <button type="button" class="btn ghost" disabled="@_busy" @onclick="() => ApriAsync(Array.Empty<string>())">@L["Bench_AllClosed"]</button>
+            <button type="button" class="btn ghost" disabled="@_busy" title="@L["Bench_AllOpenTitle"]" @onclick="() => ApriAsync(_tutti)">@L["Bench_AllOpen"]</button>
+            <button type="button" class="btn ghost" disabled="@_busy" title="@L["Bench_AllClosedTitle"]" @onclick="() => ApriAsync(_open.Where(a => !DiCasa(a)).ToList())">@L["Bench_AllClosed"]</button>
         }
     </div>
 
@@ -44,20 +44,7 @@
             <p class="app-lbl" style="margin:12px 0 4px">@L["Bench_Presets"]</p>
             @foreach (var g in _scope.Groups)
             {
-                var gruppo = g;
-                <div class="bench-grp">
-                    <span class="bench-grp-name">@gruppo.Name</span>
-                    <div class="sector-pick">
-                        @foreach (var p in gruppo.Presets)
-                        {
-                            var preset = p;
-                            <button type="button" class="sp-item @(Accesa(gruppo, preset) ? "on" : null)" disabled="@_busy"
-                                    title="@string.Join(" · ", preset.Open)" @onclick="() => SceglieAsync(gruppo, preset)">
-                                @preset.Name
-                            </button>
-                        }
-                    </div>
-                </div>
+                @Tasti(g)
             }
         }
         else
@@ -70,17 +57,37 @@
             var gruppo = _scope.Sectors.Where(s => s.Area == area).ToList();
             if (gruppo.Count == 0) continue;
             <p class="app-lbl" style="margin:12px 0 4px">@(area ? L["Bench_Area"] : L["Bench_App"])</p>
-            <div class="sector-pick">
-                @foreach (var s in gruppo)
-                {
-                    var settore = s;
-                    <button type="button" class="sp-item @(_open.Contains(settore.Callsign) ? "on" : null)" disabled="@_busy"
-                            aria-pressed="@_open.Contains(settore.Callsign).ToString().ToLowerInvariant()"
-                            title="@settore.Name" @onclick="() => CambiaAsync(settore.Callsign)">
-                        @settore.Callsign
-                    </button>
-                }
-            </div>
+            @Interruttori(gruppo)
+        }
+
+        @if (_scope.Neighbours.Count > 0)
+        {
+            @* Gli enti degli ALTRI centri che compaiono negli accordi dell'ACC, e chi li raccoglie: fino al 12 ottobre
+               2026 erano aperti per costruzione, e un trasferimento fra due ACC si poteva provare da un lato solo. *@
+            <p class="app-lbl" style="margin:14px 0 2px">@L["Bench_Neighbours"]</p>
+            <p class="muted bench-nb-hint">@L["Bench_NeighboursHint"]</p>
+            @foreach (var v in _scope.Neighbours)
+            {
+                var vicino = v;
+                var tuttiAperti = vicino.Sectors.All(s => _open.Contains(s.Callsign));
+                <div class="bench-nb" data-bench-acc="@vicino.AccCode">
+                    <div class="bench-grp">
+                        <span class="bench-grp-name bench-nb-name">
+                            @(vicino.AccCode.Length == 0 ? L["Bench_NeighbourUnknown"].Value : vicino.AccCode)
+                            @if (vicino.AccName.Length > 0) { <span class="muted">@vicino.AccName</span> }
+                        </span>
+                        <button type="button" class="btn ghost bench-nb-all" disabled="@_busy"
+                                @onclick="() => TuttoIlCentroAsync(vicino, !tuttiAperti)">
+                            @(tuttiAperti ? L["Bench_CloseAll"] : L["Bench_OpenAll"])
+                        </button>
+                    </div>
+                    @foreach (var g in vicino.Groups)
+                    {
+                        @Tasti(g)
+                    }
+                    @Interruttori(vicino.Sectors)
+                </div>
+            }
         }
 
         @if (_esito is not null)
@@ -205,6 +212,49 @@
     private readonly HashSet<string> _open = new(StringComparer.OrdinalIgnoreCase);
     private bool _busy;
     private Filtro _filtro = Filtro.Tutte;
+
+    /// <summary>Tutto ciò che il banco apre e chiude: i settori dell'ACC e gli altri enti dei suoi accordi.</summary>
+    private readonly HashSet<string> _tutti = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>I soli altri enti: è lo scenario in più che si dice al servizio a ogni domanda.</summary>
+    private readonly List<string> _altri = new();
+
+    private bool DiCasa(string callsign) =>
+        _scope is not null && _scope.Sectors.Any(s => string.Equals(s.Callsign, callsign, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>I tasti delle configurazioni di un gruppo: la stessa riga per l'ACC e per un altro centro.</summary>
+    private RenderFragment Tasti(BenchPresetGroup gruppo) => __builder =>
+    {
+        <div class="bench-grp">
+            <span class="bench-grp-name">@gruppo.Name</span>
+            <div class="sector-pick">
+                @foreach (var p in gruppo.Presets)
+                {
+                    var preset = p;
+                    <button type="button" class="sp-item @(Accesa(gruppo, preset) ? "on" : null)" disabled="@_busy"
+                            title="@string.Join(" · ", preset.Open)" @onclick="() => SceglieAsync(gruppo, preset)">
+                        @preset.Name
+                    </button>
+                }
+            </div>
+        </div>
+    };
+
+    /// <summary>Un interruttore per settore: acceso = aperto.</summary>
+    private RenderFragment Interruttori(IReadOnlyList<BenchSector> settori) => __builder =>
+    {
+        <div class="sector-pick">
+            @foreach (var s in settori)
+            {
+                var settore = s;
+                <button type="button" class="sp-item @(_open.Contains(settore.Callsign) ? "on" : null)" disabled="@_busy"
+                        aria-pressed="@_open.Contains(settore.Callsign).ToString().ToLowerInvariant()"
+                        title="@settore.Name" @onclick="() => CambiaAsync(settore.Callsign)">
+                    @settore.Callsign
+                </button>
+            }
+        </div>
+    };
     private string? _errore;
 
     /// <summary>Quali clausole si guardano. Si parte da tutte: un trasferimento che non compare sembra mancare.</summary>
@@ -256,35 +306,50 @@
     private Task SceglieAsync(BenchPresetGroup gruppo, BenchPreset preset) =>
         ApriAsync(CoverageBench.ConPreset(_open.ToList(), gruppo.Sectors, preset.Open));
 
+    /// <summary>Apre o chiude in un gesto tutti gli enti di un altro centro; il resto dello scenario non si tocca.</summary>
+    private Task TuttoIlCentroAsync(BenchNeighbour vicino, bool apri)
+    {
+        var suoi = vicino.Sectors.Select(s => s.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var aperti = _open.Where(a => !suoi.Contains(a)).ToList();
+        if (apri) aperti.AddRange(suoi);
+        return ApriAsync(aperti);
+    }
+
     private Task ScegliAccAsync(string? acc) => GuardatoAsync(async () =>
     {
         _acc = string.IsNullOrWhiteSpace(acc) ? null : acc;
         _scope = null;
         _esito = null;
         _open.Clear();
+        _tutti.Clear();
+        _altri.Clear();
         if (_acc is null) return;
 
         _scope = await Bench.ScopeAsync(_acc);
         if (_scope is null) return;
-        // Si parte da «tutti aperti»: ognuno tiene il suo, e chiudendone uno si vede chi lo raccoglie.
-        foreach (var s in _scope.Sectors) _open.Add(s.Callsign);
-        _esito = await Bench.SimulateAsync(_acc, _open);
+        foreach (var s in _scope.Sectors) _tutti.Add(s.Callsign);
+        foreach (var s in _scope.Neighbours.SelectMany(v => v.Sectors))
+            if (_tutti.Add(s.Callsign)) _altri.Add(s.Callsign);
+        // Si parte da «tutti aperti», altri centri compresi: ognuno tiene il suo, e chiudendone uno si vede chi lo
+        // raccoglie. È lo scenario di sempre — fuori dall'ACC era tutto aperto anche quando non si poteva chiudere.
+        foreach (var s in _tutti) _open.Add(s);
+        _esito = await Bench.SimulateAsync(_acc, _open, _altri);
     });
 
     private Task CambiaAsync(string callsign) => GuardatoAsync(async () =>
     {
         if (!_open.Remove(callsign)) _open.Add(callsign);
-        _esito = await Bench.SimulateAsync(_acc!, _open);
+        _esito = await Bench.SimulateAsync(_acc!, _open, _altri);
     });
 
     private Task ApriAsync(IEnumerable<string> aperti) => GuardatoAsync(async () =>
     {
         if (_scope is null) return;
+        // ⚠️ L'elenco si copia PRIMA di vuotare: chi chiama passa spesso una vista sugli aperti di adesso.
+        var nuovi = aperti.Where(_tutti.Contains).ToList();
         _open.Clear();
-        foreach (var a in aperti)
-            if (_scope.Sectors.Any(s => string.Equals(s.Callsign, a, StringComparison.OrdinalIgnoreCase)))
-                _open.Add(a);
-        _esito = await Bench.SimulateAsync(_acc!, _open);
+        foreach (var a in nuovi) _open.Add(a);
+        _esito = await Bench.SimulateAsync(_acc!, _open, _altri);
     });
 
     /// <summary>Ogni gesto: in fila con la pagina, e un guasto del servizio diventa una frase invece di un circuito giù.</summary>

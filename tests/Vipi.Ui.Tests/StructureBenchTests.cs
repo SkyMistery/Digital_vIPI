@@ -18,6 +18,7 @@ public class StructureBenchTests : TestContext
 {
     private const string Ws2 = "LIMM_WS2_CTR", Es2 = "LIMM_ES2_CTR", Ws5 = "LIMM_WS5_CTR", Es5 = "LIMM_ES5_CTR";
     private const string Torino = "LIMF_WW0_APP", Genova = "LIMJ_WS0_APP";
+    private const string RomaNe = "LIRR_NE_CTR", RomaNc = "LIRR_NC_CTR", Firenze = "LIRQ_NN0_APP", PadovaSw = "LIPP_SW1_CTR";
 
     /// <summary>Localizzatore che rende la CHIAVE: qui si prova il markup, non le traduzioni.</summary>
     private sealed class ChiaveComeValore : IStringLocalizer<SharedResource>
@@ -40,6 +41,12 @@ public class StructureBenchTests : TestContext
         /// <summary>Aggiunge un ente con due avvicinamenti e una sua configurazione: un SECONDO gruppo.</summary>
         public bool ConAvvicinamenti { get; set; }
 
+        /// <summary>Aggiunge gli enti di due altri centri: Roma (con una sua configurazione) e Padova.</summary>
+        public bool ConAltriCentri { get; set; }
+
+        /// <summary>Gli altri enti detti al servizio all'ultima domanda.</summary>
+        public string[] Altri { get; private set; } = Array.Empty<string>();
+
         public Task<BenchScope?> ScopeAsync(string accCode, CancellationToken ct = default)
         {
             var settori = new List<BenchSector>
@@ -57,13 +64,29 @@ public class StructureBenchTests : TestContext
                 settori.Add(new(Genova, "Genova", Area: false));
                 gruppi.Add(new("Milano West", new[] { Torino, Genova }, new[] { new BenchPreset("Solo Torino", new[] { Torino }) }));
             }
-            return Task.FromResult<BenchScope?>(new BenchScope(accCode, settori, gruppi));
+            var altri = !ConAltriCentri
+                ? Array.Empty<BenchNeighbour>()
+                : new[]
+                {
+                    new BenchNeighbour("LIPP", "Padova", new[] { new BenchSector(PadovaSw, "Padova SW1", Area: true) },
+                        Array.Empty<BenchPresetGroup>()),
+                    new BenchNeighbour("LIRR", "Roma",
+                        new[]
+                        {
+                            new BenchSector(RomaNc, "Roma NC", Area: true), new BenchSector(RomaNe, "Roma NE", Area: true),
+                            new BenchSector(Firenze, "Firenze", Area: false),
+                        },
+                        new[] { new BenchPresetGroup("LIRR", new[] { RomaNc, RomaNe }, new[] { new BenchPreset("Solo NC", new[] { RomaNc }) }) }),
+                };
+            return Task.FromResult<BenchScope?>(new BenchScope(accCode, settori, gruppi) { Neighbours = altri });
         }
 
-        public Task<BenchOutcome> SimulateAsync(string accCode, IReadOnlyCollection<string> open, CancellationToken ct = default)
+        public Task<BenchOutcome> SimulateAsync(string accCode, IReadOnlyCollection<string> open,
+            IReadOnlyCollection<string> neighbours, CancellationToken ct = default)
         {
             var aperti = open.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
             Scenari.Add(aperti);
+            Altri = neighbours.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
             var gruppi = aperti.Select(a => new BenchGroup(a, Outside: false, Array.Empty<BenchItem>())).ToList();
             if (!open.Contains(Es5)) gruppi.Add(new BenchGroup(null, Outside: false, new[] { new BenchItem(Es5, "FL325–UNL") }));
             var fuori = ConElenco && open.Contains(Es2) && !open.Contains(Ws2)
@@ -204,6 +227,97 @@ public class StructureBenchTests : TestContext
         Assert.Equal(new[] { Es2, Torino, Ws2 }.OrderBy(x => x, StringComparer.OrdinalIgnoreCase), _banco.Scenari.Last());
         var accese = cut.FindAll(".bench-grp .sp-item.on").Select(b => b.TextContent.Trim()).ToArray();
         Assert.Equal(new[] { "Fino a UNL", "Solo Torino" }, accese);
+    }
+
+    // ---- gli altri enti degli accordi (12 ottobre 2026: «mancano i trasferimenti tra ACC») ----
+
+    private static string[] Ordinati(params string[] nomi) => nomi.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
+
+    private static Task Premi(IRenderedComponent<StructureBench> cut, string selettore, string testo) =>
+        cut.InvokeAsync(() => cut.FindAll(selettore).First(b => b.TextContent.Trim() == testo).Click());
+
+    [Fact]
+    public async Task Gli_enti_degli_altri_centri_sono_sul_tavolo_aperti_e_si_dicono_al_servizio()
+    {
+        _banco.ConAltriCentri = true;
+        var cut = Monta();
+        await ScegliMilano(cut);
+
+        Assert.Equal(new[] { "LIPP", "LIRR" }, cut.FindAll(".bench-nb").Select(x => x.GetAttribute("data-bench-acc")));
+        Assert.Equal(4, cut.FindAll(".bench-nb > .sector-pick .sp-item.on").Count);
+        Assert.Equal(Ordinati(PadovaSw, RomaNc, RomaNe, Firenze), _banco.Altri);
+        Assert.Equal(Ordinati(Ws2, Es2, Ws5, Es5, PadovaSw, RomaNc, RomaNe, Firenze), _banco.Scenari.Last());
+    }
+
+    /// <summary>
+    /// Il difetto: fuori dall'ACC era tutto aperto per costruzione, e un trasferimento verso Roma non si poteva
+    /// provare con Roma chiusa. Ora l'altro capo si chiude come un settore di casa.
+    /// </summary>
+    [Fact]
+    public async Task Un_ente_di_un_altro_centro_si_chiude_e_il_resto_dello_scenario_non_cambia()
+    {
+        _banco.ConAltriCentri = true;
+        var cut = Monta();
+        await ScegliMilano(cut);
+
+        await Premi(cut, ".bench-nb .sp-item", RomaNe);
+
+        Assert.Equal(Ordinati(Ws2, Es2, Ws5, Es5, PadovaSw, RomaNc, Firenze), _banco.Scenari.Last());
+        Assert.Equal(Ordinati(PadovaSw, RomaNc, RomaNe, Firenze), _banco.Altri);   // resta nello scenario: è CHIUSO, non assente
+    }
+
+    [Fact]
+    public async Task Chiudere_tutto_un_centro_non_tocca_gli_altri_e_si_riapre_dallo_stesso_tasto()
+    {
+        _banco.ConAltriCentri = true;
+        var cut = Monta();
+        await ScegliMilano(cut);
+
+        await cut.InvokeAsync(() => cut.Find(".bench-nb[data-bench-acc=LIRR] .bench-nb-all").Click());
+        Assert.Equal(Ordinati(Ws2, Es2, Ws5, Es5, PadovaSw), _banco.Scenari.Last());
+        Assert.Contains("Bench_OpenAll", cut.Find(".bench-nb[data-bench-acc=LIRR] .bench-nb-all").TextContent);
+
+        await cut.InvokeAsync(() => cut.Find(".bench-nb[data-bench-acc=LIRR] .bench-nb-all").Click());
+        Assert.Equal(Ordinati(Ws2, Es2, Ws5, Es5, PadovaSw, RomaNc, RomaNe, Firenze), _banco.Scenari.Last());
+    }
+
+    [Fact]
+    public async Task La_configurazione_di_un_altro_centro_cambia_i_soli_settori_del_suo_gruppo()
+    {
+        _banco.ConAltriCentri = true;
+        var cut = Monta();
+        await ScegliMilano(cut);
+
+        await Premi(cut, ".bench-nb .bench-grp .sp-item", "Solo NC");
+
+        // NE si chiude; Firenze, che è di Roma ma non del gruppo, e Padova restano come sono.
+        Assert.Equal(Ordinati(Ws2, Es2, Ws5, Es5, PadovaSw, RomaNc, Firenze), _banco.Scenari.Last());
+    }
+
+    [Fact]
+    public async Task Tutti_chiusi_chiude_l_ACC_e_lascia_gli_altri_centri_Tutti_aperti_riapre_tutto()
+    {
+        _banco.ConAltriCentri = true;
+        var cut = Monta();
+        await ScegliMilano(cut);
+        await Premi(cut, ".bench-nb .sp-item", RomaNe);
+
+        await Premi(cut, "button.btn", "Bench_AllClosed");
+        Assert.Equal(Ordinati(PadovaSw, RomaNc, Firenze), _banco.Scenari.Last());
+
+        await Premi(cut, "button.btn", "Bench_AllOpen");
+        Assert.Equal(Ordinati(Ws2, Es2, Ws5, Es5, PadovaSw, RomaNc, RomaNe, Firenze), _banco.Scenari.Last());
+    }
+
+    [Fact]
+    public async Task Senza_altri_enti_il_riquadro_non_c_e()
+    {
+        var cut = Monta();
+        await ScegliMilano(cut);
+
+        Assert.Empty(cut.FindAll(".bench-nb"));
+        Assert.DoesNotContain("Bench_Neighbours", cut.Markup);
+        Assert.Empty(_banco.Altri);
     }
 
     /// <summary>

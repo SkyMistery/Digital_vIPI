@@ -4071,11 +4071,18 @@
   <data name="Lsr_Indexing" xml:space="preserve"><value>Still reading procedures and transfers: those results will follow shortly.</value></data>
   <data name="Aqp_NoDoc" xml:space="preserve"><value>No published document for {0}.</value></data>
   <data name="Bench_Title" xml:space="preserve"><value>Test bench</value></data>
-  <data name="Bench_Intro" xml:space="preserve"><value>Pick an ACC and who is open: below, who holds the sky of the closed sectors, and every transfer of the ACC with who really hands it over and who really receives it. A configuration only changes the sectors of its own group: the scenario is the combination. It uses the saved structure. Everything outside the list (other centres, towers) counts as open. The bench writes nothing.</value></data>
+  <data name="Bench_Intro" xml:space="preserve"><value>Pick an ACC and who is open: below, who holds the sky of the closed sectors, and every transfer of the ACC with who really hands it over and who really receives it. A configuration only changes the sectors of its own group: the scenario is the combination. It uses the saved structure. The units of other centres that appear in the agreements are opened and closed further down; everything else counts as open. The bench writes nothing.</value></data>
   <data name="Bench_Acc" xml:space="preserve"><value>ACC</value></data>
   <data name="Bench_PickAcc" xml:space="preserve"><value>— pick an ACC —</value></data>
   <data name="Bench_AllOpen" xml:space="preserve"><value>All open</value></data>
   <data name="Bench_AllClosed" xml:space="preserve"><value>All closed</value></data>
+  <data name="Bench_AllOpenTitle" xml:space="preserve"><value>Opens everything: the ACC&apos;s sectors and the other units of the agreements</value></data>
+  <data name="Bench_AllClosedTitle" xml:space="preserve"><value>Closes the ACC&apos;s sectors: the other units of the agreements stay as they are</value></data>
+  <data name="Bench_Neighbours" xml:space="preserve"><value>Other units of the agreements</value></data>
+  <data name="Bench_NeighboursHint" xml:space="preserve"><value>The ends of the agreements that are not sectors of this ACC, and who picks them up when they are closed, centre by centre. They start open; where a centre has declared its configurations, those are here too.</value></data>
+  <data name="Bench_NeighbourUnknown" xml:space="preserve"><value>No centre</value></data>
+  <data name="Bench_CloseAll" xml:space="preserve"><value>Close all</value></data>
+  <data name="Bench_OpenAll" xml:space="preserve"><value>Open all</value></data>
   <data name="Bench_Presets" xml:space="preserve"><value>Configurations declared in Structure, group by group</value></data>
   <data name="Bench_NoPresets" xml:space="preserve"><value>No configuration declared for this ACC: open and close the sectors by hand.</value></data>
   <data name="Bench_Area" xml:space="preserve"><value>Open area sectors</value></data>

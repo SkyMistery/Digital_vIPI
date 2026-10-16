@@ -2764,6 +2764,13 @@
 :where(.vipi-root) .struct .bench .bench-grp{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:4px 0}
 :where(.vipi-root) .struct .bench .bench-grp-name{min-width:220px;font-size:13px;font-weight:600;color:var(--ink-soft)}
 :where(.vipi-root) .struct .bench .bench-filter{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+/* Gli altri enti degli accordi, un riquadro per centro: sono tanti, e senza un bordo le righe di due centri si
+   leggono come una sola. */
+:where(.vipi-root) .struct .bench .bench-nb{border-left:3px solid var(--line);padding:2px 0 4px 10px;margin:8px 0}
+:where(.vipi-root) .struct .bench .bench-nb-hint{margin:0 0 6px;font-size:12.5px}
+:where(.vipi-root) .struct .bench .bench-nb-name{color:var(--ink);font-family:var(--font-head)}
+:where(.vipi-root) .struct .bench .bench-nb-name .muted{margin-left:6px;font-family:inherit;font-weight:400}
+:where(.vipi-root) .struct .bench .bench-nb-all{padding:2px 10px;font-size:12px}
 /* «A sé stesso» non è un passaggio: resta in elenco, ma non deve farsi guardare. */
 :where(.vipi-root) .struct .bench .bench-self td{color:var(--ink-soft)}
 :where(.vipi-root) .struct .bench .bench-state{white-space:nowrap;font-size:12.5px}
