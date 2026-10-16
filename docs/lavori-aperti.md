@@ -43,6 +43,30 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A156 — 1.64.0 PRONTA, da caricare: «Tutti i settori» della mappa AOR non è una configurazione (S109) (16 ottobre 2026)
+
+MINOR **senza migrazioni**, su 1.63.0 (`099b0df`). Timbro **`1.64.0 · 1ad98d0`**.
+- **S109** (fuso da `sito/lavori` @ `37d81f0f`, CI verde 4/4 run 38901460937; il committente: «vai»): nato dalla
+  revisione delle configurazioni possibili di Milano APP. Sulla copia di produzione del 12-ott non mancava niente: il
+  blocco non ne ha mai avute, e quella che si vedeva era «Tutti i settori», la scelta che la mappa AOR si dà da sola.
+  Ora la Struttura lo dice sotto un gruppo senza elenco, e «Tutti i settori» ha una chiave fissa
+  (`AccVipiModels.TuttiISettori`) che la pagina traduce. Codice comune: Application. Con S109 salgono anche due commit
+  di registro del Sito (`aab7cf77`, `6ffea8fa`). Storia in `docs/filoni/sito.md`.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**7 file** (`solo-7-file-1.64.0`): Application, Ui, Host (dll + pdb) e `en/Vipi.Ui.resources.dll`. Una `const` nuova,
+`TuttiISettori`: la usano solo Application e Ui (cercato), spediti insieme. **Fuori** Domain, Infrastructure,
+MySqlMigrations, Hosting e tutto `wwwroot` (nessun asset cambiato, quindi niente indice). 482 file nel publish come nel
+precedente, 19 con impronta diversa. Zip 4,38 MB, sha256 `f86a486de7b303c7e8e37f98dc662440d567cbf1061790a2397687166ff17c49`. Build Release senza
+avvisi; `dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (Ui 2078, gli altri invariati).
+Prova sul publish win-x64 (copia del database di sviluppo): `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`); Struttura → Configurazioni possibili → LIMM, in italiano e in inglese: la nota sotto i gruppi senza
+elenco (settori d'area di LIMM, LIMP_APP); la vIPI di Milano in inglese: «All sectors» e nessun «Tutti i settori».
+Console pulita. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.64.0.md`.
+
+▶ **Dopo il carico** (committente): se per Milano APP servono configurazioni vere, si scrivono in Struttura.
+Rollback: le due rinomine.
+
 ### ✅ A155 — 1.63.0 ONLINE: nel banco di prova anche gli enti degli altri centri (S108); CI Docker con le immagini fissate (16 ottobre 2026)
 
 ✅ Online dal 16 ottobre 2026: il committente conferma la 1.63.0 e `Schema 0`. Da fuori, da anonimo, alle 10:34Z: `/`
