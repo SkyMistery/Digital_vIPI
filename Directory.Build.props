@@ -1535,6 +1535,16 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.63.0 — MINOR, NESSUNA migrazione. Su 1.62.0 (f1aeaf5, online dal 12 ottobre 2026). Sito S108: nel banco di
+      prova di Struttura si aprono e si chiudono anche gli enti degli altri centri che compaiono negli accordi dell'ACC
+      — i capi degli accordi, la loro catena di ripiego, chi raccoglie da fuori un settore dell'ACC, e il gruppo intero
+      di un centro con configurazioni, coi suoi tasti; «Tutti chiusi» chiude solo l'ACC, «Non prevista» resta dei soli
+      settori dell'ACC. Il motore dei trasferimenti non è toccato. Nello stesso giro, fuori dal pacchetto: il Dockerfile
+      fissato alle immagini sdk:10.0.401 / aspnet:10.0.12 e il restore in modalità locked (la CI docker-image cadeva dal
+      16 ottobre per l'SDK nuovo dentro sdk:10.0). Tocca Vipi.Application, Vipi.Ui (+ frasi IT/EN, vipi-theme.css con
+      l'indice degli asset) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.63.0.md, §A155.
+    -->
+    <!--
       1.62.0 — MINOR, NESSUNA migrazione. Su 1.61.0 (89bd1da, online dal 12 ottobre 2026). Sito S105: nella vIPI di
       ACC il NOTAM di uno scalo sta DENTRO il blocco dell'APP a cui si riferisce, e in testa restano i soli NOTAM
       dell'ACC; la vista live di un APP remotizzato mostra quelli del suo blocco. S106: la sezione NOTAM si vede negli
@@ -2015,7 +2025,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.62.0</VipiVersione>
+    <VipiVersione>1.63.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
