@@ -6,15 +6,19 @@
 
 ## Dove siamo — 12 ottobre 2026
 
-> **In una riga**: tutto il lavoro del filone è **online** fino a **S107**, nella **1.62.0** (12 ottobre notte:
-> i tre ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107). Sopra c'è **S108**, pronto da fondere.
+> **In una riga**: tutto il lavoro del filone è **online** fino a **S108**: nella **1.62.0** (12 ottobre notte) i tre
+> ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
+> centri nel banco. Niente in corso, niente da fondere.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
-> 🟢 **Pronto da fondere — S108** (16 ottobre; nessuna migrazione): nel **banco di prova** si aprono e si chiudono
+> ✅ **Online in 1.63.0 dal 16 ottobre — S108** (§A155, 11 file, nessuna migrazione; il committente ha confermato
+> Schema 0): nel **banco di prova** si aprono e si chiudono
 > anche gli **enti degli altri centri** che compaiono negli accordi dell'ACC, con chi li raccoglie e le
 > configurazioni del loro centro. Il committente: «nel test bench mancano i trasferimenti tra ACC» — c'erano, ma
-> l'altro lato era sempre aperto. Carta §12.
+> l'altro lato era sempre aperto. Carta §12. **Resta da guardare online, col login**: il banco su Milano con le
+> clausole vere (il Master sul publish ha visto LIBB: 16 enti di altri centri, chiuso `LGGG_W_CTR` 14 clausole
+> cambiano mano).
 >
 > ✅ **Online in 1.62.0 dal 12 ottobre notte — S105, S106 e S107** (fusi dal Master in `main` @ `9105d607`, pacchetto
 > §A154, 16 file, **nessuna migrazione**; il committente al filone: «1.62 online»; da fuori `/vsop/health` risponde
@@ -2561,9 +2565,9 @@
   committente con davanti l'accordo `LIMM_WS2_CTR ⇄ LIMJ_WS0_APP`: «vorrei rivedere il meccanismo del test bench
   per testare la copertura: ci sono dei trasferimenti che non compaiono»). **Online in 1.62.0** dal 12-ott
   notte (§A154); il committente, visti numeri e schermata: «va bene così».
-- 🟢 **S108** nel **banco di prova** si chiudono anche gli **altri centri** (16-ott, il committente col banco nuovo
-  online: «nel test bench mancano i trasferimenti tra ACC»; fra tre letture ha scelto «chiudere l'altro ACC»). Su
-  `sito/lavori`, **non in `main`**. ▶ Pronto da fondere.
+- ✅ **S108** nel **banco di prova** si chiudono anche gli **altri centri** (16-ott, il committente col banco nuovo
+  online: «nel test bench mancano i trasferimenti tra ACC»; fra tre letture ha scelto «chiudere l'altro ACC»; visto il
+  riquadro: «sì, va bene»). **Online in 1.63.0** dal 16-ott (§A155).
   - **La causa**: i trasferimenti fra ACC erano in elenco (a Padova 12 verso Roma e 10 da Roma), ma fuori dall'ACC
     tutto era aperto per costruzione: restavano sempre «come scritto», da tutti e due i banchi.
   - **Fatto**: riquadro «Altri enti degli accordi», un blocco per centro — i capi degli accordi che non sono
@@ -2605,7 +2609,7 @@
     `docs/feature/2026-10-04-copertura-unica.md` §11.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina sulla copia MariaDB col login vero.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 16-ott: tutto fuso e online fino a **S107** (1.62.0); **S108** pronto da fondere su `sito/lavori`;
+  Al 16-ott: tutto fuso e online fino a **S108** (1.63.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
   `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
