@@ -43,6 +43,42 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A155 — 1.63.0 PRONTA, da caricare: nel banco di prova anche gli enti degli altri centri (S108); CI Docker con le immagini fissate (16 ottobre 2026)
+
+MINOR **senza migrazioni**, su 1.62.0 (`f1aeaf5`). Timbro **`1.63.0 · 099b0df`**.
+- **S108** (fuso da `sito/lavori` @ `0711c4f5`; build-test, test-net8 e mariadb-schema verdi nella run 38877759564,
+  docker-image rosso per la causa qui sotto; guardato dal committente: «sì, va bene»): nel banco di prova di Struttura
+  si aprono e si chiudono anche gli enti degli altri centri che compaiono negli accordi dell'ACC (capi, catena di
+  ripiego, chi raccoglie da fuori, gruppi con configurazioni); «Tutti chiusi» chiude solo l'ACC, «Non prevista» resta
+  dei soli settori dell'ACC. Il motore non è toccato. Codice comune: Application (`CoverageBench`). Carta
+  `docs/feature/2026-10-04-copertura-unica.md` §12, storia in `docs/filoni/sito.md`.
+- **CI Docker** (fuso da `fix/docker-locked-mode` @ `09f1edb1`, CI verde run 38881543655; deciso dal committente il
+  16-ott, «vai come consigli»): dal 16-ott il job `docker-image` cadeva su ogni ramo senza che il codice cambiasse.
+  Segnalato dal Sito come NU1605 (EF 8.0.32 contro SQLitePCLRaw 2.1.12); la causa vera, trovata provando
+  `--locked-mode` (NU1004): `sdk:10.0` era passato da solo all'SDK 10.0.402 (runtime 10.0.13), il pacchetto implicito
+  `Microsoft.AspNetCore.App.Internal.Assets` cambiava versione e i lock non valevano più. Rimedio: immagini fissate a
+  `sdk:10.0.401` e `aspnet:10.0.12` (quelle di `global.json`) e restore in `--locked-mode`. Fuori dal pacchetto: non
+  cambia niente sul server. ⚠️ **Aperto, da decidere col committente**: l'aggiornamento all'SDK 10.0.402 (runtime
+  10.0.13), che il runbook chiede per le patch di sicurezza — `global.json`, le due `FROM` e i lock insieme, e un
+  pacchetto a sé.
+- ⚠️ Il primo commit di versione non compilava: nel commento di `Directory.Build.props` avevo scritto `--locked-mode`,
+  e in un commento XML `--` non si può scrivere (MSB4024). Rifatto prima del push; il timbro è quello del commit buono.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**11 file** (`solo-11-file-1.63.0`): Application, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`, `vipi-theme.css`
+con `.br`/`.gz` e `endpoints.json`. ⚠️ Application e Ui vanno insieme (`BenchScope` e `SimulateAsync` cambiano firma).
+**Fuori** Domain, Infrastructure, MySqlMigrations e Hosting: sorgente invariato, e nessuno nomina `CoverageBench`,
+`BenchScope`, `SimulateAsync` o `BenchNeighbour` (cercato). Nessuna `const` nel diff. 482 file nel publish come nel
+precedente, 23 con impronta diversa. Zip 4,50 MB, sha256 `21bcc96ca56fa105377b0b365c84ac5d14a38279439d5de23db1cfc9f5140f78`. Build Release senza
+avvisi; `dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3362, Infra 2226, Ui 2074, E2E
+508). Prova sul publish win-x64 (copia del database di sviluppo): `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`); banco su LIBB: 16 tasti di enti di altri centri (LIRR, LGGG, LDZO, LAAA, LYBA…), «Tutte 50»;
+«Tutti chiusi» → 50 cambiano mano; «Tutti aperti» → 0; chiuso `LGGG_W_CTR` → 14 cambiano mano, 0 non coperte.
+Console pulita. **Non visto**: il banco su Milano con le clausole vere. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.63.0.md`.
+
+▶ **Dopo il carico** (committente): guardare il banco su Milano. Rollback: le due rinomine.
+
 ### ✅ A154 — 1.62.0 ONLINE: NOTAM nel blocco dell'APP, negli editor e in fondo alla vista live (S105, S106); banco di prova con tutte le clausole (S107) (12 ottobre 2026)
 
 ✅ Online dal 12 ottobre 2026, notte: il committente scrive «online 1.62». Da fuori, da anonimo, alle 21:25Z: `/` 302,
