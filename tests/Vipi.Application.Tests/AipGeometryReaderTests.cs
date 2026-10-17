@@ -53,6 +53,57 @@ public class AipGeometryReaderTests
         "452630N\n0091640E fino\nal punto/till\npoint 452335N\n0091054E,\nquindi linea\ncongiungente i\n" +
         "punti/then line\njoining points\n451529N\n0091132E -\n450743N\n0090939E";
 
+    /// <summary>
+    /// 🔴 Il committente, 17 ottobre 2026: lo stesso arco dell'esempio di settembre, ma con i DUE PUNTI dopo
+    /// «centred on». Attaccati alla parola, facevano «ON:» e la frase «CENTRED ON» non si trovava: l'arco restava
+    /// senza centro, il centro entrava come vertice e da lì in poi la forma era una spezzata qualunque.
+    /// </summary>
+    [Fact]
+    public void I_Due_Punti_Dopo_Centred_On_Non_Perdono_L_Arco()
+    {
+        const string testo =
+            "44°37'01\" N 007°52'20\" E\n44°29'11\" N 007°53'18\" E\n44°28'40\" N 007°54'25\" E\n" +
+            "44°15'34\" N 008°22'22\" E\n44°20'30\" N 008°29'10\" E\n44°30'46\" N 008°29'39\" E\n" +
+            "44°35'48\" N 008°39'52\" E\n44°51'41\" N 008°24'02\" E\n44°51'24\" N 008°14'57\" E\n" +
+            "then arc of circle in clockwise direction radius 17 NM centred on:\n" +
+            "44°55'29\" N 007°51'43\" E\n" +
+            "till point\n" +
+            "44°41'08\" N 008°04'34\" E\n" +
+            "44°37'01\" N 007°52'20\" E";
+
+        var esito = AipGeometryReader.Leggi(testo);
+
+        Assert.Empty(esito.Segnalazioni);
+        var area = Assert.Single(esito.Aree);
+        var centro = Dms(44, 55, 29, 7, 51, 43);
+        Assert.Equal(-1, IndiceDi(area.Punti, centro));          // il centro non è un vertice
+
+        var inizio = IndiceDi(area.Punti, Dms(44, 51, 24, 8, 14, 57));
+        var fine = IndiceDi(area.Punti, Dms(44, 41, 8, 8, 4, 34));
+        Assert.Equal(8, inizio);                                  // nove vertici prima dell'arco
+        Assert.True(fine - inizio > 10);
+        for (var k = inizio; k <= fine; k++)
+            Assert.InRange(ArcGeometry.DistanzaNm(centro, area.Punti[k]), 16.5, 17.5);
+        Assert.Equal(fine + 1, area.Punti.Count);                // l'ultimo vertice è il primo: l'anello si chiude
+
+        // 🔴 Le righe lette sono le dodici con una coordinata (nove vertici, il centro, la fine, il ritorno), non
+        // «3 di 14»: il conto prendeva la riga del primo vertice di ogni gruppo, e i vertici uno per riga senza
+        // parole fra loro sono un gruppo solo.
+        Assert.Equal(12, esito.RigheLette);
+        Assert.Equal(14, esito.RigheTotali);
+    }
+
+    /// <summary>La latitudine su una riga e la longitudine sotto, come esce dal PDF: lette tutte e due.</summary>
+    [Fact]
+    public void La_Coppia_Spezzata_Su_Due_Righe_Conta_Due_Righe_Lette()
+    {
+        var esito = AipGeometryReader.Leggi(MilanoBilingue);
+
+        var conCoordinate = MilanoBilingue.Split('\n')
+            .Count(r => System.Text.RegularExpressions.Regex.IsMatch(r, @"\d{6,7}[NE]"));
+        Assert.Equal(conCoordinate, esito.RigheLette);
+    }
+
     [Fact]
     public void Il_Bilingue_Di_ENR_2_1_1_1_Alla_Lettera()
     {

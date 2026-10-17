@@ -183,6 +183,11 @@ del §1.
 - ⚠️ Stringhe in **tutti e due** i `.resx`; `dotnet test` esce 0 anche rotto: il verde si legge contando i progetti.
 - 🔴 Modifiche ai sorgenti **solo con l'editor**: in F0-bis un heredoc ha scritto `\b` e `\f` come caratteri di
   controllo veri dentro le regex, che non trovavano più niente senza errore.
+- 🔴 **La punteggiatura attaccata alle parole** (S110, 17 ottobre 2026): `centred on:` faceva il pezzo `ON:`, e
+  il vocabolario, che cerca frasi intere fra spazi, non trovava più `CENTRED ON`. L'arco restava senza centro e il
+  centro entrava come vertice. Il punto e i due punti **in fondo** a un pezzo si tolgono; dentro un pezzo restano
+  (`44:37:01N`). Nello stesso giro: le «righe lette» prendevano la riga del **primo** angolo di un gruppo, e nove
+  vertici uno per riga ne valevano una — ora ogni angolo ricorda la sua riga.
 
 ## §9 — Definition of done
 
