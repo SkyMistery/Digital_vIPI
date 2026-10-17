@@ -14,7 +14,8 @@ nome) e `lied.sid` (le SID col tracciato sotto l'intestazione). Con la slice 5 (
 poligono in commento), `GEO/liap.geo` (colore vuoto). Con la slice 6 (formati nuovi): `HOLDENR.hold` (attese
 di rotta), `liba.vrt` (rotte VFR per nome, VRP con la cifra in testa), `libv.vrt` (per coordinate, numero che
 cambia senza righe vuote, campi in più), `lirh.vrt` (fine riga LF, commento in coda), `GEO/italy.danger` (area
-P/R/D col nome nel sesto campo).
+P/R/D col nome nel sesto campo). Con la slice 17 del lotto «Subito» (simboli): `symbols.sym`, copiato senza
+modifiche dal fork `SkyMistery/it-aurora-sector-test` al commit `8cf32c6` (i 23 simboli, coi due nomi senza `//`).
 
 - `.gitattributes` qui accanto: nessuna conversione dei fine riga. Aurora li legge in CRLF.
 - `NAVAIDS/ENR.fix` è **vuoto** anche nel sector: è un caso vero, non un errore della copia.

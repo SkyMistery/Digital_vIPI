@@ -1768,3 +1768,70 @@ body.lab-trascina * {
     padding-top: .6rem;
     border-top: 1px solid var(--lab-linea);
 }
+
+/* Slice 17c (T1): l'editor a pixel di un simbolo del .sym, e l'anteprima sullo sfondo del radar. */
+.lab-simbolo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+    margin: .4rem 0;
+}
+
+.lab-simbolo-griglia {
+    display: grid;
+    grid-template-columns: repeat(13, 1.25rem);
+    grid-auto-rows: 1.25rem;
+    gap: 1px;
+    padding: 1px;
+    background: var(--lab-linea-forte);
+    border-radius: .2rem;
+}
+
+.lab-pixel {
+    padding: 0;
+    background: var(--lab-superficie);
+    border: 0;
+    cursor: pointer;
+}
+
+.lab-pixel:hover {
+    outline: 2px solid var(--lab-accento);
+    outline-offset: -2px;
+}
+
+.lab-pixel-acceso {
+    background: var(--lab-testo);
+}
+
+.lab-pixel-centro {
+    box-shadow: inset 0 0 0 2px var(--lab-evidenza);
+}
+
+.lab-simbolo-anteprime {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.lab-simbolo-anteprime figure {
+    margin: 0;
+    text-align: center;
+}
+
+.lab-simbolo-anteprime svg {
+    display: block;
+    margin: 0 auto .2rem;
+    padding: 6px;
+    background: var(--lab-radar);
+    image-rendering: pixelated;
+    box-sizing: content-box;
+}
+
+.lab-simbolo-radar {
+    fill: var(--lab-radar);
+}
+
+.lab-simbolo-acceso {
+    fill: #e8edf2;
+}

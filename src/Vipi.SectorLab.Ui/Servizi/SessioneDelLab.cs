@@ -2400,6 +2400,21 @@ public sealed class SessioneDelLab
         => ModelloAtis.Riempi(ModelloAtis.Leggi(modello ?? ""), ValoriDellAtis);
 
     /// <summary>
+    /// Un simbolo di un <c>.sym</c> per l'editor a pixel della scheda (slice 17c, T1), col suo numero nella tavolozza di
+    /// Aurora e quanti ce ne sono nel file. Null se il record non è un simbolo.
+    /// </summary>
+    public (Simbolo Simbolo, int Numero, int Quanti)? SimboloDi(string fileRelativo, int record)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file
+           && record >= 0 && record < file.RecordDelModello.Count && file.RecordDelModello[record] is Simbolo simbolo
+            ? (simbolo, record + 1, file.RecordDelModello.Count)
+            : null;
+
+    /// <summary>Accende o spegne un pixel di un simbolo (slice 17c): una modifica del campo Pixel, che si annulla.</summary>
+    public bool CambiaIlPixel(string fileRelativo, int record, int x, int y, bool acceso)
+        => SimboloDi(fileRelativo, record) is { } s
+           && CambiaCampo(fileRelativo, record, nameof(Simbolo.Pixel), Simbolo.ConIlPixel(s.Simbolo.Pixel, x, y, acceso));
+
+    /// <summary>
     /// Il modello di un <c>.atis</c> o di un <c>.datis</c> come lo mostra la scheda (slice 18b-18d; W1, W3): com'è
     /// fatto, i segnaposto da offrire, quelli da riempire nell'anteprima e i modelli che gli stanno accanto. Null se il
     /// record non è un modello.
@@ -2935,8 +2950,8 @@ public sealed class SessioneDelLab
     /// <summary>I nomi di <c>[DEFINE]</c> del master scelto (<c>colors.def</c>): la mappa e il selettore della scheda.</summary>
     public ColorPalette Definiti { get; private set; } = new();
 
-    /// <summary>I simboli dei punti dal <c>.sym</c> del master scelto (slice 4d); null se il master non ne carica.</summary>
-    public SimboliDellaMappa? Simboli { get; private set; }
+    /// <summary>I simboli dei punti: quelli di base di Aurora, uno per ruolo (slice 17b; prima dal <c>.sym</c>, slice 4d).</summary>
+    public SimboliDellaMappa Simboli => SimboliDellaMappa.DiAurora;
 
     /// <summary>Perché i colori di Aurora non ci sono, da dire accanto alla scelta. Null se ci sono.</summary>
     public string? ColoriMancanti { get; private set; }
@@ -2977,7 +2992,6 @@ public sealed class SessioneDelLab
         Colori = null;
         ColoriMancanti = null;
         Definiti = new ColorPalette();
-        Simboli = null;
         if (Sessione is null)
             return;
 
@@ -2986,11 +3000,10 @@ public sealed class SessioneDelLab
         try
         {
             Definiti = SchemiDiAurora.Definiti(Sessione, master, avvisi);
-            Simboli = SimboliDellaMappa.DelMaster(Sessione, master, avvisi);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            Registro.Errore("colors.def e simboli", e);
+            Registro.Errore("colors.def", e);
         }
 
         SchemiDisponibili = SchemiDiAurora.Disponibili(Sessione.Cartella);

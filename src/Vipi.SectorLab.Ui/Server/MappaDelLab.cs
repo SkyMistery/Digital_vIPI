@@ -57,7 +57,7 @@ public static class MappaDelLab
     /// null = non si disegna), <c>ka</c> (la sua opacità se non è piena), <c>g</c>/<c>ga</c> (il riempimento) e
     /// <c>s</c> (lo stile della linea dello schema, se non è continua). La pagina passa fra i colori del Lab e questi
     /// senza riprendere le coordinate.</param>
-    /// <param name="simboli">I simboli del <c>.sym</c> (slice 4d): un punto che ne ha uno porta <c>y</c>, l'indice nell'elenco
+    /// <param name="simboli">I simboli di Aurora (slice 17b): un punto che ne ha uno porta <c>y</c>, l'indice nell'elenco
     /// che la pagina riceve coi colori.</param>
     public static async Task Scrivi(Stream flusso, string id, IReadOnlyList<FormaDellaMappa> forme, ColoriDellaMappa? colori = null,
                                     SimboliDellaMappa? simboli = null)

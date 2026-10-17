@@ -52,6 +52,8 @@ public static class Formati
             // Slice 18a (§22): il D-ATIS ha la forma dell'ATIS; i .fds dichiarano i campi in più della finestra ATIS.
             "atis" or "datis" => Con(new AtisParser(avvisi), new AtisSaver()),
             "fds" => Con(new FdsParser(avvisi), new FdsSaver()),
+            // Slice 17a (§20, T1): i simboli, la tavolozza da cui Aurora sceglie quelli dei ruoli.
+            "sym" => Con(new SymParser(avvisi), new SymSaver()),
             "vor" => Con(new VorParser(avvisi), new VorSaver()),
             "ndb" => Con(new NdbParser(avvisi), new NdbSaver()),
             "fix" => Con(new FixParser(avvisi), new FixSaver()),

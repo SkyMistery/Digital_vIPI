@@ -1,68 +1,87 @@
-using Vipi.SectorLab.Core.Sessione;
-using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Shared;
 
 namespace Vipi.SectorLab.Core.Mappa;
 
 /// <summary>
-/// I simboli dei punti sulla mappa, dal <c>.sym</c> del master (<c>[SYMBOLS]</c>, <c>symbols.sym</c>): il committente li
-/// vuole dal sector, non dai profili (28 settembre). Lotto «Subito» slice 4d.
-/// <para>🟡 <b>Quale simbolo per quale punto il sector non lo dice</b>: Aurora sceglie i simboli del sector per numero,
-/// e come li numeri è ancora da provare (T3). L'abbinamento qui sotto è per NOME del simbolo (il commento sopra i
-/// pixel) ed è una proposta dell'agente, da confermare accanto ad Aurora; un nome che il file non ha → il punto resta
-/// un cerchio.</para>
-/// <para>I <b>punti VFR</b> sono l'eccezione (committente, 28 settembre, con uno schermo di Aurora): Aurora li disegna
-/// come un rombo pieno che nel <c>.sym</c> non c'è — è il suo simbolo, <c>SYMBOLS_FIX_VFR</c>, uguale in tutti i 35
-/// profili misurati (fork e installazione). Il Lab lo tiene qui (<see cref="VfrDiAurora"/>), in coda ai simboli del sector.</para>
+/// I simboli dei punti sulla mappa: quelli di base di Aurora, uno per ruolo (lotto «Subito» slice 17b, decisione del
+/// committente del 17 ottobre).
+/// <para>Perché non quelli del <c>.sym</c> (slice 4d, abbinati per nome): la prova T3 ha mostrato che Aurora disegna i
+/// punti coi simboli del <b>profilo</b> (<c>SYMBOLS_&lt;RUOLO&gt;=</c> in un <c>.cpr</c>, scelti nella linguetta SYMBOLS),
+/// e che il <c>.sym</c> è soltanto la tavolozza da cui si sceglie. I 15 <c>.cpr</c> del sector non hanno
+/// <c>SYMBOLS_</c>: i disegni qui sotto vengono dai profili installati di Aurora (misurati il 17 ottobre: uguali in 37
+/// profili su 38; il 38°, <c>LIPP_CE1_CTR</c>, ha i suoi fix e radioassistenze), copiati da <c>BASIC_RADAR.cpr</c>.</para>
+/// <para>🟡 Proposte dell'agente, da confermare accanto ad Aurora: un fix di confine (5° campo <c>1</c>) prende il simbolo
+/// del confine qualunque sia il suo tipo; un fix nascosto (tipo 3), che Aurora non mostra, ha quello del fix in rotta; il
+/// punto VFR obbligatorio (tipo 0) ha <c>FIX_VFRN</c> (nei profili è uguale a <c>FIX_VFR</c>).</para>
 /// </summary>
 public sealed class SimboliDellaMappa
 {
-    /// <summary>Il nome di <see cref="VfrDiAurora"/> (una costante: gli abbinamenti lo usano prima che il simbolo esista).</summary>
-    public const string NomeDelVfrDiAurora = "VFR · di Aurora";
+    /// <summary>I ruoli di Aurora e il loro disegno di base (le colonne come nel <c>.sym</c>, da <c>BASIC_RADAR.cpr</c>).</summary>
+    private static readonly IReadOnlyList<(string Ruolo, string Pixel)> DiBase =
+    [
+        ("FIX_ENR", "0000000000000;0000000000000;0000011000000;0000010100000;0000010010000;0000010001000;0000010000100;0000010001000;0000010010000;0000010100000;0000011000000;0000000000000;0000000000000;"),
+        ("FIX_TERM", "0000000000000;0000000100000;0000001100000;0000011100000;0000111100000;0001111100000;0000111100000;0000011100000;0000001100000;0000000100000;0000000000000;0000000000000;0000000000000;"),
+        ("FIX_ENR_TERM", "0000000000000;0000000000000;0000000000000;0000001000000;0000010100000;0000100010000;0001001001000;0000100010000;0000010100000;0000001000000;0000000000000;0000000000000;0000000000000;"),
+        ("FIX_BOUND", "0000000000000;0000000000000;0000110000000;0000101000000;0000100100000;0000100010000;0000100100000;0000101000000;0000110000000;0000000000000;0000000000000;0000000000000;0000000000000;"),
+        ("FIX_VOR", "0000001110000;0000010101000;0000100000100;0001010001010;0010000000001;0011100100111;0011100100111;0010000000001;0001010001010;0000100000100;0000010101000;0000001110000;0000000000000;"),
+        ("FIX_VORDME", "0000111110000;0001001001000;0010101010100;0100011100010;1010100010101;1001001001001;1111010101111;1001001001001;1010100010101;0100011100010;0010101010100;0001001001000;0000111110000;"),
+        ("FIX_VORTAC", "0000111110000;0001001001000;0010101010100;0100011100010;1010100010101;1001000001001;1111001001111;1001000001001;1010100010101;0100011100010;0010101010100;0001001001000;0000111110000;"),
+        ("FIX_TACAN", "0000001000000;0001011101000;0000100010000;0101000001010;0010000000100;0100000000010;1100001000011;0100000000010;0010000000100;0101000001010;0000100010000;0001011101000;0000001000000;"),
+        ("FIX_DME", "0000111110000;0001001001000;0010101010100;0100011100010;1010100010101;1001000001001;1111001001111;1001000001001;1010100010101;0100011100010;0010101010100;0001001001000;0000111110000;"),
+        ("FIX_NDB", "0000000000000;0000010001000;0000000100000;0001010001010;0000000100000;0000101010100;0000000100000;0001010001010;0000000100000;0000010001000;0000000000000;0000000000000;0000000000000;"),
+        ("FIX_VFR", "0000000000000;0000000000000;0000000000000;0000010000000;0000111000000;0001111100000;0011111110000;0001111100000;0000111000000;0000010000000;0000000000000;0000000000000;0000000000000;"),
+        ("FIX_VFRN", "0000000000000;0000000000000;0000000000000;0000010000000;0000111000000;0001111100000;0011111110000;0001111100000;0000111000000;0000010000000;0000000000000;0000000000000;0000000000000;"),
+        ("FIX_VFRH", "0000111110000;0001000001000;0010000000100;0100000110010;1000011110001;1000100010001;1001110110001;1000100010001;1000011110001;0100000110010;0010000000100;0001000001000;0000111110000;"),
+        ("FIX_VFRA", "1111111111111;1000000000001;1000011111101;1011110000101;1010010000101;1010010000101;1011110000101;1000010000101;1000010000101;1000011111101;1000000000001;1000000000001;1111111111111;"),
+        ("AIRPORT", "0000000000000;0100000000000;0010000000000;0001011100000;0000100010000;0001010001000;0001001001000;0001000101000;0000100010000;0000011101000;0000000000100;0000000000010;0000000000000;"),
+        ("HELIPORT", "0000000000000;0000000000000;0000011100000;0000100010000;0001000001000;0010011100100;0010001000100;0010011100100;0001000001000;0000100010000;0000011100000;0000000000000;0000000000000;"),
+        ("MILITARY", "0000000000000;0100000000000;0010000000000;0001011100000;0000111110000;0001111111000;0001111111000;0001111111000;0000111110000;0000011101000;0000000000100;0000000000010;0000000000000;"),
+        ("PRIVATE", "0000000000000;0000000000000;0000011100000;0000100010000;0001000001000;0010111110100;0010101000100;0010111000100;0001000001000;0000100010000;0000011100000;0000000000000;0000000000000;"),
+        ("UNCONTROLLED", "0000000000000;0000000000000;0000000000000;0000011100000;0000100010000;0001000001000;0001000001000;0001000001000;0000100010000;0000011100000;0000000000000;0000000000000;0000000000000;"),
+    ];
 
-    /// <summary>Tipo del punto (<see cref="FormaDellaMappa.Punto"/>) → nome del simbolo nel <c>.sym</c>.</summary>
+    /// <summary>Tipo del punto (<see cref="FormaDellaMappa.Punto"/>) → ruolo di Aurora.</summary>
     public static IReadOnlyDictionary<string, string> Abbinamenti { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["FIX"] = "FIX vuoto",              // tipo non scritto
-        ["FIX:0"] = "FIX vuoto",            // in rotta (ENR)
-        ["FIX:1"] = "TERM",                 // terminale
-        ["FIX:2"] = "FIX pieno",            // in rotta e terminale
-        ["FIX:3"] = "FIX vuoto piccolo",    // nascosto (in Aurora non si vede; qui piccolo)
-        ["VOR"] = "VOR",
-        ["VOR:0"] = "VOR",
-        ["VOR:1"] = "VOR2",                 // VOR/DME
-        ["VOR:2"] = "VOR3",                 // VORTAC
-        ["VOR:3"] = "TAC2",                 // TACAN
-        ["VOR:4"] = "VOR2",                 // DME
-        ["NDB"] = "NDB",
-        ["VFR"] = NomeDelVfrDiAurora,    // 🟡 tipi 2 (elicotteri) e 3 (area): in Aurora hanno simboli loro; sul fork nessuno
-        ["APT"] = "APT",
+        ["FIX"] = "FIX_ENR",                // tipo non scritto
+        ["FIX:0"] = "FIX_ENR",              // in rotta (ENR)
+        ["FIX:1"] = "FIX_TERM",             // terminale
+        ["FIX:2"] = "FIX_ENR_TERM",         // in rotta e terminale
+        ["FIX:3"] = "FIX_ENR",              // 🟡 nascosto: Aurora non lo mostra, il Lab sì
+        ["FIX:B"] = "FIX_BOUND",            // 🟡 di confine (5° campo 1), qualunque sia il tipo
+        ["VOR"] = "FIX_VOR",
+        ["VOR:0"] = "FIX_VOR",
+        ["VOR:1"] = "FIX_VORDME",
+        ["VOR:2"] = "FIX_VORTAC",
+        ["VOR:3"] = "FIX_TACAN",
+        ["VOR:4"] = "FIX_DME",
+        ["NDB"] = "FIX_NDB",
+        ["VFR"] = "FIX_VFR",                // tipo non scritto (i file italiani)
+        ["VFR:0"] = "FIX_VFRN",             // 🟡 obbligatorio
+        ["VFR:1"] = "FIX_VFR",
+        ["VFR:2"] = "FIX_VFRH",             // elicotteri
+        ["VFR:3"] = "FIX_VFRA",             // area
+        ["APT"] = "AIRPORT",                // tipo fuori dal manuale
+        ["APT:0"] = "AIRPORT",              // controllato
+        ["APT:1"] = "HELIPORT",
+        ["APT:2"] = "MILITARY",
+        ["APT:3"] = "PRIVATE",
+        ["APT:4"] = "UNCONTROLLED",
     };
 
-    /// <summary>
-    /// Il rombo pieno con cui Aurora disegna i punti VFR (<c>SYMBOLS_FIX_VFR</c> dei profili, colonne come nel <c>.sym</c>).
-    /// Numero 0: non è del sector.
-    /// </summary>
-    public static readonly SimboloDelSector VfrDiAurora = new(0, NomeDelVfrDiAurora,
-    [
-        "0000000000000", "0000000000000", "0000000000000", "0000010000000", "0000111000000", "0001111100000", "0011111110000",
-        "0001111100000", "0000111000000", "0000010000000", "0000000000000", "0000000000000", "0000000000000",
-    ], 0);
+    /// <summary>I simboli di base di Aurora: la mappa ne ha uno solo, uguale per ogni sector.</summary>
+    public static SimboliDellaMappa DiAurora { get; } = new();
 
-    private readonly Dictionary<string, int> _perNome = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _perRuolo = new(StringComparer.Ordinal);
 
-    public SimboliDellaMappa(IReadOnlyList<SimboloDelSector> simboli)
+    private SimboliDellaMappa()
     {
-        ArgumentNullException.ThrowIfNull(simboli);
-        Simboli = [.. simboli, VfrDiAurora];
+        Simboli = [.. DiBase.Select((s, i) => new SimboloDelSector(i + 1, s.Ruolo, s.Pixel.Split(';', StringSplitOptions.RemoveEmptyEntries), 0))];
         for (int i = 0; i < Simboli.Count; i++)
-        {
-            if (Simboli[i].Nome is { } nome)
-                _perNome.TryAdd(nome.Trim(), i);
-        }
+            _perRuolo[Simboli[i].Nome!] = i;
     }
 
-    /// <summary>I simboli del file, nell'ordine, e in coda quelli di Aurora che il sector non ha (<see cref="VfrDiAurora"/>).</summary>
+    /// <summary>I simboli, uno per ruolo, col nome del ruolo (<c>FIX_ENR</c>…).</summary>
     public IReadOnlyList<SimboloDelSector> Simboli { get; }
 
     /// <summary>Il simbolo di un punto (indice in <see cref="Simboli"/>), o null: resta un cerchio.</summary>
@@ -71,35 +90,14 @@ public sealed class SimboliDellaMappa
         ArgumentNullException.ThrowIfNull(forma);
         if (forma.Punto is not { } punto)
             return null;
-        if (!Abbinamenti.TryGetValue(punto, out string? nome))
+        if (!Abbinamenti.TryGetValue(punto, out string? ruolo))
         {
             // Un tipo che la tabella non ha (FIX:7): il simbolo della famiglia.
             int dueP = punto.IndexOf(':', StringComparison.Ordinal);
-            if (dueP < 0 || !Abbinamenti.TryGetValue(punto[..dueP], out nome))
+            if (dueP < 0 || !Abbinamenti.TryGetValue(punto[..dueP], out ruolo))
                 return null;
         }
 
-        return _perNome.TryGetValue(nome, out int indice) ? indice : null;
-    }
-
-    /// <summary>
-    /// I simboli dei <c>.sym</c> che il master carica, nell'ordine dei carichi (dal disco: il Lab li tiene come testo).
-    /// Null se il master non ne carica.
-    /// </summary>
-    public static SimboliDellaMappa? DelMaster(SessioneAperta sessione, CatalogoDeiPunti? master, IWarningCollector avvisi)
-    {
-        ArgumentNullException.ThrowIfNull(sessione);
-        if (master is null)
-            return null;
-
-        var simboli = new List<SimboloDelSector>();
-        foreach (string relativo in master.FileCaricati.Where(f => f.EndsWith(".sym", StringComparison.OrdinalIgnoreCase)))
-        {
-            string percorso = sessione.Cartella.Assoluto(relativo);
-            if (File.Exists(percorso))
-                simboli.AddRange(new SymParser(avvisi).Parse(percorso));
-        }
-
-        return simboli.Count == 0 ? null : new SimboliDellaMappa(simboli);
+        return _perRuolo[ruolo];
     }
 }

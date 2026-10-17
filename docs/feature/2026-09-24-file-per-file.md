@@ -799,8 +799,8 @@ nelle prove I7.
 
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
-| T1 | **Editor a pixel 13×13**: griglia cliccabile, anteprima a grandezza vera e ingrandita su sfondo radar, scrive le colonne nell'ordine giusto, nome sempre nel commento, ordine visibile e spostabile solo di proposito (col suo numero). Lo stesso editor per i simboli con nome dei profili (`SYMBOLS_*` in un `.cpr`, con l'avviso di §14) | Subito | ✅ deciso |
-| T2 | Controlli: simbolo che non è 13×13, nome senza `//`, simbolo senza nome | Subito | ✅ deciso |
+| T1 | **Editor a pixel 13×13**: griglia cliccabile, anteprima a grandezza vera e ingrandita su sfondo radar, scrive le colonne nell'ordine giusto, nome sempre nel commento, ordine visibile e spostabile solo di proposito (col suo numero). Lo stesso editor per i simboli con nome dei profili (`SYMBOLS_*` in un `.cpr`, con l'avviso di §14) | Subito | ✅ deciso · **fatto per il `.sym`** (lotto, slice 17c; l'ordine si vede, non si sposta). I `SYMBOLS_*` dei profili: aperti (committente, 17 ottobre), dopo una prova in Aurora |
+| T2 | Controlli: simbolo che non è 13×13, nome senza `//`, simbolo senza nome | Subito | ✅ deciso · **fatto** (slice 17a: `RigaIllegibile`, `NomeDelSimboloSenzaBarre`, `SimboloSenzaNome`) |
 | T3 | **Prova in Aurora dell'ordine**: nella scelta del simbolo dell'aereo, quali simboli compaiono, in che ordine, da che numero partono quelli del sector; se conta la posizione, correggere le 2 righe senza `//` | F4, in un ramo — presto | ✅ provata (17 ottobre): la posizione non decide il ruolo, le 2 righe senza `//` non spostano niente |
 
 ### `HOLDENR.hold` (sezione `[HOLDENR]`, le attese in rotta)

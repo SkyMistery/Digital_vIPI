@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Vipi.SectorLab.Core.Mappa;
 using Vipi.SectorLab.Ui.Server;
 using Vipi.SectorLab.Ui.Servizi;
 
@@ -140,18 +141,15 @@ public sealed class MappaDelLabTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UnPuntoColSuoSimboloDelSymPortaLIndice()
+    public async Task UnPuntoColSuoSimboloPortaLIndice()
     {
-        // Slice 4d: il simbolo viaggia come indice nell'elenco dei simboli del .sym (che la pagina riceve coi colori).
-        const string pixel = "0000000100000;0000001100000;0000010100000;0000100100000;0001000100000;0010000100000;0100000100000;0010000100000;0001000100000;0000100100000;0000010100000;0000001100000;0000000100000;";
-        string isc = File.ReadAllText(_albero.Percorso("SectorFiles/ITALY.isc"));
-        _albero.Scrivi("SectorFiles/ITALY.isc", isc + "\r\n[SYMBOLS]\r\nF;symbols.sym\r\n");
-        _albero.Scrivi("SectorFiles/Include/IT/symbols.sym", "//APT\r\n" + pixel + "\r\n//FIX vuoto piccolo\r\n" + pixel + "\r\n");
+        // Slice 17b: il simbolo viaggia come indice nell'elenco dei simboli di Aurora (che la pagina riceve coi colori).
         await Apri();
 
         var forme = (await Chiedi("/mappa/strato/punti")).GetProperty("f").EnumerateArray().ToList();
 
-        Assert.Equal(1, forme.First(f => f.GetProperty("e").GetString() == "BC404").GetProperty("y").GetInt32());
+        int indice = forme.First(f => f.GetProperty("e").GetString() == "BC404").GetProperty("y").GetInt32();
+        Assert.Equal("FIX_ENR", SimboliDellaMappa.DiAurora.Simboli[indice].Nome);
     }
 
     [Fact]

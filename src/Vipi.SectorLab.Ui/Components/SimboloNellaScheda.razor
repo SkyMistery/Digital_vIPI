@@ -1,0 +1,94 @@
+@using Vipi.Sectorfile.Models
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Un simbolo del .sym (lotto «Subito» slice 17c; «file per file» §20, T1): la griglia 13×13 dove un clic accende o
+    spegne un pixel, e accanto il simbolo a grandezza vera e ingrandito sullo sfondo del radar. Ogni clic è una modifica
+    del campo Pixel: si vede nelle righe del file e si annulla come le altre. Il numero è il posto nella tavolozza di
+    Aurora (prova T3: il posto non decide nessun ruolo, l'ordine del file è libero).
+*@
+@if (Lab.SimboloDi(File, Record) is var (simbolo, numero, quanti))
+{
+    var colonne = simbolo.Colonne();
+    <Sezione Chiave="scheda-simbolo" data-simbolo="@numero">
+    <Titolo>Disegno <span class="lab-nota">@numero° di @quanti nella tavolozza di Aurora</span></Titolo>
+    <ChildContent>
+    <div class="lab-simbolo">
+        <div class="lab-simbolo-griglia" role="grid" aria-label="Pixel del simbolo: un clic accende o spegne">
+            @for (int y = 0; y < Simbolo.Lato; y++)
+            {
+                @for (int x = 0; x < Simbolo.Lato; x++)
+                {
+                    int px = x, py = y;
+                    bool acceso = colonne[px][py] == '1';
+                    <button type="button" class="lab-pixel @(acceso ? "lab-pixel-acceso" : null) @(px == Centro && py == Centro ? "lab-pixel-centro" : null)"
+                            data-pixel="@($"{px},{py}")" aria-pressed="@(acceso ? "true" : "false")"
+                            title="@($"colonna {px + 1}, riga {py + 1}: {(acceso ? "acceso" : "spento")}")"
+                            @onclick="() => Lab.CambiaIlPixel(File, Record, px, py, !acceso)"></button>
+                }
+            }
+        </div>
+        <div class="lab-simbolo-anteprime" style="@($"--lab-radar: {Radar}")">
+            <figure data-anteprima-simbolo="vera">
+                <svg width="@Simbolo.Lato" height="@Simbolo.Lato" viewBox="0 0 13 13" shape-rendering="crispEdges" aria-hidden="true">
+                    @Pixel(simbolo)
+                </svg>
+                <figcaption class="lab-nota">grandezza vera</figcaption>
+            </figure>
+            <figure data-anteprima-simbolo="ingrandita">
+                <svg width="@(Simbolo.Lato * 5)" height="@(Simbolo.Lato * 5)" viewBox="0 0 13 13" shape-rendering="crispEdges" aria-hidden="true">
+                    @Pixel(simbolo)
+                </svg>
+                <figcaption class="lab-nota">×5</figcaption>
+            </figure>
+        </div>
+    </div>
+    <p class="lab-nota">Il pixel segnato al centro è il punto sulla mappa. Nel file ogni gruppo di 13 cifre è una colonna, da
+        sinistra; ogni cifra un pixel, dall'alto.</p>
+    @if (simbolo.NomeSenzaBarre)
+    {
+        <p class="lab-avviso-breve" data-nome-senza-barre>Il nome sta in una riga senza //: Aurora la salta, ma il formato non la
+            prevede. Togli la spunta di «Nome senza //» qui sopra per riscriverlo col //.</p>
+    }
+    else if (simbolo.Nome is null)
+    {
+        <p class="lab-avviso-breve" data-senza-nome>Senza nome: nella tavolozza di Aurora non si sa cos'è. Scrivilo nel campo Nome.</p>
+    }
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    private const int Centro = Simbolo.Lato / 2;
+
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public int Record { get; set; }
+
+    /// <summary>Lo sfondo del radar dello schema scelto (RADARBACK), o un blu scuro se non c'è.</summary>
+    private string Radar => Lab.Colori?.Sfondo is { } c ? $"#{c.R:X2}{c.G:X2}{c.B:X2}" : "#1c2b36";
+
+    private static RenderFragment Pixel(Simbolo simbolo) => __builder =>
+    {
+        var colonne = simbolo.Colonne();
+        <rect width="13" height="13" class="lab-simbolo-radar" />
+        @for (int x = 0; x < Simbolo.Lato; x++)
+        {
+            @for (int y = 0; y < Simbolo.Lato; y++)
+            {
+                if (colonne[x][y] == '1')
+                {
+                    <rect x="@x" y="@y" width="1" height="1" class="lab-simbolo-acceso" />
+                }
+            }
+        }
+    };
+
+    // Solo parametri primitivi: si ridisegna da sé ai cambi del Lab (la lezione della 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

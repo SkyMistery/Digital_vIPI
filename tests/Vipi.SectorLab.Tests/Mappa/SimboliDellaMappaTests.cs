@@ -1,66 +1,75 @@
 using Vipi.SectorLab.Core.Mappa;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.SectorLab.Ui.Servizi;
-using Vipi.Sectorfile.Shared;
 
 namespace Vipi.SectorLab.Tests.Mappa;
 
 /// <summary>
-/// I simboli dei punti dal <c>.sym</c> del master (lotto «Subito» slice 4d): il committente li vuole dal sector. Quale
-/// simbolo per quale tipo è una proposta, per nome del simbolo (<see cref="SimboliDellaMappa.Abbinamenti"/>).
+/// I simboli dei punti sulla mappa (lotto «Subito» slice 17b): quelli di base di Aurora, uno per ruolo, copiati dai
+/// profili installati (<c>SYMBOLS_*</c> di <c>BASIC_RADAR.cpr</c>). Prima (slice 4d) venivano dal <c>.sym</c> per nome:
+/// la prova T3 ha mostrato che Aurora disegna coi simboli del profilo, e il committente li ha scelti il 17 ottobre.
 /// </summary>
 public sealed class SimboliDellaMappaTests : IDisposable
 {
-    private const string Pixel = "0000000100000;0000001100000;0000010100000;0000100100000;0001000100000;0010000100000;0100000100000;0010000100000;0001000100000;0000100100000;0000010100000;0000001100000;0000000100000;";
-
     private readonly AlberoDiProva _albero = new();
 
     public void Dispose() => _albero.Dispose();
 
-    private static SimboloDelSector Simbolo(int numero, string? nome)
-        => new(numero, nome, Pixel.Split(';', StringSplitOptions.RemoveEmptyEntries), numero * 2);
-
-    private static SimboliDellaMappa Simboli()
-        => new([Simbolo(1, "APT"), Simbolo(2, "FIX vuoto"), Simbolo(3, "FIX pieno"), Simbolo(4, "TERM"), Simbolo(5, "VOR"), Simbolo(6, "NDB")]);
-
     private static FormaDellaMappa Punto(string? tipo) => new("x", 0, TipoDiForma.Punto, "P", [], [], Punto: tipo);
 
-    [Theory]
-    [InlineData("FIX:0", 1)]
-    [InlineData("FIX:1", 3)]      // terminale → TERM
-    [InlineData("FIX:2", 2)]      // in rotta e terminale → FIX pieno
-    [InlineData("FIX", 1)]        // tipo non scritto
-    [InlineData("FIX:7", 1)]      // tipo che la tabella non ha: il simbolo della famiglia
-    [InlineData("VOR:0", 4)]
-    [InlineData("NDB", 5)]
-    [InlineData("APT", 0)]
-    public void OgniTipoHaIlSuoSimboloPerNome(string tipo, int indice)
-        => Assert.Equal(indice, Simboli().Di(Punto(tipo)));
+    private static string? Ruolo(string? tipo)
+        => SimboliDellaMappa.DiAurora.Di(Punto(tipo)) is { } indice ? SimboliDellaMappa.DiAurora.Simboli[indice].Nome : null;
 
     [Theory]
-    [InlineData("FIX:3")]   // «FIX vuoto piccolo» non c'è in questo .sym
+    [InlineData("FIX", "FIX_ENR")]            // tipo non scritto
+    [InlineData("FIX:0", "FIX_ENR")]
+    [InlineData("FIX:1", "FIX_TERM")]
+    [InlineData("FIX:2", "FIX_ENR_TERM")]
+    [InlineData("FIX:3", "FIX_ENR")]          // nascosto: Aurora non lo mostra
+    [InlineData("FIX:7", "FIX_ENR")]          // tipo che la tabella non ha: il simbolo della famiglia
+    [InlineData("FIX:B", "FIX_BOUND")]
+    [InlineData("VOR:0", "FIX_VOR")]
+    [InlineData("VOR:1", "FIX_VORDME")]
+    [InlineData("VOR:2", "FIX_VORTAC")]
+    [InlineData("VOR:3", "FIX_TACAN")]
+    [InlineData("VOR:4", "FIX_DME")]
+    [InlineData("NDB", "FIX_NDB")]
+    [InlineData("VFR", "FIX_VFR")]
+    [InlineData("VFR:0", "FIX_VFRN")]
+    [InlineData("VFR:2", "FIX_VFRH")]
+    [InlineData("VFR:3", "FIX_VFRA")]
+    [InlineData("APT", "AIRPORT")]
+    [InlineData("APT:0", "AIRPORT")]
+    [InlineData("APT:1", "HELIPORT")]
+    [InlineData("APT:2", "MILITARY")]
+    [InlineData("APT:3", "PRIVATE")]
+    [InlineData("APT:4", "UNCONTROLLED")]
+    public void OgniTipoHaIlSimboloDelSuoRuolo(string tipo, string ruolo)
+        => Assert.Equal(ruolo, Ruolo(tipo));
+
+    [Theory]
     [InlineData(null)]      // una forma che non è un punto
     [InlineData("GATE")]
-    public void SenzaIlSimboloNelFileResta_unCerchio(string? tipo)
-        => Assert.Null(Simboli().Di(Punto(tipo)));
-
-    [Theory]
-    [InlineData("VFR")]
-    [InlineData("VFR:1")]
-    public void IPuntiVfrHannoIlRomboDiAuroraCheNelSymNonCE(string tipo)
-    {
-        // Committente, 28 settembre, con uno schermo di Aurora: i VFR sono un rombo pieno, non il «VFR» del .sym.
-        var simboli = new SimboliDellaMappa([Simbolo(1, "VFR")]);
-
-        int indice = Assert.IsType<int>(simboli.Di(Punto(tipo)));
-        Assert.Same(SimboliDellaMappa.VfrDiAurora, simboli.Simboli[indice]);
-        Assert.True(SimboliDellaMappa.VfrDiAurora.Acceso(6, 5));   // il centro del rombo
-        Assert.False(SimboliDellaMappa.VfrDiAurora.Acceso(6, 1));
-    }
+    public void SenzaUnRuoloRestaUnCerchio(string? tipo)
+        => Assert.Null(Ruolo(tipo));
 
     [Fact]
-    public void INomiSiConfrontanoSenzaMaiuscole()
-        => Assert.Equal(0, new SimboliDellaMappa([Simbolo(1, " fix VUOTO ")]).Di(Punto("FIX:0")));
+    public void IDisegniSonoQuelliDeiProfili()
+    {
+        var simboli = SimboliDellaMappa.DiAurora.Simboli;
+
+        Assert.Equal(19, simboli.Count);
+        Assert.All(simboli, s => Assert.Equal(13, s.Colonne.Count));
+        Assert.All(simboli, s => Assert.All(s.Colonne, c => Assert.Equal(13, c.Length)));
+        // Il rombo pieno dei VFR (committente, 28 settembre, con uno schermo di Aurora): pieno al centro, vuoto in alto.
+        var vfr = simboli.Single(s => s.Nome == "FIX_VFR");
+        Assert.True(vfr.Acceso(6, 5));
+        Assert.False(vfr.Acceso(6, 1));
+        // Lo scalo controllato: il cerchio tagliato da una barra in diagonale, dall'alto a sinistra.
+        var scalo = simboli.Single(s => s.Nome == "AIRPORT");
+        Assert.True(scalo.Acceso(1, 1));
+        Assert.True(scalo.Acceso(11, 11));
+    }
 
     [Fact]
     public void IlTipoDelFixViaggiaConLaForma()
@@ -74,28 +83,13 @@ public sealed class SimboliDellaMappaTests : IDisposable
     }
 
     [Fact]
-    public async Task ISimboliSonoQuelliDelSymDelMaster()
+    public async Task ISimboliNonDipendonoDalSymDelMaster()
     {
-        string isc = File.ReadAllText(_albero.Percorso("SectorFiles/ITALY.isc"));
-        _albero.Scrivi("SectorFiles/ITALY.isc", isc + "\r\n[SYMBOLS]\r\nF;symbols.sym\r\n");
-        _albero.Scrivi("SectorFiles/Include/IT/symbols.sym", "//APT\r\n" + Pixel + "\r\n\r\n//FIX vuoto piccolo\r\n" + Pixel + "\r\n");
-
         var lab = new SessioneDelLab(Path.Combine(_albero.Radice, "dati-del-lab"));
         Assert.True(await lab.ApriAsync(_albero.Radice));
-        await lab.ScegliIscAsync("ITALY.isc");
 
-        Assert.NotNull(lab.Simboli);
-        Assert.Equal(["APT", "FIX vuoto piccolo", "VFR · di Aurora"], lab.Simboli!.Simboli.Select(s => s.Nome));
+        Assert.Same(SimboliDellaMappa.DiAurora, lab.Simboli);
         var bc404 = lab.Strati.Single(s => s.Id == "punti").Forme.First(f => f.Etichetta == "BC404");
-        Assert.Equal(1, lab.Simboli.Di(bc404));
-    }
-
-    [Fact]
-    public async Task UnMasterSenzaSymNonHaSimboli()
-    {
-        var lab = new SessioneDelLab(Path.Combine(_albero.Radice, "dati-del-lab"));
-        Assert.True(await lab.ApriAsync(_albero.Radice));
-
-        Assert.Null(lab.Simboli);
+        Assert.Equal("FIX_ENR", lab.Simboli.Simboli[lab.Simboli.Di(bc404)!.Value].Nome);
     }
 }

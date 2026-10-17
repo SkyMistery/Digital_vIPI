@@ -252,6 +252,9 @@ public static partial class Validatore
         // I modelli ATIS e D-ATIS (slice 18a; W3, W4): segnaposto, parentesi, campi dei .fds, l'ATIS contro il suo D-ATIS.
         problemi.AddRange(ControlloDegliAtis.Di([.. Con(".atis"), .. Con(".datis")], Con(".fds"), Con(".frq")));
 
+        // I simboli (slice 17a, T2): il nome senza // e il simbolo senza nome. Un simbolo che non è 13×13 lo dice il lettore.
+        problemi.AddRange(ControlloDeiSimboli.Di(Con(".sym")));
+
         // Il CPDLC (lotto «Subito» slice 11c): gruppi senza messaggi, messaggi senza risposta, valori, elenchi del manuale.
         var cpdlc = indice.Values.Where(p => (p.EndsWith(".cpdlc", StringComparison.OrdinalIgnoreCase)
                                               || p.EndsWith(".cpdlcnames", StringComparison.OrdinalIgnoreCase)) && Esito(p) is not null)

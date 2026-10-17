@@ -537,6 +537,13 @@ public static class DescrizioniDeiCampi
             C("Etichetta", "Etichetta", "Il testo che il controllore vede accanto alla casella nella finestra ATIS (1° campo)."),
             C("Segnaposto", "Segnaposto", "Il nome col quale i modelli .atis e .datis citano quel che il controllore ci scrive (2° campo, fra parentesi quadre nel file)."),
         ]),
+        // Slice 17c (§20, T1): un simbolo del .sym, uno dei disegni fra cui si sceglie nella linguetta SYMBOLS di Aurora.
+        [typeof(Simbolo)] = new("Simbolo",
+        [
+            C("Nome", "Nome", "Il commento sopra i pixel (//NOME): Aurora non lo legge, dice a chi sceglie dalla tavolozza cos'è il simbolo."),
+            C("NomeSenzaBarre", "Nome senza //", "Il nome sta in una riga senza // (AC_comb SEL sul fork): Aurora la salta, ma il formato non la prevede. Tolta la spunta, si riscrive col //.", Editor.SiNo),
+            C("Pixel", "Pixel", "13 gruppi di 13 cifre, ogni gruppo una colonna da sinistra, ogni cifra un pixel dall'alto: si disegnano nella sezione Disegno qui sotto.", Editor.SolaLettura),
+        ]),
     };
 
     private static DescrizioneDelTipo SettoreDinamico(string nome, IReadOnlyList<DescrizioneDelCampo> inPiu) => new(nome,

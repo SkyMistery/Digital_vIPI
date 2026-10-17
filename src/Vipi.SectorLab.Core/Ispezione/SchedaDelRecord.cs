@@ -91,6 +91,9 @@ public static class Ispettore
             return "Modello";
         if (record is Vipi.Sectorfile.Models.CampoDellAtis campo)
             return campo.Segnaposto;
+        // Slice 17c: un simbolo senza il commento col nome sopra (il 19° del fork).
+        if (record is Vipi.Sectorfile.Models.Simbolo { Nome: null })
+            return "senza nome";
         foreach (string nome in NomiCheFannoDaEtichetta)
         {
             if (record.GetType().GetProperty(nome, BindingFlags.Public | BindingFlags.Instance)?.GetValue(record) is { } valore

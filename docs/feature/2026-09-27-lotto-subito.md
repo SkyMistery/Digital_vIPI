@@ -6,6 +6,11 @@
 > [F3](2026-09-22-f3-l-app.md), [F3-bis](2026-09-23-f3-bis-copie-e-mappe-composte.md). Metodo:
 > [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 
+## Stato — 17 ottobre 2026
+
+**Fatte le slice 0-18 e la 19a.** La 17 (simboli) si è sbloccata con la prova T3 del committente in Aurora ed è fatta
+(traccia in §6). **Resta** il **giro di prove del committente** (19b: dalla 78 alla 238, guida in testa a `PROVE.md`).
+
 ## Stato — 9 ottobre 2026
 
 **Fatte le slice 0-16, la 18 e la 19a** (ultimo commit di lavoro `3e659591`, 6 ottobre). **Restano**: la **17**
@@ -1997,6 +2002,61 @@ avviso; dei cinque gemelli diversi **è giusto il fix**.
   (compatta o coi punti): `PORTO CESAREO;BNW1;N0401651000;E0175025000;` → `…;N0401407000;E0175437000;`. «Correggi
   tutte le 3 di libn.vfi», le 2 di `lirp.vfi`. 🔴 La decisione è sui cinque del fork: per un caso nuovo la riga è
   una proposta, e chi sa che è giusto il punto sposta il fix dalla scheda (il gemello lo segue).
+
+### Slice 17 — Simboli (`.sym`) — 17 ottobre
+
+**La prova T3 del committente in Aurora** (carta «file per file» §20, esito per esteso lì): Aurora sceglie il simbolo di
+ogni **ruolo** nelle impostazioni (linguetta SYMBOLS: fix, radioassistenze, scali, VFR, Traffic 1-10, PAR, procedure);
+cliccato un ruolo, la **tavolozza** è fatta dei 23 simboli del `.sym`, soli e nell'ordine del file; la scelta si salva
+nel profilo come **disegno** (`SYMBOLS_<RUOLO>=` coi 13 gruppi). Quindi la posizione nel file non decide nessun ruolo, e
+le due righe di nome senza `//` (T3-2: Aurora le salta, i numeri dopo non si spostano) si correggono senza rischi.
+**Decisioni del committente (17 ottobre)**: l'editor arriva al solo `.sym`; i `SYMBOLS_` dei profili restano aperti
+(i 15 `.cpr` del sector non ne hanno: stanno nei profili installati, e se un `.cpr` del sector possa portarli va provato
+in Aurora); la mappa del Lab disegna i punti coi simboli **di base di Aurora**, non con quelli del `.sym`.
+
+**Misura sul fork** (`8cf32c6`): un `symbols.sym`, 23 simboli 13×13, 0 righe illeggibili, 2 nomi senza `//`
+(`AC_comb SEL` riga 22, `AC_DUPE` riga 25), 1 simbolo senza nome (il 19°, riga 53). Nei profili installati del
+committente (38 `.cpr`, letti e mai scritti) i `SYMBOLS_` dei ruoli sono uguali in 37 su 38 (`LIPP_CE1_CTR` ha i suoi
+fix e radioassistenze).
+
+- **17a** — il motore. Codice comune toccato: `Models/Simbolo.cs`, `IO/Savers/SymSaver.cs`,
+  `Validazione/ControlloDeiSimboli.cs` (nuovi); `IO/Parsers/SymParser.cs` (ora un lettore come gli altri, coi chunk),
+  `IO/Formati.cs` (`.sym`), `Shared/SimboloDelSector.cs` (solo il commento), due regole in `ProblemaDelSector`,
+  `ValidatoreDellAlbero`; `tools/Vipi.SectorfileProva/Program.cs` (la riga dei simboli); il campione `symbols.sym`.
+  - **Il `.sym` ha un lettore e uno scrittore**: il record è il nome **e** i pixel (il commento sopra fa parte del
+    record, così un nome cambiato si riscrive al suo posto; un titolo sopra il nome, `////ALTRI`, resta un commento
+    davanti). Il 29° tipo di record del motore. Un pixel cambiato cambia solo la sua colonna (la fusione per campi).
+  - **Le regole T2**: `NomeDelSimboloSenzaBarre` (avviso, con la riga corretta `//AC_comb SEL`) e `SimboloSenzaNome`
+    (avviso, col numero del simbolo). Il simbolo che non è 13×13 è `RigaIllegibile`, dal lettore.
+  Uscita sul fork: **2** `NomeDelSimboloSenzaBarre`, **1** `SimboloSenzaNome`.
+- **17b** — la mappa. Solo il Lab: `Mappa/SimboliDellaMappa.cs`, `Mappa/Geometria.cs`. I punti hanno il simbolo del
+  loro **ruolo di Aurora** (19 disegni copiati da `BASIC_RADAR.cpr`): fix in rotta, terminale, in rotta e terminale, di
+  confine; VOR, VOR/DME, VORTAC, TACAN, DME; NDB; VFR, obbligatorio, elicotteri, area; scalo controllato, eliporto,
+  militare, privato, non controllato. Il tipo viaggia con la forma (`FIX:B` per il fix di confine, `VFR:n`, `APT:n`).
+  🔴 Scelte dell'agente da confermare accanto ad Aurora: il fix di confine prende il simbolo del confine qualunque sia
+  il tipo; il fix nascosto (che Aurora non mostra) quello del fix in rotta; il VFR obbligatorio `FIX_VFRN` (nei profili
+  è uguale a `FIX_VFR`).
+- **17c** — l'editor (T1). Solo il Lab: `SimboloNellaScheda.razor`, `SessioneDelLab.SimboloDi`/`CambiaIlPixel`, la
+  descrizione «Simbolo» (Nome, Nome senza //, Pixel), l'etichetta «senza nome». Nella scheda la sezione **Disegno**,
+  «N° di 23 nella tavolozza di Aurora»: la griglia 13×13 dove un clic accende o spegne un pixel (il centro segnato: è il
+  punto sulla mappa), accanto il simbolo **a grandezza vera e ×5** sullo sfondo del radar dello schema scelto. Ogni
+  clic è una modifica del campo Pixel, che si annulla. Sotto, i due avvisi del formato col gesto che li corregge.
+
+Uscita sul fork: validatore 235/1 242 → **235 errori, 1 245 avvisi** in `Vipi.SectorfileProva` (**1 253** nel pannello del
+Lab): +3. Round-trip **724/724** (erano 723: più il `.sym`; restano 25 file senza lettore), tutto toccato 0, una
+modifica per record 115 620, una testa per procedura 2 811, tag letti da vIPI 231 file e 2 379 procedure. Test: motore
+839 → **853**, Lab 930 → **946**. A schermo (banco, copia del fork): `symbols.sym` coi suoi 23 record, l'APT col cerchio
+e la barra verticale come nella tavolozza di Aurora, un pixel acceso e annullato, «+ Record come questo» su VOR2 (il
+nuovo sotto, `//VOR2` e i pixel), i due avvisi; sulla mappa coi colori di Aurora i fix in rotta col ▽ di «FIX
+Enroute».
+
+**Slice 17 chiusa** per T1 e T2, con due cose 🔴 **non fatte, e dette al committente**:
+
+- **Spostare un simbolo** nell'ordine del file: la T3 ha mostrato che l'ordine serve solo alla tavolozza, e nel Lab non
+  c'è ancora un gesto che sposti un record (si toglie e si aggiunge). Il numero si vede nel titolo della sezione.
+- **I `SYMBOLS_*` dei profili**: aspettano una prova in Aurora (un `SYMBOLS_` messo in un `.cpr` del sector vale?).
+
+Da provare a mano: prove 231-238.
 
 ### Slice 18 — ATIS e D-ATIS (`.atis`, `.datis`, `atisextra.fds`) — dal 6 ottobre
 

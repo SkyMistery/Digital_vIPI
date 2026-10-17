@@ -9,7 +9,7 @@
 // Due modi di colore (lotto «Subito» slice 4): quelli del Lab, uno per strato dal foglio, tenui; e quelli di Aurora,
 // che il server calcola forma per forma dallo schema scelto e da colors.def (k = linea, g = riempimento, s = stile
 // della linea). Si passa dall'uno all'altro senza riprendere le coordinate. Coi colori di Aurora i punti hanno il
-// loro simbolo del .sym (slice 4d, y = indice nell'elenco dei simboli che arriva con i colori).
+// loro simbolo di Aurora (slice 17b, y = indice nell'elenco dei simboli che arriva con i colori).
 (function () {
     'use strict';
 
@@ -66,7 +66,7 @@
         return tela;
     }
 
-    /// Un punto col simbolo del .sym: un cerchio di Leaflet (clic, evidenza, strati uguali a prima) che sulla tela si
+    /// Un punto col suo simbolo di Aurora: un cerchio di Leaflet (clic, evidenza, strati uguali a prima) che sulla tela si
     /// disegna col simbolo quando ne ha uno, pixel per pixel e centrato come in Aurora.
     var PuntoConSimbolo = L.CircleMarker.extend({
         _updatePath: function () {

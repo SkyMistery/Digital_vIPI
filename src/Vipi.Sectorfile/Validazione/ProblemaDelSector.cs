@@ -471,6 +471,15 @@ public enum Regola
     /// <c>[STATION_NAME]</c> e <c>[CPDLC]</c> non contano: il nome si può dire a voce, il CPDLC si legge soltanto.
     /// </summary>
     AtisEDatisDiversi,
+
+    /// <summary>
+    /// Il nome di un simbolo del <c>.sym</c> scritto senza <c>//</c> (<c>AC_comb SEL</c>, <c>AC_DUPE</c> sul fork): Aurora
+    /// salta la riga (prova T3-2), ma il formato vuole il nome in un commento. Con la riga corretta (slice 17a, T2).
+    /// </summary>
+    NomeDelSimboloSenzaBarre,
+
+    /// <summary>Un simbolo del <c>.sym</c> senza il commento col nome sopra: nella tavolozza non si sa cos'è (slice 17a, T2).</summary>
+    SimboloSenzaNome,
 }
 
 public enum Gravita
@@ -521,7 +530,7 @@ public static class Regole
             or Regola.GemelloVfrMancante or Regola.GemelloVfrDiverso or Regola.FixNascostoSenzaPunto
             or Regola.CodiceVfrRipetuto or Regola.CodiceVfrFuoriPosto or Regola.RottaMilitareAMeta
             or Regola.SegnapostoSconosciuto or Regola.ParentesiNonBilanciate or Regola.CampoDellAtisMaiUsato
-            or Regola.AtisEDatisDiversi => Validazione.Gravita.Avviso,
+            or Regola.AtisEDatisDiversi or Regola.NomeDelSimboloSenzaBarre or Regola.SimboloSenzaNome => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }
