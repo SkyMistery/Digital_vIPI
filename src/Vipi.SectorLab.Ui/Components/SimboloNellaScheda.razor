@@ -13,6 +13,15 @@
     var colonne = simbolo.Colonne();
     <Sezione Chiave="scheda-simbolo" data-simbolo="@numero">
     <Titolo>Disegno <span class="lab-nota">@numero° di @quanti nella tavolozza di Aurora</span></Titolo>
+    <Accanto>
+        @* Slice 17d: l'ordine serve solo alla tavolozza (prova T3); si sposta di un posto alla volta, di proposito. *@
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-sposta-simbolo="su" disabled="@(numero == 1)"
+                title="@(numero == 1 ? "È già il primo della tavolozza" : $"Al {numero - 1}° posto, scambiato col simbolo sopra")"
+                @onclick="() => Lab.SpostaIlSimbolo(File, Record, -1)">↑ Su</button>
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-sposta-simbolo="giu" disabled="@(numero == quanti)"
+                title="@(numero == quanti ? "È già l'ultimo della tavolozza" : $"Al {numero + 1}° posto, scambiato col simbolo sotto")"
+                @onclick="() => Lab.SpostaIlSimbolo(File, Record, +1)">↓ Giù</button>
+    </Accanto>
     <ChildContent>
     <div class="lab-simbolo">
         <div class="lab-simbolo-griglia" role="grid" aria-label="Pixel del simbolo: un clic accende o spegne">

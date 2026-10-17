@@ -2409,6 +2409,49 @@ public sealed class SessioneDelLab
             ? (simbolo, record + 1, file.RecordDelModello.Count)
             : null;
 
+    /// <summary>
+    /// Sposta un simbolo di un posto nella tavolozza (slice 17d, chiesto dal committente il 17 ottobre): su con
+    /// <paramref name="verso"/> -1, giù con +1. Si scambiano le righe dei due simboli (nome e pixel); i commenti davanti
+    /// (<c>////ALTRI</c>) e le righe vuote restano dove sono. È un gesto sul testo: si annulla come gli altri.
+    /// </summary>
+    public bool SpostaIlSimbolo(string fileRelativo, int record, int verso)
+    {
+        if (verso is not (-1 or 1) || SimboloDi(fileRelativo, record) is not { } simbolo)
+            return false;
+        int altro = record + verso;
+        if (altro < 0 || altro >= simbolo.Quanti)
+        {
+            Rifiuto = verso < 0 ? "È già il primo della tavolozza." : "È già l'ultimo della tavolozza.";
+            Avvisa();
+            return false;
+        }
+
+        string nome = simbolo.Simbolo.Nome ?? "simbolo senza nome";
+        return NellaStoria($"{nome} spostato al {altro + 1}° posto", () =>
+        {
+            var file = (IFileConRecord)Sessione!.File[fileRelativo]!;
+            var posti = file.PostiDeiRecord(Modifiche.SporchiDi(fileRelativo));
+            var righe = RigheDiAdesso(fileRelativo);
+            var (primo, secondo) = (posti[Math.Min(record, altro)], posti[Math.Max(record, altro)]);
+            var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+            void Metti((int Da, int Quante) dove, (int Da, int Quante) da)
+            {
+                sostituzioni[dove.Da + 1] = [.. righe.Skip(da.Da).Take(da.Quante)];
+                for (int k = 1; k < dove.Quante; k++)
+                    sostituzioni[dove.Da + 1 + k] = [];
+            }
+
+            Metti(primo, secondo);
+            Metti(secondo, primo);
+            string gesto = $"{nome} spostato al {altro + 1}° posto";
+            bool fatto = GestoSulTesto(fileRelativo, gesto, f => Modifiche.CambiaRighe(f, sostituzioni, gesto,
+                riletto => riletto.RecordDelModello.Count == simbolo.Quanti ? null : "Riletto, il file non ha più gli stessi simboli: non si sposta."));
+            if (fatto)
+                Scegli(fileRelativo, altro);
+            return fatto;
+        });
+    }
+
     /// <summary>Accende o spegne un pixel di un simbolo (slice 17c): una modifica del campo Pixel, che si annulla.</summary>
     public bool CambiaIlPixel(string fileRelativo, int record, int x, int y, bool acceso)
         => SimboloDi(fileRelativo, record) is { } s

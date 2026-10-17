@@ -10,7 +10,7 @@ namespace Vipi.SectorLab.Core.Mappa;
 /// e che il <c>.sym</c> è soltanto la tavolozza da cui si sceglie. I 15 <c>.cpr</c> del sector non hanno
 /// <c>SYMBOLS_</c>: i disegni qui sotto vengono dai profili installati di Aurora (misurati il 17 ottobre: uguali in 37
 /// profili su 38; il 38°, <c>LIPP_CE1_CTR</c>, ha i suoi fix e radioassistenze), copiati da <c>BASIC_RADAR.cpr</c>.</para>
-/// <para>🟡 Proposte dell'agente, da confermare accanto ad Aurora: un fix di confine (5° campo <c>1</c>) prende il simbolo
+/// <para>🟡 Proposte dell'agente, che il committente il 17 ottobre ha lasciato così «per ora»: un fix di confine (5° campo <c>1</c>) prende il simbolo
 /// del confine qualunque sia il suo tipo; un fix nascosto (tipo 3), che Aurora non mostra, ha quello del fix in rotta; il
 /// punto VFR obbligatorio (tipo 0) ha <c>FIX_VFRN</c> (nei profili è uguale a <c>FIX_VFR</c>).</para>
 /// </summary>

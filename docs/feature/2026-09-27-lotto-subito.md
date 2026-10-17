@@ -2041,6 +2041,14 @@ fix e radioassistenze).
   «N° di 23 nella tavolozza di Aurora»: la griglia 13×13 dove un clic accende o spegne un pixel (il centro segnato: è il
   punto sulla mappa), accanto il simbolo **a grandezza vera e ×5** sullo sfondo del radar dello schema scelto. Ogni
   clic è una modifica del campo Pixel, che si annulla. Sotto, i due avvisi del formato col gesto che li corregge.
+- **17d** — spostare un simbolo (committente, 17 ottobre: «mi potrebbe servire»). Solo il Lab:
+  `SessioneDelLab.SpostaIlSimbolo`, i tasti **↑ Su** e **↓ Giù** accanto al titolo del Disegno. Si scambiano le righe
+  dei due simboli (nome e pixel); i commenti davanti e le righe vuote restano dove sono; la scelta segue il simbolo. È
+  un gesto sul testo (come spezza e unisci): si annulla, e il file riletto deve avere gli stessi simboli.
+
+**Risposte del committente (17 ottobre)**: col file A della T3 la mappa di Aurora resta uguale; le `//` davanti ai due
+nomi vanno messe nel sector (sono nella lista R-10 delle correzioni dei dati, si fanno in un ramo del sector); le tre
+scelte dell'agente sulla mappa (confine, nascosto, VFR obbligatorio) restano come sono, per ora.
 
 Uscita sul fork: validatore 235/1 242 → **235 errori, 1 245 avvisi** in `Vipi.SectorfileProva` (**1 253** nel pannello del
 Lab): +3. Round-trip **724/724** (erano 723: più il `.sym`; restano 25 file senza lettore), tutto toccato 0, una
@@ -2050,11 +2058,8 @@ e la barra verticale come nella tavolozza di Aurora, un pixel acceso e annullato
 nuovo sotto, `//VOR2` e i pixel), i due avvisi; sulla mappa coi colori di Aurora i fix in rotta col ▽ di «FIX
 Enroute».
 
-**Slice 17 chiusa** per T1 e T2, con due cose 🔴 **non fatte, e dette al committente**:
-
-- **Spostare un simbolo** nell'ordine del file: la T3 ha mostrato che l'ordine serve solo alla tavolozza, e nel Lab non
-  c'è ancora un gesto che sposti un record (si toglie e si aggiunge). Il numero si vede nel titolo della sezione.
-- **I `SYMBOLS_*` dei profili**: aspettano una prova in Aurora (un `SYMBOLS_` messo in un `.cpr` del sector vale?).
+**Slice 17 chiusa** per T1 e T2. 🔴 **Non fatto, e detto al committente**: i `SYMBOLS_*` dei profili, che aspettano
+una prova in Aurora (un `SYMBOLS_` messo in un `.cpr` del sector vale?). Test Lab dopo la 17d: **947**.
 
 Da provare a mano: prove 231-238.
 

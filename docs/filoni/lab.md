@@ -11,7 +11,8 @@ La prova T3 in Aurora (esito in «file per file» §20): i simboli si scelgono *
 come disegno (`SYMBOLS_<RUOLO>=`). La posizione nel `.sym` non decide nessun ruolo, e le due righe di nome senza `//`
 non spostano niente. Da lì la **slice 17** (traccia nella carta del lotto, §6): il `.sym` ha lettore e scrittore, due
 avvisi nuovi, l'editor a pixel nella scheda, e la mappa disegna i punti coi simboli di base di Aurora (decisione del
-committente). Restano aperti, e scritti nella carta: spostare un simbolo nell'ordine; i `SYMBOLS_*` dei profili.
+committente), e un simbolo si sposta di un posto alla volta (17d). Resta aperto, e scritto nella carta: i `SYMBOLS_*`
+dei profili. Le `//` dei due nomi sono nella lista R-10 delle correzioni dei dati.
 
 Del lotto resta il **giro di prove del committente**, dalla 78 alla 238, in testa a `PROVE.md`. Exe di prova e conti
 nel cartellino.

@@ -120,6 +120,30 @@ public sealed class SimboliNellaSchedaTests : IDisposable
     }
 
     [Fact]
+    public async Task UnSimboloSiSpostaDiUnPosto_LeRigheVuoteRestano_ESiAnnulla()
+    {
+        // Slice 17d (committente, 17 ottobre): l'ordine serve alla tavolozza di Aurora, e si sposta di proposito.
+        var pagina = await Apri(0);
+        Assert.True(pagina.Find("[data-sposta-simbolo='su']").HasAttribute("disabled"));
+
+        pagina.Find("[data-sposta-simbolo='giu']").Click();
+
+        // La scelta segue il simbolo, che ora è il 2°; la tavolozza ha AC_comb SEL per primo.
+        pagina.WaitForAssertion(() => Assert.Equal("2", pagina.Find("[data-simbolo]").GetAttribute("data-simbolo")));
+        Assert.Equal(["AC_comb SEL", "FIX vuoto", "senza nome"], _lab.EtichetteDi(Sym));
+        _lab.Annulla();
+        Assert.Equal(["FIX vuoto", "AC_comb SEL", "senza nome"], _lab.EtichetteDi(Sym));
+
+        // Un simbolo di una riga sola (senza nome) scambiato con uno di due: le righe vuote fra loro restano al loro posto.
+        await pagina.InvokeAsync(() => _lab.Scegli(Sym, 2));
+        Assert.True(_lab.SpostaIlSimbolo(Sym, 2, -1));
+        Assert.False(_lab.SpostaIlSimbolo(Sym, 0, -1));
+        await _lab.SalvaAsync();
+
+        Assert.Equal(["//FIX vuoto", Fix, "", Vuoto, "", "AC_comb SEL", Fix], Righe());
+    }
+
+    [Fact]
     public void IlSimboloHaLaSuaDescrizione()
     {
         var descrizione = DescrizioniDeiCampi.Di(new Vipi.Sectorfile.Models.Simbolo());

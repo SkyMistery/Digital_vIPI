@@ -791,7 +791,7 @@ nelle prove I7.
   - **T3-2**: `AC_comb SEL` e `AC_DUPE` compaiono tutti e due nella tavolozza (8° e 9°) e i simboli dopo non si
     spostano: la riga del nome senza `//` Aurora la salta. Aggiungere le `//` è una correzione senza rischi.
   - **T3-3** (file A: APT e VOR2 scambiati): nella tavolozza il 1° e il 14° si scambiano (confermato dal committente).
-    Sulla mappa non deve cambiare niente, perché il profilo ha già il suo disegno (atteso, da guardare).
+    Sulla mappa non cambia niente (committente: «la mappa mi pare uguale»), perché il profilo ha già il suo disegno.
   - Per il verso dei bit: il 1° della tavolozza è un cerchio con una barra **verticale**, e nel file APT ha
     pieno il 7° gruppo — conferma che ogni gruppo è una colonna.
   - Conseguenze per T1: l'ordine del `.sym` è libero (si mostra, ma non è un vincolo); la parte che cambia la mappa è
@@ -799,7 +799,7 @@ nelle prove I7.
 
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
-| T1 | **Editor a pixel 13×13**: griglia cliccabile, anteprima a grandezza vera e ingrandita su sfondo radar, scrive le colonne nell'ordine giusto, nome sempre nel commento, ordine visibile e spostabile solo di proposito (col suo numero). Lo stesso editor per i simboli con nome dei profili (`SYMBOLS_*` in un `.cpr`, con l'avviso di §14) | Subito | ✅ deciso · **fatto per il `.sym`** (lotto, slice 17c; l'ordine si vede, non si sposta). I `SYMBOLS_*` dei profili: aperti (committente, 17 ottobre), dopo una prova in Aurora |
+| T1 | **Editor a pixel 13×13**: griglia cliccabile, anteprima a grandezza vera e ingrandita su sfondo radar, scrive le colonne nell'ordine giusto, nome sempre nel commento, ordine visibile e spostabile solo di proposito (col suo numero). Lo stesso editor per i simboli con nome dei profili (`SYMBOLS_*` in un `.cpr`, con l'avviso di §14) | Subito | ✅ deciso · **fatto per il `.sym`** (lotto, slice 17c; l'ordine si vede e si sposta di un posto alla volta, 17d — al committente «potrebbe servire»). I `SYMBOLS_*` dei profili: aperti (committente, 17 ottobre), dopo una prova in Aurora |
 | T2 | Controlli: simbolo che non è 13×13, nome senza `//`, simbolo senza nome | Subito | ✅ deciso · **fatto** (slice 17a: `RigaIllegibile`, `NomeDelSimboloSenzaBarre`, `SimboloSenzaNome`) |
 | T3 | **Prova in Aurora dell'ordine**: nella scelta del simbolo dell'aereo, quali simboli compaiono, in che ordine, da che numero partono quelli del sector; se conta la posizione, correggere le 2 righe senza `//` | F4, in un ramo — presto | ✅ provata (17 ottobre): la posizione non decide il ruolo, le 2 righe senza `//` non spostano niente |
 
@@ -964,7 +964,7 @@ e le misure fatte per controllarle.
 | R-7 | **Coordinate in una forma sola** per `.vfi`/`.tfl` (§C): era «da decidere» e non stava fra i «Da chiedere» | ora in testa | da chiedere · rimandata: «più avanti, come dice l'agente» |
 | R-8 | `LIMJ_APP` e `LIBB_APP` citati nei `.frq` e non definiti (M2): solo WN4/EN4 avevano una decisione (M7) | | da chiedere · rimandata: «più avanti, come dice l'agente» |
 | R-9 | TA = 0 in 66 scali di `itap.ap` (§13): ✅ **dal DB di IVAO** (committente, 27 settembre), come lo IATA (M10) | misurato, ora deciso | F6 |
-| R-10 | **Correzioni dei dati in una lista sola** (F4, in un ramo), oltre alle pulizie già decise: `EKLAP`→`HLD-ELKAP` · 5 righe illeggibili dei NAVAIDS · 9 righe di `VFR_NASCOSTI.fix` senza tipo · `3:` in `APT.fix` · `limf.sid:28` · decimali di `liba.str` e `lipz.txi` · voce LICC in `licz.str` · `ALPHA SUOTH` di `lied.str` · soglie invertite `LIDW 15`, `LIKL 36` · 51 include dopo un escluso · `\liml.atis` · `LIPC.cpr` · didascalie PAR (`LIPI 06`, `LIBN` INSET3) · cerchio `X07-X08` · 86 righe illeggibili dei `.geo` (G6) · `lict.vfi` e i gemelli di F7 | trovati nelle misure, molti senza una correzione in elenco | F4 · ✅ confermata (27 settembre) |
+| R-10 | **Correzioni dei dati in una lista sola** (F4, in un ramo), oltre alle pulizie già decise: `EKLAP`→`HLD-ELKAP` · 5 righe illeggibili dei NAVAIDS · 9 righe di `VFR_NASCOSTI.fix` senza tipo · `3:` in `APT.fix` · `limf.sid:28` · decimali di `liba.str` e `lipz.txi` · voce LICC in `licz.str` · `ALPHA SUOTH` di `lied.str` · soglie invertite `LIDW 15`, `LIKL 36` · 51 include dopo un escluso · `\liml.atis` · `LIPC.cpr` · didascalie PAR (`LIPI 06`, `LIBN` INSET3) · cerchio `X07-X08` · 86 righe illeggibili dei `.geo` (G6) · `lict.vfi` e i gemelli di F7 · le `//` davanti a `AC_comb SEL` e `AC_DUPE` in `symbols.sym` (T2; committente, 17 ottobre: «ci vogliono») | trovati nelle misure, molti senza una correzione in elenco | F4 · ✅ confermata (27 settembre) |
 
 Messe a posto in questa revisione: H5 chiusa da I2; P4, P5, H6 non sono mai esistite (numerazione).
 
