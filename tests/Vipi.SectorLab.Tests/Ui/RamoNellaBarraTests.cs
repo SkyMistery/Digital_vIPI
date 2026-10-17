@@ -229,6 +229,47 @@ public sealed class RamoNellaBarraTests : IDisposable
         Assert.Empty(_lab.AvvisiDelChangelog);
     }
 
+    [Fact]
+    public async Task Riporto_CicloNuovoNelChangelog_ECancellazioni()
+    {
+        // Carta F4, slice 7. Il changelog dice un ciclo vecchio: nel lavoro nato dal ciclo dopo si archivia e si riapre.
+        _albero.Scrivi("SectorFiles/Include/IT/changelog.md", "**AIRAC A2601 IN VIGORE DAL 01/01/2026\r\n\r\n**Generale\r\n*NIL\r\n\r\n**LIBB Brindisi\r\n*NIL\r\n\r\n"
+            + "**LIMM Milano\r\n*NIL\r\n\r\n**LIPP Padova\r\n*NIL\r\n\r\n**LIRR Roma\r\n*NIL\r\n");
+        FanneUnRepo();
+        string dove = Path.Combine(_albero.Radice, "dati-del-lab", "preso", "it-aurora-sector");
+        _lab.CambiaLIndirizzoDelSector(_albero.Radice);
+        Assert.True(await _lab.PrendiIlSectorAsync(dove));
+        foreach (var (chiave, valore) in new[] { ("user.name", "Prova del Lab"), ("user.email", "prova@example.invalid") })
+            Assert.True((await _lab.Git.EseguiAsync(dove, ["config", chiave, valore])).Riuscito);
+        Assert.True(_lab.CambiaIlVid("704798"));
+        await _lab.RileggiIlRamoAsync();
+        Assert.True(await _lab.FaiNascereIlCicloAsync(), _lab.Rifiuto);
+        // Sul server, master va avanti (un aggiornamento immediato di un altro AOD).
+        File.AppendAllText(_albero.Percorso("SectorFiles/Include/IT/NAVAIDS/APT.fix"), "NUOVO;N045.00.00.000;E009.00.00.000;0;\r\n");
+        Git("commit", "--quiet", "-am", "immediato");
+        await _lab.RileggiIlRamoAsync(prendi: true);
+        Assert.Equal(1, _lab.DaRiportare);
+
+        Assert.True(await _lab.CominciaIlRiportoAsync(), _lab.Rifiuto);
+
+        Assert.Equal(("aod/704798/riporto-" + _lab.CicloDopo[6..], _lab.CicloDopo), (_lab.Ramo!.Ramo, _lab.BaseDelRamo));
+        Assert.False(_lab.RiportoInCorso);
+        Assert.Contains("NUOVO;", File.ReadAllText(Path.Combine(dove, "SectorFiles", "Include", "IT", "NAVAIDS", "APT.fix")), StringComparison.Ordinal);
+
+        // Il ciclo nuovo nel changelog (C3).
+        Assert.Equal("2601", _lab.CicloNelChangelog);
+        Assert.True(await _lab.ApriIlNuovoCicloAsync(), _lab.Rifiuto);
+        Assert.Equal(_lab.CicloDelChangelog, _lab.CicloNelChangelog);
+        Assert.True(File.Exists(Path.Combine(dove, "SectorFiles", "Include", "IT", "CHANGELOG", "2601.txt")));
+
+        // Un file tolto (C4): la sua riga in delete.upd.
+        File.Delete(Path.Combine(dove, "SectorFiles", "Include", "IT", "NAVAIDS", "APT.fix"));
+        await _lab.RileggiIlRamoAsync();
+        Assert.True(await _lab.PreparaLeCancellazioniAsync(), _lab.Rifiuto);
+        Assert.Contains("IT\\NAVAIDS\\APT.fix", File.ReadAllText(Path.Combine(dove, "SectorFiles", "delete.upd")), StringComparison.Ordinal);
+        Assert.Contains(_lab.Ramo!.Cambiati, c => c.Percorso == "SectorFiles/delete.upd");
+    }
+
     private readonly List<Uri> _aperte = [];
 
     private string _primoNome => File.ReadLines(_albero.Percorso("SectorFiles/Include/IT/NAVAIDS/APT.fix")).First(r => !r.StartsWith("//", StringComparison.Ordinal) && r.Contains(';', StringComparison.Ordinal)).Split(';')[0];

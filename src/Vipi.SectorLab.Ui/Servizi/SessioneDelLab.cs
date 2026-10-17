@@ -324,6 +324,8 @@ public sealed class SessioneDelLab
                 CicloDopo = Core.Git.RamiDelSector.RamoDelCicloDopo(DateTime.UtcNow);
                 CicloDopoSulServer = await Core.Git.RamiDelSector.SulServerAsync(Git, stato.Radice, CicloDopo).ConfigureAwait(false);
                 BaseDelRamo = stato.Ramo is null ? null : await Core.Git.RamiDelSector.BaseDiAsync(Git, stato.Radice, stato.Ramo).ConfigureAwait(false);
+                RiportoInCorso = await Core.Git.Riporto.InCorsoAsync(Git, stato.Radice).ConfigureAwait(false);
+                DaRiportare = CicloDopoSulServer ? await Core.Git.Riporto.DaRiportareAsync(Git, stato.Radice, Predefinito, CicloDopo).ConfigureAwait(false) : 0;
             }
 
             Ramo = stato;
@@ -3214,6 +3216,8 @@ public sealed class SessioneDelLab
         await RileggiIlRamoAsync().ConfigureAwait(false);
         if (Ramo is not { } ramo)
             return Rifiuta(PercheDelRamo ?? "La cartella non sta in un clone git.");
+        if (RiportoInCorso)
+            return Rifiuta("C'è un riporto a metà: risolvi i conflitti e «Concludi il riporto» (o annullalo) prima di registrare altro.");
 
         StaRegistrando = true;
         Avvisa();
@@ -3236,6 +3240,119 @@ public sealed class SessioneDelLab
 
         await RileggiIlRamoAsync().ConfigureAwait(false);
         return perche is null || Rifiuta(perche);
+    }
+
+    // --- riporto, fine del ciclo, cancellazioni (carta F4, slice 7) ------------------------------------------------
+
+    /// <summary>C'è un riporto a metà (una fusione coi conflitti da risolvere).</summary>
+    public bool RiportoInCorso { get; private set; }
+
+    /// <summary>Quante registrazioni del ramo predefinito il ramo del ciclo dopo non ha ancora.</summary>
+    public int DaRiportare { get; private set; }
+
+    /// <summary>Il ciclo che dice l'intestazione del changelog del ramo di adesso, o null.</summary>
+    public string? CicloNelChangelog
+        => PercorsoDelChangelog is { } file && File.Exists(file) ? Core.Git.Changelog.Intestazione(File.ReadAllLines(file))?.Ciclo : null;
+
+    /// <summary>Comincia il riporto del ramo predefinito nel ramo del ciclo dopo, in un ramo di lavoro nuovo.</summary>
+    public Task<bool> CominciaIlRiportoAsync()
+    {
+        if (Vid is not { } vid)
+            return Task.FromResult(Rifiuta("Manca il tuo VID: scrivilo nelle Impostazioni (va nel nome del ramo)."));
+        string ciclo = CicloDopo;
+        return GestoDiGitAsync($"riporto di {Predefinito} in {ciclo}", true, async radice =>
+        {
+            string? perche = await Core.Git.Riporto.CominciaAsync(Git, radice, vid, Predefinito, ciclo).ConfigureAwait(false);
+            return perche == "conflitti" ? (null, "Il riporto ha dei conflitti: per ogni file scegli quale versione tenere, poi «Concludi il riporto».") : (perche, null);
+        });
+    }
+
+    /// <summary>Risolve un file in conflitto come ha scelto l'AOD.</summary>
+    public Task<bool> RisolviIlConflittoAsync(string percorso, Core.Git.SceltaDelConflitto scelta)
+        => GestoDiGitAsync($"conflitto {percorso}: {scelta}", false,
+            async radice => (await Core.Git.Riporto.RisolviAsync(Git, radice, percorso, scelta).ConfigureAwait(false), null));
+
+    /// <summary>Conclude il riporto (la registrazione della fusione), quando non resta niente in conflitto.</summary>
+    public Task<bool> ConcludiIlRiportoAsync()
+        => GestoDiGitAsync("riporto concluso", false,
+            async _ => (Ramo is { } ramo ? await Core.Git.Riporto.ConcludiAsync(Git, ramo).ConfigureAwait(false) : "Nessun ramo.", null));
+
+    /// <summary>Annulla il riporto a metà (<c>git merge --abort</c>): i file tornano come nel ciclo.</summary>
+    public Task<bool> AnnullaIlRiportoAsync()
+        => GestoDiGitAsync("riporto annullato", false,
+            async radice => (await Core.Git.Riporto.AnnullaAsync(Git, radice).ConfigureAwait(false), null));
+
+    /// <summary>
+    /// La fine del ciclo nel changelog (C3): nel ramo di lavoro nato dal ciclo nuovo, archivia il changelog del ciclo di
+    /// prima in <c>CHANGELOG/</c> e lo riapre vuoto col ciclo del ramo.
+    /// </summary>
+    public Task<bool> ApriIlNuovoCicloAsync()
+    {
+        string ciclo = CicloDelChangelog;
+        if (BaseDelRamo?.StartsWith(Core.Git.RamiDelSector.PrefissoDelCiclo, StringComparison.Ordinal) != true)
+            return Task.FromResult(Rifiuta("Il changelog del ciclo nuovo si apre in un lavoro nato dal ramo del ciclo (airac/…)."));
+        var dal = DateOnly.FromDateTime(new Vipi.Domain.Services.AiracService().EffectiveUtcForCycle(ciclo));
+        return GestoDiGitAsync($"changelog del ciclo A{ciclo}", false, radice =>
+        {
+            Core.Git.FineDelCiclo.Apri(radice, ciclo, dal, out string? perche);
+            return Task.FromResult<(string?, string?)>((perche, null));
+        });
+    }
+
+    /// <summary>
+    /// Le cancellazioni (C4): i file del sector tolti e non ancora registrati vanno in <c>delete.upd</c>, e le righe che li
+    /// caricano escono dagli <c>.isc</c>. Poi si registrano insieme.
+    /// </summary>
+    public Task<bool> PreparaLeCancellazioniAsync()
+    {
+        var tolti = Ramo?.Cambiati.Where(c => c.Come == "tolto").Select(c => c.Percorso).ToList() ?? [];
+        if (tolti.Count == 0)
+            return Task.FromResult(Rifiuta("Nessun file tolto da preparare."));
+        return GestoDiGitAsync($"cancellazioni di {tolti.Count} file", false, radice =>
+        {
+            var cambiati = Core.Git.Cancellazioni.Applica(radice, tolti);
+            return Task.FromResult<(string?, string?)>((cambiati.Count == 0 ? "delete.upd e gli .isc erano già a posto." : null, null));
+        });
+    }
+
+    /// <summary>
+    /// Un gesto di git che cambia i file sul disco: niente modifiche del Lab in sospeso (con <paramref name="pulito"/>,
+    /// neanche file non registrati), poi il gesto, poi l'albero si rilegge. Il gesto torna il perché (fallito) o una nota.
+    /// </summary>
+    private async Task<bool> GestoDiGitAsync(string cosa, bool pulito, Func<string, Task<(string? Perche, string? Nota)>> gesto)
+    {
+        if (StaCambiandoRamo)
+            return false;
+        if (Modifiche.CEQualcosa)
+            return Rifiuta("Ci sono modifiche non salvate: salvale (o annullale) prima.");
+        if (Ramo is not { } ramo)
+            return Rifiuta(PercheDelRamo ?? "La cartella non sta in un clone git.");
+        if (pulito && PercheNonSiCambiaRamo() is { } no)
+            return Rifiuta(no);
+
+        StaCambiandoRamo = true;
+        Rifiuto = null;
+        Avvisa();
+        (string? Perche, string? Nota) esito;
+        try
+        {
+            esito = await gesto(ramo.Radice).ConfigureAwait(false);
+            Registro.Scrivi("git", $"{cosa}: {esito.Perche ?? esito.Nota ?? "fatto"}");
+        }
+        finally
+        {
+            StaCambiandoRamo = false;
+        }
+
+        // I file sul disco possono essere cambiati: l'albero si rilegge comunque.
+        await ApriAsync(Sessione!.Cartella.Radice).ConfigureAwait(false);
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        ControllaIlChangelog();
+        if (esito.Perche is not null)
+            return Rifiuta(esito.Perche);
+        Rifiuto = esito.Nota;
+        Avvisa();
+        return true;
     }
 
     /// <summary>Le righe del changelog proposte per il ramo di lavoro (carta F4, slice 6), da correggere prima di scriverle.</summary>

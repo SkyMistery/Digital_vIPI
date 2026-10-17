@@ -17,11 +17,17 @@ public static class Registrazione
     /// <summary>Il file dei file da cancellare nei client (C4), fuori da <c>IT</c>.</summary>
     public const string FileDaCancellare = "SectorFiles/delete.upd";
 
-    /// <summary>Vero se il Lab può registrare quel file (percorso dalla radice del repo, con le barre in avanti).</summary>
+    /// <summary>
+    /// Vero se il Lab può registrare quel file (percorso dalla radice del repo, con le barre in avanti): la cartella del
+    /// sector, <c>delete.upd</c> e, dalla slice 7 (C4: togliere un file toglie la sua riga dagli <c>.isc</c>), gli <c>.isc</c>
+    /// di <c>SectorFiles/</c>.
+    /// </summary>
     public static bool DentroIConfini(string percorso)
     {
         ArgumentNullException.ThrowIfNull(percorso);
-        return percorso.StartsWith(CartellaDelSector, StringComparison.Ordinal) || percorso == FileDaCancellare;
+        return percorso.StartsWith(CartellaDelSector, StringComparison.Ordinal) || percorso == FileDaCancellare
+               || (percorso.StartsWith("SectorFiles/", StringComparison.Ordinal) && percorso.Count(c => c == '/') == 1
+                   && percorso.EndsWith(".isc", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>I file cambiati che il Lab registrerebbe: quelli dentro i confini.</summary>

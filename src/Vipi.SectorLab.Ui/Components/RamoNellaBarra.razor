@@ -37,8 +37,58 @@
                 </ul>
                 <textarea class="lab-campo lab-messaggio" rows="5" spellcheck="false" data-campo="messaggio"
                           value="@(_messaggio ?? Lab.MessaggioProposto)" @onchange="e => _messaggio = e.Value?.ToString()" disabled="@Occupato"></textarea>
-                <button type="button" class="lab-tasto" data-tasto="registra" disabled="@Occupato"
+                <button type="button" class="lab-tasto" data-tasto="registra" disabled="@(Occupato || Lab.RiportoInCorso)"
                         title="git commit dei file qui sopra, sul ramo @ramo.Ramo" @onclick="Registra">Registra</button>
+                @if (daRegistrare.Any(f => f.Come == "tolto"))
+                {
+                    @* Slice 7 (C4): un file tolto va in delete.upd e fuori dagli .isc, nella stessa registrazione. *@
+                    <p class="lab-nota" data-file-tolti>Ci sono file tolti: i client di Aurora li cancellano solo se sono in
+                        <code>delete.upd</code>.
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prepara-cancellazioni" disabled="@Occupato"
+                                @onclick="Lab.PreparaLeCancellazioniAsync">Aggiungi a delete.upd e togli dagli .isc</button></p>
+                }
+            }
+
+            @if (Lab.RiportoInCorso)
+            {
+                @* Slice 7: un riporto coi conflitti. Il Lab non sceglie: per ogni file la versione la dice l'AOD. *@
+                <h3>Riporto a metà</h3>
+                <ul class="lab-elenco-dei-rami" data-conflitti>
+                    @foreach (var conflitto in ramo.Cambiati.Where(c => c.Come == "in conflitto"))
+                    {
+                        string percorso = conflitto.Percorso;
+                        <li data-conflitto="@percorso">
+                            <code>@percorso[(percorso.LastIndexOf('/') + 1)..]</code>
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-scelta="ciclo" disabled="@Occupato"
+                                    @onclick="() => Lab.RisolviIlConflittoAsync(percorso, Vipi.SectorLab.Core.Git.SceltaDelConflitto.TieniIlCiclo)">Tieni il ciclo</button>
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-scelta="master" disabled="@Occupato"
+                                    @onclick="() => Lab.RisolviIlConflittoAsync(percorso, Vipi.SectorLab.Core.Git.SceltaDelConflitto.PrendiMaster)">Prendi @Lab.Predefinito</button>
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-scelta="a-mano" disabled="@Occupato"
+                                    title="L'hai sistemato tu nel file: i segni <<<<<<< e >>>>>>> non ci sono più"
+                                    @onclick="() => Lab.RisolviIlConflittoAsync(percorso, Vipi.SectorLab.Core.Git.SceltaDelConflitto.SistematoAMano)">Sistemato a mano</button>
+                        </li>
+                    }
+                </ul>
+                <div class="lab-tasti-del-ramo">
+                    <button type="button" class="lab-tasto" data-tasto="concludi-riporto" disabled="@(Occupato || ramo.Cambiati.Any(c => c.Come == "in conflitto"))"
+                            @onclick="Lab.ConcludiIlRiportoAsync">Concludi il riporto</button>
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="annulla-riporto" disabled="@Occupato"
+                            title="git merge --abort: i file tornano come nel ciclo" @onclick="Lab.AnnullaIlRiportoAsync">Annulla il riporto</button>
+                </div>
+            }
+            else if (Lab.CicloDopoSulServer)
+            {
+                <h3>Riporto <span class="lab-nota">@Lab.Predefinito → @Lab.CicloDopo</span></h3>
+                @if (Lab.DaRiportare > 0)
+                {
+                    <p class="lab-nota" data-da-riportare="@Lab.DaRiportare">@Lab.DaRiportare registrazioni di @Lab.Predefinito non sono ancora in @Lab.CicloDopo.
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="riporta" disabled="@(Occupato || Lab.Vid is null)"
+                                title="Un ramo di lavoro dal ciclo, con @Lab.Predefinito fuso dentro: poi Manda e la PR verso @Lab.CicloDopo" @onclick="Lab.CominciaIlRiportoAsync">Riporta</button></p>
+                }
+                else
+                {
+                    <p class="lab-nota" data-da-riportare="0">@Lab.CicloDopo ha già tutto quel che c'è su @Lab.Predefinito.</p>
+                }
             }
             @if (ramo.Ramo?.StartsWith(Vipi.SectorLab.Core.Git.RamiDelSector.PrefissoDiLavoro, StringComparison.Ordinal) == true)
             {
@@ -63,6 +113,15 @@
 
                 @* Slice 6 (C1, C2, C6): le righe del changelog dalle registrazioni del ramo, corrette dall'AOD. *@
                 <h3>Changelog <span class="lab-nota">ciclo A@(Lab.CicloDelChangelog)</span></h3>
+                @if (Lab.BaseDelRamo?.StartsWith(Vipi.SectorLab.Core.Git.RamiDelSector.PrefissoDelCiclo, StringComparison.Ordinal) == true
+                     && Lab.CicloNelChangelog is { } nelFile && nelFile != Lab.CicloDelChangelog)
+                {
+                    @* Slice 7 (C3): il ciclo nuovo comincia col suo changelog vuoto; quello di prima va in archivio. *@
+                    <p class="lab-nota" data-nuovo-ciclo>Il changelog dice ancora A@(nelFile).
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="apri-ciclo" disabled="@Occupato"
+                                title="changelog.md così com'è in CHANGELOG/@(nelFile).txt, poi vuoto con l'intestazione A@(Lab.CicloDelChangelog)"
+                                @onclick="Lab.ApriIlNuovoCicloAsync">Archivia A@(nelFile) e apri A@(Lab.CicloDelChangelog)</button></p>
+                }
                 <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="proponi-changelog" disabled="@Occupato"
                         title="Una riga per file registrato in questo ramo, nella sezione della sua FIR" @onclick="Proponi">Proponi le righe</button>
                 @if (_righe.Count > 0)

@@ -222,3 +222,27 @@ la proposta (il VID nelle Impostazioni del Lab).
   A schermo sul banco, col clone del fork sul ramo dei simboli: proposta «modificati Simbolo AC_comb SEL, AC_DUPE» in
   Generale, nessun avviso (A2610); corretta e scritta: una riga sola in più sotto «Generale». Non registrata né
   mandata. Test Lab 996 → **1 006**, due giri verdi.
+- **Slice 7 (17 ottobre)** — riporto, fine del ciclo, cancellazioni. Solo il Lab: `Core/Git/Riporto.cs`,
+  `FineDelCiclo.cs` (con `Cancellazioni`), i confini di `Registrazione` (più gli `.isc`), le sezioni del riquadro,
+  `SessioneDelLab` (`CominciaIlRiportoAsync`, `RisolviIlConflittoAsync`, `ConcludiIlRiportoAsync`,
+  `AnnullaIlRiportoAsync`, `ApriIlNuovoCicloAsync`, `PreparaLeCancellazioniAsync`).
+  - **Riporto**: il riquadro dice quante registrazioni di `master` il ciclo dopo non ha; «Riporta» crea
+    `aod/<VID>/riporto-<ciclo>` dal ciclo e ci fonde `master` (`--no-ff`, «Riporto di master in airac/…»). Liscio: si
+    manda e la PR va al ciclo. Coi conflitti: un file per riga con «Tieni il ciclo», «Prendi master», «Sistemato a
+    mano» (rifiutato se restano i segni `<<<<<<<`/`>>>>>>>`), poi «Concludi il riporto»; «Annulla il riporto» è
+    `git merge --abort`. A metà riporto «Registra» è spento.
+  - **Fine del ciclo** (C3), nel lavoro nato dal ramo del ciclo quando il changelog dice ancora il ciclo di prima:
+    `changelog.md` così com'è in `CHANGELOG/<ciclo>.txt` (un archivio che c'è già si sostituisce: il diff lo mostra),
+    poi vuoto con l'intestazione del ciclo nuovo (data dal calendario di vIPI), la stessa cornice `#####`, le cinque
+    sezioni con `*NIL`.
+  - **Cancellazioni** (C4): un file del sector tolto → «Aggiungi a delete.upd e togli dagli .isc»: la riga
+    `IT\cartella\file` in `SectorFiles/delete.upd` (una volta sola) e via le righe `F;` che lo caricano. 🔴 Per questo
+    gli `.isc` di `SectorFiles/` entrano nei confini della registrazione (C4 l'aveva deciso; §2.1 non li nominava).
+  - **Prova vera sul fork** (il committente ha detto «vai»): `airac/2611` nato da `master`; la riga di changelog dei
+    simboli registrata e mandata → **PR #2** verso `master`, fusa dal committente; il riquadro: «2 registrazioni di
+    master non sono ancora in airac/2611» → «Riporta», liscio, in `aod/704798/riporto-2611`; «Archivia A2610 e apri
+    A2611»: `CHANGELOG/2610.txt` aggiornato al changelog completo (compresa la riga venuta col riporto),
+    `changelog.md` vuoto con A2611 dal 29/10/2026 e nessun avviso; registrato e mandato → **PR #3** verso
+    `airac/2611`, fusa dal committente («puntava bene»). Poi il riquadro dice «airac/2611 ha già tutto quel che c'è su
+    master». Le cancellazioni sono provate nei test, non sul fork.
+  Test Lab 1 006 → **1 013**, due giri verdi. **Slice 7 chiusa.**
