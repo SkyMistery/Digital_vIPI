@@ -138,4 +138,9 @@ impostazioni del repo vero quando è il momento. Il Lab funziona anche senza rul
 | D4 | **Ruleset e AOD** (§4): quando, e chi lo dice agli altri. | Dopo la slice 8 sul fork, prima del primo giro sul repo vero. |
 | D5 | **Registrare**: un commit per ogni salvataggio, o quando l'AOD lo chiede? | Quando lo chiede (tasto **Registra**), col messaggio proposto: un salvataggio non è un pensiero finito. |
 
-✅ Approvata da: — (in attesa)
+**Risposte del committente (17 ottobre)**: D2 **(a)**, la pagina di GitHub già compilata; D3 il fork **lo rifà lui**
+dal repo vero, e fino ad allora le slice 1-4 vanno sul fork di oggi e sui repo finti; D4 il ruleset **dopo la prova sul
+fork** (slice 8), prima del primo giro sul repo vero; D5 il commit **quando lo chiede l'AOD** (tasto Registra). D1 resta
+la proposta (il VID nelle Impostazioni del Lab).
+
+✅ Approvata da: — (in attesa dell'«approvo» sulla carta intera)
