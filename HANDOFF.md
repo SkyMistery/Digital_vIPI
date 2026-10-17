@@ -6,9 +6,9 @@
 >
 > ## ▶ Il punto — 17 ottobre 2026
 >
-> **📦 Pronta da caricare: 1.65.0** (§A157, timbro `1.65.0 · 38a26f3`, 7 file, zip `000b0a10…`, MINOR senza migrazioni,
+> **✅ Online: 1.65.0** (`Schema 0` confermato; health Healthy; **in `main` non resta codice fuori pacchetto**) (§A157, timbro `1.65.0 · 38a26f3`, 7 file, zip `000b0a10…`, MINOR senza migrazioni,
 > misurata dalla 1.63.0): Sito S110 (il convertitore non perde l'arco con «centred on:») e S109 della 1.64.0, che non
-> è mai stata caricata e si butta. Online è la **1.63.0**. ⚠️ Aperto: aggiornare l'SDK a 10.0.402. ▶ Restano: banco su
+> è mai stata caricata e si butta. ⚠️ Aperto: aggiornare l'SDK a 10.0.402. ▶ Restano: banco su
 > Milano, riga «NOTAM» in Sorgenti, vista live dal telefono, prova del validatore sull'archivio ATC, elenchi di Torino,
 > Padova e Bologna, ripubblicare le vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.
 >

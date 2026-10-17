@@ -43,7 +43,12 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A157 — 1.65.0 PRONTA, da caricare: il convertitore non perde l'arco con «centred on:» (S110), e dentro la 1.64.0 mai caricata (S109) (17 ottobre 2026)
+### ✅ A157 — 1.65.0 ONLINE: il convertitore non perde l'arco con «centred on:» (S110), e dentro la 1.64.0 mai caricata (S109) (17 ottobre 2026)
+
+✅ Online dal 17 ottobre 2026: il committente conferma la 1.65 e `Schema 0`. Da fuori, da anonimo, alle 14:47Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti 401, convertitore 401 (dietro login), `vipi-theme.css?v=a1b78434`
+(invariato: il pacchetto non porta asset), `/vsop/health` e `/vsop/health/ready` Healthy. Non guardati da qui, dietro
+il login: il convertitore sul limite di Torino–Genova e la nota di S109 in Struttura.
 
 MINOR **senza migrazioni**, misurata dalla **1.63.0** (`099b0df`) che gira: la 1.64.0 (§A156) era pronta e non è mai
 stata caricata, quindi questa la contiene e la sostituisce. Timbro **`1.65.0 · 38a26f3`**.
