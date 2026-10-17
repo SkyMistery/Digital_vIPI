@@ -52,7 +52,7 @@
             @if (Lab.RiportoInCorso)
             {
                 @* Slice 7: un riporto coi conflitti. Il Lab non sceglie: per ogni file la versione la dice l'AOD. *@
-                <h3>Riporto a metà</h3>
+                <h3>Fusione a metà <span class="lab-nota" data-fusione-a-meta>@Lab.FusioneAMeta</span></h3>
                 <ul class="lab-elenco-dei-rami" data-conflitti>
                     @foreach (var conflitto in ramo.Cambiati.Where(c => c.Come == "in conflitto"))
                     {
@@ -60,9 +60,11 @@
                         <li data-conflitto="@percorso">
                             <code>@percorso[(percorso.LastIndexOf('/') + 1)..]</code>
                             <button type="button" class="lab-tasto lab-tasto-tenue" data-scelta="ciclo" disabled="@Occupato"
-                                    @onclick="() => Lab.RisolviIlConflittoAsync(percorso, Vipi.SectorLab.Core.Git.SceltaDelConflitto.TieniIlCiclo)">Tieni il ciclo</button>
+                                    title="Resta la versione di questo ramo (@ramo.Ramo)"
+                                    @onclick="() => Lab.RisolviIlConflittoAsync(percorso, Vipi.SectorLab.Core.Git.SceltaDelConflitto.TieniIlCiclo)">Tieni questo ramo</button>
                             <button type="button" class="lab-tasto lab-tasto-tenue" data-scelta="master" disabled="@Occupato"
-                                    @onclick="() => Lab.RisolviIlConflittoAsync(percorso, Vipi.SectorLab.Core.Git.SceltaDelConflitto.PrendiMaster)">Prendi @Lab.Predefinito</button>
+                                    title="Vince la versione del ramo che si sta fondendo (@Lab.FusioneAMeta)"
+                                    @onclick="() => Lab.RisolviIlConflittoAsync(percorso, Vipi.SectorLab.Core.Git.SceltaDelConflitto.PrendiMaster)">Prendi quella fusa</button>
                             <button type="button" class="lab-tasto lab-tasto-tenue" data-scelta="a-mano" disabled="@Occupato"
                                     title="L'hai sistemato tu nel file: i segni <<<<<<< e >>>>>>> non ci sono più"
                                     @onclick="() => Lab.RisolviIlConflittoAsync(percorso, Vipi.SectorLab.Core.Git.SceltaDelConflitto.SistematoAMano)">Sistemato a mano</button>
@@ -102,6 +104,15 @@
                 {
                     <button type="button" class="lab-tasto" data-tasto="manda" disabled="@Occupato"
                             title="git push del ramo @ramo.Ramo, poi la pagina di GitHub della PR verso @(Lab.BaseDelRamo ?? Lab.Predefinito)" @onclick="Manda">Manda</button>
+                }
+                @if (Lab.IndietroRispettoAllaBase > 0)
+                {
+                    @* Slice 8: altre PR sono arrivate nel ramo d'origine; la PR di questo ramo può essere in conflitto. *@
+                    <p class="lab-nota" data-indietro="@Lab.IndietroRispettoAllaBase">@Lab.IndietroRispettoAllaBase registrazioni di
+                        @(Lab.BaseDelRamo ?? Lab.Predefinito) non sono in questo ramo.
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="allinea" disabled="@Occupato"
+                                title="Fonde @(Lab.BaseDelRamo ?? Lab.Predefinito) in questo ramo (i conflitti li scegli tu); poi Manda aggiorna la PR"
+                                @onclick="Lab.AllineaIlRamoAsync">Allinea a @(Lab.BaseDelRamo ?? Lab.Predefinito)</button></p>
                 }
                 @if (ramo.Monte is not null)
                 {

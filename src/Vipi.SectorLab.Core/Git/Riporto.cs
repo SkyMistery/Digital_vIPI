@@ -70,6 +70,38 @@ public static class Riporto
             : $"Il riporto non è riuscito: {fondi.Errore}";
     }
 
+    /// <summary>
+    /// Allinea il ramo di lavoro di adesso al ramo da cui è nato (<paramref name="base_"/>), dopo che altre PR ci sono
+    /// state fuse (carta F4, slice 8: trovato coi cinque lavori R-10 dello stesso giorno, due righe di changelog nello
+    /// stesso punto). Come il riporto: si fonde <c>origin/&lt;base&gt;</c> nel ramo, e i conflitti li risolve l'AOD; poi
+    /// si manda di nuovo e la PR si aggiorna da sola. Torna null se è andata liscia, «conflitti», o il perché.
+    /// </summary>
+    public static async Task<string?> AllineaAsync(Git git, string radice, string base_, CancellationToken annulla = default)
+    {
+        ArgumentNullException.ThrowIfNull(git);
+        var fetch = await git.EseguiAsync(radice, ["fetch", "--quiet", "origin"], annulla).ConfigureAwait(false);
+        if (!fetch.Riuscito)
+            return $"Il server non ha risposto: {fetch.Errore}";
+        var conta = await git.EseguiAsync(radice, ["rev-list", "--count", $"HEAD..origin/{base_}"], annulla).ConfigureAwait(false);
+        if (conta.Riuscito && conta.Uscita.Trim() == "0")
+            return $"Niente da allineare: il ramo ha già tutto quel che c'è su {base_}.";
+
+        var fondi = await git.EseguiAsync(radice, ["merge", "--no-ff", "--no-edit", "-m", $"Allineo il ramo a {base_}", "origin/" + base_], annulla).ConfigureAwait(false);
+        if (fondi.Riuscito)
+            return null;
+        if (await InCorsoAsync(git, radice, annulla).ConfigureAwait(false))
+            return "conflitti";
+        return $"L'allineamento non è riuscito: {fondi.Errore}";
+    }
+
+    /// <summary>Quante registrazioni del ramo d'origine il ramo di lavoro non ha ancora (dall'ultimo <c>fetch</c>).</summary>
+    public static async Task<int> IndietroRispettoAsync(Git git, string radice, string base_, CancellationToken annulla = default)
+    {
+        ArgumentNullException.ThrowIfNull(git);
+        var conta = await git.EseguiAsync(radice, ["rev-list", "--count", $"HEAD..origin/{base_}"], annulla).ConfigureAwait(false);
+        return conta.Riuscito && int.TryParse(conta.Uscita.Trim(), out int n) ? n : 0;
+    }
+
     /// <summary>Risolve un file in conflitto come ha scelto l'AOD. Torna null se è andata, o il perché.</summary>
     public static async Task<string?> RisolviAsync(Git git, string radice, string percorso, SceltaDelConflitto scelta, CancellationToken annulla = default)
     {

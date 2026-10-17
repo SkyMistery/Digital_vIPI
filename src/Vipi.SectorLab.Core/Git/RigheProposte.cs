@@ -108,9 +108,14 @@ public static class RigheProposte
         if (nuovi is null || vecchi is null)
             return prima is null ? $"nuovo file {nome}" : $"aggiornato {nome}";
 
+        // Un file di un record solo senza un nome vero (un modello ATIS si chiama «Modello»): si dice il file.
+        if (vecchi.Count == 1 && nuovi.Count == 1 && nuovi[0].Nome == vecchi[0].Nome
+            && (nuovi[0].Nome == "Modello" || nuovi[0].Tipo.Contains(nuovi[0].Nome, StringComparison.OrdinalIgnoreCase)))
+            return vecchi[0].Righe == nuovi[0].Righe ? $"aggiornato {nome}" : $"modificato {nome}";
+
         var parti = new List<string>();
         var restanti = vecchi.ToList();
-        var aggiunti = new List<(string Tipo, string Nome)>();
+        var aggiunti = new List<(string Tipo, string Nome, string Righe)>();
         var modificati = new List<(string Tipo, string Nome)>();
         foreach (var nuovo in nuovi)
         {
@@ -129,15 +134,48 @@ public static class RigheProposte
             }
             else
             {
-                aggiunti.Add((nuovo.Tipo, nuovo.Nome));
+                aggiunti.Add(nuovo);
             }
         }
 
-        Racconta(parti, "aggiunt", aggiunti);
+        // Un record tolto e uno aggiunto dello stesso tipo che differiscono in al più due campi sono lo stesso record
+        // col nome corretto (slice 8: «MAZARA DEL VALLOCTSE3» → «MAZARA DEL VALLO», nome e codice scambiati in lipa.vfi).
+        var corretti = new List<(string Tipo, string Nome)>();
+        foreach (var aggiunto in aggiunti.ToList())
+        {
+            int era = restanti.FindIndex(v => v.Tipo == aggiunto.Tipo && CampiDiversi(v.Righe, aggiunto.Righe) <= 2);
+            if (era < 0)
+                continue;
+            corretti.Add((aggiunto.Tipo, $"{aggiunto.Nome} (era {restanti[era].Nome})"));
+            restanti.RemoveAt(era);
+            aggiunti.Remove(aggiunto);
+        }
+
+        Racconta(parti, "aggiunt", [.. aggiunti.Select(a => (a.Tipo, a.Nome))]);
         Racconta(parti, "tolt", [.. restanti.Select(r => (r.Tipo, r.Nome))]);
+        Racconta(parti, "corrett", corretti);
         Racconta(parti, "modificat", modificati);
         return parti.Count == 0 ? $"aggiornato {nome}" : string.Join("; ", parti);
     }
+
+    /// <summary>
+    /// Quanti campi (separati da <c>;</c>) cambiano fra due record di una riga. Se cambia una coordinata è un altro punto,
+    /// non lo stesso col nome corretto: allora, come per i record di più righe, «molti».
+    /// </summary>
+    private static int CampiDiversi(string prima, string dopo)
+    {
+        if (prima.Contains('\n', StringComparison.Ordinal) || dopo.Contains('\n', StringComparison.Ordinal))
+            return int.MaxValue;
+        var a = prima.Split(';');
+        var b = dopo.Split(';');
+        if (a.Length != b.Length)
+            return int.MaxValue;
+        var diversi = a.Zip(b).Where(c => c.First != c.Second).ToList();
+        return diversi.Any(c => Coordinata(c.First) || Coordinata(c.Second)) ? int.MaxValue : diversi.Count;
+    }
+
+    private static bool Coordinata(string campo)
+        => campo.Trim() is [ 'N' or 'S' or 'E' or 'W' or 'n' or 's' or 'e' or 'w', var cifra, ..] && char.IsAsciiDigit(cifra);
 
     private static void Racconta(List<string> parti, string verbo, IReadOnlyList<(string Tipo, string Nome)> record)
     {

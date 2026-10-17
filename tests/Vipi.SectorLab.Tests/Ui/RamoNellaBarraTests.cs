@@ -217,7 +217,7 @@ public sealed class RamoNellaBarraTests : IDisposable
         Assert.True(await _lab.ProponiIlChangelogAsync(), _lab.Rifiuto);
 
         var riga = Assert.Single(_lab.RigheDelChangelog);
-        Assert.Equal(("Generale", $"aggiunto Fix PIPPO; tolto Fix {vecchio}"), (riga.Sezione, riga.Testo));
+        Assert.Equal(("Generale", $"corretto Fix PIPPO (era {vecchio})"), (riga.Sezione, riga.Testo));   // stesso punto, nome nuovo (slice 8)
         Assert.Empty(_lab.AvvisiDelChangelog);
 
         Assert.True(await _lab.ScriviNelChangelogAsync([("Generale", "rinominato il fix " + vecchio + " in PIPPO")]));

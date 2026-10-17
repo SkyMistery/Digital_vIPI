@@ -94,6 +94,33 @@ public sealed class RiportoEFineCicloTests : IDisposable
     }
 
     [Fact]
+    public async Task UnLavoroSiAllineaAMaster_ColConflittoSistematoAMano()
+    {
+        // Slice 8 (trovato coi lavori R-10): due lavori aggiungono una riga nello stesso punto; il primo è fuso in master.
+        Assert.Null(await RamiDelSector.NuovoLavoroAsync(_repo.Git, _repo.Lavoro, "aod/704798/c", "master"));
+        _repo.Scrivi(RepoDiProva.FileDiProva, "ABBOZ;N046.02.37.000;E011.07.48.000;0;\r\nCCCCC;N046.00.00.000;E011.00.00.000;0;\r\n");
+        _repo.Esegui(_repo.Lavoro, "commit", "--quiet", "-am", "c");
+        Assert.Null(await RamiDelSector.NuovoLavoroAsync(_repo.Git, _repo.Lavoro, "aod/704798/a", "master"));
+        _repo.Scrivi(RepoDiProva.FileDiProva, "ABBOZ;N046.02.37.000;E011.07.48.000;0;\r\nAAAAA;N046.00.00.000;E011.00.00.000;0;\r\n");
+        _repo.Esegui(_repo.Lavoro, "commit", "--quiet", "-am", "a");
+        _repo.Esegui(_repo.Lavoro, "push", "--quiet", "origin", "HEAD:master");   // la PR di a, fusa
+        Assert.Null(await RamiDelSector.PassaAsync(_repo.Git, _repo.Lavoro, "aod/704798/c"));
+        _repo.Esegui(_repo.Lavoro, "fetch", "--quiet");
+        Assert.Equal(1, await Riporto.IndietroRispettoAsync(_repo.Git, _repo.Lavoro, "master"));
+
+        Assert.Equal("conflitti", await Riporto.AllineaAsync(_repo.Git, _repo.Lavoro, "master"));
+
+        _repo.Scrivi(RepoDiProva.FileDiProva, "ABBOZ;N046.02.37.000;E011.07.48.000;0;\r\nAAAAA;N046.00.00.000;E011.00.00.000;0;\r\nCCCCC;N046.00.00.000;E011.00.00.000;0;\r\n");
+        Assert.Null(await Riporto.RisolviAsync(_repo.Git, _repo.Lavoro, RepoDiProva.FileDiProva, SceltaDelConflitto.SistematoAMano));
+        Assert.Null(await Riporto.ConcludiAsync(_repo.Git, await Stato()));
+
+        Assert.Equal(0, await Riporto.IndietroRispettoAsync(_repo.Git, _repo.Lavoro, "master"));
+        Assert.Contains("AAAAA", File_(RepoDiProva.FileDiProva), StringComparison.Ordinal);
+        Assert.Contains("CCCCC", File_(RepoDiProva.FileDiProva), StringComparison.Ordinal);
+        Assert.Contains("Niente da allineare", await Riporto.AllineaAsync(_repo.Git, _repo.Lavoro, "master"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LaFineDelCiclo_ArchiviaEApreIlNuovo()
     {
         string vecchio = "**AIRAC A2610 IN VIGORE DAL 01/10/2026\r\n\r\n####\r\n\r\n**Generale\r\n*nuovi FIX:\r\n-NANKA\r\n\r\n**LIBB Brindisi\r\n*NIL\r\n\r\n**LIMM Milano\r\n*NIL\r\n\r\n**LIPP Padova\r\n*NIL\r\n\r\n**LIRR Roma\r\n*LIRL: SID\r\n";

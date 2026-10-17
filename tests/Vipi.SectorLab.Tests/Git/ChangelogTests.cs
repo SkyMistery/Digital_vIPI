@@ -79,6 +79,12 @@ public sealed class ChangelogTests : IDisposable
         Assert.Equal("aggiunto Fix NANKA; tolto Fix ADOSA; modificato Fix ABBOZ",
             RigheProposte.CosaECambiato("SectorFiles/Include/IT/NAVAIDS/APT.fix", Prima, Dopo));
         Assert.Equal("tolto il file APT.fix", RigheProposte.CosaECambiato("SectorFiles/Include/IT/NAVAIDS/APT.fix", Prima, null));
+        // Slice 8, trovati coi lavori R-10 sul fork: un nome corretto, e un file di un record solo.
+        Assert.Equal("corretti Punto VFR SESTO AL REGHENA (era PASE1), CAORLE (era CAORLE - PHE2)",
+            RigheProposte.CosaECambiato("SectorFiles/Include/IT/lipa.vfi",
+                "PASE1;SESTO AL REGHENA;N0455135000;E0124841000;\r\nCAORLE - PHE2;;N0453600000;E0125300000;\r\n",
+                "SESTO AL REGHENA;PASE1;N0455135000;E0124841000;\r\nCAORLE;PHE2;N0453600000;E0125300000;\r\n"));
+        Assert.Equal("modificato default.atis", RigheProposte.CosaECambiato("SectorFiles/Include/IT/default.atis", "Runway [ARR]]].\r\n", "Runway [ARR]].\r\n"));
         Assert.Equal("aggiornato note.txt", RigheProposte.CosaECambiato("SectorFiles/Include/IT/note.txt", "a", "b"));
     }
 

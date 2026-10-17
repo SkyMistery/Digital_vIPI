@@ -309,7 +309,7 @@ public sealed class SessioneDelLab
         // Si ridisegna solo per quel che l'AOD vede cambiare: il «…» quando ha chiesto al server, e alla fine se il ramo
         // o il suo stato sono diversi. Una lettura in background che ridisegna sempre arrivava in mezzo ai clic (due test
         // rossi intermittenti del 17 ottobre); fuori da git non cambia mai niente.
-        string? prima = Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, BaseDelRamo);
+        string? prima = Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, $"{BaseDelRamo}|{IndietroRispettoAllaBase}|{DaRiportare}|{RiportoInCorso}");
         StaLeggendoIlRamo = true;
         if (prendi)
             Avvisa();
@@ -325,6 +325,10 @@ public sealed class SessioneDelLab
                 CicloDopoSulServer = await Core.Git.RamiDelSector.SulServerAsync(Git, stato.Radice, CicloDopo).ConfigureAwait(false);
                 BaseDelRamo = stato.Ramo is null ? null : await Core.Git.RamiDelSector.BaseDiAsync(Git, stato.Radice, stato.Ramo).ConfigureAwait(false);
                 RiportoInCorso = await Core.Git.Riporto.InCorsoAsync(Git, stato.Radice).ConfigureAwait(false);
+                FusioneAMeta = RiportoInCorso ? await MessaggioDellaFusioneAsync(stato.Radice).ConfigureAwait(false) : null;
+                IndietroRispettoAllaBase = stato.Ramo?.StartsWith(Core.Git.RamiDelSector.PrefissoDiLavoro, StringComparison.Ordinal) == true && !RiportoInCorso
+                    ? await Core.Git.Riporto.IndietroRispettoAsync(Git, stato.Radice, BaseDelRamo ?? Predefinito).ConfigureAwait(false)
+                    : 0;
                 DaRiportare = CicloDopoSulServer ? await Core.Git.Riporto.DaRiportareAsync(Git, stato.Radice, Predefinito, CicloDopo).ConfigureAwait(false) : 0;
             }
 
@@ -341,8 +345,24 @@ public sealed class SessioneDelLab
         finally
         {
             StaLeggendoIlRamo = false;
-            if (prendi || Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, BaseDelRamo) != prima)
+            if (prendi || Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, $"{BaseDelRamo}|{IndietroRispettoAllaBase}|{DaRiportare}|{RiportoInCorso}") != prima)
                 Avvisa();
+        }
+    }
+
+    private async Task<string?> MessaggioDellaFusioneAsync(string radice)
+    {
+        var dove = await Git.EseguiAsync(radice, ["rev-parse", "--git-path", "MERGE_MSG"]).ConfigureAwait(false);
+        if (!dove.Riuscito)
+            return null;
+        string file = Path.IsPathRooted(dove.Uscita.Trim()) ? dove.Uscita.Trim() : Path.Combine(radice, dove.Uscita.Trim());
+        try
+        {
+            return File.Exists(file) ? File.ReadLines(file).FirstOrDefault(r => r.Trim().Length > 0)?.Trim() : null;
+        }
+        catch (IOException)
+        {
+            return null;
         }
     }
 
@@ -3264,6 +3284,28 @@ public sealed class SessioneDelLab
         {
             string? perche = await Core.Git.Riporto.CominciaAsync(Git, radice, vid, Predefinito, ciclo).ConfigureAwait(false);
             return perche == "conflitti" ? (null, "Il riporto ha dei conflitti: per ogni file scegli quale versione tenere, poi «Concludi il riporto».") : (perche, null);
+        });
+    }
+
+    /// <summary>Quante registrazioni del ramo d'origine il ramo di lavoro di adesso non ha (dall'ultimo <c>fetch</c>).</summary>
+    public int IndietroRispettoAllaBase { get; private set; }
+
+    /// <summary>La prima riga del messaggio della fusione a metà («Riporto di master in airac/2611», «Allineo il ramo a master»).</summary>
+    public string? FusioneAMeta { get; private set; }
+
+    /// <summary>
+    /// Allinea il ramo di lavoro al ramo da cui è nato (carta F4, slice 8): ci fonde le PR arrivate nel frattempo, coi
+    /// conflitti risolti dall'AOD come nel riporto; poi «Manda» aggiorna la PR.
+    /// </summary>
+    public Task<bool> AllineaIlRamoAsync()
+    {
+        if (Ramo?.Ramo?.StartsWith(Core.Git.RamiDelSector.PrefissoDiLavoro, StringComparison.Ordinal) != true)
+            return Task.FromResult(Rifiuta("Si allinea un ramo di lavoro (aod/…)."));
+        string base_ = BaseDelRamo ?? Predefinito;
+        return GestoDiGitAsync($"allinea {Ramo.Ramo} a {base_}", true, async radice =>
+        {
+            string? perche = await Core.Git.Riporto.AllineaAsync(Git, radice, base_).ConfigureAwait(false);
+            return perche == "conflitti" ? (null, "L'allineamento ha dei conflitti: per ogni file scegli quale versione tenere, poi «Concludi».") : (perche, null);
         });
     }
 
