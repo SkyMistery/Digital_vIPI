@@ -8,10 +8,11 @@
 
 > **In una riga**: tutto il lavoro del filone è **online** fino a **S108**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
-> centri nel banco. Niente in corso. **S109** (16 ottobre, configurazioni possibili: «Tutti i settori» della mappa
-> detto in Struttura e tradotto) è **fuso** in `main` e va nella **1.64.0**, pronta e non ancora caricata.
-> **Da fondere: S110** (17 ottobre): il convertitore di coordinate perdeva l'arco con «centred on:», e le righe
-> lette erano contate male. Voci S109 e S110 qui sotto.
+> centri nel banco. Niente in corso, niente da fondere. **S109** (16 ottobre, configurazioni possibili: «Tutti i
+> settori» della mappa detto in Struttura e tradotto) e **S110** (17 ottobre, il convertitore di coordinate perdeva
+> l'arco con «centred on:» e contava male le righe lette) sono **fusi** in `main` ed escono **insieme** nella
+> **1.65.0** (§A157), pronta e non ancora caricata. La 1.64.0, che aveva il solo S109, non è mai stata caricata ed è
+> assorbita dalla 1.65.0. Voci S109 e S110 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2612,7 +2613,8 @@
     con le sole tabelle di struttura e accordi travasate in un SQLite di prova, in italiano e in inglese. Carta
     `docs/feature/2026-10-04-copertura-unica.md` §11.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina sulla copia MariaDB col login vero.
-- 🟢 **S109** revisione delle **configurazioni possibili** (16-ott, il committente: «nelle possible configurations
+- 🔀 **S109** (fuso in `main`, esce con la **1.65.0**, §A157, non ancora caricata) revisione delle **configurazioni
+  possibili** (16-ott, il committente: «nelle possible configurations
   per Milano manca quello con ANE ecc nonostante ci sia nel documento. Puoi fare una revisione del meccanismo?»).
   - **Cosa c'era**: niente di perso. Sulla copia di produzione del 12 ottobre (rimontata col suo ok, cancellata
     subito dopo) il blocco «Milano APP» della vIPI di Milano ha la sezione Configurazioni **vuota**, in bozza e
@@ -2637,7 +2639,8 @@
     l'avviso c'è senza lock e col lock, resta con una riga aggiunta e non applicata, sparisce dopo «Applica».
   - ⚠️ **Non visto**: la mappa AOR di un documento vero in inglese (coperta dal test bUnit); il telefono.
   - **Resta al committente**: scrivere in Struttura le configurazioni di Milano APP (quali, lo sa lui).
-- 🟢 **S110** il **convertitore di coordinate** perde l'arco con «centred on**:**» (17-ott, il committente con un
+- 🔀 **S110** (fuso in `main`, esce con la **1.65.0** insieme a S109) il **convertitore di coordinate** perde l'arco
+  con «centred on**:**» (17-ott, il committente con un
   limite laterale di Torino–Genova: «l'arco e quello dopo non lo disegna e non lo converte»).
   - **La causa**: i due punti attaccati facevano il pezzo `ON:`, e il vocabolario del lettore AIP cerca frasi
     intere fra spazi: «CENTRED ON» non si trovava, l'arco restava senza centro (segnalato «arco incompleto»), e
