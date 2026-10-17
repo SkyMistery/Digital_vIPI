@@ -8,9 +8,10 @@
 
 > **In una riga**: tutto il lavoro del filone è **online** fino a **S108**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
-> centri nel banco. Niente in corso. **Da fondere: S109** (16 ottobre), la revisione delle configurazioni possibili
-> chiesta per Milano APP — niente perso, il documento mostrava la scelta «Tutti i settori» della mappa; ora la
-> Struttura lo dice e la scelta si traduce. Voce S109 qui sotto.
+> centri nel banco. Niente in corso. **S109** (16 ottobre, configurazioni possibili: «Tutti i settori» della mappa
+> detto in Struttura e tradotto) è **fuso** in `main` e va nella **1.64.0**, pronta e non ancora caricata.
+> **Da fondere: S110** (17 ottobre): il convertitore di coordinate perdeva l'arco con «centred on:», e le righe
+> lette erano contate male. Voci S109 e S110 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2636,6 +2637,22 @@
     l'avviso c'è senza lock e col lock, resta con una riga aggiunta e non applicata, sparisce dopo «Applica».
   - ⚠️ **Non visto**: la mappa AOR di un documento vero in inglese (coperta dal test bUnit); il telefono.
   - **Resta al committente**: scrivere in Struttura le configurazioni di Milano APP (quali, lo sa lui).
+- 🟢 **S110** il **convertitore di coordinate** perde l'arco con «centred on**:**» (17-ott, il committente con un
+  limite laterale di Torino–Genova: «l'arco e quello dopo non lo disegna e non lo converte»).
+  - **La causa**: i due punti attaccati facevano il pezzo `ON:`, e il vocabolario del lettore AIP cerca frasi
+    intere fra spazi: «CENTRED ON» non si trovava, l'arco restava senza centro (segnalato «arco incompleto»), e
+    il centro e la fine entravano come vertici qualunque. Lo stesso arco senza i due punti era l'esempio di
+    settembre (carta F1 §0), e lì funzionava.
+  - **Fatto**: in `AipGeometryReader` il punto e i due punti **in fondo** a un pezzo si tolgono (dentro restano:
+    `44:37:01N`). E le «righe lette» ora sono vere: prendevano la riga del primo angolo di ogni gruppo, e nove
+    vertici uno per riga ne valevano una («3 di 14» su dodici righe di coordinate); ogni angolo ricorda la sua riga,
+    e una coppia spezzata su due righe (come nel PDF) ne conta due.
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (`AipGeometryReader.cs`).
+  - **Test**: App 3362 → 3364 (`AipGeometryReaderTests`: il testo del committente intero, e la coppia spezzata);
+    tutti e due **rossi** sul lettore di prima. Suite App intera verde, soluzione compilata senza avvisi.
+  - **Prova a schermo** sulla pagina del convertitore (host di sviluppo, database nuovo): nessun avviso, 53 punti,
+    «Arcs converted: 1», «lines read: 12 of 14», e sulla mappa la curva a nord-ovest verso Bra.
+  - Riga in carta F1 §8 (trappole note).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 16-ott: tutto fuso e online fino a **S108** (1.63.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
