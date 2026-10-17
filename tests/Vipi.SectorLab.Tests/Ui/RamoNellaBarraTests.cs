@@ -192,6 +192,43 @@ public sealed class RamoNellaBarraTests : IDisposable
         Assert.Empty(_aperte);
     }
 
+    [Fact]
+    public async Task IlChangelog_ProposteDalRamo_ScritteNellaSezione_EDaRegistrare()
+    {
+        // Carta F4, slice 6. Il changelog dice il ciclo in vigore oggi: così i controlli non hanno niente da dire.
+        string ciclo = Vipi.SectorLab.Core.Git.RamiDelSector.Cicli(DateTime.UtcNow).InVigore;
+        _albero.Scrivi("SectorFiles/Include/IT/changelog.md", string.Join("\r\n",
+            $"**AIRAC A{ciclo} IN VIGORE DAL 01/01/2026", "", "**Generale", "*NIL", "", "**LIBB Brindisi", "*NIL", "", "**LIMM Milano", "*NIL", "",
+            "**LIPP Padova", "*NIL", "", "**LIRR Roma", "*NIL", ""));
+        FanneUnRepo();
+        string dove = Path.Combine(_albero.Radice, "dati-del-lab", "preso", "it-aurora-sector");
+        _lab.CambiaLIndirizzoDelSector(_albero.Radice);
+        Assert.True(await _lab.PrendiIlSectorAsync(dove));
+        foreach (var (chiave, valore) in new[] { ("user.name", "Prova del Lab"), ("user.email", "prova@example.invalid") })
+            Assert.True((await _lab.Git.EseguiAsync(dove, ["config", chiave, valore])).Riuscito);
+        Assert.True(_lab.CambiaIlVid("704798"));
+        await _lab.RileggiIlRamoAsync();
+        Assert.True(await _lab.NuovoLavoroAsync("prova", Vipi.SectorLab.Core.Git.BaseDelLavoro.Immediato));
+        string vecchio = _primoNome;
+        Assert.True(_lab.CambiaCampo("SectorFiles/Include/IT/NAVAIDS/APT.fix", 0, "Name", "PIPPO"));
+        await _lab.SalvaAsync();
+        Assert.True(await _lab.RegistraAsync("PIPPO"), _lab.Rifiuto);
+
+        Assert.True(await _lab.ProponiIlChangelogAsync(), _lab.Rifiuto);
+
+        var riga = Assert.Single(_lab.RigheDelChangelog);
+        Assert.Equal(("Generale", $"aggiunto Fix PIPPO; tolto Fix {vecchio}"), (riga.Sezione, riga.Testo));
+        Assert.Empty(_lab.AvvisiDelChangelog);
+
+        Assert.True(await _lab.ScriviNelChangelogAsync([("Generale", "rinominato il fix " + vecchio + " in PIPPO")]));
+
+        var righe = File.ReadAllLines(Path.Combine(dove, "SectorFiles", "Include", "IT", "changelog.md"));
+        Assert.Equal(["**Generale", $"*rinominato il fix {vecchio} in PIPPO", ""], righe[2..5]);
+        Assert.Equal("*NIL", righe[6]);   // le altre sezioni restano com'erano
+        Assert.Contains(_lab.Ramo!.Cambiati, c => c.Percorso == Vipi.SectorLab.Core.Git.Changelog.Percorso);
+        Assert.Empty(_lab.AvvisiDelChangelog);
+    }
+
     private readonly List<Uri> _aperte = [];
 
     private string _primoNome => File.ReadLines(_albero.Percorso("SectorFiles/Include/IT/NAVAIDS/APT.fix")).First(r => !r.StartsWith("//", StringComparison.Ordinal) && r.Contains(';', StringComparison.Ordinal)).Split(';')[0];

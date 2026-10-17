@@ -60,6 +60,48 @@
                 }
                 <p class="lab-nota">Si manda solo quel che è registrato. La PR la crei tu, con «Create» sulla pagina di GitHub;
                     al primo invio git ti chiede l'accesso a GitHub nella sua finestra.</p>
+
+                @* Slice 6 (C1, C2, C6): le righe del changelog dalle registrazioni del ramo, corrette dall'AOD. *@
+                <h3>Changelog <span class="lab-nota">ciclo A@(Lab.CicloDelChangelog)</span></h3>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="proponi-changelog" disabled="@Occupato"
+                        title="Una riga per file registrato in questo ramo, nella sezione della sua FIR" @onclick="Proponi">Proponi le righe</button>
+                @if (_righe.Count > 0)
+                {
+                    <table class="lab-campi lab-righe-del-changelog" data-righe-del-changelog>
+                        <tbody>
+                            @foreach (var riga in _righe)
+                            {
+                                var questa = riga;
+                                <tr>
+                                    <td><input type="checkbox" checked="@questa.Scrivi" @onchange="e => questa.Scrivi = e.Value is true" data-scrivi-riga /></td>
+                                    <td>
+                                        @if (questa.Sezioni.Count > 1)
+                                        {
+                                            <select class="lab-campo" value="@questa.Sezione" @onchange="e => questa.Sezione = e.Value?.ToString() ?? questa.Sezione"
+                                                    title="Lo scalo sta in più FIR: scegli la sezione" data-sezione-ambigua>
+                                                @foreach (string s in questa.Sezioni)
+                                                {
+                                                    <option value="@s">@s</option>
+                                                }
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            <code>@questa.Sezione</code>
+                                        }
+                                    </td>
+                                    <td><input class="lab-campo" value="@questa.Testo" @onchange="e => questa.Testo = e.Value?.ToString() ?? string.Empty" data-testo-riga /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <button type="button" class="lab-tasto" data-tasto="scrivi-changelog" disabled="@Occupato"
+                            title="Le righe spuntate in coda alla loro sezione di changelog.md (via *NIL se c'era); poi si registra" @onclick="Scrivi">Scrivi nel changelog</button>
+                }
+                @foreach (var avviso in Lab.AvvisiDelChangelog)
+                {
+                    <p class="lab-avviso-breve" data-avviso-changelog>@avviso.Testo@(avviso.Riga is { } r ? $" (riga {r})" : "")</p>
+                }
             }
             @if (Vipi.SectorLab.Core.Git.Registrazione.Fuori(ramo) is { Count: > 0 } fuori)
             {
@@ -137,6 +179,33 @@ else if (Lab.PercheDelRamo is { } perche)
     private bool Occupato => Lab.StaLeggendoIlRamo || Lab.StaCambiandoRamo || Lab.StaRegistrando || Lab.StaMandando;
 
     private async Task Manda() => _rifiutoVisibile = !await Lab.MandaAsync();
+
+    /// <summary>Una riga proposta mentre l'AOD la corregge: sezione scelta, testo, se scriverla.</summary>
+    private sealed class RigaInCorrezione(Vipi.SectorLab.Core.Git.RigaDelChangelog proposta)
+    {
+        public IReadOnlyList<string> Sezioni { get; } = proposta.Sezioni;
+
+        public string Sezione { get; set; } = proposta.Sezione;
+
+        public string Testo { get; set; } = proposta.Testo;
+
+        public bool Scrivi { get; set; } = true;
+    }
+
+    private List<RigaInCorrezione> _righe = [];
+
+    private async Task Proponi()
+    {
+        _rifiutoVisibile = !await Lab.ProponiIlChangelogAsync();
+        _righe = [.. Lab.RigheDelChangelog.Select(r => new RigaInCorrezione(r))];
+    }
+
+    private async Task Scrivi()
+    {
+        _rifiutoVisibile = !await Lab.ScriviNelChangelogAsync([.. _righe.Where(r => r.Scrivi).Select(r => (r.Sezione, r.Testo))]);
+        if (!_rifiutoVisibile)
+            _righe = [];
+    }
 
     private async Task Registra()
     {

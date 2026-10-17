@@ -3238,6 +3238,90 @@ public sealed class SessioneDelLab
         return perche is null || Rifiuta(perche);
     }
 
+    /// <summary>Le righe del changelog proposte per il ramo di lavoro (carta F4, slice 6), da correggere prima di scriverle.</summary>
+    public IReadOnlyList<Core.Git.RigaDelChangelog> RigheDelChangelog { get; private set; } = [];
+
+    /// <summary>I controlli del changelog del ramo (C6), dall'ultima proposta o scrittura.</summary>
+    public IReadOnlyList<Core.Git.AvvisoDelChangelog> AvvisiDelChangelog { get; private set; } = [];
+
+    /// <summary>Il ciclo che il changelog del ramo deve dire: quello del ramo <c>airac/</c> da cui è nato, o quello in vigore.</summary>
+    public string CicloDelChangelog
+        => BaseDelRamo is { } base_ && base_.StartsWith(Core.Git.RamiDelSector.PrefissoDelCiclo, StringComparison.Ordinal)
+            ? base_[Core.Git.RamiDelSector.PrefissoDelCiclo.Length..]
+            : Core.Git.RamiDelSector.Cicli(DateTime.UtcNow).InVigore;
+
+    private string? PercorsoDelChangelog
+        => Ramo is { } ramo ? Path.Combine(ramo.Radice, Core.Git.Changelog.Percorso.Replace('/', Path.DirectorySeparatorChar)) : null;
+
+    /// <summary>
+    /// Propone le righe del changelog dalle registrazioni del ramo (C1) e controlla il file (C6). Solo da un ramo di
+    /// lavoro: le righe sono quelle del lavoro rispetto al ramo da cui è nato.
+    /// </summary>
+    public async Task<bool> ProponiIlChangelogAsync()
+    {
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        if (Ramo is not { Ramo: { } nome } ramo || !nome.StartsWith(Core.Git.RamiDelSector.PrefissoDiLavoro, StringComparison.Ordinal))
+            return Rifiuta("Le righe del changelog si propongono da un ramo di lavoro (aod/…).");
+        RigheDelChangelog = await Core.Git.RigheProposte.ProponiAsync(Git, ramo.Radice, BaseDelRamo ?? Predefinito, nome).ConfigureAwait(false);
+        ControllaIlChangelog();
+        Registro.Scrivi("git", $"changelog di {nome}: {RigheDelChangelog.Count} righe proposte, {AvvisiDelChangelog.Count} avvisi");
+        Rifiuto = RigheDelChangelog.Count == 0 ? "Nessun file del sector registrato in questo ramo: niente da proporre." : null;
+        Avvisa();
+        return RigheDelChangelog.Count > 0;
+    }
+
+    private void ControllaIlChangelog()
+    {
+        AvvisiDelChangelog = PercorsoDelChangelog is { } file && File.Exists(file)
+            ? Core.Git.Changelog.Controlla(File.ReadAllLines(file), CicloDelChangelog)
+            : [new Core.Git.AvvisoDelChangelog($"Manca {Core.Git.Changelog.Percorso}.")];
+    }
+
+    /// <summary>
+    /// Scrive le righe (corrette dall'AOD) nel <c>changelog.md</c> del ramo, ognuna in coda alla sua sezione (C2), poi
+    /// rilegge l'albero: il file è da registrare come gli altri. Le altre righe del file restano byte per byte.
+    /// </summary>
+    public async Task<bool> ScriviNelChangelogAsync(IReadOnlyList<(string Sezione, string Testo)> righe)
+    {
+        ArgumentNullException.ThrowIfNull(righe);
+        if (Modifiche.CEQualcosa)
+            return Rifiuta("Ci sono modifiche non salvate: salvale (o annullale) prima di scrivere il changelog.");
+        if (PercorsoDelChangelog is not { } file || !File.Exists(file))
+            return Rifiuta($"Manca {Core.Git.Changelog.Percorso}.");
+        if (righe.All(r => string.IsNullOrWhiteSpace(r.Testo)))
+            return Rifiuta("Nessuna riga da scrivere.");
+
+        try
+        {
+            byte[] grezzi = await File.ReadAllBytesAsync(file).ConfigureAwait(false);
+            bool bom = grezzi.Length >= 3 && grezzi[0] == 0xEF && grezzi[1] == 0xBB && grezzi[2] == 0xBF;
+            string testo = new System.Text.UTF8Encoding(false).GetString(grezzi, bom ? 3 : 0, grezzi.Length - (bom ? 3 : 0));
+            string capo = testo.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+            bool finale = testo.EndsWith('\n');
+            var vecchie = testo.Split(capo).ToList();
+            if (finale)
+                vecchie.RemoveAt(vecchie.Count - 1);
+            var nuove = Core.Git.Changelog.Aggiungi(vecchie, righe, out var scartate);
+            string scritto = string.Join(capo, nuove) + (finale ? capo : "");
+            await File.WriteAllBytesAsync(file, [.. (bom ? (byte[])[0xEF, 0xBB, 0xBF] : []), .. new System.Text.UTF8Encoding(false).GetBytes(scritto)]).ConfigureAwait(false);
+            Registro.Scrivi("git", $"changelog: {nuove.Count - vecchie.Count} righe in più{(scartate.Count > 0 ? ", scartate: " + string.Join(" | ", scartate) : "")}");
+            Rifiuto = scartate.Count > 0 ? "Senza la loro sezione nel file, non scritte: " + string.Join(" | ", scartate) : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Registro.Errore("git", e);
+            return Rifiuta("Il changelog non si è lasciato scrivere: " + e.Message);
+        }
+
+        RigheDelChangelog = [];
+        // Il file è cambiato sul disco: l'albero si rilegge, e git lo vede da registrare.
+        bool aperto = await ApriAsync(Sessione!.Cartella.Radice).ConfigureAwait(false);
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        ControllaIlChangelog();
+        Avvisa();
+        return aperto;
+    }
+
     /// <summary>Sta mandando il ramo al server.</summary>
     public bool StaMandando { get; private set; }
 

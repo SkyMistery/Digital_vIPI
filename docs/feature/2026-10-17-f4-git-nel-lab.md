@@ -199,3 +199,26 @@ la proposta (il VID nelle Impostazioni del Lab).
     Registra, **Manda**: il ramo è sul fork (`01c58280`), `master` del fork intatto (`11b8569`), git aveva già
     l'accesso (nessuna finestra di credenziali), la pagina della PR aperta nel browser del committente.
   Test Lab 986 → **996**.
+  **Slice 5 chiusa**: il committente ha creato e fuso la PR (#1 sul fork, `master` ← `aod/704798/simboli-le-dei-due-nomi`,
+  17 ottobre): il primo giro ramo → registra → manda → PR → fusione fatto dall'app.
+- **Slice 6 (17 ottobre)** — il changelog (C1, C2, C6). Solo il Lab: `Core/Git/Changelog.cs`, `RigheProposte.cs`, la
+  sezione «Changelog» del riquadro, `SessioneDelLab.ProponiIlChangelogAsync`/`ScriviNelChangelogAsync`.
+  - **Misura**: dal sector la FIR di uno scalo **non si ricava con certezza**. Ogni `<FIR>.isc` carica il suo
+    `OTHER/<fir>.ap`, ma gli scali di confine stanno in più `.ap` con righe identiche (LIRQ in `limm`, `lipp`,
+    `lirr`; nel changelog dell'A2610 sta sotto Roma). Le `.sid` e le `.str` non sono negli `.isc` (Aurora le trova per
+    nome). Quindi: scalo in un solo `.ap` → la sua FIR; in più d'uno → l'AOD sceglie da un elenco; un file col nome
+    di una FIR (`lirr.frq`) → quella; tutto il resto → «Generale».
+  - **Proponi le righe** (C1): una per file del sector registrato nel ramo rispetto a dove è nato (`merge-base`), col
+    testo dai record letti col motore prima e dopo — «aggiunto/i», «tolto/i», «modificato/i» per tipo e nome (più di
+    sei: il numero), «nuovo file», «tolto il file», «aggiornato» per i file che il motore non legge — e lo scalo
+    davanti. L'AOD corregge testo e sezione, toglie la spunta a quelle che non vuole.
+  - **Scrivi nel changelog** (C2): ogni riga in coda alla sua sezione, `*NIL` tolto se c'era, una riga già presente
+    non si ripete; il resto del file byte per byte (BOM, CRLF, a capo finale come erano). Poi l'albero si rilegge e
+    `changelog.md` è da registrare come gli altri.
+  - **Controlli** (C6), sotto la sezione: intestazione diversa dal ciclo del ramo (quello di `airac/` da cui è nato, o
+    quello in vigore), sezione che manca, `*NIL` accanto ad altre righe, sezione vuota.
+  - Non fatto (C2, seconda metà): «l'ultima tolta rimette `*NIL`» — il Lab per ora aggiunge e basta; una riga si toglie
+    a mano.
+  A schermo sul banco, col clone del fork sul ramo dei simboli: proposta «modificati Simbolo AC_comb SEL, AC_DUPE» in
+  Generale, nessun avviso (A2610); corretta e scritta: una riga sola in più sotto «Generale». Non registrata né
+  mandata. Test Lab 996 → **1 006**, due giri verdi.
