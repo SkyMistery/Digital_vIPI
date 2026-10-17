@@ -169,3 +169,21 @@ la proposta (il VID nelle Impostazioni del Lab).
   A schermo sul banco, col fork vero: «Prendi il sector» in 6,6 s compresa l'apertura (756 file), `master` pulito; un
   lavoro nuovo `aod/704798/prova-del-banco-f4` («Nato da master», «mai mandato»), poi di nuovo `master`. Al server
   non è stato mandato niente. Test Lab 947 → **979**.
+- **Slice 4 (17 ottobre)** — «Registra». Solo il Lab: `Core/Git/Registrazione.cs`, la sezione «Registra» del
+  riquadro del ramo, `SessioneDelLab.RegistraAsync`.
+  - Si registra **quando lo chiede l'AOD** (D5): i file del sector salvati, col messaggio proposto dai gesti salvati
+    (le voci della storia del Lab al momento di ogni salvataggio: «Pixel di APT», o «N modifiche in …» con un gesto
+    per riga) e l'elenco dei file; l'AOD lo corregge prima di registrare. Riaperto il Lab, i gesti non ci sono più e
+    resta l'elenco dei file. L'autore è quello della configurazione di git dell'AOD; se manca, il Lab dice come
+    metterlo.
+  - Mai su `master` né su un `airac/`; mai con modifiche del Lab non salvate; un file in conflitto ferma tutto.
+  - 🔴 **Scelta della slice, diversa dalla lettera di §3**: un file fuori dai confini **non ferma** la registrazione:
+    non si registra mai, e il riquadro lo dice («N file fuori dal sector cambiati: restano fuori»). Un clone che è
+    anche la cartella di Aurora (profili, impostazioni) ne ha sempre, e fermarsi ogni volta avrebbe reso il tasto
+    inservibile. Un **binario** dentro i confini (un byte zero nei primi 8 000) invece ferma tutto, col suo nome.
+  - Trovato nel giro completo dei test: la lettura del ramo in background ridisegnava sempre, anche fuori da git, e il
+    ridisegno arrivava in mezzo a un clic (due rossi intermittenti). Ora ridisegna solo se ramo o stato cambiano, o se
+    l'AOD ha chiesto al server.
+  A schermo sul banco, sul clone del fork: un pixel dell'APT acceso, «Salva», il riquadro propone «Pixel di APT /
+  File: symbols.sym», «Registra»: commit locale con una riga cambiata e l'autore dell'AOD, stato «mai mandato». Al
+  server non è stato mandato niente. Test Lab 979 → **986**, due giri completi verdi.

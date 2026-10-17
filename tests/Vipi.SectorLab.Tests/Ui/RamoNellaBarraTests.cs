@@ -56,14 +56,14 @@ public sealed class RamoNellaBarraTests : IDisposable
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
 
-        pagina.WaitForAssertion(() => Assert.Equal("master", pagina.Find("[data-ramo]").GetAttribute("data-ramo")));
+        pagina.WaitForAssertion(() => Assert.Equal("master", pagina.Find("[data-ramo]").GetAttribute("data-ramo")), TimeSpan.FromSeconds(10));
         // Un clone senza server: niente da mandare né da prendere, ma il ramo non è mai stato mandato.
         Assert.Equal("mai mandato", pagina.Find("[data-stato-del-ramo]").TextContent.Trim());
 
         Assert.True(_lab.CambiaCampo("SectorFiles/Include/IT/NAVAIDS/APT.fix", 0, "Name", "PIPPO"));
         await _lab.SalvaAsync();
 
-        pagina.WaitForAssertion(() => Assert.StartsWith("1 file da registrare", pagina.Find("[data-stato-del-ramo]").TextContent.Trim(), StringComparison.Ordinal));
+        pagina.WaitForAssertion(() => Assert.StartsWith("1 file da registrare", pagina.Find("[data-stato-del-ramo]").TextContent.Trim(), StringComparison.Ordinal), TimeSpan.FromSeconds(10));
         Assert.Contains("APT.fix (cambiato)", pagina.Find("[data-ramo]").GetAttribute("title"), StringComparison.Ordinal);
     }
 
@@ -124,6 +124,46 @@ public sealed class RamoNellaBarraTests : IDisposable
     }
 
     [Fact]
+    public async Task SalvatoERegistrato_ColMessaggioDaiGesti()
+    {
+        // Carta F4, slice 4.
+        FanneUnRepo();
+        string dove = Path.Combine(_albero.Radice, "dati-del-lab", "preso", "it-aurora-sector");
+        _lab.CambiaLIndirizzoDelSector(_albero.Radice);
+        Assert.True(await _lab.PrendiIlSectorAsync(dove));
+        Assert.True(_lab.CambiaIlVid("704798"));
+        await _lab.RileggiIlRamoAsync();
+
+        // Su master il Lab non registra.
+        Assert.True(_lab.CambiaCampo("SectorFiles/Include/IT/NAVAIDS/APT.fix", 0, "Name", "PIPPO"));
+        await _lab.SalvaAsync();
+        Assert.False(await _lab.RegistraAsync("su master"));
+        Assert.Contains("non registra su master", _lab.Rifiuto, StringComparison.Ordinal);
+
+        // Il file salvato non si porta in un altro ramo: lo si rimette com'era, poi un lavoro nuovo.
+        Assert.True(_lab.CambiaCampo("SectorFiles/Include/IT/NAVAIDS/APT.fix", 0, "Name", _primoNome));
+        await _lab.SalvaAsync();
+        await _lab.RileggiIlRamoAsync();
+        Assert.True(await _lab.NuovoLavoroAsync("prova", Vipi.SectorLab.Core.Git.BaseDelLavoro.Immediato));
+        Assert.Empty(_lab.GestiDaRegistrare);   // un'altra apertura: i gesti di prima non valgono
+
+        Assert.True(_lab.CambiaCampo("SectorFiles/Include/IT/NAVAIDS/APT.fix", 0, "Name", "PIPPO"));
+        await _lab.SalvaAsync();
+        await _lab.RileggiIlRamoAsync();
+        string proposto = _lab.MessaggioProposto!;
+        Assert.StartsWith("Nome di ", proposto, StringComparison.Ordinal);
+        Assert.EndsWith("File: APT.fix", proposto, StringComparison.Ordinal);
+
+        Assert.True(await _lab.RegistraAsync(proposto));
+
+        Assert.Equal("mai mandato", _lab.Ramo!.InParole());
+        Assert.Null(_lab.MessaggioProposto);
+        Assert.Empty(_lab.GestiDaRegistrare);
+    }
+
+    private string _primoNome => File.ReadLines(_albero.Percorso("SectorFiles/Include/IT/NAVAIDS/APT.fix")).First(r => !r.StartsWith("//", StringComparison.Ordinal) && r.Contains(';', StringComparison.Ordinal)).Split(';')[0];
+
+    [Fact]
     public void IlVidSiRicordaESoloCifre()
     {
         Assert.Null(_lab.Vid);
@@ -141,7 +181,7 @@ public sealed class RamoNellaBarraTests : IDisposable
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
 
-        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-ramo-assente]")));
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-ramo-assente]")), TimeSpan.FromSeconds(10));
         Assert.Empty(pagina.FindAll("[data-ramo]"));
         Assert.Null(_lab.Ramo);
     }

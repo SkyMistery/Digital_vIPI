@@ -212,6 +212,7 @@ public sealed class SessioneDelLab
             _stime.Clear();
             // Le modifiche e gli esiti di un'altra cartella non valgono per questa: nomi uguali, file diversi.
             Modifiche = new();
+            _gestiDaRegistrare.Clear();
             ScordaLaStoria();
             TogliLAnteprima();
             _inVista.Clear();
@@ -305,8 +306,13 @@ public sealed class SessioneDelLab
 
     private async Task LeggiIlRamoAsync(bool prendi)
     {
+        // Si ridisegna solo per quel che l'AOD vede cambiare: il «…» quando ha chiesto al server, e alla fine se il ramo
+        // o il suo stato sono diversi. Una lettura in background che ridisegna sempre arrivava in mezzo ai clic (due test
+        // rossi intermittenti del 17 ottobre); fuori da git non cambia mai niente.
+        string? prima = Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, BaseDelRamo);
         StaLeggendoIlRamo = true;
-        Avvisa();
+        if (prendi)
+            Avvisa();
         try
         {
             string radice = Sessione!.Cartella.Radice;
@@ -333,9 +339,16 @@ public sealed class SessioneDelLab
         finally
         {
             StaLeggendoIlRamo = false;
-            Avvisa();
+            if (prendi || Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, BaseDelRamo) != prima)
+                Avvisa();
         }
     }
+
+    private static string Impronta(Core.Git.StatoDelRamo? ramo, string? perche, IReadOnlyList<string> rami, bool ciclo, string? base_)
+        => ramo is null
+            ? "-|" + perche
+            : string.Join('|', ramo.Ramo, ramo.Remoto, ramo.Monte, ramo.Avanti, ramo.Indietro, perche, ciclo, base_,
+                string.Join(',', rami), string.Join(',', ramo.Cambiati.Select(c => c.Percorso + ":" + c.Come)));
 
     /// <summary>Cambia il master con cui si risolvono i nomi: la geometria si rifà, perché i punti risolti cambiano.</summary>
     public async Task ScegliIscAsync(string isc, CancellationToken annulla = default)
@@ -544,11 +557,15 @@ public sealed class SessioneDelLab
             var esito = await Task.Run(() => salvataggio.Salva(confermato, DateTime.Now)).ConfigureAwait(false);
             UltimoSalvataggio = esito;
             Registro.Scrivi("salvataggio", Racconta(esito, confermato));
+            // La storia si scorda con la rilettura: i suoi gesti si prendono prima (carta F4, slice 4).
+            var gestiSalvati = _storia.Take(_fatti).Select(g => g.Cosa).ToList();
             if (esito.Salvati.Count + esito.Invariati.Count > 0)
                 await DopoLaRiletturaAsync().ConfigureAwait(false);
             // Il sector sul disco è cambiato: le regole dell'albero (nomi non risolti, file mai citati) si rifanno.
             if (esito.Salvati.Count > 0)
             {
+                // I gesti salvati fanno il messaggio della prossima registrazione (carta F4, slice 4).
+                _gestiDaRegistrare.AddRange(gestiSalvati);
                 _ = ValidaLAlberoAsync();
                 // E git vede i file salvati da registrare (carta F4, slice 1).
                 _ = RileggiIlRamoAsync();
@@ -3165,6 +3182,60 @@ public sealed class SessioneDelLab
             ColoriMancanti = $"Lo schema «{SchemaScelto}» non si legge: {e.Message}";
             Registro.Errore("colori", e);
         }
+    }
+
+    private readonly List<string> _gestiDaRegistrare = [];
+
+    /// <summary>
+    /// I gesti salvati e non ancora registrati (carta F4, slice 4): le voci della storia del Lab al momento di ogni
+    /// salvataggio. Fanno il messaggio proposto. Riaperto il Lab non ci sono più: resta l'elenco dei file.
+    /// </summary>
+    public IReadOnlyList<string> GestiDaRegistrare => _gestiDaRegistrare;
+
+    /// <summary>Il messaggio che il Lab propone per registrare i file del sector salvati, o null se non c'è niente.</summary>
+    public string? MessaggioProposto
+        => Ramo is { } ramo && Core.Git.Registrazione.DaRegistrare(ramo) is { Count: > 0 } file
+            ? Core.Git.Registrazione.MessaggioProposto(_gestiDaRegistrare, file)
+            : null;
+
+    /// <summary>Sta registrando.</summary>
+    public bool StaRegistrando { get; private set; }
+
+    /// <summary>
+    /// «Registra» (carta F4, slice 4): il commit dei file del sector salvati, col messaggio dato. Mai su <c>master</c> né
+    /// su un <c>airac/</c>; i file fuori dai confini restano fuori. Falso, col perché in <see cref="Rifiuto"/>.
+    /// </summary>
+    public async Task<bool> RegistraAsync(string? messaggio)
+    {
+        if (StaRegistrando)
+            return false;
+        if (Modifiche.CEQualcosa)
+            return Rifiuta("Ci sono modifiche non salvate: salvale (o annullale) prima di registrare.");
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        if (Ramo is not { } ramo)
+            return Rifiuta(PercheDelRamo ?? "La cartella non sta in un clone git.");
+
+        StaRegistrando = true;
+        Avvisa();
+        string? perche;
+        try
+        {
+            perche = await Core.Git.Registrazione.RegistraAsync(Git, ramo, Predefinito, messaggio).ConfigureAwait(false);
+            Registro.Scrivi("git", $"registra su {ramo.Ramo}: {perche ?? "fatto — " + messaggio?.Split('\n')[0]}");
+        }
+        finally
+        {
+            StaRegistrando = false;
+        }
+
+        if (perche is null)
+        {
+            _gestiDaRegistrare.Clear();
+            Rifiuto = null;
+        }
+
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        return perche is null || Rifiuta(perche);
     }
 
     /// <summary>Sta facendo un gesto di git che cambia i file (un ramo nuovo, un passaggio): il resto aspetta.</summary>

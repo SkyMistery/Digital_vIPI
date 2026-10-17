@@ -1863,3 +1863,10 @@ body.lab-trascina * {
     margin: 0;
     padding-left: 1rem;
 }
+
+/* Carta F4, slice 4: il messaggio della registrazione. */
+.lab-messaggio {
+    width: 100%;
+    font: 12px/1.4 var(--lab-mono);
+    margin: .3rem 0;
+}

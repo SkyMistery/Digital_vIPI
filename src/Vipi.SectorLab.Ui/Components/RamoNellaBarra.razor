@@ -25,6 +25,27 @@
                     <span>Server: <code>@(ramo.Remoto ?? "nessuno")</code></span>
                 }
             </p>
+            @if (Vipi.SectorLab.Core.Git.Registrazione.DaRegistrare(ramo) is { Count: > 0 } daRegistrare)
+            {
+                @* Slice 4 (D5): si registra quando lo chiede l'AOD, col messaggio proposto dai gesti salvati. *@
+                <h3>Registra <span class="lab-nota">@daRegistrare.Count file</span></h3>
+                <ul class="lab-elenco-dei-rami" data-da-registrare>
+                    @foreach (var file in daRegistrare)
+                    {
+                        <li><code>@file.Percorso[(file.Percorso.LastIndexOf('/') + 1)..]</code> <span class="lab-nota">@file.Come</span></li>
+                    }
+                </ul>
+                <textarea class="lab-campo lab-messaggio" rows="5" spellcheck="false" data-campo="messaggio"
+                          value="@(_messaggio ?? Lab.MessaggioProposto)" @onchange="e => _messaggio = e.Value?.ToString()" disabled="@Occupato"></textarea>
+                <button type="button" class="lab-tasto" data-tasto="registra" disabled="@Occupato"
+                        title="git commit dei file qui sopra, sul ramo @ramo.Ramo" @onclick="Registra">Registra</button>
+            }
+            @if (Vipi.SectorLab.Core.Git.Registrazione.Fuori(ramo) is { Count: > 0 } fuori)
+            {
+                <p class="lab-nota" data-restano-fuori title="@string.Join("\n", fuori.Select(f => f.Percorso))">
+                    @fuori.Count file fuori dal sector cambiati: restano fuori, il Lab non li registra.</p>
+            }
+
             <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prendi-novita" disabled="@Occupato"
                     title="git fetch: chiede al server le novità; non cambia niente nei file" @onclick="() => Lab.RileggiIlRamoAsync(prendi: true)">Chiedi le novità al server</button>
             @if (Lab.PercheDelRamo is { } perche)
@@ -90,7 +111,16 @@ else if (Lab.PercheDelRamo is { } perche)
     private string? _argomento;
     private bool _rifiutoVisibile;
 
-    private bool Occupato => Lab.StaLeggendoIlRamo || Lab.StaCambiandoRamo;
+    private string? _messaggio;
+
+    private bool Occupato => Lab.StaLeggendoIlRamo || Lab.StaCambiandoRamo || Lab.StaRegistrando;
+
+    private async Task Registra()
+    {
+        _rifiutoVisibile = !await Lab.RegistraAsync(_messaggio ?? Lab.MessaggioProposto);
+        if (!_rifiutoVisibile)
+            _messaggio = null;
+    }
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
 
