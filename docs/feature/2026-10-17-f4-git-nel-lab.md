@@ -187,3 +187,15 @@ la proposta (il VID nelle Impostazioni del Lab).
   A schermo sul banco, sul clone del fork: un pixel dell'APT acceso, «Salva», il riquadro propone «Pixel di APT /
   File: symbols.sym», «Registra»: commit locale con una riga cambiata e l'autore dell'AOD, stato «mai mandato». Al
   server non è stato mandato niente. Test Lab 979 → **986**, due giri completi verdi.
+- **Slice 5 (17 ottobre)** — «Manda» e la PR. Solo il Lab: `Core/Git/Invio.cs`, la sezione «Manda e apri la PR» del
+  riquadro, `SessioneDelLab.MandaAsync`/`ApriLaPrAsync` (il browser è sostituibile nei test).
+  - **Manda** = `git push --set-upstream origin <ramo>`, solo per i rami `aod/` (mai `master` né un `airac/`, mai
+    `--force`); si manda solo quel che è registrato. Gli errori di accesso e di rifiuto si dicono in parole.
+  - Poi la **pagina di GitHub «nuova PR» già compilata** (D2), verso il ramo da cui il lavoro è nato
+    (`branch.<ramo>.vipibase`), col titolo dalla registrazione (o «N registrazioni: …») e il testo con una
+    registrazione per riga. Si apre nel browser dell'AOD; «Apri la PR» la riapre. La PR la crea l'AOD con «Create».
+  - **Prova vera sul fork** (il committente ha detto «vai»): ramo `aod/704798/simboli-le-dei-due-nomi` da `master`,
+    dal Lab le `//` davanti ad `AC_comb SEL` e `AC_DUPE` (la correzione R-10 decisa oggi; diff −2 +2), Salva,
+    Registra, **Manda**: il ramo è sul fork (`01c58280`), `master` del fork intatto (`11b8569`), git aveva già
+    l'accesso (nessuna finestra di credenziali), la pagina della PR aperta nel browser del committente.
+  Test Lab 986 → **996**.

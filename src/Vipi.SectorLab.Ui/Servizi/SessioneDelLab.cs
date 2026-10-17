@@ -3238,6 +3238,74 @@ public sealed class SessioneDelLab
         return perche is null || Rifiuta(perche);
     }
 
+    /// <summary>Sta mandando il ramo al server.</summary>
+    public bool StaMandando { get; private set; }
+
+    /// <summary>
+    /// Come il Lab apre una pagina nel browser dell'AOD (la PR, D2). Di base il browser di Windows; i test ne mettono
+    /// uno loro, che si ricorda l'indirizzo.
+    /// </summary>
+    public Action<Uri> ApriNelBrowser { get; init; } = ApriNelBrowserDiWindows;
+
+    /// <summary>L'ultima pagina della PR aperta (carta F4, slice 5), per riaprirla.</summary>
+    public Uri? PaginaDellaPr { get; private set; }
+
+    /// <summary>
+    /// «Manda» (carta F4, slice 5): il push del ramo di lavoro, poi la pagina di GitHub «nuova PR» già compilata, verso
+    /// il ramo da cui il lavoro è nato. Falso, col perché in <see cref="Rifiuto"/>.
+    /// </summary>
+    public async Task<bool> MandaAsync()
+    {
+        if (StaMandando)
+            return false;
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        if (Ramo is not { } ramo)
+            return Rifiuta(PercheDelRamo ?? "La cartella non sta in un clone git.");
+
+        StaMandando = true;
+        Avvisa();
+        string? perche;
+        try
+        {
+            perche = await Core.Git.Invio.MandaAsync(Git, ramo).ConfigureAwait(false);
+            Registro.Scrivi("git", $"manda {ramo.Ramo}: {perche ?? "fatto"}");
+        }
+        finally
+        {
+            StaMandando = false;
+        }
+
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        if (perche is not null)
+            return Rifiuta(perche);
+        Rifiuto = null;
+        await ApriLaPrAsync().ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>Apre (o riapre) la pagina della PR del ramo di lavoro di adesso, già compilata.</summary>
+    public async Task<bool> ApriLaPrAsync()
+    {
+        if (Ramo is not { Ramo: { } nome } ramo || !nome.StartsWith(Core.Git.RamiDelSector.PrefissoDiLavoro, StringComparison.Ordinal))
+            return Rifiuta("La PR si apre da un ramo di lavoro (aod/…).");
+        string base_ = BaseDelRamo ?? Predefinito;
+        var (titolo, testo) = await Core.Git.Invio.TitoloETestoAsync(Git, ramo.Radice, base_, nome).ConfigureAwait(false);
+        if (Core.Git.Invio.PaginaDellaPr(ramo.Remoto, base_, nome, titolo, testo) is not { } pagina)
+            return Rifiuta("Il server non è GitHub: la PR si apre a mano.");
+        PaginaDellaPr = pagina;
+        Registro.Scrivi("git", $"PR di {nome} verso {base_}: {pagina}");
+        ApriNelBrowser(pagina);
+        Avvisa();
+        return true;
+    }
+
+    private static void ApriNelBrowserDiWindows(Uri pagina)
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(pagina.AbsoluteUri) { UseShellExecute = true })?.Dispose();
+    }
+
     /// <summary>Sta facendo un gesto di git che cambia i file (un ramo nuovo, un passaggio): il resto aspetta.</summary>
     public bool StaCambiandoRamo { get; private set; }
 

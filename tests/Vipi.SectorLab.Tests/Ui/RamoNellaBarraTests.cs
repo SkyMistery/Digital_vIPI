@@ -17,7 +17,7 @@ public sealed class RamoNellaBarraTests : IDisposable
 
     public RamoNellaBarraTests()
     {
-        _lab = new SessioneDelLab(Path.Combine(_albero.Radice, "dati-del-lab"));
+        _lab = new SessioneDelLab(Path.Combine(_albero.Radice, "dati-del-lab")) { ApriNelBrowser = _aperte.Add };
         _contesto.Services.AddSingleton(_lab);
         _contesto.JSInterop.Mode = JSRuntimeMode.Loose;
         _contesto.JSInterop.Setup<bool>("sectorlab.mappa.crea", _ => true).SetResult(true);
@@ -163,6 +163,36 @@ public sealed class RamoNellaBarraTests : IDisposable
         Assert.Null(_lab.MessaggioProposto);
         Assert.Empty(_lab.GestiDaRegistrare);
     }
+
+    [Fact]
+    public async Task Manda_IlRamoVaSulServer_ESenzaGitHubLaPrSiApreAMano()
+    {
+        // Carta F4, slice 5. Il server è l'albero di prova (non GitHub): il ramo arriva, la pagina della PR no.
+        FanneUnRepo();
+        string dove = Path.Combine(_albero.Radice, "dati-del-lab", "preso", "it-aurora-sector");
+        _lab.CambiaLIndirizzoDelSector(_albero.Radice);
+        Assert.True(await _lab.PrendiIlSectorAsync(dove));
+        foreach (var (chiave, valore) in new[] { ("user.name", "Prova del Lab"), ("user.email", "prova@example.invalid") })
+            Assert.True((await _lab.Git.EseguiAsync(dove, ["config", chiave, valore])).Riuscito);
+        Assert.True(_lab.CambiaIlVid("704798"));
+        await _lab.RileggiIlRamoAsync();
+        Assert.False(await _lab.MandaAsync());   // su master no
+        Assert.Contains("mai master", _lab.Rifiuto, StringComparison.Ordinal);
+
+        Assert.True(await _lab.NuovoLavoroAsync("prova", Vipi.SectorLab.Core.Git.BaseDelLavoro.Immediato));
+        Assert.True(_lab.CambiaCampo("SectorFiles/Include/IT/NAVAIDS/APT.fix", 0, "Name", "PIPPO"));
+        await _lab.SalvaAsync();
+        Assert.True(await _lab.RegistraAsync("PIPPO"), _lab.Rifiuto);
+
+        Assert.True(await _lab.MandaAsync(), _lab.Rifiuto);
+
+        Assert.Equal("origin/aod/704798/prova", _lab.Ramo!.Monte);
+        Assert.True((await _lab.Git.EseguiAsync(_albero.Radice, ["rev-parse", "--verify", "refs/heads/aod/704798/prova"])).Riuscito);
+        Assert.Contains("non è GitHub", _lab.Rifiuto, StringComparison.Ordinal);
+        Assert.Empty(_aperte);
+    }
+
+    private readonly List<Uri> _aperte = [];
 
     private string _primoNome => File.ReadLines(_albero.Percorso("SectorFiles/Include/IT/NAVAIDS/APT.fix")).First(r => !r.StartsWith("//", StringComparison.Ordinal) && r.Contains(';', StringComparison.Ordinal)).Split(';')[0];
 

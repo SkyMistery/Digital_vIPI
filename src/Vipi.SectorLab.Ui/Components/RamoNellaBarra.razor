@@ -40,6 +40,27 @@
                 <button type="button" class="lab-tasto" data-tasto="registra" disabled="@Occupato"
                         title="git commit dei file qui sopra, sul ramo @ramo.Ramo" @onclick="Registra">Registra</button>
             }
+            @if (ramo.Ramo?.StartsWith(Vipi.SectorLab.Core.Git.RamiDelSector.PrefissoDiLavoro, StringComparison.Ordinal) == true)
+            {
+                @* Slice 5 (D2): il push del ramo di lavoro, poi la pagina della PR già compilata nel browser. *@
+                <h3>Manda e apri la PR</h3>
+                @if (Vipi.SectorLab.Core.Git.Invio.PercheNonSiManda(ramo) is { } nonSiManda)
+                {
+                    <p class="lab-nota" data-non-si-manda>@nonSiManda</p>
+                }
+                else
+                {
+                    <button type="button" class="lab-tasto" data-tasto="manda" disabled="@Occupato"
+                            title="git push del ramo @ramo.Ramo, poi la pagina di GitHub della PR verso @(Lab.BaseDelRamo ?? Lab.Predefinito)" @onclick="Manda">Manda</button>
+                }
+                @if (ramo.Monte is not null)
+                {
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="apri-pr" disabled="@Occupato"
+                            title="Riapre la pagina di GitHub della PR, già compilata" @onclick="Lab.ApriLaPrAsync">Apri la PR</button>
+                }
+                <p class="lab-nota">Si manda solo quel che è registrato. La PR la crei tu, con «Create» sulla pagina di GitHub;
+                    al primo invio git ti chiede l'accesso a GitHub nella sua finestra.</p>
+            }
             @if (Vipi.SectorLab.Core.Git.Registrazione.Fuori(ramo) is { Count: > 0 } fuori)
             {
                 <p class="lab-nota" data-restano-fuori title="@string.Join("\n", fuori.Select(f => f.Percorso))">
@@ -113,7 +134,9 @@ else if (Lab.PercheDelRamo is { } perche)
 
     private string? _messaggio;
 
-    private bool Occupato => Lab.StaLeggendoIlRamo || Lab.StaCambiandoRamo || Lab.StaRegistrando;
+    private bool Occupato => Lab.StaLeggendoIlRamo || Lab.StaCambiandoRamo || Lab.StaRegistrando || Lab.StaMandando;
+
+    private async Task Manda() => _rifiutoVisibile = !await Lab.MandaAsync();
 
     private async Task Registra()
     {
