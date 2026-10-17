@@ -4,15 +4,15 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 16 ottobre 2026
+## Dove siamo — 17 ottobre 2026
 
-> **In una riga**: tutto il lavoro del filone è **online** fino a **S108**: nella **1.62.0** (12 ottobre notte) i tre
+> **In una riga**: tutto il lavoro del filone è **online** fino a **S110**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
-> centri nel banco. Niente in corso, niente da fondere. **S109** (16 ottobre, configurazioni possibili: «Tutti i
-> settori» della mappa detto in Struttura e tradotto) e **S110** (17 ottobre, il convertitore di coordinate perdeva
-> l'arco con «centred on:» e contava male le righe lette) sono **fusi** in `main` ed escono **insieme** nella
-> **1.65.0** (§A157), pronta e non ancora caricata. La 1.64.0, che aveva il solo S109, non è mai stata caricata ed è
-> assorbita dalla 1.65.0. Voci S109 e S110 qui sotto.
+> centri nel banco; nella **1.65.0** (17 ottobre, §A157) **S109** (configurazioni possibili: «Tutti i settori» della
+> mappa detto in Struttura e tradotto) e **S110** (il convertitore di coordinate perdeva l'arco con «centred on:» e
+> contava male le righe lette). La 1.64.0, col solo S109, non è mai uscita: assorbita dalla 1.65.0. Niente in corso,
+> niente da fondere. **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova e la nota
+> di S109 in Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109 e S110 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2613,7 +2613,7 @@
     con le sole tabelle di struttura e accordi travasate in un SQLite di prova, in italiano e in inglese. Carta
     `docs/feature/2026-10-04-copertura-unica.md` §11.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina sulla copia MariaDB col login vero.
-- 🔀 **S109** (fuso in `main`, esce con la **1.65.0**, §A157, non ancora caricata) revisione delle **configurazioni
+- ✅ **S109** (**online in 1.65.0** dal 17-ott, §A157; la 1.64.0 non è mai uscita) revisione delle **configurazioni
   possibili** (16-ott, il committente: «nelle possible configurations
   per Milano manca quello con ANE ecc nonostante ci sia nel documento. Puoi fare una revisione del meccanismo?»).
   - **Cosa c'era**: niente di perso. Sulla copia di produzione del 12 ottobre (rimontata col suo ok, cancellata
@@ -2639,7 +2639,7 @@
     l'avviso c'è senza lock e col lock, resta con una riga aggiunta e non applicata, sparisce dopo «Applica».
   - ⚠️ **Non visto**: la mappa AOR di un documento vero in inglese (coperta dal test bUnit); il telefono.
   - **Resta al committente**: scrivere in Struttura le configurazioni di Milano APP (quali, lo sa lui).
-- 🔀 **S110** (fuso in `main`, esce con la **1.65.0** insieme a S109) il **convertitore di coordinate** perde l'arco
+- ✅ **S110** (**online in 1.65.0** dal 17-ott, insieme a S109) il **convertitore di coordinate** perde l'arco
   con «centred on**:**» (17-ott, il committente con un
   limite laterale di Torino–Genova: «l'arco e quello dopo non lo disegna e non lo converte»).
   - **La causa**: i due punti attaccati facevano il pezzo `ON:`, e il vocabolario del lettore AIP cerca frasi
@@ -2657,7 +2657,7 @@
     «Arcs converted: 1», «lines read: 12 of 14», e sulla mappa la curva a nord-ovest verso Bra.
   - Riga in carta F1 §8 (trappole note).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 16-ott: tutto fuso e online fino a **S108** (1.63.0); niente da fondere;
+  Al 17-ott: tutto fuso e online fino a **S110** (1.65.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
   `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
