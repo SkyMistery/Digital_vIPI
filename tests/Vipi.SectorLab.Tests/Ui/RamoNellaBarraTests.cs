@@ -154,7 +154,10 @@ public sealed class RamoNellaBarraTests : IDisposable
         Assert.StartsWith("Nome di ", proposto, StringComparison.Ordinal);
         Assert.EndsWith("File: APT.fix", proposto, StringComparison.Ordinal);
 
-        Assert.True(await _lab.RegistraAsync(proposto));
+        // L'AOD ha nome e mail nella sua configurazione di git; la CI no: si danno al clone, come farebbe lui una volta.
+        foreach (var (chiave, valore) in new[] { ("user.name", "Prova del Lab"), ("user.email", "prova@example.invalid") })
+            Assert.True((await _lab.Git.EseguiAsync(dove, ["config", chiave, valore])).Riuscito);
+        Assert.True(await _lab.RegistraAsync(proposto), _lab.Rifiuto);
 
         Assert.Equal("mai mandato", _lab.Ramo!.InParole());
         Assert.Null(_lab.MessaggioProposto);
