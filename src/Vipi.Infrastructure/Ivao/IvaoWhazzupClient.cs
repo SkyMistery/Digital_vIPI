@@ -59,17 +59,20 @@ public sealed class IvaoWhazzupClient : IAtcActivitySource
 
         var atc = clients.Atcs
             .Where(a => !string.IsNullOrWhiteSpace(a.Callsign))
-            .Select(a => new SourceAtcConnection(
-                SessionId: a.Id,
-                UserId: a.UserId,
-                Callsign: a.Callsign!,
-                Position: a.AtcSession?.Position,
-                Frequency: a.AtcSession?.Frequency?.ToString("0.000", CultureInfo.InvariantCulture),
-                Rating: a.Rating,
-                StartUtc: a.CreatedAt,
-                ConnectedSeconds: a.Time,
-                AtisLines: a.Atis?.Lines,
-                IsOutsideDivision: !MatchesDivision(a.Callsign!)))
+            .Select(a => (a, Centro: Centro(a.LastTrack)))
+            .Select(x => new SourceAtcConnection(
+                SessionId: x.a.Id,
+                UserId: x.a.UserId,
+                Callsign: x.a.Callsign!,
+                Position: x.a.AtcSession?.Position,
+                Frequency: x.a.AtcSession?.Frequency?.ToString("0.000", CultureInfo.InvariantCulture),
+                Rating: x.a.Rating,
+                StartUtc: x.a.CreatedAt,
+                ConnectedSeconds: x.a.Time,
+                AtisLines: x.a.Atis?.Lines,
+                IsOutsideDivision: !MatchesDivision(x.a.Callsign!),
+                Latitude: x.Centro?.Lat,
+                Longitude: x.Centro?.Lon))
             .ToList();
 
         var pilots = clients.Pilots
@@ -95,6 +98,22 @@ public sealed class IvaoWhazzupClient : IAtcActivitySource
         // servito con 200 sembrava fresco: la scadenza della cache (T-034) non scattava e il poller la registrava a
         // ogni giro. Senza `updatedAt` (forma vecchia) resta l'ora d'arrivo, come prima.
         return new NetworkSnapshot { Atc = atc, Pilots = pilots, AsOf = raw.UpdatedAt ?? DateTimeOffset.UtcNow };
+    }
+
+    /// <summary>
+    /// Il centro di una postazione, o <c>null</c> se la sorgente non ne dà uno che si possa usare.
+    /// <para>⚠️ <b>Una coordinata sbagliata è peggio di una che manca</b>: chi la riceve la usa per SCARTARE le
+    /// postazioni lontane, e una postazione messa per errore dall'altra parte del mondo sparirebbe dal suo conto
+    /// senza un avviso. Per questo fuori scala, non-numeri e lo 0,0 esatto (il valore di chi non ha impostato
+    /// niente: in mezzo al Golfo di Guinea non c'è nessuna postazione) diventano «non si sa».</para>
+    /// </summary>
+    internal static (double Lat, double Lon)? Centro(WhazzupAtcTrackDto? track)
+    {
+        if (track is not { Latitude: { } lat, Longitude: { } lon }) return null;
+        if (!double.IsFinite(lat) || !double.IsFinite(lon)) return null;
+        if (lat is < -90 or > 90 || lon is < -180 or > 180) return null;
+        if (lat == 0 && lon == 0) return null;
+        return (lat, lon);
     }
 
     private bool MatchesDivision(string callsign) =>

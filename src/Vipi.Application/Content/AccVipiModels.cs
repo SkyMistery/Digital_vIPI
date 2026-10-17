@@ -296,7 +296,16 @@ public sealed record AccSectorAor(
     string? BandText = null);
 
 /// <summary>Selezione di configurazione per la mappa: quali settori accendere.</summary>
-public sealed record AccConfigSelection(string Key, string Name, IReadOnlyList<string> OpenCallsigns);
+public sealed record AccConfigSelection(string Key, string Name, IReadOnlyList<string> OpenCallsigns)
+{
+    /// <summary>
+    /// La chiave della scelta che la mappa si dà da sola quando il gruppo non ha configurazioni: accende tutto il
+    /// gruppo. ⚠️ <b>Non è una configurazione</b> e in Struttura non c'è (16 ottobre 2026: il committente l'ha
+    /// cercata fra le configurazioni possibili di Milano APP). Il nome lo mette la pagina, nella sua lingua: quello
+    /// scritto qui resta nelle sezioni congelate, che non si riscrivono.
+    /// </summary>
+    public const string TuttiISettori = "all";
+}
 
 /// <summary>Riga tabella accorpamento derivata: settore unificato (aperto) + settori assorbiti + CP/Range manuali.
 /// Settore unificato e assorbiti sono espressi come <b>callsign</b> (es. <c>LIRR_NE_CTR</c>), non come nome.</summary>

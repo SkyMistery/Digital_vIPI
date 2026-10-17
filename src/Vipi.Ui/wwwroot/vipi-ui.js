@@ -501,6 +501,31 @@ window.vipiScorrimento = function () {
         el.scrollIntoView({ behavior: vipiScorrimento(), block: 'center' });
     };
 
+    // Apre un <details> e lo porta in vista: la chip «! NOTAM» della vista live, che sta in testata mentre la sua
+    // sezione sta in fondo alla pagina. Apre soltanto — chiudere è il gesto di chi legge, sull'intestazione.
+    // `block: 'start'` e non 'center': una sezione appena aperta è alta, e centrarla ne manderebbe l'intestazione
+    // fuori dallo schermo.
+    //
+    // ⚠️ Il margine sopra si MISURA, non si scrive nel foglio di stile: in alto la pagina è coperta dalla barra del
+    // sito e dalla testata appiccicata della vista, che va a capo e cambia altezza con la larghezza. Con un numero
+    // fisso (90px, poi 130) l'intestazione della sezione finiva sotto la testata — visto a schermo: la testata
+    // arrivava a 152px. Si sommano `top` e altezza di ciò che resta appiccicato: tutt'e due in unità di layout,
+    // come `scroll-margin`, quindi il conto regge anche con lo zoom di pagina (vedi `rootZoom` più sotto).
+    window.vipiApriDettaglio = function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.open = true;
+        var coperto = 0;
+        var fasce = document.querySelectorAll('.topbar, .reduced-top');
+        for (var i = 0; i < fasce.length; i++) {
+            var stile = getComputedStyle(fasce[i]);
+            if (stile.position !== 'sticky' && stile.position !== 'fixed') continue;
+            coperto = Math.max(coperto, (parseFloat(stile.top) || 0) + fasce[i].offsetHeight);
+        }
+        el.style.scrollMarginTop = Math.ceil(coperto + 12) + 'px';
+        el.scrollIntoView({ behavior: vipiScorrimento(), block: 'start' });
+    };
+
     // Porta in vista un pannello di editing quando il suo PIEDE non lo è. Il bersaglio è il piede e non il
     // riquadro: un pannello che comincia a schermo ma finisce sotto la piega ha il Salva fuori campo, ed è
     // esattamente il caso misurato (pannello a 757 px, alto 906, viewport 1000 → Salva a 1609).

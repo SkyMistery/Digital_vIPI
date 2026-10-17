@@ -227,6 +227,7 @@
   <data name="AccAor_NoFss" xml:space="preserve"><value>No FIC sector in this ACC.</value></data>
   <data name="Aor_ConfigLabel" xml:space="preserve"><value>Configuration:</value></data>
   <data name="Aor_Clear" xml:space="preserve"><value>clear</value></data>
+  <data name="Aor_AllSectors" xml:space="preserve"><value>All sectors</value></data>
   <data name="Aor_MapHint" xml:space="preserve"><value>Toggle the sectors above the map; pick a configuration below to apply its layout.</value></data>
   <data name="Reg_NoneSelected" xml:space="preserve"><value>No regulated area selected.</value></data>
   <data name="Reg_MapHint" xml:space="preserve"><value>Toggle the areas above the map; the per-type buttons light up only areas of that type. Below you get the description of the lit areas only.</value></data>
@@ -328,6 +329,8 @@
   <data name="Live_CoveredBy" xml:space="preserve"><value>Adjacent units:</value></data>
   <data name="Live_CoveredByHint" xml:space="preserve"><value>— who absorbs you if you close, who you hand traffic to</value></data>
   <data name="Live_Offline" xml:space="preserve"><value>closed</value></data>
+  <data name="Live_NotamChipTitle" xml:space="preserve"><value>NOTAMs affecting this station: {0}. Press to read them</value></data>
+  <data name="Live_NoNotam" xml:space="preserve"><value>No NOTAM in force or upcoming for this station.</value></data>
   <data name="Live_NoChainConfigured" xml:space="preserve"><value>hierarchy not configured for this position — no parent unit is set in Structure</value></data>
   <data name="Live_AtcOnlineN" xml:space="preserve"><value>{0} ATC online</value></data>
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>Extended document ↗</value></data>
@@ -1313,6 +1316,8 @@
   <data name="Sorg_AccDesc" xml:space="preserve"><value>ACC and subcenter list: no checkbox, always from the source</value></data>
   <data name="Sorg_AptLabel" xml:space="preserve"><value>Airports (directory)</value></data>
   <data name="Sorg_AptDesc" xml:space="preserve"><value>Assigns new division airports to their ACC, with their sector catalogue. ⚠️ The only run that creates: it adds, never removes</value></data>
+  <data name="Sorg_NotamLabel" xml:space="preserve"><value>NOTAMs</value></data>
+  <data name="Sorg_NotamDesc" xml:space="preserve"><value>The division's NOTAMs, shown at the top of the public documents they affect: no checkbox, always from the source</value></data>
   <data name="Sorg_LastAndNext" xml:space="preserve"><value>{0} · next {1}</value></data>
   <data name="Sorg_LastData" xml:space="preserve"><value>last data {0}</value></data>
   <data name="Sorg_LastAndMissed" xml:space="preserve"><value>{0} · due {1}, never arrived</value></data>
@@ -1669,6 +1674,16 @@
   <data name="Preview_DraftTitle" xml:space="preserve"><value>Live draft preview</value></data>
   <data name="Preview_DraftBody" xml:space="preserve"><value>You are viewing the &lt;b&gt;current&lt;/b&gt; editorial state (not the public version). Derived data (frequencies/coordinations/AoR) use the current catalogs.</value></data>
   <data name="Preview_OpenPublic" xml:space="preserve"><value>Open the public version →</value></data>
+  <data name="Notam_Sub" xml:space="preserve"><value>Division notices, in force or upcoming · times in UTC</value></data>
+  <data name="Notam_Active" xml:space="preserve"><value>In force</value></data>
+  <data name="Notam_Upcoming" xml:space="preserve"><value>Upcoming</value></data>
+  <data name="Notam_From" xml:space="preserve"><value>from</value></data>
+  <data name="Notam_To" xml:space="preserve"><value>to</value></data>
+  <data name="Notam_NoEnd" xml:space="preserve"><value>no end date</value></data>
+  <data name="Notam_Airports" xml:space="preserve"><value>Airports</value></data>
+  <data name="NotamEd_Title" xml:space="preserve"><value>Live NOTAMs</value></data>
+  <data name="NotamEd_Body" xml:space="preserve"><value>At this point of the public version the division’s NOTAMs that affect it appear on their own, read from IVAO: there is nothing to fill in. They stay from seven days before they come into force until they expire; they do not show in the draft or in a release preview.</value></data>
+  <data name="NotamEd_None" xml:space="preserve"><value>Right now none is in force or upcoming.</value></data>
   <data name="Preview_ReleaseTitle" xml:space="preserve"><value>AIRAC {0} release preview</value></data>
   <data name="Preview_ReleaseBody" xml:space="preserve"><value>How the document will look when this release comes into effect. Derived data use the current catalogs.</value></data>
   <data name="Preview_Public" xml:space="preserve"><value>[Public]</value></data>
@@ -2536,8 +2551,14 @@
   <data name="Xfer_SortBy" xml:space="preserve"><value>Sort</value></data>
   <data name="Xfer_SortManual" xml:space="preserve"><value>manual</value></data>
   <data name="Xfer_SortCop" xml:space="preserve"><value>points</value></data>
-  <data name="Xfer_SortLevel" xml:space="preserve"><value>by level</value></data>
-  <data name="Xfer_SortNote" xml:space="preserve"><value>Sorting only changes how you look at the list: the saved order — which in variants is the structure — is untouched.</value></data>
+  <data name="Xfer_SortLevel" xml:space="preserve"><value>level</value></data>
+  <data name="Xfer_SortSender" xml:space="preserve"><value>sender</value></data>
+  <data name="Xfer_SortReceiver" xml:space="preserve"><value>receiver</value></data>
+  <data name="Xfer_SortAirport" xml:space="preserve"><value>airport</value></data>
+  <data name="Xfer_SortKind" xml:space="preserve"><value>kind</value></data>
+  <data name="Xfer_SortDirTitle" xml:space="preserve"><value>Direction: {0}. Press to reverse it.</value></data>
+  <data name="Xfer_SortDirNone" xml:space="preserve"><value>Nothing to reverse: the order is the written one.</value></data>
+  <data name="Xfer_SortNote" xml:space="preserve"><value>Sorts the view, in tree and in list; the button next to it reverses the direction. It only changes how you look: the saved order — which in variants is the structure — is untouched.</value></data>
   <data name="Xfer_BulkSelected" xml:space="preserve"><value>{0} clauses selected</value></data>
   <data name="Xfer_BulkReceiver" xml:space="preserve"><value>Change receiver</value></data>
   <data name="Xfer_BulkApply" xml:space="preserve"><value>Apply to all</value></data>
@@ -4051,12 +4072,19 @@
   <data name="Lsr_Indexing" xml:space="preserve"><value>Still reading procedures and transfers: those results will follow shortly.</value></data>
   <data name="Aqp_NoDoc" xml:space="preserve"><value>No published document for {0}.</value></data>
   <data name="Bench_Title" xml:space="preserve"><value>Test bench</value></data>
-  <data name="Bench_Intro" xml:space="preserve"><value>Pick an ACC and who is open: below, who holds the sky of the closed sectors and where the transfers go. It uses the saved structure. Everything outside the list (other centres, towers) counts as open. The bench writes nothing.</value></data>
+  <data name="Bench_Intro" xml:space="preserve"><value>Pick an ACC and who is open: below, who holds the sky of the closed sectors, and every transfer of the ACC with who really hands it over and who really receives it. A configuration only changes the sectors of its own group: the scenario is the combination. It uses the saved structure. The units of other centres that appear in the agreements are opened and closed further down; everything else counts as open. The bench writes nothing.</value></data>
   <data name="Bench_Acc" xml:space="preserve"><value>ACC</value></data>
   <data name="Bench_PickAcc" xml:space="preserve"><value>— pick an ACC —</value></data>
   <data name="Bench_AllOpen" xml:space="preserve"><value>All open</value></data>
   <data name="Bench_AllClosed" xml:space="preserve"><value>All closed</value></data>
-  <data name="Bench_Presets" xml:space="preserve"><value>Configurations declared in Structure</value></data>
+  <data name="Bench_AllOpenTitle" xml:space="preserve"><value>Opens everything: the ACC&apos;s sectors and the other units of the agreements</value></data>
+  <data name="Bench_AllClosedTitle" xml:space="preserve"><value>Closes the ACC&apos;s sectors: the other units of the agreements stay as they are</value></data>
+  <data name="Bench_Neighbours" xml:space="preserve"><value>Other units of the agreements</value></data>
+  <data name="Bench_NeighboursHint" xml:space="preserve"><value>The ends of the agreements that are not sectors of this ACC, and who picks them up when they are closed, centre by centre. They start open; where a centre has declared its configurations, those are here too.</value></data>
+  <data name="Bench_NeighbourUnknown" xml:space="preserve"><value>No centre</value></data>
+  <data name="Bench_CloseAll" xml:space="preserve"><value>Close all</value></data>
+  <data name="Bench_OpenAll" xml:space="preserve"><value>Open all</value></data>
+  <data name="Bench_Presets" xml:space="preserve"><value>Configurations declared in Structure, group by group</value></data>
   <data name="Bench_NoPresets" xml:space="preserve"><value>No configuration declared for this ACC: open and close the sectors by hand.</value></data>
   <data name="Bench_Area" xml:space="preserve"><value>Open area sectors</value></data>
   <data name="Bench_App" xml:space="preserve"><value>Open approaches</value></data>
@@ -4066,13 +4094,22 @@
   <data name="Bench_Nobody" xml:space="preserve"><value>Nobody (UNICOM)</value></data>
   <data name="Bench_NothingOpen" xml:space="preserve"><value>No sector is open and nobody outside the list picks up.</value></data>
   <data name="Bench_Transfers" xml:space="preserve"><value>The ACC&apos;s transfers with these open</value></data>
-  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} points, {1} change hands</value></data>
-  <data name="Bench_OnlyChanged" xml:space="preserve"><value>Only those that change hands</value></data>
-  <data name="Bench_NoTransfers" xml:space="preserve"><value>No transfer to show: with these open every point stays with the written unit.</value></data>
+  <data name="Bench_TransfersCount" xml:space="preserve"><value>{0} clauses: {1} as written, {2} picked up by another unit, {3} to itself, {4} not covered</value></data>
+  <data name="Bench_Filter" xml:space="preserve"><value>Which clauses to show</value></data>
+  <data name="Bench_FilterAll" xml:space="preserve"><value>All</value></data>
+  <data name="Bench_FilterChanged" xml:space="preserve"><value>Change hands</value></data>
+  <data name="Bench_FilterUncovered" xml:space="preserve"><value>Not covered</value></data>
+  <data name="Bench_ColState" xml:space="preserve"><value>Outcome</value></data>
+  <data name="Bench_StateWritten" xml:space="preserve"><value>as written</value></data>
+  <data name="Bench_StatePicked" xml:space="preserve"><value>picked up by another unit</value></data>
+  <data name="Bench_StateSelf" xml:space="preserve"><value>to itself: nothing to hand over</value></data>
+  <data name="Bench_StateNobody" xml:space="preserve"><value>not covered</value></data>
+  <data name="Bench_NoAgreements" xml:space="preserve"><value>This ACC has no clauses written in its agreements.</value></data>
+  <data name="Bench_NoTransfers" xml:space="preserve"><value>No clause with this filter: with these open the others stay with the written unit, or with the one already holding that sky.</value></data>
   <data name="Bench_ColFlow" xml:space="preserve"><value>Flow</value></data>
   <data name="Bench_ColWrittenFrom" xml:space="preserve"><value>Written sender</value></data>
   <data name="Bench_ColFrom" xml:space="preserve"><value>Hands over</value></data>
-  <data name="Bench_ColPoint" xml:space="preserve"><value>Point</value></data>
+  <data name="Bench_ColPoint" xml:space="preserve"><value>Points</value></data>
   <data name="Bench_ColLevel" xml:space="preserve"><value>Level</value></data>
   <data name="Bench_ColWrittenTo" xml:space="preserve"><value>Written receiver</value></data>
   <data name="Bench_ColTo" xml:space="preserve"><value>Receives</value></data>
@@ -4133,7 +4170,7 @@
   <data name="Xfer_GapLevelMoveTitle" xml:space="preserve"><value>Select these clauses and open «Move» with {0} in place of the written unit</value></data>
   <data name="Xfer_ClauseOrderTitle" xml:space="preserve"><value>Order of the clauses of this table: it applies here, in the documents and in the live view. With a declared order the shared clauses go to their place instead of the end</value></data>
   <data name="Xfer_ClauseOrderManual" xml:space="preserve"><value>by hand</value></data>
-  <data name="Xfer_ClauseOrderPoints" xml:space="preserve"><value>alphabetical (point)</value></data>
+  <data name="Xfer_ClauseOrderPoints" xml:space="preserve"><value>by point</value></data>
   <data name="Xfer_ClauseOrderLevel" xml:space="preserve"><value>by level</value></data>
   <data name="Xfer_ClauseOrderSaved" xml:space="preserve"><value>Table order saved.</value></data>
   <data name="Xfer_ShareRowTitle" xml:space="preserve"><value>Share this clause with the agreement of another pair of units</value></data>
@@ -4158,6 +4195,7 @@
   <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector.</value></data>
+  <data name="Cfgs_DocShowsAll" xml:space="preserve"><value>Until a list is written here, the document's AOR map offers a single choice, «All sectors», which lights up the whole group. It is not a configuration: it is the map making do.</value></data>
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>
   <data name="Bench_NotForeseen" xml:space="preserve"><value>Not a configuration foreseen by the complete list — {0}: {1}</value></data>

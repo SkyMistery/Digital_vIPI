@@ -10,7 +10,7 @@
    `ver-chip`, che è la stringa che i test E2E e chi segnala cercano.
 
    ⚠️ Le frasi sono quelle dell'hub (locales/*/common.json, `footer`): i due siti della divisione devono dire la
-   stessa cosa con le stesse parole.
+   stessa cosa con le stesse parole. Fa eccezione il MOTTO della divisione (9 ottobre 2026), che l'hub non ha.
    🔴 I COLLEGAMENTI invece no, e non per scelta: le tre pagine dell'hub (ivao.aero/termsandconditions.htm,
    privacy.htm, rules.htm) rispondono 404, misurato il 29 settembre 2026. Termini, regolamento e privacy ora stanno
    sulla wiki di IVAO, sotto una pagina che li elenca tutti: un collegamento solo lì (committente) si rompe meno di
@@ -23,6 +23,14 @@
         <div class="sf-cols">
             <div class="sf-about">
                 <a class="sf-brand" href="/services"><span class="logo">ATC</span> <b>ATC Services</b> <small>@NomeDivisione</small></a>
+                @* Il motto della divisione (committente, 9 ottobre 2026), sotto il marchio: è l'unico punto del piè
+                   di pagina in cui parla la divisione, e la striscia in fondo — diritti, crediti — è già piena.
+                   ⚠️ Non si traduce, e lo dice `lang`: senza, in una pagina italiana un lettore di schermo lo
+                   leggerebbe con la pronuncia italiana. ⚠️ È una riga che l'hub non ha (vedi sopra). *@
+                @if (!string.IsNullOrWhiteSpace(Divisione.Value.Motto))
+                {
+                    <p class="sf-motto" lang="en">@Divisione.Value.Motto.Trim()</p>
+                }
                 <p>@L["Foot_About", NomeDivisione]</p>
                 <p>@L["Foot_Disclaimer", NomeDivisione]</p>
             </div>

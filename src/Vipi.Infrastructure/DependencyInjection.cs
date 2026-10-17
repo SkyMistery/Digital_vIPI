@@ -288,6 +288,10 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IApiClientStore, EfApiClientStore>();
         services.AddScoped<Vipi.Application.Auth.IRegistroAccessiStore, EfRegistroAccessiStore>();
         services.AddScoped<Vipi.Application.Content.IApertureDocumenti, EfApertureDocumenti>();
+        // I NOTAM in testa ai documenti: l'archivio e chi lo legge stanno qui e non in AddVipiIvao, perché le
+        // pagine li chiedono anche quando la sorgente IVAO non è configurata (allora l'archivio è vuoto, e basta).
+        services.AddScoped<Vipi.Application.Abstractions.INotamStore, EfNotamStore>();
+        services.AddScoped<Vipi.Application.Content.INotamDeiDocumenti, NotamDeiDocumenti>();
         services.AddScoped<Vipi.Application.Abstractions.IRfoSharedStateStore, EfRfoSharedStateStore>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
         services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();

@@ -1525,6 +1525,12 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<bool>("IsOutsideDivision")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double");
+
                     b.Property<int>("MovementCount")
                         .HasColumnType("int");
 
@@ -3324,6 +3330,61 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .IsUnique();
 
                     b.ToTable("NeighbourCandidates");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.Notam", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Airports")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Centers")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime?>("EndUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("ImportedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("IvaoId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Military")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime?>("SourceUpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("StartUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IvaoId")
+                        .IsUnique();
+
+                    b.ToTable("Notams");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.RfoSharedState", b =>

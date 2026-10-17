@@ -4,18 +4,87 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 8 ottobre 2026
+## Dove siamo — 16 ottobre 2026
 
-> Tutto quel che è elencato qui sotto, fino a **S98**, è in `main` e **online** (ultima: **1.57.0**, S97–S98, online
-> dall'8 ottobre: il committente «schema 0, tutto ok», quattro migrazioni passate in produzione — §A149). Niente da
-> fondere. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi, sul ramo `fix/tabellone` (aspetta la
-> chiave del booking; carta `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
-> **Pronto da fondere**: **S99**, nato dal falso «Trasferimento senza ripiego» di LIMM che tiene `/vsop/health` in
-> Degraded e diventato «le configurazioni possibili di un gruppo di settori, dichiarate in Struttura» — ramo
-> `fix/senza-ripiego-falso`, **c'è una migrazione**; provato sulla copia di produzione col login del committente,
-> che l'8 ottobre ha detto «va bene così, chiudi» (voce S99, in fondo; carta
-> `docs/feature/2026-10-08-configurazioni-possibili.md`). ⚠️ Il rilievo sparisce in produzione quando lui accende
-> «L'elenco è completo» sui settori d'area di LIMM, non col rilascio.
+> **In una riga**: tutto il lavoro del filone è **online** fino a **S108**: nella **1.62.0** (12 ottobre notte) i tre
+> ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
+> centri nel banco. Niente in corso. **Da fondere: S109** (16 ottobre), la revisione delle configurazioni possibili
+> chiesta per Milano APP — niente perso, il documento mostrava la scelta «Tutti i settori» della mappa; ora la
+> Struttura lo dice e la scelta si traduce. Voce S109 qui sotto.
+> Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
+> §11–§12 (banco).
+>
+> ✅ **Online in 1.63.0 dal 16 ottobre — S108** (§A155, 11 file, nessuna migrazione; il committente ha confermato
+> Schema 0): nel **banco di prova** si aprono e si chiudono
+> anche gli **enti degli altri centri** che compaiono negli accordi dell'ACC, con chi li raccoglie e le
+> configurazioni del loro centro. Il committente: «nel test bench mancano i trasferimenti tra ACC» — c'erano, ma
+> l'altro lato era sempre aperto. Carta §12. **Resta da guardare online, col login**: il banco su Milano con le
+> clausole vere (il Master sul publish ha visto LIBB: 16 enti di altri centri, chiuso `LGGG_W_CTR` 14 clausole
+> cambiano mano).
+>
+> ✅ **Online in 1.62.0 dal 12 ottobre notte — S105, S106 e S107** (fusi dal Master in `main` @ `9105d607`, pacchetto
+> §A154, 16 file, **nessuna migrazione**; il committente al filone: «1.62 online»; da fuori `/vsop/health` risponde
+> Healthy — il timbro non l'ho letto io, la voce «ONLINE» in §A la scrive il Master).
+> **S105 e S106** li aveva chiesti il 12 ottobre sera, dopo la 1.61.0.
+> - **S105**: nella vIPI di ACC il NOTAM di uno scalo sta **dentro il blocco dell'APP** a cui si riferisce (in testa
+>   restano quelli dell'ACC); la vista live dell'APP remotizzato mostra quelli del suo blocco. Carta §7.
+> - **S106**: la sezione NOTAM **si vede negli editor**, come il meteo (carta §8); nella **vista live è sempre in
+>   fondo, chiusa**, e la chip la apre e ci porta la finestra (carta §6).
+> - **Tre scelte del filone dette al committente e senza risposta** (se risponde sono ritocchi): (1) nella vista
+>   live di un APP remotizzato conta il **blocco**, non il singolo APP — APP di scali
+>   diversi nello stesso blocco condividono i NOTAM; (2) negli editor **non è una sezione del catalogo** come il
+>   meteo (niente indice, non si sposta, non entra nella release); (3) nella vista live la sezione c'è **anche a
+>   zero NOTAM** («Nessun NOTAM…»), la chip no.
+> - **Mai visti**: lo scorrimento animato in un browser vero (misurata la sola posizione d'arrivo), la vista live
+>   da telefono, l'editor della vIPI di ACC mentre si aggiunge un APP a un blocco.
+>
+> - **S107**: il **banco di prova** di Struttura mostra **tutte** le clausole degli accordi, una riga ciascuna con
+>   l'esito, e i tasti delle configurazioni sono **divisi per gruppo** — uno scenario è una configurazione dell'area
+>   più una per ente. Prima un trasferimento che funziona come è scritto non compariva. Il committente, visti numeri
+>   e schermata sulla copia di produzione: «va bene così». Carta `docs/feature/2026-10-04-copertura-unica.md` §11.
+> - **Resta da guardare online, col login**: il banco su **Milano** con le clausole vere (Struttura → Banco di prova
+>   → LIMM: 46 clausole; sul publish il Master l'ha potuto provare solo su LIBB, in locale Milano non ne ha), e i
+>   NOTAM dentro il blocco dell'APP e negli editor. Se nel banco un trasferimento «non compare», serve il nome
+>   dell'accordo: è il seguito di S107.
+>
+> ✅ **Online in 1.61.0 dal 12 ottobre — S103 e S104** (§A153; il committente ha confermato timbro e Schema 0, cioè
+> la migrazione `NotamDellaDivisione` — la tabella `Notams` — è passata sul database vero). S103: i NOTAM in testa
+> ai documenti pubblici (aeroporto, vSOP, APP, vIPI di ACC); S104: nella vista live la chip rossa «! NOTAM».
+> Decisioni del committente: le **vLOA restano fuori**; nella vista live **solo a documento pubblico**; da 7 giorni
+> prima dell'inizio fino alla scadenza. Sul publish il Master ha visto il giro contro IVAO vero («4 creati»), il
+> riquadro sulla vIPI ACC di Milano e la chip su `LIMM_WS2_CTR`. **Resta da guardare col login, online**: la riga
+> «NOTAM» in Sorgenti («aggiornata», giro ogni 30 minuti), uno scalo con un NOTAM (oggi LIRQ, LIPC/LIPE/LIPK/LIPR,
+> LIMG/LIMJ; vIPI ACC di LIMM, LIPP, LIRR — dove pubblicati) e la chip sulle sue postazioni. Mai vista da nessuno:
+> la chip che compare da sola a un tick live. ⚠️ I «PERM» scadono il 31 dicembre / 1° gennaio se nessuno li
+> rinnova su IVAO: quel giorno spariscono dai documenti.
+>
+> Tutto quel che è elencato qui sotto, fino a **S108**, è in `main` e **online**. Prima della 1.61.0: la **1.60.0**
+> (S102, l'archivio ATC che dice dove sta la postazione), online dal 10 ottobre sera: il committente ha confermato
+> timbro e Schema 0, cioè la migrazione `CentroDelleSessioniAtc` è passata sul database vero — §A152. Prima, lo
+> stesso giorno, la **1.59.0** (S100 ordinamento degli accordi col verso, S101 motto nel piè di pagina; nessuna
+> migrazione — §A151). Da fondere: niente. **Fuori da `main`, in pausa**: **S96** tabellone partenze/arrivi,
+> sul ramo `fix/tabellone` (aspetta la chiave del booking; carta
+> `docs/feature/2026-10-02-tabellone-partenze-arrivi.md` §7, che sta su quel ramo).
+>
+> **Resta al committente, da S102**: la **prova del validatore dei tour** sull'archivio, con la sua chiave
+> (`GET /vsop/api/v1/atc/sessions`: i campi nuovi `latitude` e `longitude`). Cosa dirgli sta nella voce S102, in
+> fondo, e nella carta `docs/feature/2026-08-28-archivio-atc-mondiale.md` §11: è un punto e non l'area, e manca
+> sulle righe scritte prima del carico. Se segnala qualcosa è il seguito di S102.
+>
+> **S100 e S101 sono chiusi**: il committente li ha guardati online il 10 ottobre e ha confermato le scelte del
+> filone («sì, vanno bene») — chi non ha punti o quota resta in fondo nei due versi, il verso si legge «A→Z / Z→A»
+> e «1→9 / 9→1», il motto è in minuscolo. Mai toccati, se un giorno li chiede: i glifi della barra degli accordi
+> (⊞ ⊟ ¶ ▤ ☰) e dei pannelli.
+>
+> **Gesti che restano al committente, da S99** (carta `docs/feature/2026-10-08-configurazioni-possibili.md`; voce
+> S99, in fondo): in Struttura, «Configurazioni possibili», **accendere «L'elenco è completo» sui settori d'area di
+> LIMM** — è quello che toglie il falso «Trasferimento senza ripiego» e riporta `/vsop/health` a Healthy: il
+> travaso ha portato gli elenchi dei documenti **tutti spenti**, e finché restano spenti niente è cambiato.
+> ⚠️ Al 10 ottobre sera `/vsop/health` da fuori **è tornato Healthy** (letto dal Master alle 20:37Z): se è perché
+> l'elenco di LIMM è stato acceso, il committente non l'ha ancora detto — chiederlo prima di darlo per fatto. Poi: a
+> Torino–Genova aggiungere {WN0} e {WS0} da soli e solo dopo accendere; Roma e Venezia lasciarle spente o
+> riscriverle (sulle sessioni vere stanno all'elenco il 2% del tempo); Padova e Bologna si possono accendere. Su
+> questi e sulla ripubblicazione delle vIPI ACC il committente il 10 ottobre ha detto «poi provo».
 >
 > Prove che restano al committente, da S97: **ripubblicare le vIPI ACC** (la tabella delle configurazioni segue il
 > motore unico: sulla copia di produzione cambiava solo LIMM «Conf 2 b»); guardare i **3 avvisi «quota di un altro
@@ -2264,15 +2333,320 @@
       lasciare spento, o riscrivere l'elenco; Padova e Bologna tornano con la realtà e si possono accendere;
       (4) ripubblicare le vIPI ACC.
     - **Chiuso l'8 ottobre** («va bene così, chiudi»): build Release senza avvisi, suite degli assiemi toccati
-      verdi, CI verde. La copia di produzione usata per le prove è rimasta nello scratchpad della chat, a MariaDB
-      spento: cancellarla è da chiedere al committente (dati personali veri).
+      verdi, CI verde. Fuso dal Master lo stesso giorno e **online con la 1.58.0** dall'8 ottobre sera (§A150);
+      il ramo `fix/senza-ripiego-falso` non c'è più. La copia di produzione usata per le prove è stata
+      **cancellata** dallo scratchpad il 9 ottobre, su «sì» del committente (dati, log, MariaDB isolato).
+    - **Per chi riprende il tema** — quel che non è stato fatto, tutto in carta §7: la vista live che dice
+      «configurazione non prevista»; un rilievo di Diagnostica per un settore cancellato dai cataloghi e rimasto
+      in un elenco; i settori fra cui un gruppo sceglie, calcolati in due posti; i gruppi APP senza membri, che non
+      si travasano. E una cosa da ricordare prima di provare la sonda dei trasferimenti dal vivo: **il sectorfile
+      va lasciato acceso**, perché le coordinate dei punti vengono da lì.
+- ✅ **S100** accordi: l'ordinamento col verso, in albero e in elenco, e i tasti di riga che non escono più dal
+  bordo (9-ott, chiesto dal committente con due foto). Fuso e **online in 1.59.0** dal 10-ott (§A151); il
+  committente l'ha guardato online e ha confermato le scelte del filone («sì, vanno bene»).
+  - **Cosa chiedeva**: (1) il selettore d'ordine della sezione «adeguato alla UI» — era il `select` nudo del
+    browser, bianco nel tema scuro accanto a tasti che non lo sono; (2) ordinare **anche in elenco**: per
+    mittente, ricevente, tipo, punti, quota; (3) **ogni** ordinamento anche al contrario (A→Z e Z→A), in tutte
+    e due le viste; (4) «la cosa grafica delle icone»: la colonna dei tasti di riga tagliata a destra.
+  - **Cos'era**. In elenco si ordinava già — cliccando le intestazioni — ma niente lo diceva (la freccia compare
+    solo sulla colonna che sta già ordinando) e il committente non l'ha trovato. In albero il verso non c'era:
+    `_sortDesc` valeva solo in elenco. L'ordine **salvato** della sezione (7 ottobre, nato con le clausole condivise)
+    aveva tre valori e nessun verso. I tasti di riga erano glifi — ↗ ⑂ ↳ ⧉ ⛓ ✎ — presi ognuno dal font che
+    capitava: larghezze diverse, separati dagli spazi del markup, in una colonna a `table-layout:fixed`. Il
+    commento nel foglio lo prevedeva («un tasto in più = 44px, e lo fa in silenzio»): col settimo tasto (la
+    condivisione, 7-ott) la misura non era stata rifatta, l'ultimo usciva e la tabella scorreva di lato.
+  - **Cos'è ora**.
+    - `XferSortChip` (nuovo): chiave (un `select` vero, senza la veste del browser) + verso (un tasto: **A→Z** /
+      **Z→A**, per la quota **1→9** / **9→1**), con la faccia di un `.btn.ghost`. Lo stesso pezzo nei due posti:
+      la **barra** (come si guarda: «Ordina», ora anche in elenco, con mittente · ricevente · aeroporto · tipo
+      in più) e la **testata della sezione** (l'ordine salvato). Su «a mano» il verso resta al suo posto, spento.
+    - Tendina della barra e intestazioni dell'elenco leggono e scrivono lo **stesso** stato (`_sort`,
+      `_sortDesc`): due maniglie, una verità. Tornando in albero una chiave solo-elenco cade su «manuale» e il
+      verso si azzera.
+    - **Il verso dell'ordine salvato è salvato**: `AgreementClauseOrder` ha due valori in più, in coda —
+      `PointsDescending`, `LevelDescending`. ⚠️ La colonna è **testo** (per nome; `varchar(32)` su MySQL):
+      **nessuna migrazione**. `AgreementClauseOrdering` ha `KeyOf` / `IsDescending` / `Reverse`.
+    - **Chi non ha la chiave resta in fondo in tutti e due i versi** — niente punti, niente quota — nell'ordine
+      salvato e nella vista: capovolgere non porta in testa le righe ancora da scrivere. (Prima, in elenco, il
+      verso opposto per quota le metteva per prime.) Un gruppo di varianti si muove intero e dentro **non** si
+      capovolge. In elenco la quota ora si confronta in piedi (FL e ft sulla stessa scala), come nell'ordine salvato.
+    - Tasti di riga e tasti senza parole della testata: icone del set (`Icon`: `arrow-up-right`, `split`,
+      `corner-down-right`, `copy`, `link`, `pencil`, `x`; in testata anche `arrow-right-left`, `arrow-right`,
+      `scissors`), quadrati 28×26 in una riga flessibile (`.xt-actrow`). La larghezza della colonna è un
+      **conto**: n × 28 + (n−1) × 4 + 18 → 208px in albero (6 tasti), 240px in elenco (7). Le due pastiglie di
+      riga (⛓ condivisa, ⑂ varianti) portano lo stesso segno del tasto.
+    - Voci della tendina di sezione accorciate («per punto», «per quota»): con «alfabetico (punto)» il comando
+      era largo 200px e a 1366 la ✕ della testata andava a capo.
+  - **Codice comune**: `Vipi.Domain` (`AgreementClauseOrder`, due valori in coda) e `Vipi.Application`
+    (`AgreementClauseOrdering`). Niente migrazione, niente `deploy/`. ⚠️ **Tornare a una versione precedente
+    dopo che qualcuno ha salvato un verso opposto** non si può senza rimettere «a mano» quelle sezioni: il
+    codice di prima non conosce i due nomi nuovi e leggendo la colonna si ferma.
+  - **Test**: App 3299 → 3308 (verso opposto per punto e per quota, vuoti in fondo, gruppo intero, i nomi
+    salvati che non cambiano), Infra 2184 → 2185 (il verso si salva, si rilegge, arriva a documenti e vista live,
+    e tornando a mano l'ordine scritto c'è), Ui 2000 → 2012 (`XferSortChipTests`: il comando, e il filo con la
+    pagina). net8 e net10; suite intera verde, conteggi identici all'atteso.
+  - **Prova a schermo** (app locale su una copia del database, Edge guidato; LIBB ⇄ LGGG_W_CTR): tema scuro e
+    chiaro, 1860 e 1366px, italiano e inglese. Colonna dei tasti: tutti 28×26, l'ultimo 9px dentro il bordo,
+    scorrimento laterale **0** in albero e in elenco. Comando alto quanto i tasti accanto (37px in barra, 22 in
+    testata). Barra in albero: punti A→Z e Z→A, quota. Sezione «Sorvoli»: per punto nei due versi, salvato,
+    **ritrovato dopo un ricarico**, maniglie di trascinamento via con l'ordine dichiarato e tornate «a mano».
+    Elenco: mittente, ricevente, tipo, punti, quota nei due versi; clic su un'intestazione → la tendina la
+    segue. Nessun errore in console. Non provato: la stampa, e il comando con la tastiera sola.
+  - **Non toccato, e si vede**: i glifi della barra (⊞ ⊟ ¶ ▤ ☰) e quelli nei pannelli (⇢ ⧉ nel cruscotto, «⛓
+    Condividi…»); la Guida dice ancora «il tasto ⛓» — il segno ora è la catena del set, stessa cosa disegnata.
+- ✅ **S101** il motto della divisione nel piè di pagina (9-ott, chiesto dal committente: «it takes time»). Fuso e
+  **online in 1.59.0** dal 10-ott (§A151); visto online e confermato, minuscolo compreso.
+  - **Dove**: sotto il marchio «ATC Services · IVAO Italy», prima delle due frasi di descrizione, su una riga
+    sua — corsivo, un filo più piccolo del marchio, nello stesso bianco. Gli avevo proposto quel posto (è
+    l'unico punto del piè di pagina in cui parla la divisione; la striscia in fondo, con diritti e crediti, è
+    già piena e andrebbe a capo) e ha detto «mettilo lì».
+  - **Com'è fatto**: `DivisionOptions.Motto` (sezione `Division`, default «it takes time», scritto com'è, in
+    minuscolo): è della divisione come il nome, e **non si traduce** — per questo non sta nei `.resx`. La riga
+    porta `lang="en"`, o in una pagina italiana un lettore di schermo lo leggerebbe all'italiana. Motto vuoto =
+    la riga non c'è. ⚠️ È una riga che il piè di pagina dell'hub IVAO Italy non ha: le altre frasi restano le sue.
+  - **Codice comune**: `Vipi.Application` (`DivisionOptions`, una proprietà). Niente migrazione, niente `deploy/`.
+  - **Test**: Ui 2012 → 2014 (`PieDiPaginaTests`: il motto sta fra il marchio e la prosa, una volta sola, con
+    `lang`; una divisione senza motto non ha la riga). Suite intera verde.
+  - **Prova a schermo** (app locale su un database **nuovo e vuoto**, Edge guidato; `/services`): tema scuro e
+    chiaro, italiano e inglese, 1366 e 390px. Una riga sola, a 4px dal marchio e 12 dalla prosa, nessuno
+    scorrimento laterale; il piè di pagina cresce di una riga (350px a 1366).
+- ✅ **S102** archivio ATC: ogni riga dice **dove** sta la postazione (10-ott, chiesto dal committente con la
+  segnalazione del validatore dei tour). Fuso e **online in 1.60.0** dal 10-ott sera (§A152). ▶ Resta la **prova
+  del validatore** sull'archivio, con la sua chiave.
+  - **La segnalazione**: «Il nuovo archivio non dà lat/lon […] niente centerpoint, che qui è quello che fa
+    funzionare il prefiltro a 400 NM e i cerchi di TWR/GND/DEL senza chiamare IVAO». Senza, il validatore
+    avrebbe scaricato da IVAO la forma di ogni postazione aperta nella finestra del volo (~100 per tre ore), e
+    si stava scrivendo un ripiego locale (ICAO dal callsign + navdata; da chiedere solo CTR e FSS).
+  - **Cos'era**: il whazzup porta il centro di ogni ATC nel `lastTrack` (79 su 79 il 10 ottobre) e
+    l'adattatore lo leggeva solo per i piloti. Nessuna chiamata in più.
+  - **Cos'è ora**: `latitude` e `longitude` in coda a ogni riga di `GET /vsop/api/v1/atc/sessions`, gradi
+    decimali, **`null`** quando non si sa. I dieci campi di prima restano uguali. Dettaglio, regole («in
+    coppia o niente», lo 0,0 esatto scartato, si scrive la prima volta e non si sposta) e la prova dal vivo:
+    carta `docs/feature/2026-08-28-archivio-atc-mondiale.md` §11.
+  - ⚠️ **Per il validatore**: è un **punto**, non l'area (per un CTR può stare lontano dal bordo); e **manca**
+    sulle righe scritte prima del carico (dal 1° settembre), su quelle dello storico e su qualche connessione
+    che il whazzup dà senza posizione (1 su 90 nella prova). Il suo ripiego locale serve ancora, per quelle.
+  - **Migrazione sì**: `CentroDelleSessioniAtc`, SQLite e MySQL, due `AddColumn` nullable su `AtcSessions`
+    (additiva: il codice di prima gira sullo schema nuovo). **Codice comune**: `Vipi.Domain` (`AtcSession`),
+    `Vipi.Application` (`SourceAtcConnection`, `AtcSessionUpsert`, `AtcArchiveRow`), `Vipi.Infrastructure`
+    (`IvaoWhazzupClient`, `EfAtcSessionStore`, `EfAtcArchiveQueries`). Niente `deploy/`.
+  - **Test**: App 3308 → 3309, Infra 2185 → 2198, E2E 507 → 508 (il JSON sul filo). Suite intera verde.
+  - **Prova dal vivo**: host su database nuovo, poller sul whazzup vero, 89 righe aperte su 90 col centro.
+    Non provata la migrazione su una copia del database vero né su MariaDB. La pagina staff
+    `/services/stats/world` non mostra il centro (non chiesto).
+  - **Com'è finita**: il Master l'ha riprovato sul publish col whazzup vero (96 sessioni aperte su 96 col centro)
+    e la migrazione, che qui non era stata provata sui dati veri, **è passata in produzione** (MariaDB): Schema 0
+    confermato dal committente il 10-ott sera. **Non fatto, e da fare solo se il validatore lo chiede**: riempire
+    le righe scritte prima del carico col centro di una sessione più recente dello stesso callsign (sarebbe un
+    dato dedotto in mezzo a dati osservati); un filtro lato server «vicino a un punto».
+- ✅ **S103** i **NOTAM della divisione** in testa ai documenti pubblici (12-ott, chiesto dal committente: «in cima
+  ai documenti, in una sezione ben visibile, i NOTAM che interessano quell'aeroporto, fino a quando non scadono»).
+  Fuso e **online in 1.61.0** dal 12-ott (§A153). ⚠️ Le righe qui sotto raccontano la
+  prima stesura; **le vLOA sono poi state tolte** e il resto è stato visto a schermo: vedi «Seguito» in fondo alla voce.
+  - **La sorgente** (provata il 12-ott): `GET /v2/divisions/IT/notams/all`, pubblico, 4 voci, 3 KB. Tiene gli
+    **scaduti** in elenco; `?now=true` sulla divisione è rotto (dà i 166 NOTAM del mondo); i nostri non cominciano
+    tutti per `IT-`; i «PERM» scadono il 31 dicembre. Carta `docs/feature/2026-10-12-notam-sui-documenti.md` §1.
+  - **Le regole del committente**: aeroporto, vSOP e APP → il NOTAM riguarda lo scalo; vIPI ACC → riguarda l'ACC, o
+    lo scalo di un APP che contiene; da **7 giorni prima** dell'inizio, con dal/al in evidenza; solo nella versione
+    pubblica. **Scelta del filone, da confermare**: vLOA → riguarda **tutte e due** le parti (`AmbitoNotam`).
+  - **Com'è fatto**: un giro ogni 30 minuti (`NotamImportHostedService`, `Ivao:NotamImportMinutes`) copia l'elenco
+    nella tabella `Notams`; **chi è in vigore lo decide la data, alla lettura** (`NotamInVista`), così un NOTAM
+    sparisce al suo minuto anche con la sorgente muta. Riquadro `NotamBox`, un componente per le cinque sedi; riga
+    «NOTAM» in Sorgenti, senza spunta.
+  - **Migrazione sì**: `NotamDellaDivisione`, SQLite e MySQL, una `CREATE TABLE` (additiva). **Codice comune**:
+    `Vipi.Domain` (`Notam`), `Vipi.Application` (`INotamSource`, `INotamStore`, `AmbitoNotam`, `NotamInVista`,
+    `NotamImportUseCase`, `ImportCategories.Notam`, `ImportAnagrafica.Notam`), `Vipi.Infrastructure`
+    (`IvaoNotamClient`, `EfNotamStore`, `IvaoOptions`, `ImportSchedule`). Niente `deploy/`.
+  - **Test**: App 3309 → 3338, Infra 2198 → 2225, Ui 2014 → 2039 (net8 e net10). Suite intera verde, build
+    Release `--no-incremental` pulita. Presi dai test: lo spazio mancante fra le due date («00:00Zal 1 gen») e la
+    cadenza che la pagina Sorgenti non conosceva.
+  - **Prova dal vivo**: host su database nuovo, sorgente **finta locale** che serve il corpo **vero** scaricato
+    quel giorno più un NOTAM inventato «in arrivo» (nessuna chiamata a IVAO). Le 153 migrazioni SQLite passano da zero; il
+    giro parte a 50 secondi dall'avvio, **senza token**, e scrive 5 righe; Sorgenti dice «NOTAM · aggiornata ·
+    prossimo fra 30 minuti». Seminati `LIRR` e `LIRQ`, pubblicata la vIPI di LIRQ dall'editor: sulla pagina
+    pubblica il riquadro c'è, coi due NOTAM (uno in vigore, uno in arrivo), in italiano e in inglese, tema chiaro
+    e scuro, a 375px; in **bozza** e in **anteprima di release** non c'è. Dal telefono è uscito un ritocco (la
+    pastiglia si allargava a tutta la riga).
+  - ⚠️ **Non visto a schermo**: il riquadro su **vIPI ACC, APP, vSOP e vLOA** (nel database nuovo non c'erano quei
+    documenti: le quattro pagine rispondono, ma senza documento non lo disegnano — lì reggono i presidi sul
+    sorgente e le regole provate in `NotamSuiDocumentiTests`); la **stampa**; la migrazione su **MariaDB**; il
+    giro contro **IVAO vero** dentro l'host (il corpo vero sì, la chiamata vera l'ho fatta a mano con `curl`).
+  - **Non fatto** (carta §4): i NOTAM degli altri scali serviti da un APP; l'area disegnata; un tasto «rileggi
+    adesso»; un avviso a chi redige quando un NOTAM cambia un documento.
+  - **Seguito, lo stesso giorno** (insieme a S104): il committente ha risposto «per le vLOA non prevediamo nulla
+    per ora» → **tolto** il riquadro dalle vLOA (`VloaListPage` e `VloaDocumentView` tornano com'erano) e tolta
+    la regola `AmbitoNotam.Accordo`; un test dice che quelle due sedi non lo montano. Con il suo ok, la prova è
+    stata rifatta su una **copia del database di sviluppo** (cancellata a fine prova): LIRN aeroporto (uno in
+    vigore e uno in arrivo; uno a nove giorni non c'è), LIBG vSOP, LICC_APP, vIPI ACC di LIBB e di LIMM (LIMM coi
+    due NOTAM **veri**), bozza e vLOA senza riquadro, lo scaduto ITW004/26 da nessuna parte; e la **stampa**, sul
+    PDF di Edge (il riquadro esce aperto sotto l'intestazione). Le 29 migrazioni che mancavano alla copia sono
+    passate. La CI di S103 è verde, col job `mariadb-schema`. Resta non visto: il giro contro IVAO vero dentro
+    l'host (la sorgente della prova era finta e locale, col corpo vero).
+- ✅ **S104** i NOTAM **nella vista live** (12-ott, chiesto dal committente: «dato che sono importanti, finiscano
+  anche nella pagina live»: una chip rossa «! NOTAM» fra il nome della postazione e il campo di ricerca, che si
+  vede se un NOTAM riguarda l'ente e apre sotto una sezione dove leggerlo come nel documento). Fuso e **online in
+  1.61.0** dal 12-ott (§A153). ⚠️ Il pannello che nasceva al clic è poi diventato una sezione sempre presente e
+  chiusa: vedi S106.
+  - **La regola**: la stessa del documento di riferimento, dichiarata dal descrittore del tipo di postazione
+    (`LiveView.AmbitoNotam`): TWR/GND/DEL → lo scalo; APP → lo scalo del suo ente; CTR → l'ACC più gli scali degli
+    APP della sua vIPI (gli stessi blocchi che usa la pagina del documento).
+  - 🔴 **Solo a documento pubblico** (deciso dal committente, lo stesso giorno). La prima stesura mostrava la chip
+    anche senza documento online (avevo letto «si vede qui se c'è nel relativo documento pubblico» come «stessa
+    regola»): lui ha risposto «solo a documento pubblico». Ora `LiveViewService` mette i NOTAM nel modello solo se
+    il documento di riferimento ha una release in vigore e non è nascosto (`LiveViewService.Pubblico`, una
+    domanda per tutti i tipi). ⚠️ Non bastava `NoDocument`: per un APP col documento proprio dice «non esiste»,
+    non «non è pubblicato». Conseguenza: un APP dentro la vIPI di un ACC non pubblicata non ha la chip, anche se
+    il suo scalo ha la vIPI online. Riprovato sulla copia del database: via la chip da `LIRR_TS_CTR`,
+    `LIRR_NE_CTR` e `LIRN_US0_APP` (vIPI di LIRR non pubblicata); invariate le altre e i documenti.
+  - **Com'è fatto**: i NOTAM li legge `LiveViewService` dopo la composizione e li mette in `LiveView.Notam`; la
+    pagina non tocca l'archivio (e i finti dei suoi test restano com'erano). Chip = un tasto, subito dopo lo
+    stato della postazione; pannello = lo stesso `NotamBox` dei documenti coi NOTAM già aperti (`Aperti`), in
+    fondo alla pagina, che nasce al clic e a cui la pagina scorre (`vipiScrollToId`). La riga sotto il titolo del
+    riquadro ora dice «Avvisi della divisione, in vigore o in arrivo» (prima «che riguardano questo documento»).
+  - **Nessuna migrazione in più**, nessun `deploy/`. **Codice comune**: `Vipi.Application` (`LiveModels`,
+    `LiveViewService`, i tre `*LiveStation`, `AmbitoNotam.Nessuno`).
+  - **Test**: App 3338 → 3332 (via i sette delle vLOA, uno nuovo) → **3344** (`NotamNellaVistaLiveTests`: la
+    regola «è pubblico?»); Ui 2039 → 2047 (`LivePageNotamTests`, i presidi sui descrittori e sulle vLOA) →
+    **2048** (il presidio «solo a documento pubblico»). Infra 2225 invariato. Suite intera verde, build Release
+    pulita.
+  - **Prova dal vivo** (copia del database di sviluppo, da staff): `LIRN_GND` — la chip sta fra «LIRN_GND · chiuso»
+    e il campo di ricerca, dove il committente ha messo la freccia; premuta apre in fondo i due NOTAM aperti e la
+    pagina ci scorre. Chip presente su LIRN_TWR, LIRN_US0_APP (APP nella vIPI di ACC: scalo LIRN), LICC_APP,
+    LIMM_WS2_CTR (i due veri), LIBB_ES_CTR, LIRR_TS_CTR (vIPI non pubblicata: i due dell'ACC); assente su
+    LIML_TWR e LIBA_APP (il suo era scaduto).
+  - ⚠️ **Non visto**: la chip che compare da sola a un tick live mentre la pagina è aperta (il modello si
+    ricompone a ogni tick, ma non l'ho aspettato a schermo); la vista live da telefono.
+- ✅ **S105** nella **vIPI di ACC** il NOTAM di uno scalo sta **dentro il blocco dell'APP** (12-ott sera, chiesto
+  dal committente dopo aver letto com'era: «se il blocco compare dentro l'APP a cui si riferisce è meglio. E se
+  compare lì allora darà anche nella pagina live di quell'ente»). Non era nel pacchetto 1.61.0: **online in
+  1.62.0** dal 12-ott notte (§A154).
+  - **Com'era** (S103): un riquadro solo in testa alla vIPI di ACC, coi NOTAM dell'ACC e quelli degli scali dei
+    suoi APP mescolati.
+  - **Com'è**: in testa i soli NOTAM dell'**ACC**; **sotto il titolo di ogni blocco APP** quelli dello scalo dei
+    suoi membri (`AmbitoNotam.BloccoApp`). Un NOTAM che nomina l'ACC **e** lo scalo sta in tutti e due i posti;
+    uno del solo scalo sta solo nel blocco. Una lettura sola dell'archivio per testa e blocchi
+    (`INotamDeiDocumenti.PerAsync` con più ambiti).
+  - **Vista live**: l'APP remotizzato mostra i NOTAM **del suo blocco** (prima: del solo proprio scalo); i CTR
+    come prima, tutto il documento. Resta «solo a documento pubblico».
+  - ⚠️ **Da sapere**: è il *blocco*, non l'APP — se un blocco tiene insieme APP di scali diversi, la chip di
+    ognuno conta i NOTAM di tutti. Nella copia di sviluppo `LIMF_WN0_APP` (Torino) conta il NOTAM di Genova perché
+    stanno nello stesso «Nuovo gruppo APP». Carta `docs/feature/2026-10-12-notam-sui-documenti.md` §7.
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (`AmbitoNotam.BloccoApp`,
+    `INotamDeiDocumenti`, `ApproachLiveStation`), `Vipi.Infrastructure` (`NotamDeiDocumenti`).
+  - **Test**: App 3344 → 3347, Infra 2225 → 2226, Ui 2048 → 2050. Suite intera verde, build Release pulita.
+  - **Prova dal vivo** (copia del database di sviluppo, sorgente finta locale): vIPI di Milano con IT-A002/26 e
+    IT-A003/25 in testa e IT-A002/26 dentro il blocco dell'APP di Genova — dati **veri**; vIPI di Brindisi con un
+    NOTAM inventato sul solo scalo di Bari dentro «Brindisi CS0» e non in testa; bozza senza riquadri; chip su
+    `LIBD_CS0_APP` (1), `LIBB_ES_CTR` (2), `LIMJ_WS0_APP` (1), `LIMM_WS2_CTR` (2), nessuna su `LIRN_US0_APP`
+    (vIPI di LIRR non pubblicata).
+- ✅ **S106** la sezione NOTAM **negli editor** e, nella vista live, **sempre in fondo e chiusa** (12-ott sera, due
+  richieste del committente: «la sezione NOTAM deve essere visibile nell'editor, come lo è la sezione METAR/TAF» e
+  «nella visuale live la sezione NOTAM deve essere sempre visibile in fondo al documento ma compressa. Se si clicca
+  sul pulsante NOTAM si apre e la finestra scorre al NOTAM»). **Online in 1.62.0** dal 12-ott notte (§A154).
+  - **Editor**: una nota «NOTAM dal vivo» (non c'è niente da compilare, in bozza non si vede) e sotto il riquadro
+    com'è nel documento pubblico, sempre presente — senza NOTAM lo dice. In testa alla colonna negli editor
+    d'aeroporto, vSOP e APP (slot nuovo `BeforeSections` di `DocumentSectionsEditor`); nell'editor della vIPI di
+    ACC in testa e dentro ogni blocco di gruppo APP. Componente `NotamNellEditor`, scope proprio che aspetta.
+    ⚠️ Non è una sezione del documento come il meteo: non sta nell'indice, non si sposta, non entra nella release.
+  - **Vista live**: la sezione è un `details.acc-item` come le altre, **sempre** in fondo e **chiusa** a ogni
+    apertura (niente `data-persist`); senza NOTAM dice che non ce ne sono (conto 0). La chip **apre** e scorre
+    (`vipiApriDettaglio`): non è più un interruttore. Il margine sopra lo misura il JavaScript sulla testata
+    appiccicata — col numero fisso l'intestazione della sezione finiva coperta (visto a schermo).
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: nessuno oltre S105. Toccati `vipi-ui.js`,
+    `vipi-theme.css` e i due `.resx`.
+  - **Test**: Ui 2050 → 2065 (`NotamNellEditorTests`, `LivePageNotamTests` riscritti). App e Infra come S105.
+    Suite intera verde, build Release pulita. Presi dai presidi: `TerzaPortaTests` ha fermato il componente
+    dell'editor finché non ha avuto la base che aspetta le letture in volo.
+  - **Prova dal vivo** (copia del database di sviluppo): `LIRN_GND` con la sezione chiusa in fondo («NOTAM 2»), la
+    chip che la apre e la porta sotto la testata; `LIML_TWR` e `LIRR_TS_CTR` con la sezione a 0 e senza chip;
+    editor di LIRN (due NOTAM sopra «METAR & TAF»), di LIML («nessuno»), del vSOP di LIBG, di LICC_APP, della
+    vIPI di Milano (testa e blocco APP).
+  - ⚠️ **Non visto**: lo scorrimento in un browser vero (nel pannello della chat l'animazione parte solo quando il
+    pannello disegna: la posizione d'arrivo è giusta, il movimento non l'ho potuto guardare); la vista live da
+    telefono; l'editor della vIPI di ACC mentre si aggiunge un APP a un blocco.
+- ✅ **S107** il **banco di prova** mostra tutti i trasferimenti, e le configurazioni si compongono (12-ott notte,
+  committente con davanti l'accordo `LIMM_WS2_CTR ⇄ LIMJ_WS0_APP`: «vorrei rivedere il meccanismo del test bench
+  per testare la copertura: ci sono dei trasferimenti che non compaiono»). **Online in 1.62.0** dal 12-ott
+  notte (§A154); il committente, visti numeri e schermata: «va bene così».
+- ✅ **S108** nel **banco di prova** si chiudono anche gli **altri centri** (16-ott, il committente col banco nuovo
+  online: «nel test bench mancano i trasferimenti tra ACC»; fra tre letture ha scelto «chiudere l'altro ACC»; visto il
+  riquadro: «sì, va bene»). **Online in 1.63.0** dal 16-ott (§A155).
+  - **La causa**: i trasferimenti fra ACC erano in elenco (a Padova 12 verso Roma e 10 da Roma), ma fuori dall'ACC
+    tutto era aperto per costruzione: restavano sempre «come scritto», da tutti e due i banchi.
+  - **Fatto**: riquadro «Altri enti degli accordi», un blocco per centro — i capi degli accordi che non sono
+    settori dell'ACC, tutta la loro catena di ripiego, chi raccoglie da fuori un settore dell'ACC, e il gruppo
+    intero di un centro che ha configurazioni, coi suoi tasti (`CoverageBench.AltriEnti`, `BenchScope.Neighbours`).
+    Partono aperti; «Tutti chiusi» chiude solo l'ACC; ogni centro ha «Chiudi tutti / Apri tutti». Un altro ente
+    aperto che non raccoglie niente non fa riga in «chi tiene cosa». «Non prevista» resta dei soli settori dell'ACC.
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (`CoverageBench.cs`:
+    `AltriEnti`, `SenzaAltriEntiVuoti`, `BenchNeighbour`, `BenchScope.Neighbours`, `SimulateAsync` con un parametro
+    in più). Toccati `vipi-theme.css`, i due `.resx`, la Guida (Struttura, nelle due lingue).
+  - **Test**: App 3357 → 3362, Ui 2068 → 2074. Sei mutazioni, una alla volta, fanno cadere ciascuna almeno un test.
+    Suite intere verdi.
+  - **Prova a schermo** sulla copia di produzione del 12 ottobre (rimontata per la prova, cancellata subito dopo):
+    a Padova, chiusa Roma NE, le 16 clausole fra `LIPP_SW1` e `LIRR_NE` passano a `LIRR_NE1_CTR`; a Milano, chiusa
+    Firenze, `WS2`/`ES2 → LIRQ_NN0_APP` passano a `LIRR_NE_CTR`. Italiano e inglese. Carta
+    `docs/feature/2026-10-04-copertura-unica.md` §12.
+  - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina online col login vero.
+  - **La causa**: il motore la clausola la risolveva sempre (sulla copia di produzione di quella sera: Milano, 103
+    punti in 40 flussi, i sette di Genova in ogni scenario). La nascondeva il banco: di suo mostrava i **soli punti
+    che cambiano mano**; i tasti delle configurazioni erano **un elenco solo** e ognuno chiudeva il resto dell'ACC
+    («Conf 2» dell'area chiudeva i dodici avvicinamenti: 80 punti «cambiati», di cui 51 `WS2 → WS2`); e «a sé
+    stesso» contava come cambio.
+  - **Fatto** (i tre punti proposti e accettati: «vai, proviamo con i tre suggerimenti tuoi»): i tasti sono **una
+    riga per gruppo** e cambiano i soli settori del loro gruppo (`CoverageBench.ConPreset`); la tabella ha **una
+    riga per clausola, tutte**, con l'esito — come scritto, raccolto da un altro, a sé stesso, non coperto
+    (`CoverageBench.Trasferimenti`); il filtro è a tre tasti col conto (Tutte di suo, Cambiano mano, Non coperte);
+    «a sé stesso» è attenuato e fuori dai cambi, con la regola della vista live. Il riquadro nasce aperto.
+  - **Non toccato**: il motore (`TransferResolution`, `FallbackChain`, `ResolveForAccAsync`) e la partenza da
+    «tutti aperti», decisa l'8 ottobre — avevo chiesto se partire dalla prima configurazione di ogni gruppo, non ha
+    risposto, resta com'era. A Milano «tutti aperti» è «non previsto» per Milano West: il banco lo dice subito.
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (`CoverageBench.cs`:
+    `BenchScope.Groups` al posto di `Presets`, `BenchPresetGroup`, `BenchTransferRow`, `BenchTransferState`).
+    Toccati `vipi-theme.css`, i due `.resx`, la Guida (Struttura, nelle due lingue).
+  - **Test**: App 3347 → 3357, Ui 2065 → 2068. Cinque mutazioni, una alla volta, fanno cadere ciascuna almeno un
+    test. Suite intere verdi.
+  - **Prova**: sulla copia di produzione del 12 ottobre (MariaDB privato nello scratchpad) il motore dalle stesse
+    porte del banco — Milano 46 clausole, la tabella degli scenari è nella carta; **a schermo** sugli stessi dati,
+    con le sole tabelle di struttura e accordi travasate in un SQLite di prova, in italiano e in inglese. Carta
+    `docs/feature/2026-10-04-copertura-unica.md` §11.
+  - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina sulla copia MariaDB col login vero.
+- 🟢 **S109** revisione delle **configurazioni possibili** (16-ott, il committente: «nelle possible configurations
+  per Milano manca quello con ANE ecc nonostante ci sia nel documento. Puoi fare una revisione del meccanismo?»).
+  - **Cosa c'era**: niente di perso. Sulla copia di produzione del 12 ottobre (rimontata col suo ok, cancellata
+    subito dopo) il blocco «Milano APP» della vIPI di Milano ha la sezione Configurazioni **vuota**, in bozza e
+    nella pubblicata del 29 settembre. Quello che si vede nel documento è «Tutti i settori»: la scelta che la
+    **mappa AOR** si dà da sola quando un gruppo non ha configurazioni (`AccDerivationService.DeriveAorViewAsync`,
+    `AppDocumentService`) — ANE + ANW + ASW + MAR + LIME_ADE + LIML_LAR. Non è una configurazione, e la Struttura
+    giustamente non ce l'ha.
+  - **Il resto del meccanismo, controllato sugli stessi dati**: ogni documento con configurazioni scritte ha la
+    sua riga in Struttura (otto travasati, più LIMP_APP e LIPX_ES0_APP scritti a mano); nessun elenco nomina un
+    settore che non sia più del suo gruppo. Il travaso riconosce l'ente di un gruppo dalla sola chiave, il
+    documento anche dall'ente di «Remotizza»: oggi senza effetti (non resta niente da travasare), lasciato.
+  - **Fatto**: (1) «Tutti i settori» era scritto in italiano nel servizio, anche nella pagina inglese: ora ha una
+    chiave fissa (`AccConfigSelection.TuttiISettori`) e il nome lo mette `AccAor.razor` (`Aor_AllSectors`), anche
+    sulle sezioni AOR già congelate; (2) in Struttura un gruppo **senza elenco scritto** dice che intanto il
+    documento mostra «Tutti i settori» e che non è una configurazione (`Cfgs_DocShowsAll`, con e senza lock;
+    conta lo scritto, non la copia di lavoro).
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (la costante in
+    `AccVipiModels.cs`, usata da `AccDerivationService` e `AppDocumentService`). Toccati i due `.resx`.
+  - **Test**: Ui 2074 → 2078 (`AorTuttiISettoriTests`, due in `StructureConfigurationsTests`); App 3362 invariato.
+    Suite Ui e App intere verdi, soluzione compilata senza avvisi.
+  - **Prova a schermo** su un database nuovo seminato (ACC LIMM, ente Milano APP senza elenco), in inglese:
+    l'avviso c'è senza lock e col lock, resta con una riga aggiunta e non applicata, sparisce dopo «Applica».
+  - ⚠️ **Non visto**: la mappa AOR di un documento vero in inglese (coperta dal test bUnit); il telefono.
+  - **Resta al committente**: scrivere in Struttura le configurazioni di Milano APP (quali, lo sa lui).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  All'8-ott: tutto fuso e online fino a S98 (1.57.0), tranne **S96** (tabellone) in pausa su `fix/tabellone`, che
-  alla ripresa va allineato — conflitti attesi sui conteggi e su questo registro. Si lavora da `sito/lavori`, un ramo
+  Al 16-ott: tutto fuso e online fino a **S108** (1.63.0); niente da fondere;
+  **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
+  `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
   IN FILA, uno sopra l'altro, o il Master trova conflitti. Aperte: il primo evento vero in `/services/event`; in
   produzione, la prima correzione in Spazi aerei e il KMZ successivo (S63); le vIPI ACC da ripubblicare e i tre
-  avvisi «quota di un altro settore» da guardare (S97). Resta al committente LIRE/LIBG (aspetta il
+  avvisi «quota di un altro settore» da guardare (S97); gli elenchi delle configurazioni da dichiarare completi
+  in Struttura, LIMM per primo (S99); la prova del validatore dei tour sull'archivio ATC (S102); la riga «NOTAM» in
+  Sorgenti, il riquadro sui documenti e la chip nella vista live da guardare online, e le tre scelte del filone su
+  S105/S106 (in testa a questa pagina). Resta al committente LIRE/LIBG (aspetta il
   SOD). ⚠️ In Spazi aerei i gesti che spostano agganci rifanno i confinanti: 15–25 s (S63), da guardare se diventa un
   fastidio. Futuro: vIPI ACC legata all'ACC
   (`lavori-aperti.md`, Sito), secondo canale delle richieste (`piano-segnalazioni.md` §10, strada B-1).

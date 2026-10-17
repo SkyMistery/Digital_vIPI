@@ -6,6 +6,9 @@ public enum AtcArchiveScope { Division, World, All }
 /// <summary>
 /// Una riga dell'archivio delle connessioni ATC, così com'è: chi, dove, da quando, fino a quando.
 /// <para><c>EndUtc</c> nullo significa <b>ancora aperta</b> all'ultimo giro del poller.</para>
+/// <para><c>Latitude</c>/<c>Longitude</c> sono il <b>centro</b> della postazione (10 ottobre 2026), in gradi:
+/// un punto per scartare in fretta le postazioni lontane, non l'area. Nulli tutti e due quando non si sa — le
+/// righe scritte prima della colonna e quelle arrivate dallo storico.</para>
 /// </summary>
 public sealed record AtcArchiveRow(
     long SessionId,
@@ -17,7 +20,9 @@ public sealed record AtcArchiveRow(
     DateTimeOffset StartUtc,
     DateTimeOffset? EndUtc,
     int DurationSeconds,
-    bool IsOutsideDivision);
+    bool IsOutsideDivision,
+    double? Latitude = null,
+    double? Longitude = null);
 
 /// <summary>
 /// Cosa cercare nell'archivio. Tutti i campi sono facoltativi tranne il tetto delle righe: è una lettura

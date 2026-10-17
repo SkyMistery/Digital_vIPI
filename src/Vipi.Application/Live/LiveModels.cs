@@ -82,6 +82,18 @@ public sealed record LiveView
     /// <summary>Il documento di riferimento non è pubblicato: la vista resta valida (deriva dai cataloghi),
     /// ma va detto. Vedi memoria live-view-design.</summary>
     public bool NoDocument { get; init; }
+
+    /// <summary>
+    /// Quali NOTAM riguardano questa postazione: la <b>stessa regola</b> del suo documento di riferimento (carta
+    /// <c>docs/feature/2026-10-12-notam-sui-documenti.md</c> §6). Lo dichiara il descrittore del tipo, che è l'unico
+    /// a sapere se la postazione è di uno scalo, di un APP o di un ACC.
+    /// </summary>
+    public AmbitoNotam AmbitoNotam { get; init; } = AmbitoNotam.Nessuno;
+
+    /// <summary>I NOTAM in vigore o in arrivo per la postazione, già scelti e ordinati: li mette
+    /// <see cref="LiveViewService"/> dopo la composizione, leggendo l'archivio con <see cref="AmbitoNotam"/>.
+    /// Vuoto = la chip «NOTAM» della testata non c'è.</summary>
+    public IReadOnlyList<NotamAvviso> Notam { get; init; } = Array.Empty<NotamAvviso>();
 }
 
 /// <summary>

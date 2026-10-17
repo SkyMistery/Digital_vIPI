@@ -1217,11 +1217,14 @@
                  ciascuno. Un gruppo di varianti si condivide <b>intero</b>, e una variante aggiunta dopo compare
                  anche di là.</p>
               <p>Ogni sezione ha il suo <b>ordine</b> (il selettore <b>⇅</b> sulla testata): <i>a mano</i>,
-                 <i>alfabetico per punto</i> o <i>per quota</i>. È salvato, e vale anche nei documenti e nella
+                 <i>per punto</i> o <i>per quota</i>, e il tasto accanto ne inverte il <b>verso</b> (<b>A→Z</b> /
+                 <b>Z→A</b>, <b>1→9</b> / <b>9→1</b>). È salvato, verso compreso, e vale anche nei documenti e nella
                  vista live. A mano le clausole condivise da un altro accordo stanno in coda; con un ordine
-                 dichiarato ognuna va al suo posto. Un gruppo di varianti si muove intero. Tornando a mano si
-                 ritrova l'ordine scritto. («Ordina per» in cima alla pagina è un'altra cosa: cambia solo come si
-                 guarda.)</p>
+                 dichiarato ognuna va al suo posto. Un gruppo di varianti si muove intero, e chi non ha il punto
+                 o la quota resta in fondo in tutti e due i versi. Tornando a mano si ritrova l'ordine scritto.
+                 («Ordina» in cima alla pagina è un'altra cosa: cambia solo come si guarda, in albero e in
+                 elenco — dove ordina anche per mittente, ricevente, aeroporto e tipo, come le intestazioni
+                 delle colonne — e ha lo stesso tasto per il verso.)</p>
               <p>La <b>✕</b> su una clausola condivisa, guardando un accordo, la toglie <b>da quello</b> e basta:
                  resta negli altri, e sparisce davvero solo quando la togli dall'ultimo. Fanno eccezione una
                  variante sola di un gruppo condiviso (eliminarla cambia il gruppo, per tutti) e la vista a elenco,
@@ -1299,11 +1302,14 @@
                  it in the table of each. A variant group is shared <b>whole</b>, and a variant added later appears
                  there too.</p>
               <p>Each section has its own <b>order</b> (the <b>⇅</b> selector on the header): <i>by hand</i>,
-                 <i>alphabetical by point</i> or <i>by level</i>. It is saved, and it also applies to the documents
-                 and the live view. By hand, clauses shared from another agreement sit at the end; with a declared
-                 order each goes to its place. A variant group moves whole. Going back to by hand brings the
-                 written order back. («Sort by» at the top of the page is something else: it only changes how you
-                 look.)</p>
+                 <i>by point</i> or <i>by level</i>, and the button next to it reverses the <b>direction</b>
+                 (<b>A→Z</b> / <b>Z→A</b>, <b>1→9</b> / <b>9→1</b>). It is saved, direction included, and it also
+                 applies to the documents and the live view. By hand, clauses shared from another agreement sit at
+                 the end; with a declared order each goes to its place. A variant group moves whole, and a clause
+                 without the point or the level stays at the bottom in both directions. Going back to by hand
+                 brings the written order back. («Sort» at the top of the page is something else: it only changes
+                 how you look, in tree and in list — where it also sorts by sender, receiver, airport and kind,
+                 like the column headers — and it has the same direction button.)</p>
               <p><b>✕</b> on a shared clause, while looking at one agreement, removes it <b>from that one</b>
                  only: it stays in the others, and is really gone only when you remove it from the last. Two
                  exceptions: a single variant of a shared group (deleting it changes the group, for everyone) and
@@ -1395,12 +1401,23 @@
                online davvero non viene mai corretto: se un settore è in frequenza fuori elenco, il traffico va
                a lui.</p>
               <p>In fondo alla pagina il <b>banco di prova</b> risponde a «con questi aperti, chi tiene cosa». Si
-               sceglie un ACC, si aprono e si chiudono i settori (o si parte da una configurazione possibile
-               dichiarata qui sopra) e la tabella dice chi raccoglie ogni settore chiuso, con la fascia se il
-               settore si divide fra due; sotto, i trasferimenti dell'ACC che con quegli aperti cambiano mano. Se
+               sceglie un ACC e si aprono e si chiudono i settori, a mano o con le configurazioni possibili
+               dichiarate qui sopra: i tasti sono <b>divisi per gruppo</b> e ognuno cambia i soli settori del suo
+               gruppo, quindi lo scenario è la combinazione — una configurazione dell'area e, per ogni ente, la
+               sua. La prima tabella dice chi raccoglie ogni settore chiuso, con la fascia se il settore si
+               divide fra due. Sotto ci sono <b>tutte le clausole</b> degli accordi dell'ACC, una riga ciascuna,
+               con chi cede e chi riceve davvero e l'<b>esito</b>: <i>come scritto</i>, <i>raccolto da un
+               altro</i> (uno dei due capi è chiuso e c'è chi lo sostituisce), <i>a sé stesso</i> (chi cede tiene
+               già il cielo del ricevente chiuso: non c'è niente da passare, e la vista live quella riga non la
+               mostra) e <i>non coperto</i> (nessuno cede, o nessuno riceve). Il filtro restringe a quelle che
+               cambiano mano o alle non coperte. Se
                lo scenario non è fra quelli di un elenco completo lo dice, e risponde lo stesso. Usa la struttura
-               salvata, non scrive niente — funziona anche senza il lock — e considera aperto tutto ciò che è
-               fuori dall'elenco (altri centri, torri).</p>
+               salvata, non scrive niente — funziona anche senza il lock. Sotto i settori dell'ACC ci sono gli
+               <b>altri enti degli accordi</b>, centro per centro: i capi che non sono settori dell'ACC (Roma
+               per un accordo Padova → Roma, una torre) e chi li raccoglie quando sono chiusi, con le
+               configurazioni del loro centro se le ha dichiarate. Partono aperti e si chiudono come gli altri, così
+               un trasferimento fra due ACC si prova da tutti e due i lati; «Tutti chiusi» chiude solo l'ACC.
+               Tutto il resto si considera aperto.</p>
               <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta, Accordi di
                coordinamento compresi.</p>",
             @"<p>The <b>Structure</b> page (<code>/services/vsop/admin/sector-structure</code>) holds the <b>single fallback
@@ -1473,11 +1490,22 @@
                configurations of a centre where usually a single sector is open) should stay off. Who is really
                online is never corrected: if a sector is on frequency outside the list, the traffic goes to it.</p>
               <p>At the bottom of the page the <b>test bench</b> answers «with these open, who holds what». Pick an
-               ACC, open and close the sectors (or start from a possible configuration declared above) and the
-               table says who picks up every closed sector, with the band when a sector is split between two;
-               below, the ACC's transfers that change hands with those open. If the scenario is not among those of
+               ACC and open and close the sectors, by hand or with the possible configurations declared above: the
+               buttons are <b>split by group</b> and each one only changes the sectors of its own group, so the
+               scenario is the combination — one configuration for the area and, for each unit, its own. The first
+               table says who picks up every closed sector, with the band when a sector is split between two.
+               Below are <b>all the clauses</b> of the ACC's agreements, one row each, with who really hands over
+               and who really receives, and the <b>outcome</b>: <i>as written</i>, <i>picked up by another
+               unit</i> (one end is closed and someone replaces it), <i>to itself</i> (the sender already holds
+               the sky of the closed receiver: there is nothing to hand over, and the live view does not show that
+               row) and <i>not covered</i> (nobody hands over, or nobody receives). The filter narrows the list to
+               those that change hands or to the uncovered ones. If the scenario is not among those of
                a complete list it says so, and answers anyway. It uses the saved structure, writes nothing — it works
-               without the lock too — and treats everything outside the list (other centres, towers) as open.</p>
+               without the lock too. Below the ACC's sectors are the <b>other units of the agreements</b>, centre
+               by centre: the ends that are not sectors of the ACC (Rome for a Padova → Rome agreement, a tower)
+               and who picks them up when they are closed, with their centre's configurations if it declared any.
+               They start open and close like the others, so a transfer between two ACCs can be tried from both
+               sides; «All closed» closes the ACC only. Everything else counts as open.</p>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time, coordination
                agreements included.</p>"),
 

@@ -45,7 +45,7 @@
                 <span class="cfg-sel-lab">@(ConfigLabel ?? L["Aor_ConfigLabel"].Value)</span>
                 @foreach (var c in View.Configs)
                 {
-                    <button type="button" class="cfg-btn" data-secs="@string.Join(",", c.OpenCallsigns)" data-cfgkey="@c.Key" aria-pressed="false">@c.Name</button>
+                    <button type="button" class="cfg-btn" data-secs="@string.Join(",", c.OpenCallsigns)" data-cfgkey="@c.Key" aria-pressed="false">@(c.Key == AccConfigSelection.TuttiISettori ? L["Aor_AllSectors"].Value : c.Name)</button>
                 }
                 <button type="button" class="cfg-clear" data-rows="">@L["Aor_Clear"]</button>
             </div>

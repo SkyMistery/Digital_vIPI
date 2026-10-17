@@ -20,6 +20,11 @@
 /// le porta <b>tutte</b> dal 28 agosto 2026, e questa è la sola cosa che le distingue: la sorgente non
 /// espone nessun campo «divisione» (verificato sul whazzup vero), quindi il confine resta il prefisso del
 /// callsign e lo decide l'adattatore, che è l'unico posto dove sta la configurazione della divisione.</param>
+/// <param name="Latitude">Latitudine del <b>centro</b> della postazione, in gradi, come la dichiara la sorgente;
+/// <c>null</c> se non la dà. È un punto, non l'area: serve a chi deve scartare in fretta le postazioni lontane
+/// da una rotta senza andare a chiedere la forma di ognuna.</param>
+/// <param name="Longitude">Longitudine del centro, in gradi. Sempre insieme alla latitudine: o tutte e due, o
+/// nessuna.</param>
 public sealed record SourceAtcConnection(
     long SessionId,
     int UserId,
@@ -30,7 +35,9 @@ public sealed record SourceAtcConnection(
     DateTimeOffset StartUtc,
     int ConnectedSeconds,
     IReadOnlyList<string>? AtisLines = null,
-    bool IsOutsideDivision = false);
+    bool IsOutsideDivision = false,
+    double? Latitude = null,
+    double? Longitude = null);
 
 /// <summary>
 /// La posizione di un aeroplano in un istante, più quel che serve a capire <b>chi</b> è e <b>cosa</b> sta

@@ -25,10 +25,12 @@ public class PieDiPaginaTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    private IRenderedComponent<SitoFooter> Rendi(bool staff)
+    private IRenderedComponent<SitoFooter> Rendi(bool staff, string? motto = null)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
-        Services.AddSingleton<IOptions<DivisionOptions>>(Options.Create(new DivisionOptions { Name = "Italy" }));
+        var divisione = new DivisionOptions { Name = "Italy" };
+        if (motto is not null) divisione.Motto = motto;
+        Services.AddSingleton<IOptions<DivisionOptions>>(Options.Create(divisione));
         return RenderComponent<SitoFooter>(p => p
             .Add(x => x.MostraVersione, staff)
             .Add(x => x.Versione, "1.48.0 · abc1234")
@@ -103,6 +105,32 @@ public class PieDiPaginaTests : TestContext
         Assert.Contains("Foot_Disclaimer IVAO Italy", cut.Markup);
         Assert.Contains($"© {DateTime.UtcNow.Year} IVAO Italy.", cut.Markup);
         Assert.Contains("Foot_PartOf", cut.Markup);
+    }
+
+    /// <summary>Committente, 9 ottobre 2026: il motto della divisione, «it takes time», sotto il marchio.</summary>
+    [Fact]
+    public void Il_motto_della_divisione_sta_sotto_il_marchio_e_non_si_traduce()
+    {
+        var cut = Rendi(staff: false);
+
+        var motto = cut.Find(".sf-about .sf-motto");
+        Assert.Equal("it takes time", motto.TextContent);
+        // In inglese anche nella pagina italiana, e lo dice: un lettore di schermo cambia pronuncia su `lang`.
+        Assert.Equal("en", motto.GetAttribute("lang"));
+        // Subito dopo il marchio, prima delle frasi che descrivono il sito: è la firma del nome.
+        var figli = cut.Find(".sf-about").Children.Select(e => e.ClassName ?? e.TagName.ToLowerInvariant()).ToList();
+        Assert.Equal(new[] { "sf-brand", "sf-motto", "p", "p" }, figli);
+        // Una volta sola, e non nella striscia dei diritti e dei crediti.
+        Assert.Single(cut.FindAll(".sf-motto"));
+        Assert.DoesNotContain("it takes time", cut.Find(".sf-bottom").TextContent);
+    }
+
+    [Fact]
+    public void Una_divisione_senza_motto_non_ha_la_riga()
+    {
+        var cut = Rendi(staff: false, motto: "  ");
+
+        Assert.Empty(cut.FindAll(".sf-motto"));
     }
 
     /// <summary>

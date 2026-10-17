@@ -25,8 +25,8 @@
         </div>
         @if (_scope is not null)
         {
-            <button type="button" class="btn ghost" disabled="@_busy" @onclick="() => ApriAsync(_scope.Sectors.Select(s => s.Callsign))">@L["Bench_AllOpen"]</button>
-            <button type="button" class="btn ghost" disabled="@_busy" @onclick="() => ApriAsync(Array.Empty<string>())">@L["Bench_AllClosed"]</button>
+            <button type="button" class="btn ghost" disabled="@_busy" title="@L["Bench_AllOpenTitle"]" @onclick="() => ApriAsync(_tutti)">@L["Bench_AllOpen"]</button>
+            <button type="button" class="btn ghost" disabled="@_busy" title="@L["Bench_AllClosedTitle"]" @onclick="() => ApriAsync(_open.Where(a => !DiCasa(a)).ToList())">@L["Bench_AllClosed"]</button>
         }
     </div>
 
@@ -37,19 +37,15 @@
 
     @if (_scope is not null)
     {
-        @if (_scope.Presets.Count > 0)
+        @if (_scope.Groups.Count > 0)
         {
+            @* Una riga di tasti PER GRUPPO: una configurazione cambia i soli settori del suo gruppo, e lo scenario è
+               la combinazione — un'area, e per ogni ente la sua. *@
             <p class="app-lbl" style="margin:12px 0 4px">@L["Bench_Presets"]</p>
-            <div class="sector-pick">
-                @foreach (var p in _scope.Presets)
-                {
-                    var preset = p;
-                    <button type="button" class="sp-item @(Uguale(preset.Open) ? "on" : null)" disabled="@_busy"
-                            title="@string.Join(" · ", preset.Open)" @onclick="() => ApriAsync(preset.Open)">
-                        @preset.Name
-                    </button>
-                }
-            </div>
+            @foreach (var g in _scope.Groups)
+            {
+                @Tasti(g)
+            }
         }
         else
         {
@@ -61,17 +57,37 @@
             var gruppo = _scope.Sectors.Where(s => s.Area == area).ToList();
             if (gruppo.Count == 0) continue;
             <p class="app-lbl" style="margin:12px 0 4px">@(area ? L["Bench_Area"] : L["Bench_App"])</p>
-            <div class="sector-pick">
-                @foreach (var s in gruppo)
-                {
-                    var settore = s;
-                    <button type="button" class="sp-item @(_open.Contains(settore.Callsign) ? "on" : null)" disabled="@_busy"
-                            aria-pressed="@_open.Contains(settore.Callsign).ToString().ToLowerInvariant()"
-                            title="@settore.Name" @onclick="() => CambiaAsync(settore.Callsign)">
-                        @settore.Callsign
-                    </button>
-                }
-            </div>
+            @Interruttori(gruppo)
+        }
+
+        @if (_scope.Neighbours.Count > 0)
+        {
+            @* Gli enti degli ALTRI centri che compaiono negli accordi dell'ACC, e chi li raccoglie: fino al 12 ottobre
+               2026 erano aperti per costruzione, e un trasferimento fra due ACC si poteva provare da un lato solo. *@
+            <p class="app-lbl" style="margin:14px 0 2px">@L["Bench_Neighbours"]</p>
+            <p class="muted bench-nb-hint">@L["Bench_NeighboursHint"]</p>
+            @foreach (var v in _scope.Neighbours)
+            {
+                var vicino = v;
+                var tuttiAperti = vicino.Sectors.All(s => _open.Contains(s.Callsign));
+                <div class="bench-nb" data-bench-acc="@vicino.AccCode">
+                    <div class="bench-grp">
+                        <span class="bench-grp-name bench-nb-name">
+                            @(vicino.AccCode.Length == 0 ? L["Bench_NeighbourUnknown"].Value : vicino.AccCode)
+                            @if (vicino.AccName.Length > 0) { <span class="muted">@vicino.AccName</span> }
+                        </span>
+                        <button type="button" class="btn ghost bench-nb-all" disabled="@_busy"
+                                @onclick="() => TuttoIlCentroAsync(vicino, !tuttiAperti)">
+                            @(tuttiAperti ? L["Bench_CloseAll"] : L["Bench_OpenAll"])
+                        </button>
+                    </div>
+                    @foreach (var g in vicino.Groups)
+                    {
+                        @Tasti(g)
+                    }
+                    @Interruttori(vicino.Sectors)
+                </div>
+            }
         }
 
         @if (_esito is not null)
@@ -105,21 +121,33 @@
                 </tbody>
             </table>
 
-            var righe = Righe(_esito.Transfers);
-            var cambiati = righe.Count(r => r.Cambia);
-            <details class="cfg-collapse coord-sub" style="margin-top:14px">
+            @* Tutte le clausole, una riga ciascuna, con l'esito. ⚠️ Di suo si vedono TUTTE: fino al 12 ottobre 2026
+               il banco mostrava i soli punti che cambiavano mano, e un trasferimento che funziona come è scritto
+               non c'era — chi lo cercava lo dava per perso. *@
+            var righe = CoverageBench.Trasferimenti(_esito.Transfers);
+            int Quante(BenchTransferState s) => righe.Count(r => r.State == s);
+            <details class="cfg-collapse coord-sub" style="margin-top:14px" open>
                 <summary>
-                    <span>@L["Bench_Transfers"] — @L["Bench_TransfersCount", righe.Count, cambiati]</span><span class="chev">▸</span>
+                    <span>@L["Bench_Transfers"] — @L["Bench_TransfersCount", righe.Count, Quante(BenchTransferState.AsWritten),
+                        Quante(BenchTransferState.PickedUp), Quante(BenchTransferState.ToItself), Quante(BenchTransferState.Uncovered)]</span><span class="chev">▸</span>
                 </summary>
                 <div class="body">
-                    <label class="muted" style="display:inline-flex;gap:6px;align-items:center;margin-bottom:8px">
-                        <input type="checkbox" checked="@_soloCambiati" @onchange="e => _soloCambiati = e.Value is true" />
-                        @L["Bench_OnlyChanged"]
-                    </label>
-                    @{ var mostrate = righe.Where(r => !_soloCambiati || r.Cambia).ToList(); }
+                    <div class="bench-filter" role="group" aria-label="@L["Bench_Filter"]">
+                        @foreach (var f in new[] { Filtro.Tutte, Filtro.Cambiano, Filtro.Scoperte })
+                        {
+                            var filtro = f;
+                            <button type="button" class="sp-item @(_filtro == filtro ? "on" : null)"
+                                    aria-pressed="@((_filtro == filtro).ToString().ToLowerInvariant())"
+                                    @onclick="() => _filtro = filtro">
+                                @NomeDi(filtro)
+                                <b>@righe.Count(r => Passa(filtro, r))</b>
+                            </button>
+                        }
+                    </div>
+                    @{ var mostrate = righe.Where(r => Passa(_filtro, r)).ToList(); }
                     @if (mostrate.Count == 0)
                     {
-                        <p class="muted">@L["Bench_NoTransfers"]</p>
+                        <p class="muted">@(righe.Count == 0 ? L["Bench_NoAgreements"] : L["Bench_NoTransfers"])</p>
                     }
                     else
                     {
@@ -133,22 +161,30 @@
                                     <th>@L["Bench_ColLevel"]</th>
                                     <th>@L["Bench_ColWrittenTo"]</th>
                                     <th>@L["Bench_ColTo"]</th>
+                                    <th>@L["Bench_ColState"]</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var r in mostrate)
                                 {
-                                    <tr>
-                                        <td>@r.Flusso</td>
-                                        <td>@r.CedenteScritto</td>
-                                        <td class="@(r.CedeAltro ? "bench-diff" : null)">@r.Cede</td>
-                                        <td>@r.Punto</td>
-                                        <td>@r.Livello</td>
-                                        <td>@r.RiceventeScritto</td>
-                                        <td class="@(r.RiceveAltro ? "bench-diff" : null)">
-                                            @r.Riceve
-                                            @if (r.PerCopertura) { <span class="fb-seq-tag">@L["Bench_ByCoverage"]</span> }
+                                    var aSe = r.State == BenchTransferState.ToItself;
+                                    <tr class="@(aSe ? "bench-self" : null)">
+                                        <td>@XferLabels.Kind(L, r.Kind) @string.Join(", ", r.Airports)</td>
+                                        <td class="bench-cs">@r.WrittenSender</td>
+                                        <td class="bench-cs @(r.Sender is null ? "bench-warn" : r.SenderDiffers && !aSe ? "bench-diff" : null)">
+                                            @(r.Sender ?? L["Bench_Nobody"].Value)
                                         </td>
+                                        <td>@string.Join(", ", r.Points)</td>
+                                        <td>
+                                            @r.Level
+                                            @if (r.Condition is not null) { <span class="fb-seq-tag">@r.Condition</span> }
+                                        </td>
+                                        <td class="bench-cs">@r.WrittenReceiver</td>
+                                        <td class="bench-cs @(r.Receiver is null ? "bench-warn" : r.ReceiverDiffers && !aSe ? "bench-diff" : null)">
+                                            @(r.Receiver ?? L["Bench_Nobody"].Value)
+                                            @if (r.ByCoverage) { <span class="fb-seq-tag">@L["Bench_ByCoverage"]</span> }
+                                        </td>
+                                        <td class="bench-state @(r.State == BenchTransferState.Uncovered ? "bench-warn" : null)">@Esito(r.State)</td>
                                     </tr>
                                 }
                             </tbody>
@@ -175,15 +211,80 @@
     private BenchOutcome? _esito;
     private readonly HashSet<string> _open = new(StringComparer.OrdinalIgnoreCase);
     private bool _busy;
-    private bool _soloCambiati = true;
+    private Filtro _filtro = Filtro.Tutte;
+
+    /// <summary>Tutto ciò che il banco apre e chiude: i settori dell'ACC e gli altri enti dei suoi accordi.</summary>
+    private readonly HashSet<string> _tutti = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>I soli altri enti: è lo scenario in più che si dice al servizio a ogni domanda.</summary>
+    private readonly List<string> _altri = new();
+
+    private bool DiCasa(string callsign) =>
+        _scope is not null && _scope.Sectors.Any(s => string.Equals(s.Callsign, callsign, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>I tasti delle configurazioni di un gruppo: la stessa riga per l'ACC e per un altro centro.</summary>
+    private RenderFragment Tasti(BenchPresetGroup gruppo) => __builder =>
+    {
+        <div class="bench-grp">
+            <span class="bench-grp-name">@gruppo.Name</span>
+            <div class="sector-pick">
+                @foreach (var p in gruppo.Presets)
+                {
+                    var preset = p;
+                    <button type="button" class="sp-item @(Accesa(gruppo, preset) ? "on" : null)" disabled="@_busy"
+                            title="@string.Join(" · ", preset.Open)" @onclick="() => SceglieAsync(gruppo, preset)">
+                        @preset.Name
+                    </button>
+                }
+            </div>
+        </div>
+    };
+
+    /// <summary>Un interruttore per settore: acceso = aperto.</summary>
+    private RenderFragment Interruttori(IReadOnlyList<BenchSector> settori) => __builder =>
+    {
+        <div class="sector-pick">
+            @foreach (var s in settori)
+            {
+                var settore = s;
+                <button type="button" class="sp-item @(_open.Contains(settore.Callsign) ? "on" : null)" disabled="@_busy"
+                        aria-pressed="@_open.Contains(settore.Callsign).ToString().ToLowerInvariant()"
+                        title="@settore.Name" @onclick="() => CambiaAsync(settore.Callsign)">
+                    @settore.Callsign
+                </button>
+            }
+        </div>
+    };
     private string? _errore;
 
-    /// <summary>Una riga della tabella dei trasferimenti: un punto, con chi lo cede e chi lo riceve davvero.</summary>
-    private sealed record Riga(string Flusso, string CedenteScritto, string Cede, bool CedeAltro, string Punto,
-        string Livello, string RiceventeScritto, string Riceve, bool RiceveAltro, bool PerCopertura)
+    /// <summary>Quali clausole si guardano. Si parte da tutte: un trasferimento che non compare sembra mancare.</summary>
+    private enum Filtro { Tutte, Cambiano, Scoperte }
+
+    /// <summary>
+    /// ⚠️ «A sé stesso» <b>non</b> è un cambio di mano: WS2 che raccoglie Genova chiusa non passa niente a nessuno,
+    /// ed è il caso che la vista live toglie dall'elenco. Resta fra «tutte», attenuato.
+    /// </summary>
+    private static bool Passa(Filtro filtro, BenchTransferRow r) => filtro switch
     {
-        public bool Cambia => CedeAltro || RiceveAltro;
-    }
+        Filtro.Cambiano => r.State is BenchTransferState.PickedUp or BenchTransferState.Uncovered,
+        Filtro.Scoperte => r.State == BenchTransferState.Uncovered,
+        _ => true,
+    };
+
+    private string NomeDi(Filtro filtro) => filtro switch
+    {
+        Filtro.Cambiano => L["Bench_FilterChanged"],
+        Filtro.Scoperte => L["Bench_FilterUncovered"],
+        _ => L["Bench_FilterAll"],
+    };
+
+    private string Esito(BenchTransferState stato) => stato switch
+    {
+        BenchTransferState.PickedUp => L["Bench_StatePicked"],
+        BenchTransferState.ToItself => L["Bench_StateSelf"],
+        BenchTransferState.Uncovered => L["Bench_StateNobody"],
+        _ => L["Bench_StateWritten"],
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -193,30 +294,25 @@
 
     private static string Voce(BenchItem i) => i.Band is null ? i.Sector : $"{i.Sector} ({i.Band})";
 
-    private bool Uguale(IReadOnlyList<string> aperti) => _scope is not null && _open.SetEquals(
-        aperti.Where(a => _scope.Sectors.Any(s => string.Equals(s.Callsign, a, StringComparison.OrdinalIgnoreCase))));
-
-    private List<Riga> Righe(IReadOnlyList<ResolvedTransferFlow> flussi)
+    /// <summary>La configurazione è quella in atto <b>nel suo gruppo</b>: degli altri gruppi non dice niente.</summary>
+    private bool Accesa(BenchPresetGroup gruppo, BenchPreset preset)
     {
-        var righe = new List<Riga>();
-        foreach (var f in flussi)
-        {
-            var flusso = XferLabels.Kind(L, f.Flow.Kind)
-                         + (string.IsNullOrWhiteSpace(f.Flow.AirportIcao) ? "" : " " + f.Flow.AirportIcao);
-            var cede = f.OwnerOnline ? f.ResolvedOwnerCallsign : L["Bench_Nobody"].Value;
-            var cedeAltro = !f.OwnerOnline
-                || !string.Equals(f.ResolvedOwnerCallsign, f.Flow.OwningSectorCallsign, StringComparison.OrdinalIgnoreCase);
-            foreach (var p in f.Points)
-            {
-                var scritto = p.Point.NextSectorCallsign ?? "";
-                righe.Add(new Riga(flusso, f.Flow.OwningSectorCallsign, cede, cedeAltro, p.Point.Cop,
-                    p.Point.LevelText ?? "", scritto, p.ResolvedHandler,
-                    RiceveAltro: !string.Equals(p.ResolvedHandler, scritto, StringComparison.OrdinalIgnoreCase),
-                    PerCopertura: p.Coverage is { Outcome: CoverageFallbackOutcome.Resolved } c
-                                  && string.Equals(c.TargetCallsign, p.ResolvedHandler, StringComparison.OrdinalIgnoreCase)));
-            }
-        }
-        return righe;
+        var oic = StringComparer.OrdinalIgnoreCase;
+        return _open.Where(a => gruppo.Sectors.Contains(a, oic)).ToHashSet(oic)
+            .SetEquals(preset.Open.Where(a => gruppo.Sectors.Contains(a, oic)));
+    }
+
+    /// <summary>Sceglie una configurazione: cambiano i soli settori del suo gruppo, gli altri restano come sono.</summary>
+    private Task SceglieAsync(BenchPresetGroup gruppo, BenchPreset preset) =>
+        ApriAsync(CoverageBench.ConPreset(_open.ToList(), gruppo.Sectors, preset.Open));
+
+    /// <summary>Apre o chiude in un gesto tutti gli enti di un altro centro; il resto dello scenario non si tocca.</summary>
+    private Task TuttoIlCentroAsync(BenchNeighbour vicino, bool apri)
+    {
+        var suoi = vicino.Sectors.Select(s => s.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var aperti = _open.Where(a => !suoi.Contains(a)).ToList();
+        if (apri) aperti.AddRange(suoi);
+        return ApriAsync(aperti);
     }
 
     private Task ScegliAccAsync(string? acc) => GuardatoAsync(async () =>
@@ -225,29 +321,35 @@
         _scope = null;
         _esito = null;
         _open.Clear();
+        _tutti.Clear();
+        _altri.Clear();
         if (_acc is null) return;
 
         _scope = await Bench.ScopeAsync(_acc);
         if (_scope is null) return;
-        // Si parte da «tutti aperti»: ognuno tiene il suo, e chiudendone uno si vede chi lo raccoglie.
-        foreach (var s in _scope.Sectors) _open.Add(s.Callsign);
-        _esito = await Bench.SimulateAsync(_acc, _open);
+        foreach (var s in _scope.Sectors) _tutti.Add(s.Callsign);
+        foreach (var s in _scope.Neighbours.SelectMany(v => v.Sectors))
+            if (_tutti.Add(s.Callsign)) _altri.Add(s.Callsign);
+        // Si parte da «tutti aperti», altri centri compresi: ognuno tiene il suo, e chiudendone uno si vede chi lo
+        // raccoglie. È lo scenario di sempre — fuori dall'ACC era tutto aperto anche quando non si poteva chiudere.
+        foreach (var s in _tutti) _open.Add(s);
+        _esito = await Bench.SimulateAsync(_acc, _open, _altri);
     });
 
     private Task CambiaAsync(string callsign) => GuardatoAsync(async () =>
     {
         if (!_open.Remove(callsign)) _open.Add(callsign);
-        _esito = await Bench.SimulateAsync(_acc!, _open);
+        _esito = await Bench.SimulateAsync(_acc!, _open, _altri);
     });
 
     private Task ApriAsync(IEnumerable<string> aperti) => GuardatoAsync(async () =>
     {
         if (_scope is null) return;
+        // ⚠️ L'elenco si copia PRIMA di vuotare: chi chiama passa spesso una vista sugli aperti di adesso.
+        var nuovi = aperti.Where(_tutti.Contains).ToList();
         _open.Clear();
-        foreach (var a in aperti)
-            if (_scope.Sectors.Any(s => string.Equals(s.Callsign, a, StringComparison.OrdinalIgnoreCase)))
-                _open.Add(a);
-        _esito = await Bench.SimulateAsync(_acc!, _open);
+        foreach (var a in nuovi) _open.Add(a);
+        _esito = await Bench.SimulateAsync(_acc!, _open, _altri);
     });
 
     /// <summary>Ogni gesto: in fila con la pagina, e un guasto del servizio diventa una frase invece di un circuito giù.</summary>

@@ -5,6 +5,7 @@
 @inject AppMemberLoader Loader
 @inject IDocLinkService Collegamenti
 @inject IApertureDocumenti Aperture
+@inject INotamDeiDocumenti Notam
 @inject ILogger<AppnPage> Log
 @inject IDocumentUnionService Unioni
 @inject UnionLoader Membri
@@ -86,6 +87,8 @@ else
                                    PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}")"
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
                 }
+                @* I NOTAM che riguardano lo scalo dell'APP: vuoto fuori dalla vista pubblica, e allora non disegna niente. *@
+                <NotamBox Avvisi="_notam" />
                 <div class="callout info"><span class="cic"><Icon Name="radio" Size="18" /></span><div><p class="ct">@Sito["Appn_InfoTitle"]</p>@Sito["Appn_InfoBody"]</div></div>
 
                 @* ⚠️ Cartelli e filtro di lettura stanno nella TESTATA: vedi la `.doc-head.with-aud` piu' sopra. *@
@@ -226,11 +229,20 @@ else
 
         _collegati = await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.App, _app, _doc.Mode);
 
+        // I NOTAM, solo sulla vista PUBBLICA. ⚠️ Per un APP «riguarda» vuol dire «riguarda il suo scalo»
+        // (committente, 12 ottobre 2026): la testa del codice dell'ente, LIRQ_NN0_APP → LIRQ.
+        _notam = _doc.Mode.Kind == PreviewKind.Public
+            ? await Notam.PerAsync(AmbitoNotam.Aeroporti(ScaliPerNotam.Di(_app, _altri)))
+            : Array.Empty<NotamAvviso>();
+
         // Un'apertura in più, solo sulla vista PUBBLICA (non bozza né anteprima: quelle le apre chi scrive). Carta
         // 2026-10-01-aperture-documenti.md. ⚠️ In fondo, dopo tutte le letture: lo scope è quello della pagina, e il
         // contatore non lancia mai.
         if (_doc.Mode.Kind == PreviewKind.Public) await Aperture.SegnaAsync(ReleaseTargetType.App, _app);
     }
+
+    /// <summary>I NOTAM in vigore o in arrivo per lo scalo di questo APP (carta 2026-10-12-notam-sui-documenti.md).</summary>
+    private IReadOnlyList<NotamAvviso> _notam = Array.Empty<NotamAvviso>();
 
     /// <summary>I documenti collegati (§A109): vIPI ACC, vIPI e vSOP degli scali sotto questo APP.</summary>
     private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();

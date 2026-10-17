@@ -36,6 +36,9 @@ public enum ImportAnagrafica
     Acc,
     /// <summary>Assegnazione degli aeroporti alla loro ACC (e primo import del loro catalogo settori).</summary>
     Aeroporti,
+    /// <summary>I NOTAM della divisione: lo specchio dell'elenco della sorgente, mostrato in testa ai documenti.
+    /// Non è un'anagrafica, ma è una riga della stessa specie — sempre di sorgente, senza spunta.</summary>
+    Notam,
 }
 
 /// <summary>
@@ -119,6 +122,9 @@ public sealed class ImportOverviewService : IImportOverviewService
         (ImportCategory.Navaids, null, ImportCategories.Navaid),
         (ImportCategory.SpecialAreas, null, ImportCategories.SpecialArea),
         (ImportCategory.AtcSessions, null, ImportCategories.AtcHistory),
+        // In fondo: non è un dato dei documenti ma un avviso che ci sta sopra, e non ha una spunta — escluderlo
+        // vorrebbe dire nascondere ai lettori un NOTAM in vigore.
+        (null, ImportAnagrafica.Notam, ImportCategories.Notam),
     };
 
     public async Task<IReadOnlyList<ImportOverviewRow>> ListAsync(CancellationToken ct = default)

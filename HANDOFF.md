@@ -4,7 +4,58 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 8 ottobre 2026, pomeriggio
+> ## ▶ Il punto — 16 ottobre 2026, pomeriggio
+>
+> **📦 Pronta da caricare: 1.64.0** (§A156, timbro `1.64.0 · 1ad98d0`, 7 file, zip `f86a486d…`, MINOR senza
+> migrazioni): Sito S109, «Tutti i settori» della mappa AOR non è una configurazione (la Struttura lo dice, la pagina lo
+> traduce). Online è la **1.63.0** finché il committente non carica. ⚠️ Aperto: aggiornare l'SDK a 10.0.402. ▶ Restano:
+> banco su Milano, riga «NOTAM» in Sorgenti, vista live dal telefono, prova del validatore sull'archivio ATC, elenchi di
+> Torino, Padova e Bologna, ripubblicare le vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 16 ottobre 2026, mattina
+>
+> **✅ Online: 1.63.0** (`Schema 0` confermato; health Healthy; **in `main` non resta codice fuori pacchetto**) (§A155, timbro `1.63.0 · 099b0df`, 11 file, zip `21bcc96c…`, MINOR senza
+> migrazioni): Sito S108, nel banco di prova anche gli enti degli altri centri. Nello stesso giro, fuori dal pacchetto: la CI Docker torna verde con le immagini fissate a
+> `sdk:10.0.401`/`aspnet:10.0.12`. ⚠️ Aperto: aggiornare l'SDK a 10.0.402 (runtime 10.0.13) — un pacchetto a sé.
+> ▶ Restano: riga «NOTAM» in Sorgenti, vista live dal telefono, prova del validatore sull'archivio ATC, elenchi di
+> Torino, Padova e Bologna, ripubblicare le vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 12 ottobre 2026, notte
+>
+> **✅ Online: 1.62.0** (asset del pacchetto e `/vsop/health` Healthy da fuori; timbro e `Schema` non riferiti; **in
+> `main` non resta codice fuori pacchetto**) (§A154, timbro `1.62.0 · f1aeaf5`, 16 file, zip `a71980b6…`, MINOR senza
+> migrazioni): Sito S105 e S106 (NOTAM dentro il blocco dell'APP nella vIPI di ACC, negli editor, in fondo alla vista
+> live) e S107 (banco di prova di Struttura con tutte le clausole e l'esito). ▶ Restano: la riga «NOTAM» in Sorgenti da confermare, la prova del validatore sull'archivio
+> ATC, gli elenchi di Torino, Padova e Bologna, ripubblicare le vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 12 ottobre 2026, sera
+>
+> **✅ Online: 1.61.0** (`Schema 0` confermato; `/vsop/health` Healthy; **in `main` non resta codice fuori
+> pacchetto**; da confermare col login la riga «NOTAM» in Sorgenti) (§A153, timbro `1.61.0 · 89bd1da`, 17 file, zip `08db4c3b…`, MINOR con una
+> migrazione additiva): Sito S103 (NOTAM della divisione in testa ai documenti pubblici, vLOA escluse) e S104 (chip
+> NOTAM nella vista live, solo a documento pubblico). ⚠️ Un
+> lettore nuovo verso IVAO ogni 30 minuti, senza token. ▶ Restano la prova del validatore sull'archivio ATC, gli
+> elenchi di Torino, Padova e Bologna e la ripubblicazione delle vIPI ACC. S96 in pausa. LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 10 ottobre 2026, sera
+>
+> **✅ Online: 1.60.0** (`Schema 0` confermato; `/vsop/health` di nuovo **Healthy**; **in `main` non resta codice
+> fuori pacchetto**) (§A152, timbro `1.60.0 · 3ea92b2`, 10 file, zip `60f73b8a…`, MINOR con una
+> migrazione additiva): Sito S102, l'archivio ATC dà `latitude` e `longitude` della postazione, per il validatore dei
+> tour. ⚠️ Migrazione non provata su una copia del database
+> vero (due colonne nullable su `AtcSessions`). ▶ Restano i gesti della 1.58.0 (accendere l'elenco di LIMM: fino ad
+> allora `/vsop/health` è Degraded) e le scelte di S100/S101 da confermare. S96 in pausa. LIRE/LIBG aspettano il SOD.
+>
+> ## Il punto — 9 ottobre 2026, sera
+>
+> **✅ Online: 1.59.0** (`Schema 0` confermato il 10-ott) (§A151, timbro `1.59.0 · fc442f2`, 13 file, zip `6b1b7569…`, MINOR senza
+> migrazioni): Sito S100 (accordi: ordinamento col verso in albero ed elenco, tasti di riga a icone) e S101 (motto
+> «it takes time» nel piè di pagina), fusi prima dello sguardo del committente, che li guarda online.
+> ⚠️ Rollback: la 1.58.0 non conosce i due versi nuovi dell'ordine salvato. ▶ Restano i
+> gesti della 1.58.0 (accendere l'elenco di LIMM: fino ad allora `/vsop/health` è Degraded). S96 in pausa. LIRE/LIBG
+> aspettano il SOD.
+>
+> ## Il punto — 8 ottobre 2026, pomeriggio
 >
 > **✅ Online: 1.58.0** dall'8 ottobre sera (`Schema 0` confermato; **in `main` non resta codice fuori pacchetto**;
 > 🔎 `/vsop/health` ancora Degraded finché non si accende l'elenco di LIMM) (§A150, timbro `1.58.0 · 2ecbdd6`, 15 file, zip `ea49ca83…`, MINOR con una

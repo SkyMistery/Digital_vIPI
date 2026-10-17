@@ -248,4 +248,12 @@ public static class ImportCategories
     /// sweep fermo da settimane è indistinguibile da uno passato stanotte.
     /// </summary>
     public const string ReleaseSweep = "ReleaseSweep";
+
+    /// <summary>
+    /// I NOTAM della divisione (<c>NotamImportHostedService</c>, dal 12 ottobre 2026): lo specchio dell'elenco
+    /// della sorgente, da cui esce il riquadro in testa ai documenti pubblici. È l'unico giro che si misura in
+    /// <b>minuti</b> e non in ore (<c>IvaoOptions.NotamImportMinutes</c>): un NOTAM pubblicato deve comparire in
+    /// giornata, non domani. Carta <c>docs/feature/2026-10-12-notam-sui-documenti.md</c>.
+    /// </summary>
+    public const string Notam = "Notam";
 }

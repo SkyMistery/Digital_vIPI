@@ -131,6 +131,12 @@ dallo stesso albero.
 
 ## 7. Passi 2 e 3 — il banco di prova
 
+> ⚠️ **Cambiato il 12 ottobre 2026** (§11): i tasti delle configurazioni sono divisi per gruppo, la tabella dei
+> trasferimenti mostra **tutte** le clausole, una riga ciascuna, e «a sé stesso» non è un cambio di mano. Quel che
+> segue descrive il banco com'era nato; dove dice «di suo mostra solo i punti che cambiano mano» vale il §11.
+> ⚠️ **E il 16 ottobre** (§12): «tutto ciò che è fuori dall'elenco si considera aperto» non vale più per gli enti
+> degli altri centri che compaiono negli accordi — si aprono e si chiudono anche loro.
+
 In fondo a `/services/vsop/admin/sector-structure`, sezione richiudibile **«Banco di prova»** (nasce chiusa, e da
 chiusa non legge niente). Si sceglie un ACC, si aprono e chiudono i suoi settori d'area e i suoi avvicinamenti, e
 sotto escono due tabelle:
@@ -343,4 +349,141 @@ that level, the sky belongs to LIMM_ES5_CTR when it is open; the clause is writt
 il tasto ⇢ spunta `ALTOP` e apre «Sposta» con `LIMM_ES5_CTR → LIPP_CE1_CTR` già scritto.
 
 ⚠️ La pagina sui dati veri non l'ho guidata (chiede l'accesso IVAO): i tre avvisi li ha contati il motore.
+
+## 11. Il banco che non mostrava i trasferimenti — 12 ottobre 2026
+
+### Il fatto
+
+Il committente, con davanti l'accordo `LIMM_WS2_CTR ⇄ LIMJ_WS0_APP` (arrivi a Genova, sette STAR a FL120, pista
+10/28): «vorrei rivedere il meccanismo del test bench per testare la copertura: ci sono dei trasferimenti che non
+compaiono».
+
+Il motore quella clausola la risolveva sempre. Sulla copia di produzione del 12 ottobre (1.61.0), fatto girare dalle
+stesse porte del banco: Milano ha **103 punti in 40 flussi**, e i sette di Genova c'erano in ogni scenario. A
+nasconderla era il banco, in tre modi.
+
+| Scenario, col banco di prima | Punti che «cambiano mano» | La clausola di Genova |
+|---|---|---|
+| tutti aperti (com'è alla partenza) | 0 su 103 | **nascosta**: di suo si vedevano solo i punti che cambiano |
+| WS2 + ES2, Torino e Genova aperte, il resto aperto | 6 | **nascosta**, per lo stesso motivo |
+| tasto «Conf 2» dell'area | 80, di cui **51 a sé stesso** | esce come `WS2 → WS2`, evidenziata |
+| tasto «Conf 2» di Milano West | 103 | la cede «Nessuno (UNICOM)» |
+
+1. **Di suo si vedevano i soli punti che cambiano mano.** Un trasferimento che funziona come è scritto non c'era:
+   chi lo cercava lo dava per perso. E in uno scenario sensato è il caso di quasi tutte le clausole.
+2. **I tasti delle configurazioni erano un elenco solo.** Ognuno apriva i suoi settori e chiudeva tutto il resto
+   dell'ACC: «Conf 2» dell'area chiudeva i dodici avvicinamenti, «Conf 2» di Milano West chiudeva l'area. Uno
+   scenario vero — un'area **e** i suoi avvicinamenti — si otteneva solo cliccando i settori uno per uno.
+3. **«A sé stesso» contava come cambio.** WS2 che raccoglie Genova chiusa usciva come `WS2 → WS2`, in giallo. La
+   vista live quel caso lo toglie (`LiveStationParts.IsRealHandoff`); il banco lo contava fra le differenze.
+
+### Che cosa è cambiato
+
+| Cosa | Prima | Adesso |
+|---|---|---|
+| I tasti | un elenco: aprono i loro settori, chiudono il resto dell'ACC | **una riga per gruppo**: cambiano i soli settori del gruppo (`CoverageBench.ConPreset`) |
+| La tabella | un punto per riga, di suo solo quelli che cambiano | **una clausola per riga, tutte**, con l'esito (`CoverageBench.Trasferimenti`) |
+| L'esito | cedente e ricevente evidenziati se diversi | *come scritto* · *raccolto da un altro* · *a sé stesso* · *non coperto* |
+| Il filtro | una spunta «solo quelli che cambiano», accesa | tre tasti col conto: **Tutte** (di suo) · Cambiano mano · Non coperte |
+| Il riquadro | chiuso | aperto |
+
+- **Il motore non è toccato**: `TransferResolution`, `FallbackChain`, `IAgreementService.ResolveForAccAsync` sono
+  quelli di prima. Il banco continua a non averne uno suo (§7): le due funzioni nuove sono **pure** e lavorano su
+  quel che il motore ha già risolto — raggruppano e danno un nome all'esito.
+- ⚠️ **Una clausola si divide solo se i suoi punti hanno esiti diversi** (due cedenti per la quota, un rinvio che
+  risponde punto per punto). Gli scali di una sezione che ne nomina più d'uno stanno sulla stessa riga.
+- ⚠️ **«A sé stesso» è la regola della vista live**, non una nuova: chi cede e chi riceve, risolti, sono la stessa
+  postazione. Resta fra «tutte», attenuato; non sta fra «cambiano mano».
+- ⚠️ **«Non coperto» sono due casi**: nessuno riceve (UNICOM), o nessuno cede — il cielo del cedente non lo tiene
+  nessuno, e il trasferimento non avviene affatto.
+- ⚠️ **Un gruppo senza configurazioni non ha tasti** (a Milano: Linate, Malpensa, Bergamo): i suoi settori si
+  aprono e si chiudono a mano, come prima. E un ente che ha per posizione una torre la lascia fuori: il banco apre
+  e chiude solo settori d'area e avvicinamenti.
+- **Si parte ancora da «tutti aperti»**, come deciso l'8 ottobre. ⚠️ A Milano quello scenario è «non previsto» per
+  Milano West (WN0 + WW0 + WS0 insieme non è in elenco) e il banco lo dice subito: basta scegliere una sua
+  configurazione.
+
+### Com'è andata
+
+- **Test**: `CoverageBenchTests` 8 → 18 (`ConPreset`, `Trasferimenti`), `StructureBenchTests` 8 → 11. **Cinque
+  mutazioni**, una alla volta, fanno cadere ciascuna almeno un test: il tasto che apre solo i suoi, il filtro
+  acceso di suo, «a sé stesso» contato come cambio, `ConPreset` che chiude fuori dal gruppo, una riga per punto.
+- **Sulla copia di produzione del 12 ottobre** (MariaDB privato, motore dalle stesse porte): Milano sono **46
+  clausole** invece di 103 punti.
+
+  | Scenario | Come scritto | Raccolte | A sé stesso | Non coperte | Genova |
+  |---|---|---|---|---|---|
+  | tutti aperti | 46 | 0 | 0 | 0 | come scritto |
+  | area «Conf 2» | 46 | 0 | 0 | 0 | come scritto |
+  | + Milano West «Conf 2» (WW0 + WS0) | 45 | 1 | 0 | 0 | come scritto |
+  | + Milano West «Conf 1» (solo WW0) | 44 | 2 | 0 | 0 | la riceve **WW0** |
+  | + Milano West «Conf 1b» (solo WN0) | 45 | 0 | 1 | 0 | **a sé stesso** (WS2) |
+  | area «Conf 1» + Milano West «Conf 1» | 16 | 24 | 6 | 0 | la riceve **WW0** |
+  | tutti chiusi | 0 | 0 | 0 | 46 | non coperta |
+
+- **A schermo**, sugli stessi dati: le sole tabelle di struttura e accordi travasate dalla copia in un SQLite di
+  prova (nessuna tabella con persone dentro), host di sviluppo, tema scuro. Gli stessi numeri
+  della tabella qui sopra, tasto per tasto; i tasti accesi restano due — uno per l'area, uno per Milano West —
+  e nessuno spegne l'altro; i callsign non vanno a capo; console senza errori. Guardata anche la pagina inglese
+  (testi, intestazioni, conto). ⚠️ Non visto: il telefono, il tema chiaro, la pagina sulla copia MariaDB col login vero.
+
+## 12. Gli altri centri si chiudono anche loro — 16 ottobre 2026
+
+### Il fatto
+
+Il committente, col banco nuovo online (1.62.0): «nel test bench mancano i trasferimenti tra ACC». In elenco c'erano
+— a Padova 12 clausole verso Roma e 10 da Roma, a Roma 9 da Brindisi —, ma restavano sempre «come scritto»: nel
+banco di un ACC si aprivano e chiudevano solo i **suoi** settori, e tutto il resto era aperto per costruzione (§7).
+Chi raccoglie `LIPP_SW1_CTR → LIRR_NE_CTR` con Roma NE chiusa non si poteva chiedere; nel banco di Roma sì, ma lì a
+essere sempre aperta era Padova. Gli è stato chiesto che cosa mancasse fra tre letture (l'altro ACC da chiudere,
+accordi Milano ⇄ Padova/Roma mai scritti, un trasferimento preciso): «chiudere l'altro ACC».
+
+### Che cosa è cambiato
+
+Sotto i settori dell'ACC c'è un riquadro **«Altri enti degli accordi»**, un blocco per centro:
+
+| Chi c'è | Perché |
+|---|---|
+| ogni **capo** di un accordo dell'ACC che non è un suo settore — chi cede o chi riceve | è l'altro lato del trasferimento |
+| tutti quelli che la **catena di ripiego** di un capo può toccare, fino alla radice | chiuso NE lo raccoglie NE1; per chiedere «e se è chiuso anche NE1?» deve esserci anche lui |
+| chi raccoglie un settore **dell'ACC** da fuori | un avvicinamento può pendere da un settore di un altro centro |
+| **tutto il gruppo** di un altro centro che ha dichiarato configurazioni, coi suoi tasti | col gruppo a metà, due configurazioni diverse per un settore assente si accenderebbero insieme |
+
+- `CoverageBench.AltriEnti` — puro: dai flussi dell'ACC e dalla topologia, l'elenco in ordine d'incontro. Un capo
+  che la struttura non conosce (cancellato dal catalogo) non entra: non si può aprire, e farebbe credere di averlo
+  chiuso.
+- `BenchScope.Neighbours` (proprietà con default, il costruttore resta quello di prima): un `BenchNeighbour` per
+  centro, coi settori e con i gruppi che hanno configurazioni. Le torri dell'ACC stesso finiscono nel blocco del
+  suo codice, senza tasti: i gruppi dell'ACC li ha già sopra.
+- `SimulateAsync(acc, aperti, altri)`: la pagina dice quali altri enti ha sul tavolo invece di farli ricalcolare a
+  ogni clic (rileggere accordi e gruppi); il servizio tiene solo i settori veri che non sono dell'ACC.
+- Nella tabella «chi tiene cosa» un altro ente **aperto che non raccoglie niente non fa riga**
+  (`CoverageBench.SenzaAltriEntiVuoti`): per un settore dell'ACC «è aperto e tiene il suo» è un'informazione, per
+  trenta enti di tre centri sarebbe una tabella di trattini.
+- Tasti: **«Tutti aperti»** riapre tutto, altri centri compresi (è lo stato di partenza); **«Tutti chiusi»** chiude
+  i soli settori dell'ACC — gli altri restano come sono, come prima erano sempre; ogni centro ha il suo «Chiudi
+  tutti / Apri tutti»; una configurazione di un altro centro cambia i soli settori del suo gruppo (§11).
+- ⚠️ **«Non prevista» resta dei soli settori dell'ACC.** Di un centro senza configurazioni il banco ha sul tavolo
+  solo una parte: ogni suo elenco completo risulterebbe fuori elenco, sempre.
+- Il motore non è toccato, di nuovo: lo scenario è più grande, la domanda è la stessa.
+
+### Com'è andata
+
+- **Test**: `CoverageBenchTests` 18 → 23 (`AltriEnti`, `SenzaAltriEntiVuoti`, chi raccoglie un ente chiuso),
+  `StructureBenchTests` 11 → 17. **Sei mutazioni**, una alla volta, fanno cadere ciascuna almeno un test: gli altri
+  enti che non entrano nello scenario, la catena che non entra, un capo sconosciuto che entra, gli enti vuoti che
+  restano in tabella, «Tutti chiusi» che chiude anche gli altri centri, «Chiudi tutti» di un centro che li chiude
+  tutti.
+- **A schermo sulla copia di produzione del 12 ottobre** (rimontata per la prova e cancellata subito dopo; sole
+  tabelle di struttura e accordi in un SQLite di prova, host di sviluppo):
+
+  | Banco | Altri enti | Gesto | Esito |
+  |---|---|---|---|
+  | LIPP | LIMM (gruppo d'area con «Conf 1–3») e LIRR (10 settori d'area con «Conf 1/2/2b», più `LIRQ_NN0_APP`) | chiusa `LIRR_NE_CTR` | 57 clausole: 41 come scritto, **16 raccolte**: le 9 `LIPP_SW1 → LIRR_NE` e le 7 nel verso opposto passano a `LIRR_NE1_CTR`; in tabella «`LIRR_NE1_CTR` tiene `LIRR_NE_CTR`» |
+  | LIPP | | Roma «Conf 1» (EW + NE1 + SU) | 22 raccolte: anche le clausole con `LIRR_NC_CTR` passano a NE1; la configurazione di Milano resta accesa |
+  | LIPP | | «Tutti chiusi» | i settori di Padova chiusi, Roma resta in «Conf 1»: 57 non coperte |
+  | LIMM | LIPP (con «Bologna Radar») e LIRR | chiusa `LIRQ_NN0_APP` | `WS2` ed `ES2 → LIRQ_NN0_APP` le raccoglie `LIRR_NE_CTR` |
+
+  Pagina italiana e inglese, console senza errori, nessuno sforamento a 1400 px. Visto a schermo e corretto: il
+  codice e il nome del centro uscivano attaccati («LIPPPadova»). ⚠️ Non visto: il telefono, il tema chiaro.
 

@@ -57,6 +57,47 @@ public class AtcSessionStoreTests : IAsyncLifetime
         Assert.Equal("118.700", s.Frequency);
     }
 
+    // ---- Il centro della postazione (10 ottobre 2026) ----
+
+    [Fact]
+    public async Task Il_centro_si_scrive_all_apertura_e_poi_non_si_sposta()
+    {
+        // La prima volta che c'è, come posizione e frequenza: la riga dice dov'era la postazione quando si è aperta.
+        await Giro(T0, Conn(100, T0, 60) with { Latitude = 41.80028, Longitude = 12.23889 });
+        await Giro(T0.AddMinutes(30), Conn(100, T0, 1800) with { Latitude = 45.0, Longitude = 9.0 });
+        _db.ChangeTracker.Clear();
+
+        var s = await _db.AtcSessions.SingleAsync();
+        Assert.Equal((41.80028, 12.23889), (s.Latitude, s.Longitude));
+        Assert.Equal(1800, s.DurationSeconds);
+    }
+
+    [Fact]
+    public async Task Una_sessione_aperta_senza_centro_lo_prende_al_primo_giro_che_lo_porta()
+    {
+        // È il giorno del carico: le sessioni già aperte sono nate senza la colonna, e si riempiono da sole.
+        await Giro(T0, Conn(100, T0, 60));
+        _db.ChangeTracker.Clear();
+        Assert.Null((await _db.AtcSessions.AsNoTracking().SingleAsync()).Latitude);
+
+        await Giro(T0.AddMinutes(1), Conn(100, T0, 120) with { Latitude = 41.80028, Longitude = 12.23889 });
+        _db.ChangeTracker.Clear();
+
+        var s = await _db.AtcSessions.SingleAsync();
+        Assert.Equal((41.80028, 12.23889), (s.Latitude, s.Longitude));
+    }
+
+    [Fact]
+    public async Task Mezza_coordinata_non_si_scrive()
+    {
+        // In coppia o niente: una latitudine senza longitudine è un punto che non esiste.
+        await Giro(T0, Conn(100, T0, 60) with { Latitude = 41.80028 });
+        _db.ChangeTracker.Clear();
+
+        var s = await _db.AtcSessions.SingleAsync();
+        Assert.Equal(((double?)null, (double?)null), (s.Latitude, s.Longitude));
+    }
+
     [Fact]
     public async Task Quando_sparisce_dalla_frequenza_la_sessione_si_chiude()
     {

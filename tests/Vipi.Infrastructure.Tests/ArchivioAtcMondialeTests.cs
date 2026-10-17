@@ -173,6 +173,38 @@ public class ArchivioAtcMondialeTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task L_archivio_dice_dove_stava_la_postazione_e_quando_non_lo_sa_lo_dice()
+    {
+        // 10 ottobre 2026: il centro è ciò che permette a chi legge di scartare le postazioni lontane da una rotta
+        // senza chiedere la forma di ognuna. Le righe scritte prima della colonna non ce l'hanno: escono vuote, e
+        // vuote TUTTE E DUE — mezza coordinata non è un punto.
+        await Sessione(1, 704798, "LIRF_TWR", fuori: false, giorniFa: 3);                 // prima della colonna
+        _db.AtcSessions.Add(new AtcSession
+        {
+            SessionId = 2, UserId = 111111, Callsign = "SBRJ_TWR", Position = "TWR",
+            StartUtc = T0.UtcDateTime, EndUtc = T0.AddHours(1).UtcDateTime, DurationSeconds = 3600,
+            Source = AtcSessionSource.Live, ShiftKey = 2, IsOutsideDivision = true,
+            Latitude = -22.91, Longitude = -43.1625,
+        });
+        _db.AtcSessions.Add(new AtcSession
+        {
+            SessionId = 3, UserId = 222222, Callsign = "EDDM_DEL", Position = "DEL",
+            StartUtc = T0.AddDays(-1).UtcDateTime, EndUtc = T0.AddDays(-1).AddHours(1).UtcDateTime, DurationSeconds = 3600,
+            Source = AtcSessionSource.Live, ShiftKey = 3, IsOutsideDivision = true,
+            Latitude = 48.35378,                                                         // riga guasta: manca la longitudine
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var pagina = await new EfAtcArchiveQueries(_db).SearchAsync(new AtcArchiveFilter());
+
+        var perCallsign = pagina.Rows.ToDictionary(r => r.Callsign, r => (r.Latitude, r.Longitude));
+        Assert.Equal((-22.91, -43.1625), perCallsign["SBRJ_TWR"]);
+        Assert.Equal(((double?)null, (double?)null), perCallsign["LIRF_TWR"]);
+        Assert.Equal(((double?)null, (double?)null), perCallsign["EDDM_DEL"]);
+    }
+
+    [Fact]
     public async Task Il_tetto_delle_righe_non_mente_sul_totale()
     {
         for (var i = 1; i <= 5; i++)

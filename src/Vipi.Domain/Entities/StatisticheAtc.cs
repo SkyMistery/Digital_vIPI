@@ -42,6 +42,28 @@ public class AtcSession
     public int? Rating { get; set; }
 
     /// <summary>
+    /// Latitudine del <b>centro</b> della postazione, in gradi, come la dichiarava la sorgente la prima volta che
+    /// il poller l'ha vista; <c>null</c> = non si sa.
+    ///
+    /// <para><b>Perché esiste</b> (committente, 10 ottobre 2026). Il validatore dei tour, passando dal suo
+    /// archiviatore a questo archivio, ha trovato che le righe non dicevano <b>dove</b> stava la postazione: per
+    /// scartare quelle lontane dalla rotta di un volo avrebbe dovuto chiedere a IVAO la forma di ognuna — un
+    /// centinaio per un volo di tre ore. Il centro è nel whazzup, nella stessa chiamata già pagata.</para>
+    ///
+    /// <para>⚠️ È un <b>punto</b>, non l'area: per una torre è il campo, per un centro di controllo è dove il
+    /// controllore ha messo il centro, e può stare a centinaia di miglia dal bordo del settore. Serve a
+    /// <b>scartare</b> in fretta, non a dire chi copre un punto.</para>
+    ///
+    /// <para>⚠️ Le righe scritte <b>prima</b> della colonna (dal 1° settembre al giorno del carico) e quelle
+    /// arrivate dallo storico (<see cref="AtcSessionSource.Backfill"/>: la lista dello storico non porta
+    /// coordinate) restano <c>null</c>. Chi legge deve reggere il vuoto.</para>
+    /// </summary>
+    public double? Latitude { get; set; }
+
+    /// <summary>Longitudine del centro, in gradi. Sempre insieme a <see cref="Latitude"/>: o tutte e due, o nessuna.</summary>
+    public double? Longitude { get; set; }
+
+    /// <summary>
     /// Vero se il callsign <b>non</b> appartiene ai prefissi della divisione: è una postazione del resto del
     /// mondo, archiviata dal 28 agosto 2026 e basta.
     ///

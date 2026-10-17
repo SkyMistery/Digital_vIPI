@@ -43,6 +43,231 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A156 — 1.64.0 PRONTA, da caricare: «Tutti i settori» della mappa AOR non è una configurazione (S109) (16 ottobre 2026)
+
+MINOR **senza migrazioni**, su 1.63.0 (`099b0df`). Timbro **`1.64.0 · 1ad98d0`**.
+- **S109** (fuso da `sito/lavori` @ `37d81f0f`, CI verde 4/4 run 38901460937; il committente: «vai»): nato dalla
+  revisione delle configurazioni possibili di Milano APP. Sulla copia di produzione del 12-ott non mancava niente: il
+  blocco non ne ha mai avute, e quella che si vedeva era «Tutti i settori», la scelta che la mappa AOR si dà da sola.
+  Ora la Struttura lo dice sotto un gruppo senza elenco, e «Tutti i settori» ha una chiave fissa
+  (`AccVipiModels.TuttiISettori`) che la pagina traduce. Codice comune: Application. Con S109 salgono anche due commit
+  di registro del Sito (`aab7cf77`, `6ffea8fa`). Storia in `docs/filoni/sito.md`.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**7 file** (`solo-7-file-1.64.0`): Application, Ui, Host (dll + pdb) e `en/Vipi.Ui.resources.dll`. Una `const` nuova,
+`TuttiISettori`: la usano solo Application e Ui (cercato), spediti insieme. **Fuori** Domain, Infrastructure,
+MySqlMigrations, Hosting e tutto `wwwroot` (nessun asset cambiato, quindi niente indice). 482 file nel publish come nel
+precedente, 19 con impronta diversa. Zip 4,38 MB, sha256 `f86a486de7b303c7e8e37f98dc662440d567cbf1061790a2397687166ff17c49`. Build Release senza
+avvisi; `dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (Ui 2078, gli altri invariati).
+Prova sul publish win-x64 (copia del database di sviluppo): `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`); Struttura → Configurazioni possibili → LIMM, in italiano e in inglese: la nota sotto i gruppi senza
+elenco (settori d'area di LIMM, LIMP_APP); la vIPI di Milano in inglese: «All sectors» e nessun «Tutti i settori».
+Console pulita. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.64.0.md`.
+
+▶ **Dopo il carico** (committente): se per Milano APP servono configurazioni vere, si scrivono in Struttura.
+Rollback: le due rinomine.
+
+### ✅ A155 — 1.63.0 ONLINE: nel banco di prova anche gli enti degli altri centri (S108); CI Docker con le immagini fissate (16 ottobre 2026)
+
+✅ Online dal 16 ottobre 2026: il committente conferma la 1.63.0 e `Schema 0`. Da fuori, da anonimo, alle 10:34Z: `/`
+302, porta «Entra con IVAO», Ricerca 401, API aeroporti e archivio ATC 401, `vipi-theme.css?v=a1b78434` (quello del
+pacchetto), `vipi-ui.js?v=ff9de306` (invariato), `/vsop/health` e `/vsop/health/ready` Healthy. Non guardati da qui,
+dietro il login: il banco su Milano con le clausole vere.
+
+MINOR **senza migrazioni**, su 1.62.0 (`f1aeaf5`). Timbro **`1.63.0 · 099b0df`**.
+- **S108** (fuso da `sito/lavori` @ `0711c4f5`; build-test, test-net8 e mariadb-schema verdi nella run 38877759564,
+  docker-image rosso per la causa qui sotto; guardato dal committente: «sì, va bene»): nel banco di prova di Struttura
+  si aprono e si chiudono anche gli enti degli altri centri che compaiono negli accordi dell'ACC (capi, catena di
+  ripiego, chi raccoglie da fuori, gruppi con configurazioni); «Tutti chiusi» chiude solo l'ACC, «Non prevista» resta
+  dei soli settori dell'ACC. Il motore non è toccato. Codice comune: Application (`CoverageBench`). Carta
+  `docs/feature/2026-10-04-copertura-unica.md` §12, storia in `docs/filoni/sito.md`.
+- **CI Docker** (fuso da `fix/docker-locked-mode` @ `09f1edb1`, CI verde run 38881543655; deciso dal committente il
+  16-ott, «vai come consigli»): dal 16-ott il job `docker-image` cadeva su ogni ramo senza che il codice cambiasse.
+  Segnalato dal Sito come NU1605 (EF 8.0.32 contro SQLitePCLRaw 2.1.12); la causa vera, trovata provando
+  `--locked-mode` (NU1004): `sdk:10.0` era passato da solo all'SDK 10.0.402 (runtime 10.0.13), il pacchetto implicito
+  `Microsoft.AspNetCore.App.Internal.Assets` cambiava versione e i lock non valevano più. Rimedio: immagini fissate a
+  `sdk:10.0.401` e `aspnet:10.0.12` (quelle di `global.json`) e restore in `--locked-mode`. Fuori dal pacchetto: non
+  cambia niente sul server. ⚠️ **Aperto, da decidere col committente**: l'aggiornamento all'SDK 10.0.402 (runtime
+  10.0.13), che il runbook chiede per le patch di sicurezza — `global.json`, le due `FROM` e i lock insieme, e un
+  pacchetto a sé.
+- ⚠️ Il primo commit di versione non compilava: nel commento di `Directory.Build.props` avevo scritto `--locked-mode`,
+  e in un commento XML `--` non si può scrivere (MSB4024). Rifatto prima del push; il timbro è quello del commit buono.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**11 file** (`solo-11-file-1.63.0`): Application, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`, `vipi-theme.css`
+con `.br`/`.gz` e `endpoints.json`. ⚠️ Application e Ui vanno insieme (`BenchScope` e `SimulateAsync` cambiano firma).
+**Fuori** Domain, Infrastructure, MySqlMigrations e Hosting: sorgente invariato, e nessuno nomina `CoverageBench`,
+`BenchScope`, `SimulateAsync` o `BenchNeighbour` (cercato). Nessuna `const` nel diff. 482 file nel publish come nel
+precedente, 23 con impronta diversa. Zip 4,50 MB, sha256 `21bcc96ca56fa105377b0b365c84ac5d14a38279439d5de23db1cfc9f5140f78`. Build Release senza
+avvisi; `dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3362, Infra 2226, Ui 2074, E2E
+508). Prova sul publish win-x64 (copia del database di sviluppo): `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`); banco su LIBB: 16 tasti di enti di altri centri (LIRR, LGGG, LDZO, LAAA, LYBA…), «Tutte 50»;
+«Tutti chiusi» → 50 cambiano mano; «Tutti aperti» → 0; chiuso `LGGG_W_CTR` → 14 cambiano mano, 0 non coperte.
+Console pulita. **Non visto**: il banco su Milano con le clausole vere. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.63.0.md`.
+
+▶ **Dopo il carico** (committente): guardare il banco su Milano. Rollback: le due rinomine.
+
+### ✅ A154 — 1.62.0 ONLINE: NOTAM nel blocco dell'APP, negli editor e in fondo alla vista live (S105, S106); banco di prova con tutte le clausole (S107) (12 ottobre 2026)
+
+✅ Online dal 12 ottobre 2026, notte: il committente scrive «online 1.62». Da fuori, da anonimo, alle 21:25Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti e archivio ATC 401, `vipi-theme.css?v=c4d0d06a` e
+`vipi-ui.js?v=ff9de306` (quelli del pacchetto), `/vsop/health` e `/vsop/health/ready` Healthy. ⚠️ Timbro e `Schema`
+questa volta **non riferiti** dal committente (non c'è migrazione: `Schema` deve essere rimasto 0); gli asset
+dicono che `wwwroot` e l'indice sono arrivati, non che siano arrivati i tre assiemi. Non guardati da qui, dietro il
+login: il banco di prova su Milano con le clausole vere, la sezione NOTAM negli editor e nella vista live.
+
+MINOR **senza migrazioni**, su 1.61.0 (`89bd1da`). Timbro **`1.62.0 · f1aeaf5`**.
+- **S105, S106, S107** (fusi da `sito/lavori` @ `17e840fe`, cartellino 🟢, CI verde run 38299170859; il committente:
+  «fondi sito e fammi il pacchetto»). S105: nella vIPI di ACC il NOTAM di uno scalo sta dentro il blocco del suo APP,
+  in testa i soli NOTAM dell'ACC. S106: la sezione NOTAM negli editor (nota «NOTAM dal vivo» e riquadro), e nella vista
+  live sempre in fondo, chiusa, aperta dalla chip (`vipiApriDettaglio` in `vipi-ui.js`). S107: banco di prova di
+  Struttura con i tasti delle configurazioni per gruppo, una riga per ogni clausola con l'esito e un filtro a tre
+  tasti; il motore (`TransferResolution`, `FallbackChain`, `ResolveForAccAsync`) non è toccato. Codice comune:
+  Application, Infrastructure. Carte `docs/feature/2026-10-12-notam-sui-documenti.md` §6–§8 e
+  `2026-10-04-copertura-unica.md` §11; storia in `docs/filoni/sito.md`.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**16 file** (`solo-16-file-1.62.0`): Application, Infrastructure, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`,
+`vipi-theme.css` e `vipi-ui.js` con `.br`/`.gz`, `endpoints.json`. ⚠️ Application, Infrastructure e Ui vanno insieme:
+cambiano `BenchScope` (via `BenchPreset`, `Groups` al posto di `Presets`) e `INotamDeiDocumenti.PerAsync`. **Fuori**
+Domain, MySqlMigrations e Hosting: sorgente invariato, e nessuno nomina `CoverageBench`, `BenchScope`,
+`INotamDeiDocumenti` o `AmbitoNotam` (cercato). Nessuna `const` nel diff. 482 file nel publish come nel precedente, 26
+con impronta diversa. Zip 6,07 MB, sha256 `a71980b69bc4f4b8c23713e248524b5d98fe5beddf9faaa9fb00d4acd931243e`.
+Build Release senza avvisi; `dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3357,
+Infra 2226, Ui 2068, E2E 508). Prova sul publish win-x64 (copia del database di sviluppo, lettori IVAO accesi; 4 NOTAM
+letti da IVAO vero): `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); **S105** sulla vIPI ACC di Milano il
+riquadro in testa (IT-A002/26, IT-A003/25) e un secondo più giù col solo IT-A002/26; **S106** vista live
+`LIMM_WS2_CTR`: sezione «NOTAM 2» chiusa, la chip la apre e la pagina scende (da 0 a 264 px, sezione a 170 px dalla
+cima), su `LIBB_ES_CTR` niente chip e «NOTAM 0»; nell'editor della vIPI di Milano la nota «NOTAM dal vivo» e il
+riquadro; **S107** banco su LIBB: «Tutte 50», tabella di 50 righe con la colonna Esito («come scritto»); chiuso
+`LIBB_ES_CTR` → «Cambiano mano 48, Non coperte 48», e il filtro stringe la tabella a 48 righe. Console pulita.
+**Non visto**: la vista live dal telefono; il banco su Milano con le clausole vere (in locale LIMM non ne ha: «Tutte
+0»), cioè il caso `LIMM_WS2_CTR → LIMJ_WS0_APP` da cui nasce S107 — lo ha provato il Sito su una copia di produzione.
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.62.0.md`.
+
+▶ **Dopo il carico** (committente): guardare banco, editor e vista live. Rollback: le due rinomine.
+
+### ✅ A153 — 1.61.0 ONLINE: i NOTAM della divisione sui documenti pubblici (S103) e nella vista live (S104) (12 ottobre 2026)
+
+✅ Online dal 12 ottobre 2026: il committente conferma il timbro 1.61.0 e `Schema 0` (la tabella `Notams` c'è). Da
+fuori, da anonimo, alle 17:02Z: `/` 302, porta «Entra con IVAO», Ricerca 401, API aeroporti e archivio ATC 401, la
+vIPI ACC di Milano 401 (dietro login), `vipi-theme.css?v=c3d2feac` (quello del pacchetto), `/vsop/health` e
+`/vsop/health/ready` Healthy. **Non guardati da qui**, perché stanno dietro il login: la riga «NOTAM» in Sorgenti
+(dice se il giro verso IVAO riesce dalla produzione), il riquadro sui documenti e la chip nella vista live; lo
+scarico della diagnostica.
+
+MINOR con **una migrazione additiva** (`NotamDellaDivisione`: `CREATE TABLE Notams` e un indice univoco su `IvaoId`;
+guardato l'`Up` nei due provider, nessun `Drop`, `Rename`, `Alter` o `Sql`), su 1.60.0 (`3ea92b2`). Timbro
+**`1.61.0 · 89bd1da`**.
+- **S103** e **S104** (fusi da `sito/lavori` @ `7beebcaa`, CI verde run 38276550136). S103: il riquadro NOTAM in testa
+  alla vIPI d'aeroporto, al vSOP e all'APP se il NOTAM nomina lo scalo, alla vIPI ACC se nomina l'ACC o lo scalo di un
+  suo APP; da sette giorni prima; solo vista pubblica; **vLOA escluse** (committente: «per ora non prevediamo nulla»).
+  S104: chip rossa «! NOTAM» nella testata della vista live, **solo a documento pubblico** (scelta del committente del
+  12-ott, commit `7beebcaa`, che corregge `1ab251a3`). Codice comune: Domain, Application, Infrastructure. Carta
+  `docs/feature/2026-10-12-notam-sui-documenti.md`, storia in `docs/filoni/sito.md` (voci S103 e S104).
+- ⚠️ **Un lettore nuovo verso IVAO**: 50 s dopo l'avvio e poi ogni 30 minuti (`Ivao:NotamImportMinutes`, minimo 5) su
+  `GET /v2/divisions/IT/notams/all`, pubblico e senza token. Default nel codice: `appsettings` non si tocca. Se la
+  sorgente non risponde lancia, e l'archivio resta com'è; un elenco letto e vuoto invece lo svuota (è voluto).
+- ⚠️ Il committente ha detto «vai di 1.61.0 appena il Sito ha finito»: ha visto le schermate del Sito e ha deciso le
+  scelte aperte, non ha fatto una prova a schermo sua.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**17 file** (`solo-17-file-1.61.0`): Domain, Application, Infrastructure, MySqlMigrations, Ui, Host (dll + pdb),
+`en/Vipi.Ui.resources.dll`, `vipi-theme.css` con `.br`/`.gz` e `endpoints.json`. **Fuori** Hosting: sorgente invariato
+e non nomina niente di quel che cambia (`LiveViewService` ha un parametro in più nel costruttore, ma lo costruisce il
+contenitore; `IImportStateStore` cambia e lo implementa solo Infrastructure). Tre `const` nuove, nessuna cambiata. 482
+file nel publish come nel precedente, 23 con impronta diversa. Zip 6,62 MB, sha256
+`08db4c3b77ec3c3830af490141a1576bf59ba0a8f8c344436b088fc2fa28350c`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3344, Infra 2225, Ui 2048, E2E 508). Prova sul publish
+win-x64 (copia del database di sviluppo, lettori IVAO accesi): 29 migrazioni all'avvio, l'ultima `CREATE TABLE
+"Notams"`; **il giro contro IVAO vero, che il Sito non aveva visto**: «Import NOTAM: 4 creati, 0 aggiornati, 0 tolti»;
+`pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); a schermo il riquadro sulla vIPI ACC di Milano (2 NOTAM:
+IT-A002/26, IT-A003/25, foto guardata) e nella vista live la chip su `LIMM_WS2_CTR`, che apre il riquadro; nessuna
+chip su `LIBB_ES_CTR` (nessun NOTAM) né su `LIMJ_TWR` (in locale il documento non è pubblicato). CSS servito con
+`?v=c3d2feac`. **Non visto**: la chip che compare da sola a un aggiornamento live, la vista live da telefono, le altre
+pagine attese (in locale quei documenti non sono pubblicati), la riga «NOTAM» in Sorgenti. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.61.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; Sorgenti → «NOTAM» aggiornata; guardare S103/S104 e dire se va.
+Rollback: le due rinomine.
+
+### ✅ A152 — 1.60.0 ONLINE: l'archivio ATC dà il centro della postazione (S102) (10 ottobre 2026)
+
+✅ Online dal 10 ottobre 2026, sera: il committente conferma il timbro 1.60.0 e `Schema 0` (le due colonne di
+`AtcSessions` ci sono: la migrazione è passata anche sul database vero). Da fuori, da anonimo, alle 20:37Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti e archivio ATC 401, `vipi-theme.css?v=abf90f76` (invariato: il
+pacchetto non porta asset), `/vsop/health/ready` Healthy. ✅ **`/vsop/health` risponde `Healthy`**: il Degraded
+aperto dalla 1.57.0 è chiuso (era `Degraded` alle 16:51Z dello stesso giorno; il gesto previsto era accendere
+l'elenco dei settori d'area di LIMM — da farsi confermare dal committente). Non guardati: una risposta
+dell'archivio con una chiave (`latitude`/`longitude` sulle sessioni aperte), lo scarico della diagnostica, la
+Ricerca col login.
+
+MINOR con **una migrazione additiva** (`CentroDelleSessioniAtc`: due `AddColumn` nullable, `AtcSessions.Latitude` e
+`AtcSessions.Longitude`; guardato l'`Up` nei due provider, nessun `Drop`, `Rename`, `Alter` o `Sql`), su 1.59.0
+(`fc442f2`). Timbro **`1.60.0 · 3ea92b2`**.
+- **S102** (fuso da `sito/lavori` @ `20a33703`, CI verde run 38068279875), chiesto dal validatore dei tour:
+  `GET /vsop/api/v1/atc/sessions` dà in coda a ogni riga `latitude` e `longitude`, il centro della postazione letto dal
+  `lastTrack` del whazzup; `null` quando non si sa; in coppia o niente; 0,0 esatto e fuori scala scartati; le righe di
+  prima del carico e lo storico restano senza. Codice comune: Domain, Application, Infrastructure. Carta
+  `docs/feature/2026-08-28-archivio-atc-mondiale.md` §11, storia in `docs/filoni/sito.md` (voce S102).
+- ⚠️ Il cartellino del Sito era 🧪: la prova che aspetta è quella del validatore, possibile solo dopo il carico. Fuso
+  su conferma del committente il 10-ott.
+- ⚠️ La migrazione **non è stata provata su una copia del database di produzione**: SQLite qui sul pacchetto, schema
+  MariaDB nel job `mariadb-schema` della CI. `AtcSessions` è la tabella che cresce: scritto nel foglio.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**10 file** (`solo-10-file-1.60.0`), tutti in radice: Domain, Application, Infrastructure, MySqlMigrations, Host (dll +
+pdb). **Fuori** Hosting e Ui, col sorgente invariato: tre record di Application hanno due parametri in più in coda
+(`SourceAtcConnection`, `AtcSessionUpsert`, `AtcArchiveRow`), cioè un costruttore diverso, ma li costruiscono solo
+Application e Infrastructure; Hosting serializza `pagina.Rows` così com'è e costruisce `AtcArchiveFilter`, che non
+cambia; Ui tiene la lista e legge le proprietà. Nessuna `const`, nessuna frase, nessun asset. 482 file nel publish come
+nel precedente, 19 con impronta diversa. Zip 3,53 MB, sha256
+`60f73b8aaf9bb995a9e8fe9c8863c7a1896fc35ae379888fd17b53c18eb8daec`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3309, Infra 2198, Ui 2014, E2E 508). Prova sul publish
+win-x64 (copia del database di sviluppo, lettore IVAO acceso sul whazzup vero, `Api:RichiediChiave=false`): 28
+migrazioni all'avvio, l'ultima con i due `ALTER TABLE "AtcSessions" ADD`; `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`, da PowerShell: da Git Bash Edge non si è agganciato); `/vsop/api/v1/atc/sessions?open=true` → 96 righe,
+96 col centro, nessuna con una sola delle due (EHAM_N_GND 52.30806, 4.76417). Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.60.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; dire al validatore che può provare. Rollback: le due rinomine.
+
+### ✅ A151 — 1.59.0 ONLINE: accordi ordinati col verso e tasti di riga a icone (S100), motto nel piè di pagina (S101) (9 ottobre 2026)
+
+✅ Online: il committente il 10 ottobre conferma il timbro 1.59 e `Schema 0`. Da fuori, da anonimo, il 10-ott alle
+16:51Z: `/` 302, porta 200 col motto «it takes time» nel piè di pagina, `vipi-theme.css?v=abf90f76` (quello del
+pacchetto), Ricerca 401, API aeroporti e archivio ATC 401, `/vsop/health/ready` Healthy. 🔎 `/vsop/health` ancora
+`Degraded`: l'elenco dei settori d'area di LIMM non è stato ancora acceso (gesto della 1.58.0). Non guardati: lo
+scarico della diagnostica e la Ricerca col login. Le scelte del Sito su S100/S101 restano da confermare.
+
+MINOR **senza migrazioni**, su 1.58.0 (`2ecbdd6`). Timbro **`1.59.0 · fc442f2`**.
+- **S100** e **S101** (fusi da `sito/lavori` @ `c7b1b332`, CI verde run 37973506093). ⚠️ Il cartellino del Sito era 🧪:
+  aspettavano lo sguardo del committente, che il 9-ott ha detto «procedi, chiudiamo tutto, fondi e fai il pacchetto» —
+  li guarda online. S100: negli accordi il comando «Ordina» ha un verso (A→Z / Z→A, 1→9 / 9→1), in barra, in testata di
+  sezione e nella vista Elenco (mittente, ricevente, aeroporto, tipo, punti, quota); l'ordine salvato della sezione
+  ricorda il verso (`AgreementClauseOrder.PointsDescending` / `LevelDescending`, in coda, salvati per nome in una
+  colonna di testo: per questo niente migrazione); tasti di riga a icone quadrate. S101: `DivisionOptions.Motto`,
+  «it takes time», nel piè di pagina. Codice comune: Domain, Application. Storia in `docs/filoni/sito.md`.
+- ⚠️ **Rollback**: la 1.58.0 non conosce i due valori nuovi. Se qualcuno salva un verso opposto, prima di tornare
+  indietro quelle sezioni vanno rimesse «a mano» o sul verso diretto. Scritto in testa al foglio.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**13 file** (`solo-13-file-1.59.0`): Domain, Application, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`,
+`vipi-theme.css` con `.br`/`.gz` e `endpoints.json`. **Fuori** Infrastructure, MySqlMigrations e Hosting: sorgente
+invariato, e in Application ci sono solo aggiunte (`KeyOf`, `IsDescending`, `Reverse`, `Motto`); l'unica chiamata da
+Infrastructure è `AgreementClauseOrdering.Sort`, firma invariata. Nessuna `const` nel diff. 482 file nel publish come
+nel precedente, 23 con impronta diversa. Zip 4,55 MB, sha256 `6b1b7569b93c534d862274c58d44cd3a0ae304fa705d9b76ecdb06d3a5276d4f`. Build Release
+senza avvisi; `dotnet test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3308, Infra 2185, Ui 2014,
+E2E 507). Prova sul publish win-x64 (copia del database di sviluppo): `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`); `ordina-verifica.js` senza problemi — albero ed elenco nei due versi, ordine della sezione salvato e
+ritrovato dopo un ricarico, tasti di riga dentro il bordo (foto guardata); il motto nel piè di pagina; CSS servito con
+`?v=abf90f76`, lo stesso del pacchetto. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.59.0.md`.
+
+▶ **Dopo il carico** (committente): guardare S100 e S101 e dire se le scelte del Sito vanno (senza punti o quota in
+fondo nei due versi; etichette del verso; motto in minuscolo). Restano i gesti della 1.58.0 (LIMM e gli altri elenchi,
+ripubblicare le vIPI ACC).
+
 ### ✅ A150 — 1.58.0 ONLINE: le configurazioni possibili dei gruppi di settori, in Struttura (S99) (8 ottobre 2026)
 
 ✅ Online dall'8 ottobre 2026, sera: il committente conferma il timbro 1.58 e `Schema 0` (la tabella

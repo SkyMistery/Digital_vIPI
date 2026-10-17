@@ -71,6 +71,7 @@ public sealed class EfAtcArchiveQueries : IAtcArchiveQueries
             {
                 s.SessionId, s.UserId, s.Callsign, s.Position, s.Frequency, s.Rating,
                 s.StartUtc, s.EndUtc, s.DurationSeconds, s.IsOutsideDivision,
+                s.Latitude, s.Longitude,
             })
             .ToListAsync(ct);
 
@@ -78,7 +79,10 @@ public sealed class EfAtcArchiveQueries : IAtcArchiveQueries
             righe.Select(s => new AtcArchiveRow(
                 s.SessionId, s.UserId, s.Callsign, s.Position, s.Frequency, s.Rating,
                 Utc(s.StartUtc), s.EndUtc is { } f ? Utc(f) : null,
-                s.DurationSeconds, s.IsOutsideDivision)).ToList(),
+                s.DurationSeconds, s.IsOutsideDivision,
+                // In coppia o niente: mezza coordinata non è un punto.
+                s.Longitude is null ? null : s.Latitude,
+                s.Latitude is null ? null : s.Longitude)).ToList(),
             totale);
     }
 

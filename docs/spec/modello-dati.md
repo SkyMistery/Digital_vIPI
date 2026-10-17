@@ -1133,6 +1133,13 @@ il riempimento a posteriori riproverebbe per sempre.
 aperte, non i soli prefissi di divisione: la fotografia le porta già tutte, e quel che si buttava non lo
 ridava più nessuno.
 
+**Aggiunta del 10 ottobre** (migrazione `CentroDelleSessioniAtc`, doppia emissione): `AtcSession.Latitude` e
+`AtcSession.Longitude`, `double` **nullable** — il **centro** della postazione come lo dichiara il whazzup
+(`lastTrack`), scritto la prima volta che il poller lo vede. È un punto, non l'area: serve a chi legge
+l'archivio per scartare in fretta le postazioni lontane da una rotta. Sempre in coppia; `null` sulle righe
+scritte prima della colonna, su quelle dello storico (`Backfill`) e sulle connessioni che la sorgente dà
+senza posizione (carta `docs/feature/2026-08-28-archivio-atc-mondiale.md` §11).
+
 ⚠️ **La colonna è dichiarata in NEGATIVO** perché un `bool NOT NULL` nuovo nasce `false` su tutti e tre i
 percorsi che creano schema qui dentro (migrazione, `EnsureCreated`, `PostgresSchemaReconciler`) e le 21 133
 righe già in archivio sono **tutte** di divisione (verificato: zero callsign non-`LI`). Con la forma
@@ -1407,4 +1414,26 @@ matcher — riceve le righe già in quell'ordine. ⚠️ `AgreementClauses.Order
 mano, quello che regge l'outline delle varianti; la riga in lettura lo porta in `StoredOrder`. Migrazione
 `OrdineDelleClausole`, additiva, sui due provider. Carta
 [`../feature/2026-10-06-sezioni-condivise.md`](../feature/2026-10-06-sezioni-condivise.md) §11.
+
+### 9.37 `Notam` — i NOTAM della divisione (12 ott 2026) 🟢
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int, PK | |
+| `IvaoId` | int, NOT NULL, **univoco** | l'id della sorgente: la chiave con cui il giro ritrova la riga |
+| `Name` | varchar(64), NOT NULL | il numero com'è alla sorgente (`IT-A003/25`) |
+| `StartUtc` / `EndUtc` | datetime, **nullable** | `null` = la sorgente non lo dice: vale da sempre / non scade |
+| `Text` | testo lungo, NOT NULL | righe separate da `\n` |
+| `Military` | bool | |
+| `Airports` / `Centers` | testo lungo, NOT NULL | codici maiuscoli separati da uno spazio (`LIPC LIPE LIPK LIPR`) |
+| `SourceUpdatedUtc` | datetime, nullable | `updatedAt` della sorgente |
+| `ImportedAtUtc` | datetime, NOT NULL | l'ultimo giro che ha **cambiato** la riga, non l'ultimo che l'ha vista |
+
+Lo **specchio** di `/v2/divisions/{divisione}/notams/all`, scaduti compresi (la sorgente non li toglie): se un NOTAM
+si mostra lo decide chi legge, dalle date (`NotamInVista`), non la presenza della riga. Nessuna FK: aeroporti e centri
+sono codici della sorgente, e un NOTAM può nominare uno scalo che non abbiamo. ⚠️ Due elenchi in colonna e non due
+tabelle di legame, di proposito: le righe sono una manciata, si leggono tutte e si filtrano in memoria. La scrive il
+solo `NotamImportHostedService` (stato in `ImportState`, chiave `Notam`). Migrazione `NotamDellaDivisione`, additiva
+(una `CREATE TABLE`), sui due provider. Carta
+[`../feature/2026-10-12-notam-sui-documenti.md`](../feature/2026-10-12-notam-sui-documenti.md).
 

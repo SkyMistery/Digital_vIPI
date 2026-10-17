@@ -1,0 +1,73 @@
+@inject IStringLocalizer<SharedResource> L
+
+@*
+    Il comando dell'ordinamento: la CHIAVE (una tendina) e il VERSO (un tasto), in un pezzo solo che ha la
+    faccia dei tasti della pagina. Committente, 9 ottobre 2026: la tendina nuda era il `select` del browser —
+    bianca nel tema scuro, accanto a tasti che non lo sono — e il verso non c'era.
+
+    Uno solo per i due posti che ordinano: la barra (come GUARDO l'elenco) e la testata della sezione (l'ordine
+    SALVATO della tabella). Sono due cose diverse e lo dicono i titoli; il gesto è lo stesso, e due comandi
+    disegnati diversi per lo stesso gesto si imparano due volte.
+
+    Il componente non sa cosa ordina: riceve le voci e dice cosa è stato scelto.
+*@
+<span class="xt-sortchip @(Disabled ? "is-off" : null)" title="@Title">
+    <span class="xt-sortchip-key">
+        <Icon Name="arrow-up-down" Size="13" />
+        @if (!string.IsNullOrEmpty(Label)) { <span class="xt-sortchip-lab">@Label</span> }
+        @* `value` sul select, non `selected` sulle voci: è il select a tenere la scelta, e dopo un salvataggio
+           che cambia la chiave da fuori la tendina deve seguirlo. *@
+        <select value="@Value" disabled="@Disabled" aria-label="@Title" @onchange="e => OnKey.InvokeAsync(e.Value?.ToString() ?? string.Empty)">
+            @foreach (var o in Options)
+            {
+                <option value="@o.Value">@o.Label</option>
+            }
+        </select>
+        <Icon Name="chevron-down" Size="12" Class="xt-sortchip-chev" />
+    </span>
+    @* Il verso resta al suo posto anche quando non c'è niente da capovolgere («a mano»): spento, non tolto —
+       la posizione di un comando è memoria. *@
+    <button type="button" class="xt-sortchip-dir" disabled="@(Disabled || !CanReverse)"
+            title="@DirTitle" aria-label="@DirTitle" aria-pressed="@((CanReverse && Descending).ToString().ToLowerInvariant())"
+            @onclick="() => OnReverse.InvokeAsync()">@DirText</button>
+</span>
+
+@code {
+    /// <summary>Una voce della tendina: il valore che torna indietro e ciò che si legge.</summary>
+    public sealed record Option(string Value, string Label);
+
+    [Parameter, EditorRequired] public IReadOnlyList<Option> Options { get; set; } = Array.Empty<Option>();
+
+    /// <summary>La chiave scelta adesso (uno dei <see cref="Option.Value"/>).</summary>
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+
+    /// <summary>Il verso corrente è quello opposto: Z→A, dalla quota più alta.</summary>
+    [Parameter] public bool Descending { get; set; }
+
+    /// <summary>La chiave scelta ha un verso. «A mano» no: lì l'ordine è quello scritto, e non si capovolge.</summary>
+    [Parameter] public bool CanReverse { get; set; }
+
+    /// <summary>La chiave è un numero (quota): il verso si scrive «1→9» invece di «A→Z».</summary>
+    [Parameter] public bool Numeric { get; set; }
+
+    /// <summary>Parola davanti alla tendina («Ordina»). In testata di sezione non serve: lo dice il posto.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public EventCallback<string> OnKey { get; set; }
+    [Parameter] public EventCallback OnReverse { get; set; }
+
+    private string DirText => (Numeric, Descending && CanReverse) switch
+    {
+        (true, true) => "9→1",
+        (true, false) => "1→9",
+        (false, true) => "Z→A",
+        _ => "A→Z",
+    };
+
+    private string DirTitle => !CanReverse
+        ? L["Xfer_SortDirNone"].Value
+        : string.Format(L["Xfer_SortDirTitle"].Value, Descending ? L["Xfer_SortDesc"].Value : L["Xfer_SortAsc"].Value);
+}

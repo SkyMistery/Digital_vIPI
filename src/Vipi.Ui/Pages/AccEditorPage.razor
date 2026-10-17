@@ -95,6 +95,9 @@ else
                 </Footer>
             </EditorToc>
             <div>
+            @* La sezione NOTAM dell'ACC, dove sta nel documento pubblico: in testa. Quelle degli scali degli APP
+               stanno dentro i loro blocchi, più sotto. Non si compila, come il meteo. *@
+            <NotamNellEditor Chiave="@($"acc:{_accCode}")" Ambito="@AmbitoNotam.Acc(_accCode, Array.Empty<string>())" />
             @{ var blockIndex = 0; }
             @foreach (var bs in _shell.Doc.Sections)
             {
@@ -157,6 +160,13 @@ else
 
                     @* Profilo di catalogo del blocco: decide sia chi rende il corpo sia quali sezioni sono
                        obbligatorie — un blocco Aerovia non ha il VFR, un gruppo APP sì. *@
+                    @* La sezione NOTAM del blocco: quelli dello scalo dei suoi APP, come nel documento pubblico e
+                       nella vista live di quegli APP. La chiave porta i membri: cambiandoli si rilegge. *@
+                    @if (isGroup)
+                    {
+                        <NotamNellEditor Chiave="@($"blk:{string.Join(',', blk.Block.MemberCallsigns)}")"
+                                         Ambito="@AmbitoNotam.BloccoApp(blk.Block.MemberCallsigns)" />
+                    }
                     @{ var profile = SectionCatalog.ProfileOfAccBlock(blk.Block.Kind); }
                     <DocumentSectionsEditor Doc="_shell.Doc" RootSections="blockSection.Children" AddParentId="blockSection.Id"
                                             AddLabel="@("+ " + L["Acc_AddCustomSection"].Value)" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"

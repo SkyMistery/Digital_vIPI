@@ -22,6 +22,13 @@ public sealed class DivisionOptions
     /// <summary>Nome leggibile (display).</summary>
     public string Name { get; set; } = "Italia";
 
+    /// <summary>
+    /// Il motto della divisione, scritto com'è (committente, 9 ottobre 2026: «it takes time»). Sta sotto il
+    /// marchio nel piè di pagina. È della divisione come il nome, e <b>non si traduce</b>: per questo sta qui
+    /// e non fra le stringhe. Vuoto = la riga non c'è.
+    /// </summary>
+    public string Motto { get; set; } = "it takes time";
+
     /// <summary>Prefissi ICAO dei callsign ATC della divisione (es. IT → ["LI"], DE → ["ED","ET"]).</summary>
     public List<string> IcaoPrefixes { get; set; } = new() { "LI" };
 }

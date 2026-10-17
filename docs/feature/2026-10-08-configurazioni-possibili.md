@@ -197,6 +197,11 @@ Negli editor dei due documenti la sezione è in sola lettura, con il rimando a S
   regola scritta due volte: da unire.
 - **Un gruppo APP senza membri** non ha un ente, quindi non ha un gruppo in Struttura: le sue configurazioni,
   se ne aveva, non si travasano finché non ha un membro.
+- **Un gruppo senza elenco** non ha configurazioni, ma la **mappa AOR** del documento non resta senza scelte: offre
+  «Tutti i settori», che accende tutto il gruppo. Il 16 ottobre 2026 il committente l'ha cercata fra le
+  configurazioni di Milano APP (S109): non c'era perché non lo è. Da allora la Struttura, sotto un gruppo senza
+  elenco scritto, lo dice; e il nome della scelta lo mette la pagina, nella sua lingua
+  (`AccConfigSelection.TuttiISettori`).
 
 ## 8. Perché il rilievo è nato l'8 ottobre
 

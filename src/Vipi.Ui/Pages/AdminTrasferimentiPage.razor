@@ -210,20 +210,17 @@
                     <button class="btn ghost" title="@L["Xfer_ExpandAll"]" @onclick="ExpandAll">⊞</button>
                     <button class="btn ghost" title="@L["Xfer_CollapseAll"]" @onclick="CollapseAll">⊟</button>
                 }
-                @* La tendina resta all'ALBERO. In elenco ordinano le intestazioni, e due comandi per la stessa
-                   cosa nello stesso posto sarebbero due verità; per giunta quattro delle sei chiavi (mittente,
-                   ricevente, aeroporto, tipo) qui non avrebbero senso — dentro un accordo sono costanti. *@
-                @if (_view == XferView.Tree)
-                {
-                    <label class="muted xt-check" title="@L["Xfer_SortNote"]">
-                        @L["Xfer_SortBy"]
-                        <select @bind="_sort">
-                            <option value="@RowSort.Manual">@L["Xfer_SortManual"]</option>
-                            <option value="@RowSort.Points">@L["Xfer_SortCop"]</option>
-                            <option value="@RowSort.Level">@L["Xfer_SortLevel"]</option>
-                        </select>
-                    </label>
-                }
+                @* L'ordinamento della VISTA, nelle due viste (committente, 9 ottobre 2026). Prima la tendina stava
+                   solo all'albero e in elenco ordinavano le sole intestazioni: funzionava, ma niente lo diceva
+                   — la freccia compare solo sulla colonna che sta già ordinando — e il committente non l'ha
+                   trovato. Tendina e intestazioni leggono e scrivono lo STESSO stato (`_sort`, `_sortDesc`):
+                   sono due maniglie di una verità sola, non due verità.
+                   Le chiavi cambiano con la vista: mittente, ricevente, aeroporto e tipo dentro un accordo
+                   sono costanti, e lì non compaiono (vedi `NormalizeSortForView`). *@
+                <XferSortChip Label="@L["Xfer_SortBy"]" Title="@L["Xfer_SortNote"]" Options="ViewSortOptions()"
+                              Value="@_sort.ToString()" Descending="_sortDesc" CanReverse="@(_sort != RowSort.Manual)"
+                              Numeric="@(_sort == RowSort.Level)"
+                              OnKey="SetSortKey" OnReverse="() => _sortDesc = !_sortDesc" />
                 @* L'anteprima frase era una casella con la sua etichetta: il pezzo più largo della barra per il
                    peso che ha. Come tasto-icona sta accanto agli altri interruttori di vista, che è ciò che è. *@
                 <button class="btn @(_showPreviews ? "primary" : "ghost")" title="@L["Xfer_ShowPreviewsTitle"]"
@@ -1312,6 +1309,39 @@
         _sortDesc = false;
     }
 
+    /// <summary>La chiave scelta dalla tendina della barra. Una chiave nuova riparte dal verso diritto: il
+    /// verso è della chiave, e «Z→A» rimasto da un'altra colonna sarebbe un ordine che nessuno ha chiesto.</summary>
+    private void SetSortKey(string value)
+    {
+        if (!Enum.TryParse<RowSort>(value, out var key) || key == _sort) return;
+        _sort = key;
+        _sortDesc = false;
+    }
+
+    /// <summary>Le chiavi che la vista corrente sa ordinare. In albero tre: dentro un accordo mittente,
+    /// ricevente, aeroporto e tipo sono gli stessi su ogni riga.</summary>
+    private IReadOnlyList<XferSortChip.Option> ViewSortOptions()
+    {
+        var voci = new List<XferSortChip.Option> { new(nameof(RowSort.Manual), L["Xfer_SortManual"].Value) };
+        if (_view == XferView.Flat)
+        {
+            voci.Add(new(nameof(RowSort.Sender), L["Xfer_SortSender"].Value));
+            voci.Add(new(nameof(RowSort.Receiver), L["Xfer_SortReceiver"].Value));
+            voci.Add(new(nameof(RowSort.Airport), L["Xfer_SortAirport"].Value));
+            voci.Add(new(nameof(RowSort.Kind), L["Xfer_SortKind"].Value));
+        }
+        voci.Add(new(nameof(RowSort.Points), L["Xfer_SortCop"].Value));
+        voci.Add(new(nameof(RowSort.Level), L["Xfer_SortLevel"].Value));
+        return voci;
+    }
+
+    /// <summary>La quota come chiave di testo: in piedi (livelli e piedi sulla stessa scala), a larghezza fissa
+    /// — un numero ordinato come testo con la stessa larghezza si ordina come numero. Vuota se non c'è.</summary>
+    private static string LevelKey(AgreementClauseRow c) =>
+        FallbackChain.FeetOf(c.LevelValue, c.LevelUnit) is int piedi
+            ? piedi.ToString("D6", System.Globalization.CultureInfo.InvariantCulture)
+            : "";
+
     /// <summary>Firma del form al momento in cui si è aperto: il confronto dice se è stato toccato.</summary>
     private string _formOpenedAs = "";
 
@@ -1350,12 +1380,32 @@
         return BuildRows(clauses.Select(c => (Agreement: a, Section: s, Clause: c)).ToList());
     }
 
-    private IReadOnlyList<AgreementClauseRow> SortedClauses(IReadOnlyList<AgreementClauseRow> clauses) => _sort switch
+    private IReadOnlyList<AgreementClauseRow> SortedClauses(IReadOnlyList<AgreementClauseRow> clauses)
     {
-        RowSort.Points => clauses.OrderBy(c => string.IsNullOrWhiteSpace(c.Cops) ? "~" : c.Cops, StringComparer.OrdinalIgnoreCase).ToList(),
-        RowSort.Level => clauses.OrderBy(c => c.LevelValue ?? int.MaxValue).ThenBy(c => c.Cops, StringComparer.OrdinalIgnoreCase).ToList(),
-        _ => clauses.OrderBy(c => c.Order).ToList(),
-    };
+        var base_ = clauses.OrderBy(c => c.Order);
+        return _sort switch
+        {
+            RowSort.Points => InDirection(base_, c => c.Cops).ToList(),
+            RowSort.Level => InDirection(base_, LevelKey).ThenBy(c => c.Cops, StringComparer.OrdinalIgnoreCase).ToList(),
+            _ => base_.ToList(),
+        };
+    }
+
+    /// <summary>
+    /// Ordina per la chiave scelta <b>sopra</b> l'ordine che le righe hanno già, nel verso corrente.
+    /// <para>⚠️ Chi non ha la chiave — niente punti, niente quota — sta in fondo in <b>tutti e due</b> i versi:
+    /// capovolgere l'ordine non deve portare in testa le righe ancora da scrivere. È la stessa regola
+    /// dell'ordine salvato (<see cref="AgreementClauseOrdering"/>).</para>
+    /// <para>Il confronto è per testo anche sulla quota (<see cref="LevelKey"/>): una chiave sola tiene insieme
+    /// i casi. <c>OrderBy</c> è stabile nei due versi, quindi a parità resta l'ordine di partenza.</para>
+    /// </summary>
+    private IOrderedEnumerable<T> InDirection<T>(IEnumerable<T> rows, Func<T, string> key)
+    {
+        var pieni = rows.OrderBy(x => string.IsNullOrWhiteSpace(key(x)));
+        return _sortDesc
+            ? pieni.ThenByDescending(key, StringComparer.OrdinalIgnoreCase)
+            : pieni.ThenBy(key, StringComparer.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// Tutte le clausole degli accordi mostrati, per la vista a elenco.
@@ -1377,27 +1427,17 @@
 
         ordered = _sort switch
         {
-            RowSort.Points => Direct(ordered, x => string.IsNullOrWhiteSpace(x.Clause.Cops) ? "~" : x.Clause.Cops),
-            RowSort.Level => Direct(ordered, x => (x.Clause.LevelValue ?? int.MaxValue).ToString("D6")),
-            RowSort.Sender => Direct(ordered, x => XferLabels.Sender(x.Agreement, x.Section)),
-            RowSort.Receiver => Direct(ordered, x => XferLabels.Receiver(x.Agreement, x.Section)),
-            RowSort.Airport => Direct(ordered, x => x.Section.AirportsLabel),
-            RowSort.Kind => Direct(ordered, x => XferLabels.Kind(L, x.Section.Kind)),
+            RowSort.Points => InDirection(ordered, x => x.Clause.Cops),
+            RowSort.Level => InDirection(ordered, x => LevelKey(x.Clause)),
+            RowSort.Sender => InDirection(ordered, x => XferLabels.Sender(x.Agreement, x.Section)),
+            RowSort.Receiver => InDirection(ordered, x => XferLabels.Receiver(x.Agreement, x.Section)),
+            RowSort.Airport => InDirection(ordered, x => x.Section.AirportsLabel),
+            RowSort.Kind => InDirection(ordered, x => XferLabels.Kind(L, x.Section.Kind)),
             _ => ordered,
         };
 
         return BuildRows(ordered.ToList());
     }
-
-    /// <summary>Applica la chiave scelta <b>sopra</b> l'ordine di base, nel verso corrente. Il confronto è per
-    /// stringa anche sul livello (imbottito a sei cifre): una chiave sola tiene insieme i casi, e un numero
-    /// ordinato come testo con la stessa larghezza si ordina come numero.</summary>
-    private IOrderedEnumerable<(AgreementRow Agreement, AgreementSectionRow Section, AgreementClauseRow Clause)> Direct(
-        IOrderedEnumerable<(AgreementRow Agreement, AgreementSectionRow Section, AgreementClauseRow Clause)> rows,
-        Func<(AgreementRow Agreement, AgreementSectionRow Section, AgreementClauseRow Clause), string> key) =>
-        _sortDesc
-            ? rows.OrderByDescending(key, StringComparer.OrdinalIgnoreCase)
-            : rows.OrderBy(key, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Le righe pronte da rendere: blocco di varianti, anteprima e riassunto della faccetta composti.</summary>
     private List<XferTableRow> BuildRows(IReadOnlyList<(AgreementRow Agreement, AgreementSectionRow Section, AgreementClauseRow Clause)> src)
@@ -1746,8 +1786,8 @@
                    proposta deve poter essere smentita in un gesto. *@
                 @if (_canEdit)
                 {
-                    <button class="btn ghost xt-flip" disabled="@_busy" title="@L["Xfer_FlipDirectionTitle"]"
-                            @onclick="() => FlipDirection(sec)">⇄</button>
+                    <button class="btn ghost xt-ib xt-flip" disabled="@_busy" title="@L["Xfer_FlipDirectionTitle"]"
+                            aria-label="@L["Xfer_FlipDirectionTitle"]" @onclick="() => FlipDirection(sec)"><Icon Name="arrow-right-left" Size="13" /></button>
                 }
 
                 @AirportChips(ag, sec)
@@ -1756,53 +1796,58 @@
                    testata, perché correggerle qui le corregge anche là; quali sono lo dice la ⛓ sulla riga. *@
                 @if (sec.SharedClauses > 0)
                 {
-                    <span class="pill blue xt-shared" title="@L["Xfer_SharedClausesTitle"]">⛓ @(sec.SharedClauses == 1 ? L["Xfer_SharedClauses_One"].Value : string.Format(L["Xfer_SharedClauses"].Value, sec.SharedClauses))</span>
+                    <span class="pill blue xt-shared" title="@L["Xfer_SharedClausesTitle"]"><Icon Name="link" Size="12" /> @(sec.SharedClauses == 1 ? L["Xfer_SharedClauses_One"].Value : string.Format(L["Xfer_SharedClauses"].Value, sec.SharedClauses))</span>
                 }
 
                 <span class="muted xt-hint">@XferLabels.Clauses(L, rows.Count)</span>
                 <span class="ln xt-grow"></span>
                 @* L'ordine di QUESTA tabella, salvato: vale qui, nei documenti e nella vista live. Con un ordine
                    dichiarato le clausole ospiti vanno al loro posto invece che in coda. ⚠️ Non è «Ordina per» in
-                   cima alla pagina: quello cambia solo come si guarda. *@
-                <select class="xt-ordsel" disabled="@(_busy || !_canEdit)" title="@L["Xfer_ClauseOrderTitle"]"
-                        aria-label="@L["Xfer_ClauseOrderTitle"]" @onchange="e => SetClauseOrder(sec, e)">
-                    <option value="@AgreementClauseOrder.Manual" selected="@(sec.ClauseOrder == AgreementClauseOrder.Manual)">⇅ @L["Xfer_ClauseOrderManual"]</option>
-                    <option value="@AgreementClauseOrder.Points" selected="@(sec.ClauseOrder == AgreementClauseOrder.Points)">⇅ @L["Xfer_ClauseOrderPoints"]</option>
-                    <option value="@AgreementClauseOrder.Level" selected="@(sec.ClauseOrder == AgreementClauseOrder.Level)">⇅ @L["Xfer_ClauseOrderLevel"]</option>
-                </select>
+                   cima alla pagina: quello cambia solo come si guarda.
+                   Stesso comando della barra (`XferSortChip`), col verso: A→Z o Z→A, dalla quota più bassa o
+                   dalla più alta. Il verso è SALVATO come la chiave — è un valore dell'ordine, non una vista. *@
+                <XferSortChip Title="@L["Xfer_ClauseOrderTitle"]" Options="ClauseOrderOptions()" Disabled="@(_busy || !_canEdit)"
+                              Value="@AgreementClauseOrdering.KeyOf(sec.ClauseOrder).ToString()"
+                              Descending="@AgreementClauseOrdering.IsDescending(sec.ClauseOrder)"
+                              CanReverse="@(sec.ClauseOrder != AgreementClauseOrder.Manual)"
+                              Numeric="@(AgreementClauseOrdering.KeyOf(sec.ClauseOrder) == AgreementClauseOrder.Level)"
+                              OnKey="v => SetClauseOrderKey(sec, v)"
+                              OnReverse="() => SetClauseOrder(sec, AgreementClauseOrdering.Reverse(sec.ClauseOrder))" />
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)"
                         @onclick="() => OpenAddClause(ag, sec)">+ @L["Xfer_AddClause"]</button>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_PasteTitle"]"
                         @onclick="() => TogglePaste(sec)">⎘ @L["Xfer_Paste"]</button>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_SectionEditTitle"]"
-                        @onclick="() => OpenEditSection(sec)">✎</button>
+                @* I tasti senza parole della testata sono icone del set, quadrati e uguali fra loro — gli stessi
+                   segni dei tasti di riga (matita, catena), così lo stesso gesto ha la stessa faccia a ogni livello. *@
+                <button class="btn ghost xt-ib" disabled="@(_busy || !_canEdit)" title="@L["Xfer_SectionEditTitle"]"
+                        aria-label="@L["Xfer_SectionEditTitle"]" @onclick="() => OpenEditSection(sec)"><Icon Name="pencil" Size="13" /></button>
                 @* Sposta la sezione nell'accordo di un'ALTRA coppia: un accordo è una coppia di enti, e una tabella
                    scritta sotto quella sbagliata si poteva solo riscrivere (4 ottobre 2026). *@
                 @* ⚠️ Una sezione con clausole condivise non si sposta: il tasto resta al suo posto, spento, e dice perché. *@
-                <button class="btn ghost" disabled="@(_busy || !_canEdit || sec.SharedClauses > 0)"
+                <button class="btn ghost xt-ib" disabled="@(_busy || !_canEdit || sec.SharedClauses > 0)"
                         title="@(sec.SharedClauses > 0 ? L["Xfer_MoveSharedTitle"] : L["Xfer_MoveSectionTitle"])"
-                        aria-label="@L["Xfer_MoveSectionTitle"]" @onclick="() => OpenMoveSection(ag, sec)">⇢</button>
+                        aria-label="@L["Xfer_MoveSectionTitle"]" @onclick="() => OpenMoveSection(ag, sec)"><Icon Name="arrow-right" Size="13" /></button>
                 @* Condividi le clausole della sezione con un altro accordo: scritte una volta (carta 2026-10-06 §10). *@
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_ShareSectionTitle"]"
-                        aria-label="@L["Xfer_ShareSectionTitle"]" @onclick="() => OpenShareSection(ag, sec)">⛓</button>
+                <button class="btn ghost xt-ib" disabled="@(_busy || !_canEdit)" title="@L["Xfer_ShareSectionTitle"]"
+                        aria-label="@L["Xfer_ShareSectionTitle"]" @onclick="() => OpenShareSection(ag, sec)"><Icon Name="link" Size="13" /></button>
                 @if (sec.SharedClauses > 0)
                 {
-                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Xfer_SecDetachTitle"]" AriaLabel="@L["Xfer_SecDetachTitle"]"
+                    <InlineConfirm TriggerClass="btn ghost xt-ib" TriggerTitle="@L["Xfer_SecDetachTitle"]" AriaLabel="@L["Xfer_SecDetachTitle"]"
                                    Disabled="@(_busy || !_canEdit)"
                                    Prompt="@(string.Format(L["Xfer_SecDetachPrompt"].Value, sec.SharedClauses))"
                                    ConfirmLabel="@L["Xfer_SecDetachYes"]" CancelLabel="@L["Common_Cancel"]"
-                                   OnConfirm="() => DetachSection(ag, sec)"><Trigger>✂</Trigger></InlineConfirm>
+                                   OnConfirm="() => DetachSection(ag, sec)"><Trigger><Icon Name="scissors" Size="13" /></Trigger></InlineConfirm>
                     @* Le clausole condivise NON se ne vanno con la sezione: restano negli altri accordi, e la conferma lo dice. *@
-                    <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_SectionDeleteAria"]" Disabled="@(_busy || !_canEdit)"
+                    <InlineConfirm TriggerClass="btn ghost xt-ib" AriaLabel="@L["Xfer_SectionDeleteAria"]" Disabled="@(_busy || !_canEdit)"
                                    Prompt="@(string.Format(L["Xfer_SectionRemovePrompt"].Value, sec.SharedClauses, sec.Clauses.Count - sec.SharedClauses))"
                                    ConfirmLabel="@L["Xfer_SectionRemoveYes"]" CancelLabel="@L["Common_Cancel"]"
-                                   OnConfirm="() => DeleteSection(ag, sec)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
+                                   OnConfirm="() => DeleteSection(ag, sec)"><Trigger><Icon Name="x" Size="13" /></Trigger></InlineConfirm>
                 }
                 else
                 {
-                    <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_SectionDeleteAria"]" Disabled="@(_busy || !_canEdit)"
+                    <InlineConfirm TriggerClass="btn ghost xt-ib" AriaLabel="@L["Xfer_SectionDeleteAria"]" Disabled="@(_busy || !_canEdit)"
                                    Prompt="@(string.Format(L["Xfer_SectionDeletePrompt"].Value, sec.Clauses.Count))"
-                                   OnConfirm="() => DeleteSection(ag, sec)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
+                                   OnConfirm="() => DeleteSection(ag, sec)"><Trigger><Icon Name="x" Size="13" /></Trigger></InlineConfirm>
                 }
             </div>
 
@@ -2104,8 +2149,23 @@
 
     /// <summary>Cambia l'ordine in cui la sezione mostra le clausole. Passa dalla stessa porta del form, col resto
     /// della sezione com'è.</summary>
-    private Task SetClauseOrder(AgreementSectionRow sec, ChangeEventArgs e) =>
-        Enum.TryParse<AgreementClauseOrder>(e.Value?.ToString(), out var ordine) && ordine != sec.ClauseOrder
+    private Task SetClauseOrderKey(AgreementSectionRow sec, string value) =>
+        Enum.TryParse<AgreementClauseOrder>(value, out var chiave)
+            // Una chiave nuova riparte dal verso diritto; la stessa chiave non tocca il verso che c'è.
+            && chiave != AgreementClauseOrdering.KeyOf(sec.ClauseOrder)
+            ? SetClauseOrder(sec, chiave)
+            : Task.CompletedTask;
+
+    /// <summary>Le tre chiavi dell'ordine salvato. Il verso non è una voce: è il tasto accanto.</summary>
+    private IReadOnlyList<XferSortChip.Option> ClauseOrderOptions() => new XferSortChip.Option[]
+    {
+        new(nameof(AgreementClauseOrder.Manual), L["Xfer_ClauseOrderManual"].Value),
+        new(nameof(AgreementClauseOrder.Points), L["Xfer_ClauseOrderPoints"].Value),
+        new(nameof(AgreementClauseOrder.Level), L["Xfer_ClauseOrderLevel"].Value),
+    };
+
+    private Task SetClauseOrder(AgreementSectionRow sec, AgreementClauseOrder ordine) =>
+        ordine != sec.ClauseOrder
             ? Guarded(() => Agreements.UpdateSectionAsync(_acc!.Code, sec.Id, new AgreementSectionInput
             {
                 Kind = sec.Kind,
@@ -3716,7 +3776,11 @@
     private void NormalizeSortForView()
     {
         if (_view == XferView.Tree && _sort is not (RowSort.Manual or RowSort.Points or RowSort.Level))
+        {
             _sort = RowSort.Manual;
+            // Il verso è della chiave: caduta la chiave, un «Z→A» rimasto acceso varrebbe per la prossima.
+            _sortDesc = false;
+        }
     }
 
     // ---- Ciclo di vita ------------------------------------------------------------------------------
