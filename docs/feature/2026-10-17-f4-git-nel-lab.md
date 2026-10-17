@@ -1,6 +1,6 @@
 # F4 — Git nel Lab: rami, commit, pull request, il ramo dell'AIRAC (17 ottobre 2026)
 
-> **Stato: 📝 PROPOSTA** — da approvare dal committente (§6). Nessun codice prima dell'approvazione.
+> **Stato: ✅ APPROVATA** dal committente il 17 ottobre 2026 («vai»), con le risposte di §6. Il fork di prova è allineato al repo vero (`11b8569`).
 > Quarta fase di Aurora Sector Lab ([carta madre](2026-09-18-aurora-sector-lab.md), §1 decisioni 4-7 e 12, §7). Usa
 > l'app di F3 ([carta F3](2026-09-22-f3-l-app.md)) e il lotto «Subito»
 > ([carta del lotto](2026-09-27-lotto-subito.md)); le voci «F4» dei file stanno nella
@@ -143,4 +143,29 @@ dal repo vero, e fino ad allora le slice 1-4 vanno sul fork di oggi e sui repo f
 fork** (slice 8), prima del primo giro sul repo vero; D5 il commit **quando lo chiede l'AOD** (tasto Registra). D1 resta
 la proposta (il VID nelle Impostazioni del Lab).
 
-✅ Approvata da: — (in attesa dell'«approvo» sulla carta intera)
+✅ Approvata dal committente, 17 ottobre 2026.
+
+## §7 — Traccia
+
+- **Slice 0-3 (17 ottobre)** — solo il Lab: `Core/Git/Git.cs`, `StatoDelRamo.cs` (`RepoDelSector`), `PresaDelSector.cs`,
+  `RamiDelSector.cs`; `SessioneDelLab` (ramo, VID, indirizzo del sector, prendi, lavoro nuovo, passa, fai nascere il
+  ciclo), `RamoNellaBarra.razor`, la schermata d'apertura, le Impostazioni. Nessun file del motore né del sito.
+  - **0** Il repo finto dei test (`tests/…/Git/RepoDiProva.cs`): un server `git init --bare` col ramo `master` e un
+    clone con `SectorFiles/Include/IT`, nel temporaneo; nome e mail scritti nel clone. `Git.Vietato` ferma
+    `push --force`, `reset --hard`, `clean`, `stash` anche se qualcuno li scrivesse.
+  - **1** Nella barra il ramo e lo stato in parole (`git status --porcelain=v2 --branch`): «pulito», «N file da
+    registrare», «N registrazioni da mandare», «N novità sul server», «mai mandato». Si rilegge all'apertura, dopo
+    ogni salvataggio, e col tasto «Chiedi le novità al server» (`git fetch`). Fuori da git: «fuori da git», e il Lab
+    lavora lo stesso. Una lettura chiesta mentre ne gira un'altra la aspetta e poi rilegge.
+  - **2** «Prendi il sector» nella schermata d'apertura: `clone --filter=blob:none --sparse` più
+    `sparse-checkout add SectorFiles`, in una cartella nuova o vuota, poi la apre. Il repo di base è il **fork di
+    prova**; si cambia nelle Impostazioni. Arrivano anche i file sciolti della radice (nel repo vero solo `README.md`).
+  - **3** Il riquadro del ramo: **lavoro nuovo** `aod/<VID>/<argomento>` (minuscolo, senza accenti, trattini, 40
+    caratteri) da `master` («Immediato») o da `airac/<ciclo dopo>` («Per il ciclo»), col ramo d'origine scritto nel
+    clone (`branch.<nome>.vipibase`: la PR andrà lì); **passa** a un altro ramo; **fai nascere** `airac/<ciclo dopo>`
+    sul server, uguale a `master`, se non c'è (il solo push del Lab verso un `airac/`). Il ciclo dopo viene dal
+    calendario di vIPI (`AiracService`): il 17 ottobre è `airac/2611`, dal 29 ottobre. Niente cambio di ramo con
+    modifiche non salvate o file non registrati, col perché; dopo il cambio l'albero si rilegge.
+  A schermo sul banco, col fork vero: «Prendi il sector» in 6,6 s compresa l'apertura (756 file), `master` pulito; un
+  lavoro nuovo `aod/704798/prova-del-banco-f4` («Nato da master», «mai mandato»), poi di nuovo `master`. Al server
+  non è stato mandato niente. Test Lab 947 → **979**.

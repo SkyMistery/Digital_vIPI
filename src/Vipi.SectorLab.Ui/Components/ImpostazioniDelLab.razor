@@ -28,6 +28,19 @@
             Un tratto di aerovia più corto non riceve un'etichetta quando il Lab le calcola (di base 10: è la regola che il
             file segue già). 0 = un'etichetta su ogni tratto. Vuoto = 10.
         </p>
+        <label>
+            VID IVAO
+            <input class="lab-campo" inputmode="numeric" value="@Lab.Vid" data-impostazione="vid"
+                   placeholder="704798" @onchange="CambiaIlVid" />
+        </label>
+        <p class="lab-nota">Va nel nome dei rami di lavoro: <code>aod/@(Lab.Vid ?? "VID")/argomento</code> (carta F4).</p>
+        <label>
+            Repo del sector
+            <input class="lab-campo" value="@Lab.IndirizzoDelSector" data-impostazione="indirizzo-del-sector"
+                   @onchange="e => Lab.CambiaLIndirizzoDelSector(e.Value?.ToString())" />
+        </label>
+        <p class="lab-nota">Da dove «Prendi il sector» scarica. Per ora il fork di prova: il repo vero quando lo dice il committente.
+            Vuoto = <code>@Vipi.SectorLab.Core.Git.PresaDelSector.IndirizzoDiBase</code>.</p>
         @if (_rifiuto is not null)
         {
             <p class="lab-avviso-breve" data-impostazione-rifiutata>@_rifiuto</p>
@@ -46,6 +59,9 @@
 
     private void Cambia(ChangeEventArgs e)
         => _rifiuto = Lab.CambiaIlModelloDelleConfigurazioni(e.Value?.ToString()) ? null : Lab.Rifiuto;
+
+    private void CambiaIlVid(ChangeEventArgs e)
+        => _rifiuto = Lab.CambiaIlVid(e.Value?.ToString()) ? null : Lab.Rifiuto;
 
     private void CambiaLaSoglia(ChangeEventArgs e)
         => _rifiuto = Lab.CambiaLaSogliaDelleEtichette(e.Value?.ToString()) ? null : Lab.Rifiuto;

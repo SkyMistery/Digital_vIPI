@@ -1835,3 +1835,31 @@ body.lab-trascina * {
 .lab-simbolo-acceso {
     fill: #e8edf2;
 }
+
+/* Carta F4, slice 1: il ramo git nella barra. Con qualcosa da fare (registrare, mandare, prendere) il bordo lo dice. */
+.lab-ramo {
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-ramo-da-fare {
+    border-color: var(--lab-toccato);
+}
+
+/* Carta F4, slice 3: il riquadro del ramo (si apre dalla barra, come le Impostazioni). */
+.lab-ramo-riquadro h3 {
+    margin: .7rem 0 .3rem;
+    font-size: .8rem;
+    color: var(--lab-titoli);
+}
+
+.lab-tasti-del-ramo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin: .3rem 0;
+}
+
+.lab-elenco-dei-rami {
+    margin: 0;
+    padding-left: 1rem;
+}

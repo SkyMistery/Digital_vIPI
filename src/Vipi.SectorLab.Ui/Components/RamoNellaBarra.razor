@@ -1,0 +1,112 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Il ramo git del sector nella barra (carta F4): il nome del ramo e lo stato in parole — «pulito», «3 file da
+    registrare», «1 novità sul server» (slice 1). Aperto, il riquadro ha i gesti dei rami (slice 3): chiedere le novità
+    al server, un lavoro nuovo (immediato o per il ciclo dopo), passare a un altro ramo, far nascere il ramo del ciclo.
+    Fuori da git, o senza git sul PC, lo dice tenue: il Lab lavora lo stesso.
+*@
+@if (Lab.Ramo is { } ramo)
+{
+    <details class="lab-impostazioni lab-ramo-riquadro" data-riquadro-ramo>
+        <summary class="lab-tasto lab-tasto-tenue lab-ramo @(ramo.Pulito ? null : "lab-ramo-da-fare")" data-ramo="@(ramo.Ramo ?? "")" title="@Titolo(ramo)">
+            <span aria-hidden="true">⎇</span> @(ramo.Ramo ?? "commit staccato")
+            <span class="lab-nota" data-stato-del-ramo>@(Lab.StaLeggendoIlRamo || Lab.StaCambiandoRamo ? "…" : ramo.InParole())</span>
+        </summary>
+        <div class="lab-impostazioni-riquadro">
+            <p class="lab-nota">
+                @if (Lab.BaseDelRamo is { } base_)
+                {
+                    <span data-base-del-ramo>Nato da <code>@base_</code>: la PR andrà lì.</span>
+                }
+                else
+                {
+                    <span>Server: <code>@(ramo.Remoto ?? "nessuno")</code></span>
+                }
+            </p>
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prendi-novita" disabled="@Occupato"
+                    title="git fetch: chiede al server le novità; non cambia niente nei file" @onclick="() => Lab.RileggiIlRamoAsync(prendi: true)">Chiedi le novità al server</button>
+            @if (Lab.PercheDelRamo is { } perche)
+            {
+                <p class="lab-avviso-breve" data-ramo-avviso>@perche</p>
+            }
+
+            <h3>Nuovo lavoro</h3>
+            <label>
+                Di che si tratta
+                <input class="lab-campo" @bind="_argomento" @bind:event="oninput" placeholder="correzioni R-10" data-campo="argomento" disabled="@Occupato" />
+            </label>
+            @if (Lab.Vid is { } vid)
+            {
+                <p class="lab-nota">Il ramo: <code data-nome-del-lavoro>@(Vipi.SectorLab.Core.Git.RamiDelSector.NomeDiLavoro(vid, _argomento) ?? $"aod/{vid}/…")</code></p>
+            }
+            else
+            {
+                <p class="lab-avviso-breve" data-manca-vid>Manca il tuo VID: scrivilo nelle Impostazioni (va nel nome del ramo).</p>
+            }
+            <div class="lab-tasti-del-ramo">
+                <button type="button" class="lab-tasto" data-tasto="lavoro-immediato" disabled="@(Occupato || Lab.Vid is null)"
+                        title="Dal ramo @Lab.Predefinito: entra appena la PR è fusa" @onclick="() => Nuovo(Vipi.SectorLab.Core.Git.BaseDelLavoro.Immediato)">Immediato (da @Lab.Predefinito)</button>
+                <button type="button" class="lab-tasto" data-tasto="lavoro-ciclo" disabled="@(Occupato || Lab.Vid is null || !Lab.CicloDopoSulServer)"
+                        title="@(Lab.CicloDopoSulServer ? $"Dal ramo {Lab.CicloDopo}: entra col ciclo" : $"Sul server non c'è ancora {Lab.CicloDopo}")"
+                        @onclick="() => Nuovo(Vipi.SectorLab.Core.Git.BaseDelLavoro.CicloDopo)">Per il ciclo (da @Lab.CicloDopo)</button>
+            </div>
+            @if (!Lab.CicloDopoSulServer)
+            {
+                <p class="lab-nota" data-ciclo-mancante>Il ramo <code>@Lab.CicloDopo</code> sul server non c'è ancora.
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="fai-nascere-ciclo" disabled="@Occupato"
+                            title="Lo crea sul server, uguale a @Lab.Predefinito: il solo invio del Lab verso un ramo del ciclo" @onclick="Lab.FaiNascereIlCicloAsync">Fallo nascere</button></p>
+            }
+
+            @if (Lab.RamiLocali.Count > 1)
+            {
+                <h3>Passa a un altro ramo</h3>
+                <ul class="lab-elenco-dei-rami">
+                    @foreach (string altro in Lab.RamiLocali.Where(r => r != ramo.Ramo))
+                    {
+                        string questo = altro;
+                        <li><button type="button" class="lab-citazione" data-passa="@questo" disabled="@Occupato" @onclick="() => Lab.PassaAlRamoAsync(questo)">@questo</button></li>
+                    }
+                </ul>
+            }
+            @if (Lab.PercheNonSiCambiaRamo() is { } no)
+            {
+                <p class="lab-nota" data-non-si-cambia>@no</p>
+            }
+            @if (Lab.Rifiuto is { } rifiuto && _rifiutoVisibile)
+            {
+                <p class="lab-avviso-breve" data-rifiuto-del-ramo>@rifiuto</p>
+            }
+        </div>
+    </details>
+}
+else if (Lab.PercheDelRamo is { } perche)
+{
+    <span class="lab-nota" data-ramo-assente title="@perche">fuori da git</span>
+}
+
+@code {
+    private string? _argomento;
+    private bool _rifiutoVisibile;
+
+    private bool Occupato => Lab.StaLeggendoIlRamo || Lab.StaCambiandoRamo;
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private async Task Nuovo(Vipi.SectorLab.Core.Git.BaseDelLavoro base_)
+    {
+        _rifiutoVisibile = !await Lab.NuovoLavoroAsync(_argomento, base_);
+        if (!_rifiutoVisibile)
+            _argomento = null;
+    }
+
+    private string Titolo(Vipi.SectorLab.Core.Git.StatoDelRamo ramo)
+        => $"Il ramo git del sector ({ramo.Radice}), dal server {ramo.Remoto ?? "— nessuno"}"
+           + (ramo.Monte is null ? "" : $", segue {ramo.Monte}")
+           + (ramo.Cambiati.Count == 0 ? "" : "\nDa registrare: " + string.Join(", ", ramo.Cambiati.Take(8).Select(c => $"{c.Percorso[(c.Percorso.LastIndexOf('/') + 1)..]} ({c.Come})")) + (ramo.Cambiati.Count > 8 ? "…" : ""));
+}

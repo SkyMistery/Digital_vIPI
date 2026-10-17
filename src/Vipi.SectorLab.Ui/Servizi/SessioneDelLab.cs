@@ -242,7 +242,99 @@ public sealed class SessioneDelLab
 
         // Il validatore dell'albero costa 1,7-2,0 s: l'app è già aperta, i numeri arrivano quando ci sono (slice 10).
         _ = ValidaLAlberoAsync();
+        // Il ramo git (carta F4, slice 1): senza chiedere al server, che può non rispondere; «Prendi» lo chiede.
+        _ = RileggiIlRamoAsync();
         return true;
+    }
+
+    // --- git (carta F4) ---------------------------------------------------------------------------------------------
+
+    /// <summary>Il git dell'AOD (Git for Windows): i test ne passano uno loro solo per dire che non c'è.</summary>
+    public Core.Git.Git Git { get; init; } = new();
+
+    /// <summary>Il ramo del sector e il suo stato (carta F4, slice 1); null se la cartella non sta in un clone git.</summary>
+    public Core.Git.StatoDelRamo? Ramo { get; private set; }
+
+    /// <summary>Perché il ramo non c'è (git che manca, cartella fuori da git), o il server che non ha risposto.</summary>
+    public string? PercheDelRamo { get; private set; }
+
+    /// <summary>Sta leggendo il ramo, o chiedendo le novità al server.</summary>
+    public bool StaLeggendoIlRamo { get; private set; }
+
+    /// <summary>
+    /// Rilegge lo stato del ramo. Con <paramref name="prendi"/> prima chiede le novità al server (<c>git fetch</c>):
+    /// solo così «novità sul server» è vero. Non cambia niente nei file.
+    /// </summary>
+    public async Task RileggiIlRamoAsync(bool prendi = false)
+    {
+        // Una lettura già in corso (quella dell'apertura, o di un salvataggio) si aspetta, poi si rilegge: chi chiede
+        // dopo un gesto deve vedere lo stato DOPO il gesto.
+        while (_letturaDelRamo is { } inCorso)
+            await inCorso.ConfigureAwait(false);
+        if (Sessione is null)
+            return;
+        var lettura = LeggiIlRamoAsync(prendi);
+        _letturaDelRamo = lettura;
+        try
+        {
+            await lettura.ConfigureAwait(false);
+        }
+        finally
+        {
+            if (_letturaDelRamo == lettura)
+                _letturaDelRamo = null;
+        }
+    }
+
+    private Task? _letturaDelRamo;
+
+    /// <summary>I rami di qui (carta F4, slice 3), in ordine.</summary>
+    public IReadOnlyList<string> RamiLocali { get; private set; } = [];
+
+    /// <summary>Il ramo predefinito del server (<c>master</c> sul repo vero).</summary>
+    public string Predefinito { get; private set; } = "master";
+
+    /// <summary>Il ramo del ciclo AIRAC dopo quello in vigore oggi (<c>airac/2611</c>), e se il server ce l'ha.</summary>
+    public string CicloDopo { get; private set; } = Core.Git.RamiDelSector.RamoDelCicloDopo(DateTime.UtcNow);
+
+    /// <summary>Vero se il server ha già il ramo del ciclo dopo (dall'ultimo <c>fetch</c>).</summary>
+    public bool CicloDopoSulServer { get; private set; }
+
+    /// <summary>Il ramo da cui è nato il ramo di adesso (<c>master</c>, <c>airac/2611</c>), se è un lavoro del Lab.</summary>
+    public string? BaseDelRamo { get; private set; }
+
+    private async Task LeggiIlRamoAsync(bool prendi)
+    {
+        StaLeggendoIlRamo = true;
+        Avvisa();
+        try
+        {
+            string radice = Sessione!.Cartella.Radice;
+            var (stato, perche) = await Core.Git.RepoDelSector.LeggiAsync(Git, radice, prendi).ConfigureAwait(false);
+            if (stato is not null)
+            {
+                RamiLocali = await Core.Git.RamiDelSector.LocaliAsync(Git, stato.Radice).ConfigureAwait(false);
+                Predefinito = await Core.Git.RamiDelSector.PredefinitoAsync(Git, stato.Radice).ConfigureAwait(false);
+                CicloDopo = Core.Git.RamiDelSector.RamoDelCicloDopo(DateTime.UtcNow);
+                CicloDopoSulServer = await Core.Git.RamiDelSector.SulServerAsync(Git, stato.Radice, CicloDopo).ConfigureAwait(false);
+                BaseDelRamo = stato.Ramo is null ? null : await Core.Git.RamiDelSector.BaseDiAsync(Git, stato.Radice, stato.Ramo).ConfigureAwait(false);
+            }
+
+            Ramo = stato;
+            PercheDelRamo = perche;
+            Registro.Scrivi("git", stato is null ? perche ?? "nessun ramo" : $"{stato.Ramo ?? "(staccato)"}: {stato.InParole()}{(perche is null ? "" : " — " + perche)}");
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException)
+        {
+            Ramo = null;
+            PercheDelRamo = "git non ha risposto: " + e.Message;
+            Registro.Errore("git", e);
+        }
+        finally
+        {
+            StaLeggendoIlRamo = false;
+            Avvisa();
+        }
     }
 
     /// <summary>Cambia il master con cui si risolvono i nomi: la geometria si rifà, perché i punti risolti cambiano.</summary>
@@ -456,7 +548,11 @@ public sealed class SessioneDelLab
                 await DopoLaRiletturaAsync().ConfigureAwait(false);
             // Il sector sul disco è cambiato: le regole dell'albero (nomi non risolti, file mai citati) si rifanno.
             if (esito.Salvati.Count > 0)
+            {
                 _ = ValidaLAlberoAsync();
+                // E git vede i file salvati da registrare (carta F4, slice 1).
+                _ = RileggiIlRamoAsync();
+            }
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -3071,7 +3167,239 @@ public sealed class SessioneDelLab
         }
     }
 
+    /// <summary>Sta facendo un gesto di git che cambia i file (un ramo nuovo, un passaggio): il resto aspetta.</summary>
+    public bool StaCambiandoRamo { get; private set; }
+
+    /// <summary>
+    /// Perché adesso non si può cambiare ramo, o null: modifiche del Lab non salvate, o file salvati e non registrati
+    /// (carta F4 §3: prima di cambiare ramo, niente in sospeso).
+    /// </summary>
+    public string? PercheNonSiCambiaRamo()
+    {
+        if (Ramo is null)
+            return PercheDelRamo ?? "La cartella non sta in un clone git.";
+        if (Modifiche.CEQualcosa)
+            return "Ci sono modifiche non salvate: salva o annulla prima di cambiare ramo.";
+        if (Ramo.Cambiati.Count > 0)
+            return "Ci sono file salvati e non registrati: registrali prima di cambiare ramo.";
+        return null;
+    }
+
+    /// <summary>
+    /// Un lavoro nuovo (carta F4, slice 3): il ramo <c>aod/&lt;VID&gt;/&lt;argomento&gt;</c> dal ramo predefinito
+    /// (immediato) o dal ramo del ciclo dopo, poi l'albero si rilegge (i file sul disco sono quelli del ramo).
+    /// </summary>
+    public Task<bool> NuovoLavoroAsync(string? argomento, Core.Git.BaseDelLavoro base_)
+    {
+        if (Vid is not { } vid)
+            return Task.FromResult(Rifiuta("Manca il tuo VID: scrivilo nelle Impostazioni (va nel nome del ramo)."));
+        if (Core.Git.RamiDelSector.NomeDiLavoro(vid, argomento) is not { } nome)
+            return Task.FromResult(Rifiuta("Scrivi di che lavoro si tratta (diventa il nome del ramo)."));
+        string da = base_ == Core.Git.BaseDelLavoro.Immediato ? Predefinito : CicloDopo;
+        if (base_ == Core.Git.BaseDelLavoro.CicloDopo && !CicloDopoSulServer)
+            return Task.FromResult(Rifiuta($"Sul server non c'è ancora il ramo {CicloDopo}: fallo nascere prima."));
+        return CambiaRamoAsync($"nuovo lavoro {nome} da {da}",
+            radice => Core.Git.RamiDelSector.NuovoLavoroAsync(Git, radice, nome, da));
+    }
+
+    /// <summary>Passa a un altro ramo di qui (carta F4, slice 3), poi l'albero si rilegge.</summary>
+    public Task<bool> PassaAlRamoAsync(string ramo)
+        => ramo == Ramo?.Ramo
+            ? Task.FromResult(true)
+            : CambiaRamoAsync($"passa a {ramo}", radice => Core.Git.RamiDelSector.PassaAsync(Git, radice, ramo));
+
+    /// <summary>Fa nascere sul server il ramo del ciclo dopo, uguale al ramo predefinito (carta F4, slice 3).</summary>
+    public async Task<bool> FaiNascereIlCicloAsync()
+    {
+        if (Ramo is null || StaCambiandoRamo)
+            return false;
+        StaCambiandoRamo = true;
+        Avvisa();
+        try
+        {
+            string? perche = await Core.Git.RamiDelSector.FaiNascereIlCicloAsync(Git, Ramo.Radice, CicloDopo).ConfigureAwait(false);
+            Registro.Scrivi("git", $"nasce {CicloDopo}: {perche ?? "fatto"}");
+            Rifiuto = perche;
+            return perche is null;
+        }
+        finally
+        {
+            StaCambiandoRamo = false;
+            await RileggiIlRamoAsync().ConfigureAwait(false);
+        }
+    }
+
+    private bool Rifiuta(string perche)
+    {
+        Rifiuto = perche;
+        Registro.Scrivi("git", "rifiutato: " + perche);
+        Avvisa();
+        return false;
+    }
+
+    private async Task<bool> CambiaRamoAsync(string cosa, Func<string, Task<string?>> gesto)
+    {
+        if (StaCambiandoRamo)
+            return false;
+        if (PercheNonSiCambiaRamo() is { } no)
+            return Rifiuta(no);
+
+        StaCambiandoRamo = true;
+        Rifiuto = null;
+        Avvisa();
+        string radice = Ramo!.Radice;
+        string? perche;
+        try
+        {
+            perche = await gesto(radice).ConfigureAwait(false);
+            Registro.Scrivi("git", $"{cosa}: {perche ?? "fatto"}");
+        }
+        finally
+        {
+            StaCambiandoRamo = false;
+        }
+
+        if (perche is not null)
+        {
+            await RileggiIlRamoAsync().ConfigureAwait(false);
+            return Rifiuta(perche);
+        }
+
+        // I file sul disco ora sono quelli dell'altro ramo: l'albero si rilegge da capo, come una cartella nuova.
+        return await ApriAsync(Sessione!.Cartella.Radice).ConfigureAwait(false);
+    }
+
     // ── Impostazioni dell'app (slice 13f) ────────────────────────────────────────────────────────────────────
+
+    /// <summary>Un'impostazione di testo ricordata in un file dei dati del Lab; vuota o illeggibile = null.</summary>
+    private string? Ricordata(string file)
+    {
+        try
+        {
+            string percorso = Path.Combine(_cartellaDeiDati, file);
+            return File.Exists(percorso) && File.ReadAllText(percorso).Trim() is { Length: > 0 } scritta ? scritta : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private void Ricorda(string file, string? valore, string nome)
+    {
+        try
+        {
+            Directory.CreateDirectory(_cartellaDeiDati);
+            File.WriteAllText(Path.Combine(_cartellaDeiDati, file), valore ?? "");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Vale per questa sessione anche se il disco non lo ricorda; il registro lo dice.
+            Registro.Errore("impostazioni", e);
+        }
+
+        Registro.Scrivi("impostazioni", $"{nome} = «{valore}»");
+    }
+
+    private string? _indirizzoDelSector;
+
+    /// <summary>
+    /// Il repo da cui «Prendi il sector» scarica (carta F4, slice 2): di base il fork di prova
+    /// (<see cref="Core.Git.PresaDelSector.IndirizzoDiBase"/>), finché il committente non dice di passare al repo vero.
+    /// </summary>
+    public string IndirizzoDelSector => _indirizzoDelSector ??= Ricordata("indirizzo-del-sector.txt") ?? Core.Git.PresaDelSector.IndirizzoDiBase;
+
+    /// <summary>Cambia il repo da cui si prende il sector. Vuoto = quello di base.</summary>
+    public void CambiaLIndirizzoDelSector(string? indirizzo)
+    {
+        string scritto = string.IsNullOrWhiteSpace(indirizzo) ? Core.Git.PresaDelSector.IndirizzoDiBase : indirizzo.Trim();
+        if (scritto == IndirizzoDelSector)
+            return;
+        _indirizzoDelSector = scritto;
+        Ricorda("indirizzo-del-sector.txt", scritto, "indirizzo del sector");
+        Avvisa();
+    }
+
+    private string? _vid;
+    private bool _vidLetto;
+
+    /// <summary>
+    /// Il VID IVAO dell'AOD, per il nome dei rami di lavoro <c>aod/&lt;VID&gt;/…</c> (carta F4, D1): il Lab non ha un login
+    /// IVAO, lo si scrive una volta nelle Impostazioni. Null finché non c'è.
+    /// </summary>
+    public string? Vid
+    {
+        get
+        {
+            if (!_vidLetto)
+            {
+                _vid = Ricordata("vid.txt");
+                _vidLetto = true;
+            }
+
+            return _vid;
+        }
+    }
+
+    /// <summary>Cambia il VID: solo cifre (da 4 a 8). Vuoto = nessuno. Falso, col perché in <see cref="Rifiuto"/>, se non va.</summary>
+    public bool CambiaIlVid(string? vid)
+    {
+        string? scritto = string.IsNullOrWhiteSpace(vid) ? null : vid.Trim();
+        if (scritto is not null && (scritto.Length is < 4 or > 8 || !scritto.All(char.IsAsciiDigit)))
+        {
+            Rifiuto = "Il VID è il numero IVAO: solo cifre (per esempio 704798).";
+            Registro.Scrivi("impostazioni", $"VID = «{vid}»: rifiutato");
+            Avvisa();
+            return false;
+        }
+
+        Rifiuto = null;
+        _vid = scritto;
+        _vidLetto = true;
+        Ricorda("vid.txt", scritto, "VID");
+        Avvisa();
+        return true;
+    }
+
+    /// <summary>Sta prendendo il sector dal server.</summary>
+    public bool StaPrendendo { get; private set; }
+
+    /// <summary>
+    /// «Prendi il sector» (carta F4, slice 2): la copia parziale da <see cref="IndirizzoDelSector"/> nella cartella data,
+    /// poi la apre. Falso, col perché in <see cref="Errore"/>, se non è andata.
+    /// </summary>
+    public async Task<bool> PrendiIlSectorAsync(string? cartella, CancellationToken annulla = default)
+    {
+        if (StaPrendendo)
+            return false;
+        StaPrendendo = true;
+        Errore = null;
+        Avvisa();
+        string? perche;
+        try
+        {
+            perche = await Core.Git.PresaDelSector.PrendiAsync(Git, IndirizzoDelSector, cartella ?? "", annulla).ConfigureAwait(false);
+            Registro.Scrivi("git", $"prendi il sector da {IndirizzoDelSector} in {cartella}: {perche ?? "fatto"}");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            perche = e.Message;
+            Registro.Errore("git", e);
+        }
+        finally
+        {
+            StaPrendendo = false;
+        }
+
+        if (perche is not null)
+        {
+            Errore = perche;
+            Avvisa();
+            return false;
+        }
+
+        return await ApriAsync(cartella, annulla).ConfigureAwait(false);
+    }
 
     private string FileDelleConfigurazioni => Path.Combine(_cartellaDeiDati, "nomi-delle-configurazioni.txt");
 
