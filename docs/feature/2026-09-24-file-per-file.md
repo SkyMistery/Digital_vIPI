@@ -779,12 +779,29 @@ nelle prove I7.
   (`AircraftSSRSymbol=3`, `AircraftPSRSymbol=0`, `AircraftCPDLCSymbol=7`, `AircraftExtraPolitedSymbol=8`). Ipotesi: il
   `.sym` del sector aggiunge simboli scelti per numero = posizione nel file (e le 2 righe senza `//` potrebbero
   spostare la numerazione). **Da provare in Aurora**.
+- **Esito della prova T3 (17 ottobre, committente in Aurora; profili letti dall'agente)** — l'ipotesi «posizione =
+  ruolo» è **caduta**:
+  - Aurora ha i **ruoli** nelle impostazioni (finestra SETTINGS, linguetta SYMBOLS: NAVAIDS, AIRPORTS, VISUAL FLIGHT
+    RULES, TRAFFIC 1-10, PAR, PROCEDURES), ognuno col suo simbolo. Il clic sul simbolo di un ruolo apre una
+    **tavolozza** con i **23 simboli del `.sym`, soli e nell'ordine del file** (prima nessun simbolo di Aurora).
+  - La scelta si salva nel profilo come **disegno**, non come numero: `SYMBOLS_<RUOLO>=` con i 13 gruppi interi (misurato
+    nei `.cpr` del committente). Quindi la posizione nel `.sym` decide solo l'ordine della tavolozza; il numero di
+    partenza (0 o 1) non conta. I numeri `Aircraft*Symbol=` scelgono fra i TRAFFIC 1-10 del profilo (`SYMBOLS_AC_*`),
+    non fra i simboli del sector (dedotto dai nomi, non provato).
+  - **T3-2**: `AC_comb SEL` e `AC_DUPE` compaiono tutti e due nella tavolozza (8° e 9°) e i simboli dopo non si
+    spostano: la riga del nome senza `//` Aurora la salta. Aggiungere le `//` è una correzione senza rischi.
+  - **T3-3** (file A: APT e VOR2 scambiati): nella tavolozza il 1° e il 14° si scambiano (confermato dal committente).
+    Sulla mappa non deve cambiare niente, perché il profilo ha già il suo disegno (atteso, da guardare).
+  - Per il verso dei bit: il 1° della tavolozza è un cerchio con una barra **verticale**, e nel file APT ha
+    pieno il 7° gruppo — conferma che ogni gruppo è una colonna.
+  - Conseguenze per T1: l'ordine del `.sym` è libero (si mostra, ma non è un vincolo); la parte che cambia la mappa è
+    l'editor dei `SYMBOLS_*` di un `.cpr`.
 
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
 | T1 | **Editor a pixel 13×13**: griglia cliccabile, anteprima a grandezza vera e ingrandita su sfondo radar, scrive le colonne nell'ordine giusto, nome sempre nel commento, ordine visibile e spostabile solo di proposito (col suo numero). Lo stesso editor per i simboli con nome dei profili (`SYMBOLS_*` in un `.cpr`, con l'avviso di §14) | Subito | ✅ deciso |
 | T2 | Controlli: simbolo che non è 13×13, nome senza `//`, simbolo senza nome | Subito | ✅ deciso |
-| T3 | **Prova in Aurora dell'ordine**: nella scelta del simbolo dell'aereo, quali simboli compaiono, in che ordine, da che numero partono quelli del sector; se conta la posizione, correggere le 2 righe senza `//` | F4, in un ramo — presto | 🟡 da provare |
+| T3 | **Prova in Aurora dell'ordine**: nella scelta del simbolo dell'aereo, quali simboli compaiono, in che ordine, da che numero partono quelli del sector; se conta la posizione, correggere le 2 righe senza `//` | F4, in un ramo — presto | ✅ provata (17 ottobre): la posizione non decide il ruolo, le 2 righe senza `//` non spostano niente |
 
 ### `HOLDENR.hold` (sezione `[HOLDENR]`, le attese in rotta)
 

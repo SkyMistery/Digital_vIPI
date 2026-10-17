@@ -4,6 +4,14 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+## 17 ottobre 2026: la prova T3 è fatta, la slice 17 si sblocca
+
+Esito in «file per file» §20: in Aurora i simboli si scelgono **per ruolo** nelle impostazioni (linguetta SYMBOLS),
+da una tavolozza che contiene i 23 simboli del `.sym` nell'ordine del file; la scelta si salva nel profilo come
+disegno (`SYMBOLS_<RUOLO>=`), non come numero. La posizione nel `.sym` non decide nessun ruolo, e le due righe di nome
+senza `//` non spostano niente. Per l'editor (T1): l'ordine del `.sym` si mostra ma è libero; quello che cambia la mappa
+sono i `SYMBOLS_*` di un `.cpr`. Resta da guardare in Aurora che col file A la mappa resti uguale.
+
 ## Dove siamo — 9 ottobre 2026: il lotto «Subito» aspetta il committente
 
 Del lotto (20 slice, 0-19) sono **fatte la 0-16, la 18 e la 19a**; l'ultimo commit di lavoro è `3e659591` (6 ottobre),
