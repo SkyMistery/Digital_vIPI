@@ -43,7 +43,34 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A156 — 1.64.0 PRONTA, da caricare: «Tutti i settori» della mappa AOR non è una configurazione (S109) (16 ottobre 2026)
+### ✅ A157 — 1.65.0 ONLINE: il convertitore non perde l'arco con «centred on:» (S110), e dentro la 1.64.0 mai caricata (S109) (17 ottobre 2026)
+
+✅ Online dal 17 ottobre 2026: il committente conferma la 1.65 e `Schema 0`. Da fuori, da anonimo, alle 14:47Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti 401, convertitore 401 (dietro login), `vipi-theme.css?v=a1b78434`
+(invariato: il pacchetto non porta asset), `/vsop/health` e `/vsop/health/ready` Healthy. Non guardati da qui, dietro
+il login: il convertitore sul limite di Torino–Genova e la nota di S109 in Struttura.
+
+MINOR **senza migrazioni**, misurata dalla **1.63.0** (`099b0df`) che gira: la 1.64.0 (§A156) era pronta e non è mai
+stata caricata, quindi questa la contiene e la sostituisce. Timbro **`1.65.0 · 38a26f3`**.
+- **S110** (fuso da `sito/lavori` @ `cf4290dc`, CI verde 4/4 run 39040176197; il committente: «fondi e fai il
+  pacchetto»): `AipGeometryReader` toglie il punto e i due punti in fondo a un pezzo, così «centred on:» trova il
+  centro e l'arco non sparisce (segnalato su un limite laterale di Torino–Genova); e ogni angolo ricorda la sua riga,
+  così «righe lette» non dice più «3 di 14» su dodici righe. Codice comune: Application. Storia in
+  `docs/filoni/sito.md`, carta F1 §8.
+- **S109**: vedi §A156.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**7 file** (`solo-7-file-1.65.0`): Application, Ui, Host (dll + pdb) e `en/Vipi.Ui.resources.dll` — gli stessi della
+1.64.0, confrontati per impronta col publish della **1.63.0** (`publish_old/20261016a`): 482 file, 19 con impronta
+diversa, nessun asset. Zip 4,38 MB, sha256 `000b0a10f37c58b09ea63117ec210e2e87b8bc7bfcfb014949b73803b730132a`. Build Release senza avvisi; `dotnet
+test` 18 riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3364, Ui 2078). Prova sul publish win-x64 (copia
+del database di sviluppo): `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); convertitore col testo
+«centred on:» del test: 53 punti, 1 arco, righe lette 12 di 14, nessun avviso; S109 come in §A156 (it ed en). Console
+pulita. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.65.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; il convertitore sul limite di Torino–Genova. Rollback: le due rinomine.
+
+### ⏭ A156 — 1.64.0 MAI CARICATA (assorbita dalla 1.65.0, §A157): «Tutti i settori» della mappa AOR non è una configurazione (S109) (16 ottobre 2026)
 
 MINOR **senza migrazioni**, su 1.63.0 (`099b0df`). Timbro **`1.64.0 · 1ad98d0`**.
 - **S109** (fuso da `sito/lavori` @ `37d81f0f`, CI verde 4/4 run 38901460937; il committente: «vai»): nato dalla

@@ -238,7 +238,10 @@ public static class AipGeometryReader
 
         var elementi = new List<Elemento>();
         var angoli = new List<CoordinateParser.Angolo>();
-        var postoAngoli = default(Posto);
+        // 🔴 Il posto di OGNI angolo, non del primo del gruppo: i vertici uno per riga, senza parole fra loro,
+        // restano un gruppo solo fino alla prima parola, e col posto del primo «righe lette» diceva 3 di 14 su un
+        // testo di dodici righe di coordinate (17 ottobre 2026) — e il punto di un vertice portava la riga di un altro.
+        var postiAngoli = new List<Posto>();
         int? senzaEmisfero = null;
         var parole = new List<string>();
         var postoParole = default(Posto);
@@ -256,23 +259,25 @@ public static class AipGeometryReader
         void ChiudiAngoli()
         {
             if (angoli.Count == 0) return;
-            var testoRiga = Estratto(originali, postoAngoli);
-            var riga = postoAngoli.Riga;
             for (var k = 0; k + 1 < angoli.Count; k += 2)
             {
+                var posto = postiAngoli[k];
                 if (!CoordinateParser.ProvaCoppia(angoli[k], angoli[k + 1], out var p, out var avviso))
                 {
-                    segnalazioni.Add(new CoordinateIssue(avviso ?? CoordinateIssueKind.RigaNonLetta, riga, testoRiga));
+                    segnalazioni.Add(new CoordinateIssue(avviso ?? CoordinateIssueKind.RigaNonLetta, posto.Riga, Estratto(originali, posto)));
                     continue;
                 }
-                if (avviso is { } a) segnalazioni.Add(new CoordinateIssue(a, riga, testoRiga));
+                if (avviso is { } a) segnalazioni.Add(new CoordinateIssue(a, posto.Riga, Estratto(originali, posto)));
                 ChiudiFrase();
-                elementi.Add(new Punto(postoAngoli, p));
-                righeConPunti.Add(riga);
+                elementi.Add(new Punto(posto, p));
+                righeConPunti.Add(posto.Riga);
+                righeConPunti.Add(postiAngoli[k + 1].Riga);   // nel PDF la longitudine va spesso a capo
             }
             if (angoli.Count % 2 != 0)
-                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.AngoloSpaiato, riga, testoRiga));
+                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.AngoloSpaiato, postiAngoli[^1].Riga,
+                    Estratto(originali, postiAngoli[^1])));
             angoli.Clear();
+            postiAngoli.Clear();
             senzaEmisfero = null;
         }
 
@@ -294,6 +299,7 @@ public static class AipGeometryReader
             if (sospeso is not { } s) return;
             sospeso = null;
             angoli.RemoveAt(angoli.Count - 1);
+            postiAngoli.RemoveAt(postiAngoli.Count - 1);
             senzaEmisfero = null;
             AggiungiParola(s.Testo, s.Dove);
         }
@@ -321,8 +327,11 @@ public static class AipGeometryReader
                     continue;
                 }
 
-                // Il punto in fondo è la fine della frase («…till point of origin.»), non un decimale.
-                var token = pezzo.Trim('"', '\'', '[', ']', '(', ')').TrimEnd('.');
+                // Il punto in fondo è la fine della frase («…till point of origin.»), non un decimale. I due punti
+                // in fondo annunciano la coordinata che segue («centred on:», 17 ottobre 2026): attaccati facevano
+                // «ON:», e «CENTRED ON» non si trovava più — l'arco restava senza centro. ⚠️ Solo IN FONDO:
+                // dentro un pezzo i due punti sono i separatori di `44:37:01N`.
+                var token = pezzo.Trim('"', '\'', '[', ']', '(', ')').TrimEnd('.', ':');
                 if (token.Length == 0) continue;
 
                 var emisfero = token.Length == 1 && token[0] is 'N' or 'S' or 'E' or 'W';
@@ -330,7 +339,7 @@ public static class AipGeometryReader
 
                 if (CoordinateParser.ProvaPezzo(token, angoli, ref senzaEmisfero))
                 {
-                    if (angoli.Count == 1) postoAngoli = dove;
+                    while (postiAngoli.Count < angoli.Count) postiAngoli.Add(dove);
                     sospeso = senzaEmisfero is null ? null : (token, dove);
                     continue;
                 }
