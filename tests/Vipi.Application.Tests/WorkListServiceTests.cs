@@ -333,6 +333,7 @@ public class WorkListServiceTests
                 .Where(r => (documentId is null || r.DocumentId == documentId) && (!soloAperte || r.Aperta)).ToList());
         public Task<int> AddAsync(FieldRequest richiesta, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<int> CountOpenAsync(int reporterUserId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> CountAllOpenAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<int> CountSinceAsync(int reporterUserId, DateTime sinceUtc, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<FieldRequestRow?> GetAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> SetStatusAsync(int id, FieldRequestStatus status, int handledByUserId, string handledByName, string reply, int? duplicateOfId, CancellationToken ct = default) => throw new NotSupportedException();

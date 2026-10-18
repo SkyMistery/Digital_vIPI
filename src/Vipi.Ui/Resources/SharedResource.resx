@@ -4203,6 +4203,7 @@
   <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Settori che l&apos;elenco non nomina, quindi senza vincoli: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>Nessuna configurazione con un settore aperto.</value></data>
+  <data name="Nav_ReqOpenTitle" xml:space="preserve"><value>Richieste ancora aperte (nuove o prese in carico): {0}</value></data>
   <data name="SdS_Title" xml:space="preserve"><value>Sezioni da scrivere</value></data>
   <data name="SdS_Help" xml:space="preserve"><value>Le sezioni del documento che scrive una persona. Quelle che si riempiono dai dati (AOR, frequenze, SID, meteo…) e quelle nascoste non contano. Si aggiorna a «Fine modifica».</value></data>
   <data name="SdS_Count" xml:space="preserve"><value>{0} con qualcosa · {1} vuote, su {2}</value></data>

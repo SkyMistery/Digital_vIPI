@@ -485,6 +485,9 @@
 /* La voce della pagina corrente è uno stato, non un comando: niente href e nessun effetto al passaggio. */
 :where(.vipi-root) .admin-nav .an-link.on{background:var(--ivao-blue);color:var(--on-brand);cursor:default}
 :where(.vipi-root) .admin-nav .an-link [data-icon]{flex:none;opacity:.85}
+/* Le richieste dal campo ancora aperte, accanto alla loro voce (S112): i colori della pastiglia d'avviso, piccola. */
+:where(.vipi-root) .admin-nav .an-count{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;
+  font-size:11px;line-height:17px;text-align:center;background:var(--tint-yellow);color:var(--warn-ink-orange)}
 
 /* ---- Permessi: chi ha un permesso a sinistra, la persona scelta (o la concessione) a destra ----
    Il `calc` è il valore di PARTENZA prima che vipiFitViewport misuri; `min-height` allineata al `fitMin` del

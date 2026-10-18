@@ -34,13 +34,14 @@
         @foreach (var v in Visibili)
         {
             var corrente = IsCorrente(v.Url);
+            var conto = v.Url == UrlRichieste && _richiesteAperte > 0 ? _richiesteAperte : 0;
             if (corrente)
             {
-                <span class="an-link on" aria-current="page" title="@L[v.TitleKey]"><Icon Name="@v.Icon" Size="13" /> @L[v.LabelKey]</span>
+                <span class="an-link on" aria-current="page" title="@L[v.TitleKey]"><Icon Name="@v.Icon" Size="13" /> @L[v.LabelKey]@Conto(conto)</span>
             }
             else
             {
-                <a class="an-link" href="@v.Url" title="@L[v.TitleKey]"><Icon Name="@v.Icon" Size="13" /> @L[v.LabelKey]</a>
+                <a class="an-link" href="@v.Url" title="@L[v.TitleKey]"><Icon Name="@v.Icon" Size="13" /> @L[v.LabelKey]@Conto(conto)</a>
             }
         }
     </nav>
@@ -97,14 +98,46 @@
     /// </summary>
     private IReadOnlyList<Voce> Visibili = Array.Empty<Voce>();
 
+    private const string UrlRichieste = "/services/vsop/requests";
+
+    /// <summary>Le richieste dal campo ancora aperte (nuove o prese in carico): 0 = nessun numero accanto alla voce.</summary>
+    private int _richiesteAperte;
+
     // Una volta sola, non a ogni valutazione del markup: il filtro lo leggono sia il `@if` che il `foreach`.
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         // Il servizio si chiede facoltativo: chi non l'ha registrato (un test della barra) non vede la voce,
         // che è il lato giusto su cui sbagliare.
         var emette = Sp.GetService<IEmittentiChiaviApi>()?.PuoEmettere == true;
         Visibili = Voci.Where(v => Authz.Role >= v.Minimo && (!v.SoloChiEmetteChiavi || emette)).ToArray();
+
+        // Quante richieste dal campo aspettano (S112, committente, 18 ottobre 2026: «su Requests possiamo mettere un
+        // contatore che ci dice quante ce ne sono sospese?»). Solo a chi vede la voce.
+        // 🔴 Uno scope SUO, creato e chiuso qui, come in `DocumentSectionsEditor`: la barra gira su ogni pagina admin
+        // MENTRE la pagina carica i suoi dati, e sul `DbContext` di circuito sarebbero due letture insieme — è il
+        // motivo per cui fino a oggi la barra non leggeva niente dal database. Lo scope è della chiamata: si chiude
+        // dopo la query, mai sotto. E con una rete: è un numero accanto a un link, non deve poter rompere la pagina.
+        if (Visibili.Any(v => v.Url == UrlRichieste) && Sp.GetService<IServiceScopeFactory>() is { } scopi)
+        {
+            try
+            {
+                await using var scope = scopi.CreateAsyncScope();
+                if (scope.ServiceProvider.GetService<Vipi.Application.Abstractions.IFieldRequestRepository>() is { } richieste)
+                    _richiesteAperte = await richieste.CountAllOpenAsync();
+            }
+            catch (Exception)
+            {
+                _richiesteAperte = 0;   // senza numero la voce resta quella di sempre
+            }
+        }
     }
+
+    /// <summary>Il numero accanto all'etichetta, se ce n'è uno: la stessa pastiglia per la voce corrente e per le altre.</summary>
+    private RenderFragment Conto(int n) => __builder =>
+    {
+        if (n <= 0) return;
+        <span class="an-count" title="@string.Format(L["Nav_ReqOpenTitle"].Value, n)">@n</span>
+    };
 
     /// <summary>
     /// Confronto sul solo percorso: la pagina corrente può portarsi dietro una query (i filtri di Versioni la

@@ -11,10 +11,13 @@
 > centri nel banco; nella **1.65.0** (17 ottobre, §A157) **S109** (configurazioni possibili: «Tutti i settori» della
 > mappa detto in Struttura e tradotto) e **S110** (il convertitore di coordinate perdeva l'arco con «centred on:» e
 > contava male le righe lette). La 1.64.0, col solo S109, non è mai uscita: assorbita dalla 1.65.0.
-> **Da fondere: S111** (18 ottobre), le **sezioni da scrivere** — in ogni editor e nella pagina Versioni quante
-> sezioni editoriali hanno qualcosa e quali sono ancora vuote. Carta `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
+> **S111** (18 ottobre), le **sezioni da scrivere** — in ogni editor e nella pagina Versioni quante sezioni
+> editoriali hanno qualcosa e quali sono ancora vuote — è **fuso** in `main` e va nella **1.66.0** (§A158), pronta e
+> non ancora caricata. Carta `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
+> **Da fondere: S112** (18 ottobre): nella barra dello staff, accanto a «Campo richieste», quante richieste sono
+> ancora aperte.
 > **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova e la nota di S109 in
-> Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S111 qui sotto.
+> Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S112 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2658,7 +2661,8 @@
   - **Prova a schermo** sulla pagina del convertitore (host di sviluppo, database nuovo): nessun avviso, 53 punti,
     «Arcs converted: 1», «lines read: 12 of 14», e sulla mappa la curva a nord-ovest verso Bra.
   - Riga in carta F1 §8 (trappole note).
-- 🟢 **S111** le **sezioni da scrivere**: in ogni tipo di documento, quante hanno qualcosa e quante sono ancora
+- 🔀 **S111** (fuso in `main`, esce con la **1.66.0**, §A158, non ancora caricata) le **sezioni da scrivere**: in
+  ogni tipo di documento, quante hanno qualcosa e quante sono ancora
   vuote (18-ott, il committente: «mi hanno chiesto di mettere in ogni tipo di file un indicatore di quante delle
   sezioni obbligatorie non siano mai state toccate e quante invece ci sia almeno scritto o messo qualcosa»). Carta
   `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
@@ -2686,6 +2690,22 @@
     Versioni con la pastiglia su 45 righe e il riquadro compatto; i cinque editor (Milano, Amendola APP, Taranto,
     Cameri, vLOA LIBB–LDZO); a «Fine modifica» il conto passa da 4 a 5 dopo un paragrafo aggiunto; italiano e inglese.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina online col login vero.
+- 🟢 **S112** nella **barra dello staff**, accanto a «Campo richieste», il numero delle richieste **ancora aperte**
+  (18-ott, il committente: «in questa barra in alto su Requests possiamo mettere un contatore che ci dice quante ce ne
+  sono sospese?»).
+  - **«Sospese» = aperte**: nuove o prese in carico, le stesse che la coda dello staff mostra di base. A zero il
+    numero non c'è. Pastiglia piccola coi colori d'avviso, e il tooltip dice cosa conta.
+  - 🔴 **La barra fino a oggi non leggeva il database, apposta**: gira su ogni pagina admin mentre la pagina carica i
+    suoi dati, e sul `DbContext` del circuito sarebbero due letture insieme. Il conto si legge in uno **scope della
+    chiamata**, aperto e chiuso dentro il caricamento (come `DocumentSectionsEditor`), con una rete: un guasto lascia
+    la voce senza numero. Solo a chi vede la voce (Editor in su); gli altri non fanno nessuna lettura.
+  - **Codice comune**: `Vipi.Application` (`IFieldRequestRepository.CountAllOpenAsync`). Nessuna migrazione, niente
+    `deploy/`. Toccati i due `.resx` e `vipi-theme.css`.
+  - **Test**: Ui 2082 → 2086 (`AdminNavTests`: il numero sulla sua voce, anche sulla pagina corrente, niente a zero,
+    nessuna lettura per chi non vede la voce).
+  - **A schermo** su un database nuovo con tre richieste inventate (nuova, presa in carico, risolta): «Campo
+    richieste 2», in italiano, col tema scuro e chiaro. ⚠️ La pagina delle richieste non ha la barra (la usano anche
+    gli utenti): lì il numero non c'è. Non visto: il telefono.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 17-ott: tutto fuso e online fino a **S110** (1.65.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
