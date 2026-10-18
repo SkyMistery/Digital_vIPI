@@ -424,6 +424,9 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Iata).HasMaxLength(4);
             // Un ICAO: quattro lettere. Stessa ragione della IATA — senza misura sarebbe un longtext.
             e.Property(x => x.MetarStationIcao).HasMaxLength(4);
+            // La tecnica della torre radar è prosa a righe, e qui senza misura APPOSTA: su MySQL un varchar da
+            // migliaia di caratteri peserebbe sul limite di riga della tabella degli scali. Non si indicizza, e il
+            // tetto (Airport.TecnicaRadarMassima) lo dice il servizio.
             // UNICO, e non è pignoleria: un documento d'aeroporto descrive UN aeroporto, e due scali che
             // puntano allo stesso documento sono un difetto che si vedrebbe solo mesi dopo, a schermo, come un
             // aeroporto che mostra le piste di un altro. I NULL restano molti (gli scali senza documento):

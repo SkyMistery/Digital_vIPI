@@ -3807,6 +3807,18 @@
   <data name="Lvp_OperaInLvp" xml:space="preserve"><value>Lo scalo opera in LVP</value></data>
   <data name="Lvp_NotePlaceholder" xml:space="preserve"><value>Chi le attiva, quali piste, CAT II/III, restrizioni…</value></data>
   <data name="Lvp_Togli" xml:space="preserve"><value>Togli i minimi</value></data>
+  <data name="TorreRadar_Si" xml:space="preserve"><value>La torre è dotata di radar.</value></data>
+  <data name="TorreRadar_No" xml:space="preserve"><value>La torre non è dotata di radar.</value></data>
+  <data name="TorreRadar_NonIndicato" xml:space="preserve"><value>Non è indicato se la torre è dotata di radar.</value></data>
+  <data name="TorreRadar_SceltaNonIndicato" xml:space="preserve"><value>Non indicato</value></data>
+  <data name="TorreRadar_TecnicaVuota" xml:space="preserve"><value>Tecnica operativa non ancora scritta.</value></data>
+  <data name="TorreRadar_TecnicaSoloConRadar" xml:space="preserve"><value>La tecnica operativa compare nel documento solo se la torre è dotata di radar: indicalo nella sezione «Radar di torre». Un testo già scritto resta da parte e torna col sì.</value></data>
+  <data name="TorreRadar_TecnicaPlaceholder" xml:space="preserve"><value>Come si lavora con la torre radar su questo scalo: identificazione, separazioni, coordinamenti…</value></data>
+  <data name="TorreRadar_Aiuto" xml:space="preserve"><value>Se la torre è dotata di radar è un dato dello &lt;b&gt;scalo&lt;/b&gt;, non del documento: si scrive una volta, insieme alla tecnica operativa, e lo leggono la vIPI e il vSOP. «Non indicato» non vale «no».</value></data>
+  <data name="TorreRadar_AiutoAria" xml:space="preserve"><value>Aiuto sulla torre radar</value></data>
+  <data name="TorreRadar_Chip" xml:space="preserve"><value>Radar di torre</value></data>
+  <data name="TorreRadar_ChipTitolo" xml:space="preserve"><value>La torre è dotata di radar: apre la sezione «Radar di torre» del documento in una nuova scheda</value></data>
+  <data name="TorreRadar_ConfermaNonIndicato" xml:space="preserve"><value>Tornando a «non indicato» si cancella anche la tecnica operativa scritta. Continuare?</value></data>
   <data name="Services_EyeTitle" xml:space="preserve"><value>Vedi chi è online ora</value></data>
   <data name="Services_EyeDesc" xml:space="preserve"><value>Strumento non ufficiale, realizzato dalla divisione italiana.</value></data>
   <data name="Services_AtcIvaoTitle" xml:space="preserve"><value>Prenotazioni ATC e FRA</value></data>

@@ -51,7 +51,12 @@ Per profilo, oggi (il numero vero lo conta un test):
 
 ## 4. Quando una sezione ha qualcosa
 
-Basta **un** blocco della sezione (i suoi, non quelli delle figlie) con contenuto:
+Basta **un** blocco con contenuto, della sezione **o di una sua sottosezione visibile**, a qualunque profondità e
+di qualunque tipo (anche una sezione libera aggiunta sotto). 🔴 Nella prima versione contavano i soli blocchi della
+sezione: il committente (18 ottobre, S114) ha visto segnate vuote sezioni senza testo proprio ma con le sottosezioni
+scritte, e «non sarebbe corretto». Una sottosezione **nascosta** non basta: non esce nel documento.
+
+Che cosa conta come contenuto, in un blocco:
 
 - testo (Markdown) non vuoto;
 - un blocco riusato da un altro (`SharedBlockId`);

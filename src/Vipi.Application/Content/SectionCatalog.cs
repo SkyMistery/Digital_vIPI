@@ -111,6 +111,14 @@ public static class SectionCatalog
             // pagina: quello lo dice `SectionBodySource`, non `SectionKind`.
             [SectionKeys.RunwayThresholds] = SectionKind.Editorial,
 
+            // --- La torre radar (18 ottobre 2026), su vIPI d'aeroporto e vSOP militare ---------------------
+            // Derivata: il sì/no e la tecnica stanno nell'ANAGRAFICA dello scalo, perché la torre di un campo
+            // civile e militare è sempre una sola. ⚠️ La figlia è EDITORIALE per la stessa ragione delle soglie:
+            // la si rende dalla vista del padre, che la release congela una volta sola sotto «radartower», e un
+            // secondo interruttore Live/Frozen potrebbe mettere il sì/no e la tecnica su due cicli diversi.
+            [SectionKeys.RadarTower] = SectionKind.Derived,
+            [SectionKeys.RadarTowerTechnique] = SectionKind.Editorial,
+
             // --- Carte aeroportuali (3 settembre 2026), su vIPI d'aeroporto e vSOP militare -----------
             // Editoriali: il contenuto sono immagini e allegati PDF, che i blocchi sanno già portare. Non
             // c'è niente da derivare — le carte non stanno in nessun catalogo nostro.
@@ -130,8 +138,10 @@ public static class SectionCatalog
     // da sola. Vale OVUNQUE: viewer ed editor, tutte e tre le famiglie.
     // ⚠️ Qui c'era scritto «ognuna con la sua mappa»: non è più vero dal 27 agosto 2026 — la sezione ha una
     // mappa sola con le chip. Resta collassata per il numero di RIGHE, non più per il numero di mappe.
+    // ⚠️ E la tecnica operativa della torre radar (18 ottobre 2026, committente): prosa lunga in mezzo all'indice,
+    // fra Piste e SID — aperta spingerebbe le SID una schermata più in giù.
     private static readonly IReadOnlySet<string> InitiallyCollapsedKeys =
-        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regulated" };
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regulated", SectionKeys.RadarTowerTechnique };
 
     /// <summary>Vero se la sezione si apre COLLASSATA nel documento: si espande a mano (doc 11 §3i).</summary>
     public static bool IsInitiallyCollapsed(string key) => InitiallyCollapsedKeys.Contains(key);
@@ -234,6 +244,22 @@ public static class SectionCatalog
     /// (le SID importate, la sezione VFR di un profilo di posizione), e dentro un profilo una chiave compare
     /// una volta sola.</para>
     /// </summary>
+    /// <summary>
+    /// La torre radar (18 ottobre 2026, committente): il sì/no, e sotto la tecnica operativa dello scalo, che nasce
+    /// chiusa e c'è solo se la torre ha il radar (<see cref="TorreRadar.Filtra"/>).
+    /// <para>⚠️ Scritta QUI e non due volte, come le carte: vIPI e vSOP descrivono la stessa torre, e la stessa
+    /// chiave nei due profili è ciò che la fa trovare come sezione unica in un'unione.</para>
+    /// <para>Nasce NASCOSTA (committente, 18 ottobre 2026: «poi le mostriamo man mano che le sistemiamo»), come le
+    /// STAR: anche nei documenti già scritti, dove la porta la manutenzione d'avvio. Basta il padre: la tecnica
+    /// sparisce con lui.</para>
+    /// </summary>
+    private static SectionDescriptor TorreRadarDescrittore(int ordine) =>
+        // «Radar di torre» e non «Torre radar» (committente, 18 ottobre 2026): il soggetto è il radar.
+        H(SectionKeys.RadarTower, "Radar di torre", ordine, en: "Tower radar", nascosta: true, children: new[]
+        {
+            H(SectionKeys.RadarTowerTechnique, "Tecnica operativa", 1, en: "Operating technique"),
+        });
+
     private static IReadOnlyList<SectionDescriptor> CarteAeroportuali(int ordine) =>
         new[]
         {
@@ -331,22 +357,26 @@ public static class SectionCatalog
                 {
                     H("runwayrules", "Regole piste", 1, en: "Runway selection rules"),
                 }),
-                H("sids", "SID", 5),
+                // ✚ 18 ottobre 2026 (committente): la torre radar, FRA Piste e SID — la tecnica si sceglie con
+                // la pista in uso, e la SID dopo. Abbastanza in alto da leggersi prima delle procedure.
+                // ⚠️ Ai documenti GIÀ SCRITTI la aggiunge la manutenzione d'avvio (AddMissingCatalogSections).
+                TorreRadarDescrittore(5),
+                H("sids", "SID", 6),
                 // ✚ 20 settembre 2026 (§A80): gli ARRIVI. Sezione sua e non una seconda tabella dentro le SID —
                 // chi legge un vSOP cerca gli arrivi nell'indice, e li cerca sotto il loro nome. Il dato sta
                 // nell'ANAGRAFICA dello scalo (`AirportProcedures`, colonna `Kind`), come le partenze: qui c'è
                 // solo la porta. ⚠️ Ai documenti GIÀ SCRITTI la aggiunge la manutenzione d'avvio, che rinumera
                 // il gruppo: il catalogo decide la struttura alla nascita, non dopo.
                 // Nasce NASCOSTA (21 settembre 2026, committente): la si accende dall'editor dove serve.
-                H("stars", "STAR", 6, nascosta: true),
-                D("operationaltechnique", "Procedure generali", 7, en: "General procedures"),
+                H("stars", "STAR", 7, nascosta: true),
+                D("operationaltechnique", "Procedure generali", 8, en: "General procedures"),
                 // ✚ Non c'era (12 settembre 2026, committente): i minimi di bassa visibilita'. Sta SUBITO
                 // DOPO le «Procedure generali» — sorella, NON figlia: le LVP sono un modo di operare, e
                 // vengono dopo la prosa che descrive come si opera. Come le regole piste, il dato sta
                 // nell'ANAGRAFICA dello scalo: qui c'è solo la porta.
-                H("lvp", "LVP", 8),
-            }.Concat(CarteAeroportuali(9)).Append(
-                HB("validity", "Validità e revisione", 10, en: "Validity and revision")).ToArray(),
+                H("lvp", "LVP", 9),
+            }.Concat(CarteAeroportuali(10)).Append(
+                HB("validity", "Validità e revisione", 11, en: "Validity and revision")).ToArray(),
 
             // --- vSOP MILITARE d'aeroporto (carta 2026-08-27) ------------------------------------------
             //
@@ -401,16 +431,19 @@ public static class SectionCatalog
                     // ⚠️ Sorella di «Piste» e non figlia: una scelta di indice, decisa dal committente.
                     // ⚠️ `H` e non `HB`: derivata pura, senza blocchi. Le code per campo -- il «Combat
                     // departure» di Gioia -- restano sezioni LIBERE, come dice la nota in testa al profilo.
-                    H("sids", "SID", 6),
+                    // ✚ 18 ottobre 2026 (committente): la torre radar, nello stesso punto della vIPI civile —
+                    // dopo piste e regole, prima delle SID — e con la STESSA chiave: in un'unione è una sezione.
+                    TorreRadarDescrittore(6),
+                    H("sids", "SID", 7),
                     // ✚ 20 settembre 2026 (§A80): gli ARRIVI, gemelli delle partenze e dalla stessa tabella
                     // dell'anagrafica (`AirportProcedures`, colonna `Kind`). Sezione sua per la stessa ragione
                     // del profilo civile: nell'indice gli arrivi si cercano sotto il loro nome.
-                    H("stars", "STAR", 7, nascosta: true),   // nasce nascosta, come nel civile
+                    H("stars", "STAR", 8, nascosta: true),   // nasce nascosta, come nel civile
                     // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
-                    H("transition", "Quote di transizione", 8, en: "Transition altitude and levels"),
+                    H("transition", "Quote di transizione", 9, en: "Transition altitude and levels"),
                     // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la
                     // release lo fotografa già copiando i blocchi — non c'è nessuna derivazione da congelare.
-                    HB("callsigns", "Nominativi", 9, en: "Callsigns", aud: Piloti),
+                    HB("callsigns", "Nominativi", 10, en: "Callsigns", aud: Piloti),
                     // ⚠️ IN CODA AI DATI GENERALI dal 3 settembre 2026, e prima stava in testa alle Procedure
                     // di terra. Richiesta del committente: i parcheggi sono un DATO dello scalo — un piazzale
                     // e i suoi stalli — non una procedura che si esegue, e stanno accanto a piste,
@@ -420,11 +453,11 @@ public static class SectionCatalog
                     // motore di riordino sposta solo fra FRATELLI, apposta.
                     // NON e' la carta d'aerodromo, che sta in «Carte aeroportuali»: quella e' un allegato,
                     // questa e' la descrizione dello scalo che i SOP scrivono a parole.
-                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 10, en: "Airport layout"),
+                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 11, en: "Airport layout"),
                     // ⚠️ I parcheggi CHIUDONO i dati generali, ed e' una decisione del 3 settembre 2026 che
                     // il SOD conferma: la sua planimetria viene prima. Un test lo pretende -- e ha gia'
                     // fermato questa modifica una volta, quando la planimetria era finita in coda.
-                    HB("parkings", "Parcheggi", 11, en: "Parking", aud: Piloti, children: new[]
+                    HB("parkings", "Parcheggi", 12, en: "Parking", aud: Piloti, children: new[]
                     {
                         D(SectionKeys.ApronFlow, "Flusso di rullaggio sui piazzali", 1,
                           en: "Aprons taxi flow", aud: Piloti),

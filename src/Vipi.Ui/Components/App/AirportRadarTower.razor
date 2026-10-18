@@ -1,0 +1,46 @@
+@* Sezione «Radar di torre» e la sua figlia «Tecnica operativa» (18 ottobre 2026, committente).
+
+   ⚠️ Il dato sta nell'ANAGRAFICA dello scalo (`Airport.RadarTower`), non nel documento: la torre di un campo civile
+   e militare è sempre una sola, quindi vIPI e vSOP montano questo stesso componente sulla stessa vista.
+
+   ⚠️ Un componente per le due sezioni, come la loro vista è una: `Tecnica` sceglie la parte. Che la figlia
+   compaia solo con la torre radar lo decide `TorreRadar.Filtra` sulla LISTA delle sezioni, non questo
+   componente: così l'indice e il corpo dicono la stessa cosa. *@
+@using Vipi.Application.Content
+@inherits ComponenteDelDocumento
+
+@if (Tecnica)
+{
+    @if (string.IsNullOrWhiteSpace(View.Technique))
+    {
+        <p class="muted" style="font-size:13px;margin:0">@L["TorreRadar_TecnicaVuota"]</p>
+    }
+    else
+    {
+        @* A righe: il testo si scrive in un'area di testo, e gli a-capo sono la sua sola struttura. *@
+        <p class="torre-radar-tecnica" style="margin:0;white-space:pre-line">@View.Technique</p>
+    }
+}
+else
+{
+    @* I tre stati coi colori dei callout del sito (committente, 18 ottobre 2026): verde con la torre radar, rosso
+       senza, giallo se nessuno l'ha detto. «Non indicato» non è «senza radar»: il silenzio non è una
+       dichiarazione, come per le LVP, e il giallo dice che manca un dato, non che manca il radar. *@
+    var (classe, icona, testo) = View.Equipped switch
+    {
+        true => ("success", "check-circle", "TorreRadar_Si"),
+        false => ("danger", "octagon", "TorreRadar_No"),
+        null => ("warning", "warning", "TorreRadar_NonIndicato"),
+    };
+    <div class="callout @classe torre-radar-stato" style="margin:0">
+        <span class="cic"><Icon Name="@icona" Size="18" /></span>
+        <div><b>@L[testo]</b></div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public AirportRadarTowerView View { get; set; } = AirportRadarTowerView.Empty;
+
+    /// <summary>Vero = la figlia «Tecnica operativa»; falso = la sezione col sì/no.</summary>
+    [Parameter] public bool Tecnica { get; set; }
+}

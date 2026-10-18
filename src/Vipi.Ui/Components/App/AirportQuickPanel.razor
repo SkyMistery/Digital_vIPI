@@ -65,6 +65,13 @@ else
                 <div class="rap-box" title="@L["Apt_SuggestedRunways"]: @sTxt"><span class="muted">@L["Apt_SuggestedRunways"]</span><b>@sTxt</b></div>
             </div>
             <span class="rap-btns">
+                @* Il radar di torre (committente, 18 ottobre 2026): qui solo se chi contiene il pannello non lo mostra
+                   per conto suo — la vista live di una postazione d'aeroporto lo mette nella testata, accanto all'ICAO. *@
+                @if (_radarHref is { } radar && !RadarDiTorre.HasDelegate)
+                {
+                    <a class="btn ghost torre-radar-chip" href="@radar" target="_blank" rel="noopener"
+                       title="@L["TorreRadar_ChipTitolo"]"><Icon Name="radio" Size="13" /> @L["TorreRadar_Chip"] ↗</a>
+                }
                 @* Il quadro vAWOS di questo scalo: scheda NUOVA, perche' e' una pagina da secondo monitor
                    che si tiene aperta mentre si continua a lavorare qui. *@
                 <a class="btn ghost" href="/services/vawos/@Icao.ToLowerInvariant()" target="_blank"
@@ -213,6 +220,16 @@ else
     /// </summary>
     [Parameter] public AirportPresidency? Presidency { get; set; }
 
+    /// <summary>
+    /// Il collegamento alla sezione «Radar di torre» del documento, per chi lo mostra FUORI dal pannello: la vista live
+    /// di una postazione d'aeroporto lo mette nella testata, accanto all'ICAO (committente, 18 ottobre 2026).
+    /// <c>null</c> = niente da segnalare. Senza nessuno in ascolto il pannello lo mostra fra i suoi tasti.
+    /// </summary>
+    [Parameter] public EventCallback<string?> RadarDiTorre { get; set; }
+
+    /// <summary>Dove si apre la sezione «Radar di torre», se la torre ha il radar e la sezione si vede.</summary>
+    private string? _radarHref;
+
     private DocumentView? _view;                    // documento PUBBLICO (release-aware): fonte di TA/TL
     // Da quale documento: la vIPI civile se è pubblicata, altrimenti il vSOP militare. Fino al 30 settembre 2026 si
     // cercava la sola civile, e un campo solo militare restava «Nessun documento pubblicato» (committente).
@@ -281,6 +298,7 @@ else
         _qnh = null; _wind = null; _sugg = (null, null); _runways = new(); _selRwy = "all";
         _sids = Array.Empty<AirportSidRowView>(); Azzera();   // aeroporto diverso: il campo si svuota davvero
 
+        _radarHref = null;
         // Documento pubblico dell'aeroporto (rispetta la release effettiva del ciclo, come /airports).
         _vsopAncheLui = false;
         _edizione = ReleaseTargetType.Airport;
@@ -290,7 +308,13 @@ else
             _edizione = ReleaseTargetType.AirportMil;
             _view = await ViewService.BuildAirportMilVipiAsync(Icao, BlockTier.Extended, live: false);
         }
-        if (_view is null) return;
+        if (_view is null)
+        {
+            // Uno scalo senza documento non ha niente da segnalare: e chi mostra la marca fuori dal pannello deve
+            // togliere quella dello scalo di prima.
+            await RadarDiTorre.InvokeAsync(null);
+            return;
+        }
         if (_edizione == ReleaseTargetType.Airport)
             _vsopAncheLui = Vipi.Application.Awos.AwosGate.Pubblicati(await Docs.ListAsync(), Icao).Vsop;
 
@@ -301,6 +325,18 @@ else
         var derivate = await AirportView.ResolveForViewAsync(Icao, useFrozen: true, _edizione);
         _transition = derivate.Transition;
         _ta = _transition.TransitionAltitudeFt;
+
+        // Il radar di torre: dal documento che il tasto apre, e se lì la sezione non si vede, dal vSOP dello stesso
+        // scalo — la torre è una, ma la sezione si mostra documento per documento.
+        _radarHref = TorreRadar.Ancora(_view.Sections, derivate.RadarTower) is { } ancora ? $"{DocHref()}#{ancora}" : null;
+        if (_radarHref is null && _vsopAncheLui
+            && await ViewService.BuildAirportMilVipiAsync(Icao, BlockTier.Extended, live: false) is { } vsop)
+        {
+            var delVsop = await AirportView.ResolveForViewAsync(Icao, useFrozen: true, ReleaseTargetType.AirportMil);
+            if (TorreRadar.Ancora(vsop.Sections, delVsop.RadarTower) is { } ancoraVsop)
+                _radarHref = $"{DocRoutes.For(ReleaseTargetType.AirportMil).PublicUrl(Acc.ToLowerInvariant(), Icao, null)}#{ancoraVsop}";
+        }
+        await RadarDiTorre.InvokeAsync(_radarHref);
 
         _profile = await AirportProfile.LoadForViewAsync(Icao);
         _runways = _profile?.Runways.Select(r => r.Ident.Trim()).Where(s => s.Length > 0).Distinct().ToList() ?? new();

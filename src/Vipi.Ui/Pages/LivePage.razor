@@ -231,8 +231,15 @@
         {
             <details class="acc-item" open data-persist="live-apt">
                 @* L'ICAO accanto al titolo e della sua misura: il pannello qui sotto non lo ripete più (committente, 1 ottobre 2026). *@
-                <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"] <span class="tag-state tag-covered sum-icao">@icao</span></span></summary>
-                <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" Presidency="@PresidenzaDi(icao)" /></div>
+                @* Il radar di torre accanto all'ICAO (committente, 18 ottobre 2026): c'è solo se la torre ne è dotata e la
+                   sezione si vede nel documento, e apre il documento lì, in una scheda nuova. Lo trova il pannello. *@
+                <summary><span><Icon Name="plane-landing" /> @L["Common_AptQuickView"] <span class="tag-state tag-covered sum-icao">@icao</span>@if (_radarApt is { } radar)
+                    {
+                        <a class="tag-state tag-online sum-radar" href="@radar" target="_blank" rel="noopener"
+                           title="@L["TorreRadar_ChipTitolo"]"><Icon Name="radio" Size="12" /> @L["TorreRadar_Chip"] ↗</a>
+                    }</span></summary>
+                <div class="body"><AirportQuickPanel Icao="@icao" Acc="@_view.AccCode" Presidency="@PresidenzaDi(icao)"
+                                                     RadarDiTorre="RadarDelloScalo" /></div>
             </details>
         }
         else
@@ -349,6 +356,11 @@
     private string? _requested;              // callsign chiesto ma non trovato (per distinguere i due stati vuoti)
     private string? _myCallsign;
     private string? _selectedApt;
+
+    /// <summary>Il collegamento al radar di torre dello scalo della postazione, che il pannello trova: null = niente.</summary>
+    private string? _radarApt;
+
+    private void RadarDelloScalo(string? href) => _radarApt = href;
 
     /// <summary>Il testo del campo di ricerca in coda alle chip: non vuoto = i risultati al posto del settore.</summary>
     private string _ricerca = "";

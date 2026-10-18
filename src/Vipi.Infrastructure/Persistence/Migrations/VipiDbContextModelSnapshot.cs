@@ -471,6 +471,12 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("ParentCallsign")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool?>("RadarTower")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RadarTowerTechnique")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("TransitionAltitudeFt")
                         .HasColumnType("INTEGER");
 

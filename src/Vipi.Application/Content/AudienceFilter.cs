@@ -101,7 +101,9 @@ public static class AudienceFilter
     private static bool Passa(SectionAudience sezione, SectionAudience vista) =>
         sezione == SectionAudience.Both || sezione == vista;
 
-    private static SectionView ConFigli(SectionView s, IReadOnlyList<SectionView> figli) => new()
+    /// <summary>La stessa sezione con altri figli. ⚠️ Interna e non privata: la usa anche <see cref="TorreRadar"/>,
+    /// e una seconda copia dimenticherebbe la prossima proprietà aggiunta a <see cref="SectionView"/>.</summary>
+    internal static SectionView ConFigli(SectionView s, IReadOnlyList<SectionView> figli) => new()
     {
         Id = s.Id,
         Title = s.Title,

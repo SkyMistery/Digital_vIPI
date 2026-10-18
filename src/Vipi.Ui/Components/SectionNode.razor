@@ -31,7 +31,11 @@ else if (depth <= 0)
 }
 else
 {
-    <details class="@(depth == 1 ? "coord-sub" : "coord-sub2")" id="@Section.Id" open
+    @* ⚠️ Anche una SOTTO-sezione può nascere chiusa, se lo dice il catalogo: la tecnica operativa della torre radar
+       (18 ottobre 2026, committente). Fino a quel giorno qui c'era `open` e basta — nessuna figlia era nel catalogo
+       delle chiuse. La stampa le apre tutte da sé (`beforeprint`). *@
+    <details class="@(depth == 1 ? "coord-sub" : "coord-sub2")" id="@Section.Id"
+             open="@(!SectionCatalog.IsInitiallyCollapsed(Section.SectionKey))"
              style="@(Section.IsHidden ? "opacity:.65" : null)">
         <summary>
             @* La bandierina anche sulle SOTTO-sezioni (committente, 30 settembre 2026: «su ogni sezione»), DENTRO lo

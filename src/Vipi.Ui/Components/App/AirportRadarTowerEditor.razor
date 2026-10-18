@@ -1,0 +1,98 @@
+@* L'editor della sezione «Radar di torre» e della sua figlia «Tecnica operativa» (18 ottobre 2026, committente).
+
+   ⚠️ Niente tasto «Salva», come l'editor delle LVP: ogni gesto avvisa l'host, che salva subito passando dalla sua
+   porta unica. Il cancello è `Editing` — il lock del documento — e si legge come RAMO DI RENDER.
+
+   ⚠️ Le due parti mutano lo STESSO oggetto (`RadarTowerEdit`) e l'host salva la riga intera: scrivere la tecnica
+   non riscrive il sì/no con un valore vecchio, e viceversa. *@
+@using Vipi.Application.Content
+@inject IStringLocalizer<SharedResource> L
+
+@if (!Tecnica)
+{
+    <div>
+        <div class="ed-h3 ed-h3-mini">
+            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["TorreRadar_AiutoAria"]" ExtraClass="wide">
+                @((MarkupString)L["TorreRadar_Aiuto"].Value)
+            </HelpHint>
+        </div>
+        @if (Editing)
+        {
+            @* Tre stati e non una casella: «non indicato» è una risposta diversa da «no», e deve potersi rimettere. *@
+            <div @key="_giro" class="se-row" role="radiogroup" aria-label="@L["TorreRadar_AiutoAria"]" style="display:flex;gap:14px;flex-wrap:wrap">
+                <label><input type="radio" name="@_gruppo" checked="@(Row?.Equipped == true)" @onchange="@(() => Scegli(true))" /> @L["TorreRadar_Si"]</label>
+                <label><input type="radio" name="@_gruppo" checked="@(Row is { Equipped: false })" @onchange="@(() => Scegli(false))" /> @L["TorreRadar_No"]</label>
+                <label><input type="radio" name="@_gruppo" checked="@(Row is null)" @onchange="@(() => Scegli(null))" /> @L["TorreRadar_SceltaNonIndicato"]</label>
+            </div>
+        }
+        else
+        {
+            <p style="margin:0">@Stato</p>
+        }
+    </div>
+}
+else if (Row is not { Equipped: true })
+{
+    @* La tecnica di una torre senza radar non va nel documento: lo si dice, invece di offrire un campo che nessuno
+       vedrebbe. Se c'era un testo resta in archivio, e torna col «sì». *@
+    <p class="muted" style="font-size:13px;margin:0">@L["TorreRadar_TecnicaSoloConRadar"]</p>
+}
+else if (Editing)
+{
+    <textarea rows="8" style="width:100%;max-width:760px;font:inherit" maxlength="@Vipi.Domain.Entities.Airport.TecnicaRadarMassima"
+              placeholder="@L["TorreRadar_TecnicaPlaceholder"]"
+              @bind="Row.Technique" @bind:after="Cambiato"></textarea>
+}
+else
+{
+    <p style="margin:0;white-space:pre-line">@(string.IsNullOrWhiteSpace(Row.Technique) ? L["TorreRadar_TecnicaVuota"].Value : Row.Technique)</p>
+}
+
+@code {
+    /// <summary>La torre in lavorazione: <c>null</c> = nessuno ha detto se ha il radar. Il componente la muta in
+    /// posto e avvisa l'host, che salva.</summary>
+    [Parameter] public RadarTowerEdit? Row { get; set; }
+
+    /// <summary>Il documento è in modifica e il lock è nostro.</summary>
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>Vero = la parte della figlia «Tecnica operativa»; falso = il sì/no.</summary>
+    [Parameter] public bool Tecnica { get; set; }
+
+    /// <summary>La riga è cambiata, nata o tolta: l'host aggiorna il proprio riferimento e salva. Unico punto d'uscita.</summary>
+    [Parameter] public EventCallback<RadarTowerEdit?> RowChanged { get; set; }
+
+    // Il nome del gruppo radio: unico per istanza, o due editor nella stessa pagina (un'unione) si rubano la scelta.
+    private int _giro;
+
+    private readonly string _gruppo = $"torre-radar-{Guid.NewGuid():N}";
+
+    private string Stato => Row is null ? L["TorreRadar_SceltaNonIndicato"].Value
+                          : L[Row.Equipped ? "TorreRadar_Si" : "TorreRadar_No"].Value;
+
+    private Task Cambiato() => RowChanged.InvokeAsync(Row);
+
+    /// <summary>Conferma prima di tornare a «non indicato» quando c'è una tecnica scritta, che se ne va con lui;
+    /// null = non si chiede (le prove, dove un dialogo del browser non c'è).</summary>
+    [Parameter] public Func<Task<bool>>? ConfirmRemove { get; set; }
+
+    private async Task Scegli(bool? dotata)
+    {
+        if (dotata is not bool d)
+        {
+            if (!string.IsNullOrWhiteSpace(Row?.Technique) && ConfirmRemove is not null && !await ConfirmRemove())
+            {
+                // Il radio ha già cambiato nel browser, e il render tree no: per Blazor non c'è niente da
+                // aggiornare. Un gruppo NUOVO (chiave nuova) rimette la scelta vera.
+                _giro++;
+                return;
+            }
+            await RowChanged.InvokeAsync(null);
+            return;
+        }
+        // La tecnica già scritta resta: chi passa da «no» a «sì» la ritrova.
+        var riga = Row ?? new RadarTowerEdit();
+        riga.Equipped = d;
+        await RowChanged.InvokeAsync(riga);
+    }
+}

@@ -6,18 +6,20 @@
 
 ## Dove siamo — 18 ottobre 2026
 
-> **In una riga**: tutto il lavoro del filone è **online** fino a **S110**: nella **1.62.0** (12 ottobre notte) i tre
+> **In una riga**: tutto il lavoro del filone è **online** fino a **S113**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
 > centri nel banco; nella **1.65.0** (17 ottobre, §A157) **S109** (configurazioni possibili: «Tutti i settori» della
 > mappa detto in Struttura e tradotto) e **S110** (il convertitore di coordinate perdeva l'arco con «centred on:» e
-> contava male le righe lette). La 1.64.0, col solo S109, non è mai uscita: assorbita dalla 1.65.0.
-> **S111** (18 ottobre), le **sezioni da scrivere** — in ogni editor e nella pagina Versioni quante sezioni
-> editoriali hanno qualcosa e quali sono ancora vuote — è **fuso** in `main` e va nella **1.66.0** (§A158), pronta e
-> non ancora caricata. Carta `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
-> **Da fondere: S112 e S113** (18 ottobre): quante richieste dal campo sono ancora aperte, accanto a «Campo
-> richieste» nella barra dello staff e, per gli admin, accanto alla chiave in alto.
-> **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova e la nota di S109 in
-> Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S113 qui sotto.
+> contava male le righe lette); nella **1.67.0** (18 ottobre, §A159) **S111** (le sezioni da scrivere in ogni editor e
+> nella pagina Versioni, carta `docs/feature/2026-10-18-sezioni-da-scrivere.md`), **S112** e **S113** (quante
+> richieste dal campo sono ancora aperte, nella barra dello staff e per gli admin sulla chiave in alto). La 1.64.0 e
+> la 1.66.0 non sono mai uscite: assorbite dalla versione dopo.
+> **Pronto ma in attesa: S114** (18 ottobre), correzione delle sezioni da scrivere: una sezione con le sottosezioni
+> scritte non è più segnata vuota. Il committente: «aspettiamo, fondiamo quando ci sarà altra roba» — esce col
+> prossimo lavoro, fatto sopra lo stesso `sito/lavori`.
+> **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova, la nota di S109 in
+> Struttura, il numero delle richieste e le sezioni da scrivere (da fuori il Master ha visto porta, 401 e health
+> Healthy). Voci S109–S114 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2661,7 +2663,7 @@
   - **Prova a schermo** sulla pagina del convertitore (host di sviluppo, database nuovo): nessun avviso, 53 punti,
     «Arcs converted: 1», «lines read: 12 of 14», e sulla mappa la curva a nord-ovest verso Bra.
   - Riga in carta F1 §8 (trappole note).
-- 🔀 **S111** (fuso in `main`, esce con la **1.66.0**, §A158, non ancora caricata) le **sezioni da scrivere**: in
+- ✅ **S111** (**online in 1.67.0** dal 18-ott, §A159; la 1.66.0 non è mai uscita) le **sezioni da scrivere**: in
   ogni tipo di documento, quante hanno qualcosa e quante sono ancora
   vuote (18-ott, il committente: «mi hanno chiesto di mettere in ogni tipo di file un indicatore di quante delle
   sezioni obbligatorie non siano mai state toccate e quante invece ci sia almeno scritto o messo qualcosa»). Carta
@@ -2690,7 +2692,7 @@
     Versioni con la pastiglia su 45 righe e il riquadro compatto; i cinque editor (Milano, Amendola APP, Taranto,
     Cameri, vLOA LIBB–LDZO); a «Fine modifica» il conto passa da 4 a 5 dopo un paragrafo aggiunto; italiano e inglese.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina online col login vero.
-- 🟢 **S112** nella **barra dello staff**, accanto a «Campo richieste», il numero delle richieste **ancora aperte**
+- ✅ **S112** (**online in 1.67.0** dal 18-ott) nella **barra dello staff**, accanto a «Campo richieste», il numero delle richieste **ancora aperte**
   (18-ott, il committente: «in questa barra in alto su Requests possiamo mettere un contatore che ci dice quante ce ne
   sono sospese?»).
   - **«Sospese» = aperte**: nuove o prese in carico, le stesse che la coda dello staff mostra di base. A zero il
@@ -2706,7 +2708,7 @@
   - **A schermo** su un database nuovo con tre richieste inventate (nuova, presa in carico, risolta): «Campo
     richieste 2», in italiano, col tema scuro e chiaro. ⚠️ La pagina delle richieste non ha la barra (la usano anche
     gli utenti): lì il numero non c'è. Non visto: il telefono.
-- 🟢 **S113** lo stesso numero **accanto alla chiave** della barra in alto, per gli **admin** (18-ott, il committente:
+- ✅ **S113** (**online in 1.67.0** dal 18-ott) lo stesso numero **accanto alla chiave** della barra in alto, per gli **admin** (18-ott, il committente:
   «si può mettere il contatore anche qui per chi è admin?»).
   - Il numero è un **collegamento suo, alle richieste**; la chiave resta la porta ai permessi — un numero di richieste
     che portasse ai permessi le farebbe cercare dove non sono. Nel menù ☰ (schermo stretto) la voce «Campo richieste»
@@ -2717,8 +2719,55 @@
   - **Test**: Ui 2086 → 2087 (`BarraInAltoTests`, sul sorgente come gli altri della barra: il layout non si disegna
     in bUnit). **A schermo** su un database nuovo con tre richieste inventate: «2» sull'angolo della chiave a 1900 e
     1000px, il clic porta alle richieste; a 375px chiave e voce del menù col numero.
+- 🟢 **S114** correzione di S111: una sezione **senza testo proprio ma con le sottosezioni scritte** non è vuota (18-ott,
+  il committente: «segna come empty section delle sezioni che non hanno testo proprio ma hanno solo sottosezioni. Non
+  sarebbe corretto»).
+  - **Prima**: contavano i soli blocchi della sezione. **Ora** (`SezioniDaScrivere.Piena`): ha qualcosa se ce l'ha
+    lei o una sua sottosezione **visibile**, a qualunque profondità e di qualunque tipo — anche una sezione libera
+    aggiunta sotto. Vuota resta solo se è vuoto tutto quel che ha sotto; una sottosezione nascosta non basta. Carta
+    §4.
+  - **Codice comune**: `Vipi.Application` (`SezioniDaScrivere.cs`). Nessuna migrazione, niente `deploy/`.
+  - **Test**: App 3389 → 3390, rosso prima della correzione (0 invece di 2). Solo logica: l'interfaccia non cambia.
+    ⚠️ Non provato sui documenti veri (la copia di produzione è stata cancellata a fine S111).
+- 🟢 **S115** la **torre radar** nelle vIPI d'aeroporto e nei vSOP (18-ott, il committente: una sezione che dica se la
+  torre è dotata di radar; se sì, almeno una sotto-sezione con la tecnica operativa dello scalo; unica sugli scali con
+  vIPI e vSOP). Carta `docs/feature/2026-10-18-torre-radar.md`.
+  - **Deciso dal committente**: una sezione sola **fra Piste e SID** (nel vSOP nello stesso punto dei Dati generali),
+    la tecnica **nasce chiusa**, e il testo sta **una volta sola nell'anagrafica** — «la torre di uno scalo militare e
+    civile è SEMPRE una sola». Del filone: tre stati (sì, no, **non indicato**, che è quello di tutti gli scali di
+    oggi); la tecnica c'è solo col sì, né nel corpo né nell'indice (`TorreRadar.Filtra`); dal sì al no il testo
+    resta da parte, tornare a «non indicato» lo cancella e chiede conferma; testo a righe, tetto 8000.
+  - **Dati**: due colonne nullable su `Airports` (`RadarTower`, `RadarTowerTechnique`). **Migrazione sì**
+    (`TorreRadar`, additiva, sui due provider). Le sezioni ai documenti già scritti le aggiunge l'avvio
+    (`AddMissingCatalogSections`), anche nella versione pubblicata: i documenti pubblicati finiscono fra i «da
+    ripubblicare», come per le LVP.
+  - **Unioni**: stessa chiave `radartower` nei due profili, dato dell'anagrafica: la scheda «sezioni in comune» la
+    propone spuntata. Nel vSOP si scrive solo su un campo senza vIPI civile, come LVP e regole piste.
+  - ⚠️ `SectionNode` rendeva **ogni** sotto-sezione del documento aperta, scritto a mano: ora una figlia può nascere
+    chiusa se lo dice il catalogo (oggi solo la tecnica).
+  - **Codice comune**: `Vipi.Application` (catalogo, viste, `TorreRadar.cs`, servizio d'anagrafica, `TitoliUfficiali`,
+    `SezioniDaScrivere`). Niente `deploy/`. Toccati i due `.resx`.
+  - **Dopo averla vista sulla copia di produzione** (committente, stesso giorno): la frase nei callout del sito —
+    verde col radar, rosso senza, giallo se non indicato — e la sezione **nasce nascosta** dappertutto, anche nei
+    documenti già scritti («poi le mostriamo man mano che le sistemiamo»), come le STAR; nelle unioni quindi non
+    è proposta spuntata. Sulla copia: migrazione passata, 68 documenti con la sezione nascosta.
+  - **Poi, stesso giorno**: il titolo diventa **«Radar di torre»** (in inglese «Tower radar»), e nella **vista live**,
+    accanto all'ICAO della vista rapida aeroporto, la pastiglia «Radar di torre ↗» se la torre ne è dotata **e** la
+    sezione si vede nel documento pubblicato: apre la vIPI/vSOP in una scheda nuova, alla sezione (`TorreRadar.Ancora`,
+    `AirportQuickPanel`, `LivePage`). Provata a schermo su una postazione inventata; la variante della vista d'area no.
+  - **Test**: App 3390 → 3415, Infra 2229 → 2232, Ui 2087 → 2100.
+  - **Non fa**: la tecnica non si traduce (testo d'anagrafica, come la nota LVP); niente formattazione.
+  - **A schermo** su un database nuovo con due scali inventati (LIRQ civile, LIPI solo militare): editor e anteprima
+    della vIPI col sì (frase, tecnica chiusa a due righe, indice fra Piste e SID) e col no (tecnica sparita da corpo e
+    indice, testo rimasto in archivio); editor e anteprima del vSOP. Non visti: l'unione, il telefono, la pagina
+    pubblica dopo una pubblicazione (carta §6).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 17-ott: tutto fuso e online fino a **S110** (1.65.0); niente da fondere;
+  Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
+  committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
+  lavoro pronto si avvisa il Master con la punta nuova (S114 esce insieme). Aperte dal 16–18 ottobre: le
+  configurazioni di Milano APP da scrivere in Struttura (S109); da guardare online col login la nota di S109, il
+  convertitore sul limite di Torino–Genova (S110), le sezioni da scrivere (S111) e il numero delle richieste aperte
+  (S112–S113); se `DiagnosticaUnGiroAllaVoltaTests` ricade in CI, la sua attesa di 3 s va allungata (§A159);
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
   `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

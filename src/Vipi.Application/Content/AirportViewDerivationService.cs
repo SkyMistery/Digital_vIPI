@@ -87,11 +87,12 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
         var freqs = frozen.Get<AirportFreqView>("frequencies");
         var runways = frozen.Get<AirportRunwaysView>("runways");
         var lvp = frozen.Get<AirportLvpView>("lvp");
+        var radar = frozen.Get<AirportRadarTowerView>(SectionKeys.RadarTower);
 
         // Il profilo si carica una volta sola, e solo se serve davvero: con tutte e quattro le sezioni congelate
         // la pagina pubblica non tocca le tabelle dell'aeroporto.
         AirportData? data = null;
-        if (rules is null || transition is null || runways is null || freqs is null || lvp is null)
+        if (rules is null || transition is null || runways is null || freqs is null || lvp is null || radar is null)
             data = await _repo.LoadAsync(icao, ct);
 
         rules ??= AirportSectionProjection.Rules(data);
@@ -100,13 +101,14 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
         freqs ??= AirportSectionProjection.Frequencies(
             await _sectors.ListByAirportAsync(icao, ct), data?.Links);
         lvp ??= AirportSectionProjection.Lvp(data);
+        radar ??= AirportSectionProjection.RadarTower(data);
 
         // Le procedure dallo STESSO lotto: chiamare qui il metodo pubblico rileggerebbe lo snapshot una
         // sesta volta. I due versi si chiedono separati, come sono separate le loro sezioni.
         return new AirportDerived(rules, transition, freqs, runways,
             frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, ProcedureKind.Sid, atCycle, ct),
             frozen.Get<AirportSidView>("stars") ?? await _sids.DeriveAsync(icao, ProcedureKind.Star, atCycle, ct),
-            lvp);
+            lvp, radar);
     }
 
     private static string Norm(string? icao) => (icao ?? "").Trim().ToUpperInvariant();

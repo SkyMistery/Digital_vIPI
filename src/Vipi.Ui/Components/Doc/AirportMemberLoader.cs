@@ -218,7 +218,9 @@ public sealed class AirportMemberLoader
         var letturaVista = AudienceFilter.Leggi(vista);
         var haMarcate = AudienceFilter.HaSezioniMarcate(sezioni);
 
-        var mostrate = AudienceFilter.Filtra(sezioni, letturaVista);
+        // ⚠️ E la tecnica della torre radar, che c'è solo con una torre dotata di radar: tolta dalla LISTA, così
+        // l'indice e il corpo dicono la stessa cosa. Sulla vista DERIVATA, quindi congelata come la sezione.
+        var mostrate = TorreRadar.Filtra(AudienceFilter.Filtra(sezioni, letturaVista), derived.RadarTower);
 
         // Le procedure citate nel testo (§A73, §A80) prendono il nome dalla tabella che il lettore vede: per
         // questo scalo sono `derived.Sids` e `derived.Stars`, le stesse che la pagina disegna (congelate o vive,
