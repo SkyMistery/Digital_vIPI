@@ -43,6 +43,39 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A160 — 1.68.0 PRONTA: «Radar di torre» (S115) e le sezioni con sottosezioni scritte (S114), con la migrazione TorreRadar (18 ottobre 2026)
+
+📦 Pronta, **da caricare** (committente). Online resta la **1.67.0** finché non carica.
+
+MINOR con **una migrazione additiva**, misurata dalla **1.67.0** (`c41681d`) che gira. Timbro **`1.68.0 · 811010f`**.
+Fusa da `sito/lavori` @ `86fb188c` (cartellino 🟢, CI 4/4 run 39126009323), fusione `9224dafe` senza conflitti.
+- **S115**: sezione «Radar di torre» (`radartower`) nelle vIPI d'aeroporto e nei vSOP, figlia «Tecnica operativa»
+  (`radartower:technique`, solo col sì), pastiglia «Radar di torre ↗» nella vista live. Dato nell'anagrafica:
+  `Airports.RadarTower` / `RadarTowerTechnique`. La sezione nasce NASCOSTA in tutti i documenti. Carta
+  `docs/feature/2026-10-18-torre-radar.md`; storia in `docs/filoni/sito.md`.
+- **S114**: una sezione con sottosezioni visibili scritte non è più «da scrivere» (`SezioniDaScrivere.Piena`).
+- **Migrazione `TorreRadar`** (SQLite `20261018105211`, MySQL `20261018105222`): due `AddColumn` nullable, nessuna
+  operazione distruttiva. La applica il sito all'avvio.
+- Codice comune: Domain (`Anagrafica`), Application (`IAirportRepository` con membri nuovi, implementato solo in
+  `EfAirportRepository`), tre `const` NUOVE (`SectionKeys.RadarTower`, `RadarTowerTechnique`,
+  `TorreRadar.TecnicaRadarMassima`), nessuna cambiata.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone`). `lab/f3` non toccato.
+
+**17 file** (`solo-17-file-1.68.0`): Domain, Application, Infrastructure.MySqlMigrations, Infrastructure, Ui, Host (dll +
+pdb), `en/Vipi.Ui.resources.dll`, `vipi-theme.css` con `.br`/`.gz` e `endpoints.json`, confrontati col publish della
+**1.67.0** (`publish_old/20261018b`): 482 file, 23 con impronta diversa; fuori Hosting, AuroraBridge.Contracts e
+AuroraProfiles (sorgente invariato, solo MVID). Zip 6,69 MB, sha256
+`fe69f457d805e72403c452d8cf87dd2b1dcef6e40df67857bce7d22695bf35f3`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3415, Infra 2232, Ui 2100). Prova sul publish win-x64
+(copia del database di sviluppo, cancellata a fine prova): la migrazione `TorreRadar` applicata all'avvio e le due
+colonne presenti; `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); nell'editor di LIRF la sezione «Radar di
+torre» fra Piste e SID con «Not stated» e la figlia «Tecnica operativa»; console pulita. Non vista sul pacchetto: la
+pastiglia nella vista live (serve uno scalo col sì e la sezione mostrata). Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.68.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0` (dice che la migrazione è passata); la sezione nell'editor di uno scalo.
+Rollback: le due rinomine (le colonne restano, vuote, e la 1.67.0 le ignora).
+
 ### ✅ A159 — 1.67.0 ONLINE: le richieste aperte nella barra e sulla chiave (S112, S113), e dentro la 1.66.0 mai caricata (S111) (18 ottobre 2026)
 
 ✅ Online dal 18 ottobre 2026: il committente conferma la 1.67 e `Schema 0`. Da fuori, da anonimo, alle 10:17Z: `/` 302,
