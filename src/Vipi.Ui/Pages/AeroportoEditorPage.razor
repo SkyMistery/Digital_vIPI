@@ -30,6 +30,10 @@
                                InModifica="@(_editor?.Guscio.IsEditing == true)" LockNegato="MembroBloccato" />
         }
 
+        @* Quante sezioni da scrivere hanno qualcosa (carta 2026-10-18-sezioni-da-scrivere). Uno scalo senza
+           documento ancora non ne ha: il riquadro non compare. *@
+        <SezioniDaScriverePanel Target="ReleaseTargetType.Airport" Key="@Codice" InModifica="@(_editor?.Guscio.IsEditing == true)" />
+
         @* ===================== VERSIONI (release AIRAC) =====================
            ⚠️ L'ancora `sec-versioni` è la stessa nei cinque editor: è dove atterra «Ripubblica» dalla lista
            «Da fare» (carta 2026-08-26-da-fare-una-lista-sola.md §3). *@

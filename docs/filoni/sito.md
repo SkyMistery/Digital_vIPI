@@ -4,15 +4,17 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 17 ottobre 2026
+## Dove siamo — 18 ottobre 2026
 
 > **In una riga**: tutto il lavoro del filone è **online** fino a **S110**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
 > centri nel banco; nella **1.65.0** (17 ottobre, §A157) **S109** (configurazioni possibili: «Tutti i settori» della
 > mappa detto in Struttura e tradotto) e **S110** (il convertitore di coordinate perdeva l'arco con «centred on:» e
-> contava male le righe lette). La 1.64.0, col solo S109, non è mai uscita: assorbita dalla 1.65.0. Niente in corso,
-> niente da fondere. **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova e la nota
-> di S109 in Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109 e S110 qui sotto.
+> contava male le righe lette). La 1.64.0, col solo S109, non è mai uscita: assorbita dalla 1.65.0.
+> **Da fondere: S111** (18 ottobre), le **sezioni da scrivere** — in ogni editor e nella pagina Versioni quante
+> sezioni editoriali hanno qualcosa e quali sono ancora vuote. Carta `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
+> **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova e la nota di S109 in
+> Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S111 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2656,6 +2658,34 @@
   - **Prova a schermo** sulla pagina del convertitore (host di sviluppo, database nuovo): nessun avviso, 53 punti,
     «Arcs converted: 1», «lines read: 12 of 14», e sulla mappa la curva a nord-ovest verso Bra.
   - Riga in carta F1 §8 (trappole note).
+- 🟢 **S111** le **sezioni da scrivere**: in ogni tipo di documento, quante hanno qualcosa e quante sono ancora
+  vuote (18-ott, il committente: «mi hanno chiesto di mettere in ogni tipo di file un indicatore di quante delle
+  sezioni obbligatorie non siano mai state toccate e quante invece ci sia almeno scritto o messo qualcosa»). Carta
+  `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
+  - **Deciso con lui**: contano le sezioni **editoriali** del catalogo (le scrive una persona; le derivate si
+    riempiono dai dati); il numero sta nell'**editor** e nella pagina **Versioni**; le **nascoste** non contano.
+    Scelte del filone, scritte in carta: «toccata» = adesso dentro c'è qualcosa, sulla versione di lavoro; la vIPI di
+    ACC per blocco; fuori i contenitori, le coordinate delle soglie, le aree del blocco Aerovia (in automatico) e i
+    due versi dei coordinamenti della vLOA.
+  - **Fatto**: `SezioniDaScrivere` (puro: quali sezioni, quando un blocco ha contenuto — un JSON conta solo se ha
+    un valore dentro una lista, così segnaposto, intestazioni senza righe e `variant` restano vuoti);
+    `EfSezioniDaScrivere` (una passata su tutti i documenti, come lo stato della traduzione); il riquadro
+    `SezioniDaScriverePanel` nei cinque editor, sopra le Versioni, che si rilegge a «Fine modifica»; in Versioni una
+    pastiglia sulla riga solo quando qualcosa manca, e il riquadro compatto nel pannello del documento. Due righe
+    nella Guida (voce «Indice laterale e salvataggio»).
+  - **Trovato sui dati veri**: le due sotto-sezioni «Coordination» della vLOA passavano per editoriali (nel
+    catalogo non hanno una natura scritta): ogni vLOA aveva due vuote che nessuno può scrivere. Escluse nel conto,
+    non nel catalogo — lì la natura derivata accenderebbe l'interruttore Live/Frozen. Test rosso prima.
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (`SezioniDaScrivere.cs`, parole
+    chiave della Guida in `GuideSearchCatalog.cs`). Toccati i due `.resx` e la Guida.
+  - **Test**: App 3364 → 3389, Infra 2226 → 2229, Ui 2078 → 2082.
+  - **Prova** sulla copia di produzione del 12 ottobre (rimontata col suo ok, cancellata subito dopo): 94 documenti
+    su 94 in 94 ms; vIPI Milano 4 di 20, Roma 1 di 20, vSOP Cameri 11 di 28, la maggior parte dei vSOP militari
+    completi, vIPI d'aeroporto spesso «0 di 0» perché hanno nascosto Procedure generali e Carte (Napoli). **A
+    schermo** sugli stessi dati travasati in un SQLite di prova (solo struttura e documenti, senza i nomi dei lock):
+    Versioni con la pastiglia su 45 righe e il riquadro compatto; i cinque editor (Milano, Amendola APP, Taranto,
+    Cameri, vLOA LIBB–LDZO); a «Fine modifica» il conto passa da 4 a 5 dopo un paragrafo aggiunto; italiano e inglese.
+  - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina online col login vero.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 17-ott: tutto fuso e online fino a **S110** (1.65.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui

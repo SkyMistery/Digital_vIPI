@@ -376,6 +376,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-06-sezioni-condivise.md`](feature/2026-10-06-sezioni-condivise.md) — Sezioni condivise fra più accordi
 - [`feature/2026-10-08-configurazioni-possibili.md`](feature/2026-10-08-configurazioni-possibili.md) — Le configurazioni possibili di un gruppo di settori — dichiarate in Struttura
 - [`feature/2026-10-12-notam-sui-documenti.md`](feature/2026-10-12-notam-sui-documenti.md) — I NOTAM della divisione in testa ai documenti pubblici — carta (12 ottobre 2026)
+- [`feature/2026-10-18-sezioni-da-scrivere.md`](feature/2026-10-18-sezioni-da-scrivere.md) — Le sezioni da scrivere — quante sono vuote e quante hanno qualcosa
 
 ### `filoni`
 

@@ -1,0 +1,106 @@
+@inherits ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<SharedResource> L
+@* Le sezioni da scrivere di questo documento: quante hanno qualcosa e quali sono ancora vuote. Carta
+   docs/feature/2026-10-18-sezioni-da-scrivere.md. Lo montano i cinque editor, sopra le Versioni.
+
+   ⚠️ SCOPE PROPRIO: legge dal database mentre l'editor che lo ospita carica il suo, e sul `DbContext` del circuito
+   sarebbero due flussi insieme — «A second operation was started on this context». E la lettura passa da
+   `InFilaAsync` (la terza porta, `TerzaPortaTests`): chi cambia pagina a metà non chiude lo scope sotto la query.
+
+   Si rilegge all'apertura e a «Fine modifica»: durante la modifica il numero cambierebbe a ogni tasto salvato, e
+   un riquadro che si muove mentre si scrive non si legge. *@
+
+@if (_stato is { } stato)
+{
+    <div class="@(Compatto ? "sds sds-compact" : "block sds")" style="@(Compatto ? "margin:0 0 12px" : "margin-top:10px")" data-sezioni-da-scrivere>
+        @if (Compatto)
+        {
+            <p style="margin:0 0 4px" title="@L["SdS_Help"]"><b><Icon Name="check-circle" Size="14" /> @L["SdS_Title"]</b></p>
+        }
+        else
+        {
+            <h3 style="margin-top:0"><Icon Name="check-circle" /> @L["SdS_Title"]</h3>
+            <p class="help">@L["SdS_Help"]</p>
+        }
+
+        @if (stato.Totale == 0)
+        {
+            <p class="muted sds-none" style="margin:0">@L["SdS_None"]</p>
+        }
+        else
+        {
+            <p class="sds-count" style="margin:0 0 6px">
+                <span class="pill @(stato.Vuote == 0 ? "green" : "amber")">@string.Format(L["SdS_Count"].Value, stato.Scritte, stato.Vuote, stato.Totale)</span>
+            </p>
+            @foreach (var parte in stato.Parti.Where(p => p.Totale > 0))
+            {
+                @if (parte.Titolo is { } titolo)
+                {
+                    <p class="sds-part" style="margin:8px 0 2px"><b>@titolo</b> · <span class="muted">@string.Format(L["SdS_Part"].Value, parte.Scritte, parte.Totale)</span></p>
+                }
+                @if (parte.Vuote.Count > 0)
+                {
+                    <ul class="sds-empty" style="margin:2px 0 0;padding-left:20px">
+                        @foreach (var v in parte.Vuote)
+                        {
+                            <li>@v.Percorso</li>
+                        }
+                    </ul>
+                }
+            }
+            @if (stato.Vuote == 0)
+            {
+                <p class="muted" style="margin:6px 0 0">@L["SdS_AllDone"]</p>
+            }
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Il documento, se chi monta il riquadro ce l'ha già (la vLOA). Altrimenti <see cref="Target"/> e
+    /// <see cref="Key"/>, come <c>ReleasePanel</c>.</summary>
+    [Parameter] public int? DocumentId { get; set; }
+    [Parameter] public ReleaseTargetType? Target { get; set; }
+    [Parameter] public string? Key { get; set; }
+
+    /// <summary>La forma della pagina Versioni: dentro il pannello del documento, fra righe in grassetto, senza il
+    /// titolo grande e l'aiuto degli editor (l'aiuto resta nel tooltip).</summary>
+    [Parameter] public bool Compatto { get; set; }
+
+    /// <summary>Vero mentre l'editor è in modifica: al passaggio a falso («Fine modifica») si rilegge.</summary>
+    [Parameter] public bool InModifica { get; set; }
+
+    private StatoSezioni? _stato;
+    private (int?, ReleaseTargetType?, string?)? _letto;
+    private bool _eraInModifica;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var chi = (DocumentId, Target, Key);
+        var fineModifica = _eraInModifica && !InModifica;
+        _eraInModifica = InModifica;
+        // OnParametersSetAsync scatta a ogni ridisegno del genitore: si rilegge solo se è cambiato il documento o è
+        // finita una modifica.
+        if (_letto == chi && !fineModifica) return;
+        _letto = chi;
+
+        await InFilaAsync(async () =>
+        {
+            try
+            {
+                var id = DocumentId;
+                if (id is null && Target is { } t && !string.IsNullOrWhiteSpace(Key))
+                    id = await ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IReleaseTargetRegistry>()
+                        .For(t).ResolveDocumentIdAsync(Key);
+                _stato = id is int doc
+                    ? await ScopedServices.GetRequiredService<ISezioniDaScrivereService>().DocumentoAsync(doc)
+                    : null;
+            }
+            catch (KeyNotFoundException)
+            {
+                _stato = null;   // tipo di documento non registrato: niente da contare
+            }
+        });
+    }
+}

@@ -4195,6 +4195,15 @@
   <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector.</value></data>
+  <data name="SdS_Title" xml:space="preserve"><value>Sections to write</value></data>
+  <data name="SdS_Help" xml:space="preserve"><value>The sections of the document that a person writes. Those filled from data (AOR, frequencies, SID, weather…) and hidden ones do not count. Updated on «Finish editing».</value></data>
+  <data name="SdS_Count" xml:space="preserve"><value>{0} with content · {1} empty, of {2}</value></data>
+  <data name="SdS_Part" xml:space="preserve"><value>{0} of {1} with content</value></data>
+  <data name="SdS_AllDone" xml:space="preserve"><value>Every section to write has some content.</value></data>
+  <data name="SdS_None" xml:space="preserve"><value>This document has no sections to write: everything is filled from data.</value></data>
+  <data name="SdS_Pill" xml:space="preserve"><value>{0} empty sections</value></data>
+  <data name="SdS_PillOne" xml:space="preserve"><value>1 empty section</value></data>
+  <data name="SdS_PillTitle" xml:space="preserve"><value>Sections to write that are still empty, of {0}. The list is in the document's panel.</value></data>
   <data name="Cfgs_DocShowsAll" xml:space="preserve"><value>Until a list is written here, the document's AOR map offers a single choice, «All sectors», which lights up the whole group. It is not a configuration: it is the map making do.</value></data>
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>

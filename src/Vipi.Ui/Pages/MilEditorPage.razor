@@ -29,6 +29,9 @@
                                InModifica="@(_editor?.Guscio.IsEditing == true)" LockNegato="MembroBloccato" />
         }
 
+        @* Quante sezioni da scrivere hanno qualcosa (carta 2026-10-18-sezioni-da-scrivere). *@
+        <SezioniDaScriverePanel Target="ReleaseTargetType.AirportMil" Key="@Codice" InModifica="@(_editor?.Guscio.IsEditing == true)" />
+
         @* L'unione dei documenti: SOPRA il pannello di pubblicazione, perché e' cio' che decide QUANTI
            documenti quel tasto pubblichera'. *@
         <UnionPanel Target="ReleaseTargetType.AirportMil" Key="@Codice"
