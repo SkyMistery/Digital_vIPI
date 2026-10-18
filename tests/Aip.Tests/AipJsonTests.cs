@@ -162,6 +162,59 @@ public sealed class AipJsonTests
         Assert.DoesNotContain("bands", AipJson.Serialize(new AipDocument { State = "LI", Airspaces = [Uir("G") with { Bands = null }] }));
     }
 
+    // Slice 2: le rotte di ENR 3 (punti e tratti) e le attese di ENR 3.4.1. Le uguaglianze sono scritte a mano per le liste.
+    [Fact]
+    public void RotteEAtteseVannoInJsonETornanoUguali()
+    {
+        static Route Rotta(RouteDirection pari) => new()
+        {
+            Section = "ENR 3.2",
+            Designator = "L99",
+            Navigation = "RNAV 5",
+            Points =
+            [
+                new RoutePoint("UNIMI", "UNIMI", new Position(46.860833, 11.065278), true, "For continuation see AIP AUSTRIA"),
+                new RoutePoint("VIC", "VICENZA VOR/DME 'VIC'", new Position(45.637222, 11.676389), false),
+                new RoutePoint("KOPER", "KOPER", new Position(45.153889, 11.641389), true),
+            ],
+            Segments =
+            [
+                new RouteSegment
+                {
+                    Track = "153° / 333°", DistanceNm = 26.1, LateralLimits = "5",
+                    Upper = new VerticalLimit { Text = "FL195" }, Lower = new VerticalLimit { Text = "FL155" },
+                    Odd = RouteDirection.Forward, Even = pari, MinimumOdd = "150", MinimumEven = "160", Remarks = "CDR1",
+                },
+                new RouteSegment { Discontinuity = true },
+            ],
+            Page = new AipPage("ENR 3.2 L99-1", new DateOnly(2024, 3, 21)),
+        };
+        var attesa = new Holding
+        {
+            Section = "ENR 3.4.1",
+            Fix = "ABRUS",
+            Bearing = "RDL070/10NM PAN",
+            Minimum = new VerticalLimit { Text = "3000" },
+            Turn = TurnDirection.Left,
+            InboundTrack = 250,
+            NoteRefs = "(1)",
+            Remarks = "IAS MAX 190kt",
+        };
+        var doc = new AipDocument { State = "LI", Routes = [Rotta(RouteDirection.Backward)], Holdings = [attesa] };
+
+        var json = AipJson.Serialize(doc);
+        var riletto = AipJson.Deserialize(json);
+
+        Assert.Equal(doc, riletto);
+        Assert.NotEqual(Rotta(RouteDirection.None), riletto.Routes![0]);
+        Assert.NotEqual(attesa with { Turn = TurnDirection.Right }, riletto.Holdings![0]);
+        Assert.NotEqual(doc with { Holdings = null }, riletto);
+        Assert.Contains("\"even\": \"backward\"", json);
+        Assert.DoesNotContain("\"forward\": ", json);
+        // Un documento senza rotte né attese non le scrive: l'AIP espanso di prima non cambia.
+        Assert.DoesNotContain("routes", AipJson.Serialize(new AipDocument { State = "LI" }));
+    }
+
     [Fact]
     public void DueAnelliConGliStessiTrattiSonoUguali_UnTrattoDiversoNo()
     {

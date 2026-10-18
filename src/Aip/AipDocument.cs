@@ -30,13 +30,21 @@ public sealed record AipDocument
     /// <summary>ENR 2 (spazi aerei ATS) ed ENR 5 (aree P/R/D, TSA/TRA, militari, pericoli), nell'ordine dell'AIP.</summary>
     public IReadOnlyList<Airspace> Airspaces { get; init; } = [];
 
+    /// <summary>ENR 3: le rotte ATS, nell'ordine in cui si sono lette. Null se il documento non ne ha (lo schema resta 1).</summary>
+    public IReadOnlyList<Route>? Routes { get; init; }
+
+    /// <summary>ENR 3.4.1: le attese in rotta. Null se il documento non ne ha.</summary>
+    public IReadOnlyList<Holding>? Holdings { get; init; }
+
     public bool Equals(AipDocument? other) =>
         other is not null
         && SchemaVersion == other.SchemaVersion
         && State == other.State
         && Airac == other.Airac
         && Effective == other.Effective
-        && Airspaces.SequenceEqual(other.Airspaces);
+        && Airspaces.SequenceEqual(other.Airspaces)
+        && (Routes ?? []).SequenceEqual(other.Routes ?? [])
+        && (Holdings ?? []).SequenceEqual(other.Holdings ?? []);
 
     public override int GetHashCode() => HashCode.Combine(SchemaVersion, State, Airac, Effective, Airspaces.Count);
 }

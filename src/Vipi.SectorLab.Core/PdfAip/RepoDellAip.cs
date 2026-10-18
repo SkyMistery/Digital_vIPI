@@ -131,7 +131,13 @@ public static class RepoDellAip
             ? string.Join(", ", nomi)
             : string.Join(", ", nomi.Select(n => System.Text.RegularExpressions.Regex.Match(n!, @"^LI-(?<s>[A-Z]+ \d+)").Groups["s"].Value)
                 .Where(s => s.Length > 0).Distinct().Order(StringComparer.Ordinal));
-        return $"AIP {esito.Ciclo}: {esito.Aree} aree da {esito.Letti.Count} PDF ({cosa})";
+        var quanti = string.Join(", ", new[]
+        {
+            $"{esito.Aree} aree",
+            esito.Rotte > 0 ? $"{esito.Rotte} rotte" : null,
+            esito.Attese > 0 ? $"{esito.Attese} attese" : null,
+        }.OfType<string>());
+        return $"AIP {esito.Ciclo}: {quanti} da {esito.Letti.Count} PDF ({cosa})";
     }
 
     /// <summary>Registra i file dentro i confini, e solo quelli. Torna null se è andata, o il perché.</summary>

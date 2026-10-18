@@ -1,0 +1,137 @@
+using System.Text.Json.Serialization;
+
+namespace Aip;
+
+/// <summary>
+/// Una rotta ATS di ENR 3 (3.1 rotte convenzionali, 3.2 rotte di navigazione d'area, 3.3 le altre), come la stampa
+/// l'AIP: i punti in ordine e, fra due punti, un tratto coi suoi dati (carta F6 §6, slice 2).
+/// <para>I tratti sono uno meno dei punti: <c>Segments[i]</c> va da <c>Points[i]</c> a <c>Points[i + 1]</c>.</para>
+/// </summary>
+public sealed record Route
+{
+    /// <summary>La sezione dell'AIP: <c>ENR 3.2</c>.</summary>
+    public required string Section { get; init; }
+
+    /// <summary>L'identificativo della rotta, com'è stampato: <c>L12</c>, <c>KY139</c>.</summary>
+    public required string Designator { get; init; }
+
+    /// <summary>La specifica di navigazione, dove l'AIP la dice: <c>RNAV 5</c>.</summary>
+    public string? Navigation { get; init; }
+
+    public required IReadOnlyList<RoutePoint> Points { get; init; }
+
+    public required IReadOnlyList<RouteSegment> Segments { get; init; }
+
+    /// <summary>La pagina della prima riga della rotta, con la sua data AIRAC.</summary>
+    public AipPage? Page { get; init; }
+
+    // ⚠️ Scritta a mano: l'uguaglianza dei record confronterebbe le liste per riferimento.
+    public bool Equals(Route? other) =>
+        other is not null
+        && Section == other.Section && Designator == other.Designator && Navigation == other.Navigation
+        && Points.SequenceEqual(other.Points) && Segments.SequenceEqual(other.Segments) && Page == other.Page;
+
+    public override int GetHashCode() => HashCode.Combine(Section, Designator);
+}
+
+/// <summary>
+/// Un punto significativo di una rotta. <paramref name="Designator"/>: il nome con cui la rotta lo usa (<c>UNIMI</c>, e per
+/// una radioassistenza la sua sigla, <c>VIC</c>); <paramref name="Text"/>: com'è stampato (<c>VICENZA VOR/DME 'VIC'</c>).
+/// <paramref name="Compulsory"/>: punto di riporto obbligatorio (▲) o a richiesta (∆). <paramref name="Remarks"/>: quel che
+/// l'AIP scrive accanto al punto (l'ente che cambia, «For continuation see AIP AUSTRIA»).
+/// </summary>
+public sealed record RoutePoint(string Designator, string Text, Position Position, bool Compulsory, string? Remarks = null);
+
+/// <summary>
+/// In che verso della rotta valgono i livelli di crociera di una parità: nell'ordine dei punti dell'AIP (↓, dall'alto in
+/// basso della tabella), al contrario (↑), o in nessuno (la colonna è vuota).
+/// </summary>
+public enum RouteDirection
+{
+    None,
+    Forward,
+    Backward,
+}
+
+/// <summary>
+/// Un tratto di rotta fra due punti, con le colonne dell'AIP: rotta magnetica e distanza, limiti verticali, ampiezza
+/// laterale, per i livelli dispari e pari il verso e la quota minima (MNM FL), le note.
+/// </summary>
+public sealed record RouteSegment
+{
+    /// <summary>Le rotte magnetiche, come le stampa l'AIP: <c>153° / 333°</c>.</summary>
+    public string? Track { get; init; }
+
+    public double? DistanceNm { get; init; }
+
+    public VerticalLimit? Upper { get; init; }
+
+    public VerticalLimit? Lower { get; init; }
+
+    /// <summary>L'ampiezza laterale, in NM, come la stampa l'AIP (<c>5</c>).</summary>
+    public string? LateralLimits { get; init; }
+
+    /// <summary>Il verso dei livelli dispari (colonna 5, la prima).</summary>
+    public RouteDirection Odd { get; init; }
+
+    /// <summary>Il verso dei livelli pari (colonna 5, la seconda).</summary>
+    public RouteDirection Even { get; init; }
+
+    /// <summary>La quota minima per i livelli dispari (MNM FL), come stampata: <c>130</c>.</summary>
+    public string? MinimumOdd { get; init; }
+
+    public string? MinimumEven { get; init; }
+
+    public string? Remarks { get; init; }
+
+    /// <summary>La rotta qui si interrompe: fra i due punti non c'è un tratto (l'AIP lo segna con una riga di barre).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Discontinuity { get; init; }
+
+    /// <summary>Il tratto si percorre nell'ordine dei punti: una delle due parità ha il verso avanti.</summary>
+    [JsonIgnore]
+    public bool Forward => Odd == RouteDirection.Forward || Even == RouteDirection.Forward;
+
+    /// <summary>Il tratto si percorre al contrario.</summary>
+    [JsonIgnore]
+    public bool Backward => Odd == RouteDirection.Backward || Even == RouteDirection.Backward;
+}
+
+/// <summary>Il verso della virata di un'attesa.</summary>
+public enum TurnDirection
+{
+    Right,
+    Left,
+}
+
+/// <summary>
+/// Un'attesa di ENR 3.4.1 (procedure di attesa in rotta sui punti di riporto): il punto, il riferimento dato dall'AIP
+/// (radiale e distanza da una radioassistenza, se c'è), la quota minima (MHA/MHL), il verso della virata, la rotta
+/// d'avvicinamento magnetica, le note. Un punto può avere più attese (le varianti numerate «(1)», «(2)»).
+/// </summary>
+public sealed record Holding
+{
+    public required string Section { get; init; }
+
+    /// <summary>Il punto dell'attesa: <c>ABRUS</c>.</summary>
+    public required string Fix { get; init; }
+
+    /// <summary>Il riferimento della colonna 2, com'è stampato: <c>RDL070/10NM PAN</c>.</summary>
+    public string? Bearing { get; init; }
+
+    /// <summary>La quota minima (MHA/MHL), come stampata: <c>3000</c>, <c>FL110</c>.</summary>
+    public required VerticalLimit Minimum { get; init; }
+
+    public required TurnDirection Turn { get; init; }
+
+    /// <summary>La rotta d'avvicinamento magnetica, in gradi (<c>250</c>).</summary>
+    public required int InboundTrack { get; init; }
+
+    /// <summary>I rimandi alle note accanto all'attesa: <c>(1)</c>, <c>(2)(3)</c>.</summary>
+    public string? NoteRefs { get; init; }
+
+    /// <summary>Le note del punto, com'è stampato (valgono per tutte le sue attese).</summary>
+    public string? Remarks { get; init; }
+
+    public AipPage? Page { get; init; }
+}

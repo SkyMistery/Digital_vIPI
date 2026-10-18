@@ -174,9 +174,9 @@ public sealed class PdfFintoTests
     [Fact]
     public void UnFileCheNonSaLeggereLoDice()
     {
-        var letto = ItalianAip.ReadFile("LI-ENR 3.2 L12.pdf");
+        var letto = ItalianAip.ReadFile("LI-ENR 4.4.pdf");
 
         Assert.Empty(letto.Airspaces);
-        Assert.Equal(new ImportIssue(ImportIssueKind.Unsupported, null, null, "LI-ENR 3.2 L12.pdf"), Assert.Single(letto.Issues));
+        Assert.Equal(new ImportIssue(ImportIssueKind.Unsupported, null, null, "LI-ENR 4.4.pdf"), Assert.Single(letto.Issues));
     }
 }

@@ -35,6 +35,8 @@ foreach (var x in ingressi)
 }
 
 var aree = new List<Airspace>();
+var rotte = new List<Route>();
+var attese = new List<Holding>();
 var esito = 0;
 foreach (var f in file)
 {
@@ -57,10 +59,14 @@ foreach (var f in file)
     }
 
     aree.AddRange(letto.Airspaces);
+    rotte.AddRange(letto.Routes);
+    attese.AddRange(letto.Holdings);
     var date = letto.Pages.GroupBy(p => p.Effective).OrderBy(g => g.Key)
         .Select(g => $"{(g.Key is { } d ? d.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant() : "senza data")} ×{g.Count()}");
     Console.WriteLine($"{Path.GetFileName(f)}: {letto.Pages.Count} pagine ({string.Join(", ", date)}), "
-        + $"{letto.Pages.Count(p => !p.Table)} senza tabella, {letto.Airspaces.Count} aree");
+        + $"{letto.Pages.Count(p => !p.Table)} senza tabella, {letto.Airspaces.Count} aree"
+        + (letto.Routes.Count > 0 ? $", rotte {string.Join(" ", letto.Routes.Select(r => $"{r.Designator} ({r.Points.Count} punti)"))}" : "")
+        + (letto.Holdings.Count > 0 ? $", {letto.Holdings.Count} attese su {letto.Holdings.Select(a => a.Fix).Distinct().Count()} punti" : ""));
     foreach (var g in letto.Airspaces.GroupBy(a => a.Geometry.GetType().Name).OrderBy(g => g.Key))
         Console.WriteLine($"    {g.Key}: {g.Count()}");
     foreach (var g in letto.Issues.GroupBy(p => p.Kind).OrderBy(g => g.Key))
@@ -70,15 +76,23 @@ foreach (var f in file)
             Console.WriteLine($"      {a.Type,-10} {a.Key} | {a.Upper.Text} / {a.Lower.Text} {a.Class} {(a.Bands is { } b ? $"[{b.Count} fasce]" : "")}"
                 + $" | {a.Geometry switch { RingGeometry r => $"anello {r.Segments.Count}", CircleGeometry => "cerchio", _ => "?" }}"
                 + $" | {a.Unit?.Replace('\n', ';')} {a.Hours} {a.TransitionAltitude} | p.{a.Page?.Reference}");
+    if (elenco)
+        foreach (var r in letto.Routes)
+            for (var k = 0; k < r.Points.Count; k++)
+                Console.WriteLine($"      {r.Designator} {(r.Points[k].Compulsory ? '▲' : '∆')} {r.Points[k].Designator,-6} {r.Points[k].Position.Lat:0.0000} {r.Points[k].Position.Lon:0.0000}"
+                    + (k < r.Segments.Count ? $" → {r.Segments[k].Track} {r.Segments[k].DistanceNm} | {r.Segments[k].Upper?.Text} / {r.Segments[k].Lower?.Text} | {r.Segments[k].LateralLimits} | dispari {r.Segments[k].Odd} {r.Segments[k].MinimumOdd} pari {r.Segments[k].Even} {r.Segments[k].MinimumEven} | {r.Segments[k].Remarks}" : ""));
+    if (elenco)
+        foreach (var a in letto.Holdings)
+            Console.WriteLine($"      {a.Fix,-6} {a.Bearing} | {a.Minimum.Text} {a.Turn} {a.InboundTrack:000} {a.NoteRefs} | p.{a.Page?.Reference}");
     if (dettagli)
         foreach (var p in letto.Issues)
             Console.WriteLine($"      {p.Kind} p.{p.Page} {p.Key} {p.Detail}".TrimEnd());
 }
 
-var doc = new AipDocument { State = ItalianAip.State, Airac = airac, Airspaces = aree };
+var doc = new AipDocument { State = ItalianAip.State, Airac = airac, Airspaces = aree, Routes = rotte.Count == 0 ? null : rotte, Holdings = attese.Count == 0 ? null : attese };
 foreach (var p in AipCheck.Run(doc))
     Console.WriteLine($"modello: {p.Kind} {p.Key} {p.Detail}".TrimEnd());
-Console.WriteLine($"Totale: {aree.Count} aree da {file.Count} file.");
+Console.WriteLine($"Totale: {aree.Count} aree, {rotte.Count} rotte, {attese.Count} attese da {file.Count} file.");
 
 if (uscita is not null)
 {

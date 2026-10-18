@@ -45,9 +45,25 @@ public enum ImportIssueKind
 
     /// <summary>Un file che l'importer non sa ancora leggere. <c>Detail</c> = il nome.</summary>
     Unsupported,
+
+    /// <summary>
+    /// Una rotta di ENR 3 che non torna: un punto senza coordinate, un tratto senza dati fra due punti, testo prima del
+    /// primo punto che non è l'identificativo. <c>Detail</c> = cosa e dove.
+    /// </summary>
+    Route,
+
+    /// <summary>Una riga di ENR 3.4.1 con un'attesa che non si legge (quota, virata o rotta d'avvicinamento). <c>Detail</c> = la riga.</summary>
+    Holding,
 }
 
-public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues);
+public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)
+{
+    /// <summary>ENR 3: le rotte lette (slice 2).</summary>
+    public IReadOnlyList<Route> Routes { get; init; } = [];
+
+    /// <summary>ENR 3.4.1: le attese lette (slice 2).</summary>
+    public IReadOnlyList<Holding> Holdings { get; init; } = [];
+}
 
 /// <summary>
 /// L'AIP italiano di ENAV. Oggi le tabelle di ENR 5.1 (P, R, D, TSA/TRA/CBA): 4 colonne — identificativo, nome e
@@ -86,6 +102,9 @@ public static partial class ItalianAip
     [GeneratedRegex(@"^(?![^°º]*[°º])(?!.*(?:Circular area|arc of circle|geographical border|from coast|to point of origin|till point))\S.*$", RegexOptions.CultureInvariant)]
     private static partial Regex RxSeguitoDelNome();
 
+    [GeneratedRegex(@"^LI-ENR (?<s>3\.[123]) [A-Z]{1,2}\d+$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxRotte();
+
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
 
@@ -118,6 +137,11 @@ public static partial class ItalianAip
             return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.2", AirspaceType.Fra);
         if (nome == "LI-ENR 2.2")
             return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.2", null);
+        // ENR 3 (slice 2): una rotta per file in 3.1-3.3, le attese in rotta in 3.4.1.
+        if (RxRotte().Match(nome) is { Success: true } rotte)
+            return ItalianEnr3.ReadRoutes(PdfText.Read(path), "ENR " + rotte.Groups["s"].Value);
+        if (nome == "LI-ENR 3.4.1")
+            return ItalianEnr3.ReadHoldings(PdfText.Read(path));
         return new ImportResult([], [], [new ImportIssue(ImportIssueKind.Unsupported, null, null, Path.GetFileName(path))]);
     }
 

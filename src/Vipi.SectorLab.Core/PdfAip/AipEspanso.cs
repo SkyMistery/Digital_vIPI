@@ -19,7 +19,14 @@ public sealed record EsitoDellAipEspanso(
     int Aree,
     IReadOnlyList<(DateOnly? Data, int Pagine)> Date,
     IReadOnlyList<ProblemaDellImport> Problemi,
-    IReadOnlyList<string> Illeggibili);
+    IReadOnlyList<string> Illeggibili)
+{
+    /// <summary>Le rotte di ENR 3 lette (slice 2).</summary>
+    public int Rotte { get; init; }
+
+    /// <summary>Le attese di ENR 3.4.1 lette (slice 2).</summary>
+    public int Attese { get; init; }
+}
 
 /// <summary>
 /// L'AIP espanso (carta F6 §3, D5): tutto quel che il Lab importa dall'AIP — quel che il sector ha e quel che non ha —
@@ -55,6 +62,8 @@ public static class AipEspanso
             throw new ArgumentException($"Ciclo AIRAC non valido: «{ciclo}».", nameof(ciclo));
 
         var aree = new List<Airspace>();
+        var rotte = new List<Route>();
+        var attese = new List<Holding>();
         var letti = new List<string>();
         var nonAncora = new List<string>();
         var illeggibili = new List<string>();
@@ -83,6 +92,8 @@ public static class AipEspanso
 
             letti.Add(nome);
             aree.AddRange(letto.Airspaces);
+            rotte.AddRange(letto.Routes);
+            attese.AddRange(letto.Holdings);
             pagine.AddRange(letto.Pages);
             problemi.AddRange(letto.Issues.Select(p => new ProblemaDellImport(nome, p)));
         }
@@ -93,6 +104,8 @@ public static class AipEspanso
             Airac = ciclo,
             Effective = CicloInVigore(ciclo),
             Airspaces = aree,
+            Routes = rotte.Count == 0 ? null : rotte,
+            Holdings = attese.Count == 0 ? null : attese,
         };
 
         var scritto = File(espanso, ciclo);
@@ -104,7 +117,11 @@ public static class AipEspanso
         System.IO.File.Move(provvisorio, scritto, overwrite: true);
 
         var date = pagine.GroupBy(p => p.Effective).OrderBy(g => g.Key).Select(g => (g.Key, g.Count())).ToList();
-        return new EsitoDellAipEspanso(ciclo, scritto, pdf.Count, letti, nonAncora, aree.Count, date, problemi, illeggibili);
+        return new EsitoDellAipEspanso(ciclo, scritto, pdf.Count, letti, nonAncora, aree.Count, date, problemi, illeggibili)
+        {
+            Rotte = rotte.Count,
+            Attese = attese.Count,
+        };
     }
 
     /// <summary>La data di entrata in vigore del ciclo <c>AACC</c>.</summary>

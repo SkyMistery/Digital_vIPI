@@ -140,6 +140,10 @@ public static partial class GeometryText
     /// <summary>Vero se il testo contiene almeno una coordinata nelle forme dell'AIP.</summary>
     public static bool HasCoordinate(string? text) => text is not null && RxCoordinata().IsMatch(text);
 
+    /// <summary>Il primo punto del testo (un punto di una rotta, ENR 3), o null se non ce n'è uno valido.</summary>
+    public static Position? ReadPoint(string? text) =>
+        text is not null && RxCoordinata().Match(text) is { Success: true } m ? Coordinata(m) : null;
+
     public static GeometryReadResult Read(string? text)
     {
         var problemi = new List<GeometryIssue>();

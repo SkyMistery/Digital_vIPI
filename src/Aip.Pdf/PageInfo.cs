@@ -13,7 +13,7 @@ public static partial class PageInfo
     [GeneratedRegex(@"AIRAC\s+effective\s+date\s+(?<d>\d{1,2})\s+(?<m>[A-Z]{3})\s+(?<y>\d{4})", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxData();
 
-    [GeneratedRegex(@"^(?<r>(?:GEN|ENR|AD)\s+[0-9][0-9.]*(?:\s+[A-Z]{4})?(?:\s+[0-9.]+)?\s*-\s*\d+)\b", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    [GeneratedRegex(@"^(?<r>(?:GEN|ENR|AD)\s+[0-9][0-9.]*(?:\s+(?:[A-Z]{4}|[A-Z]{1,2}\d{1,4}))?(?:\s+[0-9.]+)?\s*-\s*\d+)\b", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxRiferimento();
 
     [GeneratedRegex(@"\s+")]

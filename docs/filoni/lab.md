@@ -4,7 +4,16 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026, sera: F6, le ATZ (negli .str e in twrs.tfl)
+## Dove siamo — 19 ottobre 2026: F6, slice 2a fatta (l'importer di ENR 3)
+
+**Slice 2a fatta**: le rotte di ENR 3.2 (29 su 29 PDF scaricati, zero segnalazioni: punti, per tratto verso e quota
+minima per parità, limiti, note, interruzioni) e le attese in rotta di ENR 3.4.1 (413 su 245 punti, controprova con
+pdfplumber, tre righe a celle unite dette) nel modello (`Route`, `Holding`) e nell'AIP espanso: PR #3 aggiornata.
+ENR 2 ed ENR 5.1 ancora 870 aree. Il committente: Viterbo si segnala a ENAV (testo pronto, lo manda lui), le torri di
+Guidonia e Torino le valuta lui. **Prossima: 2b**, il confronto delle rotte con `itawlow.lairway` e delle attese con
+`HOLDENR.hold`, in sola lettura.
+
+## 18 ottobre 2026, sera: F6, le ATZ (negli .str e in twrs.tfl)
 
 Il committente ha approvato le quattro scelte della 1c e detto dove stanno le altre famiglie: TMA e CTA il sector non
 le tiene, le ATZ sì, negli `.str` e in `twrs.tfl`. Ora si confrontano anche le ATZ, nei due posti, con «Sostituisci» e

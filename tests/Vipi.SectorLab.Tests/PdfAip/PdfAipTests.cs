@@ -89,7 +89,7 @@ public sealed class PdfAipTests : IDisposable
     {
         var pdf = Cartella("AIP");
         File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("09 JUL 2026", "LI R901 - Prova Uno", "LI R902 - Prova Due"));
-        File.WriteAllText(Path.Combine(pdf, "LI-ENR 3.2 L12.pdf"), "una slice futura");
+        File.WriteAllText(Path.Combine(pdf, "LI-ENR 4.4.pdf"), "una slice futura");
         File.WriteAllText(Path.Combine(pdf, "LI-ENR 5.1.3.pdf"), "questo non è un PDF");
         var espanso = Path.Combine(_radice, "espanso");
 
@@ -98,7 +98,7 @@ public sealed class PdfAipTests : IDisposable
         Assert.Equal(Path.Combine(espanso, "2611", "li.json"), esito.Scritto);
         Assert.Equal(3, esito.Pdf);
         Assert.Equal(["LI-ENR 5.1.2.pdf"], esito.Letti);
-        Assert.Equal(["LI-ENR 3.2 L12.pdf"], esito.NonAncora);
+        Assert.Equal(["LI-ENR 4.4.pdf"], esito.NonAncora);
         Assert.StartsWith("LI-ENR 5.1.3.pdf", Assert.Single(esito.Illeggibili), StringComparison.Ordinal);
         Assert.Equal(2, esito.Aree);
         Assert.Equal([(new DateOnly(2026, 7, 9), 1)], esito.Date);
