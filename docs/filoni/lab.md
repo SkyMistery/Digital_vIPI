@@ -4,7 +4,16 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 17 ottobre 2026: la slice 17 è fatta, il lotto aspetta il giro del committente
+## Dove siamo — 18 ottobre 2026: la F4 è fatta
+
+La **F4, git nel Lab**, è fatta (carta [`2026-10-17-f4-git-nel-lab.md`](../feature/2026-10-17-f4-git-nel-lab.md), traccia §7):
+il ramo nella barra, «Prendi il sector», i rami di lavoro `aod/<VID>/…` e il ramo del ciclo, «Registra», «Manda» con
+la pagina della PR, il changelog proposto e scritto, il riporto nel ciclo e la fine del ciclo, le cancellazioni,
+«Allinea». Provata davvero sul fork di prova: nove PR fuse dal committente, fra cui le prime correzioni R-10
+(140 errori e 1 122 avvisi sul `master` del fork, erano 141 e 1 244). Il repo vero non è stato toccato. Codice
+solo del Lab (`Vipi.SectorLab.Core/Git`, la sessione, il riquadro del ramo). Resta il giro di prove del lotto.
+
+## 17 ottobre 2026: la slice 17 è fatta, il lotto aspetta il giro del committente
 
 La prova T3 in Aurora (esito in «file per file» §20): i simboli si scelgono **per ruolo** nelle impostazioni
 (linguetta SYMBOLS), da una tavolozza coi 23 simboli del `.sym` nell'ordine del file; la scelta si salva nel profilo

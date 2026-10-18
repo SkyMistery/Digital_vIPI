@@ -1,6 +1,8 @@
 # F4 — Git nel Lab: rami, commit, pull request, il ramo dell'AIRAC (17 ottobre 2026)
 
-> **Stato: ✅ APPROVATA** dal committente il 17 ottobre 2026 («vai»), con le risposte di §6. Il fork di prova è allineato al repo vero (`11b8569`).
+> **Stato: ✅ FATTA** (18 ottobre 2026): slice 0-8, traccia in §7. Approvata dal committente il 17 ottobre («vai»), con le
+> risposte di §6. Il giro ramo → registra → manda → PR → fusione è fatto dall'app sul fork di prova, nove PR fuse dal
+> committente. Il repo vero (`ivao-italy/it-aurora-sector`) non è stato toccato: si passa lì quando lo dice lui (§6, D4).
 > Quarta fase di Aurora Sector Lab ([carta madre](2026-09-18-aurora-sector-lab.md), §1 decisioni 4-7 e 12, §7). Usa
 > l'app di F3 ([carta F3](2026-09-22-f3-l-app.md)) e il lotto «Subito»
 > ([carta del lotto](2026-09-27-lotto-subito.md)); le voci «F4» dei file stanno nella
@@ -246,3 +248,33 @@ la proposta (il VID nelle Impostazioni del Lab).
     `airac/2611`, fusa dal committente («puntava bene»). Poi il riquadro dice «airac/2611 ha già tutto quel che c'è su
     master». Le cancellazioni sono provate nei test, non sul fork.
   Test Lab 1 006 → **1 013**, due giri verdi. **Slice 7 chiusa.**
+- **Slice 8 (17-18 ottobre)** — il primo lavoro vero: le correzioni R-10 già decise, in PR piccole per argomento.
+  - **Misura** sul `master` del fork (`aa02322`): 141 errori, 1 244 avvisi; delle correzioni R-10 decise, quelle con la
+    riga corretta pronta nel Lab erano cinque argomenti. Gli altri (include dopo un escluso, decimali delle rotte,
+    etichette delle aerovie, coordinate, lettere e quote MVA) restano per un secondo giro.
+  - **Cinque lavori dal Lab**, tutti da `master`, coi tasti «Correggi la riga» e «Correggi tutte» del pannello dei
+    problemi (filtrato per regola: il pannello mostra 200 voci) e «Togli questo record»: **A** la `]` in più di
+    `default.atis`; **B** i codici VFR fuori posto (`lipa.vfi` 3-6, `lict.vfi` 8, `liph.vfi` 2) e cinque punti portati
+    sul loro fix nascosto (deciso il 6 ottobre: è giusto il fix; spostamenti fino a 6,8 NM, scritti nella PR);
+    **C** `EKLAP` nel fix e nell'info di `HLD-EKLAP`; **D** il gruppo sui 104 separatori `T;DUMMY` delle MVA di ACC;
+    **E** `L3MC`/`L4MC` → `LIMC`, `LINB` → `LIBN`, via lo stand di LIBP da `libg.gts`. A, B, C con le righe di
+    changelog proposte dal Lab e corrette; D ed E senza (c'è già «Correzioni errori vari sul sector»).
+  - **8a** (`9893c2b5`), trovato facendolo: **«Allinea a master»** — A e C aggiungevano la loro riga nello stesso punto
+    di «Generale»: dopo la fusione di A, la PR di C era in conflitto. Il riquadro dice quante registrazioni del ramo
+    d'origine mancano; «Allinea» le fonde nel ramo di lavoro coi conflitti scelti dall'AOD (come il riporto: le
+    etichette ora sono «Tieni questo ramo», «Prendi quella fusa», col messaggio della fusione in testa); poi «Manda»
+    aggiorna la PR. E la proposta del changelog: un nome corretto si dice «corretti Punto VFR SESTO AL REGHENA (era
+    PASE1)» (stesso tipo, stesse coordinate, al più due campi diversi); un file di un record senza nome vero si dice
+    col file («modificato default.atis»).
+  - **Le PR sul fork**: #4 (A), #5 (B), #7 (D), #8 (E) fuse dal committente; #6 (C) in conflitto sul changelog →
+    «Allinea a master» dal Lab: 10 registrazioni di master, un conflitto in `changelog.md`, sistemato a mano tenendo
+    tutte e due le righe, «Concludi», «Manda»: la PR si è aggiornata da sola, senza conflitti, e il committente l'ha fusa.
+  - **Uscita** sul `master` del fork (`529f53c`): **140 errori, 1 122 avvisi** (−1, −122): le otto regole corrette non
+    ci sono più.
+  - 🔴 Trovato sul banco, mio: un oggetto JavaScript di prova chiamato `L` copre Leaflet (la mappa del Lab) e fa cadere
+    il circuito. Nel banco si usa un altro nome.
+  Test Lab 1 013 → **1 014**. Eseguibile di prova ripubblicato da `9893c2b5`, autoprova 0. **Slice 8 chiusa, F4 fatta.**
+
+**Cosa resta dopo la F4** (non in questa carta): il secondo giro delle correzioni R-10; il passaggio al repo vero e il
+ruleset su `master` e `airac/*` (D4, del committente, dopo aver avvisato gli altri AOD); «l'ultima riga tolta rimette
+`*NIL`» (C2); la F5 (Aurora a lotti).
