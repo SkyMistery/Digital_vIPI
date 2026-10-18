@@ -332,6 +332,9 @@ else
 
     /// <summary>I minimi LVP in lavorazione; <c>null</c> = non dichiarati.</summary>
     private LvpEdit? _lvp;
+
+    /// <summary>La torre radar in lavorazione; <c>null</c> = non indicato.</summary>
+    private RadarTowerEdit? _radar;
     private List<int> _linkIds = new();
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
@@ -617,6 +620,7 @@ else
         _rwys = dati.Runways.Select(RwEdit.Da).ToList();
         _rules = dati.Rules.Select(AirportRuleMapping.FromRow).ToList();
         _lvp = LvpEdit.Da(dati.Lvp);
+        _radar = RadarTowerEdit.Da(dati.RadarTower);
         _linkIds = dati.Links.Select(l => l.SourceSectorId).ToList();
 
         // Le procedure, dallo STESSO `AirportData` degli altri tre: una lettura sola per tutta l'anagrafica.
@@ -889,6 +893,14 @@ else
                 <AirportLvpEditor Row="_lvp" Editing="_shell.IsEditing" RowsChanged="SalvaLvp"
                                   RowChanged="LvpCambiata" ConfirmRemove="ConfermaRimozioneRiga" />
                 break;
+            @* La torre radar, e SOLO su un campo senza vIPI civile — come le LVP. La torre di un campo misto è una
+               sola: la scrive l'editor civile, e qui resta il rimando. *@
+            case SectionKeys.RadarTower:
+            case SectionKeys.RadarTowerTechnique:
+                <AirportRadarTowerEditor Row="_radar" Editing="_shell.IsEditing"
+                                         Tecnica="@(s.SectionKey == SectionKeys.RadarTowerTechnique)"
+                                         RowChanged="RadarCambiata" ConfirmRemove="ConfermaRadarNonIndicato" />
+                break;
             case "frequencies":
                 <AirportFrequenciesEditor Catalogo="FreqRows().ToList()" LinkIds="_linkIds" Linkable="_linkable"
                                           Editing="_shell.IsEditing" LinksChanged="SalvaLink" />
@@ -986,6 +998,15 @@ else
     /// <summary>Le regole piste dello scalo: la stessa porta dell'editor d'aeroporto
     /// (<c>SaveRunwayRulesAsync</c>, con la sua guardia del lock), e lo stesso cancello per le righe a metà.</summary>
     private Task SalvaLvp() => _shell.GuardedAsync(() => Scalo.SaveLvpAsync(_icao, _lvp?.AllaRiga()));
+
+    /// <summary>La torre radar: il sì/no e la tecnica passano dalla stessa porta, con la riga intera.</summary>
+    private Task RadarCambiata(RadarTowerEdit? riga)
+    {
+        _radar = riga;
+        return _shell.GuardedAsync(() => Scalo.SaveRadarTowerAsync(_icao, _radar?.AllaRiga()));
+    }
+
+    private Task<bool> ConfermaRadarNonIndicato() => Conferma(L["TorreRadar_ConfermaNonIndicato"].Value);
 
     private Task LvpCambiata(LvpEdit? riga)
     {

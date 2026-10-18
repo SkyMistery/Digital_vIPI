@@ -56,6 +56,22 @@ public sealed class LvpEdit
                                     CancelRvrM, CancelCeilingFt, Note);
 }
 
+/// <summary>
+/// La torre radar in scrittura. <b>Zero o una</b>, come le LVP: l'assenza dell'oggetto è «non indicato».
+/// <para>⚠️ Un oggetto per le DUE sezioni (il sì/no e la tecnica): le due parti dell'editor lo mutano in posto e
+/// salvano la stessa riga, così una non riscrive l'altra con un valore vecchio.</para>
+/// </summary>
+public sealed class RadarTowerEdit
+{
+    public bool Equipped;
+    public string? Technique;
+
+    public static RadarTowerEdit? Da(RadarTowerRow? r) =>
+        r is null ? null : new RadarTowerEdit { Equipped = r.Equipped, Technique = r.Technique };
+
+    public RadarTowerRow AllaRiga() => new(Equipped, Technique);
+}
+
 /// <summary>Riga in scrittura.</summary>
 public sealed class RwEdit { public int Id; public string? Ident; public int? LengthM; public int? Bearing; public string? Tora; public string? Lda; public string? App; public string? Patterns; public string? Circling;
     /// <summary>«Mai in partenza» / «mai in arrivo» nel ripiego sul vento (carta 2026-09-17-pista-mai-usare.md).</summary>

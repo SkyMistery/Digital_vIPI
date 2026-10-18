@@ -152,6 +152,67 @@ public class AirportLockGuardTests : IAsyncLifetime
         Assert.True(await _db.AirportLvpMinima.AnyAsync());
     }
 
+    // ---- La torre radar (18 ottobre 2026) -----------------------------------------------------------------
+
+    /// <summary>
+    /// La torre radar è anagrafica dello scalo come le LVP: si scrive col lock del documento, e chi non ce l'ha non
+    /// cambia né il sì/no né la tecnica.
+    /// </summary>
+    [Fact]
+    public async Task La_torre_radar_si_scrive_solo_col_lock_e_si_rilegge()
+    {
+        var doc = await ApriEditorAsync();
+        await LockA(doc, Altri);
+        await Assert.ThrowsAsync<EditConflictException>(
+            () => Servizio(Io).SaveRadarTowerAsync("LIPZ", new RadarTowerRow(true, "testo")));
+        Assert.Null((await _db.Airports.SingleAsync()).RadarTower);
+
+        await _editing.ReleaseLockAsync(doc, Altri);
+        await LockA(doc, Io);
+        await Servizio(Io).SaveRadarTowerAsync("LIPZ", new RadarTowerRow(true, "  Identificazione radar entro 5 NM.  "));
+
+        var letta = (await new EfAirportRepository(_db, new EfMediaMaintenance(_db)).LoadAsync("LIPZ"))!.RadarTower;
+        Assert.Equal(new RadarTowerRow(true, "Identificazione radar entro 5 NM."), letta);
+    }
+
+    /// <summary>
+    /// «Senza radar» tiene la tecnica (chi sbaglia il sì/no non perde il testo); «non indicato» la porta via, perché
+    /// un testo sotto un dato che non c'è sarebbe un dato a metà che nessuno vede.
+    /// </summary>
+    [Fact]
+    public async Task Senza_radar_la_tecnica_resta_non_indicato_la_toglie()
+    {
+        var doc = await ApriEditorAsync();
+        await LockA(doc, Io);
+        var s = Servizio(Io);
+
+        await s.SaveRadarTowerAsync("LIPZ", new RadarTowerRow(false, "testo"));
+        var scalo = await _db.Airports.AsNoTracking().SingleAsync();
+        Assert.Equal((false, "testo"), (scalo.RadarTower, scalo.RadarTowerTechnique));
+
+        await s.SaveRadarTowerAsync("LIPZ", null);
+        scalo = await _db.Airports.AsNoTracking().SingleAsync();
+        Assert.Equal(((bool?)null, (string?)null), (scalo.RadarTower, scalo.RadarTowerTechnique));
+        Assert.Null((await new EfAirportRepository(_db, new EfMediaMaintenance(_db)).LoadAsync("LIPZ"))!.RadarTower);
+    }
+
+    /// <summary>La colonna della tecnica non ha misura apposta: il tetto lo dice il servizio, con una frase.</summary>
+    [Fact]
+    public async Task Una_tecnica_oltre_il_tetto_si_rifiuta_con_una_frase()
+    {
+        var doc = await ApriEditorAsync();
+        await LockA(doc, Io);
+        var tetto = Airport.TecnicaRadarMassima;
+
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => Servizio(Io).SaveRadarTowerAsync("LIPZ", new RadarTowerRow(true, new string('x', tetto + 1))));
+        Assert.Contains(tetto.ToString(), ex.Message);
+        Assert.Null((await _db.Airports.AsNoTracking().SingleAsync()).RadarTower);
+
+        await Servizio(Io).SaveRadarTowerAsync("LIPZ", new RadarTowerRow(true, new string('y', tetto)));
+        Assert.True((await _db.Airports.AsNoTracking().SingleAsync()).RadarTower);
+    }
+
     /// <summary>Il documento dello scalo: lo crea l'apertura dell'editor, e senza non c'è lock da prendere.</summary>
     private Task<int> ApriEditorAsync() => Servizio(Io).EnsureDocumentAsync("LIPZ");
 

@@ -155,13 +155,17 @@ public sealed record AirportRunwaysView(IReadOnlyList<AirportRunwayRowView> Rows
 /// uscirebbe VUOTA in pagina — nessun errore, nessun test rosso. Posizionale, chi costruisce la vista deve
 /// dire da dove vengono gli arrivi, oggi che il punto di costruzione è uno solo e domani che saranno due.
 /// </param>
+/// <param name="RadarTower">La torre radar e la sua tecnica operativa (18 ottobre 2026). Posizionale per la stessa
+/// ragione degli arrivi.</param>
 public sealed record AirportDerived(
     AirportRulesView Rules, AirportTransitionView Transition, AirportFreqView Frequencies,
-    AirportRunwaysView Runways, AirportSidView Sids, AirportSidView Stars, AirportLvpView Lvp)
+    AirportRunwaysView Runways, AirportSidView Sids, AirportSidView Stars, AirportLvpView Lvp,
+    AirportRadarTowerView RadarTower)
 {
     public static AirportDerived Empty { get; } = new(
         AirportRulesView.Empty, AirportTransitionView.Empty, AirportFreqView.Empty,
-        AirportRunwaysView.Empty, AirportSidView.Empty, AirportSidView.Empty, AirportLvpView.Empty);
+        AirportRunwaysView.Empty, AirportSidView.Empty, AirportSidView.Empty, AirportLvpView.Empty,
+        AirportRadarTowerView.Empty);
 }
 
 /// <summary>
@@ -195,6 +199,15 @@ public static class AirportSectionProjection
     /// </summary>
     public static AirportLvpView Lvp(AirportData? data) =>
         data?.Lvp is not { } m ? AirportLvpView.Empty : new AirportLvpView(m.Declared, m, m.Note);
+
+    /// <summary>
+    /// La torre radar. Un'anagrafica che non c'è, o uno scalo di cui nessuno l'ha detto, danno
+    /// <see cref="AirportRadarTowerView.Empty"/>: «non indicato», non «senza radar».
+    /// </summary>
+    public static AirportRadarTowerView RadarTower(AirportData? data) =>
+        data?.RadarTower is not { } t
+            ? AirportRadarTowerView.Empty
+            : new AirportRadarTowerView(t.Equipped, string.IsNullOrWhiteSpace(t.Technique) ? null : t.Technique);
 
     public static AirportTransitionView Transition(AirportData? data)
     {

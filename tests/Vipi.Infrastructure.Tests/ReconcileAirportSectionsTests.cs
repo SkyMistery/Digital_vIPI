@@ -234,11 +234,17 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
             .OrderBy(s => s.Order).ToListAsync()).Select(s => s.SectionKey).ToList();
         // weather, runwayrules, lvp, operationaltechnique, validity, charts + le cinque raccolte di charts
         // ⚠️ Dodici dal 20 settembre 2026: anche «stars» (§A80) va seminata nei documenti già scritti.
-        Assert.Equal(12, aggiunte);
+        // ⚠️ Quattordici dal 18 ottobre 2026: la torre radar e la sua tecnica operativa (committente).
+        Assert.Equal(14, aggiunte);
         // ⚠️ «runwayrules» non è più fra le radici dal 12 settembre 2026 (sera): nasce FIGLIA di «Piste».
         Assert.Equal(
-            new[] { "weather", "transition", "frequencies", "runways", "sids", "stars", "operationaltechnique", "lvp", "charts", "validity" },
+            new[] { "weather", "transition", "frequencies", "runways", "radartower", "sids", "stars", "operationaltechnique", "lvp", "charts", "validity" },
             chiavi);
+        // La torre radar arriva FRA Piste e SID, con la tecnica DENTRO e non accanto.
+        var torre = await _db.DocumentSections.SingleAsync(s => s.SectionKey == SectionKeys.RadarTower);
+        Assert.Equal(
+            new[] { SectionKeys.RadarTowerTechnique },
+            (await _db.DocumentSections.Where(s => s.ParentSectionId == torre.Id).ToListAsync()).Select(s => s.SectionKey));
         var pisteSez = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "runways");
         Assert.Equal(
             new[] { "runwayrules" },
@@ -344,11 +350,13 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         var lvp = tutte.Single(x => x.SectionKey == "lvp");
         lvp.ParentSectionId = null;
         lvp.Depth = 0;
+        // ⚠️ «radartower» (18 ottobre 2026) è arrivata dopo quella decisione, ma il passo di sopra la semina: sta
+        // nell'elenco perché ogni radice abbia la sua posizione, e resta dove il catalogo l'ha messa.
         var radici = tutte.Where(x => x.SectionKey is "weather" or "runwayrules" or "lvp" or "transition"
-                                      or "frequencies" or "runways" or "sids" or "stars" or "operationaltechnique"
-                                      or "charts" or "validity").ToList();
-        var vecchio = new[] { "weather", "runwayrules", "lvp", "transition", "frequencies", "runways", "sids",
-                              "stars", "operationaltechnique", "charts", "validity" };
+                                      or "frequencies" or "runways" or "radartower" or "sids" or "stars"
+                                      or "operationaltechnique" or "charts" or "validity").ToList();
+        var vecchio = new[] { "weather", "runwayrules", "lvp", "transition", "frequencies", "runways", "radartower",
+                              "sids", "stars", "operationaltechnique", "charts", "validity" };
         foreach (var r in radici) r.Order = Array.IndexOf(vecchio, r.SectionKey) + 1;
         await _db.SaveChangesAsync();
 
@@ -365,7 +373,7 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
 
         // 2. Le LVP sono SORELLE, subito dopo le Procedure generali.
         var chiavi = dopo.Where(x => x.ParentSectionId is null).OrderBy(x => x.Order).Select(x => x.SectionKey).ToList();
-        Assert.Equal(new[] { "weather", "transition", "frequencies", "runways", "sids", "stars",
+        Assert.Equal(new[] { "weather", "transition", "frequencies", "runways", "radartower", "sids", "stars",
                              "operationaltechnique", "lvp", "charts", "validity" }, chiavi);
 
         // 3. Le radici non hanno buchi: Order è una posizione.

@@ -2729,6 +2729,30 @@
   - **Codice comune**: `Vipi.Application` (`SezioniDaScrivere.cs`). Nessuna migrazione, niente `deploy/`.
   - **Test**: App 3389 → 3390, rosso prima della correzione (0 invece di 2). Solo logica: l'interfaccia non cambia.
     ⚠️ Non provato sui documenti veri (la copia di produzione è stata cancellata a fine S111).
+- 🟢 **S115** la **torre radar** nelle vIPI d'aeroporto e nei vSOP (18-ott, il committente: una sezione che dica se la
+  torre è dotata di radar; se sì, almeno una sotto-sezione con la tecnica operativa dello scalo; unica sugli scali con
+  vIPI e vSOP). Carta `docs/feature/2026-10-18-torre-radar.md`.
+  - **Deciso dal committente**: una sezione sola **fra Piste e SID** (nel vSOP nello stesso punto dei Dati generali),
+    la tecnica **nasce chiusa**, e il testo sta **una volta sola nell'anagrafica** — «la torre di uno scalo militare e
+    civile è SEMPRE una sola». Del filone: tre stati (sì, no, **non indicato**, che è quello di tutti gli scali di
+    oggi); la tecnica c'è solo col sì, né nel corpo né nell'indice (`TorreRadar.Filtra`); dal sì al no il testo
+    resta da parte, tornare a «non indicato» lo cancella e chiede conferma; testo a righe, tetto 8000.
+  - **Dati**: due colonne nullable su `Airports` (`RadarTower`, `RadarTowerTechnique`). **Migrazione sì**
+    (`TorreRadar`, additiva, sui due provider). Le sezioni ai documenti già scritti le aggiunge l'avvio
+    (`AddMissingCatalogSections`), anche nella versione pubblicata: i documenti pubblicati finiscono fra i «da
+    ripubblicare», come per le LVP.
+  - **Unioni**: stessa chiave `radartower` nei due profili, dato dell'anagrafica: la scheda «sezioni in comune» la
+    propone spuntata. Nel vSOP si scrive solo su un campo senza vIPI civile, come LVP e regole piste.
+  - ⚠️ `SectionNode` rendeva **ogni** sotto-sezione del documento aperta, scritto a mano: ora una figlia può nascere
+    chiusa se lo dice il catalogo (oggi solo la tecnica).
+  - **Codice comune**: `Vipi.Application` (catalogo, viste, `TorreRadar.cs`, servizio d'anagrafica, `TitoliUfficiali`,
+    `SezioniDaScrivere`). Niente `deploy/`. Toccati i due `.resx`.
+  - **Test**: App 3390 → 3409, Infra 2229 → 2232, Ui 2087 → 2098.
+  - **Non fa**: la tecnica non si traduce (testo d'anagrafica, come la nota LVP); niente formattazione.
+  - **A schermo** su un database nuovo con due scali inventati (LIRQ civile, LIPI solo militare): editor e anteprima
+    della vIPI col sì (frase, tecnica chiusa a due righe, indice fra Piste e SID) e col no (tecnica sparita da corpo e
+    indice, testo rimasto in archivio); editor e anteprima del vSOP. Non visti: l'unione, il telefono, la pagina
+    pubblica dopo una pubblicazione (carta §6).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

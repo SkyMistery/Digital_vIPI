@@ -394,6 +394,31 @@ public class SezioniComuniTests
     }
 
     /// <summary>
+    /// La torre radar (18 ottobre 2026): la torre di un campo civile e militare è SEMPRE una sola (committente),
+    /// quindi in un'unione la sezione è una — la stessa chiave nei due profili, dato dell'anagrafica, proposta da
+    /// nascondere in uno dei due con la sua tecnica sotto.
+    /// </summary>
+    [Fact]
+    public void La_torre_radar_in_un_unione_e_una_sezione_sola()
+    {
+        var id = 0;
+        var comuni = SezioniComuni.Di(new[]
+        {
+            (Civile, SectionProfile.Airport, DalCatalogo(SectionProfile.Airport, ref id)),
+            (Militare, SectionProfile.AirportMil, DalCatalogo(SectionProfile.AirportMil, ref id)),
+        });
+
+        var torre = comuni.Single(c => c.Chiave == SectionKeys.RadarTower);
+        Assert.Equal(new[] { Civile, Militare }, torre.Presenze.Select(p => p.DocumentId));
+        Assert.True(torre.Proposta);
+
+        // Nascosta dal vSOP, si porta via la tecnica: che c'è anche nel civile, quindi non si perde niente.
+        var piano = SezioniComuni.Piano(comuni, new[] { SectionKeys.RadarTower }, new[] { Militare });
+        Assert.Contains((torre.Presenze.Single(p => p.DocumentId == Militare).SectionId, true), piano);
+        Assert.Equal(1, SezioniComuni.Trascinate(comuni, SectionKeys.RadarTower, new[] { Militare }));
+    }
+
+    /// <summary>
     /// 🔴 U-008 (revisione totale 3): sciogliere l'unione lasciava nascoste le sezioni «in comune», e la pagina
     /// singola usciva monca (LIRS e LIRL: tutte le radici nascoste). Si rimostrano quelle nascoste in un documento
     /// e visibili nell'altro — l'impronta della scheda — e nient'altro.

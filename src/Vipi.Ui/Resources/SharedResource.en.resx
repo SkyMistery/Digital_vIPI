@@ -3799,6 +3799,16 @@
   <data name="Lvp_OperaInLvp" xml:space="preserve"><value>This airport operates LVP</value></data>
   <data name="Lvp_NotePlaceholder" xml:space="preserve"><value>Who activates them, which runways, CAT II/III, restrictions…</value></data>
   <data name="Lvp_Togli" xml:space="preserve"><value>Remove the minima</value></data>
+  <data name="TorreRadar_Si" xml:space="preserve"><value>The tower is radar-equipped.</value></data>
+  <data name="TorreRadar_No" xml:space="preserve"><value>The tower is not radar-equipped.</value></data>
+  <data name="TorreRadar_NonIndicato" xml:space="preserve"><value>Whether the tower is radar-equipped is not stated.</value></data>
+  <data name="TorreRadar_SceltaNonIndicato" xml:space="preserve"><value>Not stated</value></data>
+  <data name="TorreRadar_TecnicaVuota" xml:space="preserve"><value>Operating technique not written yet.</value></data>
+  <data name="TorreRadar_TecnicaSoloConRadar" xml:space="preserve"><value>The operating technique appears in the document only if the tower is radar-equipped: say so in the «Tower radar» section. Text already written is kept aside and comes back with a yes.</value></data>
+  <data name="TorreRadar_TecnicaPlaceholder" xml:space="preserve"><value>How the radar tower works at this airport: identification, separation, coordination…</value></data>
+  <data name="TorreRadar_Aiuto" xml:space="preserve"><value>Whether the tower is radar-equipped belongs to the &lt;b&gt;airport&lt;/b&gt;, not to the document: it is written once, together with the operating technique, and both the vIPI and the vSOP read it. «Not stated» does not mean «no».</value></data>
+  <data name="TorreRadar_AiutoAria" xml:space="preserve"><value>Help on the tower radar</value></data>
+  <data name="TorreRadar_ConfermaNonIndicato" xml:space="preserve"><value>Going back to «not stated» also deletes the operating technique already written. Continue?</value></data>
   <data name="Services_EyeTitle" xml:space="preserve"><value>See who is online now</value></data>
   <data name="Services_EyeDesc" xml:space="preserve"><value>Unofficial tool, made by the Italian division.</value></data>
   <data name="Services_AtcIvaoTitle" xml:space="preserve"><value>ATC bookings and FRAs</value></data>

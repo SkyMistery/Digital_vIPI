@@ -82,6 +82,9 @@ public static class SezioniDaScrivere
         if (Contenitori.Contains(chiave)) return false;
         // Editoriale nel catalogo, ma la disegna la pagina con le soglie delle piste: nessuno ci scrive.
         if (OIC.Equals(chiave, SectionKeys.RunwayThresholds)) return false;
+        // Lo stesso per la tecnica della torre radar: editoriale nel catalogo, ma il testo sta nell'anagrafica dello
+        // scalo e lo disegna la pagina. Contarla «da scrivere» chiederebbe blocchi che nessuno mostrerebbe.
+        if (OIC.Equals(chiave, SectionKeys.RadarTowerTechnique)) return false;
         // I due versi dei coordinamenti della vLOA: li rende la pagina dagli accordi. Nel catalogo non hanno una
         // natura scritta e passano per editoriali — trovato sulla copia di produzione del 12 ottobre 2026, dove le
         // quattro vLOA risultavano con due sezioni vuote ciascuna. ⚠️ Non si dichiarano derivate nel catalogo: lì

@@ -104,9 +104,11 @@ public class SectionCatalogTests
         // ricorsivamente (`Find` → `Cerca`) — e la riga qui sotto lo pretende, o il difetto sarebbe silenzioso:
         // una sezione che smette di essere «della pagina» si mette a mostrare blocchi editoriali vuoti.
         Assert.Equal(
-            new[] { "frequencies", "lvp", "runways", "sids", "stars", "transition", "validity", "weather" },
+            new[] { "frequencies", "lvp", "radartower", "runways", "sids", "stars", "transition", "validity", "weather" },
             Host(SectionProfile.Airport));
         Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, "runwayrules"));
+        // La tecnica della torre radar è figlia, e la disegna la pagina come il padre (18 ottobre 2026).
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, SectionKeys.RadarTowerTechnique));
     }
 
     [Fact]
@@ -215,8 +217,10 @@ public class SectionCatalogTests
         // DOPO le «Procedure generali», sorella e non figlia.
         // ⚠️ «stars» è arrivata il 20 settembre 2026 (§A80), SUBITO dopo le SID: gli arrivi si cercano
         // nell'indice accanto alle partenze, non in fondo.
+        // ⚠️ «radartower» è arrivata il 18 ottobre 2026 (committente), FRA Piste e SID: la tecnica della torre radar
+        // si sceglie con la pista in uso, e la SID dopo.
         Assert.Equal(
-            new[] { "weather", "transition", "frequencies", "runways", "sids", "stars", "operationaltechnique", "lvp", "charts", "validity" },
+            new[] { "weather", "transition", "frequencies", "runways", "radartower", "sids", "stars", "operationaltechnique", "lvp", "charts", "validity" },
             keys);
 
         // E le regole piste stanno DENTRO le Piste, prime e sole.

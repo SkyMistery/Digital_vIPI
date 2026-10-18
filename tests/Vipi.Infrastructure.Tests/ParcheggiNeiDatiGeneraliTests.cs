@@ -304,9 +304,10 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
         // 🔴 Idem per «runwayrules» (11 settembre 2026, committente), fra le piste e le SID: stessa prova,
         // stesso significato — un vSOP già scritto la riceve all'avvio, nel posto giusto.
         // 🔴 Idem per «stars» (20 settembre 2026, §A80), subito dopo le SID: stessa prova, stesso significato.
+        // 🔴 Idem per «radartower» (18 ottobre 2026, committente), fra le regole piste e le SID.
         Assert.Equal(
-            new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "sids", "stars", "transition",
-                    "callsigns", "airportlayout", "parkings" },
+            new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "radartower", "sids", "stars",
+                    "transition", "callsigns", "airportlayout", "parkings" },
             Figli(ver, "generaldata").Select(x => x.SectionKey));
         Assert.Equal(new[] { "enginestart", "taxiing", "arming" }, Figli(ver, "groundprocedures").Select(x => x.SectionKey));
         // Le sezioni del profilo, né una di più — il numero lo conta il CATALOGO, non questa riga.
