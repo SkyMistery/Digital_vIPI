@@ -587,3 +587,25 @@ Dalle slice 13-19 (6 ottobre):
   - 🔴 **La CI dopo ogni push si guarda** (`gh run list -b lab/f3`): il 18 ottobre è rimasta rossa per cinque commit
     (da `847ac950`) senza che me ne accorgessi — `Path.GetFileName("ENRVFI\limm.vfi")` su Linux non separa la barra
     rovesciata. I percorsi scritti negli `.isc` si spezzano a mano (`LastIndexOfAny(['\\', '/'])`).
+- **Dal giro della F6 (18-19 ottobre)**:
+  - **Le misure sui PDF veri** (fuori dalla CI): `dotnet run --project tools/Aip.Pdf.Cli -- <cartella o pdf>… --modello
+    <uscita.json> [--aree] [--dettagli]`; poi `tools/Aip.Aurora.Cli` per le righe di Aurora. Le **controprove** con
+    pdfplumber (Python) stanno nello scratchpad della sessione `a9ccef1c` (`py\confronta.py` = ENR 5.1 contro
+    `sector-lab-f0\pdf-aip\out2.json`; `py\controprova.py` = coordinate per file; `py\perpagmod.py`, `py\doppi.py`);
+    se mancano si rifanno: il conto atteso è nella carta F6 §6 (ENR 5.1: 541 aree e 2 207 coordinate come la F0; ENR 2:
+    329 aree, ENR 2.1.1.4.1 483 coordinate).
+  - **Il confronto dei CTR sul sector vero** si misura con una prova temporanea in `tests/Vipi.SectorLab.Tests` (apre
+    il sector con `SessioneDelLab.ApriAsync`, legge il modello, chiama `ConfrontoDelleForme.Ctr`, scrive un file): **non
+    si committa**. Attesi sul sector della copia: 45 CTR, 39 uguali, 6 diversi.
+  - **Il banco della F6** (scratchpad `a9ccef1c`): `banco` (lo stesso Sdk.Web), `dati-banco` (cartella dei PDF =
+    `pdf-prova`, con ENR 5.1, ENR 2 e un ENR 3.2; AIP espanso = `aip-espanso-repo`, il clone del repo di prova sul ramo
+    `aip/2610`), il sector = la copia della sessione `1ae3d543` (`scratchpad\sector`), letto e basta. Sul banco
+    **«Prendi i PDF da Download» non si preme** (sposterebbe la Download vera) e **«Manda» nemmeno** (apre il browser
+    del committente): il ramo `aip/…` si manda da riga di comando, col percorso **scritto per intero** (il cancello
+    rifiuta `git -C "$VARIABILE"`), e la PR con `gh pr create --repo SkyMistery/it-aip-espanso-test`.
+  - 🔴 **Python via heredoc trasforma `\b` in un backspace vero** (non solo perde le barre): un'espressione regolare
+    di `PageInfo` è andata nel file con un carattere di controllo, e le date fuori ciclo non si leggevano. Dopo ogni
+    modifica fatta così: `grep -cP '[\x00-\x08]' <file>`. Meglio uno script scritto con l'editor e lanciato da lì.
+  - bUnit: `Find` e `Click` **nello stesso** `InvokeAsync` (un ridisegno in mezzo rinumera i gestori); e un riquadro
+    che all'apertura avvisa la pagina senza che sia cambiato niente fa perdere i clic agli altri test (`DueSchermiTests`).
+  - Il font standard di PdfPig (per i PDF finti dei test) non ha «°»: nei test i gradi sono «º», che il lettore accetta.
