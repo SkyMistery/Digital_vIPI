@@ -41,6 +41,13 @@
         </label>
         <p class="lab-nota">Da dove «Prendi il sector» scarica. Per ora il fork di prova: il repo vero quando lo dice il committente.
             Vuoto = <code>@Vipi.SectorLab.Core.Git.PresaDelSector.IndirizzoDiBase</code>.</p>
+        <label>
+            Vetrina di Aurora
+            <input class="lab-campo" value="@Lab.CartellaDellaVetrina" data-impostazione="vetrina"
+                   placeholder="D:\IVAO\Aurora-vetrina" @onchange="CambiaLaVetrina" />
+        </label>
+        <p class="lab-nota">Una cartella nuova, solo del Lab: «Porta in Aurora» ci mette il sector che stai guardando. In Aurora
+            metti come secondo sector la sua <code>SectorFiles</code>, una volta (carta F5).</p>
         @if (_rifiuto is not null)
         {
             <p class="lab-avviso-breve" data-impostazione-rifiutata>@_rifiuto</p>
@@ -59,6 +66,9 @@
 
     private void Cambia(ChangeEventArgs e)
         => _rifiuto = Lab.CambiaIlModelloDelleConfigurazioni(e.Value?.ToString()) ? null : Lab.Rifiuto;
+
+    private void CambiaLaVetrina(ChangeEventArgs e)
+        => _rifiuto = Lab.CambiaLaVetrina(e.Value?.ToString()) ? null : Lab.Rifiuto;
 
     private void CambiaIlVid(ChangeEventArgs e)
         => _rifiuto = Lab.CambiaIlVid(e.Value?.ToString()) ? null : Lab.Rifiuto;

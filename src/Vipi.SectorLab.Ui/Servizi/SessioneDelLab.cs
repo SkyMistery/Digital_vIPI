@@ -3651,6 +3651,100 @@ public sealed class SessioneDelLab
         return await ApriAsync(Sessione!.Cartella.Radice).ConfigureAwait(false);
     }
 
+    // ── Aurora: la vetrina (carta F5, slice 1) ─────────────────────────────────────────────────────────────────
+
+    /// <summary>Dove stanno le impostazioni di Aurora e il suo sector pubblicato: di base quelli veri, i test ne danno altri.</summary>
+    public (string ProfileIni, string Pubblicata) Aurora { get; init; } = Core.Aurora.Vetrina.DiAurora();
+
+    private string? _vetrina;
+    private bool _vetrinaLetta;
+
+    /// <summary>La cartella della vetrina, scelta nelle Impostazioni; null finché non c'è.</summary>
+    public string? CartellaDellaVetrina
+    {
+        get
+        {
+            if (!_vetrinaLetta)
+            {
+                _vetrina = Ricordata("vetrina.txt");
+                _vetrinaLetta = true;
+            }
+
+            return _vetrina;
+        }
+    }
+
+    /// <summary>Cambia la cartella della vetrina. Vuoto = nessuna. Falso, col perché in <see cref="Rifiuto"/>, se non può esserlo.</summary>
+    public bool CambiaLaVetrina(string? cartella)
+    {
+        string? scritta = string.IsNullOrWhiteSpace(cartella) ? null : cartella.Trim();
+        if (scritta is not null && Core.Aurora.Vetrina.PercheNonVa(scritta, Aurora.Pubblicata) is { } perche)
+            return Rifiuta(perche);
+        Rifiuto = null;
+        _vetrina = scritta is null ? null : Path.GetFullPath(scritta);
+        _vetrinaLetta = true;
+        Ricorda("vetrina.txt", _vetrina, "vetrina");
+        Avvisa();
+        return true;
+    }
+
+    /// <summary>Che cosa c'è in vetrina adesso, o null.</summary>
+    public Core.Aurora.InVetrina? InVetrina => CartellaDellaVetrina is { } v ? Core.Aurora.Vetrina.Contenuto(v) : null;
+
+    /// <summary>Il «secondo sector» di Aurora: la sola riga che il Lab legge delle sue impostazioni.</summary>
+    public string? SecondoSectorDiAurora => Core.Aurora.Vetrina.SecondoSector(Aurora.ProfileIni);
+
+    /// <summary>Vero se Aurora legge la vetrina come secondo sector.</summary>
+    public bool AuroraGuardaLaVetrina => CartellaDellaVetrina is { } v && Core.Aurora.Vetrina.AuroraGuarda(SecondoSectorDiAurora, v);
+
+    /// <summary>Com'è andato l'ultimo «Porta in Aurora».</summary>
+    public Core.Aurora.EsitoDellaVetrina? UltimoPortaInAurora { get; private set; }
+
+    /// <summary>Sta copiando in vetrina.</summary>
+    public bool StaPortandoInAurora { get; private set; }
+
+    /// <summary>
+    /// «Porta in Aurora» (carta F5, slice 1): la <c>SectorFiles</c> del sector aperto in vetrina, come specchio. Le
+    /// modifiche non salvate non ci vanno: si salva prima.
+    /// </summary>
+    public async Task<bool> PortaInAuroraAsync()
+    {
+        if (Sessione is null || StaPortandoInAurora)
+            return false;
+        if (CartellaDellaVetrina is not { } vetrina)
+            return Rifiuta("Manca la cartella della vetrina: sceglila nelle Impostazioni.");
+        if (Modifiche.CEQualcosa)
+            return Rifiuta("Ci sono modifiche non salvate: in Aurora andrebbe il sector senza di loro. Salva prima.");
+
+        StaPortandoInAurora = true;
+        Avvisa();
+        try
+        {
+            string radice = Sessione.Cartella.Radice;
+            string? commit = null;
+            if (Ramo is { } ramo && (await Git.EseguiAsync(ramo.Radice, ["rev-parse", "--short=8", "HEAD"]).ConfigureAwait(false)) is { Riuscito: true } testa)
+                commit = testa.Uscita.Trim();
+            string? perche = null;
+            var esito = await Task.Run(() => Core.Aurora.Vetrina.Porta(radice, vetrina, Aurora.Pubblicata, Ramo?.Ramo, commit, DateTimeOffset.Now, out perche)).ConfigureAwait(false);
+            Registro.Scrivi("aurora", esito is null ? $"porta in Aurora: {perche}" : $"porta in Aurora {radice} ({Ramo?.Ramo} {commit}): {esito.Copiati} copiati, {esito.Tolti} tolti, {esito.Uguali} uguali");
+            if (esito is null)
+                return Rifiuta(perche ?? "Non è andata.");
+            UltimoPortaInAurora = esito;
+            Rifiuto = null;
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Registro.Errore("aurora", e);
+            return Rifiuta("La vetrina non si è lasciata scrivere: " + e.Message);
+        }
+        finally
+        {
+            StaPortandoInAurora = false;
+            Avvisa();
+        }
+    }
+
     // ── Impostazioni dell'app (slice 13f) ────────────────────────────────────────────────────────────────────
 
     /// <summary>Un'impostazione di testo ricordata in un file dei dati del Lab; vuota o illeggibile = null.</summary>
@@ -4035,12 +4129,31 @@ public sealed class SessioneDelLab
         }
     }
 
+    /// <summary>
+    /// I sector aperti di recente, dal più recente (carta F5, slice 1: si lavora su più sector — il ciclo dopo, una prova —
+    /// e si passa dall'uno all'altro). Al più otto, solo quelli che ci sono ancora.
+    /// </summary>
+    public IReadOnlyList<string> SectorRecenti()
+    {
+        try
+        {
+            string file = Path.Combine(_cartellaDeiDati, "sector-recenti.txt");
+            return File.Exists(file) ? [.. File.ReadAllLines(file).Where(r => r.Length > 0 && Directory.Exists(r)).Take(8)] : [];
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
+
     private void Ricorda(string radice)
     {
         try
         {
             Directory.CreateDirectory(_cartellaDeiDati);
             File.WriteAllText(Path.Combine(_cartellaDeiDati, "ultima-cartella.txt"), radice);
+            var recenti = SectorRecenti().Where(r => !string.Equals(r, radice, StringComparison.OrdinalIgnoreCase)).Prepend(radice).Take(8);
+            File.WriteAllLines(Path.Combine(_cartellaDeiDati, "sector-recenti.txt"), recenti);
         }
         catch (IOException)
         {

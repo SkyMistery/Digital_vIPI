@@ -31,6 +31,7 @@
             }
             <Storia />
             <RamoNellaBarra />
+            <AuroraNellaBarra />
             @if (Lab.PannelliInUnAltraFinestra)
             {
                 <button class="lab-tasto lab-tasto-tenue" @onclick="RiportaIPannelli" data-tasto="riporta"
@@ -192,6 +193,19 @@ else
                     disabled="@(Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_percorso))"
                     data-tasto="apri">Apri</button>
         </div>
+
+        @* Carta F5, slice 1: si lavora su più sector (il ciclo dopo, una prova): quelli aperti di recente, a un clic. *@
+        @if (Lab.SectorRecenti() is { Count: > 0 } recenti)
+        {
+            <ul class="lab-elenco-dei-rami" data-sector-recenti>
+                @foreach (string recente in recenti)
+                {
+                    string questo = recente;
+                    <li><button type="button" class="lab-citazione" data-apri-recente="@questo" disabled="@(Lab.Stato is StatoDelLab.InApertura)"
+                                @onclick="() => Lab.ApriAsync(questo)">@questo</button></li>
+                }
+            </ul>
+        }
 
         @* Carta F4, slice 2: chi non ha il sector lo prende dal repo, solo SectorFiles (pochi secondi, pochi mega). *@
         <details class="lab-prendi" data-prendi>

@@ -1,0 +1,75 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    La vetrina di Aurora nella barra (carta F5, slice 1): che cosa c'è dentro (da quale sector, ramo, quando) e se Aurora
+    la legge come «secondo sector». Aperto, il riquadro ha «Porta in Aurora»: la SectorFiles del sector aperto in
+    vetrina, come specchio. Aurora non si tocca: dove guarda lo sceglie l'AOD, in Aurora, una volta.
+*@
+<details class="lab-impostazioni lab-ramo-riquadro" data-riquadro-aurora>
+    <summary class="lab-tasto lab-tasto-tenue @(Lab.CartellaDellaVetrina is not null && !Lab.AuroraGuardaLaVetrina ? "lab-ramo-da-fare" : null)"
+             title="La vetrina: la cartella che Aurora legge come secondo sector" data-aurora>
+        <span aria-hidden="true">◫</span> Aurora
+        <span class="lab-nota" data-in-vetrina>@Riassunto()</span>
+    </summary>
+    <div class="lab-impostazioni-riquadro">
+        @if (Lab.CartellaDellaVetrina is not { } vetrina)
+        {
+            <p class="lab-nota" data-senza-vetrina>Manca la cartella della vetrina: sceglila nelle Impostazioni (una cartella nuova,
+                per esempio <code>D:\IVAO\Aurora-vetrina</code>). Poi in Aurora metti come secondo sector la sua <code>SectorFiles</code>, una volta.</p>
+        }
+        else
+        {
+            <p class="lab-nota">Vetrina: <code>@vetrina</code></p>
+            @if (Lab.AuroraGuardaLaVetrina)
+            {
+                <p class="lab-nota" data-aurora-guarda="si">Aurora la legge come secondo sector.</p>
+            }
+            else
+            {
+                <p class="lab-avviso-breve" data-aurora-guarda="no">Aurora legge come secondo sector
+                    <code>@(Lab.SecondoSectorDiAurora ?? "— nessuno")</code>. In Aurora mettilo su
+                    <code>@Vipi.SectorLab.Core.Aurora.Vetrina.SectorFilesDi(vetrina)</code>, una volta: poi il Lab sceglie cosa c'è dentro.</p>
+            }
+            @if (Lab.InVetrina is { } dentro)
+            {
+                <p class="lab-nota" data-contenuto-vetrina>Dentro: <code>@dentro.Sorgente</code>@(dentro.Ramo is null ? "" : $" · {dentro.Ramo}")@(dentro.Commit is null ? "" : $" @ {dentro.Commit}"), portato il @Vipi.SectorLab.Core.Aurora.Vetrina.Ora(dentro.Quando).</p>
+            }
+            <button type="button" class="lab-tasto" data-tasto="porta-in-aurora" disabled="@(Lab.StaPortandoInAurora || Lab.Sessione is null)"
+                    title="La SectorFiles di questo sector in vetrina: poi una ricarica in Aurora" @onclick="Porta">Porta in Aurora</button>
+            <span class="lab-nota">questo sector: <code>@Lab.Sessione?.Cartella.Radice</code>@(Lab.Ramo?.Ramo is { } r ? $" · {r}" : "")</span>
+            @if (Lab.UltimoPortaInAurora is { } esito)
+            {
+                <p class="lab-nota" data-esito-vetrina>Fatto: @esito.Copiati file copiati, @esito.Tolti tolti, @esito.Uguali uguali. Ora ricarica il sector in Aurora.</p>
+            }
+            @if (_rifiuto is not null)
+            {
+                <p class="lab-avviso-breve" data-rifiuto-vetrina>@_rifiuto</p>
+            }
+        }
+    </div>
+</details>
+
+@code {
+    private string? _rifiuto;
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private async Task Porta() => _rifiuto = await Lab.PortaInAuroraAsync() ? null : Lab.Rifiuto;
+
+    private string Riassunto()
+    {
+        if (Lab.StaPortandoInAurora)
+            return "…";
+        if (Lab.CartellaDellaVetrina is null)
+            return "senza vetrina";
+        if (Lab.InVetrina is not { } dentro)
+            return "vetrina vuota";
+        bool questo = Lab.Sessione is { } s && string.Equals(Path.GetFullPath(s.Cartella.Radice), dentro.Sorgente, StringComparison.OrdinalIgnoreCase);
+        return $"{(questo ? "questo sector" : Path.GetFileName(dentro.Sorgente))}{(dentro.Ramo is null ? "" : " · " + dentro.Ramo)}{(Lab.AuroraGuardaLaVetrina ? "" : " · Aurora guarda altrove")}";
+    }
+}

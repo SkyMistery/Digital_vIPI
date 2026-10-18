@@ -99,3 +99,21 @@ vedere, senza toccare Aurora); D2 gli esiti ❌ **solo nel Lab**; D3 la tabella 
 segnata «da confermare», e la corregge il committente.
 
 ✅ Approvata dal committente, 18 ottobre 2026.
+
+## §6 — Traccia
+
+- **Slice 1 (18 ottobre)** — la vetrina. Solo il Lab: `Core/Aurora/Vetrina.cs`, `AuroraNellaBarra.razor`, la vetrina
+  nelle Impostazioni, i sector recenti nella schermata d'apertura, `SessioneDelLab` (`CartellaDellaVetrina`,
+  `PortaInAuroraAsync`, `SecondoSectorDiAurora`, `SectorRecenti`).
+  - **Porta in Aurora**: la `SectorFiles` del sector aperto nella vetrina come specchio (uguali restano, cambiati si
+    copiano, quelli che non ci sono più si tolgono, cartelle vuote via), con le modifiche non salvate rifiutate. Il file
+    segno `.vetrina-del-lab` dice da quale sector, ramo e commit, e quando.
+  - **La vetrina è del Lab**: rifiutata se è dentro un clone git, se è (o contiene, o sta dentro) la `SectorFiles`
+    pubblicata di Aurora, se è piena e non ha il segno.
+  - **La barra** («◫ Aurora»): «senza vetrina», «vetrina vuota», «questo sector · ramo», o il nome del sector che c'è,
+    più «Aurora guarda altrove» se il secondo sector di Aurora non è la vetrina. Il riquadro dice dove puntarlo (si fa
+    in Aurora, una volta). Del `profile.ini` di Aurora il Lab legge **solo** la riga `SecondSector` (nei test, un
+    `profile.ini` finto con dentro credenziali finte, che non si leggono).
+  - **I sector recenti** (fino a otto) nella schermata d'apertura, a un clic: si passa dal clone del ciclo a quello di una
+    prova, poi «Porta in Aurora».
+  Test Lab 1 014 → **1 019**, due giri verdi. Da provare sul PC del committente (la «finita quando» della slice).
