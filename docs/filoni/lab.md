@@ -539,4 +539,4 @@ Dalle slice 13-19 (6 ottobre):
   `src/Vipi.Application/Coordinates/` (`AipGeometryReader`, `CoordinateParser`).
   - 🔴 **La CI dopo ogni push si guarda** (`gh run list -b lab/f3`): il 18 ottobre è rimasta rossa per cinque commit
     (da `847ac950`) senza che me ne accorgessi — `Path.GetFileName("ENRVFI\limm.vfi")` su Linux non separa la barra
-    rovesciata. I percorsi scritti negli `.isc` si spezzano a mano (`LastIndexOfAny(['\', '/'])`).
+    rovesciata. I percorsi scritti negli `.isc` si spezzano a mano (`LastIndexOfAny(['\\', '/'])`).
