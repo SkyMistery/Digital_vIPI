@@ -4195,6 +4195,7 @@
   <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector.</value></data>
+  <data name="Nav_ReqOpenTitle" xml:space="preserve"><value>Requests still open (new or taken on): {0}</value></data>
   <data name="SdS_Title" xml:space="preserve"><value>Sections to write</value></data>
   <data name="SdS_Help" xml:space="preserve"><value>The sections of the document that a person writes. Those filled from data (AOR, frequencies, SID, weather…) and hidden ones do not count. Updated on «Finish editing».</value></data>
   <data name="SdS_Count" xml:space="preserve"><value>{0} with content · {1} empty, of {2}</value></data>

@@ -232,4 +232,77 @@ public class AdminNavTests : TestContext
 
         Assert.All(voci, url => Assert.Contains(url!.TrimEnd('/'), rotte));
     }
+
+    // ---- S112: quante richieste dal campo sono ancora aperte, accanto alla voce ----
+
+    /// <summary>Il repository finto: conta le aperte, e ricorda quante volte gliel'hanno chiesto.</summary>
+    private sealed class RichiesteFinte : Vipi.Application.Abstractions.IFieldRequestRepository
+    {
+        public int Aperte { get; init; }
+        public int Domande { get; private set; }
+        public Task<int> CountAllOpenAsync(CancellationToken ct = default) { Domande++; return Task.FromResult(Aperte); }
+        public Task<int> AddAsync(Vipi.Domain.Entities.FieldRequest richiesta, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> CountOpenAsync(int reporterUserId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> CountSinceAsync(int reporterUserId, DateTime sinceUtc, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Vipi.Application.Abstractions.FieldRequestRow?> GetAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<Vipi.Application.Abstractions.FieldRequestRow>> ListAsync(int? reporterUserId = null, int? documentId = null,
+            bool soloAperte = false, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> SetStatusAsync(int id, FieldRequestStatus status, int handledByUserId, string handledByName, string reply,
+            int? duplicateOfId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<string?> SectionTitleAsync(int documentId, string sectionKey, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> PotaChiuseAsync(DateTime chiuseprimaDiUtc, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
+    private static (string Markup, RichiesteFinte Richieste) ConRichieste(VipiRole livello, int aperte, string url = "http://localhost/services/vsop/guide")
+    {
+        using var ctx = new TestContext();
+        var richieste = new RichiesteFinte { Aperte = aperte };
+        ctx.Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        ctx.Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+        ctx.Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
+        ctx.Services.AddSingleton<Vipi.Application.Abstractions.IFieldRequestRepository>(richieste);
+        ctx.Services.GetRequiredService<NavigationManager>().NavigateTo(url);
+        return (ctx.RenderComponent<AdminNav>().Markup, richieste);
+    }
+
+    [Fact]
+    public void Accanto_a_Richieste_il_numero_delle_aperte()
+    {
+        var (markup, _) = ConRichieste(VipiRole.Editor, aperte: 3);
+        var parser = new AngleSharp.Html.Parser.HtmlParser();
+        var doc = parser.ParseDocument(markup);
+
+        var voce = doc.QuerySelectorAll(".an-link").Single(a => a.GetAttribute("href") == "/services/vsop/requests");
+        Assert.Equal("3", voce.QuerySelector(".an-count")!.TextContent.Trim());
+        Assert.Single(doc.QuerySelectorAll(".an-count"));   // solo sulla sua voce
+    }
+
+    [Fact]
+    public void Anche_sulla_pagina_delle_richieste_il_numero_resta()
+    {
+        var (markup, _) = ConRichieste(VipiRole.Editor, aperte: 2, url: "http://localhost/services/vsop/requests");
+
+        Assert.Contains("an-link on", markup);
+        Assert.Contains(">2</span>", markup);
+    }
+
+    [Fact]
+    public void Nessuna_aperta_nessun_numero()
+    {
+        var (markup, richieste) = ConRichieste(VipiRole.Editor, aperte: 0);
+
+        Assert.DoesNotContain("an-count", markup);
+        Assert.Equal(1, richieste.Domande);
+    }
+
+    /// <summary>Chi non vede la voce non fa nemmeno la domanda al database.</summary>
+    [Fact]
+    public void Chi_non_vede_la_voce_non_legge_niente()
+    {
+        var (markup, richieste) = ConRichieste(VipiRole.DivisionStaff, aperte: 5);
+
+        Assert.Empty(markup.Trim());
+        Assert.Equal(0, richieste.Domande);
+    }
 }

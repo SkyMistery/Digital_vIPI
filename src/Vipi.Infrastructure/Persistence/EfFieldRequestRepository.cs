@@ -22,6 +22,9 @@ public sealed class EfFieldRequestRepository : IFieldRequestRepository
         _db.FieldRequests.CountAsync(r => r.ReporterUserId == reporterUserId
             && (r.Status == FieldRequestStatus.Nuova || r.Status == FieldRequestStatus.PresaInCarico), ct);
 
+    public Task<int> CountAllOpenAsync(CancellationToken ct = default) =>
+        _db.FieldRequests.CountAsync(r => r.Status == FieldRequestStatus.Nuova || r.Status == FieldRequestStatus.PresaInCarico, ct);
+
     public Task<int> CountSinceAsync(int reporterUserId, DateTime sinceUtc, CancellationToken ct = default) =>
         _db.FieldRequests.CountAsync(r => r.ReporterUserId == reporterUserId && r.CreatedUtc >= sinceUtc, ct);
 

@@ -23,6 +23,10 @@ public interface IFieldRequestRepository
     /// <summary>Quante richieste ancora aperte ha questo VID.</summary>
     Task<int> CountOpenAsync(int reporterUserId, CancellationToken ct = default);
 
+    /// <summary>Quante richieste sono ancora aperte in tutto (nuove o prese in carico): il numero accanto a
+    /// «Richieste» nella barra dello staff (S112).</summary>
+    Task<int> CountAllOpenAsync(CancellationToken ct = default);
+
     /// <summary>Quante richieste ha aperto questo VID da <paramref name="sinceUtc"/> in poi.</summary>
     Task<int> CountSinceAsync(int reporterUserId, DateTime sinceUtc, CancellationToken ct = default);
 
