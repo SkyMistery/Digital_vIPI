@@ -264,3 +264,18 @@ in Aurora», ognuna un ramo `prova/…` con le domande:
   testo già accorciato (un file di una riga diventava `\n`): corretto.
   Test Lab 1 044 → **1 059**, due giri verdi. Da provare dal committente, una alla volta: «Prepara la prova», «Porta in
   Aurora», una ricarica, le risposte, «Visto», «Butta la prova».
+
+### §7-bis — I piccoli resti del Lab (18 ottobre)
+
+- **C2 della F4, «l'ultima riga tolta rimette `*NIL`»**: nel riquadro del ramo, sotto il changelog, «Righe già nel
+  changelog» con un «togli» per riga (`Changelog.Scritte`, `Changelog.Togli`, `SessioneDelLab.TogliDalChangelogAsync`);
+  se era l'ultima della sua sezione torna `*NIL`, le altre righe restano byte per byte. La lettura e la scrittura del
+  file (UTF-8, BOM, a capo) sono ora un giro solo per «Scrivi» e «togli».
+- **I `SYMBOLS_*` dei profili** (T1, seconda metà): prima la prova, ora preparata — `simboli-nel-profilo` mette in
+  `PREFS\TWR.cpr` `SYMBOLS_AIRPORT=` col disegno del simbolo «VOR» di `symbols.sym` (la stessa forma dei profili
+  installati, sezione `[PREFS]`, letta da un profilo di Aurora senza scriverlo). Domande: con una posizione di torre
+  gli aeroporti diventano VOR? La linguetta SYMBOLS lo mostra? Passando a un'altra posizione, torna com'era? L'editor
+  dei `SYMBOLS_*` di un `.cpr` si fa dopo l'esito.
+- **Nomi con spazi nelle composte**: erano già chiusi dalla §M (virgolette nell'elenco); corretta la nota nel filone.
+- La tabella «dove guardare» (D3) resta da confermare dal committente: non è codice.
+  - Visto a schermo sul banco: «Righe già nel changelog (20)» nel riquadro del ramo, ognuna col «togli»; le righe lunghe ora vanno a capo.

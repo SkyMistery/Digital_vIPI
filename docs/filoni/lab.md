@@ -383,9 +383,9 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
 
 ### Aperto, da chiedere o dire al committente
 
-- ❓ **Nomi di procedura con spazi** (63 su 1169: `RNP10 UPETI` di `lica.str`, le rotte `AAR …` di `lizz.str`): oggi
-  non possono stare nell'elenco di una mappa composta (casella spenta). Allargare la grammatica (nomi fra virgolette
-  anche nell'elenco)? Fra i 58 aggregati le usa solo `lica` `RNP10`.
+- ✅ **Nomi di procedura con spazi** nelle composte: chiuso con la §M (regola 5): nell'elenco si scrivono fra virgolette
+  (`25:"RNP10 UPETI"`, `Metadati.ScriviLElenco`); il Lab rifiuta solo un nome con spazi in testa o in coda o con le
+  virgolette dentro (`NomeElencabile`). Verificato il 18 ottobre: la nota «aperto» era rimasta indietro.
 - 🟡 **Errore nei dati del fork**: `limf.sid:28` `LIMF18;TOP1B LAG2L; ; ;0;LAGEN;` (manca il `;` fra `LIMF` e `18`,
   dal commit «LIMF: Revisione SIDs»). Il validatore oggi non lo dice: ora è la P3 della carta «file per file» (§16).
 - Tutti gli altri aperti del giro dei file (26 settembre) stanno nella carta «file per file», voce per voce con lo

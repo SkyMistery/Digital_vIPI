@@ -45,7 +45,7 @@ public static class ProveInAurora
     public static IReadOnlyList<ProvaInAurora> Tutte { get; } =
     [
         new OrdineABlocchiDelleAerovie(), new VfrDiFirComeFix(), new EtichettePerRiferimento(), new PuntiDiStartup(),
-        new CartellaPerScalo(), new CartellaPerTipo(), new UnFilePerAcc(),
+        new CartellaPerScalo(), new CartellaPerTipo(), new UnFilePerAcc(), new SimboliNelProfilo(),
     ];
 
     /// <summary>La prova di quel ramo (<c>prova/…</c>), o null.</summary>

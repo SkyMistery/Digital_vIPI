@@ -114,6 +114,46 @@ public static partial class Changelog
         return uscita;
     }
 
+    /// <summary>Le righe scritte (non <c>*NIL</c>), sezione per sezione: il codice della sezione, l'indice della riga, il testo.</summary>
+    public static IReadOnlyList<(string Sezione, int Riga, string Testo)> Scritte(IReadOnlyList<string> righe)
+    {
+        ArgumentNullException.ThrowIfNull(righe);
+        var scritte = new List<(string, int, string)>();
+        foreach (var (codice, _) in Sezioni)
+        {
+            if (Dove(righe, codice) is not { } sezione)
+                continue;
+            scritte.AddRange(Voci(righe, sezione).Where(v => righe[v].Trim() != Vuota).Select(v => (codice, v, righe[v].Trim())));
+        }
+
+        return scritte;
+    }
+
+    /// <summary>
+    /// Toglie la riga <paramref name="riga"/> (indice da 0) se è una voce scritta di una sezione (C2): se la sezione resta
+    /// vuota, al suo posto torna <c>*NIL</c>. Le altre righe restano byte per byte. Null se quella riga non si toglie.
+    /// </summary>
+    public static List<string>? Togli(IReadOnlyList<string> righe, int riga)
+    {
+        ArgumentNullException.ThrowIfNull(righe);
+        foreach (var (codice, _) in Sezioni)
+        {
+            if (Dove(righe, codice) is not { } sezione || riga <= sezione.Inizio || riga >= sezione.Fine)
+                continue;
+            var voci = Voci(righe, sezione).ToList();
+            if (!voci.Contains(riga) || righe[riga].Trim() == Vuota)
+                return null;
+            var uscita = righe.ToList();
+            if (voci.Count == 1)
+                uscita[riga] = Vuota;
+            else
+                uscita.RemoveAt(riga);
+            return uscita;
+        }
+
+        return null;
+    }
+
     /// <summary>La sezione del codice dato: la riga del titolo e quella dopo l'ultima del suo contenuto (esclusa).</summary>
     private static (int Inizio, int Fine)? Dove(IReadOnlyList<string> righe, string codice)
     {

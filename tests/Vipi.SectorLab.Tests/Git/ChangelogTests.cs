@@ -42,6 +42,28 @@ public sealed class ChangelogTests : IDisposable
         Assert.Equal(DiOggi[15..19], dopo[15..19]);
     }
 
+    /// <summary>C2: l'ultima riga tolta da una sezione rimette *NIL; le altre restano byte per byte.</summary>
+    [Fact]
+    public void UnaRigaTolta_LUltimaRimetteNil()
+    {
+        var scritte = Changelog.Scritte(DiOggi);
+        Assert.Equal([("Generale", 7, "*nuovi FIX:"), ("Generale", 8, "-NANKA"), ("LIPP", 17, "*LIPY: Implementazione SID MASE5L/8J"), ("LIRR", 20, "*LIRL: Aggiunte le SID")], scritte);
+
+        // L'unica riga di LIPP: torna *NIL al suo posto.
+        var dopo = Changelog.Togli(DiOggi, 17)!;
+        Assert.Equal([.. DiOggi[..17], "*NIL", .. DiOggi[18..]], dopo);
+        Assert.Empty(Changelog.Controlla(dopo, "2610"));
+
+        // Una di due righe di Generale: si toglie e basta.
+        Assert.Equal([.. DiOggi[..8], .. DiOggi[9..]], Changelog.Togli(DiOggi, 8));
+
+        // *NIL, un titolo, una riga vuota, l'intestazione: non si tolgono.
+        Assert.Null(Changelog.Togli(DiOggi, 11));
+        Assert.Null(Changelog.Togli(DiOggi, 13));
+        Assert.Null(Changelog.Togli(DiOggi, 9));
+        Assert.Null(Changelog.Togli(DiOggi, 0));
+    }
+
     [Fact]
     public void IControlliDelFile()
     {

@@ -91,9 +91,27 @@ public sealed class AltreProveTests : IDisposable
     public void R4_UnaLongitudineSpostata(string lon, double secondi, string attesa) => Assert.Equal(attesa, PuntiDiStartup.SpostaLaLongitudine(lon, secondi));
 
     [Fact]
+    public void T1_IlSimboloDegliAeroporti_NelProfiloDelleTorri()
+    {
+        const string Vor = "0000000000000;0000011100000;0000100010000;0001000001000;0010000000100;0010001000100;0010010100100;0010001000100;0010000000100;0001000001000;0000100010000;0000011100000;0000000000000;";
+        Scrivi("SectorFiles/Include/IT/symbols.sym", "//APT\r\n0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;\r\n\r\n//VOR\r\n" + Vor + "\r\n");
+        Scrivi(SimboliNelProfilo.File, "[PREFS]\r\nAircraftHorizontal=30\r\nAircraftHorizontalPR=30\r\n");
+
+        var preparata = new SimboliNelProfilo().Prepara(_radice, out string? perche);
+
+        Assert.Null(perche);
+        Assert.Equal("[PREFS]\r\nAircraftHorizontal=30\r\nAircraftHorizontalPR=30\r\nSYMBOLS_AIRPORT=" + Vor + "\r\n", Assert.Single(preparata!.File).Testo);
+
+        // Già scritto: la prova non lo raddoppia.
+        Scrivi(SimboliNelProfilo.File, "[PREFS]\r\nSYMBOLS_AIRPORT=" + Vor + "\r\n");
+        Assert.Null(new SimboliNelProfilo().Prepara(_radice, out perche));
+        Assert.Contains("già un SYMBOLS_AIRPORT", perche, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LeProveSenzaIlLoroFile_DiconoPerche()
     {
-        foreach (var prova in new ProvaInAurora[] { new VfrDiFirComeFix(), new EtichettePerRiferimento(), new PuntiDiStartup() })
+        foreach (var prova in new ProvaInAurora[] { new VfrDiFirComeFix(), new EtichettePerRiferimento(), new PuntiDiStartup(), new SimboliNelProfilo() })
         {
             Assert.Null(prova.Prepara(_radice, out string? perche));
             Assert.False(string.IsNullOrWhiteSpace(perche));

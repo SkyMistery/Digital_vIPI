@@ -3460,15 +3460,43 @@ public sealed class SessioneDelLab
     /// Scrive le righe (corrette dall'AOD) nel <c>changelog.md</c> del ramo, ognuna in coda alla sua sezione (C2), poi
     /// rilegge l'albero: il file è da registrare come gli altri. Le altre righe del file restano byte per byte.
     /// </summary>
-    public async Task<bool> ScriviNelChangelogAsync(IReadOnlyList<(string Sezione, string Testo)> righe)
+    public Task<bool> ScriviNelChangelogAsync(IReadOnlyList<(string Sezione, string Testo)> righe)
     {
         ArgumentNullException.ThrowIfNull(righe);
+        if (righe.All(r => string.IsNullOrWhiteSpace(r.Testo)))
+            return Task.FromResult(Rifiuta("Nessuna riga da scrivere."));
+        return CambiaIlChangelogAsync(vecchie =>
+        {
+            var nuove = Core.Git.Changelog.Aggiungi(vecchie, righe, out var scartate);
+            string? rifiuto = scartate.Count > 0 ? "Senza la loro sezione nel file, non scritte: " + string.Join(" | ", scartate) : null;
+            return (nuove, $"{nuove.Count - vecchie.Count} righe in più{(scartate.Count > 0 ? ", scartate: " + string.Join(" | ", scartate) : "")}", rifiuto);
+        });
+    }
+
+    /// <summary>Le righe scritte nel <c>changelog.md</c> (non <c>*NIL</c>), sezione per sezione: per toglierle (C2).</summary>
+    public IReadOnlyList<(string Sezione, int Riga, string Testo)> RigheScritteNelChangelog
+        => PercorsoDelChangelog is { } file && File.Exists(file) ? Core.Git.Changelog.Scritte(File.ReadAllLines(file)) : [];
+
+    /// <summary>
+    /// Toglie una riga dal <c>changelog.md</c> (C2, carta F4): se era l'ultima della sua sezione, torna <c>*NIL</c>. Poi,
+    /// come la scrittura, l'albero si rilegge e il file è da registrare.
+    /// </summary>
+    public Task<bool> TogliDalChangelogAsync(int riga)
+        => CambiaIlChangelogAsync(vecchie => Core.Git.Changelog.Togli(vecchie, riga) is { } nuove
+            ? (nuove, $"tolta la riga {riga + 1} «{vecchie[riga].Trim()}»", null)
+            : (null, "", $"La riga {riga + 1} non è una riga scritta del changelog."));
+
+    /// <summary>
+    /// Il giro comune del changelog: lo legge (UTF-8, col BOM se c'era, l'a capo che aveva), lo cambia, lo riscrive uguale
+    /// nel resto, rilegge l'albero e il ramo. <paramref name="cambia"/> torna le righe nuove (null = niente da fare, col
+    /// perché), cosa scrivere nel registro, e un avviso per l'AOD.
+    /// </summary>
+    private async Task<bool> CambiaIlChangelogAsync(Func<List<string>, (List<string>? Nuove, string Registro, string? Rifiuto)> cambia)
+    {
         if (Modifiche.CEQualcosa)
-            return Rifiuta("Ci sono modifiche non salvate: salvale (o annullale) prima di scrivere il changelog.");
+            return Rifiuta("Ci sono modifiche non salvate: salvale (o annullale) prima di cambiare il changelog.");
         if (PercorsoDelChangelog is not { } file || !File.Exists(file))
             return Rifiuta($"Manca {Core.Git.Changelog.Percorso}.");
-        if (righe.All(r => string.IsNullOrWhiteSpace(r.Testo)))
-            return Rifiuta("Nessuna riga da scrivere.");
 
         try
         {
@@ -3480,11 +3508,13 @@ public sealed class SessioneDelLab
             var vecchie = testo.Split(capo).ToList();
             if (finale)
                 vecchie.RemoveAt(vecchie.Count - 1);
-            var nuove = Core.Git.Changelog.Aggiungi(vecchie, righe, out var scartate);
+            var (nuove, registro, rifiuto) = cambia(vecchie);
+            if (nuove is null)
+                return Rifiuta(rifiuto ?? "Niente da cambiare nel changelog.");
             string scritto = string.Join(capo, nuove) + (finale ? capo : "");
             await File.WriteAllBytesAsync(file, [.. (bom ? (byte[])[0xEF, 0xBB, 0xBF] : []), .. new System.Text.UTF8Encoding(false).GetBytes(scritto)]).ConfigureAwait(false);
-            Registro.Scrivi("git", $"changelog: {nuove.Count - vecchie.Count} righe in più{(scartate.Count > 0 ? ", scartate: " + string.Join(" | ", scartate) : "")}");
-            Rifiuto = scartate.Count > 0 ? "Senza la loro sezione nel file, non scritte: " + string.Join(" | ", scartate) : null;
+            Registro.Scrivi("git", "changelog: " + registro);
+            Rifiuto = rifiuto;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {

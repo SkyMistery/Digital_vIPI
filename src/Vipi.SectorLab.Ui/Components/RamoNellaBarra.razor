@@ -172,6 +172,24 @@
                 {
                     <p class="lab-avviso-breve" data-avviso-changelog>@avviso.Testo@(avviso.Riga is { } r ? $" (riga {r})" : "")</p>
                 }
+                @* C2 (carta F4): una riga scritta si toglie; se era l'ultima della sua sezione, torna *NIL. *@
+                @if (Lab.RigheScritteNelChangelog is { Count: > 0 } scritte)
+                {
+                    <details class="lab-righe-scritte" data-righe-scritte="@scritte.Count">
+                        <summary class="lab-nota">Righe già nel changelog (@scritte.Count)</summary>
+                        <ul class="lab-elenco-dei-rami">
+                            @foreach (var (sezione, riga, testo) in scritte)
+                            {
+                                int questa = riga;
+                                <li data-riga-scritta="@(questa + 1)">
+                                    <span class="lab-nota">@sezione ·</span> @testo
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="togli-dal-changelog" disabled="@Occupato"
+                                            title="Toglie la riga da changelog.md; se era l'ultima di @sezione, torna *NIL. Poi si registra" @onclick="() => Togli(questa)">togli</button>
+                                </li>
+                            }
+                        </ul>
+                    </details>
+                }
             }
             @if (Vipi.SectorLab.Core.Git.Registrazione.Fuori(ramo) is { Count: > 0 } fuori)
             {
@@ -282,6 +300,8 @@ else if (Lab.PercheDelRamo is { } perche)
         _rifiutoVisibile = !await Lab.ProponiIlChangelogAsync();
         _righe = [.. Lab.RigheDelChangelog.Select(r => new RigaInCorrezione(r))];
     }
+
+    private async Task Togli(int riga) => _rifiutoVisibile = !await Lab.TogliDalChangelogAsync(riga);
 
     private async Task Scrivi()
     {

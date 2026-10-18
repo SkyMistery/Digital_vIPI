@@ -1939,6 +1939,12 @@ body.lab-trascina * {
     padding-left: 1rem;
 }
 
+/* C2 (carta F4): le righe già nel changelog, ognuna col suo «togli»; frasi lunghe, vanno a capo. */
+.lab-righe-scritte {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
 /* Carta F4, slice 4: il messaggio della registrazione. */
 .lab-messaggio {
     width: 100%;

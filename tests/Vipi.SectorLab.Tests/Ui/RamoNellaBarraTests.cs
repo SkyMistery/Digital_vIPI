@@ -227,6 +227,14 @@ public sealed class RamoNellaBarraTests : IDisposable
         Assert.Equal("*NIL", righe[6]);   // le altre sezioni restano com'erano
         Assert.Contains(_lab.Ramo!.Cambiati, c => c.Percorso == Vipi.SectorLab.Core.Git.Changelog.Percorso);
         Assert.Empty(_lab.AvvisiDelChangelog);
+
+        // C2: tolta la sola riga di Generale, torna *NIL, e i controlli restano zitti.
+        var scritta = Assert.Single(_lab.RigheScritteNelChangelog);
+        Assert.True(await _lab.TogliDalChangelogAsync(scritta.Riga), _lab.Rifiuto);
+        Assert.Equal(["**Generale", "*NIL", ""], File.ReadAllLines(Path.Combine(dove, "SectorFiles", "Include", "IT", "changelog.md"))[2..5]);
+        Assert.Empty(_lab.RigheScritteNelChangelog);
+        Assert.Empty(_lab.AvvisiDelChangelog);
+        Assert.False(await _lab.TogliDalChangelogAsync(3));
     }
 
     [Fact]
