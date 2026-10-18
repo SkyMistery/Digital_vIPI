@@ -73,10 +73,10 @@ public sealed class VfrDiFirComeFix : ProvaInAurora
 
         perche = null;
         var esempi = spostati.Select(s => (File: s, Primo: PrimoPunto(Path.Combine(radice, "SectorFiles", "Include", "IT", s.Replace('\\', Path.DirectorySeparatorChar)))))
-            .Where(e => e.Primo is not null).Select(e => $"{e.Primo} ({Path.GetFileName(e.File)})").ToList();
+            .Where(e => e.Primo is not null).Select(e => $"{e.Primo} ({NomeDelFile(e.File)})").ToList();
         var domande = new List<DomandaDellaProva>
         {
-            new($"I punti VFR della FIR si vedono sulla mappa ({spostati.Count} file: {string.Join(", ", spostati.Select(Path.GetFileName))})?",
+            new($"I punti VFR della FIR si vedono sulla mappa ({spostati.Count} file: {string.Join(", ", spostati.Select(NomeDelFile))})?",
                 esempi.Count > 0 ? $"i punti VFR, per esempio {string.Join(", ", esempi)}" : "i punti VFR della FIR"),
             new("Si accendono e spengono senza scegliere un aeroporto? Con quale tasto o voce?", "il tasto o il menu dei punti VFR"),
             new("I punti VFR degli aeroporti si vedono e si accendono come prima?", "i punti VFR di LIRF (lirf.vfi), scelto LIRF"),
@@ -120,6 +120,12 @@ public sealed class VfrDiFirComeFix : ProvaInAurora
         righe.InsertRange(dopo, ["[VFRFIX]", .. nuove]);
         return spostati;
     }
+
+    /// <summary>
+    /// Il nome di un file come lo scrive un <c>.isc</c> (<c>ENRVFI\limm.vfi</c> → <c>limm.vfi</c>). Non
+    /// <c>Path.GetFileName</c>: su Linux (la CI) la barra rovesciata non separa niente.
+    /// </summary>
+    private static string NomeDelFile(string percorso) => percorso[(percorso.LastIndexOfAny(['\\', '/']) + 1)..];
 
     private static bool EDellaFir(string riga)
     {

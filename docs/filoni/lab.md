@@ -537,3 +537,6 @@ Dalle slice 13-19 (6 ottobre):
   (Python) in `vIPI Ivao Italy\sector-lab-f0\` (`pdf-aip\enr2.py` la lettura delle tabelle, `airac\checklist.py` la
   Cover, `airac\inventario.py` e `confronto.py`); il lettore delle geometrie della F1 in
   `src/Vipi.Application/Coordinates/` (`AipGeometryReader`, `CoordinateParser`).
+  - 🔴 **La CI dopo ogni push si guarda** (`gh run list -b lab/f3`): il 18 ottobre è rimasta rossa per cinque commit
+    (da `847ac950`) senza che me ne accorgessi — `Path.GetFileName("ENRVFI\limm.vfi")` su Linux non separa la barra
+    rovesciata. I percorsi scritti negli `.isc` si spezzano a mano (`LastIndexOfAny(['\', '/'])`).
