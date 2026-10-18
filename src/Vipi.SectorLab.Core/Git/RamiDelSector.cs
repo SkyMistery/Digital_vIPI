@@ -88,12 +88,14 @@ public static class RamiDelSector
     /// <summary>
     /// I rami di lavoro (<c>aod/…</c>) che il server ha e qui non ci sono, dall'ultimo <c>fetch</c> (carta F5, slice 5):
     /// il lavoro di un altro AOD, o fatto su un altro PC, da guardare in Aurora prima di fonderlo. Ci si passa come a un
-    /// ramo di qui: <c>git switch</c> crea il ramo locale che segue quello del server.
+    /// ramo di qui: <c>git switch</c> crea il ramo locale che segue quello del server. Quelli già fusi in
+    /// <paramref name="predefinito"/> (le PR chiuse) non c'è più niente da guardare: non si mostrano.
     /// </summary>
-    public static async Task<IReadOnlyList<string>> DaGuardareAsync(Git git, string radice, CancellationToken annulla = default)
+    public static async Task<IReadOnlyList<string>> DaGuardareAsync(Git git, string radice, string predefinito, CancellationToken annulla = default)
     {
         ArgumentNullException.ThrowIfNull(git);
-        var esito = await git.EseguiAsync(radice, ["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/" + PrefissoDiLavoro], annulla).ConfigureAwait(false);
+        var esito = await git.EseguiAsync(radice, ["for-each-ref", "--format=%(refname:short)", "--no-merged", "refs/remotes/origin/" + predefinito,
+            "refs/remotes/origin/" + PrefissoDiLavoro], annulla).ConfigureAwait(false);
         if (!esito.Riuscito)
             return [];
         var locali = await LocaliAsync(git, radice, annulla).ConfigureAwait(false);

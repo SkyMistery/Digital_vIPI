@@ -323,8 +323,8 @@ public sealed class SessioneDelLab
             if (stato is not null)
             {
                 RamiLocali = await Core.Git.RamiDelSector.LocaliAsync(Git, stato.Radice).ConfigureAwait(false);
-                RamiDaGuardare = await Core.Git.RamiDelSector.DaGuardareAsync(Git, stato.Radice).ConfigureAwait(false);
                 Predefinito = await Core.Git.RamiDelSector.PredefinitoAsync(Git, stato.Radice).ConfigureAwait(false);
+                RamiDaGuardare = await Core.Git.RamiDelSector.DaGuardareAsync(Git, stato.Radice, Predefinito).ConfigureAwait(false);
                 CicloDopo = Core.Git.RamiDelSector.RamoDelCicloDopo(DateTime.UtcNow);
                 CicloDopoSulServer = await Core.Git.RamiDelSector.SulServerAsync(Git, stato.Radice, CicloDopo).ConfigureAwait(false);
                 BaseDelRamo = stato.Ramo is null ? null : await Core.Git.RamiDelSector.BaseDiAsync(Git, stato.Radice, stato.Ramo).ConfigureAwait(false);

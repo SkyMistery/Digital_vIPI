@@ -216,3 +216,12 @@ segnata «da confermare», e la corregge il committente.
   - **Sul server, da guardare** (`RamiDelSector.DaGuardareAsync`, `SessioneDelLab.RamiDaGuardare`): nel riquadro del ramo
     i rami `aod/…` del server che qui non ci sono; un clic ci passa (`git switch` crea il ramo che segue quello del server),
     poi «Porta in Aurora», e il lotto ha i suoi gesti — prima di fondere la PR.
+  - **Il lavoro, dal Lab sul banco** (clone del fork nello scratchpad, `master` `f305e6d`): «Nuovo lavoro» →
+    `aod/704798/r-10-etichette-aerovie`; su `itawlow.lairway` «Sistema le etichette» (54 nuove, 24 rinominate, 25 tolte
+    e rifatte; tratti ≥ 10 NM), «Salva», «Registra» col messaggio corretto a mano come un AOD: **una riga `- …` per tipo
+    di correzione, coi fix dove guardarle** (L81 fra TETUZ e LORNO, L153 vicino a PIS, L869 vicino a TRP, L613 vicino a
+    VIC) — sono le voci del lotto del committente. Push del ramo e PR #9 sul fork fatti da riga di comando: sul banco
+    «Manda» aprirebbe il browser di Windows del committente. Avvisi 1 119 → 1 076, errori 140; restano 7 aerovie senza
+    etichetta, coi tratti tutti sotto i 10 NM (Q482, T345, T369, Y138, Y480, Y498, Y526).
+  - Dal banco: «Sul server, da guardare» mostrava anche i rami delle PR già fuse. Ora solo quelli non ancora fusi nel
+    ramo predefinito (`for-each-ref --no-merged origin/master`).

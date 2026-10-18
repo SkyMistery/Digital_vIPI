@@ -100,6 +100,8 @@ public sealed class RegistrazioniTests : IDisposable
         // Gli a capo come sono nel repo: con la conversione di Windows ogni file sembrerebbe cambiato.
         Git(lab, _fuori, "clone", "--quiet", "-c", "core.autocrlf=false", server, altro);
         Configura(lab, altro);
+        // Un ramo di lavoro già fuso (una PR chiusa): non c'è niente da guardare, non si mostra.
+        Git(lab, altro, "push", "--quiet", "origin", "master:aod/111111/gia-fusa");
         Git(lab, altro, "switch", "--quiet", "-c", "aod/111111/etichette");
         string fix = Path.Combine(altro, Fix.Replace('/', Path.DirectorySeparatorChar));
         File.AppendAllText(fix, "ZZTOP;N045.00.00.000;E010.00.00.000;\r\n");
