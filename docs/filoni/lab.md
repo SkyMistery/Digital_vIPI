@@ -4,7 +4,21 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026: la F5 è fatta (Aurora a lotti)
+## Dove siamo — 18 ottobre 2026, sera: F6 approvata, si comincia dalla slice 0a
+
+Dopo la F5, il piano del committente: **1)** le prove in Aurora ancora aperte, preparate dal Lab sul fork — **fatte**:
+otto nel riquadro «◫ Aurora → Prove in Aurora» (B9 provata 5/5; F5, A8, R4, I7-C, I7-B con O4, K2, simboli nel profilo
+da provare dal committente; carta F5 §7); **2)** i piccoli resti — **fatti** (C2 «togli» dal changelog con `*NIL`;
+carta F5 §7-bis); **3)** la **F6, i PDF dell'AIP**: carta [`2026-10-18-f6-pdf-aip.md`](../feature/2026-10-18-f6-pdf-aip.md)
+✅ **approvata il 18 ottobre**. Il cuore: un modello AIP neutro e multi-Stato (`Aip`), gli importer dei PDF (`Aip.Pdf`
++ `Aip.Pdf.Italia`), il converter per Aurora (`Aip.Aurora`, con riga di comando) — progetti a sé, riusabili altrove,
+senza «vIPI» nei nomi, che girano **solo in locale** (mai sul sito); nel Lab la lista delle differenze con «Porta nel
+sector» e «Sostituisci»; l'AIP espanso (tutto, anche quel che il sector non ha) in una cartella e in un repo GitHub di
+prova sul suo account (lo crea lui); il file per la pagina airspace del vSOP al posto del KMZ. Ordine dell'AIP, da ENR 2.
+**Prossima: slice 0a, il modello AIP** (aree e spazi aerei per primi, JSON versionato, esempi scritti a mano).
+Il sector vero si tocca solo dopo l'uscita del 2611 (29 ottobre).
+
+## 18 ottobre 2026: la F5 è fatta (Aurora a lotti)
 
 La **F5** è fatta, tutte e sei le slice, provate dal committente sul suo PC: la vetrina (1), il lotto (2), gli esiti
 ✅/❌ con le note sui record (3), le prove come lotti — la B9, ordine a blocchi delle aerovie, provata 5/5 (4) —, il giro
@@ -504,3 +518,22 @@ Dalle slice 13-19 (6 ottobre):
 - L'eseguibile di prova: `dotnet publish src/Vipi.SectorLab -c Release -r win-x64 --self-contained -o
   <IVAO_Test>\SectorLab-prova`, poi `VipiSectorLab.exe --autoprova --cartella <fork>` (esito 0). Prima si guarda che
   il Lab non sia aperto (`Get-Process VipiSectorLab`): è un programma che il committente usa.
+- **Dal giro del 18 ottobre** (F5 e dopo):
+  - Sul banco **«Manda» non si preme**: `ApriNelBrowser` è `init` e di base apre il browser di Windows del committente.
+    Il push del ramo e la PR si fanno da riga di comando (`git push -u origin aod/…`, `gh pr create --repo
+    SkyMistery/it-aurora-sector-test`), come per la PR #9.
+  - Un clone del fork per il banco: `git clone -c core.autocrlf=false <fork> fork`; per una copia fatta clone a mano,
+    `ColorSchemes/` in `.git/info/exclude` (nel fork vero sono ignorate dal `.gitignore`).
+  - Il clone del committente (`it-aurora-sector-test`) è **a un ramo solo** (`remote.origin.fetch` = solo master): per
+    questo il Lab ora chiede sempre tutti i rami (`RamiDelSector.ChiediAlServer`).
+  - Il cancello rifiuta i comandi git con la cartella in una variabile: percorsi scritti per esteso.
+  - Gli script Python passati con heredoc dalla shell perdono le barre rovesciate (`"\\r\\n"` diventa un a capo vero):
+    per testo con `\` si usa l'editor, o `chr(92)`.
+  - Il manuale IVAO («SectorFile Definition», `wiki.ivao.aero/en/home/devops/manuals/SectorFile_Definition`) al
+    recupero automatico risponde 403: si legge col browser del pannello (`get_page_text`, o il testo del `body`).
+  - Dati veri del committente in sola lettura: il lotto in `%LOCALAPPDATA%\VipiSectorLab\lotti\`, il registro in
+    `…\VipiSectorLab\log\`; dei profili di Aurora solo le righe che servono (mai `Settings\profile.ini` intero).
+- **Per la F6**: i PDF del ciclo 2609 in `vIPI Ivao Italy\RealDOCS\` (156 file, fuori dal repo); i prototipi della F0
+  (Python) in `vIPI Ivao Italy\sector-lab-f0\` (`pdf-aip\enr2.py` la lettura delle tabelle, `airac\checklist.py` la
+  Cover, `airac\inventario.py` e `confronto.py`); il lettore delle geometrie della F1 in
+  `src/Vipi.Application/Coordinates/` (`AipGeometryReader`, `CoordinateParser`).
