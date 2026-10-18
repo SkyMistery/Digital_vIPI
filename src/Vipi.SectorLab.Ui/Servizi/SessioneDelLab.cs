@@ -4276,7 +4276,8 @@ public sealed class SessioneDelLab
         {
             var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
             var catalogo = CatalogoScelto;
-            StratoDellAip = await Task.Run(() => Core.PdfAip.AipSullaMappa.Di(modello, ciclo, nome => catalogo?.Cerca(nome)?.Posizione)).ConfigureAwait(false);
+            var confini = ConfiniDelSector();
+            StratoDellAip = await Task.Run(() => Core.PdfAip.AipSullaMappa.Di(modello, ciclo, nome => catalogo?.Cerca(nome)?.Posizione, confini)).ConfigureAwait(false);
             SceltaDellAip = null;
             _versioniDegliStrati[id] = ++VersioneDellaGeometria;
             _accesi.Add(id);
@@ -4290,6 +4291,16 @@ public sealed class SessioneDelLab
             Registro.Errore("aip", e);
             return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
         }
+    }
+
+    /// <summary>
+    /// I tratti di confine e di costa dell'AIP sul tracciato di <c>itgeo.geo</c> (lo sfondo della mappa): l'eccezione del
+    /// committente, 19 ottobre. Null se il sector non ha lo sfondo.
+    /// </summary>
+    private global::Aip.Aurora.BorderTracer? ConfiniDelSector()
+    {
+        var confini = new Core.PdfAip.ConfiniDelSector(Strati.FirstOrDefault(s => s.Id == StratiDellaMappa.Sfondo.Id)?.Forme.SelectMany(f => f.Tratti) ?? []);
+        return confini.Punti > 0 ? confini.Tracciatore : null;
     }
 
     /// <summary>Il modello dell'AIP espanso da cui viene <see cref="UltimoConfronto"/>: i gesti della slice 1c ne prendono le zone.</summary>
@@ -4317,7 +4328,7 @@ public sealed class SessioneDelLab
         var vecchia = forma.Tratti;
         var poligono = confronto.Famiglia == Core.PdfAip.FamigliaDelConfronto.AtzDelleTorri;
         var densita = Core.PdfAip.ZoneNelSector.DensitaDi(vecchia, DensitaDiBase);
-        if (Core.PdfAip.ZoneNelSector.Corpo(Core.PdfAip.ZoneNelSector.ZoneDi(aip.Airspaces, nome, confronto.Famiglia), vecchia, densita, out var perche, poligono) is not { } corpo)
+        if (Core.PdfAip.ZoneNelSector.Corpo(Core.PdfAip.ZoneNelSector.ZoneDi(aip.Airspaces, nome, confronto.Famiglia), vecchia, densita, out var perche, poligono, ConfiniDelSector()) is not { } corpo)
             return Rifiuta(perche!);
 
         string gesto = $"{voce}: la forma di {nome} dall'AIP {confronto.Ciclo}";
@@ -4351,7 +4362,7 @@ public sealed class SessioneDelLab
         var etichetta = testata.Split(';')[2];
         if (conRecord.RecordDelModello.OfType<StrRecord>().Any(v => v.RunwaySpec == "MAPS" && v.ProcedureId.Equals(etichetta, StringComparison.OrdinalIgnoreCase)))
             return Rifiuta($"{NomeDelFile(file)} ha già la voce {etichetta}: se la forma è diversa, si sostituisce.");
-        if (Core.PdfAip.ZoneNelSector.Corpo(Core.PdfAip.ZoneNelSector.ZoneDi(aip.Airspaces, nome, confronto.Famiglia), [], DensitaDiBase, out var perche) is not { } corpo)
+        if (Core.PdfAip.ZoneNelSector.Corpo(Core.PdfAip.ZoneNelSector.ZoneDi(aip.Airspaces, nome, confronto.Famiglia), [], DensitaDiBase, out var perche, riserva: ConfiniDelSector()) is not { } corpo)
             return Rifiuta(perche!);
 
         // Prima della prima voce del MAPS; in un file senza MAPS, prima del primo record; in un file vuoto di record, in fondo.

@@ -48,7 +48,7 @@ public static class ZoneNelSector
     /// <paramref name="perche"/> lo dice.
     /// </summary>
     public static IReadOnlyList<string>? Corpo(IReadOnlyList<Airspace> zone, IReadOnlyList<IReadOnlyList<Coordinate>> vecchia,
-                                               double puntiPerGrado, out string? perche, bool poligono = false)
+                                               double puntiPerGrado, out string? perche, bool poligono = false, BorderTracer? riserva = null)
     {
         ArgumentNullException.ThrowIfNull(zone);
         ArgumentNullException.ThrowIfNull(vecchia);
@@ -64,7 +64,13 @@ public static class ZoneNelSector
             return null;
         }
 
-        var opzioni = new OutlineOptions { PointsPerDegree = puntiPerGrado, Border = (_, da, a) => DallaLinea(vecchia, da, a) };
+        // Il tratto di confine dalla linea che la voce ha già; se non c'è (una voce nuova), dal tracciato di riserva —
+        // itgeo.geo del sector, l'eccezione del committente del 19 ottobre.
+        var opzioni = new OutlineOptions
+        {
+            PointsPerDegree = puntiPerGrado,
+            Border = (s, da, a) => DallaLinea(vecchia, da, a) ?? riserva?.Invoke(s, da, a),
+        };
         var righe = new List<string>();
         for (var n = 0; n < zone.Count; n++)
         {

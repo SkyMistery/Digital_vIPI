@@ -25,8 +25,9 @@ public sealed record StratoDellAip(string Ciclo, StratoDellaMappa Strato, IReadO
 /// attese) da accendere e spegnere, un colore per genere. Sola lettura: le forme hanno per «file» <c>aip:&lt;ciclo&gt;</c>,
 /// che non è un file del sector, e un clic apre la scheda della voce, non un record.
 /// <list type="bullet">
-/// <item>Le aree con <see cref="Outline"/> a un punto per grado; un tratto di confine o di costa (l'AIP non lo disegna) è
-/// una retta fra i due capi, e la scheda lo dice.</item>
+/// <item>Le aree con <see cref="Outline"/> a un punto per grado; un tratto di confine o di costa (l'AIP non lo disegna)
+/// segue il tracciato di <c>itgeo.geo</c> del sector (<see cref="ConfiniDelSector"/>, l'eccezione decisa dal committente);
+/// dove non si ritrova è una retta fra i due capi, e la scheda lo dice.</item>
 /// <item>Le rotte come linee, spezzate dove l'AIP le interrompe.</item>
 /// <item>Le attese di ENR 3.4.1 non hanno coordinate (il punto è per nome): si mettono dove il sector ha quel punto, e
 /// dove non ce l'ha non si disegnano (la scheda resta, e lo dice).</item>
@@ -67,7 +68,8 @@ public static class AipSullaMappa
     /// Lo strato del modello. <paramref name="puntoDelSector"/>: dove il sector ha un punto, per nome (il catalogo del
     /// master scelto); null se non lo ha.
     /// </summary>
-    public static StratoDellAip Di(AipDocument aip, string ciclo, Func<string, Coordinate?> puntoDelSector)
+    /// <param name="confini">Il tracciato dei confini e delle coste (<see cref="ConfiniDelSector"/>); null = rette.</param>
+    public static StratoDellAip Di(AipDocument aip, string ciclo, Func<string, Coordinate?> puntoDelSector, BorderTracer? confini = null)
     {
         ArgumentNullException.ThrowIfNull(aip);
         ArgumentNullException.ThrowIfNull(puntoDelSector);
@@ -84,9 +86,10 @@ public static class AipSullaMappa
         foreach (var area in aip.Airspaces)
         {
             var problemi = new List<AuroraIssue>();
-            var punti = Outline.Points(area.Geometry, new OutlineOptions { PointsPerDegree = 1 }, problemi, area.Key);
+            var punti = Outline.Points(area.Geometry, new OutlineOptions { PointsPerDegree = 1, Border = confini }, problemi, area.Key);
             IReadOnlyList<Coordinate> anello = [.. punti.Select(Coordinata)];
-            Aggiungi(Voce(area, problemi.Any(p => p.Kind == AuroraIssueKind.BorderNotDrawn)), TipoDiForma.Area, [anello]);
+            var conConfine = area.Geometry is RingGeometry r && r.Segments.Any(s => s is BorderSegment);
+            Aggiungi(Voce(area, problemi.Any(p => p.Kind == AuroraIssueKind.BorderNotDrawn), conConfine), TipoDiForma.Area, [anello]);
         }
 
         foreach (var rotta in aip.Routes ?? [])
@@ -137,7 +140,7 @@ public static class AipSullaMappa
     private static string Pagina(AipPage? p) =>
         p is null ? "—" : p.Effective is { } d ? $"{p.Reference} ({d.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)})" : p.Reference;
 
-    private static VoceDellAip Voce(Airspace a, bool confineDritto)
+    private static VoceDellAip Voce(Airspace a, bool confineDritto, bool conConfine)
     {
         var campi = new List<(string, string)>
         {
@@ -157,6 +160,7 @@ public static class AipSullaMappa
         if (a.Remarks is { } note && note != "NIL") campi.Add(("Note", note));
         campi.Add(("Pagina", Pagina(a.Page)));
         if (confineDritto) campi.Add(("⚠", "un tratto di confine o di costa che l'AIP non disegna è qui una retta"));
+        else if (conConfine) campi.Add(("Confine", "il tratto di confine o di costa segue itgeo.geo del sector (l'AIP lo nomina, non lo disegna)"));
         return new VoceDellAip(Genere(a.Type), a.Key, campi, []);
     }
 

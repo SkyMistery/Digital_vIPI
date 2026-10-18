@@ -9,7 +9,8 @@
 **L'AIP espanso sulla mappa**, chiesto dal committente prima della 2b: nel riquadro «AIP» «Mostra l'AIP espanso sulla
 mappa» → lo strato «AIP espanso» in fondo agli Strati, un tipo per casella (CTR, ATZ, TMA… rotte, attese), un colore
 per tipo, e un clic apre la scheda della voce in sola lettura. Separato dal sector (file `aip:<ciclo>`): nessun gesto
-lo tocca. Provato sul banco (1 312 forme, la scheda di N503). Carta F6 §6. **Prossima: 2b**.
+lo tocca. Provato sul banco (1 312 forme, la scheda di N503). I tratti di confine e di costa seguono `itgeo.geo`
+(eccezione decisa dal committente): 44 su 44, la FIR di Milano per le Alpi. Carta F6 §6. **Prossima: 2b**.
 
 ## 19 ottobre 2026: F6, slice 2a fatta (l'importer di ENR 3)
 
