@@ -4,7 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026, sera: F6 approvata, si comincia dalla slice 0a
+## Dove siamo — 18 ottobre 2026: la F6 è partita, slice 0a fatta (il modello AIP)
+
+La **slice 0a** della F6 è fatta: il progetto `src/Aip` (il modello AIP, zero dipendenze, niente «vIPI» nei nomi) col
+suo JSON versionato, aree e spazi aerei per primi; un'area di ogni forma (poligono, cerchio, archi, confine e costa) va
+in JSON e torna uguale; 28 test per TFM in `tests/Aip.Tests`. Dettagli e scelte in carta F6 §6. Strada facendo il
+cancello dei conteggi (`tools/conta-test.sh`, codice comune) ora conta anche gli assiemi che non cominciano con `Vipi`.
+Allineato a `main` 1.67.0. **Prossima: slice 0b**, il converter per Aurora (`Aip.Aurora`) e la sua riga di comando.
+
+## 18 ottobre 2026, sera: F6 approvata, si comincia dalla slice 0a
 
 Dopo la F5, il piano del committente: **1)** le prove in Aurora ancora aperte, preparate dal Lab sul fork — **fatte**:
 otto nel riquadro «◫ Aurora → Prove in Aurora» (B9 provata 5/5; F5, A8, R4, I7-C, I7-B con O4, K2, simboli nel profilo

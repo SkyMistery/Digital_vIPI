@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Il modello AIP (F6, docs/feature/2026-10-18-f6-pdf-aip.md, slice 0a): gli oggetti dell'AIP come li scrive
+    l'AIP, con la numerazione dell'Annesso 15 dell'ICAO (comune a tutti gli Stati), e il loro JSON versionato.
+    È il contratto fra gli importer dei PDF (Aip.Pdf, Aip.Pdf.Italia), il converter per Aurora (Aip.Aurora) e
+    il Lab.
+
+    🔴 Un progetto a sé, da prendere e mettere in un altro progetto (committente, 18 ottobre): ZERO
+    dipendenze oltre al runtime, nessun riferimento al Lab, al sito o al motore del sector, niente «vIPI» nel
+    nome. Lo difende un test (NessunaDipendenzaTests). I nomi dei tipi e le chiavi del JSON sono in inglese,
+    come i termini dell'AIP che li definiscono (designator, lower/upper limit, class): il file lo leggerà
+    anche chi scrive un importer tedesco o francese.
+
+    🔴 Gira solo in locale: nessun progetto del sito lo referenzia.
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- Il RID si dichiara come in tutte le librerie di src/ (Directory.Build.props, lock di forma sola). -->
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Aip</RootNamespace>
+  </PropertyGroup>
+
+</Project>

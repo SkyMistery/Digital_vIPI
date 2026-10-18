@@ -54,6 +54,10 @@ TFM_SOLO="${3:-}"      # con --tfm: il TFM; con --scrivi: l'assieme (facoltativo
 # ms» con INCOLLATO in coda il riepilogo intero di Assets, e la coda « - Vipi.AuroraProfiles.Tests.dll (net8.0)»
 # alla riga dopo. Portato a capo quel che era incollato, fra la testa e la sua coda si mette un riepilogo
 # COMPLETO: la testa aspetta oltre i riepiloghi completi, e non solo la riga che la segue.
+#
+# ⚠️ Ogni assieme, non solo quelli che cominciano con «Vipi»: fino al 18 ottobre 2026 il filtro era `Vipi[^ ]+`,
+# e il primo progetto senza quel nome (Aip.Tests, F6 del Lab, carta 2026-10-18-f6-pdf-aip.md) sarebbe stato
+# invisibile al cancello — test che spariscono senza rumore, il guasto che questo script esiste per prendere.
 CORSA="$(sed -E 's/(.)((Passed|Failed)! +- )/\1\n\2/g' "$LOG" | awk '
     pend != "" {
         if ($0 ~ /^ *- /) { print pend $0; pend = ""; next }
@@ -64,7 +68,7 @@ CORSA="$(sed -E 's/(.)((Passed|Failed)! +- )/\1\n\2/g' "$LOG" | awk '
     { print }
     END { if (pend != "") print pend }' \
   | grep -E '^(Passed|Failed)!' \
-  | sed -E 's/.*Passed: *([0-9]+),.*- (Vipi[^ ]+\.dll) \((net[0-9.]+)\).*/\2 \3 \1/' \
+  | sed -E 's/.*Passed: *([0-9]+),.*- ([A-Za-z][^ ]*\.dll) \((net[0-9.]+)\).*/\2 \3 \1/' \
   | sort)"
 
 if [ -z "$CORSA" ]; then

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "state": "LI",
+  "airac": "2609",
+  "effective": "2026-09-03",
+  "airspaces": [
+    {
+      "section": "ENR 5.1",
+      "type": "prohibited",
+      "designator": "LI P901",
+      "name": "PROVA POLIGONO",
+      "upper": { "text": "2000 FT AMSL", "reference": "msl", "value": 2000, "unit": "ft" },
+      "lower": { "text": "GND", "reference": "ground" },
+      "geometry": {
+        "kind": "ring",
+        "segments": [
+          { "kind": "line", "from": { "lat": 41.5, "lon": 12.25 } },
+          { "kind": "line", "from": { "lat": 41.5, "lon": 12.5 } },
+          { "kind": "line", "from": { "lat": 41.25, "lon": 12.375 } }
+        ]
+      },
+      "page": { "reference": "ENR 5.1.1-1", "effective": "2025-07-10" }
+    },
+    {
+      "section": "ENR 5.1",
+      "type": "restricted",
+      "designator": "LI R902",
+      "name": "PROVA CERCHIO",
+      "upper": { "text": "FL 95", "reference": "flightLevel", "value": 95, "unit": "fl" },
+      "lower": { "text": "GND", "reference": "ground" },
+      "geometry": {
+        "kind": "circle",
+        "center": { "lat": 42.0125, "lon": 13.6 },
+        "radius": { "value": 300.0, "unit": "m" }
+      },
+      "page": { "reference": "ENR 5.1.2-4", "effective": "2026-07-09" }
+    },
+    {
+      "section": "ENR 2.1",
+      "type": "ctr",
+      "designator": "PROVA CTR",
+      "upper": { "text": "2500 FT AMSL", "reference": "msl", "value": 2500, "unit": "ft" },
+      "lower": { "text": "SFC", "reference": "ground" },
+      "class": "D",
+      "geometry": {
+        "kind": "ring",
+        "segments": [
+          { "kind": "line", "from": { "lat": 40.9, "lon": 14.1 } },
+          {
+            "kind": "arc",
+            "from": { "lat": 40.9, "lon": 14.3 },
+            "center": { "lat": 40.8, "lon": 14.2 },
+            "radius": { "value": 7.5, "unit": "nm" },
+            "direction": "clockwise"
+          },
+          {
+            "kind": "arc",
+            "from": { "lat": 40.7, "lon": 14.3 },
+            "center": { "lat": 40.75, "lon": 14.2 },
+            "direction": "counterClockwise"
+          }
+        ]
+      }
+    },
+    {
+      "section": "ENR 5.1",
+      "type": "danger",
+      "designator": "LI D903",
+      "upper": { "text": "UNL", "reference": "unlimited" },
+      "lower": { "text": "FL 285", "reference": "flightLevel", "value": 285, "unit": "fl" },
+      "geometry": {
+        "kind": "ring",
+        "segments": [
+          { "kind": "line", "from": { "lat": 45.9, "lon": 6.9 } },
+          {
+            "kind": "border",
+            "from": { "lat": 45.95, "lon": 7.1 },
+            "border": "state",
+            "text": "Italian northern geographical border"
+          },
+          { "kind": "line", "from": { "lat": 46.2, "lon": 7.8 } },
+          {
+            "kind": "border",
+            "from": { "lat": 45.8, "lon": 7.6 },
+            "border": "coast",
+            "text": "line at 500 m from coast"
+          }
+        ]
+      }
+    }
+  ]
+}

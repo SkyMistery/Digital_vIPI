@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "state": "LF",
+  "airspaces": [
+    {
+      "section": "ENR 2.1",
+      "type": "tma",
+      "designator": "PROVA TMA 1",
+      "upper": { "text": "FL 115", "reference": "flightLevel", "value": 115, "unit": "fl" },
+      "lower": { "text": "1500 FT ASFC" },
+      "class": "E",
+      "geometry": {
+        "kind": "circle",
+        "center": { "lat": 43.6, "lon": 7.2 },
+        "radius": { "value": 20, "unit": "km" }
+      }
+    }
+  ]
+}
