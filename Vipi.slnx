@@ -3,6 +3,8 @@
     <!-- F6: il modello AIP, progetto a sé e riusabile altrove (niente «vIPI» nel nome, carta F6 §3). -->
     <Project Path="src/Aip/Aip.csproj" />
     <Project Path="src/Aip.Aurora/Aip.Aurora.csproj" />
+    <Project Path="src/Aip.Pdf/Aip.Pdf.csproj" />
+    <Project Path="src/Aip.Pdf.Italia/Aip.Pdf.Italia.csproj" />
     <Project Path="src/Vipi.Application/Vipi.Application.csproj" />
     <Project Path="src/Vipi.AuroraProfiles/Vipi.AuroraProfiles.csproj" />
     <Project Path="src/Vipi.AuroraBridge/Vipi.AuroraBridge.csproj" />
@@ -22,6 +24,8 @@
   <Folder Name="/tools/">
     <!-- F6: la riga di comando del converter per Aurora (modello AIP in JSON → file di Aurora). -->
     <Project Path="tools/Aip.Aurora.Cli/Aip.Aurora.Cli.csproj" />
+    <!-- F6: la riga di comando dell'importer (PDF dell'AIP italiano → modello) e la misura sui PDF veri. -->
+    <Project Path="tools/Aip.Pdf.Cli/Aip.Pdf.Cli.csproj" />
     <Project Path="tools/Vipi.AgreementsToSections/Vipi.AgreementsToSections.csproj" />
     <Project Path="tools/Vipi.MilSopLoader/Vipi.MilSopLoader.csproj" />
     <!-- ⚠️ Questi tre stavano FUORI dalla soluzione fino al 7 settembre 2026, quindi la CI non li
@@ -42,6 +46,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aip.Aurora.Tests/Aip.Aurora.Tests.csproj" />
+    <Project Path="tests/Aip.Pdf.Tests/Aip.Pdf.Tests.csproj" />
     <Project Path="tests/Aip.Tests/Aip.Tests.csproj" />
     <Project Path="tests/Vipi.Application.Tests/Vipi.Application.Tests.csproj" />
     <Project Path="tests/Vipi.Assets.Tests/Vipi.Assets.Tests.csproj" />

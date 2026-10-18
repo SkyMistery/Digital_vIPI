@@ -4,7 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026: F6, slice 0a e 0b fatte (il modello AIP e il converter per Aurora)
+## Dove siamo — 18 ottobre 2026: F6, slice 0a, 0b e l'importer della 0c fatti
+
+**L'importer dei PDF è fatto** (prima parte della 0c): `src/Aip.Pdf` e `src/Aip.Pdf.Italia` su PdfPig, con la riga di
+comando `tools/Aip.Pdf.Cli` (`aip-pdf`). Sui PDF veri del 2609 legge ENR 5.1 per intero: 541 aree con la data di ogni
+pagina, identiche alla F0 area per area (2 207 coordinate). Il lettore delle geometrie della F1 è copiato, il sito non
+è toccato. **Prossima: la seconda parte della 0c**, nel Lab: la cartella dei PDF («Prendi i PDF da Download») e l'AIP
+espanso.
+
+## 18 ottobre 2026: F6, slice 0a e 0b fatte (il modello AIP e il converter per Aurora)
 
 **Slice 0b fatta**: `src/Aip.Aurora` scrive le aree del modello come righe `.geo` di Aurora, un blocco §M per area
 (limiti, classe, ciclo), archi e cerchi disegnati alla densità scelta; la riga di comando `tools/Aip.Aurora.Cli`

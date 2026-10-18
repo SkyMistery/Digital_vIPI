@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    L'importer dell'AIP italiano (F6, docs/feature/2026-10-18-f6-pdf-aip.md, slice 0c): quel che dell'AIP di ENAV
+    cambia rispetto agli altri Stati — le colonne delle tabelle, gli identificativi, l'impaginazione — sopra la parte
+    comune (Aip.Pdf). Un importer tedesco o francese sarà un progetto come questo, che scrive lo stesso modello.
+
+    🔴 Un progetto a sé (carta F6 §3): dipende da Aip.Pdf e dal modello, niente «vIPI», gira solo in locale.
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Aip.Pdf.Italia</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aip.Pdf.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aip.Pdf\Aip.Pdf.csproj" />
+  </ItemGroup>
+
+</Project>

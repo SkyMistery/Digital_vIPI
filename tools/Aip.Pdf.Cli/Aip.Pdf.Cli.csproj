@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    La riga di comando dell'importer (carta F6, slice 0c): PDF dell'AIP italiano → modello AIP in JSON, con la misura
+    (pagine, date, aree, segnalazioni). È la misura sui PDF veri che gira FUORI dalla CI, sul PC: i PDF di ENAV non
+    vanno nel repo. Nella soluzione perché compili sempre.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>aip-pdf</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aip.Pdf.Italia\Aip.Pdf.Italia.csproj" />
+  </ItemGroup>
+
+</Project>
