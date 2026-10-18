@@ -254,7 +254,8 @@ public static class SectionCatalog
     /// sparisce con lui.</para>
     /// </summary>
     private static SectionDescriptor TorreRadarDescrittore(int ordine) =>
-        H(SectionKeys.RadarTower, "Torre radar", ordine, en: "Tower radar", nascosta: true, children: new[]
+        // «Radar di torre» e non «Torre radar» (committente, 18 ottobre 2026): il soggetto è il radar.
+        H(SectionKeys.RadarTower, "Radar di torre", ordine, en: "Tower radar", nascosta: true, children: new[]
         {
             H(SectionKeys.RadarTowerTechnique, "Tecnica operativa", 1, en: "Operating technique"),
         });

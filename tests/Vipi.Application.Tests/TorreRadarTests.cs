@@ -11,9 +11,11 @@ namespace Vipi.Application.Tests;
 /// </summary>
 public class TorreRadarTests
 {
-    private static SectionView Sez(string chiave, params SectionView[] figli) => new()
+    private static SectionView Sez(string chiave, params SectionView[] figli) => Sez(chiave, false, figli);
+
+    private static SectionView Sez(string chiave, bool nascosta, params SectionView[] figli) => new()
     {
-        Id = chiave, Title = chiave, Depth = 0, SectionKey = chiave,
+        Id = chiave, Title = chiave, Depth = 0, SectionKey = chiave, IsHidden = nascosta,
         Blocks = Array.Empty<BlockView>(), Children = figli,
     };
 
@@ -190,6 +192,42 @@ public class TorreRadarTests
 
         Assert.Equal(new[] { "generaldata", "runways", SectionKeys.RadarTower, "sids", "lvp" },
                      Chiavi(TorreRadar.Filtra(sezioni, SenzaRadar)));
+    }
+
+    // ---- La marca nella vista live (committente, 18 ottobre 2026) ---------------------------------------------
+
+    /// <summary>«Radar di torre», non «Torre radar» (committente): il soggetto è il radar.</summary>
+    [Theory]
+    [InlineData(SectionProfile.Airport)]
+    [InlineData(SectionProfile.AirportMil)]
+    public void Si_chiama_radar_di_torre(SectionProfile profilo)
+    {
+        var d = SectionCatalog.Find(profilo, SectionKeys.RadarTower)!;
+        Assert.Equal("Radar di torre", d.Title);
+        Assert.Equal("Tower radar", d.TitleIn("en"));
+    }
+
+    [Fact]
+    public void La_marca_porta_alla_sezione_se_la_torre_ha_il_radar_e_la_sezione_si_vede()
+    {
+        var sezioni = new[] { Sez("runways"), Sez(SectionKeys.RadarTower, Sez(SectionKeys.RadarTowerTechnique)) };
+
+        Assert.Equal(SectionKeys.RadarTower, TorreRadar.Ancora(sezioni, ConRadar));
+        Assert.Null(TorreRadar.Ancora(sezioni, SenzaRadar));
+        Assert.Null(TorreRadar.Ancora(sezioni, AirportRadarTowerView.Empty));
+    }
+
+    /// <summary>
+    /// La sezione nasce nascosta e si mostra scalo per scalo: finché è nascosta la marca non c'è, o porterebbe in
+    /// cima a una pagina che non la contiene. Nel vSOP vale anche se è nascosta la madre (i Dati generali).
+    /// </summary>
+    [Fact]
+    public void Con_la_sezione_nascosta_o_sotto_una_madre_nascosta_la_marca_non_c_e()
+    {
+        Assert.Null(TorreRadar.Ancora(new[] { Sez(SectionKeys.RadarTower, nascosta: true) }, ConRadar));
+        Assert.Null(TorreRadar.Ancora(new[] { Sez("generaldata", nascosta: true, Sez(SectionKeys.RadarTower)) }, ConRadar));
+        Assert.Equal(SectionKeys.RadarTower,
+                     TorreRadar.Ancora(new[] { Sez("generaldata", Sez("runways"), Sez(SectionKeys.RadarTower)) }, ConRadar));
     }
 
     [Fact]

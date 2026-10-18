@@ -3808,6 +3808,8 @@
   <data name="TorreRadar_TecnicaPlaceholder" xml:space="preserve"><value>How the radar tower works at this airport: identification, separation, coordination…</value></data>
   <data name="TorreRadar_Aiuto" xml:space="preserve"><value>Whether the tower is radar-equipped belongs to the &lt;b&gt;airport&lt;/b&gt;, not to the document: it is written once, together with the operating technique, and both the vIPI and the vSOP read it. «Not stated» does not mean «no».</value></data>
   <data name="TorreRadar_AiutoAria" xml:space="preserve"><value>Help on the tower radar</value></data>
+  <data name="TorreRadar_Chip" xml:space="preserve"><value>Tower radar</value></data>
+  <data name="TorreRadar_ChipTitolo" xml:space="preserve"><value>The tower is radar-equipped: opens the document's «Tower radar» section in a new tab</value></data>
   <data name="TorreRadar_ConfermaNonIndicato" xml:space="preserve"><value>Going back to «not stated» also deletes the operating technique already written. Continue?</value></data>
   <data name="Services_EyeTitle" xml:space="preserve"><value>See who is online now</value></data>
   <data name="Services_EyeDesc" xml:space="preserve"><value>Unofficial tool, made by the Italian division.</value></data>

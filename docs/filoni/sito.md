@@ -2751,7 +2751,11 @@
     verde col radar, rosso senza, giallo se non indicato — e la sezione **nasce nascosta** dappertutto, anche nei
     documenti già scritti («poi le mostriamo man mano che le sistemiamo»), come le STAR; nelle unioni quindi non
     è proposta spuntata. Sulla copia: migrazione passata, 68 documenti con la sezione nascosta.
-  - **Test**: App 3390 → 3411, Infra 2229 → 2232, Ui 2087 → 2100.
+  - **Poi, stesso giorno**: il titolo diventa **«Radar di torre»** (in inglese «Tower radar»), e nella **vista live**,
+    accanto all'ICAO della vista rapida aeroporto, la pastiglia «Radar di torre ↗» se la torre ne è dotata **e** la
+    sezione si vede nel documento pubblicato: apre la vIPI/vSOP in una scheda nuova, alla sezione (`TorreRadar.Ancora`,
+    `AirportQuickPanel`, `LivePage`). Provata a schermo su una postazione inventata; la variante della vista d'area no.
+  - **Test**: App 3390 → 3415, Infra 2229 → 2232, Ui 2087 → 2100.
   - **Non fa**: la tecnica non si traduce (testo d'anagrafica, come la nota LVP); niente formattazione.
   - **A schermo** su un database nuovo con due scali inventati (LIRQ civile, LIPI solo militare): editor e anteprima
     della vIPI col sì (frase, tecnica chiusa a due righe, indice fra Piste e SID) e col no (tecnica sparita da corpo e

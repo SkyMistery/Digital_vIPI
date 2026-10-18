@@ -1,4 +1,4 @@
-# La torre radar — sì o no, e la tecnica operativa dello scalo
+# Il radar di torre — sì o no, e la tecnica operativa dello scalo
 
 **18 ottobre 2026.** Carta di lavoro (S115).
 
@@ -23,6 +23,8 @@ alle condizioni della pista scelta per le partenze».
 | Dove sta il testo | **Una volta sola, nell'anagrafica dello scalo**: «la torre di uno scalo militare e civile è SEMPRE una sola». vIPI e vSOP leggono lo stesso testo |
 | I colori (dopo averla vista sulla copia di produzione) | La frase nei **callout del sito**: verde (`success`) con la torre radar, rosso (`danger`) senza, giallo (`warning`) se non indicato |
 | Visibile? | **Nasce nascosta**, in tutti i documenti — «poi le mostriamo man mano che le sistemiamo». Come le STAR: anche nei documenti già scritti, dove la porta la manutenzione d'avvio |
+| Il titolo | **«Radar di torre»**, non «Torre radar». In inglese resta «Tower radar» (scelta del filone) |
+| Nella vista live | Accanto all'ICAO della **vista rapida aeroporto** una pastiglia «Radar di torre ↗» se la torre ne è dotata; cliccata apre la vIPI/vSOP **in una scheda nuova**, alla sezione |
 
 Le scelte del filone, che non cambiano il senso della domanda:
 
@@ -52,7 +54,8 @@ Le scelte del filone, che non cambiano il senso della domanda:
 | Unioni | Stessa chiave, dato dell'anagrafica: la scheda «sezioni in comune» la trova come una. **Non** la propone spuntata, come le STAR: nasce nascosta, e spuntarla vorrebbe dire mostrarla nel documento che la tiene. Nasconderla da un documento si porta via la tecnica, che c'è anche nell'altro |
 | Documenti già scritti | La sezione la aggiunge `AddMissingCatalogSections` all'avvio, nel posto giusto (fra Piste e SID; nel vSOP fra Regole piste e SID dei Dati generali), **nascosta**. La riceve anche la versione pubblicata: nascosta, al pubblico non cambia niente |
 | Sezioni da scrivere (S111) | La tecnica **non conta**: editoriale nel catalogo, ma il testo sta nell'anagrafica (`SezioniDaScrivere`, come le soglie) |
-| Titoli | «Torre radar» → «Tower radar», «Tecnica operativa» → «Operating technique» (catalogo e `TitoliUfficiali`) |
+| Titoli | «Radar di torre» → «Tower radar», «Tecnica operativa» → «Operating technique» (catalogo e `TitoliUfficiali`) |
+| La marca nella vista live | `AirportQuickPanel` la cerca nel documento **pubblicato** che il suo tasto apre (la vIPI, o il vSOP se nella vIPI la sezione non si vede): c'è solo se la torre ha il radar **e** la sezione si vede, anche nelle madri (`TorreRadar.Ancora`) — una sezione nascosta non ha un'ancora a cui arrivare. Il sì/no è quello della vista del documento, congelata con la release. Nella postazione d'aeroporto la pastiglia sta nella testata accanto all'ICAO (`LivePage`, che la riceve dal pannello); nella vista d'area, dove quella testata non c'è, il pannello la mette fra i suoi tasti, accanto a vAWOS |
 
 ## 4. Che cosa non fa
 
@@ -64,7 +67,7 @@ Le scelte del filone, che non cambiano il senso della domanda:
 
 ## 5. Esito
 
-- Test: App 3390 → 3411, Infra 2229 → 2232, Ui 2087 → 2100 (Hosting 93, Domain 167 ed E2E 508 invariati), sui due
+- Test: App 3390 → 3415, Infra 2229 → 2232, Ui 2087 → 2100 (Hosting 93, Domain 167 ed E2E 508 invariati), sui due
   framework.
 - Prova a schermo: §6.
 
@@ -87,6 +90,9 @@ LIRQ civile e LIPI solo militare. Nessuna copia di database vero.
 - **I colori**, su un database nuovo coi due scali inventati: giallo «non indicato» (LIRQ appena nata), rosso «no»
   (LIRQ), verde «sì» con la tecnica (LIPI, vSOP), nei temi scuro e chiaro. Una vIPI appena nata ha la torre radar
   nascosta.
+- **La marca nella vista live**, su un database nuovo con la postazione inventata LIRQ_TWR e la vIPI pubblicata con la
+  sezione visibile e il sì: «Radar di torre ↗» verde accanto a «LIRQ», scheda nuova, e il collegamento atterra sulla
+  sezione del documento pubblico. Non vista a schermo: la variante nella vista d'area (fra i tasti del pannello).
 - **Non visto a schermo**: l'unione vIPI + vSOP (provata con i test di `SezioniComuni`), la conferma del ritorno a
   «non indicato» (un dialogo del browser: provata in bUnit), il telefono, la pagina pubblica dopo una pubblicazione
   (la cattura alla release è provata nei test).

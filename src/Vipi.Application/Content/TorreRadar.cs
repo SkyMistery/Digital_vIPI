@@ -45,6 +45,31 @@ public static class TorreRadar
         return Senza(sezioni);
     }
 
+    /// <summary>
+    /// L'ancora della sezione «Radar di torre» da aprire dalla vista live (committente, 18 ottobre 2026): solo se la
+    /// torre è dotata di radar E la sezione si vede nel documento pubblicato. <c>null</c> = niente da segnalare.
+    ///
+    /// <para>⚠️ Anche la sezione deve essere visibile, non basta il dato: la sezione nasce nascosta e si mostra scalo
+    /// per scalo quando è sistemata, e un collegamento verso una sezione nascosta atterrerebbe in cima a una pagina
+    /// che non la contiene. Nascosta vale anche se lo è una sua madre (nel vSOP sta dentro i Dati generali).</para>
+    ///
+    /// <para>⚠️ Il sì/no viene dalla vista DEL DOCUMENTO (<paramref name="vista"/>, congelata con la release), non
+    /// dall'anagrafica viva: la marca dice quel che il documento che si apre dice.</para>
+    /// </summary>
+    public static string? Ancora(IReadOnlyList<SectionView> sezioni, AirportRadarTowerView vista) =>
+        vista.Equipped == true ? Visibile(sezioni)?.Id : null;
+
+    private static SectionView? Visibile(IReadOnlyList<SectionView> sezioni)
+    {
+        foreach (var s in sezioni)
+        {
+            if (s.IsHidden) continue;   // via lei e tutto quel che ha sotto
+            if (string.Equals(s.SectionKey, SectionKeys.RadarTower, StringComparison.OrdinalIgnoreCase)) return s;
+            if (Visibile(s.Children) is { } sotto) return sotto;
+        }
+        return null;
+    }
+
     private static bool Contiene(IReadOnlyList<SectionView> sezioni) =>
         sezioni.Any(s => string.Equals(s.SectionKey, SectionKeys.RadarTowerTechnique, StringComparison.OrdinalIgnoreCase)
                          || Contiene(s.Children));
