@@ -123,8 +123,16 @@ public static class RepoDellAip
     }
 
     /// <summary>Il messaggio proposto per la registrazione di un ciclo letto.</summary>
-    public static string MessaggioProposto(EsitoDellAipEspanso esito) =>
-        $"AIP {esito.Ciclo}: {esito.Aree} aree da {esito.Letti.Count} PDF ({string.Join(", ", esito.Letti.Select(Path.GetFileNameWithoutExtension))})";
+    /// <remarks>Fino a sei PDF li nomina; oltre, le sezioni (con ENR 2 sono 64 file: il messaggio diventava un elenco).</remarks>
+    public static string MessaggioProposto(EsitoDellAipEspanso esito)
+    {
+        var nomi = esito.Letti.Select(Path.GetFileNameWithoutExtension).ToList();
+        var cosa = nomi.Count <= 6
+            ? string.Join(", ", nomi)
+            : string.Join(", ", nomi.Select(n => System.Text.RegularExpressions.Regex.Match(n!, @"^LI-(?<s>[A-Z]+ \d+)").Groups["s"].Value)
+                .Where(s => s.Length > 0).Distinct().Order(StringComparer.Ordinal));
+        return $"AIP {esito.Ciclo}: {esito.Aree} aree da {esito.Letti.Count} PDF ({cosa})";
+    }
 
     /// <summary>Registra i file dentro i confini, e solo quelli. Torna null se è andata, o il perché.</summary>
     public static async Task<string?> RegistraAsync(Git.Git git, StatoDelRamo stato, string? messaggio, CancellationToken annulla = default)

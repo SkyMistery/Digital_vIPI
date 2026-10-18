@@ -70,6 +70,18 @@ public sealed class RepoDellAipTests : IDisposable
     public void IConfiniDelRepo(string percorso, bool dentro) => Assert.Equal(dentro, RepoDellAip.DentroIConfini(percorso));
 
     [Fact]
+    public void IlMessaggioPropostoNominaIPdf_ODaSetteInSuLeSezioni()
+    {
+        static EsitoDellAipEspanso Esito(params string[] letti) => new("2610", "x", letti.Length, letti, [], 870, [], [], []);
+
+        Assert.Equal("AIP 2610: 870 aree da 2 PDF (LI-ENR 5.1.1, LI-ENR 5.1.2)",
+            RepoDellAip.MessaggioProposto(Esito("LI-ENR 5.1.1.pdf", "LI-ENR 5.1.2.pdf")));
+        Assert.Equal("AIP 2610: 870 aree da 7 PDF (ENR 2, ENR 5)",
+            RepoDellAip.MessaggioProposto(Esito("LI-ENR 2.1.1.1.pdf", "LI-ENR 2.1.2 1 Alghero CTR.pdf", "LI-ENR 2.2.pdf",
+                "LI-ENR 5.1.1.pdf", "LI-ENR 5.1.2.pdf", "LI-ENR 5.1.3.pdf", "LI-ENR 5.1.4.pdf")));
+    }
+
+    [Fact]
     public void IlGitIgnoreTieneFuoriIPdf_ESiCompletaSenzaDoppioni()
     {
         var cartella = Directory.CreateDirectory(Path.Combine(_radice, "g")).FullName;
