@@ -124,3 +124,24 @@ segnata «da confermare», e la corregge il committente.
   (`Program.ScegliCartella`, `FolderBrowserDialog` sul filo della finestra) e che la pagina chiama da
   `SessioneDelLab.ScegliCartella` — senza guscio (test, banco) i tasti non ci sono. I sector aperti di recente come voci
   cliccabili («Aperti di recente», nome e percorso). Visto a schermo sul banco, con una scelta finta.
+- **Slice 2 (18 ottobre)** — il lotto. Solo il Lab: `Core/Aurora/Lotto.cs` (`Lotto`, `VoceDelLotto`, `DoveGuardare`),
+  `SessioneDelLab` (`Lotto`, `InVetrinaCeQuesto`, `VistoInAurora`; i gesti della storia ricordano i loro file),
+  `AuroraNellaBarra.razor`.
+  - **Le voci**: a ogni salvataggio, i gesti salvati (le voci della storia, le stesse del messaggio di «Registra»), ognuno
+    coi file che ha toccato — quelli le cui modifiche in sospeso sono cambiate col gesto. Un gesto i cui file non sono
+    stati salvati (salvataggio interrotto) resta fuori; salvato senza storia (Lab riaperto) = una voce per file.
+  - **Due stati**: salvata = «da portare»; dopo «Porta in Aurora» = «da vedere» (solo se in vetrina c'è questo sector).
+    La barra: «◫ Aurora … · 4 modifiche da vedere · 1 da portare»; il riquadro elenca le voci con dove guardarle e
+    quando. **«Visto in Aurora»** toglie le voci in vetrina (le ✅/❌ prima del «visto» sono la slice 3).
+  - **Tutto da rivedere** (carta §4): se «Porta in Aurora» trova in vetrina un altro sector, un altro ramo, o niente, il
+    lotto aggiunge una voce sola, «tutto il sector», invece di fingere che sia una modifica piccola.
+  - **Sul disco**: nei dati del Lab, `lotti\<impronta del percorso>.json`, uno per cartella del sector, scritto tutto o
+    niente (file a parte, poi lo scambio). Illeggibile = si ricomincia (è un appunto di lavoro).
+  - **Dove guardare** (D3): una riga per tipo di file (SID → «le SID di LIRF: finestra delle procedure, per pista»,
+    `.mva` di scalo → «la MVA Selection, le zone di LIRF», `ENRMVA` → «voce dell'ACC», NAVAIDS → «i punti sulla mappa»…).
+    🟡 **Proposta dell'agente, da confermare** dal committente alla prima prova: si corregge in `DoveGuardare.Di`.
+  - **Visto a schermo** sul banco (copia del sector): una nota salvata → «1 da portare»; «Porta in Aurora» → «2 modifiche
+    da vedere» (la nota e «tutto il sector», prima volta in vetrina); «Visto in Aurora» → il conto sparisce. Dalla prova,
+    il riquadro di Aurora ora va a capo (i percorsi lunghi uscivano dal riquadro, già dalla slice 1).
+  Test Lab 1 019 → **1 030**, tre giri verdi. Da provare sul PC del committente: tre salvataggi, «N da portare», Lab
+  chiuso e riaperto, le voci ancora lì; poi «Porta in Aurora» e il conto «da vedere».

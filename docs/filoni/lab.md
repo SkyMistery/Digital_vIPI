@@ -13,8 +13,10 @@ il Lab ne legge solo quella riga). **Slice 1 fatta** (`1ed29d3d`): la vetrina �
 una volta; «Porta in Aurora» ci specchia la `SectorFiles` del sector aperto; la barra dice cosa c'è dentro e se Aurora
 la guarda; i sector recenti a un clic. Fuori slice (`675c19f6`, chiesto dal committente): la schermata d'apertura con
 «Sfoglia…» (la finestra di Windows per le cartelle, dal guscio WinForms) e il campo del repo largo. La vetrina è
-**provata dal committente sul suo PC, la sera del 18: funziona** (slice 1 chiusa). **Prossima: slice 2,
-il lotto** (le modifiche da guardare in Aurora dall'ultimo «visto», con dove guardarle).
+**provata dal committente sul suo PC, la sera del 18: funziona** (slice 1 chiusa). **Slice 2 fatta, il lotto**: i
+gesti salvati da «visto in Aurora», ognuno coi suoi file e con dove guardarlo (tabella proposta, da confermare), «da
+portare» finché non vanno in vetrina e poi «da vedere»; il conto nella barra, «Visto in Aurora», un file per sector nei
+dati del Lab. Da provare sul PC del committente. **Prossima: slice 3, gli esiti** (✅/❌ con una nota).
 
 ## Dove siamo — 18 ottobre 2026: la F4 è fatta
 

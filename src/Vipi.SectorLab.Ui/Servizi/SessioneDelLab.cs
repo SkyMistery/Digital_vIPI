@@ -580,14 +580,16 @@ public sealed class SessioneDelLab
             UltimoSalvataggio = esito;
             Registro.Scrivi("salvataggio", Racconta(esito, confermato));
             // La storia si scorda con la rilettura: i suoi gesti si prendono prima (carta F4, slice 4).
-            var gestiSalvati = _storia.Take(_fatti).Select(g => g.Cosa).ToList();
+            var gestiSalvati = _storia.Take(_fatti).ToList();
             if (esito.Salvati.Count + esito.Invariati.Count > 0)
                 await DopoLaRiletturaAsync().ConfigureAwait(false);
             // Il sector sul disco è cambiato: le regole dell'albero (nomi non risolti, file mai citati) si rifanno.
             if (esito.Salvati.Count > 0)
             {
                 // I gesti salvati fanno il messaggio della prossima registrazione (carta F4, slice 4).
-                _gestiDaRegistrare.AddRange(gestiSalvati);
+                _gestiDaRegistrare.AddRange(gestiSalvati.Select(g => g.Cosa));
+                // E il lotto di Aurora (carta F5, slice 2): ogni gesto coi suoi file salvati, da portare in vetrina.
+                NelLotto(gestiSalvati, esito.Salvati);
                 _ = ValidaLAlberoAsync();
                 // E git vede i file salvati da registrare (carta F4, slice 1).
                 _ = RileggiIlRamoAsync();
@@ -2911,7 +2913,8 @@ public sealed class SessioneDelLab
 
     private readonly HashSet<string> _daRifareDopoIlRigioco = new(StringComparer.Ordinal);
 
-    private sealed record GestoNellaStoria(string Cosa, Func<bool> Rifai);
+    /// <summary>Un gesto della storia; <paramref name="File"/> = i file che ha toccato (vanno nel lotto di Aurora, F5 slice 2).</summary>
+    private sealed record GestoNellaStoria(string Cosa, Func<bool> Rifai, IReadOnlyList<string> File);
 
     public bool SiPuoAnnullare => _fatti > 0;
 
@@ -2928,12 +2931,16 @@ public sealed class SessioneDelLab
         // La domanda sul gemello (8e) vale per il gesto appena fatto: il prossimo la toglie.
         if (!_rigioco)
             GemelloDaTogliere = null;
+        var prima = _rigioco ? null : Modifiche.Tutte.ToHashSet();
         bool fatto = gesto();
         if (!fatto || _rigioco)
             return fatto;
 
+        // I file del gesto: quelli le cui modifiche in sospeso sono cambiate (dove guardarlo in Aurora, F5 slice 2).
+        var dopo = Modifiche.Tutte.ToHashSet();
+        IReadOnlyList<string> file = [.. dopo.Except(prima!).Concat(prima!.Except(dopo)).Select(m => m.File).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
         _storia.RemoveRange(_fatti, _storia.Count - _fatti);
-        _storia.Add(new GestoNellaStoria(cosa, gesto));
+        _storia.Add(new GestoNellaStoria(cosa, gesto, file));
         _fatti = _storia.Count;
         Avvisa();
         return true;
@@ -3732,12 +3739,15 @@ public sealed class SessioneDelLab
             if (Ramo is { } ramo && (await Git.EseguiAsync(ramo.Radice, ["rev-parse", "--short=8", "HEAD"]).ConfigureAwait(false)) is { Riuscito: true } testa)
                 commit = testa.Uscita.Trim();
             string? perche = null;
-            var esito = await Task.Run(() => Core.Aurora.Vetrina.Porta(radice, vetrina, Aurora.Pubblicata, Ramo?.Ramo, commit, DateTimeOffset.Now, out perche)).ConfigureAwait(false);
+            var primaInVetrina = InVetrina;
+            var adesso = DateTimeOffset.Now;
+            var esito = await Task.Run(() => Core.Aurora.Vetrina.Porta(radice, vetrina, Aurora.Pubblicata, Ramo?.Ramo, commit, adesso, out perche)).ConfigureAwait(false);
             Registro.Scrivi("aurora", esito is null ? $"porta in Aurora: {perche}" : $"porta in Aurora {radice} ({Ramo?.Ramo} {commit}): {esito.Copiati} copiati, {esito.Tolti} tolti, {esito.Uguali} uguali");
             if (esito is null)
                 return Rifiuta(perche ?? "Non è andata.");
             UltimoPortaInAurora = esito;
             Rifiuto = null;
+            LottoPortato(primaInVetrina, radice, Ramo?.Ramo, adesso);
             return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -3749,6 +3759,93 @@ public sealed class SessioneDelLab
         {
             StaPortandoInAurora = false;
             Avvisa();
+        }
+    }
+
+    // ── Aurora: il lotto (carta F5, slice 2) ───────────────────────────────────────────────────────────────────
+
+    private Core.Aurora.Lotto? _lotto;
+
+    /// <summary>
+    /// Il lotto del sector aperto: i gesti salvati da quando l'AOD ha detto «visto in Aurora», con dove guardarli. Sta nei
+    /// dati del Lab, uno per cartella del sector, e sopravvive a un riavvio. Null senza sector aperto.
+    /// </summary>
+    public Core.Aurora.Lotto? Lotto
+    {
+        get
+        {
+            if (Sessione is null)
+                return null;
+            string radice = Path.GetFullPath(Sessione.Cartella.Radice);
+            if (_lotto is null || !string.Equals(_lotto.Sector, radice, StringComparison.OrdinalIgnoreCase))
+                _lotto = Core.Aurora.Lotto.Leggi(_cartellaDeiDati, radice);
+            return _lotto;
+        }
+    }
+
+    /// <summary>Vero se in vetrina c'è il sector aperto adesso: allora le voci portate sono davvero da vedere in Aurora.</summary>
+    public bool InVetrinaCeQuesto
+        => Sessione is { } s && InVetrina is { } dentro
+           && string.Equals(Path.GetFullPath(s.Cartella.Radice), dentro.Sorgente, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>«Visto in Aurora»: le voci portate in vetrina escono dal lotto; quelle non ancora portate restano.</summary>
+    public void VistoInAurora()
+    {
+        if (Lotto is not { } lotto)
+            return;
+        int viste = lotto.DaVedere;
+        lotto.VistoInAurora(DateTimeOffset.Now);
+        ScriviIlLotto(lotto, $"visto in Aurora: {viste} voci");
+        Avvisa();
+    }
+
+    private void NelLotto(IReadOnlyList<GestoNellaStoria> gesti, IReadOnlyList<string> salvati)
+    {
+        if (Lotto is not { } lotto)
+            return;
+        var voci = new List<(string, IReadOnlyList<string>)>();
+        foreach (var gesto in gesti)
+        {
+            // Un gesto di cui non si sa il file (raro) prende i file del salvataggio; uno i cui file non sono stati salvati
+            // (salvataggio interrotto) resta fuori: le sue modifiche sono ancora in sospeso.
+            IReadOnlyList<string> file = gesto.File.Count == 0 ? salvati : [.. gesto.File.Where(f => salvati.Contains(f, StringComparer.Ordinal))];
+            if (file.Count > 0)
+                voci.Add((gesto.Cosa, file));
+        }
+
+        // Salvato senza gesti nella storia (il Lab riaperto nel frattempo): una voce per file.
+        if (gesti.Count == 0)
+            voci.AddRange(salvati.Select(f => ($"{NomeDelFile(f)} salvato", (IReadOnlyList<string>)[f])));
+        lotto.Salvati(voci, DateTimeOffset.Now);
+        ScriviIlLotto(lotto, $"{voci.Count} voci salvate");
+    }
+
+    private void LottoPortato(Core.Aurora.InVetrina? prima, string radice, string? ramo, DateTimeOffset quando)
+    {
+        if (Lotto is not { } lotto)
+            return;
+        string? cambiato = prima is null
+            ? "il sector in vetrina per la prima volta: tutto da vedere"
+            : !string.Equals(prima.Sorgente, Path.GetFullPath(radice), StringComparison.OrdinalIgnoreCase)
+                ? $"in vetrina prima c'era {Path.GetFileName(prima.Sorgente)}: tutto da rivedere"
+                : !string.Equals(prima.Ramo, ramo, StringComparison.Ordinal)
+                    ? $"cambiato ramo ({prima.Ramo ?? "nessuno"} → {ramo ?? "nessuno"}): tutto da rivedere"
+                    : null;
+        lotto.Portato(quando, cambiato);
+        ScriviIlLotto(lotto, $"portato in Aurora: {lotto.DaVedere} da vedere");
+    }
+
+    private void ScriviIlLotto(Core.Aurora.Lotto lotto, string cosa)
+    {
+        try
+        {
+            lotto.Scrivi(_cartellaDeiDati);
+            Registro.Scrivi("lotto", $"{lotto.Sector}: {cosa}");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Vale per questa sessione anche se il disco non lo ricorda; il registro lo dice.
+            Registro.Errore("lotto", e);
         }
     }
 

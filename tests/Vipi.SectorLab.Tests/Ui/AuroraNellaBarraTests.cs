@@ -70,6 +70,67 @@ public sealed class AuroraNellaBarraTests : IDisposable
         Assert.Contains("non salvate", _lab.Rifiuto, StringComparison.Ordinal);
     }
 
+    /// <summary>Carta F5, slice 2 — «finita quando»: tre salvataggi → «N modifiche», riaperto il Lab sono ancora lì.</summary>
+    [Fact]
+    public async Task IlLotto_TreSalvataggi_RestanoDopoLaRiapertura()
+    {
+        const string fix = "SectorFiles/Include/IT/NAVAIDS/APT.fix";
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        Assert.True(_lab.CambiaLaVetrina(Vetrina));
+        AuroraLegge(Path.Combine(Vetrina, "SectorFiles"));
+        var pagina = _contesto.RenderComponent<Home>();
+
+        foreach (string nome in new[] { "PIPPO", "PLUTO", "PAPER" })
+        {
+            Assert.True(_lab.CambiaCampo(fix, 0, "Name", nome));
+            await _lab.SalvaAsync(confermato: true);
+            Assert.False(_lab.Modifiche.CEQualcosa);
+        }
+
+        Assert.Equal(3, _lab.Lotto!.DaPortare);
+        Assert.All(_lab.Lotto.Voci, v => Assert.Equal([fix], v.File));
+        pagina.WaitForAssertion(() => Assert.Equal("3 da portare", pagina.Find("[data-conto-lotto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+
+        // In vetrina per la prima volta: le tre voci e una per tutto il sector.
+        Assert.True(await _lab.PortaInAuroraAsync(), _lab.Rifiuto);
+        pagina.WaitForAssertion(() => Assert.Equal("4 modifiche da vedere", pagina.Find("[data-conto-lotto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        Assert.Contains("i punti sulla mappa (NAVAIDS: FIX)", pagina.Find("[data-lotto]").TextContent, StringComparison.Ordinal);
+
+        // Il Lab riaperto: il lotto c'è ancora.
+        var riaperto = new SessioneDelLab(Path.Combine(_albero.Radice, "dati-del-lab")) { Aurora = _lab.Aurora };
+        Assert.True(await riaperto.ApriAsync(_albero.Radice));
+        Assert.Equal(4, riaperto.Lotto!.DaVedere);
+        Assert.True(riaperto.InVetrinaCeQuesto);
+
+        // «Visto in Aurora» dalla barra: il lotto si svuota, e resta vuoto.
+        pagina.Find("[data-tasto=visto-in-aurora]").Click();
+        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-conto-lotto]")), TimeSpan.FromSeconds(10));
+        Assert.Empty(Lotto(_albero.Radice));
+    }
+
+    /// <summary>Il lotto di quella cartella com'è sul disco.</summary>
+    private IReadOnlyList<Vipi.SectorLab.Core.Aurora.VoceDelLotto> Lotto(string sector)
+        => Vipi.SectorLab.Core.Aurora.Lotto.Leggi(Path.Combine(_albero.Radice, "dati-del-lab"), sector).Voci;
+
+    [Fact]
+    public async Task IlLotto_CambiatoSector_TuttoDaRivedere()
+    {
+        using var altro = new AlberoDiProva();
+        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(_lab.CambiaLaVetrina(Vetrina));
+        Assert.True(await _lab.PortaInAuroraAsync(), _lab.Rifiuto);
+        // La seconda volta, stesso sector e stesso ramo: niente voce nuova.
+        Assert.True(await _lab.PortaInAuroraAsync(), _lab.Rifiuto);
+        Assert.Contains("prima volta", Assert.Single(_lab.Lotto!.Voci).Cosa, StringComparison.Ordinal);
+
+        // Un altro sector in vetrina: il suo lotto dice che va rivisto tutto, e quello di prima non è più «da vedere».
+        Assert.True(await _lab.ApriAsync(altro.Radice));
+        Assert.True(await _lab.PortaInAuroraAsync(), _lab.Rifiuto);
+        Assert.Contains("prima c'era", Assert.Single(_lab.Lotto!.Voci).Cosa, StringComparison.Ordinal);
+        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.False(_lab.InVetrinaCeQuesto);
+    }
+
     [Fact]
     public async Task ISectorApertiSiRicordano()
     {

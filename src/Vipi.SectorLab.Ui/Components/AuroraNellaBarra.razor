@@ -5,12 +5,17 @@
     La vetrina di Aurora nella barra (carta F5, slice 1): che cosa c'è dentro (da quale sector, ramo, quando) e se Aurora
     la legge come «secondo sector». Aperto, il riquadro ha «Porta in Aurora»: la SectorFiles del sector aperto in
     vetrina, come specchio. Aurora non si tocca: dove guarda lo sceglie l'AOD, in Aurora, una volta.
+    Il lotto (slice 2): i gesti salvati da «visto in Aurora», ognuno con dove guardarlo; il conto nella barra.
 *@
 <details class="lab-impostazioni lab-ramo-riquadro" data-riquadro-aurora>
     <summary class="lab-tasto lab-tasto-tenue @(Lab.CartellaDellaVetrina is not null && !Lab.AuroraGuardaLaVetrina ? "lab-ramo-da-fare" : null)"
              title="La vetrina: la cartella che Aurora legge come secondo sector" data-aurora>
         <span aria-hidden="true">◫</span> Aurora
         <span class="lab-nota" data-in-vetrina>@Riassunto()</span>
+        @if (ContoDelLotto() is { } conto)
+        {
+            <span class="lab-conto-lotto" data-conto-lotto>@conto</span>
+        }
     </summary>
     <div class="lab-impostazioni-riquadro">
         @if (Lab.CartellaDellaVetrina is not { } vetrina)
@@ -47,6 +52,28 @@
                 <p class="lab-avviso-breve" data-rifiuto-vetrina>@_rifiuto</p>
             }
         }
+        @if (Lab.Lotto is { Voci.Count: > 0 } lotto)
+        {
+            <div data-lotto>
+                <p class="lab-nota"><strong>Da guardare in Aurora</strong>@(lotto.Visto is { } visto ? $" — dall'ultimo «visto», il {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(visto)}" : "")
+                    · dove guardare: proposta del Lab, da confermare</p>
+                <ul class="lab-elenco-lotto">
+                    @foreach (var voce in lotto.Voci)
+                    {
+                        bool daVedere = voce.Portata is not null && Lab.InVetrinaCeQuesto;
+                        <li data-voce-lotto="@(daVedere ? "da-vedere" : "da-portare")">
+                            <span>@voce.Cosa</span>
+                            <span class="lab-nota">→ @voce.Dove · @(voce.Portata is { } p ? $"in vetrina dal {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(p)}" : $"salvato il {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(voce.Salvata)}, da portare")</span>
+                        </li>
+                    }
+                </ul>
+                @if (lotto.DaVedere > 0 && Lab.InVetrinaCeQuesto)
+                {
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="visto-in-aurora"
+                            title="Hai ricaricato Aurora e guardato le voci in vetrina: escono dal lotto" @onclick="Lab.VistoInAurora">Visto in Aurora</button>
+                }
+            </div>
+        }
     </div>
 </details>
 
@@ -60,6 +87,21 @@
     public void Dispose() => Lab.Cambiata -= Aggiorna;
 
     private async Task Porta() => _rifiuto = await Lab.PortaInAuroraAsync() ? null : Lab.Rifiuto;
+
+    /// <summary>Il conto del lotto nella barra: da vedere se in vetrina c'è questo sector, se no da portare.</summary>
+    private string? ContoDelLotto()
+    {
+        if (Lab.Lotto is not { Voci.Count: > 0 } lotto)
+            return null;
+        int vedere = Lab.InVetrinaCeQuesto ? lotto.DaVedere : 0;
+        int portare = lotto.Voci.Count - vedere;
+        var parti = new List<string>();
+        if (vedere > 0)
+            parti.Add(vedere == 1 ? "1 modifica da vedere" : $"{vedere} modifiche da vedere");
+        if (portare > 0)
+            parti.Add($"{portare} da portare");
+        return string.Join(" · ", parti);
+    }
 
     private string Riassunto()
     {

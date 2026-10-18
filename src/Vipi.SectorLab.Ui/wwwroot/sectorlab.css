@@ -1864,6 +1864,34 @@ body.lab-trascina * {
     padding-left: 1rem;
 }
 
+/* Carta F5, slice 2: il lotto di Aurora — il conto nella barra e le voci nel riquadro. */
+.lab-conto-lotto {
+    margin-left: .3rem;
+    color: var(--lab-toccato);
+    font-variant-numeric: tabular-nums;
+}
+
+/* La barra non va a capo: il riquadro di Aurora sì — percorsi lunghi, voci del lotto, posti dove guardare. */
+[data-riquadro-aurora] .lab-impostazioni-riquadro {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.lab-elenco-lotto {
+    margin: .2rem 0 .4rem;
+    padding-left: 1rem;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.lab-elenco-lotto li {
+    margin: .15rem 0;
+}
+
+.lab-elenco-lotto li .lab-nota {
+    display: block;
+}
+
 /* Carta F4, slice 4: il messaggio della registrazione. */
 .lab-messaggio {
     width: 100%;
