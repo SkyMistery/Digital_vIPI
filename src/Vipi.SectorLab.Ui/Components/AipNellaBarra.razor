@@ -3,8 +3,9 @@
 
 @*
     I PDF dell'AIP nella barra (carta F6, slice 0c): la cartella dei PDF, «Prendi i PDF da Download» (sposta, solo su questo
-    tasto), e «Leggi nell'AIP espanso» (i PDF nel modello, una cartella per ciclo). Il sector non si tocca: confrontarlo con
-    l'AIP sono le slice dopo. Oggi si leggono le tabelle di ENR 5.1; gli altri PDF si contano come «non ancora».
+    tasto), e «Leggi nell'AIP espanso» (i PDF nel modello, una cartella per ciclo). «Confronta i CTR» (slice 1b) legge e
+    basta; il sector cambia solo coi tasti di una riga del confronto, «Sostituisci» e «Porta nel sector» (slice 1c), che
+    sono gesti come gli altri: modifiche in sospeso, nel diff, da annullare, salvate solo da «Salva».
 *@
 <details class="lab-impostazioni lab-ramo-riquadro" data-riquadro-aip>
     <summary class="lab-tasto lab-tasto-tenue" title="I PDF dell'AIP e l'AIP espanso" data-aip>
@@ -147,6 +148,20 @@
                                 {
                                     <span> · lungo un confine o una costa che l'AIP non disegna: lì non si giudica</span>
                                 }
+                                @if (e.Esito == Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.FormaDiversa && e.File is not null)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-ctr"
+                                            title="Riscrive tutta la voce @e.Sector con le zone dell'AIP @confronto.Ciclo (la testata resta): una modifica in sospeso, nel diff e da annullare come le altre"
+                                            @onclick="() => Sostituisci(e)">Sostituisci</button>
+                                }
+                                else if (e.Esito == Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.MancaNelSector && e.Aip is { } ctr)
+                                {
+                                    <input class="lab-campo lab-campo-corto" maxlength="4" placeholder="LIxx" data-campo="scalo-ctr" value="@_scali.GetValueOrDefault(ctr)"
+                                           title="Lo scalo del CTR: va nel suo .str" @onchange="v => _scali[ctr] = v.Value?.ToString()" />
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-ctr"
+                                            title="Scrive il CTR come voce nuova del MAPS nello .str dello scalo: una modifica in sospeso, nel diff e da annullare come le altre"
+                                            @onclick="() => Porta(e, ctr)">Porta nel sector</button>
+                                }
                             </li>
                         }
                     </ul>
@@ -187,6 +202,12 @@
     private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
 
     private async Task Confronta() => _rifiuto = await Lab.ConfrontaICtrAsync() ? null : Lab.Rifiuto;
+
+    private readonly Dictionary<string, string?> _scali = new(StringComparer.OrdinalIgnoreCase);
+
+    private void Sostituisci(Vipi.SectorLab.Core.PdfAip.DifferenzaDiForma e) => _rifiuto = Lab.SostituisciIlCtr(e) ? null : Lab.Rifiuto;
+
+    private void Porta(Vipi.SectorLab.Core.PdfAip.DifferenzaDiForma e, string ctr) => _rifiuto = Lab.PortaIlCtr(e, _scali.GetValueOrDefault(ctr)) ? null : Lab.Rifiuto;
 
     private static string Esito(Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto e) => e switch
     {

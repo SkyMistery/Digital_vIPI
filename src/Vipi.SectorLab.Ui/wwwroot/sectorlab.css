@@ -1882,6 +1882,12 @@ body.lab-trascina * {
     overflow-wrap: anywhere;
 }
 
+/* Carta F6, slice 1c: anche il riquadro dell'AIP — le righe del confronto, coi loro tasti in coda, vanno a capo. */
+[data-riquadro-aip] .lab-impostazioni-riquadro {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
 .lab-elenco-lotto {
     margin: .2rem 0 .4rem;
     padding-left: 1rem;

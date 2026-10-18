@@ -4,7 +4,16 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026: F6, slice 1b fatta (il confronto dei CTR col sector)
+## Dove siamo — 18 ottobre 2026: F6, slice 1c fatta («Sostituisci» e «Porta nel sector» per i CTR)
+
+**Slice 1c fatta**: su ogni riga del confronto dei CTR un gesto — «Sostituisci» (forma diversa: la voce CTR riscritta
+per intero con le zone dell'AIP, la testata resta) e «Porta nel sector» (manca: voce nuova nello `.str` dello scalo
+scritto dall'AOD). Gesti come gli altri: diff, annulla, lotto, «Salva». Sulla copia del sector: 6 sostituite → 45 CTR
+uguali su 45; provato a schermo sul banco. Scelte da dire al committente (zone col commento su una riga sua, densità
+degli archi della voce, confini presi dalla linea del sector, niente `//@`): carta F6 §6. Sul sector vero dopo il 29
+ottobre. **Prossima**: da decidere col committente (ATZ/TMA/CTA: dove le tiene il sector? o la slice 2, ENR 3).
+
+## 18 ottobre 2026: F6, slice 1b fatta (il confronto dei CTR col sector)
 
 **Slice 1b fatta**: «Confronta i CTR» nel riquadro «AIP» — i CTR dell'AIP espanso contro le voci CTR dei `MAPS` del
 sector aperto, a distanza (0,1 NM), in sola lettura. Sul sector vero: 45 CTR, 39 uguali, 6 con la forma diversa

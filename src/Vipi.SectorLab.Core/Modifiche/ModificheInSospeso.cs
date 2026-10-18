@@ -1464,6 +1464,65 @@ public sealed class ModificheInSospeso
             riletto => riletto.RecordDelModello.Count == attesi ? null : "Riletto, il file non ha i segmenti che dovrebbe: si fa a mano, dalle righe del file.");
     }
 
+    /// <summary>
+    /// Riscrive le righe dei punti del record (F6 slice 1c, «Sostituisci»): la testata resta com'è, coi tag e i commenti
+    /// sopra di lei; le righe vuote e i commenti in fondo al record restano dopo le righe nuove. Una voce nel testo del
+    /// file; riletto, il file ha gli stessi record.
+    /// </summary>
+    public object SostituisciIlCorpo(FileAperto file, int indice, IReadOnlyList<string> corpo, string gesto)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(corpo);
+        if (file is not IFileConRecord conRecord || indice < 0 || indice >= conRecord.RecordDelModello.Count)
+            return new ModificaRifiutata("Questo record non c'è.");
+        var sporchi = SporchiDi(file.Relativo);
+        var righe = conRecord.RigheDelFile(sporchi);
+        var (da, quante) = conRecord.PostiDeiRecord(sporchi)[indice];
+        // Le righe in coda che non sono dati (vuote, commenti) non sono il corpo: restano.
+        int fine = da + quante;
+        while (fine > da + 1 && (string.IsNullOrWhiteSpace(righe[fine - 1]) || righe[fine - 1].TrimStart().StartsWith("//", StringComparison.Ordinal)))
+            fine--;
+
+        int quanti = conRecord.RecordDelModello.Count;
+        return CambiaRighe(file, PdfAip.CtrNelSector.AlPostoDelCorpo(righe, da, fine - da, corpo), gesto,
+            riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più gli stessi record: si fa a mano, dalle righe del file.");
+    }
+
+    /// <summary>
+    /// Aggiunge un record scritto per intero (<paramref name="nuove"/>: testata e punti) prima del record
+    /// <paramref name="prima"/>, dopo i commenti che lo precedono, con una riga vuota fra i due; in fondo al file se
+    /// <paramref name="prima"/> è il numero dei record (F6 slice 1c, «Porta nel sector»). Riletto, il file ha un record in più.
+    /// </summary>
+    public object AggiungiLeRighe(FileAperto file, int prima, IReadOnlyList<string> nuove, string gesto)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(nuove);
+        if (file is not IFileConRecord conRecord || prima < 0 || prima > conRecord.RecordDelModello.Count)
+            return new ModificaRifiutata("Questo record non c'è.");
+        var sporchi = SporchiDi(file.Relativo);
+        var righe = conRecord.RigheDelFile(sporchi);
+        if (righe.Count == 0)
+            return new ModificaRifiutata("Il file è vuoto: il record nuovo non ha un posto dove andare.");
+
+        int quanti = conRecord.RecordDelModello.Count;
+        var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+        if (prima < quanti)
+        {
+            int da = conRecord.PostiDeiRecord(sporchi)[prima].Da;
+            sostituzioni[da + 1] = [.. nuove, "", righe[da]];
+        }
+        else
+        {
+            sostituzioni[righe.Count] = string.IsNullOrWhiteSpace(righe[^1]) ? [righe[^1], .. nuove] : [righe[^1], "", .. nuove];
+        }
+
+        var esito = CambiaRighe(file, sostituzioni, gesto,
+            riletto => riletto.RecordDelModello.Count == quanti + 1 ? null : "Riletto, il file non ha il record nuovo: si fa a mano, dalle righe del file.");
+        if (esito is ModificaDelTesto)
+            UltimoAggiunto = prima;
+        return esito;
+    }
+
     /// <summary>Spezza la linea al punto <paramref name="punto"/> (in mezzo): una riga vuota prima del segmento che comincia lì.</summary>
     public object SpezzaLaLinea(FileAperto file, int indice, int punto, string etichetta = "")
     {
