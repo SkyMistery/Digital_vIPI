@@ -43,6 +43,65 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### ✅ A159 — 1.67.0 ONLINE: le richieste aperte nella barra e sulla chiave (S112, S113), e dentro la 1.66.0 mai caricata (S111) (18 ottobre 2026)
+
+✅ Online dal 18 ottobre 2026: il committente conferma la 1.67 e `Schema 0`. Da fuori, da anonimo, alle 10:17Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti 401, `vipi-theme.css?v=e5905e88` (quello del pacchetto), `/vsop/health`
+e `/vsop/health/ready` Healthy. Non guardati da qui, dietro il login: il numero accanto a «Campo richieste» e sulla
+chiave, il riquadro «Sezioni da scrivere» negli editor.
+
+MINOR **senza migrazioni**, misurata dalla **1.65.0** (`38a26f3`) che gira: la 1.66.0 (§A158) era pronta e non è mai
+stata caricata — il committente: «aspetta, non ho ancora caricato, fondi anche il nuovo» —, quindi questa la contiene e
+la sostituisce. Timbro **`1.67.0 · c41681d`**.
+- **S112 e S113** (fusi da `sito/lavori` @ `ba6de87a`, cartellino 🟢): il numero delle richieste dal campo ancora
+  aperte (nuove o prese in carico; a zero niente) nella barra dello staff accanto a «Campo richieste» e, per gli admin,
+  sull'angolo della chiave e nel menù ☰. Letto in uno scope della chiamata, solo per chi vede la voce. Codice comune:
+  Application (`IFieldRequestRepository.CountAllOpenAsync`, un metodo in più implementato solo in Infrastructure).
+  Storia in `docs/filoni/sito.md`.
+- ⚠️ **CI di `ba6de87a`**: al primo tentativo `build-test` rosso su
+  `DiagnosticaUnGiroAllaVoltaTests.Aggiorna_durante_la_deriva_non_legge_insieme_al_giro` (attesa di 3 s del primo
+  tasto); rilanciato il job, verde (run 39115300949, tentativo 2). In locale, dopo la fusione, quel test passa 10 volte su
+  10. Instabile sulla macchina della CI, secondo il Sito; tenuto d'occhio.
+- **S111**: vedi §A158.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**13 file** (`solo-13-file-1.67.0`): Application, Infrastructure, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`,
+`vipi-theme.css` con `.br`/`.gz` e `endpoints.json`, confrontati col publish della **1.65.0** (`publish_old/20261017a`):
+482 file, 23 con impronta diversa. Nessuna `const` pubblica nuova, nessuna firma tolta. Zip 6,08 MB, sha256
+`b4685284e07d17af1a7a2b0352268cc25d4fbcf57fb9c6cc1ea4388c14e377e1`. Build Release senza avvisi; `dotnet test` 18 riepiloghi tutti `Passed!`, conteggi
+identici all'atteso (App 3389, Infra 2229, Ui 2087). Prova sul publish win-x64 (copia del database di sviluppo, a cui ho
+aggiunto tre richieste di prova — una nuova, una presa in carico, una risolta — cancellata a fine prova):
+`pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); il numero **2** accanto a «Campo richieste» nella barra
+(Sorgenti, Diagnostica) e sulla chiave (anche nell'editor), che porta a `/services/vsop/requests`; a zero richieste
+aperte nessun numero; S111 come in §A158 (riquadro negli editor di LIBB e LIMM, it/en). Console pulita. Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.67.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; il numero accanto a «Campo richieste». Rollback: le due rinomine.
+
+### ⏭ A158 — 1.66.0 MAI CARICATA (assorbita dalla 1.67.0, §A159): le sezioni da scrivere (S111) (18 ottobre 2026)
+
+MINOR **senza migrazioni**, su 1.65.0 (`38a26f3`). Timbro **`1.66.0 · d2abdc4`**.
+- **S111** (fuso da `sito/lavori` @ `e235cc7b`, cartellino 🟢, CI verde 4/4 run 39109037612; il committente:
+  «fondiamo il nuovo aggiornamento»): in ogni editor e nella pagina Versioni quante sezioni editoriali di catalogo
+  hanno qualcosa e quali sono vuote; le nascoste no, la vIPI di ACC per blocco. Codice comune: Application
+  (`SezioniDaScrivere`, `GuideSearchCatalog`), Infrastructure (`EfSezioniDaScrivere` e la registrazione). Carta
+  `docs/feature/2026-10-18-sezioni-da-scrivere.md`, storia in `docs/filoni/sito.md`.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**9 file** (`solo-9-file-1.66.0`): Application, Infrastructure, Ui, Host (dll + pdb) e `en/Vipi.Ui.resources.dll`.
+Nel diff solo aggiunte (nessuna firma tolta o cambiata), nessuna `const`. **Fuori** Domain, MySqlMigrations, Hosting e
+tutto `wwwroot` (nessun asset cambiato). 482 file nel publish come nel precedente, 19 con impronta diversa. Zip
+5,94 MB, sha256 `aac52a2e98adf5c6c07037a34326e8b652923a749984e9e76f9fc86aedc62122`. Build Release senza avvisi; `dotnet test` 18 riepiloghi tutti
+`Passed!`, conteggi identici all'atteso (App 3389, Infra 2229, Ui 2082). Prova sul publish win-x64 (copia del database
+di sviluppo): `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); il riquadro nell'editor della vIPI di
+Brindisi («3 con qualcosa · 3 vuote, su 6», due blocchi) e di Milano («1 · 7, su 8»), in inglese «3 with content · 3
+empty, of 6»; console pulita. **Non visto da me**: il riquadro in Versioni e nell'editor d'aeroporto (servono un
+documento scelto e uno scalo; li ha provati il Sito su una copia di produzione, cinque editor e Versioni, it/en).
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.66.0.md`.
+
+▶ **Dopo il carico** (committente): guardare il riquadro negli editor e la pastiglia in Versioni. Rollback: le due
+rinomine.
+
 ### ✅ A157 — 1.65.0 ONLINE: il convertitore non perde l'arco con «centred on:» (S110), e dentro la 1.64.0 mai caricata (S109) (17 ottobre 2026)
 
 ✅ Online dal 17 ottobre 2026: il committente conferma la 1.65 e `Schema 0`. Da fuori, da anonimo, alle 14:47Z: `/` 302,

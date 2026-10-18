@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @inject NavigationManager Nav
 @inject IStationResolver Stations
 @inject ICurrentUserProvider Users
@@ -78,6 +79,11 @@
                 @if (_isAdmin)
                 {
                     <a href="/services/vsop/admin/permissions"><Icon Name="key" /> @L["Chrome_Permissions"]</a>
+                    @* Nel menù, per chi lo apre a schermo stretto: lo stesso numero della chiave, sulla sua voce (S113). *@
+                    @if (_richiesteAperte > 0)
+                    {
+                        <a href="/services/vsop/requests"><Icon Name="inbox" /> @L["Req_Title"] <span class="tb-badge in-menu">@_richiesteAperte</span></a>
+                    }
                 }
                 @if (_user is null)
                 {
@@ -237,7 +243,16 @@
             }
             @if (_isAdmin)
             {
-                <a class="editor-btn icon-only" href="/services/vsop/admin/permissions" title="@L["Chrome_Permissions"]" aria-label="@L["Chrome_Permissions"]"><Icon Name="key" /></a>
+                @* Il numero è un collegamento SUO, alle richieste: la chiave resta la porta ai permessi, e un numero di
+                   richieste che portasse ai permessi farebbe cercare le richieste dove non sono (S113). *@
+                <span class="tb-keywrap">
+                    <a class="editor-btn icon-only" href="/services/vsop/admin/permissions" title="@L["Chrome_Permissions"]" aria-label="@L["Chrome_Permissions"]"><Icon Name="key" /></a>
+                    @if (_richiesteAperte > 0)
+                    {
+                        <a class="tb-badge" href="/services/vsop/requests" title="@string.Format(L["Nav_ReqOpenTitle"].Value, _richiesteAperte)"
+                           aria-label="@string.Format(L["Nav_ReqOpenTitle"].Value, _richiesteAperte)">@_richiesteAperte</a>
+                    }
+                </span>
             }
             @if (_user is { } u)
             {
@@ -391,6 +406,34 @@
         // Tasto Editor: visibile a chi può editare, cioè dall'Editor in su.
         _isAdmin = Authz.IsAdmin;
         _canEdit = Authz.IsEditor;
+
+        // Le richieste dal campo ancora aperte, accanto alla chiave (S113, committente, 18 ottobre 2026: «si può mettere
+        // il contatore anche qui per chi è admin?»). Solo agli admin: per gli altri nessuna domanda al database.
+        // ⚠️ Scope della CHIAMATA, e qui dentro `CaricaAsync`: il lavoro del layout finisce prima che si disegni la
+        // pagina (vedi sopra), e con uno scope suo non tocca nemmeno il `DbContext` della richiesta. Con una rete:
+        // è un numero accanto a un tasto, e una pagina non deve cadere per lui.
+        _richiesteAperte = _isAdmin ? await RichiesteAperteAsync() : 0;
+    }
+
+    /// <summary>Le richieste dal campo aperte (nuove o prese in carico); 0 se non si sa.</summary>
+    private int _richiesteAperte;
+
+    private async Task<int> RichiesteAperteAsync()
+    {
+        try
+        {
+            if (Servizi.GetService(typeof(IServiceScopeFactory)) is not IServiceScopeFactory scopi) return 0;
+            await using var scope = scopi.CreateAsyncScope();
+            return scope.ServiceProvider.GetService(typeof(Vipi.Application.Abstractions.IFieldRequestRepository))
+                is Vipi.Application.Abstractions.IFieldRequestRepository richieste
+                ? await richieste.CountAllOpenAsync()
+                : 0;
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(ex, "Barra: le richieste aperte non si sono potute contare. La chiave esce senza numero.");
+            return 0;
+        }
     }
 
     /// <summary>

@@ -1535,6 +1535,25 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.67.0 — MINOR, NESSUNA migrazione. Su 1.65.0 (38a26f3, online dal 17 ottobre 2026): la 1.66.0 (d2abdc4) era
+      pronta ma non è mai stata caricata, quindi questo pacchetto la CONTIENE e si misura dalla 1.65.0. Dentro: S111
+      (vedi 1.66.0 qui sotto), S112 e S113, chiesti dal committente: il numero delle richieste dal campo ancora aperte
+      (nuove o prese in carico; a zero niente) nella barra dello staff accanto a «Campo richieste», e per gli admin
+      sull'angolo della chiave in alto e nel menù. Letto in uno scope della chiamata, solo per chi vede la voce.
+      IFieldRequestRepository ha un metodo in più, implementato solo in Vipi.Infrastructure. Tocca Vipi.Application,
+      Vipi.Infrastructure, Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice degli asset) e Vipi.Host per il timbro.
+      Dettaglio: LEGGIMI-PACCHETTO-1.67.0.md, §A159.
+    -->
+    <!--
+      1.66.0 — MINOR, NESSUNA migrazione. Su 1.65.0 (38a26f3, online dal 17 ottobre 2026). Sito S111, chiesto dal
+      committente: le sezioni da scrivere. In ogni editor (riquadro sopra le Versioni, si rilegge a «Fine modifica») e
+      nella pagina Versioni (una pastiglia solo quando manca qualcosa) si legge quante sezioni EDITORIALI del catalogo
+      di quel documento hanno qualcosa e quali sono ancora vuote; le nascoste non contano, la vIPI di ACC si conta per
+      blocco. Solo lettura: niente si scrive. Tocca Vipi.Application (SezioniDaScrivere, GuideSearchCatalog),
+      Vipi.Infrastructure (EfSezioniDaScrivere e la sua registrazione), Vipi.Ui (+ frasi IT/EN) e Vipi.Host per il
+      timbro. Dettaglio: LEGGIMI-PACCHETTO-1.66.0.md, §A158.
+    -->
+    <!--
       1.65.0 — MINOR, NESSUNA migrazione. Su 1.63.0 (099b0df, online dal 16 ottobre 2026): la 1.64.0 (1ad98d0) era
       pronta ma non è mai stata caricata, quindi questo pacchetto la CONTIENE e si misura dalla 1.63.0. Dentro: S109
       (vedi 1.64.0 qui sotto) e S110, il convertitore di coordinate che perdeva l'arco quando il testo AIP dice
@@ -2043,7 +2062,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.65.0</VipiVersione>
+    <VipiVersione>1.67.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

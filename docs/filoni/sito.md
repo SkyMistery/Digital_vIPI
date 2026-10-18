@@ -4,14 +4,20 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 16 ottobre 2026
+## Dove siamo — 18 ottobre 2026
 
-> **In una riga**: tutto il lavoro del filone è **online** fino a **S108**: nella **1.62.0** (12 ottobre notte) i tre
+> **In una riga**: tutto il lavoro del filone è **online** fino a **S110**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
-> centri nel banco. Niente in corso. **S109** (16 ottobre, configurazioni possibili: «Tutti i settori» della mappa
-> detto in Struttura e tradotto) è **fuso** in `main` e va nella **1.64.0**, pronta e non ancora caricata.
-> **Da fondere: S110** (17 ottobre): il convertitore di coordinate perdeva l'arco con «centred on:», e le righe
-> lette erano contate male. Voci S109 e S110 qui sotto.
+> centri nel banco; nella **1.65.0** (17 ottobre, §A157) **S109** (configurazioni possibili: «Tutti i settori» della
+> mappa detto in Struttura e tradotto) e **S110** (il convertitore di coordinate perdeva l'arco con «centred on:» e
+> contava male le righe lette). La 1.64.0, col solo S109, non è mai uscita: assorbita dalla 1.65.0.
+> **S111** (18 ottobre), le **sezioni da scrivere** — in ogni editor e nella pagina Versioni quante sezioni
+> editoriali hanno qualcosa e quali sono ancora vuote — è **fuso** in `main` e va nella **1.66.0** (§A158), pronta e
+> non ancora caricata. Carta `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
+> **Da fondere: S112 e S113** (18 ottobre): quante richieste dal campo sono ancora aperte, accanto a «Campo
+> richieste» nella barra dello staff e, per gli admin, accanto alla chiave in alto.
+> **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova e la nota di S109 in
+> Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S113 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2612,7 +2618,8 @@
     con le sole tabelle di struttura e accordi travasate in un SQLite di prova, in italiano e in inglese. Carta
     `docs/feature/2026-10-04-copertura-unica.md` §11.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina sulla copia MariaDB col login vero.
-- 🟢 **S109** revisione delle **configurazioni possibili** (16-ott, il committente: «nelle possible configurations
+- ✅ **S109** (**online in 1.65.0** dal 17-ott, §A157; la 1.64.0 non è mai uscita) revisione delle **configurazioni
+  possibili** (16-ott, il committente: «nelle possible configurations
   per Milano manca quello con ANE ecc nonostante ci sia nel documento. Puoi fare una revisione del meccanismo?»).
   - **Cosa c'era**: niente di perso. Sulla copia di produzione del 12 ottobre (rimontata col suo ok, cancellata
     subito dopo) il blocco «Milano APP» della vIPI di Milano ha la sezione Configurazioni **vuota**, in bozza e
@@ -2637,7 +2644,8 @@
     l'avviso c'è senza lock e col lock, resta con una riga aggiunta e non applicata, sparisce dopo «Applica».
   - ⚠️ **Non visto**: la mappa AOR di un documento vero in inglese (coperta dal test bUnit); il telefono.
   - **Resta al committente**: scrivere in Struttura le configurazioni di Milano APP (quali, lo sa lui).
-- 🟢 **S110** il **convertitore di coordinate** perde l'arco con «centred on**:**» (17-ott, il committente con un
+- ✅ **S110** (**online in 1.65.0** dal 17-ott, insieme a S109) il **convertitore di coordinate** perde l'arco
+  con «centred on**:**» (17-ott, il committente con un
   limite laterale di Torino–Genova: «l'arco e quello dopo non lo disegna e non lo converte»).
   - **La causa**: i due punti attaccati facevano il pezzo `ON:`, e il vocabolario del lettore AIP cerca frasi
     intere fra spazi: «CENTRED ON» non si trovava, l'arco restava senza centro (segnalato «arco incompleto»), e
@@ -2653,8 +2661,64 @@
   - **Prova a schermo** sulla pagina del convertitore (host di sviluppo, database nuovo): nessun avviso, 53 punti,
     «Arcs converted: 1», «lines read: 12 of 14», e sulla mappa la curva a nord-ovest verso Bra.
   - Riga in carta F1 §8 (trappole note).
+- 🔀 **S111** (fuso in `main`, esce con la **1.66.0**, §A158, non ancora caricata) le **sezioni da scrivere**: in
+  ogni tipo di documento, quante hanno qualcosa e quante sono ancora
+  vuote (18-ott, il committente: «mi hanno chiesto di mettere in ogni tipo di file un indicatore di quante delle
+  sezioni obbligatorie non siano mai state toccate e quante invece ci sia almeno scritto o messo qualcosa»). Carta
+  `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
+  - **Deciso con lui**: contano le sezioni **editoriali** del catalogo (le scrive una persona; le derivate si
+    riempiono dai dati); il numero sta nell'**editor** e nella pagina **Versioni**; le **nascoste** non contano.
+    Scelte del filone, scritte in carta: «toccata» = adesso dentro c'è qualcosa, sulla versione di lavoro; la vIPI di
+    ACC per blocco; fuori i contenitori, le coordinate delle soglie, le aree del blocco Aerovia (in automatico) e i
+    due versi dei coordinamenti della vLOA.
+  - **Fatto**: `SezioniDaScrivere` (puro: quali sezioni, quando un blocco ha contenuto — un JSON conta solo se ha
+    un valore dentro una lista, così segnaposto, intestazioni senza righe e `variant` restano vuoti);
+    `EfSezioniDaScrivere` (una passata su tutti i documenti, come lo stato della traduzione); il riquadro
+    `SezioniDaScriverePanel` nei cinque editor, sopra le Versioni, che si rilegge a «Fine modifica»; in Versioni una
+    pastiglia sulla riga solo quando qualcosa manca, e il riquadro compatto nel pannello del documento. Due righe
+    nella Guida (voce «Indice laterale e salvataggio»).
+  - **Trovato sui dati veri**: le due sotto-sezioni «Coordination» della vLOA passavano per editoriali (nel
+    catalogo non hanno una natura scritta): ogni vLOA aveva due vuote che nessuno può scrivere. Escluse nel conto,
+    non nel catalogo — lì la natura derivata accenderebbe l'interruttore Live/Frozen. Test rosso prima.
+  - **Nessuna migrazione**, niente `deploy/`. **Codice comune**: `Vipi.Application` (`SezioniDaScrivere.cs`, parole
+    chiave della Guida in `GuideSearchCatalog.cs`). Toccati i due `.resx` e la Guida.
+  - **Test**: App 3364 → 3389, Infra 2226 → 2229, Ui 2078 → 2082.
+  - **Prova** sulla copia di produzione del 12 ottobre (rimontata col suo ok, cancellata subito dopo): 94 documenti
+    su 94 in 94 ms; vIPI Milano 4 di 20, Roma 1 di 20, vSOP Cameri 11 di 28, la maggior parte dei vSOP militari
+    completi, vIPI d'aeroporto spesso «0 di 0» perché hanno nascosto Procedure generali e Carte (Napoli). **A
+    schermo** sugli stessi dati travasati in un SQLite di prova (solo struttura e documenti, senza i nomi dei lock):
+    Versioni con la pastiglia su 45 righe e il riquadro compatto; i cinque editor (Milano, Amendola APP, Taranto,
+    Cameri, vLOA LIBB–LDZO); a «Fine modifica» il conto passa da 4 a 5 dopo un paragrafo aggiunto; italiano e inglese.
+  - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina online col login vero.
+- 🟢 **S112** nella **barra dello staff**, accanto a «Campo richieste», il numero delle richieste **ancora aperte**
+  (18-ott, il committente: «in questa barra in alto su Requests possiamo mettere un contatore che ci dice quante ce ne
+  sono sospese?»).
+  - **«Sospese» = aperte**: nuove o prese in carico, le stesse che la coda dello staff mostra di base. A zero il
+    numero non c'è. Pastiglia piccola coi colori d'avviso, e il tooltip dice cosa conta.
+  - 🔴 **La barra fino a oggi non leggeva il database, apposta**: gira su ogni pagina admin mentre la pagina carica i
+    suoi dati, e sul `DbContext` del circuito sarebbero due letture insieme. Il conto si legge in uno **scope della
+    chiamata**, aperto e chiuso dentro il caricamento (come `DocumentSectionsEditor`), con una rete: un guasto lascia
+    la voce senza numero. Solo a chi vede la voce (Editor in su); gli altri non fanno nessuna lettura.
+  - **Codice comune**: `Vipi.Application` (`IFieldRequestRepository.CountAllOpenAsync`). Nessuna migrazione, niente
+    `deploy/`. Toccati i due `.resx` e `vipi-theme.css`.
+  - **Test**: Ui 2082 → 2086 (`AdminNavTests`: il numero sulla sua voce, anche sulla pagina corrente, niente a zero,
+    nessuna lettura per chi non vede la voce).
+  - **A schermo** su un database nuovo con tre richieste inventate (nuova, presa in carico, risolta): «Campo
+    richieste 2», in italiano, col tema scuro e chiaro. ⚠️ La pagina delle richieste non ha la barra (la usano anche
+    gli utenti): lì il numero non c'è. Non visto: il telefono.
+- 🟢 **S113** lo stesso numero **accanto alla chiave** della barra in alto, per gli **admin** (18-ott, il committente:
+  «si può mettere il contatore anche qui per chi è admin?»).
+  - Il numero è un **collegamento suo, alle richieste**; la chiave resta la porta ai permessi — un numero di richieste
+    che portasse ai permessi le farebbe cercare dove non sono. Nel menù ☰ (schermo stretto) la voce «Campo richieste»
+    col numero, sotto «Permessi».
+  - Si legge in `SopLayout.CaricaAsync`, cioè **prima** del disegno della pagina (il layout ha già pagato due volte
+    le query incrociate con quelle della pagina, 24 agosto 2026), e in uno **scope della chiamata**. Solo agli admin:
+    gli altri non fanno nessuna lettura. Con una rete: un guasto lascia la chiave senza numero.
+  - **Test**: Ui 2086 → 2087 (`BarraInAltoTests`, sul sorgente come gli altri della barra: il layout non si disegna
+    in bUnit). **A schermo** su un database nuovo con tre richieste inventate: «2» sull'angolo della chiave a 1900 e
+    1000px, il clic porta alle richieste; a 375px chiave e voce del menù col numero.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 16-ott: tutto fuso e online fino a **S108** (1.63.0); niente da fondere;
+  Al 17-ott: tutto fuso e online fino a **S110** (1.65.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
   `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono

@@ -311,6 +311,8 @@ public static class DependencyInjection
         // A che punto e' la traduzione (carta 2026-09-04-stato-traduzione). Si CALCOLA: nessuna tabella di
         // stato, nessuna coda — la differenza fra i segmenti e la memoria, in una passata da 45 ms.
         services.AddScoped<Vipi.Application.Translation.IStatoTraduzione, EfStatoTraduzione>();
+        // Le sezioni da scrivere (carta 2026-10-18-sezioni-da-scrivere): si calcolano come lo stato della traduzione.
+        services.AddScoped<Vipi.Application.Content.ISezioniDaScrivereService, EfSezioniDaScrivere>();
         // Chi ha girato per ultimo e chi sta girando adesso. SINGLETON: il lucchetto che tiene separati il
         // giro automatico e il tasto «traduci ora» non sincronizza niente se ce n'e' uno per richiesta.
         services.AddSingleton<Vipi.Application.Translation.IRegistroDeiGiri,

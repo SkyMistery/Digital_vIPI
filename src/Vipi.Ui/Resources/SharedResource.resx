@@ -4203,6 +4203,16 @@
   <data name="Cfgs_No" xml:space="preserve"><value>no</value></data>
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Settori che l&apos;elenco non nomina, quindi senza vincoli: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>Nessuna configurazione con un settore aperto.</value></data>
+  <data name="Nav_ReqOpenTitle" xml:space="preserve"><value>Richieste ancora aperte (nuove o prese in carico): {0}</value></data>
+  <data name="SdS_Title" xml:space="preserve"><value>Sezioni da scrivere</value></data>
+  <data name="SdS_Help" xml:space="preserve"><value>Le sezioni del documento che scrive una persona. Quelle che si riempiono dai dati (AOR, frequenze, SID, meteo…) e quelle nascoste non contano. Si aggiorna a «Fine modifica».</value></data>
+  <data name="SdS_Count" xml:space="preserve"><value>{0} con qualcosa · {1} vuote, su {2}</value></data>
+  <data name="SdS_Part" xml:space="preserve"><value>{0} di {1} con qualcosa</value></data>
+  <data name="SdS_AllDone" xml:space="preserve"><value>Tutte le sezioni da scrivere hanno qualcosa.</value></data>
+  <data name="SdS_None" xml:space="preserve"><value>Questo documento non ha sezioni da scrivere: si riempie tutto dai dati.</value></data>
+  <data name="SdS_Pill" xml:space="preserve"><value>{0} sezioni vuote</value></data>
+  <data name="SdS_PillOne" xml:space="preserve"><value>1 sezione vuota</value></data>
+  <data name="SdS_PillTitle" xml:space="preserve"><value>Sezioni da scrivere ancora vuote, su {0}. L&apos;elenco è nel pannello del documento.</value></data>
   <data name="Cfgs_DocShowsAll" xml:space="preserve"><value>Finché qui non c&apos;è un elenco, la mappa AOR del documento offre una sola scelta, «Tutti i settori», che accende tutto il gruppo. Non è una configurazione: è la mappa che si arrangia.</value></data>
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Settori d&apos;area · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>Le configurazioni possibili non sono applicate: applicale o annullale prima di «Fine modifica».</value></data>

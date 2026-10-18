@@ -37,6 +37,9 @@
                                InModifica="@(_editor?.Guscio.IsEditing == true)" LockNegato="MembroBloccato" />
         }
 
+        @* Quante sezioni da scrivere hanno qualcosa (carta 2026-10-18-sezioni-da-scrivere). *@
+        <SezioniDaScriverePanel Target="ReleaseTargetType.App" Key="@Callsign" InModifica="@(_editor?.Guscio.IsEditing == true)" />
+
         @* L'ENTE a cui il documento appartiene e le sue posizioni IVAO (S49). *@
         <AtcUnitPanel Key="@Callsign" IsEditing="_editor?.Guscio.IsEditing ?? false" Changed="EnteCambiato" />
 
