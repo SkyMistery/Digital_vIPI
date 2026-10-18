@@ -194,3 +194,10 @@ segnata «da confermare», e la corregge il committente.
     c'erano più).
   Test Lab 1 033 → **1 039**, tre giri verdi. La «finita quando» della slice è del committente: la prova B9 guardata in
   Aurora, sul suo PC, senza `LEGGIMI`.
+  - **La prova B9 del committente (18 ottobre)**, sul suo PC (clone `it-aurora-sector-test`, prima rimesso pulito: due
+    modifiche vecchie, un BREAK di L613 riscritto e `changelog.md` cancellato, fermavano «Prepara la prova», giustamente):
+    domande 1, 2 e 5 ✅ (le aerovie si vedono tutte come prima, le etichette al loro posto, nessun errore per le `//@`).
+    La 3 e la 4 non si potevano guardare: **in Aurora un'aerovia non si cerca per nome**. Le domande ora dicono i fix:
+    «fra GEMVI e MATED e fra DOGUS e NUKNI: lì la linea di L81 non deve esserci», «il tratto comune di L53 e P873,
+    OLGAT–OKIMO–ENOXA» (`Conti.BreakFra`, `Conti.CondivisaFra`). Lezione: il «dove guardare» di una prova nomina una
+    cosa che in Aurora **si trova** (un fix), non una che si vede solo se sai già dov'è.

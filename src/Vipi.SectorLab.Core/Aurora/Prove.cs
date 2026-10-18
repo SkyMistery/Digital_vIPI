@@ -149,10 +149,13 @@ public sealed class OrdineABlocchiDelleAerovie : ProvaInAurora
             new($"Le aerovie basse si vedono tutte, come prima ({conti.Aerovie} aerovie)?", "le aerovie basse: tutte accese, confronta col sector pubblicato"),
             new($"Le etichette stanno dove stavano, a metà dei tratti, nessuna in più o in meno ({conti.Etichette})?", "le aerovie basse, ingrandendo su una zona fitta"),
         };
+        // In Aurora un'aerovia non si cerca per nome (committente, 18 ottobre): le domande dicono i fix dove guardare.
         if (conti.ConBreak is { } spezzata)
-            domande.Add(new($"{spezzata} resta spezzata dove c'è il BREAK ({conti.Break} interruzioni nel file)?", $"l'aerovia {spezzata}"));
+            domande.Add(new($"{spezzata} resta spezzata dove c'è il BREAK ({conti.Break} interruzioni nel file)?",
+                $"fra {string.Join(" e fra ", conti.BreakFra)}: lì la linea di {spezzata} non deve esserci"));
         if (conti.Condivisa is { } condivisa)
-            domande.Add(new($"Un'etichetta condivisa ({condivisa}) si vede una volta sola, come prima?", $"il tratto comune di {condivisa.Replace("-", " e ", StringComparison.Ordinal)}"));
+            domande.Add(new($"Un'etichetta condivisa ({condivisa}) si vede una volta sola, come prima?",
+                $"il tratto comune di {condivisa.Replace("-", " e ", StringComparison.Ordinal)}{(conti.CondivisaFra.Count > 0 ? ", " + string.Join("–", conti.CondivisaFra) : "")}"));
         domande.Add(new("Il sector si carica senza errori nuovi per le righe //@ dei blocchi?", "i messaggi di Aurora al caricamento del sector"));
         var fatto = new List<string>
         {
@@ -163,7 +166,14 @@ public sealed class OrdineABlocchiDelleAerovie : ProvaInAurora
     }
 
     /// <summary>Quanti dati ha spostato la variante, e gli esempi per le domande.</summary>
-    public sealed record Conti(int Aerovie, int Tracciati, int Etichette, int Break, int Tolte, string? ConBreak, string? Condivisa);
+    public sealed record Conti(int Aerovie, int Tracciati, int Etichette, int Break, int Tolte, string? ConBreak, string? Condivisa)
+    {
+        /// <summary>Dove si spezza <see cref="ConBreak"/>: «GEMVI e MATED», un elemento per BREAK (i fix si trovano in Aurora).</summary>
+        public IReadOnlyList<string> BreakFra { get; init; } = [];
+
+        /// <summary>I fix del tratto comune delle aerovie di <see cref="Condivisa"/>, in ordine.</summary>
+        public IReadOnlyList<string> CondivisaFra { get; init; } = [];
+    }
 
     /// <summary>Il testo a blocchi, o null col perché (un caso che la prova non sa rimettere senza cambiare il disegno).</summary>
     public static (string Testo, Conti Conti)? Riordina(string testo, out string? perche)
@@ -298,7 +308,46 @@ public sealed class OrdineABlocchiDelleAerovie : ProvaInAurora
             .FirstOrDefault(n => n is not null && n.Contains('-', StringComparison.Ordinal) && n.Split('-').All(tracciati.ContainsKey)) ?? "";
         string? conBreak = spezzate.OrderByDescending(s => s.Value).Select(s => s.Key).FirstOrDefault();
         return (string.Join(acapo, uscita) + (finisceAcapo ? acapo : ""),
-            new Conti(ordine.Count, quantiT, etichette.Count, quantiBreak, tolte, conBreak, condivisa.Length > 0 ? condivisa : null));
+            new Conti(ordine.Count, quantiT, etichette.Count, quantiBreak, tolte, conBreak, condivisa.Length > 0 ? condivisa : null)
+            {
+                BreakFra = conBreak is null ? [] : DoveSiSpezza(tracciati[conBreak]),
+                CondivisaFra = condivisa.Length > 0 ? TrattoComune(condivisa.Split('-'), tracciati) : [],
+            });
+    }
+
+    /// <summary>Per ogni BREAK del tracciato: l'ultimo punto prima e il primo dopo («GEMVI e MATED»).</summary>
+    private static List<string> DoveSiSpezza(List<string> righe)
+    {
+        var dove = new List<string>();
+        var punti = righe.Select(r => r.Trim()).Where(r => r.StartsWith("T;", StringComparison.Ordinal)).Select(r => r.Split(';')).ToList();
+        for (int i = 1; i < punti.Count - 1; i++)
+        {
+            if (punti[i][1].Trim() == "BREAK" && punti[i - 1][1].Trim() != "BREAK" && punti[i + 1][1].Trim() != "BREAK")
+                dove.Add($"{punti[i - 1][2].Trim()} e {punti[i + 1][2].Trim()}");
+        }
+
+        return dove;
+    }
+
+    /// <summary>I fix dei tratti che tutte le aerovie nominate hanno in comune, nell'ordine della prima.</summary>
+    private static List<string> TrattoComune(string[] nomi, Dictionary<string, List<string>> tracciati)
+    {
+        List<string> Punti(string aerovia) => [.. tracciati[aerovia].Select(r => r.Trim()).Where(r => r.StartsWith("T;", StringComparison.Ordinal))
+            .Select(r => r.Split(';')).Where(c => c[1].Trim() != "BREAK").Select(c => c[2].Trim())];
+        var coppie = nomi.Select(n => Punti(n)).Select(p => p.Zip(p.Skip(1), (a, b) => (a, b)).SelectMany(t => new[] { t, (t.b, t.a) }).ToHashSet()).ToList();
+        var prima = Punti(nomi[0]);
+        var comuni = new List<string>();
+        for (int i = 0; i + 1 < prima.Count; i++)
+        {
+            if (coppie.All(c => c.Contains((prima[i], prima[i + 1]))))
+            {
+                if (comuni.Count == 0 || comuni[^1] != prima[i])
+                    comuni.Add(prima[i]);
+                comuni.Add(prima[i + 1]);
+            }
+        }
+
+        return comuni;
     }
 
     private static bool Dato(string riga)

@@ -65,7 +65,8 @@ public sealed class ProveTests : IDisposable
         Assert.Null(perche);
         var (testo, conti) = esito!.Value;
         Assert.Equal(Dati(Aerovie), Dati(testo));
-        Assert.Equal(new OrdineABlocchiDelleAerovie.Conti(4, 10, 4, 2, 7, "L613", "L615-L613"), conti);
+        Assert.Equal((4, 10, 4, 2, 7, "L613", "L615-L613"), (conti.Aerovie, conti.Tracciati, conti.Etichette, conti.Break, conti.Tolte, conti.ConBreak, conti.Condivisa));
+        Assert.Equal(["RIVAM e LAPAB"], conti.BreakFra);
         Assert.EndsWith("\r\n", testo, StringComparison.Ordinal);
         Assert.DoesNotContain("\n", testo.Replace("\r\n", "", StringComparison.Ordinal), StringComparison.Ordinal);
 
@@ -104,6 +105,18 @@ public sealed class ProveTests : IDisposable
         Assert.Single(righe, r => r == "//@END \"A1\"");
     }
 
+    /// <summary>In Aurora un'aerovia non si cerca per nome (committente, 18 ottobre): le domande 3 e 4 dicono i fix.</summary>
+    [Fact]
+    public void ABlocchi_LeDomandeDiconoIFixDoveGuardare()
+    {
+        string comune = Aerovie.Replace("T;L615;VIC;VIC;\r\n", "T;L615;LAPAB;LAPAB;\r\nT;L615;VIC;VIC;\r\n", StringComparison.Ordinal);
+
+        var conti = OrdineABlocchiDelleAerovie.Riordina(comune, out _)!.Value.Conti;
+
+        Assert.Equal(["RIVAM e LAPAB"], conti.BreakFra);
+        Assert.Equal(["LAPAB", "VIC"], conti.CondivisaFra);
+    }
+
     [Fact]
     public void ABlocchi_UnAeroviaCheTornaDopoAltre_NonSiRiordina()
     {
@@ -123,7 +136,7 @@ public sealed class ProveTests : IDisposable
         Assert.Null(perche);
         Assert.Equal(OrdineABlocchiDelleAerovie.File, Assert.Single(preparata!.File).Percorso);
         Assert.Contains(preparata.Domande, d => d.Testo.Contains("4 aerovie", StringComparison.Ordinal));
-        Assert.Contains(preparata.Domande, d => d.Testo.StartsWith("L613 resta spezzata", StringComparison.Ordinal));
+        Assert.Contains(preparata.Domande, d => d.Testo.StartsWith("L613 resta spezzata", StringComparison.Ordinal) && d.Dove.StartsWith("fra RIVAM e LAPAB", StringComparison.Ordinal));
         Assert.Contains(preparata.Domande, d => d.Testo.Contains("(L615-L613)", StringComparison.Ordinal) && d.Dove.Contains("L615 e L613", StringComparison.Ordinal));
     }
 
