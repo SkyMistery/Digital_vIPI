@@ -34,9 +34,21 @@ public sealed record VoceDelLotto(string Cosa, IReadOnlyList<string> File, DateT
     /// <summary>Le due parole di un ❌.</summary>
     public string? Nota { get; init; }
 
+    /// <summary>La prova di cui la voce è una domanda (slice 4), o null per un gesto salvato.</summary>
+    public string? Prova { get; init; }
+
+    /// <summary>Dove guardare, scritto dalla prova per la sua domanda (vince sulla tabella).</summary>
+    public string? DoveDellaProva { get; init; }
+
     /// <summary>Dove guardarla in Aurora (proposta da confermare, vedi <see cref="DoveGuardare"/>).</summary>
-    public string Dove => File.Count == 0 ? "tutto il sector" : DoveGuardare.Per(File);
+    public string Dove => DoveDellaProva ?? (File.Count == 0 ? "tutto il sector" : DoveGuardare.Per(File));
 }
+
+/// <summary>
+/// La risposta a una domanda di una prova (slice 4): resta dopo il «visto» anche se il ramo della prova si butta — è
+/// l'esito che decide la voce della carta. <see cref="Esito"/> null = guardata senza segnarla.
+/// </summary>
+public sealed record EsitoDiProva(string Prova, string Domanda, EsitoInAurora? Esito, string? Nota, DateTimeOffset Quando);
 
 /// <summary>
 /// Un ❌ rimasto dopo «visto in Aurora» (carta F5, slice 3; D2: solo nel Lab, mai nel sector): una nota sui suoi record —
@@ -60,12 +72,14 @@ public sealed class Lotto
 {
     private readonly List<VoceDelLotto> _voci;
     private readonly List<NotaDaAurora> _note;
+    private readonly List<EsitoDiProva> _esiti;
 
-    private Lotto(string sector, List<VoceDelLotto> voci, List<NotaDaAurora> note, DateTimeOffset? visto)
+    private Lotto(string sector, List<VoceDelLotto> voci, List<NotaDaAurora> note, List<EsitoDiProva> esiti, DateTimeOffset? visto)
     {
         Sector = sector;
         _voci = voci;
         _note = note;
+        _esiti = esiti;
         Visto = visto;
     }
 
@@ -77,6 +91,9 @@ public sealed class Lotto
 
     /// <summary>I ❌ rimasti dai «visto» di prima, finché l'AOD non li toglie.</summary>
     public IReadOnlyList<NotaDaAurora> Note => _note;
+
+    /// <summary>Le risposte alle domande delle prove, dal più vecchio (slice 4).</summary>
+    public IReadOnlyList<EsitoDiProva> EsitiDelleProve => _esiti;
 
     /// <summary>L'ultimo «visto in Aurora», o null.</summary>
     public DateTimeOffset? Visto { get; private set; }
@@ -103,14 +120,14 @@ public sealed class Lotto
         {
             string file = FileDi(cartellaDeiDati, radice);
             if (File.Exists(file) && JsonSerializer.Deserialize<SulDisco>(File.ReadAllText(file)) is { } letto)
-                return new Lotto(radice, [.. letto.Voci ?? []], [.. letto.Note ?? []], letto.Visto);
+                return new Lotto(radice, [.. letto.Voci ?? []], [.. letto.Note ?? []], [.. letto.Esiti ?? []], letto.Visto);
         }
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException)
         {
             // Un lotto illeggibile si ricomincia: è un appunto di lavoro, non un dato del sector.
         }
 
-        return new Lotto(radice, [], [], null);
+        return new Lotto(radice, [], [], [], null);
     }
 
     /// <summary>Scrive il lotto nei dati del Lab, tutto o niente (un file a parte, poi lo scambio).</summary>
@@ -119,7 +136,7 @@ public sealed class Lotto
         string file = FileDi(cartellaDeiDati, Sector);
         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
         string temporaneo = file + ".nuovo";
-        File.WriteAllText(temporaneo, JsonSerializer.Serialize(new SulDisco(Sector, [.. _voci], [.. _note], Visto)));
+        File.WriteAllText(temporaneo, JsonSerializer.Serialize(new SulDisco(Sector, [.. _voci], [.. _note], [.. _esiti], Visto)));
         File.Move(temporaneo, file, overwrite: true);
     }
 
@@ -151,6 +168,17 @@ public sealed class Lotto
         return true;
     }
 
+    /// <summary>Le domande di una prova entrano nel lotto, da portare in Aurora (slice 4): una voce per domanda.</summary>
+    public void Domande(string prova, IEnumerable<DomandaDellaProva> domande, IReadOnlyList<string> file, DateTimeOffset quando)
+    {
+        ArgumentNullException.ThrowIfNull(domande);
+        foreach (var domanda in domande)
+            _voci.Add(new VoceDelLotto(domanda.Testo, file, quando) { Prova = prova, DoveDellaProva = domanda.Dove });
+    }
+
+    /// <summary>La prova buttata: le sue domande non ancora viste escono dal lotto (gli esiti già scritti restano).</summary>
+    public int TogliLaProva(string prova) => _voci.RemoveAll(v => v.Prova == prova);
+
     /// <summary>Toglie una nota rimasta da un ❌: l'AOD l'ha sistemata, o non serve più.</summary>
     public bool TogliLaNota(string id) => _note.RemoveAll(n => n.Id == id) > 0;
 
@@ -177,13 +205,16 @@ public sealed class Lotto
     /// </summary>
     public void VistoInAurora(DateTimeOffset quando)
     {
-        foreach (var voce in _voci.Where(v => v.Portata is not null && v.Esito == EsitoInAurora.NonVa))
+        // Le domande di una prova (slice 4) non diventano note su un record: la loro risposta resta come esito della prova.
+        foreach (var voce in _voci.Where(v => v.Portata is not null && v.Prova is not null))
+            _esiti.Add(new EsitoDiProva(voce.Prova!, voce.Cosa, voce.Esito, voce.Nota, quando));
+        foreach (var voce in _voci.Where(v => v.Portata is not null && v.Prova is null && v.Esito == EsitoInAurora.NonVa))
             _note.Add(new NotaDaAurora(Guid.NewGuid().ToString("N")[..12], voce.Cosa, voce.Nota ?? "non va", voce.File, voce.Record, quando));
         _voci.RemoveAll(v => v.Portata is not null);
         Visto = quando;
     }
 
-    private sealed record SulDisco(string Sector, List<VoceDelLotto>? Voci, List<NotaDaAurora>? Note, DateTimeOffset? Visto);
+    private sealed record SulDisco(string Sector, List<VoceDelLotto>? Voci, List<NotaDaAurora>? Note, List<EsitoDiProva>? Esiti, DateTimeOffset? Visto);
 }
 
 /// <summary>

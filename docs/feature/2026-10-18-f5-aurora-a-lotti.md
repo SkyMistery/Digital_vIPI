@@ -162,3 +162,35 @@ segnata «da confermare», e la corregge il committente.
     Il lotto della slice 2 era ancora lì dopo il riavvio del banco.
   Test Lab 1 030 → **1 033**, tre giri verdi. Da provare sul PC del committente: una ❌ con due parole, «Visto», la nota
   nella scheda e nei Problemi, il Lab chiuso e riaperto, «Togli».
+- **Slice 4 (18 ottobre)** — le prove come lotti; la prima, scelta dal committente: **l'ordine a blocchi delle aerovie**
+  («file per file» B9). Solo il Lab: `Core/Aurora/Prove.cs` (`ProvaInAurora`, `ProveInAurora`,
+  `OrdineABlocchiDelleAerovie`), `Lotto` (`Domande`, `TogliLaProva`, `EsitiDelleProve`), `SessioneDelLab`
+  (`ProvaInCorso`, `PreparaLaProvaAsync`, `ButtaLaProvaAsync`), il riquadro «◫ Aurora».
+  - **Prepara la prova**: dal ramo di adesso un ramo `prova/<argomento>` (il ramo di partenza nello stesso segno dei rami
+    di lavoro, `branch.<ramo>.vipibase`), la variante scritta e registrata **solo qui** (un commit locale, «Prova in
+    Aurora: …», «non si manda»), il Sector Lab si rilegge, le **domande** entrano nel lotto, da portare in Aurora, ognuna
+    col suo «dove guardare». Il ramo `prova/…` non si manda mai: «Manda» accetta solo gli `aod/`.
+  - **Le risposte**: ✅/❌ come le altre voci; al «visto» non diventano note su un record ma **esiti della prova**, che
+    restano nel lotto (e nel riquadro) anche dopo che il ramo è buttato: sono quel che decide la voce della carta.
+  - **Butta la prova** (con conferma): torna al ramo di partenza e cancella il ramo `prova/…`; le domande non ancora viste
+    escono dal lotto. Portando una prova in vetrina il lotto non aggiunge «cambiato ramo: tutto da rivedere»: le domande
+    dicono già che cosa guardare.
+  - **La variante B9** (`itawlow.lairway`): un blocco per aerovia, `//@"NOME"`, `//@START`, le sue etichette, il suo
+    tracciato (coi `//@@` dei tratti), `//@END "NOME"`, nell'ordine dei tracciati. Le righe `T` e `L` si **spostano, non
+    cambiano** (verificato sul fork: 246 aerovie, 1 385 `T`, 896 `L`, 28 `BREAK`, tutte uguali prima e dopo). Restano
+    com'erano l'intestazione di KY139 e la lista `//Waypoint references` in fondo (si toglie a parte, B10); fra i dati si
+    tolgono i commenti di sezione e le righe vuote (7 sul fork). Un `BREAK` resta fra i due pezzi che spezza, o in coda
+    all'aerovia prima; un'etichetta condivisa va nel blocco della prima in ordine alfabetico (B4); una dichiarazione
+    `//@"NOME" …` che c'è già resta. Un'aerovia che tornasse più avanti dopo altre (sul fork non capita) ferma la prova:
+    metterne i pezzi di seguito potrebbe unirli.
+  - **Le domande della B9**, calcolate dal file: tutte le aerovie come prima (246); le etichette dove stavano (896); L81
+    spezzata dove c'è il BREAK; un'etichetta condivisa vista una volta sola; nessun errore nuovo al caricamento per le
+    righe `//@`.
+  - **Visto a schermo** sul banco (la copia del sector fatta clone git): «Prepara la prova» → ramo
+    `prova/aerovie-a-blocchi`, «5 da portare», AIRWAY letto in 352 record (erano 568: un blocco è un record); «Porta in
+    Aurora» → «5 modifiche da vedere», senza «cambiato ramo»; ✅, ❌ con la nota, «Visto» → le risposte nel riquadro;
+    «Butta la prova» (con conferma) → di nuovo `master`, 568 record, il ramo non c'è più. Dalla prova: preparare e
+    buttare rileggono il ramo prima di decidere (la barra era ferma a una lettura di prima e rifiutava per file che non
+    c'erano più).
+  Test Lab 1 033 → **1 039**, tre giri verdi. La «finita quando» della slice è del committente: la prova B9 guardata in
+  Aurora, sul suo PC, senza `LEGGIMI`.

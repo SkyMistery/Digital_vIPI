@@ -3771,6 +3771,63 @@ public sealed class SessioneDelLab
         }
     }
 
+    // ── Aurora: le prove come lotti (carta F5, slice 4) ─────────────────────────────────────────────────────────
+
+    /// <summary>La prova del ramo di adesso, se il ramo è un <c>prova/…</c> che il Lab conosce.</summary>
+    public Core.Aurora.ProvaInAurora? ProvaInCorso => Core.Aurora.ProveInAurora.DelRamo(Ramo?.Ramo);
+
+    /// <summary>
+    /// Prepara una prova (carta F5, slice 4): un ramo <c>prova/…</c> dal ramo di adesso, con la variante registrata solo
+    /// qui, e le sue domande nel lotto, da portare in Aurora. Falso, col perché in <see cref="Rifiuto"/>.
+    /// </summary>
+    public async Task<bool> PreparaLaProvaAsync(string argomento)
+    {
+        if (Core.Aurora.ProveInAurora.Tutte.FirstOrDefault(p => p.Argomento == argomento) is not { } prova)
+            return Rifiuta($"Il Lab non conosce la prova «{argomento}».");
+        // Si decide sullo stato di adesso: la barra può essere ferma a una lettura di prima (file registrati, ignorati).
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        if (ProvaInCorso is { } inCorso)
+            return Rifiuta($"Sei già sulla prova «{inCorso.Titolo}»: buttala prima di prepararne un'altra.");
+
+        Core.Aurora.ProvaPreparata? preparata = null;
+        bool fatto = await CambiaRamoAsync($"prepara la prova {prova.Ramo}", async radice =>
+        {
+            var (pronta, perche) = await Core.Aurora.ProveInAurora.PreparaAsync(Git, radice, prova).ConfigureAwait(false);
+            preparata = pronta;
+            return perche;
+        }).ConfigureAwait(false);
+        if (!fatto || preparata is null || Lotto is not { } lotto)
+            return fatto;
+
+        // La barra deve dire subito «sei sulla prova»: il ramo si rilegge adesso, non in background.
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        lotto.Domande(prova.Argomento, preparata.Domande, [.. preparata.File.Select(f => f.Percorso)], DateTimeOffset.Now);
+        ScriviIlLotto(lotto, $"prova {prova.Ramo}: {preparata.Domande.Count} domande — {string.Join(" ", preparata.Fatto)}");
+        Avvisa();
+        return true;
+    }
+
+    /// <summary>
+    /// Butta la prova di adesso: torna al ramo da cui era partita e cancella il ramo <c>prova/…</c> (mai mandato). Le
+    /// risposte già date restano negli esiti; le domande non ancora viste escono dal lotto.
+    /// </summary>
+    public async Task<bool> ButtaLaProvaAsync()
+    {
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        if (ProvaInCorso is not { } prova)
+            return Rifiuta("Non sei su una prova.");
+        bool fatto = await CambiaRamoAsync($"butta la prova {prova.Ramo}",
+            radice => Core.Aurora.ProveInAurora.ButtaAsync(Git, radice, prova.Ramo)).ConfigureAwait(false);
+        if (!fatto || Lotto is not { } lotto)
+            return fatto;
+
+        await RileggiIlRamoAsync().ConfigureAwait(false);
+        int tolte = lotto.TogliLaProva(prova.Argomento);
+        ScriviIlLotto(lotto, $"prova {prova.Ramo} buttata: {tolte} domande non viste tolte");
+        Avvisa();
+        return true;
+    }
+
     // ── Aurora: il lotto (carta F5, slice 2) ───────────────────────────────────────────────────────────────────
 
     private Core.Aurora.Lotto? _lotto;
@@ -3889,7 +3946,8 @@ public sealed class SessioneDelLab
             ? "il sector in vetrina per la prima volta: tutto da vedere"
             : !string.Equals(prima.Sorgente, Path.GetFullPath(radice), StringComparison.OrdinalIgnoreCase)
                 ? $"in vetrina prima c'era {Path.GetFileName(prima.Sorgente)}: tutto da rivedere"
-                : !string.Equals(prima.Ramo, ramo, StringComparison.Ordinal)
+                // Passando a una prova le sue domande dicono già che cosa guardare (slice 4).
+                : !string.Equals(prima.Ramo, ramo, StringComparison.Ordinal) && Core.Aurora.ProveInAurora.DelRamo(ramo) is null
                     ? $"cambiato ramo ({prima.Ramo ?? "nessuno"} → {ramo ?? "nessuno"}): tutto da rivedere"
                     : null;
         lotto.Portato(quando, cambiato);

@@ -75,7 +75,7 @@
                                 </span>
                             }
                             <span>@voce.Cosa</span>
-                            <span class="lab-nota">→ @voce.Dove · @(voce.Portata is { } p ? $"in vetrina dal {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(p)}" : $"salvato il {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(voce.Salvata)}, da portare")</span>
+                            <span class="lab-nota">→ @voce.Dove · @(voce.Portata is { } p ? $"in vetrina dal {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(p)}" : voce.Prova is not null ? "domanda della prova, da portare" : $"salvato il {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(voce.Salvata)}, da portare")</span>
                             @if (daVedere && voce.Esito == EsitoInAurora.NonVa)
                             {
                                 <input type="text" class="lab-cerca" data-campo="nota-esito" placeholder="Che cosa non va? (l'etichetta copre il fix…)"
@@ -92,6 +92,62 @@
                 }
             </div>
         }
+        @* Slice 4: le prove in Aurora come lotti — un ramo prova/… con la variante, le domande nel lotto, il ramo si butta. *@
+        <div class="lab-prove" data-prove>
+            <p class="lab-nota"><strong>Prove in Aurora</strong></p>
+            @if (Lab.ProvaInCorso is { } prova)
+            {
+                <p class="lab-nota" data-prova-in-corso="@prova.Argomento">Sei sulla prova: <strong>@prova.Titolo</strong> (ramo <code>@prova.Ramo</code>, solo su
+                    questo PC: non si manda). Portala in Aurora, rispondi alle domande qui sopra, «Visto in Aurora»; poi buttala.</p>
+                @if (_confermaButta)
+                {
+                    <p class="lab-avviso-breve">Il ramo <code>@prova.Ramo</code> si cancella e si torna a <code>@(Lab.BaseDelRamo ?? "?")</code>. Le risposte date restano.</p>
+                    <button type="button" class="lab-tasto" data-tasto="butta-prova-sicuro" disabled="@Lab.StaCambiandoRamo" @onclick="Butta">Sì, butta la prova</button>
+                    <button type="button" class="lab-tasto lab-tasto-tenue" @onclick="() => _confermaButta = false">No</button>
+                }
+                else
+                {
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="butta-prova" @onclick="() => _confermaButta = true">Butta la prova e torna a @(Lab.BaseDelRamo ?? "?")</button>
+                }
+            }
+            else if (Lab.Ramo is null)
+            {
+                <p class="lab-nota">Le prove si preparano in un clone git: il Lab fa un ramo prova/… con la variante.</p>
+            }
+            else
+            {
+                <ul class="lab-elenco-lotto">
+                    @foreach (var p in ProveInAurora.Tutte)
+                    {
+                        var questa = p;
+                        <li data-prova="@questa.Argomento">
+                            <span>@questa.Titolo</span>
+                            <span class="lab-nota">@questa.Perche</span>
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prepara-prova" disabled="@Lab.StaCambiandoRamo"
+                                    title="Un ramo @questa.Ramo da @Lab.Ramo.Ramo con la variante, e le domande nel lotto" @onclick="() => Prepara(questa.Argomento)">Prepara la prova</button>
+                        </li>
+                    }
+                </ul>
+            }
+            @if (_rifiuto is not null && Lab.CartellaDellaVetrina is null)
+            {
+                @* Con la vetrina il rifiuto si legge già sopra, sotto «Porta in Aurora». *@
+                <p class="lab-avviso-breve" data-rifiuto-prova>@_rifiuto</p>
+            }
+            @if (Lab.Lotto is { EsitiDelleProve.Count: > 0 } conEsiti)
+            {
+                <p class="lab-nota">Le risposte:</p>
+                <ul class="lab-elenco-lotto" data-esiti-delle-prove="@conEsiti.EsitiDelleProve.Count">
+                    @foreach (var esito in conEsiti.EsitiDelleProve)
+                    {
+                        <li data-esito-prova="@esito.Esito">
+                            @(esito.Esito switch { EsitoInAurora.Come => "✅", EsitoInAurora.NonVa => "❌", _ => "—" }) @esito.Domanda
+                            <span class="lab-nota">@(ProveInAurora.Tutte.FirstOrDefault(t => t.Argomento == esito.Prova)?.Titolo ?? esito.Prova)@(esito.Nota is null ? "" : " · " + esito.Nota) · @Vetrina.Ora(esito.Quando)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
         @if (Lab.NoteDaAurora.Count > 0)
         {
             <p class="lab-nota" data-note-da-aurora="@Lab.NoteDaAurora.Count">❌ @(Lab.NoteDaAurora.Count == 1 ? "1 nota" : $"{Lab.NoteDaAurora.Count} note") da Aurora sui record: nella scheda e in cima ai Problemi.</p>
@@ -111,6 +167,16 @@
     private async Task Porta() => _rifiuto = await Lab.PortaInAuroraAsync() ? null : Lab.Rifiuto;
 
     private void Segna(int indice, EsitoInAurora? esito, string? nota = null) => Lab.SegnaNelLotto(indice, esito, nota);
+
+    private bool _confermaButta;
+
+    private async Task Prepara(string argomento) => _rifiuto = await Lab.PreparaLaProvaAsync(argomento) ? null : Lab.Rifiuto;
+
+    private async Task Butta()
+    {
+        _confermaButta = false;
+        _rifiuto = await Lab.ButtaLaProvaAsync() ? null : Lab.Rifiuto;
+    }
 
     /// <summary>Il conto del lotto nella barra: da vedere se in vetrina c'è questo sector, se no da portare.</summary>
     private string? ContoDelLotto()

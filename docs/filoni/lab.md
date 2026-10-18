@@ -18,7 +18,10 @@ gesti salvati da «visto in Aurora», ognuno coi suoi file e con dove guardarlo 
 portare» finché non vanno in vetrina e poi «da vedere»; il conto nella barra, «Visto in Aurora», un file per sector nei
 dati del Lab. **Slice 3 fatta, gli esiti**: ✅/❌ con due parole accanto a ogni voce in vetrina; «Visto in Aurora»
 toglie le ✅ e le non segnate, le ❌ restano come note sul record (nella scheda e in cima ai Problemi) finché non si
-tolgono. Slice 2 e 3 da provare sul PC del committente. **Prossima: slice 4, le prove come lotti** (ramo `prova/…`).
+tolgono. **Slice 4 fatta, le prove come lotti**: «Prepara la prova» fa un ramo `prova/…` con la variante (solo locale,
+non si manda) e mette le domande nel lotto; le risposte restano come esiti della prova; «Butta la prova» torna al ramo
+di prima. La prima: l'ordine a blocchi delle aerovie (B9). Slice 2, 3 e 4 da provare sul PC del committente.
+**Prossima: slice 5, il giro vero** (un lotto del secondo giro R-10 guardato in Aurora).
 
 ## Dove siamo — 18 ottobre 2026: la F4 è fatta
 
