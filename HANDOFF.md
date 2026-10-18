@@ -4,9 +4,17 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 18 ottobre 2026
+> ## ▶ Il punto — 18 ottobre 2026, mattina
 >
-> **📦 Pronta da caricare: 1.66.0** (§A158, timbro `1.66.0 · d2abdc4`, 9 file, zip `aac52a2e…`, MINOR senza migrazioni):
+> **📦 Pronta da caricare: 1.67.0** (§A159, timbro `1.67.0 · c41681d`, 13 file, zip `b4685284…`, MINOR senza migrazioni,
+> misurata dalla 1.65.0): Sito S112 e S113 (le richieste aperte nella barra e sulla chiave) e S111 della 1.66.0, che
+> non è mai stata caricata e si butta. Online è la **1.65.0**. ⚠️ Aperto: aggiornare l'SDK a 10.0.402. ▶ Restano:
+> convertitore su Torino–Genova, banco su Milano, riga «NOTAM» in Sorgenti, vista live dal telefono, prova del
+> validatore sull'archivio ATC, elenchi di Torino, Padova e Bologna, ripubblicare le vIPI ACC. S96 in pausa.
+>
+> ## Il punto — 18 ottobre 2026
+>
+> **⏭ Mai caricata: 1.66.0**, assorbita dalla 1.67.0 (§A158, timbro `1.66.0 · d2abdc4`, 9 file, zip `aac52a2e…`, MINOR senza migrazioni):
 > Sito S111, le sezioni da scrivere (negli editor e in Versioni). Online è la **1.65.0** finché il committente non
 > carica. ⚠️ Aperto: aggiornare l'SDK a 10.0.402. ▶ Restano: convertitore su Torino–Genova, banco su Milano, riga
 > «NOTAM» in Sorgenti, vista live dal telefono, prova del validatore sull'archivio ATC, elenchi di Torino, Padova e
