@@ -6,8 +6,8 @@ namespace Vipi.SectorLab.Core.Aurora;
 /// <summary>Una domanda di una prova: che cosa guardare, e dove.</summary>
 public sealed record DomandaDellaProva(string Testo, string Dove);
 
-/// <summary>Un file della variante: il percorso dalla radice del repo (barre in avanti) e il testo nuovo.</summary>
-public sealed record FileDellaProva(string Percorso, string Testo);
+/// <summary>Un file della variante: il percorso dalla radice del repo (barre in avanti) e il testo nuovo; null = il file si toglie.</summary>
+public sealed record FileDellaProva(string Percorso, string? Testo);
 
 /// <summary>La variante preparata: i file da scrivere, le domande, e che cosa ha fatto (per il messaggio e la carta).</summary>
 public sealed record ProvaPreparata(IReadOnlyList<FileDellaProva> File, IReadOnlyList<DomandaDellaProva> Domande, IReadOnlyList<string> Fatto);
@@ -42,7 +42,11 @@ public static class ProveInAurora
     public const string Prefisso = "prova/";
 
     /// <summary>Le prove, in ordine.</summary>
-    public static IReadOnlyList<ProvaInAurora> Tutte { get; } = [new OrdineABlocchiDelleAerovie()];
+    public static IReadOnlyList<ProvaInAurora> Tutte { get; } =
+    [
+        new OrdineABlocchiDelleAerovie(), new VfrDiFirComeFix(), new EtichettePerRiferimento(), new PuntiDiStartup(),
+        new CartellaPerScalo(), new CartellaPerTipo(), new UnFilePerAcc(),
+    ];
 
     /// <summary>La prova di quel ramo (<c>prova/…</c>), o null.</summary>
     public static ProvaInAurora? DelRamo(string? ramo)
@@ -75,7 +79,17 @@ public static class ProveInAurora
         // Da dove è partita (dove si torna buttandola): lo stesso segno dei rami di lavoro (RamiDelSector.BaseDiAsync).
         await git.EseguiAsync(radice, ["config", $"branch.{prova.Ramo}.vipibase", base_], annulla).ConfigureAwait(false);
         foreach (var file in preparata.File)
-            await File.WriteAllTextAsync(Path.Combine(radice, file.Percorso), file.Testo, Encoding.Latin1, annulla).ConfigureAwait(false);
+        {
+            string dove = Path.Combine(radice, file.Percorso.Replace('/', Path.DirectorySeparatorChar));
+            if (file.Testo is null)
+            {
+                File.Delete(dove);
+                continue;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(dove)!);
+            await File.WriteAllTextAsync(dove, file.Testo, Encoding.Latin1, annulla).ConfigureAwait(false);
+        }
 
         var aggiungi = await git.EseguiAsync(radice, ["add", "--", .. preparata.File.Select(f => f.Percorso)], annulla).ConfigureAwait(false);
         var registra = aggiungi.Riuscito

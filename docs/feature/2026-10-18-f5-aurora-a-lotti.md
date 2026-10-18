@@ -235,3 +235,32 @@ segnata «da confermare», e la corregge il committente.
     azzerare; «Chiedi le novità» → «Sul server, da guardare» → `aod/704798/r-10-etichette-aerovie`; «Porta in Aurora»:
     1 file copiato, **3 voci dalle registrazioni** (1 commit dopo `f305e6d`); una ricarica; **3 ✅**, «Visto». **Slice 5
     chiusa: la F5 è fatta.** La PR #9 la fonde il committente.
+
+## §7 — Dopo la F5: le altre prove in Aurora, preparate dal Lab (18 ottobre)
+
+Decisione del committente: il sector vero si tocca dopo l'uscita del ciclo 2611 (29 ottobre); intanto le prove ancora
+aperte di «file per file» si preparano come lotti (slice 4), sul fork. Sei prove nuove nel riquadro «◫ Aurora → Prove
+in Aurora», ognuna un ramo `prova/…` con le domande:
+
+| Prova | Voce | Variante (sul fork) |
+|---|---|---|
+| `vfr-di-fir-come-fix` | F5 | i tre file di `ENRVFI` da `[VFRENR]` a `[VFRFIX]` in `ITALY.isc` e negli `.isc` di LIMM, LIPP, LIRR |
+| `etichette-per-riferimento` | A8 | le 104 etichette `L;` di `FRA.artcc` per riferimento al fix omonimo; e un fix (il primo che sta in un file solo, ADEXI) 3′ più a nord, per vedere che l'etichetta lo segue |
+| `punti-di-startup` | R4 | `LIRF;MAPS;STARTUP; ; ;2;` dopo l'ultima voce del MAPS di `lirf.str`: due trattini (S1, S2) sugli stand 101 e 102 — le posizioni vere non ci sono, conta dove compare la mappa |
+| `file-di-scalo-cartella-per-scalo` | I7-C | tutto LIRF in `IT\AD\LIRF` (`.sid .str .gts .txi .vfi`, `lirf.geo`, `lirf.tfl` dal `.pol`), la cartella nella riga 6, via le 6 righe di LIRF dagli `.isc` |
+| `file-di-scalo-cartella-per-tipo` | I7-B, O4 | la terra di LIRF in `IT\GND`, un file per tipo dal colore della riga (`.rwy .txo .txc .stp .apr .pier .bld`) e `lirf.tfl`, la cartella nella riga 6, via le righe dagli `.isc` |
+| `spazi-bassi-un-file-per-acc` | K2 | `limm.lartcc`, `lipp.lartcc`, `lirr.lartcc` coi file di settore uniti (col nome del file sopra), una riga per ACC negli `.isc`; le STAR di scalo restano |
+
+- Dal manuale IVAO («SectorFile Definition», letto col browser del pannello: al recupero automatico risponde 403):
+  `ICAO.geo` e `ICAO.tfl` si caricano da soli se lo scalo è fra gli aeroporti e il file sta in una cartella della riga 6;
+  così i file per tipo `ICAO.rwy/.txo/.txc/.stp/.apr/.pier/.bld`, con le righe del `.geo` (`LAT1;LON1;LAT2;LON2;COLORE;`).
+  Le I7 si fondano su questo, non su un formato immaginato.
+- Le proposte A (nomi uniformi, righe scritte dal Lab: nessun rischio in Aurora) e D (radice, sconsigliata dal
+  committente) non hanno una prova. La O4 (dove stanno le marcature) la risponde la B: colore RUNWAY → `.rwy`; LIRF non
+  ha un file di marcature, quindi la domanda è sulle piste.
+- Una prova ora può **togliere** file (testo nullo) e crearne in cartelle nuove; il giro git le registra tutte (test).
+- Verificate a vuoto sul clone del fork: le righe si spostano, non cambiano (la B: 5 296 righe del `.geo` nei sette file
+  per tipo; una riga di dati commentata resta commento). Trovato facendolo: l'a capo dei file uniti della K2 letto dal
+  testo già accorciato (un file di una riga diventava `\n`): corretto.
+  Test Lab 1 044 → **1 059**, due giri verdi. Da provare dal committente, una alla volta: «Prepara la prova», «Porta in
+  Aurora», una ricarica, le risposte, «Visto», «Butta la prova».
