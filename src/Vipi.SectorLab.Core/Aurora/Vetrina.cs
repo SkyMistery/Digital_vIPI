@@ -7,7 +7,14 @@ namespace Vipi.SectorLab.Core.Aurora;
 public sealed record InVetrina(string Sorgente, string? Ramo, string? Commit, DateTimeOffset Quando);
 
 /// <summary>Com'è andato «Porta in Aurora»: i file copiati, quelli tolti, quelli rimasti uguali.</summary>
-public sealed record EsitoDellaVetrina(int Copiati, int Tolti, int Uguali);
+public sealed record EsitoDellaVetrina(int Copiati, int Tolti, int Uguali)
+{
+    /// <summary>
+    /// I file che in vetrina sono cambiati (copiati o tolti), dalla radice del repo (<c>SectorFiles/…</c>, barre in avanti):
+    /// quel che Aurora vede di nuovo alla ricarica (F5 slice 5: il lotto dalle registrazioni).
+    /// </summary>
+    public IReadOnlyList<string> Cambiati { get; init; } = [];
+}
 
 /// <summary>
 /// La vetrina (carta F5, slice 1; D1): una cartella fissa a cui l'AOD punta una volta il «secondo sector» di Aurora, e
@@ -87,6 +94,7 @@ public static class Vetrina
         File.WriteAllText(Path.Combine(piena, Segno), "");
 
         int copiati = 0, uguali = 0, tolti = 0;
+        var cambiati = new List<string>();
         var presenti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string file in Directory.EnumerateFiles(da, "*", SearchOption.AllDirectories))
         {
@@ -102,6 +110,7 @@ public static class Vetrina
             Directory.CreateDirectory(Path.GetDirectoryName(dove)!);
             File.Copy(file, dove, overwrite: true);
             copiati++;
+            cambiati.Add("SectorFiles/" + relativo.Replace(Path.DirectorySeparatorChar, '/'));
         }
 
         foreach (string file in Directory.EnumerateFiles(a, "*", SearchOption.AllDirectories).ToList())
@@ -111,6 +120,7 @@ public static class Vetrina
             File.SetAttributes(file, FileAttributes.Normal);
             File.Delete(file);
             tolti++;
+            cambiati.Add("SectorFiles/" + Path.GetRelativePath(a, file).Replace(Path.DirectorySeparatorChar, '/'));
         }
 
         foreach (string cartella in Directory.EnumerateDirectories(a, "*", SearchOption.AllDirectories).OrderByDescending(c => c.Length))
@@ -120,7 +130,7 @@ public static class Vetrina
         }
 
         File.WriteAllText(Path.Combine(piena, Segno), JsonSerializer.Serialize(new InVetrina(Path.GetFullPath(sector), ramo, commit, quando)));
-        return new EsitoDellaVetrina(copiati, tolti, uguali);
+        return new EsitoDellaVetrina(copiati, tolti, uguali) { Cambiati = cambiati };
     }
 
     /// <summary>

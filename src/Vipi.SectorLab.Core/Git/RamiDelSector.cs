@@ -85,6 +85,21 @@ public static class RamiDelSector
         return esito.Riuscito ? [.. esito.Righe.Order(StringComparer.Ordinal)] : [];
     }
 
+    /// <summary>
+    /// I rami di lavoro (<c>aod/…</c>) che il server ha e qui non ci sono, dall'ultimo <c>fetch</c> (carta F5, slice 5):
+    /// il lavoro di un altro AOD, o fatto su un altro PC, da guardare in Aurora prima di fonderlo. Ci si passa come a un
+    /// ramo di qui: <c>git switch</c> crea il ramo locale che segue quello del server.
+    /// </summary>
+    public static async Task<IReadOnlyList<string>> DaGuardareAsync(Git git, string radice, CancellationToken annulla = default)
+    {
+        ArgumentNullException.ThrowIfNull(git);
+        var esito = await git.EseguiAsync(radice, ["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/" + PrefissoDiLavoro], annulla).ConfigureAwait(false);
+        if (!esito.Riuscito)
+            return [];
+        var locali = await LocaliAsync(git, radice, annulla).ConfigureAwait(false);
+        return [.. esito.Righe.Select(r => r["origin/".Length..]).Where(r => !locali.Contains(r, StringComparer.Ordinal)).Order(StringComparer.Ordinal)];
+    }
+
     /// <summary>Vero se il server ha quel ramo (dall'ultimo <c>fetch</c>).</summary>
     public static async Task<bool> SulServerAsync(Git git, string radice, string ramo, CancellationToken annulla = default)
     {

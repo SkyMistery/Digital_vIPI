@@ -37,6 +37,9 @@ public sealed record VoceDelLotto(string Cosa, IReadOnlyList<string> File, DateT
     /// <summary>La prova di cui la voce è una domanda (slice 4), o null per un gesto salvato.</summary>
     public string? Prova { get; init; }
 
+    /// <summary>La registrazione da cui viene la voce (slice 5), se non è un gesto salvato qui.</summary>
+    public string? Commit { get; init; }
+
     /// <summary>Dove guardare, scritto dalla prova per la sua domanda (vince sulla tabella).</summary>
     public string? DoveDellaProva { get; init; }
 
@@ -166,6 +169,33 @@ public sealed class Lotto
         string? pulita = string.IsNullOrWhiteSpace(nota) ? null : nota.Trim();
         _voci[indice] = _voci[indice] with { Esito = esito, Nota = esito == EsitoInAurora.NonVa ? pulita : null };
         return true;
+    }
+
+    /// <summary>
+    /// Le registrazioni arrivate in vetrina con questo «Porta in Aurora» (slice 5): una voce per gesto, coi file della
+    /// registrazione che la vetrina ha davvero cambiato (<paramref name="cambiati"/>). Una registrazione i cui file in
+    /// vetrina erano già così (salvati qui e portati prima di registrarli) non torna; un gesto che il lotto ha già fra le
+    /// voci portate adesso nemmeno. Torna quante voci ha aggiunto.
+    /// </summary>
+    public int Registrate(IEnumerable<RegistrazioneNelLotto> registrazioni, IReadOnlyCollection<string> cambiati, DateTimeOffset quando)
+    {
+        ArgumentNullException.ThrowIfNull(registrazioni);
+        ArgumentNullException.ThrowIfNull(cambiati);
+        var appena = _voci.Where(v => v.Portata == quando).Select(v => v.Cosa).ToHashSet(StringComparer.Ordinal);
+        int aggiunte = 0;
+        foreach (var registrazione in registrazioni)
+        {
+            var file = registrazione.File.Where(f => cambiati.Contains(f, StringComparer.Ordinal)).ToList();
+            if (file.Count == 0)
+                continue;
+            foreach (string gesto in registrazione.Gesti.Where(appena.Add))
+            {
+                _voci.Add(new VoceDelLotto(gesto, file, quando, quando) { Commit = registrazione.Commit });
+                aggiunte++;
+            }
+        }
+
+        return aggiunte;
     }
 
     /// <summary>Le domande di una prova entrano nel lotto, da portare in Aurora (slice 4): una voce per domanda.</summary>

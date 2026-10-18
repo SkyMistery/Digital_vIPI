@@ -224,6 +224,19 @@
                     }
                 </ul>
             }
+            @* Carta F5, slice 5: il lavoro di un altro AOD (o di un altro PC), da guardare in Aurora prima di fonderlo. *@
+            @if (Lab.RamiDaGuardare.Count > 0)
+            {
+                <h3>Sul server, da guardare</h3>
+                <ul class="lab-elenco-dei-rami" data-rami-da-guardare="@Lab.RamiDaGuardare.Count">
+                    @foreach (string delServer in Lab.RamiDaGuardare)
+                    {
+                        string questo = delServer;
+                        <li><button type="button" class="lab-citazione" data-guarda="@questo" disabled="@Occupato"
+                                    title="Passa a @questo: poi «Porta in Aurora», e il lotto dice le sue registrazioni" @onclick="() => Lab.PassaAlRamoAsync(questo)">@questo</button></li>
+                    }
+                </ul>
+            }
             @if (Lab.PercheNonSiCambiaRamo() is { } no)
             {
                 <p class="lab-nota" data-non-si-cambia>@no</p>

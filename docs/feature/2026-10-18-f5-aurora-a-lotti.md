@@ -203,3 +203,16 @@ segnata «da confermare», e la corregge il committente.
     cosa che in Aurora **si trova** (un fix), non una che si vede solo se sai già dov'è.
     Coi fix nominati il committente ha guardato anche la 3 e la 4: ✅ («ora va»). **La B9 è provata del tutto, senza
     `LEGGIMI`: la «finita quando» della slice 4 è raggiunta.** L'ordine a blocchi si può adottare nel file vero (B1).
+- **Slice 5 (18 ottobre)** — il giro vero. Scelte del committente: le correzioni le fa l'agente sul banco, in un ramo
+  `aod/704798/…` del fork mandato come PR, e il committente le guarda nel suo Lab; il lotto del giro sono **le etichette
+  delle aerovie** (R-10: 53 da aggiungere, 24 da rinominare, 25 lontane; B4, B12).
+  - **Il lotto dalle registrazioni** (`Core/Aurora/Registrazioni.cs`, `Lotto.Registrate`): il lavoro che arriva da git
+    (un altro AOD, un altro PC, salvato prima di riaprire il Lab) il lotto non l'ha fra i gesti salvati qui. «Porta in
+    Aurora», se in vetrina c'era lo stesso sector a un commit che sta nella storia di quello di adesso, legge le
+    registrazioni fra i due (`git log --no-merges`): un gesto per riga `- …` del messaggio (come lo scrive «Registra»),
+    o il titolo. Entrano **solo per i file che la vetrina ha cambiato davvero** (`EsitoDellaVetrina.Cambiati`): una
+    registrazione già vista prima di registrarla non torna, e un gesto già fra le voci portate adesso nemmeno. Al posto
+    del «cambiato ramo: tutto da rivedere», che resta quando la storia non si ripercorre (un altro ramo da `master`).
+  - **Sul server, da guardare** (`RamiDelSector.DaGuardareAsync`, `SessioneDelLab.RamiDaGuardare`): nel riquadro del ramo
+    i rami `aod/…` del server che qui non ci sono; un clic ci passa (`git switch` crea il ramo che segue quello del server),
+    poi «Porta in Aurora», e il lotto ha i suoi gesti — prima di fondere la PR.

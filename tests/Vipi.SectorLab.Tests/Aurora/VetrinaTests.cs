@@ -39,7 +39,8 @@ public sealed class VetrinaTests : IDisposable
         var prima = Vetrina.Porta(P("ciclo"), vetrina, P("aurora", "SectorFiles"), "airac/2611", "abc1234", quando, out string? perche);
 
         Assert.Null(perche);
-        Assert.Equal(new EsitoDellaVetrina(2, 0, 0), prima);
+        Assert.Equal((2, 0, 0), (prima!.Copiati, prima.Tolti, prima.Uguali));
+        Assert.Equal(["SectorFiles/ITALY.isc", "SectorFiles/Include/IT/lirf.sid"], prima.Cambiati.Order(StringComparer.Ordinal));
         Assert.True(File.Exists(P("vetrina", "SectorFiles", "Include", "IT", "lirf.sid")));
         Assert.Equal(new InVetrina(P("ciclo"), "airac/2611", "abc1234", quando), Vetrina.Contenuto(vetrina));
 
@@ -47,7 +48,9 @@ public sealed class VetrinaTests : IDisposable
         var dopo = Vetrina.Porta(P("prova"), vetrina, P("aurora", "SectorFiles"), "prova/t4", null, quando.AddMinutes(5), out perche);
 
         Assert.Null(perche);
-        Assert.Equal(new EsitoDellaVetrina(1, 1, 1), dopo);
+        Assert.Equal((1, 1, 1), (dopo!.Copiati, dopo.Tolti, dopo.Uguali));
+        // Quel che Aurora vede di nuovo: il simbolo arrivato e la SID tolta; ITALY.isc era uguale.
+        Assert.Equal(["SectorFiles/Include/IT/lirf.sid", "SectorFiles/Include/IT/symbols.sym"], dopo.Cambiati.Order(StringComparer.Ordinal));
         Assert.False(File.Exists(P("vetrina", "SectorFiles", "Include", "IT", "lirf.sid")));
         Assert.True(File.Exists(P("vetrina", "SectorFiles", "Include", "IT", "symbols.sym")));
         Assert.Equal("prova/t4", Vetrina.Contenuto(vetrina)!.Ramo);

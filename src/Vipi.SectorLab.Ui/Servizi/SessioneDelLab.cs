@@ -292,6 +292,9 @@ public sealed class SessioneDelLab
     /// <summary>I rami di qui (carta F4, slice 3), in ordine.</summary>
     public IReadOnlyList<string> RamiLocali { get; private set; } = [];
 
+    /// <summary>I rami di lavoro del server che qui non ci sono (carta F5, slice 5): ci si passa per guardarli in Aurora.</summary>
+    public IReadOnlyList<string> RamiDaGuardare { get; private set; } = [];
+
     /// <summary>Il ramo predefinito del server (<c>master</c> sul repo vero).</summary>
     public string Predefinito { get; private set; } = "master";
 
@@ -309,7 +312,7 @@ public sealed class SessioneDelLab
         // Si ridisegna solo per quel che l'AOD vede cambiare: il «…» quando ha chiesto al server, e alla fine se il ramo
         // o il suo stato sono diversi. Una lettura in background che ridisegna sempre arrivava in mezzo ai clic (due test
         // rossi intermittenti del 17 ottobre); fuori da git non cambia mai niente.
-        string? prima = Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, $"{BaseDelRamo}|{IndietroRispettoAllaBase}|{DaRiportare}|{RiportoInCorso}");
+        string? prima = Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, $"{BaseDelRamo}|{IndietroRispettoAllaBase}|{DaRiportare}|{RiportoInCorso}|{string.Join(",", RamiDaGuardare)}");
         StaLeggendoIlRamo = true;
         if (prendi)
             Avvisa();
@@ -320,6 +323,7 @@ public sealed class SessioneDelLab
             if (stato is not null)
             {
                 RamiLocali = await Core.Git.RamiDelSector.LocaliAsync(Git, stato.Radice).ConfigureAwait(false);
+                RamiDaGuardare = await Core.Git.RamiDelSector.DaGuardareAsync(Git, stato.Radice).ConfigureAwait(false);
                 Predefinito = await Core.Git.RamiDelSector.PredefinitoAsync(Git, stato.Radice).ConfigureAwait(false);
                 CicloDopo = Core.Git.RamiDelSector.RamoDelCicloDopo(DateTime.UtcNow);
                 CicloDopoSulServer = await Core.Git.RamiDelSector.SulServerAsync(Git, stato.Radice, CicloDopo).ConfigureAwait(false);
@@ -345,7 +349,7 @@ public sealed class SessioneDelLab
         finally
         {
             StaLeggendoIlRamo = false;
-            if (prendi || Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, $"{BaseDelRamo}|{IndietroRispettoAllaBase}|{DaRiportare}|{RiportoInCorso}") != prima)
+            if (prendi || Impronta(Ramo, PercheDelRamo, RamiLocali, CicloDopoSulServer, $"{BaseDelRamo}|{IndietroRispettoAllaBase}|{DaRiportare}|{RiportoInCorso}|{string.Join(",", RamiDaGuardare)}") != prima)
                 Avvisa();
         }
     }
@@ -3756,7 +3760,7 @@ public sealed class SessioneDelLab
                 return Rifiuta(perche ?? "Non è andata.");
             UltimoPortaInAurora = esito;
             Rifiuto = null;
-            LottoPortato(primaInVetrina, radice, Ramo?.Ramo, adesso);
+            await LottoPortatoAsync(primaInVetrina, radice, Ramo?.Ramo, commit, esito, adesso).ConfigureAwait(false);
             return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -3938,20 +3942,33 @@ public sealed class SessioneDelLab
         ScriviIlLotto(lotto, $"{voci.Count} voci salvate");
     }
 
-    private void LottoPortato(Core.Aurora.InVetrina? prima, string radice, string? ramo, DateTimeOffset quando)
+    private async Task LottoPortatoAsync(Core.Aurora.InVetrina? prima, string radice, string? ramo, string? commit,
+        Core.Aurora.EsitoDellaVetrina esito, DateTimeOffset quando)
     {
         if (Lotto is not { } lotto)
             return;
+        bool stessoSector = prima is not null && string.Equals(prima.Sorgente, Path.GetFullPath(radice), StringComparison.OrdinalIgnoreCase);
+        // Passando a una prova le sue domande dicono già che cosa guardare (slice 4).
+        bool prova = Core.Aurora.ProveInAurora.DelRamo(ramo) is not null;
+        // Stesso sector, un altro commit: che cosa è cambiato lo dicono le registrazioni fra i due, se quello di prima sta
+        // nella storia di adesso (slice 5) — un ramo di lavoro preso dal server, una PR fusa e presa, un «Allinea».
+        IReadOnlyList<Core.Aurora.RegistrazioneNelLotto>? registrate = null;
+        if (stessoSector && !prova && prima!.Commit is { } da && commit is not null && da != commit && Ramo is { } stato)
+            registrate = await Core.Aurora.Registrazioni.FraAsync(Git, stato.Radice, da).ConfigureAwait(false);
         string? cambiato = prima is null
             ? "il sector in vetrina per la prima volta: tutto da vedere"
-            : !string.Equals(prima.Sorgente, Path.GetFullPath(radice), StringComparison.OrdinalIgnoreCase)
+            : !stessoSector
                 ? $"in vetrina prima c'era {Path.GetFileName(prima.Sorgente)}: tutto da rivedere"
-                // Passando a una prova le sue domande dicono già che cosa guardare (slice 4).
-                : !string.Equals(prima.Ramo, ramo, StringComparison.Ordinal) && Core.Aurora.ProveInAurora.DelRamo(ramo) is null
-                    ? $"cambiato ramo ({prima.Ramo ?? "nessuno"} → {ramo ?? "nessuno"}): tutto da rivedere"
-                    : null;
+                : prova || registrate is not null
+                    ? null
+                    : !string.Equals(prima.Ramo, ramo, StringComparison.Ordinal)
+                        ? $"cambiato ramo ({prima.Ramo ?? "nessuno"} → {ramo ?? "nessuno"}): tutto da rivedere"
+                        : prima.Commit is not null && commit is not null && prima.Commit != commit
+                            ? $"{ramo} è cambiato da {prima.Commit} a {commit} in un modo che il Lab non sa ripercorrere: tutto da rivedere"
+                            : null;
         lotto.Portato(quando, cambiato);
-        ScriviIlLotto(lotto, $"portato in Aurora: {lotto.DaVedere} da vedere");
+        int dalleRegistrazioni = registrate is null ? 0 : lotto.Registrate(registrate, esito.Cambiati, quando);
+        ScriviIlLotto(lotto, $"portato in Aurora: {lotto.DaVedere} da vedere{(registrate is null ? "" : $", {dalleRegistrazioni} dalle registrazioni ({registrate.Count} commit dopo {prima!.Commit})")}");
     }
 
     private void ScriviIlLotto(Core.Aurora.Lotto lotto, string cosa)
