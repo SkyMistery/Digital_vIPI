@@ -14,10 +14,10 @@
 > **S111** (18 ottobre), le **sezioni da scrivere** — in ogni editor e nella pagina Versioni quante sezioni
 > editoriali hanno qualcosa e quali sono ancora vuote — è **fuso** in `main` e va nella **1.66.0** (§A158), pronta e
 > non ancora caricata. Carta `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
-> **Da fondere: S112** (18 ottobre): nella barra dello staff, accanto a «Campo richieste», quante richieste sono
-> ancora aperte.
+> **Da fondere: S112 e S113** (18 ottobre): quante richieste dal campo sono ancora aperte, accanto a «Campo
+> richieste» nella barra dello staff e, per gli admin, accanto alla chiave in alto.
 > **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova e la nota di S109 in
-> Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S112 qui sotto.
+> Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S113 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2706,6 +2706,17 @@
   - **A schermo** su un database nuovo con tre richieste inventate (nuova, presa in carico, risolta): «Campo
     richieste 2», in italiano, col tema scuro e chiaro. ⚠️ La pagina delle richieste non ha la barra (la usano anche
     gli utenti): lì il numero non c'è. Non visto: il telefono.
+- 🟢 **S113** lo stesso numero **accanto alla chiave** della barra in alto, per gli **admin** (18-ott, il committente:
+  «si può mettere il contatore anche qui per chi è admin?»).
+  - Il numero è un **collegamento suo, alle richieste**; la chiave resta la porta ai permessi — un numero di richieste
+    che portasse ai permessi le farebbe cercare dove non sono. Nel menù ☰ (schermo stretto) la voce «Campo richieste»
+    col numero, sotto «Permessi».
+  - Si legge in `SopLayout.CaricaAsync`, cioè **prima** del disegno della pagina (il layout ha già pagato due volte
+    le query incrociate con quelle della pagina, 24 agosto 2026), e in uno **scope della chiamata**. Solo agli admin:
+    gli altri non fanno nessuna lettura. Con una rete: un guasto lascia la chiave senza numero.
+  - **Test**: Ui 2086 → 2087 (`BarraInAltoTests`, sul sorgente come gli altri della barra: il layout non si disegna
+    in bUnit). **A schermo** su un database nuovo con tre richieste inventate: «2» sull'angolo della chiave a 1900 e
+    1000px, il clic porta alle richieste; a 375px chiave e voce del menù col numero.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 17-ott: tutto fuso e online fino a **S110** (1.65.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui

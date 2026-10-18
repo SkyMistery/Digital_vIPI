@@ -353,6 +353,14 @@
 :where(.vipi-root) .editor-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;background:rgba(255,255,255,.14);color:var(--on-brand);padding:7px 14px;border-radius:9px;text-decoration:none;font-family:var(--font-head);border:1px solid rgba(255,255,255,.22);transition:.15s;white-space:nowrap}
 :where(.vipi-root) .editor-btn:hover{background:var(--on-brand);color:var(--ivao-blue)}
 :where(.vipi-root) .editor-btn.icon-only{padding:7px 10px}
+/* Le richieste dal campo aperte, sull'angolo della chiave (S113): un collegamento suo, alle richieste. I colori della
+   pastiglia d'avviso, che sul blu della barra si leggono. */
+:where(.vipi-root) .tb-keywrap{position:relative;display:inline-flex}
+:where(.vipi-root) .tb-badge{display:inline-block;min-width:17px;padding:0 4px;border-radius:9px;font-size:10.5px;
+  font-weight:700;line-height:16px;text-align:center;text-decoration:none;background:var(--tint-yellow);
+  color:var(--warn-ink-orange);border:1px solid rgba(0,0,0,.12)}
+:where(.vipi-root) .tb-keywrap .tb-badge{position:absolute;top:-6px;right:-6px}
+:where(.vipi-root) .tb-badge.in-menu{margin-left:4px}
 :where(.vipi-root) .user-chip{display:flex;align-items:center;gap:9px;font-size:13px}
 /* L'avatar porta agli incarichi: e' un link, e deve dirlo al dito e all'occhio. `color:inherit` e
    `text-decoration:none` servono a NON far comparire il colore-link di serie dentro la barra; lo stato

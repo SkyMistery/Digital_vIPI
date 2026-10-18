@@ -54,6 +54,30 @@ public class BarraInAltoTests
         Assert.Equal(2, Regex.Matches(layout, "href=\"@segnala(Qui)?\"").Count);
     }
 
+    /// <summary>
+    /// S113, committente, 18 ottobre 2026: accanto alla chiave, per gli admin, quante richieste dal campo sono aperte.
+    /// Il numero porta alle RICHIESTE (la chiave resta ai permessi); si chiede solo per gli admin; e si legge in uno
+    /// scope della chiamata dentro <c>CaricaAsync</c>, che finisce prima del disegno della pagina — il layout ha già
+    /// pagato due volte le query che si incrociano con quelle della pagina (24 agosto 2026).
+    /// </summary>
+    [Fact]
+    public void Accanto_alla_chiave_le_richieste_aperte_solo_per_gli_admin()
+    {
+        var layout = Leggi("Shared/SopLayout.razor");
+
+        Assert.Contains("<a class=\"editor-btn icon-only\" href=\"/services/vsop/admin/permissions\"", layout);
+        Assert.Matches(new Regex("<a class=\"tb-badge\" href=\"/services/vsop/requests\""), layout);
+        Assert.Contains("_richiesteAperte = _isAdmin ? await RichiesteAperteAsync() : 0;", layout);
+        Assert.Contains("CreateAsyncScope()", layout);
+
+        // Dentro CaricaAsync, cioè prima di base.SetParametersAsync: non in OnParametersSetAsync.
+        var carica = layout.IndexOf("private async Task CaricaAsync()", StringComparison.Ordinal);
+        var conto = layout.IndexOf("_richiesteAperte = _isAdmin", StringComparison.Ordinal);
+        var fine = layout.IndexOf("private async Task<int> RichiesteAperteAsync()", StringComparison.Ordinal);
+        Assert.True(carica > 0 && carica < conto && conto < fine, "il conto delle richieste sta fuori da CaricaAsync");
+        Assert.DoesNotContain("OnParametersSetAsync()", layout);
+    }
+
     private static string Leggi(string relativo) =>
         File.ReadAllText(Path.Combine(Radice(), relativo.Replace('/', Path.DirectorySeparatorChar)));
 
