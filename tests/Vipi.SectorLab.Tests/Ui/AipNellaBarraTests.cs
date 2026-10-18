@@ -41,6 +41,8 @@ public sealed class AipNellaBarraTests : IDisposable
         var pagina = _contesto.RenderComponent<Home>();
         pagina.WaitForAssertion(() => Assert.Equal("— da scegliere", pagina.Find("[data-quanti-pdf]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         Assert.NotNull(pagina.Find("[data-senza-pdf]"));
+        // Senza la cartella dei PDF si prende lo stesso l'AIP espanso: serve per guardarlo e confrontarlo (committente, 19 ottobre).
+        Assert.NotNull(pagina.Find("[data-tasto=prendi-aip-espanso]"));
 
         // Le cartelle, come dalle Impostazioni: l'AIP espanso nella cartella dei PDF no.
         var pdf = Path.Combine(_fuori, "AIP");

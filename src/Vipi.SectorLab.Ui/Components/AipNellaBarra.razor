@@ -14,9 +14,12 @@
         AIP <span class="lab-nota" data-quanti-pdf>@Riassunto()</span>
     </summary>
     <div class="lab-impostazioni-riquadro">
+        @* La cartella dei PDF serve solo a leggerli: prendere l'AIP espanso, guardarlo sulla mappa e confrontarlo col sector
+           si fa anche senza (committente, 19 ottobre: col riquadro chiuso dietro questo avviso non vedeva niente). *@
         @if (Lab.CartellaDeiPdf is not { } cartella)
         {
-            <p class="lab-nota" data-senza-pdf>Manca la cartella dei PDF dell'AIP: sceglila nelle Impostazioni.</p>
+            <p class="lab-nota" data-senza-pdf>Manca la cartella dei PDF dell'AIP (sceglila nelle Impostazioni): serve solo a leggere i PDF.
+                Per guardare l'AIP espanso sulla mappa e confrontarlo col sector basta la sua cartella, qui sotto.</p>
         }
         else
         {
@@ -29,6 +32,7 @@
                     ? "In Download non c'erano PDF dell'AIP."
                     : $"Presi {presa.Quanti}: {presa.Nuovi.Count} nuovi, {presa.Sostituiti.Count} al posto di quelli col loro nome.")</p>
             }
+        }
 
             @if (Lab.CartellaDellAipEspanso is null || Lab.StatoDellAip is null)
             {
@@ -63,7 +67,7 @@
                     <input class="lab-campo lab-campo-corto" value="@_ciclo" data-campo="ciclo" maxlength="4" inputmode="numeric"
                            @onchange="e => _ciclo = e.Value?.ToString()" />
                 </label>
-                <button type="button" class="lab-tasto" data-tasto="leggi-aip" disabled="@(Lab.StaLeggendoLAip || _pdf.Count == 0)"
+                <button type="button" class="lab-tasto" data-tasto="leggi-aip" disabled="@(Lab.StaLeggendoLAip || _pdf.Count == 0 || Lab.CartellaDeiPdf is null)"
                         title="Legge i PDF della cartella e scrive il modello nella cartella del ciclo" @onclick="Leggi">
                     @(Lab.StaLeggendoLAip ? "Sto leggendo…" : "Leggi nell'AIP espanso")
                 </button>
@@ -116,7 +120,6 @@
                     }
                 </div>
             }
-        }
         @if (Lab.CartellaDellAipEspanso is not null)
         {
             <div data-aip-sulla-mappa>
@@ -271,7 +274,8 @@
 
     public void Dispose() => Lab.Cambiata -= Aggiorna;
 
-    private string Riassunto() => Lab.CartellaDeiPdf is null ? "— da scegliere" : $"{_pdf.Count} PDF";
+    private string Riassunto() => Lab.CartellaDeiPdf is not null ? $"{_pdf.Count} PDF"
+        : Lab.CartellaDellAipEspanso is not null ? "espanso" : "— da scegliere";
 
     private async Task Prendi()
     {
