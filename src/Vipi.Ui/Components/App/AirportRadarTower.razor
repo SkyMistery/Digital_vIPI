@@ -21,14 +21,21 @@
         <p class="torre-radar-tecnica" style="margin:0;white-space:pre-line">@View.Technique</p>
     }
 }
-else if (View.Equipped is not bool dotata)
-{
-    @* «Non indicato» non è «senza radar»: il silenzio non è una dichiarazione, come per le LVP. *@
-    <p class="muted" style="font-size:13px;margin:0">@L["TorreRadar_NonIndicato"]</p>
-}
 else
 {
-    <p style="margin:0"><b>@L[dotata ? "TorreRadar_Si" : "TorreRadar_No"]</b></p>
+    @* I tre stati coi colori dei callout del sito (committente, 18 ottobre 2026): verde con la torre radar, rosso
+       senza, giallo se nessuno l'ha detto. «Non indicato» non è «senza radar»: il silenzio non è una
+       dichiarazione, come per le LVP, e il giallo dice che manca un dato, non che manca il radar. *@
+    var (classe, icona, testo) = View.Equipped switch
+    {
+        true => ("success", "check-circle", "TorreRadar_Si"),
+        false => ("danger", "octagon", "TorreRadar_No"),
+        null => ("warning", "warning", "TorreRadar_NonIndicato"),
+    };
+    <div class="callout @classe torre-radar-stato" style="margin:0">
+        <span class="cic"><Icon Name="@icona" Size="18" /></span>
+        <div><b>@L[testo]</b></div>
+    </div>
 }
 
 @code {

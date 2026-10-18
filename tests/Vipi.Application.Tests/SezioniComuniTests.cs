@@ -395,8 +395,10 @@ public class SezioniComuniTests
 
     /// <summary>
     /// La torre radar (18 ottobre 2026): la torre di un campo civile e militare è SEMPRE una sola (committente),
-    /// quindi in un'unione la sezione è una — la stessa chiave nei due profili, dato dell'anagrafica, proposta da
-    /// nascondere in uno dei due con la sua tecnica sotto.
+    /// quindi in un'unione la sezione è una — la stessa chiave nei due profili, dato dell'anagrafica — e si nasconde
+    /// da uno dei due con la sua tecnica sotto.
+    /// <para>⚠️ Ma NON spuntata: nasce nascosta come le STAR, e spuntarla vorrebbe dire MOSTRARLA nel documento che
+    /// la tiene — una decisione che il committente ha voluto prendere scalo per scalo.</para>
     /// </summary>
     [Fact]
     public void La_torre_radar_in_un_unione_e_una_sezione_sola()
@@ -410,7 +412,7 @@ public class SezioniComuniTests
 
         var torre = comuni.Single(c => c.Chiave == SectionKeys.RadarTower);
         Assert.Equal(new[] { Civile, Militare }, torre.Presenze.Select(p => p.DocumentId));
-        Assert.True(torre.Proposta);
+        Assert.False(torre.Proposta);
 
         // Nascosta dal vSOP, si porta via la tecnica: che c'è anche nel civile, quindi non si perde niente.
         var piano = SezioniComuni.Piano(comuni, new[] { SectionKeys.RadarTower }, new[] { Militare });

@@ -2747,7 +2747,11 @@
     chiusa se lo dice il catalogo (oggi solo la tecnica).
   - **Codice comune**: `Vipi.Application` (catalogo, viste, `TorreRadar.cs`, servizio d'anagrafica, `TitoliUfficiali`,
     `SezioniDaScrivere`). Niente `deploy/`. Toccati i due `.resx`.
-  - **Test**: App 3390 → 3409, Infra 2229 → 2232, Ui 2087 → 2098.
+  - **Dopo averla vista sulla copia di produzione** (committente, stesso giorno): la frase nei callout del sito —
+    verde col radar, rosso senza, giallo se non indicato — e la sezione **nasce nascosta** dappertutto, anche nei
+    documenti già scritti («poi le mostriamo man mano che le sistemiamo»), come le STAR; nelle unioni quindi non
+    è proposta spuntata. Sulla copia: migrazione passata, 68 documenti con la sezione nascosta.
+  - **Test**: App 3390 → 3411, Infra 2229 → 2232, Ui 2087 → 2100.
   - **Non fa**: la tecnica non si traduce (testo d'anagrafica, come la nota LVP); niente formattazione.
   - **A schermo** su un database nuovo con due scali inventati (LIRQ civile, LIPI solo militare): editor e anteprima
     della vIPI col sì (frase, tecnica chiusa a due righe, indice fra Piste e SID) e col no (tecnica sparita da corpo e

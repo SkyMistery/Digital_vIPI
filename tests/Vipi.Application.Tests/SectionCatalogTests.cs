@@ -344,10 +344,11 @@ public class SectionCatalogTests
         Assert.True(doppie.Count == 0, $"{profile}: chiavi ripetute — {string.Join(", ", doppie)}");
     }
 
-    /// <summary>Le STAR nascono nascoste (21 settembre 2026, committente) nel profilo civile e nel militare, e sono
-    /// le SOLE: una sezione nascosta per sbaglio nel catalogo sparirebbe dal pubblico di ogni documento nuovo.</summary>
+    /// <summary>Le STAR nascono nascoste (21 settembre 2026, committente) nel profilo civile e nel militare, e dal 18
+    /// ottobre 2026 la torre radar (committente: «poi le mostriamo man mano che le sistemiamo»). Sono le SOLE: una
+    /// sezione nascosta per sbaglio nel catalogo sparirebbe dal pubblico di ogni documento nuovo.</summary>
     [Fact]
-    public void Nascono_nascoste_solo_le_STAR()
+    public void Nascono_nascoste_solo_le_STAR_e_la_torre_radar()
     {
         static IEnumerable<SectionDescriptor> Tutte(IEnumerable<SectionDescriptor> d) =>
             d.SelectMany(x => new[] { x }.Concat(Tutte(x.Children ?? Array.Empty<SectionDescriptor>())));
@@ -355,8 +356,9 @@ public class SectionCatalogTests
         foreach (var profilo in Enum.GetValues<SectionProfile>())
         {
             var nascoste = Tutte(SectionCatalog.For(profilo)).Where(d => d.BornHidden).Select(d => d.Key).ToList();
-            var attese = profilo is SectionProfile.Airport or SectionProfile.AirportMil ? new[] { "stars" } : Array.Empty<string>();
-            Assert.Equal(attese, nascoste);
+            var attese = profilo is SectionProfile.Airport or SectionProfile.AirportMil
+                ? new[] { SectionKeys.RadarTower, "stars" } : Array.Empty<string>();
+            Assert.Equal(attese, nascoste.Order(StringComparer.Ordinal));
         }
     }
 }

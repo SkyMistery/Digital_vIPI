@@ -261,9 +261,11 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         var meteo = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "weather");
         Assert.Equal(RenderMode.Live, meteo.RenderMode);
 
-        // Le STAR nascono NASCOSTE anche arrivando da qui (21 settembre 2026, committente); le altre no.
-        var nascoste = await _db.DocumentSections.Where(s => s.IsHidden).Select(s => s.SectionKey).ToListAsync();
-        Assert.Equal(new[] { "stars" }, nascoste);
+        // Le STAR nascono NASCOSTE anche arrivando da qui (21 settembre 2026, committente), e la torre radar
+        // (18 ottobre 2026, committente: «poi le mostriamo man mano che le sistemiamo»); le altre no — la tecnica
+        // compresa, che sparisce col padre.
+        var nascoste = await _db.DocumentSections.Where(s => s.IsHidden).Select(s => s.SectionKey).OrderBy(k => k).ToListAsync();
+        Assert.Equal(new[] { SectionKeys.RadarTower, "stars" }, nascoste);
     }
 
     [Fact]

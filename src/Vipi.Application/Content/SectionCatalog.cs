@@ -249,9 +249,12 @@ public static class SectionCatalog
     /// chiusa e c'è solo se la torre ha il radar (<see cref="TorreRadar.Filtra"/>).
     /// <para>⚠️ Scritta QUI e non due volte, come le carte: vIPI e vSOP descrivono la stessa torre, e la stessa
     /// chiave nei due profili è ciò che la fa trovare come sezione unica in un'unione.</para>
+    /// <para>Nasce NASCOSTA (committente, 18 ottobre 2026: «poi le mostriamo man mano che le sistemiamo»), come le
+    /// STAR: anche nei documenti già scritti, dove la porta la manutenzione d'avvio. Basta il padre: la tecnica
+    /// sparisce con lui.</para>
     /// </summary>
     private static SectionDescriptor TorreRadarDescrittore(int ordine) =>
-        H(SectionKeys.RadarTower, "Torre radar", ordine, en: "Tower radar", children: new[]
+        H(SectionKeys.RadarTower, "Torre radar", ordine, en: "Tower radar", nascosta: true, children: new[]
         {
             H(SectionKeys.RadarTowerTechnique, "Tecnica operativa", 1, en: "Operating technique"),
         });

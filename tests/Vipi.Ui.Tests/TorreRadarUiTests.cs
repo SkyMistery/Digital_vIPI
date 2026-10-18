@@ -36,15 +36,21 @@ public class TorreRadarUiTests : TestContext
     private IRenderedComponent<AirportRadarTower> Leggi(AirportRadarTowerView vista, bool tecnica = false) =>
         RenderComponent<AirportRadarTower>(p => p.Add(x => x.View, vista).Add(x => x.Tecnica, tecnica));
 
-    [Fact]
-    public void La_torre_dice_si_no_o_non_indicato()
+    /// <summary>
+    /// I tre stati coi colori dei callout del sito (committente, 18 ottobre 2026): verde col radar, rosso senza,
+    /// giallo se nessuno l'ha detto — «non indicato» non è «no», e non deve averne il colore.
+    /// </summary>
+    [Theory]
+    [InlineData(true, "success", "TorreRadar_Si")]
+    [InlineData(false, "danger", "TorreRadar_No")]
+    [InlineData(null, "warning", "TorreRadar_NonIndicato")]
+    public void La_torre_dice_si_no_o_non_indicato_col_suo_colore(bool? dotata, string classe, string testo)
     {
-        Assert.Contains("TorreRadar_Si", Leggi(new AirportRadarTowerView(true, null)).Markup);
-        Assert.Contains("TorreRadar_No", Leggi(new AirportRadarTowerView(false, null)).Markup);
-        // «Non indicato» non è «no»: il silenzio non è una dichiarazione.
-        var ignota = Leggi(AirportRadarTowerView.Empty).Markup;
-        Assert.Contains("TorreRadar_NonIndicato", ignota);
-        Assert.DoesNotContain("TorreRadar_No<", ignota);
+        var stato = Leggi(new AirportRadarTowerView(dotata, null)).Find(".torre-radar-stato");
+
+        Assert.True(stato.ClassList.Contains("callout"));
+        Assert.True(stato.ClassList.Contains(classe), stato.ClassName);
+        Assert.Equal(testo, stato.TextContent.Trim());
     }
 
     /// <summary>La tecnica si scrive a righe, e gli a-capo sono la sua sola struttura: devono arrivare a schermo.</summary>

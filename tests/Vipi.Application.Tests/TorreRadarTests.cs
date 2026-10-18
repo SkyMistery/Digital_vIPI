@@ -78,6 +78,19 @@ public class TorreRadarTests
         Assert.False(SectionCatalog.IsRenderModeToggleable(SectionKeys.RadarTowerTechnique));
     }
 
+    /// <summary>
+    /// Nasce NASCOSTA (committente: «poi le mostriamo man mano che le sistemiamo»), come le STAR. Basta il padre: la
+    /// tecnica sparisce con lui, e nascosta anche lei andrebbe rimostrata due volte.
+    /// </summary>
+    [Theory]
+    [InlineData(SectionProfile.Airport)]
+    [InlineData(SectionProfile.AirportMil)]
+    public void La_torre_nasce_nascosta_e_la_tecnica_la_segue(SectionProfile profilo)
+    {
+        Assert.True(SectionCatalog.Find(profilo, SectionKeys.RadarTower)!.BornHidden);
+        Assert.False(SectionCatalog.Find(profilo, SectionKeys.RadarTowerTechnique)!.BornHidden);
+    }
+
     /// <summary>La tecnica nasce chiusa (committente): è prosa lunga in mezzo all'indice, e il sì/no no.</summary>
     [Fact]
     public void La_tecnica_nasce_chiusa_e_la_torre_no()

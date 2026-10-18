@@ -21,6 +21,8 @@ alle condizioni della pista scelta per le partenze».
 | Dove | **Una sezione sola, fra Piste e SID**. Così resta abbastanza in alto (quinta voce della vIPI) e la tecnica sta dove la si usa. L'alternativa era spezzarla, col sì/no più in alto e la tecnica fra Piste e SID |
 | La tecnica | **Nasce chiusa** |
 | Dove sta il testo | **Una volta sola, nell'anagrafica dello scalo**: «la torre di uno scalo militare e civile è SEMPRE una sola». vIPI e vSOP leggono lo stesso testo |
+| I colori (dopo averla vista sulla copia di produzione) | La frase nei **callout del sito**: verde (`success`) con la torre radar, rosso (`danger`) senza, giallo (`warning`) se non indicato |
+| Visibile? | **Nasce nascosta**, in tutti i documenti — «poi le mostriamo man mano che le sistemiamo». Come le STAR: anche nei documenti già scritti, dove la porta la manutenzione d'avvio |
 
 Le scelte del filone, che non cambiano il senso della domanda:
 
@@ -47,8 +49,8 @@ Le scelte del filone, che non cambiano il senso della domanda:
 | Nasce chiusa | `SectionCatalog.IsInitiallyCollapsed`. ⚠️ `SectionNode` rendeva **ogni** sotto-sezione del documento aperta, scritto a mano: ora guarda il catalogo anche lì (la stampa le apre tutte da sé) |
 | Lettura | `AirportRadarTower` (le due parti), nei corpi della vIPI e del vSOP |
 | Scrittura | `AirportRadarTowerEditor` (le due parti mutano lo stesso oggetto e salvano la riga intera), porta `IAirportEditingService.SaveRadarTowerAsync` col lock del documento. Nel vSOP si scrive **solo su un campo senza vIPI civile**, come LVP e regole piste: altrove c'è il rimando all'editor civile |
-| Unioni | Stessa chiave, dato dell'anagrafica: la scheda «sezioni in comune» la trova e la **propone spuntata**; nasconderla da un documento si porta via la tecnica, che c'è anche nell'altro |
-| Documenti già scritti | La sezione la aggiunge `AddMissingCatalogSections` all'avvio, nel posto giusto (fra Piste e SID; nel vSOP fra Regole piste e SID dei Dati generali). Come per le LVP: la versione pubblicata la riceve anche lei, quindi i documenti pubblicati finiscono fra i **«da ripubblicare»** e il pubblico la vede alla prossima pubblicazione |
+| Unioni | Stessa chiave, dato dell'anagrafica: la scheda «sezioni in comune» la trova come una. **Non** la propone spuntata, come le STAR: nasce nascosta, e spuntarla vorrebbe dire mostrarla nel documento che la tiene. Nasconderla da un documento si porta via la tecnica, che c'è anche nell'altro |
+| Documenti già scritti | La sezione la aggiunge `AddMissingCatalogSections` all'avvio, nel posto giusto (fra Piste e SID; nel vSOP fra Regole piste e SID dei Dati generali), **nascosta**. La riceve anche la versione pubblicata: nascosta, al pubblico non cambia niente |
 | Sezioni da scrivere (S111) | La tecnica **non conta**: editoriale nel catalogo, ma il testo sta nell'anagrafica (`SezioniDaScrivere`, come le soglie) |
 | Titoli | «Torre radar» → «Tower radar», «Tecnica operativa» → «Operating technique» (catalogo e `TitoliUfficiali`) |
 
@@ -62,7 +64,7 @@ Le scelte del filone, che non cambiano il senso della domanda:
 
 ## 5. Esito
 
-- Test: App 3390 → 3409, Infra 2229 → 2232, Ui 2087 → 2098 (Hosting 93, Domain 167 ed E2E 508 invariati), sui due
+- Test: App 3390 → 3411, Infra 2229 → 2232, Ui 2087 → 2100 (Hosting 93, Domain 167 ed E2E 508 invariati), sui due
   framework.
 - Prova a schermo: §6.
 
@@ -79,6 +81,12 @@ LIRQ civile e LIPI solo militare. Nessuna copia di database vero.
   dall'indice, e il testo resta in archivio.
 - **vSOP (LIPI, senza vIPI civile)**: la sezione nei Dati generali fra Regole piste e SID; il *sì* si scrive dal suo
   editor; l'anteprima mostra la frase e la tecnica chiusa.
+- **Sulla copia di produzione del 18 ottobre** (1.67.0, MariaDB privato): la migrazione `TorreRadar` passa sui dati
+  veri, e l'avvio aggiunge la sezione a 68 documenti (bozze e pubblicate), nascosta, con la tecnica sotto. Visto dal
+  committente col suo login; da lì sono venuti i colori e il «nasce nascosta».
+- **I colori**, su un database nuovo coi due scali inventati: giallo «non indicato» (LIRQ appena nata), rosso «no»
+  (LIRQ), verde «sì» con la tecnica (LIPI, vSOP), nei temi scuro e chiaro. Una vIPI appena nata ha la torre radar
+  nascosta.
 - **Non visto a schermo**: l'unione vIPI + vSOP (provata con i test di `SezioniComuni`), la conferma del ritorno a
   «non indicato» (un dialogo del browser: provata in bUnit), il telefono, la pagina pubblica dopo una pubblicazione
   (la cattura alla release è provata nei test).
