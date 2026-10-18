@@ -14,8 +14,9 @@
 > nella pagina Versioni, carta `docs/feature/2026-10-18-sezioni-da-scrivere.md`), **S112** e **S113** (quante
 > richieste dal campo sono ancora aperte, nella barra dello staff e per gli admin sulla chiave in alto). La 1.64.0 e
 > la 1.66.0 non sono mai uscite: assorbite dalla versione dopo.
-> **Da fondere: S114** (18 ottobre), correzione delle sezioni da scrivere: una sezione con le sottosezioni scritte non
-> è più segnata vuota.
+> **Pronto ma in attesa: S114** (18 ottobre), correzione delle sezioni da scrivere: una sezione con le sottosezioni
+> scritte non è più segnata vuota. Il committente: «aspettiamo, fondiamo quando ci sarà altra roba» — esce col
+> prossimo lavoro, fatto sopra lo stesso `sito/lavori`.
 > **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova, la nota di S109 in
 > Struttura, il numero delle richieste e le sezioni da scrivere (da fuori il Master ha visto porta, 401 e health
 > Healthy). Voci S109–S114 qui sotto.
@@ -2729,7 +2730,12 @@
   - **Test**: App 3389 → 3390, rosso prima della correzione (0 invece di 2). Solo logica: l'interfaccia non cambia.
     ⚠️ Non provato sui documenti veri (la copia di produzione è stata cancellata a fine S111).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
-  Al 17-ott: tutto fuso e online fino a **S110** (1.65.0); niente da fondere;
+  Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
+  committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
+  lavoro pronto si avvisa il Master con la punta nuova (S114 esce insieme). Aperte dal 16–18 ottobre: le
+  configurazioni di Milano APP da scrivere in Struttura (S109); da guardare online col login la nota di S109, il
+  convertitore sul limite di Torino–Genova (S110), le sezioni da scrivere (S111) e il numero delle richieste aperte
+  (S112–S113); se `DiagnosticaUnGiroAllaVoltaTests` ricade in CI, la sua attesa di 3 s va allungata (§A159);
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui
   `.resx`, su `vipi-theme.css` e su questo registro. Si lavora da `sito/lavori`, un ramo
   `fix/<cosa>` per lavoro. ⚠️ Due lavori che toccano questo registro, i `.resx` o `vipi-theme.css` nello stesso punto si costruiscono
