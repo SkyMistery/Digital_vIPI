@@ -119,6 +119,17 @@
         }
         @if (Lab.CartellaDellAipEspanso is not null)
         {
+            <div data-aip-sulla-mappa>
+                <label class="lab-nota">
+                    <input type="checkbox" data-casella="aip-sulla-mappa" checked="@Lab.Accesi.Contains(Vipi.SectorLab.Core.PdfAip.AipSullaMappa.Tipo.Id)"
+                           disabled="@(Lab.Sessione is null)" @onchange="e => Mostra(e.Value is true)" />
+                    Mostra l'AIP espanso sulla mappa
+                </label>
+                @if (Lab.StratoDellAip is { } strato)
+                {
+                    <span class="lab-nota" data-aip-strato> · ciclo @strato.Ciclo, @strato.Strato.Forme.Count forme@(Attese(strato) is var (nonDisegnate, tutte) && nonDisegnate > 0 ? $" ({nonDisegnate} attese su {tutte} senza il punto nel sector)" : ""): i tipi si accendono negli Strati</span>
+                }
+            </div>
             <div data-confronto>
                 <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-ctr" disabled="@(Lab.Sessione is null)"
                         title="I CTR dell'AIP espanso contro le voci CTR dei MAPS del sector aperto (sola lettura, soglia 0,1 NM)" @onclick="() => Confronta(Famiglia.Ctr)">Confronta i CTR</button>
@@ -219,6 +230,14 @@
     private async Task Registra() => _rifiuto = await Lab.RegistraLAipAsync(Lab.MessaggioDellAip) ? null : Lab.Rifiuto;
 
     private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
+
+    private async Task Mostra(bool mostra) => _rifiuto = await Lab.MostraLAipAsync(mostra) ? null : Lab.Rifiuto;
+
+    private static (int NonDisegnate, int Tutte) Attese(Vipi.SectorLab.Core.PdfAip.StratoDellAip strato)
+    {
+        var attese = strato.Strato.Forme.Where(f => f.Genere == Vipi.SectorLab.Core.PdfAip.AipSullaMappa.Attese).ToList();
+        return (attese.Count(f => f.Tratti.Count == 0), attese.Count);
+    }
 
     private async Task Confronta(Famiglia famiglia) => _rifiuto = await Lab.ConfrontaAsync(famiglia) ? null : Lab.Rifiuto;
 

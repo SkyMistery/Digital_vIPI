@@ -136,9 +136,9 @@
         // Si rievidenzia quando cambia la scelta, quando si chiede di nuovo lo stesso record (il secondo clic
         // sull'elenco), e quando lo strato è stato ridisegnato: la forma evidenziata di prima non c'è più.
         bool richiesta = _inquadrature != Lab.Inquadrature;
-        if (_evidenziata != Lab.Scelta || richiesta || ridisegnato)
+        if (_evidenziata != Lab.SceltaSullaMappa || richiesta || ridisegnato)
         {
-            _evidenziata = Lab.Scelta;
+            _evidenziata = Lab.SceltaSullaMappa;
             _inquadrature = Lab.Inquadrature;
             // Si inquadra solo se la scelta NON viene dalla mappa: chi ha appena cliccato una forma non vuole che
             // la mappa gli salti sotto il dito. Dopo una modifica del record scelto la mappa lo segue dov'è ora.

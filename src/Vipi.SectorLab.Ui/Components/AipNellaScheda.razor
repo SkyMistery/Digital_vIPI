@@ -1,0 +1,30 @@
+@*
+    La scheda di una voce dell'AIP espanso scelta sulla mappa (F6): com'è scritta nel modello — un'area, una rotta coi suoi
+    tratti, un'attesa. Sola lettura: non è un record del sector.
+*@
+@if (Voce is { } voce)
+{
+    <div class="lab-ispettore" data-scheda-aip="@voce.Genere">
+        <header>
+            <p class="lab-etichetta">@voce.Titolo</p>
+            <p class="lab-nota">AIP espanso @Ciclo · @voce.Genere · sola lettura</p>
+        </header>
+        <dl class="lab-campi-aip">
+            @foreach (var (nome, valore) in voce.Campi)
+            {
+                <dt>@nome</dt>
+                <dd>@valore</dd>
+            }
+        </dl>
+        @if (voce.Righe.Count > 0)
+        {
+            <pre class="lab-righe-aip" data-righe-aip>@string.Join("\n", voce.Righe)</pre>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Vipi.SectorLab.Core.PdfAip.VoceDellAip? Voce { get; set; }
+
+    [Parameter] public string? Ciclo { get; set; }
+}

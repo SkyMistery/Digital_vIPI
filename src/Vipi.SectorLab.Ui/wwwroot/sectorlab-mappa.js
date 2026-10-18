@@ -85,6 +85,8 @@
 
     /// Lo stile di una forma nel modo di adesso. `tinta` è il colore del Lab per il suo strato.
     function stile(forma, tinta) {
+        // Lo strato dell'AIP espanso (F6): il colore del genere della forma, non quello dello strato.
+        if (forma.lc) tinta = forma.lc;
         var aurora = stato && stato.aurora && Object.prototype.hasOwnProperty.call(forma, 'k');
         if (!aurora) {
             return forma.t === 'p'

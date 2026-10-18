@@ -4,7 +4,14 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 2a fatta (l'importer di ENR 3)
+## Dove siamo — 19 ottobre 2026: F6, l'AIP espanso sulla mappa (e la slice 2a)
+
+**L'AIP espanso sulla mappa**, chiesto dal committente prima della 2b: nel riquadro «AIP» «Mostra l'AIP espanso sulla
+mappa» → lo strato «AIP espanso» in fondo agli Strati, un tipo per casella (CTR, ATZ, TMA… rotte, attese), un colore
+per tipo, e un clic apre la scheda della voce in sola lettura. Separato dal sector (file `aip:<ciclo>`): nessun gesto
+lo tocca. Provato sul banco (1 312 forme, la scheda di N503). Carta F6 §6. **Prossima: 2b**.
+
+## 19 ottobre 2026: F6, slice 2a fatta (l'importer di ENR 3)
 
 **Slice 2a fatta**: le rotte di ENR 3.2 (29 su 29 PDF scaricati, zero segnalazioni: punti, per tratto verso e quota
 minima per parità, limiti, note, interruzioni) e le attese in rotta di ENR 3.4.1 (413 su 245 punti, controprova con

@@ -255,6 +255,45 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Contains("errore di stampa", _lab.Rifiuto, StringComparison.Ordinal);
     }
 
+    // F6, prima della 2b: l'AIP espanso sulla mappa — lo strato in fondo agli Strati coi suoi tipi, la scheda di una voce
+    // scelta col clic, e scegliere un record del sector la toglie.
+    [Fact]
+    public async Task LAipSullaMappa_LoStratoITipiELaScheda()
+    {
+        var pagina = await ConfrontaConAsync(
+            "//MENU MAPS\r\nLIRF;MAPS;LIRF ATZ; ; ;5;\r\nN041.50.00.000;E012.10.00.000;\r\nN041.52.00.000;E012.10.00.000;\r\n",
+            CtrDiProva("Roma CTR", new RingGeometry([
+                new LineSegment(new Position(42.0, 12.0)), new LineSegment(new Position(42.0, 12.5)), new LineSegment(new Position(41.8, 12.5))])),
+            CtrDiProva("ATZ Urbe LIRU - RMZ", new CircleGeometry(new Position(41.95, 12.5), new Distance(3, DistanceUnit.Nm))) with { Type = AirspaceType.Rmz });
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").Change(true));
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Contains("ciclo 2611, 2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal);
+            Assert.True(pagina.Find("[data-strato=aip]").HasAttribute("checked"));
+            Assert.Equal(["aip:CTR", "aip:RMZ/TMZ"], pagina.FindAll("[data-generi=aip] input").Select(i => i.GetAttribute("data-genere")));
+        }, TimeSpan.FromSeconds(10));
+
+        await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", 0));
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Equal("Roma CTR", pagina.Find("[data-scheda-aip] .lab-etichetta").TextContent);
+            Assert.Contains("2000ft AMSL – SFC", pagina.Find("[data-scheda-aip]").TextContent, StringComparison.Ordinal);
+        }, TimeSpan.FromSeconds(10));
+        Assert.Null(_lab.Scelta);
+        Assert.Equal(("aip:2611", 0), _lab.SceltaSullaMappa);
+
+        // Un record del sector: la scheda dell'AIP se ne va.
+        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/lirf.str", 0));
+        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-scheda-aip]")), TimeSpan.FromSeconds(10));
+
+        // Spenta, lo strato non è più acceso.
+        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").Change(false));
+        Assert.DoesNotContain("aip", _lab.Accesi);
+    }
+
     [Fact]
     public void LeCartelleSiRicordano()
     {

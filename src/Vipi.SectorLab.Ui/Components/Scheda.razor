@@ -8,6 +8,9 @@
 *@
 @* Slice 8e: la domanda sul gemello di un punto .vfi appena tolto (il record non ha più una scheda sua). *@
 <DomandaSulGemello />
+@* F6: una voce dell'AIP espanso scelta sulla mappa ha la sua scheda, in sola lettura. 🔴 Col parametro: un componente
+   senza parametri non si ridisegna quando la scheda cambia. *@
+<AipNellaScheda Voce="Lab.VoceDellAipScelta" Ciclo="@Lab.StratoDellAip?.Ciclo" />
 @if (Lab.Scheda() is { } scheda)
 {
     <div class="lab-ispettore" data-ispettore="@($"{scheda.File}#{scheda.Indice}")">
@@ -520,6 +523,9 @@ else if (Lab.RigaSegnalata is { } segnata)
             <p class="lab-errore" data-rifiuto="1">@rifiutoDellaRiga</p>
         }
     </div>
+}
+else if (Lab.VoceDellAipScelta is not null)
+{
 }
 else if (Lab.FileScelto is not null)
 {

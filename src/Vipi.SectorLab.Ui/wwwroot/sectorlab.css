@@ -98,6 +98,7 @@
     --lab-strato-vfr: #2f8f8f;
     --lab-strato-attese: #b06a10;
     --lab-strato-terra: #6b6b6b;
+    --lab-strato-aip: #2f6fd6;
     --lab-strato-piste: #303030;
     --lab-strato-radioassistenze: var(--ivao-ocean-600);
     --lab-strato-punti: var(--ivao-fuselage-550);
@@ -442,6 +443,13 @@ body.lab-trascina * {
 [data-strato-colore="vfr"] { background: var(--lab-strato-vfr); }
 [data-strato-colore="attese"] { background: var(--lab-strato-attese); }
 [data-strato-colore="terra"] { background: var(--lab-strato-terra); }
+[data-strato-colore="aip"] { background: var(--lab-strato-aip); }
+
+/* F6: la scheda di una voce dell'AIP espanso — i campi in due colonne, i tratti di una rotta in righe fisse. */
+.lab-campi-aip { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .6rem; margin: .4rem 0; font-size: .8rem; }
+.lab-campi-aip dt { color: var(--lab-titoli); }
+.lab-campi-aip dd { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.lab-righe-aip { font-size: .72rem; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow-y: auto; }
 [data-strato-colore="piste"] { background: var(--lab-strato-piste); }
 [data-strato-colore="radioassistenze"] { background: var(--lab-strato-radioassistenze); }
 [data-strato-colore="punti"] { background: var(--lab-strato-punti); }

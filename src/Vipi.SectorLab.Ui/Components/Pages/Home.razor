@@ -69,7 +69,7 @@
                 <Sezione Chiave="strati">
                 <Titolo>Strati</Titolo>
                 <ChildContent>
-                @foreach (var strato in Lab.Strati)
+                @foreach (var strato in Lab.StratiDaMostrare)
                 {
                     <label class="lab-strato @(strato.Forme.Count == 0 ? "lab-strato-vuoto" : null)">
                         <input type="checkbox"

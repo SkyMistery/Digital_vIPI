@@ -412,6 +412,8 @@ public sealed class SessioneDelLab
         Stato = StatoDelLab.Chiusa;
         Sessione = null;
         Strati = [];
+        StratoDellAip = null;
+        SceltaDellAip = null;
         Cataloghi = new Dictionary<string, CatalogoDeiPunti>();
         _chiLoUsa = null;
         ScordaGliUsi();
@@ -442,6 +444,18 @@ public sealed class SessioneDelLab
 
     public void Scegli(string? file, int record)
     {
+        // Una forma dell'AIP espanso (F6): la sua scheda, non un record del sector — e nessun file si apre.
+        if (Core.PdfAip.AipSullaMappa.EDellAip(file))
+        {
+            Scelta = null;
+            SceltaDellAip = record;
+            Registro.Scrivi("scelta", $"{file}#{record}");
+            Inquadrature++;
+            Avvisa();
+            return;
+        }
+
+        SceltaDellAip = null;
         Scelta = file is null ? null : (file, record);
         RigaSegnalata = null;
         // La nota «forma portata anche su…» (slice 8c) era del gesto di prima, su un altro record.
@@ -2159,7 +2173,7 @@ public sealed class SessioneDelLab
     /// con le loro forme; vuoto se lo strato ne ha meno di due.
     /// </summary>
     public IReadOnlyList<GenereDelloStrato> GeneriDi(string strato)
-        => Strati.FirstOrDefault(s => s.Id == strato) is { } suo ? GeneriDellaMappa.Di(suo) : [];
+        => StratiDaMostrare.FirstOrDefault(s => s.Id == strato) is { } suo ? GeneriDellaMappa.Di(suo) : [];
 
     /// <summary>Vero se il genere di quello strato si vede (di base sì: si spegne, non si accende).</summary>
     public bool GenereAcceso(string strato, string genere) => !_spenti.Contains(ChiaveDelGenere(strato, genere));
@@ -2175,7 +2189,7 @@ public sealed class SessioneDelLab
         else
             _spenti.Add(ChiaveDelGenere(strato, genere));
         // Toccare un genere vuol dire guardare il suo strato: se è spento, si accende.
-        if (acceso && Strati.Any(s => s.Id == strato))
+        if (acceso && StratiDaMostrare.Any(s => s.Id == strato))
             _accesi.Add(strato);
         Registro.Scrivi("generi", $"{strato}: {genere} {(acceso ? "acceso" : "spento")}");
         VersioneDeiSpenti++;
@@ -4204,6 +4218,69 @@ public sealed class SessioneDelLab
             UltimoConfronto = (ciclo, famiglia, esiti);
             _aipDelConfronto = modello;
             Registro.Scrivi("aip", $"confronto {famiglia}, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
+            Rifiuto = null;
+            Avvisa();
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or global::Aip.AipJsonException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// L'AIP espanso sulla mappa (F6, prima della 2b): lo strato del ciclo più recente, sopra quelli del sector. Null finché
+    /// non lo si chiede («Mostra sulla mappa» nel riquadro AIP).
+    /// </summary>
+    public Core.PdfAip.StratoDellAip? StratoDellAip { get; private set; }
+
+    /// <summary>La voce dell'AIP scelta col clic sulla mappa (l'indice nello strato), o null.</summary>
+    public int? SceltaDellAip { get; private set; }
+
+    /// <summary>La voce scelta, per la scheda.</summary>
+    public Core.PdfAip.VoceDellAip? VoceDellAipScelta =>
+        SceltaDellAip is { } i && StratoDellAip is { } s && i >= 0 && i < s.Voci.Count ? s.Voci[i] : null;
+
+    /// <summary>Quel che la mappa evidenzia: il record scelto, o la voce dell'AIP.</summary>
+    public (string File, int Record)? SceltaSullaMappa =>
+        Scelta ?? (SceltaDellAip is { } i && StratoDellAip is { } s ? (s.File, i) : null);
+
+    /// <summary>Gli strati delle caselle: quelli del sector e, se c'è, quello dell'AIP espanso in fondo.</summary>
+    public IReadOnlyList<StratoDellaMappa> StratiDaMostrare => StratoDellAip is { } aip ? [.. Strati, aip.Strato] : Strati;
+
+    /// <summary>
+    /// «Mostra sulla mappa» (F6): legge l'AIP espanso del ciclo — l'ultimo letto, o il più recente nella cartella — e lo
+    /// mette nello strato «AIP espanso», acceso. Le attese stanno dove il sector ha il loro punto. Spento, lo strato resta in
+    /// memoria fino alla prossima lettura.
+    /// </summary>
+    public async Task<bool> MostraLAipAsync(bool mostra)
+    {
+        var id = Core.PdfAip.AipSullaMappa.Tipo.Id;
+        if (!mostra)
+        {
+            _accesi.Remove(id);
+            SceltaDellAip = null;
+            Avvisa();
+            return true;
+        }
+        if (CartellaDellAipEspanso is not { } espanso)
+            return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
+        var ciclo = UltimoAipEspanso?.Ciclo
+                    ?? (Directory.Exists(espanso)
+                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
+                        : null);
+        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
+            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        try
+        {
+            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            var catalogo = CatalogoScelto;
+            StratoDellAip = await Task.Run(() => Core.PdfAip.AipSullaMappa.Di(modello, ciclo, nome => catalogo?.Cerca(nome)?.Posizione)).ConfigureAwait(false);
+            SceltaDellAip = null;
+            _versioniDegliStrati[id] = ++VersioneDellaGeometria;
+            _accesi.Add(id);
+            Registro.Scrivi("aip", $"AIP espanso {ciclo} sulla mappa: {StratoDellAip.Strato.Forme.Count} forme");
             Rifiuto = null;
             Avvisa();
             return true;

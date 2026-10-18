@@ -40,6 +40,12 @@ public static class MappaDelLab
 
         rotte.MapGet("/mappa/strato/{id}", (string id, SessioneDelLab lab, HttpResponse risposta) =>
         {
+            // L'AIP espanso (F6): uno strato fuori dal sector, coi colori dei suoi generi e senza quelli di Aurora.
+            if (id == Core.PdfAip.AipSullaMappa.Tipo.Id)
+                return Results.Stream(
+                    flusso => Scrivi(flusso, id, lab.StratoDellAip?.Strato.Forme ?? [], coloreDellaForma: true),
+                    contentType: "application/json");
+
             if (StratiDellaMappa.PerNome(id) is null)
                 return Results.NotFound();
 
@@ -59,8 +65,9 @@ public static class MappaDelLab
     /// senza riprendere le coordinate.</param>
     /// <param name="simboli">I simboli di Aurora (slice 17b): un punto che ne ha uno porta <c>y</c>, l'indice nell'elenco
     /// che la pagina riceve coi colori.</param>
+    /// <param name="coloreDellaForma">Lo strato dell'AIP espanso: ogni forma porta <c>lc</c>, il colore del Lab del suo genere.</param>
     public static async Task Scrivi(Stream flusso, string id, IReadOnlyList<FormaDellaMappa> forme, ColoriDellaMappa? colori = null,
-                                    SimboliDellaMappa? simboli = null)
+                                    SimboliDellaMappa? simboli = null, bool coloreDellaForma = false)
     {
         await using var json = new Utf8JsonWriter(flusso);
         json.WriteStartObject();
@@ -85,6 +92,8 @@ public static class MappaDelLab
             // Slice 12c (H1): il genere dentro lo strato, per accenderlo e spegnerlo da solo.
             if (forma.Genere is { } genere)
                 json.WriteString("h", genere);
+            if (coloreDellaForma && forma.Tratto is { } tinta)
+                json.WriteString("lc", tinta);
 
             if (colori is not null)
             {
