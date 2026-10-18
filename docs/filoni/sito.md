@@ -15,9 +15,10 @@
 > non ancora caricata: le **sezioni da scrivere** in ogni editor e nella pagina Versioni (carta
 > `docs/feature/2026-10-18-sezioni-da-scrivere.md`), e quante richieste dal campo sono ancora aperte — accanto a
 > «Campo richieste» nella barra dello staff e, per gli admin, sulla chiave in alto. La 1.66.0, col solo S111, non è
-> mai stata caricata: assorbita dalla 1.67.0. Niente da fondere.
+> mai stata caricata: assorbita dalla 1.67.0. **Da fondere: S114** (18 ottobre), correzione delle sezioni da
+> scrivere: una sezione con le sottosezioni scritte non è più segnata vuota.
 > **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova e la nota di S109 in
-> Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S113 qui sotto.
+> Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S114 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
 > §11–§12 (banco).
 >
@@ -2717,6 +2718,16 @@
   - **Test**: Ui 2086 → 2087 (`BarraInAltoTests`, sul sorgente come gli altri della barra: il layout non si disegna
     in bUnit). **A schermo** su un database nuovo con tre richieste inventate: «2» sull'angolo della chiave a 1900 e
     1000px, il clic porta alle richieste; a 375px chiave e voce del menù col numero.
+- 🟢 **S114** correzione di S111: una sezione **senza testo proprio ma con le sottosezioni scritte** non è vuota (18-ott,
+  il committente: «segna come empty section delle sezioni che non hanno testo proprio ma hanno solo sottosezioni. Non
+  sarebbe corretto»).
+  - **Prima**: contavano i soli blocchi della sezione. **Ora** (`SezioniDaScrivere.Piena`): ha qualcosa se ce l'ha
+    lei o una sua sottosezione **visibile**, a qualunque profondità e di qualunque tipo — anche una sezione libera
+    aggiunta sotto. Vuota resta solo se è vuoto tutto quel che ha sotto; una sottosezione nascosta non basta. Carta
+    §4.
+  - **Codice comune**: `Vipi.Application` (`SezioniDaScrivere.cs`). Nessuna migrazione, niente `deploy/`.
+  - **Test**: App 3389 → 3390, rosso prima della correzione (0 invece di 2). Solo logica: l'interfaccia non cambia.
+    ⚠️ Non provato sui documenti veri (la copia di produzione è stata cancellata a fine S111).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 17-ott: tutto fuso e online fino a **S110** (1.65.0); niente da fondere;
   **S96** (tabellone) in pausa su `fix/tabellone`, che alla ripresa va allineato — conflitti attesi sui conteggi, sui

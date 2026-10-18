@@ -101,15 +101,32 @@ public static class SezioniDaScrivere
     public static ContoSezioni Conta(SectionProfile profilo, IReadOnlyList<SezioneDaContare> sezioni, string? titolo = null)
     {
         var perId = sezioni.ToDictionary(s => s.Id);
+        var figlie = sezioni.Where(s => s.ParentId is int m && perId.ContainsKey(m))
+            .ToLookup(s => s.ParentId!.Value);
+        var piene = new Dictionary<int, bool>();
         var scritte = 0;
         var vuote = new List<SezioneVuota>();
         foreach (var s in sezioni)
         {
             if (!DaScrivere(profilo, s.Chiave) || NascostaConLeMadri(s, perId)) continue;
-            if (s.Blocchi.Any(HaContenuto)) scritte++;
+            if (Piena(s, figlie, piene, 0)) scritte++;
             else vuote.Add(new SezioneVuota(s.Id, s.Chiave, Percorso(s, perId)));
         }
         return new ContoSezioni(titolo, scritte, vuote);
+    }
+
+    /// <summary>
+    /// Vero se la sezione ha qualcosa: nei suoi blocchi, o in una sottosezione visibile a qualunque profondità — di
+    /// catalogo o libera. 🔴 Il committente, 18 ottobre 2026: una sezione senza testo suo ma con le sottosezioni
+    /// scritte «non sarebbe corretto» dirla vuota. Le nascoste sotto non contano: non escono nel documento.
+    /// </summary>
+    private static bool Piena(SezioneDaContare s, ILookup<int, SezioneDaContare> figlie, Dictionary<int, bool> piene, int profondita)
+    {
+        if (piene.TryGetValue(s.Id, out var gia)) return gia;
+        var esito = s.Blocchi.Any(HaContenuto)
+                    || (profondita < 64 && figlie[s.Id].Any(f => !f.Nascosta && Piena(f, figlie, piene, profondita + 1)));
+        piene[s.Id] = esito;
+        return esito;
     }
 
     /// <summary>Vero se il blocco porta qualcosa scritto o messo da una persona.</summary>
