@@ -4,7 +4,14 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026: F6, slice 0a, 0b e l'importer della 0c fatti
+## Dove siamo — 18 ottobre 2026: F6, slice 0 fatta (modello, converter, importer, AIP espanso nel Lab)
+
+**La slice 0 della F6 è fatta.** Nel Lab il riquadro «AIP»: la cartella dei PDF («Prendi i PDF da Download», solo su
+quel tasto) e «Leggi nell'AIP espanso», che scrive il modello in `<AIP espanso>\<ciclo>\li.json`. Provato a schermo
+sul banco: 541 aree dai PDF di ENR 5.1. Resta il repo di prova dell'AIP espanso, che crea il committente. **Prossima:
+slice 1, ENR 2.** Per la slice 4: ENR 5.1.5 (cross border, 5 colonne) e le configurazioni TSA di 5.1.4 p.23.
+
+## 18 ottobre 2026: F6, slice 0a, 0b e l'importer della 0c fatti
 
 **L'importer dei PDF è fatto** (prima parte della 0c): `src/Aip.Pdf` e `src/Aip.Pdf.Italia` su PdfPig, con la riga di
 comando `tools/Aip.Pdf.Cli` (`aip-pdf`). Sui PDF veri del 2609 legge ENR 5.1 per intero: 541 aree con la data di ogni

@@ -11,8 +11,29 @@
       "Microsoft.Web.WebView2": {
         "type": "Direct",
         "requested": "[1.0.*, )",
-        "resolved": "1.0.4191.47",
-        "contentHash": "Snb6mlTpuz6ZFjWMwIdg28Xp6kAUMy3zaLUyGbFSaw+/AJKlwoX8EiaWJ1eUMfKyJHksPkFjJHl1LIB7kX+0AQ=="
+        "resolved": "1.0.4258.31",
+        "contentHash": "sHVZ2MQrHT1J3q5/6csn0fIP27rzpTO/RRC+wPQDrZheB7T4t2n+vVbY6SdCKr4WRV9s/gmBM3PPMWWJtoDzMg=="
+      },
+      "PdfPig": {
+        "type": "Transitive",
+        "resolved": "0.1.16",
+        "contentHash": "qQcbsNMYVY+K5ELptax2S8thNMk0+rSQq3H/KdYj3LLcko8yTCz8y5KIvsKxIyAuTN0ZYNnfsZkM+0EvxTwHVA=="
+      },
+      "aip": {
+        "type": "Project"
+      },
+      "aip.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "Aip": "[1.0.0, )",
+          "PdfPig": "[0.1.16, )"
+        }
+      },
+      "aip.pdf.italia": {
+        "type": "Project",
+        "dependencies": {
+          "Aip.Pdf": "[1.0.0, )"
+        }
       },
       "vipi.application": {
         "type": "Project",
@@ -33,6 +54,7 @@
       "vipi.sectorlab.core": {
         "type": "Project",
         "dependencies": {
+          "Aip.Pdf.Italia": "[1.0.0, )",
           "Vipi.Application": "[1.0.0, )",
           "Vipi.Sectorfile": "[1.0.0, )"
         }
@@ -48,8 +70,8 @@
       "Microsoft.Web.WebView2": {
         "type": "Direct",
         "requested": "[1.0.*, )",
-        "resolved": "1.0.4191.47",
-        "contentHash": "Snb6mlTpuz6ZFjWMwIdg28Xp6kAUMy3zaLUyGbFSaw+/AJKlwoX8EiaWJ1eUMfKyJHksPkFjJHl1LIB7kX+0AQ=="
+        "resolved": "1.0.4258.31",
+        "contentHash": "sHVZ2MQrHT1J3q5/6csn0fIP27rzpTO/RRC+wPQDrZheB7T4t2n+vVbY6SdCKr4WRV9s/gmBM3PPMWWJtoDzMg=="
       }
     }
   }

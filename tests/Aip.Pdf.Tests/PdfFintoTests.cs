@@ -165,6 +165,13 @@ public sealed class PdfFintoTests
     }
 
     [Fact]
+    public void UnFileCheNonEUnPdfELoDiceSenzaPdfPig()
+    {
+        var e = Assert.Throws<InvalidDataException>(() => PdfText.Read("questo non è un PDF"u8.ToArray()));
+        Assert.NotNull(e.InnerException);
+    }
+
+    [Fact]
     public void UnFileCheNonSaLeggereLoDice()
     {
         var letto = ItalianAip.ReadFile("LI-ENR 3.2 L12.pdf");

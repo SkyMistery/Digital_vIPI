@@ -663,6 +663,11 @@ body.lab-trascina * {
     outline: none;
 }
 
+/* Un campo di poche cifre (il ciclo AIRAC del riquadro «AIP», F6): non prende tutta la riga. */
+.lab-campo.lab-campo-corto {
+    width: 4.5rem;
+}
+
 /* Slice 3b: gli editor della scheda. Le piste del .rw sotto il campo, un clic la mette o la toglie. */
 .lab-campo-con-nota {
     display: flex;

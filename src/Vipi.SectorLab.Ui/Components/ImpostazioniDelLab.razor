@@ -53,6 +53,30 @@
         }
         <p class="lab-nota">Una cartella nuova, solo del Lab: «Porta in Aurora» ci mette il sector che stai guardando. In Aurora
             metti come secondo sector la sua <code>SectorFiles</code>, una volta (carta F5).</p>
+        <label>
+            PDF dell'AIP
+            <input class="lab-campo" value="@Lab.CartellaDeiPdf" data-impostazione="cartella-dei-pdf"
+                   placeholder="D:\IVAO\AIP" @onchange="e => _rifiuto = Lab.CambiaLaCartellaDeiPdf(e.Value?.ToString()) ? null : Lab.Rifiuto" />
+        </label>
+        @if (Lab.ScegliCartella is not null)
+        {
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-pdf"
+                    title="Sceglie la cartella dei PDF dell'AIP in Esplora risorse" @onclick="SfogliaIPdf">Sfoglia…</button>
+        }
+        <p class="lab-nota">Dove stanno i PDF dell'AIP (<code>LI-ENR …</code>, <code>LI-AD 2 …</code>): ce li metti tu, o li sposta il Lab da
+            Download col tasto nel riquadro «AIP». Anche in sottocartelle. Fuori dal sector e dai repo (carta F6).</p>
+        <label>
+            AIP espanso
+            <input class="lab-campo" value="@Lab.CartellaDellAipEspanso" data-impostazione="aip-espanso"
+                   placeholder="D:\IVAO\aip-espanso" @onchange="e => _rifiuto = Lab.CambiaLAipEspanso(e.Value?.ToString()) ? null : Lab.Rifiuto" />
+        </label>
+        @if (Lab.ScegliCartella is not null)
+        {
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-aip-espanso"
+                    title="Sceglie la cartella dell'AIP espanso in Esplora risorse" @onclick="SfogliaLAipEspanso">Sfoglia…</button>
+        }
+        <p class="lab-nota">Tutto quel che il Lab legge dall'AIP, nel modello, una cartella per ciclo (<code>2611\li.json</code>).
+            Domani è il repo privato dell'AIP espanso.</p>
         @if (_rifiuto is not null)
         {
             <p class="lab-avviso-breve" data-impostazione-rifiutata>@_rifiuto</p>
@@ -76,6 +100,18 @@
     {
         if (await Lab.ScegliCartella!("La cartella della vetrina di Aurora (nuova o vuota)", Lab.CartellaDellaVetrina) is { } scelta)
             _rifiuto = Lab.CambiaLaVetrina(scelta) ? null : Lab.Rifiuto;
+    }
+
+    private async Task SfogliaIPdf()
+    {
+        if (await Lab.ScegliCartella!("La cartella dei PDF dell'AIP", Lab.CartellaDeiPdf) is { } scelta)
+            _rifiuto = Lab.CambiaLaCartellaDeiPdf(scelta) ? null : Lab.Rifiuto;
+    }
+
+    private async Task SfogliaLAipEspanso()
+    {
+        if (await Lab.ScegliCartella!("La cartella dell'AIP espanso", Lab.CartellaDellAipEspanso) is { } scelta)
+            _rifiuto = Lab.CambiaLAipEspanso(scelta) ? null : Lab.Rifiuto;
     }
 
     private void CambiaLaVetrina(ChangeEventArgs e)

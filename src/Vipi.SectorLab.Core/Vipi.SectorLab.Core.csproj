@@ -32,6 +32,9 @@
     <ProjectReference Include="..\Vipi.Sectorfile\Vipi.Sectorfile.csproj" />    <!-- Il convertitore di F1 (CoordinateParser, AipGeometryReader): il campo «incolla coordinate». Carta madre,
          decisione 3: un motore solo fra sito e app. -->
     <ProjectReference Include="..\Vipi.Application\Vipi.Application.csproj" />
+    <!-- F6 (carta 2026-10-18-f6-pdf-aip.md): l'importer dell'AIP italiano e, con lui, il modello. Il Lab li usa, loro non
+         sanno del Lab. -->
+    <ProjectReference Include="..\Aip.Pdf.Italia\Aip.Pdf.Italia.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4017,6 +4017,152 @@ public sealed class SessioneDelLab
         }
     }
 
+    // ── I PDF dell'AIP e l'AIP espanso (carta F6, slice 0c) ─────────────────────────────────────────────────
+
+    /// <summary>La cartella Download da cui «Prendi i PDF da Download» sposta: di base quella di Windows, i test ne danno un'altra.</summary>
+    public string Download { get; init; } = Core.PdfAip.PdfDellAip.Download();
+
+    private string? _cartellaDeiPdf;
+    private bool _cartellaDeiPdfLetta;
+    private string? _aipEspanso;
+    private bool _aipEspansoLetto;
+
+    /// <summary>La cartella dei PDF dell'AIP, scelta nelle Impostazioni; null finché non c'è.</summary>
+    public string? CartellaDeiPdf
+    {
+        get
+        {
+            if (!_cartellaDeiPdfLetta)
+            {
+                _cartellaDeiPdf = Ricordata("cartella-dei-pdf.txt");
+                _cartellaDeiPdfLetta = true;
+            }
+
+            return _cartellaDeiPdf;
+        }
+    }
+
+    /// <summary>La cartella dell'AIP espanso, scelta nelle Impostazioni; null finché non c'è.</summary>
+    public string? CartellaDellAipEspanso
+    {
+        get
+        {
+            if (!_aipEspansoLetto)
+            {
+                _aipEspanso = Ricordata("aip-espanso.txt");
+                _aipEspansoLetto = true;
+            }
+
+            return _aipEspanso;
+        }
+    }
+
+    /// <summary>Cambia la cartella dei PDF. Vuoto = nessuna.</summary>
+    public bool CambiaLaCartellaDeiPdf(string? cartella)
+    {
+        string? scritta = string.IsNullOrWhiteSpace(cartella) ? null : cartella.Trim();
+        if (scritta is not null && !Path.IsPathFullyQualified(scritta))
+            return Rifiuta("La cartella dei PDF va scritta per intero (D:\\…\\AIP).");
+        Rifiuto = null;
+        _cartellaDeiPdf = scritta is null ? null : Path.GetFullPath(scritta);
+        _cartellaDeiPdfLetta = true;
+        Ricorda("cartella-dei-pdf.txt", _cartellaDeiPdf, "cartella dei PDF");
+        Avvisa();
+        return true;
+    }
+
+    /// <summary>Cambia la cartella dell'AIP espanso. Vuoto = nessuna.</summary>
+    public bool CambiaLAipEspanso(string? cartella)
+    {
+        string? scritta = string.IsNullOrWhiteSpace(cartella) ? null : cartella.Trim();
+        if (scritta is not null && Core.PdfAip.AipEspanso.PercheNonVa(scritta, CartellaDeiPdf) is { } perche)
+            return Rifiuta(perche);
+        Rifiuto = null;
+        _aipEspanso = scritta is null ? null : Path.GetFullPath(scritta);
+        _aipEspansoLetto = true;
+        Ricorda("aip-espanso.txt", _aipEspanso, "AIP espanso");
+        Avvisa();
+        return true;
+    }
+
+    /// <summary>I PDF dell'AIP nella cartella, adesso.</summary>
+    public IReadOnlyList<string> PdfDellAip => CartellaDeiPdf is { } c ? Core.PdfAip.PdfDellAip.Elenco(c) : [];
+
+    /// <summary>Com'è andato l'ultimo «Prendi i PDF da Download».</summary>
+    public Core.PdfAip.PresaDaDownload? UltimaPresaDaDownload { get; private set; }
+
+    /// <summary>Com'è andata l'ultima lettura nell'AIP espanso.</summary>
+    public Core.PdfAip.EsitoDellAipEspanso? UltimoAipEspanso { get; private set; }
+
+    /// <summary>Sta leggendo i PDF.</summary>
+    public bool StaLeggendoLAip { get; private set; }
+
+    /// <summary>Il ciclo AIRAC in vigore oggi: quello che «Leggi» propone.</summary>
+    public string CicloDiOggi => Core.PdfAip.CicloAirac.Di(DateOnly.FromDateTime(DateTime.Now)).Nome;
+
+    /// <summary>
+    /// «Prendi i PDF da Download» (carta F6 §3): sposta i PDF dell'AIP dalla cartella Download in quella dei PDF. Solo su
+    /// questo tasto, mai da solo.
+    /// </summary>
+    public async Task<bool> PrendiIPdfDaDownloadAsync()
+    {
+        if (CartellaDeiPdf is not { } cartella)
+            return Rifiuta("Manca la cartella dei PDF dell'AIP: sceglila nelle Impostazioni.");
+        try
+        {
+            var presa = await Task.Run(() => Core.PdfAip.PdfDellAip.PrendiDaDownload(Download, cartella)).ConfigureAwait(false);
+            Registro.Scrivi("aip", $"presi da Download ({Download}): {presa.Nuovi.Count} nuovi, {presa.Sostituiti.Count} sostituiti");
+            UltimaPresaDaDownload = presa;
+            Rifiuto = null;
+            Avvisa();
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"Non sono riuscito a spostarli: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// «Leggi nell'AIP espanso»: i PDF della cartella nel modello, scritto nella cartella del ciclo. Il sector non si tocca:
+    /// le differenze col sector sono le slice dopo.
+    /// </summary>
+    public async Task<bool> LeggiLAipAsync(string? ciclo)
+    {
+        if (StaLeggendoLAip)
+            return false;
+        if (CartellaDeiPdf is not { } pdf)
+            return Rifiuta("Manca la cartella dei PDF dell'AIP: sceglila nelle Impostazioni.");
+        if (Core.PdfAip.AipEspanso.PercheNonVa(CartellaDellAipEspanso, pdf) is { } perche)
+            return Rifiuta(perche);
+        var nome = string.IsNullOrWhiteSpace(ciclo) ? CicloDiOggi : ciclo.Trim();
+        if (!Core.PdfAip.CicloAirac.Valido(nome))
+            return Rifiuta($"«{nome}» non è un ciclo AIRAC: quattro cifre, l'anno e il numero (2611).");
+
+        StaLeggendoLAip = true;
+        Avvisa();
+        try
+        {
+            var file = Core.PdfAip.PdfDellAip.Elenco(pdf);
+            var esito = await Task.Run(() => Core.PdfAip.AipEspanso.Leggi(file, CartellaDellAipEspanso!, nome)).ConfigureAwait(false);
+            Registro.Scrivi("aip", $"AIP espanso {nome}: {esito.Letti.Count} PDF letti su {esito.Pdf}, {esito.Aree} aree, {esito.Problemi.Count} segnalazioni → {esito.Scritto}");
+            UltimoAipEspanso = esito;
+            Rifiuto = null;
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"Non sono riuscito a scrivere l'AIP espanso: {e.Message}");
+        }
+        finally
+        {
+            StaLeggendoLAip = false;
+            Avvisa();
+        }
+    }
+
     // ── Impostazioni dell'app (slice 13f) ────────────────────────────────────────────────────────────────────
 
     /// <summary>Un'impostazione di testo ricordata in un file dei dati del Lab; vuota o illeggibile = null.</summary>

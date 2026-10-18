@@ -30,16 +30,24 @@ public static class PdfText
 
     private const double AltezzaMinima = 3;
 
-    public static IReadOnlyList<PdfPageText> Read(string path)
-    {
-        using var doc = PdfDocument.Open(path);
-        return Read(doc);
-    }
+    /// <exception cref="InvalidDataException">Il file non è un PDF che PdfPig sa leggere.</exception>
+    public static IReadOnlyList<PdfPageText> Read(string path) => Apri(() => PdfDocument.Open(path));
 
-    public static IReadOnlyList<PdfPageText> Read(byte[] pdf)
+    /// <exception cref="InvalidDataException">I byte non sono un PDF che PdfPig sa leggere.</exception>
+    public static IReadOnlyList<PdfPageText> Read(byte[] pdf) => Apri(() => PdfDocument.Open(pdf));
+
+    // Le eccezioni di PdfPig non escono di qui: chi legge sa di un PDF illeggibile, non della libreria che lo diceva.
+    private static IReadOnlyList<PdfPageText> Apri(Func<PdfDocument> apri)
     {
-        using var doc = PdfDocument.Open(pdf);
-        return Read(doc);
+        try
+        {
+            using var doc = apri();
+            return Read(doc);
+        }
+        catch (PdfDocumentFormatException e)
+        {
+            throw new InvalidDataException(e.Message, e);
+        }
     }
 
     private static IReadOnlyList<PdfPageText> Read(PdfDocument doc)

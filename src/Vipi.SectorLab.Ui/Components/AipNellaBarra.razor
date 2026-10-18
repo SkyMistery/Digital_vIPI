@@ -1,0 +1,131 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    I PDF dell'AIP nella barra (carta F6, slice 0c): la cartella dei PDF, «Prendi i PDF da Download» (sposta, solo su questo
+    tasto), e «Leggi nell'AIP espanso» (i PDF nel modello, una cartella per ciclo). Il sector non si tocca: confrontarlo con
+    l'AIP sono le slice dopo. Oggi si leggono le tabelle di ENR 5.1; gli altri PDF si contano come «non ancora».
+*@
+<details class="lab-impostazioni lab-ramo-riquadro" data-riquadro-aip>
+    <summary class="lab-tasto lab-tasto-tenue" title="I PDF dell'AIP e l'AIP espanso" data-aip>
+        AIP <span class="lab-nota" data-quanti-pdf>@Riassunto()</span>
+    </summary>
+    <div class="lab-impostazioni-riquadro">
+        @if (Lab.CartellaDeiPdf is not { } cartella)
+        {
+            <p class="lab-nota" data-senza-pdf>Manca la cartella dei PDF dell'AIP: sceglila nelle Impostazioni.</p>
+        }
+        else
+        {
+            <p class="lab-nota">PDF: <code>@cartella</code> — @_pdf.Count file dell'AIP.</p>
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prendi-da-download"
+                    title="Sposta i PDF dell'AIP (LI-ENR …, LI-AD 2 …) da @Lab.Download in questa cartella" @onclick="Prendi">Prendi i PDF da Download</button>
+            @if (Lab.UltimaPresaDaDownload is { } presa)
+            {
+                <p class="lab-nota" data-presa>@(presa.Quanti == 0
+                    ? "In Download non c'erano PDF dell'AIP."
+                    : $"Presi {presa.Quanti}: {presa.Nuovi.Count} nuovi, {presa.Sostituiti.Count} al posto di quelli col loro nome.")</p>
+            }
+
+            @if (Lab.CartellaDellAipEspanso is not { } espanso)
+            {
+                <p class="lab-nota" data-senza-espanso>Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.</p>
+            }
+            else
+            {
+                <p class="lab-nota">AIP espanso: <code>@espanso</code></p>
+                <label class="lab-nota">
+                    Ciclo
+                    <input class="lab-campo lab-campo-corto" value="@_ciclo" data-campo="ciclo" maxlength="4" inputmode="numeric"
+                           @onchange="e => _ciclo = e.Value?.ToString()" />
+                </label>
+                <button type="button" class="lab-tasto" data-tasto="leggi-aip" disabled="@(Lab.StaLeggendoLAip || _pdf.Count == 0)"
+                        title="Legge i PDF della cartella e scrive il modello nella cartella del ciclo" @onclick="Leggi">
+                    @(Lab.StaLeggendoLAip ? "Sto leggendo…" : "Leggi nell'AIP espanso")
+                </button>
+            }
+
+            @if (Lab.UltimoAipEspanso is { } esito)
+            {
+                <div data-esito-aip>
+                    <p class="lab-nota">Ciclo @esito.Ciclo: <strong>@esito.Aree aree</strong> da @esito.Letti.Count PDF letti su @esito.Pdf
+                        (@esito.NonAncora.Count non ancora: le loro sezioni vengono con le prossime slice) → <code>@esito.Scritto</code></p>
+                    @if (esito.Date.Count > 0)
+                    {
+                        <p class="lab-nota" data-date-aip>Date delle pagine: @string.Join(", ", esito.Date.Select(d => $"{Data(d.Data)} ×{d.Pagine}"))</p>
+                    }
+                    @foreach (var i in esito.Illeggibili)
+                    {
+                        <p class="lab-avviso-breve" data-illeggibile>Non si apre: @i</p>
+                    }
+                    @if (esito.Problemi.Count > 0)
+                    {
+                        <details data-problemi-aip>
+                            <summary class="lab-nota">@esito.Problemi.Count segnalazioni: @string.Join(" · ", esito.Problemi.GroupBy(p => p.Problema.Kind).Select(g => $"{Tipo(g.Key)} {g.Count()}"))</summary>
+                            <ul class="lab-elenco-lotto">
+                                @foreach (var p in esito.Problemi.Take(200))
+                                {
+                                    <li class="lab-nota" data-problema-aip="@p.Problema.Kind">
+                                        <code>@p.File</code>@(p.Problema.Page is { } n ? $" p.{n}" : "") — @Tipo(p.Problema.Kind)@(p.Problema.Key is { } k ? $" · {k}" : "")@(p.Problema.Detail is { } d ? $": {d}" : "")
+                                    </li>
+                                }
+                            </ul>
+                        </details>
+                    }
+                </div>
+            }
+        }
+        @if (_rifiuto is not null)
+        {
+            <p class="lab-avviso-breve" data-rifiuto-aip>@_rifiuto</p>
+        }
+    </div>
+</details>
+
+@code {
+    private string? _rifiuto;
+    private string? _ciclo;
+    private IReadOnlyList<string> _pdf = [];
+
+    protected override void OnInitialized()
+    {
+        Lab.Cambiata += Aggiorna;
+        _ciclo = Lab.CicloDiOggi;
+        _pdf = Lab.PdfDellAip;
+    }
+
+    private void Aggiorna() => InvokeAsync(() =>
+    {
+        _pdf = Lab.PdfDellAip;
+        StateHasChanged();
+    });
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private string Riassunto() => Lab.CartellaDeiPdf is null ? "— da scegliere" : $"{_pdf.Count} PDF";
+
+    private async Task Prendi()
+    {
+        _rifiuto = await Lab.PrendiIPdfDaDownloadAsync() ? null : Lab.Rifiuto;
+        _pdf = Lab.PdfDellAip;
+    }
+
+    private async Task Leggi() => _rifiuto = await Lab.LeggiLAipAsync(_ciclo) ? null : Lab.Rifiuto;
+
+    private static string Data(DateOnly? d) =>
+        d is { } x ? x.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) : "senza data";
+
+    private static string Tipo(Aip.Pdf.Italia.ImportIssueKind k) => k switch
+    {
+        Aip.Pdf.Italia.ImportIssueKind.PageWithoutTable => "pagina senza tabella",
+        Aip.Pdf.Italia.ImportIssueKind.PageWithoutDate => "pagina senza data",
+        Aip.Pdf.Italia.ImportIssueKind.UnknownIdentifier => "identificativo fuori forma",
+        Aip.Pdf.Italia.ImportIssueKind.Geometry => "geometria",
+        Aip.Pdf.Italia.ImportIssueKind.NoGeometry => "senza geometria",
+        Aip.Pdf.Italia.ImportIssueKind.MoreGeometries => "più geometrie",
+        Aip.Pdf.Italia.ImportIssueKind.LimitsMissing => "limiti mancanti",
+        Aip.Pdf.Italia.ImportIssueKind.LimitsExtra => "limiti in più",
+        Aip.Pdf.Italia.ImportIssueKind.Unsupported => "non ancora letto",
+        _ => k.ToString(),
+    };
+}
