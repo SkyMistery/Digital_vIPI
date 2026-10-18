@@ -201,3 +201,5 @@ segnata «da confermare», e la corregge il committente.
     «fra GEMVI e MATED e fra DOGUS e NUKNI: lì la linea di L81 non deve esserci», «il tratto comune di L53 e P873,
     OLGAT–OKIMO–ENOXA» (`Conti.BreakFra`, `Conti.CondivisaFra`). Lezione: il «dove guardare» di una prova nomina una
     cosa che in Aurora **si trova** (un fix), non una che si vede solo se sai già dov'è.
+    Coi fix nominati il committente ha guardato anche la 3 e la 4: ✅ («ora va»). **La B9 è provata del tutto, senza
+    `LEGGIMI`: la «finita quando» della slice 4 è raggiunta.** L'ordine a blocchi si può adottare nel file vero (B1).
