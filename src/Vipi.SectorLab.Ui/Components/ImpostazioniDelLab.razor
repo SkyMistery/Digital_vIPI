@@ -76,7 +76,14 @@
                     title="Sceglie la cartella dell'AIP espanso in Esplora risorse" @onclick="SfogliaLAipEspanso">Sfoglia…</button>
         }
         <p class="lab-nota">Tutto quel che il Lab legge dall'AIP, nel modello, una cartella per ciclo (<code>2611\li.json</code>).
-            Domani è il repo privato dell'AIP espanso.</p>
+            Se è il clone del suo repo, il Lab ci scrive sul ramo del ciclo (<code>aip/2611</code>) e la PR la fonde il committente.</p>
+        <label>
+            Repo dell'AIP espanso
+            <input class="lab-campo" value="@Lab.IndirizzoDellAipEspanso" data-impostazione="indirizzo-aip-espanso"
+                   @onchange="e => Lab.CambiaLIndirizzoDellAipEspanso(e.Value?.ToString())" />
+        </label>
+        <p class="lab-nota">Da dove «Prendi l'AIP espanso» lo clona. Per ora quello di prova, privato.
+            Vuoto = <code>@Vipi.SectorLab.Core.PdfAip.RepoDellAip.IndirizzoDiBase</code>.</p>
         @if (_rifiuto is not null)
         {
             <p class="lab-avviso-breve" data-impostazione-rifiutata>@_rifiuto</p>

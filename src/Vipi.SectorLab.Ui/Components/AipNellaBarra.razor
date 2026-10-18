@@ -27,13 +27,34 @@
                     : $"Presi {presa.Quanti}: {presa.Nuovi.Count} nuovi, {presa.Sostituiti.Count} al posto di quelli col loro nome.")</p>
             }
 
+            @if (Lab.CartellaDellAipEspanso is null || Lab.StatoDellAip is null)
+            {
+                <p class="lab-nota" data-prendi-espanso>Il repo dell'AIP espanso (<code>@Lab.IndirizzoDellAipEspanso</code>) non è ancora su questo PC:
+                    prendilo in una cartella nuova (o vuota), e diventa la cartella dell'AIP espanso.</p>
+                <label class="lab-nota">
+                    Dove
+                    <input class="lab-campo" value="@_dove" data-campo="dove-aip-espanso" placeholder="D:\IVAO\aip-espanso"
+                           @onchange="e => _dove = e.Value?.ToString()" />
+                </label>
+                @if (Lab.ScegliCartella is not null)
+                {
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-dove-aip" @onclick="SfogliaDove">Sfoglia…</button>
+                }
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prendi-aip-espanso" disabled="@Lab.StaLavorandoSulRepoDellAip"
+                        title="Clona il repo dell'AIP espanso in quella cartella" @onclick="PrendiLEspanso">Prendi l'AIP espanso</button>
+            }
             @if (Lab.CartellaDellAipEspanso is not { } espanso)
             {
-                <p class="lab-nota" data-senza-espanso>Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.</p>
+                <p class="lab-nota" data-senza-espanso>Manca la cartella dell'AIP espanso: prendi il repo qui sopra, o sceglila nelle Impostazioni.</p>
             }
             else
             {
                 <p class="lab-nota">AIP espanso: <code>@espanso</code></p>
+                @if (Lab.StatoDellAip is { } repo)
+                {
+                    <p class="lab-nota" data-stato-aip>Repo: <code>@(Vipi.SectorLab.Core.Git.Invio.RepoGitHub(repo.Remoto) ?? repo.Remoto)</code> · ramo
+                        <code>@(repo.Ramo ?? "staccato")</code> · @repo.InParole()</p>
+                }
                 <label class="lab-nota">
                     Ciclo
                     <input class="lab-campo lab-campo-corto" value="@_ciclo" data-campo="ciclo" maxlength="4" inputmode="numeric"
@@ -53,6 +74,24 @@
                     @if (esito.Date.Count > 0)
                     {
                         <p class="lab-nota" data-date-aip>Date delle pagine: @string.Join(", ", esito.Date.Select(d => $"{Data(d.Data)} ×{d.Pagine}"))</p>
+                    }
+                    @if (Lab.StatoDellAip is { } repo2 && repo2.Ramo?.StartsWith(Vipi.SectorLab.Core.PdfAip.RepoDellAip.PrefissoDelRamo, StringComparison.Ordinal) == true)
+                    {
+                        <div data-git-aip>
+                            <label class="lab-nota">
+                                Messaggio
+                                <input class="lab-campo" value="@Lab.MessaggioDellAip" data-campo="messaggio-aip"
+                                       @onchange="e => Lab.MessaggioDellAip = e.Value?.ToString()" />
+                            </label>
+                            <button type="button" class="lab-tasto" data-tasto="registra-aip" disabled="@Lab.StaLavorandoSulRepoDellAip"
+                                    title="Registra il modello del ciclo sul ramo @repo2.Ramo" @onclick="Registra">Registra</button>
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="manda-aip" disabled="@Lab.StaLavorandoSulRepoDellAip"
+                                    title="Manda il ramo @repo2.Ramo al server e apre la pagina della PR: la fonde il committente" @onclick="Manda">Manda</button>
+                            @if (Lab.PaginaDellaPrDellAip is { } pr)
+                            {
+                                <p class="lab-nota" data-pr-aip>PR: <a href="@pr" target="_blank" rel="noopener">aperta nel browser</a> — la conferma tu su GitHub, la fonde il committente.</p>
+                            }
+                        </div>
                     }
                     @foreach (var i in esito.Illeggibili)
                     {
@@ -85,14 +124,28 @@
 @code {
     private string? _rifiuto;
     private string? _ciclo;
+    private string? _dove;
     private IReadOnlyList<string> _pdf = [];
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         Lab.Cambiata += Aggiorna;
         _ciclo = Lab.CicloDiOggi;
         _pdf = Lab.PdfDellAip;
+        await Lab.RileggiIlRepoDellAipAsync();
     }
+
+    private async Task SfogliaDove()
+    {
+        if (await Lab.ScegliCartella!("Dove mettere l'AIP espanso (nuova o vuota)", _dove) is { } scelta)
+            _dove = scelta;
+    }
+
+    private async Task PrendiLEspanso() => _rifiuto = await Lab.PrendiLAipEspansoAsync(_dove) ? null : Lab.Rifiuto;
+
+    private async Task Registra() => _rifiuto = await Lab.RegistraLAipAsync(Lab.MessaggioDellAip) ? null : Lab.Rifiuto;
+
+    private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
 
     private void Aggiorna() => InvokeAsync(() =>
     {

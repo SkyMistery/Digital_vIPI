@@ -8,8 +8,9 @@
 
 **La slice 0 della F6 è fatta.** Nel Lab il riquadro «AIP»: la cartella dei PDF («Prendi i PDF da Download», solo su
 quel tasto) e «Leggi nell'AIP espanso», che scrive il modello in `<AIP espanso>\<ciclo>\li.json`. Provato a schermo
-sul banco: 541 aree dai PDF di ENR 5.1. Resta il repo di prova dell'AIP espanso, che crea il committente. **Prossima:
-slice 1, ENR 2.** Per la slice 4: ENR 5.1.5 (cross border, 5 colonne) e le configurazioni TSA di 5.1.4 p.23.
+sul banco: 541 aree dai PDF di ENR 5.1. E il **repo dell'AIP espanso** (`SkyMistery/it-aip-espanso-test`): «Prendi l'AIP
+espanso», la lettura sul ramo `aip/<ciclo>`, «Registra», «Manda»; provato col repo vero, ramo `aip/2610` sul server, PR
+da aprire e fondere dal committente. **Prossima: slice 1, ENR 2.** Per la slice 4: ENR 5.1.5 (cross border, 5 colonne) e le configurazioni TSA di 5.1.4 p.23.
 
 ## 18 ottobre 2026: F6, slice 0a, 0b e l'importer della 0c fatti
 

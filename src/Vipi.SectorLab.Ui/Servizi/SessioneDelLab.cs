@@ -4144,11 +4144,22 @@ public sealed class SessioneDelLab
         Avvisa();
         try
         {
+            var espanso = CartellaDellAipEspanso!;
+            // Se l'AIP espanso è il clone del suo repo, si scrive sul ramo del ciclo (mai su main), col .gitignore dei PDF.
+            if (Core.PdfAip.RepoDellAip.EUnRepo(espanso))
+            {
+                if (await Core.PdfAip.RepoDellAip.SulRamoDelCicloAsync(Git, espanso, nome).ConfigureAwait(false) is { } noRamo)
+                    return Rifiuta(noRamo);
+                Core.PdfAip.RepoDellAip.MettiIlGitIgnore(espanso);
+            }
+
             var file = Core.PdfAip.PdfDellAip.Elenco(pdf);
-            var esito = await Task.Run(() => Core.PdfAip.AipEspanso.Leggi(file, CartellaDellAipEspanso!, nome)).ConfigureAwait(false);
+            var esito = await Task.Run(() => Core.PdfAip.AipEspanso.Leggi(file, espanso, nome)).ConfigureAwait(false);
             Registro.Scrivi("aip", $"AIP espanso {nome}: {esito.Letti.Count} PDF letti su {esito.Pdf}, {esito.Aree} aree, {esito.Problemi.Count} segnalazioni → {esito.Scritto}");
             UltimoAipEspanso = esito;
+            MessaggioDellAip = Core.PdfAip.RepoDellAip.MessaggioProposto(esito);
             Rifiuto = null;
+            await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
             return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -4159,6 +4170,144 @@ public sealed class SessioneDelLab
         finally
         {
             StaLeggendoLAip = false;
+            Avvisa();
+        }
+    }
+
+    /// <summary>Il repo da cui «Prendi l'AIP espanso» clona: di base quello di prova del committente (D9).</summary>
+    public string IndirizzoDellAipEspanso => _indirizzoDellAip ??= Ricordata("indirizzo-aip-espanso.txt") ?? Core.PdfAip.RepoDellAip.IndirizzoDiBase;
+
+    private string? _indirizzoDellAip;
+
+    /// <summary>Cambia il repo dell'AIP espanso. Vuoto = quello di base.</summary>
+    public void CambiaLIndirizzoDellAipEspanso(string? indirizzo)
+    {
+        _indirizzoDellAip = string.IsNullOrWhiteSpace(indirizzo) ? null : indirizzo.Trim();
+        Ricorda("indirizzo-aip-espanso.txt", _indirizzoDellAip, "repo dell'AIP espanso");
+        Avvisa();
+    }
+
+    /// <summary>Lo stato git dell'AIP espanso, se la sua cartella è un clone; null altrimenti.</summary>
+    public Core.Git.StatoDelRamo? StatoDellAip { get; private set; }
+
+    /// <summary>Il messaggio proposto per registrare l'ultimo ciclo letto (l'AOD lo corregge).</summary>
+    public string? MessaggioDellAip { get; set; }
+
+    /// <summary>La pagina della PR dell'ultimo invio dell'AIP espanso.</summary>
+    public Uri? PaginaDellaPrDellAip { get; private set; }
+
+    /// <summary>Sta parlando con git per l'AIP espanso.</summary>
+    public bool StaLavorandoSulRepoDellAip { get; private set; }
+
+    /// <summary>Rilegge lo stato git dell'AIP espanso (solo se la cartella è la radice di un clone).</summary>
+    public async Task RileggiIlRepoDellAipAsync()
+    {
+        var nuovo = CartellaDellAipEspanso is { } c && Core.PdfAip.RepoDellAip.EUnRepo(c)
+            ? (await Core.Git.RepoDelSector.LeggiAsync(Git, c).ConfigureAwait(false)).Stato
+            : null;
+        // ⚠️ Senza repo non si avvisa: il riquadro rilegge all'apertura della pagina, e un ridisegno per niente in quel
+        // momento rinumera i gestori sotto un clic (DueSchermiTests, rosso nella suite intera del 18 ottobre).
+        bool cambiato = nuovo is not null || StatoDellAip is not null;
+        StatoDellAip = nuovo;
+        if (cambiato)
+            Avvisa();
+    }
+
+    /// <summary>
+    /// «Prendi l'AIP espanso»: clona il repo nella cartella (nuova o vuota) e la fa diventare la cartella dell'AIP espanso.
+    /// </summary>
+    public async Task<bool> PrendiLAipEspansoAsync(string? cartella)
+    {
+        if (StaLavorandoSulRepoDellAip)
+            return false;
+        if (string.IsNullOrWhiteSpace(cartella))
+            return Rifiuta("Scegli dove mettere l'AIP espanso: una cartella nuova (o vuota).");
+        if (Core.PdfAip.AipEspanso.PercheNonVa(cartella, CartellaDeiPdf) is { } perche)
+            return Rifiuta(perche);
+
+        StaLavorandoSulRepoDellAip = true;
+        Avvisa();
+        try
+        {
+            var esito = await Core.PdfAip.RepoDellAip.PrendiAsync(Git, IndirizzoDellAipEspanso, cartella).ConfigureAwait(false);
+            Registro.Scrivi("aip", $"prendi l'AIP espanso da {IndirizzoDellAipEspanso} in {cartella}: {esito ?? "fatto"}");
+            if (esito is not null)
+                return Rifiuta(esito);
+            CambiaLAipEspanso(cartella);
+            await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
+            return true;
+        }
+        finally
+        {
+            StaLavorandoSulRepoDellAip = false;
+            Avvisa();
+        }
+    }
+
+    /// <summary>«Registra» l'AIP espanso: il modello del ciclo (e il .gitignore) sul ramo del ciclo, col messaggio dell'AOD.</summary>
+    public async Task<bool> RegistraLAipAsync(string? messaggio)
+    {
+        if (StaLavorandoSulRepoDellAip)
+            return false;
+        await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
+        if (StatoDellAip is not { } stato)
+            return Rifiuta("La cartella dell'AIP espanso non è il clone del suo repo: prendilo prima («Prendi l'AIP espanso»).");
+
+        StaLavorandoSulRepoDellAip = true;
+        Avvisa();
+        try
+        {
+            var perche = await Core.PdfAip.RepoDellAip.RegistraAsync(Git, stato, messaggio).ConfigureAwait(false);
+            Registro.Scrivi("aip", $"registra l'AIP espanso su {stato.Ramo}: {perche ?? "fatto"}");
+            await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
+            if (perche is not null)
+                return Rifiuta(perche);
+            Rifiuto = null;
+            return true;
+        }
+        finally
+        {
+            StaLavorandoSulRepoDellAip = false;
+            Avvisa();
+        }
+    }
+
+    /// <summary>
+    /// «Manda» l'AIP espanso: il ramo del ciclo al server, poi la pagina della PR verso il ramo predefinito, già compilata,
+    /// che l'AOD conferma su GitHub. La fusione la fa il committente.
+    /// </summary>
+    public async Task<bool> MandaLAipAsync()
+    {
+        if (StaLavorandoSulRepoDellAip)
+            return false;
+        await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
+        if (StatoDellAip is not { } stato)
+            return Rifiuta("La cartella dell'AIP espanso non è il clone del suo repo.");
+
+        StaLavorandoSulRepoDellAip = true;
+        Avvisa();
+        try
+        {
+            var perche = await Core.PdfAip.RepoDellAip.MandaAsync(Git, stato).ConfigureAwait(false);
+            Registro.Scrivi("aip", $"manda l'AIP espanso {stato.Ramo}: {perche ?? "fatto"}");
+            await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
+            if (perche is not null)
+                return Rifiuta(perche);
+
+            var predefinito = await Core.Git.RamiDelSector.PredefinitoAsync(Git, stato.Radice).ConfigureAwait(false);
+            var (titolo, testo) = await Core.Git.Invio.TitoloETestoAsync(Git, stato.Radice, predefinito, stato.Ramo!).ConfigureAwait(false);
+            if (Core.Git.Invio.PaginaDellaPr(stato.Remoto, predefinito, stato.Ramo!, titolo, testo) is { } pagina)
+            {
+                PaginaDellaPrDellAip = pagina;
+                Registro.Scrivi("aip", $"PR dell'AIP espanso {stato.Ramo} verso {predefinito}: {pagina}");
+                ApriNelBrowser(pagina);
+            }
+            Rifiuto = null;
+            return true;
+        }
+        finally
+        {
+            StaLavorandoSulRepoDellAip = false;
             Avvisa();
         }
     }
