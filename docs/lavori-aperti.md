@@ -43,6 +43,30 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A158 — 1.66.0 PRONTA, da caricare: le sezioni da scrivere (S111) (18 ottobre 2026)
+
+MINOR **senza migrazioni**, su 1.65.0 (`38a26f3`). Timbro **`1.66.0 · d2abdc4`**.
+- **S111** (fuso da `sito/lavori` @ `e235cc7b`, cartellino 🟢, CI verde 4/4 run 39109037612; il committente:
+  «fondiamo il nuovo aggiornamento»): in ogni editor e nella pagina Versioni quante sezioni editoriali di catalogo
+  hanno qualcosa e quali sono vuote; le nascoste no, la vIPI di ACC per blocco. Codice comune: Application
+  (`SezioniDaScrivere`, `GuideSearchCatalog`), Infrastructure (`EfSezioniDaScrivere` e la registrazione). Carta
+  `docs/feature/2026-10-18-sezioni-da-scrivere.md`, storia in `docs/filoni/sito.md`.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone` @ `52e50f1e`). `lab/f3` non toccato.
+
+**9 file** (`solo-9-file-1.66.0`): Application, Infrastructure, Ui, Host (dll + pdb) e `en/Vipi.Ui.resources.dll`.
+Nel diff solo aggiunte (nessuna firma tolta o cambiata), nessuna `const`. **Fuori** Domain, MySqlMigrations, Hosting e
+tutto `wwwroot` (nessun asset cambiato). 482 file nel publish come nel precedente, 19 con impronta diversa. Zip
+5,94 MB, sha256 `aac52a2e98adf5c6c07037a34326e8b652923a749984e9e76f9fc86aedc62122`. Build Release senza avvisi; `dotnet test` 18 riepiloghi tutti
+`Passed!`, conteggi identici all'atteso (App 3389, Infra 2229, Ui 2082). Prova sul publish win-x64 (copia del database
+di sviluppo): `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); il riquadro nell'editor della vIPI di
+Brindisi («3 con qualcosa · 3 vuote, su 6», due blocchi) e di Milano («1 · 7, su 8»), in inglese «3 with content · 3
+empty, of 6»; console pulita. **Non visto da me**: il riquadro in Versioni e nell'editor d'aeroporto (servono un
+documento scelto e uno scalo; li ha provati il Sito su una copia di produzione, cinque editor e Versioni, it/en).
+Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.66.0.md`.
+
+▶ **Dopo il carico** (committente): guardare il riquadro negli editor e la pastiglia in Versioni. Rollback: le due
+rinomine.
+
 ### ✅ A157 — 1.65.0 ONLINE: il convertitore non perde l'arco con «centred on:» (S110), e dentro la 1.64.0 mai caricata (S109) (17 ottobre 2026)
 
 ✅ Online dal 17 ottobre 2026: il committente conferma la 1.65 e `Schema 0`. Da fuori, da anonimo, alle 14:47Z: `/` 302,
