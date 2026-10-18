@@ -88,6 +88,8 @@ public sealed class RegistrazioniTests : IDisposable
         Git(lab, _albero.Radice, "commit", "--quiet", "-m", "primo");
         Git(lab, _albero.Radice, "remote", "add", "origin", server);
         Git(lab, _albero.Radice, "push", "--quiet", "-u", "origin", "master");
+        // Come il clone del committente (18 ottobre): fatto con un ramo solo, nella configurazione c'è solo master.
+        Git(lab, _albero.Radice, "config", "remote.origin.fetch", "+refs/heads/master:refs/remotes/origin/master");
 
         Assert.True(await lab.ApriAsync(_albero.Radice));
         await lab.RileggiIlRamoAsync();

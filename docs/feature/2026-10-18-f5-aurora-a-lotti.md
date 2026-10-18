@@ -225,3 +225,9 @@ segnata «da confermare», e la corregge il committente.
     etichetta, coi tratti tutti sotto i 10 NM (Q482, T345, T369, Y138, Y480, Y498, Y526).
   - Dal banco: «Sul server, da guardare» mostrava anche i rami delle PR già fuse. Ora solo quelli non ancora fusi nel
     ramo predefinito (`for-each-ref --no-merged origin/master`).
+  - **Trovato sul PC del committente** (18 ottobre): il suo clone `it-aurora-sector-test` scarica solo `master`
+    (`remote.origin.fetch = +refs/heads/master:…`, un clone a un ramo solo). «Chiedi le novità» non vedeva né il ramo da
+    guardare né `airac/2611` («sul server non c'è ancora», falso). Ora ogni `fetch` del Lab chiede **tutti i rami** per
+    esteso (`RamiDelSector.ChiediAlServer`, `+refs/heads/*:refs/remotes/origin/*`), e il ramo del server da guardare si
+    crea da `origin/…` per esteso (`RamiDelSector.GuardaAsync`: in quel clone `git switch` non sa indovinarlo). Il test
+    del giro gira ora su un clone a un ramo solo.

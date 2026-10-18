@@ -3608,7 +3608,9 @@ public sealed class SessioneDelLab
     public Task<bool> PassaAlRamoAsync(string ramo)
         => ramo == Ramo?.Ramo
             ? Task.FromResult(true)
-            : CambiaRamoAsync($"passa a {ramo}", radice => Core.Git.RamiDelSector.PassaAsync(Git, radice, ramo));
+            : RamiDaGuardare.Contains(ramo, StringComparer.Ordinal)
+                ? CambiaRamoAsync($"guarda {ramo} dal server", radice => Core.Git.RamiDelSector.GuardaAsync(Git, radice, ramo))
+                : CambiaRamoAsync($"passa a {ramo}", radice => Core.Git.RamiDelSector.PassaAsync(Git, radice, ramo));
 
     /// <summary>Fa nascere sul server il ramo del ciclo dopo, uguale al ramo predefinito (carta F4, slice 3).</summary>
     public async Task<bool> FaiNascereIlCicloAsync()

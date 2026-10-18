@@ -48,7 +48,7 @@ public static class Riporto
     public static async Task<string?> CominciaAsync(Git git, string radice, string vid, string predefinito, string ciclo, CancellationToken annulla = default)
     {
         ArgumentNullException.ThrowIfNull(git);
-        var fetch = await git.EseguiAsync(radice, ["fetch", "--quiet", "origin"], annulla).ConfigureAwait(false);
+        var fetch = await git.EseguiAsync(radice, RamiDelSector.ChiediAlServer, annulla).ConfigureAwait(false);
         if (!fetch.Riuscito)
             return $"Il server non ha risposto: {fetch.Errore}";
         if (!await RamiDelSector.SulServerAsync(git, radice, ciclo, annulla).ConfigureAwait(false))
@@ -79,7 +79,7 @@ public static class Riporto
     public static async Task<string?> AllineaAsync(Git git, string radice, string base_, CancellationToken annulla = default)
     {
         ArgumentNullException.ThrowIfNull(git);
-        var fetch = await git.EseguiAsync(radice, ["fetch", "--quiet", "origin"], annulla).ConfigureAwait(false);
+        var fetch = await git.EseguiAsync(radice, RamiDelSector.ChiediAlServer, annulla).ConfigureAwait(false);
         if (!fetch.Riuscito)
             return $"Il server non ha risposto: {fetch.Errore}";
         var conta = await git.EseguiAsync(radice, ["rev-list", "--count", $"HEAD..origin/{base_}"], annulla).ConfigureAwait(false);

@@ -29,6 +29,13 @@ public static class RamiDelSector
     public const string PrefissoDelCiclo = "airac/";
 
     /// <summary>
+    /// «Chiedi le novità al server»: <c>git fetch</c> di <b>tutti</b> i rami, scritto per intero. Un clone fatto a mano con
+    /// <c>--single-branch</c> ha nella configurazione solo <c>master</c>, e un <c>fetch origin</c> non vedrebbe mai i rami
+    /// di lavoro degli altri né quello del ciclo (trovato sul PC del committente il 18 ottobre, F5 slice 5).
+    /// </summary>
+    public static readonly string[] ChiediAlServer = ["fetch", "--quiet", "origin", "+refs/heads/*:refs/remotes/origin/*"];
+
+    /// <summary>
     /// Il nome del ramo di lavoro: <c>aod/704798/correzioni-r10</c>. L'argomento diventa minuscolo, senza accenti,
     /// con i trattini al posto degli spazi e di tutto il resto; al più 40 caratteri. Null se non resta niente.
     /// </summary>
@@ -137,7 +144,7 @@ public static class RamiDelSector
         if ((await LocaliAsync(git, radice, annulla).ConfigureAwait(false)).Contains(nome, StringComparer.Ordinal))
             return $"Il ramo {nome} c'è già: passaci invece di rifarlo.";
 
-        var fetch = await git.EseguiAsync(radice, ["fetch", "--quiet", "origin"], annulla).ConfigureAwait(false);
+        var fetch = await git.EseguiAsync(radice, RamiDelSector.ChiediAlServer, annulla).ConfigureAwait(false);
         if (!fetch.Riuscito)
             return $"Il server non ha risposto: {fetch.Errore}";
         if (!await SulServerAsync(git, radice, da, annulla).ConfigureAwait(false))
@@ -148,6 +155,19 @@ public static class RamiDelSector
             return $"git non ha creato il ramo: {crea.Errore}";
         await git.EseguiAsync(radice, ["config", $"branch.{nome}.vipibase", da], annulla).ConfigureAwait(false);
         return null;
+    }
+
+    /// <summary>
+    /// Passa a un ramo di lavoro del server da guardare (F5 slice 5): lo crea qui da <c>origin/…</c>, per esteso — in un
+    /// clone a un ramo solo <c>git switch</c> non sa indovinarlo. Torna null se è andata, o il perché.
+    /// </summary>
+    public static async Task<string?> GuardaAsync(Git git, string radice, string ramo, CancellationToken annulla = default)
+    {
+        ArgumentNullException.ThrowIfNull(git);
+        if (!ramo.StartsWith(PrefissoDiLavoro, StringComparison.Ordinal))
+            return $"Si guardano solo i rami di lavoro (aod/…), non {ramo}.";
+        var esito = await git.EseguiAsync(radice, ["switch", "--quiet", "--no-track", "-c", ramo, "refs/remotes/origin/" + ramo], annulla).ConfigureAwait(false);
+        return esito.Riuscito ? null : $"git non è passato a {ramo}: {esito.Errore}";
     }
 
     /// <summary>Passa a un altro ramo di qui. Torna null se è andata, o il perché (git rifiuta se perderebbe lavoro).</summary>
@@ -167,7 +187,7 @@ public static class RamiDelSector
         ArgumentNullException.ThrowIfNull(git);
         if (!ciclo.StartsWith(PrefissoDelCiclo, StringComparison.Ordinal))
             return "Il ramo di un ciclo comincia con «airac/».";
-        var fetch = await git.EseguiAsync(radice, ["fetch", "--quiet", "origin"], annulla).ConfigureAwait(false);
+        var fetch = await git.EseguiAsync(radice, RamiDelSector.ChiediAlServer, annulla).ConfigureAwait(false);
         if (!fetch.Riuscito)
             return $"Il server non ha risposto: {fetch.Errore}";
         if (await SulServerAsync(git, radice, ciclo, annulla).ConfigureAwait(false))
@@ -177,7 +197,7 @@ public static class RamiDelSector
         var push = await git.EseguiAsync(radice, ["push", "--quiet", "origin", $"refs/remotes/origin/{predefinito}:refs/heads/{ciclo}"], annulla).ConfigureAwait(false);
         if (!push.Riuscito)
             return $"Il server non ha accettato il ramo {ciclo}: {push.Errore}";
-        await git.EseguiAsync(radice, ["fetch", "--quiet", "origin"], annulla).ConfigureAwait(false);
+        await git.EseguiAsync(radice, RamiDelSector.ChiediAlServer, annulla).ConfigureAwait(false);
         return null;
     }
 }

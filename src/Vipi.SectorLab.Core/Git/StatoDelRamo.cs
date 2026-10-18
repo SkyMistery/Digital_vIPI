@@ -123,7 +123,7 @@ public static class RepoDelSector
         string? perche = null;
         if (prendi && indirizzo is not null)
         {
-            var fetch = await git.EseguiAsync(cima, ["fetch", "--quiet", "origin"], annulla).ConfigureAwait(false);
+            var fetch = await git.EseguiAsync(cima, RamiDelSector.ChiediAlServer, annulla).ConfigureAwait(false);
             if (!fetch.Riuscito)
                 perche = $"Il server non ha risposto: {fetch.Errore}";
         }
