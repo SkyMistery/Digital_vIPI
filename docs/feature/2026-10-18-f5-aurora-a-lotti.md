@@ -145,3 +145,20 @@ segnata «da confermare», e la corregge il committente.
     il riquadro di Aurora ora va a capo (i percorsi lunghi uscivano dal riquadro, già dalla slice 1).
   Test Lab 1 019 → **1 030**, tre giri verdi. Da provare sul PC del committente: tre salvataggi, «N da portare», Lab
   chiuso e riaperto, le voci ancora lì; poi «Porta in Aurora» e il conto «da vedere».
+- **Slice 3 (18 ottobre)** — gli esiti. Solo il Lab: `Core/Aurora/Lotto.cs` (`EsitoInAurora`, `RecordDelLotto`,
+  `NotaDaAurora`; `Lotto.Segna`, `TogliLaNota`), `SessioneDelLab` (`SegnaNelLotto`, `NoteDaAurora`, `NoteDaAuroraDi`,
+  `TogliLaNotaDaAurora`, `VaiAllaNota`), `NoteDaAurora.razor` (nella scheda e in cima ai Problemi), `AuroraNellaBarra.razor`.
+  - **✅/❌**: accanto a ogni voce in vetrina (solo se in vetrina c'è questo sector); il ❌ apre un campo per le due parole;
+    un secondo clic toglie l'esito.
+  - **«Visto in Aurora»**: le ✅ e le **non segnate** escono (guardate, nessun problema detto: scelta dell'agente, perché
+    obbligare a segnare tutto rallenta il giro); le ❌ diventano **note** sul loro record.
+  - **I record**: ogni gesto ricorda i record che ha toccato col **nome di dopo il gesto** (una rinomina porta il nome
+    nuovo), così la nota ritrova il record anche se dopo i record si spostano. Un gesto senza record (su tutto il file)
+    lascia una nota sul file.
+  - **Le note** (D2: solo nel Lab, nel file del lotto): nella scheda del record e in cima al pannello dei Problemi, col clic
+    che porta al record; se ne vanno solo con «Togli».
+  - **Visto a schermo** sul banco: una nota salvata, portata, ❌ «etichetta sopra il VOR», «Visto» → «1 nota da Aurora»
+    nel riquadro, la nota nella scheda di BC406 e in cima ai Problemi col link al record; «Togli» la leva da tutti e due.
+    Il lotto della slice 2 era ancora lì dopo il riavvio del banco.
+  Test Lab 1 030 → **1 033**, tre giri verdi. Da provare sul PC del committente: una ❌ con due parole, «Visto», la nota
+  nella scheda e nei Problemi, il Lab chiuso e riaperto, «Togli».

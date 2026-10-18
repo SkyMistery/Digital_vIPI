@@ -62,6 +62,54 @@ public sealed class LottoTests : IDisposable
         Assert.Equal(1, lotto.DaVedere);
     }
 
+    /// <summary>Slice 3: ✅ e non segnate se ne vanno col «visto», le ❌ restano come note finché non si tolgono.</summary>
+    [Fact]
+    public void GliEsiti_LeNonVaRestanoComeNote()
+    {
+        const string fix = "SectorFiles/Include/IT/NAVAIDS/APT.fix";
+        var lotto = Lotto.Leggi(Dati, Sector);
+        lotto.Salvati(
+        [
+            ("Name di BD100", [fix], [new RecordDelLotto(fix, "BD100")]),
+            ("zona X di LIRF", ["SectorFiles/Include/IT/lirf.mva"], []),
+            ("Name di BD200", [fix], [new RecordDelLotto(fix, "BD200")]),
+        ], _ora);
+
+        // Non ancora in vetrina: niente esito.
+        Assert.False(lotto.Segna(0, EsitoInAurora.Come));
+        lotto.Portato(_ora.AddMinutes(1));
+        Assert.True(lotto.Segna(0, EsitoInAurora.NonVa, "  l'etichetta copre il fix "));
+        Assert.True(lotto.Segna(1, EsitoInAurora.NonVa, "zona vuota"));
+        Assert.True(lotto.Segna(2, EsitoInAurora.Come, "ignorata"));
+        Assert.Equal("l'etichetta copre il fix", lotto.Voci[0].Nota);
+        Assert.Null(lotto.Voci[2].Nota);
+        // Un secondo clic toglie l'esito.
+        Assert.True(lotto.Segna(1, null));
+        Assert.Null(lotto.Voci[1].Esito);
+
+        lotto.VistoInAurora(_ora.AddMinutes(2));
+        lotto.Scrivi(Dati);
+
+        var riletto = Lotto.Leggi(Dati, Sector);
+        Assert.Empty(riletto.Voci);
+        var nota = Assert.Single(riletto.Note);
+        Assert.Equal("l'etichetta copre il fix", nota.Nota);
+        Assert.True(nota.Riguarda(fix, "BD100"));
+        Assert.False(nota.Riguarda(fix, "BD200"));
+
+        Assert.True(riletto.TogliLaNota(nota.Id));
+        Assert.Empty(riletto.Note);
+    }
+
+    [Fact]
+    public void UnaNotaSenzaRecord_RiguardaIlFile()
+    {
+        var nota = new NotaDaAurora("x", "zona X di LIRF", "zona vuota", ["SectorFiles/Include/IT/lirf.mva"], [], _ora);
+
+        Assert.True(nota.Riguarda("SectorFiles/Include/IT/lirf.mva", "qualunque"));
+        Assert.False(nota.Riguarda("SectorFiles/Include/IT/lirf.sid", null));
+    }
+
     [Fact]
     public void UnLottoIlleggibile_SiRicomincia()
     {

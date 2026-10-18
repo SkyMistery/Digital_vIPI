@@ -58,21 +58,43 @@
                 <p class="lab-nota"><strong>Da guardare in Aurora</strong>@(lotto.Visto is { } visto ? $" — dall'ultimo «visto», il {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(visto)}" : "")
                     · dove guardare: proposta del Lab, da confermare</p>
                 <ul class="lab-elenco-lotto">
-                    @foreach (var voce in lotto.Voci)
+                    @for (int i = 0; i < lotto.Voci.Count; i++)
                     {
+                        int indice = i;
+                        var voce = lotto.Voci[i];
                         bool daVedere = voce.Portata is not null && Lab.InVetrinaCeQuesto;
-                        <li data-voce-lotto="@(daVedere ? "da-vedere" : "da-portare")">
+                        <li data-voce-lotto="@(daVedere ? "da-vedere" : "da-portare")" data-esito="@voce.Esito">
+                            @* Slice 3: com'è andata in Aurora — ✅ come doveva, ❌ con due parole; un secondo clic toglie. *@
+                            @if (daVedere)
+                            {
+                                <span class="lab-esiti">
+                                    <button type="button" class="lab-esito @(voce.Esito == EsitoInAurora.Come ? "lab-esito-scelto" : null)" data-tasto="esito-come"
+                                            title="Come doveva" @onclick="() => Segna(indice, voce.Esito == EsitoInAurora.Come ? null : EsitoInAurora.Come)">✅</button>
+                                    <button type="button" class="lab-esito @(voce.Esito == EsitoInAurora.NonVa ? "lab-esito-scelto" : null)" data-tasto="esito-non-va"
+                                            title="Non va: scrivi due parole" @onclick="() => Segna(indice, voce.Esito == EsitoInAurora.NonVa ? null : EsitoInAurora.NonVa, voce.Nota)">❌</button>
+                                </span>
+                            }
                             <span>@voce.Cosa</span>
                             <span class="lab-nota">→ @voce.Dove · @(voce.Portata is { } p ? $"in vetrina dal {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(p)}" : $"salvato il {Vipi.SectorLab.Core.Aurora.Vetrina.Ora(voce.Salvata)}, da portare")</span>
+                            @if (daVedere && voce.Esito == EsitoInAurora.NonVa)
+                            {
+                                <input type="text" class="lab-cerca" data-campo="nota-esito" placeholder="Che cosa non va? (l'etichetta copre il fix…)"
+                                       value="@voce.Nota" @onchange="e => Segna(indice, EsitoInAurora.NonVa, e.Value?.ToString())" />
+                            }
                         </li>
                     }
                 </ul>
                 @if (lotto.DaVedere > 0 && Lab.InVetrinaCeQuesto)
                 {
                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="visto-in-aurora"
-                            title="Hai ricaricato Aurora e guardato le voci in vetrina: escono dal lotto" @onclick="Lab.VistoInAurora">Visto in Aurora</button>
+                            title="Hai ricaricato Aurora e guardato le voci in vetrina: le ✅ e quelle non segnate escono dal lotto, le ❌ restano come note sui loro record"
+                            @onclick="Lab.VistoInAurora">Visto in Aurora</button>
                 }
             </div>
+        }
+        @if (Lab.NoteDaAurora.Count > 0)
+        {
+            <p class="lab-nota" data-note-da-aurora="@Lab.NoteDaAurora.Count">❌ @(Lab.NoteDaAurora.Count == 1 ? "1 nota" : $"{Lab.NoteDaAurora.Count} note") da Aurora sui record: nella scheda e in cima ai Problemi.</p>
         }
     </div>
 </details>
@@ -87,6 +109,8 @@
     public void Dispose() => Lab.Cambiata -= Aggiorna;
 
     private async Task Porta() => _rifiuto = await Lab.PortaInAuroraAsync() ? null : Lab.Rifiuto;
+
+    private void Segna(int indice, EsitoInAurora? esito, string? nota = null) => Lab.SegnaNelLotto(indice, esito, nota);
 
     /// <summary>Il conto del lotto nella barra: da vedere se in vetrina c'è questo sector, se no da portare.</summary>
     private string? ContoDelLotto()

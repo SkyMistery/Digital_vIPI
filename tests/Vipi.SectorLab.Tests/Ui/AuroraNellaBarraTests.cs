@@ -1,5 +1,6 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
+using Vipi.SectorLab.Ui.Components;
 using Vipi.SectorLab.Ui.Components.Pages;
 using Vipi.SectorLab.Ui.Servizi;
 
@@ -111,6 +112,53 @@ public sealed class AuroraNellaBarraTests : IDisposable
     /// <summary>Il lotto di quella cartella com'è sul disco.</summary>
     private IReadOnlyList<Vipi.SectorLab.Core.Aurora.VoceDelLotto> Lotto(string sector)
         => Vipi.SectorLab.Core.Aurora.Lotto.Leggi(Path.Combine(_albero.Radice, "dati-del-lab"), sector).Voci;
+
+    /// <summary>
+    /// Carta F5, slice 3 — «finita quando»: una ❌ si vede nella scheda del record e nei problemi, e se ne va solo quando
+    /// l'AOD la toglie. Il record è stato rinominato dal gesto stesso: la nota lo ritrova col nome nuovo.
+    /// </summary>
+    [Fact]
+    public async Task UnNonVa_RestaSulRecord_FinoAQuandoLoTogli()
+    {
+        const string fix = "SectorFiles/Include/IT/NAVAIDS/APT.fix";
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        Assert.True(_lab.CambiaLaVetrina(Vetrina));
+        Assert.True(_lab.CambiaCampo(fix, 0, "Name", "PIPPO"));
+        await _lab.SalvaAsync(confermato: true);
+        Assert.True(await _lab.PortaInAuroraAsync(), _lab.Rifiuto);
+        var barra = _contesto.RenderComponent<AuroraNellaBarra>();
+
+        // ❌ sulla voce del fix, con due parole; ✅ su «tutto il sector» (le voci in ordine: prima il gesto sul fix).
+        var fixNelLotto = barra.FindAll("[data-voce-lotto=da-vedere]").First();
+        Assert.Contains("i punti sulla mappa", fixNelLotto.TextContent, StringComparison.Ordinal);
+        fixNelLotto.QuerySelector("[data-tasto=esito-non-va]")!.Click();
+        barra.WaitForAssertion(() => barra.Find("[data-campo=nota-esito]").Change("l'etichetta copre il fix"), TimeSpan.FromSeconds(10));
+        barra.FindAll("[data-tasto=esito-come]").Last().Click();
+        barra.Find("[data-tasto=visto-in-aurora]").Click();
+        barra.WaitForAssertion(() => Assert.Empty(barra.FindAll("[data-voce-lotto]")), TimeSpan.FromSeconds(10));
+
+        // Nella scheda del record e in cima ai problemi.
+        _lab.Scegli(fix, 0);
+        var scheda = _contesto.RenderComponent<Scheda>();
+        Assert.Contains("l'etichetta copre il fix", scheda.Find("[data-note-da-aurora]").TextContent, StringComparison.Ordinal);
+        var problemi = _contesto.RenderComponent<PannelloDeiProblemi>();
+        Assert.Contains("l'etichetta copre il fix", problemi.Find("[data-note-da-aurora]").TextContent, StringComparison.Ordinal);
+        // Un altro record non ce l'ha.
+        Assert.Empty(_lab.NoteDaAuroraDi(fix, 1));
+
+        // Riaperto il Lab, c'è ancora; il clic porta al record.
+        var riaperto = new SessioneDelLab(Path.Combine(_albero.Radice, "dati-del-lab")) { Aurora = _lab.Aurora };
+        Assert.True(await riaperto.ApriAsync(_albero.Radice));
+        var nota = Assert.Single(riaperto.NoteDaAurora);
+        riaperto.VaiAllaNota(nota);
+        Assert.Equal((fix, 0), riaperto.Scelta);
+
+        // Se ne va solo con «Togli».
+        problemi.Find("[data-tasto=togli-nota]").Click();
+        problemi.WaitForAssertion(() => Assert.Empty(problemi.FindAll("[data-note-da-aurora]")), TimeSpan.FromSeconds(10));
+        scheda.WaitForAssertion(() => Assert.Empty(scheda.FindAll("[data-note-da-aurora]")), TimeSpan.FromSeconds(10));
+        Assert.Empty(Vipi.SectorLab.Core.Aurora.Lotto.Leggi(Path.Combine(_albero.Radice, "dati-del-lab"), _albero.Radice).Note);
+    }
 
     [Fact]
     public async Task IlLotto_CambiatoSector_TuttoDaRivedere()

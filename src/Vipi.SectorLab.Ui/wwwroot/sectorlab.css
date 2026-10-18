@@ -1892,6 +1892,53 @@ body.lab-trascina * {
     display: block;
 }
 
+/* Carta F5, slice 3: gli esiti in Aurora (✅/❌) e le note dei ❌, nella scheda e in cima ai problemi. */
+.lab-esiti {
+    display: inline-flex;
+    gap: .15rem;
+    margin-right: .3rem;
+}
+
+.lab-esito {
+    padding: 0 .2rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    opacity: .45;
+}
+
+.lab-esito:hover,
+.lab-esito-scelto {
+    opacity: 1;
+}
+
+.lab-esito-scelto {
+    border-color: var(--lab-linea-forte);
+}
+
+.lab-elenco-lotto input[data-campo=nota-esito] {
+    display: block;
+    width: 100%;
+    margin: .2rem 0;
+}
+
+.lab-note-da-aurora {
+    margin: .4rem 0;
+    padding: .3rem .5rem;
+    border-left: 3px solid var(--lab-toccato);
+}
+
+.lab-note-da-aurora h2 {
+    margin: 0 0 .2rem;
+    font-size: .8rem;
+}
+
+.lab-note-da-aurora ul {
+    margin: 0;
+    padding-left: 1rem;
+}
+
 /* Carta F4, slice 4: il messaggio della registrazione. */
 .lab-messaggio {
     width: 100%;

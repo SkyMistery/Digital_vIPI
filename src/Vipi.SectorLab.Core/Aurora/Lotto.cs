@@ -4,30 +4,68 @@ using System.Text.Json;
 
 namespace Vipi.SectorLab.Core.Aurora;
 
+/// <summary>Un record toccato da un gesto: il file e l'etichetta (il nome), che resta vera anche se dopo i record si spostano.</summary>
+public sealed record RecordDelLotto(string File, string Etichetta);
+
+/// <summary>Com'è andata una voce, guardata in Aurora (carta F5, slice 3).</summary>
+public enum EsitoInAurora
+{
+    /// <summary>✅ come doveva.</summary>
+    Come,
+
+    /// <summary>❌ non va: con due parole («l'etichetta copre il fix»).</summary>
+    NonVa,
+}
+
 /// <summary>
-/// Una voce del lotto: un gesto salvato (la stessa voce della storia che fa il messaggio di «Registra»), i file che ha
-/// toccato, quando è stato salvato e quando è andato in vetrina. <see cref="Portata"/> null = salvato, non ancora in
-/// Aurora. Senza file = tutto il sector (cambiato sector o ramo in vetrina).
+/// Una voce del lotto: un gesto salvato (la stessa voce della storia che fa il messaggio di «Registra»), i file e i
+/// record che ha toccato, quando è stato salvato e quando è andato in vetrina. <see cref="Portata"/> null = salvato, non
+/// ancora in Aurora. Senza file = tutto il sector (cambiato sector o ramo in vetrina). <see cref="Esito"/> e
+/// <see cref="Nota"/>: quel che l'AOD ha visto in Aurora (slice 3).
 /// </summary>
 public sealed record VoceDelLotto(string Cosa, IReadOnlyList<string> File, DateTimeOffset Salvata, DateTimeOffset? Portata = null)
 {
+    /// <summary>I record toccati, quando il Lab li sa (un gesto su tutto il file non ne ha).</summary>
+    public IReadOnlyList<RecordDelLotto> Record { get; init; } = [];
+
+    /// <summary>L'esito in Aurora, o null se l'AOD non l'ha ancora segnato.</summary>
+    public EsitoInAurora? Esito { get; init; }
+
+    /// <summary>Le due parole di un ❌.</summary>
+    public string? Nota { get; init; }
+
     /// <summary>Dove guardarla in Aurora (proposta da confermare, vedi <see cref="DoveGuardare"/>).</summary>
     public string Dove => File.Count == 0 ? "tutto il sector" : DoveGuardare.Per(File);
 }
 
 /// <summary>
-/// Il lotto (carta F5, slice 2): da quando l'AOD ha detto l'ultima volta «visto in Aurora», i gesti salvati del sector,
+/// Un ❌ rimasto dopo «visto in Aurora» (carta F5, slice 3; D2: solo nel Lab, mai nel sector): una nota sui suoi record —
+/// nella scheda e nel pannello dei problemi — finché l'AOD non la toglie.
+/// </summary>
+public sealed record NotaDaAurora(string Id, string Cosa, string Nota, IReadOnlyList<string> File, IReadOnlyList<RecordDelLotto> Record, DateTimeOffset Quando)
+{
+    /// <summary>Vero se la nota riguarda quel record: per etichetta, o per file se la nota non ha record.</summary>
+    public bool Riguarda(string file, string? etichetta)
+        => Record.Count > 0
+            ? etichetta is not null && Record.Any(r => r.File == file && r.Etichetta == etichetta)
+            : File.Contains(file, StringComparer.Ordinal);
+}
+
+/// <summary>
+/// Il lotto (carta F5, slice 2 e 3): da quando l'AOD ha detto l'ultima volta «visto in Aurora», i gesti salvati del sector,
 /// ognuno con dove guardarlo. Sta nei dati del Lab, un file per cartella del sector: sopravvive a un riavvio. Le voci
 /// salvate aspettano «Porta in Aurora»; portate, sono «da vedere» finché l'AOD non dice «visto».
 /// </summary>
 public sealed class Lotto
 {
     private readonly List<VoceDelLotto> _voci;
+    private readonly List<NotaDaAurora> _note;
 
-    private Lotto(string sector, List<VoceDelLotto> voci, DateTimeOffset? visto)
+    private Lotto(string sector, List<VoceDelLotto> voci, List<NotaDaAurora> note, DateTimeOffset? visto)
     {
         Sector = sector;
         _voci = voci;
+        _note = note;
         Visto = visto;
     }
 
@@ -36,6 +74,9 @@ public sealed class Lotto
 
     /// <summary>Le voci, nell'ordine in cui sono state salvate.</summary>
     public IReadOnlyList<VoceDelLotto> Voci => _voci;
+
+    /// <summary>I ❌ rimasti dai «visto» di prima, finché l'AOD non li toglie.</summary>
+    public IReadOnlyList<NotaDaAurora> Note => _note;
 
     /// <summary>L'ultimo «visto in Aurora», o null.</summary>
     public DateTimeOffset? Visto { get; private set; }
@@ -62,14 +103,14 @@ public sealed class Lotto
         {
             string file = FileDi(cartellaDeiDati, radice);
             if (File.Exists(file) && JsonSerializer.Deserialize<SulDisco>(File.ReadAllText(file)) is { } letto)
-                return new Lotto(radice, [.. letto.Voci ?? []], letto.Visto);
+                return new Lotto(radice, [.. letto.Voci ?? []], [.. letto.Note ?? []], letto.Visto);
         }
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException)
         {
             // Un lotto illeggibile si ricomincia: è un appunto di lavoro, non un dato del sector.
         }
 
-        return new Lotto(radice, [], null);
+        return new Lotto(radice, [], [], null);
     }
 
     /// <summary>Scrive il lotto nei dati del Lab, tutto o niente (un file a parte, poi lo scambio).</summary>
@@ -78,7 +119,7 @@ public sealed class Lotto
         string file = FileDi(cartellaDeiDati, Sector);
         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
         string temporaneo = file + ".nuovo";
-        File.WriteAllText(temporaneo, JsonSerializer.Serialize(new SulDisco(Sector, [.. _voci], Visto)));
+        File.WriteAllText(temporaneo, JsonSerializer.Serialize(new SulDisco(Sector, [.. _voci], [.. _note], Visto)));
         File.Move(temporaneo, file, overwrite: true);
     }
 
@@ -86,9 +127,32 @@ public sealed class Lotto
     public void Salvati(IEnumerable<(string Cosa, IReadOnlyList<string> File)> gesti, DateTimeOffset quando)
     {
         ArgumentNullException.ThrowIfNull(gesti);
-        foreach (var (cosa, file) in gesti)
-            _voci.Add(new VoceDelLotto(cosa, file, quando));
+        Salvati(gesti.Select(g => (g.Cosa, g.File, (IReadOnlyList<RecordDelLotto>)[])), quando);
     }
+
+    /// <summary>I gesti di un salvataggio, coi record che hanno toccato.</summary>
+    public void Salvati(IEnumerable<(string Cosa, IReadOnlyList<string> File, IReadOnlyList<RecordDelLotto> Record)> gesti, DateTimeOffset quando)
+    {
+        ArgumentNullException.ThrowIfNull(gesti);
+        foreach (var (cosa, file, record) in gesti)
+            _voci.Add(new VoceDelLotto(cosa, file, quando) { Record = record });
+    }
+
+    /// <summary>
+    /// Segna com'è andata in Aurora la voce <paramref name="indice"/> (slice 3): ✅, ❌ con la nota, o null per tornare a
+    /// «non segnata». Solo le voci in vetrina: le altre in Aurora non ci sono ancora. Falso se non si può.
+    /// </summary>
+    public bool Segna(int indice, EsitoInAurora? esito, string? nota = null)
+    {
+        if (indice < 0 || indice >= _voci.Count || _voci[indice].Portata is null)
+            return false;
+        string? pulita = string.IsNullOrWhiteSpace(nota) ? null : nota.Trim();
+        _voci[indice] = _voci[indice] with { Esito = esito, Nota = esito == EsitoInAurora.NonVa ? pulita : null };
+        return true;
+    }
+
+    /// <summary>Toglie una nota rimasta da un ❌: l'AOD l'ha sistemata, o non serve più.</summary>
+    public bool TogliLaNota(string id) => _note.RemoveAll(n => n.Id == id) > 0;
 
     /// <summary>
     /// «Porta in Aurora»: le voci salvate sono in vetrina. <paramref name="cambiato"/>, se c'è, dice che in vetrina prima
@@ -107,14 +171,19 @@ public sealed class Lotto
             _voci.Add(new VoceDelLotto(cambiato, [], quando, quando));
     }
 
-    /// <summary>«Visto in Aurora»: le voci in vetrina se ne vanno; quelle non ancora portate restano.</summary>
+    /// <summary>
+    /// «Visto in Aurora»: le voci in vetrina se ne vanno — le ✅ e le non segnate (guardate, e nessun problema detto) —, le
+    /// ❌ restano come note sui loro record; quelle non ancora portate restano nel lotto.
+    /// </summary>
     public void VistoInAurora(DateTimeOffset quando)
     {
+        foreach (var voce in _voci.Where(v => v.Portata is not null && v.Esito == EsitoInAurora.NonVa))
+            _note.Add(new NotaDaAurora(Guid.NewGuid().ToString("N")[..12], voce.Cosa, voce.Nota ?? "non va", voce.File, voce.Record, quando));
         _voci.RemoveAll(v => v.Portata is not null);
         Visto = quando;
     }
 
-    private sealed record SulDisco(string Sector, List<VoceDelLotto>? Voci, DateTimeOffset? Visto);
+    private sealed record SulDisco(string Sector, List<VoceDelLotto>? Voci, List<NotaDaAurora>? Note, DateTimeOffset? Visto);
 }
 
 /// <summary>

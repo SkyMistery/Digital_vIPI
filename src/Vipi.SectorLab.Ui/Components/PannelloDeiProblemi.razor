@@ -8,6 +8,9 @@
     Si iscrive da sé a Cambiata: un componente senza parametri non lo ridisegna nessuno (vedi Mappa.razor).
 *@
 <div class="lab-problemi" data-problemi="@Lab.ProblemiDellAlbero.Count">
+    @* Carta F5, slice 3: i ❌ visti in Aurora, in cima: non li trova il validatore, li ha trovati l'AOD. *@
+    <NoteDaAurora />
+
     @if (Lab.ProblemiDelleModifiche.Count > 0 || Lab.RecordCheSiFondono.Count > 0)
     {
         <section class="lab-problemi-nuovi-sezione" data-nuovi="@Lab.ProblemiDelleModifiche.Count">

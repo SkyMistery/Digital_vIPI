@@ -2913,8 +2913,11 @@ public sealed class SessioneDelLab
 
     private readonly HashSet<string> _daRifareDopoIlRigioco = new(StringComparer.Ordinal);
 
-    /// <summary>Un gesto della storia; <paramref name="File"/> = i file che ha toccato (vanno nel lotto di Aurora, F5 slice 2).</summary>
-    private sealed record GestoNellaStoria(string Cosa, Func<bool> Rifai, IReadOnlyList<string> File);
+    /// <summary>
+    /// Un gesto della storia; <paramref name="File"/> e <paramref name="Record"/> = i file e i record che ha toccato (vanno
+    /// nel lotto di Aurora, F5 slice 2 e 3).
+    /// </summary>
+    private sealed record GestoNellaStoria(string Cosa, Func<bool> Rifai, IReadOnlyList<string> File, IReadOnlyList<Core.Aurora.RecordDelLotto> Record);
 
     public bool SiPuoAnnullare => _fatti > 0;
 
@@ -2938,9 +2941,15 @@ public sealed class SessioneDelLab
 
         // I file del gesto: quelli le cui modifiche in sospeso sono cambiate (dove guardarlo in Aurora, F5 slice 2).
         var dopo = Modifiche.Tutte.ToHashSet();
-        IReadOnlyList<string> file = [.. dopo.Except(prima!).Concat(prima!.Except(dopo)).Select(m => m.File).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+        var cambiate = dopo.Except(prima!).Concat(prima!.Except(dopo)).ToList();
+        IReadOnlyList<string> file = [.. cambiate.Select(m => m.File).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+        // I record col loro nome di adesso (dopo una rinomina, quello nuovo): la nota di un ❌ li ritrova per nome (slice 3).
+        IReadOnlyList<Core.Aurora.RecordDelLotto> record = [.. cambiate
+            .Where(m => m.Record >= 0 && Sessione?.File.TryGetValue(m.File, out var aperto) == true && m.Record < aperto.Record)
+            .Select(m => new Core.Aurora.RecordDelLotto(m.File, EtichettaDi(m.File, m.Record)))
+            .Distinct()];
         _storia.RemoveRange(_fatti, _storia.Count - _fatti);
-        _storia.Add(new GestoNellaStoria(cosa, gesto, file));
+        _storia.Add(new GestoNellaStoria(cosa, gesto, file, record));
         _fatti = _storia.Count;
         Avvisa();
         return true;
@@ -3799,23 +3808,75 @@ public sealed class SessioneDelLab
         Avvisa();
     }
 
+    /// <summary>
+    /// Segna com'è andata in Aurora una voce del lotto (slice 3): ✅, ❌ con due parole, o null per toglierlo. Solo le voci
+    /// in vetrina, e solo se in vetrina c'è questo sector.
+    /// </summary>
+    public bool SegnaNelLotto(int indice, Core.Aurora.EsitoInAurora? esito, string? nota = null)
+    {
+        if (Lotto is not { } lotto || !InVetrinaCeQuesto || !lotto.Segna(indice, esito, nota))
+            return false;
+        var voce = lotto.Voci[indice];
+        ScriviIlLotto(lotto, $"«{voce.Cosa}»: {voce.Esito?.ToString() ?? "non segnata"}{(voce.Nota is null ? "" : " — " + voce.Nota)}");
+        Avvisa();
+        return true;
+    }
+
+    /// <summary>Le note dei ❌ rimaste, per tutto il sector aperto.</summary>
+    public IReadOnlyList<Core.Aurora.NotaDaAurora> NoteDaAurora => Lotto?.Note ?? [];
+
+    /// <summary>Le note dei ❌ che riguardano quel record (per nome) o, se la nota non ha record, il suo file.</summary>
+    public IReadOnlyList<Core.Aurora.NotaDaAurora> NoteDaAuroraDi(string fileRelativo, int record)
+    {
+        if (NoteDaAurora.Count == 0)
+            return [];
+        string? etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record);
+        return [.. NoteDaAurora.Where(n => n.Riguarda(fileRelativo, etichetta))];
+    }
+
+    /// <summary>Toglie la nota di un ❌ (l'AOD l'ha sistemata): se ne va solo così.</summary>
+    public void TogliLaNotaDaAurora(string id)
+    {
+        if (Lotto is not { } lotto || !lotto.TogliLaNota(id))
+            return;
+        ScriviIlLotto(lotto, $"tolta la nota {id}");
+        Avvisa();
+    }
+
+    /// <summary>Sceglie il record di una nota (il primo che si trova per nome), o il file se non ha record.</summary>
+    public void VaiAllaNota(Core.Aurora.NotaDaAurora nota)
+    {
+        foreach (var r in nota.Record)
+        {
+            int indice = EtichetteDi(r.File).ToList().IndexOf(r.Etichetta);
+            if (indice >= 0)
+            {
+                Scegli(r.File, indice);
+                return;
+            }
+        }
+
+        if (nota.File.FirstOrDefault(f => Sessione?.File.ContainsKey(f) == true) is { } file)
+            ApriFile(file);
+    }
+
     private void NelLotto(IReadOnlyList<GestoNellaStoria> gesti, IReadOnlyList<string> salvati)
     {
         if (Lotto is not { } lotto)
             return;
-        var voci = new List<(string, IReadOnlyList<string>)>();
+        var voci = new List<(string, IReadOnlyList<string>, IReadOnlyList<Core.Aurora.RecordDelLotto>)>();
         foreach (var gesto in gesti)
         {
             // Un gesto di cui non si sa il file (raro) prende i file del salvataggio; uno i cui file non sono stati salvati
             // (salvataggio interrotto) resta fuori: le sue modifiche sono ancora in sospeso.
             IReadOnlyList<string> file = gesto.File.Count == 0 ? salvati : [.. gesto.File.Where(f => salvati.Contains(f, StringComparer.Ordinal))];
             if (file.Count > 0)
-                voci.Add((gesto.Cosa, file));
+                voci.Add((gesto.Cosa, file, [.. gesto.Record.Where(r => file.Contains(r.File, StringComparer.Ordinal))]));
         }
 
         // Salvato senza gesti nella storia (il Lab riaperto nel frattempo): una voce per file.
         if (gesti.Count == 0)
-            voci.AddRange(salvati.Select(f => ($"{NomeDelFile(f)} salvato", (IReadOnlyList<string>)[f])));
+            voci.AddRange(salvati.Select(f => ($"{NomeDelFile(f)} salvato", (IReadOnlyList<string>)[f], (IReadOnlyList<Core.Aurora.RecordDelLotto>)[])));
         lotto.Salvati(voci, DateTimeOffset.Now);
         ScriviIlLotto(lotto, $"{voci.Count} voci salvate");
     }

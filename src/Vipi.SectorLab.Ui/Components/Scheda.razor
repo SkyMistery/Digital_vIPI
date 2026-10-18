@@ -44,6 +44,9 @@
             }
         </header>
 
+        @* Carta F5, slice 3: i ❌ visti in Aurora su questo record, finché l'AOD non li toglie. *@
+        <NoteDaAurora File="@scheda.File" Record="scheda.Indice" />
+
         @* Le sezioni si chiudono col clic sul titolo (committente, 24 settembre): Sezione.razor. *@
         <Sezione Chiave="scheda-campi">
         <Titolo>Campi <span class="lab-nota">@scheda.Campi.Count</span></Titolo>

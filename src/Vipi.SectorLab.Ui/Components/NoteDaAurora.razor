@@ -1,0 +1,50 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Le note dei ❌ visti in Aurora (carta F5, slice 3; D2: solo nel Lab). Con File e Record: quelle del record, nella
+    scheda. Senza: tutte, in cima al pannello dei problemi, ognuna con un clic per andare al suo record. Se ne vanno solo
+    con «Togli», quando l'AOD ha sistemato.
+*@
+@if (Note() is { Count: > 0 } note)
+{
+    <section class="lab-note-da-aurora" data-note-da-aurora="@note.Count">
+        <h2 title="Visti in Aurora: restano finché non li togli">❌ Da Aurora <span class="lab-nota">@note.Count</span></h2>
+        <ul>
+            @foreach (var nota in note)
+            {
+                var questa = nota;
+                <li data-nota-aurora="@questa.Id">
+                    <strong>@questa.Nota</strong>
+                    @if (File is null)
+                    {
+                        <button type="button" class="lab-citazione" data-tasto="vai-alla-nota" title="Apri il record" @onclick="() => Lab.VaiAllaNota(questa)">@questa.Cosa</button>
+                    }
+                    else
+                    {
+                        <span class="lab-nota">@questa.Cosa</span>
+                    }
+                    <span class="lab-nota">· visto il @Vetrina.Ora(questa.Quando)</span>
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="togli-nota" title="Sistemato: la nota se ne va"
+                            @onclick="() => Lab.TogliLaNotaDaAurora(questa.Id)">Togli</button>
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+@code {
+    /// <summary>Il file del record della scheda; null = tutte le note (pannello dei problemi).</summary>
+    [Parameter] public string? File { get; set; }
+
+    [Parameter] public int Record { get; set; }
+
+    private IReadOnlyList<NotaDaAurora> Note() => File is null ? Lab.NoteDaAurora : Lab.NoteDaAuroraDi(File, Record);
+
+    // Solo parametri primitivi: si ridisegna da sé ai cambi del Lab (la lezione della 8b).
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

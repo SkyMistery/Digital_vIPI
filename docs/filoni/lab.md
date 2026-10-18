@@ -16,7 +16,9 @@ la guarda; i sector recenti a un clic. Fuori slice (`675c19f6`, chiesto dal comm
 **provata dal committente sul suo PC, la sera del 18: funziona** (slice 1 chiusa). **Slice 2 fatta, il lotto**: i
 gesti salvati da «visto in Aurora», ognuno coi suoi file e con dove guardarlo (tabella proposta, da confermare), «da
 portare» finché non vanno in vetrina e poi «da vedere»; il conto nella barra, «Visto in Aurora», un file per sector nei
-dati del Lab. Da provare sul PC del committente. **Prossima: slice 3, gli esiti** (✅/❌ con una nota).
+dati del Lab. **Slice 3 fatta, gli esiti**: ✅/❌ con due parole accanto a ogni voce in vetrina; «Visto in Aurora»
+toglie le ✅ e le non segnate, le ❌ restano come note sul record (nella scheda e in cima ai Problemi) finché non si
+tolgono. Slice 2 e 3 da provare sul PC del committente. **Prossima: slice 4, le prove come lotti** (ramo `prova/…`).
 
 ## Dove siamo — 18 ottobre 2026: la F4 è fatta
 
