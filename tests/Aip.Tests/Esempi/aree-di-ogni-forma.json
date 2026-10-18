@@ -11,6 +11,8 @@
       "name": "PROVA POLIGONO",
       "upper": { "text": "2000 FT AMSL", "reference": "msl", "value": 2000, "unit": "ft" },
       "lower": { "text": "GND", "reference": "ground" },
+      "activity": "Prova di attività",
+      "remarks": "Nota di prova, prima riga.\nSeconda riga: H24.",
       "geometry": {
         "kind": "ring",
         "segments": [
@@ -42,6 +44,7 @@
       "upper": { "text": "2500 FT AMSL", "reference": "msl", "value": 2500, "unit": "ft" },
       "lower": { "text": "SFC", "reference": "ground" },
       "class": "D",
+      "remarks": "Nota di prova del CTR.",
       "geometry": {
         "kind": "ring",
         "segments": [

@@ -67,6 +67,18 @@ public sealed record Airspace
     /// <summary>La classe dello spazio aereo (<c>A</c>…<c>G</c>), dove l'AIP la dice.</summary>
     public string? Class { get; init; }
 
+    /// <summary>
+    /// Il tipo di attività, come lo stampa l'AIP nelle aree P, R e D (<c>Military firing</c>, <c>Parachuting</c>…);
+    /// vuoto dove l'AIP non lo dice.
+    /// </summary>
+    public string? Activity { get; init; }
+
+    /// <summary>
+    /// Le note dell'AIP sull'oggetto (orari, ente, condizioni), il testo com'è, a capo compresi (committente,
+    /// 18 ottobre: anche CTR e aree P/R/D le hanno, e servono).
+    /// </summary>
+    public string? Remarks { get; init; }
+
     public required Geometry Geometry { get; init; }
 
     /// <summary>La pagina da cui viene, con la sua data AIRAC: ogni pagina dell'AIP ha la sua.</summary>

@@ -33,6 +33,8 @@ public sealed class AipJsonTests
         Assert.Equal(VerticalUnit.Ft, poligono.Upper.Unit);
         Assert.Equal(VerticalReference.Ground, poligono.Lower.Reference);
         Assert.Null(poligono.Lower.Value);
+        Assert.Equal("Prova di attività", poligono.Activity);
+        Assert.Equal("Nota di prova, prima riga.\nSeconda riga: H24.", poligono.Remarks);
         var anello = Assert.IsType<RingGeometry>(poligono.Geometry);
         Assert.All(anello.Segments, s => Assert.IsType<LineSegment>(s));
         Assert.Equal(new Position(41.5, 12.25), anello.Segments[0].From);
@@ -43,6 +45,8 @@ public sealed class AipJsonTests
 
         var ctr = doc.Airspaces[2];
         Assert.Equal("D", ctr.Class);
+        Assert.Equal("Nota di prova del CTR.", ctr.Remarks);
+        Assert.Null(ctr.Activity);
         Assert.Null(ctr.Name);
         Assert.Equal("PROVA CTR", ctr.Key);
         var archi = Assert.IsType<RingGeometry>(ctr.Geometry).Segments;
