@@ -29,6 +29,12 @@
       "aip": {
         "type": "Project"
       },
+      "aip.aurora": {
+        "type": "Project",
+        "dependencies": {
+          "Aip": "[1.0.0, )"
+        }
+      },
       "aip.pdf": {
         "type": "Project",
         "dependencies": {

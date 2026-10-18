@@ -35,6 +35,8 @@
     <!-- F6 (carta 2026-10-18-f6-pdf-aip.md): l'importer dell'AIP italiano e, con lui, il modello. Il Lab li usa, loro non
          sanno del Lab. -->
     <ProjectReference Include="..\Aip.Pdf.Italia\Aip.Pdf.Italia.csproj" />
+    <!-- Slice 1b: il confronto delle forme disegna archi e cerchi dell'AIP con la geometria del converter. -->
+    <ProjectReference Include="..\Aip.Aurora\Aip.Aurora.csproj" />
   </ItemGroup>
 
 </Project>

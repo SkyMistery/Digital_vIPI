@@ -84,6 +84,43 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Contains("non è un ciclo AIRAC", _lab.Rifiuto, StringComparison.Ordinal);
     }
 
+    // Slice 1b: «Confronta i CTR», dall'AIP espanso al sector aperto; un clic sulla riga apre la voce del sector.
+    [Fact]
+    public async Task ConfrontaICtr_LaListaEIlClicSullaVoce()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var espanso = Path.Combine(_fuori, "espanso");
+        Assert.True(_lab.CambiaLAipEspanso(espanso), _lab.Rifiuto);
+        var pagina = _contesto.RenderComponent<Home>();
+
+        // Senza un ciclo letto si dice.
+        Assert.False(await _lab.ConfrontaICtrAsync());
+        Assert.Contains("non c'è ancora un ciclo", _lab.Rifiuto, StringComparison.Ordinal);
+
+        // Un CTR inventato, in Sardegna: nel sector di prova non c'è; il CTR di Roma del sector non è nell'AIP.
+        Directory.CreateDirectory(Path.Combine(espanso, "2611"));
+        var ctr = new Airspace
+        {
+            Section = "ENR 2.1",
+            Type = AirspaceType.Ctr,
+            Designator = "Prova CTR",
+            Upper = new VerticalLimit { Text = "2000ft AMSL" },
+            Lower = new VerticalLimit { Text = "SFC" },
+            Geometry = new CircleGeometry(new Position(40.0, 9.0), new Distance(5, DistanceUnit.Nm)),
+        };
+        await File.WriteAllTextAsync(Path.Combine(espanso, "2611", "li.json"), AipJson.Serialize(new AipDocument { State = "LI", Airac = "2611", Airspaces = [ctr] }));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=confronta-ctr]").Click());
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Equal("Ciclo 2611: manca nel sector 1 · solo nel sector 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim());
+            Assert.Equal(2, pagina.FindAll("[data-differenza]").Count);
+        }, TimeSpan.FromSeconds(10));
+        await pagina.InvokeAsync(() => pagina.Find("[data-differenza=SoloNelSector] button").Click());
+        Assert.Equal("SectorFiles/Include/IT/lirf.str", _lab.Scelta?.File);
+    }
+
     [Fact]
     public void LeCartelleSiRicordano()
     {

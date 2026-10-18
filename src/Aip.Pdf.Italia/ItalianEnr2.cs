@@ -42,7 +42,8 @@ public static partial class ItalianEnr2
     }
 
     // «Zone '1'», «Zona '29'» (il refuso della F0), e bilingue nei CTR: «Zona/Zone '2'».
-    [GeneratedRegex(@"^Zon[ae](?:\s*/\s*Zon[ae])?\s*['’]?\s*\d+[A-Z]?\s*['’]?", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    // Anche fra virgolette doppie: «Zona/Zone "2"» del CTR di Bergamo (ENR 2.1.2.6), che restava senza il suo CTR.
+    [GeneratedRegex(@"^Zon[ae](?:\s*/\s*Zon[ae])?\s*['’""“”]?\s*\d+[A-Z]?\s*['’""“”]?", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxZona();
 
     [GeneratedRegex(@"circular area|arc of circle|centred|centered|till point|point of origin|border|coast|linea congiungente|line joining|within a|radius|area circolare|arco di cerchio", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]

@@ -87,6 +87,9 @@ public static class AipJson
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             // Il Web di default accetta i numeri fra virgolette: un modello che si rilegge identico non lo vuole.
             NumberHandling = JsonNumberHandling.Strict,
+            // Il testo com'è (`Zona/Zone "2"`, `attività`), non `"` e `à`: l'AIP espanso si legge nei diff di
+            // GitHub. È un file di dati, mai messo in una pagina HTML: l'«unsafe» del nome riguarda solo quello.
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
         opzioni.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
         opzioni.MakeReadOnly(populateMissingResolver: true);

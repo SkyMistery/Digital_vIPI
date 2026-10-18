@@ -114,6 +114,45 @@
                 </div>
             }
         }
+        @if (Lab.CartellaDellAipEspanso is not null)
+        {
+            <div data-confronto-ctr>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-ctr" disabled="@(Lab.Sessione is null)"
+                        title="I CTR dell'AIP espanso contro le voci CTR dei MAPS del sector aperto (sola lettura, soglia 0,1 NM)" @onclick="Confronta">Confronta i CTR</button>
+                @if (Lab.UltimoConfrontoDeiCtr is { } confronto)
+                {
+                    <p class="lab-nota" data-riassunto-confronto>Ciclo @confronto.Ciclo: @string.Join(" · ", confronto.Esiti.GroupBy(e => e.Esito).Select(g => $"{Esito(g.Key)} {g.Count()}"))</p>
+                    <ul class="lab-elenco-lotto">
+                        @foreach (var e in confronto.Esiti.Where(e => e.Esito != Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.Uguale))
+                        {
+                            <li class="lab-nota" data-differenza="@e.Esito">
+                                @if (e.File is { } file && e.Record is { } record)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" title="Apre la voce del sector" @onclick="() => Lab.Scegli(file, record)">@Esito(e.Esito)</button>
+                                }
+                                else
+                                {
+                                    <strong>@Esito(e.Esito)</strong>
+                                }
+                                @(e.Aip ?? "—") @(e.Zone > 1 ? $"({e.Zone} zone)" : "") ↔ @(e.Sector ?? "—")
+                                @if (e.ScartoAip is { } a && e.ScartoSector is { } s)
+                                {
+                                    <span> · l'AIP si stacca dal sector fino a @a.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) NM, il sector dall'AIP fino a @s.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) NM</span>
+                                }
+                                @if (e.Dove is { } dove)
+                                {
+                                    <span> · il punto peggiore: @Vipi.SectorLab.Core.PdfAip.ConfrontoDelleForme.Dms(dove)</span>
+                                }
+                                @if (e.SenzaTracciato)
+                                {
+                                    <span> · lungo un confine o una costa che l'AIP non disegna: lì non si giudica</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        }
         @if (_rifiuto is not null)
         {
             <p class="lab-avviso-breve" data-rifiuto-aip>@_rifiuto</p>
@@ -146,6 +185,17 @@
     private async Task Registra() => _rifiuto = await Lab.RegistraLAipAsync(Lab.MessaggioDellAip) ? null : Lab.Rifiuto;
 
     private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
+
+    private async Task Confronta() => _rifiuto = await Lab.ConfrontaICtrAsync() ? null : Lab.Rifiuto;
+
+    private static string Esito(Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto e) => e switch
+    {
+        Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.Uguale => "uguali",
+        Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.FormaDiversa => "forma diversa",
+        Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.MancaNelSector => "manca nel sector",
+        Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.SoloNelSector => "solo nel sector",
+        _ => e.ToString(),
+    };
 
     private void Aggiorna() => InvokeAsync(() =>
     {

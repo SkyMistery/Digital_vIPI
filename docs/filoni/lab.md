@@ -4,7 +4,14 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026: F6, slice 1a fatta (l'importer di ENR 2)
+## Dove siamo — 18 ottobre 2026: F6, slice 1b fatta (il confronto dei CTR col sector)
+
+**Slice 1b fatta**: «Confronta i CTR» nel riquadro «AIP» — i CTR dell'AIP espanso contro le voci CTR dei `MAPS` del
+sector aperto, a distanza (0,1 NM), in sola lettura. Sul sector vero: 45 CTR, 39 uguali, 6 con la forma diversa
+(Malpensa senza un vertice, Parma con un arco in più, Cagliari, Amendola, Aviano, Palermo), verificati a mano i primi
+due. AIP espanso: PR #3 (Bergamo e testo leggibile). **Prossima: 1c**, «Porta nel sector»/«Sostituisci» sul fork.
+
+## 18 ottobre 2026: F6, slice 1a fatta (l'importer di ENR 2)
 
 **Slice 1a fatta**: ENR 2 si legge per intero — 59 PDF, 329 aree (CTR, CTA, TMA, ATZ, RMZ, NPZ, FIR/UIR con le fasce,
 FRAIT, FMC), controprova con pdfplumber spiegata file per file, ENR 5.1 ancora identico alla F0. Quattro famiglie di

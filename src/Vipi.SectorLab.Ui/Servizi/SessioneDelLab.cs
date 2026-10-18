@@ -4174,6 +4174,43 @@ public sealed class SessioneDelLab
         }
     }
 
+    /// <summary>L'ultimo confronto dei CTR fra l'AIP espanso e il sector aperto (slice 1b), con il ciclo da cui viene.</summary>
+    public (string Ciclo, IReadOnlyList<Core.PdfAip.DifferenzaDiForma> Esiti)? UltimoConfrontoDeiCtr { get; private set; }
+
+    /// <summary>
+    /// «Confronta i CTR» (carta F6, slice 1b): i CTR dell'AIP espanso — il ciclo letto per ultimo, o il più recente nella
+    /// cartella — contro le voci CTR dei <c>MAPS</c> del sector aperto. In sola lettura: il sector non si tocca.
+    /// </summary>
+    public async Task<bool> ConfrontaICtrAsync()
+    {
+        if (Sessione is null)
+            return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
+        if (CartellaDellAipEspanso is not { } espanso)
+            return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
+        var ciclo = UltimoAipEspanso?.Ciclo
+                    ?? (Directory.Exists(espanso)
+                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
+                        : null);
+        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
+            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        try
+        {
+            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            var forme = Strati.SelectMany(s => s.Forme).ToList();
+            var esiti = await Task.Run(() => Core.PdfAip.ConfrontoDelleForme.Ctr(modello.Airspaces, forme)).ConfigureAwait(false);
+            UltimoConfrontoDeiCtr = (ciclo, esiti);
+            Registro.Scrivi("aip", $"confronto dei CTR, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
+            Rifiuto = null;
+            Avvisa();
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or global::Aip.AipJsonException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
+        }
+    }
+
     /// <summary>Il repo da cui «Prendi l'AIP espanso» clona: di base quello di prova del committente (D9).</summary>
     public string IndirizzoDellAipEspanso => _indirizzoDellAip ??= Ricordata("indirizzo-aip-espanso.txt") ?? Core.PdfAip.RepoDellAip.IndirizzoDiBase;
 

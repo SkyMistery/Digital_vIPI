@@ -153,6 +153,11 @@ public sealed class AipJsonTests
         Assert.NotEqual(Uir("A"), riletto.Airspaces[0]);
         Assert.NotEqual(Uir("G") with { Unit = "un altro" }, riletto.Airspaces[0]);
         Assert.NotEqual(Uir("G") with { Bands = null }, riletto.Airspaces[0]);
+        // Il testo si scrive com'è: le virgolette e le lettere accentate, non i loro codici.
+        var leggibile = AipJson.Serialize(new AipDocument { State = "LI", Airspaces = [Uir("G") with { Designator = "Zona/Zone \"2\"", Remarks = "attività" }] });
+        Assert.Contains("Zona/Zone \\\"2\\\"", leggibile);
+        Assert.Contains("attività", leggibile);
+        Assert.DoesNotContain("\\u00", leggibile);
         // Senza fasce il campo non si scrive.
         Assert.DoesNotContain("bands", AipJson.Serialize(new AipDocument { State = "LI", Airspaces = [Uir("G") with { Bands = null }] }));
     }

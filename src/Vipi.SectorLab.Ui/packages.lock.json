@@ -10,6 +10,12 @@
       "aip": {
         "type": "Project"
       },
+      "aip.aurora": {
+        "type": "Project",
+        "dependencies": {
+          "Aip": "[1.0.0, )"
+        }
+      },
       "aip.pdf": {
         "type": "Project",
         "dependencies": {
@@ -42,6 +48,7 @@
       "vipi.sectorlab.core": {
         "type": "Project",
         "dependencies": {
+          "Aip.Aurora": "[1.0.0, )",
           "Aip.Pdf.Italia": "[1.0.0, )",
           "Vipi.Application": "[1.0.0, )",
           "Vipi.Sectorfile": "[1.0.0, )"
