@@ -4,7 +4,18 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026, sera: F5 in corso (Aurora a lotti)
+## Dove siamo — 18 ottobre 2026: la F5 è fatta (Aurora a lotti)
+
+La **F5** è fatta, tutte e sei le slice, provate dal committente sul suo PC: la vetrina (1), il lotto (2), gli esiti
+✅/❌ con le note sui record (3), le prove come lotti — la B9, ordine a blocchi delle aerovie, provata 5/5 (4) —, il giro
+vero (5): le etichette delle aerovie del secondo giro R-10, fatte dal Lab sul banco (PR #9 sul fork), guardate dal
+committente in Aurora con una ricarica, 3 voci arrivate dalle registrazioni, 3 ✅. Strada facendo: il lotto dalle
+registrazioni, «Sul server, da guardare», il `fetch` di tutti i rami (il suo clone era a un ramo solo). Carta
+[`2026-10-18-f5-aurora-a-lotti.md`](../feature/2026-10-18-f5-aurora-a-lotti.md), §6. Resta del Lab: il giro di prove
+del lotto «Subito» (78-238), le prove a mano di slice 2-3 della F5 se il committente le vuole rifare per conto loro, il
+resto del secondo giro R-10, il passaggio al repo vero (D4 della F4).
+
+## 18 ottobre 2026, sera: F5 in corso (Aurora a lotti)
 
 La **F5** (carta [`2026-10-18-f5-aurora-a-lotti.md`](../feature/2026-10-18-f5-aurora-a-lotti.md), approvata il 18
 ottobre: D1 la **vetrina**, D2 gli esiti ❌ solo nel Lab, D3 la tabella «dove guardare» la scrive l'agente). Aurora ha

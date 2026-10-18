@@ -231,3 +231,7 @@ segnata «da confermare», e la corregge il committente.
     esteso (`RamiDelSector.ChiediAlServer`, `+refs/heads/*:refs/remotes/origin/*`), e il ramo del server da guardare si
     crea da `origin/…` per esteso (`RamiDelSector.GuardaAsync`: in quel clone `git switch` non sa indovinarlo). Il test
     del giro gira ora su un clone a un ramo solo.
+  - **Il giro del committente (18 ottobre, 11:51)**: `master` del clone portato al passo, «Porta» e «Visto» per
+    azzerare; «Chiedi le novità» → «Sul server, da guardare» → `aod/704798/r-10-etichette-aerovie`; «Porta in Aurora»:
+    1 file copiato, **3 voci dalle registrazioni** (1 commit dopo `f305e6d`); una ricarica; **3 ✅**, «Visto». **Slice 5
+    chiusa: la F5 è fatta.** La PR #9 la fonde il committente.
