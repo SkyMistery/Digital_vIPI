@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    La riga di comando del converter (carta F6, slice 0b): un modello AIP in JSON → una cartella di file di Aurora.
+    Per provarlo e per usarlo fuori dal Lab. Come il converter, niente «vIPI» e nessuna dipendenza oltre ai pezzi
+    Aip; è nella soluzione perché compili sempre.
+
+      Uso: aip-aurora modello.json cartella, con le opzioni densita (punti per grado) e con-stato (vedi Program.cs).
+      Nei commenti XML i due trattini non si possono scrivere.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>aip-aurora</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aip.Aurora\Aip.Aurora.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Il converter per Aurora (F6, docs/feature/2026-10-18-f6-pdf-aip.md, slice 0b): dal modello AIP alle righe di
+    Aurora, coi metadati //@ della carta «file per file» §M. Gli archi e i cerchi li disegna qui, alla densità
+    scelta: la geometria sulla sfera se la porta dentro, non la prende dal sito.
+
+    🔴 Un progetto a sé, come il modello (carta F6 §3): dipende SOLO da Aip e dal runtime, niente «vIPI» nel nome
+    (NessunaDipendenzaTests). Il motore del sector lo usano i test, per rileggere quel che scrive: il converter
+    no.
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Aip.Aurora</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aip\Aip.csproj" />
+  </ItemGroup>
+
+</Project>

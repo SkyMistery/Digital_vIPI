@@ -4,7 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026: la F6 è partita, slice 0a fatta (il modello AIP)
+## Dove siamo — 18 ottobre 2026: F6, slice 0a e 0b fatte (il modello AIP e il converter per Aurora)
+
+**Slice 0b fatta**: `src/Aip.Aurora` scrive le aree del modello come righe `.geo` di Aurora, un blocco §M per area
+(limiti, classe, ciclo), archi e cerchi disegnati alla densità scelta; la riga di comando `tools/Aip.Aurora.Cli`
+(`aip-aurora`); 37 test per TFM che rileggono col motore del sector. Prima, col committente, il modello rivisto:
+attività e note dentro, il quadro di tutto quel che entra nell'AIP espanso (carta F6 §6), repo privato. **Prossima:
+slice 0c**, l'importer dei PDF (serve il repo di prova dell'AIP espanso, lo crea il committente).
+
+## 18 ottobre 2026: la F6 è partita, slice 0a fatta (il modello AIP)
 
 La **slice 0a** della F6 è fatta: il progetto `src/Aip` (il modello AIP, zero dipendenze, niente «vIPI» nei nomi) col
 suo JSON versionato, aree e spazi aerei per primi; un'area di ogni forma (poligono, cerchio, archi, confine e costa) va
