@@ -4,6 +4,17 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+## Dove siamo — 18 ottobre 2026, sera: F5 in corso (Aurora a lotti)
+
+La **F5** (carta [`2026-10-18-f5-aurora-a-lotti.md`](../feature/2026-10-18-f5-aurora-a-lotti.md), approvata il 18
+ottobre: D1 la **vetrina**, D2 gli esiti ❌ solo nel Lab, D3 la tabella «dove guardare» la scrive l'agente). Aurora ha
+un «secondo sector» (`[SECTOR] SecondSector=` nel suo `Settings\profile.ini`, lo stesso file che tiene l'accesso IVAO:
+il Lab ne legge solo quella riga). **Slice 1 fatta** (`1ed29d3d`): la vetrina — una cartella del Lab a cui Aurora punta
+una volta; «Porta in Aurora» ci specchia la `SectorFiles` del sector aperto; la barra dice cosa c'è dentro e se Aurora
+la guarda; i sector recenti a un clic. Fuori slice (`675c19f6`, chiesto dal committente): la schermata d'apertura con
+«Sfoglia…» (la finestra di Windows per le cartelle, dal guscio WinForms) e il campo del repo largo. **Prossima: slice 2,
+il lotto** (le modifiche da guardare in Aurora dall'ultimo «visto», con dove guardarle).
+
 ## Dove siamo — 18 ottobre 2026: la F4 è fatta
 
 La **F4, git nel Lab**, è fatta (carta [`2026-10-17-f4-git-nel-lab.md`](../feature/2026-10-17-f4-git-nel-lab.md), traccia §7):
