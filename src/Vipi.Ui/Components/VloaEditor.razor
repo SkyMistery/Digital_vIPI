@@ -114,6 +114,9 @@ else
            il pannello finiva fuori dalla griglia, quindi largo quanto la PAGINA invece che quanto le sezioni.
            L'editor ACC, che la griglia se la costruisce da sé, lo teneva già dentro. *@
         <AfterSections>
+            @* Quante sezioni da scrivere hanno qualcosa (carta 2026-10-18-sezioni-da-scrivere). *@
+            <SezioniDaScriverePanel DocumentId="_shell.DocumentId" InModifica="_shell.IsEditing" />
+
             @* Release AIRAC: stesso componente condiviso di ACC/APP/aeroporto (doc 11 §3f), con gli STESSI parametri
                (doc 13 §3i) — mancavano l'aiuto e, per gli admin, l'annullo di una release. *@
             @* ⚠️ L'ancora `sec-versioni` è la stessa nei QUATTRO editor: è dove atterra «Ripubblica» dalla lista
