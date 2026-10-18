@@ -4,13 +4,21 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, l'AIP espanso sulla mappa (e la slice 2a)
+## Dove siamo — 19 ottobre 2026: F6, slice 2b fatta (il confronto di ENR 3)
+
+**Slice 2b fatta**: «Confronta le rotte» (ENR 3.2 contro `itawlow.lairway`: lati, tratti coi tag `//@@`, posizioni) e
+«le attese» (ENR 3.4.1 contro `HOLDENR.hold`), in sola lettura. Sulla copia: rotte 21 uguali, 3 diverse (Z910, M859,
+L869), 5 mancanti; nessun tratto del sector ha ancora i tag. Attese 51 uguali, 3 diverse di un grado, 191 non in
+`HOLDENR.hold` (105 sono attese di scalo negli `.str`), 14 solo nel sector (radioassistenze: ENR 3.4.2). Carta F6 §6.
+**Prossima: 2c**, i gesti (rotte: righe `T;` e tag dei tratti, i `locked` intoccati; attese).
+
+## 19 ottobre 2026: F6, l'AIP espanso sulla mappa (e la slice 2a)
 
 **L'AIP espanso sulla mappa**, chiesto dal committente prima della 2b: nel riquadro «AIP» «Mostra l'AIP espanso sulla
 mappa» → lo strato «AIP espanso» in fondo agli Strati, un tipo per casella (CTR, ATZ, TMA… rotte, attese), un colore
 per tipo, e un clic apre la scheda della voce in sola lettura. Separato dal sector (file `aip:<ciclo>`): nessun gesto
 lo tocca. Provato sul banco (1 312 forme, la scheda di N503). I tratti di confine e di costa seguono `itgeo.geo`
-(eccezione decisa dal committente): 44 su 44, la FIR di Milano per le Alpi. Carta F6 §6. **Prossima: 2b**.
+(eccezione decisa dal committente): 44 su 44, la FIR di Milano per le Alpi. Carta F6 §6.
 
 ## 19 ottobre 2026: F6, slice 2a fatta (l'importer di ENR 3)
 

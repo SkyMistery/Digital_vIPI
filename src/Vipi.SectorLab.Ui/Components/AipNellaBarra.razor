@@ -201,6 +201,42 @@
                 }
             </div>
         }
+        @if (Lab.CartellaDellAipEspanso is not null)
+        {
+            @* Slice 2b: ENR 3 — le rotte con itawlow.lairway, le attese con HOLDENR.hold. In sola lettura. *@
+            <div data-confronto-enr3>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-rotte" disabled="@(Lab.Sessione is null)"
+                        title="Le rotte di ENR 3.2 dell'AIP espanso contro le aerovie di itawlow.lairway: i lati, i tratti (verso e quote), le posizioni dei punti (sola lettura)"
+                        @onclick="() => ConfrontaEnr3(true)">Confronta le rotte</button>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-attese" disabled="@(Lab.Sessione is null)"
+                        title="Le attese di ENR 3.4.1 contro HOLDENR.hold: rotta d'avvicinamento, virata, quota (sola lettura)"
+                        @onclick="() => ConfrontaEnr3(false)">le attese</button>
+                @if (Lab.UltimoConfrontoDiEnr3 is { } enr3)
+                {
+                    <p class="lab-nota" data-riassunto-enr3>@(enr3.Rotte ? "Rotte" : "Attese"), ciclo @enr3.Ciclo: @string.Join(" · ", enr3.Esiti.GroupBy(e => e.Esito).Select(g => $"{Esito(g.Key)} {g.Count()}"))</p>
+                    <ul class="lab-elenco-lotto">
+                        @foreach (var e in enr3.Esiti.Where(e => e.Esito != Esiti.Uguale))
+                        {
+                            <li class="lab-nota" data-enr3="@e.Esito">
+                                @if (e.File is { } file && e.Record is { } record)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" title="Apre la voce del sector" @onclick="() => Lab.Scegli(file, record)">@Esito(e.Esito)</button>
+                                }
+                                else
+                                {
+                                    <strong>@Esito(e.Esito)</strong>
+                                }
+                                @e.Nome
+                                @foreach (var d in e.Dettagli)
+                                {
+                                    <span class="lab-nota" data-dettaglio-enr3>@d</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        }
         @if (_rifiuto is not null)
         {
             <p class="lab-avviso-breve" data-rifiuto-aip>@_rifiuto</p>
@@ -233,6 +269,8 @@
     private async Task Registra() => _rifiuto = await Lab.RegistraLAipAsync(Lab.MessaggioDellAip) ? null : Lab.Rifiuto;
 
     private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
+
+    private async Task ConfrontaEnr3(bool rotte) => _rifiuto = await Lab.ConfrontaEnr3Async(rotte) ? null : Lab.Rifiuto;
 
     private async Task Mostra(bool mostra) => _rifiuto = await Lab.MostraLAipAsync(mostra) ? null : Lab.Rifiuto;
 

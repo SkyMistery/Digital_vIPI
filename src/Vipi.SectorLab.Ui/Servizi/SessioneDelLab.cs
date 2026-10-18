@@ -4293,6 +4293,47 @@ public sealed class SessioneDelLab
         }
     }
 
+    /// <summary>L'ultimo confronto di ENR 3 (slice 2b): il ciclo, se erano le rotte o le attese, e le righe.</summary>
+    public (string Ciclo, bool Rotte, IReadOnlyList<Core.PdfAip.DifferenzaDiEnr3> Esiti)? UltimoConfrontoDiEnr3 { get; private set; }
+
+    /// <summary>
+    /// «Confronta le rotte» / «le attese» (carta F6, slice 2b): le rotte di ENR 3.2 dell'AIP espanso con le aerovie di
+    /// <c>itawlow.lairway</c>, o le attese di ENR 3.4.1 con <c>HOLDENR.hold</c>. In sola lettura.
+    /// </summary>
+    public async Task<bool> ConfrontaEnr3Async(bool rotte)
+    {
+        if (Sessione is not { } sessione)
+            return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
+        if (CartellaDellAipEspanso is not { } espanso)
+            return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
+        var ciclo = UltimoAipEspanso?.Ciclo
+                    ?? (Directory.Exists(espanso)
+                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
+                        : null);
+        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
+            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        try
+        {
+            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            if ((rotte ? modello.Routes?.Count : modello.Holdings?.Count) is not > 0)
+                return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha {(rotte ? "rotte" : "attese")}: servono i PDF di ENR 3 letti.");
+            var catalogo = CatalogoScelto;
+            var esiti = await Task.Run(() => rotte
+                ? Core.PdfAip.ConfrontoDiEnr3.Rotte(modello.Routes!, sessione, nome => catalogo?.Cerca(nome)?.Posizione)
+                : Core.PdfAip.ConfrontoDiEnr3.Attese(modello.Holdings!, sessione)).ConfigureAwait(false);
+            UltimoConfrontoDiEnr3 = (ciclo, rotte, esiti);
+            Registro.Scrivi("aip", $"confronto {(rotte ? "rotte" : "attese")}, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
+            Rifiuto = null;
+            Avvisa();
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or global::Aip.AipJsonException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
+        }
+    }
+
     /// <summary>
     /// I tratti di confine e di costa dell'AIP sul tracciato di <c>itgeo.geo</c> (lo sfondo della mappa): l'eccezione del
     /// committente, 19 ottobre. Null se il sector non ha lo sfondo.
