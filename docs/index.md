@@ -380,6 +380,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-12-notam-sui-documenti.md`](feature/2026-10-12-notam-sui-documenti.md) — I NOTAM della divisione in testa ai documenti pubblici — carta (12 ottobre 2026)
 - [`feature/2026-10-17-f4-git-nel-lab.md`](feature/2026-10-17-f4-git-nel-lab.md) — F4 — Git nel Lab: rami, commit, pull request, il ramo dell'AIRAC (17 ottobre 2026)
 - [`feature/2026-10-18-f5-aurora-a-lotti.md`](feature/2026-10-18-f5-aurora-a-lotti.md) — F5 — Aurora a lotti: vedere in Aurora tante modifiche con una ricarica sola (18 ottobre 2026)
+- [`feature/2026-10-18-f6-pdf-aip.md`](feature/2026-10-18-f6-pdf-aip.md) — F6 — Dai PDF dell'AIP al sector: le differenze, voce per voce (18 ottobre 2026)
 
 ### `filoni`
 
