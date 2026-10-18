@@ -15,6 +15,10 @@ registrazioni, «Sul server, da guardare», il `fetch` di tutti i rami (il suo c
 del lotto «Subito» (78-238), le prove a mano di slice 2-3 della F5 se il committente le vuole rifare per conto loro, il
 resto del secondo giro R-10, il passaggio al repo vero (D4 della F4).
 
+🔴 **Decisione del committente (18 ottobre)**: ogni modifica e ogni correzione sul **sector vero** si fa **dopo l'uscita
+del ciclo 2611** (in vigore dal 29 ottobre 2026): il resto del secondo giro R-10, l'ordine a blocchi nel file (B1), il
+passaggio al repo vero e il ruleset. Fino ad allora si lavora sul fork di prova e sul Lab.
+
 ## 18 ottobre 2026, sera: F5 in corso (Aurora a lotti)
 
 La **F5** (carta [`2026-10-18-f5-aurora-a-lotti.md`](../feature/2026-10-18-f5-aurora-a-lotti.md), approvata il 18
