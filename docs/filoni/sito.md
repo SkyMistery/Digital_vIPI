@@ -11,11 +11,11 @@
 > centri nel banco; nella **1.65.0** (17 ottobre, §A157) **S109** (configurazioni possibili: «Tutti i settori» della
 > mappa detto in Struttura e tradotto) e **S110** (il convertitore di coordinate perdeva l'arco con «centred on:» e
 > contava male le righe lette). La 1.64.0, col solo S109, non è mai uscita: assorbita dalla 1.65.0.
-> **S111** (18 ottobre), le **sezioni da scrivere** — in ogni editor e nella pagina Versioni quante sezioni
-> editoriali hanno qualcosa e quali sono ancora vuote — è **fuso** in `main` e va nella **1.66.0** (§A158), pronta e
-> non ancora caricata. Carta `docs/feature/2026-10-18-sezioni-da-scrivere.md`.
-> **Da fondere: S112 e S113** (18 ottobre): quante richieste dal campo sono ancora aperte, accanto a «Campo
-> richieste» nella barra dello staff e, per gli admin, accanto alla chiave in alto.
+> **S111, S112 e S113** (18 ottobre) sono **fusi** in `main` ed escono **insieme** nella **1.67.0** (§A159), pronta e
+> non ancora caricata: le **sezioni da scrivere** in ogni editor e nella pagina Versioni (carta
+> `docs/feature/2026-10-18-sezioni-da-scrivere.md`), e quante richieste dal campo sono ancora aperte — accanto a
+> «Campo richieste» nella barra dello staff e, per gli admin, sulla chiave in alto. La 1.66.0, col solo S111, non è
+> mai stata caricata: assorbita dalla 1.67.0. Niente da fondere.
 > **Resta da guardare online, col login**: il convertitore sul limite di Torino–Genova e la nota di S109 in
 > Struttura (da fuori il Master ha visto porta, 401 e health Healthy). Voci S109–S113 qui sotto.
 > Carte: `docs/feature/2026-10-12-notam-sui-documenti.md` (NOTAM) e `docs/feature/2026-10-04-copertura-unica.md`
@@ -2661,7 +2661,7 @@
   - **Prova a schermo** sulla pagina del convertitore (host di sviluppo, database nuovo): nessun avviso, 53 punti,
     «Arcs converted: 1», «lines read: 12 of 14», e sulla mappa la curva a nord-ovest verso Bra.
   - Riga in carta F1 §8 (trappole note).
-- 🔀 **S111** (fuso in `main`, esce con la **1.66.0**, §A158, non ancora caricata) le **sezioni da scrivere**: in
+- 🔀 **S111** (fuso in `main`, esce con la **1.67.0**, §A159, non ancora caricata; la 1.66.0 non è mai uscita) le **sezioni da scrivere**: in
   ogni tipo di documento, quante hanno qualcosa e quante sono ancora
   vuote (18-ott, il committente: «mi hanno chiesto di mettere in ogni tipo di file un indicatore di quante delle
   sezioni obbligatorie non siano mai state toccate e quante invece ci sia almeno scritto o messo qualcosa»). Carta
@@ -2690,7 +2690,7 @@
     Versioni con la pastiglia su 45 righe e il riquadro compatto; i cinque editor (Milano, Amendola APP, Taranto,
     Cameri, vLOA LIBB–LDZO); a «Fine modifica» il conto passa da 4 a 5 dopo un paragrafo aggiunto; italiano e inglese.
   - ⚠️ **Non visto**: il telefono, il tema chiaro; la pagina online col login vero.
-- 🟢 **S112** nella **barra dello staff**, accanto a «Campo richieste», il numero delle richieste **ancora aperte**
+- 🔀 **S112** (fuso, esce con la **1.67.0**) nella **barra dello staff**, accanto a «Campo richieste», il numero delle richieste **ancora aperte**
   (18-ott, il committente: «in questa barra in alto su Requests possiamo mettere un contatore che ci dice quante ce ne
   sono sospese?»).
   - **«Sospese» = aperte**: nuove o prese in carico, le stesse che la coda dello staff mostra di base. A zero il
@@ -2706,7 +2706,7 @@
   - **A schermo** su un database nuovo con tre richieste inventate (nuova, presa in carico, risolta): «Campo
     richieste 2», in italiano, col tema scuro e chiaro. ⚠️ La pagina delle richieste non ha la barra (la usano anche
     gli utenti): lì il numero non c'è. Non visto: il telefono.
-- 🟢 **S113** lo stesso numero **accanto alla chiave** della barra in alto, per gli **admin** (18-ott, il committente:
+- 🔀 **S113** (fuso, esce con la **1.67.0**) lo stesso numero **accanto alla chiave** della barra in alto, per gli **admin** (18-ott, il committente:
   «si può mettere il contatore anche qui per chi è admin?»).
   - Il numero è un **collegamento suo, alle richieste**; la chiave resta la porta ai permessi — un numero di richieste
     che portasse ai permessi le farebbe cercare dove non sono. Nel menù ☰ (schermo stretto) la voce «Campo richieste»
