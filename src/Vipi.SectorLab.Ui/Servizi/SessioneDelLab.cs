@@ -3651,6 +3651,13 @@ public sealed class SessioneDelLab
         return await ApriAsync(Sessione!.Cartella.Radice).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// La finestra di Windows per scegliere una cartella (chiesto dal committente il 18 ottobre: «sfogliare l'explorer, non
+    /// solo scrivere il percorso»). La mette il guscio dell'app (WinForms); senza guscio (i test, il banco) è null e i tasti
+    /// «Sfoglia…» non ci sono. Riceve il titolo e la cartella da cui partire; torna quella scelta, o null.
+    /// </summary>
+    public Func<string, string?, Task<string?>>? ScegliCartella { get; set; }
+
     // ── Aurora: la vetrina (carta F5, slice 1) ─────────────────────────────────────────────────────────────────
 
     /// <summary>Dove stanno le impostazioni di Aurora e il suo sector pubblicato: di base quelli veri, i test ne danno altri.</summary>

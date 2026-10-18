@@ -46,6 +46,11 @@
             <input class="lab-campo" value="@Lab.CartellaDellaVetrina" data-impostazione="vetrina"
                    placeholder="D:\IVAO\Aurora-vetrina" @onchange="CambiaLaVetrina" />
         </label>
+        @if (Lab.ScegliCartella is not null)
+        {
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-vetrina"
+                    title="Sceglie (o crea) la cartella della vetrina in Esplora risorse" @onclick="SfogliaLaVetrina">Sfoglia…</button>
+        }
         <p class="lab-nota">Una cartella nuova, solo del Lab: «Porta in Aurora» ci mette il sector che stai guardando. In Aurora
             metti come secondo sector la sua <code>SectorFiles</code>, una volta (carta F5).</p>
         @if (_rifiuto is not null)
@@ -66,6 +71,12 @@
 
     private void Cambia(ChangeEventArgs e)
         => _rifiuto = Lab.CambiaIlModelloDelleConfigurazioni(e.Value?.ToString()) ? null : Lab.Rifiuto;
+
+    private async Task SfogliaLaVetrina()
+    {
+        if (await Lab.ScegliCartella!("La cartella della vetrina di Aurora (nuova o vuota)", Lab.CartellaDellaVetrina) is { } scelta)
+            _rifiuto = Lab.CambiaLaVetrina(scelta) ? null : Lab.Rifiuto;
+    }
 
     private void CambiaLaVetrina(ChangeEventArgs e)
         => _rifiuto = Lab.CambiaLaVetrina(e.Value?.ToString()) ? null : Lab.Rifiuto;

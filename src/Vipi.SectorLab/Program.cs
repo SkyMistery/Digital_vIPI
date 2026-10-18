@@ -104,8 +104,11 @@ internal static class Program
         int esito;
         try
         {
+            var sessione = server.Services.GetRequiredService<SessioneDelLab>();
             using var finestra = new Finestra(ServerDelLab.Ingresso(server), diario, autoprova, attendeLaMappa: cartellaAperta,
-                lab: server.Services.GetRequiredService<SessioneDelLab>());
+                lab: sessione);
+            // «Sfoglia…» (18 ottobre): la finestra di Windows per scegliere una cartella, sul filo della finestra.
+            sessione.ScegliCartella = (titolo, iniziale) => ScegliCartella(finestra, titolo, iniziale);
             WinForms.Application.Run(finestra);
             esito = finestra.Esito;
         }
@@ -116,6 +119,35 @@ internal static class Program
             server.Services.GetRequiredService<Registro>().Scrivi("avvio", "chiuso");
         }
         return esito;
+    }
+
+    /// <summary>
+    /// La finestra di Windows per scegliere una cartella, aperta sul filo della finestra del Lab (la chiama il circuito
+    /// Blazor, da un altro filo). Torna la cartella scelta, o null se l'AOD annulla.
+    /// </summary>
+    private static Task<string?> ScegliCartella(WinForms.Form finestra, string titolo, string? iniziale)
+    {
+        var scelta = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        finestra.BeginInvoke(() =>
+        {
+            try
+            {
+                using var dialogo = new WinForms.FolderBrowserDialog
+                {
+                    Description = titolo,
+                    UseDescriptionForTitle = true,
+                    ShowNewFolderButton = true,
+                };
+                if (!string.IsNullOrWhiteSpace(iniziale) && Directory.Exists(iniziale))
+                    dialogo.InitialDirectory = iniziale;
+                scelta.SetResult(dialogo.ShowDialog(finestra) == WinForms.DialogResult.OK ? dialogo.SelectedPath : null);
+            }
+            catch (Exception e)
+            {
+                scelta.SetException(e);
+            }
+        });
+        return scelta.Task;
     }
 
     /// <summary>Il valore di un argomento con un valore: <c>--cartella D:\…</c>. Nullo se non c'è o è l'ultimo.</summary>

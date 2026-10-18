@@ -1870,3 +1870,89 @@ body.lab-trascina * {
     font: 12px/1.4 var(--lab-mono);
     margin: .3rem 0;
 }
+
+/* La schermata d'apertura (18 ottobre, chiesto dal committente): i campi larghi come quello della cartella,
+   «Sfoglia…» accanto ai percorsi, i sector recenti come voci cliccabili. */
+.lab-vuoto .lab-apri .lab-tasto-tenue {
+    padding: .4rem .7rem;
+    border: 1px solid var(--lab-linea-forte);
+    border-radius: 6px;
+}
+
+.lab-recenti {
+    margin: 1.2rem 0 .8rem;
+}
+
+.lab-recenti h2 {
+    margin: 0 0 .35rem;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--lab-tenue);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.lab-recente {
+    display: flex;
+    gap: .6rem;
+    align-items: baseline;
+    width: 100%;
+    margin: 0 0 .3rem;
+    padding: .45rem .6rem;
+    text-align: left;
+    font: inherit;
+    color: var(--lab-testo);
+    background: var(--lab-superficie);
+    border: 1px solid var(--lab-linea);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.lab-recente:hover:not(:disabled) {
+    border-color: var(--lab-accento);
+}
+
+.lab-recente .lab-nota {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lab-prendi {
+    margin: 1rem 0;
+}
+
+.lab-prendi > summary {
+    cursor: pointer;
+    color: var(--lab-accento);
+    font-weight: 600;
+    margin-bottom: .6rem;
+}
+
+.lab-campo-in-colonna {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    margin: 0 0 .7rem;
+}
+
+.lab-campo-largo,
+.lab-apri-stretta input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: .4rem .55rem;
+    border: 1px solid var(--lab-linea-forte);
+    border-radius: 6px;
+    background: var(--lab-superficie);
+    color: var(--lab-testo);
+    font: inherit;
+}
+
+.lab-apri-stretta {
+    margin: 0;
+}
+
+.lab-recente strong {
+    flex-shrink: 0;
+    white-space: nowrap;
+}

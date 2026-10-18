@@ -117,3 +117,9 @@ segnata «da confermare», e la corregge il committente.
   - **I sector recenti** (fino a otto) nella schermata d'apertura, a un clic: si passa dal clone del ciclo a quello di una
     prova, poi «Porta in Aurora».
   Test Lab 1 014 → **1 019**, due giri verdi. Da provare sul PC del committente (la «finita quando» della slice).
+- **Fuori slice (18 ottobre, chiesto dal committente)** — la schermata d'apertura. Il campo «Dal repo» largo e con lo
+  stile degli altri; **«Sfoglia…»** accanto alla cartella da aprire, alla cartella dove prendere il sector e alla vetrina
+  nelle Impostazioni: la finestra di Windows per scegliere (o creare) una cartella, che apre il guscio dell'app
+  (`Program.ScegliCartella`, `FolderBrowserDialog` sul filo della finestra) e che la pagina chiama da
+  `SessioneDelLab.ScegliCartella` — senza guscio (test, banco) i tasti non ci sono. I sector aperti di recente come voci
+  cliccabili («Aperti di recente», nome e percorso). Visto a schermo sul banco, con una scelta finta.

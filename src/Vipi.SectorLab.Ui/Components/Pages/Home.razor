@@ -189,6 +189,11 @@ else
         <div class="lab-apri">
             <input type="text" @bind="_percorso" @bind:event="oninput" placeholder="D:\…\it-aurora-sector"
                    disabled="@(Lab.Stato is StatoDelLab.InApertura)" data-campo="cartella" />
+            @if (Lab.ScegliCartella is not null)
+            {
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-cartella" disabled="@(Lab.Stato is StatoDelLab.InApertura)"
+                        title="Sceglie la cartella in Esplora risorse" @onclick="SfogliaCartella">Sfoglia…</button>
+            }
             <button class="lab-tasto" @onclick="Apri"
                     disabled="@(Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_percorso))"
                     data-tasto="apri">Apri</button>
@@ -197,29 +202,42 @@ else
         @* Carta F5, slice 1: si lavora su più sector (il ciclo dopo, una prova): quelli aperti di recente, a un clic. *@
         @if (Lab.SectorRecenti() is { Count: > 0 } recenti)
         {
-            <ul class="lab-elenco-dei-rami" data-sector-recenti>
+            <section class="lab-recenti" data-sector-recenti>
+                <h2>Aperti di recente</h2>
                 @foreach (string recente in recenti)
                 {
                     string questo = recente;
-                    <li><button type="button" class="lab-citazione" data-apri-recente="@questo" disabled="@(Lab.Stato is StatoDelLab.InApertura)"
-                                @onclick="() => Lab.ApriAsync(questo)">@questo</button></li>
+                    <button type="button" class="lab-recente" data-apri-recente="@questo" disabled="@(Lab.Stato is StatoDelLab.InApertura)"
+                            title="Apre questo sector" @onclick="() => Lab.ApriAsync(questo)">
+                        <strong>@Path.GetFileName(questo.TrimEnd('\\', '/'))</strong>
+                        <span class="lab-nota">@questo</span>
+                    </button>
                 }
-            </ul>
+            </section>
         }
 
         @* Carta F4, slice 2: chi non ha il sector lo prende dal repo, solo SectorFiles (pochi secondi, pochi mega). *@
         <details class="lab-prendi" data-prendi>
             <summary>Non hai il sector? Prendilo dal repo</summary>
-            <label class="lab-nota">Dal repo
-                <input type="text" value="@Lab.IndirizzoDelSector" @onchange="e => Lab.CambiaLIndirizzoDelSector(e.Value?.ToString())"
+            <label class="lab-campo-in-colonna">
+                <span class="lab-nota">Dal repo</span>
+                <input type="text" class="lab-campo-largo" value="@Lab.IndirizzoDelSector" @onchange="e => Lab.CambiaLIndirizzoDelSector(e.Value?.ToString())"
                        disabled="@Lab.StaPrendendo" data-campo="indirizzo-del-sector" />
             </label>
-            <div class="lab-apri">
-                <input type="text" @bind="_dovePrendere" @bind:event="oninput" placeholder="D:\…\it-aurora-sector (una cartella nuova)"
-                       disabled="@Lab.StaPrendendo" data-campo="dove-prendere" />
-                <button class="lab-tasto" @onclick="Prendi" data-tasto="prendi"
-                        disabled="@(Lab.StaPrendendo || Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_dovePrendere))">Prendi</button>
-            </div>
+            <label class="lab-campo-in-colonna">
+                <span class="lab-nota">In questa cartella (nuova o vuota)</span>
+                <span class="lab-apri lab-apri-stretta">
+                    <input type="text" @bind="_dovePrendere" @bind:event="oninput" placeholder="D:\…\it-aurora-sector"
+                           disabled="@Lab.StaPrendendo" data-campo="dove-prendere" />
+                    @if (Lab.ScegliCartella is not null)
+                    {
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-dove-prendere" disabled="@Lab.StaPrendendo"
+                                title="Sceglie (o crea) la cartella in Esplora risorse" @onclick="SfogliaDovePrendere">Sfoglia…</button>
+                    }
+                    <button type="button" class="lab-tasto" @onclick="Prendi" data-tasto="prendi"
+                            disabled="@(Lab.StaPrendendo || Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_dovePrendere))">Prendi</button>
+                </span>
+            </label>
             <p class="lab-nota">Scarica solo <code>SectorFiles</code> e i file di oggi, non la cronologia di Aurora: qualche secondo. Le
                 credenziali di GitHub non servono per prendere; per mandare le chiederà git, nella sua finestra.</p>
         </details>
@@ -291,6 +309,19 @@ else
     }
 
     private Task Apri() => Lab.ApriAsync(_percorso);
+
+    // «Sfoglia…» (committente, 18 ottobre): la cartella si sceglie in Esplora risorse, non solo scrivendola.
+    private async Task SfogliaCartella()
+    {
+        if (await Lab.ScegliCartella!("La cartella del sector (quella che contiene SectorFiles)", _percorso) is { } scelta)
+            _percorso = scelta;
+    }
+
+    private async Task SfogliaDovePrendere()
+    {
+        if (await Lab.ScegliCartella!("Dove mettere il sector preso dal repo (una cartella nuova o vuota)", _dovePrendere) is { } scelta)
+            _dovePrendere = scelta;
+    }
 
     private void Chiudi() => Lab.Chiudi();
 
