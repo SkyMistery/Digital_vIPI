@@ -115,6 +115,10 @@ public enum AirspaceType
     Atz,
     Rmz,
     Tmz,
+    Npz,
+
+    /// <summary>Spazio aereo a rotte libere (Free Route Airspace: in Italia il FRAIT).</summary>
+    Fra,
 
     // ENR 5.1 — aree vietate, regolamentate, pericolose; spazi riservati
     Prohibited,
@@ -124,6 +128,7 @@ public enum AirspaceType
     Tra,
     Cba,
 
-    // ENR 5.2 — esercitazioni e addestramento militari
+    // ENR 5.2 — esercitazioni e addestramento militari, zona di identificazione di difesa aerea
     Military,
+    Adiz,
 }
