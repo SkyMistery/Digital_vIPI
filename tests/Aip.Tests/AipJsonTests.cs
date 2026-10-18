@@ -122,6 +122,41 @@ public sealed class AipJsonTests
         Assert.Equal(p, Assert.IsType<CircleGeometry>(riletto.Airspaces[1].Geometry).Center);
     }
 
+    // Slice 1a: ENR 2 porta le fasce (la UIR: da UNL a FL660 «G», da FL660 a FL195 «C»), l'ente, gli orari, l'altitudine di
+    // transizione. L'uguaglianza di Airspace è scritta a mano per le fasce: se un campo nuovo non ci entra, qui si vede.
+    [Fact]
+    public void LeFasceELEnteVannoInJsonETornanoUguali()
+    {
+        static Airspace Uir(string classeAlta) => new()
+        {
+            Section = "ENR 2.1",
+            Type = AirspaceType.Uir,
+            Designator = "PROVA UIR",
+            Upper = new VerticalLimit { Text = "UNL", Reference = VerticalReference.Unlimited },
+            Lower = new VerticalLimit { Text = "FL195", Reference = VerticalReference.FlightLevel, Value = 195, Unit = VerticalUnit.Fl },
+            Bands =
+            [
+                new VerticalBand(new VerticalLimit { Text = "UNL" }, new VerticalLimit { Text = "FL660" }, classeAlta),
+                new VerticalBand(new VerticalLimit { Text = "FL660" }, new VerticalLimit { Text = "FL195" }, "C"),
+            ],
+            Unit = "PROVA ACC/FIC\nALTRA ACC/FIC",
+            Hours = "H24",
+            TransitionAltitude = "6000ft",
+            Geometry = new CircleGeometry(new Position(42, 12), new Distance(10, DistanceUnit.Nm)),
+        };
+        var doc = new AipDocument { State = "LI", Airspaces = [Uir("G")] };
+
+        var riletto = AipJson.Deserialize(AipJson.Serialize(doc));
+
+        Assert.Equal(doc, riletto);
+        Assert.Equal(Uir("G"), riletto.Airspaces[0]);
+        Assert.NotEqual(Uir("A"), riletto.Airspaces[0]);
+        Assert.NotEqual(Uir("G") with { Unit = "un altro" }, riletto.Airspaces[0]);
+        Assert.NotEqual(Uir("G") with { Bands = null }, riletto.Airspaces[0]);
+        // Senza fasce il campo non si scrive.
+        Assert.DoesNotContain("bands", AipJson.Serialize(new AipDocument { State = "LI", Airspaces = [Uir("G") with { Bands = null }] }));
+    }
+
     [Fact]
     public void DueAnelliConGliStessiTrattiSonoUguali_UnTrattoDiversoNo()
     {

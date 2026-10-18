@@ -4,7 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026: F6, slice 0 fatta (modello, converter, importer, AIP espanso nel Lab)
+## Dove siamo — 18 ottobre 2026: F6, slice 1a fatta (l'importer di ENR 2)
+
+**Slice 1a fatta**: ENR 2 si legge per intero — 59 PDF, 329 aree (CTR, CTA, TMA, ATZ, RMZ, NPZ, FIR/UIR con le fasce,
+FRAIT, FMC), controprova con pdfplumber spiegata file per file, ENR 5.1 ancora identico alla F0. Quattro famiglie di
+tabelle, più tabelle per pagina, barre di modifica, gruppi a zone, rimandi «As for». Nel modello: fasce verticali,
+ente, orari, altitudine di transizione. **Prossima**: la seconda PR dell'AIP espanso, poi la 1b (il confronto col
+sector, prima i CTR).
+
+## 18 ottobre 2026: F6, slice 0 fatta (modello, converter, importer, AIP espanso nel Lab)
 
 **La slice 0 della F6 è fatta.** Nel Lab il riquadro «AIP»: la cartella dei PDF («Prendi i PDF da Download», solo su
 quel tasto) e «Leggi nell'AIP espanso», che scrive il modello in `<AIP espanso>\<ciclo>\li.json`. Provato a schermo

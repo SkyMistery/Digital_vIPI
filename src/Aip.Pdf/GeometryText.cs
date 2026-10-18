@@ -57,6 +57,8 @@ public static partial class GeometryText
         ("CIRCULAR AREA", Senso.AreaCircolare),
         ("THEN LINE JOINING POINTS", Senso.Connettivo),
         ("LINE JOINING POINTS", Senso.Connettivo),
+        ("LINE JOINING FOLLOWING POINTS", Senso.Connettivo),
+        ("/", Senso.Connettivo),
         ("IN DIRECTION", Senso.Connettivo),
         ("DIRECTION", Senso.Connettivo),
         ("WITHIN A", Senso.Connettivo),
@@ -134,6 +136,9 @@ public static partial class GeometryText
 
     /// <summary>Le parole fra due punti: com'erano scritte, e in maiuscolo senza punteggiatura; il raggio se c'era.</summary>
     private sealed record Frase(string Originale, string Testo, Distance? Raggio) : Elemento;
+
+    /// <summary>Vero se il testo contiene almeno una coordinata nelle forme dell'AIP.</summary>
+    public static bool HasCoordinate(string? text) => text is not null && RxCoordinata().IsMatch(text);
 
     public static GeometryReadResult Read(string? text)
     {

@@ -19,11 +19,24 @@ public static partial class PageInfo
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
 
+    /// <summary>
+    /// La data della pagina: quella AIRAC, o — per le pagine fuori ciclo, che non la dicono — la data di pubblicazione
+    /// accanto a «AIP - Italia» (<c>AIP - Italia 27 JUL 2023</c>, ENR 2.1.1.1). Si cerca prima quella AIRAC.
+    /// </summary>
     public static DateOnly? Date(IEnumerable<string> lines)
+    {
+        var righe = lines.ToList();
+        return Cerca(righe, RxData()) ?? Cerca(righe.Where(l => l.Contains("AIP - ", StringComparison.Ordinal)), RxDataSemplice());
+    }
+
+    [GeneratedRegex(@"(?<!\d)(?<d>\d{1,2})\s+(?<m>[A-Z]{3})\s+(?<y>\d{4})", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxDataSemplice();
+
+    private static DateOnly? Cerca(IEnumerable<string> lines, Regex rx)
     {
         foreach (var l in lines)
         {
-            var m = RxData().Match(l);
+            var m = rx.Match(l);
             if (m.Success
                 && DateOnly.TryParseExact($"{m.Groups["d"].Value.PadLeft(2, '0')} {m.Groups["m"].Value} {m.Groups["y"].Value}",
                     "dd MMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))

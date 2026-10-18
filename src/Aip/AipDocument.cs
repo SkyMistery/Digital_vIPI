@@ -79,6 +79,22 @@ public sealed record Airspace
     /// </summary>
     public string? Remarks { get; init; }
 
+    /// <summary>
+    /// Le fasce verticali, quando l'area ne ha più d'una con classi diverse (la UIR di Milano: da UNL a FL660 «G», da FL660
+    /// a FL195 «C»). Vuoto per un'area di una fasca sola: allora valgono <see cref="Upper"/>, <see cref="Lower"/> e
+    /// <see cref="Class"/>, che con più fasce sono il limite più alto, il più basso e niente. Null con una fascia sola.
+    /// </summary>
+    public IReadOnlyList<VerticalBand>? Bands { get; init; }
+
+    /// <summary>L'ente che fornisce il servizio, o il nominativo e la lingua, come li stampa l'AIP (ENR 2).</summary>
+    public string? Unit { get; init; }
+
+    /// <summary>Gli orari di attività o di servizio, come li stampa l'AIP (RMZ, TMZ).</summary>
+    public string? Hours { get; init; }
+
+    /// <summary>L'altitudine di transizione, se l'AIP la dà con l'area (ATZ, CTR).</summary>
+    public string? TransitionAltitude { get; init; }
+
     public required Geometry Geometry { get; init; }
 
     /// <summary>La pagina da cui viene, con la sua data AIRAC: ogni pagina dell'AIP ha la sua.</summary>
@@ -90,7 +106,23 @@ public sealed record Airspace
     /// </summary>
     [JsonIgnore]
     public string Key => Name is null ? Designator : $"{Designator} {Name}";
+
+    // ⚠️ Scritta a mano per le fasce: l'uguaglianza dei record confronterebbe la lista per riferimento, e un'area riletta
+    // dal JSON non sarebbe più uguale a sé stessa. Un campo nuovo va aggiunto anche qui (lo prova AipJsonTests).
+    public bool Equals(Airspace? other) =>
+        other is not null
+        && Section == other.Section && Type == other.Type && Designator == other.Designator && Name == other.Name
+        && Upper == other.Upper && Lower == other.Lower && Class == other.Class
+        && Activity == other.Activity && Remarks == other.Remarks
+        && (Bands ?? []).SequenceEqual(other.Bands ?? [])
+        && Unit == other.Unit && Hours == other.Hours && TransitionAltitude == other.TransitionAltitude
+        && Equals(Geometry, other.Geometry) && Page == other.Page;
+
+    public override int GetHashCode() => HashCode.Combine(Section, Type, Designator, Name);
 }
+
+/// <summary>Una fascia verticale di un'area con più fasce: i suoi limiti e la sua classe.</summary>
+public sealed record VerticalBand(VerticalLimit Upper, VerticalLimit Lower, string? Class);
 
 /// <summary>Il riferimento della pagina (<c>ENR 5.1.2-3</c>) e la data AIRAC stampata su di lei.</summary>
 public sealed record AipPage(string Reference, DateOnly? Effective = null);

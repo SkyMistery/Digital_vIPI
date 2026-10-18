@@ -2,7 +2,7 @@ using System.Globalization;
 using Aip;
 using Aip.Pdf.Italia;
 
-// aip-pdf <pdf o cartella>... [--modello uscita.json] [--airac AACC] [--dettagli]
+// aip-pdf <pdf o cartella>... [--modello uscita.json] [--airac AACC] [--dettagli] [--aree]
 // Legge i PDF dell'AIP italiano (le cartelle per intero, sottocartelle comprese), stampa la misura e, con --modello,
 // scrive il modello AIP. Esce 0 se ha letto, 1 se un file non si apre o il modello non si scrive, 2 se gli argomenti
 // non vanno.
@@ -11,6 +11,7 @@ var ingressi = new List<string>();
 string? uscita = null;
 string? airac = null;
 var dettagli = false;
+var elenco = false;
 for (var i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -18,6 +19,7 @@ for (var i = 0; i < args.Length; i++)
         case "--modello" when i + 1 < args.Length: uscita = args[++i]; break;
         case "--airac" when i + 1 < args.Length: airac = args[++i]; break;
         case "--dettagli": dettagli = true; break;
+        case "--aree": elenco = true; break;
         case var a when a.StartsWith("--", StringComparison.Ordinal): return Uso($"opzione sconosciuta: {a}");
         default: ingressi.Add(args[i]); break;
     }
@@ -63,6 +65,11 @@ foreach (var f in file)
         Console.WriteLine($"    {g.Key}: {g.Count()}");
     foreach (var g in letto.Issues.GroupBy(p => p.Kind).OrderBy(g => g.Key))
         Console.WriteLine($"    {g.Key}: {g.Count()}");
+    if (elenco)
+        foreach (var a in letto.Airspaces)
+            Console.WriteLine($"      {a.Type,-10} {a.Key} | {a.Upper.Text} / {a.Lower.Text} {a.Class} {(a.Bands is { } b ? $"[{b.Count} fasce]" : "")}"
+                + $" | {a.Geometry switch { RingGeometry r => $"anello {r.Segments.Count}", CircleGeometry => "cerchio", _ => "?" }}"
+                + $" | {a.Unit?.Replace('\n', ';')} {a.Hours} {a.TransitionAltitude} | p.{a.Page?.Reference}");
     if (dettagli)
         foreach (var p in letto.Issues)
             Console.WriteLine($"      {p.Kind} p.{p.Page} {p.Key} {p.Detail}".TrimEnd());
@@ -92,6 +99,6 @@ return esito;
 static int Uso(string perche)
 {
     Console.Error.WriteLine(perche);
-    Console.Error.WriteLine("uso: aip-pdf <pdf o cartella>... [--modello uscita.json] [--airac AACC] [--dettagli]");
+    Console.Error.WriteLine("uso: aip-pdf <pdf o cartella>... [--modello uscita.json] [--airac AACC] [--dettagli] [--aree]");
     return 2;
 }

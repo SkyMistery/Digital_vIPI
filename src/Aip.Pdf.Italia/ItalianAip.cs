@@ -37,6 +37,12 @@ public enum ImportIssueKind
     /// <summary>Più di due limiti verticali: si tengono i primi due. <c>Detail</c> = gli altri.</summary>
     LimitsExtra,
 
+    /// <summary>
+    /// I limiti verticali non sono nella tabella ma nel testo della sezione (le FMC area di ENR 2.1.1): presi da lì, e si
+    /// dice. <c>Detail</c> = superiore / inferiore.
+    /// </summary>
+    LimitsFromText,
+
     /// <summary>Un file che l'importer non sa ancora leggere. <c>Detail</c> = il nome.</summary>
     Unsupported,
 }
@@ -101,6 +107,17 @@ public static partial class ItalianAip
         var nome = Path.GetFileNameWithoutExtension(path);
         if (nome.StartsWith("LI-ENR 5.1.", StringComparison.Ordinal))
             return ReadEnr51(PdfText.Read(path));
+        // ENR 2 (slice 1a): il tipo di base dal file — i CTR uno per file, le ATZ militari, il FRAIT; il resto dal nome.
+        if (nome.StartsWith("LI-ENR 2.1.2 ", StringComparison.Ordinal))
+            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.1", AirspaceType.Ctr);
+        if (nome == "LI-ENR 2.1.3")
+            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.1", AirspaceType.Atz);
+        if (nome.StartsWith("LI-ENR 2.1.1.", StringComparison.Ordinal))
+            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.1", null);
+        if (nome == "LI-ENR 2.2.1")
+            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.2", AirspaceType.Fra);
+        if (nome == "LI-ENR 2.2")
+            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.2", null);
         return new ImportResult([], [], [new ImportIssue(ImportIssueKind.Unsupported, null, null, Path.GetFileName(path))]);
     }
 
