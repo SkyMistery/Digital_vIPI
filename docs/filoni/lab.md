@@ -12,7 +12,8 @@ un «secondo sector» (`[SECTOR] SecondSector=` nel suo `Settings\profile.ini`, 
 il Lab ne legge solo quella riga). **Slice 1 fatta** (`1ed29d3d`): la vetrina — una cartella del Lab a cui Aurora punta
 una volta; «Porta in Aurora» ci specchia la `SectorFiles` del sector aperto; la barra dice cosa c'è dentro e se Aurora
 la guarda; i sector recenti a un clic. Fuori slice (`675c19f6`, chiesto dal committente): la schermata d'apertura con
-«Sfoglia…» (la finestra di Windows per le cartelle, dal guscio WinForms) e il campo del repo largo. **Prossima: slice 2,
+«Sfoglia…» (la finestra di Windows per le cartelle, dal guscio WinForms) e il campo del repo largo. La vetrina è
+**provata dal committente sul suo PC, la sera del 18: funziona** (slice 1 chiusa). **Prossima: slice 2,
 il lotto** (le modifiche da guardare in Aurora dall'ultimo «visto», con dove guardarle).
 
 ## Dove siamo — 18 ottobre 2026: la F4 è fatta

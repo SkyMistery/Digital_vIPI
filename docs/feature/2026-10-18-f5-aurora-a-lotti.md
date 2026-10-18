@@ -116,7 +116,8 @@ segnata «da confermare», e la corregge il committente.
     `profile.ini` finto con dentro credenziali finte, che non si leggono).
   - **I sector recenti** (fino a otto) nella schermata d'apertura, a un clic: si passa dal clone del ciclo a quello di una
     prova, poi «Porta in Aurora».
-  Test Lab 1 014 → **1 019**, due giri verdi. Da provare sul PC del committente (la «finita quando» della slice).
+  Test Lab 1 014 → **1 019**, due giri verdi. **Provata dal committente il 18 ottobre sera, sul suo PC: funziona**
+  (vetrina nelle Impostazioni, Aurora puntata una volta, «Porta in Aurora» coi sector a turno): slice chiusa.
 - **Fuori slice (18 ottobre, chiesto dal committente)** — la schermata d'apertura. Il campo «Dal repo» largo e con lo
   stile degli altri; **«Sfoglia…»** accanto alla cartella da aprire, alla cartella dove prendere il sector e alla vetrina
   nelle Impostazioni: la finestra di Windows per scegliere (o creare) una cartella, che apre il guscio dell'app
