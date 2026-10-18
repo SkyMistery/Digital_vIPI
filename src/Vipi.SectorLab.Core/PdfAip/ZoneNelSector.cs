@@ -6,46 +6,61 @@ using Vipi.Sectorfile.Shared;
 namespace Vipi.SectorLab.Core.PdfAip;
 
 /// <summary>
-/// Un CTR dell'AIP scritto come lo tiene il sector (slice 1c, «Porta nel sector» e «Sostituisci»): una voce del
-/// <c>MAPS</c> dello <c>.str</c> di scalo, <c>LIPE;MAPS;LIPE CTR; ; ;1;</c>, e sotto le righe dei punti — una zona dopo
-/// l'altra, ognuna chiusa (l'ultimo punto ripete il primo), la penna che si alza fra una zona e la prossima
-/// (<c>&lt;br&gt;</c> sul primo punto della zona). Come le voci che ci sono (<c>lipe.str</c>, <c>lipq.str</c>).
+/// Uno spazio dell'AIP (CTR, ATZ) scritto come lo tiene il sector (slice 1c, «Porta nel sector» e «Sostituisci»): una
+/// voce del <c>MAPS</c> dello <c>.str</c> di scalo, <c>LIPE;MAPS;LIPE CTR; ; ;1;</c> o <c>LIPE;MAPS;LIPE ATZ; ; ;5;</c>, e
+/// sotto le righe dei punti — una zona dopo l'altra, ognuna chiusa (l'ultimo punto ripete il primo), la penna che si alza
+/// fra una zona e la prossima (<c>&lt;br&gt;</c> sul primo punto della zona). Come le voci che ci sono (<c>lipe.str</c>,
+/// <c>lipq.str</c>). Un settore di torre di <c>twrs.tfl</c> è invece un poligono solo, che si chiude da sé: una zona,
+/// e l'ultimo punto non ripete il primo.
 /// <list type="bullet">
 /// <item>🔴 I vertici dell'AIP escono identici (<see cref="Outline"/>); archi e cerchi alla densità data.</item>
 /// <item>Un commento <c>//zona N</c> su una riga sua prima di ogni zona, se le zone sono più d'una: mai in coda a una
 /// riga di dati (Aurora la legge nel doppio del tempo).</item>
 /// <item>Un tratto di confine o di costa (l'AIP lo nomina, non lo disegna) si prende dalla linea che il sector ha già:
 /// i punti fra i due capi, se i capi ci stanno entro <see cref="TolleranzaDelConfine"/>. Senza una linea da cui
-/// prenderlo il CTR non si scrive: una retta al posto di una costa sarebbe un dato sbagliato.</item>
+/// prenderlo lo spazio non si scrive: una retta al posto di una costa sarebbe un dato sbagliato.</item>
 /// </list>
 /// </summary>
-public static class CtrNelSector
+public static class ZoneNelSector
 {
     /// <summary>Quanto un capo del tratto di confine può stare lontano da un punto della linea del sector, in NM.</summary>
     public const double TolleranzaDelConfine = 0.5;
 
-    /// <summary>La testata di una voce CTR nuova: <c>LIPE;MAPS;LIPE CTR; ; ;1;</c> (tipo 1, come tutte le 45 del sector).</summary>
-    public static string Testata(string icao) => $"{icao};MAPS;{icao} CTR; ; ;1;";
+    /// <summary>
+    /// La testata di una voce nuova del <c>MAPS</c>: <c>LIPE;MAPS;LIPE CTR; ; ;1;</c> (tipo 1, come tutte le 45 del sector)
+    /// o <c>LIPE;MAPS;LIPE ATZ; ; ;5;</c> (tipo 5, come 85 delle 87); null per i settori delle torri, che non si portano.
+    /// </summary>
+    public static string? Testata(string icao, FamigliaDelConfronto famiglia = FamigliaDelConfronto.Ctr) => famiglia switch
+    {
+        FamigliaDelConfronto.Ctr => $"{icao};MAPS;{icao} CTR; ; ;1;",
+        FamigliaDelConfronto.Atz => $"{icao};MAPS;{icao} ATZ; ; ;5;",
+        _ => null,
+    };
 
-    /// <summary>Le zone di un CTR dell'AIP (<see cref="ConfrontoDelleForme.NomeDelCtr"/>), nell'ordine del modello.</summary>
-    public static IReadOnlyList<Airspace> ZoneDi(IEnumerable<Airspace> aip, string ctr) =>
-        [.. aip.Where(a => a.Type == AirspaceType.Ctr
-                           && string.Equals(ConfrontoDelleForme.NomeDelCtr(a.Designator), ctr, StringComparison.OrdinalIgnoreCase))];
+    /// <summary>Le zone di uno spazio dell'AIP (<see cref="ConfrontoDelleForme.Gruppi"/>), nell'ordine del modello.</summary>
+    public static IReadOnlyList<Airspace> ZoneDi(IEnumerable<Airspace> aip, string nome, FamigliaDelConfronto famiglia = FamigliaDelConfronto.Ctr) =>
+        ConfrontoDelleForme.Gruppi(famiglia, aip).FirstOrDefault(g => string.Equals(g.Nome, nome, StringComparison.OrdinalIgnoreCase)).Zone ?? [];
 
     /// <summary>
-    /// Le righe dei punti del CTR, senza la testata. <paramref name="vecchia"/>: la linea che il sector ha adesso (i suoi
-    /// tratti), da cui si prendono i tratti di confine; vuota per un CTR che nel sector manca. Null se non si può
-    /// scrivere, e <paramref name="perche"/> lo dice.
+    /// Le righe dei punti, senza la testata. <paramref name="vecchia"/>: la linea che il sector ha adesso (i suoi tratti),
+    /// da cui si prendono i tratti di confine; vuota per uno spazio che nel sector manca. <paramref name="poligono"/>: un
+    /// settore di <c>twrs.tfl</c> (una zona sola, non si ripete il primo punto). Null se non si può scrivere, e
+    /// <paramref name="perche"/> lo dice.
     /// </summary>
     public static IReadOnlyList<string>? Corpo(IReadOnlyList<Airspace> zone, IReadOnlyList<IReadOnlyList<Coordinate>> vecchia,
-                                               double puntiPerGrado, out string? perche)
+                                               double puntiPerGrado, out string? perche, bool poligono = false)
     {
         ArgumentNullException.ThrowIfNull(zone);
         ArgumentNullException.ThrowIfNull(vecchia);
         perche = null;
         if (zone.Count == 0)
         {
-            perche = "Nell'AIP espanso questo CTR non ha zone.";
+            perche = "Nell'AIP espanso questo spazio non ha zone.";
+            return null;
+        }
+        if (poligono && zone.Count > 1)
+        {
+            perche = $"Nell'AIP ha {zone.Count} zone: un settore della torre è un poligono solo, si sistema a mano.";
             return null;
         }
 
@@ -65,7 +80,7 @@ public static class CtrNelSector
 
             if (zone.Count > 1)
                 righe.Add($"//zona {n + 1}");
-            for (var i = 0; i <= punti.Count; i++)
+            for (var i = 0; i < punti.Count + (poligono ? 0 : 1); i++)
             {
                 var riga = AuroraText.Coordinates(punti[i % punti.Count]) + ";";
                 righe.Add(i == 0 && n > 0 ? riga + "<br>" : riga);

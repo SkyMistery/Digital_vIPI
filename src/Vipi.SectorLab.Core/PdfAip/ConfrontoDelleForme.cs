@@ -15,6 +15,18 @@ public enum EsitoDelConfronto
 }
 
 /// <summary>
+/// Che cosa si confronta, e con quali voci del sector (carta F6 §6, slice 1b e 1c): i CTR coi <c>MAPS</c> degli
+/// <c>.str</c>; le ATZ coi <c>MAPS</c> degli <c>.str</c> o coi settori delle torri di <c>DYNAMIC_SEC/twrs.tfl</c> (il
+/// sector le tiene in tutti e due, committente 18 ottobre). TMA e CTA il sector non le tiene.
+/// </summary>
+public enum FamigliaDelConfronto
+{
+    Ctr,
+    Atz,
+    AtzDelleTorri,
+}
+
+/// <summary>
 /// Una riga della lista delle differenze. <paramref name="ScartoAip"/>: quanto il contorno dell'AIP si stacca dalla linea
 /// del sector, al massimo, in NM; <paramref name="ScartoSector"/>: quanto la linea del sector si stacca dai contorni
 /// dell'AIP. <paramref name="Dove"/>: il punto dello scarto più grande. <paramref name="SenzaTracciato"/>: i pezzi di
@@ -53,6 +65,17 @@ public static partial class ConfrontoDelleForme
     /// <summary>La soglia di base (D4, committente: 0,1 NM).</summary>
     public const double SogliaDiBase = 0.1;
 
+    /// <summary>
+    /// Oltre questo scarto (NM) la differenza è quasi certo un errore di stampa, dell'AIP o del sector, e non si sostituisce
+    /// senza aver guardato: l'ATZ di Viterbo nell'ENR 2.2 del 2610 ha il centro a «017°03'44"E» (è 012°), 221 NM in
+    /// Adriatico. Il CTR più lontano del 18 ottobre, Cagliari, stava a 7 NM.
+    /// </summary>
+    public const double ScartoDaGuardare = 25;
+
+    /// <summary>Vero se la riga ha uno scarto da errore di stampa (<see cref="ScartoDaGuardare"/>).</summary>
+    public static bool DaGuardare(DifferenzaDiForma riga) =>
+        Math.Max(riga?.ScartoAip ?? 0, riga?.ScartoSector ?? 0) > ScartoDaGuardare;
+
     /// <summary>Oltre questa distanza media un CTR non è «quello» del sector, anche se è il più vicino.</summary>
     private const double AbbinamentoMassimo = 3.0;
 
@@ -65,6 +88,20 @@ public static partial class ConfrontoDelleForme
     [GeneratedRegex(@"\bCTR\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxCtr();
 
+    [GeneratedRegex(@"\bATZ\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxAtz();
+
+    /// <summary>«ATZ Torino/Aeritalia LIMA 3 - RMZ» → «ATZ Torino/Aeritalia LIMA»: via la RMZ e il numero della zona.</summary>
+    [GeneratedRegex(@"^(?<atz>ATZ\s.*?)(?:\s+\d+)?\s*-\s*RMZ\s*$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxAtzRmz();
+
+    /// <summary>Un indicativo di località ICAO, scritto in maiuscolo (<c>LILG</c>); le città dell'AIP non lo sono.</summary>
+    [GeneratedRegex(@"\b[A-Z]{4}\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxScalo();
+
+    /// <summary>Il file dei settori delle torri.</summary>
+    public const string Torri = "twrs.tfl";
+
     private sealed record Lato(double Ax, double Ay, double Bx, double By, bool Giudicabile);
 
     /// <summary>
@@ -72,17 +109,30 @@ public static partial class ConfrontoDelleForme
     /// Lab (i punti per nome già risolti); si guardano quelle degli <c>.str</c> col nome che dice CTR.
     /// </summary>
     public static IReadOnlyList<DifferenzaDiForma> Ctr(IEnumerable<Airspace> aip, IEnumerable<FormaDellaMappa> sector, double soglia = SogliaDiBase)
-    {
-        var gruppi = aip.Where(a => a.Type == AirspaceType.Ctr)
-            .GroupBy(a => NomeDelCtr(a.Designator), StringComparer.OrdinalIgnoreCase)
-            .Select(g => (Nome: g.Key, Zone: g.ToList()))
-            .OrderBy(g => g.Nome, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        var voci = sector
-            .Where(f => f.File.EndsWith(".str", StringComparison.OrdinalIgnoreCase) && RxCtr().IsMatch(f.Etichetta) && f.Tratti.Any(t => t.Count > 1))
-            .ToList();
+        => Di(FamigliaDelConfronto.Ctr, aip, sector, soglia);
 
-        // Il centro di riferimento della proiezione: uno per CTR.
+    /// <summary>
+    /// Gli spazi dell'AIP di quella famiglia contro le voci del sector che la tengono. Le ATZ di ENR 2 sono le 16 militari
+    /// (ENR 2.1.3) e le «ATZ … - RMZ» di ENR 2.2, le zone di uno scalo insieme; le civili sono in AD 2, non ancora lette.
+    /// </summary>
+    public static IReadOnlyList<DifferenzaDiForma> Di(FamigliaDelConfronto famiglia, IEnumerable<Airspace> aip, IEnumerable<FormaDellaMappa> sector, double soglia = SogliaDiBase)
+    {
+        var gruppi = Gruppi(famiglia, aip);
+        var voci = sector.Where(f => f.Tratti.Any(t => t.Count > 1) && famiglia switch
+        {
+            FamigliaDelConfronto.Ctr => f.File.EndsWith(".str", StringComparison.OrdinalIgnoreCase) && RxCtr().IsMatch(f.Etichetta),
+            FamigliaDelConfronto.Atz => f.File.EndsWith(".str", StringComparison.OrdinalIgnoreCase) && RxAtz().IsMatch(f.Etichetta),
+            _ => f.File.EndsWith("/" + Torri, StringComparison.OrdinalIgnoreCase),
+        }).ToList();
+
+        // Lo scalo, dove l'AIP lo scrive («ATZ Vergiate LILG - RMZ»), comanda sulla vicinanza: quello spazio va solo con le
+        // voci del suo scalo (LILG LILG ATZ, LILG_TWR), e le voci di uno scalo che l'AIP nomina non vanno con altri. Misura
+        // del 18 ottobre: Vergiate, senza settore di torre, prendeva quello di Malpensa (LIMC_TWR), a 3 NM.
+        var scaloDelGruppo = gruppi.Select(g => RxScalo().Match(g.Nome) is { Success: true } m ? m.Value : null).ToList();
+        var nominati = scaloDelGruppo.OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var scaloDellaVoce = voci.Select(f => f.Etichetta.Length >= 4 && RxScalo().IsMatch(f.Etichetta[..4]) ? f.Etichetta[..4] : null).ToList();
+
+        // Il centro di riferimento della proiezione: uno per spazio.
         var candidati = new List<(int Gruppo, int Voce, double Media)>();
         var contorni = gruppi.Select(g => Contorni(g.Zone)).ToList();
         for (var g = 0; g < gruppi.Count; g++)
@@ -91,10 +141,14 @@ public static partial class ConfrontoDelleForme
             var latiAip = Proietta(contorni[g], lat0, lon0);
             for (var v = 0; v < voci.Count; v++)
             {
+                if (scaloDelGruppo[g] is { } scalo ? scaloDellaVoce[v] != scalo : scaloDellaVoce[v] is { } suo && nominati.Contains(suo))
+                    continue;
                 var latiSector = ProiettaLaVoce(voci[v], lat0, lon0);
-                if (!Vicini(latiAip, latiSector)) continue;
+                // Stesso scalo: è la sua voce anche se lontana (sarà una forma diversa, non un «manca» più un «solo nel sector»).
+                var stessoScalo = scaloDelGruppo[g] is not null;
+                if (!stessoScalo && !Vicini(latiAip, latiSector)) continue;
                 var media = Campioni(latiAip.Where(l => l.Giudicabile)).Select(p => Distanza(p, latiSector).Distanza).DefaultIfEmpty(double.MaxValue).Average();
-                if (media <= AbbinamentoMassimo) candidati.Add((g, v, media));
+                if (stessoScalo || media <= AbbinamentoMassimo) candidati.Add((g, v, media));
             }
         }
 
@@ -120,6 +174,23 @@ public static partial class ConfrontoDelleForme
             .ThenBy(e => e.Aip ?? e.Sector, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
+
+    /// <summary>Gli spazi dell'AIP di quella famiglia, a gruppi (le zone di uno stesso spazio insieme), in ordine di nome.</summary>
+    public static IReadOnlyList<(string Nome, IReadOnlyList<Airspace> Zone)> Gruppi(FamigliaDelConfronto famiglia, IEnumerable<Airspace> aip) =>
+        [.. aip.Select(a => (Nome: NomeDelGruppo(famiglia, a), Area: a))
+            .Where(x => x.Nome is not null)
+            .GroupBy(x => x.Nome!, StringComparer.OrdinalIgnoreCase)
+            .Select(g => (g.Key, (IReadOnlyList<Airspace>)[.. g.Select(x => x.Area)]))
+            .OrderBy(g => g.Item1, StringComparer.OrdinalIgnoreCase)];
+
+    /// <summary>Il nome del gruppo di uno spazio dell'AIP (<c>Bologna CTR</c>, <c>Amendola ATZ</c>, <c>ATZ Guidonia LIRG</c>), o null se non è della famiglia.</summary>
+    private static string? NomeDelGruppo(FamigliaDelConfronto famiglia, Airspace a) => famiglia switch
+    {
+        FamigliaDelConfronto.Ctr => a.Type == AirspaceType.Ctr ? NomeDelCtr(a.Designator) : null,
+        _ when a.Type == AirspaceType.Atz => a.Designator.Trim() + " ATZ",
+        _ when a.Type == AirspaceType.Rmz && RxAtzRmz().Match(a.Designator) is { Success: true } m => m.Groups["atz"].Value.Trim(),
+        _ => null,
+    };
 
     /// <summary>Un punto come lo scrive l'AIP (<c>45°35'43"N 008°55'55"E</c>), per dire all'AOD dove guardare.</summary>
     public static string Dms((double Lat, double Lon) p)
@@ -228,9 +299,16 @@ public static partial class ConfrontoDelleForme
         var k = Math.Cos(lat0 * Math.PI / 180);
         var lati = new List<Lato>();
         foreach (var tratto in voce.Tratti)
-            for (var i = 0; i + 1 < tratto.Count; i++)
-                lati.Add(new Lato((tratto[i].LongitudeDeg - lon0) * 60 * k, (tratto[i].LatitudeDeg - lat0) * 60,
-                    (tratto[i + 1].LongitudeDeg - lon0) * 60 * k, (tratto[i + 1].LatitudeDeg - lat0) * 60, true));
+        {
+            // Un'area (un settore di .tfl) si chiude da sé: il lato dall'ultimo punto al primo c'è anche se non è scritto.
+            var chiusa = voce.Tipo == TipoDiForma.Area && tratto.Count > 2 && !tratto[0].Equals(tratto[^1]);
+            for (var i = 0; i + 1 < tratto.Count + (chiusa ? 1 : 0); i++)
+            {
+                var (a, b) = (tratto[i], tratto[(i + 1) % tratto.Count]);
+                lati.Add(new Lato((a.LongitudeDeg - lon0) * 60 * k, (a.LatitudeDeg - lat0) * 60,
+                    (b.LongitudeDeg - lon0) * 60 * k, (b.LatitudeDeg - lat0) * 60, true));
+            }
+        }
         return lati;
     }
 

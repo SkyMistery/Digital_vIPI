@@ -1484,7 +1484,7 @@ public sealed class ModificheInSospeso
             fine--;
 
         int quanti = conRecord.RecordDelModello.Count;
-        return CambiaRighe(file, PdfAip.CtrNelSector.AlPostoDelCorpo(righe, da, fine - da, corpo), gesto,
+        return CambiaRighe(file, PdfAip.ZoneNelSector.AlPostoDelCorpo(righe, da, fine - da, corpo), gesto,
             riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più gli stessi record: si fa a mano, dalle righe del file.");
     }
 

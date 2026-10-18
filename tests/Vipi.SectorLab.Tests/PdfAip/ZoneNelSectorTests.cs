@@ -10,7 +10,7 @@ namespace Vipi.SectorLab.Tests.PdfAip;
 /// una zona dopo l'altra, la penna alzata fra le zone, i tratti di confine presi dalla linea che il sector ha già (Ronchi,
 /// l'unico CTR del 2610 con un tratto di confine). Dati inventati.
 /// </summary>
-public sealed class CtrNelSectorTests
+public sealed class ZoneNelSectorTests
 {
     private static readonly Position A = new(45.0, 9.0), B = new(45.0, 9.3), C = new(44.8, 9.3), D = new(44.8, 9.0);
 
@@ -33,7 +33,7 @@ public sealed class CtrNelSectorTests
     {
         var zone = new[] { Zona("Prova CTR Zona/Zone '1'", Anello(A, B, C)), Zona("Prova CTR Zona/Zone '2'", Anello(A, C, D)) };
 
-        var corpo = CtrNelSector.Corpo(zone, [], 1, out var perche);
+        var corpo = ZoneNelSector.Corpo(zone, [], 1, out var perche);
 
         Assert.Null(perche);
         Assert.Equal(
@@ -54,7 +54,7 @@ public sealed class CtrNelSectorTests
     [Fact]
     public void UnaZonaSola_SenzaCommento_ElCerchioAllaDensitaData()
     {
-        var corpo = CtrNelSector.Corpo([Zona("Prova CTR", new CircleGeometry(A, new Distance(5, DistanceUnit.Nm)))], [], 0.2, out _);
+        var corpo = ZoneNelSector.Corpo([Zona("Prova CTR", new CircleGeometry(A, new Distance(5, DistanceUnit.Nm)))], [], 0.2, out _);
 
         // 72 punti (uno ogni 5 gradi) e il primo ripetuto per chiudere; nessun commento in coda.
         Assert.Equal(73, corpo!.Count);
@@ -72,7 +72,7 @@ public sealed class CtrNelSectorTests
         // La linea del sector va al contrario (D, C, …, B, A): il tracciato si prende nel verso dell'AIP.
         var vecchia = Linea(D, new Position(44.8, 9.30001), mezzo2, mezzo1, B, A, D);
 
-        var corpo = CtrNelSector.Corpo([zona], [vecchia], 1, out var perche);
+        var corpo = ZoneNelSector.Corpo([zona], [vecchia], 1, out var perche);
 
         Assert.Null(perche);
         Assert.Equal(
@@ -92,11 +92,11 @@ public sealed class CtrNelSectorTests
     {
         var zona = Zona("Prova CTR", new RingGeometry([new LineSegment(A), new BorderSegment(B, BorderKind.State, "Italian border"), new LineSegment(C)]));
 
-        Assert.Null(CtrNelSector.Corpo([zona], [], 1, out var perche));
+        Assert.Null(ZoneNelSector.Corpo([zona], [], 1, out var perche));
         Assert.Contains("il sector non ha una linea", perche, StringComparison.Ordinal);
 
         // Una linea c'è, ma lontana dai capi del tratto: nemmeno.
-        Assert.Null(CtrNelSector.Corpo([zona], [Linea(new Position(40, 9), new Position(40, 9.3))], 1, out perche));
+        Assert.Null(ZoneNelSector.Corpo([zona], [Linea(new Position(40, 9), new Position(40, 9.3))], 1, out perche));
         Assert.Contains("non si ritrova sulla linea del sector", perche, StringComparison.Ordinal);
     }
 
@@ -105,7 +105,7 @@ public sealed class CtrNelSectorTests
     {
         string[] righe = ["//MENU MAPS", "LIXX;MAPS;LIXX CTR; ; ;1;", "N045.00.00.000;E009.00.00.000;", "N044.00.00.000;E009.00.00.000;", "", "LIXX;MAPS;LIXX ATZ; ; ;5;"];
 
-        var sostituzioni = CtrNelSector.AlPostoDelCorpo(righe, 1, 3, ["uno", "due"]);
+        var sostituzioni = ZoneNelSector.AlPostoDelCorpo(righe, 1, 3, ["uno", "due"]);
 
         Assert.Equal(["LIXX;MAPS;LIXX CTR; ; ;1;", "uno", "due"], sostituzioni[2]);
         Assert.Empty(sostituzioni[3]);
@@ -124,7 +124,21 @@ public sealed class CtrNelSectorTests
             Zona("Prova CTR Zona/Zone '3'", Anello(A, C, D)) with { Type = AirspaceType.Atz },
         ];
 
-        Assert.Equal(["Prova CTR Zona/Zone '1'", "Prova CTR Zona/Zone '2'"], CtrNelSector.ZoneDi(aip, "Prova CTR").Select(z => z.Designator));
-        Assert.Equal("LIXX;MAPS;LIXX CTR; ; ;1;", CtrNelSector.Testata("LIXX"));
+        Assert.Equal(["Prova CTR Zona/Zone '1'", "Prova CTR Zona/Zone '2'"], ZoneNelSector.ZoneDi(aip, "Prova CTR").Select(z => z.Designator));
+        Assert.Equal("LIXX;MAPS;LIXX CTR; ; ;1;", ZoneNelSector.Testata("LIXX"));
+        Assert.Equal("LIXX;MAPS;LIXX ATZ; ; ;5;", ZoneNelSector.Testata("LIXX", FamigliaDelConfronto.Atz));
+        Assert.Null(ZoneNelSector.Testata("LIXX", FamigliaDelConfronto.AtzDelleTorri));
+    }
+
+    // Un settore di twrs.tfl: un poligono solo, che si chiude da sé.
+    [Fact]
+    public void IlSettoreDellaTorre_NonRipeteIlPrimoPunto_EUnaZonaSola()
+    {
+        var corpo = ZoneNelSector.Corpo([Zona("Cameri", Anello(A, B, C))], [], 1, out _, poligono: true);
+
+        Assert.Equal(["N045.00.00.000;E009.00.00.000;", "N045.00.00.000;E009.18.00.000;", "N044.48.00.000;E009.18.00.000;"], corpo);
+
+        Assert.Null(ZoneNelSector.Corpo([Zona("ATZ Guidonia LIRG 1 - RMZ", Anello(A, B, C)), Zona("ATZ Guidonia LIRG 2 - RMZ", Anello(A, C, D))], [], 1, out var perche, poligono: true));
+        Assert.Contains("un poligono solo", perche, StringComparison.Ordinal);
     }
 }

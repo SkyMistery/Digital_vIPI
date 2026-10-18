@@ -4,12 +4,21 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 18 ottobre 2026: F6, slice 1c fatta («Sostituisci» e «Porta nel sector» per i CTR)
+## Dove siamo — 18 ottobre 2026, sera: F6, le ATZ (negli .str e in twrs.tfl)
+
+Il committente ha approvato le quattro scelte della 1c e detto dove stanno le altre famiglie: TMA e CTA il sector non
+le tiene, le ATZ sì, negli `.str` e in `twrs.tfl`. Ora si confrontano anche le ATZ, nei due posti, con «Sostituisci» e
+«Porta nel sector»: negli `.str` 34 uguali, in `twrs.tfl` 27 uguali e 4 diverse. Trovati un **errore di stampa
+nell'AIP** (il centro dell'ATZ di Viterbo a 017°E, in Adriatico: si segnala, non si sostituisce) e un abbinamento
+sbagliato (Vergiate prendeva la torre di Malpensa: ora comanda lo scalo). Carta F6 §6. **Prossima**: da decidere col
+committente (Viterbo a ENAV? le torri di Guidonia e Torino Aeritalia; poi la slice 2, ENR 3).
+
+## 18 ottobre 2026: F6, slice 1c fatta («Sostituisci» e «Porta nel sector» per i CTR)
 
 **Slice 1c fatta**: su ogni riga del confronto dei CTR un gesto — «Sostituisci» (forma diversa: la voce CTR riscritta
 per intero con le zone dell'AIP, la testata resta) e «Porta nel sector» (manca: voce nuova nello `.str` dello scalo
 scritto dall'AOD). Gesti come gli altri: diff, annulla, lotto, «Salva». Sulla copia del sector: 6 sostituite → 45 CTR
-uguali su 45; provato a schermo sul banco. Scelte da dire al committente (zone col commento su una riga sua, densità
+uguali su 45; provato a schermo sul banco. Scelte approvate dal committente (zone col commento su una riga sua, densità
 degli archi della voce, confini presi dalla linea del sector, niente `//@`): carta F6 §6. Sul sector vero dopo il 29
 ottobre. **Prossima**: da decidere col committente (ATZ/TMA/CTA: dove le tiene il sector? o la slice 2, ENR 3).
 

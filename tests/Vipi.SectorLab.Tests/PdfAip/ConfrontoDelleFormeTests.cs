@@ -151,4 +151,73 @@ public sealed class ConfrontoDelleFormeTests
     [InlineData("Aviano CTR Zona /Zone '3'", "Aviano CTR")]
     [InlineData("Senza nome", "Senza nome")]
     public void IlNomeDelCtr(string designatore, string ctr) => Assert.Equal(ctr, ConfrontoDelleForme.NomeDelCtr(designatore));
+
+    // --- le ATZ (slice 1c, dopo la risposta del committente: negli .str e in twrs.tfl) ---------------------------------
+
+    private static Airspace Spazio(AirspaceType tipo, string designatore, Geometry geometria) => Ctr(designatore, geometria) with { Type = tipo };
+
+    /// <summary>Un settore di twrs.tfl: un'area, che si chiude da sé (il primo punto non si ripete).</summary>
+    private static FormaDellaMappa Torre(string nome, int record, params Position[] punti) => new(
+        "SectorFiles/Include/IT/DYNAMIC_SEC/twrs.tfl", record, TipoDiForma.Area, nome,
+        [(IReadOnlyList<Coordinate>)[.. punti.Select(p => new Coordinate(p.Lat, p.Lon))]], []);
+
+    [Fact]
+    public void LeAtz_LeMilitariELeAtzRmz_LeZoneDiUnoScaloInsieme()
+    {
+        Airspace[] aip =
+        [
+            Spazio(AirspaceType.Atz, "Cameri", Anello(A, B, C)),
+            Spazio(AirspaceType.Rmz, "ATZ Torino/Aeritalia LIMA 3 - RMZ", Anello(A, B, C)),
+            Spazio(AirspaceType.Rmz, "ATZ Torino/Aeritalia LIMA 4 - RMZ", Anello(A, C, D)),
+            Spazio(AirspaceType.Rmz, "ATZ Crotone LIBC - RMZ", Anello(A, C, D)),
+            Spazio(AirspaceType.Rmz, "Bari LIYB - RMZ", Anello(A, C, D)),
+            Ctr("Prova CTR", Anello(A, B, C)),
+        ];
+
+        var gruppi = ConfrontoDelleForme.Gruppi(FamigliaDelConfronto.Atz, aip);
+
+        Assert.Equal(["ATZ Crotone LIBC", "ATZ Torino/Aeritalia LIMA", "Cameri ATZ"], gruppi.Select(g => g.Nome));
+        Assert.Equal(2, gruppi[1].Zone.Count);
+        Assert.Equal(gruppi.Select(g => g.Nome), ConfrontoDelleForme.Gruppi(FamigliaDelConfronto.AtzDelleTorri, aip).Select(g => g.Nome));
+    }
+
+    // Misura del 18 ottobre: Vergiate (LILG) non ha un settore di torre, e prendeva quello di Malpensa, a 3 NM.
+    [Fact]
+    public void LoScaloComanda_UnaVoceDiUnAltroScaloNonSiPrende()
+    {
+        var aip = Spazio(AirspaceType.Rmz, "ATZ Vergiate LILG - RMZ", Anello(A, B, C, D));
+        var malpensa = Torre("LIMC_TWR", 4, A, B, C, D);
+
+        var esiti = ConfrontoDelleForme.Di(FamigliaDelConfronto.AtzDelleTorri, [aip], [malpensa]);
+
+        Assert.Equal([(EsitoDelConfronto.MancaNelSector, "ATZ Vergiate LILG", (string?)null), (EsitoDelConfronto.SoloNelSector, null, "LIMC_TWR")],
+            esiti.Select(e => (e.Esito, e.Aip, e.Sector)));
+    }
+
+    // Viterbo, ENR 2.2 del 2610: il centro dell'ATZ stampato a 017°03'44"E (è 012°). Stesso scalo: forma diversa, da guardare.
+    [Fact]
+    public void LoStessoScaloLontano_EUnaFormaDiversaDaGuardare()
+    {
+        var aip = Spazio(AirspaceType.Rmz, "ATZ Viterbo LIRV - RMZ", new CircleGeometry(new Position(42.434, 17.062), new Distance(5, DistanceUnit.Nm)));
+        var sector = Voce("LIRV ATZ", Chiuso([.. Enumerable.Range(0, 72).Select(i => Sphere.Destination(new Position(42.434, 12.062), i * 5, 5))]));
+
+        var esito = Assert.Single(ConfrontoDelleForme.Di(FamigliaDelConfronto.Atz, [aip], [sector]));
+
+        Assert.Equal((EsitoDelConfronto.FormaDiversa, "LIRV LIRV ATZ"), (esito.Esito, esito.Sector));
+        Assert.True(esito.ScartoAip > 200, $"{esito.ScartoAip}");
+        Assert.True(ConfrontoDelleForme.DaGuardare(esito));
+    }
+
+    // Cameri, 18 ottobre: il settore di twrs.tfl non ripete il primo punto; il lato che lo chiude conta.
+    [Fact]
+    public void IlSettoreDellaTorreSiChiudeDaSe()
+    {
+        var aip = Spazio(AirspaceType.Atz, "Cameri", Anello(A, B, C, D));
+
+        var esito = Assert.Single(ConfrontoDelleForme.Di(FamigliaDelConfronto.AtzDelleTorri, [aip], [Torre("LIMN_TWR", 7, A, B, C, D)]));
+
+        Assert.Equal((EsitoDelConfronto.Uguale, "LIMN_TWR", 7), (esito.Esito, esito.Sector, esito.Record));
+        // Le voci CTR e ATZ degli .str non sono settori di torre, e viceversa.
+        Assert.Equal(EsitoDelConfronto.MancaNelSector, Assert.Single(ConfrontoDelleForme.Di(FamigliaDelConfronto.Atz, [aip], [Torre("LIMN_TWR", 7, A, B, C, D)])).Esito);
+    }
 }

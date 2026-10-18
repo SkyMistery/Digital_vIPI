@@ -4174,14 +4174,17 @@ public sealed class SessioneDelLab
         }
     }
 
-    /// <summary>L'ultimo confronto dei CTR fra l'AIP espanso e il sector aperto (slice 1b), con il ciclo da cui viene.</summary>
-    public (string Ciclo, IReadOnlyList<Core.PdfAip.DifferenzaDiForma> Esiti)? UltimoConfrontoDeiCtr { get; private set; }
+    /// <summary>
+    /// L'ultimo confronto fra l'AIP espanso e il sector aperto (slice 1b e 1c): il ciclo da cui viene, che cosa si è
+    /// confrontato (i CTR, le ATZ negli <c>.str</c>, le ATZ in <c>twrs.tfl</c>) e le righe.
+    /// </summary>
+    public (string Ciclo, Core.PdfAip.FamigliaDelConfronto Famiglia, IReadOnlyList<Core.PdfAip.DifferenzaDiForma> Esiti)? UltimoConfronto { get; private set; }
 
     /// <summary>
-    /// «Confronta i CTR» (carta F6, slice 1b): i CTR dell'AIP espanso — il ciclo letto per ultimo, o il più recente nella
-    /// cartella — contro le voci CTR dei <c>MAPS</c> del sector aperto. In sola lettura: il sector non si tocca.
+    /// «Confronta» (carta F6, slice 1b): gli spazi dell'AIP espanso di quella famiglia — il ciclo letto per ultimo, o il più
+    /// recente nella cartella — contro le voci del sector aperto che la tengono. In sola lettura: il sector non si tocca.
     /// </summary>
-    public async Task<bool> ConfrontaICtrAsync()
+    public async Task<bool> ConfrontaAsync(Core.PdfAip.FamigliaDelConfronto famiglia = Core.PdfAip.FamigliaDelConfronto.Ctr)
     {
         if (Sessione is null)
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
@@ -4197,10 +4200,10 @@ public sealed class SessioneDelLab
         {
             var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
             var forme = Strati.SelectMany(s => s.Forme).ToList();
-            var esiti = await Task.Run(() => Core.PdfAip.ConfrontoDelleForme.Ctr(modello.Airspaces, forme)).ConfigureAwait(false);
-            UltimoConfrontoDeiCtr = (ciclo, esiti);
+            var esiti = await Task.Run(() => Core.PdfAip.ConfrontoDelleForme.Di(famiglia, modello.Airspaces, forme)).ConfigureAwait(false);
+            UltimoConfronto = (ciclo, famiglia, esiti);
             _aipDelConfronto = modello;
-            Registro.Scrivi("aip", $"confronto dei CTR, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
+            Registro.Scrivi("aip", $"confronto {famiglia}, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
             Rifiuto = null;
             Avvisa();
             return true;
@@ -4212,82 +4215,87 @@ public sealed class SessioneDelLab
         }
     }
 
-    /// <summary>Il modello dell'AIP espanso da cui viene <see cref="UltimoConfrontoDeiCtr"/>: i gesti della slice 1c ne prendono le zone.</summary>
+    /// <summary>Il modello dell'AIP espanso da cui viene <see cref="UltimoConfronto"/>: i gesti della slice 1c ne prendono le zone.</summary>
     private global::Aip.AipDocument? _aipDelConfronto;
 
     /// <summary>
-    /// «Sostituisci» (carta F6, slice 1c): la voce CTR del sector, con la forma diversa, riscritta per intero con le zone
-    /// dell'AIP del confronto. La testata resta (coi tag sopra); gli archi alla densità che la voce ha già, o a quella di
-    /// base; i tratti di confine presi dalla linea di adesso. Un gesto come gli altri: diff, annulla, lotto di Aurora.
+    /// «Sostituisci» (carta F6, slice 1c): la voce del sector con la forma diversa — un CTR o un'ATZ del <c>MAPS</c>, un
+    /// settore di <c>twrs.tfl</c> — riscritta per intero con le zone dell'AIP del confronto. La testata resta (coi tag
+    /// sopra); gli archi alla densità che la voce ha già, o a quella di base; i tratti di confine presi dalla linea di
+    /// adesso. Un gesto come gli altri: diff, annulla, lotto di Aurora.
     /// </summary>
-    public bool SostituisciIlCtr(Core.PdfAip.DifferenzaDiForma riga)
+    public bool SostituisciLaVoce(Core.PdfAip.DifferenzaDiForma riga)
     {
         ArgumentNullException.ThrowIfNull(riga);
-        if (Sessione is null || UltimoConfrontoDeiCtr is not { } confronto || _aipDelConfronto is not { } aip)
-            return Rifiuta("Confronta i CTR prima: si sostituisce una riga del confronto.");
-        if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.FormaDiversa, Aip: { } ctr, File: { } file, Record: { } record, Sector: { } voce })
+        if (Sessione is null || UltimoConfronto is not { } confronto || _aipDelConfronto is not { } aip)
+            return Rifiuta("Confronta prima: si sostituisce una riga del confronto.");
+        if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.FormaDiversa, Aip: { } nome, File: { } file, Record: { } record, Sector: { } voce })
             return Rifiuta("Si sostituisce una voce del sector con la forma diversa da quella dell'AIP.");
-        if (Sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord
-            || record >= conRecord.RecordDelModello.Count
-            || conRecord.RecordDelModello[record] is not GeometricStrRecord mappa
-            || $"{mappa.IcaoCode} {mappa.ProcedureId}" != voce)
+        if (Core.PdfAip.ConfrontoDelleForme.DaGuardare(riga))
+            return Rifiuta($"{nome}: più di {Core.PdfAip.ConfrontoDelleForme.ScartoDaGuardare:0} NM fra l'AIP e il sector, quasi certo un errore di stampa. Guarda il PDF: si corregge a mano.");
+        // La linea di adesso, coi punti per nome già risolti: deve essere ancora quella voce.
+        if (Strati.SelectMany(s => s.Forme).FirstOrDefault(f => f.File == file && f.Record == record && f.Etichetta == voce) is not { } forma)
             return Rifiuta($"La voce {voce} non è più dov'era quando hai confrontato: confronta di nuovo.");
 
-        IReadOnlyList<IReadOnlyList<Coordinate>> vecchia = [.. mappa.Segments.Select(s => (IReadOnlyList<Coordinate>)[.. s.Points])];
-        var densita = Core.PdfAip.CtrNelSector.DensitaDi(vecchia, DensitaDiBase);
-        if (Core.PdfAip.CtrNelSector.Corpo(Core.PdfAip.CtrNelSector.ZoneDi(aip.Airspaces, ctr), vecchia, densita, out var perche) is not { } corpo)
+        var vecchia = forma.Tratti;
+        var poligono = confronto.Famiglia == Core.PdfAip.FamigliaDelConfronto.AtzDelleTorri;
+        var densita = Core.PdfAip.ZoneNelSector.DensitaDi(vecchia, DensitaDiBase);
+        if (Core.PdfAip.ZoneNelSector.Corpo(Core.PdfAip.ZoneNelSector.ZoneDi(aip.Airspaces, nome, confronto.Famiglia), vecchia, densita, out var perche, poligono) is not { } corpo)
             return Rifiuta(perche!);
 
-        string gesto = $"{voce}: la forma di {ctr} dall'AIP {confronto.Ciclo}";
+        string gesto = $"{voce}: la forma di {nome} dall'AIP {confronto.Ciclo}";
         bool fatto = NellaStoria(gesto, () => GestoSulTesto(file, "aip", f => Modifiche.SostituisciIlCorpo(f, record, corpo, gesto)));
         if (fatto)
-            RifaiIlConfrontoDeiCtr();
+            RifaiIlConfronto();
         return fatto;
     }
 
     /// <summary>
-    /// «Porta nel sector» (carta F6, slice 1c): un CTR che nel sector manca, scritto come voce nuova del <c>MAPS</c> nello
-    /// <c>.str</c> dello scalo <paramref name="icao"/> (lo dice l'AOD: l'AIP nomina il CTR per città), prima delle altre
-    /// voci del <c>MAPS</c>. Lo <c>.str</c> deve esserci e non avere già una voce CTR.
+    /// «Porta nel sector» (carta F6, slice 1c): un CTR o un'ATZ che nel sector manca, scritto come voce nuova del
+    /// <c>MAPS</c> nello <c>.str</c> dello scalo <paramref name="icao"/> (lo dice l'AOD: l'AIP nomina lo spazio per città),
+    /// prima delle altre voci del <c>MAPS</c>. Lo <c>.str</c> deve esserci e non avere già quella voce. I settori di
+    /// <c>twrs.tfl</c> non si portano: un settore nuovo è una posizione nuova, si fa a mano.
     /// </summary>
-    public bool PortaIlCtr(Core.PdfAip.DifferenzaDiForma riga, string? icao)
+    public bool PortaNelSector(Core.PdfAip.DifferenzaDiForma riga, string? icao)
     {
         ArgumentNullException.ThrowIfNull(riga);
-        if (Sessione is null || UltimoConfrontoDeiCtr is not { } confronto || _aipDelConfronto is not { } aip)
-            return Rifiuta("Confronta i CTR prima: si porta una riga del confronto.");
-        if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.MancaNelSector, Aip: { } ctr })
-            return Rifiuta("Si porta nel sector un CTR che nel sector manca.");
+        if (Sessione is null || UltimoConfronto is not { } confronto || _aipDelConfronto is not { } aip)
+            return Rifiuta("Confronta prima: si porta una riga del confronto.");
+        if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.MancaNelSector, Aip: { } nome })
+            return Rifiuta("Si porta nel sector uno spazio che nel sector manca.");
         var scalo = icao?.Trim().ToUpperInvariant() ?? "";
+        if (Core.PdfAip.ZoneNelSector.Testata(scalo, confronto.Famiglia) is not { } testata)
+            return Rifiuta("Un settore nuovo della torre è una posizione nuova: si scrive a mano in twrs.tfl.");
         if (scalo.Length != 4 || !scalo.All(char.IsAsciiLetter))
-            return Rifiuta("Scrivi lo scalo del CTR, quattro lettere (LIPE): il CTR va nel suo .str.");
+            return Rifiuta("Scrivi lo scalo, quattro lettere (LIPE): la voce va nel suo .str.");
         var file = Sessione.File.Keys.FirstOrDefault(k => string.Equals(NomeDelFile(k), scalo + ".str", StringComparison.OrdinalIgnoreCase));
         if (file is null || Sessione.File[file] is not IFileConRecord conRecord)
             return Rifiuta($"Nel sector non c'è {scalo.ToLowerInvariant()}.str: prima va creato lo scalo.");
-        var voci = conRecord.RecordDelModello.OfType<StrRecord>().ToList();
-        if (voci.Any(v => v.RunwaySpec == "MAPS" && v.ProcedureId.Equals(scalo + " CTR", StringComparison.OrdinalIgnoreCase)))
-            return Rifiuta($"{NomeDelFile(file)} ha già la voce {scalo} CTR: se la forma è diversa, si sostituisce.");
-        if (Core.PdfAip.CtrNelSector.Corpo(Core.PdfAip.CtrNelSector.ZoneDi(aip.Airspaces, ctr), [], DensitaDiBase, out var perche) is not { } corpo)
+        var etichetta = testata.Split(';')[2];
+        if (conRecord.RecordDelModello.OfType<StrRecord>().Any(v => v.RunwaySpec == "MAPS" && v.ProcedureId.Equals(etichetta, StringComparison.OrdinalIgnoreCase)))
+            return Rifiuta($"{NomeDelFile(file)} ha già la voce {etichetta}: se la forma è diversa, si sostituisce.");
+        if (Core.PdfAip.ZoneNelSector.Corpo(Core.PdfAip.ZoneNelSector.ZoneDi(aip.Airspaces, nome, confronto.Famiglia), [], DensitaDiBase, out var perche) is not { } corpo)
             return Rifiuta(perche!);
 
         // Prima della prima voce del MAPS; in un file senza MAPS, prima del primo record; in un file vuoto di record, in fondo.
         int prima = Math.Max(0, conRecord.RecordDelModello.ToList().FindIndex(r => r is StrRecord { RunwaySpec: "MAPS" }));
-        IReadOnlyList<string> righe = [Core.PdfAip.CtrNelSector.Testata(scalo), .. corpo];
-        string gesto = $"{scalo} CTR portato dall'AIP {confronto.Ciclo} ({ctr})";
+        IReadOnlyList<string> righe = [testata, .. corpo];
+        string gesto = $"{etichetta} portato dall'AIP {confronto.Ciclo} ({nome})";
         bool fatto = NellaStoria(gesto, () => GestoSulTesto(file, "aip", f => Modifiche.AggiungiLeRighe(f, prima, righe, gesto)));
         if (fatto)
         {
             Scelta = (file, prima);
-            RifaiIlConfrontoDeiCtr();
+            RifaiIlConfronto();
         }
         return fatto;
     }
 
     /// <summary>Dopo un gesto della slice 1c il confronto si rifà sulle forme di adesso: la riga sistemata diventa «uguale».</summary>
-    private void RifaiIlConfrontoDeiCtr()
+    private void RifaiIlConfronto()
     {
-        if (UltimoConfrontoDeiCtr is not { } confronto || _aipDelConfronto is not { } aip)
+        if (UltimoConfronto is not { } confronto || _aipDelConfronto is not { } aip)
             return;
-        UltimoConfrontoDeiCtr = (confronto.Ciclo, Core.PdfAip.ConfrontoDelleForme.Ctr(aip.Airspaces, Strati.SelectMany(s => s.Forme).ToList()));
+        UltimoConfronto = (confronto.Ciclo, confronto.Famiglia, Core.PdfAip.ConfrontoDelleForme.Di(confronto.Famiglia, aip.Airspaces, Strati.SelectMany(s => s.Forme).ToList()));
         Avvisa();
     }
 

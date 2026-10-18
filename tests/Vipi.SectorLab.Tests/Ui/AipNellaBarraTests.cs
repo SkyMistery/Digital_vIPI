@@ -94,7 +94,7 @@ public sealed class AipNellaBarraTests : IDisposable
         var pagina = _contesto.RenderComponent<Home>();
 
         // Senza un ciclo letto si dice.
-        Assert.False(await _lab.ConfrontaICtrAsync());
+        Assert.False(await _lab.ConfrontaAsync());
         Assert.Contains("non c'è ancora un ciclo", _lab.Rifiuto, StringComparison.Ordinal);
 
         // Un CTR inventato, in Sardegna: nel sector di prova non c'è; il CTR di Roma del sector non è nell'AIP.
@@ -114,7 +114,7 @@ public sealed class AipNellaBarraTests : IDisposable
 
         pagina.WaitForAssertion(() =>
         {
-            Assert.Equal("Ciclo 2611: manca nel sector 1 · solo nel sector 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim());
+            Assert.Equal("CTR, ciclo 2611: manca nel sector 1 · solo nel sector 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim());
             Assert.Equal(2, pagina.FindAll("[data-differenza]").Count);
         }, TimeSpan.FromSeconds(10));
         await pagina.InvokeAsync(() => pagina.Find("[data-differenza=SoloNelSector] button").Click());
@@ -131,16 +131,20 @@ public sealed class AipNellaBarraTests : IDisposable
         Geometry = geometria,
     };
 
-    private async Task<Bunit.IRenderedComponent<Home>> ConfrontaConAsync(string str, params Airspace[] aip)
+    private Task<Bunit.IRenderedComponent<Home>> ConfrontaConAsync(string str, params Airspace[] aip) => ConfrontaConAsync(str, null, "confronta-ctr", aip);
+
+    private async Task<Bunit.IRenderedComponent<Home>> ConfrontaConAsync(string str, string? torri, string tasto, params Airspace[] aip)
     {
         _albero.Scrivi("SectorFiles/Include/IT/lirf.str", str);
+        if (torri is not null)
+            _albero.Scrivi("SectorFiles/Include/IT/DYNAMIC_SEC/twrs.tfl", torri);
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var espanso = Path.Combine(_fuori, "espanso");
         Assert.True(_lab.CambiaLAipEspanso(espanso), _lab.Rifiuto);
         Directory.CreateDirectory(Path.Combine(espanso, "2611"));
         await File.WriteAllTextAsync(Path.Combine(espanso, "2611", "li.json"), AipJson.Serialize(new AipDocument { State = "LI", Airac = "2611", Airspaces = aip }));
         var pagina = _contesto.RenderComponent<Home>();
-        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=confronta-ctr]").Click());
+        await pagina.InvokeAsync(() => pagina.Find($"[data-tasto={tasto}]").Click());
         return pagina;
     }
 
@@ -157,12 +161,12 @@ public sealed class AipNellaBarraTests : IDisposable
                 new LineSegment(new Position(41.8, 12.5)), new LineSegment(new Position(41.8, 12.0))])),
             CtrDiProva("Roma CTR Zona/Zone '2'", new RingGeometry([
                 new LineSegment(new Position(42.0, 12.0)), new LineSegment(new Position(41.8, 12.0)), new LineSegment(new Position(41.9, 11.9))])));
-        pagina.WaitForAssertion(() => Assert.Equal("Ciclo 2611: forma diversa 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("CTR, ciclo 2611: forma diversa 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         string prima = string.Join("\n", _lab.RigheDiAdesso("SectorFiles/Include/IT/lirf.str"));
 
-        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=sostituisci-ctr]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=sostituisci]").Click());
 
-        pagina.WaitForAssertion(() => Assert.Equal("Ciclo 2611: uguali 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("CTR, ciclo 2611: uguali 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         var righe = _lab.RigheDiAdesso("SectorFiles/Include/IT/lirf.str");
         Assert.Equal(
         [
@@ -190,19 +194,19 @@ public sealed class AipNellaBarraTests : IDisposable
             "//MENU MAPS\r\nLIRF;MAPS;LIRF ATZ; ; ;5;\r\nN041.50.00.000;E012.10.00.000;\r\nN041.52.00.000;E012.10.00.000;\r\n",
             CtrDiProva("Roma CTR", new RingGeometry([
                 new LineSegment(new Position(42.0, 12.0)), new LineSegment(new Position(42.0, 12.5)), new LineSegment(new Position(41.8, 12.5))])));
-        pagina.WaitForAssertion(() => Assert.Equal("Ciclo 2611: manca nel sector 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("CTR, ciclo 2611: manca nel sector 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
 
         // Senza scalo, o con uno che non ha il suo .str, si dice.
-        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=porta-ctr]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=porta]").Click());
         Assert.Contains("quattro lettere", _lab.Rifiuto, StringComparison.Ordinal);
-        await pagina.InvokeAsync(() => pagina.Find("[data-campo=scalo-ctr]").Change("lixx"));
-        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=porta-ctr]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=scalo]").Change("lixx"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=porta]").Click());
         Assert.Contains("non c'è lixx.str", _lab.Rifiuto, StringComparison.Ordinal);
 
-        await pagina.InvokeAsync(() => pagina.Find("[data-campo=scalo-ctr]").Change("lirf"));
-        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=porta-ctr]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=scalo]").Change("lirf"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=porta]").Click());
 
-        pagina.WaitForAssertion(() => Assert.Equal("Ciclo 2611: uguali 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("CTR, ciclo 2611: uguali 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         Assert.Equal(
         [
             "//MENU MAPS", "LIRF;MAPS;LIRF CTR; ; ;1;",
@@ -212,8 +216,43 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Equal(("SectorFiles/Include/IT/lirf.str", 0), _lab.Scelta);
 
         // Una seconda volta no: la voce CTR c'è già.
-        Assert.False(_lab.PortaIlCtr(new Vipi.SectorLab.Core.PdfAip.DifferenzaDiForma(Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.MancaNelSector, "Roma CTR", 1, null, null, null, null, null, null, false), "LIRF"));
+        Assert.False(_lab.PortaNelSector(new Vipi.SectorLab.Core.PdfAip.DifferenzaDiForma(Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.MancaNelSector, "Roma CTR", 1, null, null, null, null, null, null, false), "LIRF"));
         Assert.Contains("ha già la voce LIRF CTR", _lab.Rifiuto, StringComparison.Ordinal);
+    }
+
+    // Le ATZ in twrs.tfl: il settore della torre riscritto senza ripetere il primo punto; niente «Porta nel sector»; una
+    // differenza da errore di stampa (Viterbo, 221 NM) si mostra senza «Sostituisci».
+    [Fact]
+    public async Task AtzDelleTorri_SostituisciIlSettore_ELErroreDiStampaSiGuarda()
+    {
+        var pagina = await ConfrontaConAsync(
+            "//MENU MAPS\r\nLIRF;MAPS;LIRF ATZ; ; ;5;\r\nN041.50.00.000;E012.10.00.000;\r\nN041.52.00.000;E012.10.00.000;\r\n",
+            "//----------LIRR--------------\r\nLIRF_TWR;TWR;1;TWR;1;\r\nN042.00.00.000;E012.00.00.000;\r\nN042.00.00.000;E012.30.00.000;\r\nN041.48.00.000;E012.30.00.000;\r\nN041.48.00.000;E012.00.00.000;\r\n\r\n"
+            + "LIRV_TWR;TWR;1;TWR;1;\r\nN042.30.00.000;E012.00.00.000;\r\nN042.30.00.000;E012.10.00.000;\r\nN042.20.00.000;E012.10.00.000;\r\n",
+            "confronta-torri",
+            CtrDiProva("ATZ Roma LIRF - RMZ", new RingGeometry([
+                new LineSegment(new Position(42.0, 12.0)), new LineSegment(new Position(42.0, 12.5)), new LineSegment(new Position(41.9, 12.6)),
+                new LineSegment(new Position(41.8, 12.5)), new LineSegment(new Position(41.8, 12.0))])) with { Type = AirspaceType.Rmz },
+            CtrDiProva("ATZ Viterbo LIRV - RMZ", new CircleGeometry(new Position(42.43, 17.06), new Distance(5, DistanceUnit.Nm))) with { Type = AirspaceType.Rmz });
+        pagina.WaitForAssertion(() => Assert.Equal("ATZ in twrs.tfl, ciclo 2611: forma diversa 2", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        Assert.Single(pagina.FindAll("[data-tasto=sostituisci]"));
+        Assert.Single(pagina.FindAll("[data-da-guardare]"));
+        Assert.Empty(pagina.FindAll("[data-tasto=porta]"));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=sostituisci]").Click());
+
+        pagina.WaitForAssertion(() => Assert.Equal("ATZ in twrs.tfl, ciclo 2611: forma diversa 1 · uguali 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        Assert.Equal(
+        [
+            "//----------LIRR--------------", "LIRF_TWR;TWR;1;TWR;1;",
+            "N042.00.00.000;E012.00.00.000;", "N042.00.00.000;E012.30.00.000;", "N041.54.00.000;E012.36.00.000;",
+            "N041.48.00.000;E012.30.00.000;", "N041.48.00.000;E012.00.00.000;", "", "LIRV_TWR;TWR;1;TWR;1;",
+        ], _lab.RigheDiAdesso("SectorFiles/Include/IT/DYNAMIC_SEC/twrs.tfl").Take(9));
+
+        // Viterbo no: si guarda il PDF.
+        var viterbo = _lab.UltimoConfronto!.Value.Esiti.Single(e => e.Esito == Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto.FormaDiversa);
+        Assert.False(_lab.SostituisciLaVoce(viterbo));
+        Assert.Contains("errore di stampa", _lab.Rifiuto, StringComparison.Ordinal);
     }
 
     [Fact]
