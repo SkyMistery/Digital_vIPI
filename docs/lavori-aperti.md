@@ -43,7 +43,12 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A159 — 1.67.0 PRONTA, da caricare: le richieste aperte nella barra e sulla chiave (S112, S113), e dentro la 1.66.0 mai caricata (S111) (18 ottobre 2026)
+### ✅ A159 — 1.67.0 ONLINE: le richieste aperte nella barra e sulla chiave (S112, S113), e dentro la 1.66.0 mai caricata (S111) (18 ottobre 2026)
+
+✅ Online dal 18 ottobre 2026: il committente conferma la 1.67 e `Schema 0`. Da fuori, da anonimo, alle 10:17Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti 401, `vipi-theme.css?v=e5905e88` (quello del pacchetto), `/vsop/health`
+e `/vsop/health/ready` Healthy. Non guardati da qui, dietro il login: il numero accanto a «Campo richieste» e sulla
+chiave, il riquadro «Sezioni da scrivere» negli editor.
 
 MINOR **senza migrazioni**, misurata dalla **1.65.0** (`38a26f3`) che gira: la 1.66.0 (§A158) era pronta e non è mai
 stata caricata — il committente: «aspetta, non ho ancora caricato, fondi anche il nuovo» —, quindi questa la contiene e
