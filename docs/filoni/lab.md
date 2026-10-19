@@ -10,8 +10,10 @@ L'importer legge ora tutto quel che è testo: **ENR 3.4.2** (129 attese sulle ra
 corridoi OAT), **ENR 5.3** (31 pericoli: palloni sonda, laser, vulcani; 5.3.4 solo regole) e la **carta ATC SMAC** dei 5
 scali (78 settori, il `.mva`). Nel modello: `Hazard`, `MinimumAltitudeArea`, due campi di `Holding` (tutti
 facoltativi, schema 2). Controprove con pdfplumber: tornano tutte. Restano fuori le carte di AD 2 che sono immagini
-(2, 3, 5) e le SID/STAR (4, 6, la F7). Registrato: **PR #9** (solo aggiunte). Carta F6 §6, «L'importer dei PDF finito».
-**Prossimo**: lo sceglie il committente (i confronti delle parti nuove, la F7, la slice 6 del ciclo).
+(2, 3, 5) e le SID/STAR (4, 6, la F7). Registrato: **PR #9** (solo aggiunte), **fusa**: l'AIP espanso 2610 ha ora 1 096
+aree, 542 attese, 31 pericoli e 78 settori SMAC, da 123 PDF su 148. Carta F6 §6, «L'importer dei PDF finito».
+**Prossimo**: lo sceglie il committente (i confronti delle parti nuove — attese di ENR 3.4.2, corridoi OAT, SMAC contro
+`.mva` —, la F7 per SID e STAR, la slice 6 del ciclo).
 
 ## 19 ottobre 2026: F6, slice 5f fatta (i gesti di AD 2.19): AD 2 chiusa per testo e radioassistenze
 
