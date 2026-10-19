@@ -52,6 +52,9 @@ public sealed class Git
         avvio.Environment["GIT_CONFIG_COUNT"] = "1";
         avvio.Environment["GIT_CONFIG_KEY_0"] = "core.quotePath";
         avvio.Environment["GIT_CONFIG_VALUE_0"] = "false";
+        // Un `git status` di sola lettura non prende index.lock per rinfrescare l'indice: quello in sottofondo dopo «Salva»
+        // faceva fallire il commit di «Registra» («index.lock: File exists»), tre volte nella CI del 19 ottobre.
+        avvio.Environment["GIT_OPTIONAL_LOCKS"] = "0";
 
         Process processo;
         try
