@@ -256,6 +256,35 @@
         {
             @* Slice 2b: ENR 3 — le rotte con itawlow.lairway, le attese con HOLDENR.hold. In sola lettura. *@
             <div data-confronto-enr3>
+                @* F7, slice 7d: le procedure di AD 2 contro i .sid e gli .str, per nome e per percorso. Sola lettura. *@
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-procedure" disabled="@(Lab.Sessione is null)"
+                        title="Le SID, le STAR e le transizioni di AD 2 dell'AIP espanso contro i .sid e gli .str degli scali: nome, piste, punti in fila (STAR), punto finale (SID), posizioni dei punti (sola lettura)"
+                        @onclick="ConfrontaLeProcedure">Confronta SID e STAR</button>
+                @if (Lab.UltimoConfrontoDelleProcedure is { } proc)
+                {
+                    <p class="lab-nota" data-riassunto-procedure>SID e STAR, ciclo @proc.Ciclo: @string.Join(" · ", proc.Esiti.GroupBy(e => e.Esito).Select(g => $"{Esito(g.Key)} {g.Count()}"))
+                        — le SID del sector non hanno tracciato: si confrontano nome, piste e punto finale.</p>
+                    <ul class="lab-elenco-lotto" data-elenco-procedure>
+                        @foreach (var e in proc.Esiti.Where(e => e.Esito != Esiti.Uguale))
+                        {
+                            <li class="lab-nota" data-procedura="@e.Esito">
+                                @if (e.File is { } file && e.Record is { } record)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" title="Apre la voce del sector" @onclick="() => Lab.Scegli(file, record)">@Esito(e.Esito)</button>
+                                }
+                                else
+                                {
+                                    <strong>@Esito(e.Esito)</strong>
+                                }
+                                <span>&nbsp;@e.Scalo @Genere(e.Genere)</span> <strong>@e.Nome</strong>@(e.Piste.Count > 0 ? $" RWY {string.Join("/", e.Piste)}" : "")@(e.Nomi.Count > 0 && e.Esito != Esiti.SoloNelSector ? $" ({string.Join(", ", e.Nomi)})" : "")
+                                @foreach (var d in e.Dettagli)
+                                {
+                                    <br /><span>· @d</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
                 <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-rotte" disabled="@(Lab.Sessione is null)"
                         title="Le rotte di ENR 3.2 dell'AIP espanso contro le aerovie di itawlow.lairway: i lati, i tratti (verso e quote), le posizioni dei punti (sola lettura)"
                         @onclick="() => ConfrontaEnr3(true)">Confronta le rotte</button>
@@ -496,6 +525,16 @@
     private Aip.CorrectionKind? _aggiungi;
 
     private Aip.CorrectionKind _tipoDaAggiungere = Aip.CorrectionKind.Airspace;
+
+    private async Task ConfrontaLeProcedure() => _rifiuto = await Lab.ConfrontaLeProcedureAsync() ? null : Lab.Rifiuto;
+
+    private static string Genere(Aip.ProcedureKind genere) => genere switch
+    {
+        Aip.ProcedureKind.Sid => "SID",
+        Aip.ProcedureKind.Star => "STAR",
+        Aip.ProcedureKind.Transition => "transizione",
+        _ => "salita iniziale",
+    };
 
     private async Task Registra() => _rifiuto = await Lab.RegistraLAipAsync(Lab.MessaggioDellAip) ? null : Lab.Rifiuto;
 

@@ -4499,6 +4499,50 @@ public sealed class SessioneDelLab
         }
     }
 
+    /// <summary>L'ultimo confronto delle procedure (carta F7, slice 7d): il ciclo e le righe.</summary>
+    public (string Ciclo, IReadOnlyList<Core.PdfAip.DifferenzaDiProcedura> Esiti)? UltimoConfrontoDelleProcedure { get; private set; }
+
+    /// <summary>
+    /// «Confronta SID e STAR» (carta F7, slice 7d): le procedure di AD 2 dell'AIP espanso contro i <c>.sid</c> e gli
+    /// <c>.str</c> degli scali, per nome e per percorso. In sola lettura.
+    /// </summary>
+    public async Task<bool> ConfrontaLeProcedureAsync()
+    {
+        if (Sessione is not { } sessione)
+            return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
+        if (CartellaDellAipEspanso is not { } espanso)
+            return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
+        var ciclo = UltimoAipEspanso?.Ciclo
+                    ?? (Directory.Exists(espanso)
+                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
+                        : null);
+        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
+            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        try
+        {
+            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            if (modello.Procedures is not { Count: > 0 } procedure)
+                return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha procedure: servono i PDF di AD 2 (i file 4 e 6) letti.");
+            var catalogo = CatalogoScelto;
+            var punti = new Dictionary<string, global::Aip.Position>(StringComparer.Ordinal);
+            foreach (var x in modello.Points ?? []) punti.TryAdd(x.Designator, x.Position);
+            foreach (var x in modello.Navaids ?? []) punti.TryAdd(x.Designator, x.Position);
+            foreach (var x in (modello.Aerodromes ?? []).SelectMany(s => s.NavigationAids)) punti.TryAdd(x.Designator, x.Position);
+            var esiti = await Task.Run(() => Core.PdfAip.ConfrontoDelleProcedure.Di(procedure, sessione,
+                nome => catalogo?.Cerca(nome)?.Posizione, nome => punti.TryGetValue(nome, out var p) ? p : null)).ConfigureAwait(false);
+            UltimoConfrontoDelleProcedure = (ciclo, esiti);
+            Registro.Scrivi("aip", $"confronto procedure, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
+            Rifiuto = null;
+            Avvisa();
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or global::Aip.AipJsonException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
+        }
+    }
+
     /// <summary>L'ultimo confronto di ENR 4 (slice 3b): il ciclo, se erano le radioassistenze o i punti, e le righe.</summary>
     public (string Ciclo, bool Radioassistenze, IReadOnlyList<Core.PdfAip.DifferenzaDiEnr4> Esiti)? UltimoConfrontoDiEnr4 { get; private set; }
 

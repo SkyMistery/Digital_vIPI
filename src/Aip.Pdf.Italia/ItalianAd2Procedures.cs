@@ -57,7 +57,7 @@ public static partial class ItalianAd2Procedures
     [GeneratedRegex(@"^(?:NOISE\s+ABATEMENT\s+PROCEDURES?\b|WAYPOINT\s+HOLDING\b|HOLDING(?:\s+RNAV)?\s*$)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxSezioneDaSaltare();
 
-    [GeneratedRegex(@"RWY\s*(?<p>\d{2})\s*(?<l>[LRC](?:\s*/\s*[LRC])*)?(?:\s*/\s*(?<q>\d{2})\s*(?<m>[LRC](?:\s*/\s*[LRC])*)?)?", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    [GeneratedRegex(@"RWY\s*(?<p>\d{2})\s*(?<l>[LRC](?![A-Za-z])(?:\s*/\s*[LRC](?![A-Za-z]))*)?(?:\s*/\s*(?<q>\d{2})\s*(?<m>[LRC](?![A-Za-z])(?:\s*/\s*[LRC](?![A-Za-z]))*)?)?", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxPiste();
 
     [GeneratedRegex(@"^(?:MCA|MCL|MEA|MEL)\b", RegexOptions.CultureInvariant)]

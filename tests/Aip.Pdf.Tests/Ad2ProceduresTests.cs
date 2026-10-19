@@ -163,6 +163,9 @@ public sealed class Ad2ProceduresTests
     [InlineData("STAR CMP/TAQ RWY 07/25 DESCRIPTION", "07,25")]
     [InlineData("TRANSITION SEGMENTS TO ENROUTE RWY 17L/R DESCRIPTION", "17L,17R")]
     [InlineData("STAR VOR (ATC discretion) Bergamo / Orio al Serio", "")]
+    // «RWY10 LMT»: la L di LMT non è la pista sinistra (LICA, trovato dal confronto della 7d).
+    [InlineData("SID RWY10 LMT VOR DESCRIPTION", "10")]
+    [InlineData("STAR LMT VOR RWY 28 description", "28")]
     public void LePisteDelTitolo(string titolo, string attese) =>
         Assert.Equal(attese.Length == 0 ? [] : attese.Split(','), ItalianAd2Procedures.Piste(titolo));
 }
