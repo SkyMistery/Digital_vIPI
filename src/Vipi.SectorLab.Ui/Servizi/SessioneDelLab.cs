@@ -4808,6 +4808,8 @@ public sealed class SessioneDelLab
         ArgumentNullException.ThrowIfNull(riga);
         if (Sessione is null || UltimoConfronto is not { } confronto || _aipDelConfronto is not { } aip)
             return Rifiuta("Confronta prima: si sostituisce una riga del confronto.");
+        if (confronto.Famiglia == Core.PdfAip.FamigliaDelConfronto.AreeEnr5)
+            return Rifiuta("Le aree di ENR 5 non si scrivono ancora: i gesti vengono con la slice 4c.");
         if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.FormaDiversa, Aip: { } nome, File: { } file, Record: { } record, Sector: { } voce })
             return Rifiuta("Si sostituisce una voce del sector con la forma diversa da quella dell'AIP.");
         if (Core.PdfAip.ConfrontoDelleForme.DaGuardare(riga))
@@ -4840,6 +4842,8 @@ public sealed class SessioneDelLab
         ArgumentNullException.ThrowIfNull(riga);
         if (Sessione is null || UltimoConfronto is not { } confronto || _aipDelConfronto is not { } aip)
             return Rifiuta("Confronta prima: si porta una riga del confronto.");
+        if (confronto.Famiglia == Core.PdfAip.FamigliaDelConfronto.AreeEnr5)
+            return Rifiuta("Le aree di ENR 5 non si scrivono ancora: i gesti vengono con la slice 4c.");
         if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.MancaNelSector, Aip: { } nome })
             return Rifiuta("Si porta nel sector uno spazio che nel sector manca.");
         var scalo = icao?.Trim().ToUpperInvariant() ?? "";

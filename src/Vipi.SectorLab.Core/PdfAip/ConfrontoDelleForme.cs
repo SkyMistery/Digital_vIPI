@@ -24,6 +24,9 @@ public enum FamigliaDelConfronto
     Ctr,
     Atz,
     AtzDelleTorri,
+
+    /// <summary>Le aree di ENR 5 (P, R, D, TSA, TRA e le militari) contro <c>italy.prohibit</c>, <c>.restrict</c>, <c>.danger</c> (slice 4b).</summary>
+    AreeEnr5,
 }
 
 /// <summary>
@@ -117,6 +120,8 @@ public static partial class ConfrontoDelleForme
     /// </summary>
     public static IReadOnlyList<DifferenzaDiForma> Di(FamigliaDelConfronto famiglia, IEnumerable<Airspace> aip, IEnumerable<FormaDellaMappa> sector, double soglia = SogliaDiBase)
     {
+        if (famiglia == FamigliaDelConfronto.AreeEnr5)
+            return AreeEnr5(aip, sector, soglia);
         var gruppi = Gruppi(famiglia, aip);
         var voci = sector.Where(f => f.Tratti.Any(t => t.Count > 1) && famiglia switch
         {
@@ -174,6 +179,189 @@ public static partial class ConfrontoDelleForme
             .ThenBy(e => e.Aip ?? e.Sector, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
+
+    /// <summary>I file del sector con le aree di ENR 5 (P, R e D; TSA e TRA stanno fra le R).</summary>
+    public static readonly IReadOnlyList<string> FileDelleAreeEnr5 = ["italy.prohibit", "italy.restrict", "italy.danger"];
+
+    /// <summary>
+    /// Le aree di ENR 5 (5.1: P, R, D, TSA, TRA, CBA; 5.2: militari) contro le voci di <see cref="FileDelleAreeEnr5"/>
+    /// (carta F6, slice 4b). Diversamente dai CTR, qui il <b>nome</b> comanda (<see cref="NomeDiEnr5"/>):
+    /// <list type="number">
+    /// <item>Le voci del sector con lo stesso nome nello stesso file, se vicine, sono una voce sola (R108AB è in 12 pezzi).</item>
+    /// <item><c>LI R4</c> va con <c>R4</c>, <c>LI D122 A</c> con <c>D122A</c>; fra più voci con quel nome, la più vicina.</item>
+    /// <item>Una voce del sector può valere più aree dell'AIP (carta F6 §4): <c>R300AB</c> è R300/A più R300/B,
+    /// <c>D37A/B</c>, <c>R405AC</c>; e una voce col solo nome della base (<c>D75</c>) vale le aree con le lettere che
+    /// nessun'altra voce ha preso (D75/A, /B, /C). Si confronta con le aree insieme, come le zone di un CTR.</item>
+    /// <item>Le aree che il nome non abbina si abbinano per vicinanza fra loro (un nome scritto in un altro modo; la riga
+    /// mostra i due nomi), ma solo se sono vicine <b>nei due versi</b>: un poligono di 1 NM dentro un'area di 100 non è
+    /// lei.</item>
+    /// </list>
+    /// Poi la stessa misura dei CTR: uguale entro la soglia nei due versi.
+    /// </summary>
+    public static IReadOnlyList<DifferenzaDiForma> AreeEnr5(IEnumerable<Airspace> aip, IEnumerable<FormaDellaMappa> sector, double soglia = SogliaDiBase)
+    {
+        var aree = aip.Where(a => a.Section.StartsWith("ENR 5", StringComparison.Ordinal)).ToList();
+        // 1. Una voce per nome e file, coi pezzi vicini insieme (un'altra area con la stessa etichetta resta a parte).
+        var voci = sector.Where(f => f.Tratti.Any(t => t.Count > 1) && FileDelleAreeEnr5.Any(n => f.File.EndsWith("/" + n, StringComparison.OrdinalIgnoreCase)))
+            .GroupBy(f => (f.File, Nome: NomeDiEnr5(f.Etichetta)))
+            .SelectMany(g => PezziVicini(g.ToList()))
+            .ToList();
+        var contorni = aree.Select(a => Contorni([a])).ToList();
+        var nomi = aree.Select(NomeDellAreaEnr5).ToList();
+
+        double Media(List<(Position A, Position B, bool Giudicabile)> contorno, int v, bool versoIlSector)
+        {
+            var (lat0, lon0) = Centro(contorno);
+            var latiAip = Proietta(contorno, lat0, lon0);
+            var latiSector = ProiettaLaVoce(voci[v], lat0, lon0);
+            return versoIlSector
+                ? Campioni(latiAip.Where(l => l.Giudicabile)).Select(p => Distanza(p, latiSector).Distanza).DefaultIfEmpty(double.MaxValue).Average()
+                : Campioni(latiSector).Select(p => Distanza(p, latiAip).Distanza).DefaultIfEmpty(double.MaxValue).Average();
+        }
+
+        var coppie = new List<(List<int> Aree, int Voce)>();
+        var presa = new HashSet<int>();
+        var abbinata = new HashSet<int>();
+        var perNome = voci.Select((v, i) => (Nome: NomeDiEnr5(v.Etichetta), i)).GroupBy(x => x.Nome, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.i).ToList(), StringComparer.Ordinal);
+
+        // 2. Lo stesso nome.
+        for (var a = 0; a < aree.Count; a++)
+        {
+            if (!perNome.TryGetValue(nomi[a], out var stesse)) continue;
+            var libere = stesse.Where(v => !presa.Contains(v)).ToList();
+            if (libere.Count == 0) continue;
+            var v = libere.Count == 1 ? libere[0] : libere.MinBy(x => Media(contorni[a], x, versoIlSector: true));
+            coppie.Add(([a], v));
+            presa.Add(v);
+            abbinata.Add(a);
+        }
+
+        // 3. Una voce per più aree: «R300AB» → R300A e R300B, fra quelle ancora libere.
+        for (var v = 0; v < voci.Count; v++)
+        {
+            if (presa.Contains(v) || RxPiuAree().Match(NomeDiEnr5(voci[v].Etichetta)) is not { Success: true } m) continue;
+            var sue = m.Groups["lettere"].Value
+                .SelectMany(c => Enumerable.Range(0, aree.Count).Where(a => !abbinata.Contains(a) && nomi[a] == m.Groups["base"].Value + c))
+                .ToList();
+            if (sue.Count == 0) continue;
+            coppie.Add((sue, v));
+            presa.Add(v);
+            abbinata.UnionWith(sue);
+        }
+
+        // 4. Una voce col nome della sola base («D75», «R315») per le aree con le lettere ancora libere (D75/A, /B, /C).
+        for (var v = 0; v < voci.Count; v++)
+        {
+            if (presa.Contains(v) || RxSoloBase().Match(NomeDiEnr5(voci[v].Etichetta)) is not { Success: true } m) continue;
+            var sue = Enumerable.Range(0, aree.Count)
+                .Where(a => !abbinata.Contains(a) && nomi[a].Length == m.Value.Length + 1 && nomi[a].StartsWith(m.Value, StringComparison.Ordinal) && char.IsLetter(nomi[a][^1]))
+                .ToList();
+            if (sue.Count == 0) continue;
+            coppie.Add((sue, v));
+            presa.Add(v);
+            abbinata.UnionWith(sue);
+        }
+
+        // 5. Per vicinanza, nei due versi, fra quelle che il nome non ha abbinato.
+        var candidati = new List<(int Area, int Voce, double Media)>();
+        for (var a = 0; a < aree.Count; a++)
+        {
+            if (abbinata.Contains(a)) continue;
+            var (lat0, lon0) = Centro(contorni[a]);
+            var latiAip = Proietta(contorni[a], lat0, lon0);
+            for (var v = 0; v < voci.Count; v++)
+            {
+                if (presa.Contains(v) || !Vicini(latiAip, ProiettaLaVoce(voci[v], lat0, lon0))) continue;
+                var andata = Media(contorni[a], v, versoIlSector: true);
+                if (andata > AbbinamentoMassimo) continue;
+                var ritorno = Media(contorni[a], v, versoIlSector: false);
+                if (ritorno <= AbbinamentoMassimo) candidati.Add((a, v, Math.Max(andata, ritorno)));
+            }
+        }
+        foreach (var (a, v, _) in candidati.OrderBy(c => c.Media))
+        {
+            if (abbinata.Contains(a) || presa.Contains(v)) continue;
+            coppie.Add(([a], v));
+            presa.Add(v);
+            abbinata.Add(a);
+        }
+
+        var esiti = coppie.Select(c => Misura(string.Join(" + ", c.Aree.Select(a => aree[a].Key)), c.Aree.Count,
+            [.. c.Aree.SelectMany(a => contorni[a])], voci[c.Voce], soglia)).ToList();
+        for (var a = 0; a < aree.Count; a++)
+            if (!abbinata.Contains(a))
+                esiti.Add(new DifferenzaDiForma(EsitoDelConfronto.MancaNelSector, aree[a].Key, 1, null, null, null, null, null, null, false));
+        for (var v = 0; v < voci.Count; v++)
+            if (!presa.Contains(v))
+                esiti.Add(new DifferenzaDiForma(EsitoDelConfronto.SoloNelSector, null, 0, voci[v].Etichetta, voci[v].File, voci[v].Record, null, null, null, false));
+
+        return esiti
+            .OrderBy(e => e.Esito switch { EsitoDelConfronto.FormaDiversa => 0, EsitoDelConfronto.MancaNelSector => 1, EsitoDelConfronto.SoloNelSector => 2, _ => 3 })
+            .ThenBy(e => e.Aip ?? e.Sector, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Il nome di un'area dell'AIP per abbinarla: quello del designatore e, se il nome dice la zona fra virgolette
+    /// (<c>LI TSA74</c> «Gran Sasso d'Italia Zona "A"»), la sua lettera: <c>TSA74A</c>.
+    /// </summary>
+    private static string NomeDellAreaEnr5(Airspace a) =>
+        NomeDiEnr5(a.Designator) + (a.Name is { } n && RxZona().Match(n) is { Success: true } z ? z.Groups["z"].Value.ToUpperInvariant() : "");
+
+    /// <summary>
+    /// Il nome di un'area di ENR 5 per abbinarla: senza il prefisso dello Stato (<c>LI</c>, <c>LI/LD</c>), in maiuscolo,
+    /// solo lettere e cifre — <c>LI D122 A</c>, <c>D122 A</c> e <c>D122A</c> sono lo stesso nome; la «e» fra due lettere
+    /// sparisce (<c>D35 B e C</c> → <c>D35BC</c>).
+    /// </summary>
+    public static string NomeDiEnr5(string nome)
+    {
+        ArgumentNullException.ThrowIfNull(nome);
+        var n = RxPrefissoDelloStato().Replace(nome.Trim().ToUpperInvariant(), "");
+        n = RxCongiunzione().Replace(n, "$1$2");
+        return new string([.. n.Where(char.IsLetterOrDigit)]);
+    }
+
+    /// <summary>
+    /// I pezzi di una voce (stesso nome, stesso file) a gruppi di vicini: le scatole a meno di 0,05° (3 NM) sono la stessa
+    /// area. Nella copia del 19 ottobre R108AB è in 12 pezzi; «TSA74B» ha anche un pezzo a Belluno, 280 NM più in là.
+    /// </summary>
+    private static IEnumerable<FormaDellaMappa> PezziVicini(List<FormaDellaMappa> pezzi)
+    {
+        if (pezzi.Count == 1) return pezzi;
+        static (double La0, double Lo0, double La1, double Lo1) Scatola(FormaDellaMappa f) =>
+            (f.Tratti.SelectMany(t => t).Min(c => c.LatitudeDeg), f.Tratti.SelectMany(t => t).Min(c => c.LongitudeDeg),
+             f.Tratti.SelectMany(t => t).Max(c => c.LatitudeDeg), f.Tratti.SelectMany(t => t).Max(c => c.LongitudeDeg));
+        var scatole = pezzi.Select(Scatola).ToList();
+        var gruppo = Enumerable.Range(0, pezzi.Count).ToArray();
+        int Radice(int i) => gruppo[i] == i ? i : gruppo[i] = Radice(gruppo[i]);
+        for (var i = 0; i < pezzi.Count; i++)
+            for (var j = i + 1; j < pezzi.Count; j++)
+            {
+                var (a, b) = (scatole[i], scatole[j]);
+                if (a.La0 <= b.La1 + 0.05 && b.La0 <= a.La1 + 0.05 && a.Lo0 <= b.Lo1 + 0.05 && b.Lo0 <= a.Lo1 + 0.05)
+                    gruppo[Radice(i)] = Radice(j);
+            }
+        return Enumerable.Range(0, pezzi.Count).GroupBy(Radice)
+            .Select(g => g.Count() == 1 ? pezzi[g.First()] : pezzi[g.First()] with { Tratti = [.. g.SelectMany(i => pezzi[i].Tratti)] });
+    }
+
+    /// <summary>Una voce del sector col solo nome della base, senza lettere: <c>D75</c>, <c>TRA504</c>.</summary>
+    [GeneratedRegex(@"^[A-Z]+\d+$", RegexOptions.CultureInvariant)]
+    private static partial Regex RxSoloBase();
+
+    /// <summary>Una voce del sector che vale più aree: la base e due o più lettere (<c>R300AB</c>, <c>R405AC</c>).</summary>
+    [GeneratedRegex(@"^(?<base>[A-Z]+\d+)(?<lettere>[A-D]{2,4})$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxPiuAree();
+
+    [GeneratedRegex(@"\bZON[AE](?:/ZONE)?\s*[""'“”‘’]\s*(?<z>[A-Z])\s*[""'“”‘’]", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxZona();
+
+    [GeneratedRegex(@"\b([A-Z])\s+E\s+([A-Z])\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxCongiunzione();
+
+    [GeneratedRegex(@"^LI(?:/L[A-Z])?\s+", RegexOptions.CultureInvariant)]
+    private static partial Regex RxPrefissoDelloStato();
 
     /// <summary>Gli spazi dell'AIP di quella famiglia, a gruppi (le zone di uno stesso spazio insieme), in ordine di nome.</summary>
     public static IReadOnlyList<(string Nome, IReadOnlyList<Airspace> Zone)> Gruppi(FamigliaDelConfronto famiglia, IEnumerable<Airspace> aip) =>

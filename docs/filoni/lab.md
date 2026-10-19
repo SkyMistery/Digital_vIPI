@@ -4,13 +4,20 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 4a fatta (l'importer di ENR 5.2)
+## Dove siamo — 19 ottobre 2026: F6, slice 4b fatta (il confronto di ENR 5)
+
+**Slice 4b fatta**: «le aree di ENR 5» (ENR 5.1 e 5.2 contro `italy.prohibit`, `.restrict`, `.danger`), per nome — una
+voce del sector può valere più aree (`R300AB`, `D75`), i pezzi vicini sono una voce, la vicinanza solo nei due versi —, in
+sola lettura. Sulla copia: 411 uguali, 84 diverse (19 cerchi da 1 NM nel sector e 0,5 nell'AIP; 4 oltre 25 NM), 13 di
+ENR 5.1 mancanti (quelle della F0 più EUC 60 e 660), ENR 5.2 tutta mancante (191), 23 solo nel sector (AAR, AT, INDIA…).
+Carta F6 §6. **Prossima: 4c**, i gesti.
+
+## 19 ottobre 2026: F6, slice 4a fatta (l'importer di ENR 5.2)
 
 **Slice 4a fatta**: i 59 poligoni militari di ENR 5.2.1 e le 132 zone e corridoi APR di ENR 5.2.2.5 nel modello e
 nell'AIP espanso (PR #5). I corridoi sono una geometria nuova (`corridor`, ampiezza e punti): **lo schema del modello è
 ora 2** (i file della 1 si leggono ancora); il converter ne fa il contorno. Controprova con pdfplumber: coordinate tutte.
-Sulla mappa del Lab il genere «Militari». Non lette, e dette: le parti di testo di 5.2.2 e 5.3. Carta F6 §6. **Prossima:
-4b**, il confronto col sector.
+Sulla mappa del Lab il genere «Militari». Non lette, e dette: le parti di testo di 5.2.2 e 5.3. PR #5 fusa. Carta F6 §6.
 
 ## 19 ottobre 2026: F6, slice 3c fatta (i gesti di ENR 4): la slice 3 è chiusa
 

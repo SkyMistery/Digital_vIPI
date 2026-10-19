@@ -140,13 +140,20 @@
                         title="Le ATZ di ENR 2 (le militari e le ATZ-RMZ) contro le voci ATZ dei MAPS degli .str (sola lettura)" @onclick="() => Confronta(Famiglia.Atz)">le ATZ negli .str</button>
                 <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-torri" disabled="@(Lab.Sessione is null)"
                         title="Le ATZ di ENR 2 contro i settori delle torri di DYNAMIC_SEC/twrs.tfl (sola lettura)" @onclick="() => Confronta(Famiglia.AtzDelleTorri)">le ATZ in twrs.tfl</button>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-aree-enr5" disabled="@(Lab.Sessione is null)"
+                        title="Le aree di ENR 5 (P, R, D, TSA, TRA, militari) contro italy.prohibit, italy.restrict e italy.danger, per nome (sola lettura, soglia 0,1 NM)" @onclick="() => Confronta(Famiglia.AreeEnr5)">le aree di ENR 5</button>
                 @if (Lab.UltimoConfronto is { } confronto)
                 {
-                    var atz = confronto.Famiglia != Famiglia.Ctr;
+                    var atz = confronto.Famiglia is Famiglia.Atz or Famiglia.AtzDelleTorri;
+                    var enr5 = confronto.Famiglia == Famiglia.AreeEnr5;
                     <p class="lab-nota" data-riassunto-confronto>@Cosa(confronto.Famiglia), ciclo @confronto.Ciclo: @string.Join(" · ", confronto.Esiti.GroupBy(e => e.Esito).Select(g => $"{Esito(g.Key)} {g.Count()}"))</p>
                     @if (atz && confronto.Esiti.Any(e => e.Esito == Esiti.SoloNelSector))
                     {
                         <p class="lab-nota" data-solo-nel-sector>Le voci «solo nel sector» non si elencano: le ATZ civili stanno in AD 2, che il Lab non legge ancora.</p>
+                    }
+                    @if (enr5)
+                    {
+                        <p class="lab-nota" data-nota-enr5>In sola lettura: i gesti per le aree di ENR 5 vengono con la slice 4c. Le voci «solo nel sector» AAR, AT, INDIA stanno nelle parti di ENR 5.2.2 scritte a testo, che il Lab non legge.</p>
                     }
                     <ul class="lab-elenco-lotto">
                         @foreach (var e in confronto.Esiti.Where(e => e.Esito != Esiti.Uguale && !(atz && e.Esito == Esiti.SoloNelSector)))
@@ -180,6 +187,9 @@
                                 else if (e.Esito == Esiti.FormaDiversa && confronto.Famiglia == Famiglia.AtzDelleTorri && e.Zone > 1)
                                 {
                                     <span data-piu-zone> · @e.Zone zone nell'AIP: un settore della torre è un poligono solo, si sistema a mano.</span>
+                                }
+                                else if (enr5)
+                                {
                                 }
                                 else if (e.Esito == Esiti.FormaDiversa && e.File is not null)
                                 {
@@ -461,6 +471,7 @@
     {
         Famiglia.Ctr => "CTR",
         Famiglia.Atz => "ATZ negli .str",
+        Famiglia.AreeEnr5 => "Aree di ENR 5",
         _ => "ATZ in twrs.tfl",
     };
 
