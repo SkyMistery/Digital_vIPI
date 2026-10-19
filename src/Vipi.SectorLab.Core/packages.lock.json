@@ -306,7 +306,6 @@
           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.*, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[8.0.*, )",
           "Pomelo.EntityFrameworkCore.MySql": "[8.0.3, )",
-          "SQLitePCLRaw.lib.e_sqlite3": "[2.1.12, )",
           "Vipi.Application": "[1.0.0, )",
           "Vipi.Domain": "[1.0.0, )"
         }
