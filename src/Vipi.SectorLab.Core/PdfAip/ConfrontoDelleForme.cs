@@ -306,7 +306,7 @@ public static partial class ConfrontoDelleForme
     /// Il nome di un'area dell'AIP per abbinarla: quello del designatore e, se il nome dice la zona fra virgolette
     /// (<c>LI TSA74</c> «Gran Sasso d'Italia Zona "A"»), la sua lettera: <c>TSA74A</c>.
     /// </summary>
-    private static string NomeDellAreaEnr5(Airspace a) =>
+    public static string NomeDellAreaEnr5(Airspace a) =>
         NomeDiEnr5(a.Designator) + (a.Name is { } n && RxZona().Match(n) is { Success: true } z ? z.Groups["z"].Value.ToUpperInvariant() : "");
 
     /// <summary>

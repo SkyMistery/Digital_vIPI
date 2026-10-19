@@ -151,12 +151,14 @@
                     {
                         <p class="lab-nota" data-solo-nel-sector>Le voci «solo nel sector» non si elencano: le ATZ civili stanno in AD 2, che il Lab non legge ancora.</p>
                     }
-                    @if (enr5)
+                    @if (enr5 && confronto.Esiti.Where(e => e.Esito == Esiti.MancaNelSector).Select(e => e.Aip).OfType<string>().ToList() is { Count: > 1 } mancanti)
                     {
-                        <p class="lab-nota" data-nota-enr5>In sola lettura: i gesti per le aree di ENR 5 vengono con la slice 4c. Le voci «solo nel sector» AAR, AT, INDIA stanno nelle parti di ENR 5.2.2 scritte a testo, che il Lab non legge.</p>
+                        <button type="button" class="lab-tasto" data-tasto="porta-tutte-enr5"
+                                title="Tutte le aree qui sotto che il sector non ha, in fondo al loro file (P in italy.prohibit, D in italy.danger, il resto in italy.restrict): un gesto solo, da annullare"
+                                @onclick="() => PortaEnr5(mancanti)">Porta tutte (@mancanti.Count)</button>
                     }
                     <ul class="lab-elenco-lotto">
-                        @foreach (var e in confronto.Esiti.Where(e => e.Esito != Esiti.Uguale && !(atz && e.Esito == Esiti.SoloNelSector)))
+                        @foreach (var e in confronto.Esiti.Where(e => (e.Esito != Esiti.Uguale || (enr5 && e.Zone > 1)) && !(atz && e.Esito == Esiti.SoloNelSector)))
                         {
                             <li class="lab-nota" data-differenza="@e.Esito">
                                 @if (e.File is { } file && e.Record is { } record)
@@ -187,6 +189,17 @@
                                 else if (e.Esito == Esiti.FormaDiversa && confronto.Famiglia == Famiglia.AtzDelleTorri && e.Zone > 1)
                                 {
                                     <span data-piu-zone> · @e.Zone zone nell'AIP: un settore della torre è un poligono solo, si sistema a mano.</span>
+                                }
+                                else if (enr5 && (e.Esito == Esiti.FormaDiversa || (e.Esito == Esiti.Uguale && e.Zone > 1)) && e.File is not null)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-enr5"
+                                            title="@(e.Zone > 1 ? $"Divide {e.Sector} in {e.Zone} voci, una per area dell'AIP, con le forme dell'AIP" : $"Riscrive le righe di {e.Sector} con la forma dell'AIP")"
+                                            @onclick="() => SostituisciEnr5(e)">@(e.Zone > 1 ? "Dividi" : "Sostituisci")</button>
+                                }
+                                else if (enr5 && e.Esito == Esiti.MancaNelSector && e.Aip is { } chiave)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-enr5"
+                                            title="Il blocco dell'area in fondo al suo file, coi lati dell'AIP" @onclick="() => PortaEnr5([chiave])">Porta nel sector</button>
                                 }
                                 else if (enr5)
                                 {
@@ -466,6 +479,15 @@
     }
 
     private async Task Confronta(Famiglia famiglia) => _rifiuto = await Lab.ConfrontaAsync(famiglia) ? null : Lab.Rifiuto;
+
+    private void SostituisciEnr5(Vipi.SectorLab.Core.PdfAip.DifferenzaDiForma riga) => _rifiuto = Lab.SostituisciAreaEnr5(riga) ? null : Lab.Rifiuto;
+
+    // Portare può riuscire per alcune aree e dire perché non per altre: il Rifiuto resta da leggere.
+    private void PortaEnr5(IReadOnlyList<string> chiavi)
+    {
+        Lab.PortaAreeEnr5(chiavi);
+        _rifiuto = Lab.Rifiuto;
+    }
 
     private static string Cosa(Famiglia f) => f switch
     {

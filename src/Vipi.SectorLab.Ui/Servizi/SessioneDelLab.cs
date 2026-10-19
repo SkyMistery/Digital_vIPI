@@ -4809,7 +4809,7 @@ public sealed class SessioneDelLab
         if (Sessione is null || UltimoConfronto is not { } confronto || _aipDelConfronto is not { } aip)
             return Rifiuta("Confronta prima: si sostituisce una riga del confronto.");
         if (confronto.Famiglia == Core.PdfAip.FamigliaDelConfronto.AreeEnr5)
-            return Rifiuta("Le aree di ENR 5 non si scrivono ancora: i gesti vengono con la slice 4c.");
+            return Rifiuta("Le aree di ENR 5 si scrivono coi loro gesti (Sostituisci, Porta nel sector delle aree di ENR 5).");
         if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.FormaDiversa, Aip: { } nome, File: { } file, Record: { } record, Sector: { } voce })
             return Rifiuta("Si sostituisce una voce del sector con la forma diversa da quella dell'AIP.");
         if (Core.PdfAip.ConfrontoDelleForme.DaGuardare(riga))
@@ -4843,7 +4843,7 @@ public sealed class SessioneDelLab
         if (Sessione is null || UltimoConfronto is not { } confronto || _aipDelConfronto is not { } aip)
             return Rifiuta("Confronta prima: si porta una riga del confronto.");
         if (confronto.Famiglia == Core.PdfAip.FamigliaDelConfronto.AreeEnr5)
-            return Rifiuta("Le aree di ENR 5 non si scrivono ancora: i gesti vengono con la slice 4c.");
+            return Rifiuta("Le aree di ENR 5 si scrivono coi loro gesti (Sostituisci, Porta nel sector delle aree di ENR 5).");
         if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.MancaNelSector, Aip: { } nome })
             return Rifiuta("Si porta nel sector uno spazio che nel sector manca.");
         var scalo = icao?.Trim().ToUpperInvariant() ?? "";
@@ -4883,6 +4883,127 @@ public sealed class SessioneDelLab
         RifaiIlConfronto();
         RifaiIlConfrontoDiEnr3();
         RifaiIlConfrontoDiEnr4();
+    }
+
+    /// <summary>
+    /// «Sostituisci» per le aree di ENR 5 (carta F6, slice 4c): le righe della voce del sector (i lati col suo nome vicini
+    /// all'area, e il commento sopra) al posto loro un blocco per area dell'AIP — una voce che vale più aree (<c>R300AB</c>)
+    /// si divide in una voce per area (committente, 19 ottobre: «dividi»). Vale anche per una voce uguale che vale più aree.
+    /// I cerchi col raggio dell'AIP (committente: «porta 0,5»). Un gesto: diff, annulla, lotto di Aurora.
+    /// </summary>
+    public bool SostituisciAreaEnr5(Core.PdfAip.DifferenzaDiForma riga)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (Sessione is null || UltimoConfronto is not { Famiglia: Core.PdfAip.FamigliaDelConfronto.AreeEnr5 } confronto || _aipDelConfronto is not { } aip)
+            return Rifiuta("Confronta le aree di ENR 5 prima.");
+        if (riga is not { Aip: { } chiavi, File: { } file, Sector: { } voce }
+            || !(riga.Esito == Core.PdfAip.EsitoDelConfronto.FormaDiversa || (riga.Esito == Core.PdfAip.EsitoDelConfronto.Uguale && riga.Zone > 1)))
+            return Rifiuta("Si sostituisce una voce diversa dall'AIP, o una che vale più aree.");
+        if (Core.PdfAip.ConfrontoDelleForme.DaGuardare(riga))
+            return Rifiuta($"{chiavi}: più di {Core.PdfAip.ConfrontoDelleForme.ScartoDaGuardare:0} NM fra l'AIP e il sector, quasi certo un'altra area col numero sbagliato. Guarda il PDF: si corregge a mano.");
+        var aree = chiavi.Split(" + ").Select(k => aip.Airspaces.FirstOrDefault(a => a.Key == k)).OfType<global::Aip.Airspace>().ToList();
+        if (aree.Count == 0)
+            return Rifiuta($"{chiavi}: non è nell'AIP espanso del confronto.");
+        var nomeDelFile = file[(file.LastIndexOf('/') + 1)..];
+        var confini = ConfiniDelSector();
+        var gesto = aree.Count > 1 ? $"{voce} diviso in {aree.Count} dall'AIP {confronto.Ciclo}" : $"{voce} dall'AIP {confronto.Ciclo}";
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            var righe = RigheDiAdesso(file);
+            var sue = Core.PdfAip.AreeEnr5NelSector.RigheDellaVoce(righe, voce, Core.PdfAip.AreeEnr5NelSector.Centro(aree));
+            if (sue.Count == 0)
+                return Rifiuta($"{voce}: nel file non si ritrovano le sue righe.");
+            var nuove = new List<string>();
+            foreach (var a in aree)
+            {
+                if (Core.PdfAip.AreeEnr5NelSector.Blocco(a, nomeDelFile, confini, out var perche) is not { } blocco)
+                    return Rifiuta(perche!);
+                nuove.AddRange(blocco);
+            }
+            var sostituzioni = new Dictionary<int, IReadOnlyList<string>> { [sue[0] + 1] = nuove };
+            foreach (var i in sue.Skip(1)) sostituzioni[i + 1] = [];
+            bool scritto = GestoSulTesto(file, "aip", f => Modifiche.CambiaRighe(f, sostituzioni, gesto));
+            Registro.Scrivi("aip", $"{gesto}: {sue.Count} righe → {nuove.Count}");
+            return scritto;
+        });
+        if (fatto)
+            RifaiIlConfronto();
+        return fatto;
+    }
+
+    /// <summary>
+    /// «Porta nel sector» per le aree di ENR 5 (slice 4c): un blocco per area in fondo al suo file (P in
+    /// <c>italy.prohibit</c>, D in <c>italy.danger</c>, il resto e le militari in <c>italy.restrict</c>). Un'area il cui nome
+    /// il file ha già in righe scritte male (R107A-D nel 2610) non si scrive due volte: si dice dove sono. Un gesto solo.
+    /// </summary>
+    public bool PortaAreeEnr5(IReadOnlyList<string> chiavi)
+    {
+        ArgumentNullException.ThrowIfNull(chiavi);
+        if (Sessione is not { } sessione || UltimoConfronto is not { Famiglia: Core.PdfAip.FamigliaDelConfronto.AreeEnr5 } confronto || _aipDelConfronto is not { } aip)
+            return Rifiuta("Confronta le aree di ENR 5 prima.");
+        var mancanti = confronto.Esiti.Where(e => e.Esito == Core.PdfAip.EsitoDelConfronto.MancaNelSector).Select(e => e.Aip).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var aree = chiavi.Where(mancanti.Contains).Select(k => aip.Airspaces.FirstOrDefault(a => a.Key == k)).OfType<global::Aip.Airspace>().ToList();
+        if (aree.Count == 0)
+            return Rifiuta("Si portano le aree che il sector non ha.");
+        var confini = ConfiniDelSector();
+        var gesto = aree.Count == 1 ? $"{aree[0].Key} dall'AIP {confronto.Ciclo}" : $"{aree.Count} aree di ENR 5 dall'AIP {confronto.Ciclo}";
+        var avvisi = new List<string>();
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            avvisi.Clear();
+            int portate = 0;
+            var toccati = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var a in aree)
+            {
+                var nomeDelFile = Core.PdfAip.AreeEnr5NelSector.File(a);
+                var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + nomeDelFile, StringComparison.OrdinalIgnoreCase));
+                if (file is null || sessione.File[file] is not IFileConRecord conRecord)
+                {
+                    avvisi.Add($"{a.Key}: nel sector non c'è {nomeDelFile}");
+                    continue;
+                }
+                var nome = Core.PdfAip.AreeEnr5NelSector.Nome(a);
+                if (Core.PdfAip.AreeEnr5NelSector.ScritteMale(RigheDiAdesso(file), nome) is { Count: > 0 } male)
+                {
+                    avvisi.Add($"{a.Key}: {nomeDelFile} ha già {nome}, scritta male (righe {string.Join(", ", male.Take(5))}{(male.Count > 5 ? "…" : "")}): si corregge a mano");
+                    continue;
+                }
+                if (Core.PdfAip.AreeEnr5NelSector.Blocco(a, nomeDelFile, confini, out var perche) is not { } blocco)
+                {
+                    avvisi.Add(perche!);
+                    continue;
+                }
+                // In fondo al file, dopo una riga vuota. Riletto, il file ha un record per lato in più (AggiungiLeRighe ne vuole uno solo).
+                var righe = RigheDiAdesso(file);
+                if (righe.Count == 0)
+                {
+                    avvisi.Add($"{a.Key}: {nomeDelFile} è vuoto");
+                    continue;
+                }
+                var quanti = conRecord.RecordDelModello.Count;
+                var lati = blocco.Count - 1;
+                var esito = Modifiche.CambiaRighe(sessione.File[file],
+                    new Dictionary<int, IReadOnlyList<string>> { [righe.Count] = string.IsNullOrWhiteSpace(righe[^1]) ? [righe[^1], .. blocco] : [righe[^1], "", .. blocco] },
+                    $"{nome} dall'AIP",
+                    riletto => riletto.RecordDelModello.Count == quanti + lati ? null : "Riletto, il file non ha i lati nuovi: si fa a mano, dalle righe del file.");
+                if (esito is ModificaDelTesto)
+                {
+                    portate++;
+                    toccati.Add(file);
+                }
+                else if (esito is ModificaRifiutata rifiutata)
+                    avvisi.Add($"{a.Key}: {rifiutata.Motivo}");
+            }
+            foreach (var f in toccati) RifaiLaGeometria(f);
+            Registro.Scrivi("aip", $"{gesto}: {portate} portate" + (avvisi.Count > 0 ? "; " + string.Join("; ", avvisi) : ""));
+            Rifiuto = avvisi.Count > 0 ? string.Join(" · ", avvisi) : null;
+            RicontrollaLeModifiche();
+            Avvisa();
+            return portate > 0;
+        });
+        if (fatto)
+            RifaiIlConfronto();
+        return fatto;
     }
 
     /// <summary>Dopo un gesto della slice 1c il confronto si rifà sulle forme di adesso: la riga sistemata diventa «uguale».</summary>

@@ -4,13 +4,22 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 4b fatta (il confronto di ENR 5)
+## Dove siamo — 19 ottobre 2026: F6, slice 4c fatta (AAR, AT, INDIA e i gesti di ENR 5): la slice 4 è chiusa
+
+**Slice 4c fatta**: prima le aree di ENR 5.2.2 scritte a testo (committente: «prendi anche AAR, AT e INDIA»): 7 AAR coi
+punti per nome presi da ENR 4, 6 INDIA, INDIA 5 SUD, 8 AT (PR #6). Poi i gesti nel confronto delle aree di ENR 5: «Porta
+nel sector» (P in `italy.prohibit`, D in `italy.danger`, il resto e le militari in `italy.restrict`), «Sostituisci» e
+«Dividi» (`R300AB` → `R300A` e `R300B`, i cerchi a 0,5 NM). R107A-D nel sector sono scritte male (uno spazio al posto del
+«;»): «Porta» lo dice e non le riscrive. Sul banco: 424 uguali, 91 diverse, 206 mancanti, 3 solo nel sector. Carta F6
+§6. **Prossima**: da decidere col committente.
+
+## 19 ottobre 2026: F6, slice 4b fatta (il confronto di ENR 5)
 
 **Slice 4b fatta**: «le aree di ENR 5» (ENR 5.1 e 5.2 contro `italy.prohibit`, `.restrict`, `.danger`), per nome — una
 voce del sector può valere più aree (`R300AB`, `D75`), i pezzi vicini sono una voce, la vicinanza solo nei due versi —, in
 sola lettura. Sulla copia: 411 uguali, 84 diverse (19 cerchi da 1 NM nel sector e 0,5 nell'AIP; 4 oltre 25 NM), 13 di
 ENR 5.1 mancanti (quelle della F0 più EUC 60 e 660), ENR 5.2 tutta mancante (191), 23 solo nel sector (AAR, AT, INDIA…).
-Carta F6 §6. **Prossima: 4c**, i gesti.
+Carta F6 §6.
 
 ## 19 ottobre 2026: F6, slice 4a fatta (l'importer di ENR 5.2)
 

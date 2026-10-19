@@ -93,22 +93,32 @@ public static class AipEspanso
         var problemi = new List<ProblemaDellImport>();
         var pagine = new List<ImportPage>();
 
-        // In ordine di nome: ENR 4 prima di ENR 5, che ne usa i punti (le AAR di ENR 5.2.2.1).
-        var risolvi = ItalianEnr5Zone.Risolutore(radioassistenze, punti);
+        // Si legge in ordine di nome — ENR 4 prima di ENR 5, che ne usa i punti (le AAR di ENR 5.2.2.1) —, ma il modello si
+        // compone nell'ordine dei PDF di sempre, così le aree di un file nuovo si aggiungono dove sono sempre state e il resto
+        // dell'AIP espanso in git non si sposta.
+        var giaLette = new List<Navaid>();
+        var puntiLetti = new List<SignificantPoint>();
+        var risolvi = ItalianEnr5Zone.Risolutore(giaLette, puntiLetti);
+        var perFile = new Dictionary<string, ImportResult>(StringComparer.Ordinal);
         foreach (var file in pdf.OrderBy(Path.GetFileName, StringComparer.Ordinal))
         {
-            var nome = Path.GetFileName(file);
-            ImportResult letto;
             try
             {
-                letto = ItalianAip.ReadFile(file, risolvi);
+                var letto = ItalianAip.ReadFile(file, risolvi);
+                perFile[file] = letto;
+                giaLette.AddRange(letto.Navaids);
+                puntiLetti.AddRange(letto.Points);
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
             {
-                illeggibili.Add($"{nome}: {e.Message}");
-                continue;
+                illeggibili.Add($"{Path.GetFileName(file)}: {e.Message}");
             }
+        }
 
+        foreach (var file in pdf)
+        {
+            var nome = Path.GetFileName(file);
+            if (!perFile.TryGetValue(file, out var letto)) continue;
             if (letto.Issues.Any(p => p.Kind == ImportIssueKind.Unsupported))
             {
                 nonAncora.Add(nome);
