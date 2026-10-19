@@ -2794,6 +2794,7 @@ public sealed class SessioneDelLab
         foreach (string file in toccati)
             RifaiLaGeometria(file);
         RicontrollaLeModifiche();
+        RifaiIConfrontiDellAip();
         Avvisa();
         return true;
     }
@@ -3028,6 +3029,7 @@ public sealed class SessioneDelLab
             RifaiLaGeometria(toccato);
         _daRifareDopoIlRigioco.Clear();
         RicontrollaLeModifiche();
+        RifaiIConfrontiDellAip();
         Avvisa();
     }
 
@@ -4365,6 +4367,7 @@ public sealed class SessioneDelLab
                 ? Core.PdfAip.ConfrontoDiEnr4.Radioassistenze(modello.Navaids!, sessione)
                 : Core.PdfAip.ConfrontoDiEnr4.Punti(modello.Points!, sessione)).ConfigureAwait(false);
             UltimoConfrontoDiEnr4 = (ciclo, radioassistenze, esiti);
+            _aipDiEnr4 = modello;
             Registro.Scrivi("aip", $"confronto {(radioassistenze ? "radioassistenze" : "punti")}, ciclo {ciclo}: "
                 + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")) + $", uso diverso {esiti.Count(e => e.UsoDiverso)}");
             Rifiuto = null;
@@ -4376,6 +4379,125 @@ public sealed class SessioneDelLab
             Registro.Errore("aip", e);
             return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
         }
+    }
+
+    /// <summary>Il modello da cui viene <see cref="UltimoConfrontoDiEnr4"/>: i gesti della slice 3c ne prendono radioassistenze e punti.</summary>
+    private global::Aip.AipDocument? _aipDiEnr4;
+
+    /// <summary>
+    /// «Sostituisci» su una radioassistenza diversa (carta F6, slice 3c): la sua riga del <c>.vor</c> o del <c>.ndb</c>
+    /// riscritta coi valori dell'AIP che sono diversi — frequenza, posizione oltre 0,1 NM, canale TACAN dove la riga lo
+    /// scrive —; gli altri campi (visibilità, tipo, attesa) restano. Un gesto: diff, annulla, lotto di Aurora.
+    /// </summary>
+    public bool SostituisciLaRadioassistenza(Core.PdfAip.DifferenzaDiEnr4 riga)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (Sessione is not { } sessione || UltimoConfrontoDiEnr4 is not { Radioassistenze: true } confronto || _aipDiEnr4?.Navaids is not { } dellAip)
+            return Rifiuta("Confronta le radioassistenze prima.");
+        if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.FormaDiversa, File: { } file, Record: { } record }
+            || sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord || record >= conRecord.RecordDelModello.Count)
+            return Rifiuta("Si sostituisce una radioassistenza del sector diversa da quella dell'AIP.");
+        if (dellAip.FirstOrDefault(n => n.Key == riga.Nome) is not { } n)
+            return Rifiuta($"{riga.Nome}: non è nell'AIP espanso del confronto.");
+        Coordinate? dove = conRecord.RecordDelModello[record] switch { Vor v => v.Position, Ndb d => d.Position, _ => null };
+        if (dove is not { } posizione)
+            return Rifiuta($"{riga.Nome}: la voce del sector non è un VOR né un NDB.");
+        var scarto = global::Aip.Aurora.Sphere.DistanceNm(n.Position, new global::Aip.Position(posizione.LatitudeDeg, posizione.LongitudeDeg));
+        var gesto = $"{riga.Nome} dall'AIP {confronto.Ciclo}";
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            var righe = RigheDiAdesso(file);
+            var (da, _) = conRecord.PostiDeiRecord(Modifiche.SporchiDi(file))[record];
+            if (Core.PdfAip.Enr4NelSector.Sostituita(righe[da], n, scarto, Core.PdfAip.ConfrontoDiEnr3.Soglia, out var cambiati) is not { } nuova || cambiati.Count == 0)
+                return Rifiuta($"{riga.Nome}: nella riga non c'è niente da cambiare.");
+            var quanti = conRecord.RecordDelModello.Count;
+            bool scritto = GestoSulTesto(file, "aip", f => Modifiche.CambiaRighe(f, new Dictionary<int, IReadOnlyList<string>> { [da + 1] = [nuova] }, gesto,
+                riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più le stesse voci: si fa a mano."));
+            Registro.Scrivi("aip", $"{gesto}: {string.Join(", ", cambiati)}");
+            return scritto;
+        });
+        if (fatto)
+            RifaiIlConfrontoDiEnr4();
+        return fatto;
+    }
+
+    /// <summary>
+    /// «Porta nel sector» (carta F6, slice 3c): le radioassistenze o i punti scelti fra quelli che il sector non ha, come righe
+    /// nuove di <c>itvor.vor</c>, <c>itndb.ndb</c> o <c>itfix.fix</c>, in ordine di nome. Un gesto solo.
+    /// </summary>
+    public bool PortaNelSectorDiEnr4(IReadOnlyList<string> nomi)
+    {
+        ArgumentNullException.ThrowIfNull(nomi);
+        if (Sessione is not { } sessione || UltimoConfrontoDiEnr4 is not { } confronto || _aipDiEnr4 is not { } aip)
+            return Rifiuta("Confronta le radioassistenze o i punti prima: si portano le righe del confronto.");
+        var mancanti = confronto.Esiti.Where(e => e.Esito == Core.PdfAip.EsitoDelConfronto.MancaNelSector).Select(e => e.Nome).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var scelti = nomi.Where(mancanti.Contains).ToList();
+        if (scelti.Count == 0)
+            return Rifiuta("Si portano le righe che il sector non ha.");
+        string? Chiave(string nome) => sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + nome, StringComparison.OrdinalIgnoreCase));
+        var gesto = scelti.Count == 1 ? $"{scelti[0]} dall'AIP {confronto.Ciclo}" : $"{scelti.Count} {(confronto.Radioassistenze ? "radioassistenze" : "punti")} dall'AIP {confronto.Ciclo}";
+        var avvisi = new List<string>();
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            avvisi.Clear();
+            int portati = 0;
+            var toccati = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var nome in scelti)
+            {
+                string riga, chiave;
+                string? file;
+                if (confronto.Radioassistenze)
+                {
+                    if (aip.Navaids?.FirstOrDefault(n => n.Key.Equals(nome, StringComparison.OrdinalIgnoreCase)) is not { } n) continue;
+                    file = Chiave(Core.PdfAip.Enr4NelSector.NeiNdb(n) ? Core.PdfAip.Enr4NelSector.FileDegliNdb : Core.PdfAip.Enr4NelSector.FileDeiVor);
+                    (riga, chiave) = (Core.PdfAip.Enr4NelSector.RigaNuova(n), n.Designator);
+                }
+                else
+                {
+                    if (aip.Points?.FirstOrDefault(p => p.Designator.Equals(nome, StringComparison.OrdinalIgnoreCase)) is not { } p) continue;
+                    file = Chiave(Core.PdfAip.ConfrontoDiEnr4.FileDeiPunti);
+                    (riga, chiave) = (Core.PdfAip.Enr4NelSector.RigaNuova(p), p.Designator);
+                }
+                if (file is null || sessione.File[file] is not IFileConRecord conRecord)
+                {
+                    avvisi.Add($"{nome}: nel sector non c'è il file dove va");
+                    continue;
+                }
+                // In ordine di nome: prima della prima voce col nome che viene dopo.
+                int prima = conRecord.RecordDelModello.Select((r, i) => (r, i))
+                    .FirstOrDefault(x => NomeDiEnr4(x.r) is { } k && string.CompareOrdinal(k.Trim(), chiave) > 0, (null!, conRecord.RecordDelModello.Count)).i;
+                var esito = Modifiche.AggiungiLeRighe(sessione.File[file], prima, [riga], $"{nome} dall'AIP", rigaVuota: false);
+                if (esito is ModificaDelTesto)
+                {
+                    portati++;
+                    toccati.Add(file);
+                }
+                else if (esito is ModificaRifiutata rifiutata)
+                    avvisi.Add($"{nome}: {rifiutata.Motivo}");
+            }
+            foreach (var f in toccati) RifaiLaGeometria(f);
+            Registro.Scrivi("aip", $"{gesto}: {portati} portati" + (avvisi.Count > 0 ? "; " + string.Join("; ", avvisi) : ""));
+            Rifiuto = avvisi.Count > 0 ? string.Join(" · ", avvisi) : null;
+            RicontrollaLeModifiche();
+            Avvisa();
+            return portati > 0;
+        });
+        if (fatto)
+            RifaiIlConfrontoDiEnr4();
+        return fatto;
+    }
+
+    private static string? NomeDiEnr4(object r) => r switch { Fix f => f.Name, Vor v => v.Ident, Ndb d => d.Ident, _ => null };
+
+    /// <summary>Dopo un gesto della slice 3c il confronto di ENR 4 si rifà sul sector di adesso.</summary>
+    private void RifaiIlConfrontoDiEnr4()
+    {
+        if (Sessione is not { } sessione || UltimoConfrontoDiEnr4 is not { } confronto || _aipDiEnr4 is not { } aip)
+            return;
+        UltimoConfrontoDiEnr4 = (confronto.Ciclo, confronto.Radioassistenze, confronto.Radioassistenze
+            ? Core.PdfAip.ConfrontoDiEnr4.Radioassistenze(aip.Navaids ?? [], sessione)
+            : Core.PdfAip.ConfrontoDiEnr4.Punti(aip.Points ?? [], sessione));
+        Avvisa();
     }
 
     /// <summary>Il modello da cui viene <see cref="UltimoConfrontoDiEnr3"/>: i gesti della slice 2c ne prendono rotte e attese.</summary>
@@ -4700,6 +4822,18 @@ public sealed class SessioneDelLab
             RifaiIlConfronto();
         }
         return fatto;
+    }
+
+    /// <summary>
+    /// Dopo «Annulla», «Ripeti» o «Annulla tutto» i confronti con l'AIP aperti (CTR e ATZ, ENR 3, ENR 4) si rifanno sul sector
+    /// di adesso: prima il riassunto restava quello del gesto annullato (visto sul banco nella slice 3c, «uguali 55» dopo
+    /// aver annullato i due «Sostituisci»).
+    /// </summary>
+    private void RifaiIConfrontiDellAip()
+    {
+        RifaiIlConfronto();
+        RifaiIlConfrontoDiEnr3();
+        RifaiIlConfrontoDiEnr4();
     }
 
     /// <summary>Dopo un gesto della slice 1c il confronto si rifà sulle forme di adesso: la riga sistemata diventa «uguale».</summary>

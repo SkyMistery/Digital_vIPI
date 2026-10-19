@@ -148,4 +148,80 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         Assert.False(await _lab.ConfrontaEnr4Async(radioassistenze: false));
         Assert.Contains("servono i PDF di ENR 4", _lab.Rifiuto, StringComparison.Ordinal);
     }
+
+    // --- slice 3c: i gesti --------------------------------------------------------------------------------------------
+
+    private string[] Righe(string file) => [.. _lab.RigheDiAdesso("SectorFiles/Include/IT/NAVAIDS/" + file)];
+
+    private DifferenzaDiEnr4 Riga(string nome) => _lab.UltimoConfrontoDiEnr4!.Value.Esiti.Single(e => e.Nome == nome);
+
+    [Fact]
+    public async Task Sostituisci_SoloICampiDiversi_IlRestoResta()
+    {
+        await ApriAsync();
+        Assert.True(await _lab.ConfrontaEnr4Async(radioassistenze: true), _lab.Rifiuto);
+
+        // ELB: il canale; la visibilità e il tipo (0;2) restano.
+        Assert.True(_lab.SostituisciLaRadioassistenza(Riga("ELB VORTAC")), _lab.Rifiuto);
+        Assert.Contains("ELB;114.70;N042.43.50.000;E010.23.45.000;0;2;94X;", Righe("itvor.vor"));
+        Assert.Equal(EsitoDelConfronto.Uguale, Riga("ELB VORTAC").Esito);
+        Assert.StartsWith("ELB VORTAC dall'AIP 2611", _lab.DaAnnullare, StringComparison.Ordinal);
+
+        // BOA: la posizione, al punto dell'AIP.
+        Assert.True(_lab.SostituisciLaRadioassistenza(Riga("BOA DVOR/DME")), _lab.Rifiuto);
+        Assert.Contains("BOA;117.10;N044.32.13.000;E011.17.26.000;;;;", Righe("itvor.vor"));
+
+        // TRP: la frequenza dell'NDB, coi kHz come li scrive il sector.
+        Assert.True(_lab.SostituisciLaRadioassistenza(Riga("TRP NDB")), _lab.Rifiuto);
+        Assert.Contains("TRP;317.5;N037.54.52.000;E012.29.35.000;", Righe("itndb.ndb"));
+
+        // Una riga uguale non si sostituisce.
+        Assert.False(_lab.SostituisciLaRadioassistenza(Riga("ALG VORTAC")));
+
+        // Annullare rifà il confronto: TRP torna diversa, e con «Annulla tutto» anche ELB e BOA.
+        _lab.Annulla();
+        Assert.Contains("TRP;317.0;N037.54.52.000;E012.29.35.000;", Righe("itndb.ndb"));
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, Riga("TRP NDB").Esito);
+        _lab.AnnullaTutte();
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, Riga("ELB VORTAC").Esito);
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, Riga("BOA DVOR/DME").Esito);
+    }
+
+    [Fact]
+    public async Task PortaNelSector_LaRadioassistenzaNelSuoFile_EIlPuntoInOrdineDiNome()
+    {
+        await ApriAsync();
+        Assert.True(await _lab.ConfrontaEnr4Async(radioassistenze: true), _lab.Rifiuto);
+
+        Assert.True(_lab.PortaNelSectorDiEnr4(["PIS DVOR/DME"]), _lab.Rifiuto);
+        // Nel .vor (non nel .ndb, dove c'è già il locator), mostrato, tipo VOR/DME, col canale.
+        Assert.Contains("PIS;112.10;N043.40.36.000;E010.23.30.000;0;1;58X;", Righe("itvor.vor"));
+        Assert.Equal(EsitoDelConfronto.Uguale, Riga("PIS DVOR/DME").Esito);
+        // Una riga che il sector ha già non si porta.
+        Assert.False(_lab.PortaNelSectorDiEnr4(["ALG VORTAC"]));
+
+        Assert.True(await _lab.ConfrontaEnr4Async(radioassistenze: false), _lab.Rifiuto);
+        Assert.True(_lab.PortaNelSectorDiEnr4(["ZZZZZ"]), _lab.Rifiuto);
+        var fix = Righe("itfix.fix");
+        // Sulla M2 e senza procedure né FRA: uso 0, fra 0; in fondo, dopo TIMOV e NANKA che vengono prima.
+        Assert.Equal("ZZZZZ;N043.00.00.000;E012.00.00.000;0;0;", fix.Last(r => r.Length > 0));
+        Assert.Equal(EsitoDelConfronto.Uguale, Riga("ZZZZZ").Esito);
+    }
+
+    [Theory]
+    [InlineData("390.00 KHZ", NavaidKind.Ndb, null, "AVI;390.0;N045.55.28.000;E012.25.43.000;")]
+    [InlineData("113.80 MHZ", NavaidKind.Vortac, "85X", "AVI;113.80;N045.55.28.000;E012.25.43.000;0;2;85X;")]
+    [InlineData(null, NavaidKind.Tacan, "111X", "AVI;;N045.55.28.000;E012.25.43.000;0;3;111X;")]
+    public void LaRigaNuovaDiUnaRadioassistenza(string? frequenza, NavaidKind tipo, string? canale, string attesa) =>
+        Assert.Equal(attesa, Enr4NelSector.RigaNuova(Radioassistenza("AVI", tipo.ToString(), tipo, Gradi(45, 55, 28), Gradi(12, 25, 43), frequenza, canale)));
+
+    [Fact]
+    public void LaRigaSostituitaTieneLAttesaEQuelCheSegue()
+    {
+        var n = Radioassistenza("ALG", "VORTAC", NavaidKind.Vortac, 40.6, 8.2, "113.85 MHZ", "85X");
+        var nuova = Enr4NelSector.Sostituita("ALG;113.80;N040.37.41.300;E008.14.38.000;;;;HLD-ALG;", n, 0.05, 0.1, out var cambiati);
+
+        Assert.Equal("ALG;113.85;N040.37.41.300;E008.14.38.000;;;;HLD-ALG;", nuova);
+        Assert.Equal(["frequenza 113.80 → 113.85"], cambiati);
+    }
 }

@@ -4,12 +4,20 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 3b fatta (il confronto di ENR 4)
+## Dove siamo — 19 ottobre 2026: F6, slice 3c fatta (i gesti di ENR 4): la slice 3 è chiusa
+
+**Slice 3c fatta**: «Sostituisci» sulle radioassistenze diverse (solo i campi diversi: frequenza, posizione, canale TACAN;
+l'attesa e il resto restano) e «Porta nel sector» (una o tutte) per radioassistenze e punti mancanti, in `itvor.vor`,
+`itndb.ndb`, `itfix.fix`. Uso e FRA dei `.fix` niente gesto (significato non confermato). Annullare ora rifà i confronti
+con l'AIP. Sulla copia: ELB e PNZ sostituite → 55 uguali. Carta F6 §6. **Prossima**: da decidere col committente
+(slice 4, ENR 5?).
+
+## 19 ottobre 2026: F6, slice 3b fatta (il confronto di ENR 4)
 
 **Slice 3b fatta**: «Confronta le radioassistenze» (ENR 4.1 contro `.vor` e `.ndb`: posizione, frequenza, canale TACAN)
 e «i punti» (ENR 4.4 contro i `.fix`; in `itfix.fix` anche uso e FRA), in sola lettura. Sulla copia: radioassistenze 53
 uguali, 2 diverse (ELB e PNZ, il canale TACAN), 93 solo nel sector (di scalo o estere); punti 1 254 uguali su 1 254, 2
-solo in `itfix.fix` (NANKA, TEMRI), 4 con l'uso diverso. Carta F6 §6. **Prossima: 3c**, i gesti.
+solo in `itfix.fix` (NANKA, TEMRI), 4 con l'uso diverso. Carta F6 §6.
 
 ## 19 ottobre 2026: F6, slice 3a fatta (l'importer di ENR 4)
 

@@ -57,7 +57,7 @@ public static class ConfrontoDiEnr4
         {
             var nome = n.Key;
             var aip = $"AIP: {n.Name}, {n.Frequency ?? "—"}{(n.Channel is { } c ? $" CH {c}" : "")}, {Coordinate(n.Position)}{(n.Military ? " (militare, ENR 4.1.2)" : "")}";
-            if (Ndb(n))
+            if (Enr4NelSector.NeiNdb(n))
             {
                 if (ndb.GetValueOrDefault(n.Designator) is not { } suoi)
                 {
@@ -115,9 +115,6 @@ public static class ConfrontoDiEnr4
 
         return Ordinati(esiti);
     }
-
-    /// <summary>NDB e locator vanno nei <c>.ndb</c>; tutto il resto (VOR, DME, TACAN) nei <c>.vor</c>.</summary>
-    private static bool Ndb(Navaid n) => n.Kind is NavaidKind.Ndb or NavaidKind.Locator;
 
     /// <summary>Il numero della frequenza stampata (<c>113.80 MHZ</c> → 113.80), o null.</summary>
     private static decimal? Frequenza(string? testo) =>
