@@ -393,7 +393,7 @@
                 @if (Lab.UltimoConfrontoDiAd2 is { } ad2)
                 {
                     <p class="lab-nota" data-riassunto-ad2>@(ad2.Parte switch { Ad2.Scali => "Scali", Ad2.Piste => "Piste", Ad2.Radioassistenze => "Radioassistenze di AD 2.19", _ => "Frequenze" }), ciclo @ad2.Ciclo, @ad2.Esiti.Select(e => e.Scalo).Distinct().Count() scali: @string.Join(" · ", ad2.Esiti.GroupBy(e => e.Esito).Select(g => $"{EsitoAd2(g.Key)} {g.Count()}"))@(ad2.Esiti.Count(e => e.DiversaInEnr41) is > 0 and var discordi ? $" · diverse in ENR 4.1 {discordi}" : "")</p>
-                    <p class="lab-nota">Una voce che sta in più file (OTHER/it… e le FIR) è una riga per file.@(ad2.Parte switch { Ad2.Frequenze => " Le frequenze sono in sola lettura.", Ad2.Radioassistenze => $" Sola lettura; le voci del sector che AD 2.19 non ha non si elencano. Gli ILS ({Lab.IlsDellAipDiAd2}) il sector non li tiene: non c'è una sezione per loro.", _ => "" })</p>
+                    <p class="lab-nota">Una voce che sta in più file (OTHER/it… e le FIR) è una riga per file.@(ad2.Parte switch { Ad2.Frequenze => " Le frequenze sono in sola lettura.", Ad2.Radioassistenze => $" Le voci del sector che AD 2.19 non ha non si elencano. Gli ILS ({Lab.IlsDellAipDiAd2}) il sector non li tiene: non c'è una sezione per loro.", _ => "" })</p>
                     <ul class="lab-elenco-lotto">
                         @foreach (var e in ad2.Esiti.Where(e => e.Esito != Esiti.Uguale || e.DiversaInEnr41))
                         {
@@ -411,6 +411,16 @@
                                 {
                                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-ad2"
                                             title="Riscrive questa riga del sector coi valori dell'AIP che sono diversi; il resto resta. Le altre righe (le FIR) una per una" @onclick="() => SostituisciAd2(e)">Sostituisci</button>
+                                }
+                                else if (ad2.Parte == Ad2.Radioassistenze && e.Esito == Esiti.FormaDiversa)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-radioassistenza-ad2"
+                                            title="Riscrive la riga del sector coi valori di AD 2.19 che sono diversi (frequenza, posizione, canale); il resto resta" @onclick="() => SostituisciRadioassistenzaAd2(e)">Sostituisci</button>
+                                }
+                                else if (ad2.Parte == Ad2.Radioassistenze && e.Esito == Esiti.MancaNelSector)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-radioassistenza-ad2"
+                                            title="La riga nuova in itvor.vor o itndb.ndb, in ordine di nome, coi valori di AD 2.19" @onclick="() => PortaRadioassistenzeAd2([e.Nome])">Porta nel sector</button>
                                 }
                                 else if (ad2.Parte == Ad2.Piste && e.Esito == Esiti.MancaNelSector)
                                 {
@@ -465,6 +475,10 @@
     private void SostituisciAd2(Vipi.SectorLab.Core.PdfAip.DifferenzaDiAd2 riga) => _rifiuto = Lab.SostituisciInAd2(riga) ? null : Lab.Rifiuto;
 
     private void PortaLaPista(Vipi.SectorLab.Core.PdfAip.DifferenzaDiAd2 riga) => _rifiuto = Lab.PortaLaPista(riga) ? null : Lab.Rifiuto;
+
+    private void SostituisciRadioassistenzaAd2(Vipi.SectorLab.Core.PdfAip.DifferenzaDiAd2 riga) => _rifiuto = Lab.SostituisciLaRadioassistenzaDiAd2(riga) ? null : Lab.Rifiuto;
+
+    private void PortaRadioassistenzeAd2(IReadOnlyList<string> nomi) => _rifiuto = Lab.PortaLeRadioassistenzeDiAd2(nomi) ? null : Lab.Rifiuto;
 
     /// <summary>Come <see cref="Esito"/>, ma scali, piste e frequenze non hanno una forma: «diversi».</summary>
     private static string EsitoAd2(Esiti e) => e == Esiti.FormaDiversa ? "diversi" : Esito(e);

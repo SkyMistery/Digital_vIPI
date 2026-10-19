@@ -4,7 +4,13 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 5e fatta (il confronto di AD 2.19)
+## Dove siamo — 19 ottobre 2026: F6, slice 5f fatta (i gesti di AD 2.19): AD 2 chiusa per testo e radioassistenze
+
+**Slice 5f fatta**: «Sostituisci» e «Porta nel sector» di ENR 4 sulle righe di AD 2.19 (il cuore dei gesti ora è comune ai
+due confronti). Sul banco: PNZ col canale 93X, GEN portata in `itvor.vor`, 24 uguali; «Annulla tutto» torna indietro.
+Carta F6 §6. **Prossimo**: le carte di AD 2 (stand, `.mva`, SID/STAR), o quel che sceglie il committente.
+
+## 19 ottobre 2026: F6, slice 5e fatta (il confronto di AD 2.19)
 
 **Slice 5e fatta**: le radioassistenze di AD 2.19 contro `.vor`/`.ndb` con le regole di ENR 4.1, in sola lettura, più il
 confronto dentro l'AIP con ENR 4.1 (al mezzo secondo: ENR 4.1 arrotonda al secondo). Sulla copia: 24 radioassistenze,

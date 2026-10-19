@@ -322,8 +322,24 @@ public sealed class ConfrontoDiAd2Tests : IDisposable
         Assert.Equal(EsitoDelConfronto.MancaNelSector, per["GEN VOR/DME"].Esito);
         Assert.Contains("non in ENR 4.1: è dello scalo", per["GEN VOR/DME"].Dettagli);
         Assert.Equal(1, _lab.IlsDellAipDiAd2);
-        // In sola lettura: «Sostituisci» non vale qui.
+        // «Sostituisci» degli scali e delle piste non vale qui.
         Assert.False(_lab.SostituisciInAd2(per["PNZ VORTAC"]));
+
+        // Slice 5f: i gesti di ENR 4 sulle righe di AD 2.19. PNZ: il canale; GEN: la riga nuova, in ordine di nome.
+        Assert.True(_lab.SostituisciLaRadioassistenzaDiAd2(per["PNZ VORTAC"]), _lab.Rifiuto);
+        Assert.Contains("PNZ;114.60;N040.54.42.700;E012.57.26.700;0;2;93X;", _lab.RigheDiAdesso("SectorFiles/Include/IT/NAVAIDS/itvor.vor"));
+        Assert.True(_lab.PortaLeRadioassistenzeDiAd2(["GEN VOR/DME"]), _lab.Rifiuto);
+        var vor = _lab.RigheDiAdesso("SectorFiles/Include/IT/NAVAIDS/itvor.vor").ToList();
+        var gen = vor.FindIndex(r => r.StartsWith("GEN;112.80;", StringComparison.Ordinal));
+        Assert.True(gen > 0, string.Join(" | ", vor));
+        Assert.EndsWith(";0;1;75X;", vor[gen], StringComparison.Ordinal);
+        Assert.StartsWith("MMP;", vor[gen + 1], StringComparison.Ordinal);
+        Assert.All(_lab.UltimoConfrontoDiAd2!.Value.Esiti, e => Assert.Equal(EsitoDelConfronto.Uguale, e.Esito));
+        Assert.False(_lab.PortaLeRadioassistenzeDiAd2(["CDC VORTAC"]));
+
+        _lab.AnnullaTutte();
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, _lab.UltimoConfrontoDiAd2!.Value.Esiti.Single(e => e.Nome == "PNZ VORTAC").Esito);
+        Assert.Equal(EsitoDelConfronto.MancaNelSector, _lab.UltimoConfrontoDiAd2!.Value.Esiti.Single(e => e.Nome == "GEN VOR/DME").Esito);
     }
 
     [Fact]

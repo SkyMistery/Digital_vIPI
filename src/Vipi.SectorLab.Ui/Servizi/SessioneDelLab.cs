@@ -4399,26 +4399,35 @@ public sealed class SessioneDelLab
             return Rifiuta("Si sostituisce una radioassistenza del sector diversa da quella dell'AIP.");
         if (dellAip.FirstOrDefault(n => n.Key == riga.Nome) is not { } n)
             return Rifiuta($"{riga.Nome}: non è nell'AIP espanso del confronto.");
+        bool fatto = SostituisciLaRigaDellaRadioassistenza(conRecord, file, record, riga.Nome, n, confronto.Ciclo);
+        if (fatto)
+            RifaiIlConfrontoDiEnr4();
+        return fatto;
+    }
+
+    /// <summary>
+    /// La riga del <c>.vor</c> o del <c>.ndb</c> riscritta coi valori di <paramref name="n"/> che sono diversi (slice 3c; la
+    /// usa anche AD 2.19, slice 5f). Un gesto: diff, annulla, lotto di Aurora.
+    /// </summary>
+    private bool SostituisciLaRigaDellaRadioassistenza(IFileConRecord conRecord, string file, int record, string nome, global::Aip.Navaid n, string ciclo)
+    {
         Coordinate? dove = conRecord.RecordDelModello[record] switch { Vor v => v.Position, Ndb d => d.Position, _ => null };
         if (dove is not { } posizione)
-            return Rifiuta($"{riga.Nome}: la voce del sector non è un VOR né un NDB.");
+            return Rifiuta($"{nome}: la voce del sector non è un VOR né un NDB.");
         var scarto = global::Aip.Aurora.Sphere.DistanceNm(n.Position, new global::Aip.Position(posizione.LatitudeDeg, posizione.LongitudeDeg));
-        var gesto = $"{riga.Nome} dall'AIP {confronto.Ciclo}";
-        bool fatto = NellaStoria(gesto, () =>
+        var gesto = $"{nome} dall'AIP {ciclo}";
+        return NellaStoria(gesto, () =>
         {
             var righe = RigheDiAdesso(file);
             var (da, _) = conRecord.PostiDeiRecord(Modifiche.SporchiDi(file))[record];
             if (Core.PdfAip.Enr4NelSector.Sostituita(righe[da], n, scarto, Core.PdfAip.ConfrontoDiEnr3.Soglia, out var cambiati) is not { } nuova || cambiati.Count == 0)
-                return Rifiuta($"{riga.Nome}: nella riga non c'è niente da cambiare.");
+                return Rifiuta($"{nome}: nella riga non c'è niente da cambiare.");
             var quanti = conRecord.RecordDelModello.Count;
             bool scritto = GestoSulTesto(file, "aip", f => Modifiche.CambiaRighe(f, new Dictionary<int, IReadOnlyList<string>> { [da + 1] = [nuova] }, gesto,
                 riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più le stesse voci: si fa a mano."));
             Registro.Scrivi("aip", $"{gesto}: {string.Join(", ", cambiati)}");
             return scritto;
         });
-        if (fatto)
-            RifaiIlConfrontoDiEnr4();
-        return fatto;
     }
 
     /// <summary>
@@ -4458,22 +4467,11 @@ public sealed class SessioneDelLab
                     file = Chiave(Core.PdfAip.ConfrontoDiEnr4.FileDeiPunti);
                     (riga, chiave) = (Core.PdfAip.Enr4NelSector.RigaNuova(p), p.Designator);
                 }
-                if (file is null || sessione.File[file] is not IFileConRecord conRecord)
-                {
-                    avvisi.Add($"{nome}: nel sector non c'è il file dove va");
-                    continue;
-                }
-                // In ordine di nome: prima della prima voce col nome che viene dopo.
-                int prima = conRecord.RecordDelModello.Select((r, i) => (r, i))
-                    .FirstOrDefault(x => NomeDiEnr4(x.r) is { } k && string.CompareOrdinal(k.Trim(), chiave) > 0, (null!, conRecord.RecordDelModello.Count)).i;
-                var esito = Modifiche.AggiungiLeRighe(sessione.File[file], prima, [riga], $"{nome} dall'AIP", rigaVuota: false);
-                if (esito is ModificaDelTesto)
+                if (PortaUnaRiga(sessione, nome, file, riga, chiave, avvisi))
                 {
                     portati++;
-                    toccati.Add(file);
+                    toccati.Add(file!);
                 }
-                else if (esito is ModificaRifiutata rifiutata)
-                    avvisi.Add($"{nome}: {rifiutata.Motivo}");
             }
             foreach (var f in toccati) RifaiLaGeometria(f);
             Registro.Scrivi("aip", $"{gesto}: {portati} portati" + (avvisi.Count > 0 ? "; " + string.Join("; ", avvisi) : ""));
@@ -4533,6 +4531,25 @@ public sealed class SessioneDelLab
     }
 
     private static string? NomeDiEnr4(object r) => r switch { Fix f => f.Name, Vor v => v.Ident, Ndb d => d.Ident, _ => null };
+
+    /// <summary>
+    /// Una riga nuova in un <c>.vor</c>, <c>.ndb</c> o <c>.fix</c>, in ordine di nome: prima della prima voce col nome che viene
+    /// dopo <paramref name="chiave"/> (slice 3c; la usa anche AD 2.19, slice 5f). False, con l'avviso, se non si può.
+    /// </summary>
+    private bool PortaUnaRiga(SessioneAperta sessione, string nome, string? file, string riga, string chiave, List<string> avvisi)
+    {
+        if (file is null || sessione.File[file] is not IFileConRecord conRecord)
+        {
+            avvisi.Add($"{nome}: nel sector non c'è il file dove va");
+            return false;
+        }
+        int prima = conRecord.RecordDelModello.Select((r, i) => (r, i))
+            .FirstOrDefault(x => NomeDiEnr4(x.r) is { } k && string.CompareOrdinal(k.Trim(), chiave) > 0, (null!, conRecord.RecordDelModello.Count)).i;
+        var esito = Modifiche.AggiungiLeRighe(sessione.File[file], prima, [riga], $"{nome} dall'AIP", rigaVuota: false);
+        if (esito is ModificaRifiutata rifiutata)
+            avvisi.Add($"{nome}: {rifiutata.Motivo}");
+        return esito is ModificaDelTesto;
+    }
 
     /// <summary>Dopo un gesto della slice 3c il confronto di ENR 4 si rifà sul sector di adesso.</summary>
     private void RifaiIlConfrontoDiEnr4()
@@ -4679,6 +4696,68 @@ public sealed class SessioneDelLab
                 riletto => riletto.RecordDelModello.Count == quanti + 1 ? null : "Riletto, il file non ha la pista nuova: si fa a mano."));
             Registro.Scrivi("aip", $"{gesto}: {nuova}");
             return scritto;
+        });
+        if (fatto)
+            RifaiIlConfrontoDiAd2();
+        return fatto;
+    }
+
+    /// <summary>La radioassistenza di AD 2.19 di una riga del confronto (la stessa sigla e tipo, del primo scalo che l'ha).</summary>
+    private global::Aip.Navaid? RadioassistenzaDiAd2(string chiave) =>
+        _aipDiAd2?.Aerodromes?.SelectMany(s => s.NavigationAids).FirstOrDefault(n => n.Key.Equals(chiave, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// «Sostituisci» su una radioassistenza di AD 2.19 diversa (carta F6, slice 5f): la riga del <c>.vor</c> o del <c>.ndb</c>
+    /// coi valori di AD 2.19 che sono diversi, come il gesto di ENR 4 (slice 3c). Un gesto.
+    /// </summary>
+    public bool SostituisciLaRadioassistenzaDiAd2(Core.PdfAip.DifferenzaDiAd2 riga)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (Sessione is not { } sessione || UltimoConfrontoDiAd2 is not { Parte: Core.PdfAip.ParteDiAd2.Radioassistenze } confronto)
+            return Rifiuta("Confronta le radioassistenze di AD 2.19 prima.");
+        if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.FormaDiversa, File: { } file, Record: { } record }
+            || sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord || record >= conRecord.RecordDelModello.Count)
+            return Rifiuta("Si sostituisce una radioassistenza del sector diversa da quella dell'AIP.");
+        if (RadioassistenzaDiAd2(riga.Nome) is not { } n)
+            return Rifiuta($"{riga.Nome}: non è nell'AD 2.19 del confronto.");
+        bool fatto = SostituisciLaRigaDellaRadioassistenza(conRecord, file, record, riga.Nome, n, confronto.Ciclo);
+        if (fatto)
+            RifaiIlConfrontoDiAd2();
+        return fatto;
+    }
+
+    /// <summary>
+    /// «Porta nel sector» (slice 5f): le radioassistenze di AD 2.19 scelte fra quelle che il sector non ha, come righe nuove di
+    /// <c>itvor.vor</c> o <c>itndb.ndb</c> in ordine di nome, come il gesto di ENR 4. Un gesto solo.
+    /// </summary>
+    public bool PortaLeRadioassistenzeDiAd2(IReadOnlyList<string> nomi)
+    {
+        ArgumentNullException.ThrowIfNull(nomi);
+        if (Sessione is not { } sessione || UltimoConfrontoDiAd2 is not { Parte: Core.PdfAip.ParteDiAd2.Radioassistenze } confronto)
+            return Rifiuta("Confronta le radioassistenze di AD 2.19 prima: si portano le righe del confronto.");
+        var mancanti = confronto.Esiti.Where(e => e.Esito == Core.PdfAip.EsitoDelConfronto.MancaNelSector).Select(e => e.Nome).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var scelte = nomi.Where(mancanti.Contains).Select(RadioassistenzaDiAd2).OfType<global::Aip.Navaid>().ToList();
+        if (scelte.Count == 0)
+            return Rifiuta("Si portano le radioassistenze che il sector non ha.");
+        string? Chiave(string nome) => sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + nome, StringComparison.OrdinalIgnoreCase));
+        var gesto = scelte.Count == 1 ? $"{scelte[0].Key} dall'AIP {confronto.Ciclo}" : $"{scelte.Count} radioassistenze di AD 2.19 dall'AIP {confronto.Ciclo}";
+        var avvisi = new List<string>();
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            avvisi.Clear();
+            var toccati = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var n in scelte)
+            {
+                var file = Chiave(Core.PdfAip.Enr4NelSector.NeiNdb(n) ? Core.PdfAip.Enr4NelSector.FileDegliNdb : Core.PdfAip.Enr4NelSector.FileDeiVor);
+                if (PortaUnaRiga(sessione, n.Key, file, Core.PdfAip.Enr4NelSector.RigaNuova(n), n.Designator, avvisi))
+                    toccati.Add(file!);
+            }
+            foreach (var f in toccati) RifaiLaGeometria(f);
+            Registro.Scrivi("aip", $"{gesto}: {toccati.Count} file" + (avvisi.Count > 0 ? "; " + string.Join("; ", avvisi) : ""));
+            Rifiuto = avvisi.Count > 0 ? string.Join(" · ", avvisi) : null;
+            RicontrollaLeModifiche();
+            Avvisa();
+            return toccati.Count > 0;
         });
         if (fatto)
             RifaiIlConfrontoDiAd2();
