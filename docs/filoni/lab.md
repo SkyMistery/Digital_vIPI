@@ -4,7 +4,16 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 5a fatta (il testo di AD 2)
+## Dove siamo — 19 ottobre 2026: F6, slice 5b fatta (il confronto di AD 2)
+
+**Slice 5b fatta**: il testo di AD 2 dei 5 scali contro il sector, in sola lettura, una riga per file (OTHER/it… e le
+FIR). Scali coi `.ap`: 13 righe uguali. Piste coi `.rw`: 8 diverse su 21 (la 10 di LICA a 103 m, la 12/30 di LIME con
+la rotta di 1,6°, la 34R di LIRF a 6 FT contro 5, la 06 di LIRN in `libb.rw`). Frequenze coi `.frq`: 30 uguali, 8
+mancanti (quasi tutte «a discrezione ATC»); emergenza e ATIS non si confrontano. Le ATZ di AD 2.17 ora vanno col loro
+scalo nel confronto delle ATZ: Orio diversa di 0,72 NM. Soglie 10 m e rotta 1°: proposte, da confermare. Carta F6 §6.
+**Prossima: 5c**, i gesti: aspetta il committente (cosa si corregge, e le frequenze «a discrezione»).
+
+## 19 ottobre 2026: F6, slice 5a fatta (il testo di AD 2)
 
 **Slice 5a fatta**: il testo di AD 2 dei 5 scali che ci sono (LICA, LIMC, LIME, LIRF, LIRN) nel modello (`Aerodrome`): ARP,
 elevazione e declinazione (AD 2.2), 18 piste con soglie e fine pista (AD 2.12), distanze dichiarate (AD 2.13), 51
@@ -758,6 +767,8 @@ Dalle slice 13-19 (6 ottobre):
   - **Le misure sul sector** con una prova temporanea in `tests/Vipi.SectorLab.Tests/PdfAip/` (`MisuraTemporaneaEnr4.cs`,
     `MisuraTemporaneaEnr5.cs`: `SessioneAperta.Apri` o `SessioneDelLab.ApriAsync` sulla copia, il confronto, un file nello
     scratchpad), **mai committata**.
+  - **Attesi della 5b** sulla copia contro il 2610: scali 13 uguali; piste 13 uguali e 8 diverse; frequenze 30 uguali e 8
+    mancanti; ATZ negli `.str` 38 uguali e 2 diverse (Viterbo, Orio). La misura: `MisuraTemporaneaAd2.cs`, mai committata.
   - Il **diff dell'AIP espanso**: GitHub (e `git diff` di base) mostra un'aggiunta in mezzo come righe spostate (PR #6:
     «+3445 −1967»); con `git diff --diff-algorithm=histogram` si vede se sono solo aggiunte. Il ramo `aip/2610` dopo la
     fusione di una PR viene cancellato su GitHub: il push lo ricrea, la PR porta solo il commit nuovo.

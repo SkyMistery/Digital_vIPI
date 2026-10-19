@@ -4545,6 +4545,57 @@ public sealed class SessioneDelLab
         Avvisa();
     }
 
+    /// <summary>L'ultimo confronto di AD 2 (slice 5b): il ciclo, la parte (scali, piste, frequenze) e le righe.</summary>
+    public (string Ciclo, Core.PdfAip.ParteDiAd2 Parte, IReadOnlyList<Core.PdfAip.DifferenzaDiAd2> Esiti)? UltimoConfrontoDiAd2 { get; private set; }
+
+    /// <summary>Il modello da cui viene <see cref="UltimoConfrontoDiAd2"/>, per rifarlo dopo un «Annulla».</summary>
+    private global::Aip.AipDocument? _aipDiAd2;
+
+    /// <summary>
+    /// «Confronta gli scali» / «le piste» / «le frequenze» (carta F6, slice 5b): il testo di AD 2 dell'AIP espanso coi
+    /// <c>.ap</c>, i <c>.rw</c> o i <c>.frq</c>, per gli scali di cui ci sono i PDF. In sola lettura.
+    /// </summary>
+    public async Task<bool> ConfrontaAd2Async(Core.PdfAip.ParteDiAd2 parte)
+    {
+        if (Sessione is not { } sessione)
+            return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
+        if (CartellaDellAipEspanso is not { } espanso)
+            return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
+        var ciclo = UltimoAipEspanso?.Ciclo
+                    ?? (Directory.Exists(espanso)
+                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
+                        : null);
+        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
+            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        try
+        {
+            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            if (modello.Aerodromes is not { Count: > 0 })
+                return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha scali: servono i PDF di AD 2 letti.");
+            var esiti = await Task.Run(() => Core.PdfAip.ConfrontoDiAd2.Di(parte, modello, sessione)).ConfigureAwait(false);
+            UltimoConfrontoDiAd2 = (ciclo, parte, esiti);
+            _aipDiAd2 = modello;
+            Registro.Scrivi("aip", $"confronto AD 2 {parte}, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
+            Rifiuto = null;
+            Avvisa();
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or global::Aip.AipJsonException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
+        }
+    }
+
+    /// <summary>Dopo un gesto o un «Annulla» il confronto di AD 2 si rifà sul sector di adesso.</summary>
+    private void RifaiIlConfrontoDiAd2()
+    {
+        if (Sessione is not { } sessione || UltimoConfrontoDiAd2 is not { } confronto || _aipDiAd2 is not { } aip)
+            return;
+        UltimoConfrontoDiAd2 = (confronto.Ciclo, confronto.Parte, Core.PdfAip.ConfrontoDiAd2.Di(confronto.Parte, aip, sessione));
+        Avvisa();
+    }
+
     /// <summary>Il modello da cui viene <see cref="UltimoConfrontoDiEnr3"/>: i gesti della slice 2c ne prendono rotte e attese.</summary>
     private global::Aip.AipDocument? _aipDiEnr3;
 
@@ -4883,6 +4934,7 @@ public sealed class SessioneDelLab
         RifaiIlConfronto();
         RifaiIlConfrontoDiEnr3();
         RifaiIlConfrontoDiEnr4();
+        RifaiIlConfrontoDiAd2();
     }
 
     /// <summary>

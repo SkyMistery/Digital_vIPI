@@ -102,6 +102,9 @@ public static partial class ConfrontoDelleForme
     [GeneratedRegex(@"\b[A-Z]{4}\b", RegexOptions.CultureInvariant)]
     private static partial Regex RxScalo();
 
+    [GeneratedRegex(@"\bATZ$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxFinisceConAtz();
+
     /// <summary>Il file dei settori delle torri.</summary>
     public const string Torri = "twrs.tfl";
 
@@ -116,7 +119,8 @@ public static partial class ConfrontoDelleForme
 
     /// <summary>
     /// Gli spazi dell'AIP di quella famiglia contro le voci del sector che la tengono. Le ATZ di ENR 2 sono le 16 militari
-    /// (ENR 2.1.3) e le «ATZ … - RMZ» di ENR 2.2, le zone di uno scalo insieme; le civili sono in AD 2, non ancora lette.
+    /// (ENR 2.1.3) e le «ATZ … - RMZ» di ENR 2.2, le zone di uno scalo insieme; le civili vengono da AD 2.17, degli scali
+    /// di cui ci sono i PDF (slice 5a).
     /// </summary>
     public static IReadOnlyList<DifferenzaDiForma> Di(FamigliaDelConfronto famiglia, IEnumerable<Airspace> aip, IEnumerable<FormaDellaMappa> sector, double soglia = SogliaDiBase)
     {
@@ -371,10 +375,18 @@ public static partial class ConfrontoDelleForme
             .Select(g => (g.Key, (IReadOnlyList<Airspace>)[.. g.Select(x => x.Area)]))
             .OrderBy(g => g.Item1, StringComparer.OrdinalIgnoreCase)];
 
-    /// <summary>Il nome del gruppo di uno spazio dell'AIP (<c>Bologna CTR</c>, <c>Amendola ATZ</c>, <c>ATZ Guidonia LIRG</c>), o null se non è della famiglia.</summary>
+    /// <summary>
+    /// Il nome del gruppo di uno spazio dell'AIP (<c>Bologna CTR</c>, <c>Amendola ATZ</c>, <c>ATZ Guidonia LIRG</c>), o null
+    /// se non è della famiglia. L'ATZ di AD 2.17 ha già «ATZ» nel designatore e prende lo scalo dalla pagina
+    /// (<c>Lamezia Terme ATZ LICA</c>): così va con le voci del suo scalo (slice 5b; prima «Lamezia Terme ATZ ATZ», per
+    /// vicinanza).
+    /// </summary>
     private static string? NomeDelGruppo(FamigliaDelConfronto famiglia, Airspace a) => famiglia switch
     {
         FamigliaDelConfronto.Ctr => a.Type == AirspaceType.Ctr ? NomeDelCtr(a.Designator) : null,
+        _ when a.Type == AirspaceType.Atz && a.Section == "AD 2.17" =>
+            (RxFinisceConAtz().IsMatch(a.Designator.Trim()) ? a.Designator.Trim() : a.Designator.Trim() + " ATZ")
+            + (ConfrontoDiAd2.ScaloDellaPagina(a.Page) is { } scalo ? " " + scalo : ""),
         _ when a.Type == AirspaceType.Atz => a.Designator.Trim() + " ATZ",
         _ when a.Type == AirspaceType.Rmz && RxAtzRmz().Match(a.Designator) is { Success: true } m => m.Groups["atz"].Value.Trim(),
         _ => null,

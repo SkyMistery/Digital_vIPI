@@ -2,6 +2,7 @@
 @inject SessioneDelLab Lab
 @using Famiglia = Vipi.SectorLab.Core.PdfAip.FamigliaDelConfronto
 @using Esiti = Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto
+@using Ad2 = Vipi.SectorLab.Core.PdfAip.ParteDiAd2
 
 @*
     I PDF dell'AIP nella barra (carta F6, slice 0c): la cartella dei PDF, «Prendi i PDF da Download» (sposta, solo su questo
@@ -374,6 +375,44 @@
                     </ul>
                 }
             </div>
+            @* Slice 5b: AD 2 — gli scali coi .ap, le piste coi .rw, le frequenze coi .frq, per gli scali di cui ci sono i PDF.
+               In sola lettura: i gesti vengono con la 5c. *@
+            <div data-confronto-ad2>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-scali" disabled="@(Lab.Sessione is null)"
+                        title="AD 2.2 e 2.17 dell'AIP espanso contro i .ap: punto di riferimento (0,1 NM), elevazione, altitudine di transizione (sola lettura)"
+                        @onclick="() => ConfrontaAd2(Ad2.Scali)">Confronta gli scali</button>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-piste" disabled="@(Lab.Sessione is null)"
+                        title="AD 2.12 contro i .rw: soglie (@Vipi.SectorLab.Core.PdfAip.ConfrontoDiAd2.SogliaDellaSogliaM.ToString("0") m), elevazioni, rotte magnetiche = vera − declinazione (sola lettura)"
+                        @onclick="() => ConfrontaAd2(Ad2.Piste)">le piste</button>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-frequenze" disabled="@(Lab.Sessione is null)"
+                        title="AD 2.18 contro le posizioni dei .frq dello scalo; emergenza e ATIS il sector non le tiene nei .frq (sola lettura)"
+                        @onclick="() => ConfrontaAd2(Ad2.Frequenze)">le frequenze</button>
+                @if (Lab.UltimoConfrontoDiAd2 is { } ad2)
+                {
+                    <p class="lab-nota" data-riassunto-ad2>@(ad2.Parte switch { Ad2.Scali => "Scali", Ad2.Piste => "Piste", _ => "Frequenze" }), ciclo @ad2.Ciclo, @ad2.Esiti.Select(e => e.Scalo).Distinct().Count() scali: @string.Join(" · ", ad2.Esiti.GroupBy(e => e.Esito).Select(g => $"{EsitoAd2(g.Key)} {g.Count()}"))</p>
+                    <p class="lab-nota">Sola lettura: una voce che sta in più file (OTHER/it… e le FIR) è una riga per file.</p>
+                    <ul class="lab-elenco-lotto">
+                        @foreach (var e in ad2.Esiti.Where(e => e.Esito != Esiti.Uguale))
+                        {
+                            <li class="lab-nota" data-ad2="@e.Esito">
+                                @if (e.File is { } file && e.Record is { } record)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" title="Apre la voce del sector" @onclick="() => Lab.Scegli(file, record)">@EsitoAd2(e.Esito)</button>
+                                }
+                                else
+                                {
+                                    <strong>@EsitoAd2(e.Esito)</strong>
+                                }
+                                @e.Nome
+                                @foreach (var d in e.Dettagli)
+                                {
+                                    <span class="lab-nota" data-dettaglio-ad2>@d</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
         }
         @if (_rifiuto is not null)
         {
@@ -407,6 +446,11 @@
     private async Task Registra() => _rifiuto = await Lab.RegistraLAipAsync(Lab.MessaggioDellAip) ? null : Lab.Rifiuto;
 
     private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
+
+    private async Task ConfrontaAd2(Ad2 parte) => _rifiuto = await Lab.ConfrontaAd2Async(parte) ? null : Lab.Rifiuto;
+
+    /// <summary>Come <see cref="Esito"/>, ma scali, piste e frequenze non hanno una forma: «diversi».</summary>
+    private static string EsitoAd2(Esiti e) => e == Esiti.FormaDiversa ? "diversi" : Esito(e);
 
     private async Task ConfrontaEnr4(bool radioassistenze) => _rifiuto = await Lab.ConfrontaEnr4Async(radioassistenze) ? null : Lab.Rifiuto;
 
