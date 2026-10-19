@@ -45,6 +45,9 @@ public sealed record EsitoDellAipEspanso(
     /// <summary>I settori delle carte ATC SMAC di AD 2 letti.</summary>
     public int SettoriSmac { get; init; }
 
+    /// <summary>Le procedure di AD 2 lette (F7): SID, STAR, transizioni, salite iniziali.</summary>
+    public int Procedure { get; init; }
+
     /// <summary>Com'è andata ogni correzione in piedi del file delle correzioni (vuoto se il file non c'è).</summary>
     public IReadOnlyList<CorrectionOutcome> Correzioni { get; init; } = [];
 
@@ -94,6 +97,7 @@ public sealed record EsitoDellAipEspanso(
         Scali > 0 ? $"{Scali} scali" : null,
         Pericoli > 0 ? $"{Pericoli} pericoli" : null,
         SettoriSmac > 0 ? $"{SettoriSmac} settori SMAC" : null,
+        Procedure > 0 ? $"{Procedure} procedure" : null,
     }.OfType<string>());
 }
 
@@ -151,6 +155,7 @@ public static class AipEspanso
         var scali = new List<Aerodrome>();
         var pericoli = new List<Hazard>();
         var smac = new List<MinimumAltitudeArea>();
+        var procedure = new List<Procedure>();
         var letti = new List<string>();
         var nonAncora = new List<string>();
         var illeggibili = new List<string>();
@@ -194,11 +199,13 @@ public static class AipEspanso
             rotte.AddRange(letto.Routes);
             attese.AddRange(letto.Holdings);
             radioassistenze.AddRange(letto.Navaids);
-            punti.AddRange(letto.Points);
+            // I punti delle WAYPOINT LIST di AD 2 stanno nel file 4 e nel 6 dello stesso scalo: una volta sola (F7).
+            ItalianAd2Procedures.AggiungiIPunti(punti, letto.Points);
             luci.AddRange(letto.Lights);
             scali.AddRange(letto.Aerodromes);
             pericoli.AddRange(letto.Hazards);
             smac.AddRange(letto.MinimumAltitudes);
+            procedure.AddRange(letto.Procedures);
             pagine.AddRange(letto.Pages);
             problemi.AddRange(letto.Issues.Select(p => new ProblemaDellImport(nome, p)));
         }
@@ -217,6 +224,7 @@ public static class AipEspanso
             Aerodromes = scali.Count == 0 ? null : scali,
             Hazards = pericoli.Count == 0 ? null : pericoli,
             MinimumAltitudes = smac.Count == 0 ? null : smac,
+            Procedures = procedure.Count == 0 ? null : procedure,
         };
 
         IReadOnlyList<CorrectionOutcome> correzioni = [];
@@ -257,6 +265,7 @@ public static class AipEspanso
             Scali = scali.Count,
             Pericoli = pericoli.Count,
             SettoriSmac = smac.Count,
+            Procedure = procedure.Count,
             Correzioni = correzioni,
         };
     }

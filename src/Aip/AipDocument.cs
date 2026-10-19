@@ -57,6 +57,9 @@ public sealed record AipDocument
     /// <summary>AD 2: i settori delle altitudini minime di sorveglianza (ATC SMAC). Null se il documento non ne ha.</summary>
     public IReadOnlyList<MinimumAltitudeArea>? MinimumAltitudes { get; init; }
 
+    /// <summary>AD 2: le procedure — SID, STAR, transizioni, salite iniziali (carta F7). Null se il documento non ne ha.</summary>
+    public IReadOnlyList<Procedure>? Procedures { get; init; }
+
     public bool Equals(AipDocument? other) =>
         other is not null
         && SchemaVersion == other.SchemaVersion
@@ -71,7 +74,8 @@ public sealed record AipDocument
         && (Lights ?? []).SequenceEqual(other.Lights ?? [])
         && (Aerodromes ?? []).SequenceEqual(other.Aerodromes ?? [])
         && (Hazards ?? []).SequenceEqual(other.Hazards ?? [])
-        && (MinimumAltitudes ?? []).SequenceEqual(other.MinimumAltitudes ?? []);
+        && (MinimumAltitudes ?? []).SequenceEqual(other.MinimumAltitudes ?? [])
+        && (Procedures ?? []).SequenceEqual(other.Procedures ?? []);
 
     public override int GetHashCode() => HashCode.Combine(SchemaVersion, State, Airac, Effective, Airspaces.Count);
 }

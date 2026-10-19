@@ -43,6 +43,7 @@ var luci = new List<GroundLight>();
 var scali = new List<Aerodrome>();
 var pericoli = new List<Hazard>();
 var smac = new List<MinimumAltitudeArea>();
+var procedure = new List<Procedure>();
 var esito = 0;
 // In ordine di nome: ENR 4 prima di ENR 5, che ne usa i punti (le AAR di ENR 5.2.2.1).
 var risolvi = ItalianEnr5Zone.Risolutore(radioassistenze, punti);
@@ -70,11 +71,12 @@ foreach (var f in file.OrderBy(Path.GetFileName, StringComparer.Ordinal))
     rotte.AddRange(letto.Routes);
     attese.AddRange(letto.Holdings);
     radioassistenze.AddRange(letto.Navaids);
-    punti.AddRange(letto.Points);
+    ItalianAd2Procedures.AggiungiIPunti(punti, letto.Points);
     luci.AddRange(letto.Lights);
     scali.AddRange(letto.Aerodromes);
     pericoli.AddRange(letto.Hazards);
     smac.AddRange(letto.MinimumAltitudes);
+    procedure.AddRange(letto.Procedures);
     var date = letto.Pages.GroupBy(p => p.Effective).OrderBy(g => g.Key)
         .Select(g => $"{(g.Key is { } d ? d.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant() : "senza data")} ×{g.Count()}");
     Console.WriteLine($"{Path.GetFileName(f)}: {letto.Pages.Count} pagine ({string.Join(", ", date)}), "
@@ -86,7 +88,8 @@ foreach (var f in file.OrderBy(Path.GetFileName, StringComparer.Ordinal))
         + (letto.Lights.Count > 0 ? $", {letto.Lights.Count} luci" : "")
         + (letto.Aerodromes.Count > 0 ? $", scalo {string.Join(" ", letto.Aerodromes.Select(s => s.Icao))}" : "")
         + (letto.Hazards.Count > 0 ? $", {letto.Hazards.Count} pericoli" : "")
-        + (letto.MinimumAltitudes.Count > 0 ? $", {letto.MinimumAltitudes.Count} settori SMAC" : ""));
+        + (letto.MinimumAltitudes.Count > 0 ? $", {letto.MinimumAltitudes.Count} settori SMAC" : "")
+        + (letto.Procedures.Count > 0 ? $", procedure {string.Join(" ", letto.Procedures.GroupBy(p => p.Kind).Select(g => $"{g.Key} {g.Count()}"))} ({letto.Procedures.Sum(p => p.Legs.Count)} tratti)" : ""));
     foreach (var g in letto.Airspaces.GroupBy(a => a.Geometry.GetType().Name).OrderBy(g => g.Key))
         Console.WriteLine($"    {g.Key}: {g.Count()}");
     foreach (var g in letto.Issues.GroupBy(p => p.Kind).OrderBy(g => g.Key))
@@ -131,6 +134,14 @@ foreach (var f in file.OrderBy(Path.GetFileName, StringComparer.Ordinal))
     if (elenco)
         foreach (var m in letto.MinimumAltitudes)
             Console.WriteLine($"      SMAC {m.Aerodrome} {m.Minimum.Text} {m.Name} | {m.Geometry.GetType().Name} | p.{m.Page?.Reference}");
+    if (elenco)
+        foreach (var p in letto.Procedures)
+        {
+            Console.WriteLine($"      {p.Kind} {p.Designator} RWY {string.Join("/", p.Runways)} | {p.Legs.Count} tratti | p.{p.Page?.Reference}"
+                + (p.Description is { } d ? $" | {d.Replace('\n', ' ')[..Math.Min(80, d.Length)]}" : "") + (p.Minimums is { } m ? $" | {m.Replace('\n', ' ')}" : ""));
+            foreach (var t in p.Legs)
+                Console.WriteLine($"        {t.PathTerminator} {t.Fix} {(t.FlyOver ? "Y" : "")} | {t.Course} ({t.TrueCourse}) | {t.MagneticVariation} | {t.DistanceNm} | {t.Turn} | {t.Altitude} | {t.Speed} | {t.Navigation} {t.Notes}");
+        }
     if (dettagli)
         foreach (var p in letto.Issues)
             Console.WriteLine($"      {p.Kind} p.{p.Page} {p.Key} {p.Detail}".TrimEnd());
@@ -141,10 +152,11 @@ var doc = new AipDocument
     State = ItalianAip.State, Airac = airac, Airspaces = aree, Routes = rotte.Count == 0 ? null : rotte, Holdings = attese.Count == 0 ? null : attese,
     Navaids = radioassistenze.Count == 0 ? null : radioassistenze, Points = punti.Count == 0 ? null : punti, Lights = luci.Count == 0 ? null : luci,
     Aerodromes = scali.Count == 0 ? null : scali, Hazards = pericoli.Count == 0 ? null : pericoli, MinimumAltitudes = smac.Count == 0 ? null : smac,
+    Procedures = procedure.Count == 0 ? null : procedure,
 };
 foreach (var p in AipCheck.Run(doc))
     Console.WriteLine($"modello: {p.Kind} {p.Key} {p.Detail}".TrimEnd());
-Console.WriteLine($"Totale: {aree.Count} aree, {rotte.Count} rotte, {attese.Count} attese, {radioassistenze.Count} radioassistenze, {punti.Count} punti, {luci.Count} luci, {scali.Count} scali, {pericoli.Count} pericoli, {smac.Count} settori SMAC da {file.Count} file.");
+Console.WriteLine($"Totale: {aree.Count} aree, {rotte.Count} rotte, {attese.Count} attese, {radioassistenze.Count} radioassistenze, {punti.Count} punti, {luci.Count} luci, {scali.Count} scali, {pericoli.Count} pericoli, {smac.Count} settori SMAC, {procedure.Count} procedure da {file.Count} file.");
 
 if (uscita is not null)
 {

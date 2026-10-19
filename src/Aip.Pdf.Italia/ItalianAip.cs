@@ -69,6 +69,9 @@ public enum ImportIssueKind
 
     /// <summary>Un luogo di ENR 5.3 con coordinate che non si leggono. <c>Detail</c> = il testo.</summary>
     Hazard,
+
+    /// <summary>Una procedura di AD 2 (F7) o un suo tratto che non torna: un punto mancante, un tratto fuori da una procedura. <c>Detail</c> = cosa.</summary>
+    Procedure,
 }
 
 public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)
@@ -96,6 +99,9 @@ public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyLi
 
     /// <summary>AD 2: i settori della carta ATC SMAC letti.</summary>
     public IReadOnlyList<MinimumAltitudeArea> MinimumAltitudes { get; init; } = [];
+
+    /// <summary>AD 2: le procedure lette (F7).</summary>
+    public IReadOnlyList<Procedure> Procedures { get; init; } = [];
 }
 
 /// <summary>
@@ -141,7 +147,7 @@ public static partial class ItalianAip
     [GeneratedRegex(@"^LI-AD 2 (?<icao>[A-Z]{4}) - (?<nome>.+) 1$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxTestoDiScalo();
 
-    [GeneratedRegex(@"^LI-AD 2 (?<icao>[A-Z]{4}) - .+ \d+$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    [GeneratedRegex(@"^LI-AD 2 (?<icao>[A-Z]{4}) - .+ (?<n>\d+)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxCartaDiScalo();
 
     [GeneratedRegex(@"\s+")]
@@ -170,12 +176,16 @@ public static partial class ItalianAip
         // AD 2 (slice 5a): il testo di uno scalo è il suo primo PDF; gli altri sono carte.
         if (RxTestoDiScalo().Match(nome) is { Success: true } scalo)
             return ItalianAd2.Read(PdfText.Read(path), scalo.Groups["icao"].Value, scalo.Groups["nome"].Value.Trim());
-        // Le carte di uno scalo: si legge la ATC SMAC (il testo dei settori); le altre sono immagini o SID e STAR (F7).
+        // Le carte di uno scalo: la ATC SMAC (il testo dei settori), le procedure (F7: il 4 le STAR, il 6 le SID); le altre
+        // sono immagini.
         if (RxCartaDiScalo().Match(nome) is { Success: true } carta)
         {
             var pagine = PdfText.Read(path);
             if (ItalianAd2.ESmac(pagine))
                 return ItalianAd2.ReadSmac(pagine, carta.Groups["icao"].Value);
+            // Solo il 4 e il 6: il 5 (gli avvicinamenti) ha tabelle uguali, ma gli avvicinamenti non sono della F7.
+            if (carta.Groups["n"].Value is "4" or "6" && ItalianAd2Procedures.EProcedure(pagine))
+                return ItalianAd2Procedures.Read(pagine, carta.Groups["icao"].Value, carta.Groups["n"].Value == "4" ? ProcedureKind.Star : ProcedureKind.Sid);
         }
         if (nome.StartsWith("LI-ENR 5.1.", StringComparison.Ordinal))
             return ReadEnr51(PdfText.Read(path));

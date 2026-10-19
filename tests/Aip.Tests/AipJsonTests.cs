@@ -500,4 +500,35 @@ public sealed class AipJsonTests
         Assert.Equal(doc, riletto);
         Assert.NotEqual(ils with { Components = [ils.Components[0]] }, riletto.Aerodromes![0].Ils[0]);
     }
+    // Carta F7, slice 7a: le procedure di AD 2 vanno e tornano uguali, coi tratti (l'uguaglianza è scritta a mano per le liste).
+    [Fact]
+    public void LeProcedureVannoETornanoUguali()
+    {
+        var sid = new Procedure
+        {
+            Aerodrome = "LIXX",
+            Kind = ProcedureKind.Sid,
+            Designator = "PROVA 1A",
+            Runways = ["16L", "16R"],
+            Section = "SID RNAV1 RWY 16 L/R DESCRIPTION",
+            Legs =
+            [
+                new ProcedureLeg { PathTerminator = "CA", Course = "159°", TrueCourse = "162.6", Altitude = "+410" },
+                new ProcedureLeg { PathTerminator = "RF", Fix = "XX604", ArcCenter = "XX620", ArcRadiusNm = 2.1, DistanceNm = 2.5, Turn = "R", Speed = "-200", Navigation = "RNP1" },
+                new ProcedureLeg { PathTerminator = "TF", Fix = "PROVA", FlyOver = true, Altitude = "+FL110", Notes = "(2)" },
+            ],
+            Description = "Proceed via …",
+            Minimums = "MCA/MCL: PROVA FL110",
+            Remarks = "(1) Nota.",
+            Page = new AipPage("AD 2 LIXX 6-3", new DateOnly(2026, 6, 11)),
+        };
+        var doc = new AipDocument { State = "LI", Airspaces = [], Procedures = [sid] };
+
+        var riletto = AipJson.Deserialize(AipJson.Serialize(doc));
+
+        Assert.Equal(doc, riletto);
+        Assert.Equal("LIXX Sid PROVA 1A RWY 16L/16R", riletto.Procedures![0].Key);
+        Assert.NotEqual(sid with { Legs = [sid.Legs[0]] }, riletto.Procedures[0]);
+        Assert.NotEqual(sid with { Runways = ["16L"] }, riletto.Procedures[0]);
+    }
 }
