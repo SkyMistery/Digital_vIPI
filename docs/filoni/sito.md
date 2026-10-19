@@ -2779,6 +2779,29 @@
   - ⚠️ **Trovato in passata, NON toccato (è `src/`)**: al prossimo ri-calcolo dei lock di `src/` EF Sqlite 8.0.32
     vuole `SQLitePCLRaw.lib.e_sqlite3` ≥ 2.1.13, e `Vipi.Infrastructure` la fissa a 2.1.12 → NU1605 (declassamento).
   - Solo `tests/`: nessun pacchetto. Build Release della soluzione a 0 avvisi; conteggi invariati.
+- 🟢 **S117** il NU1605 su SQLite trovato in S116 (20-ott, assegnato dal committente via Master). **Codice comune**:
+  `src/Vipi.Infrastructure`.
+  - **Il guasto, latente**: `Vipi.Infrastructure` (e `Vipi.Application.Tests`) fissavano `SQLitePCLRaw.lib.e_sqlite3`
+    **2.1.12** con un riferimento diretto, contro CVE-2025-6965. In NuGet il diretto vince: al primo ri-calcolo dei
+    lock EF Core Sqlite 8.0.32 chiede bundle 2.1.13 → lib ≥ 2.1.13, e il pin lo teneva sotto → NU1605,
+    declassamento, errore. Oggi i lock sono a 8.0.31 e non scattava.
+  - **Rimedio: tolti i due pin.** Il commento del pin stesso diceva «rimuovere quando EF Core tirerà da sé una
+    versione non vulnerabile»: EF Core Sqlite 8.0.31 chiede già bundle 2.1.12 (e 10.0.12, usato da
+    Application.Tests su net10, pure). Scartati il pin a 2.1.13 (lo stesso tappo, un passo più in là) e il pin
+    mobile `2.1.*` (un riferimento in più da tenere, per un pericolo che l'audit NuGet già sorveglia — se un giorno
+    servisse, il commento nel csproj dice che la cura è quella).
+  - **I lock**: con le dipendenze cambiate NuGet ri-risolve il progetto da capo e trascina le versioni mobili (EF
+    8.0.32, Extensions 10.0.13, SQLite 2.1.13) — cioè cambia la produzione, e solo in metà dei lock. Allora: tolta
+    **solo** la voce del pin (lib.e_sqlite3 da Direct a Transitive, e la riga nella voce `vipi.infrastructure`) in
+    14 lock, versioni invariate; la forma confrontata con una rigenerazione completa di NuGet. `restore
+    --locked-mode` della soluzione: zero avvisi. Il nativo arriva ora da EF → bundle 2.1.12 → **lib 2.1.12**: la
+    stessa versione di prima, **nel publish non cambia niente**.
+  - **Il ri-calcolo dei lock regge**: `restore --force-evaluate` di tutta la soluzione (SDK 10.0.401) passa senza
+    errori né avvisi — EF 8.0.32 con SQLite 2.1.13, Extensions 10.0.13. Fatto per prova e NON committato: muovere le
+    versioni di produzione è una decisione a parte.
+  - ⚠️ Visto in passata, NON toccato (è del Lab): il lock di `src/Vipi.SectorLab.Core` porta ancora tutto il grafo
+    di `vipi.infrastructure`, che il progetto non referenzia (solo Sectorfile e Application): lock vecchio dal
+    commit `64a33fb0`. Il `--locked-mode` non se ne accorge; una rigenerazione lo accorcerebbe da 38 a 7 voci.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

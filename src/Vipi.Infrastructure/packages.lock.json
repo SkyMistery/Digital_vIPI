@@ -87,12 +87,6 @@
           "MySqlConnector": "2.3.5"
         }
       },
-      "SQLitePCLRaw.lib.e_sqlite3": {
-        "type": "Direct",
-        "requested": "[2.1.12, )",
-        "resolved": "2.1.12",
-        "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
-      },
       "Humanizer.Core": {
         "type": "Transitive",
         "resolved": "2.14.1",
@@ -355,6 +349,11 @@
         "resolved": "2.1.12",
         "contentHash": "ETpNw9DY3ckWLgRRAeCHj+GKOuPi61aeczkXhgHexUvqoZBAYg8RYESE2J7O1M7+o6QbdSEZwrw9bfqztUVWXg=="
       },
+      "SQLitePCLRaw.lib.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.12",
+        "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
+      },
       "SQLitePCLRaw.provider.e_sqlite3": {
         "type": "Transitive",
         "resolved": "2.1.12",
@@ -434,16 +433,14 @@
     },
     "net10.0/linux-x64": {
       "SQLitePCLRaw.lib.e_sqlite3": {
-        "type": "Direct",
-        "requested": "[2.1.12, )",
+        "type": "Transitive",
         "resolved": "2.1.12",
         "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
       }
     },
     "net10.0/win-x64": {
       "SQLitePCLRaw.lib.e_sqlite3": {
-        "type": "Direct",
-        "requested": "[2.1.12, )",
+        "type": "Transitive",
         "resolved": "2.1.12",
         "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
       }
@@ -533,12 +530,6 @@
           "Microsoft.EntityFrameworkCore.Relational": "[8.0.13, 8.0.999]",
           "MySqlConnector": "2.3.5"
         }
-      },
-      "SQLitePCLRaw.lib.e_sqlite3": {
-        "type": "Direct",
-        "requested": "[2.1.12, )",
-        "resolved": "2.1.12",
-        "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
       },
       "Humanizer.Core": {
         "type": "Transitive",
@@ -802,6 +793,11 @@
         "resolved": "2.1.12",
         "contentHash": "ETpNw9DY3ckWLgRRAeCHj+GKOuPi61aeczkXhgHexUvqoZBAYg8RYESE2J7O1M7+o6QbdSEZwrw9bfqztUVWXg=="
       },
+      "SQLitePCLRaw.lib.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.12",
+        "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
+      },
       "SQLitePCLRaw.provider.e_sqlite3": {
         "type": "Transitive",
         "resolved": "2.1.12",
@@ -886,16 +882,14 @@
     },
     "net8.0/linux-x64": {
       "SQLitePCLRaw.lib.e_sqlite3": {
-        "type": "Direct",
-        "requested": "[2.1.12, )",
+        "type": "Transitive",
         "resolved": "2.1.12",
         "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
       }
     },
     "net8.0/win-x64": {
       "SQLitePCLRaw.lib.e_sqlite3": {
-        "type": "Direct",
-        "requested": "[2.1.12, )",
+        "type": "Transitive",
         "resolved": "2.1.12",
         "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
       }
