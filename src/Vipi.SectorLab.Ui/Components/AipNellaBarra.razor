@@ -150,7 +150,7 @@
                     <p class="lab-nota" data-riassunto-confronto>@Cosa(confronto.Famiglia), ciclo @confronto.Ciclo: @string.Join(" · ", confronto.Esiti.GroupBy(e => e.Esito).Select(g => $"{Esito(g.Key)} {g.Count()}"))</p>
                     @if (atz && confronto.Esiti.Any(e => e.Esito == Esiti.SoloNelSector))
                     {
-                        <p class="lab-nota" data-solo-nel-sector>Le voci «solo nel sector» non si elencano: le ATZ civili stanno in AD 2, che il Lab non legge ancora.</p>
+                        <p class="lab-nota" data-solo-nel-sector>Le voci «solo nel sector» non si elencano: le ATZ civili stanno in AD 2, che il Lab legge solo per gli scali di cui ci sono i PDF.</p>
                     }
                     @if (enr5 && confronto.Esiti.Where(e => e.Esito == Esiti.MancaNelSector).Select(e => e.Aip).OfType<string>().ToList() is { Count: > 1 } mancanti)
                     {
@@ -376,7 +376,7 @@
                 }
             </div>
             @* Slice 5b: AD 2 — gli scali coi .ap, le piste coi .rw, le frequenze coi .frq, per gli scali di cui ci sono i PDF.
-               In sola lettura: i gesti vengono con la 5c. *@
+               Slice 5c: «Sostituisci» su scali e piste diversi, «Porta nel sector» per una pista che manca; le frequenze no. *@
             <div data-confronto-ad2>
                 <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-scali" disabled="@(Lab.Sessione is null)"
                         title="AD 2.2 e 2.17 dell'AIP espanso contro i .ap: punto di riferimento (0,1 NM), elevazione, altitudine di transizione (sola lettura)"
@@ -390,7 +390,7 @@
                 @if (Lab.UltimoConfrontoDiAd2 is { } ad2)
                 {
                     <p class="lab-nota" data-riassunto-ad2>@(ad2.Parte switch { Ad2.Scali => "Scali", Ad2.Piste => "Piste", _ => "Frequenze" }), ciclo @ad2.Ciclo, @ad2.Esiti.Select(e => e.Scalo).Distinct().Count() scali: @string.Join(" · ", ad2.Esiti.GroupBy(e => e.Esito).Select(g => $"{EsitoAd2(g.Key)} {g.Count()}"))</p>
-                    <p class="lab-nota">Sola lettura: una voce che sta in più file (OTHER/it… e le FIR) è una riga per file.</p>
+                    <p class="lab-nota">Una voce che sta in più file (OTHER/it… e le FIR) è una riga per file.@(ad2.Parte == Ad2.Frequenze ? " Le frequenze sono in sola lettura." : "")</p>
                     <ul class="lab-elenco-lotto">
                         @foreach (var e in ad2.Esiti.Where(e => e.Esito != Esiti.Uguale))
                         {
@@ -404,6 +404,16 @@
                                     <strong>@EsitoAd2(e.Esito)</strong>
                                 }
                                 @e.Nome
+                                @if (ad2.Parte != Ad2.Frequenze && e.Esito == Esiti.FormaDiversa)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-ad2"
+                                            title="Riscrive questa riga del sector coi valori dell'AIP che sono diversi; il resto resta. Le altre righe (le FIR) una per una" @onclick="() => SostituisciAd2(e)">Sostituisci</button>
+                                }
+                                else if (ad2.Parte == Ad2.Piste && e.Esito == Esiti.MancaNelSector)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-pista"
+                                            title="La riga nuova in itrw.rw, nella sezione delle piste, con le due testate dell'AIP" @onclick="() => PortaLaPista(e)">Porta nel sector</button>
+                                }
                                 @foreach (var d in e.Dettagli)
                                 {
                                     <span class="lab-nota" data-dettaglio-ad2>@d</span>
@@ -448,6 +458,10 @@
     private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
 
     private async Task ConfrontaAd2(Ad2 parte) => _rifiuto = await Lab.ConfrontaAd2Async(parte) ? null : Lab.Rifiuto;
+
+    private void SostituisciAd2(Vipi.SectorLab.Core.PdfAip.DifferenzaDiAd2 riga) => _rifiuto = Lab.SostituisciInAd2(riga) ? null : Lab.Rifiuto;
+
+    private void PortaLaPista(Vipi.SectorLab.Core.PdfAip.DifferenzaDiAd2 riga) => _rifiuto = Lab.PortaLaPista(riga) ? null : Lab.Rifiuto;
 
     /// <summary>Come <see cref="Esito"/>, ma scali, piste e frequenze non hanno una forma: «diversi».</summary>
     private static string EsitoAd2(Esiti e) => e == Esiti.FormaDiversa ? "diversi" : Esito(e);

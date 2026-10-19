@@ -4,7 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 5b fatta (il confronto di AD 2)
+## Dove siamo — 19 ottobre 2026: F6, slice 5c fatta (i gesti di AD 2)
+
+**Slice 5c fatta**: le soglie del confronto (10 m, 1°) confermate dal committente; «Sostituisci» su scali e piste diversi
+(una riga per file, solo i campi diversi) e «Porta nel sector» per una pista che manca (in `itrw.rw`, dentro `//PISTE`).
+Le frequenze restano in sola lettura. Sul banco: le 8 piste diverse sostituite → 21 uguali; l'ATZ di Orio col gesto
+della slice 1c → ATZ uguali 39; «Annulla tutto» torna indietro. Carta F6 §6. **Da decidere col committente**: le 8
+frequenze mancanti, e cosa leggere dopo di AD 2 (carte, AD 2.19).
+
+## 19 ottobre 2026: F6, slice 5b fatta (il confronto di AD 2)
 
 **Slice 5b fatta**: il testo di AD 2 dei 5 scali contro il sector, in sola lettura, una riga per file (OTHER/it… e le
 FIR). Scali coi `.ap`: 13 righe uguali. Piste coi `.rw`: 8 diverse su 21 (la 10 di LICA a 103 m, la 12/30 di LIME con

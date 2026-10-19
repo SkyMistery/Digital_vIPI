@@ -46,12 +46,12 @@ public sealed record DifferenzaDiAd2(EsitoDelConfronto Esito, string Scalo, stri
 public static partial class ConfrontoDiAd2
 {
     /// <summary>
-    /// La soglia di una pista oltre questi metri è diversa. ⚠️ Proposta dell'agente, non decisa: le soglie del sector che
-    /// tornano stanno sotto il metro (misura del 19 ottobre), quella della 10 di LICA a un centinaio.
+    /// La soglia di una pista oltre questi metri è diversa: le soglie del sector che tornano stanno sotto il metro (misura del
+    /// 19 ottobre), quella della 10 di LICA a un centinaio. Proposta dell'agente, confermata dal committente (19 ottobre).
     /// </summary>
     public const double SogliaDellaSogliaM = 10;
 
-    /// <summary>La rotta magnetica oltre questi gradi è diversa. ⚠️ Proposta dell'agente, non decisa.</summary>
+    /// <summary>La rotta magnetica oltre questi gradi è diversa (confermato dal committente, 19 ottobre).</summary>
     public const double SogliaDellaRotta = 1;
 
     /// <summary>I servizi di AD 2.18 che il sector non tiene nei <c>.frq</c>.</summary>
@@ -199,7 +199,7 @@ public static partial class ConfrontoDiAd2
     {
         var diversa = false;
         var nome = aip.Designator;
-        if (aip.Threshold is { } t && Distanza(t, soglia) * MetriPerMiglio is var metri && metri > SogliaDellaSogliaM)
+        if (aip.Threshold is { } t && Metri(t, soglia) is var metri && metri > SogliaDellaSogliaM)
         {
             diversa = true;
             dettagli.Add($"{nome}: soglia del sector a {metri.ToString("0", CultureInfo.InvariantCulture)} m da quella dell'AIP");
@@ -211,8 +211,8 @@ public static partial class ConfrontoDiAd2
         }
         if (Gradi(aip.TrueBearing) is { } vera && declinazione is { } dec && rotta is { } scritta)
         {
-            var magnetica = ((vera - dec) % 360 + 360) % 360;
-            var scarto = Math.Abs(((scritta - magnetica) % 360 + 540) % 360 - 180);
+            var magnetica = Magnetica(vera, dec);
+            var scarto = ScartoDiRotta(scritta, magnetica);
             if (scarto > SogliaDellaRotta)
             {
                 diversa = true;
@@ -222,6 +222,15 @@ public static partial class ConfrontoDiAd2
         }
         return diversa;
     }
+
+    /// <summary>La rotta magnetica dalla vera e dalla declinazione (est positiva), fra 0 e 360.</summary>
+    internal static double Magnetica(double vera, double declinazione) => ((vera - declinazione) % 360 + 360) % 360;
+
+    /// <summary>Lo scarto fra due rotte in gradi, da 0 a 180.</summary>
+    internal static double ScartoDiRotta(double a, double b) => Math.Abs(((a - b) % 360 + 540) % 360 - 180);
+
+    /// <summary>La distanza in metri fra la soglia dell'AIP e quella del sector.</summary>
+    internal static double Metri(Position aip, Coordinate sector) => Distanza(aip, sector) * MetriPerMiglio;
 
     private static string Testata(PistaDellAip r) =>
         $"{r.Designator} {(r.Threshold is { } t ? Coordinate(t) : "—")} {r.ThresholdElevation ?? "—"} {r.TrueBearing ?? "—"} vera";
@@ -259,11 +268,11 @@ public static partial class ConfrontoDiAd2
     private static partial Regex RxDeclinazione();
 
     /// <summary>I gradi di una rotta stampata: <c>098.49°</c> → 98,49; o null.</summary>
-    private static double? Gradi(string? stampata) =>
+    internal static double? Gradi(string? stampata) =>
         stampata is not null && RxNumero().Match(stampata) is { Success: true } m ? double.Parse(m.Value, CultureInfo.InvariantCulture) : null;
 
     /// <summary>Il primo numero, in piedi: <c>19.3 FT / NIL</c> → 19,3, <c>6000 FT</c> → 6000; null se non c'è o non è in piedi.</summary>
-    private static double? Piedi(string? stampata) =>
+    internal static double? Piedi(string? stampata) =>
         stampata is not null && RxPiedi().Match(stampata) is { Success: true } m ? double.Parse(m.Groups["n"].Value, CultureInfo.InvariantCulture) : null;
 
     [GeneratedRegex(@"\d+(?:\.\d+)?", RegexOptions.CultureInvariant)]

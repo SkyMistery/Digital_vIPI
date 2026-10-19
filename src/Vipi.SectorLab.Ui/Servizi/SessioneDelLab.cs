@@ -4587,6 +4587,98 @@ public sealed class SessioneDelLab
         }
     }
 
+    /// <summary>
+    /// «Sostituisci» su uno scalo o una pista diversi (carta F6, slice 5c): la riga del <c>.ap</c> o del <c>.rw</c> riscritta
+    /// coi valori dell'AIP che sono diversi, con le soglie del confronto; il resto della riga resta. Una riga per file: le
+    /// FIR si sostituiscono una per una. Un gesto: diff, annulla, lotto di Aurora.
+    /// </summary>
+    public bool SostituisciInAd2(Core.PdfAip.DifferenzaDiAd2 riga)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (Sessione is not { } sessione || UltimoConfrontoDiAd2 is not { Parte: not Core.PdfAip.ParteDiAd2.Frequenze } confronto || _aipDiAd2 is not { } aip)
+            return Rifiuta("Confronta gli scali o le piste prima.");
+        if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.FormaDiversa, File: { } file, Record: { } record }
+            || sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord || record >= conRecord.RecordDelModello.Count)
+            return Rifiuta("Si sostituisce una voce del sector diversa da quella dell'AIP.");
+        if (aip.Aerodromes?.FirstOrDefault(a => a.Icao.Equals(riga.Scalo, StringComparison.OrdinalIgnoreCase)) is not { } scalo)
+            return Rifiuta($"{riga.Scalo}: non è nell'AIP espanso del confronto.");
+        var transizione = aip.Airspaces.FirstOrDefault(a => a.Section == "AD 2.17" && a.TransitionAltitude is not null
+            && string.Equals(Core.PdfAip.ConfrontoDiAd2.ScaloDellaPagina(a.Page), scalo.Icao, StringComparison.OrdinalIgnoreCase))?.TransitionAltitude;
+        var nomeDelFile = file[(file.LastIndexOf('/') + 1)..];
+        var gesto = $"{riga.Nome} ({nomeDelFile}) dall'AIP {confronto.Ciclo}";
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            var righe = RigheDiAdesso(file);
+            var (da, _) = conRecord.PostiDeiRecord(Modifiche.SporchiDi(file))[record];
+            IReadOnlyList<string> cambiati;
+            var nuova = confronto.Parte == Core.PdfAip.ParteDiAd2.Scali
+                ? Core.PdfAip.Ad2NelSector.SostituitoLoScalo(righe[da], scalo, transizione, out cambiati)
+                : Core.PdfAip.Ad2NelSector.SostituitaLaPista(righe[da], scalo.Runways, Core.PdfAip.ConfrontoDiAd2.Declinazione(scalo.MagneticVariation), out cambiati);
+            if (nuova is null || cambiati.Count == 0)
+                return Rifiuta($"{riga.Nome}: nella riga non c'è niente da cambiare.");
+            var quanti = conRecord.RecordDelModello.Count;
+            bool scritto = GestoSulTesto(file, "aip", f => Modifiche.CambiaRighe(f, new Dictionary<int, IReadOnlyList<string>> { [da + 1] = [nuova] }, gesto,
+                riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più le stesse voci: si fa a mano."));
+            Registro.Scrivi("aip", $"{gesto}: {string.Join(", ", cambiati)}");
+            return scritto;
+        });
+        if (fatto)
+            RifaiIlConfrontoDiAd2();
+        return fatto;
+    }
+
+    /// <summary>
+    /// «Porta nel sector» su una pista che nessun <c>.rw</c> ha (slice 5c): la riga nuova in <c>itrw.rw</c>, nella sezione
+    /// <c>//PISTE</c>, dopo le piste dello scalo (o in ordine di indicativo), con le due testate dell'AIP. Un gesto.
+    /// </summary>
+    public bool PortaLaPista(Core.PdfAip.DifferenzaDiAd2 riga)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (Sessione is not { } sessione || UltimoConfrontoDiAd2 is not { Parte: Core.PdfAip.ParteDiAd2.Piste } confronto || _aipDiAd2 is not { } aip)
+            return Rifiuta("Confronta le piste prima.");
+        if (riga.Esito != Core.PdfAip.EsitoDelConfronto.MancaNelSector
+            || aip.Aerodromes?.FirstOrDefault(a => a.Icao.Equals(riga.Scalo, StringComparison.OrdinalIgnoreCase)) is not { } scalo)
+            return Rifiuta("Si porta una pista che il sector non ha.");
+        var testate = riga.Nome[(riga.Scalo.Length + 1)..].Split('/');
+        var piste = testate.Select(t => scalo.Runways.FirstOrDefault(r => Core.PdfAip.ConfrontoDiAd2.Designatore(r.Designator) == Core.PdfAip.ConfrontoDiAd2.Designatore(t))).ToList();
+        if (piste.Count != 2 || piste[0] is not { } prima || piste[1] is not { } opposta)
+            return Rifiuta($"{riga.Nome}: l'AIP non ha le due testate; si scrive a mano.");
+        if (Core.PdfAip.Ad2NelSector.RigaNuovaDellaPista(scalo.Icao, prima, opposta, Core.PdfAip.ConfrontoDiAd2.Declinazione(scalo.MagneticVariation)) is not { } nuova)
+            return Rifiuta($"{riga.Nome}: l'AIP non dà le soglie; si scrive a mano.");
+        var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + Core.PdfAip.Ad2NelSector.FileDellePiste, StringComparison.OrdinalIgnoreCase));
+        if (file is null || sessione.File[file] is not IFileConRecord conRecord || conRecord.RecordDelModello.Count == 0)
+            return Rifiuta($"Nel sector non c'è {Core.PdfAip.Ad2NelSector.FileDellePiste} con le piste.");
+        var gesto = $"{riga.Nome} dall'AIP {confronto.Ciclo}";
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            var righe = RigheDiAdesso(file);
+            var posti = conRecord.PostiDeiRecord(Modifiche.SporchiDi(file));
+            // Dopo l'ultima pista con l'indicativo che non viene dopo; se non c'è, prima della prima: sempre dentro //PISTE
+            // (dopo l'ultima pista del file viene //ACC).
+            var dopo = conRecord.RecordDelModello.Select((r, i) => (r, i))
+                .LastOrDefault(x => x.r is Vipi.Sectorfile.Models.Runway p && string.CompareOrdinal(p.IcaoCode.Trim(), scalo.Icao) <= 0, (null!, -1)).i;
+            var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+            if (dopo >= 0)
+            {
+                var a = posti[dopo].Da + posti[dopo].Quante - 1;
+                sostituzioni[a + 1] = [righe[a], nuova];
+            }
+            else
+            {
+                var da = posti[0].Da;
+                sostituzioni[da + 1] = [nuova, righe[da]];
+            }
+            var quanti = conRecord.RecordDelModello.Count;
+            bool scritto = GestoSulTesto(file, "aip", f => Modifiche.CambiaRighe(f, sostituzioni, gesto,
+                riletto => riletto.RecordDelModello.Count == quanti + 1 ? null : "Riletto, il file non ha la pista nuova: si fa a mano."));
+            Registro.Scrivi("aip", $"{gesto}: {nuova}");
+            return scritto;
+        });
+        if (fatto)
+            RifaiIlConfrontoDiAd2();
+        return fatto;
+    }
+
     /// <summary>Dopo un gesto o un «Annulla» il confronto di AD 2 si rifà sul sector di adesso.</summary>
     private void RifaiIlConfrontoDiAd2()
     {

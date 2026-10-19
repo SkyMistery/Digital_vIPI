@@ -212,6 +212,65 @@ public sealed class ConfrontoDiAd2Tests : IDisposable
         Assert.Contains("non ha scali", _lab.Rifiuto, StringComparison.Ordinal);
     }
 
+    private string[] Righe(string file) => [.. _lab.RigheDiAdesso("SectorFiles/Include/IT/OTHER/" + file)];
+
+    private DifferenzaDiAd2 Riga(string nome, string file) =>
+        _lab.UltimoConfrontoDiAd2!.Value.Esiti.Single(e => e.Nome == nome && (e.File?.EndsWith("/" + file, StringComparison.Ordinal) ?? file.Length == 0));
+
+    [Fact]
+    public async Task SostituisciLaPista_SoloICampiDiversi_UnFileAllaVolta()
+    {
+        await ApriAsync();
+        Assert.True(await _lab.ConfrontaAd2Async(ParteDiAd2.Piste), _lab.Rifiuto);
+
+        // LICA 10/28 in itrw.rw: la soglia della 10 al punto dell'AIP; elevazioni e rotte restano (dentro le soglie).
+        Assert.True(_lab.SostituisciInAd2(Riga("LICA 10/28", "itrw.rw")), _lab.Rifiuto);
+        Assert.Contains("LICA;10;28;20;42;094.5;274.5;N038.54.25.210;E016.13.42.700;N038.54.12.520;E016.15.31.420;", Righe("itrw.rw"));
+        Assert.Equal(EsitoDelConfronto.Uguale, Riga("LICA 10/28", "itrw.rw").Esito);
+        Assert.StartsWith("LICA 10/28 (itrw.rw) dall'AIP 2611", _lab.DaAnnullare, StringComparison.Ordinal);
+
+        // LIME 30/12: le rotte magnetiche dall'AIP, con un decimale; le soglie restano.
+        Assert.True(_lab.SostituisciInAd2(Riga("LIME 30/12", "itrw.rw")), _lab.Rifiuto);
+        Assert.Contains("LIME;30;12;802;805;298.4;118.4;N045.40.29.520;E009.42.33.760;N045.40.40.530;E009.42.08.020;", Righe("itrw.rw"));
+
+        // Una riga uguale non si sostituisce; annullare rifà il confronto.
+        Assert.False(_lab.SostituisciInAd2(Riga("LICA 10/28", "lirr.rw")));
+        _lab.AnnullaTutte();
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, Riga("LICA 10/28", "itrw.rw").Esito);
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, Riga("LIME 30/12", "itrw.rw").Esito);
+    }
+
+    [Fact]
+    public async Task SostituisciLoScalo_PuntoElevazioneETransizione()
+    {
+        await ApriAsync();
+        Assert.True(await _lab.ConfrontaAd2Async(ParteDiAd2.Scali), _lab.Rifiuto);
+
+        Assert.True(_lab.SostituisciInAd2(Riga("LIRN NAPOLI Capodichino", "itap.ap")), _lab.Rifiuto);
+
+        Assert.Contains("LIRN;294;8000;N040.53.04.000;E014.17.27.000;CAPODICHINO;", Righe("itap.ap"));
+        Assert.Equal(EsitoDelConfronto.Uguale, Riga("LIRN NAPOLI Capodichino", "itap.ap").Esito);
+    }
+
+    [Fact]
+    public async Task PortaLaPista_InItrwDopoLePisteDelloScalo_DentroLeSezioneDellePiste()
+    {
+        await ApriAsync();
+        Assert.True(await _lab.ConfrontaAd2Async(ParteDiAd2.Piste), _lab.Rifiuto);
+
+        Assert.True(_lab.PortaLaPista(Riga("LIME 10/28", "")), _lab.Rifiuto);
+
+        var righe = Righe("itrw.rw");
+        var nuova = Array.FindIndex(righe, r => r.StartsWith("LIME;10;28;781;754;", StringComparison.Ordinal));
+        Assert.True(nuova > 0, string.Join(" | ", righe));
+        Assert.StartsWith("LIME;30;12;", righe[nuova - 1], StringComparison.Ordinal);
+        Assert.EndsWith(";N045.40.13.901;E009.41.33.022;N045.39.52.981;E009.43.25.640;", righe[nuova], StringComparison.Ordinal);
+        Assert.Equal(EsitoDelConfronto.Uguale, Riga("LIME 10/28", "itrw.rw").Esito);
+
+        // Le frequenze restano in sola lettura, e una pista che c'è non si porta.
+        Assert.False(_lab.PortaLaPista(Riga("LIME 10/28", "itrw.rw")));
+    }
+
     [Fact]
     public void LAtzDiAd217_VaColSuoScalo_SenzaDueVolteAtz()
     {
