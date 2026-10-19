@@ -260,6 +260,10 @@ public static partial class ConfrontoDelleForme
                     var cerchio = Outline.Circle(c, 4);
                     for (var i = 0; i < cerchio.Count; i++) lati.Add((cerchio[i], cerchio[(i + 1) % cerchio.Count], true));
                     break;
+                case CorridorGeometry k:
+                    var contorno = Outline.Corridor(k);
+                    for (var i = 0; i < contorno.Count; i++) lati.Add((contorno[i], contorno[(i + 1) % contorno.Count], true));
+                    break;
                 case RingGeometry r:
                     for (var i = 0; i < r.Segments.Count; i++)
                     {

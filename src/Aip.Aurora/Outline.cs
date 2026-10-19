@@ -49,8 +49,43 @@ public static class Outline
         {
             CircleGeometry c => Circle(c, o.Density),
             RingGeometry r => Ring(r, o, issues, key),
+            CorridorGeometry k => Corridor(k),
             _ => throw new ArgumentException($"Geometria sconosciuta: {geometry.GetType().Name}", nameof(geometry)),
         };
+    }
+
+    /// <summary>
+    /// Il contorno di un corridoio: la linea spostata di metà ampiezza a destra, all'andata, e a sinistra, al ritorno; le
+    /// testate dritte (l'AIP non dice altro). Nei punti di mezzo lo spostamento va sulla bisettrice, allungato perché
+    /// l'ampiezza resti quella sui due lati (fino a tre volte la metà: oltre, in una svolta quasi all'indietro, si ferma).
+    /// </summary>
+    public static IReadOnlyList<Position> Corridor(CorridorGeometry corridor)
+    {
+        ArgumentNullException.ThrowIfNull(corridor);
+        var p = corridor.Points;
+        var meta = corridor.Width.ToNauticalMiles() / 2;
+        if (p.Count < 2) return [.. p];
+        var destra = new List<Position>(p.Count);
+        var sinistra = new List<Position>(p.Count);
+        for (var i = 0; i < p.Count; i++)
+        {
+            double rotta, quanto = meta;
+            if (i == 0) rotta = Sphere.BearingDeg(p[0], p[1]);
+            else if (i == p.Count - 1) rotta = Sphere.BearingDeg(p[i - 1], p[i]);
+            else
+            {
+                var prima = Sphere.BearingDeg(p[i - 1], p[i]);
+                var dopo = Sphere.BearingDeg(p[i], p[i + 1]);
+                var svolta = Sphere.Normalize(dopo - prima);
+                if (svolta > 180) svolta -= 360;
+                rotta = Sphere.Normalize(prima + svolta / 2);
+                quanto = meta / Math.Max(Math.Cos(svolta / 2 * Math.PI / 180), 1.0 / 3);
+            }
+            destra.Add(Sphere.Destination(p[i], Sphere.Normalize(rotta + 90), quanto));
+            sinistra.Add(Sphere.Destination(p[i], Sphere.Normalize(rotta - 90), quanto));
+        }
+        sinistra.Reverse();
+        return [.. destra, .. sinistra];
     }
 
     /// <summary>Il cerchio dal nord, in senso orario: <c>ceil(360 × densità)</c> vertici sul raggio.</summary>

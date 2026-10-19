@@ -81,6 +81,15 @@ public static class AipCheck
                 }
                 break;
 
+            case CorridorGeometry corridoio:
+                if (corridoio.Points.Count < 2)
+                    problemi.Add(new AipProblem(AipProblemKind.TooFewSegments, area.Key, corridoio.Points.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                if (!(corridoio.Width.Value > 0))
+                    problemi.Add(new AipProblem(AipProblemKind.NonPositiveRadius, area.Key));
+                foreach (var p in corridoio.Points)
+                    ControllaPunto(p, area.Key, problemi);
+                break;
+
             default:
                 problemi.Add(new AipProblem(AipProblemKind.MissingGeometry, area.Key));
                 break;

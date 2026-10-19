@@ -108,6 +108,29 @@ public sealed class AipCheckTests
             tipi);
     }
 
+    [Fact]
+    public void UnCorridoioDiUnPuntoSoloOSenzaAmpiezzaSiDice()
+    {
+        Airspace Corridoio(string id, double ampiezza, params Position[] punti) => new()
+        {
+            Section = "ENR 5.2", Type = AirspaceType.Military, Designator = id,
+            Upper = new VerticalLimit { Text = "FL200" }, Lower = new VerticalLimit { Text = "FL150" },
+            Geometry = new CorridorGeometry(new Distance(ampiezza, DistanceUnit.Nm), punti),
+        };
+        var doc = new AipDocument
+        {
+            State = "LI",
+            Airspaces =
+            [
+                Corridoio("BUONO", 10, new Position(41, 18), new Position(40, 19)),
+                Corridoio("CORTO", 10, new Position(41, 18)),
+                Corridoio("STRETTO", 0, new Position(41, 18), new Position(40, 19)),
+            ],
+        };
+
+        Assert.Equal([(AipProblemKind.TooFewSegments, "CORTO"), (AipProblemKind.NonPositiveRadius, "STRETTO")], AipCheck.Run(doc).Select(p => (p.Kind, p.Key)));
+    }
+
     [Theory]
     [InlineData(1.0, DistanceUnit.Nm, 1.0)]
     [InlineData(1.852, DistanceUnit.Km, 1.0)]

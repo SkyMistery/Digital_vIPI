@@ -198,4 +198,26 @@ public sealed class GeometryTextTests
         Assert.Empty(letto.Geometries);
         Assert.Empty(letto.Issues);
     }
+
+    [Fact]
+    public void UnCorridoio_AmpiezzaEPuntiInFila()
+    {
+        var letto = GeometryText.Read("Corridor 10 NM wide joining following points:\n41°00'00\"N 018°35'00\"E;\n40°53'30\"N 018°57'06\"E;");
+
+        Assert.Empty(letto.Issues);
+        var k = Assert.IsType<CorridorGeometry>(Assert.Single(letto.Geometries));
+        Assert.Equal(new Distance(10, DistanceUnit.Nm), k.Width);
+        Assert.Equal(2, k.Points.Count);
+        Vicino(P(41, 18 + 35 / 60.0), k.Points[0]);
+    }
+
+    [Fact]
+    public void UnCorridoioConParoleInPiu_LaGuardiaLeDice_DiUnPuntoSoloNonEntra()
+    {
+        var conParole = GeometryText.Read("Corridor 6 NM wide joining following points: 41°00'00\"N 018°35'00\"E; NOTE GENERALI 40°53'30\"N 018°57'06\"E;");
+        Assert.Contains(conParole.Issues, i => i.Kind == GeometryIssueKind.UnknownWords && i.Detail == "NOTE GENERALI");
+
+        var corto = GeometryText.Read("Corridor 6 NM wide joining following points: 41°00'00\"N 018°35'00\"E;");
+        Assert.Empty(corto.Geometries);
+    }
 }

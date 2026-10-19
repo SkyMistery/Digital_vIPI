@@ -7,8 +7,8 @@ namespace Aip;
 /// Il JSON del modello: lo stesso file per l'AIP espanso, per il converter e, compresso, per il vSOP (carta F6,
 /// D8). Chiavi in camelCase, enum come parole (<c>"restricted"</c>, <c>"clockwise"</c>), i campi vuoti non si
 /// scrivono.
-/// <para>🔴 La versione si legge <b>prima</b> del resto: un file di uno schema più nuovo dice «schema 2, so
-/// leggere fino all'1», non un errore a caso a metà del contenuto.</para>
+/// <para>🔴 La versione si legge <b>prima</b> del resto: un file di uno schema più nuovo dice «schema 3, so
+/// leggere fino al 2», non un errore a caso a metà del contenuto.</para>
 /// </summary>
 public static class AipJson
 {

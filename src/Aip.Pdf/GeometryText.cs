@@ -150,9 +150,44 @@ public static partial class GeometryText
         var problemi = new List<GeometryIssue>();
         if (string.IsNullOrWhiteSpace(text)) return new GeometryReadResult([], problemi);
 
+        // Un corridoio (ENR 5.2.2.5, slice 4a) non è un anello: la frase, l'ampiezza e i punti in fila.
+        if (RxCorridoio().Match(text) is { Success: true } corridoio)
+            return Corridoio(corridoio, problemi);
+
         var elementi = Spezza(text.Replace("⟦", "").Replace("⟧", ""), problemi);
         var geometrie = Componi(elementi, problemi);
         return new GeometryReadResult(geometrie, problemi);
+    }
+
+    /// <summary>«Corridor 10 NM wide joining following points: …»: l'ampiezza, e dopo i due punti le coordinate.</summary>
+    [GeneratedRegex(@"^\s*CORRIDOR\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM)\s+WIDE\s+JOINING\s+(?:THE\s+)?(?:FOLLOWING\s+)?POINTS\s*:?(?<resto>.*)$", Opzioni | RegexOptions.Singleline)]
+    private static partial Regex RxCorridoio();
+
+    private static GeometryReadResult Corridoio(Match m, List<GeometryIssue> problemi)
+    {
+        var ampiezza = new Distance(double.Parse(m.Groups["v"].Value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture),
+            m.Groups["u"].Value.Equals("KM", StringComparison.OrdinalIgnoreCase) ? DistanceUnit.Km : DistanceUnit.Nm);
+        var resto = m.Groups["resto"].Value;
+        var punti = new List<Position>();
+        var da = 0;
+        var parole = new List<string>();
+        foreach (Match c in RxCoordinata().Matches(resto))
+        {
+            parole.Add(resto[da..c.Index]);
+            if (Coordinata(c) is { } p) punti.Add(p);
+            else problemi.Add(new GeometryIssue(GeometryIssueKind.BadCoordinate, c.Value.Trim()));
+            da = c.Index + c.Length;
+        }
+        parole.Add(resto[da..]);
+        // La guardia: fra un punto e l'altro ci stanno solo i separatori.
+        var avanzo = RxSeparatori().Replace(string.Join(' ', parole), " ").Trim();
+        if (avanzo.Length > 0) problemi.Add(new GeometryIssue(GeometryIssueKind.UnknownWords, avanzo));
+        if (punti.Count < 2)
+        {
+            problemi.Add(new GeometryIssue(GeometryIssueKind.ArcIncomplete, "punti"));
+            return new GeometryReadResult([], problemi);
+        }
+        return new GeometryReadResult([new CorridorGeometry(ampiezza, punti)], problemi);
     }
 
     // ---- 1. Il flusso: punti e frasi ----

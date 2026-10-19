@@ -83,7 +83,7 @@ foreach (var f in file)
     if (elenco)
         foreach (var a in letto.Airspaces)
             Console.WriteLine($"      {a.Type,-10} {a.Key} | {a.Upper.Text} / {a.Lower.Text} {a.Class} {(a.Bands is { } b ? $"[{b.Count} fasce]" : "")}"
-                + $" | {a.Geometry switch { RingGeometry r => $"anello {r.Segments.Count}", CircleGeometry => "cerchio", _ => "?" }}"
+                + $" | {a.Geometry switch { RingGeometry r => $"anello {r.Segments.Count}", CircleGeometry => "cerchio", CorridorGeometry k => $"corridoio {k.Width.Value} {k.Width.Unit} {k.Points.Count} punti", _ => "?" }}"
                 + $" | {a.Unit?.Replace('\n', ';')} {a.Hours} {a.TransitionAltitude} | p.{a.Page?.Reference}");
     if (elenco)
         foreach (var r in letto.Routes)

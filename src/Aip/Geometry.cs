@@ -12,7 +12,20 @@ namespace Aip;
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(CircleGeometry), "circle")]
 [JsonDerivedType(typeof(RingGeometry), "ring")]
+[JsonDerivedType(typeof(CorridorGeometry), "corridor")]
 public abstract record Geometry;
+
+/// <summary>
+/// «Corridor 10 NM wide joining following points: &lt;C&gt;; &lt;C&gt;; …» (ENR 5.2.2.5, carta F6 slice 4a): una linea di punti
+/// e la sua ampiezza <b>intera</b>, come stampata (metà per lato). Non è un anello: chi disegna ne fa il contorno.
+/// <para>Il tipo che ha portato lo schema alla versione 2 (la regola della 0a: un tipo nuovo di geometria la fa salire).</para>
+/// </summary>
+public sealed record CorridorGeometry(Distance Width, IReadOnlyList<Position> Points) : Geometry
+{
+    public bool Equals(CorridorGeometry? other) => other is not null && Width == other.Width && Points.SequenceEqual(other.Points);
+
+    public override int GetHashCode() => HashCode.Combine(Width, Points.Count);
+}
 
 /// <summary>«Circular area centered on &lt;C&gt; within a 1.0 NM radius.»</summary>
 public sealed record CircleGeometry(Position Center, Distance Radius) : Geometry;

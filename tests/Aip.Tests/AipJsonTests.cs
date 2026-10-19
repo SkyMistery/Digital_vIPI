@@ -288,10 +288,10 @@ public sealed class AipJsonTests
     public void UnoSchemaPiuNuovoSiDiceComeTale()
     {
         var e = Assert.Throws<AipJsonException>(() =>
-            AipJson.Deserialize("""{ "schemaVersion": 2, "state": "LI", "airspaces": [ { "nuovo": true } ] }"""));
+            AipJson.Deserialize("""{ "schemaVersion": 3, "state": "LI", "airspaces": [ { "nuovo": true } ] }"""));
 
         Assert.Equal(AipJsonError.UnsupportedSchemaVersion, e.Error);
-        Assert.Equal("2", e.Detail);
+        Assert.Equal("3", e.Detail);
     }
 
     [Theory]
@@ -384,5 +384,36 @@ public sealed class AipJsonTests
         Assert.DoesNotContain("navaids", vuoto);
         Assert.DoesNotContain("points", vuoto);
         Assert.DoesNotContain("lights", vuoto);
+    }
+
+    [Fact]
+    public void UnCorridoio_VaETornaUguale_ELoSchemaE2()
+    {
+        var corridoio = new CorridorGeometry(new Distance(10, DistanceUnit.Nm), [new Position(41, 18.5), new Position(40.9, 18.95), new Position(40.5, 19)]);
+        var doc = new AipDocument
+        {
+            State = "LI",
+            Airspaces =
+            [
+                new Airspace
+                {
+                    Section = "ENR 5.2", Type = AirspaceType.Military, Designator = "ALBA Corridor",
+                    Upper = new VerticalLimit { Text = "FL200" }, Lower = new VerticalLimit { Text = "FL150" },
+                    Hours = "H24", Unit = "Brindisi SCCAM", Geometry = corridoio,
+                },
+            ],
+        };
+
+        var json = AipJson.Serialize(doc);
+        var riletto = AipJson.Deserialize(json);
+
+        Assert.Equal(doc, riletto);
+        Assert.Contains("\"schemaVersion\": 2", json);
+        Assert.Contains("\"kind\": \"corridor\"", json);
+        Assert.NotEqual(corridoio with { Width = new Distance(6, DistanceUnit.Nm) }, riletto.Airspaces[0].Geometry);
+        // Un file dello schema 1 si legge ancora, e riscritto resta 1.
+        var vecchio = AipJson.Deserialize("""{ "schemaVersion": 1, "state": "LI", "airspaces": [] }""");
+        Assert.Equal(1, vecchio.SchemaVersion);
+        Assert.Contains("\"schemaVersion\": 1", AipJson.Serialize(vecchio));
     }
 }

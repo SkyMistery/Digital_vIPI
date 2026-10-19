@@ -4,13 +4,20 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 3c fatta (i gesti di ENR 4): la slice 3 è chiusa
+## Dove siamo — 19 ottobre 2026: F6, slice 4a fatta (l'importer di ENR 5.2)
+
+**Slice 4a fatta**: i 59 poligoni militari di ENR 5.2.1 e le 132 zone e corridoi APR di ENR 5.2.2.5 nel modello e
+nell'AIP espanso (PR #5). I corridoi sono una geometria nuova (`corridor`, ampiezza e punti): **lo schema del modello è
+ora 2** (i file della 1 si leggono ancora); il converter ne fa il contorno. Controprova con pdfplumber: coordinate tutte.
+Sulla mappa del Lab il genere «Militari». Non lette, e dette: le parti di testo di 5.2.2 e 5.3. Carta F6 §6. **Prossima:
+4b**, il confronto col sector.
+
+## 19 ottobre 2026: F6, slice 3c fatta (i gesti di ENR 4): la slice 3 è chiusa
 
 **Slice 3c fatta**: «Sostituisci» sulle radioassistenze diverse (solo i campi diversi: frequenza, posizione, canale TACAN;
 l'attesa e il resto restano) e «Porta nel sector» (una o tutte) per radioassistenze e punti mancanti, in `itvor.vor`,
 `itndb.ndb`, `itfix.fix`; «Correggi l'uso» (4° e 5° campo di `itfix.fix`, confermati dal committente). Annullare ora
-rifà i confronti con l'AIP. Sulla copia: ELB e PNZ sostituite → 55 uguali; i 4 usi corretti. Carta F6 §6. **Prossima:
-slice 4**, ENR 5 (committente: «va bene»).
+rifà i confronti con l'AIP. Sulla copia: ELB e PNZ sostituite → 55 uguali; i 4 usi corretti. Carta F6 §6.
 
 ## 19 ottobre 2026: F6, slice 3b fatta (il confronto di ENR 4)
 

@@ -56,6 +56,7 @@ public static class AipSullaMappa
         ["R"] = "#e07020",
         ["D"] = "#c9a000",
         ["TSA/TRA"] = "#c0409a",
+        ["Militari"] = "#5f7d1e",
         ["Altre"] = "#6b6b6b",
         [Rotte] = "#2e8b3e",
         [Attese] = "#b06a10",
@@ -134,6 +135,8 @@ public static class AipSullaMappa
         AirspaceType.Restricted => "R",
         AirspaceType.Danger => "D",
         AirspaceType.Tsa or AirspaceType.Tra or AirspaceType.Cba => "TSA/TRA",
+        // ENR 5.2 (slice 4a): i poligoni militari, le zone e i corridoi APR.
+        AirspaceType.Military or AirspaceType.Adiz => "Militari",
         _ => "Altre",
     };
 
@@ -158,6 +161,8 @@ public static class AipSullaMappa
         if (a.Hours is { } orari) campi.Add(("Orari", orari));
         if (a.TransitionAltitude is { } ta) campi.Add(("Altitudine di transizione", ta));
         if (a.Remarks is { } note && note != "NIL") campi.Add(("Note", note));
+        if (a.Geometry is CorridorGeometry k)
+            campi.Add(("Corridoio", $"{k.Width.Value.ToString(CultureInfo.InvariantCulture)} {k.Width.Unit.ToString().ToUpperInvariant()} di ampiezza, {k.Points.Count} punti"));
         campi.Add(("Pagina", Pagina(a.Page)));
         if (confineDritto) campi.Add(("⚠", "un tratto di confine o di costa che l'AIP non disegna è qui una retta"));
         else if (conConfine) campi.Add(("Confine", "il tratto di confine o di costa segue itgeo.geo del sector (l'AIP lo nomina, non lo disegna)"));

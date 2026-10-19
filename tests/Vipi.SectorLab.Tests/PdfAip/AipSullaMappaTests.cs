@@ -127,4 +127,32 @@ public sealed class AipSullaMappaTests
         Assert.Contains("\"h\":\"Attese\"", json, StringComparison.Ordinal);
         Assert.Contains("\"p\":\"aip:2611\"", json, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void UnCorridoioMilitare_IlSuoContorno_IlGenereEIlCampoDellaScheda()
+    {
+        var aip = new AipDocument
+        {
+            State = "LI",
+            Airspaces =
+            [
+                new Airspace
+                {
+                    Section = "ENR 5.2", Type = AirspaceType.Military, Designator = "ALBA Corridor",
+                    Upper = new VerticalLimit { Text = "FL200" }, Lower = new VerticalLimit { Text = "FL150" }, Hours = "H24", Unit = "Brindisi SCCAM",
+                    Geometry = new CorridorGeometry(new Distance(10, DistanceUnit.Nm), [A, B]),
+                },
+            ],
+        };
+
+        var s = AipSullaMappa.Di(aip, "2611", _ => null);
+
+        var forma = Assert.Single(s.Strato.Forme);
+        Assert.Equal("Militari", forma.Genere);
+        Assert.Equal(AipSullaMappa.Colori["Militari"], forma.Tratto);
+        // Il contorno: due punti per lato, chiuso.
+        Assert.True(forma.Tratti[0].Count >= 4);
+        Assert.Contains(("Corridoio", "10 NM di ampiezza, 2 punti"), s.Voci[0].Campi);
+        Assert.Contains(("Ente", "Brindisi SCCAM"), s.Voci[0].Campi);
+    }
 }

@@ -10,8 +10,11 @@ namespace Aip;
 /// </summary>
 public sealed record AipDocument
 {
-    /// <summary>La versione dello schema che questo codice scrive, e la più alta che sa leggere.</summary>
-    public const int CurrentSchemaVersion = 1;
+    /// <summary>
+    /// La versione dello schema che questo codice scrive, e la più alta che sa leggere. La 2 (carta F6, slice 4a) ha la
+    /// geometria <see cref="CorridorGeometry"/>; un file della 1 si legge com'è e, riscritto, resta 1.
+    /// </summary>
+    public const int CurrentSchemaVersion = 2;
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
 

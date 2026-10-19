@@ -114,7 +114,7 @@ public static partial class ItalianAip
 
     // Un limite comincia solo su una riga che parte con una quota: il resto è il seguito di quello prima ("2000ft" / "AMSL").
     [GeneratedRegex(@"^(UNL|GND|SFC|NIL|FL\s*\d{2,3}|\d[\d.,]*\s*(?:ft|FT|m|M|NM)\b)", RegexOptions.CultureInvariant)]
-    private static partial Regex RxInizioLimite();
+    internal static partial Regex RxInizioLimite();
 
     // Il seguito del nome: una riga senza gradi e senza le frasi della geometria.
     [GeneratedRegex(@"^(?![^°º]*[°º])(?!.*(?:Circular area|arc of circle|geographical border|from coast|to point of origin|till point))\S.*$", RegexOptions.CultureInvariant)]
@@ -144,6 +144,11 @@ public static partial class ItalianAip
         var nome = Path.GetFileNameWithoutExtension(path);
         if (nome.StartsWith("LI-ENR 5.1.", StringComparison.Ordinal))
             return ReadEnr51(PdfText.Read(path));
+        // ENR 5.2 (slice 4a): i poligoni militari, e le zone e i corridoi APR.
+        if (nome.StartsWith("LI-ENR 5.2.1.", StringComparison.Ordinal))
+            return ItalianEnr5.ReadFiringAreas(PdfText.Read(path));
+        if (nome == "LI-ENR 5.2.2.5")
+            return ItalianEnr5.ReadUasAreas(PdfText.Read(path));
         // ENR 2 (slice 1a): il tipo di base dal file — i CTR uno per file, le ATZ militari, il FRAIT; il resto dal nome.
         if (nome.StartsWith("LI-ENR 2.1.2 ", StringComparison.Ordinal))
             return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.1", AirspaceType.Ctr);
@@ -324,7 +329,7 @@ public static partial class ItalianAip
     }
 
     /// <summary>Via la testata della tabella (fino alla riga dei numeri di colonna «1 2 3 4») e le righe di cornice.</summary>
-    private static IEnumerable<TextLine> SenzaTesta(IReadOnlyList<TextLine> righe)
+    internal static IEnumerable<TextLine> SenzaTesta(IReadOnlyList<TextLine> righe)
     {
         // La riga «1 2 3 4» non è allineata (in ENR 2.1.1.4.1 le celle 3 e 4 stanno 2,6 pt più in alto): a gruppi.
         double? fine = null;

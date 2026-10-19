@@ -56,4 +56,22 @@ public sealed class AuroraTextTests
         // Un grado di meridiano: 60 NM a meno della sfera (60,04).
         Assert.Equal(60.04, Sphere.DistanceNm(new Position(41, 12), new Position(42, 12)), 2);
     }
+
+    [Fact]
+    public void IlContornoDiUnCorridoio_MetaAmpiezzaPerLato_AncheNellaSvolta()
+    {
+        // Da ovest a est, poi verso nord-est: 10 NM d'ampiezza, 5 per lato.
+        var punti = new[] { new Position(41, 12), new Position(41, 13), new Position(41.8, 13.8) };
+        var contorno = Outline.Corridor(new CorridorGeometry(new Distance(10, DistanceUnit.Nm), punti));
+
+        Assert.Equal(6, contorno.Count);
+        // A destra all'andata (a sud del primo tratto), a sinistra al ritorno.
+        Assert.True(contorno[0].Lat < 41);
+        Assert.True(contorno[^1].Lat > 41);
+        Assert.Equal(5, Sphere.DistanceNm(punti[0], contorno[0]), 6);
+        Assert.Equal(5, Sphere.DistanceNm(punti[2], contorno[2]), 6);
+        // Nella svolta più di 5 NM dal punto, perché l'ampiezza resti 5 dai due tratti.
+        Assert.True(Sphere.DistanceNm(punti[1], contorno[1]) > 5);
+        Assert.Equal(6, Outline.Points(new CorridorGeometry(new Distance(10, DistanceUnit.Nm), punti), null, [], "X").Count);
+    }
 }
