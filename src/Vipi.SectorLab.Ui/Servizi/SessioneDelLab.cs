@@ -4329,6 +4329,48 @@ public sealed class SessioneDelLab
     public global::Aip.AipCorrection? CorrezioneDellAreaScelta =>
         AreaDellAipScelta is { } area && _correzioniSullaMappa is { } file ? Core.PdfAip.CorrezioniDellAip.Attiva(file, area.Key) : null;
 
+    /// <summary>
+    /// La voce del modello scelta sulla mappa che non è un'area (slice 3: punti, radioassistenze, luci, pericoli, scali, rotte,
+    /// attese), col suo tipo; null se non c'è o se è un'area (quella ha <see cref="AreaDellAipScelta"/>).
+    /// </summary>
+    public (global::Aip.CorrectionKind Tipo, object Voce)? VoceDelModelloScelta =>
+        VoceDellAipScelta is { Tipo: { } tipo and not global::Aip.CorrectionKind.Airspace, Chiave: { } chiave } && _modelloSullaMappa is { } m
+        && Core.PdfAip.CorrezioniDellAip.Voci(m, tipo).FirstOrDefault(v => global::Aip.AipCorrections.KeyOf(v) == chiave) is { } voce
+            ? (tipo, voce)
+            : null;
+
+    /// <summary>La correzione in piedi che ha fatto la voce scelta (non un'area), o null.</summary>
+    public global::Aip.AipCorrection? CorrezioneDellaVoceScelta =>
+        VoceDelModelloScelta is var (tipo, voce) && _correzioniSullaMappa is { } file
+            ? Core.PdfAip.CorrezioniDellAip.Attiva(file, tipo, global::Aip.AipCorrections.KeyOf(voce))
+            : null;
+
+    /// <summary>
+    /// «Correggi» (con <paramref name="chiave"/>) o «Aggiungi» (senza) una voce che non è un'area (slice 3): i campi del
+    /// modulo (<see cref="Core.PdfAip.ModuloDellaVoce"/>) diventano la voce.
+    /// </summary>
+    public Task<bool> CorreggiLaVoceAsync(global::Aip.CorrectionKind tipo, string? chiave, IReadOnlyDictionary<string, string?> valori, string? perche, string? fonte)
+    {
+        string? nuova = null;
+        return CorreggiLAipAsync((modello, file, ciclo) =>
+        {
+            var prima = chiave is null ? null : Core.PdfAip.CorrezioniDellAip.Voci(modello, tipo).FirstOrDefault(v => global::Aip.AipCorrections.KeyOf(v) == chiave);
+            if (chiave is not null && prima is null)
+                return (null, $"{chiave}: non è nell'AIP espanso del ciclo {ciclo}.");
+            var (voce, no) = Core.PdfAip.ModuloDellaVoce.Voce(tipo, valori, prima);
+            if (voce is null)
+                return (null, no);
+            nuova = global::Aip.AipCorrections.KeyOf(voce);
+            return chiave is null
+                ? Core.PdfAip.CorrezioniDellAip.Aggiungi(modello, file, tipo, voce, perche, fonte, ciclo, Oggi)
+                : Core.PdfAip.CorrezioniDellAip.Correggi(modello, file, tipo, chiave, voce, perche, fonte, ciclo, Oggi);
+        }, sceglie: () => nuova is null ? null : (tipo, nuova));
+    }
+
+    /// <summary>«Togli» una voce che non è un'area (slice 3).</summary>
+    public Task<bool> TogliLaVoceAsync(global::Aip.CorrectionKind tipo, string chiave, string? perche, string? fonte) =>
+        CorreggiLAipAsync((modello, file, ciclo) => Core.PdfAip.CorrezioniDellAip.Togli(modello, file, tipo, chiave, perche, fonte, ciclo, Oggi));
+
     /// <summary>Vero mentre il Lab scrive una correzione nell'AIP espanso.</summary>
     public bool StaCorreggendoLAip { get; private set; }
 
@@ -4348,20 +4390,20 @@ public sealed class SessioneDelLab
             return chiave is null
                 ? Core.PdfAip.CorrezioniDellAip.Aggiungi(modello, file, area, perche, fonte, ciclo, Oggi)
                 : Core.PdfAip.CorrezioniDellAip.Correggi(modello, file, chiave, area, perche, fonte, ciclo, Oggi);
-        }, sceglie: string.IsNullOrWhiteSpace(modulo.Nome) ? modulo.Identificativo.Trim() : $"{modulo.Identificativo.Trim()} {modulo.Nome.Trim()}");
+        }, sceglie: () => (global::Aip.CorrectionKind.Airspace, string.IsNullOrWhiteSpace(modulo.Nome) ? modulo.Identificativo.Trim() : $"{modulo.Identificativo.Trim()} {modulo.Nome.Trim()}"));
 
     /// <summary>«Togli»: l'area esce dall'AIP espanso, con una correzione (o ritirando l'aggiunta che l'aveva messa).</summary>
     public Task<bool> TogliLAreaAsync(string chiave, string? perche, string? fonte) =>
         CorreggiLAipAsync((modello, file, ciclo) => Core.PdfAip.CorrezioniDellAip.Togli(modello, file, chiave, perche, fonte, ciclo, Oggi));
 
-    /// <summary>«Ritira la correzione»: l'area torna com'è nel PDF.</summary>
+    /// <summary>«Ritira la correzione»: la voce torna com'è nel PDF.</summary>
     public Task<bool> RitiraLaCorrezioneAsync(string id) =>
         CorreggiLAipAsync((modello, file, _) => Core.PdfAip.CorrezioniDellAip.Ritira(modello, file, id), sceglieLaStessa: true);
 
     private static DateOnly Oggi => DateOnly.FromDateTime(DateTime.Now);
 
     private async Task<bool> CorreggiLAipAsync(Func<global::Aip.AipDocument, global::Aip.AipCorrectionFile, string, (Core.PdfAip.CorrezioneFatta? Fatta, string? Perche)> gesto,
-        string? sceglie = null, bool sceglieLaStessa = false)
+        Func<(global::Aip.CorrectionKind Tipo, string Chiave)?>? sceglie = null, bool sceglieLaStessa = false)
     {
         if (StaCorreggendoLAip)
             return false;
@@ -4370,7 +4412,7 @@ public sealed class SessioneDelLab
         if (StratoDellAip is not { } strato)
             return Rifiuta("Accendi l'AIP espanso sulla mappa prima: le correzioni si fanno dalla sua scheda.");
         var ciclo = strato.Ciclo;
-        var sceltaDiPrima = AreaDellAipScelta?.Key;
+        var sceltaDiPrima = VoceDellAipScelta is { Tipo: { } tipoDiPrima, Chiave: { } chiaveDiPrima } ? (tipoDiPrima, chiaveDiPrima) : ((global::Aip.CorrectionKind, string)?)null;
 
         StaCorreggendoLAip = true;
         Avvisa();
@@ -4393,8 +4435,9 @@ public sealed class SessioneDelLab
             MessaggioDellAip = fatta.Messaggio;
             await MostraLAipAsync(true).ConfigureAwait(false);
             // La scheda resta sull'area: quella nuova (Correggi, Aggiungi), o la stessa tornata com'era (Ritira).
-            var daScegliere = sceglie ?? (sceglieLaStessa ? sceltaDiPrima : null);
-            if (daScegliere is not null && _modelloSullaMappa is { } nuovo && nuovo.Airspaces.ToList().FindIndex(a => a.Key == daScegliere) is var i and >= 0)
+            var daScegliere = sceglie?.Invoke() ?? (sceglieLaStessa ? sceltaDiPrima : null);
+            if (daScegliere is var (tipoScelto, chiaveScelta) && StratoDellAip is { } nuovo
+                && nuovo.Voci.ToList().FindIndex(v => v.Tipo == tipoScelto && v.Chiave == chiaveScelta) is var i and >= 0)
                 SceltaDellAip = i;
             Rifiuto = null;
             await RileggiIlRepoDellAipAsync().ConfigureAwait(false);

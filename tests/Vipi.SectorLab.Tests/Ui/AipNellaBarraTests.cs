@@ -370,6 +370,47 @@ public sealed class AipNellaBarraTests : IDisposable
             AipCorrections.Deserialize(File.ReadAllText(correzioni)).Corrections.Select(c => c.Op));
     }
 
+    // Slice 3: un punto dell'AIP espanso sulla mappa si sceglie e si corregge col modulo generale; «Aggiungi» chiede il tipo.
+    [Fact]
+    public async Task LeCorrezioniDiUnPunto_DalModuloGenerale()
+    {
+        var pagina = await ConfrontaConAsync("//MENU MAPS\r\n",
+            CtrDiProva("Roma CTR", new CircleGeometry(new Position(41.9, 12.5), new Distance(5, DistanceUnit.Nm))));
+        var espanso = Path.Combine(_fuori, "espanso");
+        var li = Path.Combine(espanso, "2611", "li.json");
+        var conPunto = AipJson.Deserialize(File.ReadAllText(li)) with
+        {
+            Points = [new SignificantPoint { Section = "ENR 4.4", Designator = "ABRUS", Position = new Position(41.5, 12.25) }],
+        };
+        await File.WriteAllTextAsync(li, AipJson.Serialize(conPunto));
+        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").Change(true));
+        pagina.WaitForAssertion(() => Assert.Contains("2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+
+        // Il punto è la seconda voce dello strato, dopo l'area.
+        await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", 1));
+        pagina.WaitForAssertion(() => Assert.Equal("ABRUS", pagina.Find("[data-scheda-aip] .lab-etichetta").TextContent), TimeSpan.FromSeconds(10));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=correggi-area]").Click());
+        Assert.Equal("413000N 0121500E", pagina.Find("[data-modulo-voce=correggi] [data-campo=voce-position]").GetAttribute("value"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=voce-position]").Change("413100N 0121500E"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=voce-perche]").Change("coordinate sbagliate"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=voce-fonte]").Change("errore AIP, segnalato a ENAV"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=salva-voce]").Click());
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Contains("Corretta (", pagina.Find("[data-correzione-aip]").TextContent, StringComparison.Ordinal);
+            Assert.Empty(pagina.FindAll("[data-modulo-voce]"));
+        }, TimeSpan.FromSeconds(10));
+        var punto = Assert.Single(AipJson.Deserialize(File.ReadAllText(li)).Points!);
+        Assert.Equal(41.5 + 1 / 60.0, punto.Position.Lat, 6);
+        Assert.Equal(CorrectionKind.Point, Assert.Single(AipCorrections.Deserialize(File.ReadAllText(Path.Combine(espanso, "correzioni", "li.json"))).Corrections).Kind);
+
+        // «Aggiungi» chiede il tipo: per un punto il modulo generale.
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=aggiungi-tipo]").Change("Point"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=aggiungi-area]").Click());
+        pagina.WaitForAssertion(() => Assert.Equal("Point", pagina.Find("[data-modulo-voce=aggiungi]").GetAttribute("data-tipo-voce")), TimeSpan.FromSeconds(10));
+    }
+
     [Fact]
     public void LeCartelleSiRicordano()
     {

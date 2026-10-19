@@ -136,15 +136,28 @@
                 @if (Lab.StratoDellAip is { } strato)
                 {
                     <span class="lab-nota" data-aip-strato> · ciclo @strato.Ciclo, @strato.Strato.Forme.Count forme@(Attese(strato) is var (nonDisegnate, tutte) && nonDisegnate > 0 ? $" ({nonDisegnate} attese su {tutte} senza il punto nel sector)" : ""): i tipi si accendono negli Strati</span>
-                    @* Le correzioni (slice 2): un'area si corregge dalla sua scheda; una che il PDF non ha si aggiunge da qui. *@
-                    @if (_aggiungi)
+                    @* Le correzioni (slice 2 e 3): una voce si corregge dalla sua scheda; una che il PDF non ha si aggiunge da qui. *@
+                    @if (_aggiungi is Aip.CorrectionKind.Airspace)
                     {
-                        <ModuloDellArea Chiuso="() => _aggiungi = false" />
+                        <ModuloDellArea Chiuso="() => _aggiungi = null" />
+                    }
+                    else if (_aggiungi is { } tipo)
+                    {
+                        <ModuloDiUnaVoce Tipo="tipo" Chiuso="() => _aggiungi = null" />
                     }
                     else
                     {
-                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="aggiungi-area"
-                                title="Un'area che il PDF non ha (AIP SUP, AIC…): va nell'AIP espanso del ciclo @strato.Ciclo, con la sua fonte" @onclick="() => _aggiungi = true">Aggiungi un'area</button>
+                        <span class="lab-nota" data-aggiungi>
+                            <select class="lab-campo" data-campo="aggiungi-tipo" value="@_tipoDaAggiungere"
+                                    @onchange="e => _tipoDaAggiungere = Enum.TryParse<Aip.CorrectionKind>(e.Value?.ToString(), out var t) ? t : _tipoDaAggiungere">
+                                @foreach (var t in Enum.GetValues<Aip.CorrectionKind>())
+                                {
+                                    <option value="@t">@Vipi.SectorLab.Core.PdfAip.CorrezioniDellAip.Nome(t)</option>
+                                }
+                            </select>
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="aggiungi-area"
+                                    title="Una voce che il PDF non ha (AIP SUP, AIC…): va nell'AIP espanso del ciclo @strato.Ciclo, con la sua fonte" @onclick="() => _aggiungi = _tipoDaAggiungere">Aggiungi</button>
+                        </span>
                     }
                 }
             </div>
@@ -480,7 +493,9 @@
 
     private async Task PrendiLEspanso() => _rifiuto = await Lab.PrendiLAipEspansoAsync(_dove) ? null : Lab.Rifiuto;
 
-    private bool _aggiungi;
+    private Aip.CorrectionKind? _aggiungi;
+
+    private Aip.CorrectionKind _tipoDaAggiungere = Aip.CorrectionKind.Airspace;
 
     private async Task Registra() => _rifiuto = await Lab.RegistraLAipAsync(Lab.MessaggioDellAip) ? null : Lab.Rifiuto;
 

@@ -126,5 +126,31 @@ servirà.
   clone poi rimesso com'era. Non provata a schermo la correzione di un'area **del PDF** (sceglierla col clic sulla mappa
   stretta del pannello non riesce): la fanno i test, col nucleo e con l'interfaccia.
 
-**Prossima: slice 3**, gli altri tipi (punti, radioassistenze, attese, scali, rotte, luci, pericoli), quando il
-committente lo dice.
+### Slice 3 — gli altri tipi: fatta (19 ottobre, via del committente)
+
+- **Sulla mappa**: lo strato «AIP espanso» ha ora anche **punti** (ENR 4.4), **radioassistenze** (ENR 4.1), **luci**
+  (ENR 4.5), **pericoli** (ENR 5.3) e **scali** (all'ARP), un genere ciascuno da accendere negli Strati. Sul banco, ciclo
+  2610: 3 023 forme (1 667 di prima + 1 254 punti, 55 radioassistenze, 11 luci, 31 pericoli, 5 scali). Ogni voce dello
+  strato porta il suo tipo e la sua chiave (`VoceDellAip.Tipo`, `Chiave`): rotte e attese c'erano già, ora si correggono.
+- **Un modulo solo** per tutti i tipi che non sono aree (`ModuloDellaVoce` nel nucleo, `ModuloDiUnaVoce.razor`): per ogni
+  tipo l'elenco dei campi (testo, posizione come la scrive l'AIP, scelta, intero, sì/no, limite verticale, distanza
+  «16 KM», elenco separato da virgole). Le **parti composte** — i punti e i tratti di una rotta, gli apparati di una
+  radioassistenza, piste, distanze dichiarate, frequenze, radioassistenze e ILS di uno scalo — si scrivono **nel JSON
+  del modello**: è il passo più corto per averle tutte; un modulo vero per ciascuna si fa se servirà davvero.
+- 🔴 **Un campo non toccato resta com'era** nel modello, non riscritto dal testo del modulo: una coordinata scritta in
+  secondi e riletta si sposta di un'inezia, e sarebbe una correzione che nessuno ha fatto. Provato sul banco: corretta la
+  frequenza di BOA, nel file cambia **una riga** sola.
+- **Il nucleo** (`CorrezioniDellAip`) è lo stesso delle aree, per tipo (`Correggi`, `Aggiungi`, `Togli` con il
+  `CorrectionKind`; `Ritira` per qualunque tipo): stesse regole, stesso patto «come una Leggi», provato anche qui nei test.
+- «**Aggiungi**» nel riquadro chiede il tipo (un'area, una rotta, un'attesa, una radioassistenza, un punto, una luce, uno
+  scalo, un pericolo).
+- **Test**: Lab 1 206 → 1 220 (13 del modulo e dei gesti sugli altri tipi, uno dell'interfaccia: un punto corretto
+  dalla scheda e «Aggiungi» che chiede il tipo).
+- **Provato a schermo sul banco**: col pannello a 1 600 × 1 000, solo le radioassistenze accese, il clic su BOA apre la
+  sua scheda; il modulo riempito (sigla, tipo, frequenza, posizione `443213N 0111726E`, apparati in JSON); una correzione
+  finita per sbaglio nel campo «Copertura» (il clic di chi guidava, non del Lab) ritirata con «Ritira la correzione» →
+  `li.json` di nuovo identico; poi la frequenza 117.10 → 117.15: una riga nel diff. Il menu del tipo di «Aggiungi»
+  allargato (era troncato). Il clone poi rimesso com'era.
+
+Restano fuori le carte ATC SMAC (§2). **Le correzioni sono finite** per quel che chiedeva il committente; si torna al
+resto della F6 quando lo dice lui.

@@ -10,7 +10,8 @@
 <DomandaSulGemello />
 @* F6: una voce dell'AIP espanso scelta sulla mappa ha la sua scheda, in sola lettura. 🔴 Col parametro: un componente
    senza parametri non si ridisegna quando la scheda cambia. *@
-<AipNellaScheda Voce="Lab.VoceDellAipScelta" Ciclo="@Lab.StratoDellAip?.Ciclo" Area="Lab.AreaDellAipScelta" Correzione="Lab.CorrezioneDellAreaScelta" />
+<AipNellaScheda Voce="Lab.VoceDellAipScelta" Ciclo="@Lab.StratoDellAip?.Ciclo" Area="Lab.AreaDellAipScelta" Modello="Lab.VoceDelModelloScelta"
+               Correzione="@(Lab.CorrezioneDellAreaScelta ?? Lab.CorrezioneDellaVoceScelta)" />
 @if (Lab.Scheda() is { } scheda)
 {
     <div class="lab-ispettore" data-ispettore="@($"{scheda.File}#{scheda.Indice}")">

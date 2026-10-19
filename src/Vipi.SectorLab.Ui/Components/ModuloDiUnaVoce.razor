@@ -1,0 +1,105 @@
+@inject SessioneDelLab Lab
+@using Aip
+@using Vipi.SectorLab.Core.PdfAip
+
+@*
+    Il modulo di una voce dell'AIP espanso che non è un'area (carta «Le correzioni dell'AIP espanso», slice 3): punti,
+    radioassistenze, luci, pericoli, attese, rotte, scali. I campi vengono da ModuloDellaVoce.Campi; le parti composte
+    (i tratti di una rotta, le piste di uno scalo) si scrivono nel JSON del modello. Perché e fonte obbligatori.
+*@
+<div class="lab-modulo-aip" data-modulo-voce="@(Prima is null ? "aggiungi" : "correggi")" data-tipo-voce="@Tipo">
+    @foreach (var campo in ModuloDellaVoce.Campi(Tipo))
+    {
+        var nome = campo.Nome;
+        <label class="lab-nota">@campo.Etichetta@(campo.Obbligatorio ? " *" : "")
+            @switch (campo.Genere)
+            {
+                case GenereDelCampo.Scelta:
+                    <select class="lab-campo lab-campo-corto" value="@_valori[nome]" data-campo="voce-@nome" @onchange="e => _valori[nome] = e.Value?.ToString()">
+                        @foreach (var s in campo.Scelte ?? [])
+                        {
+                            <option value="@s">@s</option>
+                        }
+                    </select>
+                    break;
+                case GenereDelCampo.SiNo:
+                    <input type="checkbox" checked="@(_valori[nome] == "true")" data-campo="voce-@nome"
+                           @onchange="e => SiNo(nome, e)" />
+                    break;
+                case GenereDelCampo.TestoLungo:
+                case GenereDelCampo.Json:
+                    <textarea class="lab-campo" rows="@(campo.Genere == GenereDelCampo.Json ? 4 : 2)" spellcheck="false" data-campo="voce-@nome"
+                              value="@_valori[nome]" @onchange="e => _valori[nome] = e.Value?.ToString()"></textarea>
+                    break;
+                default:
+                    <input class="lab-campo @(Corto(campo.Genere) ? "lab-campo-corto" : "")" value="@_valori[nome]" data-campo="voce-@nome"
+                           placeholder="@Esempio(campo.Genere)" @onchange="e => _valori[nome] = e.Value?.ToString()" />
+                    break;
+            }
+        </label>
+    }
+    <label class="lab-nota">Perché
+        <input class="lab-campo" value="@_perche" data-campo="voce-perche" placeholder="frequenza sbagliata nel PDF" @onchange="e => _perche = e.Value?.ToString()" />
+    </label>
+    <label class="lab-nota">Fonte
+        <input class="lab-campo" value="@_fonte" data-campo="voce-fonte" placeholder="errore AIP, segnalato a ENAV il … · AIP SUP 123/26" @onchange="e => _fonte = e.Value?.ToString()" />
+    </label>
+    <p>
+        <button type="button" class="lab-tasto" data-tasto="salva-voce" disabled="@Lab.StaCorreggendoLAip" @onclick="Salva">
+            @(Prima is null ? "Aggiungi all'AIP espanso" : "Salva la correzione")
+        </button>
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="lascia-voce" @onclick="() => Chiuso.InvokeAsync()">Lascia stare</button>
+    </p>
+    @if (_rifiuto is { } rifiuto)
+    {
+        <p class="lab-errore" data-rifiuto-correzione>@rifiuto</p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CorrectionKind Tipo { get; set; }
+
+    /// <summary>La voce che si corregge; null = «Aggiungi».</summary>
+    [Parameter] public object? Prima { get; set; }
+
+    [Parameter] public EventCallback Chiuso { get; set; }
+
+    private Dictionary<string, string?> _valori = new(StringComparer.Ordinal);
+    private (CorrectionKind, object?)? _di;
+    private string? _perche;
+    private string? _fonte;
+    private string? _rifiuto;
+
+    protected override void OnParametersSet()
+    {
+        // Il modulo si riempie quando cambia la voce, non a ogni ridisegno: quel che l'AOD ha scritto resta.
+        if (_di is var (tipo, voce) && tipo == Tipo && ReferenceEquals(voce, Prima)) return;
+        _di = (Tipo, Prima);
+        _valori = ModuloDellaVoce.Valori(Tipo, Prima).ToDictionary(v => v.Key, v => (string?)v.Value, StringComparer.Ordinal);
+        _rifiuto = null;
+    }
+
+    private void SiNo(string nome, ChangeEventArgs e) => _valori[nome] = e.Value is true ? "true" : "false";
+
+    private static bool Corto(GenereDelCampo genere) => genere is GenereDelCampo.Intero or GenereDelCampo.Limite or GenereDelCampo.Distanza;
+
+    private static string? Esempio(GenereDelCampo genere) => genere switch
+    {
+        GenereDelCampo.Posizione => "414800N 0123000E",
+        GenereDelCampo.Limite => "FL 110",
+        GenereDelCampo.Distanza => "16 KM",
+        _ => null,
+    };
+
+    private async Task Salva()
+    {
+        var chiave = Prima is null ? null : AipCorrections.KeyOf(Prima);
+        if (await Lab.CorreggiLaVoceAsync(Tipo, chiave, _valori, _perche, _fonte))
+        {
+            _rifiuto = null;
+            await Chiuso.InvokeAsync();
+        }
+        else
+            _rifiuto = Lab.Rifiuto;
+    }
+}

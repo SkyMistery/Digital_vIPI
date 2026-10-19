@@ -4,14 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, le correzioni dell'AIP espanso (slice 1 e 2 fatte)
+## Dove siamo — 19 ottobre 2026: F6, le correzioni dell'AIP espanso finite (slice 1-3)
 
 Il committente vuole l'AIP espanso correggibile: **errori dell'AIP stesso e aggiunte da altre fonti**, che durano da un
 ciclo all'altro finché un PDF o un'altra correzione non le supera. Carta:
 [`2026-10-19-f6-correzioni-aip-espanso.md`](../feature/2026-10-19-f6-correzioni-aip-espanso.md). **Slice 1**: il file
-`correzioni\li.json` nel repo dell'AIP espanso, applicato da ogni «Leggi». **Slice 2**: dalla scheda di un'area sulla
-mappa «Correggi» (un modulo, la forma incollata come la scrive l'AIP), «Togli», «Ritira la correzione»; dal riquadro
-«Aggiungi un'area»; provati a schermo sul banco. **Prossima: slice 3**, gli altri tipi, quando lo dice il committente.
+`correzioni\li.json` nel repo dell'AIP espanso, applicato da ogni «Leggi». **Slice 2**: le aree, dalla loro scheda sulla
+mappa (Correggi, Togli, Ritira) e «Aggiungi» nel riquadro. **Slice 3**: tutti gli altri tipi (punti, radioassistenze,
+luci, pericoli, scali ora anche sulla mappa; rotte e attese), con un modulo solo; le parti composte in JSON. Provate a
+schermo sul banco. Fuori: le carte ATC SMAC. **Prossimo**: lo sceglie il committente.
 
 ## 19 ottobre 2026: F6, l'importer dei PDF finito
 
@@ -802,6 +803,11 @@ Dalle slice 13-19 (6 ottobre):
     `PdfAipTests`.
   - Sul banco, col pannello del browser nascosto, `innerText` torna vuoto: l'esito si legge con
     `textContent`.
+  - **Scegliere una voce sulla mappa del banco** (19 ottobre, correzioni slice 3): il pannello a 1 600 × 1 000
+    (`resize_window`), accesi solo il genere che serve, il pixel del suo colore cercato nella tela (`getImageData`), e il
+    clic vero alle coordinate della schermata (che è a metà scala). Poi `resize_window` «desktop». I campi di un modulo
+    si riempiono meglio dalla pagina (`value` + evento `change`) che col clic: un clic fuori posto scrive nel campo
+    accanto (è successo con «Copertura»).
 - **Dalle slice 3b-5a (19 ottobre)**:
   - **Attesi sulla copia del sector** contro l'AIP espanso 2610 (per riconoscere un cambio): radioassistenze 53 uguali, 2
     diverse (ELB, PNZ), 93 solo nel sector; punti 1 254 uguali, 2 solo in `itfix.fix`, 4 «uso diverso»; aree di ENR 5

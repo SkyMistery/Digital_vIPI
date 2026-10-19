@@ -8,9 +8,11 @@ namespace Vipi.SectorLab.Core.PdfAip;
 
 /// <summary>
 /// Una voce dell'AIP com'è scritta nel modello, per la scheda della mappa: che cos'è, come si chiama, i suoi campi e,
-/// per una rotta, le righe dei tratti.
+/// per una rotta, le righe dei tratti. <see cref="Tipo"/> e <see cref="Chiave"/> dicono quale voce del modello è (per le
+/// correzioni: carta «Le correzioni dell'AIP espanso»).
 /// </summary>
-public sealed record VoceDellAip(string Genere, string Titolo, IReadOnlyList<(string Nome, string Valore)> Campi, IReadOnlyList<string> Righe);
+public sealed record VoceDellAip(string Genere, string Titolo, IReadOnlyList<(string Nome, string Valore)> Campi, IReadOnlyList<string> Righe,
+    CorrectionKind? Tipo = null, string? Chiave = null);
 
 /// <summary>Lo strato dell'AIP espanso di un ciclo: le forme per la mappa e, con lo stesso indice, le voci per la scheda.</summary>
 public sealed record StratoDellAip(string Ciclo, StratoDellaMappa Strato, IReadOnlyList<VoceDellAip> Voci)
@@ -42,6 +44,11 @@ public static class AipSullaMappa
 
     public const string Rotte = "Rotte";
     public const string Attese = "Attese";
+    public const string Punti = "Punti";
+    public const string Radioassistenze = "Radioassistenze";
+    public const string Luci = "Luci";
+    public const string Pericoli = "Pericoli";
+    public const string Scali = "Scali";
 
     /// <summary>Il colore di ogni genere sulla mappa (i colori del Lab: lo strato è uno, i tipi no).</summary>
     public static readonly IReadOnlyDictionary<string, string> Colori = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -60,6 +67,11 @@ public static class AipSullaMappa
         ["Altre"] = "#6b6b6b",
         [Rotte] = "#2e8b3e",
         [Attese] = "#b06a10",
+        [Punti] = "#4f7fb0",
+        [Radioassistenze] = "#2a9d8f",
+        [Luci] = "#d4a017",
+        [Pericoli] = "#b0306a",
+        [Scali] = "#3f5fa0",
     };
 
     /// <summary>Vero se il «file» è quello di una forma dell'AIP.</summary>
@@ -117,10 +129,39 @@ public static class AipSullaMappa
             Aggiungi(Voce(attesa, dove is not null), TipoDiForma.Punto, dove is { } c ? [[c]] : [], dove is null ? [attesa.Fix] : null);
         }
 
+        // Le voci puntuali (slice 3 delle correzioni): si scelgono sulla mappa e si correggono dalla loro scheda.
+        void Puntuale(VoceDellAip voce, Position? dove) =>
+            Aggiungi(voce, TipoDiForma.Punto, dove is { } p ? [[Coordinata(p)]] : [], dove is null ? [voce.Titolo] : null);
+        foreach (var punto in aip.Points ?? [])
+            Puntuale(Voce(Punti, CorrectionKind.Point, punto.Designator, punto.Section, punto.Page, ("Rotte", string.Join(", ", punto.Routes)),
+                ("Procedure", punto.Procedures), ("FRA", punto.Fra), ("Note", punto.Remarks)), punto.Position);
+        foreach (var r in aip.Navaids ?? [])
+            Puntuale(Voce(Radioassistenze, CorrectionKind.Navaid, r.Key, r.Section, r.Page, ("Nome", r.Name), ("Frequenza", r.Frequency),
+                ("Canale", r.Channel), ("Militare", r.Military ? "sì" : null), ("Note", r.Remarks)), r.Position);
+        foreach (var luce in aip.Lights ?? [])
+            Puntuale(Voce(Luci, CorrectionKind.Light, luce.Name, luce.Section, luce.Page, ("Tipo", luce.Type), ("Caratteristiche", luce.Characteristics),
+                ("Orari", luce.Hours), ("Note", luce.Remarks)), luce.Position);
+        foreach (var pericolo in aip.Hazards ?? [])
+            Puntuale(Voce(Pericoli, CorrectionKind.Hazard, pericolo.Name, pericolo.Section, pericolo.Page, ("Tipo", pericolo.Kind.ToString()),
+                ("Raggio", pericolo.Radius is { } d ? $"{d.Value.ToString(CultureInfo.InvariantCulture)} {d.Unit.ToString().ToUpperInvariant()}" : null),
+                ("Quota", pericolo.Vertical), ("Orari", pericolo.Hours), ("Note", pericolo.Remarks)), pericolo.Position);
+        foreach (var scalo in aip.Aerodromes ?? [])
+            Puntuale(Voce(Scali, CorrectionKind.Aerodrome, scalo.Icao, "AD 2", scalo.Page, ("Nome", scalo.Name), ("Elevazione", scalo.Elevation),
+                ("Piste", string.Join(", ", scalo.Runways.Select(p => p.Designator))), ("Frequenze", scalo.Communications.Count.ToString(CultureInfo.InvariantCulture))), scalo.Arp);
+
         return new StratoDellAip(ciclo, new StratoDellaMappa(Tipo, forme), voci);
     }
 
     private static Coordinate Coordinata(Position p) => new(p.Lat, p.Lon);
+
+    /// <summary>La voce di un oggetto puntuale: la sezione, i campi che ci sono, la pagina.</summary>
+    private static VoceDellAip Voce(string genere, CorrectionKind tipo, string chiave, string sezione, AipPage? pagina, params (string Nome, string? Valore)[] campi)
+    {
+        var tutti = new List<(string, string)> { ("Sezione", sezione) };
+        tutti.AddRange(campi.Where(c => !string.IsNullOrWhiteSpace(c.Valore)).Select(c => (c.Nome, c.Valore!.Replace('\n', ' '))));
+        tutti.Add(("Pagina", Pagina(pagina)));
+        return new VoceDellAip(genere, chiave, tutti, [], tipo, chiave);
+    }
 
     /// <summary>Il genere di un'area sulla mappa: i tipi dell'AIP raggruppati come li guarda un AOD.</summary>
     public static string Genere(AirspaceType tipo) => tipo switch
@@ -166,7 +207,7 @@ public static class AipSullaMappa
         campi.Add(("Pagina", Pagina(a.Page)));
         if (confineDritto) campi.Add(("⚠", "un tratto di confine o di costa che l'AIP non disegna è qui una retta"));
         else if (conConfine) campi.Add(("Confine", "il tratto di confine o di costa segue itgeo.geo del sector (l'AIP lo nomina, non lo disegna)"));
-        return new VoceDellAip(Genere(a.Type), a.Key, campi, []);
+        return new VoceDellAip(Genere(a.Type), a.Key, campi, [], CorrectionKind.Airspace, a.Key);
     }
 
     private static VoceDellAip Voce(Route r)
@@ -190,7 +231,7 @@ public static class AipSullaMappa
             righe.Add($"    {t.Track} {t.DistanceNm?.ToString("0.0", CultureInfo.InvariantCulture)} NM · {t.Upper?.Text} – {t.Lower?.Text} · {verso}"
                       + $" · MNM {t.MinimumOdd ?? "—"}/{t.MinimumEven ?? "—"}{(t.Remarks is { } note ? $" · {note}" : "")}");
         }
-        return new VoceDellAip(Rotte, r.Designator, campi, righe);
+        return new VoceDellAip(Rotte, r.Designator, campi, righe, CorrectionKind.Route, r.Designator);
     }
 
     private static VoceDellAip Voce(Holding h, bool disegnata)
@@ -209,6 +250,7 @@ public static class AipSullaMappa
         campi.Add(disegnata
             ? ("Posizione", "quella del punto nel sector: ENR 3.4.1 non dà coordinate")
             : ("⚠", $"il sector non ha il punto {h.Fix}: sulla mappa non c'è"));
-        return new VoceDellAip(Attese, $"{h.Fix} {h.Minimum.Text} {(h.Turn == TurnDirection.Right ? "R" : "L")} {h.InboundTrack:000}°", campi, []);
+        return new VoceDellAip(Attese, $"{h.Fix} {h.Minimum.Text} {(h.Turn == TurnDirection.Right ? "R" : "L")} {h.InboundTrack:000}°", campi, [],
+            CorrectionKind.Holding, AipCorrections.HoldingKey(h));
     }
 }

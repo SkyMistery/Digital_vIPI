@@ -2,15 +2,17 @@
 
 @*
     La scheda di una voce dell'AIP espanso scelta sulla mappa (F6): com'è scritta nel modello — un'area, una rotta coi suoi
-    tratti, un'attesa. Non è un record del sector. Un'area si corregge o si toglie da qui (carta «Le correzioni dell'AIP
-    espanso», slice 2): la correzione va nell'AIP espanso, non nel sector.
+    tratti, un'attesa, un punto, una radioassistenza… Non è un record del sector. Ogni voce si corregge o si toglie da qui
+    (carta «Le correzioni dell'AIP espanso», slice 2 le aree, slice 3 il resto): la correzione va nell'AIP espanso, non nel
+    sector.
 *@
 @if (Voce is { } voce)
 {
+    var correggibile = Area is not null || Modello is not null;
     <div class="lab-ispettore" data-scheda-aip="@voce.Genere">
         <header>
             <p class="lab-etichetta">@voce.Titolo</p>
-            <p class="lab-nota">AIP espanso @Ciclo · @voce.Genere@(Area is null ? " · sola lettura" : "")</p>
+            <p class="lab-nota">AIP espanso @Ciclo · @voce.Genere@(correggibile ? "" : " · sola lettura")</p>
         </header>
         @if (Correzione is { } c)
         {
@@ -27,32 +29,39 @@
         {
             <pre class="lab-righe-aip" data-righe-aip>@string.Join("\n", voce.Righe)</pre>
         }
-        @if (Area is { } area)
+        @if (correggibile)
         {
             @if (_cosa is null)
             {
                 <p class="lab-gesti-record">
                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="correggi-area" @onclick="() => Apri(Gesto.Correggi)"
-                            title="Corregge l'area nell'AIP espanso: un errore dell'AIP, o un dato da un'altra fonte">Correggi</button>
+                            title="Corregge la voce nell'AIP espanso: un errore dell'AIP, o un dato da un'altra fonte">Correggi</button>
                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="togli-area" @onclick="() => Apri(Gesto.Togli)"
-                            title="Toglie l'area dall'AIP espanso, con una correzione">Togli</button>
+                            title="Toglie la voce dall'AIP espanso, con una correzione">Togli</button>
                     @if (Correzione is { } attiva)
                     {
                         <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="ritira-correzione" disabled="@Lab.StaCorreggendoLAip"
-                                title="L'area torna com'è nel PDF" @onclick="() => Ritira(attiva.Id)">Ritira la correzione</button>
+                                title="La voce torna com'è nel PDF" @onclick="() => Ritira(attiva.Id)">Ritira la correzione</button>
                     }
                 </p>
             }
             else if (_cosa == Gesto.Correggi)
             {
-                <ModuloDellArea Prima="area" Chiuso="Chiudi" />
+                @if (Area is { } area)
+                {
+                    <ModuloDellArea Prima="area" Chiuso="Chiudi" />
+                }
+                else if (Modello is var (tipo, oggetto))
+                {
+                    <ModuloDiUnaVoce Tipo="tipo" Prima="oggetto" Chiuso="Chiudi" />
+                }
             }
             else
             {
                 <div class="lab-modulo-aip" data-togli-area>
                     @if (Correzione is { Op: Aip.CorrectionOp.Add })
                     {
-                        <p class="lab-nota">L'area c'è solo per un'aggiunta: si ritira l'aggiunta.</p>
+                        <p class="lab-nota">La voce c'è solo per un'aggiunta: si ritira l'aggiunta.</p>
                     }
                     else
                     {
@@ -64,7 +73,7 @@
                         </label>
                     }
                     <p>
-                        <button type="button" class="lab-tasto" data-tasto="conferma-togli" disabled="@Lab.StaCorreggendoLAip" @onclick="() => Togli(area.Key)">Togli dall'AIP espanso</button>
+                        <button type="button" class="lab-tasto" data-tasto="conferma-togli" disabled="@Lab.StaCorreggendoLAip" @onclick="Togli">Togli dall'AIP espanso</button>
                         <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="lascia-togli" @onclick="Chiudi">Lascia stare</button>
                     </p>
                 </div>
@@ -84,23 +93,27 @@
 
     [Parameter] public string? Ciclo { get; set; }
 
-    /// <summary>L'area della voce, se la voce è un'area: allora si corregge. Null per rotte e attese.</summary>
+    /// <summary>L'area della voce, se la voce è un'area: allora si corregge col suo modulo.</summary>
     [Parameter] public Aip.Airspace? Area { get; set; }
 
-    /// <summary>La correzione in piedi che ha fatto l'area, o null.</summary>
+    /// <summary>La voce del modello, se non è un'area (slice 3): si corregge col modulo generale.</summary>
+    [Parameter] public (Aip.CorrectionKind Tipo, object Voce)? Modello { get; set; }
+
+    /// <summary>La correzione in piedi che ha fatto la voce, o null.</summary>
     [Parameter] public Aip.AipCorrection? Correzione { get; set; }
 
     private Gesto? _cosa;
-    private Aip.Airspace? _di;
+    private object? _di;
     private string? _perche;
     private string? _fonte;
     private string? _rifiuto;
 
     protected override void OnParametersSet()
     {
-        // Un'altra area scelta: i moduli aperti per quella di prima si chiudono.
-        if (ReferenceEquals(_di, Area)) return;
-        _di = Area;
+        // Un'altra voce scelta: i moduli aperti per quella di prima si chiudono.
+        object? ora = (object?)Area ?? Modello?.Voce;
+        if (ReferenceEquals(_di, ora)) return;
+        _di = ora;
         _cosa = null;
         _rifiuto = null;
     }
@@ -117,9 +130,12 @@
         _rifiuto = null;
     }
 
-    private async Task Togli(string chiave)
+    private async Task Togli()
     {
-        if (await Lab.TogliLAreaAsync(chiave, _perche, _fonte))
+        var fatto = Area is { } area
+            ? await Lab.TogliLAreaAsync(area.Key, _perche, _fonte)
+            : Modello is var (tipo, voce) && await Lab.TogliLaVoceAsync(tipo, Aip.AipCorrections.KeyOf(voce), _perche, _fonte);
+        if (fatto)
             Chiudi();
         else
             _rifiuto = Lab.Rifiuto;

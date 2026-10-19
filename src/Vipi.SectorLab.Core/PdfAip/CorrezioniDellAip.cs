@@ -32,8 +32,8 @@ public sealed record ModuloDellArea(
 public sealed record CorrezioneFatta(AipDocument Modello, AipCorrectionFile Correzioni, string Messaggio);
 
 /// <summary>
-/// I gesti sulle correzioni dell'AIP espanso, dal Lab (slice 2): «Correggi», «Aggiungi», «Togli» un'area, e «Ritira» una
-/// correzione. Lavorano sul modello del ciclo <b>già corretto</b> (quello che la mappa mostra) e sul file delle correzioni,
+/// I gesti sulle correzioni dell'AIP espanso, dal Lab (slice 2 le aree, slice 3 gli altri tipi): «Correggi», «Aggiungi»,
+/// «Togli» una voce, e «Ritira» una correzione. Lavorano sul modello del ciclo <b>già corretto</b> (quello che la mappa mostra) e sul file delle correzioni,
 /// e li lasciano come li lascerebbe una «Leggi» coi PDF: la correzione nuova si applica subito, e <c>before</c> è sempre
 /// l'oggetto del PDF (se l'area era già corretta, il <c>before</c> di quella correzione).
 /// <para>Il perché e la fonte sono obbligatori (D1): chi legge il file deve sapere da dove viene il dato.</para>
@@ -68,15 +68,18 @@ public static class CorrezioniDellAip
         AipEspanso.ScriviAlPosto(AipEspanso.File(espanso, ciclo, fatta.Modello.State), flusso => AipJson.Serialize(flusso, fatta.Modello));
     }
 
+    /// <summary>La correzione in piedi che ha fatto l'area con quella chiave: vedi <see cref="Attiva(AipCorrectionFile, CorrectionKind, string)"/>.</summary>
+    public static AipCorrection? Attiva(AipCorrectionFile file, string chiave) => Attiva(file, CorrectionKind.Airspace, chiave);
+
     /// <summary>
-    /// La correzione in piedi che ha fatto l'area del modello con quella chiave: una <c>change</c> o una <c>add</c> il cui
-    /// <c>after</c> è quell'area. Null se l'area è com'è nel PDF.
+    /// La correzione in piedi che ha fatto la voce del modello di quel tipo con quella chiave: una <c>change</c> o una
+    /// <c>add</c> il cui <c>after</c> è quella voce. Null se la voce è com'è nel PDF.
     /// </summary>
-    public static AipCorrection? Attiva(AipCorrectionFile file, string chiave)
+    public static AipCorrection? Attiva(AipCorrectionFile file, CorrectionKind tipo, string chiave)
     {
         ArgumentNullException.ThrowIfNull(file);
-        return file.Corrections.LastOrDefault(c => c.Superseded is null && c.Kind == CorrectionKind.Airspace
-                                                   && c.Op != CorrectionOp.Remove && c.After is { } dopo && ChiaveDi(dopo) == chiave);
+        return file.Corrections.LastOrDefault(c => c.Superseded is null && c.Kind == tipo
+                                                   && c.Op != CorrectionOp.Remove && c.After is { } dopo && ChiaveDi(dopo, tipo) == chiave);
     }
 
     /// <summary>L'area del modulo, o il perché non si può fare. <paramref name="prima"/>: l'area che si corregge (null = nuova).</summary>
@@ -140,79 +143,101 @@ public static class CorrezioniDellAip
         return (area, null);
     }
 
-    /// <summary>«Correggi»: l'area del modello con quella chiave diventa <paramref name="nuova"/>.</summary>
+    /// <summary>«Correggi» un'area: vedi <see cref="Correggi(AipDocument, AipCorrectionFile, CorrectionKind, string, object, string?, string?, string, DateOnly)"/>.</summary>
     public static (CorrezioneFatta? Fatta, string? Perche) Correggi(AipDocument modello, AipCorrectionFile file, string chiave, Airspace nuova,
+        string? perche, string? fonte, string ciclo, DateOnly oggi) =>
+        Correggi(modello, file, CorrectionKind.Airspace, chiave, nuova, perche, fonte, ciclo, oggi);
+
+    /// <summary>«Correggi»: la voce del modello di quel tipo con quella chiave diventa <paramref name="nuova"/>.</summary>
+    public static (CorrezioneFatta? Fatta, string? Perche) Correggi(AipDocument modello, AipCorrectionFile file, CorrectionKind tipo, string chiave, object nuova,
         string? perche, string? fonte, string ciclo, DateOnly oggi)
     {
         ArgumentNullException.ThrowIfNull(modello);
+        ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(nuova);
         if (Mancano(perche, fonte) is { } manca) return (null, manca);
-        if (Indice(modello, chiave) is not { } indice) return (null, $"{chiave}: non è nell'AIP espanso del ciclo {ciclo}.");
-        if (nuova.Key != chiave && Indice(modello, nuova.Key) is not null)
-            return (null, $"C'è già un'area {nuova.Key} nell'AIP espanso: correggi quella.");
+        var voci = Voci(modello, tipo);
+        if (Indice(voci, chiave) is not { } indice) return (null, $"{chiave}: non è nell'AIP espanso del ciclo {ciclo}.");
+        var chiaveNuova = AipCorrections.KeyOf(nuova);
+        if (chiaveNuova != chiave && Indice(voci, chiaveNuova) is not null)
+            return (null, $"C'è già {Nome(tipo)} {chiaveNuova} nell'AIP espanso: correggi quella.");
 
         var correzioni = file.Corrections.ToList();
-        var attiva = Attiva(file, chiave);
+        var attiva = Attiva(file, tipo, chiave);
         var id = NuovoId(file, oggi);
         AipCorrection correzione;
         if (attiva is { Op: CorrectionOp.Add })
-            correzione = Nuova(id, nuova.Key, CorrectionOp.Add, null, AipCorrections.ToNode(nuova), perche!, fonte!, ciclo);
+            correzione = Nuova(id, tipo, chiaveNuova, CorrectionOp.Add, null, AipCorrections.ToNode(nuova), perche!, fonte!, ciclo);
         else
-            correzione = Nuova(id, attiva?.Key ?? chiave, CorrectionOp.Change,
-                attiva?.Before?.DeepClone().AsObject() ?? AipCorrections.ToNode(modello.Airspaces[indice]), AipCorrections.ToNode(nuova), perche!, fonte!, ciclo);
+            correzione = Nuova(id, tipo, attiva?.Key ?? chiave, CorrectionOp.Change,
+                attiva?.Before?.DeepClone().AsObject() ?? AipCorrections.ToNode(voci[indice]), AipCorrections.ToNode(nuova), perche!, fonte!, ciclo);
         Supera(correzioni, attiva, id);
         correzioni.Add(correzione);
 
-        var aree = modello.Airspaces.ToList();
-        aree[indice] = nuova;
-        return (Fatta(modello, aree, file, correzioni, $"Correzione dell'AIP espanso: {chiave}", perche!, fonte!), null);
+        voci[indice] = nuova;
+        return (Fatta(modello, tipo, voci, file, correzioni, $"Correzione dell'AIP espanso: {chiave}", perche!, fonte!), null);
     }
 
-    /// <summary>«Aggiungi un'area»: un'area che il PDF non ha (un'altra fonte: AIP SUP, AIC…).</summary>
+    /// <summary>«Aggiungi un'area»: vedi <see cref="Aggiungi(AipDocument, AipCorrectionFile, CorrectionKind, object, string?, string?, string, DateOnly)"/>.</summary>
     public static (CorrezioneFatta? Fatta, string? Perche) Aggiungi(AipDocument modello, AipCorrectionFile file, Airspace nuova,
+        string? perche, string? fonte, string ciclo, DateOnly oggi) =>
+        Aggiungi(modello, file, CorrectionKind.Airspace, nuova, perche, fonte, ciclo, oggi);
+
+    /// <summary>«Aggiungi»: una voce che il PDF non ha (un'altra fonte: AIP SUP, AIC…).</summary>
+    public static (CorrezioneFatta? Fatta, string? Perche) Aggiungi(AipDocument modello, AipCorrectionFile file, CorrectionKind tipo, object nuova,
         string? perche, string? fonte, string ciclo, DateOnly oggi)
     {
         ArgumentNullException.ThrowIfNull(modello);
+        ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(nuova);
         if (Mancano(perche, fonte) is { } manca) return (null, manca);
-        if (Indice(modello, nuova.Key) is not null)
-            return (null, $"C'è già un'area {nuova.Key} nell'AIP espanso: correggi quella.");
-        if (file.Corrections.Any(c => c.Superseded is null && c.Kind == CorrectionKind.Airspace && c.Op == CorrectionOp.Remove && c.Key == nuova.Key))
-            return (null, $"{nuova.Key} è stata tolta da una correzione: ritira quella, se va rimessa com'è nel PDF.");
+        var voci = Voci(modello, tipo);
+        var chiave = AipCorrections.KeyOf(nuova);
+        if (Indice(voci, chiave) is not null)
+            return (null, $"C'è già {Nome(tipo)} {chiave} nell'AIP espanso: correggi quella.");
+        if (file.Corrections.Any(c => c.Superseded is null && c.Kind == tipo && c.Op == CorrectionOp.Remove && c.Key == chiave))
+            return (null, $"{chiave} è stata tolta da una correzione: ritira quella, se va rimessa com'è nel PDF.");
 
         var id = NuovoId(file, oggi);
         var correzioni = file.Corrections.ToList();
-        correzioni.Add(Nuova(id, nuova.Key, CorrectionOp.Add, null, AipCorrections.ToNode(nuova), perche!, fonte!, ciclo));
-        return (Fatta(modello, [.. modello.Airspaces, nuova], file, correzioni, $"Aggiunta all'AIP espanso: {nuova.Key}", perche!, fonte!), null);
+        correzioni.Add(Nuova(id, tipo, chiave, CorrectionOp.Add, null, AipCorrections.ToNode(nuova), perche!, fonte!, ciclo));
+        voci.Add(nuova);
+        return (Fatta(modello, tipo, voci, file, correzioni, $"Aggiunta all'AIP espanso: {chiave}", perche!, fonte!), null);
     }
 
+    /// <summary>«Togli» un'area: vedi <see cref="Togli(AipDocument, AipCorrectionFile, CorrectionKind, string, string?, string?, string, DateOnly)"/>.</summary>
+    public static (CorrezioneFatta? Fatta, string? Perche) Togli(AipDocument modello, AipCorrectionFile file, string chiave,
+        string? perche, string? fonte, string ciclo, DateOnly oggi) =>
+        Togli(modello, file, CorrectionKind.Airspace, chiave, perche, fonte, ciclo, oggi);
+
     /// <summary>
-    /// «Togli»: l'area esce dall'AIP espanso. Un'area che c'era solo per un'aggiunta non ha bisogno di una rimozione: si
+    /// «Togli»: la voce esce dall'AIP espanso. Una voce che c'era solo per un'aggiunta non ha bisogno di una rimozione: si
     /// ritira l'aggiunta.
     /// </summary>
-    public static (CorrezioneFatta? Fatta, string? Perche) Togli(AipDocument modello, AipCorrectionFile file, string chiave,
+    public static (CorrezioneFatta? Fatta, string? Perche) Togli(AipDocument modello, AipCorrectionFile file, CorrectionKind tipo, string chiave,
         string? perche, string? fonte, string ciclo, DateOnly oggi)
     {
         ArgumentNullException.ThrowIfNull(modello);
-        var attiva = Attiva(file, chiave);
+        ArgumentNullException.ThrowIfNull(file);
+        var attiva = Attiva(file, tipo, chiave);
         if (attiva is { Op: CorrectionOp.Add })
             return Ritira(modello, file, attiva.Id);
         if (Mancano(perche, fonte) is { } manca) return (null, manca);
-        if (Indice(modello, chiave) is not { } indice) return (null, $"{chiave}: non è nell'AIP espanso del ciclo {ciclo}.");
+        var voci = Voci(modello, tipo);
+        if (Indice(voci, chiave) is not { } indice) return (null, $"{chiave}: non è nell'AIP espanso del ciclo {ciclo}.");
 
         var id = NuovoId(file, oggi);
         var correzioni = file.Corrections.ToList();
         Supera(correzioni, attiva, id);
-        correzioni.Add(Nuova(id, attiva?.Key ?? chiave, CorrectionOp.Remove,
-            attiva?.Before?.DeepClone().AsObject() ?? AipCorrections.ToNode(modello.Airspaces[indice]), null, perche!, fonte!, ciclo));
-        var aree = modello.Airspaces.ToList();
-        aree.RemoveAt(indice);
-        return (Fatta(modello, aree, file, correzioni, $"Rimozione dall'AIP espanso: {chiave}", perche!, fonte!), null);
+        correzioni.Add(Nuova(id, tipo, attiva?.Key ?? chiave, CorrectionOp.Remove,
+            attiva?.Before?.DeepClone().AsObject() ?? AipCorrections.ToNode(voci[indice]), null, perche!, fonte!, ciclo));
+        voci.RemoveAt(indice);
+        return (Fatta(modello, tipo, voci, file, correzioni, $"Rimozione dall'AIP espanso: {chiave}", perche!, fonte!), null);
     }
 
     /// <summary>
-    /// «Ritira»: la correzione non vale più (<c>superseded: ritirata</c>) e l'area torna com'è nel PDF. Un'area tolta torna in
-    /// fondo all'elenco: al suo posto la rimette la prossima «Leggi».
+    /// «Ritira»: la correzione non vale più (<c>superseded: ritirata</c>) e la voce torna com'è nel PDF. Una voce tolta torna in
+    /// fondo al suo elenco: al suo posto la rimette la prossima «Leggi».
     /// </summary>
     public static (CorrezioneFatta? Fatta, string? Perche) Ritira(AipDocument modello, AipCorrectionFile file, string id)
     {
@@ -221,45 +246,110 @@ public static class CorrezioniDellAip
         var indiceNelFile = file.Corrections.ToList().FindIndex(c => c.Id == id && c.Superseded is null);
         if (indiceNelFile < 0) return (null, $"La correzione {id} non c'è, o non è più in piedi.");
         var c = file.Corrections[indiceNelFile];
-        if (c.Kind != CorrectionKind.Airspace) return (null, "Dal Lab si ritirano per ora solo le correzioni delle aree.");
+        var nonDice = $"La correzione {id} non dice com'era la voce nel PDF: rileggi i PDF («Leggi»), poi riprova.";
 
-        var aree = modello.Airspaces.ToList();
+        var voci = Voci(modello, c.Kind);
         switch (c.Op)
         {
             case CorrectionOp.Add:
             case CorrectionOp.Change:
-                var dopo = c.After is { } a ? ChiaveDi(a) : null;
-                var dove = aree.FindIndex(x => x.Key == dopo);
-                if (dove < 0) return (null, $"{dopo}: non è nell'AIP espanso così com'è scritto. Rileggi i PDF («Leggi»), poi riprova.");
+                var dopo = c.After is { } a ? ChiaveDi(a, c.Kind) : null;
+                if (dopo is null || Indice(voci, dopo) is not { } dove)
+                    return (null, $"{dopo ?? c.Key}: non è nell'AIP espanso così com'è scritto. Rileggi i PDF («Leggi»), poi riprova.");
                 if (c.Op == CorrectionOp.Add)
-                    aree.RemoveAt(dove);
-                else if (c.Before?.Deserialize<Airspace>(AipJson.Options) is { } delPdf)
-                    aree[dove] = delPdf;
+                    voci.RemoveAt(dove);
+                else if (Leggi(c.Before, c.Kind) is { } delPdf)
+                    voci[dove] = delPdf;
                 else
-                    return (null, $"La correzione {id} non dice com'era l'area nel PDF: rileggi i PDF («Leggi»), poi riprova.");
+                    return (null, nonDice);
                 break;
             case CorrectionOp.Remove:
-                if (c.Before?.Deserialize<Airspace>(AipJson.Options) is not { } tolta)
-                    return (null, $"La correzione {id} non dice com'era l'area nel PDF: rileggi i PDF («Leggi»), poi riprova.");
-                aree.Add(tolta);
+                if (Leggi(c.Before, c.Kind) is not { } tolta)
+                    return (null, nonDice);
+                voci.Add(tolta);
                 break;
         }
 
         var correzioni = file.Corrections.ToList();
         correzioni[indiceNelFile] = c with { Superseded = Ritirata };
-        return (Fatta(modello, aree, file, correzioni, $"Ritirata la correzione {id} ({c.Key})", null, null), null);
+        return (Fatta(modello, c.Kind, voci, file, correzioni, $"Ritirata la correzione {id} ({c.Key})", null, null), null);
     }
 
-    private static CorrezioneFatta Fatta(AipDocument modello, List<Airspace> aree, AipCorrectionFile file, List<AipCorrection> correzioni,
+    /// <summary>Il tipo del modello di ogni genere di correzione.</summary>
+    public static Type Tipo(CorrectionKind tipo) => tipo switch
+    {
+        CorrectionKind.Airspace => typeof(Airspace),
+        CorrectionKind.Route => typeof(Route),
+        CorrectionKind.Holding => typeof(Holding),
+        CorrectionKind.Navaid => typeof(Navaid),
+        CorrectionKind.Point => typeof(SignificantPoint),
+        CorrectionKind.Light => typeof(GroundLight),
+        CorrectionKind.Aerodrome => typeof(Aerodrome),
+        CorrectionKind.Hazard => typeof(Hazard),
+        _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "Le carte ATC SMAC non si correggono dal Lab."),
+    };
+
+    /// <summary>Come si chiama una voce di quel tipo, in una frase: «un'area», «un punto».</summary>
+    public static string Nome(CorrectionKind tipo) => tipo switch
+    {
+        CorrectionKind.Airspace => "un'area",
+        CorrectionKind.Route => "una rotta",
+        CorrectionKind.Holding => "un'attesa",
+        CorrectionKind.Navaid => "una radioassistenza",
+        CorrectionKind.Point => "un punto",
+        CorrectionKind.Light => "una luce",
+        CorrectionKind.Aerodrome => "uno scalo",
+        CorrectionKind.Hazard => "un pericolo",
+        _ => "una voce",
+    };
+
+    /// <summary>Le voci del modello di quel tipo, in una lista nuova da cambiare.</summary>
+    public static List<object> Voci(AipDocument modello, CorrectionKind tipo)
+    {
+        ArgumentNullException.ThrowIfNull(modello);
+        IEnumerable<object>? voci = tipo switch
+        {
+            CorrectionKind.Airspace => modello.Airspaces,
+            CorrectionKind.Route => modello.Routes,
+            CorrectionKind.Holding => modello.Holdings,
+            CorrectionKind.Navaid => modello.Navaids,
+            CorrectionKind.Point => modello.Points,
+            CorrectionKind.Light => modello.Lights,
+            CorrectionKind.Aerodrome => modello.Aerodromes,
+            CorrectionKind.Hazard => modello.Hazards,
+            _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "Le carte ATC SMAC non si correggono dal Lab."),
+        };
+        return [.. voci ?? []];
+    }
+
+    private static AipDocument ConVoci(AipDocument modello, CorrectionKind tipo, List<object> voci)
+    {
+        // Come «Leggi»: un elenco facoltativo vuoto non si scrive.
+        IReadOnlyList<T>? Lista<T>() => voci.Count == 0 ? null : [.. voci.Cast<T>()];
+        return tipo switch
+        {
+            CorrectionKind.Airspace => modello with { Airspaces = [.. voci.Cast<Airspace>()] },
+            CorrectionKind.Route => modello with { Routes = Lista<Route>() },
+            CorrectionKind.Holding => modello with { Holdings = Lista<Holding>() },
+            CorrectionKind.Navaid => modello with { Navaids = Lista<Navaid>() },
+            CorrectionKind.Point => modello with { Points = Lista<SignificantPoint>() },
+            CorrectionKind.Light => modello with { Lights = Lista<GroundLight>() },
+            CorrectionKind.Aerodrome => modello with { Aerodromes = Lista<Aerodrome>() },
+            CorrectionKind.Hazard => modello with { Hazards = Lista<Hazard>() },
+            _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, null),
+        };
+    }
+
+    private static CorrezioneFatta Fatta(AipDocument modello, CorrectionKind tipo, List<object> voci, AipCorrectionFile file, List<AipCorrection> correzioni,
         string cosa, string? perche, string? fonte) =>
-        new(modello with { Airspaces = aree }, file with { Corrections = correzioni },
+        new(ConVoci(modello, tipo, voci), file with { Corrections = correzioni },
             perche is null ? cosa : $"{cosa} — {perche.Trim()} ({fonte!.Trim()})");
 
-    private static AipCorrection Nuova(string id, string chiave, CorrectionOp op, System.Text.Json.Nodes.JsonObject? prima,
+    private static AipCorrection Nuova(string id, CorrectionKind tipo, string chiave, CorrectionOp op, System.Text.Json.Nodes.JsonObject? prima,
         System.Text.Json.Nodes.JsonObject? dopo, string perche, string fonte, string ciclo) => new()
     {
         Id = id,
-        Kind = CorrectionKind.Airspace,
+        Kind = tipo,
         Key = chiave,
         Op = op,
         Before = prima,
@@ -281,9 +371,9 @@ public static class CorrezioniDellAip
         : string.IsNullOrWhiteSpace(fonte) ? "Scrivi la fonte: «errore AIP, segnalato a ENAV il …», «AIP SUP 123/26»…"
         : null;
 
-    private static int? Indice(AipDocument modello, string chiave)
+    private static int? Indice(List<object> voci, string chiave)
     {
-        var i = modello.Airspaces.ToList().FindIndex(a => a.Key == chiave);
+        var i = voci.FindIndex(v => AipCorrections.KeyOf(v) == chiave);
         return i < 0 ? null : i;
     }
 
@@ -297,17 +387,22 @@ public static class CorrezioniDellAip
         return prefisso + (n + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    private static string? ChiaveDi(System.Text.Json.Nodes.JsonObject area)
+    /// <summary>La voce del JSON di una correzione, o null se non si legge come quel tipo.</summary>
+    public static object? Leggi(System.Text.Json.Nodes.JsonObject? nodo, CorrectionKind tipo)
     {
+        if (nodo is null) return null;
         try
         {
-            return area.Deserialize<Airspace>(AipJson.Options)?.Key;
+            return nodo.Deserialize(Tipo(tipo), AipJson.Options);
         }
-        catch (Exception e) when (e is System.Text.Json.JsonException or NotSupportedException or InvalidOperationException)
+        catch (Exception e) when (e is JsonException or NotSupportedException or InvalidOperationException)
         {
             return null;
         }
     }
+
+    private static string? ChiaveDi(System.Text.Json.Nodes.JsonObject voce, CorrectionKind tipo) =>
+        Leggi(voce, tipo) is { } letta ? AipCorrections.KeyOf(letta) : null;
 
     private static string? Pulito(string? testo) => string.IsNullOrWhiteSpace(testo) ? null : testo.Trim();
 }
