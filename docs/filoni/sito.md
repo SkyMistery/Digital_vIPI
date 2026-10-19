@@ -4,7 +4,14 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 18 ottobre 2026
+## Dove siamo — 20 ottobre 2026
+
+> **Aggiornamento del 20 ottobre**: **S114** e **S115** (il «Radar di torre») sono **online in 1.68.0** (§A160; Schema 0
+> confermato dal committente; la migrazione `TorreRadar` è passata; da fuori CSS e health Healthy). **S116** e **S117**
+> (avvisi NuGet di E2E e pin di `lib.e_sqlite3`) sono fusi in `main` (§A161) **senza pacchetto**: il sito spedito non
+> cambia. **Mai visti col login**: la sezione «Radar di torre» negli editor (nasce nascosta ovunque) e la pastiglia
+> nella vista live, che compare solo dopo averla mostrata e pubblicata su uno scalo.
+> Il riassunto qui sotto è quello del 18 ottobre.
 
 > **In una riga**: tutto il lavoro del filone è **online** fino a **S113**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
@@ -2719,7 +2726,7 @@
   - **Test**: Ui 2086 → 2087 (`BarraInAltoTests`, sul sorgente come gli altri della barra: il layout non si disegna
     in bUnit). **A schermo** su un database nuovo con tre richieste inventate: «2» sull'angolo della chiave a 1900 e
     1000px, il clic porta alle richieste; a 375px chiave e voce del menù col numero.
-- 🟢 **S114** correzione di S111: una sezione **senza testo proprio ma con le sottosezioni scritte** non è vuota (18-ott,
+- ✅ **S114** (**online in 1.68.0** dal 20-ott) correzione di S111: una sezione **senza testo proprio ma con le sottosezioni scritte** non è vuota (18-ott,
   il committente: «segna come empty section delle sezioni che non hanno testo proprio ma hanno solo sottosezioni. Non
   sarebbe corretto»).
   - **Prima**: contavano i soli blocchi della sezione. **Ora** (`SezioniDaScrivere.Piena`): ha qualcosa se ce l'ha
@@ -2729,7 +2736,7 @@
   - **Codice comune**: `Vipi.Application` (`SezioniDaScrivere.cs`). Nessuna migrazione, niente `deploy/`.
   - **Test**: App 3389 → 3390, rosso prima della correzione (0 invece di 2). Solo logica: l'interfaccia non cambia.
     ⚠️ Non provato sui documenti veri (la copia di produzione è stata cancellata a fine S111).
-- 🟢 **S115** la **torre radar** nelle vIPI d'aeroporto e nei vSOP (18-ott, il committente: una sezione che dica se la
+- ✅ **S115** (**online in 1.68.0** dal 20-ott, migrazione `TorreRadar` passata) la **torre radar** nelle vIPI d'aeroporto e nei vSOP (18-ott, il committente: una sezione che dica se la
   torre è dotata di radar; se sì, almeno una sotto-sezione con la tecnica operativa dello scalo; unica sugli scali con
   vIPI e vSOP). Carta `docs/feature/2026-10-18-torre-radar.md`.
   - **Deciso dal committente**: una sezione sola **fra Piste e SID** (nel vSOP nello stesso punto dei Dati generali),
@@ -2761,7 +2768,7 @@
     della vIPI col sì (frase, tecnica chiusa a due righe, indice fra Piste e SID) e col no (tecnica sparita da corpo e
     indice, testo rimasto in archivio); editor e anteprima del vSOP. Non visti: l'unione, il telefono, la pagina
     pubblica dopo una pubblicazione (carta §6).
-- 🟢 **S116** i sei avvisi di vulnerabilità NuGet del restore (19-ott, assegnato dal Master): NU1902/NU1903 su
+- ✅ **S116** (fuso in `main` il 20-ott, §A161, nessun pacchetto) i sei avvisi di vulnerabilità NuGet del restore (19-ott, assegnato dal Master): NU1902/NU1903 su
   `System.Security.Cryptography.Xml` 8.0.4 (4 «high») e `System.Security.Cryptography.Pkcs` 8.0.1 (1 high, 1
   moderate), solo in `tests/Vipi.E2E.Tests`.
   - **Da dove**: l'host tira `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` 8.0.*, che porta
@@ -2779,7 +2786,7 @@
   - ⚠️ **Trovato in passata, NON toccato (è `src/`)**: al prossimo ri-calcolo dei lock di `src/` EF Sqlite 8.0.32
     vuole `SQLitePCLRaw.lib.e_sqlite3` ≥ 2.1.13, e `Vipi.Infrastructure` la fissa a 2.1.12 → NU1605 (declassamento).
   - Solo `tests/`: nessun pacchetto. Build Release della soluzione a 0 avvisi; conteggi invariati.
-- 🟢 **S117** il NU1605 su SQLite trovato in S116 (20-ott, assegnato dal committente via Master). **Codice comune**:
+- ✅ **S117** (fuso in `main` il 20-ott, §A161, nessun pacchetto: `libe_sqlite3.so` identica) il NU1605 su SQLite trovato in S116 (20-ott, assegnato dal committente via Master). **Codice comune**:
   `src/Vipi.Infrastructure`.
   - **Il guasto, latente**: `Vipi.Infrastructure` (e `Vipi.Application.Tests`) fissavano `SQLitePCLRaw.lib.e_sqlite3`
     **2.1.12** con un riferimento diretto, contro CVE-2025-6965. In NuGet il diretto vince: al primo ri-calcolo dei
