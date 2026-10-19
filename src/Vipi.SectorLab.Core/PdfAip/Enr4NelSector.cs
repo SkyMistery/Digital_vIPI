@@ -47,19 +47,59 @@ public static class Enr4NelSector
     }
 
     /// <summary>
-    /// La riga nuova di un punto di <c>itfix.fix</c>: il 4° e il 5° campo come li usa il file (misura della slice 3b, 1 250
-    /// punti su 1 254: rotte ATS → 0, procedure → 1, tutti e due → 2; interesse FRA → 1). Senza rotte né procedure, 0.
+    /// L'uso di un punto di ENR 4.4 nel 4° campo del <c>.fix</c> (0 in rotta, 1 terminale, 2 tutti e due): rotte ATS → in
+    /// rotta, procedure → terminale. Null se l'AIP non dà né rotte né procedure. 🔴 Il significato del 4° e del 5° campo
+    /// l'ha confermato il committente (19 ottobre) dopo la misura della slice 3b: 1 250 punti su 1 254 così.
     /// </summary>
+    public static int? Uso(SignificantPoint p)
+    {
+        ArgumentNullException.ThrowIfNull(p);
+        return (p.Routes.Count > 0, p.Procedures is not null) switch
+        {
+            (true, true) => 2,
+            (true, false) => 0,
+            (false, true) => 1,
+            _ => null,
+        };
+    }
+
+    /// <summary>Il 5° campo del <c>.fix</c>: 1 se ENR 4.4 dà al punto un interesse FRA, 0 se no.</summary>
+    public static string Fra(SignificantPoint p)
+    {
+        ArgumentNullException.ThrowIfNull(p);
+        return p.Fra is null ? "0" : "1";
+    }
+
+    /// <summary>La riga nuova di un punto di <c>itfix.fix</c>, con l'uso e il FRA; senza rotte né procedure l'uso è 0.</summary>
     public static string RigaNuova(SignificantPoint p)
     {
         ArgumentNullException.ThrowIfNull(p);
-        var uso = (p.Routes.Count > 0, p.Procedures is not null) switch
+        return $"{p.Designator};{AuroraText.Coordinates(p.Position)};{Uso(p) ?? 0};{Fra(p)};";
+    }
+
+    /// <summary>
+    /// La riga di un punto di <c>itfix.fix</c> col 4° e il 5° campo dell'AIP, dove sono diversi (l'uso solo se l'AIP lo dà);
+    /// il resto — l'attesa nel 6°, quel che segue — resta. Null se la riga non ha cinque campi.
+    /// </summary>
+    public static string? ConLUso(string riga, SignificantPoint p, out IReadOnlyList<string> cambiati)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        ArgumentNullException.ThrowIfNull(p);
+        var lista = new List<string>();
+        cambiati = lista;
+        var campi = riga.Split(';').ToList();
+        if (campi.Count < 5) return null;
+        if (Uso(p) is { } uso && campi[3].Trim() != uso.ToString(CultureInfo.InvariantCulture))
         {
-            (true, true) => 2,
-            (false, true) => 1,
-            _ => 0,
-        };
-        return $"{p.Designator};{AuroraText.Coordinates(p.Position)};{uso};{(p.Fra is null ? 0 : 1)};";
+            lista.Add($"uso {campi[3].Trim()} → {uso}");
+            campi[3] = uso.ToString(CultureInfo.InvariantCulture);
+        }
+        if (campi[4].Trim() != Fra(p))
+        {
+            lista.Add($"FRA {campi[4].Trim()} → {Fra(p)}");
+            campi[4] = Fra(p);
+        }
+        return string.Join(';', campi);
     }
 
     /// <summary>

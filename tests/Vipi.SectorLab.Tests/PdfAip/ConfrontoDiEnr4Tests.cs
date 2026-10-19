@@ -224,4 +224,23 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         Assert.Equal("ALG;113.85;N040.37.41.300;E008.14.38.000;;;;HLD-ALG;", nuova);
         Assert.Equal(["frequenza 113.80 → 113.85"], cambiati);
     }
+
+    [Fact]
+    public async Task CorreggiLUso_Il4E5CampoDellAip_LAttesaResta()
+    {
+        // ADFAM con un'attesa nel 6° campo, che resta.
+        await ApriAsync();
+        _albero.Scrivi("SectorFiles/Include/IT/NAVAIDS/itfix.fix", Fix.Replace("ADFAM;N045.59.42.000;E011.31.31.000;0;0;", "ADFAM;N045.59.42.000;E011.31.31.000;0;1;HLD-ADFAM;"));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        Assert.True(await _lab.ConfrontaEnr4Async(radioassistenze: false), _lab.Rifiuto);
+        Assert.Contains("FRA: nell'AIP no, sector 1", Riga("ADFAM").Dettagli);
+
+        Assert.True(_lab.CorreggiLUso(["ADFAM"]), _lab.Rifiuto);
+
+        Assert.Contains("ADFAM;N045.59.42.000;E011.31.31.000;1;0;HLD-ADFAM;", Righe("itfix.fix"));
+        Assert.False(Riga("ADFAM").UsoDiverso);
+        Assert.StartsWith("uso di ADFAM dall'AIP 2611", _lab.DaAnnullare, StringComparison.Ordinal);
+        // Una riga senza «uso diverso» non si tocca.
+        Assert.False(_lab.CorreggiLUso(["ABADI"]));
+    }
 }

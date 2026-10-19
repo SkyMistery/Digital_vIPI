@@ -4487,6 +4487,51 @@ public sealed class SessioneDelLab
         return fatto;
     }
 
+    /// <summary>
+    /// «Correggi l'uso» (carta F6, slice 3c, committente 19 ottobre: il 4° campo del <c>.fix</c> è l'uso, il 5° l'interesse
+    /// FRA): le righe di <c>itfix.fix</c> dei punti scelti fra quelli «uso diverso», col 4° e il 5° campo dell'AIP. Un gesto
+    /// solo, una voce nel testo del file.
+    /// </summary>
+    public bool CorreggiLUso(IReadOnlyList<string> nomi)
+    {
+        ArgumentNullException.ThrowIfNull(nomi);
+        if (Sessione is not { } sessione || UltimoConfrontoDiEnr4 is not { Radioassistenze: false } confronto || _aipDiEnr4?.Points is not { } punti)
+            return Rifiuta("Confronta i punti prima: si correggono le righe «uso diverso» del confronto.");
+        var righeScelte = confronto.Esiti.Where(e => e.UsoDiverso && e.File is not null && e.Record is not null
+            && nomi.Contains(e.Nome, StringComparer.OrdinalIgnoreCase)).ToList();
+        if (righeScelte.Count == 0)
+            return Rifiuta("Si corregge l'uso delle righe «uso diverso».");
+        var file = righeScelte[0].File!;
+        if (sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord)
+            return Rifiuta("Il file dei punti non è aperto.");
+        var gesto = righeScelte.Count == 1 ? $"uso di {righeScelte[0].Nome} dall'AIP {confronto.Ciclo}" : $"uso di {righeScelte.Count} punti dall'AIP {confronto.Ciclo}";
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            var righe = RigheDiAdesso(file);
+            var posti = conRecord.PostiDeiRecord(Modifiche.SporchiDi(file));
+            var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+            var cosa = new List<string>();
+            foreach (var r in righeScelte.Where(r => r.File == file))
+            {
+                if (punti.FirstOrDefault(p => p.Designator.Equals(r.Nome, StringComparison.OrdinalIgnoreCase)) is not { } p) continue;
+                var (da, _) = posti[r.Record!.Value];
+                if (Core.PdfAip.Enr4NelSector.ConLUso(righe[da], p, out var cambiati) is not { } nuova || cambiati.Count == 0) continue;
+                sostituzioni[da + 1] = [nuova];
+                cosa.Add($"{r.Nome} ({string.Join(", ", cambiati)})");
+            }
+            if (sostituzioni.Count == 0)
+                return Rifiuta("Nelle righe non c'è niente da cambiare.");
+            var quanti = conRecord.RecordDelModello.Count;
+            bool scritto = GestoSulTesto(file, "aip", f => Modifiche.CambiaRighe(f, sostituzioni, gesto,
+                riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più gli stessi punti: si fa a mano."));
+            Registro.Scrivi("aip", $"{gesto}: {string.Join("; ", cosa)}");
+            return scritto;
+        });
+        if (fatto)
+            RifaiIlConfrontoDiEnr4();
+        return fatto;
+    }
+
     private static string? NomeDiEnr4(object r) => r switch { Fix f => f.Name, Vor v => v.Ident, Ndb d => d.Ident, _ => null };
 
     /// <summary>Dopo un gesto della slice 3c il confronto di ENR 4 si rifà sul sector di adesso.</summary>

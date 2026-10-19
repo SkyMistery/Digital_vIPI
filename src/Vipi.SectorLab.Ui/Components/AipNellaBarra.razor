@@ -300,7 +300,13 @@
                 {
                     <p class="lab-nota" data-riassunto-enr4>@(enr4.Radioassistenze ? "Radioassistenze" : "Punti"), ciclo @enr4.Ciclo: @string.Join(" · ", enr4.Esiti.GroupBy(e => e.Esito).Select(g => $"{Esito(g.Key)} {g.Count()}"))@(enr4.Esiti.Count(e => e.UsoDiverso) is > 0 and var uso ? $" · uso diverso {uso}" : "")</p>
                     @* Slice 3c: i gesti. «Porta tutte» le mancanti (scelto con l'elenco davanti), o una per riga; «Sostituisci»
-                       sulle radioassistenze diverse. L'uso e il FRA dei .fix no: il significato dei campi non è deciso. *@
+                       sulle radioassistenze diverse; «Correggi l'uso» (4° e 5° campo di itfix.fix, confermati dal committente). *@
+                    @if (enr4.Esiti.Where(e => e.UsoDiverso).Select(e => e.Nome).ToList() is { Count: > 1 } usi)
+                    {
+                        <button type="button" class="lab-tasto" data-tasto="correggi-tutti-gli-usi"
+                                title="L'uso (4° campo) e il FRA (5°) dell'AIP nelle righe di itfix.fix qui sotto: un gesto solo, da annullare"
+                                @onclick="() => CorreggiLUso(usi)">Correggi l'uso di tutti (@usi.Count)</button>
+                    }
                     @if (enr4.Esiti.Where(e => e.Esito == Esiti.MancaNelSector).Select(e => e.Nome).ToList() is { Count: > 1 } tutte)
                     {
                         <button type="button" class="lab-tasto" data-tasto="porta-tutte-enr4"
@@ -325,6 +331,11 @@
                                 {
                                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-enr4"
                                             title="La riga nuova in @(enr4.Radioassistenze ? "itvor.vor o itndb.ndb" : "itfix.fix"), in ordine di nome, coi valori dell'AIP" @onclick="() => PortaEnr4([e.Nome])">Porta nel sector</button>
+                                }
+                                else if (e.UsoDiverso)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="correggi-uso"
+                                            title="L'uso (4° campo) e il FRA (5°) di itfix.fix come li dà l'AIP" @onclick="() => CorreggiLUso([e.Nome])">Correggi l'uso</button>
                                 }
                                 else if (enr4.Radioassistenze && e.Esito == Esiti.FormaDiversa)
                                 {
@@ -382,6 +393,8 @@
         Lab.PortaNelSectorDiEnr4(nomi);
         _rifiuto = Lab.Rifiuto;
     }
+
+    private void CorreggiLUso(IReadOnlyList<string> nomi) => _rifiuto = Lab.CorreggiLUso(nomi) ? null : Lab.Rifiuto;
 
     private void SostituisciEnr4(Vipi.SectorLab.Core.PdfAip.DifferenzaDiEnr4 riga) => _rifiuto = Lab.SostituisciLaRadioassistenza(riga) ? null : Lab.Rifiuto;
 

@@ -15,8 +15,9 @@ namespace Vipi.SectorLab.Core.PdfAip;
 public sealed record DifferenzaDiEnr4(EsitoDelConfronto Esito, string Nome, string? File, int? Record, IReadOnlyList<string> Dettagli)
 {
     /// <summary>
-    /// Per un punto uguale di posizione: l'uso (il 4° campo del <c>.fix</c>) o il FRA (il 5°) non sono quelli che l'AIP
-    /// fa pensare. Non cambia l'esito: è una proposta da misurare, non una differenza (carta F6 §6, slice 3b).
+    /// Per un punto uguale di posizione: l'uso (il 4° campo del <c>.fix</c>) o il FRA (il 5°) non sono quelli che dà l'AIP.
+    /// Il significato dei due campi l'ha confermato il committente (19 ottobre, dopo la misura della slice 3b); l'esito resta
+    /// «uguale» (la posizione lo è) e la riga si corregge col suo gesto (slice 3c).
     /// </summary>
     public bool UsoDiverso { get; init; }
 }
@@ -29,7 +30,8 @@ public sealed record DifferenzaDiEnr4(EsitoDelConfronto Esito, string Nome, stri
 /// ENR 4.1 non ha è di solito di uno scalo (AD 2) o di fuori: si dice.</para>
 /// <para><b>I punti</b> (ENR 4.4) coi <c>.fix</c> di tutti i file: per nome, il più vicino; oltre 0,1 NM è «stesso nome,
 /// altro punto» (TIMOV e XOPTA, carta madre §11). Un punto di <c>itfix.fix</c> che ENR 4.4 non ha si dice; quelli degli
-/// altri <c>.fix</c> (di scalo, esterni, militari) no: non sono di ENR 4.4.</para>
+/// altri <c>.fix</c> (di scalo, esterni, militari) no: non sono di ENR 4.4. In <c>itfix.fix</c> anche l'uso e il FRA (il
+/// 4° e il 5° campo, <see cref="Enr4NelSector.Uso"/>).</para>
 /// </summary>
 public static class ConfrontoDiEnr4
 {
@@ -150,12 +152,12 @@ public static class ConfrontoDiEnr4
             var usoDiverso = false;
             if (DelFileDeiPunti(suo.File))
             {
-                if (UsoAtteso(p) is { } uso && suo.Dato.DisplayType is { } scritto && scritto != uso)
+                if (Enr4NelSector.Uso(p) is { } uso && suo.Dato.DisplayType is { } scritto && scritto != uso)
                 {
                     usoDiverso = true;
                     dettagli.Add($"uso: dall'AIP {uso} ({Uso(uso)}), sector {scritto} ({Uso(scritto)})");
                 }
-                var fra = p.Fra is null ? "0" : "1";
+                var fra = Enr4NelSector.Fra(p);
                 if (suo.Dato.ExtraField is { } f && f.Trim() != fra)
                 {
                     usoDiverso = true;
@@ -174,18 +176,6 @@ public static class ConfrontoDiEnr4
 
         return Ordinati(esiti);
     }
-
-    /// <summary>
-    /// L'uso che l'AIP fa pensare, nella numerazione del 4° campo del <c>.fix</c> (manuale IVAO: 0 in rotta, 1 terminale, 2
-    /// tutti e due): rotte ATS → in rotta, procedure → terminale. Null se l'AIP non dà né rotte né procedure.
-    /// </summary>
-    private static int? UsoAtteso(SignificantPoint p) => (p.Routes.Count > 0, p.Procedures is not null) switch
-    {
-        (true, true) => 2,
-        (true, false) => 0,
-        (false, true) => 1,
-        _ => null,
-    };
 
     private static string Uso(int uso) => uso switch { 0 => "in rotta", 1 => "terminale", 2 => "tutti e due", 3 => "nascosto", _ => "?" };
 
