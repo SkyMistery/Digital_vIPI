@@ -4169,7 +4169,7 @@ public sealed class SessioneDelLab
 
             var file = Core.PdfAip.PdfDellAip.Elenco(pdf);
             var esito = await Task.Run(() => Core.PdfAip.AipEspanso.Leggi(file, espanso, nome)).ConfigureAwait(false);
-            Registro.Scrivi("aip", $"AIP espanso {nome}: {esito.Letti.Count} PDF letti su {esito.Pdf}, {esito.Aree} aree, {esito.Rotte} rotte, {esito.Attese} attese, {esito.Problemi.Count} segnalazioni → {esito.Scritto}");
+            Registro.Scrivi("aip", $"AIP espanso {nome}: {esito.Letti.Count} PDF letti su {esito.Pdf}, {esito.Quanti()}, {esito.Problemi.Count} segnalazioni → {esito.Scritto}");
             UltimoAipEspanso = esito;
             MessaggioDellAip = Core.PdfAip.RepoDellAip.MessaggioProposto(esito);
             Rifiuto = null;

@@ -37,6 +37,30 @@ public sealed class AipCheckTests
     }
 
     [Fact]
+    public void StessaSiglaAltroTipoVa_StessaSiglaStessoTipoNo_UnPuntoDoppioNo()
+    {
+        Navaid Radioassistenza(string sigla, string tipo, double lat) => new()
+        {
+            Section = "ENR 4.1", Designator = sigla, Name = "PROVA", Type = tipo, Position = new Position(lat, 12),
+            Components = [new NavaidComponent(null, new Position(lat, 12))],
+        };
+        var doc = new AipDocument
+        {
+            State = "LI",
+            Navaids = [Radioassistenza("PIS", "VOR/DME", 43), Radioassistenza("PIS", "L", 43), Radioassistenza("PIS", "L", 95)],
+            Points =
+            [
+                new SignificantPoint { Section = "ENR 4.4", Designator = "ABADI", Position = new Position(40, 18) },
+                new SignificantPoint { Section = "ENR 4.4", Designator = "ABADI", Position = new Position(40, 18) },
+            ],
+        };
+
+        Assert.Equal(
+            [(AipProblemKind.DuplicateKey, "PIS L"), (AipProblemKind.OutOfRange, "PIS L"), (AipProblemKind.DuplicateKey, "ABADI")],
+            AipCheck.Run(doc).Select(p => (p.Kind, p.Key)));
+    }
+
+    [Fact]
     public void UnAnelloDiDueRetteNonSiChiude_UnArcoDaSoloSi()
     {
         var p = new Position(42, 12);

@@ -391,7 +391,7 @@ public static partial class ItalianEnr3
     /// righe interne non coprono metà della banda (T543, misura del 18 ottobre). Una barra di modifica a 4-5 punti dal bordo
     /// sinistro non è una colonna. Null se le colonne non sono <paramref name="colonne"/> (una pagina bianca).
     /// </summary>
-    private static TableGrid? Griglia(PdfPageText page, int colonne)
+    internal static TableGrid? Griglia(PdfPageText page, int colonne)
     {
         var lunghi = page.VerticalRules.Where(r => r.Bottom - r.Top >= 10).ToList();
         if (lunghi.Count == 0) return null;

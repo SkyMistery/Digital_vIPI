@@ -180,6 +180,24 @@ public static class Table
         return righe.OrderBy(r => r.Y).ThenBy(r => r.Column).ToList();
     }
 
+    /// <summary>
+    /// Le righe della tabella dai bordi <b>orizzontali</b>: le bande fra due bordi che chiudono la prima cella (da prima
+    /// della prima colonna a dopo la seconda riga verticale), dall'alto. Servono dove un oggetto è una riga sola e il suo
+    /// testo sta in mezzo alla cella (ENR 4.1: il nome della radioassistenza è più in basso della copertura): lì la y del
+    /// testo non dice di chi è, i bordi sì. Vuota se la pagina non ha i bordi (o non li ha letti).
+    /// </summary>
+    public static IReadOnlyList<(double Top, double Bottom)> RowBands(PdfPageText page, TableGrid grid)
+    {
+        if (page.HorizontalRules is not { Count: > 0 } bordi || grid.Columns.Count < 2) return [];
+        var ys = Clusters(bordi
+            .Where(b => b.X0 <= grid.Columns[0] + 5 && b.X1 >= grid.Columns[1] - 5)
+            .Where(b => b.Y >= grid.Top - 2 && b.Y <= grid.Bottom + 2)
+            .Select(b => b.Y), 1.0);
+        var bande = new List<(double Top, double Bottom)>();
+        for (var i = 0; i + 1 < ys.Count; i++) bande.Add((ys[i], ys[i + 1]));
+        return bande;
+    }
+
     /// <summary>Il testo di tutta la pagina a righe, dall'alto (per l'intestazione e il piè di pagina).</summary>
     public static IReadOnlyList<string> PlainLines(PdfPageText page) => PlainLinesWithY(page).Select(r => r.Text).ToList();
 

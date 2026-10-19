@@ -334,4 +334,55 @@ public sealed class AipJsonTests
         var e = Assert.Throws<AipJsonException>(() => AipJson.Deserialize(json));
         Assert.Equal(AipJsonError.Invalid, e.Error);
     }
+
+    [Fact]
+    public void RadioassistenzePuntiELuci_VannoETornanoUguali()
+    {
+        var vor = new Navaid
+        {
+            Section = "ENR 4.1",
+            Designator = "MPV",
+            Name = "MONTE PROVA",
+            Type = "VOR/DME",
+            Kind = NavaidKind.VorDme,
+            MagneticVariation = "3° E-2020.0",
+            Frequency = "113.80 MHZ",
+            Channel = "85X",
+            Position = new Position(41.5, 12.25),
+            Components = [new NavaidComponent("VOR", new Position(41.5, 12.25), "H24"), new NavaidComponent("DME", new Position(41.51, 12.25), "H24")],
+            Elevation = "443 M AMSL",
+            Remarks = "1) MAINT: first MON",
+            Page = new AipPage("ENR 4.1.1-1", new DateOnly(2026, 6, 11)),
+        };
+        var tacan = new Navaid
+        {
+            Section = "ENR 4.1", Military = true, Designator = "MPT", Name = "PROVA", Type = "TACAN", Kind = NavaidKind.Tacan,
+            Channel = "99Y", Position = new Position(41.6, 15.7), Components = [new NavaidComponent(null, new Position(41.6, 15.7), "H24")],
+        };
+        var punto = new SignificantPoint
+        {
+            Section = "ENR 4.4", Designator = "ABADI", Position = new Position(40.75, 18.6), Routes = ["P92", "L12"],
+            Procedures = "BR star, BR sid", Fra = "FRA(I)",
+        };
+        var luce = new GroundLight { Section = "ENR 4.5", Name = "CAPO DI PROVA", Type = "Marittimo / Maritime", Intensity = "668,8" };
+        var doc = new AipDocument { State = "LI", Navaids = [vor, tacan], Points = [punto], Lights = [luce] };
+
+        var json = AipJson.Serialize(doc);
+        var riletto = AipJson.Deserialize(json);
+
+        Assert.Equal(doc, riletto);
+        Assert.NotEqual(vor with { Components = [vor.Components[0]] }, riletto.Navaids![0]);
+        Assert.NotEqual(punto with { Routes = ["P92"] }, riletto.Points![0]);
+        Assert.NotEqual(doc with { Lights = null }, riletto);
+        Assert.Contains("\"kind\": \"vorDme\"", json);
+        Assert.Contains("\"military\": true", json);
+        // Il militare si scrive solo dove c'è; la chiave non va nel file.
+        Assert.Equal(1, json.Split("military").Length - 1);
+        Assert.DoesNotContain("\"key\"", json);
+        // Un documento senza ENR 4 non lo scrive: l'AIP espanso di prima non cambia.
+        var vuoto = AipJson.Serialize(new AipDocument { State = "LI" });
+        Assert.DoesNotContain("navaids", vuoto);
+        Assert.DoesNotContain("points", vuoto);
+        Assert.DoesNotContain("lights", vuoto);
+    }
 }

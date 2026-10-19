@@ -79,6 +79,9 @@ public sealed class RepoDellAipTests : IDisposable
         Assert.Equal("AIP 2610: 870 aree da 7 PDF (ENR 2, ENR 5)",
             RepoDellAip.MessaggioProposto(Esito("LI-ENR 2.1.1.1.pdf", "LI-ENR 2.1.2 1 Alghero CTR.pdf", "LI-ENR 2.2.pdf",
                 "LI-ENR 5.1.1.pdf", "LI-ENR 5.1.2.pdf", "LI-ENR 5.1.3.pdf", "LI-ENR 5.1.4.pdf")));
+        // Le voci di ENR 3 e 4 dove ci sono, quelle a zero no.
+        Assert.Equal("AIP 2610: 870 aree, 29 rotte, 55 radioassistenze, 1254 punti da 1 PDF (LI-ENR 4.4)",
+            RepoDellAip.MessaggioProposto(Esito("LI-ENR 4.4.pdf") with { Rotte = 29, Radioassistenze = 55, Punti = 1254 }));
     }
 
     [Fact]

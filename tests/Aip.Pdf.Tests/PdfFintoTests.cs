@@ -174,9 +174,10 @@ public sealed class PdfFintoTests
     [Fact]
     public void UnFileCheNonSaLeggereLoDice()
     {
-        var letto = ItalianAip.ReadFile("LI-ENR 4.4.pdf");
+        // ENR 4.4 lo legge la slice 3: qui una sezione che non si legge ancora (ENR 6, i VRP, con la slice 4).
+        var letto = ItalianAip.ReadFile("LI-ENR 6.pdf");
 
         Assert.Empty(letto.Airspaces);
-        Assert.Equal(new ImportIssue(ImportIssueKind.Unsupported, null, null, "LI-ENR 4.4.pdf"), Assert.Single(letto.Issues));
+        Assert.Equal(new ImportIssue(ImportIssueKind.Unsupported, null, null, "LI-ENR 6.pdf"), Assert.Single(letto.Issues));
     }
 }

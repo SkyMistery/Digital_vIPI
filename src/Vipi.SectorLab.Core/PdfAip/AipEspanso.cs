@@ -26,6 +26,26 @@ public sealed record EsitoDellAipEspanso(
 
     /// <summary>Le attese di ENR 3.4.1 lette (slice 2).</summary>
     public int Attese { get; init; }
+
+    /// <summary>Le radioassistenze di ENR 4.1 lette (slice 3).</summary>
+    public int Radioassistenze { get; init; }
+
+    /// <summary>I punti significativi di ENR 4.4 letti (slice 3).</summary>
+    public int Punti { get; init; }
+
+    /// <summary>Le luci di ENR 4.5 lette (slice 3).</summary>
+    public int Luci { get; init; }
+
+    /// <summary>Quel che si è letto, in parole: «870 aree, 29 rotte, 413 attese, 55 radioassistenze…» (le voci a zero no).</summary>
+    public string Quanti() => string.Join(", ", new[]
+    {
+        $"{Aree} aree",
+        Rotte > 0 ? $"{Rotte} rotte" : null,
+        Attese > 0 ? $"{Attese} attese" : null,
+        Radioassistenze > 0 ? $"{Radioassistenze} radioassistenze" : null,
+        Punti > 0 ? $"{Punti} punti" : null,
+        Luci > 0 ? $"{Luci} luci" : null,
+    }.OfType<string>());
 }
 
 /// <summary>
@@ -64,6 +84,9 @@ public static class AipEspanso
         var aree = new List<Airspace>();
         var rotte = new List<Route>();
         var attese = new List<Holding>();
+        var radioassistenze = new List<Navaid>();
+        var punti = new List<SignificantPoint>();
+        var luci = new List<GroundLight>();
         var letti = new List<string>();
         var nonAncora = new List<string>();
         var illeggibili = new List<string>();
@@ -94,6 +117,9 @@ public static class AipEspanso
             aree.AddRange(letto.Airspaces);
             rotte.AddRange(letto.Routes);
             attese.AddRange(letto.Holdings);
+            radioassistenze.AddRange(letto.Navaids);
+            punti.AddRange(letto.Points);
+            luci.AddRange(letto.Lights);
             pagine.AddRange(letto.Pages);
             problemi.AddRange(letto.Issues.Select(p => new ProblemaDellImport(nome, p)));
         }
@@ -106,6 +132,9 @@ public static class AipEspanso
             Airspaces = aree,
             Routes = rotte.Count == 0 ? null : rotte,
             Holdings = attese.Count == 0 ? null : attese,
+            Navaids = radioassistenze.Count == 0 ? null : radioassistenze,
+            Points = punti.Count == 0 ? null : punti,
+            Lights = luci.Count == 0 ? null : luci,
         };
 
         var scritto = File(espanso, ciclo);
@@ -121,6 +150,9 @@ public static class AipEspanso
         {
             Rotte = rotte.Count,
             Attese = attese.Count,
+            Radioassistenze = radioassistenze.Count,
+            Punti = punti.Count,
+            Luci = luci.Count,
         };
     }
 

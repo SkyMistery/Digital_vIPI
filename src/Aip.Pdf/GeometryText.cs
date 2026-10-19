@@ -112,11 +112,12 @@ public static partial class GeometryText
 
     /// <summary>
     /// La coordinata dell'AIP, latitudine e longitudine insieme: <c>44°50'06"N 007°09'12"E</c> (gradi, primi, secondi
-    /// coi decimali facoltativi, i simboli che i PDF scrivono in più modi) o compatta <c>445006N 0070912E</c>.
+    /// coi decimali facoltativi, i simboli che i PDF scrivono in più modi — ENR 4.5 chiude i secondi con due apici
+    /// tipografici, <c>17’’N</c>) o compatta <c>445006N 0070912E</c>.
     /// </summary>
     [GeneratedRegex(
-        @"(?<la>\d{2})\s*[°º˚]\s*(?<lm>\d{2})\s*['’´′]\s*(?<ls>\d{2}(?:[.,]\d+)?)\s*(?:''|[""”″])?\s*(?<lh>[NS])(?![A-Z])[\s,;]*" +
-        @"(?<oa>\d{3})\s*[°º˚]\s*(?<om>\d{2})\s*['’´′]\s*(?<os>\d{2}(?:[.,]\d+)?)\s*(?:''|[""”″])?\s*(?<oh>[EW])(?![A-Z])" +
+        @"(?<la>\d{2})\s*[°º˚]\s*(?<lm>\d{2})\s*['’´′]\s*(?<ls>\d{2}(?:[.,]\d+)?)\s*(?:''|’’|[""”″])?\s*(?<lh>[NS])(?![A-Z])[\s,;]*" +
+        @"(?<oa>\d{3})\s*[°º˚]\s*(?<om>\d{2})\s*['’´′]\s*(?<os>\d{2}(?:[.,]\d+)?)\s*(?:''|’’|[""”″])?\s*(?<oh>[EW])(?![A-Z])" +
         @"|\b(?<la>\d{2})(?<lm>\d{2})(?<ls>\d{2}(?:[.,]\d+)?)\s?(?<lh>[NS])[\s,;/]*(?<oa>\d{3})(?<om>\d{2})(?<os>\d{2}(?:[.,]\d+)?)\s?(?<oh>[EW])(?![A-Z])",
         Opzioni)]
     private static partial Regex RxCoordinata();

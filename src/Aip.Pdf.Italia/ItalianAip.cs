@@ -54,6 +54,15 @@ public enum ImportIssueKind
 
     /// <summary>Una riga di ENR 3.4.1 con un'attesa che non si legge (quota, virata o rotta d'avvicinamento). <c>Detail</c> = la riga.</summary>
     Holding,
+
+    /// <summary>Una riga di ENR 4.1 che non è una radioassistenza leggibile (sigla, tipo, coordinate). <c>Detail</c> = cosa.</summary>
+    Navaid,
+
+    /// <summary>Una riga di ENR 4.4 senza un designatore di cinque lettere o senza coordinate. <c>Detail</c> = la riga.</summary>
+    SignificantPoint,
+
+    /// <summary>Una riga di ENR 4.5 senza nome, o con coordinate che non si leggono. <c>Detail</c> = cosa.</summary>
+    Light,
 }
 
 public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)
@@ -63,6 +72,15 @@ public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyLi
 
     /// <summary>ENR 3.4.1: le attese lette (slice 2).</summary>
     public IReadOnlyList<Holding> Holdings { get; init; } = [];
+
+    /// <summary>ENR 4.1: le radioassistenze lette (slice 3).</summary>
+    public IReadOnlyList<Navaid> Navaids { get; init; } = [];
+
+    /// <summary>ENR 4.4: i punti significativi letti (slice 3).</summary>
+    public IReadOnlyList<SignificantPoint> Points { get; init; } = [];
+
+    /// <summary>ENR 4.5: le luci aeronautiche al suolo lette (slice 3).</summary>
+    public IReadOnlyList<GroundLight> Lights { get; init; } = [];
 }
 
 /// <summary>
@@ -142,6 +160,13 @@ public static partial class ItalianAip
             return ItalianEnr3.ReadRoutes(PdfText.Read(path), "ENR " + rotte.Groups["s"].Value);
         if (nome == "LI-ENR 3.4.1")
             return ItalianEnr3.ReadHoldings(PdfText.Read(path));
+        // ENR 4 (slice 3): le radioassistenze (4.1.2 le militari fuori dalla parte AD), i punti, le luci.
+        if (nome is "LI-ENR 4.1.1" or "LI-ENR 4.1.2")
+            return ItalianEnr4.ReadNavaids(PdfText.Read(path), military: nome == "LI-ENR 4.1.2");
+        if (nome == "LI-ENR 4.4")
+            return ItalianEnr4.ReadPoints(PdfText.Read(path));
+        if (nome == "LI-ENR 4.5")
+            return ItalianEnr4.ReadLights(PdfText.Read(path));
         return new ImportResult([], [], [new ImportIssue(ImportIssueKind.Unsupported, null, null, Path.GetFileName(path))]);
     }
 

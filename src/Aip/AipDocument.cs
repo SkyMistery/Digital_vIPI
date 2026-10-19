@@ -36,6 +36,15 @@ public sealed record AipDocument
     /// <summary>ENR 3.4.1: le attese in rotta. Null se il documento non ne ha.</summary>
     public IReadOnlyList<Holding>? Holdings { get; init; }
 
+    /// <summary>ENR 4.1: le radioassistenze in rotta. Null se il documento non ne ha (lo schema resta 1).</summary>
+    public IReadOnlyList<Navaid>? Navaids { get; init; }
+
+    /// <summary>ENR 4.4: i punti significativi. Null se il documento non ne ha.</summary>
+    public IReadOnlyList<SignificantPoint>? Points { get; init; }
+
+    /// <summary>ENR 4.5: le luci aeronautiche al suolo. Null se il documento non ne ha.</summary>
+    public IReadOnlyList<GroundLight>? Lights { get; init; }
+
     public bool Equals(AipDocument? other) =>
         other is not null
         && SchemaVersion == other.SchemaVersion
@@ -44,7 +53,10 @@ public sealed record AipDocument
         && Effective == other.Effective
         && Airspaces.SequenceEqual(other.Airspaces)
         && (Routes ?? []).SequenceEqual(other.Routes ?? [])
-        && (Holdings ?? []).SequenceEqual(other.Holdings ?? []);
+        && (Holdings ?? []).SequenceEqual(other.Holdings ?? [])
+        && (Navaids ?? []).SequenceEqual(other.Navaids ?? [])
+        && (Points ?? []).SequenceEqual(other.Points ?? [])
+        && (Lights ?? []).SequenceEqual(other.Lights ?? []);
 
     public override int GetHashCode() => HashCode.Combine(SchemaVersion, State, Airac, Effective, Airspaces.Count);
 }

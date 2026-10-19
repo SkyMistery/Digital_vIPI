@@ -37,6 +37,9 @@ foreach (var x in ingressi)
 var aree = new List<Airspace>();
 var rotte = new List<Route>();
 var attese = new List<Holding>();
+var radioassistenze = new List<Navaid>();
+var punti = new List<SignificantPoint>();
+var luci = new List<GroundLight>();
 var esito = 0;
 foreach (var f in file)
 {
@@ -61,12 +64,18 @@ foreach (var f in file)
     aree.AddRange(letto.Airspaces);
     rotte.AddRange(letto.Routes);
     attese.AddRange(letto.Holdings);
+    radioassistenze.AddRange(letto.Navaids);
+    punti.AddRange(letto.Points);
+    luci.AddRange(letto.Lights);
     var date = letto.Pages.GroupBy(p => p.Effective).OrderBy(g => g.Key)
         .Select(g => $"{(g.Key is { } d ? d.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant() : "senza data")} ×{g.Count()}");
     Console.WriteLine($"{Path.GetFileName(f)}: {letto.Pages.Count} pagine ({string.Join(", ", date)}), "
         + $"{letto.Pages.Count(p => !p.Table)} senza tabella, {letto.Airspaces.Count} aree"
         + (letto.Routes.Count > 0 ? $", rotte {string.Join(" ", letto.Routes.Select(r => $"{r.Designator} ({r.Points.Count} punti)"))}" : "")
-        + (letto.Holdings.Count > 0 ? $", {letto.Holdings.Count} attese su {letto.Holdings.Select(a => a.Fix).Distinct().Count()} punti" : ""));
+        + (letto.Holdings.Count > 0 ? $", {letto.Holdings.Count} attese su {letto.Holdings.Select(a => a.Fix).Distinct().Count()} punti" : "")
+        + (letto.Navaids.Count > 0 ? $", {letto.Navaids.Count} radioassistenze" : "")
+        + (letto.Points.Count > 0 ? $", {letto.Points.Count} punti" : "")
+        + (letto.Lights.Count > 0 ? $", {letto.Lights.Count} luci" : ""));
     foreach (var g in letto.Airspaces.GroupBy(a => a.Geometry.GetType().Name).OrderBy(g => g.Key))
         Console.WriteLine($"    {g.Key}: {g.Count()}");
     foreach (var g in letto.Issues.GroupBy(p => p.Kind).OrderBy(g => g.Key))
@@ -84,15 +93,29 @@ foreach (var f in file)
     if (elenco)
         foreach (var a in letto.Holdings)
             Console.WriteLine($"      {a.Fix,-6} {a.Bearing} | {a.Minimum.Text} {a.Turn} {a.InboundTrack:000} {a.NoteRefs} | p.{a.Page?.Reference}");
+    if (elenco)
+        foreach (var n in letto.Navaids)
+            Console.WriteLine($"      {n.Designator,-4} {n.Type,-9} {n.Name} | {n.Frequency} {n.Channel} | {string.Join(" ; ", n.Components.Select(a => $"{a.Equipment} {a.Position.Lat:0.00000} {a.Position.Lon:0.00000} {a.Hours}"))}"
+                + $" | {n.Elevation} | var {n.MagneticVariation} | {n.Fra} | p.{n.Page?.Reference}");
+    if (elenco)
+        foreach (var p in letto.Points)
+            Console.WriteLine($"      {p.Designator} {p.Position.Lat:0.00000} {p.Position.Lon:0.00000} | {string.Join(",", p.Routes)} | {p.Procedures} | {p.Fra} | p.{p.Page?.Reference}");
+    if (elenco)
+        foreach (var l in letto.Lights)
+            Console.WriteLine($"      {l.Name} | {(l.Position is { } q ? $"{q.Lat:0.00000} {q.Lon:0.00000}" : "senza posizione")} | {l.Type} | {l.Characteristics} | {l.Hours} {l.Intensity} | {l.Remarks}");
     if (dettagli)
         foreach (var p in letto.Issues)
             Console.WriteLine($"      {p.Kind} p.{p.Page} {p.Key} {p.Detail}".TrimEnd());
 }
 
-var doc = new AipDocument { State = ItalianAip.State, Airac = airac, Airspaces = aree, Routes = rotte.Count == 0 ? null : rotte, Holdings = attese.Count == 0 ? null : attese };
+var doc = new AipDocument
+{
+    State = ItalianAip.State, Airac = airac, Airspaces = aree, Routes = rotte.Count == 0 ? null : rotte, Holdings = attese.Count == 0 ? null : attese,
+    Navaids = radioassistenze.Count == 0 ? null : radioassistenze, Points = punti.Count == 0 ? null : punti, Lights = luci.Count == 0 ? null : luci,
+};
 foreach (var p in AipCheck.Run(doc))
     Console.WriteLine($"modello: {p.Kind} {p.Key} {p.Detail}".TrimEnd());
-Console.WriteLine($"Totale: {aree.Count} aree, {rotte.Count} rotte, {attese.Count} attese da {file.Count} file.");
+Console.WriteLine($"Totale: {aree.Count} aree, {rotte.Count} rotte, {attese.Count} attese, {radioassistenze.Count} radioassistenze, {punti.Count} punti, {luci.Count} luci da {file.Count} file.");
 
 if (uscita is not null)
 {

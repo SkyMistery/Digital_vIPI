@@ -4,13 +4,21 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 2c fatta (i gesti di ENR 3)
+## Dove siamo — 19 ottobre 2026: F6, slice 3a fatta (l'importer di ENR 4)
+
+**Slice 3a fatta**: le radioassistenze di ENR 4.1 (55 su 56: 38 in rotta e 17 militari, ognuna coi suoi apparati,
+posizioni e orari), i 1 254 punti di ENR 4.4 e le 11 luci di ENR 4.5 nel modello (`Navaid`, `SignificantPoint`,
+`GroundLight`) e nell'AIP espanso: PR #4. Le righe di ENR 4 si tagliano coi **bordi orizzontali** (`PdfText` ora li
+legge). Controprova con pdfplumber: coordinate uguali tutte. **GRO** (DVOR di Grosseto) non entra: l'AIP non ne stampa
+le coordinate. Carta F6 §6. **Prossima: 3b**, il confronto col sector in sola lettura.
+
+## 19 ottobre 2026: F6, slice 2c fatta (i gesti di ENR 3)
 
 **Slice 2c fatta**: «Scrivi i tratti» (verso e quote dell'AIP nei tag `//@@`, una voce sola; le `locked` no), «Porta
 nel sector» le rotte mancanti (blocco con `note`, non `locked`), «Porta le selezionate» per le attese (di procedura
 nello `.str` dello scalo, con la scritta o l'ovale; in rotta in `HOLDENR.hold`, l'ovale in rotta da decidere),
 «Sostituisci» per le attese diverse. Sulla copia: 187 tratti su 24 rotte; attese 156 di procedura e 35 in rotta.
-Sul sector vero dopo il 29 ottobre. Carta F6 §6. **Prossima**: da decidere col committente (slice 3, ENR 4?).
+Sul sector vero dopo il 29 ottobre. Carta F6 §6.
 
 ## 19 ottobre 2026: F6, slice 2b fatta (il confronto di ENR 3)
 
@@ -681,3 +689,11 @@ Dalle slice 13-19 (6 ottobre):
     soli rinomini (`773f1081`). Dopo ogni commit `git show --stat HEAD`, prima di mandarlo.
   - Il Lab aperto dal committente blocca la ripubblicazione dell'eseguibile: `Get-Process VipiSectorLab` prima, e se c'è
     si chiede di chiuderlo.
+- **Dalla slice 3a (19 ottobre, sera)**:
+  - Le sonde di ENR 4 stanno nello scratchpad della sessione `68c4e350` (`py\celle.py`: le celle fra i bordi orizzontali e
+    verticali di una pagina; `py\controprova4.py`: le coordinate di ENR 4.4 e 4.1 contro il modello). Attesi sul 2609:
+    1 254 punti, 55 radioassistenze (GRO senza coordinate), 11 luci.
+  - Una sezione «che non si legge ancora» nei test è ora ENR 6: chi aggiunge ENR 6 cambia `PdfFintoTests` e
+    `PdfAipTests`.
+  - Sul banco, col pannello del browser nascosto, `innerText` torna vuoto: l'esito si legge con
+    `textContent`.

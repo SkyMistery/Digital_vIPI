@@ -43,6 +43,19 @@ public sealed class GeometryTextTests
         Vicino(P(42 + 45 / 3600.0, 13.6), cerchio.Center);
     }
 
+    [Theory]
+    [InlineData("43°57’17’’N 008°10’22’’E")]
+    [InlineData("43°57'17''N 008°10'22''E")]
+    [InlineData("43°57'17\"N 008°10'22\"E")]
+    public void UnPuntoConGliApiciDiOgniGenere(string testo)
+    {
+        // ENR 4.5 chiude i secondi con due apici tipografici (’’), ENR 4.1 con due dritti, ENR 5.1 con le virgolette.
+        var p = GeometryText.ReadPoint(testo);
+        Assert.NotNull(p);
+        Assert.Equal(43 + 57 / 60.0 + 17 / 3600.0, p!.Value.Lat, 9);
+        Assert.Equal(8 + 10 / 60.0 + 22 / 3600.0, p.Value.Lon, 9);
+    }
+
     [Fact]
     public void DueCerchiDiSeguitoSonoDueGeometrie()
     {
