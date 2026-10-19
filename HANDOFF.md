@@ -4,7 +4,13 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 18 ottobre 2026, pomeriggio
+> ## ▶ Il punto — 20 ottobre 2026
+>
+> **📦 Pronta da caricare: 1.68.0** (§A160, vedi sotto), ancora non caricata: online è la **1.67.0**. Sopra, fuori
+> pacchetto (§A161, il sito spedito non cambia): CI con l'SDK 10.0.401 esatto (`rollForward: disable`), via gli avvisi
+> NuGet degli E2E (S116) e il pin di SQLite che avrebbe bloccato il prossimo ri-calcolo dei lock (S117).
+>
+> ## Il punto — 18 ottobre 2026, pomeriggio
 >
 > **📦 Pronta da caricare: 1.68.0** (§A160, timbro `1.68.0 · 811010f`, 17 file, zip `fe69f457…`, MINOR con la migrazione
 > additiva `TorreRadar`, misurata dalla 1.67.0): Sito S115 («Radar di torre» nelle vIPI d'aeroporto e nei vSOP, nasce

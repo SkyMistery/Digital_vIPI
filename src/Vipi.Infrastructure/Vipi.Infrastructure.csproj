@@ -37,14 +37,14 @@
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.*" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Binario nativo di SQLite. EF Core 10 tirava la 2.1.11, che è dentro il range di CVE-2025-6965
-         (GHSA-2m69-gcr7-jv3q: SQLite < 3.50.2, corruzione di memoria) e fa fallire l'audit NuGet.
-         La 2.1.12 è fuori dal range. Solo il .dll nativo: l'API gestita di bundle_e_sqlite3 non cambia.
-         Rimuovere quando EF Core tirerà da sé una versione non vulnerabile.
-         Vale per entrambi i TFM: EF Core 8 tira una 2.1.x ancora più vecchia. -->
-    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
-  </ItemGroup>
+  <!-- ℹ️ Qui c'era un riferimento DIRETTO a SQLitePCLRaw.lib.e_sqlite3 2.1.12, messo contro CVE-2025-6965
+       (GHSA-2m69-gcr7-jv3q: SQLite < 3.50.2) quando EF Core tirava la 2.1.11. Diceva «rimuovere quando EF Core
+       tirerà da sé una versione non vulnerabile», e il 20 ottobre 2026 è successo: EF Core Sqlite 8.0.31 chiede
+       bundle_e_sqlite3 2.1.12 (8.0.32 la 2.1.13). Tolto perché era diventato un TAPPO: in NuGet il riferimento
+       diretto vince, quindi al primo ri-calcolo dei lock EF 8.0.32 avrebbe chiesto ≥ 2.1.13 e il pin l'avrebbe
+       tenuto a 2.1.12 — NU1605, declassamento, errore. Ora il nativo segue EF. ⚠️ Se un giorno EF tornasse a
+       tirare una versione vulnerabile, l'audit NuGet lo dice (NU1903): la cura è un pin MOBILE (`2.1.*`), non
+       una versione esatta che invecchia. -->
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
