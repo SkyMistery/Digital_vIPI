@@ -4551,6 +4551,9 @@ public sealed class SessioneDelLab
     /// <summary>Il modello da cui viene <see cref="UltimoConfrontoDiAd2"/>, per rifarlo dopo un «Annulla».</summary>
     private global::Aip.AipDocument? _aipDiAd2;
 
+    /// <summary>Quanti ILS ha l'AIP espanso dell'ultimo confronto di AD 2: il sector non li tiene, si dicono e basta.</summary>
+    public int IlsDellAipDiAd2 => _aipDiAd2 is { } aip ? Core.PdfAip.ConfrontoDiAd2.Ils(aip) : 0;
+
     /// <summary>
     /// «Confronta gli scali» / «le piste» / «le frequenze» (carta F6, slice 5b): il testo di AD 2 dell'AIP espanso coi
     /// <c>.ap</c>, i <c>.rw</c> o i <c>.frq</c>, per gli scali di cui ci sono i PDF. In sola lettura.
@@ -4572,10 +4575,13 @@ public sealed class SessioneDelLab
             var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
             if (modello.Aerodromes is not { Count: > 0 })
                 return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha scali: servono i PDF di AD 2 letti.");
+            if (parte == Core.PdfAip.ParteDiAd2.Radioassistenze && !modello.Aerodromes.Any(s => s.NavigationAids.Count > 0))
+                return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha le radioassistenze di AD 2.19: rileggi i PDF di AD 2.");
             var esiti = await Task.Run(() => Core.PdfAip.ConfrontoDiAd2.Di(parte, modello, sessione)).ConfigureAwait(false);
             UltimoConfrontoDiAd2 = (ciclo, parte, esiti);
             _aipDiAd2 = modello;
-            Registro.Scrivi("aip", $"confronto AD 2 {parte}, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
+            Registro.Scrivi("aip", $"confronto AD 2 {parte}, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}"))
+                + (parte == Core.PdfAip.ParteDiAd2.Radioassistenze ? $", diverse in ENR 4.1 {esiti.Count(e => e.DiversaInEnr41)}" : ""));
             Rifiuto = null;
             Avvisa();
             return true;
@@ -4595,7 +4601,7 @@ public sealed class SessioneDelLab
     public bool SostituisciInAd2(Core.PdfAip.DifferenzaDiAd2 riga)
     {
         ArgumentNullException.ThrowIfNull(riga);
-        if (Sessione is not { } sessione || UltimoConfrontoDiAd2 is not { Parte: not Core.PdfAip.ParteDiAd2.Frequenze } confronto || _aipDiAd2 is not { } aip)
+        if (Sessione is not { } sessione || UltimoConfrontoDiAd2 is not { Parte: Core.PdfAip.ParteDiAd2.Scali or Core.PdfAip.ParteDiAd2.Piste } confronto || _aipDiAd2 is not { } aip)
             return Rifiuta("Confronta gli scali o le piste prima.");
         if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.FormaDiversa, File: { } file, Record: { } record }
             || sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord || record >= conRecord.RecordDelModello.Count)

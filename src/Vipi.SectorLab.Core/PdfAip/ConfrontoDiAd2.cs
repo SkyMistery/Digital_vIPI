@@ -21,6 +21,9 @@ public enum ParteDiAd2
 
     /// <summary>Le frequenze di AD 2.18 contro le posizioni dei <c>.frq</c>.</summary>
     Frequenze,
+
+    /// <summary>Le radioassistenze di AD 2.19 contro i <c>.vor</c> e i <c>.ndb</c> (slice 5e).</summary>
+    Radioassistenze,
 }
 
 /// <summary>
@@ -29,7 +32,14 @@ public enum ParteDiAd2
 /// file nella sessione). Una voce che sta in più file (<c>itap.ap</c> e i <c>.ap</c> delle FIR) è una riga per file: le FIR
 /// a volte non sono uguali a <c>OTHER/it…</c> (misura del 19 ottobre: LIRN in <c>libb.rw</c>).
 /// </summary>
-public sealed record DifferenzaDiAd2(EsitoDelConfronto Esito, string Scalo, string Nome, string? File, int? Record, IReadOnlyList<string> Dettagli);
+public sealed record DifferenzaDiAd2(EsitoDelConfronto Esito, string Scalo, string Nome, string? File, int? Record, IReadOnlyList<string> Dettagli)
+{
+    /// <summary>
+    /// Per una radioassistenza di AD 2.19 (slice 5e): ENR 4.1 la stampa diversa (posizione, frequenza o canale). È una
+    /// discordanza dentro l'AIP, non col sector: l'esito resta quello col sector.
+    /// </summary>
+    public bool DiversaInEnr41 { get; init; }
+}
 
 /// <summary>
 /// Il confronto del testo di AD 2 col sector, in sola lettura (carta F6, slice 5b). Si guardano solo gli scali che l'AIP
@@ -59,6 +69,9 @@ public static partial class ConfrontoDiAd2
 
     private const double MetriPerMiglio = 1852;
 
+    /// <summary>Mezzo secondo d'arco (con un margine per il decimo stampato): l'arrotondamento al secondo di ENR 4.1.</summary>
+    private const double MezzoSecondo = 0.51;
+
     private sealed record Voce<T>(string Relativo, string File, int Record, T Dato);
 
     /// <summary>La parte chiesta, dal modello dell'AIP espanso.</summary>
@@ -70,6 +83,7 @@ public static partial class ConfrontoDiAd2
         {
             ParteDiAd2.Scali => Scali(scali, aip.Airspaces, sessione),
             ParteDiAd2.Piste => Piste(scali, sessione),
+            ParteDiAd2.Radioassistenze => Radioassistenze(scali, aip.Navaids ?? [], sessione),
             _ => Frequenze(scali, sessione),
         };
     }
@@ -345,6 +359,62 @@ public static partial class ConfrontoDiAd2
     private static partial Regex RxMhz();
 
     private static string Frequenza(decimal f) => f.ToString("0.000", CultureInfo.InvariantCulture);
+
+    // --- le radioassistenze di AD 2.19 --------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Le radioassistenze di AD 2.19 contro i <c>.vor</c> e i <c>.ndb</c>, con le regole di ENR 4.1 (slice 3b: per sigla, la
+    /// più vicina; la posizione oltre 0,1 NM, la frequenza, il canale dove il sector lo scrive). Una radioassistenza che sta
+    /// in AD 2.19 di più scali (BRL a Malpensa e a Orio) è una riga. Le voci del sector che AD 2.19 non ha non si elencano:
+    /// AD 2.19 c'è solo per gli scali di cui ci sono i PDF. In più, dentro l'AIP: se ENR 4.1 ha la stessa radioassistenza
+    /// (sigla e tipo), dove le due la stampano diversa. Gli ILS il sector non li tiene: non sono righe.
+    /// </summary>
+    public static IReadOnlyList<DifferenzaDiAd2> Radioassistenze(IEnumerable<Aerodrome> scali, IEnumerable<Navaid> enr41, SessioneAperta sessione)
+    {
+        ArgumentNullException.ThrowIfNull(scali);
+        ArgumentNullException.ThrowIfNull(enr41);
+        ArgumentNullException.ThrowIfNull(sessione);
+        var gruppi = scali.OrderBy(s => s.Icao, StringComparer.OrdinalIgnoreCase)
+            .SelectMany(s => s.NavigationAids.Select(n => (Scalo: s.Icao, Aiuto: n)))
+            .GroupBy(x => x.Aiuto.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+        var dellEnr41 = enr41.GroupBy(n => n.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        var esiti = new List<DifferenzaDiAd2>();
+        foreach (var e in ConfrontoDiEnr4.Radioassistenze(gruppi.Values.Select(g => g[0].Aiuto), sessione).Where(e => e.Esito != EsitoDelConfronto.SoloNelSector))
+        {
+            var gruppo = gruppi[e.Nome];
+            var n = gruppo[0].Aiuto;
+            var dettagli = e.Dettagli.ToList();
+            dettagli[0] = dettagli[0].Replace("AIP: ", $"AD 2.19 di {string.Join(" e ", gruppo.Select(x => x.Scalo).Distinct())}: ", StringComparison.Ordinal);
+            var discorde = false;
+            if (dellEnr41.GetValueOrDefault(n.Key) is not { } altra)
+                dettagli.Add("non in ENR 4.1: è dello scalo");
+            else
+            {
+                var differenze = new List<string>();
+                // ENR 4.1 stampa le coordinate al secondo, AD 2.19 al decimo (CDC: 21" e 21.1"): entro mezzo secondo per
+                // coordinata è la stessa posizione arrotondata (misura del 19 ottobre: 13 radioassistenze a 4-17 m così).
+                if (Math.Abs(n.Position.Lat - altra.Position.Lat) * 3600 > MezzoSecondo || Math.Abs(n.Position.Lon - altra.Position.Lon) * 3600 > MezzoSecondo)
+                    differenze.Add(string.Create(CultureInfo.InvariantCulture, $"posizione a {Sphere.DistanceNm(n.Position, altra.Position) * MetriPerMiglio:0} m"));
+                if (Mhz(n.Frequency ?? "") != Mhz(altra.Frequency ?? ""))
+                    differenze.Add($"frequenza {altra.Frequency ?? "—"}");
+                if (!string.Equals(n.Channel, altra.Channel, StringComparison.OrdinalIgnoreCase))
+                    differenze.Add($"canale {altra.Channel ?? "—"}");
+                discorde = differenze.Count > 0;
+                dettagli.Add(discorde ? $"ENR 4.1 la stampa diversa: {string.Join(", ", differenze)}" : "uguale in ENR 4.1");
+            }
+            esiti.Add(new DifferenzaDiAd2(e.Esito, gruppo[0].Scalo, e.Nome, e.File, e.Record, dettagli) { DiversaInEnr41 = discorde });
+        }
+        return Ordinati(esiti);
+    }
+
+    /// <summary>Gli ILS degli scali dell'AIP espanso: il sector non ha una sezione per loro (misura della slice 5d).</summary>
+    public static int Ils(AipDocument aip)
+    {
+        ArgumentNullException.ThrowIfNull(aip);
+        return (aip.Aerodromes ?? []).Sum(s => s.Ils.Count);
+    }
 
     // --- in comune ---------------------------------------------------------------------------------------------------
 

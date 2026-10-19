@@ -4,7 +4,14 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 5d fatta (l'importer di AD 2.19)
+## Dove siamo — 19 ottobre 2026: F6, slice 5e fatta (il confronto di AD 2.19)
+
+**Slice 5e fatta**: le radioassistenze di AD 2.19 contro `.vor`/`.ndb` con le regole di ENR 4.1, in sola lettura, più il
+confronto dentro l'AIP con ENR 4.1 (al mezzo secondo: ENR 4.1 arrotonda al secondo). Sulla copia: 24 radioassistenze,
+22 uguali, PNZ diversa (canale 87X/93X), GEN mancante; nessuna discordanza con ENR 4.1; 12 ILS che il sector non tiene.
+Carta F6 §6. **Prossima: 5f** (i gesti di ENR 4 su AD 2.19), da decidere col committente.
+
+## 19 ottobre 2026: F6, slice 5d fatta (l'importer di AD 2.19)
 
 Le 8 frequenze mancanti restano fuori: le decidono gli AOD (committente). **Slice 5d fatta**: AD 2.19 dei 5 scali nel
 modello, 29 radioassistenze di scalo (`Navaid`, sezione AD 2.19) e 12 ILS (record nuovo `Ils`, 47 apparati con la loro

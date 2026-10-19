@@ -271,6 +271,61 @@ public sealed class ConfrontoDiAd2Tests : IDisposable
         Assert.False(_lab.PortaLaPista(Riga("LIME 10/28", "itrw.rw")));
     }
 
+    private static Navaid Aiuto(string sigla, string tipo, NavaidKind genere, double lat, double lon, string? frequenza, string? canale, string sezione = "AD 2.19") => new()
+    {
+        Section = sezione, Designator = sigla, Name = sigla, Type = tipo, Kind = genere, Frequency = frequenza, Channel = canale,
+        Position = new Position(lat, lon), Components = [new NavaidComponent(null, new Position(lat, lon))],
+    };
+
+    [Fact]
+    public async Task LeRadioassistenzeDiAd219_ComeEnr41_EDoveEnr41LaStampaDiversa()
+    {
+        // CDC: in AD 2.19 al decimo di secondo, in ENR 4.1 al secondo (21.1" e 21"): non è una discordanza.
+        // MMP: in AD 2.19 di due scali, una riga; ENR 4.1 con un'altra frequenza. PNZ: il canale del sector è un altro.
+        // GEN: il sector non l'ha.
+        var cdc = Aiuto("CDC", "VORTAC", NavaidKind.Vortac, Gradi(38, 45, 21.1), Gradi(16, 22, 8.9), "117.30 MHZ", "120X");
+        var mmp = Aiuto("MMP", "VOR/DME", NavaidKind.VorDme, Gradi(45, 38, 26.8), Gradi(8, 44, 5.4), "113.35 MHZ", "80Y");
+        var modello = Modello() with
+        {
+            Aerodromes =
+            [
+                Lamezia() with { NavigationAids = [cdc] },
+                Orio() with { NavigationAids = [mmp, Aiuto("GEN", "VOR/DME", NavaidKind.VorDme, 44.42444, 9.08233, "112.80 MHZ", "75X")], Ils = [new Ils { Runway = "28", Designator = "IBRM", Components = [] }] },
+                new Aerodrome { Icao = "LIMC", Name = "MILANO Malpensa", NavigationAids = [mmp] },
+                Capodichino() with { NavigationAids = [Aiuto("PNZ", "VORTAC", NavaidKind.Vortac, Gradi(40, 54, 42.7), Gradi(12, 57, 26.7), "114.60 MHZ", "93X")] },
+            ],
+            Navaids =
+            [
+                Aiuto("CDC", "VORTAC", NavaidKind.Vortac, Gradi(38, 45, 21), Gradi(16, 22, 9), "117.30 MHZ", "120X", "ENR 4.1"),
+                Aiuto("MMP", "VOR/DME", NavaidKind.VorDme, Gradi(45, 38, 26.8), Gradi(8, 44, 5.4), "113.85 MHZ", "80Y", "ENR 4.1"),
+            ],
+        };
+        _albero.Scrivi("SectorFiles/Include/IT/NAVAIDS/itvor.vor",
+            "CDC;117.30;N038.45.21.100;E016.22.08.900;0;2;120X;HLD-CDC;\r\n"
+            + "MMP;113.35;N045.38.26.800;E008.44.05.400;;;;\r\n"
+            + "PNZ;114.60;N040.54.42.700;E012.57.26.700;0;2;87X;\r\n");
+        await ApriAsync();
+        await File.WriteAllTextAsync(Path.Combine(_espanso, "2611", "li.json"), AipJson.Serialize(modello with { Airac = "2611" }));
+
+        Assert.True(await _lab.ConfrontaAd2Async(ParteDiAd2.Radioassistenze), _lab.Rifiuto);
+
+        var esiti = _lab.UltimoConfrontoDiAd2!.Value.Esiti;
+        var per = esiti.ToDictionary(e => e.Nome);
+        Assert.Equal(["CDC VORTAC", "GEN VOR/DME", "MMP VOR/DME", "PNZ VORTAC"], per.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal((EsitoDelConfronto.Uguale, false), (per["CDC VORTAC"].Esito, per["CDC VORTAC"].DiversaInEnr41));
+        Assert.Contains("uguale in ENR 4.1", per["CDC VORTAC"].Dettagli);
+        Assert.StartsWith("AD 2.19 di LIMC e LIME: MMP", per["MMP VOR/DME"].Dettagli[0], StringComparison.Ordinal);
+        Assert.True(per["MMP VOR/DME"].DiversaInEnr41);
+        Assert.Contains("ENR 4.1 la stampa diversa: frequenza 113.85 MHZ", per["MMP VOR/DME"].Dettagli);
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, per["PNZ VORTAC"].Esito);
+        Assert.Contains("canale AIP 93X, sector 87X", per["PNZ VORTAC"].Dettagli);
+        Assert.Equal(EsitoDelConfronto.MancaNelSector, per["GEN VOR/DME"].Esito);
+        Assert.Contains("non in ENR 4.1: è dello scalo", per["GEN VOR/DME"].Dettagli);
+        Assert.Equal(1, _lab.IlsDellAipDiAd2);
+        // In sola lettura: «Sostituisci» non vale qui.
+        Assert.False(_lab.SostituisciInAd2(per["PNZ VORTAC"]));
+    }
+
     [Fact]
     public void LAtzDiAd217_VaColSuoScalo_SenzaDueVolteAtz()
     {

@@ -387,12 +387,15 @@
                 <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-frequenze" disabled="@(Lab.Sessione is null)"
                         title="AD 2.18 contro le posizioni dei .frq dello scalo; emergenza e ATIS il sector non le tiene nei .frq (sola lettura)"
                         @onclick="() => ConfrontaAd2(Ad2.Frequenze)">le frequenze</button>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-radioassistenze-ad2" disabled="@(Lab.Sessione is null)"
+                        title="AD 2.19 contro i .vor e i .ndb, come ENR 4.1: posizione (0,1 NM), frequenza, canale; e dove ENR 4.1 la stampa diversa (sola lettura)"
+                        @onclick="() => ConfrontaAd2(Ad2.Radioassistenze)">le radioassistenze</button>
                 @if (Lab.UltimoConfrontoDiAd2 is { } ad2)
                 {
-                    <p class="lab-nota" data-riassunto-ad2>@(ad2.Parte switch { Ad2.Scali => "Scali", Ad2.Piste => "Piste", _ => "Frequenze" }), ciclo @ad2.Ciclo, @ad2.Esiti.Select(e => e.Scalo).Distinct().Count() scali: @string.Join(" · ", ad2.Esiti.GroupBy(e => e.Esito).Select(g => $"{EsitoAd2(g.Key)} {g.Count()}"))</p>
-                    <p class="lab-nota">Una voce che sta in più file (OTHER/it… e le FIR) è una riga per file.@(ad2.Parte == Ad2.Frequenze ? " Le frequenze sono in sola lettura." : "")</p>
+                    <p class="lab-nota" data-riassunto-ad2>@(ad2.Parte switch { Ad2.Scali => "Scali", Ad2.Piste => "Piste", Ad2.Radioassistenze => "Radioassistenze di AD 2.19", _ => "Frequenze" }), ciclo @ad2.Ciclo, @ad2.Esiti.Select(e => e.Scalo).Distinct().Count() scali: @string.Join(" · ", ad2.Esiti.GroupBy(e => e.Esito).Select(g => $"{EsitoAd2(g.Key)} {g.Count()}"))@(ad2.Esiti.Count(e => e.DiversaInEnr41) is > 0 and var discordi ? $" · diverse in ENR 4.1 {discordi}" : "")</p>
+                    <p class="lab-nota">Una voce che sta in più file (OTHER/it… e le FIR) è una riga per file.@(ad2.Parte switch { Ad2.Frequenze => " Le frequenze sono in sola lettura.", Ad2.Radioassistenze => $" Sola lettura; le voci del sector che AD 2.19 non ha non si elencano. Gli ILS ({Lab.IlsDellAipDiAd2}) il sector non li tiene: non c'è una sezione per loro.", _ => "" })</p>
                     <ul class="lab-elenco-lotto">
-                        @foreach (var e in ad2.Esiti.Where(e => e.Esito != Esiti.Uguale))
+                        @foreach (var e in ad2.Esiti.Where(e => e.Esito != Esiti.Uguale || e.DiversaInEnr41))
                         {
                             <li class="lab-nota" data-ad2="@e.Esito">
                                 @if (e.File is { } file && e.Record is { } record)
@@ -404,7 +407,7 @@
                                     <strong>@EsitoAd2(e.Esito)</strong>
                                 }
                                 @e.Nome
-                                @if (ad2.Parte != Ad2.Frequenze && e.Esito == Esiti.FormaDiversa)
+                                @if (ad2.Parte is Ad2.Scali or Ad2.Piste && e.Esito == Esiti.FormaDiversa)
                                 {
                                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-ad2"
                                             title="Riscrive questa riga del sector coi valori dell'AIP che sono diversi; il resto resta. Le altre righe (le FIR) una per una" @onclick="() => SostituisciAd2(e)">Sostituisci</button>
