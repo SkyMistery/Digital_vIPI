@@ -14,6 +14,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- 🔴 Il framework condiviso di ASP.NET Core, DICHIARATO (19 ottobre 2026). Questo progetto avvia l'host
+         in-process, quindi a runtime gira già su Microsoft.AspNetCore.App 10. Ma senza dichiararlo il restore
+         non lo sa, e non pota i pacchetti che quel framework già contiene: restavano nel grafo le versioni 8 che
+         l'host tira dietro con Microsoft.AspNetCore.DataProtection.EntityFrameworkCore 8.0.* —
+         DataProtection 8.0.31, System.Security.Cryptography.Xml 8.0.4 e Pkcs 8.0.1, sei avvisi di
+         vulnerabilità (NU1902/NU1903). L'host è un progetto Web e quel framework ce l'ha implicito: per questo
+         a lui non comparivano, e non comparivano nel publish. Non si fissano versioni a mano: si dichiara
+         quel che è vero, e il restore fa la stessa potatura che fa per l'host. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />

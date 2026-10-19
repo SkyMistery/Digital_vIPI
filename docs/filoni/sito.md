@@ -2761,6 +2761,24 @@
     della vIPI col sì (frase, tecnica chiusa a due righe, indice fra Piste e SID) e col no (tecnica sparita da corpo e
     indice, testo rimasto in archivio); editor e anteprima del vSOP. Non visti: l'unione, il telefono, la pagina
     pubblica dopo una pubblicazione (carta §6).
+- 🟢 **S116** i sei avvisi di vulnerabilità NuGet del restore (19-ott, assegnato dal Master): NU1902/NU1903 su
+  `System.Security.Cryptography.Xml` 8.0.4 (4 «high») e `System.Security.Cryptography.Pkcs` 8.0.1 (1 high, 1
+  moderate), solo in `tests/Vipi.E2E.Tests`.
+  - **Da dove**: l'host tira `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` 8.0.*, che porta
+    `DataProtection` 8.0.31 → `Cryptography.Xml` 8.0.4 → `Pkcs` 8.0.1. L'host è un progetto **Web**: ha implicito il
+    framework condiviso `Microsoft.AspNetCore.App` e da .NET 10 il restore **pota** i pacchetti che quel framework
+    contiene già — nel suo lock e nel publish non ci sono. E2E usa l'SDK semplice: il framework a runtime ce l'ha
+    (avvia l'host in-process), ma il restore non lo sapeva e teneva le versioni 8 nel grafo.
+  - **Rimedio**: `<FrameworkReference Include="Microsoft.AspNetCore.App" />` in E2E — si dichiara quel che è vero, e
+    il restore fa la stessa potatura dell'host. Scartato un riferimento diretto a versioni corrette: sarebbe una
+    versione da inseguire a mano, per pacchetti che a runtime non si caricano comunque (vince il framework).
+  - **Il lock**: rigenerato con l'SDK 10.0.401 togliendo **solo** le 45 voci che NuGet pota (tutte del framework
+    condiviso, Cryptography.Xml e Pkcs comprese) e i loro rimandi, **senza cambiare nessuna versione**. Un
+    `--force-evaluate` pieno l'avrebbe fatto da sé, ma ri-risolve anche le versioni mobili (`8.0.*`) e portava EF a
+    8.0.32, fuori passo coi lock di `src/`. Verificato con `restore --locked-mode`: zero avvisi.
+  - ⚠️ **Trovato in passata, NON toccato (è `src/`)**: al prossimo ri-calcolo dei lock di `src/` EF Sqlite 8.0.32
+    vuole `SQLitePCLRaw.lib.e_sqlite3` ≥ 2.1.13, e `Vipi.Infrastructure` la fissa a 2.1.12 → NU1605 (declassamento).
+  - Solo `tests/`: nessun pacchetto. Build Release della soluzione a 0 avvisi; conteggi invariati.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
