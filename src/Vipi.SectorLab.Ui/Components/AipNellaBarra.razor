@@ -79,6 +79,10 @@
                 <div data-esito-aip>
                     <p class="lab-nota">Ciclo @esito.Ciclo: <strong>@esito.Quanti()</strong> da @esito.Letti.Count PDF letti su @esito.Pdf
                         (@esito.NonAncora.Count non ancora: le loro sezioni vengono con le prossime slice) → <code>@esito.Scritto</code></p>
+                    @if (esito.CorrezioniInParole() is { } correzioni)
+                    {
+                        <p class="lab-nota" data-correzioni-aip>Correzioni: @correzioni</p>
+                    }
                     @if (esito.Date.Count > 0)
                     {
                         <p class="lab-nota" data-date-aip>Date delle pagine: @string.Join(", ", esito.Date.Select(d => $"{Data(d.Data)} ×{d.Pagine}"))</p>

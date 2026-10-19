@@ -4171,7 +4171,7 @@ public sealed class SessioneDelLab
 
             var file = Core.PdfAip.PdfDellAip.Elenco(pdf);
             var esito = await Task.Run(() => Core.PdfAip.AipEspanso.Leggi(file, espanso, nome)).ConfigureAwait(false);
-            Registro.Scrivi("aip", $"AIP espanso {nome}: {esito.Letti.Count} PDF letti su {esito.Pdf}, {esito.Quanti()}, {esito.Problemi.Count} segnalazioni → {esito.Scritto}");
+            Registro.Scrivi("aip", $"AIP espanso {nome}: {esito.Letti.Count} PDF letti su {esito.Pdf}, {esito.Quanti()}, {esito.Problemi.Count} segnalazioni{(esito.CorrezioniInParole() is { } c ? ", correzioni: " + c : "")} → {esito.Scritto}");
             UltimoAipEspanso = esito;
             MessaggioDellAip = Core.PdfAip.RepoDellAip.MessaggioProposto(esito);
             Rifiuto = null;
@@ -4182,6 +4182,11 @@ public sealed class SessioneDelLab
         {
             Registro.Errore("aip", e);
             return Rifiuta($"Non sono riuscito a scrivere l'AIP espanso: {e.Message}");
+        }
+        catch (InvalidDataException e)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta(e.Message);
         }
         finally
         {

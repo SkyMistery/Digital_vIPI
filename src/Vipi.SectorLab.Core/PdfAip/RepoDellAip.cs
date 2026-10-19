@@ -31,7 +31,7 @@ public static class RepoDellAip
         if (percorso == ".gitignore")
             return true;
         var parti = percorso.Split('/');
-        return parti.Length == 2 && CicloAirac.Valido(parti[0])
+        return parti.Length == 2 && (CicloAirac.Valido(parti[0]) || parti[0] == AipEspanso.CartellaDelleCorrezioni)
                && parti[1].EndsWith(".json", StringComparison.OrdinalIgnoreCase);
     }
 

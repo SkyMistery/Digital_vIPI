@@ -67,6 +67,9 @@ public sealed class RepoDellAipTests : IDisposable
     [InlineData("li.json", false)]
     [InlineData("26/li.json", false)]
     [InlineData("2611/sotto/li.json", false)]
+    [InlineData("correzioni/li.json", true)]
+    [InlineData("correzioni/note.md", false)]
+    [InlineData("correzioni/sotto/li.json", false)]
     public void IConfiniDelRepo(string percorso, bool dentro) => Assert.Equal(dentro, RepoDellAip.DentroIConfini(percorso));
 
     [Fact]

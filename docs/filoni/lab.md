@@ -4,7 +4,16 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, l'importer dei PDF finito
+## Dove siamo — 19 ottobre 2026: F6, le correzioni dell'AIP espanso (slice 1 fatta)
+
+Il committente vuole l'AIP espanso correggibile: **errori dell'AIP stesso e aggiunte da altre fonti**, che durano da un
+ciclo all'altro finché un PDF o un'altra correzione non le supera. Carta nuova:
+[`2026-10-19-f6-correzioni-aip-espanso.md`](../feature/2026-10-19-f6-correzioni-aip-espanso.md). **Slice 1 fatta**: il
+file `correzioni\li.json` nel repo dell'AIP espanso (oggetti interi, `before` dal PDF, `superseded`), applicato da ogni
+«Leggi»; sul banco una modifica, un'aggiunta e una rimozione scritte a mano arrivano in `2610\li.json`, e una con un
+`before` sbagliato esce «superata dal PDF». **Prossima: slice 2**, i gesti nel Lab per le aree.
+
+## 19 ottobre 2026: F6, l'importer dei PDF finito
 
 L'importer legge ora tutto quel che è testo: **ENR 3.4.2** (129 attese sulle radioassistenze), **ENR 5.2.2.4** (8
 corridoi OAT), **ENR 5.3** (31 pericoli: palloni sonda, laser, vulcani; 5.3.4 solo regole) e la **carta ATC SMAC** dei 5

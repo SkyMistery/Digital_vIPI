@@ -112,6 +112,55 @@ public sealed class PdfAipTests : IDisposable
     }
 
     [Fact]
+    public void LAipEspanso_LeCorrezioniSiApplicanoAOgniLettura()
+    {
+        var pdf = Cartella("AIP");
+        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("09 JUL 2026", "LI R901 - Prova Uno", "LI R902 - Prova Due"));
+        var espanso = Path.Combine(_radice, "espanso");
+        var dalPdf = AipJson.Deserialize(File.ReadAllText(AipEspanso.Leggi(PdfDellAip.Elenco(pdf), espanso, "2611").Scritto));
+        var togli = new AipCorrection
+        {
+            Id = "2026-10-19-1",
+            Kind = CorrectionKind.Airspace,
+            Key = dalPdf.Airspaces[1].Key,
+            Op = CorrectionOp.Remove,
+            Reason = "prova",
+            Source = "AIC di prova",
+        };
+        var correzioni = AipEspanso.FileDelleCorrezioni(espanso);
+        Directory.CreateDirectory(Path.GetDirectoryName(correzioni)!);
+        File.WriteAllText(correzioni, AipCorrections.Serialize(new AipCorrectionFile { State = "LI", Corrections = [togli] }));
+
+        var esito = AipEspanso.Leggi(PdfDellAip.Elenco(pdf), espanso, "2611");
+
+        Assert.Equal(Path.Combine(espanso, "correzioni", "li.json"), correzioni);
+        Assert.Equal(CorrectionOutcomeKind.Applied, Assert.Single(esito.Correzioni).Outcome);
+        Assert.Equal("1 applicata", esito.CorrezioniInParole());
+        Assert.Equal(["LI R901"], AipJson.Deserialize(File.ReadAllText(esito.Scritto)).Airspaces.Select(a => a.Designator));
+        var scritta = Assert.Single(AipCorrections.Deserialize(File.ReadAllText(correzioni)).Corrections);
+        Assert.Equal("2611", scritta.Since);
+        Assert.NotNull(scritta.Before);
+        Assert.False(File.Exists(correzioni + ".scrivendo"));
+    }
+
+    [Fact]
+    public void LAipEspanso_UnFileDelleCorrezioniRottoFermaTutto()
+    {
+        var pdf = Cartella("AIP");
+        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("09 JUL 2026", "LI R901 - Prova Uno"));
+        var espanso = Path.Combine(_radice, "espanso");
+        var correzioni = AipEspanso.FileDelleCorrezioni(espanso);
+        Directory.CreateDirectory(Path.GetDirectoryName(correzioni)!);
+        File.WriteAllText(correzioni, "{ non è JSON");
+
+        Assert.Throws<InvalidDataException>(() => AipEspanso.Leggi(PdfDellAip.Elenco(pdf), espanso, "2611"));
+        Assert.False(File.Exists(AipEspanso.File(espanso, "2611")));
+
+        File.WriteAllText(correzioni, AipCorrections.Serialize(new AipCorrectionFile { State = "LF" }));
+        Assert.Throws<InvalidDataException>(() => AipEspanso.Leggi(PdfDellAip.Elenco(pdf), espanso, "2611"));
+    }
+
+    [Fact]
     public void LAipEspansoNonStaNellaCartellaDeiPdf()
     {
         Assert.NotNull(AipEspanso.PercheNonVa(null, null));

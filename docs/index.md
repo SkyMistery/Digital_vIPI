@@ -383,6 +383,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-18-f6-pdf-aip.md`](feature/2026-10-18-f6-pdf-aip.md) — F6 — Dai PDF dell'AIP al sector: le differenze, voce per voce (18 ottobre 2026)
 - [`feature/2026-10-18-sezioni-da-scrivere.md`](feature/2026-10-18-sezioni-da-scrivere.md) — Le sezioni da scrivere — quante sono vuote e quante hanno qualcosa
 - [`feature/2026-10-18-torre-radar.md`](feature/2026-10-18-torre-radar.md) — La torre radar — sì o no, e la tecnica operativa dello scalo
+- [`feature/2026-10-19-f6-correzioni-aip-espanso.md`](feature/2026-10-19-f6-correzioni-aip-espanso.md) — F6 — Le correzioni dell'AIP espanso (19 ottobre 2026)
 
 ### `filoni`
 
