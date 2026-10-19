@@ -22,6 +22,9 @@ jobs:
       # entra nel lock con la versione del runtime incluso, e il publish self-contained porta quel runtime in
       # produzione. Con 10.0.x la CI prendeva un SDK più nuovo di quello di chi scrive il lock, e il restore in
       # locked mode si fermava su NU1004. Si cambia qui e in global.json INSIEME, poi si rigenerano i lock.
+      # 🔴 global.json ha `rollForward: disable` (19 ottobre 2026): con `latestPatch` il runner, che ha già un SDK
+      # più nuovo della stessa serie, usava quello (runtime 10.0.13) invece del 10.0.401 installato qui, e il restore
+      # si fermava su NU1004 senza che nessun file del repo fosse cambiato.
       # --locked-mode: usa i packages.lock.json committati e FALLISCE se una versione è cambiata senza che
       # nessuno l'abbia scritta. Con le wildcard nei csproj (8.0.*, 10.0.*) è l'unica cosa che rende
       # riproducibile il pacchetto consegnato: senza, lo stesso commit compilato fra due mesi è un altro
