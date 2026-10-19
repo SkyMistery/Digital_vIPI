@@ -659,3 +659,25 @@ Dalle slice 13-19 (6 ottobre):
   - bUnit: `Find` e `Click` **nello stesso** `InvokeAsync` (un ridisegno in mezzo rinumera i gestori); e un riquadro
     che all'apertura avvisa la pagina senza che sia cambiato niente fa perdere i clic agli altri test (`DueSchermiTests`).
   - Il font standard di PdfPig (per i PDF finti dei test) non ha «°»: nei test i gradi sono «º», che il lettore accetta.
+- **Dal giro della F6 del 19 ottobre** (slice 1c, ATZ, 2a, mappa, confini, 2b, 2c):
+  - **Le misure sul sector vero** si fanno con una prova temporanea in `tests/Vipi.SectorLab.Tests/PdfAip/`
+    (`MisuraTemporanea…cs`: `SessioneDelLab.ApriAsync` sulla copia, `CambiaLAipEspanso` sul clone dell'AIP espanso, i
+    gesti in memoria, un file di uscita nello scratchpad), **mai committata** e mai «Salva». Attesi oggi sulla copia: CTR
+    39 uguali e 6 diversi; ATZ negli `.str` 34 uguali; in `twrs.tfl` 27 uguali e 4 diverse; rotte 21/3/5; attese 51/3/191
+    (105 di scalo)/14; 44 tratti di confine su 44 su `itgeo.geo`.
+  - **I PDF di ENR 3** (29 rotte di ENR 3.2, ENR 3.4.1 e 3.4.2) stanno in `RealDOCS\ENR\ENR 3\`; sul banco sono copiati
+    in `pdf-prova\ENR 3\`. pdfplumber gira con `python` (`C:\Python314`), non con `py`.
+  - Il **banco** si riavvia dopo ogni modifica a un `.razor` (niente ricarica a caldo); per un CSS basta ricaricare la pagina. Il pannello del browser
+    a volte non disegna (finestra dietro): il clic sulla tela della mappa si manda dalla pagina (`elementFromPoint` e i
+    `PointerEvent`), alle coordinate trovate cercando il colore nei pixel.
+  - Un componente **senza parametri** non si ridisegna quando cambia la scheda (memoria
+    `componente-senza-parametri-non-si-ridisegna`): `AipNellaScheda` prende la voce come parametro.
+  - Gli **script Python** che modificano file si scrivono con l'editor in un file e si lanciano da lì: in un heredoc
+    `"\r\n"` diventa un a capo vero dentro le stringhe C# (successo due volte). E si guarda che il file non resti con
+    fine riga misti (`file <percorso>`: «CRLF, LF»). Il cancello di `main` legge anche il testo degli script: uno che
+    contiene le parole dell'invio al server viene rifiutato anche se non invia niente — testo da aggiungere ai documenti
+    con l'editor.
+  - Un `git add` con un percorso che non c'è più (un file rinominato con `git mv`) fallisce **tutto**: il commit parte coi
+    soli rinomini (`773f1081`). Dopo ogni commit `git show --stat HEAD`, prima di mandarlo.
+  - Il Lab aperto dal committente blocca la ripubblicazione dell'eseguibile: `Get-Process VipiSectorLab` prima, e se c'è
+    si chiede di chiuderlo.
