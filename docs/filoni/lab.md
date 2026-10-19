@@ -8,8 +8,10 @@
 
 **Slice 5a fatta**: il testo di AD 2 dei 5 scali che ci sono (LICA, LIMC, LIME, LIRF, LIRN) nel modello (`Aerodrome`): ARP,
 elevazione e declinazione (AD 2.2), 18 piste con soglie e fine pista (AD 2.12), distanze dichiarate (AD 2.13), 51
-frequenze (AD 2.18), e le 5 ATZ di AD 2.17 fra le aree. Controprova con pdfplumber: torna tutto. PR #7. Carta F6 §6.
-**Prossima: 5b**, il confronto con `.ap`, `.rw`, `.frq` e le ATZ.
+frequenze (AD 2.18), e le 5 ATZ di AD 2.17 fra le aree. Controprova con pdfplumber: torna tutto. PR #7 fusa. Carta F6 §6.
+**Prossima: 5b**, il confronto con `.ap` (ARP, elevazione), `.rw` (soglie, elevazioni, rotte magnetiche), `.frq` (le
+frequenze delle posizioni) e le ATZ degli `.str`; poi 5c, i gesti. Da vedere subito: a LICA la soglia della 10 nel sector
+sta a circa 100 m da quella dell'AIP.
 
 ## 19 ottobre 2026: F6, slice 4c fatta (AAR, AT, INDIA e i gesti di ENR 5): la slice 4 è chiusa
 
@@ -742,3 +744,28 @@ Dalle slice 13-19 (6 ottobre):
     `PdfAipTests`.
   - Sul banco, col pannello del browser nascosto, `innerText` torna vuoto: l'esito si legge con
     `textContent`.
+- **Dalle slice 3b-5a (19 ottobre)**:
+  - **Attesi sulla copia del sector** contro l'AIP espanso 2610 (per riconoscere un cambio): radioassistenze 53 uguali, 2
+    diverse (ELB, PNZ), 93 solo nel sector; punti 1 254 uguali, 2 solo in `itfix.fix`, 4 «uso diverso»; aree di ENR 5
+    (coi PDF di ENR 5.2.2) 424 uguali, 91 diverse, 206 mancanti, 3 solo nel sector. AIP espanso 2610 dopo la PR #7: 1 088
+    aree, 29 rotte, 413 attese, 55 radioassistenze, 1 254 punti, 11 luci, 5 scali, da 112 PDF letti su 144.
+  - **La cartella dei PDF del banco** (`pdf-prova` nello scratchpad `a9ccef1c`) ha ora anche `ENR 4`, `ENR 5.2` e `AD 2`
+    (i 35 PDF dei 5 scali), copiati da `RealDOCS`.
+  - **Le sonde** nello scratchpad `68c4e350`: `py\controprova52.py` (le coordinate di ENR 5.2.1 e 5.2.2.5),
+    `py\controprova_ad2.py` (frequenze e distanze di AD 2), `py\testo.py` e `py\celle.py`. Per vedere come `FindAll` e
+    `RowBands` tagliano una pagina c'è stata una sonda in `tests/Aip.Pdf.Tests` (`SondaTemporaneaAd2.cs`: le griglie, i
+    titoli e le righe di ogni pagina in un file), **mai committata**: si riscrive in dieci righe.
+  - **Le misure sul sector** con una prova temporanea in `tests/Vipi.SectorLab.Tests/PdfAip/` (`MisuraTemporaneaEnr4.cs`,
+    `MisuraTemporaneaEnr5.cs`: `SessioneAperta.Apri` o `SessioneDelLab.ApriAsync` sulla copia, il confronto, un file nello
+    scratchpad), **mai committata**.
+  - Il **diff dell'AIP espanso**: GitHub (e `git diff` di base) mostra un'aggiunta in mezzo come righe spostate (PR #6:
+    «+3445 −1967»); con `git diff --diff-algorithm=histogram` si vede se sono solo aggiunte. Il ramo `aip/2610` dopo la
+    fusione di una PR viene cancellato su GitHub: il push lo ricrea, la PR porta solo il commit nuovo.
+  - Sul banco **un clic che riscrive il riquadro** (Porta, Sostituisci) si legge dopo il ridisegno: aspettare qualche
+    secondo, o rileggere, prima di dire che non è andato (ALBA Corridor, 19 ottobre).
+  - Gli **script di modifica** con molte barre rovesciate o virgolette: scritti con l'editor in un file `.py` e lanciati da
+    lì (un heredoc lungo si è rotto con «unexpected EOF»); dopo, `grep -cP '[\x00-\x08]' <file>`.
+  - **Rossi intermittenti della CI**: `RamoNellaBarraTests.Manda…` con `index.lock` di git (`1cb9eacd`): non è la slice;
+    il commit dopo è verde.
+  - **La mappa nel pannello del browser** non si è lasciata guardare (un puntino, lo zoom non la riporta): quel che si vede
+    della mappa si controlla dall'elenco degli strati (i conti per tipo) e coi test, e si dice.
