@@ -14,8 +14,8 @@ Registrato: PR #10 dell'AIP espanso di prova. **Slice 7c fatta**: le procedure s
 transizioni, salite iniziali; gli archi RF come archi), la scheda coi tratti; sul banco 313 disegnate, 124 in sola prosa.
 **Slice 7d fatta**: «Confronta SID e STAR», per nome (tre modi di abbreviare, le transizioni) e per
 percorso; sulla copia 140 uguali, 150 diverse, 134 mancanti, 7 solo nel sector, le differenze controllate sono vere; trovato
-e corretto un difetto della 7a (le piste di LICA, PR #11). **Slice 7e fatta** (tranne l'`initialclimb`, che aspetta il
-valore dal committente): «Porta nel sector», «Sostituisci», «Scrivi i tracciati delle SID uguali», coi punti che mancano
+e corretto un difetto della 7a (le piste di LICA, PR #11). **Slice 7e fatta** (l'`initialclimb` no: la quota la mette il
+committente, D5): «Porta nel sector», «Sostituisci», «Scrivi i tracciati delle SID uguali», coi punti che mancano
 prima e i blocchi §M coi `//@@` di quota e velocità. Sulla copia, dopo i gesti, 339 uguali, 4 diverse e 81 mancanti, di
 cui 68 in prosa. **Prossima**: la 7b (la prosa).
 
