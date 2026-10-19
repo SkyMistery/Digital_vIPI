@@ -40,6 +40,16 @@ public sealed record Aerodrome
     /// <summary>AD 2.18: i servizi di comunicazione, uno per frequenza.</summary>
     public IReadOnlyList<CommunicationFacility> Communications { get; init; } = [];
 
+    /// <summary>
+    /// AD 2.19: le radioassistenze dello scalo che non sono di un ILS (VOR, DVOR/DME, NDB, locator, un DME da solo), come
+    /// quelle di ENR 4.1 ma con la sezione <c>AD 2.19</c>; il nome è la sigla (AD 2.19 non stampa il nome della stazione).
+    /// Molte sono anche in ENR 4.1 (CDC, LMT a Lamezia).
+    /// </summary>
+    public IReadOnlyList<Navaid> NavigationAids { get; init; } = [];
+
+    /// <summary>AD 2.19: gli ILS, uno per pista, con i loro apparati (LOC, GP, DME, radiomarker).</summary>
+    public IReadOnlyList<Ils> Ils { get; init; } = [];
+
     /// <summary>La pagina del testo dello scalo da cui viene (AD 2.2), con la sua data.</summary>
     public AipPage? Page { get; init; }
 
@@ -50,7 +60,8 @@ public sealed record Aerodrome
         && ReferenceTemperature == other.ReferenceTemperature && MagneticVariation == other.MagneticVariation
         && AnnualChange == other.AnnualChange && Traffic == other.Traffic
         && Runways.SequenceEqual(other.Runways) && DeclaredDistances.SequenceEqual(other.DeclaredDistances)
-        && Communications.SequenceEqual(other.Communications) && Page == other.Page;
+        && Communications.SequenceEqual(other.Communications) && NavigationAids.SequenceEqual(other.NavigationAids)
+        && Ils.SequenceEqual(other.Ils) && Page == other.Page;
 
     public override int GetHashCode() => HashCode.Combine(Icao, Name);
 }
@@ -100,3 +111,58 @@ public sealed record DeclaredDistance(string Runway, string? Intersection, strin
 /// (<c>Lamezia TWR</c>), la frequenza com'è stampata (<c>125.900</c>), l'orario e le note.
 /// </summary>
 public sealed record CommunicationFacility(string Service, string? CallSign, string Frequency, string? Hours = null, string? Remarks = null);
+
+/// <summary>
+/// Un ILS di AD 2.19 (carta F6, slice 5d): la pista e la categoria, la sigla del localizzatore, la declinazione stampata, e
+/// gli apparati nell'ordine stampato — il localizzatore (<c>LOC</c>) per primo, poi il sentiero di discesa (<c>GP</c>), il
+/// DME (<c>DME</c> o <c>DME-P</c>), i radiomarker (<c>OM</c>, <c>MM</c>). Del GP anche la pendenza e l'altezza del
+/// riferimento (RDH), dalle sue note.
+/// </summary>
+public sealed record Ils
+{
+    /// <summary>La pista: <c>28</c>, <c>35L</c>.</summary>
+    public required string Runway { get; init; }
+
+    /// <summary>La categoria com'è stampata: <c>CAT I</c>, <c>CAT IIIB</c>.</summary>
+    public string? Category { get; init; }
+
+    /// <summary>La sigla del localizzatore: <c>LAM</c>.</summary>
+    public required string Designator { get; init; }
+
+    /// <summary>La declinazione dell'ILS com'è stampata: <c>3° E-2010.0</c>.</summary>
+    public string? MagneticVariation { get; init; }
+
+    /// <summary>La pendenza del sentiero di discesa com'è stampata: <c>3°</c>, <c>3.2°</c>.</summary>
+    public string? Slope { get; init; }
+
+    /// <summary>L'altezza del riferimento sulla soglia com'è stampata: <c>17 M</c>.</summary>
+    public string? ReferenceDatumHeight { get; init; }
+
+    public required IReadOnlyList<IlsComponent> Components { get; init; }
+
+    public AipPage? Page { get; init; }
+
+    // ⚠️ Scritta a mano: l'uguaglianza dei record confronterebbe la lista degli apparati per riferimento.
+    public bool Equals(Ils? other) =>
+        other is not null
+        && Runway == other.Runway && Category == other.Category && Designator == other.Designator
+        && MagneticVariation == other.MagneticVariation && Slope == other.Slope && ReferenceDatumHeight == other.ReferenceDatumHeight
+        && Components.SequenceEqual(other.Components) && Page == other.Page;
+
+    public override int GetHashCode() => HashCode.Combine(Runway, Designator);
+}
+
+/// <summary>
+/// Un apparato di un ILS, una riga di AD 2.19: il tipo com'è stampato (<c>LOC</c>, <c>GP</c>, <c>DME-P</c>, <c>OM</c>), la
+/// frequenza (<c>110.30 MHZ</c>) o il canale (<c>40X</c>), dove sta, l'orario, l'elevazione dell'antenna del DME, la
+/// copertura e le note com'è stampate.
+/// </summary>
+public sealed record IlsComponent(
+    string Type,
+    Position Position,
+    string? Frequency = null,
+    string? Channel = null,
+    string? Hours = null,
+    string? Elevation = null,
+    string? Coverage = null,
+    string? Remarks = null);

@@ -215,7 +215,7 @@ public static partial class ItalianEnr4
     /// Una colonna divisa per apparato: ogni riga col nome di un apparato (<c>VOR</c>, <c>DME</c>) apre il suo testo; quel
     /// che viene prima di ogni nome è dell'apparato senza nome (la radioassistenza di un apparato solo).
     /// </summary>
-    private static List<(string? Apparato, string Testo)> PerApparato(List<string> righe)
+    internal static List<(string? Apparato, string Testo)> PerApparato(List<string> righe)
     {
         var pezzi = new List<(string? Apparato, List<string> Righe)>();
         foreach (var t in righe.Select(t => t.Trim()).Where(t => t.Length > 0))
@@ -225,6 +225,15 @@ public static partial class ItalianEnr4
             else pezzi[^1].Righe.Add(t);
         }
         return pezzi.Select(p => (p.Apparato, string.Join(' ', p.Righe))).ToList();
+    }
+
+    /// <summary>La frequenza con l'unità (<c>117.30 MHZ</c>) e il canale senza spazi (<c>120X</c>) di una cella, o null.</summary>
+    internal static (string? Frequenza, string? Canale) FrequenzaECanale(string? testo)
+    {
+        var f = RxFrequenza().Match(testo ?? "");
+        var c = RxCanale().Match(testo ?? "");
+        return (f.Success ? $"{f.Groups["f"].Value} {f.Groups["u"].Value.ToUpperInvariant()}" : null,
+            c.Success ? RxSpazi().Replace(c.Groups["c"].Value, "") : null);
     }
 
     internal static NavaidKind Tipo(string tipo) => tipo switch

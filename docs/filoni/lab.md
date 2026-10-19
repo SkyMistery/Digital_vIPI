@@ -4,7 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 5c fatta (i gesti di AD 2)
+## Dove siamo — 19 ottobre 2026: F6, slice 5d fatta (l'importer di AD 2.19)
+
+Le 8 frequenze mancanti restano fuori: le decidono gli AOD (committente). **Slice 5d fatta**: AD 2.19 dei 5 scali nel
+modello, 29 radioassistenze di scalo (`Navaid`, sezione AD 2.19) e 12 ILS (record nuovo `Ils`, 47 apparati con la loro
+frequenza). Controprova con pdfplumber: 103 coordinate su 103. Registrato nell'AIP espanso: **PR #8** (solo righe
+aggiunte). Carta F6 §6. **Prossima: 5e**, il confronto coi `.vor`/`.ndb` (gli ILS il sector non li ha): aspetta il
+via e la fusione della PR #8.
+
+## 19 ottobre 2026: F6, slice 5c fatta (i gesti di AD 2)
 
 **Slice 5c fatta**: le soglie del confronto (10 m, 1°) confermate dal committente; «Sostituisci» su scali e piste diversi
 (una riga per file, solo i campi diversi) e «Porta nel sector» per una pista che manca (in `itrw.rw`, dentro `//PISTE`).
@@ -777,6 +785,9 @@ Dalle slice 13-19 (6 ottobre):
     scratchpad), **mai committata**.
   - **Attesi della 5b** sulla copia contro il 2610: scali 13 uguali; piste 13 uguali e 8 diverse; frequenze 30 uguali e 8
     mancanti; ATZ negli `.str` 38 uguali e 2 diverse (Viterbo, Orio). La misura: `MisuraTemporaneaAd2.cs`, mai committata.
+  - **AD 2.19** (slice 5d): la controprova sta nello scratchpad `260c92db` (`controprova_ad219.py`, gira con
+    `python`, non con `python -I`, che non vede pdfplumber); la sonda delle griglie (`SondaTemporaneaAd219.cs` in
+    `tests/Aip.Pdf.Tests`) si riscrive in venti righe. Attesi sul 2609: 29 radioassistenze, 12 ILS, 47 apparati.
   - Il **diff dell'AIP espanso**: GitHub (e `git diff` di base) mostra un'aggiunta in mezzo come righe spostate (PR #6:
     «+3445 −1967»); con `git diff --diff-algorithm=histogram` si vede se sono solo aggiunte. Il ramo `aip/2610` dopo la
     fusione di una PR viene cancellato su GitHub: il push lo ricrea, la PR porta solo il commit nuovo.

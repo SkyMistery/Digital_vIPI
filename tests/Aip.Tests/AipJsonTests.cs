@@ -442,4 +442,25 @@ public sealed class AipJsonTests
         Assert.NotEqual(scalo with { Runways = [scalo.Runways[0]] }, riletto.Aerodromes![0]);
         Assert.DoesNotContain("aerodromes", AipJson.Serialize(new AipDocument { State = "LI" }));
     }
+
+    [Fact]
+    public void LeRadioassistenzeEGliIlsDiUnoScalo_VannoETornanoUguali()
+    {
+        var lmt = new Navaid
+        {
+            Section = "AD 2.19", Designator = "LMT", Name = "LMT", Type = "DVOR/DME", Kind = NavaidKind.DvorDme, Frequency = "112.50 MHZ", Channel = "72X",
+            Position = new Position(38.9044, 16.2656), Components = [new NavaidComponent("DVOR", new Position(38.9044, 16.2656), "H24"), new NavaidComponent("DME", new Position(38.9046, 16.2656), "H24")],
+        };
+        var ils = new Ils
+        {
+            Runway = "28", Category = "CAT I", Designator = "LAM", MagneticVariation = "3° E-2010.0", Slope = "3°", ReferenceDatumHeight = "17 M",
+            Components = [new IlsComponent("LOC", new Position(38.9073, 16.226), "110.30 MHZ", Hours: "H24"), new IlsComponent("DME-P", new Position(38.9024, 16.2546), Channel: "40X", Elevation: "16 M AMSL")],
+        };
+        var doc = new AipDocument { State = "LI", Aerodromes = [new Aerodrome { Icao = "LICA", Name = "LAMEZIA TERME", NavigationAids = [lmt], Ils = [ils] }] };
+
+        var riletto = AipJson.Deserialize(AipJson.Serialize(doc));
+
+        Assert.Equal(doc, riletto);
+        Assert.NotEqual(ils with { Components = [ils.Components[0]] }, riletto.Aerodromes![0].Ils[0]);
+    }
 }

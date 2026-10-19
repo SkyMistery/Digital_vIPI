@@ -14,6 +14,10 @@ namespace Aip.Pdf.Italia;
 /// <item><b>AD 2.17</b>, lo spazio aereo dello scalo (ATZ, CTR): designatore e limiti laterali, limiti verticali, classe,
 /// nominativo e lingua, altitudine di transizione, note — nel modello come un'area della sezione <c>AD 2.17</c>.</item>
 /// <item><b>AD 2.18</b>, i servizi di comunicazione: servizio, nominativo, frequenza, orario, note.</item>
+/// <item><b>AD 2.19</b>, le radioassistenze (slice 5d): 8 colonne — tipo e declinazione · sigla · frequenza e canale ·
+/// orario per apparato · coordinate per apparato · elevazione del DME · copertura · note —, una riga per radioassistenza o
+/// per apparato di un ILS. La riga «ILS RWY 28 LOC» apre un ILS; le righe sotto (GP, OM, MM senza sigla, il DME con la
+/// sigla del localizzatore) sono i suoi apparati; il resto è una radioassistenza come quelle di ENR 4.1.</item>
 /// </list>
 /// Una tabella appartiene alla sezione dell'ultimo titolo «LICA AD 2.N» sopra di lei, anche nella pagina prima.
 /// </summary>
@@ -35,6 +39,24 @@ public static partial class ItalianAd2
 
     [GeneratedRegex(@"\s(?=\d{1,2}[.)]\s?\D)")]
     private static partial Regex RxNumeroDellaNota();
+
+    [GeneratedRegex(@"^ILS\s+RWY\s+(?<pista>\d{2}[LRC]?)\s+LOC(?:\s+(?<cat>CAT\s+I{1,3}[ABC]?))?\b", Opzioni)]
+    private static partial Regex RxIls();
+
+    [GeneratedRegex(@"\s*\((?<v>[^()]*\d[^()]*)\)\s*$", Opzioni)]
+    private static partial Regex RxDeclinazioneInFondo();
+
+    [GeneratedRegex(@"^(?<a>[A-Z][A-Z/-]*)\s+(?<h>H24|HJ|HN|HX|HO|\d.*)$", Opzioni)]
+    private static partial Regex RxOrarioDiUnApparato();
+
+    [GeneratedRegex(@"\bSlope\s+(?<v>\d+(?:\.\d+)?\s*[°º])", Opzioni | RegexOptions.IgnoreCase)]
+    private static partial Regex RxPendenza();
+
+    [GeneratedRegex(@"\bRDH:?\s*(?<v>\d+(?:\.\d+)?\s*M)\b", Opzioni)]
+    private static partial Regex RxRdh();
+
+    /// <summary>Gli apparati che seguono il localizzatore di un ILS, senza sigla o con la sua.</summary>
+    private static readonly string[] ApparatiDellIls = ["GP", "DME", "DME-P", "OM", "MM", "IM", "LOC"];
 
     /// <summary>Una riga di una tabella: il testo di ogni colonna (una voce per riga di testo), la pagina, la riga dei numeri della tabella.</summary>
     private sealed record Riga(List<string>[] Celle, ImportPage Pagina, string Numeri);
@@ -80,6 +102,11 @@ public static partial class ItalianAd2
         if (perSezione.TryGetValue(13, out var r213)) scalo = scalo with { DeclaredDistances = Distanze(r213) };
         if (perSezione.TryGetValue(17, out var r217)) aree.AddRange(Spazi(r217, icao, problemi));
         if (perSezione.TryGetValue(18, out var r218)) scalo = scalo with { Communications = Frequenze(r218) };
+        if (perSezione.TryGetValue(19, out var r219))
+        {
+            var (radioassistenze, ils) = Radioassistenze(r219, problemi);
+            scalo = scalo with { NavigationAids = radioassistenze, Ils = ils };
+        }
         if (scalo.Arp is null) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, icao, null, "senza ARP (AD 2.2)"));
         if (scalo.Runways.Count == 0) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, icao, null, "senza piste (AD 2.12)"));
         return new ImportResult(aree, pagine, problemi) { Aerodromes = [scalo] };
@@ -267,6 +294,120 @@ public static partial class ItalianAd2
                 servizi.Add(new CommunicationFacility(servizio, nominativo, f, orario, note));
         }
         return servizi;
+    }
+
+    /// <summary>AD 2.19: le radioassistenze dello scalo e gli ILS coi loro apparati.</summary>
+    private static (List<Navaid>, List<Ils>) Radioassistenze(List<Riga> righe, List<ImportIssue> problemi)
+    {
+        var radioassistenze = new List<Navaid>();
+        var tuttiGliIls = new List<Ils>();
+        Ils? ils = null;
+        var apparati = new List<IlsComponent>();
+
+        void ChiudiLIls()
+        {
+            if (ils is not null) tuttiGliIls.Add(ils with { Components = [.. apparati] });
+            ils = null;
+            apparati.Clear();
+        }
+
+        foreach (var r in Unite(righe).Where(r => r.Celle.Length >= 8))
+        {
+            var c = r.Celle;
+            var primo = Unisci(c[0]);
+            if (primo is null) continue;
+            string? declinazione = null;
+            if (RxDeclinazioneInFondo().Match(primo) is { Success: true } d)
+            {
+                declinazione = d.Groups["v"].Value.Trim();
+                primo = primo[..d.Index].Trim();
+            }
+            var sigla = Unisci(c[1]) is { } x && x != "-" ? x : null;
+            var (frequenza, canale) = ItalianEnr4.FrequenzaECanale(Unisci(c[2]));
+            var orari = c[3].Select(t => t.Trim()).Where(t => t.Length > 0).ToList();
+            var posti = new List<NavaidComponent>();
+            foreach (var (apparato, testo) in ItalianEnr4.PerApparato(c[4]))
+            {
+                if (GeometryText.ReadPoint(testo) is not { } punto)
+                {
+                    problemi.Add(new ImportIssue(ImportIssueKind.Navaid, $"{sigla} {primo}", r.Pagina.Number, $"coordinate {apparato}: {testo}"));
+                    continue;
+                }
+                posti.Add(new NavaidComponent(apparato, punto, Orario(orari, apparato)));
+            }
+            if (posti.Count == 0)
+            {
+                problemi.Add(new ImportIssue(ImportIssueKind.Navaid, $"{sigla} {primo}", r.Pagina.Number, "senza coordinate"));
+                continue;
+            }
+            var elevazione = SenzaNil(Unisci(c[5]));
+            var copertura = SenzaNil(Unisci(c[6]));
+            var note = SenzaNil(Unisci(c[7])) is { } n ? RxNumeroDellaNota().Replace(n, "\n") : null;
+
+            if (RxIls().Match(primo) is { Success: true } m)
+            {
+                ChiudiLIls();
+                if (sigla is null) problemi.Add(new ImportIssue(ImportIssueKind.Navaid, primo, r.Pagina.Number, "ILS senza sigla"));
+                ils = new Ils
+                {
+                    Runway = m.Groups["pista"].Value,
+                    Category = m.Groups["cat"].Success ? RxSpazi().Replace(m.Groups["cat"].Value, " ") : null,
+                    Designator = sigla ?? "",
+                    MagneticVariation = declinazione,
+                    Components = [],
+                    Page = Pagina(r.Pagina),
+                };
+                apparati.Add(new IlsComponent("LOC", posti[0].Position, frequenza, canale, posti[0].Hours, elevazione, copertura, note));
+                continue;
+            }
+            if (ils is not null && ApparatiDellIls.Contains(primo) && (sigla is null || sigla == ils.Designator))
+            {
+                apparati.Add(new IlsComponent(primo, posti[0].Position, frequenza, canale, posti[0].Hours, elevazione, copertura, note));
+                if (primo == "GP" && note is not null)
+                    ils = ils with
+                    {
+                        Slope = RxPendenza().Match(note) is { Success: true } p ? RxSpazi().Replace(p.Groups["v"].Value, "") : ils.Slope,
+                        ReferenceDatumHeight = RxRdh().Match(note) is { Success: true } h ? RxSpazi().Replace(h.Groups["v"].Value, " ") : ils.ReferenceDatumHeight,
+                    };
+                continue;
+            }
+
+            ChiudiLIls();
+            var tipo = ItalianEnr4.Tipo(primo);
+            if (sigla is null || tipo == NavaidKind.Other)
+            {
+                problemi.Add(new ImportIssue(ImportIssueKind.Navaid, $"{sigla} {primo}", r.Pagina.Number, $"tipo o sigla: {primo} | {sigla}"));
+                continue;
+            }
+            radioassistenze.Add(new Navaid
+            {
+                Section = "AD 2.19",
+                Designator = sigla,
+                Name = sigla,
+                Type = primo,
+                Kind = tipo,
+                MagneticVariation = declinazione,
+                Frequency = frequenza,
+                Channel = canale,
+                Position = posti[0].Position,
+                Components = posti,
+                Elevation = elevazione,
+                Coverage = copertura,
+                Remarks = note,
+                Page = Pagina(r.Pagina),
+            });
+        }
+        ChiudiLIls();
+        return (radioassistenze, tuttiGliIls);
+    }
+
+    /// <summary>L'orario di un apparato («VOR H24» per il VOR); con un orario solo, quello.</summary>
+    private static string? Orario(List<string> orari, string? apparato)
+    {
+        foreach (var o in orari)
+            if (RxOrarioDiUnApparato().Match(o) is { Success: true } m && m.Groups["a"].Value == apparato)
+                return m.Groups["h"].Value;
+        return orari.Count == 1 ? orari[0] : null;
     }
 
     private static AipPage? Pagina(ImportPage p) => p.Reference is null ? null : new AipPage(p.Reference, p.Effective);
