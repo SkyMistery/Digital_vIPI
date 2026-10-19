@@ -85,6 +85,8 @@ public sealed class EfAirportRepository : IAirportRepository
             TransitionAltitudeFt = airport.TransitionAltitudeFt,
             MetarStationIcao = airport.MetarStationIcao,
             TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Stars = stars, Links = links, Lvp = lvp,
+            // La torre radar: nessun sì/no = «non indicato», e la tecnica scritta non basta a farla esistere.
+            RadarTower = airport.RadarTower is bool radar ? new RadarTowerRow(radar, airport.RadarTowerTechnique) : null,
         };
     }
 
@@ -182,6 +184,16 @@ public sealed class EfAirportRepository : IAirportRepository
     {
         var a = await _db.Airports.FirstOrDefaultAsync(x => x.Icao == icao, ct) ?? throw NotFound(icao);
         a.MetarStationIcao = station;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SaveRadarTowerAsync(string icao, RadarTowerRow? row, CancellationToken ct = default)
+    {
+        var a = await _db.Airports.FirstOrDefaultAsync(x => x.Icao == icao, ct) ?? throw NotFound(icao);
+        // ⚠️ Togliere il sì/no toglie anche la tecnica: «non indicato» con un testo sotto sarebbe un dato a metà,
+        // che nessuno vede e che ricomparirebbe al primo «sì» detto magari da un altro.
+        a.RadarTower = row?.Equipped;
+        a.RadarTowerTechnique = row is null || string.IsNullOrWhiteSpace(row.Technique) ? null : row.Technique.Trim();
         await _db.SaveChangesAsync(ct);
     }
 

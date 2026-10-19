@@ -556,6 +556,13 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(32)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<bool?>("RadarTower")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("RadarTowerTechnique")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<int?>("TransitionAltitudeFt")
                         .HasColumnType("int");
 

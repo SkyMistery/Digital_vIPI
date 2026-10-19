@@ -279,6 +279,25 @@ public class Airport
     /// </summary>
     public string? MetarStationIcao { get; set; }
 
+    /// <summary>La tecnica operativa della torre radar: il tetto lo dice il servizio prima del database.</summary>
+    public const int TecnicaRadarMassima = 8000;
+
+    /// <summary>
+    /// La torre dello scalo è <b>dotata di radar</b> (18 ottobre 2026, committente). <c>null</c> = nessuno l'ha
+    /// detto, ed è diverso da <c>false</c>: «non lo sappiamo» non è «non ce l'ha», e il documento lo distingue.
+    /// <para>⚠️ Sta sull'ANAGRAFICA e non nel documento: la torre di uno scalo civile e militare è SEMPRE una sola
+    /// (committente), quindi vIPI e vSOP leggono lo stesso dato e nelle unioni la sezione è una. Scritto a mano,
+    /// non lo tocca nessun import.</para>
+    /// </summary>
+    public bool? RadarTower { get; set; }
+
+    /// <summary>
+    /// Come si lavora con la torre radar su questo scalo: testo a righe, scritto una volta per i due documenti.
+    /// Ha senso solo con <see cref="RadarTower"/> vero; con la torre senza radar resta in archivio e non si mostra,
+    /// così chi sbaglia il sì/no non perde il testo.
+    /// </summary>
+    public string? RadarTowerTechnique { get; set; }
+
     /// <summary>Coordinate del riferimento aeroporto (gradi decimali), dalla sorgente. Usate per generare la shape
     /// tonda di fallback dei settori TWR privi di poligono. null = non ancora note.</summary>
     public double? Latitude { get; set; }

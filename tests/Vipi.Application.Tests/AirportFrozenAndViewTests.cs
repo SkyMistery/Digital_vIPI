@@ -303,6 +303,55 @@ public class AirportFrozenAndViewTests
         Assert.NotEmpty(await registry.CaptureAsync(ReleaseTargetType.Airport, "LIRF", doc));
     }
 
+    // ---- La torre radar (18 ottobre 2026) ----------------------------------------------------------------
+
+    /// <summary>
+    /// Pubblicare fotografa il sì/no E la tecnica, sotto la sola chiave del padre: la figlia non ha una cattura sua,
+    /// e due catture potrebbero mettere le due parti su due cicli diversi.
+    /// </summary>
+    [Fact]
+    public async Task La_torre_radar_si_congela_col_si_e_con_la_tecnica()
+    {
+        var data = Profilo();
+        var conTorre = new AirportData
+        {
+            AirportId = data.AirportId, Icao = data.Icao, Name = data.Name, AccCode = data.AccCode,
+            TransitionLevels = data.TransitionLevels, Runways = data.Runways, Rules = data.Rules, Sids = data.Sids,
+            Links = data.Links, RadarTower = new RadarTowerRow(true, "Identificazione radar entro 5 NM."),
+        };
+
+        var frozen = await Provider(conTorre).CaptureFrozenAsync("LIRF", Doc(
+            Sec(10, SectionKeys.RadarTower, RenderMode.Frozen),
+            Sec(20, SectionKeys.RadarTowerTechnique, RenderMode.Frozen)));
+
+        var kv = Assert.Single(frozen);   // la figlia non si cattura
+        Assert.Equal(10, kv.Key);
+        var riletta = JsonSerializer.Deserialize<AirportRadarTowerView>(kv.Value)!;
+        Assert.True(riletta.Equipped);
+        Assert.Equal("Identificazione radar entro 5 NM.", riletta.Technique);
+    }
+
+    /// <summary>La pagina pubblica legge la fotografia, anche se in anagrafica nel frattempo è cambiato tutto.</summary>
+    [Fact]
+    public async Task La_vista_legge_la_torre_della_release()
+    {
+        var reader = new FakeReader { Frozen = { [SectionKeys.RadarTower] = new AirportRadarTowerView(false, null) } };
+
+        var v = await Derivazione(reader, Profilo()).ResolveForViewAsync("LIRF", useFrozen: true, ReleaseTargetType.Airport);
+
+        Assert.False(v.RadarTower.Equipped);
+    }
+
+    /// <summary>Senza release (o in bozza) la torre è quella dell'anagrafica, e nell'anagrafica non è indicata.</summary>
+    [Fact]
+    public async Task Senza_fotografia_la_torre_e_quella_dell_anagrafica()
+    {
+        var v = await Derivazione(new FakeReader(), Profilo()).ResolveForViewAsync("LIRF", useFrozen: true,
+                                                                                   ReleaseTargetType.Airport);
+
+        Assert.Null(v.RadarTower.Equipped);
+    }
+
     private static AirportData Profilo() => new()
     {
         AirportId = 1, Icao = "LIRF", Name = "Roma Fiumicino", AccCode = "LIRR",

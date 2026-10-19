@@ -96,6 +96,34 @@ public class SezioniDaScrivereTests
         Assert.Equal("Aree regolamentate", Assert.Single(conto.Vuote).Percorso);
     }
 
+    /// <summary>
+    /// 🔴 Il committente, 18 ottobre 2026: «segna come empty section delle sezioni che non hanno testo proprio ma hanno
+    /// solo sottosezioni». Una sezione col contenuto tutto nelle sottosezioni — di catalogo o libere — ha qualcosa.
+    /// Vuota resta solo se è vuoto anche tutto quel che ha sotto; e una sottosezione nascosta non conta.
+    /// </summary>
+    [Fact]
+    public void Una_sezione_col_contenuto_nelle_sottosezioni_non_e_vuota()
+    {
+        var conto = SezioniDaScrivere.Conta(SectionProfile.AirportMil, new[]
+        {
+            // «Aree di lavoro» senza testo suo; sotto, «Procedure generali» senza testo sua, e sotto ancora una
+            // sezione LIBERA con la prosa.
+            S(1, "regulated", "Aree di lavoro"),
+            S(2, "operationaltechnique", "Procedure generali", 1),
+            S(3, SectionKeys.NewCustom(), "Note di Cameri", 2, blocchi: Testo("Circuito a sinistra per la 36.")),
+            // «Parcheggi»: sotto solo una sottosezione NASCOSTA con del testo — non basta.
+            S(4, "parkings", "Parcheggi"),
+            S(5, SectionKeys.ApronFlow, "Flusso di rullaggio sui piazzali", 4, nascosta: true, blocchi: Testo("Da nord.")),
+            // «Porte e circuiti VFR jet»: niente né sua né sotto.
+            S(6, "vfrjet", "Porte e circuiti VFR jet"),
+            S(7, SectionKeys.VfrJetPoints, "Punti significativi VFR", 6),
+        });
+
+        Assert.Equal(2, conto.Scritte);   // Aree di lavoro e Procedure generali, per quel che hanno sotto
+        Assert.Equal(new[] { "Parcheggi", "Porte e circuiti VFR jet", "Porte e circuiti VFR jet › Punti significativi VFR" },
+            conto.Vuote.Select(v => v.Percorso));
+    }
+
     /// <summary>Le aree del blocco Aerovia nascono in automatico: non sono da scrivere. Nel gruppo APP sì.</summary>
     [Fact]
     public void Le_Aree_Regolamentate_Del_Blocco_Aerovia_Non_Contano()

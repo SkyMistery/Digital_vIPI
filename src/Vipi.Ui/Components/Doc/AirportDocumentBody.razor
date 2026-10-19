@@ -88,6 +88,10 @@
             case "lvp":
                 <AirportLvp View="Doc.Derived.Lvp" Stato="@(MeccanicaVisibile ? Doc.Lvp?.Stato : null)" />;
                 break;
+            @* La torre radar (18 ottobre 2026, committente): il sì/no, e nella figlia la tecnica operativa. Una
+               vista sola per le due, congelata sotto «radartower». *@
+            case SectionKeys.RadarTower: <AirportRadarTower View="Doc.Derived.RadarTower" />; break;
+            case SectionKeys.RadarTowerTechnique: <AirportRadarTower View="Doc.Derived.RadarTower" Tecnica="true" />; break;
             case "transition":
                 <AirportTransition View="Doc.Derived.Transition" CurrentQnh="Doc.Metar?.QnhHpa"
                                    MetarTimeRaw="@Doc.Metar?.TimeRaw" Station="Doc.Station" />;

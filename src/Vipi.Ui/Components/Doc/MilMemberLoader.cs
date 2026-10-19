@@ -248,6 +248,8 @@ public sealed class MilMemberLoader
         var letturaVista = AudienceFilter.Leggi(vista);
         var haMarcate = AudienceFilter.HaSezioniMarcate(view.Sections);
         view = SezioniDocumentali.ConSezioni(view, AudienceFilter.Filtra(view.Sections, letturaVista));
+        // La tecnica della torre radar c'è solo con una torre dotata di radar: stessa regola della vIPI civile.
+        view = SezioniDocumentali.ConSezioni(view, TorreRadar.Filtra(view.Sections, derivate.RadarTower));
 
         // Le procedure citate nel testo (§A73, §A80): per questo scalo le tabelle della release MILITARE che la
         // pagina mostra (`derivate.Sids`/`derivate.Stars`), non quelle civili — la stessa ragione dell'edizione

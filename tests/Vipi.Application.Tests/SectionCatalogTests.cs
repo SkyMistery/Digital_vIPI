@@ -104,9 +104,11 @@ public class SectionCatalogTests
         // ricorsivamente (`Find` → `Cerca`) — e la riga qui sotto lo pretende, o il difetto sarebbe silenzioso:
         // una sezione che smette di essere «della pagina» si mette a mostrare blocchi editoriali vuoti.
         Assert.Equal(
-            new[] { "frequencies", "lvp", "runways", "sids", "stars", "transition", "validity", "weather" },
+            new[] { "frequencies", "lvp", "radartower", "runways", "sids", "stars", "transition", "validity", "weather" },
             Host(SectionProfile.Airport));
         Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, "runwayrules"));
+        // La tecnica della torre radar è figlia, e la disegna la pagina come il padre (18 ottobre 2026).
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, SectionKeys.RadarTowerTechnique));
     }
 
     [Fact]
@@ -215,8 +217,10 @@ public class SectionCatalogTests
         // DOPO le «Procedure generali», sorella e non figlia.
         // ⚠️ «stars» è arrivata il 20 settembre 2026 (§A80), SUBITO dopo le SID: gli arrivi si cercano
         // nell'indice accanto alle partenze, non in fondo.
+        // ⚠️ «radartower» è arrivata il 18 ottobre 2026 (committente), FRA Piste e SID: la tecnica della torre radar
+        // si sceglie con la pista in uso, e la SID dopo.
         Assert.Equal(
-            new[] { "weather", "transition", "frequencies", "runways", "sids", "stars", "operationaltechnique", "lvp", "charts", "validity" },
+            new[] { "weather", "transition", "frequencies", "runways", "radartower", "sids", "stars", "operationaltechnique", "lvp", "charts", "validity" },
             keys);
 
         // E le regole piste stanno DENTRO le Piste, prime e sole.
@@ -340,10 +344,11 @@ public class SectionCatalogTests
         Assert.True(doppie.Count == 0, $"{profile}: chiavi ripetute — {string.Join(", ", doppie)}");
     }
 
-    /// <summary>Le STAR nascono nascoste (21 settembre 2026, committente) nel profilo civile e nel militare, e sono
-    /// le SOLE: una sezione nascosta per sbaglio nel catalogo sparirebbe dal pubblico di ogni documento nuovo.</summary>
+    /// <summary>Le STAR nascono nascoste (21 settembre 2026, committente) nel profilo civile e nel militare, e dal 18
+    /// ottobre 2026 la torre radar (committente: «poi le mostriamo man mano che le sistemiamo»). Sono le SOLE: una
+    /// sezione nascosta per sbaglio nel catalogo sparirebbe dal pubblico di ogni documento nuovo.</summary>
     [Fact]
-    public void Nascono_nascoste_solo_le_STAR()
+    public void Nascono_nascoste_solo_le_STAR_e_la_torre_radar()
     {
         static IEnumerable<SectionDescriptor> Tutte(IEnumerable<SectionDescriptor> d) =>
             d.SelectMany(x => new[] { x }.Concat(Tutte(x.Children ?? Array.Empty<SectionDescriptor>())));
@@ -351,8 +356,9 @@ public class SectionCatalogTests
         foreach (var profilo in Enum.GetValues<SectionProfile>())
         {
             var nascoste = Tutte(SectionCatalog.For(profilo)).Where(d => d.BornHidden).Select(d => d.Key).ToList();
-            var attese = profilo is SectionProfile.Airport or SectionProfile.AirportMil ? new[] { "stars" } : Array.Empty<string>();
-            Assert.Equal(attese, nascoste);
+            var attese = profilo is SectionProfile.Airport or SectionProfile.AirportMil
+                ? new[] { SectionKeys.RadarTower, "stars" } : Array.Empty<string>();
+            Assert.Equal(attese, nascoste.Order(StringComparer.Ordinal));
         }
     }
 }

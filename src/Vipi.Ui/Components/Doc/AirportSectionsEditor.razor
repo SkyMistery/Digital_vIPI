@@ -408,6 +408,9 @@ else
 
     /// <summary>I minimi LVP in lavorazione. <c>null</c> = lo scalo non li ha dichiarati, ed è uno stato.</summary>
     private LvpEdit? _lvp;
+
+    /// <summary>La torre radar in lavorazione. <c>null</c> = nessuno ha detto se ha il radar, ed è uno stato.</summary>
+    private RadarTowerEdit? _radar;
     /// <summary>
     /// Il catalogo dei punti della divisione: suggerisce i nomi nei campi FIX/Transition e dice quali non
     /// esistono. Vuoto finché non arriva (e per sempre, se la sorgente non risponde): in quel caso i campi
@@ -641,6 +644,7 @@ else
         _rwys = _data.Runways.Select(RwEdit.Da).ToList();
         _rules = _data.Rules.Select(AirportRuleMapping.FromRow).ToList();
         _lvp = LvpEdit.Da(_data.Lvp);
+        _radar = RadarTowerEdit.Da(_data.RadarTower);
         // Partenze e arrivi si mappano con le STESSE due funzioni: sono la stessa riga, e due copie della
         // stessa proiezione andrebbero tenute allineate a mano per sempre.
         var cyc = Airac.GetCycle(DateTime.UtcNow);
@@ -791,6 +795,15 @@ else
 
     /// <summary>I minimi LVP: <c>null</c> li toglie, ed è la stessa porta che li scrive.</summary>
     private Task SaveLvp() => Guarded(() => Profile.SaveLvpAsync(_icao, _lvp?.AllaRiga()));
+
+    /// <summary>La torre radar: il sì/no e la tecnica passano dalla stessa porta, con la riga intera.</summary>
+    private Task RadarCambiata(RadarTowerEdit? riga)
+    {
+        _radar = riga;
+        return Guarded(() => Profile.SaveRadarTowerAsync(_icao, _radar?.AllaRiga()));
+    }
+
+    private Task<bool> ConfermaRadarNonIndicato() => Confirm(L["TorreRadar_ConfermaNonIndicato"].Value);
 
     /// <summary>La riga è nata o è stata tolta: si aggiorna il riferimento e si salva subito.</summary>
     private Task LvpCambiata(LvpEdit? riga)
@@ -1056,6 +1069,8 @@ else
         "weather" => WeatherNote,
         "runwayrules" => RulesEditor,
         "lvp" => LvpEditor,
+        SectionKeys.RadarTower => RadarEditor(tecnica: false),
+        SectionKeys.RadarTowerTechnique => RadarEditor(tecnica: true),
         "transition" => TransitionEditor,
         "frequencies" => FrequenciesEditor,
         "runways" => RunwaysEditor,
@@ -1106,6 +1121,12 @@ else
         <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()" Exclusions="RwEdit.Esclusioni(_rwys)" Rotte="RwEdit.Rotte(_rwys)"
                                   Editing="_shell.IsEditing" RowsChanged="SaveRules"
                                   ConfirmRemove="ConfermaRimozioneRegola" />
+    };
+
+    private RenderFragment RadarEditor(bool tecnica) => __builder =>
+    {
+        <AirportRadarTowerEditor Row="_radar" Editing="_shell.IsEditing" Tecnica="tecnica"
+                                 RowChanged="RadarCambiata" ConfirmRemove="ConfermaRadarNonIndicato" />
     };
 
     private RenderFragment LvpEditor => __builder =>

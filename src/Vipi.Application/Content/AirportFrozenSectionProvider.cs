@@ -84,7 +84,7 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
 
         // Il profilo una volta sola: le quattro sezioni di tabella escono tutte da qui.
         var chiavi = sezioni.Select(s => s.SectionKey.ToLowerInvariant()).ToHashSet();
-        var data = chiavi.Overlaps(new[] { "runwayrules", "transition", "runways", "frequencies", "lvp" })
+        var data = chiavi.Overlaps(new[] { "runwayrules", "transition", "runways", "frequencies", "lvp", SectionKeys.RadarTower })
             ? await _repo.LoadAsync(key, ct)
             : null;
 
@@ -94,6 +94,8 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
             {
                 "runwayrules" => AirportSectionProjection.Rules(data),
                 "lvp" => AirportSectionProjection.Lvp(data),
+                // Il sì/no E la tecnica operativa: la figlia non ha una cattura sua (vedi AirportRadarTowerView).
+                SectionKeys.RadarTower => AirportSectionProjection.RadarTower(data),
                 "transition" => AirportSectionProjection.Transition(data),
                 "runways" => AirportSectionProjection.Runways(data),
                 "frequencies" => AirportSectionProjection.Frequencies(await _sectors.ListByAirportAsync(key, ct), data?.Links),

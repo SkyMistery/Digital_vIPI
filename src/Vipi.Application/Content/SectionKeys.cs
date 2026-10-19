@@ -160,4 +160,17 @@ public static class SectionKeys
     /// <para>⚠️ Da non confondere con <c>operationaltechnique</c>, che nonostante la chiave è la sezione
     /// «Procedure generali».</para></summary>
     public const string OperatingTechnique = "operatingtechnique";
+
+    // ---- la torre radar (18 ottobre 2026, committente) ----
+    // ⚠️ La STESSA chiave nella vIPI d'aeroporto e nel vSOP militare: è ciò che la fa riconoscere come una sezione
+    // sola in un'unione dei due (`SezioniComuni`), come le Piste. Il dato sta nell'anagrafica dello scalo.
+
+    /// <summary>«Torre radar»: dice se la torre è dotata di radar. Fra Piste e SID nella vIPI, nello stesso punto dei
+    /// Dati generali nel vSOP.</summary>
+    public const string RadarTower = "radartower";
+
+    /// <summary>«Tecnica operativa», figlia della torre radar: c'è solo se la torre ha il radar (<see cref="TorreRadar"/>).
+    /// <para>⚠️ Non è <see cref="OperatingTechnique"/>, che è la tecnica operativa dell'APP: il padre sta nella chiave,
+    /// e dentro un profilo una chiave compare una volta sola.</para></summary>
+    public const string RadarTowerTechnique = "radartower:technique";
 }

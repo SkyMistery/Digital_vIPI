@@ -2200,6 +2200,9 @@
 :where(.vipi-root) .rap-rwy .sid-pill{margin:0}
 /* L'ICAO nel titolo del riquadro, della misura del titolo. */
 :where(.vipi-root) .acc-item .tag-state.sum-icao{font-size:inherit;font-weight:inherit;margin-left:6px;vertical-align:baseline}
+/* Il radar di torre accanto all'ICAO (18 ottobre 2026): un collegamento, ma con l'aspetto della pastiglia verde. */
+:where(.vipi-root) .acc-item .tag-state.sum-radar{margin-left:6px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
+:where(.vipi-root) .acc-item .tag-state.sum-radar:hover{text-decoration:underline}
 :where(.vipi-root) .rap-btns{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap}
 :where(.vipi-root) .rap-quick.rap-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
 :where(.vipi-root) .rap-quick.rap-4 .rap-box{min-width:0}

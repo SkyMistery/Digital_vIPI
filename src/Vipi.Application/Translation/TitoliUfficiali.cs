@@ -98,6 +98,9 @@ public static class TitoliUfficiali
         // L'APP non remotizzato (15 settembre 2026): due sezioni nostre, quindi l'inglese lo scriviamo noi.
         ("Gestione del traffico", "Traffic Management"),
         ("Tecnica operativa", "Operating Technique"),
+        // La torre radar (18 ottobre 2026): sezione nostra, nella vIPI e nel vSOP. La figlia è la «Tecnica
+        // operativa» qui sopra, lo stesso titolo dell'APP.
+        ("Radar di torre", "Tower radar"),
         ("Validità e revisione", "Validity and Revision"),
     };
 

@@ -1535,6 +1535,17 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.68.0 — MINOR, migrazione ADDITIVA (TorreRadar: due AddColumn nullable su Airports, SQLite e MySQL; la applica
+      il sito all'avvio). Su 1.67.0 (c41681d, online dal 18 ottobre 2026). Dentro: S114, una sezione senza testo
+      proprio ma con sottosezioni visibili scritte non è più «da scrivere»; S115, la sezione «Radar di torre»
+      (radartower) nelle vIPI d'aeroporto e nei vSOP, con la figlia «Tecnica operativa» e la pastiglia nella vista
+      live. Il dato sta nell'anagrafica (Airports.RadarTower, RadarTowerTechnique). La sezione nasce NASCOSTA in
+      tutti i documenti: al pubblico non cambia niente finché non la si mostra. IAirportRepository ha membri nuovi,
+      implementati solo in Vipi.Infrastructure. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure,
+      Vipi.Infrastructure.MySqlMigrations, Vipi.Ui (+ frasi IT/EN, vipi-theme.css con l'indice degli asset) e
+      Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.68.0.md, §A160.
+    -->
+    <!--
       1.67.0 — MINOR, NESSUNA migrazione. Su 1.65.0 (38a26f3, online dal 17 ottobre 2026): la 1.66.0 (d2abdc4) era
       pronta ma non è mai stata caricata, quindi questo pacchetto la CONTIENE e si misura dalla 1.65.0. Dentro: S111
       (vedi 1.66.0 qui sotto), S112 e S113, chiesti dal committente: il numero delle richieste dal campo ancora aperte
@@ -2062,7 +2073,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.67.0</VipiVersione>
+    <VipiVersione>1.68.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
