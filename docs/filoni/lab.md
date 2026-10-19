@@ -4,14 +4,21 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 4c fatta (AAR, AT, INDIA e i gesti di ENR 5): la slice 4 è chiusa
+## Dove siamo — 19 ottobre 2026: F6, slice 5a fatta (il testo di AD 2)
+
+**Slice 5a fatta**: il testo di AD 2 dei 5 scali che ci sono (LICA, LIMC, LIME, LIRF, LIRN) nel modello (`Aerodrome`): ARP,
+elevazione e declinazione (AD 2.2), 18 piste con soglie e fine pista (AD 2.12), distanze dichiarate (AD 2.13), 51
+frequenze (AD 2.18), e le 5 ATZ di AD 2.17 fra le aree. Controprova con pdfplumber: torna tutto. PR #7. Carta F6 §6.
+**Prossima: 5b**, il confronto con `.ap`, `.rw`, `.frq` e le ATZ.
+
+## 19 ottobre 2026: F6, slice 4c fatta (AAR, AT, INDIA e i gesti di ENR 5): la slice 4 è chiusa
 
 **Slice 4c fatta**: prima le aree di ENR 5.2.2 scritte a testo (committente: «prendi anche AAR, AT e INDIA»): 7 AAR coi
 punti per nome presi da ENR 4, 6 INDIA, INDIA 5 SUD, 8 AT (PR #6). Poi i gesti nel confronto delle aree di ENR 5: «Porta
 nel sector» (P in `italy.prohibit`, D in `italy.danger`, il resto e le militari in `italy.restrict`), «Sostituisci» e
 «Dividi» (`R300AB` → `R300A` e `R300B`, i cerchi a 0,5 NM). R107A-D nel sector sono scritte male (uno spazio al posto del
 «;»): «Porta» lo dice e non le riscrive. Sul banco: 424 uguali, 91 diverse, 206 mancanti, 3 solo nel sector. Carta F6
-§6. **Prossima**: da decidere col committente.
+§6. PR #6 fusa.
 
 ## 19 ottobre 2026: F6, slice 4b fatta (il confronto di ENR 5)
 

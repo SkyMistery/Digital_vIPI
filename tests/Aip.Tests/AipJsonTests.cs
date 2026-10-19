@@ -416,4 +416,30 @@ public sealed class AipJsonTests
         Assert.Equal(1, vecchio.SchemaVersion);
         Assert.Contains("\"schemaVersion\": 1", AipJson.Serialize(vecchio));
     }
+
+    [Fact]
+    public void UnoScalo_VaETornaUguale()
+    {
+        var scalo = new Aerodrome
+        {
+            Icao = "LICA", Name = "LAMEZIA TERME", Arp = new Position(38.9083, 16.2417), Elevation = "46 FT", ReferenceTemperature = "31.4° C",
+            MagneticVariation = "4° E (2020.0)", AnnualChange = "6'E", Traffic = "IFR/VFR",
+            Runways =
+            [
+                new Runway { Designator = "10", TrueBearing = "098.49°", Dimensions = "3015 x 45", Threshold = new Position(38.907, 16.2285), End = new Position(38.903, 16.2629), ThresholdElevation = "19.3 FT / NIL" },
+                new Runway { Designator = "28", TrueBearing = "278.51°", Remarks = "1) DTHR 366 m" },
+            ],
+            DeclaredDistances = [new DeclaredDistance("10", null, "3015", "3075", "3015", "3015"), new DeclaredDistance("10", "INT TAKE-OFF B", "671", "731", "671", "-")],
+            Communications = [new CommunicationFacility("TWR", "Lamezia TWR", "125.900", "H24")],
+            Page = new AipPage("AD 2 LICA 1-1", new DateOnly(2026, 6, 11)),
+        };
+        var doc = new AipDocument { State = "LI", Aerodromes = [scalo] };
+
+        var json = AipJson.Serialize(doc);
+        var riletto = AipJson.Deserialize(json);
+
+        Assert.Equal(doc, riletto);
+        Assert.NotEqual(scalo with { Runways = [scalo.Runways[0]] }, riletto.Aerodromes![0]);
+        Assert.DoesNotContain("aerodromes", AipJson.Serialize(new AipDocument { State = "LI" }));
+    }
 }

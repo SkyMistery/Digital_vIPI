@@ -63,6 +63,9 @@ public enum ImportIssueKind
 
     /// <summary>Una riga di ENR 4.5 senza nome, o con coordinate che non si leggono. <c>Detail</c> = cosa.</summary>
     Light,
+
+    /// <summary>Uno scalo di AD 2 senza un dato che deve avere (ARP, piste) o con un dato che non si legge. <c>Detail</c> = cosa.</summary>
+    Aerodrome,
 }
 
 public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)
@@ -81,6 +84,9 @@ public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyLi
 
     /// <summary>ENR 4.5: le luci aeronautiche al suolo lette (slice 3).</summary>
     public IReadOnlyList<GroundLight> Lights { get; init; } = [];
+
+    /// <summary>AD 2: gli scali letti (slice 5).</summary>
+    public IReadOnlyList<Aerodrome> Aerodromes { get; init; } = [];
 }
 
 /// <summary>
@@ -123,6 +129,9 @@ public static partial class ItalianAip
     [GeneratedRegex(@"^LI-ENR (?<s>3\.[123]) [A-Z]{1,2}\d+$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxRotte();
 
+    [GeneratedRegex(@"^LI-AD 2 (?<icao>[A-Z]{4}) - (?<nome>.+) 1$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxTestoDiScalo();
+
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
 
@@ -146,6 +155,9 @@ public static partial class ItalianAip
     public static ImportResult ReadFile(string path, Func<string, Position?>? punto = null)
     {
         var nome = Path.GetFileNameWithoutExtension(path);
+        // AD 2 (slice 5a): il testo di uno scalo è il suo primo PDF; gli altri sono carte.
+        if (RxTestoDiScalo().Match(nome) is { Success: true } scalo)
+            return ItalianAd2.Read(PdfText.Read(path), scalo.Groups["icao"].Value, scalo.Groups["nome"].Value.Trim());
         if (nome.StartsWith("LI-ENR 5.1.", StringComparison.Ordinal))
             return ReadEnr51(PdfText.Read(path));
         // ENR 5.2 (slice 4a): i poligoni militari, e le zone e i corridoi APR.

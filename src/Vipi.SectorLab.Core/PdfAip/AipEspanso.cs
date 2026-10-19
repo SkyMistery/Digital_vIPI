@@ -36,6 +36,9 @@ public sealed record EsitoDellAipEspanso(
     /// <summary>Le luci di ENR 4.5 lette (slice 3).</summary>
     public int Luci { get; init; }
 
+    /// <summary>Gli scali di AD 2 letti (slice 5).</summary>
+    public int Scali { get; init; }
+
     /// <summary>Quel che si è letto, in parole: «870 aree, 29 rotte, 413 attese, 55 radioassistenze…» (le voci a zero no).</summary>
     public string Quanti() => string.Join(", ", new[]
     {
@@ -45,6 +48,7 @@ public sealed record EsitoDellAipEspanso(
         Radioassistenze > 0 ? $"{Radioassistenze} radioassistenze" : null,
         Punti > 0 ? $"{Punti} punti" : null,
         Luci > 0 ? $"{Luci} luci" : null,
+        Scali > 0 ? $"{Scali} scali" : null,
     }.OfType<string>());
 }
 
@@ -87,6 +91,7 @@ public static class AipEspanso
         var radioassistenze = new List<Navaid>();
         var punti = new List<SignificantPoint>();
         var luci = new List<GroundLight>();
+        var scali = new List<Aerodrome>();
         var letti = new List<string>();
         var nonAncora = new List<string>();
         var illeggibili = new List<string>();
@@ -132,6 +137,7 @@ public static class AipEspanso
             radioassistenze.AddRange(letto.Navaids);
             punti.AddRange(letto.Points);
             luci.AddRange(letto.Lights);
+            scali.AddRange(letto.Aerodromes);
             pagine.AddRange(letto.Pages);
             problemi.AddRange(letto.Issues.Select(p => new ProblemaDellImport(nome, p)));
         }
@@ -147,6 +153,7 @@ public static class AipEspanso
             Navaids = radioassistenze.Count == 0 ? null : radioassistenze,
             Points = punti.Count == 0 ? null : punti,
             Lights = luci.Count == 0 ? null : luci,
+            Aerodromes = scali.Count == 0 ? null : scali,
         };
 
         var scritto = File(espanso, ciclo);
@@ -165,6 +172,7 @@ public static class AipEspanso
             Radioassistenze = radioassistenze.Count,
             Punti = punti.Count,
             Luci = luci.Count,
+            Scali = scali.Count,
         };
     }
 

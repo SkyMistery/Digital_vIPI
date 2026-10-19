@@ -48,6 +48,9 @@ public sealed record AipDocument
     /// <summary>ENR 4.5: le luci aeronautiche al suolo. Null se il documento non ne ha.</summary>
     public IReadOnlyList<GroundLight>? Lights { get; init; }
 
+    /// <summary>AD 2: gli scali (slice 5). Null se il documento non ne ha (lo schema non cambia: un campo facoltativo).</summary>
+    public IReadOnlyList<Aerodrome>? Aerodromes { get; init; }
+
     public bool Equals(AipDocument? other) =>
         other is not null
         && SchemaVersion == other.SchemaVersion
@@ -59,7 +62,8 @@ public sealed record AipDocument
         && (Holdings ?? []).SequenceEqual(other.Holdings ?? [])
         && (Navaids ?? []).SequenceEqual(other.Navaids ?? [])
         && (Points ?? []).SequenceEqual(other.Points ?? [])
-        && (Lights ?? []).SequenceEqual(other.Lights ?? []);
+        && (Lights ?? []).SequenceEqual(other.Lights ?? [])
+        && (Aerodromes ?? []).SequenceEqual(other.Aerodromes ?? []);
 
     public override int GetHashCode() => HashCode.Combine(SchemaVersion, State, Airac, Effective, Airspaces.Count);
 }
