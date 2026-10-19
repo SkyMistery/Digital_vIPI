@@ -22,9 +22,9 @@ public sealed class Enr4Tests
     /// Una pagina: le colonne alle x date, i bordi orizzontali alle y date (dall'alto, da un capo all'altro della tabella),
     /// e il testo (x, distanza dall'alto, testo).
     /// </summary>
-    private sealed record Pagina(double[] Colonne, double[] Bordi, (double X, double Top, string Testo)[] Testo);
+    internal sealed record Pagina(double[] Colonne, double[] Bordi, (double X, double Top, string Testo)[] Testo);
 
-    private static byte[] Pdf(params Pagina[] pagine)
+    internal static byte[] Pdf(params Pagina[] pagine)
     {
         var builder = new PdfDocumentBuilder();
         var font = builder.AddStandard14Font(Standard14Font.Helvetica);

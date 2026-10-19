@@ -138,8 +138,12 @@ public static partial class ItalianAip
 
     private const double TolleranzaY = 1.5;
 
-    /// <summary>Un file dell'AIP italiano, scelto dal nome (<c>LI-ENR 5.1.2.pdf</c>).</summary>
-    public static ImportResult ReadFile(string path)
+    /// <summary>
+    /// Un file dell'AIP italiano, scelto dal nome (<c>LI-ENR 5.1.2.pdf</c>). <paramref name="punto"/>: dove sta un punto con
+    /// nome di ENR 4 (<see cref="ItalianEnr5Zone.Risolutore"/>), per le aree che si danno per punti (le AAR di ENR 5.2.2.1);
+    /// chi legge più file legge ENR 4 prima.
+    /// </summary>
+    public static ImportResult ReadFile(string path, Func<string, Position?>? punto = null)
     {
         var nome = Path.GetFileNameWithoutExtension(path);
         if (nome.StartsWith("LI-ENR 5.1.", StringComparison.Ordinal))
@@ -147,6 +151,15 @@ public static partial class ItalianAip
         // ENR 5.2 (slice 4a): i poligoni militari, e le zone e i corridoi APR.
         if (nome.StartsWith("LI-ENR 5.2.1.", StringComparison.Ordinal))
             return ItalianEnr5.ReadFiringAreas(PdfText.Read(path));
+        // ENR 5.2.2 (slice 4c, committente: «prendi anche AAR, AT e INDIA»).
+        if (nome == "LI-ENR 5.2.2.1")
+            return ItalianEnr5Zone.ReadAirRefuelling(PdfText.Read(path), punto);
+        if (nome == "LI-ENR 5.2.2.2")
+            return ItalianEnr5Zone.ReadIndia(PdfText.Read(path));
+        if (nome == "LI-ENR 5.2.2.3")
+            return ItalianEnr5Zone.ReadIndia5Sud(PdfText.Read(path));
+        if (nome == "LI-ENR 5.2.2.6")
+            return ItalianEnr5Zone.ReadTacticalAreas(PdfText.Read(path));
         if (nome == "LI-ENR 5.2.2.5")
             return ItalianEnr5.ReadUasAreas(PdfText.Read(path));
         // ENR 2 (slice 1a): il tipo di base dal file — i CTR uno per file, le ATZ militari, il FRAIT; il resto dal nome.

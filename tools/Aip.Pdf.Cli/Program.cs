@@ -41,12 +41,14 @@ var radioassistenze = new List<Navaid>();
 var punti = new List<SignificantPoint>();
 var luci = new List<GroundLight>();
 var esito = 0;
-foreach (var f in file)
+// In ordine di nome: ENR 4 prima di ENR 5, che ne usa i punti (le AAR di ENR 5.2.2.1).
+var risolvi = ItalianEnr5Zone.Risolutore(radioassistenze, punti);
+foreach (var f in file.OrderBy(Path.GetFileName, StringComparer.Ordinal))
 {
     ImportResult letto;
     try
     {
-        letto = ItalianAip.ReadFile(f);
+        letto = ItalianAip.ReadFile(f, risolvi);
     }
     catch (Exception e)
     {

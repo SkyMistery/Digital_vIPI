@@ -51,7 +51,7 @@ public static partial class ItalianEnr4
     private static partial Regex RxSpazi();
 
     /// <summary>Una riga della tabella: il testo di ogni colonna, una voce per riga di testo, e la pagina.</summary>
-    private sealed record Riga(List<string>[] Celle, ImportPage Pagina);
+    internal sealed record Riga(List<string>[] Celle, ImportPage Pagina);
 
     /// <summary>Le radioassistenze di un PDF di ENR 4.1 (<paramref name="military"/>: ENR 4.1.2).</summary>
     public static ImportResult ReadNavaids(IReadOnlyList<PdfPageText> pages, bool military)
@@ -247,7 +247,7 @@ public static partial class ItalianEnr4
     /// Le righe delle tabelle di tutte le pagine, sotto la riga dei numeri delle colonne («1 2 3 …»). Una pagina senza la
     /// tabella (la bianca in fondo a ENR 4.1.2) si conta e basta; una con la tabella ma senza i bordi orizzontali si dice.
     /// </summary>
-    private static (List<Riga> Righe, List<ImportPage> Pagine, List<ImportIssue> Problemi) Righe(IReadOnlyList<PdfPageText> pages, int colonne)
+    internal static (List<Riga> Righe, List<ImportPage> Pagine, List<ImportIssue> Problemi) Righe(IReadOnlyList<PdfPageText> pages, int colonne)
     {
         var righe = new List<Riga>();
         var pagine = new List<ImportPage>();

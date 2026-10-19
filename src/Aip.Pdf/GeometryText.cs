@@ -141,6 +141,10 @@ public static partial class GeometryText
     /// <summary>Vero se il testo contiene almeno una coordinata nelle forme dell'AIP.</summary>
     public static bool HasCoordinate(string? text) => text is not null && RxCoordinata().IsMatch(text);
 
+    /// <summary>Tutti i punti validi del testo, in ordine (le coordinate di ENR 5.2.2, una per riga o più su una).</summary>
+    public static IReadOnlyList<Position> ReadPoints(string? text) =>
+        text is null ? [] : [.. RxCoordinata().Matches(text).Select(Coordinata).OfType<Position>()];
+
     /// <summary>Il primo punto del testo (un punto di una rotta, ENR 3), o null se non ce n'è uno valido.</summary>
     public static Position? ReadPoint(string? text) =>
         text is not null && RxCoordinata().Match(text) is { Success: true } m ? Coordinata(m) : null;

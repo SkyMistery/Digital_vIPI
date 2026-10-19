@@ -93,13 +93,15 @@ public static class AipEspanso
         var problemi = new List<ProblemaDellImport>();
         var pagine = new List<ImportPage>();
 
-        foreach (var file in pdf)
+        // In ordine di nome: ENR 4 prima di ENR 5, che ne usa i punti (le AAR di ENR 5.2.2.1).
+        var risolvi = ItalianEnr5Zone.Risolutore(radioassistenze, punti);
+        foreach (var file in pdf.OrderBy(Path.GetFileName, StringComparer.Ordinal))
         {
             var nome = Path.GetFileName(file);
             ImportResult letto;
             try
             {
-                letto = ItalianAip.ReadFile(file);
+                letto = ItalianAip.ReadFile(file, risolvi);
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
             {
