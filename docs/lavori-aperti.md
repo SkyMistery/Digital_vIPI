@@ -43,6 +43,23 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 🔧 A161 — Fuori pacchetto: CI con l'SDK esatto, avvisi NuGet degli E2E, pin di SQLite (19–20 ottobre 2026)
+
+Tre cose in `main` dopo la 1.68.0, **nessuna cambia il sito spedito**: non c'è un pacchetto.
+- **CI** (`8e93c37d`, cherry-pick di `69eae8cb` del Lab): `global.json` `rollForward: disable`. Il runner aveva già
+  un SDK 10.0.4xx più nuovo e con `latestPatch` lo usava al posto del 10.0.401: il restore in `--locked-mode` si
+  fermava su NU1004 senza che il repo fosse cambiato.
+- **S116**: i sei NU1902/NU1903 (`System.Security.Cryptography.Xml` 8.0.4, `.Pkcs` 8.0.1) arrivavano solo in
+  `tests/Vipi.E2E.Tests`: ora dichiara `FrameworkReference Microsoft.AspNetCore.App` come l'host, e il restore pota i
+  pacchetti del framework condiviso. Lock con le sole voci potate tolte.
+- **S117**: tolto il riferimento diretto a `SQLitePCLRaw.lib.e_sqlite3` 2.1.12 (contro CVE-2025-6965) in
+  `Vipi.Infrastructure` e `Vipi.Application.Tests`: EF Core lo tira già da sé, e il pin avrebbe dato NU1605 al primo
+  ri-calcolo dei lock (EF 8.0.32 vuole ≥ 2.1.13). 14 lock, versioni invariate.
+- Fusione `98c31516` di `sito/lavori` @ `35458d86`. Build Release 0 avvisi, restore `--locked-mode` 0 avvisi, 18
+  riepiloghi `Passed!`, conteggi identici. Publish di controllo linux-x64 confrontato con quello della 1.68.0: stessi
+  482 file, `libe_sqlite3.so` identica; nel `deps.json` sparisce solo la riga del riferimento diretto; il resto è
+  l'MVID dei nostri assiemi. ⚠️ Il prossimo pacchetto si misura comunque col `git diff` dalla 1.68.0.
+
 ### 📦 A160 — 1.68.0 PRONTA: «Radar di torre» (S115) e le sezioni con sottosezioni scritte (S114), con la migrazione TorreRadar (18 ottobre 2026)
 
 📦 Pronta, **da caricare** (committente). Online resta la **1.67.0** finché non carica.
