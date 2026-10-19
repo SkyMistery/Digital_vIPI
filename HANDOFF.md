@@ -6,7 +6,8 @@
 >
 > ## ▶ Il punto — 20 ottobre 2026
 >
-> **📦 Pronta da caricare: 1.68.0** (§A160, vedi sotto), ancora non caricata: online è la **1.67.0**. Sopra, fuori
+> **✅ Online: 1.68.0** (`Schema 0` confermato, la migrazione `TorreRadar` è passata; health Healthy; §A160, timbro
+> `1.68.0 · 811010f`). Per usarla: sì/no in anagrafica e mostrare la sezione nei documenti. Sopra, fuori
 > pacchetto (§A161, il sito spedito non cambia): CI con l'SDK 10.0.401 esatto (`rollForward: disable`), via gli avvisi
 > NuGet degli E2E (S116) e il pin di SQLite che avrebbe bloccato il prossimo ri-calcolo dei lock (S117).
 >

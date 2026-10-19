@@ -60,9 +60,12 @@ Tre cose in `main` dopo la 1.68.0, **nessuna cambia il sito spedito**: non c'è 
   482 file, `libe_sqlite3.so` identica; nel `deps.json` sparisce solo la riga del riferimento diretto; il resto è
   l'MVID dei nostri assiemi. ⚠️ Il prossimo pacchetto si misura comunque col `git diff` dalla 1.68.0.
 
-### 📦 A160 — 1.68.0 PRONTA: «Radar di torre» (S115) e le sezioni con sottosezioni scritte (S114), con la migrazione TorreRadar (18 ottobre 2026)
+### ✅ A160 — 1.68.0 ONLINE: «Radar di torre» (S115) e le sezioni con sottosezioni scritte (S114), con la migrazione TorreRadar (18 ottobre 2026)
 
-📦 Pronta, **da caricare** (committente). Online resta la **1.67.0** finché non carica.
+✅ Online dal 20 ottobre 2026: il committente conferma la 1.68 e `Schema 0` (la migrazione `TorreRadar` è passata). Da
+fuori, da anonimo, alle 23:22Z: `/` 302, porta «Entra con IVAO», Ricerca 401, `vipi-theme.css?v=2d51a0f6` (quello del
+pacchetto), `/vsop/health` e `/vsop/health/ready` Healthy. Non guardati da qui, dietro il login: la sezione «Radar di
+torre» negli editor, la pastiglia nella vista live.
 
 MINOR con **una migrazione additiva**, misurata dalla **1.67.0** (`c41681d`) che gira. Timbro **`1.68.0 · 811010f`**.
 Fusa da `sito/lavori` @ `86fb188c` (cartellino 🟢, CI 4/4 run 39126009323), fusione `9224dafe` senza conflitti.
