@@ -48,7 +48,11 @@ public static class AerovieAMano
             .Select(p => p.ToUpperInvariant()).ToList();
 
     /// <summary>Il blocco di un'aerovia nuova, nella parte dei tracciati, in ordine di nome.</summary>
-    public static GestoSullAerovia Nuova(IReadOnlyList<string> righe, string? nome, IReadOnlyList<string> punti, Func<string, Coordinate?> punto)
+    /// <param name="tratti">Un'aerovia portata dall'AIP (F6, slice 2c): per ogni tratto le chiavi del suo tag
+    /// (<c>dir=fwd lower=FL95 upper=FL195</c>), e il blocco porta <paramref name="nota"/> invece di <c>locked=si</c> — non è
+    /// fatta a mano, e il prossimo import la può aggiornare. Null: a mano (B14), <c>locked=si</c> e il verso di base.</param>
+    public static GestoSullAerovia Nuova(IReadOnlyList<string> righe, string? nome, IReadOnlyList<string> punti, Func<string, Coordinate?> punto,
+                                         IReadOnlyList<string>? tratti = null, string? nota = null)
     {
         ArgumentNullException.ThrowIfNull(righe);
         ArgumentNullException.ThrowIfNull(punti);
@@ -64,12 +68,15 @@ public static class AerovieAMano
         if (Enumerable.Range(0, punti.Count - 1).FirstOrDefault(i => punti[i] == punti[i + 1], -1) is var doppio and >= 0)
             return GestoSullAerovia.No($"«{punti[doppio]}» è scritto due volte di seguito.");
 
-        var blocco = new List<string> { $"//@\"{n}\" locked=si", "//@START" };
+        if (tratti is not null && tratti.Count != punti.Count - 1)
+            return GestoSullAerovia.No($"{punti.Count} punti e {tratti.Count} tratti: non tornano.");
+        var testa = tratti is null ? $"//@\"{n}\" locked=si" : $"//@\"{n}\" note=\"{(nota ?? "AIP").Replace('"', '\'')}\"";
+        var blocco = new List<string> { testa, "//@START" };
         for (int i = 0; i < punti.Count; i++)
         {
             // Il tag sta sul punto che APRE il tratto: l'ultimo non ne apre.
             if (i < punti.Count - 1)
-                blocco.Add($"//@@\"{punti[i]}\" dir=both");
+                blocco.Add($"//@@\"{punti[i]}\" {(tratti is null ? "dir=both" : tratti[i])}");
             blocco.Add($"T;{n};{punti[i]};{punti[i]};");
         }
 

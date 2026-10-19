@@ -214,8 +214,22 @@
                 @if (Lab.UltimoConfrontoDiEnr3 is { } enr3)
                 {
                     <p class="lab-nota" data-riassunto-enr3>@(enr3.Rotte ? "Rotte" : "Attese"), ciclo @enr3.Ciclo: @string.Join(" · ", enr3.Esiti.GroupBy(e => e.Esito).Select(g => $"{Esito(g.Key)} {g.Count()}"))</p>
+                    @* Slice 2c: i gesti. Rotte: i tratti nei tag //@@ (una o tutte), e le rotte che il sector non ha. Attese: quelle
+                       scelte, di procedura (nello .str dello scalo) o in rotta (HOLDENR.hold), con la scritta o l'ovale. *@
+                    @if (enr3.Rotte && enr3.Esiti.Where(e => e.TrattiDaScrivere > 0).ToList() is { Count: > 0 } conTratti)
+                    {
+                        <button type="button" class="lab-tasto" data-tasto="scrivi-tutti-i-tratti"
+                                title="Verso e quote dell'AIP nei tag //@@ dei tratti di tutte le rotte qui sotto (le locked=si no): un gesto solo, da annullare"
+                                @onclick="() => ScriviITratti(conTratti.Select(e => e.Nome).ToList())">Scrivi i tratti di tutte (@conTratti.Sum(e => e.TrattiDaScrivere) su @conTratti.Count rotte)</button>
+                    }
+                    @if (!enr3.Rotte && enr3.Esiti.Any(e => e.Esito == Esiti.MancaNelSector))
+                    {
+                        <button type="button" class="lab-tasto" data-tasto="porta-attese" disabled="@(Scelte(enr3).Count == 0)"
+                                title="Le attese spuntate nel sector: di procedura come HLD- nello .str dello scalo, in rotta in HOLDENR.hold"
+                                @onclick="() => PortaLeAttese(enr3)">Porta le selezionate (@Scelte(enr3).Count)</button>
+                    }
                     <ul class="lab-elenco-lotto">
-                        @foreach (var e in enr3.Esiti.Where(e => e.Esito != Esiti.Uguale))
+                        @foreach (var e in enr3.Esiti.Where(e => e.Esito != Esiti.Uguale || e.TrattiDaScrivere > 0))
                         {
                             <li class="lab-nota" data-enr3="@e.Esito">
                                 @if (e.File is { } file && e.Record is { } record)
@@ -227,6 +241,44 @@
                                     <strong>@Esito(e.Esito)</strong>
                                 }
                                 @e.Nome
+                                @if (enr3.Rotte && e.TrattiDaScrivere > 0)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="scrivi-i-tratti"
+                                            title="Verso e quote dell'AIP nei tag //@@ dei tratti di @e.Nome" @onclick="() => ScriviITratti([e.Nome])">Scrivi i tratti (@e.TrattiDaScrivere)</button>
+                                }
+                                else if (enr3.Rotte && e.Esito == Esiti.MancaNelSector)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-rotta"
+                                            title="Il blocco della rotta in itawlow.lairway coi punti, i tratti e le etichette dell'AIP" @onclick="() => PortaLaRotta(e.Nome)">Porta nel sector</button>
+                                }
+                                else if (!enr3.Rotte && e.Esito == Esiti.FormaDiversa)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-attesa"
+                                            title="Riscrive la descrizione in HOLDENR.hold con l'attesa dell'AIP" @onclick="() => SostituisciLAttesa(e)">Sostituisci</button>
+                                }
+                                else if (!enr3.Rotte && e.Esito == Esiti.MancaNelSector && Lab.ProposteDelleAttese.GetValueOrDefault(e.Nome) is { } proposta)
+                                {
+                                    var fix = e.Nome;
+                                    var stato = Stato(proposta);
+                                    <span class="lab-scelta-attesa" data-attesa="@fix">
+                                        <input type="checkbox" data-casella="scegli-attesa" checked="@stato.Scelta" disabled="@(proposta.Punto is null)"
+                                               title="@(proposta.Punto is null ? "Il sector non ha il punto: non si porta" : "Da portare")"
+                                               @onchange="v => Cambia(proposta, scelta: v.Value is true)" />
+                                        <select class="lab-campo lab-campo-corto" data-campo="dove-attesa" value="@(stato.Scalo ?? "")"
+                                                @onchange="v => CambiaLoScalo(proposta, v)">
+                                            <option value="">in rotta</option>
+                                            @foreach (var scalo in proposta.Scali)
+                                            {
+                                                <option value="@scalo.Icao">@scalo.Icao (@scalo.Piste)</option>
+                                            }
+                                        </select>
+                                        <select class="lab-campo lab-campo-corto" data-campo="come-attesa" value="@(stato.Ovale ? "ovale" : "scritta")"
+                                                @onchange="v => CambiaIlCome(proposta, v)">
+                                            <option value="scritta">scritta</option>
+                                            <option value="ovale" disabled="@(Stato(proposta).Scalo is null)">ovale (@proposta.Tratto)</option>
+                                        </select>
+                                    </span>
+                                }
                                 @foreach (var d in e.Dettagli)
                                 {
                                     <span class="lab-nota" data-dettaglio-enr3>@d</span>
@@ -270,7 +322,54 @@
 
     private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
 
-    private async Task ConfrontaEnr3(bool rotte) => _rifiuto = await Lab.ConfrontaEnr3Async(rotte) ? null : Lab.Rifiuto;
+    private async Task ConfrontaEnr3(bool rotte)
+    {
+        _attese.Clear();
+        _rifiuto = await Lab.ConfrontaEnr3Async(rotte) ? null : Lab.Rifiuto;
+    }
+
+    /// <summary>Le scelte dell'AOD sulle attese da portare, per punto (di base: non scelta, lo scalo proposto, la scritta).</summary>
+    private readonly Dictionary<string, SceltaInCorso> _attese = new(StringComparer.OrdinalIgnoreCase);
+
+    private sealed record SceltaInCorso(bool Scelta, string? Scalo, bool Ovale);
+
+    private SceltaInCorso Stato(Vipi.SectorLab.Core.PdfAip.PropostaDiAttesa proposta) =>
+        _attese.GetValueOrDefault(proposta.Attesa.Fix) ?? new SceltaInCorso(false, proposta.Scali.FirstOrDefault()?.Icao, false);
+
+    private List<SessioneDelLab.SceltaDiAttesa> Scelte((string Ciclo, bool Rotte, IReadOnlyList<Vipi.SectorLab.Core.PdfAip.DifferenzaDiEnr3> Esiti) enr3) =>
+        [.. enr3.Esiti.Where(e => e.Esito == Esiti.MancaNelSector)
+            .Select(e => (e.Nome, Stato: _attese.GetValueOrDefault(e.Nome)))
+            .Where(x => x.Stato is { Scelta: true })
+            .Select(x => new SessioneDelLab.SceltaDiAttesa(x.Nome, x.Stato!.Scalo, x.Stato.Ovale && x.Stato.Scalo is not null))];
+
+    /// <summary>Una riga spuntata o no.</summary>
+    private void Cambia(Vipi.SectorLab.Core.PdfAip.PropostaDiAttesa proposta, bool scelta) =>
+        _attese[proposta.Attesa.Fix] = Stato(proposta) with { Scelta = scelta };
+
+    /// <summary>Lo scalo scelto (vuoto = in rotta: allora niente ovale, per ora).</summary>
+    private void CambiaLoScalo(Vipi.SectorLab.Core.PdfAip.PropostaDiAttesa proposta, ChangeEventArgs v)
+    {
+        var scalo = v.Value?.ToString() is { Length: > 0 } x ? x : null;
+        _attese[proposta.Attesa.Fix] = Stato(proposta) with { Scalo = scalo, Ovale = scalo is not null && Stato(proposta).Ovale };
+    }
+
+    /// <summary>La scritta o l'ovale.</summary>
+    private void CambiaIlCome(Vipi.SectorLab.Core.PdfAip.PropostaDiAttesa proposta, ChangeEventArgs v) =>
+        _attese[proposta.Attesa.Fix] = Stato(proposta) with { Ovale = string.Equals(v.Value?.ToString(), "ovale", StringComparison.Ordinal) };
+
+    private void ScriviITratti(List<string> rotte) => _rifiuto = Lab.ScriviITratti(rotte) ? null : Lab.Rifiuto;
+
+    private void PortaLaRotta(string nome) => _rifiuto = Lab.PortaLaRotta(nome) ? null : Lab.Rifiuto;
+
+    private void SostituisciLAttesa(Vipi.SectorLab.Core.PdfAip.DifferenzaDiEnr3 e) => _rifiuto = Lab.SostituisciLAttesa(e) ? null : Lab.Rifiuto;
+
+    private void PortaLeAttese((string Ciclo, bool Rotte, IReadOnlyList<Vipi.SectorLab.Core.PdfAip.DifferenzaDiEnr3> Esiti) enr3)
+    {
+        var scelte = Scelte(enr3);
+        _rifiuto = Lab.PortaLeAttese(scelte) ? Lab.Rifiuto : Lab.Rifiuto;
+        if (Lab.Modifiche.CEQualcosa)
+            foreach (var s in scelte) _attese.Remove(s.Fix);
+    }
 
     private async Task Mostra(bool mostra) => _rifiuto = await Lab.MostraLAipAsync(mostra) ? null : Lab.Rifiuto;
 

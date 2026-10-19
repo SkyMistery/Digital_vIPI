@@ -4,13 +4,20 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 2b fatta (il confronto di ENR 3)
+## Dove siamo — 19 ottobre 2026: F6, slice 2c fatta (i gesti di ENR 3)
+
+**Slice 2c fatta**: «Scrivi i tratti» (verso e quote dell'AIP nei tag `//@@`, una voce sola; le `locked` no), «Porta
+nel sector» le rotte mancanti (blocco con `note`, non `locked`), «Porta le selezionate» per le attese (di procedura
+nello `.str` dello scalo, con la scritta o l'ovale; in rotta in `HOLDENR.hold`, l'ovale in rotta da decidere),
+«Sostituisci» per le attese diverse. Sulla copia: 187 tratti su 24 rotte; attese 156 di procedura e 35 in rotta.
+Sul sector vero dopo il 29 ottobre. Carta F6 §6. **Prossima**: da decidere col committente (slice 3, ENR 4?).
+
+## 19 ottobre 2026: F6, slice 2b fatta (il confronto di ENR 3)
 
 **Slice 2b fatta**: «Confronta le rotte» (ENR 3.2 contro `itawlow.lairway`: lati, tratti coi tag `//@@`, posizioni) e
 «le attese» (ENR 3.4.1 contro `HOLDENR.hold`), in sola lettura. Sulla copia: rotte 21 uguali, 3 diverse (Z910, M859,
 L869), 5 mancanti; nessun tratto del sector ha ancora i tag. Attese 51 uguali, 3 diverse di un grado, 191 non in
 `HOLDENR.hold` (105 sono attese di scalo negli `.str`), 14 solo nel sector (radioassistenze: ENR 3.4.2). Carta F6 §6.
-**Prossima: 2c**, i gesti (rotte: righe `T;` e tag dei tratti, i `locked` intoccati; attese).
 
 ## 19 ottobre 2026: F6, l'AIP espanso sulla mappa (e la slice 2a)
 

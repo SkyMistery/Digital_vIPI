@@ -4322,6 +4322,9 @@ public sealed class SessioneDelLab
                 ? Core.PdfAip.ConfrontoDiEnr3.Rotte(modello.Routes!, sessione, nome => catalogo?.Cerca(nome)?.Posizione)
                 : Core.PdfAip.ConfrontoDiEnr3.Attese(modello.Holdings!, sessione)).ConfigureAwait(false);
             UltimoConfrontoDiEnr3 = (ciclo, rotte, esiti);
+            _aipDiEnr3 = modello;
+            if (!rotte)
+                ProposteDelleAttese = Core.PdfAip.AtteseNelSector.Proposte(modello.Holdings!, sessione, nome => catalogo?.Cerca(nome)?.Posizione);
             Registro.Scrivi("aip", $"confronto {(rotte ? "rotte" : "attese")}, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
             Rifiuto = null;
             Avvisa();
@@ -4332,6 +4335,245 @@ public sealed class SessioneDelLab
             Registro.Errore("aip", e);
             return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
         }
+    }
+
+    /// <summary>Il modello da cui viene <see cref="UltimoConfrontoDiEnr3"/>: i gesti della slice 2c ne prendono rotte e attese.</summary>
+    private global::Aip.AipDocument? _aipDiEnr3;
+
+    /// <summary>Per le attese dell'ultimo confronto: dove e come portarle (slice 2c), per punto.</summary>
+    public IReadOnlyDictionary<string, Core.PdfAip.PropostaDiAttesa> ProposteDelleAttese { get; private set; } =
+        new Dictionary<string, Core.PdfAip.PropostaDiAttesa>();
+
+    /// <summary>
+    /// «Scrivi i tratti» (carta F6, slice 2c, B2): sulle rotte date, i tratti che l'AIP e il sector hanno tutti e due
+    /// ricevono nei tag <c>//@@</c> del punto che li apre il verso (rispetto all'ordine del file) e le quote dell'AIP. Le
+    /// aerovie <c>locked=si</c> non si toccano (B5). Un gesto solo: diff, annulla, lotto di Aurora.
+    /// </summary>
+    public bool ScriviITratti(IReadOnlyList<string> rotte)
+    {
+        ArgumentNullException.ThrowIfNull(rotte);
+        if (Sessione is not { } sessione || _aipDiEnr3?.Routes is not { } dellAip || UltimoConfrontoDiEnr3 is not { } confronto)
+            return Rifiuta("Confronta le rotte prima: si scrivono i tratti di una riga del confronto.");
+        var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + Core.PdfAip.ConfrontoDiEnr3.FileDelleAerovie, StringComparison.OrdinalIgnoreCase));
+        if (file is null)
+            return Rifiuta("Nel sector non c'è itawlow.lairway.");
+        string gesto = rotte.Count == 1 ? $"tratti di {rotte[0]} dall'AIP {confronto.Ciclo}" : $"tratti di {rotte.Count} rotte dall'AIP {confronto.Ciclo}";
+        var avvisi = new List<string>();
+        int tratti = 0;
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            avvisi.Clear();
+            tratti = 0;
+            // Tutte le righe calcolate sul testo di adesso, e una modifica sola: una voce nel testo del file.
+            var righe = RigheDiAdesso(file);
+            var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+            foreach (var nome in rotte)
+            {
+                if (dellAip.FirstOrDefault(r => r.Designator.Equals(nome, StringComparison.OrdinalIgnoreCase)) is not { } rotta) continue;
+                if (Core.PdfAip.ConfrontoDiEnr3.TrattiDaScrivere(rotta, sessione, out _, out var bloccata) is not { } daScrivere)
+                {
+                    avvisi.Add($"{nome}: il sector non ha l'aerovia");
+                    continue;
+                }
+                if (bloccata)
+                {
+                    avvisi.Add($"{nome}: è locked=si, l'import non la tocca");
+                    continue;
+                }
+                foreach (var (riga, nuove) in Core.PdfAip.ConfrontoDiEnr3.RigheDeiTratti(righe, rotta.Designator, daScrivere))
+                    sostituzioni[riga] = nuove;
+                tratti += daScrivere.Count;
+            }
+            if (sostituzioni.Count == 0)
+            {
+                Rifiuto = avvisi.Count > 0 ? string.Join(" · ", avvisi) : "Non c'è nessun tratto da scrivere.";
+                Avvisa();
+                return false;
+            }
+            var quanti = ((IFileConRecord)sessione.File[file]).RecordDelModello.Count;
+            bool scritto = GestoSulTesto(file, "aip", f => Modifiche.CambiaRighe(f, sostituzioni, gesto,
+                riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più le stesse aerovie: si fa a mano.", anchiITag: true));
+            Registro.Scrivi("aip", $"{gesto}: {tratti} tratti" + (avvisi.Count > 0 ? "; " + string.Join("; ", avvisi) : ""));
+            if (scritto && avvisi.Count > 0)
+            {
+                Rifiuto = string.Join(" · ", avvisi);
+                Avvisa();
+            }
+            return scritto;
+        });
+        if (fatto)
+            RifaiIlConfrontoDiEnr3();
+        return fatto;
+    }
+
+    /// <summary>Come portare un'attesa scelta: il punto, lo scalo (null = in rotta) e se disegnare l'ovale.</summary>
+    public sealed record SceltaDiAttesa(string Fix, string? Scalo, bool Ovale);
+
+    /// <summary>
+    /// «Porta le selezionate» (carta F6, slice 2c, committente 19 ottobre): le attese scelte nel sector — di procedura come
+    /// voce <c>HLD-PUNTO</c> nello <c>.str</c> dello scalo (la scritta, e l'ovale se scelto), in rotta come riga di
+    /// <c>HOLDENR.hold</c> in ordine di nome (la scritta; l'ovale in rotta lo decide il committente più avanti). Un gesto solo.
+    /// </summary>
+    public bool PortaLeAttese(IReadOnlyList<SceltaDiAttesa> scelte)
+    {
+        ArgumentNullException.ThrowIfNull(scelte);
+        if (Sessione is not { } sessione || UltimoConfrontoDiEnr3 is not { Rotte: false } confronto)
+            return Rifiuta("Confronta le attese prima: si portano le righe scelte del confronto.");
+        if (scelte.Count == 0)
+            return Rifiuta("Scegli almeno un'attesa da portare.");
+        var avvisi = new List<string>();
+        string gesto = scelte.Count == 1 ? $"attesa {scelte[0].Fix} dall'AIP {confronto.Ciclo}" : $"{scelte.Count} attese dall'AIP {confronto.Ciclo}";
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            int portate = 0;
+            avvisi.Clear();
+            var toccati = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var scelta in scelte)
+            {
+                if (!ProposteDelleAttese.TryGetValue(scelta.Fix, out var proposta))
+                {
+                    avvisi.Add($"{scelta.Fix}: non è fra le attese del confronto");
+                    continue;
+                }
+                if (proposta.Punto is not { } punto)
+                {
+                    avvisi.Add($"{scelta.Fix}: il sector non ha il punto");
+                    continue;
+                }
+                object esito;
+                string? file;
+                if (scelta.Scalo is null)
+                {
+                    if (scelta.Ovale)
+                    {
+                        avvisi.Add($"{scelta.Fix}: l'ovale in rotta non si scrive ancora (dove, lo decide il committente)");
+                        continue;
+                    }
+                    file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + Core.PdfAip.ConfrontoDiEnr3.FileDelleAttese, StringComparison.OrdinalIgnoreCase));
+                    if (file is null || sessione.File[file] is not IFileConRecord hold)
+                    {
+                        avvisi.Add($"{scelta.Fix}: nel sector non c'è HOLDENR.hold");
+                        continue;
+                    }
+                    if (Core.PdfAip.AtteseNelSector.RigaInRotta(proposta.Attesa, punto) is not { } riga)
+                    {
+                        avvisi.Add($"{scelta.Fix}: la quota «{proposta.Attesa.Minimum.Text}» non ha la forma di HOLDENR.hold");
+                        continue;
+                    }
+                    // In ordine di nome, come il file.
+                    var nome = $"HLD-{scelta.Fix}";
+                    int prima = hold.RecordDelModello.Select((r, i) => (r, i))
+                        .FirstOrDefault(x => x.r is Attesa a && string.CompareOrdinal(a.Nome, nome) > 0, (null!, hold.RecordDelModello.Count)).i;
+                    esito = Modifiche.AggiungiLeRighe(sessione.File[file], prima, [riga], $"{nome} dall'AIP", rigaVuota: false);
+                }
+                else
+                {
+                    if (proposta.Scali.FirstOrDefault(s => s.Icao.Equals(scelta.Scalo, StringComparison.OrdinalIgnoreCase)) is not { } scalo)
+                    {
+                        avvisi.Add($"{scelta.Fix}: {scelta.Scalo} non ha procedure che passano per il punto");
+                        continue;
+                    }
+                    file = scalo.File;
+                    // Già lì come attesa di scalo: un doppione no (105 delle 191 del 2610 sono così).
+                    if (((IFileConRecord)sessione.File[file]).RecordDelModello.OfType<StrRecord>()
+                        .Any(r => r.ProcedureId.Trim().Equals($"HLD-{scelta.Fix}", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        avvisi.Add($"{scelta.Fix}: {NomeDelFile(file)} ha già HLD-{scelta.Fix}");
+                        continue;
+                    }
+                    var a = proposta.Attesa;
+                    var ovale = scelta.Ovale ? Core.PdfAip.AtteseNelSector.Ovale(punto, a.InboundTrack, a.Turn, proposta.TrattoNm, Core.PdfAip.AtteseNelSector.Ias(a)) : null;
+                    var str = (IFileConRecord)sessione.File[file];
+                    esito = Modifiche.AggiungiLeRighe(sessione.File[file], str.RecordDelModello.Count, Core.PdfAip.AtteseNelSector.RigheDiProcedura(a, scalo, ovale), $"HLD-{a.Fix} dall'AIP");
+                }
+                if (esito is ModificaDelTesto)
+                {
+                    portate++;
+                    toccati.Add(file);
+                }
+                else if (esito is ModificaRifiutata rifiutata)
+                    avvisi.Add($"{scelta.Fix}: {rifiutata.Motivo}");
+            }
+            foreach (var f in toccati) RifaiLaGeometria(f);
+            Registro.Scrivi("aip", $"{gesto}: {portate} portate" + (avvisi.Count > 0 ? "; " + string.Join("; ", avvisi) : ""));
+            Rifiuto = avvisi.Count > 0 ? string.Join(" · ", avvisi) : null;
+            RicontrollaLeModifiche();
+            Avvisa();
+            return portate > 0;
+        });
+        if (fatto)
+            RifaiIlConfrontoDiEnr3();
+        return fatto;
+    }
+
+    /// <summary>
+    /// «Sostituisci» su un'attesa diversa (slice 2c): la descrizione di <c>HOLDENR.hold</c> riscritta con rotta
+    /// d'avvicinamento, virata e quota dell'attesa dell'AIP più somigliante (le tre del 19 ottobre: un grado di rotta).
+    /// </summary>
+    public bool SostituisciLAttesa(Core.PdfAip.DifferenzaDiEnr3 riga)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (Sessione is null || UltimoConfrontoDiEnr3 is not { Rotte: false } confronto || _aipDiEnr3?.Holdings is not { } attese)
+            return Rifiuta("Confronta le attese prima.");
+        if (riga is not { Esito: Core.PdfAip.EsitoDelConfronto.FormaDiversa, File: { } file, Record: { } record }
+            || Sessione.File.GetValueOrDefault(file) is not IFileConRecord hold || record >= hold.RecordDelModello.Count
+            || hold.RecordDelModello[record] is not Attesa suo)
+            return Rifiuta("Si sostituisce un'attesa di HOLDENR.hold diversa da quella dell'AIP.");
+        var vicina = attese.Where(a => a.Fix.Equals(riga.Nome, StringComparison.OrdinalIgnoreCase))
+            .MinBy(a => suo.Rotta is { } r ? Math.Min(Math.Abs(a.InboundTrack - r), 360 - Math.Abs(a.InboundTrack - r)) : 999);
+        if (vicina is null || Core.PdfAip.AtteseNelSector.Descrizione(vicina) is not { } descrizione)
+            return Rifiuta($"{riga.Nome}: l'attesa dell'AIP non ha una quota nella forma di HOLDENR.hold.");
+        bool fatto = CambiaCampo(file, record, nameof(Attesa.Descrizione), descrizione);
+        if (fatto)
+            RifaiIlConfrontoDiEnr3();
+        return fatto;
+    }
+
+    /// <summary>
+    /// «Porta nel sector» una rotta che il sector non ha (carta F6, slice 2c): il suo blocco in <c>itawlow.lairway</c>, in
+    /// ordine di nome, coi punti dell'AIP e un tag per tratto col verso e le quote dell'AIP, le sue etichette. Il blocco porta
+    /// la nota del ciclo e non <c>locked=si</c>: non è fatta a mano. I punti devono essere nel sector (fix, VOR, NDB).
+    /// </summary>
+    public bool PortaLaRotta(string nome)
+    {
+        if (Sessione is not { } sessione || UltimoConfrontoDiEnr3 is not { Rotte: true } confronto
+            || _aipDiEnr3?.Routes?.FirstOrDefault(r => r.Designator.Equals(nome, StringComparison.OrdinalIgnoreCase)) is not { } rotta)
+            return Rifiuta("Confronta le rotte prima: si porta una riga del confronto.");
+        if (rotta.Segments.Any(s => s.Discontinuity))
+            return Rifiuta($"{rotta.Designator} ha un'interruzione: si porta a mano, in due pezzi.");
+        var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + Core.PdfAip.ConfrontoDiEnr3.FileDelleAerovie, StringComparison.OrdinalIgnoreCase));
+        if (file is null)
+            return Rifiuta("Nel sector non c'è itawlow.lairway.");
+        var n = rotta.Designator;
+        var punti = rotta.Points.Select(p => p.Designator).ToList();
+        var tratti = rotta.Segments.Select(Core.PdfAip.ConfrontoDiEnr3.ChiaviDelTratto).ToList();
+        bool fatto = NellaStoria($"{n} portata dall'AIP {confronto.Ciclo}", () =>
+        {
+            var gesto = AerovieAMano.Nuova(RigheDiAdesso(file), n, punti, PuntoPerNome, tratti, $"AIP {confronto.Ciclo}");
+            if (!GestoSulTesto(file, "aerovia", f => gesto.Sostituzioni is null
+                    ? new ModificaRifiutata(gesto.Perche!)
+                    : Modifiche.CambiaRighe(f, gesto.Sostituzioni, $"{n} dall'AIP", anchiITag: true)))
+                return false;
+            var piano = EtichetteDelleAerovie.Piano(RigheDiAdesso(file), PuntoPerNome, SogliaDelleEtichette, solo: n);
+            if (!piano.Vuoto)
+                GestoSulTesto(file, "etichette", f => Modifiche.CambiaRighe(f, piano.Sostituzioni(RigheDiAdesso(file)), $"etichette di {n}"));
+            return true;
+        });
+        if (fatto)
+            RifaiIlConfrontoDiEnr3();
+        return fatto;
+    }
+
+    /// <summary>Dopo un gesto della slice 2c il confronto di ENR 3 si rifà sul sector di adesso.</summary>
+    private void RifaiIlConfrontoDiEnr3()
+    {
+        if (Sessione is not { } sessione || UltimoConfrontoDiEnr3 is not { } confronto || _aipDiEnr3 is not { } aip)
+            return;
+        var catalogo = CatalogoScelto;
+        UltimoConfrontoDiEnr3 = (confronto.Ciclo, confronto.Rotte, confronto.Rotte
+            ? Core.PdfAip.ConfrontoDiEnr3.Rotte(aip.Routes ?? [], sessione, nome => catalogo?.Cerca(nome)?.Posizione)
+            : Core.PdfAip.ConfrontoDiEnr3.Attese(aip.Holdings ?? [], sessione));
+        Avvisa();
     }
 
     /// <summary>

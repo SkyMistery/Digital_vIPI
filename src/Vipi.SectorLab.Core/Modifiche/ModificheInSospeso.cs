@@ -1493,7 +1493,8 @@ public sealed class ModificheInSospeso
     /// <paramref name="prima"/>, dopo i commenti che lo precedono, con una riga vuota fra i due; in fondo al file se
     /// <paramref name="prima"/> è il numero dei record (F6 slice 1c, «Porta nel sector»). Riletto, il file ha un record in più.
     /// </summary>
-    public object AggiungiLeRighe(FileAperto file, int prima, IReadOnlyList<string> nuove, string gesto)
+    /// <param name="rigaVuota">Una riga vuota fra il record nuovo e quello dopo (no per i file di una riga a record, <c>HOLDENR.hold</c>).</param>
+    public object AggiungiLeRighe(FileAperto file, int prima, IReadOnlyList<string> nuove, string gesto, bool rigaVuota = true)
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(nuove);
@@ -1509,11 +1510,11 @@ public sealed class ModificheInSospeso
         if (prima < quanti)
         {
             int da = conRecord.PostiDeiRecord(sporchi)[prima].Da;
-            sostituzioni[da + 1] = [.. nuove, "", righe[da]];
+            sostituzioni[da + 1] = rigaVuota ? [.. nuove, "", righe[da]] : [.. nuove, righe[da]];
         }
         else
         {
-            sostituzioni[righe.Count] = string.IsNullOrWhiteSpace(righe[^1]) ? [righe[^1], .. nuove] : [righe[^1], "", .. nuove];
+            sostituzioni[righe.Count] = string.IsNullOrWhiteSpace(righe[^1]) || !rigaVuota ? [righe[^1], .. nuove] : [righe[^1], "", .. nuove];
         }
 
         var esito = CambiaRighe(file, sostituzioni, gesto,

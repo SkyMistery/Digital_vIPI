@@ -33,8 +33,16 @@ public sealed class ConfrontoDiEnr3Tests : IDisposable
         Upper = new VerticalLimit { Text = "FL195" }, Lower = new VerticalLimit { Text = "FL95" }, Odd = dispari, Even = pari,
     };
 
+    // I punti del sector: i fix delle rotte e delle attese inventate, ELKAP che sta nelle STAR di lirf.str.
+    private const string Fix = "AAAAA;N045.00.00.000;E009.00.00.000;3;\r\nBBBBB;N045.00.00.000;E009.30.00.000;3;\r\nCCCCC;N045.00.00.000;E010.00.00.000;3;\r\n"
+        + "DDDDD;N044.00.00.000;E009.00.00.000;3;\r\nFFFFF;N044.00.00.000;E010.00.00.000;3;\r\nGGGGG;N044.00.00.000;E010.30.00.000;3;\r\n"
+        + "XXXXX;N044.10.00.000;E009.10.00.000;3;\r\nELKAP;N042.10.00.000;E012.00.00.000;3;\r\nNUOVO;N043.00.00.000;E011.00.00.000;3;\r\n";
+
     private async Task ApriConAsync(string aerovie, string attese, AipDocument aip)
     {
+        // In coda ai fix che il master carica (APT.fix è nel suo .isc).
+        var apt = _albero.Percorso("SectorFiles/Include/IT/NAVAIDS/APT.fix");
+        _albero.Scrivi("SectorFiles/Include/IT/NAVAIDS/APT.fix", File.ReadAllText(apt).TrimEnd() + "\r\n" + Fix);
         _albero.Scrivi("SectorFiles/Include/IT/AIRWAY/itawlow.lairway", aerovie);
         _albero.Scrivi("SectorFiles/Include/IT/HOLDENR.hold", attese);
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
@@ -94,6 +102,8 @@ public sealed class ConfrontoDiEnr3Tests : IDisposable
             new Holding { Section = "ENR 3.4.1", Fix = "ABBOZ", Minimum = new VerticalLimit { Text = "9000" }, Turn = TurnDirection.Right, InboundTrack = 225 },
             new Holding { Section = "ENR 3.4.1", Fix = "ABRUS", Minimum = new VerticalLimit { Text = "3000" }, Turn = TurnDirection.Left, InboundTrack = 250 },
             new Holding { Section = "ENR 3.4.1", Fix = "NUOVO", Minimum = new VerticalLimit { Text = "FL110" }, Turn = TurnDirection.Left, InboundTrack = 90 },
+            new Holding { Section = "ENR 3.4.1", Fix = "ELKAP", Minimum = new VerticalLimit { Text = "5000" }, Turn = TurnDirection.Right, InboundTrack = 180,
+                          Remarks = "RNAV Holding - Outbound Leg 4NM\nIAS MAX 210kt" },
         ],
     };
 
@@ -139,6 +149,118 @@ public sealed class ConfrontoDiEnr3Tests : IDisposable
         Assert.Equal(EsitoDelConfronto.SoloNelSector, esiti["ALG"].Esito);
         Assert.Contains(esiti["ALG"].Dettagli, d => d.Contains("ENR 3.4.2", StringComparison.Ordinal));
         Assert.False(_lab.Modifiche.CEQualcosa);
+    }
+
+    // --- slice 2c: i gesti --------------------------------------------------------------------------------------------
+
+    private string[] Righe(string file) => [.. _lab.RigheDiAdesso("SectorFiles/Include/IT/" + file)];
+
+    [Fact]
+    public async Task ScriviITratti_NeiTagDelSector_ELeLockedNo()
+    {
+        await ApriConAsync(Aerovie, Attese, Modello());
+        Assert.True(await _lab.ConfrontaEnr3Async(rotte: true), _lab.Rifiuto);
+
+        // L1 è locked=si: l'import non la tocca.
+        Assert.False(_lab.ScriviITratti(["L1"]));
+        Assert.Contains("locked=si", _lab.Rifiuto, StringComparison.Ordinal);
+
+        Assert.True(_lab.ScriviITratti(["M2"]), _lab.Rifiuto);
+
+        var righe = Righe("AIRWAY/itawlow.lairway");
+        var tag = Assert.Single(righe, r => r.StartsWith("//@@\"FFFFF\"", StringComparison.Ordinal));
+        Assert.Contains("dir=both", tag, StringComparison.Ordinal);
+        Assert.Contains("lower=FL95", tag, StringComparison.Ordinal);
+        Assert.Contains("upper=FL195", tag, StringComparison.Ordinal);
+        var m2 = _lab.UltimoConfrontoDiEnr3!.Value.Esiti.Single(e => e.Nome == "M2");
+        Assert.Equal(0, m2.TrattiDaScrivere);
+        Assert.Contains("tratti: 1 in comune, 1 coi tag uguali all'AIP, 0 diversi, 0 senza tag nel sector", m2.Dettagli);
+        Assert.StartsWith("tratti di M2", _lab.DaAnnullare, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PortaLaRotta_IlBloccoCoiTratti_NonLocked()
+    {
+        await ApriConAsync(Aerovie, Attese, Modello());
+        Assert.True(await _lab.ConfrontaEnr3Async(rotte: true), _lab.Rifiuto);
+
+        Assert.True(_lab.PortaLaRotta("Q9"), _lab.Rifiuto);
+
+        var righe = Righe("AIRWAY/itawlow.lairway");
+        Assert.Contains("//@\"Q9\" note=\"AIP 2611\"", righe);
+        Assert.Contains("//@@\"AAAAA\" dir=both lower=FL95 upper=FL195", righe);
+        Assert.Contains("T;Q9;AAAAA;AAAAA;", righe);
+        Assert.Contains("T;Q9;DDDDD;DDDDD;", righe);
+        Assert.Equal(EsitoDelConfronto.Uguale, _lab.UltimoConfrontoDiEnr3!.Value.Esiti.Single(e => e.Nome == "Q9").Esito);
+    }
+
+    [Fact]
+    public async Task PortaLeAttese_DiProceduraConLOvale_InRottaLaScritta()
+    {
+        await ApriConAsync(Aerovie, Attese, Modello());
+        Assert.True(await _lab.ConfrontaEnr3Async(rotte: false), _lab.Rifiuto);
+        var elkap = _lab.ProposteDelleAttese["ELKAP"];
+        Assert.Equal("LIRF", elkap.Scali[0].Icao);
+        Assert.Equal((4.0, "4 NM dalle note dell'AIP"), (elkap.TrattoNm, elkap.Tratto));
+        Assert.Empty(_lab.ProposteDelleAttese["NUOVO"].Scali);
+
+        Assert.True(_lab.PortaLeAttese([new("ELKAP", "LIRF", Ovale: true), new("NUOVO", null, Ovale: false)]), _lab.Rifiuto);
+
+        var str = Righe("lirf.str");
+        var i = Array.FindIndex(str, r => r.EndsWith(";HLD-ELKAP; ; ;2;", StringComparison.Ordinal));
+        Assert.True(i > 0);
+        Assert.StartsWith("LIRF;" + elkap.Scali[0].Piste + ";HLD-ELKAP", str[i], StringComparison.Ordinal);
+        Assert.Equal(["//ELKAP", "ELKAP;ELKAP;"], str[(i + 1)..(i + 3)]);
+        Assert.StartsWith("N042.10.00.000;E012.00.00.000;", str[i + 3], StringComparison.Ordinal);
+        Assert.Equal(str[i + 3], str[i + 3 + 38]);
+        var hold = Righe("HOLDENR.hold");
+        Assert.Equal("HLD-NUOVO;N043.00.00.000;E011.00.00.000;NUOVO/090L-FL110;", hold[^1]);
+        // Rifatto il confronto: NUOVO c'è; ELKAP sta in lirf.str come attesa di scalo.
+        var esiti = _lab.UltimoConfrontoDiEnr3!.Value.Esiti.ToDictionary(e => e.Nome);
+        Assert.Equal(EsitoDelConfronto.Uguale, esiti["NUOVO"].Esito);
+        Assert.Contains(esiti["ELKAP"].Dettagli, d => d.Contains("attesa di scalo in lirf.str", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task PortaLeAttese_LOvaleInRotta_NonAncora()
+    {
+        await ApriConAsync(Aerovie, Attese, Modello());
+        Assert.True(await _lab.ConfrontaEnr3Async(rotte: false), _lab.Rifiuto);
+
+        Assert.False(_lab.PortaLeAttese([new("NUOVO", null, Ovale: true)]));
+
+        Assert.Contains("l'ovale in rotta", _lab.Rifiuto, StringComparison.Ordinal);
+        Assert.False(_lab.Modifiche.CEQualcosa);
+    }
+
+    [Fact]
+    public async Task SostituisciLAttesa_LaDescrizioneDellAip()
+    {
+        await ApriConAsync(Aerovie, Attese, Modello());
+        Assert.True(await _lab.ConfrontaEnr3Async(rotte: false), _lab.Rifiuto);
+
+        Assert.True(_lab.SostituisciLAttesa(_lab.UltimoConfrontoDiEnr3!.Value.Esiti.Single(e => e.Nome == "ABRUS")), _lab.Rifiuto);
+
+        Assert.Contains("HLD-ABRUS;N036.51.40.000;E012.09.54.000;ABRUS/250L-3000;", Righe("HOLDENR.hold"));
+        Assert.Equal(EsitoDelConfronto.Uguale, _lab.UltimoConfrontoDiEnr3!.Value.Esiti.Single(e => e.Nome == "ABRUS").Esito);
+    }
+
+    [Fact]
+    public void LOvale_ChiusoColTrattoEIlRaggio()
+    {
+        var punto = new Position(42.0, 12.0);
+
+        var ovale = AtteseNelSector.Ovale(punto, 180, TurnDirection.Right, 4, 210);
+
+        Assert.Equal(39, ovale.Count);
+        Assert.Equal(ovale[0], ovale[^1]);
+        Assert.Equal(punto.Lat, ovale[0].Lat, 4);
+        // A destra di una rotta verso sud c'è l'ovest: il lato opposto è a 2 raggi (210 kt: 1,11 NM) a ovest.
+        var raggio = 210.0 / 60 * 2 / (2 * Math.PI);
+        Assert.Equal(2 * raggio, global::Aip.Aurora.Sphere.DistanceNm(punto, ovale[18]), 2);
+        Assert.True(ovale[18].Lon < punto.Lon);
+        // L'inizio del tratto d'avvicinamento è 4 NM a nord.
+        Assert.Equal(4, global::Aip.Aurora.Sphere.DistanceNm(punto, ovale[^2]), 2);
     }
 
     [Fact]

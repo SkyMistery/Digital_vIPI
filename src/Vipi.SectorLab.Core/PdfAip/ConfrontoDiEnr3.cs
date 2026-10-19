@@ -14,7 +14,11 @@ namespace Vipi.SectorLab.Core.PdfAip;
 /// dicono le differenze. <paramref name="File"/>/<paramref name="Record"/>: la voce del sector da aprire (il primo pezzo
 /// della rotta, l'attesa), se c'è.
 /// </summary>
-public sealed record DifferenzaDiEnr3(EsitoDelConfronto Esito, string Nome, string? File, int? Record, IReadOnlyList<string> Dettagli);
+public sealed record DifferenzaDiEnr3(EsitoDelConfronto Esito, string Nome, string? File, int? Record, IReadOnlyList<string> Dettagli)
+{
+    /// <summary>Per una rotta: i tratti comuni senza tag o coi tag diversi dall'AIP, che «Scrivi i tratti» scriverebbe (slice 2c).</summary>
+    public int TrattiDaScrivere { get; init; }
+}
 
 /// <summary>
 /// Il confronto di ENR 3 col sector, in sola lettura (slice 2b).
@@ -77,6 +81,127 @@ public static class ConfrontoDiEnr3
         return [.. esiti.OrderBy(e => Ordine(e.Esito)).ThenBy(e => e.Nome, StringComparer.OrdinalIgnoreCase)];
     }
 
+    /// <summary>Un tratto da scrivere nei tag del sector (slice 2c): dove (record e punto che apre il tratto) e che cosa.</summary>
+    public sealed record TrattoDaScrivere(int Record, int Ordinale, string Da, string A, string? Verso, string? Inferiore, string? Superiore);
+
+    /// <summary>
+    /// I tratti della rotta da scrivere nei tag <c>//@@</c> del sector (slice 2c): sui lati che l'AIP e il sector hanno tutti
+    /// e due, quelli senza tag o coi tag diversi dall'AIP. <paramref name="bloccata"/>: l'aerovia è <c>locked=si</c> (B5,
+    /// l'import non la tocca) — allora nessun tratto. Null se il sector non ha l'aerovia.
+    /// </summary>
+    public static IReadOnlyList<TrattoDaScrivere>? TrattiDaScrivere(Route rotta, SessioneAperta sessione, out string? file, out bool bloccata)
+    {
+        ArgumentNullException.ThrowIfNull(rotta);
+        ArgumentNullException.ThrowIfNull(sessione);
+        bloccata = false;
+        file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + FileDelleAerovie, StringComparison.OrdinalIgnoreCase));
+        if (file is null || sessione.File[file] is not IFileConRecord aerovie) return null;
+
+        var lati = new Dictionary<string, (int Record, int Ordinale, string Da, string A, IReadOnlyDictionary<string, string> Tag)>(StringComparer.Ordinal);
+        for (var r = 0; r < aerovie.RecordDelModello.Count; r++)
+        {
+            if (aerovie.RecordDelModello[r] is not Airway a || !TrattiDelleAerovie.EUnPezzo(a)
+                || !string.Equals(a.Name.Trim(), rotta.Designator, StringComparison.OrdinalIgnoreCase)) continue;
+            if (aerovie.ChiaviDi(r) is { } chiavi && chiavi.TryGetValue("locked", out var l) && Metadati.Testo(l).Trim().Equals("si", StringComparison.OrdinalIgnoreCase))
+                bloccata = true;
+            var punti = aerovie.PuntiConTag(r);
+            for (var i = 0; i + 1 < punti.Count; i++)
+                lati.TryAdd(Lato(punti[i].Punto, punti[i + 1].Punto), (r, punti[i].Ordinale, punti[i].Punto, punti[i + 1].Punto, punti[i].Chiavi));
+        }
+        if (lati.Count == 0) return null;
+        if (bloccata) return [];
+
+        var daScrivere = new List<TrattoDaScrivere>();
+        for (var i = 0; i < rotta.Segments.Count; i++)
+        {
+            var t = rotta.Segments[i];
+            var (da, a) = (rotta.Points[i].Designator, rotta.Points[i + 1].Designator);
+            if (t.Discontinuity || !lati.TryGetValue(Lato(da, a), out var suo)) continue;
+            var atteso = Atteso(t, string.Equals(suo.Da, da, StringComparison.OrdinalIgnoreCase));
+            string? Tag(string k) => suo.Tag.TryGetValue(k, out var v) && Metadati.Testo(v).Trim() is { Length: > 0 } x ? x : null;
+            if (Uguale(atteso.Verso, Tag(TrattiDelleAerovie.Verso)) && Uguale(atteso.Inferiore, Tag(TrattiDelleAerovie.Inferiore))
+                && Uguale(atteso.Superiore, Tag(TrattiDelleAerovie.Superiore))) continue;
+            daScrivere.Add(new TrattoDaScrivere(suo.Record, suo.Ordinale, suo.Da, suo.A, atteso.Verso, atteso.Inferiore, atteso.Superiore));
+        }
+        return daScrivere;
+    }
+
+    /// <summary>
+    /// Le righe dei tag dei tratti da scrivere, sul testo del file com'è adesso (numero di riga da 1 → righe): un tag che c'è
+    /// già sopra il punto che apre il tratto si riscrive (le altre chiavi restano), se no se ne mette uno nuovo sopra di lui.
+    /// Così il gesto è una voce sola nel testo del file, non tre per tratto.
+    /// </summary>
+    public static Dictionary<int, IReadOnlyList<string>> RigheDeiTratti(IReadOnlyList<string> righe, string aerovia, IReadOnlyList<TrattoDaScrivere> tratti)
+    {
+        ArgumentNullException.ThrowIfNull(righe);
+        ArgumentNullException.ThrowIfNull(tratti);
+        var daScrivere = tratti.GroupBy(t => (t.Da.ToUpperInvariant(), t.A.ToUpperInvariant())).ToDictionary(g => g.Key, g => g.First());
+        var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+        foreach (var pezzo in RigheDelleAerovie.Leggi(righe, _ => null).Pezzi.Where(p => string.Equals(p.Aerovia, aerovia, StringComparison.OrdinalIgnoreCase)))
+        {
+            for (var i = 0; i + 1 < pezzo.Punti.Count; i++)
+            {
+                if (!daScrivere.TryGetValue((pezzo.Punti[i].Nome.ToUpperInvariant(), pezzo.Punti[i + 1].Nome.ToUpperInvariant()), out var t)) continue;
+                var riga = pezzo.Punti[i].Riga;
+                var sopra = riga - 2;
+                var nome = pezzo.Punti[i].Nome;
+                if (sopra >= 0 && righe[sopra].TrimStart().StartsWith($"//@@\"{nome}\"", StringComparison.Ordinal))
+                    sostituzioni[riga - 1] = [Tag(nome, t, righe[sopra])];
+                else
+                    sostituzioni[riga] = [Tag(nome, t, null), righe[riga - 1]];
+            }
+        }
+        return sostituzioni;
+    }
+
+    /// <summary>La riga del tag di un tratto: le chiavi di prima che non sono dir, lower, upper, poi quelle dell'AIP.</summary>
+    private static string Tag(string nome, TrattoDaScrivere t, string? prima)
+    {
+        static string Valore(string v) => v.Contains(' ', StringComparison.Ordinal) ? $"\"{v.Replace('"', '\'')}\"" : v;
+        var parti = new List<string>();
+        if (prima is not null)
+        {
+            var resto = prima.TrimStart()[$"//@@\"{nome}\"".Length..];
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(resto, "(?<k>[A-Za-z_]+)=(?<v>\"[^\"]*\"|\\S+)"))
+                if (m.Groups["k"].Value is not (TrattiDelleAerovie.Verso or TrattiDelleAerovie.Inferiore or TrattiDelleAerovie.Superiore))
+                    parti.Add(m.Value);
+        }
+        if (t.Verso is not null) parti.Add($"{TrattiDelleAerovie.Verso}={t.Verso}");
+        if (t.Inferiore is not null) parti.Add($"{TrattiDelleAerovie.Inferiore}={Valore(t.Inferiore)}");
+        if (t.Superiore is not null) parti.Add($"{TrattiDelleAerovie.Superiore}={Valore(t.Superiore)}");
+        return $"//@@\"{nome}\" {string.Join(" ", parti)}";
+    }
+
+    /// <summary>
+    /// Le chiavi del tag <c>//@@</c> di un tratto, nel verso dei punti dell'AIP (per una rotta portata nel sector con quei
+    /// punti in quell'ordine): <c>dir=fwd lower=FL95 upper=FL195</c>, le quote con gli spazi fra virgolette.
+    /// </summary>
+    public static string ChiaviDelTratto(RouteSegment t)
+    {
+        ArgumentNullException.ThrowIfNull(t);
+        var (verso, inferiore, superiore) = Atteso(t, stessoVerso: true);
+        static string Valore(string v) => v.Contains(' ', StringComparison.Ordinal) ? $"\"{v.Replace('"', '\'')}\"" : v;
+        var parti = new List<string>();
+        if (verso is not null) parti.Add($"{TrattiDelleAerovie.Verso}={verso}");
+        if (inferiore is not null) parti.Add($"{TrattiDelleAerovie.Inferiore}={Valore(inferiore)}");
+        if (superiore is not null) parti.Add($"{TrattiDelleAerovie.Superiore}={Valore(superiore)}");
+        return string.Join(" ", parti);
+    }
+
+    /// <summary>Verso e quote che l'AIP dà a un tratto, col verso rispetto all'ordine del file (B2: both, fwd, back).</summary>
+    private static (string? Verso, string? Inferiore, string? Superiore) Atteso(RouteSegment t, bool stessoVerso) =>
+    (
+        (t.Forward, t.Backward) switch
+        {
+            (true, true) => "both",
+            (true, false) => stessoVerso ? "fwd" : "back",
+            (false, true) => stessoVerso ? "back" : "fwd",
+            _ => null,
+        },
+        t.Lower?.Text,
+        t.Upper?.Text
+    );
+
     private static int Ordine(EsitoDelConfronto e) => e switch
     {
         EsitoDelConfronto.FormaDiversa => 0,
@@ -131,15 +256,7 @@ public static class ConfrontoDiEnr3
         {
             if (!latiSector.TryGetValue(chiave, out var suo)) continue;
             var t = rotta.Segments[indice];
-            var stessoVerso = string.Equals(suo.Da, da, StringComparison.OrdinalIgnoreCase);
-            var verso = (t.Forward, t.Backward) switch
-            {
-                (true, true) => "both",
-                (true, false) => stessoVerso ? "fwd" : "back",
-                (false, true) => stessoVerso ? "back" : "fwd",
-                _ => null,
-            };
-            var atteso = (Verso: verso, Inferiore: t.Lower?.Text, Superiore: t.Upper?.Text);
+            var atteso = Atteso(t, string.Equals(suo.Da, da, StringComparison.OrdinalIgnoreCase));
             string? Tag(string k) => suo.Tag.TryGetValue(k, out var v) && Metadati.Testo(v).Trim() is { Length: > 0 } x ? x : null;
             var scritto = (Verso: Tag(TrattiDelleAerovie.Verso), Inferiore: Tag(TrattiDelleAerovie.Inferiore), Superiore: Tag(TrattiDelleAerovie.Superiore));
             if (scritto is { Verso: null, Inferiore: null, Superiore: null })
@@ -175,7 +292,10 @@ public static class ConfrontoDiEnr3
             }
         }
 
-        return new DifferenzaDiEnr3(diversa ? EsitoDelConfronto.FormaDiversa : EsitoDelConfronto.Uguale, rotta.Designator, file, pezzi[0].Record, dettagli);
+        return new DifferenzaDiEnr3(diversa ? EsitoDelConfronto.FormaDiversa : EsitoDelConfronto.Uguale, rotta.Designator, file, pezzi[0].Record, dettagli)
+        {
+            TrattiDaScrivere = senzaTag + tratti.Count,
+        };
     }
 
     /// <summary>I punti dei pezzi del sector che stanno oltre il primo o l'ultimo punto dell'AIP, senza tornare nell'AIP.</summary>
