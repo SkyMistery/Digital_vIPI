@@ -155,4 +155,71 @@ public sealed class AipSullaMappaTests
         Assert.Contains(("Corridoio", "10 NM di ampiezza, 2 punti"), s.Voci[0].Campi);
         Assert.Contains(("Ente", "Brindisi SCCAM"), s.Voci[0].Campi);
     }
+    // Carta F7, slice 7c: le procedure di AD 2 sullo strato, un genere per tipo; i punti dall'AIP espanso stesso (ENR 4.4, punti
+    // di scalo, radioassistenze) e, se mancano, dal sector; un CA non ha posto; un punto che non si trova stacca la linea.
+    [Fact]
+    public void LeProcedure_UnaLineaPerIPuntiDellAip()
+    {
+        var sid = new Procedure
+        {
+            Aerodrome = "LIXX", Kind = ProcedureKind.Sid, Designator = "PROVA 1A", Runways = ["24"],
+            Legs =
+            [
+                new ProcedureLeg { PathTerminator = "CA", Altitude = "+410" },
+                new ProcedureLeg { PathTerminator = "CF", Fix = "XX601" },
+                new ProcedureLeg { PathTerminator = "TF", Fix = "PRV" },
+                new ProcedureLeg { PathTerminator = "TF", Fix = "SECTO" },
+                new ProcedureLeg { PathTerminator = "TF", Fix = "NESSUNO" },
+                new ProcedureLeg { PathTerminator = "TF", Fix = "XX601" },
+                new ProcedureLeg { PathTerminator = "TF", Fix = "PRV" },
+            ],
+        };
+        var prosa = sid with { Kind = ProcedureKind.Star, Designator = "PROSA 1A", Legs = [], Description = "Proceed via …" };
+        var aip = new AipDocument
+        {
+            State = "LI", Airspaces = [],
+            Points = [new SignificantPoint { Section = "AD 2 LIXX", Designator = "XX601", Position = A }],
+            Navaids = [new Navaid { Section = "ENR 4.1", Designator = "PRV", Name = "PROVA", Type = "VOR", Position = B, Components = [] }],
+            Procedures = [sid, prosa],
+        };
+
+        var strato = AipSullaMappa.Di(aip, "2611", nome => nome == "SECTO" ? new Coordinate(44.9, 9.4) : null);
+
+        // Le procedure stanno in fondo allo strato, dopo il punto e la radioassistenza.
+        var forma = strato.Strato.Forme[2];
+        Assert.Equal((AipSullaMappa.Sid, TipoDiForma.Linea), (forma.Genere, forma.Tipo));
+        Assert.Equal([3, 2], forma.Tratti.Select(t => t.Count));
+        Assert.Equal(new Coordinate(44.9, 9.4), forma.Tratti[0][2]);
+        Assert.Equal(["NESSUNO"], forma.NomiNonRisolti);
+        var voce = strato.Voci[2];
+        Assert.Equal("LIXX PROVA 1A RWY 24", voce.Titolo);
+        Assert.Equal("CA — +410", voce.Righe[0]);
+        Assert.Contains(voce.Campi, c => c.Valore.Contains("NESSUNO", StringComparison.Ordinal));
+        // La STAR in sola prosa: la scheda c'è, la linea no.
+        Assert.Equal(AipSullaMappa.Star, strato.Voci[3].Genere);
+        Assert.Empty(strato.Strato.Forme[3].Tratti);
+        Assert.Contains(strato.Voci[3].Campi, c => c.Valore.Contains("7b", StringComparison.Ordinal));
+    }
+
+    // Un RF è un arco attorno al suo centro, nel verso del tratto, e finisce esattamente sul punto.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void UnArcoRF_NelVersoGiusto(bool orario)
+    {
+        var centro = new Coordinate(45.0, 9.0);
+        var da = new Coordinate(45.0 + 2 / 60.0, 9.0);   // 2 NM a nord
+        var a = new Coordinate(45.0, 9.0 + 2 / 60.0 / Math.Cos(45 * Math.PI / 180)); // 2 NM a est
+
+        var punti = AipSullaMappa.Arco(da, a, centro, orario).ToList();
+
+        Assert.Equal(a, punti[^1]);
+        // Da nord a est in senso orario è un quarto di giro (18 punti ogni 5°); in senso antiorario tre quarti (54).
+        Assert.Equal(orario ? 18 : 54, punti.Count);
+        var k = Math.Cos(45 * Math.PI / 180);
+        Assert.All(punti, p => Assert.Equal(2 / 60.0, Math.Sqrt(Math.Pow((p.LongitudeDeg - 9.0) * k, 2) + Math.Pow(p.LatitudeDeg - 45.0, 2)), 6));
+        // A metà strada: in senso orario si passa a nord-est, in senso antiorario a sud-ovest.
+        var meta = punti[punti.Count / 2];
+        Assert.Equal(orario, meta.LatitudeDeg > 45.0 && meta.LongitudeDeg > 9.0);
+    }
 }

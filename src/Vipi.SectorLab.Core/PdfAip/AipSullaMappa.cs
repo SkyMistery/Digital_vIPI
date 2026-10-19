@@ -49,6 +49,10 @@ public static class AipSullaMappa
     public const string Luci = "Luci";
     public const string Pericoli = "Pericoli";
     public const string Scali = "Scali";
+    public const string Sid = "SID";
+    public const string Star = "STAR";
+    public const string Transizioni = "Transizioni";
+    public const string SaliteIniziali = "Salite iniziali";
 
     /// <summary>Il colore di ogni genere sulla mappa (i colori del Lab: lo strato è uno, i tipi no).</summary>
     public static readonly IReadOnlyDictionary<string, string> Colori = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -72,6 +76,10 @@ public static class AipSullaMappa
         [Luci] = "#d4a017",
         [Pericoli] = "#b0306a",
         [Scali] = "#3f5fa0",
+        [Sid] = "#d0662b",
+        [Star] = "#2b8fd0",
+        [Transizioni] = "#9a6fd0",
+        [SaliteIniziali] = "#c08a2b",
     };
 
     /// <summary>Vero se il «file» è quello di una forma dell'AIP.</summary>
@@ -149,10 +157,86 @@ public static class AipSullaMappa
             Puntuale(Voce(Scali, CorrectionKind.Aerodrome, scalo.Icao, "AD 2", scalo.Page, ("Nome", scalo.Name), ("Elevazione", scalo.Elevation),
                 ("Piste", string.Join(", ", scalo.Runways.Select(p => p.Designator))), ("Frequenze", scalo.Communications.Count.ToString(CultureInfo.InvariantCulture))), scalo.Arp);
 
+        // Le procedure di AD 2 (F7, slice 7c): una linea per i loro punti, che si cercano nell'AIP espanso stesso — ENR 4.4, i
+        // punti RNAV degli scali, le radioassistenze — e, se mancano, nel sector. Le convenzionali in sola prosa non hanno
+        // tratti: la scheda c'è, la linea no (verrà con la 7b).
+        var puntiDellAip = PuntiDellAip(aip);
+        Coordinate? Punto(string nome) => puntiDellAip.TryGetValue(nome, out var p) ? Coordinata(p) : puntoDelSector(nome);
+        foreach (var procedura in aip.Procedures ?? [])
+        {
+            var (tratti, nonRisolti) = Percorso(procedura, Punto);
+            Aggiungi(Voce(procedura, nonRisolti), TipoDiForma.Linea, tratti, nonRisolti);
+        }
+
         return new StratoDellAip(ciclo, new StratoDellaMappa(Tipo, forme), voci);
     }
 
     private static Coordinate Coordinata(Position p) => new(p.Lat, p.Lon);
+
+    /// <summary>Dove sta ogni punto con nome dell'AIP espanso: punti (ENR 4.4 e AD 2) e radioassistenze (ENR 4.1 e AD 2.19).</summary>
+    private static Dictionary<string, Position> PuntiDellAip(AipDocument aip)
+    {
+        var dove = new Dictionary<string, Position>(StringComparer.Ordinal);
+        foreach (var p in aip.Points ?? []) dove.TryAdd(p.Designator, p.Position);
+        foreach (var n in aip.Navaids ?? []) dove.TryAdd(n.Designator, n.Position);
+        foreach (var n in (aip.Aerodromes ?? []).SelectMany(s => s.NavigationAids)) dove.TryAdd(n.Designator, n.Position);
+        return dove;
+    }
+
+    /// <summary>
+    /// Il percorso di una procedura: i punti dei tratti in fila. Un tratto senza punto (CA: fino a una quota) non ha un posto
+    /// sulla mappa e si salta; un punto che non si trova stacca la penna e si dice; un RF si disegna come arco attorno al suo
+    /// centro, nel verso del tratto.
+    /// </summary>
+    internal static (IReadOnlyList<IReadOnlyList<Coordinate>> Tratti, IReadOnlyList<string> NonRisolti) Percorso(Procedure procedura, Func<string, Coordinate?> punto)
+    {
+        var pezzi = new List<IReadOnlyList<Coordinate>>();
+        var nonRisolti = new List<string>();
+        var pezzo = new List<Coordinate>();
+        foreach (var t in procedura.Legs)
+        {
+            if (t.Fix is null) continue;
+            if (punto(t.Fix) is not { } qui)
+            {
+                nonRisolti.Add(t.Fix);
+                if (pezzo.Count > 1) pezzi.Add(pezzo);
+                pezzo = [];
+                continue;
+            }
+            if (t.PathTerminator == "RF" && pezzo.Count > 0 && t.ArcCenter is { } c && punto(c) is { } centro)
+                pezzo.AddRange(Arco(pezzo[^1], qui, centro, orario: t.Turn == "R"));
+            else
+                pezzo.Add(qui);
+        }
+        if (pezzo.Count > 1) pezzi.Add(pezzo);
+        return (pezzi, nonRisolti.Distinct().ToList());
+    }
+
+    /// <summary>
+    /// Un arco da <paramref name="da"/> ad <paramref name="a"/> attorno a <paramref name="centro"/>, un punto ogni 5°, in piano
+    /// (equirettangolare attorno al centro: per archi di qualche miglio basta). Il raggio passa da quello dell'inizio a quello
+    /// della fine, così l'arco finisce esattamente sul punto.
+    /// </summary>
+    internal static IEnumerable<Coordinate> Arco(Coordinate da, Coordinate a, Coordinate centro, bool orario)
+    {
+        var k = Math.Cos(centro.LatitudeDeg * Math.PI / 180);
+        (double X, double Y) Piano(Coordinate p) => ((p.LongitudeDeg - centro.LongitudeDeg) * k, p.LatitudeDeg - centro.LatitudeDeg);
+        var (x0, y0) = Piano(da);
+        var (x1, y1) = Piano(a);
+        double r0 = Math.Sqrt(x0 * x0 + y0 * y0), r1 = Math.Sqrt(x1 * x1 + y1 * y1);
+        // Angoli matematici (antiorari); un arco orario va verso angoli che calano.
+        double t0 = Math.Atan2(y0, x0), t1 = Math.Atan2(y1, x1);
+        var ampiezza = orario ? t0 - t1 : t1 - t0;
+        while (ampiezza <= 0) ampiezza += 2 * Math.PI;
+        var passi = Math.Max(2, (int)Math.Ceiling(ampiezza / (5 * Math.PI / 180)));
+        for (var i = 1; i <= passi; i++)
+        {
+            var f = (double)i / passi;
+            var t = orario ? t0 - ampiezza * f : t0 + ampiezza * f;
+            var r = r0 + (r1 - r0) * f;
+            yield return i == passi ? a : new Coordinate(centro.LatitudeDeg + r * Math.Sin(t), centro.LongitudeDeg + r * Math.Cos(t) / k);
+        }
+    }
 
     /// <summary>La voce di un oggetto puntuale: la sezione, i campi che ci sono, la pagina.</summary>
     private static VoceDellAip Voce(string genere, CorrectionKind tipo, string chiave, string sezione, AipPage? pagina, params (string Nome, string? Valore)[] campi)
@@ -232,6 +316,41 @@ public static class AipSullaMappa
                       + $" · MNM {t.MinimumOdd ?? "—"}/{t.MinimumEven ?? "—"}{(t.Remarks is { } note ? $" · {note}" : "")}");
         }
         return new VoceDellAip(Rotte, r.Designator, campi, righe, CorrectionKind.Route, r.Designator);
+    }
+
+    /// <summary>Il genere di una procedura sulla mappa.</summary>
+    public static string Genere(ProcedureKind genere) => genere switch
+    {
+        ProcedureKind.Sid => Sid,
+        ProcedureKind.Star => Star,
+        ProcedureKind.Transition => Transizioni,
+        _ => SaliteIniziali,
+    };
+
+    private static VoceDellAip Voce(Procedure p, IReadOnlyList<string> nonRisolti)
+    {
+        var campi = new List<(string, string)> { ("Scalo", p.Aerodrome) };
+        if (p.Runways.Count > 0) campi.Add(("Piste", string.Join(", ", p.Runways)));
+        if (p.Section is { } sezione) campi.Add(("Sezione", sezione));
+        if (p.Description is { } prosa) campi.Add(("Descrizione", prosa.Replace('\n', ' ')));
+        if (p.Minimums is { } minime) campi.Add(("Minime", minime.Replace('\n', ' ')));
+        if (p.Remarks is { } note) campi.Add(("Note", note.Replace('\n', ' ')));
+        campi.Add(("Pagina", Pagina(p.Page)));
+        if (p.Legs.Count == 0)
+            campi.Add(("⚠", "solo prosa: i tratti verranno con la slice 7b, sulla mappa non c'è"));
+        else if (nonRisolti.Count > 0)
+            campi.Add(("⚠", $"punti che non si trovano (né nell'AIP espanso né nel sector): {string.Join(", ", nonRisolti)}"));
+        var righe = p.Legs.Select(t => string.Join(' ', new[]
+        {
+            t.PathTerminator, t.Fix ?? "—", t.FlyOver ? "(fly-over)" : null,
+            t.Course is { } c ? $"{c}{(t.TrueCourse is { } v ? $" ({v})" : "")}" : null,
+            t.DistanceNm is { } d ? $"{d.ToString("0.0", CultureInfo.InvariantCulture)} NM" : null,
+            t.Turn is { } verso ? $"virata {verso}" : null,
+            t.ArcCenter is { } centro ? $"centro {centro} r {t.ArcRadiusNm?.ToString("0.0", CultureInfo.InvariantCulture)} NM" : null,
+            t.Altitude, t.Speed is { } v2 ? $"{v2} kt" : null, t.Navigation, t.Notes,
+        }.OfType<string>())).ToList();
+        var titolo = $"{p.Aerodrome} {p.Designator}{(p.Kind == ProcedureKind.InitialClimb && p.Runways.Count == 0 ? "" : p.Runways.Count > 0 && p.Kind != ProcedureKind.InitialClimb ? $" RWY {string.Join("/", p.Runways)}" : "")}";
+        return new VoceDellAip(Genere(p.Kind), titolo, campi, righe);
     }
 
     private static VoceDellAip Voce(Holding h, bool disegnata)

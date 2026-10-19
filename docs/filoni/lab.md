@@ -4,13 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F7, SID e STAR (slice 7a fatta)
+## Dove siamo — 19 ottobre 2026: F7, SID e STAR (slice 7a e 7c fatte)
 
 Il committente ha chiesto SID e STAR (il confronto col sector delle parti nuove della F6 è rimandato) e ha approvato la
 carta [`2026-10-19-f7-sid-e-star.md`](../feature/2026-10-19-f7-sid-e-star.md) (D1-D7 come proposte). **Slice 7a fatta**:
 il modello `Procedure` e l'importer dei file 4 e 6 di AD 2 — 437 procedure, 2 021 tratti, 217 punti RNAV di scalo dai 5
 scali, zero segnalazioni di lettura; controprova con pdfplumber; 3 punti stampati male nell'AIP (RF407, RN534, RN544).
-Registrato: PR #10 dell'AIP espanso di prova. **Prossima: 7c**, le procedure sulla mappa.
+Registrato: PR #10 dell'AIP espanso di prova. **Slice 7c fatta**: le procedure sullo strato «AIP espanso» (SID, STAR,
+transizioni, salite iniziali; gli archi RF come archi), la scheda coi tratti; sul banco 313 disegnate, 124 in sola prosa.
+**Prossima: 7d**, il confronto col sector.
 
 ## 19 ottobre 2026: F6, le correzioni dell'AIP espanso finite (slice 1-3)
 
