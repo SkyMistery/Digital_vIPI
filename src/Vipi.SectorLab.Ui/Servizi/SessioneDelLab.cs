@@ -4337,6 +4337,47 @@ public sealed class SessioneDelLab
         }
     }
 
+    /// <summary>L'ultimo confronto di ENR 4 (slice 3b): il ciclo, se erano le radioassistenze o i punti, e le righe.</summary>
+    public (string Ciclo, bool Radioassistenze, IReadOnlyList<Core.PdfAip.DifferenzaDiEnr4> Esiti)? UltimoConfrontoDiEnr4 { get; private set; }
+
+    /// <summary>
+    /// «Confronta le radioassistenze» / «i punti» (carta F6, slice 3b): ENR 4.1 dell'AIP espanso coi <c>.vor</c> e i
+    /// <c>.ndb</c>, o ENR 4.4 coi <c>.fix</c>. In sola lettura.
+    /// </summary>
+    public async Task<bool> ConfrontaEnr4Async(bool radioassistenze)
+    {
+        if (Sessione is not { } sessione)
+            return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
+        if (CartellaDellAipEspanso is not { } espanso)
+            return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
+        var ciclo = UltimoAipEspanso?.Ciclo
+                    ?? (Directory.Exists(espanso)
+                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
+                        : null);
+        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
+            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        try
+        {
+            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            if ((radioassistenze ? modello.Navaids?.Count : modello.Points?.Count) is not > 0)
+                return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha {(radioassistenze ? "radioassistenze" : "punti")}: servono i PDF di ENR 4 letti.");
+            var esiti = await Task.Run(() => radioassistenze
+                ? Core.PdfAip.ConfrontoDiEnr4.Radioassistenze(modello.Navaids!, sessione)
+                : Core.PdfAip.ConfrontoDiEnr4.Punti(modello.Points!, sessione)).ConfigureAwait(false);
+            UltimoConfrontoDiEnr4 = (ciclo, radioassistenze, esiti);
+            Registro.Scrivi("aip", $"confronto {(radioassistenze ? "radioassistenze" : "punti")}, ciclo {ciclo}: "
+                + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")) + $", uso diverso {esiti.Count(e => e.UsoDiverso)}");
+            Rifiuto = null;
+            Avvisa();
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or global::Aip.AipJsonException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
+        }
+    }
+
     /// <summary>Il modello da cui viene <see cref="UltimoConfrontoDiEnr3"/>: i gesti della slice 2c ne prendono rotte e attese.</summary>
     private global::Aip.AipDocument? _aipDiEnr3;
 

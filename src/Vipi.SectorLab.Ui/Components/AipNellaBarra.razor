@@ -288,6 +288,40 @@
                     </ul>
                 }
             </div>
+            @* Slice 3b: ENR 4 — le radioassistenze coi .vor e i .ndb, i punti coi .fix. In sola lettura. *@
+            <div data-confronto-enr4>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-radioassistenze" disabled="@(Lab.Sessione is null)"
+                        title="Le radioassistenze di ENR 4.1 dell'AIP espanso contro i .vor e i .ndb: posizione (0,1 NM), frequenza, canale TACAN (sola lettura)"
+                        @onclick="() => ConfrontaEnr4(true)">Confronta le radioassistenze</button>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="confronta-punti" disabled="@(Lab.Sessione is null)"
+                        title="I punti di ENR 4.4 contro i .fix: posizione (0,1 NM); in itfix.fix anche l'uso e il FRA (sola lettura)"
+                        @onclick="() => ConfrontaEnr4(false)">i punti</button>
+                @if (Lab.UltimoConfrontoDiEnr4 is { } enr4)
+                {
+                    <p class="lab-nota" data-riassunto-enr4>@(enr4.Radioassistenze ? "Radioassistenze" : "Punti"), ciclo @enr4.Ciclo: @string.Join(" · ", enr4.Esiti.GroupBy(e => e.Esito).Select(g => $"{Esito(g.Key)} {g.Count()}"))@(enr4.Esiti.Count(e => e.UsoDiverso) is > 0 and var uso ? $" · uso diverso {uso}" : "")</p>
+                    <ul class="lab-elenco-lotto">
+                        @foreach (var e in enr4.Esiti.Where(e => e.Esito != Esiti.Uguale || e.UsoDiverso))
+                        {
+                            <li class="lab-nota" data-enr4="@(e.UsoDiverso ? "UsoDiverso" : e.Esito.ToString())">
+                                @{ var etichetta = e.UsoDiverso ? "uso diverso" : Esito(e.Esito); }
+                                @if (e.File is { } file && e.Record is { } record)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" title="Apre la voce del sector" @onclick="() => Lab.Scegli(file, record)">@etichetta</button>
+                                }
+                                else
+                                {
+                                    <strong>@etichetta</strong>
+                                }
+                                @e.Nome
+                                @foreach (var d in e.Dettagli)
+                                {
+                                    <span class="lab-nota" data-dettaglio-enr4>@d</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
         }
         @if (_rifiuto is not null)
         {
@@ -321,6 +355,8 @@
     private async Task Registra() => _rifiuto = await Lab.RegistraLAipAsync(Lab.MessaggioDellAip) ? null : Lab.Rifiuto;
 
     private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
+
+    private async Task ConfrontaEnr4(bool radioassistenze) => _rifiuto = await Lab.ConfrontaEnr4Async(radioassistenze) ? null : Lab.Rifiuto;
 
     private async Task ConfrontaEnr3(bool rotte)
     {

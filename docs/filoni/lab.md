@@ -4,13 +4,20 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 3a fatta (l'importer di ENR 4)
+## Dove siamo — 19 ottobre 2026: F6, slice 3b fatta (il confronto di ENR 4)
+
+**Slice 3b fatta**: «Confronta le radioassistenze» (ENR 4.1 contro `.vor` e `.ndb`: posizione, frequenza, canale TACAN)
+e «i punti» (ENR 4.4 contro i `.fix`; in `itfix.fix` anche uso e FRA), in sola lettura. Sulla copia: radioassistenze 53
+uguali, 2 diverse (ELB e PNZ, il canale TACAN), 93 solo nel sector (di scalo o estere); punti 1 254 uguali su 1 254, 2
+solo in `itfix.fix` (NANKA, TEMRI), 4 con l'uso diverso. Carta F6 §6. **Prossima: 3c**, i gesti.
+
+## 19 ottobre 2026: F6, slice 3a fatta (l'importer di ENR 4)
 
 **Slice 3a fatta**: le radioassistenze di ENR 4.1 (55 su 56: 38 in rotta e 17 militari, ognuna coi suoi apparati,
 posizioni e orari), i 1 254 punti di ENR 4.4 e le 11 luci di ENR 4.5 nel modello (`Navaid`, `SignificantPoint`,
 `GroundLight`) e nell'AIP espanso: PR #4. Le righe di ENR 4 si tagliano coi **bordi orizzontali** (`PdfText` ora li
 legge). Controprova con pdfplumber: coordinate uguali tutte. **GRO** (DVOR di Grosseto) non entra: l'AIP non ne stampa
-le coordinate. Carta F6 §6. **Prossima: 3b**, il confronto col sector in sola lettura.
+le coordinate. Il committente: PR #4 fusa, GRO non si segnala. Carta F6 §6.
 
 ## 19 ottobre 2026: F6, slice 2c fatta (i gesti di ENR 3)
 
