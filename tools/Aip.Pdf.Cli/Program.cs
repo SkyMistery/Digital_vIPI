@@ -41,6 +41,8 @@ var radioassistenze = new List<Navaid>();
 var punti = new List<SignificantPoint>();
 var luci = new List<GroundLight>();
 var scali = new List<Aerodrome>();
+var pericoli = new List<Hazard>();
+var smac = new List<MinimumAltitudeArea>();
 var esito = 0;
 // In ordine di nome: ENR 4 prima di ENR 5, che ne usa i punti (le AAR di ENR 5.2.2.1).
 var risolvi = ItalianEnr5Zone.Risolutore(radioassistenze, punti);
@@ -71,6 +73,8 @@ foreach (var f in file.OrderBy(Path.GetFileName, StringComparer.Ordinal))
     punti.AddRange(letto.Points);
     luci.AddRange(letto.Lights);
     scali.AddRange(letto.Aerodromes);
+    pericoli.AddRange(letto.Hazards);
+    smac.AddRange(letto.MinimumAltitudes);
     var date = letto.Pages.GroupBy(p => p.Effective).OrderBy(g => g.Key)
         .Select(g => $"{(g.Key is { } d ? d.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant() : "senza data")} ×{g.Count()}");
     Console.WriteLine($"{Path.GetFileName(f)}: {letto.Pages.Count} pagine ({string.Join(", ", date)}), "
@@ -80,7 +84,9 @@ foreach (var f in file.OrderBy(Path.GetFileName, StringComparer.Ordinal))
         + (letto.Navaids.Count > 0 ? $", {letto.Navaids.Count} radioassistenze" : "")
         + (letto.Points.Count > 0 ? $", {letto.Points.Count} punti" : "")
         + (letto.Lights.Count > 0 ? $", {letto.Lights.Count} luci" : "")
-        + (letto.Aerodromes.Count > 0 ? $", scalo {string.Join(" ", letto.Aerodromes.Select(s => s.Icao))}" : ""));
+        + (letto.Aerodromes.Count > 0 ? $", scalo {string.Join(" ", letto.Aerodromes.Select(s => s.Icao))}" : "")
+        + (letto.Hazards.Count > 0 ? $", {letto.Hazards.Count} pericoli" : "")
+        + (letto.MinimumAltitudes.Count > 0 ? $", {letto.MinimumAltitudes.Count} settori SMAC" : ""));
     foreach (var g in letto.Airspaces.GroupBy(a => a.Geometry.GetType().Name).OrderBy(g => g.Key))
         Console.WriteLine($"    {g.Key}: {g.Count()}");
     foreach (var g in letto.Issues.GroupBy(p => p.Kind).OrderBy(g => g.Key))
@@ -119,6 +125,12 @@ foreach (var f in file.OrderBy(Path.GetFileName, StringComparer.Ordinal))
             foreach (var q in s.Communications)
                 Console.WriteLine($"        FREQ {q.Service} | {q.CallSign} | {q.Frequency} | {q.Hours} | {q.Remarks?.Replace('\n', ' ')}");
         }
+    if (elenco)
+        foreach (var h in letto.Hazards)
+            Console.WriteLine($"      {h.Kind} {h.Name} | {h.Position.Lat:0.00000} {h.Position.Lon:0.00000} | raggio {h.Radius?.Value} {h.Radius?.Unit} | {h.Vertical} | {h.Hours} | {h.Remarks?.Replace('\n', ' ')}");
+    if (elenco)
+        foreach (var m in letto.MinimumAltitudes)
+            Console.WriteLine($"      SMAC {m.Aerodrome} {m.Minimum.Text} {m.Name} | {m.Geometry.GetType().Name} | p.{m.Page?.Reference}");
     if (dettagli)
         foreach (var p in letto.Issues)
             Console.WriteLine($"      {p.Kind} p.{p.Page} {p.Key} {p.Detail}".TrimEnd());
@@ -128,11 +140,11 @@ var doc = new AipDocument
 {
     State = ItalianAip.State, Airac = airac, Airspaces = aree, Routes = rotte.Count == 0 ? null : rotte, Holdings = attese.Count == 0 ? null : attese,
     Navaids = radioassistenze.Count == 0 ? null : radioassistenze, Points = punti.Count == 0 ? null : punti, Lights = luci.Count == 0 ? null : luci,
-    Aerodromes = scali.Count == 0 ? null : scali,
+    Aerodromes = scali.Count == 0 ? null : scali, Hazards = pericoli.Count == 0 ? null : pericoli, MinimumAltitudes = smac.Count == 0 ? null : smac,
 };
 foreach (var p in AipCheck.Run(doc))
     Console.WriteLine($"modello: {p.Kind} {p.Key} {p.Detail}".TrimEnd());
-Console.WriteLine($"Totale: {aree.Count} aree, {rotte.Count} rotte, {attese.Count} attese, {radioassistenze.Count} radioassistenze, {punti.Count} punti, {luci.Count} luci, {scali.Count} scali da {file.Count} file.");
+Console.WriteLine($"Totale: {aree.Count} aree, {rotte.Count} rotte, {attese.Count} attese, {radioassistenze.Count} radioassistenze, {punti.Count} punti, {luci.Count} luci, {scali.Count} scali, {pericoli.Count} pericoli, {smac.Count} settori SMAC da {file.Count} file.");
 
 if (uscita is not null)
 {

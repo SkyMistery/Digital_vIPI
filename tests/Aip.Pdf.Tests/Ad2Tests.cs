@@ -151,6 +151,42 @@ public sealed class Ad2Tests
         Assert.DoesNotContain(r.Issues, i => i.Kind == ImportIssueKind.Navaid);
     }
 
+    /// <summary>
+    /// La carta ATC SMAC: un settore, uno col nome e i rimandi («3000/4000 (5) NORTH-EAST») che continua nella pagina dopo
+    /// con la quota ripetuta, e la nota «REMARK» in fondo che non è geometria.
+    /// </summary>
+    [Fact]
+    public void LaSmac_ISettoriConLaQuotaIlNomeEIlSeguito()
+    {
+        double[] c = [52, 202, 565];
+        var uno = new Pagina(c, [100, 130, 145, 210, 260],
+        [
+            .. Testa("AD 2 LIXX 8 - 3"), (60, 80, "ATC SURVEILLANCE MINIMUM ALTITUDE CHART"), (56, 110, "Minimum Altitudes/Levels"),
+            (56, 132, "1"), (206, 132, "2"),
+            (56, 150, "2000FT"), (206, 150, "Line joining following points:"), (206, 160, "45°00'00\"N 009°00'00\"E"),
+            (206, 170, "45°00'00\"N 009°10'00\"E"), (206, 180, "45°10'00\"N 009°10'00\"E"), (206, 190, "45°00'00\"N 009°00'00\"E"),
+            (56, 215, "3000/4000 (5) NORTH-EAST"), (206, 215, "Line joining following points:"), (206, 225, "45°20'00\"N 009°00'00\"E"),
+            (206, 235, "45°20'00\"N 009°10'00\"E"),
+        ]);
+        var due = new Pagina(c, [100, 130, 145, 220],
+        [
+            .. Testa("AD 2 LIXX 8 - 4"), (56, 110, "Minimum Altitudes/Levels"), (56, 132, "1"), (206, 132, "2"),
+            (56, 150, "3000/4000 (5) NORTH-EAST"), (206, 150, "45°30'00\"N 009°10'00\"E"), (206, 160, "45°20'00\"N 009°00'00\"E"),
+            (206, 180, "REMARK"), (206, 190, "2000FT EXCLUDED"),
+        ]);
+        var pagine = PdfText.Read(Enr4Tests.Pdf(uno, due));
+
+        Assert.True(ItalianAd2.ESmac(pagine));
+        var r = ItalianAd2.ReadSmac(pagine, "LIXX");
+
+        Assert.Equal(["2000FT", "3000/4000"], r.MinimumAltitudes.Select(m => m.Minimum.Text));
+        var ne = r.MinimumAltitudes[1];
+        Assert.Equal(("LIXX", "NORTH-EAST", "(5)"), (ne.Aerodrome, ne.Name, ne.NoteRefs));
+        Assert.Equal(3, Assert.IsType<RingGeometry>(ne.Geometry).Segments.Count);
+        Assert.Equal("AD 2 LIXX 8-3", ne.Page?.Reference);
+        Assert.Empty(r.Issues);
+    }
+
     [Fact]
     public void LIls_IlLocalizzatoreEGliApparatiSotto_FinoAUnaSiglaDiversa()
     {

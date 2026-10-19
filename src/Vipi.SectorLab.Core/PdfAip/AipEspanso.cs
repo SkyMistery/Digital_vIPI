@@ -39,6 +39,12 @@ public sealed record EsitoDellAipEspanso(
     /// <summary>Gli scali di AD 2 letti (slice 5).</summary>
     public int Scali { get; init; }
 
+    /// <summary>I pericoli puntuali di ENR 5.3 letti.</summary>
+    public int Pericoli { get; init; }
+
+    /// <summary>I settori delle carte ATC SMAC di AD 2 letti.</summary>
+    public int SettoriSmac { get; init; }
+
     /// <summary>Quel che si è letto, in parole: «870 aree, 29 rotte, 413 attese, 55 radioassistenze…» (le voci a zero no).</summary>
     public string Quanti() => string.Join(", ", new[]
     {
@@ -49,6 +55,8 @@ public sealed record EsitoDellAipEspanso(
         Punti > 0 ? $"{Punti} punti" : null,
         Luci > 0 ? $"{Luci} luci" : null,
         Scali > 0 ? $"{Scali} scali" : null,
+        Pericoli > 0 ? $"{Pericoli} pericoli" : null,
+        SettoriSmac > 0 ? $"{SettoriSmac} settori SMAC" : null,
     }.OfType<string>());
 }
 
@@ -92,6 +100,8 @@ public static class AipEspanso
         var punti = new List<SignificantPoint>();
         var luci = new List<GroundLight>();
         var scali = new List<Aerodrome>();
+        var pericoli = new List<Hazard>();
+        var smac = new List<MinimumAltitudeArea>();
         var letti = new List<string>();
         var nonAncora = new List<string>();
         var illeggibili = new List<string>();
@@ -138,6 +148,8 @@ public static class AipEspanso
             punti.AddRange(letto.Points);
             luci.AddRange(letto.Lights);
             scali.AddRange(letto.Aerodromes);
+            pericoli.AddRange(letto.Hazards);
+            smac.AddRange(letto.MinimumAltitudes);
             pagine.AddRange(letto.Pages);
             problemi.AddRange(letto.Issues.Select(p => new ProblemaDellImport(nome, p)));
         }
@@ -154,6 +166,8 @@ public static class AipEspanso
             Points = punti.Count == 0 ? null : punti,
             Lights = luci.Count == 0 ? null : luci,
             Aerodromes = scali.Count == 0 ? null : scali,
+            Hazards = pericoli.Count == 0 ? null : pericoli,
+            MinimumAltitudes = smac.Count == 0 ? null : smac,
         };
 
         var scritto = File(espanso, ciclo);
@@ -173,6 +187,8 @@ public static class AipEspanso
             Punti = punti.Count,
             Luci = luci.Count,
             Scali = scali.Count,
+            Pericoli = pericoli.Count,
+            SettoriSmac = smac.Count,
         };
     }
 

@@ -184,9 +184,42 @@ public sealed class Enr3Tests
     [Fact]
     public void IFileSiRiconosconoDalNome()
     {
-        // Un nome di ENR 3.4.2 (le radioassistenze) non è ancora letto: lo dice, non tace.
-        var letto = ItalianAip.ReadFile(Path.Combine(Path.GetTempPath(), "LI-ENR 3.4.2.pdf"));
+        // Un nome di ENR 3.4.3 (che non c'è fra i PDF) non si legge: lo dice, non tace.
+        var letto = ItalianAip.ReadFile(Path.Combine(Path.GetTempPath(), "LI-ENR 3.4.3.pdf"));
 
         Assert.Equal(ImportIssueKind.Unsupported, Assert.Single(letto.Issues).Kind);
+    }
+
+    /// <summary>
+    /// ENR 3.4.2: la sigla col tipo e sotto il nome fra parentesi, quota · virata · rotta, le rotte e procedure interessate,
+    /// le note; i rimandi anche sulla riga della quota («5000 (1)», CHI); una radioassistenza senza attese (AHO) non dà niente.
+    /// </summary>
+    private static ImportResult AtteseSulleRadioassistenze() => ItalianEnr3.ReadNavaidHoldings(
+    [
+        Pagina(1, AtteseDispari, "ENR 3.4.2 - 1", "03 SEP 2026", 0,
+        [
+            .. TestataDelleAttese,
+            (54, 170, "AEA VOR/DME"), (54, 178, "(Alghero)"), (110, 170, "4000"), (230, 170, "L"), (275, 170, "048°"),
+            (310, 170, "EA star"), (310, 178, "EA sid"), (350, 170, "1.IAS MAX 210kt"), (114, 178, "(1)"),
+            (110, 200, "4000"), (230, 200, "R"), (275, 200, "176°"), (114, 208, "(2)"),
+            (54, 240, "AHO TACAN"), (54, 248, "(Alghero)"), (310, 240, "EA star"),
+            (54, 280, "CHI VOR/DME"), (54, 288, "(Chioggia)"), (110, 280, "5000 (1)"), (230, 280, "R"), (275, 280, "329°"),
+            (310, 280, "L612"), (310, 288, "M859"), (350, 280, "1.IAS MAX 210kt"),
+        ]),
+    ]);
+
+    [Fact]
+    public void LeAtteseSulleRadioassistenze_ConIlTipoLeRotteInteressateEIRimandi()
+    {
+        var letto = AtteseSulleRadioassistenze();
+        var a = letto.Holdings;
+
+        Assert.Equal(["AEA", "AEA", "CHI"], a.Select(h => h.Fix));
+        Assert.All(a, h => Assert.Equal(("ENR 3.4.2", "VOR/DME", (string?)null), (h.Section, h.FixType, h.Bearing)));
+        Assert.Equal(("4000", TurnDirection.Left, 48, "(1)"), (a[0].Minimum.Text, a[0].Turn, a[0].InboundTrack, a[0].NoteRefs));
+        Assert.Equal(("EA star\nEA sid", "1.IAS MAX 210kt"), (a[0].Affected, a[0].Remarks));
+        Assert.Equal(("(2)", 176), (a[1].NoteRefs, a[1].InboundTrack));
+        Assert.Equal(("5000", "(1)", 329, "L612\nM859"), (a[2].Minimum.Text, a[2].NoteRefs, a[2].InboundTrack, a[2].Affected));
+        Assert.DoesNotContain(letto.Issues, p => p.Kind == ImportIssueKind.Holding);
     }
 }

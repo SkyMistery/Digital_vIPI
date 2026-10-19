@@ -111,6 +111,50 @@ public sealed class Enr5ZoneTests
     }
 
     [Fact]
+    public void ICorridoiOat_LAmpiezzaIntera_ILimitiELeNoteItaliane_AncheNellaPaginaDopo()
+    {
+        // Come ENR 5.2.2.4: a sinistra l'italiano, a destra l'inglese; «2 NM per ogni lato» è un corridoio di 4 NM; il secondo
+        // corridoio senza limiti verticali, con la nota che continua nella pagina dopo.
+        var uno = new Pagina([], [],
+        [
+            (450, 30, "ENR 5.2.2.4 - 1"), (52, 45, "AIP - Italia 27 JUL 2023"),
+            (60, 100, "ENR 5.2.2.4.1 FIR BRINDISI"), (320, 100, "ENR 5.2.2.4.1 BRINDISI FIR"),
+            (60, 115, "Corridoio \"YANKEE"), (320, 115, "Corridor \"YANKEE\""),
+            (60, 130, "limiti laterali:"), (320, 130, "2 NM width each side of line joining points:"),
+            (60, 145, "2 NM di ampiezza per ogni lato della linea congiungente i punti:"),
+            (60, 160, "405320N 0170520E - 411200N 0174330E - 414500N 0173021E"),
+            (60, 175, "limiti verticali:"), (320, 175, "vertical limits:"),
+            (60, 190, "FL 60"), (60, 205, "________"), (60, 220, "FL 50"),
+            (60, 235, "NOTE"), (320, 235, "REMARKS"),
+            (60, 250, "1.Il sorvolo del corridoio deve essere evitato;"), (320, 250, "1.Corridor shall be avoided"),
+            (60, 280, "b.Corridoio \"ALPHA 2\" - (Entrata)"), (320, 280, "b.Corridor \"ALPHA 2\" - (Entry)"),
+            (60, 295, "limiti laterali:"), (320, 295, "lateral limits:"),
+            (60, 310, "2,5 NM di ampiezza per ogni lato della linea congiungente i punti:"),
+            (60, 325, "AA 3 (444700N 0130000E)"), (60, 340, "POUND (454700N 0124100E)"),
+            (60, 355, "NOTE"), (320, 355, "REMARKS"),
+            (60, 370, "1.HR: attivati su base tattica."), (320, 370, "1.HR: activated on tactical base."),
+        ]);
+        var due = new Pagina([], [],
+        [
+            (450, 30, "ENR 5.2.2.4 - 2"), (52, 45, "27 JUL 2023 AIP - Italia"),
+            (60, 100, "2.Il livello viene coordinato tra Padova ACC e SCCAM."), (320, 100, "2.Engaged flight level"),
+        ]);
+
+        var r = ItalianEnr5Zone.ReadOatCorridors(PdfText.Read(Enr4Tests.Pdf(uno, due)));
+
+        Assert.Equal(["Corridoio YANKEE", "Corridoio ALPHA 2"], r.Airspaces.Select(a => a.Designator));
+        var yankee = Assert.IsType<CorridorGeometry>(r.Airspaces[0].Geometry);
+        Assert.Equal((4.0, 3), (yankee.Width.Value, yankee.Points.Count));
+        Assert.Equal(("FL 60", "FL 50"), (r.Airspaces[0].Upper.Text, r.Airspaces[0].Lower.Text));
+        Assert.Contains("Il sorvolo del corridoio deve essere evitato;", r.Airspaces[0].Remarks, StringComparison.Ordinal);
+        Assert.DoesNotContain("Corridor shall", r.Airspaces[0].Remarks, StringComparison.Ordinal);
+        var alpha = r.Airspaces[1];
+        Assert.Equal(("Entrata", "NIL", 5.0, 2), (alpha.Name, alpha.Upper.Text, Assert.IsType<CorridorGeometry>(alpha.Geometry).Width.Value, ((CorridorGeometry)alpha.Geometry).Points.Count));
+        Assert.Contains("Padova ACC", alpha.Remarks, StringComparison.Ordinal);
+        Assert.Empty(r.Issues);
+    }
+
+    [Fact]
     public void IlRisolutore_IlPuntoELApparatoDelTipoDetto()
     {
         var trp = new Navaid

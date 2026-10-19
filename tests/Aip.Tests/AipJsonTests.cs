@@ -444,6 +444,43 @@ public sealed class AipJsonTests
     }
 
     [Fact]
+    public void IPericoliELeAtteseSulleRadioassistenze_VannoETornanoUguali()
+    {
+        var doc = new AipDocument
+        {
+            State = "LI",
+            Hazards =
+            [
+                new Hazard { Section = "ENR 5.3.1", Kind = HazardKind.Balloon, Name = "AREA ETNEA (A)", Position = new Position(37.75, 14.76), Radius = new Distance(16, DistanceUnit.Km), Vertical = "20000 m" },
+                new Hazard { Section = "ENR 5.3.3", Kind = HazardKind.Volcano, Name = "ETNA 211060", Position = new Position(37.73, 15.0), Vertical = "3330m 10922ft", Remarks = "LI-P1" },
+            ],
+            Holdings =
+            [
+                new Holding
+                {
+                    Section = "ENR 3.4.2", Fix = "AEA", FixType = "VOR/DME", Minimum = new VerticalLimit { Text = "4000" }, Turn = TurnDirection.Left,
+                    InboundTrack = 48, NoteRefs = "(1)", Affected = "EA star\nEA sid",
+                },
+            ],
+            MinimumAltitudes =
+            [
+                new MinimumAltitudeArea
+                {
+                    Aerodrome = "LICA", Minimum = new VerticalLimit { Text = "5000FT" }, Name = "NORTH-EAST", NoteRefs = "(5)",
+                    Geometry = new CircleGeometry(new Position(38.9, 16.2), new Distance(7, DistanceUnit.Nm)),
+                },
+            ],
+        };
+
+        var json = AipJson.Serialize(doc);
+        var riletto = AipJson.Deserialize(json);
+
+        Assert.Equal(doc, riletto);
+        Assert.Contains("\"kind\": \"volcano\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("hazards", AipJson.Serialize(new AipDocument { State = "LI" }), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LeRadioassistenzeEGliIlsDiUnoScalo_VannoETornanoUguali()
     {
         var lmt = new Navaid

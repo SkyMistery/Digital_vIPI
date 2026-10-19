@@ -51,6 +51,12 @@ public sealed record AipDocument
     /// <summary>AD 2: gli scali (slice 5). Null se il documento non ne ha (lo schema non cambia: un campo facoltativo).</summary>
     public IReadOnlyList<Aerodrome>? Aerodromes { get; init; }
 
+    /// <summary>ENR 5.3: i pericoli puntuali (palloni sonda, laser, vulcani). Null se il documento non ne ha (campo facoltativo).</summary>
+    public IReadOnlyList<Hazard>? Hazards { get; init; }
+
+    /// <summary>AD 2: i settori delle altitudini minime di sorveglianza (ATC SMAC). Null se il documento non ne ha.</summary>
+    public IReadOnlyList<MinimumAltitudeArea>? MinimumAltitudes { get; init; }
+
     public bool Equals(AipDocument? other) =>
         other is not null
         && SchemaVersion == other.SchemaVersion
@@ -63,7 +69,9 @@ public sealed record AipDocument
         && (Navaids ?? []).SequenceEqual(other.Navaids ?? [])
         && (Points ?? []).SequenceEqual(other.Points ?? [])
         && (Lights ?? []).SequenceEqual(other.Lights ?? [])
-        && (Aerodromes ?? []).SequenceEqual(other.Aerodromes ?? []);
+        && (Aerodromes ?? []).SequenceEqual(other.Aerodromes ?? [])
+        && (Hazards ?? []).SequenceEqual(other.Hazards ?? [])
+        && (MinimumAltitudes ?? []).SequenceEqual(other.MinimumAltitudes ?? []);
 
     public override int GetHashCode() => HashCode.Combine(SchemaVersion, State, Airac, Effective, Airspaces.Count);
 }

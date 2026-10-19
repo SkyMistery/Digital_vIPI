@@ -4,7 +4,16 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, slice 5f fatta (i gesti di AD 2.19): AD 2 chiusa per testo e radioassistenze
+## Dove siamo — 19 ottobre 2026: F6, l'importer dei PDF finito
+
+L'importer legge ora tutto quel che è testo: **ENR 3.4.2** (129 attese sulle radioassistenze), **ENR 5.2.2.4** (8
+corridoi OAT), **ENR 5.3** (31 pericoli: palloni sonda, laser, vulcani; 5.3.4 solo regole) e la **carta ATC SMAC** dei 5
+scali (78 settori, il `.mva`). Nel modello: `Hazard`, `MinimumAltitudeArea`, due campi di `Holding` (tutti
+facoltativi, schema 2). Controprove con pdfplumber: tornano tutte. Restano fuori le carte di AD 2 che sono immagini
+(2, 3, 5) e le SID/STAR (4, 6, la F7). Registrato: **PR #9** (solo aggiunte). Carta F6 §6, «L'importer dei PDF finito».
+**Prossimo**: lo sceglie il committente (i confronti delle parti nuove, la F7, la slice 6 del ciclo).
+
+## 19 ottobre 2026: F6, slice 5f fatta (i gesti di AD 2.19): AD 2 chiusa per testo e radioassistenze
 
 **Slice 5f fatta**: «Sostituisci» e «Porta nel sector» di ENR 4 sulle righe di AD 2.19 (il cuore dei gesti ora è comune ai
 due confronti). Sul banco: PNZ col canale 93X, GEN portata in `itvor.vor`, 24 uguali; «Annulla tutto» torna indietro.
@@ -801,6 +810,12 @@ Dalle slice 13-19 (6 ottobre):
   - **AD 2.19** (slice 5d): la controprova sta nello scratchpad `260c92db` (`controprova_ad219.py`, gira con
     `python`, non con `python -I`, che non vede pdfplumber); la sonda delle griglie (`SondaTemporaneaAd219.cs` in
     `tests/Aip.Pdf.Tests`) si riscrive in venti righe. Attesi sul 2609: 29 radioassistenze, 12 ILS, 47 apparati.
+  - **L'importer finito** (19 ottobre): le controprove nello scratchpad `260c92db` (`controprova342.py`,
+    `controprova53.py`, `controprova_smac.py`, `controprova_ad219.py`), con `python` (non `-I`). La cartella dei PDF del
+    banco ha ora anche `ENR 5.3` (148 PDF). Attesi sul 2609: ENR 3.4.2 129 attese, ENR 5.2.2.4 8 corridoi, ENR 5.3 31
+    pericoli, SMAC 78 settori; attese nel confronto 62/6/228/0.
+  - Gli **script di modifica** dei file CRLF (`src/Aip/Routes.cs`): sostituire con `\n` non trova niente; lo script
+    converte i pezzi a `\r\n` se il file li ha. E in una stringa `@"…"` di C# le virgolette si raddoppiano.
   - Il **diff dell'AIP espanso**: GitHub (e `git diff` di base) mostra un'aggiunta in mezzo come righe spostate (PR #6:
     «+3445 −1967»); con `git diff --diff-algorithm=histogram` si vede se sono solo aggiunte. Il ramo `aip/2610` dopo la
     fusione di una PR viene cancellato su GitHub: il push lo ricrea, la PR porta solo il commit nuovo.

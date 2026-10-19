@@ -35,7 +35,8 @@ public static partial class ItalianEnr3
     [GeneratedRegex(@"^\(RNAV\s*[\d.]+\)$|^\(RNP\s*[\d.]+\)$", Opzioni | RegexOptions.IgnoreCase)]
     private static partial Regex RxNavigazione();
 
-    [GeneratedRegex(@"^(?<q>FL\s*\d{2,3}|\d{3,5}(?:\s*ft)?|TRL)(?:\s+only)?$", Opzioni | RegexOptions.IgnoreCase)]
+    // I rimandi alle note anche sulla stessa riga della quota: «5000 (1)» (CHI in ENR 3.4.2).
+    [GeneratedRegex(@"^(?<q>FL\s*\d{2,3}|\d{3,5}(?:\s*ft)?|TRL)(?:\s+only)?(?:\s*(?<r>\(\d+\)(?:\s*\(\d+\))*))?$", Opzioni | RegexOptions.IgnoreCase)]
     private static partial Regex RxQuotaDiAttesa();
 
     [GeneratedRegex(@"^or(?:\s+TRL)?$", Opzioni | RegexOptions.IgnoreCase)]
@@ -269,23 +270,47 @@ public static partial class ItalianEnr3
 
     // --- le attese ---------------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Le colonne di una tabella di attese: ENR 3.4.1 (punto · riferimento · quota · virata · rotta · note) ed ENR 3.4.2
+    /// (radioassistenza · quota · virata · rotta · rotte e procedure interessate · note).
+    /// </summary>
+    private sealed record ColonneDelleAttese(string Sezione, int? Riferimento, int Quota, int Virata, int Rotta, int Note, int? Interessate);
+
+    private static readonly ColonneDelleAttese Enr341 = new("ENR 3.4.1", 1, 2, 3, 4, 5, null);
+
+    private static readonly ColonneDelleAttese Enr342 = new("ENR 3.4.2", null, 1, 2, 3, 5, 4);
+
     /// <summary>Le attese in rotta di ENR 3.4.1, nel modello.</summary>
-    public static ImportResult ReadHoldings(IReadOnlyList<PdfPageText> pages)
+    public static ImportResult ReadHoldings(IReadOnlyList<PdfPageText> pages) => Attese(pages, Enr341);
+
+    /// <summary>
+    /// Le attese sulle radioassistenze di ENR 3.4.2 (carta F6, «finiamo con l'importer»): la stessa tabella delle attese con
+    /// le colonne in un altro ordine. Nella prima colonna la sigla col tipo (<c>AEA VOR/DME</c>) e sotto il nome fra parentesi
+    /// (<c>(Alghero)</c>), che si salta; le rotte e procedure interessate vanno con tutte le attese della radioassistenza.
+    /// Una radioassistenza senza attese (AHO TACAN) non dà niente.
+    /// </summary>
+    public static ImportResult ReadNavaidHoldings(IReadOnlyList<PdfPageText> pages) => Attese(pages, Enr342);
+
+    private static ImportResult Attese(IReadOnlyList<PdfPageText> pages, ColonneDelleAttese c)
     {
         ArgumentNullException.ThrowIfNull(pages);
         var pagine = new List<ImportPage>();
         var problemi = new List<ImportIssue>();
         var attese = new List<Holding>();
         string? fix = null;
+        string? tipo = null;
         var note = new List<string>();
+        var interessate = new List<string>();
         var delFix = new List<Holding>();
 
         void Chiudi()
         {
             var testo = note.Count == 0 ? null : string.Join("\n", note);
-            attese.AddRange(delFix.Select(a => a with { Remarks = testo }));
+            var rotte = interessate.Count == 0 ? null : string.Join("\n", interessate);
+            attese.AddRange(delFix.Select(a => a with { Remarks = testo, Affected = rotte }));
             delFix.Clear();
             note.Clear();
+            interessate.Clear();
         }
 
         foreach (var page in pages)
@@ -317,65 +342,71 @@ public static partial class ItalianEnr3
             foreach (var r in dati.OrderBy(r => r.Y).ThenBy(r => r.Column))
             {
                 var testo = r.Text.Trim();
-                switch (r.Column)
+                var colonna = r.Column;
+                if (colonna == 0)
                 {
-                    case 0:
-                        var parola = testo.Split(' ')[0];
-                        if (!RxFix().IsMatch(parola))
-                        {
-                            problemi.Add(new ImportIssue(ImportIssueKind.Holding, fix, page.Number, testo));
-                            continue;
-                        }
-                        Chiudi();
-                        fix = parola;
+                    // ENR 3.4.2: il nome della stazione sotto la sigla, «(Alghero)».
+                    if (c.Interessate is not null && testo.StartsWith('(')) continue;
+                    var parola = testo.Split(' ')[0];
+                    if (!RxFix().IsMatch(parola))
+                    {
+                        problemi.Add(new ImportIssue(ImportIssueKind.Holding, fix, page.Number, testo));
                         continue;
-
-                    case 2 when RxRimandi().IsMatch(testo):
+                    }
+                    Chiudi();
+                    fix = parola;
+                    tipo = c.Interessate is null ? null : SenzaVuoto(testo[parola.Length..].Trim());
+                    continue;
+                }
+                if (colonna == c.Quota)
+                {
+                    if (RxRimandi().IsMatch(testo))
+                    {
                         if (delFix.Count > 0) delFix[^1] = delFix[^1] with { NoteRefs = RxSpazi().Replace(testo, "") };
                         continue;
-
-                    case 2 when delFix.Count > 0 && (RxSeguitoDellaQuota().IsMatch(testo)
-                                                     || testo == "TRL" && delFix[^1].Minimum.Text.EndsWith(" or", StringComparison.Ordinal)):
+                    }
+                    if (delFix.Count > 0 && (RxSeguitoDellaQuota().IsMatch(testo)
+                                             || testo == "TRL" && delFix[^1].Minimum.Text.EndsWith(" or", StringComparison.Ordinal)))
+                    {
                         // «FL70» / «or» / «TRL» (IPKOV): la quota continua sotto.
                         delFix[^1] = delFix[^1] with { Minimum = delFix[^1].Minimum with { Text = delFix[^1].Minimum.Text + " " + testo } };
                         continue;
-
-                    case 2:
-                        if (fix is null || RxQuotaDiAttesa().Match(testo) is not { Success: true } quota)
-                        {
-                            problemi.Add(new ImportIssue(ImportIssueKind.Holding, fix, page.Number, $"quota «{testo}»"));
-                            continue;
-                        }
-                        var da = inizi.LastOrDefault(y => y <= r.Y + 3, double.MinValue) - 3;
-                        var a = inizi.FirstOrDefault(y => y > da + 6, double.MaxValue) - 3;
-                        var virata = Vicina(dati, usate, 3, r.Y, da, a);
-                        var rotta = Vicina(dati, usate, 4, r.Y, da, a);
-                        if (virata is not ("R" or "L") || rotta is null || RxGradi().Match(rotta) is not { Success: true } g)
-                        {
-                            problemi.Add(new ImportIssue(ImportIssueKind.Holding, fix, page.Number, $"{testo} {virata} {rotta}"));
-                            continue;
-                        }
-                        delFix.Add(new Holding
-                        {
-                            Section = "ENR 3.4.1",
-                            Fix = fix,
-                            Bearing = Accanto(dati, 1, r.Y, 9),
-                            // «5000 only» (BAVOM): la quota è il numero, il testo resta com'è.
-                            Minimum = LimitText.Parse(quota.Groups["q"].Value) with { Text = testo },
-                            Turn = virata == "R" ? TurnDirection.Right : TurnDirection.Left,
-                            InboundTrack = int.Parse(g.Groups["g"].Value, CultureInfo.InvariantCulture),
-                            Page = pagina,
-                        });
+                    }
+                    if (fix is null || RxQuotaDiAttesa().Match(testo) is not { Success: true } quota)
+                    {
+                        problemi.Add(new ImportIssue(ImportIssueKind.Holding, fix, page.Number, $"quota «{testo}»"));
                         continue;
-
-                    case 5:
-                        if (fix is not null) note.Add(testo);
+                    }
+                    var da = inizi.LastOrDefault(y => y <= r.Y + 3, double.MinValue) - 3;
+                    var a = inizi.FirstOrDefault(y => y > da + 6, double.MaxValue) - 3;
+                    var virata = Vicina(dati, usate, c.Virata, r.Y, da, a);
+                    var rotta = Vicina(dati, usate, c.Rotta, r.Y, da, a);
+                    if (virata is not ("R" or "L") || rotta is null || RxGradi().Match(rotta) is not { Success: true } g)
+                    {
+                        problemi.Add(new ImportIssue(ImportIssueKind.Holding, fix, page.Number, $"{testo} {virata} {rotta}"));
                         continue;
+                    }
+                    delFix.Add(new Holding
+                    {
+                        Section = c.Sezione,
+                        Fix = fix,
+                        FixType = tipo,
+                        Bearing = c.Riferimento is { } rif ? Accanto(dati, rif, r.Y, 9) : null,
+                        // «5000 only» (BAVOM): la quota è il numero, il testo resta com'è.
+                        Minimum = LimitText.Parse(quota.Groups["q"].Value) with { Text = quota.Groups["r"].Success ? testo[..quota.Groups["r"].Index].Trim() : testo },
+                        NoteRefs = quota.Groups["r"].Success ? RxSpazi().Replace(quota.Groups["r"].Value, "") : null,
+                        Turn = virata == "R" ? TurnDirection.Right : TurnDirection.Left,
+                        InboundTrack = int.Parse(g.Groups["g"].Value, CultureInfo.InvariantCulture),
+                        Page = pagina,
+                    });
+                    continue;
                 }
+                if (colonna == c.Note && fix is not null) note.Add(testo);
+                else if (colonna == c.Interessate && fix is not null) interessate.Add(testo);
             }
 
             // Una virata o una rotta che nessuna quota ha preso: un'attesa che non si sa leggere, si dice.
-            foreach (var r in dati.Where(r => r.Column is 3 or 4 && !usate.Contains(r)))
+            foreach (var r in dati.Where(r => (r.Column == c.Virata || r.Column == c.Rotta) && !usate.Contains(r)))
             {
                 var suo = dati.Where(d => d.Column == 0 && d.Y <= r.Y + 3).MaxBy(d => d.Y)?.Text.Split(' ')[0];
                 problemi.Add(new ImportIssue(ImportIssueKind.Holding, suo, page.Number, $"senza quota: {r.Text.Trim()}"));
@@ -407,6 +438,8 @@ public static partial class ItalianEnr3
             ? new TableGrid(colonneX, lunghi.Min(r => r.Top), lunghi.Max(r => r.Bottom), Inherited: false, Cut: true)
             : null;
     }
+
+    private static string? SenzaVuoto(string t) => t.Length == 0 ? null : t;
 
     /// <summary>La riga di quella colonna più vicina in altezza (entro 25 punti) e non ancora presa da un'altra attesa.</summary>
     private static string? Vicina(List<TextLine> righe, HashSet<TextLine> usate, int colonna, double y, double da, double a)

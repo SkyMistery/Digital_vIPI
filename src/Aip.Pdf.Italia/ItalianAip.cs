@@ -66,6 +66,9 @@ public enum ImportIssueKind
 
     /// <summary>Uno scalo di AD 2 senza un dato che deve avere (ARP, piste) o con un dato che non si legge. <c>Detail</c> = cosa.</summary>
     Aerodrome,
+
+    /// <summary>Un luogo di ENR 5.3 con coordinate che non si leggono. <c>Detail</c> = il testo.</summary>
+    Hazard,
 }
 
 public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)
@@ -87,6 +90,12 @@ public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyLi
 
     /// <summary>AD 2: gli scali letti (slice 5).</summary>
     public IReadOnlyList<Aerodrome> Aerodromes { get; init; } = [];
+
+    /// <summary>ENR 5.3: i pericoli puntuali letti.</summary>
+    public IReadOnlyList<Hazard> Hazards { get; init; } = [];
+
+    /// <summary>AD 2: i settori della carta ATC SMAC letti.</summary>
+    public IReadOnlyList<MinimumAltitudeArea> MinimumAltitudes { get; init; } = [];
 }
 
 /// <summary>
@@ -132,6 +141,9 @@ public static partial class ItalianAip
     [GeneratedRegex(@"^LI-AD 2 (?<icao>[A-Z]{4}) - (?<nome>.+) 1$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxTestoDiScalo();
 
+    [GeneratedRegex(@"^LI-AD 2 (?<icao>[A-Z]{4}) - .+ \d+$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxCartaDiScalo();
+
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
 
@@ -158,6 +170,13 @@ public static partial class ItalianAip
         // AD 2 (slice 5a): il testo di uno scalo è il suo primo PDF; gli altri sono carte.
         if (RxTestoDiScalo().Match(nome) is { Success: true } scalo)
             return ItalianAd2.Read(PdfText.Read(path), scalo.Groups["icao"].Value, scalo.Groups["nome"].Value.Trim());
+        // Le carte di uno scalo: si legge la ATC SMAC (il testo dei settori); le altre sono immagini o SID e STAR (F7).
+        if (RxCartaDiScalo().Match(nome) is { Success: true } carta)
+        {
+            var pagine = PdfText.Read(path);
+            if (ItalianAd2.ESmac(pagine))
+                return ItalianAd2.ReadSmac(pagine, carta.Groups["icao"].Value);
+        }
         if (nome.StartsWith("LI-ENR 5.1.", StringComparison.Ordinal))
             return ReadEnr51(PdfText.Read(path));
         // ENR 5.2 (slice 4a): i poligoni militari, e le zone e i corridoi APR.
@@ -170,6 +189,17 @@ public static partial class ItalianAip
             return ItalianEnr5Zone.ReadIndia(PdfText.Read(path));
         if (nome == "LI-ENR 5.2.2.3")
             return ItalianEnr5Zone.ReadIndia5Sud(PdfText.Read(path));
+        // ENR 5.3: palloni sonda, laser, vulcani; 5.3.4 sono regole a testo.
+        if (nome == "LI-ENR 5.3.1")
+            return ItalianEnr53.ReadBalloons(PdfText.Read(path));
+        if (nome == "LI-ENR 5.3.2")
+            return ItalianEnr53.ReadLasers(PdfText.Read(path));
+        if (nome == "LI-ENR 5.3.3")
+            return ItalianEnr53.ReadVolcanoes(PdfText.Read(path));
+        if (nome == "LI-ENR 5.3.4")
+            return ItalianEnr53.ReadRulesOnly(PdfText.Read(path));
+        if (nome == "LI-ENR 5.2.2.4")
+            return ItalianEnr5Zone.ReadOatCorridors(PdfText.Read(path));
         if (nome == "LI-ENR 5.2.2.6")
             return ItalianEnr5Zone.ReadTacticalAreas(PdfText.Read(path));
         if (nome == "LI-ENR 5.2.2.5")
@@ -190,6 +220,8 @@ public static partial class ItalianAip
             return ItalianEnr3.ReadRoutes(PdfText.Read(path), "ENR " + rotte.Groups["s"].Value);
         if (nome == "LI-ENR 3.4.1")
             return ItalianEnr3.ReadHoldings(PdfText.Read(path));
+        if (nome == "LI-ENR 3.4.2")
+            return ItalianEnr3.ReadNavaidHoldings(PdfText.Read(path));
         // ENR 4 (slice 3): le radioassistenze (4.1.2 le militari fuori dalla parte AD), i punti, le luci.
         if (nome is "LI-ENR 4.1.1" or "LI-ENR 4.1.2")
             return ItalianEnr4.ReadNavaids(PdfText.Read(path), military: nome == "LI-ENR 4.1.2");

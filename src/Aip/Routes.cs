@@ -105,16 +105,20 @@ public enum TurnDirection
 }
 
 /// <summary>
-/// Un'attesa di ENR 3.4.1 (procedure di attesa in rotta sui punti di riporto): il punto, il riferimento dato dall'AIP
-/// (radiale e distanza da una radioassistenza, se c'è), la quota minima (MHA/MHL), il verso della virata, la rotta
-/// d'avvicinamento magnetica, le note. Un punto può avere più attese (le varianti numerate «(1)», «(2)»).
+/// Un'attesa di ENR 3.4.1 (procedure di attesa in rotta sui punti di riporto) o di ENR 3.4.2 (sulle radioassistenze): il
+/// punto o la sigla, il riferimento dato dall'AIP (radiale e distanza da una radioassistenza, se c'è), la quota minima
+/// (MHA/MHL), il verso della virata, la rotta d'avvicinamento magnetica, le note. Un punto può avere più attese (le varianti
+/// numerate «(1)», «(2)»).
 /// </summary>
 public sealed record Holding
 {
     public required string Section { get; init; }
 
-    /// <summary>Il punto dell'attesa: <c>ABRUS</c>.</summary>
+    /// <summary>Il punto dell'attesa: <c>ABRUS</c>; in ENR 3.4.2 la sigla della radioassistenza: <c>AEA</c>.</summary>
     public required string Fix { get; init; }
+
+    /// <summary>ENR 3.4.2: il tipo della radioassistenza com'è stampato (<c>VOR/DME</c>); la sigla da sola non basta (PIS).</summary>
+    public string? FixType { get; init; }
 
     /// <summary>Il riferimento della colonna 2, com'è stampato: <c>RDL070/10NM PAN</c>.</summary>
     public string? Bearing { get; init; }
@@ -132,6 +136,9 @@ public sealed record Holding
 
     /// <summary>Le note del punto, com'è stampato (valgono per tutte le sue attese).</summary>
     public string? Remarks { get; init; }
+
+    /// <summary>ENR 3.4.2: le rotte ATS e le procedure interessate, com'è stampate, una per riga (<c>L 5</c>, <c>EA star</c>).</summary>
+    public string? Affected { get; init; }
 
     public AipPage? Page { get; init; }
 }

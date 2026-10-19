@@ -37,6 +37,13 @@ public static partial class ItalianAd2
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
 
+    // «2000FT», «FL110», «TRL»; quattro carte su cinque senza «FT» («2500»); «3000/4000 (5)» a LIRF.
+    [GeneratedRegex(@"^(?<q>(?:\d{3,5}(?:\s*FT)?|FL\s*\d{2,3}|TRL)(?:\s*/\s*(?:\d{3,5}(?:\s*FT)?|FL\s*\d{2,3}))?)(?:\s*(?<r>\(\d+\)(?:\s*\(\d+\))*))?(?:\s+(?<n>.*))?$", Opzioni)]
+    private static partial Regex RxQuotaMinima();
+
+    [GeneratedRegex(@"^(?:REMARKS?|NOTE|NOTA)\b", Opzioni)]
+    private static partial Regex RxNotaDellaCarta();
+
     [GeneratedRegex(@"\s(?=\d{1,2}[.)]\s?\D)")]
     private static partial Regex RxNumeroDellaNota();
 
@@ -408,6 +415,69 @@ public static partial class ItalianAd2
             if (RxOrarioDiUnApparato().Match(o) is { Success: true } m && m.Groups["a"].Value == apparato)
                 return m.Groups["h"].Value;
         return orari.Count == 1 ? orari[0] : null;
+    }
+
+    // --- la carta ATC SMAC ------------------------------------------------------------------------------------------------
+
+    /// <summary>Il PDF è una carta ATC SMAC: una pagina ha il suo titolo.</summary>
+    public static bool ESmac(IReadOnlyList<PdfPageText> pages)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        return pages.Any(p => Table.PlainLines(p).Any(l => l.Contains("SURVEILLANCE MINIMUM ALTITUDE", StringComparison.Ordinal)));
+    }
+
+    /// <summary>
+    /// La carta ATC SMAC di uno scalo (carta F6, «finiamo con l'importer»): la tabella a due colonne delle pagine di testo —
+    /// la quota minima, col nome del settore se c'è («5000FT NORTH-EAST») · i limiti laterali, come le geometrie di ENR 2
+    /// («Line joining following points», «then arc of circle … centred on … till point»). Una riga senza quota continua il
+    /// settore sopra (nella pagina dopo), e così la prima riga di una pagina con la stessa quota dell'ultimo settore (LICA,
+    /// FL110 NORTH-WEST da p.5 a p.6). La nota in fondo alla carta («REMARK …», nella stessa banda dell'ultimo settore) non
+    /// è geometria: si taglia. Le pagine della carta (immagini) non hanno la tabella: si contano e basta.
+    /// </summary>
+    public static ImportResult ReadSmac(IReadOnlyList<PdfPageText> pages, string icao)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        var (righe, pagine, problemi) = ItalianEnr4.Righe(pages, 2);
+        var settori = new List<(string Quota, List<string> Limiti, ImportPage Pagina)>();
+        int? paginaDiPrima = null;
+        foreach (var r in righe)
+        {
+            var quota = RxSpazi().Replace(string.Join(' ', r.Celle[0]), " ").Trim();
+            var limiti = r.Celle[1].TakeWhile(l => !RxNotaDellaCarta().IsMatch(l.Trim())).ToList();
+            var primaDellaPagina = r.Pagina.Number != paginaDiPrima;
+            paginaDiPrima = r.Pagina.Number;
+            if (settori.Count > 0 && (quota.Length == 0 || primaDellaPagina && quota == settori[^1].Quota)) settori[^1].Limiti.AddRange(limiti);
+            else if (quota.Length > 0) settori.Add((quota, limiti, r.Pagina));
+        }
+        var aree = new List<MinimumAltitudeArea>();
+        foreach (var (quota, limiti, pagina) in settori)
+        {
+            var chi = $"{icao} {quota}";
+            var m = RxQuotaMinima().Match(quota);
+            if (!m.Success)
+            {
+                problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, chi, pagina.Number, $"SMAC, quota: {quota}"));
+                continue;
+            }
+            var letta = GeometryText.Read(string.Join('\n', limiti));
+            foreach (var g in letta.Issues)
+                problemi.Add(new ImportIssue(ImportIssueKind.Geometry, chi, pagina.Number, g.Detail is null ? $"{g.Kind}" : $"{g.Kind}: {g.Detail}"));
+            if (letta.Geometries.Count != 1)
+            {
+                problemi.Add(new ImportIssue(ImportIssueKind.NoGeometry, chi, pagina.Number, $"{letta.Geometries.Count} forme"));
+                continue;
+            }
+            aree.Add(new MinimumAltitudeArea
+            {
+                Aerodrome = icao,
+                Minimum = LimitText.Parse(m.Groups["q"].Value) with { Text = m.Groups["q"].Value },
+                Name = m.Groups["n"].Value.Trim() is { Length: > 0 } n ? n : null,
+                NoteRefs = m.Groups["r"].Success ? RxSpazi().Replace(m.Groups["r"].Value, "") : null,
+                Geometry = letta.Geometries[0],
+                Page = Pagina(pagina),
+            });
+        }
+        return new ImportResult([], pagine, problemi) { MinimumAltitudes = aree };
     }
 
     private static AipPage? Pagina(ImportPage p) => p.Reference is null ? null : new AipPage(p.Reference, p.Effective);

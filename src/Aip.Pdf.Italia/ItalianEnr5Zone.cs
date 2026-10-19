@@ -14,6 +14,9 @@ namespace Aip.Pdf.Italia;
 /// FL 230 / FL 210») sono due fasce.</item>
 /// <item><b>ENR 5.2.2.2</b>, le zone INDIA: 3 colonne — nome · limiti laterali · livelli di volo.</item>
 /// <item><b>ENR 5.2.2.3</b>, la zona INDIA 5 SUD (I5S): testo, «linea congiungente i punti» e «limiti verticali».</item>
+/// <item><b>ENR 5.2.2.4</b>, i corridoi del traffico aereo operativo (OAT): testo a due colonne, «Corridoio "YANKEE"», la
+/// sua ampiezza («2 NM di ampiezza per ogni lato», «6 NM di larghezza»), i punti, i limiti verticali (sopra e sotto una riga
+/// di trattini; non tutti li hanno) e le note.</item>
 /// <item><b>ENR 5.2.2.6</b>, le aree tattiche (AT) del volo a bassissima quota: testo a due colonne, «AREA PIEMONTE» con
 /// le sue coordinate fino a «to point of origin»; i limiti non sono nella tabella ma nelle regole sopra (ENR 5.2.2.6.4: la
 /// quota minima entro le aree tattiche è 500 ft AGL per l'ala fissa, 150 per gli elicotteri; un limite superiore l'AIP non
@@ -38,6 +41,15 @@ public static partial class ItalianEnr5Zone
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
+
+    [GeneratedRegex(@"Corridoio\s+[""“](?<nome>[^""”]+?)\s*[""”]?(?:\s*-\s*\((?<verso>[^)]+)\))?\s*$", Opzioni)]
+    private static partial Regex RxCorridoio();
+
+    [GeneratedRegex(@"(?<n>\d+(?:,\d+)?)\s*NM di (?<come>ampiezza per ogni lato|larghezza)", Opzioni | RegexOptions.IgnoreCase)]
+    private static partial Regex RxAmpiezza();
+
+    [GeneratedRegex(@"^(?:ENR\s+5\.2\.2\.4\s*-\s*\d+|AIP\s*-\s*Italia.*|\d{2}\s+[A-Z]{3}\s+\d{4}.*|ENAV\s*-\s*Roma.*|\(\d{2}/\d{2}\).*)$", Opzioni)]
+    private static partial Regex RxTestaOPiede();
 
     [GeneratedRegex(@"\s(?=\d{1,2}\.\D)")]
     private static partial Regex RxNumeroDellaNota();
@@ -202,6 +214,104 @@ public static partial class ItalianEnr5Zone
                 Page = Pagina(pagina),
             });
         }
+        return new ImportResult(aree, pagine, problemi);
+    }
+
+    // --- OAT -----------------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// I corridoi OAT di ENR 5.2.2.4 (carta F6, «finiamo con l'importer»): il testo delle pagine di seguito, la struttura dalla
+    /// colonna italiana (la metà sinistra della pagina), le coordinate dalla riga intera (la colonna inglese non ne ha).
+    /// L'ampiezza è quella intera: «2 NM di ampiezza per ogni lato» è un corridoio di 4 NM.
+    /// </summary>
+    public static ImportResult ReadOatCorridors(IReadOnlyList<PdfPageText> pages)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        var problemi = new List<ImportIssue>();
+        var pagine = new List<ImportPage>();
+        var aree = new List<Airspace>();
+        string? nome = null, verso = null;
+        double? ampiezza = null;
+        ImportPage? daPagina = null;
+        var punti = new List<Position>();
+        var limiti = new List<string>();
+        var note = new List<string>();
+        var parte = "";
+
+        void Chiudi()
+        {
+            if (nome is null) return;
+            if (ampiezza is not { } nm || punti.Count < 2)
+                problemi.Add(new ImportIssue(ImportIssueKind.NoGeometry, nome, daPagina?.Number, $"{punti.Count} punti, ampiezza {ampiezza}"));
+            else
+                aree.Add(new Airspace
+                {
+                    Section = "ENR 5.2",
+                    Type = AirspaceType.Military,
+                    Designator = nome,
+                    Name = verso,
+                    Upper = limiti.Count > 0 ? LimitText.Parse(limiti[0]) : new VerticalLimit { Text = "NIL" },
+                    Lower = limiti.Count > 1 ? LimitText.Parse(limiti[1]) : new VerticalLimit { Text = "NIL" },
+                    Remarks = Note(note),
+                    Geometry = new CorridorGeometry(new Distance(nm, DistanceUnit.Nm), [.. punti]),
+                    Page = daPagina is null ? null : Pagina(daPagina),
+                });
+            nome = verso = null;
+            ampiezza = null;
+            punti.Clear();
+            limiti.Clear();
+            note.Clear();
+            parte = "";
+        }
+
+        foreach (var page in pages)
+        {
+            var piane = Table.PlainLinesWithY(page);
+            var pagina = new ImportPage(page.Number, PageInfo.Reference([.. piane.Select(l => l.Text)]), PageInfo.Date([.. piane.Select(l => l.Text)]), Table: false);
+            pagine.Add(pagina);
+            var sinistra = Table.PlainLinesWithY(page with { Words = [.. page.Words.Where(w => w.X0 < page.Width * 0.5)] });
+            foreach (var (y, riga) in piane)
+            {
+                var italiana = sinistra.Where(l => Math.Abs(l.Y - y) < 1.5).Select(l => l.Text.Trim()).FirstOrDefault() ?? "";
+                if (RxTestaOPiede().IsMatch(riga.Trim())) continue;
+                if (RxCorridoio().Match(italiana) is { Success: true } m)
+                {
+                    Chiudi();
+                    nome = "Corridoio " + RxSpazi().Replace(m.Groups["nome"].Value, " ").Trim();
+                    verso = m.Groups["verso"].Success ? m.Groups["verso"].Value.Trim() : null;
+                    daPagina = pagina;
+                    continue;
+                }
+                if (nome is null) continue;
+                if (italiana.StartsWith("ENR 5.2.2.4.", StringComparison.Ordinal))
+                {
+                    Chiudi();
+                    continue;
+                }
+                if (italiana.Contains("limiti laterali", StringComparison.OrdinalIgnoreCase)) { parte = "punti"; continue; }
+                if (italiana.Contains("limiti verticali", StringComparison.OrdinalIgnoreCase)) { parte = "limiti"; continue; }
+                if (italiana is "NOTE" || italiana.StartsWith("NOTE ", StringComparison.Ordinal)) { parte = "note"; continue; }
+                switch (parte)
+                {
+                    case "punti":
+                        if (RxAmpiezza().Match(riga) is { Success: true } a)
+                        {
+                            var n = double.Parse(a.Groups["n"].Value.Replace(',', '.'), CultureInfo.InvariantCulture);
+                            ampiezza = a.Groups["come"].Value.StartsWith("ampiezza", StringComparison.OrdinalIgnoreCase) ? 2 * n : n;
+                        }
+                        else punti.AddRange(GeometryText.ReadPoints(riga));
+                        break;
+                    case "limiti":
+                        var limite = riga.Trim();
+                        if (limite.Length > 0 && limite.Trim('_').Length > 0) limiti.Add(RxSpazi().Replace(limite, " "));
+                        break;
+                    case "note":
+                        if (italiana.Length > 0) note.Add(italiana);
+                        break;
+                }
+            }
+        }
+        Chiudi();
         return new ImportResult(aree, pagine, problemi);
     }
 
