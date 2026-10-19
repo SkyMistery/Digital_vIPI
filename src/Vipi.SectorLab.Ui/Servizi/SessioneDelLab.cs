@@ -4524,13 +4524,13 @@ public sealed class SessioneDelLab
             if (modello.Procedures is not { Count: > 0 } procedure)
                 return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha procedure: servono i PDF di AD 2 (i file 4 e 6) letti.");
             var catalogo = CatalogoScelto;
-            var punti = new Dictionary<string, global::Aip.Position>(StringComparer.Ordinal);
-            foreach (var x in modello.Points ?? []) punti.TryAdd(x.Designator, x.Position);
-            foreach (var x in modello.Navaids ?? []) punti.TryAdd(x.Designator, x.Position);
-            foreach (var x in (modello.Aerodromes ?? []).SelectMany(s => s.NavigationAids)) punti.TryAdd(x.Designator, x.Position);
+            var punti = PuntiDellAip(modello).ToDictionary(x => x.Key, x => x.Value.Position, StringComparer.Ordinal);
+            var abbinamenti = new Dictionary<(string File, int Record), global::Aip.Procedure?[]>();
             var esiti = await Task.Run(() => Core.PdfAip.ConfrontoDelleProcedure.Di(procedure, sessione,
-                nome => catalogo?.Cerca(nome)?.Posizione, nome => punti.TryGetValue(nome, out var p) ? p : null)).ConfigureAwait(false);
+                nome => catalogo?.Cerca(nome)?.Posizione, nome => punti.TryGetValue(nome, out var p) ? p : null, abbinamenti)).ConfigureAwait(false);
             UltimoConfrontoDelleProcedure = (ciclo, esiti);
+            _aipDelleProcedure = modello;
+            _abbinamentiDelleProcedure = abbinamenti;
             Registro.Scrivi("aip", $"confronto procedure, ciclo {ciclo}: " + string.Join(", ", esiti.GroupBy(e => e.Esito).Select(g => $"{g.Key} {g.Count()}")));
             Rifiuto = null;
             Avvisa();
@@ -4542,6 +4542,353 @@ public sealed class SessioneDelLab
             return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
         }
     }
+
+    /// <summary>Il modello da cui viene <see cref="UltimoConfrontoDelleProcedure"/>: i gesti della 7e ne prendono le procedure.</summary>
+    private global::Aip.AipDocument? _aipDelleProcedure;
+
+    /// <summary>Per ogni voce del sector del confronto, le procedure dell'AIP di ogni parte del nome (la SID e la transizione).</summary>
+    private IReadOnlyDictionary<(string File, int Record), global::Aip.Procedure?[]> _abbinamentiDelleProcedure =
+        new Dictionary<(string File, int Record), global::Aip.Procedure?[]>();
+
+    /// <summary>Dopo un gesto della 7e il confronto delle procedure si rifà sul sector di adesso.</summary>
+    private void RifaiIlConfrontoDelleProcedure()
+    {
+        if (Sessione is not { } sessione || UltimoConfrontoDelleProcedure is not { } confronto || _aipDelleProcedure is not { } aip)
+            return;
+        var catalogo = CatalogoScelto;
+        var punti = PuntiDellAip(aip);
+        var abbinamenti = new Dictionary<(string File, int Record), global::Aip.Procedure?[]>();
+        UltimoConfrontoDelleProcedure = (confronto.Ciclo, Core.PdfAip.ConfrontoDelleProcedure.Di(aip.Procedures ?? [], sessione,
+            nome => catalogo?.Cerca(nome)?.Posizione, nome => punti.TryGetValue(nome, out var p) ? p.Position : null, abbinamenti));
+        _abbinamentiDelleProcedure = abbinamenti;
+        Avvisa();
+    }
+
+    /// <summary>I punti con nome dell'AIP espanso (punti di ENR 4.4 e di scalo; le radioassistenze), con la loro provenienza.</summary>
+    private static Dictionary<string, (global::Aip.Position Position, global::Aip.SignificantPoint? Punto)> PuntiDellAip(global::Aip.AipDocument aip)
+    {
+        var punti = new Dictionary<string, (global::Aip.Position, global::Aip.SignificantPoint?)>(StringComparer.Ordinal);
+        foreach (var x in aip.Points ?? []) punti.TryAdd(x.Designator, (x.Position, x));
+        foreach (var x in aip.Navaids ?? []) punti.TryAdd(x.Designator, (x.Position, null));
+        foreach (var x in (aip.Aerodromes ?? []).SelectMany(a => a.NavigationAids)) punti.TryAdd(x.Designator, (x.Position, null));
+        return punti;
+    }
+
+    /// <summary>
+    /// I punti della procedura che il sector non ha, portati prima della procedura (carta F7 §4): quelli di scalo nella sezione
+    /// dello scalo di <c>APT.fix</c>, quelli di ENR 4.4 in <c>itfix.fix</c>. Una radioassistenza che manca, o un punto che
+    /// l'AIP espanso non ha (stampato male: RF407), fermano il gesto: false, e il perché in <paramref name="avvisi"/>.
+    /// </summary>
+    private bool PortaIPuntiDellaProcedura(SessioneAperta sessione, string icao, IReadOnlyList<string> nomi, global::Aip.AipDocument aip, List<string> avvisi)
+    {
+        var catalogo = CatalogoScelto;
+        var mancanti = nomi.Distinct().Where(n => catalogo?.Cerca(n) is null).ToList();
+        if (mancanti.Count == 0) return true;
+        var dellAip = PuntiDellAip(aip);
+        var nonSiPortano = mancanti.Where(n => !dellAip.TryGetValue(n, out var x) || x.Punto is null).ToList();
+        if (nonSiPortano.Count > 0)
+        {
+            avvisi.Add($"punti che il sector non ha e che non si portano da qui: {string.Join(", ", nonSiPortano)} "
+                       + "(una radioassistenza dal confronto di ENR 4; un punto che l'AIP espanso non ha, con le correzioni)");
+            return false;
+        }
+        var diScalo = mancanti.Select(n => dellAip[n].Punto!).Where(p => p.Section.StartsWith("AD 2", StringComparison.Ordinal)).ToList();
+        if (diScalo.Count > 0)
+        {
+            var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + Core.PdfAip.ProcedureNelSector.FileDeiPuntiDiScalo, StringComparison.OrdinalIgnoreCase));
+            if (file is null || sessione.File[file] is not IFileConRecord apt)
+            {
+                avvisi.Add($"nel sector non c'è {Core.PdfAip.ProcedureNelSector.FileDeiPuntiDiScalo}");
+                return false;
+            }
+            var quanti = apt.RecordDelModello.Count;
+            var righe = apt.RigheDelFile(Modifiche.SporchiDi(file));
+            var nuove = diScalo.Select(Core.PdfAip.ProcedureNelSector.RigaDelPuntoDiScalo).ToList();
+            if (!GestoSulTesto(file, "punti di scalo", f => Modifiche.CambiaRighe(f, Core.PdfAip.ProcedureNelSector.NellaSezioneDelloScalo(righe, icao, nuove),
+                    $"{string.Join(", ", diScalo.Select(p => p.Designator))} dall'AIP",
+                    riletto => riletto.RecordDelModello.Count == quanti + nuove.Count ? null : "Riletto, APT.fix non ha i punti nuovi: si fa a mano.")))
+            {
+                avvisi.Add($"{Core.PdfAip.ProcedureNelSector.FileDeiPuntiDiScalo}: i punti {string.Join(", ", diScalo.Select(p => p.Designator))} non si scrivono");
+                return false;
+            }
+            RifaiLaGeometria(file);
+        }
+        foreach (var p in mancanti.Select(n => dellAip[n].Punto!).Where(p => !p.Section.StartsWith("AD 2", StringComparison.Ordinal)))
+        {
+            var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + Core.PdfAip.ConfrontoDiEnr4.FileDeiPunti, StringComparison.OrdinalIgnoreCase));
+            if (!PortaUnaRiga(sessione, p.Designator, file, Core.PdfAip.Enr4NelSector.RigaNuova(p), p.Designator, avvisi))
+                return false;
+            RifaiLaGeometria(file!);
+        }
+        // I punti nuovi nel catalogo: la procedura che li cita si disegna, e il confronto rifatto li trova.
+        RifaiICataloghi();
+        return true;
+    }
+
+    /// <summary>
+    /// «Porta nel sector» (carta F7, slice 7e) una procedura che il sector non ha: una STAR come voce nuova dello <c>.str</c>
+    /// dello scalo, una SID come voce nuova del <c>.sid</c> col suo tracciato (D2), una transizione come voce «SID-TRANS» per
+    /// ogni SID del sector che finisce dove la transizione comincia. Il nome nella convenzione del file (D1), i tag di quota
+    /// e velocità sui punti (D3), i punti che mancano portati prima. Le convenzionali in sola prosa no (la 7b).
+    /// </summary>
+    public bool PortaLaProcedura(Core.PdfAip.DifferenzaDiProcedura riga)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (Sessione is not { } sessione || UltimoConfrontoDelleProcedure is not { } confronto || _aipDelleProcedure is not { } aip)
+            return Rifiuta("Confronta SID e STAR prima: si porta una riga del confronto.");
+        if (riga.Esito != Core.PdfAip.EsitoDelConfronto.MancaNelSector
+            || aip.Procedures?.FirstOrDefault(p => p.Aerodrome == riga.Scalo && p.Kind == riga.Genere && p.Designator == riga.Nome && p.Runways.SequenceEqual(riga.Piste)) is not { } proc)
+            return Rifiuta("Si porta una procedura che il sector non ha.");
+        if (proc.Legs.Count == 0)
+            return Rifiuta($"{proc.Designator} è in sola prosa: i suoi tratti verranno con la slice 7b.");
+        var star = proc.Kind == global::Aip.ProcedureKind.Star;
+        var estensione = star ? ".str" : ".sid";
+        var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + proc.Aerodrome.ToLowerInvariant() + estensione, StringComparison.OrdinalIgnoreCase));
+        if (file is null || sessione.File[file] is not IFileConRecord conRecord)
+            return Rifiuta($"Nel sector non c'è {proc.Aerodrome.ToLowerInvariant()}{estensione}.");
+
+        // Le voci da scrivere: (nome, testata, pezzi).
+        var nota = $"AIP {confronto.Ciclo}";
+        var coppie = _abbinamentiDelleProcedure.Where(a => a.Key.File == file)
+            .SelectMany(a => a.Value.Select((p, k) => (a.Key.Record, k, p)))
+            .Where(x => x.p is not null && conRecord.RecordDelModello[x.Record] is var r
+                        && NomeDellaVoce(r)?.Split('-') is { } parti && x.k < parti.Length)
+            .Select(x => (NomeDellaVoce(conRecord.RecordDelModello[x.Record])!.Split('-')[x.k], x.p!.Designator)).ToList();
+        var lettere = Core.PdfAip.ProcedureNelSector.Lettere(coppie);
+        var voci = new List<(string Nome, string Testata, IReadOnlyList<global::Aip.Procedure> Pezzi)>();
+        if (star)
+        {
+            if (proc.Runways.Count == 0) return Rifiuta($"{proc.Designator}: l'AIP non dice le piste, si porta a mano.");
+            var nome = Core.PdfAip.ProcedureNelSector.Nome(proc.Designator, lettere);
+            voci.Add((nome, Core.PdfAip.ProcedureNelSector.TestataDellaStar(proc.Aerodrome, proc.Runways, nome, Core.PdfAip.ProcedureNelSector.Rnav([proc])), [proc]));
+        }
+        else if (proc.Kind == global::Aip.ProcedureKind.Sid && proc.Runways.Count > 0)
+        {
+            var nome = Core.PdfAip.ProcedureNelSector.Nome(proc.Designator, lettere);
+            var punti = Core.PdfAip.ProcedureNelSector.Punti([proc]);
+            voci.Add((nome, Core.PdfAip.ProcedureNelSector.TestataDellaSid(proc.Aerodrome, proc.Runways, nome, punti[^1], Core.PdfAip.ProcedureNelSector.Rnav([proc])), [proc]));
+        }
+        else
+        {
+            // Una transizione (o una SID senza pista, come LIRF le stampa): una voce per ogni SID del sector che finisce dove comincia.
+            var inizio = Core.PdfAip.ProcedureNelSector.Punti([proc]).FirstOrDefault();
+            var trans = Core.PdfAip.ProcedureNelSector.Nome(proc.Designator, lettere);
+            foreach (var ((f, record), parti) in _abbinamentiDelleProcedure.Where(a => a.Key.File == file))
+            {
+                if (parti.Length == 0 || parti[0] is not { } sid || Core.PdfAip.ProcedureNelSector.Punti([sid]).LastOrDefault() != inizio || sid.Runways.Count == 0) continue;
+                var nomeSid = NomeDellaVoce(conRecord.RecordDelModello[record])!.Split('-')[0];
+                if (voci.Any(v => v.Nome.StartsWith(nomeSid + "-", StringComparison.Ordinal))) continue;
+                var nome = $"{nomeSid}-{trans}";
+                var punti = Core.PdfAip.ProcedureNelSector.Punti([sid, proc]);
+                voci.Add((nome, Core.PdfAip.ProcedureNelSector.TestataDellaSid(proc.Aerodrome, sid.Runways, nome, punti[^1], Core.PdfAip.ProcedureNelSector.Rnav([sid, proc])), [sid, proc]));
+            }
+            if (voci.Count == 0)
+                return Rifiuta($"{proc.Designator}: nel sector non c'è una SID che finisce a {inizio}, dove la transizione comincia.");
+        }
+        var giaNelFile = conRecord.RecordDelModello.Select(NomeDellaVoce).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        // Di una transizione si scrivono le combinazioni che mancano: quelle che il file ha già (con un'altra edizione della SID
+        // o della transizione) restano, e si sistemano con «Sostituisci».
+        var gia = voci.Where(v => giaNelFile.Contains(v.Nome)).Select(v => v.Nome).ToList();
+        if (gia.Count > 0 && (star || proc.Kind == global::Aip.ProcedureKind.Sid && proc.Runways.Count > 0 || gia.Count == voci.Count))
+            return Rifiuta($"{string.Join(", ", gia)}: c'è già nel file con questo nome.");
+        voci.RemoveAll(v => gia.Contains(v.Nome));
+
+        var avvisi = new List<string>();
+        var gesto = $"{proc.Designator} ({string.Join(", ", voci.Select(v => v.Nome))}) dall'AIP {confronto.Ciclo}";
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            avvisi.Clear();
+            if (!PortaIPuntiDellaProcedura(sessione, proc.Aerodrome, voci.SelectMany(v => Core.PdfAip.ProcedureNelSector.Punti(v.Pezzi)).ToList(), aip, avvisi))
+                return false;
+            foreach (var v in voci)
+            {
+                var c = (IFileConRecord)sessione.File[file];
+                var quanti = c.RecordDelModello.Count;
+                var righe = c.RigheDelFile(Modifiche.SporchiDi(file));
+                var blocco = Core.PdfAip.ProcedureNelSector.Blocco(v.Nome, v.Testata, v.Pezzi, nota, star ? Core.PdfAip.ProcedureNelSector.Coda(proc.Designator) : null);
+                var ultima = righe.Count;
+                var sostituzioni = new Dictionary<int, IReadOnlyList<string>>
+                {
+                    [ultima] = string.IsNullOrWhiteSpace(righe[^1]) ? [righe[^1], .. blocco] : [righe[^1], "", .. blocco],
+                };
+                if (!GestoSulTesto(file, "procedura", f => Modifiche.CambiaRighe(f, sostituzioni, $"{v.Nome} dall'AIP",
+                        riletto => riletto.RecordDelModello.Count == quanti + 1 ? null : "Riletto, il file non ha la voce nuova: si fa a mano.", anchiITag: true)))
+                {
+                    avvisi.Add($"{v.Nome}: non si scrive");
+                    return false;
+                }
+            }
+            RifaiLaGeometria(file);
+            Registro.Scrivi("aip", gesto);
+            RicontrollaLeModifiche();
+            Avvisa();
+            return true;
+        });
+        if (!fatto && avvisi.Count > 0)
+            return Rifiuta(string.Join(" · ", avvisi));
+        if (fatto)
+            RifaiIlConfrontoDelleProcedure();
+        return fatto;
+    }
+
+    /// <summary>
+    /// «Sostituisci» (carta F7, slice 7e) su una procedura diversa: ogni voce del sector che le corrisponde riscritta coi punti
+    /// dell'AIP — per una SID col tracciato (D2) della SID e della sua transizione, e il campo 7 al punto finale —, i tag di
+    /// quota e velocità (D3), la testata che resta. Le voci <c>locked=si</c> e quelle che hanno già dei tag non si toccano.
+    /// </summary>
+    public bool SostituisciLaProcedura(Core.PdfAip.DifferenzaDiProcedura riga)
+    {
+        ArgumentNullException.ThrowIfNull(riga);
+        if (Sessione is null || UltimoConfrontoDelleProcedure is not { } confronto || _aipDelleProcedure is null)
+            return Rifiuta("Confronta SID e STAR prima: si sostituisce una riga del confronto.");
+        var sid = riga.Genere != global::Aip.ProcedureKind.Star;
+        if (riga.File is null || !(riga.Esito == Core.PdfAip.EsitoDelConfronto.FormaDiversa || sid && riga.VociSenzaTracciato > 0))
+            return Rifiuta("Si sostituisce una procedura diversa da quella dell'AIP (o una SID senza tracciato).");
+        var saltate = new List<string>();
+        var voci = VociDaRiscrivere(riga, saltate);
+        var gesto = voci.Count == 1 ? $"{voci[0].Nome} sostituita dall'AIP {confronto.Ciclo}" : $"{voci.Count} voci di {riga.Nome} sostituite dall'AIP {confronto.Ciclo}";
+        return RiscriviLeVoci(voci, saltate, gesto);
+    }
+
+    /// <summary>
+    /// «Scrivi i tracciati» (carta F7, slice 7e, D2): le SID uguali all'AIP per nome, piste e punto finale, ma che nel sector
+    /// non hanno tracciato, ricevono quello dell'AIP — tutte insieme, un gesto solo.
+    /// </summary>
+    public bool ScriviITracciatiDelleSid()
+    {
+        if (Sessione is null || UltimoConfrontoDelleProcedure is not { } confronto || _aipDelleProcedure is null)
+            return Rifiuta("Confronta SID e STAR prima.");
+        var saltate = new List<string>();
+        var voci = VociSenzaTracciato(saltate);
+        if (voci.Count == 0 && saltate.Count == 0)
+            return Rifiuta("Nessuna SID uguale senza tracciato.");
+        return RiscriviLeVoci(voci, saltate, $"tracciati di {voci.Count} SID dall'AIP {confronto.Ciclo}");
+    }
+
+    /// <summary>
+    /// Quante voci «Scrivi i tracciati» riscriverebbe adesso: non quelle che salterebbe (l'altra parte del nome in sola prosa
+    /// o senza una procedura sola, i tag già scritti) — il numero sul tasto è quello che il gesto fa.
+    /// </summary>
+    public int TracciatiDaScrivere => UltimoConfrontoDelleProcedure is null || _aipDelleProcedure is null ? 0 : VociSenzaTracciato([]).Count;
+
+    private List<(string File, int Record, string Nome, bool Star, IReadOnlyList<global::Aip.Procedure> Pezzi)> VociSenzaTracciato(List<string> saltate) =>
+        UltimoConfrontoDelleProcedure is not { } confronto ? [] :
+        [.. confronto.Esiti.Where(e => e.Esito == Core.PdfAip.EsitoDelConfronto.Uguale && e.Genere != global::Aip.ProcedureKind.Star && e.VociSenzaTracciato > 0)
+            .SelectMany(r => VociDaRiscrivere(r, saltate)).DistinctBy(v => (v.File, v.Record))];
+
+    /// <summary>
+    /// Le voci del sector di una riga del confronto, con le procedure dell'AIP di ogni parte del nome (la SID e la sua
+    /// transizione). Quelle che non si toccano vanno in <paramref name="saltate"/>, col perché: <c>locked=si</c>, già coi tag,
+    /// una parte del nome senza una procedura sola, la sola prosa.
+    /// </summary>
+    private List<(string File, int Record, string Nome, bool Star, IReadOnlyList<global::Aip.Procedure> Pezzi)> VociDaRiscrivere(
+        Core.PdfAip.DifferenzaDiProcedura riga, List<string> saltate)
+    {
+        var voci = new List<(string, int, string, bool, IReadOnlyList<global::Aip.Procedure>)>();
+        if (Sessione is not { } sessione || riga.File is not { } file || sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord)
+            return voci;
+        foreach (var ((_, record), parti) in _abbinamentiDelleProcedure.Where(a => a.Key.File == file).OrderBy(a => a.Key.Record))
+        {
+            var nome = NomeDellaVoce(conRecord.RecordDelModello[record]);
+            if (nome is null || !riga.Nomi.Contains(nome)) continue;
+            if (parti.Any(p => p is null))
+            {
+                saltate.Add($"{nome} (una parte del nome non ha una procedura sola)");
+                continue;
+            }
+            if (conRecord.ChiaviDi(record) is { Count: > 0 } chiavi)
+            {
+                saltate.Add(chiavi.ContainsKey("locked") ? $"{nome} (locked=si)" : $"{nome} (ha già dei tag: si cambia dalla scheda)");
+                continue;
+            }
+            IReadOnlyList<global::Aip.Procedure> pezzi = [.. parti.OfType<global::Aip.Procedure>()];
+            if (pezzi.Any(p => p.Legs.Count == 0))
+            {
+                saltate.Add($"{nome} (in sola prosa: la 7b)");
+                continue;
+            }
+            voci.Add((file, record, nome, conRecord.RecordDelModello[record] is ProcedureStrRecord, pezzi));
+        }
+        return voci;
+    }
+
+    /// <summary>
+    /// Riscrive le voci col corpo dell'AIP (i punti coi loro tag; per una SID il campo 7 al punto finale), la testata che resta,
+    /// in un blocco §M; prima i punti che il sector non ha. Un gesto solo, anche su più file.
+    /// </summary>
+    private bool RiscriviLeVoci(List<(string File, int Record, string Nome, bool Star, IReadOnlyList<global::Aip.Procedure> Pezzi)> voci,
+        List<string> saltate, string gesto)
+    {
+        if (Sessione is not { } sessione || UltimoConfrontoDelleProcedure is not { } confronto || _aipDelleProcedure is not { } aip)
+            return false;
+        if (voci.Count == 0)
+            return Rifiuta("Nessuna voce da riscrivere" + (saltate.Count > 0 ? ": " + string.Join(", ", saltate) : "."));
+        var nota = $"AIP {confronto.Ciclo}";
+        var avvisi = new List<string>();
+        bool fatto = NellaStoria(gesto, () =>
+        {
+            avvisi.Clear();
+            foreach (var scalo in voci.GroupBy(v => v.Pezzi[0].Aerodrome))
+                if (!PortaIPuntiDellaProcedura(sessione, scalo.Key, scalo.SelectMany(v => Core.PdfAip.ProcedureNelSector.Punti(v.Pezzi)).ToList(), aip, avvisi))
+                    return false;
+            foreach (var perFile in voci.GroupBy(v => v.File))
+            {
+                var file = perFile.Key;
+                // Dal fondo: le righe di una voce non spostano quelle delle voci prima.
+                foreach (var v in perFile.OrderByDescending(v => v.Record))
+                {
+                    var c = (IFileConRecord)sessione.File[file];
+                    var sporchi = Modifiche.SporchiDi(file);
+                    var righe = c.RigheDelFile(sporchi);
+                    var (da, quante) = c.PostiDeiRecord(sporchi)[v.Record];
+                    var fine = da + quante;
+                    while (fine > da + 1 && (string.IsNullOrWhiteSpace(righe[fine - 1]) || righe[fine - 1].TrimStart().StartsWith("//", StringComparison.Ordinal)))
+                        fine--;
+                    var testata = righe[da];
+                    if (!v.Star)
+                    {
+                        // Il campo 7 (il punto finale) all'ultimo punto dell'AIP, il resto della testata com'è.
+                        var campi = testata.Split(';');
+                        var punti = Core.PdfAip.ProcedureNelSector.Punti(v.Pezzi);
+                        if (campi.Length > 6 && punti.Count > 0) campi[6] = punti[^1];
+                        testata = string.Join(';', campi);
+                    }
+                    var corpo = Core.PdfAip.ProcedureNelSector.Corpo(v.Pezzi, v.Star ? Core.PdfAip.ProcedureNelSector.Coda(v.Pezzi[0].Designator) : null);
+                    var sostituzioni = new Dictionary<int, IReadOnlyList<string>>
+                    {
+                        [da + 1] = [Core.PdfAip.ProcedureNelSector.Dichiarazione(v.Nome, v.Pezzi, nota), "//@START", testata, .. corpo, $"//@END \"{v.Nome}\""],
+                    };
+                    for (var i = da + 1; i < fine; i++) sostituzioni[i + 1] = [];
+                    var quanti = c.RecordDelModello.Count;
+                    if (!GestoSulTesto(file, "procedura", f => Modifiche.CambiaRighe(f, sostituzioni, $"{v.Nome} dall'AIP",
+                            riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più le stesse voci: si fa a mano.", anchiITag: true)))
+                    {
+                        avvisi.Add($"{v.Nome}: non si scrive");
+                        return false;
+                    }
+                }
+                RifaiLaGeometria(file);
+            }
+            Registro.Scrivi("aip", gesto + (saltate.Count > 0 ? "; saltate: " + string.Join(", ", saltate) : ""));
+            Rifiuto = saltate.Count > 0 ? "Non riscritte: " + string.Join(", ", saltate) : null;
+            RicontrollaLeModifiche();
+            Avvisa();
+            return true;
+        });
+        if (!fatto && avvisi.Count > 0)
+            return Rifiuta(string.Join(" · ", avvisi));
+        if (fatto)
+            RifaiIlConfrontoDelleProcedure();
+        return fatto;
+    }
+
+    /// <summary>Il nome di una voce di SID o di STAR (il terzo campo), o null se il record non è una procedura.</summary>
+    private static string? NomeDellaVoce(object record) => record switch
+    {
+        SidProcedure sid => sid.Name.Trim(),
+        ProcedureStrRecord star => star.ProcedureId.Trim(),
+        _ => null,
+    };
 
     /// <summary>L'ultimo confronto di ENR 4 (slice 3b): il ciclo, se erano le radioassistenze o i punti, e le righe.</summary>
     public (string Ciclo, bool Radioassistenze, IReadOnlyList<Core.PdfAip.DifferenzaDiEnr4> Esiti)? UltimoConfrontoDiEnr4 { get; private set; }

@@ -14,7 +14,11 @@ namespace Vipi.SectorLab.Core.PdfAip;
 /// (<c>XIBR5A</c>, <c>IRK7A-PEP2X</c>). <paramref name="File"/>/<paramref name="Record"/>: la prima voce del sector da aprire.
 /// </summary>
 public sealed record DifferenzaDiProcedura(EsitoDelConfronto Esito, string Scalo, ProcedureKind Genere, string Nome, IReadOnlyList<string> Piste,
-    IReadOnlyList<string> Nomi, string? File, int? Record, IReadOnlyList<string> Dettagli);
+    IReadOnlyList<string> Nomi, string? File, int? Record, IReadOnlyList<string> Dettagli)
+{
+    /// <summary>Le voci del sector di questa SID che non hanno tracciato (oggi tutte): «Scrivi i tracciati» (7e, D2) gliel'aggiunge.</summary>
+    public int VociSenzaTracciato { get; init; }
+}
 
 /// <summary>
 /// Le procedure di AD 2 dell'AIP espanso contro il sector, in sola lettura (carta F7, slice 7d): le SID e le transizioni coi
@@ -44,14 +48,17 @@ public static partial class ConfrontoDelleProcedure
 
     /// <summary>Una voce del sector: il file, il record, il nome intero, le sue parti (SID e transizione), le piste, il genere.</summary>
     private sealed record Voce(string File, int Record, string Nome, IReadOnlyList<string> Parti, IReadOnlyList<string> Piste, bool Star,
-        string? Fix, IReadOnlyList<string> Punti);
+        string? Fix, IReadOnlyList<string> Punti, bool SenzaTracciato = false);
 
     /// <summary>
     /// Il confronto. <paramref name="puntoDelSector"/>: dove il sector ha un punto, per nome (il catalogo del master scelto);
     /// <paramref name="puntoDellAip"/>: dove l'AIP espanso ha un punto (ENR 4.4, punti di scalo, radioassistenze).
     /// </summary>
+    /// <param name="abbinamenti">Se c'è, vi si scrive per ogni voce del sector (file, record) la procedura dell'AIP di ogni
+    /// parte del nome (la SID e la sua transizione; null dove non se ne trova una sola): i gesti della 7e ne hanno bisogno.</param>
     public static IReadOnlyList<DifferenzaDiProcedura> Di(IEnumerable<Procedure> procedure, SessioneAperta sessione,
-        Func<string, Coordinate?> puntoDelSector, Func<string, Position?> puntoDellAip)
+        Func<string, Coordinate?> puntoDelSector, Func<string, Position?> puntoDellAip,
+        IDictionary<(string File, int Record), Procedure?[]>? abbinamenti = null)
     {
         ArgumentNullException.ThrowIfNull(procedure);
         ArgumentNullException.ThrowIfNull(sessione);
@@ -100,6 +107,11 @@ public static partial class ConfrontoDelleProcedure
                     l.Add((v, k));
                 }
                 usate.Add(v);
+                if (abbinamenti is not null)
+                {
+                    if (!abbinamenti.TryGetValue((v.File, v.Record), out var parti)) abbinamenti[(v.File, v.Record)] = parti = new Procedure?[v.Parti.Count];
+                    parti[k] = restano.Select(p => p.Designator).Distinct().Count() == 1 ? restano[0] : null;
+                }
             }
 
             foreach (var p in aip.OrderBy(p => p.Kind).ThenBy(p => p.Designator, StringComparer.Ordinal))
@@ -143,7 +155,10 @@ public static partial class ConfrontoDelleProcedure
                 }
                 var prima = suoi.OrderBy(s => s.Voce.Record).First().Voce;
                 esiti.Add(new DifferenzaDiProcedura(dettagli.Count == 0 ? EsitoDelConfronto.Uguale : EsitoDelConfronto.FormaDiversa,
-                    p.Aerodrome, p.Kind, p.Designator, p.Runways, [.. suoi.Select(s => s.Voce.Nome).Distinct()], prima.File, prima.Record, dettagli));
+                    p.Aerodrome, p.Kind, p.Designator, p.Runways, [.. suoi.Select(s => s.Voce.Nome).Distinct()], prima.File, prima.Record, dettagli)
+                {
+                    VociSenzaTracciato = p.Legs.Count == 0 ? 0 : suoi.Select(s => s.Voce).Distinct().Count(v => v.SenzaTracciato),
+                });
             }
 
             foreach (var v in voci.Where(v => !usate.Contains(v)))
@@ -237,7 +252,7 @@ public static partial class ConfrontoDelleProcedure
             {
                 for (var i = 0; i < conRecord.RecordDelModello.Count; i++)
                     if (conRecord.RecordDelModello[i] is SidProcedure sid && sid.IcaoCode.Equals(icao, StringComparison.OrdinalIgnoreCase))
-                        voci.Add(new Voce(file, i, sid.Name.Trim(), Parti(sid.Name), Piste(sid.Runway), Star: false, sid.RelatedFix, []));
+                        voci.Add(new Voce(file, i, sid.Name.Trim(), Parti(sid.Name), Piste(sid.Runway), Star: false, sid.RelatedFix, [], sid.Track.Count == 0));
             }
             else if (nome.Equals(icao + ".str", StringComparison.OrdinalIgnoreCase))
             {

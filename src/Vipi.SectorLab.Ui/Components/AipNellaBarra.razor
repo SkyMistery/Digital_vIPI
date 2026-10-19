@@ -264,6 +264,12 @@
                 {
                     <p class="lab-nota" data-riassunto-procedure>SID e STAR, ciclo @proc.Ciclo: @string.Join(" · ", proc.Esiti.GroupBy(e => e.Esito).Select(g => $"{Esito(g.Key)} {g.Count()}"))
                         — le SID del sector non hanno tracciato: si confrontano nome, piste e punto finale.</p>
+                    @if (Lab.TracciatiDaScrivere is var senza and > 0)
+                    {
+                        <button type="button" class="lab-tasto" data-tasto="scrivi-tracciati"
+                                title="Le SID uguali all'AIP per nome, piste e punto finale, che nel sector non hanno tracciato: il tracciato dell'AIP coi tag di quota e velocità (D2, D3), un gesto solo"
+                                @onclick="ScriviITracciati">Scrivi i tracciati delle SID uguali (@senza voci)</button>
+                    }
                     <ul class="lab-elenco-lotto" data-elenco-procedure>
                         @foreach (var e in proc.Esiti.Where(e => e.Esito != Esiti.Uguale))
                         {
@@ -277,6 +283,19 @@
                                     <strong>@Esito(e.Esito)</strong>
                                 }
                                 <span>&nbsp;@e.Scalo @Genere(e.Genere)</span> <strong>@e.Nome</strong>@(e.Piste.Count > 0 ? $" RWY {string.Join("/", e.Piste)}" : "")@(e.Nomi.Count > 0 && e.Esito != Esiti.SoloNelSector ? $" ({string.Join(", ", e.Nomi)})" : "")
+                                @* Slice 7e: i gesti. Una procedura che manca si porta (coi punti che mancano); una diversa si sostituisce. *@
+                                @if (e.Esito == Esiti.MancaNelSector)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-procedura"
+                                            title="Una voce nuova nello .str o nel .sid dello scalo, coi punti e le quote dell'AIP; i punti che il sector non ha, prima in APT.fix"
+                                            @onclick="() => PortaLaProcedura(e)">Porta nel sector</button>
+                                }
+                                else if (e.Esito == Esiti.FormaDiversa && e.File is not null)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-procedura"
+                                            title="Le voci del sector di questa procedura riscritte coi punti, le quote e le velocità dell'AIP (la testata resta)"
+                                            @onclick="() => SostituisciLaProcedura(e)">Sostituisci</button>
+                                }
                                 @foreach (var d in e.Dettagli)
                                 {
                                     <br /><span>· @d</span>
@@ -525,6 +544,25 @@
     private Aip.CorrectionKind? _aggiungi;
 
     private Aip.CorrectionKind _tipoDaAggiungere = Aip.CorrectionKind.Airspace;
+
+    // Riuscito o no, il Lab può avere qualcosa da dire (le voci saltate da «Sostituisci»).
+    private void PortaLaProcedura(Vipi.SectorLab.Core.PdfAip.DifferenzaDiProcedura riga)
+    {
+        Lab.PortaLaProcedura(riga);
+        _rifiuto = Lab.Rifiuto;
+    }
+
+    private void ScriviITracciati()
+    {
+        Lab.ScriviITracciatiDelleSid();
+        _rifiuto = Lab.Rifiuto;
+    }
+
+    private void SostituisciLaProcedura(Vipi.SectorLab.Core.PdfAip.DifferenzaDiProcedura riga)
+    {
+        Lab.SostituisciLaProcedura(riga);
+        _rifiuto = Lab.Rifiuto;
+    }
 
     private async Task ConfrontaLeProcedure() => _rifiuto = await Lab.ConfrontaLeProcedureAsync() ? null : Lab.Rifiuto;
 
