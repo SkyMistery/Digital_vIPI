@@ -4285,6 +4285,8 @@ public sealed class SessioneDelLab
             var catalogo = CatalogoScelto;
             var confini = ConfiniDelSector();
             StratoDellAip = await Task.Run(() => Core.PdfAip.AipSullaMappa.Di(modello, ciclo, nome => catalogo?.Cerca(nome)?.Posizione, confini)).ConfigureAwait(false);
+            _modelloSullaMappa = modello;
+            _correzioniSullaMappa = LeCorrezioniOppureNiente(espanso, modello.State);
             SceltaDellAip = null;
             _versioniDegliStrati[id] = ++VersioneDellaGeometria;
             _accesi.Add(id);
@@ -4297,6 +4299,116 @@ public sealed class SessioneDelLab
         {
             Registro.Errore("aip", e);
             return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
+        }
+    }
+
+    /// <summary>Il modello da cui viene <see cref="StratoDellAip"/>: le voci dello strato hanno il suo ordine (prima le aree).</summary>
+    private global::Aip.AipDocument? _modelloSullaMappa;
+
+    /// <summary>Il file delle correzioni letto con lo strato, per dire nella scheda se un'area è corretta.</summary>
+    private global::Aip.AipCorrectionFile? _correzioniSullaMappa;
+
+    private global::Aip.AipCorrectionFile? LeCorrezioniOppureNiente(string espanso, string stato)
+    {
+        try
+        {
+            return Core.PdfAip.CorrezioniDellAip.Leggi(espanso, stato);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            Registro.Errore("aip", e);
+            return null;
+        }
+    }
+
+    /// <summary>L'area dell'AIP espanso scelta sulla mappa (le aree sono le prime voci dello strato), o null.</summary>
+    public global::Aip.Airspace? AreaDellAipScelta =>
+        SceltaDellAip is { } i && _modelloSullaMappa is { } m && i >= 0 && i < m.Airspaces.Count ? m.Airspaces[i] : null;
+
+    /// <summary>La correzione in piedi che ha fatto l'area scelta, o null se è com'è nel PDF.</summary>
+    public global::Aip.AipCorrection? CorrezioneDellAreaScelta =>
+        AreaDellAipScelta is { } area && _correzioniSullaMappa is { } file ? Core.PdfAip.CorrezioniDellAip.Attiva(file, area.Key) : null;
+
+    /// <summary>Vero mentre il Lab scrive una correzione nell'AIP espanso.</summary>
+    public bool StaCorreggendoLAip { get; private set; }
+
+    /// <summary>
+    /// «Correggi» (con <paramref name="chiave"/>) o «Aggiungi un'area» (senza), dalla scheda della mappa (carta «Le correzioni
+    /// dell'AIP espanso», slice 2): il modulo diventa un'area, la correzione va nel file e l'area nel modello del ciclo.
+    /// </summary>
+    public Task<bool> CorreggiLAreaAsync(string? chiave, Core.PdfAip.ModuloDellArea modulo, string? perche, string? fonte) =>
+        CorreggiLAipAsync((modello, file, ciclo) =>
+        {
+            var prima = chiave is null ? null : modello.Airspaces.FirstOrDefault(a => a.Key == chiave);
+            if (chiave is not null && prima is null)
+                return (null, $"{chiave}: non è nell'AIP espanso del ciclo {ciclo}.");
+            var (area, no) = Core.PdfAip.CorrezioniDellAip.Area(modulo, prima);
+            if (area is null)
+                return (null, no);
+            return chiave is null
+                ? Core.PdfAip.CorrezioniDellAip.Aggiungi(modello, file, area, perche, fonte, ciclo, Oggi)
+                : Core.PdfAip.CorrezioniDellAip.Correggi(modello, file, chiave, area, perche, fonte, ciclo, Oggi);
+        }, sceglie: string.IsNullOrWhiteSpace(modulo.Nome) ? modulo.Identificativo.Trim() : $"{modulo.Identificativo.Trim()} {modulo.Nome.Trim()}");
+
+    /// <summary>«Togli»: l'area esce dall'AIP espanso, con una correzione (o ritirando l'aggiunta che l'aveva messa).</summary>
+    public Task<bool> TogliLAreaAsync(string chiave, string? perche, string? fonte) =>
+        CorreggiLAipAsync((modello, file, ciclo) => Core.PdfAip.CorrezioniDellAip.Togli(modello, file, chiave, perche, fonte, ciclo, Oggi));
+
+    /// <summary>«Ritira la correzione»: l'area torna com'è nel PDF.</summary>
+    public Task<bool> RitiraLaCorrezioneAsync(string id) =>
+        CorreggiLAipAsync((modello, file, _) => Core.PdfAip.CorrezioniDellAip.Ritira(modello, file, id), sceglieLaStessa: true);
+
+    private static DateOnly Oggi => DateOnly.FromDateTime(DateTime.Now);
+
+    private async Task<bool> CorreggiLAipAsync(Func<global::Aip.AipDocument, global::Aip.AipCorrectionFile, string, (Core.PdfAip.CorrezioneFatta? Fatta, string? Perche)> gesto,
+        string? sceglie = null, bool sceglieLaStessa = false)
+    {
+        if (StaCorreggendoLAip)
+            return false;
+        if (CartellaDellAipEspanso is not { } espanso)
+            return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
+        if (StratoDellAip is not { } strato)
+            return Rifiuta("Accendi l'AIP espanso sulla mappa prima: le correzioni si fanno dalla sua scheda.");
+        var ciclo = strato.Ciclo;
+        var sceltaDiPrima = AreaDellAipScelta?.Key;
+
+        StaCorreggendoLAip = true;
+        Avvisa();
+        try
+        {
+            // Come «Leggi»: nel repo si scrive sul ramo del ciclo, mai su main.
+            if (Core.PdfAip.RepoDellAip.EUnRepo(espanso)
+                && await Core.PdfAip.RepoDellAip.SulRamoDelCicloAsync(Git, espanso, ciclo).ConfigureAwait(false) is { } noRamo)
+                return Rifiuta(noRamo);
+
+            var percorso = Core.PdfAip.AipEspanso.File(espanso, ciclo);
+            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(percorso))).ConfigureAwait(false);
+            var file = Core.PdfAip.CorrezioniDellAip.Leggi(espanso, modello.State);
+            var (fatta, perche) = gesto(modello, file, ciclo);
+            if (fatta is null)
+                return Rifiuta(perche ?? "La correzione non si può fare.");
+
+            await Task.Run(() => Core.PdfAip.CorrezioniDellAip.Scrivi(espanso, ciclo, fatta)).ConfigureAwait(false);
+            Registro.Scrivi("aip", fatta.Messaggio);
+            MessaggioDellAip = fatta.Messaggio;
+            await MostraLAipAsync(true).ConfigureAwait(false);
+            // La scheda resta sull'area: quella nuova (Correggi, Aggiungi), o la stessa tornata com'era (Ritira).
+            var daScegliere = sceglie ?? (sceglieLaStessa ? sceltaDiPrima : null);
+            if (daScegliere is not null && _modelloSullaMappa is { } nuovo && nuovo.Airspaces.ToList().FindIndex(a => a.Key == daScegliere) is var i and >= 0)
+                SceltaDellAip = i;
+            Rifiuto = null;
+            await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException or global::Aip.AipJsonException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"Non sono riuscito a scrivere la correzione: {e.Message}");
+        }
+        finally
+        {
+            StaCorreggendoLAip = false;
+            Avvisa();
         }
     }
 

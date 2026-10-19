@@ -4,14 +4,14 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 19 ottobre 2026: F6, le correzioni dell'AIP espanso (slice 1 fatta)
+## Dove siamo — 19 ottobre 2026: F6, le correzioni dell'AIP espanso (slice 1 e 2 fatte)
 
 Il committente vuole l'AIP espanso correggibile: **errori dell'AIP stesso e aggiunte da altre fonti**, che durano da un
-ciclo all'altro finché un PDF o un'altra correzione non le supera. Carta nuova:
-[`2026-10-19-f6-correzioni-aip-espanso.md`](../feature/2026-10-19-f6-correzioni-aip-espanso.md). **Slice 1 fatta**: il
-file `correzioni\li.json` nel repo dell'AIP espanso (oggetti interi, `before` dal PDF, `superseded`), applicato da ogni
-«Leggi»; sul banco una modifica, un'aggiunta e una rimozione scritte a mano arrivano in `2610\li.json`, e una con un
-`before` sbagliato esce «superata dal PDF». **Prossima: slice 2**, i gesti nel Lab per le aree.
+ciclo all'altro finché un PDF o un'altra correzione non le supera. Carta:
+[`2026-10-19-f6-correzioni-aip-espanso.md`](../feature/2026-10-19-f6-correzioni-aip-espanso.md). **Slice 1**: il file
+`correzioni\li.json` nel repo dell'AIP espanso, applicato da ogni «Leggi». **Slice 2**: dalla scheda di un'area sulla
+mappa «Correggi» (un modulo, la forma incollata come la scrive l'AIP), «Togli», «Ritira la correzione»; dal riquadro
+«Aggiungi un'area»; provati a schermo sul banco. **Prossima: slice 3**, gli altri tipi, quando lo dice il committente.
 
 ## 19 ottobre 2026: F6, l'importer dei PDF finito
 

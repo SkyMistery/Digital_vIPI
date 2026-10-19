@@ -296,6 +296,80 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.DoesNotContain("aip", _lab.Accesi);
     }
 
+    // Le correzioni dell'AIP espanso, slice 2: dalla scheda di un'area «Correggi» (il modulo), «Ritira la correzione»,
+    // «Togli»; dal riquadro «Aggiungi un'area» con la forma incollata. Tutto va nel file delle correzioni e nel modello.
+    [Fact]
+    public async Task LeCorrezioniDallaSchedaDellArea()
+    {
+        var pagina = await ConfrontaConAsync("//MENU MAPS\r\n",
+            CtrDiProva("Roma CTR", new CircleGeometry(new Position(41.9, 12.5), new Distance(5, DistanceUnit.Nm))));
+        var espanso = Path.Combine(_fuori, "espanso");
+        var correzioni = Path.Combine(espanso, "correzioni", "li.json");
+        AipDocument Modello() => AipJson.Deserialize(File.ReadAllText(Path.Combine(espanso, "2611", "li.json")));
+        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").Change(true));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-aip-strato]")), TimeSpan.FromSeconds(10));
+        await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", 0));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-tasto=correggi-area]")), TimeSpan.FromSeconds(10));
+
+        // Correggi: senza fonte no; con la fonte, il limite nuovo nel modello e la correzione nella scheda.
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=correggi-area]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=area-superiore]").Change("2500ft AMSL"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=area-perche]").Change("limite sbagliato nel PDF"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=salva-correzione]").Click());
+        pagina.WaitForAssertion(() => Assert.Contains("fonte", pagina.Find("[data-rifiuto-correzione]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+        Assert.False(File.Exists(correzioni));
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=area-fonte]").Change("errore AIP, segnalato a ENAV"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=salva-correzione]").Click());
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Contains("Corretta (2", pagina.Find("[data-correzione-aip]").TextContent, StringComparison.Ordinal);
+            Assert.Contains("2500ft AMSL – SFC", pagina.Find("[data-scheda-aip]").TextContent, StringComparison.Ordinal);
+            Assert.Empty(pagina.FindAll("[data-modulo-area]"));
+        }, TimeSpan.FromSeconds(10));
+        Assert.Equal("2500ft AMSL", Modello().Airspaces[0].Upper.Text);
+        Assert.Equal(CorrectionOp.Change, Assert.Single(AipCorrections.Deserialize(File.ReadAllText(correzioni)).Corrections).Op);
+        Assert.StartsWith("Correzione dell'AIP espanso: Roma CTR", _lab.MessaggioDellAip, StringComparison.Ordinal);
+
+        // Ritira: l'area torna com'è nel PDF.
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=ritira-correzione]").Click());
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Empty(pagina.FindAll("[data-correzione-aip]"));
+            Assert.Contains("2000ft AMSL – SFC", pagina.Find("[data-scheda-aip]").TextContent, StringComparison.Ordinal);
+        }, TimeSpan.FromSeconds(10));
+        Assert.Equal("2000ft AMSL", Modello().Airspaces[0].Upper.Text);
+
+        // Aggiungi un'area dal riquadro, con la forma incollata come la scrive l'AIP.
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=aggiungi-area]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-campo=area-identificativo]").Change("LI R999"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-campo=area-superiore]").Change("FL 100"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-campo=area-inferiore]").Change("GND"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-campo=area-forma]").Change("420000N 0120000E - 420000N 0123000E - 414800N 0123000E"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-campo=area-perche]").Change("area nuova"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-campo=area-fonte]").Change("AIP SUP 123/26"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-tasto=salva-correzione]").Click());
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Contains("ciclo 2611, 2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal);
+            Assert.Equal("LI R999", pagina.Find("[data-scheda-aip] .lab-etichetta").TextContent);
+            Assert.Contains("Aggiunta (", pagina.Find("[data-correzione-aip]").TextContent, StringComparison.Ordinal);
+        }, TimeSpan.FromSeconds(10));
+        Assert.Equal(["Roma CTR", "LI R999"], Modello().Airspaces.Select(a => a.Key));
+
+        // Togli il CTR (dalla sua scheda): perché e fonte, e non c'è più.
+        await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", 0));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-tasto=togli-area]")), TimeSpan.FromSeconds(10));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=togli-area]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=togli-perche]").Change("chiuso"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=togli-fonte]").Change("AIC 9/26"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=conferma-togli]").Click());
+        pagina.WaitForAssertion(() => Assert.Contains("ciclo 2611, 1 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+        Assert.Equal(["LI R999"], Modello().Airspaces.Select(a => a.Key));
+        Assert.Equal([CorrectionOp.Change, CorrectionOp.Add, CorrectionOp.Remove],
+            AipCorrections.Deserialize(File.ReadAllText(correzioni)).Corrections.Select(c => c.Op));
+    }
+
     [Fact]
     public void LeCartelleSiRicordano()
     {

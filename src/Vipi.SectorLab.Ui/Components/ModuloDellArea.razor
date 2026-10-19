@@ -1,0 +1,102 @@
+@inject SessioneDelLab Lab
+@using Aip
+
+@*
+    Il modulo di un'area dell'AIP espanso (carta «Le correzioni dell'AIP espanso», slice 2): «Correggi» un'area della mappa
+    (con Prima) o «Aggiungi un'area» che il PDF non ha (senza). Il perché e la fonte sono obbligatori; la forma si incolla
+    come la scrive l'AIP, e vuota resta quella di adesso. Salvato, va nel file delle correzioni e nel modello del ciclo.
+*@
+<div class="lab-modulo-aip" data-modulo-area="@(Prima is null ? "aggiungi" : "correggi")">
+    <label class="lab-nota">Sezione
+        <input class="lab-campo lab-campo-corto" value="@_m.Sezione" data-campo="area-sezione" @onchange="e => _m = _m with { Sezione = Testo(e) }" />
+    </label>
+    <label class="lab-nota">Tipo
+        <select class="lab-campo lab-campo-corto" value="@_m.Tipo" data-campo="area-tipo"
+                @onchange="e => _m = _m with { Tipo = Enum.TryParse<AirspaceType>(Testo(e), out var t) ? t : _m.Tipo }">
+            @foreach (var t in Enum.GetValues<AirspaceType>())
+            {
+                <option value="@t">@t.ToString().ToUpperInvariant()</option>
+            }
+        </select>
+    </label>
+    <label class="lab-nota">Identificativo
+        <input class="lab-campo" value="@_m.Identificativo" data-campo="area-identificativo" placeholder="LI R107A" @onchange="e => _m = _m with { Identificativo = Testo(e) }" />
+    </label>
+    <label class="lab-nota">Nome
+        <input class="lab-campo" value="@_m.Nome" data-campo="area-nome" @onchange="e => _m = _m with { Nome = Testo(e) }" />
+    </label>
+    <label class="lab-nota">Limite superiore
+        <input class="lab-campo lab-campo-corto" value="@_m.Superiore" data-campo="area-superiore" placeholder="FL 195" @onchange="e => _m = _m with { Superiore = Testo(e) }" />
+    </label>
+    <label class="lab-nota">Limite inferiore
+        <input class="lab-campo lab-campo-corto" value="@_m.Inferiore" data-campo="area-inferiore" placeholder="GND" @onchange="e => _m = _m with { Inferiore = Testo(e) }" />
+    </label>
+    <label class="lab-nota">Classe
+        <input class="lab-campo lab-campo-corto" value="@_m.Classe" data-campo="area-classe" maxlength="1" @onchange="e => _m = _m with { Classe = Testo(e) }" />
+    </label>
+    <label class="lab-nota">Attività
+        <input class="lab-campo" value="@_m.Attivita" data-campo="area-attivita" @onchange="e => _m = _m with { Attivita = Testo(e) }" />
+    </label>
+    <label class="lab-nota">Note
+        <textarea class="lab-campo" rows="2" data-campo="area-note" value="@_m.Note" @onchange="e => _m = _m with { Note = Testo(e) }"></textarea>
+    </label>
+    <label class="lab-nota">Forma — @(Prima is null ? "i limiti laterali come li scrive l'AIP" : "vuota resta com'è; o incolla i limiti laterali come li scrive l'AIP")
+        <textarea class="lab-campo" rows="3" spellcheck="false" data-campo="area-forma" value="@_m.Forma"
+                  placeholder="445006N 0070912E - 445100N 0071500E - … to point of origin" @onchange="e => _m = _m with { Forma = Testo(e) }"></textarea>
+    </label>
+    <label class="lab-nota">Perché
+        <input class="lab-campo" value="@_perche" data-campo="area-perche" placeholder="coordinate del vertice 3 sbagliate nel PDF" @onchange="e => _perche = Testo(e)" />
+    </label>
+    <label class="lab-nota">Fonte
+        <input class="lab-campo" value="@_fonte" data-campo="area-fonte" placeholder="errore AIP, segnalato a ENAV il … · AIP SUP 123/26" @onchange="e => _fonte = Testo(e)" />
+    </label>
+    <p>
+        <button type="button" class="lab-tasto" data-tasto="salva-correzione" disabled="@Lab.StaCorreggendoLAip" @onclick="Salva">
+            @(Prima is null ? "Aggiungi all'AIP espanso" : "Salva la correzione")
+        </button>
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="lascia-correzione" @onclick="Chiudi">Lascia stare</button>
+    </p>
+    @if (_rifiuto is { } rifiuto)
+    {
+        <p class="lab-errore" data-rifiuto-correzione>@rifiuto</p>
+    }
+</div>
+
+@code {
+    /// <summary>L'area che si corregge; null = «Aggiungi un'area».</summary>
+    [Parameter] public Airspace? Prima { get; set; }
+
+    [Parameter] public EventCallback Chiuso { get; set; }
+
+    private Vipi.SectorLab.Core.PdfAip.ModuloDellArea _m = Vipi.SectorLab.Core.PdfAip.ModuloDellArea.Vuoto();
+    private Airspace? _di;
+    private bool _primaVolta = true;
+    private string? _perche;
+    private string? _fonte;
+    private string? _rifiuto;
+
+    protected override void OnParametersSet()
+    {
+        // Il modulo si riempie quando cambia l'area, non a ogni ridisegno: quel che l'AOD ha scritto resta.
+        if (!_primaVolta && ReferenceEquals(_di, Prima)) return;
+        _primaVolta = false;
+        _di = Prima;
+        _m = Prima is null ? Vipi.SectorLab.Core.PdfAip.ModuloDellArea.Vuoto() : Vipi.SectorLab.Core.PdfAip.ModuloDellArea.Di(Prima);
+        _rifiuto = null;
+    }
+
+    private static string Testo(ChangeEventArgs e) => e.Value?.ToString() ?? "";
+
+    private async Task Salva()
+    {
+        if (await Lab.CorreggiLAreaAsync(Prima?.Key, _m, _perche, _fonte))
+        {
+            _rifiuto = null;
+            await Chiuso.InvokeAsync();
+        }
+        else
+            _rifiuto = Lab.Rifiuto;
+    }
+
+    private Task Chiudi() => Chiuso.InvokeAsync();
+}

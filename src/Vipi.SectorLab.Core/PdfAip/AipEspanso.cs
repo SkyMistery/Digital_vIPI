@@ -262,7 +262,7 @@ public static class AipEspanso
     }
 
     // Prima in un file accanto, poi al posto del vecchio: un'interruzione a metà non lascia un file rotto.
-    private static void ScriviAlPosto(string percorso, Action<Stream> scrivi)
+    internal static void ScriviAlPosto(string percorso, Action<Stream> scrivi)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(percorso)!);
         var provvisorio = percorso + ".scrivendo";

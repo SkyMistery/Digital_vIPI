@@ -99,4 +99,32 @@ servirà.
   tutte, `before` scritto per ABADI e MILANO FIR, `superseded: "AIP 2610"` su ABAKO. Una seconda «Leggi»: «3
   applicate», il file delle correzioni non si riscrive. Il clone poi rimesso com'era (niente registrato).
 
-**Prossima: slice 2**, «Correggi», «Aggiungi», «Togli» per le aree dentro il Lab.
+### Slice 2 — i gesti per le aree nel Lab: fatta (19 ottobre, via del committente)
+
+- **Dove**: nella **scheda di un'area** dell'AIP espanso scelta sulla mappa, «Correggi», «Togli» e, se l'area è corretta,
+  «Ritira la correzione»; la scheda dice «✎ Corretta/Aggiunta (id, dal ciclo …): perché — fonte». Nel riquadro AIP, sotto
+  «Mostra l'AIP espanso sulla mappa», **«Aggiungi un'area»**. Sulle righe dei confronti i tasti non ci sono: dalla riga
+  si arriva all'area sulla mappa. Il blocco «Messaggio · Registra · Manda» ora si vede col repo su un ramo `aip/…`
+  anche senza una «Leggi» nella stessa sessione: una correzione si registra da sola.
+- **Il modulo** (`ModuloDellArea.razor`): sezione, tipo, identificativo, nome, limiti superiore e inferiore (letti con
+  `LimitText` come fa l'importer), classe, attività, note, **forma** (vuota = resta com'è; altrimenti i limiti laterali
+  come li scrive l'AIP, letti con `GeometryText`: una forma sola, nessuna parola sconosciuta), perché e fonte
+  obbligatori. Unità, orari, altitudine di transizione e pagina restano quelli dell'area; le fasce restano se i limiti
+  non cambiano.
+- **Il nucleo** (`CorrezioniDellAip`): lavora sul modello del ciclo già corretto e sul file, e li lascia **come li
+  lascerebbe una «Leggi»** coi PDF (provato in ogni test: il file applicato al modello dei PDF dà lo stesso JSON). Le
+  regole: `before` è sempre l'area del PDF (per un'area già corretta, il `before` di quella correzione, che diventa
+  superata dalla nuova); correggere un'area aggiunta fa un'altra `add`; «Togli» su un'area aggiunta **ritira**
+  l'aggiunta; «Ritira» mette `superseded: "ritirata"` e rimette l'area del PDF (una tolta torna in fondo all'elenco,
+  al suo posto la rimette la «Leggi» dopo). Nel repo si scrive sul ramo del ciclo, come «Leggi»; il messaggio proposto
+  è «Correzione dell'AIP espanso: R107A — perché (fonte)».
+- **Test**: Lab 1 195 → 1 206 (10 del nucleo, uno dell'interfaccia che fa correggi, ritira, aggiungi e togli).
+- **Provato a schermo sul banco** (clone `aip/2610`): «Aggiungi un'area» LI R999 con la forma incollata → 1 668 forme,
+  la scheda sull'area nuova, «2 file da registrare»; «Correggi» la classe → «Aggiunta (2026-10-19-2)», messaggio
+  aggiornato; «Togli» → aggiunta ritirata, 1 667 forme, `2610\li.json` di nuovo uguale al registrato (resta da
+  registrare il solo file delle correzioni). Il modulo nella scheda sistemato col CSS (le etichette non si spezzano). Il
+  clone poi rimesso com'era. Non provata a schermo la correzione di un'area **del PDF** (sceglierla col clic sulla mappa
+  stretta del pannello non riesce): la fanno i test, col nucleo e con l'interfaccia.
+
+**Prossima: slice 3**, gli altri tipi (punti, radioassistenze, attese, scali, rotte, luci, pericoli), quando il
+committente lo dice.

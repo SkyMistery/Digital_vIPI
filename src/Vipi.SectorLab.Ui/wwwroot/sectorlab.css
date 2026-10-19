@@ -449,6 +449,10 @@ body.lab-trascina * {
 .lab-campi-aip { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .6rem; margin: .4rem 0; font-size: .8rem; }
 .lab-campi-aip dt { color: var(--lab-titoli); }
 .lab-campi-aip dd { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+/* Il modulo di un'area dell'AIP espanso (correzioni, slice 2): ogni etichetta col suo campo, mai spezzata a metà. */
+.lab-modulo-aip label { display: inline-block; margin: .15rem .5rem .15rem 0; }
+.lab-modulo-aip label:has(textarea), .lab-modulo-aip label:has(input:not(.lab-campo-corto)) { display: block; }
+.lab-modulo-aip textarea { width: 100%; box-sizing: border-box; }
 .lab-righe-aip { font-size: .72rem; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow-y: auto; }
 [data-strato-colore="piste"] { background: var(--lab-strato-piste); }
 [data-strato-colore="radioassistenze"] { background: var(--lab-strato-radioassistenze); }
