@@ -155,6 +155,7 @@ public static class DescrizioniDeiCampi
             MvaSector => diAcc ? MvaDiAcc : MvaDiScalo,
             AtisData when relativo is not null && relativo.EndsWith(".datis", StringComparison.OrdinalIgnoreCase) => ModelloDatis,
             StrRecord { RunwaySpec: var piste } voce when EUnaMappa(piste) => MappeDelMaps[voce.GetType()],
+            HoldingStrRecord { RecordType: var tipo } when VociMiste.TryGetValue(tipo, out var mista) => mista,
             _ => PerTipo.GetValueOrDefault(record.GetType()),
         };
     }
@@ -169,6 +170,8 @@ public static class DescrizioniDeiCampi
         yield return (typeof(AtisData), ModelloDatis);
         foreach (var (tipo, descrizione) in MappeDelMaps)
             yield return (tipo, descrizione);
+        foreach (var descrizione in VociMiste.Values)
+            yield return (typeof(HoldingStrRecord), descrizione);
     }
 
     // --- i valori a tipo fisso, dal manuale ----------------------------------------------------------------------
@@ -572,6 +575,21 @@ public static class DescrizioniDeiCampi
         [typeof(GeometricStrRecord)] = Procedura("Mappa del MAPS (coordinate)", Vertici("Segments", "Tratti"), mappa: true),
         [typeof(ProcedureStrRecord)] = Procedura("Mappa del MAPS (punti per nome)", Vertici("Waypoints", "Punti"), mappa: true),
         [typeof(HoldingStrRecord)] = Procedura("Mappa del MAPS (punti misti)", Vertici("Points", "Punti"), mappa: true),
+    };
+
+    /// <summary>
+    /// Le voci con punti per nome e coordinate insieme: il parser le legge come <see cref="HoldingStrRecord"/> per la
+    /// forma del corpo, non per il tipo (sul fork di prova 351 su una pista: 187 attese, 119 STAR come <c>DELI1H</c> di
+    /// LICA e quelle scritte da «Porta nel sector» della F7, 45 IAP). Il nome lo dà il 6° campo; «Attesa di scalo»
+    /// resta per il tipo 2.
+    /// </summary>
+    private static readonly Dictionary<StrRecordType, DescrizioneDelTipo> VociMiste = new()
+    {
+        [StrRecordType.Star] = Procedura("STAR (punti e coordinate)", Vertici("Points", "Punti")),
+        [StrRecordType.Transition] = Procedura("Transizione (punti e coordinate)", Vertici("Points", "Punti")),
+        [StrRecordType.Iap] = Procedura("Avvicinamento (punti e coordinate)", Vertici("Points", "Punti")),
+        [StrRecordType.Fap] = Procedura("FAP (punti e coordinate)", Vertici("Points", "Punti")),
+        [StrRecordType.GoAround] = Procedura("Mancato avvicinamento (punti e coordinate)", Vertici("Points", "Punti")),
     };
 
     /// <summary>Vero per le voci del menu delle mappe (<c>MAPS</c>), non per una procedura su una pista.</summary>

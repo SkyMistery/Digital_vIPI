@@ -77,4 +77,25 @@ public sealed class SchedaDelleProcedureTests : IDisposable
         Assert.Equal(Editor.Navaid, elka.Campi.Single(c => c.Proprieta == "Transition").Editor);
         Assert.Equal(Editor.SiNo, elka.Campi.Single(c => c.Proprieta == "IsRnav").Editor);
     }
+
+    [Fact]
+    public void UnaStarConPuntiECoordinateSiPresentaComeStarEMostraIPunti()
+    {
+        // DELI1H di LICA: punti per nome e coordinate nello stesso corpo, quindi una HoldingStrRecord per il parser.
+        // La scheda diceva «Attesa di scalo» e mostrava Vipi.Sectorfile.Models.HoldingFixPoint al posto dei punti.
+        const string lica = "SectorFiles/Include/IT/lica.str";
+        _albero.Scrivi(lica, string.Join("\r\n",
+            "LICA;10;DELI1H; ; ; ;", "DELIK;DELIK;1H", "LMT;LMT;", "N038.54.16.000;E016.15.56.000;",
+            "LICA;28;HLD-ORTEV; ; ;2;", "ORTEV;ORTEV;", "N038.52.23.494;E016.30.43.501;") + "\r\n");
+        var file = Apri().File[lica];
+
+        var star = Ispettore.Scheda(file, Indice(file, "DELI1H"), null)!;
+        Assert.IsType<HoldingStrRecord>(((IFileConRecord)file).RecordDelModello[Indice(file, "DELI1H")]);
+        Assert.Equal("STAR (punti e coordinate)", star.NomeDelTipo);
+        Assert.Equal("DELIK, LMT, N038.54.16.000 E016.15.56.000", star.Campi.Single(c => c.Nome == "Points").Valore);
+
+        var attesa = Ispettore.Scheda(file, Indice(file, "HLD-ORTEV"), null)!;
+        Assert.Equal("Attesa di scalo", attesa.NomeDelTipo);
+        Assert.Equal("ORTEV, N038.52.23.494 E016.30.43.501", attesa.Campi.Single(c => c.Nome == "Points").Valore);
+    }
 }

@@ -199,6 +199,9 @@ public static class Ispettore
         MvaVertex vertice => Testo(vertice.Position),
         PuntoDelTracciato punto => Testo(punto.Punto),
         ProcedureWaypoint punto => punto.FixName,
+        // Le voci miste (una STAR con punti per nome e coordinate): si mostravano col nome del tipo, HoldingFixPoint.
+        HoldingFixPoint punto => punto.FixName,
+        HoldingCoordPoint punto => Testo(punto.Position),
         StaticBoundaryVertex vertice => vertice.Position is { } c ? Testo(c) : vertice.FixA ?? "—",
         // Slice 11a, visto a schermo: «8 voci: Vipi.Sectorfile.Models.Transfer…». Un trasferimento si dice come si scrive.
         Transfer trasferimento => (trasferimento.IsNegative ? "-" : string.Empty) + trasferimento.PositionCode,
