@@ -293,7 +293,17 @@ rapidamente aprire la cartella e metterci i pdf dentro») con l'ambiente le cart
 cambiarle si rifiuta («Il Lab lavora nel suo ambiente…»), «Prendi l'AIP espanso» non chiede più «Dove», nelle
 Impostazioni i due campi sono in sola lettura. Al posto di «Sfoglia…» c'è **«Apri la cartella»** (anche accanto ai PDF
 nel riquadro AIP), che apre la cartella in Esplora risorse per trascinarci i PDF (`ApriLaCartellaDellAip`: solo quelle
-due). Restano libere la vetrina e la cartella di Aurora. Test: Lab 1 304 (+1). Sul banco con un ambiente: i due campi
+due). Restano libere la vetrina e la cartella di Aurora. Test: Lab 1 304 (+1).
+
+**Simboli dal profilo di Aurora** (committente: «per le mappe devi usare i simboli di Aurora così la visualizzazione è
+uguale»). Misurato prima di toccare: i disegni che il Lab usava (copiati il 17 ottobre da `BASIC_RADAR.cpr`) sono
+uguali ai `SYMBOLS_` dei punti in 35 profili su 36 della cartella di Aurora del committente (il 36°, `LIPP_CE1_CTR`, ha
+i suoi). Ora non sono più copiati: `SimboliDellaMappa.DallaCartellaDiAurora` li legge dal profilo scelto nella cartella di
+Aurora (Impostazioni, «Profilo di Aurora (simboli dei punti)», di base `BASIC_RADAR.cpr`, ricordato in
+`profilo-di-aurora.txt`); i disegni copiati restano solo quando non c'è un profilo. 🔴 Del `.cpr` si leggono SOLO le
+righe `SYMBOLS_<ruolo>=` dei 19 ruoli dei punti: il profilo tiene anche `[Connection]`. Un disegno che non è 13×13 resta
+quello di base. Cambiare profilo o cartella di Aurora ridisegna la mappa. Test: Lab 1 306 (+2). Sul banco con la
+cartella di Aurora del PC: 36 profili nella scelta, `BASIC_RADAR.cpr` scelto. Sul banco con un ambiente: i due campi
 in sola lettura con le cartelle dell'ambiente, i due «Apri la cartella», nessun «Sfoglia…» (non premuto: aprirebbe
 Esplora risorse sullo schermo del committente).
 

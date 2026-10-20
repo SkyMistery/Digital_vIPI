@@ -71,6 +71,57 @@ public sealed class SimboliDellaMappaTests : IDisposable
         Assert.True(scalo.Acceso(11, 11));
     }
 
+    // Un disegno 13×13 riconoscibile: solo la prima colonna accesa.
+    private const string Barra = "1111111111111;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;0000000000000;";
+
+    private string Aurora(params (string Profilo, string Testo)[] profili)
+    {
+        string aurora = Path.Combine(_albero.Radice, "AuroraWindows");
+        Directory.CreateDirectory(Path.Combine(aurora, "Profiles"));
+        foreach (var (profilo, testo) in profili)
+            File.WriteAllText(Path.Combine(aurora, "Profiles", profilo), testo);
+        return aurora;
+    }
+
+    [Fact]
+    public void ISimboliSiLeggonoDalProfiloDiAurora()
+    {
+        // 20 ottobre: i simboli come li disegna Aurora, dal profilo; del .cpr solo le righe SYMBOLS_ dei punti.
+        string aurora = Aurora(
+            ("BASIC_RADAR.cpr", "[Connection]\r\nPASSWORD=non-si-legge\r\n[PREFS]\r\nSYMBOLS_FIX_ENR=" + Barra + "\r\nSYMBOLS_FIX_VOR=rotto;\r\nSYMBOLS_SID=" + Barra + "\r\n"),
+            ("ALTRO.cpr", "SYMBOLS_FIX_NDB=" + Barra + "\r\n"));
+
+        var simboli = SimboliDellaMappa.DallaCartellaDiAurora(aurora, null);
+
+        Assert.Equal("BASIC_RADAR.cpr", simboli.Profilo);
+        Assert.True(simboli.Simboli.Single(s => s.Nome == "FIX_ENR").Acceso(0, 12));
+        // Un disegno rotto resta quello di base; un ruolo che il profilo non ha, pure.
+        Assert.Equal(SimboliDellaMappa.DiAurora.Simboli.Single(s => s.Nome == "FIX_VOR").Colonne,
+                     simboli.Simboli.Single(s => s.Nome == "FIX_VOR").Colonne);
+        Assert.Equal(19, simboli.Simboli.Count);
+
+        Assert.Equal("ALTRO.cpr", SimboliDellaMappa.DallaCartellaDiAurora(aurora, "altro.cpr").Profilo);
+        Assert.Same(SimboliDellaMappa.DiAurora, SimboliDellaMappa.DallaCartellaDiAurora(Path.Combine(_albero.Radice, "non-ce"), null));
+    }
+
+    [Fact]
+    public async Task IlProfiloSiSceglieSiRicordaELaMappaSiRicolora()
+    {
+        string aurora = Aurora(("BASIC_RADAR.cpr", ""), ("ALTRO.cpr", "SYMBOLS_FIX_ENR=" + Barra + "\r\n"));
+        string dati = Path.Combine(_albero.Radice, "dati-del-lab");
+        var lab = new SessioneDelLab(dati) { CartellaDiAuroraDiBase = aurora };
+        Assert.True(await lab.ApriAsync(_albero.Radice));
+        Assert.Equal("BASIC_RADAR.cpr", lab.Simboli.Profilo);
+        int versione = lab.VersioneDeiColori;
+
+        Assert.True(lab.ScegliIlProfiloDiAurora("ALTRO.cpr"));
+
+        Assert.True(lab.VersioneDeiColori > versione);
+        Assert.True(lab.Simboli.Simboli.Single(s => s.Nome == "FIX_ENR").Acceso(0, 0));
+        Assert.Equal("ALTRO.cpr", new SessioneDelLab(dati) { CartellaDiAuroraDiBase = aurora }.Simboli.Profilo);
+        Assert.False(lab.ScegliIlProfiloDiAurora("NON_CE.cpr"));
+    }
+
     [Fact]
     public void IlTipoDelFixViaggiaConLaForma()
     {

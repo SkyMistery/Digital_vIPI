@@ -60,6 +60,21 @@
                 <span data-schemi-da>Schemi: @Lab.SchemiDisponibili.Count, da <code>@Vipi.SectorLab.Core.Mappa.SchemiDiAurora.Cartella(Lab.Sessione.Cartella, Lab.CartellaDiAurora)</code>.</span>
             }
         </p>
+        @if (Lab.ProfiliDiAurora is { Count: > 0 } profili)
+        {
+            <label>
+                Profilo di Aurora (simboli dei punti)
+                <select class="lab-campo" data-impostazione="profilo-di-aurora" @onchange="e => _rifiuto = Lab.ScegliIlProfiloDiAurora(e.Value?.ToString()) ? null : Lab.Rifiuto">
+                    @foreach (string profilo in profili)
+                    {
+                        <option value="@profilo" selected="@string.Equals(profilo, Lab.Simboli.Profilo, StringComparison.OrdinalIgnoreCase)">@profilo</option>
+                    }
+                </select>
+            </label>
+            <p class="lab-nota">La mappa disegna fix, radioassistenze, punti VFR e aeroporti coi simboli di questo profilo
+                (<code>SYMBOLS_…</code>), come Aurora. Di base <code>@Vipi.SectorLab.Core.Mappa.SimboliDellaMappa.ProfiloDiBase</code>.
+                I simboli si vedono coi colori «di Aurora».</p>
+        }
         <label>
             Vetrina di Aurora
             <input class="lab-campo" value="@Lab.CartellaDellaVetrina" data-impostazione="vetrina"

@@ -3282,11 +3282,8 @@ public sealed class SessioneDelLab
         _cartellaDiAuroraLetta = true;
         Ricorda("cartella-di-aurora.txt", _cartellaDiAurora, "cartella di Aurora");
         if (Sessione is not null)
-        {
             RifaiIColori();
-            TuttiGliStratiCambiati();
-        }
-        Avvisa();
+        RileggiISimboli();
         return true;
     }
 
@@ -3306,7 +3303,55 @@ public sealed class SessioneDelLab
     public ColorPalette Definiti { get; private set; } = new();
 
     /// <summary>I simboli dei punti: quelli di base di Aurora, uno per ruolo (slice 17b; prima dal <c>.sym</c>, slice 4d).</summary>
-    public SimboliDellaMappa Simboli => SimboliDellaMappa.DiAurora;
+    public SimboliDellaMappa Simboli => _simboli ??= SimboliDellaMappa.DallaCartellaDiAurora(CartellaDiAurora, ProfiloRicordato);
+
+    private SimboliDellaMappa? _simboli;
+    private string? _profiloRicordato;
+    private bool _profiloLetto;
+
+    private string? ProfiloRicordato
+    {
+        get
+        {
+            if (!_profiloLetto)
+            {
+                _profiloRicordato = Ricordata("profilo-di-aurora.txt");
+                _profiloLetto = true;
+            }
+
+            return _profiloRicordato;
+        }
+    }
+
+    /// <summary>I profili della cartella di Aurora, fra cui si sceglie quello dei simboli.</summary>
+    public IReadOnlyList<string> ProfiliDiAurora => SimboliDellaMappa.ProfiliDi(CartellaDiAurora);
+
+    /// <summary>
+    /// Sceglie il profilo di Aurora da cui si prendono i simboli dei punti (committente, 20 ottobre: la mappa deve
+    /// disegnarli come Aurora). La scelta si ricorda; la mappa si ridisegna.
+    /// </summary>
+    public bool ScegliIlProfiloDiAurora(string? nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome) || !ProfiliDiAurora.Contains(nome, StringComparer.OrdinalIgnoreCase))
+            return Rifiuta($"«{nome}» non è un profilo della cartella di Aurora.");
+        Rifiuto = null;
+        _profiloRicordato = nome;
+        _profiloLetto = true;
+        Ricorda("profilo-di-aurora.txt", nome, "profilo di Aurora");
+        RileggiISimboli();
+        return true;
+    }
+
+    /// <summary>I simboli si rileggono (cartella di Aurora o profilo cambiati): la mappa li riprende coi colori.</summary>
+    private void RileggiISimboli()
+    {
+        _simboli = null;
+        VersioneDeiColori++;
+        if (Sessione is not null)
+            TuttiGliStratiCambiati();
+        Registro.Scrivi("simboli", $"dal profilo {Simboli.Profilo ?? "di base"}");
+        Avvisa();
+    }
 
     /// <summary>Perché i colori di Aurora non ci sono, da dire accanto alla scelta. Null se ci sono.</summary>
     public string? ColoriMancanti { get; private set; }

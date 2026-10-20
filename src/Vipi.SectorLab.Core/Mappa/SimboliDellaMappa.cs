@@ -3,8 +3,9 @@ using Vipi.Sectorfile.Shared;
 namespace Vipi.SectorLab.Core.Mappa;
 
 /// <summary>
-/// I simboli dei punti sulla mappa: quelli di base di Aurora, uno per ruolo (lotto «Subito» slice 17b, decisione del
-/// committente del 17 ottobre).
+/// I simboli dei punti sulla mappa: quelli di Aurora, uno per ruolo (lotto «Subito» slice 17b, decisione del
+/// committente del 17 ottobre). Dal 20 ottobre si leggono dal profilo scelto nella cartella di Aurora
+/// (<see cref="DallaCartellaDiAurora"/>); i disegni qui sotto restano quelli di base, quando un profilo non c'è.
 /// <para>Perché non quelli del <c>.sym</c> (slice 4d, abbinati per nome): la prova T3 ha mostrato che Aurora disegna i
 /// punti coi simboli del <b>profilo</b> (<c>SYMBOLS_&lt;RUOLO&gt;=</c> in un <c>.cpr</c>, scelti nella linguetta SYMBOLS),
 /// e che il <c>.sym</c> è soltanto la tavolozza da cui si sceglie. I 15 <c>.cpr</c> del sector non hanno
@@ -69,16 +70,83 @@ public sealed class SimboliDellaMappa
         ["APT:4"] = "UNCONTROLLED",
     };
 
-    /// <summary>I simboli di base di Aurora: la mappa ne ha uno solo, uguale per ogni sector.</summary>
-    public static SimboliDellaMappa DiAurora { get; } = new();
+    /// <summary>I simboli di base di Aurora, quando non c'è un profilo da cui leggerli (i test, una cartella di Aurora vuota).</summary>
+    public static SimboliDellaMappa DiAurora { get; } = new(DiBase, null);
+
+    /// <summary>Il profilo da cui si leggono i simboli quando l'AOD non ne ha scelto un altro: quello dei disegni di base.</summary>
+    public const string ProfiloDiBase = "BASIC_RADAR.cpr";
 
     private readonly Dictionary<string, int> _perRuolo = new(StringComparer.Ordinal);
 
-    private SimboliDellaMappa()
+    private SimboliDellaMappa(IReadOnlyList<(string Ruolo, string Pixel)> disegni, string? profilo)
     {
-        Simboli = [.. DiBase.Select((s, i) => new SimboloDelSector(i + 1, s.Ruolo, s.Pixel.Split(';', StringSplitOptions.RemoveEmptyEntries), 0))];
+        Profilo = profilo;
+        Simboli = [.. disegni.Select((s, i) => new SimboloDelSector(i + 1, s.Ruolo, s.Pixel.Split(';', StringSplitOptions.RemoveEmptyEntries), 0))];
         for (int i = 0; i < Simboli.Count; i++)
             _perRuolo[Simboli[i].Nome!] = i;
+    }
+
+    /// <summary>Il profilo di Aurora da cui vengono i disegni; null per quelli di base.</summary>
+    public string? Profilo { get; }
+
+    /// <summary>I profili di Aurora (<c>Profiles\*.cpr</c>) della cartella di Aurora, in ordine; vuoto se non ce n'è.</summary>
+    public static IReadOnlyList<string> ProfiliDi(string? cartellaDiAurora)
+    {
+        string? dove = string.IsNullOrWhiteSpace(cartellaDiAurora) ? null : Path.Combine(cartellaDiAurora, "Profiles");
+        return dove is not null && Directory.Exists(dove)
+            ? [.. Directory.GetFiles(dove, "*.cpr").Select(Path.GetFileName).OfType<string>().Order(StringComparer.OrdinalIgnoreCase)]
+            : [];
+    }
+
+    /// <summary>
+    /// I simboli dei punti come li disegna Aurora (committente, 20 ottobre: «devi usare i simboli di Aurora così la
+    /// visualizzazione è uguale»): dal profilo scelto della cartella di Aurora (quello ricordato se c'è ancora, se no
+    /// <see cref="ProfiloDiBase"/>, se no il primo). Senza profili, quelli di base.
+    /// </summary>
+    public static SimboliDellaMappa DallaCartellaDiAurora(string? cartellaDiAurora, string? ricordato)
+    {
+        var profili = ProfiliDi(cartellaDiAurora);
+        string? scelto = profili.FirstOrDefault(p => string.Equals(p, ricordato, StringComparison.OrdinalIgnoreCase))
+                         ?? profili.FirstOrDefault(p => string.Equals(p, ProfiloDiBase, StringComparison.OrdinalIgnoreCase))
+                         ?? profili.FirstOrDefault();
+        return scelto is null ? DiAurora : DalProfilo(Path.Combine(cartellaDiAurora!, "Profiles", scelto));
+    }
+
+    /// <summary>
+    /// I simboli di un profilo <c>.cpr</c>. 🔴 Del file si leggono SOLO le righe <c>SYMBOLS_&lt;RUOLO&gt;=</c> dei ruoli dei
+    /// punti: un profilo tiene anche la sezione <c>[Connection]</c>, che non si guarda. Un ruolo che manca o non è un
+    /// disegno 13×13 resta quello di base; un profilo che non si legge dà quelli di base.
+    /// </summary>
+    public static SimboliDellaMappa DalProfilo(string fileCpr)
+    {
+        var letti = new Dictionary<string, string>(StringComparer.Ordinal);
+        try
+        {
+            foreach (string riga in File.ReadLines(fileCpr))
+            {
+                if (!riga.StartsWith("SYMBOLS_", StringComparison.Ordinal))
+                    continue;
+                int uguale = riga.IndexOf('=', StringComparison.Ordinal);
+                if (uguale < 0)
+                    continue;
+                string ruolo = riga[8..uguale];
+                if (DiBase.Any(d => d.Ruolo == ruolo) && EUnDisegno(riga[(uguale + 1)..]))
+                    letti.TryAdd(ruolo, riga[(uguale + 1)..].Trim());
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return DiAurora;
+        }
+
+        return new SimboliDellaMappa([.. DiBase.Select(d => (d.Ruolo, letti.GetValueOrDefault(d.Ruolo) ?? d.Pixel))], Path.GetFileName(fileCpr));
+    }
+
+    private static bool EUnDisegno(string pixel)
+    {
+        var colonne = pixel.Trim().Split(';', StringSplitOptions.RemoveEmptyEntries);
+        return colonne.Length == SimboloDelSector.Lato
+               && colonne.All(c => c.Length == SimboloDelSector.Lato && c.All(x => x is '0' or '1'));
     }
 
     /// <summary>I simboli, uno per ruolo, col nome del ruolo (<c>FIX_ENR</c>…).</summary>
