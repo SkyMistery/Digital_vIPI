@@ -204,3 +204,11 @@ confronti».
 - Test: Lab 1 273 (+7: `IndiceDellAipTests` 6, una prova della pagina). A schermo sul banco, AIP espanso vero 2610:
   ENR 2 329 voci, ENR 3 571, ENR 4 1 320, ENR 5 793, AD 2 447; «Fiumicino», il clic sull'ATZ apre la scheda e la mappa la
   inquadra.
+
+**Dopo la R3** (20 ottobre). Il committente vedeva nell'AIP espanso «solo ENR 2 e 5». Non mancavano i PDF: il suo Lab
+leggeva il clone dell'AIP espanso preso il 19 ottobre alle 01:17 sul ramo `main`, mai aggiornato, che allora aveva
+solo ENR 2 ed ENR 5 (870 forme). Alle 14:39 il clone è passato da sé sul ramo `aip/2610`, che ha tutto (3 677 forme): il
+Lab però non rilegge lo strato quando il repo cambia ramo. Da fare nella R5 (la consegna dell'AIP): dire ramo e
+ciclo del repo dell'AIP e quanto è vecchio, «Chiedi le novità al server», e rileggere lo strato quando il repo cambia.
+Guardando, un difetto dell'indice: i punti RNAV degli scali hanno la sezione «AD 2 LIRF» e finivano in «Altro»; ora
+vanno nel loro scalo. Test: Lab 1 274 (+1).

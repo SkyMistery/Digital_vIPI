@@ -159,9 +159,20 @@ public static class IndiceDellAip
         Campo(voce, "Sezione") is { } s && (s.StartsWith("ENR ", StringComparison.OrdinalIgnoreCase) || s.StartsWith("AD ", StringComparison.OrdinalIgnoreCase)
             || s.StartsWith("GEN ", StringComparison.OrdinalIgnoreCase)) && s.Length <= 12 ? s.Trim() : null;
 
-    /// <summary>Lo scalo di una voce di AD 2: la voce dello scalo (il titolo è l'ICAO) o una procedura (il campo «Scalo»).</summary>
-    private static string? Scalo(VoceDellAip voce) =>
-        voce.Genere == AipSullaMappa.Scali ? voce.Titolo : Campo(voce, "Scalo");
+    /// <summary>
+    /// Lo scalo di una voce di AD 2: la voce dello scalo (il titolo è l'ICAO), una procedura (il campo «Scalo»), un punto
+    /// RNAV dello scalo (la sezione è «AD 2 LIRF»).
+    /// </summary>
+    private static string? Scalo(VoceDellAip voce)
+    {
+        if (voce.Genere == AipSullaMappa.Scali)
+            return voce.Titolo;
+        if (Campo(voce, "Scalo") is { } scalo)
+            return scalo;
+        return Campo(voce, "Sezione") is { Length: 9 } s && s.StartsWith("AD 2 ", StringComparison.OrdinalIgnoreCase) && s[5..].All(char.IsAsciiLetter)
+            ? s[5..].ToUpperInvariant()
+            : null;
+    }
 
     private static string? Campo(VoceDellAip voce, string nome) =>
         voce.Campi.FirstOrDefault(c => c.Nome == nome) is { Valore: { Length: > 0 } valore } ? valore : null;

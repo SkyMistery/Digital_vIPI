@@ -114,4 +114,20 @@ public sealed class IndiceDellAipTests
         Assert.Equal(["Napoli ATZ"], ad2.Gruppi[1].Gruppi.Single().Voci.Select(v => v.Titolo));
         Assert.Equal(["Pippo ATZ"], ad2.Gruppi[2].Voci.Select(v => v.Titolo));
     }
+
+    [Fact]
+    public void IPuntiRnavDiUnoScalo_VannoNelloScalo_NonInAltro()
+    {
+        // Nel modello la sezione dei punti RNAV di scalo è «AD 2 LIRF» (F7, 7a): 233 punti su 2610 finivano in «Altro».
+        IReadOnlyList<VoceDellAip> voci =
+        [
+            Scalo("LIRF", "ROMA Fiumicino"),
+            new(AipSullaMappa.Punti, "RF401", [("Sezione", "AD 2 LIRF")], [], CorrectionKind.Point, "RF401"),
+        ];
+
+        var ad2 = Assert.Single(IndiceDellAip.Di(voci));
+
+        Assert.Equal("AD 2", ad2.Codice);
+        Assert.Equal(["RF401"], Assert.Single(ad2.Gruppi).Gruppi.Single().Voci.Select(v => v.Titolo));
+    }
 }
