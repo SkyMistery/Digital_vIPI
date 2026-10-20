@@ -2366,6 +2366,21 @@ body.lab-trascina * {
     font-weight: 600;
 }
 
+/* Riordino R8a: «metti in questo file», il file, il posto e l'anteprima delle righe. */
+.lab-metti {
+    margin: .3rem 0 .4rem 1.2rem;
+    padding: .4rem .6rem;
+    border: 1px solid var(--lab-accento);
+    border-radius: 6px;
+    background: var(--lab-superficie);
+}
+
+.lab-metti-anteprima {
+    margin: .3rem 0;
+    padding-left: 1rem;
+    font-size: .85em;
+}
+
 .lab-confronti-esito-uguale { color: var(--lab-tenue); }
 .lab-confronti-esito-formadiversa { color: var(--lab-evidenza); }
 .lab-confronti-esito-mancanelsector { color: var(--lab-lato-aip); }

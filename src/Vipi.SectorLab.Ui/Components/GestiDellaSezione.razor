@@ -47,7 +47,7 @@
                 break;
 
             case SezioneDelConfronto.Attese when Lab.UltimoConfrontoDiEnr3 is { } enr3 && enr3.Esiti.Any(e => e.Esito == Esiti.MancaNelSector):
-                var scelte = Attese.Scelte(enr3.Esiti);
+                var scelte = Scelte.Scelte(enr3.Esiti);
                 <p class="lab-nota">Le attese che mancano: spunta quelle da portare, di procedura (nello .str dello scalo, scritta o ovale) o in rotta (HOLDENR.hold).</p>
                 <button type="button" class="lab-tasto" data-tasto="porta-attese" disabled="@(scelte.Count == 0)"
                         title="Le attese spuntate nel sector: di procedura come HLD- nello .str dello scalo, in rotta in HOLDENR.hold"
@@ -61,11 +61,33 @@
                             title="L'uso (4° campo) e il FRA (5°) dell'AIP nelle righe di itfix.fix: un gesto solo, da annullare"
                             @onclick="() => Fai(Lab.CorreggiLUso(usi))">Correggi l'uso di tutti (@usi.Count)</button>
                 }
-                @if (enr4.Esiti.Where(e => e.Esito == Esiti.MancaNelSector).Select(e => e.Nome).ToList() is { Count: > 1 } tutte)
+                var mancantiDiEnr4 = enr4.Esiti.Where(e => e.Esito == Esiti.MancaNelSector).Select(e => e.Nome).ToList();
+                @if (Sezione == SezioneDelConfronto.Radioassistenze && mancantiDiEnr4.Count > 1)
                 {
                     <button type="button" class="lab-tasto" data-tasto="porta-tutte-enr4"
                             title="Tutte quelle che il sector non ha, in ordine di nome nel loro file: un gesto solo, da annullare"
-                            @onclick="() => Dici(Lab.PortaNelSectorDiEnr4(tutte))">Porta tutte (@tutte.Count)</button>
+                            @onclick="() => Dici(Lab.PortaNelSectorDiEnr4(mancantiDiEnr4))">Porta tutte (@mancantiDiEnr4.Count)</button>
+                }
+                else if (Sezione == SezioneDelConfronto.Punti && mancantiDiEnr4.Count > 0)
+                {
+                    @* R8a: gli spuntati o tutti quelli che mancano, nel .fix scelto, con l'anteprima. *@
+                    var spuntati = mancantiDiEnr4.Where(Scelte.PuntiSpuntati.Contains).ToList();
+                    @if (_metti is { } nomi)
+                    {
+                        <MettiInQuestoFile Nomi="nomi" Titolo="@($"{nomi.Count} punti in un file dei punti")" Chiuso="() => _metti = null" Fatto="Scritti" />
+                    }
+                    else
+                    {
+                        <button type="button" class="lab-tasto" data-tasto="metti-spuntati" disabled="@(spuntati.Count == 0)"
+                                title="I punti spuntati qui sotto in un file dei punti (.fix) a scelta, con l'anteprima: un gesto solo"
+                                @onclick="() => _metti = spuntati">Metti le spuntate… (@spuntati.Count)</button>
+                        @if (mancantiDiEnr4.Count > 1)
+                        {
+                            <button type="button" class="lab-tasto" data-tasto="porta-tutte-enr4"
+                                    title="Tutti i punti che il sector non ha in un file dei punti (.fix) a scelta, con l'anteprima: un gesto solo"
+                                    @onclick="() => _metti = mancantiDiEnr4">Porta tutte… (@mancantiDiEnr4.Count)</button>
+                        }
+                    }
                 }
                 break;
 
@@ -85,7 +107,7 @@
     [Parameter, EditorRequired] public SezioneDelConfronto Sezione { get; set; }
 
     /// <summary>Le attese scelte da portare: le tiene la pagina, le righe le spuntano.</summary>
-    [Parameter, EditorRequired] public ScelteDelleAttese Attese { get; set; } = default!;
+    [Parameter, EditorRequired] public ScelteDelConfronto Scelte { get; set; } = default!;
 
     /// <summary>Com'è andato un gesto: null se è andato, se no il perché.</summary>
     [Parameter] public EventCallback<string?> Fatto { get; set; }
@@ -95,11 +117,22 @@
     // Come prima: questi gesti dicono qualcosa anche quando vanno (le voci saltate).
     private Task Dici(bool _) => Fatto.InvokeAsync(Lab.Rifiuto);
 
+    // R8a: i punti del riquadro «metti in questo file» aperto dalla sezione; null = chiuso.
+    private IReadOnlyList<string>? _metti;
+
+    // Scritti: gli spuntati portati escono dalla scelta.
+    private Task Scritti(string? perche)
+    {
+        if (_metti is { } portati && Lab.Modifiche.CEQualcosa)
+            Scelte.PuntiSpuntati.ExceptWith(portati);
+        return Fatto.InvokeAsync(perche);
+    }
+
     private Task PortaLeAttese(List<SessioneDelLab.SceltaDiAttesa> scelte)
     {
         Lab.PortaLeAttese(scelte);
         if (Lab.Modifiche.CEQualcosa)
-            Attese.Portate(scelte);
+            Scelte.Portate(scelte);
         return Fatto.InvokeAsync(Lab.Rifiuto);
     }
 }

@@ -68,7 +68,7 @@
         </div>
 
         @* R7: i gesti della sezione intera (Porta tutte, Scrivi i tracciati…) e, riga per riga, quelli della riga. *@
-        <GestiDellaSezione Sezione="aperta" Attese="_attese" Fatto="Fatto" />
+        <GestiDellaSezione Sezione="aperta" Scelte="_scelte" Fatto="Fatto" />
 
         <ul class="lab-confronti-righe" data-righe="@aperto.Righe.Count">
             @for (int i = 0; i < aperto.Righe.Count; i++)
@@ -85,7 +85,7 @@
                     </button>
                     @if (Lab.SezioneViva(aperta))
                     {
-                        <GestiDellaRiga @key="riga" Sezione="aperta" Riga="riga" Attese="_attese" Fatto="Fatto" />
+                        <GestiDellaRiga @key="riga" Sezione="aperta" Riga="riga" Scelte="_scelte" Fatto="Fatto" Spuntato="Spuntato" />
                     }
                     @if (riga.Dettagli.Count > 0)
                     {
@@ -114,7 +114,7 @@
     public void Dispose() => Lab.Cambiata -= Aggiorna;
 
     /// <summary>Le attese che mancano, come l'AOD le sceglie prima di portarle.</summary>
-    private readonly ScelteDelleAttese _attese = new();
+    private readonly ScelteDelConfronto _scelte = new();
 
     // R7: una sezione già confrontata si riapre com'è se il suo confronto è ancora l'ultimo; se no si rifà, perché i gesti
     // vogliono il confronto di adesso (lo stesso genere di un'altra sezione l'ha sostituito).
@@ -129,6 +129,10 @@
     }
 
     private void Fatto(string? perche) => _rifiuto = perche;
+
+    // Una riga ha spuntato un punto: la callback (legata a questa pagina da Razor) la ridisegna, e i gesti della sezione
+    // contano gli spuntati. Il ridisegno arriva subito dopo, non nello stesso giro.
+    private static void Spuntato() { }
 
     private async Task Rifai(SezioneDelConfronto sezione) =>
         _rifiuto = await Lab.ConfrontaLaSezioneAsync(sezione) ? null : Lab.Rifiuto;

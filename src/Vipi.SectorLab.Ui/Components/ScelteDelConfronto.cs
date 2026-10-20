@@ -4,12 +4,18 @@ using Vipi.SectorLab.Ui.Servizi;
 namespace Vipi.SectorLab.Ui.Components;
 
 /// <summary>
-/// Le attese che mancano nel sector, come l'AOD le sceglie prima di portarle (F6 slice 2c; nel Confronto dalla R7):
-/// spuntata o no, in rotta o nello scalo, scritta o ovale. Le tiene la pagina dei Confronti e le leggono la riga e la
-/// sezione. Le regole sono quelle di prima, spostate da «Lettura e confronti».
+/// Le scelte che l'AOD fa nella pagina dei Confronti prima di un gesto, che leggono la riga e la sezione:
+/// <list type="bullet">
+/// <item>le attese che mancano (F6 slice 2c; nel Confronto dalla R7): spuntata o no, in rotta o nello scalo, scritta o
+/// ovale — le regole di prima, spostate da «Lettura e confronti»;</item>
+/// <item>i punti spuntati da mettere in un file (R8a, «metti in questo file»).</item>
+/// </list>
 /// </summary>
-public sealed class ScelteDelleAttese
+public sealed class ScelteDelConfronto
 {
+    /// <summary>I punti che mancano, spuntati per «metti le spuntate in questo file» (R8a).</summary>
+    public HashSet<string> PuntiSpuntati { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     public sealed record SceltaInCorso(bool Scelta, string? Scalo, bool Ovale);
 
     private readonly Dictionary<string, SceltaInCorso> _attese = new(StringComparer.OrdinalIgnoreCase);

@@ -84,13 +84,13 @@
         }
         else if (!rotte && e.Esito == Esiti.MancaNelSector && Lab.ProposteDelleAttese.GetValueOrDefault(e.Nome) is { } proposta)
         {
-            var stato = Attese.Stato(proposta);
+            var stato = Scelte.Stato(proposta);
             <span class="lab-scelta-attesa" data-attesa="@e.Nome">
                 <input type="checkbox" data-casella="scegli-attesa" checked="@stato.Scelta" disabled="@(proposta.Punto is null)"
                        title="@(proposta.Punto is null ? "Il sector non ha il punto: non si porta" : "Da portare")"
-                       @onchange="v => Attese.Cambia(proposta, v.Value is true)" />
+                       @onchange="v => Scelte.Cambia(proposta, v.Value is true)" />
                 <select class="lab-campo lab-campo-corto" data-campo="dove-attesa" value="@(stato.Scalo ?? "")"
-                        @onchange="v => Attese.CambiaLoScalo(proposta, v.Value?.ToString())">
+                        @onchange="v => Scelte.CambiaLoScalo(proposta, v.Value?.ToString())">
                     <option value="">in rotta</option>
                     @foreach (var scalo in proposta.Scali)
                     {
@@ -108,11 +108,27 @@
 
     case DifferenzaDiEnr4 e:
         var radioassistenze = Sezione == SezioneDelConfronto.Radioassistenze;
-        @if (e.Esito == Esiti.MancaNelSector)
+        @if (e.Esito == Esiti.MancaNelSector && radioassistenze)
         {
             <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-enr4"
-                    title="La riga nuova in @(radioassistenze ? "itvor.vor o itndb.ndb" : "itfix.fix"), in ordine di nome, coi valori dell'AIP"
+                    title="La riga nuova in itvor.vor o itndb.ndb, in ordine di nome, coi valori dell'AIP"
                     @onclick="() => Dici(Lab.PortaNelSectorDiEnr4([e.Nome]))">Porta nel sector</button>
+        }
+        else if (e.Esito == Esiti.MancaNelSector)
+        {
+            @* R8a: un punto si mette nel .fix che l'AOD sceglie (di base itfix.fix), con l'anteprima; o si spunta per metterne
+               più d'uno insieme dalla sezione. *@
+            <input type="checkbox" data-casella="spunta-punto" title="Da mettere insieme agli altri spuntati (in cima alla sezione)"
+                   checked="@Scelte.PuntiSpuntati.Contains(e.Nome)" @onchange="v => Spunta(e.Nome, v.Value is true)" />
+            @if (_mettiAperto)
+            {
+                <MettiInQuestoFile Nomi="[e.Nome]" Titolo="@($"{e.Nome} in un file dei punti")" Chiuso="() => _mettiAperto = false" Fatto="Fatto" />
+            }
+            else
+            {
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-enr4"
+                        title="Sceglie il file dei punti (.fix) e il posto, con l'anteprima della riga" @onclick="() => _mettiAperto = true">Porta nel sector…</button>
+            }
         }
         else if (e.UsoDiverso)
         {
@@ -161,12 +177,27 @@
     [Parameter, EditorRequired] public RigaDelConfronto Riga { get; set; } = default!;
 
     /// <summary>Le attese scelte da portare: le tiene la pagina, la sezione le porta.</summary>
-    [Parameter, EditorRequired] public ScelteDelleAttese Attese { get; set; } = default!;
+    [Parameter, EditorRequired] public ScelteDelConfronto Scelte { get; set; } = default!;
 
     /// <summary>Com'è andato un gesto: null se è andato, se no il perché.</summary>
     [Parameter] public EventCallback<string?> Fatto { get; set; }
 
     private string? _scalo;
+
+    // R8a: il riquadro «metti in questo file» di un punto.
+    private bool _mettiAperto;
+
+    /// <summary>Una spunta è cambiata: la pagina si ridisegna, e la sezione conta gli spuntati («Metti le spuntate»).</summary>
+    [Parameter] public EventCallback Spuntato { get; set; }
+
+    private Task Spunta(string nome, bool spuntato)
+    {
+        if (spuntato)
+            Scelte.PuntiSpuntati.Add(nome);
+        else
+            Scelte.PuntiSpuntati.Remove(nome);
+        return Spuntato.InvokeAsync();
+    }
 
     private Task Fai(bool riuscito) => Fatto.InvokeAsync(riuscito ? null : Lab.Rifiuto);
 
@@ -174,7 +205,7 @@
     private Task Dici(bool _) => Fatto.InvokeAsync(Lab.Rifiuto);
 
     private void CambiaIlCome(PropostaDiAttesa proposta, ChangeEventArgs v) =>
-        Attese.CambiaIlCome(proposta, string.Equals(v.Value?.ToString(), "ovale", StringComparison.Ordinal));
+        Scelte.CambiaIlCome(proposta, string.Equals(v.Value?.ToString(), "ovale", StringComparison.Ordinal));
 
     private Task PortaEnr5(IReadOnlyList<string> chiavi) => Dici(Lab.PortaAreeEnr5(chiavi));
 }

@@ -12,6 +12,16 @@ namespace Vipi.SectorLab.Core.PdfAip;
 /// </summary>
 public static class Enr4NelSector
 {
+    /// <summary>
+    /// I file dove può andare un punto di ENR 4.4 (riordino R8a, «metti in questo file»): i <c>.fix</c> del sector, quello
+    /// dei punti in rotta (<see cref="ConfrontoDiEnr4.FileDeiPunti"/>) per primo, gli altri per nome. La misura del 20
+    /// ottobre: nove (itfix, APT, ESTERNI, secsi, VFR_NASCOSTI, MIL, e TERM, FRA, ENR vuoti). Le chiavi della sessione.
+    /// </summary>
+    public static IReadOnlyList<string> FileDeiPunti(IEnumerable<string> fileDelSector) =>
+        [.. fileDelSector.Where(f => f.EndsWith(".fix", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => string.Equals(Path.GetFileName(f), ConfrontoDiEnr4.FileDeiPunti, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)];
+
     public const string FileDeiVor = "itvor.vor";
     public const string FileDegliNdb = "itndb.ndb";
 

@@ -5582,15 +5582,46 @@ public sealed class SessioneDelLab
         });
     }
 
+    /// <summary>I file dove può andare un punto (R8a): i <c>.fix</c> del sector, <c>itfix.fix</c> per primo.</summary>
+    public IReadOnlyList<string> FileDeiPunti => Sessione is { } s ? Core.PdfAip.Enr4NelSector.FileDeiPunti(s.File.Keys) : [];
+
+    /// <summary>
+    /// L'anteprima di «metti in questo file» per i punti (R8a, D19): per ogni punto scelto la riga che si scriverebbe e
+    /// dove, nel file dato. Niente si scrive. Vuota se i punti non si possono portare.
+    /// </summary>
+    public IReadOnlyList<(string Nome, string Riga, string Dove)> AnteprimaDeiPunti(IReadOnlyList<string> nomi, string? file, bool inFondo)
+    {
+        ArgumentNullException.ThrowIfNull(nomi);
+        if (Sessione is not { } sessione || UltimoConfrontoDiEnr4 is not { Radioassistenze: false } || _aipDiEnr4?.Points is not { } punti
+            || file is null || sessione.File.GetValueOrDefault(file) is not IFileConRecord conRecord)
+            return [];
+        var anteprima = new List<(string, string, string)>();
+        foreach (var nome in nomi)
+        {
+            if (punti.FirstOrDefault(p => p.Designator.Equals(nome, StringComparison.OrdinalIgnoreCase)) is not { } p)
+                continue;
+            int posto = PostoDellaRiga(conRecord, p.Designator, inFondo);
+            string dove = posto >= conRecord.RecordDelModello.Count
+                ? "in fondo"
+                : $"prima di {NomeDiEnr4(conRecord.RecordDelModello[posto])?.Trim()}";
+            anteprima.Add((p.Designator, Core.PdfAip.Enr4NelSector.RigaNuova(p), dove));
+        }
+        return anteprima;
+    }
+
     /// <summary>
     /// «Porta nel sector» (carta F6, slice 3c): le radioassistenze o i punti scelti fra quelli che il sector non ha, come righe
     /// nuove di <c>itvor.vor</c>, <c>itndb.ndb</c> o <c>itfix.fix</c>, in ordine di nome. Un gesto solo.
+    /// <para>R8a («metti in questo file»): i punti vanno nel <paramref name="fileDeiPunti"/> scelto fra i <c>.fix</c> del
+    /// sector (null = <c>itfix.fix</c>, com'era), in ordine di nome o <paramref name="inFondo"/>.</para>
     /// </summary>
-    public bool PortaNelSectorDiEnr4(IReadOnlyList<string> nomi)
+    public bool PortaNelSectorDiEnr4(IReadOnlyList<string> nomi, string? fileDeiPunti = null, bool inFondo = false)
     {
         ArgumentNullException.ThrowIfNull(nomi);
         if (Sessione is not { } sessione || UltimoConfrontoDiEnr4 is not { } confronto || _aipDiEnr4 is not { } aip)
             return Rifiuta("Confronta le radioassistenze o i punti prima: si portano le righe del confronto.");
+        if (fileDeiPunti is not null && (confronto.Radioassistenze || !FileDeiPunti.Contains(fileDeiPunti, StringComparer.Ordinal)))
+            return Rifiuta($"{fileDeiPunti} non è un file dei punti (.fix) del sector.");
         var mancanti = confronto.Esiti.Where(e => e.Esito == Core.PdfAip.EsitoDelConfronto.MancaNelSector).Select(e => e.Nome).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var scelti = nomi.Where(mancanti.Contains).ToList();
         if (scelti.Count == 0)
@@ -5616,10 +5647,10 @@ public sealed class SessioneDelLab
                 else
                 {
                     if (aip.Points?.FirstOrDefault(p => p.Designator.Equals(nome, StringComparison.OrdinalIgnoreCase)) is not { } p) continue;
-                    file = Chiave(Core.PdfAip.ConfrontoDiEnr4.FileDeiPunti);
+                    file = fileDeiPunti ?? Chiave(Core.PdfAip.ConfrontoDiEnr4.FileDeiPunti);
                     (riga, chiave) = (Core.PdfAip.Enr4NelSector.RigaNuova(p), p.Designator);
                 }
-                if (PortaUnaRiga(sessione, nome, file, riga, chiave, avvisi))
+                if (PortaUnaRiga(sessione, nome, file, riga, chiave, avvisi, inFondo))
                 {
                     portati++;
                     toccati.Add(file!);
@@ -5684,19 +5715,24 @@ public sealed class SessioneDelLab
 
     private static string? NomeDiEnr4(object r) => r switch { Fix f => f.Name, Vor v => v.Ident, Ndb d => d.Ident, _ => null };
 
+    /// <summary>Dove va una riga nuova: prima della prima voce col nome che viene dopo <paramref name="chiave"/>, o in fondo.</summary>
+    private static int PostoDellaRiga(IFileConRecord conRecord, string chiave, bool inFondo) => inFondo
+        ? conRecord.RecordDelModello.Count
+        : conRecord.RecordDelModello.Select((r, i) => (r, i))
+            .FirstOrDefault(x => NomeDiEnr4(x.r) is { } k && string.CompareOrdinal(k.Trim(), chiave) > 0, (null!, conRecord.RecordDelModello.Count)).i;
+
     /// <summary>
     /// Una riga nuova in un <c>.vor</c>, <c>.ndb</c> o <c>.fix</c>, in ordine di nome: prima della prima voce col nome che viene
     /// dopo <paramref name="chiave"/> (slice 3c; la usa anche AD 2.19, slice 5f). False, con l'avviso, se non si può.
     /// </summary>
-    private bool PortaUnaRiga(SessioneAperta sessione, string nome, string? file, string riga, string chiave, List<string> avvisi)
+    private bool PortaUnaRiga(SessioneAperta sessione, string nome, string? file, string riga, string chiave, List<string> avvisi, bool inFondo = false)
     {
         if (file is null || sessione.File[file] is not IFileConRecord conRecord)
         {
             avvisi.Add($"{nome}: nel sector non c'è il file dove va");
             return false;
         }
-        int prima = conRecord.RecordDelModello.Select((r, i) => (r, i))
-            .FirstOrDefault(x => NomeDiEnr4(x.r) is { } k && string.CompareOrdinal(k.Trim(), chiave) > 0, (null!, conRecord.RecordDelModello.Count)).i;
+        int prima = PostoDellaRiga(conRecord, chiave, inFondo);
         var esito = Modifiche.AggiungiLeRighe(sessione.File[file], prima, [riga], $"{nome} dall'AIP", rigaVuota: false);
         if (esito is ModificaRifiutata rifiutata)
             avvisi.Add($"{nome}: {rifiutata.Motivo}");

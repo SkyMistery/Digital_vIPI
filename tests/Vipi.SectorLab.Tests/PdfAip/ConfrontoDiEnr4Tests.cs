@@ -297,9 +297,13 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         int mancanti = _lab.RigheDellaSezione(SezioneDelConfronto.Punti)!.Value.Righe.Count(r => r.Esito == EsitoDelConfronto.MancaNelSector);
         Assert.True(mancanti > 0);
 
+        // R8a: per un punto «Porta nel sector…» apre «metti in questo file», di base itfix.fix; «Scrivi» porta.
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto='porta-enr4']").Click());
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto='metti-nel-file']").Click());
 
         Assert.True(_lab.Modifiche.CEQualcosa);
+        Assert.Contains(_lab.Modifiche.Voci, m => m.File.EndsWith("/itfix.fix", StringComparison.Ordinal));
         pagina.WaitForAssertion(() => Assert.Equal(mancanti - 1,
             _lab.RigheDellaSezione(SezioneDelConfronto.Punti)!.Value.Righe.Count(r => r.Esito == EsitoDelConfronto.MancaNelSector)));
         Assert.NotNull(pagina.Find("[data-tasto='correggi-uso']"));   // ADFAM: uguale, ma con l'uso diverso
@@ -312,6 +316,64 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         pagina.Find("[data-sezione='punti']").Click();
         pagina.WaitForAssertion(() => Assert.True(_lab.SezioneViva(SezioneDelConfronto.Punti)));
         Assert.NotEmpty(pagina.FindAll("[data-gesti-della-sezione]"));
+    }
+
+    private const string Apt = "SectorFiles/Include/IT/NAVAIDS/APT.fix";
+
+    [Fact]
+    public async Task MettiInQuestoFile_IlPuntoNelFixScelto_InFondo_ConLAnteprima()
+    {
+        // Riordino R8a (D19): un punto che manca va nel .fix che l'AOD sceglie, nel posto che sceglie.
+        await ApriAsync();
+        Assert.True(await _lab.ConfrontaEnr4Async(radioassistenze: false), _lab.Rifiuto);
+        Assert.Equal("itfix.fix", Path.GetFileName(_lab.FileDeiPunti[0]));
+        Assert.Contains(Apt, _lab.FileDeiPunti);
+        Assert.All(_lab.FileDeiPunti, f => Assert.EndsWith(".fix", f, StringComparison.Ordinal));
+
+        var anteprima = Assert.Single(_lab.AnteprimaDeiPunti(["ZZZZZ"], Apt, inFondo: true));
+        Assert.Equal("ZZZZZ", anteprima.Nome);
+        Assert.StartsWith("ZZZZZ;", anteprima.Riga, StringComparison.Ordinal);
+        Assert.Equal("in fondo", anteprima.Dove);
+        Assert.False(_lab.Modifiche.CEQualcosa);   // l'anteprima non scrive
+
+        // Un file che non è dei punti no.
+        Assert.False(_lab.PortaNelSectorDiEnr4(["ZZZZZ"], "SectorFiles/Include/IT/NAVAIDS/itvor.vor"));
+        Assert.Contains("non è un file dei punti", _lab.Rifiuto, StringComparison.Ordinal);
+
+        Assert.True(_lab.PortaNelSectorDiEnr4(["ZZZZZ"], Apt, inFondo: true), _lab.Rifiuto);
+
+        Assert.StartsWith("ZZZZZ;", _lab.RigheDiAdesso(Apt).Last(r => r.Length > 0), StringComparison.Ordinal);
+        // Il confronto guarda tutti i .fix: ZZZZZ ora c'è (in APT.fix), non manca più.
+        Assert.DoesNotContain(_lab.UltimoConfrontoDiEnr4!.Value.Esiti, e => e.Nome == "ZZZZZ" && e.Esito == EsitoDelConfronto.MancaNelSector);
+
+        _lab.Annulla();
+        Assert.False(_lab.Modifiche.CEQualcosa);
+    }
+
+    [Fact]
+    public async Task MettiInQuestoFile_GliSpuntatiDallaSezione()
+    {
+        await ApriAsync();
+        using var contesto = new Bunit.TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.Services.AddSingleton(_lab);
+        var pagina = contesto.RenderComponent<Vipi.SectorLab.Ui.Components.ConfrontiVista>();
+        pagina.Find("[data-sezione='punti']").Click();
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-casella='spunta-punto']")));
+        Assert.True(pagina.Find("[data-tasto='metti-spuntati']").HasAttribute("disabled"));
+
+        pagina.Find("[data-casella='spunta-punto']").Change(true);
+        // La spunta sta nella riga: la sezione si ridisegna (la callback è asincrona) e il tasto si accende.
+        pagina.WaitForAssertion(() => Assert.False(pagina.Find("[data-tasto='metti-spuntati']").HasAttribute("disabled")));
+        pagina.Find("[data-tasto='metti-spuntati']").Click();
+        pagina.Find("[data-gesti-della-sezione] [data-campo='file-di-destinazione']").Change(Apt);
+        pagina.Find("[data-gesti-della-sezione] [data-posto='fondo']").Change(true);
+        Assert.Equal("1", pagina.Find("[data-gesti-della-sezione] [data-anteprima-metti]").GetAttribute("data-anteprima-metti"));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-gesti-della-sezione] [data-tasto='metti-nel-file']").Click());
+
+        Assert.Contains(_lab.Modifiche.Voci, m => m.File == Apt);
+        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-metti-nel-file]")));
     }
 
     [Fact]

@@ -494,10 +494,29 @@ fra i 9 `.fix`, per una voce, le spuntate o tutta la sezione; nel file in ordine
 quello di oggi, l'elenco mostra solo i file con lo stesso genere di righe, l'anteprima del diff prima di scrivere, una
 voce sola nella storia. Le ATZ delle torri in un altro `.tfl`: da chiedere.
 
+Il committente: «Vai con la R8a, le torri solo twrs.tfl e nei file .str» — le ATZ restano dove i gesti le scrivono oggi
+(i settori in `twrs.tfl`, le voci MAPS negli `.str`), senza scelta del file. R8b e R8c aspettano il loro via.
+
+**R8a fatta** (20 ottobre notte): «metti in questo file» per i punti.
+- `Enr4NelSector.FileDeiPunti`: i `.fix` del sector, `itfix.fix` per primo. `PortaNelSectorDiEnr4(nomi, fileDeiPunti,
+  inFondo)`: il file scelto (null = `itfix.fix`, com'era; un file che non è dei punti si rifiuta) e il posto (in ordine di
+  nome, com'era, o in fondo). `AnteprimaDeiPunti`: per ogni punto la riga e dove va («prima di CALKE», «in fondo»), senza
+  scrivere niente. Il confronto dei punti guardava già tutti i `.fix`: un punto messo in `APT.fix` non manca più.
+- `MettiInQuestoFile` (il riquadro): il file (di base quello di oggi, segnato «di oggi»), il posto, l'anteprima, «Scrivi»
+  (un gesto solo) e «Lascia stare». Per una riga: «Porta nel sector…» lo apre; per la sezione: «Metti le spuntate…» (le
+  righe si spuntano) e «Porta tutte…». Le radioassistenze restano come prima (un file per tipo).
+- La classe delle scelte delle attese è diventata `ScelteDelConfronto` (anche i punti spuntati); una spunta ridisegna la pagina e il tasto
+  della sezione si accende (il ridisegno arriva subito dopo, non nello stesso giro: il test lo aspetta).
+- Test: Lab 1 321 (+2: il punto nel `.fix` scelto, in fondo, con l'anteprima e il rifiuto; gli spuntati dalla sezione in
+  `APT.fix`; il test della R7 ora conferma con «Scrivi»). Sul banco (copia del sector, AIP di prova 2610): i 9 `.fix`;
+  CA501 in `APT.fix`, «prima di CALKE» o «in fondo»; «Scrivi»: punti mancanti 95 → 94, uguali 1 375 → 1 376, «Salva (1)»
+  (in memoria: la copia non è cambiata).
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
 (R4-R9). **R4 fatta** (tre mappe, un motore), **R5 fatta** (due lati, un disegno), **R6 fatta** (lo spazio Confronti in
 lettura) col ritocco «solo la sezione sulla mappa», **R7 fatta** (i gesti nel Confronti, «Lettura e consegna» nello spazio
-AIP); prossima **R8** («metti in questo file»: prima la misura dei file compatibili), dopo il via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+AIP), **R8a fatta** (la misura dei file compatibili e «metti in questo file» per i punti); prossime **R8b** (rotte basse o
+alte) e **R8c** (scali e piste anche nei file delle FIR), al via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.
