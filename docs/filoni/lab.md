@@ -11,7 +11,9 @@ gruppi) e approvata la direzione: quattro pagine (Sector, AIP, Consegna, Imposta
 Scheda per gruppi fissi. Carta: [`2026-10-20-riordino-delle-pagine.md`](../feature/2026-10-20-riordino-delle-pagine.md).
 **R0 fatta** (i due difetti: «Cambia cartella» senza conferma, link della PR dell'AIP). **R1 fatta**: le quattro
 linguette nella barra, la barra uguale nelle due finestre con «Salva (N)» e Ctrl+S, AIP / Consegna / Impostazioni come
-pagine, la mappa che non si smonta. **Prossimo**: R2 (Consegna come giro), R3 (AIP come pagina vera), R4 (la Scheda).
+pagine, la mappa che non si smonta. Dopo il primo giro il committente ha chiesto **due mondi** (AIP con un Indice come l'AIP, Sector con Mappa, **Testo**
+scritto a mano coi metadati bloccati e sbloccabili, Consegna) che si parlano: carta §4-bis (D8-D13), slice R2-R8 in
+§5-bis. **Prossimo**: R2 (i due mondi nella barra), poi R3 (l'Indice dell'AIP).
 
 ## 20 ottobre 2026: F7, SID e STAR (chiusa: slice 7a-7f, T4 in Aurora ✅)
 

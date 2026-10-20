@@ -3,7 +3,8 @@
 > Carta madre: [`2026-09-18-aurora-sector-lab.md`](2026-09-18-aurora-sector-lab.md). Viene dopo la F7
 > ([`2026-10-19-f7-sid-e-star.md`](2026-10-19-f7-sid-e-star.md)).
 > Stato: ✅ **direzione APPROVATA** dal committente il 20 ottobre (le quattro pagine: «sì, mi sembra ok, vediamo come
-> viene»). Le decisioni D1-D7 di §4 sono come proposte. Il lavoro è in §6.
+> viene»). Le decisioni D1-D7 di §4 sono come proposte. Dopo il primo giro sull'app (R0-R1) il committente ha chiesto
+> **i due mondi** e **la pagina Testo**: §4-bis, D8-D13, e le slice rifatte in §5-bis. Il lavoro è in §6.
 
 ## §0 — La domanda
 
@@ -99,6 +100,37 @@ file, Sistema le etichette) passano al pannello del file nella colonna. Il rifiu
 - **D7** I `data-tasto`, `data-campo` e simili restano gli stessi dove il gesto resta lo stesso: i test e l'autoprova li
   usano.
 
+## §4-bis — La seconda forma: due mondi, AIP e Sector (20 ottobre sera)
+
+Il committente, provata la R1: «Vorrei una pagina dove poter editare il sector file come se fosse Visual Studio Code,
+quindi scrivendo a mano. In questo modo se qualcuno vuole editare il sector in modo "classico" lo può fare ma noi
+possiamo proteggere i metadati» e «per l'AIP espanso vorrei una pagina a parte con la mappa in cui analizzare e
+eventualmente correggere i dati di AIP […] dividere l'app in lavoro con l'AIP e Sector con i due pezzi che si parlano
+[…] magari AIP è organizzato come fosse un AIP in modo da trovare facilmente le cose».
+
+| Mondo | Pagine | Repo e consegna |
+|---|---|---|
+| **AIP** | **Indice**: l'albero come nell'AIP (ENR 2, ENR 3, ENR 4, ENR 5, AD 2 scalo per scalo), la mappa, la scheda della voce con le correzioni e, sezione per sezione, il confronto col sector · **Lettura e consegna**: PDF, ciclo, «Leggi», segnalazioni, Registra/Manda dell'AIP espanso | il repo dell'AIP espanso |
+| **Sector** | **Mappa**: Sfoglia, Scheda, Problemi (la pagina Sector della R1) · **Testo**: i file scritti a mano · **Consegna**: modifiche, ramo, PR, Aurora | il repo del sector |
+
+Le **Impostazioni** sono comuni.
+
+- **D8** Due mondi nella barra, AIP e Sector, ognuno con le sue pagine; le Impostazioni a parte. Sostituisce le quattro
+  linguette di D1 (la R1 resta: le linguette diventano due gruppi).
+- **D9** L'Indice dell'AIP segue l'ordine dell'AIP: sezione, sottosezione, voce; AD 2 per scalo. Una voce si apre nella
+  scheda AIP con la mappa accanto, e lì si corregge (le correzioni della F6, file delle correzioni nel repo dell'AIP).
+- **D10** I confronti stanno dentro l'Indice, sezione per sezione: ogni voce dice se nel sector è uguale, diversa o
+  manca, coi gesti «Porta nel sector» / «Sostituisci». I gesti sono modifiche in sospeso **del sector**, che si salvano
+  dalla Consegna del sector: correggere l'AIP e cambiare il sector restano due cose e due repo.
+- **D11** I due mondi si parlano: dalla scheda di un record del sector, «nell'AIP: …» porta alla voce; dalla scheda di
+  una voce AIP, «nel sector: file, record» porta al record.
+- **D12** La pagina **Testo**: albero dei file ed editor (CodeMirror 6, dentro l'app, niente rete), colori per tipo di
+  file, problemi del validatore sulla riga, nomi suggeriti dal catalogo, Ctrl+clic per andare alla definizione. Quel
+  che si scrive è una modifica in sospeso come le altre (diff, Annulla, problemi nuovi, lo stesso «Salva»); un file con
+  modifiche fatte coi gesti si apre con quelle dentro.
+- **D13** I **metadati** (righe `//@` e `//@@`) nel Testo si vedono **bloccati, con la possibilità di sbloccarli**
+  (committente); cancellare a mano un record che ha metadati **chiede prima** (committente).
+
 ## §5 — Le slice
 
 - **R0** I due difetti di §2: conferma su «Cambia cartella» con modifiche in sospeso; il link della PR dell'AIP.
@@ -111,6 +143,20 @@ file, Sistema le etichette) passano al pannello del file nella colonna. Il rifiu
 - **R5** I verbi (D6), i rifiuti accanto al tasto, le scorciatoie (Ctrl+F per la ricerca).
 
 Ogni slice si prova **a schermo** sul banco, su uno e su due schermi, oltre ai test.
+
+## §5-bis — Le slice dopo la seconda forma
+
+R0 e R1 sono fatte. Le altre si rifanno così:
+
+- **R2** I due mondi nella barra (D8): AIP (Indice, Lettura e consegna) e Sector (Mappa, Testo, Consegna); le pagine di
+  oggi ci entrano com'è (l'AIP intero in «Lettura e consegna» finché non c'è l'Indice).
+- **R3** L'Indice dell'AIP (D9): l'albero per sezioni, la mappa, la scheda della voce, le correzioni.
+- **R4** I confronti nell'Indice e i legami record ↔ voce (D10, D11).
+- **R5** Le due consegne: quella del sector come giro (modifiche → Salva → Registra → vetrina → Manda), quella
+  dell'AIP (lettura, segnalazioni, Registra/Manda).
+- **R6** La pagina Testo (D12, D13).
+- **R7** La Scheda per gruppi (D5), un solo editor dei vertici per i `.geo`.
+- **R8** I verbi (D6), i rifiuti accanto al tasto, le scorciatoie.
 
 ## §6 — Il lavoro
 
