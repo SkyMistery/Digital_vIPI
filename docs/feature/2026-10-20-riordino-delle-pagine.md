@@ -131,6 +131,48 @@ Le **Impostazioni** sono comuni.
 - **D13** I **metadati** (righe `//@` e `//@@`) nel Testo si vedono **bloccati, con la possibilità di sbloccarli**
   (committente); cancellare a mano un record che ha metadati **chiede prima** (committente).
 
+## §4-ter — La terza forma: tre spazi di lavoro, un motore di mappa (20 ottobre sera)
+
+Il committente, guardando i fix dell'AIP espanso sulla mappa (pallini blu, non i simboli di Aurora): «vorrei che AIP e
+sector avessero delle mappe ognuna a sé che si basano sullo stesso motore e poi una terza sezione dell'app per fare i
+confronti tra AIP e sector […] Spazio di lavoro per l'AIP espanso, spazio di lavoro per il sector, spazio di lavoro per
+passare le cose da AIP espanso a sector (o da sector ad AIP espanso dove le eccezioni lo consentiranno tipo il file
+.geo)». Alla proposta dell'agente: mappa del Confronto con AIP e sector **sovrapposti** («1) sì», letto come sì alla
+sovrapposizione proposta, non alle due mappe affiancate); eccezioni verso l'AIP oltre ai confini «per ora no, poi ci
+penso». E in più: «nella sezione confronto si potesse anche dire metti questa cosa (tipo selezioni un'area) in questo
+file, oppure metti tutto il contenuto di questa sezione in questo file».
+
+| Spazio | Cosa ha | Repo |
+|---|---|---|
+| **AIP espanso** | Indice come l'AIP, la **sua** mappa, la scheda della voce con le correzioni; Lettura dei PDF e consegna | AIP espanso |
+| **Sector** | la **sua** mappa, Sfoglia, Scheda, Problemi; Testo; Consegna | sector |
+| **Confronti** | sezione per sezione uguale / diversa / manca / solo nel sector, la mappa con AIP e sector sovrapposti, i gesti che passano le cose da un lato all'altro | scrive nell'uno o nell'altro; ognuno si consegna dal suo spazio |
+
+- **D14** Tre spazi nella barra: AIP espanso, Sector, Confronti; le Impostazioni a parte. Sostituisce D8 (due mondi).
+- **D15** Un motore di mappa (Leaflet, `sectorlab-mappa.js`, gli strati del Core), **tre mappe**: ognuna col suo stato
+  (strati accesi, vista, scelta), che non si perde cambiando spazio. Sostituisce D2 (una mappa con un solo stato).
+- **D16** I due lati si disegnano allo stesso modo: i punti dell'AIP coi simboli di Aurora del profilo scelto (come quelli
+  del sector), le linee e le aree coi colori dello schema dove l'AIP ha un genere che il sector conosce. Un fix dell'AIP
+  e lo stesso fix del sector si devono vedere uguali.
+- **D17** I confronti stanno nello spazio Confronti (non più dentro l'Indice: sostituisce D10). Nell'Indice una voce dice
+  solo «nel sector: uguale / diversa / manca» e porta alla sua riga del Confronto (D11 resta: i legami record ↔ voce).
+- **D18** Nel Confronto la mappa mostra i due lati **sovrapposti**, in due colori fissi (AIP / sector), con la riga scelta
+  in evidenza; si accende un lato, l'altro o tutti e due.
+- **D19** «**Metti in questo file**»: una voce (scelta nell'elenco o sulla mappa), più voci spuntate, o **tutta una
+  sezione** (tutte, o solo le mancanti / le diverse) vanno nel file che l'AOD sceglie. La destinazione proposta è quella
+  di oggi (le regole delle slice F6/F7: ENR 5 in `italy.prohibit|danger|restrict`, CTR e ATZ nel `MAPS` dello `.str` dello
+  scalo, le procedure nel loro `.sid`/`.str`…); l'elenco dei file mostra solo quelli **compatibili** col genere della voce
+  (lo stesso formato di righe), e il punto del file (in fondo, prima/dopo una voce, dentro un blocco). Prima di scrivere,
+  l'anteprima del diff; poi è una modifica in sospeso come le altre (una voce nella storia, si annulla tutta insieme).
+- **D20** Dal sector all'AIP espanso solo dove la regola lo consente: oggi i confini da `itgeo.geo` (eccezione di F6).
+  Le altre eccezioni le dice il committente. Il gesto scrive una correzione nel file delle correzioni dell'AIP espanso,
+  mai un PDF.
+
+🟡 Proposte dell'agente, da confermare quando si arriva lì: «selezioni un'area» letto come «scegli una voce» (un clic
+sull'elenco o sulla mappa) e più voci con le caselle; una selezione a rettangolo sulla mappa solo se il committente la
+chiede. La tabella dei file compatibili per genere si **misura** sul sector (quali formati tengono già quel genere di
+righe), non si inventa.
+
 ## §5 — Le slice
 
 - **R0** I due difetti di §2: conferma su «Cambia cartella» con modifiche in sospeso; il link della PR dell'AIP.
@@ -157,6 +199,34 @@ R0 e R1 sono fatte. Le altre si rifanno così:
 - **R6** La pagina Testo (D12, D13).
 - **R7** La Scheda per gruppi (D5), un solo editor dei vertici per i `.geo`.
 - **R8** I verbi (D6), i rifiuti accanto al tasto, le scorciatoie.
+
+## §5-ter — Le slice dopo la terza forma (piano del 20 ottobre sera, da approvare)
+
+R0-R3 fatte; dopo la R3 l'ambiente di lavoro (primo avvio, cartelle fisse, simboli dal profilo). Le slice da R4 in poi
+si rifanno così. Ognuna: test, banco a schermo su uno e due schermi, eseguibile di prova, e il via del committente prima
+della successiva.
+
+- **R4 — Tre mappe, un motore** (D14, D15). `StatoDellaMappa` per spazio (strati accesi, vista, scelta) nella sessione;
+  il componente `Mappa` riceve lo spazio; la barra con AIP espanso · Sector · Confronti. L'Indice dell'AIP ha la sua
+  mappa con l'AIP espanso, la pagina Mappa del sector la sua; cambiando spazio ognuna resta com'era. Le pagine di oggi
+  entrano negli spazi come sono («Lettura e confronti» nel Confronti finché non c'è la R6).
+- **R5 — Due lati, un disegno** (D16). Lo strato dell'AIP coi simboli di Aurora (punto significativo ENR / terminale,
+  VOR, VOR/DME, DME, TACAN, NDB, scali per tipo) e coi colori dello schema dove il genere ha un corrispondente nel sector;
+  coi colori «del Lab» i suoi colori di genere come oggi. Prova a schermo: lo stesso fix dai due lati.
+- **R6 — Lo spazio Confronti, in lettura** (D17, D18). Le sezioni (CTR e ATZ, ENR 5, ENR 3 attese, ENR 3 rotte, ENR 4,
+  AD 2 piste, SID e STAR) con i loro conteggi; per sezione la tabella uguale / diversa / manca / solo nel sector; la mappa
+  sovrapposta in due colori con la riga scelta in evidenza. I confronti di «Lettura e confronti» si spostano qui; quella
+  pagina torna «Lettura e consegna». Nell'Indice il segno «nel sector: …» con il rimando alla riga.
+- **R7 — I gesti di oggi nel Confronti**. Porta nel sector, Sostituisci, le attese, le procedure, le piste, le rotte,
+  Scrivi i tracciati: le stesse regole, dalla tabella del Confronto; il diff e la Consegna del sector come oggi.
+- **R8 — «Metti in questo file»** (D19). Prima la **misura**: per ogni genere, quali file del sector hanno già quel
+  genere di righe (la tabella dei compatibili, in carta). Poi: una voce, le voci spuntate o tutta la sezione (tutte /
+  mancanti / diverse) → scelta del file fra i compatibili (proposto quello delle regole di oggi) e del punto → anteprima
+  del diff → modifica in sospeso, una voce sola nella storia. Rifiuti accanto al tasto: file non compatibile, voce che nel
+  file c'è già (si propone Sostituisci), righe coi metadati.
+- **R9 — Verso l'AIP espanso** (D20). «Porta nell'AIP espanso» per i confini da `itgeo.geo`, come correzione; il resto
+  quando il committente dice le eccezioni.
+- Poi, come prima: le due consegne (ex R5), la pagina Testo (ex R6), la Scheda per gruppi (ex R7), i verbi (ex R8).
 
 ## §6 — Il lavoro
 
@@ -307,6 +377,7 @@ cartella di Aurora del PC: 36 profili nella scelta, `BASIC_RADAR.cpr` scelto. Su
 in sola lettura con le cartelle dell'ambiente, i due «Apri la cartella», nessun «Sfoglia…» (non premuto: aprirebbe
 Esplora risorse sullo schermo del committente).
 
-**Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
-R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due
-consegne, con ramo ed età del repo dell'AIP e la rilettura dello strato), R6 (Testo), R7 (Scheda), R8 (verbi).
+**Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
+cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
+(§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»): il **piano** è in §5-ter (R4-R9), **da
+approvare** prima di cominciare la R4. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta da fare.
