@@ -4,7 +4,7 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 20 ottobre 2026: F7, SID e STAR (slice 7a-7f fatte, aspetta la T4)
+## Dove siamo — 20 ottobre 2026: F7, SID e STAR (chiusa: slice 7a-7f, T4 in Aurora ✅)
 
 Il committente ha chiesto SID e STAR (il confronto col sector delle parti nuove della F6 è rimandato) e ha approvato la
 carta [`2026-10-19-f7-sid-e-star.md`](../feature/2026-10-19-f7-sid-e-star.md) (D1-D7 come proposte). **Slice 7a fatta**:
@@ -22,7 +22,9 @@ nome calcolati dalle radioassistenze e gli archi DME. Su 2610 ne legge 104 su 11
 Mappa, confronto e gesti li usano. Corretto un difetto della 7d/7e: le STAR del sector con le coordinate non si vedevano.
 AIP espanso di prova sulla PR #11. **Slice 7f fatta**: la mappa di gruppo `SID RNAV(ALL)` in testa al `.sid` (P10), col motore
 delle composte di F3-bis esteso alle SID e il tasto «Mappa delle SID»; corretto un difetto della 7e (le composte non
-seguivano «Sostituisci»). **La F7 si chiude con la prova T4 in Aurora** (`SectorLab-prova\T4`).
+seguivano «Sostituisci»). **F7 chiusa**: la prova T4 in Aurora è andata («Tutto ok»: la STAR RNAV, le SID col tracciato, la STAR dalla prosa, la
+mappa `MAPS` del `.sid`). **Prossimo**: lo sceglie il committente (il giro del 2611 dal 29 ottobre, i confronti rimandati
+della F6, la F8).
 
 ## 19 ottobre 2026: F6, le correzioni dell'AIP espanso finite (slice 1-3)
 
