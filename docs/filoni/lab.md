@@ -14,7 +14,10 @@ linguette nella barra, la barra uguale nelle due finestre con «Salva (N)» e Ct
 pagine, la mappa che non si smonta. Dopo il primo giro il committente ha chiesto **due mondi** (AIP con un Indice come l'AIP, Sector con Mappa, **Testo**
 scritto a mano coi metadati bloccati e sbloccabili, Consegna) che si parlano: carta §4-bis (D8-D13), slice R2-R8 in
 §5-bis. **R2 fatta** (i due mondi nella barra), **R3 fatta** (l'Indice dell'AIP come l'AIP, con la ricerca, la scheda e la
-mappa). **Prossimo**: R4 (i confronti dentro l'Indice e i legami record ↔ voce).
+mappa). Dopo la R3 corretti i punti RNAV degli scali (finivano in «Altro»); il committente vedeva solo ENR 2 e 5 perché il suo
+clone dell'AIP espanso era fermo al `main` del 19 ottobre (carta, «Dopo la R3»). Da sistemare: l'autoprova scrive
+«ultima cartella» e «recenti» nei dati del Lab. **Prossimo**: R4 (i confronti dentro l'Indice e i legami record ↔ voce),
+dopo un giro del committente sull'Indice. Eseguibile di prova: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`.
 
 ## 20 ottobre 2026: F7, SID e STAR (chiusa: slice 7a-7f, T4 in Aurora ✅)
 

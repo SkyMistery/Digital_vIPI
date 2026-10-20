@@ -212,3 +212,11 @@ Lab però non rilegge lo strato quando il repo cambia ramo. Da fare nella R5 (la
 ciclo del repo dell'AIP e quanto è vecchio, «Chiedi le novità al server», e rileggere lo strato quando il repo cambia.
 Guardando, un difetto dell'indice: i punti RNAV degli scali hanno la sezione «AD 2 LIRF» e finivano in «Altro»; ora
 vanno nel loro scalo. Test: Lab 1 274 (+1).
+
+**Da sistemare** (trovato il 20 ottobre): `VipiSectorLab.exe --autoprova --cartella <copia>` scrive nei dati del Lab di chi
+lo usa (`%LOCALAPPDATA%\VipiSectorLab`): la copia diventa «ultima cartella» e va in cima agli «Aperti di recente». La
+prova d'avvio non deve ricordare niente. Va con la prossima slice.
+
+**Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
+R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due
+consegne, con ramo ed età del repo dell'AIP e la rilettura dello strato), R6 (Testo), R7 (Scheda), R8 (verbi).
