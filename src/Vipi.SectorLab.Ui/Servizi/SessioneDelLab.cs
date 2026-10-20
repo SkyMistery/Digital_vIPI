@@ -4671,6 +4671,7 @@ public sealed class SessioneDelLab
             if (righe.Item1 is null)
                 return Rifiuta("Il confronto non ha dato righe.");
             _confronti[sezione] = (righe.Item1, righe.Item2);
+            MostraSoloLaSezione(sezione);
             return true;
         }
         finally
@@ -4687,7 +4688,33 @@ public sealed class SessioneDelLab
             return;
         SezioneDelConfronto = sezione;
         RigaDelConfrontoScelta = null;
+        MostraSoloLaSezione(sezione);
         Avvisa();
+    }
+
+    /// <summary>
+    /// Sulla mappa del Confronto solo la sezione aperta (committente, 20 ottobre: con tutto acceso la mappa non si legge):
+    /// le coste, gli strati del sector che la tengono, e dello strato dell'AIP i soli generi della sezione. Il resto si
+    /// riaccende dalle caselle degli strati.
+    /// </summary>
+    private void MostraSoloLaSezione(Core.PdfAip.SezioneDelConfronto sezione)
+    {
+        var mappa = _mappe[SpazioDiLavoro.Confronti];
+        var aip = Core.PdfAip.AipSullaMappa.Tipo.Id;
+        mappa.Accesi.Clear();
+        mappa.Accesi.Add(StratiDellaMappa.Sfondo.Id);
+        foreach (var strato in Core.PdfAip.ConfrontiDelleSezioni.StratiDelSector(sezione))
+            mappa.Accesi.Add(strato);
+        mappa.Spenti.RemoveWhere(s => s.StartsWith(ChiaveDelGenere(aip, ""), StringComparison.Ordinal));
+        if (StratoDellAip is { } stratoDellAip)
+        {
+            mappa.Accesi.Add(aip);
+            var tenuti = Core.PdfAip.ConfrontiDelleSezioni.GeneriDellAip(sezione);
+            foreach (var genere in GeneriDellaMappa.Di(stratoDellAip.Strato).Where(g => !tenuti.Contains(g.Id)))
+                mappa.Spenti.Add(ChiaveDelGenere(aip, genere.Id));
+        }
+        mappa.VersioneDeiSpenti++;
+        mappa.VersioneDellaVista++;
     }
 
     /// <summary>

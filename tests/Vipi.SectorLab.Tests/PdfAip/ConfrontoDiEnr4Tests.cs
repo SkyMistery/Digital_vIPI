@@ -255,6 +255,10 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         Assert.True(await _lab.ConfrontaLaSezioneAsync(SezioneDelConfronto.Punti), _lab.Rifiuto);
 
         Assert.NotNull(_lab.StratoDellAip);   // caricato da sé: serve alla mappa e alla scheda della voce
+        // Sulla mappa del Confronto solo la sezione: coste, i punti del sector, dell'AIP i soli punti.
+        Assert.Equal(["aip", "punti", "sfondo"], _lab.AccesiDi(SpazioDiLavoro.Confronti).Order(StringComparer.Ordinal));
+        Assert.Contains("§aip:" + AipSullaMappa.Radioassistenze, _lab.SpentiDi(SpazioDiLavoro.Confronti));
+        Assert.DoesNotContain("§aip:" + AipSullaMappa.Punti, _lab.SpentiDi(SpazioDiLavoro.Confronti));
         var (ciclo, righe) = _lab.Confronti[SezioneDelConfronto.Punti];
         Assert.Equal("2611", ciclo);
         Assert.Equal(_lab.UltimoConfrontoDiEnr4!.Value.Esiti.Count, righe.Count);
@@ -270,6 +274,13 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         Assert.Equal((_lab.StratoDellAip!.File, _lab.SceltaDellAip!.Value), _lab.CoppiaDelConfronto.Aip);
         Assert.True(_lab.VersioneDellaCoppia > versione);
         Assert.Equal(abadi, _lab.RigaDelConfrontoScelta);
+
+        // Passando a un'altra sezione, e tornando a una già fatta, la mappa segue la sezione aperta.
+        Assert.True(await _lab.ConfrontaLaSezioneAsync(SezioneDelConfronto.Radioassistenze), _lab.Rifiuto);
+        Assert.Contains("radioassistenze", _lab.AccesiDi(SpazioDiLavoro.Confronti));
+        _lab.ApriLaSezioneDelConfronto(SezioneDelConfronto.Punti);
+        Assert.Contains("punti", _lab.AccesiDi(SpazioDiLavoro.Confronti));
+        Assert.DoesNotContain("radioassistenze", _lab.AccesiDi(SpazioDiLavoro.Confronti));
     }
 
     [Fact]

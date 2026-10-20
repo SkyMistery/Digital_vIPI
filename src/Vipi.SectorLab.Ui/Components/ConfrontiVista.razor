@@ -11,7 +11,8 @@
 <section class="lab-riquadro lab-confronti" data-confronti>
     <h2 class="lab-riquadro-titolo">Confronti <span class="lab-nota">AIP espanso @(Lab.StratoDellAip?.Ciclo ?? "") ↔ sector</span></h2>
     <p class="lab-nota">Sulla mappa l'AIP è <span class="lab-lato lab-lato-aip">tratteggiato</span>, il sector
-        <span class="lab-lato lab-lato-sector">pieno</span>: si accendono dalle caselle degli strati.</p>
+        <span class="lab-lato lab-lato-sector">pieno</span>. Aprendo una sezione la mappa mostra solo quella, dei due lati;
+        il resto si riaccende dalle caselle degli strati.</p>
 
     <div class="lab-confronti-sezioni" data-sezioni>
         @foreach (var parte in Enum.GetValues<SezioneDelConfronto>().GroupBy(ConfrontiDelleSezioni.Parte))

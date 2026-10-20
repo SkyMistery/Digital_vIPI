@@ -441,8 +441,12 @@ l'AIP non lo dice; OST il sector lo scrive VOR (FIX_VOR), l'AIP VOR/DME (FIX_VOR
   `PagineDelLabTests`). Sul banco (copia del sector, AIP di prova 2610): CTR 45 righe, 6 diverse; la riga di Amendola
   apre «Amendola CTR Zona '1'» e «LIBA CTR» di `liba.str`, la mappa li mostra nei due colori; punti 130 righe, 98 da
   guardare. Nessun errore nella console.
-- Da vedere col committente: con tutto l'AIP acceso la mappa del Confronto è piena; 🟡 proposta: aprendo una sezione,
-  sulla mappa solo i generi di quella sezione (dei due lati).
+- Con tutto l'AIP acceso la mappa del Confronto era piena. **Ritocco dopo la R6** (committente: «fai prima il ritocco,
+  poi la R7»): aprendo (o confrontando) una sezione, sulla mappa del Confronto solo la sezione — le coste, gli strati del
+  sector che la tengono (`ConfrontiDelleSezioni.StratiDelSector`: CTR, ATZ e procedure → «SID e STAR» dei MAPS e degli
+  `.sid`/`.str`; ATZ delle torri → settori; scali, frequenze, punti → punti…) e dello strato dell'AIP i soli generi della
+  sezione (`GeneriDellAip`, gli altri spenti come i generi di uno strato). Il resto si riaccende dalle caselle. Sul banco:
+  i punti, coi soli «Punti» dell'AIP accesi, e RF532 (sector a 0,75 NM dall'AIP) che ora si legge.
 
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**

@@ -61,6 +61,36 @@ public static class ConfrontiDelleSezioni
         _ => "AD 2",
     };
 
+    /// <summary>
+    /// Gli strati del sector che tengono la sezione (i file di <see cref="Mappa.StratiDellaMappa.DiFile"/>): aprendo una
+    /// sezione, sulla mappa del Confronto si accendono questi e basta (committente, 20 ottobre: la mappa piena non si legge).
+    /// </summary>
+    public static IReadOnlyList<string> StratiDelSector(SezioneDelConfronto sezione) => sezione switch
+    {
+        SezioneDelConfronto.Ctr or SezioneDelConfronto.Atz or SezioneDelConfronto.Procedure => ["procedure"],   // i MAPS e le procedure degli .str/.sid
+        SezioneDelConfronto.AtzDelleTorri => ["settori"],                                                       // twrs.tfl
+        SezioneDelConfronto.Rotte => ["aerovie"],
+        SezioneDelConfronto.Attese => ["attese"],
+        SezioneDelConfronto.Radioassistenze or SezioneDelConfronto.RadioassistenzeAd2 => ["radioassistenze"],
+        SezioneDelConfronto.AreeEnr5 => ["aree"],
+        SezioneDelConfronto.Piste => ["piste"],
+        _ => ["punti"],                                                                                           // punti, scali (.ap), frequenze
+    };
+
+    /// <summary>I generi dello strato dell'AIP che tengono la sezione (quelli di <see cref="AipSullaMappa"/>).</summary>
+    public static IReadOnlyList<string> GeneriDellAip(SezioneDelConfronto sezione) => sezione switch
+    {
+        SezioneDelConfronto.Ctr => ["CTR"],
+        SezioneDelConfronto.Atz or SezioneDelConfronto.AtzDelleTorri => ["ATZ"],
+        SezioneDelConfronto.Rotte => [AipSullaMappa.Rotte],
+        SezioneDelConfronto.Attese => [AipSullaMappa.Attese],
+        SezioneDelConfronto.Radioassistenze or SezioneDelConfronto.RadioassistenzeAd2 => [AipSullaMappa.Radioassistenze],
+        SezioneDelConfronto.Punti => [AipSullaMappa.Punti],
+        SezioneDelConfronto.AreeEnr5 => ["P", "R", "D", "TSA/TRA", "Militari"],
+        SezioneDelConfronto.Procedure => [AipSullaMappa.Sid, AipSullaMappa.Star, AipSullaMappa.Transizioni, AipSullaMappa.SaliteIniziali],
+        _ => [AipSullaMappa.Scali],                                                                               // scali, piste, frequenze
+    };
+
     /// <summary>Quante righe per esito.</summary>
     public static IReadOnlyDictionary<EsitoDelConfronto, int> Conteggi(IEnumerable<RigaDelConfronto> righe)
     {
