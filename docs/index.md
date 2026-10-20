@@ -385,6 +385,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-18-torre-radar.md`](feature/2026-10-18-torre-radar.md) — La torre radar — sì o no, e la tecnica operativa dello scalo
 - [`feature/2026-10-19-f6-correzioni-aip-espanso.md`](feature/2026-10-19-f6-correzioni-aip-espanso.md) — F6 — Le correzioni dell'AIP espanso (19 ottobre 2026)
 - [`feature/2026-10-19-f7-sid-e-star.md`](feature/2026-10-19-f7-sid-e-star.md) — F7 — SID e STAR dai PDF dell'AIP (19 ottobre 2026)
+- [`feature/2026-10-20-riordino-delle-pagine.md`](feature/2026-10-20-riordino-delle-pagine.md) — Riordino delle pagine del Sector Lab (20 ottobre 2026)
 
 ### `filoni`
 

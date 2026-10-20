@@ -4,7 +4,14 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 20 ottobre 2026: F7, SID e STAR (chiusa: slice 7a-7f, T4 in Aurora ✅)
+## Dove siamo — 20 ottobre 2026: riordino delle pagine (carta approvata, slice R0-R5)
+
+Il committente, aprendo l'app: «è molto confusionaria». Fatto l'inventario di tutte le operazioni (circa 150, in nove
+gruppi) e approvata la direzione: quattro pagine (Sector, AIP, Consegna, Impostazioni), barra uguale nelle due finestre,
+Scheda per gruppi fissi. Carta: [`2026-10-20-riordino-delle-pagine.md`](../feature/2026-10-20-riordino-delle-pagine.md).
+Si parte da R0 (i due difetti: «Cambia cartella» senza conferma, link della PR dell'AIP) e R1 (l'impianto).
+
+## 20 ottobre 2026: F7, SID e STAR (chiusa: slice 7a-7f, T4 in Aurora ✅)
 
 Il committente ha chiesto SID e STAR (il confronto col sector delle parti nuove della F6 è rimandato) e ha approvato la
 carta [`2026-10-19-f7-sid-e-star.md`](../feature/2026-10-19-f7-sid-e-star.md) (D1-D7 come proposte). **Slice 7a fatta**:
