@@ -46,6 +46,21 @@ public static class SchemiDiAurora
             yield return Path.Combine(cartella.Radice, nome);
     }
 
+    /// <summary>
+    /// Quanti schemi (<c>ColourSchemes\*.clr</c> o <c>ColorSchemes\*.clr</c>) e quanti profili (<c>Profiles\*.cpr</c>) ci
+    /// sono nella cartella di Aurora: al primo avvio dice all'AOD se la cartella scelta è quella giusta. Null se la
+    /// cartella non c'è.
+    /// </summary>
+    public static (int Schemi, int Profili)? NellaCartellaDiAurora(string? cartellaDiAurora)
+    {
+        if (string.IsNullOrWhiteSpace(cartellaDiAurora) || !Directory.Exists(cartellaDiAurora))
+            return null;
+        int schemi = NomiDellaCartella.Select(n => Path.Combine(cartellaDiAurora, n)).Where(Directory.Exists)
+            .Select(c => Directory.EnumerateFiles(c, "*.clr").Count()).FirstOrDefault(n => n > 0);
+        string profili = Path.Combine(cartellaDiAurora, "Profiles");
+        return (schemi, Directory.Exists(profili) ? Directory.EnumerateFiles(profili, "*.cpr").Count() : 0);
+    }
+
     /// <summary>I nomi degli schemi, in ordine; vuoto se non ce n'è.</summary>
     public static IReadOnlyList<string> Disponibili(CartellaDelSector cartella, string? cartellaDiAurora = null)
     {

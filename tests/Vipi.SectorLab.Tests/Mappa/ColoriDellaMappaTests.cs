@@ -271,6 +271,23 @@ public sealed class ColoriDellaMappaTests : IDisposable
     }
 
     [Fact]
+    public void NellaCartellaDiAuroraSiContanoSchemiEProfili()
+    {
+        string aurora = Path.Combine(_albero.Radice, "AuroraWindows");
+        Assert.Null(SchemiDiAurora.NellaCartellaDiAurora(aurora));
+
+        Directory.CreateDirectory(aurora);
+        Assert.Equal((0, 0), SchemiDiAurora.NellaCartellaDiAurora(aurora));
+
+        Directory.CreateDirectory(Path.Combine(aurora, "ColourSchemes"));
+        Directory.CreateDirectory(Path.Combine(aurora, "Profiles"));
+        File.WriteAllText(Path.Combine(aurora, "ColourSchemes", "QO.clr"), "");
+        File.WriteAllText(Path.Combine(aurora, "Profiles", "LIRF_TWR.cpr"), "");
+        File.WriteAllText(Path.Combine(aurora, "Profiles", "LIRF_GND.cpr"), "");
+        Assert.Equal((1, 2), SchemiDiAurora.NellaCartellaDiAurora(aurora));
+    }
+
+    [Fact]
     public void LaCartellaDegliSchemiSenzaSchemiEQuellaDiAurora()
     {
         var sector = Vipi.SectorLab.Core.Sessione.CartellaDelSector.Riconosci(_albero.Radice, out _)!;

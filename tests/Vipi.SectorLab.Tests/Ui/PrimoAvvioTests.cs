@@ -48,6 +48,23 @@ public sealed class PrimoAvvioTests : IDisposable
     }
 
     [Fact]
+    public void LaCartellaDiAuroraSiSceglieGiaAlPrimoAvvio()
+    {
+        string aurora = Path.Combine(_albero.Radice, "AuroraWindows");
+        Directory.CreateDirectory(Path.Combine(aurora, "Profiles"));
+        File.WriteAllText(Path.Combine(aurora, "Profiles", "LIRF_TWR.cpr"), "");
+        var lab = new SessioneDelLab(Dati) { CartellaDiAuroraDiBase = Path.Combine(_albero.Radice, "non-ce") };
+        _contesto.Services.AddSingleton(lab);
+        var pagina = _contesto.RenderComponent<Home>();
+        Assert.Contains("non c'è", pagina.Find("[data-cosa-ce-in-aurora]").TextContent, StringComparison.Ordinal);
+
+        pagina.Find("[data-campo='primo-cartella-di-aurora']").Change(aurora);
+
+        Assert.Equal(aurora, lab.CartellaDiAurora);
+        Assert.Contains("1 profili", pagina.Find("[data-cosa-ce-in-aurora]").TextContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task PreparaTuttoMetteLeImpostazioniEApreIlSector()
     {
         // Sul server va un sector che si apre: quello dell'albero di prova (il repo di prova da solo non ha l'.isc).

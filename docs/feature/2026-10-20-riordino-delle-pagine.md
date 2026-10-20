@@ -258,6 +258,11 @@ quanti schemi e da dove. **I profili** (`Profiles\*.cpr`) il Lab oggi non li leg
 `.cpr` dentro il sector): la cartella è già quella giusta per quando serviranno. La vetrina («Porta in Aurora») resta
 su `%APPDATA%` com'era. Test: Lab 1 297 (+2, `ColoriDellaMappaTests`). A schermo sul banco: con la cartella di Aurora del
 PC 5 schemi da `ColourSchemes`, `LIRR_RDR_V1.0.clr` scelto e la mappa coi colori di Aurora.
+Poi (committente, guardando il riquadro: «già qui mi devi dare la possibilità di selezionare da dove prendere profilo e
+colori») la stessa scelta sta anche nel **riquadro «Primo avvio»**: «Cartella di Aurora (profili e colori)», già
+scritta con quella di base, con «Sfoglia…» e, sotto, che cosa c'è (`SchemiDiAurora.NellaCartellaDiAurora`: «Qui ci sono
+5 schemi di colore e 36 profili di Aurora», o «Questa cartella non c'è: Aurora è installata?»). Test: Lab 1 299 (+2). A
+schermo sul banco: la cartella di Aurora del PC dà 5 schemi e 36 profili.
 
 **Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
 R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due

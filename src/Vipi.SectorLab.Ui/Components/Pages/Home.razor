@@ -161,6 +161,24 @@ else
                            disabled="@Lab.StaPrendendo" data-campo="primo-indirizzo-aip" />
                 </label>
                 <label class="lab-campo-in-colonna">
+                    <span class="lab-nota">Cartella di Aurora (profili e colori)</span>
+                    <span class="lab-apri lab-apri-stretta">
+                        <input type="text" value="@Lab.CartellaDiAurora" placeholder="@Vipi.SectorLab.Core.Mappa.SchemiDiAurora.CartellaDiAuroraDiBase"
+                               @onchange="e => _rifiutoAurora = Lab.CambiaLaCartellaDiAurora(e.Value?.ToString()) ? null : Lab.Rifiuto"
+                               disabled="@Lab.StaPrendendo" data-campo="primo-cartella-di-aurora" />
+                        @if (Lab.ScegliCartella is not null)
+                        {
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-primo-aurora" disabled="@Lab.StaPrendendo"
+                                    title="Sceglie la cartella di Aurora in Esplora risorse" @onclick="SfogliaAurora">Sfoglia…</button>
+                        }
+                    </span>
+                    <span class="lab-nota" data-cosa-ce-in-aurora>@CosaCeInAurora()</span>
+                    @if (_rifiutoAurora is not null)
+                    {
+                        <span class="lab-avviso-breve">@_rifiutoAurora</span>
+                    }
+                </label>
+                <label class="lab-campo-in-colonna">
                     <span class="lab-nota">Cartella di lavoro</span>
                     <span class="lab-apri lab-apri-stretta">
                         <input type="text" @bind="_lavoro" @bind:event="oninput" placeholder="D:\IVAO"
@@ -290,6 +308,21 @@ else
     private Task Prendi() => Lab.PrendiIlSectorAsync(_dovePrendere);
 
     private Task Prepara() => Lab.PreparaIlPrimoAvvioAsync(_lavoro);
+
+    private string? _rifiutoAurora;
+
+    private async Task SfogliaAurora()
+    {
+        if (await Lab.ScegliCartella!("La cartella di Aurora (quella con ColourSchemes e Profiles)", Lab.CartellaDiAurora) is { } scelta)
+            _rifiutoAurora = Lab.CambiaLaCartellaDiAurora(scelta) ? null : Lab.Rifiuto;
+    }
+
+    private string CosaCeInAurora() => Vipi.SectorLab.Core.Mappa.SchemiDiAurora.NellaCartellaDiAurora(Lab.CartellaDiAurora) switch
+    {
+        null => "Questa cartella non c'è: Aurora è installata? Di solito è " + Vipi.SectorLab.Core.Mappa.SchemiDiAurora.CartellaDiAuroraDiBase + ".",
+        (0, 0) => "Qui non ci sono né schemi di colore né profili di Aurora.",
+        var (schemi, profili) => $"Qui ci sono {schemi} schemi di colore e {profili} profili di Aurora.",
+    };
 
     private async Task SfogliaLavoro()
     {
