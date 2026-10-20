@@ -3212,7 +3212,56 @@ public sealed class SessioneDelLab
 
     // --- I colori della mappa (lotto «Subito» slice 4, D3) ------------------------------------------------------
 
-    /// <summary>Gli schemi di Aurora del clone aperto (<c>ColorSchemes\*.clr</c>, fuori dal sector).</summary>
+    /// <summary>
+    /// La cartella di Aurora quando l'AOD non ne ha scelta una: nell'app <c>%APPDATA%\IVAO\AuroraWindows</c> (la passa
+    /// l'eseguibile a <see cref="Server.ServerDelLab.Crea"/>); nei test nessuna, così non leggono l'Aurora vera del PC.
+    /// </summary>
+    public string? CartellaDiAuroraDiBase { get; init; }
+
+    private string? _cartellaDiAurora;
+    private bool _cartellaDiAuroraLetta;
+
+    /// <summary>
+    /// Dove il Lab prende gli schemi di Aurora (<c>ColourSchemes</c>): quella scelta nelle Impostazioni, se no
+    /// <see cref="CartellaDiAuroraDiBase"/>. Se lì non ci sono schemi si cercano nel clone (<see cref="SchemiDiAurora"/>).
+    /// </summary>
+    public string? CartellaDiAurora
+    {
+        get
+        {
+            if (!_cartellaDiAuroraLetta)
+            {
+                _cartellaDiAurora = Ricordata("cartella-di-aurora.txt");
+                _cartellaDiAuroraLetta = true;
+            }
+
+            return _cartellaDiAurora ?? CartellaDiAuroraDiBase;
+        }
+    }
+
+    /// <summary>Vero se la cartella di Aurora è quella scelta dall'AOD e non quella di base.</summary>
+    public bool CartellaDiAuroraScelta => CartellaDiAurora is not null && _cartellaDiAurora is not null;
+
+    /// <summary>Cambia la cartella di Aurora e rilegge gli schemi. Vuoto = quella di base.</summary>
+    public bool CambiaLaCartellaDiAurora(string? cartella)
+    {
+        string? scritta = string.IsNullOrWhiteSpace(cartella) ? null : cartella.Trim().Trim('"');
+        if (scritta is not null && !Path.IsPathFullyQualified(scritta))
+            return Rifiuta("La cartella di Aurora va scritta per intero (C:\\Users\\…\\AppData\\Roaming\\IVAO\\AuroraWindows).");
+        Rifiuto = null;
+        _cartellaDiAurora = scritta is null ? null : Path.GetFullPath(scritta);
+        _cartellaDiAuroraLetta = true;
+        Ricorda("cartella-di-aurora.txt", _cartellaDiAurora, "cartella di Aurora");
+        if (Sessione is not null)
+        {
+            RifaiIColori();
+            TuttiGliStratiCambiati();
+        }
+        Avvisa();
+        return true;
+    }
+
+    /// <summary>Gli schemi di Aurora (<c>*.clr</c>) della cartella di Aurora o, se lì non ce n'è, del clone aperto.</summary>
     public IReadOnlyList<string> SchemiDisponibili { get; private set; } = [];
 
     /// <summary>Lo schema con cui si colora la mappa: scelto una volta, ricordato fra un avvio e l'altro.</summary>
@@ -3283,17 +3332,17 @@ public sealed class SessioneDelLab
             Registro.Errore("colors.def", e);
         }
 
-        SchemiDisponibili = SchemiDiAurora.Disponibili(Sessione.Cartella);
+        SchemiDisponibili = SchemiDiAurora.Disponibili(Sessione.Cartella, CartellaDiAurora);
         SchemaScelto = SchemiDiAurora.Scegli(SchemiDisponibili, SchemaScelto ?? _schemaRicordato);
         if (SchemaScelto is null)
         {
-            ColoriMancanti = $"Nessuno schema di Aurora in «{SchemiDiAurora.Cartella(Sessione.Cartella)}».";
+            ColoriMancanti = $"Nessuno schema di Aurora in «{SchemiDiAurora.Cartella(Sessione.Cartella, CartellaDiAurora)}».";
             return;
         }
 
         try
         {
-            var schema = SchemiDiAurora.Leggi(Sessione.Cartella, SchemaScelto, avvisi);
+            var schema = SchemiDiAurora.Leggi(Sessione.Cartella, SchemaScelto, avvisi, CartellaDiAurora);
             Colori = new ColoriDellaMappa(schema, Definiti);
             if (avvisi.Count > 0)
                 Registro.Scrivi("colori", $"{SchemaScelto}: {avvisi.Count} righe illeggibili negli schemi o nei .def");

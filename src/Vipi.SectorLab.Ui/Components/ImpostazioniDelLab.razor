@@ -42,6 +42,25 @@
         <p class="lab-nota">Da dove «Prendi il sector» scarica. Per ora il fork di prova: il repo vero quando lo dice il committente.
             Vuoto = <code>@Vipi.SectorLab.Core.Git.PresaDelSector.IndirizzoDiBase</code>.</p>
         <label>
+            Cartella di Aurora
+            <input class="lab-campo" value="@Lab.CartellaDiAurora" data-impostazione="cartella-di-aurora"
+                   placeholder="@Vipi.SectorLab.Core.Mappa.SchemiDiAurora.CartellaDiAuroraDiBase"
+                   @onchange="e => _rifiuto = Lab.CambiaLaCartellaDiAurora(e.Value?.ToString()) ? null : Lab.Rifiuto" />
+        </label>
+        @if (Lab.ScegliCartella is not null)
+        {
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-aurora"
+                    title="Sceglie la cartella di Aurora in Esplora risorse" @onclick="SfogliaAurora">Sfoglia…</button>
+        }
+        <p class="lab-nota">Dove Aurora tiene schemi di colore e profili: da qui il Lab prende gli schemi
+            (<code>ColourSchemes\*.clr</code>) per colorare la mappa come Aurora; se lì non ce n'è nessuno, li cerca nel
+            clone del sector. Vuoto = <code>@Vipi.SectorLab.Core.Mappa.SchemiDiAurora.CartellaDiAuroraDiBase</code>.
+            @if (Lab.Sessione is not null)
+            {
+                <span data-schemi-da>Schemi: @Lab.SchemiDisponibili.Count, da <code>@Vipi.SectorLab.Core.Mappa.SchemiDiAurora.Cartella(Lab.Sessione.Cartella, Lab.CartellaDiAurora)</code>.</span>
+            }
+        </p>
+        <label>
             Vetrina di Aurora
             <input class="lab-campo" value="@Lab.CartellaDellaVetrina" data-impostazione="vetrina"
                    placeholder="D:\IVAO\Aurora-vetrina" @onchange="CambiaLaVetrina" />
@@ -107,6 +126,12 @@
     {
         if (await Lab.ScegliCartella!("La cartella della vetrina di Aurora (nuova o vuota)", Lab.CartellaDellaVetrina) is { } scelta)
             _rifiuto = Lab.CambiaLaVetrina(scelta) ? null : Lab.Rifiuto;
+    }
+
+    private async Task SfogliaAurora()
+    {
+        if (await Lab.ScegliCartella!("La cartella di Aurora (quella con ColourSchemes e Profiles)", Lab.CartellaDiAurora) is { } scelta)
+            _rifiuto = Lab.CambiaLaCartellaDiAurora(scelta) ? null : Lab.Rifiuto;
     }
 
     private async Task SfogliaIPdf()

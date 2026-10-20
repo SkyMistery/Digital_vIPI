@@ -69,7 +69,8 @@ internal static class Program
         }
         diario.Scrivi($"WebView2 Runtime {runtime}");
 
-        var server = ServerDelLab.Crea(new SegretoDelLab(), typeof(Program).Assembly.GetName().Name, CartellaDellUtente);
+        var server = ServerDelLab.Crea(new SegretoDelLab(), typeof(Program).Assembly.GetName().Name, CartellaDellUtente,
+            Vipi.SectorLab.Core.Mappa.SchemiDiAurora.CartellaDiAuroraDiBase);
         server.StartAsync().GetAwaiter().GetResult();
         diario.Scrivi($"server in ascolto su {ServerDelLab.Indirizzo(server)}");
 

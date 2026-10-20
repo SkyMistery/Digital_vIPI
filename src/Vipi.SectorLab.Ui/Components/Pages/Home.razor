@@ -75,7 +75,7 @@
                     @if (Lab.SchemiDisponibili.Count > 0)
                     {
                         <select class="lab-schema" data-schema="@Lab.SchemaScelto" @onchange="ScegliSchema"
-                                title="Lo schema di Aurora (ColorSchemes, fuori dal sector): lo stesso che si usa in Aurora">
+                                title="Lo schema di Aurora (ColourSchemes della cartella di Aurora, nelle Impostazioni): lo stesso che si usa in Aurora">
                             @foreach (string schema in Lab.SchemiDisponibili)
                             {
                                 <option value="@schema" selected="@(schema == Lab.SchemaScelto)">@schema</option>

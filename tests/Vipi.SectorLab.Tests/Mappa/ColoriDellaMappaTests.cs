@@ -241,6 +241,46 @@ public sealed class ColoriDellaMappaTests : IDisposable
     }
 
     [Fact]
+    public async Task GliSchemiSiPrendonoPrimaDallaCartellaDiAurora()
+    {
+        // 20 ottobre: Aurora tiene gli schemi in %APPDATA%\IVAO\AuroraWindows\ColourSchemes (all'inglese); il clone
+        // vale solo se lì non ce n'è nessuno.
+        _albero.Scrivi("ColorSchemes/ITALY_GND.clr", "RADARBACK=$00040404\r\n");
+        string aurora = Path.Combine(_albero.Radice, "AuroraWindows");
+        Directory.CreateDirectory(Path.Combine(aurora, "ColourSchemes"));
+        File.WriteAllText(Path.Combine(aurora, "ColourSchemes", "LIRR_RDR_V1.0.clr"), Schema.ReplaceLineEndings("\r\n"));
+        File.WriteAllText(Path.Combine(aurora, "ColourSchemes", "QO.clr"), "RADARBACK=$00040404\r\n");
+        string dati = Path.Combine(_albero.Radice, "dati-del-lab");
+
+        var lab = new SessioneDelLab(dati) { CartellaDiAuroraDiBase = aurora };
+        Assert.True(await lab.ApriAsync(_albero.Radice));
+        Assert.Equal(["LIRR_RDR_V1.0.clr", "QO.clr"], lab.SchemiDisponibili);
+        Assert.NotNull(lab.Colori);
+
+        // Una cartella di Aurora senza schemi: si torna a quelli del clone. E la scelta si ricorda.
+        string vuota = Path.Combine(_albero.Radice, "AuroraVuota");
+        Directory.CreateDirectory(vuota);
+        Assert.True(lab.CambiaLaCartellaDiAurora(vuota));
+        Assert.Equal(["ITALY_GND.clr"], lab.SchemiDisponibili);
+        Assert.Equal(vuota, new SessioneDelLab(dati) { CartellaDiAuroraDiBase = aurora }.CartellaDiAurora);
+
+        // Vuoto = quella di base; relativa = rifiutata.
+        Assert.True(lab.CambiaLaCartellaDiAurora(" "));
+        Assert.Equal(aurora, lab.CartellaDiAurora);
+        Assert.False(lab.CambiaLaCartellaDiAurora("AuroraWindows"));
+    }
+
+    [Fact]
+    public void LaCartellaDegliSchemiSenzaSchemiEQuellaDiAurora()
+    {
+        var sector = Vipi.SectorLab.Core.Sessione.CartellaDelSector.Riconosci(_albero.Radice, out _)!;
+        string aurora = Path.Combine(_albero.Radice, "AuroraWindows");
+
+        Assert.Equal(Path.Combine(aurora, "ColourSchemes"), SchemiDiAurora.Cartella(sector, aurora));
+        Assert.Equal(Path.Combine(_albero.Radice, "ColorSchemes"), SchemiDiAurora.Cartella(sector));
+    }
+
+    [Fact]
     public async Task IRiempimentiDiUnMasterVengonoDalSuoColorsDef()
     {
         _albero.Scrivi("ColorSchemes/LIRR_RDR_V1.0.clr", Schema.ReplaceLineEndings("\r\n"));

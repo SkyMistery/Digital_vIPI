@@ -32,7 +32,10 @@ public static class ServerDelLab
     /// <param name="cartellaDeiDati">Dove l'app tiene le sue cose (l'ultima cartella aperta, e dalla slice 9 i
     /// backup): di base <c>%LOCALAPPDATA%\VipiSectorLab</c>. I test ne passano una temporanea, perché una corsa in
     /// CI non deve scrivere nella cartella vera di chi la lancia.</param>
-    public static WebApplication Crea(SegretoDelLab segreto, string? nomeApplicazione = null, string? cartellaDeiDati = null)
+    /// <param name="cartellaDiAurora">La cartella di Aurora di base, da cui si prendono gli schemi di colore: l'app passa
+    /// <c>%APPDATA%\IVAO\AuroraWindows</c>; i test niente, così non leggono l'Aurora vera del PC.</param>
+    public static WebApplication Crea(SegretoDelLab segreto, string? nomeApplicazione = null, string? cartellaDeiDati = null,
+        string? cartellaDiAurora = null)
     {
         ArgumentNullException.ThrowIfNull(segreto);
 
@@ -60,7 +63,10 @@ public static class ServerDelLab
         builder.Services.AddSingleton(registro);
         // La cartella aperta è dell'applicazione, non della pagina: un Ctrl+F5 non rilegge 102 MB d'albero.
         // «Ascolta» (slice 18c): nel Lab vero la voce è quella di Windows; dove non c'è, il tasto resta spento.
-        builder.Services.AddSingleton(_ => new SessioneDelLab(cartellaDeiDati, registro) { Voce = VoceDiWindows.Crea() is { } voce ? voce : new VoceMuta() });
+        builder.Services.AddSingleton(_ => new SessioneDelLab(cartellaDeiDati, registro)
+        {
+            CartellaDiAuroraDiBase = cartellaDiAurora,
+            Voce = VoceDiWindows.Crea() is { } voce ? voce : new VoceMuta() });
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.Configure<HubOptions>(o => o.MaximumReceiveMessageSize = TettoDelMessaggio);
 

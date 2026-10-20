@@ -248,6 +248,17 @@ cartella si salta, così un passo fallito (rete, credenziali) si riprova senza r
 schermo sul banco con dati vuoti, coi due link puntati a un clone locale del repo di prova (GitHub nel browser no):
 le tre cartelle, le impostazioni scritte, il sector aperto.
 
+**Cartella di Aurora** (20 ottobre sera, committente: «ora che Aurora mette tutto qui AppData\Roaming\IVAO\AuroraWindows,
+lo schema colori e i profili, fai scegliere all'utente dove prenderlo con quello sopra come default»). Nelle
+Impostazioni c'è **«Cartella di Aurora»**, di base `%APPDATA%\IVAO\AuroraWindows` (la passa l'eseguibile a
+`ServerDelLab.Crea`; nei test niente, così non leggono l'Aurora vera del PC). Gli schemi di colore si prendono da lì,
+in `ColourSchemes` (il nome che usa Aurora, all'inglese) o `ColorSchemes`; se lì non ce n'è nessuno, dal clone come
+prima (`SchemiDiAurora.Cartella`). Cambiare la cartella rilegge gli schemi e ricolora la mappa; sotto il campo si dice
+quanti schemi e da dove. **I profili** (`Profiles\*.cpr`) il Lab oggi non li legge da nessuna parte (legge solo i
+`.cpr` dentro il sector): la cartella è già quella giusta per quando serviranno. La vetrina («Porta in Aurora») resta
+su `%APPDATA%` com'era. Test: Lab 1 297 (+2, `ColoriDellaMappaTests`). A schermo sul banco: con la cartella di Aurora del
+PC 5 schemi da `ColourSchemes`, `LIRR_RDR_V1.0.clr` scelto e la mappa coi colori di Aurora.
+
 **Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
 R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due
 consegne, con ramo ed età del repo dell'AIP e la rilettura dello strato), R6 (Testo), R7 (Scheda), R8 (verbi).
