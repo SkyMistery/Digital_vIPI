@@ -19,8 +19,9 @@ public sealed record ConfineDellAip(EsitoDelConfronto Esito, string Chiave, Airs
 /// un'unica eccezione lì»).
 /// <para>Il gesto scrive una <b>correzione</b> dell'area, come «Correggi» (D22: l'AIP espanso si cambia solo così): nel
 /// <c>before</c> l'area del PDF con la sua frase, nell'<c>after</c> la stessa area coi tratti di confine fatti di rette sui
-/// punti del sector. 🟡 Proposta dell'agente: rette e non un tratto di confine coi punti, perché il modello dell'AIP (comune,
-/// multi-Stato) non cambia; la frase resta nel <c>before</c> e nella fonte della correzione.</para>
+/// punti del sector. Rette e non un tratto di confine coi punti, perché il modello dell'AIP (comune, multi-Stato) non
+/// cambia; la frase resta nel <c>before</c> e nella fonte della correzione (committente, 20 ottobre: «Rette va bene,
+/// confermo»).</para>
 /// </summary>
 public static class ConfiniNellAip
 {

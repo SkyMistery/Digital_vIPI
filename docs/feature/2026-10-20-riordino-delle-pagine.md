@@ -564,9 +564,9 @@ Il committente: «Vai con la R8a, le torri solo twrs.tfl e nei file .str» — l
   confine fatti di rette sui punti del sector (i capi del tratto restano quelli dell'AIP). Fonte: «GEO/itgeo.geo del sector
   (eccezione del committente, 19 ottobre 2026)», da cui la sezione riconosce le aree già portate. Si ritira come le altre,
   dalla scheda dell'area: torna la frase. Il sector non si tocca. Un'area che non si traccia si dice e resta.
-- 🟡 Proposta dell'agente (non decisa): **rette** al posto del tratto di confine, perché il modello dell'AIP (comune,
-  multi-Stato) non cambia; la frase dell'AIP resta nel `before` della correzione. L'alternativa sarebbe un tratto di
-  confine coi punti dentro: tocca lo schema del modello. Da confermare.
+- **Rette** al posto del tratto di confine, perché il modello dell'AIP (comune, multi-Stato) non cambia; la frase
+  dell'AIP resta nel `before` della correzione. L'alternativa era un tratto di confine coi punti dentro, che tocca lo
+  schema del modello. Proposta dell'agente, **confermata dal committente** (20 ottobre notte: «Rette va bene, confermo»).
 - Trovato a schermo e corretto: dalla R6 la pagina Confronti mostrava la scheda della voce dell'AIP **due volte** (la
   Scheda la ha già in testa); ora una.
 - Test: Lab 1 330 (+3: le righe e l'area tracciata; il gesto che scrive una correzione per area, salta quella che non si

@@ -13,7 +13,7 @@ AIP espanso), la **misura R8** dei file compatibili, **R8a** («metti in questo 
 file delle FIR, «Sostituisci in tutti i file»). Le ATZ delle torri restano in `twrs.tfl` e negli `.str` (il
 committente), **R9** (i confini di itgeo.geo nell'AIP espanso, come correzioni, dalla sezione «Confini e coste»). Lab
 1 330. Il piano R4-R9 è finito; **dopo**, al via del committente: le due consegne, la pagina Testo, la Scheda per gruppi,
-i verbi. Da confermare: i confini nell'AIP come rette (proposta). Dettaglio nella carta del riordino, §6. Il resto qui sotto vale ancora.
+i verbi. I confini nell'AIP come rette: confermato dal committente. Dettaglio nella carta del riordino, §6. Il resto qui sotto vale ancora.
 
 ## 20 ottobre 2026, notte: terza forma, R4-R6 fatte (passaggio a un altro account)
 
