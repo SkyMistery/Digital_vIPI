@@ -5,68 +5,105 @@
     del sector scelto fra quelli che tengono già punti (i .fix), nel posto scelto. Prima di scrivere, l'anteprima: la riga
     di ogni punto e dove va. «Scrivi» è un gesto solo, una voce nella storia; «Lascia stare» chiude senza toccare niente.
     R8b: con Rotta, una rotta nelle aerovie basse o alte (.lairway, .hairway); il posto lo dà il nome, l'anteprima è il
-    blocco e la riga dove va.
+    blocco e la riga dove va. R8c: con Ad2, uno scalo o una pista in uno o più file (.ap, .rw: quello di tutta Italia e le
+    copie delle FIR), spuntati; proposti quello di tutta Italia e le FIR che hanno già lo scalo.
 *@
 <div class="lab-metti" data-metti-nel-file>
     <p class="lab-nota"><strong>@Titolo</strong></p>
-    <label class="lab-nota">
-        Nel file
-        <select class="lab-campo" data-campo="file-di-destinazione" value="@_file" @onchange="e => _file = e.Value?.ToString()">
-            @foreach (var file in FileAmmessi)
-            {
-                <option value="@file">@Path.GetFileName(file)@(DiOggi(file) ? " (di oggi)" : "")</option>
-            }
-        </select>
-    </label>
-    @if (Rotta is { } rotta)
+    @if (Ad2 is { } voce)
     {
-        var anteprima = Lab.AnteprimaDellaRotta(rotta, _file, out var perche);
-        <span class="lab-nota">in ordine di nome</span>
-        @if (anteprima is { } blocco)
+        @* R8c: uno scalo o una pista in uno o più file, quello di tutta Italia e le copie delle FIR. *@
+        <div class="lab-nota" data-file-ad2>
+            Nei file
+            @foreach (var file in Lab.FileInAd2(Piste))
+            {
+                var questo = file;
+                <label class="lab-strato">
+                    <input type="checkbox" data-casella="file-ad2" value="@questo" checked="@_scelti.Contains(questo)"
+                           @onchange="v => Scegli(questo, v.Value is true)" />
+                    <span>@Path.GetFileName(questo)@(DiOggi(questo) ? " (di oggi)" : "")</span>
+                </label>
+            }
+        </div>
+        <span class="lab-nota">in ordine di indicativo</span>
+        var anteprima = Lab.AnteprimaInAd2(voce, [.. Lab.FileInAd2(Piste).Where(_scelti.Contains)], out var perche);
+        @if (perche is not null)
         {
-            <ul class="lab-metti-anteprima" data-anteprima-metti="@blocco.Righe.Count">
-                <li class="lab-nota">@blocco.Dove</li>
-                @foreach (var riga in blocco.Righe.Take(12))
-                {
-                    <li><code>@riga</code></li>
-                }
-                @if (blocco.Righe.Count > 12)
-                {
-                    <li class="lab-nota">… e altre @(blocco.Righe.Count - 12) righe</li>
-                }
-            </ul>
+            <p class="lab-avviso-breve" data-anteprima-metti="0">@perche</p>
         }
         else
         {
-            <p class="lab-avviso-breve" data-anteprima-metti="0">@(perche ?? "La rotta non si può portare in questo file.")</p>
+            <ul class="lab-metti-anteprima" data-anteprima-metti="@anteprima.Count">
+                @foreach (var (file, riga, dove) in anteprima)
+                {
+                    <li><code>@riga</code> <span class="lab-nota">— @Path.GetFileName(file), @dove</span></li>
+                }
+            </ul>
         }
-        <button type="button" class="lab-tasto" data-tasto="metti-nel-file" disabled="@(anteprima is null)"
-                title="Scrive il blocco qui sopra e le etichette della rotta: un gesto solo, nel diff e da annullare come gli altri"
-                @onclick="Scrivi">Scrivi</button>
+        <button type="button" class="lab-tasto" data-tasto="metti-nel-file" disabled="@(anteprima.Count == 0)"
+                title="Scrive la riga qui sopra nei file spuntati: un gesto solo, nel diff e da annullare come gli altri" @onclick="Scrivi">Scrivi (@anteprima.Count)</button>
     }
     else
     {
-        <label class="lab-strato">
-            <input type="radio" name="@($"posto-{_id}")" checked="@(!_inFondo)" data-posto="ordine" @onchange="() => _inFondo = false" />
-            <span>in ordine di nome</span>
+        <label class="lab-nota">
+            Nel file
+            <select class="lab-campo" data-campo="file-di-destinazione" value="@_file" @onchange="e => _file = e.Value?.ToString()">
+                @foreach (var file in FileAmmessi)
+                {
+                    <option value="@file">@Path.GetFileName(file)@(DiOggi(file) ? " (di oggi)" : "")</option>
+                }
+            </select>
         </label>
-        <label class="lab-strato">
-            <input type="radio" name="@($"posto-{_id}")" checked="@_inFondo" data-posto="fondo" @onchange="() => _inFondo = true" />
-            <span>in fondo</span>
-        </label>
-        var anteprima = Lab.AnteprimaDeiPunti(Nomi, _file, _inFondo);
-        <ul class="lab-metti-anteprima" data-anteprima-metti="@anteprima.Count">
-            @foreach (var (nome, riga, dove) in anteprima.Take(12))
+        @if (Rotta is { } rotta)
+        {
+            var anteprima = Lab.AnteprimaDellaRotta(rotta, _file, out var perche);
+            <span class="lab-nota">in ordine di nome</span>
+            @if (anteprima is { } blocco)
             {
-                <li><code>@riga</code> <span class="lab-nota">— @dove</span></li>
+                <ul class="lab-metti-anteprima" data-anteprima-metti="@blocco.Righe.Count">
+                    <li class="lab-nota">@blocco.Dove</li>
+                    @foreach (var riga in blocco.Righe.Take(12))
+                    {
+                        <li><code>@riga</code></li>
+                    }
+                    @if (blocco.Righe.Count > 12)
+                    {
+                        <li class="lab-nota">… e altre @(blocco.Righe.Count - 12) righe</li>
+                    }
+                </ul>
             }
-            @if (anteprima.Count > 12)
+            else
             {
-                <li class="lab-nota">… e altre @(anteprima.Count - 12)</li>
+                <p class="lab-avviso-breve" data-anteprima-metti="0">@(perche ?? "La rotta non si può portare in questo file.")</p>
             }
-        </ul>
-        <button type="button" class="lab-tasto" data-tasto="metti-nel-file" disabled="@(anteprima.Count == 0)"
-                title="Scrive le righe qui sopra: un gesto solo, nel diff e da annullare come gli altri" @onclick="Scrivi">Scrivi (@anteprima.Count)</button>
+            <button type="button" class="lab-tasto" data-tasto="metti-nel-file" disabled="@(anteprima is null)"
+                    title="Scrive il blocco qui sopra e le etichette della rotta: un gesto solo, nel diff e da annullare come gli altri"
+                    @onclick="Scrivi">Scrivi</button>
+        }
+        else
+        {
+            <label class="lab-strato">
+                <input type="radio" name="@($"posto-{_id}")" checked="@(!_inFondo)" data-posto="ordine" @onchange="() => _inFondo = false" />
+                <span>in ordine di nome</span>
+            </label>
+            <label class="lab-strato">
+                <input type="radio" name="@($"posto-{_id}")" checked="@_inFondo" data-posto="fondo" @onchange="() => _inFondo = true" />
+                <span>in fondo</span>
+            </label>
+            var anteprima = Lab.AnteprimaDeiPunti(Nomi, _file, _inFondo);
+            <ul class="lab-metti-anteprima" data-anteprima-metti="@anteprima.Count">
+                @foreach (var (nome, riga, dove) in anteprima.Take(12))
+                {
+                    <li><code>@riga</code> <span class="lab-nota">— @dove</span></li>
+                }
+                @if (anteprima.Count > 12)
+                {
+                    <li class="lab-nota">… e altre @(anteprima.Count - 12)</li>
+                }
+            </ul>
+            <button type="button" class="lab-tasto" data-tasto="metti-nel-file" disabled="@(anteprima.Count == 0)"
+                    title="Scrive le righe qui sopra: un gesto solo, nel diff e da annullare come gli altri" @onclick="Scrivi">Scrivi (@anteprima.Count)</button>
+        }
     }
     <button type="button" class="lab-annulla" data-tasto="lascia-stare-metti" @onclick="() => Chiuso.InvokeAsync()">Lascia stare</button>
 </div>
@@ -77,6 +114,12 @@
 
     /// <summary>R8b: la rotta da mettere nel file (al posto dei punti).</summary>
     [Parameter] public string? Rotta { get; set; }
+
+    /// <summary>R8c: lo scalo o la pista che il sector non ha (al posto dei punti).</summary>
+    [Parameter] public Vipi.SectorLab.Core.PdfAip.DifferenzaDiAd2? Ad2 { get; set; }
+
+    /// <summary>R8c: con <see cref="Ad2"/>, true per una pista (i .rw), false per uno scalo (i .ap).</summary>
+    [Parameter] public bool Piste { get; set; }
 
     [Parameter] public string Titolo { get; set; } = "Metti in questo file";
 
@@ -89,20 +132,42 @@
     private readonly string _id = Guid.NewGuid().ToString("N")[..8];
     private string? _file;
     private bool _inFondo;
+    private readonly List<string> _scelti = [];
+
+    private void Scegli(string file, bool scelto)
+    {
+        _scelti.Remove(file);
+        if (scelto)
+            _scelti.Add(file);
+    }
 
     private IReadOnlyList<string> FileAmmessi => Rotta is null ? Lab.FileDeiPunti : Lab.FileDelleRotte;
 
     private bool DiOggi(string file) => Path.GetFileName(file).Equals(
-        Rotta is null ? Vipi.SectorLab.Core.PdfAip.ConfrontoDiEnr4.FileDeiPunti : Vipi.SectorLab.Core.PdfAip.ConfrontoDiEnr3.FileDelleAerovie,
+        (Ad2, Rotta) switch
+        {
+            (not null, _) => Piste ? Vipi.SectorLab.Core.PdfAip.Ad2NelSector.FileDellePiste : Vipi.SectorLab.Core.PdfAip.Ad2NelSector.FileDegliScali,
+            (_, null) => Vipi.SectorLab.Core.PdfAip.ConfrontoDiEnr4.FileDeiPunti,
+            _ => Vipi.SectorLab.Core.PdfAip.ConfrontoDiEnr3.FileDelleAerovie,
+        },
         StringComparison.OrdinalIgnoreCase);
 
-    // Il file proposto è quello di oggi (itfix.fix, itawlow.lairway): il primo dell'elenco.
-    protected override void OnInitialized() => _file = FileAmmessi.FirstOrDefault();
+    // Il file proposto è quello di oggi (itfix.fix, itawlow.lairway): il primo dell'elenco. Per scali e piste, anche le
+    // copie delle FIR che hanno già lo scalo.
+    protected override void OnInitialized()
+    {
+        _file = FileAmmessi.FirstOrDefault();
+        if (Ad2 is { } voce)
+            _scelti.AddRange(Lab.FileProposteInAd2(voce, Piste));
+    }
 
     private async Task Scrivi()
     {
-        // La rotta, come prima, dice qualcosa solo se non va; i punti anche quando vanno (quelli saltati).
-        if (Rotta is { } rotta)
+        // La rotta, la pista e lo scalo, come prima, dicono qualcosa solo se non vanno; i punti anche quando vanno (quelli
+        // saltati).
+        if (Ad2 is { } voce)
+            await Fatto.InvokeAsync((Piste ? Lab.PortaLaPista(voce, _scelti) : Lab.PortaLoScalo(voce, _scelti)) ? null : Lab.Rifiuto);
+        else if (Rotta is { } rotta)
             await Fatto.InvokeAsync(Lab.PortaLaRotta(rotta, _file) ? null : Lab.Rifiuto);
         else
         {

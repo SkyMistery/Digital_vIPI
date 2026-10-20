@@ -528,11 +528,36 @@ Il committente: «Vai con la R8a, le torri solo twrs.tfl e nei file .str» — l
 - 🟡 Resta aperto: se le rotte di ENR 3.2 vadano di norma nelle alte (la proposta di §4-ter); oggi la scelta è dell'AOD,
   rotta per rotta, e il file proposto resta `itawlow.lairway`.
 
+**R8c fatta** (20 ottobre notte, «Vai con la R8c»): scali e piste anche nei file delle FIR.
+- La misura (copia del sector): cinque `.ap` e cinque `.rw` in `OTHER/`, quelli di tutta Italia (`itap.ap` 130 scali,
+  `itrw.rw` piste di 110 scali) e le copie di lirr, limm, lipp, libb, ognuna caricata dal suo master (`LIRR.isc`…). Gli scali delle FIR
+  stanno tutti anche in `itap.ap`. Le piste no: contate per scalo e testate (senza le righe `MAPS`), `itrw.rw` ne ha 135;
+  non ci sono 9 delle 72 di `lirr.rw` (LIAQ, LIAT, LIAU, LICK, LIDP, LIQF, LIQQ, LIQY, LIZZ), 9 delle 47 di `limm.rw`, 11
+  delle 50 di `lipp.rw`, 1 delle 17 di `libb.rw` (LIZZ, la voce finta che c'è in tutte). Una voce sta quindi di norma in
+  due file, quello di tutta Italia e quello della sua FIR, ma non sempre: per questo i file si spuntano, non si impongono.
+- `Ad2NelSector.FileDi` (i `.ap` o i `.rw`, quello di tutta Italia per primo) e `RigaNuovaDelloScalo`
+  (`ICAO;elevazione;transizione;lat;lon;NOME;` coi valori dell'AIP, la transizione di AD 2.17 o 0, il nome in maiuscolo).
+- **Porta nel sector…** su una pista che manca e (nuovo) su uno scalo che manca: il riquadro con una casella per file.
+  Proposte dell'agente: il file di tutta Italia e le FIR che hanno già lo scalo (la FIR è quella del `.ap` che lo tiene:
+  `lirr.ap` → `lirr.rw`); uno scalo nuovo non sta in nessuna FIR, e la sua FIR la spunta l'AOD. L'anteprima: la riga e,
+  per file, dove va («dopo LICA 04/22»). «Scrivi»: tutti i file spuntati in un gesto solo. `PortaLaPista(riga, file)`,
+  `PortaLoScalo(riga, file)`; null = il file di tutta Italia, com'era.
+- **Sostituisci in tutti i file (N)** accanto a «Sostituisci» quando la stessa voce è diversa in più file: ogni riga
+  coi valori dell'AIP diversi dalla sua, in un gesto solo (`SostituisciOvunqueInAd2`). «Sostituisci» resta, un file.
+- Il posto di una riga nuova si cerca fra le voci del modello (nel `.rw` solo le piste della sezione `//PISTE`): dopo
+  l'ultima con l'indicativo che non viene dopo, come prima.
+- Test: Lab 1 327 (+4: la pista in itrw.rw e lirr.rw con proposte e anteprima, annullata in un colpo; lo scalo in itap.ap
+  e nella FIR scelta; «Sostituisci in tutti i file»; il riquadro con le caselle nel Confronti). Sul banco (copia del sector,
+  AIP di prova 2610): piste «uguale 13 · diversa 8», 7 voci diverse in più file; «Sostituisci in tutti i file (3)» su LICA
+  10/28 → «uguale 16 · diversa 5», «Salva (3)» (in memoria: la copia non è cambiata). Nell'AIP di prova nessuna pista e
+  nessuno scalo mancano: il riquadro delle caselle sul banco non si è visto, solo nei test.
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
 (R4-R9). **R4 fatta** (tre mappe, un motore), **R5 fatta** (due lati, un disegno), **R6 fatta** (lo spazio Confronti in
 lettura) col ritocco «solo la sezione sulla mappa», **R7 fatta** (i gesti nel Confronti, «Lettura e consegna» nello spazio
 AIP), **R8a fatta** (la misura dei file compatibili e «metti in questo file» per i punti), **R8b fatta** (le rotte nelle aerovie basse o
-alte); prossima **R8c** (scali e piste anche nei file delle FIR), al via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+alte), **R8c fatta** (scali e piste anche nei file delle FIR); prossima **R9** (dal sector all'AIP espanso), al via del
+committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

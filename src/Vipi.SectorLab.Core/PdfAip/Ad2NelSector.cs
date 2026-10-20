@@ -16,6 +16,39 @@ public static class Ad2NelSector
     /// <summary>Il file delle piste di tutta Italia: le piste nuove vanno lì, nella sezione <c>//PISTE</c>.</summary>
     public const string FileDellePiste = "itrw.rw";
 
+    /// <summary>Il file degli scali di tutta Italia: gli scali nuovi vanno lì (riordino R8c).</summary>
+    public const string FileDegliScali = "itap.ap";
+
+    /// <summary>
+    /// I file dove può andare uno scalo (<c>.ap</c>) o una pista (<c>.rw</c>) — riordino R8c, «metti in questo file»: quello
+    /// di tutta Italia (<see cref="FileDegliScali"/>, <see cref="FileDellePiste"/>) per primo, poi le copie delle FIR per
+    /// nome. La misura del 20 ottobre: cinque per genere, <c>OTHER/it…</c> e <c>lirr</c>, <c>limm</c>, <c>lipp</c>,
+    /// <c>libb</c>, ognuno caricato dal suo master; gli scali delle FIR stanno tutti anche in <c>itap.ap</c>. Le chiavi della
+    /// sessione.
+    /// </summary>
+    public static IReadOnlyList<string> FileDi(IEnumerable<string> fileDelSector, bool piste)
+    {
+        var (estensione, nazionale) = piste ? (".rw", FileDellePiste) : (".ap", FileDegliScali);
+        return [.. fileDelSector.Where(f => f.EndsWith(estensione, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => string.Equals(Path.GetFileName(f), nazionale, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)];
+    }
+
+    /// <summary>
+    /// Una riga nuova di uno scalo per i <c>.ap</c> (<c>ICAO;elevazione;transizione;lat;lon;NOME;</c>), coi valori dell'AIP:
+    /// il punto di riferimento, l'elevazione al piede, l'altitudine di transizione di AD 2.17 (0 = non scritta, come nel
+    /// sector), il nome in maiuscolo. Null se l'AIP non dà il punto di riferimento.
+    /// </summary>
+    public static string? RigaNuovaDelloScalo(Aerodrome scalo, string? transizione)
+    {
+        ArgumentNullException.ThrowIfNull(scalo);
+        if (scalo.Arp is not { } arp) return null;
+        string elevazione = ConfrontoDiAd2.Piedi(scalo.Elevation) is { } e ? Piedi(e) : "0";
+        string ta = ConfrontoDiAd2.Piedi(transizione) is { } t ? Piedi(t) : "0";
+        var nome = (string.IsNullOrWhiteSpace(scalo.Name) ? scalo.Icao : scalo.Name).Replace(';', ',').Trim().ToUpperInvariant();
+        return $"{scalo.Icao};{elevazione};{ta};{AuroraText.Coordinates(arp)};{nome};";
+    }
+
     /// <summary>
     /// La riga di uno scalo del <c>.ap</c> (<c>ICAO;elevazione;transizione;lat;lon;NOME;</c>) coi valori dell'AIP diversi:
     /// il punto di riferimento oltre 0,1 NM, l'elevazione al piede, l'altitudine di transizione dove la riga la scrive (0 =

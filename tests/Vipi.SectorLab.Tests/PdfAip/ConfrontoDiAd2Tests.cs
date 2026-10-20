@@ -1,4 +1,6 @@
 using Aip;
+using Bunit;
+using Microsoft.Extensions.DependencyInjection;
 using Vipi.SectorLab.Core.PdfAip;
 using Vipi.SectorLab.Tests.Ui;
 using Vipi.SectorLab.Ui.Servizi;
@@ -113,7 +115,7 @@ public sealed class ConfrontoDiAd2Tests : IDisposable
         Airspaces = [Atz("Lamezia Terme ATZ", "AD 2 LICA 1-11", "6000 FT"), Atz("Napoli ATZ", "AD 2 LIRN 1-9", "8000 FT")],
     };
 
-    private async Task ApriAsync()
+    private async Task ApriAsync(AipDocument? modello = null)
     {
         _albero.Scrivi("SectorFiles/Include/IT/OTHER/itap.ap", ItAp);
         _albero.Scrivi("SectorFiles/Include/IT/OTHER/lirr.ap", LirrAp);
@@ -124,7 +126,7 @@ public sealed class ConfrontoDiAd2Tests : IDisposable
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         Assert.True(_lab.CambiaLAipEspanso(_espanso), _lab.Rifiuto);
         Directory.CreateDirectory(Path.Combine(_espanso, "2611"));
-        await File.WriteAllTextAsync(Path.Combine(_espanso, "2611", "li.json"), AipJson.Serialize(Modello() with { Airac = "2611" }));
+        await File.WriteAllTextAsync(Path.Combine(_espanso, "2611", "li.json"), AipJson.Serialize((modello ?? Modello()) with { Airac = "2611" }));
     }
 
     [Fact]
@@ -269,6 +271,128 @@ public sealed class ConfrontoDiAd2Tests : IDisposable
 
         // Le frequenze restano in sola lettura, e una pista che c'è non si porta.
         Assert.False(_lab.PortaLaPista(Riga("LIME 10/28", "itrw.rw")));
+    }
+
+    // --- riordino R8c: scali e piste anche nei file delle FIR ---------------------------------------------------------
+
+    private const string ItRwPath = "SectorFiles/Include/IT/OTHER/itrw.rw";
+    private const string LirrRwPath = "SectorFiles/Include/IT/OTHER/lirr.rw";
+    private const string ItApPath = "SectorFiles/Include/IT/OTHER/itap.ap";
+    private const string LirrApPath = "SectorFiles/Include/IT/OTHER/lirr.ap";
+
+    /// <summary>Lamezia con una pista che nessun .rw ha (la 16/34): LICA sta in lirr.ap, la FIR la propone.</summary>
+    private static AipDocument ConLa1634() => Modello() with
+    {
+        Aerodromes =
+        [
+            Lamezia() with
+            {
+                Runways =
+                [
+                    .. Lamezia().Runways,
+                    new Runway { Designator = "16", TrueBearing = "160.00°", Threshold = new Position(38.92, 16.23), ThresholdElevation = "40 FT / NIL" },
+                    new Runway { Designator = "34", TrueBearing = "340.00°", Threshold = new Position(38.90, 16.24), ThresholdElevation = "30 FT / NIL" },
+                ],
+            },
+            Orio(), Capodichino(),
+        ],
+    };
+
+    [Fact]
+    public async Task PortaLaPista_AncheNellaFir_ProposteAnteprimaEUnGestoSolo()
+    {
+        await ApriAsync(ConLa1634());
+        Assert.True(await _lab.ConfrontaAd2Async(ParteDiAd2.Piste), _lab.Rifiuto);
+        var riga = Riga("LICA 16/34", "");
+        Assert.Equal([ItRwPath, LirrRwPath], _lab.FileInAd2(piste: true));
+        Assert.Equal([ItRwPath, LirrRwPath], _lab.FileProposteInAd2(riga, piste: true));
+        // Orio non sta in nessuna FIR: solo itrw.rw.
+        Assert.Equal([ItRwPath], _lab.FileProposteInAd2(Riga("LIME 10/28", ""), piste: true));
+
+        var anteprima = _lab.AnteprimaInAd2(riga, [ItRwPath, LirrRwPath], out var perche);
+        Assert.Null(perche);
+        Assert.Equal(["dopo LICA 04/22", "dopo LICA 10/28"], anteprima.Select(a => a.Dove));
+        Assert.All(anteprima, a => Assert.StartsWith("LICA;16;34;40;30;", a.Riga, StringComparison.Ordinal));
+        Assert.False(_lab.Modifiche.CEQualcosa);
+
+        Assert.False(_lab.PortaLaPista(riga, [ItApPath]));
+        Assert.Contains("non è un file delle piste", _lab.Rifiuto, StringComparison.Ordinal);
+        Assert.True(_lab.PortaLaPista(riga, [ItRwPath, LirrRwPath]), _lab.Rifiuto);
+
+        Assert.Contains(Righe("itrw.rw"), r => r.StartsWith("LICA;16;34;", StringComparison.Ordinal));
+        var lirr = Righe("lirr.rw");
+        Assert.StartsWith("LICA;16;34;", lirr[Array.FindIndex(lirr, r => r.StartsWith("LICA;10;28;", StringComparison.Ordinal)) + 1], StringComparison.Ordinal);
+        Assert.StartsWith("LICA 16/34 dall'AIP 2611 in itrw.rw, lirr.rw", _lab.DaAnnullare, StringComparison.Ordinal);
+        Assert.Equal(2, _lab.UltimoConfrontoDiAd2!.Value.Esiti.Count(e => e.Nome == "LICA 16/34" && e.Esito == EsitoDelConfronto.Uguale));
+
+        // Un gesto solo: annullarlo toglie la pista da tutti e due.
+        _lab.Annulla();
+        Assert.False(_lab.Modifiche.CEQualcosa);
+    }
+
+    [Fact]
+    public async Task PortaLoScalo_NelFileDiTuttaItaliaENellaFirScelta()
+    {
+        await ApriAsync();
+        Assert.True(await _lab.ConfrontaAd2Async(ParteDiAd2.Scali), _lab.Rifiuto);
+        var orio = Riga("LIME BERGAMO Orio al Serio", "");
+        Assert.Equal([ItApPath], _lab.FileProposteInAd2(orio, piste: false));
+        // Fiumicino, nell'AIP di prova, non ha il punto di riferimento: non si porta, e si dice perché.
+        Assert.Empty(_lab.AnteprimaInAd2(Riga("LIRF ROMA Fiumicino", ""), [ItApPath], out var perche));
+        Assert.Contains("punto di riferimento", perche, StringComparison.Ordinal);
+
+        Assert.True(_lab.PortaLoScalo(orio, [ItApPath, LirrApPath]), _lab.Rifiuto);
+
+        const string nuova = "LIME;782;0;N045.40.08.000;E009.42.01.000;BERGAMO ORIO AL SERIO;";
+        var it = Righe("itap.ap");
+        Assert.Equal(nuova, it[Array.FindIndex(it, r => r.StartsWith("LICA;", StringComparison.Ordinal)) + 1]);
+        Assert.Contains(nuova, Righe("lirr.ap"));
+        Assert.Equal(2, _lab.UltimoConfrontoDiAd2!.Value.Esiti.Count(e => e.Scalo == "LIME" && e.Esito == EsitoDelConfronto.Uguale));
+    }
+
+    [Fact]
+    public async Task SostituisciInTuttiIFile_LaStessaVoceNelleFir()
+    {
+        // Lamezia a 50 piedi: la riga di itap.ap e quella di lirr.ap sono diverse tutte e due.
+        await ApriAsync(Modello() with { Aerodromes = [Lamezia() with { Elevation = "50 FT" }, Orio(), Capodichino()] });
+        Assert.True(await _lab.ConfrontaAd2Async(ParteDiAd2.Scali), _lab.Rifiuto);
+        var lamezia = Riga("LICA LAMEZIA TERME", "itap.ap");
+        Assert.Equal(2, _lab.CopieDiversaInAd2(lamezia).Count);
+        Assert.Single(_lab.CopieDiversaInAd2(Riga("LIRN NAPOLI Capodichino", "itap.ap")));
+
+        Assert.True(_lab.SostituisciOvunqueInAd2(lamezia), _lab.Rifiuto);
+
+        Assert.Contains("LICA;50;6000;N038.54.30.000;E016.14.30.000;LAMEZIA TERME;", Righe("itap.ap"));
+        Assert.Contains("LICA;50;0;N038.54.30.000;E016.14.30.000;LAMEZIA TERME;", Righe("lirr.ap"));
+        Assert.All(_lab.UltimoConfrontoDiAd2!.Value.Esiti.Where(e => e.Scalo == "LICA"), e => Assert.Equal(EsitoDelConfronto.Uguale, e.Esito));
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, Riga("LIRN NAPOLI Capodichino", "itap.ap").Esito);
+        Assert.StartsWith("LICA LAMEZIA TERME in 2 file", _lab.DaAnnullare, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task NelConfronti_PortaLaPista_ConLeCaselleDeiFile()
+    {
+        await ApriAsync(ConLa1634());
+        using var contesto = new Bunit.TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.Services.AddSingleton(_lab);
+        var pagina = contesto.RenderComponent<Vipi.SectorLab.Ui.Components.ConfrontiVista>();
+        pagina.Find("[data-sezione='piste']").Click();
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-tasto='porta-pista']")));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-riga] [data-tasto='porta-pista']").Click());
+        // Proposte: itrw.rw e lirr.rw, perché LICA sta in lirr.ap; Orio (l'altra riga) ha ancora il suo tasto.
+        var caselle = pagina.FindAll("[data-casella='file-ad2']");
+        Assert.Equal([true, true], caselle.Select(c => c.HasAttribute("checked")));
+        Assert.Equal("2", pagina.Find("[data-anteprima-metti]").GetAttribute("data-anteprima-metti"));
+        pagina.Find("[data-casella='file-ad2'][value$='lirr.rw']").Change(false);
+        pagina.WaitForAssertion(() => Assert.Equal("1", pagina.Find("[data-anteprima-metti]").GetAttribute("data-anteprima-metti")));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto='metti-nel-file']").Click());
+
+        Assert.Equal([ItRwPath], _lab.Modifiche.Voci.Select(m => m.File).Distinct());
+        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-metti-nel-file]")));
+        Assert.Empty(pagina.FindAll("[data-confronto-rifiutato]"));
     }
 
     private static Navaid Aiuto(string sigla, string tipo, NavaidKind genere, double lat, double lon, string? frequenza, string? canale, string sezione = "AD 2.19") => new()

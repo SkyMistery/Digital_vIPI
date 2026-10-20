@@ -157,8 +157,30 @@
         @if (Sezione is SezioneDelConfronto.Scali or SezioneDelConfronto.Piste && e.Esito == Esiti.FormaDiversa)
         {
             <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-ad2"
-                    title="Riscrive questa riga del sector coi valori dell'AIP che sono diversi; il resto resta. Le altre righe (le FIR) una per una"
+                    title="Riscrive questa riga del sector coi valori dell'AIP che sono diversi; il resto resta. Solo in questo file"
                     @onclick="() => Fai(Lab.SostituisciInAd2(e))">Sostituisci</button>
+            @* R8c: la stessa voce diversa anche nelle copie delle FIR, in un gesto. *@
+            @if (Lab.CopieDiversaInAd2(e).Count is var copie and > 1)
+            {
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sostituisci-ovunque-ad2"
+                        title="Riscrive la voce coi valori dell'AIP in tutti i file dove è diversa (quello di tutta Italia e le copie delle FIR): un gesto solo"
+                        @onclick="() => Fai(Lab.SostituisciOvunqueInAd2(e))">Sostituisci in tutti i file (@copie)</button>
+            }
+        }
+        else if (Sezione is SezioneDelConfronto.Scali or SezioneDelConfronto.Piste && e.Esito == Esiti.MancaNelSector)
+        {
+            @* R8c: uno scalo o una pista nuovi in itap.ap / itrw.rw e, a scelta, nelle copie delle FIR. *@
+            var piste = Sezione == SezioneDelConfronto.Piste;
+            @if (_mettiAperto)
+            {
+                <MettiInQuestoFile Ad2="e" Piste="piste" Titolo="@($"{e.Nome} nei file {(piste ? "delle piste" : "degli scali")}")" Chiuso="() => _mettiAperto = false" Fatto="Fatto" />
+            }
+            else
+            {
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="@(piste ? "porta-pista" : "porta-scalo")"
+                        title="@(piste ? "La riga nuova della pista, con le due testate dell'AIP" : "La riga nuova dello scalo, coi valori dell'AIP"): sceglie i file (quello di tutta Italia e le copie delle FIR), con l'anteprima"
+                        @onclick="() => _mettiAperto = true">Porta nel sector…</button>
+            }
         }
         else if (Sezione == SezioneDelConfronto.RadioassistenzeAd2 && e.Esito == Esiti.FormaDiversa)
         {
@@ -171,11 +193,6 @@
             <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-radioassistenza-ad2"
                     title="La riga nuova in itvor.vor o itndb.ndb, in ordine di nome, coi valori di AD 2.19"
                     @onclick="() => Fai(Lab.PortaLeRadioassistenzeDiAd2([e.Nome]))">Porta nel sector</button>
-        }
-        else if (Sezione == SezioneDelConfronto.Piste && e.Esito == Esiti.MancaNelSector)
-        {
-            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-pista"
-                    title="La riga nuova in itrw.rw, nella sezione delle piste, con le due testate dell'AIP" @onclick="() => Fai(Lab.PortaLaPista(e))">Porta nel sector</button>
         }
         break;
 }
@@ -193,7 +210,7 @@
 
     private string? _scalo;
 
-    // R8a, R8b: il riquadro «metti in questo file» di un punto o di una rotta.
+    // R8a, R8b, R8c: il riquadro «metti in questo file» di un punto, di una rotta, di uno scalo o di una pista.
     private bool _mettiAperto;
 
     /// <summary>Una spunta è cambiata: la pagina si ridisegna, e la sezione conta gli spuntati («Metti le spuntate»).</summary>
