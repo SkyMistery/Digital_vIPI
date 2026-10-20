@@ -182,3 +182,25 @@ Windows come «Manda» (la finestra del Lab rifiuta i `target="_blank"`). Test: 
 - Test: Lab 1 266 (+5, `PagineDelLabTests`); i test che aprivano AIP, Ramo e Aurora dalla barra scelgono prima la loro
   pagina. A schermo sul banco: le quattro linguette, un confronto dei CTR (6 diversi, 39 uguali) col clic che apre la
   Scheda e la mappa accanto, Consegna, Impostazioni, la finestra dei pannelli che segue la pagina.
+
+**R2 fatta** (20 ottobre). Le linguette in due gruppi, AIP e Sector (D8), le Impostazioni a parte. Il test
+dell'AIP che riscriveva `li.json` subito dopo un confronto è caduto una volta nella suite intera («file in uso»): ora
+riprova la scrittura.
+
+**R3 fatta** (20 ottobre). L'Indice dell'AIP (D9), prima pagina del mondo AIP; la pagina di prima si chiama «Lettura e
+confronti».
+- `IndiceDellAip` (Core) mette le voci dello strato come nell'AIP: parti ENR 2, ENR 3, ENR 4, ENR 5, AD 2; dentro, la
+  sezione e, se ci sono più generi, un gruppo per genere (P, R, D; SID, STAR…); AD 2 scalo per scalo, con lo scalo in
+  testa. I numeri si ordinano come numeri (M72 prima di M726, LI R2 prima di LI R12). Si costruisce dallo strato, non dal
+  modello: l'indice di una voce è quello della mappa, e un clic usa lo stesso `Scegli` della mappa.
+- I nomi delle sezioni sono quelli dell'ICAO che l'AIP Italia segue; le sottosezioni di ENR 3 e di ENR 5.3, che l'Italia
+  organizza a modo suo, hanno il solo codice (meglio che un nome inventato: i titoli veri si leggono dai PDF, da fare).
+- Le ATZ di AD 2 non dicono lo scalo: vanno nel loro scalo per nome («Roma Fiumicino ATZ» → LIRF, «Napoli ATZ» → LIRN
+  se un solo scalo comincia con «Napoli»); le altre in un gruppo con la loro sezione.
+- La ricerca guarda il titolo e, in AD 2, il nome dello scalo («Fiumicino» trova LIRF con le sue procedure).
+- La pagina carica da sé lo strato dell'AIP (lo stesso di «Mostra l'AIP espanso sulla mappa»); senza cartella dice dove
+  sceglierla. Scheda della voce (Correggi, Togli, Ritira) e mappa accanto.
+- La barra sta in 1400 px: il ramo si accorcia, «⧉ Pannelli».
+- Test: Lab 1 273 (+7: `IndiceDellAipTests` 6, una prova della pagina). A schermo sul banco, AIP espanso vero 2610:
+  ENR 2 329 voci, ENR 3 571, ENR 4 1 320, ENR 5 793, AD 2 447; «Fiumicino», il clic sull'ATZ apre la scheda e la mappa la
+  inquadra.

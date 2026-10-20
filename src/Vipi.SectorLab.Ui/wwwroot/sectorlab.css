@@ -2198,3 +2198,54 @@ body.lab-trascina * {
     flex-direction: row;
     align-items: center;
 }
+
+/* Riordino R3: l'indice dell'AIP, come l'AIP — parti, sezioni, voci una per riga. */
+.lab-colonna-indice {
+    width: var(--lab-l-indice, 22rem);
+}
+
+.lab-pannelli .lab-colonna-indice {
+    width: var(--lab-l-p-indice, 34%);
+}
+
+.lab-indice-aip details > summary {
+    cursor: pointer;
+    padding: .2rem 0;
+}
+
+.lab-indice-aip summary > * + * {
+    margin-left: .4rem;
+}
+
+.lab-indice-parte {
+    margin-top: .5rem;
+}
+
+.lab-indice-parte > summary {
+    font-size: .95rem;
+}
+
+.lab-indice-gruppo {
+    margin-left: .9rem;
+}
+
+.lab-indice-codice {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-indice-voce {
+    display: block;
+    margin-left: 1rem;
+    text-align: left;
+}
+
+/* Riordino R3: la barra sta in 1400 px (la finestra di base). Il ramo si accorcia (il resto è nel suggerimento e in
+   Consegna), i tasti no. */
+.lab-barra > [data-barra="ramo"] {
+    flex: 0 1 auto;
+    min-width: 6rem;
+    max-width: 17rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

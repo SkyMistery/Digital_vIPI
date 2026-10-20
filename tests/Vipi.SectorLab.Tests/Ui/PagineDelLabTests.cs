@@ -38,8 +38,9 @@ public sealed class PagineDelLabTests : IDisposable
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
 
-        Assert.Equal(4, pagina.FindAll("[data-pagina]").Count(e => e.TagName == "BUTTON"));
+        Assert.Equal(5, pagina.FindAll("[data-pagina]").Count(e => e.TagName == "BUTTON"));
         // Due mondi (D8): l'AIP coi suoi, il Sector coi suoi; le Impostazioni fuori da tutt'e due.
+        Assert.NotNull(pagina.Find("[data-mondo='aip'] [data-pagina='aipindice']"));
         Assert.NotNull(pagina.Find("[data-mondo='aip'] [data-pagina='aip']"));
         Assert.NotNull(pagina.Find("[data-mondo='sector'] [data-pagina='sector']"));
         Assert.NotNull(pagina.Find("[data-mondo='sector'] [data-pagina='consegna']"));
@@ -118,7 +119,7 @@ public sealed class PagineDelLabTests : IDisposable
         // La principale tiene solo la mappa; i pannelli di Sector sono di là, con le linguette.
         Assert.Empty(principale.FindAll("[data-linguetta]"));
         Assert.NotEmpty(pannelli.FindAll("[data-linguetta='sfoglia']"));
-        Assert.Equal(4, pannelli.FindAll("button[data-pagina]").Count);
+        Assert.Equal(5, pannelli.FindAll("button[data-pagina]").Count);
 
         pannelli.Find("[data-pagina='aip']").Click();
 

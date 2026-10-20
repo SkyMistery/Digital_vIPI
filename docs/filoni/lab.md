@@ -13,7 +13,8 @@ Scheda per gruppi fissi. Carta: [`2026-10-20-riordino-delle-pagine.md`](../featu
 linguette nella barra, la barra uguale nelle due finestre con «Salva (N)» e Ctrl+S, AIP / Consegna / Impostazioni come
 pagine, la mappa che non si smonta. Dopo il primo giro il committente ha chiesto **due mondi** (AIP con un Indice come l'AIP, Sector con Mappa, **Testo**
 scritto a mano coi metadati bloccati e sbloccabili, Consegna) che si parlano: carta §4-bis (D8-D13), slice R2-R8 in
-§5-bis. **Prossimo**: R2 (i due mondi nella barra), poi R3 (l'Indice dell'AIP).
+§5-bis. **R2 fatta** (i due mondi nella barra), **R3 fatta** (l'Indice dell'AIP come l'AIP, con la ricerca, la scheda e la
+mappa). **Prossimo**: R4 (i confronti dentro l'Indice e i legami record ↔ voce).
 
 ## 20 ottobre 2026: F7, SID e STAR (chiusa: slice 7a-7f, T4 in Aurora ✅)
 

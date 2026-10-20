@@ -1,0 +1,124 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+@using Vipi.SectorLab.Core.PdfAip
+
+@*
+    L'indice dell'AIP espanso (riordino delle pagine, D9): le voci come nell'AIP — ENR 2, ENR 3, ENR 4, ENR 5, AD 2 —,
+    sezione per sezione, AD 2 scalo per scalo. Un clic sceglie la voce: la scheda accanto, la forma inquadrata sulla
+    mappa. Entrando nella pagina lo strato dell'AIP si carica da sé (è lo stesso di «Mostra l'AIP espanso sulla mappa»).
+*@
+<div class="lab-indice-aip" data-indice-aip>
+    <h2 class="lab-riquadro-titolo">AIP espanso @(Lab.StratoDellAip is { } s ? $"· ciclo {s.Ciclo}" : "")</h2>
+    @if (Lab.StratoDellAip is not { } strato)
+    {
+        @if (_caricando)
+        {
+            <p class="lab-nota">Leggo l'AIP espanso…</p>
+        }
+        else if (Lab.CartellaDellAipEspanso is null)
+        {
+            <p class="lab-nota" data-indice-senza-aip>Manca la cartella dell'AIP espanso: sceglila nelle
+                <button class="lab-voce" @onclick="() => Lab.ScegliLaPagina(PaginaDelLab.Impostazioni)">Impostazioni</button>, o prendila in
+                <button class="lab-voce" @onclick="() => Lab.ScegliLaPagina(PaginaDelLab.Aip)">Lettura e confronti</button>.</p>
+        }
+        else
+        {
+            <p class="lab-nota" data-indice-senza-aip>@(Lab.Rifiuto ?? "L'AIP espanso non è ancora sulla mappa.")</p>
+            <button class="lab-tasto lab-tasto-tenue" @onclick="CaricaAsync" data-tasto="carica-aip">Riprova</button>
+        }
+    }
+    else
+    {
+        <input class="lab-cerca" type="search" placeholder="Cerca una voce (LI R12, M726, LIRF, ELKAP…)"
+               @bind="_filtro" @bind:event="oninput" data-campo="cerca-aip" />
+        @foreach (var parte in Indice(strato))
+        {
+            <details class="lab-indice-parte" open data-parte="@parte.Codice">
+                <summary><strong>@parte.Codice</strong> @parte.Nome <span class="lab-nota">@parte.Quante.ToString("N0")</span></summary>
+                @foreach (var gruppo in parte.Gruppi)
+                {
+                    @Gruppo(gruppo)
+                }
+            </details>
+        }
+        @if (_indice is { Count: 0 })
+        {
+            <p class="lab-nota">Nessuna voce con «@_filtro».</p>
+        }
+    }
+</div>
+
+@code {
+    private string? _filtro;
+    private bool _caricando;
+
+    private StratoDellAip? _di;
+    private string? _filtroDi;
+    private IReadOnlyList<GruppoDellIndice>? _indice;
+
+    /// <summary>L'indice si rifà solo se cambia lo strato (un ciclo nuovo, una correzione) o il filtro.</summary>
+    private IReadOnlyList<GruppoDellIndice> Indice(StratoDellAip strato)
+    {
+        if (_indice is null || !ReferenceEquals(_di, strato) || _filtroDi != _filtro)
+        {
+            _indice = IndiceDellAip.Di(strato.Voci, _filtro);
+            _di = strato;
+            _filtroDi = _filtro;
+        }
+        return _indice;
+    }
+
+    private RenderFragment Gruppo(GruppoDellIndice gruppo) => __builder =>
+    {
+        <details class="lab-indice-gruppo" open="@Aperto(gruppo)" data-gruppo="@gruppo.Codice">
+            <summary>
+                <span class="lab-indice-codice">@gruppo.Codice.Split('/')[^1]</span>
+                @if (gruppo.Nome.Length > 0 && !gruppo.Codice.EndsWith(gruppo.Nome, StringComparison.Ordinal))
+                {
+                    <span>@gruppo.Nome</span>
+                }
+                <span class="lab-nota">@gruppo.Quante.ToString("N0")</span>
+            </summary>
+            @foreach (var voce in gruppo.Voci)
+            {
+                <button class="lab-voce lab-indice-voce @(Lab.SceltaDellAip == voce.Indice ? "lab-scelto" : null)"
+                        @onclick="() => Scegli(voce)" title="@voce.Genere" data-voce-aip="@voce.Indice">@voce.Titolo</button>
+            }
+            @foreach (var sotto in gruppo.Gruppi)
+            {
+                @Gruppo(sotto)
+            }
+        </details>
+    };
+
+    /// <summary>Aperto se si sta cercando, o se dentro c'è la voce scelta (anche quando la si è scelta dalla mappa).</summary>
+    private bool Aperto(GruppoDellIndice gruppo) =>
+        !string.IsNullOrWhiteSpace(_filtro) || (Lab.SceltaDellAip is { } i && Contiene(gruppo, i));
+
+    private static bool Contiene(GruppoDellIndice gruppo, int indice) =>
+        gruppo.Voci.Any(v => v.Indice == indice) || gruppo.Gruppi.Any(g => Contiene(g, indice));
+
+    private void Scegli(VoceDellIndice voce)
+    {
+        if (Lab.StratoDellAip is { } strato)
+            Lab.Scegli(strato.File, voce.Indice);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Lab.Cambiata += Aggiorna;
+        if (Lab.StratoDellAip is null && Lab.CartellaDellAipEspanso is not null)
+            await CaricaAsync();
+    }
+
+    private async Task CaricaAsync()
+    {
+        _caricando = true;
+        await Lab.MostraLAipAsync(true);
+        _caricando = false;
+    }
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

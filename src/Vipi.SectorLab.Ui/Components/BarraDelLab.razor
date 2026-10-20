@@ -56,12 +56,12 @@
         @if (Lab.PannelliInUnAltraFinestra)
         {
             <button class="lab-tasto lab-tasto-tenue" @onclick="RiportaIPannelli" data-tasto="riporta"
-                    title="Chiude la finestra dei pannelli e li rimette qui, accanto alla mappa">Pannelli qui</button>
+                    title="Chiude la finestra dei pannelli e li rimette qui, accanto alla mappa">⧉ Pannelli qui</button>
         }
         else
         {
             <button class="lab-tasto lab-tasto-tenue" @onclick="StaccaIPannelli" data-tasto="stacca"
-                    title="I pannelli della pagina in un'altra finestra (per esempio sull'altro schermo); qui resta la mappa">Pannelli a parte</button>
+                    title="I pannelli della pagina in un'altra finestra (per esempio sull'altro schermo); qui resta la mappa">⧉ Pannelli</button>
         }
     }
     <TastoDelTema />
@@ -74,7 +74,8 @@
     private static readonly (string Mondo, (PaginaDelLab Pagina, string Nome, string Perche)[] Pagine)[] Mondi =
     [
         ("AIP", [
-            (PaginaDelLab.Aip, "Indice", "L'AIP espanso: i PDF, la lettura, le correzioni e i confronti col sector"),
+            (PaginaDelLab.AipIndice, "Indice", "L'AIP espanso come l'AIP: ENR 2, 3, 4, 5 e AD 2, con la mappa e le correzioni"),
+            (PaginaDelLab.Aip, "Lettura e confronti", "I PDF, «Leggi nell'AIP espanso», Registra e Manda dell'AIP, i confronti col sector"),
         ]),
         ("Sector", [
             (PaginaDelLab.Sector, "Mappa", "Sfogliare, guardare e modificare i record; i problemi"),

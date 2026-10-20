@@ -152,6 +152,39 @@ public sealed class AipNellaBarraTests : IDisposable
         return pagina;
     }
 
+    // Riordino R3 (D9): la pagina Indice carica da sé lo strato dell'AIP e mette le voci come nell'AIP; un clic apre la
+    // scheda della voce accanto.
+    [Fact]
+    public async Task LIndice_CaricaLAip_ELaVoceSiApreNellaScheda()
+    {
+        _albero.Scrivi("SectorFiles/Include/IT/lirf.str", "//MENU MAPS\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var espanso = Path.Combine(_fuori, "espanso");
+        Assert.True(_lab.CambiaLAipEspanso(espanso), _lab.Rifiuto);
+        Directory.CreateDirectory(Path.Combine(espanso, "2611"));
+        await File.WriteAllTextAsync(Path.Combine(espanso, "2611", "li.json"), AipJson.Serialize(new AipDocument
+        {
+            State = "LI",
+            Airac = "2611",
+            Airspaces = [CtrDiProva("Roma CTR", new CircleGeometry(new Position(41.9, 12.5), new Distance(5, DistanceUnit.Nm)))],
+            Points = [new SignificantPoint { Section = "ENR 4.4", Designator = "ABRUS", Position = new Position(41.5, 12.25) }],
+        }));
+        _lab.ScegliLaPagina(PaginaDelLab.AipIndice);
+
+        var pagina = _contesto.RenderComponent<Home>();
+
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-parte='ENR 4']")), TimeSpan.FromSeconds(10));
+        Assert.Contains("ciclo 2611", pagina.Find("[data-indice-aip] h2").TextContent, StringComparison.Ordinal);
+        Assert.Equal(["ENR 2", "ENR 4"], pagina.FindAll("[data-parte]").Select(e => e.GetAttribute("data-parte")));
+        Assert.NotEmpty(pagina.FindAll("[data-scheda-aip-vuota]"));
+
+        pagina.FindAll("[data-voce-aip]").Single(e => e.TextContent.Trim() == "ABRUS").Click();
+
+        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-scheda-aip-vuota]")));
+        Assert.Equal(1, _lab.SceltaDellAip);
+        Assert.Contains("ABRUS", pagina.Markup, StringComparison.Ordinal);
+    }
+
     // Slice 1c: «Sostituisci» su una riga «forma diversa» — la voce riscritta con le zone dell'AIP, la testata e quel che
     // segue restano; il confronto rifatto la dà uguale; un «annulla» la rimette com'era.
     [Fact]

@@ -41,6 +41,9 @@ public enum StatoDelLab
 public enum PaginaDelLab
 {
     Sector,
+    /// <summary>Il mondo AIP: l'Indice come nell'AIP, con la mappa e la scheda della voce (D9).</summary>
+    AipIndice,
+    /// <summary>Il mondo AIP: PDF, lettura, git dell'AIP espanso e, fino alla R4, i confronti.</summary>
     Aip,
     Consegna,
     Impostazioni,
