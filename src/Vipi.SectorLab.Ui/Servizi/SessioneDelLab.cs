@@ -110,6 +110,28 @@ public sealed class SessioneDelLab
         }
     }
 
+    /// <summary>
+    /// Apre in Esplora risorse la cartella dei PDF o dell'AIP espanso (committente, 20 ottobre: con le cartelle fisse
+    /// dell'ambiente serve aprirle al volo per metterci i PDF). Solo quelle due: il Lab non apre cartelle a caso.
+    /// </summary>
+    public void ApriLaCartellaDellAip(bool pdf)
+    {
+        if (!OperatingSystem.IsWindows() || (pdf ? CartellaDeiPdf : CartellaDellAipEspanso) is not { } cartella)
+            return;
+        try
+        {
+            Directory.CreateDirectory(cartella);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{cartella}\"")
+            {
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            Registro.Errore("apri la cartella", e);
+        }
+    }
+
     public StatoDelLab Stato { get; private set; }
 
     public SessioneAperta? Sessione { get; private set; }
@@ -4167,6 +4189,8 @@ public sealed class SessioneDelLab
     {
         get
         {
+            if (FissaNellAmbiente(Core.Git.PrimoAvvio.CartellaDeiPdf) is { } fissa)
+                return fissa;
             if (!_cartellaDeiPdfLetta)
             {
                 _cartellaDeiPdf = Ricordata("cartella-dei-pdf.txt");
@@ -4177,11 +4201,33 @@ public sealed class SessioneDelLab
         }
     }
 
+    /// <summary>
+    /// Vero se le cartelle dei PDF e dell'AIP espanso sono quelle dell'ambiente di lavoro e non si cambiano
+    /// (committente, 20 ottobre: «blocca anche le cartelle di PDF e AIP espanso»).
+    /// </summary>
+    public bool CartelleDellAipFisse => CartellaDiLavoro is not null;
+
+    /// <summary>La cartella <paramref name="nome"/> dentro l'ambiente di lavoro; null senza ambiente.</summary>
+    private string? FissaNellAmbiente(string nome) => CartellaDiLavoro is { } lavoro ? Path.Combine(lavoro, nome) : null;
+
+    /// <summary>Vero se <paramref name="scritta"/> è la cartella fissa (o non c'è ambiente); se no rifiuta col perché.</summary>
+    private bool AccettaNellAmbiente(string? scritta, string nome, string cosa)
+    {
+        if (FissaNellAmbiente(nome) is not { } fissa)
+            return true;
+        if (scritta is not null && Path.IsPathFullyQualified(scritta)
+            && string.Equals(Path.GetFullPath(scritta).TrimEnd('\\', '/'), fissa.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
+            return true;
+        return Rifiuta($"Il Lab lavora nel suo ambiente: {cosa} è {fissa} e non si cambia.");
+    }
+
     /// <summary>La cartella dell'AIP espanso, scelta nelle Impostazioni; null finché non c'è.</summary>
     public string? CartellaDellAipEspanso
     {
         get
         {
+            if (FissaNellAmbiente(Core.Git.PrimoAvvio.CartellaDellAipEspanso) is { } fissa)
+                return fissa;
             if (!_aipEspansoLetto)
             {
                 _aipEspanso = Ricordata("aip-espanso.txt");
@@ -4196,6 +4242,8 @@ public sealed class SessioneDelLab
     public bool CambiaLaCartellaDeiPdf(string? cartella)
     {
         string? scritta = string.IsNullOrWhiteSpace(cartella) ? null : cartella.Trim();
+        if (!AccettaNellAmbiente(scritta, Core.Git.PrimoAvvio.CartellaDeiPdf, "la cartella dei PDF"))
+            return false;
         if (scritta is not null && !Path.IsPathFullyQualified(scritta))
             return Rifiuta("La cartella dei PDF va scritta per intero (D:\\…\\AIP).");
         Rifiuto = null;
@@ -4210,6 +4258,8 @@ public sealed class SessioneDelLab
     public bool CambiaLAipEspanso(string? cartella)
     {
         string? scritta = string.IsNullOrWhiteSpace(cartella) ? null : cartella.Trim();
+        if (!AccettaNellAmbiente(scritta, Core.Git.PrimoAvvio.CartellaDellAipEspanso, "la cartella dell'AIP espanso"))
+            return false;
         if (scritta is not null && Core.PdfAip.AipEspanso.PercheNonVa(scritta, CartellaDeiPdf) is { } perche)
             return Rifiuta(perche);
         Rifiuto = null;
@@ -6075,6 +6125,11 @@ public sealed class SessioneDelLab
     public async Task<bool> PrendiLAipEspansoAsync(string? cartella)
     {
         if (StaLavorandoSulRepoDellAip)
+            return false;
+        // Con l'ambiente di lavoro l'AIP espanso va sempre in <ambiente>\aip-espanso: il «Dove» non si sceglie.
+        if (FissaNellAmbiente(Core.Git.PrimoAvvio.CartellaDellAipEspanso) is { } fissa && string.IsNullOrWhiteSpace(cartella))
+            cartella = fissa;
+        if (!AccettaNellAmbiente(cartella?.Trim(), Core.Git.PrimoAvvio.CartellaDellAipEspanso, "la cartella dell'AIP espanso"))
             return false;
         if (string.IsNullOrWhiteSpace(cartella))
             return Rifiuta("Scegli dove mettere l'AIP espanso: una cartella nuova (o vuota).");

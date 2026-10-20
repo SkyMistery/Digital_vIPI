@@ -284,9 +284,18 @@ Poi la regola fino in fondo (committente, sulla proposta: «più è isolato l'am
   («Il Lab lavora nel suo ambiente…»; `PrimoAvvio.NellAmbiente`, che non scambia `D:\IVAO2` per `D:\IVAO`);
 - nelle Impostazioni «Cambia cartella…» diventa **«Altro sector dell'ambiente…»** (stesso `data-tasto`, D7): chiude il
   sector e torna all'elenco, chiedendo prima se ci sono modifiche non salvate.
-Restano scelte libere nelle Impostazioni le cartelle dei PDF, dell'AIP espanso, della vetrina e di Aurora. Test: Lab
-1 303 (+3). Sul banco: primo avvio coi repo locali, il sector aperto, «Altro sector dell'ambiente…» → l'elenco con
-`sector`, «Prendi un altro sector», né «Apri» né il primo avvio.
+Test: Lab 1 303 (+3). Sul banco: primo avvio coi repo locali, il sector aperto, «Altro sector dell'ambiente…» →
+l'elenco con `sector`, «Prendi un altro sector», né «Apri» né il primo avvio.
+
+Poi (committente: «blocca anche le cartelle di PDF e AIP espanso»; e subito dopo: «lo sfoglia lo devi lasciare per poter
+rapidamente aprire la cartella e metterci i pdf dentro») con l'ambiente le cartelle dei PDF e dell'AIP espanso sono
+**fisse**, `<ambiente>\pdf-aip` e `<ambiente>\aip-espanso`, qualunque cosa ricordino i dati (`CartelleDellAipFisse`):
+cambiarle si rifiuta («Il Lab lavora nel suo ambiente…»), «Prendi l'AIP espanso» non chiede più «Dove», nelle
+Impostazioni i due campi sono in sola lettura. Al posto di «Sfoglia…» c'è **«Apri la cartella»** (anche accanto ai PDF
+nel riquadro AIP), che apre la cartella in Esplora risorse per trascinarci i PDF (`ApriLaCartellaDellAip`: solo quelle
+due). Restano libere la vetrina e la cartella di Aurora. Test: Lab 1 304 (+1). Sul banco con un ambiente: i due campi
+in sola lettura con le cartelle dell'ambiente, i due «Apri la cartella», nessun «Sfoglia…» (non premuto: aprirebbe
+Esplora risorse sullo schermo del committente).
 
 **Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
 R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due

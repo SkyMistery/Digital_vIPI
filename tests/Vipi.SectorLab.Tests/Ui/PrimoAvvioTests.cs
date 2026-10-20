@@ -110,6 +110,35 @@ public sealed class PrimoAvvioTests : IDisposable
     }
 
     [Fact]
+    public async Task ConLAmbienteLeCartelleDeiPdfEDellAipSonoFisse()
+    {
+        // Committente, 20 ottobre: «blocca anche le cartelle di PDF e AIP espanso»; resta «Apri la cartella» per i PDF.
+        string ambiente = Path.Combine(_albero.Radice, "IVAO");
+        Directory.CreateDirectory(ambiente);
+        Directory.CreateDirectory(Dati);
+        File.WriteAllText(Path.Combine(Dati, "cartella-dei-pdf.txt"), Path.Combine(_albero.Radice, "altrove"));
+        File.WriteAllText(Path.Combine(Dati, "cartella-di-lavoro.txt"), ambiente);
+        var lab = new SessioneDelLab(Dati) { ScegliCartella = (_, _) => Task.FromResult<string?>(null) };
+
+        Assert.True(lab.CartelleDellAipFisse);
+        Assert.Equal(Path.Combine(ambiente, "pdf-aip"), lab.CartellaDeiPdf);
+        Assert.Equal(Path.Combine(ambiente, "aip-espanso"), lab.CartellaDellAipEspanso);
+        Assert.False(lab.CambiaLaCartellaDeiPdf(Path.Combine(_albero.Radice, "altrove")));
+        Assert.Contains("suo ambiente", lab.Rifiuto, StringComparison.Ordinal);
+        Assert.False(lab.CambiaLAipEspanso(" "));
+        Assert.True(lab.CambiaLaCartellaDeiPdf(Path.Combine(ambiente, "pdf-aip")));
+        Assert.False(await lab.PrendiLAipEspansoAsync(Path.Combine(_albero.Radice, "altrove")));
+
+        _contesto.Services.AddSingleton(lab);
+        var pagina = _contesto.RenderComponent<Vipi.SectorLab.Ui.Components.ImpostazioniDelLab>();
+        Assert.NotNull(pagina.Find("[data-cartelle-fisse]"));
+        Assert.NotNull(pagina.Find("[data-tasto='apri-cartella-pdf']"));
+        Assert.Empty(pagina.FindAll("[data-tasto='sfoglia-pdf']"));
+        Assert.Empty(pagina.FindAll("[data-tasto='sfoglia-aip-espanso']"));
+        Assert.True(pagina.Find("[data-impostazione='cartella-dei-pdf']").HasAttribute("readonly"));
+    }
+
+    [Fact]
     public void IlLinkDelBrowserDiventaIlRepoESiRicorda()
     {
         var lab = new SessioneDelLab(Dati);

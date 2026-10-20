@@ -25,6 +25,8 @@
         else
         {
             <p class="lab-nota">PDF: <code>@cartella</code> — @_pdf.Count file dell'AIP.</p>
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="apri-cartella-pdf"
+                    title="Apre la cartella dei PDF in Esplora risorse: ci trascini i PDF dell'AIP" @onclick="() => Lab.ApriLaCartellaDellAip(pdf: true)">Apri la cartella</button>
             <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prendi-da-download"
                     title="Sposta i PDF dell'AIP (LI-ENR …, LI-AD 2 …) da @Lab.Download in questa cartella" @onclick="Prendi">Prendi i PDF da Download</button>
             @if (Lab.UltimaPresaDaDownload is { } presa)
@@ -44,21 +46,29 @@
                     <input class="lab-campo" value="@Lab.IndirizzoDellAipEspanso" data-campo="indirizzo-aip-espanso" disabled="@Lab.StaLavorandoSulRepoDellAip"
                            @onchange="e => Lab.CambiaLIndirizzoDellAipEspanso(e.Value?.ToString())" />
                 </label>
-                <label class="lab-nota">
-                    Dove
-                    <input class="lab-campo" value="@_dove" data-campo="dove-aip-espanso" placeholder="D:\IVAO\aip-espanso"
-                           @onchange="e => _dove = e.Value?.ToString()" />
-                </label>
-                @if (Lab.ScegliCartella is not null)
+                @if (Lab.CartelleDellAipFisse)
                 {
-                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-dove-aip" @onclick="SfogliaDove">Sfoglia…</button>
+                    @* Con l'ambiente di lavoro l'AIP espanso va sempre nella sua cartella: il «Dove» non si sceglie. *@
+                    <p class="lab-nota" data-dove-fisso>Va in <code>@Lab.CartellaDellAipEspanso</code>.</p>
+                }
+                else
+                {
+                    <label class="lab-nota">
+                        Dove
+                        <input class="lab-campo" value="@_dove" data-campo="dove-aip-espanso" placeholder="D:\IVAO\aip-espanso"
+                               @onchange="e => _dove = e.Value?.ToString()" />
+                    </label>
+                    @if (Lab.ScegliCartella is not null)
+                    {
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-dove-aip" @onclick="SfogliaDove">Sfoglia…</button>
+                    }
                 }
                 <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prendi-aip-espanso" disabled="@Lab.StaLavorandoSulRepoDellAip"
                         title="Clona il repo dell'AIP espanso in quella cartella" @onclick="PrendiLEspanso">Prendi l'AIP espanso</button>
             }
             @if (Lab.CartellaDellAipEspanso is not { } espanso)
             {
-                <p class="lab-nota" data-senza-espanso>Manca la cartella dell'AIP espanso: prendi il repo qui sopra, o sceglila nelle Impostazioni.</p>
+                <p class="lab-nota" data-senza-espanso>Manca la cartella dell'AIP espanso: prendi il repo qui sopra@(Lab.CartelleDellAipFisse ? "" : ", o sceglila nelle Impostazioni").</p>
             }
             else
             {

@@ -74,10 +74,15 @@
             metti come secondo sector la sua <code>SectorFiles</code>, una volta (carta F5).</p>
         <label>
             PDF dell'AIP
-            <input class="lab-campo" value="@Lab.CartellaDeiPdf" data-impostazione="cartella-dei-pdf"
+            <input class="lab-campo" value="@Lab.CartellaDeiPdf" data-impostazione="cartella-dei-pdf" readonly="@Lab.CartelleDellAipFisse"
                    placeholder="D:\IVAO\AIP" @onchange="e => _rifiuto = Lab.CambiaLaCartellaDeiPdf(e.Value?.ToString()) ? null : Lab.Rifiuto" />
         </label>
-        @if (Lab.ScegliCartella is not null)
+        @if (Lab.CartelleDellAipFisse)
+        {
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="apri-cartella-pdf"
+                    title="Apre la cartella dei PDF in Esplora risorse: ci trascini i PDF dell'AIP" @onclick="() => Lab.ApriLaCartellaDellAip(pdf: true)">Apri la cartella</button>
+        }
+        else if (Lab.ScegliCartella is not null)
         {
             <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-pdf"
                     title="Sceglie la cartella dei PDF dell'AIP in Esplora risorse" @onclick="SfogliaIPdf">Sfoglia…</button>
@@ -86,10 +91,17 @@
             Download col tasto nel riquadro «AIP». Anche in sottocartelle. Fuori dal sector e dai repo (carta F6).</p>
         <label>
             AIP espanso
-            <input class="lab-campo" value="@Lab.CartellaDellAipEspanso" data-impostazione="aip-espanso"
+            <input class="lab-campo" value="@Lab.CartellaDellAipEspanso" data-impostazione="aip-espanso" readonly="@Lab.CartelleDellAipFisse"
                    placeholder="D:\IVAO\aip-espanso" @onchange="e => _rifiuto = Lab.CambiaLAipEspanso(e.Value?.ToString()) ? null : Lab.Rifiuto" />
         </label>
-        @if (Lab.ScegliCartella is not null)
+        @if (Lab.CartelleDellAipFisse)
+        {
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="apri-cartella-aip-espanso"
+                    title="Apre la cartella dell'AIP espanso in Esplora risorse" @onclick="() => Lab.ApriLaCartellaDellAip(pdf: false)">Apri la cartella</button>
+            <p class="lab-nota" data-cartelle-fisse>Il Lab lavora nel suo ambiente (<code>@Lab.CartellaDiLavoro</code>): le cartelle dei PDF
+                e dell'AIP espanso sono le sue e non si cambiano.</p>
+        }
+        @if (Lab.ScegliCartella is not null && !Lab.CartelleDellAipFisse)
         {
             <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-aip-espanso"
                     title="Sceglie la cartella dell'AIP espanso in Esplora risorse" @onclick="SfogliaLAipEspanso">Sfoglia…</button>
