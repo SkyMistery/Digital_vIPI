@@ -473,6 +473,27 @@ l'AIP non lo dice; OST il sector lo scrive VOR (FIX_VOR), l'AIP VOR/DME (FIX_VOR
   LIED»; «Sostituisci» su Amendola: il CTR diventa «uguale 40 · diversa 5» e la barra «Salva (1)» (in memoria, non
   salvato: la copia non è cambiata).
 
+**R8, la misura** (20 ottobre notte; prova temporanea sulla copia del sector, non committata). Quali file del sector tengono
+già il genere di righe di ogni sezione, e dove i gesti di oggi scrivono:
+
+| Sezione | File che tengono quel genere (record) | Dove scrivono i gesti di oggi | La scelta ha senso? |
+|---|---|---|---|
+| Punti (ENR 4.4) | **9 `.fix`**: itfix 1 256, APT 780, ESTERNI 641, secsi 527, VFR_NASCOSTI 512, MIL 185; TERM, FRA, ENR vuoti | sempre `itfix.fix`, in ordine di nome | **sì** |
+| Radioassistenze | `itvor.vor` 121, `itndb.ndb` 27 (uno per tipo) | il file del tipo | no: un file per tipo |
+| Aree di ENR 5 | `italy.prohibit` 10 143 linee, `italy.restrict` 2 221, `italy.danger` 664 (il quinto campo = il tipo); nessuna linea P/R/D nei 131 `.geo` | il file del tipo | no: il file dice il tipo (il colore in Aurora) |
+| CTR, ATZ (MAPS) | voci MAPS in 88 `.str` su 90: CTR 45 in 45 file, ATZ 87 in 87 file | lo `.str` dello scalo che l'AOD scrive | già scelto (lo scalo) |
+| ATZ delle torri | `twrs.tfl` 69 settori (e 27 altri `.tfl` dei settori ACC/APP) | `twrs.tfl` | da chiedere |
+| Attese | `HOLDENR.hold` 68; `HLD-` in `.str` 202 | in rotta `HOLDENR.hold`, di procedura lo `.str` dello scalo | già scelto (rotta / scalo) |
+| Rotte | `itawlow.lairway` 568 aerovie; `itawhigh.hairway` **vuoto** | `itawlow.lairway` | **sì** (basse / alte) |
+| SID e STAR | 59 `.sid` (1 306 SID), 90 `.str` (854 procedure) | il `.sid`/`.str` dello scalo | no: lo scalo è nel dato |
+| Scali, piste | `.ap` 5 e `.rw` 5: `OTHER/it…` e i quattro delle FIR (lirr, limm, lipp, libb) | `OTHER/it…` | **forse** (le copie delle FIR) |
+
+🟡 Proposta dell'agente per la R8, da approvare: farla dove la scelta ha senso, in quest'ordine — **R8a** i punti (il file
+fra i 9 `.fix`, per una voce, le spuntate o tutta la sezione; nel file in ordine di nome come oggi, o in fondo),
+**R8b** le rotte (basse o alte), **R8c** scali e piste anche nei file delle FIR. Per ogni gesto: il file proposto è
+quello di oggi, l'elenco mostra solo i file con lo stesso genere di righe, l'anteprima del diff prima di scrivere, una
+voce sola nella storia. Le ATZ delle torri in un altro `.tfl`: da chiedere.
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
