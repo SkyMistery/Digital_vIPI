@@ -24,7 +24,8 @@ AIP espanso di prova sulla PR #11. **Slice 7f fatta**: la mappa di gruppo `SID R
 delle composte di F3-bis esteso alle SID e il tasto «Mappa delle SID»; corretto un difetto della 7e (le composte non
 seguivano «Sostituisci»). **F7 chiusa**: la prova T4 in Aurora è andata («Tutto ok»: la STAR RNAV, le SID col tracciato, la STAR dalla prosa, la
 mappa `MAPS` del `.sid`). **Prossimo**: lo sceglie il committente (il giro del 2611 dal 29 ottobre, i confronti rimandati
-della F6, la F8).
+della F6, la F8). **Da vedere dopo**: le virate e le intercettazioni delle convenzionali, oggi a spigolo (carta F7, in
+fondo).
 
 ## 19 ottobre 2026: F6, le correzioni dell'AIP espanso finite (slice 1-3)
 
