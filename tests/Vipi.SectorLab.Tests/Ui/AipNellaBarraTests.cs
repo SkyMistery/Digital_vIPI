@@ -114,14 +114,15 @@ public sealed class AipNellaBarraTests : IDisposable
         };
         await File.WriteAllTextAsync(Path.Combine(espanso, "2611", "li.json"), AipJson.Serialize(new AipDocument { State = "LI", Airac = "2611", Airspaces = [ctr] }));
 
-        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=confronta-ctr]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=confronti]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-sezione=ctr]").Click());
 
         pagina.WaitForAssertion(() =>
         {
-            Assert.Equal("CTR, ciclo 2611: manca nel sector 1 · solo nel sector 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim());
-            Assert.Equal(2, pagina.FindAll("[data-differenza]").Count);
+            Assert.Equal("manca nel sector 1 · solo nel sector 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim());
+            Assert.Equal(2, pagina.FindAll("[data-riga]").Count);
         }, TimeSpan.FromSeconds(10));
-        await pagina.InvokeAsync(() => pagina.Find("[data-differenza=SoloNelSector] button").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-riga][data-esito=SoloNelSector] button.lab-voce").Click());
         Assert.Equal("SectorFiles/Include/IT/lirf.str", _lab.Scelta?.File);
     }
 
@@ -135,9 +136,9 @@ public sealed class AipNellaBarraTests : IDisposable
         Geometry = geometria,
     };
 
-    private Task<Bunit.IRenderedComponent<Home>> ConfrontaConAsync(string str, params Airspace[] aip) => ConfrontaConAsync(str, null, "confronta-ctr", aip);
+    private Task<Bunit.IRenderedComponent<Home>> ConfrontaConAsync(string str, params Airspace[] aip) => ConfrontaConAsync(str, null, "ctr", aip);
 
-    private async Task<Bunit.IRenderedComponent<Home>> ConfrontaConAsync(string str, string? torri, string tasto, params Airspace[] aip)
+    private async Task<Bunit.IRenderedComponent<Home>> ConfrontaConAsync(string str, string? torri, string sezione, params Airspace[] aip)
     {
         _albero.Scrivi("SectorFiles/Include/IT/lirf.str", str);
         if (torri is not null)
@@ -148,7 +149,9 @@ public sealed class AipNellaBarraTests : IDisposable
         Directory.CreateDirectory(Path.Combine(espanso, "2611"));
         await File.WriteAllTextAsync(Path.Combine(espanso, "2611", "li.json"), AipJson.Serialize(new AipDocument { State = "LI", Airac = "2611", Airspaces = aip }));
         var pagina = _contesto.RenderComponent<Home>();
-        await pagina.InvokeAsync(() => pagina.Find($"[data-tasto={tasto}]").Click());
+        // R7: i confronti e i loro gesti stanno nello spazio Confronti.
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=confronti]").Click());
+        await pagina.InvokeAsync(() => pagina.Find($"[data-sezione={sezione}]").Click());
         return pagina;
     }
 
@@ -198,12 +201,12 @@ public sealed class AipNellaBarraTests : IDisposable
                 new LineSegment(new Position(41.8, 12.5)), new LineSegment(new Position(41.8, 12.0))])),
             CtrDiProva("Roma CTR Zona/Zone '2'", new RingGeometry([
                 new LineSegment(new Position(42.0, 12.0)), new LineSegment(new Position(41.8, 12.0)), new LineSegment(new Position(41.9, 11.9))])));
-        pagina.WaitForAssertion(() => Assert.Equal("CTR, ciclo 2611: forma diversa 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("diversa 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         string prima = string.Join("\n", _lab.RigheDiAdesso("SectorFiles/Include/IT/lirf.str"));
 
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto=sostituisci]").Click());
 
-        pagina.WaitForAssertion(() => Assert.Equal("CTR, ciclo 2611: uguali 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("uguale 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         var righe = _lab.RigheDiAdesso("SectorFiles/Include/IT/lirf.str");
         Assert.Equal(
         [
@@ -231,7 +234,7 @@ public sealed class AipNellaBarraTests : IDisposable
             "//MENU MAPS\r\nLIRF;MAPS;LIRF ATZ; ; ;5;\r\nN041.50.00.000;E012.10.00.000;\r\nN041.52.00.000;E012.10.00.000;\r\n",
             CtrDiProva("Roma CTR", new RingGeometry([
                 new LineSegment(new Position(42.0, 12.0)), new LineSegment(new Position(42.0, 12.5)), new LineSegment(new Position(41.8, 12.5))])));
-        pagina.WaitForAssertion(() => Assert.Equal("CTR, ciclo 2611: manca nel sector 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("manca nel sector 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
 
         // Senza scalo, o con uno che non ha il suo .str, si dice.
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto=porta]").Click());
@@ -243,7 +246,7 @@ public sealed class AipNellaBarraTests : IDisposable
         await pagina.InvokeAsync(() => pagina.Find("[data-campo=scalo]").Change("lirf"));
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto=porta]").Click());
 
-        pagina.WaitForAssertion(() => Assert.Equal("CTR, ciclo 2611: uguali 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("uguale 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         Assert.Equal(
         [
             "//MENU MAPS", "LIRF;MAPS;LIRF CTR; ; ;1;",
@@ -266,19 +269,19 @@ public sealed class AipNellaBarraTests : IDisposable
             "//MENU MAPS\r\nLIRF;MAPS;LIRF ATZ; ; ;5;\r\nN041.50.00.000;E012.10.00.000;\r\nN041.52.00.000;E012.10.00.000;\r\n",
             "//----------LIRR--------------\r\nLIRF_TWR;TWR;1;TWR;1;\r\nN042.00.00.000;E012.00.00.000;\r\nN042.00.00.000;E012.30.00.000;\r\nN041.48.00.000;E012.30.00.000;\r\nN041.48.00.000;E012.00.00.000;\r\n\r\n"
             + "LIRV_TWR;TWR;1;TWR;1;\r\nN042.30.00.000;E012.00.00.000;\r\nN042.30.00.000;E012.10.00.000;\r\nN042.20.00.000;E012.10.00.000;\r\n",
-            "confronta-torri",
+            "atzdelletorri",
             CtrDiProva("ATZ Roma LIRF - RMZ", new RingGeometry([
                 new LineSegment(new Position(42.0, 12.0)), new LineSegment(new Position(42.0, 12.5)), new LineSegment(new Position(41.9, 12.6)),
                 new LineSegment(new Position(41.8, 12.5)), new LineSegment(new Position(41.8, 12.0))])) with { Type = AirspaceType.Rmz },
             CtrDiProva("ATZ Viterbo LIRV - RMZ", new CircleGeometry(new Position(42.43, 17.06), new Distance(5, DistanceUnit.Nm))) with { Type = AirspaceType.Rmz });
-        pagina.WaitForAssertion(() => Assert.Equal("ATZ in twrs.tfl, ciclo 2611: forma diversa 2", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("diversa 2", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         Assert.Single(pagina.FindAll("[data-tasto=sostituisci]"));
         Assert.Single(pagina.FindAll("[data-da-guardare]"));
         Assert.Empty(pagina.FindAll("[data-tasto=porta]"));
 
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto=sostituisci]").Click());
 
-        pagina.WaitForAssertion(() => Assert.Equal("ATZ in twrs.tfl, ciclo 2611: forma diversa 1 · uguali 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("uguale 1 · diversa 1", pagina.Find("[data-riassunto-confronto]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         Assert.Equal(
         [
             "//----------LIRR--------------", "LIRF_TWR;TWR;1;TWR;1;",
@@ -303,7 +306,10 @@ public sealed class AipNellaBarraTests : IDisposable
                 new LineSegment(new Position(42.0, 12.0)), new LineSegment(new Position(42.0, 12.5)), new LineSegment(new Position(41.8, 12.5))])),
             CtrDiProva("ATZ Urbe LIRU - RMZ", new CircleGeometry(new Position(41.95, 12.5), new Distance(3, DistanceUnit.Nm))) with { Type = AirspaceType.Rmz });
 
-        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").Change(true));
+        // R7: la casella sta in «Lettura e consegna», nello spazio AIP espanso.
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aip]").Click());
+        // Il Confronti ha già caricato lo strato: si aspetta che il gestore della casella abbia finito di ricaricarlo.
+        await pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
 
         pagina.WaitForAssertion(() =>
         {
@@ -341,7 +347,10 @@ public sealed class AipNellaBarraTests : IDisposable
         var espanso = Path.Combine(_fuori, "espanso");
         var correzioni = Path.Combine(espanso, "correzioni", "li.json");
         AipDocument Modello() => AipJson.Deserialize(File.ReadAllText(Path.Combine(espanso, "2611", "li.json")));
-        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").Change(true));
+        // R7: la casella sta in «Lettura e consegna», nello spazio AIP espanso.
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aip]").Click());
+        // Il Confronti ha già caricato lo strato: si aspetta che il gestore della casella abbia finito di ricaricarlo.
+        await pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
         pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-aip-strato]")), TimeSpan.FromSeconds(10));
         await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", 0));
         pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-tasto=correggi-area]")), TimeSpan.FromSeconds(10));
@@ -431,7 +440,10 @@ public sealed class AipNellaBarraTests : IDisposable
                 await Task.Delay(50);
             }
         }
-        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").Change(true));
+        // R7: la casella sta in «Lettura e consegna», nello spazio AIP espanso.
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aip]").Click());
+        // Il Confronti ha già caricato lo strato: si aspetta che il gestore della casella abbia finito di ricaricarlo.
+        await pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
         pagina.WaitForAssertion(() => Assert.Contains("2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
 
         // Il punto è la seconda voce dello strato, dopo l'area.

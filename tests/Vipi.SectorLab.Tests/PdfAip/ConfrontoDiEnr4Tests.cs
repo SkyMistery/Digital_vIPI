@@ -284,6 +284,37 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
     }
 
     [Fact]
+    public async Task NelConfronti_IGestiDellaRiga_ELaSezioneSiRifaPrimaDeiGesti()
+    {
+        // Riordino R7: i gesti stanno nel Confronti; dopo un gesto le righe sono quelle di adesso.
+        await ApriAsync();
+        using var contesto = new Bunit.TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.Services.AddSingleton(_lab);
+        var pagina = contesto.RenderComponent<Vipi.SectorLab.Ui.Components.ConfrontiVista>();
+        pagina.Find("[data-sezione='punti']").Click();
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-tasto='porta-enr4']")));
+        int mancanti = _lab.RigheDellaSezione(SezioneDelConfronto.Punti)!.Value.Righe.Count(r => r.Esito == EsitoDelConfronto.MancaNelSector);
+        Assert.True(mancanti > 0);
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto='porta-enr4']").Click());
+
+        Assert.True(_lab.Modifiche.CEQualcosa);
+        pagina.WaitForAssertion(() => Assert.Equal(mancanti - 1,
+            _lab.RigheDellaSezione(SezioneDelConfronto.Punti)!.Value.Righe.Count(r => r.Esito == EsitoDelConfronto.MancaNelSector)));
+        Assert.NotNull(pagina.Find("[data-tasto='correggi-uso']"));   // ADFAM: uguale, ma con l'uso diverso
+
+        // Le radioassistenze sono lo stesso confronto (ENR 4): dopo di loro i punti non sono più «vivi», e riaprirli rifà il
+        // confronto, perché i gesti vogliono quello di adesso.
+        pagina.Find("[data-sezione='radioassistenze']").Click();
+        pagina.WaitForAssertion(() => Assert.True(_lab.SezioneViva(SezioneDelConfronto.Radioassistenze)));
+        Assert.False(_lab.SezioneViva(SezioneDelConfronto.Punti));
+        pagina.Find("[data-sezione='punti']").Click();
+        pagina.WaitForAssertion(() => Assert.True(_lab.SezioneViva(SezioneDelConfronto.Punti)));
+        Assert.NotEmpty(pagina.FindAll("[data-gesti-della-sezione]"));
+    }
+
+    [Fact]
     public async Task LaPaginaDeiConfronti_SezioniRigheEFiltri()
     {
         await ApriAsync();
@@ -299,7 +330,7 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-righe]")));
         var tutte = _lab.Confronti[SezioneDelConfronto.Punti].Righe;
         // Di base si vede quel che è da guardare; gli uguali si accendono dal filtro.
-        Assert.Equal(tutte.Count(r => r.Esito != EsitoDelConfronto.Uguale), pagina.FindAll("[data-riga]").Count);
+        Assert.Equal(tutte.Count(r => r.DaGuardare), pagina.FindAll("[data-riga]").Count);   // R7: anche l'uguale con l'uso diverso
         pagina.Find("[data-filtro='Uguale']").Change(true);
         pagina.WaitForAssertion(() => Assert.Equal(tutte.Count, pagina.FindAll("[data-riga]").Count));
         Assert.NotNull(pagina.Find("[data-conti='punti']"));

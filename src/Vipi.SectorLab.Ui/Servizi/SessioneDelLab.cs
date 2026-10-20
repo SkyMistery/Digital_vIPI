@@ -168,8 +168,8 @@ public sealed class SessioneDelLab
     /// <summary>Lo spazio di una pagina; null per quelle senza mappa (Consegna, Impostazioni).</summary>
     public static SpazioDiLavoro? SpazioDi(PaginaDelLab pagina) => pagina switch
     {
-        PaginaDelLab.AipIndice => SpazioDiLavoro.Aip,
-        PaginaDelLab.Aip or PaginaDelLab.Confronti => SpazioDiLavoro.Confronti,
+        PaginaDelLab.AipIndice or PaginaDelLab.Aip => SpazioDiLavoro.Aip,
+        PaginaDelLab.Confronti => SpazioDiLavoro.Confronti,
         PaginaDelLab.Sector => SpazioDiLavoro.Sector,
         _ => null,
     };
@@ -4656,21 +4656,9 @@ public sealed class SessioneDelLab
             };
             if (!fatto)
                 return false;
-            var righe = sezione switch
-            {
-                Core.PdfAip.SezioneDelConfronto.Ctr or Core.PdfAip.SezioneDelConfronto.Atz or Core.PdfAip.SezioneDelConfronto.AtzDelleTorri
-                    or Core.PdfAip.SezioneDelConfronto.AreeEnr5 => UltimoConfronto is { } f ? (f.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(f.Esiti)) : default,
-                Core.PdfAip.SezioneDelConfronto.Rotte or Core.PdfAip.SezioneDelConfronto.Attese =>
-                    UltimoConfrontoDiEnr3 is { } e3 ? (e3.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(e3.Esiti)) : default,
-                Core.PdfAip.SezioneDelConfronto.Radioassistenze or Core.PdfAip.SezioneDelConfronto.Punti =>
-                    UltimoConfrontoDiEnr4 is { } e4 ? (e4.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(e4.Esiti)) : default,
-                Core.PdfAip.SezioneDelConfronto.Procedure =>
-                    UltimoConfrontoDelleProcedure is { } p ? (p.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(p.Esiti)) : default,
-                _ => UltimoConfrontoDiAd2 is { } a2 ? (a2.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(a2.Esiti)) : default,
-            };
-            if (righe.Item1 is null)
+            if (RigheDalleUltime(sezione) is not { } righe)
                 return Rifiuta("Il confronto non ha dato righe.");
-            _confronti[sezione] = (righe.Item1, righe.Item2);
+            _confronti[sezione] = righe;
             MostraSoloLaSezione(sezione);
             return true;
         }
@@ -4679,6 +4667,65 @@ public sealed class SessioneDelLab
             StaConfrontando = false;
             Avvisa();
         }
+    }
+
+    /// <summary>
+    /// Le righe di una sezione dall'ultimo confronto, se l'ultimo confronto di quel genere è proprio di questa sezione
+    /// (R7: i gesti lo rifanno, e le righe devono essere quelle di adesso); null se no.
+    /// </summary>
+    private (string Ciclo, IReadOnlyList<Core.PdfAip.RigaDelConfronto> Righe)? RigheDalleUltime(Core.PdfAip.SezioneDelConfronto sezione)
+    {
+        Core.PdfAip.FamigliaDelConfronto? famiglia = sezione switch
+        {
+            Core.PdfAip.SezioneDelConfronto.Ctr => Core.PdfAip.FamigliaDelConfronto.Ctr,
+            Core.PdfAip.SezioneDelConfronto.Atz => Core.PdfAip.FamigliaDelConfronto.Atz,
+            Core.PdfAip.SezioneDelConfronto.AtzDelleTorri => Core.PdfAip.FamigliaDelConfronto.AtzDelleTorri,
+            Core.PdfAip.SezioneDelConfronto.AreeEnr5 => Core.PdfAip.FamigliaDelConfronto.AreeEnr5,
+            _ => null,
+        };
+        if (famiglia is { } f)
+            return UltimoConfronto is { } c && c.Famiglia == f
+                ? (c.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(c.Esiti, aree: f == Core.PdfAip.FamigliaDelConfronto.AreeEnr5))
+                : null;
+        Core.PdfAip.ParteDiAd2? parte = sezione switch
+        {
+            Core.PdfAip.SezioneDelConfronto.Scali => Core.PdfAip.ParteDiAd2.Scali,
+            Core.PdfAip.SezioneDelConfronto.Piste => Core.PdfAip.ParteDiAd2.Piste,
+            Core.PdfAip.SezioneDelConfronto.Frequenze => Core.PdfAip.ParteDiAd2.Frequenze,
+            Core.PdfAip.SezioneDelConfronto.RadioassistenzeAd2 => Core.PdfAip.ParteDiAd2.Radioassistenze,
+            _ => null,
+        };
+        if (parte is { } p)
+            return UltimoConfrontoDiAd2 is { } a2 && a2.Parte == p ? (a2.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(a2.Esiti)) : null;
+        return sezione switch
+        {
+            Core.PdfAip.SezioneDelConfronto.Rotte or Core.PdfAip.SezioneDelConfronto.Attese =>
+                UltimoConfrontoDiEnr3 is { } e3 && e3.Rotte == (sezione == Core.PdfAip.SezioneDelConfronto.Rotte)
+                    ? (e3.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(e3.Esiti)) : null,
+            Core.PdfAip.SezioneDelConfronto.Radioassistenze or Core.PdfAip.SezioneDelConfronto.Punti =>
+                UltimoConfrontoDiEnr4 is { } e4 && e4.Radioassistenze == (sezione == Core.PdfAip.SezioneDelConfronto.Radioassistenze)
+                    ? (e4.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(e4.Esiti)) : null,
+            _ => UltimoConfrontoDelleProcedure is { } pr ? (pr.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(pr.Esiti)) : null,
+        };
+    }
+
+    /// <summary>Vero se l'ultimo confronto del suo genere è di questa sezione: allora i gesti si possono fare.</summary>
+    public bool SezioneViva(Core.PdfAip.SezioneDelConfronto sezione) => _confronti.ContainsKey(sezione) && RigheDalleUltime(sezione) is not null;
+
+    /// <summary>
+    /// Le righe di una sezione: quelle di adesso se il suo confronto è l'ultimo (dopo un gesto cambiano), se no quelle
+    /// ricordate. Null se la sezione non è stata confrontata.
+    /// </summary>
+    public (string Ciclo, IReadOnlyList<Core.PdfAip.RigaDelConfronto> Righe)? RigheDellaSezione(Core.PdfAip.SezioneDelConfronto sezione)
+    {
+        if (!_confronti.TryGetValue(sezione, out var ricordate))
+            return null;
+        if (RigheDalleUltime(sezione) is { } vive)
+        {
+            _confronti[sezione] = vive;
+            return vive;
+        }
+        return ricordate;
     }
 
     /// <summary>Riapre una sezione già confrontata, con le sue righe di prima.</summary>
@@ -4723,7 +4770,7 @@ public sealed class SessioneDelLab
     /// </summary>
     public void ScegliLaRigaDelConfronto(int indice)
     {
-        if (SezioneDelConfronto is not { } sezione || !_confronti.TryGetValue(sezione, out var confronto)
+        if (SezioneDelConfronto is not { } sezione || RigheDellaSezione(sezione) is not { } confronto
             || indice < 0 || indice >= confronto.Righe.Count)
             return;
         var riga = confronto.Righe[indice];

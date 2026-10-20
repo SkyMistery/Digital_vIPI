@@ -448,9 +448,35 @@ l'AIP non lo dice; OST il sector lo scrive VOR (FIX_VOR), l'AIP VOR/DME (FIX_VOR
   sezione (`GeneriDellAip`, gli altri spenti come i generi di uno strato). Il resto si riaccende dalle caselle. Sul banco:
   i punti, coi soli «Punti» dell'AIP accesi, e RF532 (sector a 0,75 NM dall'AIP) che ora si legge.
 
+**R7 fatta** (20 ottobre notte): i gesti di oggi nel Confronti.
+- `RigaDelConfronto` porta la riga di partenza (`Origine`, il tipo che i gesti vogliono) e `DaGuardare` (anche una riga
+  uguale con un gesto da fare: l'uso di un fix, i tratti di una rotta, un'area di ENR 5 da dividere, una radioassistenza
+  stampata diversa in ENR 4.1). «N da guardare» e il filtro di base le contano.
+- Le righe di una sezione si leggono **vive** dall'ultimo confronto quando è di quella sezione (`RigheDellaSezione`,
+  `SezioneViva`): i gesti rifanno il confronto, e la tabella è quella di adesso. Riaprire una sezione il cui confronto
+  non è più l'ultimo (punti dopo radioassistenze: sono lo stesso confronto di ENR 4) **lo rifà**, perché i gesti vogliono
+  quello di adesso; i gesti si mostrano solo su una sezione viva.
+- `GestiDellaRiga` (Sostituisci, Dividi, Porta nel sector con lo scalo, Porta la procedura, Scrivi i tratti, Porta la
+  rotta, la scelta delle attese, Correggi l'uso, Sostituisci delle radioassistenze, delle piste e degli scali, Porta la
+  pista…) e `GestiDellaSezione` (Porta tutte di ENR 5 e di ENR 4, Scrivi i tracciati delle SID uguali, Mappa delle SID,
+  Scrivi i tratti di tutte, Porta le attese selezionate, Correggi l'uso di tutti, e le note della sezione): il markup e i
+  gestori di prima, con gli **stessi `data-tasto`** (D7). `ScelteDelleAttese` tiene le attese spuntate fra righe e
+  sezione. Nella pagina, il riassunto della sezione (`data-riassunto-confronto`: «uguale 39 · diversa 6»).
+- «Lettura e confronti» torna **«Lettura e consegna»** nello spazio AIP espanso: PDF, lettura, repo dell'AIP espanso,
+  strato sulla mappa, voci da aggiungere; tolti i confronti (356 righe) e i loro gestori (147). Il gruppo Confronti ha la
+  sola pagina Confronti.
+- Test: Lab 1 319 (+1, i gesti dal Confronti in `ConfrontoDiEnr4Tests`; i quattro test dei gesti di CTR e ATZ in
+  `AipNellaBarraTests` ora passano dalla pagina Confronti; tre attendono il gestore della casella «sulla mappa» con
+  `ChangeAsync`, perché lo strato è già caricato dal Confronti e la ricarica finiva dopo la scelta della voce). Sul banco
+  (copia del sector, AIP di prova 2610): CTR con «Sostituisci»; punti con «Correggi l'uso di tutti (4)» e «Porta tutte
+  (95)»; aree di ENR 5 con «Porta tutte (214)»; SID e STAR con «Scrivi i tracciati (280 voci)» e «Mappa delle SID di
+  LIED»; «Sostituisci» su Amendola: il CTR diventa «uguale 40 · diversa 5» e la barra «Salva (1)» (in memoria, non
+  salvato: la copia non è cambiata).
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
 (R4-R9). **R4 fatta** (tre mappe, un motore), **R5 fatta** (due lati, un disegno), **R6 fatta** (lo spazio Confronti in
-lettura); prossima **R7** (i gesti di oggi nel Confronti), dopo il via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+lettura) col ritocco «solo la sezione sulla mappa», **R7 fatta** (i gesti nel Confronti, «Lettura e consegna» nello spazio
+AIP); prossima **R8** («metti in questo file»: prima la misura dei file compatibili), dopo il via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

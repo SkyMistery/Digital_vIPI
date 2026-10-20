@@ -41,7 +41,8 @@ public sealed class PagineDelLabTests : IDisposable
         Assert.Equal(6, pagina.FindAll("[data-pagina]").Count(e => e.TagName == "BUTTON"));
         // Tre spazi (D14): l'AIP espanso, il Sector, i Confronti, ognuno coi suoi; le Impostazioni fuori.
         Assert.NotNull(pagina.Find("[data-mondo='aip'] [data-pagina='aipindice']"));
-        Assert.NotNull(pagina.Find("[data-mondo='confronti'] [data-pagina='aip']"));
+        Assert.NotNull(pagina.Find("[data-mondo='aip'] [data-pagina='aip']"));          // R7: «Lettura e consegna»
+        Assert.NotNull(pagina.Find("[data-mondo='confronti'] [data-pagina='confronti']"));
         Assert.NotNull(pagina.Find("[data-mondo='sector'] [data-pagina='sector']"));
         Assert.NotNull(pagina.Find("[data-mondo='sector'] [data-pagina='consegna']"));
         Assert.Empty(pagina.FindAll("[data-mondo] [data-pagina='impostazioni']"));

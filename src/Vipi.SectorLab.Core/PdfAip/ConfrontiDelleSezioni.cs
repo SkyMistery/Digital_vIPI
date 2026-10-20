@@ -26,8 +26,12 @@ public enum SezioneDelConfronto
 /// <summary>
 /// Una riga del Confronto, uguale per tutte le sezioni (R6): l'esito, la voce dell'AIP, quella del sector (e dove sta,
 /// per aprirla), e le righe che dicono la differenza. Viene dalle righe dei confronti di F6 e F7, ognuna col suo tipo.
+/// <para>R7: <paramref name="Origine"/> è la riga di quel tipo, che i gesti (Porta, Sostituisci…) vogliono com'è;
+/// <paramref name="DaGuardare"/> è vero anche per una riga uguale che ha un gesto da fare (l'uso di un fix, i tratti di una
+/// rotta, un'area da dividere, una radioassistenza stampata diversa in ENR 4.1).</para>
 /// </summary>
-public sealed record RigaDelConfronto(EsitoDelConfronto Esito, string? Aip, string? Sector, string? File, int? Record, IReadOnlyList<string> Dettagli);
+public sealed record RigaDelConfronto(EsitoDelConfronto Esito, string? Aip, string? Sector, string? File, int? Record, IReadOnlyList<string> Dettagli,
+    object? Origine = null, bool DaGuardare = false);
 
 /// <summary>Le sezioni del Confronto: nomi, parti dell'AIP, e le righe dei confronti di oggi portate a una forma sola.</summary>
 public static class ConfrontiDelleSezioni
@@ -101,8 +105,9 @@ public static class ConfrontiDelleSezioni
         return conteggi;
     }
 
-    /// <summary>Gli spazi (CTR, ATZ, ENR 5): la forma, a distanza, coi due scarti.</summary>
-    public static IReadOnlyList<RigaDelConfronto> Da(IEnumerable<DifferenzaDiForma> esiti)
+    /// <summary>Gli spazi (CTR, ATZ, ENR 5): la forma, a distanza, coi due scarti. Nelle aree di ENR 5 una voce del sector
+    /// che tiene più aree dell'AIP è da guardare anche se uguale: si divide.</summary>
+    public static IReadOnlyList<RigaDelConfronto> Da(IEnumerable<DifferenzaDiForma> esiti, bool aree = false)
     {
         ArgumentNullException.ThrowIfNull(esiti);
         return [.. esiti.Select(e =>
@@ -116,7 +121,8 @@ public static class ConfrontiDelleSezioni
                 dettagli.Add($"il sector si stacca dall'AIP fino a {Nm(sector)} NM");
             if (e.SenzaTracciato)
                 dettagli.Add("un pezzo lungo un confine o una costa che l'AIP nomina senza forma: non si giudica");
-            return new RigaDelConfronto(e.Esito, e.Aip, e.Sector, e.File, e.Record, dettagli);
+            return new RigaDelConfronto(e.Esito, e.Aip, e.Sector, e.File, e.Record, dettagli, e,
+                e.Esito != EsitoDelConfronto.Uguale || (aree && e.Zone > 1 && e.File is not null));
         })];
     }
 
@@ -126,31 +132,36 @@ public static class ConfrontiDelleSezioni
         ArgumentNullException.ThrowIfNull(esiti);
         return [.. esiti.Select(e => new RigaDelConfronto(e.Esito,
             e.Esito == EsitoDelConfronto.SoloNelSector ? null : $"{e.Scalo} {e.Nome}",
-            e.Nomi.Count > 0 ? string.Join(", ", e.Nomi) : null, e.File, e.Record, e.Dettagli))];
+            e.Nomi.Count > 0 ? string.Join(", ", e.Nomi) : null, e.File, e.Record, e.Dettagli, e, e.Esito != EsitoDelConfronto.Uguale))];
     }
 
-    /// <summary>Rotte e attese (ENR 3).</summary>
+    /// <summary>Rotte e attese (ENR 3). Una rotta uguale coi tratti da scrivere è da guardare.</summary>
     public static IReadOnlyList<RigaDelConfronto> Da(IEnumerable<DifferenzaDiEnr3> esiti) =>
-        Semplici(esiti, e => (e.Esito, e.Nome, e.File, e.Record, e.Dettagli));
+        Semplici(esiti, e => (e.Esito, e.Nome, e.File, e.Record, e.Dettagli, e.TrattiDaScrivere > 0));
 
-    /// <summary>Radioassistenze e punti (ENR 4).</summary>
+    /// <summary>Radioassistenze e punti (ENR 4). Un punto con l'uso diverso è da guardare.</summary>
     public static IReadOnlyList<RigaDelConfronto> Da(IEnumerable<DifferenzaDiEnr4> esiti) =>
-        Semplici(esiti, e => (e.Esito, e.Nome, e.File, e.Record, e.Dettagli));
+        Semplici(esiti, e => (e.Esito, e.Nome, e.File, e.Record, e.Dettagli, e.UsoDiverso));
 
-    /// <summary>Scali, piste, frequenze, radioassistenze di AD 2.</summary>
+    /// <summary>Scali, piste, frequenze, radioassistenze di AD 2. Una diversa in ENR 4.1 è da guardare.</summary>
     public static IReadOnlyList<RigaDelConfronto> Da(IEnumerable<DifferenzaDiAd2> esiti) =>
-        Semplici(esiti, e => (e.Esito, $"{e.Scalo} {e.Nome}", e.File, e.Record, e.Dettagli));
+        Semplici(esiti, e => (e.Esito, $"{e.Scalo} {e.Nome}", e.File, e.Record, e.Dettagli, e.DiversaInEnr41));
 
     // Le righe col solo nome: il nome è dell'AIP, e del sector se il sector ha la voce.
     private static IReadOnlyList<RigaDelConfronto> Semplici<T>(IEnumerable<T> esiti,
-        Func<T, (EsitoDelConfronto Esito, string Nome, string? File, int? Record, IReadOnlyList<string> Dettagli)> parti)
+        Func<T, (EsitoDelConfronto Esito, string Nome, string? File, int? Record, IReadOnlyList<string> Dettagli, bool Anche)> parti)
+        where T : notnull
     {
         ArgumentNullException.ThrowIfNull(esiti);
-        return [.. esiti.Select(parti).Select(p => new RigaDelConfronto(p.Esito,
-            p.Esito == EsitoDelConfronto.SoloNelSector ? null : p.Nome,
-            p.Esito == EsitoDelConfronto.MancaNelSector ? null : p.Nome,
-            p.File, p.Record, p.Dettagli))];
+        return [.. esiti.Select(e => (Origine: e, Parti: parti(e))).Select(x => new RigaDelConfronto(x.Parti.Esito,
+            x.Parti.Esito == EsitoDelConfronto.SoloNelSector ? null : x.Parti.Nome,
+            x.Parti.Esito == EsitoDelConfronto.MancaNelSector ? null : x.Parti.Nome,
+            x.Parti.File, x.Parti.Record, x.Parti.Dettagli, x.Origine,
+            x.Parti.Esito != EsitoDelConfronto.Uguale || x.Parti.Anche))];
     }
+
+    /// <summary>Quante righe sono da guardare (non uguali, o uguali con un gesto da fare).</summary>
+    public static int DaGuardare(IEnumerable<RigaDelConfronto> righe) => righe.Count(r => r.DaGuardare);
 
     private static string Nm(double valore) => valore.ToString("0.##", CultureInfo.GetCultureInfo("it-IT"));
 

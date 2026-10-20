@@ -66,7 +66,7 @@ public sealed class TreMappeTests : IDisposable
         Assert.Equal(SpazioDiLavoro.Sector, _lab.SpazioAttivo);
         _lab.Accendi("punti", true);
 
-        _lab.ScegliLaPagina(PaginaDelLab.Aip);
+        _lab.ScegliLaPagina(PaginaDelLab.Confronti);
         Assert.Equal(SpazioDiLavoro.Confronti, _lab.SpazioAttivo);
         Assert.DoesNotContain("punti", _lab.Accesi);
         _lab.Accendi("aerovie", true);

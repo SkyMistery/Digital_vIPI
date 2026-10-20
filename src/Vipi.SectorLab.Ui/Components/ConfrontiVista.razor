@@ -3,10 +3,10 @@
 @using Vipi.SectorLab.Core.PdfAip
 
 @*
-    Lo spazio Confronti, in lettura (riordino R6, D17 e D18): le sezioni come nell'AIP, ognuna col suo confronto; per la
-    sezione aperta le righe uguale / diversa / manca / solo nel sector, filtrabili; una riga scelta mette sulla mappa del
-    Confronto il record del sector e la voce dell'AIP, nei loro colori. I gesti (Porta, Sostituisci…) arrivano con la R7:
-    fino ad allora stanno in «Lettura e gesti».
+    Lo spazio Confronti (riordino R6, D17 e D18): le sezioni come nell'AIP, ognuna col suo confronto; per la sezione
+    aperta le righe uguale / diversa / manca / solo nel sector, filtrabili; una riga scelta mette sulla mappa del
+    Confronto il record del sector e la voce dell'AIP, nei loro colori. Dalla R7 anche i gesti (Porta, Sostituisci…),
+    della riga e della sezione, spostati da «Lettura e confronti».
 *@
 <section class="lab-riquadro lab-confronti" data-confronti>
     <h2 class="lab-riquadro-titolo">Confronti <span class="lab-nota">AIP espanso @(Lab.StratoDellAip?.Ciclo ?? "") ↔ sector</span></h2>
@@ -28,10 +28,9 @@
                             title="@(fatta ? "Riapre la sezione; per rifare il confronto, «Rifai»" : "Confronta l'AIP espanso col sector in questa sezione (in sola lettura)")"
                             @onclick="() => Apri(questa)">
                         @ConfrontiDelleSezioni.Nome(questa)
-                        @if (fatta)
+                        @if (fatta && Lab.RigheDellaSezione(questa) is { } righeDellaSezione)
                         {
-                            var conti = ConfrontiDelleSezioni.Conteggi(confronto.Righe);
-                            <span class="lab-nota" data-conti="@questa.ToString().ToLowerInvariant()">@(conti[EsitoDelConfronto.FormaDiversa] + conti[EsitoDelConfronto.MancaNelSector] + conti[EsitoDelConfronto.SoloNelSector]) da guardare</span>
+                            <span class="lab-nota" data-conti="@questa.ToString().ToLowerInvariant()">@ConfrontiDelleSezioni.DaGuardare(righeDellaSezione.Righe) da guardare</span>
                         }
                     </button>
                 }
@@ -48,11 +47,12 @@
         <p class="lab-avviso-breve" data-confronto-rifiutato>@_rifiuto</p>
     }
 
-    @if (Lab.SezioneDelConfronto is { } aperta && Lab.Confronti.TryGetValue(aperta, out var aperto))
+    @if (Lab.SezioneDelConfronto is { } aperta && Lab.RigheDellaSezione(aperta) is { } aperto)
     {
         var conti = ConfrontiDelleSezioni.Conteggi(aperto.Righe);
         <div class="lab-confronti-filtri" data-filtri>
-            <strong>@ConfrontiDelleSezioni.Nome(aperta)</strong> <span class="lab-nota">ciclo @aperto.Ciclo</span>
+            <strong>@ConfrontiDelleSezioni.Nome(aperta)</strong> <span class="lab-nota">ciclo @aperto.Ciclo:
+                <span data-riassunto-confronto>@string.Join(" · ", conti.Where(c => c.Value > 0).Select(c => $"{Esito(c.Key)} {c.Value}"))</span></span>
             @foreach (var esito in Enum.GetValues<EsitoDelConfronto>())
             {
                 var questo = esito;
@@ -67,18 +67,26 @@
                     title="Rifà il confronto della sezione sul sector e sull'AIP espanso di adesso" @onclick="() => Rifai(aperta)">Rifai</button>
         </div>
 
+        @* R7: i gesti della sezione intera (Porta tutte, Scrivi i tracciati…) e, riga per riga, quelli della riga. *@
+        <GestiDellaSezione Sezione="aperta" Attese="_attese" Fatto="Fatto" />
+
         <ul class="lab-confronti-righe" data-righe="@aperto.Righe.Count">
             @for (int i = 0; i < aperto.Righe.Count; i++)
             {
                 var indice = i;
                 var riga = aperto.Righe[i];
-                if (!_filtro.Contains(riga.Esito))
+                // Una riga uguale con un gesto da fare (l'uso di un fix, i tratti di una rotta) si vede insieme alle diverse.
+                if (!_filtro.Contains(riga.Esito) && !(riga.DaGuardare && _filtro.Contains(EsitoDelConfronto.FormaDiversa)))
                     continue;
                 <li class="lab-confronti-riga @(Lab.RigaDelConfrontoScelta == indice ? "lab-confronti-riga-scelta" : null)" data-riga="@indice" data-esito="@riga.Esito">
                     <button type="button" class="lab-voce" title="Mostra le due voci sulla mappa e nelle schede" @onclick="() => Lab.ScegliLaRigaDelConfronto(indice)">
                         <span class="lab-confronti-esito lab-confronti-esito-@riga.Esito.ToString().ToLowerInvariant()">@Esito(riga.Esito)</span>
                         <span class="lab-lato-aip-testo">@(riga.Aip ?? "—")</span> ↔ <span class="lab-lato-sector-testo">@(riga.Sector ?? "—")</span>
                     </button>
+                    @if (Lab.SezioneViva(aperta))
+                    {
+                        <GestiDellaRiga @key="riga" Sezione="aperta" Riga="riga" Attese="_attese" Fatto="Fatto" />
+                    }
                     @if (riga.Dettagli.Count > 0)
                     {
                         <span class="lab-nota lab-confronti-dettagli">@string.Join(" · ", riga.Dettagli)</span>
@@ -105,15 +113,22 @@
 
     public void Dispose() => Lab.Cambiata -= Aggiorna;
 
+    /// <summary>Le attese che mancano, come l'AOD le sceglie prima di portarle.</summary>
+    private readonly ScelteDelleAttese _attese = new();
+
+    // R7: una sezione già confrontata si riapre com'è se il suo confronto è ancora l'ultimo; se no si rifà, perché i gesti
+    // vogliono il confronto di adesso (lo stesso genere di un'altra sezione l'ha sostituito).
     private async Task Apri(SezioneDelConfronto sezione)
     {
-        if (Lab.Confronti.ContainsKey(sezione))
+        if (Lab.SezioneViva(sezione))
         {
             Lab.ApriLaSezioneDelConfronto(sezione);
             return;
         }
         await Rifai(sezione);
     }
+
+    private void Fatto(string? perche) => _rifiuto = perche;
 
     private async Task Rifai(SezioneDelConfronto sezione) =>
         _rifiuto = await Lab.ConfrontaLaSezioneAsync(sezione) ? null : Lab.Rifiuto;

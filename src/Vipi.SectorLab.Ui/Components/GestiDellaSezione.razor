@@ -1,0 +1,105 @@
+@inject SessioneDelLab Lab
+@using Vipi.SectorLab.Core.PdfAip
+@using Esiti = Vipi.SectorLab.Core.PdfAip.EsitoDelConfronto
+
+@*
+    I gesti di una sezione intera del Confronto (riordino R7): «Porta tutte», «Scrivi i tracciati», «Mappa delle SID»,
+    «Scrivi i tratti di tutte», «Porta le selezionate», «Correggi l'uso di tutti», e le note che valgono per la sezione.
+    Quelli di prima, spostati da «Lettura e confronti» con gli stessi data-tasto (D7). Si mostrano solo se il confronto
+    della sezione è l'ultimo del suo genere: i gesti lo vogliono così.
+*@
+@if (Lab.SezioneViva(Sezione))
+{
+    <div class="lab-confronti-gesti" data-gesti-della-sezione="@Sezione.ToString().ToLowerInvariant()">
+        @switch (Sezione)
+        {
+            case SezioneDelConfronto.Atz or SezioneDelConfronto.AtzDelleTorri when Lab.UltimoConfronto is { } f && f.Esiti.Any(e => e.Esito == Esiti.SoloNelSector):
+                <p class="lab-nota" data-solo-nel-sector>Le voci «solo nel sector»: le ATZ civili stanno in AD 2, che il Lab legge solo per gli scali di cui ci sono i PDF.</p>
+                break;
+
+            case SezioneDelConfronto.AreeEnr5 when Lab.UltimoConfronto is { } f
+                && f.Esiti.Where(e => e.Esito == Esiti.MancaNelSector).Select(e => e.Aip).OfType<string>().ToList() is { Count: > 1 } mancanti:
+                <button type="button" class="lab-tasto" data-tasto="porta-tutte-enr5"
+                        title="Tutte le aree che il sector non ha, in fondo al loro file (P in italy.prohibit, D in italy.danger, il resto in italy.restrict): un gesto solo, da annullare"
+                        @onclick="() => Dici(Lab.PortaAreeEnr5(mancanti))">Porta tutte (@mancanti.Count)</button>
+                break;
+
+            case SezioneDelConfronto.Procedure:
+                <p class="lab-nota">Le SID del sector non hanno tracciato: si confrontano nome, piste e punto finale.</p>
+                @if (Lab.TracciatiDaScrivere is var senza and > 0)
+                {
+                    <button type="button" class="lab-tasto" data-tasto="scrivi-tracciati"
+                            title="Le SID uguali all'AIP per nome, piste e punto finale, che nel sector non hanno tracciato: il tracciato dell'AIP coi tag di quota e velocità (D2, D3), un gesto solo"
+                            @onclick="() => Dici(Lab.ScriviITracciatiDelleSid())">Scrivi i tracciati delle SID uguali (@senza voci)</button>
+                }
+                @foreach (var (scalo, _, quante) in Lab.ScaliPerLaMappaDelleSid())
+                {
+                    <button type="button" class="lab-tasto" data-tasto="mappa-delle-sid"
+                            title="In testa al .sid una voce MAPS che disegna insieme le SID col tracciato (P10): una mappa composta, che il Lab rigenera quando una SID cambia"
+                            @onclick="() => Dici(Lab.CreaLaMappaDelleSid(scalo))">Mappa delle SID di @scalo (@quante)</button>
+                }
+                break;
+
+            case SezioneDelConfronto.Rotte when Lab.UltimoConfrontoDiEnr3 is { } enr3 && enr3.Esiti.Where(e => e.TrattiDaScrivere > 0).ToList() is { Count: > 0 } conTratti:
+                <button type="button" class="lab-tasto" data-tasto="scrivi-tutti-i-tratti"
+                        title="Verso e quote dell'AIP nei tag //@@ dei tratti di tutte le rotte (le locked=si no): un gesto solo, da annullare"
+                        @onclick="() => Fai(Lab.ScriviITratti(conTratti.Select(e => e.Nome).ToList()))">Scrivi i tratti di tutte (@conTratti.Sum(e => e.TrattiDaScrivere) su @conTratti.Count rotte)</button>
+                break;
+
+            case SezioneDelConfronto.Attese when Lab.UltimoConfrontoDiEnr3 is { } enr3 && enr3.Esiti.Any(e => e.Esito == Esiti.MancaNelSector):
+                var scelte = Attese.Scelte(enr3.Esiti);
+                <p class="lab-nota">Le attese che mancano: spunta quelle da portare, di procedura (nello .str dello scalo, scritta o ovale) o in rotta (HOLDENR.hold).</p>
+                <button type="button" class="lab-tasto" data-tasto="porta-attese" disabled="@(scelte.Count == 0)"
+                        title="Le attese spuntate nel sector: di procedura come HLD- nello .str dello scalo, in rotta in HOLDENR.hold"
+                        @onclick="() => PortaLeAttese(scelte)">Porta le selezionate (@scelte.Count)</button>
+                break;
+
+            case SezioneDelConfronto.Punti or SezioneDelConfronto.Radioassistenze when Lab.UltimoConfrontoDiEnr4 is { } enr4:
+                @if (enr4.Esiti.Where(e => e.UsoDiverso).Select(e => e.Nome).ToList() is { Count: > 1 } usi)
+                {
+                    <button type="button" class="lab-tasto" data-tasto="correggi-tutti-gli-usi"
+                            title="L'uso (4° campo) e il FRA (5°) dell'AIP nelle righe di itfix.fix: un gesto solo, da annullare"
+                            @onclick="() => Fai(Lab.CorreggiLUso(usi))">Correggi l'uso di tutti (@usi.Count)</button>
+                }
+                @if (enr4.Esiti.Where(e => e.Esito == Esiti.MancaNelSector).Select(e => e.Nome).ToList() is { Count: > 1 } tutte)
+                {
+                    <button type="button" class="lab-tasto" data-tasto="porta-tutte-enr4"
+                            title="Tutte quelle che il sector non ha, in ordine di nome nel loro file: un gesto solo, da annullare"
+                            @onclick="() => Dici(Lab.PortaNelSectorDiEnr4(tutte))">Porta tutte (@tutte.Count)</button>
+                }
+                break;
+
+            case SezioneDelConfronto.Scali or SezioneDelConfronto.Piste or SezioneDelConfronto.Frequenze or SezioneDelConfronto.RadioassistenzeAd2:
+                <p class="lab-nota">Una voce che sta in più file (OTHER/it… e le FIR) è una riga per file.@(Sezione switch
+                    {
+                        SezioneDelConfronto.Frequenze => " Le frequenze sono in sola lettura.",
+                        SezioneDelConfronto.RadioassistenzeAd2 => $" Le voci del sector che AD 2.19 non ha non si elencano. Gli ILS ({Lab.IlsDellAipDiAd2}) il sector non li tiene: non c'è una sezione per loro.",
+                        _ => "",
+                    })</p>
+                break;
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public SezioneDelConfronto Sezione { get; set; }
+
+    /// <summary>Le attese scelte da portare: le tiene la pagina, le righe le spuntano.</summary>
+    [Parameter, EditorRequired] public ScelteDelleAttese Attese { get; set; } = default!;
+
+    /// <summary>Com'è andato un gesto: null se è andato, se no il perché.</summary>
+    [Parameter] public EventCallback<string?> Fatto { get; set; }
+
+    private Task Fai(bool riuscito) => Fatto.InvokeAsync(riuscito ? null : Lab.Rifiuto);
+
+    // Come prima: questi gesti dicono qualcosa anche quando vanno (le voci saltate).
+    private Task Dici(bool _) => Fatto.InvokeAsync(Lab.Rifiuto);
+
+    private Task PortaLeAttese(List<SessioneDelLab.SceltaDiAttesa> scelte)
+    {
+        Lab.PortaLeAttese(scelte);
+        if (Lab.Modifiche.CEQualcosa)
+            Attese.Portate(scelte);
+        return Fatto.InvokeAsync(Lab.Rifiuto);
+    }
+}
