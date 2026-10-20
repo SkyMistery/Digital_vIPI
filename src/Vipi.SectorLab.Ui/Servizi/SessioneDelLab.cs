@@ -4564,6 +4564,13 @@ public sealed class SessioneDelLab
         Avvisa();
     }
 
+    /// <summary>Dove sta un punto o una radioassistenza dell'AIP espanso: il centro di un arco DME della prosa (7b).</summary>
+    private static Func<string, global::Aip.Position?> DoveNellAip(global::Aip.AipDocument aip)
+    {
+        var punti = PuntiDellAip(aip);
+        return n => punti.TryGetValue(n, out var x) ? x.Position : null;
+    }
+
     /// <summary>I punti con nome dell'AIP espanso (punti di ENR 4.4 e di scalo; le radioassistenze), con la loro provenienza.</summary>
     private static Dictionary<string, (global::Aip.Position Position, global::Aip.SignificantPoint? Punto)> PuntiDellAip(global::Aip.AipDocument aip)
     {
@@ -4629,7 +4636,7 @@ public sealed class SessioneDelLab
     /// «Porta nel sector» (carta F7, slice 7e) una procedura che il sector non ha: una STAR come voce nuova dello <c>.str</c>
     /// dello scalo, una SID come voce nuova del <c>.sid</c> col suo tracciato (D2), una transizione come voce «SID-TRANS» per
     /// ogni SID del sector che finisce dove la transizione comincia. Il nome nella convenzione del file (D1), i tag di quota
-    /// e velocità sui punti (D3), i punti che mancano portati prima. Le convenzionali in sola prosa no (la 7b).
+    /// e velocità sui punti (D3), i punti che mancano portati prima. Le convenzionali in sola prosa che la 7b non ha letto no.
     /// </summary>
     public bool PortaLaProcedura(Core.PdfAip.DifferenzaDiProcedura riga)
     {
@@ -4640,7 +4647,7 @@ public sealed class SessioneDelLab
             || aip.Procedures?.FirstOrDefault(p => p.Aerodrome == riga.Scalo && p.Kind == riga.Genere && p.Designator == riga.Nome && p.Runways.SequenceEqual(riga.Piste)) is not { } proc)
             return Rifiuta("Si porta una procedura che il sector non ha.");
         if (proc.Legs.Count == 0)
-            return Rifiuta($"{proc.Designator} è in sola prosa: i suoi tratti verranno con la slice 7b.");
+            return Rifiuta($"{proc.Designator} è in sola prosa e la prosa non si è letta (le segnalazioni di «Leggi» dicono perché): si porta a mano.");
         var star = proc.Kind == global::Aip.ProcedureKind.Star;
         var estensione = star ? ".str" : ".sid";
         var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + proc.Aerodrome.ToLowerInvariant() + estensione, StringComparison.OrdinalIgnoreCase));
@@ -4666,6 +4673,7 @@ public sealed class SessioneDelLab
         {
             var nome = Core.PdfAip.ProcedureNelSector.Nome(proc.Designator, lettere);
             var punti = Core.PdfAip.ProcedureNelSector.Punti([proc]);
+            if (punti.Count == 0) return Rifiuta($"{proc.Designator}: nessun punto con nome per il campo 7, si porta a mano.");
             voci.Add((nome, Core.PdfAip.ProcedureNelSector.TestataDellaSid(proc.Aerodrome, proc.Runways, nome, punti[^1], Core.PdfAip.ProcedureNelSector.Rnav([proc])), [proc]));
         }
         else
@@ -4694,6 +4702,7 @@ public sealed class SessioneDelLab
         voci.RemoveAll(v => gia.Contains(v.Nome));
 
         var avvisi = new List<string>();
+        var dove = DoveNellAip(aip);
         var gesto = $"{proc.Designator} ({string.Join(", ", voci.Select(v => v.Nome))}) dall'AIP {confronto.Ciclo}";
         bool fatto = NellaStoria(gesto, () =>
         {
@@ -4705,7 +4714,7 @@ public sealed class SessioneDelLab
                 var c = (IFileConRecord)sessione.File[file];
                 var quanti = c.RecordDelModello.Count;
                 var righe = c.RigheDelFile(Modifiche.SporchiDi(file));
-                var blocco = Core.PdfAip.ProcedureNelSector.Blocco(v.Nome, v.Testata, v.Pezzi, nota, star ? Core.PdfAip.ProcedureNelSector.Coda(proc.Designator) : null);
+                var blocco = Core.PdfAip.ProcedureNelSector.Blocco(v.Nome, v.Testata, v.Pezzi, nota, star ? Core.PdfAip.ProcedureNelSector.Coda(proc.Designator) : null, dove);
                 var ultima = righe.Count;
                 var sostituzioni = new Dictionary<int, IReadOnlyList<string>>
                 {
@@ -4804,10 +4813,10 @@ public sealed class SessioneDelLab
             IReadOnlyList<global::Aip.Procedure> pezzi = [.. parti.OfType<global::Aip.Procedure>()];
             if (pezzi.Any(p => p.Legs.Count == 0))
             {
-                saltate.Add($"{nome} (in sola prosa: la 7b)");
+                saltate.Add($"{nome} (in sola prosa, non letta)");
                 continue;
             }
-            voci.Add((file, record, nome, conRecord.RecordDelModello[record] is ProcedureStrRecord, pezzi));
+            voci.Add((file, record, nome, conRecord.RecordDelModello[record] is StrRecord, pezzi));
         }
         return voci;
     }
@@ -4825,6 +4834,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Nessuna voce da riscrivere" + (saltate.Count > 0 ? ": " + string.Join(", ", saltate) : "."));
         var nota = $"AIP {confronto.Ciclo}";
         var avvisi = new List<string>();
+        var dove = DoveNellAip(aip);
         bool fatto = NellaStoria(gesto, () =>
         {
             avvisi.Clear();
@@ -4853,7 +4863,7 @@ public sealed class SessioneDelLab
                         if (campi.Length > 6 && punti.Count > 0) campi[6] = punti[^1];
                         testata = string.Join(';', campi);
                     }
-                    var corpo = Core.PdfAip.ProcedureNelSector.Corpo(v.Pezzi, v.Star ? Core.PdfAip.ProcedureNelSector.Coda(v.Pezzi[0].Designator) : null);
+                    var corpo = Core.PdfAip.ProcedureNelSector.Corpo(v.Pezzi, v.Star ? Core.PdfAip.ProcedureNelSector.Coda(v.Pezzi[0].Designator) : null, dove);
                     var sostituzioni = new Dictionary<int, IReadOnlyList<string>>
                     {
                         [da + 1] = [Core.PdfAip.ProcedureNelSector.Dichiarazione(v.Nome, v.Pezzi, nota), "//@START", testata, .. corpo, $"//@END \"{v.Nome}\""],
@@ -4886,7 +4896,8 @@ public sealed class SessioneDelLab
     private static string? NomeDellaVoce(object record) => record switch
     {
         SidProcedure sid => sid.Name.Trim(),
-        ProcedureStrRecord star => star.ProcedureId.Trim(),
+        // Anche una STAR con le virate disegnate a coordinate, che il parser legge come HoldingStrRecord (LICA ARBU4F).
+        ProcedureStrRecord or HoldingStrRecord => ((StrRecord)record).ProcedureId.Trim(),
         _ => null,
     };
 

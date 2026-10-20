@@ -4,7 +4,7 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 20 ottobre 2026: F7, SID e STAR (slice 7a, 7c, 7d e 7e fatte)
+## Dove siamo — 20 ottobre 2026: F7, SID e STAR (slice 7a-7e fatte)
 
 Il committente ha chiesto SID e STAR (il confronto col sector delle parti nuove della F6 è rimandato) e ha approvato la
 carta [`2026-10-19-f7-sid-e-star.md`](../feature/2026-10-19-f7-sid-e-star.md) (D1-D7 come proposte). **Slice 7a fatta**:
@@ -17,7 +17,10 @@ percorso; sulla copia 140 uguali, 150 diverse, 134 mancanti, 7 solo nel sector, 
 e corretto un difetto della 7a (le piste di LICA, PR #11). **Slice 7e fatta** (l'`initialclimb` no: la quota la mette il
 committente, D5): «Porta nel sector», «Sostituisci», «Scrivi i tracciati delle SID uguali», coi punti che mancano
 prima e i blocchi §M coi `//@@` di quota e velocità. Sulla copia, dopo i gesti, 339 uguali, 4 diverse e 81 mancanti, di
-cui 68 in prosa. **Prossima**: la 7b (la prosa).
+cui 68 in prosa. **Slice 7b fatta**: la prosa delle convenzionali diventa tratti (`ItalianAd2Prose`), coi punti senza
+nome calcolati dalle radioassistenze e gli archi DME. Su 2610 ne legge 104 su 113; le 9 restano in prosa e si dice perché.
+Mappa, confronto e gesti li usano. Corretto un difetto della 7d/7e: le STAR del sector con le coordinate non si vedevano.
+AIP espanso di prova sulla PR #11. **Prossima**: la 7f.
 
 ## 19 ottobre 2026: F6, le correzioni dell'AIP espanso finite (slice 1-3)
 

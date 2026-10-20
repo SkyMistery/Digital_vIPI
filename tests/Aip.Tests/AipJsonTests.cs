@@ -531,4 +531,31 @@ public sealed class AipJsonTests
         Assert.NotEqual(sid with { Legs = [sid.Legs[0]] }, riletto.Procedures[0]);
         Assert.NotEqual(sid with { Runways = ["16L"] }, riletto.Procedures[0]);
     }
+
+    // Slice 7b: i tratti ricavati dalla prosa, coi punti calcolati e l'arco DME, vanno e tornano uguali; il segno che vengono
+    // dalla prosa conta nell'uguaglianza, e non si scrive quando è falso.
+    [Fact]
+    public void LeProcedureDallaProsaVannoETornanoUguali()
+    {
+        var star = new Procedure
+        {
+            Aerodrome = "LIXX", Kind = ProcedureKind.Star, Designator = "PROVA 1H", Runways = ["10"], LegsFromDescription = true,
+            Description = "PROVA – TR 310° (RDL 130 LMT VOR) …",
+            Legs =
+            [
+                new ProcedureLeg { PathTerminator = "IF", Fix = "PROVA" },
+                new ProcedureLeg { PathTerminator = "CF", Computed = "RDL 312/15 NM LMT", Position = new Position(39.08, 16.04), Course = "132°" },
+                new ProcedureLeg { PathTerminator = "AF", Computed = "RDL 283/15 NM LMT", Position = new Position(38.97, 15.96), ArcCenter = "LMT", ArcRadiusNm = 15, Turn = "L" },
+            ],
+        };
+        var doc = new AipDocument { State = "LI", Airspaces = [], Procedures = [star] };
+
+        var json = AipJson.Serialize(doc);
+        var riletto = AipJson.Deserialize(json);
+
+        Assert.Equal(doc, riletto);
+        Assert.NotEqual(star with { LegsFromDescription = false }, riletto.Procedures![0]);
+        Assert.Contains("\"legsFromDescription\": true", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("legsFromDescription", AipJson.Serialize(doc with { Procedures = [star with { LegsFromDescription = false }] }), StringComparison.Ordinal);
+    }
 }

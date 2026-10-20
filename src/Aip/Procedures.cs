@@ -40,8 +40,18 @@ public sealed record Procedure
     /// <summary>Il titolo della sezione com'è stampato (<c>SID RNAV1 or RNP1 RWY24 - Description</c>): dice RNAV o convenzionale.</summary>
     public string? Section { get; init; }
 
-    /// <summary>I tratti della tabella, nell'ordine. Vuoto per una convenzionale di sola prosa.</summary>
+    /// <summary>
+    /// I tratti della tabella, nell'ordine. Per una convenzionale di sola prosa, quelli ricavati dalla prosa (carta F7,
+    /// slice 7b: <see cref="LegsFromDescription"/>), o vuoto dove la prosa non si è capita tutta.
+    /// </summary>
     public IReadOnlyList<ProcedureLeg> Legs { get; init; } = [];
+
+    /// <summary>
+    /// I tratti non sono stampati in una tabella: li ha ricavati il lettore dalla <see cref="Description"/> (slice 7b), coi
+    /// punti senza nome calcolati dalle radioassistenze. Il testo resta, ed è lui che fa fede.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool LegsFromDescription { get; init; }
 
     /// <summary>La prosa prima della tabella (le convenzionali: «Proceed via SOSAK…»), com'è.</summary>
     public string? Description { get; init; }
@@ -64,6 +74,7 @@ public sealed record Procedure
         other is not null
         && Aerodrome == other.Aerodrome && Kind == other.Kind && Designator == other.Designator
         && Runways.SequenceEqual(other.Runways) && Section == other.Section && Legs.SequenceEqual(other.Legs)
+        && LegsFromDescription == other.LegsFromDescription
         && Description == other.Description && Minimums == other.Minimums && Remarks == other.Remarks && Page == other.Page;
 
     public override int GetHashCode() => HashCode.Combine(Aerodrome, Kind, Designator);
@@ -112,6 +123,15 @@ public sealed record ProcedureLeg
     /// <summary>Un tratto <c>RF</c> (arco a raggio costante): il punto centro dell'arco (<c>RF centre: RF620</c>).</summary>
     public string? ArcCenter { get; init; }
 
-    /// <summary>Un tratto <c>RF</c>: il raggio dell'arco in NM (<c>r=2.1NM</c>).</summary>
+    /// <summary>Un tratto <c>RF</c>: il raggio dell'arco in NM (<c>r=2.1NM</c>). Un <c>AF</c> (l'arco DME della prosa): la distanza.</summary>
     public double? ArcRadiusNm { get; init; }
+
+    /// <summary>
+    /// Un punto senza nome della prosa (slice 7b), com'è definito: <c>RDL 258/14 NM LMT</c>, <c>INT RDL 062 VOG/RDL 164 BRL</c>.
+    /// Con <see cref="Position"/>, calcolata dalle radioassistenze; <see cref="Fix"/> è null.
+    /// </summary>
+    public string? Computed { get; init; }
+
+    /// <summary>La posizione calcolata di un punto senza nome (<see cref="Computed"/>).</summary>
+    public Position? Position { get; init; }
 }

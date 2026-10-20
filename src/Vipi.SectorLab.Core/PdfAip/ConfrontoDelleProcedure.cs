@@ -32,13 +32,22 @@ public sealed record DifferenzaDiProcedura(EsitoDelConfronto Esito, string Scalo
 /// <para><b>Il percorso</b>: per una STAR, i punti dell'AIP in fila (i tratti senza punto no) contro quelli dello <c>.str</c>;
 /// per una SID, che nel sector non ha tracciato (§1), il punto del campo 7 contro l'ultimo dell'AIP. Le piste: quelle
 /// dell'AIP che nessuna voce del sector ha. I punti: quelli dell'AIP che il sector non ha, o che ha a più di 0,1 NM (D4).</para>
-/// <para>Le salite iniziali non hanno una voce nel sector: si contano e basta. Le convenzionali in sola prosa si confrontano
-/// per nome e pista; il percorso verrà con la 7b.</para>
+/// <para>Le salite iniziali non hanno una voce nel sector: si contano e basta. Le convenzionali coi tratti ricavati dalla
+/// prosa (7b): i punti con nome in fila contro quelli con nome dello <c>.str</c> (il sector disegna le virate con righe di
+/// coordinate, che qui non contano), e ogni punto calcolato vicino al tracciato del sector (<see cref="SogliaDeiCalcolati"/>).
+/// Quelle la cui prosa non si è letta si confrontano per nome e pista.</para>
 /// </summary>
 public static partial class ConfrontoDelleProcedure
 {
     /// <summary>Oltre questo scarto (NM) un punto dell'AIP non è quello del sector con lo stesso nome (D4).</summary>
     public const double Soglia = 0.1;
+
+    /// <summary>
+    /// Oltre questo scarto (NM) il tracciato del sector non passa per un punto calcolato della prosa: il sector arrotonda le
+    /// virate (a 220 kt il raggio è più di un miglio) e il punto della prosa è lo spigolo. Misurato su LICA: DELI3E e RCA3F
+    /// anticipano la virata verso l'arco DME di 1,7 e 1,1 NM; le altre stanno sotto 0,5.
+    /// </summary>
+    public const double SogliaDeiCalcolati = 2.0;
 
     [GeneratedRegex(@"^(?<b>[A-Z]+)\s?(?<c>\d{1,2}[A-Z])$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxNome();
@@ -48,7 +57,7 @@ public static partial class ConfrontoDelleProcedure
 
     /// <summary>Una voce del sector: il file, il record, il nome intero, le sue parti (SID e transizione), le piste, il genere.</summary>
     private sealed record Voce(string File, int Record, string Nome, IReadOnlyList<string> Parti, IReadOnlyList<string> Piste, bool Star,
-        string? Fix, IReadOnlyList<string> Punti, bool SenzaTracciato = false);
+        string? Fix, IReadOnlyList<string> Punti, bool SenzaTracciato = false, IReadOnlyList<Punto>? Tracciato = null);
 
     /// <summary>
     /// Il confronto. <paramref name="puntoDelSector"/>: dove il sector ha un punto, per nome (il catalogo del master scelto);
@@ -121,7 +130,7 @@ public static partial class ConfrontoDelleProcedure
                     var revisione = Revisioni(voci.Where(v => !usate.Contains(v)), p);
                     esiti.Add(new DifferenzaDiProcedura(EsitoDelConfronto.MancaNelSector, p.Aerodrome, p.Kind, p.Designator, p.Runways, [], null, null,
                     [
-                        p.Legs.Count == 0 ? "convenzionale in sola prosa" : $"{p.Legs.Count} tratti: {string.Join(" ", Punti(p))}",
+                        p.Legs.Count == 0 ? "convenzionale in sola prosa (non letta)" : $"{p.Legs.Count} tratti{(p.LegsFromDescription ? " (dalla prosa)" : "")}: {string.Join(" ", Punti(p))}",
                         .. revisione.Count > 0 ? [$"nel sector c'è {string.Join(", ", revisione.Select(v => v.Nome))}: stesso nome, altro numero (un'altra revisione?)"] : Array.Empty<string>(),
                     ]));
                     continue;
@@ -131,7 +140,26 @@ public static partial class ConfrontoDelleProcedure
                 var mancano = p.Runways.Where(r => pisteDelSector.Count > 0 && !pisteDelSector.Contains(r)).ToList();
                 if (mancano.Count > 0) dettagli.Add($"pista {string.Join(", ", mancano)}: nel sector non c'è");
                 var punti = Punti(p);
-                if (punti.Count > 0 && p.Kind == ProcedureKind.Star)
+                if (punti.Count > 0 && p.Kind == ProcedureKind.Star && p.LegsFromDescription)
+                {
+                    foreach (var (v, _) in suoi.DistinctBy(s => s.Voce))
+                    {
+                        var traccia = v.Tracciato ?? [];
+                        var tutti = traccia.Where(x => x.PerNome).Select(x => x.Nome!).ToList();
+                        List<string> nomi = [.. tutti.Where((f, j) => j == 0 || f != tutti[j - 1])];
+                        if (!nomi.SequenceEqual(punti, StringComparer.Ordinal))
+                            dettagli.Add($"{v.Nome}: punti con nome nel sector {Fila(nomi)}, nell'AIP {Fila(punti)}");
+                        var posizioni = traccia.Select(x => x.Posizione ?? (x.Nome is { } n ? puntoDelSector(n) : null)).OfType<Coordinate>()
+                            .Select(c => new Position(c.LatitudeDeg, c.LongitudeDeg)).ToList();
+                        foreach (var t in p.Legs.Where(t => t.Position is not null))
+                        {
+                            var d = posizioni.Count == 0 ? double.PositiveInfinity : posizioni.Min(x => Sphere.DistanceNm(x, t.Position!.Value));
+                            if (d > SogliaDeiCalcolati)
+                                dettagli.Add($"{v.Nome}: {t.Computed}: il tracciato del sector passa a {(double.IsInfinity(d) ? "—" : d.ToString("0.0", CultureInfo.InvariantCulture))} NM");
+                        }
+                    }
+                }
+                else if (punti.Count > 0 && p.Kind == ProcedureKind.Star)
                 {
                     foreach (var (v, _) in suoi.DistinctBy(s => s.Voce))
                         if (!v.Punti.SequenceEqual(punti, StringComparer.Ordinal))
@@ -258,13 +286,24 @@ public static partial class ConfrontoDelleProcedure
             {
                 for (var i = 0; i < conRecord.RecordDelModello.Count; i++)
                 {
-                    if (conRecord.RecordDelModello[i] is not ProcedureStrRecord star || !star.IcaoCode.Equals(icao, StringComparison.OrdinalIgnoreCase)
+                    // Una STAR coi soli punti con nome è un ProcedureStrRecord; una che disegna le virate con righe di
+                    // coordinate (le convenzionali di LICA: ARBU4F, DELI1H) il parser la legge come HoldingStrRecord.
+                    if (conRecord.RecordDelModello[i] is not StrRecord star || !star.IcaoCode.Equals(icao, StringComparison.OrdinalIgnoreCase)
                         || star.RecordType != StrRecordType.Star) continue;
+                    List<Punto>? tracciato = star switch
+                    {
+                        ProcedureStrRecord p => [.. p.Waypoints.Select(w => Punto.Nominato(w.FixName.Trim()))],
+                        HoldingStrRecord h => [.. h.Points.Select(x => x is HoldingCoordPoint c ? Punto.Da(c.Position) : Punto.Nominato(((HoldingFixPoint)x).FixName.Trim()))],
+                        _ => null,
+                    };
+                    if (tracciato is null) continue;
                     var piste = Piste(star.RunwaySpec);
                     if (piste.Count == 0) continue;
+                    var nomi = tracciato.Where(x => x.PerNome).Select(x => x.Nome!).ToList();
                     voci.Add(new Voce(file, i, star.ProcedureId.Trim(), [star.ProcedureId.Trim()], piste, Star: true, null,
                         // Un punto ripetuto di seguito (DEVOX;DEVOX; due volte, LIMC) è lo stesso punto.
-                        [.. star.Waypoints.Select(w => w.FixName.Trim()).Where((f, j) => j == 0 || f != star.Waypoints[j - 1].FixName.Trim())]));
+                        [.. nomi.Where((f, j) => j == 0 || f != nomi[j - 1])],
+                        Tracciato: tracciato));
                 }
             }
         }

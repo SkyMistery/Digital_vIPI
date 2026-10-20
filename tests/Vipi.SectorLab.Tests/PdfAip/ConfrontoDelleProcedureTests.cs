@@ -1,4 +1,5 @@
 using Aip;
+using Aip.Aurora;
 using Vipi.SectorLab.Core.PdfAip;
 using Vipi.SectorLab.Tests.Ui;
 using Vipi.SectorLab.Ui.Servizi;
@@ -278,10 +279,61 @@ public sealed class ConfrontoDelleProcedureTests : IDisposable
             P(ProcedureKind.Star, "STORTO 1A", ["16L"], T("IF", "ELKAP"), T("TF", "XX407")));
 
         Assert.False(_lab.PortaLaProcedura(esiti.Single(e => e.Nome == "PROSA 1A")));
-        Assert.Contains("7b", _lab.Rifiuto, StringComparison.Ordinal);
+        Assert.Contains("la prosa non si è letta", _lab.Rifiuto, StringComparison.Ordinal);
         Assert.False(_lab.PortaLaProcedura(esiti.Single(e => e.Nome == "STORTO 1A")));
         Assert.Contains("XX407", _lab.Rifiuto, StringComparison.Ordinal);
         Assert.DoesNotContain("STOR1A", Righe("lirf.str"), StringComparison.Ordinal);
+    }
+
+    // Slice 7b: una STAR dalla prosa contro una del sector che disegna la virata con righe di coordinate (il parser la legge
+    // come HoldingStrRecord): i punti con nome in fila, e il punto calcolato vicino al tracciato. Uguale se ci passa vicino,
+    // diversa se no; «Porta» scrive il punto calcolato come coordinate, e non scrive una voce che c'è già con le coordinate.
+    [Fact]
+    public async Task UnaStarDallaProsa_ControUnaDelSectorConLeCoordinate()
+    {
+        var spigolo = new Position(42.25, 11.40);
+        ProcedureLeg[] tratti =
+        [
+            T("IF", "GILIO"),
+            new ProcedureLeg { PathTerminator = "CF", Computed = "RDL 300/20 NM TAQ", Position = spigolo },
+            T("CF", "TAQ"),
+        ];
+        var vicino = AuroraText.Coordinates(new Position(spigolo.Lat + 0.5 / 60, spigolo.Lon));   // mezzo miglio a nord
+        var lontano = AuroraText.Coordinates(new Position(spigolo.Lat + 3 / 60.0, spigolo.Lon));  // tre miglia
+        var esiti = await ConfrontaAsync("", string.Join("\r\n",
+            [
+                "LIRF;16L:16R;GILI4P; ; ;", "GILIO;GILIO;4P;", vicino + ";", "TAQ;TAQ;", "",
+                "LIRF;16L:16R;GILI5P; ; ;", "GILIO;GILIO;5P;", lontano + ";", "TAQ;TAQ;", "",
+            ]),
+            P(ProcedureKind.Star, "GILIO 4P", ["16L", "16R"], tratti) with { LegsFromDescription = true },
+            P(ProcedureKind.Star, "GILIO 5P", ["16L", "16R"], tratti) with { LegsFromDescription = true },
+            P(ProcedureKind.Star, "GILIO 6P", ["16L", "16R"], tratti) with { LegsFromDescription = true });
+
+        var quattro = esiti.Single(e => e.Nome == "GILIO 4P");
+        Assert.True(quattro.Esito == EsitoDelConfronto.Uguale, string.Join(" | ", quattro.Dettagli));
+        var cinque = esiti.Single(e => e.Nome == "GILIO 5P");
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, cinque.Esito);
+        Assert.Equal("GILI5P: RDL 300/20 NM TAQ: il tracciato del sector passa a 3.0 NM", Assert.Single(cinque.Dettagli));
+
+        // «Porta» la 6P: il punto calcolato come coordinate, fra i due con nome.
+        Assert.True(_lab.PortaLaProcedura(esiti.Single(e => e.Nome == "GILIO 6P")), _lab.Rifiuto);
+        Assert.Equal(["LIRF;16L:16R;GILI6P;;;;;1;", "GILIO;GILIO;6P;", AuroraText.Coordinates(spigolo) + ";", "TAQ;TAQ;", "//@END \"GILI6P\""], Coda("lirf.str", 5));
+        Assert.Equal(EsitoDelConfronto.Uguale, _lab.UltimoConfrontoDelleProcedure!.Value.Esiti.Single(e => e.Nome == "GILIO 6P").Esito);
+    }
+
+    // Prima della 7b il nome di una STAR con le coordinate non si vedeva: «Porta» ne avrebbe scritta una seconda.
+    [Fact]
+    public async Task UnaVoceConLeCoordinate_ConLoStessoNome_NonSiScriveDueVolte()
+    {
+        var esiti = await ConfrontaAsync("", "LIRF;07;GILIO4P; ; ;\r\nGILIO;GILIO;4P;\r\nN042.15.00.000;E011.24.00.000;\r\nTAQ;TAQ;\r\n",
+            P(ProcedureKind.Star, "GILIO 4P", ["16L", "16R"], T("IF", "GILIO"), T("TF", "TAQ")));
+
+        // Le piste non hanno niente in comune: la voce del sector non è la sua, e la procedura manca.
+        var riga = esiti.Single(e => e.Nome == "GILIO 4P");
+        Assert.Equal(EsitoDelConfronto.MancaNelSector, riga.Esito);
+        Assert.False(_lab.PortaLaProcedura(riga));
+        // Il nome che «Porta» darebbe (cinque lettere: il file non ne usa altre) è quello della voce con le coordinate.
+        Assert.Contains("GILIO4P: c'è già", _lab.Rifiuto, StringComparison.Ordinal);
     }
 
     [Theory]

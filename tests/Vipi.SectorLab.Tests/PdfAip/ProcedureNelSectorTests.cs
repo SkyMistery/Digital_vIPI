@@ -1,4 +1,5 @@
 using Aip;
+using Aip.Aurora;
 using Vipi.SectorLab.Core.PdfAip;
 
 namespace Vipi.SectorLab.Tests.PdfAip;
@@ -94,6 +95,39 @@ public sealed class ProcedureNelSectorTests
             "//@@\"SOSAK\" alt=+3000", "SOSAK;SOSAK;",
             "//@@\"ESINO\" alt=+FL110", "ESINO;ESINO;",
         ], ProcedureNelSector.Corpo([sid, trans], null));
+    }
+
+    // Slice 7b: una STAR dalla prosa — i punti calcolati come coordinate, l'arco DME un punto ogni 5° attorno alla stazione;
+    // fra i punti con nome (da cercare e portare) quelli calcolati non ci sono.
+    [Fact]
+    public void UnaStarDallaProsa_ICalcolatiComeCoordinate_ELArcoAPezzi()
+    {
+        var stazione = new Position(39.0, 16.0);
+        var inizio = new Position(39.25, 16.0);                                     // 15 NM a nord
+        var fine = new Position(39.0, 16.0 + 0.25 / Math.Cos(39 * Math.PI / 180)); // 15 NM a est
+        var star = new Procedure
+        {
+            Aerodrome = "LICA", Kind = ProcedureKind.Star, Designator = "ARBUM 4F", Runways = ["10"], LegsFromDescription = true,
+            Legs =
+            [
+                new ProcedureLeg { PathTerminator = "IF", Fix = "ARBUM" },
+                new ProcedureLeg { PathTerminator = "CF", Computed = "RDL 357/15 NM LMT", Position = inizio },
+                new ProcedureLeg { PathTerminator = "AF", Computed = "RDL 087/15 NM LMT", Position = fine, ArcCenter = "LMT", ArcRadiusNm = 15, Turn = "R" },
+                new ProcedureLeg { PathTerminator = "CF", Fix = "SUGEP" },
+            ],
+        };
+
+        Assert.Equal(["ARBUM", "SUGEP"], ProcedureNelSector.Punti([star]));
+        var corpo = ProcedureNelSector.Corpo([star], "4F", n => n == "LMT" ? stazione : null);
+        Assert.Equal("ARBUM;ARBUM;4F;", corpo[0]);
+        Assert.Equal("N039.15.00.000;E016.00.00.000;", corpo[1]);
+        Assert.Equal("SUGEP;SUGEP;", corpo[^1]);
+        // Un quarto di giro: 17 punti in mezzo, poi la fine.
+        Assert.Equal(1 + 1 + 17 + 1 + 1, corpo.Count);
+        Assert.Equal(AuroraText.Coordinates(fine) + ";", corpo[^2]);
+        Assert.Matches(@"^N039\.\d{2}\.\d{2}\.\d{3};E016\.\d{2}\.\d{2}\.\d{3};$", corpo[10]);
+        // Senza chi trova la stazione, l'arco è solo la sua fine.
+        Assert.Equal(4, ProcedureNelSector.Corpo([star], "4F").Count);
     }
 
     [Fact]

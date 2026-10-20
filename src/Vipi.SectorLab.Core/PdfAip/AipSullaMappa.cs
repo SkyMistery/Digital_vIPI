@@ -158,8 +158,8 @@ public static class AipSullaMappa
                 ("Piste", string.Join(", ", scalo.Runways.Select(p => p.Designator))), ("Frequenze", scalo.Communications.Count.ToString(CultureInfo.InvariantCulture))), scalo.Arp);
 
         // Le procedure di AD 2 (F7, slice 7c): una linea per i loro punti, che si cercano nell'AIP espanso stesso — ENR 4.4, i
-        // punti RNAV degli scali, le radioassistenze — e, se mancano, nel sector. Le convenzionali in sola prosa non hanno
-        // tratti: la scheda c'è, la linea no (verrà con la 7b).
+        // punti RNAV degli scali, le radioassistenze — e, se mancano, nel sector. Le convenzionali in sola prosa hanno i tratti
+        // ricavati dalla prosa (7b); quelle la cui prosa non si è letta no: la scheda c'è, la linea no.
         var puntiDellAip = PuntiDellAip(aip);
         Coordinate? Punto(string nome) => puntiDellAip.TryGetValue(nome, out var p) ? Coordinata(p) : puntoDelSector(nome);
         foreach (var procedura in aip.Procedures ?? [])
@@ -186,7 +186,8 @@ public static class AipSullaMappa
     /// <summary>
     /// Il percorso di una procedura: i punti dei tratti in fila. Un tratto senza punto (CA: fino a una quota) non ha un posto
     /// sulla mappa e si salta; un punto che non si trova stacca la penna e si dice; un RF si disegna come arco attorno al suo
-    /// centro, nel verso del tratto.
+    /// centro, nel verso del tratto. I punti senza nome della prosa (7b) hanno la loro posizione calcolata; un AF (l'arco DME)
+    /// si disegna attorno alla sua radioassistenza.
     /// </summary>
     internal static (IReadOnlyList<IReadOnlyList<Coordinate>> Tratti, IReadOnlyList<string> NonRisolti) Percorso(Procedure procedura, Func<string, Coordinate?> punto)
     {
@@ -195,15 +196,27 @@ public static class AipSullaMappa
         var pezzo = new List<Coordinate>();
         foreach (var t in procedura.Legs)
         {
-            if (t.Fix is null) continue;
-            if (punto(t.Fix) is not { } qui)
+            Coordinate qui;
+            if (t.Position is { } calcolata)
+            {
+                qui = new Coordinate(calcolata.Lat, calcolata.Lon);
+            }
+            else if (t.Fix is null)
+            {
+                continue;
+            }
+            else if (punto(t.Fix) is { } trovato)
+            {
+                qui = trovato;
+            }
+            else
             {
                 nonRisolti.Add(t.Fix);
                 if (pezzo.Count > 1) pezzi.Add(pezzo);
                 pezzo = [];
                 continue;
             }
-            if (t.PathTerminator == "RF" && pezzo.Count > 0 && t.ArcCenter is { } c && punto(c) is { } centro)
+            if (t.PathTerminator is "RF" or "AF" && pezzo.Count > 0 && t.ArcCenter is { } c && punto(c) is { } centro)
                 pezzo.AddRange(Arco(pezzo[^1], qui, centro, orario: t.Turn == "R"));
             else
                 pezzo.Add(qui);
@@ -337,12 +350,14 @@ public static class AipSullaMappa
         if (p.Remarks is { } note) campi.Add(("Note", note.Replace('\n', ' ')));
         campi.Add(("Pagina", Pagina(p.Page)));
         if (p.Legs.Count == 0)
-            campi.Add(("⚠", "solo prosa: i tratti verranno con la slice 7b, sulla mappa non c'è"));
+            campi.Add(("⚠", "solo prosa, e la prosa non si è letta (vedi le segnalazioni di «Leggi»): sulla mappa non c'è"));
+        else if (p.LegsFromDescription)
+            campi.Add(("ⓘ", "tratti ricavati dalla prosa (7b): i punti senza nome calcolati dalle radioassistenze; fa fede il testo"));
         else if (nonRisolti.Count > 0)
             campi.Add(("⚠", $"punti che non si trovano (né nell'AIP espanso né nel sector): {string.Join(", ", nonRisolti)}"));
         var righe = p.Legs.Select(t => string.Join(' ', new[]
         {
-            t.PathTerminator, t.Fix ?? "—", t.FlyOver ? "(fly-over)" : null,
+            t.PathTerminator, t.Fix ?? t.Computed ?? "—", t.Computed is not null && t.Fix is null ? "(calcolato)" : null, t.FlyOver ? "(fly-over)" : null,
             t.Course is { } c ? $"{c}{(t.TrueCourse is { } v ? $" ({v})" : "")}" : null,
             t.DistanceNm is { } d ? $"{d.ToString("0.0", CultureInfo.InvariantCulture)} NM" : null,
             t.Turn is { } verso ? $"virata {verso}" : null,

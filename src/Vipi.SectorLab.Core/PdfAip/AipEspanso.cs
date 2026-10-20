@@ -251,6 +251,12 @@ public static class AipEspanso
                 ScriviAlPosto(fileDelleCorrezioni, flusso => flusso.Write(System.Text.Encoding.UTF8.GetBytes(AipCorrections.Serialize(applicate.File))));
         }
 
+        // La prosa delle convenzionali (carta F7, slice 7b), coi punti e le radioassistenze già corretti.
+        var (decodificato, nonLette) = ItalianAd2Prose.DecodeAll(documento);
+        documento = decodificato;
+        problemi.AddRange(nonLette.Select(n => new ProblemaDellImport(n.Procedure.Page?.Reference ?? n.Procedure.Aerodrome,
+            new ImportIssue(ImportIssueKind.Procedure, n.Procedure.Key, null, $"prosa non letta: {n.Problem}"))));
+
         var scritto = File(espanso, ciclo);
         ScriviAlPosto(scritto, flusso => AipJson.Serialize(flusso, documento));
 

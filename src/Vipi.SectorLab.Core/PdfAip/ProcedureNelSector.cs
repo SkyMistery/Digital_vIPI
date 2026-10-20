@@ -103,7 +103,10 @@ public static partial class ProcedureNelSector
     public static bool Rnav(IEnumerable<Procedure> pezzi) =>
         Navigazione(pezzi) is { } n && (n.Contains("RNAV", StringComparison.OrdinalIgnoreCase) || n.Contains("RNP", StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>I punti in fila di una o più procedure di seguito (una SID e la sua transizione): il punto comune una volta.</summary>
+    /// <summary>
+    /// I punti <b>con nome</b> in fila di una o più procedure di seguito (una SID e la sua transizione): il punto comune una
+    /// volta. Quelli calcolati della prosa (7b) non ci sono: non vanno cercati né portati, si scrivono come coordinate.
+    /// </summary>
     public static IReadOnlyList<string> Punti(IEnumerable<Procedure> pezzi)
     {
         ArgumentNullException.ThrowIfNull(pezzi);
@@ -126,10 +129,11 @@ public static partial class ProcedureNelSector
     /// Il blocco intero di una procedura nuova: dichiarazione, <c>//@START</c>, testata, punti coi loro <c>//@@</c>,
     /// <c>//@END</c>. <paramref name="coda"/>: la coda del nome sul primo punto (le STAR).
     /// </summary>
-    public static IReadOnlyList<string> Blocco(string nome, string testata, IReadOnlyList<Procedure> pezzi, string nota, string? coda)
+    public static IReadOnlyList<string> Blocco(string nome, string testata, IReadOnlyList<Procedure> pezzi, string nota, string? coda,
+        Func<string, Position?>? posizione = null)
     {
         ArgumentNullException.ThrowIfNull(pezzi);
-        return [Dichiarazione(nome, pezzi, nota), "//@START", testata, .. Corpo(pezzi, coda), $"//@END \"{nome}\""];
+        return [Dichiarazione(nome, pezzi, nota), "//@START", testata, .. Corpo(pezzi, coda, posizione), $"//@END \"{nome}\""];
     }
 
     /// <summary>La dichiarazione del blocco: la specifica, il punto finale per una SID, la nota del ciclo.</summary>
@@ -141,25 +145,58 @@ public static partial class ProcedureNelSector
         return $"//@\"{nome}\" {string.Join(' ', chiavi)}";
     }
 
-    /// <summary>I punti in fila, ognuno col suo <c>//@@</c> se ha una quota o una velocità.</summary>
-    public static IReadOnlyList<string> Corpo(IReadOnlyList<Procedure> pezzi, string? coda)
+    /// <summary>
+    /// I punti in fila, ognuno col suo <c>//@@</c> se ha una quota o una velocità. I punti senza nome della prosa (7b) come
+    /// coordinate (<c>N038.52.03.360;E015.58.11.280;</c>, come il sector disegna già le convenzionali); un arco DME (<c>AF</c>)
+    /// un punto ogni 5° attorno alla sua radioassistenza, che <paramref name="posizione"/> trova (senza, solo la fine).
+    /// </summary>
+    public static IReadOnlyList<string> Corpo(IReadOnlyList<Procedure> pezzi, string? coda, Func<string, Position?>? posizione = null)
     {
         ArgumentNullException.ThrowIfNull(pezzi);
-        var tratti = pezzi.SelectMany(p => p.Legs).Where(t => t.Fix is not null).ToList();
+        var tratti = pezzi.SelectMany(p => p.Legs).ToList();
         var righe = new List<string>();
-        var punti = Punti(pezzi);
-        for (var i = 0; i < punti.Count; i++)
+        string? ultimo = null;
+        Position? qui = null;
+        foreach (var t in tratti)
         {
-            var nome = punti[i];
-            // Quota e velocità del tratto che arriva al punto (il primo con quel punto, nell'ordine dei pezzi).
-            var tratto = tratti.FirstOrDefault(t => t.Fix == nome && (t.Altitude is not null || t.Speed is not null));
-            var chiavi = new List<string>();
-            if (Quota(tratto?.Altitude) is { } alt) chiavi.Add($"alt={Valore(alt)}");
-            if (Velocita(tratto?.Speed) is { } spd) chiavi.Add($"spd={Valore(spd)}");
-            if (chiavi.Count > 0) righe.Add($"//@@\"{nome}\" {string.Join(' ', chiavi)}");
-            righe.Add(i == 0 && coda is not null ? $"{nome};{nome};{coda};" : $"{nome};{nome};");
+            if (t.Fix is { } nome)
+            {
+                if (ultimo == nome) continue;
+                // Quota e velocità del tratto che arriva al punto (il primo con quel punto, nell'ordine dei pezzi).
+                var tratto = tratti.FirstOrDefault(x => x.Fix == nome && (x.Altitude is not null || x.Speed is not null));
+                var chiavi = new List<string>();
+                if (Quota(tratto?.Altitude) is { } alt) chiavi.Add($"alt={Valore(alt)}");
+                if (Velocita(tratto?.Speed) is { } spd) chiavi.Add($"spd={Valore(spd)}");
+                if (chiavi.Count > 0) righe.Add($"//@@\"{nome}\" {string.Join(' ', chiavi)}");
+                righe.Add(righe.Count(r => !r.StartsWith("//", StringComparison.Ordinal)) == 0 && coda is not null ? $"{nome};{nome};{coda};" : $"{nome};{nome};");
+                ultimo = nome;
+                qui = posizione?.Invoke(nome);
+            }
+            else if (t.Position is { } p)
+            {
+                if (t.PathTerminator == "AF" && qui is { } da && t.ArcCenter is { } c && posizione?.Invoke(c) is { } centro)
+                    righe.AddRange(Arco(da, p, centro, orario: t.Turn == "R").Select(x => AuroraText.Coordinates(x) + ";"));
+                righe.Add(AuroraText.Coordinates(p) + ";");
+                ultimo = null;
+                qui = p;
+            }
         }
         return righe;
+    }
+
+    /// <summary>I punti in mezzo a un arco attorno a <paramref name="centro"/>, uno ogni 5° (né l'inizio né la fine).</summary>
+    private static IEnumerable<Position> Arco(Position da, Position a, Position centro, bool orario)
+    {
+        var b0 = Sphere.BearingDeg(centro, da);
+        var b1 = Sphere.BearingDeg(centro, a);
+        double r0 = Sphere.DistanceNm(centro, da), r1 = Sphere.DistanceNm(centro, a);
+        var ampiezza = orario ? Sphere.Normalize(b1 - b0) : Sphere.Normalize(b0 - b1);
+        var passi = (int)Math.Ceiling(ampiezza / 5);
+        for (var i = 1; i < passi; i++)
+        {
+            var f = (double)i / passi;
+            yield return Sphere.Destination(centro, orario ? b0 + ampiezza * f : b0 - ampiezza * f, r0 + (r1 - r0) * f);
+        }
     }
 
     /// <summary>Un valore di tag: fra virgolette se ha spazi (§M regola 5).</summary>

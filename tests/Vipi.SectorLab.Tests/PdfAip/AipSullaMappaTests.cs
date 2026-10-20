@@ -195,10 +195,48 @@ public sealed class AipSullaMappaTests
         Assert.Equal("LIXX PROVA 1A RWY 24", voce.Titolo);
         Assert.Equal("CA — +410", voce.Righe[0]);
         Assert.Contains(voce.Campi, c => c.Valore.Contains("NESSUNO", StringComparison.Ordinal));
-        // La STAR in sola prosa: la scheda c'è, la linea no.
+        // La STAR in sola prosa (che la 7b non ha letto): la scheda c'è, la linea no.
         Assert.Equal(AipSullaMappa.Star, strato.Voci[3].Genere);
         Assert.Empty(strato.Strato.Forme[3].Tratti);
-        Assert.Contains(strato.Voci[3].Campi, c => c.Valore.Contains("7b", StringComparison.Ordinal));
+        Assert.Contains(strato.Voci[3].Campi, c => c.Valore.Contains("non si è letta", StringComparison.Ordinal));
+    }
+
+    // Slice 7b: i tratti dalla prosa — il punto calcolato con la sua posizione, l'arco DME attorno alla radioassistenza; la
+    // scheda dice da dove vengono.
+    [Fact]
+    public void UnaStarDallaProsa_IPuntiCalcolati_ELArcoDme()
+    {
+        var centro = B;
+        var inizio = new Position(B.Lat + 15 / 60.0, B.Lon);                                     // 15 NM a nord
+        var fine = new Position(B.Lat, B.Lon + 15 / 60.0 / Math.Cos(B.Lat * Math.PI / 180));     // 15 NM a est
+        var star = new Procedure
+        {
+            Aerodrome = "LIXX", Kind = ProcedureKind.Star, Designator = "PROSA 1H", Runways = ["24"], LegsFromDescription = true,
+            Description = "XX601 – TR 180° …",
+            Legs =
+            [
+                new ProcedureLeg { PathTerminator = "IF", Fix = "XX601" },
+                new ProcedureLeg { PathTerminator = "CF", Computed = "RDL 000/15 NM PRV", Position = inizio },
+                new ProcedureLeg { PathTerminator = "AF", Computed = "RDL 090/15 NM PRV", Position = fine, ArcCenter = "PRV", ArcRadiusNm = 15, Turn = "R" },
+            ],
+        };
+        var aip = new AipDocument
+        {
+            State = "LI", Airspaces = [],
+            Points = [new SignificantPoint { Section = "AD 2 LIXX", Designator = "XX601", Position = A }],
+            Navaids = [new Navaid { Section = "ENR 4.1", Designator = "PRV", Name = "PROVA", Type = "VOR", Position = centro, Components = [] }],
+            Procedures = [star],
+        };
+
+        var strato = AipSullaMappa.Di(aip, "2611", _ => null);
+
+        var tratto = Assert.Single(strato.Strato.Forme[2].Tratti);
+        Assert.Equal(new Coordinate(inizio.Lat, inizio.Lon), tratto[1]);
+        Assert.Equal(new Coordinate(fine.Lat, fine.Lon), tratto[^1]);
+        // Un quarto di giro in senso orario, un punto ogni 5°: 18 dopo l'inizio.
+        Assert.Equal(2 + 18, tratto.Count);
+        Assert.Contains(strato.Voci[2].Campi, c => c.Valore.Contains("dalla prosa", StringComparison.Ordinal));
+        Assert.Contains("RDL 000/15 NM PRV (calcolato)", strato.Voci[2].Righe[1], StringComparison.Ordinal);
     }
 
     // Un RF è un arco attorno al suo centro, nel verso del tratto, e finisce esattamente sul punto.
