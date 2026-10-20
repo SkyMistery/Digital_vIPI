@@ -11,11 +11,11 @@
     <strong>Aurora Sector Lab</strong>
     <span class="lab-nota lab-barra-sector" data-barra="sector" title="@Lab.Sessione?.Cartella.Radice">@NomeDelSector</span>
 
-    @* Riordino D8: due mondi, ognuno con le sue pagine (il suo repo, la sua consegna); le Impostazioni sono comuni. *@
+    @* Riordino D14: tre spazi di lavoro, ognuno con le sue pagine e la sua mappa; le Impostazioni sono comuni. *@
     <nav class="lab-pagine" role="tablist" aria-label="Pagine">
-        @foreach (var (mondo, pagine) in Mondi)
+        @foreach (var (chiave, mondo, pagine) in Mondi)
         {
-            <span class="lab-mondo @(pagine.Any(p => p.Pagina == Lab.Pagina) ? "lab-mondo-scelto" : null)" data-mondo="@mondo.ToLowerInvariant()">
+            <span class="lab-mondo @(pagine.Any(p => p.Pagina == Lab.Pagina) ? "lab-mondo-scelto" : null)" data-mondo="@chiave">
                 <span class="lab-mondo-nome">@mondo</span>
                 @foreach (var (pagina, nome, perche) in pagine)
                 {
@@ -71,15 +71,18 @@
     /// <summary>La finestra principale (con la mappa): solo lei stacca e riporta i pannelli.</summary>
     [Parameter] public bool Principale { get; set; }
 
-    private static readonly (string Mondo, (PaginaDelLab Pagina, string Nome, string Perche)[] Pagine)[] Mondi =
+    private static readonly (string Chiave, string Mondo, (PaginaDelLab Pagina, string Nome, string Perche)[] Pagine)[] Mondi =
     [
-        ("AIP", [
-            (PaginaDelLab.AipIndice, "Indice", "L'AIP espanso come l'AIP: ENR 2, 3, 4, 5 e AD 2, con la mappa e le correzioni"),
-            (PaginaDelLab.Aip, "Lettura e confronti", "I PDF, «Leggi nell'AIP espanso», Registra e Manda dell'AIP, i confronti col sector"),
+        ("aip", "AIP espanso", [
+            (PaginaDelLab.AipIndice, "Indice", "L'AIP espanso come l'AIP: ENR 2, 3, 4, 5 e AD 2, con la sua mappa e le correzioni"),
         ]),
-        ("Sector", [
+        ("sector", "Sector", [
             (PaginaDelLab.Sector, "Mappa", "Sfogliare, guardare e modificare i record; i problemi"),
             (PaginaDelLab.Consegna, "Consegna", "Le modifiche, il ramo, la vetrina di Aurora, la PR"),
+        ]),
+        // Fino alla R6 la pagina di oggi, com'è: i PDF e la lettura dell'AIP, i confronti, la mappa coi due lati.
+        ("confronti", "Confronti", [
+            (PaginaDelLab.Aip, "Lettura e confronti", "I PDF, «Leggi nell'AIP espanso», Registra e Manda dell'AIP, i confronti col sector, AIP e sector sulla stessa mappa"),
         ]),
     ];
 

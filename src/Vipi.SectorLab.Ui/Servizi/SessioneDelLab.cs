@@ -145,10 +145,63 @@ public sealed class SessioneDelLab
 
     public IReadOnlyList<StratoDellaMappa> Strati { get; private set; } = [];
 
-    /// <summary>Gli strati accesi: lo sfondo lo è sempre, gli altri li accende l'AOD (carta §2.2 passo 4).</summary>
+    /// <summary>Gli strati accesi della mappa dello spazio attivo: lo sfondo lo è sempre, gli altri li accende l'AOD (carta §2.2 passo 4).</summary>
     public IReadOnlySet<string> Accesi => _accesi;
 
-    private readonly HashSet<string> _accesi = [StratiDellaMappa.Sfondo.Id];
+    private HashSet<string> _accesi => MappaAttiva.Accesi;
+
+    // --- gli spazi di lavoro e le loro mappe (riordino R4, D14 e D15) ------------------------------------------------
+
+    private readonly Dictionary<SpazioDiLavoro, StatoDellaMappa> _mappe =
+        Enum.GetValues<SpazioDiLavoro>().ToDictionary(s => s, s => new StatoDellaMappa(s));
+
+    /// <summary>Lo spazio di lavoro della pagina scelta; Consegna e Impostazioni (senza mappa) lasciano quello di prima.</summary>
+    public SpazioDiLavoro SpazioAttivo { get; private set; } = SpazioDiLavoro.Sector;
+
+    /// <summary>Lo stato della mappa di uno spazio: ognuna ha il suo (D15).</summary>
+    public StatoDellaMappa Mappa(SpazioDiLavoro spazio) => _mappe[spazio];
+
+    private StatoDellaMappa MappaAttiva => _mappe[SpazioAttivo];
+
+    /// <summary>Lo spazio di una pagina; null per quelle senza mappa (Consegna, Impostazioni).</summary>
+    public static SpazioDiLavoro? SpazioDi(PaginaDelLab pagina) => pagina switch
+    {
+        PaginaDelLab.AipIndice => SpazioDiLavoro.Aip,
+        PaginaDelLab.Aip => SpazioDiLavoro.Confronti,
+        PaginaDelLab.Sector => SpazioDiLavoro.Sector,
+        _ => null,
+    };
+
+    /// <summary>
+    /// Gli strati della mappa di uno spazio: l'AIP espanso ha le coste e lo strato dell'AIP; il sector i suoi; il
+    /// Confronti tutti e due, sovrapposti (D18).
+    /// </summary>
+    public IReadOnlyList<StratoDellaMappa> StratiDi(SpazioDiLavoro spazio) => spazio switch
+    {
+        SpazioDiLavoro.Aip => [.. Strati.Where(s => s.Tipo.Sfondo), .. StratoDellAip is { } aip ? [aip.Strato] : Array.Empty<StratoDellaMappa>()],
+        SpazioDiLavoro.Sector => Strati,
+        _ => StratoDellAip is { } aip ? [.. Strati, aip.Strato] : Strati,
+    };
+
+    /// <summary>Gli strati accesi della mappa di uno spazio.</summary>
+    public IReadOnlySet<string> AccesiDi(SpazioDiLavoro spazio) => _mappe[spazio].Accesi;
+
+    /// <summary>La vista della mappa di uno spazio.</summary>
+    public IReadOnlyList<string> InVistaDi(SpazioDiLavoro spazio) => _mappe[spazio].InVista;
+
+    /// <summary>Le voci e i generi spenti della mappa di uno spazio.</summary>
+    public IReadOnlyCollection<string> SpentiDi(SpazioDiLavoro spazio) => _mappe[spazio].Spenti;
+
+    /// <summary>
+    /// La forma da evidenziare sulla mappa di uno spazio: nell'AIP la voce dell'AIP scelta, nel sector il record scelto,
+    /// nel Confronti l'una o l'altro.
+    /// </summary>
+    public (string File, int Record)? SceltaDi(SpazioDiLavoro spazio) => spazio switch
+    {
+        SpazioDiLavoro.Aip => SceltaDellAip is { } i && StratoDellAip is { } s ? (s.File, i) : null,
+        SpazioDiLavoro.Sector => Scelta,
+        _ => SceltaSullaMappa,
+    };
 
     /// <summary>Il record scelto sulla mappa: file e indice, l'aggancio con l'ispettore della slice 5.</summary>
     public (string File, int Record)? Scelta { get; private set; }
@@ -191,6 +244,8 @@ public sealed class SessioneDelLab
         if (Pagina == pagina)
             return;
         Pagina = pagina;
+        if (SpazioDi(pagina) is { } spazio)
+            SpazioAttivo = spazio;
         Avvisa();
     }
 
@@ -200,6 +255,7 @@ public sealed class SessioneDelLab
     public void MostraIProblemi()
     {
         Pagina = PaginaDelLab.Sector;
+        SpazioAttivo = SpazioDiLavoro.Sector;
         _problemiChiesti = true;
         Avvisa();
     }
@@ -307,12 +363,10 @@ public sealed class SessioneDelLab
             _gestiDaRegistrare.Clear();
             ScordaLaStoria();
             TogliLAnteprima();
-            _inVista.Clear();
-            VersioneDellaVista++;
-            _spenti.Clear();
+            foreach (var mappa in _mappe.Values)
+                mappa.Riparti();
             _voci.Clear();
             _nascosti.Clear();
-            VersioneDeiSpenti++;
             UltimoSalvataggio = null;
             _perse.Clear();
             ScordaIProblemi();
@@ -519,12 +573,10 @@ public sealed class SessioneDelLab
         Modifiche = new();
         ScordaLaStoria();
         TogliLAnteprima();
-        _inVista.Clear();
-        VersioneDellaVista++;
-        _spenti.Clear();
+        foreach (var mappa in _mappe.Values)
+            mappa.Riparti();
         _voci.Clear();
         _nascosti.Clear();
-        VersioneDeiSpenti++;
         UltimoSalvataggio = null;
         _perse.Clear();
         ScaloScelto = null;
@@ -568,12 +620,14 @@ public sealed class SessioneDelLab
             // mappa non c'era niente da evidenziare (prove a mano del committente, 23 settembre).
             if (StratiDellaMappa.DiFile(file) is { } tipo && Strati.Any(s => s.Tipo.Id == tipo.Id))
             {
-                _accesi.Add(tipo.Id);
+                // R4: sulla mappa che mostra il sector — dallo spazio dell'AIP, quella del Sector.
+                var mappa = SpazioAttivo is SpazioDiLavoro.Aip ? _mappe[SpazioDiLavoro.Sector] : MappaAttiva;
+                mappa.Accesi.Add(tipo.Id);
                 // Slice 12c: e il suo genere, se era spento — un asse di taxiway scelto dall'elenco deve vedersi.
                 if (Sessione?.File.GetValueOrDefault(file) is IFileConRecord conRecord && record >= 0 && record < conRecord.RecordDelModello.Count
                     && (conRecord.RecordDelModello[record] is Line linea ? GeneriDellaMappa.DelGeo(file, linea.Color) : GeneriDellaMappa.DelRecord(conRecord.RecordDelModello[record])) is { } genere
-                    && _spenti.Remove(ChiaveDelGenere(tipo.Id, genere)))
-                    VersioneDeiSpenti++;
+                    && mappa.Spenti.Remove(ChiaveDelGenere(tipo.Id, genere)))
+                    mappa.VersioneDeiSpenti++;
             }
 
             // Ogni scelta chiede di inquadrare, anche quella dello stesso record: il secondo clic sull'elenco riporta lì.
@@ -2205,12 +2259,16 @@ public sealed class SessioneDelLab
             }));
     }
 
-    private readonly HashSet<string> _spenti = new(StringComparer.Ordinal);
+    private HashSet<string> _spenti => MappaAttiva.Spenti;
 
-    /// <summary>Le forme spente sulla mappa: <c>file#3</c> un record, <c>file#3.1</c> un poligono.</summary>
+    /// <summary>Le forme spente sulla mappa dello spazio attivo: <c>file#3</c> un record, <c>file#3.1</c> un poligono.</summary>
     public IReadOnlyCollection<string> Spenti => _spenti;
 
-    public int VersioneDeiSpenti { get; private set; }
+    public int VersioneDeiSpenti
+    {
+        get => MappaAttiva.VersioneDeiSpenti;
+        private set => MappaAttiva.VersioneDeiSpenti = value;
+    }
 
     // --- la vista per scalo (lotto «Subito» slice 12d, I6, O1) -----------------------------------------------------
 
@@ -2920,10 +2978,14 @@ public sealed class SessioneDelLab
     /// </summary>
     public IReadOnlyList<string> InVista => _inVista;
 
-    private readonly List<string> _inVista = [];
+    private List<string> _inVista => MappaAttiva.InVista;
 
     /// <summary>Quante volte la vista è cambiata: la mappa la riprende quando il numero non è più il suo.</summary>
-    public int VersioneDellaVista { get; private set; }
+    public int VersioneDellaVista
+    {
+        get => MappaAttiva.VersioneDellaVista;
+        private set => MappaAttiva.VersioneDellaVista = value;
+    }
 
     public static string ChiaveDellaVista(string file, int? record) => $"{file}#{(record is { } r ? r.ToString(System.Globalization.CultureInfo.InvariantCulture) : "*")}";
 
@@ -4467,8 +4529,8 @@ public sealed class SessioneDelLab
     public (string File, int Record)? SceltaSullaMappa =>
         Scelta ?? (SceltaDellAip is { } i && StratoDellAip is { } s ? (s.File, i) : null);
 
-    /// <summary>Gli strati delle caselle: quelli del sector e, se c'è, quello dell'AIP espanso in fondo.</summary>
-    public IReadOnlyList<StratoDellaMappa> StratiDaMostrare => StratoDellAip is { } aip ? [.. Strati, aip.Strato] : Strati;
+    /// <summary>Gli strati delle caselle: quelli della mappa dello spazio attivo (<see cref="StratiDi"/>).</summary>
+    public IReadOnlyList<StratoDellaMappa> StratiDaMostrare => StratiDi(SpazioAttivo);
 
     /// <summary>
     /// «Mostra sulla mappa» (F6): legge l'AIP espanso del ciclo — l'ultimo letto, o il più recente nella cartella — e lo
@@ -4480,7 +4542,9 @@ public sealed class SessioneDelLab
         var id = Core.PdfAip.AipSullaMappa.Tipo.Id;
         if (!mostra)
         {
-            _accesi.Remove(id);
+            // R4 (D15): lo strato dell'AIP sta nelle mappe dell'AIP espanso e del Confronti, non in quella del sector.
+            _mappe[SpazioDiLavoro.Aip].Accesi.Remove(id);
+            _mappe[SpazioDiLavoro.Confronti].Accesi.Remove(id);
             SceltaDellAip = null;
             Avvisa();
             return true;
@@ -4503,7 +4567,8 @@ public sealed class SessioneDelLab
             _correzioniSullaMappa = LeCorrezioniOppureNiente(espanso, modello.State);
             SceltaDellAip = null;
             _versioniDegliStrati[id] = ++VersioneDellaGeometria;
-            _accesi.Add(id);
+            _mappe[SpazioDiLavoro.Aip].Accesi.Add(id);
+            _mappe[SpazioDiLavoro.Confronti].Accesi.Add(id);
             Registro.Scrivi("aip", $"AIP espanso {ciclo} sulla mappa: {StratoDellAip.Strato.Forme.Count} forme");
             Rifiuto = null;
             Avvisa();

@@ -10,6 +10,10 @@
 // che il server calcola forma per forma dallo schema scelto e da colors.def (k = linea, g = riempimento, s = stile
 // della linea). Si passa dall'uno all'altro senza riprendere le coordinate. Coi colori di Aurora i punti hanno il
 // loro simbolo di Aurora (slice 17b, y = indice nell'elenco dei simboli che arriva con i colori).
+//
+// Riordino R4 (D15): un motore, TRE mappe — una per spazio di lavoro (AIP espanso, Sector, Confronti), ognuna col suo
+// stato, preso dall'id del suo elemento. Ogni funzione pubblica ha l'elemento come ULTIMO argomento (crea come primo,
+// com'era): senza, è la mappa principale «lab-mappa», quella del sector.
 (function () {
     'use strict';
 
@@ -34,7 +38,12 @@
         return valore || riserva;
     }
 
-    var stato = null;
+    /// Le mappe vive, per id dell'elemento.
+    var mappe = {};
+
+    function prendi(elemento) {
+        return mappe[elemento || 'lab-mappa'] || null;
+    }
 
     function coppie(numeri) {
         var punti = new Array(numeri.length / 2);
@@ -48,7 +57,7 @@
 
     /// Un simbolo 13×13 nel suo colore, disegnato una volta su una tela piccola e poi copiato (drawImage) per ogni punto:
     /// 4 000 fix a pixel singoli sarebbero 100 000 rettangoli a ogni spostamento della mappa.
-    function immagine(indice, colore) {
+    function immagine(stato, indice, colore) {
         var chiave = indice + '|' + colore;
         var fatta = stato.immagini[chiave];
         if (fatta) return fatta;
@@ -70,8 +79,8 @@
     /// disegna col simbolo quando ne ha uno, pixel per pixel e centrato come in Aurora.
     var PuntoConSimbolo = L.CircleMarker.extend({
         _updatePath: function () {
-            var tela = this._renderer, simbolo = this.options.sectorlabSimbolo;
-            var img = simbolo === null || simbolo === undefined || !tela._ctx ? null : immagine(simbolo, this.options.color);
+            var tela = this._renderer, simbolo = this.options.sectorlabSimbolo, stato = this.sectorlabMappa;
+            var img = simbolo === null || simbolo === undefined || !tela._ctx || !stato ? null : immagine(stato, simbolo, this.options.color);
             if (!img) { L.CircleMarker.prototype._updatePath.call(this); return; }
             if (!tela._drawing || this._empty()) return;
             var p = this._point, ctx = tela._ctx;
@@ -84,7 +93,7 @@
     });
 
     /// Lo stile di una forma nel modo di adesso. `tinta` è il colore del Lab per il suo strato.
-    function stile(forma, tinta) {
+    function stile(stato, forma, tinta) {
         // Lo strato dell'AIP espanso (F6): il colore del genere della forma, non quello dello strato.
         if (forma.lc) tinta = forma.lc;
         var aurora = stato && stato.aurora && Object.prototype.hasOwnProperty.call(forma, 'k');
@@ -108,13 +117,16 @@
         };
     }
 
-    function disegna(forma, tinta) {
-        var suo = stile(forma, tinta);
+    function disegna(stato, forma, tinta) {
+        var suo = stile(stato, forma, tinta);
         if (forma.t === 'p') {
             var uno = forma.c.length && forma.c[0].length ? [forma.c[0][0], forma.c[0][1]] : null;
             // Una forma senza punti (un nome che il catalogo non risolve, slice 3b) non si disegna: non è un errore
             // da nascondere, ma sulla mappa non c'è niente da mettere.
-            return uno ? new PuntoConSimbolo(uno, suo) : null;
+            if (!uno) return null;
+            var punto = new PuntoConSimbolo(uno, suo);
+            punto.sectorlabMappa = stato;
+            return punto;
         }
 
         var tratti = [];
@@ -127,12 +139,12 @@
 
     /// Rimette a una forma lo stile del modo di adesso (dopo l'evidenza, dopo un cambio di tema o di modo).
     function applica(l) {
-        if (!l.setStyle || !l.sectorlab) return;
-        l.setStyle(stile(l.sectorlab, colore(l.sectorlabStrato)));
+        if (!l.setStyle || !l.sectorlab || !l.sectorlabMappa) return;
+        l.setStyle(stile(l.sectorlabMappa, l.sectorlab, colore(l.sectorlabStrato)));
     }
 
     /// Il fondo della mappa: quello dello schermo radar coi colori di Aurora, quello del foglio coi colori del Lab.
-    function fondo() {
+    function fondo(stato) {
         if (!stato) return;
         stato.mappa.getContainer().style.background = stato.aurora && stato.sfondo ? stato.sfondo : '';
     }
@@ -143,7 +155,7 @@
     /// 🔴 Dall'ULTIMA forma alla prima: portate in fondo nell'ordine del file, la prima finirebbe sopra l'ultima e l'ordine
     /// dei .pol si rovescerebbe — l'erba del confine copriva taxiway e piste (visto a schermo su LIRF). In Aurora vince
     /// l'ultima del file (carta «file per file», I3).
-    function ordina(id) {
+    function ordina(stato, id) {
         if (id !== 'terra' && id !== 'sfondo') return;
         var sotto = ['terra', 'sfondo'];
         for (var i = 0; i < sotto.length; i++) {
@@ -158,7 +170,7 @@
     /// generi spenti di uno strato (slice 12c): '§geo:TAXI_CENTER', contro il genere 'h' della forma. Una
     /// forma spenta esce dal suo gruppo (la vista e i colori non la vedono più); una con qualche parte spenta si ridisegna
     /// coi tratti accesi. Si rifà per ogni strato quando cambiano le spente, e quando uno strato arriva.
-    function applicaSpenti(id) {
+    function applicaSpenti(stato, id) {
         var gruppo = stato.strati[id], tutte = stato.tutte && stato.tutte[id];
         if (!gruppo || !tutte) return;
         var spenti = stato.spenti || {};
@@ -183,8 +195,20 @@
         }
     }
 
-    function scelta(forma) {
-        if (!stato || !stato.riferimento) return;
+    /// L'inquadratura sulle coste, quando il riquadro ha una misura. 🔴 R4: una mappa che nasce nascosta (o in una
+    /// finestra stretta) ha il riquadro a zero, e un fitBounds lì la manda allo zoom più lontano: un puntino al centro
+    /// (visto sul banco). Allora aspetta, e la fa il ResizeObserver quando la mappa compare.
+    function inquadraSeAspetta(stato) {
+        if (!stato || !stato.daInquadrare) return;
+        var misura = stato.mappa.getSize();
+        if (misura.x <= 0 || misura.y <= 0) return;
+        stato.mappa.fitBounds(stato.daInquadrare);
+        stato.daInquadrare = null;
+        stato.inquadrato = true;
+    }
+
+    function scelta(stato, forma) {
+        if (!stato || stato.chiusa || !stato.riferimento) return;
         stato.riferimento.invokeMethodAsync('SceltaDallaMappa', forma.p, forma.r);
     }
 
@@ -194,7 +218,7 @@
         crea: function (elemento, riferimento) {
             var nodo = document.getElementById(elemento);
             if (!nodo || typeof L === 'undefined') return false;
-            if (stato) this.chiudi();
+            if (mappe[elemento]) this.chiudi(elemento);
 
             var mappa = L.map(nodo, {
                 preferCanvas: true,          // 21 667 forme in SVG non si muovono; in canvas sì (prova F0).
@@ -204,19 +228,20 @@
                 maxZoom: 20                  // un pixel ≈ 11 cm, come i sei decimali delle coordinate (MappaDelLab)
             }).setView([42.0, 12.5], 6);
 
-            stato = { mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {}, aurora: false, sfondo: null,
-                      simboli: [], immagini: {} };
+            var stato = mappe[elemento] = { mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {}, aurora: false,
+                                            sfondo: null, simboli: [], immagini: {} };
             // Il riquadro della mappa cambia misura quando i pannelli vanno nell'altra finestra (e tornano): Leaflet
             // non se ne accorge da solo, e disegnerebbe solo nella parte che aveva prima.
             if (typeof ResizeObserver !== 'undefined') {
-                stato.osservatore = new ResizeObserver(function () { mappa.invalidateSize(); });
+                stato.osservatore = new ResizeObserver(function () { mappa.invalidateSize(); inquadraSeAspetta(stato); });
                 stato.osservatore.observe(nodo);
             }
             return true;
         },
 
         /// Accende o spegne uno strato. Le coordinate si scaricano una volta sola e restano in memoria.
-        strato: function (id, acceso) {
+        strato: function (id, acceso, elemento) {
+            var stato = prendi(elemento);
             if (!stato) return Promise.resolve(0);
             var vivo = stato.strati[id];
             // 🔴 Quel che si vuole ADESSO: una fetch lenta che arriva dopo uno «spegni» non deve accendere niente, e due
@@ -244,17 +269,18 @@
                 .then(function (r) { return r.ok ? r.json() : { f: [] }; })
                 .then(function (dati) {
                     // Arrivata tardi: dopo di lei lo strato è stato spento o richiesto di nuovo. Non si disegna.
-                    if (!stato || stato.giro[id] !== giro) return 0;
+                    if (stato.chiusa || stato.giro[id] !== giro) return 0;
                     delete stato.inArrivo[id];
                     var gruppo = L.layerGroup();
                     var tutte = [];
                     for (var i = 0; i < dati.f.length; i++) {
                         var forma = dati.f[i];
-                        var disegnata = disegna(forma, tinta);
+                        var disegnata = disegna(stato, forma, tinta);
                         if (!disegnata) continue;
                         disegnata.sectorlab = forma;
                         disegnata.sectorlabStrato = id;
-                        disegnata.on('click', (function (f) { return function (e) { L.DomEvent.stop(e); scelta(f); }; })(forma));
+                        disegnata.sectorlabMappa = stato;
+                        disegnata.on('click', (function (f) { return function (e) { L.DomEvent.stop(e); scelta(stato, f); }; })(forma));
                         disegnata.bindTooltip(suggerimento(forma), { sticky: true });
                         gruppo.addLayer(disegnata);
                         stato.forme[forma.p + '#' + forma.r] = disegnata;
@@ -267,14 +293,14 @@
                     stato.strati[id] = gruppo;
                     stato.tutte = stato.tutte || {};
                     stato.tutte[id] = tutte;
-                    applicaSpenti(id);
+                    applicaSpenti(stato, id);
                     gruppo.addTo(stato.mappa);
-                    ordina(id);
+                    ordina(stato, id);
                     // Lo sfondo decide l'inquadratura: la prima volta che arriva, la mappa si mette sull'Italia vera.
                     if (id === 'sfondo' && !stato.inquadrato) {
                         var bordi = L.latLngBounds([]);
                         gruppo.eachLayer(function (l) { if (l.getBounds) bordi.extend(l.getBounds()); });
-                        if (bordi.isValid()) { stato.mappa.fitBounds(bordi.pad(.02)); stato.inquadrato = true; }
+                        if (bordi.isValid()) { stato.daInquadrare = bordi.pad(.02); inquadraSeAspetta(stato); }
                     }
 
                     // Il tempo del primo disegno di ogni strato finisce nel diario d'avvio: è la misura della slice 4,
@@ -284,13 +310,14 @@
                     stato.tempo = (stato.tempo || 0) + ms;
                     window.sectorlab.diario('strato ' + id + ': ' + dati.f.length + ' forme in ' + ms + ' ms');
                     return dati.f.length;
-                }, function (e) { if (stato && stato.giro[id] === giro) delete stato.inArrivo[id]; throw e; });
+                }, function (e) { if (stato.giro[id] === giro) delete stato.inArrivo[id]; throw e; });
             stato.inArrivo[id] = arrivo;
             return arrivo;
         },
 
         /// Evidenzia il record scelto (e toglie l'evidenza da quello di prima). Senza file, toglie e basta.
-        evidenzia: function (file, record, inquadra) {
+        evidenzia: function (file, record, inquadra, elemento) {
+            var stato = prendi(elemento);
             if (!stato) return false;
             if (stato.evidenza) {
                 var vecchia = stato.evidenza;
@@ -298,7 +325,7 @@
                 if (vecchia.bringToBack) vecchia.bringToBack();
                 stato.evidenza = null;
                 // Portata in fondo, una forma qualsiasi finirebbe sotto la terra e le coste: si rimettono in fondo loro.
-                ordina('terra');
+                ordina(stato, 'terra');
             }
             if (!file) return false;
 
@@ -318,7 +345,8 @@
         },
 
         /// Tutti gli strati chiesti sono arrivati: il totale va nel diario (e la prova automatica aspetta questa riga).
-        disegnata: function () {
+        disegnata: function (elemento) {
+            var stato = prendi(elemento);
             if (!stato) return;
             window.sectorlab.diario('mappa disegnata: ' + Object.keys(stato.strati).length + ' strati, ' +
                 (stato.forme_disegnate || 0) + ' forme in ' + (stato.tempo || 0) + ' ms');
@@ -327,7 +355,8 @@
         /// L'anteprima di «incolla da testo»: la forma che uscirebbe, tratteggiata sopra quella di oggi, e i centri
         /// degli archi. Senza punti si toglie. La prima volta che compare, la mappa ci si porta sopra; poi, mentre l'AOD
         /// scrive o cambia la densità, resta ferma — si vede la forma cambiare, non la mappa saltare.
-        anteprima: function (punti, centri) {
+        anteprima: function (punti, centri, elemento) {
+            var stato = prendi(elemento);
             if (!stato) return;
             var cera = !!stato.anteprima;
             if (stato.anteprima) { stato.mappa.removeLayer(stato.anteprima); stato.anteprima = null; }
@@ -356,16 +385,18 @@
         /// si torna agli strati accesi. Le forme restano quelle degli strati (nessuna fetch in più): si tolgono i gruppi
         /// dalla mappa e se ne fa uno con le sole forme scelte, che restano cliccabili.
         /// Le voci e le parti spente (slice 6): la mappa le toglie, e la vista (se c'è) si rifà senza di loro.
-        spenti: function (chiavi) {
+        spenti: function (chiavi, elemento) {
+            var stato = prendi(elemento);
             if (!stato) return;
             stato.spenti = {};
             for (var i = 0; i < (chiavi || []).length; i++) stato.spenti[chiavi[i]] = true;
             var ids = Object.keys(stato.strati);
-            for (var j = 0; j < ids.length; j++) applicaSpenti(ids[j]);
-            if (stato.vistaVoluta && stato.vistaVoluta.length) this.vista(stato.vistaVoluta);
+            for (var j = 0; j < ids.length; j++) applicaSpenti(stato, ids[j]);
+            if (stato.vistaVoluta && stato.vistaVoluta.length) this.vista(stato.vistaVoluta, elemento);
         },
 
-        vista: function (chiavi) {
+        vista: function (chiavi, elemento) {
+            var stato = prendi(elemento);
             if (!stato) return 0;
             stato.vistaVoluta = chiavi;
             if (stato.gruppoDellaVista) { stato.mappa.removeLayer(stato.gruppoDellaVista); stato.gruppoDellaVista = null; }
@@ -396,18 +427,25 @@
         },
 
         /// I colori della mappa: di Aurora (col fondo dello schermo radar) o del Lab. Le forme hanno già tutti e due.
-        colori: function (aurora, sfondo, simboli) {
+        colori: function (aurora, sfondo, simboli, elemento) {
+            var stato = prendi(elemento);
             if (!stato) return;
             stato.aurora = !!aurora;
             stato.sfondo = sfondo || null;
             stato.simboli = simboli || [];
             stato.immagini = {};
-            fondo();
-            this.ricolora();
+            fondo(stato);
+            this.ricolora(elemento || 'lab-mappa');
         },
 
-        /// Il tema o il modo è cambiato: ogni forma riprende il suo colore (le coordinate non si richiedono).
-        ricolora: function () {
+        /// Il tema o il modo è cambiato: ogni forma riprende il suo colore (le coordinate non si richiedono). Senza
+        /// elemento (il tema) tutte le mappe.
+        ricolora: function (elemento) {
+            if (!elemento) {
+                for (var chiave in mappe) if (Object.prototype.hasOwnProperty.call(mappe, chiave)) this.ricolora(chiave);
+                return;
+            }
+            var stato = prendi(elemento);
             if (!stato) return;
             for (var id in stato.strati) {
                 if (!Object.prototype.hasOwnProperty.call(stato.strati, id)) continue;
@@ -420,11 +458,14 @@
             }
         },
 
-        chiudi: function () {
+        chiudi: function (elemento) {
+            var stato = prendi(elemento);
             if (!stato) return;
             if (stato.osservatore) stato.osservatore.disconnect();
             stato.mappa.remove();
-            stato = null;
+            // Una fetch ancora in viaggio la trova chiusa e non disegna niente.
+            stato.chiusa = true;
+            delete mappe[elemento || 'lab-mappa'];
         }
     };
 

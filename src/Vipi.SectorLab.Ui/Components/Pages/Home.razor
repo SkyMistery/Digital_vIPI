@@ -133,7 +133,14 @@
             </aside>
             <div class="lab-divisore" data-divide="strati" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
 
-            <Mappa />
+            @* R4 (D15): una mappa per spazio di lavoro, sullo stesso motore. Una nasce la prima volta che si entra nel suo
+               spazio e poi resta, nascosta quando lo spazio è un altro: strati, vista, zoom e scelta sono quelli di prima. *@
+            @foreach (var spazio in SpaziConLaMappa())
+            {
+                <div class="lab-mappa-dello-spazio @(spazio == Lab.SpazioAttivo ? null : "lab-nascosto")" data-mappa-dello-spazio="@spazio.ToString().ToLowerInvariant()">
+                    <Mappa @key="spazio" Spazio="spazio" />
+                </div>
+            }
             </div>
         </div>
     </div>
@@ -283,6 +290,15 @@ else
 @code {
     private bool _interattivo;
     private string? _nomeDelSector;
+
+    /// <summary>Gli spazi in cui si è già entrati: la loro mappa c'è (nascosta se non è quello attivo).</summary>
+    private readonly HashSet<SpazioDiLavoro> _spaziVisti = [];
+
+    private IEnumerable<SpazioDiLavoro> SpaziConLaMappa()
+    {
+        _spaziVisti.Add(Lab.SpazioAttivo);
+        return Enum.GetValues<SpazioDiLavoro>().Where(_spaziVisti.Contains);
+    }
     private string? _lavoro;
 
     private Task PrendiUnAltro() => Lab.PrendiUnAltroSectorAsync(_nomeDelSector);

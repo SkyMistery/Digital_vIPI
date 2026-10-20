@@ -2167,6 +2167,15 @@ body.lab-trascina * {
     display: none;
 }
 
+/* R4 (D15): una mappa per spazio di lavoro; quella degli altri spazi resta, nascosta (Leaflet si rimisura da sé). */
+.lab-mappa-dello-spazio {
+    display: contents;
+}
+
+.lab-mappa-dello-spazio.lab-nascosto {
+    display: none;
+}
+
 .lab-colonna-aip {
     width: var(--lab-l-aip, 34rem);
 }

@@ -387,8 +387,30 @@ cartella di Aurora del PC: 36 profili nella scelta, `BASIC_RADAR.cpr` scelto. Su
 in sola lettura con le cartelle dell'ambiente, i due «Apri la cartella», nessun «Sfoglia…» (non premuto: aprirebbe
 Esplora risorse sullo schermo del committente).
 
+**R4 fatta** (20 ottobre sera): tre mappe, un motore (D14, D15).
+- `SpazioDiLavoro` (Aip, Sector, Confronti) e `StatoDellaMappa` (strati accesi, vista, voci e generi spenti, le loro
+  versioni), uno per spazio, in `SessioneDelLab`. Lo spazio attivo lo dà la pagina (Indice → AIP espanso, Mappa →
+  Sector, Lettura e confronti → Confronti); Consegna e Impostazioni, senza mappa, lasciano quello di prima. `Accesi`,
+  `InVista`, `Spenti` e i gesti che li cambiano parlano con la mappa dello spazio attivo: i pannelli di oggi non sono
+  cambiati. Scegliere un record del sector dallo spazio dell'AIP accende il suo strato sulla mappa del Sector.
+- Gli strati di ogni mappa (`StratiDi`): AIP espanso = coste e strato dell'AIP; Sector = i suoi, **senza** l'AIP;
+  Confronti = tutti e due. Lo strato dell'AIP si accende nelle mappe dell'AIP e del Confronti.
+- `Mappa` riceve lo spazio; l'id del suo elemento è `lab-mappa` (Sector) o `lab-mappa-aip` / `lab-mappa-confronti`.
+  In `Home` una mappa nasce la prima volta che si entra nel suo spazio e poi resta, nascosta: strati, vista, scelta e
+  zoom restano. Nella barra tre gruppi: AIP espanso (Indice), Sector (Mappa, Consegna), Confronti (Lettura e confronti).
+- `sectorlab-mappa.js`: lo stato globale è diventato uno per mappa (`mappe[id]`); ogni funzione pubblica ha l'id come
+  ultimo argomento (senza, la mappa del sector), così i test che leggono gli argomenti non sono cambiati.
+- 🔴 Trovato sul banco: una mappa nata con il riquadro a zero (nascosta, o in una finestra stretta) si inquadrava sulle
+  coste allo zoom più lontano — un puntino al centro. Ora l'inquadratura aspetta che il riquadro abbia una misura (la fa
+  il ResizeObserver).
+- Test: Lab 1 310 (+4, `TreMappeTests`; `PagineDelLabTests` e il test della vista aggiornati: il gruppo Confronti,
+  l'id della mappa come secondo argomento). Sul banco a 1400 px, copia del sector e AIP espanso di prova 2610: l'Indice
+  con la sua mappa (solo coste e AIP, inquadrata sull'Italia), il Sector coi punti accesi e senza AIP, il Confronti coi
+  due lati; lo zoom della mappa dell'AIP uguale dopo un giro nel Sector.
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
-(R4-R9). **In corso: R4** (tre mappe, un motore). Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+(R4-R9). **R4 fatta** (tre mappe, un motore); prossima **R5** (due lati, un disegno: i simboli di Aurora sull'AIP),
+dopo il via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

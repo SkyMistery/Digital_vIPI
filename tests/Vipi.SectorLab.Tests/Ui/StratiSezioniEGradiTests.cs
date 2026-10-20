@@ -112,8 +112,11 @@ public sealed class StratiSezioniEGradiTests : IDisposable
         pagina.WaitForAssertion(() =>
         {
             var chiamata = _contesto.JSInterop.Invocations.Last(i => i.Identifier == "sectorlab.mappa.vista");
-            var chiavi = Assert.IsAssignableFrom<IEnumerable<string>>(Assert.Single(chiamata.Arguments));
+            // R4: l'elenco, intero, e poi l'id della mappa (quella del sector).
+            Assert.Equal(2, chiamata.Arguments.Count);
+            var chiavi = Assert.IsAssignableFrom<IEnumerable<string>>(chiamata.Arguments[0]);
             Assert.Equal([$"{scelta.File}#{scelta.Record}"], chiavi);
+            Assert.Equal("lab-mappa", chiamata.Arguments[1]);
         });
     }
 
