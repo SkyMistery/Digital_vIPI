@@ -99,11 +99,12 @@ public sealed class SintassiDeiTagTests
         Assert.Empty(Metadati.Leggi(riletto, Metadati.NomeStr).Problemi);
     }
 
-    // Il catalogo dipende dal file: una composta sta in un .str, non in un .sid.
+    // Il catalogo dipende dal file: i minimi di un avvicinamento stanno in un .str, non in un .sid. (Le composte stanno
+    // in tutti e due dalla F7, slice 7f: la mappa di gruppo delle SID, P10.)
     [Fact]
     public void UnaChiaveFuoriDalCatalogoDelSuoFileEUnAvviso()
     {
-        var sid = Metadati.Leggi(Sid(Righe("//@\"EKLO8R\" compose=A", LaSid)), Metadati.NomeSid);
+        var sid = Metadati.Leggi(Sid(Righe("//@\"EKLO8R\" mins=200", LaSid)), Metadati.NomeSid);
         var str = Metadati.Leggi(Str(Righe(["//@\"STAR RNAV(ALL)\" compose=ODIN4E", .. LaMappa])), Metadati.NomeStr);
 
         var avviso = Assert.Single(sid.Problemi);

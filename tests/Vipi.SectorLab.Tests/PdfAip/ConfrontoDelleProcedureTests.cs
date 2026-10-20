@@ -336,6 +336,63 @@ public sealed class ConfrontoDelleProcedureTests : IDisposable
         Assert.Contains("GILIO4P: c'è già", _lab.Rifiuto, StringComparison.Ordinal);
     }
 
+    // Slice 7f (P10): la mappa di gruppo in testa al .sid, composta dalle SID col tracciato; il confronto non la prende per
+    // una SID; «Annulla» la toglie.
+    [Fact]
+    public async Task LaMappaDelleSid_InTestaAlFile_CompostaDalleSidColTracciato()
+    {
+        await ConfrontaAsync("LIRF;25;XIBR5A; ; ;0;XIBRI;1;\r\nLIRF;25;TAQU6B; ; ;0;TAQ;1;\r\n", "",
+            P(ProcedureKind.Sid, "XIBRI 5A", ["25"], T("CA"), T("TF", "ELKAP"), T("TF", "XIBRI")),
+            P(ProcedureKind.Sid, "TAQUI 6B", ["25"], T("CA"), T("TF", "TAQ")));
+        // Senza tracciato non c'è niente da raccogliere.
+        Assert.DoesNotContain(_lab.ScaliPerLaMappaDelleSid(), s => s.Scalo == "LIRF");
+        Assert.True(_lab.ScriviITracciatiDelleSid(), _lab.Rifiuto);
+        var prima = Righe("lirf.sid");
+        Assert.Equal(("LIRF", 2), _lab.ScaliPerLaMappaDelleSid().Select(s => (s.Scalo, s.Sid)).Single(s => s.Scalo == "LIRF"));
+
+        Assert.True(_lab.CreaLaMappaDelleSid("LIRF"), _lab.Rifiuto);
+
+        Assert.Equal(
+        [
+            "//@\"SID RNAV(ALL)\" compose=XIBR5A,TAQU6B", "LIRF;MAPS;SID RNAV(ALL);;;;;1;", "ELKAP;ELKAP;5A;", "XIBRI;XIBRI;", "TAQ;TAQ;6B;",
+        ], Testa("lirf.sid", 5));
+        Assert.Equal("", _lab.RigheDiAdesso("SectorFiles/Include/IT/lirf.sid")[4]);   // il tratto nuovo, dopo una riga vuota
+        Assert.DoesNotContain(_lab.ScaliPerLaMappaDelleSid(), s => s.Scalo == "LIRF");
+        Assert.True(await _lab.ConfrontaLeProcedureAsync(), _lab.Rifiuto);
+        Assert.DoesNotContain(_lab.UltimoConfrontoDelleProcedure!.Value.Esiti, e => e.Nome.Contains("ALL", StringComparison.Ordinal));
+        Assert.False(_lab.CreaLaMappaDelleSid("LIRF"));
+
+        _lab.Annulla();
+        Assert.Equal(prima, Righe("lirf.sid"));
+    }
+
+    // Prima della 7f una procedura riscritta nel testo («Sostituisci») lasciava indietro la mappa composta che la elenca:
+    // ora la mappa si riallinea nello stesso gesto. Una mappa che non la elenca non si tocca.
+    [Fact]
+    public async Task Sostituisci_RiallineaLaMappaCompostaCheLaElenca()
+    {
+        var esiti = await ConfrontaAsync(string.Join("\r\n",
+            [
+                "//@\"SID RNAV(ALL)\" compose=XIBR5A", "LIRF;MAPS;SID RNAV(ALL);;;;;1;", "ELKAP;ELKAP;5A;", "",
+                "//@\"ALTRE\" compose=TAQU6B", "LIRF;MAPS;ALTRE;;;;;1;", "SOVAN;SOVAN;6B;", "",
+                "LIRF;25;XIBR5A; ; ;0;ELKAP;1;", "ELKAP;ELKAP;",
+                "LIRF;25;TAQU6B; ; ;0;TAQ;1;", "TAQ;TAQ;",
+                "",
+            ]), "",
+            P(ProcedureKind.Sid, "XIBRI 5A", ["25"], T("CA"), T("TF", "ELKAP"), T("TF", "XIBRI")),
+            P(ProcedureKind.Sid, "TAQUI 6B", ["25"], T("CA"), T("TF", "TAQ")));
+        var riga = esiti.Single(e => e.Nome == "XIBRI 5A");
+        Assert.Equal(EsitoDelConfronto.FormaDiversa, riga.Esito);
+
+        Assert.True(_lab.SostituisciLaProcedura(riga), _lab.Rifiuto);
+
+        Assert.Equal(["//@\"SID RNAV(ALL)\" compose=XIBR5A", "LIRF;MAPS;SID RNAV(ALL);;;;;1;", "ELKAP;ELKAP;5A;", "XIBRI;XIBRI;"], Testa("lirf.sid", 4));
+        // «ALTRE» elenca TAQU6B, che non è cambiata: resta com'era, anche se non è allineata.
+        Assert.Contains("SOVAN;SOVAN;6B;", Righe("lirf.sid"), StringComparison.Ordinal);
+        _lab.Annulla();
+        Assert.Equal(["//@\"SID RNAV(ALL)\" compose=XIBR5A", "LIRF;MAPS;SID RNAV(ALL);;;;;1;", "ELKAP;ELKAP;5A;", "//@\"ALTRE\" compose=TAQU6B"], Testa("lirf.sid", 4));
+    }
+
     [Theory]
     [InlineData("XIBR5A", "XIBRI 5A", 1)]
     [InlineData("BAGIX3R", "BAGIX 3R", 0)]

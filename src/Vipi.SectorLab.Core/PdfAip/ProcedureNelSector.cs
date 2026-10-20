@@ -122,8 +122,19 @@ public static partial class ProcedureNelSector
         $"{icao};{string.Join(':', piste)};{nome};;;;;{(rnav ? "1;" : "")}";
 
     /// <summary>La testata di una SID: <c>LIRF;25;XIBR5A; ; ;0;XIBRI;1;</c> (il campo 7 è l'ultimo punto).</summary>
-    public static string TestataDellaSid(string icao, IReadOnlyList<string> piste, string nome, string ultimo, bool rnav) =>
-        $"{icao};{string.Join(':', piste)};{nome}; ; ;0;{ultimo};{(rnav ? "1;" : "")}";
+    /// <param name="campiVuoti">Il file scrive le sue SID coi campi 4-6 vuoti (<c>LIRN;06;ALAX7G;;;;ALAXI;1;</c>, come
+    /// <c>lirn.sid</c>) invece che con gli spazi e lo 0 (<c>lirf.sid</c>): la SID nuova fa come le altre.</param>
+    public static string TestataDellaSid(string icao, IReadOnlyList<string> piste, string nome, string ultimo, bool rnav, bool campiVuoti = false) =>
+        campiVuoti
+            ? $"{icao};{string.Join(':', piste)};{nome};;;;{ultimo};{(rnav ? "1;" : "")}"
+            : $"{icao};{string.Join(':', piste)};{nome}; ; ;0;{ultimo};{(rnav ? "1;" : "")}";
+
+    /// <summary>Vero se la maggior parte delle SID del file ha i campi 4-6 vuoti (<c>;;;;</c>): la forma per una SID nuova.</summary>
+    public static bool CampiVuoti(IEnumerable<object> recordDelFile)
+    {
+        var sid = recordDelFile.OfType<Vipi.Sectorfile.Models.SidProcedure>().Where(s => s.Runway.Trim() != "MAPS").ToList();
+        return sid.Count(s => s.Field4.Length == 0 && s.Field5.Length == 0 && s.DefaultVisible is null) * 2 > sid.Count;
+    }
 
     /// <summary>
     /// Il blocco intero di una procedura nuova: dichiarazione, <c>//@START</c>, testata, punti coi loro <c>//@@</c>,

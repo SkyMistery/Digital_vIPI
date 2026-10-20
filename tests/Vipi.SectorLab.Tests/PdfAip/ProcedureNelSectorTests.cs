@@ -88,6 +88,13 @@ public sealed class ProcedureNelSectorTests
 
         Assert.Equal(["RF601", "SOSAK", "ESINO"], ProcedureNelSector.Punti([sid, trans]));
         Assert.Equal("LIRF;25;SOS5A-ESI8H; ; ;0;ESINO;1;", ProcedureNelSector.TestataDellaSid("LIRF", sid.Runways, "SOS5A-ESI8H", "ESINO", ProcedureNelSector.Rnav([sid, trans])));
+        // Un file che scrive le sue SID coi campi vuoti (lirn.sid) ne riceve una uguale.
+        Assert.Equal("LIRN;06;ALAX7H;;;;ALAXI;1;", ProcedureNelSector.TestataDellaSid("LIRN", ["06"], "ALAX7H", "ALAXI", rnav: true, campiVuoti: true));
+        Assert.True(ProcedureNelSector.CampiVuoti([
+            new Vipi.Sectorfile.Models.SidProcedure { Runway = "06", Name = "ALAX7G" },
+            new Vipi.Sectorfile.Models.SidProcedure { Runway = "MAPS", Name = "SID RNAV(ALL)", Field4 = " ", Field5 = " " },
+        ]));
+        Assert.False(ProcedureNelSector.CampiVuoti([new Vipi.Sectorfile.Models.SidProcedure { Runway = "25", Name = "XIBR5A", Field4 = " ", Field5 = " ", DefaultVisible = 0 }]));
         // SOSAK ha la quota della SID (il primo tratto che ci arriva), non quella vuota della transizione; il CA non ha posto.
         Assert.Equal(
         [

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Aip;
 using Aip.Aurora;
 using Vipi.SectorLab.Core.Sessione;
+using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Models;
 using Vipi.Sectorfile.Shared;
 
@@ -279,7 +280,9 @@ public static partial class ConfrontoDelleProcedure
             if (nome.Equals(icao + ".sid", StringComparison.OrdinalIgnoreCase))
             {
                 for (var i = 0; i < conRecord.RecordDelModello.Count; i++)
-                    if (conRecord.RecordDelModello[i] is SidProcedure sid && sid.IcaoCode.Equals(icao, StringComparison.OrdinalIgnoreCase))
+                    // La mappa di gruppo in testa al file (MAPS, F7 slice 7f) non è una SID.
+                    if (conRecord.RecordDelModello[i] is SidProcedure sid && sid.IcaoCode.Equals(icao, StringComparison.OrdinalIgnoreCase)
+                        && !MappeComposte.EUnaMappa(sid))
                         voci.Add(new Voce(file, i, sid.Name.Trim(), Parti(sid.Name), Piste(sid.Runway), Star: false, sid.RelatedFix, [], sid.Track.Count == 0));
             }
             else if (nome.Equals(icao + ".str", StringComparison.OrdinalIgnoreCase))

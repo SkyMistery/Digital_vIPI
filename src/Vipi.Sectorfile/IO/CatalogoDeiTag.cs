@@ -28,11 +28,12 @@ public sealed partial record CatalogoDeiTag(
 
     /// <summary>
     /// SID (§M, P6 e P11): fix intero, transizione, salita iniziale, WTC, categoria, specifica di navigazione; i punti
-    /// col ruolo e i vincoli, per quando le SID avranno il tracciato (P9).
+    /// col ruolo e i vincoli, per quando le SID avranno il tracciato (P9); la mappa di gruppo in testa al file (P10, F7
+    /// slice 7f), composta dalle SID come quelle delle STAR.
     /// </summary>
     public static CatalogoDeiTag Sid { get; } = new(
         ".sid",
-        [.. Comuni, "fix", "trans", "initialclimb", "wtc", "cat", "nav"],
+        [.. Comuni, "fix", "trans", "initialclimb", "wtc", "cat", "nav", Metadati.Compose, Metadati.Whole],
         [],
         ["role", "alt", "spd"]);
 

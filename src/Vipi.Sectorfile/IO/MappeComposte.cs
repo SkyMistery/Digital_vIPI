@@ -18,10 +18,12 @@ public sealed record PuntoDellaMappa(string? Nome, string? Etichetta, Coordinate
 /// Una mappa composta del file: il record <c>MAPS</c>, il valore di <c>composta</c>, l'elenco letto (null se non si
 /// legge), se le procedure si disegnano intere (<c>intere=si</c>) e la riga della dichiarazione.
 /// </summary>
-public sealed record MappaComposta(StrRecord Mappa, string Valore, IReadOnlyList<ProceduraDellaComposta>? Elenco, bool Intere, int Riga)
+/// <param name="Mappa">Il record della mappa: uno <see cref="StrRecord"/>, o una <see cref="SidProcedure"/> (la mappa di gruppo
+/// in testa al <c>.sid</c>, P10, carta F7 slice 7f).</param>
+public sealed record MappaComposta(object Mappa, string Valore, IReadOnlyList<ProceduraDellaComposta>? Elenco, bool Intere, int Riga)
 {
     /// <summary>La mappa rigenerata dalle procedure del file (vuota se l'elenco non si legge).</summary>
-    public MappaRigenerata Componi(IReadOnlyList<StrRecord> recordDelFile)
+    public MappaRigenerata Componi(IReadOnlyList<object> recordDelFile)
         => Elenco is null
             ? new MappaRigenerata([], [], 0)
             : MappeComposte.Componi(Mappa, Elenco, recordDelFile, Intere);
@@ -42,6 +44,10 @@ public sealed record MappaRigenerata(IReadOnlyList<PuntoDellaMappa> Punti, IRead
 /// primo punto già disegnato, compreso (così 102 dei 139 tratti troncati di oggi), a meno che la mappa dica
 /// <c>intere=si</c>: 7 mappe del fork (<c>lirs</c>, <c>libp</c>…) disegnano intere anche le procedure che si toccano. <b>D9</b>: i tratti della mappa che non sono il disegno di una
 /// procedura del file (un arco a coordinate, un tratto a mano) restano, in fondo, com'erano.</para>
+/// <para><b>Le SID</b> (P10, carta F7 slice 7f): una voce <c>MAPS</c> del <c>.sid</c> si compone allo stesso modo dalle SID
+/// col tracciato dello stesso file. Nel <c>.sid</c> un tratto nuovo comincia dopo una riga vuota (non col
+/// <c>&lt;br&gt;</c>), e la testa non si ripete: il primo punto porta l'etichetta, la coda del nome della SID
+/// (<c>GEMMA;GEMMA;7G;</c> per <c>ALAX7G</c>), se il tracciato non ne ha già una.</para>
 /// </remarks>
 public static class MappeComposte
 {
@@ -56,11 +62,49 @@ public static class MappeComposte
             .ToList();
     }
 
+    /// <summary>Le mappe composte di un <c>.sid</c> letto: le voci <c>MAPS</c> che hanno la chiave <c>composta</c> (P10).</summary>
+    public static IReadOnlyList<MappaComposta> Di(ParseResult<SidProcedure> letto)
+    {
+        ArgumentNullException.ThrowIfNull(letto);
+        return Metadati.Leggi(letto, Metadati.NomeSid).Record
+            .Where(m => EUnaMappa(m.Record) && m.Chiavi.ContainsKey(Metadati.Compose))
+            .Select(m => new MappaComposta(m.Record, m.Chiavi[Metadati.Compose], Metadati.ElencoDellaComposta(m.Chiavi[Metadati.Compose]),
+                m.Chiavi.GetValueOrDefault(Metadati.Whole) == "si", m.Riga))
+            .ToList();
+    }
+
+    /// <summary>Le mappe composte di un file letto, <c>.str</c> o <c>.sid</c>; nessuna per gli altri.</summary>
+    public static IReadOnlyList<MappaComposta> DiQualunque(object letto) => letto switch
+    {
+        ParseResult<StrRecord> str => Di(str),
+        ParseResult<SidProcedure> sid => Di(sid),
+        _ => [],
+    };
+
+    /// <summary>Il nome di una procedura o di una mappa (<c>ODIN4E</c>, <c>ALAX7G</c>), senza spazi in testa e in coda.</summary>
+    public static string Nome(object record) => record switch
+    {
+        StrRecord str => str.ProcedureId.Trim(),
+        SidProcedure sid => sid.Name.Trim(),
+        _ => string.Empty,
+    };
+
+    /// <summary>Il campo delle piste: <c>16L:16R</c>, <c>MAPS</c>.</summary>
+    public static string Piste(object record) => record switch
+    {
+        StrRecord str => str.RunwaySpec,
+        SidProcedure sid => sid.Runway,
+        _ => string.Empty,
+    };
+
+    /// <summary>Vero per una voce del menu delle mappe (<c>MAPS</c>), in un <c>.str</c> o in un <c>.sid</c>.</summary>
+    public static bool EUnaMappa(object record) => Piste(record).Trim() == "MAPS";
+
     /// <summary>Le procedure del file che un elenco nomina, nell'ordine dell'elenco (e del file, per lo stesso nome).</summary>
-    public static IReadOnlyList<StrRecord> ProcedureElencate(IReadOnlyList<ProceduraDellaComposta> elenco, IEnumerable<StrRecord> recordDelFile)
+    public static IReadOnlyList<object> ProcedureElencate(IReadOnlyList<ProceduraDellaComposta> elenco, IEnumerable<object> recordDelFile)
     {
         ArgumentNullException.ThrowIfNull(elenco);
-        var procedure = recordDelFile.Where(r => r.RunwaySpec != "MAPS").ToList();
+        var procedure = recordDelFile.Where(r => !EUnaMappa(r)).ToList();
         return elenco.SelectMany(voce => procedure.Where(p => Nomina(voce, p))).ToList();
     }
 
@@ -68,13 +112,14 @@ public static class MappeComposte
     /// La mappa come verrebbe rigenerata dalle procedure elencate (D8), coi tratti liberi di oggi in fondo (D9).
     /// Non tocca niente.
     /// </summary>
-    public static MappaRigenerata Componi(StrRecord mappa, IReadOnlyList<ProceduraDellaComposta> elenco, IReadOnlyList<StrRecord> recordDelFile,
+    public static MappaRigenerata Componi(object mappa, IReadOnlyList<ProceduraDellaComposta> elenco, IReadOnlyList<object> recordDelFile,
                                           bool intere = false)
     {
         ArgumentNullException.ThrowIfNull(mappa);
         ArgumentNullException.ThrowIfNull(elenco);
         ArgumentNullException.ThrowIfNull(recordDelFile);
-        var procedure = recordDelFile.Where(r => r.RunwaySpec != "MAPS").ToList();
+        bool sid = mappa is SidProcedure;
+        var procedure = recordDelFile.Where(r => !EUnaMappa(r)).ToList();
 
         var punti = new List<PuntoDellaMappa>();
         var disegnati = new HashSet<string>(StringComparer.Ordinal);
@@ -90,19 +135,24 @@ public static class MappeComposte
 
             foreach (var procedura in sue)
             {
-                var suoi = PuntiDi(procedura);
+                var suoi = PuntiDellaParte(procedura);
                 if (suoi.Count == 0)
                 {
                     continue;
                 }
 
-                var tratto = new List<PuntoDellaMappa> { suoi[0] with { Suffisso = null, IniziaUnTratto = true } };
+                // Nel .str la testa si ripete (la riga col <br>, poi quella col suffisso); nel .sid il tratto comincia dal
+                // primo punto, che porta l'etichetta, dopo una riga vuota.
+                var tratto = sid ? [] : new List<PuntoDellaMappa> { suoi[0] with { Suffisso = null, IniziaUnTratto = true } };
                 foreach (var punto in suoi)
                 {
-                    tratto.Add(punto with { IniziaUnTratto = false });
-                    if (!intere && disegnati.Contains(punto.Chiave))
+                    bool primo = tratto.Count == (sid ? 0 : 1);
+                    tratto.Add(punto with { IniziaUnTratto = sid && tratto.Count == 0 });
+                    // D8: si ferma sul primo punto già disegnato, compreso. Una SID no sul suo primo punto: le SID di una
+                    // pista partono spesso dallo stesso punto, e la seconda si disegna fino a dove torna sulla prima.
+                    if (!intere && disegnati.Contains(punto.Chiave) && !(sid && primo))
                     {
-                        break;   // D8: si ferma sul primo punto già disegnato, compreso.
+                        break;
                     }
                 }
 
@@ -121,7 +171,15 @@ public static class MappeComposte
         // Il primo tratto comincia comunque, e i file scrivono la sua testa in tre modi: `P;P;<br>` + `P;P;4E;` (lime.str),
         // `P;P;` + `P;P;3Z;` (liea.str), o solo `P;P;1J;` (limj.str). Si tiene la testa che la mappa ha oggi: una mappa
         // rigenerata uguale a quella di oggi non cambia nemmeno lì.
-        if (punti.Count > 0 && PuntiDi(mappa) is { Count: > 0 } oggi)
+        if (sid)
+        {
+            // Il primo punto del corpo segue la testata: nessuna riga vuota prima.
+            if (punti.Count > 0)
+            {
+                punti[0] = punti[0] with { IniziaUnTratto = false };
+            }
+        }
+        else if (punti.Count > 0 && PuntiDi(mappa) is { Count: > 0 } oggi)
         {
             bool testaDoppiaOggi = oggi.Count >= 2 && oggi[0].Chiave == oggi[1].Chiave;
             if (!testaDoppiaOggi && punti.Count >= 2 && punti[0].Suffisso is null && punti[0].Chiave == punti[1].Chiave)
@@ -135,9 +193,10 @@ public static class MappeComposte
         return new MappaRigenerata(punti, mancanti, liberi.Count);
     }
 
-    /// <summary>I punti del corpo di un record, qualunque sia il suo tipo.</summary>
-    public static IReadOnlyList<PuntoDellaMappa> PuntiDi(StrRecord record) => record switch
+    /// <summary>I punti del corpo di un record, qualunque sia il suo tipo (anche il tracciato di una SID).</summary>
+    public static IReadOnlyList<PuntoDellaMappa> PuntiDi(object record) => record switch
     {
+        SidProcedure s => s.Track.Select(t => new PuntoDellaMappa(t.Punto.Nome, t.Punto.NomeLongitudine, t.Punto.Posizione, t.Etichetta, t.NuovoTratto)).ToList(),
         ProcedureStrRecord p => p.Waypoints.Select(w => new PuntoDellaMappa(w.FixName, w.DisplayLabel, null, w.SuffixCode, w.IniziaUnTratto)).ToList(),
         HoldingStrRecord h => h.Points.Select(p => p switch
         {
@@ -150,20 +209,50 @@ public static class MappeComposte
         _ => [],
     };
 
+    /// <summary>
+    /// I punti di una procedura come parte di una mappa: quelli del suo corpo; per una SID il primo porta la coda del nome
+    /// come etichetta (<c>ALAX7G</c> → <c>7G</c>), se non ne ha già una: è l'etichetta che una mappa di gruppo mostra.
+    /// </summary>
+    public static IReadOnlyList<PuntoDellaMappa> PuntiDellaParte(object procedura)
+    {
+        var punti = PuntiDi(procedura);
+        if (procedura is SidProcedure sid && punti.Count > 0 && punti[0].Suffisso is null
+            && System.Text.RegularExpressions.Regex.Match(sid.Name.Trim().Split('-')[0], @"\d+[A-Z]$") is { Success: true } coda)
+        {
+            return [punti[0] with { Suffisso = coda.Value }, .. punti.Skip(1)];
+        }
+
+        return punti;
+    }
+
     /// <summary>Vero se la mappa ha già esattamente quei punti.</summary>
-    public static bool Uguale(StrRecord mappa, IReadOnlyList<PuntoDellaMappa> punti)
+    public static bool Uguale(object mappa, IReadOnlyList<PuntoDellaMappa> punti)
         => PuntiDi(mappa).SequenceEqual(punti);
 
     /// <summary>
     /// Mette quei punti nel corpo della mappa, in posto. Falso (e la mappa non cambia) se il suo tipo non li può
     /// tenere: una mappa di soli nomi non prende una coordinata, una di sole coordinate non prende un nome.
     /// </summary>
-    public static bool Applica(StrRecord mappa, IReadOnlyList<PuntoDellaMappa> punti)
+    public static bool Applica(object mappa, IReadOnlyList<PuntoDellaMappa> punti)
     {
         ArgumentNullException.ThrowIfNull(mappa);
         ArgumentNullException.ThrowIfNull(punti);
         switch (mappa)
         {
+            case SidProcedure s:
+                s.Track.Clear();
+                foreach (var p in punti)
+                {
+                    s.Track.Add(new PuntoDelTracciato
+                    {
+                        Punto = p.Nome is null ? Punto.Da(p.Posizione!.Value) : Punto.Nominato(p.Nome, p.Etichetta ?? p.Nome),
+                        Etichetta = p.Suffisso,
+                        NuovoTratto = p.IniziaUnTratto,
+                    });
+                }
+
+                return true;
+
             case HoldingStrRecord h:
                 h.Points.Clear();
                 foreach (var p in punti)
@@ -209,22 +298,22 @@ public static class MappeComposte
     /// pista (<c>25:NENI5A</c>). I tratti che non sono una procedura del file restano fuori: sono quelli liberi (D9); e
     /// così quelli di una procedura il cui nome non può stare nell'elenco (<see cref="Metadati.NomeElencabile"/>).
     /// </summary>
-    public static IReadOnlyList<ProceduraDellaComposta> ProcedureCheDisegna(StrRecord mappa, IReadOnlyList<StrRecord> recordDelFile)
+    public static IReadOnlyList<ProceduraDellaComposta> ProcedureCheDisegna(object mappa, IReadOnlyList<object> recordDelFile)
     {
         ArgumentNullException.ThrowIfNull(mappa);
         ArgumentNullException.ThrowIfNull(recordDelFile);
-        var procedure = recordDelFile.Where(r => r.RunwaySpec != "MAPS").ToList();
+        var procedure = recordDelFile.Where(r => !EUnaMappa(r)).ToList();
         var elenco = new List<ProceduraDellaComposta>();
         foreach (var tratto in Tratti(PuntiDi(mappa)))
         {
-            if (DiQualeProcedura(tratto, procedure) is not { } procedura || !Metadati.NomeElencabile(procedura.ProcedureId.Trim()))
+            if (DiQualeProcedura(tratto, procedure) is not { } procedura || !Metadati.NomeElencabile(Nome(procedura)))
             {
                 continue;
             }
 
-            string nome = procedura.ProcedureId.Trim();
-            bool unico = procedure.Count(p => p.ProcedureId.Trim() == nome) == 1;
-            var voce = new ProceduraDellaComposta(unico ? null : procedura.RunwaySpec.Split(':')[0].Trim(), nome);
+            string nome = Nome(procedura);
+            bool unico = procedure.Count(p => Nome(p) == nome) == 1;
+            var voce = new ProceduraDellaComposta(unico ? null : Piste(procedura).Split(':')[0].Trim(), nome);
             if (!elenco.Contains(voce))
             {
                 elenco.Add(voce);
@@ -235,9 +324,9 @@ public static class MappeComposte
     }
 
     /// <summary>Vero se la voce dell'elenco nomina quella procedura: stesso nome, e la pista se la voce la sceglie.</summary>
-    public static bool Nomina(ProceduraDellaComposta voce, StrRecord procedura)
-        => procedura.ProcedureId.Trim() == voce.Nome
-           && (voce.Pista is null || procedura.RunwaySpec.Split(':').Select(p => p.Trim()).Contains(voce.Pista));
+    public static bool Nomina(ProceduraDellaComposta voce, object procedura)
+        => Nome(procedura) == voce.Nome
+           && (voce.Pista is null || Piste(procedura).Split(':').Select(p => p.Trim()).Contains(voce.Pista));
 
     /// <summary>I tratti di un corpo: si comincia a ogni punto col <c>&lt;br&gt;</c>.</summary>
     private static List<List<PuntoDellaMappa>> Tratti(IReadOnlyList<PuntoDellaMappa> punti)
@@ -260,10 +349,10 @@ public static class MappeComposte
     /// Un tratto è il disegno di una procedura del file se comincia dal suo primo punto e ha il suo suffisso
     /// (<c>ODINA</c> + <c>4E</c> = <c>ODIN4E</c>); senza suffisso, se i suoi punti sono l'inizio di quelli della procedura.
     /// </summary>
-    private static bool EDiUnaProcedura(List<PuntoDellaMappa> tratto, IReadOnlyList<StrRecord> procedure)
+    private static bool EDiUnaProcedura(List<PuntoDellaMappa> tratto, IReadOnlyList<object> procedure)
         => DiQualeProcedura(tratto, procedure) is not null;
 
-    private static StrRecord? DiQualeProcedura(List<PuntoDellaMappa> tratto, IReadOnlyList<StrRecord> procedure)
+    private static object? DiQualeProcedura(List<PuntoDellaMappa> tratto, IReadOnlyList<object> procedure)
     {
         var chiavi = tratto.Select(p => p.Chiave).ToList();
         if (chiavi.Count >= 2 && chiavi[0] == chiavi[1])
@@ -274,7 +363,7 @@ public static class MappeComposte
         string? suffisso = tratto.Select(p => p.Suffisso).FirstOrDefault(s => s is not null);
         return procedure.FirstOrDefault(procedura =>
         {
-            var suoi = PuntiDi(procedura);
+            var suoi = PuntiDellaParte(procedura);
             if (suoi.Count == 0 || suoi[0].Chiave != chiavi[0])
             {
                 return false;

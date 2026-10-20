@@ -92,6 +92,9 @@ public static class MetadatiDellaScheda
         StrRecord voce when DescrizioniDeiCampi.EUnaMappa(voce.RunwaySpec) => !DelleProcedure.Contains(chiave) && !DellAvvicinamento.Contains(chiave),
         StrRecord voce => !DelleMappe.Contains(chiave) && chiave != "initialclimb"
                           && (!DellAvvicinamento.Contains(chiave) || voce.RecordType is StrRecordType.Iap or StrRecordType.Fap or StrRecordType.GoAround),
+        // Le SID (F7 slice 7f): la voce MAPS in testa al file ha le chiavi delle mappe, le SID quelle delle procedure.
+        SidProcedure sid when DescrizioniDeiCampi.EUnaMappa(sid.Runway) => !DelleProcedure.Contains(chiave),
+        SidProcedure => !DelleMappe.Contains(chiave),
         _ => true,
     };
 
@@ -102,7 +105,7 @@ public static class MetadatiDellaScheda
         return chiave switch
         {
             "gen" => "La scrive il generatore che ha disegnato il record, coi suoi parametri (§M-G, F8).",
-            Metadati.Compose or Metadati.Whole when record is StrRecord => "Si cambia da «Composta da», qui sotto.",
+            Metadati.Compose or Metadati.Whole when record is StrRecord or SidProcedure => "Si cambia da «Composta da», qui sotto.",
             Metadati.Compose or Metadati.Whole => "Le configurazioni composte arrivano con la saldatura dei bordi (J6, F8).",
             _ => null,
         };

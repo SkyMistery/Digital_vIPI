@@ -420,11 +420,10 @@ public sealed class ModificheInSospeso
     /// </summary>
     private void RigeneraLeComposte(FileAperto file)
     {
-        if (file is not FileLetto<StrRecord> str)
+        if (ConLeComposte(file) is not var (letto, record))
             return;
 
-        var record = str.Letto.Records;
-        foreach (var composta in MappeComposte.Di(str.Letto))
+        foreach (var composta in MappeComposte.DiQualunque(letto))
         {
             int indice = IndiceDi(record, composta.Mappa);
             if (indice < 0 || composta.Elenco is null)
@@ -458,14 +457,14 @@ public sealed class ModificheInSospeso
                 continue;
 
             _fatte[(file.Relativo, indice, ModificaDellaComposta.Chiave)] = new ModificaDellaComposta(
-                file.Relativo, indice, Metadati.NomeStr(composta.Mappa), partenza.Count, rigenerata.Punti.Count);
+                file.Relativo, indice, MappeComposte.Nome(composta.Mappa), partenza.Count, rigenerata.Punti.Count);
             if (!_sporchi.TryGetValue(file.Relativo, out var suoi))
                 _sporchi[file.Relativo] = suoi = [];
             suoi[indice] = composta.Mappa;
         }
 
         // Una mappa rigenerata che non è più composta (la scheda ha tolto il tag) torna com'era all'apertura.
-        var composte = MappeComposte.Di(str.Letto).Select(c => IndiceDi(record, c.Mappa)).ToHashSet();
+        var composte = MappeComposte.DiQualunque(letto).Select(c => IndiceDi(record, c.Mappa)).ToHashSet();
         foreach (var chiave in _mappeDiPartenza.Keys.Where(k => k.File == file.Relativo && !composte.Contains(k.Record)).ToList())
             RimettiLaMappa(file, chiave.Record);
     }
@@ -482,15 +481,36 @@ public sealed class ModificheInSospeso
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(elenco);
-        if (file is not FileLetto<StrRecord> str || indice < 0 || indice >= str.Letto.Records.Count)
-            return new ModificaRifiutata("Una mappa composta sta in un .str.");
-        var mappa = str.Letto.Records[indice];
-        if (mappa.RunwaySpec != "MAPS")
+        return file switch
+        {
+            FileLetto<StrRecord> str => CambiaLaComposta(file, str, str.Letto, Metadati.NomeStr, indice, elenco, intere),
+            // La mappa di gruppo delle SID (P10, carta F7 slice 7f).
+            FileLetto<SidProcedure> sid => CambiaLaComposta(file, sid, sid.Letto, Metadati.NomeSid, indice, elenco, intere),
+            _ => new ModificaRifiutata("Una mappa composta sta in un .str o in un .sid."),
+        };
+    }
+
+    /// <summary>Il file letto e i suoi record, se è un <c>.str</c> o un <c>.sid</c> (i file che hanno mappe composte).</summary>
+    private static (object Letto, IReadOnlyList<object> Record)? ConLeComposte(FileAperto file) => file switch
+    {
+        FileLetto<StrRecord> str => (str.Letto, str.Letto.Records),
+        FileLetto<SidProcedure> sid => (sid.Letto, sid.Letto.Records),
+        _ => null,
+    };
+
+    private object CambiaLaComposta<T>(FileAperto file, IFileConRecord conRecord, ParseResult<T> letto, Func<T, string> nomeDi, int indice,
+        IReadOnlyList<ProceduraDellaComposta> elenco, bool? intere)
+        where T : class
+    {
+        if (indice < 0 || indice >= letto.Records.Count)
+            return new ModificaRifiutata("Il record non c'è.");
+        var mappa = letto.Records[indice];
+        if (!MappeComposte.EUnaMappa(mappa))
             return new ModificaRifiutata("Solo una mappa MAPS può essere composta.");
         if (elenco.FirstOrDefault(v => !Metadati.NomeElencabile(v.Nome)) is { } nonElencabile)
             return new ModificaRifiutata($"«{nonElencabile.Nome}» non può stare nell'elenco: il nome è vuoto o ha le virgolette dentro.");
 
-        var metadati = Metadati.Leggi(str.Letto, Metadati.NomeStr);
+        var metadati = Metadati.Leggi(letto, nomeDi);
         if (metadati.Problemi.FirstOrDefault(p => p.EUnErrore) is { } rotto)
             return new ModificaRifiutata($"Il file ha tag //@ che non valgono (riga {rotto.Riga}): vanno sistemati prima.");
 
@@ -498,14 +518,14 @@ public sealed class ModificheInSospeso
         string? compostaOggi = chiaviOggi.GetValueOrDefault(Metadati.Compose);
         bool intereOggi = chiaviOggi.GetValueOrDefault(Metadati.Whole) == "si";
         string? valore = elenco.Count == 0 ? null : Metadati.ScriviLElenco(elenco);
-        bool intereNuove = valore is not null && (intere ?? (compostaOggi is null ? IntereLaLascianoComE(mappa, elenco, str.Letto.Records) : intereOggi));
+        bool intereNuove = valore is not null && (intere ?? (compostaOggi is null ? IntereLaLascianoComE(mappa, elenco, (IReadOnlyList<object>)letto.Records) : intereOggi));
         if (valore == compostaOggi && intereNuove == intereOggi)
             return new ModificaRifiutata("La mappa è già composta così.");
 
         var chiave = (file.Relativo, indice);
         if (!_dichiarazioniDiPartenza.ContainsKey(chiave))
             _dichiarazioniDiPartenza[chiave] = (compostaOggi, intereOggi);
-        Fotografa(file, str);
+        Fotografa(file, conRecord);
 
         var altre = chiaviOggi.Where(c => c.Key is not (Metadati.Compose or Metadati.Whole)).ToDictionary(c => c.Key, c => c.Value);
         if (valore is not null)
@@ -515,13 +535,13 @@ public sealed class ModificheInSospeso
                 altre[Metadati.Whole] = "si";
         }
 
-        str.RipristinaLaStruttura(altre.Count == 0
-            ? Metadati.Togli(str.Letto, mappa, Metadati.NomeStr)
-            : Metadati.Scrivi(str.Letto, mappa, Metadati.NomeStr, altre));
+        conRecord.RipristinaLaStruttura(altre.Count == 0
+            ? Metadati.Togli(letto, mappa, nomeDi)
+            : Metadati.Scrivi(letto, mappa, nomeDi, altre));
 
         var partenza = _dichiarazioniDiPartenza[chiave];
         var voce = (file.Relativo, indice, ModificaDellaDichiarazione.Chiave);
-        var modifica = new ModificaDellaDichiarazione(file.Relativo, indice, Metadati.NomeStr(mappa),
+        var modifica = new ModificaDellaDichiarazione(file.Relativo, indice, MappeComposte.Nome(mappa),
             Scritto(partenza.Composta, partenza.Intere), Scritto(valore, intereNuove));
         if (valore == partenza.Composta && intereNuove == partenza.Intere)
         {
@@ -531,7 +551,7 @@ public sealed class ModificheInSospeso
             _dichiarazioniDiPartenza.Remove(chiave);
             if (!PendeStruttura(file.Relativo) && _strutturaDiPartenza.Remove(file.Relativo, out object? comEra))
             {
-                str.RipristinaLaStruttura(comEra);
+                conRecord.RipristinaLaStruttura(comEra);
             }
         }
         else
@@ -706,7 +726,7 @@ public sealed class ModificheInSospeso
     /// La forma per una mappa che diventa composta adesso: intera se così, e non troncata, la mappa resta com'è oggi
     /// (7 mappe del fork, <c>lirs</c>, <c>libp</c>…); troncata in ogni altro caso (D8 rivista).
     /// </summary>
-    public static bool IntereLaLascianoComE(StrRecord mappa, IReadOnlyList<ProceduraDellaComposta> elenco, IReadOnlyList<StrRecord> recordDelFile)
+    public static bool IntereLaLascianoComE(object mappa, IReadOnlyList<ProceduraDellaComposta> elenco, IReadOnlyList<object> recordDelFile)
         => !MappeComposte.Uguale(mappa, MappeComposte.Componi(mappa, elenco, recordDelFile).Punti)
            && MappeComposte.Uguale(mappa, MappeComposte.Componi(mappa, elenco, recordDelFile, intere: true).Punti);
 
@@ -717,7 +737,7 @@ public sealed class ModificheInSospeso
     private void RimettiLaMappa(FileAperto file, int indice)
     {
         if (_mappeDiPartenza.Remove((file.Relativo, indice), out var partenza) && file is IFileConRecord conRecord
-            && conRecord.RecordDelModello[indice] is StrRecord mappa)
+            && conRecord.RecordDelModello[indice] is { } mappa && MappeComposte.EUnaMappa(mappa))
         {
             MappeComposte.Applica(mappa, partenza);
         }
@@ -726,7 +746,7 @@ public sealed class ModificheInSospeso
         Ripulisci(file.Relativo);
     }
 
-    private static int IndiceDi(IReadOnlyList<StrRecord> record, StrRecord cercato)
+    private static int IndiceDi(IReadOnlyList<object> record, object cercato)
     {
         for (int i = 0; i < record.Count; i++)
         {

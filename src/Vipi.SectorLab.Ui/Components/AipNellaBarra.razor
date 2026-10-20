@@ -270,6 +270,12 @@
                                 title="Le SID uguali all'AIP per nome, piste e punto finale, che nel sector non hanno tracciato: il tracciato dell'AIP coi tag di quota e velocità (D2, D3), un gesto solo"
                                 @onclick="ScriviITracciati">Scrivi i tracciati delle SID uguali (@senza voci)</button>
                     }
+                    @foreach (var (scalo, _, quante) in Lab.ScaliPerLaMappaDelleSid())
+                    {
+                        <button type="button" class="lab-tasto" data-tasto="mappa-delle-sid"
+                                title="In testa al .sid una voce MAPS che disegna insieme le SID col tracciato (P10): una mappa composta, che il Lab rigenera quando una SID cambia"
+                                @onclick="() => CreaLaMappaDelleSid(scalo)">Mappa delle SID di @scalo (@quante)</button>
+                    }
                     <ul class="lab-elenco-lotto" data-elenco-procedure>
                         @foreach (var e in proc.Esiti.Where(e => e.Esito != Esiti.Uguale))
                         {
@@ -549,6 +555,12 @@
     private void PortaLaProcedura(Vipi.SectorLab.Core.PdfAip.DifferenzaDiProcedura riga)
     {
         Lab.PortaLaProcedura(riga);
+        _rifiuto = Lab.Rifiuto;
+    }
+
+    private void CreaLaMappaDelleSid(string scalo)
+    {
+        Lab.CreaLaMappaDelleSid(scalo);
         _rifiuto = Lab.Rifiuto;
     }
 

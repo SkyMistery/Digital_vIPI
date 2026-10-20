@@ -500,14 +500,16 @@ public static partial class Validatore
             problemi.AddRange(tag.Select(p => new ProblemaDelSector(
                 p.EUnErrore ? Regola.TagNonValido : Regola.TagFuoriCatalogo, string.Empty, p.Riga, p.Testo, p.Tipo.ToString())));
 
-            // Le mappe composte (F3-bis slice 4): l'elenco deve nominare procedure del file, e la mappa deve essere
-            // come la rigenererebbe il Lab. Il problema sta sull'intestazione della mappa: il clic porta al record.
-            if (letto is ParseResult<StrRecord> deiStr)
+            // Le mappe composte (F3-bis slice 4; dei .sid, F7 slice 7f): l'elenco deve nominare procedure del file, e la
+            // mappa deve essere come la rigenererebbe il Lab. Il problema sta sull'intestazione della mappa: il clic porta
+            // al record.
+            if (letto is ParseResult<StrRecord> or ParseResult<SidProcedure>)
             {
-                foreach (var composta in MappeComposte.Di(deiStr))
+                var deiRecord = letto.Records.Cast<object>().ToList();
+                foreach (var composta in MappeComposte.DiQualunque(letto))
                 {
                     var (riga, testo) = intestazioni.GetValueOrDefault(composta.Mappa, (composta.Riga, string.Empty));
-                    string nome = Metadati.NomeStr(composta.Mappa);
+                    string nome = MappeComposte.Nome(composta.Mappa);
                     if (composta.Elenco is null)
                     {
                         problemi.Add(new(Regola.CompostaConProceduraAssente, string.Empty, riga, testo,
@@ -515,7 +517,7 @@ public static partial class Validatore
                         continue;
                     }
 
-                    var rigenerata = composta.Componi(deiStr.Records);
+                    var rigenerata = composta.Componi(deiRecord);
                     foreach (var mancante in rigenerata.Mancanti)
                     {
                         problemi.Add(new(Regola.CompostaConProceduraAssente, string.Empty, riga, testo,

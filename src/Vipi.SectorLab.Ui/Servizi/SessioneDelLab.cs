@@ -1261,7 +1261,7 @@ public sealed class SessioneDelLab
         return esito is ModificaDelMetadato;
     }
 
-    /// <summary>«Composta da» per la scheda (F3-bis slice 5): null se il record non è una mappa MAPS di un .str.</summary>
+    /// <summary>«Composta da» per la scheda (F3-bis slice 5): null se il record non è una mappa MAPS di un .str o di un .sid (F7 slice 7f).</summary>
     public SchedaDellaComposta? CompostaDi(string fileRelativo, int record)
         => Sessione is not null && Sessione.File.TryGetValue(fileRelativo, out var file) ? SchedaDellaComposta.Di(file, record) : null;
 
@@ -4674,7 +4674,7 @@ public sealed class SessioneDelLab
             var nome = Core.PdfAip.ProcedureNelSector.Nome(proc.Designator, lettere);
             var punti = Core.PdfAip.ProcedureNelSector.Punti([proc]);
             if (punti.Count == 0) return Rifiuta($"{proc.Designator}: nessun punto con nome per il campo 7, si porta a mano.");
-            voci.Add((nome, Core.PdfAip.ProcedureNelSector.TestataDellaSid(proc.Aerodrome, proc.Runways, nome, punti[^1], Core.PdfAip.ProcedureNelSector.Rnav([proc])), [proc]));
+            voci.Add((nome, Core.PdfAip.ProcedureNelSector.TestataDellaSid(proc.Aerodrome, proc.Runways, nome, punti[^1], Core.PdfAip.ProcedureNelSector.Rnav([proc]), Core.PdfAip.ProcedureNelSector.CampiVuoti(conRecord.RecordDelModello)), [proc]));
         }
         else
         {
@@ -4688,7 +4688,7 @@ public sealed class SessioneDelLab
                 if (voci.Any(v => v.Nome.StartsWith(nomeSid + "-", StringComparison.Ordinal))) continue;
                 var nome = $"{nomeSid}-{trans}";
                 var punti = Core.PdfAip.ProcedureNelSector.Punti([sid, proc]);
-                voci.Add((nome, Core.PdfAip.ProcedureNelSector.TestataDellaSid(proc.Aerodrome, sid.Runways, nome, punti[^1], Core.PdfAip.ProcedureNelSector.Rnav([sid, proc])), [sid, proc]));
+                voci.Add((nome, Core.PdfAip.ProcedureNelSector.TestataDellaSid(proc.Aerodrome, sid.Runways, nome, punti[^1], Core.PdfAip.ProcedureNelSector.Rnav([sid, proc]), Core.PdfAip.ProcedureNelSector.CampiVuoti(conRecord.RecordDelModello)), [sid, proc]));
             }
             if (voci.Count == 0)
                 return Rifiuta($"{proc.Designator}: nel sector non c'è una SID che finisce a {inizio}, dove la transizione comincia.");
@@ -4757,6 +4757,106 @@ public sealed class SessioneDelLab
         var voci = VociDaRiscrivere(riga, saltate);
         var gesto = voci.Count == 1 ? $"{voci[0].Nome} sostituita dall'AIP {confronto.Ciclo}" : $"{voci.Count} voci di {riga.Nome} sostituite dall'AIP {confronto.Ciclo}";
         return RiscriviLeVoci(voci, saltate, gesto);
+    }
+
+    /// <summary>
+    /// Dopo un gesto che riscrive procedure nel testo («Sostituisci», «Scrivi i tracciati»): le mappe composte del file
+    /// (le <c>STAR RNAV(ALL)</c> dei <c>.str</c>, le mappe delle SID della 7f) che non sono più come le rigenererebbe il Lab
+    /// si riscrivono anche loro, nello stesso gesto. I gesti sui campi le rigenerano già da sé (F3-bis); quelli sul testo
+    /// no, e una STAR sostituita lasciava indietro la sua mappa. Solo le mappe che elencano una delle procedure
+    /// <paramref name="riscritte"/>: una già disallineata all'apertura resta com'è (F3-bis, lo dice il validatore). Vero se
+    /// non c'era niente da fare o se è fatto.
+    /// </summary>
+    private bool AllineaLeComposte(string file, IReadOnlyCollection<string> riscritte)
+    {
+        if (Sessione is not { } sessione || sessione.File.GetValueOrDefault(file) is not IFileConRecord c)
+            return true;
+        var (letto, record, scrivi) = sessione.File[file] switch
+        {
+            FileLetto<StrRecord> str => ((object)str.Letto, (IReadOnlyList<object>)str.Letto.Records, (Func<object, IReadOnlyList<string>>)(r => new StrSaver().Serialize((StrRecord)r))),
+            FileLetto<SidProcedure> sid => (sid.Letto, sid.Letto.Records, r => new SidSaver().Serialize((SidProcedure)r)),
+            _ => (null!, [], null!),
+        };
+        if (letto is null) return true;
+        var sporchi = Modifiche.SporchiDi(file);
+        var righe = c.RigheDelFile(sporchi);
+        var posti = c.PostiDeiRecord(sporchi);
+        var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+        var nomi = new List<string>();
+        foreach (var composta in MappeComposte.DiQualunque(letto))
+        {
+            if (composta.Elenco is null || !MappeComposte.ProcedureElencate(composta.Elenco, record).Any(p => riscritte.Contains(MappeComposte.Nome(p))))
+                continue;
+            var rigenerata = composta.Componi(record);
+            if (MappeComposte.Uguale(composta.Mappa, rigenerata.Punti)) continue;
+            int indice = -1;
+            for (var i = 0; i < record.Count; i++)
+                if (ReferenceEquals(record[i], composta.Mappa)) indice = i;
+            if (indice < 0) continue;
+            var (da, quante) = posti[indice];
+            var fine = da + quante;
+            while (fine > da + 1 && (string.IsNullOrWhiteSpace(righe[fine - 1]) || righe[fine - 1].TrimStart().StartsWith("//", StringComparison.Ordinal)))
+                fine--;
+            // Il modello riletto si può cambiare: il gesto qui sotto rilegge il file.
+            MappeComposte.Applica(composta.Mappa, rigenerata.Punti);
+            sostituzioni[da + 1] = scrivi(composta.Mappa);
+            for (var i = da + 1; i < fine; i++) sostituzioni[i + 1] = [];
+            nomi.Add(MappeComposte.Nome(composta.Mappa));
+        }
+        if (sostituzioni.Count == 0) return true;
+        var quanti = c.RecordDelModello.Count;
+        return GestoSulTesto(file, "procedura", f => Modifiche.CambiaRighe(f, sostituzioni, $"{string.Join(", ", nomi)} riallineate",
+            riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più le stesse voci: si fa a mano.", anchiITag: true));
+    }
+
+    /// <summary>
+    /// Gli scali il cui <c>.sid</c> può avere la mappa di gruppo (carta F7 slice 7f, P10): almeno due SID col tracciato, e
+    /// ancora nessuna voce <c>MAPS</c>. Con quante SID la raccoglierebbe.
+    /// </summary>
+    public IReadOnlyList<(string Scalo, string File, int Sid)> ScaliPerLaMappaDelleSid()
+    {
+        var scali = new List<(string, string, int)>();
+        if (Sessione is not { } sessione) return scali;
+        foreach (var (file, aperto) in sessione.File.OrderBy(f => f.Key, StringComparer.Ordinal))
+        {
+            if (aperto is not FileLetto<SidProcedure> sid || !file.EndsWith(".sid", StringComparison.OrdinalIgnoreCase)) continue;
+            var icao = Path.GetFileNameWithoutExtension(file).ToUpperInvariant();
+            if (Core.PdfAip.MappaDelleSid.Righe(sid.Letto.Records, icao) is not null)
+                scali.Add((icao, file, Core.PdfAip.MappaDelleSid.Quante(sid.Letto.Records, icao)));
+        }
+        return scali;
+    }
+
+    /// <summary>
+    /// «Mappa delle SID» (carta F7 slice 7f, P10): in testa al <c>.sid</c> dello scalo una voce <c>MAPS</c>, <c>SID
+    /// RNAV(ALL)</c>, composta dalle SID col tracciato (le RNAV se ce ne sono). È una mappa composta: da qui in poi il Lab la
+    /// rigenera quando una SID cambia, e l'elenco si cambia dalla sua scheda («Composta da»).
+    /// </summary>
+    public bool CreaLaMappaDelleSid(string icao)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icao);
+        if (Sessione is not { } sessione) return false;
+        var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + icao.ToLowerInvariant() + ".sid", StringComparison.OrdinalIgnoreCase));
+        if (file is null || sessione.File[file] is not FileLetto<SidProcedure> sid)
+            return Rifiuta($"Nel sector non c'è {icao.ToLowerInvariant()}.sid.");
+        var nuove = Core.PdfAip.MappaDelleSid.Righe(sid.Letto.Records, icao);
+        if (nuove is null)
+            return Rifiuta($"{icao}: servono almeno due SID col tracciato, e il file non deve avere già la sua mappa MAPS.");
+        var gesto = $"mappa delle SID di {icao}";
+        return NellaStoria(gesto, () =>
+        {
+            var c = (IFileConRecord)sessione.File[file];
+            var righe = c.RigheDelFile(Modifiche.SporchiDi(file));
+            var quanti = c.RecordDelModello.Count;
+            var sostituzioni = new Dictionary<int, IReadOnlyList<string>> { [1] = [.. nuove, "", righe[0]] };
+            if (!GestoSulTesto(file, "procedura", f => Modifiche.CambiaRighe(f, sostituzioni, gesto,
+                    riletto => riletto.RecordDelModello.Count == quanti + 1 ? null : "Riletto, il file non ha la mappa nuova: si fa a mano.", anchiITag: true)))
+                return false;
+            Registro.Scrivi("aip", gesto);
+            RicontrollaLeModifiche();
+            Avvisa();
+            return true;
+        });
     }
 
     /// <summary>
@@ -4876,6 +4976,11 @@ public sealed class SessioneDelLab
                         avvisi.Add($"{v.Nome}: non si scrive");
                         return false;
                     }
+                }
+                if (!AllineaLeComposte(file, [.. perFile.Select(v => v.Nome)]))
+                {
+                    avvisi.Add($"{NomeDelFile(file)}: le mappe composte non si riallineano");
+                    return false;
                 }
                 RifaiLaGeometria(file);
             }

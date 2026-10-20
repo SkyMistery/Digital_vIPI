@@ -19,7 +19,8 @@ public sealed record CasellaDellaComposta(ProceduraDellaComposta Voce, string Pi
 
 /// <summary>
 /// «Composta da» nella scheda di una mappa (F3-bis §2.2, slice 5): una casella per ogni procedura dello stesso
-/// <c>.str</c> (D5-D6), spuntate quelle dell'elenco, e se le procedure si disegnano intere.
+/// <c>.str</c> (D5-D6), spuntate quelle dell'elenco, e se le procedure si disegnano intere. Anche per la mappa di gruppo in
+/// testa al <c>.sid</c> (P10, carta F7 slice 7f): le caselle sono le SID del file.
 /// </summary>
 /// <param name="DaQuelloCheDisegna">
 /// Le procedure che la mappa disegna oggi, nell'ordine dei tratti: con queste diventa composta senza cambiare (21
@@ -31,37 +32,50 @@ public sealed record SchedaDellaComposta(
     bool Intere,
     IReadOnlyList<ProceduraDellaComposta> DaQuelloCheDisegna)
 {
-    /// <summary>Null se il record non è una mappa <c>MAPS</c> di un <c>.str</c>.</summary>
+    /// <summary>Null se il record non è una mappa <c>MAPS</c> di un <c>.str</c> o di un <c>.sid</c>.</summary>
     public static SchedaDellaComposta? Di(FileAperto file, int indice)
     {
         ArgumentNullException.ThrowIfNull(file);
-        if (file is not FileLetto<StrRecord> str || indice < 0 || indice >= str.Letto.Records.Count
-            || str.Letto.Records[indice] is not { RunwaySpec: "MAPS" } mappa)
+        (object Letto, IReadOnlyList<object> Record)? delFile = file switch
+        {
+            FileLetto<StrRecord> str => (str.Letto, str.Letto.Records),
+            FileLetto<SidProcedure> sid => (sid.Letto, sid.Letto.Records),
+            _ => null,
+        };
+        if (delFile is not var (letto, record) || indice < 0 || indice >= record.Count || !MappeComposte.EUnaMappa(record[indice]))
         {
             return null;
         }
 
-        var composta = MappeComposte.Di(str.Letto).FirstOrDefault(c => ReferenceEquals(c.Mappa, mappa));
+        var mappa = record[indice];
+        var composta = MappeComposte.DiQualunque(letto).FirstOrDefault(c => ReferenceEquals(c.Mappa, mappa));
         var elenco = composta?.Elenco ?? [];
-        var procedure = str.Letto.Records.Where(r => r.RunwaySpec != "MAPS").ToList();
+        var procedure = record.Where(r => !MappeComposte.EUnaMappa(r)).ToList();
 
         // Una casella per procedura. Il nome da solo, se nel file è unico; se no con la sua prima pista (`25:NENI5A`),
         // così spuntarne una non prende anche le altre.
         var caselle = procedure.Select(p =>
         {
-            string nome = p.ProcedureId.Trim();
-            bool unico = procedure.Count(q => q.ProcedureId.Trim() == nome) == 1;
-            var voce = new ProceduraDellaComposta(unico ? null : p.RunwaySpec.Split(':')[0].Trim(), nome);
-            return (Casella: new CasellaDellaComposta(voce, p.RunwaySpec, Tipo(p.RecordType), elenco.Any(v => MappeComposte.Nomina(v, p))),
-                    Ordine: p.RecordType == StrRecordType.Star ? 0 : 1);
+            string nome = MappeComposte.Nome(p);
+            bool unico = procedure.Count(q => MappeComposte.Nome(q) == nome) == 1;
+            var voce = new ProceduraDellaComposta(unico ? null : MappeComposte.Piste(p).Split(':')[0].Trim(), nome);
+            // Una SID senza tracciato non disegna niente: la casella c'è (si può scegliere ora e disegnare poi), ma lo dice.
+            var (tipo, ordine) = p switch
+            {
+                StrRecord s => (Tipo(s.RecordType), s.RecordType == StrRecordType.Star ? 0 : 1),
+                SidProcedure { Track.Count: 0 } => ("SID senza tracciato", 1),
+                _ => ("SID", 0),
+            };
+            return (Casella: new CasellaDellaComposta(voce, MappeComposte.Piste(p), tipo, elenco.Any(v => MappeComposte.Nomina(v, p))),
+                    Ordine: ordine);
         })
         .DistinctBy(c => c.Casella.Testo)
-        .OrderBy(c => c.Ordine)   // prima le STAR, che sono quello che una mappa composta raccoglie
+        .OrderBy(c => c.Ordine)   // prima le STAR (e le SID col tracciato), che sono quello che una mappa composta raccoglie
         .Select(c => c.Casella)
         .ToList();
 
         return new SchedaDellaComposta(caselle, elenco, composta?.Intere ?? false,
-            MappeComposte.ProcedureCheDisegna(mappa, str.Letto.Records));
+            MappeComposte.ProcedureCheDisegna(mappa, record));
     }
 
     private static string Tipo(StrRecordType tipo) => tipo switch
