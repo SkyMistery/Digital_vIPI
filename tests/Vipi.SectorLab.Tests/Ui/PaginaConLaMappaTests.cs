@@ -207,4 +207,23 @@ public sealed class PaginaConLaMappaTests : IDisposable
         // E il campo si ricorda l'ultima cartella aperta: non si ridigita il percorso ogni volta.
         Assert.Equal(_albero.Radice, _lab.UltimaCartella());
     }
+
+    [Fact]
+    public async Task CambiareCartellaConModificheInSospesoChiedePrima()
+    {
+        // Riordino R0: chiudere la cartella butta le modifiche e la storia; il tasto non lo fa più senza chiedere.
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        Assert.True(_lab.CambiaCampo("SectorFiles/Include/IT/NAVAIDS/APT.fix", 0, "Name", "PIPPO"));
+        var pagina = _contesto.RenderComponent<Home>();
+
+        pagina.Find("[data-tasto='cambia-cartella']").Click();
+        Assert.Contains("1 modifica non salvata", pagina.Find("[data-conferma='cambia-cartella']").TextContent);
+        pagina.Find("[data-tasto='resta']").Click();
+        Assert.Empty(pagina.FindAll("[data-conferma]"));
+        Assert.Equal(1, _lab.Modifiche.Quante);
+
+        pagina.Find("[data-tasto='cambia-cartella']").Click();
+        pagina.Find("[data-tasto='cambia-cartella-lo-stesso']").Click();
+        Assert.NotNull(pagina.Find("[data-campo='cartella']"));
+    }
 }

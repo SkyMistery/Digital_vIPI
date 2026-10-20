@@ -49,6 +49,16 @@
             <TastoDelTema />
             <button class="lab-tasto" @onclick="Chiudi" data-tasto="cambia-cartella">Cambia cartella…</button>
         </header>
+        @if (_conferma)
+        {
+            @* Riordino R0: chiudere la cartella butta le modifiche in sospeso e la storia; prima si chiede. *@
+            <div class="lab-conferma" data-conferma="cambia-cartella">
+                <span>Hai @Lab.Modifiche.Quante @(Lab.Modifiche.Quante == 1 ? "modifica non salvata" : "modifiche non salvate"):
+                    cambiando cartella le perdi.</span>
+                <button class="lab-tasto" @onclick="ChiudiLoStesso" data-tasto="cambia-cartella-lo-stesso">Perdile e cambia cartella</button>
+                <button class="lab-tasto lab-tasto-tenue" @onclick="() => _conferma = false" data-tasto="resta">Resta qui</button>
+            </div>
+        }
 
         <div class="lab-corpo">
             @* Coi due schermi i pannelli stanno nell'altra finestra (/pannelli): qui restano mappa e strati. *@
@@ -324,7 +334,21 @@ else
             _dovePrendere = scelta;
     }
 
-    private void Chiudi() => Lab.Chiudi();
+    private bool _conferma;
+
+    private void Chiudi()
+    {
+        if (Lab.Modifiche.Quante > 0)
+            _conferma = true;
+        else
+            Lab.Chiudi();
+    }
+
+    private void ChiudiLoStesso()
+    {
+        _conferma = false;
+        Lab.Chiudi();
+    }
 
     /// <summary>
     /// La finestra dei pannelli la apre il guscio (una window.open che la WebView2 gli passa); in un browser qualunque

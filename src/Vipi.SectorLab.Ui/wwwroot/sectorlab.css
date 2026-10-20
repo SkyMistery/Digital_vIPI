@@ -286,6 +286,17 @@ html, body {
     border-bottom: 1px solid var(--ivao-atmos-800);
 }
 
+/* Riordino R0: la domanda prima di perdere le modifiche, appena sotto la barra. */
+.lab-conferma {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: .45rem .8rem;
+    border-bottom: 1px solid var(--lab-errore-segno);
+    background: color-mix(in srgb, var(--lab-errore-segno) 14%, transparent);
+    color: var(--lab-errore);
+}
+
 .lab-barra strong {
     font: 700 1rem/1 var(--lab-font-titoli);
     letter-spacing: .01em;

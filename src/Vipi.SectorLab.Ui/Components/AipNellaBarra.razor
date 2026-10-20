@@ -121,7 +121,10 @@
                             title="Manda il ramo @repo2.Ramo al server e apre la pagina della PR: la fonde il committente" @onclick="Manda">Manda</button>
                     @if (Lab.PaginaDellaPrDellAip is { } pr)
                     {
-                        <p class="lab-nota" data-pr-aip>PR: <a href="@pr" target="_blank" rel="noopener">aperta nel browser</a> — la conferma tu su GitHub, la fonde il committente.</p>
+                        @* Riordino R0: un link con target="_blank" la finestra del Lab lo rifiuta (accetta solo /pannelli): la pagina si riapre nel browser di Windows. *@
+                        <p class="lab-nota" data-pr-aip>PR aperta nel browser — la conferma tu su GitHub, la fonde il committente.
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="riapri-pr-aip"
+                                    title="@pr" @onclick="() => Lab.ApriNelBrowser(pr)">Riaprila</button></p>
                     }
                 </div>
             }

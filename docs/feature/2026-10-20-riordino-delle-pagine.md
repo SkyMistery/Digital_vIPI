@@ -114,4 +114,7 @@ Ogni slice si prova **a schermo** sul banco, su uno e su due schermi, oltre ai t
 
 ## §6 — Il lavoro
 
-(da scrivere slice per slice)
+**R0 fatta** (20 ottobre). «Cambia cartella…» con modifiche in sospeso non chiude più subito: sotto la barra compare
+«Hai N modifiche non salvate: cambiando cartella le perdi», con «Perdile e cambia cartella» e «Resta qui»; senza
+modifiche chiude come prima. Il link della PR dell'AIP è diventato il tasto «Riaprila», che apre la pagina nel browser di
+Windows come «Manda» (la finestra del Lab rifiuta i `target="_blank"`). Test: Lab 1 261 (+1).
