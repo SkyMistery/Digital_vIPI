@@ -140,7 +140,7 @@
 }
 else
 {
-    bool primoAvvio = Lab.SectorRecenti().Count == 0;
+    bool primoAvvio = Lab.CartellaDiLavoro is null;
     <main class="lab-vuoto">
         <h1>Aurora Sector Lab</h1>
         @* Il primo avvio (20 ottobre): tutto in un posto solo — i due link, una cartella di lavoro, un tasto. *@
@@ -207,69 +207,49 @@ else
         }
         else
         {
-        @* Al primo avvio niente «Apri» su un clone che c'è già (committente, 20 ottobre: il Lab lavora nel suo ambiente,
-           più sicuro e più facile da gestire): il sector è quello che prende «Prepara tutto». *@
-        <p>Apri la cartella del clone del sector: quella che contiene <code>SectorFiles/</code>.</p>
-        <div class="lab-apri">
-            <input type="text" @bind="_percorso" @bind:event="oninput" placeholder="D:\…\it-aurora-sector"
-                   disabled="@(Lab.Stato is StatoDelLab.InApertura)" data-campo="cartella" />
-            @if (Lab.ScegliCartella is not null)
-            {
-                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-cartella" disabled="@(Lab.Stato is StatoDelLab.InApertura)"
-                        title="Sceglie la cartella in Esplora risorse" @onclick="SfogliaCartella">Sfoglia…</button>
-            }
-            <button class="lab-tasto" @onclick="Apri"
-                    disabled="@(Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_percorso))"
-                    data-tasto="apri">Apri</button>
-        </div>
-        }
-
-        @* Carta F5, slice 1: si lavora su più sector (il ciclo dopo, una prova): quelli aperti di recente, a un clic. *@
-        @if (Lab.SectorRecenti() is { Count: > 0 } recenti)
-        {
-            <section class="lab-recenti" data-sector-recenti>
-                <h2>Aperti di recente</h2>
-                @foreach (string recente in recenti)
+            @* Il Lab lavora nel suo ambiente (committente, 20 ottobre: «più è isolato l'ambiente di lavoro meno casino
+               facciamo»): niente «Apri» su una cartella qualsiasi né recenti; i sector sono quelli dell'ambiente. *@
+            <section class="lab-recenti" data-ambiente>
+                <h2>Ambiente di lavoro</h2>
+                <p class="lab-nota"><code>@Lab.CartellaDiLavoro</code></p>
+                @if (Lab.SectorDellAmbiente() is { Count: > 0 } sector)
                 {
-                    string questo = recente;
-                    <button type="button" class="lab-recente" data-apri-recente="@questo" disabled="@(Lab.Stato is StatoDelLab.InApertura)"
-                            title="Apre questo sector" @onclick="() => Lab.ApriAsync(questo)">
-                        <strong>@Path.GetFileName(questo.TrimEnd('\\', '/'))</strong>
-                        <span class="lab-nota">@questo</span>
-                    </button>
+                    @foreach (string uno in sector)
+                    {
+                        string questo = uno;
+                        <button type="button" class="lab-recente" data-apri-sector="@Path.GetFileName(questo)" disabled="@(Lab.Stato is StatoDelLab.InApertura || Lab.StaPrendendo)"
+                                title="Apre questo sector" @onclick="() => Lab.ApriAsync(questo)">
+                            <strong>@Path.GetFileName(questo)</strong>
+                            <span class="lab-nota">@questo</span>
+                        </button>
+                    }
+                }
+                else
+                {
+                    <p class="lab-nota" data-ambiente-vuoto>Nell'ambiente non c'è nessun sector: prendilo qui sotto.</p>
                 }
             </section>
-        }
 
-        @* Carta F4, slice 2: chi non ha il sector lo prende dal repo, solo SectorFiles (pochi secondi, pochi mega). *@
-        @* Al primo avvio c'è «Prepara tutto», qui sopra; dopo, un altro sector (il ciclo dopo, una prova) si prende da qui. *@
-        @if (!primoAvvio)
-        {
-        <details class="lab-prendi" data-prendi>
-            <summary>Non hai il sector? Prendilo dal repo</summary>
-            <label class="lab-campo-in-colonna">
-                <span class="lab-nota">Dal repo (il link di GitHub, anche copiato dal browser)</span>
-                <input type="text" class="lab-campo-largo" value="@Lab.IndirizzoDelSector" @onchange="e => Lab.CambiaLIndirizzoDelSector(e.Value?.ToString())"
-                       disabled="@Lab.StaPrendendo" data-campo="indirizzo-del-sector" />
-            </label>
-            <label class="lab-campo-in-colonna">
-                <span class="lab-nota">In questa cartella (nuova o vuota)</span>
-                <span class="lab-apri lab-apri-stretta">
-                    <input type="text" @bind="_dovePrendere" @bind:event="oninput" placeholder="D:\…\it-aurora-sector"
-                           disabled="@Lab.StaPrendendo" data-campo="dove-prendere" />
-                    @if (Lab.ScegliCartella is not null)
-                    {
-                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-dove-prendere" disabled="@Lab.StaPrendendo"
-                                title="Sceglie (o crea) la cartella in Esplora risorse" @onclick="SfogliaDovePrendere">Sfoglia…</button>
-                    }
-                    <button type="button" class="lab-tasto" @onclick="Prendi" data-tasto="prendi"
-                            disabled="@(Lab.StaPrendendo || Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_dovePrendere))">Prendi</button>
-                </span>
-            </label>
-            <p class="lab-nota">Scarica solo <code>SectorFiles</code> (con <code>ColorSchemes</code>, se c'è) e i file di oggi, non la
-                cronologia di Aurora: qualche secondo. Le credenziali di GitHub non servono per prendere un repo pubblico;
-                per uno privato, e per mandare, le chiederà git, nella sua finestra.</p>
-        </details>
+            @* Un altro sector (il ciclo dopo, una prova) si prende solo dentro l'ambiente: basta il nome. *@
+            <details class="lab-prendi" data-prendi open="@(Lab.SectorDellAmbiente().Count == 0)">
+                <summary>Prendi un altro sector</summary>
+                <label class="lab-campo-in-colonna">
+                    <span class="lab-nota">Dal repo (il link di GitHub, anche copiato dal browser)</span>
+                    <input type="text" class="lab-campo-largo" value="@Lab.IndirizzoDelSector" @onchange="e => Lab.CambiaLIndirizzoDelSector(e.Value?.ToString())"
+                           disabled="@Lab.StaPrendendo" data-campo="indirizzo-del-sector" />
+                </label>
+                <label class="lab-campo-in-colonna">
+                    <span class="lab-nota">Nome (diventa la sua cartella nell'ambiente: per esempio «ciclo-2611» o «prova»)</span>
+                    <span class="lab-apri lab-apri-stretta">
+                        <input type="text" @bind="_nomeDelSector" @bind:event="oninput" placeholder="ciclo-2611"
+                               disabled="@Lab.StaPrendendo" data-campo="nome-del-sector" />
+                        <button type="button" class="lab-tasto" @onclick="PrendiUnAltro" data-tasto="prendi"
+                                disabled="@(Lab.StaPrendendo || Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_nomeDelSector))">Prendi</button>
+                    </span>
+                </label>
+                <p class="lab-nota">Scarica solo <code>SectorFiles</code> (con <code>ColorSchemes</code>, se c'è) e i file di oggi:
+                    qualche secondo. Le credenziali di GitHub le chiede git, nella sua finestra, se servono.</p>
+            </details>
         }
 
         @if (Lab.StaPrendendo)
@@ -302,11 +282,10 @@ else
 
 @code {
     private bool _interattivo;
-    private string? _percorso;
-    private string? _dovePrendere;
+    private string? _nomeDelSector;
     private string? _lavoro;
 
-    private Task Prendi() => Lab.PrendiIlSectorAsync(_dovePrendere);
+    private Task PrendiUnAltro() => Lab.PrendiUnAltroSectorAsync(_nomeDelSector);
 
     private Task Prepara() => Lab.PreparaIlPrimoAvvioAsync(_lavoro);
 
@@ -339,11 +318,7 @@ else
 
     private FormaDellaMappa? Scelta => Lab.FormaScelta();
 
-    protected override void OnInitialized()
-    {
-        Lab.Cambiata += Aggiorna;
-        _percorso = Lab.UltimaCartella();
-    }
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
 
     protected override async Task OnAfterRenderAsync(bool primo)
     {
@@ -352,21 +327,6 @@ else
         StateHasChanged();
         // Dice alla finestra che il circuito è vivo: è il momento che il guscio misura (e la prova d'avvio aspetta).
         await Js.InvokeVoidAsync("sectorlab.pronto");
-    }
-
-    private Task Apri() => Lab.ApriAsync(_percorso);
-
-    // «Sfoglia…» (committente, 18 ottobre): la cartella si sceglie in Esplora risorse, non solo scrivendola.
-    private async Task SfogliaCartella()
-    {
-        if (await Lab.ScegliCartella!("La cartella del sector (quella che contiene SectorFiles)", _percorso) is { } scelta)
-            _percorso = scelta;
-    }
-
-    private async Task SfogliaDovePrendere()
-    {
-        if (await Lab.ScegliCartella!("Dove mettere il sector preso dal repo (una cartella nuova o vuota)", _dovePrendere) is { } scelta)
-            _dovePrendere = scelta;
     }
 
     /// <summary>Consegna e Impostazioni non hanno mappa: la nascondono, se non è in una finestra tutta sua.</summary>

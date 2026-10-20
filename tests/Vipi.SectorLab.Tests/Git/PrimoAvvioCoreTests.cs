@@ -48,6 +48,34 @@ public sealed class PrimoAvvioCoreTests : IDisposable
     }
 
     [Fact]
+    public void LAmbienteHaIConfiniEINomiDeiSector()
+    {
+        Assert.True(PrimoAvvio.NellAmbiente(Lavoro, Path.Combine(Lavoro, "sector")));
+        Assert.True(PrimoAvvio.NellAmbiente(Lavoro, Path.Combine(Lavoro, "sector", "SectorFiles")));
+        Assert.False(PrimoAvvio.NellAmbiente(Lavoro, Lavoro));
+        Assert.False(PrimoAvvio.NellAmbiente(Lavoro, Lavoro + "2"));
+        Assert.False(PrimoAvvio.NellAmbiente(Lavoro, Path.Combine(Lavoro, "..", "fuori")));
+
+        Assert.Null(PrimoAvvio.PercheNonVaUnAltroSector(Lavoro, "ciclo-2611"));
+        Assert.Contains("nome", PrimoAvvio.PercheNonVaUnAltroSector(Lavoro, " "), StringComparison.Ordinal);
+        Assert.Contains("cartella sola", PrimoAvvio.PercheNonVaUnAltroSector(Lavoro, "a/b"), StringComparison.Ordinal);
+        Assert.Contains("cartella sola", PrimoAvvio.PercheNonVaUnAltroSector(Lavoro, ".."), StringComparison.Ordinal);
+        Assert.Contains("AIP espanso", PrimoAvvio.PercheNonVaUnAltroSector(Lavoro, "pdf-aip"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ISectorDellAmbienteSonoQuelliPresi()
+    {
+        var (cartelle, _) = await PrimoAvvio.PreparaAsync(_repo.Git, Lavoro, _repo.Server, _repo.Server);
+        Assert.Null(await PresaDelSector.PrendiAsync(_repo.Git, _repo.Server, Path.Combine(Lavoro, "a-prova")));
+
+        // sector per primo, poi gli altri; l'AIP espanso e i PDF non sono sector.
+        Assert.Equal([cartelle!.Sector, Path.Combine(Lavoro, "a-prova")], PrimoAvvio.SectorDellAmbiente(Lavoro));
+        Assert.Contains("c'è già", PrimoAvvio.PercheNonVaUnAltroSector(Lavoro, "a-prova"), StringComparison.Ordinal);
+        Assert.Empty(PrimoAvvio.SectorDellAmbiente(Path.Combine(Lavoro, "non-ce")));
+    }
+
+    [Fact]
     public void LeCartelleOccupateORelativeSiRifiutano()
     {
         Assert.Contains("per intero", PrimoAvvio.PercheNonVa("IVAO", _repo.Server, _repo.Server), StringComparison.Ordinal);

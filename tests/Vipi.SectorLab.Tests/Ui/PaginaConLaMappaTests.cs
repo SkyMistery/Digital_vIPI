@@ -55,18 +55,37 @@ public sealed class PaginaConLaMappaTests : IDisposable
     }
 
     [Fact]
-    public async Task UnaCartellaCheNonEUnSectorDiceIlMotivoESiResta()
+    public async Task UnaCartellaCheNonEUnSectorDiceIlMotivo()
     {
-        // Dopo il primo sector la schermata d'apertura ha «Apri» (il ciclo dopo, una prova).
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
-        _lab.Chiudi();
-        var pagina = _contesto.RenderComponent<Home>();
+        Assert.False(await _lab.ApriAsync(Path.Combine(_albero.Radice, "cartella-che-non-c-e")));
 
-        pagina.Find("[data-campo='cartella']").Input(Path.Combine(_albero.Radice, "cartella-che-non-c-e"));
-        pagina.Find("[data-tasto='apri']").Click();
+        Assert.Contains("non esiste", _lab.Errore, StringComparison.Ordinal);
+    }
 
-        pagina.WaitForAssertion(() => Assert.Contains("non esiste", pagina.Find("[data-stato='errore']").TextContent));
-        Assert.NotNull(pagina.Find("[data-campo='cartella']"));
+    [Fact]
+    public async Task ConLAmbienteUnSectorFuoriNonSiApre()
+    {
+        // 20 ottobre: il Lab lavora nel suo ambiente. La cartella di lavoro la ricorda «Prepara tutto».
+        string dati = Path.Combine(_albero.Radice, "dati-ambiente");
+        string ambiente = Path.Combine(_albero.Radice, "ambiente");
+        Directory.CreateDirectory(dati);
+        Directory.CreateDirectory(ambiente);
+        File.WriteAllText(Path.Combine(dati, "cartella-di-lavoro.txt"), ambiente);
+        var lab = new SessioneDelLab(dati);
+
+        Assert.False(await lab.ApriAsync(_albero.Radice));
+        Assert.Contains("suo ambiente", lab.Errore, StringComparison.Ordinal);
+        Assert.False(await lab.PrendiIlSectorAsync(Path.Combine(_albero.Radice, "fuori")));
+        Assert.Contains("suo ambiente", lab.Errore, StringComparison.Ordinal);
+
+        using var contesto = new TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.Services.AddSingleton(lab);
+        var pagina = contesto.RenderComponent<Home>();
+        Assert.NotNull(pagina.Find("[data-ambiente]"));
+        Assert.NotNull(pagina.Find("[data-ambiente-vuoto]"));
+        Assert.Empty(pagina.FindAll("[data-primo-avvio]"));
+        Assert.Empty(pagina.FindAll("[data-campo='cartella']"));
     }
 
     [Fact]
@@ -221,7 +240,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
 
         pagina.Find("[data-tasto='cambia-cartella']").Click();
 
-        Assert.NotNull(pagina.Find("[data-campo='cartella']"));
+        Assert.NotNull(pagina.Find("[data-primo-avvio]")); // senza ambiente si torna al primo avvio
         // E il campo si ricorda l'ultima cartella aperta: non si ridigita il percorso ogni volta.
         Assert.Equal(_albero.Radice, _lab.UltimaCartella());
     }
@@ -243,6 +262,6 @@ public sealed class PaginaConLaMappaTests : IDisposable
 
         pagina.Find("[data-tasto='cambia-cartella']").Click();
         pagina.Find("[data-tasto='cambia-cartella-lo-stesso']").Click();
-        Assert.NotNull(pagina.Find("[data-campo='cartella']"));
+        Assert.NotNull(pagina.Find("[data-primo-avvio]"));
     }
 }

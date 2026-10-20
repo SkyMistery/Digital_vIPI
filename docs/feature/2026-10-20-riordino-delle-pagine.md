@@ -271,6 +271,23 @@ resta com'era (Apri, recenti, «Prendilo dal repo»), finché il committente non
 1 300 (+1; i due test di `PaginaConLaMappaTests` che aprivano dal campo al primo avvio ora lo fanno dopo il primo sector,
 e il rifiuto al primo avvio si prova su «Prepara tutto»).
 
+Poi la regola fino in fondo (committente, sulla proposta: «più è isolato l'ambiente di lavoro meno casino facciamo»):
+- **l'ambiente di lavoro** è la cartella che «Prepara tutto» ha preparato, ricordata (`cartella-di-lavoro.txt`);
+  il riquadro «Primo avvio» c'è finché non c'è l'ambiente (aprire un sector con `--cartella` non lo fa);
+- all'avvio, senza `--cartella`, il Lab **riapre da sé** il sector dell'ambiente: l'ultimo aperto se sta lì, se no
+  `sector` (`SessioneDelLab.SectorDaRiaprire`, in `Program`);
+- la schermata d'apertura con l'ambiente ha **l'elenco dei sector dell'ambiente** (`sector` per primo; `aip-espanso` e
+  `pdf-aip` non sono sector) e **«Prendi un altro sector»**, che chiede solo il nome: diventa `<ambiente>\<nome>`
+  (lettere, cifre, `-`, `_`, `.`; `PrimoAvvio.PercheNonVaUnAltroSector`). Spariscono «Apri» su una cartella qualsiasi,
+  «Sfoglia…» e i recenti;
+- **guardie nella sessione**: con l'ambiente, `ApriAsync` e `PrendiIlSectorAsync` rifiutano una cartella fuori
+  («Il Lab lavora nel suo ambiente…»; `PrimoAvvio.NellAmbiente`, che non scambia `D:\IVAO2` per `D:\IVAO`);
+- nelle Impostazioni «Cambia cartella…» diventa **«Altro sector dell'ambiente…»** (stesso `data-tasto`, D7): chiude il
+  sector e torna all'elenco, chiedendo prima se ci sono modifiche non salvate.
+Restano scelte libere nelle Impostazioni le cartelle dei PDF, dell'AIP espanso, della vetrina e di Aurora. Test: Lab
+1 303 (+3). Sul banco: primo avvio coi repo locali, il sector aperto, «Altro sector dell'ambiente…» → l'elenco con
+`sector`, «Prendi un altro sector», né «Apri» né il primo avvio.
+
 **Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
 R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due
 consegne, con ramo ed età del repo dell'AIP e la rilettura dello strato), R6 (Testo), R7 (Scheda), R8 (verbi).

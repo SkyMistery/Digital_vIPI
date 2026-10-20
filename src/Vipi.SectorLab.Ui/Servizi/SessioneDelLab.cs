@@ -238,6 +238,13 @@ public sealed class SessioneDelLab
             return false;
         }
 
+        // Il Lab lavora nel suo ambiente (20 ottobre): con la cartella di lavoro scelta, un sector fuori non si apre.
+        if (CartellaDiLavoro is { } lavoro && !Core.Git.PrimoAvvio.NellAmbiente(lavoro, percorso))
+        {
+            Fallita($"Il Lab lavora nel suo ambiente ({lavoro}): questo sector sta fuori. Prendilo nell'ambiente.");
+            return false;
+        }
+
         Stato = StatoDelLab.InApertura;
         Errore = null;
         Avvisa();
@@ -6265,6 +6272,13 @@ public sealed class SessioneDelLab
     {
         if (StaPrendendo)
             return false;
+        if (CartellaDiLavoro is { } lavoro && !string.IsNullOrWhiteSpace(cartella) && Path.IsPathFullyQualified(cartella.Trim())
+            && !Core.Git.PrimoAvvio.NellAmbiente(lavoro, cartella))
+        {
+            Errore = $"Il Lab lavora nel suo ambiente ({lavoro}): il sector si prende lì dentro.";
+            Avvisa();
+            return false;
+        }
         StaPrendendo = true;
         Errore = null;
         Avvisa();
@@ -6292,6 +6306,62 @@ public sealed class SessioneDelLab
         }
 
         return await ApriAsync(cartella, annulla).ConfigureAwait(false);
+    }
+
+    private string? _cartellaDiLavoro;
+    private bool _cartellaDiLavoroLetta;
+
+    /// <summary>
+    /// L'ambiente di lavoro (committente, 20 ottobre: «più è isolato l'ambiente di lavoro meno casino facciamo»): la
+    /// cartella che «Prepara tutto» ha preparato. Null finché non c'è: allora la schermata d'apertura è il primo avvio.
+    /// Con l'ambiente, il Lab apre e prende sector solo lì dentro.
+    /// </summary>
+    public string? CartellaDiLavoro
+    {
+        get
+        {
+            if (!_cartellaDiLavoroLetta)
+            {
+                _cartellaDiLavoro = Ricordata("cartella-di-lavoro.txt");
+                _cartellaDiLavoroLetta = true;
+            }
+
+            return _cartellaDiLavoro;
+        }
+    }
+
+    /// <summary>I sector dell'ambiente di lavoro, <c>sector</c> per primo; vuoto senza ambiente.</summary>
+    public IReadOnlyList<string> SectorDellAmbiente() => Core.Git.PrimoAvvio.SectorDellAmbiente(CartellaDiLavoro);
+
+    /// <summary>
+    /// Il sector da aprire all'avvio: l'ultimo aperto se sta nell'ambiente ed è ancora un sector, se no il primo
+    /// dell'ambiente. Null senza ambiente o senza sector.
+    /// </summary>
+    public string? SectorDaRiaprire()
+    {
+        var sector = SectorDellAmbiente();
+        string? ultima = UltimaCartella();
+        return sector.FirstOrDefault(s => ultima is not null
+                   && string.Equals(Path.GetFullPath(s).TrimEnd('\\', '/'), Path.GetFullPath(ultima).TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
+               ?? sector.FirstOrDefault();
+    }
+
+    /// <summary>«Prendi un altro sector» (il ciclo dopo, una prova): dal repo del sector in <c>&lt;ambiente&gt;\&lt;nome&gt;</c>, poi lo apre.</summary>
+    public async Task<bool> PrendiUnAltroSectorAsync(string? nome, CancellationToken annulla = default)
+    {
+        if (CartellaDiLavoro is not { } lavoro)
+        {
+            Errore = "Prima il primo avvio: «Prepara tutto».";
+            Avvisa();
+            return false;
+        }
+        if (Core.Git.PrimoAvvio.PercheNonVaUnAltroSector(lavoro, nome) is { } perche)
+        {
+            Errore = perche;
+            Avvisa();
+            return false;
+        }
+        return await PrendiIlSectorAsync(Path.Combine(lavoro, nome!.Trim()), annulla).ConfigureAwait(false);
     }
 
     /// <summary>A che punto è «Prepara tutto» (il primo avvio), per la schermata d'apertura; null quando non lavora.</summary>
@@ -6337,6 +6407,9 @@ public sealed class SessioneDelLab
 
         CambiaLaCartellaDeiPdf(cartelle.Pdf);
         CambiaLAipEspanso(cartelle.AipEspanso);
+        _cartellaDiLavoro = Path.GetDirectoryName(cartelle.Sector);
+        _cartellaDiLavoroLetta = true;
+        Ricorda("cartella-di-lavoro.txt", _cartellaDiLavoro, "cartella di lavoro");
         if (!await ApriAsync(cartelle.Sector, annulla).ConfigureAwait(false))
             return false;
         await RileggiIlRepoDellAipAsync().ConfigureAwait(false);

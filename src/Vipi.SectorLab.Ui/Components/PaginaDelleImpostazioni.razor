@@ -32,15 +32,17 @@
             <p>
                 <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.ApriIlRegistro" data-tasto="registro"
                         title="Apre la cartella del registro: @Lab.Registro.Cartella — il file di oggi racconta ogni gesto e ogni errore">Registro</button>
-                <button class="lab-tasto lab-tasto-tenue" @onclick="Chiudi" data-tasto="cambia-cartella">Cambia cartella…</button>
+                @* 20 ottobre: il Lab lavora nel suo ambiente; il tasto torna all'elenco dei sector dell'ambiente (data-tasto di prima, D7). *@
+                <button class="lab-tasto lab-tasto-tenue" @onclick="Chiudi" data-tasto="cambia-cartella"
+                        title="Chiude questo sector e torna all'elenco dei sector dell'ambiente di lavoro">Altro sector dell'ambiente…</button>
             </p>
             @if (_conferma)
             {
                 @* Riordino R0: chiudere la cartella butta le modifiche in sospeso e la storia; prima si chiede. *@
                 <div class="lab-conferma" data-conferma="cambia-cartella">
                     <span>Hai @Lab.Modifiche.Quante @(Lab.Modifiche.Quante == 1 ? "modifica non salvata" : "modifiche non salvate"):
-                        cambiando cartella le perdi.</span>
-                    <button class="lab-tasto" @onclick="ChiudiLoStesso" data-tasto="cambia-cartella-lo-stesso">Perdile e cambia cartella</button>
+                        chiudendo questo sector le perdi.</span>
+                    <button class="lab-tasto" @onclick="ChiudiLoStesso" data-tasto="cambia-cartella-lo-stesso">Perdile e chiudi il sector</button>
                     <button class="lab-tasto lab-tasto-tenue" @onclick="() => _conferma = false" data-tasto="resta">Resta qui</button>
                 </div>
             }

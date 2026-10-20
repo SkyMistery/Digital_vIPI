@@ -28,6 +28,53 @@ public static class PrimoAvvio
             Path.Combine(radice, CartellaDeiPdf));
     }
 
+    /// <summary>
+    /// I sector dell'ambiente di lavoro (committente, 20 ottobre: «più è isolato l'ambiente di lavoro meno casino
+    /// facciamo»): le sottocartelle che sono un sector preso, <see cref="CartellaDelSector"/> per primo, poi le altre
+    /// in ordine (il ciclo dopo, una prova).
+    /// </summary>
+    public static IReadOnlyList<string> SectorDellAmbiente(string? lavoro)
+    {
+        if (string.IsNullOrWhiteSpace(lavoro) || !Directory.Exists(lavoro))
+            return [];
+        return [.. Directory.EnumerateDirectories(lavoro)
+            .Where(c => !string.Equals(Path.GetFileName(c), CartellaDellAipEspanso, StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(Path.GetFileName(c), CartellaDeiPdf, StringComparison.OrdinalIgnoreCase))
+            .Where(SectorGiaPreso)
+            .OrderBy(c => string.Equals(Path.GetFileName(c), CartellaDelSector, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(c => Path.GetFileName(c), StringComparer.OrdinalIgnoreCase)];
+    }
+
+    /// <summary>Vero se <paramref name="cartella"/> sta dentro l'ambiente di lavoro (o è una sua sottocartella).</summary>
+    public static bool NellAmbiente(string lavoro, string cartella)
+    {
+        string madre = Path.GetFullPath(lavoro.Trim()).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+        string figlia = Path.GetFullPath(cartella.Trim()).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+        return figlia.StartsWith(madre, StringComparison.OrdinalIgnoreCase) && figlia.Length > madre.Length;
+    }
+
+    /// <summary>
+    /// Perché non si può prendere un altro sector con quel nome nell'ambiente, o null. Il nome è una cartella sola
+    /// (lettere, cifre, <c>-</c>, <c>_</c>, <c>.</c>), non quella dell'AIP espanso o dei PDF, e non già occupata.
+    /// </summary>
+    public static string? PercheNonVaUnAltroSector(string lavoro, string? nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            return "Dai un nome al sector (per esempio «ciclo-2611» o «prova»): diventa la sua cartella nell'ambiente.";
+        string pulito = nome.Trim();
+        if (pulito is "." or ".." || !pulito.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.'))
+            return "Il nome è una cartella sola: lettere, cifre, «-», «_» e «.».";
+        if (string.Equals(pulito, CartellaDellAipEspanso, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(pulito, CartellaDeiPdf, StringComparison.OrdinalIgnoreCase))
+            return $"«{pulito}» è la cartella dell'AIP espanso o dei PDF: scegli un altro nome.";
+        string dove = Path.Combine(lavoro, pulito);
+        if (NonVuota(dove))
+            return SectorGiaPreso(dove)
+                ? $"Il sector «{pulito}» c'è già nell'ambiente: aprilo dall'elenco."
+                : $"{dove} c'è già e non è un sector: scegli un altro nome.";
+        return null;
+    }
+
     /// <summary>Vero se nella cartella c'è già il sector preso (un clone con <c>SectorFiles</c>).</summary>
     public static bool SectorGiaPreso(string cartella) =>
         RepoDellAip.EUnRepo(cartella) && Directory.Exists(Path.Combine(cartella, PresaDelSector.CartellaDaPrendere));

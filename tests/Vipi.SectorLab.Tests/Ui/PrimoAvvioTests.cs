@@ -25,7 +25,7 @@ public sealed class PrimoAvvioTests : IDisposable
     }
 
     [Fact]
-    public async Task PrimoAvvioSoloSeNonSiEMaiApertoNiente()
+    public async Task PrimoAvvioFinchéNonCeLAmbiente()
     {
         var primo = new SessioneDelLab(Dati);
         _contesto.Services.AddSingleton(primo);
@@ -37,13 +37,19 @@ public sealed class PrimoAvvioTests : IDisposable
         pagina.Find("[data-campo='cartella-di-lavoro']").Input(lavoro);
         Assert.Contains(Path.Combine(lavoro, "pdf-aip"), pagina.Find("[data-cartelle-del-primo-avvio]").TextContent, StringComparison.Ordinal);
 
+        // Aprire un sector (da --cartella) non fa l'ambiente: lo fa solo «Prepara tutto».
         Assert.True(await primo.ApriAsync(_albero.Radice));
+        primo.Chiudi();
+        Assert.NotEmpty(pagina.FindAll("[data-primo-avvio]"));
 
+        Directory.CreateDirectory(lavoro);
+        File.WriteAllText(Path.Combine(Dati, "cartella-di-lavoro.txt"), lavoro);
         using var dopo = new TestContext();
         dopo.JSInterop.Mode = JSRuntimeMode.Loose;
         dopo.Services.AddSingleton(new SessioneDelLab(Dati));
         var seconda = dopo.RenderComponent<Home>();
         Assert.Empty(seconda.FindAll("[data-primo-avvio]"));
+        Assert.NotEmpty(seconda.FindAll("[data-ambiente]"));
         Assert.NotEmpty(seconda.FindAll("[data-prendi]"));
     }
 
@@ -89,6 +95,18 @@ public sealed class PrimoAvvioTests : IDisposable
         Assert.Equal(Path.Combine(lavoro, "aip-espanso"), lab.CartellaDellAipEspanso);
         Assert.Equal(StatoDelLab.Aperta, lab.Stato);
         Assert.Null(lab.PassoDelPrimoAvvio);
+
+        // L'ambiente si ricorda; all'avvio dopo si riapre il suo sector.
+        var riaperto = new SessioneDelLab(Dati);
+        Assert.Equal(lavoro, riaperto.CartellaDiLavoro);
+        Assert.Equal(Path.Combine(lavoro, "sector"), riaperto.SectorDaRiaprire());
+
+        // Un altro sector si prende solo nell'ambiente, col nome; si apre ed è il prossimo da riaprire.
+        Assert.False(await lab.PrendiUnAltroSectorAsync("aip-espanso"));
+        Assert.False(await lab.PrendiUnAltroSectorAsync(@"..\fuori"));
+        Assert.True(await lab.PrendiUnAltroSectorAsync("prova"), lab.Errore);
+        Assert.Equal([Path.Combine(lavoro, "sector"), Path.Combine(lavoro, "prova")], lab.SectorDellAmbiente());
+        Assert.Equal(Path.Combine(lavoro, "prova"), new SessioneDelLab(Dati).SectorDaRiaprire());
     }
 
     [Fact]

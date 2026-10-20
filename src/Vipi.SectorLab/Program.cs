@@ -14,6 +14,7 @@ using WinForms = System.Windows.Forms;
 /// L'ingresso di Aurora Sector Lab (carta F3 §2.1, §3): avvia il server Blazor locale e apre la finestra che lo mostra.
 /// <para><c>--autoprova</c>: parte, aspetta che il circuito sia vivo e si chiude, con codice d'uscita 0 se tutto è
 /// andato e 1 se no. È la prova d'avvio della slice 1, e si rifà su ogni consegna (lanciata da un'altra cartella).</para>
+/// <para>Senza <c>--cartella</c>, se c'è l'ambiente di lavoro (il primo avvio fatto), riapre da sé il suo sector.</para>
 /// <para><c>--cartella &lt;percorso&gt;</c>: apre subito quella cartella del sector, senza passare dalla schermata
 /// d'apertura (un collegamento per l'AOD, e la misura della mappa sull'albero vero). Con <c>--tutti-gli-strati</c> li
 /// accende tutti; con <c>--autoprova</c> la prova aspetta la riga «mappa disegnata» invece di «pronto».</para>
@@ -89,6 +90,8 @@ internal static class Program
             e.SetObserved();
         };
 
+        // Il Lab lavora nel suo ambiente (20 ottobre): senza --cartella riapre da sé il sector dell'ambiente di lavoro.
+        cartellaDaAprire ??= server.Services.GetRequiredService<SessioneDelLab>().SectorDaRiaprire();
         bool cartellaAperta = false;
         if (cartellaDaAprire is not null)
         {
