@@ -215,7 +215,12 @@ vanno nel loro scalo. Test: Lab 1 274 (+1).
 
 **Da sistemare** (trovato il 20 ottobre): `VipiSectorLab.exe --autoprova --cartella <copia>` scrive nei dati del Lab di chi
 lo usa (`%LOCALAPPDATA%\VipiSectorLab`): la copia diventa «ultima cartella» e va in cima agli «Aperti di recente». La
-prova d'avvio non deve ricordare niente. Va con la prossima slice.
+prova d'avvio non deve ricordare niente. **Sistemato** (20 ottobre sera), con l'argomento nuovo `--dati <cartella>`: i
+dati del Lab (ultima cartella, recenti, impostazioni, backup, registro, WebView2) stanno lì invece che in
+`%LOCALAPPDATA%\VipiSectorLab`; l'autoprova senza `--dati` usa `%TEMP%\VipiSectorLab-autoprova`
+(`SessioneDelLab.CartellaDeiDati`). Serve anche al committente per simulare il primo avvio di un AOD senza toccare il
+suo Lab: `SectorLab-prova\PrimoAvvio\` (lanciatore e LEGGIMI, fuori repo). Test: Lab 1 278 (+4,
+`CartellaDeiDatiTests`). Provato sull'eseguibile pubblicato: autoprova 0, i dati di `%LOCALAPPDATA%` non cambiano.
 
 **Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
 R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due

@@ -17,23 +17,27 @@ using WinForms = System.Windows.Forms;
 /// <para><c>--cartella &lt;percorso&gt;</c>: apre subito quella cartella del sector, senza passare dalla schermata
 /// d'apertura (un collegamento per l'AOD, e la misura della mappa sull'albero vero). Con <c>--tutti-gli-strati</c> li
 /// accende tutti; con <c>--autoprova</c> la prova aspetta la riga «mappa disegnata» invece di «pronto».</para>
+/// <para><c>--dati &lt;cartella&gt;</c>: i dati del Lab (ultima cartella, recenti, impostazioni, backup, registro, WebView2)
+/// stanno lì invece che in <c>%LOCALAPPDATA%\VipiSectorLab</c>. Con una cartella vuota è il primo avvio di un AOD.
+/// L'autoprova senza <c>--dati</c> usa una cartella temporanea sua.</para>
 /// </summary>
 internal static class Program
 {
-    /// <summary>La cartella dell'utente per l'app: diario d'avvio, dati della WebView2 e (slice 9) i backup.</summary>
-    internal static readonly string CartellaDellUtente =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VipiSectorLab");
+    /// <summary>La cartella dell'utente per l'app: diario d'avvio, dati della WebView2 e (slice 9) i backup.
+    /// La decide <see cref="SessioneDelLab.CartellaDeiDati"/> all'avvio.</summary>
+    internal static string CartellaDellUtente { get; private set; } = SessioneDelLab.CartellaDeiDatiDiBase;
 
     [STAThread]
     private static int Main(string[] args)
     {
         var orologio = Stopwatch.StartNew();
+        bool autoprova = args.Contains("--autoprova", StringComparer.OrdinalIgnoreCase);
+        CartellaDellUtente = SessioneDelLab.CartellaDeiDati(Valore(args, "--dati"), autoprova);
         Directory.CreateDirectory(CartellaDellUtente);
         var diario = new Diario(Path.Combine(CartellaDellUtente, "avvio.txt"), orologio);
-        bool autoprova = args.Contains("--autoprova", StringComparer.OrdinalIgnoreCase);
         string? cartellaDaAprire = Valore(args, "--cartella");
         bool tuttiGliStrati = args.Contains("--tutti-gli-strati", StringComparer.OrdinalIgnoreCase);
-        diario.Scrivi($"Aurora Sector Lab {Versione.Testo} · .NET {Environment.Version} · cartella {AppContext.BaseDirectory} · lavoro {Environment.CurrentDirectory}");
+        diario.Scrivi($"Aurora Sector Lab {Versione.Testo} · .NET {Environment.Version} · cartella {AppContext.BaseDirectory} · lavoro {Environment.CurrentDirectory} · dati {CartellaDellUtente}");
 
         WinForms.Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         WinForms.Application.EnableVisualStyles();

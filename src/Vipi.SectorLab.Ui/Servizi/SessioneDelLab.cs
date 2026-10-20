@@ -72,6 +72,19 @@ public sealed class SessioneDelLab
     public static string CartellaDeiDatiDiBase { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VipiSectorLab");
 
+    /// <summary>La cartella dell'autoprova, nella cartella temporanea: la prova d'avvio non ricorda niente nei dati di chi
+    /// usa il Lab (prima la copia provata diventava «ultima cartella» e andava in cima ai recenti, 20 ottobre).</summary>
+    public static string CartellaDellAutoprova { get; } = Path.Combine(Path.GetTempPath(), "VipiSectorLab-autoprova");
+
+    /// <summary>
+    /// Dove il Lab tiene i suoi dati per questa apertura: quella scelta con <c>--dati &lt;cartella&gt;</c> (un primo avvio
+    /// simulato, un secondo Lab che non tocca il primo); se no quella dell'autoprova; se no <see cref="CartellaDeiDatiDiBase"/>.
+    /// </summary>
+    public static string CartellaDeiDati(string? scelta, bool autoprova) =>
+        !string.IsNullOrWhiteSpace(scelta) ? Path.GetFullPath(scelta)
+        : autoprova ? CartellaDellAutoprova
+        : CartellaDeiDatiDiBase;
+
     /// <summary>Il registro dei gesti e degli errori (vedi <see cref="Servizi.Registro"/>).</summary>
     public Registro Registro { get; }
 
