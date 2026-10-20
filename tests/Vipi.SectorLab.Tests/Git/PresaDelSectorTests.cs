@@ -29,6 +29,30 @@ public sealed class PresaDelSectorTests : IDisposable
     }
 
     [Fact]
+    public async Task ArrivanoAncheGliSchemiDiAurora()
+    {
+        // ColorSchemes sta accanto a SectorFiles e la mappa ne legge i colori: senza, un sector preso non li ha.
+        _repo.Scrivi("ColorSchemes/Default.clr", "schema\r\n");
+        _repo.Esegui(_repo.Lavoro, "add", "--", "ColorSchemes/Default.clr");
+        _repo.Esegui(_repo.Lavoro, "commit", "--quiet", "-m", "schemi");
+        _repo.Esegui(_repo.Lavoro, "push", "--quiet");
+        string dove = Path.Combine(_repo.Radice, "preso-con-gli-schemi");
+
+        Assert.Null(await PresaDelSector.PrendiAsync(_repo.Git, _repo.Server, dove));
+
+        Assert.True(File.Exists(Path.Combine(dove, "ColorSchemes", "Default.clr")));
+    }
+
+    [Fact]
+    public async Task UnIndirizzoCheSembraUnOpzioneSiRifiuta()
+    {
+        string dove = Path.Combine(_repo.Radice, "mai");
+
+        Assert.Contains("«-»", await PresaDelSector.PrendiAsync(_repo.Git, "--upload-pack=calc", dove), StringComparison.Ordinal);
+        Assert.False(Directory.Exists(dove));
+    }
+
+    [Fact]
     public void UnaCartellaPienaORelativaSiRifiuta()
     {
         Assert.Contains("non è vuota", PresaDelSector.PercheNonVa(_repo.Server, _repo.Lavoro), StringComparison.Ordinal);

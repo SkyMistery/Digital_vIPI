@@ -222,6 +222,21 @@ dati del Lab (ultima cartella, recenti, impostazioni, backup, registro, WebView2
 suo Lab: `SectorLab-prova\PrimoAvvio\` (lanciatore e LEGGIMI, fuori repo). Test: Lab 1 278 (+4,
 `CartellaDeiDatiTests`). Provato sull'eseguibile pubblicato: autoprova 0, i dati di `%LOCALAPPDATA%` non cambiano.
 
+**Primo avvio: i repo li prende il Lab** (20 ottobre sera, chiesto dal committente prima del giro da zero: «che il lab
+cloni da sé le repo che gli servono, con l'AOD che gli dà il link»). I due gesti c'erano già (F4 slice 2 «Prendi il
+sector», F6 «Prendi l'AIP espanso»); mancava quel che serve a chi parte da zero:
+- sulla schermata d'apertura «Non hai il sector? Prendilo dal repo» è **già aperto** quando non c'è nessun sector recente;
+- il riquadro dell'AIP ha il campo **«Dal repo»** accanto a «Prendi l'AIP espanso» (prima l'indirizzo si cambiava solo
+  nelle Impostazioni);
+- il link si incolla com'è dal browser: `IndirizzoDelRepo.Pulito` tiene di GitHub solo `proprietario/repo`
+  (`…/tree/master`, `…/pulls`, la barra in fondo, le virgolette spariscono); un indirizzo che comincia con «-» si
+  rifiuta e il clone mette `--` prima dell'indirizzo (per git sarebbe un'opzione: `--upload-pack=…` esegue un comando);
+- la presa del sector scarica anche `ColorSchemes` (gli schemi di Aurora che la mappa legge), se il repo ce l'ha.
+Test: Lab 1 291 (+13: `IndirizzoDelRepoTests` 9, `PresaDelSectorTests` 2, `PrimoAvvioTests` 2). A schermo sul banco con
+dati vuoti: la tendina aperta, il sector aperto, il campo «Dal repo» dell'AIP. La presa vera da GitHub dal browser del
+banco no (il cancello ferma GitHub nel browser): i suoi comandi git, lanciati a mano sul repo di prova, prendono
+`SectorFiles` in 2,6 s (18 MB) e saltano `ColorSchemes`, che quel repo non ha.
+
 **Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
 R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due
 consegne, con ramo ed età del repo dell'AIP e la rilettura dello strato), R6 (Testo), R7 (Scheda), R8 (verbi).

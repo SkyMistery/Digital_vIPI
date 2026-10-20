@@ -13,14 +13,22 @@ public static class PresaDelSector
     /// </summary>
     public const string IndirizzoDiBase = "https://github.com/SkyMistery/it-aurora-sector-test.git";
 
-    /// <summary>La sola cartella che si scarica: il resto del repo (Aurora, DLL, suoni) non serve al Lab.</summary>
+    /// <summary>La cartella che si scarica: il resto del repo (Aurora, DLL, suoni) non serve al Lab.</summary>
     public const string CartellaDaPrendere = "SectorFiles";
+
+    /// <summary>
+    /// Le cartelle che si scaricano: <see cref="CartellaDaPrendere"/> e <c>ColorSchemes</c>, gli schemi di Aurora che la
+    /// mappa legge accanto al sector (<see cref="Mappa.SchemiDiAurora"/>). Una che il repo non ha si salta da sé.
+    /// </summary>
+    public static readonly IReadOnlyList<string> CartelleDaPrendere = [CartellaDaPrendere, "ColorSchemes"];
 
     /// <summary>Perché non si può prendere il sector in quella cartella da quell'indirizzo, o null.</summary>
     public static string? PercheNonVa(string? indirizzo, string? cartella)
     {
         if (string.IsNullOrWhiteSpace(indirizzo))
             return "Manca l'indirizzo del repo del sector.";
+        if (IndirizzoDelRepo.PercheNonVa(indirizzo) is { } perche)
+            return perche;
         if (string.IsNullOrWhiteSpace(cartella))
             return "Manca la cartella dove metterlo.";
         if (!Path.IsPathFullyQualified(cartella.Trim()))
@@ -47,11 +55,11 @@ public static class PresaDelSector
         string sopra = Path.GetDirectoryName(dove) ?? dove;
         Directory.CreateDirectory(sopra);
 
-        var clone = await git.EseguiAsync(sopra, ["clone", "--quiet", "--filter=blob:none", "--sparse", indirizzo.Trim(), dove], annulla).ConfigureAwait(false);
+        var clone = await git.EseguiAsync(sopra, ["clone", "--quiet", "--filter=blob:none", "--sparse", "--", indirizzo.Trim(), dove], annulla).ConfigureAwait(false);
         if (!clone.Riuscito)
             return clone.Codice == -1 ? clone.Errore : $"Il repo non si è lasciato prendere: {clone.Errore}";
 
-        var parte = await git.EseguiAsync(dove, ["sparse-checkout", "add", CartellaDaPrendere], annulla).ConfigureAwait(false);
+        var parte = await git.EseguiAsync(dove, ["sparse-checkout", "add", .. CartelleDaPrendere], annulla).ConfigureAwait(false);
         if (!parte.Riuscito)
             return $"Preso il repo, ma non la cartella {CartellaDaPrendere}: {parte.Errore}";
         if (!Directory.Exists(Path.Combine(dove, CartellaDaPrendere)))

@@ -37,8 +37,13 @@
 
             @if (Lab.CartellaDellAipEspanso is null || Lab.StatoDellAip is null)
             {
-                <p class="lab-nota" data-prendi-espanso>Il repo dell'AIP espanso (<code>@Lab.IndirizzoDellAipEspanso</code>) non è ancora su questo PC:
+                <p class="lab-nota" data-prendi-espanso>Il repo dell'AIP espanso non è ancora su questo PC:
                     prendilo in una cartella nuova (o vuota), e diventa la cartella dell'AIP espanso.</p>
+                <label class="lab-nota">
+                    Dal repo (il link di GitHub, anche copiato dal browser)
+                    <input class="lab-campo" value="@Lab.IndirizzoDellAipEspanso" data-campo="indirizzo-aip-espanso" disabled="@Lab.StaLavorandoSulRepoDellAip"
+                           @onchange="e => Lab.CambiaLIndirizzoDellAipEspanso(e.Value?.ToString())" />
+                </label>
                 <label class="lab-nota">
                     Dove
                     <input class="lab-campo" value="@_dove" data-campo="dove-aip-espanso" placeholder="D:\IVAO\aip-espanso"

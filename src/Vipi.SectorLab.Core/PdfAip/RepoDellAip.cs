@@ -48,6 +48,8 @@ public static class RepoDellAip
         ArgumentNullException.ThrowIfNull(git);
         if (string.IsNullOrWhiteSpace(indirizzo))
             return "Manca l'indirizzo del repo dell'AIP espanso.";
+        if (IndirizzoDelRepo.PercheNonVa(indirizzo) is { } perche)
+            return perche;
         if (string.IsNullOrWhiteSpace(cartella) || !Path.IsPathFullyQualified(cartella.Trim()))
             return "La cartella va scritta per intero (D:\\…\\aip-espanso).";
         var dove = Path.GetFullPath(cartella.Trim());
@@ -58,7 +60,7 @@ public static class RepoDellAip
 
         var sopra = Path.GetDirectoryName(dove) ?? dove;
         Directory.CreateDirectory(sopra);
-        var clone = await git.EseguiAsync(sopra, ["clone", "--quiet", indirizzo.Trim(), dove], annulla).ConfigureAwait(false);
+        var clone = await git.EseguiAsync(sopra, ["clone", "--quiet", "--", indirizzo.Trim(), dove], annulla).ConfigureAwait(false);
         if (!clone.Riuscito)
             return clone.Codice == -1 ? clone.Errore : $"Il repo non si è lasciato prendere: {clone.Errore}";
         return null;

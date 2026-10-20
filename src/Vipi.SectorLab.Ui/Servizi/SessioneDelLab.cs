@@ -5979,10 +5979,10 @@ public sealed class SessioneDelLab
 
     private string? _indirizzoDellAip;
 
-    /// <summary>Cambia il repo dell'AIP espanso. Vuoto = quello di base.</summary>
+    /// <summary>Cambia il repo dell'AIP espanso: il link di GitHub copiato dal browser va bene. Vuoto = quello di base.</summary>
     public void CambiaLIndirizzoDellAipEspanso(string? indirizzo)
     {
-        _indirizzoDellAip = string.IsNullOrWhiteSpace(indirizzo) ? null : indirizzo.Trim();
+        _indirizzoDellAip = Core.Git.IndirizzoDelRepo.Pulito(indirizzo);
         Ricorda("indirizzo-aip-espanso.txt", _indirizzoDellAip, "repo dell'AIP espanso");
         Avvisa();
     }
@@ -6152,10 +6152,11 @@ public sealed class SessioneDelLab
     /// </summary>
     public string IndirizzoDelSector => _indirizzoDelSector ??= Ricordata("indirizzo-del-sector.txt") ?? Core.Git.PresaDelSector.IndirizzoDiBase;
 
-    /// <summary>Cambia il repo da cui si prende il sector. Vuoto = quello di base.</summary>
+    /// <summary>Cambia il repo da cui si prende il sector: il link di GitHub copiato dal browser va bene
+    /// (<see cref="Core.Git.IndirizzoDelRepo.Pulito"/>). Vuoto = quello di base.</summary>
     public void CambiaLIndirizzoDelSector(string? indirizzo)
     {
-        string scritto = string.IsNullOrWhiteSpace(indirizzo) ? Core.Git.PresaDelSector.IndirizzoDiBase : indirizzo.Trim();
+        string scritto = Core.Git.IndirizzoDelRepo.Pulito(indirizzo) ?? Core.Git.PresaDelSector.IndirizzoDiBase;
         if (scritto == IndirizzoDelSector)
             return;
         _indirizzoDelSector = scritto;

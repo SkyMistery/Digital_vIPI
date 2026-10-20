@@ -174,10 +174,11 @@ else
         }
 
         @* Carta F4, slice 2: chi non ha il sector lo prende dal repo, solo SectorFiles (pochi secondi, pochi mega). *@
-        <details class="lab-prendi" data-prendi>
+        @* Al primo avvio (nessun sector aperto prima) è la prima cosa da fare: la tendina è già aperta. *@
+        <details class="lab-prendi" data-prendi open="@(Lab.SectorRecenti().Count == 0)">
             <summary>Non hai il sector? Prendilo dal repo</summary>
             <label class="lab-campo-in-colonna">
-                <span class="lab-nota">Dal repo</span>
+                <span class="lab-nota">Dal repo (il link di GitHub, anche copiato dal browser)</span>
                 <input type="text" class="lab-campo-largo" value="@Lab.IndirizzoDelSector" @onchange="e => Lab.CambiaLIndirizzoDelSector(e.Value?.ToString())"
                        disabled="@Lab.StaPrendendo" data-campo="indirizzo-del-sector" />
             </label>
@@ -195,8 +196,9 @@ else
                             disabled="@(Lab.StaPrendendo || Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_dovePrendere))">Prendi</button>
                 </span>
             </label>
-            <p class="lab-nota">Scarica solo <code>SectorFiles</code> e i file di oggi, non la cronologia di Aurora: qualche secondo. Le
-                credenziali di GitHub non servono per prendere; per mandare le chiederà git, nella sua finestra.</p>
+            <p class="lab-nota">Scarica solo <code>SectorFiles</code> (con <code>ColorSchemes</code>, se c'è) e i file di oggi, non la
+                cronologia di Aurora: qualche secondo. Le credenziali di GitHub non servono per prendere un repo pubblico;
+                per uno privato, e per mandare, le chiederà git, nella sua finestra.</p>
         </details>
 
         @if (Lab.StaPrendendo)
