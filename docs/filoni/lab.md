@@ -4,7 +4,35 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 20 ottobre 2026: riordino delle pagine (carta approvata, slice R0-R5)
+## Dove siamo — 20 ottobre 2026, notte: terza forma, R4-R6 fatte (passaggio a un altro account)
+
+Tutto nella carta [`2026-10-20-riordino-delle-pagine.md`](../feature/2026-10-20-riordino-delle-pagine.md): §4-ter (la
+terza forma, D14-D22, **approvate**), §5-ter (le slice R4-R9) e §6 (il lavoro, slice per slice, e «Dove siamo» in fondo).
+
+- **Ambiente di lavoro** (prima della terza forma, chiesto per il primo avvio di un AOD): `--dati <cartella>` per i dati
+  del Lab (l'autoprova in `%TEMP%\VipiSectorLab-autoprova`); il riquadro **«Primo avvio»** (link del sector e dell'AIP
+  espanso, cartella di Aurora, cartella di lavoro → `sector`, `aip-espanso`, `pdf-aip`, «Prepara tutto»); il Lab lavora
+  **solo nel suo ambiente** (riapre da sé il suo sector, elenco dei sector dell'ambiente, «Prendi un altro sector» col
+  nome, niente «Apri» su una cartella qualsiasi, cartelle dei PDF e dell'AIP espanso fisse con «Apri la cartella»);
+  link del browser puliti (`IndirizzoDelRepo`); **cartella di Aurora** (schemi da `ColourSchemes`) e **profilo di Aurora**
+  (simboli dei punti dalle righe `SYMBOLS_`, di base `BASIC_RADAR.cpr`).
+- **Terza forma** (D14-D22): tre spazi di lavoro — **AIP espanso** (Indice), **Sector** (Mappa, Consegna; poi Testo),
+  **Confronti** — ognuno con la sua mappa sullo stesso motore; «metti in questo file» (una voce, più voci o una sezione
+  intera nel file scelto) nel Confronti; il Testo nello spazio Sector; l'AIP espanso si modifica solo coi moduli.
+- **R4 fatta** (tre mappe, un motore: `StatoDellaMappa` per spazio, JS `mappe[id]`), **R5 fatta** (l'AIP disegnato come il
+  sector: chiavi dello schema e simboli di Aurora), **R6 fatta** (la pagina **Confronti** in lettura: 13 sezioni, righe
+  unificate `RigaDelConfronto`, filtro per esito, due schede, mappa coi due lati arancio/blu e la coppia della riga).
+  La pagina di prima resta come «Lettura e gesti» finché la **R7** non sposta i gesti nel Confronti.
+- **Prossimo**: la R7 (i gesti di oggi nel Confronti), dopo il via del committente; prima, forse, la proposta aperta
+  «aprendo una sezione, sulla mappa solo i suoi generi» (la mappa del Confronto è piena). Poi R8 «metti in questo
+  file» (prima la misura dei file compatibili), R9 verso l'AIP, e le slice di prima (consegne, Testo, Scheda, verbi).
+- **Da fare dal committente**: il giro del primo avvio in `D:\Programmazione\IVAO_Test\SectorLab-prova\PrimoAvvio\`
+  (`LEGGIMI.txt`, «Avvia il Lab (primo avvio).cmd»); il suo Lab vero in `%LOCALAPPDATA%` non ha ancora un ambiente e
+  alla prossima apertura chiederà il primo avvio.
+- Lab 1 318 test. Eseguibile di prova: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`, rifatto a ogni
+  slice (prima `Get-Process VipiSectorLab`: se è aperto si aspetta il committente).
+
+## 20 ottobre 2026: riordino delle pagine (carta approvata, R0-R3)
 
 Il committente, aprendo l'app: «è molto confusionaria». Fatto l'inventario di tutte le operazioni (circa 150, in nove
 gruppi) e approvata la direzione: quattro pagine (Sector, AIP, Consegna, Impostazioni), barra uguale nelle due finestre,
@@ -764,9 +792,20 @@ Dalle slice 13-19 (6 ottobre):
 - **Il banco a schermo**: un progetto `Sdk.Web` di dieci righe che avvia `ServerDelLab` su una copia del fork e
   scrive l'indirizzo d'ingresso in un file; si apre col browser del pannello e si guida leggendo il DOM. Anche lui
   nello scratchpad (`banco` e `copia`); la copia dev'essere pari al fork, file vuoti compresi.
+  - Dal 20 ottobre: argomenti `<copia o «-»> <cartella dei dati> <file dell'indirizzo>`; con «-» parte senza sector
+    (il primo avvio). La cartella dei dati si prepara a mano coi file che il Lab ricorda (`aip-espanso.txt`,
+    `cartella-di-aurora.txt`, `cartella-di-lavoro.txt`…). Il banco **non** passa la cartella di Aurora di base:
+    nei suoi campi resta vuota (nell'app è `%APPDATA%\IVAO\AuroraWindows`).
+  - Il pannello va emulato a 1400 px (`resize_window`) per vedere la mappa; poi si rimette «desktop».
+  - 🔴 Il cancello rifiuta GitHub nel browser anche come **testo da scrivere** in un campo del banco: le prese dei repo
+    sul banco si provano con un clone locale come «server»; i comandi git veri dal terminale.
+  - Si spegne solo per riga di comando: processi con «banco» e la cartella dei dati del banco.
 - L'eseguibile di prova: `dotnet publish src/Vipi.SectorLab -c Release -r win-x64 --self-contained -o
-  <IVAO_Test>\SectorLab-prova`, poi `VipiSectorLab.exe --autoprova --cartella <fork>` (esito 0). Prima si guarda che
-  il Lab non sia aperto (`Get-Process VipiSectorLab`): è un programma che il committente usa.
+  <IVAO_Test>\SectorLab-prova`, poi `VipiSectorLab.exe --autoprova` (esito 0; dal 20 ottobre l'autoprova usa
+  `%TEMP%\VipiSectorLab-autoprova` e non tocca i dati del committente). Prima si guarda che il Lab non sia aperto
+  (`Get-Process VipiSectorLab`): è un programma che il committente usa; se è aperto si aspetta che lo chiuda.
+- `SectorLab-prova\PrimoAvvio\`: il primo avvio simulato (`LEGGIMI.txt`, il `.cmd` che lancia con `--dati`), fuori
+  repo; per rifarlo da zero il committente cancella `dati` e la cartella di lavoro.
 - **Dal giro del 18 ottobre** (F5 e dopo):
   - Sul banco **«Manda» non si preme**: `ApriNelBrowser` è `init` e di base apre il browser di Windows del committente.
     Il push del ramo e la PR si fanno da riga di comando (`git push -u origin aod/…`, `gh pr create --repo
