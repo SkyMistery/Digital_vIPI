@@ -40,10 +40,11 @@ public static class MappaDelLab
 
         rotte.MapGet("/mappa/strato/{id}", (string id, SessioneDelLab lab, HttpResponse risposta) =>
         {
-            // L'AIP espanso (F6): uno strato fuori dal sector, coi colori dei suoi generi e senza quelli di Aurora.
+            // L'AIP espanso (F6): uno strato fuori dal sector, coi colori dei suoi generi; dalla R5 (D16) anche quelli di
+            // Aurora e i suoi simboli, dove il genere ha un corrispondente nel sector — un fix dell'AIP come quello del sector.
             if (id == Core.PdfAip.AipSullaMappa.Tipo.Id)
                 return Results.Stream(
-                    flusso => Scrivi(flusso, id, lab.StratoDellAip?.Strato.Forme ?? [], coloreDellaForma: true),
+                    flusso => Scrivi(flusso, id, lab.StratoDellAip?.Strato.Forme ?? [], lab.Colori, lab.Simboli, coloreDellaForma: true),
                     contentType: "application/json");
 
             if (StratiDellaMappa.PerNome(id) is null)
@@ -95,7 +96,9 @@ public static class MappaDelLab
             if (coloreDellaForma && forma.Tratto is { } tinta)
                 json.WriteString("lc", tinta);
 
-            if (colori is not null)
+            // Una forma dell'AIP senza chiave dello schema (un genere che il sector non ha) non porta k: anche coi colori
+            // di Aurora resta col colore del suo genere, invece del grigio dello «sconosciuto».
+            if (colori is not null && (!coloreDellaForma || forma.Chiave is not null))
             {
                 var colore = colori.Di(forma);
                 ScriviIlColore(json, "k", "ka", colore.Tratto, sempre: true);

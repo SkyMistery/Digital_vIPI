@@ -128,6 +128,68 @@ public sealed class AipSullaMappaTests
         Assert.Contains("\"p\":\"aip:2611\"", json, StringComparison.Ordinal);
     }
 
+    // R5 (D16): i due lati, un disegno. Un modello coi punti, le radioassistenze e uno scalo.
+    private static StratoDellAip StratoConIPunti() => AipSullaMappa.Di(Modello() with
+    {
+        Points =
+        [
+            new SignificantPoint { Section = "ENR 4.4", Designator = "ABADI", Position = A },
+            new SignificantPoint { Section = "AD 2 LIRF", Designator = "XX601", Position = B },
+        ],
+        Navaids =
+        [
+            new Navaid { Section = "ENR 4.1", Designator = "PRV", Name = "PROVA", Type = "DVOR/DME", Kind = NavaidKind.DvorDme, Position = B, Components = [] },
+            new Navaid { Section = "ENR 4.1", Designator = "PR", Name = "PROVA", Type = "L", Kind = NavaidKind.Locator, Position = C, Components = [] },
+        ],
+        Aerodromes = [new Aerodrome { Icao = "LIXX", Name = "PROVA", Arp = C }],
+    }, "2611", nome => nome == "UNO" ? new Coordinate(45, 9) : null);
+
+    [Fact]
+    public void LeFormeDellAipHannoLeChiaviEISimboliDelSector()
+    {
+        var forme = StratoConIPunti().Strato.Forme;
+        FormaDellaMappa Di(string etichetta) => forme.Single(f => f.Etichetta == etichetta);
+
+        // Come il file del sector che tiene lo stesso genere: .fix, .vor, .ndb, .ap, italy.restrict, .hairway, .hold.
+        Assert.Equal(("FIX", "FIX:0"), (Di("ABADI").Chiave, Di("ABADI").Punto));
+        Assert.Equal(("FIX", "FIX:1"), (Di("XX601").Chiave, Di("XX601").Punto));
+        Assert.Equal(("VOR", "VOR:1"), (Di("PRV DVOR/DME").Chiave, Di("PRV DVOR/DME").Punto));
+        Assert.Equal(("NDB", "NDB"), (Di("PR L").Chiave, Di("PR L").Punto));
+        Assert.Equal(("AIRPORT", "APT:0"), (Di("LIXX").Chiave, Di("LIXX").Punto));
+        Assert.Equal("RESTRICTED", forme.Single(f => f.Genere == "R").Chiave);
+        Assert.Equal("AIRWAYHIGH", Di("Z99").Chiave);  // ENR 3.2
+        Assert.All(forme.Where(f => f.Genere == AipSullaMappa.Attese), f => Assert.Equal("HOLDINGS", f.Chiave));
+        // Il CTR il sector non lo tiene in un file suo: resta col colore del genere.
+        Assert.Null(forme.Single(f => f.Genere == "CTR").Chiave);
+
+        var simboli = SimboliDellaMappa.DiAurora;
+        Assert.Equal("FIX_TERM", simboli.Simboli[simboli.Di(Di("XX601"))!.Value].Nome);
+        Assert.Equal("FIX_VORDME", simboli.Simboli[simboli.Di(Di("PRV DVOR/DME"))!.Value].Nome);
+        Assert.Equal("AIRPORT", simboli.Simboli[simboli.Di(Di("LIXX"))!.Value].Nome);
+    }
+
+    [Fact]
+    public async Task NelJsonDellaMappa_IColoriEISimboliDiAurora_SoloDoveIlSectorHaIlGenere()
+    {
+        var avvisi = new Vipi.SectorLab.Core.Sessione.RaccoltaDiAvvisi();
+        var schema = new Vipi.Sectorfile.IO.ClrParser(avvisi).Parse(
+            Vipi.Sectorfile.IO.SectorFileReader.Decode("FIX=$00102030\r\nRESTRICTED=$000000FF\r\n"u8.ToArray()), "prova.clr");
+        var colori = new ColoriDellaMappa(schema, new Vipi.Sectorfile.Shared.ColorPalette());
+        using var flusso = new MemoryStream();
+
+        await MappaDelLab.Scrivi(flusso, "aip", StratoConIPunti().Strato.Forme, colori, SimboliDellaMappa.DiAurora, coloreDellaForma: true);
+
+        using var json = System.Text.Json.JsonDocument.Parse(flusso.ToArray());
+        var forme = json.RootElement.GetProperty("f").EnumerateArray().ToList();
+        System.Text.Json.JsonElement Di(string etichetta) => forme.Single(f => f.GetProperty("e").GetString() == etichetta);
+        // Il fix: il colore dello schema (FIX, $00BBGGRR) e il suo simbolo; e il colore del genere per i colori del Lab.
+        Assert.Equal("#302010", Di("ABADI").GetProperty("k").GetString());
+        Assert.True(Di("ABADI").TryGetProperty("y", out _));
+        Assert.Equal(AipSullaMappa.Colori[AipSullaMappa.Punti], Di("ABADI").GetProperty("lc").GetString());
+        // Il CTR: niente k, così anche coi colori di Aurora resta col colore del genere (non il grigio dello sconosciuto).
+        Assert.False(forme.Single(f => f.GetProperty("h").GetString() == "CTR").TryGetProperty("k", out _));
+    }
+
     [Fact]
     public void UnCorridoioMilitare_IlSuoContorno_IlGenereEIlCampoDellaScheda()
     {

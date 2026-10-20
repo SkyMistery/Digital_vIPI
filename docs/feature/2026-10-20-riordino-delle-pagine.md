@@ -408,9 +408,23 @@ Esplora risorse sullo schermo del committente).
   con la sua mappa (solo coste e AIP, inquadrata sull'Italia), il Sector coi punti accesi e senza AIP, il Confronti coi
   due lati; lo zoom della mappa dell'AIP uguale dopo un giro nel Sector.
 
+**R5 fatta** (20 ottobre sera): due lati, un disegno (D16). Le forme dell'AIP portano la stessa **chiave dello schema** e
+lo stesso **tipo del punto** della forma del sector che tiene quel genere (`AipSullaMappa.ChiaviDiAurora`, `TipoDelPunto`):
+punti di ENR 4.4 `FIX:0` (FIX_ENR) e di AD 2 `FIX:1` (FIX_TERM); radioassistenze per `NavaidKind` (VOR, VOR/DME, VORTAC,
+TACAN, DME → `VOR:0-4`; NDB e locator → `NDB`); scali `APT:0`; P, R, D con PROHIBITED, RESTRICTED, DANGER; FIR/UIR
+ARTCC; rotte AIRWAYLOW, quelle di ENR 3.2 AIRWAYHIGH (🟡 proposta: superiori nella struttura ICAO); SID e salite iniziali
+SID, STAR, transizioni TRANSITIONS, attese HOLDINGS. I generi che il sector non tiene in un file suo (CTR, ATZ, TMA, CTA,
+RMZ/TMZ, TSA/TRA, militari, luci, pericoli) restano col colore del genere anche coi colori di Aurora: il server non gli
+scrive `k` (prima del ritocco prendevano il grigio dello «sconosciuto»). Lo strato dell'AIP ha ora colori e simboli come
+quelli del sector e si riprende quando cambiano schema o profilo. Test: Lab 1 312 (+2).
+Sul banco (copia del sector, AIP espanso di prova 2610): i 1 471 punti, le 55 radioassistenze e i 5 scali col simbolo;
+ABADI, ADFAM e OSTEG nella stessa posizione e con lo stesso colore dei due lati. Dove il simbolo cambia è il **dato**
+a cambiare, ed è materia del Confronti: ABADI e OSTEG il sector li segna fix di confine (FIX_BOUND, 658 punti così),
+l'AIP non lo dice; OST il sector lo scrive VOR (FIX_VOR), l'AIP VOR/DME (FIX_VORDME).
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
-(R4-R9). **R4 fatta** (tre mappe, un motore); prossima **R5** (due lati, un disegno: i simboli di Aurora sull'AIP),
-dopo il via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+(R4-R9). **R4 fatta** (tre mappe, un motore), **R5 fatta** (due lati, un disegno); prossima **R6** (lo spazio
+Confronti in lettura), dopo il via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

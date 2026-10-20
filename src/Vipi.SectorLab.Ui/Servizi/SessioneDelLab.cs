@@ -3252,6 +3252,9 @@ public sealed class SessioneDelLab
         VersioneDellaGeometria++;
         foreach (var strato in Strati)
             _versioniDegliStrati[strato.Tipo.Id] = VersioneDellaGeometria;
+        // R5: lo strato dell'AIP porta i colori dello schema e i simboli come quelli del sector, e si riprende con loro.
+        if (StratoDellAip is not null)
+            _versioniDegliStrati[Core.PdfAip.AipSullaMappa.Tipo.Id] = VersioneDellaGeometria;
     }
 
     /// <summary>Quante volte la geometria è cambiata, in tutto.</summary>

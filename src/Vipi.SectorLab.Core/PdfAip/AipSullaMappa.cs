@@ -82,6 +82,48 @@ public static class AipSullaMappa
         [SaliteIniziali] = "#c08a2b",
     };
 
+    /// <summary>
+    /// La chiave dello schema di Aurora di ogni genere che ha un corrispondente nel sector (riordino R5, D16: un fix dell'AIP
+    /// e lo stesso fix del sector si vedono uguali): coi colori «di Aurora» la forma prende il colore dello schema, come il
+    /// file del sector che tiene quel genere. I generi che il sector non ha (CTR e ATZ stanno nei MAPS, TMA e CTA il sector
+    /// non le tiene, luci, pericoli…) restano col colore del loro genere.
+    /// 🟡 Proposta dell'agente: le rotte di ENR 3.2 (superiori, nella struttura ICAO) con AIRWAYHIGH, le altre AIRWAYLOW.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> ChiaviDiAurora = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["P"] = "PROHIBITED",
+        ["R"] = "RESTRICTED",
+        ["D"] = "DANGER",
+        ["FIR/UIR"] = "ARTCC",
+        [Rotte] = "AIRWAYLOW",
+        [Attese] = "HOLDINGS",
+        [Punti] = "FIX",
+        [Scali] = "AIRPORT",
+        [Sid] = "SID",
+        [SaliteIniziali] = "SID",
+        [Star] = "STAR",
+        [Transizioni] = "TRANSITIONS",
+    };
+
+    /// <summary>
+    /// Il tipo di una radioassistenza come lo dice il sector (<c>VOR:1</c>, <c>NDB</c>: il simbolo di Aurora, R5), o null
+    /// se il sector non ha quel tipo.
+    /// </summary>
+    public static string? TipoDelPunto(NavaidKind tipo) => tipo switch
+    {
+        NavaidKind.Vor or NavaidKind.Dvor => "VOR:0",
+        NavaidKind.VorDme or NavaidKind.DvorDme or NavaidKind.TvorDme => "VOR:1",
+        NavaidKind.Vortac or NavaidKind.Dvortac => "VOR:2",
+        NavaidKind.Tacan => "VOR:3",
+        NavaidKind.Dme => "VOR:4",
+        NavaidKind.Ndb or NavaidKind.Locator => "NDB",
+        _ => null,
+    };
+
+    /// <summary>Un punto significativo: di ENR 4.4 è in rotta (<c>FIX:0</c>), di un AD 2 è terminale (<c>FIX:1</c>).</summary>
+    public static string TipoDelPunto(string sezione) =>
+        sezione.StartsWith("AD 2", StringComparison.Ordinal) ? "FIX:1" : "FIX:0";
+
     /// <summary>Vero se il «file» è quello di una forma dell'AIP.</summary>
     public static bool EDellAip(string? file) => file?.StartsWith(Prefisso, StringComparison.Ordinal) == true;
 
@@ -98,9 +140,12 @@ public static class AipSullaMappa
         var forme = new List<FormaDellaMappa>();
         var voci = new List<VoceDellAip>();
 
-        void Aggiungi(VoceDellAip voce, TipoDiForma tipo, IReadOnlyList<IReadOnlyList<Coordinate>> tratti, IReadOnlyList<string>? nonRisolti = null)
+        // R5: la chiave dello schema e il tipo del punto, come la forma del sector che tiene lo stesso genere.
+        void Aggiungi(VoceDellAip voce, TipoDiForma tipo, IReadOnlyList<IReadOnlyList<Coordinate>> tratti, IReadOnlyList<string>? nonRisolti = null,
+                      string? punto = null, string? chiave = null)
         {
-            forme.Add(new FormaDellaMappa(file, voci.Count, tipo, voce.Titolo, tratti, nonRisolti ?? [], Tratto: Colori[voce.Genere], Genere: voce.Genere));
+            forme.Add(new FormaDellaMappa(file, voci.Count, tipo, voce.Titolo, tratti, nonRisolti ?? [], Tratto: Colori[voce.Genere],
+                Chiave: chiave ?? ChiaviDiAurora.GetValueOrDefault(voce.Genere), Punto: punto, Genere: voce.Genere));
             voci.Add(voce);
         }
 
@@ -128,7 +173,8 @@ public static class AipSullaMappa
                 pezzo.Add(Coordinata(rotta.Points[i + 1].Position));
             }
             pezzi.Add(pezzo);
-            Aggiungi(Voce(rotta), TipoDiForma.Linea, [.. pezzi.Where(p => p.Count > 1)]);
+            Aggiungi(Voce(rotta), TipoDiForma.Linea, [.. pezzi.Where(p => p.Count > 1)],
+                chiave: rotta.Section.StartsWith("ENR 3.2", StringComparison.Ordinal) ? "AIRWAYHIGH" : null);
         }
 
         foreach (var attesa in aip.Holdings ?? [])
@@ -138,14 +184,18 @@ public static class AipSullaMappa
         }
 
         // Le voci puntuali (slice 3 delle correzioni): si scelgono sulla mappa e si correggono dalla loro scheda.
-        void Puntuale(VoceDellAip voce, Position? dove) =>
-            Aggiungi(voce, TipoDiForma.Punto, dove is { } p ? [[Coordinata(p)]] : [], dove is null ? [voce.Titolo] : null);
+        void Puntuale(VoceDellAip voce, Position? dove, string? tipoDelPunto = null, string? chiave = null) =>
+            Aggiungi(voce, TipoDiForma.Punto, dove is { } p ? [[Coordinata(p)]] : [], dove is null ? [voce.Titolo] : null, tipoDelPunto, chiave);
         foreach (var punto in aip.Points ?? [])
             Puntuale(Voce(Punti, CorrectionKind.Point, punto.Designator, punto.Section, punto.Page, ("Rotte", string.Join(", ", punto.Routes)),
-                ("Procedure", punto.Procedures), ("FRA", punto.Fra), ("Note", punto.Remarks)), punto.Position);
+                ("Procedure", punto.Procedures), ("FRA", punto.Fra), ("Note", punto.Remarks)), punto.Position, TipoDelPunto(punto.Section));
         foreach (var r in aip.Navaids ?? [])
+        {
+            var tipo = TipoDelPunto(r.Kind);
             Puntuale(Voce(Radioassistenze, CorrectionKind.Navaid, r.Key, r.Section, r.Page, ("Nome", r.Name), ("Frequenza", r.Frequency),
-                ("Canale", r.Channel), ("Militare", r.Military ? "sì" : null), ("Note", r.Remarks)), r.Position);
+                ("Canale", r.Channel), ("Militare", r.Military ? "sì" : null), ("Note", r.Remarks)), r.Position,
+                tipo, tipo is null ? null : tipo == "NDB" ? "NDB" : "VOR");
+        }
         foreach (var luce in aip.Lights ?? [])
             Puntuale(Voce(Luci, CorrectionKind.Light, luce.Name, luce.Section, luce.Page, ("Tipo", luce.Type), ("Caratteristiche", luce.Characteristics),
                 ("Orari", luce.Hours), ("Note", luce.Remarks)), luce.Position);
@@ -155,7 +205,8 @@ public static class AipSullaMappa
                 ("Quota", pericolo.Vertical), ("Orari", pericolo.Hours), ("Note", pericolo.Remarks)), pericolo.Position);
         foreach (var scalo in aip.Aerodromes ?? [])
             Puntuale(Voce(Scali, CorrectionKind.Aerodrome, scalo.Icao, "AD 2", scalo.Page, ("Nome", scalo.Name), ("Elevazione", scalo.Elevation),
-                ("Piste", string.Join(", ", scalo.Runways.Select(p => p.Designator))), ("Frequenze", scalo.Communications.Count.ToString(CultureInfo.InvariantCulture))), scalo.Arp);
+                ("Piste", string.Join(", ", scalo.Runways.Select(p => p.Designator))), ("Frequenze", scalo.Communications.Count.ToString(CultureInfo.InvariantCulture))), scalo.Arp,
+                "APT:0");
 
         // Le procedure di AD 2 (F7, slice 7c): una linea per i loro punti, che si cercano nell'AIP espanso stesso — ENR 4.4, i
         // punti RNAV degli scali, le radioassistenze — e, se mancano, nel sector. Le convenzionali in sola prosa hanno i tratti
