@@ -4,14 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 21 ottobre 2026: la pagina Testo, T1 e T2 fatte
+## Dove siamo — 21 ottobre 2026: la pagina Testo finita (T1-T3)
 
 Dopo R4-R9 il committente ha chiesto la **pagina Testo** (D12, D13, D21). Divisa in T1-T3 (proposta dell'agente, in
 carta): **T1 fatta** — «Testo» nello spazio Sector, l'albero dei file, CodeMirror 6 dentro l'app (pacchetto in
 `wwwroot/vendor/codemirror`, ricetta in `tools/codemirror`), «Applica» che fa una modifica in sospeso coi soli cambi,
 i metadati `//@` bloccati e sbloccabili. **T2 fatta** — i problemi del validatore sul margine, i nomi del catalogo mentre
-si scrive, Ctrl+clic alla definizione, la domanda prima di cancellare un record coi metadati. Lab 1 353. **Prossima**, al
-via: T3 (i legami Scheda/mappa/Confronti ↔ Testo).
+si scrive, Ctrl+clic alla definizione, la domanda prima di cancellare un record coi metadati. **T3 fatta** — «Apri nel Testo» dalla Scheda e dal Confronti, «Sulla mappa» dal Testo, la bozza del testo
+non applicato che resta uscendo dalla pagina. Lab 1 355. **Dopo**, al via del committente: le due consegne, la Scheda per
+gruppi, i verbi.
 
 ## 20 ottobre 2026, notte: terza forma, R4-R9 fatte
 

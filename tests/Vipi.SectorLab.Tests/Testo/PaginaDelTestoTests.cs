@@ -123,6 +123,75 @@ public sealed class PaginaDelTestoTests : IDisposable
     }
 
     [Fact]
+    public async Task ILegami_LaRigaDelRecord_SullaMappa_ELApertura()
+    {
+        // T3 (D21).
+        await ApriAsync();
+        // La riga del record CCCCC (il terzo record di APT.fix, dopo AAAAA e BBBBB): la 10.
+        int ccccc = Enumerable.Range(0, 3).First(i => _lab.RigaDelRecord(Apt, i) == 10);
+        Assert.Null(_lab.RigaDelRecord(Apt, 99));
+
+        // Dalla Scheda: il Testo su quel file, alla sua riga, presa una volta sola.
+        _lab.ApriNelTesto(Apt, _lab.RigaDelRecord(Apt, ccccc));
+        Assert.Equal((PaginaDelLab.Testo, Apt), (_lab.Pagina, _lab.FileDelTesto));
+        Assert.Equal(10, _lab.PrendiLaRigaDelTesto());
+        Assert.Null(_lab.PrendiLaRigaDelTesto());
+
+        // Dal Testo alla mappa: la riga 10 è di CCCCC; la 1 è un commento.
+        Assert.True(_lab.MostraSullaMappa(Apt, 10), _lab.Rifiuto);
+        Assert.Equal(PaginaDelLab.Sector, _lab.Pagina);
+        Assert.Equal((Apt, ccccc), (_lab.Scelta?.File, _lab.Scelta?.Record));
+        Assert.False(_lab.MostraSullaMappa(Apt, 1));
+        Assert.Contains("non è di un record", _lab.Rifiuto, StringComparison.Ordinal);
+
+        // Il tasto della Scheda.
+        using var contesto = new Bunit.TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.Services.AddSingleton(_lab);
+        var scheda = contesto.RenderComponent<Scheda>();
+        scheda.Find("[data-tasto='apri-nel-testo']").Click();
+        Assert.Equal((PaginaDelLab.Testo, Apt, 10), (_lab.Pagina, _lab.FileDelTesto, _lab.RigaDelTesto));
+    }
+
+    [Fact]
+    public async Task LaPagina_SullaMappa_ELaBozzaCheResta()
+    {
+        await ApriAsync();
+        using var contesto = new Bunit.TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.JSInterop.Setup<bool>("sectorlabTesto.apri", _ => true).SetResult(true);
+        contesto.JSInterop.Setup<int?>("sectorlabTesto.riga", _ => true).SetResult(10);
+        var scritto = Testo((10, "CCCCC;N045.00.00.000;E010.30.00.000;3;"));
+        contesto.JSInterop.Setup<string?>("sectorlabTesto.testo", _ => true).SetResult(scritto);
+        contesto.Services.AddSingleton(_lab);
+        var pagina = contesto.RenderComponent<PaginaDelTesto>();
+        pagina.Find($"[data-file-del-testo='{Apt}']").Click();
+        pagina.WaitForAssertion(() => Assert.Single(contesto.JSInterop.Invocations, i => i.Identifier == "sectorlabTesto.apri"));
+
+        // «Sulla mappa» col testo applicato: il record della riga del cursore.
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto='testo-sulla-mappa']").Click());
+        Assert.Equal(PaginaDelLab.Sector, _lab.Pagina);
+        Assert.Equal(Apt, _lab.Scelta?.File);
+
+        // Col testo scritto no; e lasciando la pagina il testo resta come bozza.
+        _lab.ApriNelTesto(Apt);
+        await pagina.InvokeAsync(() => pagina.Instance.Cambiato(true));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto='testo-sulla-mappa']").Click());
+        Assert.Contains("Prima «Applica» o «Scarta»", pagina.Find("[data-testo-rifiutato]").TextContent, StringComparison.Ordinal);
+        await pagina.Instance.DisposeAsync();
+        Assert.Equal(new SessioneDelLab.BozzaDelTesto(Apt, string.Join("\n", _lab.RigheDiAdesso(Apt)), scritto), _lab.Bozza);
+
+        // Riaperta, la pagina riprende la bozza: l'editor riceve il testo scritto, e «Applica» lo scrive.
+        var di_nuovo = contesto.RenderComponent<PaginaDelTesto>();
+        di_nuovo.WaitForAssertion(() => Assert.Equal(2, contesto.JSInterop.Invocations.Count(i => i.Identifier == "sectorlabTesto.apri")));
+        Assert.Equal(scritto, contesto.JSInterop.Invocations.Last(i => i.Identifier == "sectorlabTesto.apri").Arguments[1]);
+        Assert.Null(_lab.Bozza);
+        Assert.Contains("Ripreso il testo", di_nuovo.Find("[data-testo-rifiutato]").TextContent, StringComparison.Ordinal);
+        await di_nuovo.InvokeAsync(() => di_nuovo.Find("[data-tasto='applica-testo']").Click());
+        Assert.Contains(_lab.Modifiche.Voci, v => v.File == Apt);
+    }
+
+    [Fact]
     public async Task UnFileCheIlMotoreNonInterpreta_SiGuardaSoltanto()
     {
         await ApriAsync();

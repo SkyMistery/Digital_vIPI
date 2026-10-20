@@ -1799,17 +1799,65 @@ public sealed class SessioneDelLab
     /// <summary>I file che hanno modifiche in sospeso: nell'albero del Testo si segnano.</summary>
     public IReadOnlySet<string> FileConModifiche => Modifiche.Voci.Select(v => v.File).ToHashSet(StringComparer.Ordinal);
 
-    /// <summary>Apre un file nel Testo e ci va (dalla Scheda, dal Confronti: T3).</summary>
-    public void ApriNelTesto(string fileRelativo)
+    /// <summary>La riga dove portare il cursore del Testo (T3: dalla Scheda), finché la pagina non la prende.</summary>
+    public int? RigaDelTesto { get; private set; }
+
+    /// <summary>Apre un file nel Testo e ci va (T3: dalla Scheda, dal Confronti), alla riga data se c'è.</summary>
+    public void ApriNelTesto(string fileRelativo, int? riga = null)
     {
         if (Sessione?.File.ContainsKey(fileRelativo) != true)
             return;
         FileDelTesto = fileRelativo;
+        RigaDelTesto = riga;
         if (Pagina == PaginaDelLab.Testo)
             Avvisa();
         else
             ScegliLaPagina(PaginaDelLab.Testo);
     }
+
+    /// <summary>La riga dove portare il cursore, una volta sola (la pagina Testo la prende quando ha il file).</summary>
+    public int? PrendiLaRigaDelTesto()
+    {
+        var riga = RigaDelTesto;
+        RigaDelTesto = null;
+        return riga;
+    }
+
+    /// <summary>La prima riga (da 1) di un record nel file com'è adesso, o null (T3: la Scheda apre il Testo lì).</summary>
+    public int? RigaDelRecord(string fileRelativo, int record) =>
+        Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord conRecord
+        && conRecord.PostiDeiRecord(Modifiche.SporchiDi(fileRelativo)) is var posti && record >= 0 && record < posti.Count
+            ? posti[record].Da + 1
+            : null;
+
+    /// <summary>
+    /// «Sulla mappa» dal Testo (T3): il record che ha la riga <paramref name="riga"/> (da 1) del file com'è adesso diventa
+    /// la scelta, e si va alla mappa del sector. Rifiuta una riga che non è di un record (un commento, una riga vuota).
+    /// </summary>
+    public bool MostraSullaMappa(string fileRelativo, int riga)
+    {
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord conRecord)
+            return Rifiuta("Questo file il motore non lo interpreta: non ha record sulla mappa.");
+        var posti = conRecord.PostiDeiRecord(Modifiche.SporchiDi(fileRelativo));
+        for (int i = 0; i < posti.Count; i++)
+        {
+            if (riga < posti[i].Da + 1 || riga > posti[i].Da + posti[i].Quante)
+                continue;
+            ScegliLaPagina(PaginaDelLab.Sector);
+            Scegli(fileRelativo, i);
+            return true;
+        }
+        return Rifiuta($"La riga {riga} non è di un record (un commento, una riga vuota, un tag): non c'è niente da mostrare.");
+    }
+
+    /// <summary>
+    /// Il testo scritto nel Testo e non applicato, quando l'AOD lascia la pagina (T3): la pagina lo riprende tornando su quel
+    /// file. <see cref="BozzaDelTesto.Base"/> è il file com'era quando l'AOD ha cominciato a scrivere: se nel frattempo un
+    /// gesto lo ha cambiato, la pagina lo dice.
+    /// </summary>
+    public BozzaDelTesto? Bozza { get; set; }
+
+    public sealed record BozzaDelTesto(string File, string Base, string Testo);
 
     /// <summary>
     /// Il testo di un file per la pagina Testo: com'è adesso, modifiche dei gesti comprese, e se si può scrivere. Un file
@@ -4762,6 +4810,10 @@ public sealed class SessioneDelLab
     /// <summary>Le righe erano del sector di prima: un altro sector (o nessuno) si confronta da capo.</summary>
     private void ScordaIConfronti()
     {
+        // Anche il Testo: il file aperto, la riga e la bozza erano di quel sector.
+        FileDelTesto = null;
+        RigaDelTesto = null;
+        Bozza = null;
         _confronti.Clear();
         SezioneDelConfronto = null;
         RigaDelConfrontoScelta = null;

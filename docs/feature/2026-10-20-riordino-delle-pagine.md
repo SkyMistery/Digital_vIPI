@@ -629,6 +629,26 @@ nel Testo», dal Testo alla mappa, dall'anteprima del Confronti al file).
   AMSOR (fix, `itfix.fix`); cambiare file con del testo scritto → la guardia; in `APT.fix` tolta la riga di BC404 → la
   domanda, poi il blocco tolto e «Salva (1)». In memoria: la copia non è cambiata.
 
+**T3 fatta** (21 ottobre, «Vai con la T3»): i legami (D21).
+- **Dalla Scheda** «✎ Apri nel Testo»: il file del record nel Testo, col cursore alla prima riga del record nel file com'è
+  adesso (`RigaDelRecord`). Se il file è già aperto nel Testo, ci si va e basta.
+- **Dal Testo** «Sulla mappa»: il record della riga del cursore (`MostraSullaMappa`: le righe dei record nel file com'è
+  adesso) diventa la scelta, e si va alla mappa del sector. Una riga che non è di un record (commento, vuota, tag) si dice;
+  col testo non applicato no, perché le righe del file non sono ancora quelle scritte.
+- **Dal Confronti**: nel riquadro «metti in questo file» «✎ Apri nel Testo» sul file di destinazione (per scali e piste il
+  primo spuntato), com'è adesso: per guardarlo prima di scrivere.
+- **La bozza** (🟡 proposta dell'agente): lasciando la pagina Testo con del testo non applicato, il testo resta come bozza
+  del suo file (una sola; ✎ nell'albero) e torna riaprendo quel file, con «Ripreso il testo…»; se nel frattempo il file è
+  cambiato (un gesto), lo dice come prima e «Applica» resta spento finché non si scarta. Senza, uscire dal Testo per
+  guardare la mappa faceva perdere quel che si era scritto. Cambiando sector il Testo si azzera (anche il file aperto: prima
+  della T3 restava quello del sector di prima).
+- Test: Lab 1 355 (+2: la riga del record, «Sulla mappa», l'apertura dalla Scheda; la pagina con «Sulla mappa» e la bozza
+  che resta e torna). Sul banco: `itvor.vor` riga 63 → «Sulla mappa» → Mappa con TOP scelto (record 62); «Apri nel Testo»
+  dalla Scheda → Testo col cursore alla riga 63; scritto un commento, andato su Mappa e tornato → «Ripreso il testo…»;
+  dal Confronti (punti) «Apri nel Testo» → `itfix.fix`, e `itvor.vor` resta segnato ✎. In memoria: la copia non è cambiata.
+
+La pagina Testo è finita (T1-T3).
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
@@ -637,7 +657,8 @@ lettura) col ritocco «solo la sezione sulla mappa», **R7 fatta** (i gesti nel 
 AIP), **R8a fatta** (la misura dei file compatibili e «metti in questo file» per i punti), **R8b fatta** (le rotte nelle aerovie basse o
 alte), **R8c fatta** (scali e piste anche nei file delle FIR), **R9 fatta** (i confini dal sector all'AIP espanso, come
 correzioni). Il piano di §5-ter è finito. Poi la **pagina Testo**: T1 fatta (la pagina, l'editor, «Applica», i metadati
-bloccati), T2 fatta (problemi sul margine, nomi, Ctrl+clic, la domanda prima di cancellare un record coi metadati);
-prossima T3 (i legami), al via del committente. Dopo: le due
+bloccati), T2 fatta (problemi sul margine, nomi, Ctrl+clic, la domanda prima di cancellare un record coi metadati),
+T3 fatta (i legami con la Scheda, la mappa e il Confronti; la bozza): la pagina Testo è finita. Restano, al via del
+committente: le due consegne, la Scheda per gruppi, i verbi. Dopo: le due
 consegne, la Scheda per gruppi, i verbi. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

@@ -9,6 +9,9 @@
     //@ sono bloccate; si sbloccano con la casella, e allora il file riletto deve avere i tag validi come prima.
     T2: i problemi del validatore sul margine dell'editor, i nomi del catalogo mentre si scrive, Ctrl+clic su un nome per
     andare dove è dichiarato; cancellare un record che ha i metadati chiede prima (D13).
+    T3 (D21): «Sulla mappa» porta il record della riga del cursore sulla mappa del sector; la Scheda e l'anteprima di
+    «metti in questo file» aprono il Testo; uscendo dalla pagina con del testo non applicato, il testo resta come bozza e
+    torna quando si riapre quel file.
 *@
 <div class="lab-testo" data-pagina-testo>
     <aside class="lab-testo-albero" data-albero-del-testo>
@@ -28,6 +31,10 @@
                         @if (conModifiche.Contains(questo))
                         {
                             <span class="lab-testo-toccato" title="Ha modifiche in sospeso">●</span>
+                        }
+                        @if (Lab.Bozza?.File == questo)
+                        {
+                            <span class="lab-testo-toccato" data-bozza title="Hai scritto qui senza applicare: riaprendolo il testo torna">✎</span>
                         }
                     </button>
                 }
@@ -52,6 +59,8 @@
                             @onclick="() => Applica()">Applica</button>
                     <button type="button" class="lab-annulla" data-tasto="scarta-testo" disabled="@(!_sporco && !_cambiatoFuori)"
                             title="Torna al file com'è adesso, senza quel che hai scritto" @onclick="Scarta">Scarta</button>
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="testo-sulla-mappa"
+                            title="Il record della riga del cursore, scelto sulla mappa del sector" @onclick="SullaMappa">Sulla mappa</button>
                 }
                 @if (_problemi.Count > 0)
                 {
@@ -110,7 +119,6 @@
     private IReadOnlyList<SessioneDelLab.ProblemaDelTesto> _problemi = [];
     private bool _soloNuovi;
     private string? _problemiMostrati;
-    private int? _rigaDaRaggiungere;
     private DotNetObjectReference<PaginaDelTesto>? _ref;
 
     private sealed record Cartella(string Nome, List<string> File);
@@ -128,6 +136,9 @@
     private void Aggiorna() => InvokeAsync(() =>
     {
         // Un gesto o un Annulla ha cambiato il file aperto: se non c'è niente di scritto si riprende da solo, se no si dice.
+        // T3: «apri nel Testo» sul file che è già qui porta solo alla riga.
+        if (Lab.FileDelTesto is { } stesso && stesso == _caricato && Lab.PrendiLaRigaDelTesto() is { } riga)
+            _ = Js.InvokeVoidAsync("sectorlabTesto.vaiAllaRiga", IdDellEditore, riga).AsTask();
         if (Lab.FileDelTesto is { } f && f == _caricato && _modificabile)
         {
             _ = MostraIProblemi();
@@ -157,14 +168,36 @@
         _cambiatoFuori = false;
         _messaggio = null;
         _ref ??= DotNetObjectReference.Create(this);
-        await Js.InvokeAsync<bool>("sectorlabTesto.apri", IdDellEditore, _testoCaricato, new { modificabile = _modificabile, dotnet = _ref });
-        await MostraIProblemi();
-        if (_rigaDaRaggiungere is { } riga)
+        // T3: il testo lasciato senza applicare torna (e se il file è cambiato nel frattempo, si dice).
+        var testo = _testoCaricato;
+        if (Lab.Bozza is { } bozza && bozza.File == file && _modificabile)
         {
-            _rigaDaRaggiungere = null;
-            await Js.InvokeVoidAsync("sectorlabTesto.vaiAllaRiga", IdDellEditore, riga);
+            Lab.Bozza = null;
+            testo = bozza.Testo;
+            _sporco = true;
+            _cambiatoFuori = bozza.Base != _testoCaricato;
+            _messaggio = "Ripreso il testo che avevi scritto senza applicarlo.";
         }
+        await Js.InvokeAsync<bool>("sectorlabTesto.apri", IdDellEditore, testo, new { modificabile = _modificabile, dotnet = _ref });
+        await MostraIProblemi();
+        if (Lab.PrendiLaRigaDelTesto() is { } riga)
+            await Js.InvokeVoidAsync("sectorlabTesto.vaiAllaRiga", IdDellEditore, riga);
         StateHasChanged();
+    }
+
+    // T3: il record della riga del cursore sulla mappa. Col testo non applicato le righe del file non sono quelle scritte.
+    private async Task SullaMappa()
+    {
+        if (_caricato is not { } file)
+            return;
+        if (_sporco)
+        {
+            _messaggio = "Prima «Applica» o «Scarta»: le righe del file non sono ancora quelle che hai scritto.";
+            return;
+        }
+        if (await Js.InvokeAsync<int?>("sectorlabTesto.riga", IdDellEditore) is not { } riga)
+            return;
+        _messaggio = Lab.MostraSullaMappa(file, riga) ? null : Lab.Rifiuto;
     }
 
     private static string Conta(int n, string uno, string piu) => $"{n} {(n == 1 ? uno : piu)}";
@@ -226,8 +259,7 @@
             StateHasChanged();
             return;
         }
-        _rigaDaRaggiungere = riga;
-        Lab.ApriNelTesto(file);
+        Lab.ApriNelTesto(file, riga);
     });
 
     [JSInvokable]
@@ -291,6 +323,10 @@
         Lab.Cambiata -= Aggiorna;
         try
         {
+            // T3: si lascia la pagina con del testo scritto: resta come bozza del suo file.
+            if (_sporco && _caricato is { } file && _testoCaricato is { } base_
+                && await Js.InvokeAsync<string?>("sectorlabTesto.testo", IdDellEditore) is { } testo)
+                Lab.Bozza = new SessioneDelLab.BozzaDelTesto(file, base_, testo);
             await Js.InvokeVoidAsync("sectorlabTesto.chiudi", IdDellEditore);
         }
         catch (JSDisconnectedException)

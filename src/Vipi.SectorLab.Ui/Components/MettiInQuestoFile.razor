@@ -105,6 +105,13 @@
                     title="Scrive le righe qui sopra: un gesto solo, nel diff e da annullare come gli altri" @onclick="Scrivi">Scrivi (@anteprima.Count)</button>
         }
     }
+    @* T3 (D21): il file di destinazione nel Testo, per guardarlo prima di scrivere. *@
+    @if (FileDaAprire is { } daAprire)
+    {
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="apri-destinazione-nel-testo"
+                title="Apre @Path.GetFileName(daAprire) nella pagina Testo, com'è adesso (non scrive niente)"
+                @onclick="() => Lab.ApriNelTesto(daAprire)">✎ Apri nel Testo</button>
+    }
     <button type="button" class="lab-annulla" data-tasto="lascia-stare-metti" @onclick="() => Chiuso.InvokeAsync()">Lascia stare</button>
 </div>
 
@@ -140,6 +147,9 @@
         if (scelto)
             _scelti.Add(file);
     }
+
+    // Il file da aprire nel Testo: quello scelto, o per scali e piste il primo spuntato.
+    private string? FileDaAprire => Ad2 is null ? _file : Lab.FileInAd2(Piste).FirstOrDefault(_scelti.Contains);
 
     private IReadOnlyList<string> FileAmmessi => Rotta is null ? Lab.FileDeiPunti : Lab.FileDelleRotte;
 

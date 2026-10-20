@@ -210,5 +210,11 @@
         v.dom.parentElement.dataset.problemi = String(diagnosi.length);
     }
 
-    window.sectorlabTesto = { apri, chiudi, testo, ricarica, sblocca, vaiAllaRiga, problemi };
+    // T3: la riga del cursore (da 1), per «Sulla mappa».
+    function riga(id) {
+        const v = editori.get(id)?.view;
+        return v ? v.state.doc.lineAt(v.state.selection.main.head).number : null;
+    }
+
+    window.sectorlabTesto = { apri, chiudi, testo, ricarica, sblocca, vaiAllaRiga, problemi, riga };
 })();

@@ -35,6 +35,10 @@
                     <button class="lab-tasto lab-tasto-tenue" data-tasto="mostra" title="Toglie i // dalle sue righe nascoste: Aurora le torna a leggere"
                             @onclick="() => Lab.MostraNelRecord(scheda.File, scheda.Indice)">@TestoDelMostra(scheda)</button>
                 }
+                @* T3 (D21): il file del record nel Testo, alla sua riga. *@
+                <button class="lab-tasto lab-tasto-tenue" data-tasto="apri-nel-testo"
+                        title="Apre il file nella pagina Testo, alla riga di questo record"
+                        @onclick="() => Lab.ApriNelTesto(scheda.File, Lab.RigaDelRecord(scheda.File, scheda.Indice))">✎ Apri nel Testo</button>
                 @* La vista (chiesta dal committente il 23 settembre): sulla mappa solo quel che si sta lavorando. *@
                 <button class="lab-tasto lab-tasto-tenue @(Lab.EInVista(scheda.File, scheda.Indice) ? "lab-tasto-acceso" : null)"
                         data-tasto="vista-record" @onclick="() => Lab.CambiaLaVista(scheda.File, scheda.Indice)"
