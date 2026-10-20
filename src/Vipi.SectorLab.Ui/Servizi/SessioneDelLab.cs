@@ -49,6 +49,8 @@ public enum PaginaDelLab
     Confronti,
     Consegna,
     Impostazioni,
+    /// <summary>La pagina Testo dello spazio Sector (D12, D21): l'albero dei file e l'editor.</summary>
+    Testo,
 }
 
 /// <summary>
@@ -1784,6 +1786,87 @@ public sealed class SessioneDelLab
         => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file
             ? file.RigheDelFile(Modifiche.SporchiDi(fileRelativo))
             : [];
+
+    // --- la pagina Testo (riordino, D12, D13, D21) -------------------------------------------------------------------
+
+    /// <summary>Il file aperto nella pagina Testo (relativo alla radice), o nessuno.</summary>
+    public string? FileDelTesto { get; private set; }
+
+    /// <summary>I file del sector, per l'albero del Testo: tutti, in ordine di cartella e di nome.</summary>
+    public IReadOnlyList<string> FileDelSector =>
+        Sessione is { } s ? [.. s.File.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase)] : [];
+
+    /// <summary>I file che hanno modifiche in sospeso: nell'albero del Testo si segnano.</summary>
+    public IReadOnlySet<string> FileConModifiche => Modifiche.Voci.Select(v => v.File).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>Apre un file nel Testo e ci va (dalla Scheda, dal Confronti: T3).</summary>
+    public void ApriNelTesto(string fileRelativo)
+    {
+        if (Sessione?.File.ContainsKey(fileRelativo) != true)
+            return;
+        FileDelTesto = fileRelativo;
+        if (Pagina == PaginaDelLab.Testo)
+            Avvisa();
+        else
+            ScegliLaPagina(PaginaDelLab.Testo);
+    }
+
+    /// <summary>
+    /// Il testo di un file per la pagina Testo: com'è adesso, modifiche dei gesti comprese, e se si può scrivere. Un file
+    /// che il motore non interpreta si legge dal disco e si guarda soltanto (<paramref name="perche"/> dice perché).
+    /// </summary>
+    public IReadOnlyList<string>? TestoDelFile(string fileRelativo, out bool modificabile, out string? perche)
+    {
+        modificabile = false;
+        perche = null;
+        if (Sessione is not { } sessione || !sessione.File.TryGetValue(fileRelativo, out var file))
+            return null;
+        if (file is IFileConRecord)
+        {
+            modificabile = true;
+            return RigheDiAdesso(fileRelativo);
+        }
+        perche = "Questo file il motore non lo interpreta: nel Testo si guarda soltanto.";
+        try
+        {
+            var percorso = Path.Combine(sessione.Cartella.Radice, fileRelativo.Replace('/', Path.DirectorySeparatorChar));
+            return Vipi.Sectorfile.IO.SectorFileReader.Decode(File.ReadAllBytes(percorso)).Lines;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Registro.Errore("testo", e);
+            perche = $"Il file non si legge: {e.Message}";
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// «Applica» (D12): il testo scritto nel Testo diventa una modifica in sospeso del file, come le altre — diff, Annulla,
+    /// problemi nuovi, «Salva». Si cambiano solo le righe toccate (<see cref="Core.Testo.RigheCambiate"/>). Le righe dei
+    /// metadati <c>//@</c> sono bloccate (D13): si cambiano solo con <paramref name="metadatiSbloccati"/>, e allora il file
+    /// riletto deve avere i tag validi come prima.
+    /// </summary>
+    public bool ApplicaIlTesto(string fileRelativo, string testo, bool metadatiSbloccati)
+    {
+        ArgumentNullException.ThrowIfNull(testo);
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord)
+            return Rifiuta("Questo file il motore non lo interpreta: nel Testo si guarda soltanto.");
+        var prima = RigheDiAdesso(fileRelativo);
+        var dopo = testo.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n');
+        static bool EUnTag(string riga) => Vipi.Sectorfile.IO.Metadati.EUnTag(riga.TrimStart());
+        var sostituzioni = Core.Testo.RigheCambiate.Di(prima, dopo, EUnTag);
+        if (sostituzioni.Count == 0)
+            return Rifiuta("Il testo è quello del file: non c'è niente da applicare.");
+        // D13: bloccati, i tag devono essere gli stessi e nello stesso ordine (una riga nuova fra due tag va bene). Il
+        // motore poi rilegge il file e vuole i tag validi come prima, bloccati o no.
+        if (!metadatiSbloccati && !prima.Where(EUnTag).SequenceEqual(dopo.Where(EUnTag)))
+            return Rifiuta("Le righe //@ sono i metadati del Lab e sono bloccate: per cambiarle, «Sblocca i metadati».");
+        bool tagBuoni = ((IFileConRecord)Sessione!.File[fileRelativo]).TagRotti() is null;
+        return NellaStoria($"{NomeDelFile(fileRelativo)} scritto nel Testo",
+            () => GestoSulTesto(fileRelativo, "testo", f => Modifiche.CambiaRighe(f, sostituzioni,
+                verifica: riletto => !tagBuoni || riletto.TagRotti() is not { } rotti ? null : $"Riletto, i metadati //@ non tornano: {rotti}",
+                anchiITag: true)));
+    }
 
     /// <summary>
     /// Scrive a mano la riga numero <paramref name="numero"/> (confermata dall'AOD) e rilegge il file. Se la riga ora

@@ -38,13 +38,14 @@ public sealed class PagineDelLabTests : IDisposable
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
 
-        Assert.Equal(6, pagina.FindAll("[data-pagina]").Count(e => e.TagName == "BUTTON"));
+        Assert.Equal(7, pagina.FindAll("[data-pagina]").Count(e => e.TagName == "BUTTON"));
         // Tre spazi (D14): l'AIP espanso, il Sector, i Confronti, ognuno coi suoi; le Impostazioni fuori.
         Assert.NotNull(pagina.Find("[data-mondo='aip'] [data-pagina='aipindice']"));
         Assert.NotNull(pagina.Find("[data-mondo='aip'] [data-pagina='aip']"));          // R7: «Lettura e consegna»
         Assert.NotNull(pagina.Find("[data-mondo='confronti'] [data-pagina='confronti']"));
         Assert.NotNull(pagina.Find("[data-mondo='sector'] [data-pagina='sector']"));
         Assert.NotNull(pagina.Find("[data-mondo='sector'] [data-pagina='consegna']"));
+        Assert.NotNull(pagina.Find("[data-mondo='sector'] [data-pagina='testo']"));          // D21: il Testo sta nel Sector
         Assert.Empty(pagina.FindAll("[data-mondo] [data-pagina='impostazioni']"));
         Assert.Equal("true", pagina.Find("[data-pagina='sector']").GetAttribute("aria-selected"));
         Assert.NotEmpty(pagina.FindAll("[data-linguetta='sfoglia']"));
@@ -60,6 +61,11 @@ public sealed class PagineDelLabTests : IDisposable
         Assert.NotEmpty(pagina.FindAll("[data-riquadro-aurora]"));
         // La mappa c'è ancora (non si rifà, D2): è solo nascosta.
         Assert.NotNull(pagina.Find("[data-mappa]"));
+        Assert.Equal("si", pagina.Find("[data-mappa-nascosta]").GetAttribute("data-mappa-nascosta"));
+
+        // Il Testo è una pagina intera, come Consegna: la mappa si nasconde.
+        pagina.Find("[data-pagina='testo']").Click();
+        Assert.NotEmpty(pagina.FindAll("[data-pagina-testo]"));
         Assert.Equal("si", pagina.Find("[data-mappa-nascosta]").GetAttribute("data-mappa-nascosta"));
 
         pagina.Find("[data-pagina='impostazioni']").Click();
@@ -120,7 +126,7 @@ public sealed class PagineDelLabTests : IDisposable
         // La principale tiene solo la mappa; i pannelli di Sector sono di là, con le linguette.
         Assert.Empty(principale.FindAll("[data-linguetta]"));
         Assert.NotEmpty(pannelli.FindAll("[data-linguetta='sfoglia']"));
-        Assert.Equal(6, pannelli.FindAll("button[data-pagina]").Count);
+        Assert.Equal(7, pannelli.FindAll("button[data-pagina]").Count);
 
         pannelli.Find("[data-pagina='aip']").Click();
 

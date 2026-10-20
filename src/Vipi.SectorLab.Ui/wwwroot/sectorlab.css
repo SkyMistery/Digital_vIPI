@@ -2385,3 +2385,42 @@ body.lab-trascina * {
 .lab-confronti-esito-formadiversa { color: var(--lab-evidenza); }
 .lab-confronti-esito-mancanelsector { color: var(--lab-lato-aip); }
 .lab-confronti-esito-solonelsector { color: var(--lab-lato-sector); }
+
+/* La pagina Testo (riordino, D12): l'albero dei file a sinistra, l'editor (CodeMirror) che prende il resto. */
+.lab-testo {
+    flex: 1;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+}
+
+.lab-testo-albero {
+    width: 17rem;
+    flex: none;
+    overflow: auto;
+    padding: .5rem;
+    border-right: 1px solid var(--lab-linea);
+    background: var(--lab-fondo);
+}
+
+.lab-testo-albero .lab-campo { width: 100%; margin-bottom: .4rem; }
+.lab-testo-cartella > summary { cursor: pointer; font-weight: 600; color: var(--lab-titoli); padding: .15rem 0; }
+.lab-testo-file { display: block; width: 100%; text-align: left; padding: .1rem .2rem .1rem 1rem; }
+.lab-testo-file-aperto { background: var(--lab-scelto); font-weight: 600; }
+.lab-testo-toccato { color: var(--lab-toccato); margin-left: .3rem; }
+
+.lab-testo-editore {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: .5rem;
+    gap: .4rem;
+}
+
+.lab-testo-testata { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.lab-testo-cm { flex: 1; min-height: 0; border: 1px solid var(--lab-linea); border-radius: .3rem; overflow: hidden; }
+.lab-testo-cm .cm-editor { height: 100%; }
+.lab-testo-cm .cm-lab-tag::before { content: "🔒"; font-size: .7em; margin-right: .3em; opacity: .6; }
+.lab-testo-cm .cm-lab-tag-sbloccati .cm-lab-tag::before { content: "🔓"; }

@@ -345,8 +345,8 @@ else
         await Js.InvokeVoidAsync("sectorlab.pronto");
     }
 
-    /// <summary>Consegna e Impostazioni non hanno mappa: la nascondono, se non è in una finestra tutta sua.</summary>
-    private bool MappaNascosta => !Lab.PannelliInUnAltraFinestra && Lab.Pagina is PaginaDelLab.Consegna or PaginaDelLab.Impostazioni;
+    /// <summary>Consegna, Testo e Impostazioni non hanno mappa: la nascondono, se non è in una finestra tutta sua.</summary>
+    private bool MappaNascosta => !Lab.PannelliInUnAltraFinestra && Lab.Pagina is PaginaDelLab.Consegna or PaginaDelLab.Testo or PaginaDelLab.Impostazioni;
 
 
     private void Accendi(string strato, ChangeEventArgs e) => Lab.Accendi(strato, e.Value is true);

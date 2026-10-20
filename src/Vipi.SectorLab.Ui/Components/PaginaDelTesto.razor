@@ -1,0 +1,196 @@
+@implements IAsyncDisposable
+@inject SessioneDelLab Lab
+@inject IJSRuntime Js
+
+@*
+    La pagina Testo dello spazio Sector (riordino, D12, D13, D21): l'albero dei file e, accanto, il file com'è adesso —
+    modifiche dei gesti comprese — in un editor (CodeMirror 6, sectorlab-testo.js, niente rete). «Applica» fa di quel che
+    l'AOD ha scritto una modifica in sospeso come le altre (diff, Annulla, problemi nuovi, «Salva»). Le righe dei metadati
+    //@ sono bloccate; si sbloccano con la casella, e allora il file riletto deve avere i tag validi come prima.
+*@
+<div class="lab-testo" data-pagina-testo>
+    <aside class="lab-testo-albero" data-albero-del-testo>
+        <input class="lab-campo" type="search" placeholder="Cerca un file…" data-campo="cerca-file" value="@_cerca"
+               @oninput="e => _cerca = e.Value?.ToString()" />
+        @{ var conModifiche = Lab.FileConModifiche; }
+        @foreach (var cartella in Cartelle())
+        {
+            <details class="lab-testo-cartella" open="@(_cerca is { Length: > 0 } || (Lab.FileDelTesto is { } nelTesto && cartella.File.Contains(nelTesto)))">
+                <summary>@cartella.Nome <span class="lab-nota">@cartella.File.Count</span></summary>
+                @foreach (var file in cartella.File)
+                {
+                    var questo = file;
+                    <button type="button" class="lab-voce lab-testo-file @(questo == Lab.FileDelTesto ? "lab-testo-file-aperto" : null)"
+                            data-file-del-testo="@questo" title="@questo" @onclick="() => Apri(questo)">
+                        @Path.GetFileName(questo)
+                        @if (conModifiche.Contains(questo))
+                        {
+                            <span class="lab-testo-toccato" title="Ha modifiche in sospeso">●</span>
+                        }
+                    </button>
+                }
+            </details>
+        }
+    </aside>
+
+    <section class="lab-testo-editore">
+        @if (Lab.FileDelTesto is { } aperto)
+        {
+            <header class="lab-testo-testata">
+                <strong data-testo-aperto="@aperto">@Path.GetFileName(aperto)</strong>
+                <span class="lab-nota">@aperto</span>
+                @if (_modificabile)
+                {
+                    <label class="lab-strato" title="D13: le righe //@@ sono i metadati del Lab. Sbloccate si possono cambiare; il file riletto deve avere i tag validi come prima">
+                        <input type="checkbox" data-casella="sblocca-metadati" checked="@_sbloccati" @onchange="Sblocca" />
+                        <span>Sblocca i metadati</span>
+                    </label>
+                    <button type="button" class="lab-tasto" data-tasto="applica-testo" disabled="@(!_sporco || _cambiatoFuori)"
+                            title="@(_cambiatoFuori ? "Il file è cambiato fuori dal Testo (un gesto, Annulla): «Scarta» per riprenderlo com'è adesso" : _sporco ? "Quel che hai scritto diventa una modifica in sospeso del file: nel diff, da annullare, da salvare come le altre" : "Non hai scritto niente")"
+                            @onclick="Applica">Applica</button>
+                    <button type="button" class="lab-annulla" data-tasto="scarta-testo" disabled="@(!_sporco && !_cambiatoFuori)"
+                            title="Torna al file com'è adesso, senza quel che hai scritto" @onclick="Scarta">Scarta</button>
+                }
+            </header>
+            @if (_perche is not null)
+            {
+                <p class="lab-nota" data-sola-lettura>@_perche</p>
+            }
+            @if (_cambiatoFuori)
+            {
+                <p class="lab-avviso-breve" data-cambiato-fuori>Il file è cambiato fuori dal Testo (un gesto, Annulla). Quel che hai scritto qui non c'è
+                    dentro: «Scarta» per riprenderlo com'è adesso.</p>
+            }
+            @if (_messaggio is not null)
+            {
+                <p class="lab-avviso-breve" data-testo-rifiutato>@_messaggio</p>
+            }
+        }
+        else
+        {
+            <p class="lab-nota" data-testo-vuoto>Scegli un file a sinistra: si apre com'è adesso, con le modifiche dei gesti dentro.</p>
+        }
+        <div id="@IdDellEditore" class="lab-testo-cm @(Lab.FileDelTesto is null ? "lab-nascosto" : null)" data-editore></div>
+    </section>
+</div>
+
+@code {
+    private const string IdDellEditore = "lab-testo-cm";
+
+    private string? _cerca;
+    private string? _caricato;
+    private string? _testoCaricato;
+    private bool _modificabile;
+    private string? _perche;
+    private bool _sporco;
+    private bool _sbloccati;
+    private bool _cambiatoFuori;
+    private string? _messaggio;
+    private DotNetObjectReference<PaginaDelTesto>? _ref;
+
+    private sealed record Cartella(string Nome, List<string> File);
+
+    // Le cartelle del sector, coi file che passano la ricerca.
+    private IEnumerable<Cartella> Cartelle()
+    {
+        var file = Lab.FileDelSector.Where(f => _cerca is not { Length: > 0 } c || f.Contains(c, StringComparison.OrdinalIgnoreCase));
+        return file.GroupBy(f => f.Contains('/') ? f[..f.LastIndexOf('/')] : "")
+                   .Select(g => new Cartella(g.Key.Replace("SectorFiles/Include/", "", StringComparison.Ordinal), [.. g]));
+    }
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(() =>
+    {
+        // Un gesto o un Annulla ha cambiato il file aperto: se non c'è niente di scritto si riprende da solo, se no si dice.
+        if (Lab.FileDelTesto is { } f && f == _caricato && _modificabile)
+        {
+            var adesso = string.Join("\n", Lab.RigheDiAdesso(f));
+            if (adesso != _testoCaricato)
+            {
+                if (_sporco)
+                    _cambiatoFuori = true;
+                else
+                    _ = Ricarica(adesso);
+            }
+        }
+        StateHasChanged();
+    });
+
+    protected override async Task OnAfterRenderAsync(bool primo)
+    {
+        if (Lab.FileDelTesto is not { } file || file == _caricato)
+            return;
+        var righe = Lab.TestoDelFile(file, out _modificabile, out _perche) ?? [];
+        _caricato = file;
+        _testoCaricato = string.Join("\n", righe);
+        _sporco = false;
+        _sbloccati = false;
+        _cambiatoFuori = false;
+        _messaggio = null;
+        _ref ??= DotNetObjectReference.Create(this);
+        await Js.InvokeAsync<bool>("sectorlabTesto.apri", IdDellEditore, _testoCaricato, new { modificabile = _modificabile, dotnet = _ref });
+        StateHasChanged();
+    }
+
+    private void Apri(string file) => Lab.ApriNelTesto(file);
+
+    [JSInvokable]
+    public Task Cambiato(bool sporco) => InvokeAsync(() =>
+    {
+        _sporco = sporco;
+        StateHasChanged();
+    });
+
+    [JSInvokable]
+    public Task TagBloccati() => InvokeAsync(() =>
+    {
+        _messaggio = "Le righe //@ sono i metadati del Lab e sono bloccate: per cambiarle, «Sblocca i metadati».";
+        StateHasChanged();
+    });
+
+    private async Task Sblocca(ChangeEventArgs e)
+    {
+        _sbloccati = e.Value is true;
+        await Js.InvokeVoidAsync("sectorlabTesto.sblocca", IdDellEditore, _sbloccati);
+    }
+
+    private async Task Applica()
+    {
+        if (Lab.FileDelTesto is not { } file || await Js.InvokeAsync<string?>("sectorlabTesto.testo", IdDellEditore) is not { } testo)
+            return;
+        if (!Lab.ApplicaIlTesto(file, testo, _sbloccati))
+        {
+            _messaggio = Lab.Rifiuto;
+            return;
+        }
+        _messaggio = null;
+        await Ricarica(string.Join("\n", Lab.RigheDiAdesso(file)));
+    }
+
+    private Task Scarta() => Ricarica(string.Join("\n", Lab.TestoDelFile(Lab.FileDelTesto!, out _, out _) ?? []));
+
+    // Il testo di riferimento diventa quello del file com'è adesso (dopo «Applica», «Scarta», o un gesto).
+    private async Task Ricarica(string adesso)
+    {
+        _testoCaricato = adesso;
+        _sporco = false;
+        _cambiatoFuori = false;
+        await Js.InvokeVoidAsync("sectorlabTesto.ricarica", IdDellEditore, adesso);
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Lab.Cambiata -= Aggiorna;
+        try
+        {
+            await Js.InvokeVoidAsync("sectorlabTesto.chiudi", IdDellEditore);
+        }
+        catch (JSDisconnectedException)
+        {
+            // La finestra se n'è andata: l'editor con lei.
+        }
+        _ref?.Dispose();
+    }
+}

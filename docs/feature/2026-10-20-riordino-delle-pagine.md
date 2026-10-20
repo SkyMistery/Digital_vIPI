@@ -576,6 +576,39 @@ Il committente: «Vai con la R8a, le torri solo twrs.tfl e nei file .str» — l
   l'arco delle Alpi, «Salva» del sector senza modifiche; «Ritira la correzione»: di nuovo «solo nel sector 30», il modello
   del ciclo identico a prima. Il clone di prova è stato rimesso com'era (tolta la cartella `correzioni/` nata dalla prova).
 
+**La pagina Testo** (D12, D13, D21; il committente, 21 ottobre: «Vai con la pagina Testo»). 🟡 Proposta dell'agente per
+dividerla: **T1** la pagina e l'editor (albero dei file, CodeMirror dentro l'app, «Applica» come modifica in sospeso, i
+metadati bloccati); **T2** quel che aiuta a scrivere (i problemi del validatore sulla riga, i nomi suggeriti dal catalogo,
+Ctrl+clic alla definizione, la domanda prima di cancellare un record coi metadati); **T3** i legami (dalla Scheda «apri
+nel Testo», dal Testo alla mappa, dall'anteprima del Confronti al file).
+
+**T1 fatta** (21 ottobre).
+- **CodeMirror 6 dentro l'app**: un file solo, `wwwroot/vendor/codemirror/codemirror.js` (370 kB, con `LICENSE`: MIT),
+  come Leaflet; la ricetta per rifarlo in `tools/codemirror/` (versioni esatte, le ultime uscite da almeno due settimane,
+  `package-lock.json`, `LEGGIMI.md`). Contiene già i pezzi della T2 (lint, autocompletamento).
+- **La pagina**: «Testo» nello spazio Sector, accanto a Mappa e Consegna (D21); pagina intera come Consegna (la mappa si
+  nasconde, non si smonta). A sinistra l'albero dei file del sector per cartella, con la ricerca e il segno ● sui file
+  con modifiche in sospeso; a destra l'editor (`sectorlab-testo.js`): numeri di riga, ricerca (Ctrl+F), annulla
+  dell'editor, colori per genere di campo (il nome, coordinate e numeri, separatori, commenti, metadati, sezioni) uguali
+  per tutti i file a punto e virgola.
+- **Il testo è quello di adesso**, modifiche dei gesti comprese (`RigheDiAdesso`). Un file che il motore non interpreta
+  si legge dal disco e si guarda soltanto.
+- **«Applica»** (🟡 proposta dell'agente: un tasto, non a ogni tasto premuto, perché ogni applicazione è una voce della
+  storia): `RigheCambiate` confronta il testo scritto con quello del file riga per riga (la sequenza comune più lunga, tolte
+  le uguali in testa e in coda; oltre 4 milioni di confronti il pezzo in mezzo va in blocco) e cambia solo le righe
+  toccate con `CambiaRighe`: una modifica in sospeso come le altre (diff, Annulla, problemi nuovi, «Salva»), «APT.fix
+  scritto nel Testo» nella storia. «Scarta» torna al file com'è. Un gesto o un Annulla che cambiano il file aperto: se non
+  c'è niente di scritto l'editor lo riprende da solo; se c'è, lo dice e «Applica» si spegne finché non si scarta.
+- **I metadati (D13)**: le righe `//@` sono in grigio col lucchetto; bloccate, l'editor scarta ogni cambio che le tocca
+  (le cambia, le toglie, ne aggiunge) e lo dice, e il server rifiuta un testo coi tag diversi da prima. Una riga nuova
+  fra due blocchi va bene (i tag restano quelli). Con «Sblocca i metadati» si cambiano; il file riletto deve avere i tag
+  validi (`TagRotti`), se no il testo si rifiuta con la riga.
+- Test: Lab 1 340 (+10: il confronto delle righe, sei casi; Applica, i metadati bloccati e sbloccati, il file in sola
+  lettura, la pagina con l'editor finto). Sul banco (copia del sector): `itawlow.lairway` 3 017 righe coi colori;
+  `APT.fix`: cambiare un tag bloccato non passa («Le righe //@ … bloccate»); un commento fra `//@END "BC404"` e
+  `//@"BC406"` → «Salva (1)», ● sul file; Annulla della barra → l'editor riprende il file da solo; sbloccati, la nota di
+  un tag cambiata passa, un tag con le virgolette aperte si rifiuta («riga 10»). Tutto in memoria: la copia non è cambiata.
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
@@ -583,6 +616,7 @@ cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. I
 lettura) col ritocco «solo la sezione sulla mappa», **R7 fatta** (i gesti nel Confronti, «Lettura e consegna» nello spazio
 AIP), **R8a fatta** (la misura dei file compatibili e «metti in questo file» per i punti), **R8b fatta** (le rotte nelle aerovie basse o
 alte), **R8c fatta** (scali e piste anche nei file delle FIR), **R9 fatta** (i confini dal sector all'AIP espanso, come
-correzioni). Il piano di §5-ter è finito; dopo, come scritto lì: le due consegne, la pagina Testo (D21), la Scheda per
-gruppi, i verbi — al via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+correzioni). Il piano di §5-ter è finito. Poi la **pagina Testo**: T1 fatta (la pagina, l'editor, «Applica», i metadati
+bloccati); prossime T2 (problemi sulla riga, nomi, Ctrl+clic) e T3 (i legami), al via del committente. Dopo: le due
+consegne, la Scheda per gruppi, i verbi. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.
