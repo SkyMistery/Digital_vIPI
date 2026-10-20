@@ -168,6 +168,16 @@ file, oppure metti tutto il contenuto di questa sezione in questo file».
   Le altre eccezioni le dice il committente. Il gesto scrive una correzione nel file delle correzioni dell'AIP espanso,
   mai un PDF.
 
+**Approvate dal committente** (20 ottobre sera, «D1) Perfetto … D7) Si», nell'ordine D14-D20). E ancora:
+- **D21** La pagina **Testo** (D12, D13) sta nello **spazio Sector**, accanto a Mappa e Consegna: quel che si scrive è
+  una modifica in sospeso del sector come i gesti; dalla Scheda «apri nel Testo», dal Testo alla mappa del sector; dal
+  Confronti l'anteprima di «Metti in questo file» può aprire il file di destinazione nel Testo (committente: «Ok, va bene,
+  perfetto»). Resta dopo la R9, salvo che il committente la chieda prima.
+- **D22** L'**AIP espanso** si modifica **solo coi campi dei moduli** della scheda della voce (Correggi, Togli, Ritira),
+  che scrivono nel file delle correzioni; il modello del ciclo si riscrive sempre dai PDF più le correzioni, e nessun
+  testo a mano ne altera la struttura (committente: «l'AIP espanso rimane editabile solo i campi di input appositi, così
+  da non alterare la struttura»). Niente pagina Testo per l'AIP.
+
 🟡 Proposte dell'agente, da confermare quando si arriva lì: «selezioni un'area» letto come «scegli una voce» (un clic
 sull'elenco o sulla mappa) e più voci con le caselle; una selezione a rettangolo sulla mappa solo se il committente la
 chiede. La tabella dei file compatibili per genere si **misura** sul sector (quali formati tengono già quel genere di
@@ -200,7 +210,7 @@ R0 e R1 sono fatte. Le altre si rifanno così:
 - **R7** La Scheda per gruppi (D5), un solo editor dei vertici per i `.geo`.
 - **R8** I verbi (D6), i rifiuti accanto al tasto, le scorciatoie.
 
-## §5-ter — Le slice dopo la terza forma (piano del 20 ottobre sera, da approvare)
+## §5-ter — Le slice dopo la terza forma (piano del 20 ottobre sera, approvato)
 
 R0-R3 fatte; dopo la R3 l'ambiente di lavoro (primo avvio, cartelle fisse, simboli dal profilo). Le slice da R4 in poi
 si rifanno così. Ognuna: test, banco a schermo su uno e due schermi, eseguibile di prova, e il via del committente prima
@@ -379,5 +389,6 @@ Esplora risorse sullo schermo del committente).
 
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
-(§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»): il **piano** è in §5-ter (R4-R9), **da
-approvare** prima di cominciare la R4. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta da fare.
+(§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
+(R4-R9). **In corso: R4** (tre mappe, un motore). Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+da fare.
