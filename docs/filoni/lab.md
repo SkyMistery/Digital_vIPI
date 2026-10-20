@@ -4,12 +4,14 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 20 ottobre 2026, notte: terza forma, R4-R7 fatte
+## Dove siamo — 20 ottobre 2026, notte: terza forma, R4-R8b fatte
 
-Dopo il passaggio d'account: **ritocco** (aprendo una sezione del Confronti, sulla mappa solo quella, dei due lati) e
+Dopo il passaggio d'account: **ritocco** (aprendo una sezione del Confronti, sulla mappa solo quella, dei due lati),
 **R7** (i gesti dei confronti nella pagina Confronti, riga per riga e per sezione; «Lettura e consegna» torna nello spazio
-AIP espanso). Lab 1 319. **Prossima: R8** («metti in questo file», prima la misura dei file compatibili), al via del
-committente. Il resto qui sotto vale ancora.
+AIP espanso), la **misura R8** dei file compatibili, **R8a** («metti in questo file» per i punti, fra i `.fix`) e **R8b**
+(le rotte nelle aerovie basse o alte; il confronto legge tutti e due i file). Le ATZ delle torri restano in `twrs.tfl` e
+negli `.str` (il committente). Lab 1 323. **Prossima: R8c** (scali e piste anche nei file delle FIR), al via del
+committente. Dettaglio nella carta del riordino, §6. Il resto qui sotto vale ancora.
 
 ## 20 ottobre 2026, notte: terza forma, R4-R6 fatte (passaggio a un altro account)
 

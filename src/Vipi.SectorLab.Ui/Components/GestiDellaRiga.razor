@@ -74,8 +74,17 @@
         }
         else if (rotte && e.Esito == Esiti.MancaNelSector)
         {
-            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-rotta"
-                    title="Il blocco della rotta in itawlow.lairway coi punti, i tratti e le etichette dell'AIP" @onclick="() => Fai(Lab.PortaLaRotta(e.Nome))">Porta nel sector</button>
+            @* R8b: la rotta nelle aerovie basse (di base itawlow.lairway) o alte, con l'anteprima del blocco. *@
+            @if (_mettiAperto)
+            {
+                <MettiInQuestoFile Rotta="@e.Nome" Titolo="@($"{e.Nome} nelle aerovie basse o alte")" Chiuso="() => _mettiAperto = false" Fatto="Fatto" />
+            }
+            else
+            {
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-rotta"
+                        title="Sceglie il file delle aerovie (basse o alte), con l'anteprima del blocco coi punti, i tratti e le etichette dell'AIP"
+                        @onclick="() => _mettiAperto = true">Porta nel sector…</button>
+            }
         }
         else if (!rotte && e.Esito == Esiti.FormaDiversa)
         {
@@ -184,7 +193,7 @@
 
     private string? _scalo;
 
-    // R8a: il riquadro «metti in questo file» di un punto.
+    // R8a, R8b: il riquadro «metti in questo file» di un punto o di una rotta.
     private bool _mettiAperto;
 
     /// <summary>Una spunta è cambiata: la pagina si ridisegna, e la sezione conta gli spuntati («Metti le spuntate»).</summary>

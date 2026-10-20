@@ -5971,16 +5971,14 @@ public sealed class SessioneDelLab
     /// <summary>
     /// «Scrivi i tratti» (carta F6, slice 2c, B2): sulle rotte date, i tratti che l'AIP e il sector hanno tutti e due
     /// ricevono nei tag <c>//@@</c> del punto che li apre il verso (rispetto all'ordine del file) e le quote dell'AIP. Le
-    /// aerovie <c>locked=si</c> non si toccano (B5). Un gesto solo: diff, annulla, lotto di Aurora.
+    /// aerovie <c>locked=si</c> non si toccano (B5). Un gesto solo: diff, annulla, lotto di Aurora. Dalla R8b le rotte
+    /// stanno nelle aerovie basse o alte: una modifica per file.
     /// </summary>
     public bool ScriviITratti(IReadOnlyList<string> rotte)
     {
         ArgumentNullException.ThrowIfNull(rotte);
         if (Sessione is not { } sessione || _aipDiEnr3?.Routes is not { } dellAip || UltimoConfrontoDiEnr3 is not { } confronto)
             return Rifiuta("Confronta le rotte prima: si scrivono i tratti di una riga del confronto.");
-        var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + Core.PdfAip.ConfrontoDiEnr3.FileDelleAerovie, StringComparison.OrdinalIgnoreCase));
-        if (file is null)
-            return Rifiuta("Nel sector non c'è itawlow.lairway.");
         string gesto = rotte.Count == 1 ? $"tratti di {rotte[0]} dall'AIP {confronto.Ciclo}" : $"tratti di {rotte.Count} rotte dall'AIP {confronto.Ciclo}";
         var avvisi = new List<string>();
         int tratti = 0;
@@ -5988,13 +5986,12 @@ public sealed class SessioneDelLab
         {
             avvisi.Clear();
             tratti = 0;
-            // Tutte le righe calcolate sul testo di adesso, e una modifica sola: una voce nel testo del file.
-            var righe = RigheDiAdesso(file);
-            var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+            // Tutte le righe calcolate sul testo di adesso, e una modifica sola per file: una voce nel testo del file.
+            var perFile = new Dictionary<string, Dictionary<int, IReadOnlyList<string>>>(StringComparer.Ordinal);
             foreach (var nome in rotte)
             {
                 if (dellAip.FirstOrDefault(r => r.Designator.Equals(nome, StringComparison.OrdinalIgnoreCase)) is not { } rotta) continue;
-                if (Core.PdfAip.ConfrontoDiEnr3.TrattiDaScrivere(rotta, sessione, out _, out var bloccata) is not { } daScrivere)
+                if (Core.PdfAip.ConfrontoDiEnr3.TrattiDaScrivere(rotta, sessione, out var file, out var bloccata) is not { } daScrivere || file is null)
                 {
                     avvisi.Add($"{nome}: il sector non ha l'aerovia");
                     continue;
@@ -6004,19 +6001,25 @@ public sealed class SessioneDelLab
                     avvisi.Add($"{nome}: è locked=si, l'import non la tocca");
                     continue;
                 }
-                foreach (var (riga, nuove) in Core.PdfAip.ConfrontoDiEnr3.RigheDeiTratti(righe, rotta.Designator, daScrivere))
+                if (!perFile.TryGetValue(file, out var sostituzioni))
+                    perFile[file] = sostituzioni = [];
+                foreach (var (riga, nuove) in Core.PdfAip.ConfrontoDiEnr3.RigheDeiTratti(RigheDiAdesso(file), rotta.Designator, daScrivere))
                     sostituzioni[riga] = nuove;
                 tratti += daScrivere.Count;
             }
-            if (sostituzioni.Count == 0)
+            if (perFile.Values.All(s => s.Count == 0))
             {
                 Rifiuto = avvisi.Count > 0 ? string.Join(" · ", avvisi) : "Non c'è nessun tratto da scrivere.";
                 Avvisa();
                 return false;
             }
-            var quanti = ((IFileConRecord)sessione.File[file]).RecordDelModello.Count;
-            bool scritto = GestoSulTesto(file, "aip", f => Modifiche.CambiaRighe(f, sostituzioni, gesto,
-                riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più le stesse aerovie: si fa a mano.", anchiITag: true));
+            bool scritto = true;
+            foreach (var (file, sostituzioni) in perFile.Where(f => f.Value.Count > 0))
+            {
+                var quanti = ((IFileConRecord)sessione.File[file]).RecordDelModello.Count;
+                scritto &= GestoSulTesto(file, "aip", f => Modifiche.CambiaRighe(f, sostituzioni, gesto,
+                    riletto => riletto.RecordDelModello.Count == quanti ? null : "Riletto, il file non ha più le stesse aerovie: si fa a mano.", anchiITag: true));
+            }
             Registro.Scrivi("aip", $"{gesto}: {tratti} tratti" + (avvisi.Count > 0 ? "; " + string.Join("; ", avvisi) : ""));
             if (scritto && avvisi.Count > 0)
             {
@@ -6157,23 +6160,26 @@ public sealed class SessioneDelLab
     /// «Porta nel sector» una rotta che il sector non ha (carta F6, slice 2c): il suo blocco in <c>itawlow.lairway</c>, in
     /// ordine di nome, coi punti dell'AIP e un tag per tratto col verso e le quote dell'AIP, le sue etichette. Il blocco porta
     /// la nota del ciclo e non <c>locked=si</c>: non è fatta a mano. I punti devono essere nel sector (fix, VOR, NDB).
+    /// <para>R8b («metti in questo file»): nel <paramref name="fileDelleRotte"/> scelto fra le aerovie basse e alte del
+    /// sector (null = <c>itawlow.lairway</c>, com'era).</para>
     /// </summary>
-    public bool PortaLaRotta(string nome)
+    public bool PortaLaRotta(string nome, string? fileDelleRotte = null)
     {
         if (Sessione is not { } sessione || UltimoConfrontoDiEnr3 is not { Rotte: true } confronto
             || _aipDiEnr3?.Routes?.FirstOrDefault(r => r.Designator.Equals(nome, StringComparison.OrdinalIgnoreCase)) is not { } rotta)
             return Rifiuta("Confronta le rotte prima: si porta una riga del confronto.");
         if (rotta.Segments.Any(s => s.Discontinuity))
             return Rifiuta($"{rotta.Designator} ha un'interruzione: si porta a mano, in due pezzi.");
-        var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + Core.PdfAip.ConfrontoDiEnr3.FileDelleAerovie, StringComparison.OrdinalIgnoreCase));
+        if (fileDelleRotte is not null && !FileDelleRotte.Contains(fileDelleRotte, StringComparer.Ordinal))
+            return Rifiuta($"{fileDelleRotte} non è un file delle aerovie (.lairway, .hairway) del sector.");
+        var file = fileDelleRotte
+            ?? sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + Core.PdfAip.ConfrontoDiEnr3.FileDelleAerovie, StringComparison.OrdinalIgnoreCase));
         if (file is null)
             return Rifiuta("Nel sector non c'è itawlow.lairway.");
         var n = rotta.Designator;
-        var punti = rotta.Points.Select(p => p.Designator).ToList();
-        var tratti = rotta.Segments.Select(Core.PdfAip.ConfrontoDiEnr3.ChiaviDelTratto).ToList();
-        bool fatto = NellaStoria($"{n} portata dall'AIP {confronto.Ciclo}", () =>
+        bool fatto = NellaStoria($"{n} portata dall'AIP {confronto.Ciclo}" + (fileDelleRotte is null ? "" : $" in {Path.GetFileName(file)}"), () =>
         {
-            var gesto = AerovieAMano.Nuova(RigheDiAdesso(file), n, punti, PuntoPerNome, tratti, $"AIP {confronto.Ciclo}");
+            var gesto = BloccoDellaRotta(rotta, file, confronto.Ciclo);
             if (!GestoSulTesto(file, "aerovia", f => gesto.Sostituzioni is null
                     ? new ModificaRifiutata(gesto.Perche!)
                     : Modifiche.CambiaRighe(f, gesto.Sostituzioni, $"{n} dall'AIP", anchiITag: true)))
@@ -6187,6 +6193,45 @@ public sealed class SessioneDelLab
             RifaiIlConfrontoDiEnr3();
         return fatto;
     }
+
+    /// <summary>I file dove può andare una rotta (R8b): le aerovie basse e alte del sector, <c>itawlow.lairway</c> per primo.</summary>
+    public IReadOnlyList<string> FileDelleRotte => Sessione is { } s ? Core.PdfAip.ConfrontoDiEnr3.FileDelleRotte(s.File.Keys) : [];
+
+    /// <summary>
+    /// L'anteprima di «metti in questo file» per una rotta (R8b, D19): le righe del blocco che si scriverebbe nel file dato e
+    /// dove (dopo quale riga, o in testa). Niente si scrive. Null se la rotta non si può portare lì, col perché in
+    /// <paramref name="perche"/>.
+    /// </summary>
+    public (IReadOnlyList<string> Righe, string Dove)? AnteprimaDellaRotta(string nome, string? file, out string? perche)
+    {
+        perche = null;
+        if (UltimoConfrontoDiEnr3 is not { Rotte: true } confronto || file is null || !FileDelleRotte.Contains(file, StringComparer.Ordinal)
+            || _aipDiEnr3?.Routes?.FirstOrDefault(r => r.Designator.Equals(nome, StringComparison.OrdinalIgnoreCase)) is not { } rotta)
+            return null;
+        if (rotta.Segments.Any(s => s.Discontinuity))
+        {
+            perche = $"{rotta.Designator} ha un'interruzione: si porta a mano, in due pezzi.";
+            return null;
+        }
+        var gesto = BloccoDellaRotta(rotta, file, confronto.Ciclo);
+        if (gesto.Sostituzioni is not { Count: 1 } sostituzioni)
+        {
+            perche = gesto.Perche;
+            return null;
+        }
+        var righe = RigheDiAdesso(file);
+        var (riga, nuove) = sostituzioni.Single();
+        // La riga che c'era resta: in testa al blocco se il blocco va dopo, in coda se va prima.
+        bool dopo = nuove.Count > 0 && riga - 1 < righe.Count && nuove[0] == righe[riga - 1];
+        var blocco = dopo ? nuove.Skip(1).ToList() : nuove.Take(nuove.Count - 1).ToList();
+        string dove = dopo ? $"dopo la riga {riga} («{righe[riga - 1].Trim()}»)" : riga == 1 ? "in testa al file" : $"prima della riga {riga} («{righe[riga - 1].Trim()}»)";
+        return (blocco, dove);
+    }
+
+    /// <summary>Il blocco di una rotta dell'AIP nel file delle aerovie dato, sul testo di adesso (PortaLaRotta, l'anteprima).</summary>
+    private GestoSullAerovia BloccoDellaRotta(global::Aip.Route rotta, string file, string ciclo) =>
+        AerovieAMano.Nuova(RigheDiAdesso(file), rotta.Designator, [.. rotta.Points.Select(p => p.Designator)], PuntoPerNome,
+            [.. rotta.Segments.Select(Core.PdfAip.ConfrontoDiEnr3.ChiaviDelTratto)], $"AIP {ciclo}");
 
     /// <summary>Dopo un gesto della slice 2c il confronto di ENR 3 si rifà sul sector di adesso.</summary>
     private void RifaiIlConfrontoDiEnr3()

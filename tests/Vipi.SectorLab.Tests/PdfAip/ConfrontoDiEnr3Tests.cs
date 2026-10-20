@@ -1,4 +1,6 @@
 using Aip;
+using Bunit;
+using Microsoft.Extensions.DependencyInjection;
 using Vipi.SectorLab.Core.PdfAip;
 using Vipi.SectorLab.Tests.Ui;
 using Vipi.SectorLab.Ui.Servizi;
@@ -192,6 +194,66 @@ public sealed class ConfrontoDiEnr3Tests : IDisposable
         Assert.Contains("T;Q9;AAAAA;AAAAA;", righe);
         Assert.Contains("T;Q9;DDDDD;DDDDD;", righe);
         Assert.Equal(EsitoDelConfronto.Uguale, _lab.UltimoConfrontoDiEnr3!.Value.Esiti.Single(e => e.Nome == "Q9").Esito);
+    }
+
+    private const string Basse = "SectorFiles/Include/IT/AIRWAY/itawlow.lairway";
+    private const string Alte = "SectorFiles/Include/IT/AIRWAY/itawhigh.hairway";
+
+    [Fact]
+    public async Task PortaLaRotta_NelleAlte_ConLAnteprima_EIlConfrontoLaTrova()
+    {
+        // Riordino R8b: la rotta nelle aerovie alte. L'itawhigh.hairway del campione è tutto commentato, come il vero.
+        await ApriConAsync(Aerovie, Attese, Modello());
+        Assert.True(await _lab.ConfrontaEnr3Async(rotte: true), _lab.Rifiuto);
+        Assert.Equal([Basse, Alte], _lab.FileDelleRotte);
+
+        var anteprima = _lab.AnteprimaDellaRotta("Q9", Alte, out var perche);
+        Assert.Null(perche);
+        Assert.Equal("in testa al file", anteprima!.Value.Dove);
+        Assert.Equal("//@\"Q9\" note=\"AIP 2611\"", anteprima.Value.Righe[0]);
+        Assert.Contains("T;Q9;DDDDD;DDDDD;", anteprima.Value.Righe);
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        Assert.StartsWith("dopo la riga ", _lab.AnteprimaDellaRotta("Q9", Basse, out _)!.Value.Dove, StringComparison.Ordinal);
+        // M2 ha un'interruzione: niente anteprima, col perché.
+        Assert.Null(_lab.AnteprimaDellaRotta("M2", Alte, out perche));
+        Assert.Contains("interruzione", perche, StringComparison.Ordinal);
+
+        Assert.False(_lab.PortaLaRotta("Q9", "SectorFiles/Include/IT/NAVAIDS/APT.fix"));
+        Assert.Contains("non è un file delle aerovie", _lab.Rifiuto, StringComparison.Ordinal);
+        Assert.True(_lab.PortaLaRotta("Q9", Alte), _lab.Rifiuto);
+
+        Assert.Contains("T;Q9;AAAAA;AAAAA;", _lab.RigheDiAdesso(Alte));
+        Assert.DoesNotContain("T;Q9;AAAAA;AAAAA;", _lab.RigheDiAdesso(Basse));
+        Assert.Equal(["SectorFiles/Include/IT/AIRWAY/itawhigh.hairway"], _lab.Modifiche.Voci.Select(m => m.File).Distinct());
+        // Il confronto legge anche le alte: Q9 c'è, uguale, coi tratti già scritti.
+        var q9 = _lab.UltimoConfrontoDiEnr3!.Value.Esiti.Single(e => e.Nome == "Q9");
+        Assert.Equal((EsitoDelConfronto.Uguale, Alte, 0), (q9.Esito, q9.File, q9.TrattiDaScrivere));
+    }
+
+    [Fact]
+    public async Task NelConfronti_PortaLaRotta_ApreMettiInQuestoFile()
+    {
+        await ApriConAsync(Aerovie, Attese, Modello());
+        using var contesto = new Bunit.TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.Services.AddSingleton(_lab);
+        var pagina = contesto.RenderComponent<Vipi.SectorLab.Ui.Components.ConfrontiVista>();
+        pagina.Find("[data-sezione='rotte']").Click();
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-tasto='porta-rotta']")));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto='porta-rotta']").Click());
+        Assert.Equal(["itawlow.lairway (di oggi)", "itawhigh.hairway"],
+            pagina.FindAll("[data-campo='file-di-destinazione'] option").Select(o => o.TextContent));
+        Assert.Empty(pagina.FindAll("[data-posto]"));   // il posto lo dà il nome
+        pagina.Find("[data-campo='file-di-destinazione']").Change(Alte);
+        pagina.WaitForAssertion(() => Assert.Contains("in testa al file", pagina.Find("[data-anteprima-metti]").TextContent, StringComparison.Ordinal));
+        Assert.False(_lab.Modifiche.CEQualcosa);
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto='metti-nel-file']").Click());
+
+        Assert.Contains(_lab.Modifiche.Voci, m => m.File == Alte);
+        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-metti-nel-file]")));
+        Assert.Empty(pagina.FindAll("[data-confronto-rifiutato]"));
     }
 
     [Fact]

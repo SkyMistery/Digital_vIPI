@@ -512,11 +512,27 @@ Il committente: «Vai con la R8a, le torri solo twrs.tfl e nei file .str» — l
   CA501 in `APT.fix`, «prima di CALKE» o «in fondo»; «Scrivi»: punti mancanti 95 → 94, uguali 1 375 → 1 376, «Salva (1)»
   (in memoria: la copia non è cambiata).
 
+**R8b fatta** (20 ottobre notte, «Vai con la R8b»): «metti in questo file» per le rotte, nelle aerovie basse o alte.
+- `ConfrontoDiEnr3.FileDelleRotte`: i `.lairway` e gli `.hairway` del sector, `itawlow.lairway` per primo. Il confronto
+  delle rotte e i tratti da scrivere leggono ora **tutti e due** i file (prima solo `itawlow.lairway`): una rotta messa
+  nelle alte non manca più, e la riga apre il file dove sta. «Scrivi i tratti» fa una modifica per file, in un gesto solo.
+- `PortaLaRotta(nome, fileDelleRotte)`: il file scelto (null = `itawlow.lairway`, com'era; un file che non è delle
+  aerovie si rifiuta). Il posto lo dà il nome, come prima (in un file senza tracciati, come `itawhigh.hairway` di oggi
+  tutto commentato, in testa). `AnteprimaDellaRotta`: il blocco e dove va («dopo la riga N (…)», «in testa al file»);
+  una rotta con un'interruzione non ha anteprima e dice perché.
+- `MettiInQuestoFile` con `Rotta`: la scelta fra i file delle aerovie (di base quello di oggi), niente scelta del posto,
+  l'anteprima del blocco. Nella riga: «Porta nel sector…» lo apre (prima portava subito in `itawlow.lairway`).
+- Test: Lab 1 323 (+2: la rotta nelle alte con l'anteprima, il rifiuto e il confronto che la trova; il riquadro nella
+  pagina Confronti). Sul banco (copia del sector, AIP di prova 2610): i due file; M616 nelle alte, «in testa al file» col
+  blocco di 6 righe; «Scrivi»: rotte mancanti 5 → 4, uguali 21 → 22, «Salva (1)» (in memoria: la copia non è cambiata).
+- 🟡 Resta aperto: se le rotte di ENR 3.2 vadano di norma nelle alte (la proposta di §4-ter); oggi la scelta è dell'AOD,
+  rotta per rotta, e il file proposto resta `itawlow.lairway`.
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
 (R4-R9). **R4 fatta** (tre mappe, un motore), **R5 fatta** (due lati, un disegno), **R6 fatta** (lo spazio Confronti in
 lettura) col ritocco «solo la sezione sulla mappa», **R7 fatta** (i gesti nel Confronti, «Lettura e consegna» nello spazio
-AIP), **R8a fatta** (la misura dei file compatibili e «metti in questo file» per i punti); prossime **R8b** (rotte basse o
-alte) e **R8c** (scali e piste anche nei file delle FIR), al via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+AIP), **R8a fatta** (la misura dei file compatibili e «metti in questo file» per i punti), **R8b fatta** (le rotte nelle aerovie basse o
+alte); prossima **R8c** (scali e piste anche nei file delle FIR), al via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

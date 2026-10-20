@@ -22,7 +22,8 @@ public sealed record DifferenzaDiEnr3(EsitoDelConfronto Esito, string Nome, stri
 
 /// <summary>
 /// Il confronto di ENR 3 col sector, in sola lettura (slice 2b).
-/// <para><b>Le rotte</b> (ENR 3.2) coi tracciati <c>T;</c> di <c>itawlow.lairway</c>: un'aerovia può essere in più pezzi
+/// <para><b>Le rotte</b> (ENR 3.2) coi tracciati <c>T;</c> delle aerovie basse e alte (<c>itawlow.lairway</c>,
+/// <c>itawhigh.hairway</c>; riordino R8b): un'aerovia può essere in più pezzi
 /// (le interruzioni <c>T;BREAK</c>). Si confrontano i <b>lati</b> (due punti di seguito, in qualunque verso): quelli solo
 /// dell'AIP e quelli solo del sector. I punti del sector oltre il primo e l'ultimo dell'AIP italiano (la rotta che continua
 /// in Austria, a Malta) non sono differenze: si dicono a parte. Sui lati che ci sono tutti e due, i tratti: il verso e le
@@ -39,9 +40,21 @@ public static class ConfrontoDiEnr3
     public const double Soglia = 0.1;
 
     public const string FileDelleAerovie = "itawlow.lairway";
+    public const string FileDelleAerovieAlte = "itawhigh.hairway";
     public const string FileDelleAttese = "HOLDENR.hold";
 
-    private sealed record Pezzo(int Record, IReadOnlyList<PuntoConTag> Punti);
+    private sealed record Pezzo(string File, int Record, IReadOnlyList<PuntoConTag> Punti);
+
+    /// <summary>
+    /// I file dove può andare una rotta (riordino R8b, «metti in questo file»): i <c>.lairway</c> e gli <c>.hairway</c> del
+    /// sector, le basse per prime (<see cref="FileDelleAerovie"/>, dove le rotte vanno da sempre). La misura del 20 ottobre:
+    /// due, <c>itawlow.lairway</c> con 568 aerovie e <c>itawhigh.hairway</c> vuoto (tutto commentato). Le chiavi della sessione.
+    /// </summary>
+    public static IReadOnlyList<string> FileDelleRotte(IEnumerable<string> fileDelSector) =>
+        [.. fileDelSector.Where(f => Path.GetExtension(f).ToLowerInvariant() is ".lairway" or ".hairway")
+            .OrderBy(f => Path.GetExtension(f).Equals(".lairway", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(f => string.Equals(Path.GetFileName(f), FileDelleAerovie, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(f => f, StringComparer.OrdinalIgnoreCase)];
 
     // --- le rotte ----------------------------------------------------------------------------------------------------
 
@@ -54,15 +67,15 @@ public static class ConfrontoDiEnr3
         ArgumentNullException.ThrowIfNull(rotte);
         ArgumentNullException.ThrowIfNull(sessione);
         ArgumentNullException.ThrowIfNull(puntoDelSector);
-        var file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + FileDelleAerovie, StringComparison.OrdinalIgnoreCase));
         var pezzi = new Dictionary<string, List<Pezzo>>(StringComparer.OrdinalIgnoreCase);
-        if (file is not null && sessione.File[file] is IFileConRecord aerovie)
+        foreach (var file in FileDelleRotte(sessione.File.Keys))
         {
+            if (sessione.File[file] is not IFileConRecord aerovie) continue;
             for (var i = 0; i < aerovie.RecordDelModello.Count; i++)
             {
                 if (aerovie.RecordDelModello[i] is not Airway a || !TrattiDelleAerovie.EUnPezzo(a)) continue;
                 if (!pezzi.TryGetValue(a.Name.Trim(), out var suoi)) pezzi[a.Name.Trim()] = suoi = [];
-                suoi.Add(new Pezzo(i, aerovie.PuntiConTag(i)));
+                suoi.Add(new Pezzo(file, i, aerovie.PuntiConTag(i)));
             }
         }
 
@@ -75,7 +88,7 @@ public static class ConfrontoDiEnr3
                     [$"{rotta.Points.Count} punti nell'AIP: {string.Join(" ", rotta.Points.Select(p => p.Designator))}"]));
                 continue;
             }
-            esiti.Add(Rotta(rotta, suoi, file!, puntoDelSector));
+            esiti.Add(Rotta(rotta, suoi, puntoDelSector));
         }
 
         return [.. esiti.OrderBy(e => Ordine(e.Esito)).ThenBy(e => e.Nome, StringComparer.OrdinalIgnoreCase)];
@@ -87,14 +100,16 @@ public static class ConfrontoDiEnr3
     /// <summary>
     /// I tratti della rotta da scrivere nei tag <c>//@@</c> del sector (slice 2c): sui lati che l'AIP e il sector hanno tutti
     /// e due, quelli senza tag o coi tag diversi dall'AIP. <paramref name="bloccata"/>: l'aerovia è <c>locked=si</c> (B5,
-    /// l'import non la tocca) — allora nessun tratto. Null se il sector non ha l'aerovia.
+    /// l'import non la tocca) — allora nessun tratto. Null se il sector non ha l'aerovia. <paramref name="file"/>: il primo
+    /// file delle rotte che ha l'aerovia (le basse prima delle alte, R8b); i tratti sono i suoi.
     /// </summary>
     public static IReadOnlyList<TrattoDaScrivere>? TrattiDaScrivere(Route rotta, SessioneAperta sessione, out string? file, out bool bloccata)
     {
         ArgumentNullException.ThrowIfNull(rotta);
         ArgumentNullException.ThrowIfNull(sessione);
         bloccata = false;
-        file = sessione.File.Keys.FirstOrDefault(k => k.EndsWith("/" + FileDelleAerovie, StringComparison.OrdinalIgnoreCase));
+        file = FileDelleRotte(sessione.File.Keys).FirstOrDefault(f => sessione.File[f] is IFileConRecord c
+            && c.RecordDelModello.Any(r => r is Airway a && TrattiDelleAerovie.EUnPezzo(a) && string.Equals(a.Name.Trim(), rotta.Designator, StringComparison.OrdinalIgnoreCase)));
         if (file is null || sessione.File[file] is not IFileConRecord aerovie) return null;
 
         var lati = new Dictionary<string, (int Record, int Ordinale, string Da, string A, IReadOnlyDictionary<string, string> Tag)>(StringComparer.Ordinal);
@@ -212,7 +227,7 @@ public static class ConfrontoDiEnr3
 
     private static string Lato(string a, string b) => string.CompareOrdinal(a, b) <= 0 ? $"{a}|{b}" : $"{b}|{a}";
 
-    private static DifferenzaDiEnr3 Rotta(Route rotta, List<Pezzo> pezzi, string file, Func<string, Coordinate?> puntoDelSector)
+    private static DifferenzaDiEnr3 Rotta(Route rotta, List<Pezzo> pezzi, Func<string, Coordinate?> puntoDelSector)
     {
         var dettagli = new List<string>();
         var diversa = false;
@@ -292,7 +307,7 @@ public static class ConfrontoDiEnr3
             }
         }
 
-        return new DifferenzaDiEnr3(diversa ? EsitoDelConfronto.FormaDiversa : EsitoDelConfronto.Uguale, rotta.Designator, file, pezzi[0].Record, dettagli)
+        return new DifferenzaDiEnr3(diversa ? EsitoDelConfronto.FormaDiversa : EsitoDelConfronto.Uguale, rotta.Designator, pezzi[0].File, pezzi[0].Record, dettagli)
         {
             TrattiDaScrivere = senzaTag + tratti.Count,
         };
