@@ -384,7 +384,7 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         contesto.JSInterop.Mode = JSRuntimeMode.Loose;
         contesto.Services.AddSingleton(_lab);
         var pagina = contesto.RenderComponent<Vipi.SectorLab.Ui.Components.ConfrontiVista>();
-        Assert.Equal(13, pagina.FindAll("[data-sezione]").Count);
+        Assert.Equal(14, pagina.FindAll("[data-sezione]").Count);
         Assert.NotNull(pagina.Find("[data-confronti-vuoto]"));
 
         pagina.Find("[data-sezione='punti']").Click();

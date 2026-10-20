@@ -54,9 +54,10 @@ public sealed class ConfrontiDelleSezioniTests
     [Fact]
     public void LeSezioniStannoNelleParti()
     {
-        Assert.Equal(13, Enum.GetValues<SezioneDelConfronto>().Length);
+        Assert.Equal(14, Enum.GetValues<SezioneDelConfronto>().Length);
         Assert.Equal("ENR 4", ConfrontiDelleSezioni.Parte(SezioneDelConfronto.Punti));
         Assert.Equal("AD 2", ConfrontiDelleSezioni.Parte(SezioneDelConfronto.Procedure));
+        Assert.Equal("Dal sector all'AIP", ConfrontiDelleSezioni.Parte(SezioneDelConfronto.Confini));   // R9
         var nomi = Enum.GetValues<SezioneDelConfronto>().Select(ConfrontiDelleSezioni.Nome).ToList();
         Assert.All(nomi, n => Assert.False(string.IsNullOrWhiteSpace(n)));
         Assert.Equal(nomi.Count, nomi.Distinct().Count());

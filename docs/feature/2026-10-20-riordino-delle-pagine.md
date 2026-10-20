@@ -552,12 +552,37 @@ Il committente: «Vai con la R8a, le torri solo twrs.tfl e nei file .str» — l
   10/28 → «uguale 16 · diversa 5», «Salva (3)» (in memoria: la copia non è cambiata). Nell'AIP di prova nessuna pista e
   nessuno scalo mancano: il riquadro delle caselle sul banco non si è visto, solo nei test.
 
+**R9 fatta** (20 ottobre notte, «Vai con la R9»): dal sector all'AIP espanso, solo i confini (D20).
+- Lo spazio Confronti ha una sezione nuova, **Confini e coste**, nella parte «Dal sector all'AIP»: le aree dell'AIP
+  espanso (di ogni sezione: FIR, CTA, ENR 5, ATZ…) con un tratto che l'AIP nomina senza disegnarlo («Italian northern
+  geographical border»), contro il tracciato di `itgeo.geo` (`ConfiniDelSector`, la rete della F6). Una riga per area,
+  «solo nel sector» (il sector ha il tracciato, l'AIP no), coi tratti: quanti punti dal sector, quanti NM contro la retta.
+  Quelle già portate sono «uguali», con la loro correzione. Aprendola, sulla mappa restano i generi delle sue aree.
+- **Porta nell'AIP espanso** (la riga) e **Porta tutti nell'AIP espanso (N)** (la sezione): per ogni area una
+  **correzione** nel file delle correzioni (D22: l'AIP espanso si cambia solo così), un salvataggio solo, sul ramo del
+  ciclo come le altre correzioni. Nel `before` l'area del PDF con la frase; nell'`after` la stessa area con i tratti di
+  confine fatti di rette sui punti del sector (i capi del tratto restano quelli dell'AIP). Fonte: «GEO/itgeo.geo del sector
+  (eccezione del committente, 19 ottobre 2026)», da cui la sezione riconosce le aree già portate. Si ritira come le altre,
+  dalla scheda dell'area: torna la frase. Il sector non si tocca. Un'area che non si traccia si dice e resta.
+- 🟡 Proposta dell'agente (non decisa): **rette** al posto del tratto di confine, perché il modello dell'AIP (comune,
+  multi-Stato) non cambia; la frase dell'AIP resta nel `before` della correzione. L'alternativa sarebbe un tratto di
+  confine coi punti dentro: tocca lo schema del modello. Da confermare.
+- Trovato a schermo e corretto: dalla R6 la pagina Confronti mostrava la scheda della voce dell'AIP **due volte** (la
+  Scheda la ha già in testa); ora una.
+- Test: Lab 1 330 (+3: le righe e l'area tracciata; il gesto che scrive una correzione per area, salta quella che non si
+  traccia e si ritira; il tasto nella pagina). Sul banco (copia del sector, AIP di prova 2610): **30 aree, tutte
+  tracciabili**; la FIR di Milano «132 punti dal sector, 737 NM (retta di 286 NM)», come la misura della F6. «Porta
+  nell'AIP espanso» sulla FIR: la correzione 2026-10-20-1 nel clone di prova, la riga «uguale», sulla mappa la FIR lungo
+  l'arco delle Alpi, «Salva» del sector senza modifiche; «Ritira la correzione»: di nuovo «solo nel sector 30», il modello
+  del ciclo identico a prima. Il clone di prova è stato rimesso com'era (tolta la cartella `correzioni/` nata dalla prova).
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
 (R4-R9). **R4 fatta** (tre mappe, un motore), **R5 fatta** (due lati, un disegno), **R6 fatta** (lo spazio Confronti in
 lettura) col ritocco «solo la sezione sulla mappa», **R7 fatta** (i gesti nel Confronti, «Lettura e consegna» nello spazio
 AIP), **R8a fatta** (la misura dei file compatibili e «metti in questo file» per i punti), **R8b fatta** (le rotte nelle aerovie basse o
-alte), **R8c fatta** (scali e piste anche nei file delle FIR); prossima **R9** (dal sector all'AIP espanso), al via del
-committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+alte), **R8c fatta** (scali e piste anche nei file delle FIR), **R9 fatta** (i confini dal sector all'AIP espanso, come
+correzioni). Il piano di §5-ter è finito; dopo, come scritto lì: le due consegne, la pagina Testo (D21), la Scheda per
+gruppi, i verbi — al via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

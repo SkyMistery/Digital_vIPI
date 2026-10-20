@@ -21,6 +21,9 @@ public enum SezioneDelConfronto
     Frequenze,
     RadioassistenzeAd2,
     Procedure,
+
+    /// <summary>Riordino R9 (D20): i tratti di confine e di costa dal sector all'AIP espanso.</summary>
+    Confini,
 }
 
 /// <summary>
@@ -52,6 +55,7 @@ public static class ConfrontiDelleSezioni
         SezioneDelConfronto.Frequenze => "Frequenze",
         SezioneDelConfronto.RadioassistenzeAd2 => "Radioassistenze degli scali",
         SezioneDelConfronto.Procedure => "SID e STAR",
+        SezioneDelConfronto.Confini => "Confini e coste",
         _ => sezione.ToString(),
     };
 
@@ -62,6 +66,7 @@ public static class ConfrontiDelleSezioni
         SezioneDelConfronto.Rotte or SezioneDelConfronto.Attese => "ENR 3",
         SezioneDelConfronto.Radioassistenze or SezioneDelConfronto.Punti => "ENR 4",
         SezioneDelConfronto.AreeEnr5 => "ENR 5",
+        SezioneDelConfronto.Confini => "Dal sector all'AIP",
         _ => "AD 2",
     };
 
@@ -78,6 +83,7 @@ public static class ConfrontiDelleSezioni
         SezioneDelConfronto.Radioassistenze or SezioneDelConfronto.RadioassistenzeAd2 => ["radioassistenze"],
         SezioneDelConfronto.AreeEnr5 => ["aree"],
         SezioneDelConfronto.Piste => ["piste"],
+        SezioneDelConfronto.Confini => [],                                                                         // le coste sono lo sfondo
         _ => ["punti"],                                                                                           // punti, scali (.ap), frequenze
     };
 
@@ -91,6 +97,7 @@ public static class ConfrontiDelleSezioni
         SezioneDelConfronto.Radioassistenze or SezioneDelConfronto.RadioassistenzeAd2 => [AipSullaMappa.Radioassistenze],
         SezioneDelConfronto.Punti => [AipSullaMappa.Punti],
         SezioneDelConfronto.AreeEnr5 => ["P", "R", "D", "TSA/TRA", "Militari"],
+        SezioneDelConfronto.Confini => [],                                                                         // i generi delle aree delle righe: li sceglie la sessione
         SezioneDelConfronto.Procedure => [AipSullaMappa.Sid, AipSullaMappa.Star, AipSullaMappa.Transizioni, AipSullaMappa.SaliteIniziali],
         _ => [AipSullaMappa.Scali],                                                                               // scali, piste, frequenze
     };
@@ -158,6 +165,16 @@ public static class ConfrontiDelleSezioni
             x.Parti.Esito == EsitoDelConfronto.MancaNelSector ? null : x.Parti.Nome,
             x.Parti.File, x.Parti.Record, x.Parti.Dettagli, x.Origine,
             x.Parti.Esito != EsitoDelConfronto.Uguale || x.Parti.Anche))];
+    }
+
+    /// <summary>
+    /// I confini (R9): l'area dell'AIP a sinistra; a destra il tracciato del sector, se c'è. Da guardare quelle da portare.
+    /// </summary>
+    public static IReadOnlyList<RigaDelConfronto> Da(IEnumerable<ConfineDellAip> esiti)
+    {
+        ArgumentNullException.ThrowIfNull(esiti);
+        return [.. esiti.Select(e => new RigaDelConfronto(e.Esito, e.Chiave, e.Tracciabile ? "itgeo.geo" : null, null, null, e.Dettagli, e,
+            e.Esito != EsitoDelConfronto.Uguale))];
     }
 
     /// <summary>Quante righe sono da guardare (non uguali, o uguali con un gesto da fare).</summary>

@@ -4,15 +4,16 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 20 ottobre 2026, notte: terza forma, R4-R8c fatte
+## Dove siamo — 20 ottobre 2026, notte: terza forma, R4-R9 fatte
 
 Dopo il passaggio d'account: **ritocco** (aprendo una sezione del Confronti, sulla mappa solo quella, dei due lati),
 **R7** (i gesti dei confronti nella pagina Confronti, riga per riga e per sezione; «Lettura e consegna» torna nello spazio
 AIP espanso), la **misura R8** dei file compatibili, **R8a** («metti in questo file» per i punti, fra i `.fix`) e **R8b**
 (le rotte nelle aerovie basse o alte; il confronto legge tutti e due i file), **R8c** (scali e piste nuovi anche nei
 file delle FIR, «Sostituisci in tutti i file»). Le ATZ delle torri restano in `twrs.tfl` e negli `.str` (il
-committente). Lab 1 327. **Prossima: R9** (dal sector all'AIP espanso, solo i confini da itgeo.geo), al via del
-committente. Dettaglio nella carta del riordino, §6. Il resto qui sotto vale ancora.
+committente), **R9** (i confini di itgeo.geo nell'AIP espanso, come correzioni, dalla sezione «Confini e coste»). Lab
+1 330. Il piano R4-R9 è finito; **dopo**, al via del committente: le due consegne, la pagina Testo, la Scheda per gruppi,
+i verbi. Da confermare: i confini nell'AIP come rette (proposta). Dettaglio nella carta del riordino, §6. Il resto qui sotto vale ancora.
 
 ## 20 ottobre 2026, notte: terza forma, R4-R6 fatte (passaggio a un altro account)
 

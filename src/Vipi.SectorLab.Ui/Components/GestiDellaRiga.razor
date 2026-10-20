@@ -153,6 +153,16 @@
         }
         break;
 
+    case ConfineDellAip c:
+        @* R9: il tracciato di itgeo.geo nell'AIP espanso, come correzione dell'area. *@
+        @if (c.Esito == Esiti.SoloNelSector && c.Tracciabile)
+        {
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="porta-confine" disabled="@Lab.StaCorreggendoLAip"
+                    title="Scrive nell'AIP espanso una correzione di @c.Chiave coi tratti di confine e di costa presi da itgeo.geo (nel file delle correzioni; si ritira dalla scheda dell'area)"
+                    @onclick="() => PortaIConfini([c.Chiave])">Porta nell'AIP espanso</button>
+        }
+        break;
+
     case DifferenzaDiAd2 e:
         @if (Sezione is SezioneDelConfronto.Scali or SezioneDelConfronto.Piste && e.Esito == Esiti.FormaDiversa)
         {
@@ -234,4 +244,6 @@
         Scelte.CambiaIlCome(proposta, string.Equals(v.Value?.ToString(), "ovale", StringComparison.Ordinal));
 
     private Task PortaEnr5(IReadOnlyList<string> chiavi) => Dici(Lab.PortaAreeEnr5(chiavi));
+
+    private async Task PortaIConfini(IReadOnlyList<string> chiavi) => await Fai(await Lab.PortaIConfiniNellAipAsync(chiavi));
 }

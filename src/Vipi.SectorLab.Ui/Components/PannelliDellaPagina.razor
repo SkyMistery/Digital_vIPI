@@ -76,12 +76,8 @@
         </aside>
         <div class="lab-divisore" data-divide="@($"{_p}aip")" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
         <aside class="lab-colonna lab-colonna-ispettore @(NellaFinestraDeiPannelli ? "lab-colonna-modifiche" : null)">
+            @* La Scheda ha già, in testa, la voce dell'AIP scelta: qui una seconda volta la mostrava doppia (R9). *@
             <Scheda />
-            @if (Lab.VoceDellAipScelta is not null)
-            {
-                <AipNellaScheda Voce="Lab.VoceDellAipScelta" Ciclo="@Lab.StratoDellAip?.Ciclo" Area="Lab.AreaDellAipScelta" Modello="Lab.VoceDelModelloScelta"
-                               Correzione="@(Lab.CorrezioneDellAreaScelta ?? Lab.CorrezioneDellaVoceScelta)" />
-            }
         </aside>
         @if (!NellaFinestraDeiPannelli)
         {

@@ -4652,6 +4652,7 @@ public sealed class SessioneDelLab
                 Core.PdfAip.SezioneDelConfronto.Piste => await ConfrontaAd2Async(Core.PdfAip.ParteDiAd2.Piste).ConfigureAwait(false),
                 Core.PdfAip.SezioneDelConfronto.Frequenze => await ConfrontaAd2Async(Core.PdfAip.ParteDiAd2.Frequenze).ConfigureAwait(false),
                 Core.PdfAip.SezioneDelConfronto.RadioassistenzeAd2 => await ConfrontaAd2Async(Core.PdfAip.ParteDiAd2.Radioassistenze).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.Confini => ConfrontaIConfini(),
                 _ => await ConfrontaLeProcedureAsync().ConfigureAwait(false),
             };
             if (!fatto)
@@ -4699,6 +4700,8 @@ public sealed class SessioneDelLab
             return UltimoConfrontoDiAd2 is { } a2 && a2.Parte == p ? (a2.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(a2.Esiti)) : null;
         return sezione switch
         {
+            Core.PdfAip.SezioneDelConfronto.Confini =>
+                UltimoConfrontoDeiConfini is { } cf ? (cf.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(cf.Esiti)) : null,
             Core.PdfAip.SezioneDelConfronto.Rotte or Core.PdfAip.SezioneDelConfronto.Attese =>
                 UltimoConfrontoDiEnr3 is { } e3 && e3.Rotte == (sezione == Core.PdfAip.SezioneDelConfronto.Rotte)
                     ? (e3.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(e3.Esiti)) : null,
@@ -4756,7 +4759,10 @@ public sealed class SessioneDelLab
         if (StratoDellAip is { } stratoDellAip)
         {
             mappa.Accesi.Add(aip);
-            var tenuti = Core.PdfAip.ConfrontiDelleSezioni.GeneriDellAip(sezione);
+            // I confini (R9) stanno in aree di ogni genere: si tengono quelli delle aree della sezione.
+            var tenuti = sezione == Core.PdfAip.SezioneDelConfronto.Confini && UltimoConfrontoDeiConfini is { } confini
+                ? [.. confini.Esiti.Select(e => Core.PdfAip.AipSullaMappa.Genere(e.Tipo)).Distinct()]
+                : Core.PdfAip.ConfrontiDelleSezioni.GeneriDellAip(sezione);
             foreach (var genere in GeneriDellaMappa.Di(stratoDellAip.Strato).Where(g => !tenuti.Contains(g.Id)))
                 mappa.Spenti.Add(ChiaveDelGenere(aip, genere.Id));
         }
@@ -4785,6 +4791,78 @@ public sealed class SessioneDelLab
         CoppiaDelConfronto = (delSector, voce is { } v && StratoDellAip is { } aip ? (aip.File, v) : null);
         VersioneDellaCoppia++;
         Avvisa();
+    }
+
+    // --- dal sector all'AIP espanso (riordino R9, D20) -----------------------------------------------------------------
+
+    /// <summary>L'ultimo confronto dei confini (R9): le aree dell'AIP espanso coi tratti di confine o di costa, del ciclo sulla mappa.</summary>
+    public (string Ciclo, IReadOnlyList<Core.PdfAip.ConfineDellAip> Esiti)? UltimoConfrontoDeiConfini { get; private set; }
+
+    /// <summary>
+    /// I confini (R9): le aree dell'AIP espanso sulla mappa (già corretto) coi tratti che l'AIP nomina senza disegnarli,
+    /// contro il tracciato di <c>itgeo.geo</c>. In sola lettura.
+    /// </summary>
+    private bool ConfrontaIConfini()
+    {
+        if (StratoDellAip is not { } strato || _modelloSullaMappa is not { } modello)
+            return Rifiuta("Accendi l'AIP espanso sulla mappa prima.");
+        UltimoConfrontoDeiConfini = (strato.Ciclo, Core.PdfAip.ConfiniNellAip.Righe(modello, _correzioniSullaMappa, ConfiniDelSector()));
+        Registro.Scrivi("aip", $"confini dell'AIP {strato.Ciclo}: {UltimoConfrontoDeiConfini.Value.Esiti.Count} aree");
+        return true;
+    }
+
+    /// <summary>
+    /// «Porta nell'AIP espanso» (R9, D20): le aree date coi tratti di confine e di costa fatti dei punti di <c>itgeo.geo</c>,
+    /// come correzioni dell'AIP espanso (una per area, nel file delle correzioni, un salvataggio solo). Si ritirano come le
+    /// altre, dalla scheda dell'area. Le aree che non si tracciano si dicono e restano.
+    /// </summary>
+    public async Task<bool> PortaIConfiniNellAipAsync(IReadOnlyList<string> chiavi)
+    {
+        ArgumentNullException.ThrowIfNull(chiavi);
+        if (ConfiniDelSector() is not { } tracciatore)
+            return Rifiuta("Il sector non ha GEO/itgeo.geo: non c'è da dove prendere i confini.");
+        var saltate = new List<string>();
+        bool fatto = await CorreggiLAipAsync((modello, file, ciclo) =>
+        {
+            Core.PdfAip.CorrezioneFatta? fatta = null;
+            var portate = new List<string>();
+            saltate.Clear();
+            foreach (var chiave in chiavi)
+            {
+                var corrente = fatta?.Modello ?? modello;
+                if (corrente.Airspaces.FirstOrDefault(a => a.Key == chiave) is not { } area)
+                {
+                    saltate.Add($"{chiave}: non è nell'AIP espanso del ciclo {ciclo}");
+                    continue;
+                }
+                var (tracciata, perche) = Core.PdfAip.ConfiniNellAip.Tracciata(area, tracciatore);
+                if (tracciata is null)
+                {
+                    saltate.Add(perche!);
+                    continue;
+                }
+                var (questa, no) = Core.PdfAip.CorrezioniDellAip.Correggi(corrente, fatta?.Correzioni ?? file, chiave, tracciata,
+                    Core.PdfAip.ConfiniNellAip.Perche(area), Core.PdfAip.ConfiniNellAip.Fonte, ciclo, Oggi);
+                if (questa is null)
+                {
+                    saltate.Add(no!);
+                    continue;
+                }
+                fatta = questa;
+                portate.Add(chiave);
+            }
+            if (fatta is null)
+                return (null, saltate.Count > 0 ? string.Join(" · ", saltate) : "Non c'è nessun confine da portare.");
+            // Una sola: il messaggio della correzione (chiave, perché, fonte); più d'una: quante e da dove.
+            return (portate.Count == 1 ? fatta : fatta with { Messaggio = $"Confini dal sector nell'AIP espanso: {portate.Count} aree ({Core.PdfAip.ConfiniNellAip.Fonte})" }, null);
+        }).ConfigureAwait(false);
+        if (!fatto)
+            return false;
+        ConfrontaIConfini();
+        if (saltate.Count > 0)
+            Rifiuto = string.Join(" · ", saltate);
+        Avvisa();
+        return true;
     }
 
     /// <summary>Il modello da cui viene <see cref="StratoDellAip"/>: le voci dello strato hanno il suo ordine (prima le aree).</summary>

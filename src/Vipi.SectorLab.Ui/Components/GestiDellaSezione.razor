@@ -91,6 +91,19 @@
                 }
                 break;
 
+            case SezioneDelConfronto.Confini when Lab.UltimoConfrontoDeiConfini is { } confini:
+                @* R9 (D20): dal sector all'AIP espanso, solo i confini. *@
+                <p class="lab-nota" data-verso-l-aip>I tratti di confine e di costa che l'AIP nomina senza disegnarli, presi da
+                    itgeo.geo del sector (l'unica eccezione alla fonte primaria). «Porta» scrive nell'AIP espanso una correzione
+                    dell'area, non tocca il sector: si consegna dallo spazio AIP, e si ritira dalla scheda dell'area.</p>
+                @if (confini.Esiti.Where(e => e.Esito == Esiti.SoloNelSector && e.Tracciabile).Select(e => e.Chiave).ToList() is { Count: > 1 } daPortare)
+                {
+                    <button type="button" class="lab-tasto" data-tasto="porta-tutti-i-confini" disabled="@Lab.StaCorreggendoLAip"
+                            title="Una correzione per area nell'AIP espanso, coi tratti presi da itgeo.geo: un salvataggio solo"
+                            @onclick="() => PortaIConfini(daPortare)">Porta tutti nell'AIP espanso (@daPortare.Count)</button>
+                }
+                break;
+
             case SezioneDelConfronto.Scali or SezioneDelConfronto.Piste or SezioneDelConfronto.Frequenze or SezioneDelConfronto.RadioassistenzeAd2:
                 <p class="lab-nota">Una voce che sta in più file (OTHER/it… e le FIR) è una riga per file.@(Sezione switch
                     {
@@ -126,6 +139,13 @@
         if (_metti is { } portati && Lab.Modifiche.CEQualcosa)
             Scelte.PuntiSpuntati.ExceptWith(portati);
         return Fatto.InvokeAsync(perche);
+    }
+
+    // Come gli altri «Porta tutte»: dice anche le aree saltate quando le altre vanno.
+    private async Task PortaIConfini(IReadOnlyList<string> chiavi)
+    {
+        await Lab.PortaIConfiniNellAipAsync(chiavi);
+        await Fatto.InvokeAsync(Lab.Rifiuto);
     }
 
     private Task PortaLeAttese(List<SessioneDelLab.SceltaDiAttesa> scelte)
