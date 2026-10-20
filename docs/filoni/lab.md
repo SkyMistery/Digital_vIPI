@@ -4,7 +4,14 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 20 ottobre 2026, notte: terza forma, R4-R6 fatte (passaggio a un altro account)
+## Dove siamo — 20 ottobre 2026, notte: terza forma, R4-R7 fatte
+
+Dopo il passaggio d'account: **ritocco** (aprendo una sezione del Confronti, sulla mappa solo quella, dei due lati) e
+**R7** (i gesti dei confronti nella pagina Confronti, riga per riga e per sezione; «Lettura e consegna» torna nello spazio
+AIP espanso). Lab 1 319. **Prossima: R8** («metti in questo file», prima la misura dei file compatibili), al via del
+committente. Il resto qui sotto vale ancora.
+
+## 20 ottobre 2026, notte: terza forma, R4-R6 fatte (passaggio a un altro account)
 
 Tutto nella carta [`2026-10-20-riordino-delle-pagine.md`](../feature/2026-10-20-riordino-delle-pagine.md): §4-ter (la
 terza forma, D14-D22, **approvate**), §5-ter (le slice R4-R9) e §6 (il lavoro, slice per slice, e «Dove siamo» in fondo).
