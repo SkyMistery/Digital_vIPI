@@ -94,6 +94,19 @@
 
     /// Lo stile di una forma nel modo di adesso. `tinta` è il colore del Lab per il suo strato.
     function stile(stato, forma, tinta) {
+        // R6 (D18): la mappa del Confronto mostra i due lati in due colori fissi — l'AIP tratteggiato, il sector pieno —
+        // coi simboli dei punti nel colore del lato. Le coste restano com'erano.
+        if (stato && stato.dueLati && forma.sid !== 'sfondo') {
+            var aip = !!forma.p && forma.p.indexOf('aip:') === 0;
+            var lato = aip ? token('--lab-lato-aip', '#e09a1a') : token('--lab-lato-sector', '#3a8fe0');
+            if (forma.t === 'p') {
+                var suo = forma.y !== undefined && stato.simboli[forma.y] ? forma.y : null;
+                return { color: lato, weight: 1, opacity: 1, fillColor: lato, fillOpacity: .8, dashArray: null,
+                         radius: suo === null ? 3 : 6, sectorlabSimbolo: suo };
+            }
+            return { color: lato, weight: aip ? 1.5 : 1, opacity: .9, fillColor: lato, fillOpacity: forma.t === 'a' ? .04 : 0,
+                     dashArray: aip ? '6,4' : null };
+        }
         // Lo strato dell'AIP espanso (F6): il colore del genere della forma, non quello dello strato.
         if (forma.lc) tinta = forma.lc;
         var aurora = stato && stato.aurora && Object.prototype.hasOwnProperty.call(forma, 'k');
@@ -275,6 +288,7 @@
                     var tutte = [];
                     for (var i = 0; i < dati.f.length; i++) {
                         var forma = dati.f[i];
+                        forma.sid = id;
                         var disegnata = disegna(stato, forma, tinta);
                         if (!disegnata) continue;
                         disegnata.sectorlab = forma;
@@ -342,6 +356,46 @@
             }
 
             return true;
+        },
+
+        /// R6 (D18): i due lati in due colori fissi (la mappa del Confronto). Ogni forma riprende il suo stile.
+        dueLati: function (acceso, elemento) {
+            var stato = prendi(elemento);
+            if (!stato) return;
+            stato.dueLati = !!acceso;
+            this.ricolora(elemento);
+        },
+
+        /// R6 (D18): la coppia di una riga del Confronto — la voce del sector e quella dell'AIP — in evidenza, ognuna nel
+        /// colore del suo lato e più spessa, e (se si chiede) inquadrate insieme. Senza file, si toglie.
+        coppia: function (fileSector, recordSector, fileAip, recordAip, inquadra, elemento) {
+            var stato = prendi(elemento);
+            if (!stato) return 0;
+            if (stato.coppia) {
+                for (var i = 0; i < stato.coppia.length; i++) if (stato.coppia[i] !== stato.evidenza) applica(stato.coppia[i]);
+                stato.coppia = null;
+                ordina(stato, 'terra');
+            }
+            var forme = [];
+            if (fileSector && stato.forme[fileSector + '#' + recordSector]) forme.push(stato.forme[fileSector + '#' + recordSector]);
+            if (fileAip && stato.forme[fileAip + '#' + recordAip]) forme.push(stato.forme[fileAip + '#' + recordAip]);
+            if (!forme.length) return 0;
+            var bordi = L.latLngBounds([]);
+            for (var j = 0; j < forme.length; j++) {
+                var forma = forme[j], aip = forma.sectorlab.p.indexOf('aip:') === 0;
+                forma.setStyle({ color: aip ? token('--lab-lato-aip', '#e09a1a') : token('--lab-lato-sector', '#3a8fe0'),
+                                 weight: 4, opacity: 1, dashArray: aip ? '8,4' : null });
+                if (forma.bringToFront) forma.bringToFront();
+                if (forma.getBounds && forma.getBounds().isValid()) bordi.extend(forma.getBounds());
+                else if (forma.getLatLng) bordi.extend(forma.getLatLng());
+            }
+            stato.coppia = forme;
+            if (inquadra && bordi.isValid()) {
+                var sw = bordi.getSouthWest(), ne = bordi.getNorthEast();
+                if (sw.lat === ne.lat && sw.lng === ne.lng) stato.mappa.setView(sw, Math.max(stato.mappa.getZoom(), 11));
+                else stato.mappa.fitBounds(bordi.pad(.3));
+            }
+            return forme.length;
         },
 
         /// Tutti gli strati chiesti sono arrivati: il totale va nel diario (e la prova automatica aspetta questa riga).
@@ -449,7 +503,9 @@
             if (!stato) return;
             for (var id in stato.strati) {
                 if (!Object.prototype.hasOwnProperty.call(stato.strati, id)) continue;
-                stato.strati[id].eachLayer(function (l) { if (l !== stato.evidenza) applica(l); });
+                stato.strati[id].eachLayer(function (l) {
+                    if (l !== stato.evidenza && !(stato.coppia && stato.coppia.indexOf(l) >= 0)) applica(l);
+                });
             }
             if (stato.evidenza && stato.evidenza.setStyle) stato.evidenza.setStyle({ color: token('--lab-evidenza', '#e26e17') });
             if (stato.anteprima) {

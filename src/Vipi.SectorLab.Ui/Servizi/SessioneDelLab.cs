@@ -45,6 +45,8 @@ public enum PaginaDelLab
     AipIndice,
     /// <summary>Il mondo AIP: PDF, lettura, git dell'AIP espanso e, fino alla R4, i confronti.</summary>
     Aip,
+    /// <summary>Lo spazio Confronti (R6): le sezioni, uguale / diversa / manca, i due lati sulla stessa mappa.</summary>
+    Confronti,
     Consegna,
     Impostazioni,
 }
@@ -167,7 +169,7 @@ public sealed class SessioneDelLab
     public static SpazioDiLavoro? SpazioDi(PaginaDelLab pagina) => pagina switch
     {
         PaginaDelLab.AipIndice => SpazioDiLavoro.Aip,
-        PaginaDelLab.Aip => SpazioDiLavoro.Confronti,
+        PaginaDelLab.Aip or PaginaDelLab.Confronti => SpazioDiLavoro.Confronti,
         PaginaDelLab.Sector => SpazioDiLavoro.Sector,
         _ => null,
     };
@@ -365,6 +367,7 @@ public sealed class SessioneDelLab
             TogliLAnteprima();
             foreach (var mappa in _mappe.Values)
                 mappa.Riparti();
+            ScordaIConfronti();
             _voci.Clear();
             _nascosti.Clear();
             UltimoSalvataggio = null;
@@ -575,6 +578,7 @@ public sealed class SessioneDelLab
         TogliLAnteprima();
         foreach (var mappa in _mappe.Values)
             mappa.Riparti();
+        ScordaIConfronti();
         _voci.Clear();
         _nascosti.Clear();
         UltimoSalvataggio = null;
@@ -4582,6 +4586,131 @@ public sealed class SessioneDelLab
             Registro.Errore("aip", e);
             return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
         }
+    }
+
+    // --- lo spazio Confronti (riordino R6, D17 e D18) -------------------------------------------------------------------
+
+    private readonly Dictionary<Core.PdfAip.SezioneDelConfronto, (string Ciclo, IReadOnlyList<Core.PdfAip.RigaDelConfronto> Righe)> _confronti = [];
+
+    /// <summary>Le sezioni già confrontate, col ciclo e le righe: restano finché la cartella non si chiude o non si rifanno.</summary>
+    public IReadOnlyDictionary<Core.PdfAip.SezioneDelConfronto, (string Ciclo, IReadOnlyList<Core.PdfAip.RigaDelConfronto> Righe)> Confronti => _confronti;
+
+    /// <summary>La sezione aperta nel Confronto.</summary>
+    public Core.PdfAip.SezioneDelConfronto? SezioneDelConfronto { get; private set; }
+
+    /// <summary>La riga scelta della sezione aperta.</summary>
+    public int? RigaDelConfrontoScelta { get; private set; }
+
+    /// <summary>Sta confrontando una sezione.</summary>
+    public bool StaConfrontando { get; private set; }
+
+    /// <summary>
+    /// La coppia della riga scelta sulla mappa del Confronto: il record del sector e la voce dell'AIP (D18), ognuno nel suo
+    /// colore. Cresce <see cref="VersioneDellaCoppia"/> a ogni scelta.
+    /// </summary>
+    public ((string File, int Record)? Sector, (string File, int Record)? Aip) CoppiaDelConfronto { get; private set; }
+
+    public int VersioneDellaCoppia { get; private set; }
+
+    /// <summary>Le righe erano del sector di prima: un altro sector (o nessuno) si confronta da capo.</summary>
+    private void ScordaIConfronti()
+    {
+        _confronti.Clear();
+        SezioneDelConfronto = null;
+        RigaDelConfrontoScelta = null;
+        CoppiaDelConfronto = default;
+        VersioneDellaCoppia++;
+    }
+
+    /// <summary>
+    /// Confronta una sezione (R6): il confronto di oggi di quella sezione (F6, F7), in sola lettura, e le sue righe portate
+    /// a una forma sola. Lo strato dell'AIP serve alla mappa e alla scheda della voce: se non c'è, si carica.
+    /// </summary>
+    public async Task<bool> ConfrontaLaSezioneAsync(Core.PdfAip.SezioneDelConfronto sezione)
+    {
+        if (StaConfrontando)
+            return false;
+        StaConfrontando = true;
+        SezioneDelConfronto = sezione;
+        RigaDelConfrontoScelta = null;
+        Avvisa();
+        try
+        {
+            if (StratoDellAip is null && !await MostraLAipAsync(true).ConfigureAwait(false))
+                return false;
+            bool fatto = sezione switch
+            {
+                Core.PdfAip.SezioneDelConfronto.Ctr => await ConfrontaAsync(Core.PdfAip.FamigliaDelConfronto.Ctr).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.Atz => await ConfrontaAsync(Core.PdfAip.FamigliaDelConfronto.Atz).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.AtzDelleTorri => await ConfrontaAsync(Core.PdfAip.FamigliaDelConfronto.AtzDelleTorri).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.AreeEnr5 => await ConfrontaAsync(Core.PdfAip.FamigliaDelConfronto.AreeEnr5).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.Rotte => await ConfrontaEnr3Async(rotte: true).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.Attese => await ConfrontaEnr3Async(rotte: false).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.Radioassistenze => await ConfrontaEnr4Async(radioassistenze: true).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.Punti => await ConfrontaEnr4Async(radioassistenze: false).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.Scali => await ConfrontaAd2Async(Core.PdfAip.ParteDiAd2.Scali).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.Piste => await ConfrontaAd2Async(Core.PdfAip.ParteDiAd2.Piste).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.Frequenze => await ConfrontaAd2Async(Core.PdfAip.ParteDiAd2.Frequenze).ConfigureAwait(false),
+                Core.PdfAip.SezioneDelConfronto.RadioassistenzeAd2 => await ConfrontaAd2Async(Core.PdfAip.ParteDiAd2.Radioassistenze).ConfigureAwait(false),
+                _ => await ConfrontaLeProcedureAsync().ConfigureAwait(false),
+            };
+            if (!fatto)
+                return false;
+            var righe = sezione switch
+            {
+                Core.PdfAip.SezioneDelConfronto.Ctr or Core.PdfAip.SezioneDelConfronto.Atz or Core.PdfAip.SezioneDelConfronto.AtzDelleTorri
+                    or Core.PdfAip.SezioneDelConfronto.AreeEnr5 => UltimoConfronto is { } f ? (f.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(f.Esiti)) : default,
+                Core.PdfAip.SezioneDelConfronto.Rotte or Core.PdfAip.SezioneDelConfronto.Attese =>
+                    UltimoConfrontoDiEnr3 is { } e3 ? (e3.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(e3.Esiti)) : default,
+                Core.PdfAip.SezioneDelConfronto.Radioassistenze or Core.PdfAip.SezioneDelConfronto.Punti =>
+                    UltimoConfrontoDiEnr4 is { } e4 ? (e4.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(e4.Esiti)) : default,
+                Core.PdfAip.SezioneDelConfronto.Procedure =>
+                    UltimoConfrontoDelleProcedure is { } p ? (p.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(p.Esiti)) : default,
+                _ => UltimoConfrontoDiAd2 is { } a2 ? (a2.Ciclo, Core.PdfAip.ConfrontiDelleSezioni.Da(a2.Esiti)) : default,
+            };
+            if (righe.Item1 is null)
+                return Rifiuta("Il confronto non ha dato righe.");
+            _confronti[sezione] = (righe.Item1, righe.Item2);
+            return true;
+        }
+        finally
+        {
+            StaConfrontando = false;
+            Avvisa();
+        }
+    }
+
+    /// <summary>Riapre una sezione già confrontata, con le sue righe di prima.</summary>
+    public void ApriLaSezioneDelConfronto(Core.PdfAip.SezioneDelConfronto sezione)
+    {
+        if (!_confronti.ContainsKey(sezione) || SezioneDelConfronto == sezione)
+            return;
+        SezioneDelConfronto = sezione;
+        RigaDelConfrontoScelta = null;
+        Avvisa();
+    }
+
+    /// <summary>
+    /// Sceglie una riga del Confronto: il record del sector nella Scheda e la voce dell'AIP nella sua, tutti e due sulla
+    /// mappa del Confronto, nei loro colori, inquadrati insieme (D18).
+    /// </summary>
+    public void ScegliLaRigaDelConfronto(int indice)
+    {
+        if (SezioneDelConfronto is not { } sezione || !_confronti.TryGetValue(sezione, out var confronto)
+            || indice < 0 || indice >= confronto.Righe.Count)
+            return;
+        var riga = confronto.Righe[indice];
+        RigaDelConfrontoScelta = indice;
+        (string File, int Record)? delSector = riga.File is { } file && riga.Record is { } record ? (file, record) : null;
+        if (delSector is { } s)
+            Scegli(s.File, s.Record);
+        else
+            Scelta = null;
+        int? voce = StratoDellAip is { } strato ? Core.PdfAip.ConfrontiDelleSezioni.VoceDelNome(strato.Voci, riga.Aip) : null;
+        SceltaDellAip = voce;
+        CoppiaDelConfronto = (delSector, voce is { } v && StratoDellAip is { } aip ? (aip.File, v) : null);
+        VersioneDellaCoppia++;
+        Avvisa();
     }
 
     /// <summary>Il modello da cui viene <see cref="StratoDellAip"/>: le voci dello strato hanno il suo ordine (prima le aree).</summary>

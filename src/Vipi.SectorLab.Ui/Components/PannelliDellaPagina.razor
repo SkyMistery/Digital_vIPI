@@ -68,6 +68,26 @@
         }
         break;
 
+    case PaginaDelLab.Confronti:
+        @* R6: le sezioni e le righe; accanto le due schede, del sector e dell'AIP, della riga scelta. *@
+        <aside class="lab-colonna lab-colonna-aip">
+            <ConfrontiVista />
+        </aside>
+        <div class="lab-divisore" data-divide="@($"{_p}aip")" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+        <aside class="lab-colonna lab-colonna-ispettore @(NellaFinestraDeiPannelli ? "lab-colonna-modifiche" : null)">
+            <Scheda />
+            @if (Lab.VoceDellAipScelta is not null)
+            {
+                <AipNellaScheda Voce="Lab.VoceDellAipScelta" Ciclo="@Lab.StratoDellAip?.Ciclo" Area="Lab.AreaDellAipScelta" Modello="Lab.VoceDelModelloScelta"
+                               Correzione="@(Lab.CorrezioneDellAreaScelta ?? Lab.CorrezioneDellaVoceScelta)" />
+            }
+        </aside>
+        @if (!NellaFinestraDeiPannelli)
+        {
+            <div class="lab-divisore" data-divide="ispettore" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+        }
+        break;
+
     case PaginaDelLab.Consegna:
         <PaginaDellaConsegna />
         break;

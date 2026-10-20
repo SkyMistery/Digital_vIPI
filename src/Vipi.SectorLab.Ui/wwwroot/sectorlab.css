@@ -85,6 +85,9 @@
     --lab-mare: var(--ivao-fuselage-100);
     --lab-evidenza: var(--ivao-artifice-dark);
     --lab-anteprima: var(--ivao-green-700);
+    /* R6 (D18): i due lati del Confronto, l'AIP e il sector. */
+    --lab-lato-aip: #c77a00;
+    --lab-lato-sector: #1f6fc4;
     --lab-anteprima-oggi: var(--ivao-fuselage-400);
 
     /* Un colore per strato della mappa: li leggono anche le caselle degli strati e sectorlab-mappa.js. */
@@ -140,6 +143,8 @@
         --lab-mare: var(--ivao-fuselage-950);
         --lab-evidenza: var(--ivao-artifice-light);
         --lab-anteprima: var(--ivao-green-400);
+        --lab-lato-aip: #f0a830;
+        --lab-lato-sector: #5aa8f5;
         --lab-anteprima-oggi: var(--ivao-fuselage-400);
         --lab-strato-sfondo: var(--ivao-fuselage-400);
         --lab-strato-geo: #c9a36b;
@@ -185,6 +190,8 @@
     --lab-mare: var(--ivao-fuselage-950);
     --lab-evidenza: var(--ivao-artifice-light);
     --lab-anteprima: var(--ivao-green-400);
+    --lab-lato-aip: #f0a830;
+    --lab-lato-sector: #5aa8f5;
     --lab-anteprima-oggi: var(--ivao-fuselage-400);
     --lab-strato-sfondo: var(--ivao-fuselage-400);
     --lab-strato-geo: #c9a36b;
@@ -2278,3 +2285,88 @@ body.lab-trascina * {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Riordino R6: lo spazio Confronti. I due lati nei colori della mappa: l'AIP tratteggiato, il sector pieno. */
+.lab-lato {
+    padding: 0 .3rem;
+    border-bottom: 2px solid currentColor;
+}
+
+.lab-lato-aip,
+.lab-lato-aip-testo {
+    color: var(--lab-lato-aip);
+}
+
+.lab-lato-aip {
+    border-bottom-style: dashed;
+}
+
+.lab-lato-sector,
+.lab-lato-sector-testo {
+    color: var(--lab-lato-sector);
+}
+
+.lab-confronti-sezioni {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    margin: .5rem 0;
+}
+
+.lab-confronti-parte {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem;
+}
+
+.lab-confronti-parte-nome {
+    min-width: 3.2rem;
+    font-weight: 600;
+}
+
+.lab-tasto.lab-tasto-scelto {
+    border-color: var(--lab-accento);
+    color: var(--lab-accento);
+    font-weight: 600;
+}
+
+.lab-confronti-filtri {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .2rem .7rem;
+    margin: .6rem 0 .3rem;
+}
+
+.lab-confronti-righe {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.lab-confronti-riga {
+    padding: .25rem .3rem;
+    border-bottom: 1px solid var(--lab-linea);
+}
+
+.lab-confronti-riga-scelta {
+    background: var(--lab-superficie);
+    outline: 1px solid var(--lab-accento);
+}
+
+.lab-confronti-dettagli {
+    display: block;
+    margin-left: 1.2rem;
+}
+
+.lab-confronti-esito {
+    display: inline-block;
+    min-width: 7.5rem;
+    font-weight: 600;
+}
+
+.lab-confronti-esito-uguale { color: var(--lab-tenue); }
+.lab-confronti-esito-formadiversa { color: var(--lab-evidenza); }
+.lab-confronti-esito-mancanelsector { color: var(--lab-lato-aip); }
+.lab-confronti-esito-solonelsector { color: var(--lab-lato-sector); }

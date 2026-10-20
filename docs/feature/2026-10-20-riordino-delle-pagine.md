@@ -422,9 +422,31 @@ ABADI, ADFAM e OSTEG nella stessa posizione e con lo stesso colore dei due lati.
 a cambiare, ed è materia del Confronti: ABADI e OSTEG il sector li segna fix di confine (FIX_BOUND, 658 punti così),
 l'AIP non lo dice; OST il sector lo scrive VOR (FIX_VOR), l'AIP VOR/DME (FIX_VORDME).
 
+**R6 fatta** (20 ottobre sera): lo spazio Confronti, in lettura (D17, D18).
+- `SezioneDelConfronto` (13: CTR, ATZ, ATZ delle torri, rotte, attese, radioassistenze e punti di ENR 4, aree di ENR 5,
+  scali, piste, frequenze, radioassistenze degli scali, SID e STAR) e `RigaDelConfronto` (esito, AIP, sector, file,
+  record, dettagli) in `ConfrontiDelleSezioni`: le righe dei cinque confronti di oggi portate a una forma sola. I
+  confronti sono quelli di F6/F7, gli stessi numeri (CTR sulla copia: 45 righe, 6 diverse).
+- Nella sessione `ConfrontaLaSezioneAsync` (carica da sé lo strato dell'AIP), `Confronti` (le righe di ogni sezione,
+  finché la cartella non cambia), `ScegliLaRigaDelConfronto`: sceglie il record del sector e la voce dell'AIP insieme
+  (`ConfrontiDelleSezioni.VoceDelNome`, 🟡 per nome: uguale, o che comincia col nome — «OST» → «OST VOR/DME»).
+- La pagina **Confronti** (`ConfrontiVista`) nel gruppo Confronti: le sezioni per parte dell'AIP con «N da guardare»,
+  la tabella della sezione aperta col filtro per esito (di base senza gli uguali), «Rifai»; accanto la Scheda del
+  sector e quella della voce dell'AIP. La pagina di prima resta come **«Lettura e gesti»** (PDF, lettura, consegna
+  dell'AIP, i gesti dei confronti) finché la R7 non sposta i gesti.
+- La mappa del Confronto (`dueLati`): l'AIP **arancio e tratteggiato**, il sector **blu e pieno** (`--lab-lato-aip`,
+  `--lab-lato-sector`, chiari e scuri), i simboli dei punti nel colore del lato, le coste come sono; la **coppia** della
+  riga scelta più spessa e inquadrata insieme.
+- Test: Lab 1 318 (+6: `ConfrontiDelleSezioniTests` 4, due in `ConfrontoDiEnr4Tests`; il numero delle linguette in
+  `PagineDelLabTests`). Sul banco (copia del sector, AIP di prova 2610): CTR 45 righe, 6 diverse; la riga di Amendola
+  apre «Amendola CTR Zona '1'» e «LIBA CTR» di `liba.str`, la mappa li mostra nei due colori; punti 130 righe, 98 da
+  guardare. Nessun errore nella console.
+- Da vedere col committente: con tutto l'AIP acceso la mappa del Confronto è piena; 🟡 proposta: aprendo una sezione,
+  sulla mappa solo i generi di quella sezione (dei due lati).
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
-(R4-R9). **R4 fatta** (tre mappe, un motore), **R5 fatta** (due lati, un disegno); prossima **R6** (lo spazio
-Confronti in lettura), dopo il via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
+(R4-R9). **R4 fatta** (tre mappe, un motore), **R5 fatta** (due lati, un disegno), **R6 fatta** (lo spazio Confronti in
+lettura); prossima **R7** (i gesti di oggi nel Confronti), dopo il via del committente. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

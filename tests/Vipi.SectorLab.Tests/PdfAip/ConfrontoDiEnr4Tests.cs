@@ -1,4 +1,6 @@
 using Aip;
+using Bunit;
+using Microsoft.Extensions.DependencyInjection;
 using Vipi.SectorLab.Core.PdfAip;
 using Vipi.SectorLab.Tests.Ui;
 using Vipi.SectorLab.Ui.Servizi;
@@ -242,5 +244,53 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         Assert.StartsWith("uso di ADFAM dall'AIP 2611", _lab.DaAnnullare, StringComparison.Ordinal);
         // Una riga senza «uso diverso» non si tocca.
         Assert.False(_lab.CorreggiLUso(["ABADI"]));
+    }
+
+    [Fact]
+    public async Task NelloSpazioConfronti_LaSezioneDeiPunti_ELaRigaSceltaSuiDueLati()
+    {
+        // Riordino R6: la sezione si confronta col confronto di oggi; una riga sceglie il record del sector e la voce dell'AIP.
+        await ApriAsync();
+
+        Assert.True(await _lab.ConfrontaLaSezioneAsync(SezioneDelConfronto.Punti), _lab.Rifiuto);
+
+        Assert.NotNull(_lab.StratoDellAip);   // caricato da sé: serve alla mappa e alla scheda della voce
+        var (ciclo, righe) = _lab.Confronti[SezioneDelConfronto.Punti];
+        Assert.Equal("2611", ciclo);
+        Assert.Equal(_lab.UltimoConfrontoDiEnr4!.Value.Esiti.Count, righe.Count);
+        int abadi = righe.ToList().FindIndex(r => r.Aip == "ABADI" && r.File is not null);
+        Assert.True(abadi >= 0);
+        int versione = _lab.VersioneDellaCoppia;
+
+        _lab.ScegliLaRigaDelConfronto(abadi);
+
+        Assert.Equal((righe[abadi].File!, righe[abadi].Record!.Value), _lab.Scelta);
+        Assert.Equal("ABADI", _lab.VoceDellAipScelta?.Titolo);
+        Assert.Equal(_lab.Scelta, _lab.CoppiaDelConfronto.Sector);
+        Assert.Equal((_lab.StratoDellAip!.File, _lab.SceltaDellAip!.Value), _lab.CoppiaDelConfronto.Aip);
+        Assert.True(_lab.VersioneDellaCoppia > versione);
+        Assert.Equal(abadi, _lab.RigaDelConfrontoScelta);
+    }
+
+    [Fact]
+    public async Task LaPaginaDeiConfronti_SezioniRigheEFiltri()
+    {
+        await ApriAsync();
+        using var contesto = new Bunit.TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.Services.AddSingleton(_lab);
+        var pagina = contesto.RenderComponent<Vipi.SectorLab.Ui.Components.ConfrontiVista>();
+        Assert.Equal(13, pagina.FindAll("[data-sezione]").Count);
+        Assert.NotNull(pagina.Find("[data-confronti-vuoto]"));
+
+        pagina.Find("[data-sezione='punti']").Click();
+
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-righe]")));
+        var tutte = _lab.Confronti[SezioneDelConfronto.Punti].Righe;
+        // Di base si vede quel che è da guardare; gli uguali si accendono dal filtro.
+        Assert.Equal(tutte.Count(r => r.Esito != EsitoDelConfronto.Uguale), pagina.FindAll("[data-riga]").Count);
+        pagina.Find("[data-filtro='Uguale']").Change(true);
+        pagina.WaitForAssertion(() => Assert.Equal(tutte.Count, pagina.FindAll("[data-riga]").Count));
+        Assert.NotNull(pagina.Find("[data-conti='punti']"));
     }
 }

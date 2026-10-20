@@ -1,0 +1,136 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+@using Vipi.SectorLab.Core.PdfAip
+
+@*
+    Lo spazio Confronti, in lettura (riordino R6, D17 e D18): le sezioni come nell'AIP, ognuna col suo confronto; per la
+    sezione aperta le righe uguale / diversa / manca / solo nel sector, filtrabili; una riga scelta mette sulla mappa del
+    Confronto il record del sector e la voce dell'AIP, nei loro colori. I gesti (Porta, Sostituisci…) arrivano con la R7:
+    fino ad allora stanno in «Lettura e gesti».
+*@
+<section class="lab-riquadro lab-confronti" data-confronti>
+    <h2 class="lab-riquadro-titolo">Confronti <span class="lab-nota">AIP espanso @(Lab.StratoDellAip?.Ciclo ?? "") ↔ sector</span></h2>
+    <p class="lab-nota">Sulla mappa l'AIP è <span class="lab-lato lab-lato-aip">tratteggiato</span>, il sector
+        <span class="lab-lato lab-lato-sector">pieno</span>: si accendono dalle caselle degli strati.</p>
+
+    <div class="lab-confronti-sezioni" data-sezioni>
+        @foreach (var parte in Enum.GetValues<SezioneDelConfronto>().GroupBy(ConfrontiDelleSezioni.Parte))
+        {
+            <div class="lab-confronti-parte">
+                <span class="lab-nota lab-confronti-parte-nome">@parte.Key</span>
+                @foreach (var sezione in parte)
+                {
+                    var questa = sezione;
+                    bool fatta = Lab.Confronti.TryGetValue(questa, out var confronto);
+                    <button type="button" class="lab-tasto lab-tasto-tenue @(Lab.SezioneDelConfronto == questa ? "lab-tasto-scelto" : null)"
+                            data-sezione="@questa.ToString().ToLowerInvariant()" disabled="@(Lab.StaConfrontando || Lab.Sessione is null)"
+                            title="@(fatta ? "Riapre la sezione; per rifare il confronto, «Rifai»" : "Confronta l'AIP espanso col sector in questa sezione (in sola lettura)")"
+                            @onclick="() => Apri(questa)">
+                        @ConfrontiDelleSezioni.Nome(questa)
+                        @if (fatta)
+                        {
+                            var conti = ConfrontiDelleSezioni.Conteggi(confronto.Righe);
+                            <span class="lab-nota" data-conti="@questa.ToString().ToLowerInvariant()">@(conti[EsitoDelConfronto.FormaDiversa] + conti[EsitoDelConfronto.MancaNelSector] + conti[EsitoDelConfronto.SoloNelSector]) da guardare</span>
+                        }
+                    </button>
+                }
+            </div>
+        }
+    </div>
+
+    @if (Lab.StaConfrontando)
+    {
+        <p class="lab-nota" data-confrontando>Confronto…</p>
+    }
+    @if (_rifiuto is not null)
+    {
+        <p class="lab-avviso-breve" data-confronto-rifiutato>@_rifiuto</p>
+    }
+
+    @if (Lab.SezioneDelConfronto is { } aperta && Lab.Confronti.TryGetValue(aperta, out var aperto))
+    {
+        var conti = ConfrontiDelleSezioni.Conteggi(aperto.Righe);
+        <div class="lab-confronti-filtri" data-filtri>
+            <strong>@ConfrontiDelleSezioni.Nome(aperta)</strong> <span class="lab-nota">ciclo @aperto.Ciclo</span>
+            @foreach (var esito in Enum.GetValues<EsitoDelConfronto>())
+            {
+                var questo = esito;
+                <label class="lab-strato">
+                    <input type="checkbox" checked="@_filtro.Contains(questo)" data-filtro="@questo"
+                           @onchange="e => Filtra(questo, e.Value is true)" />
+                    <span class="lab-confronti-esito lab-confronti-esito-@questo.ToString().ToLowerInvariant()">@Esito(questo)</span>
+                    <span class="lab-nota">@conti[questo]</span>
+                </label>
+            }
+            <button type="button" class="lab-annulla" data-tasto="rifai-confronto" disabled="@Lab.StaConfrontando"
+                    title="Rifà il confronto della sezione sul sector e sull'AIP espanso di adesso" @onclick="() => Rifai(aperta)">Rifai</button>
+        </div>
+
+        <ul class="lab-confronti-righe" data-righe="@aperto.Righe.Count">
+            @for (int i = 0; i < aperto.Righe.Count; i++)
+            {
+                var indice = i;
+                var riga = aperto.Righe[i];
+                if (!_filtro.Contains(riga.Esito))
+                    continue;
+                <li class="lab-confronti-riga @(Lab.RigaDelConfrontoScelta == indice ? "lab-confronti-riga-scelta" : null)" data-riga="@indice" data-esito="@riga.Esito">
+                    <button type="button" class="lab-voce" title="Mostra le due voci sulla mappa e nelle schede" @onclick="() => Lab.ScegliLaRigaDelConfronto(indice)">
+                        <span class="lab-confronti-esito lab-confronti-esito-@riga.Esito.ToString().ToLowerInvariant()">@Esito(riga.Esito)</span>
+                        <span class="lab-lato-aip-testo">@(riga.Aip ?? "—")</span> ↔ <span class="lab-lato-sector-testo">@(riga.Sector ?? "—")</span>
+                    </button>
+                    @if (riga.Dettagli.Count > 0)
+                    {
+                        <span class="lab-nota lab-confronti-dettagli">@string.Join(" · ", riga.Dettagli)</span>
+                    }
+                </li>
+            }
+        </ul>
+    }
+    else if (!Lab.StaConfrontando)
+    {
+        <p class="lab-nota" data-confronti-vuoto>Scegli una sezione: il Lab confronta l'AIP espanso col sector aperto, senza toccare niente.</p>
+    }
+</section>
+
+@code {
+    private string? _rifiuto;
+
+    // Di base si vede quel che è da guardare; gli uguali si accendono a richiesta.
+    private readonly HashSet<EsitoDelConfronto> _filtro = [EsitoDelConfronto.FormaDiversa, EsitoDelConfronto.MancaNelSector, EsitoDelConfronto.SoloNelSector];
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private async Task Apri(SezioneDelConfronto sezione)
+    {
+        if (Lab.Confronti.ContainsKey(sezione))
+        {
+            Lab.ApriLaSezioneDelConfronto(sezione);
+            return;
+        }
+        await Rifai(sezione);
+    }
+
+    private async Task Rifai(SezioneDelConfronto sezione) =>
+        _rifiuto = await Lab.ConfrontaLaSezioneAsync(sezione) ? null : Lab.Rifiuto;
+
+    private void Filtra(EsitoDelConfronto esito, bool acceso)
+    {
+        if (acceso)
+            _filtro.Add(esito);
+        else
+            _filtro.Remove(esito);
+    }
+
+    private static string Esito(EsitoDelConfronto e) => e switch
+    {
+        EsitoDelConfronto.Uguale => "uguale",
+        EsitoDelConfronto.FormaDiversa => "diversa",
+        EsitoDelConfronto.MancaNelSector => "manca nel sector",
+        EsitoDelConfronto.SoloNelSector => "solo nel sector",
+        _ => e.ToString(),
+    };
+}

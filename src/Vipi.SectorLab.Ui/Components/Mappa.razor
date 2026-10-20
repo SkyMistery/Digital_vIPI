@@ -44,6 +44,9 @@
         if (!primo) return;
         _riferimento = DotNetObjectReference.Create(this);
         _creata = await Js.InvokeAsync<bool>("sectorlab.mappa.crea", Elemento, _riferimento);
+        // R6 (D18): la mappa del Confronto mostra i due lati in due colori fissi.
+        if (_creata && Spazio is SpazioDiLavoro.Confronti)
+            await Js.InvokeVoidAsync("sectorlab.mappa.dueLati", true, Elemento);
         await InFila();
     }
 
@@ -149,6 +152,7 @@
         {
             _evidenziata = sceltaQui;
             _inquadrature = Lab.Inquadrature;
+            _evidenziataRifatta = true;
             // Si inquadra solo se la scelta NON viene dalla mappa: chi ha appena cliccato una forma non vuole che
             // la mappa gli salti sotto il dito. Dopo una modifica del record scelto la mappa lo segue dov'è ora.
             bool segue = ridisegnato && _evidenziata is { } scelta && scelta.File == Lab.FileRifatto;
@@ -156,7 +160,24 @@
                                        !_dalClic && (richiesta || segue), Elemento);
             _dalClic = false;
         }
+
+        // R6 (D18): la coppia della riga del Confronto, dopo l'evidenza (che ha lo stile di una sola forma). Si rifà anche
+        // quando gli strati arrivano o cambiano: le forme di prima non ci sono più. Si inquadra solo a una scelta nuova.
+        if (Spazio is SpazioDiLavoro.Confronti
+            && (_versioneDellaCoppia != Lab.VersioneDellaCoppia || ridisegnato || daAccendere.Count > 0 || _evidenziataRifatta))
+        {
+            bool nuova = _versioneDellaCoppia != Lab.VersioneDellaCoppia;
+            _versioneDellaCoppia = Lab.VersioneDellaCoppia;
+            var (sector, aip) = Lab.CoppiaDelConfronto;
+            await Js.InvokeAsync<int>("sectorlab.mappa.coppia", sector?.File, sector?.Record ?? 0, aip?.File, aip?.Record ?? 0, nuova, Elemento);
+        }
+        _evidenziataRifatta = false;
     }
+
+    private int _versioneDellaCoppia;
+
+    // L'evidenza appena rifatta ha ridato lo stile alla sua forma: se è della coppia, la coppia si rimette.
+    private bool _evidenziataRifatta;
 
     private void Aggiorna() => _ = InvokeAsync(InFila);
 
