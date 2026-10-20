@@ -6245,6 +6245,55 @@ public sealed class SessioneDelLab
         return await ApriAsync(cartella, annulla).ConfigureAwait(false);
     }
 
+    /// <summary>A che punto è «Prepara tutto» (il primo avvio), per la schermata d'apertura; null quando non lavora.</summary>
+    public string? PassoDelPrimoAvvio { get; private set; }
+
+    /// <summary>
+    /// Il primo avvio (<see cref="Core.Git.PrimoAvvio"/>): nella cartella di lavoro prende il sector da
+    /// <see cref="IndirizzoDelSector"/> e l'AIP espanso da <see cref="IndirizzoDellAipEspanso"/>, crea la cartella dei PDF,
+    /// le mette nelle impostazioni e apre il sector. Falso, col perché in <see cref="Errore"/>, se non è andata.
+    /// </summary>
+    public async Task<bool> PreparaIlPrimoAvvioAsync(string? lavoro, CancellationToken annulla = default)
+    {
+        if (StaPrendendo)
+            return false;
+        StaPrendendo = true;
+        Errore = null;
+        Avvisa();
+        Core.Git.PrimoAvvio.Cartelle? cartelle;
+        string? perche;
+        try
+        {
+            (cartelle, perche) = await Core.Git.PrimoAvvio.PreparaAsync(Git, lavoro ?? "", IndirizzoDelSector, IndirizzoDellAipEspanso,
+                passo => { PassoDelPrimoAvvio = passo; Avvisa(); }, annulla).ConfigureAwait(false);
+            Registro.Scrivi("git", $"primo avvio in {lavoro} (sector {IndirizzoDelSector}, AIP {IndirizzoDellAipEspanso}): {perche ?? "fatto"}");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            (cartelle, perche) = (null, e.Message);
+            Registro.Errore("git", e);
+        }
+        finally
+        {
+            StaPrendendo = false;
+            PassoDelPrimoAvvio = null;
+        }
+
+        if (cartelle is null)
+        {
+            Errore = perche;
+            Avvisa();
+            return false;
+        }
+
+        CambiaLaCartellaDeiPdf(cartelle.Pdf);
+        CambiaLAipEspanso(cartelle.AipEspanso);
+        if (!await ApriAsync(cartelle.Sector, annulla).ConfigureAwait(false))
+            return false;
+        await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
+        return true;
+    }
+
     private string FileDelleConfigurazioni => Path.Combine(_cartellaDeiDati, "nomi-delle-configurazioni.txt");
 
     private string? _modelloDelleConfigurazioni;

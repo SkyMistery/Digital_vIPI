@@ -140,9 +140,58 @@
 }
 else
 {
+    bool primoAvvio = Lab.SectorRecenti().Count == 0;
     <main class="lab-vuoto">
         <h1>Aurora Sector Lab</h1>
-        <p>Apri la cartella del clone del sector: quella che contiene <code>SectorFiles/</code>.</p>
+        @* Il primo avvio (20 ottobre): tutto in un posto solo — i due link, una cartella di lavoro, un tasto. *@
+        @if (primoAvvio)
+        {
+            <section class="lab-primo-avvio" data-primo-avvio>
+                <h2>Primo avvio</h2>
+                <p class="lab-nota">Incolla i link dei due repo (anche copiati dal browser) e scegli una cartella di lavoro: il Lab
+                    ci prende il sector e l'AIP espanso e crea la cartella dove mettere i PDF dell'AIP Italia.</p>
+                <label class="lab-campo-in-colonna">
+                    <span class="lab-nota">Repo del sector</span>
+                    <input type="text" class="lab-campo-largo" value="@Lab.IndirizzoDelSector" @onchange="e => Lab.CambiaLIndirizzoDelSector(e.Value?.ToString())"
+                           disabled="@Lab.StaPrendendo" data-campo="primo-indirizzo-del-sector" />
+                </label>
+                <label class="lab-campo-in-colonna">
+                    <span class="lab-nota">Repo dell'AIP espanso</span>
+                    <input type="text" class="lab-campo-largo" value="@Lab.IndirizzoDellAipEspanso" @onchange="e => Lab.CambiaLIndirizzoDellAipEspanso(e.Value?.ToString())"
+                           disabled="@Lab.StaPrendendo" data-campo="primo-indirizzo-aip" />
+                </label>
+                <label class="lab-campo-in-colonna">
+                    <span class="lab-nota">Cartella di lavoro</span>
+                    <span class="lab-apri lab-apri-stretta">
+                        <input type="text" @bind="_lavoro" @bind:event="oninput" placeholder="D:\IVAO"
+                               disabled="@Lab.StaPrendendo" data-campo="cartella-di-lavoro" />
+                        @if (Lab.ScegliCartella is not null)
+                        {
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-lavoro" disabled="@Lab.StaPrendendo"
+                                    title="Sceglie (o crea) la cartella di lavoro in Esplora risorse" @onclick="SfogliaLavoro">Sfoglia…</button>
+                        }
+                        <button type="button" class="lab-tasto" @onclick="Prepara" data-tasto="prepara-tutto"
+                                disabled="@(Lab.StaPrendendo || Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_lavoro))">Prepara tutto</button>
+                    </span>
+                </label>
+                @if (!string.IsNullOrWhiteSpace(_lavoro) && Path.IsPathFullyQualified(_lavoro.Trim()))
+                {
+                    var cartelle = Vipi.SectorLab.Core.Git.PrimoAvvio.CartelleDi(_lavoro);
+                    <ul class="lab-nota" data-cartelle-del-primo-avvio>
+                        <li><code>@cartelle.Sector</code> — il sector</li>
+                        <li><code>@cartelle.AipEspanso</code> — l'AIP espanso</li>
+                        <li><code>@cartelle.Pdf</code> — i PDF dell'AIP Italia (li scarichi tu da ENAV)</li>
+                    </ul>
+                }
+                <p class="lab-nota">Le credenziali di GitHub non servono per un repo pubblico; per uno privato, e per mandare, le
+                    chiederà git, nella sua finestra.</p>
+            </section>
+            <p>Hai già il sector su questo PC? Apri la cartella del clone: quella che contiene <code>SectorFiles/</code>.</p>
+        }
+        else
+        {
+            <p>Apri la cartella del clone del sector: quella che contiene <code>SectorFiles/</code>.</p>
+        }
         <div class="lab-apri">
             <input type="text" @bind="_percorso" @bind:event="oninput" placeholder="D:\…\it-aurora-sector"
                    disabled="@(Lab.Stato is StatoDelLab.InApertura)" data-campo="cartella" />
@@ -174,8 +223,10 @@ else
         }
 
         @* Carta F4, slice 2: chi non ha il sector lo prende dal repo, solo SectorFiles (pochi secondi, pochi mega). *@
-        @* Al primo avvio (nessun sector aperto prima) è la prima cosa da fare: la tendina è già aperta. *@
-        <details class="lab-prendi" data-prendi open="@(Lab.SectorRecenti().Count == 0)">
+        @* Al primo avvio c'è «Prepara tutto», qui sopra; dopo, un altro sector (il ciclo dopo, una prova) si prende da qui. *@
+        @if (!primoAvvio)
+        {
+        <details class="lab-prendi" data-prendi>
             <summary>Non hai il sector? Prendilo dal repo</summary>
             <label class="lab-campo-in-colonna">
                 <span class="lab-nota">Dal repo (il link di GitHub, anche copiato dal browser)</span>
@@ -200,10 +251,11 @@ else
                 cronologia di Aurora: qualche secondo. Le credenziali di GitHub non servono per prendere un repo pubblico;
                 per uno privato, e per mandare, le chiederà git, nella sua finestra.</p>
         </details>
+        }
 
         @if (Lab.StaPrendendo)
         {
-            <p class="lab-nota" data-stato="prendo">Prendo il sector dal repo…</p>
+            <p class="lab-nota" data-stato="prendo">@(Lab.PassoDelPrimoAvvio ?? "Prendo il sector dal repo…")</p>
         }
         else if (Lab.Stato is StatoDelLab.InApertura)
         {
@@ -233,8 +285,17 @@ else
     private bool _interattivo;
     private string? _percorso;
     private string? _dovePrendere;
+    private string? _lavoro;
 
     private Task Prendi() => Lab.PrendiIlSectorAsync(_dovePrendere);
+
+    private Task Prepara() => Lab.PreparaIlPrimoAvvioAsync(_lavoro);
+
+    private async Task SfogliaLavoro()
+    {
+        if (await Lab.ScegliCartella!("La cartella di lavoro del Lab: dentro il sector, l'AIP espanso e i PDF", _lavoro) is { } scelta)
+            _lavoro = scelta;
+    }
 
     private void ScegliSchema(ChangeEventArgs e)
     {

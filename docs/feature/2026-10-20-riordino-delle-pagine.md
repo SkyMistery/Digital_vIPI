@@ -237,6 +237,17 @@ dati vuoti: la tendina aperta, il sector aperto, il campo «Dal repo» dell'AIP.
 banco no (il cancello ferma GitHub nel browser): i suoi comandi git, lanciati a mano sul repo di prova, prendono
 `SectorFiles` in 2,6 s (18 MB) e saltano `ColorSchemes`, che quel repo non ha.
 
+**Primo avvio in un posto solo** (20 ottobre sera, committente: «così so che è tutto in un posto solo, e all'avvio deve
+creare anche una cartella per mettere i pdf presi dall'AIP italia»). Senza sector aperti prima, la schermata d'apertura
+ha il riquadro **«Primo avvio»**: i due link (sector, AIP espanso), la **cartella di lavoro**, l'elenco delle tre
+cartelle che il Lab ci mette (`sector`, `aip-espanso`, `pdf-aip`) e **«Prepara tutto»**, che prende i due repo, crea la
+cartella dei PDF, le scrive nelle impostazioni e apre il sector; sotto, «Hai già il sector?» con «Apri». Dopo il primo
+sector «Prendilo dal repo» torna com'era (per il ciclo dopo, una prova). Si può rifare: un repo già preso in quella
+cartella si salta, così un passo fallito (rete, credenziali) si riprova senza ricominciare (`Core.Git.PrimoAvvio`,
+`SessioneDelLab.PreparaIlPrimoAvvioAsync`). Test: Lab 1 295 (+4: `PrimoAvvioCoreTests` 3, `PrimoAvvioTests` +1). A
+schermo sul banco con dati vuoti, coi due link puntati a un clone locale del repo di prova (GitHub nel browser no):
+le tre cartelle, le impostazioni scritte, il sector aperto.
+
 **Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
 R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due
 consegne, con ramo ed età del repo dell'AIP e la rilettura dello strato), R6 (Testo), R7 (Scheda), R8 (verbi).

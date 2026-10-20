@@ -1,13 +1,14 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
+using Vipi.SectorLab.Tests.Git;
 using Vipi.SectorLab.Ui.Components.Pages;
 using Vipi.SectorLab.Ui.Servizi;
 
 namespace Vipi.SectorLab.Tests.Ui;
 
 /// <summary>
-/// Il primo avvio di un AOD (20 ottobre): senza sector aperti prima, «Prendilo dal repo» è già aperto, e il link del
-/// repo si incolla com'è dal browser.
+/// Il primo avvio di un AOD (20 ottobre): senza sector aperti prima, la schermata d'apertura ha «Primo avvio» coi due
+/// link e la cartella di lavoro; dopo, «Prendilo dal repo» come prima. I link si incollano com'è dal browser.
 /// </summary>
 public sealed class PrimoAvvioTests : IDisposable
 {
@@ -24,20 +25,53 @@ public sealed class PrimoAvvioTests : IDisposable
     }
 
     [Fact]
-    public async Task PrendiloDalRepoEApertoSoloAlPrimoAvvio()
+    public async Task PrimoAvvioSoloSeNonSiEMaiApertoNiente()
     {
         var primo = new SessioneDelLab(Dati);
         _contesto.Services.AddSingleton(primo);
         var pagina = _contesto.RenderComponent<Home>();
-        Assert.True(pagina.Find("[data-prendi]").HasAttribute("open"));
+        Assert.NotEmpty(pagina.FindAll("[data-primo-avvio]"));
+        Assert.Empty(pagina.FindAll("[data-prendi]"));
+
+        string lavoro = Path.Combine(_albero.Radice, "IVAO");
+        pagina.Find("[data-campo='cartella-di-lavoro']").Input(lavoro);
+        Assert.Contains(Path.Combine(lavoro, "pdf-aip"), pagina.Find("[data-cartelle-del-primo-avvio]").TextContent, StringComparison.Ordinal);
 
         Assert.True(await primo.ApriAsync(_albero.Radice));
 
         using var dopo = new TestContext();
         dopo.JSInterop.Mode = JSRuntimeMode.Loose;
-        var secondo = new SessioneDelLab(Dati);
-        dopo.Services.AddSingleton(secondo);
-        Assert.False(dopo.RenderComponent<Home>().Find("[data-prendi]").HasAttribute("open"));
+        dopo.Services.AddSingleton(new SessioneDelLab(Dati));
+        var seconda = dopo.RenderComponent<Home>();
+        Assert.Empty(seconda.FindAll("[data-primo-avvio]"));
+        Assert.NotEmpty(seconda.FindAll("[data-prendi]"));
+    }
+
+    [Fact]
+    public async Task PreparaTuttoMetteLeImpostazioniEApreIlSector()
+    {
+        // Sul server va un sector che si apre: quello dell'albero di prova (il repo di prova da solo non ha l'.isc).
+        using var repo = new RepoDiProva();
+        string sectorFiles = Path.Combine(_albero.Radice, "SectorFiles");
+        foreach (string file in Directory.EnumerateFiles(sectorFiles, "*", SearchOption.AllDirectories))
+        {
+            string relativo = Path.GetRelativePath(_albero.Radice, file).Replace(Path.DirectorySeparatorChar, '/');
+            repo.Scrivi(relativo, File.ReadAllText(file));
+        }
+        repo.Esegui(repo.Lavoro, "add", "--", "SectorFiles");
+        repo.Esegui(repo.Lavoro, "commit", "--quiet", "-m", "il sector dell'albero di prova");
+        repo.Esegui(repo.Lavoro, "push", "--quiet");
+        var lab = new SessioneDelLab(Dati);
+        lab.CambiaLIndirizzoDelSector(repo.Server);
+        lab.CambiaLIndirizzoDellAipEspanso(repo.Server);
+        string lavoro = Path.Combine(_albero.Radice, "IVAO");
+
+        Assert.True(await lab.PreparaIlPrimoAvvioAsync(lavoro), lab.Errore);
+
+        Assert.Equal(Path.Combine(lavoro, "pdf-aip"), lab.CartellaDeiPdf);
+        Assert.Equal(Path.Combine(lavoro, "aip-espanso"), lab.CartellaDellAipEspanso);
+        Assert.Equal(StatoDelLab.Aperta, lab.Stato);
+        Assert.Null(lab.PassoDelPrimoAvvio);
     }
 
     [Fact]

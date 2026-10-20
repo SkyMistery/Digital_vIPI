@@ -2102,6 +2102,26 @@ body.lab-trascina * {
     margin: 1rem 0;
 }
 
+/* Il primo avvio: i due link e la cartella di lavoro, in un riquadro solo. */
+.lab-primo-avvio {
+    margin: 1rem 0 1.4rem;
+    padding: .9rem 1rem .3rem;
+    background: var(--lab-superficie);
+    border: 1px solid var(--lab-accento);
+    border-radius: 8px;
+}
+
+.lab-primo-avvio h2 {
+    margin: 0 0 .4rem;
+    font-size: 1rem;
+    color: var(--lab-accento);
+}
+
+.lab-primo-avvio ul {
+    margin: 0 0 .7rem;
+    padding-left: 1.2rem;
+}
+
 .lab-prendi > summary {
     cursor: pointer;
     color: var(--lab-accento);
