@@ -1845,27 +1845,91 @@ public sealed class SessioneDelLab
     /// problemi nuovi, «Salva». Si cambiano solo le righe toccate (<see cref="Core.Testo.RigheCambiate"/>). Le righe dei
     /// metadati <c>//@</c> sono bloccate (D13): si cambiano solo con <paramref name="metadatiSbloccati"/>, e allora il file
     /// riletto deve avere i tag validi come prima.
+    /// <para>T2 (D13, «cancellare a mano un record che ha metadati chiede prima»): se il testo non ha più un record che aveva
+    /// i metadati, si rifiuta finché l'AOD non dice <paramref name="togliAncheIMetadati"/>; allora si tolgono anche i suoi
+    /// tag (la dichiarazione e il suo blocco), anche con i metadati bloccati.</para>
     /// </summary>
-    public bool ApplicaIlTesto(string fileRelativo, string testo, bool metadatiSbloccati)
+    public bool ApplicaIlTesto(string fileRelativo, string testo, bool metadatiSbloccati, bool togliAncheIMetadati = false)
     {
         ArgumentNullException.ThrowIfNull(testo);
         if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord)
             return Rifiuta("Questo file il motore non lo interpreta: nel Testo si guarda soltanto.");
         var prima = RigheDiAdesso(fileRelativo);
-        var dopo = testo.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n');
+        IReadOnlyList<string> dopo = RigheDelTesto(testo);
+        var tolti = Core.Testo.MetadatiNelTesto.Tolti(prima, dopo);
+        var primaSenza = prima;
+        if (tolti.Count > 0)
+        {
+            if (!togliAncheIMetadati)
+                return Rifiuta($"{string.Join(", ", tolti)}: {(tolti.Count == 1 ? "ha" : "hanno")} i metadati //@, che resterebbero senza record. «Togli anche i metadati», o rimetti le righe.");
+            dopo = Core.Testo.MetadatiNelTesto.SenzaIMetadatiDi(dopo, tolti);
+            primaSenza = Core.Testo.MetadatiNelTesto.SenzaIMetadatiDi(prima, tolti);
+        }
         static bool EUnTag(string riga) => Vipi.Sectorfile.IO.Metadati.EUnTag(riga.TrimStart());
         var sostituzioni = Core.Testo.RigheCambiate.Di(prima, dopo, EUnTag);
         if (sostituzioni.Count == 0)
             return Rifiuta("Il testo è quello del file: non c'è niente da applicare.");
-        // D13: bloccati, i tag devono essere gli stessi e nello stesso ordine (una riga nuova fra due tag va bene). Il
-        // motore poi rilegge il file e vuole i tag validi come prima, bloccati o no.
-        if (!metadatiSbloccati && !prima.Where(EUnTag).SequenceEqual(dopo.Where(EUnTag)))
+        // D13: bloccati, i tag devono essere gli stessi e nello stesso ordine (una riga nuova fra due tag va bene; quelli
+        // dei record tolti se ne vanno con loro). Il motore poi rilegge il file e vuole i tag validi come prima.
+        if (!metadatiSbloccati && !primaSenza.Where(EUnTag).SequenceEqual(dopo.Where(EUnTag)))
             return Rifiuta("Le righe //@ sono i metadati del Lab e sono bloccate: per cambiarle, «Sblocca i metadati».");
         bool tagBuoni = ((IFileConRecord)Sessione!.File[fileRelativo]).TagRotti() is null;
         return NellaStoria($"{NomeDelFile(fileRelativo)} scritto nel Testo",
             () => GestoSulTesto(fileRelativo, "testo", f => Modifiche.CambiaRighe(f, sostituzioni,
                 verifica: riletto => !tagBuoni || riletto.TagRotti() is not { } rotti ? null : $"Riletto, i metadati //@ non tornano: {rotti}",
                 anchiITag: true)));
+    }
+
+    private static string[] RigheDelTesto(string testo) =>
+        testo.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n');
+
+    /// <summary>
+    /// I record coi metadati che il testo scritto non ha più (T2, D13): la pagina lo chiede prima di «Applica». Vuoto se
+    /// non ce ne sono.
+    /// </summary>
+    public IReadOnlyList<string> RecordConMetadatiTolti(string fileRelativo, string testo)
+    {
+        ArgumentNullException.ThrowIfNull(testo);
+        return Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord
+            ? Core.Testo.MetadatiNelTesto.Tolti(RigheDiAdesso(fileRelativo), RigheDelTesto(testo))
+            : [];
+    }
+
+    /// <summary>Un problema del validatore su una riga del file aperto nel Testo (T2).</summary>
+    public sealed record ProblemaDelTesto(int Riga, Gravita Gravita, string Testo);
+
+    /// <summary>
+    /// I problemi del validatore sulle righe di un file, per il Testo (T2): quelli dell'albero se il file non ha modifiche
+    /// (i numeri di riga sono quelli del disco, che è com'è adesso); se le ha, quelli che le modifiche porterebbero, coi
+    /// numeri del file modificato (<paramref name="soloNuovi"/>): quelli di prima avrebbero le righe spostate.
+    /// </summary>
+    public IReadOnlyList<ProblemaDelTesto> ProblemiDelTesto(string fileRelativo, out bool soloNuovi)
+    {
+        soloNuovi = FileConModifiche.Contains(fileRelativo);
+        var problemi = soloNuovi ? ProblemiDelleModifiche : ProblemiDellAlbero;
+        return [.. problemi.Where(p => p.File == fileRelativo && p.Problema.Riga > 0)
+            .Select(p => new ProblemaDelTesto(p.Problema.Riga, p.Gravita, $"{p.Problema.Regola}: {p.Problema.Dettaglio}"))];
+    }
+
+    /// <summary>
+    /// Dove è dichiarato un nome (T2, Ctrl+clic nel Testo): il file del catalogo del master scelto e la riga del suo record
+    /// nel file com'è adesso. Null se il catalogo non lo conosce.
+    /// </summary>
+    public (string File, int Riga)? DefinizioneDi(string nome)
+    {
+        if (Sessione is not { } sessione || CatalogoScelto?.Cerca(nome) is not { } punto
+            || sessione.File.GetValueOrDefault(punto.File) is not IFileConRecord conRecord)
+            return null;
+        var posti = conRecord.PostiDeiRecord(Modifiche.SporchiDi(punto.File));
+        for (int i = 0; i < conRecord.RecordDelModello.Count && i < posti.Count; i++)
+        {
+            var r = conRecord.RecordDelModello[i];
+            var suo = OrdineAlfabetico.Nome(r) is { Length: > 0 } n ? n
+                : r is Vipi.Sectorfile.Models.AirportInfo a ? a.IcaoCode : Vipi.Sectorfile.IO.Metadati.NomeDelRecord(r);
+            if (string.Equals(suo?.Trim(), punto.Nome, StringComparison.OrdinalIgnoreCase))
+                return (punto.File, posti[i].Da + 1);
+        }
+        return (punto.File, 1);
     }
 
     /// <summary>

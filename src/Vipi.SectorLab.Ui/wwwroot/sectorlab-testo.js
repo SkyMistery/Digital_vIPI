@@ -1,7 +1,8 @@
 // La pagina Testo del Sector Lab (riordino, D12, D13): l'editor di un file del sector, CodeMirror 6 dal pacchetto in
 // vendor/codemirror (window.CM, niente rete). Il testo lo dà il server; «Applica» glielo rimanda e diventa una modifica
 // in sospeso come le altre. Le righe dei metadati (//@, //@@) sono bloccate finché l'AOD non le sblocca: una modifica
-// che le cambia, le toglie o ne aggiunge una non passa.
+// che le cambia, le toglie o ne aggiunge una non passa. T2: i problemi del validatore sul margine, i nomi del catalogo
+// mentre si scrive (Ctrl+Spazio per chiederli), Ctrl+clic su un nome per andare dove è dichiarato.
 (() => {
     "use strict";
     const editori = new Map();   // id dell'elemento → { view, bloccate, dotnet, sporco }
@@ -95,6 +96,38 @@
         ".cm-lab-tag": { backgroundColor: "var(--lab-fondo)" },
     });
 
+    // T2: i nomi del catalogo del master scelto, chiesti al server mentre si scrive (il catalogo ha migliaia di nomi).
+    function nomiDelCatalogo(id) {
+        return async contesto => {
+            const parola = contesto.matchBefore(/[A-Za-z0-9_]{2,}/);
+            if (!parola && !contesto.explicit) return null;
+            const e = editori.get(id);
+            if (!e?.dotnet) return null;
+            try {
+                const nomi = await e.dotnet.invokeMethodAsync("Suggerisci", parola?.text ?? "");
+                return { from: parola?.from ?? contesto.pos, options: nomi.map(n => ({ label: n.nome, detail: n.dove, type: "variable" })) };
+            } catch (errore) {
+                console.warn("sectorlabTesto: i nomi del catalogo non sono arrivati", errore);
+                return null;
+            }
+        };
+    }
+
+    // T2: Ctrl+clic su un nome: il server dice dov'è dichiarato e ci porta.
+    function ctrlClic(id) {
+        return CM.EditorView.domEventHandlers({
+            mousedown(evento, view) {
+                if (!(evento.ctrlKey || evento.metaKey)) return false;
+                const pos = view.posAtCoords({ x: evento.clientX, y: evento.clientY });
+                const parola = pos == null ? null : view.state.wordAt(pos);
+                if (!parola) return false;
+                evento.preventDefault();
+                editori.get(id)?.dotnet?.invokeMethodAsync("VaiAllaDefinizione", view.state.sliceDoc(parola.from, parola.to));
+                return true;
+            },
+        });
+    }
+
     function apri(id, testo, opzioni) {
         const elemento = document.getElementById(id);
         if (!elemento) return false;
@@ -108,8 +141,9 @@
                 extensions: [
                     CM.lineNumbers(), CM.highlightActiveLineGutter(), CM.highlightActiveLine(), CM.drawSelection(),
                     CM.history(), CM.search({ top: true }), CM.highlightSelectionMatches(),
-                    CM.keymap.of([...CM.defaultKeymap, ...CM.historyKeymap, ...CM.searchKeymap]),
+                    CM.keymap.of([...CM.completionKeymap, ...CM.defaultKeymap, ...CM.historyKeymap, ...CM.searchKeymap]),
                     linguaggio, CM.syntaxHighlighting(colori), tema, segnoDeiTag(id), filtroDeiTag(id),
+                    CM.lintGutter(), CM.autocompletion({ override: [nomiDelCatalogo(id)], activateOnTyping: true }), ctrlClic(id),
                     CM.EditorState.readOnly.of(!opzioni.modificabile),
                     CM.EditorView.updateListener.of(u => {
                         if (u.docChanged && !e.sporco && !e.ricaricando) {
@@ -163,5 +197,18 @@
         v.focus();
     }
 
-    window.sectorlabTesto = { apri, chiudi, testo, ricarica, sblocca, vaiAllaRiga };
+    // T2: i problemi del validatore sulle righe ({ riga, errore, testo }); una riga che non c'è più si salta.
+    function problemi(id, elenco) {
+        const v = editori.get(id)?.view;
+        if (!v) return;
+        const doc = v.state.doc;
+        const diagnosi = elenco.filter(p => p.riga >= 1 && p.riga <= doc.lines).map(p => {
+            const l = doc.line(p.riga);
+            return { from: l.from, to: l.to, severity: p.errore ? "error" : "warning", message: p.testo };
+        });
+        v.dispatch(CM.setDiagnostics(v.state, diagnosi));
+        v.dom.parentElement.dataset.problemi = String(diagnosi.length);
+    }
+
+    window.sectorlabTesto = { apri, chiudi, testo, ricarica, sblocca, vaiAllaRiga, problemi };
 })();

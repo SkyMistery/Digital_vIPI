@@ -7,6 +7,8 @@
     modifiche dei gesti comprese — in un editor (CodeMirror 6, sectorlab-testo.js, niente rete). «Applica» fa di quel che
     l'AOD ha scritto una modifica in sospeso come le altre (diff, Annulla, problemi nuovi, «Salva»). Le righe dei metadati
     //@ sono bloccate; si sbloccano con la casella, e allora il file riletto deve avere i tag validi come prima.
+    T2: i problemi del validatore sul margine dell'editor, i nomi del catalogo mentre si scrive, Ctrl+clic su un nome per
+    andare dove è dichiarato; cancellare un record che ha i metadati chiede prima (D13).
 *@
 <div class="lab-testo" data-pagina-testo>
     <aside class="lab-testo-albero" data-albero-del-testo>
@@ -47,9 +49,16 @@
                     </label>
                     <button type="button" class="lab-tasto" data-tasto="applica-testo" disabled="@(!_sporco || _cambiatoFuori)"
                             title="@(_cambiatoFuori ? "Il file è cambiato fuori dal Testo (un gesto, Annulla): «Scarta» per riprenderlo com'è adesso" : _sporco ? "Quel che hai scritto diventa una modifica in sospeso del file: nel diff, da annullare, da salvare come le altre" : "Non hai scritto niente")"
-                            @onclick="Applica">Applica</button>
+                            @onclick="() => Applica()">Applica</button>
                     <button type="button" class="lab-annulla" data-tasto="scarta-testo" disabled="@(!_sporco && !_cambiatoFuori)"
                             title="Torna al file com'è adesso, senza quel che hai scritto" @onclick="Scarta">Scarta</button>
+                }
+                @if (_problemi.Count > 0)
+                {
+                    <span class="lab-nota" data-problemi-del-testo="@_problemi.Count"
+                          title="@(_soloNuovi ? "Il file ha modifiche in sospeso: si vedono i problemi che porterebbero (quelli di prima avrebbero le righe spostate)" : "I problemi del validatore sul file com'è sul disco")">
+                        @Conta(_problemi.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore), "errore", "errori") · @Conta(_problemi.Count(p => p.Gravita != Vipi.Sectorfile.Validazione.Gravita.Errore), "avviso", "avvisi")@(_soloNuovi ? " nuovi" : "")
+                    </span>
                 }
             </header>
             @if (_perche is not null)
@@ -64,6 +73,17 @@
             @if (_messaggio is not null)
             {
                 <p class="lab-avviso-breve" data-testo-rifiutato>@_messaggio</p>
+            }
+            @if (_metadatiDaTogliere is { Count: > 0 } tolti)
+            {
+                @* D13: cancellare un record che ha i metadati chiede prima. *@
+                <div class="lab-avviso-breve" data-domanda-metadati>
+                    <p>@string.Join(", ", tolti) @(tolti.Count == 1 ? "ha" : "hanno") i metadati //@@ (note, blocchi): togliendo
+                        @(tolti.Count == 1 ? "la sua riga" : "le loro righe") resterebbero senza record.</p>
+                    <button type="button" class="lab-tasto" data-tasto="togli-anche-i-metadati"
+                            title="Applica il testo e togli anche i tag di questi record (la dichiarazione e il suo blocco)" @onclick="() => Applica(togliAncheIMetadati: true)">Togli anche i metadati</button>
+                    <button type="button" class="lab-annulla" data-tasto="lascia-stare-metadati" @onclick="() => _metadatiDaTogliere = null">Lascia stare</button>
+                </div>
             }
         }
         else
@@ -86,6 +106,11 @@
     private bool _sbloccati;
     private bool _cambiatoFuori;
     private string? _messaggio;
+    private IReadOnlyList<string>? _metadatiDaTogliere;
+    private IReadOnlyList<SessioneDelLab.ProblemaDelTesto> _problemi = [];
+    private bool _soloNuovi;
+    private string? _problemiMostrati;
+    private int? _rigaDaRaggiungere;
     private DotNetObjectReference<PaginaDelTesto>? _ref;
 
     private sealed record Cartella(string Nome, List<string> File);
@@ -105,6 +130,7 @@
         // Un gesto o un Annulla ha cambiato il file aperto: se non c'è niente di scritto si riprende da solo, se no si dice.
         if (Lab.FileDelTesto is { } f && f == _caricato && _modificabile)
         {
+            _ = MostraIProblemi();
             var adesso = string.Join("\n", Lab.RigheDiAdesso(f));
             if (adesso != _testoCaricato)
             {
@@ -121,6 +147,8 @@
     {
         if (Lab.FileDelTesto is not { } file || file == _caricato)
             return;
+        _problemiMostrati = null;
+        _metadatiDaTogliere = null;
         var righe = Lab.TestoDelFile(file, out _modificabile, out _perche) ?? [];
         _caricato = file;
         _testoCaricato = string.Join("\n", righe);
@@ -130,10 +158,77 @@
         _messaggio = null;
         _ref ??= DotNetObjectReference.Create(this);
         await Js.InvokeAsync<bool>("sectorlabTesto.apri", IdDellEditore, _testoCaricato, new { modificabile = _modificabile, dotnet = _ref });
+        await MostraIProblemi();
+        if (_rigaDaRaggiungere is { } riga)
+        {
+            _rigaDaRaggiungere = null;
+            await Js.InvokeVoidAsync("sectorlabTesto.vaiAllaRiga", IdDellEditore, riga);
+        }
         StateHasChanged();
     }
 
-    private void Apri(string file) => Lab.ApriNelTesto(file);
+    private static string Conta(int n, string uno, string piu) => $"{n} {(n == 1 ? uno : piu)}";
+
+    // Con del testo non applicato non si cambia file: andrebbe perso.
+    private bool PuoiCambiareFile()
+    {
+        if (!_sporco)
+            return true;
+        _messaggio = "Hai scritto senza applicare: prima «Applica» o «Scarta», se no quel testo si perde.";
+        return false;
+    }
+
+    private void Apri(string file)
+    {
+        if (file != _caricato && !PuoiCambiareFile())
+            return;
+        Lab.ApriNelTesto(file);
+    }
+
+    // T2: i problemi del file sul margine, quando cambiano. Con del testo scritto no: le righe del validatore sono quelle
+    // del file, e CodeMirror sposta da sé quelli già mostrati mentre si scrive.
+    private async Task MostraIProblemi()
+    {
+        if (_caricato is not { } file || _sporco)
+            return;
+        _problemi = Lab.ProblemiDelTesto(file, out _soloNuovi);
+        var firma = string.Join("|", _problemi.Select(p => $"{p.Riga}:{p.Testo}"));
+        if (firma == _problemiMostrati)
+            return;
+        _problemiMostrati = firma;
+        await Js.InvokeVoidAsync("sectorlabTesto.problemi", IdDellEditore,
+            _problemi.Select(p => new { riga = p.Riga, errore = p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore, testo = p.Testo }).ToList());
+    }
+
+    /// <summary>Un nome del catalogo proposto mentre si scrive: il nome e dove sta.</summary>
+    public sealed record NomeSuggerito(string Nome, string Dove);
+
+    [JSInvokable]
+    public IReadOnlyList<NomeSuggerito> Suggerisci(string testo) =>
+        [.. Lab.Suggerimenti(testo).Select(p => new NomeSuggerito(p.Nome, $"{p.Catalogo} · {Path.GetFileName(p.File)}"))];
+
+    [JSInvokable]
+    public Task VaiAllaDefinizione(string nome) => InvokeAsync(async () =>
+    {
+        if (Lab.DefinizioneDi(nome) is not var (file, riga))
+        {
+            _messaggio = $"«{nome}» non è nel catalogo del master scelto ({Lab.IscScelto}).";
+            StateHasChanged();
+            return;
+        }
+        if (file == _caricato)
+        {
+            await Js.InvokeVoidAsync("sectorlabTesto.vaiAllaRiga", IdDellEditore, riga);
+            return;
+        }
+        if (!PuoiCambiareFile())
+        {
+            StateHasChanged();
+            return;
+        }
+        _rigaDaRaggiungere = riga;
+        Lab.ApriNelTesto(file);
+    });
 
     [JSInvokable]
     public Task Cambiato(bool sporco) => InvokeAsync(() =>
@@ -155,11 +250,19 @@
         await Js.InvokeVoidAsync("sectorlabTesto.sblocca", IdDellEditore, _sbloccati);
     }
 
-    private async Task Applica()
+    private async Task Applica(bool togliAncheIMetadati = false)
     {
         if (Lab.FileDelTesto is not { } file || await Js.InvokeAsync<string?>("sectorlabTesto.testo", IdDellEditore) is not { } testo)
             return;
-        if (!Lab.ApplicaIlTesto(file, testo, _sbloccati))
+        // D13: un record coi metadati che il testo non ha più si chiede prima.
+        if (!togliAncheIMetadati && Lab.RecordConMetadatiTolti(file, testo) is { Count: > 0 } tolti)
+        {
+            _metadatiDaTogliere = tolti;
+            _messaggio = null;
+            return;
+        }
+        _metadatiDaTogliere = null;
+        if (!Lab.ApplicaIlTesto(file, testo, _sbloccati, togliAncheIMetadati))
         {
             _messaggio = Lab.Rifiuto;
             return;
@@ -176,7 +279,10 @@
         _testoCaricato = adesso;
         _sporco = false;
         _cambiatoFuori = false;
+        _metadatiDaTogliere = null;
         await Js.InvokeVoidAsync("sectorlabTesto.ricarica", IdDellEditore, adesso);
+        _problemiMostrati = null;
+        await MostraIProblemi();
         StateHasChanged();
     }
 

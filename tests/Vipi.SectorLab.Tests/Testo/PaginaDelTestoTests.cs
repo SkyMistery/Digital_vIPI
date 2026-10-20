@@ -88,6 +88,41 @@ public sealed class PaginaDelTestoTests : IDisposable
     }
 
     [Fact]
+    public async Task CancellareUnRecordCoiMetadati_ChiedePrima_ELiToglieConLui()
+    {
+        // T2, D13: senza la riga di AAAAA il suo blocco di tag resterebbe senza record.
+        await ApriAsync();
+        var senza = string.Join("\n", _lab.RigheDiAdesso(Apt).Where(r => !r.StartsWith("AAAAA;", StringComparison.Ordinal)));
+        Assert.Equal(["AAAAA"], _lab.RecordConMetadatiTolti(Apt, senza));
+
+        Assert.False(_lab.ApplicaIlTesto(Apt, senza, metadatiSbloccati: false));
+        Assert.Contains("AAAAA: ha i metadati", _lab.Rifiuto, StringComparison.Ordinal);
+        Assert.False(_lab.Modifiche.CEQualcosa);
+
+        Assert.True(_lab.ApplicaIlTesto(Apt, senza, metadatiSbloccati: false, togliAncheIMetadati: true), _lab.Rifiuto);
+        var righe = _lab.RigheDiAdesso(Apt);
+        Assert.DoesNotContain(righe, r => r.Contains("AAAAA", StringComparison.Ordinal));
+        Assert.Equal(["//prova", "//@\"BBBBB\" note=\"due\"", "//@START"], righe.Take(3));
+    }
+
+    [Fact]
+    public async Task LaDefinizioneDiUnNome_EIProblemiDelFile()
+    {
+        await ApriAsync();
+        // CCCCC sta in APT.fix, che ITALY.isc carica: alla riga 10.
+        Assert.Equal((Apt, 10), _lab.DefinizioneDi("ccccc"));
+        Assert.Null(_lab.DefinizioneDi("NESSUNO"));
+
+        // Senza modifiche i problemi dell'albero (coi numeri del disco); con le modifiche quelli nuovi.
+        var problemi = _lab.ProblemiDelTesto(Apt, out var soloNuovi);
+        Assert.False(soloNuovi);
+        Assert.Equal(_lab.ProblemiDellAlbero.Count(p => p.File == Apt && p.Problema.Riga > 0), problemi.Count);
+        Assert.True(_lab.ApplicaIlTesto(Apt, Testo((10, "CCCCC;N045.00.00.000;E010.30.00.000;3;")), false), _lab.Rifiuto);
+        _lab.ProblemiDelTesto(Apt, out soloNuovi);
+        Assert.True(soloNuovi);
+    }
+
+    [Fact]
     public async Task UnFileCheIlMotoreNonInterpreta_SiGuardaSoltanto()
     {
         await ApriAsync();
@@ -130,5 +165,45 @@ public sealed class PaginaDelTestoTests : IDisposable
         Assert.Contains(_lab.Modifiche.Voci, v => v.File == Apt);
         pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll($"[data-file-del-testo='{Apt}'] .lab-testo-toccato")));
         Assert.Empty(pagina.FindAll("[data-testo-rifiutato]"));
+    }
+
+    [Fact]
+    public async Task LaPagina_NomiDelCatalogo_CtrlClic_ELaDomandaSuiMetadati()
+    {
+        await ApriAsync();
+        using var contesto = new Bunit.TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.JSInterop.Setup<bool>("sectorlabTesto.apri", _ => true).SetResult(true);
+        var senza = string.Join("\n", _lab.RigheDiAdesso(Apt).Where(r => !r.StartsWith("AAAAA;", StringComparison.Ordinal)));
+        contesto.JSInterop.Setup<string?>("sectorlabTesto.testo", _ => true).SetResult(senza);
+        contesto.Services.AddSingleton(_lab);
+        var pagina = contesto.RenderComponent<PaginaDelTesto>();
+        pagina.Find($"[data-file-del-testo='{Apt}']").Click();
+        pagina.WaitForAssertion(() => Assert.Single(contesto.JSInterop.Invocations, i => i.Identifier == "sectorlabTesto.apri"));
+
+        // I nomi del catalogo mentre si scrive.
+        Assert.Contains(pagina.Instance.Suggerisci("CCC"), n => n.Nome == "CCCCC" && n.Dove.Contains("APT.fix", StringComparison.Ordinal));
+
+        // Ctrl+clic su un nome dello stesso file: si va alla riga.
+        await pagina.InvokeAsync(() => pagina.Instance.VaiAllaDefinizione("CCCCC"));
+        Assert.Contains(contesto.JSInterop.Invocations, i => i.Identifier == "sectorlabTesto.vaiAllaRiga" && Equals(i.Arguments[1], 10));
+        await pagina.InvokeAsync(() => pagina.Instance.VaiAllaDefinizione("NESSUNO"));
+        Assert.Contains("non è nel catalogo", pagina.Find("[data-testo-rifiutato]").TextContent, StringComparison.Ordinal);
+
+        // Con del testo scritto non si cambia file.
+        await pagina.InvokeAsync(() => pagina.Instance.Cambiato(true));
+        var altro = _lab.FileDelSector.First(f => f != Apt);
+        pagina.Find($"[data-file-del-testo='{altro}']").Click();
+        Assert.Equal(Apt, _lab.FileDelTesto);
+        Assert.Contains("prima «Applica» o «Scarta»", pagina.Find("[data-testo-rifiutato]").TextContent, StringComparison.Ordinal);
+
+        // «Applica» senza la riga di AAAAA: prima la domanda, poi «Togli anche i metadati».
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto='applica-testo']").Click());
+        Assert.Contains("AAAAA ha i metadati", pagina.Find("[data-domanda-metadati]").TextContent, StringComparison.Ordinal);
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto='togli-anche-i-metadati']").Click());
+        Assert.True(_lab.Modifiche.CEQualcosa);
+        Assert.DoesNotContain(_lab.RigheDiAdesso(Apt), r => r.Contains("AAAAA", StringComparison.Ordinal));
+        Assert.Empty(pagina.FindAll("[data-domanda-metadati]"));
     }
 }

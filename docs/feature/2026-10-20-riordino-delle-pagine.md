@@ -609,6 +609,26 @@ nel Testo», dal Testo alla mappa, dall'anteprima del Confronti al file).
   `//@"BC406"` → «Salva (1)», ● sul file; Annulla della barra → l'editor riprende il file da solo; sbloccati, la nota di
   un tag cambiata passa, un tag con le virgolette aperte si rifiuta («riga 10»). Tutto in memoria: la copia non è cambiata.
 
+**T2 fatta** (21 ottobre, «Vai con la T2»): quel che aiuta a scrivere.
+- **I problemi del validatore sul margine** (il lint di CodeMirror), errore o avviso, col testo della regola; in testata
+  «1 errore · 90 avvisi». Senza modifiche sul file sono quelli dell'albero (le righe del disco sono quelle di adesso); con
+  modifiche, quelli che le modifiche porterebbero («nuovi»): quelli di prima avrebbero le righe spostate. Mentre si scrive
+  CodeMirror sposta da sé quelli già mostrati; si rifanno dopo «Applica», «Scarta» o un gesto.
+- **I nomi del catalogo** del master scelto mentre si scrive (due lettere, o Ctrl+Spazio), chiesti al server come nella
+  scheda (`Suggerimenti`: prima chi comincia così, poi chi lo contiene), col genere e il file accanto.
+- **Ctrl+clic su un nome**: dove è dichiarato (`DefinizioneDi`: il file del catalogo e la riga del suo record nel file
+  com'è adesso); nello stesso file ci si va, in un altro file lo si apre lì. Un nome che il catalogo non conosce si dice.
+- **Con del testo non applicato non si cambia file** (né dall'albero né col Ctrl+clic): «prima Applica o Scarta».
+- **Cancellare un record che ha i metadati chiede prima** (D13): se il testo non ha più il nome di un record dichiarato
+  da un `//@"…"` (`MetadatiNelTesto`: il nome non è più un campo di nessuna riga di dati), «Applica» non scrive e chiede
+  «BC404 ha i metadati…: Togli anche i metadati / Lascia stare». Togliendoli se ne vanno la dichiarazione e il suo blocco
+  (`//@START`, `//@END "BC404"`), anche coi metadati bloccati; gli altri tag restano.
+- Test: Lab 1 353 (+13: i nomi dichiarati in otto forme, i tolti, il testo senza i loro tag; cancellare chiede e toglie;
+  la definizione e i problemi; la pagina coi nomi, il Ctrl+clic, la guardia e la domanda). Sul banco: `itfix.fix` «1
+  errore · 90 avvisi» sul margine; Ctrl+clic su TOP in `itawlow.lairway` → `itvor.vor` riga 63; scrivendo «AMS» → AMSED,
+  AMSOR (fix, `itfix.fix`); cambiare file con del testo scritto → la guardia; in `APT.fix` tolta la riga di BC404 → la
+  domanda, poi il blocco tolto e «Salva (1)». In memoria: la copia non è cambiata.
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
@@ -617,6 +637,7 @@ lettura) col ritocco «solo la sezione sulla mappa», **R7 fatta** (i gesti nel 
 AIP), **R8a fatta** (la misura dei file compatibili e «metti in questo file» per i punti), **R8b fatta** (le rotte nelle aerovie basse o
 alte), **R8c fatta** (scali e piste anche nei file delle FIR), **R9 fatta** (i confini dal sector all'AIP espanso, come
 correzioni). Il piano di §5-ter è finito. Poi la **pagina Testo**: T1 fatta (la pagina, l'editor, «Applica», i metadati
-bloccati); prossime T2 (problemi sulla riga, nomi, Ctrl+clic) e T3 (i legami), al via del committente. Dopo: le due
+bloccati), T2 fatta (problemi sul margine, nomi, Ctrl+clic, la domanda prima di cancellare un record coi metadati);
+prossima T3 (i legami), al via del committente. Dopo: le due
 consegne, la Scheda per gruppi, i verbi. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.
