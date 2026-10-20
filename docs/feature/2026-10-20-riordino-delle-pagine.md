@@ -264,6 +264,13 @@ scritta con quella di base, con «Sfoglia…» e, sotto, che cosa c'è (`SchemiD
 5 schemi di colore e 36 profili di Aurora», o «Questa cartella non c'è: Aurora è installata?»). Test: Lab 1 299 (+2). A
 schermo sul banco: la cartella di Aurora del PC dà 5 schemi e 36 profili.
 
+**Il Lab lavora nel suo ambiente** (20 ottobre sera, committente: «Toglimi l'opzione "hai già un sectorfile"… Prevediamo
+che il lab lavori nel suo ambiente e basta che è più sicuro e più facile da gestire»). Al primo avvio la schermata
+d'apertura ha solo il riquadro «Primo avvio»: niente «Apri» su un clone che c'è già. Dopo il primo sector la schermata
+resta com'era (Apri, recenti, «Prendilo dal repo»), finché il committente non dice fin dove portare la regola. Test: Lab
+1 300 (+1; i due test di `PaginaConLaMappaTests` che aprivano dal campo al primo avvio ora lo fanno dopo il primo sector,
+e il rifiuto al primo avvio si prova su «Prepara tutto»).
+
 **Dove siamo** (20 ottobre sera): R0-R3 fatte, `lab/f3` @ `662766b6`, Lab 1 274, eseguibile di prova rifatto. **Prossima:
 R4** (i confronti dentro l'Indice e i legami record ↔ voce), dopo un giro del committente sull'Indice. Poi R5 (le due
 consegne, con ramo ed età del repo dell'AIP e la rilettura dello strato), R6 (Testo), R7 (Scheda), R8 (verbi).

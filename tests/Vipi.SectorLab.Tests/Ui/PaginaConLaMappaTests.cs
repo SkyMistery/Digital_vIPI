@@ -30,19 +30,36 @@ public sealed class PaginaConLaMappaTests : IDisposable
     }
 
     [Fact]
-    public void ACartellaChiusaSiChiedeLaCartella()
+    public void AlPrimoAvvioCeSoloIlPrimoAvvio()
     {
+        // 20 ottobre: il Lab lavora nel suo ambiente; al primo avvio niente «Apri» su un clone che c'è già.
         var pagina = _contesto.RenderComponent<Home>();
 
-        Assert.NotNull(pagina.Find("[data-campo='cartella']"));
+        Assert.NotNull(pagina.Find("[data-primo-avvio]"));
+        Assert.Empty(pagina.FindAll("[data-campo='cartella']"));
         Assert.Empty(pagina.FindAll("[data-strato]"));
         // La prova d'avvio della slice 1 aspetta questo: se sparisce, --autoprova esce 1 e nessuno sa perché.
         _contesto.JSInterop.VerifyInvoke("sectorlab.pronto");
     }
 
     [Fact]
-    public void UnaCartellaCheNonEUnSectorDiceIlMotivoESiResta()
+    public void AlPrimoAvvioUnaCartellaDiLavoroRelativaDiceIlMotivoESiResta()
     {
+        var pagina = _contesto.RenderComponent<Home>();
+
+        pagina.Find("[data-campo='cartella-di-lavoro']").Input("IVAO");
+        pagina.Find("[data-tasto='prepara-tutto']").Click();
+
+        pagina.WaitForAssertion(() => Assert.Contains("per intero", pagina.Find("[data-stato='errore']").TextContent));
+        Assert.NotNull(pagina.Find("[data-primo-avvio]"));
+    }
+
+    [Fact]
+    public async Task UnaCartellaCheNonEUnSectorDiceIlMotivoESiResta()
+    {
+        // Dopo il primo sector la schermata d'apertura ha «Apri» (il ciclo dopo, una prova).
+        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        _lab.Chiudi();
         var pagina = _contesto.RenderComponent<Home>();
 
         pagina.Find("[data-campo='cartella']").Input(Path.Combine(_albero.Radice, "cartella-che-non-c-e"));
