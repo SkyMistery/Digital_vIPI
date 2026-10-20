@@ -11,14 +11,25 @@
     <strong>Aurora Sector Lab</strong>
     <span class="lab-nota lab-barra-sector" data-barra="sector" title="@Lab.Sessione?.Cartella.Radice">@NomeDelSector</span>
 
+    @* Riordino D8: due mondi, ognuno con le sue pagine (il suo repo, la sua consegna); le Impostazioni sono comuni. *@
     <nav class="lab-pagine" role="tablist" aria-label="Pagine">
-        @foreach (var (pagina, nome, perche) in Pagine)
+        @foreach (var (mondo, pagine) in Mondi)
         {
-            <button role="tab" aria-selected="@(Lab.Pagina == pagina ? "true" : "false")"
-                    class="lab-pagina-linguetta @(Lab.Pagina == pagina ? "lab-pagina-scelta" : null)"
-                    title="@perche" @onclick="() => Lab.ScegliLaPagina(pagina)"
-                    data-pagina="@pagina.ToString().ToLowerInvariant()">@nome</button>
+            <span class="lab-mondo @(pagine.Any(p => p.Pagina == Lab.Pagina) ? "lab-mondo-scelto" : null)" data-mondo="@mondo.ToLowerInvariant()">
+                <span class="lab-mondo-nome">@mondo</span>
+                @foreach (var (pagina, nome, perche) in pagine)
+                {
+                    <button role="tab" aria-selected="@(Lab.Pagina == pagina ? "true" : "false")"
+                            class="lab-pagina-linguetta @(Lab.Pagina == pagina ? "lab-pagina-scelta" : null)"
+                            title="@perche" @onclick="() => Lab.ScegliLaPagina(pagina)"
+                            data-pagina="@pagina.ToString().ToLowerInvariant()">@nome</button>
+                }
+            </span>
         }
+        <button role="tab" aria-selected="@(Lab.Pagina == PaginaDelLab.Impostazioni ? "true" : "false")"
+                class="lab-pagina-linguetta @(Lab.Pagina == PaginaDelLab.Impostazioni ? "lab-pagina-scelta" : null)"
+                title="Le scelte del Lab, il sector aperto, il registro" @onclick="() => Lab.ScegliLaPagina(PaginaDelLab.Impostazioni)"
+                data-pagina="impostazioni">Impostazioni</button>
     </nav>
 
     <span class="lab-barra-spazio"></span>
@@ -60,12 +71,15 @@
     /// <summary>La finestra principale (con la mappa): solo lei stacca e riporta i pannelli.</summary>
     [Parameter] public bool Principale { get; set; }
 
-    private static readonly (PaginaDelLab Pagina, string Nome, string Perche)[] Pagine =
+    private static readonly (string Mondo, (PaginaDelLab Pagina, string Nome, string Perche)[] Pagine)[] Mondi =
     [
-        (PaginaDelLab.Sector, "Sector", "Sfogliare, guardare e modificare i record; i problemi"),
-        (PaginaDelLab.Aip, "AIP", "I PDF, l'AIP espanso e i confronti col sector"),
-        (PaginaDelLab.Consegna, "Consegna", "Le modifiche, il ramo, la vetrina di Aurora, la PR"),
-        (PaginaDelLab.Impostazioni, "Impostazioni", "Le scelte del Lab, il sector aperto, il registro"),
+        ("AIP", [
+            (PaginaDelLab.Aip, "Indice", "L'AIP espanso: i PDF, la lettura, le correzioni e i confronti col sector"),
+        ]),
+        ("Sector", [
+            (PaginaDelLab.Sector, "Mappa", "Sfogliare, guardare e modificare i record; i problemi"),
+            (PaginaDelLab.Consegna, "Consegna", "Le modifiche, il ramo, la vetrina di Aurora, la PR"),
+        ]),
     ];
 
     private string NomeDelSector => Lab.Sessione?.Cartella.Radice is { } radice

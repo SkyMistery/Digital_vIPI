@@ -336,8 +336,32 @@ html, body {
 
 .lab-pagine {
     display: flex;
-    gap: .15rem;
+    align-items: center;
+    gap: .5rem;
     flex: none;
+}
+
+/* Riordino D8: i due mondi nella barra, ognuno col suo nome tenue e le sue linguette. */
+.lab-mondo {
+    display: flex;
+    align-items: center;
+    gap: .15rem;
+    padding: .1rem .25rem .1rem .5rem;
+    border: 1px solid color-mix(in srgb, #fff 18%, transparent);
+    border-radius: .45rem;
+}
+
+.lab-mondo-scelto {
+    border-color: color-mix(in srgb, #fff 45%, transparent);
+}
+
+.lab-mondo-nome {
+    margin-right: .2rem;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--ivao-atmos-50) 70%, #fff);
 }
 
 .lab-pagina-linguetta {

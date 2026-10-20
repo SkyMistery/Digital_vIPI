@@ -384,7 +384,20 @@ public sealed class AipNellaBarraTests : IDisposable
         {
             Points = [new SignificantPoint { Section = "ENR 4.4", Designator = "ABRUS", Position = new Position(41.5, 12.25) }],
         };
-        await File.WriteAllTextAsync(li, AipJson.Serialize(conPunto));
+        // La lettura del confronto appena fatto può tenere il file ancora per un istante (una volta su qualche centinaio,
+        // 20 ottobre): si riprova invece di cadere.
+        for (var tentativo = 0; ; tentativo++)
+        {
+            try
+            {
+                await File.WriteAllTextAsync(li, AipJson.Serialize(conPunto));
+                break;
+            }
+            catch (IOException) when (tentativo < 20)
+            {
+                await Task.Delay(50);
+            }
+        }
         await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").Change(true));
         pagina.WaitForAssertion(() => Assert.Contains("2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
 
