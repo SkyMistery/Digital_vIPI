@@ -324,6 +324,47 @@ html, body {
     flex: none;
 }
 
+/* Riordino delle pagine (R1): il nome del sector non si allarga, lo spazio sta fra le linguette e i tasti. */
+.lab-barra .lab-barra-sector {
+    flex: 0 1 auto;
+    max-width: 14rem;
+}
+
+.lab-barra-spazio {
+    flex: 1;
+}
+
+.lab-pagine {
+    display: flex;
+    gap: .15rem;
+    flex: none;
+}
+
+.lab-pagina-linguetta {
+    padding: .3rem .7rem;
+    border: 1px solid transparent;
+    border-radius: .35rem;
+    background: transparent;
+    color: color-mix(in srgb, var(--ivao-atmos-50) 80%, #fff);
+    font: inherit;
+    cursor: pointer;
+}
+
+.lab-pagina-linguetta:hover {
+    border-color: color-mix(in srgb, #fff 40%, transparent);
+}
+
+.lab-pagina-scelta {
+    background: color-mix(in srgb, #fff 18%, transparent);
+    border-color: color-mix(in srgb, #fff 55%, transparent);
+    color: #fff;
+    font-weight: 600;
+}
+
+.lab-barra .lab-barra-con-errori {
+    border-color: var(--lab-errore-segno);
+}
+
 .lab-barra .lab-tasto {
     border-color: #fff;
     background: #fff;
@@ -2070,4 +2111,66 @@ body.lab-trascina * {
 .lab-recente strong {
     flex-shrink: 0;
     white-space: nowrap;
+}
+
+/* Riordino delle pagine (R1). La mappa non si smonta mai: con display:contents i suoi pezzi restano colonne di
+   .lab-corpo; Consegna e Impostazioni la nascondono. */
+.lab-con-la-mappa {
+    display: contents;
+}
+
+.lab-con-la-mappa.lab-nascosto {
+    display: none;
+}
+
+.lab-colonna-aip {
+    width: var(--lab-l-aip, 34rem);
+}
+
+.lab-pannelli .lab-colonna-aip {
+    width: var(--lab-l-p-aip, 55%);
+}
+
+/* Le pagine senza mappa: colonne che scorrono ognuna per conto suo. */
+.lab-pagina {
+    flex: 1;
+    display: flex;
+    gap: 1px;
+    min-width: 0;
+    background: var(--lab-linea);
+}
+
+.lab-pagina-colonna,
+.lab-pagina-impostazioni > .lab-riquadro {
+    flex: 1 1 0;
+    min-width: 16rem;
+    overflow-y: auto;
+    padding: .6rem .8rem;
+    background: var(--lab-superficie);
+}
+
+/* I riquadri che prima scendevano dalla barra, ora dentro una pagina: piatti, a tutta larghezza, testo che va a capo. */
+.lab-riquadro {
+    white-space: normal;
+}
+
+.lab-riquadro-titolo {
+    margin: 0 0 .5rem;
+    font: 600 1rem/1.3 var(--lab-font-titoli);
+}
+
+.lab-riquadro .lab-impostazioni-riquadro {
+    position: static;
+    width: auto;
+    max-width: none;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+/* Una casella con la sua scritta, nei riquadri in pagina: sulla stessa riga, non una sopra l'altra. */
+.lab-riquadro .lab-impostazioni-riquadro label:has(> input[type="checkbox"]) {
+    flex-direction: row;
+    align-items: center;
 }

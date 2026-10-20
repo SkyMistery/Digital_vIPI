@@ -9,11 +9,11 @@
 *@
 @if (Lab.Ramo is { } ramo)
 {
-    <details class="lab-impostazioni lab-ramo-riquadro" data-riquadro-ramo>
-        <summary class="lab-tasto lab-tasto-tenue lab-ramo @(ramo.Pulito ? null : "lab-ramo-da-fare")" data-ramo="@(ramo.Ramo ?? "")" title="@Titolo(ramo)">
+    <section class="lab-riquadro lab-ramo-riquadro" data-riquadro-ramo>
+        <h2 class="lab-riquadro-titolo lab-ramo @(ramo.Pulito ? null : "lab-ramo-da-fare")" data-ramo="@(ramo.Ramo ?? "")" title="@Titolo(ramo)">
             <span aria-hidden="true">⎇</span> @(ramo.Ramo ?? "commit staccato")
             <span class="lab-nota" data-stato-del-ramo>@(Lab.StaLeggendoIlRamo || Lab.StaCambiandoRamo ? "…" : ramo.InParole())</span>
-        </summary>
+        </h2>
         <div class="lab-impostazioni-riquadro">
             <p class="lab-nota">
                 @if (Lab.BaseDelRamo is { } base_)
@@ -264,7 +264,7 @@
                 <p class="lab-avviso-breve" data-rifiuto-del-ramo>@rifiuto</p>
             }
         </div>
-    </details>
+    </section>
 }
 else if (Lab.PercheDelRamo is { } perche)
 {

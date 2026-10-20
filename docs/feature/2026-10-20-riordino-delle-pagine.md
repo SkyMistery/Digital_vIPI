@@ -118,3 +118,21 @@ Ogni slice si prova **a schermo** sul banco, su uno e su due schermi, oltre ai t
 «Hai N modifiche non salvate: cambiando cartella le perdi», con «Perdile e cambia cartella» e «Resta qui»; senza
 modifiche chiude come prima. Il link della PR dell'AIP è diventato il tasto «Riaprila», che apre la pagina nel browser di
 Windows come «Manda» (la finestra del Lab rifiuta i `target="_blank"`). Test: Lab 1 261 (+1).
+
+**R1 fatta** (20 ottobre). L'impianto delle quattro pagine:
+- `PaginaDelLab` e `SessioneDelLab.Pagina` (una per le due finestre); `BarraDelLab` è la barra di tutt'e due: nome del
+  sector, linguette Sector · AIP · Consegna · Impostazioni, «N errori · M avvisi» (porta ai Problemi, anche da un'altra
+  pagina: `MostraIProblemi` e una richiesta che la colonna consuma), il ramo (porta a Consegna), ↶ ↷, **Salva (N)**,
+  «Pannelli a parte» / «Pannelli qui» (solo nella principale), il tema. **Ctrl+S** salva (fuori dai campi dove si sta
+  scrivendo; lì ferma solo il «salva pagina» del browser).
+- `PannelliDellaPagina` dà i pannelli della pagina, uguali nella principale e nella finestra dei pannelli. Sector come
+  prima; AIP: l'AIP espanso coi confronti in una colonna larga (34rem, 55% coi due schermi), Scheda e Modifiche
+  accanto; Consegna: Modifiche, Ramo e Aurora in tre colonne; Impostazioni: il sector aperto (percorso, numeri, ISC,
+  Registro, Cambia cartella con la domanda della R0) e le impostazioni.
+- La mappa non si smonta mai (D2): Consegna e Impostazioni la nascondono (`lab-con-la-mappa`, `display: contents` /
+  `none`).
+- I riquadri di AIP, Ramo, Aurora e Impostazioni non sono più tendine (`<details>`): sono sezioni in pagina
+  (`lab-riquadro`), coi `data-` di prima. Il loro interno resta com'era: lo riordinano la R2 (Consegna) e la R3 (AIP).
+- Test: Lab 1 266 (+5, `PagineDelLabTests`); i test che aprivano AIP, Ramo e Aurora dalla barra scelgono prima la loro
+  pagina. A schermo sul banco: le quattro linguette, un confronto dei CTR (6 diversi, 39 uguali) col clic che apre la
+  Scheda e la mappa accanto, Consegna, Impostazioni, la finestra dei pannelli che segue la pagina.

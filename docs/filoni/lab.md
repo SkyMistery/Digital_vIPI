@@ -9,7 +9,9 @@
 Il committente, aprendo l'app: «è molto confusionaria». Fatto l'inventario di tutte le operazioni (circa 150, in nove
 gruppi) e approvata la direzione: quattro pagine (Sector, AIP, Consegna, Impostazioni), barra uguale nelle due finestre,
 Scheda per gruppi fissi. Carta: [`2026-10-20-riordino-delle-pagine.md`](../feature/2026-10-20-riordino-delle-pagine.md).
-Si parte da R0 (i due difetti: «Cambia cartella» senza conferma, link della PR dell'AIP) e R1 (l'impianto).
+**R0 fatta** (i due difetti: «Cambia cartella» senza conferma, link della PR dell'AIP). **R1 fatta**: le quattro
+linguette nella barra, la barra uguale nelle due finestre con «Salva (N)» e Ctrl+S, AIP / Consegna / Impostazioni come
+pagine, la mappa che non si smonta. **Prossimo**: R2 (Consegna come giro), R3 (AIP come pagina vera), R4 (la Scheda).
 
 ## 20 ottobre 2026: F7, SID e STAR (chiusa: slice 7a-7f, T4 in Aurora ✅)
 

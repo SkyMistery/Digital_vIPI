@@ -54,6 +54,7 @@ public sealed class RamoNellaBarraTests : IDisposable
     {
         FanneUnRepo();
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        _lab.ScegliLaPagina(PaginaDelLab.Consegna); // riordino R1: il ramo sta nella pagina Consegna
         var pagina = _contesto.RenderComponent<Home>();
 
         pagina.WaitForAssertion(() => Assert.Equal("master", pagina.Find("[data-ramo]").GetAttribute("data-ramo")), TimeSpan.FromSeconds(10));
@@ -298,6 +299,7 @@ public sealed class RamoNellaBarraTests : IDisposable
     public async Task FuoriDaGitLoDiceELavoraLoStesso()
     {
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        _lab.ScegliLaPagina(PaginaDelLab.Consegna); // riordino R1: il ramo sta nella pagina Consegna
         var pagina = _contesto.RenderComponent<Home>();
 
         pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-ramo-assente]")), TimeSpan.FromSeconds(10));

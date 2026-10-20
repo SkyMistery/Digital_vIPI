@@ -60,7 +60,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
 
         Assert.Equal(13, pagina.FindAll("[data-strato]").Count);
         Assert.NotNull(pagina.Find("[data-mappa]"));
-        Assert.Contains("record", pagina.Find("[data-barra='numeri']").TextContent);
+        Assert.StartsWith("sectorlab-", pagina.Find("[data-barra='sector']").TextContent.Trim(), StringComparison.Ordinal);
 
         // Lo sfondo è acceso e non si spegne: senza coste la mappa è un foglio bianco.
         var sfondo = pagina.Find("[data-strato='sfondo']");
@@ -199,6 +199,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
     public async Task CambiareCartellaRiportaAllaSchermataDApertura()
     {
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        _lab.ScegliLaPagina(PaginaDelLab.Impostazioni); // riordino R1: Cambia cartella sta nelle Impostazioni
         var pagina = _contesto.RenderComponent<Home>();
 
         pagina.Find("[data-tasto='cambia-cartella']").Click();
@@ -214,6 +215,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
         // Riordino R0: chiudere la cartella butta le modifiche e la storia; il tasto non lo fa più senza chiedere.
         Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         Assert.True(_lab.CambiaCampo("SectorFiles/Include/IT/NAVAIDS/APT.fix", 0, "Name", "PIPPO"));
+        _lab.ScegliLaPagina(PaginaDelLab.Impostazioni); // riordino R1: Cambia cartella sta nelle Impostazioni
         var pagina = _contesto.RenderComponent<Home>();
 
         pagina.Find("[data-tasto='cambia-cartella']").Click();

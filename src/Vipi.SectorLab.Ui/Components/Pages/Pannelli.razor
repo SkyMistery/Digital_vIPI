@@ -3,33 +3,19 @@
 @inject SessioneDelLab Lab
 
 @*
-    La finestra dei pannelli, per lavorare con due schermi (chiesto dal committente il 23 settembre): Sfoglia e
-    Problemi, la scheda del record scelto, le modifiche in sospeso col diff. La mappa e gli strati restano nella finestra
-    principale. Lo stato è uno solo, SessioneDelLab: una forma scelta sulla mappa si apre qui, un record scelto qui si
-    evidenzia là. La apre e la chiude il guscio (Finestra.cs), che dice al Lab quando c'è.
+    La finestra dei pannelli, per lavorare con due schermi (chiesto dal committente il 23 settembre): i pannelli della
+    pagina scelta (riordino delle pagine, D3) — per Sector, Sfoglia e Problemi, la scheda del record scelto, le
+    modifiche col diff. La mappa e gli strati restano nella finestra principale; la barra è la stessa. Lo stato è uno
+    solo, SessioneDelLab: una forma scelta sulla mappa si apre qui, un record scelto qui si evidenzia là. La apre e la chiude il guscio (Finestra.cs), che dice al Lab quando c'è.
 *@
 <PageTitle>Aurora Sector Lab — pannelli</PageTitle>
 
 @if (Lab.Stato is StatoDelLab.Aperta)
 {
     <div class="lab-schermo">
-        <header class="lab-barra">
-            <strong>Aurora Sector Lab</strong>
-            <span class="lab-nota">pannelli · la mappa è nella finestra principale</span>
-            <Storia />
-            <ImpostazioniDelLab />
-            <TastoDelTema />
-        </header>
-        <div class="lab-corpo lab-pannelli" data-pannelli="si">
-            <ColonnaDiSinistra />
-            <div class="lab-divisore" data-divide="p-sfoglia" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
-            <aside class="lab-colonna lab-colonna-ispettore">
-                <Scheda />
-            </aside>
-            <div class="lab-divisore" data-divide="p-ispettore" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
-            <aside class="lab-colonna lab-colonna-modifiche">
-                <Modifiche />
-            </aside>
+        <BarraDelLab />
+        <div class="lab-corpo lab-pannelli" data-pannelli="si" data-pagina-corpo="@Lab.Pagina.ToString().ToLowerInvariant()">
+            <PannelliDellaPagina NellaFinestraDeiPannelli="true" />
         </div>
     </div>
 }

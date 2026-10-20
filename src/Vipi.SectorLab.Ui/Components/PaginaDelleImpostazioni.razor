@@ -1,0 +1,80 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    La pagina Impostazioni (riordino delle pagine, D1 e D4): il sector aperto coi suoi numeri, il master che risolve i
+    nomi, il registro, «Cambia cartella…» (che chiede prima di buttare le modifiche, R0), e le impostazioni del Lab.
+*@
+<div class="lab-pagina lab-pagina-impostazioni" data-pagina-aperta="impostazioni">
+    <section class="lab-riquadro" data-riquadro-sector>
+        <h2 class="lab-riquadro-titolo">Il sector aperto</h2>
+        <div class="lab-impostazioni-riquadro">
+            <p><code>@Lab.Sessione?.Cartella.Radice</code></p>
+            @if (Lab.Sessione is { } sessione)
+            {
+                <p class="lab-nota" data-barra="numeri">
+                    @sessione.File.Count file · @sessione.RecordTotali.ToString("N0") record ·
+                    @Forme.ToString("N0") forme · @Punti.ToString("N0") punti · letto in @Lab.Durata.TotalSeconds.ToString("0.0") s
+                </p>
+            }
+            @if (Lab.Cataloghi.Count > 1)
+            {
+                <label class="lab-isc">
+                    Nomi risolti con
+                    <select value="@Lab.IscScelto" @onchange="CambiaIsc" data-campo="isc">
+                        @foreach (var isc in Lab.Cataloghi.OrderBy(c => c.Key, StringComparer.Ordinal))
+                        {
+                            <option value="@isc.Key" selected="@(isc.Key == Lab.IscScelto)">@isc.Key (@isc.Value.Punti.ToString("N0") punti)</option>
+                        }
+                    </select>
+                </label>
+            }
+            <p>
+                <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.ApriIlRegistro" data-tasto="registro"
+                        title="Apre la cartella del registro: @Lab.Registro.Cartella — il file di oggi racconta ogni gesto e ogni errore">Registro</button>
+                <button class="lab-tasto lab-tasto-tenue" @onclick="Chiudi" data-tasto="cambia-cartella">Cambia cartella…</button>
+            </p>
+            @if (_conferma)
+            {
+                @* Riordino R0: chiudere la cartella butta le modifiche in sospeso e la storia; prima si chiede. *@
+                <div class="lab-conferma" data-conferma="cambia-cartella">
+                    <span>Hai @Lab.Modifiche.Quante @(Lab.Modifiche.Quante == 1 ? "modifica non salvata" : "modifiche non salvate"):
+                        cambiando cartella le perdi.</span>
+                    <button class="lab-tasto" @onclick="ChiudiLoStesso" data-tasto="cambia-cartella-lo-stesso">Perdile e cambia cartella</button>
+                    <button class="lab-tasto lab-tasto-tenue" @onclick="() => _conferma = false" data-tasto="resta">Resta qui</button>
+                </div>
+            }
+        </div>
+    </section>
+    <ImpostazioniDelLab />
+</div>
+
+@code {
+    private bool _conferma;
+
+    private int Forme => Lab.Strati.Sum(s => s.Forme.Count);
+
+    private int Punti => Lab.Strati.Sum(s => s.Punti);
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private Task CambiaIsc(ChangeEventArgs e) => Lab.ScegliIscAsync(e.Value?.ToString() ?? "");
+
+    private void Chiudi()
+    {
+        if (Lab.Modifiche.Quante > 0)
+            _conferma = true;
+        else
+            Lab.Chiudi();
+    }
+
+    private void ChiudiLoStesso()
+    {
+        _conferma = false;
+        Lab.Chiudi();
+    }
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

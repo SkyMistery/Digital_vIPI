@@ -29,6 +29,8 @@ public sealed class AuroraNellaBarraTests : IDisposable
         _contesto.Services.AddSingleton(_lab);
         _contesto.JSInterop.Mode = JSRuntimeMode.Loose;
         _contesto.JSInterop.Setup<bool>("sectorlab.mappa.crea", _ => true).SetResult(true);
+        // Riordino delle pagine (R1): la vetrina di Aurora sta nella pagina Consegna.
+        _lab.ScegliLaPagina(PaginaDelLab.Consegna);
     }
 
     public void Dispose()

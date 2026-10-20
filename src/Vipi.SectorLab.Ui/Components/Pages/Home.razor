@@ -8,73 +8,18 @@
 @if (Lab.Stato is StatoDelLab.Aperta)
 {
     <div class="lab-schermo">
-        <header class="lab-barra">
-            <strong>Aurora Sector Lab</strong>
-            <span class="lab-nota" data-barra="numeri">
-                @Lab.Sessione!.File.Count file · @Lab.Sessione.RecordTotali.ToString("N0") record ·
-                @Forme.ToString("N0") forme · @Punti.ToString("N0") punti · @Lab.Durata.TotalSeconds.ToString("0.0") s
-            </span>
-            <span class="lab-nota" data-barra="problemi">
-                @(Lab.StaValidando ? "validazione…" : $"{Errori} errori · {Avvisi} avvisi")
-            </span>
-            @if (Lab.Cataloghi.Count > 1)
-            {
-                <label class="lab-isc">
-                    Nomi risolti con
-                    <select value="@Lab.IscScelto" @onchange="CambiaIsc" data-campo="isc">
-                        @foreach (var isc in Lab.Cataloghi.OrderBy(c => c.Key, StringComparer.Ordinal))
-                        {
-                            <option value="@isc.Key" selected="@(isc.Key == Lab.IscScelto)">@isc.Key (@isc.Value.Punti.ToString("N0") punti)</option>
-                        }
-                    </select>
-                </label>
-            }
-            <Storia />
-            <RamoNellaBarra />
-            <AuroraNellaBarra />
-            <AipNellaBarra />
-            @if (Lab.PannelliInUnAltraFinestra)
-            {
-                <button class="lab-tasto lab-tasto-tenue" @onclick="RiportaIPannelli" data-tasto="riporta"
-                        title="Chiude la finestra dei pannelli e li rimette qui, accanto alla mappa">Pannelli qui</button>
-            }
-            else
-            {
-                <button class="lab-tasto lab-tasto-tenue" @onclick="StaccaIPannelli" data-tasto="stacca"
-                        title="Sfoglia, Problemi, la scheda e le modifiche in un'altra finestra (per esempio sull'altro schermo); qui resta la mappa">Pannelli in un'altra finestra</button>
-            }
-            <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.ApriIlRegistro" data-tasto="registro"
-                    title="Apre la cartella del registro: @Lab.Registro.Cartella — il file di oggi racconta ogni gesto e ogni errore">Registro</button>
-            <ImpostazioniDelLab />
-            <TastoDelTema />
-            <button class="lab-tasto" @onclick="Chiudi" data-tasto="cambia-cartella">Cambia cartella…</button>
-        </header>
-        @if (_conferma)
-        {
-            @* Riordino R0: chiudere la cartella butta le modifiche in sospeso e la storia; prima si chiede. *@
-            <div class="lab-conferma" data-conferma="cambia-cartella">
-                <span>Hai @Lab.Modifiche.Quante @(Lab.Modifiche.Quante == 1 ? "modifica non salvata" : "modifiche non salvate"):
-                    cambiando cartella le perdi.</span>
-                <button class="lab-tasto" @onclick="ChiudiLoStesso" data-tasto="cambia-cartella-lo-stesso">Perdile e cambia cartella</button>
-                <button class="lab-tasto lab-tasto-tenue" @onclick="() => _conferma = false" data-tasto="resta">Resta qui</button>
-            </div>
-        }
+        <BarraDelLab Principale="true" />
 
-        <div class="lab-corpo">
-            @* Coi due schermi i pannelli stanno nell'altra finestra (/pannelli): qui restano mappa e strati. *@
+        <div class="lab-corpo" data-pagina-corpo="@Lab.Pagina.ToString().ToLowerInvariant()">
+            @* Coi due schermi i pannelli della pagina stanno nell'altra finestra (/pannelli): qui restano mappa e strati. *@
             @if (!Lab.PannelliInUnAltraFinestra)
             {
-                <ColonnaDiSinistra />
-                @* Ogni divisore allarga o stringe la colonna alla sua SINISTRA (sectorlab.js): il nome è la chiave della larghezza. *@
-                <div class="lab-divisore" data-divide="sfoglia" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
-
-                <aside class="lab-colonna lab-colonna-ispettore">
-                    <Scheda />
-                    <Modifiche />
-                </aside>
-                <div class="lab-divisore" data-divide="ispettore" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+                <PannelliDellaPagina />
             }
 
+            @* La mappa non si smonta mai (D2): Consegna e Impostazioni la nascondono soltanto, e tornando a Sector o AIP
+               strati, vista e scelta sono quelli di prima. Con display:contents i figli restano colonne di .lab-corpo. *@
+            <div class="lab-con-la-mappa @(MappaNascosta ? "lab-nascosto" : null)" data-mappa-nascosta="@(MappaNascosta ? "si" : "no")">
             <aside class="lab-strati">
                 <Sezione Chiave="strati">
                 <Titolo>Strati</Titolo>
@@ -189,6 +134,7 @@
             <div class="lab-divisore" data-divide="strati" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
 
             <Mappa />
+            </div>
         </div>
     </div>
 }
@@ -288,19 +234,11 @@ else
 
     private Task Prendi() => Lab.PrendiIlSectorAsync(_dovePrendere);
 
-    private int Errori => Lab.ProblemiDellAlbero.Count(p => p.Gravita == Gravita.Errore);
-
-    private int Avvisi => Lab.ProblemiDellAlbero.Count - Errori;
-
     private void ScegliSchema(ChangeEventArgs e)
     {
         if (e.Value?.ToString() is { Length: > 0 } nome)
             Lab.ScegliSchema(nome);
     }
-
-    private int Forme => Lab.Strati.Sum(s => s.Forme.Count);
-
-    private int Punti => Lab.Strati.Sum(s => s.Punti);
 
     private FormaDellaMappa? Scelta => Lab.FormaScelta();
 
@@ -334,34 +272,11 @@ else
             _dovePrendere = scelta;
     }
 
-    private bool _conferma;
+    /// <summary>Consegna e Impostazioni non hanno mappa: la nascondono, se non è in una finestra tutta sua.</summary>
+    private bool MappaNascosta => !Lab.PannelliInUnAltraFinestra && Lab.Pagina is PaginaDelLab.Consegna or PaginaDelLab.Impostazioni;
 
-    private void Chiudi()
-    {
-        if (Lab.Modifiche.Quante > 0)
-            _conferma = true;
-        else
-            Lab.Chiudi();
-    }
-
-    private void ChiudiLoStesso()
-    {
-        _conferma = false;
-        Lab.Chiudi();
-    }
-
-    /// <summary>
-    /// La finestra dei pannelli la apre il guscio (una window.open che la WebView2 gli passa); in un browser qualunque
-    /// si apre come scheda nuova, e funziona lo stesso: lo stato è del server.
-    /// </summary>
-    private async Task StaccaIPannelli() => await Js.InvokeVoidAsync("sectorlab.staccaIPannelli");
-
-    /// <summary>Chiede al guscio di chiudere la finestra dei pannelli: sarà lui, chiudendola, a dire «di nuovo qui».</summary>
-    private async Task RiportaIPannelli() => await Js.InvokeVoidAsync("sectorlab.riportaIPannelli");
 
     private void Accendi(string strato, ChangeEventArgs e) => Lab.Accendi(strato, e.Value is true);
-
-    private Task CambiaIsc(ChangeEventArgs e) => Lab.ScegliIscAsync(e.Value?.ToString() ?? "");
 
     private void Aggiorna() => InvokeAsync(StateHasChanged);
 

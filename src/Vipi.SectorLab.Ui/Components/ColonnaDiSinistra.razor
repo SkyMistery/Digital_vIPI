@@ -59,9 +59,24 @@
 
     private int Avvisi => Lab.ProblemiDellAlbero.Count - Errori;
 
-    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+    protected override void OnInitialized()
+    {
+        SeguiLaBarra();
+        Lab.Cambiata += Aggiorna;
+    }
 
-    private void Aggiorna() => InvokeAsync(StateHasChanged);
+    /// <summary>Riordino R1: il tasto «errori · avvisi» della barra porta qui, sulla linguetta dei Problemi.</summary>
+    private void SeguiLaBarra()
+    {
+        if (Lab.PrendiLaRichiestaDeiProblemi())
+            _linguetta = Linguetta.Problemi;
+    }
+
+    private void Aggiorna() => InvokeAsync(() =>
+    {
+        SeguiLaBarra();
+        StateHasChanged();
+    });
 
     public void Dispose() => Lab.Cambiata -= Aggiorna;
 }

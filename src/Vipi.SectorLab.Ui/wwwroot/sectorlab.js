@@ -41,7 +41,7 @@
         /// Il tasto del tema: automatico → chiaro → scuro (sectorlab-tema.js, caricato nel <head>).
         cambiaTema: function () { if (window.sectorlabTema) window.sectorlabTema.cambia(); },
 
-        /// Ctrl+Z e Ctrl+Y (o Ctrl+Maiusc+Z) vanno al Lab: annulla e ripeti l'ultimo gesto. Dentro un campo di testo no:
+        /// Ctrl+Z e Ctrl+Y (o Ctrl+Maiusc+Z) vanno al Lab: annulla e ripeti l'ultimo gesto; Ctrl+S salva. Dentro un campo di testo no:
         /// lì annullano quel che si sta scrivendo, come ovunque in Windows.
         tasti: function (riferimento) {
             storia = riferimento;
@@ -54,8 +54,16 @@
                 // resta lì) Ctrl+Z va al Lab: lì il browser non avrebbe niente da annullare, e il gesto sembrava non
                 // funzionare (prova 7 del committente). Dove si sta scrivendo, annulla la scrittura come ovunque.
                 var campoFermo = t && t.tagName === 'INPUT' && t.classList.contains('lab-campo') && !t.sectorlabSporco;
-                if (t && !campoFermo && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
                 var tasto = (e.key || '').toLowerCase();
+                var inUnCampo = t && !campoFermo && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+                // Ctrl+S salva (riordino R1, D4). In un campo dove si sta scrivendo no: il valore non è ancora confermato
+                // e si salverebbe senza; lì si ferma solo il «salva pagina» del browser.
+                if (tasto === 's' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!inUnCampo) storia.invokeMethodAsync('Tasto', 'salva').catch(function () { /* il circuito se n'è andato */ });
+                    return;
+                }
+                if (inUnCampo) return;
                 var cosa = tasto === 'z' && !e.shiftKey ? 'annulla'
                     : tasto === 'y' || (tasto === 'z' && e.shiftKey) ? 'ripeti' : null;
                 if (!cosa) return;

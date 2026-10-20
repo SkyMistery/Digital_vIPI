@@ -25,6 +25,8 @@ public sealed class AipNellaBarraTests : IDisposable
         _contesto.Services.AddSingleton(_lab);
         _contesto.JSInterop.Mode = JSRuntimeMode.Loose;
         _contesto.JSInterop.Setup<bool>("sectorlab.mappa.crea", _ => true).SetResult(true);
+        // Riordino delle pagine (R1): i PDF, l'AIP espanso e i confronti stanno nella pagina AIP.
+        _lab.ScegliLaPagina(PaginaDelLab.Aip);
     }
 
     public void Dispose()

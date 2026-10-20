@@ -35,6 +35,18 @@ public enum StatoDelLab
 }
 
 /// <summary>
+/// Le pagine del Lab (riordino delle pagine, D1): una per modo di lavorare. Sector e AIP hanno la mappa; Consegna e
+/// Impostazioni no.
+/// </summary>
+public enum PaginaDelLab
+{
+    Sector,
+    Aip,
+    Consegna,
+    Impostazioni,
+}
+
+/// <summary>
 /// La cartella aperta, per tutta l'app (carta F3 §2.2). È un <b>singleton</b>, non uno scoped: la sessione è
 /// dell'applicazione, non della pagina — l'albero costa 0,35-0,48 s e 102 MB, e un Ctrl+F5 non deve rileggerlo.
 /// La finestra è una sola e apre una cartella sola (istanza unica, §3).
@@ -128,6 +140,41 @@ public sealed class SessioneDelLab
         PannelliInUnAltraFinestra = aperti;
         Registro.Scrivi("finestre", aperti ? "pannelli in un'altra finestra" : "pannelli di nuovo qui");
         Avvisa();
+    }
+
+    /// <summary>
+    /// La pagina scelta con le linguette della barra (riordino, D1 e D3): una sola per le due finestre, così con due
+    /// schermi i pannelli seguono la pagina e la mappa resta nella principale. Chiudendo la cartella non cambia.
+    /// </summary>
+    public PaginaDelLab Pagina { get; private set; } = PaginaDelLab.Sector;
+
+    public void ScegliLaPagina(PaginaDelLab pagina)
+    {
+        if (Pagina == pagina)
+            return;
+        Pagina = pagina;
+        Avvisa();
+    }
+
+    private bool _problemiChiesti;
+
+    /// <summary>«N errori · M avvisi» nella barra: la pagina Sector, con la colonna sui Problemi.</summary>
+    public void MostraIProblemi()
+    {
+        Pagina = PaginaDelLab.Sector;
+        _problemiChiesti = true;
+        Avvisa();
+    }
+
+    /// <summary>
+    /// La colonna chiede se la barra ha voluto i Problemi, e la richiesta si consuma: così vale anche per una colonna
+    /// che nasce adesso, passando dalla pagina AIP o Consegna a Sector.
+    /// </summary>
+    public bool PrendiLaRichiestaDeiProblemi()
+    {
+        bool chiesti = _problemiChiesti;
+        _problemiChiesti = false;
+        return chiesti;
     }
 
     /// <summary>Perché l'apertura non è riuscita: si dice a schermo, non si nasconde.</summary>

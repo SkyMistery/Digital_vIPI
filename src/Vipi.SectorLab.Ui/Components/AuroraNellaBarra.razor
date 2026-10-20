@@ -7,8 +7,8 @@
     vetrina, come specchio. Aurora non si tocca: dove guarda lo sceglie l'AOD, in Aurora, una volta.
     Il lotto (slice 2): i gesti salvati da «visto in Aurora», ognuno con dove guardarlo; il conto nella barra.
 *@
-<details class="lab-impostazioni lab-ramo-riquadro" data-riquadro-aurora>
-    <summary class="lab-tasto lab-tasto-tenue @(Lab.CartellaDellaVetrina is not null && !Lab.AuroraGuardaLaVetrina ? "lab-ramo-da-fare" : null)"
+<section class="lab-riquadro lab-ramo-riquadro" data-riquadro-aurora>
+    <h2 class="lab-riquadro-titolo @(Lab.CartellaDellaVetrina is not null && !Lab.AuroraGuardaLaVetrina ? "lab-ramo-da-fare" : null)"
              title="La vetrina: la cartella che Aurora legge come secondo sector" data-aurora>
         <span aria-hidden="true">◫</span> Aurora
         <span class="lab-nota" data-in-vetrina>@Riassunto()</span>
@@ -16,7 +16,7 @@
         {
             <span class="lab-conto-lotto" data-conto-lotto>@conto</span>
         }
-    </summary>
+    </h2>
     <div class="lab-impostazioni-riquadro">
         @if (Lab.CartellaDellaVetrina is not { } vetrina)
         {
@@ -153,7 +153,7 @@
             <p class="lab-nota" data-note-da-aurora="@Lab.NoteDaAurora.Count">❌ @(Lab.NoteDaAurora.Count == 1 ? "1 nota" : $"{Lab.NoteDaAurora.Count} note") da Aurora sui record: nella scheda e in cima ai Problemi.</p>
         }
     </div>
-</details>
+</section>
 
 @code {
     private string? _rifiuto;

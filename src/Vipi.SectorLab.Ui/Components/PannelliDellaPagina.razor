@@ -1,0 +1,71 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    I pannelli della pagina scelta (riordino delle pagine, D1 e D3): gli stessi nella finestra principale, accanto alla
+    mappa, e nella finestra dei pannelli coi due schermi. Sector: la colonna, la Scheda e le Modifiche. AIP: l'AIP
+    espanso coi confronti, la Scheda e le Modifiche (i gesti dei confronti sono modifiche in sospeso come le altre).
+    Consegna e Impostazioni: la pagina intera. Ogni divisore allarga o stringe la colonna alla sua SINISTRA
+    (sectorlab.js): il nome è la chiave della larghezza, con «p-» davanti nella finestra dei pannelli.
+*@
+@switch (Lab.Pagina)
+{
+    case PaginaDelLab.Sector:
+        <ColonnaDiSinistra />
+        <div class="lab-divisore" data-divide="@($"{_p}sfoglia")" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+        @if (NellaFinestraDeiPannelli)
+        {
+            <aside class="lab-colonna lab-colonna-ispettore">
+                <Scheda />
+            </aside>
+            <div class="lab-divisore" data-divide="p-ispettore" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+            <aside class="lab-colonna lab-colonna-modifiche">
+                <Modifiche />
+            </aside>
+        }
+        else
+        {
+            <aside class="lab-colonna lab-colonna-ispettore">
+                <Scheda />
+                <Modifiche />
+            </aside>
+            <div class="lab-divisore" data-divide="ispettore" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+        }
+        break;
+
+    case PaginaDelLab.Aip:
+        <aside class="lab-colonna lab-colonna-aip">
+            <AipNellaBarra />
+        </aside>
+        <div class="lab-divisore" data-divide="@($"{_p}aip")" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+        <aside class="lab-colonna lab-colonna-ispettore @(NellaFinestraDeiPannelli ? "lab-colonna-modifiche" : null)">
+            <Scheda />
+            <Modifiche />
+        </aside>
+        @if (!NellaFinestraDeiPannelli)
+        {
+            <div class="lab-divisore" data-divide="ispettore" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+        }
+        break;
+
+    case PaginaDelLab.Consegna:
+        <PaginaDellaConsegna />
+        break;
+
+    default:
+        <PaginaDelleImpostazioni />
+        break;
+}
+
+@code {
+    /// <summary>Nella finestra dei pannelli (due schermi) le colonne si dividono tutta la larghezza: la mappa è di là.</summary>
+    [Parameter] public bool NellaFinestraDeiPannelli { get; set; }
+
+    private string _p => NellaFinestraDeiPannelli ? "p-" : "";
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

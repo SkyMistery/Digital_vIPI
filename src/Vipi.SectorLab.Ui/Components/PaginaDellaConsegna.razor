@@ -1,0 +1,32 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    La pagina Consegna (riordino delle pagine, D1): il giro intero in un posto, da sinistra a destra come si fa — le
+    modifiche in sospeso e Salva, il ramo (registra, manda, PR, changelog, rami), la vetrina di Aurora (porta, lotto,
+    prove). R1 mette insieme i pezzi di prima; la R2 li ordina come passi del giro.
+*@
+<div class="lab-pagina lab-pagina-consegna" data-pagina-aperta="consegna">
+    <div class="lab-pagina-colonna" data-passo="modifiche">
+        @if (!Lab.Modifiche.CEQualcosa && Lab.UltimoSalvataggio is null && Lab.ModifichePerse.Count == 0)
+        {
+            <h2 class="lab-riquadro-titolo">Le modifiche</h2>
+            <p class="lab-nota" data-modifiche-nessuna>Niente in sospeso: quel che si cambia nelle pagine Sector e AIP compare qui, col diff, fino a «Salva».</p>
+        }
+        <Modifiche />
+    </div>
+    <div class="lab-pagina-colonna" data-passo="ramo">
+        <RamoNellaBarra />
+    </div>
+    <div class="lab-pagina-colonna" data-passo="aurora">
+        <AuroraNellaBarra />
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

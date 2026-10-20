@@ -29,14 +29,16 @@
         await Js.InvokeVoidAsync("sectorlab.tasti", _riferimento);
     }
 
-    /// <summary>Ctrl+Z / Ctrl+Y fuori dai campi di testo: la chiama sectorlab.js.</summary>
+    /// <summary>Ctrl+Z / Ctrl+Y / Ctrl+S fuori dai campi di testo: la chiama sectorlab.js.</summary>
     [JSInvokable]
-    public Task Tasto(string cosa) => InvokeAsync(() =>
+    public Task Tasto(string cosa) => InvokeAsync(async () =>
     {
         if (cosa == "annulla")
             Lab.Annulla();
         else if (cosa == "ripeti")
             Lab.Ripeti();
+        else if (cosa == "salva" && Lab.Modifiche.Quante > 0)
+            await Lab.SalvaAsync();
     });
 
     private void Aggiorna() => InvokeAsync(StateHasChanged);
