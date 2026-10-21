@@ -288,15 +288,9 @@ public class Airport
     /// </summary>
     public bool? RadarTower { get; set; }
 
-    /// <summary>
-    /// La tecnica operativa come era scritta dal 18 al 21 ottobre 2026: testo a righe, uno per vIPI e vSOP.
-    /// <para>⚠️ <b>Non si scrive più</b>: dal 21 ottobre 2026 la tecnica è fatta di blocchi nella sua sezione del
-    /// documento (committente: «non ci deve essere un paragrafo fisso»). La legge solo la manutenzione d'avvio
-    /// (<c>TecnicaRadarNeiBlocchiAsync</c>), che ne fa un paragrafo nei documenti dello scalo e poi la svuota. La
-    /// colonna si toglie con una migrazione in una consegna successiva, quando la manutenzione è passata in
-    /// produzione.</para>
-    /// </summary>
-    public string? RadarTowerTechnique { get; set; }
+    // ⚠️ La tecnica operativa NON sta qui: dal 21 ottobre 2026 è fatta di blocchi nella sua sezione del documento.
+    // La colonna `RadarTowerTechnique` (18–21 ottobre) l'ha svuotata il trasloco della 1.69.0 e l'ha tolta la
+    // migrazione `TogliTecnicaRadar` (carta 2026-10-18-torre-radar.md §8).
 
     /// <summary>Coordinate del riferimento aeroporto (gradi decimali), dalla sorgente. Usate per generare la shape
     /// tonda di fallback dei settori TWR privi di poligono. null = non ancora note.</summary>

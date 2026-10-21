@@ -1266,14 +1266,6 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Rimossi {Count} blocchi placeholder dalle sezioni «minima».", minima);
 
-        // La tecnica operativa della torre radar è fatta di blocchi (21 ottobre 2026): via i segnaposto di quando la
-        // disegnava la pagina, e i testi scritti nell'anagrafica in un paragrafo. ⚠️ DOPO AddMissingCatalogSections:
-        // il testo va in una sezione che deve già esserci.
-        var tecnica = maintenance.TecnicaRadarNeiBlocchiAsync().GetAwaiter().GetResult();
-        if (tecnica > 0 && log is not null)
-            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                log, "Tecnica operativa della torre radar portata nei blocchi: {Count} righe toccate (segnaposto tolti, paragrafi nati, colonne svuotate).", tecnica);
-
         // La colonna Depth riallineata all'albero (U-014, 27 settembre 2026). ⚠️ DOPO tutte le passate che
         // spostano sezioni (parcheggi, regole piste, LVP, VFR): quelle scrivono la profondità della sola
         // sezione mossa, e questa sistema le figlie — anche di una passata che verrà. È anche quella che

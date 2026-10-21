@@ -488,69 +488,6 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         return stale.Count;
     }
 
-    /// <inheritdoc cref="IDocumentMaintenance.TecnicaRadarNeiBlocchiAsync"/>
-    public async Task<int> TecnicaRadarNeiBlocchiAsync(CancellationToken ct = default)
-    {
-        var toccati = 0;
-
-        // 1. Via i segnaposto delle sezioni rese dalla pagina, in ogni versione come per le «minima»: un blocco
-        //    senza testo né JSON che l'editor a blocchi mostrerebbe come una tabella senza colonne.
-        var segnaposto = await _db.ContentBlocks
-            .Where(b => b.Section!.SectionKey == SectionKeys.RadarTowerTechnique && b.SharedBlockId == null
-                        && (b.Body == null || b.Body == "")
-                        && (b.BodyJson == null || b.BodyJson == ""))
-            .ToListAsync(ct);
-        _db.ContentBlocks.RemoveRange(segnaposto);
-        toccati += segnaposto.Count;
-
-        // 2. Il testo scritto nell'anagrafica diventa un paragrafo, nei documenti dello scalo: la vIPI e il vSOP lo
-        //    mostravano tutti e due, e ognuno lo ritrova nella sua sezione.
-        var scali = await _db.Airports.Where(a => a.RadarTowerTechnique != null).ToListAsync(ct);
-        foreach (var scalo in scali)
-        {
-            var testo = scalo.RadarTowerTechnique!.Trim();
-            if (testo.Length == 0)
-            {
-                scalo.RadarTowerTechnique = null;
-                toccati++;
-                continue;
-            }
-            var portato = false;
-            var documenti = new[] { scalo.DocumentId, scalo.MilDocumentId }.OfType<int>().ToList();
-            foreach (var (_, vid, ultima) in await ConVersioniDaCurareAsync(documenti, d => d, ct))
-            {
-                var sezioni = await _db.DocumentSections.Include(s => s.Blocks)
-                    .Where(s => s.DocumentVersionId == vid && s.SectionKey == SectionKeys.RadarTowerTechnique)
-                    .ToListAsync(ct);
-                foreach (var sezione in sezioni)
-                {
-                    if (ultima) portato = true;
-                    // Un blocco già scritto da una persona: la sezione è sua, e il testo vecchio non ci si aggiunge.
-                    if (sezione.Blocks.Any(b => b.SharedBlockId != null || !string.IsNullOrWhiteSpace(b.Body)
-                                                || !string.IsNullOrWhiteSpace(b.BodyJson)))
-                        continue;
-                    _db.ContentBlocks.Add(new ContentBlock
-                    {
-                        DocumentVersionId = vid, SectionId = sezione.Id, Order = 1,
-                        Tier = BlockTier.Extended, Format = BlockFormat.Prose, Visibility = BlockVisibility.Always,
-                        // Gli a-capo restano: in un paragrafo un a-capo solo è un a capo (MarkdownLite).
-                        Body = testo, RowVersion = Guid.NewGuid().ToByteArray(),
-                    });
-                    toccati++;
-                }
-            }
-            // ⚠️ La colonna si svuota solo se il testo è arrivato nell'ULTIMA versione di almeno un documento, quella
-            // che l'editor apre: uno scalo con un testo e nessuna sezione dove metterlo lo tiene, e la prossima
-            // passata ci riprova.
-            if (!portato) continue;
-            scalo.RadarTowerTechnique = null;
-            toccati++;
-        }
-
-        if (toccati > 0) await _db.SaveChangesAsync(ct);
-        return toccati;
-    }
-
     /// <inheritdoc cref="IDocumentMaintenance.RiallineaProfonditaAsync"/>
     public async Task<int> RiallineaProfonditaAsync(CancellationToken ct = default)
     {
