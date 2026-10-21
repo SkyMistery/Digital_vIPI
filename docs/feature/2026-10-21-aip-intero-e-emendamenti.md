@@ -3,7 +3,8 @@
 > Carta madre: [`2026-09-18-aurora-sector-lab.md`](2026-09-18-aurora-sector-lab.md) (§5 i PDF). Viene dopo la F6
 > ([`2026-10-18-f6-pdf-aip.md`](2026-10-18-f6-pdf-aip.md)) e la F7 ([`2026-10-19-f7-sid-e-star.md`](2026-10-19-f7-sid-e-star.md)),
 > di cui riusa i pezzi (`Aip`, `Aip.Pdf`, `Aip.Pdf.Italia`, `Aip.Aurora`, l'AIP espanso e le sue correzioni).
-> Stato: 📝 **PROPOSTA**, da approvare. §2 è deciso dal committente il 21 ottobre; §3 e §5 sono proposte dell'agente.
+> Stato: ✅ **APPROVATA** dal committente il 21 ottobre, con le risposte D1-D4 di §5 (tutte come proposte). §2 è deciso
+> dal committente; §3 è la proposta dell'agente, approvata. Il lavoro è in §6.
 
 ## §0 — La domanda
 
@@ -137,12 +138,12 @@ Dopo, fuori da questa carta: AIP SUP ed emendamenti non AIRAC, uno per uno.
 
 ## §5 — Domande per il committente
 
-| # | Domanda | Proposta dell'agente |
-|---|---|---|
-| D1 | **L'AIP espanso in un file solo o diviso?** | Diviso per parte: `li-enr2.json`, `li-enr3.json`, … `li-ostacoli.json`, `li-ad2.json`; lo stesso modello, letto insieme |
-| D2 | **Dove sta il PDF dell'emendamento** | Nella cartella del ciclo che crea: `AIP 2612\AMDT\A12-26.pdf`, così si sa da dove viene ogni pagina |
-| D3 | **L'ordine dei passi** | 1 e 7 prima (la cartella giusta e gli emendamenti, così il 2612 di novembre arriva già col Lab), poi 2, 3, 4, 5, 6, 8 |
-| D4 | **Il sector vero** | Resta fermo fino al 29 ottobre come deciso; questi passi toccano solo l'importer, la cartella dei PDF e l'AIP espanso di prova |
+| # | Domanda | Proposta dell'agente | Risposta (21 ottobre) |
+|---|---|---|---|
+| D1 | **L'AIP espanso in un file solo o diviso?** | Diviso per parte: `li-enr2.json`, `li-enr3.json`, … `li-ostacoli.json`, `li-ad2.json`; lo stesso modello, letto insieme | ✅ «dividiamoli per parti» |
+| D2 | **Dove sta il PDF dell'emendamento** | Nella cartella del ciclo che crea: `AIP 2612\AMDT\A12-26.pdf`, così si sa da dove viene ogni pagina | ✅ |
+| D3 | **L'ordine dei passi** | 1 e 7 prima (la cartella giusta e gli emendamenti, così il 2612 di novembre arriva già col Lab), poi 2, 3, 4, 5, 6, 8 | ✅ «come proponi» |
+| D4 | **Il sector vero** | Resta fermo fino al 29 ottobre come deciso; questi passi toccano solo l'importer, la cartella dei PDF e l'AIP espanso di prova | ✅ «per ora è fermo, sistemiamo prima l'AIP espanso» |
 
 ## §6 — Il lavoro
 
