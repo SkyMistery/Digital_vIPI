@@ -349,6 +349,7 @@ public static class AipEspanso
         }
 
         problemi.AddRange(SigleDoppie(ostacoli));
+        scali = DateDelleCarte(scali, indice, problemi);
 
         problemi.InsertRange(0, Aip.Pdf.PageIndex.Check(indice, CicloInVigore(ciclo)).Select(p => new ProblemaDellImport(p.File,
             new ImportIssue(TipoDelProblema(p.Kind), null, p.Position, p.Detail))));
@@ -459,6 +460,26 @@ public static class AipEspanso
                 problemi.Add(new ProblemaDellImport(l.Page?.Reference ?? l.Section,
                     new ImportIssue(ImportIssueKind.UnitLine, l.Unit, null, $"{q.Designator}: ENR 4.4 non lo ha")));
         return documento with { UnitLines = risolte };
+    }
+
+    /// <summary>
+    /// Le carte di AD 2.24 con la data della loro pagina, dall'indice delle pagine della cartella (carta «L'AIP intero», passo
+    /// 5). Una carta elencata senza la sua pagina fra i PDF si dice: manca un PDF, o l'elenco non torna.
+    /// </summary>
+    internal static List<Aerodrome> DateDelleCarte(List<Aerodrome> scali, IReadOnlyList<Aip.Pdf.IndexedPage> indice, List<ProblemaDellImport> problemi)
+    {
+        var date = indice.Where(p => p.Reference is not null).GroupBy(p => p.Reference!, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First().Effective, StringComparer.Ordinal);
+        return [.. scali.Select(s => s.Charts is null ? s : s with
+        {
+            Charts = [.. s.Charts.Select(c =>
+            {
+                if (date.TryGetValue(c.Page, out var d)) return c with { Effective = d };
+                problemi.Add(new ProblemaDellImport(c.Page, new ImportIssue(ImportIssueKind.Aerodrome, s.Icao, null,
+                    $"carta elencata senza la sua pagina fra i PDF: {c.Title} ({c.Page})")));
+                return c;
+            })],
+        })];
     }
 
     /// <summary>

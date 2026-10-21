@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Aip;
 
 /// <summary>
@@ -12,6 +14,13 @@ public sealed record Aerodrome
 
     /// <summary>Il nome come lo scrive l'AIP: <c>LAMEZIA TERME</c>, <c>MILANO Malpensa</c>.</summary>
     public required string Name { get; init; }
+
+    /// <summary>
+    /// Un eliporto di AD 3 (carta «L'AIP intero», passo 5): le stesse sezioni con altri numeri (lo spazio aereo in 3.16, le
+    /// frequenze in 3.17, le radioassistenze in 3.18), niente piste.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Heliport { get; init; }
 
     /// <summary>Il punto di riferimento dello scalo (AD 2.2, 1).</summary>
     public Position? Arp { get; init; }
@@ -53,18 +62,86 @@ public sealed record Aerodrome
     /// <summary>La pagina del testo dello scalo da cui viene (AD 2.2), con la sua data.</summary>
     public AipPage? Page { get; init; }
 
+    /// <summary>
+    /// Tutte le sottosezioni del testo (AD 2.1-2.25, AD 3.1-3.23: carta «L'AIP intero», passo 5), com'è stampate: le voci
+    /// numerate, le tabelle riga per riga, la prosa in italiano e in inglese. I campi sopra ne sono la lettura; qui c'è
+    /// tutto. Null se il documento non le ha (di prima del passo 5).
+    /// </summary>
+    public IReadOnlyList<AerodromeSection>? Sections { get; init; }
+
+    /// <summary>
+    /// Le carte dello scalo come le elenca AD 2.24 (AD 3.23 per un eliporto): il titolo, la pagina e, dall'indice delle
+    /// pagine della cartella dei PDF, la data (passo 5). Null se il documento non le ha.
+    /// </summary>
+    public IReadOnlyList<AerodromeChart>? Charts { get; init; }
+
     // ⚠️ Scritta a mano: l'uguaglianza dei record confronterebbe le liste per riferimento.
     public bool Equals(Aerodrome? other) =>
         other is not null
-        && Icao == other.Icao && Name == other.Name && Arp == other.Arp && Elevation == other.Elevation
+        && Icao == other.Icao && Name == other.Name && Heliport == other.Heliport && Arp == other.Arp && Elevation == other.Elevation
         && ReferenceTemperature == other.ReferenceTemperature && MagneticVariation == other.MagneticVariation
         && AnnualChange == other.AnnualChange && Traffic == other.Traffic
         && Runways.SequenceEqual(other.Runways) && DeclaredDistances.SequenceEqual(other.DeclaredDistances)
         && Communications.SequenceEqual(other.Communications) && NavigationAids.SequenceEqual(other.NavigationAids)
-        && Ils.SequenceEqual(other.Ils) && Page == other.Page;
+        && Ils.SequenceEqual(other.Ils) && Page == other.Page
+        && (Sections ?? []).SequenceEqual(other.Sections ?? [])
+        && (Charts ?? []).SequenceEqual(other.Charts ?? []);
 
     public override int GetHashCode() => HashCode.Combine(Icao, Name);
 }
+
+/// <summary>
+/// Una sottosezione del testo di uno scalo (carta «L'AIP intero», passo 5): il numero (<c>AD 2.3</c>), il titolo in
+/// italiano e in inglese, e quel che c'è sotto — le voci numerate delle tabelle a tre colonne (AD 2.2-2.11), le altre
+/// tabelle riga per riga (una cella per colonna), il testo fuori dalle tabelle (le due colonne, italiano e inglese).
+/// </summary>
+public sealed record AerodromeSection
+{
+    /// <summary>Il numero: <c>AD 2.3</c>, <c>AD 3.12</c>.</summary>
+    public required string Number { get; init; }
+
+    public string? Title { get; init; }
+
+    public string? TitleEnglish { get; init; }
+
+    /// <summary>Le voci numerate (AD 2.2 «1 Coordinate ARP …»), in ordine.</summary>
+    public IReadOnlyList<AerodromeItem>? Items { get; init; }
+
+    /// <summary>Le altre tabelle, riga per riga (le righe della testata comprese), una cella per colonna.</summary>
+    public IReadOnlyList<IReadOnlyList<string>>? Rows { get; init; }
+
+    /// <summary>Il testo fuori dalle tabelle, in italiano (la colonna sinistra), un paragrafo per riga.</summary>
+    public string? Text { get; init; }
+
+    /// <summary>Il testo fuori dalle tabelle in inglese (la colonna destra).</summary>
+    public string? English { get; init; }
+
+    /// <summary>La pagina dove comincia, con la sua data.</summary>
+    public AipPage? Page { get; init; }
+
+    // ⚠️ Scritta a mano: l'uguaglianza dei record confronterebbe le liste per riferimento.
+    public bool Equals(AerodromeSection? other) =>
+        other is not null
+        && Number == other.Number && Title == other.Title && TitleEnglish == other.TitleEnglish
+        && (Items ?? []).SequenceEqual(other.Items ?? [])
+        && (Rows ?? []).Select(r => string.Join("\u001f", r)).SequenceEqual((other.Rows ?? []).Select(r => string.Join("\u001f", r)))
+        && Text == other.Text && English == other.English && Page == other.Page;
+
+    public override int GetHashCode() => HashCode.Combine(Number, Title);
+}
+
+/// <summary>
+/// Una carta di uno scalo, una riga di AD 2.24: il titolo com'è stampato (<c>AERODROME CHART ICAO</c>), la pagina
+/// (<c>AD 2 LICA 2-1</c>) e la sua data, se la pagina è fra i PDF letti.
+/// </summary>
+public sealed record AerodromeChart(string Title, string Page, DateOnly? Effective = null);
+
+/// <summary>
+/// Una voce numerata di una sottosezione: il numero (<c>6</c>), le etichette com'è stampate (l'italiano e l'inglese, una
+/// per riga: <c>Autorità amministrativa aeroportuale</c> / <c>Aerodrome administration authority</c> …) e il valore, una
+/// riga di testo per riga.
+/// </summary>
+public sealed record AerodromeItem(string Number, string Label, string? Value);
 
 /// <summary>
 /// Una pista di AD 2.12, per designatore: la rotta vera, le dimensioni, resistenza e superficie, la soglia e la fine della

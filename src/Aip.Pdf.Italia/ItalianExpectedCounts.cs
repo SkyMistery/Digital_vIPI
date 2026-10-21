@@ -33,6 +33,13 @@ public static partial class ItalianExpectedCounts
             var punti = pages.SelectMany(p => p.Words).Sum(w => w.Text.Count(c => c is '▲' or '∆'));
             return punti == 0 ? [] : [new ExpectedCount("punti", punti)];
         }
+        // Il testo di uno scalo, AD 2 e AD 3 (passo 5): i titoli delle sottosezioni («LICA AD 2.3 …»), uno per numero.
+        if (RxTestoDiScalo().IsMatch(nome))
+        {
+            var sottosezioni = pages.SelectMany(Table.PlainLines).Select(l => RxTitoloDiSottosezione().Match(l.Trim()))
+                .Where(m => m.Success).Select(m => m.Groups["n"].Value).Distinct(StringComparer.Ordinal).Count();
+            return sottosezioni == 0 ? [] : [new ExpectedCount("sottosezioni", sottosezioni)];
+        }
         // ENR 5.4 (carta «L'AIP intero», passo 4): le sigle T……, P……, L…… sulle pagine girate, fino alla tabella delle note
         // (dove le sigle tornano, anche dentro il testo: «Stesso ostacolo dell'ID: T001673»).
         if (nome.StartsWith("LI-ENR 5.4.", StringComparison.Ordinal))
@@ -96,6 +103,12 @@ public static partial class ItalianExpectedCounts
     [GeneratedRegex(@"^[TPL]\d{6}$", RegexOptions.CultureInvariant)]
     private static partial Regex RxSigla();
 
+    [GeneratedRegex(@"^LI-AD [23]\s+[A-Z]{4}\b.*\s1$", RegexOptions.CultureInvariant)]
+    private static partial Regex RxTestoDiScalo();
+
+    [GeneratedRegex(@"^[A-Z]{4}\s+AD\s+[23]\.(?<n>\d+)\b", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxTitoloDiSottosezione();
+
     // «45°59'15"N 012°55'21"E», anche con ’’ o ″ per i secondi.
     [GeneratedRegex(@"\d{1,2}[°º˚]\s*\d{1,2}['’′]\s*\d{1,2}(?:[.,]\d+)?\s*(?:""|''|’’|″|”)\s*[NS]\s*,?\s*\d{1,3}[°º˚]\s*\d{1,2}['’′]\s*\d{1,2}(?:[.,]\d+)?\s*(?:""|''|’’|″|”)\s*[EW]", RegexOptions.CultureInvariant)]
     private static partial Regex RxCoordinata();
@@ -118,6 +131,7 @@ public static partial class ItalianExpectedCounts
             "zone" => read.Airspaces.Count(a => RxZonaNelNome().IsMatch(a.Designator)),
             "punti" => read.Routes.Sum(r => r.Points.Count),
             "ostacoli" => read.Obstacles.Count,
+            "sottosezioni" => read.Aerodromes.Sum(a => a.Sections?.Count ?? 0),
             "coordinate" => read.Airspaces.Sum(a => Punti(a.Geometry)),
             _ => 0,
         };

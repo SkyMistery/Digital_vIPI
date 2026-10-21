@@ -61,14 +61,30 @@ public static partial class ItalianProse
 
     private static AipText? Testo(List<(PdfPageText Pagina, List<PdfWord> Parole)> parti, string section, List<ImportPage> pagine)
     {
+        var (it, en) = DueColonne(parti);
+        if (it is null) return null;
+        var prima = parti.Where(p => p.Parole.Count > 0).Select(p => pagine.FirstOrDefault(x => x.Number == p.Pagina.Number)).FirstOrDefault();
+        return new AipText
+        {
+            Section = section,
+            Text = it,
+            English = en,
+            Page = prima?.Reference is { } rif ? new AipPage(rif, prima.Effective) : null,
+        };
+    }
+
+    /// <summary>
+    /// Le parole delle due colonne, pagina dopo pagina, in paragrafi: l'italiano a sinistra e l'inglese a destra (anche per la
+    /// prosa delle sottosezioni di AD 2, passo 5). Null dove non c'è testo.
+    /// </summary>
+    internal static (string? Italiano, string? Inglese) DueColonne(List<(PdfPageText Pagina, List<PdfWord> Parole)> parti)
+    {
         var italiano = new List<(double Y, string Riga)>();
         var inglese = new List<(double Y, string Riga)>();
-        ImportPage? prima = null;
         var scarto = 0.0;
         foreach (var (pagina, parole) in parti)
         {
             if (parole.Count == 0) continue;
-            prima ??= pagine.FirstOrDefault(p => p.Number == pagina.Number);
             var destra = ColonnaInglese(pagina, parole);
             // Le righe delle pagine dopo vengono dopo: la y cresce di pagina in pagina.
             // Il punto elenco dell'inglese sta qualche punto prima della colonna (ENR 5.5.1 p.2-3): è dell'inglese.
@@ -77,15 +93,7 @@ public static partial class ItalianProse
             inglese.AddRange(Righe(parole.Where(Inglese)).Select(r => (r.Y + scarto, r.Riga)));
             scarto += pagina.Height;
         }
-        var it = Paragrafi(italiano);
-        if (it is null) return null;
-        return new AipText
-        {
-            Section = section,
-            Text = it,
-            English = Paragrafi(inglese),
-            Page = prima?.Reference is { } rif ? new AipPage(rif, prima.Effective) : null,
-        };
+        return (Paragrafi(italiano), Paragrafi(inglese));
     }
 
     /// <summary>La x dove comincia la colonna inglese: la più frequente fra le parole che stanno a metà pagina.</summary>

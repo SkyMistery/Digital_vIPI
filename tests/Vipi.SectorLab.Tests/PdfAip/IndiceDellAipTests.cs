@@ -166,4 +166,34 @@ public sealed class IndiceDellAipTests
         var d = Assert.Single(doppie);
         Assert.Equal(("T001645", "la stessa sigla 2 volte: PUGLIA ENR 5.4.1-6, SICILIA ENR 5.4.1-7"), (d.Problema.Key, d.Problema.Detail));
     }
+
+    // Passo 5: un eliporto (la sua sezione è «AD 3») ha la parte sua, «AD 3 Eliporti», dopo gli aeroporti.
+    [Fact]
+    public void GliEliporti_NellaParteAd3()
+    {
+        VoceDellAip[] voci = [Scalo("LIRF", "Roma Fiumicino"), new(AipSullaMappa.Scali, "LIBI", [("Sezione", "AD 3"), ("Nome", "Vieste")], [], CorrectionKind.Aerodrome, "LIBI")];
+
+        var indice = IndiceDellAip.Di(voci);
+
+        Assert.Equal(["AD 2", "AD 3"], indice.Select(p => p.Codice));
+        Assert.Equal(("Eliporti", "LIBI", "Vieste"), (indice[1].Nome, indice[1].Gruppi[0].Codice, indice[1].Gruppi[0].Nome));
+    }
+
+    // Passo 5: le carte di AD 2.24 prendono la data della loro pagina dall'indice delle pagine; una carta senza la pagina si dice.
+    [Fact]
+    public void LeCarte_LaDataDallIndiceDellePagine()
+    {
+        var scalo = new Aerodrome
+        {
+            Icao = "LIXX", Name = "PROVA",
+            Charts = [new AerodromeChart("AERODROME CHART ICAO", "AD 2 LIXX 2-1"), new AerodromeChart("SID RNAV1", "AD 2 LIXX 6-1")],
+        };
+        var problemi = new List<ProblemaDellImport>();
+
+        var con = AipEspanso.DateDelleCarte([scalo], [new Aip.Pdf.IndexedPage("LI-AD 2 LIXX - PROVA 2.pdf", 1, "AD 2 LIXX 2-1", new DateOnly(2026, 6, 11))], problemi);
+
+        Assert.Equal(new DateOnly(2026, 6, 11), con[0].Charts![0].Effective);
+        Assert.Null(con[0].Charts![1].Effective);
+        Assert.Equal("carta elencata senza la sua pagina fra i PDF: SID RNAV1 (AD 2 LIXX 6-1)", Assert.Single(problemi).Problema.Detail);
+    }
 }

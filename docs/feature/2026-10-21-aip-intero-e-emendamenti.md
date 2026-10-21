@@ -483,3 +483,65 @@ ostacoli, aree di 5.5 e 5.6).
 coordinate stampate**: 5 584 su 5 590, le 6 che mancano sono il secondo poligono di **Magra**, segnalato (da decidere col
 committente se dividerlo in due aree). In più i testi di ENR 5 e l'AIP espanso diviso per parti (D1). Trovati nel PDF: la
 sigla doppia T001645; corretto un difetto vecchio (due tabelle sulla stessa pagina).
+
+### Passo 5 — AD 2 e AD 3, il testo (via del committente, 22 ottobre: «vai con il passo 5»)
+
+Prima di questo passo degli scali si leggevano i dati (ARP, piste, frequenze, spazi aerei, radioassistenze) dei 97
+aeroporti di AD 2; il resto del testo no, e i 10 eliporti di AD 3 niente.
+
+#### 5a — gli eliporti di AD 3: fatto
+
+- `LI-AD 3 <ICAO> 1.pdf` si legge con lo stesso lettore di AD 2 (`ItalianAd2.ReadHeliport`): le sottosezioni hanno altri
+  numeri (3.16 lo spazio aereo, 3.17 le frequenze, 3.18 le radioassistenze, 3.23 le carte) e l'ARP è scritto
+  «41°51'59'' N - 016°09'54'' E». `Aerodrome.Heliport`; nell'indice una parte nuova, **AD 3 Eliporti**; sulla mappa sono
+  scali col campo «Eliporto».
+- Le tabelle «NIL» (spazio aereo, radioassistenze, soglie) non sono righe e non fanno segnalazioni; il radiogoniometro
+  **VDF** è un tipo di radioassistenza nuovo (`NavaidKind.Vdf`).
+- Il nome del file con **due spazi** dopo «AD 2» (52 scali su 97 nel 2611, «LI-AD 2  LIAF - FOLIGNO 1.pdf») si riconosce:
+  prima quegli scali non si leggevano affatto.
+
+#### 5b — tutte le sottosezioni: fatto
+
+- `ItalianAdSections` (codice in `Aip.Pdf.Italia`): ogni parola del corpo della pagina va alla sottosezione dell'ultimo
+  titolo sopra di lei («LICA AD 2.3 …», la riga italiana e quella inglese), anche dalla pagina prima. Dentro una tabella di
+  tre colonne con la prima stretta e numerata (AD 2.2-2.11, 3.2-3.11) ogni numero apre una **voce** con etichetta e valore,
+  fra due bordi orizzontali — il numero non è sempre sulla prima riga — e la voce che continua nella pagina dopo, senza
+  numero, resta della sua voce; le altre tabelle si danno **riga per riga**, una cella per colonna; fuori dalle tabelle è
+  **prosa** nelle due colonne (il lettore di 4c), una riga sola («Vedi AOC in vigore - See AOC in force») non si divide.
+- Il titolo italiano che va a capo fra la riga italiana e quella inglese («… DEI PUNTI DI» / «CONTROLLO», AD 3.8 dei dieci
+  eliporti) è del titolo.
+- Il modello: `Aerodrome.Sections`, una `AerodromeSection` per sottosezione (numero, titolo in italiano e in inglese,
+  voci, righe, testo italiano e inglese, prima pagina).
+- **Il conto** (rapporto di lettura): i titoli di sottosezione stampati nel file 1 dello scalo contro le sottosezioni lette.
+
+#### 5c — le carte: fatto
+
+- `Aerodrome.Charts`: l'elenco di AD 2.24 / AD 3.23, titolo e pagina («AD 2 LICA 2-1»). Le righe si prendono da qualunque
+  sottosezione con la pagina di una carta nell'ultima colonna: LIPN stampa l'elenco sotto il titolo di AD 2.25.
+- La **data** di ogni carta dall'indice delle pagine della cartella (passo 1); una carta elencata la cui pagina non è fra i
+  PDF si dice («carta elencata senza la sua pagina fra i PDF»).
+- Sulla mappa la scheda dello scalo ha il campo «Carte» e sotto le sottosezioni (le voci, «tabella, n righe», la prima riga
+  della prosa) e le carte con la loro pagina.
+
+#### Misurato sul 2611
+
+- **107 scali** (97 + 10 eliporti), sottosezioni **2 655 stampate, 2 655 lette**; **1 610 carte**, tutte con la loro pagina
+  fra i PDF. Le aree salgono a 1 733 (+35: ATZ e CTR degli scali che prima non si leggevano), i punti a 2 036, le procedure
+  a 1 779. `li-ad2.json` 11,5 MB.
+- Segnalato e da guardare nel passo 6 o col committente: **LIET** «senza piste» (la tabella di AD 2.12 si trova solo in
+  parte), le ATZ di **Torino Aeritalia** con «ATZ SECTOR 3/4/5» e di **Albenga** con «AIRPORT ATZ» (parole sconosciute
+  nella geometria), la quota «FL 70/TRL» di uno SMAC di **LIRA**. Da sapere: in AD 2.16 un «NIL» a cavallo di due pagine
+  può perdersi nelle righe.
+- Sul banco (1400 px, LICA, LIAF col nome a due spazi, LIBI): nell'indice «AD 2 Aeroporti: LIAF FOLIGNO, LICA LAMEZIA
+  TERME» e «AD 3 Eliporti: LIBI Vieste»; i conti «sottosezioni 25 ✓ / 25 ✓ / 23 ✓»; la scheda di LIBI con le 23
+  sottosezioni e le 6 carte. Le segnalazioni «scalo» del banco sono carte i cui PDF non sono nella cartella del banco
+  (atteso). Nella barra le segnalazioni hanno ora un nome anche per scalo, radioassistenza, punto, luce, pericolo, procedura.
+
+Test: Aip.Pdf 163 (+4), Aip 52 (+1), Lab 1 387 (+3). In più stabilizzato un rosso intermittente di bUnit
+(`TreMappeTests`, il clic su un tasto appena ridisegnato).
+
+#### Il passo 5, chiuso
+
+«Finita quando» di §3: **97 + 10 scali**, e per ognuno le sottosezioni presenti nel PDF **tutte nel modello** (2 655 su
+2 655, contate). Le carte con titolo, pagina e data; le note scritte sono nella prosa delle sottosezioni. Il passo 6 (le
+procedure del file 5, attese e waypoint) è il prossimo.

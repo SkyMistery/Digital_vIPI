@@ -216,9 +216,11 @@ public static class AipSullaMappa
                 Puntuale(Voce(ostacolo), ostacolo.Position);
         }
         foreach (var scalo in aip.Aerodromes ?? [])
-            Puntuale(Voce(Scali, CorrectionKind.Aerodrome, scalo.Icao, "AD 2", scalo.Page, ("Nome", scalo.Name), ("Elevazione", scalo.Elevation),
-                ("Piste", string.Join(", ", scalo.Runways.Select(p => p.Designator))), ("Frequenze", scalo.Communications.Count.ToString(CultureInfo.InvariantCulture))), scalo.Arp,
-                "APT:0");
+            Puntuale(Voce(Scali, CorrectionKind.Aerodrome, scalo.Icao, scalo.Heliport ? "AD 3" : "AD 2", scalo.Page, ("Nome", scalo.Name),
+                ("Eliporto", scalo.Heliport ? "sì" : null), ("Elevazione", scalo.Elevation),
+                ("Piste", string.Join(", ", scalo.Runways.Select(p => p.Designator))), ("Frequenze", scalo.Communications.Count.ToString(CultureInfo.InvariantCulture)),
+                ("Carte", scalo.Charts is { Count: > 0 } carte ? carte.Count.ToString(CultureInfo.InvariantCulture) : null))
+                with { Righe = RigheDelloScalo(scalo) }, scalo.Arp, "APT:0");
 
         // Le procedure di AD 2 (F7, slice 7c): una linea per i loro punti, che si cercano nell'AIP espanso stesso — ENR 4.4, i
         // punti RNAV degli scali, le radioassistenze — e, se mancano, nel sector. Le convenzionali in sola prosa hanno i tratti
@@ -312,6 +314,37 @@ public static class AipSullaMappa
             var r = r0 + (r1 - r0) * f;
             yield return i == passi ? a : new Coordinate(centro.LatitudeDeg + r * Math.Sin(t), centro.LongitudeDeg + r * Math.Cos(t) / k);
         }
+    }
+
+    /// <summary>
+    /// Il testo dello scalo nella scheda (carta «L'AIP intero», passo 5): ogni sottosezione col suo titolo, le voci numerate
+    /// (l'etichetta italiana e la prima riga del valore), quante righe ha una tabella, l'inizio della prosa; poi le carte di
+    /// AD 2.24 con pagina e data.
+    /// </summary>
+    internal static IReadOnlyList<string> RigheDelloScalo(Aerodrome scalo)
+    {
+        static string Prima(string? testo, int quanti = 120)
+        {
+            var riga = testo?.Split('\n')[0].Trim() ?? "";
+            return riga.Length > quanti ? riga[..quanti] + "…" : riga;
+        }
+        var righe = new List<string>();
+        foreach (var s in scalo.Sections ?? [])
+        {
+            righe.Add($"{s.Number} {s.Title}");
+            foreach (var v in s.Items ?? [])
+                righe.Add($"    {v.Number}. {Prima(v.Label, 60)}: {Prima(v.Value)}");
+            if (s.Rows is { Count: > 0 } r)
+                righe.Add($"    tabella, {r.Count} righe");
+            if (s.Text is { } t)
+                righe.Add($"    {Prima(t)}");
+        }
+        if (scalo.Charts is { Count: > 0 } carte)
+        {
+            righe.Add("Carte");
+            righe.AddRange(carte.Select(c => $"    {c.Title} — {c.Page}{(c.Effective is { } d ? $" ({d.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)})" : "")}"));
+        }
+        return righe;
     }
 
     /// <summary>

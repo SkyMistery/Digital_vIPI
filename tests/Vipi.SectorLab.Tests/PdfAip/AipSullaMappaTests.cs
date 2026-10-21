@@ -362,4 +362,28 @@ public sealed class AipSullaMappaTests
         Assert.Contains(("Regione", "PUGLIA"), t.Campi);
         Assert.Contains(("Note", "Sul fiume"), s.Voci[3].Campi);
     }
+
+    // Passo 5: la scheda dello scalo ha le sottosezioni (le voci, quante righe una tabella, l'inizio della prosa) e le carte.
+    [Fact]
+    public void LaSchedaDelloScalo_SottosezioniECarte()
+    {
+        var scalo = new Aerodrome
+        {
+            Icao = "LIXX", Name = "PROVA", Arp = A,
+            Sections =
+            [
+                new AerodromeSection { Number = "AD 2.3", Title = "ORARIO DEI SERVIZI", Items = [new AerodromeItem("1", "Amministrazione", "H24")] },
+                new AerodromeSection { Number = "AD 2.24", Title = "CARTE", Rows = [["Carte", "Pagine"], ["AERODROME CHART ICAO", "AD 2 LIXX 2 - 1"]] },
+            ],
+            Charts = [new AerodromeChart("AERODROME CHART ICAO", "AD 2 LIXX 2-1", new DateOnly(2026, 6, 11))],
+        };
+
+        var righe = AipSullaMappa.RigheDelloScalo(scalo);
+
+        Assert.Equal(["AD 2.3 ORARIO DEI SERVIZI", "    1. Amministrazione: H24", "AD 2.24 CARTE", "    tabella, 2 righe", "Carte",
+            "    AERODROME CHART ICAO — AD 2 LIXX 2-1 (11/06/2026)"], righe);
+        var s = AipSullaMappa.Di(new AipDocument { State = "LI", Airspaces = [], Aerodromes = [scalo] }, "2611", _ => null);
+        Assert.Equal(righe, s.Voci[0].Righe);
+        Assert.Contains(("Carte", "1"), s.Voci[0].Campi);
+    }
 }

@@ -632,4 +632,35 @@ public sealed class AipJsonTests
         Assert.NotEqual(doc with { Texts = [testo with { English = null }] }, riletto);
         Assert.DoesNotContain("texts", AipJson.Serialize(new AipDocument { State = "LI" }), StringComparison.Ordinal);
     }
+
+    // Carta «L'AIP intero», passo 5: un eliporto, le sottosezioni (voci, tabelle, prosa) e le carte vanno e tornano uguali; un
+    // valore diverso in una voce o in una riga si vede.
+    [Fact]
+    public void LeSottosezioniELeCarteDiUnoScalo_VannoETornanoUguali()
+    {
+        var orari = new AerodromeSection
+        {
+            Number = "AD 3.3", Title = "ORARIO DEI SERVIZI", TitleEnglish = "OPERATIONAL HOURS",
+            Items = [new AerodromeItem("1", "Amministrazione\nAdministration", "H24")],
+            Rows = [["Carte - Charts", "Pagine - Pages"], ["AERODROME CHART ICAO", "AD 3 LIXH 2 - 1"]],
+            Text = "1 Generalita\nNIL", English = "1 General\nNIL", Page = new AipPage("AD 3 LIXH 1-2", new DateOnly(2025, 10, 2)),
+        };
+        var eliporto = new Aerodrome
+        {
+            Icao = "LIXH", Name = "Prova Eli", Heliport = true, Arp = new Position(41.866389, 16.165),
+            NavigationAids = [new Navaid { Section = "AD 3.18", Designator = "Prova Gonio Homer", Name = "Prova Gonio Homer", Type = "VDF", Kind = NavaidKind.Vdf,
+                Position = new Position(45, 9), Components = [] }],
+            Sections = [orari], Charts = [new AerodromeChart("AERODROME CHART ICAO", "AD 3 LIXH 2-1", new DateOnly(2025, 10, 2))],
+        };
+        var doc = new AipDocument { State = "LI", Airspaces = [], Aerodromes = [eliporto] };
+
+        var json = AipJson.Serialize(doc);
+        var riletto = AipJson.Deserialize(json);
+
+        Assert.Equal(doc, riletto);
+        Assert.NotEqual(doc with { Aerodromes = [eliporto with { Sections = [orari with { Items = [new AerodromeItem("1", "Amministrazione\nAdministration", "HJ")] }] }] }, riletto);
+        Assert.NotEqual(doc with { Aerodromes = [eliporto with { Sections = [orari with { Rows = [["Carte - Charts", "Pagine - Pages"]] }] }] }, riletto);
+        Assert.Contains("\"kind\": \"vdf\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"heliport\": true", json, StringComparison.Ordinal);
+    }
 }

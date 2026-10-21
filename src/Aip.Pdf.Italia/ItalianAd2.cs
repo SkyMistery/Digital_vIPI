@@ -25,8 +25,29 @@ public static partial class ItalianAd2
 {
     private const RegexOptions Opzioni = RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture;
 
-    [GeneratedRegex(@"^(?<icao>[A-Z]{4})\s+AD\s+2\.(?<n>\d+)\b", Opzioni)]
+    [GeneratedRegex(@"^(?<icao>[A-Z]{4})\s+AD\s+[23]\.(?<n>\d+)\b", Opzioni)]
     private static partial Regex RxTitolo();
+
+    [GeneratedRegex(@"(['’""″])\s+(?=[NSEW]\b)")]
+    private static partial Regex RxSpazioPrimaDellEmisfero();
+
+    [GeneratedRegex(@"([NS])\s*-\s*(?=\d)")]
+    private static partial Regex RxTrattinoFraLeCoordinate();
+
+    // Il nome dell'eliporto, sotto il titolo di AD 3.1: «LIBI - Vieste».
+    [GeneratedRegex(@"^(?<icao>[A-Z]{4})\s*-\s*(?<nome>\S.*)$", Opzioni)]
+    private static partial Regex RxNomeDelloScalo();
+
+    /// <summary>
+    /// I numeri delle sezioni che hanno un lettore loro, in AD 2 (gli scali) e in AD 3 (gli eliporti, carta «L'AIP intero»,
+    /// passo 5: niente piste, lo spazio aereo in 3.16, le frequenze in 3.17, le radioassistenze in 3.18), e i numeri delle voci
+    /// di 2.2/3.2 che si leggono: ARP, elevazione, declinazione, traffico.
+    /// </summary>
+    private sealed record Parte(int Numero, int? Piste, int? Distanze, int Spazi, int Frequenze, int Radio, string Arp, string Elevazione,
+        string Declinazione, string Traffico);
+
+    private static readonly Parte Ad2 = new(2, 12, 13, 17, 18, 19, "1", "3", "5", "7");
+    private static readonly Parte Ad3 = new(3, null, null, 16, 17, 18, "1", "3", "4", "6");
 
     [GeneratedRegex(@"\d+(?:[.,]\d+)?\s*FT\b", Opzioni)]
     private static partial Regex RxPiedi();
@@ -68,9 +89,16 @@ public static partial class ItalianAd2
     /// <summary>Una riga di una tabella: il testo di ogni colonna (una voce per riga di testo), la pagina, la riga dei numeri della tabella.</summary>
     private sealed record Riga(List<string>[] Celle, ImportPage Pagina, string Numeri);
 
-    public static ImportResult Read(IReadOnlyList<PdfPageText> pages, string icao, string nome)
+    public static ImportResult Read(IReadOnlyList<PdfPageText> pages, string icao, string nome) => Leggi(pages, icao, nome, Ad2);
+
+    /// <summary>Il testo di un eliporto di AD 3 (<c>LI-AD 3 LIBI 1</c>): il nome sotto il titolo di AD 3.1.</summary>
+    public static ImportResult ReadHeliport(IReadOnlyList<PdfPageText> pages, string icao) => Leggi(pages, icao, null, Ad3);
+
+    private static ImportResult Leggi(IReadOnlyList<PdfPageText> pages, string icao, string? nome, Parte parte)
     {
         ArgumentNullException.ThrowIfNull(pages);
+        nome ??= pages.SelectMany(Table.PlainLines).Select(l => RxNomeDelloScalo().Match(l.Trim()))
+            .FirstOrDefault(m => m.Success && m.Groups["icao"].Value == icao)?.Groups["nome"].Value.Trim() ?? icao;
         var problemi = new List<ImportIssue>();
         var pagine = new List<ImportPage>();
         var perSezione = new Dictionary<int, List<Riga>>();
@@ -103,19 +131,23 @@ public static partial class ItalianAd2
         {
             Icao = icao,
             Name = nome,
+            Heliport = parte == Ad3,
         };
-        if (perSezione.TryGetValue(2, out var r22)) scalo = Dati(scalo, r22, problemi);
-        if (perSezione.TryGetValue(12, out var r212)) scalo = scalo with { Runways = Piste(r212, icao, problemi) };
-        if (perSezione.TryGetValue(13, out var r213)) scalo = scalo with { DeclaredDistances = Distanze(r213) };
-        if (perSezione.TryGetValue(17, out var r217)) aree.AddRange(Spazi(r217, icao, problemi));
-        if (perSezione.TryGetValue(18, out var r218)) scalo = scalo with { Communications = Frequenze(r218) };
-        if (perSezione.TryGetValue(19, out var r219))
+        if (perSezione.TryGetValue(2, out var r22)) scalo = Dati(scalo, r22, parte, problemi);
+        if (parte.Piste is { } np && perSezione.TryGetValue(np, out var r212)) scalo = scalo with { Runways = Piste(r212, icao, problemi) };
+        if (parte.Distanze is { } nd && perSezione.TryGetValue(nd, out var r213)) scalo = scalo with { DeclaredDistances = Distanze(r213) };
+        if (perSezione.TryGetValue(parte.Spazi, out var r217)) aree.AddRange(Spazi(r217, icao, $"AD {parte.Numero}.{parte.Spazi}", problemi));
+        if (perSezione.TryGetValue(parte.Frequenze, out var r218)) scalo = scalo with { Communications = Frequenze(r218) };
+        if (perSezione.TryGetValue(parte.Radio, out var r219))
         {
-            var (radioassistenze, ils) = Radioassistenze(r219, problemi);
+            var (radioassistenze, ils) = Radioassistenze(r219, $"AD {parte.Numero}.{parte.Radio}", problemi);
             scalo = scalo with { NavigationAids = radioassistenze, Ils = ils };
         }
-        if (scalo.Arp is null) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, icao, null, "senza ARP (AD 2.2)"));
-        if (scalo.Runways.Count == 0) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, icao, null, "senza piste (AD 2.12)"));
+        // Tutte le sottosezioni, com'è stampate (carta «L'AIP intero», passo 5).
+        var sottosezioni = ItalianAdSections.Read(pages, icao, pagine);
+        scalo = scalo with { Sections = sottosezioni, Charts = Carte(sottosezioni, $"AD {parte.Numero}.{(parte == Ad3 ? 23 : 24)}") };
+        if (scalo.Arp is null) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, icao, null, $"senza ARP (AD {parte.Numero}.2)"));
+        if (parte.Piste is not null && scalo.Runways.Count == 0) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, icao, null, "senza piste (AD 2.12)"));
         return new ImportResult(aree, pagine, problemi) { Aerodromes = [scalo] };
     }
 
@@ -148,32 +180,55 @@ public static partial class ItalianAd2
         return righe;
     }
 
-    private static Aerodrome Dati(Aerodrome scalo, List<Riga> righe, List<ImportIssue> problemi)
+    private static Aerodrome Dati(Aerodrome scalo, List<Riga> righe, Parte parte, List<ImportIssue> problemi)
     {
         foreach (var r in righe.Where(r => r.Celle.Length >= 3))
         {
             var valore = Unisci(r.Celle[2]);
-            switch (Unisci(r.Celle[0]))
+            var numero = Unisci(r.Celle[0]);
+            if (numero == parte.Arp)
             {
-                case "1":
-                    scalo = scalo with { Arp = GeometryText.ReadPoint(valore), Page = Pagina(r.Pagina) };
-                    if (scalo.Arp is null) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, scalo.Icao, r.Pagina.Number, $"ARP: {valore}"));
-                    break;
-                case "3" when valore is not null:
-                    var (elev, temp) = Due(valore);
-                    scalo = scalo with { Elevation = elev, ReferenceTemperature = temp };
-                    break;
-                case "5" when valore is not null:
-                    var (decl, anno) = Due(valore);
-                    scalo = scalo with { MagneticVariation = decl, AnnualChange = anno };
-                    break;
-                case "7":
-                    scalo = scalo with { Traffic = valore };
-                    break;
+                // Gli eliporti scrivono «41°51'59'' N - 016°09'54'' E»: la lettera attaccata ai secondi, senza il trattino.
+                var arp = valore is null ? null : RxSpazioPrimaDellEmisfero().Replace(RxTrattinoFraLeCoordinate().Replace(valore, "$1 "), "$1");
+                scalo = scalo with { Arp = GeometryText.ReadPoint(arp), Page = Pagina(r.Pagina) };
+                if (scalo.Arp is null) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, scalo.Icao, r.Pagina.Number, $"ARP: {valore}"));
             }
+            else if (numero == parte.Elevazione && valore is not null)
+            {
+                var (elev, temp) = Due(valore);
+                scalo = scalo with { Elevation = elev, ReferenceTemperature = temp };
+            }
+            else if (numero == parte.Declinazione && valore is not null)
+            {
+                var (decl, anno) = Due(valore);
+                scalo = scalo with { MagneticVariation = decl, AnnualChange = anno };
+            }
+            else if (numero == parte.Traffico)
+                scalo = scalo with { Traffic = valore };
         }
         return scalo;
     }
+
+    /// <summary>
+    /// Le carte di AD 2.24 (AD 3.23): una riga per carta, il titolo e la pagina («AD 2 LICA 2 ­ 1», col trattino
+    /// morbido): la pagina si scrive come nell'indice delle pagine, «AD 2 LICA 2-1». Null se la sottosezione non c'è.
+    /// </summary>
+    private static List<AerodromeChart>? Carte(IReadOnlyList<AerodromeSection> sottosezioni, string numero)
+    {
+        if (sottosezioni.All(s => s.Number != numero)) return null;
+        var carte = new List<AerodromeChart>();
+        // Da qualunque sottosezione: in LIPN il titolo di AD 2.25 sta sopra la tabella delle carte (2611).
+        foreach (var r in sottosezioni.SelectMany(s => s.Rows ?? []))
+        {
+            if (r.Count < 2 || RxPaginaDiCarta().Match(r[^1].Trim()) is not { Success: true } m) continue;
+            var titolo = RxSpazi().Replace(string.Join(" ", r.Take(r.Count - 1)), " ").Trim();
+            carte.Add(new AerodromeChart(titolo, $"AD {m.Groups["p"].Value} {m.Groups["icao"].Value} {m.Groups["f"].Value}-{m.Groups["n"].Value}"));
+        }
+        return carte;
+    }
+
+    [GeneratedRegex(@"^AD\s+(?<p>[23])\s+(?<icao>[A-Z]{4})\s+(?<f>\d+)\s*[\-­–]\s*(?<n>\d+)$", Opzioni)]
+    private static partial Regex RxPaginaDiCarta();
 
     /// <summary>«46 FT / 31.4° C» → («46 FT», «31.4° C»).</summary>
     private static (string?, string?) Due(string valore)
@@ -194,7 +249,8 @@ public static partial class ItalianAd2
             var c = r.Celle;
             if (c.Length < 6 || Unisci(c[0]) is not { } designatore) continue;
             var punti = GeometryText.ReadPoints(string.Join('\n', c[4]));
-            if (punti.Count == 0) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, icao, r.Pagina.Number, $"pista {designatore}: senza soglia"));
+            // «NIL» stampato (LICP e altre 30 piste di campi piccoli nel 2611): la soglia non c'è, non è persa.
+            if (punti.Count == 0 && Unisci(c[4]) is not (null or "NIL")) problemi.Add(new ImportIssue(ImportIssueKind.Aerodrome, icao, r.Pagina.Number, $"pista {designatore}: senza soglia"));
             piste.Add(new Runway
             {
                 Designator = designatore,
@@ -245,7 +301,7 @@ public static partial class ItalianAd2
         return distanze;
     }
 
-    private static List<Airspace> Spazi(List<Riga> righe, string icao, List<ImportIssue> problemi)
+    private static List<Airspace> Spazi(List<Riga> righe, string icao, string sezione, List<ImportIssue> problemi)
     {
         var spazi = new List<Airspace>();
         foreach (var r in Unite(righe).Where(r => r.Celle.Length >= 6))
@@ -253,6 +309,8 @@ public static partial class ItalianAd2
             var c = r.Celle;
             if (c[0].Count == 0) continue;
             var designatore = c[0][0];
+            // Uno scalo senza spazio aereo suo: la tabella dice solo «NIL» (passo 5).
+            if (designatore == "NIL") continue;
             var letta = GeometryText.Read(string.Join('\n', c[0].Skip(1)));
             foreach (var g in letta.Issues)
                 problemi.Add(new ImportIssue(ImportIssueKind.Geometry, designatore, r.Pagina.Number, g.Detail is null ? $"{g.Kind}" : $"{g.Kind}: {g.Detail}"));
@@ -264,7 +322,7 @@ public static partial class ItalianAd2
             var limiti = ItalianAip.UnisciLimiti(c[1]);
             spazi.Add(new Airspace
             {
-                Section = "AD 2.17",
+                Section = sezione,
                 Type = designatore.Contains("ATZ", StringComparison.Ordinal) ? AirspaceType.Atz
                     : designatore.Contains("CTR", StringComparison.Ordinal) ? AirspaceType.Ctr : AirspaceType.Other,
                 Designator = designatore,
@@ -304,7 +362,7 @@ public static partial class ItalianAd2
     }
 
     /// <summary>AD 2.19: le radioassistenze dello scalo e gli ILS coi loro apparati.</summary>
-    private static (List<Navaid>, List<Ils>) Radioassistenze(List<Riga> righe, List<ImportIssue> problemi)
+    private static (List<Navaid>, List<Ils>) Radioassistenze(List<Riga> righe, string sezione, List<ImportIssue> problemi)
     {
         var radioassistenze = new List<Navaid>();
         var tuttiGliIls = new List<Ils>();
@@ -322,7 +380,8 @@ public static partial class ItalianAd2
         {
             var c = r.Celle;
             var primo = Unisci(c[0]);
-            if (primo is null) continue;
+            // Una tabella che dice solo «NIL» (uno scalo senza radioassistenze, carta «L'AIP intero», passo 5).
+            if (primo is null or "NIL") continue;
             string? declinazione = null;
             if (RxDeclinazioneInFondo().Match(primo) is { Success: true } d)
             {
@@ -388,7 +447,7 @@ public static partial class ItalianAd2
             }
             radioassistenze.Add(new Navaid
             {
-                Section = "AD 2.19",
+                Section = sezione,
                 Designator = sigla,
                 Name = sigla,
                 Type = primo,

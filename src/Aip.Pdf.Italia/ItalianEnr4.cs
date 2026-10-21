@@ -249,6 +249,7 @@ public static partial class ItalianEnr4
         "DVORTAC" => NavaidKind.Dvortac,
         "NDB" => NavaidKind.Ndb,
         "L" => NavaidKind.Locator,
+        "VDF" => NavaidKind.Vdf,
         _ => NavaidKind.Other,
     };
 

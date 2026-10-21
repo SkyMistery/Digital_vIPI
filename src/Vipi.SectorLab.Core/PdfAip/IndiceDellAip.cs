@@ -41,10 +41,11 @@ public static class IndiceDellAip
         ["ENR 5.5"] = "Attività aeree sportive e ricreative",
         ["ENR 5.6"] = "Migrazione di uccelli e aree con fauna sensibile",
         ["AD 2"] = "Aeroporti",
+        ["AD 3"] = "Eliporti",
     };
 
     /// <summary>L'ordine delle parti, come nell'AIP; quello che non è in una di queste va in fondo, «Altro».</summary>
-    private static readonly string[] Parti = ["ENR 2", "ENR 3", "ENR 4", "ENR 5", "AD 2"];
+    private static readonly string[] Parti = ["ENR 2", "ENR 3", "ENR 4", "ENR 5", "AD 2", "AD 3"];
 
     public static IReadOnlyList<GruppoDellIndice> Di(IReadOnlyList<VoceDellAip> voci, string? filtro = null)
     {
@@ -62,7 +63,7 @@ public static class IndiceDellAip
             var cosa = filtro.Trim();
             if (voce.Titolo.Contains(cosa, StringComparison.OrdinalIgnoreCase))
                 return true;
-            if (Parte(voce) != "AD 2")
+            if (Parte(voce) is not ("AD 2" or "AD 3"))
                 return false;
             return (Scalo(voce) ?? ScaloDalNome(voce, nomiDegliScali)) is { } scalo
                    && nomiDegliScali.GetValueOrDefault(scalo) is { } nome
@@ -78,7 +79,7 @@ public static class IndiceDellAip
         foreach (var parte in scelte.GroupBy(x => Parte(x.Voce)).OrderBy(g => OrdineDellaParte(g.Key)))
         {
             List<GruppoDellIndice> gruppi;
-            if (parte.Key == "AD 2")
+            if (parte.Key is "AD 2" or "AD 3")
             {
                 // Una voce di AD 2 senza scalo (le ATZ: l'area non lo dice) va nel suo scalo se il nome lo trova; se no, in
                 // un gruppo con la sua sezione.
@@ -145,8 +146,9 @@ public static class IndiceDellAip
     public static string Parte(VoceDellAip voce)
     {
         ArgumentNullException.ThrowIfNull(voce);
+        // Uno scalo e le sue voci; un eliporto (la sua sezione è «AD 3», passo 5) ha la parte sua.
         if (Scalo(voce) is not null)
-            return "AD 2";
+            return Campo(voce, "Sezione") == "AD 3" ? "AD 3" : "AD 2";
         if (Sezione(voce) is not { } sezione)
             return "Altro";
         var spazio = sezione.IndexOf(' ', StringComparison.Ordinal);

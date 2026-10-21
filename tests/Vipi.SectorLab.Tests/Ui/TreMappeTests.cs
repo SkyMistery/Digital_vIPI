@@ -105,7 +105,9 @@ public sealed class TreMappeTests : IDisposable
         var pagina = _contesto.RenderComponent<Home>();
         Assert.Single(pagina.FindAll("[data-mappa-dello-spazio]"));
 
-        pagina.Find("[data-pagina='aipindice']").Click();
+        // Il clic dentro il dispatcher: il Lab aperto può ridisegnare la barra fra la ricerca del tasto e il clic (rosso
+        // intermittente, «no event handler with ID»).
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina='aipindice']").Click());
 
         pagina.WaitForAssertion(() =>
         {
@@ -119,7 +121,7 @@ public sealed class TreMappeTests : IDisposable
             i => i.Identifier == "sectorlab.mappa.strato" && i.Arguments[0] as string == StratiDellaMappa.Sfondo.Id
                  && i.Arguments[2] as string == "lab-mappa-aip"));
 
-        pagina.Find("[data-pagina='sector']").Click();
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina='sector']").Click());
         pagina.WaitForAssertion(() =>
         {
             Assert.Equal(2, pagina.FindAll("[data-mappa-dello-spazio]").Count);

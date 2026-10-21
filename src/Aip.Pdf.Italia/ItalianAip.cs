@@ -198,11 +198,16 @@ public static partial class ItalianAip
     [GeneratedRegex(@"^LI-ENR (?<s>3\.[123]) [A-Z]{1,2}\d+$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxRotte();
 
-    [GeneratedRegex(@"^LI-AD 2 (?<icao>[A-Z]{4}) - (?<nome>.+) 1$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    // ⚠️ 52 scali su 97 hanno due spazi dopo «AD 2» («LI-AD 2  LIAF - FOLIGNO 1»): fino al passo 5 non si leggevano.
+    [GeneratedRegex(@"^LI-AD 2\s+(?<icao>[A-Z]{4}) - (?<nome>.+) 1$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxTestoDiScalo();
 
-    [GeneratedRegex(@"^LI-AD 2 (?<icao>[A-Z]{4}) - .+ (?<n>\d+)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    [GeneratedRegex(@"^LI-AD 2\s+(?<icao>[A-Z]{4}) - .+ (?<n>\d+)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxCartaDiScalo();
+
+    // AD 3, gli eliporti (carta «L'AIP intero», passo 5): «LI-AD 3 LIBI 1», senza il nome.
+    [GeneratedRegex(@"^LI-AD 3\s+(?<icao>[A-Z]{4})\s+1$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxTestoDiEliporto();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
@@ -245,6 +250,8 @@ public static partial class ItalianAip
         // AD 2 (slice 5a): il testo di uno scalo è il suo primo PDF; gli altri sono carte.
         if (RxTestoDiScalo().Match(nome) is { Success: true } scalo)
             return ItalianAd2.Read(pages(), scalo.Groups["icao"].Value, scalo.Groups["nome"].Value.Trim());
+        if (RxTestoDiEliporto().Match(nome) is { Success: true } eliporto)
+            return ItalianAd2.ReadHeliport(pages(), eliporto.Groups["icao"].Value);
         // Le carte di uno scalo: la ATC SMAC (il testo dei settori), le procedure (F7: il 4 le STAR, il 6 le SID); le altre
         // sono immagini.
         if (RxCartaDiScalo().Match(nome) is { Success: true } carta)

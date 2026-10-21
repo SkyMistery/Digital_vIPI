@@ -24,6 +24,12 @@ public enum NavaidKind
 
     /// <summary>Radiofaro di avvicinamento (locator), che l'AIP italiano scrive <c>L</c>.</summary>
     Locator,
+
+    /// <summary>
+    /// Un radiogoniometro VHF (VDF, «Gonio Homer»: AD 2.19 di Bari, Crotone, Foggia, Grottaglie…; carta «L'AIP intero», passo
+    /// 5). Non ha una sigla: l'AIP stampa il nome nella colonna della sigla.
+    /// </summary>
+    Vdf,
 }
 
 /// <summary>
