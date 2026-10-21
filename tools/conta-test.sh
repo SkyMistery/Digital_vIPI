@@ -54,15 +54,22 @@ TFM_SOLO="${3:-}"      # con --tfm: il TFM; con --scrivi: l'assieme (facoltativo
 # ms» con INCOLLATO in coda il riepilogo intero di Assets, e la coda « - Vipi.AuroraProfiles.Tests.dll (net8.0)»
 # alla riga dopo. Portato a capo quel che era incollato, fra la testa e la sua coda si mette un riepilogo
 # COMPLETO: la testa aspetta oltre i riepiloghi completi, e non solo la riga che la segue.
-CORSA="$(sed -E 's/(.)((Passed|Failed)! +- )/\1\n\2/g' "$LOG" | awk '
-    pend != "" {
-        if ($0 ~ /^ *- /) { print pend $0; pend = ""; next }
-        if ($0 ~ /^(Passed|Failed)!/ && $0 ~ /\.dll \(/) { print; next }
-        print pend; pend = ""
+#
+# ⚠️ E in coda alla testa può arrivare incollato anche l'ANNUNCIO di un altro assieme (corsa 39593831601, 21 ottobre
+# 2026): «Passed! … 3418, Duration: 6 sTest run for …/Vipi.E2E.Tests.dll (.NETCoreApp,Version=v10.0)», e la coda
+# « - Vipi.Application.Tests.dll (net10.0)» alla riga dopo. Quel «.dll (» faceva credere completa la testa: «MANCA» su
+# Application, e un «NUOVO» senza senso. Ora anche «Test run for» si porta a capo, e una testa aspetta la sua coda
+# oltre QUALUNQUE riga (in fila, se ce n'è più d'una): la coda è l'unica riga che comincia con « - ».
+CORSA="$(sed -E 's/(.)((Passed|Failed)! +- )/\1\n\2/g; s/(.)(Test run for )/\1\n\2/g' "$LOG" | awk '
+    /^(Passed|Failed)!/ && $0 !~ /\.dll \(/ { teste[++n] = $0; next }
+    /^ *- / && n > 0 {
+        print teste[1] $0
+        for (i = 1; i < n; i++) teste[i] = teste[i + 1]
+        n--
+        next
     }
-    /^(Passed|Failed)!/ && $0 !~ /\.dll \(/ { pend = $0; next }
     { print }
-    END { if (pend != "") print pend }' \
+    END { for (i = 1; i <= n; i++) print teste[i] }' \
   | grep -E '^(Passed|Failed)!' \
   | sed -E 's/.*Passed: *([0-9]+),.*- (Vipi[^ ]+\.dll) \((net[0-9.]+)\).*/\2 \3 \1/' \
   | sort)"
@@ -70,6 +77,13 @@ CORSA="$(sed -E 's/(.)((Passed|Failed)! +- )/\1\n\2/g' "$LOG" | awk '
 if [ -z "$CORSA" ]; then
   echo "conta-test: nel log non c'è nessuna riga di riepilogo. La corsa dei test è avvenuta davvero?" >&2
   exit 1
+fi
+
+# `--leggi`: stampa la corsa come l'ha letta, «<assieme> <tfm> <numero>», e basta. Serve alla prova della lettura
+# (tools/conta-test-prova.sh), che la confronta coi log veri dei giorni in cui si è sbagliata.
+if [ "$MODO" = "--leggi" ]; then
+  echo "$CORSA"
+  exit 0
 fi
 
 # Scrive il file di UN assieme, con le righe «<tfm> <numero>» che la corsa ha visto per lui.

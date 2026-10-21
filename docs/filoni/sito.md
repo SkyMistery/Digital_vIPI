@@ -2901,6 +2901,15 @@
 - ✅ **S124** (21-ott sera, chiesto dal committente) la **tecnica operativa** del Radar di torre **nasce aperta** nelle
   vIPI e nei vSOP: esce da `SectionCatalog.InitiallyCollapsedKeys` (resta solo «regulated»). Test cambiati apposta
   (Application e Ui), conteggi invariati. Carta torre radar §9.
+- ✅ **S125** (21-ott sera, in coda dal Master dopo la 1.70.0) **`tools/conta-test.sh` non dà più «MANCA» falsi** sui
+  riepiloghi spezzati. Nella corsa 39593831601 la testa «Passed! … Duration: 6 s» aveva incollato in coda
+  l'annuncio «Test run for …/Vipi.E2E.Tests.dll (…)», e quel «.dll (» la faceva credere completa: «MANCA» su
+  Application net10 e un «NUOVO» senza senso. Ora «Test run for» si porta a capo come i riepiloghi incollati, e le
+  teste senza coda aspettano in fila la prima riga che comincia con « - », oltre qualunque riga. Nuovo
+  **`tools/conta-test-prova.sh`** (gira per primo in CI): i sei modi in cui il riepilogo è uscito rotto (14-set,
+  23-set ×2, 21-ott, due teste in fila), letti con `conta-test.sh --leggi`. Sulla lettura di prima i casi del 21-ott e
+  delle due teste danno ROTTO, sulla nuova tutti ok; sul log vero del 21-ott la nuova vede tutti i 18 assiemi.
+  **Codice comune** (`tools/`, `.github/workflows/ci.yml`).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
