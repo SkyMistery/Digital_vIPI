@@ -1,0 +1,38 @@
+@using Vipi.SectorLab.Core.Git
+
+@*
+    Le due consegne come giri (riordino R5): i passi in fila, ognuno fatto (✓), da fare (●), da guardare (⚠) o che qui non
+    si fa (–), in parole; il prossimo in evidenza. Non fa niente: i tasti restano nei riquadri qui sotto.
+*@
+@{ var prossimo = Vipi.SectorLab.Core.Git.GiroDellaConsegna.Prossimo(Passi); }
+<ol class="lab-giro" data-giro="@Chiave" data-prossimo="@(prossimo?.Chiave ?? "nessuno")">
+    @for (int i = 0; i < Passi.Count; i++)
+    {
+        var passo = Passi[i];
+        <li class="lab-passo lab-passo-@passo.Stato.ToString().ToLowerInvariant() @(passo == prossimo ? "lab-passo-prossimo" : null)"
+            data-passo-giro="@passo.Chiave" data-stato="@passo.Stato" title="@(passo == prossimo ? "Il prossimo passo" : null)">
+            <span class="lab-passo-segno">@Segno(passo.Stato)</span>
+            <strong>@(i + 1). @passo.Nome</strong>
+            <span class="lab-nota">@passo.Detto</span>
+        </li>
+    }
+</ol>
+@if (prossimo is null && Passi.All(p => p.Stato is StatoDelPasso.Fatto or StatoDelPasso.DaGuardare))
+{
+    <p class="lab-nota" data-giro-a-posto>Il giro è a posto: niente da fare.</p>
+}
+
+@code {
+    /// <summary>Quale giro: «sector» o «aip».</summary>
+    [Parameter, EditorRequired] public string Chiave { get; set; } = "";
+
+    [Parameter, EditorRequired] public IReadOnlyList<PassoDelGiro> Passi { get; set; } = [];
+
+    private static string Segno(StatoDelPasso stato) => stato switch
+    {
+        StatoDelPasso.Fatto => "✓",
+        StatoDelPasso.DaFare => "●",
+        StatoDelPasso.DaGuardare => "⚠",
+        _ => "–",
+    };
+}

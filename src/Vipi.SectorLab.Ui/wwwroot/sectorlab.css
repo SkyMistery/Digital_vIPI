@@ -2439,3 +2439,37 @@ body.lab-trascina * {
     letter-spacing: .06em;
     text-transform: uppercase;
 }
+
+/* R5, le due consegne: il giro in testa alla pagina, i passi in fila, il prossimo in evidenza. La pagina Consegna diventa
+   una colonna: il giro, poi le tre colonne di sempre. */
+.lab-pagina-consegna { flex-direction: column; }
+.lab-pagina-consegna > .lab-giro { margin: 0; background: var(--lab-superficie); }
+.lab-pagina-colonne { flex: 1; display: flex; gap: 1px; min-height: 0; }
+
+.lab-giro {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    list-style: none;
+    margin: .3rem 0 .5rem;
+    padding: .5rem .8rem;
+}
+
+.lab-passo {
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+    min-width: 9rem;
+    flex: 1 1 9rem;
+    padding: .35rem .55rem;
+    border: 1px solid var(--lab-linea);
+    border-radius: .35rem;
+    background: var(--lab-superficie);
+}
+
+.lab-passo-segno { font-weight: 700; }
+.lab-passo-fatto .lab-passo-segno { color: var(--lab-ok); }
+.lab-passo-dafare .lab-passo-segno { color: var(--lab-accento); }
+.lab-passo-daguardare .lab-passo-segno { color: var(--lab-avviso); }
+.lab-passo-nonsifa { opacity: .65; }
+.lab-passo-prossimo { border-color: var(--lab-accento); box-shadow: 0 0 0 1px var(--lab-accento); background: var(--lab-scelto); }

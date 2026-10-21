@@ -4582,6 +4582,29 @@ public sealed class SessioneDelLab
     /// <summary>I PDF dell'AIP nella cartella, adesso.</summary>
     public IReadOnlyList<string> PdfDellAip => CartellaDeiPdf is { } c ? Core.PdfAip.PdfDellAip.Elenco(c) : [];
 
+    // --- le due consegne come giri (riordino R5) ----------------------------------------------------------------------
+
+    /// <summary>Il giro del sector: modifiche → Salva → Registra il sector → Porta in vetrina → Manda il sector.</summary>
+    public IReadOnlyList<Core.Git.PassoDelGiro> GiroDelSector =>
+        Core.Git.GiroDellaConsegna.DelSector(Modifiche.Quante, ProblemiDelleModifiche.Count, Ramo, CartellaDellaVetrina is not null,
+            Lotto?.DaPortare ?? 0, InVetrinaCeQuesto ? Lotto?.DaVedere ?? 0 : 0, Predefinito);
+
+    /// <summary>Il giro dell'AIP espanso: i PDF → Leggi → le segnalazioni → Registra l'AIP → Manda l'AIP.</summary>
+    public IReadOnlyList<Core.Git.PassoDelGiro> GiroDellAip =>
+        Core.Git.GiroDellaConsegna.DellAip(PdfDellAip.Count, CicloLettoDellAip, UltimoAipEspanso?.Problemi.Count ?? 0, StatoDellAip);
+
+    /// <summary>
+    /// Il ciclo che l'AIP espanso ha già letto: quello dell'ultima lettura, o l'ultimo che ha il modello nella cartella (dopo
+    /// un riavvio la lettura di prima non c'è più, il modello sì). Null se nessuno.
+    /// </summary>
+    private string? CicloLettoDellAip =>
+        UltimoAipEspanso?.Ciclo
+        ?? (CartellaDellAipEspanso is { } espanso && Directory.Exists(espanso)
+            ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).OfType<string>()
+                .Where(c => Core.PdfAip.CicloAirac.Valido(c) && File.Exists(Core.PdfAip.AipEspanso.File(espanso, c)))
+                .Order(StringComparer.Ordinal).LastOrDefault()
+            : null);
+
     /// <summary>Com'è andato l'ultimo «Prendi i PDF da Download».</summary>
     public Core.PdfAip.PresaDaDownload? UltimaPresaDaDownload { get; private set; }
 

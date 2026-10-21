@@ -53,11 +53,17 @@ public sealed class PagineDelLabTests : IDisposable
 
         pagina.Find("[data-pagina='aip']").Click();
         Assert.NotEmpty(pagina.FindAll("[data-riquadro-aip]"));
+        // R5: il giro dell'AIP espanso in testa.
+        Assert.Equal(["pdf", "leggi", "segnalazioni", "registra", "manda"],
+            pagina.FindAll("[data-giro='aip'] [data-passo-giro]").Select(p => p.GetAttribute("data-passo-giro")));
         Assert.Empty(pagina.FindAll("[data-linguetta='sfoglia']"));
         Assert.Equal("no", pagina.Find("[data-mappa-nascosta]").GetAttribute("data-mappa-nascosta"));
 
         pagina.Find("[data-pagina='consegna']").Click();
         Assert.NotEmpty(pagina.FindAll("[data-pagina-aperta='consegna']"));
+        // R5: il giro del sector in testa, i passi nell'ordine del lavoro.
+        Assert.Equal(["modifiche", "salva", "registra", "vetrina", "manda"],
+            pagina.FindAll("[data-giro='sector'] [data-passo-giro]").Select(p => p.GetAttribute("data-passo-giro")));
         Assert.NotEmpty(pagina.FindAll("[data-riquadro-aurora]"));
         // La mappa c'è ancora (non si rifà, D2): è solo nascosta.
         Assert.NotNull(pagina.Find("[data-mappa]"));

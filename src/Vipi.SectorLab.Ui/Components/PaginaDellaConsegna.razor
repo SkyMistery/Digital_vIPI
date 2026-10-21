@@ -5,8 +5,12 @@
     La pagina Consegna (riordino delle pagine, D1): il giro intero in un posto, da sinistra a destra come si fa — le
     modifiche in sospeso e Salva, il ramo (registra, manda, PR, changelog, rami), la vetrina di Aurora (porta, lotto,
     prove). R1 mette insieme i pezzi di prima; la R2 li ordina come passi del giro.
+    R5 («le due consegne»): in testa il giro — modifiche → Salva → Registra il sector → Porta in vetrina → Manda il
+    sector —, ogni passo fatto o da fare, e il prossimo in evidenza.
 *@
 <div class="lab-pagina lab-pagina-consegna" data-pagina-aperta="consegna">
+    <GiroDellaConsegna Chiave="sector" Passi="Lab.GiroDelSector" />
+    <div class="lab-pagina-colonne">
     <div class="lab-pagina-colonna" data-passo="modifiche">
         @if (!Lab.Modifiche.CEQualcosa && Lab.UltimoSalvataggio is null && Lab.ModifichePerse.Count == 0)
         {
@@ -20,6 +24,7 @@
     </div>
     <div class="lab-pagina-colonna" data-passo="aurora">
         <AuroraNellaBarra />
+    </div>
     </div>
 </div>
 

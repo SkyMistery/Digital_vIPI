@@ -689,6 +689,24 @@ componenti), poi i nomi, contro il problema di §2 punto 7:
 - Test: Lab 1 357 (+1, la guardia; due test del Testo aggiornati ai nomi nuovi). Sul banco: «Registra il sector» nella
   Consegna, «Registra l'AIP» e «Manda l'AIP» nella pagina dell'AIP.
 
+**Le due consegne fatte** (21 ottobre, «vai con le due consegne allora»): i giri.
+- In testa alla pagina **Consegna** il giro del sector: **1. Modifiche → 2. Salva → 3. Registra il sector → 4. Porta in
+  vetrina → 5. Manda il sector**; in testa a **Lettura e consegna** quello dell'AIP espanso: **1. I PDF → 2. Leggi
+  nell'AIP espanso → 3. Segnalazioni → 4. Registra l'AIP → 5. Manda l'AIP**. Ogni passo è fatto (✓), da fare (●), da
+  guardare (⚠: le segnalazioni, non fermano il giro) o qui non si fa (–, col perché); il **prossimo** è il primo da fare,
+  in evidenza. I tasti restano nei riquadri di sempre, sotto: il giro dice soltanto dove si è.
+- Lo stato viene da quel che il Lab sa già (`GiroDellaConsegna`, Core): le modifiche in sospeso e i problemi nuovi; git
+  (i file da registrare dentro i confini, con la regola di «Registra il sector»: sul ramo predefinito si dice perché no;
+  le registrazioni che il server non ha, con quella di «Manda»); la vetrina (impostata o no) e il lotto (gesti da portare,
+  da guardare in Aurora); la cartella dei PDF, il ciclo letto (anche dopo un riavvio, dal modello nella cartella), le
+  segnalazioni dell'ultima lettura, git dell'AIP (si manda solo dal ramo del ciclo, `aip/…`).
+- 🟡 Ordine dei passi del sector come nel piano approvato (§5-bis R5): Registra prima della vetrina. Con un ciclo già letto la
+  cartella dei PDF vuota non è un passo da fare (trovato sul banco: chiedeva di mettere i PDF col 2610 già letto).
+- Test: Lab 1 360 (+3: il giro del sector coi suoi stati, quel che non si fa col perché, il giro dell'AIP; il test delle
+  pagine guarda i due giri). Sul banco: senza modifiche, giro del sector «nessun prossimo» (sul ramo predefinito
+  Registra e Manda dicono perché no, la vetrina non è impostata); scritta una riga nel Testo → «1. Modifiche» in evidenza,
+  «Salva (1)»; giro dell'AIP: «il ciclo 2610 è letto», tutto sul server.
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
@@ -700,7 +718,7 @@ correzioni). Il piano di §5-ter è finito. Poi la **pagina Testo**: T1 fatta (l
 bloccati), T2 fatta (problemi sul margine, nomi, Ctrl+clic, la domanda prima di cancellare un record coi metadati),
 T3 fatta (i legami con la Scheda, la mappa e il Confronti; la bozza): la pagina Testo è finita. Poi la **Scheda per
 gruppi** (D5): prima parte fatta (i gruppi, i gesti sul file nella colonna); seconda parte da fare (un editor dei vertici
-per i `.geo`, la voce AIP nei Collegamenti). Poi i **verbi** (D6): fatti. Restano, al via del committente: le due
-consegne e la seconda parte della Scheda. Dopo: le due
+per i `.geo`, la voce AIP nei Collegamenti). Poi i **verbi** (D6) e **le due consegne** (i giri, R5): fatti. Resta, al
+via del committente, la seconda parte della Scheda (un editor dei vertici per i `.geo`, la voce AIP nei Collegamenti). Dopo: le due
 consegne, la Scheda per gruppi, i verbi. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

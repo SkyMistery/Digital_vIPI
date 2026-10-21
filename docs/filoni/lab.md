@@ -4,7 +4,7 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 21 ottobre 2026: pagina Testo, Scheda per gruppi (prima parte), verbi
+## Dove siamo — 21 ottobre 2026: pagina Testo, Scheda per gruppi (prima parte), verbi, due consegne
 
 Dopo R4-R9 il committente ha chiesto la **pagina Testo** (D12, D13, D21). Divisa in T1-T3 (proposta dell'agente, in
 carta): **T1 fatta** — «Testo» nello spazio Sector, l'albero dei file, CodeMirror 6 dentro l'app (pacchetto in
@@ -14,8 +14,9 @@ si scrive, Ctrl+clic alla definizione, la domanda prima di cancellare un record 
 non applicato che resta uscendo dalla pagina. **Scheda per gruppi (D5), prima parte** — Dati, Geometria, Procedura,
 Collegamenti, Righe del file, sempre in quest'ordine; «Aerovie del file» nel pannello del file. **Verbi (D6)** — Scrivi,
 Lascia stare, Annulla solo per storia e modifiche, Togli solo per il sector, Registra/Manda il sector e l'AIP, Porta in
-vetrina; una guardia nei test. Lab 1 357. **Dopo**, al via: la seconda parte di D5 (un editor dei vertici per i `.geo`,
-la voce AIP nei Collegamenti), le due consegne.
+vetrina; una guardia nei test. **Le due consegne (R5)** — il giro del sector e quello dell'AIP in testa alle loro pagine,
+ogni passo fatto o da fare, il prossimo in evidenza. Lab 1 360. **Dopo**, al via: la seconda parte di D5 (un editor dei
+vertici per i `.geo`, la voce AIP nei Collegamenti).
 
 ## 20 ottobre 2026, notte: terza forma, R4-R9 fatte
 
