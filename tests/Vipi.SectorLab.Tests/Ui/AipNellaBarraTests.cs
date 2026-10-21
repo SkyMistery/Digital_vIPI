@@ -181,7 +181,9 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Equal(["ENR 2", "ENR 4"], pagina.FindAll("[data-parte]").Select(e => e.GetAttribute("data-parte")));
         Assert.NotEmpty(pagina.FindAll("[data-scheda-aip-vuota]"));
 
-        pagina.FindAll("[data-voce-aip]").Single(e => e.TextContent.Trim() == "ABRUS").Click();
+        // Trovare e cliccare nello stesso giro del renderer: la validazione può ridisegnare la pagina fra i due
+        // (CI 21-ott, UnknownEventHandlerIdException).
+        await pagina.InvokeAsync(() => pagina.FindAll("[data-voce-aip]").Single(e => e.TextContent.Trim() == "ABRUS").Click());
 
         pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-scheda-aip-vuota]")));
         Assert.Equal(1, _lab.SceltaDellAip);
