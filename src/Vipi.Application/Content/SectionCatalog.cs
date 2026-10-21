@@ -137,10 +137,11 @@ public static class SectionCatalog
     // da sola. Vale OVUNQUE: viewer ed editor, tutte e tre le famiglie.
     // ⚠️ Qui c'era scritto «ognuna con la sua mappa»: non è più vero dal 27 agosto 2026 — la sezione ha una
     // mappa sola con le chip. Resta collassata per il numero di RIGHE, non più per il numero di mappe.
-    // ⚠️ E la tecnica operativa della torre radar (18 ottobre 2026, committente): prosa lunga in mezzo all'indice,
-    // fra Piste e SID — aperta spingerebbe le SID una schermata più in giù.
+    // ⚠️ La tecnica operativa della torre radar c'è stata dal 18 al 21 ottobre 2026 («prosa lunga fra Piste e SID»), e
+    // il 21 ottobre il committente l'ha voluta APERTA nelle vIPI e nei vSOP (S124): ora è fatta di blocchi, e chiusa
+    // nascondeva proprio quel che si scrive per essere letto.
     private static readonly IReadOnlySet<string> InitiallyCollapsedKeys =
-        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regulated", SectionKeys.RadarTowerTechnique };
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regulated" };
 
     /// <summary>Vero se la sezione si apre COLLASSATA nel documento: si espande a mano (doc 11 §3i).</summary>
     public static bool IsInitiallyCollapsed(string key) => InitiallyCollapsedKeys.Contains(key);

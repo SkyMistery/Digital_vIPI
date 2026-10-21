@@ -2898,6 +2898,9 @@
   portarle nei documenti: le due frasi di Milano le riscrivo io». Via i campi da pagina Trasferimenti, navigatore,
   ricerca, modelli, repository e da `description` dell'API dei settori. **Migrazione sì, distruttiva**:
   `TogliNoteTrasferimenti` (`CoordinationAgreements.Note`, `AgreementSections.Description`), il testo si perde apposta.
+- ✅ **S124** (21-ott sera, chiesto dal committente) la **tecnica operativa** del Radar di torre **nasce aperta** nelle
+  vIPI e nei vSOP: esce da `SectionCatalog.InitiallyCollapsedKeys` (resta solo «regulated»). Test cambiati apposta
+  (Application e Ui), conteggi invariati. Carta torre radar §9.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

@@ -68,13 +68,13 @@ public class TorreRadarUiTests : TestContext
             .Add(x => x.DerivedContent, (RenderFragment<SectionView>)(_ => b => b.AddContent(0, "SCHEDA"))));
 
     /// <summary>
-    /// Fino al 18 ottobre 2026 ogni sotto-sezione del documento nasceva aperta, scritto a mano nel markup: la
-    /// tecnica operativa è la prima che il catalogo vuole chiusa (committente).
+    /// La tecnica operativa nasce APERTA, come le altre sotto-sezioni (21 ottobre 2026, committente, S124). Dal 18 al
+    /// 21 ottobre era l'unica che il catalogo voleva chiusa: `SectionNode` continua a chiederlo al catalogo.
     /// </summary>
     [Fact]
-    public void La_tecnica_nasce_chiusa_le_altre_sotto_sezioni_restano_aperte()
+    public void La_tecnica_nasce_aperta_come_le_altre_sotto_sezioni()
     {
-        Assert.False(Nodo(SectionKeys.RadarTowerTechnique).Find("details").HasAttribute("open"));
+        Assert.True(Nodo(SectionKeys.RadarTowerTechnique).Find("details").HasAttribute("open"));
         Assert.True(Nodo(SectionKeys.RunwayThresholds).Find("details").HasAttribute("open"));
     }
 
