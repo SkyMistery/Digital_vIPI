@@ -3,6 +3,12 @@ using Aip.Pdf.Italia;
 
 namespace Vipi.SectorLab.Core.PdfAip;
 
+/// <summary>Un conto che l'AIP stampa (zone, punti), quanti ne dice il PDF e quanti se ne sono letti (passo 2e).</summary>
+public sealed record ContoAtteso(string Cosa, int Attesi, int Letti);
+
+/// <summary>Il rapporto di lettura di un PDF (passo 2e): le pagine, quel che ha dato per tipo, le segnalazioni, i conti.</summary>
+public sealed record RapportoDelPdf(string File, int Pagine, IReadOnlyDictionary<string, int> Letti, int Segnalazioni, IReadOnlyList<ContoAtteso> Conti);
+
 /// <summary>Un problema dell'import, col file da cui viene.</summary>
 public sealed record ProblemaDellImport(string File, ImportIssue Problema);
 
@@ -56,6 +62,13 @@ public sealed record EsitoDellAipEspanso(
 
     /// <summary>Le procedure di AD 2 lette (F7): SID, STAR, transizioni, salite iniziali.</summary>
     public int Procedure { get; init; }
+
+    /// <summary>Il rapporto di lettura, un PDF letto per riga (passo 2e).</summary>
+    public IReadOnlyList<RapportoDelPdf> Rapporto { get; init; } = [];
+
+    /// <summary>Quanti conti dell'AIP si sono controllati e quanti non tornano.</summary>
+    public (int Controllati, int NonTornano) Conti =>
+        (Rapporto.Sum(r => r.Conti.Count), Rapporto.Sum(r => r.Conti.Count(c => c.Attesi != c.Letti)));
 
     /// <summary>Le pagine di tutti i PDF della cartella, anche di quelli che l'importer non legge ancora (carta «L'AIP intero», passo 1).</summary>
     public int Pagine { get; init; }
@@ -181,6 +194,7 @@ public static class AipEspanso
         var smac = new List<MinimumAltitudeArea>();
         var procedure = new List<Procedure>();
         var letti = new List<string>();
+        var rapporto = new List<RapportoDelPdf>();
         var nonAncora = new List<string>();
         var illeggibili = new List<string>();
         var problemi = new List<ProblemaDellImport>();
@@ -196,6 +210,8 @@ public static class AipEspanso
         // L'indice delle pagine (carta «L'AIP intero», passo 1): di tutti i PDF, anche quelli che l'importer non legge
         // ancora; ogni PDF si apre una volta sola.
         var indice = new List<Aip.Pdf.IndexedPage>();
+        // I conti che l'AIP stampa (passo 2e): zone numerate, punti ▲∆ delle rotte.
+        var contiAttesi = new Dictionary<string, IReadOnlyList<ExpectedCount>>(StringComparer.Ordinal);
         foreach (var file in pdf.OrderBy(Path.GetFileName, StringComparer.Ordinal))
         {
             try
@@ -204,6 +220,7 @@ public static class AipEspanso
                 indice.AddRange(Aip.Pdf.PageIndex.Of(Path.GetFileName(file), lette));
                 var letto = ItalianAip.ReadFile(file, lette, risolvi);
                 perFile[file] = letto;
+                contiAttesi[file] = ItalianExpectedCounts.Of(file, lette);
                 giaLette.AddRange(letto.Navaids);
                 puntiLetti.AddRange(letto.Points);
             }
@@ -241,6 +258,13 @@ public static class AipEspanso
             pagine.AddRange(letto.Pages);
             // La pagina senza data la dice l'indice, per tutti i file: qui si direbbe due volte.
             problemi.AddRange(letto.Issues.Where(p => p.Kind != ImportIssueKind.PageWithoutDate).Select(p => new ProblemaDellImport(nome, p)));
+
+            // Il rapporto di lettura del PDF (passo 2e): le pagine, quel che si è letto, i conti dell'AIP.
+            var conti = contiAttesi[file].Select(c => new ContoAtteso(c.What, c.Count, ItalianExpectedCounts.Read(c.What, letto))).ToList();
+            foreach (var c in conti.Where(c => c.Attesi != c.Letti))
+                problemi.Add(new ProblemaDellImport(nome, new ImportIssue(ImportIssueKind.ExpectedCount, null, null,
+                    $"{c.Cosa}: {c.Attesi} nel PDF, {c.Letti} letti")));
+            rapporto.Add(new RapportoDelPdf(nome, indice.Count(p => p.File == nome), Letti(letto), letto.Issues.Count, conti));
         }
 
         problemi.InsertRange(0, Aip.Pdf.PageIndex.Check(indice, CicloInVigore(ciclo)).Select(p => new ProblemaDellImport(p.File,
@@ -308,6 +332,7 @@ public static class AipEspanso
         return new EsitoDellAipEspanso(ciclo, scritto, pdf.Count, letti, nonAncora, aree.Count, date, problemi, illeggibili)
         {
             Pagine = indice.Count,
+            Rapporto = rapporto,
             PagineDallaPosizione = indice.Count(p => p.ByPosition),
             Cambiate = cambiate,
             Rotte = rotte.Count,
@@ -348,6 +373,16 @@ public static class AipEspanso
                     new ImportIssue(ImportIssueKind.UnitLine, l.Unit, null, $"{q.Designator}: ENR 4.4 non lo ha")));
         return documento with { UnitLines = risolte };
     }
+
+    // Quel che un PDF ha dato, per tipo: solo le voci che ci sono.
+    private static IReadOnlyDictionary<string, int> Letti(ImportResult r) => new (string, int)[]
+    {
+        ("aree", r.Airspaces.Count), ("rotte", r.Routes.Count), ("attese", r.Holdings.Count),
+        ("radioassistenze di ENR 3.4.2", r.NavaidProcedures.Count), ("frequenze", r.UnitFrequencies.Sum(f => f.Frequencies.Count)),
+        ("linee fra gli ACC", r.UnitLines.Count), ("radioassistenze", r.Navaids.Count), ("punti", r.Points.Count),
+        ("luci", r.Lights.Count), ("scali", r.Aerodromes.Count), ("pericoli", r.Hazards.Count),
+        ("settori SMAC", r.MinimumAltitudes.Count), ("procedure", r.Procedures.Count),
+    }.Where(v => v.Item2 > 0).ToDictionary(v => v.Item1, v => v.Item2, StringComparer.Ordinal);
 
     private static ImportIssueKind TipoDelProblema(Aip.Pdf.PageIndexIssueKind tipo) => tipo switch
     {

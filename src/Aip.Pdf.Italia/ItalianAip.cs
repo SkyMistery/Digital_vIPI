@@ -99,6 +99,12 @@ public enum ImportIssueKind
     /// leggono, o un nome di punto che ENR 4.4 non ha. <c>Key</c> = l'unità; <c>Detail</c> = cosa.
     /// </summary>
     UnitLine,
+
+    /// <summary>
+    /// Il rapporto di lettura (passo 2e): un conto che l'AIP stampa (zone numerate, punti ▲∆ di una rotta) non torna col
+    /// letto. <c>Detail</c> = che cosa, quanti nel PDF, quanti letti.
+    /// </summary>
+    ExpectedCount,
 }
 
 public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)

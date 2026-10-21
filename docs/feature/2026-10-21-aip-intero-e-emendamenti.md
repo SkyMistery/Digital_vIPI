@@ -316,3 +316,29 @@ si aggiungono Ponza, le 23 righe delle frequenze, le 15 linee, le 72 radioassist
   continua a dire.
 
 Test: Aip.Pdf 140 (+2), Aip 50 (la nota della rotta nel JSON).
+
+#### 2e — il rapporto di lettura: fatto
+
+- **Per ogni PDF letto** (`EsitoDellAipEspanso.Rapporto`): le pagine, quel che ha dato per tipo (aree, rotte, attese,
+  frequenze, linee…), le segnalazioni, e **i conti che l'AIP stampa** (`ItalianExpectedCounts`): le zone numerate di
+  CTA, TMA e CTR («Zone '7'», «Roma CTR Zona/Zone '3'», una volta sola, a inizio riga) contro le aree con la zona nel
+  nome; i punti ▲∆ di una rotta contro i suoi punti. Un conto che non torna è una segnalazione («conto che non torna»):
+  vuol dire che il lettore ha perso qualcosa o che il PDF ha cambiato forma (§2).
+- Nel riquadro AIP: «Conti dell'AIP (zone numerate, punti delle rotte): N controllati, tutti tornano», che si apre sul
+  rapporto dei file che hanno conti (prima quelli che non tornano).
+- **Misurato** sul 2611: **268 conti, tutti tornano** — 232 zone in 38 file, 1 274 punti in 230 rotte.
+- Sul banco (1400 px, nove PDF del 2611, «Leggi» con clic e tasti veri): «3 controllati, tutti tornano» e le righe
+  «LI-ENR 2.1.1.2.pdf — 18 pagine · 28 aree, 56 frequenze, 6 linee fra gli ACC · zone 19 ✓»; senza ENR 4.4 nella
+  cartella le linee fra gli ACC dicono i nomi che non si risolvono, come devono.
+- In più: l'etichetta «limiti presi dal testo» che mancava; e un altro clic instabile di bUnit messo nel giro del renderer
+  (`ConfrontoDiEnr4Tests`, lo stesso difetto di `AipNellaBarraTests` della mattina).
+
+Test: Aip.Pdf 143 (+3), Lab 1 380 (+1).
+
+#### Il passo 2, chiuso
+
+«Finita quando» di §3: i conti di §1 ci sono tutti (ENR 2 zona per zona, 55 radioassistenze, 11 luci, **1 256 punti con
+NANKA e TEMRI**), più le aggiunte di §2 (frequenze, linee fra gli ACC, Ponza, ENR 3.4.2 intero, quote in piedi, «vale il
+dato di prima»); **TUCOZ letto**; **JESSY e VANXI no, di proposito** (l'abbinamento nella cella unita è ambiguo: si
+dicono); i **17 radioaiuti di 3.4.2** spiegati (radioassistenze senza attese, ora nell'elenco con le loro procedure). Il
+rapporto di lettura c'è e sul 2611 non ha conti che non tornano.

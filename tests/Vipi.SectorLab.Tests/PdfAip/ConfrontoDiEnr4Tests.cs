@@ -292,7 +292,7 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         contesto.JSInterop.Mode = JSRuntimeMode.Loose;
         contesto.Services.AddSingleton(_lab);
         var pagina = contesto.RenderComponent<Vipi.SectorLab.Ui.Components.ConfrontiVista>();
-        pagina.Find("[data-sezione='punti']").Click();
+        await pagina.InvokeAsync(() => pagina.Find("[data-sezione='punti']").Click());
         pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-tasto='porta-enr4']")));
         int mancanti = _lab.RigheDellaSezione(SezioneDelConfronto.Punti)!.Value.Righe.Count(r => r.Esito == EsitoDelConfronto.MancaNelSector);
         Assert.True(mancanti > 0);
@@ -310,10 +310,10 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
 
         // Le radioassistenze sono lo stesso confronto (ENR 4): dopo di loro i punti non sono più «vivi», e riaprirli rifà il
         // confronto, perché i gesti vogliono quello di adesso.
-        pagina.Find("[data-sezione='radioassistenze']").Click();
+        await pagina.InvokeAsync(() => pagina.Find("[data-sezione='radioassistenze']").Click());
         pagina.WaitForAssertion(() => Assert.True(_lab.SezioneViva(SezioneDelConfronto.Radioassistenze)));
         Assert.False(_lab.SezioneViva(SezioneDelConfronto.Punti));
-        pagina.Find("[data-sezione='punti']").Click();
+        await pagina.InvokeAsync(() => pagina.Find("[data-sezione='punti']").Click());
         pagina.WaitForAssertion(() => Assert.True(_lab.SezioneViva(SezioneDelConfronto.Punti)));
         Assert.NotEmpty(pagina.FindAll("[data-gesti-della-sezione]"));
     }

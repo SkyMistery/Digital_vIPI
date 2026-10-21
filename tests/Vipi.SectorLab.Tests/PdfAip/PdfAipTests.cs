@@ -245,6 +245,27 @@ public sealed class PdfAipTests : IDisposable
         Assert.Equal(("ENR 2.1.1.1-1", Aip.Pdf.Italia.ImportIssueKind.UnitLine, "LEVSI: ENR 4.4 non lo ha"), (problema.File, problema.Problema.Kind, problema.Problema.Detail));
     }
 
+    // Carta «L'AIP intero», passo 2e: il rapporto di lettura, e un conto che non torna (due zone stampate, nessuna letta).
+    [Fact]
+    public void LAipEspanso_IlRapportoDiLettura_UnContoCheNonTornaSiDice()
+    {
+        var pdf = Cartella("AIP");
+        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 2.1.2 99 Prova CTR.pdf"), PdfAipFinto.Pagine(
+        [
+            .. PdfAipFinto.Testata("ENR 2.1.2.99 - 1", "09 JUL 2026"),
+            (52.0, 120.0, "Prova CTR Zona/Zone '1'"), (52.0, 200.0, "Prova CTR Zona/Zone '2'"),
+        ]));
+
+        var esito = AipEspanso.Leggi(PdfDellAip.Elenco(pdf), Path.Combine(_radice, "espanso"), "2611");
+
+        var riga = Assert.Single(esito.Rapporto);
+        Assert.Equal(("LI-ENR 2.1.2 99 Prova CTR.pdf", 1), (riga.File, riga.Pagine));
+        Assert.Equal([new ContoAtteso("zone", 2, 0)], riga.Conti);
+        Assert.Equal((1, 1), esito.Conti);
+        var problema = Assert.Single(esito.Problemi, p => p.Problema.Kind == Aip.Pdf.Italia.ImportIssueKind.ExpectedCount);
+        Assert.Equal("zone: 2 nel PDF, 0 letti", problema.Problema.Detail);
+    }
+
     [Fact]
     public void LAipEspansoNonStaNellaCartellaDeiPdf()
     {

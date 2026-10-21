@@ -160,6 +160,21 @@
                     <p class="lab-nota">Ciclo @esito.Ciclo: <strong>@esito.Quanti()</strong> da @esito.Letti.Count PDF letti su @esito.Pdf
                         (@esito.NonAncora.Count non ancora: le loro sezioni vengono con le prossime slice) → <code>@esito.Scritto</code></p>
                     <p class="lab-nota" data-pagine-aip>Pagine: @esito.Pagine.ToString("N0", Cultura)@(esito.PagineDallaPosizione > 0 ? $" ({esito.PagineDallaPosizione} riconosciute dalla posizione: non hanno testata)" : "")</p>
+                    @if (esito.Conti is { Controllati: > 0 } conti)
+                    {
+                        <details data-conti-aip>
+                            <summary class="lab-nota">Conti dell'AIP (zone numerate, punti delle rotte): @conti.Controllati controllati, @(conti.NonTornano == 0 ? "tutti tornano" : $"{conti.NonTornano} non tornano")</summary>
+                            <ul class="lab-elenco-lotto">
+                                @foreach (var r in esito.Rapporto.Where(r => r.Conti.Count > 0).OrderBy(r => r.Conti.All(c => c.Attesi == c.Letti)).Take(300))
+                                {
+                                    <li class="lab-nota" data-rapporto-pdf="@r.File">
+                                        <code>@r.File</code> — @r.Pagine pagine · @string.Join(", ", r.Letti.Select(l => $"{l.Value} {l.Key}"))
+                                        · @string.Join(", ", r.Conti.Select(c => c.Attesi == c.Letti ? $"{c.Cosa} {c.Letti} ✓" : $"{c.Cosa}: {c.Attesi} nel PDF, {c.Letti} letti ✗"))
+                                    </li>
+                                }
+                            </ul>
+                        </details>
+                    }
                     @if (esito.Cambiate is { } cambiate)
                     {
                         <details data-pagine-cambiate>
@@ -351,6 +366,10 @@
         Aip.Pdf.Italia.ImportIssueKind.FileWithMoreSections => "file con più sezioni",
         Aip.Pdf.Italia.ImportIssueKind.PageDuplicate => "pagina doppia",
         Aip.Pdf.Italia.ImportIssueKind.PageAfterCycle => "pagina di un ciclo dopo",
+        Aip.Pdf.Italia.ImportIssueKind.LimitsFromText => "limiti presi dal testo",
+        Aip.Pdf.Italia.ImportIssueKind.Frequency => "frequenza",
+        Aip.Pdf.Italia.ImportIssueKind.UnitLine => "linea fra gli ACC",
+        Aip.Pdf.Italia.ImportIssueKind.ExpectedCount => "conto che non torna",
         _ => k.ToString(),
     };
 }
