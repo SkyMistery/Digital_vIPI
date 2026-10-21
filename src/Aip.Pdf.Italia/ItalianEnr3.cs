@@ -302,12 +302,22 @@ public static partial class ItalianEnr3
         var note = new List<string>();
         var interessate = new List<string>();
         var delFix = new List<Holding>();
+        // ENR 3.4.2: ogni radioassistenza dell'elenco, anche senza attese (AHO TACAN), col nome fra parentesi.
+        var elenco = new List<NavaidProcedures>();
+        string? nomeDellaStazione = null;
+        AipPage? paginaDelFix = null;
 
         void Chiudi()
         {
             var testo = note.Count == 0 ? null : string.Join("\n", note);
             var rotte = interessate.Count == 0 ? null : string.Join("\n", interessate);
             attese.AddRange(delFix.Select(a => a with { Remarks = testo, Affected = rotte }));
+            if (c.Interessate is not null && fix is not null)
+                elenco.Add(new NavaidProcedures
+                {
+                    Section = c.Sezione, Designator = fix, Type = tipo, Name = nomeDellaStazione, Affected = rotte, Page = paginaDelFix,
+                });
+            nomeDellaStazione = null;
             delFix.Clear();
             note.Clear();
             interessate.Clear();
@@ -336,17 +346,53 @@ public static partial class ItalianEnr3
             // punto prima, senza virata accanto, prendeva la sua).
             var inizi = dati.Where(r => r.Column == 0 && RxFix().IsMatch(r.Text.Trim().Split(' ')[0])).Select(r => r.Y).Order().ToList();
 
+            // 🔴 Le fasce della tabella (carta «L'AIP intero», passo 2a): dove la pagina ha i bordi orizzontali, il punto è la
+            // sua fascia, e il nome sta in mezzo alla cella — le righe sopra il nome sono sue (TUCOZ nel 2611: la quota 3000
+            // e le note 1-2 stavano 30 punti sopra il nome, e finivano a TOPRU). In una fascia con un nome solo il nome si
+            // legge per primo, e virata e rotta si cercano nella fascia; una fascia con una quota, una virata e una rotta le
+            // abbina anche lontane (TUCOZ: 29 punti fra la quota e la virata).
+            var bande = Table.RowBands(page, griglia);
+            int Banda(double y)
+            {
+                for (var i = 0; i < bande.Count; i++)
+                    if (y >= bande[i].Top - 1 && y <= bande[i].Bottom + 1) return i;
+                return -1;
+            }
+            bool UnNome(TextLine r) => r.Column == 0 && !(c.Interessate is not null && r.Text.Trim().StartsWith('('))
+                                       && RxFix().IsMatch(r.Text.Trim().Split(' ')[0]);
+            var nomiPerBanda = dati.Where(UnNome).GroupBy(r => Banda(r.Y)).ToDictionary(g => g.Key, g => g.Count());
+            bool ConUnNome(int b) => b >= 0 && nomiPerBanda.GetValueOrDefault(b) == 1;
+            var abbinate = new Dictionary<TextLine, (TextLine Virata, TextLine Rotta)>();
+            foreach (var b in Enumerable.Range(0, bande.Count).Where(b => ConUnNome(b) || !nomiPerBanda.ContainsKey(b)))
+            {
+                var nella = dati.Where(r => Banda(r.Y) == b).OrderBy(r => r.Y).ToList();
+                var quote = nella.Where(r => r.Column == c.Quota && RxQuotaDiAttesa().IsMatch(r.Text.Trim())).ToList();
+                var virate = nella.Where(r => r.Column == c.Virata && r.Text.Trim() is "R" or "L").ToList();
+                var rotte = nella.Where(r => r.Column == c.Rotta && RxGradi().IsMatch(r.Text.Trim())).ToList();
+                // Solo una per tipo: con più quote l'ordine non basta (JESSY, 2611: la seconda 4000 sta accanto a 033°, non
+                // alla seconda 034°) e si resta al più vicino, dicendo quel che avanza.
+                if (quote.Count == 1 && virate.Count == 1 && rotte.Count == 1)
+                    abbinate[quote[0]] = (virate[0], rotte[0]);
+            }
+
             // Le terne quota-virata-rotta: le righe della colonna 2 con una quota, e accanto virata e rotta. ⚠️ Non sempre
             // sulla stessa riga: nelle attese di un punto con due riferimenti la rotta sta 8 punti più su (BABIK), la virata
             // anche 20 più giù (IRZEC). Si prende la più vicina non ancora usata, entro 25 punti.
-            foreach (var r in dati.OrderBy(r => r.Y).ThenBy(r => r.Column))
+            foreach (var r in dati
+                         .OrderBy(r => ConUnNome(Banda(r.Y)) ? bande[Banda(r.Y)].Top : r.Y)
+                         .ThenBy(r => ConUnNome(Banda(r.Y)) && UnNome(r) ? 0 : 1)
+                         .ThenBy(r => r.Y).ThenBy(r => r.Column))
             {
                 var testo = r.Text.Trim();
                 var colonna = r.Column;
                 if (colonna == 0)
                 {
                     // ENR 3.4.2: il nome della stazione sotto la sigla, «(Alghero)».
-                    if (c.Interessate is not null && testo.StartsWith('(')) continue;
+                    if (c.Interessate is not null && testo.StartsWith('('))
+                    {
+                        nomeDellaStazione = testo.Trim('(', ')', ' ');
+                        continue;
+                    }
                     var parola = testo.Split(' ')[0];
                     if (!RxFix().IsMatch(parola))
                     {
@@ -355,6 +401,7 @@ public static partial class ItalianEnr3
                     }
                     Chiudi();
                     fix = parola;
+                    paginaDelFix = pagina;
                     tipo = c.Interessate is null ? null : SenzaVuoto(testo[parola.Length..].Trim());
                     continue;
                 }
@@ -377,10 +424,21 @@ public static partial class ItalianEnr3
                         problemi.Add(new ImportIssue(ImportIssueKind.Holding, fix, page.Number, $"quota «{testo}»"));
                         continue;
                     }
-                    var da = inizi.LastOrDefault(y => y <= r.Y + 3, double.MinValue) - 3;
-                    var a = inizi.FirstOrDefault(y => y > da + 6, double.MaxValue) - 3;
-                    var virata = Vicina(dati, usate, c.Virata, r.Y, da, a);
-                    var rotta = Vicina(dati, usate, c.Rotta, r.Y, da, a);
+                    string? virata, rotta;
+                    if (abbinate.TryGetValue(r, out var coppia) && !usate.Contains(coppia.Virata) && !usate.Contains(coppia.Rotta))
+                    {
+                        usate.Add(coppia.Virata);
+                        usate.Add(coppia.Rotta);
+                        (virata, rotta) = (coppia.Virata.Text.Trim(), coppia.Rotta.Text.Trim());
+                    }
+                    else
+                    {
+                        var banda = Banda(r.Y);
+                        var da = ConUnNome(banda) ? bande[banda].Top - 1 : inizi.LastOrDefault(y => y <= r.Y + 3, double.MinValue) - 3;
+                        var a = ConUnNome(banda) ? bande[banda].Bottom + 1 : inizi.FirstOrDefault(y => y > da + 6, double.MaxValue) - 3;
+                        virata = Vicina(dati, usate, c.Virata, r.Y, da, a);
+                        rotta = Vicina(dati, usate, c.Rotta, r.Y, da, a);
+                    }
                     if (virata is not ("R" or "L") || rotta is null || RxGradi().Match(rotta) is not { Success: true } g)
                     {
                         problemi.Add(new ImportIssue(ImportIssueKind.Holding, fix, page.Number, $"{testo} {virata} {rotta}"));
@@ -391,9 +449,16 @@ public static partial class ItalianEnr3
                         Section = c.Sezione,
                         Fix = fix,
                         FixType = tipo,
-                        Bearing = c.Riferimento is { } rif ? Accanto(dati, rif, r.Y, 9) : null,
+                        // Il riferimento accanto alla quota; in una fascia con una quota sola, se accanto non c'è, quello
+                        // della fascia (TUCOZ: la quota 29 punti sopra il riferimento). Con più quote no: un punto può avere
+                        // due riferimenti, ognuno con le sue attese (BABIK).
+                        Bearing = c.Riferimento is { } rif
+                            ? Accanto(dati, rif, r.Y, 9) ?? (abbinate.ContainsKey(r)
+                                ? dati.Where(d => d.Column == rif && Banda(d.Y) == Banda(r.Y)).MinBy(d => d.Y)?.Text.Trim()
+                                : null)
+                            : null,
                         // «5000 only» (BAVOM): la quota è il numero, il testo resta com'è.
-                        Minimum = LimitText.Parse(quota.Groups["q"].Value) with { Text = quota.Groups["r"].Success ? testo[..quota.Groups["r"].Index].Trim() : testo },
+                        Minimum = QuotaDiAttesa(quota.Groups["q"].Value) with { Text = quota.Groups["r"].Success ? testo[..quota.Groups["r"].Index].Trim() : testo },
                         NoteRefs = quota.Groups["r"].Success ? RxSpazi().Replace(quota.Groups["r"].Value, "") : null,
                         Turn = virata == "R" ? TurnDirection.Right : TurnDirection.Left,
                         InboundTrack = int.Parse(g.Groups["g"].Value, CultureInfo.InvariantCulture),
@@ -413,7 +478,7 @@ public static partial class ItalianEnr3
             }
         }
         Chiudi();
-        return new ImportResult([], pagine, problemi) { Holdings = attese };
+        return new ImportResult([], pagine, problemi) { Holdings = attese, NavaidProcedures = elenco };
     }
 
     /// <summary>
@@ -440,6 +505,20 @@ public static partial class ItalianEnr3
     }
 
     private static string? SenzaVuoto(string t) => t.Length == 0 ? null : t;
+
+    /// <summary>
+    /// La quota di un'attesa. Un numero senza unità («3000», 481 attese su 542 nel 2611) è in piedi sul livello del mare:
+    /// la colonna MHA/MHL è in piedi e ENR 3.2 dice che le quote in piedi sono AMSL (committente, 21 ottobre). Il testo
+    /// resta com'è stampato.
+    /// </summary>
+    private static VerticalLimit QuotaDiAttesa(string quota)
+    {
+        var letta = LimitText.Parse(quota);
+        return letta.Reference == VerticalReference.Unknown
+               && int.TryParse(quota.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var piedi)
+            ? letta with { Reference = VerticalReference.Msl, Value = piedi, Unit = VerticalUnit.Ft }
+            : letta;
+    }
 
     /// <summary>La riga di quella colonna più vicina in altezza (entro 25 punti) e non ancora presa da un'altra attesa.</summary>
     private static string? Vicina(List<TextLine> righe, HashSet<TextLine> usate, int colonna, double y, double da, double a)

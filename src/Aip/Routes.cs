@@ -97,6 +97,30 @@ public sealed record RouteSegment
     public bool Backward => Odd == RouteDirection.Backward || Even == RouteDirection.Backward;
 }
 
+/// <summary>
+/// Una riga di ENR 3.4.2 (elenco delle radioassistenze e delle rotte e procedure associate): la sigla, il tipo, il nome, le
+/// rotte ATS e le procedure interessate. Ci sono anche le radioassistenze senza attese, che come <see cref="Holding"/> non
+/// ci sarebbero: nel 2611 diciassette, AHO TACAN con «EA star, EA sid, EA ial» (carta «L'AIP intero», passo 2a).
+/// </summary>
+public sealed record NavaidProcedures
+{
+    public required string Section { get; init; }
+
+    /// <summary>La sigla: <c>AHO</c>.</summary>
+    public required string Designator { get; init; }
+
+    /// <summary>Il tipo com'è stampato: <c>TACAN</c>, <c>VOR/DME</c>.</summary>
+    public string? Type { get; init; }
+
+    /// <summary>Il nome fra parentesi sotto la sigla, senza le parentesi: <c>Alghero</c>.</summary>
+    public string? Name { get; init; }
+
+    /// <summary>Le rotte ATS e le procedure interessate, com'è stampate, una per riga (<c>L 5</c>, <c>EA star</c>).</summary>
+    public string? Affected { get; init; }
+
+    public AipPage? Page { get; init; }
+}
+
 /// <summary>Il verso della virata di un'attesa.</summary>
 public enum TurnDirection
 {

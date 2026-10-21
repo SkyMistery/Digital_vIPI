@@ -166,8 +166,10 @@ public sealed class Enr3Tests
         Assert.Equal("RNAV Holding - Outbound Leg 1.8NM\nIAS MAX 90kt", a[0].Remarks);
         Assert.Equal(("RDL255/8NM PAN", "(1)", 75), (a[1].Bearing, a[1].NoteRefs, a[1].InboundTrack));
         Assert.Equal(("RDL 255 PAN/8.4NM IPTL", "(2)", 75), (a[2].Bearing, a[2].NoteRefs, a[2].InboundTrack));
-        // La quota senza unità (i piedi di ENR 3.4.1) resta com'è stampata: il lettore non la completa.
-        Assert.Equal(("5000 only", VerticalReference.Unknown), (a[3].Minimum.Text, a[3].Minimum.Reference));
+        // La quota senza unità: piedi sul livello del mare (committente, 21 ottobre); il testo resta com'è stampato.
+        Assert.Equal(("9000", VerticalReference.Msl, 9000.0, VerticalUnit.Ft), (a[0].Minimum.Text, a[0].Minimum.Reference, a[0].Minimum.Value, a[0].Minimum.Unit));
+        Assert.Equal(("5000 only", VerticalReference.Msl, 5000.0), (a[3].Minimum.Text, a[3].Minimum.Reference, a[3].Minimum.Value));
+        Assert.Equal(VerticalReference.FlightLevel, a[4].Minimum.Reference);
         Assert.Equal(("FL70 or TRL", 142), (a[4].Minimum.Text, a[4].InboundTrack));
         Assert.Equal(new AipPage("ENR 3.4.1-1", new DateOnly(2026, 9, 3)), a[0].Page);
     }
@@ -179,6 +181,31 @@ public sealed class Enr3Tests
 
         Assert.Equal(["senza quota: R", "senza quota: 283°"], problemi.Where(p => p.Kind == ImportIssueKind.Holding).Select(p => p.Detail));
         Assert.All(problemi, p => Assert.Equal("TUCOZ", p.Key));
+    }
+
+    // Carta «L'AIP intero», passo 2a: con i bordi orizzontali il punto è la sua fascia, e il nome sta in mezzo alla cella.
+    // TUCOZ nel 2611: la quota 3000 e le note 1-2 trenta punti sopra il nome; senza fasce finivano a TOPRU.
+    [Fact]
+    public void LaFasciaDellaTabella_IlNomeInMezzoAllaCella()
+    {
+        PdfHorizontalRule Bordo(double y) => new(y, 52, 564);
+        var pagina = Pagina(1, AtteseDispari, "ENR 3.4.1 - 18", "11 JUN 2026", 0,
+        [
+            .. TestataDelleAttese,
+            (54, 210, "TOPRU"), (109, 210, "RDL188/14NM LIN"), (240, 210, "4000"), (287, 210, "R"), (318, 210, "196°"),
+            (349, 210, "1. IAS MAX 185kt"),
+            (240, 250, "3000"), (349, 250, "1. Holding reserved to missed approach"), (349, 264, "2. Outbound leg must not exceed 14NM LIN DME"),
+            (54, 280, "TUCOZ"), (109, 280, "RDL103/11NM LIN"), (287, 280, "R"), (318, 280, "283°"), (349, 281, "3. IAS MAX 210kt"),
+        ]) with { HorizontalRules = [Bordo(200), Bordo(240), Bordo(300)] };
+
+        var letto = ItalianEnr3.ReadHoldings([pagina]);
+
+        Assert.DoesNotContain(letto.Issues, p => p.Kind == ImportIssueKind.Holding);
+        var (topru, tucoz) = (letto.Holdings[0], letto.Holdings[1]);
+        Assert.Equal(("TOPRU", "1. IAS MAX 185kt"), (topru.Fix, topru.Remarks));
+        Assert.Equal(("TUCOZ", "3000", 3000.0, TurnDirection.Right, 283, "RDL103/11NM LIN"),
+            (tucoz.Fix, tucoz.Minimum.Text, tucoz.Minimum.Value, tucoz.Turn, tucoz.InboundTrack, tucoz.Bearing));
+        Assert.Equal("1. Holding reserved to missed approach\n2. Outbound leg must not exceed 14NM LIN DME\n3. IAS MAX 210kt", tucoz.Remarks);
     }
 
     [Fact]
@@ -221,5 +248,11 @@ public sealed class Enr3Tests
         Assert.Equal(("(2)", 176), (a[1].NoteRefs, a[1].InboundTrack));
         Assert.Equal(("5000", "(1)", 329, "L612\nM859"), (a[2].Minimum.Text, a[2].NoteRefs, a[2].InboundTrack, a[2].Affected));
         Assert.DoesNotContain(letto.Issues, p => p.Kind == ImportIssueKind.Holding);
+
+        // L'elenco intero, anche la radioassistenza senza attese (AHO) con le sue procedure (carta «L'AIP intero», passo 2a).
+        Assert.Equal(
+            [("AEA", "VOR/DME", "Alghero", "EA star\nEA sid"), ("AHO", "TACAN", "Alghero", "EA star"), ("CHI", "VOR/DME", "Chioggia", "L612\nM859")],
+            letto.NavaidProcedures.Select(n => (n.Designator, n.Type, n.Name, n.Affected)));
+        Assert.All(letto.NavaidProcedures, n => Assert.Equal(("ENR 3.4.2", "ENR 3.4.2-1"), (n.Section, n.Page?.Reference)));
     }
 }

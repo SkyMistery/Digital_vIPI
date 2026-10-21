@@ -35,7 +35,7 @@ cartella, non dalle pagine.
 | ENR 2.1.3 ATZ militari, 2.2 RMZ/NPZ/FRA, FMC | 16, 36/2/2, 14 + 3 svizzeri | uguali | 2.1.1.2-17/18 (FMC Roma) cambiate col 2611 |
 | ENR 3.2 rotte | 29 | 230 | L995 cambiata col 2611; un tratto vuoto (la regola «vale il dato di prima», ENR 3.2-1 nota 3) |
 | ENR 3.4.1 attese sui punti | 413 su 245 punti | 248 punti | TUCOZ, JESSY 3000, VANXI 2000: già segnalate nella F6 (celle unite in verticale), mai lette |
-| ENR 3.4.2 attese sui radioaiuti | 129 su 51 | 68 elencati | 17 da guardare uno per uno; la colonna «rotte/procedure interessate» non letta |
+| ENR 3.4.2 attese sui radioaiuti | 129 su 51 | 68 elencati | 17 da guardare uno per uno. ⚠️ Corretto nel passo 2a: la colonna «rotte/procedure interessate» l'espanso la leggeva già (`affected`, 129 su 129); quel che si perdeva erano i radioaiuti senza attese; e i radioaiuti sono 72 (sigla e tipo), non 68 |
 | ENR 4.1 radioaiuti, 4.5 luci | 55, 11 | uguali | |
 | ENR 4.4 punti | 1 254 | 1 256 | NANKA e TEMRI nuovi; 72 pagine vecchie |
 | ENR 5.1, 5.2, 5.3.1-5.3.3 | 541, 221, 31 | uguali | ENR 5.1.5 «NIL» |
@@ -228,3 +228,32 @@ non si è toccato: 851 file prima e dopo), in 177 s:
 era già proposto: in Download c'è un altro `AMDT.pdf`, del 18 ottobre. ⚠️ Non provato a occhio: una carta riscritta
 aperta in un lettore di PDF (qui non c'è un programma che disegni le pagine) — sta nelle prove a mano. Test: Aip.Pdf 128
 (+6), Lab 1 378 (+16).
+
+### Passo 2 — ENR 2, 3.4, 4 rifatti (via del committente, 21 ottobre: «vai con il passo 2»)
+
+Quattro pezzi: **2a** le attese di ENR 3.4, **2b** le frequenze ACC/SCCAM/FIC, **2c** la divisione fra gli ACC sopra FL195
+e le aree VFR della FIR Roma, **2d** «vale il dato di prima» nei tratti delle rotte.
+
+#### 2a — le attese: fatto
+
+- **Le fasce della tabella** (`ItalianEnr3`): dove la pagina ha i bordi orizzontali, il punto è la sua fascia e il nome
+  sta in mezzo alla cella. In una fascia con un nome solo il nome si legge per primo, virata e rotta si cercano nella
+  fascia, e una fascia con una quota, una virata e una rotta le abbina anche lontane. **TUCOZ** letto: la quota 3000 e le
+  note 1-2 stavano 30 punti sopra il nome e finivano a TOPRU (che ora non ha più le note di TUCOZ); il riferimento
+  `RDL103/11NM LIN` viene dalla fascia. Le **5 attese di PAN** in ENR 3.4.2 ritrovano la nota «1. Waypoint holding», che
+  stava sopra il nome e andava persa.
+- ⚠️ **JESSY e VANXI restano segnalati**: nella fascia ci sono più quote, e l'ordine non basta (JESSY: la seconda 4000 sta
+  accanto a 033°, non alla seconda 034°; VANXI: tre quote, due virate, due rotte). Indovinare in silenzio sarebbe peggio:
+  si dice «3000 · senza quota: R · senza quota: 034°» e «2000».
+- **La quota senza unità è in piedi AMSL** (D del committente): 481 attese su 542 nel 2611; il testo resta com'è
+  stampato. Effetto nel Lab: l'ovale di un'attesa in piedi sopra i 14 000 ora si disegna a 1,5 minuti (prima la quota
+  senza unità valeva 0).
+- **ENR 3.4.2, l'elenco intero** (`NavaidProcedures`, campo nuovo e facoltativo del modello): sigla, tipo, nome, rotte e
+  procedure associate di ogni radioassistenza, anche senza attese. Nel 2611 **72**, di cui **20 senza attese**: AHO,
+  ALB, CSL, DEC NDB e TACAN, FAL, FRS, GRO TACAN e VOR, IRBN, LPD, NAP, NOV, PAL, PIN, PIS, PTC, RMN, VIE, VIL — i «17
+  da guardare» di §1, contati per sigla. Tutte hanno le loro procedure (AHO: EA star, EA sid, EA ial; PAL: L12, L869,
+  M616… CJ star…).
+
+**Misurato** sul 2611 e confrontato col `li.json` 2610 sulle pagine rimaste uguali (18 di 3.4.1, 11 di 3.4.2): ENR 3.4.1
+**414 attese su 246 punti** (+TUCOZ), nient'altro di diverso salvo le note di TOPRU; ENR 3.4.2 129 attese, uguali salvo le
+note di PAN. Test: Aip.Pdf 129 (+1), Aip 50 (il JSON col campo nuovo).

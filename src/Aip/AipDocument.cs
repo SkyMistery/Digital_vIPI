@@ -39,6 +39,12 @@ public sealed record AipDocument
     /// <summary>ENR 3.4.1: le attese in rotta. Null se il documento non ne ha.</summary>
     public IReadOnlyList<Holding>? Holdings { get; init; }
 
+    /// <summary>
+    /// ENR 3.4.2: l'elenco delle radioassistenze con le rotte e procedure associate, anche quelle senza attese. Null se il
+    /// documento non ne ha (campo facoltativo).
+    /// </summary>
+    public IReadOnlyList<NavaidProcedures>? NavaidProcedures { get; init; }
+
     /// <summary>ENR 4.1: le radioassistenze in rotta. Null se il documento non ne ha (lo schema resta 1).</summary>
     public IReadOnlyList<Navaid>? Navaids { get; init; }
 
@@ -69,6 +75,7 @@ public sealed record AipDocument
         && Airspaces.SequenceEqual(other.Airspaces)
         && (Routes ?? []).SequenceEqual(other.Routes ?? [])
         && (Holdings ?? []).SequenceEqual(other.Holdings ?? [])
+        && (NavaidProcedures ?? []).SequenceEqual(other.NavaidProcedures ?? [])
         && (Navaids ?? []).SequenceEqual(other.Navaids ?? [])
         && (Points ?? []).SequenceEqual(other.Points ?? [])
         && (Lights ?? []).SequenceEqual(other.Lights ?? [])

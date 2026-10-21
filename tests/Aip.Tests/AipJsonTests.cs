@@ -200,12 +200,19 @@ public sealed class AipJsonTests
             NoteRefs = "(1)",
             Remarks = "IAS MAX 190kt",
         };
-        var doc = new AipDocument { State = "LI", Routes = [Rotta(RouteDirection.Backward)], Holdings = [attesa] };
+        var elenco = new NavaidProcedures
+        {
+            Section = "ENR 3.4.2", Designator = "AHO", Type = "TACAN", Name = "Alghero", Affected = "EA star\nEA sid",
+            Page = new AipPage("ENR 3.4.2-1", new DateOnly(2026, 9, 3)),
+        };
+        var doc = new AipDocument { State = "LI", Routes = [Rotta(RouteDirection.Backward)], Holdings = [attesa], NavaidProcedures = [elenco] };
 
         var json = AipJson.Serialize(doc);
         var riletto = AipJson.Deserialize(json);
 
         Assert.Equal(doc, riletto);
+        Assert.NotEqual(doc with { NavaidProcedures = [elenco with { Affected = "EA star" }] }, riletto);
+        Assert.DoesNotContain("navaidProcedures", AipJson.Serialize(new AipDocument { State = "LI" }));
         Assert.NotEqual(Rotta(RouteDirection.None), riletto.Routes![0]);
         Assert.NotEqual(attesa with { Turn = TurnDirection.Right }, riletto.Holdings![0]);
         Assert.NotEqual(doc with { Holdings = null }, riletto);

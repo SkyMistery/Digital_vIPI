@@ -97,6 +97,9 @@ public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyLi
     /// <summary>ENR 3.4.1: le attese lette (slice 2).</summary>
     public IReadOnlyList<Holding> Holdings { get; init; } = [];
 
+    /// <summary>ENR 3.4.2: le radioassistenze con le rotte e procedure associate, anche senza attese (carta «L'AIP intero», passo 2a).</summary>
+    public IReadOnlyList<NavaidProcedures> NavaidProcedures { get; init; } = [];
+
     /// <summary>ENR 4.1: le radioassistenze lette (slice 3).</summary>
     public IReadOnlyList<Navaid> Navaids { get; init; } = [];
 
