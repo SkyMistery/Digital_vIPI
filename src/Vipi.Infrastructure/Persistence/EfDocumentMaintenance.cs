@@ -488,6 +488,160 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         return stale.Count;
     }
 
+    /// <inheritdoc cref="IDocumentMaintenance.NoteDelloScaloNeiBlocchiAsync"/>
+    public async Task<int> NoteDelloScaloNeiBlocchiAsync(CancellationToken ct = default)
+    {
+        var lvp = await _db.AirportLvpMinima.Where(m => m.Note != null).ToListAsync(ct);
+        var regole = await _db.AirportRunwayRules.Where(r => r.Note != null).ToListAsync(ct);
+        if (lvp.Count == 0 && regole.Count == 0) return 0;
+
+        var toccati = 0;
+        var ids = lvp.Select(m => m.AirportId).Concat(regole.Select(r => r.AirportId)).Distinct().ToList();
+        foreach (var scalo in await _db.Airports.Where(a => ids.Contains(a.Id)).ToListAsync(ct))
+        {
+            var documenti = new[] { scalo.DocumentId, scalo.MilDocumentId }.OfType<int>().ToList();
+
+            foreach (var minimi in lvp.Where(m => m.AirportId == scalo.Id))
+            {
+                var testo = minimi.Note!.Trim();
+                if (testo.Length > 0 && !await NelParagrafoAsync(documenti, "lvp", testo, ct)) continue;
+                minimi.Note = null;
+                toccati++;
+            }
+
+            // Le note delle regole in UN paragrafo, una riga per regola: il numero è quello della tabella (la regola
+            // stessa, «si applica la prima»), il nome se c'è.
+            var sue = regole.Where(r => r.AirportId == scalo.Id).OrderBy(r => r.Order).ToList();
+            var scritte = sue.Where(r => !string.IsNullOrWhiteSpace(r.Note)).ToList();
+            if (scritte.Count > 0)
+            {
+                var testo = string.Join("\n", scritte.Select(r =>
+                    $"- #{r.Order + 1}{(string.IsNullOrWhiteSpace(r.Name) ? "" : " " + r.Name!.Trim())}: {r.Note!.Trim().Replace('\n', ' ').Replace("\r", "")}"));
+                if (!await NelParagrafoAsync(documenti, "runwayrules", testo, ct)) continue;
+            }
+            foreach (var r in sue) r.Note = null;
+            toccati += sue.Count;
+        }
+
+        if (toccati > 0) await _db.SaveChangesAsync(ct);
+        return toccati;
+    }
+
+    /// <inheritdoc cref="IDocumentMaintenance.NoteDelleAreeNeiBlocchiAsync"/>
+    public async Task<int> NoteDelleAreeNeiBlocchiAsync(CancellationToken ct = default)
+    {
+        // Le sezioni candidate: AoR (vIPI APP e blocchi della vIPI ACC) e aree del vSOP militare, con una nota nel JSON
+        // del payload. ⚠️ `"Note"` e `"notes"` come li scrive il serializzatore: `AorExtraShapes` coi nomi .NET,
+        // `MilRegulatedPayload` coi suoi `JsonPropertyName`.
+        var sezioni = await _db.DocumentSections.Include(s => s.Blocks)
+            .Where(s => (s.SectionKey == "aor" || s.SectionKey == SectionKeys.Regulated || s.SectionKey == SectionKeys.LowLevel)
+                        && s.Blocks.Any(b => b.BodyJson != null && (b.BodyJson.Contains("\"Note\"") || b.BodyJson.Contains("\"notes\""))))
+            .ToListAsync(ct);
+        if (sezioni.Count == 0) return 0;
+
+        // Solo le versioni da curare (l'ultima e la pubblicata corrente di ogni documento): le altre sono storia.
+        var versioni = sezioni.Select(s => s.DocumentVersionId).Distinct().ToList();
+        var documenti = await _db.DocumentVersions.Where(v => versioni.Contains(v.Id)).Select(v => v.DocumentId).Distinct().ToListAsync(ct);
+        var daCurare = (await ConVersioniDaCurareAsync(documenti, d => d, ct)).Select(x => x.VersionId).ToHashSet();
+        var nomiAree = await _db.SpecialAreas.AsNoTracking().ToDictionaryAsync(a => a.IvaoId, a => a.Name, StringComparer.OrdinalIgnoreCase, ct);
+
+        var toccati = 0;
+        foreach (var sezione in sezioni.Where(s => daCurare.Contains(s.DocumentVersionId)))
+        {
+            var righe = new List<string>();
+            foreach (var blocco in sezione.Blocks.Where(b => !string.IsNullOrWhiteSpace(b.BodyJson)).ToList())
+            {
+                JsonObject? o;
+                try { o = JsonNode.Parse(blocco.BodyJson!) as JsonObject; }
+                catch (JsonException) { continue; }
+                if (o is null) continue;
+
+                // ⚠️ Si riscrive solo un blocco con una nota VERA: il serializzatore scrive `"Note":null` anche su un volume
+                // con la sola classe, e riscriverlo a ogni avvio direbbe «cambiato» per sempre.
+                var cambiato = false;
+                // AoR: ogni volume per chiave naturale «FAMIGLIA|NOME|BASE|TETTO»; la classe resta, la nota se ne va.
+                if (Prop(o, "AirspaceEdits") is JsonObject volumi)
+                    foreach (var (chiave, valore) in volumi.ToList())
+                    {
+                        if (valore is not JsonObject v || Prop(v, "Note") is not JsonValue nv
+                            || !nv.TryGetValue<string>(out var nota) || string.IsNullOrWhiteSpace(nota)) continue;
+                        v.Remove(NomeDi(v, "Note"));
+                        var pezzi = chiave.Split('|');
+                        righe.Add($"- {(pezzi.Length > 1 && pezzi[1].Length > 0 ? pezzi[1] : chiave)}: {Riga(nota)}");
+                        if (Prop(v, "Class") is not JsonValue cv || !cv.TryGetValue<string>(out var classe) || string.IsNullOrWhiteSpace(classe))
+                            volumi.Remove(chiave);
+                        cambiato = true;
+                    }
+                // Aree di lavoro e BOAT: per id d'area, col nome dell'area.
+                if (Prop(o, "notes") is JsonObject note && note.Count > 0)
+                {
+                    foreach (var (id, valore) in note.ToList())
+                        if (valore is JsonValue tv && tv.TryGetValue<string>(out var nota) && !string.IsNullOrWhiteSpace(nota))
+                            righe.Add($"- {(nomiAree.TryGetValue(id, out var nome) ? nome : id)}: {Riga(nota)}");
+                    o[NomeDi(o, "notes")] = new JsonObject();
+                    cambiato = true;
+                }
+                if (!cambiato) continue;
+
+                blocco.BodyJson = o.ToJsonString();
+                blocco.RowVersion = Guid.NewGuid().ToByteArray();
+                toccati++;
+            }
+
+            if (righe.Count == 0) continue;
+            var testo = string.Join("\n", righe);
+            if (sezione.Blocks.Any(b => b.Format == BlockFormat.Prose && b.Body == testo)) continue;
+            _db.ContentBlocks.Add(new ContentBlock
+            {
+                DocumentVersionId = sezione.DocumentVersionId, SectionId = sezione.Id,
+                Order = sezione.Blocks.Max(b => b.Order) + 1,
+                Tier = BlockTier.Extended, Format = BlockFormat.Prose, Visibility = BlockVisibility.Always,
+                Body = testo, RowVersion = Guid.NewGuid().ToByteArray(),
+            });
+        }
+
+        if (toccati > 0) await _db.SaveChangesAsync(ct);
+        return toccati;
+
+        static JsonNode? Prop(JsonObject o, string nome) =>
+            o.FirstOrDefault(p => string.Equals(p.Key, nome, StringComparison.OrdinalIgnoreCase)).Value;
+
+        static string NomeDi(JsonObject o, string nome) =>
+            o.Select(p => p.Key).FirstOrDefault(k => string.Equals(k, nome, StringComparison.OrdinalIgnoreCase)) ?? nome;
+
+        // Una nota su una riga: è una voce d'elenco, e un a capo la spezzerebbe in due voci.
+        static string Riga(string nota) => nota.Trim().Replace("\r", "").Replace('\n', ' ');
+    }
+
+    /// <summary>
+    /// Il testo come paragrafo in coda alla sezione con questa chiave, nell'ultima versione e nella pubblicata corrente
+    /// di questi documenti. Vero se è arrivato nell'ULTIMA versione di almeno uno — quella che l'editor apre: solo
+    /// allora la sorgente si può svuotare. Un paragrafo con lo stesso testo già lì non si ripete.
+    /// </summary>
+    private async Task<bool> NelParagrafoAsync(IReadOnlyList<int> documenti, string chiave, string testo, CancellationToken ct)
+    {
+        var portato = false;
+        foreach (var (_, vid, ultima) in await ConVersioniDaCurareAsync(documenti, d => d, ct))
+        {
+            var sezioni = await _db.DocumentSections.Include(s => s.Blocks)
+                .Where(s => s.DocumentVersionId == vid && s.SectionKey == chiave)
+                .ToListAsync(ct);
+            foreach (var sezione in sezioni)
+            {
+                if (ultima) portato = true;
+                if (sezione.Blocks.Any(b => b.Format == BlockFormat.Prose && b.Body == testo)) continue;
+                _db.ContentBlocks.Add(new ContentBlock
+                {
+                    DocumentVersionId = vid, SectionId = sezione.Id,
+                    Order = sezione.Blocks.Count == 0 ? 1 : sezione.Blocks.Max(b => b.Order) + 1,
+                    Tier = BlockTier.Extended, Format = BlockFormat.Prose, Visibility = BlockVisibility.Always,
+                    Body = testo, RowVersion = Guid.NewGuid().ToByteArray(),
+                });
+            }
+        }
+        return portato;
+    }
+
     /// <inheritdoc cref="IDocumentMaintenance.RiallineaProfonditaAsync"/>
     public async Task<int> RiallineaProfonditaAsync(CancellationToken ct = default)
     {

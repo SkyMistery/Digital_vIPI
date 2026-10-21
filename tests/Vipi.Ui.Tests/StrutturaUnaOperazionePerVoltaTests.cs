@@ -176,7 +176,7 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
     private IRenderedComponent<StrutturaPage> Apri()
     {
         var cut = RenderComponent<StrutturaPage>();
-        cut.WaitForElement("#hn-Acc-2", TimeSpan.FromSeconds(3));
+        cut.WaitForElement("#hn-Acc-2");
         return cut;
     }
 
@@ -202,7 +202,7 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
         var primo = Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
         var secondo = Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
         await Task.WhenAll(primo, secondo);
-        cut.WaitForAssertion(() => Assert.True(_ripieghi.Letture >= 1), TimeSpan.FromSeconds(3));
+        cut.WaitForAssertion(() => Assert.True(_ripieghi.Letture >= 1));
         await Task.Delay(150);
 
         Assert.Equal(1, _db.MassimoInsieme);
@@ -221,7 +221,7 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
         _ripieghi.Righe.Add(new FallbackRowEdit("LIMM_CTR", null, 24500));
         var cut = Apri();
         await Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
-        cut.WaitForAssertion(() => Assert.Equal(1, _ripieghi.Letture), TimeSpan.FromSeconds(3));
+        cut.WaitForAssertion(() => Assert.Equal(1, _ripieghi.Letture));
 
         // Si toglie la riga: la catena a schermo non è più quella salvata.
         await cut.InvokeAsync(() => cut.Find("button[title=Struct_Fallback_Remove]").Click());
@@ -246,7 +246,7 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
         await Premi(cut, "#hn-AirportPosition-3", e => e.ClickAsync(new()));
         cut.WaitForAssertion(() => Assert.Contains("Struct_Fallback_UnsavedSwitch", cut.Markup));
         await cut.InvokeAsync(() => cut.FindAll("button").First(x => x.TextContent.Contains("Struct_Fallback_DiscardSwitch")).ClickAsync(new()));
-        cut.WaitForAssertion(() => Assert.Equal(2, _ripieghi.Letture), TimeSpan.FromSeconds(3));
+        cut.WaitForAssertion(() => Assert.Equal(2, _ripieghi.Letture));
         await NessunaCaduta();
     }
 
@@ -261,7 +261,7 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
         _ripieghi.Righe.Add(new FallbackRowEdit("LIMM_CTR", null, 24500));
         var cut = Apri();
         await Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
-        cut.WaitForAssertion(() => Assert.Equal(1, _ripieghi.Letture), TimeSpan.FromSeconds(3));
+        cut.WaitForAssertion(() => Assert.Equal(1, _ripieghi.Letture));
         await cut.InvokeAsync(() => cut.Find("button[title=Struct_Fallback_Remove]").Click());
 
         await cut.InvokeAsync(() => cut.FindAll("button").First(x => x.TextContent.Contains("Lock_FinishEdit")).ClickAsync(new()));
@@ -284,8 +284,7 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
         _ripieghi.LanciaProposte = new InvalidOperationException("geometria illeggibile");
         var cut = Apri();
         await Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
-        cut.WaitForAssertion(() => Assert.Contains(cut.FindAll("button"), x => x.TextContent.Contains("Struct_Fallback_Suggest")),
-            TimeSpan.FromSeconds(3));
+        cut.WaitForAssertion(() => Assert.Contains(cut.FindAll("button"), x => x.TextContent.Contains("Struct_Fallback_Suggest")));
 
         await cut.InvokeAsync(() => cut.FindAll("button").First(x => x.TextContent.Contains("Struct_Fallback_Suggest")).ClickAsync(new()));
 
@@ -302,14 +301,14 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
 
         await Premi(cut, "#hn-AirportPosition-3", e => e.DragStartAsync(new()));
         var trascina = Premi(cut, "#hn-Acc-2", e => e.DropAsync(new()));
-        cut.WaitForAssertion(() => Assert.Equal(1, _gerarchia.Salvataggi), TimeSpan.FromSeconds(3));
+        cut.WaitForAssertion(() => Assert.Equal(1, _gerarchia.Salvataggi));
 
         var clic = Premi(cut, "#hn-Acc-1", e => e.ClickAsync(new()));
         await Task.Delay(150);   // il clic è partito mentre il salvataggio è ancora in volo
         _gerarchia.Salvataggio.SetResult();
         await Task.WhenAll(trascina, clic);
 
-        cut.WaitForAssertion(() => Assert.Contains("sel", cut.Find("#hn-Acc-1").ClassList), TimeSpan.FromSeconds(3));
+        cut.WaitForAssertion(() => Assert.Contains("sel", cut.Find("#hn-Acc-1").ClassList));
         await Task.Delay(150);
 
         Assert.Equal(1, _db.MassimoInsieme);

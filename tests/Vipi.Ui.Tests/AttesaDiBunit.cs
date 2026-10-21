@@ -17,6 +17,11 @@ namespace Vipi.Ui.Tests;
 /// solo quelli che falliscono davvero — e nessun test della suite aspetta apposta un <c>WaitFor</c> che scade
 /// (<c>WaitForFailedException</c> non compare nei test).</para>
 ///
+/// <para>🔴 Un timeout passato al singolo <c>WaitFor…</c> vince su questo, anche se è PIÙ CORTO. I «3 s» scritti a mano
+/// erano rimasti dopo il 30 settembre, e <c>DiagnosticaUnGiroAllaVoltaTests</c> è caduto proprio su quelli (18 e 21
+/// ottobre 2026: un render solo in 3 s, col pool dei thread occupato). Dal 21 ottobre la suite non ne ha più: un'attesa
+/// si scrive senza timeout, e vale questa.</para>
+///
 /// <para>Un inizializzatore del modulo e non una classe base: il valore è statico di bUnit, e deve valere prima del
 /// primo test di qualunque classe, senza che ogni classe si ricordi di impostarlo.</para>
 /// </summary>

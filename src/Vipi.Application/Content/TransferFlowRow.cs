@@ -20,7 +20,6 @@ public sealed class TransferFlowRow
     /// primo, «con destinazione Catania Fontanarossa LICC», e Sigonella spariva dal testo. La frase li dice tutti.</para>
     /// </summary>
     public IReadOnlyList<string> AirportIcaos { get; init; } = Array.Empty<string>();
-    public string? Description { get; init; }
     public required int Order { get; init; }
     public required IReadOnlyList<TransferPointRow> Points { get; init; }
 }

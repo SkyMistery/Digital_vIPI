@@ -110,7 +110,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
             OwnerAccId = accId,
             SideASectorId = sideA,
             SideBSectorId = sideB,
-            Note = NullIfBlank(input.Note),
             Order = order,
         };
         _db.CoordinationAgreements.Add(a);
@@ -144,7 +143,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
 
         a.SideASectorId = sideA;
         a.SideBSectorId = sideB;
-        a.Note = NullIfBlank(input.Note);
 
         if (swapped)
             foreach (var s in a.Sections) s.Direction = Flip(s.Direction);
@@ -553,7 +551,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
         var nuova = new AgreementSection
         {
             AgreementId = arrivo.Id, Kind = origine.Kind, Direction = verso,
-            Description = conLaProsa ? origine.Description : null,
             // La stessa tabella vista dall'altra coppia si legge nello stesso ordine.
             ClauseOrder = conLaProsa ? origine.ClauseOrder : AgreementClauseOrder.Manual,
             Order = (await _db.AgreementSections.Where(s => s.AgreementId == arrivo.Id)
@@ -592,7 +589,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
             AgreementId = src.AgreementId,
             Kind = src.Kind,
             Direction = reverse,
-            Description = src.Description,
             ClauseOrder = src.ClauseOrder,
             Order = order,
         };
@@ -699,7 +695,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
     {
         s.Kind = i.Kind;
         s.Direction = i.Direction;
-        s.Description = NullIfBlank(i.Description);
         s.ClauseOrder = i.ClauseOrder;
 
         _db.AgreementAirports.RemoveRange(s.Airports);
@@ -1087,7 +1082,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
             OwnerAccId = accId,
             SideASectorId = sideA,
             SideBSectorId = sideB,
-            Note = NullIfBlank(snapshot.Data.Note),
             Order = order,
         };
         var sezioni = snapshot.Sections.OrderBy(x => x.Order).Select(s => (Foto: s, Sezione: SectionFrom(s))).ToList();
@@ -1224,7 +1218,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
         {
             Kind = s.Data.Kind,
             Direction = s.Data.Direction,
-            Description = NullIfBlank(s.Data.Description),
             ClauseOrder = s.Data.ClauseOrder,
             Order = s.Order,
         };
@@ -1707,7 +1700,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
         OwnerAccCode = a.OwnerAcc?.Code ?? "",
         SideA = new AgreementEndpoint(a.SideASectorId, a.SideASector?.Callsign ?? $"#{a.SideASectorId}"),
         SideB = new AgreementEndpoint(a.SideBSectorId, a.SideBSector?.Callsign ?? $"#{a.SideBSectorId}"),
-        Note = a.Note,
         Order = a.Order,
         Sections = AgreementSectionOrder.Sort(a.Sections.Select(s => MapSection(s, ospiti[s.Id], presenze))),
     };
@@ -1734,7 +1726,6 @@ public sealed class EfAgreementRepository : IAgreementRepository
             Id = s.Id,
             Kind = s.Kind,
             Direction = s.Direction,
-            Description = s.Description,
             Order = s.Order,
             ClauseOrder = s.ClauseOrder,
             Airports = s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportRow(x.Icao, x.Name, x.Order)).ToList(),

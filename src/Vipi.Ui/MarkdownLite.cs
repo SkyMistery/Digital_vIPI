@@ -11,12 +11,13 @@ namespace Vipi.Ui;
 /// elenchi puntati e numerati annidati fino a cinque livelli, a capo. HTML-encoded per sicurezza.
 ///
 /// <para>
-/// ⚠️ <b>Di link ne conosce UNO SOLO</b>: <c>[testo](allegato:slug)</c>. Non è una mancanza da colmare — è
-/// il perimetro. Questo renderer <b>encoda e poi sostituisce con delle regex</b>, quindi aprirlo a
-/// <c>[testo](url)</c> qualunque significherebbe far entrare nel contenuto editoriale un indirizzo
-/// arbitrario, <c>javascript:</c> compreso, dentro un <c>href</c> che costruiamo noi. Uno schema solo,
-/// riconosciuto per prefisso, e l'indirizzo lo compone <see cref="AttachmentRules"/> a partire dallo slug:
-/// quel che sta nel testo è un <b>nome</b>, mai un indirizzo.
+/// ⚠️ <b>Di link ne conosce DUE</b>: <c>[testo](allegato:slug)</c>, e dal 21 ottobre 2026 (S122, committente)
+/// <c>[testo](https://…)</c>. Il perimetro resta: questo renderer <b>encoda e poi sostituisce con delle regex</b>,
+/// quindi un <c>[testo](url)</c> qualunque farebbe entrare nel contenuto editoriale un indirizzo arbitrario,
+/// <c>javascript:</c> compreso, dentro un <c>href</c> che costruiamo noi. Per l'allegato l'indirizzo lo compone
+/// <see cref="AttachmentRules"/> dallo slug; per il web passa solo un indirizzo <c>http</c>/<c>https</c> assoluto
+/// che <see cref="LinkWeb.Sicuro"/> rilegge come <see cref="Uri"/>, e apre in una scheda nuova senza dire da dove
+/// si viene (<c>noopener noreferrer</c>). Ogni altro schema resta testo.
 /// </para>
 ///
 /// <para>
@@ -75,6 +76,21 @@ public static class MarkdownLite
     /// </summary>
     private static readonly Regex LinkAllegato = new(
         AttachmentRules.LinkPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, Tempo);
+
+    /// <summary>
+    /// Il link a un indirizzo web, <c>[testo](https://…)</c> (S122): la regola sta in <see cref="LinkWeb"/>.
+    /// <para>⚠️ Gira sul testo <b>già encodato</b>, come quella dell'allegato: l'indirizzo si decodifica, si rilegge con
+    /// <see cref="LinkWeb.Sicuro"/> e si encoda di nuovo per l'attributo.</para>
+    /// </summary>
+    private static readonly Regex LinkWebRx = new(
+        LinkWeb.LinkPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant, Tempo);
+
+    /// <summary>I segnaposto del link web mentre girano grassetto e corsivo (vedi <see cref="Formatta"/>): due caratteri
+    /// d'uso privato, tolti dal testo prima di cominciare.</summary>
+    private const char Apre = '\uE000', Chiude = '\uE001';
+
+    private static readonly Regex SegnapostoApre = new(
+        "\uE000(\\d+)\uE001", RegexOptions.Compiled | RegexOptions.CultureInvariant, Tempo);
 
     private static readonly Regex Grassetto = new(
         @"\*\*(.+?)\*\*", RegexOptions.Compiled | RegexOptions.CultureInvariant, Tempo);
@@ -215,21 +231,51 @@ public static class MarkdownLite
     /// <para>⚠️ Lavorando su una riga sola, un marcatore spaiato si mangia al massimo la sua riga. Prima
     /// arrivava fino al successivo, ovunque fosse.</para>
     /// </summary>
-    private static string Inline(string riga)
+    private static string Inline(string riga) => Formatta(riga, conStili: true);
+
+    /// <summary>
+    /// Un testo di una riga coi soli <b>link</b> (web e allegati), senza grassetti né elenchi: le celle delle tabelle
+    /// (S122, committente: «in qualunque posto si possa editare del testo, dei link»). Encodato come il resto.
+    /// </summary>
+    public static MarkupString SoloLink(string? testo) =>
+        new(string.IsNullOrEmpty(testo) ? "" : Formatta(testo, conStili: false));
+
+    /// <summary>
+    /// ⚠️ Il link web si riconosce <b>per primo</b> e si mette da parte con un segnaposto, e l'ancora si ricompone
+    /// alla fine: un indirizzo porta spesso <c>_</c>, <c>__</c> o <c>*</c>, e lasciato lì il sottolineato e il
+    /// corsivo gli metterebbero dei tag in mezzo — dentro l'<c>href</c>. Il testo del link invece passa da grassetto
+    /// e corsivo come quello dell'allegato.
+    /// </summary>
+    private static string Formatta(string riga, bool conStili)
     {
-        var html = WebUtility.HtmlEncode(riga);
+        var testo = riga.Replace(Apre, ' ').Replace(Chiude, ' ');
+        var html = WebUtility.HtmlEncode(testo);
         try
         {
-            html = Grassetto.Replace(html, "<strong>$1</strong>");
-            html = Sottolineato.Replace(html, "<u>$1</u>");
-            html = Corsivo.Replace(html, "<em>$1</em>");
-            return LinkAllegato.Replace(html, m =>
+            var indirizzi = new List<string>();
+            html = LinkWebRx.Replace(html, m =>
+            {
+                if (LinkWeb.Sicuro(WebUtility.HtmlDecode(m.Groups[2].Value)) is not { } url) return m.Value;
+                indirizzi.Add(url);
+                return $"{Apre}{indirizzi.Count - 1}{Chiude}{m.Groups[1].Value}{Apre}{Chiude}";
+            });
+            if (conStili)
+            {
+                html = Grassetto.Replace(html, "<strong>$1</strong>");
+                html = Sottolineato.Replace(html, "<u>$1</u>");
+                html = Corsivo.Replace(html, "<em>$1</em>");
+            }
+            html = LinkAllegato.Replace(html, m =>
                 $"<a href=\"{AttachmentRules.UrlDi(m.Groups[2].Value)}\" target=\"_blank\" rel=\"noopener\">{m.Groups[1].Value}</a>");
+            if (indirizzi.Count == 0) return html;
+            html = SegnapostoApre.Replace(html, m =>
+                $"<a class=\"md-ext\" href=\"{WebUtility.HtmlEncode(indirizzi[int.Parse(m.Groups[1].Value)])}\" target=\"_blank\" rel=\"noopener noreferrer\">");
+            return html.Replace($"{Apre}{Chiude}", "</a>");
         }
         catch (RegexMatchTimeoutException)
         {
             // Una riga che non si formatta in tempo si mostra com'è, codificata: meglio senza grassetti che ferma.
-            return WebUtility.HtmlEncode(riga);
+            return WebUtility.HtmlEncode(testo);
         }
     }
 }

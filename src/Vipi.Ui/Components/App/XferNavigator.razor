@@ -60,14 +60,7 @@
                     @* SEZIONI e clausole, non il totale delle sole clausole: un accordo con sei sezioni e due
                        clausole è scritto a metà, e il solo «2» non lo direbbe. *@
                     <span class="xt-nav-count" title="@CountsTitle(a)">@a.Sections ▤ @a.Clauses</span>
-                    @* ⚠️ La nota sta DOPO il conteggio e va a capo da sola (`flex-basis:100%`). Messa prima,
-                       rubava la riga al conteggio e mandava a capo QUELLO — su ogni foglia, anche su quelle
-                       senza nota, perché il wrap è una proprietà della riga. Così le foglie senza nota tornano a
-                       una riga sola. *@
-                    @if (!string.IsNullOrWhiteSpace(a.Note))
-                    {
-                        <span class="xt-nav-desc">@a.Note</span>
-                    }
+                    @* La nota dell'accordo non c'è più (21 ottobre 2026, S123c, committente). *@
                 </button>
             }
         }

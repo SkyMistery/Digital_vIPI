@@ -23,6 +23,8 @@ else if (!View.Dichiarati)
 {
     @* Lo scalo dichiara di NON operare in LVP. È un'informazione operativa, e il silenzio non lo sarebbe. *@
     <p style="margin:0"><b>@L["Lvp_NonApplicabile"]</b></p>
+    @* ⚠️ La nota (qui e sotto la tabella) solo per le release scattate prima del 21 ottobre 2026 (S123): da allora il
+       testo libero sta nei blocchi della sezione, e la vista nuova la porta vuota. *@
     @if (!string.IsNullOrWhiteSpace(View.Note))
     {
         <p class="muted" style="font-size:13px;margin:6px 0 0">@View.Note</p>

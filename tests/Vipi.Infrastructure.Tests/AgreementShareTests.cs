@@ -689,7 +689,7 @@ public class AgreementShareTests : IAsyncLifetime
         var s = await SezioneInAsync(accordo, sezione);
         await _repo.UpdateSectionAsync("LIRR", sezione, new AgreementSectionInput
         {
-            Kind = s.Kind, Direction = s.Direction, Description = s.Description, ClauseOrder = ordine,
+            Kind = s.Kind, Direction = s.Direction, ClauseOrder = ordine,
             Airports = s.Airports.Select(a => new AgreementAirportInput(a.Icao, a.Name)).ToList(),
         });
     }
@@ -756,7 +756,7 @@ public class AgreementShareTests : IAsyncLifetime
     private static AgreementSectionSnapshot Foto(AgreementSectionRow s) => new(
         new AgreementSectionInput
         {
-            Kind = s.Kind, Direction = s.Direction, Description = s.Description, ClauseOrder = s.ClauseOrder,
+            Kind = s.Kind, Direction = s.Direction, ClauseOrder = s.ClauseOrder,
             Airports = s.Airports.Select(a => new AgreementAirportInput(a.Icao, a.Name)).ToList(),
         },
         s.Order, s.Clauses.Select(Foto).ToList());

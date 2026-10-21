@@ -10,9 +10,10 @@ namespace Vipi.Ui.Tests;
 /// <summary>
 /// La tabella delle aree, nelle sue DUE vesti (carta <c>2026-09-09-aree-boat.md</c> §3e).
 ///
-/// <para>Sotto «Aree di lavoro» ha cinque colonne — freccetta, nome, limiti, attività, nota — e i quindici
-/// gettoni. Sotto «Bassa quota (BOAT)» ne ha quattro: lì l'attività sarebbe sempre «LOW LEVEL», e una
-/// colonna che dice sempre la stessa cosa non aggiunge niente.</para>
+/// <para>Sotto «Aree di lavoro» ha quattro colonne — freccetta, nome, limiti, attività — e i quindici
+/// gettoni. Sotto «Bassa quota (BOAT)» ne ha tre: lì l'attività sarebbe sempre «LOW LEVEL», e una
+/// colonna che dice sempre la stessa cosa non aggiunge niente. ⚠️ La colonna della NOTA c'è solo se un'area ne
+/// porta una: dal 21 ottobre 2026 (S123) le note non si scrivono più, e ce l'hanno solo le release di prima.</para>
 ///
 /// <para>La freccetta e la sua riga di dettaglio sono del 16 settembre 2026: da allora la tabella è
 /// l'<b>unico</b> elenco sotto la mappa, e si è presa quel che diceva l'elenco a schede — tipo, pallino,
@@ -41,39 +42,58 @@ public class TabellaAreeBoatTests : TestContext
 
     private IRenderedComponent<MilWorkingAreas> Render(bool? attivita = null, bool editing = false,
                                                        IReadOnlyList<AccSpecialAreaView>? aree = null,
-                                                       string scope = "reg-regulated") =>
+                                                       string scope = "reg-regulated",
+                                                       IReadOnlyDictionary<string, string>? note = null) =>
         RenderComponent<MilWorkingAreas>(p =>
         {
             p.Add(x => x.Areas, aree ?? Aree);
+            if (note is not null) p.Add(x => x.Notes, note);
             p.Add(x => x.Editing, editing);
             p.Add(x => x.Scope, scope);
             if (attivita is { } a) p.Add(x => x.MostraAttivita, a);
         });
 
     [Fact]
-    public void Le_aree_di_lavoro_hanno_CINQUE_colonne_senza_chiedere_niente()
+    public void Le_aree_di_lavoro_hanno_QUATTRO_colonne_senza_chiedere_niente()
     {
         // ⚠️ Il default: chi monta la tabella sotto «Aree di lavoro» non passa il parametro, e la colonna
         // dell'attività deve esserci lo stesso.
         var c = Render();
 
-        Assert.Equal(5, c.FindAll("thead th").Count);
+        Assert.Equal(4, c.FindAll("thead th").Count);
         Assert.Single(c.FindAll("th.c-act2"));
         Assert.Equal(Aree.Length, c.FindAll("tbody td.c-act2").Count);
     }
 
     [Fact]
-    public void Le_aree_BOAT_ne_hanno_QUATTRO_intestazione_e_celle_insieme()
+    public void Le_aree_BOAT_ne_hanno_TRE_intestazione_e_celle_insieme()
     {
         var c = Render(attivita: false);
 
-        Assert.Equal(4, c.FindAll("thead th").Count);
+        Assert.Equal(3, c.FindAll("thead th").Count);
         Assert.Empty(c.FindAll("th.c-act2"));
 
-        // ⚠️ Le CELLE e non solo l'intestazione: una tabella con quattro `th` e cinque `td` per riga si
-        // disallinea in silenzio, e le note finirebbero sotto il titolo sbagliato.
+        // ⚠️ Le CELLE e non solo l'intestazione: una tabella con tre `th` e quattro `td` per riga si
+        // disallinea in silenzio.
         Assert.Empty(c.FindAll("tbody td.c-act2"));
+        Assert.Empty(c.FindAll("tbody td.c-note"));
+    }
+
+    /// <summary>
+    /// Una release scattata prima del 21 ottobre 2026 porta ancora le note nel suo payload: lì la colonna c'è, con
+    /// intestazione e celle insieme, e in modifica non c'è più un campo per scriverle.
+    /// </summary>
+    [Fact]
+    public void Con_le_note_di_una_release_di_prima_la_colonna_torna()
+    {
+        var note = new Dictionary<string, string> { ["1113"] = "Coordinare con il poligono" };
+        var c = Render(note: note);
+
+        Assert.Equal(5, c.FindAll("thead th").Count);
         Assert.Equal(Aree.Length, c.FindAll("tbody td.c-note").Count);
+        Assert.Contains("Coordinare con il poligono", c.Markup);
+        Assert.Equal("5", c.Find("tbody tr.milarea-more td").GetAttribute("colspan"));
+        Assert.Empty(Render(editing: true, note: note).FindAll("textarea.in-note"));
     }
 
     /// <summary>
@@ -108,8 +128,8 @@ public class TabellaAreeBoatTests : TestContext
         // difetto che nasce quando una colonna diventa condizionale.
         var vuoto = Array.Empty<AccSpecialAreaView>();
 
-        Assert.Equal("5", Render(aree: vuoto).Find("tbody td.muted").GetAttribute("colspan"));
-        Assert.Equal("4", Render(attivita: false, aree: vuoto).Find("tbody td.muted").GetAttribute("colspan"));
+        Assert.Equal("4", Render(aree: vuoto).Find("tbody td.muted").GetAttribute("colspan"));
+        Assert.Equal("3", Render(attivita: false, aree: vuoto).Find("tbody td.muted").GetAttribute("colspan"));
     }
 
     /// <summary>
@@ -126,7 +146,7 @@ public class TabellaAreeBoatTests : TestContext
         foreach (var r in righe)
         {
             Assert.True(r.HasAttribute("hidden"));                       // chiusa all'apertura
-            Assert.Equal("5", r.QuerySelector("td")!.GetAttribute("colspan"));
+            Assert.Equal("4", r.QuerySelector("td")!.GetAttribute("colspan"));
         }
 
         // La prima area ha tutt'e due i testi, con l'etichetta davanti all'attivazione.

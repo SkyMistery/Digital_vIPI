@@ -23,8 +23,6 @@ public sealed record AgreementInput
     /// <inheritdoc cref="SideASectorId"/>
     public required int SideBSectorId { get; init; }
 
-    /// <summary>Nota libera sull'accordo; la prosa che introduce una tabella sta sulla sezione.</summary>
-    public string? Note { get; init; }
 }
 
 /// <summary>
@@ -41,7 +39,6 @@ public sealed record AgreementSectionInput
     /// calcolo che si impone.</summary>
     public required AgreementDirection Direction { get; init; }
 
-    public string? Description { get; init; }
 
     /// <summary>Gli aeroporti della sezione, nell'ordine voluto. Obbligatori per arrivi e partenze, vietati sui
     /// sorvoli, facoltativi su VFR/Altro.</summary>

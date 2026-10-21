@@ -142,8 +142,9 @@ public static class PageIntro
 
         return b.Format switch
         {
-            BlockFormat.Callout when Testo(b.Text) =>
-                Vista(id, BlockFormat.Callout, b.Text, null, b.CalloutKind),
+            // Coi suoi allegati (S121), e anche senza testo se ne ha.
+            BlockFormat.Callout when Testo(b.Text) || CalloutJson.Allegati(b.CalloutJson).Count > 0 =>
+                Vista(id, BlockFormat.Callout, b.Text, Testo(b.CalloutJson) ? b.CalloutJson : null, b.CalloutKind),
             BlockFormat.Table when Testo(b.TableJson) =>
                 Vista(id, BlockFormat.Table, null, b.TableJson, null),
             BlockFormat.Image when MediaRef.Parse(b.ImageJson) is not null =>

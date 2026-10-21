@@ -1535,6 +1535,16 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.71.0 — MINOR, migrazione DISTRUTTIVA: «NON SI TORNA INDIETRO». Su 1.70.0 (2a21316, online dal 21 ottobre
+      2026). Dentro: S121 allegati nei callout; S122 link nel testo; S123a e S123b, le note delle LVP, delle regole
+      piste e delle aree diventano blocchi (traslochi all'avvio, le colonne restano e si toglieranno dopo); S123c, via
+      nota e descrizione dei trasferimenti (TogliNoteTrasferimenti: due DropColumn, il testo si perde apposta, chiesto
+      dal committente); S124 la tecnica del radar di torre nasce aperta; S125 e S126 solo strumenti e test. Prima del
+      carico: copia fresca del database. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure,
+      Vipi.Infrastructure.MySqlMigrations, Vipi.Hosting, Vipi.Ui (+ frasi IT/EN, CSS e JS con l'indice degli asset) e
+      Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.71.0.md, §A164.
+    -->
+    <!--
       1.70.0 — MINOR, migrazione DISTRUTTIVA: «NON SI TORNA INDIETRO». Su 1.69.0 (9af1c14, online dal 21 ottobre
       2026). Dentro: S120, via la colonna Airports.RadarTowerTechnique (TogliTecnicaRadar, un solo DropColumn, SQLite e
       MySQL; la applica il sito all'avvio). La tecnica operativa sta nei blocchi dalla 1.69.0, il cui trasloco ha
@@ -2094,7 +2104,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.70.0</VipiVersione>
+    <VipiVersione>1.71.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

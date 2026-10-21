@@ -43,6 +43,47 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### ✅ A164 — 1.71.0 ONLINE: allegati nei callout, link, le note nei blocchi, via le note dei trasferimenti (S121–S126), migrazione DISTRUTTIVA (21 ottobre 2026)
+
+✅ Online dal 21 ottobre 2026: il committente conferma la 1.71 e `Schema 0` (la migrazione `TogliNoteTrasferimenti` è
+passata). Da fuori, da anonimo, alle 20:00Z: `/` 302, porta «Entra con IVAO», Ricerca e API settori 401,
+`vipi-theme.css?v=78b8ae45` (quello del pacchetto), `/vsop/health` e `/vsop/health/ready` Healthy. ⚠️ Tempi ancora alti
+(health/ready 10 s, `/` 5,9 s) e `it.ivao.aero`, non nostro, a 8,9 s: il server è ancora sotto carico come dalle 15Z
+(vedi HANDOFF). Non guardati da qui, dietro il login: la nota LVP come paragrafo, allegati e link.
+
+MINOR con **una migrazione distruttiva** — 🔴 **non si torna indietro con le rinomine** —, misurata dalla **1.70.0**
+(`2a21316`) che gira. Timbro **`1.71.0 · 21af7c1`**. Fusa da `sito/lavori` @ `e745f1c4` (cartellino 🟢, CI verde run
+39658978452), fusione `77f84bee` senza conflitti. Il committente ha detto «fondi tutto»: fuso il solo Sito, il Lab no
+(chiesto e confermato).
+- **S121** allegati nei callout (`CalloutJson`, `CalloutAllegatiEditor`); **S122** link `[testo](https://…)` ovunque
+  (`LinkWeb`, `MarkdownLite`, `LinkPicker`). Carta `docs/feature/2026-10-21-allegati-nei-callout-e-link.md`.
+- **S123a/S123b**: le note delle LVP, delle regole piste e delle tabelle delle aree diventano blocchi (traslochi
+  all'avvio `NoteDelloScaloNeiBlocchiAsync`, `NoteDelleAreeNeiBlocchiAsync`). ▶ Le colonne `AirportLvpMinima.Note`,
+  `AirportRunwayRules.Note`, `AorAirspaceEdit.Note` si tolgono in una consegna DOPO, a carico passato.
+- **S123c**: migrazione `TogliNoteTrasferimenti` (SQLite `20261021180945`, MySQL `20261021180959`), due `DropColumn`
+  (`CoordinationAgreements.Note`, `AgreementSections.Description`): il testo si perde apposta (committente). Via anche
+  `description` dall'API dei settori. Carta `docs/feature/2026-10-21-via-le-note.md`.
+- **S124** la tecnica del radar di torre nasce aperta; **S125** `conta-test.sh` senza «MANCA» falsi + `conta-test-prova.sh`
+  primo passo della CI; **S126** le attese dei test «un giro alla volta» sono quelle della suite (chiudono le due voci
+  della coda del Master).
+- Codice comune: `Vipi.Application`, `tools/`, `.github/workflows/ci.yml`. Nessuna `const` cambiata.
+
+**25 file** (`solo-25-file-1.71.0`): Domain, Application, Infrastructure.MySqlMigrations, Infrastructure, Hosting, Ui,
+Host (dll + pdb), `en/Vipi.Ui.resources.dll`, `vipi-editor.js`, `vipi-print.css`, `vipi-theme.css` (con `.br`/`.gz`) e
+`endpoints.json`, confrontati col publish della **1.70.0** (`publish_old/20261021b`): 482 file, 29 con impronta diversa;
+fuori AuroraBridge.Contracts e AuroraProfiles (solo MVID). Zip 6,84 MB, sha256
+`a45b85f170928b8f7fefe0d02f26c6f7763504d4049e211648182bb913a6157a`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3446, Infra 2238, Ui 2119). Prova sul percorso della
+produzione, su una copia del database di sviluppo (cancellata a fine prova): publish win-x64 della 1.70.0 → stato di oggi;
+nota LVP di LIBD e una descrizione di trasferimento scritte a mano; publish win-x64 della 1.71.0 → `TogliNoteTrasferimenti`
+applicata (le due colonne sparite), nota LVP portata in due paragrafi `lvp` (vIPI e vSOP), editor di LIBD e pagina
+Trasferimenti senza errori, log del server pulito; `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`);
+`vipi-theme.css?v=78b8ae45`. Non visti sul pacchetto: allegati nei callout e link a schermo (provati dal Sito su DB
+nuovo), le note delle aree. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.71.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; la nota LVP come paragrafo; riscrivere le due frasi di Milano. Rollback:
+solo con la copia del database.
+
 ### ✅ A163 — 1.70.0 ONLINE: via la colonna della tecnica del radar di torre (S120), migrazione DISTRUTTIVA (21 ottobre 2026)
 
 ✅ Online dal 21 ottobre 2026: il committente conferma la 1.70 e `Schema 0` (la migrazione `TogliTecnicaRadar` è

@@ -738,7 +738,7 @@ else
                 <MilWorkingAreas Areas="_areeScelte" Activities="_attivitaAree" Notes="_noteAree"
                                  Editing="_shell.IsEditing"
                                  Scope="@RegulatedAreas.ScopeOf(SectionKeys.Regulated)"
-                                 OnSet="ScriviAttivitaArea" OnSetNote="ScriviNotaArea" />
+                                 OnSet="ScriviAttivitaArea" />
                 break;
             @* Le aree BOAT: stesso picker, stessa tabella, selezione SUA. La tabella qui non ha la colonna dell'attività —
                l'attività su un'area BOAT direbbe sempre «LOW LEVEL». *@
@@ -748,8 +748,7 @@ else
                                       SelectionChanged="SaveBoat" />
                 <MilWorkingAreas Areas="_areeBoat" Notes="_noteBoat" MostraAttivita="false"
                                  Editing="_shell.IsEditing"
-                                 Scope="@RegulatedAreas.ScopeOf(SectionKeys.LowLevel)"
-                                 OnSetNote="ScriviNotaBoat" />
+                                 Scope="@RegulatedAreas.ScopeOf(SectionKeys.LowLevel)" />
                 break;
             case "callsigns":
                 <MilFixedTableEditor Colonne="MilProfiloTabelle.Nominativi(L)" Righe="_nominativi"
@@ -1661,11 +1660,6 @@ else
     });
 
     /// <summary>La nota di UN'area, allo stesso modo: si salva quando il campo perde il fuoco.</summary>
-    private Task ScriviNotaArea((string AreaId, string? Nota) x) => _shell.GuardAsync(async () =>
-    {
-        await Militari.SaveAreaNoteAsync(_icao, SectionKeys.Regulated, x.AreaId, x.Nota);
-        _noteAree = await Militari.GetAreaNotesAsync(_icao, SectionKeys.Regulated);
-    });
 
     private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
     {
@@ -1706,11 +1700,7 @@ else
     });
 
     /// <summary>La nota di UN'area BOAT: si salva quando il campo perde il fuoco, come sopra.</summary>
-    private Task ScriviNotaBoat((string AreaId, string? Nota) x) => _shell.GuardAsync(async () =>
-    {
-        await Militari.SaveAreaNoteAsync(_icao, SectionKeys.LowLevel, x.AreaId, x.Nota);
-        _noteBoat = await Militari.GetAreaNotesAsync(_icao, SectionKeys.LowLevel);
-    });
+
 
 
     /// <summary>

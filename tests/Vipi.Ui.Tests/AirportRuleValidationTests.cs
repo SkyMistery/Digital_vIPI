@@ -148,7 +148,7 @@ public class AirportRuleValidationTests
 
     private static RuleEdit RegolaCompleta()
     {
-        var r = new RuleEdit { Name = "Preferenziale notte", Note = "vento permettendo", MaxTail = 7, MaxCross = 25, Surface = "wet", Parity = "even", DaysMask = 0b0000101, TimeFrom = new TimeOnly(22, 30), TimeTo = new TimeOnly(6, 15), DateFromDay = 1, DateFromMonth = 11, DateToDay = 31, DateToMonth = 3 };
+        var r = new RuleEdit { Name = "Preferenziale notte", MaxTail = 7, MaxCross = 25, Surface = "wet", Parity = "even", DaysMask = 0b0000101, TimeFrom = new TimeOnly(22, 30), TimeTo = new TimeOnly(6, 15), DateFromDay = 1, DateFromMonth = 11, DateToDay = 31, DateToMonth = 3 };
         r.Dep.Add("16L"); r.Dep.Add("16R");
         r.Arr.Add("34L");
         return r;

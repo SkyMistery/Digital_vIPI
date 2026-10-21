@@ -36,6 +36,12 @@
            dell'import tabelle). La scorciatoia sta nel titolo. *@
         @TastoRientro(-1, L["Rta_Outdent"].Value, "⇤")
         @TastoRientro(1, L["Rta_Indent"].Value, "⇥")
+        <span class="rta-sep" aria-hidden="true"></span>
+        @* Il link (S122): a un indirizzo web o a un allegato della biblioteca. Le parole selezionate diventano il
+           testo del link. Stesso `preventDefault` degli altri tasti, per la stessa ragione. *@
+        <button type="button" class="rta-btn rta-link" title="@L["Rta_Link"]" aria-label="@L["Rta_Link"]"
+                aria-expanded="@(_linkAperto ? "true" : "false")"
+                @onmousedown:preventDefault="true" @onclick="ApriLink">@L["Link_Btn"]</button>
         @if (CitaSid)
         {
             <span class="rta-sep" aria-hidden="true"></span>
@@ -46,6 +52,10 @@
                     @onmousedown:preventDefault="true" @onclick="ApriSid">@L["Sid_Btn"]</button>
         }
     </div>
+    @if (_linkAperto)
+    {
+        <LinkPicker TestoIniziale="@_linkTesto" OnScegli="InserisciLink" OnChiudi="() => _linkAperto = false" />
+    }
     @if (_sidAperto)
     {
         <RiferimentoPicker IcaoIniziale="@IcaoDelDocumento" OnScegli="InserisciSid" OnChiudi="() => _sidAperto = false" />
@@ -127,5 +137,25 @@
     {
         _sidAperto = false;
         await JS.InvokeAsync<bool>("vipiSidInserisci", _gettone, riferimento);
+    }
+
+    private bool _linkAperto;
+    private string _linkGettone = "";
+    private string _linkTesto = "";
+
+    // Come per la SID: il campo, la selezione e il testo selezionato si segnano ADESSO, prima che il fuoco vada nel
+    // selettore. Il link poi prende il posto della selezione.
+    private async Task ApriLink()
+    {
+        if (_linkAperto) { _linkAperto = false; return; }
+        _linkGettone = await JS.InvokeAsync<string>("vipiSidPrendi", _ta) ?? "";
+        _linkTesto = _linkGettone.Length > 0 ? await JS.InvokeAsync<string>("vipiSidTesto", _linkGettone) ?? "" : "";
+        _linkAperto = _linkGettone.Length > 0;
+    }
+
+    private async Task InserisciLink(string link)
+    {
+        _linkAperto = false;
+        await JS.InvokeAsync<bool>("vipiSidInserisci", _linkGettone, link);
     }
 }

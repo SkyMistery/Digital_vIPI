@@ -83,8 +83,10 @@ public static class SectionPayload
             // l'avrebbe presa come suo blocco e ci avrebbe SCRITTO SOPRA. Trovato lavorando alle SID citate
             // (§A73): 1 callout in produzione, 5 in sviluppo. Solo il titolo e nient'altro: nessun payload ha
             // questa forma, e un oggetto con altro accanto resta una domanda per le regole sotto.
-            if (root.TryGetProperty("title", out var titolo) && titolo.ValueKind == JsonValueKind.String
-                && root.EnumerateObject().Count() == 1) return true;
+            // ⚠️ Dal 21 ottobre 2026 (S121) un callout porta anche i suoi ALLEGATI (`allegati`, un elenco): la
+            // forma è «solo title e/o allegati», la dice CalloutJson. Senza, un callout con un allegato tornava
+            // payload e spariva dall'editor.
+            if (CalloutJson.EForma(root)) return true;
             return root.TryGetProperty("columns", out _) && !root.TryGetProperty("variant", out _);
         }
         catch (JsonException)

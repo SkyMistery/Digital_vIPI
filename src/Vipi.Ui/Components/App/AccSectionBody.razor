@@ -11,7 +11,9 @@
 @inject IStringLocalizer<SharedResource> L
 @if (IsStructured(Key) && Editorial is not null)
 {
-    <SectionBody Section="Editorial" ShowBlocks="@(Key == "validity")" Scheda="Scheda" DepthOffset="-1" IsDraft="IsDraft" ReportHrefOf="ReportHrefOf" />
+    @* ⚠️ E l'AoR dal 21 ottobre 2026 (S123): le note degli spazi aerei non si scrivono più, il testo libero sta nei
+       blocchi della sezione sotto la mappa. È «scheda + blocchi» nei due profili dei blocchi della vIPI ACC. *@
+    <SectionBody Section="Editorial" ShowBlocks="@(Key is "validity" or "aor")" Scheda="Scheda" DepthOffset="-1" IsDraft="IsDraft" ReportHrefOf="ReportHrefOf" />
 }
 else if (IsStructured(Key))
 {
