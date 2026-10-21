@@ -87,6 +87,12 @@ public enum ImportIssueKind
 
     /// <summary>🔴 Indice delle pagine: una pagina con una data dopo l'entrata in vigore del ciclo letto. <c>Detail</c> = riferimento e data.</summary>
     PageAfterCycle,
+
+    /// <summary>
+    /// ENR 2.1.1 (carta «L'AIP intero», passo 2b): nella colonna delle frequenze un testo che non è una frequenza né dei
+    /// rimandi, o una riga della tabella senza frequenze. <c>Key</c> = la stazione; <c>Detail</c> = il testo.
+    /// </summary>
+    Frequency,
 }
 
 public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)
@@ -96,6 +102,9 @@ public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyLi
 
     /// <summary>ENR 3.4.1: le attese lette (slice 2).</summary>
     public IReadOnlyList<Holding> Holdings { get; init; } = [];
+
+    /// <summary>ENR 2.1.1: le righe delle tabelle delle frequenze ACC, SCCAM e FIC (carta «L'AIP intero», passo 2b).</summary>
+    public IReadOnlyList<AtsUnitFrequencies> UnitFrequencies { get; init; } = [];
 
     /// <summary>ENR 3.4.2: le radioassistenze con le rotte e procedure associate, anche senza attese (carta «L'AIP intero», passo 2a).</summary>
     public IReadOnlyList<NavaidProcedures> NavaidProcedures { get; init; } = [];
@@ -252,7 +261,12 @@ public static partial class ItalianAip
         if (nome == "LI-ENR 2.1.3")
             return ItalianEnr2.Read(pages(), "ENR 2.1", AirspaceType.Atz);
         if (nome.StartsWith("LI-ENR 2.1.1.", StringComparison.Ordinal))
-            return ItalianEnr2.Read(pages(), "ENR 2.1", null);
+        {
+            // Le FIR (2.1.1.1-3) hanno anche le tabelle delle frequenze ACC/SCCAM/FIC (passo 2b).
+            var aree = ItalianEnr2.Read(pages(), "ENR 2.1", null);
+            var frequenze = ItalianEnr2Frequencies.Read(pages());
+            return aree with { Issues = [.. aree.Issues, .. frequenze.Issues], UnitFrequencies = frequenze.UnitFrequencies };
+        }
         if (nome == "LI-ENR 2.2.1")
             return ItalianEnr2.Read(pages(), "ENR 2.2", AirspaceType.Fra);
         if (nome == "LI-ENR 2.2")

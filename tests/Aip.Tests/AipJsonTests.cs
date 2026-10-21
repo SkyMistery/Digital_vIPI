@@ -205,7 +205,16 @@ public sealed class AipJsonTests
             Section = "ENR 3.4.2", Designator = "AHO", Type = "TACAN", Name = "Alghero", Affected = "EA star\nEA sid",
             Page = new AipPage("ENR 3.4.2-1", new DateOnly(2026, 9, 3)),
         };
-        var doc = new AipDocument { State = "LI", Routes = [Rotta(RouteDirection.Backward)], Holdings = [attesa], NavaidProcedures = [elenco] };
+        var frequenze = new AtsUnitFrequencies
+        {
+            Section = "ENR 2.1.1.1", Station = "Milano ACC", Service = "Servizio di controllo di area/ Area control service",
+            CallSign = "Milano Radar", Hours = "H24\n(1)", Remarks = "1. A discrezione ATC",
+            Frequencies = [new AtsFrequency { Text = "CH 118.805", Megahertz = 118.805, Emission = "A3E", NoteRefs = "(7)" }],
+        };
+        var doc = new AipDocument
+        {
+            State = "LI", Routes = [Rotta(RouteDirection.Backward)], Holdings = [attesa], NavaidProcedures = [elenco], UnitFrequencies = [frequenze],
+        };
 
         var json = AipJson.Serialize(doc);
         var riletto = AipJson.Deserialize(json);
@@ -213,6 +222,8 @@ public sealed class AipJsonTests
         Assert.Equal(doc, riletto);
         Assert.NotEqual(doc with { NavaidProcedures = [elenco with { Affected = "EA star" }] }, riletto);
         Assert.DoesNotContain("navaidProcedures", AipJson.Serialize(new AipDocument { State = "LI" }));
+        Assert.NotEqual(doc with { UnitFrequencies = [frequenze with { Frequencies = [] }] }, riletto);
+        Assert.DoesNotContain("unitFrequencies", AipJson.Serialize(new AipDocument { State = "LI" }));
         Assert.NotEqual(Rotta(RouteDirection.None), riletto.Routes![0]);
         Assert.NotEqual(attesa with { Turn = TurnDirection.Right }, riletto.Holdings![0]);
         Assert.NotEqual(doc with { Holdings = null }, riletto);

@@ -27,6 +27,9 @@ public sealed record EsitoDellAipEspanso(
     /// <summary>Le attese di ENR 3.4.1 lette (slice 2).</summary>
     public int Attese { get; init; }
 
+    /// <summary>ENR 2.1.1: le frequenze ACC, SCCAM e FIC lette (carta «L'AIP intero», passo 2b).</summary>
+    public int Frequenze { get; init; }
+
     /// <summary>ENR 3.4.2: le radioassistenze dell'elenco con le rotte e procedure associate (carta «L'AIP intero», passo 2a).</summary>
     public int RadioassistenzeConLeProcedure { get; init; }
 
@@ -102,6 +105,7 @@ public sealed record EsitoDellAipEspanso(
     {
         $"{Aree} aree",
         Rotte > 0 ? $"{Rotte} rotte" : null,
+        Frequenze > 0 ? $"{Frequenze} frequenze ACC/FIC" : null,
         Attese > 0 ? $"{Attese} attese" : null,
         RadioassistenzeConLeProcedure > 0 ? $"{RadioassistenzeConLeProcedure} radioassistenze di ENR 3.4.2" : null,
         Radioassistenze > 0 ? $"{Radioassistenze} radioassistenze" : null,
@@ -163,6 +167,7 @@ public static class AipEspanso
         var rotte = new List<Route>();
         var attese = new List<Holding>();
         var elencoEnr342 = new List<NavaidProcedures>();
+        var frequenze = new List<AtsUnitFrequencies>();
         var radioassistenze = new List<Navaid>();
         var punti = new List<SignificantPoint>();
         var luci = new List<GroundLight>();
@@ -218,6 +223,7 @@ public static class AipEspanso
             rotte.AddRange(letto.Routes);
             attese.AddRange(letto.Holdings);
             elencoEnr342.AddRange(letto.NavaidProcedures);
+            frequenze.AddRange(letto.UnitFrequencies);
             radioassistenze.AddRange(letto.Navaids);
             // I punti delle WAYPOINT LIST di AD 2 stanno nel file 4 e nel 6 dello stesso scalo: una volta sola (F7).
             ItalianAd2Procedures.AggiungiIPunti(punti, letto.Points);
@@ -243,6 +249,7 @@ public static class AipEspanso
             Routes = rotte.Count == 0 ? null : rotte,
             Holdings = attese.Count == 0 ? null : attese,
             NavaidProcedures = elencoEnr342.Count == 0 ? null : elencoEnr342,
+            UnitFrequencies = frequenze.Count == 0 ? null : frequenze,
             Navaids = radioassistenze.Count == 0 ? null : radioassistenze,
             Points = punti.Count == 0 ? null : punti,
             Lights = luci.Count == 0 ? null : luci,
@@ -296,6 +303,7 @@ public static class AipEspanso
             Rotte = rotte.Count,
             Attese = attese.Count,
             RadioassistenzeConLeProcedure = elencoEnr342.Count,
+            Frequenze = frequenze.Sum(f => f.Frequencies.Count),
             Radioassistenze = radioassistenze.Count,
             Punti = punti.Count,
             Luci = luci.Count,

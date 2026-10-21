@@ -257,3 +257,24 @@ e le aree VFR della FIR Roma, **2d** «vale il dato di prima» nei tratti delle 
 **Misurato** sul 2611 e confrontato col `li.json` 2610 sulle pagine rimaste uguali (18 di 3.4.1, 11 di 3.4.2): ENR 3.4.1
 **414 attese su 246 punti** (+TUCOZ), nient'altro di diverso salvo le note di TOPRU; ENR 3.4.2 129 attese, uguali salvo le
 note di PAN. Test: Aip.Pdf 129 (+1), Aip 50 (il JSON col campo nuovo).
+
+#### 2b — le frequenze ACC, SCCAM e FIC: fatto
+
+- **`ItalianEnr2Frequencies`** legge le tabelle «Frequenze ACC/SCCAM» e FIC di ENR 2.1.1.1-3 (sette colonne, testata in
+  ogni pagina; si riconoscono da «STAZIONE» e «FREQUENZA», così le tabelle delle CTA non si toccano). Nel modello
+  **`AtsUnitFrequencies`** (campo nuovo e facoltativo): stazione, servizio, nominativo, le frequenze (com'è stampate, in
+  MHz, emissione, rimandi) e, della riga, gli orari e le note.
+- 🔴 **Una riga è la fascia fra i bordi della colonna del nominativo**: stazione e servizio sono celle unite col testo in
+  alto (Roma ACC: un «Servizio di controllo di avvicinamento» per Roma Arrivi, Roma Partenze e Roma Radar) e passano alle
+  righe sotto; una fascia senza stazione, servizio e nominativo continua la riga prima, anche nella pagina dopo (Milano
+  ACC su tre pagine).
+- ⚠️ **Gli orari sono della riga, non della frequenza**: dentro una riga il PDF non ha bordi fra una frequenza e l'altra e
+  le celle degli orari stanno a cavallo (Roma FIC: «2200-0600 (2100-0500)» a metà fra 128.800 e 133.250). Si tengono come
+  stampati, nell'ordine; attribuirli a una frequenza sarebbe indovinare.
+- Si leggono anche «CH125.485» senza lo spazio (Padova) e la parola spezzata a fine riga («Padova Infor- mazioni»), e i
+  rimandi scritti sotto la frequenza («134.200» / «(1) (2)»). Un testo nella colonna che non è una frequenza si dice.
+
+**Misurato** sul 2611: **131 frequenze in 23 righe** — Milano 39, Padova 23, Roma 56, Brindisi 13 —, zero segnalazioni.
+Controprova valore per valore con `pdftotext`: le sole differenze sono tre frequenze scritte nelle note, non nella tabella
+(125.275 due volte, 120.600 di Bolzano INFO) e le due «CH» senza spazio che la controprova non vede. Test: Aip.Pdf 133
+(+4).

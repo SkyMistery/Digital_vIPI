@@ -33,6 +33,9 @@ public sealed record AipDocument
     /// <summary>ENR 2 (spazi aerei ATS) ed ENR 5 (aree P/R/D, TSA/TRA, militari, pericoli), nell'ordine dell'AIP.</summary>
     public IReadOnlyList<Airspace> Airspaces { get; init; } = [];
 
+    /// <summary>ENR 2.1.1: le righe delle tabelle delle frequenze ACC, SCCAM e FIC. Null se il documento non ne ha (campo facoltativo).</summary>
+    public IReadOnlyList<AtsUnitFrequencies>? UnitFrequencies { get; init; }
+
     /// <summary>ENR 3: le rotte ATS, nell'ordine in cui si sono lette. Null se il documento non ne ha (lo schema resta 1).</summary>
     public IReadOnlyList<Route>? Routes { get; init; }
 
@@ -73,6 +76,7 @@ public sealed record AipDocument
         && Airac == other.Airac
         && Effective == other.Effective
         && Airspaces.SequenceEqual(other.Airspaces)
+        && (UnitFrequencies ?? []).SequenceEqual(other.UnitFrequencies ?? [])
         && (Routes ?? []).SequenceEqual(other.Routes ?? [])
         && (Holdings ?? []).SequenceEqual(other.Holdings ?? [])
         && (NavaidProcedures ?? []).SequenceEqual(other.NavaidProcedures ?? [])
