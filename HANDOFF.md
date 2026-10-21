@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 21 ottobre 2026
+> ## ▶ Il punto — 21 ottobre 2026, ONLINE
+>
+> **✅ Online: 1.69.0** (`Schema 0` confermato; da fuori l'API dei settori risponde «chiave API mancante», health
+> Healthy; §A162, timbro `1.69.0 · 9af1c14`). In `main` non resta codice fuori pacchetto. Per usare l'API: una chiave
+> col permesso «Settori». ▶ Prossima consegna possibile: togliere la colonna `RadarTowerTechnique`. ⚠️ Aperto:
+> aggiornare l'SDK a 10.0.402.
+>
+> ## Il punto — 21 ottobre 2026
 >
 > **📦 Pronta da caricare: 1.69.0** (§A162, timbro `1.69.0 · 9af1c14`, 13 file, zip `29522844…`, MINOR senza
 > migrazioni, misurata dalla 1.68.0): Sito S119 (API dei settori, permesso di chiave «Settori») e S118 (la tecnica
