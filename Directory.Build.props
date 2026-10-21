@@ -1535,6 +1535,17 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.69.0 — MINOR, NESSUNA migrazione EF. Su 1.68.0 (811010f, online dal 20 ottobre 2026). Dentro: S119, l'API dei
+      settori (GET /vsop/api/v1/accs, i settori e i coordinamenti di un ACC; permesso di chiave «settori»), una porta
+      nuova per gli altri programmi; S118, la «Tecnica operativa» del Radar di torre fatta di blocchi come le altre
+      sezioni scritte. Un trasloco all'avvio (TecnicaRadarNeiBlocchiAsync) porta il testo dell'anagrafica in un
+      paragrafo dei documenti e svuota la colonna Airports.RadarTowerTechnique, che resta nello schema e si toglierà
+      in una consegna successiva. Tornare alla 1.68.0 dopo il trasloco lascia la tecnica vuota nell'anagrafica (il
+      testo resta nei blocchi). IAirportRepository e IDocumentMaintenance cambiano, implementati solo in
+      Vipi.Infrastructure. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Hosting, Vipi.Ui (+ frasi
+      IT/EN) e Vipi.Host per il timbro. Dettaglio: LEGGIMI-PACCHETTO-1.69.0.md, §A162.
+    -->
+    <!--
       1.68.0 — MINOR, migrazione ADDITIVA (TorreRadar: due AddColumn nullable su Airports, SQLite e MySQL; la applica
       il sito all'avvio). Su 1.67.0 (c41681d, online dal 18 ottobre 2026). Dentro: S114, una sezione senza testo
       proprio ma con sottosezioni visibili scritte non è più «da scrivere»; S115, la sezione «Radar di torre»
@@ -2073,7 +2084,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.68.0</VipiVersione>
+    <VipiVersione>1.69.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

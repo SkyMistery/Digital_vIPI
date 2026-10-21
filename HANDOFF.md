@@ -4,7 +4,15 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 20 ottobre 2026
+> ## ▶ Il punto — 21 ottobre 2026
+>
+> **📦 Pronta da caricare: 1.69.0** (§A162, timbro `1.69.0 · 9af1c14`, 13 file, zip `29522844…`, MINOR senza
+> migrazioni, misurata dalla 1.68.0): Sito S119 (API dei settori, permesso di chiave «Settori») e S118 (la tecnica
+> operativa del radar di torre a blocchi, con un trasloco all'avvio che svuota la colonna dell'anagrafica). Online è
+> la **1.68.0** finché il committente non carica. ▶ Dopo: una consegna che toglie la colonna `RadarTowerTechnique`.
+> ⚠️ Aperto: aggiornare l'SDK a 10.0.402. S96 in pausa.
+>
+> ## Il punto — 20 ottobre 2026
 >
 > **✅ Online: 1.68.0** (`Schema 0` confermato, la migrazione `TorreRadar` è passata; health Healthy; §A160, timbro
 > `1.68.0 · 811010f`). Per usarla: sì/no in anagrafica e mostrare la sezione nei documenti. Sopra, fuori

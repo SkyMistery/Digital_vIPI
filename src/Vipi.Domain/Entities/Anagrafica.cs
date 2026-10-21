@@ -279,9 +279,6 @@ public class Airport
     /// </summary>
     public string? MetarStationIcao { get; set; }
 
-    /// <summary>La tecnica operativa della torre radar: il tetto lo dice il servizio prima del database.</summary>
-    public const int TecnicaRadarMassima = 8000;
-
     /// <summary>
     /// La torre dello scalo è <b>dotata di radar</b> (18 ottobre 2026, committente). <c>null</c> = nessuno l'ha
     /// detto, ed è diverso da <c>false</c>: «non lo sappiamo» non è «non ce l'ha», e il documento lo distingue.
@@ -292,9 +289,12 @@ public class Airport
     public bool? RadarTower { get; set; }
 
     /// <summary>
-    /// Come si lavora con la torre radar su questo scalo: testo a righe, scritto una volta per i due documenti.
-    /// Ha senso solo con <see cref="RadarTower"/> vero; con la torre senza radar resta in archivio e non si mostra,
-    /// così chi sbaglia il sì/no non perde il testo.
+    /// La tecnica operativa come era scritta dal 18 al 21 ottobre 2026: testo a righe, uno per vIPI e vSOP.
+    /// <para>⚠️ <b>Non si scrive più</b>: dal 21 ottobre 2026 la tecnica è fatta di blocchi nella sua sezione del
+    /// documento (committente: «non ci deve essere un paragrafo fisso»). La legge solo la manutenzione d'avvio
+    /// (<c>TecnicaRadarNeiBlocchiAsync</c>), che ne fa un paragrafo nei documenti dello scalo e poi la svuota. La
+    /// colonna si toglie con una migrazione in una consegna successiva, quando la manutenzione è passata in
+    /// produzione.</para>
     /// </summary>
     public string? RadarTowerTechnique { get; set; }
 

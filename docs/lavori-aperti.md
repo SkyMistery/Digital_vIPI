@@ -43,6 +43,39 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A162 — 1.69.0 PRONTA DA CARICARE: l'API dei settori (S119) e la tecnica del radar di torre a blocchi (S118) (21 ottobre 2026)
+
+MINOR **senza migrazioni**, misurata dalla **1.68.0** (`811010f`) che gira; dentro anche §A161 (nessun file in più: il
+`deps.json` resta fuori). Timbro **`1.69.0 · 9af1c14`**. Fusa da `sito/lavori` @ `f3bdcf54` (cartellino 🟢, CI verde
+run 39561356473 e 39564893188), fusione `86b1eb5e` senza conflitti.
+- **S119**: `GET /vsop/api/v1/accs`, `…/{acc}/sectors`, `…/{acc}/coordinations[?online=]`, permesso di chiave
+  `settori` (`ApiEndpoints.Settori`). Struttura viva; con `online` i coordinamenti dicono chi li ha davvero. Porta
+  `ISettoriPerApi` (Application), implementata in `EfSettoriPerApi`. Carta `docs/feature/2026-10-21-api-settori.md`.
+- **S118**: la «Tecnica operativa» del Radar di torre è fatta di blocchi. Trasloco all'avvio
+  (`TecnicaRadarNeiBlocchiAsync`): il testo dell'anagrafica diventa un paragrafo nei documenti, la colonna
+  `Airports.RadarTowerTechnique` si svuota (resta nello schema: ▶ va tolta con una migrazione in una consegna DOPO
+  questa, a carico passato). Carta torre-radar §7.
+- Codice comune: Domain (`ApiClient`, `Anagrafica`), Application (`IAirportRepository`, `IDocumentMaintenance` cambiate,
+  implementate solo in Infrastructure). `const` NUOVE (`ApiEndpoints.Settori`, `ApiRotte.Acc`, le tre di `ApiSettori`),
+  una TOLTA (`TorreRadar.TecnicaRadarMassima`, usata solo in Application); nessuna cambiata di valore.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone`). `lab/f3` non toccato.
+
+**13 file** (`solo-13-file-1.69.0`): Domain, Application, Infrastructure, Hosting, Ui, Host (dll + pdb),
+`en/Vipi.Ui.resources.dll`, confrontati col publish della **1.68.0** (`publish_old/20261018c`): 482 file, 20 con
+impronta diversa; fuori Infrastructure.MySqlMigrations (solo il lock), AuroraBridge.Contracts e AuroraProfiles (solo
+MVID) e `deps.json` (perde solo la riga del pin di SQLite, S117; la libreria è la stessa). Zip 6,14 MB, sha256
+`295228449effab58af6a6729e45b93f22610602807ed9289af122368e90ff7e0`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3418, Infra 2237, Ui 2099, Hosting 102, E2E 510). Prova sul
+publish win-x64 (copia del database di sviluppo, cancellata a fine prova): `pacchetto-verifica.js` 11 controlli verdi
+(`TERMINE=LIBB`); API senza chiave 401 sulle tre rotte; con una chiave di prova «Settori» 200 su centri (4), settori di
+LIRR (97) e coordinamenti (anche con `online=LIRR_CTR`), 404 su un centro sconosciuto, 403 sull'API aeroporti; trasloco:
+tecnica scritta a mano nella colonna di LIRF (come la lascia la 1.68.0), al riavvio un paragrafo in
+`radartower:technique` e la colonna vuota. Non visto sul pacchetto: la tecnica nell'editor in modifica e la release
+vecchia che la mostra dalla vista congelata. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.69.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; il permesso «Settori» nelle chiavi API; la tecnica come paragrafo negli
+scali dove era scritta. Rollback: le rinomine, ma la 1.68.0 non vede più la tecnica (sta nei blocchi).
+
 ### 🔧 A161 — Fuori pacchetto: CI con l'SDK esatto, avvisi NuGet degli E2E, pin di SQLite (19–20 ottobre 2026)
 
 Tre cose in `main` dopo la 1.68.0, **nessuna cambia il sito spedito**: non c'è un pacchetto.

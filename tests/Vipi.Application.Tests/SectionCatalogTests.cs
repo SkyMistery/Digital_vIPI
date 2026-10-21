@@ -107,8 +107,9 @@ public class SectionCatalogTests
             new[] { "frequencies", "lvp", "radartower", "runways", "sids", "stars", "transition", "validity", "weather" },
             Host(SectionProfile.Airport));
         Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, "runwayrules"));
-        // La tecnica della torre radar è figlia, e la disegna la pagina come il padre (18 ottobre 2026).
-        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, SectionKeys.RadarTowerTechnique));
+        // La tecnica della torre radar è figlia, e dal 21 ottobre 2026 è fatta di blocchi: il padre lo disegna la
+        // pagina, lei no (committente: «non ci deve essere un paragrafo fisso»).
+        Assert.False(SectionCatalog.IsHostRendered(SectionProfile.Airport, SectionKeys.RadarTowerTechnique));
     }
 
     [Fact]

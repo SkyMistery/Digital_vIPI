@@ -112,10 +112,9 @@ public static class SectionCatalog
             [SectionKeys.RunwayThresholds] = SectionKind.Editorial,
 
             // --- La torre radar (18 ottobre 2026), su vIPI d'aeroporto e vSOP militare ---------------------
-            // Derivata: il sì/no e la tecnica stanno nell'ANAGRAFICA dello scalo, perché la torre di un campo
-            // civile e militare è sempre una sola. ⚠️ La figlia è EDITORIALE per la stessa ragione delle soglie:
-            // la si rende dalla vista del padre, che la release congela una volta sola sotto «radartower», e un
-            // secondo interruttore Live/Frozen potrebbe mettere il sì/no e la tecnica su due cicli diversi.
+            // Derivata: il sì/no sta nell'ANAGRAFICA dello scalo, perché la torre di un campo civile e militare è
+            // sempre una sola. La figlia, la tecnica operativa, è EDITORIALE davvero dal 21 ottobre 2026: blocchi
+            // del documento, come le altre sezioni scritte (committente: «non ci deve essere un paragrafo fisso»).
             [SectionKeys.RadarTower] = SectionKind.Derived,
             [SectionKeys.RadarTowerTechnique] = SectionKind.Editorial,
 
@@ -247,6 +246,10 @@ public static class SectionCatalog
     /// <summary>
     /// La torre radar (18 ottobre 2026, committente): il sì/no, e sotto la tecnica operativa dello scalo, che nasce
     /// chiusa e c'è solo se la torre ha il radar (<see cref="TorreRadar.Filtra"/>).
+    /// <para>⚠️ Il sì/no lo disegna la pagina (<c>H</c>); la tecnica è fatta di BLOCCHI (<c>D</c>) dal 21 ottobre 2026
+    /// (committente: solo paragrafi, callout… «come per il resto»). Fino ad allora era un testo a righe dell'anagrafica,
+    /// uno per vIPI e vSOP; ora ogni documento ha i suoi blocchi, e i testi di prima li ha portati in un paragrafo la
+    /// manutenzione d'avvio (<c>IDocumentMaintenance.TecnicaRadarNeiBlocchiAsync</c>).</para>
     /// <para>⚠️ Scritta QUI e non due volte, come le carte: vIPI e vSOP descrivono la stessa torre, e la stessa
     /// chiave nei due profili è ciò che la fa trovare come sezione unica in un'unione.</para>
     /// <para>Nasce NASCOSTA (committente, 18 ottobre 2026: «poi le mostriamo man mano che le sistemiamo»), come le
@@ -257,7 +260,7 @@ public static class SectionCatalog
         // «Radar di torre» e non «Torre radar» (committente, 18 ottobre 2026): il soggetto è il radar.
         H(SectionKeys.RadarTower, "Radar di torre", ordine, en: "Tower radar", nascosta: true, children: new[]
         {
-            H(SectionKeys.RadarTowerTechnique, "Tecnica operativa", 1, en: "Operating technique"),
+            D(SectionKeys.RadarTowerTechnique, "Tecnica operativa", 1, en: "Operating technique"),
         });
 
     private static IReadOnlyList<SectionDescriptor> CarteAeroportuali(int ordine) =>

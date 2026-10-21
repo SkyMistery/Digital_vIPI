@@ -3803,14 +3803,11 @@
   <data name="TorreRadar_No" xml:space="preserve"><value>The tower is not radar-equipped.</value></data>
   <data name="TorreRadar_NonIndicato" xml:space="preserve"><value>Whether the tower is radar-equipped is not stated.</value></data>
   <data name="TorreRadar_SceltaNonIndicato" xml:space="preserve"><value>Not stated</value></data>
-  <data name="TorreRadar_TecnicaVuota" xml:space="preserve"><value>Operating technique not written yet.</value></data>
-  <data name="TorreRadar_TecnicaSoloConRadar" xml:space="preserve"><value>The operating technique appears in the document only if the tower is radar-equipped: say so in the «Tower radar» section. Text already written is kept aside and comes back with a yes.</value></data>
-  <data name="TorreRadar_TecnicaPlaceholder" xml:space="preserve"><value>How the radar tower works at this airport: identification, separation, coordination…</value></data>
-  <data name="TorreRadar_Aiuto" xml:space="preserve"><value>Whether the tower is radar-equipped belongs to the &lt;b&gt;airport&lt;/b&gt;, not to the document: it is written once, together with the operating technique, and both the vIPI and the vSOP read it. «Not stated» does not mean «no».</value></data>
+  <data name="TorreRadar_TecnicaSoloConRadar" xml:space="preserve"><value>The operating technique below appears in the document only if the tower is radar-equipped. What you write there is kept and comes back with a yes.</value></data>
+  <data name="TorreRadar_Aiuto" xml:space="preserve"><value>Whether the tower is radar-equipped belongs to the &lt;b&gt;airport&lt;/b&gt;, not to the document: it is written once, and both the vIPI and the vSOP read it. «Not stated» does not mean «no». The operating technique is written in its own section, with the document's blocks.</value></data>
   <data name="TorreRadar_AiutoAria" xml:space="preserve"><value>Help on the tower radar</value></data>
   <data name="TorreRadar_Chip" xml:space="preserve"><value>Tower radar</value></data>
   <data name="TorreRadar_ChipTitolo" xml:space="preserve"><value>The tower is radar-equipped: opens the document's «Tower radar» section in a new tab</value></data>
-  <data name="TorreRadar_ConfermaNonIndicato" xml:space="preserve"><value>Going back to «not stated» also deletes the operating technique already written. Continue?</value></data>
   <data name="Services_EyeTitle" xml:space="preserve"><value>See who is online now</value></data>
   <data name="Services_EyeDesc" xml:space="preserve"><value>Unofficial tool, made by the Italian division.</value></data>
   <data name="Services_AtcIvaoTitle" xml:space="preserve"><value>ATC bookings and FRAs</value></data>
@@ -3833,6 +3830,7 @@
   <data name="ApiKeys_Ep_archivio" xml:space="preserve"><value>ATC archive</value></data>
   <data name="ApiKeys_Ep_bridge" xml:space="preserve"><value>Aurora bridge</value></data>
   <data name="ApiKeys_Ep_aeroporti" xml:space="preserve"><value>Airports (airports, SIDs, STARs)</value></data>
+  <data name="ApiKeys_Ep_settori" xml:space="preserve"><value>Sectors (hierarchy and coordination)</value></data>
   <data name="ApiKeys_RoutesTitle" xml:space="preserve"><value>API addresses</value></data>
   <data name="ApiKeys_RoutesHelp" xml:space="preserve"><value>Give these to whoever integrates, together with the key. Every call carries the key in one of the two headers below. Responses: 401 without a key or with a wrong or revoked key, 403 with a key lacking that permission, 404 unknown airport or no published document, 429 too many requests per minute. Responses are JSON.</value></data>
   <data name="ApiKeys_RouteExample" xml:space="preserve"><value>Example:</value></data>
@@ -3840,6 +3838,9 @@
   <data name="ApiKeys_Route_airport" xml:space="preserve"><value>An airport's sheet: TA, transition levels, runways, frequencies.</value></data>
   <data name="ApiKeys_Route_sids" xml:space="preserve"><value>SIDs as in the published document. Optional ?runway= for one runway (those valid for all runways stay too).</value></data>
   <data name="ApiKeys_Route_stars" xml:space="preserve"><value>STARs, same shape and filter as SIDs.</value></data>
+  <data name="ApiKeys_Route_accs" xml:space="preserve"><value>The Italian centres (ACCs) visible on the site.</value></data>
+  <data name="ApiKeys_Route_sectors" xml:space="preserve"><value>A centre's sectors from the live Structure: type, airport, frequency, parent in the hierarchy, vertical band and fallback chain.</value></data>
+  <data name="ApiKeys_Route_coordinations" xml:space="preserve"><value>The centre's coordination as written in the agreements. With ?online= (comma-separated callsigns) also resolved: who actually hands off and who receives with only those stations open.</value></data>
   <data name="ApiKeys_Route_sessions" xml:space="preserve"><value>Archived ATC connections. Optional filters: from and to (ISO 8601 date and time), callsign (prefix), vid, open, scope (division or world), limit (at most 500), offset.</value></data>
   <data name="ApiKeys_Route_resolve" xml:space="preserve"><value>Transfer points for a flight selected in Aurora (JSON body, ownerCallsign required). Answers only if the bridge is enabled on the server.</value></data>
   <data name="ApiKeys_CreateNeeds" xml:space="preserve"><value>A name and at least one API are required</value></data>

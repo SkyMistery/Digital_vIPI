@@ -24,6 +24,7 @@ public sealed class ChiaviApiTests : IClassFixture<ChiaviApiTests.ApiChiusaFacto
     private const string Archivio = "/vsop/api/v1/atc/sessions";
     private const string Bridge = "/vsop/api/v1/transfers/resolve";
     private const string Aeroporti = "/vsop/api/v1/airports";
+    private const string Settori = "/vsop/api/v1/accs";
 
     private readonly ApiChiusaFactory _factory;
     public ChiaviApiTests(ApiChiusaFactory factory) => _factory = factory;
@@ -197,6 +198,40 @@ public sealed class ChiaviApiTests : IClassFixture<ChiaviApiTests.ApiChiusaFacto
     {
         var chiave = await EmettiAsync(_factory.Services, "aeroporti");
         foreach (var percorso in new[] { Aeroporti + "/ZZZZ", Aeroporti + "/ZZZZ/sids", Aeroporti + "/ZZZZ/stars", Aeroporti + "/LIR/sids" })
+            Assert.Equal(HttpStatusCode.NotFound, (await ConBearer(chiave).GetAsync(percorso)).StatusCode);
+    }
+
+    /// <summary>
+    /// Le API dei settori (S119, carta 2026-10-21-api-settori.md) come quelle degli aeroporti: chiave sempre, anche
+    /// dove l'archivio è ancora aperto, e solo la loro.
+    /// </summary>
+    [Fact]
+    public async Task Settori_senza_chiave_401_con_chiave_degli_aeroporti_403_con_la_sua_200()
+    {
+        using var aperta = new ApiChiusaFactory(richiediChiave: false);
+
+        foreach (var percorso in new[] { Settori, Settori + "/LIRR/sectors", Settori + "/LIRR/coordinations" })
+            Assert.Equal(HttpStatusCode.Unauthorized, (await aperta.CreateClient().GetAsync(percorso)).StatusCode);
+
+        var aeroporti = await EmettiAsync(aperta.Services, "aeroporti");
+        var c = aperta.CreateClient();
+        c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", aeroporti);
+        Assert.Equal(HttpStatusCode.Forbidden, (await c.GetAsync(Settori)).StatusCode);
+
+        var chiave = await EmettiAsync(aperta.Services, "settori");
+        c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", chiave);
+        var res = await c.GetAsync(Settori);
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        using var json = System.Text.Json.JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        Assert.Equal(json.RootElement.GetProperty("accs").GetArrayLength(), json.RootElement.GetProperty("count").GetInt32());
+    }
+
+    /// <summary>Un centro che non c'è è un 404 su tutte e due le rotte, con o senza <c>?online=</c>.</summary>
+    [Fact]
+    public async Task Settori_un_centro_sconosciuto_404()
+    {
+        var chiave = await EmettiAsync(_factory.Services, "settori");
+        foreach (var percorso in new[] { Settori + "/ZZZZ/sectors", Settori + "/ZZZZ/coordinations", Settori + "/ZZZZ/coordinations?online=ZZZZ_CTR" })
             Assert.Equal(HttpStatusCode.NotFound, (await ConBearer(chiave).GetAsync(percorso)).StatusCode);
     }
 

@@ -2,6 +2,11 @@
 
 **18 ottobre 2026.** Carta di lavoro (S115).
 
+> ⚠️ **Dal 21 ottobre 2026 (S118) la tecnica operativa è fatta di blocchi**, non più un testo a righe
+> dell'anagrafica: §7. Quello che i §2–§4 dicono della tecnica («una volta sola nell'anagrafica», «testo a righe»,
+> «non si traduce», «niente formattazione», la conferma del ritorno a «non indicato») vale fino a quel giorno. Il
+> sì/no resta com'era.
+
 ---
 
 ## 1. La domanda
@@ -96,3 +101,24 @@ LIRQ civile e LIPI solo militare. Nessuna copia di database vero.
 - **Non visto a schermo**: l'unione vIPI + vSOP (provata con i test di `SezioniComuni`), la conferma del ritorno a
   «non indicato» (un dialogo del browser: provata in bUnit), il telefono, la pagina pubblica dopo una pubblicazione
   (la cattura alla release è provata nei test).
+
+## 7. 21 ottobre: la tecnica operativa a blocchi (S118)
+
+Il committente: «nella sezione tecniche operative della torre radar non ci deve essere un paragrafo fisso, ma ci deve
+essere la possibilità solo di inserire paragrafi, callout ecc, come per il resto. Per migrare i dati già inseriti
+mettili in un paragrafo».
+
+| Pezzo | Com'è adesso |
+|---|---|
+| Il catalogo | `radartower:technique` passa da «resa dalla pagina» (`H`) a **blocchi** (`D`): editor e lettura sono quelli comuni delle sezioni scritte (paragrafo, callout, tabella, immagine, allegato). Il padre `radartower` resta della pagina, col solo sì/no |
+| Il dato | `RadarTowerRow` è il solo sì/no. La colonna `Airports.RadarTowerTechnique` **non si scrive più**: la legge solo la manutenzione d'avvio. Si toglie con una migrazione in una consegna successiva, quando quella è passata in produzione |
+| Il trasloco | `IDocumentMaintenance.TecnicaRadarNeiBlocchiAsync`, all'avvio dopo `AddMissingCatalogSections`: (1) toglie dalle sezioni della tecnica i **segnaposto** delle sezioni rese dalla pagina (un blocco senza testo né JSON, che l'editor a blocchi mostrerebbe come una tabella senza colonne), in ogni versione come per le «minima»; (2) il testo dell'anagrafica diventa **un paragrafo** della sezione nella vIPI **e** nel vSOP dello scalo — tutti e due lo mostravano — nell'ultima versione e nella pubblicata corrente; (3) svuota la colonna. Gli a-capo restano (in un paragrafo un a-capo solo è un a capo). Una sezione con blocchi già scritti non riceve niente. Uno scalo col testo e nessuna sezione dove metterlo lo tiene, e la passata dopo ci riprova |
+| Le release già uscite | La pagina pubblica si legge dalla **fotografia della release**, dove la sezione ha solo il segnaposto e il testo sta nella vista congelata (`AirportRadarTowerView.Technique`). `TorreRadar.Filtra` ne fa un paragrafo se la sezione non ha blocchi scritti: il pubblico continua a leggere il testo fino alla pubblicazione seguente. Le release nuove hanno la vista col solo sì/no |
+| Senza il «sì» | Come prima: la tecnica non c'è né nel corpo né nell'indice. I blocchi restano nel documento e tornano col «sì»; l'editor del sì/no lo dice sotto le tre scelte. Tornare a «non indicato» **non chiede più conferma**: non porta via niente |
+| Unioni | Ogni documento ha ora i suoi blocchi, come le altre sezioni scritte: in un'unione vIPI + vSOP la tecnica c'è due volte finché la scheda «sezioni in comune» non ne nasconde una (il trasloco ha messo lo stesso paragrafo nei due) |
+| Traduzione | I blocchi passano dal traduttore come ogni sezione scritta: la tecnica ora si legge anche in inglese |
+| Sezioni da scrivere | La tecnica **continua a non contare**: c'è solo col «sì», e il conto non sa il sì/no |
+
+Scelte del filone: il trasloco in tutti e due i documenti (non solo nella vIPI civile, dove si scriveva sui campi
+misti), perché il vSOP mostrava lo stesso testo; e la lettura delle release vecchie, invece di riscrivere le
+fotografie già pubblicate.

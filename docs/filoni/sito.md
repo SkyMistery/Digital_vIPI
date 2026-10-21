@@ -4,7 +4,14 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 18 ottobre 2026
+## Dove siamo — 20 ottobre 2026
+
+> **Aggiornamento del 20 ottobre**: **S114** e **S115** (il «Radar di torre») sono **online in 1.68.0** (§A160; Schema 0
+> confermato dal committente; la migrazione `TorreRadar` è passata; da fuori CSS e health Healthy). **S116** e **S117**
+> (avvisi NuGet di E2E e pin di `lib.e_sqlite3`) sono fusi in `main` (§A161) **senza pacchetto**: il sito spedito non
+> cambia. **Mai visti col login**: la sezione «Radar di torre» negli editor (nasce nascosta ovunque) e la pastiglia
+> nella vista live, che compare solo dopo averla mostrata e pubblicata su uno scalo.
+> Il riassunto qui sotto è quello del 18 ottobre.
 
 > **In una riga**: tutto il lavoro del filone è **online** fino a **S113**: nella **1.62.0** (12 ottobre notte) i tre
 > ritocchi ai NOTAM, S105 e S106, e il banco di prova rifatto, S107; nella **1.63.0** (16 ottobre) S108, gli altri
@@ -2719,7 +2726,7 @@
   - **Test**: Ui 2086 → 2087 (`BarraInAltoTests`, sul sorgente come gli altri della barra: il layout non si disegna
     in bUnit). **A schermo** su un database nuovo con tre richieste inventate: «2» sull'angolo della chiave a 1900 e
     1000px, il clic porta alle richieste; a 375px chiave e voce del menù col numero.
-- 🟢 **S114** correzione di S111: una sezione **senza testo proprio ma con le sottosezioni scritte** non è vuota (18-ott,
+- ✅ **S114** (**online in 1.68.0** dal 20-ott) correzione di S111: una sezione **senza testo proprio ma con le sottosezioni scritte** non è vuota (18-ott,
   il committente: «segna come empty section delle sezioni che non hanno testo proprio ma hanno solo sottosezioni. Non
   sarebbe corretto»).
   - **Prima**: contavano i soli blocchi della sezione. **Ora** (`SezioniDaScrivere.Piena`): ha qualcosa se ce l'ha
@@ -2729,7 +2736,7 @@
   - **Codice comune**: `Vipi.Application` (`SezioniDaScrivere.cs`). Nessuna migrazione, niente `deploy/`.
   - **Test**: App 3389 → 3390, rosso prima della correzione (0 invece di 2). Solo logica: l'interfaccia non cambia.
     ⚠️ Non provato sui documenti veri (la copia di produzione è stata cancellata a fine S111).
-- 🟢 **S115** la **torre radar** nelle vIPI d'aeroporto e nei vSOP (18-ott, il committente: una sezione che dica se la
+- ✅ **S115** (**online in 1.68.0** dal 20-ott, migrazione `TorreRadar` passata) la **torre radar** nelle vIPI d'aeroporto e nei vSOP (18-ott, il committente: una sezione che dica se la
   torre è dotata di radar; se sì, almeno una sotto-sezione con la tecnica operativa dello scalo; unica sugli scali con
   vIPI e vSOP). Carta `docs/feature/2026-10-18-torre-radar.md`.
   - **Deciso dal committente**: una sezione sola **fra Piste e SID** (nel vSOP nello stesso punto dei Dati generali),
@@ -2761,7 +2768,7 @@
     della vIPI col sì (frase, tecnica chiusa a due righe, indice fra Piste e SID) e col no (tecnica sparita da corpo e
     indice, testo rimasto in archivio); editor e anteprima del vSOP. Non visti: l'unione, il telefono, la pagina
     pubblica dopo una pubblicazione (carta §6).
-- 🟢 **S116** i sei avvisi di vulnerabilità NuGet del restore (19-ott, assegnato dal Master): NU1902/NU1903 su
+- ✅ **S116** (fuso in `main` il 20-ott, §A161, nessun pacchetto) i sei avvisi di vulnerabilità NuGet del restore (19-ott, assegnato dal Master): NU1902/NU1903 su
   `System.Security.Cryptography.Xml` 8.0.4 (4 «high») e `System.Security.Cryptography.Pkcs` 8.0.1 (1 high, 1
   moderate), solo in `tests/Vipi.E2E.Tests`.
   - **Da dove**: l'host tira `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` 8.0.*, che porta
@@ -2779,7 +2786,7 @@
   - ⚠️ **Trovato in passata, NON toccato (è `src/`)**: al prossimo ri-calcolo dei lock di `src/` EF Sqlite 8.0.32
     vuole `SQLitePCLRaw.lib.e_sqlite3` ≥ 2.1.13, e `Vipi.Infrastructure` la fissa a 2.1.12 → NU1605 (declassamento).
   - Solo `tests/`: nessun pacchetto. Build Release della soluzione a 0 avvisi; conteggi invariati.
-- 🟢 **S117** il NU1605 su SQLite trovato in S116 (20-ott, assegnato dal committente via Master). **Codice comune**:
+- ✅ **S117** (fuso in `main` il 20-ott, §A161, nessun pacchetto: `libe_sqlite3.so` identica) il NU1605 su SQLite trovato in S116 (20-ott, assegnato dal committente via Master). **Codice comune**:
   `src/Vipi.Infrastructure`.
   - **Il guasto, latente**: `Vipi.Infrastructure` (e `Vipi.Application.Tests`) fissavano `SQLitePCLRaw.lib.e_sqlite3`
     **2.1.12** con un riferimento diretto, contro CVE-2025-6965. In NuGet il diretto vince: al primo ri-calcolo dei
@@ -2802,6 +2809,49 @@
   - ⚠️ Visto in passata, NON toccato (è del Lab): il lock di `src/Vipi.SectorLab.Core` porta ancora tutto il grafo
     di `vipi.infrastructure`, che il progetto non referenzia (solo Sectorfile e Application): lock vecchio dal
     commit `64a33fb0`. Il `--locked-mode` non se ne accorge; una rigenerazione lo accorcerebbe da 38 a 7 voci.
+- ✅ **S118** (21-ott, chiesto dal committente) la **tecnica operativa** del «Radar di torre» è fatta di **blocchi**:
+  «non ci deve essere un paragrafo fisso, ma ci deve essere la possibilità solo di inserire paragrafi, callout ecc,
+  come per il resto. Per migrare i dati già inseriti mettili in un paragrafo». Carta
+  `docs/feature/2026-10-18-torre-radar.md` §7.
+  - **Catalogo**: `radartower:technique` passa da resa dalla pagina a blocchi; il padre resta della pagina col solo
+    sì/no. Editor e lettura sono quelli comuni (paragrafo, callout, tabella, immagine, allegato), e i blocchi passano
+    dal traduttore. `RadarTowerRow` è il solo sì/no; tolti l'area di testo, il tetto di 8000 e la conferma del
+    ritorno a «non indicato» (non porta via più niente). Senza il «sì» la tecnica resta fuori dal documento come
+    prima, i blocchi tornano col «sì», e l'editor del sì/no lo dice.
+  - **Trasloco**: `IDocumentMaintenance.TecnicaRadarNeiBlocchiAsync` all'avvio, dopo `AddMissingCatalogSections`:
+    via i segnaposto (in editor sarebbero tabelle senza colonne), il testo dell'anagrafica in **un paragrafo** nella
+    vIPI e nel vSOP dello scalo (ultima versione e pubblicata corrente), colonna svuotata. **Migrazione: no** — la
+    colonna `Airports.RadarTowerTechnique` resta e non si scrive più; si toglie in una consegna dopo questa.
+  - **Release già uscite**: la pagina pubblica legge la fotografia, dove il testo sta nella vista congelata:
+    `TorreRadar.Filtra` ne fa un paragrafo se la sezione non ha blocchi scritti, fino alla pubblicazione seguente.
+  - **Codice comune**: `Vipi.Application` (catalogo, `TorreRadar.cs`, viste, servizio d'anagrafica,
+    `SezioniDaScrivere` solo commento). Niente `deploy/`. Toccati i due `.resx`.
+  - **Test**: App 3415 → 3418, Infra 2232 → 2235, Ui 2100 → 2099 (Hosting 93, Domain 167 invariati), sui due
+    framework. I test nuovi del trasloco e delle release vecchie non compilano sul codice di prima (metodo e
+    comportamento non c'erano).
+  - **A schermo**, host locale su un database nuovo con LIRQ inventato, sì e un testo a due righe nell'anagrafica
+    come l'avrebbe lasciato la 1.68.0, più un segnaposto nella sezione: al riavvio il registro dice «3 righe
+    toccate», nell'editor la tecnica è un paragrafo con le due righe e «+ Block» offre paragrafo, callout, tabella,
+    immagine, allegato; aggiunto un callout; col «no» compare la frase; l'anteprima bozza mostra il verde, il
+    paragrafo con l'a capo e il callout. **Non visti**: una release vecchia letta dopo l'aggiornamento (provata nei
+    test), il vSOP, l'unione, il telefono.
+- ✅ **S119** (21-ott, chiesto dal committente) le **API dei settori** per gli altri programmi della divisione:
+  gerarchia dei settori e coordinamenti fra settori. Carta `docs/feature/2026-10-21-api-settori.md`.
+  - **Deciso dal committente**: si legge la **Struttura viva** (non i documenti pubblicati); i coordinamenti escono
+    come sono scritti e, con `?online=`, anche **risolti**; il primo cliente è un'app della divisione.
+  - **Rotte**: `GET /vsop/api/v1/accs`, `…/accs/{acc}/sectors` (padre anche in un altro centro, banda, catena di
+    ripiego), `…/accs/{acc}/coordinations[?online=A,B]`. Permesso nuovo `settori` nella pagina delle chiavi; chiave
+    sempre obbligatoria; 60 richieste al minuto per chiave.
+  - **Scelte del filone**: solo centri italiani visibili (nascosto o estero = 404); settori attivi; «online» = solo
+    quelli dati, come nella vista live (non come nel banco, dove chi sta fuori dallo scenario conta aperto);
+    enumerazioni come parole. Una porta di lettura apposta (`ISettoriPerApi`): i servizi della Struttura che
+    elencano i settori sono degli admin, e il banco di prova vuole un Editor.
+  - **Codice comune**: `Vipi.Application` (`SettoriPerApi.cs`, solo l'interfaccia e i record). Niente migrazione, niente
+    `deploy/`. Toccati i due `.resx`.
+  - **Test**: Hosting 93 → 102, Infra 2235 → 2237, E2E 508 → 510 (App 3418, Ui 2099 invariati).
+  - **Dal vivo** su un database nuovo con dati inventati e una chiave di prova: le quattro rotte a 200 con la forma
+    della carta, il ripiego e la risalita che risolvono come il motore, 404 per un centro nascosto, 401 senza chiave
+    (carta §6). **Non visto**: sui dati veri (nessuna copia del database chiesta), e con un'app vera dall'altra parte.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
