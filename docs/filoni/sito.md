@@ -2852,6 +2852,11 @@
   - **Dal vivo** su un database nuovo con dati inventati e una chiave di prova: le quattro rotte a 200 con la forma
     della carta, il ripiego e la risalita che risolvono come il motore, 404 per un centro nascosto, 401 senza chiave
     (carta §6). **Non visto**: sui dati veri (nessuna copia del database chiesta), e con un'app vera dall'altra parte.
+- ✅ **S120** (21-ott, chiesto dal committente dopo la 1.69.0 online) **via la colonna** `Airports.RadarTowerTechnique`:
+  migrazione `TogliTecnicaRadar` sui due provider (solo `DropColumn`). **Migrazione sì, distruttiva**: prima di
+  lanciarla la colonna dev'essere vuota (`SELECT Icao FROM Airports WHERE RadarTowerTechnique IS NOT NULL` → nessuna
+  riga). Tolti anche il trasloco della 1.69.0 (`TecnicaRadarNeiBlocchiAsync`, già girato) e i suoi test; resta la
+  lettura delle release vecchie. Carta `docs/feature/2026-10-18-torre-radar.md` §8. Niente `deploy/`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

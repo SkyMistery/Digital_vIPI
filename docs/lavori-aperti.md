@@ -43,6 +43,33 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A163 — 1.70.0 PRONTA DA CARICARE: via la colonna della tecnica del radar di torre (S120), migrazione DISTRUTTIVA (21 ottobre 2026)
+
+MINOR con **una migrazione distruttiva** — 🔴 **non si torna indietro con le rinomine** —, misurata dalla **1.69.0**
+(`9af1c14`) che gira. Timbro **`1.70.0 · 2a21316`**. Fusa da `sito/lavori` @ `0d24a489` (cartellino 🟢, CI verde run
+39574500199 con `mariadb-schema`), fusione `f87dbf80` senza conflitti. Chiesta dal committente dopo la 1.69.0 online.
+- **S120**: migrazione `TogliTecnicaRadar` (SQLite `20261021090111`, MySQL `20261021090123`), un solo `DropColumn` di
+  `Airports.RadarTowerTechnique`. Via anche il trasloco della 1.69.0 (`TecnicaRadarNeiBlocchiAsync`) e i suoi 4 test;
+  resta `TorreRadar.Filtra` per le release vecchie. Carta torre-radar §8.
+- Codice comune: Domain (`Anagrafica` perde la proprietà), Application (`IDocumentMaintenance` perde un membro,
+  implementato solo in Infrastructure). Nessuna `const` cambiata; nessun altro assieme usa ciò che è stato tolto.
+- 🔴 **Prima del carico**: in produzione `SELECT Icao FROM Airports WHERE RadarTowerTechnique IS NOT NULL` → nessuna
+  riga, e una copia fresca del database.
+
+**12 file** (`solo-12-file-1.70.0`): Domain, Application, Infrastructure.MySqlMigrations, Infrastructure, Hosting, Host
+(dll + pdb), confrontati col publish della **1.69.0** (`publish_old/20261021a`): 482 file, 19 con impronta diversa; fuori
+Ui ed `en/` (sorgente e frasi invariati), AuroraBridge.Contracts e AuroraProfiles (solo MVID). Zip 3,70 MB, sha256
+`81ae65dc6150c55ab8b3ed790ccbe4f9558313f5d695555d7be425777208d1df`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (Infra 2233). Prova sul percorso della produzione, su una copia
+del database di sviluppo (cancellata a fine prova): publish win-x64 della 1.69.0 → `TorreRadar` applicata; tecnica scritta
+nella colonna di LIRF; secondo avvio della 1.69.0 → trasloco in un paragrafo, colonna vuota; publish win-x64 della 1.70.0
+→ `TogliTecnicaRadar` applicata, colonna sparita, il paragrafo di LIRF intatto, editor di LIRF senza errori, log del
+server pulito; `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`). Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.70.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; l'editor di uno scalo con la tecnica. Rollback: solo con la copia del
+database.
+
 ### ✅ A162 — 1.69.0 ONLINE: l'API dei settori (S119) e la tecnica del radar di torre a blocchi (S118) (21 ottobre 2026)
 
 ✅ Online dal 21 ottobre 2026: il committente conferma la 1.69 e `Schema 0`. Da fuori, da anonimo, alle 08:57Z: `/` 302,

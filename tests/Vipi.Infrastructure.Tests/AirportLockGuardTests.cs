@@ -175,25 +175,19 @@ public class AirportLockGuardTests : IAsyncLifetime
         Assert.Equal(new RadarTowerRow(true), letta);
     }
 
-    /// <summary>
-    /// Dal 21 ottobre 2026 il sì/no non tocca più la colonna della tecnica: un testo rimasto lì lo porta nei blocchi
-    /// la manutenzione d'avvio, e un «non indicato» detto prima di lei non deve cancellarlo.
-    /// </summary>
+    /// <summary>«No» è una risposta e resta; «non indicato» toglie la riga, e lo scalo torna a non dire niente.</summary>
     [Fact]
-    public async Task Il_si_no_non_tocca_la_colonna_vecchia_della_tecnica()
+    public async Task Il_no_resta_e_non_indicato_toglie_la_riga()
     {
         var doc = await ApriEditorAsync();
         await LockA(doc, Io);
-        var scalo = await _db.Airports.SingleAsync();
-        scalo.RadarTowerTechnique = "testo di prima";
-        await _db.SaveChangesAsync();
         var s = Servizio(Io);
 
         await s.SaveRadarTowerAsync("LIPZ", new RadarTowerRow(false));
-        await s.SaveRadarTowerAsync("LIPZ", null);
+        Assert.False((await _db.Airports.AsNoTracking().SingleAsync()).RadarTower);
 
-        var riletto = await _db.Airports.AsNoTracking().SingleAsync();
-        Assert.Equal(((bool?)null, "testo di prima"), (riletto.RadarTower, riletto.RadarTowerTechnique));
+        await s.SaveRadarTowerAsync("LIPZ", null);
+        Assert.Null((await _db.Airports.AsNoTracking().SingleAsync()).RadarTower);
         Assert.Null((await new EfAirportRepository(_db, new EfMediaMaintenance(_db)).LoadAsync("LIPZ"))!.RadarTower);
     }
 
