@@ -15,8 +15,12 @@ non applicato che resta uscendo dalla pagina. **Scheda per gruppi (D5), prima pa
 Collegamenti, Righe del file, sempre in quest'ordine; «Aerovie del file» nel pannello del file. **Verbi (D6)** — Scrivi,
 Lascia stare, Annulla solo per storia e modifiche, Togli solo per il sector, Registra/Manda il sector e l'AIP, Porta in
 vetrina; una guardia nei test. **Le due consegne (R5)** — il giro del sector e quello dell'AIP in testa alle loro pagine,
-ogni passo fatto o da fare, il prossimo in evidenza. Lab 1 360. **Dopo**, al via: la seconda parte di D5 (un editor dei
-vertici per i `.geo`, la voce AIP nei Collegamenti).
+ogni passo fatto o da fare, il prossimo in evidenza. Lab 1 360, eseguibile di prova a `e4945dad`.
+
+**Adesso**: il committente fa la prova a mano di tutto questo, prove **239-264** di `SectorLab-prova\PROVE.md` (si avvia
+col `.cmd` di `SectorLab-prova\PrimoAvvio`, coi repo di prova). Le sue risposte decidono anche due proposte aperte: il nome
+dei tasti (261) e l'ordine «Registra» / vetrina nel giro (262). **Dopo**, al via: la seconda parte di D5 (un editor dei
+vertici per i `.geo`, la voce AIP corrispondente nei Collegamenti, D11).
 
 ## 20 ottobre 2026, notte: terza forma, R4-R9 fatte
 

@@ -718,7 +718,8 @@ correzioni). Il piano di §5-ter è finito. Poi la **pagina Testo**: T1 fatta (l
 bloccati), T2 fatta (problemi sul margine, nomi, Ctrl+clic, la domanda prima di cancellare un record coi metadati),
 T3 fatta (i legami con la Scheda, la mappa e il Confronti; la bozza): la pagina Testo è finita. Poi la **Scheda per
 gruppi** (D5): prima parte fatta (i gruppi, i gesti sul file nella colonna); seconda parte da fare (un editor dei vertici
-per i `.geo`, la voce AIP nei Collegamenti). Poi i **verbi** (D6) e **le due consegne** (i giri, R5): fatti. Resta, al
-via del committente, la seconda parte della Scheda (un editor dei vertici per i `.geo`, la voce AIP nei Collegamenti). Dopo: le due
+per i `.geo`, la voce AIP nei Collegamenti). Poi i **verbi** (D6) e **le due consegne** (i giri, R5): fatti. **Adesso** il
+committente fa la prova a mano (prove 239-264 di `SectorLab-prova\PROVE.md`, eseguibile `e4945dad`); poi, al suo via, la
+seconda parte della Scheda (un editor dei vertici per i `.geo`, la voce AIP nei Collegamenti). Dopo: le due
 consegne, la Scheda per gruppi, i verbi. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.
