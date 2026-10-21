@@ -43,7 +43,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A162 — 1.69.0 PRONTA DA CARICARE: l'API dei settori (S119) e la tecnica del radar di torre a blocchi (S118) (21 ottobre 2026)
+### ✅ A162 — 1.69.0 ONLINE: l'API dei settori (S119) e la tecnica del radar di torre a blocchi (S118) (21 ottobre 2026)
+
+✅ Online dal 21 ottobre 2026: il committente conferma la 1.69 e `Schema 0`. Da fuori, da anonimo, alle 08:57Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, `/vsop/api/v1/accs` e `…/LIRR/sectors` 401 «chiave API mancante» (la rotta c'è:
+una inventata dà 404), API aeroporti 401, `vipi-theme.css?v=2d51a0f6` (invariato, nessun asset nel pacchetto),
+`/vsop/health` e `/vsop/health/ready` Healthy. Non guardati da qui, dietro il login: il permesso «Settori» nelle chiavi
+API, la tecnica come paragrafo negli scali. ▶ Ora si può preparare la consegna che toglie `RadarTowerTechnique`.
 
 MINOR **senza migrazioni**, misurata dalla **1.68.0** (`811010f`) che gira; dentro anche §A161 (nessun file in più: il
 `deps.json` resta fuori). Timbro **`1.69.0 · 9af1c14`**. Fusa da `sito/lavori` @ `f3bdcf54` (cartellino 🟢, CI verde
