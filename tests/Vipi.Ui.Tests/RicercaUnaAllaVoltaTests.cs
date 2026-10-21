@@ -67,7 +67,7 @@ public class RicercaUnaAllaVoltaTests : TestContext
         foreach (var testo in new[] { "LI", "LIR", "LIRF" })
             gesti.Add(pagina.InvokeAsync(() => pagina.Find("input").InputAsync(new() { Value = testo })));
         await Task.WhenAll(gesti);
-        pagina.WaitForAssertion(() => Assert.Contains("[LIRF]", pagina.Markup), TimeSpan.FromSeconds(3));
+        pagina.WaitForAssertion(() => Assert.Contains("[LIRF]", pagina.Markup));
 
         Assert.Equal(1, ricerca.MassimoInsieme);
         Assert.DoesNotContain("[LI]", pagina.Markup);
@@ -90,7 +90,7 @@ public class RicercaUnaAllaVoltaTests : TestContext
 
         await pagina.InvokeAsync(() => pagina.Find("input").InputAsync(new() { Value = "Brindisi" }));
 
-        pagina.WaitForAssertion(() => Assert.Contains("[Brindisi]", pagina.Markup), TimeSpan.FromSeconds(3));
+        pagina.WaitForAssertion(() => Assert.Contains("[Brindisi]", pagina.Markup));
         Assert.True(ricerca.Chiamate >= 1);
     }
 
@@ -121,7 +121,7 @@ public class RicercaUnaAllaVoltaTests : TestContext
 
         await pagina.InvokeAsync(() => pagina.Find("input").InputAsync(new() { Value = "release" }));
 
-        pagina.WaitForAssertion(() => Assert.Equal(2, pagina.FindAll("a.res-row").Count), TimeSpan.FromSeconds(3));
+        pagina.WaitForAssertion(() => Assert.Equal(2, pagina.FindAll("a.res-row").Count));
         Assert.Contains("guide", pagina.FindAll("a.res-row").First(a => a.GetAttribute("href")!.Contains("guide")).ClassName);
         Assert.DoesNotContain("guide", pagina.FindAll("a.res-row").First(a => a.GetAttribute("href")!.Contains("lirr")).ClassName ?? "");
     }

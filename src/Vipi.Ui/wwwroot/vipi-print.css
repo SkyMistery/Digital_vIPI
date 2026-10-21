@@ -316,6 +316,8 @@
   .vipi-root .att-rot { display: none !important; }
   .vipi-root .att-ext { display: none !important; }
   .vipi-root .att-link a::after { content: " (" attr(href) ")"; font-size: 8.5pt; color: var(--ink-soft); }
+  /* I link web nel testo (S122): per la stessa ragione, l'indirizzo accanto alle parole. */
+  .vipi-root a.md-ext::after { content: " (" attr(href) ")"; font-size: 8.5pt; color: var(--ink-soft); }
 
   /* ── Sezioni collassate ────────────────────────────────────────────────────────
      CollapsibleBlock è un <details> nativo col collasso persistito (localStorage, data-persist): quel che

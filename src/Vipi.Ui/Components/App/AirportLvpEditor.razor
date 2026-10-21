@@ -71,19 +71,9 @@
             </table>
         }
 
-        <div class="se-row" style="margin-top:8px">
-            <label><b>@L["Ape_Notes"]</b></label>
-            @if (Editing)
-            {
-                <input style="width:100%;max-width:520px" maxlength="@Vipi.Domain.Entities.AirportLvpMinima.NotaMassima"
-                       @bind="Row.Note" @bind:after="Cambiato"
-                       placeholder="@L["Lvp_NotePlaceholder"]" />
-            }
-            else
-            {
-                <span>@(string.IsNullOrWhiteSpace(Row.Note) ? "—" : Row.Note)</span>
-            }
-        </div>
+        @* La nota non c'è più (21 ottobre 2026, S123, committente): il testo libero si scrive coi blocchi della
+           sezione, sotto la tabella. *@
+
 
         @if (Editing)
         {

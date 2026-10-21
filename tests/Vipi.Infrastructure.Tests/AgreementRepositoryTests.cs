@@ -51,14 +51,12 @@ public class AgreementRepositoryTests : IAsyncLifetime
         {
             Kind = TransferFlowKind.Arrival,
             Direction = AgreementDirection.AtoB,
-            Description = "via BIRSU",
             Airports = new[] { new AgreementAirportInput("LIRF"), new AgreementAirportInput("LFPG", "Paris CDG") },
         });
         var sec = Assert.Single((await _repo.ListByAccAsync("LIRR")).Single().Sections);
         await _repo.AddClauseAsync("LIRR", sec.Id, Clause("VALMA", 130));
 
         var a = Assert.Single(await _repo.ListByAccAsync("LIRR"));
-        Assert.Equal("prova", a.Note);
         Assert.Equal(new[] { "LIRR_NE_CTR", "LIRF_TWR" }, new[] { a.SideA.Callsign, a.SideB.Callsign });
         var s = Assert.Single(a.Sections);
         Assert.Equal(new[] { "LIRF", "LFPG" }, s.Airports.Select(x => x.Icao));
@@ -652,7 +650,6 @@ public class AgreementRepositoryTests : IAsyncLifetime
     {
         SideASectorId = sideA,
         SideBSectorId = sideB,
-        Note = note,
     };
 
     private static AgreementSectionInput Section(AgreementDirection direction) => new()

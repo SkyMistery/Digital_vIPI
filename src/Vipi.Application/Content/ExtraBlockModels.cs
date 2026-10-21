@@ -25,6 +25,11 @@ public sealed class ExtraBlock
     /// <c>ContentBlock.BodyJson</c>, letta e scritta da <see cref="AttachmentRef"/>. Usato solo se
     /// Format=Attachment, e lì <see cref="Text"/> è la nota sotto il link.</summary>
     public string? AttachmentJson { get; set; }
+
+    /// <summary>{"allegati":[…]} — gli allegati di un callout (S121), la stessa stringa che nel documento sta in
+    /// <c>ContentBlock.BodyJson</c>, letta e scritta da <see cref="Content.CalloutJson"/>. Usato solo se
+    /// Format=Callout.</summary>
+    public string? CalloutJson { get; set; }
 }
 
 /// <summary>Serializzazione robusta dei blocchi di una sezione extra dentro il campo Body (JSON), con fallback legacy.</summary>
@@ -65,7 +70,11 @@ public static class ExtraBlocks
         string.Join(" ", Parse(body)
             .Select(b => b.Format switch
             {
-                BlockFormat.Prose or BlockFormat.List or BlockFormat.Callout => b.Text,
+                BlockFormat.Prose or BlockFormat.List => b.Text,
+                // Il testo e i titoli dei suoi allegati, mai il JSON (come per il blocco allegato sotto).
+                BlockFormat.Callout => string.Join(" ", new[] { b.Text }
+                    .Concat(Content.CalloutJson.Allegati(b.CalloutJson).Select(a => a.Title))
+                    .Where(s => !string.IsNullOrWhiteSpace(s))),
                 BlockFormat.Image => MediaRef.TextOf(b.ImageJson, b.Text),
                 // Il titolo e la nota, mai il JSON: cercare «Marseille» deve trovare la LoA, e cercare un
                 // pezzo di slug non deve far comparire una riga di JSON in un'anteprima.
@@ -83,6 +92,7 @@ public static class ExtraBlocks
         TableJson = b.TableJson,
         ImageJson = b.ImageJson,
         AttachmentJson = b.AttachmentJson,
+        CalloutJson = b.Format == BlockFormat.Callout ? b.CalloutJson : null,
     };
 
     // Un blocco «vuoto» non viene salvato. Per l'immagine il contenuto è il riferimento, non il testo: una foto senza
@@ -94,6 +104,8 @@ public static class ExtraBlocks
         // Come per l'immagine: il contenuto è il RIFERIMENTO, non il testo. Un allegato senza nota è
         // legittimo, una nota senza allegato no.
         BlockFormat.Attachment => AttachmentRef.Parse(b.AttachmentJson) is not null,
+        // Un callout con i soli allegati è legittimo: il testo non è obbligatorio, il contenuto sì.
+        BlockFormat.Callout => !string.IsNullOrWhiteSpace(b.Text) || CalloutJson.Allegati(b.CalloutJson).Count > 0,
         _ => !string.IsNullOrWhiteSpace(b.Text),
     };
 }

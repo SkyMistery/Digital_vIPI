@@ -171,6 +171,17 @@
         return window.vipiSidPrendi(tasto && tasto.closest ? tasto.closest('[data-sid-host]') : null);
     };
 
+    // Il testo che era SELEZIONATO nel campo segnato da `vipiSidPrendi` (S122): diventa la parola del link, e il link
+    // la sostituisce. Vuoto = nessuna selezione, o il segno non c'e' piu'.
+    window.vipiSidTesto = function (gettone) {
+        if (!gettone) return '';
+        var el = document.querySelector('[data-sid-bersaglio^="' + gettone + '|"]');
+        if (!el) return '';
+        var p = el.getAttribute('data-sid-bersaglio').split('|')[1].split(',');
+        var s = Math.min(+p[0] || 0, el.value.length), e = Math.min(+p[1] || s, el.value.length);
+        return el.value.substring(s, e);
+    };
+
     window.vipiSidInserisci = function (gettone, testo) {
         if (!gettone) return false;
         var el = document.querySelector('[data-sid-bersaglio^="' + gettone + '|"]');

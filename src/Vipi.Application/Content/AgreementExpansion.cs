@@ -83,7 +83,6 @@ public static class AgreementExpansion
                         AirportIcao = icao,
                         AirportName = name,
                         AirportIcaos = airportIcaos,
-                        Description = section.Description,
                         Order = a.Order,
                         Points = points,
                     });

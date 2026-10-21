@@ -34,7 +34,7 @@ public sealed class LvpEdit
     public int? PrepRvrM; public int? PrepCeilingFt;
     public int? LvpRvrM; public int? LvpCeilingFt;
     public int? CancelRvrM; public int? CancelCeilingFt;
-    public string? Note;
+    // ⚠️ Niente nota dal 21 ottobre 2026 (S123, committente): il testo libero si scrive coi blocchi della sezione.
 
     /// <summary>La riga precompilata coi minimi standard: la propone l'editor, la salva una persona.</summary>
     public static LvpEdit Standard() => new()
@@ -49,11 +49,11 @@ public sealed class LvpEdit
         Id = r.Id, Declared = r.Declared,
         PrepRvrM = r.PrepRvrM, PrepCeilingFt = r.PrepCeilingFt,
         LvpRvrM = r.LvpRvrM, LvpCeilingFt = r.LvpCeilingFt,
-        CancelRvrM = r.CancelRvrM, CancelCeilingFt = r.CancelCeilingFt, Note = r.Note,
+        CancelRvrM = r.CancelRvrM, CancelCeilingFt = r.CancelCeilingFt,
     };
 
     public LvpRow AllaRiga() => new(Id, Declared, PrepRvrM, PrepCeilingFt, LvpRvrM, LvpCeilingFt,
-                                    CancelRvrM, CancelCeilingFt, Note);
+                                    CancelRvrM, CancelCeilingFt, null);
 }
 
 /// <summary>
@@ -109,7 +109,7 @@ public sealed class RuleEdit
     public int MaxTail = 5;                                    // vento in coda massimo (kt)
     public int? MaxCross;                                      // vento al traverso massimo (kt); null = nessun vincolo
     public string Surface = "any";                             // "any"|"dry"|"wet"
-    public string? Note;
+    // ⚠️ Niente nota dal 21 ottobre 2026 (S123, committente): il testo libero si scrive coi blocchi della sezione.
     // ⚠️ LOCALE, non UTC: gli orari AIP si scrivono in ora italiana (migrazione RenameRunwayRuleTimeToLocal).
     // Se TimeTo <= TimeFrom la finestra scavalca la mezzanotte e appartiene al giorno in cui è cominciata.
     public TimeOnly? TimeFrom; public TimeOnly? TimeTo;        // finestra oraria locale (avanzate)
@@ -428,13 +428,13 @@ public static class AirportRuleMapping
 
     /// <summary>La regola come la valuta il dominio: è ciò su cui gira il pannello di prova.</summary>
     public static RunwayRuleEval ToEval(RuleEdit r) => new(
-        JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name, r.Note, r.MaxTail, r.MaxCross, Surface(r.Surface),
+        JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name, null, r.MaxTail, r.MaxCross, Surface(r.Surface),
         TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask, Parity(r.Parity),
         CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay));
 
     /// <summary>La regola come si salva. Stessi campi di <see cref="ToEval"/>, in un altro record.</summary>
     public static RunwayRuleRow ToRow(RuleEdit r) => new(
-        0, JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name, r.MaxTail, r.MaxCross, Surface(r.Surface), r.Note,
+        0, JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name, r.MaxTail, r.MaxCross, Surface(r.Surface), null,
         TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask, Parity(r.Parity),
         CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay));
 
@@ -448,7 +448,7 @@ public static class AirportRuleMapping
     public static RuleEdit FromRow(RunwayRuleRow r) => new()
     {
         Name = r.Name,
-        Dep = SplitCsv(r.DepRunways), Arr = SplitCsv(r.ArrRunways), Note = r.Note,
+        Dep = SplitCsv(r.DepRunways), Arr = SplitCsv(r.ArrRunways),
         MaxTail = r.MaxTailwindKt, MaxCross = r.MaxCrosswindKt,
         Surface = r.Surface switch { RunwaySurface.Dry => "dry", RunwaySurface.Wet => "wet", _ => "any" },
         TimeFrom = MinToTime(r.TimeFromLocalMin), TimeTo = MinToTime(r.TimeToLocalMin),

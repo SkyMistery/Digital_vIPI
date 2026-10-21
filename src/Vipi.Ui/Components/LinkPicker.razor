@@ -1,0 +1,136 @@
+@* Il selettore del LINK da mettere nel testo (S122, 21 ottobre 2026, committente: «in qualunque posto si possa
+   editare del testo, dei link»). Lo aprono il tasto «Link» della barra di formattazione (prosa, callout, note) e
+   quello sotto una tabella (celle): chi lo apre ha già segnato il campo e la selezione (`vipiSidPrendi`), qui si
+   sceglie e basta. Torna il testo da inserire, `[parole](https://…)` o `[parole](allegato:slug)`.
+
+   ⚠️ Due chip e non due tasti in barra, come il selettore dei riferimenti: il gesto è lo stesso, «porto chi legge
+   da un'altra parte», e quel che cambia sta dentro il selettore.
+
+   ⚠️ Per un allegato si SCEGLIE dalla biblioteca, come nel blocco «Allegato»: il registro «chi cita cosa» lo trova.
+   Un indirizzo web invece si scrive, e passa solo se è http/https (`LinkWeb.Sicuro`).
+
+   ⚠️ Scope proprio che aspetta (`ScopeProprioCheAspetta`), come RiferimentoPicker: si apre dentro un editor che
+   salva a ogni gesto, e una scelta fatta mentre la biblioteca sta arrivando SMONTA il selettore. *@
+@using Microsoft.Extensions.DependencyInjection
+@inherits ScopeProprioCheAspetta
+@inject IStringLocalizer<SharedResource> L
+
+<div class="sidref-pick link-pick" role="dialog" aria-label="@L["Link_Title"]">
+    <div class="sidref-pick-head">
+        <b>@L["Link_Title"]</b>
+        <div class="sidref-pick-kind" role="group" aria-label="@L["Link_Kind"]">
+            <button type="button" class="sh-chip @(_allegato ? "" : "on")" aria-pressed="@((!_allegato).ToString().ToLowerInvariant())"
+                    @onclick="() => _allegato = false">@L["Link_Web"]</button>
+            <button type="button" class="sh-chip @(_allegato ? "on" : "")" aria-pressed="@(_allegato.ToString().ToLowerInvariant())"
+                    @onclick="ApriAllegatiAsync">@L["Link_Attachment"]</button>
+        </div>
+        <button type="button" class="btn ghost" @onclick="OnChiudi">@L["Common_Close"]</button>
+    </div>
+
+    <label class="link-pick-field">
+        <span class="muted">@L["Link_Text"]</span>
+        <input class="app-in link-pick-testo" @bind="_testo" @bind:event="oninput"
+               placeholder="@(_allegato ? L["Link_TextAttPh"] : L["Link_TextPh"])" />
+    </label>
+
+    @if (!_allegato)
+    {
+        <label class="link-pick-field">
+            <span class="muted">@L["Link_Url"]</span>
+            <input class="app-in link-pick-url" type="url" @bind="_url" @bind:event="oninput"
+                   placeholder="https://…" @onkeydown="InvioInserisce" />
+        </label>
+        @if (_url.Trim().Length > 0 && LinkWeb.Sicuro(_url) is null)
+        {
+            <p class="help link-pick-no">@L["Link_UrlInvalid"]</p>
+        }
+        <div>
+            <button type="button" class="btn link-pick-ok" disabled="@(LinkWeb.Sicuro(_url) is null)"
+                    @onclick="InserisciWebAsync">@L["Link_Insert"]</button>
+        </div>
+    }
+    else if (_errore is not null)
+    {
+        <p class="help"><b>@L["Common_Error"]</b>@_errore</p>
+    }
+    else if (_voci is null)
+    {
+        <p class="muted" style="margin:0">…</p>
+    }
+    else if (_voci.Count == 0)
+    {
+        <p class="help">@L["Att_BlockEmptyHint"]</p>
+    }
+    else
+    {
+        <input class="app-in cerca" type="search" placeholder="@L["Att_BlockSearchPh"]" aria-label="@L["Att_BlockSearchPh"]"
+               @bind="_filtro" @bind:event="oninput" />
+        <div class="sidref-pick-list">
+            @foreach (var v in Filtrate.Take(MaxVoci))
+            {
+                var voce = v;
+                <button type="button" class="sidref-pick-row" title="@voce.Slug" @onclick="() => InserisciAllegatoAsync(voce)">
+                    <span>@voce.Title</span><span class="rwy">@voce.ScopeLabel</span>
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Il testo che era selezionato nel campo: diventa le parole del link.</summary>
+    [Parameter] public string? TestoIniziale { get; set; }
+
+    /// <summary>Il testo da inserire nel campo, già nella forma del link.</summary>
+    [Parameter] public EventCallback<string> OnScegli { get; set; }
+    [Parameter] public EventCallback OnChiudi { get; set; }
+
+    private const int MaxVoci = 200;
+
+    private bool _allegato;
+    private string _testo = "";
+    private string _url = "";
+    private string _filtro = "";
+    private IReadOnlyList<AttachmentRow>? _voci;
+    private string? _errore;
+
+    protected override void OnInitialized() => _testo = (TestoIniziale ?? "").Trim();
+
+    private IEnumerable<AttachmentRow> Filtrate =>
+        (_voci ?? Array.Empty<AttachmentRow>()).Where(v => _filtro.Trim().Length == 0
+            || v.Title.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase)
+            || v.Slug.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private async Task ApriAllegatiAsync()
+    {
+        _allegato = true;
+        if (_voci is not null) return;
+        try
+        {
+            _voci = await InFilaAsync(() => ScopedServices.GetRequiredService<IAttachmentLibrary>().ListAsync())
+                    ?? Array.Empty<AttachmentRow>();
+            _errore = null;
+        }
+        catch (Exception ex)
+        {
+            // Come nell'editor del blocco allegato: un errore visibile, non un circuito abbattuto.
+            _errore = ex.Message;
+        }
+    }
+
+    private async Task InserisciWebAsync()
+    {
+        if (LinkWeb.Scrivi(_testo, _url) is { } link) await OnScegli.InvokeAsync(link);
+    }
+
+    private Task InvioInserisce(KeyboardEventArgs e) => e.Key == "Enter" ? InserisciWebAsync() : Task.CompletedTask;
+
+    private Task InserisciAllegatoAsync(AttachmentRow voce)
+    {
+        // Le parole: quelle scritte, o il titolo della biblioteca. Senza parentesi quadre né a capo, che
+        // chiuderebbero il link a metà.
+        var parole = (_testo.Trim().Length > 0 ? _testo : voce.Title)
+            .Replace('[', '(').Replace(']', ')').Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return OnScegli.InvokeAsync($"[{parole}]({AttachmentRules.TokenDi(voce.Slug)})");
+    }
+}

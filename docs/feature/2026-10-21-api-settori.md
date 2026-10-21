@@ -98,7 +98,7 @@ tipo, con i suoi punti.
   "acc": "LIRR", "resolved": false, "count": 1,
   "flows": [
     {
-      "owner": "LIRR_NE_CTR", "kind": "arrival", "airports": [ "LIRF" ], "description": null,
+      "owner": "LIRR_NE_CTR", "kind": "arrival", "airports": [ "LIRF" ],
       "points": [
         {
           "cop": "TIBER",

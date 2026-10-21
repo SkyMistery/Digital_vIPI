@@ -54,10 +54,8 @@ public class CoordinationAgreement
     public int SideBSectorId { get; set; }
     public Sector? SideBSector { get; set; }
 
-    /// <summary>Nota libera sull'accordo. Era <c>Description</c>, e si chiamava come un campo che il documento
-    /// rende: non lo è mai stato — la mostra solo il navigatore dell'editor. La prosa che introduce una tabella
-    /// sta sulla sezione (<see cref="AgreementSection.Description"/>), dove i documenti veri la scrivono.</summary>
-    public string? Note { get; set; }
+    // ⚠️ Niente nota libera dal 21 ottobre 2026 (S123c, committente: le note «devono sparire»): non era mai uscita in
+    // un documento. La colonna `Note` l'ha tolta la migrazione `TogliNoteTrasferimenti`.
 
     public int Order { get; set; }
     // Nessun RowVersion: last-write-wins voluto sotto il lock di editing (14 agosto 2026). Vedi VipiDbContext.
@@ -94,9 +92,8 @@ public class AgreementSection
     /// di righe che dicono la stessa cosa.</summary>
     public AgreementDirection Direction { get; set; }
 
-    /// <summary>Prosa che introduce la tabella (l'IPI ENAV la scrive così). Era <c>Description</c> dell'accordo,
-    /// dove valeva per tutti i tipi insieme.</summary>
-    public string? Description { get; set; }
+    // ⚠️ Niente descrizione dal 21 ottobre 2026 (S123c, committente): la prosa non era mai uscita in un documento, e
+    // il testo libero si scrive coi blocchi. La colonna l'ha tolta la migrazione `TogliNoteTrasferimenti`.
 
     public int Order { get; set; }
 

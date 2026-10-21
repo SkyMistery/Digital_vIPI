@@ -16,8 +16,6 @@ public sealed record AgreementSectionRow
     public required TransferFlowKind Kind { get; init; }
     public required AgreementDirection Direction { get; init; }
 
-    /// <summary>Prosa che introduce la tabella.</summary>
-    public string? Description { get; init; }
 
     public required int Order { get; init; }
 

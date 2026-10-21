@@ -6,8 +6,11 @@
 @inherits ComponenteDelDocumento
 
 <p class="muted" style="font-size:12.5px;margin:0 0 8px">@L["Airport_RulesLead"]</p>
+@* ⚠️ La colonna «Note» solo se una riga ne ha una: dal 21 ottobre 2026 (S123) le note non si scrivono più — il testo
+   libero sta nei blocchi della sezione, sotto la tabella — e ce l'hanno solo le release scattate prima. *@
+@{ var conNote = View.Rows.Any(r => !string.IsNullOrWhiteSpace(r.Note) && r.Note != "—"); }
 <table class="res-table">
-    <thead><tr><th style="width:3ch">#</th><th>@L["Airport_RuleCondition"]</th><th>DEP</th><th>ARR</th><th>@L["Ape_Notes"]</th></tr></thead>
+    <thead><tr><th style="width:3ch">#</th><th>@L["Airport_RuleCondition"]</th><th>DEP</th><th>ARR</th>@if (conNote) { <th>@L["Ape_Notes"]</th> }</tr></thead>
     <tbody>
         @foreach (var r in View.Rows)
         {
@@ -17,12 +20,12 @@
                 <td>@r.Condition</td>
                 <td>@r.Dep</td>
                 <td>@r.Arr</td>
-                <td>@r.Note</td>
+                @if (conNote) { <td>@r.Note</td> }
             </tr>
         }
         @if (View.Rows.Count == 0)
         {
-            <tr><td colspan="5" class="muted">@L["Airport_NoRules"]</td></tr>
+            <tr><td colspan="@(conNote ? 5 : 4)" class="muted">@L["Airport_NoRules"]</td></tr>
         }
     </tbody>
 </table>

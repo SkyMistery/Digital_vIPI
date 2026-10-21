@@ -660,12 +660,11 @@
         public string SideB { get; set; } = "";
         public string SideAText { get; set; } = "";
         public string SideBText { get; set; } = "";
-        public string Note { get; set; } = "";
 
         /// <summary>Un accordo ha due capi: senza uno dei due non è una relazione.</summary>
         public bool HasBothSides => SideA.Length > 0 && SideB.Length > 0;
 
-        public void Reset() { SideA = ""; SideB = ""; SideAText = ""; SideBText = ""; Note = ""; }
+        public void Reset() { SideA = ""; SideB = ""; SideAText = ""; SideBText = ""; }
 
         /// <summary>⚠️ Carica nell'ordine «noi · loro», che NON è sempre «A · B»: i lati in archivio stanno in
         /// forma canonica (id minore = A), che non ha significato editoriale. Quale sia A lo decide il
@@ -676,7 +675,6 @@
             var o = lens.Orient(a);
             SideA = a.Side(o.NearSide).Callsign;
             SideB = a.Side(o.FarSide).Callsign;
-            Note = a.Note ?? "";
         }
     }
 
@@ -693,7 +691,6 @@
     {
         public TransferFlowKind Kind { get; set; } = TransferFlowKind.Arrival;
         public AgreementDirection Direction { get; set; } = AgreementDirection.AtoB;
-        public string Description { get; set; } = "";
 
         /// <summary>L'ordine delle clausole non si sceglie nel form (sta sulla testata della sezione), ma il form
         /// RISCRIVE la sezione: lo porta con sé, o salvando tornerebbe «a mano».</summary>
@@ -709,7 +706,7 @@
 
         public void Reset()
         {
-            Kind = TransferFlowKind.Arrival; Direction = AgreementDirection.AtoB; Description = "";
+            Kind = TransferFlowKind.Arrival; Direction = AgreementDirection.AtoB;
             ClauseOrder = AgreementClauseOrder.Manual;
             Airports.Clear(); AirportText = ""; AirportName = "";
         }
@@ -717,7 +714,7 @@
         public void LoadFrom(AgreementSectionRow s)
         {
             Reset();
-            Kind = s.Kind; Direction = s.Direction; Description = s.Description ?? "";
+            Kind = s.Kind; Direction = s.Direction;
             ClauseOrder = s.ClauseOrder;
             Airports.AddRange(s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportInput(x.Icao, x.Name)));
         }
@@ -1502,7 +1499,7 @@
             .ToList();
 
     private XferNavAgreement NavAgreement(AgreementRow a) =>
-        new(a.Id, _lens.Near(a), _lens.Far(a), a.Note,
+        new(a.Id, _lens.Near(a), _lens.Far(a),
             a.Sections.Count,
             a.Sections.Sum(s => s.Clauses.Count),
             MissingReverseCount(a),
@@ -1572,9 +1569,7 @@
             && (q.Length == 0
                 || a.SideA.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase)
                 || a.SideB.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase)
-                || (a.Note?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
                 || a.Sections.Any(s => s.Airports.Any(x => x.Icao.Contains(q, StringComparison.OrdinalIgnoreCase))
-                                       || (s.Description?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
                                        || s.Clauses.Any(c => c.Cops.Contains(q, StringComparison.OrdinalIgnoreCase)))))
             .ToList();
     }
@@ -1674,10 +1669,6 @@
                 <span class="pill neutral" title="@L["Xfer_InternalTitle"]">@L["Xfer_NavInternal"]</span>
             }
             <span class="muted xt-hint">@XferLabels.Sections(L, ag.Sections.Count)</span>
-            @if (!string.IsNullOrWhiteSpace(ag.Note))
-            {
-                <span class="muted xt-desc" title="@ag.Note">— @ag.Note</span>
-            }
             <span class="ln xt-grow"></span>
             @* Gli stessi due tasti dell'albero, e nello stesso ordine: aprire tutto e chiudere tutto è un gesto
                che il resto dell'app ha già insegnato, e cambiarne la forma qui costerebbe di impararlo due volte.
@@ -2127,7 +2118,6 @@
         {
             Kind = sec.Kind,
             Direction = sec.Direction,
-            Description = sec.Description,
             Airports = airports,
             ClauseOrder = sec.ClauseOrder,
         }), null);
@@ -2141,7 +2131,6 @@
         {
             Kind = sec.Kind,
             Direction = SectionDirection.Flip(sec.Direction),
-            Description = sec.Description,
             Airports = sec.Airports.OrderBy(x => x.Order)
                 .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
             ClauseOrder = sec.ClauseOrder,
@@ -2170,7 +2159,6 @@
             {
                 Kind = sec.Kind,
                 Direction = sec.Direction,
-                Description = sec.Description,
                 Airports = sec.Airports.OrderBy(x => x.Order)
                     .Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
                 ClauseOrder = ordine,
@@ -2658,9 +2646,7 @@
         <div class="inline-form xt-flat">
             @SidePicker(form, near: true)
             @SidePicker(form, near: false)
-            <div class="field"><label>@L["Xfer_NoteOpt"]</label>
-                <input placeholder="@L["Xfer_NotePh"]" @bind="form.Note" @bind:event="oninput" />
-            </div>
+            @* Niente nota libera dal 21 ottobre 2026 (S123c, committente: le note «devono sparire»). *@
         </div>
     };
 
@@ -2782,9 +2768,8 @@
             </div>
             }
 
-            <div class="field"><label>@L["Xfer_DescOpt"]</label>
-                <input placeholder="@L["Xfer_DescPh"]" @bind="form.Description" @bind:event="oninput" />
-            </div>
+            @* Niente descrizione dal 21 ottobre 2026 (S123c, committente): il testo libero si scrive coi blocchi dei
+               documenti. *@
         </div>
     };
 
@@ -4074,7 +4059,6 @@
     {
         OpenNewSection(a);
         _sectionForm.LoadFrom(sec);
-        _sectionForm.Description = "";
         _sectionForm.Direction = SectionDirection.Flip(sec.Direction);
     }
 
@@ -4445,14 +4429,12 @@
     {
         SideASectorId = SectorIdOf(f.SideA),
         SideBSectorId = SectorIdOf(f.SideB),
-        Note = NullIfBlank(f.Note),
     };
 
     private static AgreementSectionInput ToSectionInput(SectionForm f) => new()
     {
         Kind = f.Kind,
         Direction = f.Direction,
-        Description = NullIfBlank(f.Description),
         ClauseOrder = f.ClauseOrder,
         // I sorvoli non hanno scali: se ne erano rimasti addosso cambiando tipo, la sezione non si salverebbe.
         // Si tolgono qui e non a ogni digitazione, perché un campo che si svuota da solo mentre lo si guarda è
@@ -4494,7 +4476,6 @@
         {
             Kind = s.Kind,
             Direction = s.Direction,
-            Description = s.Description,
             Airports = s.Airports.OrderBy(x => x.Order).Select(x => new AgreementAirportInput(x.Icao, x.Name)).ToList(),
             ClauseOrder = s.ClauseOrder,
         },
@@ -4506,7 +4487,6 @@
         {
             SideASectorId = a.SideA.SectorId,
             SideBSectorId = a.SideB.SectorId,
-            Note = a.Note,
         },
         a.Sections.OrderBy(s => s.Order).Select(SnapshotOf).ToList());
 

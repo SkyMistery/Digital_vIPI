@@ -137,10 +137,11 @@ public static class SectionCatalog
     // da sola. Vale OVUNQUE: viewer ed editor, tutte e tre le famiglie.
     // ⚠️ Qui c'era scritto «ognuna con la sua mappa»: non è più vero dal 27 agosto 2026 — la sezione ha una
     // mappa sola con le chip. Resta collassata per il numero di RIGHE, non più per il numero di mappe.
-    // ⚠️ E la tecnica operativa della torre radar (18 ottobre 2026, committente): prosa lunga in mezzo all'indice,
-    // fra Piste e SID — aperta spingerebbe le SID una schermata più in giù.
+    // ⚠️ La tecnica operativa della torre radar c'è stata dal 18 al 21 ottobre 2026 («prosa lunga fra Piste e SID»), e
+    // il 21 ottobre il committente l'ha voluta APERTA nelle vIPI e nei vSOP (S124): ora è fatta di blocchi, e chiusa
+    // nascondeva proprio quel che si scrive per essere letto.
     private static readonly IReadOnlySet<string> InitiallyCollapsedKeys =
-        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regulated", SectionKeys.RadarTowerTechnique };
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regulated" };
 
     /// <summary>Vero se la sezione si apre COLLASSATA nel documento: si espande a mano (doc 11 §3i).</summary>
     public static bool IsInitiallyCollapsed(string key) => InitiallyCollapsedKeys.Contains(key);
@@ -208,7 +209,7 @@ public static class SectionCatalog
     {
         H("separations", "Separazioni", 1, en: "Separations"),
         H("configurations", "Configurazioni", 2, en: "Configurations"),
-        H("aor", "AOR", 3),
+        HB("aor", "AOR", 3),   // ⚠️ HB dal 21 ottobre 2026 (S123): via le note degli spazi aerei, il testo libero sta nei blocchi sotto la mappa.
         H("frequencies", "Frequenze", 4, en: "Frequencies"),
         H("minima", "MRVA", 5),
         // ✚ 15 settembre 2026 (committente): «Gestione del traffico» SOPRA i Coordinamenti, con IFR e VFR
@@ -286,7 +287,7 @@ public static class SectionCatalog
             {
                 H("separations", "Separazioni radar", 1, en: "Radar separation"),
                 H("configurations", "Configurazioni", 2, en: "Configurations"),
-                H("aor", "AOR", 3),
+                HB("aor", "AOR", 3),   // ⚠️ HB dal 21 ottobre 2026 (S123): via le note degli spazi aerei, il testo libero sta nei blocchi sotto la mappa.
                 H("frequencies", "Frequenze", 4, en: "Frequencies"),
                 H("minima", "MRVA", 5),
                 H("coordination", "Coordinamenti", 7, en: "Coordination"),
@@ -307,7 +308,7 @@ public static class SectionCatalog
             {
                 H("separations", "Separazioni", 1, en: "Separations"),
                 H("configurations", "Configurazioni", 2, en: "Configurations"),
-                H("aor", "AOR", 3),
+                HB("aor", "AOR", 3),   // ⚠️ HB dal 21 ottobre 2026 (S123): via le note degli spazi aerei, il testo libero sta nei blocchi sotto la mappa.
                 H("frequencies", "Frequenze", 4, en: "Frequencies"),
                 H("minima", "MRVA", 5),
                 // ✚ 21 settembre 2026 (committente): il blocco APP della vIPI ACC si scrive COME l'APP non
@@ -358,7 +359,8 @@ public static class SectionCatalog
                 // NASCITA. Lo fa `IDocumentMaintenance.ReparentAirportSectionsAsync` all'avvio.
                 H("runways", "Piste", 4, en: "Runways", children: new[]
                 {
-                    H("runwayrules", "Regole piste", 1, en: "Runway selection rules"),
+                    // ⚠️ HB dal 21 ottobre 2026 (S123, committente: le note «devono sparire, dove voglio scrivere testo seleziono paragrafo»): la scheda e sotto i blocchi della sezione.
+                    HB("runwayrules", "Regole piste", 1, en: "Runway selection rules"),
                 }),
                 // ✚ 18 ottobre 2026 (committente): la torre radar, FRA Piste e SID — la tecnica si sceglie con
                 // la pista in uso, e la SID dopo. Abbastanza in alto da leggersi prima delle procedure.
@@ -377,7 +379,8 @@ public static class SectionCatalog
                 // DOPO le «Procedure generali» — sorella, NON figlia: le LVP sono un modo di operare, e
                 // vengono dopo la prosa che descrive come si opera. Come le regole piste, il dato sta
                 // nell'ANAGRAFICA dello scalo: qui c'è solo la porta.
-                H("lvp", "LVP", 9),
+                // ⚠️ HB dal 21 ottobre 2026 (S123, committente: le note «devono sparire, dove voglio scrivere testo seleziono paragrafo»): la scheda e sotto i blocchi della sezione.
+                HB("lvp", "LVP", 9),
             }.Concat(CarteAeroportuali(10)).Append(
                 HB("validity", "Validità e revisione", 11, en: "Validity and revision")).ToArray(),
 
@@ -426,7 +429,8 @@ public static class SectionCatalog
                     // vIPI civile la porta e' l'editor di questo vSOP. Dalle regole il viewer marca la pista
                     // IN USO adesso, nelle Piste e nelle SID — la stessa derivazione della vIPI.
                     // ⚠️ Sorella e non figlia di «Piste», come le SID: stessa scelta, stesso indice leggibile.
-                    H("runwayrules", "Regole piste", 5, en: "Runway selection rules"),
+                    // ⚠️ HB dal 21 ottobre 2026 (S123, committente: le note «devono sparire, dove voglio scrivere testo seleziono paragrafo»): la scheda e sotto i blocchi della sezione.
+                    HB("runwayrules", "Regole piste", 5, en: "Runway selection rules"),
                     // Derivata, come la sorella civile: le SID stanno nell'ANAGRAFICA dello scalo
                     // (`AirportProcedures`, importate dal sectorfile), non nel documento — la vIPI civile e' solo
                     // la porta di SCRITTURA. Quindi qui non c'e' nessun ramo da fare: il vSOP legge
@@ -511,7 +515,8 @@ public static class SectionCatalog
                 // lavoro», e le LVP non sono un'area di lavoro. Restano dove stanno le procedure.
                 // ⚠️ Il dato e' lo stesso della vIPI (anagrafica dello scalo): cambia solo il posto
                 // nell'indice, che nel militare lo detta il SOD.
-                H("lvp", "LVP", 5),
+                // ⚠️ HB dal 21 ottobre 2026 (S123, committente: le note «devono sparire, dove voglio scrivere testo seleziono paragrafo»): la scheda e sotto i blocchi della sezione.
+                HB("lvp", "LVP", 5),
                 HB("regulated", "Aree di lavoro", 6, en: "Working areas", children: new[]
                 {
                     // ⚠️ «operationaltechnique» e' una chiave UNIVERSALE (sta in ACC, APP, vLOA e

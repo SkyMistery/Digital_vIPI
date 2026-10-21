@@ -2857,6 +2857,66 @@
   lanciarla la colonna dev'essere vuota (`SELECT Icao FROM Airports WHERE RadarTowerTechnique IS NOT NULL` → nessuna
   riga). Tolti anche il trasloco della 1.69.0 (`TecnicaRadarNeiBlocchiAsync`, già girato) e i suoi test; resta la
   lettura delle release vecchie. Carta `docs/feature/2026-10-18-torre-radar.md` §8. Niente `deploy/`.
+- ✅ **S121** (21-ott, chiesto dal committente) **allegati nei callout**: sotto il testo di un callout uno o più
+  allegati della biblioteca, come nel blocco «Allegato» (link o incorporato, altezza, rotazione). JSON del callout
+  `{"title":…,"allegati":[…]}` (`CalloutJson`); 🔴 `SectionPayload.EEditoriale` riconosceva un callout solo col titolo
+  da solo, e con gli allegati sarebbe passato per payload (sparito dall'editor). Editor `CalloutAllegatiEditor` nei due
+  editor di blocchi; nelle pagine `ExtraBlock.CalloutJson`. Carta `docs/feature/2026-10-21-allegati-nei-callout-e-link.md`.
+- ✅ **S122** (21-ott, chiesto dal committente) **link nel testo**, ovunque si scrive: tasto «Link» nella barra del testo
+  e sotto le tabelle, con un indirizzo web o un allegato della biblioteca; le parole selezionate diventano il testo.
+  `[testo](https://…)` nel renderer (`MarkdownLite`, regola in `LinkWeb`): solo http/https assoluti, scheda nuova,
+  `noopener noreferrer`, indirizzo in stampa; nelle celle i soli link (`MarkdownLite.SoloLink`); la traduzione non
+  tocca l'indirizzo. Il test che vietava ogni link non-allegato cambiato apposta (gli schemi vietati restano, di più).
+  Guida aggiornata. Le note dei dati strutturati spariscono con S123.
+  - **Codice comune** (S121+S122): `Vipi.Application` (`CalloutJson`, `LinkWeb`, `SectionPayload`, `ExtraBlock`,
+    `PageIntro`, `TextProtector`). Niente migrazione, niente `deploy/`. Toccati i due `.resx`, `vipi-theme.css`,
+    `vipi-print.css`, `vipi-editor.js`.
+  - **Test**: App 3418 → 3446, Ui 2099 → 2116 (Infra 2233, Hosting 102, E2E 510 invariati).
+  - **A schermo** su un database nuovo con uno scalo inventato e una voce di biblioteca di prova: allegato in un
+    callout, link web al posto delle parole selezionate, link a un allegato in una cella; l'anteprima li mostra.
+    Non visti: stampa, telefono, documento tradotto.
+- ✅ **S123a** (21-ott, chiesto dal committente: le note «devono sparire, dove voglio scrivere testo seleziono
+  paragrafo») **via la nota delle LVP e le note delle regole piste**. `lvp` e `runwayrules` diventano «scheda +
+  blocchi» (`HB`) nella vIPI d'aeroporto e nel vSOP; tolti i campi negli editor e dai modelli d'editor; il segnaposto
+  delle sezioni rese dalla pagina non si mostra più come tabella vuota nell'editor. Trasloco all'avvio
+  `NoteDelloScaloNeiBlocchiAsync`: la nota delle LVP → un paragrafo di `lvp`, le note delle regole → un elenco in
+  `runwayrules` (`- #3 Notte: …`), nella vIPI e nel vSOP; colonne svuotate. Le release già uscite mostrano ancora la
+  nota della loro fotografia. **Migrazione: no** (le colonne si tolgono in una consegna dopo). Carta
+  `docs/feature/2026-10-21-via-le-note.md`. **Codice comune**: `Vipi.Application` (catalogo, interfaccia
+  manutenzione). Test: Infra 2233 → 2236, Ui 2116 → 2118. A schermo su DB nuovo: trasloco, editor e anteprima.
+  Restano S123b (tabelle delle aree) e S123c (trasferimenti: prima l'elenco al committente).
+- ✅ **S123b** (21-ott, stesso giro) **via le note delle tabelle delle aree**: spazi aerei dell'AoR (vIPI APP, anche
+  militare, e blocchi della vIPI ACC) e aree di lavoro e BOAT del vSOP militare. Le note stanno nel JSON del payload:
+  **niente migrazione dello schema**. `aor` diventa `HB` nei profili APP e dei blocchi ACC (`AccSectionBody` mostra ora
+  anche i blocchi dell'AoR); via i campi nota in `AorAirspaceTable` e `MilWorkingAreas` (colonna solo se una riga ne
+  ha una: le release di prima). Trasloco all'avvio `NoteDelleAreeNeiBlocchiAsync`: un paragrafo per sezione,
+  `- NOME: nota`, e JSON senza note; un payload con la sola classe non si riscrive a ogni avvio. Carta §3. Test:
+  Infra 2236 → 2238, Ui 2118 → 2119. **Non visto a schermo** (servono forme del sectorfile e aree IVAO): provato coi
+  test, sui payload scritti dai serializzatori veri. S123c: le domande per la copia di produzione sono in carta §4.
+- ✅ **S123c** (21-ott sera) **via nota e descrizione dei trasferimenti**. Lette prima sulla copia di produzione 1.70.0
+  (montata e cancellata subito): 0 note di coppia, 5 descrizioni (elenco in carta §4). Il committente: «togli … senza
+  portarle nei documenti: le due frasi di Milano le riscrivo io». Via i campi da pagina Trasferimenti, navigatore,
+  ricerca, modelli, repository e da `description` dell'API dei settori. **Migrazione sì, distruttiva**:
+  `TogliNoteTrasferimenti` (`CoordinationAgreements.Note`, `AgreementSections.Description`), il testo si perde apposta.
+- ✅ **S124** (21-ott sera, chiesto dal committente) la **tecnica operativa** del Radar di torre **nasce aperta** nelle
+  vIPI e nei vSOP: esce da `SectionCatalog.InitiallyCollapsedKeys` (resta solo «regulated»). Test cambiati apposta
+  (Application e Ui), conteggi invariati. Carta torre radar §9.
+- ✅ **S125** (21-ott sera, in coda dal Master dopo la 1.70.0) **`tools/conta-test.sh` non dà più «MANCA» falsi** sui
+  riepiloghi spezzati. Nella corsa 39593831601 la testa «Passed! … Duration: 6 s» aveva incollato in coda
+  l'annuncio «Test run for …/Vipi.E2E.Tests.dll (…)», e quel «.dll (» la faceva credere completa: «MANCA» su
+  Application net10 e un «NUOVO» senza senso. Ora «Test run for» si porta a capo come i riepiloghi incollati, e le
+  teste senza coda aspettano in fila la prima riga che comincia con « - », oltre qualunque riga. Nuovo
+  **`tools/conta-test-prova.sh`** (gira per primo in CI): i sei modi in cui il riepilogo è uscito rotto (14-set,
+  23-set ×2, 21-ott, due teste in fila), letti con `conta-test.sh --leggi`. Sulla lettura di prima i casi del 21-ott e
+  delle due teste danno ROTTO, sulla nuova tutti ok; sul log vero del 21-ott la nuova vede tutti i 18 assiemi.
+  **Codice comune** (`tools/`, `.github/workflows/ci.yml`).
+- ✅ **S126** (21-ott sera, in coda dal Master) **`DiagnosticaUnGiroAllaVoltaTests` non cade più a tempo**. Le due
+  cadute (18 e 21 ottobre, run 39593831601) avevano la stessa firma: «Check count: 1, render count: 1» dopo 3 s. Il
+  primo caricamento della pagina è una dozzina di letture in fila, e col pool dei thread occupato dalle altre classi
+  non stava nei 3 s **scritti nel test**, che vincevano sui 10 della suite (`AttesaDiBunit`). Riprodotto in locale
+  occupando il pool per circa 5 s: coi 3 s cade 2 volte su 2 con la stessa firma, coi 10 passa 2 su 2. Tolti i «3 s» a
+  mano anche dalle altre tre classi della famiglia (Audit, Ricerca, Struttura: 13 attese), che non erano ancora cadute.
+  Classi toccate 5 volte su 5 verdi su net8 e net10, suite Ui intera verde (2119 per TFM, conteggi invariati).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

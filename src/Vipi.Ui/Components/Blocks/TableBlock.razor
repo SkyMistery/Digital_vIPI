@@ -119,7 +119,8 @@
         for (var i = 0; i < row.Cells.Length; i++)
         {
             <td>
-                @row.Cells[i]
+                @* I soli link, web e allegati (S122): una cella resta testo, senza grassetti né elenchi. *@
+                @MarkdownLite.SoloLink(row.Cells[i])
                 @if (row.Star && i == last)
                 {
                     <span class="freq-key"> ★</span>

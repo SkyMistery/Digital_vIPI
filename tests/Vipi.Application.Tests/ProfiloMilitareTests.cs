@@ -73,7 +73,9 @@ public class ProfiloMilitareTests
         Assert.NotNull(SectionCatalog.Find(SectionProfile.Airport, "runwayrules"));
         Assert.NotNull(SectionCatalog.Find(SectionProfile.AirportMil, "runwayrules"));
         Assert.True(SectionCatalog.IsHostRendered(SectionProfile.AirportMil, "runwayrules"));
-        Assert.False(SectionCatalog.KeepsOwnBlocks(SectionProfile.AirportMil, "runwayrules"));
+        // Dal 21 ottobre 2026 (S123) tiene anche i suoi blocchi: le note delle regole non si scrivono più, il testo
+        // libero sta sotto la tabella.
+        Assert.True(SectionCatalog.KeepsOwnBlocks(SectionProfile.AirportMil, "runwayrules"));
         Assert.Equal(SectionKind.Derived, SectionCatalog.KindOf("runwayrules"));
     }
 

@@ -151,7 +151,6 @@ public static class ApiSettori
                 owner = f.OwningSectorCallsign,
                 kind = Parola(f.Kind),
                 airports = Scali(f),
-                description = f.Description,
                 points = f.Points.Select(p => Punto(p)),
             }),
         };
@@ -171,7 +170,6 @@ public static class ApiSettori
                 ownerOnline = r.OwnerOnline,
                 kind = Parola(r.Flow.Kind),
                 airports = Scali(r.Flow),
-                description = r.Flow.Description,
                 points = r.Points.Select(p => Punto(p.Point, p)),
             }),
         };

@@ -24,7 +24,7 @@ alle condizioni della pista scelta per le partenze».
 | Bivio | Deciso |
 |---|---|
 | Dove | **Una sezione sola, fra Piste e SID**. Così resta abbastanza in alto (quinta voce della vIPI) e la tecnica sta dove la si usa. L'alternativa era spezzarla, col sì/no più in alto e la tecnica fra Piste e SID |
-| La tecnica | **Nasce chiusa** |
+| La tecnica | **Nasce chiusa** — ⚠️ dal 21 ottobre 2026 **aperta** (§9) |
 | Dove sta il testo | **Una volta sola, nell'anagrafica dello scalo**: «la torre di uno scalo militare e civile è SEMPRE una sola». vIPI e vSOP leggono lo stesso testo |
 | I colori (dopo averla vista sulla copia di produzione) | La frase nei **callout del sito**: verde (`success`) con la torre radar, rosso (`danger`) senza, giallo (`warning`) se non indicato |
 | Visibile? | **Nasce nascosta**, in tutti i documenti — «poi le mostriamo man mano che le sistemiamo». Come le STAR: anche nei documenti già scritti, dove la porta la manutenzione d'avvio |
@@ -138,3 +138,10 @@ RadarTowerTechnique con una migrazione».
   dalla pagina).
 - **Resta** la lettura delle release vecchie (`TorreRadar.Filtra` e `AirportRadarTowerView.Technique`): il testo di
   quelle release sta nella loro fotografia, non nella colonna.
+
+## 9. 21 ottobre: la tecnica nasce aperta (S124)
+
+Il committente: «nelle vIPI e SOP vorrei che la sezione tecniche operative sia aperta di default». La tecnica operativa
+esce da `SectionCatalog.InitiallyCollapsedKeys`: si apre come le altre sotto-sezioni, nel documento e nell'editor. Chiusa
+aveva senso per un testo lungo fisso; ora è fatta di blocchi (§7), scritti per essere letti. `SectionNode` continua a
+chiedere al catalogo, per la prossima sotto-sezione che lo vorrà.

@@ -31,9 +31,9 @@ else if (depth <= 0)
 }
 else
 {
-    @* ⚠️ Anche una SOTTO-sezione può nascere chiusa, se lo dice il catalogo: la tecnica operativa della torre radar
-       (18 ottobre 2026, committente). Fino a quel giorno qui c'era `open` e basta — nessuna figlia era nel catalogo
-       delle chiuse. La stampa le apre tutte da sé (`beforeprint`). *@
+    @* ⚠️ Anche una SOTTO-sezione può nascere chiusa, se lo dice il catalogo: lo è stata la tecnica operativa della torre
+       radar dal 18 al 21 ottobre 2026, poi il committente l'ha voluta aperta (S124). La regola resta qui per la prossima.
+       La stampa le apre tutte da sé (`beforeprint`). *@
     <details class="@(depth == 1 ? "coord-sub" : "coord-sub2")" id="@Section.Id"
              open="@(!SectionCatalog.IsInitiallyCollapsed(Section.SectionKey))"
              style="@(Section.IsHidden ? "opacity:.65" : null)">

@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # La lettura di conta-test.sh riprovata sui riepiloghi rotti dei giorni in cui ha dato «MANCA» su una corsa
+      # verde (14-set, 23-set, 21-ott 2026). Prima di tutto: dura un secondo, e una lettura rotta si ferma qui.
+      - run: bash tools/conta-test-prova.sh
       - uses: actions/setup-dotnet@v5
         with:
           # Servono entrambi. I test sono multi-target, e senza il runtime 8 installato l'assembly net8.0

@@ -33,6 +33,7 @@
                         </div>
                         <RichTextArea Rows="2" Value="@blk.Text" Placeholder="@L["Dse_CalloutTextPh"]"
                                       ValueChanged="v => SetText(blk, v)" />
+                        <CalloutAllegatiEditor Json="@blk.CalloutJson" JsonChanged="j => SetCallout(blk, j)" />
                         break;
                     case BlockFormat.Table:
                         @TableEditor(blk)
@@ -90,6 +91,7 @@
     private Task SetKind(ExtraBlock b, CalloutKind k) { b.CalloutKind = k; return Changed(); }
     private Task SetImage(ExtraBlock b, string? json) { b.ImageJson = json; return Changed(); }
     private Task SetAttachment(ExtraBlock b, string? json) { b.AttachmentJson = json; return Changed(); }
+    private Task SetCallout(ExtraBlock b, string json) { b.CalloutJson = json.Length == 0 ? null : json; return Changed(); }
 
     private Task Add(BlockFormat format)
     {
@@ -118,7 +120,10 @@
             case BlockFormat.Callout:
                 <div class="callout @b.CalloutKind.ToString().ToLowerInvariant()">
                     <span class="cic"><Icon Name="@CalloutIcon(b.CalloutKind)" Size="18" /></span>
-                    <div>@MarkdownLite.Render(b.Text)</div>
+                    <div>
+                        @MarkdownLite.Render(b.Text)
+                        @foreach (var a in CalloutJson.Allegati(b.CalloutJson)) { <AttachmentLink Reference="a" /> }
+                    </div>
                 </div>
                 break;
             case BlockFormat.Table:
@@ -329,7 +334,7 @@
                 <tbody>
                     @foreach (var r in rows)
                     {
-                        <tr>@for (var i = 0; i < cols.Count; i++) { <td>@(i < r.Count ? r[i] : "")</td> }</tr>
+                        <tr>@for (var i = 0; i < cols.Count; i++) { <td>@MarkdownLite.SoloLink(i < r.Count ? r[i] : "")</td> }</tr>
                     }
                 </tbody>
             </table>

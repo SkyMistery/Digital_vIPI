@@ -125,8 +125,11 @@ public class DiagnosticaUnGiroAllaVoltaTests : TestContext
         Services.AddSingleton(Proxy<Vipi.Application.Media.IMediaMaintenance>(new Contesto()));
 
         var cut = RenderComponent<DiagnosticaPage>();
-        cut.WaitForAssertion(() => Assert.Contains(cut.FindAll("button"), b => b.TextContent.Contains("Diag_ImpactsRun")),
-            TimeSpan.FromSeconds(3));
+        // 🔴 L'attesa è quella della suite (AttesaDiBunit, 10 s), non un «3 s» scritto qui. Il primo caricamento della
+        // pagina sono una dozzina di letture IN FILA, ognuna con la sua attesa: col pool dei thread occupato dalle altre
+        // classi in parallelo non stava nei 3 s, e la CI è caduta con «Check count: 1, render count: 1» (18 e 21 ottobre
+        // 2026, run 39593831601). Riprodotto in locale occupando il pool per ~5 s: coi 3 s cade sempre, coi 10 passa.
+        cut.WaitForAssertion(() => Assert.Contains(cut.FindAll("button"), b => b.TextContent.Contains("Diag_ImpactsRun")));
 
         var rilancio = cut.FindAll("button").First(b => b.TextContent.Contains("Diag_ImpactsRun")).ClickAsync(new());
         var aggiorna = cut.FindAll("button").First(b => b.TextContent.Contains("Diag_Refresh")).ClickAsync(new());

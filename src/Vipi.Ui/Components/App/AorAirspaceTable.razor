@@ -26,7 +26,10 @@
                     <th class="c-alt">@L["Aor_AirspaceBase"]</th>
                     <th class="c-alt">@L["Aor_AirspaceTop"]</th>
                     <th class="c-cls">@L["Aor_AirspaceClass"]</th>
-                    <th class="c-note">@L["Area_Notes"]</th>
+                    @if (ConNote)
+                    {
+                        <th class="c-note">@L["Area_Notes"]</th>
+                    }
                 </tr>
             </thead>
             <tbody>
@@ -62,20 +65,13 @@
                                 @(row.Class ?? "—")
                             }
                         </td>
-                        <td class="c-note">
-                            @if (Editing)
-                            {
-                                @* `@onchange` e non `@oninput`: si salva quando il campo perde il fuoco (come in
-                                   `MilWorkingAreas`), non un giro di salvataggio per carattere. *@
-                                <textarea class="app-ta in-note" rows="2" value="@row.Note" data-adatta
-                                          @onchange="e => OnSet.InvokeAsync((row.VolumeKey, row.EditedClass, e.Value?.ToString()))"
-                                          placeholder="@L["Area_NotesPlaceholder"]" aria-label="@L["Area_Notes"]"></textarea>
-                            }
-                            else
-                            {
-                                @(string.IsNullOrWhiteSpace(row.Note) ? "—" : row.Note)
-                            }
-                        </td>
+                        @* ⚠️ Niente nota da scrivere dal 21 ottobre 2026 (S123, committente: «dove voglio scrivere testo
+                           seleziono paragrafo»): il testo libero sta nei blocchi della sezione, sotto la mappa. La colonna
+                           resta solo per le release scattate prima, che la portano nella loro fotografia. *@
+                        @if (ConNote)
+                        {
+                            <td class="c-note">@(string.IsNullOrWhiteSpace(row.Note) ? "—" : row.Note)</td>
+                        }
                     </tr>
                 }
             </tbody>
@@ -85,6 +81,9 @@
 
 @code {
     private static readonly string[] Classi = { "A", "B", "C", "D", "E", "F", "G" };
+
+    /// <summary>Vero se una riga porta ancora una nota: solo le release scattate prima del 21 ottobre 2026.</summary>
+    private bool ConNote => Rows.Any(r => !string.IsNullOrWhiteSpace(r.Note));
 
     [Parameter, EditorRequired] public IReadOnlyList<AorAirspaceRow> Rows { get; set; } = Array.Empty<AorAirspaceRow>();
 

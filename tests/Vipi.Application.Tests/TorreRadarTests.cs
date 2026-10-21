@@ -110,11 +110,12 @@ public class TorreRadarTests
         Assert.False(SectionCatalog.Find(profilo, SectionKeys.RadarTowerTechnique)!.BornHidden);
     }
 
-    /// <summary>La tecnica nasce chiusa (committente): è prosa lunga in mezzo all'indice, e il sì/no no.</summary>
+    /// <summary>La tecnica nasce APERTA, come la torre (21 ottobre 2026, committente, S124). Dal 18 al 21 ottobre
+    /// nasceva chiusa.</summary>
     [Fact]
-    public void La_tecnica_nasce_chiusa_e_la_torre_no()
+    public void La_tecnica_e_la_torre_nascono_aperte()
     {
-        Assert.True(SectionCatalog.IsInitiallyCollapsed(SectionKeys.RadarTowerTechnique));
+        Assert.False(SectionCatalog.IsInitiallyCollapsed(SectionKeys.RadarTowerTechnique));
         Assert.False(SectionCatalog.IsInitiallyCollapsed(SectionKeys.RadarTower));
     }
 
