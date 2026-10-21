@@ -182,3 +182,49 @@ prova (sonda nel temporaneo, non nel repo):
 con clic e tasti veri): «Pagine: 72 (6 riconosciute dalla posizione: non hanno testata)», «Rispetto al 2610: 1 con
 un'altra data» che si apre su `ENR 2.1.1.3-1`; `2611\pagine.json` scritto, una pagina per riga. Test: Aip.Pdf 122 (+9),
 Lab 1 362 (+2).
+
+### Passo 7 — l'emendamento: fatto (21 ottobre, via del committente: «vai col passo 7»)
+
+Prima il rischio di §4: **PdfPig copia le pagine identiche** (`Aip.Pdf.PdfPages`, l'unico posto che scrive PDF). Provato
+su una carta solo vettoriale di ENR 6.3 (126 887 tracciati, nessuna lettera), una carta con immagine di AD 2 LIRF e una
+pagina dell'AMDT: dimensioni, rotazione, testo, immagini e tracciati uguali.
+
+- **`Aip.Pdf.Italia.ItalianAmendment`**: la copertina (numero «A12/26», «Data di entrata in vigore/Effective date»; non
+  «Effective date» da solo, che è anche nella testata di ogni pagina — l'ha trovato un test), l'**elenco a due colonne
+  con la posizione delle parole** (la colonna di destra comincia a x 301, la sua intestazione a 388: si taglia a metà
+  fra le intestazioni), il **corpo allineato all'elenco «da inserire»** pagina per pagina (le pagine senza testata dalla
+  posizione; un riferimento o una data diversa, o i conti che non tornano, si dicono), il **GEN 0.4 a tre colonne**: le
+  colonne finiscono con la data, la parte (GEN, ENR, AD) viene dalle intestazioni della colonna perché le righe di GEN ed
+  ENR non la ripetono.
+- **`Vipi.SectorLab.Core.PdfAip.EmendamentoDellAip`**: le cartelle dei cicli stanno **dentro la cartella dei PDF**
+  (`AIP 2611`, `AIP 2612`: un anticipo del passo 8). L'emendamento va al ciclo prima del suo (`AIP 2611` per il 2612) e
+  crea quello nuovo accanto, senza toccare il vecchio; scrive in `AIP 2612.scrivendo` e sposta alla fine; copia l'AMDT in
+  `AIP 2612\AMDT\A12-26.pdf` (D2). **Si ferma prima di scrivere** se l'emendamento non si legge per intero, se non entra a
+  inizio ciclo, se manca la cartella del ciclo prima o c'è già quella nuova, se una pagina da togliere non c'è o ha
+  un'altra data (le pagine senza testata non la dicono e passano). Una pagina da togliere di una sezione mai scaricata
+  non ferma: si dice. Le parti tenute sono ENR 2-6, AD 2, AD 3; il resto dell'emendamento non si tocca.
+- 🔴 **Una sezione che la cartella non ha si scrive solo intera** (tutte le pagine che il GEN 0.4 le dà, o senza GEN 0.4 da
+  1 a N): sul banco, con sei PDF, l'emendamento faceva «LI-AD 2 LICJ 2.pdf» con le sole pagine cambiate. Le sezioni a
+  metà si elencano («vanno scaricate intere») e le loro pagine restano fra le mancanti.
+- **«Leggi»** con le cartelle dei cicli legge `AIP <ciclo>`; senza cartelle di ciclo tutta la cartella, come prima; con
+  altre cartelle di ciclo ma non quella chiesta si rifiuta (leggerebbe un altro ciclo).
+- **Il gesto**, nel riquadro AIP: «Emendamento AIRAC (il PDF dell'AMDT di ENAV)», proposto dal Lab se in Download c'è un
+  PDF col nome «AMDT» (il più recente), e «Applica l'emendamento». Poi il ciclo nuovo si legge da solo nell'AIP espanso,
+  e «Rispetto al 2611» dice le pagine cambiate.
+
+**«Finita quando» misurato**: l'AMDT A12/26 vero sugli 851 PDF del 2611 (in una cartella di prova col 2611 collegato, che
+non si è toccato: 851 file prima e dopo), in 177 s:
+- letto: 584 pagine da togliere, 602 da inserire, 602 nel corpo nello stesso ordine e con le stesse date, 4 vuote
+  (ENR 6.3-3/5/7/11) dalla posizione, il GEN 0.4 con 7 856 pagine, **zero problemi**;
+- `AIP 2612`: 56 PDF riscritti, 795 copiati, **SICILIA CTA** nuova (`ENR\ENR 2.1.1 FIR, UIR, TMA\LI-ENR 2.1.1.4.9.pdf`),
+  508 pagine tolte, 526 messe, 76 pagine di GEN, ENR 0-1, AD 0-1 lasciate;
+- **col GEN 0.4: zero date diverse, zero pagine in più, 14 mancanti**: le pagine d'introduzione di ENR 3.1, 3.3, 3.4,
+  4.2, 4.3, 5 e 5.4, mai scaricate (due ciascuna);
+- controprova: la cartella 2612 riletta da capo, 7 346 pagine, zero segnalazioni dell'indice.
+
+**Sul banco** (1400 px, sei PDF del 2611 in `pdf-aip\AIP 2611`, percorso scritto e tasto premuto con clic e tasti veri):
+«AIP 2611 → AIP 2612, 38 pagine tolte e 180 messe», le 39 sezioni a metà elencate, poi da sola la lettura del 2612:
+«Rispetto al 2611: 34 con un'altra data, 142 nuove, 0 tolte»; il campo del ciclo passa a 2612. Il campo dell'emendamento
+era già proposto: in Download c'è un altro `AMDT.pdf`, del 18 ottobre. ⚠️ Non provato a occhio: una carta riscritta
+aperta in un lettore di PDF (qui non c'è un programma che disegni le pagine) — sta nelle prove a mano. Test: Aip.Pdf 128
+(+6), Lab 1 378 (+16).

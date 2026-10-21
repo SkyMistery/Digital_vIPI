@@ -88,6 +88,72 @@
                 </button>
             }
 
+            @if (Lab.CartellaDeiPdf is not null)
+            {
+                <div data-emendamento>
+                    <label class="lab-campo-in-colonna lab-nota">
+                        Emendamento AIRAC (il PDF dell'AMDT di ENAV)
+                        <input class="lab-campo" value="@_amdt" data-campo="amdt" placeholder="D:\…\AMDT.pdf"
+                               @onchange="e => _amdt = e.Value?.ToString()" />
+                    </label>
+                    <button type="button" class="lab-tasto" data-tasto="applica-emendamento"
+                            disabled="@(Lab.StaApplicandoLEmendamento || Lab.StaLeggendoLAip || string.IsNullOrWhiteSpace(_amdt))"
+                            title="Crea la cartella del ciclo nuovo accanto a quella del ciclo prima, con le pagine dell'emendamento al loro posto; poi la legge nell'AIP espanso"
+                            @onclick="ApplicaLEmendamento">
+                        @(Lab.StaApplicandoLEmendamento ? "Sto applicando…" : "Applica l'emendamento")
+                    </button>
+                    @if (Lab.UltimoEmendamento is { } em)
+                    {
+                        @if (!em.Fatto)
+                        {
+                            <details data-emendamento-fermo open>
+                                <summary class="lab-avviso-breve">Emendamento @(em.Numero ?? "") non applicato: @em.Bloccanti.Count motivi</summary>
+                                <ul class="lab-elenco-lotto">
+                                    @foreach (var b in em.Bloccanti.Take(50))
+                                    {
+                                        <li class="lab-nota">@b</li>
+                                    }
+                                </ul>
+                            </details>
+                        }
+                        else
+                        {
+                            <p class="lab-nota" data-emendamento-fatto>Emendamento @em.Numero (in vigore dal @em.InVigore?.ToString("d MMM yyyy", Cultura)):
+                                <strong>AIP @em.CicloPrima → AIP @em.CicloNuovo</strong>, @em.PagineTolte pagine tolte e @em.PagineMesse messe;
+                                @em.FileRiscritti PDF riscritti, @em.FileCopiati uguali@(em.FileNuovi.Count > 0 ? $", nuovi: {string.Join(", ", em.FileNuovi.Select(Path.GetFileName))}" : "")@(em.FileTolti.Count > 0 ? $", tolti: {string.Join(", ", em.FileTolti.Select(Path.GetFileName))}" : "").
+                                @(em.PagineFuoriDalleParti > 0 ? $"{em.PagineFuoriDalleParti} pagine di GEN, ENR 0-1, AD 0-1 non toccate." : "")</p>
+                            @if (em.SezioniNuoveNonScritte.Count > 0)
+                            {
+                                <p class="lab-nota" data-emendamento-non-scritte>Di @em.SezioniNuoveNonScritte.Count sezioni che la cartella non ha l'emendamento
+                                    porta solo alcune pagine: non scritte (vanno scaricate intere): @string.Join(", ", em.SezioniNuoveNonScritte.Take(60))@(em.SezioniNuoveNonScritte.Count > 60 ? "…" : "").</p>
+                            }
+                            @if (!em.Controllato)
+                            {
+                                <p class="lab-avviso-breve">Nell'emendamento non c'è il GEN 0.4: la cartella nuova non si è potuta controllare.</p>
+                            }
+                            else
+                            {
+                                <details data-emendamento-controllo>
+                                    <summary class="lab-nota">Col GEN 0.4: mancano @em.Mancano.Count pagine, @em.DataDiversa.Count con un'altra data, @em.InPiu.Count in più</summary>
+                                    @if (em.Mancano.Count > 0)
+                                    {
+                                        <p class="lab-nota">Mancano (da scaricare): @string.Join(" · ", em.Mancano.Take(300))</p>
+                                    }
+                                    @if (em.DataDiversa.Count > 0)
+                                    {
+                                        <p class="lab-nota">Data diversa: @string.Join(" · ", em.DataDiversa.Take(300))</p>
+                                    }
+                                    @if (em.InPiu.Count > 0)
+                                    {
+                                        <p class="lab-nota">In più: @string.Join(" · ", em.InPiu.Take(300))</p>
+                                    }
+                                </details>
+                            }
+                        }
+                    }
+                </div>
+            }
+
             @if (Lab.UltimoAipEspanso is { } esito)
             {
                 <div data-esito-aip>
@@ -205,6 +271,7 @@
         Lab.Cambiata += Aggiorna;
         _ciclo = Lab.CicloDiOggi;
         _pdf = Lab.PdfDellAip;
+        _amdt = Lab.EmendamentoInDownload;
         await Lab.RileggiIlRepoDellAipAsync();
     }
 
@@ -250,6 +317,16 @@
     }
 
     private async Task Leggi() => _rifiuto = await Lab.LeggiLAipAsync(_ciclo) ? null : Lab.Rifiuto;
+
+    private string? _amdt;
+
+    private async Task ApplicaLEmendamento()
+    {
+        _rifiuto = await Lab.ApplicaLEmendamentoAsync(_amdt) ? null : Lab.Rifiuto;
+        _pdf = Lab.PdfDellAip;
+        if (Lab.UltimoEmendamento is { Fatto: true } em)
+            _ciclo = em.CicloNuovo;
+    }
 
     private static readonly System.Globalization.CultureInfo Cultura = System.Globalization.CultureInfo.GetCultureInfo("it-IT");
 

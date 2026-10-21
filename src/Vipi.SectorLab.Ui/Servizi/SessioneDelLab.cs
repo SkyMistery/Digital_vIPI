@@ -4670,7 +4670,10 @@ public sealed class SessioneDelLab
                 Core.PdfAip.RepoDellAip.MettiIlGitIgnore(espanso);
             }
 
-            var file = Core.PdfAip.PdfDellAip.Elenco(pdf);
+            // Con le cartelle dei cicli (AIP 2611, AIP 2612: passo 7) si leggono i PDF del ciclo scelto, non tutti.
+            if (Core.PdfAip.EmendamentoDellAip.CartellaDaLeggere(pdf, nome) is not { } daLeggere)
+                return Rifiuta($"Nella cartella dei PDF ci sono i cicli {string.Join(", ", Core.PdfAip.EmendamentoDellAip.CicliNellaCartella(pdf))}, non il {nome}.");
+            var file = Core.PdfAip.PdfDellAip.Elenco(daLeggere);
             var esito = await Task.Run(() => Core.PdfAip.AipEspanso.Leggi(file, espanso, nome)).ConfigureAwait(false);
             Registro.Scrivi("aip", $"AIP espanso {nome}: {esito.Letti.Count} PDF letti su {esito.Pdf}, {esito.Quanti()}, {esito.Problemi.Count} segnalazioni{(esito.CorrezioniInParole() is { } c ? ", correzioni: " + c : "")} → {esito.Scritto}");
             UltimoAipEspanso = esito;
@@ -4694,6 +4697,63 @@ public sealed class SessioneDelLab
             StaLeggendoLAip = false;
             Avvisa();
         }
+    }
+
+    /// <summary>Com'è andato l'ultimo «Applica l'emendamento».</summary>
+    public Core.PdfAip.EsitoDellEmendamento? UltimoEmendamento { get; private set; }
+
+    /// <summary>Sta applicando un emendamento.</summary>
+    public bool StaApplicandoLEmendamento { get; private set; }
+
+    /// <summary>Il PDF di un emendamento in Download (il più recente col nome «AMDT»), da proporre nel campo; null se non c'è.</summary>
+    public string? EmendamentoInDownload =>
+        Directory.Exists(Download)
+            ? new DirectoryInfo(Download).EnumerateFiles("*.pdf", SearchOption.TopDirectoryOnly)
+                .Where(f => f.Name.Contains("AMDT", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault()?.FullName
+            : null;
+
+    /// <summary>
+    /// «Applica l'emendamento» (carta «L'AIP intero e gli emendamenti», passo 7): la cartella del ciclo nuovo dal PDF
+    /// dell'AMDT AIRAC, accanto a quella del ciclo prima; poi il ciclo nuovo nell'AIP espanso, con le pagine cambiate.
+    /// </summary>
+    public async Task<bool> ApplicaLEmendamentoAsync(string? percorso)
+    {
+        if (StaApplicandoLEmendamento || StaLeggendoLAip)
+            return false;
+        if (CartellaDeiPdf is not { } pdf)
+            return Rifiuta("Manca la cartella dei PDF dell'AIP: sceglila nelle Impostazioni.");
+        var amdt = percorso?.Trim().Trim('"');
+        if (string.IsNullOrEmpty(amdt) || !File.Exists(amdt))
+            return Rifiuta("Scrivi il percorso del PDF dell'emendamento: l'AIP AIRAC AMDT scaricato da ENAV.");
+
+        StaApplicandoLEmendamento = true;
+        Avvisa();
+        Core.PdfAip.EsitoDellEmendamento esito;
+        try
+        {
+            esito = await Task.Run(() => Core.PdfAip.EmendamentoDellAip.Applica(pdf, amdt)).ConfigureAwait(false);
+            UltimoEmendamento = esito;
+            Registro.Scrivi("aip", esito.Fatto
+                ? $"emendamento {esito.Numero}: AIP {esito.CicloPrima} → AIP {esito.CicloNuovo}, {esito.PagineTolte} pagine tolte, {esito.PagineMesse} messe; GEN 0.4: mancano {esito.Mancano.Count}, data diversa {esito.DataDiversa.Count}, in più {esito.InPiu.Count}"
+                : $"emendamento {esito.Numero ?? amdt}: fermo, {esito.Bloccanti.Count} motivi; il primo: {esito.Bloccanti[0]}");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"L'emendamento non si applica: {e.Message}");
+        }
+        finally
+        {
+            StaApplicandoLEmendamento = false;
+            Avvisa();
+        }
+
+        if (!esito.Fatto)
+            return Rifiuta(esito.Bloccanti[0]);
+        Rifiuto = null;
+        // Il ciclo nuovo nell'AIP espanso, subito: «Rispetto al <ciclo prima>» dice le pagine cambiate.
+        return await LeggiLAipAsync(esito.CicloNuovo).ConfigureAwait(false);
     }
 
     /// <summary>

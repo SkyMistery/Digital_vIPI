@@ -42,6 +42,59 @@ internal static class PdfAipFinto
         return builder.Build();
     }
 
+    /// <summary>Un PDF di pagine fatte di testi (x, distanza dall'alto, testo); una pagina vuota = nessuna parola.</summary>
+    public static byte[] Pagine(params (double X, double Top, string Testo)[][] pagine)
+    {
+        const double h = 842;
+        var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        foreach (var testi in pagine)
+        {
+            var page = builder.AddPage(595, h);
+            foreach (var (x, top, testo) in testi)
+                page.AddText(testo, 8, new PdfPoint(x, h - top - 8), font);
+        }
+        return builder.Build();
+    }
+
+    /// <summary>La testata di una pagina dell'AIP: riferimento e data.</summary>
+    public static (double, double, string)[] Testata(string riferimento, string data) =>
+        [(450, 17, riferimento), (52, 29, "AIP - Italia AIRAC effective date " + data)];
+
+    /// <summary>
+    /// Un emendamento AIRAC finto con le posizioni dell'A12/26 (carta «L'AIP intero», passo 7): la copertina, l'elenco a due
+    /// colonne (riferimenti a x 24 e 301, date a 135 e 411), le pagine nuove nell'ordine dell'elenco (quelle in
+    /// <paramref name="vuote"/>, contate in <paramref name="metti"/>, senza una parola), e il GEN 0.4 come prima pagina nuova,
+    /// con le righe <paramref name="valide"/> («ENR 4.4 - 1 11 JUN 2026»).
+    /// </summary>
+    public static byte[] Emendamento(string numero, string inVigore, (string R, string D)[] togli, (string R, string D)[] metti, string[] valide, params int[] vuote)
+    {
+        var elenco = new List<(double, double, string)> { (101, 29, "PAGINE DA DISTRUGGERE"), (388, 29, "PAGINE DA INSERIRE") };
+        for (var i = 0; i < Math.Max(togli.Length, metti.Length + 1); i++)
+        {
+            var top = 56.0 + 14 * i;
+            if (i < togli.Length) elenco.AddRange([(24, top, togli[i].R), (135, top, togli[i].D)]);
+            // La prima riga a destra è il GEN 0.4.
+            var m = i == 0 ? ("GEN 0.4 - 1", inVigore) : i - 1 < metti.Length ? metti[i - 1] : default;
+            if (m.Item1 is not null) elenco.AddRange([(301, top, m.Item1), (411, top, m.Item2)]);
+        }
+        var gen04 = new List<(double, double, string)>(Testata("GEN 0.4 - 1", inVigore));
+        for (var i = 0; i < valide.Length; i++)
+        {
+            var riga = valide[i];
+            gen04.Add((26, 75 + 12 * i, riga[..^12].TrimEnd()));
+            gen04.Add((120, 75 + 12 * i, riga[^11..]));
+        }
+        var pagine = new List<(double, double, string)[]>
+        {
+            new[] { (300.0, 64.0, $"({numero})"), (60.0, 200.0, "Data di entrata in vigore/Effective date"), (60.0, 214.0, inVigore) },
+            elenco.ToArray(),
+            gen04.ToArray(),
+        };
+        pagine.AddRange(metti.Select((m, i) => vuote.Contains(i) ? [] : Testata(m.R, m.D)));
+        return Pagine([.. pagine]);
+    }
+
     /// <summary>
     /// Un PDF di sola testata (una sezione che l'importer non legge ancora, o una carta): <paramref name="pagine"/> pagine
     /// «<paramref name="sezione"/> - k» con la data; quelle in <paramref name="vuote"/> senza una parola (ENR 6.3 nel 2611).
