@@ -315,7 +315,8 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
         Assert.False(_lab.SezioneViva(SezioneDelConfronto.Punti));
         await pagina.InvokeAsync(() => pagina.Find("[data-sezione='punti']").Click());
         pagina.WaitForAssertion(() => Assert.True(_lab.SezioneViva(SezioneDelConfronto.Punti)));
-        Assert.NotEmpty(pagina.FindAll("[data-gesti-della-sezione]"));
+        // La sezione è viva prima che la pagina si ridisegni: anche i gesti si aspettano (cadeva una volta su tre, 21 ottobre).
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-gesti-della-sezione]")));
     }
 
     private const string Apt = "SectorFiles/Include/IT/NAVAIDS/APT.fix";
