@@ -68,7 +68,7 @@ public interface IAirportRepository : IAirportProfileReader
     /// <summary>Scrive (o cancella, con <c>null</c>) i minimi LVP dello scalo: al massimo una riga.</summary>
     Task SaveLvpAsync(string icao, LvpRow? row, CancellationToken ct = default);
 
-    /// <summary>Scrive la torre radar dello scalo; <c>null</c> = «non indicato», e porta via anche la tecnica.</summary>
+    /// <summary>Scrive la torre radar dello scalo (il sì/no); <c>null</c> = «non indicato».</summary>
     Task SaveRadarTowerAsync(string icao, RadarTowerRow? row, CancellationToken ct = default);
     /// <summary>Salva le sole procedure MANUALI dello scalo <b>di quel verso</b> (IsImported=false):
     /// sostituisce l'intera lista manuale di quel verso, non tocca le importate né l'altro verso.</summary>

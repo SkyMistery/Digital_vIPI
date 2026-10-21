@@ -1,3 +1,5 @@
+using Vipi.Domain;
+
 namespace Vipi.Application.Content;
 
 /// <summary>
@@ -5,19 +7,22 @@ namespace Vipi.Application.Content;
 /// (<c>null</c> dove la si porta) è «nessuno l'ha detto», e non vale «senza radar».
 /// </summary>
 /// <param name="Equipped">La torre è dotata di radar.</param>
-/// <param name="Technique">La tecnica operativa dello scalo, testo a righe. Si mostra solo con
-/// <paramref name="Equipped"/> vero, ma resta anche quando è falso: chi sbaglia il sì/no non perde il testo.</param>
-public sealed record RadarTowerRow(bool Equipped, string? Technique);
+/// <remarks>
+/// ⚠️ Dal 21 ottobre 2026 la riga è il solo sì/no: la tecnica operativa è una sezione a blocchi del documento
+/// (committente: «non ci deve essere un paragrafo fisso», solo paragrafi, callout… come nel resto).
+/// </remarks>
+public sealed record RadarTowerRow(bool Equipped);
 
 /// <summary>
-/// La sezione «Torre radar» e la sua figlia «Tecnica operativa», nella forma che la release congela.
-/// <para>⚠️ <b>Una vista per le due sezioni</b>, congelata una volta sola sotto <see cref="SectionKeys.RadarTower"/>:
-/// la figlia non ha una derivazione sua, come le soglie delle piste (<see cref="SectionKeys.RunwayThresholds"/>). Con
-/// due catture il sì/no e la tecnica potrebbero venire da due cicli diversi, uno sotto l'altro.</para>
+/// La sezione «Radar di torre», nella forma che la release congela.
 /// </summary>
 /// <param name="Equipped"><c>null</c> = non indicato.</param>
-/// <param name="Technique">La tecnica operativa; vuota = non ancora scritta.</param>
-public sealed record AirportRadarTowerView(bool? Equipped, string? Technique)
+/// <param name="Technique">
+/// ⚠️ <b>Solo nelle release scattate prima del 21 ottobre 2026</b>, quando la tecnica operativa era un testo a righe
+/// dell'anagrafica congelato qui. Da allora è una sezione a blocchi e questo campo nasce sempre vuoto: resta perché
+/// quelle release si leggano come sono uscite (<see cref="TorreRadar.Filtra"/> ne fa un paragrafo).
+/// </param>
+public sealed record AirportRadarTowerView(bool? Equipped, string? Technique = null)
 {
     public static AirportRadarTowerView Empty { get; } = new(null, null);
 }
@@ -38,12 +43,42 @@ public static class TorreRadar
     ///
     /// <para>⚠️ Anche quando il dato <b>non è indicato</b>: la tecnica di una torre di cui non si sa se ha il radar
     /// sarebbe una risposta a una domanda che il documento non ha ancora fatto.</para>
+    ///
+    /// <para>⚠️ E con la torre radar, su una release scattata prima del 21 ottobre 2026, la tecnica di allora: il
+    /// testo a righe congelato nella vista (<see cref="AirportRadarTowerView.Technique"/>) diventa un paragrafo della
+    /// sezione, se la sezione non ha blocchi scritti. In quelle release la sezione porta solo il segnaposto delle
+    /// sezioni rese dalla pagina, e senza questo passo la pagina pubblica perderebbe il testo fino alla
+    /// pubblicazione seguente.</para>
     /// </summary>
     public static IReadOnlyList<SectionView> Filtra(IReadOnlyList<SectionView> sezioni, AirportRadarTowerView vista)
     {
-        if (vista.Equipped == true || !Contiene(sezioni)) return sezioni;
-        return Senza(sezioni);
+        if (!Contiene(sezioni)) return sezioni;
+        if (vista.Equipped != true) return Senza(sezioni);
+        return string.IsNullOrWhiteSpace(vista.Technique) ? sezioni : ConTecnicaDiPrima(sezioni, vista.Technique.Trim());
     }
+
+    private static bool Tecnica(SectionView s) =>
+        string.Equals(s.SectionKey, SectionKeys.RadarTowerTechnique, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Vero se il blocco porta qualcosa: il segnaposto (né testo né JSON) non conta.</summary>
+    private static bool Scritto(BlockView b) =>
+        !string.IsNullOrWhiteSpace(b.Body) || !string.IsNullOrWhiteSpace(b.BodyJson);
+
+    private static IReadOnlyList<SectionView> ConTecnicaDiPrima(IReadOnlyList<SectionView> sezioni, string testo) =>
+        sezioni.Select(s =>
+        {
+            var figlie = Contiene(s.Children) ? ConTecnicaDiPrima(s.Children, testo) : s.Children;
+            if (!Tecnica(s) || s.Blocks.Any(Scritto))
+                return ReferenceEquals(figlie, s.Children) ? s : AudienceFilter.ConFigli(s, figlie);
+            return new SectionView
+            {
+                Id = s.Id, Title = s.Title, Depth = s.Depth, SectionKey = s.SectionKey, IsHidden = s.IsHidden,
+                BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition, LeadSentence = s.LeadSentence,
+                Audience = s.Audience, Children = figlie,
+                // Un id che nessun blocco vero ha (sono positivi): il paragrafo non esiste nel database.
+                Blocks = new[] { new BlockView { Id = -1, Order = 1, Format = BlockFormat.Prose, State = RenderState.Expanded, Body = testo } },
+            };
+        }).ToList();
 
     /// <summary>
     /// L'ancora della sezione «Radar di torre» da aprire dalla vista live (committente, 18 ottobre 2026): solo se la

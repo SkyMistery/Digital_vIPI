@@ -94,7 +94,8 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
             {
                 "runwayrules" => AirportSectionProjection.Rules(data),
                 "lvp" => AirportSectionProjection.Lvp(data),
-                // Il sì/no E la tecnica operativa: la figlia non ha una cattura sua (vedi AirportRadarTowerView).
+                // Il solo sì/no: la tecnica operativa è fatta di blocchi dal 21 ottobre 2026, e la release li fotografa
+                // col documento.
                 SectionKeys.RadarTower => AirportSectionProjection.RadarTower(data),
                 "transition" => AirportSectionProjection.Transition(data),
                 "runways" => AirportSectionProjection.Runways(data),

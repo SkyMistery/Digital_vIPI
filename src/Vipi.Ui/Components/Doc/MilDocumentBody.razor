@@ -114,7 +114,6 @@
             case SectionKeys.RunwayThresholds: <MilRunwayThresholds View="Doc.Derivate.Runways" />; break;
             @* La torre radar: stessa sezione della vIPI civile, stesso componente, stesso dato d'anagrafica. *@
             case SectionKeys.RadarTower: <AirportRadarTower View="Doc.Derivate.RadarTower" />; break;
-            case SectionKeys.RadarTowerTechnique: <AirportRadarTower View="Doc.Derivate.RadarTower" Tecnica="true" />; break;
             @* Le SID (10 settembre 2026, committente). Stesso componente della vIPI civile e stessa
                derivazione: il dato sta nell'ANAGRAFICA dello scalo, non nel documento — la vIPI civile è
                solo la porta di scrittura. `MilMemberLoader` le calcolava già dentro `AirportDerived` e le

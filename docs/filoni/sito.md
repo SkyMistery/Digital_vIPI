@@ -2809,6 +2809,32 @@
   - ⚠️ Visto in passata, NON toccato (è del Lab): il lock di `src/Vipi.SectorLab.Core` porta ancora tutto il grafo
     di `vipi.infrastructure`, che il progetto non referenzia (solo Sectorfile e Application): lock vecchio dal
     commit `64a33fb0`. Il `--locked-mode` non se ne accorge; una rigenerazione lo accorcerebbe da 38 a 7 voci.
+- ✅ **S118** (21-ott, chiesto dal committente) la **tecnica operativa** del «Radar di torre» è fatta di **blocchi**:
+  «non ci deve essere un paragrafo fisso, ma ci deve essere la possibilità solo di inserire paragrafi, callout ecc,
+  come per il resto. Per migrare i dati già inseriti mettili in un paragrafo». Carta
+  `docs/feature/2026-10-18-torre-radar.md` §7.
+  - **Catalogo**: `radartower:technique` passa da resa dalla pagina a blocchi; il padre resta della pagina col solo
+    sì/no. Editor e lettura sono quelli comuni (paragrafo, callout, tabella, immagine, allegato), e i blocchi passano
+    dal traduttore. `RadarTowerRow` è il solo sì/no; tolti l'area di testo, il tetto di 8000 e la conferma del
+    ritorno a «non indicato» (non porta via più niente). Senza il «sì» la tecnica resta fuori dal documento come
+    prima, i blocchi tornano col «sì», e l'editor del sì/no lo dice.
+  - **Trasloco**: `IDocumentMaintenance.TecnicaRadarNeiBlocchiAsync` all'avvio, dopo `AddMissingCatalogSections`:
+    via i segnaposto (in editor sarebbero tabelle senza colonne), il testo dell'anagrafica in **un paragrafo** nella
+    vIPI e nel vSOP dello scalo (ultima versione e pubblicata corrente), colonna svuotata. **Migrazione: no** — la
+    colonna `Airports.RadarTowerTechnique` resta e non si scrive più; si toglie in una consegna dopo questa.
+  - **Release già uscite**: la pagina pubblica legge la fotografia, dove il testo sta nella vista congelata:
+    `TorreRadar.Filtra` ne fa un paragrafo se la sezione non ha blocchi scritti, fino alla pubblicazione seguente.
+  - **Codice comune**: `Vipi.Application` (catalogo, `TorreRadar.cs`, viste, servizio d'anagrafica,
+    `SezioniDaScrivere` solo commento). Niente `deploy/`. Toccati i due `.resx`.
+  - **Test**: App 3415 → 3418, Infra 2232 → 2235, Ui 2100 → 2099 (Hosting 93, Domain 167 invariati), sui due
+    framework. I test nuovi del trasloco e delle release vecchie non compilano sul codice di prima (metodo e
+    comportamento non c'erano).
+  - **A schermo**, host locale su un database nuovo con LIRQ inventato, sì e un testo a due righe nell'anagrafica
+    come l'avrebbe lasciato la 1.68.0, più un segnaposto nella sezione: al riavvio il registro dice «3 righe
+    toccate», nell'editor la tecnica è un paragrafo con le due righe e «+ Block» offre paragrafo, callout, tabella,
+    immagine, allegato; aggiunto un callout; col «no» compare la frase; l'anteprima bozza mostra il verde, il
+    paragrafo con l'a capo e il callout. **Non visti**: una release vecchia letta dopo l'aggiornamento (provata nei
+    test), il vSOP, l'unione, il telefono.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

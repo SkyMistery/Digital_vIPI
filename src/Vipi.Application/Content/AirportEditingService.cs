@@ -57,7 +57,7 @@ public interface IAirportEditingService
     /// <summary>Scrive i minimi LVP dello scalo; <c>null</c> li toglie. ACC-gated come le altre scritture.</summary>
     Task SaveLvpAsync(string icao, LvpRow? row, CancellationToken ct = default);
 
-    /// <summary>Scrive la torre radar dello scalo (sì/no e tecnica operativa); <c>null</c> = «non indicato».
+    /// <summary>Scrive la torre radar dello scalo (il sì/no); <c>null</c> = «non indicato».
     /// Stessa guardia delle altre scritture dell'anagrafica.</summary>
     Task SaveRadarTowerAsync(string icao, RadarTowerRow? row, CancellationToken ct = default);
     /// <summary>Le procedure manuali di un verso (SID o STAR): sostituiscono l'intera lista manuale di quel verso.</summary>
@@ -259,12 +259,6 @@ public sealed class AirportEditingService : IAirportEditingService
     public async Task SaveRadarTowerAsync(string icao, RadarTowerRow? row, CancellationToken ct = default)
     {
         await EnsureLockMineAsync(icao, ct);
-        // Il tetto detto prima del database, come per la nota delle LVP (U-194): la colonna non ha misura apposta.
-        var tecnica = row?.Technique?.Trim().Length ?? 0;
-        if (tecnica > Vipi.Domain.Entities.Airport.TecnicaRadarMassima)
-            throw new ValidationException(Lingua(
-                $"La tecnica operativa: {tecnica} caratteri, il massimo è {Vipi.Domain.Entities.Airport.TecnicaRadarMassima}.",
-                $"The operating technique: {tecnica} characters, the maximum is {Vipi.Domain.Entities.Airport.TecnicaRadarMassima}."));
         await _repo.SaveRadarTowerAsync(Norm(icao), row, ct);
     }
 
