@@ -89,7 +89,7 @@ public sealed class PdfAipTests : IDisposable
     {
         var pdf = Cartella("AIP");
         File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("09 JUL 2026", "LI R901 - Prova Uno", "LI R902 - Prova Due"));
-        File.WriteAllText(Path.Combine(pdf, "LI-ENR 6.pdf"), "una slice futura");
+        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 6.pdf"), PdfAipFinto.Testate("ENR 6", "27 JUL 2023", 2));
         File.WriteAllText(Path.Combine(pdf, "LI-ENR 5.1.3.pdf"), "questo non è un PDF");
         var espanso = Path.Combine(_radice, "espanso");
 
@@ -103,6 +103,9 @@ public sealed class PdfAipTests : IDisposable
         Assert.Equal(2, esito.Aree);
         Assert.Equal([(new DateOnly(2026, 7, 9), 1)], esito.Date);
         Assert.Empty(esito.Problemi);
+        // L'indice ha anche le pagine del PDF che l'importer non legge ancora.
+        Assert.Equal(3, esito.Pagine);
+        Assert.Null(esito.Cambiate);
 
         var doc = AipJson.Deserialize(File.ReadAllText(esito.Scritto));
         Assert.Equal(("LI", "2611", new DateOnly(2026, 10, 29)), (doc.State, doc.Airac, doc.Effective));
@@ -158,6 +161,59 @@ public sealed class PdfAipTests : IDisposable
 
         File.WriteAllText(correzioni, AipCorrections.Serialize(new AipCorrectionFile { State = "LF" }));
         Assert.Throws<InvalidDataException>(() => AipEspanso.Leggi(PdfDellAip.Elenco(pdf), espanso, "2611"));
+    }
+
+    // Carta «L'AIP intero», passo 1: l'indice delle pagine accanto al modello, le pagine vuote dalla posizione, la pagina
+    // di un ciclo dopo segnalata.
+    [Fact]
+    public void LAipEspanso_LIndiceDellePagine()
+    {
+        var pdf = Cartella("AIP");
+        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 6.3.pdf"), PdfAipFinto.Testate("ENR 6.3", "03 SEP 2026", 4, 3));
+        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 4.5.pdf"), PdfAipFinto.Testate("ENR 4.5", "26 NOV 2026", 1));
+        var espanso = Path.Combine(_radice, "espanso");
+
+        var esito = AipEspanso.Leggi(PdfDellAip.Elenco(pdf), espanso, "2611");
+
+        Assert.Equal(5, esito.Pagine);
+        Assert.Equal(1, esito.PagineDallaPosizione);
+        var dopo = Assert.Single(esito.Problemi, p => p.Problema.Kind == Aip.Pdf.Italia.ImportIssueKind.PageAfterCycle);
+        Assert.Equal(("LI-ENR 4.5.pdf", 1, "ENR 4.5-1 2026-11-26"), (dopo.File, dopo.Problema.Page, dopo.Problema.Detail));
+        var indice = IndiceDellePagine.Leggi(File.ReadAllText(IndiceDellePagine.File(espanso, "2611")));
+        Assert.Equal(["ENR 4.5-1", "ENR 6.3-1", "ENR 6.3-2", "ENR 6.3-3", "ENR 6.3-4"], indice.Select(p => p.Reference));
+        Assert.True(indice[3].ByPosition);
+        Assert.Null(indice[3].Effective);
+        Assert.Equal(new DateOnly(2026, 9, 3), indice[4].Effective);
+        // Una pagina per riga: in git la differenza fra due cicli è l'elenco delle pagine cambiate.
+        Assert.Equal(5 + 2, File.ReadAllLines(IndiceDellePagine.File(espanso, "2611")).Length);
+    }
+
+    [Fact]
+    public void LAipEspanso_LePagineRispettoAlCicloPrima()
+    {
+        var pdf = Cartella("AIP");
+        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 6.3.pdf"), PdfAipFinto.Testate("ENR 6.3", "03 SEP 2026", 2));
+        var espanso = Path.Combine(_radice, "espanso");
+        // Il 2610 senza indice: solo il modello, che cita la pagina 1 con un'altra data (l'espanso «2610» del 21 ottobre).
+        Directory.CreateDirectory(Path.Combine(espanso, "2610"));
+        File.WriteAllText(AipEspanso.File(espanso, "2610"),
+            """{"airspaces":[{"designator":"X","page":{"reference":"ENR 6.3-1","effective":"2026-06-11"}},{"designator":"Y","page":{"reference":"ENR 6.3-2","effective":"2026-09-03"}}]}""");
+
+        var dalModello = AipEspanso.Leggi(PdfDellAip.Elenco(pdf), espanso, "2611").Cambiate!;
+
+        Assert.Equal(("2610", false), (dalModello.Ciclo, dalModello.Completo));
+        Assert.Equal(["ENR 6.3-1"], dalModello.ConAltraData);
+
+        // Il 2612, letto dopo il 2611 che l'indice ce l'ha: nuove e tolte si sanno.
+        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 6.3.pdf"), PdfAipFinto.Testate("ENR 6.3", "26 NOV 2026", 1));
+        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 4.5.pdf"), PdfAipFinto.Testate("ENR 4.5", "26 NOV 2026", 1));
+
+        var dallIndice = AipEspanso.Leggi(PdfDellAip.Elenco(pdf), espanso, "2612").Cambiate!;
+
+        Assert.Equal(("2611", true), (dallIndice.Ciclo, dallIndice.Completo));
+        Assert.Equal(["ENR 6.3-1"], dallIndice.ConAltraData);
+        Assert.Equal(["ENR 4.5-1"], dallIndice.Nuove);
+        Assert.Equal(["ENR 6.3-2"], dallIndice.Tolte);
     }
 
     [Fact]

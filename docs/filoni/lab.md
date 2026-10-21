@@ -826,6 +826,13 @@ Dalle slice 13-19 (6 ottobre):
     `cartella-di-aurora.txt`, `cartella-di-lavoro.txt`…). Il banco **non** passa la cartella di Aurora di base:
     nei suoi campi resta vuota (nell'app è `%APPDATA%\IVAO\AuroraWindows`).
   - Il pannello va emulato a 1400 px (`resize_window`) per vedere la mappa; poi si rimette «desktop».
+  - Rifatto il 21 ottobre (lo scratchpad di prima era stato ripulito): 🔴 il `banco.csproj` vuole
+    `<RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>` come l'app (senza, `blazor.web.js` va a 404 e nessun clic
+    fa niente); il `Program.cs` è `ServerDelLab.Crea(new SegretoDelLab(), cartellaDeiDati: …)`, `StartAsync`,
+    `SessioneDelLab.ApriAsync(copia)`, l'indirizzo d'`Ingresso` nel file. Con l'ambiente di lavoro la copia deve stare
+    **dentro** la cartella di lavoro, e i PDF e l'AIP espanso il Lab li prende dalle sue sottocartelle (`pdf-aip`,
+    `aip-espanso`), non dai `.txt` dei dati. La copia: `git clone -c core.autocrlf=false` di
+    `D:\Programmazione\IVAO_Test\it-aurora-sector-test` (il clone del repo di prova; si legge e basta).
   - 🔴 Il cancello rifiuta GitHub nel browser anche come **testo da scrivere** in un campo del banco: le prese dei repo
     sul banco si provano con un clone locale come «server»; i comandi git veri dal terminale.
   - Si spegne solo per riga di comando: processi con «banco» e la cartella dei dati del banco.

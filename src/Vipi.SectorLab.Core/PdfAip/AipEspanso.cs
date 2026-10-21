@@ -48,6 +48,15 @@ public sealed record EsitoDellAipEspanso(
     /// <summary>Le procedure di AD 2 lette (F7): SID, STAR, transizioni, salite iniziali.</summary>
     public int Procedure { get; init; }
 
+    /// <summary>Le pagine di tutti i PDF della cartella, anche di quelli che l'importer non legge ancora (carta «L'AIP intero», passo 1).</summary>
+    public int Pagine { get; init; }
+
+    /// <summary>Quante pagine si sono riconosciute dalla posizione e non dalla testata.</summary>
+    public int PagineDallaPosizione { get; init; }
+
+    /// <summary>Le pagine rispetto al ciclo prima nell'AIP espanso, o null se prima non c'è niente.</summary>
+    public PagineCambiate? Cambiate { get; init; }
+
     /// <summary>Com'è andata ogni correzione in piedi del file delle correzioni (vuoto se il file non c'è).</summary>
     public IReadOnlyList<CorrectionOutcome> Correzioni { get; init; } = [];
 
@@ -169,11 +178,16 @@ public static class AipEspanso
         var puntiLetti = new List<SignificantPoint>();
         var risolvi = ItalianEnr5Zone.Risolutore(giaLette, puntiLetti);
         var perFile = new Dictionary<string, ImportResult>(StringComparer.Ordinal);
+        // L'indice delle pagine (carta «L'AIP intero», passo 1): di tutti i PDF, anche quelli che l'importer non legge
+        // ancora; ogni PDF si apre una volta sola.
+        var indice = new List<Aip.Pdf.IndexedPage>();
         foreach (var file in pdf.OrderBy(Path.GetFileName, StringComparer.Ordinal))
         {
             try
             {
-                var letto = ItalianAip.ReadFile(file, risolvi);
+                var lette = Aip.Pdf.PdfText.Read(file);
+                indice.AddRange(Aip.Pdf.PageIndex.Of(Path.GetFileName(file), lette));
+                var letto = ItalianAip.ReadFile(file, lette, risolvi);
                 perFile[file] = letto;
                 giaLette.AddRange(letto.Navaids);
                 puntiLetti.AddRange(letto.Points);
@@ -207,8 +221,12 @@ public static class AipEspanso
             smac.AddRange(letto.MinimumAltitudes);
             procedure.AddRange(letto.Procedures);
             pagine.AddRange(letto.Pages);
-            problemi.AddRange(letto.Issues.Select(p => new ProblemaDellImport(nome, p)));
+            // La pagina senza data la dice l'indice, per tutti i file: qui si direbbe due volte.
+            problemi.AddRange(letto.Issues.Where(p => p.Kind != ImportIssueKind.PageWithoutDate).Select(p => new ProblemaDellImport(nome, p)));
         }
+
+        problemi.InsertRange(0, Aip.Pdf.PageIndex.Check(indice, CicloInVigore(ciclo)).Select(p => new ProblemaDellImport(p.File,
+            new ImportIssue(TipoDelProblema(p.Kind), null, p.Position, p.Detail))));
 
         var documento = new AipDocument
         {
@@ -259,10 +277,15 @@ public static class AipEspanso
 
         var scritto = File(espanso, ciclo);
         ScriviAlPosto(scritto, flusso => AipJson.Serialize(flusso, documento));
+        var cambiate = IndiceDellePagine.RispettoAlCicloPrima(espanso, ciclo, indice);
+        ScriviAlPosto(IndiceDellePagine.File(espanso, ciclo), flusso => flusso.Write(System.Text.Encoding.UTF8.GetBytes(IndiceDellePagine.Testo(ciclo, indice))));
 
         var date = pagine.GroupBy(p => p.Effective).OrderBy(g => g.Key).Select(g => (g.Key, g.Count())).ToList();
         return new EsitoDellAipEspanso(ciclo, scritto, pdf.Count, letti, nonAncora, aree.Count, date, problemi, illeggibili)
         {
+            Pagine = indice.Count,
+            PagineDallaPosizione = indice.Count(p => p.ByPosition),
+            Cambiate = cambiate,
             Rotte = rotte.Count,
             Attese = attese.Count,
             Radioassistenze = radioassistenze.Count,
@@ -275,6 +298,17 @@ public static class AipEspanso
             Correzioni = correzioni,
         };
     }
+
+    private static ImportIssueKind TipoDelProblema(Aip.Pdf.PageIndexIssueKind tipo) => tipo switch
+    {
+        Aip.Pdf.PageIndexIssueKind.NoReference => ImportIssueKind.PageWithoutReference,
+        Aip.Pdf.PageIndexIssueKind.NoDate => ImportIssueKind.PageWithoutDate,
+        Aip.Pdf.PageIndexIssueKind.OutOfOrder => ImportIssueKind.PageOutOfOrder,
+        Aip.Pdf.PageIndexIssueKind.MoreSections => ImportIssueKind.FileWithMoreSections,
+        Aip.Pdf.PageIndexIssueKind.Duplicate => ImportIssueKind.PageDuplicate,
+        Aip.Pdf.PageIndexIssueKind.AfterCycle => ImportIssueKind.PageAfterCycle,
+        _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, null),
+    };
 
     // Prima in un file accanto, poi al posto del vecchio: un'interruzione a metà non lascia un file rotto.
     internal static void ScriviAlPosto(string percorso, Action<Stream> scrivi)

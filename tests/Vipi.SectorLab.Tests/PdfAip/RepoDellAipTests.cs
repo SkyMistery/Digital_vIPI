@@ -131,13 +131,13 @@ public sealed class RepoDellAipTests : IDisposable
         File.WriteAllText(Path.Combine(espanso, "2611", "LI-ENR 5.1.2.pdf"), "non va nel repo");
         await lab.RileggiIlRepoDellAipAsync();
         Assert.Equal("aip/2611", lab.StatoDellAip!.Ramo);
-        Assert.Equal([".gitignore", "2611/li.json"], lab.StatoDellAip.Cambiati.Select(c => c.Percorso).Order(StringComparer.Ordinal));
+        Assert.Equal([".gitignore", "2611/li.json", "2611/pagine.json"], lab.StatoDellAip.Cambiati.Select(c => c.Percorso).Order(StringComparer.Ordinal));
         Assert.Equal("AIP 2611: 2 aree da 1 PDF (LI-ENR 5.1.2)", lab.MessaggioDellAip);
 
         Assert.True(await lab.RegistraLAipAsync(lab.MessaggioDellAip), lab.Rifiuto);
         Assert.Empty(lab.StatoDellAip!.Cambiati);
         Assert.Equal("AIP 2611: 2 aree da 1 PDF (LI-ENR 5.1.2)", Esegui(espanso, "log", "-1", "--format=%s").Trim());
-        Assert.Equal(".gitignore\n2611/li.json", Esegui(espanso, "show", "--name-only", "--format=", "HEAD").Trim().Replace("\r", ""));
+        Assert.Equal(".gitignore\n2611/li.json\n2611/pagine.json", Esegui(espanso, "show", "--name-only", "--format=", "HEAD").Trim().Replace("\r", ""));
 
         Assert.True(await lab.MandaLAipAsync(), lab.Rifiuto);
         Assert.Contains("refs/heads/aip/2611", Esegui(Server, "for-each-ref", "--format=%(refname)"), StringComparison.Ordinal);

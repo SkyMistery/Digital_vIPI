@@ -147,4 +147,38 @@ Dopo, fuori da questa carta: AIP SUP ed emendamenti non AIRAC, uno per uno.
 
 ## §6 — Il lavoro
 
-(vuoto: si comincia al via del committente)
+### Passo 1 — l'indice delle pagine e il controllo del ciclo: fatto (21 ottobre)
+
+- **`Aip.Pdf.PageIndex`** (pezzo comune, eAIP): le pagine di un file dalla testata (`PageInfo`); quelle senza testata
+  **dalla posizione**, solo se il file è di una sezione sola e ogni pagina letta sta al posto del suo numero. I
+  controlli della cartella: pagina senza riferimento, senza data (non per quelle dalla posizione), fuori posto, file con
+  più sezioni, riferimento doppio, 🔴 **pagina con una data dopo l'entrata in vigore del ciclo**.
+- `PageInfo.Reference` salta un numero davanti al riferimento (AD 2 LIPX 5-11 nel 2611: «1 AD 2 LIPX 5 - 11»).
+- **«Leggi nell'AIP espanso»** apre ogni PDF una volta sola (`ItalianAip.ReadFile` sulle pagine già lette; chi passa
+  solo il percorso legge come prima, e un file che l'importer non sa leggere non si apre) e fa l'indice di **tutti** i
+  PDF, anche di quelli che l'importer non legge ancora. Le segnalazioni dell'indice stanno con le altre (cinque tipi
+  nuovi; «pagina senza data» la dice solo l'indice, per tutti i file). Un file della cartella che non è un PDF ora si
+  dice «non si apre» anche se l'importer non lo legge ancora.
+- **L'indice si scrive nell'AIP espanso**, `2611\pagine.json`, una pagina per riga. ⚠️ Cambia da §3 («accanto ai
+  PDF»): così è nel repo dell'AIP espanso, e in git la differenza fra due cicli è l'elenco delle pagine cambiate; la
+  cartella dei PDF non è un repo. Per l'emendamento (passo 7) l'indice si rifà comunque sulla cartella.
+- **Le pagine rispetto al ciclo prima**: dal `pagine.json` del ciclo prima (con le nuove e le tolte) o, se non c'è, dalle
+  pagine citate nel suo modello (solo le date diverse). Nel riquadro AIP: «Pagine: 7.328 (6 riconosciute dalla
+  posizione)» e «Rispetto al 2610: 90 con un'altra data», che si apre sull'elenco.
+
+**«Finita quando» misurato** sugli 851 PDF del 2611 (`AIP 2611`), con accanto il `li.json` 2610 dell'AIP espanso di
+prova (sonda nel temporaneo, non nel repo):
+- **7 328 pagine** in 93 s; **6 dalla posizione** (ENR 6.3, le dispari dalla 3 alla 13: nemmeno una parola); il numero
+  di ogni pagina è la sua posizione nel file, ogni file è di una sezione, nessun riferimento doppio, **nessuna pagina
+  dopo il 29 ottobre**: zero segnalazioni dell'indice.
+- **Rispetto al 2610: 90 pagine con un'altra data**: le 81 vecchie di §1, le cambiate col 2611 (ENR 2.1.1.2-17/18,
+  ENR 3.2 L995-1, ENR 4.4-77/78) e quattro che il confronto con `pdftotext` di §1 non aveva visto (AD 2 LICA 1-12/13,
+  LIME 1-17/18).
+- Già oggi l'importer legge **460 PDF su 851**: 1 136 aree, **230 rotte**, 542 attese, 55 radioassistenze, 2 030 punti,
+  11 luci, **45 scali**, 31 pericoli, 244 settori SMAC, 1 774 procedure, con 616 segnalazioni (516 di procedure): materia
+  dei passi 2-6.
+
+**Sul banco** (1400 px, sei PDF del 2611 e il `li.json` 2610 nell'ambiente di prova, ciclo scritto e «Leggi» premuto
+con clic e tasti veri): «Pagine: 72 (6 riconosciute dalla posizione: non hanno testata)», «Rispetto al 2610: 1 con
+un'altra data» che si apre su `ENR 2.1.1.3-1`; `2611\pagine.json` scritto, una pagina per riga. Test: Aip.Pdf 122 (+9),
+Lab 1 362 (+2).

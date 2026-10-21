@@ -13,7 +13,9 @@ public static partial class PageInfo
     [GeneratedRegex(@"AIRAC\s+effective\s+date\s+(?<d>\d{1,2})\s+(?<m>[A-Z]{3})\s+(?<y>\d{4})", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxData();
 
-    [GeneratedRegex(@"^(?<r>(?:GEN|ENR|AD)\s+[0-9][0-9.]*(?:\s+(?:[A-Z]{4}|[A-Z]{1,2}\d{1,4}))?(?:\s+[0-9.]+)?\s*-\s*\d+)\b", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    // Davanti al riferimento può stare un numero della carta sulla stessa riga (AD 2 LIPX 5-11, ciclo 2611: «1 AD 2 LIPX
+    // 5 - 11»): si salta.
+    [GeneratedRegex(@"^(?:\d{1,3}\s+)?(?<r>(?:GEN|ENR|AD)\s+[0-9][0-9.]*(?:\s+(?:[A-Z]{4}|[A-Z]{1,2}\d{1,4}))?(?:\s+[0-9.]+)?\s*-\s*\d+)\b", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxRiferimento();
 
     [GeneratedRegex(@"\s+")]

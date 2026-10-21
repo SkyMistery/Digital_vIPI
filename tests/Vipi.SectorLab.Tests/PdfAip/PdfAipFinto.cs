@@ -41,4 +41,23 @@ internal static class PdfAipFinto
         }
         return builder.Build();
     }
+
+    /// <summary>
+    /// Un PDF di sola testata (una sezione che l'importer non legge ancora, o una carta): <paramref name="pagine"/> pagine
+    /// «<paramref name="sezione"/> - k» con la data; quelle in <paramref name="vuote"/> senza una parola (ENR 6.3 nel 2611).
+    /// </summary>
+    public static byte[] Testate(string sezione, string data, int pagine, params int[] vuote)
+    {
+        const double h = 842;
+        var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        for (var k = 1; k <= pagine; k++)
+        {
+            var page = builder.AddPage(595, h);
+            if (vuote.Contains(k)) continue;
+            page.AddText($"{sezione} - {k}", 8, new PdfPoint(450, h - 47), font);
+            page.AddText("AIP - Italia AIRAC effective date " + data, 8, new PdfPoint(45, h - 62), font);
+        }
+        return builder.Build();
+    }
 }

@@ -93,6 +93,14 @@
                 <div data-esito-aip>
                     <p class="lab-nota">Ciclo @esito.Ciclo: <strong>@esito.Quanti()</strong> da @esito.Letti.Count PDF letti su @esito.Pdf
                         (@esito.NonAncora.Count non ancora: le loro sezioni vengono con le prossime slice) → <code>@esito.Scritto</code></p>
+                    <p class="lab-nota" data-pagine-aip>Pagine: @esito.Pagine.ToString("N0", Cultura)@(esito.PagineDallaPosizione > 0 ? $" ({esito.PagineDallaPosizione} riconosciute dalla posizione: non hanno testata)" : "")</p>
+                    @if (esito.Cambiate is { } cambiate)
+                    {
+                        <details data-pagine-cambiate>
+                            <summary class="lab-nota">Rispetto al @cambiate.Ciclo: @cambiate.ConAltraData.Count con un'altra data@(cambiate.Completo ? $", {cambiate.Nuove.Count} nuove, {cambiate.Tolte.Count} tolte" : " (del " + cambiate.Ciclo + " si sanno solo le pagine lette nel modello)")</summary>
+                            <p class="lab-nota">@string.Join(" · ", cambiate.ConAltraData.Concat(cambiate.Nuove.Select(n => n + " (nuova)")).Concat(cambiate.Tolte.Select(t => t + " (tolta)")).Take(400))</p>
+                        </details>
+                    }
                     @if (esito.CorrezioniInParole() is { } correzioni)
                     {
                         <p class="lab-nota" data-correzioni-aip>Correzioni: @correzioni</p>
@@ -243,6 +251,8 @@
 
     private async Task Leggi() => _rifiuto = await Lab.LeggiLAipAsync(_ciclo) ? null : Lab.Rifiuto;
 
+    private static readonly System.Globalization.CultureInfo Cultura = System.Globalization.CultureInfo.GetCultureInfo("it-IT");
+
     private static string Data(DateOnly? d) =>
         d is { } x ? x.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) : "senza data";
 
@@ -259,6 +269,11 @@
         Aip.Pdf.Italia.ImportIssueKind.Unsupported => "non ancora letto",
         Aip.Pdf.Italia.ImportIssueKind.Route => "rotta",
         Aip.Pdf.Italia.ImportIssueKind.Holding => "attesa",
+        Aip.Pdf.Italia.ImportIssueKind.PageWithoutReference => "pagina senza riferimento",
+        Aip.Pdf.Italia.ImportIssueKind.PageOutOfOrder => "pagina fuori posto",
+        Aip.Pdf.Italia.ImportIssueKind.FileWithMoreSections => "file con più sezioni",
+        Aip.Pdf.Italia.ImportIssueKind.PageDuplicate => "pagina doppia",
+        Aip.Pdf.Italia.ImportIssueKind.PageAfterCycle => "pagina di un ciclo dopo",
         _ => k.ToString(),
     };
 }

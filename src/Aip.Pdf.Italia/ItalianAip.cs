@@ -72,6 +72,21 @@ public enum ImportIssueKind
 
     /// <summary>Una procedura di AD 2 (F7) o un suo tratto che non torna: un punto mancante, un tratto fuori da una procedura. <c>Detail</c> = cosa.</summary>
     Procedure,
+
+    /// <summary>Indice delle pagine (carta «L'AIP intero», passo 1): una pagina senza riferimento, che nemmeno la posizione sa dire.</summary>
+    PageWithoutReference,
+
+    /// <summary>Indice delle pagine: il numero della pagina non è la sua posizione nel file. <c>Detail</c> = il riferimento.</summary>
+    PageOutOfOrder,
+
+    /// <summary>Indice delle pagine: un file con le pagine di più sezioni. <c>Detail</c> = le sezioni.</summary>
+    FileWithMoreSections,
+
+    /// <summary>Indice delle pagine: lo stesso riferimento in due posti. <c>Detail</c> = il riferimento e l'altro posto.</summary>
+    PageDuplicate,
+
+    /// <summary>🔴 Indice delle pagine: una pagina con una data dopo l'entrata in vigore del ciclo letto. <c>Detail</c> = riferimento e data.</summary>
+    PageAfterCycle,
 }
 
 public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)
@@ -170,75 +185,89 @@ public static partial class ItalianAip
     /// nome di ENR 4 (<see cref="ItalianEnr5Zone.Risolutore"/>), per le aree che si danno per punti (le AAR di ENR 5.2.2.1);
     /// chi legge più file legge ENR 4 prima.
     /// </summary>
-    public static ImportResult ReadFile(string path, Func<string, Position?>? punto = null)
+    public static ImportResult ReadFile(string path, Func<string, Position?>? punto = null) => ReadFile(path, () => PdfText.Read(path), punto);
+
+    /// <summary>
+    /// Come <see cref="ReadFile(string, Func{string, Position?}?)"/>, sulle pagine già lette: chi fa anche l'indice delle
+    /// pagine (carta «L'AIP intero», passo 1) legge ogni PDF una volta sola.
+    /// </summary>
+    public static ImportResult ReadFile(string path, IReadOnlyList<PdfPageText> pages, Func<string, Position?>? punto = null)
     {
+        ArgumentNullException.ThrowIfNull(pages);
+        return ReadFile(path, () => pages, punto);
+    }
+
+    // Le pagine si leggono solo se il nome dice un file che l'importer sa leggere: un file non ancora letto non si apre.
+    private static ImportResult ReadFile(string path, Func<IReadOnlyList<PdfPageText>> leggi, Func<string, Position?>? punto)
+    {
+        IReadOnlyList<PdfPageText>? lette = null;
+        IReadOnlyList<PdfPageText> pages() => lette ??= leggi();
         var nome = Path.GetFileNameWithoutExtension(path);
         // AD 2 (slice 5a): il testo di uno scalo è il suo primo PDF; gli altri sono carte.
         if (RxTestoDiScalo().Match(nome) is { Success: true } scalo)
-            return ItalianAd2.Read(PdfText.Read(path), scalo.Groups["icao"].Value, scalo.Groups["nome"].Value.Trim());
+            return ItalianAd2.Read(pages(), scalo.Groups["icao"].Value, scalo.Groups["nome"].Value.Trim());
         // Le carte di uno scalo: la ATC SMAC (il testo dei settori), le procedure (F7: il 4 le STAR, il 6 le SID); le altre
         // sono immagini.
         if (RxCartaDiScalo().Match(nome) is { Success: true } carta)
         {
-            var pagine = PdfText.Read(path);
-            if (ItalianAd2.ESmac(pagine))
-                return ItalianAd2.ReadSmac(pagine, carta.Groups["icao"].Value);
+            if (ItalianAd2.ESmac(pages()))
+                return ItalianAd2.ReadSmac(pages(), carta.Groups["icao"].Value);
             // Solo il 4 e il 6: il 5 (gli avvicinamenti) ha tabelle uguali, ma gli avvicinamenti non sono della F7.
-            if (carta.Groups["n"].Value is "4" or "6" && ItalianAd2Procedures.EProcedure(pagine))
-                return ItalianAd2Procedures.Read(pagine, carta.Groups["icao"].Value, carta.Groups["n"].Value == "4" ? ProcedureKind.Star : ProcedureKind.Sid);
+            if (carta.Groups["n"].Value is "4" or "6" && ItalianAd2Procedures.EProcedure(pages()))
+                return ItalianAd2Procedures.Read(pages(), carta.Groups["icao"].Value, carta.Groups["n"].Value == "4" ? ProcedureKind.Star : ProcedureKind.Sid);
         }
         if (nome.StartsWith("LI-ENR 5.1.", StringComparison.Ordinal))
-            return ReadEnr51(PdfText.Read(path));
+            return ReadEnr51(pages());
         // ENR 5.2 (slice 4a): i poligoni militari, e le zone e i corridoi APR.
         if (nome.StartsWith("LI-ENR 5.2.1.", StringComparison.Ordinal))
-            return ItalianEnr5.ReadFiringAreas(PdfText.Read(path));
+            return ItalianEnr5.ReadFiringAreas(pages());
         // ENR 5.2.2 (slice 4c, committente: «prendi anche AAR, AT e INDIA»).
         if (nome == "LI-ENR 5.2.2.1")
-            return ItalianEnr5Zone.ReadAirRefuelling(PdfText.Read(path), punto);
+            return ItalianEnr5Zone.ReadAirRefuelling(pages(), punto);
         if (nome == "LI-ENR 5.2.2.2")
-            return ItalianEnr5Zone.ReadIndia(PdfText.Read(path));
+            return ItalianEnr5Zone.ReadIndia(pages());
         if (nome == "LI-ENR 5.2.2.3")
-            return ItalianEnr5Zone.ReadIndia5Sud(PdfText.Read(path));
+            return ItalianEnr5Zone.ReadIndia5Sud(pages());
         // ENR 5.3: palloni sonda, laser, vulcani; 5.3.4 sono regole a testo.
         if (nome == "LI-ENR 5.3.1")
-            return ItalianEnr53.ReadBalloons(PdfText.Read(path));
+            return ItalianEnr53.ReadBalloons(pages());
         if (nome == "LI-ENR 5.3.2")
-            return ItalianEnr53.ReadLasers(PdfText.Read(path));
+            return ItalianEnr53.ReadLasers(pages());
         if (nome == "LI-ENR 5.3.3")
-            return ItalianEnr53.ReadVolcanoes(PdfText.Read(path));
+            return ItalianEnr53.ReadVolcanoes(pages());
         if (nome == "LI-ENR 5.3.4")
-            return ItalianEnr53.ReadRulesOnly(PdfText.Read(path));
+            return ItalianEnr53.ReadRulesOnly(pages());
         if (nome == "LI-ENR 5.2.2.4")
-            return ItalianEnr5Zone.ReadOatCorridors(PdfText.Read(path));
+            return ItalianEnr5Zone.ReadOatCorridors(pages());
         if (nome == "LI-ENR 5.2.2.6")
-            return ItalianEnr5Zone.ReadTacticalAreas(PdfText.Read(path));
+            return ItalianEnr5Zone.ReadTacticalAreas(pages());
         if (nome == "LI-ENR 5.2.2.5")
-            return ItalianEnr5.ReadUasAreas(PdfText.Read(path));
+            return ItalianEnr5.ReadUasAreas(pages());
         // ENR 2 (slice 1a): il tipo di base dal file — i CTR uno per file, le ATZ militari, il FRAIT; il resto dal nome.
         if (nome.StartsWith("LI-ENR 2.1.2 ", StringComparison.Ordinal))
-            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.1", AirspaceType.Ctr);
+            return ItalianEnr2.Read(pages(), "ENR 2.1", AirspaceType.Ctr);
         if (nome == "LI-ENR 2.1.3")
-            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.1", AirspaceType.Atz);
+            return ItalianEnr2.Read(pages(), "ENR 2.1", AirspaceType.Atz);
         if (nome.StartsWith("LI-ENR 2.1.1.", StringComparison.Ordinal))
-            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.1", null);
+            return ItalianEnr2.Read(pages(), "ENR 2.1", null);
         if (nome == "LI-ENR 2.2.1")
-            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.2", AirspaceType.Fra);
+            return ItalianEnr2.Read(pages(), "ENR 2.2", AirspaceType.Fra);
         if (nome == "LI-ENR 2.2")
-            return ItalianEnr2.Read(PdfText.Read(path), "ENR 2.2", null);
+            return ItalianEnr2.Read(pages(), "ENR 2.2", null);
         // ENR 3 (slice 2): una rotta per file in 3.1-3.3, le attese in rotta in 3.4.1.
         if (RxRotte().Match(nome) is { Success: true } rotte)
-            return ItalianEnr3.ReadRoutes(PdfText.Read(path), "ENR " + rotte.Groups["s"].Value);
+            return ItalianEnr3.ReadRoutes(pages(), "ENR " + rotte.Groups["s"].Value);
         if (nome == "LI-ENR 3.4.1")
-            return ItalianEnr3.ReadHoldings(PdfText.Read(path));
+            return ItalianEnr3.ReadHoldings(pages());
         if (nome == "LI-ENR 3.4.2")
-            return ItalianEnr3.ReadNavaidHoldings(PdfText.Read(path));
+            return ItalianEnr3.ReadNavaidHoldings(pages());
         // ENR 4 (slice 3): le radioassistenze (4.1.2 le militari fuori dalla parte AD), i punti, le luci.
         if (nome is "LI-ENR 4.1.1" or "LI-ENR 4.1.2")
-            return ItalianEnr4.ReadNavaids(PdfText.Read(path), military: nome == "LI-ENR 4.1.2");
+            return ItalianEnr4.ReadNavaids(pages(), military: nome == "LI-ENR 4.1.2");
         if (nome == "LI-ENR 4.4")
-            return ItalianEnr4.ReadPoints(PdfText.Read(path));
+            return ItalianEnr4.ReadPoints(pages());
         if (nome == "LI-ENR 4.5")
-            return ItalianEnr4.ReadLights(PdfText.Read(path));
+            return ItalianEnr4.ReadLights(pages());
         return new ImportResult([], [], [new ImportIssue(ImportIssueKind.Unsupported, null, null, Path.GetFileName(path))]);
     }
 
