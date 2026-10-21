@@ -386,6 +386,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-19-f6-correzioni-aip-espanso.md`](feature/2026-10-19-f6-correzioni-aip-espanso.md) — F6 — Le correzioni dell'AIP espanso (19 ottobre 2026)
 - [`feature/2026-10-19-f7-sid-e-star.md`](feature/2026-10-19-f7-sid-e-star.md) — F7 — SID e STAR dai PDF dell'AIP (19 ottobre 2026) — CHIUSA il 20 ottobre
 - [`feature/2026-10-20-riordino-delle-pagine.md`](feature/2026-10-20-riordino-delle-pagine.md) — Riordino delle pagine del Sector Lab (20 ottobre 2026)
+- [`feature/2026-10-21-aip-intero-e-emendamenti.md`](feature/2026-10-21-aip-intero-e-emendamenti.md) — L'AIP intero e gli emendamenti AIRAC (21 ottobre 2026)
 - [`feature/2026-10-21-api-settori.md`](feature/2026-10-21-api-settori.md) — API dei settori: gerarchia e coordinamenti fra settori per gli altri programmi — carta (21 ottobre 2026)
 
 ### `filoni`
