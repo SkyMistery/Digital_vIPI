@@ -443,3 +443,43 @@ volo da diporto sportivo), 5.6 (18 PDF di parchi e zone di protezione della faun
   di L003542 con tipo, comune, altezze, segnalazione e nota.
 
 Test: Aip.Pdf 158 (+12), Aip 51 (+1), Lab 1 383 (+3).
+
+#### 4c — i testi di ENR 5: fatto
+
+- `AipText` (sezione, testo italiano, testo inglese, prima pagina) in `AipDocument.Texts`. Il lettore (`ItalianProse`): le
+  due colonne dell'AIP, l'inglese dalla x dove cominciano le righe della colonna destra (la più frequente a metà pagina);
+  il punto elenco dell'inglese, qualche punto prima della colonna, è dell'inglese; le righe in paragrafi — un paragrafo
+  nuovo dopo uno spazio più largo dell'interlinea, a un numero seguito da una maiuscola («2.1. Quando», non «15 m (per
+  es.»), a un punto elenco, a «NOTA»/«REMARK», dopo un titolo (corto o numerato, senza punto) salvo il suo seguito tutto
+  maiuscolo.
+- Si leggono i file solo di testo — le introduzioni di **ENR 5.1** (le definizioni delle zone, le note generali, gli
+  attraversamenti, il divieto di sorvolo di edifici), **5.2.1** (i poligoni militari), **5.6.1** (i parchi), e **5.3.4**
+  (i droni BVLOS, che prima si contava e basta) — e il testo **prima della tabella** di 5.5.1 (le regole dei lanci,
+  tre pagine e mezza), 5.5.2, 5.5.3, 5.5.4.
+- **Misurato** sul 2611: 8 testi, nessuna segnalazione. Da sapere: l'indirizzo centrato di ENR 5.1 §7.3 (Ministero della
+  Giustizia, a cavallo delle due colonne) esce diviso fra italiano e inglese.
+
+#### 4d — l'AIP espanso diviso per parti (D1): fatto
+
+- `AipEspanso.Scrivi` scrive il modello di un ciclo in più file: `li.json` (intestazione, aree di ENR 2 ed ENR 5,
+  frequenze e linee degli ACC, pericoli, testi) e accanto `li-enr3.json` (rotte, attese, ENR 3.4.2), `li-enr4.json`
+  (radioassistenze, punti, luci), `li-ostacoli.json`, `li-ad2.json` (scali, SMAC, procedure); una parte vuota si toglie.
+  `AipEspanso.Modello` lo rilegge intero; un `li.json` di prima, tutto in un file, si legge com'è. Le letture del Lab
+  (sessione, correzioni, indice delle pagine) passano tutte di lì; il repo dell'AIP espanso registra già `<ciclo>/*.json`.
+  `tools/Aip.Aurora.Cli` legge le aree, che restano nel principale.
+- **Misurato** sul 2611: 13,5 MB in un file → `li.json` 3,8 MB, `li-ad2` 3,8, `li-ostacoli` 3,9, `li-enr3` 1,3,
+  `li-enr4` 0,7; rimessi insieme, lo stesso modello della lettura di prima (la sola differenza è la sezione degli ostacoli,
+  ora quella della regione).
+
+Test: Aip.Pdf 159 (+1 netto: due della prosa, via quello del vecchio «letto senza oggetti» di 5.3.4), Aip 51, Lab 1 384 (+1).
+
+Sul banco (1400 px): «Leggi» scrive `li.json`, `li-enr3`, `li-enr4`, `li-ostacoli` (niente `li-ad2`: nella cartella del banco
+non ci sono scali); l'esito dice «155 ostacoli, 1 testo»; l'indice rilegge il modello dalle parti (rotte, luci, 155
+ostacoli, aree di 5.5 e 5.6).
+
+#### Il passo 4, chiuso
+
+«Finita quando» di §3: **4 825 + 802 + 86 ostacoli** (controprova riga per riga); le aree di 5.5 e 5.6 **contate sulle
+coordinate stampate**: 5 584 su 5 590, le 6 che mancano sono il secondo poligono di **Magra**, segnalato (da decidere col
+committente se dividerlo in due aree). In più i testi di ENR 5 e l'AIP espanso diviso per parti (D1). Trovati nel PDF: la
+sigla doppia T001645; corretto un difetto vecchio (due tabelle sulla stessa pagina).

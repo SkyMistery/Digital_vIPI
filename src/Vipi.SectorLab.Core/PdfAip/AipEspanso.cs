@@ -137,7 +137,7 @@ public sealed record EsitoDellAipEspanso(
         Scali > 0 ? $"{Scali} scali" : null,
         Pericoli > 0 ? $"{Pericoli} pericoli" : null,
         Ostacoli > 0 ? $"{Ostacoli} ostacoli" : null,
-        Testi > 0 ? $"{Testi} testi" : null,
+        Testi > 0 ? (Testi == 1 ? "1 testo" : $"{Testi} testi") : null,
         SettoriSmac > 0 ? $"{SettoriSmac} settori SMAC" : null,
         Procedure > 0 ? $"{Procedure} procedure" : null,
     }.OfType<string>());
