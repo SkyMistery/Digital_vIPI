@@ -148,6 +148,9 @@ public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyLi
     /// <summary>ENR 5.4: gli ostacoli letti (carta «L'AIP intero», passo 4).</summary>
     public IReadOnlyList<Obstacle> Obstacles { get; init; } = [];
 
+    /// <summary>ENR 5: i testi in prosa letti (passo 4).</summary>
+    public IReadOnlyList<AipText> Texts { get; init; } = [];
+
     /// <summary>AD 2: i settori della carta ATC SMAC letti.</summary>
     public IReadOnlyList<MinimumAltitudeArea> MinimumAltitudes { get; init; } = [];
 
@@ -271,11 +274,17 @@ public static partial class ItalianAip
             return ItalianEnr53.ReadLasers(pages());
         if (nome == "LI-ENR 5.3.3")
             return ItalianEnr53.ReadVolcanoes(pages());
-        if (nome == "LI-ENR 5.3.4")
-            return ItalianEnr53.ReadRulesOnly(pages());
-        // ENR 5.5 e 5.6 (passo 4): le zone delle attività sportive e ricreative, i parchi naturali per regione.
+        // I testi di ENR 5 (carta «L'AIP intero», passo 4): 5.3.4 sono regole a testo, e le introduzioni di 5.1, 5.2.1, 5.6.1.
+        if (nome is "LI-ENR 5.3.4" or "LI-ENR 5.1" or "LI-ENR 5.2.1" or "LI-ENR 5.6.1")
+            return ItalianProse.Read(pages(), nome["LI-".Length..]);
+        // ENR 5.5 e 5.6 (passo 4): le zone delle attività sportive e ricreative, col testo che le precede; i parchi
+        // naturali per regione.
         if (nome is "LI-ENR 5.5.1" or "LI-ENR 5.5.2" or "LI-ENR 5.5.3" or "LI-ENR 5.5.4")
-            return ItalianEnr5.ReadSportAreas(pages(), nome);
+        {
+            var aree = ItalianEnr5.ReadSportAreas(pages(), nome);
+            var testo = ItalianProse.BeforeTable(pages(), nome["LI-".Length..], nome == "LI-ENR 5.5.1" ? 6 : 4);
+            return testo is null ? aree : aree with { Texts = [testo] };
+        }
         if (nome.StartsWith("LI-ENR 5.6.1.", StringComparison.Ordinal))
             return ItalianEnr5.ReadNatureParks(pages());
         // ENR 5.4 (carta «L'AIP intero», passo 4): gli ostacoli, puntuali e lineari per regione, le piattaforme.

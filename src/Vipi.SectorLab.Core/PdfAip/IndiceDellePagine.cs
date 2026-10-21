@@ -84,7 +84,9 @@ public static class IndiceDellePagine
             }
             if (prima.FirstOrDefault(c => System.IO.File.Exists(AipEspanso.File(espanso, c))) is { } colModello)
             {
-                var citate = PagineCitate(System.IO.File.ReadAllText(AipEspanso.File(espanso, colModello)));
+                // Il modello e le sue parti (D1), letti come JSON e basta: delle pagine basta il riferimento e la data.
+                var citate = AipEspanso.FileDelModello(espanso, colModello).SelectMany(f => PagineCitate(System.IO.File.ReadAllText(f)))
+                    .GroupBy(p => p.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Value, StringComparer.Ordinal);
                 return new PagineCambiate(colModello,
                     citate.Where(p => adesso.TryGetValue(p.Key, out var d) && d != p.Value).Select(p => p.Key).Order(StringComparer.Ordinal).ToList(),
                     [], [], Completo: false);

@@ -60,6 +60,9 @@ public sealed record EsitoDellAipEspanso(
     /// <summary>Gli ostacoli di ENR 5.4 letti (carta «L'AIP intero», passo 4).</summary>
     public int Ostacoli { get; init; }
 
+    /// <summary>I testi in prosa di ENR 5 letti (passo 4).</summary>
+    public int Testi { get; init; }
+
     /// <summary>I settori delle carte ATC SMAC di AD 2 letti.</summary>
     public int SettoriSmac { get; init; }
 
@@ -134,6 +137,7 @@ public sealed record EsitoDellAipEspanso(
         Scali > 0 ? $"{Scali} scali" : null,
         Pericoli > 0 ? $"{Pericoli} pericoli" : null,
         Ostacoli > 0 ? $"{Ostacoli} ostacoli" : null,
+        Testi > 0 ? $"{Testi} testi" : null,
         SettoriSmac > 0 ? $"{SettoriSmac} settori SMAC" : null,
         Procedure > 0 ? $"{Procedure} procedure" : null,
     }.OfType<string>());
@@ -152,6 +156,75 @@ public static class AipEspanso
     /// <summary>Il file del modello di uno Stato dentro la cartella del ciclo.</summary>
     public static string File(string espanso, string ciclo, string stato = ItalianAip.State) =>
         Path.Combine(espanso, ciclo, stato.ToLowerInvariant() + ".json");
+
+    /// <summary>
+    /// Le parti del modello fuori dal file principale (carta «L'AIP intero», D1 «dividiamoli per parti»): ognuna un
+    /// documento con le sue liste, accanto a <c>li.json</c> — <c>li-enr3.json</c> (rotte e attese), <c>li-enr4.json</c>
+    /// (radioassistenze, punti, luci), <c>li-ostacoli.json</c>, <c>li-ad2.json</c> (scali, SMAC, procedure). Il principale
+    /// tiene l'intestazione e il resto: le aree di ENR 2 ed ENR 5, le frequenze e le linee degli ACC, i pericoli, i testi.
+    /// </summary>
+    private static readonly (string Nome, Func<AipDocument, AipDocument> Prendi, Func<AipDocument, AipDocument, AipDocument> Metti)[] Parti =
+    [
+        ("enr3", d => Testa(d) with { Routes = d.Routes, Holdings = d.Holdings, NavaidProcedures = d.NavaidProcedures },
+            (m, p) => m with { Routes = p.Routes, Holdings = p.Holdings, NavaidProcedures = p.NavaidProcedures }),
+        ("enr4", d => Testa(d) with { Navaids = d.Navaids, Points = d.Points, Lights = d.Lights },
+            (m, p) => m with { Navaids = p.Navaids, Points = p.Points, Lights = p.Lights }),
+        ("ostacoli", d => Testa(d) with { Obstacles = d.Obstacles }, (m, p) => m with { Obstacles = p.Obstacles }),
+        ("ad2", d => Testa(d) with { Aerodromes = d.Aerodromes, MinimumAltitudes = d.MinimumAltitudes, Procedures = d.Procedures },
+            (m, p) => m with { Aerodromes = p.Aerodromes, MinimumAltitudes = p.MinimumAltitudes, Procedures = p.Procedures }),
+    ];
+
+    private static AipDocument Testa(AipDocument d) =>
+        new() { SchemaVersion = d.SchemaVersion, State = d.State, Airac = d.Airac, Effective = d.Effective, Airspaces = [] };
+
+    /// <summary>Il file di una parte del modello: <c>2611\li-ostacoli.json</c>.</summary>
+    public static string FileDellaParte(string espanso, string ciclo, string parte, string stato = ItalianAip.State) =>
+        Path.Combine(espanso, ciclo, $"{stato.ToLowerInvariant()}-{parte}.json");
+
+    /// <summary>
+    /// Scrive il modello di un ciclo diviso per parti: prima le parti (quella vuota si toglie), poi il principale, che dice
+    /// che il modello c'è.
+    /// </summary>
+    public static void Scrivi(string espanso, string ciclo, AipDocument documento)
+    {
+        ArgumentNullException.ThrowIfNull(documento);
+        var principale = documento;
+        foreach (var (nome, prendi, metti) in Parti)
+        {
+            var parte = prendi(documento);
+            var file = FileDellaParte(espanso, ciclo, nome, documento.State);
+            if (parte == Testa(documento))
+            {
+                if (System.IO.File.Exists(file)) System.IO.File.Delete(file);
+            }
+            else
+                ScriviAlPosto(file, flusso => AipJson.Serialize(flusso, parte));
+            principale = metti(principale, Testa(documento));
+        }
+        ScriviAlPosto(File(espanso, ciclo, documento.State), flusso => AipJson.Serialize(flusso, principale));
+    }
+
+    /// <summary>I file del modello di un ciclo che ci sono: il principale e le parti.</summary>
+    public static IEnumerable<string> FileDelModello(string espanso, string ciclo, string stato = ItalianAip.State) =>
+        new[] { File(espanso, ciclo, stato) }.Concat(Parti.Select(p => FileDellaParte(espanso, ciclo, p.Nome, stato))).Where(System.IO.File.Exists);
+
+    /// <summary>
+    /// Il modello di un ciclo, con le sue parti. Un <c>li.json</c> di prima, tutto in un file, si legge com'è: le parti che
+    /// non ci sono non tolgono niente.
+    /// </summary>
+    /// <exception cref="IOException">Un file non si legge.</exception>
+    /// <exception cref="System.Text.Json.JsonException">Un file non è un modello.</exception>
+    public static AipDocument Modello(string espanso, string ciclo, string stato = ItalianAip.State)
+    {
+        var modello = AipJson.Deserialize(System.IO.File.ReadAllText(File(espanso, ciclo, stato)));
+        foreach (var (nome, _, metti) in Parti)
+        {
+            var file = FileDellaParte(espanso, ciclo, nome, stato);
+            if (System.IO.File.Exists(file))
+                modello = metti(modello, AipJson.Deserialize(System.IO.File.ReadAllText(file)));
+        }
+        return modello;
+    }
 
     /// <summary>La cartella delle correzioni dentro l'AIP espanso.</summary>
     public const string CartellaDelleCorrezioni = "correzioni";
@@ -196,6 +269,7 @@ public static class AipEspanso
         var scali = new List<Aerodrome>();
         var pericoli = new List<Hazard>();
         var ostacoli = new List<Obstacle>();
+        var testi = new List<AipText>();
         var smac = new List<MinimumAltitudeArea>();
         var procedure = new List<Procedure>();
         var letti = new List<string>();
@@ -259,6 +333,7 @@ public static class AipEspanso
             scali.AddRange(letto.Aerodromes);
             pericoli.AddRange(letto.Hazards);
             ostacoli.AddRange(letto.Obstacles);
+            testi.AddRange(letto.Texts);
             smac.AddRange(letto.MinimumAltitudes);
             procedure.AddRange(letto.Procedures);
             pagine.AddRange(letto.Pages);
@@ -295,6 +370,7 @@ public static class AipEspanso
             Aerodromes = scali.Count == 0 ? null : scali,
             Hazards = pericoli.Count == 0 ? null : pericoli,
             Obstacles = ostacoli.Count == 0 ? null : ostacoli,
+            Texts = testi.Count == 0 ? null : testi,
             MinimumAltitudes = smac.Count == 0 ? null : smac,
             Procedures = procedure.Count == 0 ? null : procedure,
         };
@@ -333,7 +409,7 @@ public static class AipEspanso
             new ImportIssue(ImportIssueKind.Procedure, n.Procedure.Key, null, $"prosa non letta: {n.Problem}"))));
 
         var scritto = File(espanso, ciclo);
-        ScriviAlPosto(scritto, flusso => AipJson.Serialize(flusso, documento));
+        Scrivi(espanso, ciclo, documento);
         var cambiate = IndiceDellePagine.RispettoAlCicloPrima(espanso, ciclo, indice);
         ScriviAlPosto(IndiceDellePagine.File(espanso, ciclo), flusso => flusso.Write(System.Text.Encoding.UTF8.GetBytes(IndiceDellePagine.Testo(ciclo, indice))));
 
@@ -355,6 +431,7 @@ public static class AipEspanso
             Scali = scali.Count,
             Pericoli = pericoli.Count,
             Ostacoli = ostacoli.Count,
+            Testi = testi.Count,
             SettoriSmac = smac.Count,
             Procedure = procedure.Count,
             Correzioni = correzioni,
@@ -399,7 +476,7 @@ public static class AipEspanso
         ("aree", r.Airspaces.Count), ("rotte", r.Routes.Count), ("attese", r.Holdings.Count),
         ("radioassistenze di ENR 3.4.2", r.NavaidProcedures.Count), ("frequenze", r.UnitFrequencies.Sum(f => f.Frequencies.Count)),
         ("linee fra gli ACC", r.UnitLines.Count), ("radioassistenze", r.Navaids.Count), ("punti", r.Points.Count),
-        ("luci", r.Lights.Count), ("scali", r.Aerodromes.Count), ("pericoli", r.Hazards.Count), ("ostacoli", r.Obstacles.Count),
+        ("luci", r.Lights.Count), ("scali", r.Aerodromes.Count), ("pericoli", r.Hazards.Count), ("ostacoli", r.Obstacles.Count), ("testi", r.Texts.Count),
         ("settori SMAC", r.MinimumAltitudes.Count), ("procedure", r.Procedures.Count),
     }.Where(v => v.Item2 > 0).ToDictionary(v => v.Item1, v => v.Item2, StringComparer.Ordinal);
 

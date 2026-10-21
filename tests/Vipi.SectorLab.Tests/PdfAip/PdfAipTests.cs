@@ -275,4 +275,38 @@ public sealed class PdfAipTests : IDisposable
         Assert.Null(AipEspanso.PercheNonVa(Path.Combine(_radice, "espanso"), Path.Combine(_radice, "AIP")));
         Assert.Throws<ArgumentException>(() => AipEspanso.Leggi([], Path.Combine(_radice, "espanso"), "26"));
     }
+
+    // Carta «L'AIP intero», D1 («dividiamoli per parti», passo 4): il modello si scrive in più file — il principale con le
+    // aree, le parti con rotte, ENR 4, ostacoli, AD 2 — e si rilegge intero; una parte che si svuota si toglie; un li.json
+    // di prima, tutto in un file, si legge com'è.
+    [Fact]
+    public void IlModelloDivisoPerParti_SiRileggeIntero()
+    {
+        var espanso = Cartella("espanso");
+        var area = new Airspace
+        {
+            Section = "ENR 5.6", Type = AirspaceType.NaturePark, Designator = "PARCO", Upper = new VerticalLimit { Text = "1500ft AGL" },
+            Lower = new VerticalLimit { Text = "SFC" }, Geometry = new CircleGeometry(new Position(45, 9), new Distance(1, DistanceUnit.Nm)),
+        };
+        var ostacolo = new Obstacle { Section = "ENR 5.4.1.1", Kind = ObstacleKind.Point, Designator = "T000001", Position = new Position(42, 14) };
+        var luce = new GroundLight { Section = "ENR 4.5", Name = "LUCE", Position = new Position(41, 12) };
+        var modello = new AipDocument { State = "LI", Airac = "2611", Airspaces = [area], Obstacles = [ostacolo], Lights = [luce] };
+
+        AipEspanso.Scrivi(espanso, "2611", modello);
+
+        Assert.Equal(modello, AipEspanso.Modello(espanso, "2611"));
+        Assert.Null(AipJson.Deserialize(File.ReadAllText(AipEspanso.File(espanso, "2611"))).Obstacles);
+        Assert.True(File.Exists(AipEspanso.FileDellaParte(espanso, "2611", "ostacoli")));
+        Assert.True(File.Exists(AipEspanso.FileDellaParte(espanso, "2611", "enr4")));
+        Assert.False(File.Exists(AipEspanso.FileDellaParte(espanso, "2611", "ad2")));
+
+        // Senza ostacoli, la loro parte si toglie.
+        AipEspanso.Scrivi(espanso, "2611", modello with { Obstacles = null });
+        Assert.False(File.Exists(AipEspanso.FileDellaParte(espanso, "2611", "ostacoli")));
+
+        // Il file di prima, tutto in uno.
+        Directory.CreateDirectory(Path.Combine(espanso, "2610"));
+        File.WriteAllText(AipEspanso.File(espanso, "2610"), AipJson.Serialize(modello with { Airac = "2610" }));
+        Assert.Equal(modello with { Airac = "2610" }, AipEspanso.Modello(espanso, "2610"));
+    }
 }

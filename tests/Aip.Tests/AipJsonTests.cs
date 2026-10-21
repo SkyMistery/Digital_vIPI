@@ -616,7 +616,9 @@ public sealed class AipJsonTests
             Geometry = new CircleGeometry(new Position(44.678889, 8.502778), new Distance(2, DistanceUnit.Nm)),
         };
         var parco = lancio with { Section = "ENR 5.6", Type = AirspaceType.NaturePark, Designator = "Parco Prova", Notification = null, Unit = null, Hours = null };
-        var doc = new AipDocument { State = "LI", Airspaces = [lancio, parco], Obstacles = [puntuale, lineare] };
+        var testo = new AipText { Section = "ENR 5.3.4", Text = "ENR 5.3.4 OPERAZIONI\n1 Generalita", English = "ENR 5.3.4 OPERATIONS\n1 General",
+            Page = new AipPage("ENR 5.3.4-1", new DateOnly(2023, 7, 27)) };
+        var doc = new AipDocument { State = "LI", Airspaces = [lancio, parco], Obstacles = [puntuale, lineare], Texts = [testo] };
 
         var json = AipJson.Serialize(doc);
         var riletto = AipJson.Deserialize(json);
@@ -627,5 +629,7 @@ public sealed class AipJsonTests
         Assert.Contains("\"type\": \"naturePark\"", json, StringComparison.Ordinal);
         Assert.Contains("\"heightM\": 118.2", json, StringComparison.Ordinal);
         Assert.DoesNotContain("obstacles", AipJson.Serialize(new AipDocument { State = "LI" }), StringComparison.Ordinal);
+        Assert.NotEqual(doc with { Texts = [testo with { English = null }] }, riletto);
+        Assert.DoesNotContain("texts", AipJson.Serialize(new AipDocument { State = "LI" }), StringComparison.Ordinal);
     }
 }

@@ -4780,7 +4780,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
         {
-            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
             var forme = Strati.SelectMany(s => s.Forme).ToList();
             var esiti = await Task.Run(() => Core.PdfAip.ConfrontoDelleForme.Di(famiglia, modello.Airspaces, forme)).ConfigureAwait(false);
             UltimoConfronto = (ciclo, famiglia, esiti);
@@ -4844,7 +4844,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
         {
-            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
             var catalogo = CatalogoScelto;
             var confini = ConfiniDelSector();
             StratoDellAip = await Task.Run(() => Core.PdfAip.AipSullaMappa.Di(modello, ciclo, nome => catalogo?.Cerca(nome)?.Posizione, confini)).ConfigureAwait(false);
@@ -5268,8 +5268,7 @@ public sealed class SessioneDelLab
                 && await Core.PdfAip.RepoDellAip.SulRamoDelCicloAsync(Git, espanso, ciclo).ConfigureAwait(false) is { } noRamo)
                 return Rifiuta(noRamo);
 
-            var percorso = Core.PdfAip.AipEspanso.File(espanso, ciclo);
-            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(percorso))).ConfigureAwait(false);
+            var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
             var file = Core.PdfAip.CorrezioniDellAip.Leggi(espanso, modello.State);
             var (fatta, perche) = gesto(modello, file, ciclo);
             if (fatta is null)
@@ -5321,7 +5320,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
         {
-            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
             if ((rotte ? modello.Routes?.Count : modello.Holdings?.Count) is not > 0)
                 return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha {(rotte ? "rotte" : "attese")}: servono i PDF di ENR 3 letti.");
             var catalogo = CatalogoScelto;
@@ -5365,7 +5364,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
         {
-            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
             if (modello.Procedures is not { Count: > 0 } procedure)
                 return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha procedure: servono i PDF di AD 2 (i file 4 e 6) letti.");
             var catalogo = CatalogoScelto;
@@ -5872,7 +5871,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
         {
-            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
             if ((radioassistenze ? modello.Navaids?.Count : modello.Points?.Count) is not > 0)
                 return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha {(radioassistenze ? "radioassistenze" : "punti")}: servono i PDF di ENR 4 letti.");
             var esiti = await Task.Run(() => radioassistenze
@@ -6137,7 +6136,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
         {
-            var modello = await Task.Run(() => global::Aip.AipJson.Deserialize(File.ReadAllText(Core.PdfAip.AipEspanso.File(espanso, ciclo)))).ConfigureAwait(false);
+            var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
             if (modello.Aerodromes is not { Count: > 0 })
                 return Rifiuta($"L'AIP espanso del ciclo {ciclo} non ha scali: servono i PDF di AD 2 letti.");
             if (parte == Core.PdfAip.ParteDiAd2.Radioassistenze && !modello.Aerodromes.Any(s => s.NavigationAids.Count > 0))

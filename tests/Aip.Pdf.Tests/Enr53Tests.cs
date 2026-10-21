@@ -77,12 +77,4 @@ public sealed class Enr53Tests
         Assert.Equal(("ETNA 211060", "3330m 10922ft", "LI-P1\nAlmost persistent"), (etna.Name, etna.Vertical, etna.Remarks));
         Assert.Equal(15 + 14 / 3600.0, etna.Position.Lon, 9);
     }
-
-    [Fact]
-    public void Enr534_LettoSenzaOggetti()
-    {
-        var r = ItalianEnr53.ReadRulesOnly(PdfText.Read(Enr4Tests.Pdf(new Pagina([], [], [.. Testa("ENR 5.3.4 - 1"), (52, 100, "ENR 5.3.4 OPERAZIONI CON DRONI")]))));
-
-        Assert.Equal((0, 0, 1), (r.Hazards.Count, r.Issues.Count, r.Pages.Count));
-    }
 }

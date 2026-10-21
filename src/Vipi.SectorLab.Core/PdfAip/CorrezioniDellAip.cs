@@ -65,7 +65,7 @@ public static class CorrezioniDellAip
         ArgumentNullException.ThrowIfNull(fatta);
         AipEspanso.ScriviAlPosto(AipEspanso.FileDelleCorrezioni(espanso, fatta.Modello.State),
             flusso => flusso.Write(System.Text.Encoding.UTF8.GetBytes(AipCorrections.Serialize(fatta.Correzioni))));
-        AipEspanso.ScriviAlPosto(AipEspanso.File(espanso, ciclo, fatta.Modello.State), flusso => AipJson.Serialize(flusso, fatta.Modello));
+        AipEspanso.Scrivi(espanso, ciclo, fatta.Modello);
     }
 
     /// <summary>La correzione in piedi che ha fatto l'area con quella chiave: vedi <see cref="Attiva(AipCorrectionFile, CorrectionKind, string)"/>.</summary>

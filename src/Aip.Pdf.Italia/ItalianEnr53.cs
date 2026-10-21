@@ -99,17 +99,6 @@ public static partial class ItalianEnr53
         return new ImportResult([], pagine, problemi) { Hazards = pericoli };
     }
 
-    /// <summary>ENR 5.3.4: regole a testo, letto e basta (nessun oggetto, nessuna segnalazione).</summary>
-    public static ImportResult ReadRulesOnly(IReadOnlyList<PdfPageText> pages)
-    {
-        ArgumentNullException.ThrowIfNull(pages);
-        var pagine = pages.Select(p =>
-        {
-            var piane = Table.PlainLines(p);
-            return new ImportPage(p.Number, PageInfo.Reference(piane), PageInfo.Date(piane), Table: false);
-        }).ToList();
-        return new ImportResult([], pagine, []);
-    }
 
     /// <summary>
     /// I luoghi di una cella della prima colonna: il nome (le righe prima delle coordinate e della frase del cerchio) e, per

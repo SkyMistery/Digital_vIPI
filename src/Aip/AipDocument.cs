@@ -72,6 +72,12 @@ public sealed record AipDocument
     /// </summary>
     public IReadOnlyList<Obstacle>? Obstacles { get; init; }
 
+    /// <summary>
+    /// I testi in prosa di ENR 5 — regole, definizioni, generalità (carta «L'AIP intero», passo 4). Null se il documento
+    /// non ne ha (campo facoltativo).
+    /// </summary>
+    public IReadOnlyList<AipText>? Texts { get; init; }
+
     /// <summary>AD 2: i settori delle altitudini minime di sorveglianza (ATC SMAC). Null se il documento non ne ha.</summary>
     public IReadOnlyList<MinimumAltitudeArea>? MinimumAltitudes { get; init; }
 
@@ -96,6 +102,7 @@ public sealed record AipDocument
         && (Aerodromes ?? []).SequenceEqual(other.Aerodromes ?? [])
         && (Hazards ?? []).SequenceEqual(other.Hazards ?? [])
         && (Obstacles ?? []).SequenceEqual(other.Obstacles ?? [])
+        && (Texts ?? []).SequenceEqual(other.Texts ?? [])
         && (MinimumAltitudes ?? []).SequenceEqual(other.MinimumAltitudes ?? [])
         && (Procedures ?? []).SequenceEqual(other.Procedures ?? []);
 

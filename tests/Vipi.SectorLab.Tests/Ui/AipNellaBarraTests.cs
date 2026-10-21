@@ -463,7 +463,7 @@ public sealed class AipNellaBarraTests : IDisposable
             Assert.Contains("Corretta (", pagina.Find("[data-correzione-aip]").TextContent, StringComparison.Ordinal);
             Assert.Empty(pagina.FindAll("[data-modulo-voce]"));
         }, TimeSpan.FromSeconds(10));
-        var punto = Assert.Single(AipJson.Deserialize(File.ReadAllText(li)).Points!);
+        var punto = Assert.Single(Vipi.SectorLab.Core.PdfAip.AipEspanso.Modello(espanso, "2611").Points!);
         Assert.Equal(41.5 + 1 / 60.0, punto.Position.Lat, 6);
         Assert.Equal(CorrectionKind.Point, Assert.Single(AipCorrections.Deserialize(File.ReadAllText(Path.Combine(espanso, "correzioni", "li.json"))).Corrections).Kind);
 
