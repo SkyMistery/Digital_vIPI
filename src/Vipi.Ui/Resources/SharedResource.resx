@@ -1583,8 +1583,6 @@
   <data name="Xfer_KindOverflight" xml:space="preserve"><value>Sorvoli</value></data>
   <data name="Xfer_KindVfr" xml:space="preserve"><value>VFR</value></data>
   <data name="Xfer_KindOther" xml:space="preserve"><value>Altro</value></data>
-  <data name="Xfer_DescOpt" xml:space="preserve"><value>Descrizione (opz.)</value></data>
-  <data name="Xfer_DescPh" xml:space="preserve"><value>Roma NE trasferisce…</value></data>
   <data name="Xfer_Group" xml:space="preserve"><value>Gruppo</value></data>
   <data name="Xfer_SelectSenderHint" xml:space="preserve"><value>Seleziona il settore mittente per abilitare</value></data>
   <data name="Xfer_AirportRequired" xml:space="preserve"><value>Arrivi/Partenze richiedono un aeroporto</value></data>
@@ -2621,7 +2619,7 @@
   <data name="Xfer_Agreement" xml:space="preserve"><value>Accordo</value></data>
   <data name="Xfer_AgreementsN" xml:space="preserve"><value>{0} accordi</value></data>
   <data name="Xfer_NewAgreement" xml:space="preserve"><value>Nuovo accordo di coordinamento</value></data>
-  <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>Qui si dice solo &lt;b&gt;fra chi&lt;/b&gt;: ogni lato può portare più enti. Tipo di traffico, aeroporti e descrizione si mettono nella testata dell'accordo appena creato — l'accordo nasce come «altro» finché non lo classifichi.</value></data>
+  <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>Qui si dice solo &lt;b&gt;fra chi&lt;/b&gt;: ogni lato può portare più enti. Tipo di traffico e aeroporti si mettono nella testata dell'accordo appena creato — l'accordo nasce come «altro» finché non lo classifichi.</value></data>
   <data name="Xfer_RemoveParty" xml:space="preserve"><value>Togli questo ente</value></data>
   <data name="Xfer_AirportsLabel" xml:space="preserve"><value>Aeroporti</value></data>
   <data name="Xfer_AirportsHint" xml:space="preserve"><value>(anche più d'uno)</value></data>
@@ -2741,8 +2739,6 @@
   <data name="Xfer_FlipDirectionTitle" xml:space="preserve"><value>Inverti il verso: chi cede diventa chi riceve. Il verso proposto viene dall’aeroporto, ed è una proposta.</value></data>
   <data name="Xfer_SideNear" xml:space="preserve"><value>Il nostro ente</value></data>
   <data name="Xfer_SideFar" xml:space="preserve"><value>La controparte</value></data>
-  <data name="Xfer_NoteOpt" xml:space="preserve"><value>Nota (facoltativa)</value></data>
-  <data name="Xfer_NotePh" xml:space="preserve"><value>Nota sull’accordo</value></data>
   <data name="Xfer_PairEditHint" xml:space="preserve"><value>Cambiando un ente il verso delle sezioni si adegua da sé.</value></data>
   <data name="Xfer_PairAlreadyThere" xml:space="preserve"><value>Fra questi due enti l’accordo esiste già: eccolo.</value></data>
   <data name="Xfer_TwinSections" xml:space="preserve"><value>Un’altra sezione dice la stessa cosa ({0} clausole): stesso traffico, stesso verso, stessi aeroporti. Si possono unire, oppure distinguerle con le varianti.</value></data>

@@ -135,7 +135,7 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
         db.CoordinationAgreements.Add(new CoordinationAgreement
         {
             OwnerAccId = acc.Id, SideASectorId = settore.Id, SideBSectorId = altro.Id,
-            Note = "nota iniziale", Order = 0,
+            Order = 0,
         });
         await db.SaveChangesAsync();
     }
@@ -204,7 +204,7 @@ public class ConcorrenzaOttimisticaTests : IAsyncLifetime
         var esito = entita switch
         {
             nameof(SharedBlock) => await ConflittoFraDueEditor(db => db.SharedBlocks.FirstAsync(), (x, s) => x.Body = s),
-            nameof(CoordinationAgreement) => await ConflittoFraDueEditor(db => db.CoordinationAgreements.FirstAsync(), (x, s) => x.Note = s),
+            nameof(CoordinationAgreement) => await ConflittoFraDueEditor(db => db.CoordinationAgreements.FirstAsync(), (x, s) => x.Order = s.Length + (s.EndsWith('B') ? 1 : 0)),
             _ => await ConflittoFraDueEditor(db => db.DocumentProfiles.FirstAsync(), (x, s) => x.FreqOrderJson = s),
         };
 

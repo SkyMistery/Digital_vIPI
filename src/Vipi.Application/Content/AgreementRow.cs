@@ -24,9 +24,6 @@ public sealed record AgreementRow
     public required AgreementEndpoint SideA { get; init; }
     public required AgreementEndpoint SideB { get; init; }
 
-    /// <summary>Nota libera sull'accordo (l'ex <c>Description</c>). La prosa che introduce una tabella sta sulla
-    /// sezione.</summary>
-    public string? Note { get; init; }
 
     public required int Order { get; init; }
 

@@ -1578,8 +1578,6 @@
   <data name="Xfer_KindOverflight" xml:space="preserve"><value>Overflights</value></data>
   <data name="Xfer_KindVfr" xml:space="preserve"><value>VFR</value></data>
   <data name="Xfer_KindOther" xml:space="preserve"><value>Other</value></data>
-  <data name="Xfer_DescOpt" xml:space="preserve"><value>Description (opt.)</value></data>
-  <data name="Xfer_DescPh" xml:space="preserve"><value>Rome NE transfers…</value></data>
   <data name="Xfer_Group" xml:space="preserve"><value>Group</value></data>
   <data name="Xfer_SelectSenderHint" xml:space="preserve"><value>Select the sender sector to enable</value></data>
   <data name="Xfer_AirportRequired" xml:space="preserve"><value>Arrivals/Departures require an airport</value></data>
@@ -2613,7 +2611,7 @@
   <data name="Xfer_Agreement" xml:space="preserve"><value>Agreement</value></data>
   <data name="Xfer_AgreementsN" xml:space="preserve"><value>{0} agreements</value></data>
   <data name="Xfer_NewAgreement" xml:space="preserve"><value>New coordination agreement</value></data>
-  <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>Here you only say &lt;b&gt;between whom&lt;/b&gt;: each side may carry several units. Kind of traffic, airports and description go in the header of the agreement once created — it is born as «other» until you classify it.</value></data>
+  <data name="Xfer_NewAgreementHelp" xml:space="preserve"><value>Here you only say &lt;b&gt;between whom&lt;/b&gt;: each side may carry several units. Kind of traffic and airports go in the header of the agreement once created — it is born as «other» until you classify it.</value></data>
   <data name="Xfer_RemoveParty" xml:space="preserve"><value>Remove this unit</value></data>
   <data name="Xfer_AirportsLabel" xml:space="preserve"><value>Airports</value></data>
   <data name="Xfer_AirportsHint" xml:space="preserve"><value>(more than one allowed)</value></data>
@@ -2733,8 +2731,6 @@
   <data name="Xfer_FlipDirectionTitle" xml:space="preserve"><value>Flip the direction: the transferring unit becomes the receiving one. The proposed direction comes from the airport, and it is only a proposal.</value></data>
   <data name="Xfer_SideNear" xml:space="preserve"><value>Our unit</value></data>
   <data name="Xfer_SideFar" xml:space="preserve"><value>Counterpart</value></data>
-  <data name="Xfer_NoteOpt" xml:space="preserve"><value>Note (optional)</value></data>
-  <data name="Xfer_NotePh" xml:space="preserve"><value>Note about this agreement</value></data>
   <data name="Xfer_PairEditHint" xml:space="preserve"><value>Changing a unit adjusts the direction of every section accordingly.</value></data>
   <data name="Xfer_PairAlreadyThere" xml:space="preserve"><value>An agreement between these two units already exists: here it is.</value></data>
   <data name="Xfer_TwinSections" xml:space="preserve"><value>Another section says the same thing ({0} clauses): same traffic, same direction, same airports. Merge them, or tell them apart with variants.</value></data>

@@ -453,10 +453,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasDefaultValue("Manual")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
-                    b.Property<string>("Description")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
                     b.Property<string>("Direction")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -2083,10 +2079,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Note")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<int>("Order")
                         .HasColumnType("int");

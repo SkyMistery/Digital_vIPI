@@ -17,7 +17,7 @@ namespace Vipi.Ui.Components.App;
 /// <param name="Clauses">Quante clausole in tutto.</param>
 /// <param name="MissingReverse">Un traffico scritto in un verso solo dove il reciproco avrebbe senso.</param>
 /// <param name="ToReview">Clausole verso un APP che non dicono ancora dove avviene il trasferimento.</param>
-public sealed record XferNavAgreement(int Id, string Near, string Far, string? Note,
+public sealed record XferNavAgreement(int Id, string Near, string Far,
                                       int Sections, int Clauses, int MissingReverse, int ToReview)
 {
     public bool HasWarning => MissingReverse > 0 || ToReview > 0;

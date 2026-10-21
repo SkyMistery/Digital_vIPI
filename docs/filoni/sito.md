@@ -2893,6 +2893,11 @@
   `- NOME: nota`, e JSON senza note; un payload con la sola classe non si riscrive a ogni avvio. Carta §3. Test:
   Infra 2236 → 2238, Ui 2118 → 2119. **Non visto a schermo** (servono forme del sectorfile e aree IVAO): provato coi
   test, sui payload scritti dai serializzatori veri. S123c: le domande per la copia di produzione sono in carta §4.
+- ✅ **S123c** (21-ott sera) **via nota e descrizione dei trasferimenti**. Lette prima sulla copia di produzione 1.70.0
+  (montata e cancellata subito): 0 note di coppia, 5 descrizioni (elenco in carta §4). Il committente: «togli … senza
+  portarle nei documenti: le due frasi di Milano le riscrivo io». Via i campi da pagina Trasferimenti, navigatore,
+  ricerca, modelli, repository e da `description` dell'API dei settori. **Migrazione sì, distruttiva**:
+  `TogliNoteTrasferimenti` (`CoordinationAgreements.Note`, `AgreementSections.Description`), il testo si perde apposta.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

@@ -33,8 +33,8 @@ public class XferNavigatorTests : TestContext
     }
 
     private static XferNavAgreement Agreement(int id, string near, string far, int sections = 1, int clauses = 3,
-        int missingReverse = 0, int toReview = 0, string? note = null) =>
-        new(id, near, far, note, sections, clauses, missingReverse, toReview);
+        int missingReverse = 0, int toReview = 0) =>
+        new(id, near, far, sections, clauses, missingReverse, toReview);
 
     private static XferNavCounterpart Group(string acc, string? note, int order, params XferNavAgreement[] agreements) =>
         new($"acc:{acc}", acc, note, order, agreements);
