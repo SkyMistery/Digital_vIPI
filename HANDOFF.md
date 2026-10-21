@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 21 ottobre 2026, ONLINE
+> ## ▶ Il punto — 21 ottobre 2026, pomeriggio
+>
+> **📦 Pronta da caricare: 1.70.0** (§A163, timbro `1.70.0 · 2a21316`, 12 file, zip `81ae65dc…`, MINOR con la
+> migrazione DISTRUTTIVA `TogliTecnicaRadar`, misurata dalla 1.69.0): Sito S120, via la colonna
+> `Airports.RadarTowerTechnique`. 🔴 Prima del carico: colonna vuota in produzione e copia del database; non si torna
+> indietro con le rinomine. Online è la **1.69.0** finché il committente non carica. ⚠️ Aperto: SDK 10.0.402.
+>
+> ## Il punto — 21 ottobre 2026, ONLINE
 >
 > **✅ Online: 1.69.0** (`Schema 0` confermato; da fuori l'API dei settori risponde «chiave API mancante», health
 > Healthy; §A162, timbro `1.69.0 · 9af1c14`). In `main` non resta codice fuori pacchetto. Per usare l'API: una chiave
