@@ -172,15 +172,43 @@ public static partial class ItalianEnr3
             return new ImportResult([], pagine, problemi);
         }
 
-        // I tratti: uno per punto, quello dell'ultimo vuoto. Quel che segue l'ultimo punto si dice.
+        // I tratti: uno per punto, quello dell'ultimo vuoto. Dopo l'ultimo punto possono stare solo le note (M740: «For
+        // continuation see AIP MALTA»): sono della rotta. Altri dati lì si dicono.
+        string? noteDellaRotta = null;
         if (!tratti[^1].Vuoto)
-            problemi.Add(new ImportIssue(ImportIssueKind.Route, designatore, null, "dati dopo l'ultimo punto"));
+        {
+            // La nota può essere una cella unita su più colonne: conta che non ci sia nessun dato di tratto.
+            var dopo = tratti[^1].Colonne.Skip(1).SelectMany(c => c).ToList();
+            if (dopo.All(r => !RxRotta().IsMatch(r) && !RxLimite().IsMatch(r) && !RxNumero().IsMatch(r.Trim()) && !r.Contains('↓', StringComparison.Ordinal) && !r.Contains('↑', StringComparison.Ordinal)))
+                noteDellaRotta = RxSpazi().Replace(string.Join(" ", dopo), " ").Trim();
+            else
+                problemi.Add(new ImportIssue(ImportIssueKind.Route, designatore, null, "dati dopo l'ultimo punto"));
+        }
         var trattiDelModello = new List<RouteSegment>();
         for (var i = 0; i + 1 < punti.Count; i++)
         {
             if (tratti[i].Vuoto)
                 problemi.Add(new ImportIssue(ImportIssueKind.Route, designatore, punti[i].Pagina, $"{punti[i].Testo} → {punti[i + 1].Testo}: tratto senza dati"));
             trattiDelModello.Add(Tratto(tratti[i], designatore, punti[i].Testo, problemi, punti[i].Pagina));
+        }
+
+        // ENR 3.2-1, nota 3: «in mancanza di dati … dovranno ritenersi validi i valori precedenti» (carta «L'AIP intero»,
+        // passo 2d). Si ereditano i limiti verticali e l'ampiezza dal tratto prima; rotta, distanza e livelli minimi no
+        // (sono del tratto e del verso). Senza un tratto prima, i limiti che mancano si dicono.
+        for (var i = 0; i < trattiDelModello.Count; i++)
+        {
+            var t = trattiDelModello[i];
+            if (t.Discontinuity) continue;
+            var prima = trattiDelModello.Take(i).LastOrDefault(s => !s.Discontinuity);
+            if (prima is not null)
+                trattiDelModello[i] = t with
+                {
+                    Upper = t.Upper ?? prima.Upper,
+                    Lower = t.Lower ?? prima.Lower,
+                    LateralLimits = t.LateralLimits ?? prima.LateralLimits,
+                };
+            else if (t.Upper is null && t.Lower is null)
+                problemi.Add(new ImportIssue(ImportIssueKind.Route, designatore, punti[i].Pagina, $"{punti[i].Testo}: senza limiti verticali e senza un tratto prima"));
         }
 
         var rotta = new Route
@@ -191,6 +219,7 @@ public static partial class ItalianEnr3
             Points = puntiDelModello,
             Segments = trattiDelModello,
             Page = primaPagina,
+            Remarks = noteDellaRotta,
         };
         return new ImportResult([], pagine, problemi) { Routes = [rotta] };
     }
@@ -237,7 +266,8 @@ public static partial class ItalianEnr3
         }
 
         var limiti = RxLimite().Matches(string.Join(" ", t.Colonne[2])).Select(m => RxSpazi().Replace(m.Value, " ")).ToList();
-        if (limiti.Count != 2)
+        // Nessun limite: vale quello del tratto prima (nota 3); uno solo, o più di due, si dice.
+        if (limiti.Count is 1 or > 2)
             problemi.Add(new ImportIssue(ImportIssueKind.Route, rotta, pagina, $"{da}: {limiti.Count} limiti verticali «{string.Join(" ", t.Colonne[2])}»"));
 
         var (dispari, minimaDispari) = Livelli(t.Colonne[4]);

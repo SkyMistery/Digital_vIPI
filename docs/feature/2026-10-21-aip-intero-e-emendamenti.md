@@ -301,3 +301,18 @@ risolti su ENR 4.4, zero segnalazioni; **1 area VFR**. La lettura intera del 261
 rotte, punti, radioassistenze, scali, procedure identici; cambiano solo le quote delle attese (2a), i due settori di Pisa, e
 si aggiungono Ponza, le 23 righe delle frequenze, le 15 linee, le 72 radioassistenze di ENR 3.4.2. Test: Aip.Pdf 138
 (+5), Lab 1 379 (+1), Aip 50.
+
+#### 2d — «vale il dato di prima» e la nota dopo l'ultimo punto: fatto
+
+- **Misurato prima**: sulle 230 rotte del 2611, 1 021 tratti, **nessuno** con limiti, rotta, distanza o ampiezza vuoti; i
+  404 livelli minimi che mancano sono tutti su tratti a senso unico (verso «none»), quindi non mancano. Il «tratto vuoto»
+  di §1 era l'interruzione di Z910 (la riga di barre), già letta come interruzione.
+- **La regola di ENR 3.2-1 nota 3** entra lo stesso, per i cicli che verranno: un tratto senza limiti verticali o ampiezza
+  li prende dal tratto prima; **rotta, distanza e livelli minimi no** (sono del tratto e del verso: copiarli farebbe dati
+  falsi). Una colonna dei limiti vuota non è più una segnalazione; senza un tratto prima sì.
+- **La nota dopo l'ultimo punto è della rotta** (`Route.Remarks`, campo nuovo): M740 finiva con «For continuation see AIP
+  MALTA», una cella unita su più colonne, ed era l'unica segnalazione delle rotte («dati dopo l'ultimo punto»). Ora: le
+  230 rotte del 2611 **senza segnalazioni**. Dopo l'ultimo punto un dato di tratto (rotta, limiti, frecce, numeri) si
+  continua a dire.
+
+Test: Aip.Pdf 140 (+2), Aip 50 (la nota della rotta nel JSON).

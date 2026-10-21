@@ -25,11 +25,18 @@ public sealed record Route
     /// <summary>La pagina della prima riga della rotta, con la sua data AIRAC.</summary>
     public AipPage? Page { get; init; }
 
+    /// <summary>
+    /// Le note scritte dopo l'ultimo punto, nella colonna delle note (M740 nel 2611: «For continuation see AIP MALTA»;
+    /// carta «L'AIP intero», passo 2d).
+    /// </summary>
+    public string? Remarks { get; init; }
+
     // ⚠️ Scritta a mano: l'uguaglianza dei record confronterebbe le liste per riferimento.
     public bool Equals(Route? other) =>
         other is not null
         && Section == other.Section && Designator == other.Designator && Navigation == other.Navigation
-        && Points.SequenceEqual(other.Points) && Segments.SequenceEqual(other.Segments) && Page == other.Page;
+        && Points.SequenceEqual(other.Points) && Segments.SequenceEqual(other.Segments) && Page == other.Page
+        && Remarks == other.Remarks;
 
     public override int GetHashCode() => HashCode.Combine(Section, Designator);
 }

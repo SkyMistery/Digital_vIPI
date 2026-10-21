@@ -188,6 +188,7 @@ public sealed class AipJsonTests
                 new RouteSegment { Discontinuity = true },
             ],
             Page = new AipPage("ENR 3.2 L99-1", new DateOnly(2024, 3, 21)),
+            Remarks = "For continuation see AIP MALTA",
         };
         var attesa = new Holding
         {
@@ -234,6 +235,7 @@ public sealed class AipJsonTests
         Assert.DoesNotContain("unitFrequencies", AipJson.Serialize(new AipDocument { State = "LI" }));
         Assert.NotEqual(doc with { UnitLines = [linea with { Points = linea.Points.Take(1).ToList() }] }, riletto);
         Assert.NotEqual(Rotta(RouteDirection.None), riletto.Routes![0]);
+        Assert.NotEqual(Rotta(RouteDirection.Backward) with { Remarks = null }, riletto.Routes![0]);
         Assert.NotEqual(attesa with { Turn = TurnDirection.Right }, riletto.Holdings![0]);
         Assert.NotEqual(doc with { Holdings = null }, riletto);
         Assert.Contains("\"even\": \"backward\"", json);

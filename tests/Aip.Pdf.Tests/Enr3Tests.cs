@@ -132,6 +132,48 @@ public sealed class Enr3Tests
         Assert.Contains(letto.Issues, i => i.Kind == ImportIssueKind.Route && i.Detail == "NAXAV: senza coordinate");
     }
 
+    // Carta «L'AIP intero», passo 2d: ENR 3.2-1 nota 3, «in mancanza di dati valgono i valori precedenti» (limiti verticali
+    // e ampiezza; rotta, distanza e livelli no); e la nota dopo l'ultimo punto è della rotta (M740: «For continuation see AIP
+    // MALTA», una cella unita su più colonne).
+    [Fact]
+    public void ValeIlDatoDiPrima_ELaNotaDopoLUltimoPunto()
+    {
+        var pagina = Pagina(1, RotteDispari, "ENR 3.2 L97 - 1", "21 MAR 2024", 0,
+        [
+            .. TestataDelleRotte, (54, 146, "L97"),
+            (56, 182, "▲ UNIMI"), (67, 196, "46°51'39''N 011°03'55''E"),
+            (174, 227, "153° / 333°"), (235, 226, "FL195"), (283, 233, "5"), (188, 239, "26.1"), (235, 241, "FL155"),
+            (56, 258, "▲ NAXAV"), (67, 272, "46°27'50''N 011°19'20''E"),
+            // Il tratto da NAXAV non ripete limiti e ampiezza.
+            (174, 302, "160° / 340°"), (188, 314, "11.8"),
+            (56, 334, "▲ KOPER"), (67, 348, "45°09'14''N 011°38'29''E"), (224, 350, "For continuation"), (283, 350, "see AIP MALTA"),
+        ]);
+
+        var letto = ItalianEnr3.ReadRoutes([pagina], "ENR 3.2");
+
+        Assert.Empty(letto.Issues);
+        var rotta = Assert.Single(letto.Routes);
+        var t = rotta.Segments[1];
+        Assert.Equal(("160° / 340°", 11.8, "FL195", "FL155", "5"), (t.Track, t.DistanceNm, t.Upper?.Text, t.Lower?.Text, t.LateralLimits));
+        Assert.Equal("For continuation see AIP MALTA", rotta.Remarks);
+    }
+
+    [Fact]
+    public void SenzaLimitiNelPrimoTratto_SiDice()
+    {
+        var pagina = Pagina(1, RotteDispari, "ENR 3.2 L96 - 1", "21 MAR 2024", 0,
+        [
+            .. TestataDelleRotte, (54, 146, "L96"),
+            (56, 182, "▲ UNIMI"), (67, 196, "46°51'39''N 011°03'55''E"),
+            (174, 227, "153° / 333°"), (188, 239, "26.1"),
+            (56, 258, "▲ NAXAV"), (67, 272, "46°27'50''N 011°19'20''E"),
+        ]);
+
+        var letto = ItalianEnr3.ReadRoutes([pagina], "ENR 3.2");
+
+        Assert.Contains(letto.Issues, i => i.Kind == ImportIssueKind.Route && i.Detail == "UNIMI: senza limiti verticali e senza un tratto prima");
+    }
+
     // --- le attese ---------------------------------------------------------------------------------------------------
 
     private static (double, double, string)[] TestataDelleAttese => [(77, 154, "1"), (164, 154, "2"), (284, 154, "3"), (453, 154, "4")];
