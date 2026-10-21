@@ -189,6 +189,7 @@ public sealed class AipJsonTests
             ],
             Page = new AipPage("ENR 3.2 L99-1", new DateOnly(2024, 3, 21)),
             Remarks = "For continuation see AIP MALTA",
+            Notes = [new RouteNote(1, "Il tratto UNIMI-NAXAV è utilizzabile solo in direzione nord.", "Route usable northbound only."), new RouteNote(2, "Seconda.", null)],
         };
         var attesa = new Holding
         {
@@ -236,6 +237,8 @@ public sealed class AipJsonTests
         Assert.NotEqual(doc with { UnitLines = [linea with { Points = linea.Points.Take(1).ToList() }] }, riletto);
         Assert.NotEqual(Rotta(RouteDirection.None), riletto.Routes![0]);
         Assert.NotEqual(Rotta(RouteDirection.Backward) with { Remarks = null }, riletto.Routes![0]);
+        Assert.NotEqual(Rotta(RouteDirection.Backward) with { Notes = null }, riletto.Routes![0]);
+        Assert.NotEqual(Rotta(RouteDirection.Backward) with { Notes = [] }, riletto.Routes![0]);
         Assert.NotEqual(attesa with { Turn = TurnDirection.Right }, riletto.Holdings![0]);
         Assert.NotEqual(doc with { Holdings = null }, riletto);
         Assert.Contains("\"even\": \"backward\"", json);

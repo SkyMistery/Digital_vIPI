@@ -49,6 +49,7 @@ public sealed class AipSullaMappaTests
                                        Odd = RouteDirection.Forward, MinimumOdd = "110" },
                     new RouteSegment { Discontinuity = true },
                 ],
+                Notes = [new RouteNote(1, "Il tratto UNO-DUE è utilizzabile solo in direzione est.", "Segment UNO-DUE usable eastbound only.")],
             },
         ],
         Holdings =
@@ -101,6 +102,8 @@ public sealed class AipSullaMappaTests
         // UNO-DUE disegnato, DUE-TRE interrotto: un pezzo solo, di due punti.
         Assert.Equal(2, Assert.Single(rotta.Tratti).Count);
         Assert.Equal(["▲ UNO", "    090° / 270° 12.7 NM · FL195 – FL95 · ↓ solo avanti · MNM 110/—", "∆ DUE", "    — interruzione —", "▲ TRE"], s.Voci[2].Righe);
+        // Il riquadro «NOTE / REMARKS» (carta «L'AIP intero», passo 3): l'italiano nella scheda.
+        Assert.Contains(("Nota 1", "Il tratto UNO-DUE è utilizzabile solo in direzione est."), s.Voci[2].Campi);
     }
 
     [Fact]

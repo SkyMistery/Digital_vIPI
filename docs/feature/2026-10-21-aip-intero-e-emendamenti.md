@@ -342,3 +342,45 @@ NANKA e TEMRI**), più le aggiunte di §2 (frequenze, linee fra gli ACC, Ponza, 
 dato di prima»); **TUCOZ letto**; **JESSY e VANXI no, di proposito** (l'abbinamento nella cella unita è ambiguo: si
 dicono); i **17 radioaiuti di 3.4.2** spiegati (radioassistenze senza attese, ora nell'elenco con le loro procedure). Il
 rapporto di lettura c'è e sul 2611 non ha conti che non tornano.
+
+### Passo 3 — ENR 3.2, le 230 rotte (via del committente, 21 ottobre: «vai con il passo 3»)
+
+**La controprova.** Le 230 rotte le leggeva già il Lab (passi 2d e 2e: 230 rotte, 1 274 punti come i ▲∆). Il passo 3 le
+rilegge con un altro lettore, pdfplumber (`controprova32.py` nello scratchpad della sessione `c6ab12b9`): le colonne dai
+numeri «1…6» della testata e dai bordi verticali di ogni pagina, il punto dal marcatore ▲∆ alle coordinate, il tratto
+sotto le coordinate (anche quando continua nella pagina dopo, con le colonne di quella pagina). Poi confronta cella per
+cella con quello che legge il Lab (una sonda che scrive le rotte lette in JSON, non committata). Risultato sul 2611:
+
+- **1 274 punti su 1 274 uguali**: nome (anche su due righe, «PALERMO/Punta Raisi VOR/» «DME 'PAL'»), coordinate al
+  milionesimo di grado, ▲ o ∆, note del punto (ente che cambia, «For continuation see AIP …», anche le note su più righe
+  di M740).
+- **1 044 tratti su 1 044 uguali**: rotta magnetica, distanza, limiti (anche «5500ft» «AMSL» su due righe e le quote in
+  piedi di KY139), ampiezza, verso e minima dei livelli dispari e pari (anche in piedi, «4000»), note del tratto (CDR1
+  sopra la riga della rotta, orari).
+- **23 interruzioni** (le righe di barre): le stesse 23, una per una, che il Lab segna `Discontinuity`.
+
+**Quel che mancava: il riquadro «NOTE / REMARKS».** Sotto la tabella di ogni rotta c'è un riquadro con due colonne,
+l'italiano sotto «NOTE» e l'inglese sotto «REMARKS», note numerate: è lì che l'AIP dice che un tratto è **a senso
+unico** («Il tratto UNIMI-NAXAV è utilizzabile solo in direzione nord»), che sotto un livello decide l'ACC col QNH, che
+serve il radar, che un segmento è chiuso quando sono attive LI D25B/C. Il Lab non lo leggeva. Ora:
+
+- `Route.Notes`: una `RouteNote(Number, Text, English)` per nota; vuota se l'AIP stampa «NIL» o il riquadro vuoto, null
+  se il riquadro non c'è. Il lettore prende il testo sotto la tabella e, dalla prima pagina con la tabella in poi, il
+  testo delle pagine senza tabella (il riquadro può finire lì: M725, M727); divide le colonne alla x di «REMARKS»
+  (N606 e N736 scrivono «REMARK»); una riga «n.…» apre la nota n solo se n è il numero dopo («ENR 6.3-5)» in L613 non
+  apre niente).
+- Si dicono: testo sotto la tabella senza il riquadro; note in italiano e in inglese in numero diverso.
+- Nella scheda della rotta (indice e mappa dell'AIP espanso) le note in italiano, «Nota 1», «Nota 2»; l'inglese resta
+  nel modello.
+
+**Misurato** sul 2611: **159 rotte con note (202 note), 67 senza** (57 «NIL», 10 col riquadro vuoto com'è stampato:
+L146, L862, L865, L869, M740, Q549, Q865, Z923, Z925, Z982), **4 senza riquadro** (L127, P573, T334, Y29); nessuna
+segnalazione. Contro la controprova, parola per parola: 156 rotte su 157 uguali, M725 diversa solo per come i due
+lettori spezzano «a.è»; in più il Lab legge N606 e N736 («REMARK»), che la controprova perdeva. Ogni nota ha il suo
+inglese. Sul banco (1400 px): L12 con le sue tre note nella scheda, M725 con la nota che finisce nella pagina senza
+tabella.
+
+Test: Aip.Pdf 146 (+3), Aip 50, Lab 1 380 (stessi test, un controllo in più).
+
+**Finita quando** (§3): 230 rotte; i punti di ogni rotta quanti i ▲∆ (passo 2e: tutti tornano); controprova cella per
+cella senza differenze; le note delle rotte lette. Il passo 3 è chiuso.

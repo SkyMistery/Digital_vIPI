@@ -363,6 +363,9 @@ public static class AipSullaMappa
         var campi = new List<(string, string)> { ("Sezione", r.Section), ("Punti", r.Points.Count.ToString(CultureInfo.InvariantCulture)) };
         if (r.Navigation is { } nav) campi.Add(("Navigazione", nav));
         campi.Add(("Pagina", Pagina(r.Page)));
+        // Il riquadro «NOTE / REMARKS» (carta «L'AIP intero», passo 3): il testo italiano, l'inglese resta nel modello.
+        foreach (var n in r.Notes ?? [])
+            campi.Add((n.Number is { } numero ? $"Nota {numero}" : "Nota", n.Text));
         var righe = new List<string>();
         for (var i = 0; i < r.Points.Count; i++)
         {

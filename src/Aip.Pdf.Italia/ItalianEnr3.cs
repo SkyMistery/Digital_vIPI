@@ -57,6 +57,10 @@ public static partial class ItalianEnr3
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
 
+    // Una nota numerata del riquadro «NOTE / REMARKS»: «1.Il tratto…», «2. Segment…»; non «6.3-5)» (ENR 6.3-5 in L613).
+    [GeneratedRegex(@"^(?<n>\d{1,2})\.(?!\d)\s*(?<t>.+)$", Opzioni)]
+    private static partial Regex RxNotaNumerata();
+
     // --- le rotte ----------------------------------------------------------------------------------------------------
 
     private sealed class PuntoLetto
@@ -86,6 +90,9 @@ public static partial class ItalianEnr3
         var tratti = new List<TrattoLetto>();
         var testa = new List<string>();
         AipPage? primaPagina = null;
+        // Il testo fuori dalla tabella, dalla prima pagina con la tabella in poi: il riquadro «NOTE / REMARKS».
+        var fuori = new List<(PdfPageText Pagina, PdfWord Parola)>();
+        var tabellaVista = false;
 
         foreach (var page in pages)
         {
@@ -94,9 +101,16 @@ public static partial class ItalianEnr3
             var data = PageInfo.Date(piane);
             var griglia = Griglia(page, 7);
             pagine.Add(new ImportPage(page.Number, riferimento, data, griglia is not null));
-            if (griglia is null) continue;
+            if (griglia is null)
+            {
+                // Una pagina senza tabella dopo la tabella: il seguito delle note (M727), o bianca.
+                if (tabellaVista) fuori.AddRange(page.Words.Where(w => DelCorpo(page, w)).Select(w => (page, w)));
+                continue;
+            }
+            tabellaVista = true;
             if (data is null) problemi.Add(new ImportIssue(ImportIssueKind.PageWithoutDate, null, page.Number));
             primaPagina ??= riferimento is null ? null : new AipPage(riferimento, data);
+            fuori.AddRange(page.Words.Where(w => w.Baseline > griglia.Bottom + 1 && DelCorpo(page, w)).Select(w => (page, w)));
 
             var righe = Table.Lines(page, griglia);
             // Sotto la riga dei numeri delle colonne («1 2 3 4 5 6»): sopra c'è la testata.
@@ -220,9 +234,109 @@ public static partial class ItalianEnr3
             Segments = trattiDelModello,
             Page = primaPagina,
             Remarks = noteDellaRotta,
+            Notes = Note(fuori, designatore, problemi),
         };
         return new ImportResult([], pagine, problemi) { Routes = [rotta] };
     }
+
+    /// <summary>Fra la testata della pagina («ENR 3.2 L12 - 1», la data) e il piè di pagina («ENAV - Roma», l'emendamento).</summary>
+    private static bool DelCorpo(PdfPageText page, PdfWord w) => w.Baseline > 40 && w.Baseline < page.Height - 20;
+
+    /// <summary>
+    /// Il riquadro «NOTE / REMARKS» sotto la tabella (carta «L'AIP intero», passo 3; 157 rotte con note nel 2611, 56 con
+    /// «NIL»): due colonne, l'italiano sotto «NOTE» e l'inglese sotto «REMARKS» (N606 e N736: «REMARK»), note numerate
+    /// «1.», «2.»; può finire nella pagina dopo, senza tabella. Null se il riquadro non c'è; il testo fuori dalla tabella
+    /// che non è del riquadro si dice.
+    /// </summary>
+    private static List<RouteNote>? Note(List<(PdfPageText Pagina, PdfWord Parola)> fuori, string rotta, List<ImportIssue> problemi)
+    {
+        if (fuori.Count == 0) return null;
+        static bool Remarks(PdfWord w) => w.Text is "REMARKS" or "REMARK";
+        var t = fuori.FindIndex(n => n.Parola.Text == "NOTE"
+            && fuori.Any(r => r.Pagina == n.Pagina && Remarks(r.Parola) && Math.Abs(r.Parola.Baseline - n.Parola.Baseline) <= 3));
+        if (t < 0)
+        {
+            problemi.Add(new ImportIssue(ImportIssueKind.Route, rotta, fuori[0].Pagina.Number, $"testo sotto la tabella senza il riquadro delle note: {Testo(fuori)}"));
+            return null;
+        }
+        var (paginaNote, note) = fuori[t];
+        var remarks = fuori.First(r => r.Pagina == paginaNote && Remarks(r.Parola) && Math.Abs(r.Parola.Baseline - note.Baseline) <= 3).Parola;
+
+        var prima = fuori.Where(f => f.Pagina.Number < paginaNote.Number || f.Pagina == paginaNote && f.Parola.Baseline < note.Baseline - 3).ToList();
+        if (prima.Count > 0)
+            problemi.Add(new ImportIssue(ImportIssueKind.Route, rotta, prima[0].Pagina.Number, $"testo sopra il riquadro delle note: {Testo(prima)}"));
+        var dentro = fuori.Where(f => f.Pagina.Number > paginaNote.Number || f.Pagina == paginaNote && f.Parola.Baseline > note.Baseline + 3).ToList();
+
+        // Le due colonne: l'inglese comincia sotto «REMARKS». Nella pagina dopo il margine si sposta (pari e dispari).
+        var italiano = new List<(PdfPageText Pagina, PdfWord Parola)>();
+        var inglese = new List<(PdfPageText Pagina, PdfWord Parola)>();
+        foreach (var gruppo in dentro.GroupBy(d => d.Pagina))
+        {
+            var dx = gruppo.Key == paginaNote ? 0 : gruppo.Min(g => g.Parola.X0) - note.X0;
+            foreach (var d in gruppo)
+                (d.Parola.X0 < remarks.X0 - 3 + dx ? italiano : inglese).Add(d);
+        }
+        var noteIt = Numerate(Righe(italiano));
+        var noteEn = Numerate(Righe(inglese));
+        // «NIL», o il riquadro vuoto com'è stampato (L146, M740 e altre 8 nel 2611): nessuna nota.
+        if (noteIt.Count == 0 && noteEn.Count == 0) return [];
+        if (noteIt is [{ Testo: "NIL" }] && noteEn is [] or [{ Testo: "NIL" }]) return [];
+        if (noteIt.Count != noteEn.Count)
+            problemi.Add(new ImportIssue(ImportIssueKind.Route, rotta, paginaNote.Number, $"note: {noteIt.Count} in italiano, {noteEn.Count} in inglese"));
+        return noteIt.Select((n, i) => new RouteNote(n.Numero, n.Testo,
+            (n.Numero is null ? noteEn.ElementAtOrDefault(i) : noteEn.FirstOrDefault(e => e.Numero == n.Numero)).Testo)).ToList();
+    }
+
+    /// <summary>Le parole di una colonna del riquadro a righe, pagina per pagina dall'alto.</summary>
+    private static List<string> Righe(List<(PdfPageText Pagina, PdfWord Parola)> parole)
+    {
+        var righe = new List<string>();
+        foreach (var pagina in parole.GroupBy(p => p.Pagina.Number).OrderBy(g => g.Key))
+        {
+            var riga = new List<PdfWord>();
+            foreach (var w in pagina.Select(p => p.Parola).OrderBy(w => w.Baseline).ThenBy(w => w.X0))
+            {
+                if (riga.Count > 0 && w.Baseline - riga[0].Baseline > 3.0)
+                {
+                    righe.Add(string.Join(' ', riga.OrderBy(x => x.X0).Select(x => x.Text)));
+                    riga = [];
+                }
+                riga.Add(w);
+            }
+            if (riga.Count > 0) righe.Add(string.Join(' ', riga.OrderBy(x => x.X0).Select(x => x.Text)));
+        }
+        return righe;
+    }
+
+    /// <summary>
+    /// Le righe in note: una riga «n.…» apre la nota n se n è il numero dopo l'ultimo; le altre righe continuano la nota
+    /// aperta (una parola spezzata col trattino in fine riga si riunisce). Prima di ogni numero, una nota senza numero.
+    /// </summary>
+    private static List<(int? Numero, string Testo)> Numerate(List<string> righe)
+    {
+        var note = new List<(int? Numero, string Testo)>();
+        var numerate = 0;
+        foreach (var riga in righe)
+        {
+            if (RxNotaNumerata().Match(riga) is { Success: true } m
+                && int.Parse(m.Groups["n"].Value, CultureInfo.InvariantCulture) == numerate + 1)
+            {
+                numerate++;
+                note.Add((numerate, m.Groups["t"].Value.Trim()));
+            }
+            else if (note.Count == 0)
+                note.Add((null, riga.Trim()));
+            else
+            {
+                var (numero, testo) = note[^1];
+                var spezzata = testo.Length > 1 && testo[^1] == '-' && char.IsLower(testo[^2]) && riga.Length > 0 && char.IsLower(riga[0]);
+                note[^1] = (numero, spezzata ? testo[..^1] + riga.Trim() : testo + " " + riga.Trim());
+            }
+        }
+        return note;
+    }
+
+    private static string Testo(List<(PdfPageText Pagina, PdfWord Parola)> parole) => string.Join(" ", Righe(parole));
 
     /// <summary>I pezzi di testo a righe: quelli alla stessa altezza uniti da uno spazio (una cella unita su più colonne).</summary>
     private static string Righe(List<(double Y, string Testo)> pezzi)

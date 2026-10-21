@@ -31,15 +31,29 @@ public sealed record Route
     /// </summary>
     public string? Remarks { get; init; }
 
+    /// <summary>
+    /// Il riquadro «NOTE / REMARKS» sotto la tabella (carta «L'AIP intero», passo 3): le note numerate, in italiano e in
+    /// inglese («Il tratto UNIMI-NAXAV è utilizzabile solo in direzione nord»). Vuoto se l'AIP stampa «NIL»; null se il
+    /// riquadro non c'è.
+    /// </summary>
+    public IReadOnlyList<RouteNote>? Notes { get; init; }
+
     // ⚠️ Scritta a mano: l'uguaglianza dei record confronterebbe le liste per riferimento.
     public bool Equals(Route? other) =>
         other is not null
         && Section == other.Section && Designator == other.Designator && Navigation == other.Navigation
         && Points.SequenceEqual(other.Points) && Segments.SequenceEqual(other.Segments) && Page == other.Page
-        && Remarks == other.Remarks;
+        && Remarks == other.Remarks
+        && (Notes is null ? other.Notes is null : other.Notes is not null && Notes.SequenceEqual(other.Notes));
 
     public override int GetHashCode() => HashCode.Combine(Section, Designator);
 }
+
+/// <summary>
+/// Una nota del riquadro «NOTE / REMARKS» di una rotta: il numero com'è stampato (null se la nota è una sola e senza
+/// numero), il testo italiano e quello inglese.
+/// </summary>
+public sealed record RouteNote(int? Number, string Text, string? English);
 
 /// <summary>
 /// Un punto significativo di una rotta. <paramref name="Designator"/>: il nome con cui la rotta lo usa (<c>UNIMI</c>, e per

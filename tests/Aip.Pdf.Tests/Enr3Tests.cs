@@ -174,6 +174,81 @@ public sealed class Enr3Tests
         Assert.Contains(letto.Issues, i => i.Kind == ImportIssueKind.Route && i.Detail == "UNIMI: senza limiti verticali e senza un tratto prima");
     }
 
+    // Carta «L'AIP intero», passo 3: il riquadro «NOTE / REMARKS» sotto la tabella, l'italiano a sinistra e l'inglese
+    // sotto «REMARKS», note numerate; può finire nella pagina dopo, che non ha la tabella ed è sfalsata (M725).
+    private static PdfPageText DueTratti(string rotta, params (double X, double Y, string Testo)[] sotto) =>
+        Pagina(1, RotteDispari, $"ENR 3.2 {rotta} - 1", "21 MAR 2024", 0,
+        [
+            .. TestataDelleRotte, (54, 146, rotta),
+            (56, 182, "▲ UNIMI"), (67, 196, "46°51'39''N 011°03'55''E"),
+            (174, 227, "153° / 333°"), (235, 226, "FL195"), (283, 233, "5"), (188, 239, "26.1"), (235, 241, "FL155"),
+            (56, 258, "▲ NAXAV"), (67, 272, "46°27'50''N 011°19'20''E"),
+            .. sotto,
+        ]);
+
+    private static PdfPageText SenzaTabella(int numero, params (double X, double Y, string Testo)[] testo)
+    {
+        var parole = new List<PdfWord> { Parola(47, 12, $"ENR 3.2 L95 - {numero}"), Parola(47, 24, "AIRAC effective date 21 MAR 2024") };
+        foreach (var (x, y, t) in testo)
+        {
+            var cx = x;
+            foreach (var p in t.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                parole.Add(Parola(cx, y, p));
+                cx += p.Length * 4.5 + 3;
+            }
+        }
+        parole.Add(Parola(47, 832, "(A03/24) ENAV - Roma"));
+        return new PdfPageText(numero, 595, 842, parole, []);
+    }
+
+    [Fact]
+    public void LeNoteDellaRotta_InDueLingue_AncheNellaPaginaDopo()
+    {
+        var uno = DueTratti("L95",
+            (52, 790, "NOTE"), (320, 790, "REMARKS"),
+            (52, 800, "1.Il tratto UNIMI-NAXAV è utilizzabile"), (320, 800, "1.Route usable northbound"),
+            (52, 810, "solo in direzione nord."), (320, 810, "only."));
+        var due = SenzaTabella(2,
+            (47, 100, "2.Nel tratto VIC-LUMAV livelli di volo"), (315, 100, "2.In the segment VIC-LUMAV"),
+            (47, 110, "assegnati da Padova ACC."), (315, 110, "assigned by Padova ACC."));
+
+        var letto = ItalianEnr3.ReadRoutes([uno, due], "ENR 3.2");
+
+        Assert.Empty(letto.Issues);
+        Assert.Equal(
+        [
+            new RouteNote(1, "Il tratto UNIMI-NAXAV è utilizzabile solo in direzione nord.", "Route usable northbound only."),
+            new RouteNote(2, "Nel tratto VIC-LUMAV livelli di volo assegnati da Padova ACC.", "In the segment VIC-LUMAV assigned by Padova ACC."),
+        ], Assert.Single(letto.Routes).Notes);
+    }
+
+    [Fact]
+    public void NoteNil_RiquadroVuoto_SenzaRiquadro()
+    {
+        var nil = ItalianEnr3.ReadRoutes([DueTratti("L94", (52, 790, "NOTE"), (320, 790, "REMARK"), (52, 800, "NIL"), (320, 800, "NIL"))], "ENR 3.2");
+        var vuoto = ItalianEnr3.ReadRoutes([DueTratti("L93", (52, 790, "NOTE"), (320, 790, "REMARKS"))], "ENR 3.2");
+        var senza = ItalianEnr3.ReadRoutes([DueTratti("L92")], "ENR 3.2");
+
+        Assert.Empty(nil.Issues.Concat(vuoto.Issues).Concat(senza.Issues));
+        Assert.Equal([], Assert.Single(nil.Routes).Notes);
+        Assert.Equal([], Assert.Single(vuoto.Routes).Notes);
+        Assert.Null(Assert.Single(senza.Routes).Notes);
+    }
+
+    [Fact]
+    public void TestoSottoLaTabellaSenzaRiquadro_EUnaNotaSenzaInglese_SiDicono()
+    {
+        var senzaRiquadro = ItalianEnr3.ReadRoutes([DueTratti("L91", (52, 800, "Rotta chiusa"))], "ENR 3.2");
+        var mezza = ItalianEnr3.ReadRoutes([DueTratti("L90", (52, 790, "NOTE"), (320, 790, "REMARKS"),
+            (52, 800, "1.Prima nota."), (320, 800, "1.First note."), (52, 810, "2.Seconda nota."))], "ENR 3.2");
+
+        Assert.Contains(senzaRiquadro.Issues, i => i.Kind == ImportIssueKind.Route && i.Detail == "testo sotto la tabella senza il riquadro delle note: Rotta chiusa");
+        Assert.Null(Assert.Single(senzaRiquadro.Routes).Notes);
+        Assert.Contains(mezza.Issues, i => i.Kind == ImportIssueKind.Route && i.Detail == "note: 2 in italiano, 1 in inglese");
+        Assert.Equal([new RouteNote(1, "Prima nota.", "First note."), new RouteNote(2, "Seconda nota.", null)], Assert.Single(mezza.Routes).Notes);
+    }
+
     // --- le attese ---------------------------------------------------------------------------------------------------
 
     private static (double, double, string)[] TestataDelleAttese => [(77, 154, "1"), (164, 154, "2"), (284, 154, "3"), (453, 154, "4")];
