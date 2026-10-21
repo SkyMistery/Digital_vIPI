@@ -3084,6 +3084,8 @@
   <data name="Callout_Warning" xml:space="preserve"><value>Attenzione</value></data>
   <data name="Callout_Danger" xml:space="preserve"><value>Importante</value></data>
   <data name="Callout_Note" xml:space="preserve"><value>Nota</value></data>
+  <data name="Callout_AttAdd" xml:space="preserve"><value>+ Allegato</value></data>
+  <data name="Callout_AttRemove" xml:space="preserve"><value>Togli l'allegato dal callout</value></data>
   <data name="Lang_LockedTitle" xml:space="preserve"><value>Documento in una lingua sola</value></data>
   <data name="Lang_LockedBody" xml:space="preserve"><value>Questo documento è pubblicato solo in {0} e non viene tradotto. Il selettore IT/EN cambia la lingua del sito, non quella del documento.</value></data>
   <data name="Lang_NameIt" xml:space="preserve"><value>italiano</value></data>
@@ -3768,6 +3770,7 @@
   <data name="Rta_Indent" xml:space="preserve"><value>Rientra la voce di un livello (Tab)</value></data>
   <data name="Rta_Outdent" xml:space="preserve"><value>Riduci il rientro della voce (Maiusc+Tab)</value></data>
   <data name="Rta_Sid" xml:space="preserve"><value>Cita una SID: il nome si aggiorna da solo quando la SID cambia</value></data>
+  <data name="Rta_Link" xml:space="preserve"><value>Inserisci un link: a un indirizzo web o a un allegato. Le parole selezionate diventano il testo del link</value></data>
   <data name="Sid_Pick_Title" xml:space="preserve"><value>Cita dall'archivio</value></data>
   <data name="Sid_Btn" xml:space="preserve"><value>Cita</value></data>
   <data name="Sid_Pick_Kind" xml:space="preserve"><value>Che cosa citare</value></data>
@@ -3776,6 +3779,18 @@
   <data name="Sid_Pick_None" xml:space="preserve"><value>Niente da citare per {0}.</value></data>
   <data name="Sid_Pick_TooMany" xml:space="preserve"><value>Solo le prime {0}: affina la ricerca.</value></data>
   <data name="Sid_Cell" xml:space="preserve"><value>Cita dall'archivio nella cella selezionata</value></data>
+  <data name="Link_Cell" xml:space="preserve"><value>Inserisci un link nella cella selezionata</value></data>
+  <data name="Link_Btn" xml:space="preserve"><value>Link</value></data>
+  <data name="Link_Title" xml:space="preserve"><value>Link</value></data>
+  <data name="Link_Kind" xml:space="preserve"><value>A che cosa porta il link</value></data>
+  <data name="Link_Web" xml:space="preserve"><value>Indirizzo web</value></data>
+  <data name="Link_Attachment" xml:space="preserve"><value>Allegato</value></data>
+  <data name="Link_Text" xml:space="preserve"><value>Parole del link</value></data>
+  <data name="Link_TextPh" xml:space="preserve"><value>Vuoto = l'indirizzo stesso</value></data>
+  <data name="Link_TextAttPh" xml:space="preserve"><value>Vuoto = il titolo dell'allegato</value></data>
+  <data name="Link_Url" xml:space="preserve"><value>Indirizzo</value></data>
+  <data name="Link_UrlInvalid" xml:space="preserve"><value>Serve un indirizzo completo che cominci con http:// o https://.</value></data>
+  <data name="Link_Insert" xml:space="preserve"><value>Inserisci</value></data>
   <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>Clicca prima nella cella dove va la SID.</value></data>
   <data name="Sid_Conv_Open" xml:space="preserve"><value>Cerca SID scritte a mano</value></data>
   <data name="Sid_Conv_Title" xml:space="preserve"><value>SID scritte a mano</value></data>

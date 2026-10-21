@@ -1,5 +1,6 @@
-﻿@* Il tasto «SID» sotto una tabella dell'editor (§A73): cita una SID nella cella che ha il fuoco. Serve ai due
-   editor di tabelle (DocumentSectionsEditor, DocumentBlocksEditor) — un componente e non due copie.
+﻿@* I tasti «SID» (§A73) e «Link» (S122) sotto una tabella dell'editor: citano una SID, o mettono un link, nella cella
+   che ha il fuoco. Servono ai due editor di tabelle (DocumentSectionsEditor, DocumentBlocksEditor) — un componente
+   e non due copie.
 
    ⚠️ Il contenitore della tabella va marcato `data-sid-host`: è lì che il tasto cerca la cella. Le celle sono
    `<input>` senza barra, e un tasto per cella affollerebbe la tabella: vale l'ULTIMA cella col fuoco.
@@ -11,6 +12,9 @@
 <button type="button" class="btn ghost" @ref="_tasto" title="@L["Sid_Cell"]" aria-label="@L["Sid_Cell"]"
         aria-expanded="@(_aperto ? "true" : "false")"
         @onmousedown:preventDefault="true" @onclick="Apri">@L["Sid_Btn"]</button>
+<button type="button" class="btn ghost tasto-link-cella" @ref="_tastoLink" title="@L["Link_Cell"]" aria-label="@L["Link_Cell"]"
+        aria-expanded="@(_linkAperto ? "true" : "false")"
+        @onmousedown:preventDefault="true" @onclick="ApriLink">@L["Link_Btn"]</button>
 @if (_senzaCella)
 {
     <span class="muted" style="font-size:12px;align-self:center">@L["Sid_Cell_NoFocus"]</span>
@@ -19,26 +23,46 @@
 {
     <RiferimentoPicker IcaoIniziale="@IcaoDelDocumento" OnScegli="Inserisci" OnChiudi="() => _aperto = false" />
 }
+@if (_linkAperto)
+{
+    <LinkPicker TestoIniziale="@_linkTesto" OnScegli="Inserisci" OnChiudi="() => _linkAperto = false" />
+}
 
 @code {
     [CascadingParameter(Name = "IcaoDelDocumento")] public string? IcaoDelDocumento { get; set; }
 
     private ElementReference _tasto;
+    private ElementReference _tastoLink;
     private bool _aperto;
+    private bool _linkAperto;
     private bool _senzaCella;
     private string _gettone = "";   // vedi `vipiSidPrendi`: due selettori aperti non si scambiano il campo
+    private string _linkTesto = "";
 
     private async Task Apri()
     {
         if (_aperto) { _aperto = false; return; }
+        _linkAperto = false;
         _gettone = await JS.InvokeAsync<string>("vipiSidPrendiDa", _tasto) ?? "";
         _senzaCella = _gettone.Length == 0;
         _aperto = !_senzaCella;
     }
 
+    // Il link prende il posto delle parole selezionate nella cella, come nella barra del testo.
+    private async Task ApriLink()
+    {
+        if (_linkAperto) { _linkAperto = false; return; }
+        _aperto = false;
+        _gettone = await JS.InvokeAsync<string>("vipiSidPrendiDa", _tastoLink) ?? "";
+        _senzaCella = _gettone.Length == 0;
+        _linkTesto = _senzaCella ? "" : await JS.InvokeAsync<string>("vipiSidTesto", _gettone) ?? "";
+        _linkAperto = !_senzaCella;
+    }
+
     private async Task Inserisci(string riferimento)
     {
         _aperto = false;
+        _linkAperto = false;
         _senzaCella = false;
         await JS.InvokeAsync<bool>("vipiSidInserisci", _gettone, riferimento);
     }

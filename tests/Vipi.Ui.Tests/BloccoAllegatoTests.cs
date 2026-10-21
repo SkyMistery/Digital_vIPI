@@ -647,4 +647,69 @@ public class BloccoAllegatoTests : TestContext
 
         Assert.Equal(AttachmentRotation.Deg0, r!.Rotation);
     }
+
+    // ---- gli allegati nei callout (S121, 21 ottobre 2026) ----------------------------------------------------
+
+    /// <summary>Il callout mostra i suoi allegati sotto il testo, con lo stesso link del blocco «Allegato».</summary>
+    [Fact]
+    public void Il_callout_mostra_i_suoi_allegati_sotto_il_testo()
+    {
+        Localizzatore();
+        var json = CalloutJson.ConAllegati("{\"title\":\"Attenzione\"}", new[] { new AttachmentRef("loa-lirr-lfmm", "LoA Roma-Marseille") });
+
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, new BlockView
+        {
+            Id = 1, Format = BlockFormat.Callout, State = RenderState.Expanded, CalloutKind = CalloutKind.Warning,
+            Body = "Prima di trasferire leggere la LoA.", BodyJson = json,
+        }));
+
+        var callout = cut.Find("div.callout.warning");
+        Assert.Contains("Attenzione", callout.QuerySelector("p.ct")!.TextContent);
+        Assert.Contains("Prima di trasferire", callout.TextContent);
+        var a = callout.QuerySelector("p.att-link a")!;
+        Assert.Equal("/vsop/files/loa-lirr-lfmm", a.GetAttribute("href"));
+        Assert.Contains("LoA Roma-Marseille", a.TextContent);
+    }
+
+    /// <summary>
+    /// Nell'editor: «+ Allegato» apre un posto vuoto, scegliere una voce della biblioteca la mette nel JSON del callout
+    /// e il titolo del callout resta.
+    /// </summary>
+    [Fact]
+    public void Nel_callout_si_aggiunge_un_allegato_dalla_biblioteca_e_il_titolo_resta()
+    {
+        Localizzatore();
+        Services.AddSingleton<IAttachmentLibrary>(new BibliotecaFinta(Voce("loa-lirr-lfmm", "LoA Roma-Marseille")));
+
+        string? scritto = null;
+        var cut = RenderComponent<CalloutAllegatiEditor>(p => p
+            .Add(x => x.Json, "{\"title\":\"Attenzione\"}")
+            .Add(x => x.JsonChanged, (string j) => scritto = j));
+
+        Assert.Empty(cut.FindAll("select"));
+        cut.Find("button.callout-att-add").Click();
+        cut.Find("select").Change("loa-lirr-lfmm");
+
+        Assert.NotNull(scritto);
+        Assert.Equal("Attenzione", CalloutJson.Titolo(scritto));
+        var a = Assert.Single(CalloutJson.Allegati(scritto));
+        Assert.Equal(("loa-lirr-lfmm", "LoA Roma-Marseille"), (a.Slug, a.Title));
+    }
+
+    /// <summary>La «x» toglie quell'allegato; tolto l'ultimo, senza titolo il JSON torna vuoto («togli»).</summary>
+    [Fact]
+    public void La_x_toglie_l_allegato_e_senza_niente_il_JSON_torna_vuoto()
+    {
+        Localizzatore();
+        Services.AddSingleton<IAttachmentLibrary>(new BibliotecaFinta(Voce("loa-lirr-lfmm", "LoA")));
+
+        string? scritto = null;
+        var cut = RenderComponent<CalloutAllegatiEditor>(p => p
+            .Add(x => x.Json, CalloutJson.ConAllegati(null, new[] { new AttachmentRef("loa-lirr-lfmm", "LoA") }))
+            .Add(x => x.JsonChanged, (string j) => scritto = j));
+
+        cut.Find(".callout-allegato > button").Click();
+
+        Assert.Equal("", scritto);
+    }
 }

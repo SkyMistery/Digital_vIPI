@@ -1,0 +1,70 @@
+@* Gli allegati di un callout in scrittura (S121, 21 ottobre 2026, committente: «nei callout vorrei la possibilità di
+   inserire allegati»). Condiviso dai due editor di blocchi, come AttachmentBlockEditor, che monta una volta per
+   allegato: si scelgono dalla biblioteca, mai incollando un link, con lo stesso modo, altezza e rotazione del blocco
+   «Allegato».
+
+   L'host possiede la persistenza: riceve il JSON del callout intero (titolo compreso, che qui non si tocca) e lo
+   salva come sa. Stringa vuota = non resta niente nel JSON. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div class="callout-allegati">
+    @for (var i = 0; i < _allegati.Count; i++)
+    {
+        var indice = i;
+        <div class="callout-allegato" @key="@($"{indice}-{_allegati[indice].Slug}")">
+            <AttachmentBlockEditor AttachmentJson="@AttachmentRef.Serialize(_allegati[indice])"
+                                   AttachmentJsonChanged="j => CambiatoAsync(indice, j)" />
+            <button type="button" class="btn ghost" title="@L["Callout_AttRemove"]" aria-label="@L["Callout_AttRemove"]"
+                    @onclick="() => CambiatoAsync(indice, null)"><Icon Name="x" /></button>
+        </div>
+    }
+    @if (_nuovo)
+    {
+        @* Il posto del prossimo: nasce vuoto, ed entra nel JSON solo quando si sceglie una voce. *@
+        <div class="callout-allegato">
+            <AttachmentBlockEditor AttachmentJson="@null" AttachmentJsonChanged="AggiuntoAsync" />
+            <button type="button" class="btn ghost" title="@L["Common_Cancel"]" aria-label="@L["Common_Cancel"]"
+                    @onclick="() => _nuovo = false"><Icon Name="x" /></button>
+        </div>
+    }
+    else
+    {
+        <button type="button" class="btn ghost callout-att-add" @onclick="() => _nuovo = true">@L["Callout_AttAdd"]</button>
+    }
+</div>
+
+@code {
+    /// <summary>Il JSON del callout (<see cref="CalloutJson"/>): titolo e allegati.</summary>
+    [Parameter] public string? Json { get; set; }
+
+    /// <summary>Il JSON nuovo, intero; <c>""</c> = vuoto.</summary>
+    [Parameter] public EventCallback<string> JsonChanged { get; set; }
+
+    private List<AttachmentRef> _allegati = new();
+    private bool _nuovo;
+
+    protected override void OnParametersSet() => _allegati = CalloutJson.Allegati(Json).ToList();
+
+    /// <summary>Un allegato cambiato (scelta, titolo, modo…), o tolto con <c>null</c>.</summary>
+    private Task CambiatoAsync(int indice, string? json)
+    {
+        if (indice < 0 || indice >= _allegati.Count) return Task.CompletedTask;
+        var lista = _allegati.ToList();
+        if (AttachmentRef.Parse(json) is { } r) lista[indice] = r;
+        else lista.RemoveAt(indice);
+        return SalvaAsync(lista);
+    }
+
+    private Task AggiuntoAsync(string? json)
+    {
+        if (AttachmentRef.Parse(json) is not { } r) return Task.CompletedTask;
+        _nuovo = false;
+        return SalvaAsync(_allegati.Append(r).ToList());
+    }
+
+    private Task SalvaAsync(List<AttachmentRef> lista)
+    {
+        _allegati = lista;
+        return JsonChanged.InvokeAsync(CalloutJson.ConAllegati(Json, lista));
+    }
+}

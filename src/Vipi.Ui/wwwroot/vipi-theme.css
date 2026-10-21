@@ -1936,6 +1936,11 @@
 :where(.vipi-root) .att-row .att-field{flex:1;min-width:160px}
 :where(.vipi-root) .att-preview{border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--surface-soft)}
 :where(.vipi-root) .att-preview .att-link{margin:0}
+/* gli allegati di un callout (S121): uno per riga, la «x» che lo toglie accanto, in alto. */
+:where(.vipi-root) .callout-allegati{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+:where(.vipi-root) .callout-allegato{display:flex;gap:8px;align-items:flex-start;border-top:1px dashed var(--line);padding-top:6px}
+:where(.vipi-root) .callout-allegato > .att-edit{flex:1;margin:0}
+:where(.vipi-root) .callout-att-add{align-self:flex-start}
 
 /* conferma informata della sostituzione: l'elenco di CHI CAMBIA sta sopra i campi, perche' si legge
    mentre si decide -- non dopo aver gia' incollato il link. */
@@ -3190,6 +3195,12 @@
 :where(.vipi-root) .sidref-pick{margin:6px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;
   background:var(--surface-soft);flex-basis:100%}   /* flex-basis: sotto una tabella sta nella fila dei tasti, e va a capo */
 :where(.vipi-root) .sidref-pick-head{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+/* il selettore del link (S122): le parole e l'indirizzo uno sotto l'altro, l'avviso sotto l'indirizzo. */
+:where(.vipi-root) .link-pick{display:flex;flex-direction:column;gap:6px}
+:where(.vipi-root) .link-pick .sidref-pick-head{margin-bottom:0}
+:where(.vipi-root) .link-pick-field{display:flex;flex-direction:column;gap:3px;font-size:12px}
+:where(.vipi-root) .link-pick-no{margin:0}
+:where(.vipi-root) .link-pick-testo,:where(.vipi-root) .link-pick-url{width:100%}
 :where(.vipi-root) .sidref-pick-head .app-in.icao{width:6.5em;text-transform:uppercase}
 :where(.vipi-root) .sidref-pick-head .app-in.cerca{flex:1;min-width:10em}
 /* Le due chip del verso (SID/STAR) nel selettore: restano unite e non si allargano come i campi. */

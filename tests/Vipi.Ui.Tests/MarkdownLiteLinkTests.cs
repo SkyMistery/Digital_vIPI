@@ -4,7 +4,8 @@ using Xunit;
 namespace Vipi.Ui.Tests;
 
 /// <summary>
-/// L'unico link che <see cref="MarkdownLite"/> conosce: <c>[testo](allegato:slug)</c>.
+/// I due link che <see cref="MarkdownLite"/> conosce: <c>[testo](allegato:slug)</c> e, dal 21 ottobre 2026 (S122),
+/// <c>[testo](https://…)</c>.
 ///
 /// <para>⚠️ <b>Questa classe è soprattutto un elenco di cose che NON devono diventare link.</b> Il renderer
 /// encoda e poi sostituisce con delle regex: aprirlo a <c>[testo](url)</c> qualunque significherebbe far
@@ -14,6 +15,60 @@ namespace Vipi.Ui.Tests;
 public class MarkdownLiteLinkTests
 {
     private static string Html(string? markdown) => MarkdownLite.Render(markdown).Value;
+
+    // ---- i link web (S122, 21 ottobre 2026) ----------------------------------------------------------------
+
+    /// <summary>
+    /// Un indirizzo http/https diventa un link: scheda nuova, e senza dire al sito di là da dove si arriva
+    /// (<c>noopener noreferrer</c>), come le altre uscite dal sito. La classe serve alla stampa, che ne scrive
+    /// l'indirizzo accanto.
+    /// </summary>
+    [Theory]
+    [InlineData("[il sito](https://esempio.it/pagina)", "https://esempio.it/pagina")]
+    [InlineData("[il sito](http://esempio.it)", "http://esempio.it/")]
+    [InlineData("[il sito](HTTPS://Esempio.it/A)", "https://esempio.it/A")]
+    public void Un_indirizzo_web_diventa_un_link_che_esce_dal_sito(string markdown, string href)
+    {
+        var html = Html(markdown);
+
+        Assert.Contains($"<a class=\"md-ext\" href=\"{href}\" target=\"_blank\" rel=\"noopener noreferrer\">il sito</a>", html);
+    }
+
+    /// <summary>
+    /// 🔴 Un indirizzo porta spesso <c>_</c>, <c>__</c> e <c>*</c>: il sottolineato e il corsivo non devono metterci
+    /// dei tag dentro. E il testo del link si formatta lo stesso.
+    /// </summary>
+    [Fact]
+    public void I_marcatori_dentro_l_indirizzo_restano_indirizzo()
+    {
+        var html = Html("[**Carta** __LIRF__](https://esempio.it/a__b__c/*x*?q=1&r=2)");
+
+        Assert.Contains("href=\"https://esempio.it/a__b__c/*x*?q=1&amp;r=2\"", html);
+        Assert.Contains("<strong>Carta</strong> <u>LIRF</u></a>", html);
+    }
+
+    /// <summary>Le virgolette non escono dall'attributo: il testo si encoda prima, l'indirizzo dopo la rilettura.</summary>
+    [Fact]
+    public void Un_indirizzo_non_esce_dall_attributo()
+    {
+        var html = Html("[x](https://esempio.it/\"onmouseover=alert(1))");
+
+        Assert.DoesNotContain("\"onmouseover", html);
+        Assert.DoesNotContain("onmouseover=alert(1)\"", html);
+    }
+
+    /// <summary>Nelle celle delle tabelle i soli link: niente grassetti né elenchi, il resto è testo.</summary>
+    [Fact]
+    public void Nelle_celle_i_soli_link()
+    {
+        var html = MarkdownLite.SoloLink("**FL240** [LoA](allegato:loa-a) e [sito](https://esempio.it) <b>").Value;
+
+        Assert.Contains("**FL240**", html);
+        Assert.Contains("<a href=\"/vsop/files/loa-a\"", html);
+        Assert.Contains("<a class=\"md-ext\" href=\"https://esempio.it/\"", html);
+        Assert.Contains("&lt;b&gt;", html);
+        Assert.Equal("", MarkdownLite.SoloLink(null).Value);
+    }
 
     // ---- quel che diventa link -------------------------------------------------------------------------
 
@@ -76,8 +131,11 @@ public class MarkdownLiteLinkTests
     /// </summary>
     [Theory]
     [InlineData("[clicca](javascript:alert(1))")]
-    [InlineData("[clicca](https://esempio.it)")]
-    [InlineData("[clicca](http://esempio.it)")]
+    [InlineData("[clicca](JavaScript:alert(1))")]
+    [InlineData("[clicca](https://utente:segreto@esempio.it)")]
+    [InlineData("[clicca](ftp://esempio.it/file)")]
+    [InlineData("[clicca](//esempio.it)")]
+    [InlineData("[clicca](https://)")]
     [InlineData("[clicca](/services/vsop/admin/permissions)")]
     [InlineData("[clicca](data:text/html;base64,PHNjcmlwdD4=)")]
     [InlineData("[clicca](vbscript:msgbox)")]

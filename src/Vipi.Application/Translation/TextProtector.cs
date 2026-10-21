@@ -371,6 +371,14 @@ public sealed partial class TextProtector
                 + m.Groups[1].Value
                 + Deposita($"]({AttachmentRules.TokenDi(m.Groups[2].Value)})", tokens, Riservatezza.Intraducibile));
 
+        // Il link a un indirizzo web (S122, 21 ottobre 2026): stessa forma e stessa cura dell'allegato — il testo si
+        // traduce, la «[» e la coda «](https://…)» no. Un motore che tocca l'indirizzo manda il lettore altrove.
+        if (s.Contains("](", StringComparison.Ordinal))
+            s = LinkWeb.Link.Replace(s, m =>
+                Deposita("[", tokens, Riservatezza.Intraducibile)
+                + m.Groups[1].Value
+                + Deposita($"]({m.Groups[2].Value})", tokens, Riservatezza.Intraducibile));
+
         return s;
     }
 
@@ -389,6 +397,7 @@ public sealed partial class TextProtector
             : RiferimentiProcedura.Riferimento.Matches(testo).Select(m => m.Value)
                 .Concat(RiferimentiDato.Riferimento.Matches(testo).Select(m => m.Value))
                 .Concat(LinkAllegato.Matches(testo).Select(m => AttachmentRules.TokenDi(m.Groups[2].Value)))
+                .Concat(LinkWeb.Link.Matches(testo).Select(m => m.Groups[2].Value))
                 .OrderBy(r => r, StringComparer.Ordinal);
 
     // ---- Ripristino ----------------------------------------------------------------------------------

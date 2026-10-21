@@ -2857,6 +2857,24 @@
   lanciarla la colonna dev'essere vuota (`SELECT Icao FROM Airports WHERE RadarTowerTechnique IS NOT NULL` → nessuna
   riga). Tolti anche il trasloco della 1.69.0 (`TecnicaRadarNeiBlocchiAsync`, già girato) e i suoi test; resta la
   lettura delle release vecchie. Carta `docs/feature/2026-10-18-torre-radar.md` §8. Niente `deploy/`.
+- ✅ **S121** (21-ott, chiesto dal committente) **allegati nei callout**: sotto il testo di un callout uno o più
+  allegati della biblioteca, come nel blocco «Allegato» (link o incorporato, altezza, rotazione). JSON del callout
+  `{"title":…,"allegati":[…]}` (`CalloutJson`); 🔴 `SectionPayload.EEditoriale` riconosceva un callout solo col titolo
+  da solo, e con gli allegati sarebbe passato per payload (sparito dall'editor). Editor `CalloutAllegatiEditor` nei due
+  editor di blocchi; nelle pagine `ExtraBlock.CalloutJson`. Carta `docs/feature/2026-10-21-allegati-nei-callout-e-link.md`.
+- ✅ **S122** (21-ott, chiesto dal committente) **link nel testo**, ovunque si scrive: tasto «Link» nella barra del testo
+  e sotto le tabelle, con un indirizzo web o un allegato della biblioteca; le parole selezionate diventano il testo.
+  `[testo](https://…)` nel renderer (`MarkdownLite`, regola in `LinkWeb`): solo http/https assoluti, scheda nuova,
+  `noopener noreferrer`, indirizzo in stampa; nelle celle i soli link (`MarkdownLite.SoloLink`); la traduzione non
+  tocca l'indirizzo. Il test che vietava ogni link non-allegato cambiato apposta (gli schemi vietati restano, di più).
+  Guida aggiornata. Le note dei dati strutturati spariscono con S123.
+  - **Codice comune** (S121+S122): `Vipi.Application` (`CalloutJson`, `LinkWeb`, `SectionPayload`, `ExtraBlock`,
+    `PageIntro`, `TextProtector`). Niente migrazione, niente `deploy/`. Toccati i due `.resx`, `vipi-theme.css`,
+    `vipi-print.css`, `vipi-editor.js`.
+  - **Test**: App 3418 → 3446, Ui 2099 → 2116 (Infra 2233, Hosting 102, E2E 510 invariati).
+  - **A schermo** su un database nuovo con uno scalo inventato e una voce di biblioteca di prova: allegato in un
+    callout, link web al posto delle parole selezionate, link a un allegato in una cella; l'anteprima li mostra.
+    Non visti: stampa, telefono, documento tradotto.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

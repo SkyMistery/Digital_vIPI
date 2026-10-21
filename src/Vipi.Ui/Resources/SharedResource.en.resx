@@ -3076,6 +3076,8 @@
   <data name="Callout_Warning" xml:space="preserve"><value>Caution</value></data>
   <data name="Callout_Danger" xml:space="preserve"><value>Important</value></data>
   <data name="Callout_Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Callout_AttAdd" xml:space="preserve"><value>+ Attachment</value></data>
+  <data name="Callout_AttRemove" xml:space="preserve"><value>Remove the attachment from the callout</value></data>
   <data name="Lang_LockedTitle" xml:space="preserve"><value>Single-language document</value></data>
   <data name="Lang_LockedBody" xml:space="preserve"><value>This document is published in {0} only and is not translated. The IT/EN switch changes the language of the site, not of the document.</value></data>
   <data name="Lang_NameIt" xml:space="preserve"><value>Italian</value></data>
@@ -3760,6 +3762,7 @@
   <data name="Rta_Indent" xml:space="preserve"><value>Indent the item one level (Tab)</value></data>
   <data name="Rta_Outdent" xml:space="preserve"><value>Outdent the item (Shift+Tab)</value></data>
   <data name="Rta_Sid" xml:space="preserve"><value>Cite a SID: its name updates by itself when the SID changes</value></data>
+  <data name="Rta_Link" xml:space="preserve"><value>Insert a link: to a web address or to an attachment. The selected words become the link text</value></data>
   <data name="Sid_Pick_Title" xml:space="preserve"><value>Cite from the archive</value></data>
   <data name="Sid_Btn" xml:space="preserve"><value>Cite</value></data>
   <data name="Sid_Pick_Kind" xml:space="preserve"><value>What to cite</value></data>
@@ -3768,6 +3771,18 @@
   <data name="Sid_Pick_None" xml:space="preserve"><value>Nothing to cite for {0}.</value></data>
   <data name="Sid_Pick_TooMany" xml:space="preserve"><value>First {0} only: refine your search.</value></data>
   <data name="Sid_Cell" xml:space="preserve"><value>Cite from the archive in the selected cell</value></data>
+  <data name="Link_Cell" xml:space="preserve"><value>Insert a link in the selected cell</value></data>
+  <data name="Link_Btn" xml:space="preserve"><value>Link</value></data>
+  <data name="Link_Title" xml:space="preserve"><value>Link</value></data>
+  <data name="Link_Kind" xml:space="preserve"><value>What the link leads to</value></data>
+  <data name="Link_Web" xml:space="preserve"><value>Web address</value></data>
+  <data name="Link_Attachment" xml:space="preserve"><value>Attachment</value></data>
+  <data name="Link_Text" xml:space="preserve"><value>Link words</value></data>
+  <data name="Link_TextPh" xml:space="preserve"><value>Empty = the address itself</value></data>
+  <data name="Link_TextAttPh" xml:space="preserve"><value>Empty = the attachment title</value></data>
+  <data name="Link_Url" xml:space="preserve"><value>Address</value></data>
+  <data name="Link_UrlInvalid" xml:space="preserve"><value>A full address starting with http:// or https:// is needed.</value></data>
+  <data name="Link_Insert" xml:space="preserve"><value>Insert</value></data>
   <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>First click in the cell where the SID goes.</value></data>
   <data name="Sid_Conv_Open" xml:space="preserve"><value>Find SIDs written by hand</value></data>
   <data name="Sid_Conv_Title" xml:space="preserve"><value>SIDs written by hand</value></data>

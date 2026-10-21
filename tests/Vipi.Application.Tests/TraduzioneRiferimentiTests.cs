@@ -108,6 +108,24 @@ public class TraduzioneRiferimentiTests
         Assert.Equal("See the [letter of agreement](allegato:loa-lirr-lfmm) for details.", tornato);
     }
 
+    /// <summary>
+    /// Il link a un indirizzo web (S122): come quello a un allegato, si traduce il testo e non l'indirizzo. Un motore
+    /// che tocca «https://…» manderebbe il lettore altrove, o da nessuna parte.
+    /// </summary>
+    [Fact]
+    public void Del_link_web_si_traduce_il_testo_e_non_l_indirizzo()
+    {
+        var p = Protettore.Protect("Vedi il [sito di Eurocontrol](https://www.eurocontrol.int/publications?tipo=loa) per i dettagli.");
+
+        Assert.Equal("Vedi il @sito di Eurocontrol@ per i dettagli.", Fuori(p.Text));
+        Assert.DoesNotContain("eurocontrol.int", Fuori(p.Text));
+
+        var dalMotore = p.Text.Replace("Vedi il", "See the").Replace("sito di Eurocontrol", "Eurocontrol website")
+                               .Replace("per i dettagli", "for details");
+        Assert.True(TextProtector.TryRestore(dalMotore, p, out var tornato));
+        Assert.Equal("See the [Eurocontrol website](https://www.eurocontrol.int/publications?tipo=loa) for details.", tornato);
+    }
+
     /// <summary>Sei cifre dentro uno slug somigliano a un VID: la regola sui VID non deve spezzare il link.</summary>
     [Fact]
     public void Uno_slug_con_sei_cifre_non_viene_spezzato_dalla_regola_dei_VID()
@@ -130,6 +148,8 @@ public class TraduzioneRiferimentiTests
     [InlineData("A [[SID LIRF OST1E]] e [[SID LIRA TIBER6A]].", "[[SID LIRA TIBER6A]] and [[SID LIRF OST1E]].", true)]
     [InlineData("Vedi [LoA](allegato:loa-a).", "See [the LoA](allegato:loa-a).", true)]
     [InlineData("Vedi [LoA](allegato:loa-a).", "See [LoA](attachment:loa-a).", false)]
+    [InlineData("Vedi [il sito](https://esempio.it/a).", "See [the site](https://esempio.it/a).", true)]
+    [InlineData("Vedi [il sito](https://esempio.it/a).", "See [the site](https://example.it/a).", false)]
     [InlineData("Niente qui.", "Nothing here.", true)]
     [InlineData("Niente qui.", "Nothing [[SID LIRF OST1E]].", false)]
     public void Una_resa_a_mano_deve_tenere_gli_stessi_riferimenti(string sorgente, string resa, bool ok)

@@ -958,6 +958,8 @@ else
                         </div>
                         <RichTextArea Rows="2" Value="@b.Body" Placeholder="@L["Dse_CalloutTextPh"]"
                                       ValueChanged="v => SaveBlock(b, body: v)" />
+                        @* Gli allegati del callout (S121): stringa vuota = «non resta niente nel JSON». *@
+                        <CalloutAllegatiEditor Json="@b.BodyJson" JsonChanged="j => SaveBlock(b, bodyJson: j)" />
                         break;
                     case BlockFormat.Table:
                         @TableEditor(b)
@@ -997,7 +999,10 @@ else
             case BlockFormat.Callout:
                 <div class="callout @((b.CalloutKind ?? CalloutKind.Info).ToString().ToLowerInvariant())">
                     <span class="cic"><Icon Name="@CalloutIcon(b.CalloutKind ?? CalloutKind.Info)" Size="18" /></span>
-                    <div>@MarkdownLite.Render(ConNomi(b.Body))</div>
+                    <div>
+                        @MarkdownLite.Render(ConNomi(b.Body))
+                        @foreach (var a in CalloutJson.Allegati(b.BodyJson)) { <AttachmentLink Reference="a" /> }
+                    </div>
                 </div>
                 break;
             case BlockFormat.Table:
@@ -1220,7 +1225,7 @@ else
                 <tbody>
                     @foreach (var r in rows)
                     {
-                        <tr>@for (var i = 0; i < cols.Count; i++) { <td>@(i < r.Count ? ConNomi(r[i]) : "")</td> }</tr>
+                        <tr>@for (var i = 0; i < cols.Count; i++) { <td>@MarkdownLite.SoloLink(i < r.Count ? ConNomi(r[i]) : "")</td> }</tr>
                     }
                 </tbody>
             </table>

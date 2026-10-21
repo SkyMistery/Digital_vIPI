@@ -1,11 +1,16 @@
-﻿@using System.Text.Json
-@inherits ComponenteDelDocumento
+﻿@inherits ComponenteDelDocumento
 
 <div class="callout @Kind">
     <span class="cic"><Icon Name="@IconName" Size="18" /></span>
     <div>
         <p class="ct">@Title</p>
         @MarkdownLite.Render(Block.Body)
+        @* Gli allegati del callout (S121), sotto il testo: lo stesso componente del blocco «Allegato», così link,
+           riquadro incorporato e rotazione si vedono uguali nei due posti. *@
+        @foreach (var a in CalloutJson.Allegati(Block.BodyJson))
+        {
+            <AttachmentLink Reference="a" />
+        }
     </div>
 </div>
 
@@ -28,16 +33,7 @@
         get
         {
             // Titolo esplicito da BodyJson, altrimenti predefinito per tipo.
-            if (!string.IsNullOrWhiteSpace(Block.BodyJson))
-            {
-                try
-                {
-                    using var doc = JsonDocument.Parse(Block.BodyJson);
-                    if (doc.RootElement.TryGetProperty("title", out var t) && t.GetString() is { Length: > 0 } s)
-                        return s;
-                }
-                catch (JsonException) { }
-            }
+            if (CalloutJson.Titolo(Block.BodyJson) is { } s) return s;
             // ⚠️ DAI RESX, non letterali: questa etichetta sta DENTRO il documento, e cablata in italiano
             // restava italiana anche in una pagina inglese — «Nota» in mezzo a cinque callout tradotti.
             // Si vedeva già prima della lingua bloccata, su qualunque lettura in inglese; col blocco si vede
