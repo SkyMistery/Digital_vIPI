@@ -50,7 +50,11 @@ public static class ApiEndpoints
     /// <summary><c>GET /vsop/api/v1/airports</c> e sotto: scali, schede, SID e STAR (carta 2026-09-30-api-aeroporti.md).</summary>
     public const string Aeroporti = "aeroporti";
 
-    public static readonly IReadOnlyList<string> Tutti = new[] { Archivio, Bridge, Aeroporti };
+    /// <summary><c>GET /vsop/api/v1/accs</c> e sotto: gerarchia dei settori e coordinamenti fra settori, dalla
+    /// Struttura viva (carta 2026-10-21-api-settori.md).</summary>
+    public const string Settori = "settori";
+
+    public static readonly IReadOnlyList<string> Tutti = new[] { Archivio, Bridge, Aeroporti, Settori };
 }
 
 /// <summary>Un indirizzo delle API, come si scrive a chi integra.</summary>
@@ -69,9 +73,14 @@ public static class ApiRotte
     public const string Sessioni = "/vsop/api/v1/atc/sessions";
     public const string Trasferimenti = "/vsop/api/v1/transfers/resolve";
     public const string Aeroporti = "/vsop/api/v1/airports";
+    public const string Acc = "/vsop/api/v1/accs";
 
     public static readonly IReadOnlyList<ApiRotta> Tutte = new ApiRotta[]
     {
+        new(ApiEndpoints.Settori, "accs", "GET", Acc, Acc),
+        new(ApiEndpoints.Settori, "sectors", "GET", Acc + "/{acc}/sectors", Acc + "/LIRR/sectors"),
+        new(ApiEndpoints.Settori, "coordinations", "GET", Acc + "/{acc}/coordinations",
+            Acc + "/LIRR/coordinations?online=LIRR_CTR,LIRF_APP"),
         new(ApiEndpoints.Aeroporti, "airports", "GET", Aeroporti, Aeroporti),
         new(ApiEndpoints.Aeroporti, "airport", "GET", Aeroporti + "/{icao}", Aeroporti + "/LIRF"),
         new(ApiEndpoints.Aeroporti, "sids", "GET", Aeroporti + "/{icao}/sids", Aeroporti + "/LIRF/sids?runway=16L"),

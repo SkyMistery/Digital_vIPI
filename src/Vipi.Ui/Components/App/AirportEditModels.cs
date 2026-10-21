@@ -58,18 +58,16 @@ public sealed class LvpEdit
 
 /// <summary>
 /// La torre radar in scrittura. <b>Zero o una</b>, come le LVP: l'assenza dell'oggetto è «non indicato».
-/// <para>⚠️ Un oggetto per le DUE sezioni (il sì/no e la tecnica): le due parti dell'editor lo mutano in posto e
-/// salvano la stessa riga, così una non riscrive l'altra con un valore vecchio.</para>
+/// <para>Il solo sì/no: la tecnica operativa si scrive a blocchi nella sua sezione (21 ottobre 2026).</para>
 /// </summary>
 public sealed class RadarTowerEdit
 {
     public bool Equipped;
-    public string? Technique;
 
     public static RadarTowerEdit? Da(RadarTowerRow? r) =>
-        r is null ? null : new RadarTowerEdit { Equipped = r.Equipped, Technique = r.Technique };
+        r is null ? null : new RadarTowerEdit { Equipped = r.Equipped };
 
-    public RadarTowerRow AllaRiga() => new(Equipped, Technique);
+    public RadarTowerRow AllaRiga() => new(Equipped);
 }
 
 /// <summary>Riga in scrittura.</summary>

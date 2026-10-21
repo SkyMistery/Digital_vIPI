@@ -796,14 +796,12 @@ else
     /// <summary>I minimi LVP: <c>null</c> li toglie, ed è la stessa porta che li scrive.</summary>
     private Task SaveLvp() => Guarded(() => Profile.SaveLvpAsync(_icao, _lvp?.AllaRiga()));
 
-    /// <summary>La torre radar: il sì/no e la tecnica passano dalla stessa porta, con la riga intera.</summary>
+    /// <summary>La torre radar: il sì/no. La tecnica operativa sono i blocchi della sua sezione.</summary>
     private Task RadarCambiata(RadarTowerEdit? riga)
     {
         _radar = riga;
         return Guarded(() => Profile.SaveRadarTowerAsync(_icao, _radar?.AllaRiga()));
     }
-
-    private Task<bool> ConfermaRadarNonIndicato() => Confirm(L["TorreRadar_ConfermaNonIndicato"].Value);
 
     /// <summary>La riga è nata o è stata tolta: si aggiorna il riferimento e si salva subito.</summary>
     private Task LvpCambiata(LvpEdit? riga)
@@ -1069,8 +1067,7 @@ else
         "weather" => WeatherNote,
         "runwayrules" => RulesEditor,
         "lvp" => LvpEditor,
-        SectionKeys.RadarTower => RadarEditor(tecnica: false),
-        SectionKeys.RadarTowerTechnique => RadarEditor(tecnica: true),
+        SectionKeys.RadarTower => RadarEditor,
         "transition" => TransitionEditor,
         "frequencies" => FrequenciesEditor,
         "runways" => RunwaysEditor,
@@ -1123,10 +1120,9 @@ else
                                   ConfirmRemove="ConfermaRimozioneRegola" />
     };
 
-    private RenderFragment RadarEditor(bool tecnica) => __builder =>
+    private RenderFragment RadarEditor => __builder =>
     {
-        <AirportRadarTowerEditor Row="_radar" Editing="_shell.IsEditing" Tecnica="tecnica"
-                                 RowChanged="RadarCambiata" ConfirmRemove="ConfermaRadarNonIndicato" />
+        <AirportRadarTowerEditor Row="_radar" Editing="_shell.IsEditing" RowChanged="RadarCambiata" />
     };
 
     private RenderFragment LvpEditor => __builder =>

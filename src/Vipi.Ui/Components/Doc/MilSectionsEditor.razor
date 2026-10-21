@@ -896,10 +896,7 @@ else
             @* La torre radar, e SOLO su un campo senza vIPI civile — come le LVP. La torre di un campo misto è una
                sola: la scrive l'editor civile, e qui resta il rimando. *@
             case SectionKeys.RadarTower:
-            case SectionKeys.RadarTowerTechnique:
-                <AirportRadarTowerEditor Row="_radar" Editing="_shell.IsEditing"
-                                         Tecnica="@(s.SectionKey == SectionKeys.RadarTowerTechnique)"
-                                         RowChanged="RadarCambiata" ConfirmRemove="ConfermaRadarNonIndicato" />
+                <AirportRadarTowerEditor Row="_radar" Editing="_shell.IsEditing" RowChanged="RadarCambiata" />
                 break;
             case "frequencies":
                 <AirportFrequenciesEditor Catalogo="FreqRows().ToList()" LinkIds="_linkIds" Linkable="_linkable"
@@ -999,14 +996,12 @@ else
     /// (<c>SaveRunwayRulesAsync</c>, con la sua guardia del lock), e lo stesso cancello per le righe a metà.</summary>
     private Task SalvaLvp() => _shell.GuardedAsync(() => Scalo.SaveLvpAsync(_icao, _lvp?.AllaRiga()));
 
-    /// <summary>La torre radar: il sì/no e la tecnica passano dalla stessa porta, con la riga intera.</summary>
+    /// <summary>La torre radar: il sì/no. La tecnica operativa sono i blocchi della sua sezione.</summary>
     private Task RadarCambiata(RadarTowerEdit? riga)
     {
         _radar = riga;
         return _shell.GuardedAsync(() => Scalo.SaveRadarTowerAsync(_icao, _radar?.AllaRiga()));
     }
-
-    private Task<bool> ConfermaRadarNonIndicato() => Conferma(L["TorreRadar_ConfermaNonIndicato"].Value);
 
     private Task LvpCambiata(LvpEdit? riga)
     {

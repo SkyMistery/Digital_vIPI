@@ -306,18 +306,18 @@ public class AirportFrozenAndViewTests
     // ---- La torre radar (18 ottobre 2026) ----------------------------------------------------------------
 
     /// <summary>
-    /// Pubblicare fotografa il sì/no E la tecnica, sotto la sola chiave del padre: la figlia non ha una cattura sua,
-    /// e due catture potrebbero mettere le due parti su due cicli diversi.
+    /// Pubblicare fotografa il sì/no sotto la chiave del padre. La figlia, la tecnica, non ha una cattura sua: dal
+    /// 21 ottobre 2026 è fatta di blocchi, che la release fotografa col documento.
     /// </summary>
     [Fact]
-    public async Task La_torre_radar_si_congela_col_si_e_con_la_tecnica()
+    public async Task La_torre_radar_si_congela_col_solo_si_no()
     {
         var data = Profilo();
         var conTorre = new AirportData
         {
             AirportId = data.AirportId, Icao = data.Icao, Name = data.Name, AccCode = data.AccCode,
             TransitionLevels = data.TransitionLevels, Runways = data.Runways, Rules = data.Rules, Sids = data.Sids,
-            Links = data.Links, RadarTower = new RadarTowerRow(true, "Identificazione radar entro 5 NM."),
+            Links = data.Links, RadarTower = new RadarTowerRow(true),
         };
 
         var frozen = await Provider(conTorre).CaptureFrozenAsync("LIRF", Doc(
@@ -328,7 +328,7 @@ public class AirportFrozenAndViewTests
         Assert.Equal(10, kv.Key);
         var riletta = JsonSerializer.Deserialize<AirportRadarTowerView>(kv.Value)!;
         Assert.True(riletta.Equipped);
-        Assert.Equal("Identificazione radar entro 5 NM.", riletta.Technique);
+        Assert.Null(riletta.Technique);
     }
 
     /// <summary>La pagina pubblica legge la fotografia, anche se in anagrafica nel frattempo è cambiato tutto.</summary>

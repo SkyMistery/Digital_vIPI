@@ -23,6 +23,17 @@ public interface IDocumentMaintenance
     Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// La tecnica operativa della torre radar passa ai blocchi (21 ottobre 2026, committente: «non ci deve essere un
+    /// paragrafo fisso […] per migrare i dati già inseriti mettili in un paragrafo»). Toglie dalle sezioni
+    /// <c>radartower:technique</c> i blocchi segnaposto di quando la disegnava la pagina, e porta il testo di
+    /// <c>Airports.RadarTowerTechnique</c> in un paragrafo della sezione nella vIPI e nel vSOP dello scalo (ultima
+    /// versione e pubblicata corrente), poi svuota la colonna. Una sezione che ha già blocchi scritti non riceve
+    /// niente. Idempotente: alla seconda volta non c'è più niente da togliere né da portare. Ritorna le righe toccate.
+    /// <para>⚠️ DOPO <see cref="AddMissingCatalogSectionsAsync"/>: la sezione dove va il testo deve esserci.</para>
+    /// </summary>
+    Task<int> TecnicaRadarNeiBlocchiAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Rinomina in <b>«MRVA»</b> le sezioni <c>minima</c> dei documenti in lavorazione che portano ancora il
     /// titolo vecchio.
     ///

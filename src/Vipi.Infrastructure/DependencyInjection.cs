@@ -218,6 +218,8 @@ public static class DependencyInjection
         // Lettura grezza dell'archivio (divisione + resto del mondo): la usano la pagina staff e l'endpoint
         // macchina. Porta separata da quella delle statistiche apposta — quella conta, questa mostra.
         services.AddScoped<Vipi.Application.Abstractions.IAtcArchiveQueries, EfAtcArchiveQueries>();
+        // Le API dei settori (S119): una lettura apposta, perché quelle della Struttura sono degli admin.
+        services.AddScoped<Vipi.Application.Content.ISettoriPerApi, EfSettoriPerApi>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsSettingsStore, EfStatsSettingsStore>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsAccessLog, EfStatsAccessLog>();
         services.AddScoped<Vipi.Application.EventKits.IAccountEventoTraccia, EfAccountEventoTraccia>();
