@@ -122,3 +122,19 @@ mettili in un paragrafo».
 Scelte del filone: il trasloco in tutti e due i documenti (non solo nella vIPI civile, dove si scriveva sui campi
 misti), perché il vSOP mostrava lo stesso testo; e la lettura delle release vecchie, invece di riscrivere le
 fotografie già pubblicate.
+
+## 8. 21 ottobre: via la colonna (S120)
+
+La 1.69.0, col trasloco, è online dal 21 ottobre; lo stesso giorno il committente: «togli adesso la colonna
+RadarTowerTechnique con una migrazione».
+
+- **Migrazione `TogliTecnicaRadar`**, sui due provider: solo `DropColumn` di `Airports.RadarTowerTechnique`.
+  ⚠️ **Distruttiva.** Prima di lanciarla in produzione la colonna dev'essere vuota:
+  `SELECT Icao FROM Airports WHERE RadarTowerTechnique IS NOT NULL` non deve dare righe. Una riga rimasta è uno scalo
+  il cui testo non ha trovato una sezione dove andare (il trasloco lascia la colonna piena apposta): quel testo va
+  copiato a mano nella sezione prima della migrazione.
+- **Via anche il trasloco** (`TecnicaRadarNeiBlocchiAsync`) e i suoi test: ha già girato in produzione con la 1.69.0, e
+  senza la colonna non ha più niente da leggere. I segnaposto che toglieva non nascono più (la sezione non è più resa
+  dalla pagina).
+- **Resta** la lettura delle release vecchie (`TorreRadar.Filtra` e `AirportRadarTowerView.Technique`): il testo di
+  quelle release sta nella loro fotografia, non nella colonna.

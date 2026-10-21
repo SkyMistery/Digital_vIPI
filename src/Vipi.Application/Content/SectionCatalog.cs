@@ -248,8 +248,8 @@ public static class SectionCatalog
     /// chiusa e c'è solo se la torre ha il radar (<see cref="TorreRadar.Filtra"/>).
     /// <para>⚠️ Il sì/no lo disegna la pagina (<c>H</c>); la tecnica è fatta di BLOCCHI (<c>D</c>) dal 21 ottobre 2026
     /// (committente: solo paragrafi, callout… «come per il resto»). Fino ad allora era un testo a righe dell'anagrafica,
-    /// uno per vIPI e vSOP; ora ogni documento ha i suoi blocchi, e i testi di prima li ha portati in un paragrafo la
-    /// manutenzione d'avvio (<c>IDocumentMaintenance.TecnicaRadarNeiBlocchiAsync</c>).</para>
+    /// uno per vIPI e vSOP; ora ogni documento ha i suoi blocchi. I testi di prima li ha portati in un paragrafo la
+    /// manutenzione d'avvio della 1.69.0, e la colonna l'ha tolta la migrazione <c>TogliTecnicaRadar</c>.</para>
     /// <para>⚠️ Scritta QUI e non due volte, come le carte: vIPI e vSOP descrivono la stessa torre, e la stessa
     /// chiave nei due profili è ciò che la fa trovare come sezione unica in un'unione.</para>
     /// <para>Nasce NASCOSTA (committente, 18 ottobre 2026: «poi le mostriamo man mano che le sistemiamo»), come le
