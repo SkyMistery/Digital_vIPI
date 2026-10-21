@@ -384,3 +384,62 @@ Test: Aip.Pdf 146 (+3), Aip 50, Lab 1 380 (stessi test, un controllo in più).
 
 **Finita quando** (§3): 230 rotte; i punti di ogni rotta quanti i ▲∆ (passo 2e: tutti tornano); controprova cella per
 cella senza differenze; le note delle rotte lette. Il passo 3 è chiuso.
+
+### Passo 4 — ENR 5 intero (via del committente, 21 ottobre: «vai con il passo 4»)
+
+Quel che mancava di ENR 5 nel 2611: 5.3.4 (droni BVLOS, solo testo), 5.4 (gli ostacoli: 20 PDF di puntuali per regione, le
+piattaforme, 20 PDF di lineari per regione), 5.5 (quattro PDF: lanci paracadutisti, acrobatico, aeroclub e lavoro aereo,
+volo da diporto sportivo), 5.6 (18 PDF di parchi e zone di protezione della fauna, uno per regione, e l'introduzione).
+
+#### 4a — gli ostacoli di ENR 5.4: fatto
+
+- **Le tabelle sono stampate di traverso**: il testo sale dal basso in alto e PdfPig ne dà le lettere una per una
+  (`Rotate270`). `PdfText` (codice comune `Aip.Pdf`) ora dà, per una pagina con almeno 50 lettere girate, anche la
+  **pagina girata** (`PdfPageText.Turned`): la stessa pagina vista in orizzontale, con le parole costruite dalle linee di
+  base e dagli spazi, e i bordi scambiati (un verticale diventa orizzontale). Le parole della pagina restano quelle dritte
+  (testata e piè di pagina), così l'indice delle pagine del passo 1 non cambia.
+- **Il lettore** (`ItalianEnr54`): le colonne dai bordi verticali, ognuna col suo numero nella riga «1 2 3 …» della testata
+  (13 colonne i puntuali, 12 le piattaforme col nome, 18 i lineari con inizio, fine, lunghezza, punto più basso e più
+  alto); un ostacolo va dalla riga della sua sigla (`T004043`, `P000001`, `L003539`) alla sigla dopo; la tabella delle
+  note («ID NOTE/REMARKS», anche a metà pagina) dà la nota all'ostacolo per sigla. «NIL» in una cella vuol dire che il dato
+  non c'è. La sezione è quella della regione, dalla testata della pagina (ENR 5.4.1.13 = Puglia).
+- **Il modello**: `Obstacle` (sezione, genere, sigla, regione, provincia, comune, località, tipo in italiano e in inglese,
+  posizione e fine, lunghezza, altezze in metri e in piedi — anche decimali, «118.2» — segnalazione di giorno e di notte com'è
+  stampata, nome della piattaforma, nota), in `AipDocument.Obstacles`.
+- **Il conto** (rapporto di lettura): le sigle sulle pagine girate fino alla tabella delle note, contro gli ostacoli letti.
+- **Sulla mappa e nell'indice**: genere «Ostacoli», i puntuali e le piattaforme come punti, i lineari come una linea; nell'
+  indice un gruppo per regione col suo nome. La scheda è da guardare: le correzioni degli ostacoli non ci sono ancora.
+- **Misurato** sul 2611: **4 825 puntuali, 802 lineari, 86 piattaforme** (i numeri di §1), 131 con la nota, conto 5 713 su
+  5 713. **Controprova** con pdfplumber dalle lettere girate (`controprova54.py`, scratchpad della sessione `c6ab12b9`), riga per
+  riga: le 5 713 sigle tutte nel Lab, coordinate tutte uguali; parole e numeri uguali salvo le celle «NIL» e i numeri che la
+  controprova non sa mettere in colonna (verificati a mano: il Lab ha ragione, T004963 ha davvero la cella dei piedi
+  vuota).
+- **Trovato nel PDF**: la sigla **T001645 è due volte**, in Puglia (40°37'N) e in Sicilia (37°43'N). Si dice: un controllo
+  di tutto l'AIP espanso («la stessa sigla 2 volte»), perché un file da solo non lo vede.
+
+#### 4b — le aree di ENR 5.5 e 5.6: fatto
+
+- Il lettore delle aree di ENR 5.2.1 (nomi liberi, colonne variabili) ora prende una descrizione della tabella: quante
+  colonne, sezione e tipo, che colonna dice l'attività, gli orari, l'ente, a chi si notifica. Tipi nuovi: `Parachute`,
+  `Aerobatic`, `AerialWork`, `Ultralight` (ENR 5.5), `NaturePark` (ENR 5.6); campo nuovo `Airspace.Notification` (5.5.1, la
+  colonna «Notifica a»). Sulla mappa i generi «Sport» e «Parchi».
+- **Il nome su due righe** di 5.5.3 («AEROMODELLISTI L'AQUILA -CIV-» / «Zona di lavoro aereo/Aerial work area») ha accanto
+  alla seconda il limite inferiore: si prendeva per un'area nuova (196 segnalazioni). Ora un'area nuova comincia solo se
+  quella aperta ha già i suoi due limiti.
+- **Un corridoio largo in metri** («Corridor 150 M wide», Norma in 5.5.4): `GeometryText` lo legge.
+- **Un difetto vecchio, trovato qui**: `SenzaTesta` toglieva tutto quello che stava sopra la testata più in basso della
+  pagina. In 5.6.1.12 a pagina 12 c'è una seconda tabella: si perdevano «Sacra di San Michele», «Val Troncea» e la chiusura
+  del Gran Paradiso. Ora della seconda testata si tolgono solo la riga dei numeri e le parole di testata. Misurato su tutto
+  l'AIP prima e dopo: cambiano **solo** quelle due aree in più (e il Gran Paradiso chiuso); ENR 2, 5.1, 5.2, rotte,
+  procedure tutto uguale.
+- **Il conto** (rapporto di lettura): le coordinate della prima colonna (le note a destra ne citano altre) contro i punti
+  delle geometrie lette; un punto stampato due volte di seguito è uno, il primo punto riscritto prima di «to point of
+  origin» chiude l'anello.
+- **Misurato** sul 2611: **247 aree in ENR 5.5** (41 lanci, 28 acrobatico, 102 aeroclub e lavoro aereo, 76 VDS) e **314 in
+  ENR 5.6**; coordinate 5 584 lette su 5 590. Le 6 che mancano sono di **Magra** (5.6.1.8): due poligoni sotto un nome
+  solo, e il lettore — come in ENR 2, 5.1 e 5.2 — tiene il primo e lo dice («MoreGeometries»). Da decidere col committente.
+- Sul banco (1400 px, Abruzzo 5.4.1 e 5.4.3, 5.4.2, 5.5.4, 5.6.1.12): «155 ostacoli», «Conti … 9 controllati, tutti
+  tornano»; nell'indice ENR 5.4.1.1 ABRUZZO 43, 5.4.2 Piattaforme e simili 86, 5.4.3.1 ABRUZZO 26, 5.5 76, 5.6 39; la scheda
+  di L003542 con tipo, comune, altezze, segnalazione e nota.
+
+Test: Aip.Pdf 158 (+12), Aip 51 (+1), Lab 1 383 (+3).

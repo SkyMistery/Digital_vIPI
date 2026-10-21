@@ -33,8 +33,81 @@ public static partial class ItalianExpectedCounts
             var punti = pages.SelectMany(p => p.Words).Sum(w => w.Text.Count(c => c is '▲' or '∆'));
             return punti == 0 ? [] : [new ExpectedCount("punti", punti)];
         }
+        // ENR 5.4 (carta «L'AIP intero», passo 4): le sigle T……, P……, L…… sulle pagine girate, fino alla tabella delle note
+        // (dove le sigle tornano, anche dentro il testo: «Stesso ostacolo dell'ID: T001673»).
+        if (nome.StartsWith("LI-ENR 5.4.", StringComparison.Ordinal))
+        {
+            var sigle = 0;
+            foreach (var girata in pages.Select(p => p.Turned).OfType<PdfPageText>())
+            {
+                var note = girata.Words.Where(w => w.Text == "NOTE/REMARKS").Select(w => (double?)w.Baseline).Min();
+                sigle += girata.Words.Count(w => RxSigla().IsMatch(w.Text) && (note is null || w.Baseline < note));
+                if (note is not null) break;
+            }
+            return sigle == 0 ? [] : [new ExpectedCount("ostacoli", sigle)];
+        }
+        // ENR 5.5 e 5.6 (passo 4): le coordinate stampate nella prima colonna, una per vertice, centro o punto di corridoio.
+        if (nome.StartsWith("LI-ENR 5.5.", StringComparison.Ordinal) || nome.StartsWith("LI-ENR 5.6.1.", StringComparison.Ordinal))
+        {
+            var coordinate = Coordinate(pages);
+            return coordinate == 0 ? [] : [new ExpectedCount("coordinate", coordinate)];
+        }
         return [];
     }
+
+    /// <summary>
+    /// Le coordinate della prima colonna (a sinistra del 40% della pagina: le note a destra ne citano altre, ENR 5.6.1.7),
+    /// come punti di una geometria: un punto stampato due volte di seguito è uno (ENR 5.6.1.10, Gola della Rossa), e il
+    /// primo punto riscritto prima di «to point of origin» chiude l'anello, non è un vertice (Monti Sibillini).
+    /// </summary>
+    private static int Coordinate(IReadOnlyList<PdfPageText> pages)
+    {
+        var conto = 0;
+        var anello = new List<string>();
+        void Chiudi(bool origine)
+        {
+            if (origine && anello.Count > 1 && anello[^1] == anello[0]) anello.RemoveAt(anello.Count - 1);
+            conto += anello.Count;
+            anello.Clear();
+        }
+        foreach (var page in pages)
+        {
+            var sinistra = page with { Words = [.. page.Words.Where(w => w.X0 < page.Width * 0.4)] };
+            foreach (var riga in Table.PlainLines(sinistra))
+            {
+                // Un cerchio o un corridoio comincia una geometria nuova: non è il seguito dell'anello di prima.
+                if (riga.Contains("Circular area", StringComparison.OrdinalIgnoreCase) || riga.Contains("Corridor", StringComparison.OrdinalIgnoreCase))
+                    Chiudi(origine: false);
+                foreach (Match m in RxCoordinata().Matches(riga))
+                {
+                    var c = RxSpazi().Replace(m.Value, "");
+                    if (anello.Count == 0 || anello[^1] != c) anello.Add(c);
+                }
+                if (riga.Contains("point of origin", StringComparison.OrdinalIgnoreCase)) Chiudi(origine: true);
+            }
+        }
+        Chiudi(origine: false);
+        return conto;
+    }
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex RxSpazi();
+
+    [GeneratedRegex(@"^[TPL]\d{6}$", RegexOptions.CultureInvariant)]
+    private static partial Regex RxSigla();
+
+    // «45°59'15"N 012°55'21"E», anche con ’’ o ″ per i secondi.
+    [GeneratedRegex(@"\d{1,2}[°º˚]\s*\d{1,2}['’′]\s*\d{1,2}(?:[.,]\d+)?\s*(?:""|''|’’|″|”)\s*[NS]\s*,?\s*\d{1,3}[°º˚]\s*\d{1,2}['’′]\s*\d{1,2}(?:[.,]\d+)?\s*(?:""|''|’’|″|”)\s*[EW]", RegexOptions.CultureInvariant)]
+    private static partial Regex RxCoordinata();
+
+    /// <summary>I punti stampati di una geometria: un vertice per lato (il centro di un arco in più), il centro di un cerchio, i punti di un corridoio.</summary>
+    private static int Punti(Geometry g) => g switch
+    {
+        RingGeometry r => r.Segments.Count + r.Segments.Count(s => s is ArcSegment),
+        CircleGeometry => 1,
+        CorridorGeometry c => c.Points.Count,
+        _ => 0,
+    };
 
     /// <summary>Quanti oggetti del letto corrispondono a un conto: le aree con «Zone 'n'» nel nome, i punti delle rotte.</summary>
     public static int Read(string what, ImportResult read)
@@ -44,6 +117,8 @@ public static partial class ItalianExpectedCounts
         {
             "zone" => read.Airspaces.Count(a => RxZonaNelNome().IsMatch(a.Designator)),
             "punti" => read.Routes.Sum(r => r.Points.Count),
+            "ostacoli" => read.Obstacles.Count,
+            "coordinate" => read.Airspaces.Sum(a => Punti(a.Geometry)),
             _ => 0,
         };
     }

@@ -215,6 +215,16 @@ public sealed class GeometryTextTests
         Vicino(P(41, 18 + 35 / 60.0), k.Points[0]);
     }
 
+    // ENR 5.5.4, Norma (carta «L'AIP intero», passo 4): l'ampiezza in metri.
+    [Fact]
+    public void UnCorridoioLargoInMetri()
+    {
+        var letto = GeometryText.Read("Corridor 150 M wide joining following points:\n41°35'13\"N 012°57'11\"E;\n41°35'17\"N 012°57'02\"E;");
+
+        Assert.Empty(letto.Issues);
+        Assert.Equal(new Distance(150, DistanceUnit.M), Assert.IsType<CorridorGeometry>(Assert.Single(letto.Geometries)).Width);
+    }
+
     [Fact]
     public void UnCorridoioConParoleInPiu_LaGuardiaLeDice_DiUnPuntoSoloNonEntra()
     {

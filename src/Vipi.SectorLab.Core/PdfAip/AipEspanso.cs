@@ -57,6 +57,9 @@ public sealed record EsitoDellAipEspanso(
     /// <summary>I pericoli puntuali di ENR 5.3 letti.</summary>
     public int Pericoli { get; init; }
 
+    /// <summary>Gli ostacoli di ENR 5.4 letti (carta «L'AIP intero», passo 4).</summary>
+    public int Ostacoli { get; init; }
+
     /// <summary>I settori delle carte ATC SMAC di AD 2 letti.</summary>
     public int SettoriSmac { get; init; }
 
@@ -130,6 +133,7 @@ public sealed record EsitoDellAipEspanso(
         Luci > 0 ? $"{Luci} luci" : null,
         Scali > 0 ? $"{Scali} scali" : null,
         Pericoli > 0 ? $"{Pericoli} pericoli" : null,
+        Ostacoli > 0 ? $"{Ostacoli} ostacoli" : null,
         SettoriSmac > 0 ? $"{SettoriSmac} settori SMAC" : null,
         Procedure > 0 ? $"{Procedure} procedure" : null,
     }.OfType<string>());
@@ -191,6 +195,7 @@ public static class AipEspanso
         var luci = new List<GroundLight>();
         var scali = new List<Aerodrome>();
         var pericoli = new List<Hazard>();
+        var ostacoli = new List<Obstacle>();
         var smac = new List<MinimumAltitudeArea>();
         var procedure = new List<Procedure>();
         var letti = new List<string>();
@@ -253,6 +258,7 @@ public static class AipEspanso
             luci.AddRange(letto.Lights);
             scali.AddRange(letto.Aerodromes);
             pericoli.AddRange(letto.Hazards);
+            ostacoli.AddRange(letto.Obstacles);
             smac.AddRange(letto.MinimumAltitudes);
             procedure.AddRange(letto.Procedures);
             pagine.AddRange(letto.Pages);
@@ -266,6 +272,8 @@ public static class AipEspanso
                     $"{c.Cosa}: {c.Attesi} nel PDF, {c.Letti} letti")));
             rapporto.Add(new RapportoDelPdf(nome, indice.Count(p => p.File == nome), Letti(letto), letto.Issues.Count, conti));
         }
+
+        problemi.AddRange(SigleDoppie(ostacoli));
 
         problemi.InsertRange(0, Aip.Pdf.PageIndex.Check(indice, CicloInVigore(ciclo)).Select(p => new ProblemaDellImport(p.File,
             new ImportIssue(TipoDelProblema(p.Kind), null, p.Position, p.Detail))));
@@ -286,6 +294,7 @@ public static class AipEspanso
             Lights = luci.Count == 0 ? null : luci,
             Aerodromes = scali.Count == 0 ? null : scali,
             Hazards = pericoli.Count == 0 ? null : pericoli,
+            Obstacles = ostacoli.Count == 0 ? null : ostacoli,
             MinimumAltitudes = smac.Count == 0 ? null : smac,
             Procedures = procedure.Count == 0 ? null : procedure,
         };
@@ -345,6 +354,7 @@ public static class AipEspanso
             Luci = luci.Count,
             Scali = scali.Count,
             Pericoli = pericoli.Count,
+            Ostacoli = ostacoli.Count,
             SettoriSmac = smac.Count,
             Procedure = procedure.Count,
             Correzioni = correzioni,
@@ -374,13 +384,22 @@ public static class AipEspanso
         return documento with { UnitLines = risolte };
     }
 
+    /// <summary>
+    /// Una sigla di ostacolo in più file (carta «L'AIP intero», passo 4: nel 2611 T001645 è in Puglia e in Sicilia, con due
+    /// posizioni): un file da solo non lo vede.
+    /// </summary>
+    internal static IEnumerable<ProblemaDellImport> SigleDoppie(IEnumerable<Obstacle> ostacoli) =>
+        ostacoli.GroupBy(o => o.Designator, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(doppia =>
+            new ProblemaDellImport(doppia.First().Section, new ImportIssue(ImportIssueKind.Obstacle, doppia.Key, null,
+                $"la stessa sigla {doppia.Count()} volte: {string.Join(", ", doppia.Select(o => $"{o.Region ?? o.Section} {o.Page?.Reference}"))}")));
+
     // Quel che un PDF ha dato, per tipo: solo le voci che ci sono.
     private static IReadOnlyDictionary<string, int> Letti(ImportResult r) => new (string, int)[]
     {
         ("aree", r.Airspaces.Count), ("rotte", r.Routes.Count), ("attese", r.Holdings.Count),
         ("radioassistenze di ENR 3.4.2", r.NavaidProcedures.Count), ("frequenze", r.UnitFrequencies.Sum(f => f.Frequencies.Count)),
         ("linee fra gli ACC", r.UnitLines.Count), ("radioassistenze", r.Navaids.Count), ("punti", r.Points.Count),
-        ("luci", r.Lights.Count), ("scali", r.Aerodromes.Count), ("pericoli", r.Hazards.Count),
+        ("luci", r.Lights.Count), ("scali", r.Aerodromes.Count), ("pericoli", r.Hazards.Count), ("ostacoli", r.Obstacles.Count),
         ("settori SMAC", r.MinimumAltitudes.Count), ("procedure", r.Procedures.Count),
     }.Where(v => v.Item2 > 0).ToDictionary(v => v.Item1, v => v.Item2, StringComparer.Ordinal);
 

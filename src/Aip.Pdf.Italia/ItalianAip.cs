@@ -105,6 +105,12 @@ public enum ImportIssueKind
     /// letto. <c>Detail</c> = che cosa, quanti nel PDF, quanti letti.
     /// </summary>
     ExpectedCount,
+
+    /// <summary>
+    /// ENR 5.4 (carta «L'AIP intero», passo 4): un ostacolo, o una riga della sua tabella, che non si legge — sigla,
+    /// coordinate, un numero, una nota senza ostacolo. <c>Key</c> = la sigla, <c>Detail</c> = che cosa.
+    /// </summary>
+    Obstacle,
 }
 
 public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)
@@ -138,6 +144,9 @@ public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyLi
 
     /// <summary>ENR 5.3: i pericoli puntuali letti.</summary>
     public IReadOnlyList<Hazard> Hazards { get; init; } = [];
+
+    /// <summary>ENR 5.4: gli ostacoli letti (carta «L'AIP intero», passo 4).</summary>
+    public IReadOnlyList<Obstacle> Obstacles { get; init; } = [];
 
     /// <summary>AD 2: i settori della carta ATC SMAC letti.</summary>
     public IReadOnlyList<MinimumAltitudeArea> MinimumAltitudes { get; init; } = [];
@@ -264,6 +273,18 @@ public static partial class ItalianAip
             return ItalianEnr53.ReadVolcanoes(pages());
         if (nome == "LI-ENR 5.3.4")
             return ItalianEnr53.ReadRulesOnly(pages());
+        // ENR 5.5 e 5.6 (passo 4): le zone delle attività sportive e ricreative, i parchi naturali per regione.
+        if (nome is "LI-ENR 5.5.1" or "LI-ENR 5.5.2" or "LI-ENR 5.5.3" or "LI-ENR 5.5.4")
+            return ItalianEnr5.ReadSportAreas(pages(), nome);
+        if (nome.StartsWith("LI-ENR 5.6.1.", StringComparison.Ordinal))
+            return ItalianEnr5.ReadNatureParks(pages());
+        // ENR 5.4 (carta «L'AIP intero», passo 4): gli ostacoli, puntuali e lineari per regione, le piattaforme.
+        if (nome.StartsWith("LI-ENR 5.4.1 ", StringComparison.Ordinal))
+            return ItalianEnr54.Read(pages(), ObstacleKind.Point);
+        if (nome == "LI-ENR 5.4.2")
+            return ItalianEnr54.Read(pages(), ObstacleKind.Platform);
+        if (nome.StartsWith("LI-ENR 5.4.3 ", StringComparison.Ordinal))
+            return ItalianEnr54.Read(pages(), ObstacleKind.Line);
         if (nome == "LI-ENR 5.2.2.4")
             return ItalianEnr5Zone.ReadOatCorridors(pages());
         if (nome == "LI-ENR 5.2.2.6")
@@ -464,24 +485,31 @@ public static partial class ItalianAip
         return t.Length == 0 ? null : t;
     }
 
-    /// <summary>Via la testata della tabella (fino alla riga dei numeri di colonna «1 2 3 4») e le righe di cornice.</summary>
+    /// <summary>
+    /// Via la testata della tabella (fino alla riga dei numeri di colonna «1 2 3 4») e le righe di cornice. Una pagina può
+    /// avere una seconda tabella più in basso, con la sua testata (ENR 5.6.1.12 p.12: «Sacra di San Michele», «Val
+    /// Troncea», poi la testata della regione dopo): di quella si tolgono solo la riga dei numeri e le parole di testata,
+    /// non il testo sopra (carta «L'AIP intero», passo 4: prima si perdeva tutto fino alla testata più in basso).
+    /// </summary>
     internal static IEnumerable<TextLine> SenzaTesta(IReadOnlyList<TextLine> righe)
     {
         // La riga «1 2 3 4» non è allineata (in ENR 2.1.1.4.1 le celle 3 e 4 stanno 2,6 pt più in alto): a gruppi.
-        double? fine = null;
         var numeri = righe.Where(r => r.Text.Trim() == (r.Column + 1).ToString(System.Globalization.CultureInfo.InvariantCulture))
             .OrderBy(r => r.Y).ToList();
+        var bande = new List<List<TextLine>>();
         var banda = new List<TextLine>();
         foreach (var r in numeri)
         {
             if (banda.Count > 0 && r.Y - banda[0].Y > 6.0)
             {
-                if (banda.Select(b => b.Column).Distinct().Count() >= 3) fine = Math.Max(fine ?? 0, banda.Max(b => b.Y));
+                if (banda.Select(b => b.Column).Distinct().Count() >= 3) bande.Add(banda);
                 banda = [];
             }
             banda.Add(r);
         }
-        if (banda.Select(b => b.Column).Distinct().Count() >= 3) fine = Math.Max(fine ?? 0, banda.Max(b => b.Y));
+        if (banda.Select(b => b.Column).Distinct().Count() >= 3) bande.Add(banda);
+        double? fine = bande.Count > 0 ? bande[0].Max(b => b.Y) : null;
+        var altre = bande.Skip(1).Select(b => (Cima: b.Min(x => x.Y), Numeri: b)).ToList();
 
         foreach (var r in righe)
         {
@@ -489,6 +517,10 @@ public static partial class ItalianAip
             var t = r.Text.Trim();
             if (RxSporco().IsMatch(t)) continue;
             if (r.Column == 0 && t.Length < 40 && ParoleDiTesta.Any(p => t.Contains(p, StringComparison.Ordinal))) continue;
+            // La testata di una tabella più in basso: la riga dei numeri, e sopra (60 punti) le parole di testata.
+            if (altre.Any(a => a.Numeri.Contains(r))) continue;
+            if (t.Length < 40 && altre.Any(a => r.Y < a.Cima && r.Y >= a.Cima - 60)
+                && ParoleDiTesta.Any(p => t.Contains(p, StringComparison.OrdinalIgnoreCase))) continue;
             yield return r;
         }
     }

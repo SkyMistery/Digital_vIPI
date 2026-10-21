@@ -48,6 +48,7 @@ public static class AipSullaMappa
     public const string Radioassistenze = "Radioassistenze";
     public const string Luci = "Luci";
     public const string Pericoli = "Pericoli";
+    public const string Ostacoli = "Ostacoli";
     public const string Scali = "Scali";
     public const string Sid = "SID";
     public const string Star = "STAR";
@@ -68,6 +69,8 @@ public static class AipSullaMappa
         ["D"] = "#c9a000",
         ["TSA/TRA"] = "#c0409a",
         ["Militari"] = "#5f7d1e",
+        ["Sport"] = "#3c9fd8",
+        ["Parchi"] = "#3f9a3f",
         ["Altre"] = "#6b6b6b",
         [Rotte] = "#2e8b3e",
         [Attese] = "#b06a10",
@@ -75,6 +78,7 @@ public static class AipSullaMappa
         [Radioassistenze] = "#2a9d8f",
         [Luci] = "#d4a017",
         [Pericoli] = "#b0306a",
+        [Ostacoli] = "#9c4f2a",
         [Scali] = "#3f5fa0",
         [Sid] = "#d0662b",
         [Star] = "#2b8fd0",
@@ -203,6 +207,14 @@ public static class AipSullaMappa
             Puntuale(Voce(Pericoli, CorrectionKind.Hazard, pericolo.Name, pericolo.Section, pericolo.Page, ("Tipo", pericolo.Kind.ToString()),
                 ("Raggio", pericolo.Radius is { } d ? $"{d.Value.ToString(CultureInfo.InvariantCulture)} {d.Unit.ToString().ToUpperInvariant()}" : null),
                 ("Quota", pericolo.Vertical), ("Orari", pericolo.Hours), ("Note", pericolo.Remarks)), pericolo.Position);
+        // ENR 5.4 (passo 4): gli ostacoli, puntuali e piattaforme come punti, i lineari come una linea dall'inizio alla fine.
+        foreach (var ostacolo in aip.Obstacles ?? [])
+        {
+            if (ostacolo.End is { } fine)
+                Aggiungi(Voce(ostacolo), TipoDiForma.Linea, [[Coordinata(ostacolo.Position), Coordinata(fine)]]);
+            else
+                Puntuale(Voce(ostacolo), ostacolo.Position);
+        }
         foreach (var scalo in aip.Aerodromes ?? [])
             Puntuale(Voce(Scali, CorrectionKind.Aerodrome, scalo.Icao, "AD 2", scalo.Page, ("Nome", scalo.Name), ("Elevazione", scalo.Elevation),
                 ("Piste", string.Join(", ", scalo.Runways.Select(p => p.Designator))), ("Frequenze", scalo.Communications.Count.ToString(CultureInfo.InvariantCulture))), scalo.Arp,
@@ -302,6 +314,24 @@ public static class AipSullaMappa
         }
     }
 
+    /// <summary>
+    /// La voce di un ostacolo di ENR 5.4 (passo 4): da guardare, non ancora da correggere (nessun tipo di correzione).
+    /// </summary>
+    private static VoceDellAip Voce(Obstacle o)
+    {
+        static string? MetriPiedi(double? m, double? ft) => m is null && ft is null ? null
+            : $"{m?.ToString(CultureInfo.InvariantCulture) ?? "—"} m / {ft?.ToString(CultureInfo.InvariantCulture) ?? "—"} ft";
+        var voce = Voce(Ostacoli, CorrectionKind.Hazard, o.Designator, o.Section, o.Page,
+            ("Tipo", o.TypeEnglish is null ? o.Type : $"{o.Type} / {o.TypeEnglish}"), ("Nome", o.Name),
+            ("Regione", o.Region), ("Dove", string.Join(", ", new[] { o.Site, o.Town, o.Province }.Where(x => x is not null))),
+            ("Altezza AGL", MetriPiedi(o.HeightM, o.HeightFt)), ("Elevazione AMSL", MetriPiedi(o.ElevationM, o.ElevationFt)),
+            ("Lunghezza", o.LengthM is { } l ? $"{l.ToString(CultureInfo.InvariantCulture)} m" : null),
+            ("Punto più basso AMSL", MetriPiedi(o.LowestM, o.LowestFt)), ("Punto più alto AMSL", MetriPiedi(o.HighestM, o.HighestFt)),
+            ("Segnalazione", o.DayMarking is null && o.NightMarking is null ? null : $"giorno {o.DayMarking ?? "—"}, notte {o.NightMarking ?? "—"}"),
+            ("Note", o.Remarks));
+        return voce with { Tipo = null };
+    }
+
     /// <summary>La voce di un oggetto puntuale: la sezione, i campi che ci sono, la pagina.</summary>
     private static VoceDellAip Voce(string genere, CorrectionKind tipo, string chiave, string sezione, AipPage? pagina, params (string Nome, string? Valore)[] campi)
     {
@@ -326,6 +356,9 @@ public static class AipSullaMappa
         AirspaceType.Tsa or AirspaceType.Tra or AirspaceType.Cba => "TSA/TRA",
         // ENR 5.2 (slice 4a): i poligoni militari, le zone e i corridoi APR.
         AirspaceType.Military or AirspaceType.Adiz => "Militari",
+        // ENR 5.5 e 5.6 (carta «L'AIP intero», passo 4).
+        AirspaceType.Parachute or AirspaceType.Aerobatic or AirspaceType.AerialWork or AirspaceType.Ultralight => "Sport",
+        AirspaceType.NaturePark => "Parchi",
         _ => "Altre",
     };
 

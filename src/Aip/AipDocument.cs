@@ -66,6 +66,12 @@ public sealed record AipDocument
     /// <summary>ENR 5.3: i pericoli puntuali (palloni sonda, laser, vulcani). Null se il documento non ne ha (campo facoltativo).</summary>
     public IReadOnlyList<Hazard>? Hazards { get; init; }
 
+    /// <summary>
+    /// ENR 5.4: gli ostacoli — puntuali, piattaforme, lineari (carta «L'AIP intero», passo 4). Null se il documento non ne
+    /// ha (campo facoltativo).
+    /// </summary>
+    public IReadOnlyList<Obstacle>? Obstacles { get; init; }
+
     /// <summary>AD 2: i settori delle altitudini minime di sorveglianza (ATC SMAC). Null se il documento non ne ha.</summary>
     public IReadOnlyList<MinimumAltitudeArea>? MinimumAltitudes { get; init; }
 
@@ -89,6 +95,7 @@ public sealed record AipDocument
         && (Lights ?? []).SequenceEqual(other.Lights ?? [])
         && (Aerodromes ?? []).SequenceEqual(other.Aerodromes ?? [])
         && (Hazards ?? []).SequenceEqual(other.Hazards ?? [])
+        && (Obstacles ?? []).SequenceEqual(other.Obstacles ?? [])
         && (MinimumAltitudes ?? []).SequenceEqual(other.MinimumAltitudes ?? [])
         && (Procedures ?? []).SequenceEqual(other.Procedures ?? []);
 
@@ -143,6 +150,12 @@ public sealed record Airspace
     /// <summary>L'ente che fornisce il servizio, o il nominativo e la lingua, come li stampa l'AIP (ENR 2).</summary>
     public string? Unit { get; init; }
 
+    /// <summary>
+    /// A chi si notifica l'attività, dove l'AIP lo dice in una colonna sua (ENR 5.5.1, le zone di lancio: «Notifica a»;
+    /// l'ente del collegamento radio sta in <see cref="Unit"/>).
+    /// </summary>
+    public string? Notification { get; init; }
+
     /// <summary>Gli orari di attività o di servizio, come li stampa l'AIP (RMZ, TMZ).</summary>
     public string? Hours { get; init; }
 
@@ -169,7 +182,7 @@ public sealed record Airspace
         && Upper == other.Upper && Lower == other.Lower && Class == other.Class
         && Activity == other.Activity && Remarks == other.Remarks
         && (Bands ?? []).SequenceEqual(other.Bands ?? [])
-        && Unit == other.Unit && Hours == other.Hours && TransitionAltitude == other.TransitionAltitude
+        && Unit == other.Unit && Notification == other.Notification && Hours == other.Hours && TransitionAltitude == other.TransitionAltitude
         && Equals(Geometry, other.Geometry) && Page == other.Page;
 
     public override int GetHashCode() => HashCode.Combine(Section, Type, Designator, Name);
@@ -217,4 +230,21 @@ public enum AirspaceType
     // ENR 5.2 — esercitazioni e addestramento militari, zona di identificazione di difesa aerea
     Military,
     Adiz,
+
+    // ENR 5.5 — attività aeree sportive e ricreative (carta «L'AIP intero», passo 4)
+    /// <summary>Zona di lancio paracadutisti (ENR 5.5.1).</summary>
+    Parachute,
+
+    /// <summary>Zona di volo acrobatico (ENR 5.5.2).</summary>
+    Aerobatic,
+
+    /// <summary>Zona di attività di aeroclub, di lavoro aereo, di addestramento (ENR 5.5.3).</summary>
+    AerialWork,
+
+    /// <summary>Area o corridoio del volo da diporto sportivo (VDS, ULM: ENR 5.5.4).</summary>
+    Ultralight,
+
+    // ENR 5.6 — migrazione di uccelli e aree con fauna sensibile
+    /// <summary>Parco naturale o zona di protezione della fauna (ENR 5.6.1): divieti di sorvolo a bassa quota.</summary>
+    NaturePark,
 }

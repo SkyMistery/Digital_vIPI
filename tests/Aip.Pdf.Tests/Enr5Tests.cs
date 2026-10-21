@@ -88,4 +88,125 @@ public sealed class Enr5Tests
         Assert.Equal(3, r.Pages.Count);
         Assert.False(r.Pages[2].Table);
     }
+
+    private static readonly double[] Sei = [40, 160, 220, 270, 330, 400, 560];
+
+    // ENR 5.5.1 (carta «L'AIP intero», passo 4): sei colonne, i periodi, a chi si notifica, l'ente del collegamento radio.
+    [Fact]
+    public void LeZoneDiLancio_SeiColonne_NotificaEdEnte()
+    {
+        var pagina = new PdfFintoTests.Pagina(Sei,
+        [
+            .. Testata("ENR 5.5.1 - 3", "09 JUL 2026", 40, 160, 220, 270, 330, 400),
+            (45, 140, "ACQUI TERME -CIV-"), (165, 140, "FL80"), (225, 140, "HJ"), (275, 140, "MILANO"), (335, 140, "MILANO"), (405, 140, "1) Ente ATS"),
+            (45, 152, "Circular area centered on"), (165, 152, "SFC"), (225, 152, "DAILY"), (275, 152, "SCCAM"), (335, 152, "ACC/FIC"),
+            (45, 164, "44°40'44\"N 008°30'10\"E"),
+            (45, 176, "within a 2.0 NM radius."),
+        ]);
+
+        var r = ItalianEnr5.ReadSportAreas(PdfText.Read(PdfFintoTests.Pdf(pagina)), "LI-ENR 5.5.1");
+
+        Assert.Empty(r.Issues);
+        var a = Assert.Single(r.Airspaces);
+        Assert.Equal(("ENR 5.5", AirspaceType.Parachute, "ACQUI TERME -CIV-"), (a.Section, a.Type, a.Designator));
+        Assert.Equal(("HJ DAILY", "MILANO SCCAM", "MILANO ACC/FIC"), (a.Hours, a.Notification, a.Unit));
+        Assert.IsType<CircleGeometry>(a.Geometry);
+    }
+
+    // ENR 5.5.3: il nome su due righe ha accanto alla seconda il limite inferiore, non è un'area nuova.
+    [Fact]
+    public void IlNomeSuDueRighe_AccantoAlLimiteInferiore_NonEUnAreaNuova()
+    {
+        var pagina = new PdfFintoTests.Pagina(Quattro,
+        [
+            .. Testata("ENR 5.5.3 - 1", "09 JUL 2026", 40, 200, 300, 420),
+            (45, 140, "AEROMODELLISTI PROVA -CIV-"), (205, 140, "120m AGL"), (305, 140, "Attivita aeromodellistica"), (425, 140, "1) HR: HJ"),
+            (45, 152, "Zona di lavoro aereo/Aerial work area"), (205, 152, "SFC"),
+            (45, 164, "42°18'08\"N 013°31'08\"E;"),
+            (45, 176, "42°18'00\"N 013°31'39\"E;"),
+            (45, 188, "42°17'40\"N 013°31'30\"E;"),
+            (45, 200, "to point of origin."),
+            (45, 220, "AGNONE Settore A -MIL-"), (205, 220, "500ft AGL"), (305, 220, "Voli militari"), (425, 220, "1) HR: H24"),
+            (45, 232, "Zona di addestramento/Training area"), (205, 232, "SFC"),
+            (45, 244, "37°18'42\"N 015°00'49\"E;"),
+            (45, 256, "37°22'50\"N 015°03'41\"E;"),
+            (45, 268, "37°20'00\"N 015°05'00\"E;"),
+            (45, 280, "to point of origin."),
+        ]);
+
+        var r = ItalianEnr5.ReadSportAreas(PdfText.Read(PdfFintoTests.Pdf(pagina)), "LI-ENR 5.5.3");
+
+        Assert.Empty(r.Issues);
+        Assert.Equal(["AEROMODELLISTI PROVA -CIV- Zona di lavoro aereo/Aerial work area", "AGNONE Settore A -MIL- Zona di addestramento/Training area"],
+            r.Airspaces.Select(a => a.Key));
+        Assert.Equal((AirspaceType.AerialWork, "120m AGL", "SFC", "Attivita aeromodellistica"), (r.Airspaces[0].Type, r.Airspaces[0].Upper.Text, r.Airspaces[0].Lower.Text, r.Airspaces[0].Activity));
+    }
+
+    private static readonly double[] Tre = [40, 220, 300, 560];
+
+    // ENR 5.6.1.12 p.12 (passo 4): due tabelle sulla stessa pagina. Prima si perdeva tutto quello che stava sopra la seconda
+    // testata — qui «Sacra» e la chiusura dell'anello della pagina prima.
+    [Fact]
+    public void DueTabelleSullaStessaPagina_SiLeggonoTutteEDue()
+    {
+        var uno = new PdfFintoTests.Pagina(Tre,
+        [
+            .. Testata("ENR 5.6.1.12 - 11", "07 AUG 2025", 40, 220, 300),
+            (45, 140, "Parco Prova"), (225, 140, "4500m AMSL"), (305, 140, "1) Sorvolo vietato"),
+            (45, 152, "45°41'00\"N 007°11'30\"E;"), (225, 152, "SFC"),
+            (45, 164, "45°37'34\"N 007°22'03\"E;"),
+            (45, 176, "45°35'33\"N 007°34'48\"E;"),
+        ]);
+        var due = new PdfFintoTests.Pagina(Tre,
+        [
+            .. Testata("ENR 5.6.1.12 - 12", "07 AUG 2025", 40, 220, 300),
+            (45, 140, "to point of origin."),
+            (45, 160, "Sacra Prova (TO)"), (225, 160, "4430ft AMSL"), (305, 160, "1) Sorvolo vietato ai VDS"),
+            (45, 172, "45°05'45\"N 007°20'32\"E;"), (225, 172, "SFC"),
+            (45, 184, "45°05'49\"N 007°20'39\"E;"),
+            (45, 196, "45°05'52\"N 007°20'40\"E;"),
+            (45, 208, "to point of origin."),
+            (225, 400, "Limite sup."), (45, 412, "Nome - Limiti laterali"), (225, 412, "Limite inf."), (305, 412, "Note"),
+            (45, 440, "1"), (225, 440, "2"), (305, 440, "3"),
+            (45, 460, "Riserva Prova"), (225, 460, "1500ft AGL"), (305, 460, "NIL"),
+            (45, 472, "45°14'26\"N 008°14'01\"E;"), (225, 472, "SFC"),
+            (45, 484, "45°14'09\"N 008°15'10\"E;"),
+            (45, 496, "45°14'18\"N 008°16'25\"E;"),
+            (45, 508, "to point of origin."),
+        ]);
+
+        var r = ItalianEnr5.ReadNatureParks(PdfText.Read(PdfFintoTests.Pdf(uno, due)));
+
+        Assert.Empty(r.Issues);
+        Assert.Equal(["Parco Prova", "Sacra Prova (TO)", "Riserva Prova"], r.Airspaces.Select(a => a.Key));
+        Assert.All(r.Airspaces, a => Assert.Equal(("ENR 5.6", AirspaceType.NaturePark), (a.Section, a.Type)));
+        Assert.Equal("1500ft AGL", r.Airspaces[2].Upper.Text);
+        Assert.Null(r.Airspaces[2].Remarks);
+    }
+
+    // Il conto (passo 4): le coordinate della prima colonna, un punto ripetuto di seguito o il primo riscritto alla
+    // chiusura una volta sola, quelle delle note no.
+    [Fact]
+    public void IlContoDelleCoordinate()
+    {
+        var pagina = new PdfFintoTests.Pagina(Tre,
+        [
+            .. Testata("ENR 5.6.1.10 - 1", "07 AUG 2025", 40, 220, 300),
+            (45, 140, "Parco Prova"), (225, 140, "1500ft AGL"), (305, 140, "1) Fra 42°04'57\"N 012°16'49\"E e il fiume"),
+            (45, 152, "43°19'36\"N 013°01'24\"E;"), (225, 152, "SFC"),
+            (45, 164, "43°23'21\"N 012°55'37\"E;"),
+            (45, 176, "43°23'21\"N 012°55'37\"E;"),
+            (45, 188, "43°25'37\"N 012°54'47\"E;"),
+            (45, 200, "43°19'36\"N 013°01'24\"E;"),
+            (45, 212, "to point of origin."),
+            (45, 230, "Area Prova"), (225, 230, "500ft AGL"),
+            (45, 242, "Circular area centered on"), (225, 242, "SFC"),
+            (45, 254, "43°19'36\"N 013°01'24\"E"),
+            (45, 266, "within a 0.5 NM radius."),
+        ]);
+        var pagine = PdfText.Read(PdfFintoTests.Pdf(pagina));
+
+        Assert.Equal([new ExpectedCount("coordinate", 4)], ItalianExpectedCounts.Of("LI-ENR 5.6.1.10.pdf", pagine));
+        Assert.Equal(4, ItalianExpectedCounts.Read("coordinate", ItalianEnr5.ReadNatureParks(pagine)));
+    }
 }

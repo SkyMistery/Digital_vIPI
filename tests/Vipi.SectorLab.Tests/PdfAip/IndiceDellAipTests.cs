@@ -130,4 +130,40 @@ public sealed class IndiceDellAipTests
         Assert.Equal("AD 2", ad2.Codice);
         Assert.Equal(["RF401"], Assert.Single(ad2.Gruppi).Gruppi.Single().Voci.Select(v => v.Titolo));
     }
+
+    // Carta «L'AIP intero», passo 4: gli ostacoli per regione, la sottosezione dell'AIP col nome della regione; ENR 5.5 col
+    // nome dell'ICAO.
+    [Fact]
+    public void GliOstacoliPerRegione_EIlNomeDellaRegione()
+    {
+        static VoceDellAip Ostacolo(string sigla, string sezione, string regione) =>
+            new(AipSullaMappa.Ostacoli, sigla, [("Sezione", sezione), ("Regione", regione)], []);
+        VoceDellAip[] voci =
+        [
+            Ostacolo("T000002", "ENR 5.4.1.13", "PUGLIA"), Ostacolo("T000001", "ENR 5.4.1.2", "BASILICATA"),
+            Ostacolo("T000003", "ENR 5.4.1.13", "PUGLIA"), Area("ACRO", "ENR 5.5", "Sport"),
+        ];
+
+        var enr5 = IndiceDellAip.Di(voci).Single(p => p.Codice == "ENR 5");
+
+        Assert.Equal(["ENR 5.4.1.2", "ENR 5.4.1.13", "ENR 5.5"], enr5.Gruppi.Select(g => g.Codice));
+        Assert.Equal(["BASILICATA", "PUGLIA", "Attività aeree sportive e ricreative"], enr5.Gruppi.Select(g => g.Nome));
+        Assert.Equal(["T000002", "T000003"], enr5.Gruppi[1].Voci.Select(v => v.Titolo));
+    }
+
+    // Passo 4: una sigla di ostacolo in due regioni si dice (nel 2611 T001645, in Puglia e in Sicilia).
+    [Fact]
+    public void UnaSiglaInDueRegioni_SiDice()
+    {
+        static Obstacle O(string sigla, string regione) => new()
+        {
+            Section = "ENR 5.4.1", Kind = ObstacleKind.Point, Designator = sigla, Region = regione, Position = new Position(40, 15),
+            Page = new AipPage($"ENR 5.4.1-{regione.Length}", null),
+        };
+
+        var doppie = AipEspanso.SigleDoppie([O("T001645", "PUGLIA"), O("T000001", "PUGLIA"), O("T001645", "SICILIA")]).ToList();
+
+        var d = Assert.Single(doppie);
+        Assert.Equal(("T001645", "la stessa sigla 2 volte: PUGLIA ENR 5.4.1-6, SICILIA ENR 5.4.1-7"), (d.Problema.Key, d.Problema.Detail));
+    }
 }

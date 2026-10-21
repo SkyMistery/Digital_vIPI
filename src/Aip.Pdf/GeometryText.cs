@@ -166,14 +166,17 @@ public static partial class GeometryText
         return new GeometryReadResult(geometrie, problemi);
     }
 
-    /// <summary>«Corridor 10 NM wide joining following points: …»: l'ampiezza, e dopo i due punti le coordinate.</summary>
-    [GeneratedRegex(@"^\s*CORRIDOR\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM)\s+WIDE\s+JOINING\s+(?:THE\s+)?(?:FOLLOWING\s+)?POINTS\s*:?(?<resto>.*)$", Opzioni | RegexOptions.Singleline)]
+    /// <summary>
+    /// «Corridor 10 NM wide joining following points: …»: l'ampiezza, e dopo i due punti le coordinate. Anche in metri:
+    /// «Corridor 150 M wide» (ENR 5.5.4, Norma; carta «L'AIP intero», passo 4).
+    /// </summary>
+    [GeneratedRegex(@"^\s*CORRIDOR\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\s+WIDE\s+JOINING\s+(?:THE\s+)?(?:FOLLOWING\s+)?POINTS\s*:?(?<resto>.*)$", Opzioni | RegexOptions.Singleline)]
     private static partial Regex RxCorridoio();
 
     private static GeometryReadResult Corridoio(Match m, List<GeometryIssue> problemi)
     {
         var ampiezza = new Distance(double.Parse(m.Groups["v"].Value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture),
-            m.Groups["u"].Value.Equals("KM", StringComparison.OrdinalIgnoreCase) ? DistanceUnit.Km : DistanceUnit.Nm);
+            m.Groups["u"].Value.ToUpperInvariant() switch { "KM" => DistanceUnit.Km, "M" => DistanceUnit.M, _ => DistanceUnit.Nm });
         var resto = m.Groups["resto"].Value;
         var punti = new List<Position>();
         var da = 0;

@@ -36,6 +36,10 @@ public static class IndiceDellAip
         ["ENR 5.1"] = "Aree vietate, regolamentate e pericolose",
         ["ENR 5.2"] = "Aree di esercitazione militare e ADIZ",
         ["ENR 5.3"] = "Altre attività di natura pericolosa",
+        ["ENR 5.4"] = "Ostacoli alla navigazione aerea",
+        ["ENR 5.4.2"] = "Piattaforme e simili",
+        ["ENR 5.5"] = "Attività aeree sportive e ricreative",
+        ["ENR 5.6"] = "Migrazione di uccelli e aree con fauna sensibile",
         ["AD 2"] = "Aeroporti",
     };
 
@@ -89,7 +93,7 @@ public static class IndiceDellAip
                 gruppi = [.. parte
                     .GroupBy(x => Sezione(x.Voce) ?? parte.Key, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(g => g.Key, ComparatoreDelleSezioni.Uno)
-                    .Select(g => PerGenere(g.Key, NomiDelleSezioni.GetValueOrDefault(g.Key) ?? "", g))];
+                    .Select(g => PerGenere(g.Key, NomiDelleSezioni.GetValueOrDefault(g.Key) ?? Campo(g.First().Voce, "Regione") ?? "", g))];
             }
             parti.Add(new GruppoDellIndice(parte.Key, NomiDelleSezioni.GetValueOrDefault(parte.Key) ?? "", gruppi, []));
         }

@@ -590,4 +590,42 @@ public sealed class AipJsonTests
         Assert.Contains("\"legsFromDescription\": true", json, StringComparison.Ordinal);
         Assert.DoesNotContain("legsFromDescription", AipJson.Serialize(doc with { Procedures = [star with { LegsFromDescription = false }] }), StringComparison.Ordinal);
     }
+
+    // Carta «L'AIP intero», passo 4: gli ostacoli di ENR 5.4 (con la fine dei lineari e i numeri decimali), le aree di ENR
+    // 5.5 e 5.6 coi tipi nuovi e a chi si notifica, vanno e tornano uguali; un documento senza ostacoli non li scrive.
+    [Fact]
+    public void GliOstacoliELeAreeSportiveVannoETornanoUguali()
+    {
+        var puntuale = new Obstacle
+        {
+            Section = "ENR 5.4.1.13", Kind = ObstacleKind.Point, Designator = "T004963", Region = "PUGLIA", Province = "FOGGIA", Town = "ASCOLI",
+            Site = "FONTANELLE", Type = "ANEMOMETRO", TypeEnglish = "ANEMOMETER", Position = new Position(41.232778, 15.663333),
+            HeightM = 118.2, ElevationM = 321, ElevationFt = 1053, DayMarking = "YES", NightMarking = "NO",
+            Page = new AipPage("ENR 5.4.1.13-18", new DateOnly(2026, 5, 14)),
+        };
+        var lineare = new Obstacle
+        {
+            Section = "ENR 5.4.3.1", Kind = ObstacleKind.Line, Designator = "L003543", Position = new Position(42.049167, 14.5725),
+            End = new Position(42.052778, 14.568056), LengthM = 532, LowestM = 181, HighestFt = 741, HeightM = 55, HeightFt = 180,
+            DayMarking = "Note RMKs", Remarks = "Ostacolo lineare sul fiume Alento/Linear obstacle on the Alento river",
+        };
+        var lancio = new Airspace
+        {
+            Section = "ENR 5.5", Type = AirspaceType.Parachute, Designator = "ACQUI TERME -CIV-", Upper = new VerticalLimit { Text = "FL80" },
+            Lower = new VerticalLimit { Text = "SFC" }, Hours = "HJ DAILY", Notification = "MILANO SCCAM", Unit = "MILANO ACC/FIC",
+            Geometry = new CircleGeometry(new Position(44.678889, 8.502778), new Distance(2, DistanceUnit.Nm)),
+        };
+        var parco = lancio with { Section = "ENR 5.6", Type = AirspaceType.NaturePark, Designator = "Parco Prova", Notification = null, Unit = null, Hours = null };
+        var doc = new AipDocument { State = "LI", Airspaces = [lancio, parco], Obstacles = [puntuale, lineare] };
+
+        var json = AipJson.Serialize(doc);
+        var riletto = AipJson.Deserialize(json);
+
+        Assert.Equal(doc, riletto);
+        Assert.NotEqual(doc with { Obstacles = [puntuale, lineare with { End = null }] }, riletto);
+        Assert.NotEqual(doc with { Airspaces = [lancio with { Notification = null }, parco] }, riletto);
+        Assert.Contains("\"type\": \"naturePark\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"heightM\": 118.2", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("obstacles", AipJson.Serialize(new AipDocument { State = "LI" }), StringComparison.Ordinal);
+    }
 }

@@ -325,4 +325,41 @@ public sealed class AipSullaMappaTests
         var meta = punti[punti.Count / 2];
         Assert.Equal(orario, meta.LatitudeDeg > 45.0 && meta.LongitudeDeg > 9.0);
     }
+
+    // Carta «L'AIP intero», passo 4: gli ostacoli sulla mappa — puntuali e piattaforme come punti, i lineari come una linea
+    // — con la scheda da guardare (non ancora da correggere); le aree di ENR 5.5 nel genere «Sport», quelle di 5.6 in «Parchi».
+    [Fact]
+    public void GliOstacoliELeAreeDiEnr55E56()
+    {
+        var modello = new AipDocument
+        {
+            State = "LI",
+            Airspaces =
+            [
+                new Airspace { Section = "ENR 5.5", Type = AirspaceType.Aerobatic, Designator = "ACRO", Upper = new VerticalLimit { Text = "5000ft AMSL" },
+                    Lower = new VerticalLimit { Text = "SFC" }, Geometry = new CircleGeometry(A, new Distance(0.5, DistanceUnit.Nm)) },
+                new Airspace { Section = "ENR 5.6", Type = AirspaceType.NaturePark, Designator = "PARCO", Upper = new VerticalLimit { Text = "1500ft AGL" },
+                    Lower = new VerticalLimit { Text = "SFC" }, Geometry = new CircleGeometry(B, new Distance(1, DistanceUnit.Nm)) },
+            ],
+            Obstacles =
+            [
+                new Obstacle { Section = "ENR 5.4.1.13", Kind = ObstacleKind.Point, Designator = "T000001", Region = "PUGLIA", Town = "BARI", Type = "ANTENNA",
+                    TypeEnglish = "ANTENNA", Position = A, HeightM = 118.2, HeightFt = 388, DayMarking = "YES", NightMarking = "NO" },
+                new Obstacle { Section = "ENR 5.4.3.1", Kind = ObstacleKind.Line, Designator = "L000001", Position = B, End = C, LengthM = 532,
+                    Remarks = "Sul fiume" },
+            ],
+        };
+
+        var s = AipSullaMappa.Di(modello, "2611", _ => null);
+
+        Assert.Equal(["Sport", "Parchi", AipSullaMappa.Ostacoli, AipSullaMappa.Ostacoli], s.Strato.Forme.Select(f => f.Genere));
+        Assert.Equal((TipoDiForma.Punto, TipoDiForma.Linea), (s.Strato.Forme[2].Tipo, s.Strato.Forme[3].Tipo));
+        Assert.Equal(2, Assert.Single(s.Strato.Forme[3].Tratti).Count);
+        var t = s.Voci[2];
+        Assert.Null(t.Tipo);
+        Assert.Contains(("Altezza AGL", "118.2 m / 388 ft"), t.Campi);
+        Assert.Contains(("Segnalazione", "giorno YES, notte NO"), t.Campi);
+        Assert.Contains(("Regione", "PUGLIA"), t.Campi);
+        Assert.Contains(("Note", "Sul fiume"), s.Voci[3].Campi);
+    }
 }
