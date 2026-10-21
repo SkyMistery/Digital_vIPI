@@ -52,7 +52,7 @@
                 <th>@L["Area_Name"]</th>
                 <th class="c-lim">@L["Area_Limits"]</th>
                 @if (MostraAttivita) { <th class="c-act2">@L["Area_Activity"]</th> }
-                <th class="c-note">@L["Area_Notes"]</th>
+                @if (ConNote) { <th class="c-note">@L["Area_Notes"]</th> }
             </tr>
         </thead>
         <tbody>
@@ -108,21 +108,13 @@
                         }
                     </td>
                     }
-                    <td class="c-note">
-                        @if (Editing)
-                        {
-                            @* ⚠️ `@onchange` e non `@oninput`: si salva quando il campo perde il fuoco, non a
-                               ogni tasto. Una nota è prosa — un giro di salvataggio per carattere sarebbe cento
-                               scritture per riga, e il campo perderebbe il fuoco a ogni ridisegno. *@
-                            <textarea class="app-ta in-note" rows="2" value="@NotaDi(a.IvaoId)" data-adatta
-                                      @onchange="e => ScriviNota(a.IvaoId, e.Value?.ToString())"
-                                      placeholder="@L["Area_NotesPlaceholder"]" aria-label="@L["Area_Notes"]"></textarea>
-                        }
-                        else
-                        {
-                            @(NotaDi(a.IvaoId) is { Length: > 0 } n ? n : "—")
-                        }
-                    </td>
+                    @* ⚠️ Niente nota da scrivere dal 21 ottobre 2026 (S123, committente: «dove voglio scrivere testo
+                       seleziono paragrafo»): il testo libero sta nei blocchi della sezione. La colonna resta solo per
+                       le release scattate prima, che portano le note nel loro payload. *@
+                    @if (ConNote)
+                    {
+                        <td class="c-note">@(NotaDi(a.IvaoId) is { Length: > 0 } n ? n : "—")</td>
+                    }
                 </tr>
                 @* La riga che si apre. ⚠️ Porta `data-areamore` e NON `data-areacard`: il JS conta le righe per
                    dire «ne vedi N su M», e una riga di dettaglio contata come area raddoppierebbe il totale. *@
@@ -193,13 +185,15 @@
     /// <summary>Cambia l'attività di UN'area: due persone che marcano due aree diverse non si sovrascrivono.</summary>
     [Parameter] public EventCallback<(string AreaId, MilActivity Attivita)> OnSet { get; set; }
 
-    /// <summary>Cambia la nota di UN'area, per la stessa ragione.</summary>
-    [Parameter] public EventCallback<(string AreaId, string? Nota)> OnSetNote { get; set; }
+
 
     /// <summary>Quante colonne ha la tabella: freccetta, nome, limiti, [attività], nota. Serve al
     /// <c>colspan</c> della riga di dettaglio e a quella «nessuna area» — un colspan sbagliato non rompe
     /// niente a schermo, restringe la riga e basta, ed è per questo che va contato in un posto solo.</summary>
-    private int Colonne => MostraAttivita ? 5 : 4;
+    private int Colonne => 3 + (MostraAttivita ? 1 : 0) + (ConNote ? 1 : 0);
+
+    /// <summary>Vero se un'area porta ancora una nota: solo le release scattate prima del 21 ottobre 2026.</summary>
+    private bool ConNote => Notes.Values.Any(n => !string.IsNullOrWhiteSpace(n));
 
     private MilActivity Attivita(string id) =>
         Activities.TryGetValue(id, out var a) ? a : MilActivity.None;
@@ -209,7 +203,7 @@
     private Task Commuta(string id, MilActivity attuale, MilActivity flag) =>
         OnSet.InvokeAsync((id, attuale.HasFlag(flag) ? attuale & ~flag : attuale | flag));
 
-    private Task ScriviNota(string id, string? testo) => OnSetNote.InvokeAsync((id, testo));
+
 
     // ⚠️ La porta unica: la stessa che scrive la banda sulla MAPPA. Erano due copie della stessa regola, e
     // il 10 settembre 2026 la mappa ha smesso di dire quel che diceva la tabella (FL150 contro 150 ft).

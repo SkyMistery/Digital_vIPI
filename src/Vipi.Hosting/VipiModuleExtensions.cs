@@ -1273,6 +1273,13 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Note dello scalo (LVP, regole piste) portate in paragrafi: {Count} righe svuotate.", noteScalo);
 
+        // E le note delle tabelle delle aree (AoR, aree di lavoro e BOAT del vSOP militare), che stanno nel JSON del
+        // payload della sezione (S123b, 21 ottobre 2026).
+        var noteAree = maintenance.NoteDelleAreeNeiBlocchiAsync().GetAwaiter().GetResult();
+        if (noteAree > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Note delle tabelle delle aree portate in paragrafi: {Count} blocchi riscritti.", noteAree);
+
         // La colonna Depth riallineata all'albero (U-014, 27 settembre 2026). ⚠️ DOPO tutte le passate che
         // spostano sezioni (parcheggi, regole piste, LVP, VFR): quelle scrivono la profondità della sola
         // sezione mossa, e questa sistema le figlie — anche di una passata che verrà. È anche quella che

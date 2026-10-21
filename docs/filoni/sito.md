@@ -2885,6 +2885,14 @@
   `docs/feature/2026-10-21-via-le-note.md`. **Codice comune**: `Vipi.Application` (catalogo, interfaccia
   manutenzione). Test: Infra 2233 → 2236, Ui 2116 → 2118. A schermo su DB nuovo: trasloco, editor e anteprima.
   Restano S123b (tabelle delle aree) e S123c (trasferimenti: prima l'elenco al committente).
+- ✅ **S123b** (21-ott, stesso giro) **via le note delle tabelle delle aree**: spazi aerei dell'AoR (vIPI APP, anche
+  militare, e blocchi della vIPI ACC) e aree di lavoro e BOAT del vSOP militare. Le note stanno nel JSON del payload:
+  **niente migrazione dello schema**. `aor` diventa `HB` nei profili APP e dei blocchi ACC (`AccSectionBody` mostra ora
+  anche i blocchi dell'AoR); via i campi nota in `AorAirspaceTable` e `MilWorkingAreas` (colonna solo se una riga ne
+  ha una: le release di prima). Trasloco all'avvio `NoteDelleAreeNeiBlocchiAsync`: un paragrafo per sezione,
+  `- NOME: nota`, e JSON senza note; un payload con la sola classe non si riscrive a ogni avvio. Carta §3. Test:
+  Infra 2236 → 2238, Ui 2118 → 2119. **Non visto a schermo** (servono forme del sectorfile e aree IVAO): provato coi
+  test, sui payload scritti dai serializzatori veri. S123c: le domande per la copia di produzione sono in carta §4.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

@@ -35,6 +35,16 @@ public interface IDocumentMaintenance
     Task<int> NoteDelloScaloNeiBlocchiAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Le note delle tabelle delle aree diventano paragrafi (S123b, 21 ottobre 2026, committente). Le note stanno nel
+    /// JSON del payload della sezione, non in una colonna: quelle degli spazi aerei dell'AoR (<c>AirspaceEdits[].Note</c>,
+    /// sezione <c>aor</c> della vIPI APP e dei blocchi della vIPI ACC) e quelle delle aree di lavoro e BOAT del vSOP
+    /// militare (<c>notes</c>, sezioni <c>regulated</c> e <c>lowlevel</c>). Per ogni sezione, nell'ultima versione e
+    /// nella pubblicata corrente, un paragrafo con una riga per volume o area (<c>- NOME: nota</c>), e il JSON riscritto
+    /// senza note. Idempotente. Ritorna i blocchi riscritti.
+    /// </summary>
+    Task<int> NoteDelleAreeNeiBlocchiAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Rinomina in <b>«MRVA»</b> le sezioni <c>minima</c> dei documenti in lavorazione che portano ancora il
     /// titolo vecchio.
     ///

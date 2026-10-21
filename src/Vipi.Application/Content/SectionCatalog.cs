@@ -208,7 +208,7 @@ public static class SectionCatalog
     {
         H("separations", "Separazioni", 1, en: "Separations"),
         H("configurations", "Configurazioni", 2, en: "Configurations"),
-        H("aor", "AOR", 3),
+        HB("aor", "AOR", 3),   // ⚠️ HB dal 21 ottobre 2026 (S123): via le note degli spazi aerei, il testo libero sta nei blocchi sotto la mappa.
         H("frequencies", "Frequenze", 4, en: "Frequencies"),
         H("minima", "MRVA", 5),
         // ✚ 15 settembre 2026 (committente): «Gestione del traffico» SOPRA i Coordinamenti, con IFR e VFR
@@ -286,7 +286,7 @@ public static class SectionCatalog
             {
                 H("separations", "Separazioni radar", 1, en: "Radar separation"),
                 H("configurations", "Configurazioni", 2, en: "Configurations"),
-                H("aor", "AOR", 3),
+                HB("aor", "AOR", 3),   // ⚠️ HB dal 21 ottobre 2026 (S123): via le note degli spazi aerei, il testo libero sta nei blocchi sotto la mappa.
                 H("frequencies", "Frequenze", 4, en: "Frequencies"),
                 H("minima", "MRVA", 5),
                 H("coordination", "Coordinamenti", 7, en: "Coordination"),
@@ -307,7 +307,7 @@ public static class SectionCatalog
             {
                 H("separations", "Separazioni", 1, en: "Separations"),
                 H("configurations", "Configurazioni", 2, en: "Configurations"),
-                H("aor", "AOR", 3),
+                HB("aor", "AOR", 3),   // ⚠️ HB dal 21 ottobre 2026 (S123): via le note degli spazi aerei, il testo libero sta nei blocchi sotto la mappa.
                 H("frequencies", "Frequenze", 4, en: "Frequencies"),
                 H("minima", "MRVA", 5),
                 // ✚ 21 settembre 2026 (committente): il blocco APP della vIPI ACC si scrive COME l'APP non

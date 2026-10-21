@@ -140,6 +140,9 @@ public class SectionCatalogTests
             (SectionProfile.AirportMil, "regulated"),
             (SectionProfile.Airport, "lvp"), (SectionProfile.AirportMil, "lvp"),
             (SectionProfile.Airport, "runwayrules"), (SectionProfile.AirportMil, "runwayrules"),
+            // E l'AoR (S123b): via le note degli spazi aerei, il testo libero sta nei blocchi sotto la mappa.
+            (SectionProfile.App, "aor"), (SectionProfile.AppMil, "aor"),
+            (SectionProfile.AccAerovia, "aor"), (SectionProfile.AccAppBlock, "aor"),
         };
 
         foreach (SectionProfile p in Enum.GetValues<SectionProfile>())

@@ -10,7 +10,7 @@ già scritto va in un paragrafo della sezione, come per la tecnica del radar di 
 | Passo | Che cosa | Stato |
 |---|---|---|
 | **S123a** | Nota delle LVP, note delle regole piste | §2 |
-| **S123b** | Note delle tabelle delle aree: spazi aerei dell'AoR (vIPI APP e ACC), aree di lavoro e BOAT del vSOP militare | da fare |
+| **S123b** | Note delle tabelle delle aree: spazi aerei dell'AoR (vIPI APP e ACC), aree di lavoro e BOAT del vSOP militare | §3 |
 | **S123c** | Note dei trasferimenti | §4: prima l'elenco, poi la decisione (committente) |
 
 Come per la torre radar, le **colonne si tolgono dopo**, con una migrazione in una consegna successiva a quella che
@@ -45,10 +45,24 @@ porta il trasloco in produzione.
 
 ## 3. S123b — tabelle delle aree
 
-Da fare. Le note non hanno colonne: stanno nel JSON del blocco payload della sezione (`aor` della vIPI APP e dei
-blocchi della vIPI ACC: `AorAirspaceEdit.Note`; `regulated` e `lowlevel` del vSOP militare: `MilRegulatedPayload.Notes`).
-`aor` va portata a `HB` (APP, blocchi Aerovia e gruppo APP), e `AccSectionBody` deve chiedere `KeepsOwnBlocks` invece
-di mostrare i blocchi della sola validità.
+Le note non hanno colonne: stanno nel JSON del blocco payload della sezione — `aor` della vIPI APP (anche militare) e
+dei blocchi della vIPI ACC (`AorAirspaceEdit.Note`, per volume), `regulated` e `lowlevel` del vSOP militare
+(`MilRegulatedPayload.Notes`, per area). **Niente migrazione dello schema.**
+
+- **`aor` diventa «scheda + blocchi»** (`HB`) nel profilo APP (e APP militare) e nei due profili dei blocchi della vIPI
+  ACC (Aerovia, gruppo APP); la vLOA resta com'è. `AccSectionBody` mostrava i blocchi propri della sola validità:
+  ora anche dell'AoR. Le aree del vSOP erano già `HB`.
+- **Via i campi**: la nota di ogni volume nella tabella degli spazi aerei (`AorAirspaceTable`) e di ogni area
+  (`MilWorkingAreas`, che perde anche il parametro `OnSetNote`, e `MilSectionsEditor` i due gestori). La colonna
+  «Note» resta solo se una riga ne ha una: le release già uscite.
+- **Il trasloco** all'avvio, `NoteDelleAreeNeiBlocchiAsync`: per ogni sezione, nell'ultima versione e nella pubblicata
+  corrente, un paragrafo con una riga per volume o area — `- FIRENZE CTR: Attivo H24` (il nome del volume dalla sua
+  chiave naturale), `- LI R14A - S.Severa: …` (il nome dell'area dall'anagrafica, l'id se manca) — e il JSON
+  riscritto senza note. Un volume che aveva solo la nota esce dal JSON; la classe scritta a mano resta.
+- ⚠️ Si riscrive solo un blocco con una nota **vera**: il serializzatore scrive `"Note":null` anche su un volume con la
+  sola classe, e riscriverlo a ogni avvio direbbe «cambiato» per sempre.
+- Resta nel modello `AorAirspaceEdit.Note` e nel servizio del vSOP `SaveAreaNoteAsync`: non li chiama più nessuno
+  dall'interfaccia; si tolgono quando si tolgono le colonne di S123a.
 
 ## 4. S123c — trasferimenti
 
