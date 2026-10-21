@@ -4,7 +4,13 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 21 ottobre 2026, pomeriggio
+> ## ▶ Il punto — 21 ottobre 2026, ONLINE 1.70.0
+>
+> **✅ Online: 1.70.0** (`Schema 0` confermato: la migrazione distruttiva `TogliTecnicaRadar` è passata; health
+> Healthy; §A163, timbro `1.70.0 · 2a21316`). In `main` non resta codice fuori pacchetto. Al Sito: il test instabile
+> `DiagnosticaUnGiroAllaVoltaTests…` e il «MANCA» falso di `conta-test.sh`. ⚠️ Aperto: SDK 10.0.402.
+>
+> ## Il punto — 21 ottobre 2026, pomeriggio
 >
 > **📦 Pronta da caricare: 1.70.0** (§A163, timbro `1.70.0 · 2a21316`, 12 file, zip `81ae65dc…`, MINOR con la
 > migrazione DISTRUTTIVA `TogliTecnicaRadar`, misurata dalla 1.69.0): Sito S120, via la colonna
