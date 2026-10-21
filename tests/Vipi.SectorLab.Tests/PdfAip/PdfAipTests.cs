@@ -216,6 +216,35 @@ public sealed class PdfAipTests : IDisposable
         Assert.Equal(["ENR 6.3-2"], dallIndice.Tolte);
     }
 
+    // Carta «L'AIP intero», passo 2c: i punti col nome delle linee fra gli ACC prendono la posizione da ENR 4.4; un nome che
+    // ENR 4.4 non ha si dice.
+    [Fact]
+    public void LeLineeFraGliAcc_IPuntiColNomeDaEnr44()
+    {
+        var documento = new AipDocument
+        {
+            State = "LI",
+            Points = [new SignificantPoint { Section = "ENR 4.4", Designator = "LUSIL", Position = new Position(46.2, 10.1) },
+                      new SignificantPoint { Section = "AD 2 LIRF", Designator = "LEVSI", Position = new Position(1, 1) }],
+            UnitLines =
+            [
+                new AtsUnitLine
+                {
+                    Section = "ENR 2.1.1.1", Unit = "Milano ACC/FIC", Side = "nord-ovest", Text = "a nord-ovest …",
+                    Points = [new LinePoint { Position = new Position(46.3, 10.0) }, new LinePoint { Designator = "LUSIL" }, new LinePoint { Designator = "LEVSI" }],
+                    Page = new AipPage("ENR 2.1.1.1-1"),
+                },
+            ],
+        };
+        var problemi = new List<ProblemaDellImport>();
+
+        var risolto = AipEspanso.ConLePosizioniDelleLinee(documento, problemi);
+
+        Assert.Equal([new Position(46.3, 10.0), new Position(46.2, 10.1), (Position?)null], risolto.UnitLines![0].Points.Select(p => p.Position));
+        var problema = Assert.Single(problemi);
+        Assert.Equal(("ENR 2.1.1.1-1", Aip.Pdf.Italia.ImportIssueKind.UnitLine, "LEVSI: ENR 4.4 non lo ha"), (problema.File, problema.Problema.Kind, problema.Problema.Detail));
+    }
+
     [Fact]
     public void LAipEspansoNonStaNellaCartellaDeiPdf()
     {

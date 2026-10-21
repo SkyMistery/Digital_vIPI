@@ -62,6 +62,7 @@ public static partial class GeometryText
         ("IN DIRECTION", Senso.Connettivo),
         ("DIRECTION", Senso.Connettivo),
         ("WITHIN A", Senso.Connettivo),
+        ("WITH A", Senso.Connettivo),
         ("THEN", Senso.Connettivo),
         ("IN", Senso.Connettivo),
 
@@ -84,6 +85,7 @@ public static partial class GeometryText
         ("POI LINEA CONGIUNGENTE I PUNTI", Senso.Connettivo),
         ("LINEA CONGIUNGENTE I PUNTI", Senso.Connettivo),
         ("DI RAGGIO", Senso.Connettivo),
+        ("CON UN RAGGIO DI", Senso.Connettivo),
         ("QUINDI", Senso.Connettivo),
         ("POI", Senso.Connettivo),
 
@@ -107,7 +109,8 @@ public static partial class GeometryText
     private const RegexOptions Opzioni = RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase;
 
     /// <summary>Il raggio, come la F1: numero e unità subito dopo <c>radius</c>, o fra <c>within a</c> e <c>radius</c>.</summary>
-    [GeneratedRegex(@"\b(?:RADIUS|(?:DI\s+)?RAGGIO(?:\s+DI)?)\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\b|\bWITHIN\s+A\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\s+RADIUS\b", Opzioni)]
+    // Anche «with a radius of 2NM» (l'area VFR «Isola di Ponza», ENR 2.1.1.2, carta «L'AIP intero» passo 2c).
+    [GeneratedRegex(@"\b(?:RADIUS(?:\s+OF)?|(?:DI\s+)?RAGGIO(?:\s+DI)?)\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\b|\bWITHIN\s+A\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\s+RADIUS\b", Opzioni)]
     private static partial Regex RxRaggio();
 
     /// <summary>
@@ -252,7 +255,8 @@ public static partial class GeometryText
     internal static (HashSet<Senso> Sensi, string Avanzo) Classifica(string frase)
     {
         var sensi = new HashSet<Senso>();
-        var resto = $" {frase} ";
+        // La barra fra italiano e inglese è attaccata alle parole («raggio di/with a»): staccata, è un connettivo.
+        var resto = $" {frase.Replace("/", " / ", StringComparison.Ordinal)} ";
         foreach (var (voce, senso) in Vocabolario.OrderByDescending(v => v.Frase.Length))
         {
             var cercata = $" {voce} ";
@@ -374,7 +378,9 @@ public static partial class GeometryText
                 if (tratti.Count == 0) Incompleto("inizio");
                 else tratti[^1] = new BorderSegment(tratti[^1].From, TipoDelTratto(f.Testo), TestoDelTratto(f.Originale));
             }
-            else if (avanzo.Length > 0)
+            // Le parole dopo «centred on» e prima della coordinata sono il nome del centro («circular area centred on Ponza
+            // VORTAC 'PNZ' 40°54'43"N…»): il centro è la coordinata, il nome non è una parola ignota.
+            else if (avanzo.Length > 0 && !sensi.Contains(Senso.Centro))
             {
                 problemi.Add(new GeometryIssue(GeometryIssueKind.UnknownWords, avanzo));
             }

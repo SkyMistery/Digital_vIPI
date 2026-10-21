@@ -93,6 +93,12 @@ public enum ImportIssueKind
     /// rimandi, o una riga della tabella senza frequenze. <c>Key</c> = la stazione; <c>Detail</c> = il testo.
     /// </summary>
     Frequency,
+
+    /// <summary>
+    /// ENR 2.1.1 (passo 2c): una frase delle note della FIR su un'area di ACC/FIC che non si legge, o coi punti che non si
+    /// leggono, o un nome di punto che ENR 4.4 non ha. <c>Key</c> = l'unità; <c>Detail</c> = cosa.
+    /// </summary>
+    UnitLine,
 }
 
 public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyList<ImportPage> Pages, IReadOnlyList<ImportIssue> Issues)
@@ -102,6 +108,9 @@ public sealed record ImportResult(IReadOnlyList<Airspace> Airspaces, IReadOnlyLi
 
     /// <summary>ENR 3.4.1: le attese lette (slice 2).</summary>
     public IReadOnlyList<Holding> Holdings { get; init; } = [];
+
+    /// <summary>ENR 2.1.1: le linee fra le aree degli ACC/FIC, dalle note delle FIR (carta «L'AIP intero», passo 2c).</summary>
+    public IReadOnlyList<AtsUnitLine> UnitLines { get; init; } = [];
 
     /// <summary>ENR 2.1.1: le righe delle tabelle delle frequenze ACC, SCCAM e FIC (carta «L'AIP intero», passo 2b).</summary>
     public IReadOnlyList<AtsUnitFrequencies> UnitFrequencies { get; init; } = [];
@@ -262,10 +271,18 @@ public static partial class ItalianAip
             return ItalianEnr2.Read(pages(), "ENR 2.1", AirspaceType.Atz);
         if (nome.StartsWith("LI-ENR 2.1.1.", StringComparison.Ordinal))
         {
-            // Le FIR (2.1.1.1-3) hanno anche le tabelle delle frequenze ACC/SCCAM/FIC (passo 2b).
+            // Le FIR (2.1.1.1-3) hanno anche le tabelle delle frequenze ACC/SCCAM/FIC (passo 2b), le linee fra gli ACC e le
+            // aree VFR (passo 2c).
             var aree = ItalianEnr2.Read(pages(), "ENR 2.1", null);
             var frequenze = ItalianEnr2Frequencies.Read(pages());
-            return aree with { Issues = [.. aree.Issues, .. frequenze.Issues], UnitFrequencies = frequenze.UnitFrequencies };
+            var fir = ItalianEnr2Fir.Read(pages());
+            return aree with
+            {
+                Airspaces = [.. aree.Airspaces, .. fir.Airspaces],
+                Issues = [.. aree.Issues, .. frequenze.Issues, .. fir.Issues],
+                UnitFrequencies = frequenze.UnitFrequencies,
+                UnitLines = fir.UnitLines,
+            };
         }
         if (nome == "LI-ENR 2.2.1")
             return ItalianEnr2.Read(pages(), "ENR 2.2", AirspaceType.Fra);

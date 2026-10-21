@@ -211,9 +211,17 @@ public sealed class AipJsonTests
             CallSign = "Milano Radar", Hours = "H24\n(1)", Remarks = "1. A discrezione ATC",
             Frequencies = [new AtsFrequency { Text = "CH 118.805", Megahertz = 118.805, Emission = "A3E", NoteRefs = "(7)" }],
         };
+        var linea = new AtsUnitLine
+        {
+            Section = "ENR 2.1.1.1", Unit = "Milano ACC/FIC", Side = "nord-ovest", Text = "a nord-ovest della linea …",
+            Points = [new LinePoint { Position = new Position(46.2875, 10.0081) }, new LinePoint { Designator = "LUSIL", Position = new Position(46.2, 10.1) }],
+            Lower = new VerticalLimit { Text = "SFC", Reference = VerticalReference.Ground },
+            Upper = new VerticalLimit { Text = "FL 195 (incluso)", Reference = VerticalReference.FlightLevel, Value = 195, Unit = VerticalUnit.Fl },
+        };
         var doc = new AipDocument
         {
             State = "LI", Routes = [Rotta(RouteDirection.Backward)], Holdings = [attesa], NavaidProcedures = [elenco], UnitFrequencies = [frequenze],
+            UnitLines = [linea],
         };
 
         var json = AipJson.Serialize(doc);
@@ -224,6 +232,7 @@ public sealed class AipJsonTests
         Assert.DoesNotContain("navaidProcedures", AipJson.Serialize(new AipDocument { State = "LI" }));
         Assert.NotEqual(doc with { UnitFrequencies = [frequenze with { Frequencies = [] }] }, riletto);
         Assert.DoesNotContain("unitFrequencies", AipJson.Serialize(new AipDocument { State = "LI" }));
+        Assert.NotEqual(doc with { UnitLines = [linea with { Points = linea.Points.Take(1).ToList() }] }, riletto);
         Assert.NotEqual(Rotta(RouteDirection.None), riletto.Routes![0]);
         Assert.NotEqual(attesa with { Turn = TurnDirection.Right }, riletto.Holdings![0]);
         Assert.NotEqual(doc with { Holdings = null }, riletto);

@@ -33,6 +33,10 @@ public sealed class GeometryTextTests
     [InlineData("Circular area centered on 42°00'45\"N 013°36'00\"E within a 1.0 NM radius.", 1.0, DistanceUnit.Nm)]
     [InlineData("Circular area centered on 42°00'45\"N 013°36'00\"E within a 300.0 M radius.", 300.0, DistanceUnit.M)]
     [InlineData("Circular area centered on\n42°00'45\"N 013°36'00\"E within a\n5.0 KM radius.", 5.0, DistanceUnit.Km)]
+    // L'area VFR «Isola di Ponza» (ENR 2.1.1.2, 2611; passo 2c): il nome del centro prima della coordinata, «with a radius
+    // of», e il testo bilingue con la barra attaccata alle parole.
+    [InlineData("circular area centred on Ponza VORTAC 'PNZ' 42º00'45\"N 013º36'00\"E with a radius of 2NM", 2.0, DistanceUnit.Nm)]
+    [InlineData("Area circolare centrata su/circular area centred on Ponza VORTAC 'PNZ' 42º00'45\"N 013º36'00\"E\ncon un raggio di/with a radius of 2NM", 2.0, DistanceUnit.Nm)]
     public void UnCerchioColRaggioComeStampato(string testo, double raggio, DistanceUnit unita)
     {
         var letto = GeometryText.Read(testo);

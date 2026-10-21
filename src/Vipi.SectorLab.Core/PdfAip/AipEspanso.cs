@@ -27,6 +27,9 @@ public sealed record EsitoDellAipEspanso(
     /// <summary>Le attese di ENR 3.4.1 lette (slice 2).</summary>
     public int Attese { get; init; }
 
+    /// <summary>ENR 2.1.1: le linee fra le aree degli ACC/FIC lette dalle note delle FIR (passo 2c).</summary>
+    public int LineeDegliAcc { get; init; }
+
     /// <summary>ENR 2.1.1: le frequenze ACC, SCCAM e FIC lette (carta «L'AIP intero», passo 2b).</summary>
     public int Frequenze { get; init; }
 
@@ -106,6 +109,7 @@ public sealed record EsitoDellAipEspanso(
         $"{Aree} aree",
         Rotte > 0 ? $"{Rotte} rotte" : null,
         Frequenze > 0 ? $"{Frequenze} frequenze ACC/FIC" : null,
+        LineeDegliAcc > 0 ? $"{LineeDegliAcc} linee fra gli ACC" : null,
         Attese > 0 ? $"{Attese} attese" : null,
         RadioassistenzeConLeProcedure > 0 ? $"{RadioassistenzeConLeProcedure} radioassistenze di ENR 3.4.2" : null,
         Radioassistenze > 0 ? $"{Radioassistenze} radioassistenze" : null,
@@ -168,6 +172,7 @@ public static class AipEspanso
         var attese = new List<Holding>();
         var elencoEnr342 = new List<NavaidProcedures>();
         var frequenze = new List<AtsUnitFrequencies>();
+        var lineeDegliAcc = new List<AtsUnitLine>();
         var radioassistenze = new List<Navaid>();
         var punti = new List<SignificantPoint>();
         var luci = new List<GroundLight>();
@@ -224,6 +229,7 @@ public static class AipEspanso
             attese.AddRange(letto.Holdings);
             elencoEnr342.AddRange(letto.NavaidProcedures);
             frequenze.AddRange(letto.UnitFrequencies);
+            lineeDegliAcc.AddRange(letto.UnitLines);
             radioassistenze.AddRange(letto.Navaids);
             // I punti delle WAYPOINT LIST di AD 2 stanno nel file 4 e nel 6 dello stesso scalo: una volta sola (F7).
             ItalianAd2Procedures.AggiungiIPunti(punti, letto.Points);
@@ -250,6 +256,7 @@ public static class AipEspanso
             Holdings = attese.Count == 0 ? null : attese,
             NavaidProcedures = elencoEnr342.Count == 0 ? null : elencoEnr342,
             UnitFrequencies = frequenze.Count == 0 ? null : frequenze,
+            UnitLines = lineeDegliAcc.Count == 0 ? null : lineeDegliAcc,
             Navaids = radioassistenze.Count == 0 ? null : radioassistenze,
             Points = punti.Count == 0 ? null : punti,
             Lights = luci.Count == 0 ? null : luci,
@@ -284,6 +291,9 @@ public static class AipEspanso
         }
 
         // La prosa delle convenzionali (carta F7, slice 7b), coi punti e le radioassistenze già corretti.
+        // Le linee fra gli ACC (passo 2c): i punti col nome prendono la posizione da ENR 4.4, letto dopo ENR 2.
+        documento = ConLePosizioniDelleLinee(documento, problemi);
+
         var (decodificato, nonLette) = ItalianAd2Prose.DecodeAll(documento);
         documento = decodificato;
         problemi.AddRange(nonLette.Select(n => new ProblemaDellImport(n.Procedure.Page?.Reference ?? n.Procedure.Aerodrome,
@@ -304,6 +314,7 @@ public static class AipEspanso
             Attese = attese.Count,
             RadioassistenzeConLeProcedure = elencoEnr342.Count,
             Frequenze = frequenze.Sum(f => f.Frequencies.Count),
+            LineeDegliAcc = lineeDegliAcc.Count,
             Radioassistenze = radioassistenze.Count,
             Punti = punti.Count,
             Luci = luci.Count,
@@ -313,6 +324,29 @@ public static class AipEspanso
             Procedure = procedure.Count,
             Correzioni = correzioni,
         };
+    }
+
+    /// <summary>
+    /// Le linee fra le aree degli ACC (passo 2c) coi punti col nome risolti sui punti di ENR 4.4 del documento; un nome che
+    /// ENR 4.4 non ha resta senza posizione e si dice.
+    /// </summary>
+    public static AipDocument ConLePosizioniDelleLinee(AipDocument documento, List<ProblemaDellImport> problemi)
+    {
+        ArgumentNullException.ThrowIfNull(documento);
+        ArgumentNullException.ThrowIfNull(problemi);
+        if (documento.UnitLines is not { } linee)
+            return documento;
+        var posizioni = (documento.Points ?? []).Where(q => q.Section.StartsWith("ENR 4.4", StringComparison.Ordinal))
+            .GroupBy(q => q.Designator, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Position, StringComparer.Ordinal);
+        var risolte = linee.Select(l => l with
+        {
+            Points = l.Points.Select(q => q is { Designator: { } nome, Position: null } && posizioni.TryGetValue(nome, out var pos) ? q with { Position = pos } : q).ToList(),
+        }).ToList();
+        foreach (var l in risolte)
+            foreach (var q in l.Points.Where(q => q.Position is null))
+                problemi.Add(new ProblemaDellImport(l.Page?.Reference ?? l.Section,
+                    new ImportIssue(ImportIssueKind.UnitLine, l.Unit, null, $"{q.Designator}: ENR 4.4 non lo ha")));
+        return documento with { UnitLines = risolte };
     }
 
     private static ImportIssueKind TipoDelProblema(Aip.Pdf.PageIndexIssueKind tipo) => tipo switch

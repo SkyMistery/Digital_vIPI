@@ -278,3 +278,26 @@ note di PAN. Test: Aip.Pdf 129 (+1), Aip 50 (il JSON col campo nuovo).
 Controprova valore per valore con `pdftotext`: le sole differenze sono tre frequenze scritte nelle note, non nella tabella
 (125.275 due volte, 120.600 di Bolzano INFO) e le due «CH» senza spazio che la controprova non vede. Test: Aip.Pdf 133
 (+4).
+
+#### 2c — le linee fra gli ACC e le aree VFR della FIR: fatto
+
+- **`ItalianEnr2Fir`** legge, nella colonna italiana delle note della FIR (dalla prima «NOTE» al titolo della sezione
+  dopo), le frasi «a *lato* della linea congiungente i punti … [nello spazio aereo compreso tra … e …]» delle note «N.
+  *Unità* ACC/FIC:». Nel modello **`AtsUnitLine`** (campo nuovo e facoltativo): l'unità, il lato, i punti (coordinate,
+  anche «433732N - 0121235E» col trattino in mezzo, o nomi), i limiti (`SFC` · `FL 195 (incluso)`, `FL195 (escluso)` ·
+  `UNL`) e la frase com'è stampata. I nomi prendono la posizione da ENR 4.4 dopo la lettura di tutti i PDF
+  (`AipEspanso.ConLePosizioniDelleLinee`); un nome che ENR 4.4 non ha si dice. Una frase che non si legge si dice.
+- **Le aree VFR della FIR** (`a. Roma FIR VFR “Isola di Ponza”`): la tabella a due colonne sotto il titolo, nel modello come
+  area `Other` di ENR 2.1 con «Roma FIR VFR» nelle note. Nel 2611 è una: l'area TIBA **Isola di Ponza**, cerchio di 2 NM su
+  PNZ, SFC-1500 ft AGL.
+- 🔴 **Il lettore comune delle geometrie** (`GeometryText`) ora capisce «with a radius of 2NM» e «con un raggio di», la
+  barra attaccata fra italiano e inglese («raggio di/with a») e il nome del centro prima della coordinata («centred on Ponza
+  VORTAC 'PNZ' 40°54'43"N…»). Effetto misurato su tutto il 2611: le 1 136 aree di prima identiche; **due settori SMAC di
+  Pisa** (AD 2 LIRP 8-3 e 8-4) cambiano, e in meglio: l'arco «di raggio 5 NM» prima non si capiva e il suo centro finiva
+  come vertice; ora è un arco col centro e il raggio stampati. Segnalazioni di geometria da 24 a 12.
+
+**Misurato** sul 2611: **15 linee** (Milano 2, Padova 2+1+1, Roma 1+3+1, Brindisi 1+2+1, fra le tre FIR), tutti i nomi
+risolti su ENR 4.4, zero segnalazioni; **1 area VFR**. La lettura intera del 2611 confrontata con quella del passo 1: aree,
+rotte, punti, radioassistenze, scali, procedure identici; cambiano solo le quote delle attese (2a), i due settori di Pisa, e
+si aggiungono Ponza, le 23 righe delle frequenze, le 15 linee, le 72 radioassistenze di ENR 3.4.2. Test: Aip.Pdf 138
+(+5), Lab 1 379 (+1), Aip 50.
