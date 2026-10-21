@@ -41,6 +41,19 @@ THE SOFTWARE.
 
 ---
 
+## CodeMirror 6 e Lezer (Aurora Sector Lab)
+
+- **File:** `src/Vipi.SectorLab.Ui/wwwroot/vendor/codemirror/codemirror.js` (un pacchetto di `@codemirror/*`, `@lezer/*`,
+  `@marijn/find-cluster-break`, `crelt`, `style-mod`, `w3c-keyname`; versioni esatte in `tools/codemirror/package.json`)
+- **Copyright:** © 2018-2024 Marijn Haverbeke e gli altri autori
+- **Licenza:** MIT — il testo di ogni pacchetto in `src/Vipi.SectorLab.Ui/wwwroot/vendor/codemirror/LICENSE`
+- **Sito:** https://codemirror.net — https://github.com/codemirror
+
+L'editor della pagina Testo del Sector Lab (riordino, D12), dentro l'app: niente rete. Si rifà con la ricetta di
+`tools/codemirror/LEGGIMI.md`.
+
+---
+
 ## Nunito Sans
 
 - **File:** `src/Vipi.Ui/wwwroot/fonts/pe0TMImSLYBIv1o4X1M8*.woff2` (subset latin/latin-ext)

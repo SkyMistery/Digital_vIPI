@@ -38,7 +38,7 @@
                 <textarea class="lab-campo lab-messaggio" rows="5" spellcheck="false" data-campo="messaggio"
                           value="@(_messaggio ?? Lab.MessaggioProposto)" @onchange="e => _messaggio = e.Value?.ToString()" disabled="@Occupato"></textarea>
                 <button type="button" class="lab-tasto" data-tasto="registra" disabled="@(Occupato || Lab.RiportoInCorso)"
-                        title="git commit dei file qui sopra, sul ramo @ramo.Ramo" @onclick="Registra">Registra</button>
+                        title="git commit dei file qui sopra, sul ramo @ramo.Ramo" @onclick="Registra">Registra il sector</button>
                 @if (daRegistrare.Any(f => f.Come == "tolto"))
                 {
                     @* Slice 7 (C4): un file tolto va in delete.upd e fuori dagli .isc, nella stessa registrazione. *@
@@ -75,7 +75,7 @@
                     <button type="button" class="lab-tasto" data-tasto="concludi-riporto" disabled="@(Occupato || ramo.Cambiati.Any(c => c.Come == "in conflitto"))"
                             @onclick="Lab.ConcludiIlRiportoAsync">Concludi il riporto</button>
                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="annulla-riporto" disabled="@Occupato"
-                            title="git merge --abort: i file tornano come nel ciclo" @onclick="Lab.AnnullaIlRiportoAsync">Annulla il riporto</button>
+                            title="git merge --abort: i file tornano come nel ciclo" @onclick="Lab.AnnullaIlRiportoAsync">Lascia stare il riporto</button>
                 </div>
             }
             else if (Lab.CicloDopoSulServer)
@@ -103,7 +103,7 @@
                 else
                 {
                     <button type="button" class="lab-tasto" data-tasto="manda" disabled="@Occupato"
-                            title="git push del ramo @ramo.Ramo, poi la pagina di GitHub della PR verso @(Lab.BaseDelRamo ?? Lab.Predefinito)" @onclick="Manda">Manda</button>
+                            title="git push del ramo @ramo.Ramo, poi la pagina di GitHub della PR verso @(Lab.BaseDelRamo ?? Lab.Predefinito)" @onclick="Manda">Manda il sector</button>
                 }
                 @if (Lab.IndietroRispettoAllaBase > 0)
                 {
@@ -251,7 +251,7 @@
                     {
                         string questo = delServer;
                         <li><button type="button" class="lab-citazione" data-guarda="@questo" disabled="@Occupato"
-                                    title="Passa a @questo: poi «Porta in Aurora», e il lotto dice le sue registrazioni" @onclick="() => Lab.PassaAlRamoAsync(questo)">@questo</button></li>
+                                    title="Passa a @questo: poi «Porta in vetrina», e il lotto dice le sue registrazioni" @onclick="() => Lab.PassaAlRamoAsync(questo)">@questo</button></li>
                     }
                 </ul>
             }

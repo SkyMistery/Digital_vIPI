@@ -6,7 +6,7 @@ namespace Vipi.SectorLab.Core.Aurora;
 /// <summary>Che cosa c'è in vetrina: da quale sector, quale ramo e commit, quando ce l'ha messo il Lab.</summary>
 public sealed record InVetrina(string Sorgente, string? Ramo, string? Commit, DateTimeOffset Quando);
 
-/// <summary>Com'è andato «Porta in Aurora»: i file copiati, quelli tolti, quelli rimasti uguali.</summary>
+/// <summary>Com'è andato «Porta in vetrina»: i file copiati, quelli tolti, quelli rimasti uguali.</summary>
 public sealed record EsitoDellaVetrina(int Copiati, int Tolti, int Uguali)
 {
     /// <summary>
@@ -18,7 +18,7 @@ public sealed record EsitoDellaVetrina(int Copiati, int Tolti, int Uguali)
 
 /// <summary>
 /// La vetrina (carta F5, slice 1; D1): una cartella fissa a cui l'AOD punta una volta il «secondo sector» di Aurora, e
-/// in cui il Lab mette, con «Porta in Aurora», la <c>SectorFiles</c> del sector aperto — come specchio: i file uguali
+/// in cui il Lab mette, con «Porta in vetrina», la <c>SectorFiles</c> del sector aperto — come specchio: i file uguali
 /// restano, i cambiati si copiano, quelli che il sector non ha più si tolgono. Così si lavora su più sector (il ciclo
 /// dopo, una prova) e si sceglie nel Lab quale vedere, senza toccare le impostazioni di Aurora.
 /// <para>🔴 La vetrina è del Lab: la riconosce dal file segno (<see cref="Segno"/>). Il Lab non specchia mai in una
@@ -71,7 +71,7 @@ public static class Vetrina
     }
 
     /// <summary>
-    /// «Porta in Aurora»: la <c>SectorFiles</c> di <paramref name="sector"/> (la radice del sector aperto) in vetrina, come
+    /// «Porta in vetrina»: la <c>SectorFiles</c> di <paramref name="sector"/> (la radice del sector aperto) in vetrina, come
     /// specchio. Torna l'esito, o il perché in <paramref name="perche"/>.
     /// </summary>
     public static EsitoDellaVetrina? Porta(string sector, string vetrina, string? pubblicata, string? ramo, string? commit, DateTimeOffset quando, out string? perche)
@@ -190,6 +190,6 @@ public static class Vetrina
         return File.ReadAllBytes(a).AsSpan().SequenceEqual(File.ReadAllBytes(b));
     }
 
-    /// <summary>L'ora di «Porta in Aurora» come la dice la barra (ora locale, minuti).</summary>
+    /// <summary>L'ora di «Porta in vetrina» come la dice la barra (ora locale, minuti).</summary>
     public static string Ora(DateTimeOffset quando) => quando.ToLocalTime().ToString("dd/MM HH:mm", CultureInfo.InvariantCulture);
 }

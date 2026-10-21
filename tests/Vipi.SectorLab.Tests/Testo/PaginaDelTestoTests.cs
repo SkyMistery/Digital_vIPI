@@ -177,7 +177,7 @@ public sealed class PaginaDelTestoTests : IDisposable
         _lab.ApriNelTesto(Apt);
         await pagina.InvokeAsync(() => pagina.Instance.Cambiato(true));
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto='testo-sulla-mappa']").Click());
-        Assert.Contains("Prima «Applica» o «Scarta»", pagina.Find("[data-testo-rifiutato]").TextContent, StringComparison.Ordinal);
+        Assert.Contains("Prima «Scrivi» o «Lascia stare»", pagina.Find("[data-testo-rifiutato]").TextContent, StringComparison.Ordinal);
         await pagina.Instance.DisposeAsync();
         Assert.Equal(new SessioneDelLab.BozzaDelTesto(Apt, string.Join("\n", _lab.RigheDiAdesso(Apt)), scritto), _lab.Bozza);
 
@@ -264,7 +264,7 @@ public sealed class PaginaDelTestoTests : IDisposable
         var altro = _lab.FileDelSector.First(f => f != Apt);
         pagina.Find($"[data-file-del-testo='{altro}']").Click();
         Assert.Equal(Apt, _lab.FileDelTesto);
-        Assert.Contains("prima «Applica» o «Scarta»", pagina.Find("[data-testo-rifiutato]").TextContent, StringComparison.Ordinal);
+        Assert.Contains("prima «Scrivi» o «Lascia stare»", pagina.Find("[data-testo-rifiutato]").TextContent, StringComparison.Ordinal);
 
         // «Applica» senza la riga di AAAAA: prima la domanda, poi «Togli anche i metadati».
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto='applica-testo']").Click());

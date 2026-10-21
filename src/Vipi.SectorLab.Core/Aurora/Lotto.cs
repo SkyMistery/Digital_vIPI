@@ -69,7 +69,7 @@ public sealed record NotaDaAurora(string Id, string Cosa, string Nota, IReadOnly
 /// <summary>
 /// Il lotto (carta F5, slice 2 e 3): da quando l'AOD ha detto l'ultima volta «visto in Aurora», i gesti salvati del sector,
 /// ognuno con dove guardarlo. Sta nei dati del Lab, un file per cartella del sector: sopravvive a un riavvio. Le voci
-/// salvate aspettano «Porta in Aurora»; portate, sono «da vedere» finché l'AOD non dice «visto».
+/// salvate aspettano «Porta in vetrina»; portate, sono «da vedere» finché l'AOD non dice «visto».
 /// </summary>
 public sealed class Lotto
 {
@@ -172,7 +172,7 @@ public sealed class Lotto
     }
 
     /// <summary>
-    /// Le registrazioni arrivate in vetrina con questo «Porta in Aurora» (slice 5): una voce per gesto, coi file della
+    /// Le registrazioni arrivate in vetrina con questo «Porta in vetrina» (slice 5): una voce per gesto, coi file della
     /// registrazione che la vetrina ha davvero cambiato (<paramref name="cambiati"/>). Una registrazione i cui file in
     /// vetrina erano già così (salvati qui e portati prima di registrarli) non torna; un gesto che il lotto ha già fra le
     /// voci portate adesso nemmeno. Torna quante voci ha aggiunto.
@@ -213,7 +213,7 @@ public sealed class Lotto
     public bool TogliLaNota(string id) => _note.RemoveAll(n => n.Id == id) > 0;
 
     /// <summary>
-    /// «Porta in Aurora»: le voci salvate sono in vetrina. <paramref name="cambiato"/>, se c'è, dice che in vetrina prima
+    /// «Porta in vetrina»: le voci salvate sono in vetrina. <paramref name="cambiato"/>, se c'è, dice che in vetrina prima
     /// c'era un altro sector o un altro ramo: allora va rivisto tutto, e lo dice una voce sola invece di fingere che sia
     /// una modifica piccola (carta F5, §4).
     /// </summary>

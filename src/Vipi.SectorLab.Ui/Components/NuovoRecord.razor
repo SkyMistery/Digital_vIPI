@@ -39,8 +39,8 @@
         }
         <button class="lab-tasto" @onclick="Aggiungi" disabled="@(PercheNo is not null)"
                 title="@(PercheNo ?? DoveVa)"
-                data-tasto="aggiungi-con-nome">Aggiungi</button>
-        <button class="lab-annulla" @onclick="() => _chiede = false" data-tasto="non-aggiungere">annulla</button>
+                data-tasto="aggiungi-con-nome">Scrivi</button>
+        <button class="lab-annulla" @onclick="() => _chiede = false" data-tasto="non-aggiungere">Lascia stare</button>
         @if (Lab.Rifiuto is { } rifiuto)
         {
             <span class="lab-errore" data-rifiuto-nuovo="1">@rifiuto</span>

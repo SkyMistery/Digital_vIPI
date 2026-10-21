@@ -3,7 +3,7 @@
 
 @*
     La vetrina di Aurora nella barra (carta F5, slice 1): che cosa c'è dentro (da quale sector, ramo, quando) e se Aurora
-    la legge come «secondo sector». Aperto, il riquadro ha «Porta in Aurora»: la SectorFiles del sector aperto in
+    la legge come «secondo sector». Aperto, il riquadro ha «Porta in vetrina»: la SectorFiles del sector aperto in
     vetrina, come specchio. Aurora non si tocca: dove guarda lo sceglie l'AOD, in Aurora, una volta.
     Il lotto (slice 2): i gesti salvati da «visto in Aurora», ognuno con dove guardarlo; il conto nella barra.
 *@
@@ -41,7 +41,7 @@
                 <p class="lab-nota" data-contenuto-vetrina>Dentro: <code>@dentro.Sorgente</code>@(dentro.Ramo is null ? "" : $" · {dentro.Ramo}")@(dentro.Commit is null ? "" : $" @ {dentro.Commit}"), portato il @Vipi.SectorLab.Core.Aurora.Vetrina.Ora(dentro.Quando).</p>
             }
             <button type="button" class="lab-tasto" data-tasto="porta-in-aurora" disabled="@(Lab.StaPortandoInAurora || Lab.Sessione is null)"
-                    title="La SectorFiles di questo sector in vetrina: poi una ricarica in Aurora" @onclick="Porta">Porta in Aurora</button>
+                    title="La SectorFiles di questo sector in vetrina: poi una ricarica in Aurora" @onclick="Porta">Porta in vetrina</button>
             <span class="lab-nota">questo sector: <code>@Lab.Sessione?.Cartella.Radice</code>@(Lab.Ramo?.Ramo is { } r ? $" · {r}" : "")</span>
             @if (Lab.UltimoPortaInAurora is { } esito)
             {
@@ -103,7 +103,7 @@
                 {
                     <p class="lab-avviso-breve">Il ramo <code>@prova.Ramo</code> si cancella e si torna a <code>@(Lab.BaseDelRamo ?? "?")</code>. Le risposte date restano.</p>
                     <button type="button" class="lab-tasto" data-tasto="butta-prova-sicuro" disabled="@Lab.StaCambiandoRamo" @onclick="Butta">Sì, butta la prova</button>
-                    <button type="button" class="lab-tasto lab-tasto-tenue" @onclick="() => _confermaButta = false">No</button>
+                    <button type="button" class="lab-tasto lab-tasto-tenue" @onclick="() => _confermaButta = false">Lascia stare</button>
                 }
                 else
                 {
@@ -131,7 +131,7 @@
             }
             @if (_rifiuto is not null && Lab.CartellaDellaVetrina is null)
             {
-                @* Con la vetrina il rifiuto si legge già sopra, sotto «Porta in Aurora». *@
+                @* Con la vetrina il rifiuto si legge già sopra, sotto «Porta in vetrina». *@
                 <p class="lab-avviso-breve" data-rifiuto-prova>@_rifiuto</p>
             }
             @if (Lab.Lotto is { EsitiDelleProve.Count: > 0 } conEsiti)

@@ -1889,7 +1889,7 @@ public sealed class SessioneDelLab
     }
 
     /// <summary>
-    /// «Applica» (D12): il testo scritto nel Testo diventa una modifica in sospeso del file, come le altre — diff, Annulla,
+    /// «Scrivi» (D12): il testo scritto nel Testo diventa una modifica in sospeso del file, come le altre — diff, Annulla,
     /// problemi nuovi, «Salva». Si cambiano solo le righe toccate (<see cref="Core.Testo.RigheCambiate"/>). Le righe dei
     /// metadati <c>//@</c> sono bloccate (D13): si cambiano solo con <paramref name="metadatiSbloccati"/>, e allora il file
     /// riletto deve avere i tag validi come prima.
@@ -1932,7 +1932,7 @@ public sealed class SessioneDelLab
         testo.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n');
 
     /// <summary>
-    /// I record coi metadati che il testo scritto non ha più (T2, D13): la pagina lo chiede prima di «Applica». Vuoto se
+    /// I record coi metadati che il testo scritto non ha più (T2, D13): la pagina lo chiede prima di «Scrivi». Vuoto se
     /// non ce ne sono.
     /// </summary>
     public IReadOnlyList<string> RecordConMetadatiTolti(string fileRelativo, string testo)
@@ -4222,14 +4222,14 @@ public sealed class SessioneDelLab
     /// <summary>Vero se Aurora legge la vetrina come secondo sector.</summary>
     public bool AuroraGuardaLaVetrina => CartellaDellaVetrina is { } v && Core.Aurora.Vetrina.AuroraGuarda(SecondoSectorDiAurora, v);
 
-    /// <summary>Com'è andato l'ultimo «Porta in Aurora».</summary>
+    /// <summary>Com'è andato l'ultimo «Porta in vetrina».</summary>
     public Core.Aurora.EsitoDellaVetrina? UltimoPortaInAurora { get; private set; }
 
     /// <summary>Sta copiando in vetrina.</summary>
     public bool StaPortandoInAurora { get; private set; }
 
     /// <summary>
-    /// «Porta in Aurora» (carta F5, slice 1): la <c>SectorFiles</c> del sector aperto in vetrina, come specchio. Le
+    /// «Porta in vetrina» (carta F5, slice 1): la <c>SectorFiles</c> del sector aperto in vetrina, come specchio. Le
     /// modifiche non salvate non ci vanno: si salva prima.
     /// </summary>
     public async Task<bool> PortaInAuroraAsync()

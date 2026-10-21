@@ -7,7 +7,7 @@ using Vipi.SectorLab.Ui.Servizi;
 namespace Vipi.SectorLab.Tests.Ui;
 
 /// <summary>
-/// Carta F5, slice 1: la vetrina nella barra — «Porta in Aurora» mette il sector aperto nella cartella che Aurora legge
+/// Carta F5, slice 1: la vetrina nella barra — «Porta in vetrina» (era «Porta in Aurora») mette il sector aperto nella cartella che Aurora legge
 /// come secondo sector; la barra dice cosa c'è dentro e se Aurora la guarda; i sector recenti a un clic. Le impostazioni
 /// di Aurora sono finte, nel temporaneo: il test non legge mai quelle del PC.
 /// </summary>

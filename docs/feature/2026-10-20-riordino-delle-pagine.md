@@ -667,6 +667,28 @@ La pagina Testo è finita (T1-T3).
   righe»), Righe; un'aerovia → Dati, Geometria, Procedura, Righe, e «Aerovie del file» nella colonna; una procedura di
   `lirf.str` → Dati, Geometria, Procedura, Righe; un segmento di `itgeo.geo` → Dati, Geometria, Righe.
 
+**I verbi (D6) fatti** (21 ottobre, «Vai, i verbi»). Prima il censimento dei tasti del Lab (tutti i `<button>` dei
+componenti), poi i nomi, contro il problema di §2 punto 7:
+- **Lascia stare** per scartare: «Lascia com'era» (riga a mano), «No, lasciale» (rinomina degli omonimi), «No, lascialo»
+  (il gemello), «Torna alle modifiche» (esito del salvataggio), «Resta qui» (cambia cartella), «No» (butta la prova),
+  «annulla» (nuovo record), «Scarta» (Testo).
+- **Annulla** solo per la storia e le modifiche: «Annulla il riporto» (`git merge --abort`) → «Lascia stare il riporto»;
+  l'«annulla» di una modifica → «Annulla», con la maiuscola come gli altri.
+- **Scrivi** per il tasto che conferma una scrittura nel sector: «Applica» del Testo, «Aggiungi» del nuovo record,
+  «+ Aggiungi» dell'aerovia (→ «+ Scrivi l'aerovia»), «Sostituisci i vertici» dopo l'incolla (→ «Scrivi i vertici»).
+  Nell'AIP «Salva la correzione» → «Scrivi la correzione»: «Salva» resta solo quello della barra, del sector.
+- **Togli** solo per il sector: «Togli» di una voce dell'AIP → «Togli dall'AIP espanso…»; quello delle note da Aurora →
+  «Archivia».
+- **Registra il sector** / **Manda il sector** (Consegna) e **Registra l'AIP** / **Manda l'AIP** (Lettura e consegna).
+- **Porta in vetrina** al posto di «Porta in Aurora» (anche nei testi che lo citano, e nei commenti del Core).
+- 🟡 Lettura dell'agente: «Scrivi per ogni gesto che cambia il sector» è il tasto che **conferma** (dopo un modulo, un
+  testo, un incolla); i gesti col loro nome (Porta nel sector, Sostituisci, Correggi l'uso, Nascondi, Togli questo
+  record) restano: dicono che cosa fanno. I `data-tasto` non cambiano (D7).
+- `VocabolarioDeiTastiTests`: una guardia che legge i componenti del Lab e fallisce se un tasto torna a un nome di prima
+  (provata rimettendo «Lascia com'era»: la trova). In `THIRD-PARTY-NOTICES.md` la voce di CodeMirror, che mancava dalla T1.
+- Test: Lab 1 357 (+1, la guardia; due test del Testo aggiornati ai nomi nuovi). Sul banco: «Registra il sector» nella
+  Consegna, «Registra l'AIP» e «Manda l'AIP» nella pagina dell'AIP.
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
@@ -678,6 +700,7 @@ correzioni). Il piano di §5-ter è finito. Poi la **pagina Testo**: T1 fatta (l
 bloccati), T2 fatta (problemi sul margine, nomi, Ctrl+clic, la domanda prima di cancellare un record coi metadati),
 T3 fatta (i legami con la Scheda, la mappa e il Confronti; la bozza): la pagina Testo è finita. Poi la **Scheda per
 gruppi** (D5): prima parte fatta (i gruppi, i gesti sul file nella colonna); seconda parte da fare (un editor dei vertici
-per i `.geo`, la voce AIP nei Collegamenti). Restano, al via del committente: le due consegne, i verbi. Dopo: le due
+per i `.geo`, la voce AIP nei Collegamenti). Poi i **verbi** (D6): fatti. Restano, al via del committente: le due
+consegne e la seconda parte della Scheda. Dopo: le due
 consegne, la Scheda per gruppi, i verbi. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

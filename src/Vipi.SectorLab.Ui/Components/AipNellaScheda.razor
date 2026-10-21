@@ -37,7 +37,7 @@
                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="correggi-area" @onclick="() => Apri(Gesto.Correggi)"
                             title="Corregge la voce nell'AIP espanso: un errore dell'AIP, o un dato da un'altra fonte">Correggi</button>
                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="togli-area" @onclick="() => Apri(Gesto.Togli)"
-                            title="Toglie la voce dall'AIP espanso, con una correzione">Togli</button>
+                            title="Toglie la voce dall'AIP espanso, con una correzione">Togli dall'AIP espanso…</button>
                     @if (Correzione is { } attiva)
                     {
                         <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="ritira-correzione" disabled="@Lab.StaCorreggendoLAip"

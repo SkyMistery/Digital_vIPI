@@ -38,7 +38,7 @@
             <div class="lab-azioni">
                 <button class="lab-tasto" @onclick="() => Lab.SalvaAsync(confermato: true)" disabled="@Lab.StaSalvando"
                         title="@(Lab.StaSalvando ? "Salvataggio in corso" : null)" data-tasto="salva-lo-stesso">Salva lo stesso</button>
-                <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.ChiudiIlSalvataggio" data-tasto="torna">Torna alle modifiche</button>
+                <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.ChiudiIlSalvataggio" data-tasto="torna">Lascia stare</button>
             </div>
             break;
 

@@ -126,7 +126,7 @@ public sealed class ChiLoUsaAschermoTests : IDisposable
 
         pagina.Find("[data-rinomina-omonimi='no']").Click();
 
-        // «No, lasciale»: il VOR cambia nome, la riga dell'aerovia resta all'NDB.
+        // «Lascia stare» (era «No, lasciale»): il VOR cambia nome, la riga dell'aerovia resta all'NDB.
         Assert.Equal(["TRX;108.80;N037.53.45.500;E012.30.47.500;;;;"], _lab.RigheDiAdesso(Vor));
         Assert.Equal(["T;L869;TRP;TRP;"], _lab.RigheDiAdesso(Aerovia));
         Assert.Null(_lab.DaDecidere);

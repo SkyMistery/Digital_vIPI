@@ -4,7 +4,7 @@
 
 @*
     La pagina Testo dello spazio Sector (riordino, D12, D13, D21): l'albero dei file e, accanto, il file com'è adesso —
-    modifiche dei gesti comprese — in un editor (CodeMirror 6, sectorlab-testo.js, niente rete). «Applica» fa di quel che
+    modifiche dei gesti comprese — in un editor (CodeMirror 6, sectorlab-testo.js, niente rete). «Scrivi» fa di quel che
     l'AOD ha scritto una modifica in sospeso come le altre (diff, Annulla, problemi nuovi, «Salva»). Le righe dei metadati
     //@ sono bloccate; si sbloccano con la casella, e allora il file riletto deve avere i tag validi come prima.
     T2: i problemi del validatore sul margine dell'editor, i nomi del catalogo mentre si scrive, Ctrl+clic su un nome per
@@ -55,10 +55,10 @@
                         <span>Sblocca i metadati</span>
                     </label>
                     <button type="button" class="lab-tasto" data-tasto="applica-testo" disabled="@(!_sporco || _cambiatoFuori)"
-                            title="@(_cambiatoFuori ? "Il file è cambiato fuori dal Testo (un gesto, Annulla): «Scarta» per riprenderlo com'è adesso" : _sporco ? "Quel che hai scritto diventa una modifica in sospeso del file: nel diff, da annullare, da salvare come le altre" : "Non hai scritto niente")"
-                            @onclick="() => Applica()">Applica</button>
+                            title="@(_cambiatoFuori ? "Il file è cambiato fuori dal Testo (un gesto, Annulla): «Lascia stare» per riprenderlo com'è adesso" : _sporco ? "Quel che hai scritto diventa una modifica in sospeso del file: nel diff, da annullare, da salvare come le altre" : "Non hai scritto niente")"
+                            @onclick="() => Applica()">Scrivi</button>
                     <button type="button" class="lab-annulla" data-tasto="scarta-testo" disabled="@(!_sporco && !_cambiatoFuori)"
-                            title="Torna al file com'è adesso, senza quel che hai scritto" @onclick="Scarta">Scarta</button>
+                            title="Torna al file com'è adesso, senza quel che hai scritto" @onclick="Scarta">Lascia stare</button>
                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="testo-sulla-mappa"
                             title="Il record della riga del cursore, scelto sulla mappa del sector" @onclick="SullaMappa">Sulla mappa</button>
                 }
@@ -77,7 +77,7 @@
             @if (_cambiatoFuori)
             {
                 <p class="lab-avviso-breve" data-cambiato-fuori>Il file è cambiato fuori dal Testo (un gesto, Annulla). Quel che hai scritto qui non c'è
-                    dentro: «Scarta» per riprenderlo com'è adesso.</p>
+                    dentro: «Lascia stare» per riprenderlo com'è adesso.</p>
             }
             @if (_messaggio is not null)
             {
@@ -192,7 +192,7 @@
             return;
         if (_sporco)
         {
-            _messaggio = "Prima «Applica» o «Scarta»: le righe del file non sono ancora quelle che hai scritto.";
+            _messaggio = "Prima «Scrivi» o «Lascia stare»: le righe del file non sono ancora quelle che hai scritto.";
             return;
         }
         if (await Js.InvokeAsync<int?>("sectorlabTesto.riga", IdDellEditore) is not { } riga)
@@ -207,7 +207,7 @@
     {
         if (!_sporco)
             return true;
-        _messaggio = "Hai scritto senza applicare: prima «Applica» o «Scarta», se no quel testo si perde.";
+        _messaggio = "Hai scritto senza applicare: prima «Scrivi» o «Lascia stare», se no quel testo si perde.";
         return false;
     }
 
@@ -305,7 +305,7 @@
 
     private Task Scarta() => Ricarica(string.Join("\n", Lab.TestoDelFile(Lab.FileDelTesto!, out _, out _) ?? []));
 
-    // Il testo di riferimento diventa quello del file com'è adesso (dopo «Applica», «Scarta», o un gesto).
+    // Il testo di riferimento diventa quello del file com'è adesso (dopo «Scrivi», «Lascia stare», o un gesto).
     private async Task Ricarica(string adesso)
     {
         _testoCaricato = adesso;

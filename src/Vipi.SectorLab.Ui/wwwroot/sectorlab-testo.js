@@ -1,5 +1,5 @@
 // La pagina Testo del Sector Lab (riordino, D12, D13): l'editor di un file del sector, CodeMirror 6 dal pacchetto in
-// vendor/codemirror (window.CM, niente rete). Il testo lo dà il server; «Applica» glielo rimanda e diventa una modifica
+// vendor/codemirror (window.CM, niente rete). Il testo lo dà il server; «Scrivi» glielo rimanda e diventa una modifica
 // in sospeso come le altre. Le righe dei metadati (//@, //@@) sono bloccate finché l'AOD non le sblocca: una modifica
 // che le cambia, le toglie o ne aggiunge una non passa. T2: i problemi del validatore sul margine, i nomi del catalogo
 // mentre si scrive (Ctrl+Spazio per chiederli), Ctrl+clic su un nome per andare dove è dichiarato.
@@ -163,10 +163,10 @@
         if (e) { e.view.destroy(); editori.delete(id); }
     }
 
-    // Il testo di adesso, per «Applica».
+    // Il testo di adesso, per «Scrivi».
     const testo = id => editori.get(id)?.view.state.doc.toString() ?? null;
 
-    // Dopo «Applica» (o «Scarta») il testo nuovo è quello di riferimento.
+    // Dopo «Scrivi» (o «Lascia stare») il testo nuovo è quello di riferimento.
     function ricarica(id, nuovo) {
         const e = editori.get(id);
         if (!e) return;

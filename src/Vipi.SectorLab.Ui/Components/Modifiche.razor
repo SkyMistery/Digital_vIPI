@@ -44,7 +44,7 @@
                         <span class="lab-etichetta">@(modifica.Etichetta is { Length: > 0 } e ? e : modifica.Record < 0 ? "il file" : $"record {modifica.Record}")</span>
                         <span class="lab-nota">@modifica.Descrizione@(copie.Count > 0 ? ", anche in " + string.Join(", ", copie.Select(NomeDelFile)) : "")</span>
                         @* Sulla riga di una copia gemella, «annulla» toglie la voce intera: la copia va con la sua principale. *@
-                        <button class="lab-annulla" @onclick="() => Lab.AnnullaModifica(modifica)" data-annulla="@modifica.Campo">annulla</button>
+                        <button class="lab-annulla" @onclick="() => Lab.AnnullaModifica(modifica)" data-annulla="@modifica.Campo">Annulla</button>
                     </div>
                     @if (modifica is ModificaDiCampo { NonToccate.Count: > 0 } campo)
                     {

@@ -29,7 +29,7 @@
                 @domanda.Righe righe valgono anche per @domanda.AncheA (stesso nome): le rinomino?
             </p>
             <button class="lab-tasto" data-rinomina-omonimi="si" @onclick="() => Rinomina(attesa.Vecchio, attesa.Nuovo, true)">Sì, anche quelle</button>
-            <button class="lab-tasto lab-tasto-tenue" data-rinomina-omonimi="no" @onclick="() => Rinomina(attesa.Vecchio, attesa.Nuovo, false)">No, lasciale</button>
+            <button class="lab-tasto lab-tasto-tenue" data-rinomina-omonimi="no" @onclick="() => Rinomina(attesa.Vecchio, attesa.Nuovo, false)">Lascia stare</button>
         }
     </div>
     @if (Lab.DaCambiareAMano.Count > 0)
