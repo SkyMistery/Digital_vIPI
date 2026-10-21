@@ -40,7 +40,8 @@ public sealed class PrimoAvvioTests : IDisposable
         // Aprire un sector (da --cartella) non fa l'ambiente: lo fa solo «Prepara tutto».
         Assert.True(await primo.ApriAsync(_albero.Radice));
         primo.Chiudi();
-        Assert.NotEmpty(pagina.FindAll("[data-primo-avvio]"));
+        // Il ridisegno dopo Chiudi arriva da Cambiata, con InvokeAsync: sul runner della CI non è ancora lì (21 ottobre).
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-primo-avvio]")));
 
         Directory.CreateDirectory(lavoro);
         File.WriteAllText(Path.Combine(Dati, "cartella-di-lavoro.txt"), lavoro);
