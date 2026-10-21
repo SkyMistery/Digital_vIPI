@@ -52,9 +52,18 @@
             }
         </header>
 
+        @* D5: il rifiuto di un gesto del record, sotto i suoi tasti (prima stava a metà della Scheda). *@
+        @if (Lab.Rifiuto is { } rifiuto)
+        {
+            <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
+        }
+
         @* Carta F5, slice 3: i ❌ visti in Aurora su questo record, finché l'AOD non li toglie. *@
         <NoteDaAurora File="@scheda.File" Record="scheda.Indice" />
 
+        @* D5 (riordino): la Scheda per gruppi fissi, sempre nello stesso ordine; un gruppo vuoto non si vede (CSS). *@
+        <section class="lab-gruppo-scheda" data-gruppo="dati">
+        <h3 class="lab-gruppo-titolo">Dati</h3>
         @* Le sezioni si chiudono col clic sul titolo (committente, 24 settembre): Sezione.razor. *@
         <Sezione Chiave="scheda-campi">
         <Titolo>Campi <span class="lab-nota">@scheda.Campi.Count</span></Titolo>
@@ -80,39 +89,6 @@
         </table>
         </ChildContent>
         </Sezione>
-
-        @* Slice 12b (R2, R2b): gli slot dello stand spiegati, e tipo e slot proposti dai metadati. *@
-        <StandNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 12c (I3): a che posto si disegna un riempimento, e cosa ha sopra. *@
-        <OrdineDiDisegnoNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 6b: la voce della selezione di Aurora, e il nome delle parti dal commento sopra (H3). *@
-        <VoceNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 10c (L1, U1): l'attesa in rotta del fix, VOR o NDB, e la sua definizione. *@
-        <AttesaNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 7: dove il punto è citato per nome (L2). *@
-        <ChiLoUsaNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 8: la stessa forma in altri record (D5, I2): il confine del settore, l'ATZ del MAPS, il bordo e l'erba. *@
-        <StessaFormaNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 13e (J5): dove va il confine di un settore dinamico, e quale voce è. *@
-        <ConfineNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 8e (F2): il gemello del punto .vfi nel file dei fix nascosti, e viceversa. *@
-        <GemelloNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 18 (W1-W3): il modello di un ATIS o di un D-ATIS — com'è fatto, l'anteprima, «Ascolta», il modello accanto. *@
-        <ModelloAtisNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 17c (T1): un simbolo del .sym — la griglia a pixel e l'anteprima sullo sfondo del radar. *@
-        <SimboloNellaScheda File="@scheda.File" Record="scheda.Indice" />
-
-        @* Slice 9e (Q2c): STAR → attesa → avvicinamento → mancato avvicinamento, sulla stessa pista. *@
-        <LegamiNellaScheda File="@scheda.File" Record="scheda.Indice" />
 
         @* Slice 3d: i metadati di §M del record, le chiavi del catalogo del suo tipo di file. Si scrivono nel tag
            //@"NOME" sopra il record; un valore vuoto toglie la chiave. *@
@@ -219,158 +195,21 @@
             </Sezione>
         }
 
-        @* Slice 9d (Q2, P11): i vincoli dei punti della procedura, nel tag //@@ sopra il punto — mai a schermo in Aurora. *@
-        @if (Lab.PuntiDellaProceduraDi(scheda.File, scheda.Indice) is { Count: > 0 } punti)
-        {
-            <Sezione Chiave="scheda-punti" data-punti-con-tag="@punti.Count">
-            <Titolo>Vincoli dei punti <span class="lab-nota">@punti.Count(p => p.Chiavi.Count > 0) di @punti.Count · mai in Aurora</span></Titolo>
-            <ChildContent>
-            <table class="lab-campi lab-vincoli">
-                <thead>
-                    <tr><th>Punto</th><th title="IAF, IF, FAF, MAPt">Ruolo</th><th title="+FL80 a o sopra · -5000 a o sotto · =4000 a · 4000/6000 fra">Quota</th><th title="-210 al più · +180 almeno · =230">Velocità</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var punto in punti)
-                    {
-                        int ordinale = punto.Ordinale;
-                        string? ruolo = Valore(punto, "role");
-                        <tr data-punto-con-tag="@ordinale" title="@Vincoli(punto)">
-                            <th>@(ordinale + 1). @punto.Punto</th>
-                            <td>
-                                <select class="lab-campo" value="@ruolo" data-scrivi-punto="@($"{ordinale}.role")"
-                                        @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, RuoloChiave, e.Value?.ToString())">
-                                    <option value="">—</option>
-                                    @foreach (string scelta in ValoriDeiMetadati.Scelte[RuoloChiave])
-                                    {
-                                        <option value="@scelta">@scelta</option>
-                                    }
-                                    @if (ruolo is not null && !ValoriDeiMetadati.Scelte[RuoloChiave].Contains(ruolo))
-                                    {
-                                        <option value="@ruolo">@ruolo — non è nell'elenco</option>
-                                    }
-                                </select>
-                            </td>
-                            <td>
-                                <input class="lab-campo" value="@Valore(punto, "alt")" placeholder="+FL80" data-scrivi-punto="@($"{ordinale}.alt")"
-                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, QuotaChiave, e.Value?.ToString())" />
-                            </td>
-                            <td>
-                                <input class="lab-campo" value="@Valore(punto, "spd")" placeholder="-210" data-scrivi-punto="@($"{ordinale}.spd")"
-                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, VelocitaChiave, e.Value?.ToString())" />
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            </ChildContent>
-            </Sezione>
-        }
+        @* Slice 6b: la voce della selezione di Aurora, e il nome delle parti dal commento sopra (H3). *@
+        <VoceNellaScheda File="@scheda.File" Record="scheda.Indice" />
 
-        @* Slice 14c (B2): i tratti di un'aerovia, ognuno col suo verso e le sue quote come nel PDF — nel tag //@@ del punto
-           che apre il tratto, mai a schermo in Aurora. Slice 16d (F8, S6): lo stesso per una rotta VFR. *@
-        @if (Lab.TrattiDellAeroviaDi(scheda.File, scheda.Indice) is { Count: > 0 } tratti)
-        {
-            <Sezione Chiave="scheda-tratti" data-tratti="@tratti.Count">
-            <Titolo>Tratti <span class="lab-nota">@tratti.Count(t => t.ConDati) di @tratti.Count con verso o quote · mai in Aurora</span></Titolo>
-            <ChildContent>
-            <table class="lab-campi lab-vincoli">
-                <thead>
-                    <tr>
-                        <th>Tratto</th>
-                        <th title="Rispetto all'ordine dei punti nel file">Verso</th>
-                        <th title="Come nell'AIP: SFC, GND, 1500ft, FL95">Minima</th>
-                        <th title="Come nell'AIP: UNL, 2000ft, FL195">Massima</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var tratto in tratti)
-                    {
-                        int ordinale = tratto.Ordinale;
-                        <tr data-tratto="@ordinale">
-                            <th>@tratto.Da → @tratto.A</th>
-                            <td>
-                                <select class="lab-campo" value="@tratto.Verso" data-scrivi-tratto="@($"{ordinale}.dir")"
-                                        @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, TrattiDelleAerovie.Verso, e.Value?.ToString())">
-                                    <option value="">—</option>
-                                    @foreach (var verso in TrattiDelleAerovie.Versi)
-                                    {
-                                        <option value="@verso.Valore">@verso.Segno @verso.Significato</option>
-                                    }
-                                    @if (VersoFuoriElenco(tratto.Verso))
-                                    {
-                                        <option value="@tratto.Verso">@tratto.Verso — non è nell'elenco</option>
-                                    }
-                                </select>
-                            </td>
-                            <td>
-                                <input class="lab-campo" value="@tratto.Inferiore" placeholder="FL95" data-scrivi-tratto="@($"{ordinale}.lower")"
-                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, TrattiDelleAerovie.Inferiore, e.Value?.ToString())" />
-                            </td>
-                            <td>
-                                <input class="lab-campo" value="@tratto.Superiore" placeholder="FL195" data-scrivi-tratto="@($"{ordinale}.upper")"
-                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, TrattiDelleAerovie.Superiore, e.Value?.ToString())" />
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            </ChildContent>
-            </Sezione>
-        }
+        @* Slice 12b (R2, R2b): gli slot dello stand spiegati, e tipo e slot proposti dai metadati. *@
+        <StandNellaScheda File="@scheda.File" Record="scheda.Indice" />
 
-        @* Slice 14d-14f (B4, B14, B15): le etichette calcolate, aggiungere e togliere un'aerovia. *@
-        <AerovieNellaScheda File="@scheda.File" Record="scheda.Indice" />
+        @* Slice 18 (W1-W3): il modello di un ATIS o di un D-ATIS — com'è fatto, l'anteprima, «Ascolta», il modello accanto. *@
+        <ModelloAtisNellaScheda File="@scheda.File" Record="scheda.Indice" />
 
-        @if (Lab.Rifiuto is { } rifiuto)
-        {
-            <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
-        }
+        @* Slice 17c (T1): un simbolo del .sym — la griglia a pixel e l'anteprima sullo sfondo del radar. *@
+        <SimboloNellaScheda File="@scheda.File" Record="scheda.Indice" />
+        </section>
 
-        @* F3-bis slice 5: una mappa MAPS di un .str può essere composta dalle procedure dello stesso file. Spuntare
-           riscrive il tag //@ e rigenera la mappa; la prima volta il Lab sceglie da solo se disegnarle intere. *@
-        @if (Lab.CompostaDi(scheda.File, scheda.Indice) is { } composta)
-        {
-            <Sezione Chiave="scheda-composta" data-composta="@composta.Elenco.Count">
-            <Titolo>Composta da <span class="lab-nota">@composta.Elenco.Count</span></Titolo>
-            <ChildContent>
-            <div class="lab-composta">
-                @if (composta.Caselle.Count == 0)
-                {
-                    <p class="lab-nota">In questo file non ci sono procedure da raccogliere.</p>
-                }
-                @if (composta.Elenco.Count == 0 && composta.DaQuelloCheDisegna.Count > 0)
-                {
-                    @* Un aggregato fatto a mano diventa composto così com'è: l'elenco e la forma li ricava il Lab. *@
-                    <button class="lab-tasto lab-tasto-tenue lab-adotta" data-tasto="adotta"
-                            title="@string.Join(", ", composta.DaQuelloCheDisegna.Select(v => (v.Pista is null ? "" : v.Pista + ":") + v.Nome))"
-                            @onclick="() => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.DaQuelloCheDisegna)">
-                        Composta da quello che disegna oggi (@composta.DaQuelloCheDisegna.Count)
-                    </button>
-                }
-                @foreach (var casella in composta.Caselle)
-                {
-                    <label class="lab-casella" title="@(casella.Elencabile ? null : "Il nome è vuoto o ha le virgolette dentro: non può stare nell'elenco")">
-                        <input type="checkbox" checked="@casella.Scelta" data-procedura="@casella.Testo" disabled="@(!casella.Elencabile)"
-                               @onchange="e => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.Con(casella, e.Value is true))" />
-                        @casella.Testo <span class="lab-nota">@casella.Piste @(casella.Tipo == "STAR" ? "" : "· " + casella.Tipo)</span>
-                    </label>
-                }
-                @if (composta.Elenco.Count > 0)
-                {
-                    <label class="lab-casella lab-intere" title="Ogni procedura intera, anche dove ripassa su un tratto già disegnato">
-                        <input type="checkbox" checked="@composta.Intere" data-intere="si"
-                               @onchange="e => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.Elenco, e.Value is true)" />
-                        procedure intere
-                    </label>
-                }
-            </div>
-            </ChildContent>
-            </Sezione>
-        }
-
-        @* Slice 5d: un segmento .geo si vede nella sua linea (G1). *@
-        <LineaDelGeoVista File="@scheda.File" Record="scheda.Indice" />
-
+        <section class="lab-gruppo-scheda" data-gruppo="geometria">
+        <h3 class="lab-gruppo-titolo">Geometria</h3>
         @* Una forma semplice ha un elenco solo; una zona a più tratti ne ha uno per tratto (slice 7-bis). *@
         @* Slice 5a: un elenco vuoto accanto a uno pieno è l'altra forma del record (le righe L di un'aerovia fatta di
            righe T): non si mostra. Un record con gli elenchi tutti vuoti li mostra, per poterli incollare. *@
@@ -486,6 +325,180 @@
             </Sezione>
         }
 
+        @* Slice 12c (I3): a che posto si disegna un riempimento, e cosa ha sopra. *@
+        <OrdineDiDisegnoNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
+        @* Slice 5d: un segmento .geo si vede nella sua linea (G1). *@
+        <LineaDelGeoVista File="@scheda.File" Record="scheda.Indice" />
+        </section>
+
+        <section class="lab-gruppo-scheda" data-gruppo="procedura">
+        <h3 class="lab-gruppo-titolo">Procedura</h3>
+        @* Slice 9d (Q2, P11): i vincoli dei punti della procedura, nel tag //@@ sopra il punto — mai a schermo in Aurora. *@
+        @if (Lab.PuntiDellaProceduraDi(scheda.File, scheda.Indice) is { Count: > 0 } punti)
+        {
+            <Sezione Chiave="scheda-punti" data-punti-con-tag="@punti.Count">
+            <Titolo>Vincoli dei punti <span class="lab-nota">@punti.Count(p => p.Chiavi.Count > 0) di @punti.Count · mai in Aurora</span></Titolo>
+            <ChildContent>
+            <table class="lab-campi lab-vincoli">
+                <thead>
+                    <tr><th>Punto</th><th title="IAF, IF, FAF, MAPt">Ruolo</th><th title="+FL80 a o sopra · -5000 a o sotto · =4000 a · 4000/6000 fra">Quota</th><th title="-210 al più · +180 almeno · =230">Velocità</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var punto in punti)
+                    {
+                        int ordinale = punto.Ordinale;
+                        string? ruolo = Valore(punto, "role");
+                        <tr data-punto-con-tag="@ordinale" title="@Vincoli(punto)">
+                            <th>@(ordinale + 1). @punto.Punto</th>
+                            <td>
+                                <select class="lab-campo" value="@ruolo" data-scrivi-punto="@($"{ordinale}.role")"
+                                        @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, RuoloChiave, e.Value?.ToString())">
+                                    <option value="">—</option>
+                                    @foreach (string scelta in ValoriDeiMetadati.Scelte[RuoloChiave])
+                                    {
+                                        <option value="@scelta">@scelta</option>
+                                    }
+                                    @if (ruolo is not null && !ValoriDeiMetadati.Scelte[RuoloChiave].Contains(ruolo))
+                                    {
+                                        <option value="@ruolo">@ruolo — non è nell'elenco</option>
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                <input class="lab-campo" value="@Valore(punto, "alt")" placeholder="+FL80" data-scrivi-punto="@($"{ordinale}.alt")"
+                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, QuotaChiave, e.Value?.ToString())" />
+                            </td>
+                            <td>
+                                <input class="lab-campo" value="@Valore(punto, "spd")" placeholder="-210" data-scrivi-punto="@($"{ordinale}.spd")"
+                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, VelocitaChiave, e.Value?.ToString())" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </ChildContent>
+            </Sezione>
+        }
+
+        @* Slice 14c (B2): i tratti di un'aerovia, ognuno col suo verso e le sue quote come nel PDF — nel tag //@@ del punto
+           che apre il tratto, mai a schermo in Aurora. Slice 16d (F8, S6): lo stesso per una rotta VFR. *@
+        @if (Lab.TrattiDellAeroviaDi(scheda.File, scheda.Indice) is { Count: > 0 } tratti)
+        {
+            <Sezione Chiave="scheda-tratti" data-tratti="@tratti.Count">
+            <Titolo>Tratti <span class="lab-nota">@tratti.Count(t => t.ConDati) di @tratti.Count con verso o quote · mai in Aurora</span></Titolo>
+            <ChildContent>
+            <table class="lab-campi lab-vincoli">
+                <thead>
+                    <tr>
+                        <th>Tratto</th>
+                        <th title="Rispetto all'ordine dei punti nel file">Verso</th>
+                        <th title="Come nell'AIP: SFC, GND, 1500ft, FL95">Minima</th>
+                        <th title="Come nell'AIP: UNL, 2000ft, FL195">Massima</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tratto in tratti)
+                    {
+                        int ordinale = tratto.Ordinale;
+                        <tr data-tratto="@ordinale">
+                            <th>@tratto.Da → @tratto.A</th>
+                            <td>
+                                <select class="lab-campo" value="@tratto.Verso" data-scrivi-tratto="@($"{ordinale}.dir")"
+                                        @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, TrattiDelleAerovie.Verso, e.Value?.ToString())">
+                                    <option value="">—</option>
+                                    @foreach (var verso in TrattiDelleAerovie.Versi)
+                                    {
+                                        <option value="@verso.Valore">@verso.Segno @verso.Significato</option>
+                                    }
+                                    @if (VersoFuoriElenco(tratto.Verso))
+                                    {
+                                        <option value="@tratto.Verso">@tratto.Verso — non è nell'elenco</option>
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                <input class="lab-campo" value="@tratto.Inferiore" placeholder="FL95" data-scrivi-tratto="@($"{ordinale}.lower")"
+                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, TrattiDelleAerovie.Inferiore, e.Value?.ToString())" />
+                            </td>
+                            <td>
+                                <input class="lab-campo" value="@tratto.Superiore" placeholder="FL195" data-scrivi-tratto="@($"{ordinale}.upper")"
+                                       @onchange="e => Lab.CambiaIlTagDelPunto(scheda.File, scheda.Indice, ordinale, TrattiDelleAerovie.Superiore, e.Value?.ToString())" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </ChildContent>
+            </Sezione>
+        }
+
+        @* Slice 9e (Q2c): STAR → attesa → avvicinamento → mancato avvicinamento, sulla stessa pista. *@
+        <LegamiNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
+        @* F3-bis slice 5: una mappa MAPS di un .str può essere composta dalle procedure dello stesso file. Spuntare
+           riscrive il tag //@ e rigenera la mappa; la prima volta il Lab sceglie da solo se disegnarle intere. *@
+        @if (Lab.CompostaDi(scheda.File, scheda.Indice) is { } composta)
+        {
+            <Sezione Chiave="scheda-composta" data-composta="@composta.Elenco.Count">
+            <Titolo>Composta da <span class="lab-nota">@composta.Elenco.Count</span></Titolo>
+            <ChildContent>
+            <div class="lab-composta">
+                @if (composta.Caselle.Count == 0)
+                {
+                    <p class="lab-nota">In questo file non ci sono procedure da raccogliere.</p>
+                }
+                @if (composta.Elenco.Count == 0 && composta.DaQuelloCheDisegna.Count > 0)
+                {
+                    @* Un aggregato fatto a mano diventa composto così com'è: l'elenco e la forma li ricava il Lab. *@
+                    <button class="lab-tasto lab-tasto-tenue lab-adotta" data-tasto="adotta"
+                            title="@string.Join(", ", composta.DaQuelloCheDisegna.Select(v => (v.Pista is null ? "" : v.Pista + ":") + v.Nome))"
+                            @onclick="() => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.DaQuelloCheDisegna)">
+                        Composta da quello che disegna oggi (@composta.DaQuelloCheDisegna.Count)
+                    </button>
+                }
+                @foreach (var casella in composta.Caselle)
+                {
+                    <label class="lab-casella" title="@(casella.Elencabile ? null : "Il nome è vuoto o ha le virgolette dentro: non può stare nell'elenco")">
+                        <input type="checkbox" checked="@casella.Scelta" data-procedura="@casella.Testo" disabled="@(!casella.Elencabile)"
+                               @onchange="e => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.Con(casella, e.Value is true))" />
+                        @casella.Testo <span class="lab-nota">@casella.Piste @(casella.Tipo == "STAR" ? "" : "· " + casella.Tipo)</span>
+                    </label>
+                }
+                @if (composta.Elenco.Count > 0)
+                {
+                    <label class="lab-casella lab-intere" title="Ogni procedura intera, anche dove ripassa su un tratto già disegnato">
+                        <input type="checkbox" checked="@composta.Intere" data-intere="si"
+                               @onchange="e => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.Elenco, e.Value is true)" />
+                        procedure intere
+                    </label>
+                }
+            </div>
+            </ChildContent>
+            </Sezione>
+        }
+        </section>
+
+        <section class="lab-gruppo-scheda" data-gruppo="collegamenti">
+        <h3 class="lab-gruppo-titolo">Collegamenti</h3>
+        @* Slice 7: dove il punto è citato per nome (L2). *@
+        <ChiLoUsaNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
+        @* Slice 8: la stessa forma in altri record (D5, I2): il confine del settore, l'ATZ del MAPS, il bordo e l'erba. *@
+        <StessaFormaNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
+        @* Slice 8e (F2): il gemello del punto .vfi nel file dei fix nascosti, e viceversa. *@
+        <GemelloNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
+        @* Slice 13e (J5): dove va il confine di un settore dinamico, e quale voce è. *@
+        <ConfineNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
+        @* Slice 10c (L1, U1): l'attesa in rotta del fix, VOR o NDB, e la sua definizione. *@
+        <AttesaNellaScheda File="@scheda.File" Record="scheda.Indice" />
+        </section>
+
+        <section class="lab-gruppo-scheda" data-gruppo="righe">
+        <h3 class="lab-gruppo-titolo">Righe del file</h3>
         <Sezione Chiave="scheda-righe">
         <Titolo>Righe del file</Titolo>
         <ChildContent>
@@ -495,6 +508,7 @@
                     Segnata="@(riga => Segnalata(scheda.File, riga.Numero))" />
         </ChildContent>
         </Sezione>
+        </section>
     </div>
 }
 else if (Lab.RigaSegnalata is { } segnata)

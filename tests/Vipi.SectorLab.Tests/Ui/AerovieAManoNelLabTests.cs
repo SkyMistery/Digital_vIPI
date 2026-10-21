@@ -140,12 +140,36 @@ public sealed class AerovieAManoNelLabTests : IDisposable
     }
 
     [Fact]
-    public async Task ITreGestiStannoNellaSchedaDiUnAerovia()
+    public async Task LaScheda_PerGruppiFissi_EIlRifiutoSottoITasti()
+    {
+        // D5 (riordino): sempre gli stessi gruppi, nello stesso ordine; il rifiuto di un gesto subito sotto i tasti.
+        await Apri();
+        _lab.Scegli(Aerovie, 0);
+        var scheda = _contesto.RenderComponent<Vipi.SectorLab.Ui.Components.Scheda>();
+
+        Assert.Equal(["dati", "geometria", "procedura", "collegamenti", "righe"],
+            scheda.FindAll("[data-gruppo]").Select(g => g.GetAttribute("data-gruppo")));
+        Assert.NotNull(scheda.Find("[data-gruppo='dati'] [data-campo-record]"));
+        Assert.NotNull(scheda.Find("[data-gruppo='procedura'] [data-tratti]"));
+        Assert.NotNull(scheda.Find("[data-gruppo='righe'] .lab-riga-del-record"));
+
+        await scheda.InvokeAsync(() => _lab.TogliLAerovia(Aerovie, "ZZ9"));
+        scheda.Render();
+        var figli = scheda.Find("[data-ispettore]").Children.ToList();
+        int rifiuto = figli.FindIndex(e => e.HasAttribute("data-rifiuto"));
+        Assert.InRange(rifiuto, 1, figli.FindIndex(e => e.HasAttribute("data-gruppo")) - 1);
+    }
+
+    [Fact]
+    public async Task ITreGestiStannoNelPannelloDelFile_NonNellaScheda()
     {
         await Apri();
         var pagina = _contesto.RenderComponent<Home>();
         await pagina.InvokeAsync(() => _lab.Scegli(Aerovie, 0));
 
+        // D5 (riordino): sono gesti sul file, nel pannello del file della colonna; la Scheda del record non li ha.
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-file-aperto] [data-aerovie]")));
+        Assert.Empty(pagina.FindAll("[data-ispettore] [data-aerovie]"));
         pagina.WaitForAssertion(() => Assert.Equal("2+0+0", pagina.Find("[data-piano-etichette]").GetAttribute("data-piano-etichette")));
         Assert.Equal("ZZ1", pagina.Find("[data-togli-aerovia]").GetAttribute("data-togli-aerovia"));
         pagina.Find("[data-sistema-etichette]").Click();

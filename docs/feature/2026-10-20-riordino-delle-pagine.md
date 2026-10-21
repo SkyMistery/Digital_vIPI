@@ -649,6 +649,24 @@ nel Testo», dal Testo alla mappa, dall'anteprima del Confronti al file).
 
 La pagina Testo è finita (T1-T3).
 
+**La Scheda per gruppi (D5), prima parte fatta** (21 ottobre, «Vai con la scheda per gruppi»).
+- La Scheda di un record ha ora **gruppi fissi, sempre nello stesso ordine**, con un titolo ciascuno: in testa i tasti del
+  record e, subito sotto, il rifiuto di un gesto (prima stava a metà della Scheda, dopo le aerovie) e le note da Aurora;
+  poi **Dati** (Campi, Metadati, la voce e il nome delle parti, gli slot dello stand, il modello ATIS, il simbolo),
+  **Geometria** (i vertici con «Incolla da testo», l'ordine di disegno, la linea di un `.geo`), **Procedura** (i vincoli
+  dei punti, i tratti, i legami, «Composta da»), **Collegamenti** (chi lo usa, la stessa forma, il gemello, il confine,
+  l'attesa), **Righe del file**. Un gruppo che per quel record non ha niente (un fix non ha procedura) non si vede.
+  Niente è cambiato dentro i pezzi: solo il posto (confrontate le righe del file prima e dopo: le stesse, più i gruppi).
+- **I gesti sul file escono dalla Scheda**: «Aerovie del file» (sistema le etichette, aerovia nuova, togli l'aerovia del
+  record scelto) sta nel pannello del file, nella colonna Sfoglia, sotto «Nuovo record».
+- Restano di D5, da fare come seconda parte: **un solo editor dei vertici** anche per i `.geo` (oggi la loro «Linea» è un
+  editor a sé); **la voce AIP corrispondente** nei Collegamenti (D11, mai fatta); il rifiuto accanto al tasto anche per i
+  gesti dentro i gruppi (oggi sta sotto i tasti del record).
+- Test: Lab 1 356 (+1: i gruppi nell'ordine e il rifiuto sotto i tasti; il test delle aerovie ora le cerca nel pannello del
+  file e non nella Scheda). Sul banco: un fix (`itfix.fix`) → Dati, Collegamenti («itawlow.lairway 1 riga, libr.str 2
+  righe»), Righe; un'aerovia → Dati, Geometria, Procedura, Righe, e «Aerovie del file» nella colonna; una procedura di
+  `lirf.str` → Dati, Geometria, Procedura, Righe; un segmento di `itgeo.geo` → Dati, Geometria, Righe.
+
 **Dove siamo** (20 ottobre sera, aggiornato): R0-R3 fatte; poi l'ambiente di lavoro (primo avvio, repo presi dal Lab,
 cartelle fisse, cartella e profilo di Aurora, simboli dal profilo), Lab 1 306. Il committente ha chiesto la **terza forma**
 (§4-ter: tre spazi di lavoro, un motore di mappa, «metti in questo file»), D14-D22 **approvate**; il piano è in §5-ter
@@ -658,7 +676,8 @@ AIP), **R8a fatta** (la misura dei file compatibili e «metti in questo file» p
 alte), **R8c fatta** (scali e piste anche nei file delle FIR), **R9 fatta** (i confini dal sector all'AIP espanso, come
 correzioni). Il piano di §5-ter è finito. Poi la **pagina Testo**: T1 fatta (la pagina, l'editor, «Applica», i metadati
 bloccati), T2 fatta (problemi sul margine, nomi, Ctrl+clic, la domanda prima di cancellare un record coi metadati),
-T3 fatta (i legami con la Scheda, la mappa e il Confronti; la bozza): la pagina Testo è finita. Restano, al via del
-committente: le due consegne, la Scheda per gruppi, i verbi. Dopo: le due
+T3 fatta (i legami con la Scheda, la mappa e il Confronti; la bozza): la pagina Testo è finita. Poi la **Scheda per
+gruppi** (D5): prima parte fatta (i gruppi, i gesti sul file nella colonna); seconda parte da fare (un editor dei vertici
+per i `.geo`, la voce AIP nei Collegamenti). Restano, al via del committente: le due consegne, i verbi. Dopo: le due
 consegne, la Scheda per gruppi, i verbi. Il giro di prova del primo avvio (`SectorLab-prova\PrimoAvvio`) resta
 da fare.

@@ -2424,3 +2424,18 @@ body.lab-trascina * {
 .lab-testo-cm .cm-editor { height: 100%; }
 .lab-testo-cm .cm-lab-tag::before { content: "🔒"; font-size: .7em; margin-right: .3em; opacity: .6; }
 .lab-testo-cm .cm-lab-tag-sbloccati .cm-lab-tag::before { content: "🔓"; }
+
+/* D5 (riordino): la Scheda per gruppi fissi — Dati, Geometria, Procedura, Collegamenti, Righe del file. Un gruppo che non
+   ha niente da mostrare per questo record (un fix non ha procedura) non si vede. */
+.lab-gruppo-scheda { margin-top: .6rem; }
+.lab-gruppo-scheda:not(:has(> :not(.lab-gruppo-titolo))) { display: none; }
+.lab-gruppo-titolo {
+    margin: 0 0 .2rem;
+    padding-bottom: .15rem;
+    border-bottom: 1px solid var(--lab-linea-forte);
+    color: var(--lab-titoli);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}

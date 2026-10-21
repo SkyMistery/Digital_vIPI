@@ -30,6 +30,9 @@
                     @(Lab.EInVista(Relativo, null) ? "◉ In vista" : "◎ Solo questo file sulla mappa")
                 </button>
             </p>
+            @* D5 (riordino): i gesti sul FILE stanno qui, non nella Scheda del record. Le aerovie: etichette, aerovia nuova, e
+               togliere quella del record scelto in questo file. *@
+            <AerovieNellaScheda File="@Relativo" Record="@(Lab.Scelta is { } scelta && scelta.File == Relativo ? scelta.Record : -1)" />
             <input type="search" class="lab-cerca" placeholder="Filtra i record" value="@_filtro"
                    @oninput="e => _filtro = e.Value?.ToString() ?? string.Empty" data-campo="filtra" />
             @* Slice 6: le voci come la finestra di selezione di Aurora, sopra l'elenco dei record. *@
