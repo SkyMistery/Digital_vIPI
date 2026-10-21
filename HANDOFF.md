@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 21 ottobre 2026, sera
+> ## ▶ Il punto — 21 ottobre 2026, ONLINE 1.71.0
+>
+> **✅ Online: 1.71.0** (`Schema 0` confermato: la migrazione distruttiva `TogliNoteTrasferimenti` è passata; health
+> Healthy; §A164, timbro `1.71.0 · 21af7c1`). In `main` non resta codice fuori pacchetto. ▶ Prossima consegna
+> possibile: togliere le colonne Note di LVP, regole piste e aree. ⚠️ Il server è ancora lento alle 20Z (anche
+> `it.ivao.aero`). ⚠️ Aperto: SDK 10.0.402.
+>
+> ## Il punto — 21 ottobre 2026, sera
 >
 > **📦 Pronta da caricare: 1.71.0** (§A164, timbro `1.71.0 · 21af7c1`, 25 file, zip `a45b85f1…`, MINOR con la
 > migrazione DISTRUTTIVA `TogliNoteTrasferimenti`, misurata dalla 1.70.0): Sito S121–S126 (allegati nei callout, link,

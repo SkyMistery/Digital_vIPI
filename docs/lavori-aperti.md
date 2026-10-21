@@ -43,7 +43,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A164 — 1.71.0 PRONTA DA CARICARE: allegati nei callout, link, le note nei blocchi, via le note dei trasferimenti (S121–S126), migrazione DISTRUTTIVA (21 ottobre 2026)
+### ✅ A164 — 1.71.0 ONLINE: allegati nei callout, link, le note nei blocchi, via le note dei trasferimenti (S121–S126), migrazione DISTRUTTIVA (21 ottobre 2026)
+
+✅ Online dal 21 ottobre 2026: il committente conferma la 1.71 e `Schema 0` (la migrazione `TogliNoteTrasferimenti` è
+passata). Da fuori, da anonimo, alle 20:00Z: `/` 302, porta «Entra con IVAO», Ricerca e API settori 401,
+`vipi-theme.css?v=78b8ae45` (quello del pacchetto), `/vsop/health` e `/vsop/health/ready` Healthy. ⚠️ Tempi ancora alti
+(health/ready 10 s, `/` 5,9 s) e `it.ivao.aero`, non nostro, a 8,9 s: il server è ancora sotto carico come dalle 15Z
+(vedi HANDOFF). Non guardati da qui, dietro il login: la nota LVP come paragrafo, allegati e link.
 
 MINOR con **una migrazione distruttiva** — 🔴 **non si torna indietro con le rinomine** —, misurata dalla **1.70.0**
 (`2a21316`) che gira. Timbro **`1.71.0 · 21af7c1`**. Fusa da `sito/lavori` @ `e745f1c4` (cartellino 🟢, CI verde run
