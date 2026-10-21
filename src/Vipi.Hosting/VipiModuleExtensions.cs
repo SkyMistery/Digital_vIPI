@@ -509,6 +509,10 @@ public static class VipiModuleExtensions
         // una chiave API (carta docs/feature/2026-09-30-api-aeroporti.md).
         endpoints.MapApiAeroporti();
 
+        // Gerarchia dei settori e coordinamenti fra settori, dalla Struttura viva, con una chiave API (S119, carta
+        // docs/feature/2026-10-21-api-settori.md).
+        endpoints.MapApiSettori();
+
         // Archivio delle connessioni ATC, per le macchine (carta docs/feature/2026-08-28-archivio-atc-mondiale.md).
         // Dal 28 agosto 2026 il poller registra TUTTE le postazioni aperte, non le sole italiane: questo
         // endpoint è il modo di rileggerle da fuori — nasce perché altri strumenti della divisione (il

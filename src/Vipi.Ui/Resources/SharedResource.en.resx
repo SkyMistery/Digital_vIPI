@@ -3830,6 +3830,7 @@
   <data name="ApiKeys_Ep_archivio" xml:space="preserve"><value>ATC archive</value></data>
   <data name="ApiKeys_Ep_bridge" xml:space="preserve"><value>Aurora bridge</value></data>
   <data name="ApiKeys_Ep_aeroporti" xml:space="preserve"><value>Airports (airports, SIDs, STARs)</value></data>
+  <data name="ApiKeys_Ep_settori" xml:space="preserve"><value>Sectors (hierarchy and coordination)</value></data>
   <data name="ApiKeys_RoutesTitle" xml:space="preserve"><value>API addresses</value></data>
   <data name="ApiKeys_RoutesHelp" xml:space="preserve"><value>Give these to whoever integrates, together with the key. Every call carries the key in one of the two headers below. Responses: 401 without a key or with a wrong or revoked key, 403 with a key lacking that permission, 404 unknown airport or no published document, 429 too many requests per minute. Responses are JSON.</value></data>
   <data name="ApiKeys_RouteExample" xml:space="preserve"><value>Example:</value></data>
@@ -3837,6 +3838,9 @@
   <data name="ApiKeys_Route_airport" xml:space="preserve"><value>An airport's sheet: TA, transition levels, runways, frequencies.</value></data>
   <data name="ApiKeys_Route_sids" xml:space="preserve"><value>SIDs as in the published document. Optional ?runway= for one runway (those valid for all runways stay too).</value></data>
   <data name="ApiKeys_Route_stars" xml:space="preserve"><value>STARs, same shape and filter as SIDs.</value></data>
+  <data name="ApiKeys_Route_accs" xml:space="preserve"><value>The Italian centres (ACCs) visible on the site.</value></data>
+  <data name="ApiKeys_Route_sectors" xml:space="preserve"><value>A centre's sectors from the live Structure: type, airport, frequency, parent in the hierarchy, vertical band and fallback chain.</value></data>
+  <data name="ApiKeys_Route_coordinations" xml:space="preserve"><value>The centre's coordination as written in the agreements. With ?online= (comma-separated callsigns) also resolved: who actually hands off and who receives with only those stations open.</value></data>
   <data name="ApiKeys_Route_sessions" xml:space="preserve"><value>Archived ATC connections. Optional filters: from and to (ISO 8601 date and time), callsign (prefix), vid, open, scope (division or world), limit (at most 500), offset.</value></data>
   <data name="ApiKeys_Route_resolve" xml:space="preserve"><value>Transfer points for a flight selected in Aurora (JSON body, ownerCallsign required). Answers only if the bridge is enabled on the server.</value></data>
   <data name="ApiKeys_CreateNeeds" xml:space="preserve"><value>A name and at least one API are required</value></data>

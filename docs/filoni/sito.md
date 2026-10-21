@@ -2835,6 +2835,23 @@
     immagine, allegato; aggiunto un callout; col «no» compare la frase; l'anteprima bozza mostra il verde, il
     paragrafo con l'a capo e il callout. **Non visti**: una release vecchia letta dopo l'aggiornamento (provata nei
     test), il vSOP, l'unione, il telefono.
+- ✅ **S119** (21-ott, chiesto dal committente) le **API dei settori** per gli altri programmi della divisione:
+  gerarchia dei settori e coordinamenti fra settori. Carta `docs/feature/2026-10-21-api-settori.md`.
+  - **Deciso dal committente**: si legge la **Struttura viva** (non i documenti pubblicati); i coordinamenti escono
+    come sono scritti e, con `?online=`, anche **risolti**; il primo cliente è un'app della divisione.
+  - **Rotte**: `GET /vsop/api/v1/accs`, `…/accs/{acc}/sectors` (padre anche in un altro centro, banda, catena di
+    ripiego), `…/accs/{acc}/coordinations[?online=A,B]`. Permesso nuovo `settori` nella pagina delle chiavi; chiave
+    sempre obbligatoria; 60 richieste al minuto per chiave.
+  - **Scelte del filone**: solo centri italiani visibili (nascosto o estero = 404); settori attivi; «online» = solo
+    quelli dati, come nella vista live (non come nel banco, dove chi sta fuori dallo scenario conta aperto);
+    enumerazioni come parole. Una porta di lettura apposta (`ISettoriPerApi`): i servizi della Struttura che
+    elencano i settori sono degli admin, e il banco di prova vuole un Editor.
+  - **Codice comune**: `Vipi.Application` (`SettoriPerApi.cs`, solo l'interfaccia e i record). Niente migrazione, niente
+    `deploy/`. Toccati i due `.resx`.
+  - **Test**: Hosting 93 → 102, Infra 2235 → 2237, E2E 508 → 510 (App 3418, Ui 2099 invariati).
+  - **Dal vivo** su un database nuovo con dati inventati e una chiave di prova: le quattro rotte a 200 con la forma
+    della carta, il ripiego e la risalita che risolvono come il motore, 404 per un centro nascosto, 401 senza chiave
+    (carta §6). **Non visto**: sui dati veri (nessuna copia del database chiesta), e con un'app vera dall'altra parte.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
