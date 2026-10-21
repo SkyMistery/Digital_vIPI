@@ -4,7 +4,16 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 21 ottobre 2026, ONLINE 1.70.0
+> ## ▶ Il punto — 21 ottobre 2026, sera
+>
+> **📦 Pronta da caricare: 1.71.0** (§A164, timbro `1.71.0 · 21af7c1`, 25 file, zip `a45b85f1…`, MINOR con la
+> migrazione DISTRUTTIVA `TogliNoteTrasferimenti`, misurata dalla 1.70.0): Sito S121–S126 (allegati nei callout, link,
+> note nei blocchi, via nota e descrizione dei trasferimenti). 🔴 Prima del carico: copia del database; non si torna
+> indietro con le rinomine. Online è la **1.70.0** finché il committente non carica. ▶ Dopo: togliere le colonne Note
+> di LVP, regole piste e aree. ⚠️ Il server era in sofferenza il 21-ott dalle 15Z (anche `it.ivao.aero`): non è nostro,
+> messaggio per Ivao.It preparato. ⚠️ Aperto: SDK 10.0.402.
+>
+> ## Il punto — 21 ottobre 2026, ONLINE 1.70.0
 >
 > **✅ Online: 1.70.0** (`Schema 0` confermato: la migrazione distruttiva `TogliTecnicaRadar` è passata; health
 > Healthy; §A163, timbro `1.70.0 · 2a21316`). In `main` non resta codice fuori pacchetto. Al Sito: il test instabile
