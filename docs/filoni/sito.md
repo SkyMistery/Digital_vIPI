@@ -2910,6 +2910,13 @@
   23-set ×2, 21-ott, due teste in fila), letti con `conta-test.sh --leggi`. Sulla lettura di prima i casi del 21-ott e
   delle due teste danno ROTTO, sulla nuova tutti ok; sul log vero del 21-ott la nuova vede tutti i 18 assiemi.
   **Codice comune** (`tools/`, `.github/workflows/ci.yml`).
+- ✅ **S126** (21-ott sera, in coda dal Master) **`DiagnosticaUnGiroAllaVoltaTests` non cade più a tempo**. Le due
+  cadute (18 e 21 ottobre, run 39593831601) avevano la stessa firma: «Check count: 1, render count: 1» dopo 3 s. Il
+  primo caricamento della pagina è una dozzina di letture in fila, e col pool dei thread occupato dalle altre classi
+  non stava nei 3 s **scritti nel test**, che vincevano sui 10 della suite (`AttesaDiBunit`). Riprodotto in locale
+  occupando il pool per circa 5 s: coi 3 s cade 2 volte su 2 con la stessa firma, coi 10 passa 2 su 2. Tolti i «3 s» a
+  mano anche dalle altre tre classi della famiglia (Audit, Ricerca, Struttura: 13 attese), che non erano ancora cadute.
+  Classi toccate 5 volte su 5 verdi su net8 e net10, suite Ui intera verde (2119 per TFM, conteggi invariati).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

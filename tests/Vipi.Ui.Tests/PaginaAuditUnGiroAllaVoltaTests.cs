@@ -88,14 +88,14 @@ public class PaginaAuditUnGiroAllaVoltaTests : TestContext
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         var cut = RenderComponent<AuditPage>();
-        var select = cut.WaitForElement("select.htree-select", TimeSpan.FromSeconds(3));
+        var select = cut.WaitForElement("select.htree-select");
 
         var primo = select.ChangeAsync(new() { Value = "7" });
         var secondo = cut.Find("select.htree-select").ChangeAsync(new() { Value = "90" });
         var terzo = cut.Find("button.btn.ghost").ClickAsync(new());
         await Task.WhenAll(primo, secondo, terzo);
 
-        cut.WaitForAssertion(() => Assert.NotNull(registro.UltimoDa), TimeSpan.FromSeconds(3));
+        cut.WaitForAssertion(() => Assert.NotNull(registro.UltimoDa));
         await Task.Delay(300);
 
         Assert.Equal(1, registro.MassimoInsieme);
