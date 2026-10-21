@@ -43,7 +43,14 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A163 — 1.70.0 PRONTA DA CARICARE: via la colonna della tecnica del radar di torre (S120), migrazione DISTRUTTIVA (21 ottobre 2026)
+### ✅ A163 — 1.70.0 ONLINE: via la colonna della tecnica del radar di torre (S120), migrazione DISTRUTTIVA (21 ottobre 2026)
+
+✅ Online dal 21 ottobre 2026: il committente conferma la 1.70 e `Schema 0` (la migrazione `TogliTecnicaRadar` è
+passata: la colonna non c'è più). Da fuori, da anonimo, alle 12:17Z: `/` 302, porta «Entra con IVAO», Ricerca 401, API
+settori e aeroporti 401, `vipi-theme.css?v=2d51a0f6`, `/vsop/health` e `/vsop/health/ready` Healthy. CI di `bd399858`
+verde al terzo tentativo (run 39593831601): il primo rosso era il test instabile `DiagnosticaUnGiroAllaVoltaTests…`
+(secondo episodio), il secondo un «MANCA» falso di `conta-test.sh` su una riga di riepilogo spezzata; tutt'e due
+assegnati al Sito.
 
 MINOR con **una migrazione distruttiva** — 🔴 **non si torna indietro con le rinomine** —, misurata dalla **1.69.0**
 (`9af1c14`) che gira. Timbro **`1.70.0 · 2a21316`**. Fusa da `sito/lavori` @ `0d24a489` (cartellino 🟢, CI verde run
