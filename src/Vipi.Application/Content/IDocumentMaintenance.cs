@@ -23,6 +23,18 @@ public interface IDocumentMaintenance
     Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Le note dello scalo diventano paragrafi (S123, 21 ottobre 2026, committente: le note «devono sparire, dove voglio
+    /// scrivere testo seleziono paragrafo o quello che è e lo metto»). La nota dei minimi LVP
+    /// (<c>AirportLvpMinima.Note</c>) va in un paragrafo della sezione <c>lvp</c>; le note delle regole piste
+    /// (<c>AirportRunwayRules.Note</c>) in UN paragrafo della sezione <c>runwayrules</c>, una riga per regola col suo
+    /// numero e nome. Nella vIPI e nel vSOP dello scalo (ultima versione e pubblicata corrente), poi la colonna si
+    /// svuota — solo se il testo è arrivato nell'ultima versione di almeno un documento. Idempotente: alla seconda
+    /// volta non c'è più niente da portare. Ritorna le righe svuotate.
+    /// <para>⚠️ DOPO <see cref="AddMissingCatalogSectionsAsync"/>: le sezioni devono esserci.</para>
+    /// </summary>
+    Task<int> NoteDelloScaloNeiBlocchiAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Rinomina in <b>«MRVA»</b> le sezioni <c>minima</c> dei documenti in lavorazione che portano ancora il
     /// titolo vecchio.
     ///

@@ -358,7 +358,8 @@ public static class SectionCatalog
                 // NASCITA. Lo fa `IDocumentMaintenance.ReparentAirportSectionsAsync` all'avvio.
                 H("runways", "Piste", 4, en: "Runways", children: new[]
                 {
-                    H("runwayrules", "Regole piste", 1, en: "Runway selection rules"),
+                    // ⚠️ HB dal 21 ottobre 2026 (S123, committente: le note «devono sparire, dove voglio scrivere testo seleziono paragrafo»): la scheda e sotto i blocchi della sezione.
+                    HB("runwayrules", "Regole piste", 1, en: "Runway selection rules"),
                 }),
                 // ✚ 18 ottobre 2026 (committente): la torre radar, FRA Piste e SID — la tecnica si sceglie con
                 // la pista in uso, e la SID dopo. Abbastanza in alto da leggersi prima delle procedure.
@@ -377,7 +378,8 @@ public static class SectionCatalog
                 // DOPO le «Procedure generali» — sorella, NON figlia: le LVP sono un modo di operare, e
                 // vengono dopo la prosa che descrive come si opera. Come le regole piste, il dato sta
                 // nell'ANAGRAFICA dello scalo: qui c'è solo la porta.
-                H("lvp", "LVP", 9),
+                // ⚠️ HB dal 21 ottobre 2026 (S123, committente: le note «devono sparire, dove voglio scrivere testo seleziono paragrafo»): la scheda e sotto i blocchi della sezione.
+                HB("lvp", "LVP", 9),
             }.Concat(CarteAeroportuali(10)).Append(
                 HB("validity", "Validità e revisione", 11, en: "Validity and revision")).ToArray(),
 
@@ -426,7 +428,8 @@ public static class SectionCatalog
                     // vIPI civile la porta e' l'editor di questo vSOP. Dalle regole il viewer marca la pista
                     // IN USO adesso, nelle Piste e nelle SID — la stessa derivazione della vIPI.
                     // ⚠️ Sorella e non figlia di «Piste», come le SID: stessa scelta, stesso indice leggibile.
-                    H("runwayrules", "Regole piste", 5, en: "Runway selection rules"),
+                    // ⚠️ HB dal 21 ottobre 2026 (S123, committente: le note «devono sparire, dove voglio scrivere testo seleziono paragrafo»): la scheda e sotto i blocchi della sezione.
+                    HB("runwayrules", "Regole piste", 5, en: "Runway selection rules"),
                     // Derivata, come la sorella civile: le SID stanno nell'ANAGRAFICA dello scalo
                     // (`AirportProcedures`, importate dal sectorfile), non nel documento — la vIPI civile e' solo
                     // la porta di SCRITTURA. Quindi qui non c'e' nessun ramo da fare: il vSOP legge
@@ -511,7 +514,8 @@ public static class SectionCatalog
                 // lavoro», e le LVP non sono un'area di lavoro. Restano dove stanno le procedure.
                 // ⚠️ Il dato e' lo stesso della vIPI (anagrafica dello scalo): cambia solo il posto
                 // nell'indice, che nel militare lo detta il SOD.
-                H("lvp", "LVP", 5),
+                // ⚠️ HB dal 21 ottobre 2026 (S123, committente: le note «devono sparire, dove voglio scrivere testo seleziono paragrafo»): la scheda e sotto i blocchi della sezione.
+                HB("lvp", "LVP", 5),
                 HB("regulated", "Aree di lavoro", 6, en: "Working areas", children: new[]
                 {
                     // ⚠️ «operationaltechnique» e' una chiave UNIVERSALE (sta in ACC, APP, vLOA e

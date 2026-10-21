@@ -97,8 +97,11 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
     [Fact]
     public async Task Le_sezioni_cotte_prendono_la_chiave_di_catalogo_e_perdono_i_blocchi()
     {
+        // ⚠️ «Runway rules» SENZA tabella cotta dal 21 ottobre 2026 (S123): le regole piste tengono i loro blocchi
+        // (`HB`), e questo passo — che gira a ogni avvio — non deve più toccarli, o cancellerebbe il testo scritto
+        // sotto la tabella (la trappola già pagata con la validità, U-013).
         await ScaloCottoAsync("LIRF",
-            ("Runway rules", """{"columns":["Condition"],"rows":[]}"""),
+            ("Runway rules", null),
             ("Transition levels", """{"columns":["QNH (hPa)"],"rows":[]}"""),
             ("Frequencies", """{"columns":["Name"],"rows":[]}"""),
             ("Runways", """{"columns":["Runway"],"rows":[]}"""),

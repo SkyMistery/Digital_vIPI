@@ -97,7 +97,6 @@
                     <label>@L["Ape_MaxCross"]<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" @bind:after="Cambiato" /></label>
                     <label>@L["Ape_Surface"]<select @bind="r.Surface" @bind:after="Cambiato"><option value="any">@L["Ape_SurfAny"]</option><option value="dry">@L["Ape_SurfDry"]</option><option value="wet">@L["Ape_SurfWet"]</option></select></label>
                     <label>@L["Airport_Name"]<input @bind="r.Name" @bind:after="Cambiato" placeholder="@L["Ape_RuleNamePh"]" /></label>
-                    <label>@L["Ape_Notes"]<input @bind="r.Note" @bind:after="Cambiato" placeholder="@L["Ape_FreeText"]" /></label>
                 </div>
                 <details class="rule-adv">
                     <summary>@L["Ape_Advanced"]</summary>
@@ -143,7 +142,6 @@
             else
             {
                 <div class="muted" style="font-size:12.5px">@Riassunto(r)</div>
-                @if (!string.IsNullOrWhiteSpace(r.Note)) { <div style="font-size:12.5px">@r.Note</div> }
             }
         </div>
     }
@@ -183,7 +181,7 @@
             {
                 <div class="callout success" style="margin-top:8px"><span class="cic">✓</span><div>
                     <b>@L["Ape_TestRuleN", _vincente.RuleIndex + 1]@(string.IsNullOrWhiteSpace(_vincente.RuleName) ? "" : $" · {_vincente.RuleName}")</b> —
-                    DEP <b>@_vincente.Dep</b> · ARR <b>@_vincente.Arr</b>@if (!string.IsNullOrWhiteSpace(_vincente.Note)) { <text> (@_vincente.Note)</text> }
+                    DEP <b>@_vincente.Dep</b> · ARR <b>@_vincente.Arr</b>
                     @VentoSullePiste(PisteInUso())
                 </div></div>
             }

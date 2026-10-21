@@ -2875,6 +2875,16 @@
   - **A schermo** su un database nuovo con uno scalo inventato e una voce di biblioteca di prova: allegato in un
     callout, link web al posto delle parole selezionate, link a un allegato in una cella; l'anteprima li mostra.
     Non visti: stampa, telefono, documento tradotto.
+- ✅ **S123a** (21-ott, chiesto dal committente: le note «devono sparire, dove voglio scrivere testo seleziono
+  paragrafo») **via la nota delle LVP e le note delle regole piste**. `lvp` e `runwayrules` diventano «scheda +
+  blocchi» (`HB`) nella vIPI d'aeroporto e nel vSOP; tolti i campi negli editor e dai modelli d'editor; il segnaposto
+  delle sezioni rese dalla pagina non si mostra più come tabella vuota nell'editor. Trasloco all'avvio
+  `NoteDelloScaloNeiBlocchiAsync`: la nota delle LVP → un paragrafo di `lvp`, le note delle regole → un elenco in
+  `runwayrules` (`- #3 Notte: …`), nella vIPI e nel vSOP; colonne svuotate. Le release già uscite mostrano ancora la
+  nota della loro fotografia. **Migrazione: no** (le colonne si tolgono in una consegna dopo). Carta
+  `docs/feature/2026-10-21-via-le-note.md`. **Codice comune**: `Vipi.Application` (catalogo, interfaccia
+  manutenzione). Test: Infra 2233 → 2236, Ui 2116 → 2118. A schermo su DB nuovo: trasloco, editor e anteprima.
+  Restano S123b (tabelle delle aree) e S123c (trasferimenti: prima l'elenco al committente).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

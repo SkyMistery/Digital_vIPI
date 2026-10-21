@@ -573,10 +573,20 @@ else
 
     /// <summary>I blocchi che la fila mostra: nessuno su una sezione resa dalla pagina che non tiene blocchi
     /// propri, e mai il payload della scheda.</summary>
+    /// <para>⚠️ Né il SEGNAPOSTO (né testo né JSON) che le sezioni rese dalla pagina ricevono alla nascita: in una
+    /// sezione «scheda + blocchi» — LVP e regole piste dal 21 ottobre 2026 (S123), la validità da prima — si
+    /// mostrava come una tabella senza colonne che nessuno aveva chiesto.</para>
     private IReadOnlyList<EditableBlock> BlocchiInFila(EditableSection s) =>
         RendeLaPagina(s) && !(Profile is { } prof && SectionCatalog.KeepsOwnBlocks(prof, s.SectionKey))
             ? Array.Empty<EditableBlock>()
-            : s.Blocks.Where(b => !BlockJson.EStruttura(b.BodyJson)).ToList();
+            : s.Blocks.Where(b => !BlockJson.EStruttura(b.BodyJson)
+                                  && !(RendeLaPagina(s) && Segnaposto(b))).ToList();
+
+    /// <summary>⚠️ Solo una TABELLA vuota: il segnaposto nasce tabella, e un paragrafo appena aggiunto nasce vuoto anche
+    /// lui — preso per segnaposto, sparirebbe sotto il tasto che l'ha creato. Una tabella nuova nasce con le sue
+    /// colonne (`TabellaGenerica.Nuova`).</summary>
+    private static bool Segnaposto(EditableBlock b) =>
+        b.Format == BlockFormat.Table && string.IsNullOrWhiteSpace(b.Body) && string.IsNullOrWhiteSpace(b.BodyJson);
 
     private IReadOnlyList<(TipoVoce Tipo, EditableBlock? Blocco, EditableSection? Figlia)> Fila(EditableSection s) =>
         CorpoDiSezione.Componi(BlocchiInFila(s), b => b.Order, s.Children,
