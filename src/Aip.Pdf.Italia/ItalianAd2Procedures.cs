@@ -343,6 +343,10 @@ public static partial class ItalianAd2Procedures
 
         InCorso Segmento(string? nome, ImportPage pagina)
         {
+            // La tabella senza titolo dopo le transizioni (il finale di LIRN RNP Z RWY24) va in quella aperta dal titolo, se è
+            // rimasta vuota.
+            if (nome is null && procedure.FirstOrDefault(p => p.Designatore == avvicinamento && p.Segmento is null) is { Tratti.Count: 0, Prima.Count: 0, Dopo.Count: 0 } vuota)
+                return vuota;
             // Le tabelle senza titolo dopo la prima: «(2)», «(3)».
             if (nome is null && procedure.Any(p => p.Designatore == avvicinamento && p.Segmento is null))
                 nome = $"({procedure.Count(p => p.Designatore == avvicinamento && (p.Segmento is null || p.Segmento.StartsWith('('))) + 1})";
@@ -818,6 +822,10 @@ public static partial class ItalianAd2Procedures
                 && colonne.FindIndex(c => c.Key == Colonna.Distance && Math.Abs(c.XCenter - soglia.XCenter) < 25) is var d and >= 0)
                 colonne[d] = (Colonna.DallaSoglia, colonne[d].XCenter);
             var attesa = sopra.Any(w => w.Text.Equals("Inbound", StringComparison.OrdinalIgnoreCase));
+            // L'intestazione di un'attesa ha «Waypoint» due volte (Identifier e Distance, LIRN): il punto è la prima.
+            if (attesa && sopra.Where(w => w.Text.StartsWith("Waypoint", StringComparison.OrdinalIgnoreCase)).MinBy(w => w.X0) is { } primo
+                && colonne.FindIndex(c => c.Key == Colonna.Fix) is var f and >= 0)
+                colonne[f] = (Colonna.Fix, primo.XCenter);
             if (colonne.Count >= 5 && colonne.Any(c => c.Key == Colonna.Path)) intestazioni.Add((y, colonne, attesa));
         }
         if (intestazioni.Count == 0) return [];
@@ -970,7 +978,10 @@ public static partial class ItalianAd2Procedures
         // Il punto: il nome più vicino alla colonna «Waypoint» dell'intestazione; una nota in maiuscolo accanto alla riga ne ha
         // altri («HM MHA SUGGESTED … 6000 FT FOR TURBULENCE LOCRI», LIRA 4).
         static string SenzaRimando(string x) => RxRimandoAttaccato().Match(x) is { Success: true } m ? m.Groups["v"].Value : x;
-        var nomi = parole.Where(w => w.Text != pt && RxPuntoDellAttesa().IsMatch(SenzaRimando(w.Text))).ToList();
+        // Non una quota («FL100») né le sigle di una nota («TCH», «THR», «ENR»: LICD, LIRN).
+        var nomi = parole.Where(w => w.Text != pt && RxPuntoDellAttesa().IsMatch(SenzaRimando(w.Text))
+                                     && !(w.Text.StartsWith("FL", StringComparison.Ordinal) && w.Text[2..].All(char.IsAsciiDigit))
+                                     && w.Text is not ("TCH" or "THR" or "ENR" or "MAX" or "HLD" or "MHA" or "ATC")).ToList();
         var vicino = xDelPunto is { } xp ? nomi.MinBy(w => Math.Abs(w.XCenter - xp)) : nomi.MinBy(w => w.X0);
         var punto = vicino is null ? null : SenzaRimando(vicino.Text);
         // «FL» e «105» in due parole: una.

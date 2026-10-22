@@ -631,3 +631,31 @@ cifre. Non letta: la tabella delle attese senza «Path Terminator» di LIDT 5 p.
 file 4).
 
 Test: Aip.Pdf 169 (+2), Aip 53 (+1), Lab 1 391 (+2).
+
+#### 6c — sul banco: fatto
+
+Sul banco (1400 px, LIRN 1/4/5/6 e LIBI 4/5/6 insieme ai PDF di prima): «81 procedure», «19 attese», «Conti dell'AIP
+(sottosezioni, procedure, avvicinamenti, zone, punti, ostacoli, coordinate): 19 controllati, tutti tornano» — l'etichetta
+ora dice i conti che ci sono, prima elencava solo quelli del passo 2. Nell'indice LIRN ha i sottogruppi Attese, Punti, STAR,
+Avvicinamenti, Salite iniziali, SID; LIBI i suoi sotto AD 3. Gli avvicinamenti uno per segmento, i retri delle carte LOC col
+nome dalla carta («LOC X RWY24», «LOC Y RWY06»). La scheda del finale di RNP Z RWY24 coi tratti numerati e il VPA/TCH; sulla
+mappa la linea evidenziata arriva alla soglia. Trovati e corretti a schermo:
+- il finale senza titolo dopo le transizioni si chiamava «(2)»: ora è l'avvicinamento stesso (restano «(2)» dove l'AIP
+  stampa davvero più tabelle senza titolo, come le tre di Crotone);
+- la soglia nei tratti («RWY24», «THR RWY 22C») non si trovava: ora è quella della pista dello scalo in AD 2.12;
+- cinque attese avevano per punto una quota o una nota («FL100», «FL130», «ENR», «TCH»): l'intestazione delle attese di LIRN,
+  LIME, LIMF, LICD ha «Waypoint» due volte, e si prendeva la seconda. Ora la prima, e una quota non è mai il punto. Attese
+  sul 2611: 789 (cinque doppie col nome sbagliato in meno).
+
+Test: Aip.Pdf 170 (+1), Lab 1 392 (+1).
+
+#### Il passo 6, chiuso
+
+«Finita quando» di §3: **per ogni scalo le procedure stampate tutte nel modello o dette.** Sul 2611: SID e STAR **1 903
+designatori stampati, 1 903 letti** (109 file), gli avvicinamenti con la tabella **119 stampati, 119 letti** (49 file); le
+procedure convenzionali solo in prosa sono nel modello col loro testo, e le 466 frasi di cui la prosa (F7, 7b) non ricava i
+tratti sono dette una per una; le carte convenzionali solo immagine danno la loro FIX/POINT. Le attese degli scali (789 in
+tutto con ENR 3.4) e i punti delle WAYPOINT LIST (2 514) sono nel modello. Dette, perché stampate male nell'AIP: le
+coordinate di 25 punti (segnalazioni «punto»); da sapere: le tabelle ICP disegnate di LIRP 6 e l'attesa senza «Path Terminator» di LIDT 5 non si
+leggono. Il passo 8 (i due cicli) è il prossimo; da proporre al committente, se vuole, il seguito della 7b (la prosa che
+comincia dalla fine della salita iniziale, 32 SID di Alghero).

@@ -163,7 +163,7 @@
                     @if (esito.Conti is { Controllati: > 0 } conti)
                     {
                         <details data-conti-aip>
-                            <summary class="lab-nota">Conti dell'AIP (zone numerate, punti delle rotte, ostacoli, coordinate delle aree): @conti.Controllati controllati, @(conti.NonTornano == 0 ? "tutti tornano" : $"{conti.NonTornano} non tornano")</summary>
+                            <summary class="lab-nota">Conti dell'AIP (@string.Join(", ", esito.Rapporto.SelectMany(r => r.Conti).Select(c => c.Cosa).Distinct())): @conti.Controllati controllati, @(conti.NonTornano == 0 ? "tutti tornano" : $"{conti.NonTornano} non tornano")</summary>
                             <ul class="lab-elenco-lotto">
                                 @foreach (var r in esito.Rapporto.Where(r => r.Conti.Count > 0).OrderBy(r => r.Conti.All(c => c.Attesi == c.Letti)).Take(300))
                                 {

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Aip;
 using Aip.Aurora;
 using Vipi.SectorLab.Core.Mappa;
@@ -35,7 +36,7 @@ public sealed record StratoDellAip(string Ciclo, StratoDellaMappa Strato, IReadO
 /// dove non ce l'ha non si disegnano (la scheda resta, e lo dice).</item>
 /// </list>
 /// </summary>
-public static class AipSullaMappa
+public static partial class AipSullaMappa
 {
     public const string Prefisso = "aip:";
 
@@ -229,9 +230,15 @@ public static class AipSullaMappa
         // ricavati dalla prosa (7b); quelle la cui prosa non si è letta no: la scheda c'è, la linea no.
         var puntiDellAip = PuntiDellAip(aip);
         Coordinate? Punto(string nome) => puntiDellAip.TryGetValue(nome, out var p) ? Coordinata(p) : puntoDelSector(nome);
+        // La soglia nei tratti di un avvicinamento («RWY24», «THR RWY 22C», passo 6): quella della pista del suo scalo, da AD 2.12.
+        var soglie = (aip.Aerodromes ?? []).SelectMany(s => s.Runways.Where(r => r.Threshold is not null).Select(r => (s.Icao, r.Designator, r.Threshold!.Value)))
+            .GroupBy(x => (x.Icao, x.Designator)).ToDictionary(g => g.Key, g => g.First().Value);
         foreach (var procedura in aip.Procedures ?? [])
         {
-            var (tratti, nonRisolti) = Percorso(procedura, Punto);
+            Coordinate? PuntoDellaProcedura(string nome) =>
+                RxSoglia().Match(nome) is { Success: true } m && soglie.TryGetValue((procedura.Aerodrome, m.Groups["p"].Value), out var soglia)
+                    ? Coordinata(soglia) : Punto(nome);
+            var (tratti, nonRisolti) = Percorso(procedura, PuntoDellaProcedura);
             Aggiungi(Voce(procedura, nonRisolti), TipoDiForma.Linea, tratti, nonRisolti);
         }
 
@@ -239,6 +246,9 @@ public static class AipSullaMappa
     }
 
     private static Coordinate Coordinata(Position p) => new(p.Lat, p.Lon);
+
+    [GeneratedRegex(@"^(?:THR\s+)?RWY\s?(?<p>\d{2}[LRC]?)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxSoglia();
 
     /// <summary>Dove sta ogni punto con nome dell'AIP espanso: punti (ENR 4.4 e AD 2) e radioassistenze (ENR 4.1 e AD 2.19).</summary>
     private static Dictionary<string, Position> PuntiDellAip(AipDocument aip)

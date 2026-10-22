@@ -297,6 +297,33 @@ public sealed class Ad2ProceduresTests
         Assert.Equal(12 + 32 / 60.0 + 58.45 / 3600, r.Points[1].Position.Lon, 9);
     }
 
+    // Passo 6: l'intestazione dell'attesa di LIRN ha «Waypoint» due volte (Identifier e Distance): il punto è sotto la prima, e
+    // una quota («FL100») non è mai il punto, anche se è più vicina alla seconda.
+    [Fact]
+    public void LAttesaConDueWaypoint_IlPuntoSottoLaPrima()
+    {
+        double[] x = [60, 110, 165, 230, 270, 300, 340, 380, 420, 460];
+        var pagina = new Pagina([], [],
+        [
+            .. Testa("AD 2 LIXX 4 - 5"),
+            (60, 60, "WAYPOINT HOLDING"),
+            (x[2], 72, "Inbound"), (x[3], 72, "Leg"), (x[5], 72, "Minimum"),
+            (x[0], 81, "Path"), (x[1], 81, "Waypoint"), (x[8], 82, "Waypoint"), (x[5], 81, "Turn"), (x[6], 81, "Altitude"), (x[7], 81, "Speed"),
+            (x[9], 81, "Navigation"),
+            (x[0], 90, "Terminator"), (x[1], 90, "Identifier"), (x[2], 90, "Course"), (x[3], 90, "Distance"), (x[4], 90, "Distance"),
+            (x[5], 90, "Direction"), (x[6], 90, "(FT)"), (x[7], 90, "Limit"), (x[8], 90, "Variation"), (x[9], 90, "Specification"),
+            (x[0], 110, "HM"), (x[1], 110, "ALDAF"), (x[2], 104, "(059°)"), (x[2], 116, "055°"), (x[3], 110, "4.4"), (x[4], 110, "1/-"),
+            (x[5], 110, "L"), (x[6], 110, "FL100"), (x[7], 110, "200"), (x[8], 110, "3.6"), (x[9], 110, "RNAV"),
+            (60, 140, "(1) Nota dell'attesa, perché la pagina abbia le sue trenta parole come una vera."),
+        ]);
+
+        var r = ItalianAd2Procedures.Read(PdfText.Read(Enr4Tests.Pdf(pagina)), "LIXX", ProcedureKind.Star);
+
+        Assert.Equal([], r.Issues.Where(i => i.Kind != ImportIssueKind.PageWithoutDate).Select(i => $"{i.Kind} {i.Key} {i.Detail}"));
+        var aldaf = Assert.Single(r.Holdings);
+        Assert.Equal(("ALDAF", 55, "059", "FL100", TurnDirection.Left), (aldaf.Fix, aldaf.InboundTrack, aldaf.TrueTrack, aldaf.Minimum.Text, aldaf.Turn));
+    }
+
     [Theory]
     [InlineData("SID RNAV1 or RNP1 RWY24 - Description", "24")]
     [InlineData("STAR RWY 16 L/R", "16L,16R")]

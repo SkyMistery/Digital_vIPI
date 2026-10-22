@@ -394,6 +394,25 @@ public sealed class AipSullaMappaTests
         Assert.Contains(s.Voci[1].Campi, c => c.Nome == "ⓘ" && c.Valore.Contains("immagine", StringComparison.Ordinal));
     }
 
+    // Passo 6: la soglia nei tratti di un avvicinamento («RWY24», «THR RWY 06») è quella della pista del suo scalo (AD 2.12).
+    [Fact]
+    public void LaSogliaDellAvvicinamento_DallaPistaDelloScalo()
+    {
+        var finale = new Procedure
+        {
+            Aerodrome = "LIXX", Kind = ProcedureKind.Approach, Designator = "RNP RWY24",
+            Legs = [new ProcedureLeg { PathTerminator = "IF", Fix = "UNO" }, new ProcedureLeg { PathTerminator = "TF", Fix = "RWY24" }, new ProcedureLeg { PathTerminator = "TF", Fix = "THR RWY 06" }],
+        };
+        var scalo = new Aerodrome { Icao = "LIXX", Name = "PROVA", Runways = [new Runway { Designator = "24", Threshold = B }, new Runway { Designator = "06", Threshold = C }] };
+
+        var s = AipSullaMappa.Di(new AipDocument { State = "LI", Aerodromes = [scalo], Procedures = [finale] }, "2611", nome => nome == "UNO" ? new Coordinate(A.Lat, A.Lon) : null);
+
+        var voce = s.Voci.Single(v => v.Genere == AipSullaMappa.Avvicinamenti);
+        Assert.DoesNotContain(voce.Campi, c => c.Nome == "⚠");
+        var linea = s.Strato.Forme.Single(f => f.Genere == AipSullaMappa.Avvicinamenti);
+        Assert.Equal([new Coordinate(A.Lat, A.Lon), new Coordinate(B.Lat, B.Lon), new Coordinate(C.Lat, C.Lon)], Assert.Single(linea.Tratti));
+    }
+
     // Passo 6: l'attesa di uno scalo, con le colonne della sua tabella e la riga com'è stampata.
     [Fact]
     public void LaSchedaDiUnAttesaDelloScalo()

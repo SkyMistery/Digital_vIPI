@@ -68,9 +68,13 @@ public sealed class Ad2ApproachesTests
             .. Testa("AD 2 LIXX 5 - 4"),
             (60, 52, "TABULAR DESCRIPTION"),
             (60, 68, "RNP - Z RWY 08"),
-            .. Intestazione(100),
-            .. Tratto(120, "010", "IF", "XX501", "+3000"),
-            .. Tratto(140, "020", "TF", "RWY08", "-", "-3.0/15"),
+            // Una transizione col suo titolo, poi il finale senza titolo (LIRN RNP Z RWY24): il finale è l'avvicinamento stesso.
+            (60, 85, "RNP APPROACH FROM XXONE"),
+            .. Intestazione(115),
+            .. Tratto(135, "010", "IF", "XXONE", "+5000"),
+            .. Intestazione(175),
+            .. Tratto(195, "010", "IF", "XX501", "+3000"),
+            .. Tratto(215, "020", "TF", "RWY08", "-", "-3.0/15"),
         ]);
         var fas = new Pagina([], [],
         [
@@ -108,8 +112,9 @@ public sealed class Ad2ApproachesTests
         var retro = r.Procedures.Single(p => p.Designator == "AD 2 LIXX 5-2");
         Assert.Equal(["IAF", "IF", "FAF", "MAPt (LOC+DME)"], retro.Fixes!.Select(f => f.Text));
         Assert.All(retro.Fixes!, f => Assert.NotNull(f.Position));
-        var rnp = r.Procedures.Single(p => p.Designator == "RNP Z RWY08");
-        Assert.Equal((null, "08"), (rnp.Segment, Assert.Single(rnp.Runways)));
+        Assert.Equal([null, "RNP APPROACH FROM XXONE"], r.Procedures.Where(p => p.Designator == "RNP Z RWY08").Select(p => p.Segment).Order());
+        var rnp = r.Procedures.Single(p => p.Designator == "RNP Z RWY08" && p.Segment is null);
+        Assert.Equal("08", Assert.Single(rnp.Runways));
         Assert.Equal("-3.0/15", rnp.Legs[1].VerticalPath);
         Assert.Equal(["Operation Type 0", "SBAS Provider 1 (EGNOS)", "Airport Identifier LIXX", "Runway 08", "Glidepath Angle (degrees) 3.00",
             "Calculated CRC Value 7130EB3C"], rnp.DataBlock);
