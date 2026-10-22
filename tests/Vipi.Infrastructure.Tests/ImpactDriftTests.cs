@@ -517,6 +517,147 @@ public class ImpactDriftTests : IAsyncLifetime
         Assert.Single(await _impatti.ListOpenAsync(_docId));
     }
 
+    // ── Il testo comune delle torri radar (S127): la copia pubblicata mostra quello della sua pubblicazione ──
+
+    private static readonly ExtraBlock[] Comune =
+    {
+        new() { Format = BlockFormat.Callout, CalloutKind = CalloutKind.Danger, Text = "È fatto obbligo la visione del documento linkato." },
+        new() { Format = BlockFormat.Callout, CalloutKind = CalloutKind.Success, Text = "LA TORRE NON FORNISCE VETTORAMENTO" },
+    };
+
+    private static readonly ExtraBlock[] ComuneCorretto =
+    {
+        Comune[0],
+        new() { Format = BlockFormat.Callout, CalloutKind = CalloutKind.Success, Text = "LA TORRE NON FORNISCE VETTORAMENTO RADAR" },
+    };
+
+    private sealed class FakeTestoComune : ITestoComuneStore
+    {
+        public IReadOnlyList<ExtraBlock> Blocchi { get; set; } = Array.Empty<ExtraBlock>();
+        public Task<IReadOnlyList<ExtraBlock>> LeggiAsync(string sezione, CancellationToken ct = default) =>
+            Task.FromResult(Blocchi);
+        public Task SalvaAsync(string sezione, IReadOnlyList<ExtraBlock> blocchi, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+    }
+
+    private ManagedDoc Scalo() => new(
+        ReleaseTargetType.Airport, "vIPI LIRQ", "LIRQ", "LIRR",
+        IsPublished: true, HasDraft: false, IsHidden: false,
+        ReleaseTargetType.Airport, "LIRQ", _docId);
+
+    /// <summary>Una release della vIPI di LIRQ con la torre radar e la tecnica visibili, e la vista congelata data.</summary>
+    private static DocRelease ReleaseScalo(AirportRadarTowerView vista)
+    {
+        var p = new DocReleasePayload
+        {
+            Doc = new RawDocument
+            {
+                Title = "vIPI LIRQ", AiracCycle = "2611",
+                Roots = new[]
+                {
+                    new RawSection
+                    {
+                        Id = 5, Title = "Radar di torre", Depth = 0, SectionKey = SectionKeys.RadarTower, Order = 5,
+                        Children = new()
+                        {
+                            new RawSection { Id = 6, Title = "Tecnica operativa", Depth = 1, SectionKey = SectionKeys.RadarTowerTechnique, Order = 1 },
+                        },
+                    },
+                },
+            },
+        };
+        p.FrozenSections[5] = System.Text.Json.JsonSerializer.Serialize(vista);
+        return new DocRelease
+        {
+            Id = 1, TargetType = ReleaseTargetType.Airport, TargetKey = "LIRQ", VersionNumber = 1,
+            ReleaseAiracCycle = "2611", ReleaseEffectiveUtc = DateTime.UtcNow.AddDays(-1),
+            Status = ReleaseStatus.Effective, PayloadJson = System.Text.Json.JsonSerializer.Serialize(p),
+        };
+    }
+
+    private ImpactDriftUseCase GiroConComune(FakeReleaseRepo repo, FakeTestoComune comune, FakeReleaseService? rel = null) =>
+        new(new FakeAdmin(Scalo()), rel ?? new FakeReleaseService(), repo, _servizio, new AiracService(),
+            new FakeTargets(_docId), comune: comune);
+
+    [Fact]
+    public async Task Testo_comune_cambiato_apre_da_ripubblicare()
+    {
+        var repo = new FakeReleaseRepo { Effettiva = ReleaseScalo(new(true, null, TestoComune.Vista(Comune))) };
+
+        await GiroConComune(repo, new FakeTestoComune { Blocchi = ComuneCorretto }).RunAsync();
+
+        var riga = Assert.Single(await _impatti.ListOpenAsync(_docId));
+        Assert.Equal(ImpactKind.CommonTextChanged, riga.Kind);
+        Assert.False(riga.CanClear);   // calcolata: la chiude ripubblicare, non un ✓
+        Assert.True(riga.Kind.IsDaRipubblicare());
+    }
+
+    [Fact]
+    public async Task Stesso_testo_comune_nessuna_riga()
+    {
+        var repo = new FakeReleaseRepo { Effettiva = ReleaseScalo(new(true, null, TestoComune.Vista(Comune))) };
+
+        await GiroConComune(repo, new FakeTestoComune { Blocchi = Comune }).RunAsync();
+
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+    }
+
+    /// <summary>La pubblicazione rimette in pari: la riga si chiude da sola, senza aspettare il giro della notte.</summary>
+    [Fact]
+    public async Task Ripubblicato_lo_scalo_la_riga_si_chiude()
+    {
+        var repo = new FakeReleaseRepo { Effettiva = ReleaseScalo(new(true, null, TestoComune.Vista(Comune))) };
+        var comune = new FakeTestoComune { Blocchi = ComuneCorretto };
+        await GiroConComune(repo, comune).RunAsync();
+        Assert.Single(await _impatti.ListOpenAsync(_docId));
+
+        repo.Effettiva = ReleaseScalo(new(true, null, TestoComune.Vista(ComuneCorretto)));
+        await GiroConComune(repo, comune).RunForDocumentAsync(_docId);
+
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+    }
+
+    /// <summary>Una release scattata prima del testo comune non l'ha congelato: se oggi c'è, va ripubblicata anche lei.</summary>
+    [Fact]
+    public async Task Una_release_di_prima_va_ripubblicata_solo_se_un_testo_comune_c_e()
+    {
+        var repo = new FakeReleaseRepo { Effettiva = ReleaseScalo(new(true)) };
+
+        await GiroConComune(repo, new FakeTestoComune()).RunAsync();
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+
+        await GiroConComune(repo, new FakeTestoComune { Blocchi = Comune }).RunAsync();
+        Assert.Equal(ImpactKind.CommonTextChanged, Assert.Single(await _impatti.ListOpenAsync(_docId)).Kind);
+    }
+
+    /// <summary>Dove il lettore non lo vede — torre senza radar — un testo comune cambiato non chiede niente.</summary>
+    [Fact]
+    public async Task Senza_radar_nessuna_riga()
+    {
+        var repo = new FakeReleaseRepo { Effettiva = ReleaseScalo(new(false, null, TestoComune.Vista(Comune))) };
+
+        await GiroConComune(repo, new FakeTestoComune { Blocchi = ComuneCorretto }).RunAsync();
+
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+    }
+
+    /// <summary>
+    /// Il passo che parte al salvataggio del testo comune: apre le righe senza chiedere la deriva a nessuno — è svelto
+    /// apposta, perché chi ha salvato aspetta la risposta.
+    /// </summary>
+    [Fact]
+    public async Task Il_passo_del_salvataggio_apre_senza_costruire_snapshot()
+    {
+        var repo = new FakeReleaseRepo { Effettiva = ReleaseScalo(new(true, null, TestoComune.Vista(Comune))) };
+        var rel = new FakeReleaseService();
+
+        var esito = await GiroConComune(repo, new FakeTestoComune { Blocchi = ComuneCorretto }, rel).RunTestoComuneAsync();
+
+        Assert.Equal(1, esito.Aperti);
+        Assert.Empty(rel.CicliChiesti);
+        Assert.Equal(ImpactKind.CommonTextChanged, Assert.Single(await _impatti.ListOpenAsync(_docId)).Kind);
+    }
+
     private static DocRelease Release(string key) => new()
     {
         Id = 1, TargetType = ReleaseTargetType.AccVipi, TargetKey = key, VersionNumber = 1,

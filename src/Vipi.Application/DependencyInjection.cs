@@ -115,7 +115,10 @@ public static class DependencyInjection
             // costruisce il contenitore, che il parametro opzionale lo riempie da solo. Senza, l'edizione
             // militare congelerebbe le SID al ciclo di OGGI anche pubblicando per un ciclo futuro — cioè
             // esattamente il difetto corretto, ma solo sui campi militari e senza nessun segnale.
-            sp.GetRequiredService<ShapeReleaseContext>()));
+            sp.GetRequiredService<ShapeReleaseContext>(),
+            // ⚠️ A mano anche questo, per la stessa ragione: senza, il vSOP militare non congelerebbe il testo comune
+            // delle torri radar (S127) e la sua pagina non lo mostrerebbe mai.
+            sp.GetService<Abstractions.ITestoComuneStore>()));
         services.AddScoped<IFrozenSectionRegistry, FrozenSectionRegistry>();
         services.AddScoped<IFrozenSectionReader, FrozenSectionReader>();   // doc 10 §3d: lettura frozen al view
         services.AddScoped<IAccViewDerivationService, AccViewDerivationService>();

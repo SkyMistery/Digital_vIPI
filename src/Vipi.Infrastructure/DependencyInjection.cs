@@ -145,6 +145,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentLibrary, EfAttachmentLibrary>();
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentTextSource, EfAttachmentTextSource>();
         services.AddScoped<Vipi.Application.Abstractions.IPageIntroStore, EfPageIntroStore>();
+        // Il testo comune di una sezione (S127): la stessa riga di SharedBlocks delle intro, un'altra chiave.
+        services.AddScoped<Vipi.Application.Abstractions.ITestoComuneStore, EfTestoComuneStore>();
         services.AddScoped<Vipi.Application.Airspace.IAirspaceCatalog, EfAirspaceCatalog>();
         services.AddScoped<Vipi.Application.Airspace.ISectorAirspaceBindings, EfSectorAirspaceBindings>();
         // ⚠️ SINGLETON, e va prima delle due porte che lo alzano: il gettone dei cambi di forma vive quanto il

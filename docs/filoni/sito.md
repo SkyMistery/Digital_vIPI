@@ -2917,6 +2917,15 @@
   occupando il pool per circa 5 s: coi 3 s cade 2 volte su 2 con la stessa firma, coi 10 passa 2 su 2. Tolti i «3 s» a
   mano anche dalle altre tre classi della famiglia (Audit, Ricerca, Struttura: 13 attese), che non erano ancora cadute.
   Classi toccate 5 volte su 5 verdi su net8 e net10, suite Ui intera verde (2119 per TFM, conteggi invariati).
+- 🔨 **S127** (22-ott, chiesto dal committente) **testo comune delle torri radar**: due callout uguali per tutti gli
+  scali con torre radar (obbligo di leggere le linee guida, con l'allegato; i cinque usi consentiti del radar alla
+  TWR), scritti una volta e mostrati in testa alla «Tecnica operativa» di ognuno. Ragionato prima col committente:
+  testo **condiviso**, non copiato; **congelato** con la release (sua scelta), e quando cambia gli scali pubblicati
+  vanno in «Da fare» come da ripubblicare (`ImpactKind.CommonTextChanged`); lo modificano **solo gli admin**, dal
+  riquadro grigio in testa alla sezione di qualunque scalo. Nessuna migrazione: una riga di `SharedBlocks`. Il
+  catalogo non cambia. Carta `docs/feature/2026-10-22-testo-comune.md`. Provato a schermo su DB nuovo (LIRQ): la prova
+  ha trovato il paragrafo dello scalo fra i due callout comuni (`SectionBody` leggeva gli ordini negativi come
+  «sconosciuti»), corretto con test rosso prima. Non visti: vSOP militare, pagina inglese, unione, allegato nel callout.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

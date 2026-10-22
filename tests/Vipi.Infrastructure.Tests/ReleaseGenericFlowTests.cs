@@ -473,6 +473,8 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
 
         public Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default) =>
             throw new InvalidOperationException("guasto simulato nella riconciliazione");
+        public Task<ImpactDriftResult> RunTestoComuneAsync(CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 
     /// <summary>Il registro degli stati, ridotto a quel che la pubblicazione ci scrive.</summary>
