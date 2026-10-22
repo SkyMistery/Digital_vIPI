@@ -77,6 +77,27 @@
                     <p class="lab-nota" data-stato-aip>Repo: <code>@(Vipi.SectorLab.Core.Git.Invio.RepoGitHub(repo.Remoto) ?? repo.Remoto)</code> · ramo
                         <code>@(repo.Ramo ?? "staccato")</code> · @repo.InParole()</p>
                 }
+                @* I due cicli (carta «L'AIP intero», passo 8): quale è in vigore, quale viene dopo, quale è superato. *@
+                @if (Lab.StatoDeiCicliDellAip is { } cicli && Tutti(cicli).Any())
+                {
+                    <p class="lab-nota" data-cicli-aip>Cicli: @(cicli.InVigore is null ? $"il {cicli.DiOggi}, in vigore oggi, non c'è · " : "")@string.Join(" · ",
+                        Tutti(cicli).Select(c => $"{c} {cicli.Dice(c)}"))</p>
+                    @foreach (var vecchio in cicli.DaTogliere)
+                    {
+                        @if (_daTogliere == vecchio)
+                        {
+                            <p class="lab-avviso-breve">Si cancellano i PDF di <code>AIP @vecchio</code>@(Lab.CartellaDellAipEspanso is { } e && !Vipi.SectorLab.Core.PdfAip.RepoDellAip.EUnRepo(e) ? $" e il suo modello in {e}" : ""): si riscaricano da ENAV, se servono.
+                                @(Lab.CartellaDellAipEspanso is { } r && Vipi.SectorLab.Core.PdfAip.RepoDellAip.EUnRepo(r) ? "Nel repo dell'AIP espanso il ciclo resta, sul suo ramo." : "")</p>
+                            <button type="button" class="lab-tasto" data-tasto="togli-ciclo-sicuro" @onclick="() => Togli(vecchio)">Sì, togli il @vecchio</button>
+                            <button type="button" class="lab-tasto lab-tasto-tenue" @onclick="() => _daTogliere = null">Lascia stare</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="togli-ciclo" title="Il @vecchio non è più in vigore: toglie la sua cartella dei PDF"
+                                    @onclick="() => _daTogliere = vecchio">Togli il @vecchio…</button>
+                        }
+                    }
+                }
                 <label class="lab-nota">
                     Ciclo
                     <input class="lab-campo lab-campo-corto" value="@_ciclo" data-campo="ciclo" maxlength="4" inputmode="numeric"
@@ -278,13 +299,14 @@
 @code {
     private string? _rifiuto;
     private string? _ciclo;
+    private string? _daTogliere;
     private string? _dove;
     private IReadOnlyList<string> _pdf = [];
 
     protected override async Task OnInitializedAsync()
     {
         Lab.Cambiata += Aggiorna;
-        _ciclo = Lab.CicloDiOggi;
+        _ciclo = Lab.CicloDaLeggere;
         _pdf = Lab.PdfDellAip;
         _amdt = Lab.EmendamentoInDownload;
         await Lab.RileggiIlRepoDellAipAsync();
@@ -294,6 +316,17 @@
     {
         if (await Lab.ScegliCartella!("Dove mettere l'AIP espanso (nuova o vuota)", _dove) is { } scelta)
             _dove = scelta;
+    }
+
+    /// <summary>I cicli che il Lab ha, in ordine.</summary>
+    private static IEnumerable<string> Tutti(Vipi.SectorLab.Core.PdfAip.StatoDeiCicli c) =>
+        new[] { c.InVigore, c.Successivo }.OfType<string>().Concat(c.Prossimi).Concat(c.Superati).Distinct().Order(StringComparer.Ordinal);
+
+    private void Togli(string ciclo)
+    {
+        _daTogliere = null;
+        _rifiuto = Lab.TogliIlCiclo(ciclo) ? null : Lab.Rifiuto;
+        if (_ciclo == ciclo) _ciclo = Lab.CicloDaLeggere;
     }
 
     private async Task PrendiLEspanso() => _rifiuto = await Lab.PrendiLAipEspansoAsync(_dove) ? null : Lab.Rifiuto;

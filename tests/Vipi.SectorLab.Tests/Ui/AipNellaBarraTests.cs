@@ -89,6 +89,52 @@ public sealed class AipNellaBarraTests : IDisposable
     }
 
     // Slice 1b: «Confronta i CTR», dall'AIP espanso al sector aperto; un clic sulla riga apre la voce del sector.
+    // Carta «L'AIP intero», passo 8: il 2611 fino al 25 novembre, il 2612 dal 26; il campo, l'indice e i confronti aprono
+    // quello in vigore, l'altro si guarda; al cambio il 2611 si toglie, col gesto confermato.
+    [Fact]
+    public async Task IDueCicli_IlCampo_LIndice_ETogliIlSuperato()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pdf = Path.Combine(_fuori, "AIP");
+        Assert.True(_lab.CambiaLaCartellaDeiPdf(pdf), _lab.Rifiuto);
+        Assert.True(_lab.CambiaLAipEspanso(Path.Combine(_fuori, "espanso")), _lab.Rifiuto);
+        foreach (var (ciclo, nome) in new[] { ("2611", "LI R901 - Prova Uno"), ("2612", "LI R902 - Prova Due") })
+        {
+            var cartella = Directory.CreateDirectory(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, ciclo)).FullName;
+            await File.WriteAllBytesAsync(Path.Combine(cartella, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("06 AUG 2026", nome));
+            Assert.True(await _lab.LeggiLAipAsync(ciclo), _lab.Rifiuto);
+        }
+
+        // Il 25 novembre: in vigore il 2611, che si apre; il 2612 si guarda.
+        _lab.GiornoDeiCicli = () => new DateOnly(2026, 11, 25);
+        Assert.Equal("2611", _lab.CicloDaLeggere);
+        Assert.True(await _lab.GuardaIlCicloAsync(null), _lab.Rifiuto);
+        Assert.Equal("2611", _lab.StratoDellAip!.Ciclo);
+        Assert.True(await _lab.GuardaIlCicloAsync("2612"), _lab.Rifiuto);
+        Assert.Equal(("2612", "2612"), (_lab.StratoDellAip!.Ciclo, _lab.CicloGuardatoDellAip));
+        Assert.Empty(_lab.StatoDeiCicliDellAip.DaTogliere);
+
+        // Il 26: in vigore il 2612; il 2611 è superato e si toglie dal riquadro, con la conferma.
+        _lab.GiornoDeiCicli = () => new DateOnly(2026, 11, 26);
+        Assert.True(await _lab.GuardaIlCicloAsync(null), _lab.Rifiuto);
+        Assert.Equal(("2612", (string?)null), (_lab.StratoDellAip!.Ciclo, _lab.CicloGuardatoDellAip));
+        var pagina = _contesto.RenderComponent<Home>();
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Equal("2612", pagina.Find("[data-campo=ciclo]").GetAttribute("value"));
+            var cicli = pagina.Find("[data-cicli-aip]").TextContent;
+            Assert.Contains("2611 non più in vigore dal 26/11/2026", cicli, StringComparison.Ordinal);
+            Assert.Contains("2612 in vigore dal 26/11/2026", cicli, StringComparison.Ordinal);
+        }, TimeSpan.FromSeconds(10));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=togli-ciclo]").Click());
+        Assert.True(Directory.Exists(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, "2611")));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=togli-ciclo-sicuro]").Click());
+
+        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-tasto=togli-ciclo]")), TimeSpan.FromSeconds(10));
+        Assert.False(Directory.Exists(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, "2611")));
+        Assert.Equal(["2612"], _lab.CicliConIlModello);
+    }
+
     [Fact]
     public async Task ConfrontaICtr_LaListaEIlClicSullaVoce()
     {

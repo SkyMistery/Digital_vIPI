@@ -659,3 +659,41 @@ tutto con ENR 3.4) e i punti delle WAYPOINT LIST (2 514) sono nel modello. Dette
 coordinate di 25 punti (segnalazioni «punto»); da sapere: le tabelle ICP disegnate di LIRP 6 e l'attesa senza «Path Terminator» di LIDT 5 non si
 leggono. Il passo 8 (i due cicli) è il prossimo; da proporre al committente, se vuole, il seguito della 7b (la prosa che
 comincia dalla fine della salita iniziale, 32 SID di Alghero).
+
+### Passo 8 — i due cicli (via del committente, 22 ottobre: «vai, procedi»)
+
+Proposte dell'agente accettate col via: **il ciclo vecchio si toglie solo con un gesto confermato**, il Lab non cancella
+niente da solo; **i confronti col sector lavorano sul ciclo in vigore**, il successivo si guarda soltanto fino alla sua data.
+Le correzioni sono dello Stato (`correzioni/LI…`), non del ciclo: valgono per tutti i cicli, e lì non serve una regola nuova.
+
+- **`Core.PdfAip.CicliDellAip`** (`StatoDeiCicli`): dai cicli che il Lab ha — le cartelle dei PDF (`AIP 2611`) e i
+  modelli dell'AIP espanso (`2611\li.json`) — e dal giorno, col calendario AIRAC che c'era già (`CicloAirac`):
+  `DiOggi` (il ciclo in vigore oggi), `InVigore` (lui, se il Lab ce l'ha), `Successivo` (il ciclo subito dopo, se c'è),
+  `Prossimi` (quelli dopo ancora: l'AMDT esce sei settimane prima), `Superati`. `DaAprire` = in vigore, se no il
+  successivo, se no il primo dei prossimi, se no l'ultimo superato. `DaTogliere` = i superati, **solo se il Lab ha il ciclo in
+  vigore**. `Dice` in parole: «in vigore dal 29/10/2026», «non ancora in vigore: dal 26/11/2026», «non più in vigore dal
+  26/11/2026».
+- **`CicliDellAip.Togli`**: toglie la cartella dei PDF del ciclo superato (si riscaricano) e, **se l'AIP espanso non è un
+  repo**, il suo modello; nel repo dell'AIP espanso il ciclo resta sul suo ramo `aip/<ciclo>`, con la sua storia (fondere e
+  togliere lì è del committente). Rifiuta un ciclo non superato, o se manca quello in vigore.
+- **Nel Lab**: il campo «Ciclo» propone il ciclo da aprire fra le cartelle dei PDF (prima proponeva quello di oggi, che
+  sul PC del committente non c'è: «Leggi» si rifiutava); il riquadro AIP dice i cicli («Cicli: 2610 in vigore dal
+  01/10/2026 · 2611 non ancora in vigore: dal 29/10/2026 · 2612 non ancora in vigore: dal 26/11/2026») e, dopo il cambio,
+  «Togli il 2611…» con la conferma («Sì, togli il 2611» / «Lascia stare»). Mappa e indice aprono il ciclo da aprire fra i
+  modelli, con «Guarda il 2611», «Guarda il 2612» sotto il titolo dell'indice; il ciclo appena letto si guarda da sé. I
+  cinque confronti col sector (aree, ENR 3, ENR 4, procedure, AD 2) prendono sempre il ciclo da aprire: prima prendevano
+  l'ultimo letto o la cartella più nuova, cioè il 2612 prima della sua data.
+
+**«Finita quando» misurato** (test con l'orologio spostato, `GiornoDeiCicli`): il 25 novembre 2026 il Lab apre il 2611 e il
+2612 si guarda; il 26 apre il 2612, il 2611 è «non più in vigore dal 26/11/2026» e «Togli il 2611…» → «Sì» toglie la sua
+cartella dei PDF e il suo modello. Il 22 ottobre (oggi) con 2611 e 2612 il Lab apre il successivo, il 2611. Sul banco, con
+la data vera e il 2610 fra i modelli: «Cicli: 2610 in vigore dal 01/10/2026 · 2611 … · 2612 …», il campo propone 2611 (i
+PDF che ci sono), l'indice apre il 2610 e «Guarda il 2611» passa al 2611.
+
+Test: Lab 1 399 (+7: sei del Core, uno della pagina).
+
+#### Il passo 8, chiuso — e la carta
+
+I passi della carta sono tutti fatti: 1, 7, 2, 3, 4, 5, 6, 8. Restano aperti col committente: Magra (dividere i due
+poligoni?), `li-ad2.json` (12 MB: un file per scalo?), l'avvicinamento come una procedura per segmento; dopo, fuori da
+questa carta, AIP SUP ed emendamenti non AIRAC, uno per uno (§2).

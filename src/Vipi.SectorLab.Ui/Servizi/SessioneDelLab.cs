@@ -4614,8 +4614,80 @@ public sealed class SessioneDelLab
     /// <summary>Sta leggendo i PDF.</summary>
     public bool StaLeggendoLAip { get; private set; }
 
-    /// <summary>Il ciclo AIRAC in vigore oggi: quello che «Leggi» propone.</summary>
-    public string CicloDiOggi => Core.PdfAip.CicloAirac.Di(DateOnly.FromDateTime(DateTime.Now)).Nome;
+    /// <summary>Il ciclo AIRAC in vigore oggi.</summary>
+    public string CicloDiOggi => Core.PdfAip.CicloAirac.Di(GiornoDeiCicli()).Nome;
+
+    /// <summary>Il giorno per i cicli dell'AIP (carta «L'AIP intero», passo 8); i test lo spostano.</summary>
+    internal Func<DateOnly> GiornoDeiCicli { get; set; } = () => DateOnly.FromDateTime(DateTime.Now);
+
+    /// <summary>I cicli dell'AIP che il Lab ha (le cartelle dei PDF e i modelli dell'AIP espanso), rispetto a oggi (passo 8).</summary>
+    public Core.PdfAip.StatoDeiCicli StatoDeiCicliDellAip =>
+        Core.PdfAip.CicliDellAip.Di(Core.PdfAip.CicliDellAip.Presenti(CartellaDeiPdf, CartellaDellAipEspanso), GiornoDeiCicli());
+
+    /// <summary>
+    /// Il ciclo che «Leggi» propone (passo 8): fra le cartelle dei cicli dei PDF quello in vigore, se no il successivo; senza
+    /// cartelle dei cicli, quello di oggi.
+    /// </summary>
+    public string CicloDaLeggere =>
+        (CartellaDeiPdf is { } pdf ? Core.PdfAip.CicliDellAip.Di(Core.PdfAip.EmendamentoDellAip.CicliNellaCartella(pdf), GiornoDeiCicli()).DaAprire : null)
+        ?? CicloDiOggi;
+
+    /// <summary>I cicli che hanno il modello nell'AIP espanso (passo 8): quelli che si possono guardare.</summary>
+    public IReadOnlyList<string> CicliConIlModello => Core.PdfAip.CicliDellAip.ConIlModello(CartellaDellAipEspanso);
+
+    /// <summary>Il ciclo scelto per guardarlo sulla mappa e nell'indice (passo 8); null: quello dei confronti.</summary>
+    public string? CicloGuardatoDellAip { get; private set; }
+
+    /// <summary>
+    /// Il ciclo dei confronti col sector (passo 8, proposta accettata il 22 ottobre): fra i modelli dell'AIP espanso quello in
+    /// vigore, se no il successivo. Un ciclo dopo si guarda e basta, fino alla sua data.
+    /// </summary>
+    private string? CicloDeiConfronti(string espanso) =>
+        Core.PdfAip.CicliDellAip.Di(Core.PdfAip.CicliDellAip.ConIlModello(espanso), GiornoDeiCicli()).DaAprire;
+
+    /// <summary>Il ciclo sulla mappa e nell'indice: quello scelto, se il suo modello c'è, se no quello dei confronti.</summary>
+    private string? CicloSullaMappa(string espanso) =>
+        CicloGuardatoDellAip is { } guardato && File.Exists(Core.PdfAip.AipEspanso.File(espanso, guardato)) ? guardato : CicloDeiConfronti(espanso);
+
+    /// <summary>
+    /// «Guarda il 2612» (passo 8): mette sulla mappa e nell'indice un altro ciclo dell'AIP espanso, o (null) torna a quello
+    /// dei confronti.
+    /// </summary>
+    public async Task<bool> GuardaIlCicloAsync(string? ciclo)
+    {
+        if (CartellaDellAipEspanso is not { } espanso)
+            return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
+        if (ciclo is not null && !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
+            return Rifiuta($"Nell'AIP espanso il {ciclo} non c'è: «Leggi nell'AIP espanso» prima.");
+        CicloGuardatoDellAip = ciclo == CicloDeiConfronti(espanso) ? null : ciclo;
+        return await MostraLAipAsync(true).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// «Togli il 2611» (passo 8): toglie un ciclo che non è più in vigore — la sua cartella dei PDF e, se l'AIP espanso non è
+    /// un repo, il suo modello. Solo su questo gesto, confermato: il Lab non toglie niente da solo.
+    /// </summary>
+    public bool TogliIlCiclo(string ciclo)
+    {
+        if (CartellaDeiPdf is not { } pdf)
+            return Rifiuta("Manca la cartella dei PDF dell'AIP: sceglila nelle Impostazioni.");
+        try
+        {
+            if (Core.PdfAip.CicliDellAip.Togli(pdf, CartellaDellAipEspanso, ciclo, GiornoDeiCicli()) is { } perche)
+                return Rifiuta(perche);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"Non sono riuscito a togliere il {ciclo}: {e.Message}");
+        }
+        Registro.Scrivi("aip", $"tolto il ciclo {ciclo}: non più in vigore");
+        if (CicloGuardatoDellAip == ciclo) CicloGuardatoDellAip = null;
+        if (UltimoAipEspanso?.Ciclo == ciclo) UltimoAipEspanso = null;
+        Rifiuto = null;
+        Avvisa();
+        return true;
+    }
 
     /// <summary>
     /// «Prendi i PDF da Download» (carta F6 §3): sposta i PDF dell'AIP dalla cartella Download in quella dei PDF. Solo su
@@ -4653,7 +4725,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Manca la cartella dei PDF dell'AIP: sceglila nelle Impostazioni.");
         if (Core.PdfAip.AipEspanso.PercheNonVa(CartellaDellAipEspanso, pdf) is { } perche)
             return Rifiuta(perche);
-        var nome = string.IsNullOrWhiteSpace(ciclo) ? CicloDiOggi : ciclo.Trim();
+        var nome = string.IsNullOrWhiteSpace(ciclo) ? CicloDaLeggere : ciclo.Trim();
         if (!Core.PdfAip.CicloAirac.Valido(nome))
             return Rifiuta($"«{nome}» non è un ciclo AIRAC: quattro cifre, l'anno e il numero (2611).");
 
@@ -4677,6 +4749,8 @@ public sealed class SessioneDelLab
             var esito = await Task.Run(() => Core.PdfAip.AipEspanso.Leggi(file, espanso, nome)).ConfigureAwait(false);
             Registro.Scrivi("aip", $"AIP espanso {nome}: {esito.Letti.Count} PDF letti su {esito.Pdf}, {esito.Quanti()}, {esito.Problemi.Count} segnalazioni{(esito.CorrezioniInParole() is { } c ? ", correzioni: " + c : "")} → {esito.Scritto}");
             UltimoAipEspanso = esito;
+            // Il ciclo appena letto si guarda sulla mappa, anche se non è quello dei confronti (il successivo).
+            CicloGuardatoDellAip = nome == CicloDeiConfronti(espanso) ? null : nome;
             MessaggioDellAip = Core.PdfAip.RepoDellAip.MessaggioProposto(esito);
             Rifiuto = null;
             await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
@@ -4772,10 +4846,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = UltimoAipEspanso?.Ciclo
-                    ?? (Directory.Exists(espanso)
-                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
-                        : null);
+        var ciclo = CicloDeiConfronti(espanso);
         if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
@@ -4818,7 +4889,7 @@ public sealed class SessioneDelLab
     public IReadOnlyList<StratoDellaMappa> StratiDaMostrare => StratiDi(SpazioAttivo);
 
     /// <summary>
-    /// «Mostra sulla mappa» (F6): legge l'AIP espanso del ciclo — l'ultimo letto, o il più recente nella cartella — e lo
+    /// «Mostra sulla mappa» (F6): legge l'AIP espanso del ciclo — quello in vigore, o quello scelto (passo 8) — e lo
     /// mette nello strato «AIP espanso», acceso. Le attese stanno dove il sector ha il loro punto. Spento, lo strato resta in
     /// memoria fino alla prossima lettura.
     /// </summary>
@@ -4836,10 +4907,7 @@ public sealed class SessioneDelLab
         }
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = UltimoAipEspanso?.Ciclo
-                    ?? (Directory.Exists(espanso)
-                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
-                        : null);
+        var ciclo = CicloSullaMappa(espanso);
         if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
@@ -5312,10 +5380,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = UltimoAipEspanso?.Ciclo
-                    ?? (Directory.Exists(espanso)
-                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
-                        : null);
+        var ciclo = CicloDeiConfronti(espanso);
         if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
@@ -5356,10 +5421,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = UltimoAipEspanso?.Ciclo
-                    ?? (Directory.Exists(espanso)
-                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
-                        : null);
+        var ciclo = CicloDeiConfronti(espanso);
         if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
@@ -5863,10 +5925,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = UltimoAipEspanso?.Ciclo
-                    ?? (Directory.Exists(espanso)
-                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
-                        : null);
+        var ciclo = CicloDeiConfronti(espanso);
         if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try
@@ -6128,10 +6187,7 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = UltimoAipEspanso?.Ciclo
-                    ?? (Directory.Exists(espanso)
-                        ? Directory.EnumerateDirectories(espanso).Select(Path.GetFileName).Where(Core.PdfAip.CicloAirac.Valido).Order(StringComparer.Ordinal).LastOrDefault()
-                        : null);
+        var ciclo = CicloDeiConfronti(espanso);
         if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
         try

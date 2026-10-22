@@ -9,6 +9,16 @@
 *@
 <div class="lab-indice-aip" data-indice-aip>
     <h2 class="lab-riquadro-titolo">AIP espanso @(Lab.StratoDellAip is { } s ? $"· ciclo {s.Ciclo}" : "")</h2>
+    @* I due cicli (carta «L'AIP intero», passo 8): che cos'è quello mostrato, e gli altri da guardare. *@
+    @if (Lab.StratoDellAip is { } mostrato)
+    {
+        <p class="lab-nota" data-ciclo-indice>@Lab.StatoDeiCicliDellAip.Dice(mostrato.Ciclo)
+            @foreach (var altro in Lab.CicliConIlModello.Where(c => c != mostrato.Ciclo))
+            {
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="guarda-ciclo" data-ciclo="@altro" @onclick="() => Lab.GuardaIlCicloAsync(altro)">Guarda il @altro</button>
+            }
+        </p>
+    }
     @if (Lab.StratoDellAip is not { } strato)
     {
         @if (_caricando)
