@@ -385,7 +385,8 @@ public sealed class ConfrontoDiAd2Tests : IDisposable
         var caselle = pagina.FindAll("[data-casella='file-ad2']");
         Assert.Equal([true, true], caselle.Select(c => c.HasAttribute("checked")));
         Assert.Equal("2", pagina.Find("[data-anteprima-metti]").GetAttribute("data-anteprima-metti"));
-        pagina.Find("[data-casella='file-ad2'][value$='lirr.rw']").Change(false);
+        // Trovare e cambiare nello stesso giro del renderer: la pagina si ridisegna da sé (CI 22-ott, UnknownEventHandlerIdException).
+        await pagina.InvokeAsync(() => pagina.Find("[data-casella='file-ad2'][value$='lirr.rw']").Change(false));
         pagina.WaitForAssertion(() => Assert.Equal("1", pagina.Find("[data-anteprima-metti]").GetAttribute("data-anteprima-metti")));
 
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto='metti-nel-file']").Click());

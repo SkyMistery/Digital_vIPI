@@ -404,7 +404,9 @@ public sealed class AipNellaBarraTests : IDisposable
         // 22 ottobre: la casella sta nell'Indice, che ha la mappa («Lettura e consegna» è una pagina intera).
         await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aipindice]").Click());
         // Il Confronti ha già caricato lo strato: si aspetta che il gestore della casella abbia finito di ricaricarlo.
-        await pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        // Trovare e cambiare nello stesso giro del renderer: l'Indice, appena aperto, carica lo strato e si ridisegna
+        // (CI 22-ott, UnknownEventHandlerIdException).
+        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true }));
 
         pagina.WaitForAssertion(() =>
         {
@@ -445,7 +447,9 @@ public sealed class AipNellaBarraTests : IDisposable
         // 22 ottobre: la casella sta nell'Indice, che ha la mappa («Lettura e consegna» è una pagina intera).
         await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aipindice]").Click());
         // Il Confronti ha già caricato lo strato: si aspetta che il gestore della casella abbia finito di ricaricarlo.
-        await pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        // Trovare e cambiare nello stesso giro del renderer: l'Indice, appena aperto, carica lo strato e si ridisegna
+        // (CI 22-ott, UnknownEventHandlerIdException).
+        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true }));
         pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-aip-strato]")), TimeSpan.FromSeconds(10));
         await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", 0));
         pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-tasto=correggi-area]")), TimeSpan.FromSeconds(10));
@@ -538,7 +542,9 @@ public sealed class AipNellaBarraTests : IDisposable
         // 22 ottobre: la casella sta nell'Indice, che ha la mappa («Lettura e consegna» è una pagina intera).
         await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aipindice]").Click());
         // Il Confronti ha già caricato lo strato: si aspetta che il gestore della casella abbia finito di ricaricarlo.
-        await pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        // Trovare e cambiare nello stesso giro del renderer: l'Indice, appena aperto, carica lo strato e si ridisegna
+        // (CI 22-ott, UnknownEventHandlerIdException).
+        await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true }));
         pagina.WaitForAssertion(() => Assert.Contains("2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
 
         // Il punto è la seconda voce dello strato, dopo l'area.
