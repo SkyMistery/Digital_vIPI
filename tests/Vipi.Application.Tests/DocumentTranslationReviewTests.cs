@@ -42,7 +42,10 @@ public class DocumentTranslationReviewTests
         // «Negato» resta il nome che i test usano, ma ora dice un LIVELLO: chi non arriva a Editor non
         // corregge una traduzione, come non scrive il documento.
         public bool Negato { get; set; }
-        public VipiRole Role => Negato ? VipiRole.DivisionStaff : VipiRole.Admin;
+
+        /// <summary>Editor ma non admin: scrive il documento, non il testo comune delle torri radar (S127).</summary>
+        public bool SoloEditor { get; set; }
+        public VipiRole Role => Negato ? VipiRole.DivisionStaff : SoloEditor ? VipiRole.Editor : VipiRole.Admin;
         public bool IsAdmin => Role >= VipiRole.Admin;
         public int? CurrentUserId => 42;
         public string? CurrentName => "chi corregge";
@@ -74,8 +77,130 @@ public class DocumentTranslationReviewTests
     // (è `RevisioneAsync` privata della lingua sorgente), e le implementazioni di default si vedono solo
     // attraverso l'interfaccia. Chiamarla sulla classe concreta non compila.
     private static IDocumentTranslationReview Servizio(
-        EditableDocument? doc, MemoriaDiTraduzioneFinta memoria, AuthzFinto? authz = null) =>
-        new DocumentTranslationReview(new EditingFinto(doc), memoria, authz ?? new AuthzFinto());
+        EditableDocument? doc, MemoriaDiTraduzioneFinta memoria, AuthzFinto? authz = null,
+        ITestoComuneStore? comune = null) =>
+        new DocumentTranslationReview(new EditingFinto(doc), memoria, authz ?? new AuthzFinto(), comune);
+
+    // ---- Il testo comune delle torri radar (S127) ------------------------------------------------------------------
+    //
+    // Il committente (22 ottobre 2026): «la parte comune di torre radar non sapevo dove si traducesse». La traduceva la
+    // macchina, ma nessun pannello la mostrava: non sta nel documento. Ora la mostra il pannello di ogni documento che
+    // ha la «Tecnica operativa», segnata, e la corregge solo un admin — come il testo stesso.
+
+    /// <summary>Il deposito del testo comune, con i blocchi che gli si danno.</summary>
+    private sealed class TestoComuneFinto : ITestoComuneStore
+    {
+        private readonly List<ExtraBlock> _blocchi;
+        public TestoComuneFinto(params string[] paragrafi) =>
+            _blocchi = paragrafi.Select(p => new ExtraBlock { Format = BlockFormat.Prose, Text = p }).ToList();
+
+        public Task<IReadOnlyList<ExtraBlock>> LeggiAsync(string sezione, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ExtraBlock>>(
+                sezione == SectionKeys.RadarTowerTechnique ? _blocchi : new List<ExtraBlock>());
+
+        public Task SalvaAsync(string sezione, IReadOnlyList<ExtraBlock> blocchi, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+    }
+
+    private const string FraseComune = "La torre non fornisce vettoramento.";
+
+    /// <summary>Un documento d'aeroporto con la «Tecnica operativa» del radar di torre, dentro «Radar di torre».</summary>
+    private static EditableDocument ConTecnica(Language lingua, string? fraseDelloScalo = null)
+    {
+        var base_ = Sezione("Tecnica operativa", fraseDelloScalo);
+        var tecnica = new EditableSection
+        {
+            Id = 2, Title = base_.Title, SectionKey = SectionKeys.RadarTowerTechnique, Depth = 1, Order = 1,
+            Blocks = base_.Blocks, Children = Array.Empty<EditableSection>(),
+        };
+        var radar = new EditableSection
+        {
+            Id = 1, Title = "Radar di torre", SectionKey = SectionKeys.RadarTower, Depth = 0, Order = 1,
+            Blocks = Array.Empty<EditableBlock>(), Children = new[] { tecnica },
+        };
+        return Documento(lingua, radar);
+    }
+
+    [Fact]
+    public async Task Il_testo_comune_compare_segnato_nel_documento_che_ha_la_tecnica_operativa()
+    {
+        var memoria = new MemoriaDiTraduzioneFinta().Nota(FraseComune, "The tower does not provide vectoring.");
+
+        var righe = await Servizio(ConTecnica(Language.It), memoria, comune: new TestoComuneFinto(FraseComune))
+            .RigheAsync(7, "en");
+
+        var riga = Assert.Single(righe, r => r.Sorgente == FraseComune);
+        Assert.True(riga.Comune);
+        Assert.Equal("The tower does not provide vectoring.", riga.Tradotto);
+        // Le frasi del documento restano sue.
+        Assert.All(righe.Where(r => r.Sorgente != FraseComune), r => Assert.False(r.Comune));
+    }
+
+    [Fact]
+    public async Task Senza_la_tecnica_operativa_il_testo_comune_non_c_e()
+    {
+        var righe = await Servizio(Documento(Language.It, Sezione("Piste", "Pista unica.")),
+                new MemoriaDiTraduzioneFinta(), comune: new TestoComuneFinto(FraseComune))
+            .RigheAsync(7, "en");
+
+        Assert.DoesNotContain(righe, r => r.Sorgente == FraseComune);
+    }
+
+    /// <summary>Una frase che il documento ha già è sua: una riga sola, e la corregge l'Editor come sempre.</summary>
+    [Fact]
+    public async Task Una_frase_che_il_documento_ha_gia_non_si_ripete_e_resta_del_documento()
+    {
+        var righe = await Servizio(ConTecnica(Language.It, FraseComune), new MemoriaDiTraduzioneFinta(),
+                comune: new TestoComuneFinto(FraseComune))
+            .RigheAsync(7, "en");
+
+        var riga = Assert.Single(righe, r => r.Sorgente == FraseComune);
+        Assert.False(riga.Comune);
+    }
+
+    /// <summary>
+    /// Il testo comune è scritto in italiano: in un documento inglese non è «la sua lingua», e la memoria si legge con la
+    /// lingua del documento. Lì non compare; si rivede da un documento italiano, e la resa è la stessa per tutti.
+    /// </summary>
+    [Fact]
+    public async Task In_un_documento_inglese_il_testo_comune_non_compare()
+    {
+        var righe = await Servizio(ConTecnica(Language.En), new MemoriaDiTraduzioneFinta(),
+                comune: new TestoComuneFinto(FraseComune))
+            .RigheAsync(7, "it");
+
+        Assert.DoesNotContain(righe, r => r.Sorgente == FraseComune);
+    }
+
+    /// <summary>Una frase del testo comune la corregge solo un admin: cambia la resa di tutte le torri radar.</summary>
+    [Fact]
+    public async Task Una_frase_del_testo_comune_la_corregge_solo_un_admin()
+    {
+        var memoria = new MemoriaDiTraduzioneFinta();
+        var comune = new TestoComuneFinto(FraseComune);
+
+        await Assert.ThrowsAsync<EditNotAllowedException>(
+            () => Servizio(ConTecnica(Language.It), memoria, new AuthzFinto { SoloEditor = true }, comune)
+                .CorreggiAsync(7, "en", FraseComune, "The tower does not vector."));
+        Assert.Null(memoria.UltimaCorrezione);
+
+        await Servizio(ConTecnica(Language.It), memoria, new AuthzFinto(), comune)
+            .CorreggiAsync(7, "en", FraseComune, "The tower does not vector.");
+        Assert.Equal(FraseComune, memoria.UltimaCorrezione!.Value.Sorgente);
+    }
+
+    /// <summary>Le frasi del documento le corregge l'Editor anche dove c'è il testo comune: la regola nuova non le tocca.</summary>
+    [Fact]
+    public async Task Le_frasi_del_documento_le_corregge_ancora_l_Editor()
+    {
+        var memoria = new MemoriaDiTraduzioneFinta();
+
+        await Servizio(ConTecnica(Language.It, "Separazione minima 3 NM."), memoria, new AuthzFinto { SoloEditor = true },
+                new TestoComuneFinto(FraseComune))
+            .CorreggiAsync(7, "en", "Separazione minima 3 NM.", "Minimum separation 3 NM.");
+
+        Assert.Equal("Separazione minima 3 NM.", memoria.UltimaCorrezione!.Value.Sorgente);
+    }
 
     [Fact]
     public async Task Elenca_le_frasi_del_documento_con_la_loro_resa()

@@ -68,3 +68,29 @@ VETTORAMENTO»). Il committente: «ragioniamoci prima su», e «non saprei come 
   fa contare come scritta.
 - Generico per chiave di sezione: un'altra sezione con una parte comune è una chiave in più e un posto dove la vista
   derivata la congela.
+
+## 5. Dove si traduce (S128, 22 ottobre 2026)
+
+Il committente, dopo la 1.72.0: «la parte comune di torre radar non sapevo dove si traducesse». La traduceva la
+macchina (§2, `EfTranslatableCorpus`), ma **nessun posto la mostrava**: il pannello «Traduzione» dell'editor elenca le
+frasi del documento, e il testo comune nel documento non c'è; il Registro la teneva mescolata alle frasi di tutta la
+divisione.
+
+| Deciso | |
+|---|---|
+| Dove | Nel pannello **«Traduzione»** dell'editor di ogni vIPI/vSOP che ha la «Tecnica operativa» del radar di torre: le frasi del testo comune in coda, segnate **«testo comune»** (`RigaDaRivedere.Comune`, `DocumentTranslationReview`) |
+| Chi le corregge | Solo un **admin**, come il testo stesso: la resa vale per tutte le torri radar. Il servizio lo pretende sulla frase (`CorreggiAsync`); il pannello agli altri la mostra senza il tasto, e dice perché |
+| Il conto | Aprendo una frase comune non si contano i documenti (direbbe zero: la frase non sta in nessun documento): si dice che la correzione vale per tutte le torri radar |
+
+- **Stessa segmentazione** del giro che traduce (`DocumentTranslator.SegmentiSezione` su `TestoComune.ComeSezione`): con
+  un'altra, le impronte non coinciderebbero e il pannello direbbe «manca» a frasi già tradotte.
+- **Solo nei documenti italiani**: il testo comune è scritto in italiano, e la memoria si legge con la lingua del
+  documento. In un documento inglese non compare; la resa è una sola, e si rivede da un qualunque documento italiano.
+- **Anche** dove la torre è senza radar o la sezione è nascosta: chi scrive lo scalo può volerlo rileggere, e la resa è
+  la stessa per tutte.
+- Una frase che il documento ha **già** resta del documento (una riga sola, la corregge l'Editor come sempre).
+- **Prova a schermo** (DB nuovo, LIRQ con radar «sì», testo comune di due frasi, editor in inglese): le due frasi in
+  fondo al pannello, segnate; aperta da admin, la nota «vale per tutte le torri radar»; salvata → nella memoria come
+  traduzione umana it→en; l'anteprima inglese la mostra in testa alla «Operating technique». Non visto a schermo: il
+  pannello di chi non è admin (provato in bUnit), il vSOP.
+- La Guida, alla voce «Testo comune», dice dove si rilegge.

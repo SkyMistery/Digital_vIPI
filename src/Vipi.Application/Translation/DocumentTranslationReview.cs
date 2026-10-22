@@ -15,8 +15,10 @@ namespace Vipi.Application.Translation;
 /// <param name="Origine">Macchina o persona.</param>
 /// <param name="Riletta">Vero se una persona l'ha già guardata.</param>
 /// <param name="Dove">Dove compare nel documento — il titolo della sezione — per ritrovarla.</param>
+/// <param name="Comune">La frase è del <b>testo comune</b> delle torri radar (S127), non del documento: correggerla
+/// cambia la resa in tutte le torri radar insieme, e la corregge solo un admin — come il testo stesso.</param>
 public sealed record RigaDaRivedere(
-    string Sorgente, string Tradotto, TranslationOrigin Origine, bool Riletta, string Dove);
+    string Sorgente, string Tradotto, TranslationOrigin Origine, bool Riletta, string Dove, bool Comune = false);
 
 /// <summary>
 /// Le righe di un documento <b>più</b> la lingua in cui il documento è scritto, da una lettura sola.
@@ -92,12 +94,19 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
     private readonly ITranslationMemory _memoria;
     private readonly Auth.IEditAuthorizationService _authz;
 
+    /// <summary>
+    /// Il testo comune delle torri radar (S127). Opzionale: senza, il pannello mostra le sole frasi del documento,
+    /// com'era prima.
+    /// </summary>
+    private readonly ITestoComuneStore? _comune;
+
     public DocumentTranslationReview(IDocumentForReview editing, ITranslationMemory memoria,
-        Auth.IEditAuthorizationService authz)
+        Auth.IEditAuthorizationService authz, ITestoComuneStore? comune = null)
     {
         _editing = editing;
         _memoria = memoria;
         _authz = authz;
+        _comune = comune;
     }
 
     public async Task<RevisioneDocumento> RevisioneAsync(
@@ -126,11 +135,20 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
 
         var distinti = segmenti
             .GroupBy(x => x.Testo, StringComparer.Ordinal)
-            .Select(g => (Testo: g.Key, Dove: g.First().Dove))
+            .Select(g => (Testo: g.Key, Dove: g.First().Dove, Comune: false))
             .ToList();
+
+        // Il testo comune delle torri radar (S127), in coda: non sta nel documento, ma il lettore lo trova in testa alla
+        // «Tecnica operativa», ed era tradotto dalla macchina senza un posto dove rileggerlo (committente, 22 ottobre
+        // 2026: «non sapevo dove si traducesse»). Le frasi che il documento ha già restano sue.
+        var proprie = distinti.Select(x => x.Testo).ToHashSet(StringComparer.Ordinal);
+        foreach (var s in await FrasiComuniAsync(doc, sourceLang, targetLang, ct).ConfigureAwait(false))
+            if (proprie.Add(s)) distinti.Add((s, DoveComune, true));
+
         if (distinti.Count == 0) return new RevisioneDocumento(sourceLang, Array.Empty<RigaDaRivedere>());
 
         // Una lettura sola per tutto il documento: una query per frase sarebbe una corsa sul DbContext.
+        // ⚠️ La lingua del testo comune è la stessa del documento: `FrasiComuniAsync` lo porta solo lì.
         var note = await _memoria.LookupAsync(sourceLang, targetLang,
             distinti.Select(x => TranslationText.Hash(x.Testo)).Distinct(StringComparer.Ordinal).ToList(), ct)
             .ConfigureAwait(false);
@@ -143,11 +161,48 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
                 t?.TargetText ?? "",
                 t?.Origin ?? TranslationOrigin.Machine,
                 t?.Reviewed ?? false,
-                x.Dove);
+                x.Dove,
+                x.Comune);
         }).ToList();
 
         return new RevisioneDocumento(sourceLang, righe);
     }
+
+    /// <summary>Dove sta una frase del testo comune: non in una sezione del documento, ma in tutte le torri radar.</summary>
+    private static string DoveComune => Messaggio.Lingua(
+        "Testo comune delle torri radar (in testa alla Tecnica operativa)",
+        "Common text of the radar towers (at the top of the Operating technique)");
+
+    /// <summary>
+    /// Le frasi del testo comune che QUESTO documento mostra: se ha la «Tecnica operativa» del radar di torre, e se si
+    /// legge in un'altra lingua da quella in cui il testo comune è scritto.
+    ///
+    /// <para>⚠️ Solo nei documenti scritti nella lingua del testo comune (l'italiano): la memoria si legge con la
+    /// lingua del documento, e in un documento inglese le frasi italiane del testo comune non sono «la sua lingua».
+    /// Lì si rivedono da un qualunque documento italiano: la resa è una sola, la stessa per tutti.</para>
+    ///
+    /// <para>⚠️ Anche dove la torre è senza radar o la sezione è nascosta, e quindi il lettore oggi non lo vede: chi
+    /// scrive lo scalo può comunque volerlo rileggere, e la resa è la stessa in tutte le torri.</para>
+    /// </summary>
+    private async Task<IReadOnlyList<string>> FrasiComuniAsync(EditableDocument doc, string sourceLang, string targetLang,
+        CancellationToken ct)
+    {
+        var lingua = TestoComune.Sorgente == Language.En ? "en" : "it";
+        if (_comune is null
+            || !string.Equals(sourceLang, lingua, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(targetLang, lingua, StringComparison.OrdinalIgnoreCase)
+            || !HaLaSezione(doc.Sections, SectionKeys.RadarTowerTechnique))
+            return Array.Empty<string>();
+
+        // ⚠️ La stessa segmentazione del giro che traduce (`EfTranslatableCorpus`, `EfStatoTraduzione`): con un'altra,
+        // le impronte non coinciderebbero e il pannello direbbe «manca» a frasi già tradotte.
+        var blocchi = await _comune.LeggiAsync(SectionKeys.RadarTowerTechnique, ct).ConfigureAwait(false);
+        return DocumentTranslator.SegmentiSezione(TestoComune.ComeSezione(blocchi)).Distinct(StringComparer.Ordinal).ToList();
+    }
+
+    private static bool HaLaSezione(IReadOnlyList<EditableSection> sezioni, string chiave) =>
+        sezioni.Any(s => string.Equals(s.SectionKey, chiave, StringComparison.OrdinalIgnoreCase)
+                         || HaLaSezione(s.Children, chiave));
 
     public Task<int> DocumentiToccatiAsync(string sorgente, CancellationToken ct = default) =>
         _memoria.DocumentiToccatiAsync(TranslationText.Normalize(sorgente), ct);
@@ -176,6 +231,16 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
         // parole, e una resa che li perde li perde solo in questa lingua.
         if (!TextProtector.StessiRiferimenti(sorgente, tradotto))
             throw new Aor.ValidationException(RiferimentiCambiati);
+
+        // ⚠️ Una frase del testo comune (S127) la corregge solo un admin, come il testo stesso: la resa vale per tutte
+        // le torri radar insieme. Si guarda la frase e non il clic: chi arriva da un'altra scheda non passa lo stesso.
+        // Se la frase sta anche nel documento, è sua e resta all'Editor — com'è sempre stato.
+        var norm = TranslationText.Normalize(sorgente);
+        var proprie = new List<(string Testo, string Dove)>();
+        foreach (var sezione in doc.Sections) Raccogli(sezione, sezione.Title, proprie);
+        if (!proprie.Any(p => string.Equals(p.Testo, norm, StringComparison.Ordinal))
+            && (await FrasiComuniAsync(doc, sourceLang, targetLang, ct).ConfigureAwait(false)).Contains(norm, StringComparer.Ordinal))
+            _authz.EnsureAtLeast(VipiRole.Admin);
 
         await _memoria.SaveHumanAsync(sourceLang, targetLang,
             TranslationText.Normalize(sorgente), TranslationText.Normalize(tradotto),

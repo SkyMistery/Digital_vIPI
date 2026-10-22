@@ -134,6 +134,9 @@
   <data name="TrEd_Missing" xml:space="preserve"><value>not translated</value></data>
   <data name="TrEd_Intro" xml:space="preserve"><value>The sentences of this document and how they read in {0}. You correct HOW it is said, never WHAT it says: the original text is changed in the editor.</value></data>
   <data name="TrEd_Where" xml:space="preserve"><value>In</value></data>
+  <data name="TrEd_CommonTag" xml:space="preserve"><value>common text</value></data>
+  <data name="TrEd_CommonTouches" xml:space="preserve"><value>This sentence belongs to the common text: the correction applies to every radar tower.</value></data>
+  <data name="TrEd_CommonAdminOnly" xml:space="preserve"><value>Sentence of the common text of the radar towers: an admin corrects it, and it applies to every tower.</value></data>
   <data name="TrEd_ToReview" xml:space="preserve"><value>to review</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Theme</value></data>
   <data name="Chrome_Version" xml:space="preserve"><value>Site version</value></data>

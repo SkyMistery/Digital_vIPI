@@ -4,6 +4,9 @@
    `IEditAuthorizationService`, che risolve l'identità dall'HttpContext. Il lavoro pesante — e la chiamata di
    rete — se lo fa in uno scope suo, dentro il servizio. *@
 @inject Vipi.Application.Translation.ITraduciOra TraduciOra
+@* Chi può correggere le frasi del testo comune delle torri radar (S127): solo un admin, come il testo stesso. Dal
+   circuito per la stessa ragione di `Revisione`: legge l'identità dall'HttpContext. *@
+@inject Vipi.Application.Auth.IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
 @using System.Globalization
 @using Microsoft.Extensions.DependencyInjection
@@ -134,13 +137,25 @@
                     <div class="tr-row">
                         <div class="tr-src">
                             <span class="muted tr-where">@L["TrEd_Where"] @r.Dove</span>
+                            @* Il testo comune delle torri radar (S127) non sta nel documento: lo si dice, perché
+                               correggerlo cambia la resa in tutte le torri radar insieme. *@
+                            @if (r.Comune)
+                            {
+                                <span class="pill neutral tr-common">@L["TrEd_CommonTag"]</span>
+                            }
                             <div>@r.Sorgente</div>
                         </div>
                         <div class="tr-dst">
                             @if (_aperta == r.Sorgente)
                             {
                                 <textarea class="tr-edit" rows="3" @bind="_bozza" @bind:event="oninput"></textarea>
-                                @if (_toccati > 1)
+                                @if (r.Comune)
+                                {
+                                    @* Il conto dei documenti qui non dice niente: la frase non sta in nessun documento,
+                                       sta in tutte le torri radar. Si dice quello, prima di salvare. *@
+                                    <p class="help">@L["TrEd_CommonTouches"]</p>
+                                }
+                                else if (_toccati > 1)
                                 {
                                     <p class="help">@L["Tr_TouchesDocs", _toccati]</p>
                                 }
@@ -151,6 +166,13 @@
                                     </button>
                                     <button class="btn ghost" disabled="@_busy" @onclick="Chiudi">@L["Common_Cancel"]</button>
                                 </div>
+                            }
+                            else if (r.Comune && !Authz.IsAdmin)
+                            {
+                                @* Si legge, non si corregge: lo fa un admin. Il servizio lo rifiuta comunque, e qui
+                                   si evita di far scrivere una correzione per niente. *@
+                                <span>@(string.IsNullOrWhiteSpace(r.Tradotto) ? L["TrEd_Missing"].Value : r.Tradotto)</span>
+                                <p class="help" style="margin:4px 0 0">@L["TrEd_CommonAdminOnly"]</p>
                             }
                             else
                             {
@@ -423,6 +445,8 @@
             _aperta = r.Sorgente;
             _bozza = r.Tradotto;
             _esito = null;
+            // Il testo comune non sta in nessun documento: contarli direbbe zero, e la verità è «tutte le torri».
+            if (r.Comune) { _toccati = 0; return; }
             await InFilaAsync(async () => { _toccati = await _lettura.DocumentiToccatiAsync(r.Sorgente); });
         }
         finally
