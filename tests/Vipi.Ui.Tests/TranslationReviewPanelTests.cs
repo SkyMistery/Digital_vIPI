@@ -66,11 +66,17 @@ public class TranslationReviewPanelTests : TestContext
             };
             if (DueRighe)
                 righe.Add(new("Riporta sottovento.", "Report downwind.", TranslationOrigin.Machine, false, "Circuito"));
+            if (ConComune)
+                righe.Add(new("La torre non fornisce vettoramento.", "The tower does not provide vectoring.",
+                              TranslationOrigin.Machine, false, "Testo comune", Comune: true));
             return Task.FromResult(new RevisioneDocumento("it", righe));
         }
 
         /// <summary>Vero: il documento ha due frasi da rivedere invece di una.</summary>
         public bool DueRighe { get; set; }
+
+        /// <summary>Vero: in coda c'è una frase del testo comune delle torri radar (S127).</summary>
+        public bool ConComune { get; set; }
 
         /// <summary>Se c'è, il conto dei documenti toccati resta fermo finché il test non lo lascia andare: la
         /// query vera sul DB remoto. ⚠️ Un cancello e non un <c>Task.Delay</c>: col ritardo a tempo la prova era
@@ -162,6 +168,19 @@ public class TranslationReviewPanelTests : TestContext
     private TraduciOraFinto _traduciOra = new();
     private StatoFinto _stato = new();
 
+    /// <summary>Chi guarda il pannello: admin o no. Serve alle frasi del testo comune (S127), che corregge solo un admin.</summary>
+    private sealed class AuthzFinta : Vipi.Application.Auth.IEditAuthorizationService
+    {
+        public bool Admin { get; set; } = true;
+        public Vipi.Domain.VipiRole Role => Admin ? Vipi.Domain.VipiRole.Admin : Vipi.Domain.VipiRole.Editor;
+        public bool IsAdmin => Admin;
+        public int? CurrentUserId => 42;
+        public string? CurrentName => "chi rilegge";
+        public void EnsureAdmin() { }
+    }
+
+    private AuthzFinta _authz = new();
+
     private RevisioneFinta Arrangia()
     {
         var revisione = new RevisioneFinta();
@@ -180,8 +199,50 @@ public class TranslationReviewPanelTests : TestContext
         Services.AddScoped<Vipi.Application.Translation.IStatoTraduzione>(_ => _stato);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+        _authz = new AuthzFinta();
+        Services.AddSingleton<Vipi.Application.Auth.IEditAuthorizationService>(_ => _authz);
         JSInterop.Mode = JSRuntimeMode.Loose;
         return revisione;
+    }
+
+    // ---- Il testo comune delle torri radar (S127) ------------------------------------------------------------------
+
+    /// <summary>
+    /// Il committente (22 ottobre 2026): «la parte comune di torre radar non sapevo dove si traducesse». La sua frase
+    /// sta nel pannello segnata «testo comune», e aprendola si dice che la correzione vale per tutte le torri radar —
+    /// non un conto di documenti, che per una frase che non sta in nessun documento direbbe zero.
+    /// </summary>
+    [Fact]
+    public async Task Una_frase_del_testo_comune_e_segnata_e_aperta_da_un_admin_dice_che_vale_per_tutte_le_torri()
+    {
+        var revisione = Arrangia();
+        revisione.ConComune = true;
+
+        var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
+        cut.WaitForState(() => cut.FindAll("button.tr-open").Count == 2, TimeSpan.FromSeconds(10));
+
+        Assert.Single(cut.FindAll(".tr-common"));
+        await cut.InvokeAsync(() => cut.FindAll("button.tr-open").Last().ClickAsync(new()));
+        cut.WaitForElement("textarea.tr-edit", TimeSpan.FromSeconds(10));
+
+        Assert.Contains("TrEd_CommonTouches", cut.Markup);
+        Assert.Equal(0, revisione.Conti);
+    }
+
+    /// <summary>Chi non è admin la legge e non la apre: lo dice la riga, e il servizio lo rifiuterebbe comunque.</summary>
+    [Fact]
+    public void Chi_non_e_admin_legge_la_frase_del_testo_comune_ma_non_la_corregge()
+    {
+        var revisione = Arrangia();
+        revisione.ConComune = true;
+        _authz.Admin = false;
+
+        var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
+        cut.WaitForState(() => cut.Markup.Contains("TrEd_CommonAdminOnly"), TimeSpan.FromSeconds(10));
+
+        // La frase del documento si apre ancora; quella comune no.
+        Assert.Single(cut.FindAll("button.tr-open"));
+        Assert.Contains("The tower does not provide vectoring.", cut.Markup);
     }
 
     /// <summary>
@@ -369,6 +430,7 @@ public class TranslationReviewPanelTests : TestContext
         Services.AddScoped<IDocumentTranslationReview>(_ => revisione);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+        Services.AddSingleton<Vipi.Application.Auth.IEditAuthorizationService>(new AuthzFinta());
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));

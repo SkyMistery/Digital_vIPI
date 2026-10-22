@@ -134,6 +134,9 @@
   <data name="TrEd_Missing" xml:space="preserve"><value>non tradotta</value></data>
   <data name="TrEd_Intro" xml:space="preserve"><value>Le frasi di questo documento e come si leggono in {0}. Si corregge COME si dice, mai COSA si dice: il testo originale si cambia nell'editor.</value></data>
   <data name="TrEd_Where" xml:space="preserve"><value>In</value></data>
+  <data name="TrEd_CommonTag" xml:space="preserve"><value>testo comune</value></data>
+  <data name="TrEd_CommonTouches" xml:space="preserve"><value>Questa frase è del testo comune: la correzione vale per tutte le torri radar.</value></data>
+  <data name="TrEd_CommonAdminOnly" xml:space="preserve"><value>Frase del testo comune delle torri radar: la corregge un admin, e vale per tutte le torri.</value></data>
   <data name="TrEd_ToReview" xml:space="preserve"><value>da rileggere</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Tema</value></data>
   <data name="Chrome_Version" xml:space="preserve"><value>Versione del sito</value></data>

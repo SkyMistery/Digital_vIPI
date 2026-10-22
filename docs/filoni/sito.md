@@ -2917,7 +2917,7 @@
   occupando il pool per circa 5 s: coi 3 s cade 2 volte su 2 con la stessa firma, coi 10 passa 2 su 2. Tolti i «3 s» a
   mano anche dalle altre tre classi della famiglia (Audit, Ricerca, Struttura: 13 attese), che non erano ancora cadute.
   Classi toccate 5 volte su 5 verdi su net8 e net10, suite Ui intera verde (2119 per TFM, conteggi invariati).
-- 🔨 **S127** (22-ott, chiesto dal committente) **testo comune delle torri radar**: due callout uguali per tutti gli
+- ✅ **S127** (**online in 1.72.0** dal 22-ott, §A165; chiesto dal committente) **testo comune delle torri radar**: due callout uguali per tutti gli
   scali con torre radar (obbligo di leggere le linee guida, con l'allegato; i cinque usi consentiti del radar alla
   TWR), scritti una volta e mostrati in testa alla «Tecnica operativa» di ognuno. Ragionato prima col committente:
   testo **condiviso**, non copiato; **congelato** con la release (sua scelta), e quando cambia gli scali pubblicati
@@ -2926,6 +2926,18 @@
   catalogo non cambia. Carta `docs/feature/2026-10-22-testo-comune.md`. Provato a schermo su DB nuovo (LIRQ): la prova
   ha trovato il paragrafo dello scalo fra i due callout comuni (`SectionBody` leggeva gli ordini negativi come
   «sconosciuti»), corretto con test rosso prima. Non visti: vSOP militare, pagina inglese, unione, allegato nel callout.
+- 🟢 **S128** (22-ott, committente: «la parte comune di torre radar non sapevo dove si traducesse»): le frasi del
+  **testo comune** delle torri radar nel pannello **«Traduzione»** dell'editor di ogni vIPI/vSOP con la «Tecnica
+  operativa», in coda e segnate «testo comune»; le corregge **solo un admin** (servizio e pannello), e la correzione
+  vale per tutte le torri. Prima le traduceva la macchina senza nessun posto dove rileggerle. Carta
+  `2026-10-22-testo-comune.md` §5; Guida alla voce «Testo comune».
+  - Solo nei documenti italiani (il testo comune è in italiano); stessa segmentazione del giro che traduce.
+  - **Codice comune**: `Vipi.Application` (`DocumentTranslationReview`, `RigaDaRivedere.Comune`). Nessuna migrazione,
+    niente `deploy/`. Toccati i due `.resx`, `TranslationReviewPanel`, `GuidaPage`.
+  - Test: App 3460 → 3466, Ui 2122 → 2124. A schermo su DB nuovo (LIRQ): righe segnate, correzione da admin salvata
+    come umana, anteprima inglese tradotta.
+  - Nello stesso giro il committente aveva segnalato la sezione che non si vedeva sui vSOP senza vIPI: riprodotto su
+    dati inventati (LIPI) e invece si vede — era un suo errore, chiuso senza modifiche.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
