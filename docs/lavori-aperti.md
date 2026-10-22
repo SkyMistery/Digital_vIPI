@@ -43,6 +43,40 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### ✅ A165 — 1.72.0 ONLINE: il testo comune delle torri radar (S127) (22 ottobre 2026)
+
+✅ Online dal 22 ottobre 2026: il committente conferma la 1.72 e `Schema 0`. Da fuori, da anonimo, alle 17:26Z: `/` 302,
+porta «Entra con IVAO», Ricerca e API settori 401, `vipi-theme.css?v=e393251a` (quello del pacchetto), `/vsop/health` e
+`/vsop/health/ready` Healthy, tempi di nuovo normali (`/` 0,27 s). ⚠️ Caricata prima della CI di `main`: GitHub Actions era
+degradato (incidente dalle 15:28Z) e la corsa su `9b4c3742` è partita solo alle 17:2xZ; l'albero fuso era identico a
+`160b698a` del Sito, verde in CI. Non guardati da qui, dietro il login: il riquadro del testo comune.
+
+MINOR **senza migrazioni**, misurata dalla **1.71.0** (`21af7c1`) che gira. Timbro **`1.72.0 · 0dc563d`**. Fusa da
+`sito/lavori` @ `160b698a` (cartellino 🟢, CI verde run 39801636883), fusione `741abd91` senza conflitti.
+- **S127**: due callout scritti una volta (riga `SharedBlocks` `section-common:radartower:technique`) e mostrati in testa
+  alla «Tecnica operativa» di ogni scalo con torre radar; congelati con la release (`AirportRadarTowerView.Comune`),
+  iniettati prima della traduzione (`TorreRadar.ConTestoComune`), modificabili solo dagli admin (`TestoComuneZone`);
+  «Da fare» calcola `ImpactKind.CommonTextChanged` (in fondo all'enum: i valori esistenti non si spostano). Carta
+  `docs/feature/2026-10-22-testo-comune.md`.
+- Codice comune: Domain (enum), Application. `const` solo nuove (`ImpactKind`, `Prefisso`, `Sorgente`, `PrimoOrdine`).
+- ⚠️ Non guardato sulla copia di produzione (il Sito lo chiedeva): se qualche scalo aveva già copiato a mano quei
+  callout, li vedrebbe due volte. Scritto nel foglio per il committente.
+
+**15 file** (`solo-15-file-1.72.0`): Domain, Application, Infrastructure, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`,
+`vipi-theme.css` (con `.br`/`.gz`) e `endpoints.json`, confrontati col publish della **1.71.0** (`publish_old/20261021c`):
+482 file, 23 con impronta diversa; fuori Hosting, Infrastructure.MySqlMigrations, AuroraBridge.Contracts e
+AuroraProfiles (sorgente invariato, solo MVID). Zip 6,23 MB, sha256
+`c94e91f7c4e92e4411493595b9c8401194392cae6168efa5d70a30782dc40d45`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3460, Infra 2250, Ui 2122). Prova sul percorso della
+produzione, su una copia del database di sviluppo (cancellata a fine prova): publish win-x64 della 1.71.0, poi LIRF con
+torre radar, poi publish win-x64 della 1.72.0: avvio pulito, `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`),
+nell'editor di LIRF la zona `testo-comune`, console e log del server puliti; `vipi-theme.css?v=e393251a`. Non visti sul
+pacchetto: il testo comune scritto e il «Da fare» che chiede di ripubblicare (provati dal Sito su DB nuovo). Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.72.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; scrivere il testo comune vero e ripubblicare gli scali che «Da fare»
+elenca. Rollback: le rinomine.
+
 ### ✅ A164 — 1.71.0 ONLINE: allegati nei callout, link, le note nei blocchi, via le note dei trasferimenti (S121–S126), migrazione DISTRUTTIVA (21 ottobre 2026)
 
 ✅ Online dal 21 ottobre 2026: il committente conferma la 1.71 e `Schema 0` (la migrazione `TogliNoteTrasferimenti` è
