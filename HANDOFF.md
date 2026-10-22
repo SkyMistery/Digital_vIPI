@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 22 ottobre 2026
+> ## ▶ Il punto — 22 ottobre 2026, ONLINE 1.72.0
+>
+> **✅ Online: 1.72.0** (`Schema 0` confermato; health Healthy, tempi di nuovo normali; §A165, timbro
+> `1.72.0 · 0dc563d`). In `main` non resta codice fuori pacchetto. Da fare per il committente: scrivere il testo comune
+> delle torri radar e ripubblicare gli scali che «Da fare» elenca. ▶ Prossima consegna possibile: togliere le colonne
+> Note di LVP, regole piste e aree. ⚠️ Aperto: SDK 10.0.402.
+>
+> ## Il punto — 22 ottobre 2026
 >
 > **📦 Pronta da caricare: 1.72.0** (§A165, timbro `1.72.0 · 0dc563d`, 15 file, zip `c94e91f7…`, MINOR senza
 > migrazioni, misurata dalla 1.71.0): Sito S127, il testo comune delle torri radar. Online è la **1.71.0** finché il

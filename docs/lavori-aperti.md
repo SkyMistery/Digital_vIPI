@@ -43,7 +43,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A165 — 1.72.0 PRONTA DA CARICARE: il testo comune delle torri radar (S127) (22 ottobre 2026)
+### ✅ A165 — 1.72.0 ONLINE: il testo comune delle torri radar (S127) (22 ottobre 2026)
+
+✅ Online dal 22 ottobre 2026: il committente conferma la 1.72 e `Schema 0`. Da fuori, da anonimo, alle 17:26Z: `/` 302,
+porta «Entra con IVAO», Ricerca e API settori 401, `vipi-theme.css?v=e393251a` (quello del pacchetto), `/vsop/health` e
+`/vsop/health/ready` Healthy, tempi di nuovo normali (`/` 0,27 s). ⚠️ Caricata prima della CI di `main`: GitHub Actions era
+degradato (incidente dalle 15:28Z) e la corsa su `9b4c3742` è partita solo alle 17:2xZ; l'albero fuso era identico a
+`160b698a` del Sito, verde in CI. Non guardati da qui, dietro il login: il riquadro del testo comune.
 
 MINOR **senza migrazioni**, misurata dalla **1.71.0** (`21af7c1`) che gira. Timbro **`1.72.0 · 0dc563d`**. Fusa da
 `sito/lavori` @ `160b698a` (cartellino 🟢, CI verde run 39801636883), fusione `741abd91` senza conflitti.
