@@ -4,7 +4,19 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 22 ottobre 2026: la carta «L'AIP intero e gli emendamenti», finita
+## Dove siamo — 23 ottobre 2026: le segnalazioni del 2611, B1-B3 fatte
+
+Letti gli 851 PDF del 2611, il Lab dava 542 segnalazioni: divise per causa (errori di stampa dell'AIP 33, cose che il
+lettore non sa leggere 471, avvisi voluti 38) nella carta [`2026-10-23-segnalazioni-2611.md`](../feature/2026-10-23-segnalazioni-2611.md);
+ordine approvato dal committente B2+B1+B3 → B5 → B7 → B6. **B1-B3 fatte** nel lettore della prosa (`ItalianAd2Prose`):
+le forme diverse delle stesse cose (TACAN, DVOR, R199, RIGHT, alternative per l'NDB), i DME degli ILS, le radioassistenze
+senza declinazione stampata; e un difetto trovato strada facendo: ogni virata della prosa usciva a destra (101 procedure).
+Sul 2611: 542 → 502 segnalazioni, +40 procedure lette, nessuna persa, le già lette uguali salvo le virate.
+**Prossimo**: B5. Il 22 ottobre la chat di prima si era fermata (crediti finiti) mentre lanciava la misura di partenza:
+nessun codice a metà; l'ambiente di prova del committente (`SectorLabProva`) è quello delle sue prove A1-A10, da non
+azzerare.
+
+## 22 ottobre 2026: la carta «L'AIP intero e gli emendamenti», finita
 
 Il committente, dopo la revisione dell'AIP espanso pezzo per pezzo sui PDF 2611 (21 ottobre), ha deciso di rifarlo per
 intero e di applicare gli emendamenti AIRAC: carta [`2026-10-21-aip-intero-e-emendamenti.md`](../feature/2026-10-21-aip-intero-e-emendamenti.md),

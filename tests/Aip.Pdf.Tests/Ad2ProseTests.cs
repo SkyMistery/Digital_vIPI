@@ -104,6 +104,46 @@ public sealed class Ad2ProseTests
         Assert.Equal(["IF RWY heading/1 NM OST DME", "TF NENIG"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Equal(1, Distanza(Stazioni["OST"].Position, tratti[0].Position!.Value), 2);
         Assert.Equal(250, Rotta(soglia, tratti[0].Position!.Value), 0);
+        // «turn left»: a sinistra (fino al 23 ottobre ogni virata della prosa usciva a destra).
+        Assert.Equal("L", tratti[1].Turn);
+    }
+
+    // Segnalazioni 2611, B2: le stesse cose scritte in un altro modo si leggono, e portano agli stessi tratti.
+    [Theory]
+    [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) until 14 NM LMT TACAN, then turn RIGHT bound to SUGEP.")]   // LICT: TACAN, RIGHT
+    [InlineData("DELIK – TR 310° (R130 LMT DVOR) until 14 NM LMT DME, then turn right bound to SUGEP.")]       // LICC: R199, DVOR
+    [InlineData("DELIK – TR 310° (RDL 130 LMT VOR or QDR 130° LMT NDB (TR 310°)) until 14 NM LMT DME, then turn right bound to SUGEP.")] // LICJ
+    [InlineData("DELIK – TR 310° (RDL/QDR 130 LMT VOR/NDB) until 14 NM LMT DME, then turn right bound to SUGEP IAF.")]   // LICT, LIEE
+    [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) AT 14 NM LMT DME turn right bound to SUGEP.")]             // LIBG: AT
+    public void LeFormeDiverse_StessiTratti(string prosa)
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T", prosa));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF DELIK", "CF RDL 130/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal("R", tratti[2].Turn);
+    }
+
+    // B1: la stessa distanza letta da un altro DME, fra parentesi, è un'alternativa: il percorso resta quello della prima.
+    [Theory]
+    [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) until 14NM LMT DME (or 15.5 NM IBX DME), then turn right bound to SUGEP.")]  // LIBD
+    [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) until 14 NM LMT DME (12NM IBXY DME), then turn right bound to SUGEP.")]      // LIRZ
+    public void LaDistanzaDaUnAltroDme_FraParentesi_SiToglie(string prosa)
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T", prosa));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF DELIK", "CF RDL 130/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+    }
+
+    // B2: un'alternativa che il lettore non sa togliere non diventa un tratto: si ferma e lo dice.
+    [Fact]
+    public void UnaAlternativaSconosciuta_SiFerma()
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T", "DELIK – TR 310° (RDL 130 LMT VOR OR QDR 130 LMT LOCATOR) until 14 NM LMT DME bound to SUGEP."));
+
+        Assert.Empty(tratti);
+        Assert.NotNull(problema);
     }
 
     [Fact]
@@ -174,5 +214,69 @@ public sealed class Ad2ProseTests
         Assert.Equal("SUGEP 4G", nonLetta.Designator);
         Assert.Contains("Leaving 4000 FT", perche, StringComparison.Ordinal);
         Assert.False(letto.Procedures[1].LegsFromDescription);
+    }
+
+    // Segnalazioni 2611, B1 e B3: un localizzatore o un NDB non stampano la declinazione. Si tengono: quella dello scalo, se
+    // è di uno scalo; se no quella del VOR più vicino che la stampa.
+    [Fact]
+    public void LeRadioassistenzeSenzaDeclinazione_PrendonoQuellaDelloScaloODelVorPiuVicino()
+    {
+        Navaid N(string sigla, string tipo, Position dove, string? declinazione = null) =>
+            new() { Section = "AD 2.19", Designator = sigla, Name = sigla, Type = tipo, MagneticVariation = declinazione, Position = dove, Components = [] };
+        var documento = new AipDocument
+        {
+            State = "LI", Airac = "2611", Airspaces = [],
+            Points = [new SignificantPoint { Section = "ENR 4.4", Designator = "SUGEP", Position = Punti["SUGEP"] }],
+            // DEC (un NDB di ENR 4.1, senza declinazione) sta accanto a LMT, che ha 3° E.
+            Navaids = [N("LMT", "VOR/DME", Stazioni["LMT"].Position, "3° E-2010.0") with { Section = "ENR 4.1" }, N("DEC", "NDB", new Position(39.05, 16.05)) with { Section = "ENR 4.1" }],
+            Aerodromes =
+            [
+                new Aerodrome { Icao = "LIXX", Name = "Prova", MagneticVariation = "10° E (2020.0)", NavigationAids = [N("IBX", "LLZ/DME", new Position(38.9, 16.2))] },
+            ],
+            Procedures =
+            [
+                // Una radiale di IBX: la sua declinazione è quella dello scalo, 10° E.
+                P(ProcedureKind.Star, "SUGEP 1X", "SUGEP – TR 093° bound to IBX VOR to be left on RDL 180 IBX VOR until 10 NM IBX DME."),
+                // Una radiale di DEC: senza scalo, quella di LMT, il VOR più vicino.
+                P(ProcedureKind.Star, "SUGEP 1Y", "SUGEP – TR 093° bound to DEC VOR to be left on RDL 180 DEC VOR until 10 NM DEC DME."),
+            ],
+        };
+
+        var (letto, nonLette) = ItalianAd2Prose.DecodeAll(documento);
+
+        Assert.Empty(nonLette);
+        var ibx = letto.Procedures![0].Legs[^1].Position!.Value;
+        var dec = letto.Procedures[1].Legs[^1].Position!.Value;
+        // La radiale 180 magnetica è 190 vera con 10° E (scalo), 183 vera con 3° E (LMT).
+        Assert.Equal(190, Rotta(new Position(38.9, 16.2), ibx), 0);
+        Assert.Equal(183, Rotta(new Position(39.05, 16.05), dec), 0);
+    }
+
+    // B1: il DME di un ILS («7 NM IFA DME») è una stazione: dove sta l'antenna del DME, non il localizzatore.
+    [Fact]
+    public void IlDmeDiUnIls_DaDoveStaLAntennaDelDme()
+    {
+        var dme = new Position(39.10, 16.10);
+        var documento = new AipDocument
+        {
+            State = "LI", Airac = "2611", Airspaces = [],
+            Points = [new SignificantPoint { Section = "ENR 4.4", Designator = "SUGEP", Position = Punti["SUGEP"] }],
+            Aerodromes =
+            [
+                new Aerodrome
+                {
+                    Icao = "LIXX", Name = "Prova", MagneticVariation = "3° E (2020.0)",
+                    Ils = [new Ils { Runway = "22", Designator = "IFA", MagneticVariation = "2° E-2005.0", Components = [new IlsComponent("LOC", new Position(39.20, 16.30)), new IlsComponent("DME", dme)] }],
+                },
+            ],
+            Procedures = [P(ProcedureKind.Star, "SUGEP 1Z", "SUGEP – TR 093° bound to IFA VOR to be left on RDL 180 IFA VOR until 10 NM IFA DME.")],
+        };
+
+        var (letto, nonLette) = ItalianAd2Prose.DecodeAll(documento);
+
+        Assert.Empty(nonLette);
+        var ultimo = letto.Procedures![0].Legs[^1].Position!.Value;
+        Assert.Equal(10, Distanza(dme, ultimo), 1);
+        Assert.Equal(182, Rotta(dme, ultimo), 0);
     }
 }

@@ -55,11 +55,31 @@ public static partial class ItalianAd2Prose
         var punti = (document.Points ?? []).GroupBy(p => p.Designator, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Position, StringComparer.Ordinal);
         // Un VOR (la declinazione è sua); una sigla con più impianti (PIS è un DVOR/DME e un locator) prende quello col VOR.
         // Anche quelli di scalo (AD 2.19: BRL, CMP, CSL non sono in ENR 4.1).
-        var stazioni = (document.Navaids ?? []).Concat((document.Aerodromes ?? []).SelectMany(a => a.NavigationAids))
-            .Select(n => (n.Designator, Declinazione: Variation(n.MagneticVariation), n.Position))
-            .Where(n => n.Declinazione is not null)
-            .GroupBy(n => n.Designator, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => new Station(g.First().Position, g.First().Declinazione!.Value), StringComparer.Ordinal);
+        // Segnalazioni 2611, B1 e B3: un localizzatore, un NDB, un TACAN non hanno la declinazione stampata (IBRN, BAP, DEC…),
+        // e prima si scartavano. Si tengono: la declinazione è quella dello scalo (AD 2.2) se è una radioassistenza di scalo,
+        // se no quella del VOR più vicino che la stampa. Con la sua, se ce l'ha, vince comunque.
+        var tutte = (document.Navaids ?? []).Select(n => (Navaid: n, Scalo: (Aerodrome?)null))
+            .Concat((document.Aerodromes ?? []).SelectMany(a => a.NavigationAids.Select(n => (Navaid: n, Scalo: (Aerodrome?)a))))
+            .Select(x => (x.Navaid.Designator, Posizione: x.Navaid.Position, Sua: Variation(x.Navaid.MagneticVariation),
+                DelloScalo: Variation(x.Scalo?.MagneticVariation)))
+            // Il DME di un ILS («ARC 9 NM IPR DME», «7 NM IFA DME»): dove sta l'antenna del DME, non il localizzatore (sono a un
+            // miglio l'uno dall'altro), con la declinazione dell'ILS. Un ILS senza DME non c'è: il localizzatore non misura distanze.
+            .Concat((document.Aerodromes ?? []).SelectMany(a => a.Ils.Select(i => (Ils: i, Scalo: a)))
+                .Where(x => x.Ils.Components.Any(c => c.Type.StartsWith("DME", StringComparison.Ordinal)))
+                .Select(x => (x.Ils.Designator, Posizione: x.Ils.Components.First(c => c.Type.StartsWith("DME", StringComparison.Ordinal)).Position,
+                    Sua: Variation(x.Ils.MagneticVariation), DelloScalo: Variation(x.Scalo.MagneticVariation))))
+            .ToList();
+        var conLaSua = tutte.Where(x => x.Sua is not null).ToList();
+        double? DalPiuVicino(Position p) => conLaSua.Count == 0
+            ? null
+            : conLaSua.MinBy(x => Sphere.DistanceNm(p, x.Posizione)).Sua;
+        var stazioni = tutte
+            .Select(x => (x.Designator, x.Posizione, x.Sua, Declinazione: x.Sua ?? x.DelloScalo ?? DalPiuVicino(x.Posizione)))
+            .Where(x => x.Declinazione is not null)
+            .GroupBy(x => x.Designator, StringComparer.Ordinal)
+            // Una sigla con più impianti (PIS è un DVOR/DME e un locator): quello con la declinazione sua.
+            .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Sua is null).Select(x => new Station(x.Posizione, x.Declinazione!.Value)).First(),
+                StringComparer.Ordinal);
         var nonLette = new List<(Procedure, string)>();
         var nuove = procedure.Select(p =>
         {
@@ -124,6 +144,20 @@ public static partial class ItalianAd2Prose
         t = RxNumeroSpezzato().Replace(t, "TR $1$2°");
         t = RxNm().Replace(t, "$1 NM");
         t = RxAttaccato().Replace(t, "$1 $2");
+        // Segnalazioni 2611, B2: le stesse cose scritte in un altro modo. «R199 RCA» è la radiale 199; un DVOR è un VOR;
+        // «19 NM TRP TACAN» è una distanza DME e, dopo, «TRP TACAN» è la stazione; l'alternativa per chi vola con l'NDB
+        // («or QDR 019° TRP NDB (TR 199°)», «RDL/QDR 325 TRP VOR/NDB») si toglie: il percorso è quello del VOR.
+        // B1: la stessa distanza letta da un altro DME, fra parentesi dopo la prima («16 NM BAR DME (or 17.5 NM BAP DME)»,
+        // «13 NM PRU DME (12 NM IPER DME)»): il percorso è quello della prima. E «ARC 15 NM PRU (IPER) DME»: l'arco è di PRU.
+        t = RxDistanzaAlternativa().Replace(t, "");
+        t = RxSiglaFraParentesiPrimaDiDme().Replace(t, "");
+        t = RxRadialeConLaR().Replace(t, "RDL $1");
+        t = RxDvor().Replace(t, "VOR");
+        t = RxTacanDistanza().Replace(t, "$1 DME");
+        t = RxTacan().Replace(t, "$1 VORTAC");
+        t = RxAlternativaNdb().Replace(t, "");
+        t = RxRadialeOQdr().Replace(t, "RDL");
+        t = RxVorONdb().Replace(t, "VOR");
         t = RxVorDme().Replace(t, "VOR/DME");
         t = RxVorSpezzato().Replace(t, "VOR");
         t = RxRadialeColGrado().Replace(t, "RDL $1");
@@ -177,7 +211,8 @@ public static partial class ItalianAd2Prose
             var g = m.Groups;
             if (g["virata"].Success)
             {
-                _virata = g["virata"].Value.StartsWith('l') || g["virata"].Value.StartsWith('L') ? "L" : "R";
+                // Il pezzo è «turn left»: conta la parola dopo «turn» (prima si guardava la prima lettera, sempre «t»: tutte a destra).
+                _virata = g["virata"].Value.EndsWith("left", StringComparison.OrdinalIgnoreCase) ? "L" : "R";
                 return;
             }
             if (g["loc"].Success)
@@ -483,8 +518,10 @@ public static partial class ItalianAd2Prose
 
     private static string Dist(double d) => d.ToString("0.#", CultureInfo.InvariantCulture);
 
+    // Segnalazioni 2611, B2: AT («AT 8 NM TAG DME»), TKOF («After TKOF»), IAF («TURUD IAF») non dicono niente del percorso.
+    // «OR» e «QDR» NO: un'alternativa che il lettore non toglie deve fermarsi, non diventare un tratto.
     private static bool Parola(string s) => s is "RDL" or "TR" or "NM" or "DME" or "VOR" or "ARC" or "INT" or "LOC" or "IAS" or "KT" or "MAX"
-        or "ATC" or "FT" or "FL" or "RWY" or "ILS" or "NDB" or "TRL" or "MCL" or "MCA";
+        or "ATC" or "FT" or "FL" or "RWY" or "ILS" or "NDB" or "TRL" or "MCL" or "MCA" or "AT" or "TKOF" or "IAF";
 
     private const string Nav = @"[A-Z]{2,3}";
     private const string D = @"\d+(?:\.\d+)?";
@@ -502,7 +539,7 @@ public static partial class ItalianAd2Prose
         + @"|\bRDL\s+(?<lineaR2>\d{3})\s+(?<lineaN2>" + Nav + @")(?:\s+VOR(?:/DME)?)?(?:\s*\(\s*RDL\s+\d{3}\s+" + Nav + @"\s+VOR\s*\))?(?:\s*\(\s*TR\s+(?<lineaT2>\d{3})°\s*\))?"
         + @"|\bTR\s+(?<rotta>\d{3})°"
         + @"|\b(?<dmeD>" + D + @")\s+NM\s+(?<dmeN>" + Nav + @")\s+DME(?:\s*\(\s*RDL\s+\d{3}\s*/\s*" + D + @"\s+NM\s+" + Nav + @"\s+VOR/DME\s*\))?"
-        + @"|\b(?<virata>[Tt]urn\s+(?:left|right))\b"
+        + @"|\b(?<virata>[Tt]urn\s+(?:left|right|LEFT|RIGHT))\b"
         // Un nome, e fra parentesi la sua definizione: una radiale e una distanza (serve se il punto non è nell'AIP), o
         // un'altra («NPC LOC/13 NM NPC DME») che non serve.
         + @"|\b(?<nome>[A-Z]{2,5})\b(?<vor>\s+(?:VORTAC|VOR(?:/DME)?)\b)?(?:\s*\(\s*(?:INT\s+)?RDL\s+(?<defR>\d{3})\s*/\s*(?<defD>" + D + @")\s+NM\s+(?<defN>" + Nav + @")\s+VOR/DME(?:\s+or\s+[^)]*)?\s*\)|\s*\([^)]*\))?",
@@ -553,6 +590,35 @@ public static partial class ItalianAd2Prose
 
     [GeneratedRegex(@"VOR\s*/\s*DME|VOR\s+DME")]
     private static partial Regex RxVorDme();
+
+    [GeneratedRegex(@"(?<=\b(?:DME|TACAN)\s*)\(\s*(?:or\s+)?\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,4}\s+(?:DME|TACAN)\s*\)")]
+    private static partial Regex RxDistanzaAlternativa();
+
+    [GeneratedRegex(@"\(\s*[A-Z]{2,4}\s*\)\s*(?=DME\b)")]
+    private static partial Regex RxSiglaFraParentesiPrimaDiDme();
+
+    // «R199 RCA», «R360/17 NM CAG»: la R da sola, attaccata a tre cifre, prima di una stazione o di una barra.
+    [GeneratedRegex(@"\bR(\d{3})(?=\s*/|\s+[A-Z]{2,3}\b)")]
+    private static partial Regex RxRadialeConLaR();
+
+    [GeneratedRegex(@"\bDVOR\b")]
+    private static partial Regex RxDvor();
+
+    [GeneratedRegex(@"\b(\d+(?:\.\d+)?\s+NM\s+[A-Z]{2,3})\s+TACAN\b")]
+    private static partial Regex RxTacanDistanza();
+
+    [GeneratedRegex(@"\b([A-Z]{2,3})\s+TACAN\b")]
+    private static partial Regex RxTacan();
+
+    // «or QDR 019° TRP NDB (TR 199°)», «OR QDR 108° CAL NDB»: l'alternativa per l'NDB, intera.
+    [GeneratedRegex(@"\s*\b(?:or|OR)\s+QDR\s+\d{3}°?\s+[A-Z]{2,3}\s+NDB\b(?:\s*\(\s*TR\s+\d{3}°\s*\))?")]
+    private static partial Regex RxAlternativaNdb();
+
+    [GeneratedRegex(@"\bRDL\s*/\s*QDR\b")]
+    private static partial Regex RxRadialeOQdr();
+
+    [GeneratedRegex(@"\bVOR\s*/\s*NDB\b")]
+    private static partial Regex RxVorONdb();
 
     [GeneratedRegex(@"\(\s*IAS\s+MAX\s+\d+\s*KT\s*\)", RegexOptions.IgnoreCase)]
     private static partial Regex RxIas();
