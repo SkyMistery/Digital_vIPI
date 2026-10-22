@@ -4,7 +4,30 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 21 ottobre 2026: pagina Testo, Scheda per gruppi (prima parte), verbi, due consegne
+## Dove siamo — 22 ottobre 2026: la carta «L'AIP intero e gli emendamenti», finita
+
+Il committente, dopo la revisione dell'AIP espanso pezzo per pezzo sui PDF 2611 (21 ottobre), ha deciso di rifarlo per
+intero e di applicare gli emendamenti AIRAC: carta [`2026-10-21-aip-intero-e-emendamenti.md`](../feature/2026-10-21-aip-intero-e-emendamenti.md),
+otto passi nell'ordine 1, 7, 2, 3, 4, 5, 6, 8 (D3), **tutti fatti**, ognuno col suo «finita quando» misurato sul 2611 intero
+(851 PDF) e scritto nella carta, §6:
+- **1** l'indice delle pagine e il controllo del ciclo · **7** l'emendamento A12/26 applicato (`AIP 2611` → `AIP 2612`) ·
+  **2** ENR 2, 3.4, 4 rifatti e il rapporto di lettura coi conti dell'AIP · **3** le 230 rotte di ENR 3.2 con le note ·
+  **4** ENR 5 intero (5 713 ostacoli, aree sportive e parchi, i testi) e l'AIP espanso diviso in più file · **5** il testo
+  intero dei 107 scali (97 + 10 eliporti, 2 655 sottosezioni) e l'elenco delle carte · **6** le procedure di tutti gli scali
+  (SID e STAR 1 903/1 903, 240 avvicinamenti del file 5, 789 attese) · **8** i due cicli (il Lab sa dalla data quale è in
+  vigore, apre quello, guarda il successivo, toglie il superato col gesto confermato).
+- Il **rapporto di lettura** controlla 596 conti dell'AIP sul 2611: tornano tutti tranne uno, Magra (ENR 5.6.1.8, due
+  poligoni sotto un nome). Ogni cosa non letta si dice (segnalazioni di «Leggi», per tipo, in italiano).
+- Codice comune toccato: niente fuori dal Lab (`Aip`, `Aip.Pdf`, `Aip.Pdf.Italia`, `Vipi.SectorLab.*`). Test: Aip.Pdf 170,
+  Aip 53, Aip.Aurora 38, Lab 1 399. Eseguibile di prova a `8a7c1d5a`.
+
+**Adesso** il committente ha da decidere: Magra (dividere in due aree?), `li-ad2.json` (12 MB: un file per scalo?),
+l'avvicinamento come una procedura per segmento (prova 307); e da fare le prove a mano **239-312** di
+`SectorLab-prova\PROVE.md`. **Dopo**, al via: la seconda parte di D5 (sotto), il seguito della lettura della prosa delle
+procedure (F7, 7b: 466 frasi senza tratti), AIP SUP ed emendamenti non AIRAC. 🔴 Il sector vero non si tocca fino al 29
+ottobre (uscita del 2611).
+
+## 21 ottobre 2026: pagina Testo, Scheda per gruppi (prima parte), verbi, due consegne
 
 Dopo R4-R9 il committente ha chiesto la **pagina Testo** (D12, D13, D21). Divisa in T1-T3 (proposta dell'agente, in
 carta): **T1 fatta** — «Testo» nello spazio Sector, l'albero dei file, CodeMirror 6 dentro l'app (pacchetto in
