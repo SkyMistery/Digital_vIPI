@@ -45,6 +45,12 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
     /// </summary>
     private readonly ShapeReleaseContext? _cicloDiRilascio;
 
+    /// <summary>
+    /// Il testo comune delle torri radar (S127): si congela con la sezione «Radar di torre», così ogni documento
+    /// mostra quello della sua pubblicazione. Opzionale: senza, la vista congelata non lo porta.
+    /// </summary>
+    private readonly ITestoComuneStore? _comune;
+
     /// <param name="type">
     /// La famiglia che questo provider serve. ⚠️ <b>Sono DUE</b>: la vIPI civile d'aeroporto e il vSOP
     /// <b>militare</b> dello stesso scalo, che deriva le stesse tre tabelle (<c>frequencies</c>,
@@ -61,8 +67,9 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
     public AirportFrozenSectionProvider(IAirportProfileReader repo, IAirportSectorService sectors,
         IAirportSidDerivationService sids, ReleaseTargetType type = ReleaseTargetType.Airport,
         INavaidCatalog? navaids = null, IAirportNameLookup? aeroporti = null,
-        ShapeReleaseContext? cicloDiRilascio = null)
+        ShapeReleaseContext? cicloDiRilascio = null, ITestoComuneStore? comune = null)
     {
+        _comune = comune;
         _repo = repo;
         _sectors = sectors;
         _sids = sids;
@@ -94,9 +101,13 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
             {
                 "runwayrules" => AirportSectionProjection.Rules(data),
                 "lvp" => AirportSectionProjection.Lvp(data),
-                // Il solo sì/no: la tecnica operativa è fatta di blocchi dal 21 ottobre 2026, e la release li fotografa
-                // col documento.
-                SectionKeys.RadarTower => AirportSectionProjection.RadarTower(data),
+                // Il sì/no, e il testo comune delle torri radar (S127) come è adesso: da qui in poi è quello di
+                // questa release. La tecnica operativa dello scalo è fatta di blocchi, e la release li fotografa col
+                // documento.
+                SectionKeys.RadarTower => AirportSectionProjection.RadarTower(data) with
+                {
+                    Comune = _comune is null ? null : await _comune.VistaAsync(SectionKeys.RadarTowerTechnique, ct),
+                },
                 "transition" => AirportSectionProjection.Transition(data),
                 "runways" => AirportSectionProjection.Runways(data),
                 "frequencies" => AirportSectionProjection.Frequencies(await _sectors.ListByAirportAsync(key, ct), data?.Links),

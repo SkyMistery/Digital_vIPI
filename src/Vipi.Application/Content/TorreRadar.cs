@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Vipi.Domain;
 
 namespace Vipi.Application.Content;
@@ -22,7 +23,13 @@ public sealed record RadarTowerRow(bool Equipped);
 /// dell'anagrafica congelato qui. Da allora è una sezione a blocchi e questo campo nasce sempre vuoto: resta perché
 /// quelle release si leggano come sono uscite (<see cref="TorreRadar.Filtra"/> ne fa un paragrafo).
 /// </param>
-public sealed record AirportRadarTowerView(bool? Equipped, string? Technique = null)
+/// <param name="Comune">
+/// Il <b>testo comune</b> a tutte le torri radar (S127, <see cref="TestoComune"/>), come era quando la vista è stata
+/// fatta: congelato con la release, letto adesso nella bozza. <c>null</c> nelle release scattate prima del 22 ottobre
+/// 2026, che non lo mostrano — lo mostrerà la pubblicazione seguente.
+/// </param>
+public sealed record AirportRadarTowerView(bool? Equipped, string? Technique = null,
+    IReadOnlyList<BlockView>? Comune = null)
 {
     public static AirportRadarTowerView Empty { get; } = new(null, null);
 }
@@ -55,6 +62,69 @@ public static class TorreRadar
         if (!Contiene(sezioni)) return sezioni;
         if (vista.Equipped != true) return Senza(sezioni);
         return string.IsNullOrWhiteSpace(vista.Technique) ? sezioni : ConTecnicaDiPrima(sezioni, vista.Technique.Trim());
+    }
+
+    /// <summary>
+    /// Le sezioni con il <b>testo comune</b> delle torri radar in testa alla «Tecnica operativa» (S127). Si chiama
+    /// <b>prima della traduzione</b>: i blocchi comuni sono blocchi della sezione come gli altri, e la pagina inglese
+    /// li traduce col resto. Chi decide se la sezione si vede resta <see cref="Filtra"/>, dopo.
+    ///
+    /// <para>⚠️ Il testo è quello della vista <b>derivata</b>, quindi congelato con la release: una pagina pubblica
+    /// mostra quello della sua pubblicazione, la bozza quello di adesso.</para>
+    /// </summary>
+    public static IReadOnlyList<SectionView> ConTestoComune(IReadOnlyList<SectionView> sezioni, AirportRadarTowerView vista) =>
+        vista.Comune is not { Count: > 0 } comune || !Contiene(sezioni) ? sezioni : ConComune(sezioni, comune);
+
+    private static IReadOnlyList<SectionView> ConComune(IReadOnlyList<SectionView> sezioni, IReadOnlyList<BlockView> comune) =>
+        sezioni.Select(s =>
+        {
+            var figlie = Contiene(s.Children) ? ConComune(s.Children, comune) : s.Children;
+            if (!Tecnica(s)) return ReferenceEquals(figlie, s.Children) ? s : AudienceFilter.ConFigli(s, figlie);
+            return new SectionView
+            {
+                Id = s.Id, Title = s.Title, Depth = s.Depth, SectionKey = s.SectionKey, IsHidden = s.IsHidden,
+                BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition, LeadSentence = s.LeadSentence,
+                Audience = s.Audience, Children = figlie,
+                Blocks = comune.Concat(s.Blocks).ToList(),
+            };
+        }).ToList();
+
+    /// <summary>
+    /// Il testo comune (S127) che una release <b>mostra</b>: quello congelato nella sua vista «Radar di torre», e se il
+    /// lettore lo vede davvero — torre con radar <b>sì</b>, sezione «Radar di torre» e sua «Tecnica operativa» non
+    /// nascoste. È la domanda della riga «Da rivedere» <see cref="ImpactKind.CommonTextChanged"/>: dove il lettore non
+    /// lo vede, un testo comune cambiato non è un documento da ripubblicare.
+    /// </summary>
+    /// <returns><c>Mostrato</c> falso se il lettore non lo vede; <c>Comune</c> null se la release non l'ha congelato
+    /// (scattata prima del 22 ottobre 2026).</returns>
+    public static (bool Mostrato, IReadOnlyList<BlockView>? Comune) TestoComuneDellaRelease(string? payloadJson)
+    {
+        if (string.IsNullOrWhiteSpace(payloadJson)) return (false, null);
+        DocReleasePayload? p;
+        try { p = JsonSerializer.Deserialize<DocReleasePayload>(payloadJson); }
+        catch (JsonException) { return (false, null); }
+        if (p?.Doc?.Roots is null || RadarVisibile(p.Doc.Roots) is not { } radar) return (false, null);
+        if (!radar.Children.Any(c => !c.IsHidden
+                && string.Equals(c.SectionKey, SectionKeys.RadarTowerTechnique, StringComparison.OrdinalIgnoreCase)))
+            return (false, null);
+        if (!p.FrozenSections.TryGetValue(radar.Id, out var json)) return (false, null);
+
+        AirportRadarTowerView? vista;
+        try { vista = JsonSerializer.Deserialize<AirportRadarTowerView>(json); }
+        catch (JsonException) { return (false, null); }
+        return (vista?.Equipped == true, vista?.Comune);
+    }
+
+    /// <summary>La sezione «Radar di torre» se si vede: nascosta vale anche se lo è una sua madre.</summary>
+    private static RawSection? RadarVisibile(IReadOnlyList<RawSection> sezioni)
+    {
+        foreach (var s in sezioni)
+        {
+            if (s.IsHidden) continue;
+            if (string.Equals(s.SectionKey, SectionKeys.RadarTower, StringComparison.OrdinalIgnoreCase)) return s;
+            if (RadarVisibile(s.Children) is { } sotto) return sotto;
+        }
+        return null;
     }
 
     private static bool Tecnica(SectionView s) =>

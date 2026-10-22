@@ -3200,6 +3200,14 @@
   <data name="PageIntro_NotAllowed" xml:space="preserve"><value>Non hai il permesso di scrivere qui.</value></data>
   <data name="PageIntro_HelpAria" xml:space="preserve"><value>Che cos’è l’intro della pagina</value></data>
   <data name="PageIntro_HelpBody" xml:space="preserve"><value>Sezioni libere in cima alla pagina, per presentare l’elenco e collegare i PDF della biblioteca allegati.&lt;br/&gt;⚠️ Non è un documento: non ha ciclo AIRAC e non si congela a una release, quindi è pubblicata appena la salvi. Il contenuto normativo va in un documento.</value></data>
+  <data name="TestoComune_Title" xml:space="preserve"><value>Testo comune a tutte le torri radar</value></data>
+  <data name="TestoComune_HelpAria" xml:space="preserve"><value>Che cos’è il testo comune</value></data>
+  <data name="TestoComune_HelpBody" xml:space="preserve"><value>Lo stesso testo in testa alla tecnica operativa di ogni scalo con torre radar: si scrive una volta, qui, e vale per tutti.&lt;br/&gt;Lo modificano gli admin. Ogni documento mostra quello della sua pubblicazione: quando cambia, gli scali già pubblicati finiscono in «Da fare» finché non li ripubblichi.</value></data>
+  <data name="TestoComune_Empty" xml:space="preserve"><value>Nessun testo comune: quel che un admin scrive qui compare in testa a questa sezione in tutti gli scali con torre radar.</value></data>
+  <data name="TestoComune_SaveHint" xml:space="preserve"><value>Cambia per tutti gli scali con torre radar, alla loro prossima pubblicazione.</value></data>
+  <data name="TestoComune_SavedToRepublish" xml:space="preserve"><value>Salvato · {0} documenti da ripubblicare in «Da fare»</value></data>
+  <data name="TestoComune_DriftFailed" xml:space="preserve"><value>Gli scali da ripubblicare non si sono potuti contare adesso: li conta il giro della notte.</value></data>
+  <data name="TestoComune_NotAllowed" xml:space="preserve"><value>Il testo comune lo modificano solo gli admin.</value></data>
   <data name="Mil_NoDoc" xml:space="preserve"><value>nessun documento</value></data>
   <data name="Mil_Draft" xml:space="preserve"><value>bozza</value></data>
   <data name="Mil_Published" xml:space="preserve"><value>pubblicato</value></data>
@@ -3457,8 +3465,10 @@
   <data name="Att_Deleted" xml:space="preserve"><value>«{0}» eliminata; {1} documenti da correggere, segnalati.</value></data>
   <data name="Impact_AttachmentDeleted" xml:space="preserve"><value>L'allegato «{0}» è stato eliminato dalla biblioteca: la citazione nel documento non porta più da nessuna parte.</value></data>
   <data name="Impact_AirportAccChanged" xml:space="preserve"><value>L'aeroporto {0} è passato da {1} a {2}: la copertura raccontata qui non è più quella. Rileggi le parti che lo nominano.</value></data>
+  <data name="Impact_CommonTextChanged" xml:space="preserve"><value>Il testo comune delle torri radar è cambiato: la copia pubblicata mostra ancora quello della sua pubblicazione. Ripubblica per portarla in pari.</value></data>
   <data name="ImpactKind_AttachmentDeleted" xml:space="preserve"><value>Allegato eliminato</value></data>
   <data name="ImpactKind_AirportAccChanged" xml:space="preserve"><value>Aeroporto passato a un altro ACC</value></data>
+  <data name="ImpactKind_CommonTextChanged" xml:space="preserve"><value>Testo comune cambiato</value></data>
   <data name="Asp_AdminTitle" xml:space="preserve"><value>Spazi aerei</value></data>
   <data name="Asp_AdminNav" xml:space="preserve"><value>Spazi aerei</value></data>
   <data name="Asp_AdminSubtitle" xml:space="preserve"><value>Gli spazi aerei dell'AIP, dal file caricato a mano.</value></data>

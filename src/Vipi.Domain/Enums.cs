@@ -455,6 +455,18 @@ public enum ImpactKind
     /// ordinali sono già scritti in archivio.</para>
     /// </summary>
     AirportAccChanged,
+
+    /// <summary>
+    /// Il <b>testo comune</b> di una sezione è cambiato (S127, oggi quello delle torri radar), e la copia pubblicata
+    /// mostra ancora quello della sua pubblicazione: c'è da ripubblicare. <b>Calcolato</b>, e si chiude da solo
+    /// ripubblicando.
+    ///
+    /// <para>Non è <see cref="ReleaseDrift"/>: quello conta i blocchi delle sezioni, e un testo riscritto con lo
+    /// stesso numero di blocchi non lo vede.</para>
+    ///
+    /// <para>⚠️ In fondo all'enum, per la stessa ragione dei due qui sopra.</para>
+    /// </summary>
+    CommonTextChanged,
 }
 
 /// <summary>Regole trasversali su <see cref="ImpactKind"/>: stanno qui e non in tre <c>switch</c> sparsi.</summary>
@@ -463,10 +475,11 @@ public static class ImpactKinds
     /// <summary>Prodotto da un calcolo che lo riapre da solo finché la causa c'è: <b>non</b> chiudibile a mano.</summary>
     public static bool IsCalcolato(this ImpactKind kind) =>
         kind is ImpactKind.ReleaseDrift or ImpactKind.ReleaseDriftNextCycle or ImpactKind.ReleaseKeyMoved
-             or ImpactKind.BrokenTarget or ImpactKind.SectorStale;
+             or ImpactKind.BrokenTarget or ImpactKind.SectorStale or ImpactKind.CommonTextChanged;
 
     /// <summary>Vero se l'impatto dice «la copia pubblicata è indietro» invece di «rileggi il testo».</summary>
-    public static bool IsDaRipubblicare(this ImpactKind kind) => kind is ImpactKind.ReleaseDrift;
+    public static bool IsDaRipubblicare(this ImpactKind kind) =>
+        kind is ImpactKind.ReleaseDrift or ImpactKind.CommonTextChanged;
 
     /// <summary>
     /// Vero se l'impatto dice «c'è da preparare il ciclo entrante»: non è rotto niente <b>adesso</b>, ma c'è

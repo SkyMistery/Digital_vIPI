@@ -145,3 +145,8 @@ Il committente: «nelle vIPI e SOP vorrei che la sezione tecniche operative sia 
 esce da `SectionCatalog.InitiallyCollapsedKeys`: si apre come le altre sotto-sezioni, nel documento e nell'editor. Chiusa
 aveva senso per un testo lungo fisso; ora è fatta di blocchi (§7), scritti per essere letti. `SectionNode` continua a
 chiedere al catalogo, per la prossima sotto-sezione che lo vorrà.
+
+## 10. 22 ottobre: il testo comune (S127)
+
+In testa alla tecnica operativa di ogni scalo con torre radar, lo stesso testo per tutti, scritto una volta dagli
+admin e congelato con la release. Carta a parte: [`2026-10-22-testo-comune.md`](2026-10-22-testo-comune.md).

@@ -70,7 +70,11 @@
     [Parameter] public Func<SectionView, string?>? ReportHrefOf { get; set; }
 
     /// <summary>I blocchi col loro <c>Order</c>. ⚠️ Una vista costruita a mano (i test, le proiezioni che non
-    /// lo conoscono) porta 0: allora vale la posizione nella lista, che è l'ordine in cui arrivano.</summary>
+    /// lo conoscono) porta 0: allora vale la posizione nella lista, che è l'ordine in cui arrivano.
+    /// <para>🔴 Solo lo 0 è «sconosciuto», non i negativi (S127, 22 ottobre 2026): il testo comune delle torri radar
+    /// arriva con ordini negativi apposta, per stare davanti ai blocchi dello scalo. Letti come «sconosciuti»
+    /// diventavano 1 e 2, e il paragrafo dello scalo (ordine 1) finiva fra i due callout comuni — visto a schermo
+    /// nell'anteprima di LIRQ.</para></summary>
     private IReadOnlyList<(BlockView Blocco, int Ordine)> Blocchi() =>
-        Section.Blocks.Select((b, i) => (b, b.Order > 0 ? b.Order : i + 1)).ToList();
+        Section.Blocks.Select((b, i) => (b, b.Order != 0 ? b.Order : i + 1)).ToList();
 }

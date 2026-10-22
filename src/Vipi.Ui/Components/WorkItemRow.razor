@@ -205,9 +205,12 @@
     private ReleaseDiff? _diff;
     private string? _erroreDettaglio;
 
-    /// <summary>La riga dice «la copia pubblicata è indietro» e sa di quale bersaglio: il dettaglio si può chiedere.</summary>
+    /// <summary>La riga dice «la copia pubblicata è indietro» e sa di quale bersaglio: il dettaglio si può chiedere.
+    /// <para>⚠️ Non per il testo comune (S127): il dettaglio è il confronto dei blocchi per sezione, che un testo comune
+    /// cambiato non tocca, e direbbe «nessuna differenza» proprio sulla riga che ne ha una. Che cosa è cambiato lo dice
+    /// già la frase.</para></summary>
     private bool HaDettaglio =>
-        Item.Tipo is ImpactKind t && (t.IsDaRipubblicare() || t.IsDaPreparare())
+        Item.Tipo is ImpactKind t && t != ImpactKind.CommonTextChanged && (t.IsDaRipubblicare() || t.IsDaPreparare())
         && Item.Bersaglio is not null && !string.IsNullOrWhiteSpace(Item.ChiaveRelease);
 
     /// <summary>

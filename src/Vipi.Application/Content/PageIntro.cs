@@ -104,7 +104,10 @@ public static class PageIntro
             var indice = ++n;
             var blocchi = new List<BlockView>();
             foreach (var b in s.Blocks)
-                if (ToBlockView(b, blocchi.Count + 1, indice) is { } bv) blocchi.Add(bv);
+                // ⚠️ L'id è unico DENTRO la vista e non identifica niente in archivio: i componenti lo usano come
+                // chiave di resa. Due blocchi con lo stesso id in sezioni diverse farebbero riusare a Blazor il
+                // nodo sbagliato.
+                if (Blocco(b, indice * 1000 + blocchi.Count + 1) is { } bv) blocchi.Add(bv);
 
             viste.Add(new SectionView
             {
@@ -132,35 +135,36 @@ public static class PageIntro
     /// Un blocco salvato in un blocco da rendere. <c>null</c> = da scartare, con la <b>stessa regola</b> della
     /// cottura degli extra: prosa senza testo, immagine o allegato senza riferimento non entrano nel
     /// documento, e non devono entrare nemmeno qui.
+    ///
+    /// <para>Pubblico perché lo usa anche il testo comune di una sezione (<see cref="TestoComune"/>, S127): gli stessi
+    /// blocchi, la stessa regola su quali entrano.</para>
     /// </summary>
-    private static BlockView? ToBlockView(ExtraBlock b, int ordine, int sezione)
+    /// <param name="id">L'id del blocco nella vista: deve essere unico dentro la vista.</param>
+    /// <param name="ordine">L'<c>Order</c> del blocco nella sua sezione; 0 = vale la posizione nella lista.</param>
+    public static BlockView? Blocco(ExtraBlock b, int id, int ordine = 0)
     {
-        // ⚠️ L'id è unico DENTRO la vista e non identifica niente in archivio: i componenti lo usano come
-        // chiave di resa. Due blocchi con lo stesso id in sezioni diverse farebbero riusare a Blazor il
-        // nodo sbagliato.
-        var id = sezione * 1000 + ordine;
-
         return b.Format switch
         {
             // Coi suoi allegati (S121), e anche senza testo se ne ha.
             BlockFormat.Callout when Testo(b.Text) || CalloutJson.Allegati(b.CalloutJson).Count > 0 =>
-                Vista(id, BlockFormat.Callout, b.Text, Testo(b.CalloutJson) ? b.CalloutJson : null, b.CalloutKind),
+                Vista(id, ordine, BlockFormat.Callout, b.Text, Testo(b.CalloutJson) ? b.CalloutJson : null, b.CalloutKind),
             BlockFormat.Table when Testo(b.TableJson) =>
-                Vista(id, BlockFormat.Table, null, b.TableJson, null),
+                Vista(id, ordine, BlockFormat.Table, null, b.TableJson, null),
             BlockFormat.Image when MediaRef.Parse(b.ImageJson) is not null =>
-                Vista(id, BlockFormat.Image, b.Text, b.ImageJson, null),
+                Vista(id, ordine, BlockFormat.Image, b.Text, b.ImageJson, null),
             BlockFormat.Attachment when AttachmentRef.Parse(b.AttachmentJson) is not null =>
-                Vista(id, BlockFormat.Attachment, b.Text, b.AttachmentJson, null),
+                Vista(id, ordine, BlockFormat.Attachment, b.Text, b.AttachmentJson, null),
             BlockFormat.Prose or BlockFormat.List when Testo(b.Text) =>
-                Vista(id, BlockFormat.Prose, b.Text, null, null),
+                Vista(id, ordine, BlockFormat.Prose, b.Text, null, null),
             _ => null,
         };
     }
 
-    private static BlockView Vista(int id, BlockFormat f, string? body, string? json, CalloutKind? k) =>
+    private static BlockView Vista(int id, int ordine, BlockFormat f, string? body, string? json, CalloutKind? k) =>
         new()
         {
             Id = id,
+            Order = ordine,
             Format = f,
             // Sempre espanso: la compressione è una scelta editoriale del documento, e un'intro che si
             // apre chiusa non introduce niente.

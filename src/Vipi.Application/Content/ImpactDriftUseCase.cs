@@ -63,6 +63,13 @@ public interface IImpactDriftUseCase
     /// «attuali» e le sue righe si chiudono.</para>
     /// </summary>
     Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Il solo passo del <b>testo comune</b> (S127, <see cref="ImpactKind.CommonTextChanged"/>), su tutti i documenti:
+    /// lo chiede chi ha appena salvato il testo comune, perché gli scali da ripubblicare compaiano subito e non al
+    /// giro della notte. Non costruisce snapshot: legge le release in vigore, quindi è svelto.
+    /// </summary>
+    Task<ImpactDriftResult> RunTestoComuneAsync(CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IImpactDriftUseCase"/>
@@ -77,14 +84,18 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     private readonly IOrphanSectorRepository? _cataloghi;
     private readonly IImportStateStore? _stati;
 
+    /// <summary>Il testo comune delle sezioni (S127). Opzionale: senza, il passo del testo comune non gira.</summary>
+    private readonly ITestoComuneStore? _comune;
+
     /// <param name="cataloghi">Porta di lettura delle righe di catalogo stantìe. Opzionale: senza, il giro fa
     /// solo la deriva delle pubblicazioni.</param>
     /// <param name="stati">Ultimo giro riuscito degli import: è il metro contro cui un timbro è «vecchio».</param>
     public ImpactDriftUseCase(IDocumentAdminRepository admin, IReleaseService releases,
         IReleaseRepository releaseRepo, IDocumentImpactService impacts, IAiracService airac,
         IReleaseTargetRegistry targets, IOrphanSectorRepository? cataloghi = null,
-        IImportStateStore? stati = null)
+        IImportStateStore? stati = null, ITestoComuneStore? comune = null)
     {
+        _comune = comune;
         _admin = admin;
         _releases = releases;
         _releaseRepo = releaseRepo;
@@ -175,12 +186,15 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         // 3) I cataloghi che la sorgente non manda più: è il caso della RINOMINA, che nessun altro vede.
         var (apertiStantii, chiusiStantii, quantiStantii) = await CataloghiStantiiAsync(ct);
 
+        // 4) Il testo comune (S127): un altro modo per la copia pubblicata di essere indietro, che la deriva non vede.
+        var (apertiComune, chiusiComune) = await TestoComuneAsync(candidati, ct);
+
         var potati = await _impacts.PruneClearedBeforeAsync(SogliaRitenzione(), ct);
 
         return new ImpactDriftResult(
             candidati.Count,
-            apertiDeriva + apertiEntranti + apertiChiavi + apertiRotti + apertiStantii,
-            chiusiDeriva + chiusiEntranti + chiusiChiavi + chiusiRotti + chiusiStantii,
+            apertiDeriva + apertiEntranti + apertiChiavi + apertiRotti + apertiStantii + apertiComune,
+            chiusiDeriva + chiusiEntranti + chiusiChiavi + chiusiRotti + chiusiStantii + chiusiComune,
             potati,
             quantiStantii,
             ripuntate);
@@ -194,7 +208,7 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     private static readonly ImpactKind[] TipiDellaPubblicazione =
     {
         ImpactKind.ReleaseDrift, ImpactKind.ReleaseDriftNextCycle,
-        ImpactKind.ReleaseKeyMoved, ImpactKind.BrokenTarget,
+        ImpactKind.ReleaseKeyMoved, ImpactKind.BrokenTarget, ImpactKind.CommonTextChanged,
     };
 
     public Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default) =>
@@ -209,15 +223,64 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         // decine di righe, non migliaia, e una pubblicazione ne fa molte di più.
         var d = (await _admin.ListAsync(ct)).FirstOrDefault(x => x.DocumentId == documentId);
 
-        var riga = d is { DocumentId: not null } && d.VaTenutoAggiornato
-            ? (await ValutaAsync(d, _releases.NextCycle().Cycle, causa: null, ct)).Riga
-            : null;
+        var righe = new List<RaiseImpactInput>();
+        if (d is { DocumentId: not null } && d.VaTenutoAggiornato)
+        {
+            if ((await ValutaAsync(d, _releases.NextCycle().Cycle, causa: null, ct)).Riga is { } riga) righe.Add(riga);
+            // ⚠️ Anche il testo comune: è la pubblicazione che lo rimette in pari, e senza questa riga la casella
+            // continuerebbe a chiedere di ripubblicare un documento appena ripubblicato fino al giro della notte.
+            if (await FirmaComuneAsync(ct) is { } firma && await TestoComuneDiAsync(d, firma, ct) is { } comune)
+                righe.Add(comune);
+        }
 
-        var (aperti, chiusi) = await _impacts.ReconcileForDocumentAsync(
-            documentId, TipiDellaPubblicazione,
-            riga is null ? Array.Empty<RaiseImpactInput>() : new[] { riga }, ct);
+        var (aperti, chiusi) = await _impacts.ReconcileForDocumentAsync(documentId, TipiDellaPubblicazione, righe, ct);
 
         return new ImpactDriftResult(Esaminati: d is null ? 0 : 1, aperti, chiusi, Potati: 0);
+    }
+
+    public Task<ImpactDriftResult> RunTestoComuneAsync(CancellationToken ct = default) =>
+        InFilaAsync(async () =>
+        {
+            var candidati = (await _admin.ListAsync(ct)).Where(d => d.VaTenutoAggiornato && d.DocumentId is not null).ToList();
+            var (aperti, chiusi) = await TestoComuneAsync(candidati, ct);
+            return new ImpactDriftResult(candidati.Count, aperti, chiusi, Potati: 0);
+        }, ct);
+
+    /// <summary>
+    /// Il passo del testo comune (S127) sui candidati del giro: apre <see cref="ImpactKind.CommonTextChanged"/> dove la
+    /// copia pubblicata mostra un testo comune diverso da quello di adesso, e chiude le altre righe di quel tipo.
+    /// </summary>
+    private async Task<(int Aperti, int Chiusi)> TestoComuneAsync(IReadOnlyList<ManagedDoc> candidati, CancellationToken ct)
+    {
+        if (await FirmaComuneAsync(ct) is not { } firma) return (0, 0);
+        var righe = new List<RaiseImpactInput>();
+        foreach (var d in candidati)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (await TestoComuneDiAsync(d, firma, ct) is { } riga) righe.Add(riga);
+        }
+        return await _impacts.ReconcileAsync(ImpactKind.CommonTextChanged, righe, ct);
+    }
+
+    /// <summary>La firma del testo comune delle torri radar di adesso; <c>null</c> se il passo non può girare.</summary>
+    private async Task<string?> FirmaComuneAsync(CancellationToken ct) =>
+        _comune is null ? null : TestoComune.Firma(await _comune.VistaAsync(SectionKeys.RadarTowerTechnique, ct));
+
+    /// <summary>
+    /// La riga del testo comune per un documento, o <c>null</c>. Solo dove il lettore lo vede: vIPI d'aeroporto o vSOP
+    /// militare, release in vigore con la torre radar <b>sì</b> e la tecnica operativa visibile
+    /// (<see cref="TorreRadar.TestoComuneDellaRelease"/>). Una release scattata prima del testo comune non l'ha
+    /// congelato, e se oggi un testo c'è va ripubblicata anche lei.
+    /// </summary>
+    private async Task<RaiseImpactInput?> TestoComuneDiAsync(ManagedDoc d, string firma, CancellationToken ct)
+    {
+        if (d.ReleaseTarget is not (ReleaseTargetType.Airport or ReleaseTargetType.AirportMil)) return null;
+        var effettiva = await _releaseRepo.GetEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, DateTime.UtcNow, ct);
+        if (effettiva is null) return null;
+        var (mostrato, congelato) = TorreRadar.TestoComuneDellaRelease(effettiva.PayloadJson);
+        if (!mostrato || TestoComune.Firma(congelato) == firma) return null;
+        return new RaiseImpactInput(d.DocumentId!.Value, ImpactKind.CommonTextChanged, d.ReleaseKey,
+            DocumentImpactService.Reasons.CommonTextChanged);
     }
 
     /// <summary>

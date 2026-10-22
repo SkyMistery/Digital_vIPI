@@ -166,6 +166,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
         public const string AttachmentReplaced = "Impact_AttachmentReplaced";
         public const string AttachmentDeleted = "Impact_AttachmentDeleted";
         public const string AirportAccChanged = "Impact_AirportAccChanged";
+        public const string CommonTextChanged = "Impact_CommonTextChanged";
 
         public static string For(ImpactKind kind) => kind switch
         {
@@ -181,6 +182,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
             ImpactKind.ReleaseDriftNextCycle => ReleaseDriftNextCycle,
             ImpactKind.ReleaseKeyMoved => ReleaseKeyMoved,
             ImpactKind.AirportAccChanged => AirportAccChanged,
+            ImpactKind.CommonTextChanged => CommonTextChanged,
             ImpactKind.AttachmentReplaced => AttachmentReplaced,
             ImpactKind.AttachmentDeleted => AttachmentDeleted,
             _ => BrokenTarget,
