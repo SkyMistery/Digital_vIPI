@@ -88,6 +88,39 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Contains("non è un ciclo AIRAC", _lab.Rifiuto, StringComparison.Ordinal);
     }
 
+    // Preparando le prove a mano (22 ottobre): delle 542 segnalazioni del 2611 se ne vedevano le prime 200, e «1 non
+    // tornano». Ora un tipo scelto le mostra tutte, e il conto è al singolare.
+    [Fact]
+    public async Task LeSegnalazioniSiScelgonoPerTipo_EUnContoCheNonTornaSiDiceAlSingolare()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        Assert.True(_lab.CambiaLaCartellaDeiPdf(Path.Combine(_fuori, "AIP")), _lab.Rifiuto);
+        Assert.True(_lab.CambiaLAipEspanso(Path.Combine(_fuori, "espanso")), _lab.Rifiuto);
+        var problemi = Enumerable.Range(1, 250).Select(i => new Core.PdfAip.ProblemaDellImport("LI-AD 2 LIRN 6.pdf",
+                new Aip.Pdf.Italia.ImportIssue(Aip.Pdf.Italia.ImportIssueKind.Procedure, $"SID {i}", 1)))
+            .Append(new Core.PdfAip.ProblemaDellImport("LI-ENR 3.4.1.pdf", new Aip.Pdf.Italia.ImportIssue(Aip.Pdf.Italia.ImportIssueKind.Holding, "JESSY", 10)))
+            .ToList();
+        _lab.UltimoAipEspanso = new Core.PdfAip.EsitoDellAipEspanso("2611", "x", 2, ["a.pdf", "b.pdf"], [], 0, [], problemi, [])
+        {
+            Rapporto = [new("LI-ENR 5.6.1.8.pdf", 3, new Dictionary<string, int>(), 0, [new("coordinate", 96, 90)])],
+        };
+        var pagina = _contesto.RenderComponent<Home>();
+
+        pagina.WaitForAssertion(() => Assert.Contains("1 controllati, 1 non torna", pagina.Find("[data-conti-aip] summary").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+        Assert.Equal(200, pagina.FindAll("[data-problema-aip]").Count);
+        Assert.Contains("Le prime 200 di 251", pagina.Find("[data-problemi-troncati]").TextContent, StringComparison.Ordinal);
+        // L'attesa, la 251ª, non si vede fra le prime 200: col suo tipo sì.
+        Assert.Empty(pagina.FindAll("[data-problema-aip=Holding]"));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tipo-problemi=Holding]").Click());
+        Assert.Contains("JESSY", Assert.Single(pagina.FindAll("[data-problema-aip]")).TextContent, StringComparison.Ordinal);
+        await pagina.InvokeAsync(() => pagina.Find("[data-tipo-problemi=Procedure]").Click());
+        Assert.Equal(250, pagina.FindAll("[data-problema-aip=Procedure]").Count);
+        Assert.Empty(pagina.FindAll("[data-problemi-troncati]"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tipo-problemi='']").Click());
+        Assert.Equal(200, pagina.FindAll("[data-problema-aip]").Count);
+    }
+
     // Slice 1b: «Confronta i CTR», dall'AIP espanso al sector aperto; un clic sulla riga apre la voce del sector.
     // Carta «L'AIP intero», passo 8: il 2611 fino al 25 novembre, il 2612 dal 26; il campo, l'indice e i confronti aprono
     // quello in vigore, l'altro si guarda; al cambio il 2611 si toglie, col gesto confermato.

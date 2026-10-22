@@ -181,6 +181,58 @@ public sealed class RepoDellAipTests : IDisposable
     }
 
     [Fact]
+    public async Task IlCicloNuovoNasceDalRamoDelCicloPrima_EVedeAncheQuello()
+    {
+        var lab = new SessioneDelLab(Path.Combine(_radice, "dati-del-lab"));
+        lab.CambiaLIndirizzoDellAipEspanso(Server);
+        Assert.True(lab.CambiaLaCartellaDeiPdf(CartellaDeiPdf()), lab.Rifiuto);
+        var espanso = Path.Combine(_radice, "aip-espanso");
+        Assert.True(await lab.PrendiLAipEspansoAsync(espanso), lab.Rifiuto);
+        Configura(espanso);
+        Assert.True(await lab.LeggiLAipAsync("2611"), lab.Rifiuto);
+        Assert.True(await lab.RegistraLAipAsync("AIP 2611"), lab.Rifiuto);
+
+        // Prima nasceva da origin/main: sul ramo del 2612 il 2611 non c'era (22 ottobre, preparando le prove a mano).
+        Assert.True(await lab.LeggiLAipAsync("2612"), lab.Rifiuto);
+
+        Assert.Equal("aip/2612", lab.StatoDellAip!.Ramo);
+        Assert.True(File.Exists(Path.Combine(espanso, "2611", "li.json")));
+        Assert.Equal(["2611", "2612"], lab.CicliConIlModello);
+        Assert.Equal("2611", lab.UltimoAipEspanso!.Cambiate?.Ciclo);
+        Assert.Contains("AIP 2611", Esegui(espanso, "log", "--format=%s", "aip/2612"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UnCicloPrimaGiaFusoNonFaDaBase_SiParteDaMain()
+    {
+        var altro = Path.Combine(_radice, "altro");
+        Assert.Null(await RepoDellAip.PrendiAsync(_git, Server, altro));
+        Configura(altro);
+        Assert.Null(await RepoDellAip.SulRamoDelCicloAsync(_git, altro, "2611"));
+        Directory.CreateDirectory(Path.Combine(altro, "2611"));
+        File.WriteAllText(Path.Combine(altro, "2611", "li.json"), "{}");
+        Esegui(altro, "add", "2611/li.json");
+        Esegui(altro, "commit", "--quiet", "-m", "AIP 2611");
+        Esegui(altro, "push", "--quiet", "-u", "origin", "aip/2611");
+        // Il committente fonde il 2611, poi main va avanti.
+        var primo = Path.Combine(_radice, "primo");
+        Esegui(primo, "fetch", "--quiet");
+        Esegui(primo, "merge", "--quiet", "--no-ff", "-m", "fonde il 2611", "origin/aip/2611");
+        File.WriteAllText(Path.Combine(primo, "README.md"), "# dopo la fusione\n");
+        Esegui(primo, "commit", "--quiet", "-am", "README dopo la fusione");
+        Esegui(primo, "push", "--quiet", "origin", "main");
+
+        var mio = Path.Combine(_radice, "mio");
+        Assert.Null(await RepoDellAip.PrendiAsync(_git, Server, mio));
+        Configura(mio);
+        Assert.Null(await RepoDellAip.SulRamoDelCicloAsync(_git, mio, "2611"));
+        Assert.Null(await RepoDellAip.SulRamoDelCicloAsync(_git, mio, "2612"));
+
+        Assert.Equal("README dopo la fusione", Esegui(mio, "log", "-1", "--format=%s").Trim());
+        Assert.True(File.Exists(Path.Combine(mio, "2611", "li.json")));
+    }
+
+    [Fact]
     public async Task SuMainNonSiRegistraNeSiManda()
     {
         var clone = Path.Combine(_radice, "su-main");

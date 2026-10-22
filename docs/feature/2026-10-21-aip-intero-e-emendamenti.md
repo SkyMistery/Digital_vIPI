@@ -697,3 +697,24 @@ Test: Lab 1 399 (+7: sei del Core, uno della pagina).
 I passi della carta sono tutti fatti: 1, 7, 2, 3, 4, 5, 6, 8. Restano aperti col committente: Magra (dividere i due
 poligoni?), `li-ad2.json` (12 MB: un file per scalo?), l'avvicinamento come una procedura per segmento; dopo, fuori da
 questa carta, AIP SUP ed emendamenti non AIRAC, uno per uno (§2).
+
+### Passo 8-bis — i cicli nel repo, e le segnalazioni per tipo (22 ottobre, trovato preparando le prove a mano)
+
+Riscrivendo `PROVE.md` sul 2611 intero (851 PDF, letti con una sonda col codice di `be395bbb`) sono venute fuori tre cose
+che il banco non mostrava; il committente: «correggili ora, va bene la tua proposta».
+
+- **Il ramo del ciclo nuovo nasceva da `main`.** Quando l'AIP espanso è un repo ogni ciclo sta sul suo ramo `aip/<ciclo>`
+  (slice 0c), e un ciclo nuovo nasceva da `origin/main`: dopo l'emendamento, sul ramo `aip/2612` la cartella del 2611 non
+  c'era finché il committente non l'aveva fusa. La lettura si confrontava col 2610, l'indice non offriva «Guarda il
+  2611», e dal 29 ottobre i confronti col sector non avrebbero trovato il 2611. Sul banco non si vedeva: lì l'AIP espanso
+  non è un repo. Ora (`RepoDellAip.SulRamoDelCicloAsync`) il ramo nuovo nasce dal **ramo del ciclo prima** — il locale, o
+  quello del server se il locale è indietro — **se non è già dentro `main`**; se è già fuso nasce da `origin/main`, che ha
+  anche quel che è venuto dopo la fusione. La PR del 2612 porta con sé il 2611 finché il 2611 non è fuso: si fondono in
+  ordine. Resta vero, e le prove lo dicono: rileggere un ciclo **più vecchio** riporta sul suo ramo, dove il ciclo dopo non
+  c'è.
+- **Le segnalazioni si vedevano solo fino alla 200ª**: sul 2611 le 80 che non sono «procedura» c'erano, delle 466
+  «procedura» solo 120. Ora sopra l'elenco un tasto per tipo («procedura 466», «attesa 5», …) mostra tutte quelle del
+  tipo; «tutte» resta alle prime 200 e lo dice.
+- «1 non tornano» → «1 non torna».
+
+Test: Lab 1 402 (+3: il ramo dal ciclo prima, il ciclo prima già fuso, le segnalazioni per tipo).

@@ -68,7 +68,11 @@ public static class RepoDellAip
 
     /// <summary>
     /// Mette la copia di lavoro sul ramo del ciclo prima di scrivere: lo prende dal server se c'è già (un altro AOD l'ha
-    /// cominciato), altrimenti lo fa nascere da <c>origin/&lt;predefinito&gt;</c>. Torna null se è andata, o il perché.
+    /// cominciato), altrimenti lo fa nascere dal ramo del ciclo prima, se non è ancora fuso, o da
+    /// <c>origin/&lt;predefinito&gt;</c>. Torna null se è andata, o il perché.
+    /// <para>Il ciclo prima (committente, 22 ottobre): nato da <c>main</c>, il ramo del 2612 non aveva la cartella del 2611
+    /// finché il 2611 non era fuso — la lettura si confrontava col 2610, l'indice non offriva il 2611 e i confronti col sector
+    /// non lo trovavano. Nato dal ramo del 2611, li ha tutti e due; la PR del 2612 porta anche il 2611, se non è fuso.</para>
     /// 🔴 Con file cambiati e non registrati su un altro ramo non si cambia ramo: si registra prima.
     /// </summary>
     public static async Task<string?> SulRamoDelCicloAsync(Git.Git git, string radice, string ciclo, CancellationToken annulla = default)
@@ -93,9 +97,39 @@ public static class RepoDellAip
         var predefinito = await RamiDelSector.PredefinitoAsync(git, radice, annulla).ConfigureAwait(false);
         if (!(await git.EseguiAsync(radice, ["rev-parse", "--verify", "--quiet", "refs/remotes/origin/" + predefinito], annulla).ConfigureAwait(false)).Riuscito)
             return $"Sul server non c'è {predefinito}: il repo dell'AIP espanso ha bisogno di un primo commit (lo fa il committente).";
-        return Esito(await git.EseguiAsync(radice, ["switch", "--quiet", "--no-track", "-c", ramo, "origin/" + predefinito], annulla).ConfigureAwait(false), ramo);
+        var daDove = await RamoDelCicloPrimaAsync(git, radice, ciclo, "origin/" + predefinito, annulla).ConfigureAwait(false) ?? "origin/" + predefinito;
+        return Esito(await git.EseguiAsync(radice, ["switch", "--quiet", "--no-track", "-c", ramo, daDove], annulla).ConfigureAwait(false), ramo);
 
         static string? Esito(EsitoDiGit e, string ramo) => e.Riuscito ? null : $"Non sono riuscito a passare a {ramo}: {e.Errore}";
+    }
+
+    /// <summary>
+    /// Il ramo del ciclo più recente prima di <paramref name="ciclo"/> (<c>aip/2611</c> per il 2612), se c'è e non è già
+    /// dentro <paramref name="principale"/>: quello locale, o quello del server se il locale è indietro o non c'è. Null se
+    /// non ce n'è uno, o se è già fuso (allora il ramo nuovo nasce dal principale, che ha anche quel che è venuto dopo).
+    /// </summary>
+    private static async Task<string?> RamoDelCicloPrimaAsync(Git.Git git, string radice, string ciclo, string principale, CancellationToken annulla)
+    {
+        var rami = await git.EseguiAsync(radice, ["for-each-ref", "--format=%(refname)", "refs/heads/" + PrefissoDelRamo, "refs/remotes/origin/" + PrefissoDelRamo], annulla).ConfigureAwait(false);
+        if (!rami.Riuscito)
+            return null;
+        var prima = rami.Uscita.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(r => r[(r.LastIndexOf('/') + 1)..])
+            .Where(c => CicloAirac.Valido(c) && string.CompareOrdinal(c, ciclo) < 0)
+            .OrderDescending(StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (prima is null)
+            return null;
+
+        async Task<bool> Esiste(string r) => (await git.EseguiAsync(radice, ["rev-parse", "--verify", "--quiet", r], annulla).ConfigureAwait(false)).Riuscito;
+        async Task<bool> Dentro(string a, string b) => (await git.EseguiAsync(radice, ["merge-base", "--is-ancestor", a, b], annulla).ConfigureAwait(false)).Riuscito;
+
+        var locale = "refs/heads/" + RamoDelCiclo(prima);
+        var remoto = "refs/remotes/origin/" + RamoDelCiclo(prima);
+        string scelto = await Esiste(locale)
+            ? await Esiste(remoto) && await Dentro(locale, remoto) ? remoto : locale
+            : remoto;
+        return await Dentro(scelto, principale) ? null : scelto;
     }
 
     /// <summary>Scrive il <c>.gitignore</c> del Lab se manca, o ci aggiunge le righe che mancano. Vero se l'ha cambiato.</summary>

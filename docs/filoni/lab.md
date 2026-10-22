@@ -19,11 +19,15 @@ otto passi nell'ordine 1, 7, 2, 3, 4, 5, 6, 8 (D3), **tutti fatti**, ognuno col 
 - Il **rapporto di lettura** controlla 596 conti dell'AIP sul 2611: tornano tutti tranne uno, Magra (ENR 5.6.1.8, due
   poligoni sotto un nome). Ogni cosa non letta si dice (segnalazioni di «Leggi», per tipo, in italiano).
 - Codice comune toccato: niente fuori dal Lab (`Aip`, `Aip.Pdf`, `Aip.Pdf.Italia`, `Vipi.SectorLab.*`). Test: Aip.Pdf 170,
-  Aip 53, Aip.Aurora 38, Lab 1 399. Eseguibile di prova a `8a7c1d5a`.
+  Aip 53, Aip.Aurora 38, Lab 1 402.
+- **Passo 8-bis** (22 ottobre, trovato riscrivendo le prove a mano sul 2611 intero): nel repo dell'AIP espanso il ramo di
+  un ciclo nuovo nasce dal ramo del ciclo prima, se non è ancora fuso (prima nasceva da `main` e non vedeva il ciclo
+  prima); le segnalazioni di «Leggi» si scelgono per tipo (prima se ne vedevano 200); «1 non torna».
 
-**Adesso** il committente ha da decidere: Magra (dividere in due aree?), `li-ad2.json` (12 MB: un file per scalo?),
-l'avvicinamento come una procedura per segmento (prova 307); e da fare le prove a mano **239-312** di
-`SectorLab-prova\PROVE.md`. **Dopo**, al via: la seconda parte di D5 (sotto), il seguito della lettura della prosa delle
+**Le prove a mano** sono riscritte da zero, per spazi del Lab (`SectorLab-prova\PROVE.md`; le vecchie 1-312 in
+`PROVE fino al 22 ottobre.md`): prima **A1-A50**, l'AIP espanso sul 2611 completo; poi S (Sector) e C (Confronti).
+**Adesso** il committente ha da fare le A e da decidere: Magra (dividere in due aree?), `li-ad2.json` (12 MB: un file per
+scalo?), l'avvicinamento come una procedura per segmento (A27). **Dopo**, al via: la seconda parte di D5 (sotto), il seguito della lettura della prosa delle
 procedure (F7, 7b: 466 frasi senza tratti), AIP SUP ed emendamenti non AIRAC. 🔴 Il sector vero non si tocca fino al 29
 ottobre (uscita del 2611).
 

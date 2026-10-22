@@ -4609,7 +4609,7 @@ public sealed class SessioneDelLab
     public Core.PdfAip.PresaDaDownload? UltimaPresaDaDownload { get; private set; }
 
     /// <summary>Com'è andata l'ultima lettura nell'AIP espanso.</summary>
-    public Core.PdfAip.EsitoDellAipEspanso? UltimoAipEspanso { get; private set; }
+    public Core.PdfAip.EsitoDellAipEspanso? UltimoAipEspanso { get; internal set; }
 
     /// <summary>Sta leggendo i PDF.</summary>
     public bool StaLeggendoLAip { get; private set; }

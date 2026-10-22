@@ -184,7 +184,7 @@
                     @if (esito.Conti is { Controllati: > 0 } conti)
                     {
                         <details data-conti-aip>
-                            <summary class="lab-nota">Conti dell'AIP (@string.Join(", ", esito.Rapporto.SelectMany(r => r.Conti).Select(c => c.Cosa).Distinct())): @conti.Controllati controllati, @(conti.NonTornano == 0 ? "tutti tornano" : $"{conti.NonTornano} non tornano")</summary>
+                            <summary class="lab-nota">Conti dell'AIP (@string.Join(", ", esito.Rapporto.SelectMany(r => r.Conti).Select(c => c.Cosa).Distinct())): @conti.Controllati controllati, @(conti.NonTornano switch { 0 => "tutti tornano", 1 => "1 non torna", var n => $"{n} non tornano" })</summary>
                             <ul class="lab-elenco-lotto">
                                 @foreach (var r in esito.Rapporto.Where(r => r.Conti.Count > 0).OrderBy(r => r.Conti.All(c => c.Attesi == c.Letti)).Take(300))
                                 {
@@ -219,8 +219,27 @@
                     {
                         <details data-problemi-aip>
                             <summary class="lab-nota">@esito.Problemi.Count segnalazioni: @string.Join(" · ", esito.Problemi.GroupBy(p => p.Problema.Kind).Select(g => $"{Tipo(g.Key)} {g.Count()}"))</summary>
+                            @* Un filtro per tipo (committente, 22 ottobre: delle 542 del 2611 se ne vedevano le prime 200): tutte, o tutte di un tipo. *@
+                            <p class="lab-nota" data-tipi-problemi-aip>
+                                <button type="button" class="lab-voce @(_tipoDelleSegnalazioni is null ? "lab-scelto" : null)" data-tipo-problemi=""
+                                        @onclick="() => _tipoDelleSegnalazioni = null">tutte @esito.Problemi.Count</button>
+                                @foreach (var g in esito.Problemi.GroupBy(p => p.Problema.Kind))
+                                {
+                                    <button type="button" class="lab-voce @(_tipoDelleSegnalazioni == g.Key ? "lab-scelto" : null)" data-tipo-problemi="@g.Key"
+                                            @onclick="() => _tipoDelleSegnalazioni = g.Key">@Tipo(g.Key) @g.Count()</button>
+                                }
+                            </p>
+                            @{
+                                IReadOnlyList<Vipi.SectorLab.Core.PdfAip.ProblemaDellImport> scelte = _tipoDelleSegnalazioni is { } tipo
+                                    ? esito.Problemi.Where(p => p.Problema.Kind == tipo).ToList() : esito.Problemi;
+                                var mostrate = _tipoDelleSegnalazioni is null ? scelte.Take(MassimoSenzaFiltro) : scelte;
+                            }
+                            @if (_tipoDelleSegnalazioni is null && scelte.Count > MassimoSenzaFiltro)
+                            {
+                                <p class="lab-nota" data-problemi-troncati>Le prime @MassimoSenzaFiltro di @scelte.Count: scegli un tipo per vederle tutte.</p>
+                            }
                             <ul class="lab-elenco-lotto">
-                                @foreach (var p in esito.Problemi.Take(200))
+                                @foreach (var p in mostrate)
                                 {
                                     <li class="lab-nota" data-problema-aip="@p.Problema.Kind">
                                         <code>@p.File</code>@(p.Problema.Page is { } n ? $" p.{n}" : "") — @Tipo(p.Problema.Kind)@(p.Problema.Key is { } k ? $" · {k}" : "")@(p.Problema.Detail is { } d ? $": {d}" : "")
@@ -298,6 +317,10 @@
 
 @code {
     private string? _rifiuto;
+    private Aip.Pdf.Italia.ImportIssueKind? _tipoDelleSegnalazioni;
+
+    /// <summary>Quante segnalazioni si mostrano senza un tipo scelto: con un tipo, tutte le sue.</summary>
+    private const int MassimoSenzaFiltro = 200;
     private string? _ciclo;
     private string? _daTogliere;
     private string? _dove;
