@@ -17,11 +17,12 @@ public sealed class AipNellaBarraTests : IDisposable
     private readonly TestContext _contesto = new();
     private readonly SessioneDelLab _lab;
     private readonly string _fuori = Path.Combine(Path.GetTempPath(), "aip-barra-" + Guid.NewGuid().ToString("N"));
+    private readonly List<Uri> _pdfAperti = [];
 
     public AipNellaBarraTests()
     {
         Directory.CreateDirectory(Path.Combine(_fuori, "Downloads"));
-        _lab = new SessioneDelLab(Path.Combine(_albero.Radice, "dati-del-lab")) { Download = Path.Combine(_fuori, "Downloads") };
+        _lab = new SessioneDelLab(Path.Combine(_albero.Radice, "dati-del-lab")) { Download = Path.Combine(_fuori, "Downloads"), ApriIlPdfAllaPagina = _pdfAperti.Add };
         _contesto.Services.AddSingleton(_lab);
         _contesto.JSInterop.Mode = JSRuntimeMode.Loose;
         _contesto.JSInterop.Setup<bool>("sectorlab.mappa.crea", _ => true).SetResult(true);
@@ -67,21 +68,31 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.True(File.Exists(Path.Combine(pdf, "LI-ENR 5.1.2.pdf")));
         Assert.True(File.Exists(Path.Combine(_lab.Download, "fattura.pdf")));
 
-        // Il ciclo proposto è quello di oggi; si scrive quello voluto, e si legge.
-        Assert.Equal(_lab.CicloDiOggi, pagina.Find("[data-campo=ciclo]").GetAttribute("value"));
-        await pagina.InvokeAsync(() => pagina.Find("[data-campo=ciclo]").Change("2611"));
-        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=leggi-aip]").Click());
+        // 22 ottobre: niente campo «Ciclo». Il PDF preso da Download sta fuori dalle cartelle dei cicli: il Lab lo legge, il
+        // ciclo lo dicono le date delle pagine (06/08/2026 → 2608), e lo mette nella sua cartella.
+        Assert.Empty(pagina.FindAll("[data-campo=ciclo]"));
+        pagina.WaitForAssertion(() => Assert.Contains("1 PDF fuori dalle cartelle", pagina.Find("[data-sciolti]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=leggi-sciolti]").Click());
 
         pagina.WaitForAssertion(() =>
         {
             var esito = pagina.Find("[data-esito-aip]").TextContent;
-            Assert.Contains("Ciclo 2611", esito, StringComparison.Ordinal);
-            Assert.Contains("1 aree", esito, StringComparison.Ordinal);
+            Assert.Contains("ciclo 2608", esito, StringComparison.Ordinal);
+            Assert.Equal("1", pagina.Find("[data-da-dove=aree] strong").TextContent);
             Assert.Contains("06/08/2026 ×1", pagina.Find("[data-date-aip]").TextContent, StringComparison.Ordinal);
+            Assert.Empty(pagina.FindAll("[data-sciolti]"));
+            Assert.NotNull(pagina.Find("[data-ciclo='2608'] [data-tasto=leggi-aip]"));
         }, TimeSpan.FromSeconds(20));
+        Assert.True(File.Exists(Path.Combine(pdf, "AIP 2608", "LI-ENR 5.1.2.pdf")));
+        Assert.False(File.Exists(Path.Combine(pdf, "LI-ENR 5.1.2.pdf")));
 
-        var doc = AipJson.Deserialize(await File.ReadAllTextAsync(Path.Combine(_fuori, "espanso", "2611", "li.json")));
+        var doc = AipJson.Deserialize(await File.ReadAllTextAsync(Path.Combine(_fuori, "espanso", "2608", "li.json")));
         Assert.Equal("LI R901", Assert.Single(doc.Airspaces).Designator);
+
+        // Da dove vengono le aree: il PDF, che si apre a pagina 1.
+        await pagina.InvokeAsync(() => pagina.Find("[data-da-dove=aree]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-da-dove-pdf='LI-ENR 5.1.2.pdf'] button").Click());
+        Assert.EndsWith("/AIP%202608/LI-ENR%205.1.2.pdf#page=1", Assert.Single(_pdfAperti).AbsoluteUri, StringComparison.Ordinal);
 
         // Un ciclo scritto male non si legge.
         Assert.False(await _lab.LeggiLAipAsync("26"));
@@ -152,13 +163,16 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.True(await _lab.GuardaIlCicloAsync(null), _lab.Rifiuto);
         Assert.Equal(("2612", (string?)null), (_lab.StratoDellAip!.Ciclo, _lab.CicloGuardatoDellAip));
         var pagina = _contesto.RenderComponent<Home>();
+        // 22 ottobre: una riga per ciclo al posto del campo; quella su cui si lavora è in evidenza.
         pagina.WaitForAssertion(() =>
         {
-            Assert.Equal("2612", pagina.Find("[data-campo=ciclo]").GetAttribute("value"));
-            var cicli = pagina.Find("[data-cicli-aip]").TextContent;
-            Assert.Contains("2611 non più in vigore dal 26/11/2026", cicli, StringComparison.Ordinal);
-            Assert.Contains("2612 in vigore dal 26/11/2026", cicli, StringComparison.Ordinal);
+            Assert.Equal("non più in vigore dal 26/11/2026", pagina.Find("[data-ciclo='2611'] [data-ciclo-dice]").TextContent);
+            Assert.Equal("in vigore dal 26/11/2026", pagina.Find("[data-ciclo='2612'] [data-ciclo-dice]").TextContent);
+            Assert.Contains("lab-ciclo-aperto", pagina.Find("li[data-ciclo='2612']").ClassList);
+            Assert.Contains("pagine fino al 06/08/2026", pagina.Find("li[data-ciclo='2612']").TextContent, StringComparison.Ordinal);
+            Assert.Equal("Rileggi", pagina.Find("[data-ciclo='2612'] [data-tasto=leggi-aip]").TextContent.Trim());
         }, TimeSpan.FromSeconds(10));
+        Assert.Empty(pagina.FindAll("[data-ciclo='2612'] [data-tasto=togli-ciclo]"));
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto=togli-ciclo]").Click());
         Assert.True(Directory.Exists(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, "2611")));
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto=togli-ciclo-sicuro]").Click());
@@ -387,8 +401,8 @@ public sealed class AipNellaBarraTests : IDisposable
                 new LineSegment(new Position(42.0, 12.0)), new LineSegment(new Position(42.0, 12.5)), new LineSegment(new Position(41.8, 12.5))])),
             CtrDiProva("ATZ Urbe LIRU - RMZ", new CircleGeometry(new Position(41.95, 12.5), new Distance(3, DistanceUnit.Nm))) with { Type = AirspaceType.Rmz });
 
-        // R7: la casella sta in «Lettura e consegna», nello spazio AIP espanso.
-        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aip]").Click());
+        // 22 ottobre: la casella sta nell'Indice, che ha la mappa («Lettura e consegna» è una pagina intera).
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aipindice]").Click());
         // Il Confronti ha già caricato lo strato: si aspetta che il gestore della casella abbia finito di ricaricarlo.
         await pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
 
@@ -428,8 +442,8 @@ public sealed class AipNellaBarraTests : IDisposable
         var espanso = Path.Combine(_fuori, "espanso");
         var correzioni = Path.Combine(espanso, "correzioni", "li.json");
         AipDocument Modello() => AipJson.Deserialize(File.ReadAllText(Path.Combine(espanso, "2611", "li.json")));
-        // R7: la casella sta in «Lettura e consegna», nello spazio AIP espanso.
-        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aip]").Click());
+        // 22 ottobre: la casella sta nell'Indice, che ha la mappa («Lettura e consegna» è una pagina intera).
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aipindice]").Click());
         // Il Confronti ha già caricato lo strato: si aspetta che il gestore della casella abbia finito di ricaricarlo.
         await pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
         pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-aip-strato]")), TimeSpan.FromSeconds(10));
@@ -521,8 +535,8 @@ public sealed class AipNellaBarraTests : IDisposable
                 await Task.Delay(50);
             }
         }
-        // R7: la casella sta in «Lettura e consegna», nello spazio AIP espanso.
-        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aip]").Click());
+        // 22 ottobre: la casella sta nell'Indice, che ha la mappa («Lettura e consegna» è una pagina intera).
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina=aipindice]").Click());
         // Il Confronti ha già caricato lo strato: si aspetta che il gestore della casella abbia finito di ricaricarlo.
         await pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
         pagina.WaitForAssertion(() => Assert.Contains("2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));

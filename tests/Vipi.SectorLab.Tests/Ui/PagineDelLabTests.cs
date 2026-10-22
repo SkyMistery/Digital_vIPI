@@ -57,6 +57,9 @@ public sealed class PagineDelLabTests : IDisposable
         Assert.Equal(["pdf", "leggi", "segnalazioni", "registra", "manda"],
             pagina.FindAll("[data-giro='aip'] [data-passo-giro]").Select(p => p.GetAttribute("data-passo-giro")));
         Assert.Empty(pagina.FindAll("[data-linguetta='sfoglia']"));
+        // 22 ottobre: «Lettura e consegna» è una pagina intera, senza mappa (la mappa dell'AIP sta nell'Indice).
+        Assert.Equal("si", pagina.Find("[data-mappa-nascosta]").GetAttribute("data-mappa-nascosta"));
+        pagina.Find("[data-pagina='aipindice']").Click();
         Assert.Equal("no", pagina.Find("[data-mappa-nascosta]").GetAttribute("data-mappa-nascosta"));
 
         pagina.Find("[data-pagina='consegna']").Click();

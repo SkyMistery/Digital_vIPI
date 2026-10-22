@@ -22,7 +22,14 @@
             @foreach (var (nome, valore) in voce.Campi)
             {
                 <dt>@nome</dt>
-                <dd>@valore</dd>
+                <dd>@valore
+                    @* Da dove viene la voce (22 ottobre): «AD 2 LIRN 5-11 (09/07/2026)» → il PDF a quella pagina, dall'indice delle pagine. *@
+                    @if (nome == "Pagina" && valore != "—" && Ciclo is { } ciclo)
+                    {
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="apri-pagina-aip" title="Apre il PDF a questa pagina"
+                                @onclick="() => ApriLaPagina(ciclo, valore)">Apri il PDF</button>
+                    }
+                </dd>
             }
         </dl>
         @if (voce.Righe.Count > 0)
@@ -83,6 +90,10 @@
                 <p class="lab-errore" data-rifiuto-correzione>@rifiuto</p>
             }
         }
+        else if (_rifiuto is { } rifiuto)
+        {
+            <p class="lab-errore" data-rifiuto-correzione>@rifiuto</p>
+        }
     </div>
 }
 
@@ -142,4 +153,11 @@
     }
 
     private async Task Ritira(string id) => _rifiuto = await Lab.RitiraLaCorrezioneAsync(id) ? null : Lab.Rifiuto;
+
+    /// <summary>Il campo dice «riferimento (data)»: la pagina si cerca col riferimento.</summary>
+    private void ApriLaPagina(string ciclo, string campo)
+    {
+        var parentesi = campo.IndexOf(" (", StringComparison.Ordinal);
+        _rifiuto = Lab.ApriLaPaginaDellAip(ciclo, parentesi < 0 ? campo : campo[..parentesi]) ? null : Lab.Rifiuto;
+    }
 }

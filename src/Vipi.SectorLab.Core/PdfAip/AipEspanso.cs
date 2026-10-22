@@ -12,6 +12,31 @@ public sealed record RapportoDelPdf(string File, int Pagine, IReadOnlyDictionary
 /// <summary>Un problema dell'import, col file da cui viene.</summary>
 public sealed record ProblemaDellImport(string File, ImportIssue Problema);
 
+/// <summary>A che punto è la lettura dei PDF: quanti finiti su quanti, e l'ultimo finito.</summary>
+public sealed record AvanzamentoDellaLettura(int Fatti, int Tutti, string File);
+
+/// <summary>
+/// I PDF letti e non ancora scritti nell'AIP espanso (<see cref="AipEspanso.LeggiIPdf"/>): quel che ogni file ha dato,
+/// l'indice delle pagine, i conti stampati, i file che non si aprono.
+/// </summary>
+public sealed record LetturaDeiPdf(
+    IReadOnlyList<string> Pdf,
+    IReadOnlyDictionary<string, ImportResult> PerFile,
+    IReadOnlyList<Aip.Pdf.IndexedPage> Indice,
+    IReadOnlyDictionary<string, IReadOnlyList<ExpectedCount>> ContiAttesi,
+    IReadOnlyList<string> Illeggibili)
+{
+    /// <summary>La data più recente stampata sulle pagine; null se nessuna pagina ha una data.</summary>
+    public DateOnly? UltimaData => Indice.Max(p => p.Effective);
+
+    /// <summary>
+    /// Il ciclo che dicono le pagine (committente, 22 ottobre: «dalle date del PDF»): quello in vigore il giorno della pagina
+    /// più recente. Una pagina che non cambia tiene la sua data vecchia, quindi conta la più nuova: nel 2611 completo, il
+    /// 29/10/2026.
+    /// </summary>
+    public string? CicloDellePagine => UltimaData is { } d ? CicloAirac.Di(d).Nome : null;
+}
+
 /// <summary>
 /// Com'è andata «Leggi nell'AIP espanso»: dove è scritto, quanti PDF c'erano e quanti si sanno già leggere, le aree, le
 /// date delle pagine lette, e quel che l'importer ha da dire.
@@ -256,6 +281,61 @@ public static class AipEspanso
         ArgumentException.ThrowIfNullOrEmpty(espanso);
         if (!CicloAirac.Valido(ciclo))
             throw new ArgumentException($"Ciclo AIRAC non valido: «{ciclo}».", nameof(ciclo));
+        return Componi(LeggiIPdf(pdf), espanso, ciclo);
+    }
+
+    /// <summary>
+    /// La prima metà di <see cref="Leggi"/> (pagina «Lettura e consegna», 22 ottobre): i PDF letti uno per uno, senza
+    /// scrivere niente — così il Lab sa dalle date delle pagine di che ciclo sono prima di scegliere dove scrivere. È la
+    /// parte lunga: <paramref name="avanzamento"/> dice ogni PDF finito.
+    /// </summary>
+    public static LetturaDeiPdf LeggiIPdf(IReadOnlyList<string> pdf, IProgress<AvanzamentoDellaLettura>? avanzamento = null)
+    {
+        ArgumentNullException.ThrowIfNull(pdf);
+        // Si legge in ordine di nome — ENR 4 prima di ENR 5, che ne usa i punti (le AAR di ENR 5.2.2.1).
+        var giaLette = new List<Navaid>();
+        var puntiLetti = new List<SignificantPoint>();
+        var risolvi = ItalianEnr5Zone.Risolutore(giaLette, puntiLetti);
+        var perFile = new Dictionary<string, ImportResult>(StringComparer.Ordinal);
+        // L'indice delle pagine (carta «L'AIP intero», passo 1): di tutti i PDF, anche quelli che l'importer non legge
+        // ancora; ogni PDF si apre una volta sola.
+        var indice = new List<Aip.Pdf.IndexedPage>();
+        // I conti che l'AIP stampa (passo 2e): zone numerate, punti ▲∆ delle rotte.
+        var contiAttesi = new Dictionary<string, IReadOnlyList<ExpectedCount>>(StringComparer.Ordinal);
+        var illeggibili = new List<string>();
+        var fatti = 0;
+        foreach (var file in pdf.OrderBy(Path.GetFileName, StringComparer.Ordinal))
+        {
+            try
+            {
+                var lette = Aip.Pdf.PdfText.Read(file);
+                indice.AddRange(Aip.Pdf.PageIndex.Of(Path.GetFileName(file), lette));
+                var letto = ItalianAip.ReadFile(file, lette, risolvi);
+                perFile[file] = letto;
+                contiAttesi[file] = ItalianExpectedCounts.Of(file, lette);
+                giaLette.AddRange(letto.Navaids);
+                puntiLetti.AddRange(letto.Points);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                illeggibili.Add($"{Path.GetFileName(file)}: {e.Message}");
+            }
+            avanzamento?.Report(new AvanzamentoDellaLettura(++fatti, pdf.Count, Path.GetFileName(file)));
+        }
+        return new LetturaDeiPdf(pdf, perFile, indice, contiAttesi, illeggibili);
+    }
+
+    /// <summary>
+    /// La seconda metà di <see cref="Leggi"/>: dai PDF letti il modello del ciclo, con le correzioni, scritto nella sua
+    /// cartella dell'AIP espanso insieme all'indice delle pagine.
+    /// </summary>
+    public static EsitoDellAipEspanso Componi(LetturaDeiPdf lettura, string espanso, string ciclo)
+    {
+        ArgumentNullException.ThrowIfNull(lettura);
+        ArgumentException.ThrowIfNullOrEmpty(espanso);
+        if (!CicloAirac.Valido(ciclo))
+            throw new ArgumentException($"Ciclo AIRAC non valido: «{ciclo}».", nameof(ciclo));
+        var (pdf, perFile, indice, contiAttesi, illeggibili) = (lettura.Pdf, lettura.PerFile, lettura.Indice, lettura.ContiAttesi, lettura.Illeggibili);
 
         var aree = new List<Airspace>();
         var rotte = new List<Route>();
@@ -275,40 +355,11 @@ public static class AipEspanso
         var letti = new List<string>();
         var rapporto = new List<RapportoDelPdf>();
         var nonAncora = new List<string>();
-        var illeggibili = new List<string>();
         var problemi = new List<ProblemaDellImport>();
         var pagine = new List<ImportPage>();
 
-        // Si legge in ordine di nome — ENR 4 prima di ENR 5, che ne usa i punti (le AAR di ENR 5.2.2.1) —, ma il modello si
-        // compone nell'ordine dei PDF di sempre, così le aree di un file nuovo si aggiungono dove sono sempre state e il resto
-        // dell'AIP espanso in git non si sposta.
-        var giaLette = new List<Navaid>();
-        var puntiLetti = new List<SignificantPoint>();
-        var risolvi = ItalianEnr5Zone.Risolutore(giaLette, puntiLetti);
-        var perFile = new Dictionary<string, ImportResult>(StringComparer.Ordinal);
-        // L'indice delle pagine (carta «L'AIP intero», passo 1): di tutti i PDF, anche quelli che l'importer non legge
-        // ancora; ogni PDF si apre una volta sola.
-        var indice = new List<Aip.Pdf.IndexedPage>();
-        // I conti che l'AIP stampa (passo 2e): zone numerate, punti ▲∆ delle rotte.
-        var contiAttesi = new Dictionary<string, IReadOnlyList<ExpectedCount>>(StringComparer.Ordinal);
-        foreach (var file in pdf.OrderBy(Path.GetFileName, StringComparer.Ordinal))
-        {
-            try
-            {
-                var lette = Aip.Pdf.PdfText.Read(file);
-                indice.AddRange(Aip.Pdf.PageIndex.Of(Path.GetFileName(file), lette));
-                var letto = ItalianAip.ReadFile(file, lette, risolvi);
-                perFile[file] = letto;
-                contiAttesi[file] = ItalianExpectedCounts.Of(file, lette);
-                giaLette.AddRange(letto.Navaids);
-                puntiLetti.AddRange(letto.Points);
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
-            {
-                illeggibili.Add($"{Path.GetFileName(file)}: {e.Message}");
-            }
-        }
-
+        // Letti in ordine di nome (LeggiIPdf), ma il modello si compone nell'ordine dei PDF di sempre, così le aree di un
+        // file nuovo si aggiungono dove sono sempre state e il resto dell'AIP espanso in git non si sposta.
         foreach (var file in pdf)
         {
             var nome = Path.GetFileName(file);

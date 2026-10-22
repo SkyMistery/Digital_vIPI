@@ -4559,6 +4559,7 @@ public sealed class SessioneDelLab
         _cartellaDeiPdf = scritta is null ? null : Path.GetFullPath(scritta);
         _cartellaDeiPdfLetta = true;
         Ricorda("cartella-dei-pdf.txt", _cartellaDeiPdf, "cartella dei PDF");
+        _righeDeiCicli = null;
         Avvisa();
         return true;
     }
@@ -4575,6 +4576,7 @@ public sealed class SessioneDelLab
         _aipEspanso = scritta is null ? null : Path.GetFullPath(scritta);
         _aipEspansoLetto = true;
         Ricorda("aip-espanso.txt", _aipEspanso, "AIP espanso");
+        _righeDeiCicli = null;
         Avvisa();
         return true;
     }
@@ -4684,6 +4686,7 @@ public sealed class SessioneDelLab
         Registro.Scrivi("aip", $"tolto il ciclo {ciclo}: non più in vigore");
         if (CicloGuardatoDellAip == ciclo) CicloGuardatoDellAip = null;
         if (UltimoAipEspanso?.Ciclo == ciclo) UltimoAipEspanso = null;
+        _righeDeiCicli = null;
         Rifiuto = null;
         Avvisa();
         return true;
@@ -4714,10 +4717,40 @@ public sealed class SessioneDelLab
     }
 
     /// <summary>
-    /// «Leggi nell'AIP espanso»: i PDF della cartella nel modello, scritto nella cartella del ciclo. Il sector non si tocca:
-    /// le differenze col sector sono le slice dopo.
+    /// «Leggi» (pagina «Lettura e consegna», 22 ottobre): i PDF di un ciclo — la sua cartella <c>AIP 2611</c> — nel modello,
+    /// scritto nella cartella del ciclo dell'AIP espanso. Senza ciclo, i PDF sciolti (<see cref="LeggiIPdfScioltiAsync"/>).
+    /// <para>Il ciclo lo dicono le date delle pagine, non il nome della cartella né il giorno di oggi (committente, 22
+    /// ottobre: il 2611 copiato fuori dalla sua cartella si era letto come 2610): pagine di un ciclo DOPO quello della
+    /// cartella fermano la lettura prima di scrivere; nessuna pagina del ciclo (i PDF che hai non sono cambiati) si dice in
+    /// <see cref="AvvisoDellaLettura"/> e si va avanti.</para>
     /// </summary>
     public async Task<bool> LeggiLAipAsync(string? ciclo)
+    {
+        if (string.IsNullOrWhiteSpace(ciclo))
+            return await LeggiIPdfScioltiAsync().ConfigureAwait(false);
+        if (StaLeggendoLAip)
+            return false;
+        if (CartellaDeiPdf is not { } pdf)
+            return Rifiuta("Manca la cartella dei PDF dell'AIP: sceglila nelle Impostazioni.");
+        if (Core.PdfAip.AipEspanso.PercheNonVa(CartellaDellAipEspanso, pdf) is { } perche)
+            return Rifiuta(perche);
+        var nome = ciclo.Trim();
+        if (!Core.PdfAip.CicloAirac.Valido(nome))
+            return Rifiuta($"«{nome}» non è un ciclo AIRAC: quattro cifre, l'anno e il numero (2611).");
+        var cartella = Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, nome);
+        if (!Directory.Exists(cartella))
+            return Rifiuta(Core.PdfAip.EmendamentoDellAip.CicliNellaCartella(pdf) is { Count: > 0 } cicli
+                ? $"Nella cartella dei PDF ci sono i cicli {string.Join(", ", cicli)}, non il {nome}."
+                : $"Nella cartella dei PDF non c'è «AIP {nome}».");
+
+        return await LeggiAsync(Core.PdfAip.PdfDellAip.Elenco(cartella), nome, sciolti: false).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// «Leggi e metti nel loro ciclo»: i PDF messi nella cartella dei PDF fuori dalle cartelle dei cicli. Il ciclo lo dicono
+    /// le date delle pagine; letti e scritti nel modello, vanno nella loro cartella <c>AIP 2611</c>.
+    /// </summary>
+    public async Task<bool> LeggiIPdfScioltiAsync()
     {
         if (StaLeggendoLAip)
             return false;
@@ -4725,29 +4758,75 @@ public sealed class SessioneDelLab
             return Rifiuta("Manca la cartella dei PDF dell'AIP: sceglila nelle Impostazioni.");
         if (Core.PdfAip.AipEspanso.PercheNonVa(CartellaDellAipEspanso, pdf) is { } perche)
             return Rifiuta(perche);
-        var nome = string.IsNullOrWhiteSpace(ciclo) ? CicloDaLeggere : ciclo.Trim();
-        if (!Core.PdfAip.CicloAirac.Valido(nome))
-            return Rifiuta($"«{nome}» non è un ciclo AIRAC: quattro cifre, l'anno e il numero (2611).");
+        var sciolti = Core.PdfAip.CicliDellAip.PdfSciolti(pdf);
+        if (sciolti.Count == 0)
+            return Rifiuta("Nella cartella dei PDF non ci sono PDF fuori dalle cartelle dei cicli.");
+        return await LeggiAsync(sciolti, null, sciolti: true).ConfigureAwait(false);
+    }
 
+    private async Task<bool> LeggiAsync(IReadOnlyList<string> file, string? ciclo, bool sciolti)
+    {
         StaLeggendoLAip = true;
+        AvvisoDellaLettura = null;
+        Avanzamento = new Core.PdfAip.AvanzamentoDellaLettura(0, file.Count, "");
+        InizioDellaLettura = DateTime.UtcNow;
         Avvisa();
         try
         {
             var espanso = CartellaDellAipEspanso!;
-            // Se l'AIP espanso è il clone del suo repo, si scrive sul ramo del ciclo (mai su main), col .gitignore dei PDF.
-            if (Core.PdfAip.RepoDellAip.EUnRepo(espanso))
+            var repo = Core.PdfAip.RepoDellAip.EUnRepo(espanso);
+            // Il ramo prima della lettura lunga, quando si sa già il ciclo; per i PDF sciolti il ciclo si sa dopo, e allora
+            // si guarda almeno che non ci sia niente di non registrato (non si cambierebbe ramo).
+            if (repo && ciclo is not null)
             {
-                if (await Core.PdfAip.RepoDellAip.SulRamoDelCicloAsync(Git, espanso, nome).ConfigureAwait(false) is { } noRamo)
+                if (await Core.PdfAip.RepoDellAip.SulRamoDelCicloAsync(Git, espanso, ciclo).ConfigureAwait(false) is { } noRamo)
                     return Rifiuta(noRamo);
-                Core.PdfAip.RepoDellAip.MettiIlGitIgnore(espanso);
+            }
+            else if (repo && (await Core.Git.RepoDelSector.LeggiAsync(Git, espanso, prendi: false).ConfigureAwait(false)).Stato is { Cambiati.Count: > 0 } sporco)
+            {
+                return Rifiuta($"Ci sono file cambiati e non registrati su {sporco.Ramo ?? "un commit staccato"}: registrali prima di leggere.");
             }
 
-            // Con le cartelle dei cicli (AIP 2611, AIP 2612: passo 7) si leggono i PDF del ciclo scelto, non tutti.
-            if (Core.PdfAip.EmendamentoDellAip.CartellaDaLeggere(pdf, nome) is not { } daLeggere)
-                return Rifiuta($"Nella cartella dei PDF ci sono i cicli {string.Join(", ", Core.PdfAip.EmendamentoDellAip.CicliNellaCartella(pdf))}, non il {nome}.");
-            var file = Core.PdfAip.PdfDellAip.Elenco(daLeggere);
-            var esito = await Task.Run(() => Core.PdfAip.AipEspanso.Leggi(file, espanso, nome)).ConfigureAwait(false);
+            var avanzamento = new RiferisciSubito<Core.PdfAip.AvanzamentoDellaLettura>(a =>
+            {
+                Avanzamento = a;
+                AvvisaOgniTanto();
+            });
+            var lettura = await Task.Run(() => Core.PdfAip.AipEspanso.LeggiIPdf(file, avanzamento)).ConfigureAwait(false);
+
+            var delle = lettura.CicloDellePagine;
+            var ultima = lettura.UltimaData?.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+            if (ciclo is null)
+            {
+                if (delle is null)
+                    return Rifiuta("Nessuna pagina di questi PDF ha una data: il ciclo non si riconosce. Mettili tu in una cartella «AIP <ciclo>» (AIP 2611).");
+                if (Directory.Exists(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(CartellaDeiPdf!, delle)))
+                    return Rifiuta($"Questi PDF sono del {delle} (la pagina più recente è del {ultima}), ma c'è già la cartella «AIP {delle}»: mettili lì dentro tu, o togli quella cartella. Non ho scritto niente.");
+                ciclo = delle;
+                if (repo && await Core.PdfAip.RepoDellAip.SulRamoDelCicloAsync(Git, espanso, ciclo).ConfigureAwait(false) is { } noRamo)
+                    return Rifiuta(noRamo);
+            }
+            else if (delle is not null && string.CompareOrdinal(delle, ciclo) > 0)
+            {
+                return Rifiuta($"Le pagine di «AIP {ciclo}» arrivano al {ultima}, che è del ciclo {delle}: la cartella va chiamata «AIP {delle}». Non ho scritto niente.");
+            }
+            else if (delle is not null && string.CompareOrdinal(delle, ciclo) < 0)
+            {
+                AvvisoDellaLettura = $"Nessuna pagina è del {ciclo}: la più recente è del {ultima} ({delle}). Va bene se in questo ciclo i PDF che hai non sono cambiati.";
+            }
+
+            if (repo)
+                Core.PdfAip.RepoDellAip.MettiIlGitIgnore(espanso);
+            var nome = ciclo;
+            var esito = await Task.Run(() => Core.PdfAip.AipEspanso.Componi(lettura, espanso, nome)).ConfigureAwait(false);
             Registro.Scrivi("aip", $"AIP espanso {nome}: {esito.Letti.Count} PDF letti su {esito.Pdf}, {esito.Quanti()}, {esito.Problemi.Count} segnalazioni{(esito.CorrezioniInParole() is { } c ? ", correzioni: " + c : "")} → {esito.Scritto}");
+            if (sciolti)
+            {
+                if (Core.PdfAip.CicliDellAip.MettiNelCiclo(CartellaDeiPdf!, nome, file) is { } nonSpostati)
+                    AvvisoDellaLettura = nonSpostati;
+                else
+                    Registro.Scrivi("aip", $"{file.Count} PDF sciolti messi in AIP {nome}");
+            }
             UltimoAipEspanso = esito;
             // Il ciclo appena letto si guarda sulla mappa, anche se non è quello dei confronti (il successivo).
             CicloGuardatoDellAip = nome == CicloDeiConfronti(espanso) ? null : nome;
@@ -4769,7 +4848,118 @@ public sealed class SessioneDelLab
         finally
         {
             StaLeggendoLAip = false;
+            Avanzamento = null;
+            _righeDeiCicli = null;
             Avvisa();
+        }
+    }
+
+    /// <summary>A che punto è la lettura dei PDF; null se non si sta leggendo.</summary>
+    public Core.PdfAip.AvanzamentoDellaLettura? Avanzamento { get; private set; }
+
+    /// <summary>Quando è cominciata la lettura di adesso (UTC), per stimare quanto manca.</summary>
+    public DateTime InizioDellaLettura { get; private set; }
+
+    /// <summary>
+    /// Quanto manca, stimato dai PDF già letti; null all'inizio. I PDF non pesano tutti uguale (ENR 5.4 più di una carta):
+    /// è un'idea, non una promessa.
+    /// </summary>
+    public TimeSpan? Manca => Avanzamento is { Fatti: > 4 } a && a.Fatti < a.Tutti
+        ? TimeSpan.FromSeconds((DateTime.UtcNow - InizioDellaLettura).TotalSeconds / a.Fatti * (a.Tutti - a.Fatti))
+        : null;
+
+    /// <summary>Quel che l'ultima lettura ha da dire oltre all'esito: il ciclo senza pagine sue, i PDF non spostati.</summary>
+    public string? AvvisoDellaLettura { get; private set; }
+
+    private IReadOnlyList<Core.PdfAip.RigaDelCiclo>? _righeDeiCicli;
+    private DateOnly _giornoDelleRighe;
+
+    /// <summary>Una riga per ciclo (pagina «Lettura e consegna»); si rifà dopo una lettura, un emendamento, un ciclo tolto.</summary>
+    public IReadOnlyList<Core.PdfAip.RigaDelCiclo> RigheDeiCicli
+    {
+        get
+        {
+            var oggi = GiornoDeiCicli();
+            if (_righeDeiCicli is null || _giornoDelleRighe != oggi)
+            {
+                _righeDeiCicli = Core.PdfAip.CicliDellAip.Righe(CartellaDeiPdf, CartellaDellAipEspanso, oggi);
+                _giornoDelleRighe = oggi;
+            }
+            return _righeDeiCicli;
+        }
+    }
+
+    /// <summary>I PDF fuori dalle cartelle dei cicli (da leggere e mettere nel loro ciclo).</summary>
+    public IReadOnlyList<string> PdfSciolti => Core.PdfAip.CicliDellAip.PdfSciolti(CartellaDeiPdf);
+
+    private long _ultimoAvviso;
+
+    /// <summary>Avvisa la pagina al massimo cinque volte al secondo: una lettura manda un avanzamento per PDF.</summary>
+    private void AvvisaOgniTanto()
+    {
+        var ora = Environment.TickCount64;
+        if (ora - Interlocked.Read(ref _ultimoAvviso) < 200)
+            return;
+        Interlocked.Exchange(ref _ultimoAvviso, ora);
+        Avvisa();
+    }
+
+    /// <summary>Un IProgress che chiama subito, sul thread di chi riferisce (Progress&lt;T&gt; passerebbe da un contesto).</summary>
+    private sealed class RiferisciSubito<T>(Action<T> riferisci) : IProgress<T>
+    {
+        public void Report(T value) => riferisci(value);
+    }
+
+    /// <summary>
+    /// Apre un PDF dell'AIP nel browser di Windows alla pagina data (pagina «Lettura e consegna»: da dove viene una voce).
+    /// Il PDF si cerca nella cartella del ciclo per nome; falso col perché se non c'è.
+    /// </summary>
+    public bool ApriIlPdf(string ciclo, string nomeDelFile, int pagina = 1)
+    {
+        if (CartellaDeiPdf is not { } pdf)
+            return Rifiuta("Manca la cartella dei PDF dell'AIP.");
+        var file = Core.PdfAip.PdfDellAip.Elenco(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, ciclo))
+            .FirstOrDefault(f => string.Equals(Path.GetFileName(f), nomeDelFile, StringComparison.OrdinalIgnoreCase));
+        if (file is null)
+            return Rifiuta($"«{nomeDelFile}» non è nella cartella «AIP {ciclo}».");
+        ApriIlPdfAllaPagina(new Uri($"{new Uri(file).AbsoluteUri}#page={Math.Max(1, pagina)}"));
+        Registro.Scrivi("aip", $"aperto {nomeDelFile} a pagina {pagina}");
+        return true;
+    }
+
+    /// <summary>
+    /// Apre la pagina di una voce dell'AIP espanso («AD 2 LIRN 5-11»): il file e la posizione dall'indice delle pagine del
+    /// ciclo. Falso col perché se la pagina non c'è.
+    /// </summary>
+    public bool ApriLaPaginaDellAip(string ciclo, string riferimento)
+    {
+        if (CartellaDellAipEspanso is not { } espanso || !File.Exists(Core.PdfAip.IndiceDellePagine.File(espanso, ciclo)))
+            return Rifiuta($"Del {ciclo} non c'è l'indice delle pagine: leggi il ciclo.");
+        var pagina = Core.PdfAip.IndiceDellePagine.Leggi(File.ReadAllText(Core.PdfAip.IndiceDellePagine.File(espanso, ciclo)))
+            .FirstOrDefault(p => p.Reference == riferimento);
+        return pagina is null
+            ? Rifiuta($"La pagina {riferimento} non è nell'indice del {ciclo}.")
+            : ApriIlPdf(ciclo, pagina.File, pagina.Position);
+    }
+
+    /// <summary>
+    /// Come si apre un PDF a una pagina: di base con Edge (c'è su ogni Windows, e capisce <c>#page=</c>); i test ne mettono
+    /// uno loro.
+    /// </summary>
+    public Action<Uri> ApriIlPdfAllaPagina { get; init; } = ApriConEdge;
+
+    private static void ApriConEdge(Uri pdf)
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("msedge", $"\"{pdf.AbsoluteUri}\"") { UseShellExecute = true })?.Dispose();
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // Senza Edge: il lettore di PDF di Windows, dalla prima pagina.
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(pdf.LocalPath) { UseShellExecute = true })?.Dispose();
         }
     }
 
@@ -4808,6 +4998,7 @@ public sealed class SessioneDelLab
         {
             esito = await Task.Run(() => Core.PdfAip.EmendamentoDellAip.Applica(pdf, amdt)).ConfigureAwait(false);
             UltimoEmendamento = esito;
+            _righeDeiCicli = null;
             Registro.Scrivi("aip", esito.Fatto
                 ? $"emendamento {esito.Numero}: AIP {esito.CicloPrima} → AIP {esito.CicloNuovo}, {esito.PagineTolte} pagine tolte, {esito.PagineMesse} messe; GEN 0.4: mancano {esito.Mancano.Count}, data diversa {esito.DataDiversa.Count}, in più {esito.InPiu.Count}"
                 : $"emendamento {esito.Numero ?? amdt}: fermo, {esito.Bloccanti.Count} motivi; il primo: {esito.Bloccanti[0]}");
@@ -4910,6 +5101,9 @@ public sealed class SessioneDelLab
         var ciclo = CicloSullaMappa(espanso);
         if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
             return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        // In fila (22 ottobre): l'Indice carica lo strato entrando, e la sua casella lo ricarica; due caricamenti insieme
+        // toccavano le stesse collezioni da due thread («Operations that change non-concurrent collections…», 2 volte su 5).
+        await _caricaLAip.WaitAsync().ConfigureAwait(false);
         try
         {
             var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
@@ -4932,7 +5126,13 @@ public sealed class SessioneDelLab
             Registro.Errore("aip", e);
             return Rifiuta($"L'AIP espanso del ciclo {ciclo} non si legge: {e.Message}");
         }
+        finally
+        {
+            _caricaLAip.Release();
+        }
     }
+
+    private readonly SemaphoreSlim _caricaLAip = new(1, 1);
 
     // --- lo spazio Confronti (riordino R6, D17 e D18) -------------------------------------------------------------------
 
@@ -7097,6 +7297,9 @@ public sealed class SessioneDelLab
         // ⚠️ Senza repo non si avvisa: il riquadro rilegge all'apertura della pagina, e un ridisegno per niente in quel
         // momento rinumera i gestori sotto un clic (DueSchermiTests, rosso nella suite intera del 18 ottobre).
         bool cambiato = nuovo is not null || StatoDellAip is not null;
+        // Un altro ramo è un'altra copia di lavoro: altri cicli col modello.
+        if (nuovo?.Ramo != StatoDellAip?.Ramo)
+            _righeDeiCicli = null;
         StatoDellAip = nuovo;
         if (cambiato)
             Avvisa();

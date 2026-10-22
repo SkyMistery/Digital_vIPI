@@ -51,10 +51,15 @@ public sealed class RepoDellAipTests : IDisposable
         Esegui(clone, "config", "user.email", "prova@example.invalid");
     }
 
-    private string CartellaDeiPdf()
+    /// <summary>La cartella dei PDF con una cartella per ciclo (dal 22 ottobre il Lab legge un ciclo dalla sua cartella).</summary>
+    private string CartellaDeiPdf(params string[] cicli)
     {
         var pdf = Directory.CreateDirectory(Path.Combine(_radice, "AIP")).FullName;
-        File.WriteAllBytes(Path.Combine(pdf, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("06 AUG 2026", "LI R901 - Prova Uno", "LI R902 - Prova Due"));
+        foreach (var ciclo in cicli.Length == 0 ? ["2611"] : cicli)
+        {
+            var cartella = Directory.CreateDirectory(EmendamentoDellAip.CartellaDelCiclo(pdf, ciclo)).FullName;
+            File.WriteAllBytes(Path.Combine(cartella, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("06 AUG 2026", "LI R901 - Prova Uno", "LI R902 - Prova Due"));
+        }
         return pdf;
     }
 
@@ -185,7 +190,7 @@ public sealed class RepoDellAipTests : IDisposable
     {
         var lab = new SessioneDelLab(Path.Combine(_radice, "dati-del-lab"));
         lab.CambiaLIndirizzoDellAipEspanso(Server);
-        Assert.True(lab.CambiaLaCartellaDeiPdf(CartellaDeiPdf()), lab.Rifiuto);
+        Assert.True(lab.CambiaLaCartellaDeiPdf(CartellaDeiPdf("2611", "2612")), lab.Rifiuto);
         var espanso = Path.Combine(_radice, "aip-espanso");
         Assert.True(await lab.PrendiLAipEspansoAsync(espanso), lab.Rifiuto);
         Configura(espanso);

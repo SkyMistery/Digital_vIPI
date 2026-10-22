@@ -54,19 +54,8 @@
         break;
 
     case PaginaDelLab.Aip:
-        @* R7: «Lettura e consegna» dello spazio AIP espanso. La Scheda mostra la voce dell'AIP scelta sulla mappa. *@
-        <aside class="lab-colonna lab-colonna-aip">
-            <AipNellaBarra />
-        </aside>
-        <div class="lab-divisore" data-divide="@($"{_p}aip")" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
-        <aside class="lab-colonna lab-colonna-ispettore @(NellaFinestraDeiPannelli ? "lab-colonna-modifiche" : null)">
-            <Scheda />
-            <Modifiche />
-        </aside>
-        @if (!NellaFinestraDeiPannelli)
-        {
-            <div class="lab-divisore" data-divide="ispettore" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
-        }
+        @* «Lettura e consegna» dello spazio AIP espanso: dal 22 ottobre la pagina intera, senza mappa (sta nell'Indice). *@
+        <PaginaDellaLettura />
         break;
 
     case PaginaDelLab.Confronti:

@@ -1,0 +1,531 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+@using Vipi.SectorLab.Core.PdfAip
+
+@*
+    La pagina «Lettura e consegna» dello spazio AIP espanso, rifatta il 22 ottobre (committente: «la UI di lettura e
+    consegna è proprio scomoda, la possiamo ripensare?»). A tutta larghezza, senza mappa: la mappa sta nell'Indice. In
+    testa il giro dell'AIP; a sinistra i cicli (una riga per ciclo, coi suoi gesti), i PDF sciolti, l'emendamento e il repo;
+    a destra la lettura — l'avanzamento mentre legge, poi l'esito a riquadri: un clic su un riquadro dice da quali PDF
+    viene quella cosa. Il campo «Ciclo» non c'è più: il ciclo lo dicono le date delle pagine (SessioneDelLab.LeggiAsync).
+*@
+<div class="lab-pagina lab-pagina-lettura" data-pagina-aperta="aip" data-riquadro-aip>
+    <GiroDellaConsegna Chiave="aip" Passi="Lab.GiroDellAip" />
+    <div class="lab-pagina-colonne">
+        <div class="lab-pagina-colonna lab-lettura-sinistra">
+            <section data-cicli>
+                <h2 class="lab-riquadro-titolo" title="I PDF dell'AIP e l'AIP espanso">I cicli <span class="lab-nota" data-quanti-pdf>@Riassunto()</span></h2>
+                @if (Lab.CartellaDeiPdf is not { } cartella)
+                {
+                    <p class="lab-nota" data-senza-pdf>Manca la cartella dei PDF dell'AIP (sceglila nelle Impostazioni): serve solo a leggere i PDF.
+                        Per guardare l'AIP espanso sulla mappa e confrontarlo col sector basta la sua cartella.</p>
+                }
+                else
+                {
+                    <p class="lab-nota">PDF in <code>@cartella</code>, una cartella per ciclo (<code>AIP 2611</code>).
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="apri-cartella-pdf"
+                                title="Apre la cartella dei PDF in Esplora risorse" @onclick="() => Lab.ApriLaCartellaDellAip(pdf: true)">Apri la cartella</button>
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prendi-da-download"
+                                title="Sposta i PDF dell'AIP (LI-ENR …, LI-AD 2 …) da @Lab.Download in questa cartella" @onclick="Prendi">Prendi i PDF da Download</button>
+                    </p>
+                    @if (Lab.UltimaPresaDaDownload is { } presa)
+                    {
+                        <p class="lab-nota" data-presa>@(presa.Quanti == 0
+                            ? "In Download non c'erano PDF dell'AIP."
+                            : $"Presi {presa.Quanti}: {presa.Nuovi.Count} nuovi, {presa.Sostituiti.Count} al posto di quelli col loro nome.")</p>
+                    }
+                }
+                @if (Lab.StatoDeiCicliDellAip is { InVigore: null } oggi && Lab.RigheDeiCicli.Count > 0)
+                {
+                    <p class="lab-nota" data-cicli-aip>Il @oggi.DiOggi, in vigore oggi, non c'è.</p>
+                }
+                <ul class="lab-cicli">
+                    @foreach (var r in Lab.RigheDeiCicli)
+                    {
+                        <li class="lab-ciclo @(r.DaAprire ? "lab-ciclo-aperto" : null)" data-ciclo="@r.Ciclo">
+                            <strong>@r.Ciclo</strong>
+                            <span class="lab-nota">
+                                <span data-ciclo-dice>@r.Dice</span>
+                                · @(r.Pdf is { } n ? $"{n} PDF" : "niente PDF")
+                                @if (r.UltimaData is { } d)
+                                {
+                                    <span> · pagine fino al @d.ToString("dd/MM/yyyy", Cultura)</span>
+                                }
+                                · @(r.Scritto is { } s ? $"nell'AIP espanso dal {s.ToString("dd/MM HH:mm", Cultura)}" : "non ancora letto")
+                                @if (r.DaAprire)
+                                {
+                                    <span title="I confronti col sector e l'Indice lavorano su questo"> · è quello su cui lavori</span>
+                                }
+                            </span>
+                            <span class="lab-ciclo-gesti">
+                                @if (r.Pdf is > 0)
+                                {
+                                    <button type="button" class="lab-tasto @(r.Scritto is null ? null : "lab-tasto-tenue")" data-tasto="leggi-aip" data-leggi="@r.Ciclo"
+                                            disabled="@Lab.StaLeggendoLAip" @onclick="() => Leggi(r.Ciclo)">@(r.Scritto is null ? "Leggi" : "Rileggi")</button>
+                                }
+                                @if (r.Scritto is not null)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="guarda-nell-indice" @onclick="() => Guarda(r.Ciclo)">Indice</button>
+                                }
+                                @if (r.DaTogliere)
+                                {
+                                    @if (_daTogliere == r.Ciclo)
+                                    {
+                                        <span class="lab-avviso-breve">Si cancellano i PDF di <code>AIP @r.Ciclo</code>@(Lab.CartellaDellAipEspanso is { } e && !RepoDellAip.EUnRepo(e) ? $" e il suo modello in {e}" : ""): si riscaricano da ENAV, se servono.
+                                            @(Lab.CartellaDellAipEspanso is { } x && RepoDellAip.EUnRepo(x) ? "Nel repo dell'AIP espanso il ciclo resta, sul suo ramo." : "")</span>
+                                        <button type="button" class="lab-tasto" data-tasto="togli-ciclo-sicuro" @onclick="() => Togli(r.Ciclo)">Sì, togli il @r.Ciclo</button>
+                                        <button type="button" class="lab-tasto lab-tasto-tenue" @onclick="() => _daTogliere = null">Lascia stare</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="togli-ciclo" title="Il @r.Ciclo non è più in vigore: toglie la sua cartella dei PDF"
+                                                @onclick="() => _daTogliere = r.Ciclo">Togli il @r.Ciclo…</button>
+                                    }
+                                }
+                            </span>
+                        </li>
+                    }
+                </ul>
+                @if (Lab.CartellaDeiPdf is not null && Lab.RigheDeiCicli.Count == 0 && _sciolti.Count == 0)
+                {
+                    <p class="lab-nota" data-cicli-vuoti>Nessun ciclo ancora: metti i PDF dell'AIP scaricati da ENAV nella cartella dei PDF.</p>
+                }
+                @if (_sciolti.Count > 0)
+                {
+                    <div class="lab-sciolti" data-sciolti>
+                        <p class="lab-nota"><strong>@_sciolti.Count PDF fuori dalle cartelle dei cicli.</strong> Il Lab li legge, riconosce il ciclo dalle date delle
+                            pagine e li mette nella sua cartella (<code>AIP 2611</code>).</p>
+                        <button type="button" class="lab-tasto" data-tasto="leggi-sciolti" disabled="@Lab.StaLeggendoLAip" @onclick="LeggiSciolti">Leggi e metti nel loro ciclo</button>
+                    </div>
+                }
+            </section>
+
+            @if (Lab.CartellaDeiPdf is not null)
+            {
+                <section data-emendamento>
+                    <h2 class="lab-riquadro-titolo">Emendamento AIRAC</h2>
+                    <label class="lab-campo-in-colonna lab-nota">
+                        Il PDF dell'AMDT di ENAV: crea il ciclo nuovo accanto a quello prima, poi lo legge
+                        <input class="lab-campo" value="@_amdt" data-campo="amdt" placeholder="D:\…\AMDT.pdf"
+                               @onchange="e => _amdt = e.Value?.ToString()" />
+                    </label>
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="applica-emendamento"
+                            disabled="@(Lab.StaApplicandoLEmendamento || Lab.StaLeggendoLAip || string.IsNullOrWhiteSpace(_amdt))"
+                            @onclick="ApplicaLEmendamento">
+                        @(Lab.StaApplicandoLEmendamento ? "Sto applicando…" : "Applica l'emendamento")
+                    </button>
+                    @if (Lab.UltimoEmendamento is { } em)
+                    {
+                        @if (!em.Fatto)
+                        {
+                            <details data-emendamento-fermo open>
+                                <summary class="lab-avviso-breve">Emendamento @(em.Numero ?? "") non applicato: @em.Bloccanti.Count motivi</summary>
+                                <ul class="lab-elenco-lotto">
+                                    @foreach (var b in em.Bloccanti.Take(50))
+                                    {
+                                        <li class="lab-nota">@b</li>
+                                    }
+                                </ul>
+                            </details>
+                        }
+                        else
+                        {
+                            <p class="lab-nota" data-emendamento-fatto>Emendamento @em.Numero (in vigore dal @em.InVigore?.ToString("d MMM yyyy", Cultura)):
+                                <strong>AIP @em.CicloPrima → AIP @em.CicloNuovo</strong>, @em.PagineTolte pagine tolte e @em.PagineMesse messe;
+                                @em.FileRiscritti PDF riscritti, @em.FileCopiati uguali@(em.FileNuovi.Count > 0 ? $", nuovi: {string.Join(", ", em.FileNuovi.Select(Path.GetFileName))}" : "")@(em.FileTolti.Count > 0 ? $", tolti: {string.Join(", ", em.FileTolti.Select(Path.GetFileName))}" : "").
+                                @(em.PagineFuoriDalleParti > 0 ? $"{em.PagineFuoriDalleParti} pagine di GEN, ENR 0-1, AD 0-1 non toccate." : "")</p>
+                            @if (em.SezioniNuoveNonScritte.Count > 0)
+                            {
+                                <p class="lab-nota" data-emendamento-non-scritte>Di @em.SezioniNuoveNonScritte.Count sezioni che la cartella non ha l'emendamento
+                                    porta solo alcune pagine: non scritte (vanno scaricate intere): @string.Join(", ", em.SezioniNuoveNonScritte.Take(60))@(em.SezioniNuoveNonScritte.Count > 60 ? "…" : "").</p>
+                            }
+                            @if (!em.Controllato)
+                            {
+                                <p class="lab-avviso-breve">Nell'emendamento non c'è il GEN 0.4: la cartella nuova non si è potuta controllare.</p>
+                            }
+                            else
+                            {
+                                <details data-emendamento-controllo>
+                                    <summary class="lab-nota">Col GEN 0.4: mancano @em.Mancano.Count pagine, @em.DataDiversa.Count con un'altra data, @em.InPiu.Count in più</summary>
+                                    @if (em.Mancano.Count > 0)
+                                    {
+                                        <p class="lab-nota">Mancano (da scaricare): @string.Join(" · ", em.Mancano.Take(300))</p>
+                                    }
+                                    @if (em.DataDiversa.Count > 0)
+                                    {
+                                        <p class="lab-nota">Data diversa: @string.Join(" · ", em.DataDiversa.Take(300))</p>
+                                    }
+                                    @if (em.InPiu.Count > 0)
+                                    {
+                                        <p class="lab-nota">In più: @string.Join(" · ", em.InPiu.Take(300))</p>
+                                    }
+                                </details>
+                            }
+                        }
+                    }
+                </section>
+            }
+
+            <section data-repo-aip>
+                <h2 class="lab-riquadro-titolo">Il repo dell'AIP espanso</h2>
+                @if (Lab.CartellaDellAipEspanso is null || Lab.StatoDellAip is null)
+                {
+                    <p class="lab-nota" data-prendi-espanso>Il repo dell'AIP espanso non è ancora su questo PC:
+                        prendilo in una cartella nuova (o vuota), e diventa la cartella dell'AIP espanso.</p>
+                    <label class="lab-nota">
+                        Dal repo (il link di GitHub, anche copiato dal browser)
+                        <input class="lab-campo" value="@Lab.IndirizzoDellAipEspanso" data-campo="indirizzo-aip-espanso" disabled="@Lab.StaLavorandoSulRepoDellAip"
+                               @onchange="e => Lab.CambiaLIndirizzoDellAipEspanso(e.Value?.ToString())" />
+                    </label>
+                    @if (Lab.CartelleDellAipFisse)
+                    {
+                        @* Con l'ambiente di lavoro l'AIP espanso va sempre nella sua cartella: il «Dove» non si sceglie. *@
+                        <p class="lab-nota" data-dove-fisso>Va in <code>@Lab.CartellaDellAipEspanso</code>.</p>
+                    }
+                    else
+                    {
+                        <label class="lab-nota">
+                            Dove
+                            <input class="lab-campo" value="@_dove" data-campo="dove-aip-espanso" placeholder="D:\IVAO\aip-espanso"
+                                   @onchange="e => _dove = e.Value?.ToString()" />
+                        </label>
+                        @if (Lab.ScegliCartella is not null)
+                        {
+                            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-dove-aip" @onclick="SfogliaDove">Sfoglia…</button>
+                        }
+                    }
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="prendi-aip-espanso" disabled="@Lab.StaLavorandoSulRepoDellAip"
+                            title="Clona il repo dell'AIP espanso in quella cartella" @onclick="PrendiLEspanso">Prendi l'AIP espanso</button>
+                }
+                @if (Lab.CartellaDellAipEspanso is not { } espanso)
+                {
+                    <p class="lab-nota" data-senza-espanso>Manca la cartella dell'AIP espanso: prendi il repo qui sopra@(Lab.CartelleDellAipFisse ? "" : ", o sceglila nelle Impostazioni").</p>
+                }
+                else
+                {
+                    <p class="lab-nota">Cartella: <code>@espanso</code></p>
+                    @if (Lab.StatoDellAip is { } repo)
+                    {
+                        <p class="lab-nota" data-stato-aip>Repo: <code>@(Vipi.SectorLab.Core.Git.Invio.RepoGitHub(repo.Remoto) ?? repo.Remoto)</code> · ramo
+                            <code>@(repo.Ramo ?? "staccato")</code> · @repo.InParole()</p>
+                    }
+                }
+                @if (Lab.StatoDellAip is { } repo2 && repo2.Ramo?.StartsWith(RepoDellAip.PrefissoDelRamo, StringComparison.Ordinal) == true)
+                {
+                    <div data-git-aip>
+                        <label class="lab-campo-in-colonna lab-nota">
+                            Messaggio
+                            <input class="lab-campo" value="@Lab.MessaggioDellAip" data-campo="messaggio-aip"
+                                   @onchange="e => Lab.MessaggioDellAip = e.Value?.ToString()" />
+                        </label>
+                        <button type="button" class="lab-tasto" data-tasto="registra-aip" disabled="@Lab.StaLavorandoSulRepoDellAip"
+                                title="Registra il modello del ciclo sul ramo @repo2.Ramo" @onclick="Registra">Registra l'AIP</button>
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="manda-aip" disabled="@Lab.StaLavorandoSulRepoDellAip"
+                                title="Manda il ramo @repo2.Ramo al server e apre la pagina della PR: la fonde il committente" @onclick="Manda">Manda l'AIP</button>
+                        @if (Lab.PaginaDellaPrDellAip is { } pr)
+                        {
+                            @* Riordino R0: un link con target="_blank" la finestra del Lab lo rifiuta (accetta solo /pannelli): la pagina si riapre nel browser di Windows. *@
+                            <p class="lab-nota" data-pr-aip>PR aperta nel browser — la conferma tu su GitHub, la fonde il committente.
+                                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="riapri-pr-aip"
+                                        title="@pr" @onclick="() => Lab.ApriNelBrowser(pr)">Riaprila</button></p>
+                        }
+                    </div>
+                }
+            </section>
+            @if (_rifiuto is not null)
+            {
+                <p class="lab-avviso-breve" data-rifiuto-aip>@_rifiuto</p>
+            }
+        </div>
+
+        <div class="lab-pagina-colonna lab-lettura-destra">
+            @if (Lab.StaLeggendoLAip && Lab.Avanzamento is { } a)
+            {
+                <section data-avanzamento>
+                    <h2 class="lab-riquadro-titolo">Sto leggendo</h2>
+                    <p class="lab-nota">@a.Fatti di @a.Tutti PDF@(a.File.Length > 0 ? $" · {a.File}" : "")@(Lab.Manca is { } m ? $" · manca circa {Durata(m)}" : "")</p>
+                    <div class="lab-barra-avanzamento" role="progressbar" aria-valuemin="0" aria-valuemax="@a.Tutti" aria-valuenow="@a.Fatti">
+                        <div style="width: @(a.Tutti == 0 ? 0 : 100 * a.Fatti / a.Tutti)%"></div>
+                    </div>
+                    <p class="lab-nota">Alla fine il Lab guarda le date delle pagine: se non sono del ciclo della cartella si ferma senza scrivere.</p>
+                </section>
+            }
+            else if (Lab.UltimoAipEspanso is not { } esito)
+            {
+                <h2 class="lab-riquadro-titolo">La lettura</h2>
+                <p class="lab-nota" data-senza-esito>Nessuna lettura da quando hai aperto il Lab: «Leggi» o «Rileggi» un ciclo per vedere l'esito e da dove viene ogni cosa.</p>
+            }
+            else
+            {
+                <section data-esito-aip>
+                    <h2 class="lab-riquadro-titolo">Esito della lettura · ciclo @esito.Ciclo</h2>
+                    <p class="lab-nota">@esito.Letti.Count PDF letti su @esito.Pdf → <code>@esito.Scritto</code></p>
+                    @if (Lab.AvvisoDellaLettura is { } avviso)
+                    {
+                        <p class="lab-avviso-breve" data-avviso-lettura>@avviso</p>
+                    }
+                    <div class="lab-riquadri" data-riquadri>
+                        @foreach (var (cosa, quanti) in Riquadri(esito))
+                        {
+                            <button type="button" class="lab-riquadro-numero @(_daDove == cosa ? "lab-scelto" : null)" data-da-dove="@cosa"
+                                    title="Da quali PDF vengono" @onclick="() => _daDove = _daDove == cosa ? null : cosa">
+                                <strong>@quanti</strong><span>@cosa</span>
+                            </button>
+                        }
+                        @if (esito.NonAncora.Count > 0)
+                        {
+                            <button type="button" class="lab-riquadro-numero lab-riquadro-tenue @(_daDove == NonLetti ? "lab-scelto" : null)" data-da-dove="@NonLetti"
+                                    @onclick="() => _daDove = _daDove == NonLetti ? null : NonLetti">
+                                <strong>@esito.NonAncora.Count</strong><span>PDF non letti</span>
+                            </button>
+                        }
+                    </div>
+                    @if (_daDove is { } scelto)
+                    {
+                        <div class="lab-da-dove" data-da-dove-elenco="@scelto">
+                            @if (scelto == NonLetti)
+                            {
+                                <p class="lab-nota">PDF che il Lab non legge ancora: carte solo immagine (file 2, 3 e 8 degli scali, ENR 6) e qualche pagina d'introduzione.</p>
+                                <ul class="lab-elenco-lotto">
+                                    @foreach (var f in esito.NonAncora)
+                                    {
+                                        <li class="lab-nota"><button type="button" class="lab-voce" @onclick="() => Apri(esito.Ciclo, f, 1)">@f</button></li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                var righe = esito.Rapporto.Where(r => r.Letti.ContainsKey(scelto)).OrderBy(r => r.File, StringComparer.Ordinal).ToList();
+                                <p class="lab-nota">@scelto da @righe.Count PDF@(righe.Sum(r => r.Letti[scelto]) is var somma && somma != Quanti(esito, scelto) ? $" (nei file {somma}: le stesse nel file 4 e nel 6 di uno scalo si contano una volta)" : "")</p>
+                                <table class="lab-tabella-da-dove">
+                                    <thead><tr><th>PDF</th><th>@scelto</th><th>pagine</th><th>conti dell'AIP</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var r in righe)
+                                        {
+                                            <tr data-da-dove-pdf="@r.File">
+                                                <td><button type="button" class="lab-voce" title="Apre il PDF" @onclick="() => Apri(esito.Ciclo, r.File, 1)">@r.File</button></td>
+                                                <td>@r.Letti[scelto]</td>
+                                                <td>@r.Pagine</td>
+                                                <td>@string.Join(", ", r.Conti.Select(c => c.Attesi == c.Letti ? $"{c.Cosa} {c.Letti} ✓" : $"{c.Cosa}: {c.Attesi} nel PDF, {c.Letti} letti ✗"))</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                    }
+                    <p class="lab-nota" data-pagine-aip>Pagine: @esito.Pagine.ToString("N0", Cultura)@(esito.PagineDallaPosizione > 0 ? $" ({esito.PagineDallaPosizione} riconosciute dalla posizione: non hanno testata)" : "")</p>
+                    @if (esito.Conti is { Controllati: > 0 } conti)
+                    {
+                        <details data-conti-aip>
+                            <summary class="lab-nota">Conti dell'AIP (@string.Join(", ", esito.Rapporto.SelectMany(r => r.Conti).Select(c => c.Cosa).Distinct())): @conti.Controllati controllati, @(conti.NonTornano switch { 0 => "tutti tornano", 1 => "1 non torna", var n => $"{n} non tornano" })</summary>
+                            <ul class="lab-elenco-lotto">
+                                @foreach (var r in esito.Rapporto.Where(r => r.Conti.Count > 0).OrderBy(r => r.Conti.All(c => c.Attesi == c.Letti)).Take(300))
+                                {
+                                    <li class="lab-nota" data-rapporto-pdf="@r.File">
+                                        <code>@r.File</code> — @r.Pagine pagine · @string.Join(", ", r.Letti.Select(l => $"{l.Value} {l.Key}"))
+                                        · @string.Join(", ", r.Conti.Select(c => c.Attesi == c.Letti ? $"{c.Cosa} {c.Letti} ✓" : $"{c.Cosa}: {c.Attesi} nel PDF, {c.Letti} letti ✗"))
+                                    </li>
+                                }
+                            </ul>
+                        </details>
+                    }
+                    @if (esito.Cambiate is { } cambiate)
+                    {
+                        <details data-pagine-cambiate>
+                            <summary class="lab-nota">Rispetto al @cambiate.Ciclo: @cambiate.ConAltraData.Count con un'altra data@(cambiate.Completo ? $", {cambiate.Nuove.Count} nuove, {cambiate.Tolte.Count} tolte" : " (del " + cambiate.Ciclo + " si sanno solo le pagine lette nel modello)")</summary>
+                            <p class="lab-nota">@string.Join(" · ", cambiate.ConAltraData.Concat(cambiate.Nuove.Select(n => n + " (nuova)")).Concat(cambiate.Tolte.Select(t => t + " (tolta)")).Take(400))</p>
+                        </details>
+                    }
+                    @if (esito.CorrezioniInParole() is { } correzioni)
+                    {
+                        <p class="lab-nota" data-correzioni-aip>Correzioni: @correzioni</p>
+                    }
+                    @if (esito.Date.Count > 0)
+                    {
+                        <details data-date-aip>
+                            <summary class="lab-nota">Date delle pagine: dal @Data(esito.Date[0].Data) al @Data(esito.Date[^1].Data)</summary>
+                            <p class="lab-nota">@string.Join(", ", esito.Date.Select(d => $"{Data(d.Data)} ×{d.Pagine}"))</p>
+                        </details>
+                    }
+                    @foreach (var i in esito.Illeggibili)
+                    {
+                        <p class="lab-avviso-breve" data-illeggibile>Non si apre: @i</p>
+                    }
+                </section>
+                @if (esito.Problemi.Count > 0)
+                {
+                    <section data-problemi-aip>
+                        <h2 class="lab-riquadro-titolo">Segnalazioni · @esito.Problemi.Count</h2>
+                        @* Un filtro per tipo (committente, 22 ottobre: delle 542 del 2611 se ne vedevano le prime 200): tutte, o tutte di un tipo. *@
+                        <p class="lab-nota" data-tipi-problemi-aip>
+                            <button type="button" class="lab-chip @(_tipoDelleSegnalazioni is null ? "lab-scelto" : null)" data-tipo-problemi=""
+                                    @onclick="() => _tipoDelleSegnalazioni = null">tutte @esito.Problemi.Count</button>
+                            @foreach (var g in esito.Problemi.GroupBy(p => p.Problema.Kind).OrderByDescending(g => g.Count()))
+                            {
+                                <button type="button" class="lab-chip @(_tipoDelleSegnalazioni == g.Key ? "lab-scelto" : null)" data-tipo-problemi="@g.Key"
+                                        @onclick="() => _tipoDelleSegnalazioni = g.Key">@Tipo(g.Key) @g.Count()</button>
+                            }
+                        </p>
+                        @{
+                            IReadOnlyList<ProblemaDellImport> scelte = _tipoDelleSegnalazioni is { } tipo
+                                ? esito.Problemi.Where(p => p.Problema.Kind == tipo).ToList() : esito.Problemi;
+                            var mostrate = _tipoDelleSegnalazioni is null ? scelte.Take(MassimoSenzaFiltro) : scelte;
+                        }
+                        @if (_tipoDelleSegnalazioni is null && scelte.Count > MassimoSenzaFiltro)
+                        {
+                            <p class="lab-nota" data-problemi-troncati>Le prime @MassimoSenzaFiltro di @scelte.Count: scegli un tipo per vederle tutte.</p>
+                        }
+                        <ul class="lab-elenco-segnalazioni">
+                            @foreach (var p in mostrate)
+                            {
+                                <li class="lab-nota" data-problema-aip="@p.Problema.Kind">
+                                    <button type="button" class="lab-voce" title="Apre il PDF a quella pagina" @onclick="() => ApriLaSegnalazione(esito.Ciclo, p)"><code>@p.File@(p.Problema.Page is { } n ? $" p.{n}" : "")</code></button>
+                                    <span>@Tipo(p.Problema.Kind)@(p.Problema.Key is { } k ? $" · {k}" : "")@(p.Problema.Detail is { } d ? $": {d}" : "")</span>
+                                </li>
+                            }
+                        </ul>
+                    </section>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? _rifiuto;
+    private string? _daTogliere;
+    private string? _dove;
+    private string? _amdt;
+    private string? _daDove;
+    private IReadOnlyList<string> _sciolti = [];
+    private Aip.Pdf.Italia.ImportIssueKind? _tipoDelleSegnalazioni;
+
+    /// <summary>Quante segnalazioni si mostrano senza un tipo scelto: con un tipo, tutte le sue.</summary>
+    private const int MassimoSenzaFiltro = 200;
+
+    private const string NonLetti = "PDF non letti";
+
+    private static readonly System.Globalization.CultureInfo Cultura = System.Globalization.CultureInfo.GetCultureInfo("it-IT");
+
+    protected override async Task OnInitializedAsync()
+    {
+        Lab.Cambiata += Aggiorna;
+        _amdt = Lab.EmendamentoInDownload;
+        _sciolti = Lab.PdfSciolti;
+        await Lab.RileggiIlRepoDellAipAsync();
+    }
+
+    private void Aggiorna() => InvokeAsync(() =>
+    {
+        if (!Lab.StaLeggendoLAip)
+            _sciolti = Lab.PdfSciolti;
+        StateHasChanged();
+    });
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private string Riassunto() => Lab.CartellaDeiPdf is not null ? $"{Lab.PdfDellAip.Count} PDF"
+        : Lab.CartellaDellAipEspanso is not null ? "espanso" : "— da scegliere";
+
+    /// <summary>
+    /// I numeri dell'esito, uno per riquadro, con la chiave del rapporto di ogni PDF (<c>RapportoDelPdf.Letti</c>): così il
+    /// clic sa da quali PDF viene la cosa.
+    /// </summary>
+    private static IEnumerable<(string Cosa, int Quanti)> Riquadri(EsitoDellAipEspanso e) => new (string, int)[]
+    {
+        ("aree", e.Aree), ("rotte", e.Rotte), ("punti", e.Punti), ("radioassistenze", e.Radioassistenze), ("attese", e.Attese),
+        ("procedure", e.Procedure), ("scali", e.Scali), ("ostacoli", e.Ostacoli), ("frequenze", e.Frequenze),
+        ("linee fra gli ACC", e.LineeDegliAcc), ("radioassistenze di ENR 3.4.2", e.RadioassistenzeConLeProcedure), ("luci", e.Luci),
+        ("pericoli", e.Pericoli), ("settori SMAC", e.SettoriSmac), ("testi", e.Testi),
+    }.Where(r => r.Item2 > 0);
+
+    private static int Quanti(EsitoDellAipEspanso e, string cosa) => Riquadri(e).FirstOrDefault(r => r.Cosa == cosa).Quanti;
+
+    private async Task Leggi(string ciclo) => _rifiuto = await Lab.LeggiLAipAsync(ciclo) ? null : Lab.Rifiuto;
+
+    private async Task LeggiSciolti()
+    {
+        _rifiuto = await Lab.LeggiIPdfScioltiAsync() ? null : Lab.Rifiuto;
+        _sciolti = Lab.PdfSciolti;
+    }
+
+    private async Task Guarda(string ciclo)
+    {
+        if (await Lab.GuardaIlCicloAsync(ciclo))
+            Lab.ScegliLaPagina(PaginaDelLab.AipIndice);
+        else
+            _rifiuto = Lab.Rifiuto;
+    }
+
+    private void Togli(string ciclo)
+    {
+        _daTogliere = null;
+        _rifiuto = Lab.TogliIlCiclo(ciclo) ? null : Lab.Rifiuto;
+    }
+
+    private void Apri(string ciclo, string file, int pagina) => _rifiuto = Lab.ApriIlPdf(ciclo, file, pagina) ? null : Lab.Rifiuto;
+
+    /// <summary>Una segnalazione dice il PDF e la pagina, o — per la prosa delle procedure — il riferimento della pagina.</summary>
+    private void ApriLaSegnalazione(string ciclo, ProblemaDellImport p) =>
+        _rifiuto = (p.File.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+            ? Lab.ApriIlPdf(ciclo, p.File, p.Problema.Page ?? 1)
+            : Lab.ApriLaPaginaDellAip(ciclo, p.File)) ? null : Lab.Rifiuto;
+
+    private async Task SfogliaDove()
+    {
+        if (await Lab.ScegliCartella!("Dove mettere l'AIP espanso (nuova o vuota)", _dove) is { } scelta)
+            _dove = scelta;
+    }
+
+    private async Task PrendiLEspanso() => _rifiuto = await Lab.PrendiLAipEspansoAsync(_dove) ? null : Lab.Rifiuto;
+
+    private async Task Registra() => _rifiuto = await Lab.RegistraLAipAsync(Lab.MessaggioDellAip) ? null : Lab.Rifiuto;
+
+    private async Task Manda() => _rifiuto = await Lab.MandaLAipAsync() ? null : Lab.Rifiuto;
+
+    private async Task Prendi()
+    {
+        _rifiuto = await Lab.PrendiIPdfDaDownloadAsync() ? null : Lab.Rifiuto;
+        _sciolti = Lab.PdfSciolti;
+    }
+
+    private async Task ApplicaLEmendamento() => _rifiuto = await Lab.ApplicaLEmendamentoAsync(_amdt) ? null : Lab.Rifiuto;
+
+    private static string Durata(TimeSpan t) => t.TotalSeconds < 60 ? $"{Math.Max(1, (int)t.TotalSeconds)} s" : $"{(int)Math.Round(t.TotalMinutes)} min";
+
+    private static string Data(DateOnly? d) =>
+        d is { } x ? x.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) : "senza data";
+
+    private static string Tipo(Aip.Pdf.Italia.ImportIssueKind k) => k switch
+    {
+        Aip.Pdf.Italia.ImportIssueKind.PageWithoutTable => "pagina senza tabella",
+        Aip.Pdf.Italia.ImportIssueKind.PageWithoutDate => "pagina senza data",
+        Aip.Pdf.Italia.ImportIssueKind.UnknownIdentifier => "identificativo fuori forma",
+        Aip.Pdf.Italia.ImportIssueKind.Geometry => "geometria",
+        Aip.Pdf.Italia.ImportIssueKind.NoGeometry => "senza geometria",
+        Aip.Pdf.Italia.ImportIssueKind.MoreGeometries => "più geometrie",
+        Aip.Pdf.Italia.ImportIssueKind.LimitsMissing => "limiti mancanti",
+        Aip.Pdf.Italia.ImportIssueKind.LimitsExtra => "limiti in più",
+        Aip.Pdf.Italia.ImportIssueKind.Unsupported => "non ancora letto",
+        Aip.Pdf.Italia.ImportIssueKind.Route => "rotta",
+        Aip.Pdf.Italia.ImportIssueKind.Holding => "attesa",
+        Aip.Pdf.Italia.ImportIssueKind.PageWithoutReference => "pagina senza riferimento",
+        Aip.Pdf.Italia.ImportIssueKind.PageOutOfOrder => "pagina fuori posto",
+        Aip.Pdf.Italia.ImportIssueKind.FileWithMoreSections => "file con più sezioni",
+        Aip.Pdf.Italia.ImportIssueKind.PageDuplicate => "pagina doppia",
+        Aip.Pdf.Italia.ImportIssueKind.PageAfterCycle => "pagina di un ciclo dopo",
+        Aip.Pdf.Italia.ImportIssueKind.LimitsFromText => "limiti presi dal testo",
+        Aip.Pdf.Italia.ImportIssueKind.Frequency => "frequenza",
+        Aip.Pdf.Italia.ImportIssueKind.UnitLine => "linea fra gli ACC",
+        Aip.Pdf.Italia.ImportIssueKind.ExpectedCount => "conto che non torna",
+        Aip.Pdf.Italia.ImportIssueKind.Obstacle => "ostacolo",
+        Aip.Pdf.Italia.ImportIssueKind.Navaid => "radioassistenza",
+        Aip.Pdf.Italia.ImportIssueKind.SignificantPoint => "punto",
+        Aip.Pdf.Italia.ImportIssueKind.Light => "luce",
+        Aip.Pdf.Italia.ImportIssueKind.Aerodrome => "scalo",
+        Aip.Pdf.Italia.ImportIssueKind.Hazard => "pericolo",
+        Aip.Pdf.Italia.ImportIssueKind.Procedure => "procedura",
+        _ => k.ToString(),
+    };
+}

@@ -24,6 +24,11 @@ otto passi nell'ordine 1, 7, 2, 3, 4, 5, 6, 8 (D3), **tutti fatti**, ognuno col 
   un ciclo nuovo nasce dal ramo del ciclo prima, se non è ancora fuso (prima nasceva da `main` e non vedeva il ciclo
   prima); le segnalazioni di «Leggi» si scelgono per tipo (prima se ne vedevano 200); «1 non torna».
 
+- **«Lettura e consegna» rifatta** (22 ottobre sera, carta [`2026-10-22-lettura-e-consegna.md`](../feature/2026-10-22-lettura-e-consegna.md)):
+  pagina intera senza mappa; i cicli in righe; niente campo «Ciclo» — il ciclo dalle date delle pagine, i PDF sciolti
+  messi nella loro cartella; la barra di avanzamento; da dove viene ogni cosa (riquadri dell'esito → PDF, segnalazioni e
+  schede → il PDF alla pagina). La casella della mappa e «Aggiungi» nell'Indice. Lab 1 407.
+
 **Le prove a mano** sono riscritte da zero, per spazi del Lab (`SectorLab-prova\PROVE.md`; le vecchie 1-312 in
 `PROVE fino al 22 ottobre.md`): prima **A1-A50**, l'AIP espanso sul 2611 completo; poi S (Sector) e C (Confronti).
 **Adesso** il committente ha da fare le A e da decidere: Magra (dividere in due aree?), `li-ad2.json` (12 MB: un file per

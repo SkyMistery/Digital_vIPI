@@ -37,6 +37,13 @@ public sealed record StatoDeiCicli(string DiOggi, string? InVigore, string? Succ
     internal static string Dopo(string ciclo) => CicloAirac.Di(AipEspanso.CicloInVigore(ciclo).AddDays(28)).Nome;
 }
 
+/// <summary>
+/// Un ciclo nella pagina «Lettura e consegna»: che cos'è oggi, i suoi PDF (<c>null</c>: la cartella non c'è), quando è
+/// stato scritto il modello (<c>null</c>: non c'è), la data più recente delle pagine lette, se si può togliere, se è quello
+/// su cui il Lab lavora.
+/// </summary>
+public sealed record RigaDelCiclo(string Ciclo, string Dice, int? Pdf, DateTime? Scritto, DateOnly? UltimaData, int Pagine, bool DaTogliere, bool DaAprire);
+
 /// <summary>I cicli dell'AIP nel tempo: quale si apre, quale si toglie (carta «L'AIP intero», passo 8).</summary>
 public static class CicliDellAip
 {
@@ -89,6 +96,84 @@ public static class CicliDellAip
             cicli.AddRange(EmendamentoDellAip.CicliNellaCartella(cartellaDeiPdf));
         cicli.AddRange(ConIlModello(cartellaDellAipEspanso));
         return [.. cicli.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+    }
+
+    /// <summary>
+    /// I PDF dell'AIP messi nella cartella dei PDF fuori dalle cartelle dei cicli (pagina «Lettura e consegna», 22 ottobre:
+    /// il committente ci aveva copiato <c>ENR</c>, <c>AD 2</c>, <c>AD 3</c> del 2611, e il Lab li aveva letti come 2610).
+    /// </summary>
+    public static IReadOnlyList<string> PdfSciolti(string? cartellaDeiPdf)
+    {
+        if (cartellaDeiPdf is null || !Directory.Exists(cartellaDeiPdf))
+            return [];
+        var cicli = EmendamentoDellAip.CicliNellaCartella(cartellaDeiPdf)
+            .Select(c => EmendamentoDellAip.CartellaDelCiclo(cartellaDeiPdf, c) + Path.DirectorySeparatorChar).ToList();
+        return [.. PdfDellAip.Elenco(cartellaDeiPdf).Where(f => !cicli.Any(c => f.StartsWith(c, StringComparison.OrdinalIgnoreCase)))];
+    }
+
+    /// <summary>
+    /// Mette i PDF sciolti nella cartella del loro ciclo (<c>AIP 2611</c>), con le loro sottocartelle; le cartelle rimaste
+    /// vuote se ne vanno. Torna null se è andata, o il perché; con la cartella del ciclo che c'è già non sposta niente.
+    /// </summary>
+    public static string? MettiNelCiclo(string cartellaDeiPdf, string ciclo, IReadOnlyList<string> sciolti)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(cartellaDeiPdf);
+        ArgumentNullException.ThrowIfNull(sciolti);
+        var dove = EmendamentoDellAip.CartellaDelCiclo(cartellaDeiPdf, ciclo);
+        if (Directory.Exists(dove))
+            return $"C'è già la cartella «AIP {ciclo}»: questi PDF mettili lì dentro tu, o togli quella cartella.";
+        var radice = Path.GetFullPath(cartellaDeiPdf);
+        var cartelle = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in sciolti)
+        {
+            var relativo = Path.GetRelativePath(radice, Path.GetFullPath(file));
+            var nuovo = Path.Combine(dove, relativo);
+            Directory.CreateDirectory(Path.GetDirectoryName(nuovo)!);
+            File.Move(file, nuovo);
+            for (var c = Path.GetDirectoryName(Path.GetFullPath(file)); c is not null && c.Length > radice.Length; c = Path.GetDirectoryName(c))
+                cartelle.Add(c);
+        }
+        // Le più profonde prima; una cartella con dentro altro (un file dell'AOD) resta.
+        foreach (var c in cartelle.OrderByDescending(c => c.Length))
+            if (Directory.Exists(c) && !Directory.EnumerateFileSystemEntries(c).Any())
+                Directory.Delete(c);
+        return null;
+    }
+
+    /// <summary>
+    /// Una riga per ciclo che il Lab ha (pagina «Lettura e consegna»): quanti PDF, se c'è il modello e quando è stato
+    /// scritto, la data più recente delle sue pagine.
+    /// </summary>
+    public static IReadOnlyList<RigaDelCiclo> Righe(string? cartellaDeiPdf, string? cartellaDellAipEspanso, DateOnly oggi)
+    {
+        var stato = Di(Presenti(cartellaDeiPdf, cartellaDellAipEspanso), oggi);
+        return [.. new[] { stato.InVigore, stato.Successivo }.OfType<string>().Concat(stato.Prossimi).Concat(stato.Superati)
+            .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)
+            .Select(ciclo =>
+            {
+                var pdf = cartellaDeiPdf is null ? null : EmendamentoDellAip.CartellaDelCiclo(cartellaDeiPdf, ciclo);
+                var modello = cartellaDellAipEspanso is null ? null : AipEspanso.File(cartellaDellAipEspanso, ciclo);
+                var indice = cartellaDellAipEspanso is null ? null : IndiceDellePagine.File(cartellaDellAipEspanso, ciclo);
+                DateOnly? ultima = null;
+                var pagine = 0;
+                if (indice is not null && File.Exists(indice))
+                {
+                    try
+                    {
+                        var lette = IndiceDellePagine.Leggi(File.ReadAllText(indice));
+                        ultima = lette.Max(p => p.Effective);
+                        pagine = lette.Count;
+                    }
+                    catch (Exception e) when (e is IOException or System.Text.Json.JsonException)
+                    {
+                        // Un indice illeggibile: la riga lo dice senza data, la lettura lo riscrive.
+                    }
+                }
+                return new RigaDelCiclo(ciclo, stato.Dice(ciclo),
+                    pdf is not null && Directory.Exists(pdf) ? PdfDellAip.Elenco(pdf).Count : null,
+                    modello is not null && File.Exists(modello) ? File.GetLastWriteTime(modello) : null,
+                    ultima, pagine, stato.DaTogliere.Contains(ciclo), ciclo == stato.DaAprire);
+            })];
     }
 
     /// <summary>I cicli che hanno il modello nell'AIP espanso.</summary>

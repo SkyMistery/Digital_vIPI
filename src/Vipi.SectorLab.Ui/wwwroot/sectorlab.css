@@ -2473,3 +2473,74 @@ body.lab-trascina * {
 .lab-passo-daguardare .lab-passo-segno { color: var(--lab-avviso); }
 .lab-passo-nonsifa { opacity: .65; }
 .lab-passo-prossimo { border-color: var(--lab-accento); box-shadow: 0 0 0 1px var(--lab-accento); background: var(--lab-scelto); }
+
+/* «Lettura e consegna» dell'AIP espanso, rifatta il 22 ottobre: la pagina intera come la Consegna — il giro in testa, a
+   sinistra i cicli, l'emendamento e il repo, a destra la lettura (l'avanzamento, poi l'esito a riquadri e le segnalazioni). */
+.lab-pagina-lettura { flex-direction: column; }
+.lab-pagina-lettura > .lab-giro { margin: 0; background: var(--lab-superficie); }
+.lab-lettura-sinistra { flex: 2 1 0; }
+.lab-lettura-destra { flex: 3 1 0; }
+.lab-lettura-sinistra > section + section,
+.lab-lettura-destra > section + section { margin-top: 1rem; padding-top: .8rem; border-top: 1px solid var(--lab-linea); }
+
+.lab-cicli { list-style: none; margin: .4rem 0; padding: 0; }
+.lab-ciclo {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr;
+    gap: .15rem .6rem;
+    align-items: baseline;
+    padding: .45rem .5rem;
+    border-top: 1px solid var(--lab-linea);
+}
+.lab-ciclo:first-child { border-top: 0; }
+.lab-ciclo > strong { font: 700 1rem/1.3 var(--lab-font-titoli); }
+.lab-ciclo-aperto { background: var(--lab-scelto); border-radius: .35rem; }
+.lab-ciclo-gesti { grid-column: 2; display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+.lab-sciolti { margin-top: .5rem; padding: .5rem .6rem; border: 1px solid var(--lab-avviso); border-radius: .35rem; }
+
+.lab-barra-avanzamento { height: .5rem; margin: .4rem 0; border-radius: .25rem; background: var(--lab-superficie-2); overflow: hidden; }
+.lab-barra-avanzamento > div { height: 100%; background: var(--lab-accento); transition: width .2s; }
+
+.lab-riquadri { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: .4rem; margin: .5rem 0; }
+.lab-riquadro-numero {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .05rem;
+    padding: .45rem .6rem;
+    border: 1px solid var(--lab-linea);
+    border-radius: .35rem;
+    background: var(--lab-superficie-2);
+    color: var(--lab-testo);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.lab-riquadro-numero strong { font: 700 1.15rem/1.2 var(--lab-font-titoli); }
+.lab-riquadro-numero span { font-size: .8rem; color: var(--lab-tenue); }
+.lab-riquadro-numero:hover { border-color: var(--lab-linea-forte); }
+.lab-riquadro-numero.lab-scelto { border-color: var(--lab-accento); box-shadow: 0 0 0 1px var(--lab-accento); }
+.lab-riquadro-tenue strong { color: var(--lab-tenue); }
+
+.lab-da-dove { margin: .2rem 0 .8rem; padding: .5rem .6rem; border: 1px solid var(--lab-linea); border-radius: .35rem; max-height: 22rem; overflow-y: auto; }
+.lab-tabella-da-dove { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.lab-tabella-da-dove th { text-align: left; font-weight: 600; color: var(--lab-tenue); border-bottom: 1px solid var(--lab-linea); padding: .2rem .4rem; }
+.lab-tabella-da-dove td { padding: .2rem .4rem; border-bottom: 1px solid var(--lab-linea); vertical-align: top; }
+.lab-tabella-da-dove .lab-voce { margin: 0; text-align: left; }
+
+.lab-chip {
+    margin: 0 .25rem .3rem 0;
+    padding: .15rem .55rem;
+    border: 1px solid var(--lab-linea-forte);
+    border-radius: 1rem;
+    background: var(--lab-superficie);
+    color: var(--lab-testo);
+    font: inherit;
+    font-size: .85rem;
+    cursor: pointer;
+}
+.lab-chip.lab-scelto { border-color: var(--lab-accento); }
+
+.lab-elenco-segnalazioni { list-style: none; margin: .3rem 0; padding: 0; }
+.lab-elenco-segnalazioni li { display: grid; grid-template-columns: minmax(10rem, 16rem) 1fr; gap: .6rem; padding: .25rem 0; border-top: 1px solid var(--lab-linea); }
+.lab-elenco-segnalazioni .lab-voce { margin: 0; text-align: left; }

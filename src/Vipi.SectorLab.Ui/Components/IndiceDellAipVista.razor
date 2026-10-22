@@ -19,6 +19,48 @@
             }
         </p>
     }
+    @* Dal 22 ottobre qui, non più in «Lettura e consegna» (che non ha la mappa): la casella dello strato e «Aggiungi». *@
+    @if (Lab.CartellaDellAipEspanso is not null)
+    {
+        <div data-aip-sulla-mappa>
+            <label class="lab-nota">
+                <input type="checkbox" data-casella="aip-sulla-mappa" checked="@Lab.Accesi.Contains(AipSullaMappa.Tipo.Id)"
+                       disabled="@(Lab.Sessione is null)" @onchange="e => Mostra(e.Value is true)" />
+                Mostra l'AIP espanso sulla mappa
+            </label>
+            @if (Lab.StratoDellAip is { } stratoMostrato)
+            {
+                <span class="lab-nota" data-aip-strato> · ciclo @stratoMostrato.Ciclo, @stratoMostrato.Strato.Forme.Count forme@(Attese(stratoMostrato) is var (nonDisegnate, tutte) && nonDisegnate > 0 ? $" ({nonDisegnate} attese su {tutte} senza il punto nel sector)" : ""): i tipi si accendono negli Strati</span>
+                @* Le correzioni (slice 2 e 3): una voce si corregge dalla sua scheda; una che il PDF non ha si aggiunge da qui. *@
+                @if (_aggiungi is Aip.CorrectionKind.Airspace)
+                {
+                    <ModuloDellArea Chiuso="() => _aggiungi = null" />
+                }
+                else if (_aggiungi is { } tipo)
+                {
+                    <ModuloDiUnaVoce Tipo="tipo" Chiuso="() => _aggiungi = null" />
+                }
+                else
+                {
+                    <span class="lab-nota" data-aggiungi>
+                        <select class="lab-campo" data-campo="aggiungi-tipo" value="@_tipoDaAggiungere"
+                                @onchange="e => _tipoDaAggiungere = Enum.TryParse<Aip.CorrectionKind>(e.Value?.ToString(), out var t) ? t : _tipoDaAggiungere">
+                            @foreach (var t in Enum.GetValues<Aip.CorrectionKind>())
+                            {
+                                <option value="@t">@CorrezioniDellAip.Nome(t)</option>
+                            }
+                        </select>
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="aggiungi-area"
+                                title="Una voce che il PDF non ha (AIP SUP, AIC…): va nell'AIP espanso del ciclo @stratoMostrato.Ciclo, con la sua fonte" @onclick="() => _aggiungi = _tipoDaAggiungere">Aggiungi</button>
+                    </span>
+                }
+            }
+            @if (_rifiutoDellaMappa is not null)
+            {
+                <p class="lab-avviso-breve" data-rifiuto-aip>@_rifiutoDellaMappa</p>
+            }
+        </div>
+    }
     @if (Lab.StratoDellAip is not { } strato)
     {
         @if (_caricando)
@@ -29,7 +71,7 @@
         {
             <p class="lab-nota" data-indice-senza-aip>Manca la cartella dell'AIP espanso: sceglila nelle
                 <button class="lab-voce" @onclick="() => Lab.ScegliLaPagina(PaginaDelLab.Impostazioni)">Impostazioni</button>, o prendila in
-                <button class="lab-voce" @onclick="() => Lab.ScegliLaPagina(PaginaDelLab.Aip)">Lettura e confronti</button>.</p>
+                <button class="lab-voce" @onclick="() => Lab.ScegliLaPagina(PaginaDelLab.Aip)">Lettura e consegna</button>.</p>
         }
         else
         {
@@ -131,4 +173,16 @@
     private void Aggiorna() => InvokeAsync(StateHasChanged);
 
     public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private Aip.CorrectionKind? _aggiungi;
+    private Aip.CorrectionKind _tipoDaAggiungere = Aip.CorrectionKind.Airspace;
+    private string? _rifiutoDellaMappa;
+
+    private async Task Mostra(bool mostra) => _rifiutoDellaMappa = await Lab.MostraLAipAsync(mostra) ? null : Lab.Rifiuto;
+
+    private static (int NonDisegnate, int Tutte) Attese(StratoDellAip strato)
+    {
+        var attese = strato.Strato.Forme.Where(f => f.Genere == AipSullaMappa.Attese).ToList();
+        return (attese.Count(f => f.Tratti.Count == 0), attese.Count);
+    }
 }

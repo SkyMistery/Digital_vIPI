@@ -390,6 +390,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-21-allegati-nei-callout-e-link.md`](feature/2026-10-21-allegati-nei-callout-e-link.md) — Allegati nei callout e link nel testo — carta (21 ottobre 2026)
 - [`feature/2026-10-21-api-settori.md`](feature/2026-10-21-api-settori.md) — API dei settori: gerarchia e coordinamenti fra settori per gli altri programmi — carta (21 ottobre 2026)
 - [`feature/2026-10-21-via-le-note.md`](feature/2026-10-21-via-le-note.md) — Via le note dei dati strutturati — carta (21 ottobre 2026)
+- [`feature/2026-10-22-lettura-e-consegna.md`](feature/2026-10-22-lettura-e-consegna.md) — «Lettura e consegna» dell'AIP espanso, rifatta (22 ottobre 2026)
 
 ### `filoni`
 
