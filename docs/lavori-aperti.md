@@ -43,9 +43,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A166 — 1.73.0 PRONTA: il testo comune delle torri radar nel pannello Traduzione (S128) (22 ottobre 2026)
+### ✅ A166 — 1.73.0 ONLINE: il testo comune delle torri radar nel pannello Traduzione (S128) (22 ottobre 2026)
 
-📦 Pronta, **da caricare** (committente). Online resta la **1.72.0** finché non carica.
+✅ Online dal 22 ottobre 2026: il committente conferma la 1.73 e `Schema 0`. Da fuori, da anonimo, alle 21:23Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, `vipi-theme.css?v=e393251a` (invariato, come atteso), `/vsop/health` e
+`/vsop/health/ready` Healthy (la prima lettura di health 4,7 s, le altre sotto 0,3 s). Non guardato da qui, dietro il
+login: le frasi «testo comune» nel pannello Traduzione. `main` @ `47f6ad57` pushato dal committente a mano (il
+cancello rifiutava la chat che ha preparato il pacchetto: il ruolo era di un'altra chat Master).
 
 MINOR **senza migrazioni**, misurata dalla **1.72.0** (`0dc563d`) che gira. Timbro **`1.73.0 · f7baf05`**.
 Fusa da `sito/lavori` @ `9ef00af3` (cartellino 🟢, CI 4/4 run 39831115129), fusione `e116fad2` senza conflitti.

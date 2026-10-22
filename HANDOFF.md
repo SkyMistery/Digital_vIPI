@@ -6,9 +6,10 @@
 >
 > ## ▶ Il punto — 22 ottobre 2026, sera
 >
-> **📦 Pronta da caricare: 1.73.0** (§A166, timbro `1.73.0 · f7baf05`, 7 file, zip `8d28374f…`, MINOR senza
-> migrazioni, misurata dalla 1.72.0): Sito S128, il testo comune delle torri radar nel pannello «Traduzione»,
-> corretto solo da admin. Online è la **1.72.0** finché il committente non carica. ⚠️ Aperto: SDK 10.0.402.
+> **✅ Online: 1.73.0** (`Schema 0` confermato; health Healthy; **in `main` non resta codice fuori pacchetto**) (§A166,
+> timbro `1.73.0 · f7baf05`, 7 file, zip `8d28374f…`, MINOR senza migrazioni, misurata dalla 1.72.0): Sito S128, il
+> testo comune delle torri radar nel pannello «Traduzione», corretto solo da admin. Da fare per il committente:
+> scrivere il testo comune vero e rileggerne la traduzione inglese. ⚠️ Aperto: SDK 10.0.402.
 >
 > ## Il punto — 22 ottobre 2026, ONLINE 1.72.0
 >
