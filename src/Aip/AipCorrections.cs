@@ -146,10 +146,11 @@ public static class AipCorrections
 
     /// <summary>
     /// Un punto può avere più attese: la chiave è punto, tipo della radioassistenza (ENR 3.4.2), rotta d'avvicinamento e
-    /// verso: <c>ABRUS 250 left</c>, <c>PIS VOR/DME 027 right</c>.
+    /// verso: <c>ABRUS 250 left</c>, <c>PIS VOR/DME 027 right</c>. Un'attesa di uno scalo (AD 2, AD 3) ha davanti la sua sezione,
+    /// perché la stessa attesa può essere anche in ENR 3.4: <c>AD 2 LIRN ISKIA 057 right</c>.
     /// </summary>
     public static string HoldingKey(Holding h) =>
-        $"{h.Fix}{(h.FixType is null ? "" : " " + h.FixType)} {h.InboundTrack:000} {h.Turn.ToString().ToLowerInvariant()}";
+        $"{(h.Section.StartsWith("AD ", StringComparison.Ordinal) ? h.Section + " " : "")}{h.Fix}{(h.FixType is null ? "" : " " + h.FixType)} {h.InboundTrack:000} {h.Turn.ToString().ToLowerInvariant()}";
 
     /// <summary>L'oggetto nel JSON del modello, come lo scrive l'AIP espanso.</summary>
     public static JsonObject ToNode<T>(T voce) =>

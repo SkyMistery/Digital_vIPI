@@ -54,6 +54,11 @@ public static class IndiceDellAip
             .Where(v => v.Genere == AipSullaMappa.Scali)
             .GroupBy(v => v.Titolo, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => Campo(g.First(), "Nome"), StringComparer.OrdinalIgnoreCase);
+        // Le voci di un eliporto (punti, procedure, attese: passo 6) stanno in AD 3 con la sua scheda.
+        var eliporti = voci
+            .Where(v => v.Genere == AipSullaMappa.Scali && Campo(v, "Sezione") == "AD 3")
+            .Select(v => v.Titolo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        string ParteDi(VoceDellAip voce) => Parte(voce) is "AD 2" && Scalo(voce) is { } s && eliporti.Contains(s) ? "AD 3" : Parte(voce);
 
         // Si cerca nel titolo della voce e, in AD 2, anche nello scalo: «Fiumicino» trova LIRF con le sue procedure.
         bool Trovata(VoceDellAip voce)
@@ -63,7 +68,7 @@ public static class IndiceDellAip
             var cosa = filtro.Trim();
             if (voce.Titolo.Contains(cosa, StringComparison.OrdinalIgnoreCase))
                 return true;
-            if (Parte(voce) is not ("AD 2" or "AD 3"))
+            if (ParteDi(voce) is not ("AD 2" or "AD 3"))
                 return false;
             return (Scalo(voce) ?? ScaloDalNome(voce, nomiDegliScali)) is { } scalo
                    && nomiDegliScali.GetValueOrDefault(scalo) is { } nome
@@ -76,7 +81,7 @@ public static class IndiceDellAip
             .ToList();
 
         var parti = new List<GruppoDellIndice>();
-        foreach (var parte in scelte.GroupBy(x => Parte(x.Voce)).OrderBy(g => OrdineDellaParte(g.Key)))
+        foreach (var parte in scelte.GroupBy(x => ParteDi(x.Voce)).OrderBy(g => OrdineDellaParte(g.Key)))
         {
             List<GruppoDellIndice> gruppi;
             if (parte.Key is "AD 2" or "AD 3")
@@ -167,7 +172,7 @@ public static class IndiceDellAip
 
     /// <summary>
     /// Lo scalo di una voce di AD 2: la voce dello scalo (il titolo è l'ICAO), una procedura (il campo «Scalo»), un punto
-    /// RNAV dello scalo (la sezione è «AD 2 LIRF»).
+    /// RNAV o un'attesa dello scalo (la sezione è «AD 2 LIRF», «AD 3 LIBI»).
     /// </summary>
     private static string? Scalo(VoceDellAip voce)
     {
@@ -175,7 +180,8 @@ public static class IndiceDellAip
             return voce.Titolo;
         if (Campo(voce, "Scalo") is { } scalo)
             return scalo;
-        return Campo(voce, "Sezione") is { Length: 9 } s && s.StartsWith("AD 2 ", StringComparison.OrdinalIgnoreCase) && s[5..].All(char.IsAsciiLetter)
+        return Campo(voce, "Sezione") is { Length: 9 } s && (s.StartsWith("AD 2 ", StringComparison.OrdinalIgnoreCase) || s.StartsWith("AD 3 ", StringComparison.OrdinalIgnoreCase))
+               && s[5..].All(char.IsAsciiLetter)
             ? s[5..].ToUpperInvariant()
             : null;
     }

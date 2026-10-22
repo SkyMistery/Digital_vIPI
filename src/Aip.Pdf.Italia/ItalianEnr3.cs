@@ -655,7 +655,7 @@ public static partial class ItalianEnr3
     /// la colonna MHA/MHL è in piedi e ENR 3.2 dice che le quote in piedi sono AMSL (committente, 21 ottobre). Il testo
     /// resta com'è stampato.
     /// </summary>
-    private static VerticalLimit QuotaDiAttesa(string quota)
+    internal static VerticalLimit QuotaDiAttesa(string quota)
     {
         var letta = LimitText.Parse(quota);
         return letta.Reference == VerticalReference.Unknown

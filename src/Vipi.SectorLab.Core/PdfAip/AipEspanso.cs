@@ -322,7 +322,7 @@ public static class AipEspanso
             letti.Add(nome);
             aree.AddRange(letto.Airspaces);
             rotte.AddRange(letto.Routes);
-            attese.AddRange(letto.Holdings);
+            ItalianAd2Procedures.AggiungiLeAttese(attese, letto.Holdings);
             elencoEnr342.AddRange(letto.NavaidProcedures);
             frequenze.AddRange(letto.UnitFrequencies);
             lineeDegliAcc.AddRange(letto.UnitLines);

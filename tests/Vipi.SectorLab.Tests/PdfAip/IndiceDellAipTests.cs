@@ -179,6 +179,28 @@ public sealed class IndiceDellAipTests
         Assert.Equal(("Eliporti", "LIBI", "Vieste"), (indice[1].Nome, indice[1].Gruppi[0].Codice, indice[1].Gruppi[0].Nome));
     }
 
+    // Passo 6: i punti, le procedure e le attese di un eliporto stanno in AD 3, sotto l'eliporto.
+    [Fact]
+    public void LeVociDiUnEliporto_InAd3()
+    {
+        VoceDellAip[] voci =
+        [
+            Scalo("LIRF", "Roma Fiumicino"),
+            new(AipSullaMappa.Scali, "LIBI", [("Sezione", "AD 3"), ("Nome", "Vieste")], [], CorrectionKind.Aerodrome, "LIBI"),
+            new(AipSullaMappa.Punti, "BI106", [("Sezione", "AD 3 LIBI")], [], CorrectionKind.Point, "BI106"),
+            new(AipSullaMappa.Attese, "ESCOB FL105 L 145°", [("Sezione", "AD 3 LIBI")], [], CorrectionKind.Holding, "AD 3 LIBI ESCOB 145 left"),
+            new(AipSullaMappa.Attese, "LORNI 3000 R 120°", [("Sezione", "AD 2 LIRF")], [], CorrectionKind.Holding, "AD 2 LIRF LORNI 120 right"),
+        ];
+
+        var indice = IndiceDellAip.Di(voci);
+
+        Assert.Equal(["AD 2", "AD 3"], indice.Select(p => p.Codice));
+        var libi = Assert.Single(indice[1].Gruppi);
+        Assert.Equal("LIBI", libi.Codice);
+        Assert.Equal(["BI106", "ESCOB FL105 L 145°"], libi.Gruppi.SelectMany(g => g.Voci).Select(v => v.Titolo));
+        Assert.Equal("LORNI 3000 R 120°", Assert.Single(indice[0].Gruppi.Single().Gruppi.Single(g => g.Nome == AipSullaMappa.Attese).Voci).Titolo);
+    }
+
     // Passo 5: le carte di AD 2.24 prendono la data della loro pagina dall'indice delle pagine; una carta senza la pagina si dice.
     [Fact]
     public void LeCarte_LaDataDallIndiceDellePagine()

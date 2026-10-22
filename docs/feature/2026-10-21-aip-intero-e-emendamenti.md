@@ -545,3 +545,49 @@ Test: Aip.Pdf 163 (+4), Aip 52 (+1), Lab 1 387 (+3). In più stabilizzato un ros
 «Finita quando» di §3: **97 + 10 scali**, e per ognuno le sottosezioni presenti nel PDF **tutte nel modello** (2 655 su
 2 655, contate). Le carte con titolo, pagina e data; le note scritte sono nella prosa delle sottosezioni. Il passo 6 (le
 procedure del file 5, attese e waypoint) è il prossimo.
+
+### Passo 6 — AD 2 e AD 3, le procedure (via del committente, 22 ottobre: «vai con il passo 6»)
+
+Misurato all'inizio sul 2611 (file 4, 5 e 6 di tutti gli scali): SID e STAR lette in 42 dei 45 aeroporti che le hanno, con
+le segnalazioni raccolte a Pisa, Cagliari, Viterbo, Trento, Alghero e Catania; non lette le pagine di testo di quattro scali
+militari (Foggia, Comiso, Trapani, Grosseto) né i file degli eliporti; il file 5 (51 aeroporti e 10 eliporti, gli
+avvicinamenti) mai letto. Il passo è diviso in 6a (SID, STAR e attese di tutti), 6b (il file 5), 6c (mappa, scheda, banco).
+
+#### 6a — SID, STAR e attese di tutti gli scali: fatto
+
+- **I designatori in altre forme**: col genere davanti («STAR MIVKI 1D», LIRP, LIEE), con le lettere spezzate
+  («STAR K OVAS 1V», «STAR C AR 1 S»), con le piste dopo («SID BEROK 6B RWY 03R/L», «SID GILIO 5N (RWY 04C)») e ripetuti
+  sotto («BEROK 6F»), dentro un titolo («Trento RNP AVCOL 5A Departure», gli eliporti), con un rimando che non è una sezione
+  («STAR UPADU 1A (ATC Discretion)»), a 21 punti dalla riga «Terminator» (LICC: prima i suoi tratti finivano nella STAR della
+  pagina prima, senza dirlo).
+- **Le pagine in due lingue** degli scali militari e di qualche civile (LIBF, LICB, LICT, LIRS, LIDT, LICC, LIEE): il
+  designatore è due volte sulla riga, l'italiano a sinistra; si tiene la colonna inglese.
+- **Le piste in un titolo a sé** («DEPARTURES FROM RWY 02 – AEA VOR/DME», «RWY 26» sotto «CATANIA FONTANAROSSA STAR RNAV 1»)
+  valgono per le sezioni che non le dicono. La prima riga della descrizione di una SID («Initial climb procedure completed,
+  turn left…») non è più presa per una salita iniziale (LIEA, LIEE: 33 SID «né tratti né descrizione»).
+- **Le intestazioni**: «P ath» spezzata (la colonna dal «Terminator» sotto), «Flyover», «Course/Track».
+- **La WAYPOINT LIST nel formato ARINC 424** («MIVKI N44132743 E010041382», anche «N415153.56»); la sigla di una
+  radioassistenza nella colonna dei punti («ELB VOR») è la sigla.
+- **Le attese delle tabelle** (STAR, avvicinamenti): prima la riga HM entrava come tratto della procedura di sopra, o
+  restava «fuori da una procedura». Ora è un'**attesa** (`Holding`, sezione `AD 2 <ICAO>` / `AD 3 <ICAO>`) con le colonne
+  in più: rotta vera, tratto com'è stampato (minuti o NM), quota massima, velocità, specifica, e la riga intera com'è
+  (`Text`). Le colonne cambiano da scalo a scalo e si leggono per forma; il punto è il nome più vicino alla colonna
+  «Waypoint» (una nota in maiuscolo accanto, «MHA … LOCRI», non lo inganna); le note scritte dentro la riga restano nel
+  testo. La stessa attesa nel file 4 e nel 5 una volta sola. La chiave dell'attesa di uno scalo comincia con la sezione
+  (`AD 2 LIRN ESCOB 145 left`): la stessa può essere anche in ENR 3.4.
+- **Gli eliporti**: `LI-AD 3 <ICAO> 4/6` si leggono come gli aeroporti; nell'indice punti, procedure e attese stanno sotto
+  l'eliporto in AD 3.
+- **Il conto** (rapporto di lettura): i designatori stampati nei file 4 e 6 contro le procedure lette (designatori distinti,
+  salite iniziali escluse).
+
+Misurato sul 2611: **procedure 1 779 → 2 034**, **attese 543 → 727** (184 degli scali), punti 2 036 → 2 192; il conto delle
+procedure **1 903 stampate, 1 903 lette** su 109 file. Restano, detti:
+- 16 punti con le coordinate stampate male nell'AIP (RF407, RF412, RF414, RF707, RN534, RN544, CR401, CR402, MJ601, MJ602, MJ611,
+  MJ612, BD434, BC621, PE557, BI106: secondi con l'apice sbagliato, «N E» in più, i due punti al posto dei gradi);
+- un'attesa di LIRA 5 con un refuso nella riga («HM 5) RMC(1)»);
+- 462 procedure convenzionali di cui la lettura della prosa (F7, slice 7b) non ricava i tratti: il testo è nel modello, la
+  frase non capita si dice. Prima erano dei soli cinque scali della F7; la più frequente (Alghero, 32) comincia dove finisce
+  la salita iniziale, che la prosa non dice dove sia;
+- le tabelle della salita iniziale «ICP» di LIRP 6 p.3 sono disegnate, senza testo: non si leggono.
+
+Test: Aip.Pdf 167 (+4), Aip 52, Lab 1 389 (+2).

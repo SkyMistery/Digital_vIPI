@@ -363,6 +363,27 @@ public sealed class AipSullaMappaTests
         Assert.Contains(("Note", "Sul fiume"), s.Voci[3].Campi);
     }
 
+    // Passo 6: l'attesa di uno scalo, con le colonne della sua tabella e la riga com'è stampata.
+    [Fact]
+    public void LaSchedaDiUnAttesaDelloScalo()
+    {
+        var attesa = new Holding
+        {
+            Section = "AD 2 LIXX", Fix = "UNO", Minimum = new VerticalLimit { Text = "+4000" }, Turn = TurnDirection.Right, InboundTrack = 33,
+            TrueTrack = "036.6", Leg = "1", Speed = "210", Navigation = "RNAV1", Text = "HM UNO 033°(036.6°) 1 R +4000 210 3.8 5.0 RNAV1",
+        };
+
+        var s = AipSullaMappa.Di(new AipDocument { State = "LI", Holdings = [attesa] }, "2611", nome => nome == "UNO" ? new Coordinate(A.Lat, A.Lon) : null);
+
+        var voce = Assert.Single(s.Voci);
+        Assert.Equal(("UNO +4000 R 033°", "AD 2 LIXX UNO 033 right"), (voce.Titolo, voce.Chiave));
+        Assert.Contains(("Rotta vera", "036.6°"), voce.Campi);
+        Assert.Contains(("Velocità", "210"), voce.Campi);
+        Assert.Contains(("Specifica", "RNAV1"), voce.Campi);
+        Assert.Contains(("Riga stampata", attesa.Text), voce.Campi);
+        Assert.Contains(("Posizione", "quella del punto nel sector: la tabella dell'attesa non dà coordinate"), voce.Campi);
+    }
+
     // Passo 5: la scheda dello scalo ha le sottosezioni (le voci, quante righe una tabella, l'inizio della prosa) e le carte.
     [Fact]
     public void LaSchedaDelloScalo_SottosezioniECarte()

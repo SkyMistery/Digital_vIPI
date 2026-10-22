@@ -155,6 +155,148 @@ public sealed class Ad2ProceduresTests
         Assert.Equal(["IF ALAXI"], r.Procedures[1].Legs.Select(t => $"{t.PathTerminator} {t.Fix}"));
     }
 
+    // Passo 6 della carta «L'AIP intero»: i designatori col genere davanti (LIRP, LIEE), con le lettere spezzate (LIEE), con un
+    // rimando fra parentesi che non fa una sezione (LIRV), a 21 punti dalla riga «Terminator» (LICC); e il conto del rapporto.
+    [Fact]
+    public void IDesignatoriInAltreForme_EIlConto()
+    {
+        var pagina = new Pagina([], [],
+        [
+            .. Testa("AD 2 LIXX 4 - 3"),
+            (60, 60, "STAR RNAV (GNSS) RWY 03R/L"),
+            (60, 80, "STAR MIVKI 1D"),
+            .. Intestazione(110),
+            .. Tratto(130, "IF", "MIVKI", null, null, "-", "+FL120"),
+            (60, 160, "STAR K OVAS 1V"),
+            .. Intestazione(190),
+            .. Tratto(210, "IF", "KOVAS", null, null, "-", "+FL100"),
+            (60, 240, "STAR UPADU 1A (ATC Discretion)"),
+            .. Intestazione(270),
+            .. Tratto(290, "IF", "UPADU", null, null, "-", "+FL110"),
+            (60, 319, "STAR LIBRO 1H"),
+            .. Intestazione(340),
+            .. Tratto(360, "IF", "LIBRO", null, null, "-", "+FL110"),
+        ]);
+        var pagine = PdfText.Read(Enr4Tests.Pdf(pagina));
+
+        var r = ItalianAd2Procedures.Read(pagine, "LIXX", ProcedureKind.Star);
+
+        Assert.Equal([], r.Issues.Where(i => i.Kind != ImportIssueKind.PageWithoutDate).Select(i => $"{i.Kind} {i.Key} {i.Detail}"));
+        Assert.Equal(["MIVKI 1D", "KOVAS 1V", "UPADU 1A", "LIBRO 1H"], r.Procedures.Select(p => p.Designator));
+        Assert.All(r.Procedures, p => Assert.Equal((ProcedureKind.Star, 1), (p.Kind, p.Legs.Count)));
+        Assert.All(r.Procedures, p => Assert.Equal(["03R", "03L"], p.Runways));
+        Assert.Equal([new ExpectedCount("procedure", 4)], ItalianExpectedCounts.Of("LI-AD 2 LIXX - PROVA 4.pdf", pagine));
+        Assert.Equal(4, ItalianExpectedCounts.Read("procedure", r));
+    }
+
+    // Passo 6: le piste in un titolo a sé (LIEA, LIEE), la descrizione che comincia con «Initial climb procedure completed» (non è
+    // un'altra salita iniziale), il designatore con le piste e ripetuto sotto (LIRP), il designatore nel titolo (LIDT).
+    [Fact]
+    public void LeSid_PisteNelTitolo_DescrizioneDopoLaSalita_DesignatoreRipetuto()
+    {
+        var uno = new Pagina([], [],
+        [
+            .. Testa("AD 2 LIXX 6 - 3"),
+            (60, 60, "DEPARTURES FROM RWY 02 – XXA VOR/DME"),
+            (60, 75, "INITIAL CLIMB PROCEDURE"),
+            (60, 85, "After take-off intercept and follow RDL 023 XXA VOR."),
+            (60, 105, "SID DESCRIPTION"),
+            (60, 120, "MINKA 7K"),
+            (60, 130, "Initial climb procedure completed turn left until joining RDL 349 XXA VOR."),
+            (60, 145, "MCA/MCL: RDL 349/4NM XXA VOR/DME 5000 FT."),
+            (60, 175, "SID BEROK 6B RWY 03R/L"),
+            (60, 190, "BEROK 6B"),
+            .. Intestazione(220),
+            .. Tratto(240, "IF", "RP601", null, null, "-", "+FL70"),
+            (60, 270, "Prova RNP AVCOL 5A Departure"),
+            .. Intestazione(300),
+            .. Tratto(320, "IF", "AVCOL", null, null, "-", "+8000"),
+        ]);
+
+        var r = ItalianAd2Procedures.Read(PdfText.Read(Enr4Tests.Pdf(uno)), "LIXX", ProcedureKind.Sid);
+
+        Assert.Equal([], r.Issues.Where(i => i.Kind != ImportIssueKind.PageWithoutDate).Select(i => $"{i.Kind} {i.Key} {i.Detail}"));
+        Assert.Equal(["RWY 02", "MINKA 7K", "BEROK 6B", "AVCOL 5A"], r.Procedures.Select(p => p.Designator));
+        var salita = r.Procedures[0];
+        Assert.Equal((ProcedureKind.InitialClimb, "After take-off intercept and follow RDL 023 XXA VOR."), (salita.Kind, salita.Description));
+        var minka = r.Procedures[1];
+        Assert.Equal((ProcedureKind.Sid, "02"), (minka.Kind, Assert.Single(minka.Runways)));
+        Assert.StartsWith("Initial climb procedure completed", minka.Description, StringComparison.Ordinal);
+        Assert.Equal(["03R", "03L"], r.Procedures[2].Runways);
+        Assert.Equal("RP601", Assert.Single(r.Procedures[2].Legs).Fix);
+        Assert.Equal("AVCOL", Assert.Single(r.Procedures[3].Legs).Fix);
+    }
+
+    // Passo 6: gli scali militari stampano le procedure in due colonne, l'italiano a sinistra e l'inglese a destra (LIBF, LICC).
+    [Fact]
+    public void UnaPaginaInDueLingue_SiTieneLInglese()
+    {
+        var pagina = new Pagina([], [],
+        [
+            .. Testa("AD 2 LIXX 4 - 3"),
+            (60, 60, "EKTOL 1A (a discrezione ATC)"), (320, 60, "EKTOL 1A (ATC Discretion)"),
+            (60, 75, "EKTOL – RDL 216 XXG VOR (TR 036°) per XXG"), (320, 75, "EKTOL – RDL 216 XXG VOR (TR 036°) bound to XXG"),
+            (60, 85, "VOR/DME."), (320, 85, "VOR/DME."),
+            (320, 100, "MEA: EKTOL – XXG VOR/DME: 6000 FT."),
+            // Una pagina con meno di 30 parole è un'immagine: la seconda procedura la riempie.
+            (60, 130, "DOGUS 1A"), (320, 130, "DOGUS 1A"),
+            (60, 145, "DOGUS – RDL 159 XXG VOR (TR 339°) per XXG"), (320, 145, "DOGUS – RDL 159 XXG VOR (TR 339°) bound to XXG"),
+            (320, 160, "MEA: DOGUS – XXG VOR/DME: 3000 FT."),
+        ]);
+        var pagine = PdfText.Read(Enr4Tests.Pdf(pagina));
+
+        var r = ItalianAd2Procedures.Read(pagine, "LIXX", ProcedureKind.Star);
+
+        Assert.Equal(["EKTOL 1A", "DOGUS 1A"], r.Procedures.Select(p => p.Designator));
+        var ektol = r.Procedures[0];
+        Assert.Equal(("EKTOL 1A", "(ATC Discretion)\nEKTOL – RDL 216 XXG VOR (TR 036º) bound to XXG\nVOR/DME."), (ektol.Designator, ektol.Description));
+        Assert.Equal("MEA: EKTOL – XXG VOR/DME: 6000 FT.", ektol.Minimums);
+        Assert.True(ItalianAd2Procedures.EProcedure(pagine));
+    }
+
+    // Passo 6: la tabella delle attese (colonne diverse da scalo a scalo, il punto anche sopra la riga, una nota scritta dentro la
+    // riga), la lista dei punti nel formato ARINC 424, un eliporto (AD 3).
+    [Fact]
+    public void LeAtteseDelleTabelle_LaListaArinc_UnEliporto()
+    {
+        double[] x = [60, 110, 165, 230, 290, 330, 375, 425, 455, 490];
+        var pagina = new Pagina([], [],
+        [
+            .. Testa("AD 3 LIXH 4 - 3"),
+            (60, 60, "HOLDING RWY 03"),
+            (x[0], 81, "Path"), (x[1], 81, "Waypoint"), (x[2], 81, "Inbound"), (x[3], 81, "Leg"), (x[4], 81, "Turn"), (x[5], 81, "Altitude"),
+            (x[6], 81, "Speed"), (x[7], 81, "D"), (x[8], 81, "WD"), (x[9], 81, "TYPE"),
+            (x[0], 90, "Terminator"), (x[1], 90, "Identifier"), (x[2], 90, "Track"), (x[3], 90, "Distance"), (x[4], 90, "Direction"),
+            (x[5], 90, "Constraint"), (x[6], 90, "Limit"),
+            (x[0], 110, "HM"), (x[1], 110, "JESSY"), (x[2], 110, "033°(036.6°)"), (x[3], 110, "1"), (x[4], 110, "R"), (x[5], 110, "+4000"),
+            (x[6], 110, "210"), (x[7], 110, "3.8"), (x[8], 110, "5.0"), (x[9], 110, "RNAV1"),
+            // Il punto sopra la riga, la rotta vera sotto, una nota scritta nella colonna del tratto, il rimando dopo la quota.
+            (x[1], 131, "ESCOB"), (x[0], 135, "HM"), (x[2], 135, "145°"), (x[2], 141, "(148.0°)"), (x[3] - 15, 132, "in case of coding"),
+            (x[3], 135, "3.0"), (x[4], 135, "L"), (x[5], 135, "FL105"), (x[5] + 22, 135, "(4)"), (x[6], 135, "-200"),
+            (60, 170, "Waypoint Table Formatted according ARINC 424 standards"),
+            (60, 180, "WAYPOINT LATITUDE LONGITUDE"),
+            (60, 190, "MIVKI N44132743 E010041382"),
+            (60, 200, "ELB VOR N42435047 E010234461"),
+            (60, 210, "RA503 N415153.56 E0123258.45"),
+        ]);
+
+        var r = ItalianAip.ReadFile("LI-AD 3 LIXH 4.pdf", PdfText.Read(Enr4Tests.Pdf(pagina)));
+
+        Assert.Equal([], r.Issues.Where(i => i.Kind != ImportIssueKind.PageWithoutDate).Select(i => $"{i.Kind} {i.Key} {i.Detail}"));
+        Assert.Equal(2, r.Holdings.Count);
+        var jessy = r.Holdings[0];
+        Assert.Equal(("AD 3 LIXH", "JESSY", 33, "036.6", TurnDirection.Right), (jessy.Section, jessy.Fix, jessy.InboundTrack, jessy.TrueTrack, jessy.Turn));
+        Assert.Equal(("+4000", 4000d, "1", "210", "RNAV1"), (jessy.Minimum.Text, jessy.Minimum.Value!.Value, jessy.Leg, jessy.Speed, jessy.Navigation));
+        var escob = r.Holdings[1];
+        Assert.Equal(("ESCOB", 145, "148.0", TurnDirection.Left), (escob.Fix, escob.InboundTrack, escob.TrueTrack, escob.Turn));
+        Assert.Equal(("FL105", VerticalReference.FlightLevel, "3.0", "-200", "(4)"), (escob.Minimum.Text, escob.Minimum.Reference, escob.Leg, escob.Speed, escob.NoteRefs));
+        Assert.Contains("coding", escob.Text, StringComparison.Ordinal);
+        Assert.Equal(["MIVKI", "RA503"], r.Points.Select(p => p.Designator));
+        Assert.All(r.Points, p => Assert.Equal("AD 3 LIXH", p.Section));
+        Assert.Equal(44 + 13 / 60.0 + 27.43 / 3600, r.Points[0].Position.Lat, 9);
+        Assert.Equal(12 + 32 / 60.0 + 58.45 / 3600, r.Points[1].Position.Lon, 9);
+    }
+
     [Theory]
     [InlineData("SID RNAV1 or RNP1 RWY24 - Description", "24")]
     [InlineData("STAR RWY 16 L/R", "16L,16R")]

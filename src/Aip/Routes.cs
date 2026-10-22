@@ -153,7 +153,8 @@ public enum TurnDirection
 /// Un'attesa di ENR 3.4.1 (procedure di attesa in rotta sui punti di riporto) o di ENR 3.4.2 (sulle radioassistenze): il
 /// punto o la sigla, il riferimento dato dall'AIP (radiale e distanza da una radioassistenza, se c'è), la quota minima
 /// (MHA/MHL), il verso della virata, la rotta d'avvicinamento magnetica, le note. Un punto può avere più attese (le varianti
-/// numerate «(1)», «(2)»).
+/// numerate «(1)», «(2)»). Anche le attese delle tabelle di AD 2 e AD 3 (le STAR, gli avvicinamenti), con la sezione dello
+/// scalo (<c>AD 2 LIRN</c>) e qualche colonna in più.
 /// </summary>
 public sealed record Holding
 {
@@ -184,6 +185,24 @@ public sealed record Holding
 
     /// <summary>ENR 3.4.2: le rotte ATS e le procedure interessate, com'è stampate, una per riga (<c>L 5</c>, <c>EA star</c>).</summary>
     public string? Affected { get; init; }
+
+    /// <summary>AD 2 e AD 3 (le tabelle delle attese, passo 6 della carta «L'AIP intero»): la rotta vera, fra parentesi: <c>036.6</c>.</summary>
+    public string? TrueTrack { get; init; }
+
+    /// <summary>AD 2 e AD 3: il tratto in allontanamento, com'è stampato (minuti o NM, secondo la tabella): <c>1</c>, <c>3.0 4.2/-</c>.</summary>
+    public string? Leg { get; init; }
+
+    /// <summary>AD 2 e AD 3: la quota massima, dove la tabella la dà: <c>FL105</c>.</summary>
+    public VerticalLimit? Maximum { get; init; }
+
+    /// <summary>AD 2 e AD 3: la velocità massima com'è stampata: <c>210</c>, <c>-200</c>.</summary>
+    public string? Speed { get; init; }
+
+    /// <summary>AD 2 e AD 3: la specifica di navigazione com'è stampata: <c>RNAV1</c>, <c>RNP 1</c>.</summary>
+    public string? Navigation { get; init; }
+
+    /// <summary>AD 2 e AD 3: la riga della tabella com'è stampata, tutte le colonne (anche D e WD, la declinazione).</summary>
+    public string? Text { get; init; }
 
     public AipPage? Page { get; init; }
 }

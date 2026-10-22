@@ -202,6 +202,13 @@ public sealed class AipJsonTests
             NoteRefs = "(1)",
             Remarks = "IAS MAX 190kt",
         };
+        // Un'attesa della tabella di uno scalo (passo 6 della carta «L'AIP intero»), con le colonne in più.
+        var attesaDelloScalo = new Holding
+        {
+            Section = "AD 2 LIRN", Fix = "ESCOB", Minimum = new VerticalLimit { Text = "FL105" }, Turn = TurnDirection.Left, InboundTrack = 145,
+            TrueTrack = "148.0", Leg = "3.0 4.7", Maximum = new VerticalLimit { Text = "FL150" }, Speed = "-200", Navigation = "RNAV",
+            Text = "HM ESCOB 145° (148.0°) 3.0 4.7 L FL105 FL150 -200 3.6 RNAV",
+        };
         var elenco = new NavaidProcedures
         {
             Section = "ENR 3.4.2", Designator = "AHO", Type = "TACAN", Name = "Alghero", Affected = "EA star\nEA sid",
@@ -222,7 +229,7 @@ public sealed class AipJsonTests
         };
         var doc = new AipDocument
         {
-            State = "LI", Routes = [Rotta(RouteDirection.Backward)], Holdings = [attesa], NavaidProcedures = [elenco], UnitFrequencies = [frequenze],
+            State = "LI", Routes = [Rotta(RouteDirection.Backward)], Holdings = [attesa, attesaDelloScalo], NavaidProcedures = [elenco], UnitFrequencies = [frequenze],
             UnitLines = [linea],
         };
 
@@ -240,6 +247,10 @@ public sealed class AipJsonTests
         Assert.NotEqual(Rotta(RouteDirection.Backward) with { Notes = null }, riletto.Routes![0]);
         Assert.NotEqual(Rotta(RouteDirection.Backward) with { Notes = [] }, riletto.Routes![0]);
         Assert.NotEqual(attesa with { Turn = TurnDirection.Right }, riletto.Holdings![0]);
+        Assert.NotEqual(attesaDelloScalo with { Leg = null }, riletto.Holdings![1]);
+        Assert.NotEqual(attesaDelloScalo with { Maximum = null }, riletto.Holdings![1]);
+        Assert.Equal("AD 2 LIRN ESCOB 145 left", AipCorrections.HoldingKey(riletto.Holdings![1]));
+        Assert.Equal("ABRUS 250 left", AipCorrections.HoldingKey(riletto.Holdings![0]));
         Assert.NotEqual(doc with { Holdings = null }, riletto);
         Assert.Contains("\"even\": \"backward\"", json);
         Assert.DoesNotContain("\"forward\": ", json);

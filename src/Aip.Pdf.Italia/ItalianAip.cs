@@ -209,6 +209,10 @@ public static partial class ItalianAip
     [GeneratedRegex(@"^LI-AD 3\s+(?<icao>[A-Z]{4})\s+1$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxTestoDiEliporto();
 
+    // Le carte di un eliporto (passo 6): «LI-AD 3 LIBI 4», le STAR; il 6 le SID.
+    [GeneratedRegex(@"^LI-AD 3\s+(?<icao>[A-Z]{4})\s+(?<n>\d+)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxCartaDiEliporto();
+
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
 
@@ -262,6 +266,10 @@ public static partial class ItalianAip
             if (carta.Groups["n"].Value is "4" or "6" && ItalianAd2Procedures.EProcedure(pages()))
                 return ItalianAd2Procedures.Read(pages(), carta.Groups["icao"].Value, carta.Groups["n"].Value == "4" ? ProcedureKind.Star : ProcedureKind.Sid);
         }
+        if (RxCartaDiEliporto().Match(nome) is { Success: true } cartaDiEliporto
+            && cartaDiEliporto.Groups["n"].Value is "4" or "6" && ItalianAd2Procedures.EProcedure(pages()))
+            return ItalianAd2Procedures.Read(pages(), cartaDiEliporto.Groups["icao"].Value,
+                cartaDiEliporto.Groups["n"].Value == "4" ? ProcedureKind.Star : ProcedureKind.Sid, "AD 3");
         if (nome.StartsWith("LI-ENR 5.1.", StringComparison.Ordinal))
             return ReadEnr51(pages());
         // ENR 5.2 (slice 4a): i poligoni militari, e le zone e i corridoi APR.

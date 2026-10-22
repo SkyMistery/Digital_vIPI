@@ -498,11 +498,20 @@ public static class AipSullaMappa
             ("Rotta d'avvicinamento", h.InboundTrack.ToString("000", CultureInfo.InvariantCulture) + "°"),
         };
         if (h.Bearing is { } rif) campi.Add(("Riferimento", rif));
+        // Le attese delle tabelle di AD 2 e AD 3 (passo 6 della carta «L'AIP intero»).
+        if (h.TrueTrack is { } vera) campi.Add(("Rotta vera", vera + "°"));
+        if (h.Leg is { } tratto) campi.Add(("Tratto", tratto));
+        if (h.Maximum is { } massima) campi.Add(("Quota massima", massima.Text));
+        if (h.Speed is { } velocita) campi.Add(("Velocità", velocita));
+        if (h.Navigation is { } specifica) campi.Add(("Specifica", specifica));
         if (h.NoteRefs is { } rimandi) campi.Add(("Rimandi", rimandi));
         if (h.Remarks is { } note) campi.Add(("Note", note.Replace('\n', ' ')));
+        if (h.Text is { } riga) campi.Add(("Riga stampata", riga));
         campi.Add(("Pagina", Pagina(h.Page)));
         campi.Add(disegnata
-            ? ("Posizione", "quella del punto nel sector: ENR 3.4.1 non dà coordinate")
+            ? ("Posizione", h.Section.StartsWith("AD ", StringComparison.Ordinal)
+                ? "quella del punto nel sector: la tabella dell'attesa non dà coordinate"
+                : "quella del punto nel sector: ENR 3.4.1 non dà coordinate")
             : ("⚠", $"il sector non ha il punto {h.Fix}: sulla mappa non c'è"));
         return new VoceDellAip(Attese, $"{h.Fix} {h.Minimum.Text} {(h.Turn == TurnDirection.Right ? "R" : "L")} {h.InboundTrack:000}°", campi, [],
             CorrectionKind.Holding, AipCorrections.HoldingKey(h));
