@@ -43,6 +43,32 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A166 — 1.73.0 PRONTA: il testo comune delle torri radar nel pannello Traduzione (S128) (22 ottobre 2026)
+
+📦 Pronta, **da caricare** (committente). Online resta la **1.72.0** finché non carica.
+
+MINOR **senza migrazioni**, misurata dalla **1.72.0** (`0dc563d`) che gira. Timbro **`1.73.0 · f7baf05`**.
+Fusa da `sito/lavori` @ `9ef00af3` (cartellino 🟢, CI 4/4 run 39831115129), fusione `e116fad2` senza conflitti.
+- **S128**: le frasi del testo comune delle torri radar (S127) nel pannello «Traduzione» di ogni vIPI/vSOP italiano con
+  la «Tecnica operativa», in coda e segnate «testo comune»; le corregge solo un admin (servizio + pannello), la resa
+  vale per tutte le torri. Codice comune: Application (`DocumentTranslationReview`, `RigaDaRivedere.Comune`, parametro
+  in coda: la costruiscono solo Application e Ui, spediti insieme; il costruttore nuovo del servizio lo risolve la DI).
+  Storia in `docs/filoni/sito.md`.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone`). `lab/f3` non toccato.
+
+**7 file** (`solo-7-file-1.73.0`): Application, Ui, Host (dll + pdb) ed `en/Vipi.Ui.resources.dll`, confrontati col
+publish della **1.72.0** (`publish_old/20261022a`): 482 file, 19 con impronta diversa, `wwwroot` invariato (fuori
+anche l'indice degli asset). Nessuna `const` cambiata. Zip 4,44 MB, sha256
+`8d28374f3e214fab1d96f687b91b9377924b5929183f04e9ecb8d4062912b64e`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3466, Ui 2124). Prova sul publish win-x64 (copia del
+database di sviluppo, cancellata a fine prova): `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); con LIRF
+a torre radar «sì» e un testo comune seminato nella copia, nel pannello «Traduzione» dell'editor di LIRF la frase in
+coda, segnata «common text», sotto «Common text of the radar towers». Non visto: il pannello di chi non è admin (il
+Sito l'ha provato in bUnit). Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.73.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; rileggere la traduzione inglese del testo comune. Rollback: le
+rinomine.
+
 ### ✅ A165 — 1.72.0 ONLINE: il testo comune delle torri radar (S127) (22 ottobre 2026)
 
 ✅ Online dal 22 ottobre 2026: il committente conferma la 1.72 e `Schema 0`. Da fuori, da anonimo, alle 17:26Z: `/` 302,
