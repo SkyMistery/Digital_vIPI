@@ -201,6 +201,36 @@ public sealed class IndiceDellAipTests
         Assert.Equal("LORNI 3000 R 120°", Assert.Single(indice[0].Gruppi.Single().Gruppi.Single(g => g.Nome == AipSullaMappa.Attese).Voci).Titolo);
     }
 
+    // Passo 6: un avvicinamento stampato senza titolo ha per nome la pagina della carta; prende il designatore dal titolo della
+    // carta in AD 2.24, e una FIX/POINT da sola va nell'avvicinamento che c'è già.
+    [Fact]
+    public void GliAvvicinamentiSenzaTitolo_IlNomeDallaCarta()
+    {
+        var scalo = new Aerodrome
+        {
+            Icao = "LIXX", Name = "PROVA",
+            Charts =
+            [
+                new AerodromeChart("ICAO INSTRUMENT APPROACH CHART ILS Z RWY 24", "AD 2 LIXX 5-1"),
+                new AerodromeChart("ICAO INSTRUMENT APPROACH CHART VOR Y RWY 06", "AD 2 LIXX 5-5"),
+            ],
+        };
+        var fissi = new List<ApproachFix> { new("IAF", new Position(41, 14)) };
+        List<Procedure> procedure =
+        [
+            new() { Aerodrome = "LIXX", Kind = ProcedureKind.Approach, Designator = "ILS Z RWY24", Legs = [new ProcedureLeg { PathTerminator = "IF", Fix = "BENTO" }] },
+            new() { Aerodrome = "LIXX", Kind = ProcedureKind.Approach, Designator = "AD 2 LIXX 5-1", Section = "FIX/POINT", Fixes = fissi },
+            new() { Aerodrome = "LIXX", Kind = ProcedureKind.Approach, Designator = "AD 2 LIXX 5-5", Section = "FIX/POINT", Fixes = fissi },
+            new() { Aerodrome = "LIXX", Kind = ProcedureKind.Approach, Designator = "AD 2 LIXX 5-9", Section = "FIX/POINT", Fixes = fissi },
+        ];
+
+        var nomi = AipEspanso.NomiDegliAvvicinamenti(procedure, [scalo]);
+
+        Assert.Equal(["ILS Z RWY24", "VOR Y RWY06", "AD 2 LIXX 5-9"], nomi.Select(p => p.Designator));
+        Assert.Equal(fissi, nomi[0].Fixes);
+        Assert.Equal("ICAO INSTRUMENT APPROACH CHART VOR Y RWY 06", nomi[1].Section);
+    }
+
     // Passo 5: le carte di AD 2.24 prendono la data della loro pagina dall'indice delle pagine; una carta senza la pagina si dice.
     [Fact]
     public void LeCarte_LaDataDallIndiceDellePagine()

@@ -591,3 +591,43 @@ procedure **1 903 stampate, 1 903 lette** su 109 file. Restano, detti:
 - le tabelle della salita iniziale «ICP» di LIRP 6 p.3 sono disegnate, senza testo: non si leggono.
 
 Test: Aip.Pdf 167 (+4), Aip 52, Lab 1 389 (+2).
+
+#### 6b — il file 5, gli avvicinamenti: fatto
+
+Il file 5 di 51 aeroporti e 10 eliporti: le carte sono immagini; le pagine di testo («TABULAR DESCRIPTION») hanno il titolo
+dell'avvicinamento, una tabella per segmento, le attese, la WAYPOINT LIST, la tabella FIX/POINT; altre pagine il blocco SBAS
+FAS DATA BLOCK. Scelte dell'agente (da confermare col committente):
+- **Un avvicinamento è una `Procedure` di genere nuovo `Approach`, una per segmento stampato** (`Segment`: «RNAV to ILS
+  TRANSITION - APPROACH FROM BENTO», «ILS to RNAV TRANSITION - MISSED APPROACH», «Transition to RNP Approach via VIFOP»;
+  null per la tabella senza titolo — il finale e il mancato —, «(2)», «(3)» per le seguenti, che ricominciano da «010»).
+  Il designatore dal titolo: «ILS Z RWY24», «RNP Z 164» (gli eliporti), «RNP RWY16R via SUVOK» (LIRF ne ha quattro).
+- I tratti hanno in più il **numero d'ordine** e il **VPA/TCH**; le colonne di riferimento di LIRV e LIPX (radioassistenza
+  raccomandata, radiale e distanza, distanza dalla soglia) in `Reference`, com'è stampate.
+- La **FIX/POINT** (IAF, IF, FAF, MAPt e i punti definiti da radiale e DME, con le coordinate) è `Fixes` dell'avvicinamento;
+  il **blocco SBAS FAS** è `DataBlock`, riga per riga.
+- Le carte convenzionali (ILS, VOR) sono solo immagine: della loro procedura resta la FIX/POINT sul retro. Se il retro ha il
+  titolo («VOR Z RWY17», LIBC) lo prende; se no il nome è la pagina della carta, e l'AIP espanso lo cambia nel designatore
+  del titolo della carta in AD 2.24 («ICAO INSTRUMENT APPROACH CHART ILS Z RWY 24» → «ILS Z RWY24»). Lo stesso per le
+  transizioni RNAV verso un ILS stampate senza il titolo dell'avvicinamento (LIPO, LIPX, LIPZ).
+- I titoli hanno molte forme: con «Instrument Approach procedure», sotto «TABULAR DESCRIPTION» su una riga a sé («RNP - Z
+  RWY 08», «PANTELLERIA RNP RWY25», «IAC RNP APCH RWY 14 LIEE», «IAP RNP APCH RWY 32 LIEE – VIA EPIDA», «RNP A RWY10»), o
+  dentro una riga («TABULAR DESCRIPTION Alghero/Fertilia RNP RWY 20»). Una pagina senza tabelle (il retro di una carta, una
+  pagina-carta col testo) non apre segmenti e non dà testo.
+- **Il conto** (rapporto di lettura): i titoli d'avvicinamento stampati sulle pagine con la tabella contro gli avvicinamenti
+  letti coi loro tratti.
+- In più, letti anche nei file 4 e 6: le righe in cima a una pagina che continuano la tabella della pagina prima (prima
+  finivano nelle note: LIRP 4 +9 tratti), una tabella stampata senza intestazione (LIDT 5), l'intestazione troncata
+  («Terminato», LIBC 5), le coordinate con l'emisfero davanti («N 43°53’25.1’’ E 012°50’41.3’’», LIPR, LIEA), con la
+  longitudine a due cifre («09°41’55.70” E», LIEO, LIMF) e con gli apici misti («00.2’'N», LIMG). I minuti a tre cifre
+  («014°024’13.45”E», LIRN) restano un refuso detto.
+- Sulla mappa il genere **«Avvicinamenti»**; nella scheda il segmento, la FIX/POINT, il numero di righe del blocco FAS, i
+  tratti col numero d'ordine e il VPA/TCH. Non entrano nel confronto col sector (il sector li tiene altrove).
+
+Misurato sul 2611: **procedure 2 034 → 2 274** (240 avvicinamenti, 1 044 tratti, 154 punti FIX/POINT, 44 blocchi FAS),
+**attese 727 → 794**, **punti 2 192 → 2 514**; il conto degli avvicinamenti **119 stampati, 119 letti** su 49 file. Restano,
+detti: 4 celle di LIMC 5 (un RF col centro su un'altra riga, due distanze «/»), 10 punti con le coordinate stampate male
+(CG753, CJ516, MC722, MC724, MC744, MC906, MC907, PE502 a 60 secondi, RA761, RA763) e la FAF di LIRN 5-4 coi minuti a tre
+cifre. Non letta: la tabella delle attese senza «Path Terminator» di LIDT 5 p.8 (UVIBE e AVCOL, che sono anche nel
+file 4).
+
+Test: Aip.Pdf 169 (+2), Aip 53 (+1), Lab 1 391 (+2).

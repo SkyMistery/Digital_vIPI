@@ -575,6 +575,35 @@ public sealed class AipJsonTests
         Assert.NotEqual(sid with { Runways = ["16L"] }, riletto.Procedures[0]);
     }
 
+    // Carta «L'AIP intero», passo 6: un avvicinamento del file 5, col segmento, il numero d'ordine e il VPA/TCH dei tratti, la
+    // tabella FIX/POINT e il blocco SBAS FAS, va e torna uguale; il segmento è nella chiave.
+    [Fact]
+    public void GliAvvicinamentiVannoETornanoUguali()
+    {
+        var finale = new Procedure
+        {
+            Aerodrome = "LIXX", Kind = ProcedureKind.Approach, Designator = "RNP Z RWY24", Runways = ["24"], Segment = "(2)",
+            Section = "RNP Z RWY24 – Instrument Approach procedure",
+            Legs =
+            [
+                new ProcedureLeg { Sequence = "010", PathTerminator = "IF", Fix = "URRUC", Altitude = "+3910" },
+                new ProcedureLeg { Sequence = "040", PathTerminator = "TF", Fix = "RWY24", FlyOver = true, VerticalPath = "-3.33/15.6" },
+            ],
+            Fixes = [new ApproachFix("FAF", new Position(40.94, 14.40)), new ApproachFix("MAPt (LOC+DME)", null)],
+            DataBlock = ["Operation Type 0", "SBAS Provider 1 (EGNOS)"],
+        };
+        var doc = new AipDocument { State = "LI", Airspaces = [], Procedures = [finale] };
+
+        var riletto = AipJson.Deserialize(AipJson.Serialize(doc));
+
+        Assert.Equal(doc, riletto);
+        Assert.Equal("LIXX Approach RNP Z RWY24 RWY 24 (2)", riletto.Procedures![0].Key);
+        Assert.NotEqual(finale with { Segment = null }, riletto.Procedures[0]);
+        Assert.NotEqual(finale with { Fixes = [finale.Fixes[0]] }, riletto.Procedures[0]);
+        Assert.NotEqual(finale with { DataBlock = null }, riletto.Procedures[0]);
+        Assert.NotEqual(finale with { Legs = [finale.Legs[0], finale.Legs[1] with { VerticalPath = null }] }, riletto.Procedures[0]);
+    }
+
     // Slice 7b: i tratti ricavati dalla prosa, coi punti calcolati e l'arco DME, vanno e tornano uguali; il segno che vengono
     // dalla prosa conta nell'uguaglianza, e non si scrive quando è falso.
     [Fact]

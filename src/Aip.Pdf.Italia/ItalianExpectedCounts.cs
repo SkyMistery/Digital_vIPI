@@ -46,6 +46,12 @@ public static partial class ItalianExpectedCounts
             var designatori = ItalianAd2Procedures.DesignatoriStampati(pages).Count;
             return designatori == 0 ? [] : [new ExpectedCount("procedure", designatori)];
         }
+        // Gli avvicinamenti (passo 6): i titoli stampati nel file 5 di AD 2 e AD 3.
+        if (RxAvvicinamentiDiScalo().IsMatch(nome))
+        {
+            var avvicinamenti = ItalianAd2Procedures.AvvicinamentiStampati(pages).Count;
+            return avvicinamenti == 0 ? [] : [new ExpectedCount("avvicinamenti", avvicinamenti)];
+        }
         // ENR 5.4 (carta «L'AIP intero», passo 4): le sigle T……, P……, L…… sulle pagine girate, fino alla tabella delle note
         // (dove le sigle tornano, anche dentro il testo: «Stesso ostacolo dell'ID: T001673»).
         if (nome.StartsWith("LI-ENR 5.4.", StringComparison.Ordinal))
@@ -118,6 +124,9 @@ public static partial class ItalianExpectedCounts
     [GeneratedRegex(@"^LI-AD [23]\s+[A-Z]{4}\b.*\s[46]$", RegexOptions.CultureInvariant)]
     private static partial Regex RxProcedureDiScalo();
 
+    [GeneratedRegex(@"^LI-AD [23]\s+[A-Z]{4}\b.*\s5$", RegexOptions.CultureInvariant)]
+    private static partial Regex RxAvvicinamentiDiScalo();
+
     // «45°59'15"N 012°55'21"E», anche con ’’ o ″ per i secondi.
     [GeneratedRegex(@"\d{1,2}[°º˚]\s*\d{1,2}['’′]\s*\d{1,2}(?:[.,]\d+)?\s*(?:""|''|’’|″|”)\s*[NS]\s*,?\s*\d{1,3}[°º˚]\s*\d{1,2}['’′]\s*\d{1,2}(?:[.,]\d+)?\s*(?:""|''|’’|″|”)\s*[EW]", RegexOptions.CultureInvariant)]
     private static partial Regex RxCoordinata();
@@ -143,6 +152,9 @@ public static partial class ItalianExpectedCounts
             "sottosezioni" => read.Aerodromes.Sum(a => a.Sections?.Count ?? 0),
             "coordinate" => read.Airspaces.Sum(a => Punti(a.Geometry)),
             "procedure" => read.Procedures.Where(p => p.Kind != ProcedureKind.InitialClimb).Select(p => p.Designator).Distinct(StringComparer.Ordinal).Count(),
+            // Senza quelli che hanno per nome la pagina della carta (stampati senza titolo).
+            "avvicinamenti" => read.Procedures.Where(p => p.Kind == ProcedureKind.Approach && p.Legs.Count > 0 && !p.Designator.StartsWith("AD ", StringComparison.Ordinal))
+                .Select(p => p.Designator).Distinct(StringComparer.Ordinal).Count(),
             _ => 0,
         };
     }

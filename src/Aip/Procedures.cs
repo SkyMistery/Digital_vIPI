@@ -2,7 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace Aip;
 
-/// <summary>Il genere di una procedura di AD 2: una partenza, un arrivo, una transizione verso la rotta, la salita iniziale.</summary>
+/// <summary>
+/// Il genere di una procedura di AD 2: una partenza, un arrivo, una transizione verso la rotta, la salita iniziale, un
+/// avvicinamento strumentale.
+/// </summary>
 public enum ProcedureKind
 {
     Sid,
@@ -13,6 +16,12 @@ public enum ProcedureKind
 
     /// <summary>La procedura di salita iniziale di una pista («INITIAL CLIMB PROCEDURE RWY 06»), prima delle SID.</summary>
     InitialClimb,
+
+    /// <summary>
+    /// Un avvicinamento strumentale del file 5 («ILS Z RWY24 – Instrument Approach procedure», passo 6 della carta «L'AIP
+    /// intero»): una procedura per segmento stampato (<see cref="Procedure.Segment"/>).
+    /// </summary>
+    Approach,
 }
 
 /// <summary>
@@ -41,6 +50,19 @@ public sealed record Procedure
     public string? Section { get; init; }
 
     /// <summary>
+    /// Un avvicinamento: il segmento com'è stampato sopra la sua tabella (<c>RNAV to ILS TRANSITION - APPROACH FROM BENTO</c>,
+    /// <c>ILS to RNAV TRANSITION - MISSED APPROACH</c>); null per la tabella senza titolo sotto quello dell'avvicinamento
+    /// (il finale e il mancato), «(2)», «(3)» per le seguenti.
+    /// </summary>
+    public string? Segment { get; init; }
+
+    /// <summary>Un avvicinamento: la tabella FIX/POINT (IAF, IF, FAF, MAPt con la loro definizione e le coordinate).</summary>
+    public IReadOnlyList<ApproachFix>? Fixes { get; init; }
+
+    /// <summary>Un avvicinamento RNP: il blocco SBAS FAS DATA BLOCK, una riga per riga stampata (<c>Operation Type 0</c>).</summary>
+    public IReadOnlyList<string>? DataBlock { get; init; }
+
+    /// <summary>
     /// I tratti della tabella, nell'ordine. Per una convenzionale di sola prosa, quelli ricavati dalla prosa (carta F7,
     /// slice 7b: <see cref="LegsFromDescription"/>), o vuoto dove la prosa non si è capita tutta.
     /// </summary>
@@ -67,7 +89,7 @@ public sealed record Procedure
 
     /// <summary>La chiave dentro uno Stato: scalo, genere, designatore e piste (lo stesso designatore vale per più piste).</summary>
     [JsonIgnore]
-    public string Key => $"{Aerodrome} {Kind} {Designator}{(Runways.Count == 0 ? "" : " RWY " + string.Join("/", Runways))}";
+    public string Key => $"{Aerodrome} {Kind} {Designator}{(Runways.Count == 0 ? "" : " RWY " + string.Join("/", Runways))}{(Segment is null ? "" : " " + Segment)}";
 
     // ⚠️ Scritta a mano per le liste (vedi Airspace): un campo nuovo va aggiunto anche qui.
     public bool Equals(Procedure? other) =>
@@ -75,7 +97,9 @@ public sealed record Procedure
         && Aerodrome == other.Aerodrome && Kind == other.Kind && Designator == other.Designator
         && Runways.SequenceEqual(other.Runways) && Section == other.Section && Legs.SequenceEqual(other.Legs)
         && LegsFromDescription == other.LegsFromDescription
-        && Description == other.Description && Minimums == other.Minimums && Remarks == other.Remarks && Page == other.Page;
+        && Description == other.Description && Minimums == other.Minimums && Remarks == other.Remarks && Page == other.Page
+        && Segment == other.Segment && (Fixes ?? []).SequenceEqual(other.Fixes ?? []) && (Fixes is null) == (other.Fixes is null)
+        && (DataBlock ?? []).SequenceEqual(other.DataBlock ?? []) && (DataBlock is null) == (other.DataBlock is null);
 
     public override int GetHashCode() => HashCode.Combine(Aerodrome, Kind, Designator);
 }
@@ -86,6 +110,9 @@ public sealed record Procedure
 /// </summary>
 public sealed record ProcedureLeg
 {
+    /// <summary>Gli avvicinamenti (file 5): il numero d'ordine del tratto, com'è stampato: <c>010</c>.</summary>
+    public string? Sequence { get; init; }
+
     public required string PathTerminator { get; init; }
 
     /// <summary>Il punto (<c>GEMMA</c>, <c>RN601</c>); null per i tratti che finiscono a una quota (<c>CA</c>).</summary>
@@ -134,4 +161,19 @@ public sealed record ProcedureLeg
 
     /// <summary>La posizione calcolata di un punto senza nome (<see cref="Computed"/>).</summary>
     public Position? Position { get; init; }
+
+    /// <summary>Gli avvicinamenti: l'angolo di discesa e l'altezza sulla soglia (VPA/TCH), com'è stampato: <c>-3.33/15.6</c>.</summary>
+    public string? VerticalPath { get; init; }
+
+    /// <summary>
+    /// Gli avvicinamenti di LIRV e LIPX: le colonne di riferimento — la radioassistenza raccomandata, radiale e distanza da
+    /// lei, la distanza dalla soglia —, com'è stampate, separate da « | »: <c>VIT | 223/12.1 | 16.2</c>.
+    /// </summary>
+    public string? Reference { get; init; }
 }
+
+/// <summary>
+/// Un punto della tabella FIX/POINT di un avvicinamento: com'è stampato a sinistra (il ruolo, <c>IAF</c>, <c>FAF</c>, e la
+/// definizione, <c>INT LOC INPL/9.5NM NAP DME</c>), e la posizione dalle coordinate a destra.
+/// </summary>
+public sealed record ApproachFix(string Text, Position? Position);

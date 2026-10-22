@@ -21,7 +21,7 @@ public static partial class ItalianAd2Procedures
     private static readonly HashSet<string> PathTerminators = new(StringComparer.Ordinal)
         { "IF", "TF", "CF", "CA", "DF", "RF", "HM", "HA", "HF", "FA", "FC", "FD", "FM", "VA", "VI", "VM", "VD", "CI", "CD", "CR", "AF", "PI" };
 
-    private enum Colonna { Path, Fix, FlyOver, Course, Variation, Distance, Turn, Altitude, Speed, Navigation }
+    private enum Colonna { Path, Fix, FlyOver, Course, Variation, Distance, Turn, Altitude, Speed, Navigation, Serial, Vpa, Raccomandata, Radiale, DallaSoglia }
 
     // La parola della prima riga dell'intestazione che dice la colonna (la seconda riga, «Terminator Identifier Over…», no:
     // «Identifier» è anche della WAYPOINT LIST).
@@ -32,11 +32,18 @@ public static partial class ItalianAd2Procedures
         ["Fly"] = Colonna.FlyOver,
         ["Course"] = Colonna.Course,
         ["Magnetic"] = Colonna.Variation,
+        ["Mag"] = Colonna.Variation, // «Mag Var (°)», LIRV 5
         ["Distance"] = Colonna.Distance,
         ["Turn"] = Colonna.Turn,
         ["Altitude"] = Colonna.Altitude,
         ["Speed"] = Colonna.Speed,
         ["Navigation"] = Colonna.Navigation,
+        // Gli avvicinamenti (file 5, passo 6): il numero d'ordine e l'angolo di discesa con l'altezza sulla soglia.
+        ["Serial"] = Colonna.Serial,
+        ["VPA"] = Colonna.Vpa,
+        // Le colonne di riferimento di LIRV e LIPX: «Recommended Navaid», «Bearing/Range from Navaid» (e «Distance from THR»).
+        ["Recommended"] = Colonna.Raccomandata,
+        ["Bearing"] = Colonna.Radiale,
     };
 
     [GeneratedRegex(@"^(?<k>S\s?I\s?Ds?|S\s?T\s?A\s?R|TRANSITION\s+SEGMENTS?\s+TO\s+ENROUTE)\b(?!.*\bsubject\s+to\b)(?=.*(?:RWY|DESCRIPTIO\s?N|[Dd]iscretion))", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
@@ -82,7 +89,8 @@ public static partial class ItalianAd2Procedures
     [GeneratedRegex(@"^(?<id>[A-Z]{2,3})\s+(?:VOR/DME|VORTAC|VOR|NDB|DME|TACAN)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxPuntoConIlTipo();
 
-    [GeneratedRegex(@"^(?:WAYPOINT\s+LIST\b|Waypoint\s*$|RF\s+arc\s+centre|Waypoints?\s+Table\b)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    // Anche «W AYPOINT LIST» (LIEA 5) e «Waypoints IAP RNP – Z RWY 03 – MISSED APPROACH via VANXI» (LIRP 5).
+    [GeneratedRegex(@"^(?:W\s?AYPOINT\s+LIST\b|Waypoint\s*$|RF\s+arc\s+centre|Waypoints?\s+(?:Table|IAP)\b)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxListaDeiPunti();
 
     // Le attese (passo 6) hanno la loro tabella, che si legge a parte (Attese): «HOLDING RWY 03R/L», «JESSY HOLDING PATTERN
@@ -108,11 +116,16 @@ public static partial class ItalianAd2Procedures
     [GeneratedRegex(@"r\s*=\s*(?<r>\d+(?:[.,]\d+)?)\s*NM", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture)]
     private static partial Regex RxRaggio();
 
-    [GeneratedRegex(@"centre:?\s*(?<c>[A-Z]{2}\d{3,4}|[A-Z]{3,5})\b", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    // Anche «Centre:MC005» (LIMC 5).
+    [GeneratedRegex(@"[Cc]entre:?\s*(?<c>[A-Z]{2}\d{3,4}|[A-Z]{3,5})\b", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxCentro();
 
     [GeneratedRegex(@"([NS])\s*[–-]\s*", RegexOptions.CultureInvariant)]
     private static partial Regex RxTrattinoFraLeCoordinate();
+
+    // L'emisfero davanti (passo 6, LIPR 5, LIEA 5): «N 43°53’25.1’’ E 012°50’41.3’’», anche con un trattino in mezzo.
+    [GeneratedRegex(@"^(?<la>[NS])\s*(?<lat>\d{2}°[^EW]+?)\s*[–-]?\s*(?<lo>[EW])\s*(?<lon>\d{3}°.+)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxEmisferoDavanti();
 
     /// <summary>
     /// Aggiunge i punti delle WAYPOINT LIST a quelli già letti, saltando quelli che ci sono già allo stesso posto (lo stesso
@@ -146,7 +159,7 @@ public static partial class ItalianAd2Procedures
     public static bool EProcedure(IReadOnlyList<PdfPageText> pages)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        return pages.Any(p => Table.PlainLines(p).Any(l => l.Replace(" ", "", StringComparison.Ordinal).Contains("Terminator", StringComparison.Ordinal)
+        return pages.Any(p => Table.PlainLines(p).Any(l => l.Replace(" ", "", StringComparison.Ordinal).Contains("Terminat", StringComparison.Ordinal)
                                                           || RxSezione().IsMatch(l.Trim()) || RxDesignatoreInDueLingue().IsMatch(l.Trim())));
     }
 
@@ -206,6 +219,348 @@ public static partial class ItalianAd2Procedures
         public List<string> Prima { get; } = [];
         public List<string> Dopo { get; } = [];
         public List<string> Minime { get; } = [];
+
+        // Gli avvicinamenti (file 5).
+        public string? Segmento { get; init; }
+        public List<ApproachFix> Fissi { get; } = [];
+        public List<string>? Dati { get; set; }
+    }
+
+    // Il titolo di un avvicinamento (file 5, passo 6): «ILS Z RWY24 – Instrument Approach procedure», «ILS-Z RWY06 – …»,
+    // «Palermo RNP Z RWY07 – …», «Trento – Mattarello RNP Z 164 – …», «Vieste (LIBI) RNP 015° – …», «TABULAR DESCRIPTION
+    // Alghero/Fertilia RNP RWY 20», «… RNP RWY16R – Instrument Approach procedure via SUVOK»; e quello del blocco SBAS FAS.
+    // Anche solo il designatore, su una riga a sé sotto «TABULAR DESCRIPTION»: «RNP - Z RWY 08» (LICC), «PANTELLERIA RNP RWY25»,
+    // «IAC RNP APCH RWY 14 LIEE», «IAP RNP APCH RWY 32 LIEE – VIA EPIDA» (LIEE), «RNP A RWY10» (LIMJ), e sul retro di una
+    // carta convenzionale, sopra la sua FIX/POINT: «VOR Z RWY17» (LIBC).
+    [GeneratedRegex(@"\b(?<tipo>ILS|LOC|VOR|NDB|RNP|RNAV)(?:\s*[-–]?\s*(?<lettera>[A-Z])\b)?(?:\s+APCH)?\s*[-–]?\s*(?<pista>RWY\s?\d{2}(?:\s?[LRC](?![A-Za-z]))?|\d{3}°?)(?![\d.])(?:.*?(?:procedure|[-–])\s+via\s+(?<via>[A-Z]{3,5})\b)?(?:.*?[-–]\s*(?<transizione>Transition\s+to\s+.+))?",
+        RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase)]
+    private static partial Regex RxAvvicinamento();
+
+    [GeneratedRegex(@"Instrument\s+Approach|^TA\s?BULAR\s+DESCRIPT\s?ION\b|[-–]\s*Transition\s+to\s", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxTitoloDiAvvicinamento();
+
+    /// <summary>
+    /// Una riga che è il titolo di un avvicinamento: con «Instrument Approach» o «TABULAR DESCRIPTION», o corta, senza due
+    /// punti, col designatore nei primi 30 caratteri.
+    /// </summary>
+    private static Match? TitoloDiAvvicinamento(string riga)
+    {
+        if (RxBloccoFas().IsMatch(riga) || RxAvvicinamento().Match(riga) is not { Success: true } m) return null;
+        return RxTitoloDiAvvicinamento().IsMatch(riga) || riga.Length <= 70 && !riga.Contains(':', StringComparison.Ordinal) && m.Index <= 30 ? m : null;
+    }
+
+    [GeneratedRegex(@"^SBAS\s+FAS\s+DATA\s+BLOCK\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxBloccoFas();
+
+    // Il segmento sopra una tabella: «RNAV to ILS TRANSITION - APPROACH FROM BENTO», «ILS TO RNAV MISSED APPROACH TRANSITION»,
+    // «RNP APPROACH FROM ESCOB(3)», «MISSED APPROACH DESCRIPTION». Non le attese, non le note, non le frasi con i due punti.
+    [GeneratedRegex(@"^(?!\()(?!Waypoints?\b)(?!.*\bHOLDING\b)(?!.*:).{0,90}\b(?:APPROACH|TRANSITION)\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxSegmento();
+
+    // Le coordinate della tabella FIX/POINT e delle liste: «40°58’26.10”N», «014°28’39.44”E», «40°48’49.68” N», con gli apici
+    // dei secondi come vengono («00.2’'N» a LIMG, «23.3'N» a LIRI) e la longitudine anche a due cifre («09°41’55.70” E», LIEO).
+    // I minuti a tre cifre si riconoscono, ma non si leggono: sono un refuso («014°024’13.45”E», LIRN).
+    [GeneratedRegex(@"(?<g>\d{2})[°º]\s*(?<m>\d{2,3})['’′]\s*(?<s>\d{1,2}(?:[.,]\d+)?)\s*(?:''|’’|’'|'’|”|″|""|“|'|’)?\s*(?<h>[NS])\b", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxLatitudine();
+
+    [GeneratedRegex(@"(?<g>\d{2,3})[°º]\s*(?<m>\d{2,3})['’′]\s*(?<s>\d{1,2}(?:[.,]\d+)?)\s*(?:''|’’|’'|'’|”|″|""|“|'|’)?\s*(?<h>[EW])\b", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxLongitudine();
+
+    /// <summary>I gradi di una coordinata letta da <see cref="RxLatitudine"/> o <see cref="RxLongitudine"/>; null se i minuti o i secondi non tornano.</summary>
+    private static double? Gradi(Match m)
+    {
+        var secondi = double.Parse(m.Groups["s"].Value.Replace(',', '.'), CultureInfo.InvariantCulture);
+        if (m.Groups["m"].Value.Length != 2 || int.Parse(m.Groups["m"].Value, CultureInfo.InvariantCulture) is var minuti && minuti >= 60 || secondi >= 60) return null;
+        var gradi = int.Parse(m.Groups["g"].Value, CultureInfo.InvariantCulture) + minuti / 60d + secondi / 3600d;
+        return m.Groups["h"].Value is "S" or "W" ? -gradi : gradi;
+    }
+
+    /// <summary>Una coordinata intera nelle forme di <see cref="RxLatitudine"/> e <see cref="RxLongitudine"/>, senza altro attorno.</summary>
+    private static Position? Gms(string? coordinate)
+    {
+        if (coordinate is null || RxLatitudine().Match(coordinate) is not { Success: true } lat
+            || RxLongitudine().Match(coordinate, lat.Index + lat.Length) is not { Success: true } lon) return null;
+        var resto = coordinate.Remove(lon.Index, lon.Length).Remove(lat.Index, lat.Length).Trim(' ', '-', '–');
+        return resto.Length == 0 && Gradi(lat) is { } la && Gradi(lon) is { } lo ? new Position(la, lo) : null;
+    }
+
+    /// <summary>Il designatore di un avvicinamento dal suo titolo: «ILS Z RWY24», «RNP RWY20», «RNP Z 164», «RNP RWY16R via SUVOK».</summary>
+    private static string DesignatoreDellAvvicinamento(Match m) =>
+        $"{m.Groups["tipo"].Value.ToUpperInvariant()}{(m.Groups["lettera"].Success ? " " + m.Groups["lettera"].Value.ToUpperInvariant() : "")} "
+        + $"{RxSpazi().Replace(m.Groups["pista"].Value, "").ToUpperInvariant()}{(m.Groups["via"].Success ? " via " + m.Groups["via"].Value : "")}";
+
+    /// <summary>
+    /// Il designatore di un avvicinamento dal titolo di una carta di AD 2.24 («ICAO INSTRUMENT APPROACH CHART ILS Z RWY 24» →
+    /// «ILS Z RWY24»); null se il titolo non ne ha uno.
+    /// </summary>
+    public static string? DesignatoreDellaCarta(string titolo) =>
+        RxAvvicinamento().Match(titolo ?? "") is { Success: true } m ? DesignatoreDellAvvicinamento(m) : null;
+
+    /// <summary>
+    /// I designatori degli avvicinamenti stampati nei titoli delle pagine di testo del file 5 (il conto del rapporto di lettura).
+    /// </summary>
+    internal static IReadOnlySet<string> AvvicinamentiStampati(IReadOnlyList<PdfPageText> pages)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        var nomi = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var page in pages.Where(p => p.Words.Count >= 30))
+        {
+            // Le pagine con la tabella dei tratti (le altre sono i retri delle carte e le liste dei punti).
+            var righe = Table.PlainLines(page).Select(l => RxSpazi().Replace(l, " ").Trim()).ToList();
+            if (!righe.Any(r => r.Replace(" ", "", StringComparison.Ordinal).Contains("Terminat", StringComparison.Ordinal))) continue;
+            var nellaLista = false;
+            foreach (var riga in righe)
+            {
+                if (RxListaDeiPunti().IsMatch(riga)) nellaLista = true;
+                else if (!nellaLista && TitoloDiAvvicinamento(riga) is { } m) nomi.Add(DesignatoreDellAvvicinamento(m));
+            }
+        }
+        return nomi;
+    }
+
+    /// <summary>
+    /// Gli avvicinamenti del file 5 di uno scalo (passo 6 della carta «L'AIP intero»). Le pagine di testo («TABULAR
+    /// DESCRIPTION») hanno il titolo dell'avvicinamento, poi una tabella per segmento — col suo titolo (le transizioni, il
+    /// mancato) o senza (il finale) —, le tabelle delle attese, la WAYPOINT LIST, la tabella FIX/POINT (IAF, IF, FAF, MAPt con
+    /// le coordinate); le pagine SBAS FAS DATA BLOCK il blocco dati di un RNP. Le carte sono immagini; una FIX/POINT da sola
+    /// sta sul retro della carta che la precede e ne prende la pagina come nome (l'AIP espanso la cambia nel titolo della carta).
+    /// </summary>
+    public static ImportResult ReadApproaches(IReadOnlyList<PdfPageText> pages, string icao, string parte = "AD 2")
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        var pagine = new List<ImportPage>();
+        var problemi = new List<ImportIssue>();
+        var procedure = new List<InCorso>();
+        var punti = new List<SignificantPoint>();
+        var decimali = new Dictionary<string, int>(StringComparer.Ordinal);
+        var attese = new List<Holding>();
+        var sezioneDelloScalo = $"{parte} {icao}";
+
+        string? avvicinamento = null, titolo = null;
+        IReadOnlyList<string> piste = [];
+        InCorso? corrente = null;
+        ImportPage? paginaPrima = null;
+
+        InCorso Segmento(string? nome, ImportPage pagina)
+        {
+            // Le tabelle senza titolo dopo la prima: «(2)», «(3)».
+            if (nome is null && procedure.Any(p => p.Designatore == avvicinamento && p.Segmento is null))
+                nome = $"({procedure.Count(p => p.Designatore == avvicinamento && (p.Segmento is null || p.Segmento.StartsWith('('))) + 1})";
+            var nuovo = new InCorso(avvicinamento!, ProcedureKind.Approach, piste, titolo, pagina) { Segmento = nome };
+            procedure.Add(nuovo);
+            return nuovo;
+        }
+
+        foreach (var page in pages)
+        {
+            var righe = Table.PlainLinesWithY(page);
+            var testi = righe.Select(r => r.Text).ToList();
+            var pagina = new ImportPage(page.Number, PageInfo.Reference(testi), PageInfo.Date(testi), Table: page.Words.Count >= 30);
+            pagine.Add(pagina);
+            var prima = paginaPrima;
+            paginaPrima = pagina;
+            if (!pagina.Table) continue;
+            if (pagina.Effective is null) problemi.Add(new ImportIssue(ImportIssueKind.PageWithoutDate, null, page.Number));
+
+            // Il blocco SBAS FAS: tutta la pagina, riga per riga, all'avvicinamento del suo titolo.
+            if (righe.FirstOrDefault(r => RxBloccoFas().IsMatch(r.Text.Trim())) is { Text: not null } fas)
+            {
+                var m = RxAvvicinamento().Match(fas.Text);
+                var nome = m.Success ? DesignatoreDellAvvicinamento(m) : fas.Text.Trim();
+                var dove = procedure.FirstOrDefault(p => p.Designatore == nome && p.Segmento is null) ?? procedure.FirstOrDefault(p => p.Designatore == nome);
+                if (dove is null)
+                {
+                    dove = new InCorso(nome, ProcedureKind.Approach, Piste(fas.Text), fas.Text.Trim(), pagina);
+                    procedure.Add(dove);
+                }
+                dove.Dati = [.. righe.Where(r => r.Y > fas.Y + 1).Select(r => RxSpazi().Replace(r.Text, " ").Trim())
+                    .Where(t => t.Length > 0 && !RxIntestazioneDiPagina().IsMatch(t))];
+                continue;
+            }
+
+            var tratti = Tratti(page, righe, icao, problemi, sezioneDelloScalo, Pagina(pagina));
+            // Una pagina senza tabelle (il retro di una carta, la WAYPOINT LIST da sola) chiude l'avvicinamento; dà solo il titolo
+            // alla sua FIX/POINT («VOR Z RWY17», LIBC) e i punti.
+            var diTesto = tratti.Count > 0;
+            if (!diTesto)
+            {
+                avvicinamento = null;
+                corrente = null;
+            }
+            var (fissi, fissiDa, fissiA) = FixPoint(righe, pagina, problemi);
+
+            var eventi = new List<(double Y, object Cosa)>();
+            eventi.AddRange(tratti.Select(t => (t.Y, (object)t)));
+            foreach (var (y, testo) in righe)
+            {
+                var t = RxSpazi().Replace(testo, " ").Trim();
+                if (t.Length == 0 || RxIntestazioneDiPagina().IsMatch(t)) continue;
+                if (tratti.Any(r => y >= r.Da && y <= r.A)) continue;
+                // Un titolo può stare a 22 punti dalla riga «Terminator» (LIPX 5 p.9): non è intestazione.
+                if (tratti.Any(r => y >= r.Intestazione - 22 && y <= r.Intestazione + 8) && TitoloDiAvvicinamento(t) is null && !RxSegmento().IsMatch(t)) continue;
+                if (fissi.Count > 0 && y >= fissiDa && y <= fissiA) continue;
+                eventi.Add((y, t));
+            }
+
+            var nellaLista = false;
+            InCorso? delTitoloDellaPagina = null;
+            foreach (var (_, cosa) in eventi.OrderBy(e => e.Y))
+            {
+                if (cosa is TrattoLetto letto)
+                {
+                    if (letto.Attesa is { } attesa)
+                    {
+                        AggiungiLeAttese(attese, [attesa]);
+                        continue;
+                    }
+                    if (letto.Tratto is not { } tratto) continue;
+                    if (avvicinamento is null)
+                    {
+                        problemi.Add(new ImportIssue(ImportIssueKind.Procedure, null, page.Number, $"un tratto fuori da un avvicinamento (manca il titolo): {tratto.PathTerminator} {tratto.Fix}"));
+                        continue;
+                    }
+                    // Una tabella senza titolo ricomincia da «010».
+                    if (corrente is null || tratto.Sequence == "010" && corrente.Tratti.Count > 0) corrente = Segmento(null, pagina);
+                    corrente.Tratti.Add(tratto);
+                    problemi.AddRange(letto.CheNonVa.Select(c => new ImportIssue(ImportIssueKind.Procedure, corrente.Designatore, page.Number, c)));
+                    continue;
+                }
+
+                var riga = (string)cosa;
+                // Il titolo sotto «WAYPOINT LIST» («RNP RWY17», LIBC) è della lista.
+                if (!nellaLista && TitoloDiAvvicinamento(riga) is { } a)
+                {
+                    var nome = DesignatoreDellAvvicinamento(a);
+                    var transizione = a.Groups["transizione"].Success ? a.Groups["transizione"].Value.Trim() : null;
+                    // Lo stesso titolo ripetuto (la pagina dopo, LIRF; il finale dopo le transizioni, LIDT): si continua, fuori
+                    // da un segmento col titolo.
+                    if (nome == avvicinamento && transizione is null && diTesto)
+                    {
+                        titolo = riga;
+                        if (corrente?.Segmento is not null && !corrente.Segmento.StartsWith('(')) corrente = null;
+                        continue;
+                    }
+                    avvicinamento = nome;
+                    titolo = riga;
+                    piste = Piste(riga);
+                    if (!diTesto) continue;
+                    corrente = transizione is not null ? Segmento(transizione, pagina) : null;
+                    delTitoloDellaPagina ??= corrente ?? Segmento(null, pagina);
+                    corrente ??= delTitoloDellaPagina;
+                    continue;
+                }
+                if (RxTitoloDiAvvicinamento().IsMatch(riga)) continue; // «TABULAR DESCRIPTION» da solo
+                if (RxListaDeiPunti().IsMatch(riga))
+                {
+                    nellaLista = true;
+                    continue;
+                }
+                if (Punto(riga, nellaLista, sezioneDelloScalo, pagina, punti, decimali, problemi)) continue;
+                if (!diTesto || nellaLista || RxSezioneDaSaltare().IsMatch(riga)) continue;
+                if (RxSegmento().IsMatch(riga))
+                {
+                    // Un segmento senza il titolo dell'avvicinamento («RNAV TRANSITION TO ILS APPROACH via UPGAV», LIPO, LIPX,
+                    // LIPZ): è della carta della pagina prima, che dà il nome (la pagina, poi il titolo della carta nell'AIP espanso).
+                    if (avvicinamento is null)
+                    {
+                        avvicinamento = prima?.Reference ?? pagina.Reference ?? $"p{page.Number}";
+                        titolo = riga;
+                        piste = Piste(riga);
+                    }
+                    corrente = Segmento(riga, pagina);
+                    continue;
+                }
+                if (corrente is null) continue;
+                if (RxMinime().IsMatch(riga)) corrente.Minime.Add(riga);
+                else if (corrente.Tratti.Count == 0) corrente.Prima.Add(riga);
+                else corrente.Dopo.Add(riga);
+            }
+
+            if (fissi.Count > 0)
+            {
+                // La tabella FIX/POINT dell'avvicinamento della pagina; da sola, del retro della carta della pagina prima.
+                var di = delTitoloDellaPagina
+                         ?? (avvicinamento is null ? null : procedure.FirstOrDefault(p => p.Designatore == avvicinamento && p.Segmento is null));
+                if (di is null)
+                {
+                    di = avvicinamento is not null
+                        ? new InCorso(avvicinamento, ProcedureKind.Approach, piste, titolo, pagina)
+                        : new InCorso(prima?.Reference ?? pagina.Reference ?? $"p{page.Number}", ProcedureKind.Approach, [], "FIX/POINT", pagina);
+                    procedure.Add(di);
+                }
+                di.Fissi.AddRange(fissi);
+            }
+            // Il titolo di un retro vale per la sua pagina sola.
+            if (!diTesto) avvicinamento = null;
+        }
+
+        var lette = new List<Procedure>();
+        foreach (var p in procedure)
+        {
+            if (p.Tratti.Count == 0 && p.Prima.Count == 0 && p.Minime.Count == 0 && p.Dopo.Count == 0 && p.Fissi.Count == 0 && p.Dati is null)
+            {
+                if (p.Segmento is null && procedure.Any(x => x != p && x.Designatore == p.Designatore)) continue;
+                problemi.Add(new ImportIssue(ImportIssueKind.Procedure, p.Designatore, p.Pagina.Number, $"avvicinamento senza tratti: {p.Segmento}"));
+                continue;
+            }
+            lette.Add(new Procedure
+            {
+                Aerodrome = icao,
+                Kind = ProcedureKind.Approach,
+                Designator = p.Designatore,
+                Runways = p.Piste,
+                Section = p.Sezione,
+                Segment = p.Segmento,
+                Legs = p.Tratti,
+                Description = Testo(p.Prima),
+                Minimums = Testo(p.Minime),
+                Remarks = Testo(p.Dopo),
+                Fixes = p.Fissi.Count == 0 ? null : p.Fissi,
+                DataBlock = p.Dati,
+                Page = Pagina(p.Pagina),
+            });
+        }
+        return new ImportResult([], pagine, problemi) { Procedures = lette, Points = punti, Holdings = attese };
+    }
+
+    /// <summary>
+    /// La tabella FIX/POINT di una pagina del file 5: a sinistra il ruolo o la definizione del punto, a destra la latitudine
+    /// sopra la longitudine (o sulla stessa riga). Le righe della tabella vanno dal titolo all'ultima coordinata.
+    /// </summary>
+    private static (List<ApproachFix> Fissi, double Da, double A) FixPoint(IReadOnlyList<(double Y, string Text)> righe, ImportPage pagina, List<ImportIssue> problemi)
+    {
+        var fissi = new List<ApproachFix>();
+        var inizio = righe.FirstOrDefault(r => r.Text.Contains("FIX/POINT", StringComparison.Ordinal));
+        if (inizio.Text is null) return (fissi, 0, 0);
+        var da = righe.Where(r => r.Text.Trim() is "Coordinates" or "(WGS84)" && Math.Abs(r.Y - inizio.Y) <= 15).Select(r => r.Y).Append(inizio.Y).Min();
+        var a = da;
+        Match? latitudine = null;
+        var parole = new List<string>();
+        foreach (var (y, testo) in righe.Where(r => r.Y > inizio.Y))
+        {
+            var t = RxSpazi().Replace(testo, " ").Trim();
+            if (t is "(WGS84)" or "Coordinates" or "Identifier") continue;
+            if (RxTitoloDiAvvicinamento().IsMatch(t) || RxListaDeiPunti().IsMatch(t) || RxIntestazioneDiPagina().IsMatch(t)) break;
+            var lat = RxLatitudine().Match(t);
+            var lon = RxLongitudine().Match(t);
+            if (!lat.Success && !lon.Success && latitudine is null && parole.Count > 0 && y - a > 25) break;
+            var resto = RxLongitudine().Replace(RxLatitudine().Replace(t, " "), " ").Trim(' ', '-', '–');
+            if (resto.Length > 0) parole.Add(resto);
+            if (lat.Success) latitudine = lat;
+            if (lon.Success)
+            {
+                a = y;
+                var testoDelPunto = string.Join(' ', parole).Trim();
+                var dove = latitudine is not null && Gradi(latitudine) is { } la && Gradi(lon) is { } lo ? new Position(la, lo) : (Position?)null;
+                if (dove is null)
+                    problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, testoDelPunto, pagina.Number, $"FIX/POINT: {latitudine?.Value} {lon.Value}"));
+                fissi.Add(new ApproachFix(testoDelPunto, dove));
+                latitudine = null;
+                parole.Clear();
+            }
+            else if (lat.Success) a = y;
+        }
+        return (fissi, da, a + 3);
     }
 
     /// <summary>
@@ -335,37 +690,7 @@ public static partial class ItalianAd2Procedures
                 // Un designatore chiude la lista dei punti e la sezione saltata (le attese: una STAR può venire dopo).
                 if (modo != Modo.Procedure && (RxDesignatore().IsMatch(riga) || RxDesignatoreNelTitolo().IsMatch(riga)))
                     modo = Modo.Procedure;
-                // Un punto con le sue coordinate è un punto anche fuori da una «WAYPOINT LIST» col titolo (LIRF 6 p.32: la
-                // tabella «Waypoint / Coordinates» e quella dei centri degli archi RF).
-                var punto = RxPuntoDellaLista().Match(riga);
-                // LIRN mette un trattino fra latitudine e longitudine («…N – 013°18'07.6647"E»).
-                var coordinate = punto.Success ? RxTrattinoFraLeCoordinate().Replace(punto.Groups["c"].Value, "$1 ") : null;
-                if (punto.Success && (modo == Modo.Punti || GeometryText.HasCoordinate(coordinate)))
-                {
-                    var id = punto.Groups["id"].Value;
-                    // La lista si ripete sotto più procedure: un punto una volta sola, e due coordinate diverse si dicono.
-                    if ((Arinc(coordinate) ?? GeometryText.ReadPoint(coordinate)) is not { } dove)
-                        problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, id, page.Number, riga));
-                    else if (punti.FindIndex(x => x.Designator == id) is var k and >= 0)
-                    {
-                        // La stessa lista su più pagine, una coi secondi a un decimale e una a due (LIRF 6 p.20 e p.32): un
-                        // punto entro 0,36" è lo stesso, e vale la scrittura più precisa. Oltre, due coordinate: si dice.
-                        var gia = punti[k];
-                        if (Math.Abs(gia.Position.Lat - dove.Lat) > 1e-4 || Math.Abs(gia.Position.Lon - dove.Lon) > 1e-4)
-                            problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, id, page.Number, $"due coordinate: {riga}"));
-                        else if (Decimali(coordinate!) > decimali.GetValueOrDefault(id))
-                        {
-                            punti[k] = gia with { Position = dove, Page = Pagina(pagina) };
-                            decimali[id] = Decimali(coordinate!);
-                        }
-                    }
-                    else
-                    {
-                        punti.Add(new SignificantPoint { Section = $"{parte} {icao}", Designator = id, Position = dove, Page = Pagina(pagina) });
-                        decimali[id] = Decimali(coordinate!);
-                    }
-                    continue;
-                }
+                if (Punto(riga, modo == Modo.Punti, $"{parte} {icao}", pagina, punti, decimali, problemi)) continue;
                 if (modo == Modo.Punti) continue;
                 if (modo == Modo.Salta) continue;
 
@@ -422,6 +747,44 @@ public static partial class ItalianAd2Procedures
         return new ImportResult([], pagine, problemi) { Procedures = lette, Points = punti, Holdings = attese };
     }
 
+    /// <summary>
+    /// Un punto della WAYPOINT LIST (<paramref name="nellaLista"/>), o una riga col nome e le coordinate anche fuori (LIRF 6 p.32:
+    /// la tabella «Waypoint / Coordinates» e quella dei centri degli archi RF). Vero se la riga era un punto.
+    /// </summary>
+    private static bool Punto(string riga, bool nellaLista, string sezione, ImportPage pagina, List<SignificantPoint> punti,
+        Dictionary<string, int> decimali, List<ImportIssue> problemi)
+    {
+        var punto = RxPuntoDellaLista().Match(riga);
+        // LIRN mette un trattino fra latitudine e longitudine («…N – 013°18'07.6647"E»).
+        var coordinate = punto.Success ? RxTrattinoFraLeCoordinate().Replace(punto.Groups["c"].Value, "$1 ") : null;
+        if (coordinate is not null && RxEmisferoDavanti().Match(coordinate.Trim()) is { Success: true } davanti)
+            coordinate = $"{davanti.Groups["lat"].Value.Trim()}{davanti.Groups["la"].Value} {davanti.Groups["lon"].Value.Trim()}{davanti.Groups["lo"].Value}";
+        if (!punto.Success || !nellaLista && !GeometryText.HasCoordinate(coordinate)) return false;
+        var id = punto.Groups["id"].Value;
+        // La lista si ripete sotto più procedure: un punto una volta sola, e due coordinate diverse si dicono.
+        if ((Arinc(coordinate) ?? GeometryText.ReadPoint(coordinate) ?? Gms(coordinate)) is not { } dove)
+            problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, id, pagina.Number, riga));
+        else if (punti.FindIndex(x => x.Designator == id) is var k and >= 0)
+        {
+            // La stessa lista su più pagine, una coi secondi a un decimale e una a due (LIRF 6 p.20 e p.32): un punto entro 0,36"
+            // è lo stesso, e vale la scrittura più precisa. Oltre, due coordinate: si dice.
+            var gia = punti[k];
+            if (Math.Abs(gia.Position.Lat - dove.Lat) > 1e-4 || Math.Abs(gia.Position.Lon - dove.Lon) > 1e-4)
+                problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, id, pagina.Number, $"due coordinate: {riga}"));
+            else if (Decimali(coordinate!) > decimali.GetValueOrDefault(id))
+            {
+                punti[k] = gia with { Position = dove, Page = Pagina(pagina) };
+                decimali[id] = Decimali(coordinate!);
+            }
+        }
+        else
+        {
+            punti.Add(new SignificantPoint { Section = sezione, Designator = id, Position = dove, Page = Pagina(pagina) });
+            decimali[id] = Decimali(coordinate!);
+        }
+        return true;
+    }
+
     private enum Modo { Procedure, Punti, Salta }
 
     /// <summary>
@@ -437,8 +800,8 @@ public static partial class ItalianAd2Procedures
         // Le intestazioni: le righe con «Terminator»; le colonne dalle parole della riga sopra (Path, Waypoint, Fly…). Quella di
         // un'attesa ha «Inbound» (la rotta d'avvicinamento).
         var intestazioni = new List<(double Y, List<(Colonna Colonna, double X)> Colonne, bool Attesa)>();
-        // «T erminator»: PdfPig a volte spezza la parola (LIMC 6 p.3).
-        foreach (var (y, testo) in righe.Where(r => r.Text.Replace(" ", "", StringComparison.Ordinal).Contains("Terminator", StringComparison.Ordinal)))
+        // «T erminator»: PdfPig a volte spezza la parola (LIMC 6 p.3); qualche colonna stretta la tronca («Terminato», LIBC 5 p.31).
+        foreach (var (y, testo) in righe.Where(r => r.Text.Replace(" ", "", StringComparison.Ordinal).Contains("Terminat", StringComparison.Ordinal)))
         {
             var sopra = page.Words.Where(w => w.Baseline >= y - 22 && w.Baseline <= y + 2).ToList();
             var colonne = sopra
@@ -448,8 +811,12 @@ public static partial class ItalianAd2Procedures
                 .ToList();
             // La colonna Path sta sopra «Terminator», anche quando «Path» è spezzata («P ath», LIEA 6).
             if (colonne.All(c => c.Key != Colonna.Path)
-                && sopra.FirstOrDefault(w => w.Text.StartsWith("Terminator", StringComparison.Ordinal) && Math.Abs(w.Baseline - y) <= 2) is { } terminatore)
+                && sopra.FirstOrDefault(w => w.Text.StartsWith("Terminat", StringComparison.Ordinal) && Math.Abs(w.Baseline - y) <= 2) is { } terminatore)
                 colonne.Add((Colonna.Path, terminatore.XCenter));
+            // «Distance from THR» (LIRV, LIPX) non è la lunghezza del tratto.
+            if (sopra.FirstOrDefault(w => w.Text == "THR") is { } soglia
+                && colonne.FindIndex(c => c.Key == Colonna.Distance && Math.Abs(c.XCenter - soglia.XCenter) < 25) is var d and >= 0)
+                colonne[d] = (Colonna.DallaSoglia, colonne[d].XCenter);
             var attesa = sopra.Any(w => w.Text.Equals("Inbound", StringComparison.OrdinalIgnoreCase));
             if (colonne.Count >= 5 && colonne.Any(c => c.Key == Colonna.Path)) intestazioni.Add((y, colonne, attesa));
         }
@@ -470,6 +837,10 @@ public static partial class ItalianAd2Procedures
         foreach (var w in page.Words.Where(w => PathTerminators.Contains(w.Text)).OrderBy(w => w.Baseline))
         {
             var sopra = intestazioni.Where(i => i.Y < w.Baseline - 3).OrderByDescending(i => i.Y).FirstOrDefault();
+            // Sopra la prima intestazione della pagina: le righe che continuano la tabella della pagina prima (LIRP 4 p.4) o una
+            // tabella stampata senza intestazione (LIDT 5 p.13) hanno le colonne della tabella sotto.
+            if (sopra.Colonne is null)
+                sopra = intestazioni.Where(i => !i.Attesa && i.Y > w.Baseline).OrderBy(i => i.Y).FirstOrDefault();
             if (sopra.Colonne is null || DiChi(w, sopra.Colonne) != Colonna.Path) continue;
             basi.Add((w.Baseline, w.Text, sopra));
         }
@@ -478,7 +849,7 @@ public static partial class ItalianAd2Procedures
         for (var i = 0; i < basi.Count; i++)
         {
             var (y, pt, (yIntestazione, colonne, diUnAttesa)) = basi[i];
-            var da = Math.Max(Math.Max(y - 8, yIntestazione + 6), i > 0 ? (basi[i - 1].Y + y) / 2 : double.MinValue);
+            var da = Math.Max(Math.Max(y - 8, yIntestazione < y ? yIntestazione + 6 : double.MinValue), i > 0 ? (basi[i - 1].Y + y) / 2 : double.MinValue);
             // Fino a 10 punti sotto: in un tratto RF il punto sta sotto «RF centre:» (LIRF 6 p.31).
             var a = Math.Min(y + 10, i + 1 < basi.Count ? (y + basi[i + 1].Y) / 2 : double.MaxValue);
             if (diUnAttesa)
@@ -541,6 +912,10 @@ public static partial class ItalianAd2Procedures
                 Altitude = Riga(Colonna.Altitude),
                 Speed = Riga(Colonna.Speed),
                 Navigation = Riga(Colonna.Navigation),
+                Sequence = Riga(Colonna.Serial),
+                VerticalPath = Riga(Colonna.Vpa),
+                Reference = new[] { Riga(Colonna.Raccomandata), Riga(Colonna.Radiale), Riga(Colonna.DallaSoglia) } is var rif && rif.Any(r => r is not null)
+                    ? string.Join(" | ", rif.Select(r => r ?? "-")) : null,
                 Notes = noteDelVolo,
                 ArcCenter = centro,
                 ArcRadiusNm = raggio,

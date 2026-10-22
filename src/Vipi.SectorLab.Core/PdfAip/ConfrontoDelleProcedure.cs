@@ -76,7 +76,8 @@ public static partial class ConfrontoDelleProcedure
         ArgumentNullException.ThrowIfNull(puntoDellAip);
 
         var esiti = new List<DifferenzaDiProcedura>();
-        foreach (var scalo in procedure.Where(p => p.Kind != ProcedureKind.InitialClimb).GroupBy(p => p.Aerodrome).OrderBy(g => g.Key, StringComparer.Ordinal))
+        // Gli avvicinamenti (passo 6 della carta «L'AIP intero») non sono del confronto: il sector li tiene altrove (IAP nello .str).
+        foreach (var scalo in procedure.Where(p => p.Kind is not (ProcedureKind.InitialClimb or ProcedureKind.Approach)).GroupBy(p => p.Aerodrome).OrderBy(g => g.Key, StringComparer.Ordinal))
         {
             var voci = VociDelSector(sessione, scalo.Key);
             var aip = scalo.ToList();

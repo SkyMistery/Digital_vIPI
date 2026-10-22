@@ -363,6 +363,37 @@ public sealed class AipSullaMappaTests
         Assert.Contains(("Note", "Sul fiume"), s.Voci[3].Campi);
     }
 
+    // Passo 6: un avvicinamento è del genere «Avvicinamenti», col segmento nel titolo, il numero d'ordine e il VPA/TCH nei
+    // tratti, la FIX/POINT nella scheda; uno senza tratti (la carta è un'immagine) si dice.
+    [Fact]
+    public void LaSchedaDiUnAvvicinamento()
+    {
+        var finale = new Procedure
+        {
+            Aerodrome = "LIXX", Kind = ProcedureKind.Approach, Designator = "RNP Z RWY24", Runways = ["24"], Segment = "RNP APPROACH FROM UNO",
+            Legs = [new ProcedureLeg { Sequence = "010", PathTerminator = "IF", Fix = "UNO" }, new ProcedureLeg { Sequence = "020", PathTerminator = "TF", Fix = "DUE", VerticalPath = "-3.0/15" }],
+            Fixes = [new ApproachFix("FAF", new Position(41.5, 12.25))],
+            DataBlock = ["Operation Type 0"],
+        };
+        var vor = new Procedure { Aerodrome = "LIXX", Kind = ProcedureKind.Approach, Designator = "VOR Y RWY06", Fixes = [new ApproachFix("IAF", null)] };
+
+        var s = AipSullaMappa.Di(new AipDocument { State = "LI", Procedures = [finale, vor] }, "2611", nome => nome switch
+        {
+            "UNO" => new Coordinate(A.Lat, A.Lon),
+            "DUE" => new Coordinate(B.Lat, B.Lon),
+            _ => null,
+        });
+
+        Assert.Equal([AipSullaMappa.Avvicinamenti, AipSullaMappa.Avvicinamenti], s.Strato.Forme.Select(f => f.Genere));
+        Assert.Equal(["LIXX RNP Z RWY24 — RNP APPROACH FROM UNO", "LIXX VOR Y RWY06"], s.Voci.Select(v => v.Titolo));
+        Assert.Contains(("Segmento", "RNP APPROACH FROM UNO"), s.Voci[0].Campi);
+        Assert.Contains(("FIX/POINT", "FAF"), s.Voci[0].Campi);
+        Assert.Contains(("SBAS FAS", "1 righe"), s.Voci[0].Campi);
+        Assert.Equal(["010 IF UNO", "020 TF DUE VPA/TCH -3.0/15", "FIX/POINT FAF 41.50000 12.25000"], s.Voci[0].Righe);
+        Assert.Contains(("FIX/POINT", "IAF (coordinate illeggibili)"), s.Voci[1].Campi);
+        Assert.Contains(s.Voci[1].Campi, c => c.Nome == "ⓘ" && c.Valore.Contains("immagine", StringComparison.Ordinal));
+    }
+
     // Passo 6: l'attesa di uno scalo, con le colonne della sua tabella e la riga com'è stampata.
     [Fact]
     public void LaSchedaDiUnAttesaDelloScalo()

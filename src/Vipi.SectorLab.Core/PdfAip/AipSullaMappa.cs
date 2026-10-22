@@ -54,6 +54,7 @@ public static class AipSullaMappa
     public const string Star = "STAR";
     public const string Transizioni = "Transizioni";
     public const string SaliteIniziali = "Salite iniziali";
+    public const string Avvicinamenti = "Avvicinamenti";
 
     /// <summary>Il colore di ogni genere sulla mappa (i colori del Lab: lo strato è uno, i tipi no).</summary>
     public static readonly IReadOnlyDictionary<string, string> Colori = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -84,6 +85,7 @@ public static class AipSullaMappa
         [Star] = "#2b8fd0",
         [Transizioni] = "#9a6fd0",
         [SaliteIniziali] = "#c08a2b",
+        [Avvicinamenti] = "#c0392b",
     };
 
     /// <summary>
@@ -457,6 +459,7 @@ public static class AipSullaMappa
         ProcedureKind.Sid => Sid,
         ProcedureKind.Star => Star,
         ProcedureKind.Transition => Transizioni,
+        ProcedureKind.Approach => Avvicinamenti,
         _ => SaliteIniziali,
     };
 
@@ -465,11 +468,17 @@ public static class AipSullaMappa
         var campi = new List<(string, string)> { ("Scalo", p.Aerodrome) };
         if (p.Runways.Count > 0) campi.Add(("Piste", string.Join(", ", p.Runways)));
         if (p.Section is { } sezione) campi.Add(("Sezione", sezione));
+        // Gli avvicinamenti (passo 6 della carta «L'AIP intero»).
+        if (p.Segment is { } segmento) campi.Add(("Segmento", segmento));
+        if (p.Fixes is { Count: > 0 } fissi) campi.Add(("FIX/POINT", string.Join(" · ", fissi.Select(f => f.Position is null ? $"{f.Text} (coordinate illeggibili)" : f.Text))));
+        if (p.DataBlock is { Count: > 0 } dati) campi.Add(("SBAS FAS", $"{dati.Count} righe"));
         if (p.Description is { } prosa) campi.Add(("Descrizione", prosa.Replace('\n', ' ')));
         if (p.Minimums is { } minime) campi.Add(("Minime", minime.Replace('\n', ' ')));
         if (p.Remarks is { } note) campi.Add(("Note", note.Replace('\n', ' ')));
         campi.Add(("Pagina", Pagina(p.Page)));
-        if (p.Legs.Count == 0)
+        if (p.Legs.Count == 0 && p.Kind == ProcedureKind.Approach)
+            campi.Add(("ⓘ", "senza tabella dei tratti (la carta è un'immagine): sulla mappa non c'è"));
+        else if (p.Legs.Count == 0)
             campi.Add(("⚠", "solo prosa, e la prosa non si è letta (vedi le segnalazioni di «Leggi»): sulla mappa non c'è"));
         else if (p.LegsFromDescription)
             campi.Add(("ⓘ", "tratti ricavati dalla prosa (7b): i punti senza nome calcolati dalle radioassistenze; fa fede il testo"));
@@ -477,14 +486,16 @@ public static class AipSullaMappa
             campi.Add(("⚠", $"punti che non si trovano (né nell'AIP espanso né nel sector): {string.Join(", ", nonRisolti)}"));
         var righe = p.Legs.Select(t => string.Join(' ', new[]
         {
-            t.PathTerminator, t.Fix ?? t.Computed ?? "—", t.Computed is not null && t.Fix is null ? "(calcolato)" : null, t.FlyOver ? "(fly-over)" : null,
+            t.Sequence, t.PathTerminator, t.Fix ?? t.Computed ?? "—", t.Computed is not null && t.Fix is null ? "(calcolato)" : null, t.FlyOver ? "(fly-over)" : null,
             t.Course is { } c ? $"{c}{(t.TrueCourse is { } v ? $" ({v})" : "")}" : null,
             t.DistanceNm is { } d ? $"{d.ToString("0.0", CultureInfo.InvariantCulture)} NM" : null,
             t.Turn is { } verso ? $"virata {verso}" : null,
             t.ArcCenter is { } centro ? $"centro {centro} r {t.ArcRadiusNm?.ToString("0.0", CultureInfo.InvariantCulture)} NM" : null,
-            t.Altitude, t.Speed is { } v2 ? $"{v2} kt" : null, t.Navigation, t.Notes,
+            t.Altitude, t.Speed is { } v2 ? $"{v2} kt" : null, t.VerticalPath is { } vpa ? $"VPA/TCH {vpa}" : null, t.Navigation, t.Notes,
         }.OfType<string>())).ToList();
-        var titolo = $"{p.Aerodrome} {p.Designator}{(p.Kind == ProcedureKind.InitialClimb && p.Runways.Count == 0 ? "" : p.Runways.Count > 0 && p.Kind != ProcedureKind.InitialClimb ? $" RWY {string.Join("/", p.Runways)}" : "")}";
+        righe.AddRange((p.Fixes ?? []).Select(f => $"FIX/POINT {f.Text}"
+            + (f.Position is { } dove ? $" {dove.Lat.ToString("0.00000", CultureInfo.InvariantCulture)} {dove.Lon.ToString("0.00000", CultureInfo.InvariantCulture)}" : "")));
+        var titolo = p.Kind == ProcedureKind.Approach ? $"{p.Aerodrome} {p.Designator}{(p.Segment is { } s ? $" — {s}" : "")}" : $"{p.Aerodrome} {p.Designator}{(p.Kind == ProcedureKind.InitialClimb && p.Runways.Count == 0 ? "" : p.Runways.Count > 0 && p.Kind != ProcedureKind.InitialClimb ? $" RWY {string.Join("/", p.Runways)}" : "")}";
         return new VoceDellAip(Genere(p.Kind), titolo, campi, righe);
     }
 

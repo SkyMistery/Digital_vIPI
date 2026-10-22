@@ -265,7 +265,12 @@ public static partial class ItalianAip
             // Solo il 4 e il 6: il 5 (gli avvicinamenti) ha tabelle uguali, ma gli avvicinamenti non sono della F7.
             if (carta.Groups["n"].Value is "4" or "6" && ItalianAd2Procedures.EProcedure(pages()))
                 return ItalianAd2Procedures.Read(pages(), carta.Groups["icao"].Value, carta.Groups["n"].Value == "4" ? ProcedureKind.Star : ProcedureKind.Sid);
+            // Il 5, gli avvicinamenti (passo 6 della carta «L'AIP intero»).
+            if (carta.Groups["n"].Value == "5")
+                return ItalianAd2Procedures.ReadApproaches(pages(), carta.Groups["icao"].Value);
         }
+        if (RxCartaDiEliporto().Match(nome) is { Success: true, Groups: var g } && g["n"].Value == "5")
+            return ItalianAd2Procedures.ReadApproaches(pages(), g["icao"].Value, "AD 3");
         if (RxCartaDiEliporto().Match(nome) is { Success: true } cartaDiEliporto
             && cartaDiEliporto.Groups["n"].Value is "4" or "6" && ItalianAd2Procedures.EProcedure(pages()))
             return ItalianAd2Procedures.Read(pages(), cartaDiEliporto.Groups["icao"].Value,

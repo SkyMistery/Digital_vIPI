@@ -350,6 +350,7 @@ public static class AipEspanso
 
         problemi.AddRange(SigleDoppie(ostacoli));
         scali = DateDelleCarte(scali, indice, problemi);
+        procedure = NomiDegliAvvicinamenti(procedure, scali);
 
         problemi.InsertRange(0, Aip.Pdf.PageIndex.Check(indice, CicloInVigore(ciclo)).Select(p => new ProblemaDellImport(p.File,
             new ImportIssue(TipoDelProblema(p.Kind), null, p.Position, p.Detail))));
@@ -480,6 +481,42 @@ public static class AipEspanso
                 return c;
             })],
         })];
+    }
+
+    /// <summary>
+    /// Gli avvicinamenti del file 5 stampati senza titolo (passo 6: la FIX/POINT sul retro di una carta solo immagine, le
+    /// transizioni RNAV verso un ILS) hanno per nome la pagina della carta: prendono il designatore dal titolo della carta in
+    /// AD 2.24 («ICAO INSTRUMENT APPROACH CHART ILS Z RWY 24» → «ILS Z RWY24»), o il titolo intero. Una FIX/POINT di un
+    /// avvicinamento già letto va in quello, se non ne ha una sua.
+    /// </summary>
+    internal static List<Procedure> NomiDegliAvvicinamenti(List<Procedure> procedure, IReadOnlyList<Aerodrome> scali)
+    {
+        var carte = scali.Where(s => s.Charts is not null).SelectMany(s => s.Charts!.Select(c => (s.Icao, c)))
+            .GroupBy(x => x.c.Page, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().c.Title, StringComparer.Ordinal);
+        var nuove = new List<Procedure>();
+        foreach (var p in procedure)
+        {
+            if (p.Kind != ProcedureKind.Approach || !p.Designator.StartsWith("AD ", StringComparison.Ordinal) || !carte.TryGetValue(p.Designator, out var titolo))
+            {
+                nuove.Add(p);
+                continue;
+            }
+            var nome = ItalianAd2Procedures.DesignatoreDellaCarta(titolo) ?? titolo;
+            var rinominata = p with { Designator = nome, Section = p.Section == "FIX/POINT" ? titolo : p.Section };
+            // Solo la FIX/POINT, e l'avvicinamento c'è già col suo finale: va lì.
+            if (p.Legs.Count == 0 && p.Fixes is not null
+                && nuove.FindIndex(x => x.Kind == ProcedureKind.Approach && x.Aerodrome == p.Aerodrome && x.Designator == nome && x.Segment is null) is var i and >= 0)
+            {
+                if (nuove[i].Fixes is null)
+                {
+                    nuove[i] = nuove[i] with { Fixes = p.Fixes };
+                    continue;
+                }
+                rinominata = rinominata with { Segment = "FIX/POINT" };
+            }
+            nuove.Add(rinominata);
+        }
+        return nuove;
     }
 
     /// <summary>
