@@ -2949,6 +2949,17 @@
     come umana, anteprima inglese tradotta.
   - Nello stesso giro il committente aveva segnalato la sezione che non si vedeva sui vSOP senza vIPI: riprodotto su
     dati inventati (LIPI) e invece si vede — era un suo errore, chiuso senza modifiche.
+- 🟢 **S129** (23-ott, committente: «vorrei le regole di scelta della pista e se la torre è radarizzata o no»): la
+  scheda dell'API aeroporti (`GET /vsop/api/v1/airports/{icao}`) porta `radarTower` (`null` = non indicato) e
+  `runwayRules`. Ogni regola ha il testo del documento e accanto le soglie una per una: coda, traverso, superficie,
+  orario locale, giorni, parità, stagione. Si leggono dalla vista derivata, quindi seguono la release come la pagina.
+  Le release di prima del 12 settembre hanno il solo testo: lì le soglie escono `null`. Carta
+  `2026-09-30-api-aeroporti.md` §6.
+  - Nessuna migrazione, niente `deploy/`, niente codice comune (solo `Vipi.Hosting` e i due `.resx`: la descrizione
+    della rotta nella pagina chiavi).
+  - Test: Hosting 102 → 107; E2E `ChiaviApiTests` verdi. Dal vivo con curl su una copia del DB: 401 senza chiave,
+    LIBD sì, LIRS (solo vSOP) no, LIBC non indicato con una regola completa, LIBR da release vecchia col testo e le
+    soglie `null`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

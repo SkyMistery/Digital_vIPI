@@ -17,7 +17,8 @@ namespace Vipi.Hosting;
 ///
 /// <list type="bullet">
 /// <item><c>GET /vsop/api/v1/airports</c>: gli scali con un documento pubblicato;</item>
-/// <item><c>GET /vsop/api/v1/airports/{icao}</c>: la scheda (TA, fasce TL, piste, frequenze);</item>
+/// <item><c>GET /vsop/api/v1/airports/{icao}</c>: la scheda (TA, fasce TL, piste, frequenze, torre radar, regole
+/// di scelta pista);</item>
 /// <item><c>GET /vsop/api/v1/airports/{icao}/sids</c> e <c>…/stars</c>: le procedure, con <c>?runway=</c>.</item>
 /// </list>
 ///
@@ -144,7 +145,50 @@ public static class ApiAeroporti
             {
                 name = f.Name, callsign = f.Callsign, frequency = f.Frequency, primary = f.IsPrimary,
             }),
+            // ⚠️ null = «non indicato», che non è «senza radar»: il documento distingue, e così l'API.
+            radarTower = d.RadarTower.Equipped,
+            runwayRules = Regole(d.Rules),
         };
+
+        /// <summary>
+        /// Le regole di scelta pista, nell'ordine del documento: si applica la <b>prima</b> le cui condizioni sono
+        /// soddisfatte. Ogni riga porta la condizione come la scrive il documento e, accanto, le soglie una per una.
+        /// <para>⚠️ Le soglie vengono da <see cref="AirportRulesView.Regole"/>, che le release scattate prima del
+        /// 12 settembre 2026 non hanno: lì escono <c>null</c>, e resta il testo. Non si rileggono dall'anagrafica,
+        /// o la scheda direbbe regole diverse da quelle che il documento mostra.</para>
+        /// </summary>
+        public static IReadOnlyList<RegolaPistaApi> Regole(AirportRulesView regole)
+        {
+            var calcolabili = regole.Regole is { } r && r.Count == regole.Rows.Count ? r : null;
+            return regole.Rows.Select((riga, i) =>
+            {
+                var c = calcolabili?[i];
+                return new RegolaPistaApi(
+                    riga.Position, c is null ? null : Valore(c.Name), Valore(riga.Condition),
+                    AirportRunwayLists.Tokens(Valore(riga.Dep)), AirportRunwayLists.Tokens(Valore(riga.Arr)),
+                    Valore(riga.Note),
+                    c?.MaxTailwindKt, c?.MaxCrosswindKt, c is null ? null : Nome(c.Surface),
+                    Ora(c?.TimeFromLocalMin), Ora(c?.TimeToLocalMin), Giorni(c?.DaysOfWeekMask),
+                    c is null ? null : Nome(c.DateParity),
+                    GiornoDellAnno(c?.DateFromMonthDay), GiornoDellAnno(c?.DateToMonthDay));
+            }).ToList();
+        }
+
+        private static string Nome<T>(T valore) where T : struct, Enum => valore.ToString().ToLowerInvariant();
+
+        private static string? Ora(int? minuti) => minuti is int m ? $"{m / 60:00}:{m % 60:00}" : null;
+
+        /// <summary>«MMDD» → «MM-DD».</summary>
+        private static string? GiornoDellAnno(int? mmdd) => mmdd is int v ? $"{v / 100:00}-{v % 100:00}" : null;
+
+        private static readonly string[] NomiDeiGiorni = { "mon", "tue", "wed", "thu", "fri", "sat", "sun" };
+
+        /// <summary>I giorni della maschera (bit 0 = lunedì). null = nessun vincolo: maschera vuota o tutti e sette,
+        /// come la condizione del documento.</summary>
+        private static IReadOnlyList<string>? Giorni(int? maschera) =>
+            maschera is not int m || m == 0 || m == 0b111_1111
+                ? null
+                : Enumerable.Range(0, 7).Where(b => (m & (1 << b)) != 0).Select(b => NomiDeiGiorni[b]).ToList();
 
         /// <param name="runway">Il filtro per pista, con la regola del documento (<c>AirportSids</c>): le righe di
         /// quella pista e quelle che non ne dicono nessuna, perché valgono per tutte.</param>
@@ -206,3 +250,20 @@ public sealed record ProceduraApi(
     string? Runway, string? Fix, string Name, string? Transition,
     string? InitialClimb, int? InitialClimbFt, bool InitialClimbByApp,
     string? Type, string? Cat, string? Wtc, string? Condition);
+
+/// <summary>Una regola di scelta pista come la legge chi chiama l'API. Le soglie sono <c>null</c> dove il documento
+/// non le ha (release di prima del 12 settembre 2026) o non le pone.</summary>
+/// <param name="Condition">La condizione come la scrive il documento, nome compreso.</param>
+/// <param name="Surface"><c>any</c>, <c>dry</c> o <c>wet</c> (pioggia o neve nel METAR).</param>
+/// <param name="TimeFromLocal">Orario «HH:mm» in ora LOCALE italiana, come in AIP; estremi inclusi, la finestra può
+/// passare la mezzanotte.</param>
+/// <param name="DaysOfWeek">I giorni in cui vale (<c>mon</c>…<c>sun</c>); null = tutti.</param>
+/// <param name="DateParity"><c>any</c>, <c>even</c> o <c>odd</c>: la parità del giorno del mese.</param>
+/// <param name="SeasonFrom">Finestra stagionale che si ripete ogni anno, «MM-DD», estremi inclusi; può passare il
+/// capodanno.</param>
+public sealed record RegolaPistaApi(
+    int Position, string? Name, string? Condition,
+    IReadOnlyList<string> DepartureRunways, IReadOnlyList<string> ArrivalRunways, string? Note,
+    int? MaxTailwindKt, int? MaxCrosswindKt, string? Surface,
+    string? TimeFromLocal, string? TimeToLocal, IReadOnlyList<string>? DaysOfWeek, string? DateParity,
+    string? SeasonFrom, string? SeasonTo);

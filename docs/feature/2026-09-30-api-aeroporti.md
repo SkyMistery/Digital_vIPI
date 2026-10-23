@@ -46,7 +46,7 @@ dopo la regola e non hanno client di prima da non fermare.
 | Richiesta | Risposta |
 |---|---|
 | `GET /vsop/api/v1/airports` | gli scali con un documento pubblicato |
-| `GET /vsop/api/v1/airports/{icao}` | la scheda: TA, fasce TL, piste, frequenze |
+| `GET /vsop/api/v1/airports/{icao}` | la scheda: TA, fasce TL, piste, frequenze, torre radar, regole di scelta pista (§6) |
 | `GET /vsop/api/v1/airports/{icao}/sids[?runway=16L]` | le SID, nell'ordine del documento |
 | `GET /vsop/api/v1/airports/{icao}/stars[?runway=16L]` | le STAR, stessa forma |
 
@@ -117,8 +117,9 @@ Elenco (`/vsop/api/v1/airports`): `{ "count": 10, "airports": [ { "icao": "LIBD"
 
 - **Il ciclo AIRAC entrante** (`?cycle=`): la vista pubblica è una sola, quella in vigore. Chiedere «come sarà» vuol
   dire leggere la release programmata, che è un'anteprima di staff: se servirà, è una decisione a parte.
-- **Regole piste, minimi LVP, meteo**: la scheda porta oggi quello che serve per le SID (TA per l'initial climb, piste
-  per il filtro) più le frequenze. Il resto si aggiunge nella stessa forma quando qualcuno lo chiede.
+- **Minimi LVP, meteo**: la scheda porta quello che serve per le SID (TA per l'initial climb, piste per il filtro),
+  le frequenze e, dal 23 ottobre, torre radar e regole piste (§6). Il resto si aggiunge nella stessa forma quando
+  qualcuno lo chiede.
 
 ## 5. Verifica dal vivo (30 settembre 2026)
 
@@ -134,3 +135,43 @@ Su una copia del `vipi.db` di sviluppo (cancellata dopo), app locale con due chi
 Un difetto visto lì e corretto: l'elenco diceva «MIL — LIBG Taranto Grottaglie». I vSOP militari nascono col titolo
 «vSOP MIL — …», e `AwosGate.NomeDalTitolo` toglieva «vSOP» ma non «MIL». Ora toglie anche «MIL», solo come parola
 intera («Milano» resta). Lo stesso nome lo usa la tendina del vAWOS, che si corregge insieme.
+
+## 6. Torre radar e regole di scelta pista nella scheda (23 ottobre 2026)
+
+Chiesto dal committente il 23 ottobre: «le regole di scelta della pista e se la torre è radarizzata o no». Due campi
+in più nella scheda `/{icao}`. Il cambio è additivo: niente si toglie e niente si rinomina, nessuna migrazione.
+
+**Da dove si leggono.** Dalla stessa vista derivata del resto della scheda (`AirportDerived.RadarTower` e
+`AirportDerived.Rules`), quindi seguono la release come la pagina pubblica: congelati dove la sezione è congelata,
+vivi dove è viva. Non si rileggono dall'anagrafica, o la scheda direbbe regole diverse da quelle del documento.
+
+```json
+"radarTower": true,
+"runwayRules": [
+  { "position": 1, "name": "Notte", "condition": "Notte: vento in coda ≤ 5 kt, traverso ≤ 15 kt, pista bagnata, 23:00–06:00 LT, sab/dom",
+    "departureRunways": ["35L", "35R"], "arrivalRunways": ["35R"], "note": null,
+    "maxTailwindKt": 5, "maxCrosswindKt": 15, "surface": "wet",
+    "timeFromLocal": "23:00", "timeToLocal": "06:00", "daysOfWeek": ["sat", "sun"], "dateParity": "any",
+    "seasonFrom": null, "seasonTo": null }
+]
+```
+
+- `radarTower`: `true`, `false`, oppure `null` = **non indicato**. Come nel documento, «non indicato» non vale «no».
+- `runwayRules`, nell'ordine del documento: si applica la **prima** regola le cui condizioni sono soddisfatte. Se
+  nessuna si applica, il documento sceglie la pista col vento più in prua: è un ripiego del lettore, e non è una
+  regola dell'elenco.
+- `condition` è il testo del documento, in italiano e col nome davanti. Accanto ci sono le soglie una per una, per i
+  programmi: `maxTailwindKt` e `maxCrosswindKt` (null = nessun vincolo di traverso) e `surface` (`any`/`dry`/`wet`,
+  dove wet = pioggia o neve nel METAR). Poi i filtri di tempo, tutti facoltativi: `timeFromLocal`/`timeToLocal` in
+  **ora locale italiana** come in AIP, estremi inclusi, e la finestra può passare la mezzanotte; `daysOfWeek` (null =
+  tutti i giorni); `dateParity` (`any`/`even`/`odd`, cioè la parità del giorno del mese); `seasonFrom`/`seasonTo`
+  («MM-DD», ogni anno, e la finestra può passare il capodanno).
+- ⚠️ Le release scattate **prima del 12 settembre 2026** congelavano solo il testo delle regole: lì le soglie escono
+  `null` e resta `condition`. Dopo la pubblicazione seguente escono anche le soglie.
+
+**Verifica dal vivo** (copia del `vipi.db` di sviluppo, app locale, chiave di prova scritta solo nella copia).
+Nella copia la torre radar non era ancora scritta da nessuna parte: LIBD l'ho messa a sì e LIRS a no.
+- senza chiave **401**;
+- LIBD `radarTower: true`, LIRS (solo vSOP) `false`, LIBC `null`;
+- LIBC: una regola con tutte le soglie;
+- LIBR: due regole da una release di prima del 12 settembre, col testo e le soglie `null`.
