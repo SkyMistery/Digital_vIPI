@@ -143,7 +143,8 @@ public static partial class ItalianAd2Prose
 
     internal static string Normalizza(string testo)
     {
-        var t = testo.Replace('–', '-').Replace('—', '-');
+        // U+F0B0: il segno dei gradi col carattere privato del font di alcune pagine (LIBP, B5).
+        var t = testo.Replace('–', '-').Replace('—', '-').Replace('', '°');
         t = RxTrattino().Replace(t, " - ");
         t = RxNumeroSpezzato().Replace(t, "TR $1$2°");
         t = RxNm().Replace(t, "$1 NM");
@@ -172,6 +173,11 @@ public static partial class ItalianAd2Prose
         // «(74 VIE DME)» fra parentesi è la definizione del punto letta da un altro DME.
         t = RxRadialeSenzaStazione().Replace(t, "TR $1°");
         t = RxDefinizioneDme().Replace(t, " ");
+        // B5: «TR 214)», «TR 285 (RDL …»: la rotta anche senza il segno dei gradi; un VORTAC è un VOR per il percorso;
+        // «SME VOR to be left on RDL 192 bound to KOLUS»: la radiale è di SME, che la frase stessa nomina.
+        t = RxRottaSenzaGradi().Replace(t, "TR $1°");
+        t = RxVortac().Replace(t, "$1 VOR");
+        t = RxLasciataSullaRadiale().Replace(t, "$1 $2 to be left on RDL $3 $1 VOR");
         t = RxVorDme().Replace(t, "VOR/DME");
         t = RxVorSpezzato().Replace(t, "VOR");
         t = RxRadialeColGrado().Replace(t, "RDL $1");
@@ -589,7 +595,8 @@ public static partial class ItalianAd2Prose
         + @"|\b(?<virata>[Tt]urn\s+(?:left|right|LEFT|RIGHT))\b"
         // Un nome, e fra parentesi la sua definizione: una radiale e una distanza (serve se il punto non è nell'AIP), o
         // un'altra («NPC LOC/13 NM NPC DME») che non serve.
-        + @"|\b(?<nome>[A-Z]{2,5})\b(?<vor>\s+(?:VORTAC|VOR(?:/DME)?)\b)?(?:\s*\(\s*(?:INT\s+)?RDL\s+(?<defR>\d{3})\s*/\s*(?<defD>" + D + @")\s+NM\s+(?<defN>" + Nav + @")\s+VOR/DME(?:\s+or\s+[^)]*)?\s*\)|\s*\([^)]*\))?",
+        // Un nome: lettere (ELKAP, TAQ) o due lettere e tre cifre, i punti RNAV degli scali (BP401, PH001: B5).
+        + @"|\b(?<nome>[A-Z]{2}\d{3}|[A-Z]{2,5})\b(?<vor>\s+(?:VORTAC|VOR(?:/DME)?)\b)?(?:\s*\(\s*(?:INT\s+)?RDL\s+(?<defR>\d{3})\s*/\s*(?<defD>" + D + @")\s+NM\s+(?<defN>" + Nav + @")\s+VOR/DME(?:\s+or\s+[^)]*)?\s*\)|\s*\([^)]*\))?",
         RegexOptions.CultureInvariant)]
     private static partial Regex RxPezzo();
 
@@ -671,8 +678,17 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\bRDL\s+\d{3}\s*\(\s*TR\s*-?\s*(\d{3})°\s*\)")]
     private static partial Regex RxRadialeSenzaStazione();
 
-    [GeneratedRegex(@"\(\s*\d+(?:\.\d+)?\s*(?:NM\s+)?[A-Z]{2,4}\s+DME\s*\)")]
+    [GeneratedRegex(@"\(\s*(?:or\s+)?\d+(?:\.\d+)?\s*(?:NM\s+)?[A-Z]{2,4}\s+DME\s*\)")]
     private static partial Regex RxDefinizioneDme();
+
+    [GeneratedRegex(@"\bTR\s*-?\s*(\d{3})(?![\d°])")]
+    private static partial Regex RxRottaSenzaGradi();
+
+    [GeneratedRegex(@"\b([A-Z]{2,3})\s+VORTAC\b")]
+    private static partial Regex RxVortac();
+
+    [GeneratedRegex(@"\b([A-Z]{2,3})\s+(VOR(?:/DME)?)\s*,?\s+to\s+be\s+left\s+on\s+RDL\s+(\d{3})°?(?!\s*/|\s+[A-Z]{2,3}\b)")]
+    private static partial Regex RxLasciataSullaRadiale();
 
     [GeneratedRegex(@",?\s*\bas\s+soon\s+as\s+(?:practicable|possible)\b,?", RegexOptions.IgnoreCase)]
     private static partial Regex RxAppenaPossibile();

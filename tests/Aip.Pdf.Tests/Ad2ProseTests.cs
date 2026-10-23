@@ -165,6 +165,23 @@ public sealed class Ad2ProseTests
         Assert.DoesNotContain("74", ItalianAd2Prose.Normalizza("crossing RDL 020 RCA VOR (74 LMT DME) turn left"), StringComparison.Ordinal);
     }
 
+    // B5, terzo giro: un punto RNAV di scalo con le cifre (BP401); «TR 214)» senza gradi; il grado col carattere privato del
+    // font (U+F0B0, LIBP); «LMT VOR to be left on RDL 130» senza la stazione dopo la radiale; un VORTAC e «(or 14 NM … DME)».
+    [Theory]
+    [InlineData("DELIK - MP406, then turn right bound to SUGEP.", "IF DELIK|TF MP406|TF SUGEP")]
+    [InlineData("DELIK - TR 310 (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "IF DELIK|CF RDL 130/14 NM LMT|CF SUGEP")]
+    [InlineData("DELIK - TR 310° bound to LMT VOR to be left on RDL 130 until 14 NM LMT DME, then turn right bound to SUGEP.", "IF DELIK|CF LMT|CF RDL 130/14 NM LMT|CF SUGEP")]
+    [InlineData("DELIK - TR 310° (RDL 130 LMT VORTAC) until crossing RDL 020 RCA VORTAC (or 14 NM LMT DME), then turn right bound to SUGEP.", "IF DELIK|CF INT RDL 130 LMT/RDL 020 RCA|CF SUGEP")]
+    public void TerzoGiro_SiLeggono(string prosa, string attesi)
+    {
+        Punti.TryAdd("MP406", new Position(38.80, 16.50));
+
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T", prosa));
+
+        Assert.Null(problema);
+        Assert.Equal(attesi.Split('|'), tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+    }
+
     [Fact]
     public void DueRadialiCheSiIncrociano()
     {
