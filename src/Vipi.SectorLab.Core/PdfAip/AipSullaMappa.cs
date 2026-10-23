@@ -293,8 +293,11 @@ public static partial class AipSullaMappa
                 pezzo = [];
                 continue;
             }
-            if (t.PathTerminator is "RF" or "AF" && pezzo.Count > 0 && t.ArcCenter is { } c && punto(c) is { } centro)
-                pezzo.AddRange(Arco(pezzo[^1], qui, centro, orario: t.Turn == "R"));
+            // Il centro col nome, o calcolato (passo 6 delle segnalazioni 2611: il raccordo al localizzatore).
+            var centro = t.ArcCenterPosition is { } calcolato ? new Coordinate(calcolato.Lat, calcolato.Lon)
+                : t.ArcCenter is { } c ? punto(c) : null;
+            if (t.PathTerminator is "RF" or "AF" && pezzo.Count > 0 && centro is { } attorno)
+                pezzo.AddRange(Arco(pezzo[^1], qui, attorno, orario: t.Turn == "R"));
             else
                 pezzo.Add(qui);
         }

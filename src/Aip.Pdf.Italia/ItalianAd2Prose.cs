@@ -41,7 +41,7 @@ public static partial class ItalianAd2Prose
     /// </summary>
     public static (IReadOnlyList<ProcedureLeg> Legs, string? Problem, IReadOnlyList<string> Warnings) DecodeWithWarnings(
         Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway = null, double? aerodromeVariation = null,
-        string? initialClimb = null, Departure? departure = null)
+        string? initialClimb = null, Departure? departure = null, Func<string, Localizer?>? localizer = null)
     {
         ArgumentNullException.ThrowIfNull(procedure);
         ArgumentNullException.ThrowIfNull(point);
@@ -66,9 +66,10 @@ public static partial class ItalianAd2Prose
             ricuciture = [.. ricucitureDellaSalita, .. ricuciture];
         }
         var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind is ProcedureKind.Sid or ProcedureKind.InitialClimb,
-            declinazioneDelloScalo: aerodromeVariation, decollo: departure, quoteMinime: procedure.Minimums + "\n" + procedure.Description);
+            declinazioneDelloScalo: aerodromeVariation, decollo: departure, quoteMinime: procedure.Minimums + "\n" + procedure.Description,
+            localizzatore: localizer);
         var (tratti, problema) = lettore.Leggi(inizio, procedure.Kind == ProcedureKind.Sid ? procedure.Designator.Split(' ')[0] : null);
-        return (tratti, problema, problema is null ? [.. ricuciture, .. lettore.Avvisi] : []);
+        return (tratti, problema, problema is null ? [.. ricuciture.Concat(lettore.Avvisi).Distinct(StringComparer.Ordinal)] : []);
     }
 
     /// <summary>
@@ -199,6 +200,17 @@ public static partial class ItalianAd2Prose
             // Una sigla con più impianti (PIS è un DVOR/DME e un locator): quello con la declinazione sua.
             .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Sua is null).Select(x => new Station(x.Posizione, x.Declinazione!.Value)).First(),
                 StringComparer.Ordinal);
+        // Passo 6: i localizzatori, dalle radioassistenze degli scali (AD 2.19: l'antenna del LOC) e dalla loro pista (AD 2.12: la
+        // rotta vera dell'atterraggio; «NIL» dalle due soglie).
+        var localizzatori = (document.Aerodromes ?? [])
+            .SelectMany(a => a.Ils.Select(i => (Scalo: a, Ils: i)))
+            .Where(x => x.Ils.Components.Any(c => c.Type.StartsWith("LOC", StringComparison.Ordinal)))
+            .Select(x => (x.Ils.Designator, Pista: Pista(x.Scalo, x.Ils.Runway), Antenna: x.Ils.Components.First(c => c.Type.StartsWith("LOC", StringComparison.Ordinal)).Position,
+                Declinazione: Variation(x.Ils.MagneticVariation) ?? Variation(x.Scalo.MagneticVariation) ?? 0))
+            .Where(x => x.Pista is not null)
+            .GroupBy(x => x.Designator, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => new Localizer(g.First().Antenna, g.First().Pista!.TrueBearing, g.First().Declinazione), StringComparer.Ordinal);
+        Localizer? Localizzatore(string n) => localizzatori.GetValueOrDefault(n);
         var nonLette = new List<(Procedure, string)>();
         var approssimate = new List<(Procedure, string)>();
         var scali = document.Aerodromes ?? [];
@@ -212,7 +224,7 @@ public static partial class ItalianAd2Prose
             var scalo = scali.FirstOrDefault(a => a.Icao == p.Aerodrome);
             var declinazione = DeclinazioneDelloScalo(scalo, scali);
             (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) Decodifica(Procedure q, string? pista, string? salita) =>
-                DecodeWithWarnings(q, Punto, Stazione, Pista(scalo, pista), declinazione, salita, DecolloDi(q, scalo, pista));
+                DecodeWithWarnings(q, Punto, Stazione, Pista(scalo, pista), declinazione, salita, DecolloDi(q, scalo, pista), Localizzatore);
             IReadOnlyList<string> PisteDi(Procedure q) =>
                 q.Runways.Count > 0 ? q.Runways : PistaDallaRotta(q, scalo, declinazione, null) is { } r ? [r] : [];
             // Passo 5: le pendenze delle salite iniziali valgono anche per le SID — quelle che le nominano («For LAKOX 7W, GITOD
@@ -404,6 +416,9 @@ public static partial class ItalianAd2Prose
 
     [GeneratedRegex(@"^\+(\d{3,5})$", RegexOptions.CultureInvariant)]
     private static partial Regex RxQuotaMinima();
+
+    [GeneratedRegex(@"\(\s*([A-Z]{3,5})\s+LOC\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxLocNellaDefinizione();
 
     private static Regex RxNomeInUnTratto(string nome) =>
         new($@"(?:[–-]\s*{Regex.Escape(nome)}\b|\b{Regex.Escape(nome)}\s*[–-])", RegexOptions.CultureInvariant);
@@ -657,10 +672,22 @@ public static partial class ItalianAd2Prose
     /// </summary>
     public sealed record Departure(Position End, double Elevation, double FeetPerNm, string Gradient, bool FromAerodrome);
 
+    /// <summary>
+    /// Un localizzatore (passo 6): dove sta l'antenna (AD 2.19), la rotta vera dell'atterraggio (quella della pista, AD 2.12) e la
+    /// declinazione per dire la rotta magnetica.
+    /// </summary>
+    public sealed record Localizer(Position Antenna, double TrueCourse, double Variation);
+
     private sealed class Lettore(string testo, Func<string, Position?> punto, Func<string, Station?> stazione, Runway? pista, bool dallaPista = false,
-        double? declinazioneDelloScalo = null, Departure? decollo = null, string? quoteMinime = null)
+        double? declinazioneDelloScalo = null, Departure? decollo = null, string? quoteMinime = null, Func<string, Localizer?>? localizzatore = null)
     {
         private readonly List<ProcedureLeg> _tratti = [];
+
+        /// <summary>La direzione vera in cui si vola al punto dove si è (passo 6: da qui parte la curva verso il localizzatore).</summary>
+        private double? _direzione;
+
+        /// <summary>Il nome che si sta leggendo è definito su un localizzatore («NOGLU (IBRN LOC/12.7NM BCS DME …)», U3).</summary>
+        private string? _nomeSulLoc;
 
         /// <summary>Il percorso fatto dalla fine della pista fino al punto dove si è (NM): la quota stimata è la sua più la pendenza.</summary>
         private double _percorso;
@@ -782,7 +809,7 @@ public static partial class ItalianAd2Prose
             }
             if (g["loc"].Success)
             {
-                _problema = $"un localizzatore ({g["loc"].Value}): il punto dove si intercetta non si calcola";
+                Localizzatore(g["locN"].Value, g["locT"].Success ? Numero(g["locT"]) : g["locT2"].Success ? Numero(g["locT2"]) : null);
                 return;
             }
             if (g["lascia"].Success)
@@ -861,7 +888,20 @@ public static partial class ItalianAd2Prose
                     // l'arco altrove, e questo calcolo non la sa: si dice (prima la si prendeva come se fosse del centro).
                     if (nome != arco.Stazione)
                     {
-                        _problema = $"l'arco di {arco.Stazione} finisce su una radiale di {nome}: il punto non si calcola";
+                        // Passo 6 (committente): l'incrocio del cerchio con la radiale dell'altra stazione (LIPB ALESE 6A, VIC 6A:
+                        // «join 26 NM ARC OZE DME. Crossing RDL 335 VIC VOR/DME»), quello più vicino lungo l'arco.
+                        var centroDellArco = stazione(arco.Stazione)!.Position;
+                        var radialeDellAltra = Linea.SuRadiale(nome, s, radiale, versoFuori: true);
+                        var incroci = radialeDellAltra.IncrociConUnCerchio(centroDellArco, arco.Raggio)
+                            .Where(x => radialeDellAltra.Avanti(s.Position, x) >= 0).ToList();
+                        if (incroci.Count == 0)
+                        {
+                            _problema = $"l'arco di {arco.Stazione} a {Dist(arco.Raggio)} NM non incrocia la RDL {radiale:000} {nome}";
+                            return;
+                        }
+                        var daQui = _qui is { } q ? Sphere.BearingDeg(centroDellArco, q) : 0;
+                        var fine = incroci.MinBy(x => Math.Abs(Sphere.Normalize(Sphere.BearingDeg(centroDellArco, x) - daQui + 180) - 180));
+                        ChiudiLArco(fine, $"ARC {Dist(arco.Raggio)} NM {arco.Stazione}/RDL {radiale:000} {nome}");
                         return;
                     }
                     ChiudiLArco(Sphere.Destination(s.Position, radiale + s.Variation, arco.Raggio), $"RDL {radiale:000}/{Dist(arco.Raggio)} NM {arco.Stazione}");
@@ -989,7 +1029,10 @@ public static partial class ItalianAd2Prose
                     _problema = $"{nome}: non è un punto né una radioassistenza dell'AIP";
                     return;
                 }
+                // U3: un punto definito su un localizzatore («NOGLU (IBRN LOC/12.7NM BCS DME …)», LIBR DAMIC 2Y).
+                _nomeSulLoc = RxLocNellaDefinizione().Match(m.Value) is { Success: true } sulLoc ? sulLoc.Groups[1].Value : null;
                 VersoUnNome(nome, posizione.Value);
+                _nomeSulLoc = null;
             }
         }
 
@@ -1012,6 +1055,8 @@ public static partial class ItalianAd2Prose
                 });
                 // Lungo l'arco: il raggio per l'angolo.
                 Avanza(fine, arco.Raggio * Math.Min(delta, 360 - delta) * Math.PI / 180);
+                // Alla fine dell'arco si vola lungo la tangente (passo 6: di lì parte la curva verso un localizzatore).
+                _direzione = Sphere.Normalize(Sphere.BearingDeg(c.Position, fine) + (delta < 180 ? 90 : -90));
                 _qui = fine;
                 _quiNome = fix;
                 _puntoAppena = true;
@@ -1044,9 +1089,96 @@ public static partial class ItalianAd2Prose
             return null;
         }
 
+        /// <summary>
+        /// Passo 6 della revisione col committente: il localizzatore. Da una rotta («TR 260° … until joining IBRM LOC», «on track
+        /// 060° to join and follow 015° REG LOC») è l'incrocio, come per le radiali (L2); dopo una virata senza una rotta
+        /// («crossing RDL 029 ANC VOR turn left to intercept and follow IFA LOC bound to LADUV») è una curva, come sulle carte
+        /// (L3): l'arco tangente alla direzione in cui si vola e al localizzatore, dalla parte della virata. Poi si è sul LOC.
+        /// </summary>
+        private void Localizzatore(string nome, double? stampata)
+        {
+            if (localizzatore?.Invoke(nome) is not { } l)
+            {
+                _problema = $"{nome} LOC: un localizzatore che l'AIP non ha";
+                return;
+            }
+            var vera = l.TrueCourse;
+            if (stampata is { } tr)
+            {
+                var scarto = Math.Abs(Sphere.Normalize(tr + l.Variation - l.TrueCourse + 180) - 180);
+                if (scarto > 5) _avvisi.Add($"il {nome} LOC stampato a {tr:000}° si scosta di {scarto:0}° dalla pista: vale la rotta stampata");
+                vera = tr + l.Variation;
+            }
+            var loc = Linea.DelLocalizzatore(nome, l, vera);
+            if (_linea is { } corrente && !_virataDopoLaRotta && _arco is null)
+            {
+                if (corrente.Intercetta(loc, _qui) is not { } presa)
+                {
+                    _problema = $"la rotta non incrocia il {nome} LOC";
+                    return;
+                }
+                Calcolato(presa, $"INT {corrente.Nome}/{nome} LOC", corrente.Rotta);
+            }
+            else if (_qui is { } qui && _direzione is { } direzione && _virata is { } verso && _arco is null)
+            {
+                if (Raccordo(qui, direzione, verso == "R", loc) is not { } r)
+                {
+                    _problema = $"la virata verso il {nome} LOC non si raccorda al localizzatore";
+                    return;
+                }
+                var angolo = Math.Abs(Sphere.Normalize(Sphere.BearingDeg(r.Centro, r.Tangente) - Sphere.BearingDeg(r.Centro, qui) + 180) - 180);
+                _tratti.Add(new ProcedureLeg
+                {
+                    PathTerminator = "RF", Computed = $"INT {nome} LOC", Position = r.Tangente,
+                    ArcCenterPosition = r.Centro, ArcRadiusNm = Math.Round(r.Raggio, 2), Turn = verso, Course = loc.Rotta,
+                });
+                Avanza(r.Tangente, r.Raggio * angolo * Math.PI / 180);
+                _qui = r.Tangente;
+                _quiNome = null;
+                _virata = null;
+                _puntoAppena = true;
+                _direzione = loc.Direzione;
+                if (r.Raggio is < 0.5 or > 4)
+                    _avvisi.Add($"il raccordo al {nome} LOC ha un raggio di {r.Raggio:0.0} NM, lontano da una virata vera (circa 1,5 NM a 210 KT)");
+            }
+            else
+            {
+                _problema = $"«{nome} LOC» senza una rotta né una virata da cui prenderlo";
+                return;
+            }
+            _linea = loc;
+            _virataDopoLaRotta = false;
+        }
+
+        /// <summary>
+        /// L'arco da <paramref name="p"/>, dove si vola verso <paramref name="direzione"/> (vera), tangente alla linea
+        /// <paramref name="loc"/>, girando a destra o a sinistra: il centro, il punto dove tocca la linea e il raggio. Il centro sta
+        /// dalla parte della virata, sia rispetto alla direzione di partenza sia rispetto alla linea percorsa dopo.
+        /// </summary>
+        private static (Position Centro, Position Tangente, double Raggio)? Raccordo(Position p, double direzione, bool destra, Linea loc)
+        {
+            var k = Math.Cos(p.Lat * Math.PI / 180);
+            (double X, double Y) Piano(Position q) => ((q.Lon - p.Lon) * 60 * k, (q.Lat - p.Lat) * 60);
+            Position DalPiano(double x, double y) => new(p.Lat + y / 60, p.Lon + x / (60 * k));
+            var (dx, dy) = (Math.Sin(direzione * Math.PI / 180), Math.Cos(direzione * Math.PI / 180));
+            var (nx, ny) = destra ? (dy, -dx) : (-dy, dx);
+            var (ux, uy) = (Math.Sin(loc.Direzione * Math.PI / 180), Math.Cos(loc.Direzione * Math.PI / 180));
+            var (mx, my) = (-uy, ux); // a sinistra della linea
+            var (ax, ay) = Piano(loc.Origine);
+            var lato = -(ax * mx + ay * my);
+            var segno = destra ? -1.0 : 1.0;
+            var denominatore = segno - (nx * mx + ny * my);
+            if (Math.Abs(denominatore) < 1e-6) return null;
+            var raggio = lato / denominatore;
+            if (raggio <= 0.05) return null;
+            var (cx, cy) = (raggio * nx, raggio * ny);
+            return (DalPiano(cx, cy), DalPiano(cx - segno * raggio * mx, cy - segno * raggio * my), raggio);
+        }
+
         /// <summary>Il percorso fatto (passo 5): dalla fine della pista al primo punto, poi di punto in punto.</summary>
         private void Avanza(Position p, double? quanto = null)
         {
+            if (_qui is { } prima && Sphere.DistanceNm(prima, p) > 0.01) _direzione = Sphere.BearingDeg(prima, p);
             _percorso = _qui is { } qui ? _percorso + (quanto ?? Sphere.DistanceNm(qui, p)) : decollo is { } d ? Sphere.DistanceNm(d.End, p) : 0;
             _allaQuota = null;
             _uscitaDa = null;
@@ -1138,8 +1270,31 @@ public static partial class ItalianAd2Prose
                     ChiudiLArco(posizione, nome, nome);
                     return;
                 }
+                // U3 (committente): il punto sta su un localizzatore: l'arco finisce dove incrocia il localizzatore, e di lì sul
+                // localizzatore fino al punto. Il raccordo fra l'arco e il localizzatore non si disegna (non se ne sa il raggio): si dice.
+                if (_nomeSulLoc is { } x && localizzatore?.Invoke(x) is { } l)
+                {
+                    var delPunto = Linea.DelLocalizzatore(x, l, l.TrueCourse);
+                    var daQui = _qui is { } q ? Sphere.BearingDeg(centro.Position, q) : 0;
+                    if (delPunto.IncrociConUnCerchio(centro.Position, arco.Raggio).OrderBy(i => Math.Abs(Sphere.Normalize(Sphere.BearingDeg(centro.Position, i) - daQui + 180) - 180))
+                        .FirstOrDefault() is { Lat: not 0 } incrocio)
+                    {
+                        ChiudiLArco(incrocio, $"ARC {Dist(arco.Raggio)} NM {arco.Stazione}/{x} LOC");
+                        _linea = delPunto;
+                        _virataDopoLaRotta = false;
+                        _avvisi.Add($"l'arco di {arco.Stazione} finisce dove incrocia il {x} LOC: il raccordo fra l'arco e il localizzatore non è disegnato");
+                        VersoUnNome(nome, posizione);
+                        return;
+                    }
+                }
                 _problema = $"l'arco di {arco.Stazione} a {Dist(arco.Raggio)} NM non passa per {nome}";
                 return;
+            }
+            // Passo 6: sul localizzatore, il punto dopo deve starci (mezzo miglio) e venire dopo il raccordo.
+            if (_linea is { Localizzatore: { } sulLoc } loc && _qui is { } daRaccordo)
+            {
+                if (loc.DiLato(posizione) > 0.5) _avvisi.Add($"{nome} sta a {loc.DiLato(posizione):0.0} NM dal {sulLoc} LOC");
+                if (loc.Avanti(daRaccordo, posizione) < 0) _avvisi.Add($"il localizzatore {sulLoc} si prende dopo {nome}");
             }
             var primo = _tratti.Count == 0 && _qui is null;
             _tratti.Add(new ProcedureLeg
@@ -1253,6 +1408,36 @@ public static partial class ItalianAd2Prose
             Nome = "RWY heading", Origine = pista.Threshold, Direzione = pista.TrueBearing, VersoNoto = true,
         };
 
+        /// <summary>Il localizzatore (passo 6): la linea per l'antenna, nel verso dell'atterraggio.</summary>
+        public static Linea DelLocalizzatore(string nome, Localizer l, double vera) => new()
+        {
+            Nome = $"{nome} LOC", Origine = l.Antenna, Direzione = Sphere.Normalize(vera), VersoNoto = true,
+            Rotta = $"{Sphere.Normalize(vera - l.Variation):000}°", Localizzatore = nome,
+        };
+
+        /// <summary>Il localizzatore di questa linea, se lo è.</summary>
+        public string? Localizzatore { get; private init; }
+
+        /// <summary>Dove questa linea taglia il cerchio di <paramref name="centro"/> e <paramref name="raggio"/> (NM): zero, uno o due punti.</summary>
+        public IReadOnlyList<Position> IncrociConUnCerchio(Position centro, double raggio)
+        {
+            var (dx, dy) = Versore;
+            var (cx, cy) = Piano(centro);
+            var b = -2 * (dx * cx + dy * cy);
+            var c = cx * cx + cy * cy - raggio * raggio;
+            var disc = b * b - 4 * c;
+            if (disc < 0) return [];
+            return [.. new[] { (-b - Math.Sqrt(disc)) / 2, (-b + Math.Sqrt(disc)) / 2 }.Distinct().Select(t => DalPiano(t * dx, t * dy))];
+        }
+
+        /// <summary>Quanto <paramref name="p"/> sta di lato alla linea (NM).</summary>
+        public double DiLato(Position p)
+        {
+            var (dx, dy) = Versore;
+            var (px, py) = Piano(p);
+            return Math.Abs(px * dy - py * dx);
+        }
+
         public static Linea DaUnPunto(Position da, double tr, double declinazione) => new()
         {
             Nome = $"TR {tr:000}°", Origine = da, Direzione = Sphere.Normalize(tr + declinazione), VersoNoto = true, Rotta = $"{tr:000}°",
@@ -1349,11 +1534,12 @@ public static partial class ItalianAd2Prose
         + @"|(?<pistaH>\b(?:RWY|runway|RUNWAY)\s+heading\b(?:\s*\(\s*TR\s+\d{3}°\s*\))?)"
         // V6: «at 17 NM CMP DME (intersection RDL 073 OST VOR)»: lo stesso punto detto in un altro modo, da controllare.
         + @"|\(\s*intersection\s+RDL\s+(?<ctrlR>\d{3})\s+(?<ctrlN>" + Nav + @")(?:\s+VOR)?\s*\)"
-        + @"|(?<loc>\b[A-Z]{3,5}\s+LOC\b)"
+        // Passo 6: il localizzatore, anche con la rotta stampata («015° REG LOC», «IPTL LOC (TR 253°)»).
+        + @"|(?<loc>(?:\b(?<locT>\d{3})°\s+)?\b(?<locN>[A-Z]{3,5})\s+LOC\b(?:\s*\(\s*TR\s+(?<locT2>\d{3})°\s*\))?)"
         + @"|(?:(?<lasciaN1>" + Nav + @")\s+VOR(?:/DME)?\s+to\s+be\s+left\s+on|\bLeave\s+(?<lasciaN2>" + Nav + @")\s+VOR(?:/DME)?\s+on)\s+RDL\s+(?<lasciaR>\d{3})(?:\s+" + Nav + @"\s+VOR)?\s+until\s+(?<lasciaD>" + D + @")\s+NM\s+(?<lasciaN3>" + Nav + @")\s+DME"
         + @"|\bARC\s+(?<arcoD>" + D + @")\s+NM\s+(?<arcoN>" + Nav + @")\s+DME"
         // «Crossing RDL 177 CRN VOR turn left»: anche con la maiuscola (B5: prima diventava una rotta, e l'arco restava aperto).
-        + @"|(?:\b[Cc]rossing|\bINT\s+TR\s+\d{3}°\s*/)\s+RDL\s+(?<incrocioR>\d{3})\s+(?<incrocioN>" + Nav + @")(?:\s+VOR)?"
+        + @"|(?:\b[Cc]rossing|\bINT\s+TR\s+\d{3}°\s*/)\s+RDL\s+(?<incrocioR>\d{3})\s+(?<incrocioN>" + Nav + @")(?:\s+VOR(?:/DME)?)?"
         + @"|\b(?:INT\s+)?RDL\s+(?<puntoR>\d{3})\s*/\s*(?<puntoD>" + D + @")\s+NM\s+(?<puntoN>" + Nav + @")\s+VOR/DME"
         + @"|\bTR\s+(?<lineaT>\d{3})°\s*\(\s*RDL\s+(?<lineaR>\d{3})\s+(?<lineaN>" + Nav + @")\s+VOR(?:\s+or\s+RDL\s+\d{3}\s+" + Nav + @"\s+VOR)?\s*\)"
         + @"|\bRDL\s+(?<lineaR2>\d{3})\s+(?<lineaN2>" + Nav + @")(?:\s+VOR(?:/DME)?)?(?:\s*\(\s*RDL\s+\d{3}\s+" + Nav + @"\s+VOR\s*\))?(?:\s*\(\s*TR\s+(?<lineaT2>\d{3})°\s*\))?"

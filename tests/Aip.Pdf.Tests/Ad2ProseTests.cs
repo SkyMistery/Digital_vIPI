@@ -127,7 +127,7 @@ public sealed class Ad2ProseTests
     [InlineData("then intercepting RDL 283 LMT VOR turn left until joining RDL 273 LMT VOR (TR 093°) bound to SUGEP.", null)]
     [InlineData("bound to ULSOM.", null)]
     [InlineData("bound to SUGEP.", "non passa per SUGEP")]
-    [InlineData("crossing RDL 300 RCA VOR turn left bound to SUGEP.", "finisce su una radiale di RCA")]
+    [InlineData("crossing RDL 300 RCA VOR turn left bound to SUGEP.", "non incrocia la RDL 300 RCA")]   // passo 6: si calcola, se c'è
     public void LaFineDellArco(string fine, string? problemaAtteso)
     {
         // ULSOM: un punto sull'arco di 15 NM da LMT, sulla radiale 290 magnetica.
@@ -940,5 +940,70 @@ public sealed class Ad2ProseTests
 
         var primo = letto.Procedures!.Single(p => p.Designator == "SUGEP 1C").Legs[0].Position!.Value;
         Assert.Equal(313, Rotta(soglia31, primo), 0);
+    }
+
+    // Passo 6 della revisione col committente: il localizzatore IBXY corre verso est sulla latitudine di SUGEP (38,95°N).
+    private static (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) LeggiColLoc(string prosa) =>
+        ItalianAd2Prose.DecodeWithWarnings(P(ProcedureKind.Star, "ARBUM 4F", prosa, "10"),
+            n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n),
+            aerodromeVariation: 3, localizer: n => n == "IBXY" ? new ItalianAd2Prose.Localizer(new Position(38.95, 16.5), 90, 3) : null);
+
+    private const string SullArco = "ARBUM – TR 132° (RDL 312 LMT VOR) until 17 NM LMT DME, then turn right to join ARC 15 NM LMT DME, ";
+
+    // L'arco di una stazione che finisce sulla radiale di un'altra (LIPB ALESE 6A, VIC 6A): l'incrocio del cerchio con la radiale.
+    [Fact]
+    public void LArcoFinisceSullaRadialeDiUnAltraStazione()
+    {
+        var (tratti, problema, _) = LeggiColLoc(SullArco + "crossing RDL 354 RCA VOR turn left bound to SUGEP.");
+
+        Assert.Null(problema);
+        var fine = tratti.Single(t => t.PathTerminator == "AF").Position!.Value;
+        Assert.Equal(15, Distanza(Stazioni["LMT"].Position, fine), 1);
+        Assert.Equal(358, Rotta(Stazioni["RCA"].Position, fine), 0);
+    }
+
+    // L2: da una rotta, l'incrocio col localizzatore, come per una radiale; poi si è sul LOC.
+    [Fact]
+    public void IlLocalizzatoreDaUnaRotta_LIncrocio()
+    {
+        var (tratti, problema, _) = LeggiColLoc("DELIK – TR 010° until joining IBXY LOC (TR 087°) bound to SUGEP.");
+
+        Assert.Null(problema);
+        Assert.Equal(["IF DELIK", "CF INT TR 010°/IBXY LOC", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(38.95, tratti[1].Position!.Value.Lat, 2);
+        Assert.Equal("087°", tratti[2].Course);
+    }
+
+    // L3 (committente: «una curva, come sulle carte»): dopo la virata senza una rotta, l'arco tangente alla direzione in cui si
+    // vola e al localizzatore, dalla parte della virata.
+    [Fact]
+    public void IlLocalizzatoreDopoUnaVirata_LaCurva()
+    {
+        var (tratti, problema, avvisi) = LeggiColLoc(SullArco + "crossing RDL 283 LMT VOR turn left to intercept and follow IBXY LOC bound to SUGEP.");
+
+        Assert.Null(problema);
+        var curva = tratti.Single(t => t.PathTerminator == "RF");
+        Assert.Equal(("INT IBXY LOC", "L"), (curva.Computed, curva.Turn));
+        Assert.NotNull(curva.ArcCenterPosition);
+        // La curva tocca il LOC, e il centro sta a un raggio dal punto dove comincia e dal LOC.
+        Assert.Equal(38.95, curva.Position!.Value.Lat, 3);
+        var inizio = tratti[tratti.ToList().IndexOf(curva) - 1].Position!.Value;
+        Assert.Equal(curva.ArcRadiusNm!.Value, Distanza(curva.ArcCenterPosition!.Value, inizio), 1);
+        Assert.Equal(curva.ArcRadiusNm!.Value, Distanza(curva.ArcCenterPosition!.Value, curva.Position!.Value), 1);
+        Assert.Equal("SUGEP", tratti[^1].Fix);
+        Assert.Contains(avvisi, a => a.Contains("raggio", StringComparison.Ordinal));   // 5,6 NM: lontano da una virata vera
+    }
+
+    // U3 (LIBR DAMIC 2Y): un punto definito sul localizzatore dopo un arco: l'arco finisce dove incrocia il LOC, poi sul LOC.
+    [Fact]
+    public void UnPuntoSulLocalizzatore_DopoUnArco()
+    {
+        var (tratti, problema, avvisi) = LeggiColLoc(SullArco + "then turn right bound to SUGEP (IBXY LOC/12 NM LMT DME).");
+
+        Assert.Null(problema);
+        var arco = tratti.Single(t => t.PathTerminator == "AF");
+        Assert.Equal(38.95, arco.Position!.Value.Lat, 2);
+        Assert.Equal("SUGEP", tratti[^1].Fix);
+        Assert.Contains(avvisi, a => a.Contains("raccordo fra l'arco e il localizzatore non è disegnato", StringComparison.Ordinal));
     }
 }

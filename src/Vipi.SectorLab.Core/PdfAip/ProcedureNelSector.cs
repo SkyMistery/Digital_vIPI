@@ -185,7 +185,7 @@ public static partial class ProcedureNelSector
             }
             else if (t.Position is { } p)
             {
-                if (t.PathTerminator == "AF" && qui is { } da && t.ArcCenter is { } c && posizione?.Invoke(c) is { } centro)
+                if (t.PathTerminator is "AF" or "RF" && qui is { } da && (t.ArcCenterPosition ?? (t.ArcCenter is { } c ? posizione?.Invoke(c) : null)) is { } centro)
                     righe.AddRange(Arco(da, p, centro, orario: t.Turn == "R").Select(x => AuroraText.Coordinates(x) + ";"));
                 righe.Add(AuroraText.Coordinates(p) + ";");
                 ultimo = null;

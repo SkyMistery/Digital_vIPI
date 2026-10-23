@@ -156,4 +156,30 @@ public sealed class ProcedureNelSectorTests
         Assert.Equal("RN601;N040.51.28.880;E014.13.47.070;3;",
             ProcedureNelSector.RigaDelPuntoDiScalo(new SignificantPoint { Section = "AD 2 LIRN", Designator = "RN601", Position = new Position(40 + 51 / 60.0 + 28.88 / 3600, 14 + 13 / 60.0 + 47.07 / 3600) }));
     }
+
+    // Segnalazioni 2611, passo 6: la curva verso il localizzatore è un RF col centro calcolato, senza un nome: si disegna lo
+    // stesso a pezzi, col centro che porta il tratto.
+    [Fact]
+    public void UnArcoColCentroCalcolato_APezzi()
+    {
+        var centro = new Position(39.0, 16.0);
+        var inizio = new Position(39.25, 16.0);                                     // 15 NM a nord
+        var fine = new Position(39.0, 16.0 + 0.25 / Math.Cos(39 * Math.PI / 180)); // 15 NM a est
+        var star = new Procedure
+        {
+            Aerodrome = "LICA", Kind = ProcedureKind.Star, Designator = "ARBUM 4F", Runways = ["10"], LegsFromDescription = true,
+            Legs =
+            [
+                new ProcedureLeg { PathTerminator = "IF", Fix = "ARBUM" },
+                new ProcedureLeg { PathTerminator = "CF", Computed = "RDL 357/15 NM LMT", Position = inizio },
+                new ProcedureLeg { PathTerminator = "RF", Computed = "INT IXX LOC", Position = fine, ArcCenterPosition = centro, ArcRadiusNm = 15, Turn = "R" },
+                new ProcedureLeg { PathTerminator = "CF", Fix = "SUGEP" },
+            ],
+        };
+
+        var corpo = ProcedureNelSector.Corpo([star], "4F", _ => null);
+
+        Assert.Equal(1 + 1 + 17 + 1 + 1, corpo.Count);
+        Assert.Equal(AuroraText.Coordinates(fine) + ";", corpo[^2]);
+    }
 }

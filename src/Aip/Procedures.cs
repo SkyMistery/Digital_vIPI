@@ -162,6 +162,12 @@ public sealed record ProcedureLeg
     public double? ArcRadiusNm { get; init; }
 
     /// <summary>
+    /// Un arco della prosa col centro calcolato, che non è un punto con nome (segnalazioni 2611, passo 6: la virata che raccorda
+    /// la rotta al localizzatore, «turn left to intercept and follow IFA LOC», tangente all'una e all'altro).
+    /// </summary>
+    public Position? ArcCenterPosition { get; init; }
+
+    /// <summary>
     /// Un punto senza nome della prosa (slice 7b), com'è definito: <c>RDL 258/14 NM LMT</c>, <c>INT RDL 062 VOG/RDL 164 BRL</c>.
     /// Con <see cref="Position"/>, calcolata dalle radioassistenze; <see cref="Fix"/> è null.
     /// </summary>
