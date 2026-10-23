@@ -133,6 +133,10 @@ public static partial class ItalianAd2Prose
             avvisi.Add($"«RDL {m.Groups[1].Value} VOR» senza la stazione è un errore di stampa: vale la rotta");
             return "";
         });
+        // Revisione 2 (committente, 24 ottobre): «until joining 088 ANC VOR» senza «RDL» (LIPY KEGED 9H), «(IAS MAX 210)» senza
+        // «kt» (LIPY LANLI 4C).
+        t = RxRadialeSenzaRdl().Replace(t, m => stazione(m.Groups[3].Value) ? Stampa(m, $"{m.Groups[1].Value} RDL {m.Groups[2].Value} {m.Groups[3].Value} VOR") : m.Value);
+        t = RxVelocitaSenzaKt().Replace(t, m => Stampa(m, $"(IAS MAX {m.Groups[1].Value} KT)"));
         return (t, avvisi);
     }
 
@@ -633,6 +637,7 @@ public static partial class ItalianAd2Prose
         t = RxVorSpezzato().Replace(t, "VOR");
         t = RxTrack().Replace(t, "TR $1°");
         t = RxDmeAbbreviato().Replace(t, "${d} NM ${n} DME"); // «D20 OST DME», «43 NM PNZ TAC»
+        t = RxDmePrimaDellaStazione().Replace(t, "$1 NM $2 DME");
         // Passo 2 della revisione col committente (carta §6, gruppo 5): «non si butta niente». Quote, velocità, autorizzazioni
         // e condizioni non sono pezzi del percorso, ma restano: un segnaposto (⟦Q+2800⟧ la quota, ⟦V-210⟧ la velocità, ⟦N…⟧
         // una nota, ⟦A…⟧ un avviso, ⟦B+1500⟧ «not below» da controllare) che il lettore mette nel tratto dove sta.
@@ -646,10 +651,12 @@ public static partial class ItalianAd2Prose
         t = RxIncrociaAUnaQuota().Replace(t, m => $"{m.Groups[1].Value} {Marca('Q', "+" + Quota(m.Groups[2].Value))}"
             + (m.Groups[3].Success ? Marca('N', m.Groups[3].Value) : ""));
         t = RxIncrociaComeAutorizzato().Replace(t, m => $"{m.Groups[1].Value} {Marca('N', m.Groups[2].Value)}");
+        // «(to complete the turn at 3500ft or above)» prima di «at … or above», che se no ne prende la quota (LIEE KOVAS 6D).
+        t = RxCompletareLaVirata().Replace(t, m => Marca('N', m.Value.Trim().TrimStart('(').TrimEnd(')')));
+        t = RxScostamento().Replace(t, m => Marca('N', m.Value.Trim().TrimStart('(').TrimEnd(')')));
         t = RxAUnaQuotaOSopra().Replace(t, m => Marca('Q', "+" + Quota(m.Groups[1].Value)));
         t = RxSeAutorizzato().Replace(t, m => Marca('N', m.Value.Trim().Trim(',').Trim()));
         t = RxLivelloAssegnato().Replace(t, m => Marca('N', m.Value.Trim()));
-        t = RxCompletareLaVirata().Replace(t, m => Marca('N', m.Value.Trim().TrimStart('(').TrimEnd(')')));
         t = RxNonSotto().Replace(t, m => Marca('B', "+" + m.Groups[1].Value));
         t = RxCondizioniAVista().Replace(t, m => Marca('N', m.Value.Trim().TrimStart(';').Trim()));
         t = RxSalitaNellAttesa().Replace(t, m => Marca('N', m.Value.Trim().TrimStart(',').Trim()));
@@ -813,7 +820,9 @@ public static partial class ItalianAd2Prose
             if (g["virata"].Success)
             {
                 // Il pezzo è «turn left»: conta la parola dopo «turn» (prima si guardava la prima lettera, sempre «t»: tutte a destra).
-                _virata = g["virata"].Value.Contains("left", StringComparison.OrdinalIgnoreCase) ? "L" : "R";
+                // Revisione 2: «turn left/right» (LIPX RWY 22) è una virata senza verso: il verso lo dice la SID.
+                var v = g["virata"].Value;
+                _virata = v.Contains("left", StringComparison.OrdinalIgnoreCase) ? "L" : v.Contains("right", StringComparison.OrdinalIgnoreCase) ? "R" : null;
                 _virataDopoLaRotta = true;
                 return;
             }
@@ -1602,7 +1611,7 @@ public static partial class ItalianAd2Prose
         + @"|\b(?:on\s+)?heading\s+(?<prua>\d{3})°"
         + @"|\b(?<dmeD>" + D + @")\s+NM\s+(?<dmeN>" + Nav + @")\s+DME(?:\s*\(\s*RDL\s+\d{3}\s*/\s*" + D + @"\s+NM\s+" + Nav + @"\s+VOR/DME\s*\))?"
         // «turn left», e al contrario «then left turn on track 109°» (LICR FOSQA 2A: prima il verso restava vuoto).
-        + @"|\b(?<virata>[Tt]urn\s+(?:left|right|LEFT|RIGHT)|(?:left|right)\s+turn)\b"
+        + @"|\b(?<virata>[Tt]urn\s+left\s*/\s*right|[Tt]urn\s+(?:left|right|LEFT|RIGHT)|(?:left|right)\s+turn)\b"
         // Un nome, e fra parentesi la sua definizione: una radiale e una distanza (serve se il punto non è nell'AIP), o
         // un'altra («NPC LOC/13 NM NPC DME») che non serve.
         // Un nome: lettere (ELKAP, TAQ) o due lettere e tre cifre, i punti RNAV degli scali (BP401, PH001: B5).
@@ -1647,7 +1656,8 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"^(?:At\s+\d|Then\b|Turn\b|Proceed\b|Leave\b|Crossing\b|Continue\b|Join\b|Intercept|Passing\b|Overflying\b|Cross\b)")]
     private static partial Regex RxRigaCheContinua();
 
-    [GeneratedRegex(@"\bD(?<d>\d+(?:\.\d+)?)\s+(?<n>[A-Z]{2,3})\s+DME\b|\b(?<d>\d+(?:\.\d+)?)\s+NM\s+(?<n>[A-Z]{2,3})\s+TAC\b")]
+    // Revisione 2: anche «When at D3 DEC TACAN» (LIEE KOVAS 7A), che qui è già «D3 DEC VOR».
+    [GeneratedRegex(@"\bD(?<d>\d+(?:\.\d+)?)\s+(?<n>[A-Z]{2,3})\s+(?:DME|TACAN|VORTAC|VOR)\b|\b(?<d>\d+(?:\.\d+)?)\s+NM\s+(?<n>[A-Z]{2,3})\s+TAC\b")]
     private static partial Regex RxDmeAbbreviato();
 
     [GeneratedRegex(@"\bV\s+OR\b")]
@@ -1737,16 +1747,32 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\(\s*IAS\s+MAX\s+(?<v>\d+)\s*KT\b(?<resto>[^)]*)\)", RegexOptions.IgnoreCase)]
     private static partial Regex RxIas();
 
-    // «to be reached at or above 4000 ft», «(to be crossed at 2800 ft or above)»: una quota, non un pezzo del percorso.
     [GeneratedRegex(@"\bRDL\s*(\d{3})\s*(\(\s*TR\s*\d{3}\s*°?\s*\))\s*([A-Z]{3})\s+(VOR|NDB)\b", RegexOptions.CultureInvariant)]
     private static partial Regex RxStazioneDopoLaRotta();
 
     [GeneratedRegex(@"\b(\d{3})\s*deg\b", RegexOptions.CultureInvariant)]
     private static partial Regex RxGradiInParola();
 
-    // Passo 8: anche «direct to COM VOR to reach at 3500ft or above» (LICB RWY 05).
-    [GeneratedRegex(@"\(?\s*\bto\s+(?:be\s+(?:reached|crossed)|reach)\s+at\s+(?:or\s+above\s+)?(?<q>\d+)\s*(?:ft|FT)\b(?:\s+or\s+above)?\s*\)?")]
+    // «to be reached at or above 4000 ft», «(to be crossed at 2800 ft or above)»: una quota, non un pezzo del percorso.
+    // Passo 8: anche «direct to COM VOR to reach at 3500ft or above» (LICB RWY 05); revisione 2: «at 4 NM CAG DME, to be reached
+    // not below 1000 ft» (LIEE RWY 32).
+    [GeneratedRegex(@",?\(?\s*\bto\s+(?:be\s+(?:reached|crossed)|reach)\s+(?:at\s+(?:or\s+above\s+)?|not\s+below\s+)(?<q>\d+)\s*(?:ft|FT)\b(?:\s+or\s+above)?\s*\)?\s*,?")]
     private static partial Regex RxQuotaDaRaggiungere();
+
+    // Revisione 2 delle frasi non capite (committente, 24 ottobre).
+    [GeneratedRegex(@"\b(joining|join|intercept(?:ing)?(?:\s+and\s+follow(?:ing)?)?|follow(?:ing)?)\s+(\d{3})\s+([A-Z]{3})\s+VOR\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRadialeSenzaRdl();
+
+    [GeneratedRegex(@"\(\s*IAS\s+MAX\s+(\d{3})\s*\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxVelocitaSenzaKt();
+
+    // «At 7 DME BAR» (LIBD): 7 NM BAR DME.
+    [GeneratedRegex(@"\b(\d+(?:\.\d+)?)\s+DME\s+([A-Z]{3})\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDmePrimaDellaStazione();
+
+    // «heading 079° (offset 14°)» (LIPH VIC 5S): una nota.
+    [GeneratedRegex(@"\(\s*offset\s+\d+\s*°\s*\)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxScostamento();
 
     // Passo 2 (gruppo 5): «Cross EKTOL at FL 110 or above, as cleared», «Cross RATIR as cleared by ATC».
     [GeneratedRegex(@"\b[Cc]ross\s+([A-Z]{2,5})\s+at\s+(FL\s?\d{2,3}|\d{3,5}\s*(?:ft|FT))\s+or\s+above\b\s*,?\s*(as\s+cleared(?:\s+by\s+ATC)?)?", RegexOptions.CultureInvariant)]
@@ -1768,7 +1794,8 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\(\s*to\s+complete\s+the\s+turn\s+at\s+\d+\s*(?:ft|FT)\s+or\s+(?:more|above)\s*\)", RegexOptions.CultureInvariant)]
     private static partial Regex RxCompletareLaVirata();
 
-    [GeneratedRegex(@",?\s*\bnot\s+below\s+(\d{3,5})\s*(?:ft|FT)\b\s*,?", RegexOptions.CultureInvariant)]
+    // Revisione 2: anche in testa alla frase, «Not below 1200 ft turn left» (LIMC RWY 35L).
+    [GeneratedRegex(@",?\s*\b[Nn]ot\s+below\s+(\d{3,5})\s*(?:ft|FT)\b\s*,?", RegexOptions.CultureInvariant)]
     private static partial Regex RxNonSotto();
 
     [GeneratedRegex(@";?\s*\bmaintain\s+visual\s+conditions\s+until\s+passing\s+\d+\s*(?:ft|FT)\b", RegexOptions.CultureInvariant)]
@@ -1788,7 +1815,8 @@ public static partial class ItalianAd2Prose
     // Passo 4, nelle salite iniziali: anche «. Turn and climb parameters: …», «. Turn as IAS MAX 220 kt», «… (or 7 NM FAL TACAN)
     // Remark: Minimum climb gradient …» senza il punto.
     // «bound to URIPI. Minimum» e sotto «climb gradient: 6.8% …» (LIBF URIPI 6A): la riga dopo è già fuori dal percorso.
-    [GeneratedRegex(@"(?:\.\s+(?:REMARKS?\b|Minimum\b|Turn\s+and\s+climb\s+parameters\b|Turns?\s+as\s+IAS\b)|\s+Remarks?\s*:).*$", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
+    // Revisione 2: anche senza i due punti, che la salita iniziale divisa toglie (LIPY RWY 04, «Remark Minimum climb gradient»).
+    [GeneratedRegex(@"(?:\.\s+(?:REMARKS?\b|Minimum\b|Turn\s+and\s+climb\s+parameters\b|Turns?\s+as\s+IAS\b)|\s+Remarks?\s*:|\s+Remarks?\s+(?=Minimum\b)).*$", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
     private static partial Regex RxNotaInCoda();
 
     [GeneratedRegex(@"(\b\d+(?:\.\d+)?\s+NM\s+[A-Z]{2,3}\s+(?:DME|TACAN))\s+or\s+\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,4}\s+(?:DME|TACAN)\b", RegexOptions.CultureInvariant)]
@@ -1798,7 +1826,8 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\bat\s+(\d{3,5})\s*ft\s+AGL\s*\(\s*(\d{3,5})\s*ft\s+AMSL\s*\)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxAglAmsl();
 
-    [GeneratedRegex(@",?\s*\b(?:anyway\s+)?not\s+further\s+than\s+(?:point\s+)?RDL\s+\d{3}\s*/\s*\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,3}\s+VOR(?:/DME)?(?:\s*\([^)]*\))?", RegexOptions.CultureInvariant)]
+    // Revisione 2: anche la sola distanza, «until leaving 3600 ft not further than 10NM SME DME» (LIEO).
+    [GeneratedRegex(@"(?<!\bto\s+be\s+(?:reached|crossed)\s*),?\s*\b(?:anyway\s+)?not\s+further\s+than\s+(?:point\s+)?(?:RDL\s+\d{3}\s*/\s*\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,3}\s+VOR(?:/DME)?|\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,3}\s+DME)(?:\s*\([^)]*\))?", RegexOptions.CultureInvariant)]
     private static partial Regex RxNonOltre();
 
     [GeneratedRegex(@"\(\s*(to\s+be\s+(?:reached|crossed)\s+not\s+further\s+than\s+\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,3}\s+DME[^)]*)\)", RegexOptions.CultureInvariant)]

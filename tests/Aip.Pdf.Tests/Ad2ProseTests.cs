@@ -844,6 +844,40 @@ public sealed class Ad2ProseTests
             ItalianAd2Prose.Normalizza("Initial climb procedure executed, turn right to join RDL 231 (TR 231°) LMT VOR bound to SUGEP."), StringComparison.Ordinal);
     }
 
+    // Revisione 2 delle frasi non capite (committente, 24 ottobre): le forme nuove, coi testi del 2611.
+    [Theory]
+    [InlineData("LMT VOR - heading 040°. When at D3 LMT TACAN turn right bound to SUGEP.", "IF LMT|VD TR 040°/3 NM LMT DME|DF SUGEP")]                        // LIEE KOVAS 7A
+    [InlineData("LMT VOR - TR 040° until 3 DME LMT (8.5 NM RCA DME), then turn right bound to SUGEP.", "IF LMT|FD TR 040°/3 NM LMT DME|DF SUGEP")]                  // LIBD
+    [InlineData("LMT VOR - TR 040° until 3 NM LMT DME, to be reached not below 1000 ft, then turn left/right bound to SUGEP.", "IF LMT|FD TR 040°/3 NM LMT DME|DF SUGEP")] // LIEE, LIPX
+    [InlineData("DELIK - TR 310° until joining 090 LMT VOR bound to SUGEP.", "IF DELIK|CR INT TR 310°/RDL 090 LMT|DF SUGEP")]                                     // LIPY KEGED 9H
+    [InlineData("DELIK - TR 310° (RDL 130 LMT VOR) (IAS MAX 210) until 14 NM LMT DME, then turn right bound to SUGEP.", "IF DELIK|FD RDL 130/14 NM LMT|DF SUGEP")]                // LIPY LANLI 4C
+    public void LeFrasiDellaRevisione2_SiLeggono(string prosa, string attesi)
+    {
+        var (tratti, problema, _) = ItalianAd2Prose.DecodeWithWarnings(P(ProcedureKind.Star, "DELIK 1R", prosa),
+            n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
+
+        Assert.Null(problema);
+        Assert.Equal(attesi.Split('|'), tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+    }
+
+    // Revisione 2: «… (or 7 NM FAL TACAN) Remark: Minimum climb gradient: 425 ft/NM (7%).» (LIPY RWY 04): la nota chiude il percorso.
+    [Fact]
+    public void UnaSalitaConLaNotaInCoda_SenzaIlPunto()
+    {
+        var salita = new Procedure
+        {
+            Aerodrome = "LIXX", Kind = ProcedureKind.InitialClimb, Designator = "RWY 04", Runways = ["04"],
+            Description = "After take-off proceed on TR 041° until 3 NM LMT DME (or 7 NM RCA TACAN)\nRemark: Minimum climb gradient: 425 ft/NM (7%).",
+        };
+        var soglia = Verso(Stazioni["LMT"].Position, 221, 6);
+
+        var (tratti, problema, _) = ItalianAd2Prose.DecodeWithWarnings(salita, n => Punti.TryGetValue(n, out var x) ? x : null,
+            n => Stazioni.GetValueOrDefault(n), new ItalianAd2Prose.Runway(soglia, 44), aerodromeVariation: 3);
+
+        Assert.Null(problema);
+        Assert.Equal(["CD TR 041°/3 NM LMT DME"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+    }
+
     [Theory]
     [InlineData("At 13NM PRU DME (12.4NM IPER DME) turn right until joining RDL 224 ANC VOR/DME (TR 224°) bound to GITOD.", true)]
     [InlineData("Turn left on TR 132°. Crossing RDL 166 BSM VOR turn left on RDL 133 BSM VOR.", true)]
