@@ -211,6 +211,25 @@ public sealed class Ad2Tests
         Assert.Empty(r.Issues);
     }
 
+    // Segnalazioni 2611, B8: «FL 70/TRL» (LIRA), la seconda quota può essere il livello di transizione.
+    [Fact]
+    public void LaSmac_LaQuotaConIlLivelloDiTransizione()
+    {
+        double[] c = [52, 202, 565];
+        var uno = new Pagina(c, [100, 130, 145, 210],
+        [
+            .. Testa("AD 2 LIXX 8 - 3"), (60, 80, "ATC SURVEILLANCE MINIMUM ALTITUDE CHART"), (56, 110, "Minimum Altitudes/Levels"),
+            (56, 132, "1"), (206, 132, "2"),
+            (56, 150, "FL 70/TRL"), (206, 150, "Line joining following points:"), (206, 160, "45°00'00\"N 009°00'00\"E"),
+            (206, 170, "45°00'00\"N 009°10'00\"E"), (206, 180, "45°10'00\"N 009°10'00\"E"), (206, 190, "45°00'00\"N 009°00'00\"E"),
+        ]);
+
+        var r = ItalianAd2.ReadSmac(PdfText.Read(Enr4Tests.Pdf(uno)), "LIXX");
+
+        Assert.Equal("FL 70/TRL", Assert.Single(r.MinimumAltitudes).Minimum.Text);
+        Assert.Empty(r.Issues);
+    }
+
     [Fact]
     public void LIls_IlLocalizzatoreEGliApparatiSotto_FinoAUnaSiglaDiversa()
     {

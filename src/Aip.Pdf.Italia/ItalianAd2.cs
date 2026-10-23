@@ -62,8 +62,9 @@ public static partial class ItalianAd2
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
 
-    // «2000FT», «FL110», «TRL»; quattro carte su cinque senza «FT» («2500»); «3000/4000 (5)» a LIRF.
-    [GeneratedRegex(@"^(?<q>(?:\d{3,5}(?:\s*FT)?|FL\s*\d{2,3}|TRL)(?:\s*/\s*(?:\d{3,5}(?:\s*FT)?|FL\s*\d{2,3}))?)(?:\s*(?<r>\(\d+\)(?:\s*\(\d+\))*))?(?:\s+(?<n>.*))?$", Opzioni)]
+    // «2000FT», «FL110», «TRL»; quattro carte su cinque senza «FT» («2500»); «3000/4000 (5)» a LIRF; «FL 70/TRL» a LIRA
+    // (segnalazioni 2611, B8).
+    [GeneratedRegex(@"^(?<q>(?:\d{3,5}(?:\s*FT)?|FL\s*\d{2,3}|TRL)(?:\s*/\s*(?:\d{3,5}(?:\s*FT)?|FL\s*\d{2,3}|TRL))?)(?:\s*(?<r>\(\d+\)(?:\s*\(\d+\))*))?(?:\s+(?<n>.*))?$", Opzioni)]
     private static partial Regex RxQuotaMinima();
 
     [GeneratedRegex(@"^(?:REMARKS?|NOTE|NOTA)\b", Opzioni)]
@@ -139,6 +140,26 @@ public static partial class ItalianAd2
         };
         if (perSezione.TryGetValue(2, out var r22)) scalo = Dati(scalo, r22, parte, problemi);
         if (parte.Piste is { } np && perSezione.TryGetValue(np, out var r212)) scalo = scalo with { Runways = Piste(r212, icao, problemi) };
+        // Segnalazioni 2611, B8 (LIET): le tabelle di AD 2.12 attaccate una sotto l'altra diventano una griglia sola e le piste
+        // spariscono. Solo allora si rileggono le pagine spezzando le griglie dove cambiano le colonne: le altre pagine non
+        // cambiano strada.
+        if (parte.Piste is { } np2 && perSezione.ContainsKey(np2) && scalo.Runways.Count == 0)
+        {
+            var righe12 = new List<Riga>();
+            var sez = 0;
+            for (var i = 0; i < pages.Count; i++)
+            {
+                var piane = Table.PlainLinesWithY(pages[i]);
+                var titoli = piane.Select(l => (l.Y, M: RxTitolo().Match(l.Text.Trim())))
+                    .Where(x => x.M.Success && x.M.Groups["icao"].Value == icao)
+                    .Select(x => (x.Y, N: int.Parse(x.M.Groups["n"].Value, System.Globalization.CultureInfo.InvariantCulture))).ToList();
+                foreach (var g in Table.FindAllSplit(pages[i], 300).OrderBy(g => g.Top))
+                    if ((titoli.Where(t => t.Y < g.Top).Select(t => (int?)t.N).LastOrDefault() ?? sez) == np2)
+                        righe12.AddRange(Righe(pages[i], g, pagine[i]));
+                if (titoli.Count > 0) sez = titoli[^1].N;
+            }
+            if (Piste(righe12, icao, problemi) is { Count: > 0 } ritrovate) scalo = scalo with { Runways = ritrovate };
+        }
         if (parte.Distanze is { } nd && perSezione.TryGetValue(nd, out var r213)) scalo = scalo with { DeclaredDistances = Distanze(r213) };
         if (perSezione.TryGetValue(parte.Spazi, out var r217)) aree.AddRange(Spazi(r217, icao, $"AD {parte.Numero}.{parte.Spazi}", problemi));
         if (perSezione.TryGetValue(parte.Frequenze, out var r218)) scalo = scalo with { Communications = Frequenze(r218) };

@@ -108,6 +108,49 @@ public static class Table
         return griglie;
     }
 
+    /// <summary>
+    /// Come <see cref="FindAll"/>, ma una banda si spezza dove cambiano le righe verticali che la attraversano: tabelle
+    /// attaccate una sotto l'altra, con colonne diverse, tornano tabelle diverse (LIET AD 2.12 nel 2611: le colonne 1-6, 7-11
+    /// e 12-13 una sotto l'altra; con <see cref="FindAll"/> restavano solo le colonne lunghe, e le piste sparivano). Da usare
+    /// dove <see cref="FindAll"/> non basta: sulle altre pagine darebbe le stesse tabelle, ma è una strada nuova.
+    /// </summary>
+    public static IReadOnlyList<TableGrid> FindAllSplit(PdfPageText page, double minSpan, double minRule = 10)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        var lunghi = page.VerticalRules.Where(r => r.Bottom - r.Top >= minRule).ToList();
+        if (lunghi.Count == 0) return [];
+        var xs = Clusters(lunghi.Select(r => r.X), 2.5);
+        var perX = xs.Select(x => Unisci(lunghi.Where(r => Math.Abs(r.X - x) <= 2.5).Select(r => (r.Top, r.Bottom)))).ToList();
+        var tagli = perX.SelectMany(i => i).SelectMany(i => new[] { i.Cima, i.Fondo }).Distinct().Order().ToList();
+
+        // Per ogni fetta fra due tagli, quali x la attraversano (le righe a meno di 6 punti contano come una).
+        var fette = new List<(double Cima, double Fondo, string Chiave, List<double> Colonne)>();
+        for (var t = 0; t + 1 < tagli.Count; t++)
+        {
+            var (a, b) = (tagli[t], tagli[t + 1]);
+            var colonne = new List<double>();
+            for (var k = 0; k < xs.Count; k++)
+                if (perX[k].Any(i => i.Cima <= a + 0.01 && i.Fondo >= b - 0.01) && (colonne.Count == 0 || xs[k] - colonne[^1] >= 6))
+                    colonne.Add(Math.Round(xs[k], 1));
+            if (colonne.Count < 3) continue;
+            fette.Add((a, b, string.Join(",", colonne.Select(c => Math.Round(c))), colonne));
+        }
+
+        // Le fette vicine con le stesse colonne fanno una tabella.
+        var griglie = new List<TableGrid>();
+        var i0 = 0;
+        while (i0 < fette.Count)
+        {
+            var i1 = i0;
+            while (i1 + 1 < fette.Count && fette[i1 + 1].Chiave == fette[i0].Chiave && fette[i1 + 1].Cima <= fette[i1].Fondo + 2) i1++;
+            var (cima, fondo, colonne) = (fette[i0].Cima, fette[i1].Fondo, fette[i0].Colonne);
+            if (fondo - cima >= 20 && colonne[^1] - colonne[0] >= minSpan)
+                griglie.Add(new TableGrid(colonne, cima, fondo, Inherited: false, Cut: true));
+            i0 = i1 + 1;
+        }
+        return griglie;
+    }
+
     private static List<(double Cima, double Fondo)> Unisci(IEnumerable<(double Cima, double Fondo)> tratti)
     {
         var uniti = new List<(double Cima, double Fondo)>();
