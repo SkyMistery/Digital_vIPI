@@ -6,10 +6,10 @@
 >
 > ## ▶ Il punto — 23 ottobre 2026
 >
-> **📦 Pronta da caricare: 1.74.0** (§A167, timbro `1.74.0 · 4fdc3ac`, 7 file, zip `7c6ff4bf…`, MINOR senza
-> migrazioni, misurata dalla 1.73.0): Sito S129, l'API aeroporti porta la torre radar e le regole di scelta della pista.
-> Online è la **1.73.0** finché il committente non carica. ⚠️ Test del meteo instabile (secondo episodio). ⚠️ Aperto:
-> SDK 10.0.402.
+> **✅ Online: 1.74.0** (`Schema 0` confermato; health Healthy; **in `main` non resta codice fuori pacchetto**, solo
+> test: §A168) (§A167, timbro `1.74.0 · 4fdc3ac`, 7 file, zip `7c6ff4bf…`, MINOR senza migrazioni): Sito S129, l'API
+> aeroporti porta la torre radar e le regole di scelta della pista. Resi stabili due test (S130 meteo, S131 registro
+> avvii). ⚠️ Aperto: SDK 10.0.402.
 >
 > ## Il punto — 22 ottobre 2026, sera
 >

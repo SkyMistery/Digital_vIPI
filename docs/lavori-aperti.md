@@ -43,9 +43,25 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A167 — 1.74.0 PRONTA: l'API aeroporti dice la torre radar e le regole piste (S129) (23 ottobre 2026)
+### 🔧 A168 — Fuori pacchetto: due test instabili resi stabili (S130, S131) (23 ottobre 2026)
 
-📦 Pronta, **da caricare** (committente). Online resta la **1.73.0** finché non carica.
+Solo `tests/` e `docs/filoni/sito.md`: il sito spedito non cambia, nessun pacchetto. Assegnati dal committente al Sito.
+- **S130** (fusione `a000b3b8`): `NoaaWeatherClientTests.Richieste_Concorrenti_Sullo_Stesso_Icao_Fanno_Una_Sola_Fetch`
+  cadeva sotto carico (19 e 23 ottobre): il banco usava il tetto di produzione della sorgente (5 s), la risposta finta
+  arrivava dopo e il fetch condiviso finiva vuoto per tutti. Il client è giusto; il banco ora alza il tetto a 120 s,
+  asserzioni invariate.
+- **S131** (fusione `59dd450b`): E2E `RegistroAvviiTests.Lhost_vero_conta_la_richiesta_e_la_scrive_nella_riga_darresto`
+  segnava il punto di partenza col NUMERO di righe di `avvii.txt`; oltre 2 000 righe il primo avvio pota il file alle
+  ultime 1 000 (`RegistroAvvii.Pota`, voluto) e lo `Skip(n)` saltava tutto. Ora parte dall'ultima riga di prima del
+  giro. Rosso riprodotto col file a 2 010 righe.
+- Build 0 avvisi, suite intera verde, conteggi identici; CI di `main` ✅ su tutte e due le fusioni.
+
+### ✅ A167 — 1.74.0 ONLINE: l'API aeroporti dice la torre radar e le regole piste (S129) (23 ottobre 2026)
+
+✅ Online dal 23 ottobre 2026: il committente conferma la 1.74 e `Schema 0`. Da fuori, da anonimo, alle 15:34Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti senza chiave 401, `vipi-theme.css?v=e393251a` (invariato),
+`/vsop/health` e `/vsop/health/ready` Healthy (prima lettura di health 6,4 s subito dopo il riavvio, poi 0,2 s). Non
+guardata da qui: la scheda dell'API con una chiave vera. Dopo il pacchetto, in `main` solo test (S130, S131: §A168).
 
 MINOR **senza migrazioni**, misurata dalla **1.73.0** (`f7baf05`) che gira. Timbro **`1.74.0 · 4fdc3ac`**.
 Fusa da `sito/lavori` @ `d548e1f9` (cartellino 🟢, CI run 39960683665), fusione `7e223676` senza conflitti.
