@@ -31,27 +31,41 @@ public static partial class ItalianAd2Prose
     public static (IReadOnlyList<ProcedureLeg> Legs, string? Problem) Decode(
         Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway = null)
     {
+        var (tratti, problema, _) = DecodeWithWarnings(procedure, point, station, runway);
+        return (tratti, problema);
+    }
+
+    /// <summary>
+    /// Come <see cref="Decode"/>, e in più le approssimazioni fatte leggendo una procedura che si legge: una prua disegnata
+    /// come rotta, senza vento (committente, 23 ottobre: «disegnalo come se non ci fosse vento e segnalo»).
+    /// </summary>
+    public static (IReadOnlyList<ProcedureLeg> Legs, string? Problem, IReadOnlyList<string> Warnings) DecodeWithWarnings(
+        Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway = null)
+    {
         ArgumentNullException.ThrowIfNull(procedure);
         ArgumentNullException.ThrowIfNull(point);
         ArgumentNullException.ThrowIfNull(station);
         if (procedure.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition))
-            return ([], "non è una SID, una STAR o una transizione");
+            return ([], "non è una SID, una STAR o una transizione", []);
         var testo = Route(procedure.Description);
-        if (testo is null) return ([], "senza testo");
+        if (testo is null) return ([], "senza testo", []);
         // Una STAR che non dice da dove comincia («Proceed on TR 119° … bound to TAQ VOR/DME») parte dal punto del suo nome.
         var inizio = procedure.Kind == ProcedureKind.Star ? procedure.Designator.Split(' ')[0] : null;
-        return new Lettore(testo, point, station, runway).Leggi(inizio);
+        var lettore = new Lettore(testo, point, station, runway);
+        var (tratti, problema) = lettore.Leggi(inizio);
+        return (tratti, problema, problema is null ? lettore.Avvisi : []);
     }
 
     /// <summary>
     /// Tutte le procedure di <paramref name="document"/> senza tratti, lette dalla prosa coi punti e le radioassistenze dello
     /// stesso documento (dopo le correzioni: un punto corretto a mano vale anche qui). Le altre restano come sono; quelle
-    /// che non si leggono tornano col perché.
+    /// che non si leggono tornano col perché, quelle lette con un'approssimazione (una prua come rotta) con l'approssimazione.
     /// </summary>
-    public static (AipDocument Document, IReadOnlyList<(Procedure Procedure, string Problem)> NotRead) DecodeAll(AipDocument document)
+    public static (AipDocument Document, IReadOnlyList<(Procedure Procedure, string Problem)> NotRead,
+        IReadOnlyList<(Procedure Procedure, string Warning)> Approximated) DecodeAll(AipDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (document.Procedures is not { Count: > 0 } procedure) return (document, []);
+        if (document.Procedures is not { Count: > 0 } procedure) return (document, [], []);
         var punti = (document.Points ?? []).GroupBy(p => p.Designator, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Position, StringComparer.Ordinal);
         // Un VOR (la declinazione è sua); una sigla con più impianti (PIS è un DVOR/DME e un locator) prende quello col VOR.
         // Anche quelli di scalo (AD 2.19: BRL, CMP, CSL non sono in ENR 4.1).
@@ -81,21 +95,23 @@ public static partial class ItalianAd2Prose
             .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Sua is null).Select(x => new Station(x.Posizione, x.Declinazione!.Value)).First(),
                 StringComparer.Ordinal);
         var nonLette = new List<(Procedure, string)>();
+        var approssimate = new List<(Procedure, string)>();
         var nuove = procedure.Select(p =>
         {
             if (p.Legs.Count > 0 || p.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition)) return p;
             var pista = (document.Aerodromes ?? []).FirstOrDefault(a => a.Icao == p.Aerodrome)?.Runways
                 .FirstOrDefault(r => p.Runways.Count > 0 && r.Designator == p.Runways[0]) is { Threshold: { } soglia } r
                 && Gradi(r.TrueBearing) is { } vera ? new Runway(soglia, vera) : null;
-            var (tratti, problema) = Decode(p, n => punti.TryGetValue(n, out var x) ? x : null, n => stazioni.GetValueOrDefault(n), pista);
+            var (tratti, problema, avvisi) = DecodeWithWarnings(p, n => punti.TryGetValue(n, out var x) ? x : null, n => stazioni.GetValueOrDefault(n), pista);
             if (problema is not null)
             {
                 nonLette.Add((p, problema));
                 return p;
             }
+            approssimate.AddRange(avvisi.Select(a => (p, a)));
             return p with { Legs = tratti, LegsFromDescription = true };
         }).ToList();
-        return (document with { Procedures = nuove }, nonLette);
+        return (document with { Procedures = nuove }, nonLette, approssimate);
     }
 
     /// <summary>La declinazione stampata, est positivo: <c>3° E-2010.0</c> → 3; null se non c'è.</summary>
@@ -175,7 +191,7 @@ public static partial class ItalianAd2Prose
         t = RxDefinizioneDme().Replace(t, " ");
         // B5: «TR 214)», «TR 285 (RDL …»: la rotta anche senza il segno dei gradi; un VORTAC è un VOR per il percorso;
         // «SME VOR to be left on RDL 192 bound to KOLUS»: la radiale è di SME, che la frase stessa nomina.
-        t = RxRottaSenzaGradi().Replace(t, "TR $1°");
+        t = RxRottaSenzaGradi().Replace(t, m => $"TR {(m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value)}°");
         t = RxVortac().Replace(t, "$1 VOR");
         t = RxLasciataSullaRadiale().Replace(t, "$1 $2 to be left on RDL $3 $1 VOR");
         t = RxVorDme().Replace(t, "VOR/DME");
@@ -200,6 +216,10 @@ public static partial class ItalianAd2Prose
         private string? _virata;
         private double? _declinazione;
         private string? _problema;
+        private readonly List<string> _avvisi = [];
+
+        /// <summary>Le approssimazioni fatte leggendo (una prua come rotta): si dicono anche se la procedura si legge.</summary>
+        public IReadOnlyList<string> Avvisi => _avvisi;
 
         public (IReadOnlyList<ProcedureLeg>, string?) Leggi(string? inizio)
         {
@@ -341,10 +361,13 @@ public static partial class ItalianAd2Prose
                 _linea = Linea.SuRadiale(nome, s, radiale, fuori, tr);
                 return;
             }
-            if (g["rotta"].Success)
+            if (g["rotta"].Success || g["prua"].Success)
             {
                 // «on TR 224°» da dove si è; prima del primo punto (una SID appena decollata) non disegna niente.
-                var tr = Numero(g["rotta"]);
+                // «turn right heading 025°»: una prua; si disegna come la rotta, senza vento, e si dice (committente, 23 ottobre).
+                var tr = Numero(g["rotta"].Success ? g["rotta"] : g["prua"]);
+                if (g["prua"].Success)
+                    _avvisi.Add($"prua {tr:000}° disegnata come rotta, senza vento");
                 if (_qui is { } qui)
                 {
                     if ((_declinazione ?? DeclinazioneDelTesto()) is not { } v) return;
@@ -591,6 +614,7 @@ public static partial class ItalianAd2Prose
         + @"|\bTR\s+(?<lineaT>\d{3})°\s*\(\s*RDL\s+(?<lineaR>\d{3})\s+(?<lineaN>" + Nav + @")\s+VOR(?:\s+or\s+RDL\s+\d{3}\s+" + Nav + @"\s+VOR)?\s*\)"
         + @"|\bRDL\s+(?<lineaR2>\d{3})\s+(?<lineaN2>" + Nav + @")(?:\s+VOR(?:/DME)?)?(?:\s*\(\s*RDL\s+\d{3}\s+" + Nav + @"\s+VOR\s*\))?(?:\s*\(\s*TR\s+(?<lineaT2>\d{3})°\s*\))?"
         + @"|\bTR\s+(?<rotta>\d{3})°"
+        + @"|\b(?:on\s+)?heading\s+(?<prua>\d{3})°"
         + @"|\b(?<dmeD>" + D + @")\s+NM\s+(?<dmeN>" + Nav + @")\s+DME(?:\s*\(\s*RDL\s+\d{3}\s*/\s*" + D + @"\s+NM\s+" + Nav + @"\s+VOR/DME\s*\))?"
         + @"|\b(?<virata>[Tt]urn\s+(?:left|right|LEFT|RIGHT))\b"
         // Un nome, e fra parentesi la sua definizione: una radiale e una distanza (serve se il punto non è nell'AIP), o
@@ -681,7 +705,8 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\(\s*(?:or\s+)?\d+(?:\.\d+)?\s*(?:NM\s+)?[A-Z]{2,4}\s+DME\s*\)")]
     private static partial Regex RxDefinizioneDme();
 
-    [GeneratedRegex(@"\bTR\s*-?\s*(\d{3})(?![\d°])")]
+    // «TR 214)», «TR 285 (RDL …», «(TR-241°)»: la rotta senza i gradi o col trattino.
+    [GeneratedRegex(@"\bTR\s*-\s*(\d{3})°?|\bTR\s*(\d{3})(?![\d°])")]
     private static partial Regex RxRottaSenzaGradi();
 
     [GeneratedRegex(@"\b([A-Z]{2,3})\s+VORTAC\b")]

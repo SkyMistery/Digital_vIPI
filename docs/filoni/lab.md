@@ -9,9 +9,9 @@
 Letti gli 851 PDF del 2611, il Lab dava 542 segnalazioni: divise per causa nella carta
 [`2026-10-23-segnalazioni-2611.md`](../feature/2026-10-23-segnalazioni-2611.md); ordine approvato dal committente
 B2+B1+B3 → B5 → B7 → B6. **B1-B3 e B5 fatte** nel lettore della prosa (`ItalianAd2Prose`), in quattro giri misurati sul
-2611 intero: **542 → 268 segnalazioni, procedure lette dalla prosa 449 → 723**, nessuna persa senza un motivo detto.
+2611 intero: **542 → 267 segnalazioni, procedure lette dalla prosa 449 → 732**, nessuna persa senza un motivo detto.
 Trovati e corretti strada facendo due difetti veri: ogni virata della prosa usciva a destra (101 procedure) e l'incrocio
-«Crossing RDL …» con la maiuscola non si riconosceva (archi rimasti aperti). Da decidere col committente: «heading».
+«Crossing RDL …» con la maiuscola non si riconosceva (archi rimasti aperti). «heading» (una prua): deciso dal committente, si disegna senza vento e si segnala.
 **Prossimo**: B7, poi B6. Il 22 ottobre la chat di prima si era fermata (crediti finiti): nessun codice a metà;
 l'ambiente di prova del committente (`SectorLabProva`) è quello delle sue prove, da non azzerare.
 

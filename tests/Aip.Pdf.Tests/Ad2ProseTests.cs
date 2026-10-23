@@ -182,6 +182,23 @@ public sealed class Ad2ProseTests
         Assert.Equal(attesi.Split('|'), tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
     }
 
+    // Committente, 23 ottobre: una prua («turn right heading 040°») «disegnala come se non ci fosse vento e segnalo»: la
+    // procedura si legge, la prua vale come rotta, e l'approssimazione si dice.
+    [Fact]
+    public void UnaPrua_ComeRottaSenzaVento_ESiDice()
+    {
+        var p = P(ProcedureKind.Star, "DELIK 1H", "DELIK – turn right heading 040° to join and follow RDL 130 LMT VOR (TR-310°) until 14 NM LMT DME, then turn right bound to SUGEP.");
+
+        var (tratti, problema, avvisi) = ItalianAd2Prose.DecodeWithWarnings(p, n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF DELIK", "CF RDL 130/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["prua 040° disegnata come rotta, senza vento"], avvisi);
+        // Senza prua, niente da dire.
+        Assert.Empty(ItalianAd2Prose.DecodeWithWarnings(P(ProcedureKind.Star, "DELIK 1T", "DELIK – TR 310° (RDL 130 LMT VOR) bound to SUGEP."),
+            n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n)).Warnings);
+    }
+
     [Fact]
     public void DueRadialiCheSiIncrociano()
     {
@@ -307,7 +324,7 @@ public sealed class Ad2ProseTests
             ],
         };
 
-        var (letto, nonLette) = ItalianAd2Prose.DecodeAll(documento);
+        var (letto, nonLette, _) = ItalianAd2Prose.DecodeAll(documento);
 
         var sugep = letto.Procedures![0];
         Assert.True(sugep.LegsFromDescription);
@@ -345,7 +362,7 @@ public sealed class Ad2ProseTests
             ],
         };
 
-        var (letto, nonLette) = ItalianAd2Prose.DecodeAll(documento);
+        var (letto, nonLette, _) = ItalianAd2Prose.DecodeAll(documento);
 
         Assert.Empty(nonLette);
         var ibx = letto.Procedures![0].Legs[^1].Position!.Value;
@@ -375,7 +392,7 @@ public sealed class Ad2ProseTests
             Procedures = [P(ProcedureKind.Star, "SUGEP 1Z", "SUGEP – TR 093° bound to IFA VOR to be left on RDL 180 IFA VOR until 10 NM IFA DME.")],
         };
 
-        var (letto, nonLette) = ItalianAd2Prose.DecodeAll(documento);
+        var (letto, nonLette, _) = ItalianAd2Prose.DecodeAll(documento);
 
         Assert.Empty(nonLette);
         var ultimo = letto.Procedures![0].Legs[^1].Position!.Value;

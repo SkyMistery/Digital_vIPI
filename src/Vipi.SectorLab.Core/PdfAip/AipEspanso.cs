@@ -456,10 +456,14 @@ public static class AipEspanso
         // Le linee fra gli ACC (passo 2c): i punti col nome prendono la posizione da ENR 4.4, letto dopo ENR 2.
         documento = ConLePosizioniDelleLinee(documento, problemi);
 
-        var (decodificato, nonLette) = ItalianAd2Prose.DecodeAll(documento);
+        var (decodificato, nonLette, approssimate) = ItalianAd2Prose.DecodeAll(documento);
         documento = decodificato;
         problemi.AddRange(nonLette.Select(n => new ProblemaDellImport(n.Procedure.Page?.Reference ?? n.Procedure.Aerodrome,
             new ImportIssue(ImportIssueKind.Procedure, n.Procedure.Key, null, $"prosa non letta: {n.Problem}"))));
+        // Lette, ma con un'approssimazione (una prua disegnata come rotta, senza vento): si disegnano e si dicono (committente,
+        // 23 ottobre).
+        problemi.AddRange(approssimate.Select(n => new ProblemaDellImport(n.Procedure.Page?.Reference ?? n.Procedure.Aerodrome,
+            new ImportIssue(ImportIssueKind.Procedure, n.Procedure.Key, null, $"prosa letta con un'approssimazione: {n.Warning}"))));
 
         var scritto = File(espanso, ciclo);
         Scrivi(espanso, ciclo, documento);
