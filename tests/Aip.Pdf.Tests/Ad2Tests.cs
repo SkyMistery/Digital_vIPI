@@ -74,6 +74,29 @@ public sealed class Ad2Tests
         Assert.Equal("AD 2 LIXX 1-1", s.Page?.Reference);
     }
 
+    // Segnalazioni 2611, revisione 4: gli scali minori numerano l'AD 2.2 diversamente (LIDT: la declinazione alla riga 4,
+    // l'autorità alla 5, il traffico alla 6): la riga la dice l'etichetta. Prima la declinazione di Trento era l'indirizzo
+    // dell'ENAC, e il fax «0461 946665 E-mail» si leggeva 946665° E.
+    [Fact]
+    public void IDatiDelloScalo_DalleEtichette()
+    {
+        var dati = new Pagina([52, 77, 257, 565], [100, 130, 160, 190, 220, 250, 280],
+        [
+            .. Testa("AD 2 LIXX 1 - 1"), (60, 80, "LIXX AD 2.2 DATI AMMINISTRATIVI E GEOGRAFICI DELL'AEROPORTO"),
+            (55, 108, "1"), (80, 108, "Coordinate ARP"), (260, 108, "46°01'24''N 011°07'30''E"),
+            (55, 138, "3"), (80, 138, "Elevazione/Temperatura di riferimento"), (260, 138, "610 FT / NIL"),
+            (55, 168, "4"), (80, 168, "Declinazione magnetica/Variazione annuale"), (260, 168, "1° E (2005.0) / 5'E"),
+            (55, 198, "5"), (80, 198, "Autorita amministrativa aeroportuale"), (260, 198, "ENAC fax +39 0461 946665 E-mail"),
+            (55, 228, "6"), (80, 228, "Tipo di traffico consentito (IFR/VFR)"), (260, 228, "VFR"),
+            (55, 258, "7"), (80, 258, "Note"), (260, 258, "1. AD aperto al traffico turistico"),
+        ]);
+
+        var s = Assert.Single(ItalianAd2.Read(PdfText.Read(Enr4Tests.Pdf(dati)), "LIXX", "PROVA").Aerodromes);
+
+        Assert.Equal(("1º E (2005.0)", "5'E", "VFR"), (s.MagneticVariation, s.AnnualChange, s.Traffic));
+        Assert.Equal("610 FT", s.Elevation);
+    }
+
     [Fact]
     public void LePiste_LaSogliaLaFineEIlGeoide_AncheNellaPaginaDopo()
     {

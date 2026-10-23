@@ -207,10 +207,15 @@ public static partial class ItalianAd2
 
     private static Aerodrome Dati(Aerodrome scalo, List<Riga> righe, Parte parte, List<ImportIssue> problemi)
     {
+        // La riga la dice l'etichetta stampata; il numero solo per i dati che nessuna etichetta ha trovato (segnalazioni 2611,
+        // revisione 4: LIDT ha la declinazione alla riga 4 e l'autorità alla 5, dove gli altri scali hanno la declinazione, e la
+        // declinazione di Trento era l'indirizzo dell'ENAC, «… fax 0461 946665 E-mail» letto 946665° E).
+        var dalleEtichette = righe.Where(r => r.Celle.Length >= 3).Select(r => Etichetta(Unisci(r.Celle[1]), parte)).OfType<string>().ToHashSet();
         foreach (var r in righe.Where(r => r.Celle.Length >= 3))
         {
             var valore = Unisci(r.Celle[2]);
-            var numero = Unisci(r.Celle[0]);
+            var numero = Etichetta(Unisci(r.Celle[1]), parte)
+                ?? (Unisci(r.Celle[0]) is { } n && !dalleEtichette.Contains(n) ? n : null);
             if (numero == parte.Arp)
             {
                 // Gli eliporti scrivono «41°51'59'' N - 016°09'54'' E»: la lettera attaccata ai secondi, senza il trattino.
@@ -228,11 +233,33 @@ public static partial class ItalianAd2
                 var (decl, anno) = Due(valore);
                 scalo = scalo with { MagneticVariation = decl, AnnualChange = anno };
             }
-            else if (numero == parte.Traffico)
+            // Vale la prima: l'etichetta inglese in una fascia sua, col testo delle note accanto (LINL), non lo sostituisce.
+            else if (numero == parte.Traffico && scalo.Traffic is null)
                 scalo = scalo with { Traffic = valore };
         }
         return scalo;
     }
+
+    /// <summary>Il numero di riga che l'etichetta dice: «Declinazione magnetica/Variazione annuale» è quello della declinazione.</summary>
+    private static string? Etichetta(string? etichetta, Parte parte) =>
+        etichetta is null ? null
+        : RxEtichettaDeclinazione().IsMatch(etichetta) ? parte.Declinazione
+        : RxEtichettaArp().IsMatch(etichetta) ? parte.Arp
+        : RxEtichettaElevazione().IsMatch(etichetta) ? parte.Elevazione
+        : RxEtichettaTraffico().IsMatch(etichetta) ? parte.Traffico
+        : null;
+
+    [GeneratedRegex(@"\bDeclinazione\s+magnetica\b|\bMagnetic\s+variation\b", Opzioni | RegexOptions.IgnoreCase)]
+    private static partial Regex RxEtichettaDeclinazione();
+
+    [GeneratedRegex(@"\bCoordinate\s+ARP\b|\bARP\s+coordinates\b", Opzioni | RegexOptions.IgnoreCase)]
+    private static partial Regex RxEtichettaArp();
+
+    [GeneratedRegex(@"^\s*(?:Elevazione|Elevation)\b", Opzioni | RegexOptions.IgnoreCase)]
+    private static partial Regex RxEtichettaElevazione();
+
+    [GeneratedRegex(@"\bTip[oi]\s+di\s+traffico\b|\bTypes?\s+of\s+traffic\b", Opzioni | RegexOptions.IgnoreCase)]
+    private static partial Regex RxEtichettaTraffico();
 
     /// <summary>
     /// Le carte di AD 2.24 (AD 3.23): una riga per carta, il titolo e la pagina («AD 2 LICA 2 ­ 1», col trattino
