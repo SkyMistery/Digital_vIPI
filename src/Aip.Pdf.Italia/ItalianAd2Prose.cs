@@ -54,7 +54,7 @@ public static partial class ItalianAd2Prose
         var testo = Route(ricucito);
         if (testo is null) return ([], "senza testo", []);
         var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind == ProcedureKind.Sid);
-        var (tratti, problema) = lettore.Leggi(inizio);
+        var (tratti, problema) = lettore.Leggi(inizio, procedure.Kind == ProcedureKind.Sid ? procedure.Designator.Split(' ')[0] : null);
         return (tratti, problema, problema is null ? [.. ricuciture, .. lettore.Avvisi] : []);
     }
 
@@ -239,7 +239,7 @@ public static partial class ItalianAd2Prose
             righe.Add(riga);
             colPunto = riga.EndsWith('.');
         }
-        return righe.Count == 0 ? null : Normalizza(string.Join(' ', righe));
+        return righe.Count == 0 ? null : Normalizza(RxNotaInCoda().Replace(string.Join(' ', righe), "."));
     }
 
     internal static string Normalizza(string testo)
@@ -280,7 +280,7 @@ public static partial class ItalianAd2Prose
         // L1: «(293° IBLN LOC)» dopo una radiale è un'alternativa; la rotta per quando il VOR non c'è anche (LIPZ: «(TR 218°
         // in case of TES VOR unavailability)», che prima diventava una rotta e poi un punto, TES).
         t = RxLocFraParentesi().Replace(t, "");
-        t = RxSeIlVorNonCe().Replace(t, "");
+        t = RxSeIlVorNonCe().Replace(t, m => Marca('N', m.Value.Trim().TrimStart('(').TrimEnd(')')));
         t = RxRadialeConLaR().Replace(t, "RDL $1");
         t = RxDvor().Replace(t, "VOR");
         t = RxTacanDistanza().Replace(t, "$1 DME");
@@ -303,7 +303,7 @@ public static partial class ItalianAd2Prose
         // B5: «as soon as practicable» dice quando, non dove; «Initial climb procedure completed» è «After take-off» per il
         // disegno (la salita iniziale è una procedura sua: la SID si disegna dal primo punto che si sa calcolare, come
         // sempre dopo il decollo); «Leave AEA VOR on RDL 149» è «AEA VOR, poi la radiale 149 di AEA».
-        t = RxAppenaPossibile().Replace(t, " ");
+        t = RxAppenaPossibile().Replace(t, m => Marca('N', m.Value.Trim().Trim(',')));
         t = RxFineSalitaIniziale().Replace(t, "After take-off");
         // «to leave on RDL 215° GRO VOR» (LIRS ILOWE 1X): il segno dei gradi va tolto prima, se no resta da solo; «When at
         // D3 DEC TACAN» è «At» (LIEE KOVAS 7A).
@@ -325,13 +325,39 @@ public static partial class ItalianAd2Prose
         t = RxDistanzaDaUnVor().Replace(t, "$1 NM $2 DME");
         t = RxVorSpezzato().Replace(t, "VOR");
         t = RxTrack().Replace(t, "TR $1°");
-        t = RxMca().Replace(t, " ");
         t = RxDmeAbbreviato().Replace(t, "${d} NM ${n} DME"); // «D20 OST DME», «43 NM PNZ TAC»
-        t = RxIas().Replace(t, " ");
-        t = RxQuotaDaRaggiungere().Replace(t, " ");
+        // Passo 2 della revisione col committente (carta §6, gruppo 5): «non si butta niente». Quote, velocità, autorizzazioni
+        // e condizioni non sono pezzi del percorso, ma restano: un segnaposto (⟦Q+2800⟧ la quota, ⟦V-210⟧ la velocità, ⟦N…⟧
+        // una nota, ⟦A…⟧ un avviso, ⟦B+1500⟧ «not below» da controllare) che il lettore mette nel tratto dove sta.
+        t = RxMca().Replace(t, m => m.Groups["q"].Success ? Marca('Q', "+" + m.Groups["q"].Value) : Marca('N', m.Value.Trim('(', ')', ' ')));
+        t = RxIas().Replace(t, m => Marca('V', "-" + m.Groups["v"].Value)
+            + (m.Groups["resto"].Value.Trim() is { Length: > 0 } resto ? Marca('N', $"IAS MAX {m.Groups["v"].Value} KT {resto}") : ""));
+        t = RxQuotaDaRaggiungere().Replace(t, m => Marca('Q', "+" + m.Groups["q"].Value));
+        t = RxIncrociaAUnaQuota().Replace(t, m => $"{m.Groups[1].Value} {Marca('Q', "+" + Quota(m.Groups[2].Value))}"
+            + (m.Groups[3].Success ? Marca('N', m.Groups[3].Value) : ""));
+        t = RxIncrociaComeAutorizzato().Replace(t, m => $"{m.Groups[1].Value} {Marca('N', m.Groups[2].Value)}");
+        t = RxAUnaQuotaOSopra().Replace(t, m => Marca('Q', "+" + Quota(m.Groups[1].Value)));
+        t = RxSeAutorizzato().Replace(t, m => Marca('N', m.Value.Trim().Trim(',').Trim()));
+        t = RxLivelloAssegnato().Replace(t, m => Marca('N', m.Value.Trim()));
+        t = RxCompletareLaVirata().Replace(t, m => Marca('N', m.Value.Trim().TrimStart('(').TrimEnd(')')));
+        t = RxNonSotto().Replace(t, m => Marca('B', "+" + m.Groups[1].Value));
+        t = RxCondizioniAVista().Replace(t, m => Marca('N', m.Value.Trim().TrimStart(';').Trim()));
+        t = RxSalitaNellAttesa().Replace(t, m => Marca('N', m.Value.Trim().TrimStart(',').Trim()));
+        // Q3: «suggested Track 050°» è la TR 050°, e si dice (committente).
+        t = RxRottaSuggerita().Replace(t, m => Marca('A', $"«suggested Track {m.Groups[1].Value}°» è una rotta suggerita: disegnata come TR {m.Groups[1].Value}°") + $"TR {m.Groups[1].Value}°");
+        // Q4: «Crossing RDL 166 BSM VOR (in any case within 7NM BSM DME) turn left»: la carta segna la virata sul punto R166
+        // BSM / D7 BSM, la radiale alla distanza (LIPO OSKOR 6X, 7W).
+        t = RxInOgniCasoEntro().Replace(t, m => $"RDL {m.Groups[1].Value}/{m.Groups[3].Value} NM {m.Groups[2].Value} VOR/DME "
+            + Marca('N', $"crossing RDL {m.Groups[1].Value} {m.Groups[2].Value} VOR (in any case within {m.Groups[3].Value} NM {m.Groups[2].Value} DME)"));
         t = RxParentesiDiNota().Replace(t, " ");
         return RxSpazi().Replace(t, " ").Trim();
     }
+
+    /// <summary>Il segnaposto di quel che non è percorso ma resta (passo 2): gli spazi diventano «_», così le regole dopo non lo toccano.</summary>
+    private static string Marca(char tipo, string testo) => $" ⟦{tipo}{RxSpazi().Replace(testo.Trim(), "_")}⟧ ";
+
+    /// <summary>La quota come nelle tabelle: «FL 110» → FL110, «2100 ft» → 2100.</summary>
+    private static string Quota(string scritta) => RxSpazi().Replace(scritta, "").Replace("ft", "", StringComparison.OrdinalIgnoreCase);
 
     private sealed class Lettore(string testo, Func<string, Position?> punto, Func<string, Station?> stazione, Runway? pista, bool dallaPista = false)
     {
@@ -351,10 +377,47 @@ public static partial class ItalianAd2Prose
         /// </summary>
         private bool _virataDopoLaRotta;
 
+        /// <summary>Il pezzo di prima ha messo un punto: una quota «not below» che segue vale per lui (passo 2).</summary>
+        private bool _puntoAppena;
+
+        /// <summary>Quote, velocità e note venute prima del primo punto: vanno nel primo tratto (passo 2).</summary>
+        private readonly List<Func<ProcedureLeg, ProcedureLeg>> _inSospeso = [];
+
         /// <summary>Le approssimazioni fatte leggendo (una prua come rotta): si dicono anche se la procedura si legge.</summary>
         public IReadOnlyList<string> Avvisi => _avvisi;
 
-        public (IReadOnlyList<ProcedureLeg>, string?) Leggi(string? inizio)
+        /// <summary>
+        /// Passo 2 della revisione col committente («non si butta niente»): la quota (Q), la velocità (V), la nota (N) vanno
+        /// nel tratto appena letto, o nel primo se vengono prima; un avviso (A) si dice; «not below» (B) vale come quota se
+        /// viene subito dopo un punto, se no la virata è a una quota e non si sa dove (passo 5).
+        /// </summary>
+        private void Marca(char tipo, string testo)
+        {
+            if (tipo == 'A')
+            {
+                _avvisi.Add(testo);
+                return;
+            }
+            if (tipo == 'B')
+            {
+                if (!_puntoAppena)
+                {
+                    _problema = $"«not below {testo.TrimStart('+')} ft» senza un punto: la virata è a una quota, il punto dove si fa non si calcola";
+                    return;
+                }
+                tipo = 'Q';
+            }
+            Func<ProcedureLeg, ProcedureLeg> cosa = tipo switch
+            {
+                'Q' => t => t with { Altitude = t.Altitude is null ? testo : $"{t.Altitude} {testo}" },
+                'V' => t => t with { Speed = t.Speed is null ? testo : $"{t.Speed} {testo}" },
+                _ => t => t with { Notes = t.Notes is null ? testo : $"{t.Notes}; {testo}" },
+            };
+            if (_tratti.Count > 0) _tratti[^1] = cosa(_tratti[^1]);
+            else _inSospeso.Add(cosa);
+        }
+
+        public (IReadOnlyList<ProcedureLeg>, string?) Leggi(string? inizio, string? fine = null)
         {
             if (inizio is not null && RxPezzo().Match(testo) is var primo && !(primo.Index == 0 && primo.Groups["nome"].Success && !Parola(primo.Groups["nome"].Value)))
             {
@@ -378,17 +441,30 @@ public static partial class ItalianAd2Prose
             var avanzo = RxRiempitivo().Replace(minuscolo, " ").Trim();
             if (avanzo.Length > 0) return ([], $"non capito: «{avanzo}»");
             if (_arco is not null) return ([], "un arco DME senza la radiale dove finisce");
+            // Una SID che non dice dove finisce («At 22 NM OZE VOR/DME turn left to join RDL 312 VIC VOR/DME.», LIPB VIC 6B)
+            // finisce sul punto del suo nome, come la STAR che non dice da dove comincia parte dal suo (committente, 23 ottobre).
+            if (fine is not null && _linea is not null && !_puntoAppena && _tratti.Count > 0 && _quiNome != fine
+                && (punto(fine) ?? stazione(fine)?.Position) is { } doveFinisce)
+                VersoUnNome(fine, doveFinisce);
+            if (_problema is not null) return ([], _problema);
             if (_tratti.Count == 0) return ([], "nessun punto");
+            foreach (var cosa in _inSospeso) _tratti[0] = cosa(_tratti[0]);
             return (_tratti, null);
         }
 
         private void Pezzo(Match m)
         {
             var g = m.Groups;
+            if (g["marcaK"].Success)
+            {
+                Marca(g["marcaK"].Value[0], g["marcaT"].Value.Replace('_', ' '));
+                return;
+            }
+            _puntoAppena = false;
             if (g["virata"].Success)
             {
                 // Il pezzo è «turn left»: conta la parola dopo «turn» (prima si guardava la prima lettera, sempre «t»: tutte a destra).
-                _virata = g["virata"].Value.EndsWith("left", StringComparison.OrdinalIgnoreCase) ? "L" : "R";
+                _virata = g["virata"].Value.Contains("left", StringComparison.OrdinalIgnoreCase) ? "L" : "R";
                 _virataDopoLaRotta = true;
                 return;
             }
@@ -622,6 +698,7 @@ public static partial class ItalianAd2Prose
                 });
                 _qui = fine;
                 _quiNome = fix;
+                _puntoAppena = true;
                 _virata = null;
             }
             else if (fix is not null)
@@ -636,6 +713,7 @@ public static partial class ItalianAd2Prose
 
         private void VersoUnNome(string nome, Position posizione)
         {
+            _puntoAppena = true;
             if (_quiNome == nome) return;
             // B5: «until joining ARC 20 NM BAR DME bound to LUXIL»: l'arco finisce sul punto, se il punto sta sull'arco
             // (mezzo miglio); se no l'arco resta aperto e si dice.
@@ -674,6 +752,7 @@ public static partial class ItalianAd2Prose
             _virata = null;
             _qui = p;
             _quiNome = null;
+            _puntoAppena = true;
         }
 
         private Station? Stazione(string nome)
@@ -819,7 +898,8 @@ public static partial class ItalianAd2Prose
 
     // I pezzi, in ordine di precedenza: chi comincia prima vince, a parità vince il primo dell'alternativa.
     [GeneratedRegex(
-        @"(?<lascia>\b(?:[Ll]eaving|until\s+leaving)\s+\d+\s*(?:FT|ft)\b)"
+        @"⟦(?<marcaK>[QVNAB])(?<marcaT>[^⟧]*)⟧"
+        + @"|(?<lascia>\b(?:[Ll]eaving|until\s+leaving)\s+\d+\s*(?:FT|ft)\b)"
         + @"|(?<pistaH>\b(?:RWY|runway|RUNWAY)\s+heading\b(?:\s*\(\s*TR\s+\d{3}°\s*\))?)"
         // V6: «at 17 NM CMP DME (intersection RDL 073 OST VOR)»: lo stesso punto detto in un altro modo, da controllare.
         + @"|\(\s*intersection\s+RDL\s+(?<ctrlR>\d{3})\s+(?<ctrlN>" + Nav + @")(?:\s+VOR)?\s*\)"
@@ -834,7 +914,8 @@ public static partial class ItalianAd2Prose
         + @"|\bTR\s+(?<rotta>\d{3})°"
         + @"|\b(?:on\s+)?heading\s+(?<prua>\d{3})°"
         + @"|\b(?<dmeD>" + D + @")\s+NM\s+(?<dmeN>" + Nav + @")\s+DME(?:\s*\(\s*RDL\s+\d{3}\s*/\s*" + D + @"\s+NM\s+" + Nav + @"\s+VOR/DME\s*\))?"
-        + @"|\b(?<virata>[Tt]urn\s+(?:left|right|LEFT|RIGHT))\b"
+        // «turn left», e al contrario «then left turn on track 109°» (LICR FOSQA 2A: prima il verso restava vuoto).
+        + @"|\b(?<virata>[Tt]urn\s+(?:left|right|LEFT|RIGHT)|(?:left|right)\s+turn)\b"
         // Un nome, e fra parentesi la sua definizione: una radiale e una distanza (serve se il punto non è nell'AIP), o
         // un'altra («NPC LOC/13 NM NPC DME») che non serve.
         // Un nome: lettere (ELKAP, TAQ) o due lettere e tre cifre, i punti RNAV degli scali (BP401, PH001: B5).
@@ -846,7 +927,8 @@ public static partial class ItalianAd2Prose
     // Segnalazioni 2611, B5: «until intercepting and following RDL …» = «until joining», «inbound to» = «bound to», «Over TOP
     // VOR proceed …» = «da TOP VOR».
     [GeneratedRegex(@"\b(?:then|and|proceed|on|to|bound|direct|until|till|point|via|join|joining|intercept|follow|at|from|after|take-off|continue|the|be|or|turn|left|right|crossing|maintain|From|Proceed|Turn|Join|At|Then|And|After|Crossing"
-        + @"|intercepting|following|Intercept|Intercepting|inbound|Inbound|Over|over|overflying)\b|[,;.\-()]",
+        // «Cross EKTOL» a fine riga, con la quota andata sulla riga delle quote (LIBF EKTOL 6A): passare sul punto.
+        + @"|intercepting|following|Intercept|Intercepting|inbound|Inbound|Over|over|overflying|cross)\b|[,;.\-()]",
         RegexOptions.CultureInvariant)]
     private static partial Regex RxRiempitivo();
 
@@ -871,7 +953,8 @@ public static partial class ItalianAd2Prose
     private static partial Regex RxVerbo();
 
     // La riga dopo un punto che continua il percorso: comincia con un verbo o con «At N NM …»; non con REMARK, Minimum, quote.
-    [GeneratedRegex(@"^(?:At\s+\d|Then\b|Turn\b|Proceed\b|Leave\b|Crossing\b|Continue\b|Join\b|Intercept)")]
+    // Passo 2: anche «Passing 4000 ft, anyway not further than …» (LIMF TOP 1B): prima il percorso finiva lì e la virata spariva.
+    [GeneratedRegex(@"^(?:At\s+\d|Then\b|Turn\b|Proceed\b|Leave\b|Crossing\b|Continue\b|Join\b|Intercept|Passing\b|Overflying\b|Cross\b)")]
     private static partial Regex RxRigaCheContinua();
 
     [GeneratedRegex(@"\bD(?<d>\d+(?:\.\d+)?)\s+(?<n>[A-Z]{2,3})\s+DME\b|\b(?<d>\d+(?:\.\d+)?)\s+NM\s+(?<n>[A-Z]{2,3})\s+TAC\b")]
@@ -886,7 +969,7 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\btrack\s+(\d{3})°")]
     private static partial Regex RxTrack();
 
-    [GeneratedRegex(@"\((?:MCA|MCL)\s+\d+\s*(?:ft|FT)\s*\)|\(not\s+before[^)]*\)")]
+    [GeneratedRegex(@"\((?:MCA|MCL)\s+(?<q>\d+)\s*(?:ft|FT)\s*\)|\(not\s+before[^)]*\)")]
     private static partial Regex RxMca();
 
     [GeneratedRegex(@"\s+-\s*|\s*-\s+")]
@@ -961,12 +1044,52 @@ public static partial class ItalianAd2Prose
     private static partial Regex RxVorONdb();
 
     // «(IAS MAX 210KT)», «(IAS MAX 200 kt during turn)»: una velocità, non un pezzo del percorso.
-    [GeneratedRegex(@"\(\s*IAS\s+MAX\s+\d+\s*KT\b[^)]*\)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\(\s*IAS\s+MAX\s+(?<v>\d+)\s*KT\b(?<resto>[^)]*)\)", RegexOptions.IgnoreCase)]
     private static partial Regex RxIas();
 
     // «to be reached at or above 4000 ft», «(to be crossed at 2800 ft or above)»: una quota, non un pezzo del percorso.
-    [GeneratedRegex(@"\(?\s*\bto\s+be\s+(?:reached|crossed)\s+at\s+(?:or\s+above\s+)?\d+\s*(?:ft|FT)\b(?:\s+or\s+above)?\s*\)?")]
+    [GeneratedRegex(@"\(?\s*\bto\s+be\s+(?:reached|crossed)\s+at\s+(?:or\s+above\s+)?(?<q>\d+)\s*(?:ft|FT)\b(?:\s+or\s+above)?\s*\)?")]
     private static partial Regex RxQuotaDaRaggiungere();
+
+    // Passo 2 (gruppo 5): «Cross EKTOL at FL 110 or above, as cleared», «Cross RATIR as cleared by ATC».
+    [GeneratedRegex(@"\b[Cc]ross\s+([A-Z]{2,5})\s+at\s+(FL\s?\d{2,3}|\d{3,5}\s*(?:ft|FT))\s+or\s+above\b\s*,?\s*(as\s+cleared(?:\s+by\s+ATC)?)?", RegexOptions.CultureInvariant)]
+    private static partial Regex RxIncrociaAUnaQuota();
+
+    [GeneratedRegex(@"\b[Cc]ross\s+([A-Z]{2,5})\s+(as\s+cleared(?:\s+by\s+ATC)?)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxIncrociaComeAutorizzato();
+
+    // «crossing point RDL 180/6NM CSL VOR/DME at 2100 ft or above» (LIMF TOP 1B).
+    [GeneratedRegex(@"\bat\s+(FL\s?\d{2,3}|\d{3,5}\s*(?:ft|FT))\s+or\s+above\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxAUnaQuotaOSopra();
+
+    [GeneratedRegex(@",?\s*\bif\s+cleared\s+by\s+ATC\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxSeAutorizzato();
+
+    [GeneratedRegex(@"\bclimbing\s+to\s+the\s+assigned\s+level\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxLivelloAssegnato();
+
+    [GeneratedRegex(@"\(\s*to\s+complete\s+the\s+turn\s+at\s+\d+\s*(?:ft|FT)\s+or\s+(?:more|above)\s*\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxCompletareLaVirata();
+
+    [GeneratedRegex(@",?\s*\bnot\s+below\s+(\d{3,5})\s*(?:ft|FT)\b\s*,?", RegexOptions.CultureInvariant)]
+    private static partial Regex RxNonSotto();
+
+    [GeneratedRegex(@";?\s*\bmaintain\s+visual\s+conditions\s+until\s+passing\s+\d+\s*(?:ft|FT)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxCondizioniAVista();
+
+    // N3: «then climb in the holding pattern until reaching MEL for next AWY segment or FL cleared by Milano ACC» (LIMP OSBUL 7N).
+    [GeneratedRegex(@",?\s*\bthen\s+climb\s+in\s+the\s+holding\s+pattern\s+until\s+reaching\s+MEL\b[^.]*", RegexOptions.CultureInvariant)]
+    private static partial Regex RxSalitaNellAttesa();
+
+    [GeneratedRegex(@"\bsuggested\s+[Tt]rack\s+(\d{3})°", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRottaSuggerita();
+
+    [GeneratedRegex(@"\b[Cc]rossing\s+RDL\s+(\d{3})\s+([A-Z]{2,3})\s+VOR(?:/DME)?\s*\(\s*in\s+any\s+case\s+within\s+(\d+(?:\.\d+)?)\s+NM\s+\2\s+DME\s*\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxInOgniCasoEntro();
+
+    // Il percorso finisce dove comincia una nota sulla stessa riga («bound to URIPI. Minimum climb gradient: …», LIBF URIPI 6A).
+    [GeneratedRegex(@"\.\s+(?:REMARKS?\b|Minimum\s+climb\s+gradient\b).*$", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
+    private static partial Regex RxNotaInCoda();
 
     [GeneratedRegex(@"\((?:ATC\s+discretion|to\s+be\s+used\s+only)[^)]*\)", RegexOptions.IgnoreCase)]
     private static partial Regex RxParentesiDiNota();

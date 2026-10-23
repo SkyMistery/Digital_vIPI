@@ -582,4 +582,92 @@ public sealed class Ad2ProseTests
         Assert.EndsWith("or RDL 319/19 NM RCA VOR/DME).", ItalianAd2Prose.Route(
             "Turn right to intercept and follow RDL 139 LMT VOR inbound to SUGEP (RDL 139/49.4NM LMT VOR/DME or\nRDL319/19NM RCA VOR/DME)."), StringComparison.Ordinal);
     }
+
+    // Passo 2 della revisione col committente (carta §6, gruppo 5): «non si butta niente». La quota, la velocità e la nota
+    // vanno nel tratto dove stanno; il percorso resta quello di prima.
+    [Fact]
+    public void QuoteVelocitaENote_NelTratto()
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Sid, "SUGEP 1A",
+            "After take-off proceed on RDL 130 LMT VOR. At 14 NM LMT DME (to be crossed at 2200 ft or above) turn right (IAS MAX 220 kt during turn) bound to SUGEP, if cleared by ATC."));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF RDL 130/14 NM LMT", "TF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(("+2200", "-220", "IAS MAX 220 KT during turn"), (tratti[0].Altitude, tratti[0].Speed, tratti[0].Notes));
+        Assert.Equal("if cleared by ATC", tratti[1].Notes);
+    }
+
+    [Theory]
+    [InlineData("Cross SUGEP at FL 110 or above, as cleared.", "+FL110", "as cleared")]
+    [InlineData("Cross SUGEP as cleared by ATC.", null, "as cleared by ATC")]
+    [InlineData("Then climb in the holding pattern until reaching MEL for next AWY segment.", null, "climb in the holding pattern until reaching MEL for next AWY segment")]
+    public void LeQuoteELeAutorizzazioniDopoIlPunto(string dopo, string? quota, string nota)
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T", "DELIK – TR 310° (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP, " + dopo.ToLowerInvariant()[..1] + dopo[1..]));
+
+        Assert.Null(problema);
+        Assert.Equal("SUGEP", tratti[^1].Fix);
+        Assert.Equal(quota, tratti[^1].Altitude);
+        Assert.Contains(nota, tratti[^1].Notes, StringComparison.Ordinal);
+    }
+
+    // «not below 1500 ft» subito dopo un punto è la sua quota; senza un punto la virata è a una quota (passo 5) e si ferma.
+    [Fact]
+    public void NonSotto_DopoUnPunto_OppureSiFerma()
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Sid, "SUGEP 1A", "Proceed on RDL 130 LMT VOR, at 14 NM LMT DME, not below 1500 ft, turn right bound to SUGEP."));
+        var (_, fermo) = Leggi(P(ProcedureKind.Sid, "SUGEP 1A", "Proceed on RDL 130 LMT VOR, not below 1500 ft, turn right bound to SUGEP."));
+
+        Assert.Null(problema);
+        Assert.Equal("+1500", tratti[0].Altitude);
+        Assert.Contains("virata è a una quota", fermo, StringComparison.Ordinal);
+    }
+
+    // Q3: «suggested Track» si disegna come la rotta e si dice; Q4: «(in any case within 14NM LMT DME)» è il punto radiale/DME.
+    [Fact]
+    public void LaRottaSuggerita_EIlPuntoInOgniCaso()
+    {
+        var (tratti, problema, avvisi) = ItalianAd2Prose.DecodeWithWarnings(P(ProcedureKind.Star, "DELIK 1T",
+                "DELIK – suggested Track 310° (RDL 130 LMT VOR). Crossing RDL 100 LMT VOR (in any case within 14NM LMT DME) turn right bound to SUGEP."),
+            n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF DELIK", "CF RDL 100/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Contains("in any case within 14 NM LMT DME", tratti[1].Notes, StringComparison.Ordinal);
+        Assert.Contains(avvisi, a => a.Contains("rotta suggerita", StringComparison.Ordinal));
+    }
+
+    // «then left turn» al contrario dà il verso (LICR FOSQA 2A); la nota sulla stessa riga chiude il percorso (LIBF URIPI 6A).
+    [Fact]
+    public void LaVirataAlContrario_ELaNotaInCoda()
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T",
+            "DELIK – TR 310° (RDL 130 LMT VOR) until 14 NM LMT DME, then left turn bound to SUGEP. Minimum climb gradient: 6.8% (413 ft/NM) up to 5000 ft. FL 110"));
+
+        Assert.Null(problema);
+        Assert.Equal("L", tratti[^1].Turn);
+    }
+
+    // Una SID che non dice dove finisce finisce sul punto del suo nome (LIPB VIC 6B; committente, 23 ottobre).
+    [Fact]
+    public void UnaSidCheNonDiceDoveFinisce_FinisceSulPuntoDelSuoNome()
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Sid, "SUGEP 1A", "Proceed on RDL 130 LMT VOR. At 14 NM LMT DME turn left to join RDL 093 LMT VOR."));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF RDL 130/14 NM LMT", "TF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+    }
+
+    // Il percorso continua sulla riga che comincia con «Passing» (LIMF TOP 1B: prima finiva lì e la virata spariva, con un
+    // punto solo); «Cross EKTOL» a fine riga è passare sul punto (LIBF EKTOL 6A).
+    [Fact]
+    public void LaRigaCheCominciaConPassing_EIlCrossDaSolo()
+    {
+        Assert.Contains("Passing 4000 ft", ItalianAd2Prose.Route(
+            "After take-off join RDL 180 LMT VOR (TR 180°), crossing point RDL 180/6NM LMT VOR/DME at 2100 ft or above.\nPassing 4000 ft turn left bound to SUGEP."), StringComparison.Ordinal);
+        var (tratti, problema) = Leggi(P(ProcedureKind.Sid, "SUGEP 1A", "Join and follow RDL 130 LMT VOR (TR 130°) bound to SUGEP. Cross SUGEP\nat FL 110 or above, as cleared."));
+
+        Assert.Null(problema);
+        Assert.Equal("SUGEP", tratti[^1].Fix);
+    }
 }
