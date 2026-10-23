@@ -162,4 +162,37 @@ public sealed class CorrezioniDellAipTests
         Assert.Equal("2026-10-19-8", CorrezioniDellAip.NuovoId(file, Oggi));
         Assert.Equal("2026-10-20-1", CorrezioniDellAip.NuovoId(file, Oggi.AddDays(1)));
     }
+
+    // Segnalazioni 2611, passo 7 (committente: «nell'app del Lab»): una stazione straniera (AJO, Ajaccio) si aggiunge come le
+    // altre correzioni — Indice dell'AIP, «Aggiungi»: radioassistenza —, ed entra fra le radioassistenze prima della prosa: al
+    // «Rileggi» le procedure che la nominano si leggono. Qui una stazione inventata, XAJ.
+    [Fact]
+    public void UnaStazioneStraniera_AggiuntaComeCorrezione_SiUsaNellaProsa()
+    {
+        var pdf = new AipDocument
+        {
+            State = "LI", Airac = "2611", Airspaces = [],
+            Points =
+            [
+                new SignificantPoint { Section = "ENR 4.4", Designator = "CORSI", Position = new Position(42.30, 9.00) },
+                new SignificantPoint { Section = "ENR 4.4", Designator = "SUGEP", Position = new Position(41.30, 9.20) },
+            ],
+            Procedures = [new Procedure { Aerodrome = "LIXX", Kind = ProcedureKind.Star, Designator = "CORSI 3F", Description = "CORSI – TR 173° (RDL 173 XAJ VOR) until 31 NM XAJ DME, then turn right bound to SUGEP." }],
+        };
+        var estera = new Navaid
+        {
+            Section = "AIP Francia ENR 4.1", Designator = "XAJ", Name = "PROVA", Type = "VOR/DME", MagneticVariation = "2° E",
+            Position = new Position(41.90, 8.80), Components = [],
+        };
+        var (prima, _, _) = Aip.Pdf.Italia.ItalianAd2Prose.DecodeAll(pdf);
+
+        var (fatta, perche) = CorrezioniDellAip.Aggiungi(pdf, new AipCorrectionFile { State = "LI" }, CorrectionKind.Navaid, estera,
+            "stazione straniera nominata dalle STAR", "AIP Francia, ENR 4.1", "2611", new DateOnly(2026, 10, 24));
+        var (letto, nonLette, _) = Aip.Pdf.Italia.ItalianAd2Prose.DecodeAll(AipCorrections.Apply(pdf, fatta!.Correzioni).Document);
+
+        Assert.Null(perche);
+        Assert.Empty(prima.Procedures![0].Legs);
+        Assert.Empty(nonLette);
+        Assert.Equal(["CORSI", "RDL 173/31 NM XAJ", "SUGEP"], letto.Procedures![0].Legs.Select(t => t.Fix ?? t.Computed));
+    }
 }
