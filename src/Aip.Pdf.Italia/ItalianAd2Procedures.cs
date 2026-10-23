@@ -206,8 +206,16 @@ public static partial class ItalianAd2Procedures
         var taglio = tagli.Min() - 1;
         // La tabella dei punti in fondo alla pagina sta sotto tutte e due le colonne, a partire da sinistra («PH001 N45523971
         // E011343924», LIPH 4; segnalazioni 2611, N2): le sue righe si tengono intere.
+        // Così le minime stampate una volta sola, centrate sotto le due colonne («MEA: ENEPA – RDL 327/25NM COM VOR/DME: 6000FT;
+        // RDL327/25NM COM VOR/DME - COM VOR/DME: 5000FT», «MCL: NELDA FL 80», LICB 4 e 6; segnalazioni 2611, passo 8): tagliate,
+        // la prima metà se ne andava con l'italiano e la seconda finiva nella descrizione. Non quelle stampate in tutte e due le
+        // lingue, una per colonna.
+        bool CentrataSulleDue(double y) =>
+            page.Words.Where(w => Math.Abs(w.Baseline - y) <= 1.5 && w.XCenter >= taglio).MinBy(w => w.X0) is { } aDestra
+            && page.Words.Any(w => Math.Abs(w.Baseline - y) <= 1.5 && w.XCenter < taglio) && !RxRigaDiMinimi().IsMatch(aDestra.Text);
         var intere = Table.PlainLinesWithY(page)
-            .Where(l => RxSpazi().Replace(l.Text, " ").Trim() is var t && (RxListaDeiPunti().IsMatch(t) || RxRigaDiPuntoArinc().IsMatch(t)))
+            .Where(l => RxSpazi().Replace(l.Text, " ").Trim() is var t && (RxListaDeiPunti().IsMatch(t) || RxRigaDiPuntoArinc().IsMatch(t)
+                || RxRigaDiMinimi().IsMatch(t) && CentrataSulleDue(l.Y)))
             .Select(l => l.Y).ToList();
         return page with
         {
@@ -218,6 +226,9 @@ public static partial class ItalianAd2Procedures
 
     [GeneratedRegex(@"^(?:[A-Z]{2}\d{3,4}|[A-Z]{5})\s+[NS]\d{6}\.?\d{2}\s+[EW]\d{7}\.?\d{2}$", RegexOptions.CultureInvariant)]
     private static partial Regex RxRigaDiPuntoArinc();
+
+    [GeneratedRegex(@"^(?:MEA|MEL|MCA|MCL|MOCA)(?:\s*/\s*(?:MEA|MEL|MCA|MCL))?\s*:", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRigaDiMinimi();
 
     private sealed class InCorso(string designatore, ProcedureKind genere, IReadOnlyList<string> piste, string? sezione, ImportPage pagina, bool dalTitolo = false)
     {
@@ -660,6 +671,17 @@ public static partial class ItalianAd2Procedures
                     if (genere == ProcedureKind.InitialClimb) genere = genereDelFile;
                     modo = Modo.Procedure;
                     corrente = new InCorso(Nome(conLePiste), genere, Piste(riga), sezione, pagina);
+                    procedure.Add(corrente);
+                    continue;
+                }
+                // Segnalazioni 2611, passo 8: sotto «INITIAL CLIMB PROCEDURE» senza pista, una riga «RWY 05» apre la salita di
+                // quella pista, e «RWY 23» più sotto quella dell'altra (LICB 6-3); non è il titolo della pagina, e le SID che
+                // seguono non la prendono.
+                if (genere == ProcedureKind.InitialClimb && corrente is { DalTitolo: true } && sezione is { } titolo && Piste(titolo).Count == 0
+                    && RxPisteDelTitolo().IsMatch(riga) && !riga.StartsWith("DEPARTURE", StringComparison.Ordinal) && Piste(riga) is { Count: > 0 } dellaRiga)
+                {
+                    piste = dellaRiga;
+                    corrente = new InCorso("RWY " + string.Join("/", piste), genere, piste, sezione, pagina, dalTitolo: true);
                     procedure.Add(corrente);
                     continue;
                 }

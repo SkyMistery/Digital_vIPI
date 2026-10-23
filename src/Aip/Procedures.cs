@@ -176,6 +176,25 @@ public sealed record ProcedureLeg
     /// <summary>La posizione calcolata di un punto senza nome (<see cref="Computed"/>).</summary>
     public Position? Position { get; init; }
 
+    /// <summary>
+    /// Un tratto della prosa che finisce su una radioassistenza (segnalazioni 2611, passo 8, per ATCSim): la stazione. I tratti
+    /// <c>CD</c>, <c>FD</c>, <c>VD</c> finiscono a una distanza DME (<see cref="DmeNm"/>), i <c>CR</c>, <c>VR</c> su una radiale
+    /// (<see cref="Radial"/>), un <c>AF</c> sull'arco di <see cref="DmeNm"/> attorno a lei.
+    /// </summary>
+    public string? Navaid { get; init; }
+
+    /// <summary>La radiale magnetica di <see cref="Navaid"/> dove il tratto finisce: <c>327</c>.</summary>
+    public double? Radial { get; init; }
+
+    /// <summary>La distanza DME da <see cref="Navaid"/> dove il tratto finisce, in NM.</summary>
+    public double? DmeNm { get; init; }
+
+    /// <summary>
+    /// La quota minima del tratto (MEA o MEL) com'è stampata nelle minime della procedura: <c>6000FT</c>, <c>FL 80</c>,
+    /// <c>TRL</c> (passo 8: le STAR con la MEA a tratti). Non è un vincolo sul punto, come <see cref="Altitude"/>.
+    /// </summary>
+    public string? MinimumAltitude { get; init; }
+
     /// <summary>Gli avvicinamenti: l'angolo di discesa e l'altezza sulla soglia (VPA/TCH), com'è stampato: <c>-3.33/15.6</c>.</summary>
     public string? VerticalPath { get; init; }
 

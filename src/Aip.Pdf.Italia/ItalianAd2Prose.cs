@@ -69,6 +69,8 @@ public static partial class ItalianAd2Prose
             declinazioneDelloScalo: aerodromeVariation, decollo: departure, quoteMinime: procedure.Minimums + "\n" + procedure.Description,
             localizzatore: localizer);
         var (tratti, problema) = lettore.Leggi(inizio, procedure.Kind == ProcedureKind.Sid ? procedure.Designator.Split(' ')[0] : null);
+        // Passo 8 (committente: «per tutte le STAR»): le MEA a tratti delle minime.
+        if (problema is null && procedure.Kind == ProcedureKind.Star) tratti = ConLeMea(tratti, procedure.Minimums, point, station);
         return (tratti, problema, problema is null ? [.. ricuciture.Concat(lettore.Avvisi).Distinct(StringComparer.Ordinal)] : []);
     }
 
@@ -261,14 +263,15 @@ public static partial class ItalianAd2Prose
                 var salita = Decodifica(p, PisteDi(p).FirstOrDefault(), null);
                 if (salita.Problema is null) return [Letta(p, salita)];
                 // Una salita senza un punto suo («After take off proceed on track 135°», LIEE RWY 14) è aperta: la continua la SID.
-                if (salita.Problema != "nessun punto") nonLette.Add((p, salita.Problema));
+                // Né una salita fatta solo di rami per le SID (LICR RWY 29 e 33, passo 8): il testo è nei rami.
+                if (salita.Problema is not ("nessun punto" or "senza testo")) nonLette.Add((p, salita.Problema));
                 return [p];
             }
 
             // Le salite iniziali che nominano la SID in un ramo («- if cleared for SID INKIM 9G or OTRET 8G: turn right on TR
             // 043°», LIBP RWY 22): la SID le continua, comunque cominci il suo testo, e la pista è la loro.
             var nominanti = p.Kind != ProcedureKind.Sid ? []
-                : salite[p.Aerodrome].Where(s => s.Description is { } d && Dividi(d).Rami.Any(r => Nomina(r.Condizione, p.Designator))).ToList();
+                : salite[p.Aerodrome].Where(s => ValePer(s.Description, p.Designator)).ToList();
             // La pista: quella del nome; se la SID non la dice, quella della salita che la nomina, o della salita stampata sulla
             // stessa pagina (committente, 24 ottobre: LIBP ASPIR 8G sta sotto «INITIAL CLIMB PROCEDURE RWY 22», le «F» sotto la 04),
             // o della prima rotta del testo (entro 15°); se ne dice due, quella della prima rotta.
@@ -303,7 +306,10 @@ public static partial class ItalianAd2Prose
             }
             var esiti = gruppi.Select(g =>
             {
-                var q = gruppi.Count == 1 ? p : p with { Runways = [.. g.Select(x => x.Pista)] };
+                // Passo 8: con la pista si sa anche la salita, e le sue pendenze senza nomi valgono (LICB: la pagina ha la salita
+                // della 05 e quella della 23, e l'8.5% della 05 non arrivava alle SID).
+                var conPiste = p with { Runways = [.. g.Select(x => x.Pista)] };
+                var q = (gruppi.Count == 1 ? p : conPiste) with { ClimbGradients = ConLePendenzeDelleSalite(conPiste).ClimbGradients };
                 var (testo, perche) = g.First().Salita;
                 var conLaSalita = testo is null ? default : Decodifica(q, g.First().Pista, testo);
                 return (Procedura: q, Testo: testo, Perche: perche, Esito: conLaSalita);
@@ -543,6 +549,10 @@ public static partial class ItalianAd2Prose
         t = RxNumeroSpezzato().Replace(t, "TR $1$2°");
         t = RxNm().Replace(t, "$1 NM");
         t = RxAttaccato().Replace(t, "$1 $2");
+        // Passo 8 (LICB, LIEE): la stazione della radiale dopo la rotta fra parentesi, «RDL 231 (TR 231°) COM VOR», è «RDL 231 COM
+        // VOR (TR 231°)» (prima COM si leggeva come un punto da raggiungere); «track 315deg» è «track 315°».
+        t = RxStazioneDopoLaRotta().Replace(t, "RDL $1 $3 $4 $2");
+        t = RxGradiInParola().Replace(t, "$1°");
         // Segnalazioni 2611, B2: le stesse cose scritte in un altro modo. «R199 RCA» è la radiale 199; un DVOR è un VOR;
         // «19 NM TRP TACAN» è una distanza DME e, dopo, «TRP TACAN» è la stazione; l'alternativa per chi vola con l'NDB
         // («or QDR 019° TRP NDB (TR 199°)», «RDL/QDR 325 TRP VOR/NDB») si toglie: il percorso è quello del VOR.
@@ -859,7 +869,7 @@ public static partial class ItalianAd2Prose
                     return;
                 }
                 _linea = Linea.SuRadiale(nome, s, radiale, versoFuori: true);
-                Calcolato(Sphere.Destination(s.Position, radiale + s.Variation, d), $"RDL {radiale:000}/{Dist(d)} NM {nome}", $"{radiale:000}°");
+                Calcolato(Sphere.Destination(s.Position, radiale + s.Variation, d), $"RDL {radiale:000}/{Dist(d)} NM {nome}", $"{radiale:000}°", ADistanza(nome, radiale, d));
                 return;
             }
             if (g["arcoD"].Success)
@@ -871,7 +881,7 @@ public static partial class ItalianAd2Prose
                 {
                     // Dall'arco più lontano (17 NM) a quello della procedura (15 NM): sulla stessa radiale.
                     var radiale = Sphere.BearingDeg(s.Position, qui);
-                    Calcolato(Sphere.Destination(s.Position, radiale, d), $"RDL {Sphere.Normalize(radiale - s.Variation):000}/{Dist(d)} NM {nome}", null);
+                    Calcolato(Sphere.Destination(s.Position, radiale, d), $"RDL {Sphere.Normalize(radiale - s.Variation):000}/{Dist(d)} NM {nome}", null, ADistanza(nome, radiale - s.Variation, d));
                 }
                 _arco = (nome, d);
                 _linea = null;
@@ -918,7 +928,7 @@ public static partial class ItalianAd2Prose
                     _problema = $"la rotta non incrocia la RDL {radiale:000} {nome}";
                     return;
                 }
-                Calcolato(p, $"INT {_linea.Nome}/RDL {radiale:000} {nome}", _linea.Rotta);
+                Calcolato(p, $"INT {_linea.Nome}/RDL {radiale:000} {nome}", _linea.Rotta, ARadiale(nome, radiale));
                 return;
             }
             if (g["puntoR"].Success)
@@ -927,7 +937,7 @@ public static partial class ItalianAd2Prose
                 if (Stazione(nome) is not { } s) return;
                 var radiale = Numero(g["puntoR"]);
                 var d = Numero(g["puntoD"]);
-                Calcolato(Sphere.Destination(s.Position, radiale + s.Variation, d), $"RDL {radiale:000}/{Dist(d)} NM {nome}", _linea?.Rotta);
+                Calcolato(Sphere.Destination(s.Position, radiale + s.Variation, d), $"RDL {radiale:000}/{Dist(d)} NM {nome}", _linea?.Rotta, ADistanza(nome, radiale, d));
                 return;
             }
             if (g["lineaR"].Success || g["lineaR2"].Success)
@@ -948,7 +958,17 @@ public static partial class ItalianAd2Prose
                 // punto dove la si prende, se è davanti, vicino (100 NM) e le due linee non sono quasi parallele. Da un'altra
                 // radiale no: due radiali della stessa stazione si incrociano sulla stazione.
                 if (_arco is null && !_virataDopoLaRotta && _linea is { Stazione: null } corrente && corrente.Intercetta(nuova, _qui) is { } presa)
-                    Calcolato(presa, $"INT {corrente.Nome}/RDL {radiale:000} {nome}", corrente.Rotta);
+                    Calcolato(presa, $"INT {corrente.Nome}/RDL {radiale:000} {nome}", corrente.Rotta, ARadiale(nome, radiale));
+                // Passo 8: dal decollo, una radiale quasi parallela alla pista e vicina (LICB NELDA 6E, «proceed runway heading to
+                // intercept and follow RDL 231 COM VOR»): l'incrocio non si calcola; la si prende alla fine della pista, e si dice.
+                else if (_arco is null && _qui is null && _linea is { DallaSoglia: true } dallaSoglia && decollo is { } dec
+                    && Math.Abs(Sphere.Normalize(nuova.Direzione - dallaSoglia.Direzione + 180) - 180) < 10 && nuova.DiLato(dec.End) < 2)
+                {
+                    // Se la radiale è il prolungamento della pista (LICA, a 0.3 NM) non c'è niente da dire.
+                    if (nuova.DiLato(dec.End) > 0.3)
+                        _avvisi.Add($"la pista e la RDL {radiale:000} {nome} sono quasi parallele: la radiale si prende alla fine della pista, a {nuova.DiLato(dec.End):0.0} NM");
+                    Calcolato(nuova.Proiezione(dec.End), $"INT {dallaSoglia.Nome}/RDL {radiale:000} {nome}", dallaSoglia.Rotta, ARadiale(nome, radiale));
+                }
                 _linea = nuova;
                 _virataDopoLaRotta = false;
                 return;
@@ -964,14 +984,14 @@ public static partial class ItalianAd2Prose
                 if (_qui is { } qui)
                 {
                     if ((_declinazione ?? DeclinazioneDelTesto()) is not { } v) return;
-                    _linea = Linea.DaUnPunto(qui, tr, v);
+                    _linea = Linea.DaUnPunto(qui, tr, v, prua: g["prua"].Success);
                 }
                 else if (dallaPista && pista is not null && _tratti.Count == 0 && (_declinazione ?? DeclinazioneSenzaProblema()) is { } v)
                 {
                     // B6: una SID che comincia con una rotta («Proceed on TR 263° until intercepting …»): dalla soglia della
                     // pista, come «RWY heading». Se la rotta si scosta dalla pista c'è una virata dopo il decollo che non si
                     // disegna: si dice.
-                    _linea = Linea.DaUnPunto(pista.Threshold, tr, v);
+                    _linea = Linea.DaUnPunto(pista.Threshold, tr, v, prua: g["prua"].Success, dallaSoglia: true);
                     var scarto = Math.Abs(Sphere.Normalize(tr + v - pista.TrueBearing + 180) - 180);
                     if (scarto > 15)
                         _avvisi.Add($"il primo tratto parte dalla soglia della pista su TR {tr:000}°: la virata dopo il decollo ({scarto:0}°) non è disegnata");
@@ -995,11 +1015,11 @@ public static partial class ItalianAd2Prose
                 if (_linea.Stazione == nome)
                 {
                     var radiale = _linea.Radiale!.Value;
-                    Calcolato(Sphere.Destination(s.Position, radiale + s.Variation, d), $"RDL {radiale:000}/{Dist(d)} NM {nome}", _linea.Rotta);
+                    Calcolato(Sphere.Destination(s.Position, radiale + s.Variation, d), $"RDL {radiale:000}/{Dist(d)} NM {nome}", _linea.Rotta, ADistanza(nome, radiale, d));
                 }
                 else if (_linea.Distanza(s.Position, d, _qui) is { } p)
                 {
-                    Calcolato(p, $"{_linea.Nome}/{Dist(d)} NM {nome} DME", _linea.Rotta);
+                    Calcolato(p, $"{_linea.Nome}/{Dist(d)} NM {nome} DME", _linea.Rotta, ADistanza(nome, Sphere.BearingDeg(s.Position, p) - s.Variation, d));
                 }
                 else if (_linea.Stazione is { } della && della != nome && stazione(della) is { } sd
                     && RxRadialeDi(della).IsMatch(testo, m.Index + m.Length)
@@ -1009,7 +1029,7 @@ public static partial class ItalianAd2Prose
                     // left on TR 182° (RDL 182 SRN VOR)»: la radiale di SRN non passa mai a 3 NM da VOG, e il tratto dopo è
                     // ancora di SRN. È la distanza da SRN, stampata male: si legge e si dice.
                     _avvisi.Add($"«{Dist(d)} NM {nome} DME» è un errore di stampa: la RDL {_linea.Radiale:000} {della} non passa a {Dist(d)} NM da {nome}, letto come {Dist(d)} NM {della} DME");
-                    Calcolato(q, $"RDL {_linea.Radiale:000}/{Dist(d)} NM {della}", _linea.Rotta);
+                    Calcolato(q, $"RDL {_linea.Radiale:000}/{Dist(d)} NM {della}", _linea.Rotta, ADistanza(della, _linea.Radiale!.Value, d));
                 }
                 else
                 {
@@ -1052,6 +1072,7 @@ public static partial class ItalianAd2Prose
                 {
                     PathTerminator = "AF", Fix = fix, Computed = fix is null ? definizione : null, Position = fine,
                     ArcCenter = arco.Stazione, ArcRadiusNm = arco.Raggio, Turn = delta < 180 ? "R" : "L",
+                    Navaid = arco.Stazione, Radial = Math.Round(Sphere.Normalize(Sphere.BearingDeg(c.Position, fine) - c.Variation), 1), DmeNm = arco.Raggio,
                 });
                 // Lungo l'arco: il raggio per l'angolo.
                 Avanza(fine, arco.Raggio * Math.Min(delta, 360 - delta) * Math.PI / 180);
@@ -1191,6 +1212,8 @@ public static partial class ItalianAd2Prose
         /// </summary>
         private void AllaQuota(double quota, string detto)
         {
+            // Passo 8: «After take off at 1200ft turn left» (LICB RWY 05) senza una rotta: dritti dalla pista fino alla quota.
+            if (_linea is null && _qui is null && dallaPista && pista is not null) _linea = Linea.DallaPista(pista);
             if (_linea is not { } linea)
             {
                 _problema = $"«{detto}» senza una rotta: il punto dove si arriva a {quota:0} ft non si calcola";
@@ -1208,7 +1231,7 @@ public static partial class ItalianAd2Prose
             var p = Sphere.Destination(partenza, linea.Direzione, Math.Max(avanti, 0));
             var percorsoPrima = _percorso;
             var quiPrima = _qui;
-            Calcolato(p, $"{quota:0} ft", linea.Rotta);
+            Calcolato(p, $"{quota:0} ft", linea.Rotta, new Fine("CA"));
             _allaQuota = (linea, partenza, quota);
             var dove = quiPrima is null ? $"a {_percorso:0.0} NM dalla fine della pista" : $"{Math.Max(avanti, 0):0.0} NM dopo il punto prima";
             _avvisi.Add(gia
@@ -1254,7 +1277,7 @@ public static partial class ItalianAd2Prose
                     var virata = _virata;
                     _virata = null;
                     var fuori = serve / 2;
-                    Calcolato(Sphere.Destination(posizione, uscita.Direzione, fuori), $"RDL {uscita.Radiale:000}/{Dist(Math.Round(fuori, 1))} NM {nome}", uscita.Rotta);
+                    Calcolato(Sphere.Destination(posizione, uscita.Direzione, fuori), $"RDL {uscita.Radiale:000}/{Dist(Math.Round(fuori, 1))} NM {nome}", uscita.Rotta, ADistanza(nome, uscita.Radiale!.Value, Math.Round(fuori, 1)));
                     _virata = virata;
                     _linea = null;
                     _avvisi.Add($"anello sulla RDL {uscita.Radiale:000} {nome} per salire da {stimata:0} ft ({(dallaMca ? "la MCA stampata su " + nome : "stimata, con " + d.Gradient)}) a {mca.Groups[1].Value} ft: fuori {fuori:0.0} NM e ritorno");
@@ -1297,11 +1320,15 @@ public static partial class ItalianAd2Prose
                 if (loc.Avanti(daRaccordo, posizione) < 0) _avvisi.Add($"il localizzatore {sulLoc} si prende dopo {nome}");
             }
             var primo = _tratti.Count == 0 && _qui is null;
+            var conRotta = _linea?.Rotta is not null && !_virataDopoLaRotta;
             _tratti.Add(new ProcedureLeg
             {
-                PathTerminator = primo ? "IF" : _linea?.Rotta is not null ? "CF" : "TF",
+                // Passo 8: dopo un tratto che non finisce su un punto (una quota, una distanza DME, una radiale) «bound to» è un DF.
+                // Dopo una virata la rotta di prima non vale più («until 14 NM LMT DME, then turn right bound to SUGEP»): non è
+                // un CF con quella rotta (ATCSim la volerebbe).
+                PathTerminator = primo ? "IF" : conRotta ? "CF" : _tratti.Count > 0 && FinisceNelVuoto(_tratti[^1]) ? "DF" : "TF",
                 Fix = nome,
-                Course = primo ? null : _linea?.Rotta,
+                Course = primo || !conRotta ? null : _linea!.Rotta,
                 Turn = primo ? null : _virata,
             });
             _virata = null;
@@ -1311,7 +1338,20 @@ public static partial class ItalianAd2Prose
             if (_linea is { Stazione: null }) _linea = null;
         }
 
-        private void Calcolato(Position p, string definizione, string? rotta)
+        /// <summary>
+        /// Passo 8 (committente, per ATCSim): come finisce un tratto verso un punto calcolato. <c>CD</c> a una distanza DME
+        /// (<c>FD</c> se parte da un punto con nome), <c>CR</c> su una radiale, <c>CA</c> a una quota; su una prua (o «RWY
+        /// heading») <c>VD</c>, <c>VR</c>, <c>VA</c>. Senza, il tratto resta un <c>CF</c> verso il punto.
+        /// </summary>
+        private sealed record Fine(string Tipo, string? Navaid = null, double? Radiale = null, double? Dme = null);
+
+        private static Fine ADistanza(string navaid, double radiale, double dme) => new("CD", navaid, Math.Round(Sphere.Normalize(radiale), 1), dme);
+
+        private static Fine ARadiale(string navaid, double radiale) => new("CR", navaid, radiale);
+
+        private static bool FinisceNelVuoto(ProcedureLeg t) => t.PathTerminator is "CA" or "VA" or "CD" or "FD" or "VD" or "CR" or "VR";
+
+        private void Calcolato(Position p, string definizione, string? rotta, Fine? fine = null)
         {
             // Lo stesso punto detto due volte di fila: la salita iniziale finisce «until 13NM PRU DME» e la SID comincia «At
             // 13NM PRU DME» (SC1). Un punto solo.
@@ -1320,11 +1360,17 @@ public static partial class ItalianAd2Prose
                 _puntoAppena = true;
                 return;
             }
-            var primo = _tratti.Count == 0 && _qui is null;
+            // Dalla pista (una SID che decolla su «RWY heading» o su una rotta dalla soglia) il primo tratto non è un IF: comincia
+            // alla pista e finisce lì (VA a una quota, VD a una distanza DME).
+            var primo = _tratti.Count == 0 && _qui is null && !(fine is not null && _linea?.DallaSoglia == true);
+            var tipo = fine?.Tipo ?? "CF";
+            if (fine is not null && _linea?.Prua == true) tipo = "V" + tipo[1];
+            else if (tipo == "CD" && _quiNome is not null) tipo = "FD";
             _tratti.Add(new ProcedureLeg
             {
-                PathTerminator = primo ? "IF" : "CF", Computed = definizione, Position = p,
+                PathTerminator = primo ? "IF" : tipo, Computed = definizione, Position = p,
                 Course = primo ? null : rotta, Turn = primo ? null : _virata,
+                Navaid = primo ? null : fine?.Navaid, Radial = primo ? null : fine?.Radiale, DmeNm = primo ? null : fine?.Dme,
             });
             _virata = null;
             Avanza(p);
@@ -1405,8 +1451,11 @@ public static partial class ItalianAd2Prose
         // Dalla soglia lungo la pista: il decollo e la «RWY heading» (una pista parallela sposta di qualche centinaio di metri).
         public static Linea DallaPista(Runway pista) => new()
         {
-            Nome = "RWY heading", Origine = pista.Threshold, Direzione = pista.TrueBearing, VersoNoto = true,
+            Nome = "RWY heading", Origine = pista.Threshold, Direzione = pista.TrueBearing, VersoNoto = true, Prua = true, DallaSoglia = true,
         };
+
+        /// <summary>Passo 8: la linea comincia alla soglia della pista (il decollo).</summary>
+        public bool DallaSoglia { get; private init; }
 
         /// <summary>Il localizzatore (passo 6): la linea per l'antenna, nel verso dell'atterraggio.</summary>
         public static Linea DelLocalizzatore(string nome, Localizer l, double vera) => new()
@@ -1438,10 +1487,14 @@ public static partial class ItalianAd2Prose
             return Math.Abs(px * dy - py * dx);
         }
 
-        public static Linea DaUnPunto(Position da, double tr, double declinazione) => new()
+        public static Linea DaUnPunto(Position da, double tr, double declinazione, bool prua = false, bool dallaSoglia = false) => new()
         {
             Nome = $"TR {tr:000}°", Origine = da, Direzione = Sphere.Normalize(tr + declinazione), VersoNoto = true, Rotta = $"{tr:000}°",
+            Prua = prua, DallaSoglia = dallaSoglia,
         };
+
+        /// <summary>Passo 8: una prua («heading 025°», «RWY heading»), non una rotta: i tratti che finisce sono <c>V…</c>.</summary>
+        public bool Prua { get; private init; }
 
         // Nel piano tangente all'origine (NM): bastano per distanze di decine di miglia, sotto la precisione della prosa.
         private (double X, double Y) Piano(Position p) =>
@@ -1530,7 +1583,9 @@ public static partial class ItalianAd2Prose
         @"⟦(?<marcaK>[QVNABM])(?<marcaT>[^⟧]*)⟧"
         // Passo 5: la virata a una quota («until leaving 1350 ft», «Passing 4000 ft», «reaching 800ft», «crossing 500 ft», «climbing
         // to 2500 ft»): dove l'aereo ci arriva salendo dalla fine della pista.
-        + @"|(?<lascia>\b(?:(?:until\s+|till\s+)?(?:[Ll]eaving|[Pp]assing|[Rr]eaching)|[Cc]rossing|climbing\s+to)\s+(?<quota>\d{3,5})\s*(?:FT|ft)\b)"
+        // Passo 8: anche «After take off at 1200ft turn left» (LICB RWY 05).
+        + @"|(?<lascia>\b(?:(?:until\s+|till\s+)?(?:[Ll]eaving|[Pp]assing|[Rr]eaching)|[Cc]rossing|climbing\s+to)\s+(?<quota>\d{3,5})\s*(?:FT|ft)\b"
+        + @"|\b[Aa]t\s+(?<quota>\d{3,5})\s*(?:FT|ft)\b(?=\s*,?\s*turn\b))"
         + @"|(?<pistaH>\b(?:RWY|runway|RUNWAY)\s+heading\b(?:\s*\(\s*TR\s+\d{3}°\s*\))?)"
         // V6: «at 17 NM CMP DME (intersection RDL 073 OST VOR)»: lo stesso punto detto in un altro modo, da controllare.
         + @"|\(\s*intersection\s+RDL\s+(?<ctrlR>\d{3})\s+(?<ctrlN>" + Nav + @")(?:\s+VOR)?\s*\)"
@@ -1683,7 +1738,14 @@ public static partial class ItalianAd2Prose
     private static partial Regex RxIas();
 
     // «to be reached at or above 4000 ft», «(to be crossed at 2800 ft or above)»: una quota, non un pezzo del percorso.
-    [GeneratedRegex(@"\(?\s*\bto\s+be\s+(?:reached|crossed)\s+at\s+(?:or\s+above\s+)?(?<q>\d+)\s*(?:ft|FT)\b(?:\s+or\s+above)?\s*\)?")]
+    [GeneratedRegex(@"\bRDL\s*(\d{3})\s*(\(\s*TR\s*\d{3}\s*°?\s*\))\s*([A-Z]{3})\s+(VOR|NDB)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxStazioneDopoLaRotta();
+
+    [GeneratedRegex(@"\b(\d{3})\s*deg\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxGradiInParola();
+
+    // Passo 8: anche «direct to COM VOR to reach at 3500ft or above» (LICB RWY 05).
+    [GeneratedRegex(@"\(?\s*\bto\s+(?:be\s+(?:reached|crossed)|reach)\s+at\s+(?:or\s+above\s+)?(?<q>\d+)\s*(?:ft|FT)\b(?:\s+or\s+above)?\s*\)?")]
     private static partial Regex RxQuotaDaRaggiungere();
 
     // Passo 2 (gruppo 5): «Cross EKTOL at FL 110 or above, as cleared», «Cross RATIR as cleared by ATC».

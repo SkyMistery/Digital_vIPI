@@ -53,7 +53,7 @@ public sealed class Ad2ProseTests
             + "RDL 273 LMT VOR (TR 093°) bound to SUGEP\nSUGEP: 4000 FT", "10"));
 
         Assert.Null(problema);
-        Assert.Equal(["IF DELIK", "CF LMT", "CF RDL 258/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["IF DELIK", "CF LMT", "FD RDL 258/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Equal(["310°", "258°", "093°"], tratti.Skip(1).Select(t => t.Course));
         Assert.Equal("R", tratti[3].Turn);
         // La radiale 258 magnetica con 3° E è 261 vera, a 14 NM dalla stazione.
@@ -71,12 +71,14 @@ public sealed class Ad2ProseTests
             + "VOR turn left until joining RDL 273 LMT VOR (TR 093°) bound to SUGEP.\nINT ARC 15 NM LMT DME/RDL 296 LMT VOR - SUGEP: 4000FT", "10"));
 
         Assert.Null(problema);
-        Assert.Equal(["IF ARBUM", "CF RDL 312/17 NM LMT", "CF RDL 312/15 NM LMT", "AF RDL 283/15 NM LMT", "CF SUGEP"],
+        Assert.Equal(["IF ARBUM", "FD RDL 312/17 NM LMT", "CD RDL 312/15 NM LMT", "AF RDL 283/15 NM LMT", "CF SUGEP"],
             tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         var arco = tratti[3];
         Assert.Equal(("LMT", 15.0, "L"), (arco.ArcCenter, arco.ArcRadiusNm!.Value, arco.Turn));
         Assert.Equal(15, Distanza(Stazioni["LMT"].Position, arco.Position!.Value), 2);
         Assert.Equal(286, Rotta(Stazioni["LMT"].Position, arco.Position!.Value), 1);
+        // Passo 8: dove l'arco finisce, per ATCSim.
+        Assert.Equal(("LMT", 283.0, 15.0), (arco.Navaid, Math.Round(arco.Radial!.Value), arco.DmeNm));
     }
 
     // Segnalazioni 2611, B5: lo stesso arco con le parole che usano le altre pagine — «Crossing» maiuscolo (prima l'arco
@@ -90,7 +92,7 @@ public sealed class Ad2ProseTests
             + "(ARC 15 NM IBXY DME). Crossing RDL 283 LMT VOR turn left until intercepting and following RDL 273 LMT VOR (TR 093°) inbound to SUGEP.", "10"));
 
         Assert.Null(problema);
-        Assert.Equal(["IF ARBUM", "CF RDL 312/17 NM LMT", "CF RDL 312/15 NM LMT", "AF RDL 283/15 NM LMT", "CF SUGEP"],
+        Assert.Equal(["IF ARBUM", "FD RDL 312/17 NM LMT", "CD RDL 312/15 NM LMT", "AF RDL 283/15 NM LMT", "CF SUGEP"],
             tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Equal("L", tratti[4].Turn);
     }
@@ -102,16 +104,16 @@ public sealed class Ad2ProseTests
         var (tratti, problema) = Leggi(P(ProcedureKind.Star, "LMT 1F", "LMT VOR/DME - TR 120° (RDL 120 LMT VOR). Crossing RDL 020 RCA VOR turn right bound to SUGEP."));
 
         Assert.Null(problema);
-        Assert.Equal(["IF LMT", "CF INT RDL 120 LMT/RDL 020 RCA", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["IF LMT", "CR INT RDL 120 LMT/RDL 020 RCA", "DF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Equal("R", tratti[2].Turn);
     }
 
     // B5: «Over TOP VOR proceed …», «Initial climb procedure completed …», «as soon as practicable», «Leave LMT VOR on RDL 130»:
     // si leggono come «da LMT», «dopo il decollo», niente, «LMT, poi la radiale 130 di LMT».
     [Theory]
-    [InlineData("Over LMT VOR proceed on RDL 130 LMT VOR (TR 130°) until 14 NM LMT DME, then turn right bound to SUGEP.", "IF LMT|CF RDL 130/14 NM LMT|CF SUGEP")]
-    [InlineData("Initial climb procedure completed turn left (IAS MAX 200 kt during turn) bound to LMT VOR. Leave LMT VOR on RDL 130. At 14NM LMT DME turn right bound to SUGEP.", "IF LMT|CF RDL 130/14 NM LMT|TF SUGEP")]
-    [InlineData("After take-off, as soon as practicable, turn left bound to LMT VOR/DME, to be left on RDL 130 LMT VOR until 14 NM LMT DME, then turn right bound to SUGEP.", "IF LMT|CF RDL 130/14 NM LMT|TF SUGEP")]
+    [InlineData("Over LMT VOR proceed on RDL 130 LMT VOR (TR 130°) until 14 NM LMT DME, then turn right bound to SUGEP.", "IF LMT|FD RDL 130/14 NM LMT|DF SUGEP")]
+    [InlineData("Initial climb procedure completed turn left (IAS MAX 200 kt during turn) bound to LMT VOR. Leave LMT VOR on RDL 130. At 14NM LMT DME turn right bound to SUGEP.", "IF LMT|FD RDL 130/14 NM LMT|DF SUGEP")]
+    [InlineData("After take-off, as soon as practicable, turn left bound to LMT VOR/DME, to be left on RDL 130 LMT VOR until 14 NM LMT DME, then turn right bound to SUGEP.", "IF LMT|FD RDL 130/14 NM LMT|DF SUGEP")]
     // (TF dove la rotta verso SUGEP non è scritta: niente «TR …»).
     public void LeFrasiDiPassaggio_SiLeggono(string prosa, string attesi)
     {
@@ -169,9 +171,9 @@ public sealed class Ad2ProseTests
     // font (U+F0B0, LIBP); «LMT VOR to be left on RDL 130» senza la stazione dopo la radiale; un VORTAC e «(or 14 NM … DME)».
     [Theory]
     [InlineData("DELIK - MP406, then turn right bound to SUGEP.", "IF DELIK|TF MP406|TF SUGEP")]
-    [InlineData("DELIK - TR 310 (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "IF DELIK|CF RDL 130/14 NM LMT|CF SUGEP")]
-    [InlineData("DELIK - TR 310° bound to LMT VOR to be left on RDL 130 until 14 NM LMT DME, then turn right bound to SUGEP.", "IF DELIK|CF LMT|CF RDL 130/14 NM LMT|CF SUGEP")]
-    [InlineData("DELIK - TR 310° (RDL 130 LMT VORTAC) until crossing RDL 020 RCA VORTAC (or 14 NM LMT DME), then turn right bound to SUGEP.", "IF DELIK|CF INT RDL 130 LMT/RDL 020 RCA|CF SUGEP")]
+    [InlineData("DELIK - TR 310 (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "IF DELIK|FD RDL 130/14 NM LMT|DF SUGEP")]
+    [InlineData("DELIK - TR 310° bound to LMT VOR to be left on RDL 130 until 14 NM LMT DME, then turn right bound to SUGEP.", "IF DELIK|CF LMT|FD RDL 130/14 NM LMT|DF SUGEP")]
+    [InlineData("DELIK - TR 310° (RDL 130 LMT VORTAC) until crossing RDL 020 RCA VORTAC (or 14 NM LMT DME), then turn right bound to SUGEP.", "IF DELIK|CR INT RDL 130 LMT/RDL 020 RCA|DF SUGEP")]
     public void TerzoGiro_SiLeggono(string prosa, string attesi)
     {
         Punti.TryAdd("MP406", new Position(38.80, 16.50));
@@ -192,11 +194,57 @@ public sealed class Ad2ProseTests
         var (tratti, problema, avvisi) = ItalianAd2Prose.DecodeWithWarnings(p, n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
 
         Assert.Null(problema);
-        Assert.Equal(["IF DELIK", "CF RDL 130/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["IF DELIK", "FD RDL 130/14 NM LMT", "DF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Equal(["prua 040° disegnata come rotta, senza vento"], avvisi);
         // Senza prua, niente da dire.
         Assert.Empty(ItalianAd2Prose.DecodeWithWarnings(P(ProcedureKind.Star, "DELIK 1T", "DELIK – TR 310° (RDL 130 LMT VOR) bound to SUGEP."),
             n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n)).Warnings);
+    }
+
+    // Segnalazioni 2611, passo 8 (committente, per ATCSim): un tratto verso un punto calcolato ha il tipo dell'ARINC 424 e dice
+    // la stazione, la radiale e la distanza DME dove finisce; la posizione resta, e si disegna come prima. «bound to» dopo un
+    // tratto così è un DF.
+    [Theory]
+    [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "FD", "LMT", 130.0, 14.0)]
+    [InlineData("DELIK – TR 310° (RDL 130 LMT VORTAC) until crossing RDL 020 RCA VORTAC, then turn right bound to SUGEP.", "CR", "RCA", 20.0, null)]
+    [InlineData("LMT VOR – heading 040° until 10 NM LMT DME, then turn right bound to SUGEP.", "VD", "LMT", null, 10.0)]
+    public void IlTipoDelTratto_ELaStazioneDoveFinisce(string prosa, string tipo, string stazione, double? radiale, double? dme)
+    {
+        var (tratti, problema, _) = ItalianAd2Prose.DecodeWithWarnings(P(ProcedureKind.Star, "DELIK 1Z", prosa),
+            n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
+
+        Assert.Null(problema);
+        var t = tratti[1];
+        Assert.Equal((tipo, stazione, dme), (t.PathTerminator, t.Navaid, t.DmeNm));
+        Assert.NotNull(t.Position);
+        if (radiale is { } r)
+            Assert.Equal(r, t.Radial!.Value, 1);
+        else if (dme is not null)
+            Assert.Equal(dme.Value, Distanza(Stazioni[stazione].Position, t.Position!.Value), 2);
+        Assert.Equal("DF SUGEP", $"{tratti[2].PathTerminator} {tratti[2].Fix}");
+    }
+
+    // Passo 8 (committente: «per tutte le STAR»): la MEA che cambia su un punto DME (LICB ENEPA 1T, «ENEPA – RDL 327/25NM COM
+    // VOR/DME: 6000FT; RDL327/25NM COM VOR/DME - COM VOR/DME: 5000FT») spezza il tratto lì; ogni tratto ha la MEA del suo pezzo.
+    [Fact]
+    public void LaMeaCheCambiaSuUnPuntoDme_SpezzaIlTratto()
+    {
+        var star = P(ProcedureKind.Star, "DELIK 1T", "DELIK – TR 308° (RDL 128 LMT VOR) – LMT VOR/DME.") with
+        {
+            Minimums = "MEA: DELIK – RDL 128/14NM LMT VOR/DME: 6000FT; RDL128/14NM LMT VOR/DME - LMT VOR/DME: 5000FT",
+        };
+
+        var (tratti, problema, _) = ItalianAd2Prose.DecodeWithWarnings(star, n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF DELIK", "FD RDL 128/14 NM LMT 308° 6000FT", "CF LMT 308° 5000FT"],
+            tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}{(t.Course is { } c ? " " + c : "")}{(t.MinimumAltitude is { } q ? " " + q : "")}"));
+        Assert.Equal(("LMT", 128.0, 14.0), (tratti[1].Navaid, tratti[1].Radial!.Value, tratti[1].DmeNm!.Value));
+        Assert.Equal(14, Distanza(Stazioni["LMT"].Position, tratti[1].Position!.Value), 2);
+        // Il punto c'è già (una STAR che lo dice): non si spezza, ma la MEA va sui tratti.
+        var detto = ItalianAd2Prose.DecodeWithWarnings(star with { Description = "DELIK – TR 308° (RDL 128 LMT VOR) until 14 NM LMT DME, then LMT VOR/DME." },
+            n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n)).Legs;
+        Assert.Equal([null, "6000FT", "5000FT"], detto.Select(t => t.MinimumAltitude));
     }
 
     // Segnalazioni 2611, B6: «on TR 073° until joining RDL …» — il punto dove la rotta prende la radiale (prima si andava dritti
@@ -208,7 +256,7 @@ public sealed class Ad2ProseTests
             "DELIK – TR 310° (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right on TR 300° until joining RDL 250 LMT VOR bound to SUGEP."));
 
         Assert.Null(problema);
-        Assert.Equal(["IF DELIK", "CF RDL 130/14 NM LMT", "CF INT TR 300°/RDL 250 LMT", "TF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["IF DELIK", "FD RDL 130/14 NM LMT", "CR INT TR 300°/RDL 250 LMT", "DF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         // L'incrocio sta sulla radiale 250 (magnetica, 3° E) di LMT.
         Assert.Equal(253, Rotta(Stazioni["LMT"].Position, tratti[2].Position!.Value), 0);
     }
@@ -227,7 +275,7 @@ public sealed class Ad2ProseTests
             n => Stazioni.GetValueOrDefault(n), new ItalianAd2Prose.Runway(soglia, pista));
 
         Assert.Null(problema);
-        Assert.Equal(["IF INT TR 247°/RDL 278 OST", "TF NENIG"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["CR INT TR 247°/RDL 278 OST", "DF NENIG"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         if (avvisoAtteso is null) Assert.Empty(avvisi);
         else Assert.Contains(avvisoAtteso, Assert.Single(avvisi), StringComparison.Ordinal);
     }
@@ -254,7 +302,7 @@ public sealed class Ad2ProseTests
             + "bound to NENIG.", "25"), new ItalianAd2Prose.Runway(soglia, 250));
 
         Assert.Null(problema);
-        Assert.Equal(["IF RWY heading/1 NM OST DME", "TF NENIG"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["VD RWY heading/1 NM OST DME", "DF NENIG"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Equal(1, Distanza(Stazioni["OST"].Position, tratti[0].Position!.Value), 2);
         Assert.Equal(250, Rotta(soglia, tratti[0].Position!.Value), 0);
         // «turn left»: a sinistra (fino al 23 ottobre ogni virata della prosa usciva a destra).
@@ -273,7 +321,7 @@ public sealed class Ad2ProseTests
         var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T", prosa));
 
         Assert.Null(problema);
-        Assert.Equal(["IF DELIK", "CF RDL 130/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["IF DELIK", "FD RDL 130/14 NM LMT", "DF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Equal("R", tratti[2].Turn);
     }
 
@@ -286,7 +334,7 @@ public sealed class Ad2ProseTests
         var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T", prosa));
 
         Assert.Null(problema);
-        Assert.Equal(["IF DELIK", "CF RDL 130/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["IF DELIK", "FD RDL 130/14 NM LMT", "DF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
     }
 
     // B2: un'alternativa che il lettore non sa togliere non diventa un tratto: si ferma e lo dice.
@@ -457,7 +505,7 @@ public sealed class Ad2ProseTests
         var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T", prosa));
 
         Assert.Null(problema);
-        Assert.Equal(["IF DELIK", "CF RDL 130/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["IF DELIK", "FD RDL 130/14 NM LMT", "DF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Equal("R", tratti[2].Turn);
     }
 
@@ -485,13 +533,13 @@ public sealed class Ad2ProseTests
             $"ARBUM – TR 132° (RDL 312 LMT VOR) until 17 NM LMT DME, {arco}, crossing RDL 283 LMT VOR turn left until joining RDL 273 LMT VOR (TR 093°) bound to SUGEP.", "10"));
 
         Assert.Null(problema);
-        Assert.Equal(["IF ARBUM", "CF RDL 312/17 NM LMT", "CF RDL 312/15 NM LMT", "AF RDL 283/15 NM LMT", "CF SUGEP"],
+        Assert.Equal(["IF ARBUM", "FD RDL 312/17 NM LMT", "CD RDL 312/15 NM LMT", "AF RDL 283/15 NM LMT", "CF SUGEP"],
             tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
     }
 
     // Gruppo 4 e LIPZ: i verbi nuovi.
     [Theory]
-    [InlineData("P roceed to LMT VOR/DME, to be left on RDL 130 LMT VOR until 14 NM LMT DME, then turn right bound to SUGEP.", "IF LMT|CF RDL 130/14 NM LMT|TF SUGEP")] // R3
+    [InlineData("P roceed to LMT VOR/DME, to be left on RDL 130 LMT VOR until 14 NM LMT DME, then turn right bound to SUGEP.", "IF LMT|FD RDL 130/14 NM LMT|DF SUGEP")] // R3
     [InlineData("Bound to LMT VOR/DME. Leave LMT VOR/DME on RDL 130 LMT VOR (TR 130°) bound to SUGEP.", "IF LMT|CF SUGEP")]              // V1
     [InlineData("Continue on RDL 130 LMT VOR/DME. At 14 NM LMT VOR/DME turn right bound to SUGEP.", "IF RDL 130/14 NM LMT|TF SUGEP")]   // V1, D1
     [InlineData("Turn left bound to LMT VOR to leave on RDL 130 LMT VOR (TR 130°) bound to SUGEP.", "IF LMT|CF SUGEP")]                 // V2
@@ -509,7 +557,7 @@ public sealed class Ad2ProseTests
 
     // V3: «Leave KOVAS on TR 165°»; N1: il QDR come unico percorso è la radiale dell'NDB; L1: il LOC fra parentesi si toglie.
     [Theory]
-    [InlineData(ProcedureKind.Star, "Leave DELIK on TR 310° (RDL 130 LMT VOR), then turn right bound to SUGEP.", "IF DELIK|CF SUGEP")]
+    [InlineData(ProcedureKind.Star, "Leave DELIK on TR 310° (RDL 130 LMT VOR), then turn right bound to SUGEP.", "IF DELIK|TF SUGEP")]
     [InlineData(ProcedureKind.Sid, "Leave LMT NDB on QDR 093° (TR 093°) bound to SUGEP.", "IF LMT|CF SUGEP")]
     [InlineData(ProcedureKind.Star, "DELIK – TR 310° until joining RDL 130 LMT VOR (310° IBXY LOC) bound to LMT VOR.", "IF DELIK|TF LMT")]
     public void LaRevisione_LeStarScritteAltrimenti(ProcedureKind genere, string prosa, string attesi)
@@ -539,9 +587,9 @@ public sealed class Ad2ProseTests
 
     // Gruppo 7: gli errori di stampa che lo stesso testo corregge si leggono, e si dicono.
     [Theory]
-    [InlineData("DELIK – TR 310\" (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "«TR 310\"»", "IF DELIK|CF RDL 130/14 NM LMT|CF SUGEP")]
-    [InlineData("DELIK – 310° (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "«310°» senza «TR»", "IF DELIK|CF RDL 130/14 NM LMT|CF SUGEP")]
-    [InlineData("DELIK – TR 310° … (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "«TR 310° …", "IF DELIK|CF RDL 130/14 NM LMT|CF SUGEP")]
+    [InlineData("DELIK – TR 310\" (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "«TR 310\"»", "IF DELIK|FD RDL 130/14 NM LMT|DF SUGEP")]
+    [InlineData("DELIK – 310° (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "«310°» senza «TR»", "IF DELIK|FD RDL 130/14 NM LMT|DF SUGEP")]
+    [InlineData("DELIK – TR 310° … (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right bound to SUGEP.", "«TR 310° …", "IF DELIK|FD RDL 130/14 NM LMT|DF SUGEP")]
     [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) – LMT VOR//DME.", "«VOR//DME»", "IF DELIK|CF LMT")]
     [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) bound to LMT- DVOR/DME.", "«LMT- DVOR»", "IF DELIK|CF LMT")]
     [InlineData("DELIK – TR 310° (RDL 130 VOR) bound to LMT VOR.", "«RDL 130 VOR» senza la stazione", "IF DELIK|CF LMT")]
@@ -565,7 +613,7 @@ public sealed class Ad2ProseTests
             n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
 
         Assert.Null(problema);
-        Assert.Equal("CF RDL 087/3 NM LMT", $"{tratti[1].PathTerminator} {tratti[1].Computed}");
+        Assert.Equal("FD RDL 087/3 NM LMT", $"{tratti[1].PathTerminator} {tratti[1].Computed}");
         Assert.Equal(3, Distanza(Stazioni["LMT"].Position, tratti[1].Position!.Value), 2);
         Assert.Contains(avvisi, a => a.Contains("«3 NM RCA DME» è un errore di stampa", StringComparison.Ordinal));
     }
@@ -632,7 +680,7 @@ public sealed class Ad2ProseTests
             n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
 
         Assert.Null(problema);
-        Assert.Equal(["IF DELIK", "CF RDL 100/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["IF DELIK", "FD RDL 100/14 NM LMT", "DF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Contains("in any case within 14 NM LMT DME", tratti[1].Notes, StringComparison.Ordinal);
         Assert.Contains(avvisi, a => a.Contains("rotta suggerita", StringComparison.Ordinal));
     }
@@ -749,6 +797,53 @@ public sealed class Ad2ProseTests
         Assert.Contains(atteso, testo, StringComparison.Ordinal);
     }
 
+    // Passo 8 (LICB): i rami col trattino e la condizione in coda («- direct to COM VOR … if cleared via OBAXU 5A, … e ROMSU 5A;»,
+    // con la «e» italiana), non le righe delle pendenze; e la salita che dice a chi non vale («except NELDA 6E»).
+    [Theory]
+    [InlineData("OBAXU 5A", "RWY 05", "direct to COM VOR")]
+    [InlineData("ROMSU 5A", "RWY 05", "direct to COM VOR")]
+    [InlineData("OBAXU 5B", "RWY 05", "to join RDL 327 COM VOR")]
+    [InlineData("OBAXU 5A", "RWY 23", "bound to COM VOR")]
+    [InlineData("NELDA 6E", "RWY 23", null)]
+    public void LaSalitaIniziale_RamiColTrattinoEdEccezioni(string sid, string pista, string? atteso)
+    {
+        var salita = pista == "RWY 05"
+            ? "After take off at 1200ft turn left (IAS MAX 185kt):\n- direct to COM VOR to reach at 3500ft or above if cleared\nvia OBAXU 5A, ENEPA 5A, NELDA 6D e ROMSU 5A;\n"
+                + "- to join RDL 327 COM VOR if cleared via OBAXU 5B e ENEPA 5B.\nRemarks 1. Minimum climb gradient: 8.5% (515ft/NM) till passing 2000ft"
+            : "After take off , except NELDA 6E, turn right (IAS MAX 185KT) bound to COM VOR.\nMinimum climb gradient: - 300 ft/NM (4.9%) if cleared via SID KOVAS 6E.";
+        var procedura = new Procedure { Aerodrome = "LIXX", Kind = ProcedureKind.InitialClimb, Designator = pista, Runways = [pista[4..]], Description = salita };
+
+        var (testo, _) = ItalianAd2Prose.SalitaPerLaSid(sid, [procedura]);
+
+        if (atteso is null)
+        {
+            Assert.Null(testo);
+            Assert.False(ItalianAd2Prose.ValePer(salita, sid));
+            return;
+        }
+        Assert.Contains(atteso, testo, StringComparison.Ordinal);
+        Assert.DoesNotContain("except", testo, StringComparison.Ordinal);
+        Assert.True(ItalianAd2Prose.ValePer(salita, sid));
+        // Le righe delle pendenze non sono rami.
+        Assert.DoesNotContain(ItalianAd2Prose.Dividi(salita).Rami, r => r.Condizione.Contains("KOVAS", StringComparison.Ordinal));
+    }
+
+    // Passo 8 (LICB RWY 05): «After take off at 1200ft turn left … direct to COM VOR to reach at 3500ft or above»: dritti dalla
+    // pista fino alla quota (VA), poi diretti alla stazione (DF). E «RDL 231 (TR 231°) COM VOR»: COM è la stazione della radiale.
+    [Fact]
+    public void DopoIlDecolloAUnaQuota_ELaStazioneDopoLaRotta()
+    {
+        var soglia = Verso(Stazioni["LMT"].Position, 270, 3);
+        var fine = Verso(soglia, 90, 1.5);
+        var (tratti, problema, _) = LeggiDecollando("After take off at 1200ft turn left (IAS MAX 185kt) direct to LMT VOR to reach at 3500ft or above.",
+            new ItalianAd2Prose.Runway(soglia, 90), new ItalianAd2Prose.Departure(fine, 200, 500, "500 ft/NM", false));
+
+        Assert.Null(problema);
+        Assert.Equal(["VA 1200 ft", "DF LMT"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Contains("to join RDL 231 LMT VOR (TR 231°) bound to SUGEP",
+            ItalianAd2Prose.Normalizza("Initial climb procedure executed, turn right to join RDL 231 (TR 231°) LMT VOR bound to SUGEP."), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("At 13NM PRU DME (12.4NM IPER DME) turn right until joining RDL 224 ANC VOR/DME (TR 224°) bound to GITOD.", true)]
     [InlineData("Turn left on TR 132°. Crossing RDL 166 BSM VOR turn left on RDL 133 BSM VOR.", true)]
@@ -833,7 +928,7 @@ public sealed class Ad2ProseTests
             new ItalianAd2Prose.Runway(soglia, 90), new ItalianAd2Prose.Departure(fine, 782, 500, "500 ft/NM (8.3%)", false));
 
         Assert.Null(problema);
-        Assert.Equal(["IF 1350 ft", "TF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["VA 1350 ft", "DF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         // (1350 − 782) / 500 = 1,14 NM dopo la fine della pista.
         Assert.Equal(1.6 + 568.0 / 500, Distanza(soglia, tratti[0].Position!.Value), 2);
         Assert.Contains(avvisi, a => a.Contains("virata a 1350 ft", StringComparison.Ordinal) && a.Contains("500 ft/NM", StringComparison.Ordinal));
@@ -877,7 +972,7 @@ public sealed class Ad2ProseTests
 
         Assert.Null(problema);
         // A LMT si è a 10 NM × 200 = 2000 ft; per 5000 ne servono 15 NM: 7,5 fuori e 7,5 indietro.
-        Assert.Equal(["IF LMT", "CF RDL 083/7.5 NM LMT", "TF LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(["IF LMT", "FD RDL 083/7.5 NM LMT", "DF LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.Equal("L", tratti[2].Turn);
         Assert.Contains(avvisi, a => a.Contains("anello sulla RDL 083 LMT", StringComparison.Ordinal));
     }

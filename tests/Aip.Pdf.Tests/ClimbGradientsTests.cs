@@ -19,6 +19,18 @@ public sealed class ClimbGradientsTests
         Assert.Equal(["500 8.3 4500FT Unspecified []"], lette.Select(Riga));
     }
 
+    // Passo 8, LICB RWY 05: la parentesi dice fin dove vale per una SID; la pendenza vale per tutte. Due pendenze dello stesso
+    // valore si disegnano con quel valore.
+    [Fact]
+    public void UnaSidFraParentesi_FinoAUnAltraQuota()
+    {
+        var lette = ItalianClimbGradients.Read("Remarks 1. Minimum climb gradient: 8.5% (515ft/NM) till passing 2000ft (for SID OBAXU 5B until FL 100) 2. IAS MAX 185kt");
+
+        Assert.Equal(["515 8.5 2000ft Unspecified []", "515 8.5 FL 100 Unspecified [OBAXU 5B]"], lette.Select(Riga));
+        Assert.Equal(515, ItalianClimbGradients.PerDisegnare([.. ItalianClimbGradients.Per(lette, "OBAXU 5B", ancheSenzaNomi: true)])!.FeetPerNm);
+        Assert.Equal("2000ft", Assert.Single(ItalianClimbGradients.Per(lette, "ENEPA 5A", ancheSenzaNomi: true)).Until);
+    }
+
     // LIPO 6: il blocco in testa alla pagina, per SID, con la pendenza dell'ATC e, fra parentesi, quella degli ostacoli.
     [Fact]
     public void IlBloccoPerLeSidSeguenti_AtcEOstacoli()

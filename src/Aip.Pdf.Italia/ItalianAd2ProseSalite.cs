@@ -24,6 +24,8 @@ public static partial class ItalianAd2Prose
         // Gli a capo restano (il percorso finisce dove cominciano le righe delle quote e delle note); quel che sta prima del
         // decollo sono avvertenze e pendenze («WARNING: … OIS 2.5% …», LIBG, LICG, LIMZ).
         var testo = RxSpaziInRiga().Replace(RxTitoloDellaSalita().Replace(descrizione.Trim(), ""), " ");
+        // «After take off, except NELDA 6E, turn right …» (LICB RWY 23, passo 8): l'eccezione dice a chi non vale (ValePer).
+        testo = RxEccetto().Replace(testo, " ");
         // Il testo comincia dal decollo, o dal primo ramo se viene prima («REMARK … A) If cleared via SID IBCUC 1M, after take-off
         // …», LIMC RWY 17L/17R).
         var primoRamo = RxInizioDiRamo().Match(testo);
@@ -75,7 +77,7 @@ public static partial class ItalianAd2Prose
     /// </summary>
     internal static (string? Testo, string? Perche) SalitaPerLaSid(string sid, IReadOnlyList<Procedure> salite, AipPage? pagina = null)
     {
-        var tutte = salite.Where(s => HaUnPercorso(s.Description)).Select(s => (Salita: s, Divisa: Dividi(s.Description!))).ToList();
+        var tutte = salite.Where(s => HaUnPercorso(s.Description) && !Esclude(s.Description!, sid)).Select(s => (Salita: s, Divisa: Dividi(s.Description!))).ToList();
         if (tutte.Count == 0) return (null, NessunaSalita);
         var divise = tutte.Select(x => x.Divisa).ToList();
         var nominano = divise.SelectMany(d => d.Rami.Where(r => Nomina(r.Condizione, sid)).Select(r => $"{d.Comune} {r.Testo}")).ToList();
@@ -96,10 +98,22 @@ public static partial class ItalianAd2Prose
     /// Una SID che non parte dalla pista: il testo comincia con «At N NM … DME», con una virata, con «Crossing RDL …», o con
     /// «Initial climb procedure completed» (SC1).
     /// </summary>
+    /// <summary>
+    /// La salita vale per la SID: un ramo la nomina, o dice a chi non vale e lei non c'è («After take off, except NELDA 6E,
+    /// …», LICB RWY 23; passo 8).
+    /// </summary>
+    internal static bool ValePer(string? descrizione, string sid) =>
+        descrizione is not null && (Dividi(descrizione).Rami.Any(r => Nomina(r.Condizione, sid))
+            || RxEccetto().Match(descrizione) is { Success: true } eccetto && !Nomina(eccetto.Value, sid));
+
+    private static bool Esclude(string descrizione, string sid) => RxEccetto().Match(descrizione) is { Success: true } m && Nomina(m.Value, sid);
+
     internal static bool ContinuaLaSalita(string? descrizione) =>
         descrizione is not null && (RxDopoLaSalita().IsMatch(descrizione) || Route(descrizione) is { } t && RxComincaAMeta().IsMatch(t));
 
-    [GeneratedRegex(@"(?<=^|[\s;:.,])(?:[a-eA-E]\)|[-–−]\s*(?=[Ii]f\b)|\d\.\s*(?=[Ii]f\b))", RegexOptions.CultureInvariant)]
+    // Anche «- direct to COM VOR … if cleared via OBAXU 5A, …; - to join RDL 327 … if cleared via OBAXU 5B e ENEPA 5B» (LICB
+    // RWY 05, passo 8): la condizione in coda alla voce. Non le pendenze («- 300 ft/NM (4.9%) … if cleared via SID KOVAS 6E», LIEE).
+    [GeneratedRegex(@"(?<=^|[\s;:.,])(?:[a-eA-E]\)|[-–−]\s*(?=[Ii]f\b|[a-z][^;]*?\b[Ii]f\s+cleared\b)|\d\.\s*(?=[Ii]f\b))", RegexOptions.CultureInvariant)]
     private static partial Regex RxInizioDiRamo();
 
     [GeneratedRegex(@"^\s*(?:[a-eA-E]\)|[-–−]|\d\.)\s*", RegexOptions.CultureInvariant)]
@@ -123,10 +137,13 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\.\s+(?=[A-Z])", RegexOptions.CultureInvariant)]
     private static partial Regex RxFineFrase();
 
+    [GeneratedRegex(@",?\s*\bexcept\s+(?:for\s+)?" + ElencoDiSid + @"\s*,?", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxEccetto();
+
     [GeneratedRegex(@"\bother\s+SID", RegexOptions.CultureInvariant)]
     private static partial Regex RxAltreSid();
 
-    [GeneratedRegex(@",?\s*\b(?:[Tt]hen\s+)?(?:(?<v>turn\s+(?:left|right))\s+)?(?:(?:until\s+joining|to\s+join|join(?:\s+and\s+follow)?|follow|proceed\s+(?:along|according\s+to))\s+)(?:the\s+)?assigned\s+SID\b(?:\s+as\s+reported\s+below)?\s*[:.]?", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@",?\s*\b(?:[Tt]hen\s+)?(?:(?<v>turn\s+(?:left|right))\s+)?(?:(?:until\s+joining|to\s+join|join(?:\s+and\s+follow)?|follow|proceed\s+(?:along|according\s+to|on))\s+)(?:the\s+)?assigned\s+SID\b(?:\s+as\s+reported\s+below)?\s*[:.]?", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxSidAssegnata();
 
     [GeneratedRegex(@"^\s*(?:\([^)]*\)\s*)*Initial\s+climb\s+(?:procedure\s+)?(?:completed|executed)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]

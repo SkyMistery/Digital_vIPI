@@ -47,6 +47,10 @@ public static partial class ItalianClimbGradients
                     var coda = parte[(v.Index + v.Length)..(j + 1 < valori.Count ? valori[j + 1].Index : parte.Length)];
                     // La coda finisce al punto e virgola, alla fine della frase, a «then: a) …»: dopo è un'altra voce.
                     if (RxFineVoce().Match(coda) is { Success: true } f) coda = coda[..f.Index];
+                    // «8.5% (515ft/NM) till passing 2000ft (for SID OBAXU 5B until FL 100)» (LICB RWY 05, passo 8): la pendenza
+                    // vale per tutte, e per le SID fra parentesi fino a un'altra quota.
+                    var perLoro = RxPerSidFraParentesi().Match(coda);
+                    if (perLoro.Success) coda = coda.Remove(perLoro.Index, perLoro.Length);
                     // Le SID dette davanti al valore, dall'ultimo punto e virgola («a) if proceeding via SID ECVAZ 8A, OTZOM 7A: 395
                     // ft/NM», LIPX), se no quelle in coda («300 ft/NM (4.9%) up to FL 150 if cleared via SID KOVAS 6E»).
                     var davantiAlValore = parte[(j == 0 ? 0 : valori[j - 1].Index + valori[j - 1].Length)..v.Index];
@@ -62,6 +66,12 @@ public static partial class ItalianClimbGradients
                     var perche = Perche(coda) is var p && p != ClimbGradientReason.Unspecified ? p : perDefault;
                     var detto = RxSpazi().Replace((v.Value + coda).Trim(), " ");
                     lette.Add(new Letta(new ClimbGradient(ft, pc, fino, perche, detto.Length > 200 ? detto[..200] : detto), sid));
+                    if (perLoro.Success)
+                    {
+                        var finoPerLoro = RxFinoA().Match(perLoro.Value) is { Success: true } q ? RxSpazi().Replace(q.Groups["q"].Value, " ").Trim() : fino;
+                        var dettoPerLoro = RxSpazi().Replace($"{v.Value} {perLoro.Value}".Trim(), " ");
+                        lette.Add(new Letta(new ClimbGradient(ft, pc, finoPerLoro, perche, dettoPerLoro), Sid(perLoro.Value)));
+                    }
                 }
             }
         }
@@ -84,6 +94,8 @@ public static partial class ItalianClimbGradients
         if (pendenze is not { Count: > 0 }) return null;
         if (pendenze.FirstOrDefault(p => p.Reason == ClimbGradientReason.Obstacles) is { } ostacoli) return ostacoli;
         var senza = pendenze.Where(p => p.Reason == ClimbGradientReason.Unspecified).ToList();
+        // Più d'una senza motivo ma tutte dello stesso valore (fino a quote diverse, LICB OBAXU 5B): quel valore.
+        if (senza.Count > 1 && senza.Select(PiediPerMiglio).Distinct().Count() == 1) return senza[0];
         return senza.Count == 1 ? senza[0] : pendenze.Count == 1 ? pendenze[0] : null;
     }
 
@@ -106,6 +118,9 @@ public static partial class ItalianClimbGradients
     // Non «gradient of»: «(a gradient of 300 ft/NM … provides separation from obstacles)» fa parte della stessa voce (LIPO).
     [GeneratedRegex(@"\bclimb\s+gradients?\b|\bPDG\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxContesto();
+
+    [GeneratedRegex(@"\(\s*for\s+(?:SIDs?\s+)?[A-Z]{3,5}\s?\d{1,2}[A-Z]\b[^)]*\)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxPerSidFraParentesi();
 
     [GeneratedRegex(@"\bFor\s+the\s+following\s+SIDs?\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxPerLeSeguenti();

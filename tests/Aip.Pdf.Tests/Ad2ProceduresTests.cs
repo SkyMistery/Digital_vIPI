@@ -338,6 +338,58 @@ public sealed class Ad2ProceduresTests
     public void LePisteDelTitolo(string titolo, string attese) =>
         Assert.Equal(attese.Length == 0 ? [] : attese.Split(','), ItalianAd2Procedures.Piste(titolo));
 
+    // Segnalazioni 2611, passo 8: in due lingue le minime stampate una volta sola, centrate sotto le due colonne (LICB 4), si
+    // tengono intere: tagliate, la prima metà se ne andava con l'italiano e la seconda finiva nella descrizione.
+    [Fact]
+    public void LeMinimeCentrateSulleDueColonne_SiTengonoIntere()
+    {
+        var pagina = new Pagina([], [],
+        [
+            .. Testa("AD 2 LIXX 4 - 3"),
+            (60, 60, "ENEPA 1T (A discrezione ATC)"), (320, 60, "ENEPA 1T (ATC discretion)"),
+            (60, 75, "ENEPA - TR 147° (RDL 327 COM VOR) - COM VOR/DME."), (320, 75, "ENEPA - TR 147° (RDL 327 COM VOR) - COM VOR/DME."),
+            (150, 95, "MEA: ENEPA – RDL 327/25NM COM VOR/DME: 6000FT; RDL327/25NM COM VOR/DME - COM VOR/DME: 5000FT"),
+            (60, 130, "LIBRO 1T"), (320, 130, "LIBRO 1T"),
+            (60, 145, "LIBRO - TR 169° (RDL 349 COM VOR) - COM VOR/DME."), (320, 145, "LIBRO - TR 169° (RDL 349 COM VOR) - COM VOR/DME."),
+            // Corta, ma centrata: passa anche lei il taglio fra le colonne.
+            (240, 165, "MEA: LIBRO - COM VOR/DME: 5000FT"),
+        ]);
+
+        var r = ItalianAd2Procedures.Read(PdfText.Read(Enr4Tests.Pdf(pagina)), "LIXX", ProcedureKind.Star);
+
+        var enepa = r.Procedures[0];
+        // Il PDF di prova stampa «°» come «º».
+        Assert.Equal("(ATC discretion)\nENEPA - TR 147º (RDL 327 COM VOR) - COM VOR/DME.", enepa.Description);
+        Assert.Equal("MEA: ENEPA – RDL 327/25NM COM VOR/DME: 6000FT; RDL327/25NM COM VOR/DME - COM VOR/DME: 5000FT", enepa.Minimums);
+        Assert.Equal("MEA: LIBRO - COM VOR/DME: 5000FT", r.Procedures[1].Minimums);
+    }
+
+    // Segnalazioni 2611, passo 8: sotto «INITIAL CLIMB PROCEDURE» senza pista, «RWY 05» e «RWY 23» aprono la salita di ciascuna
+    // pista (LICB 6-3); le SID che seguono non prendono la pista dall'ultima riga «RWY».
+    [Fact]
+    public void LeSaliteInizialiDiDuePiste_SottoUnTitoloSolo()
+    {
+        var pagina = new Pagina([], [],
+        [
+            .. Testa("AD 2 LIXX 6 - 3"),
+            (60, 50, "PROCEDURE DI SALITA INIZIALE"), (320, 50, "INITIAL CLIMB PROCEDURE"),
+            (60, 60, "RWY 05"), (320, 60, "RWY 05"),
+            (60, 70, "Dopo il decollo a 1200ft virare a sinistra diretti a COM VOR."), (320, 70, "After take off at 1200ft turn left direct to COM VOR."),
+            (60, 90, "RWY 23"), (320, 90, "RWY 23"),
+            (60, 100, "Dopo il decollo virare a destra diretti a COM VOR."), (320, 100, "After take off, except NELDA 6E, turn right bound to COM VOR."),
+            (60, 120, "DESCRIZIONE DELLE SID"), (320, 120, "SID DESCRIPTION"),
+            (60, 130, "OBAXU 5A"), (320, 130, "OBAXU 5A"),
+            (60, 140, "Eseguita la salita iniziale virare a destra."), (320, 140, "Initial climb procedure executed turn right to join RDL 327 COM VOR bound to OBAXU."),
+        ]);
+
+        var r = ItalianAd2Procedures.Read(PdfText.Read(Enr4Tests.Pdf(pagina)), "LIXX", ProcedureKind.Sid);
+
+        var salite = r.Procedures.Where(p => p.Kind == ProcedureKind.InitialClimb && p.Description is not null).ToList();
+        Assert.Equal(["05", "23"], salite.Select(s => string.Join("/", s.Runways)));
+        Assert.Equal("After take off at 1200ft turn left direct to COM VOR.", salite[0].Description);
+        Assert.Empty(r.Procedures.Single(p => p.Designator == "OBAXU 5A").Runways);
+    }
+
     // Segnalazioni 2611, N2 (revisione col committente): in fondo alle STAR convenzionali di LIPH la tabella dei punti è
     // intestata «Waypoint Latitude Longitude», senza «LIST»: PH001-PH006 non si leggevano, e le tre STAR si fermavano.
     [Fact]
