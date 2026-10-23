@@ -430,7 +430,13 @@ public sealed class RegistroAvviiTests
     {
         var percorso = Path.Combine(AppContext.BaseDirectory,
             StartupDiagnostics.CartellaDiagnostica, RegistroAvvii.FileName);
-        var primaDelGiro = File.Exists(percorso) ? File.ReadAllLines(percorso).Length : 0;
+        // ⚠️ Dove finiva il file prima del giro si segna con la sua ULTIMA RIGA, non col numero di righe (S131).
+        // Il file di questa cartella cresce di corsa in corsa, e oltre le 2 000 righe il primo AVVIO lo pota alle
+        // ultime 1 000: l'host di questo test lo faceva proprio qui dentro. «Salta le N righe di prima» saltava
+        // allora tutto il file potato, e la riga d'arresto, scritta giusta, non si trovava (cadute del 19 e del
+        // 23 ottobre 2026, riprodotte portando il file sopra il tetto). L'ultima riga di prima invece la potatura
+        // la tiene, e il giro si legge da lì in poi.
+        var primaDelGiro = File.Exists(percorso) ? File.ReadAllLines(percorso).LastOrDefault(r => r.Length > 0) : null;
 
         // ⚠️ Il conto è del PROCESSO, e in produzione un processo ospita un'applicazione sola — ma qui gli
         // host sono decine, nello stesso processo, e le richieste degli altri test sono arrivate prima.
@@ -444,7 +450,12 @@ public sealed class RegistroAvviiTests
             await cliente.GetAsync("/vsop/health");
         }   // il Dispose ferma l'host: è qui che si scrive l'ARRESTO
 
-        var righe = File.ReadAllLines(percorso).Skip(primaDelGiro).ToArray();
+        var tutte = File.ReadAllLines(percorso);
+        var segno = primaDelGiro is null ? -1 : Array.LastIndexOf(tutte, primaDelGiro);
+        // Il segno sparito vorrebbe dire che il file è stato riscritto in un modo che il test non conosce: meglio
+        // dirlo che leggere l'arresto di un altro giro.
+        Assert.True(primaDelGiro is null || segno >= 0, $"l'ultima riga di prima del giro non c'è più: «{primaDelGiro}»");
+        var righe = tutte.Skip(segno + 1).ToArray();
         var arresto = righe.LastOrDefault(r => r.Contains("ARRESTO", StringComparison.Ordinal));
 
         Assert.NotNull(arresto);

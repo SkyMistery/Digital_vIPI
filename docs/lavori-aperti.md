@@ -43,6 +43,47 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 🔧 A168 — Fuori pacchetto: due test instabili resi stabili (S130, S131) (23 ottobre 2026)
+
+Solo `tests/` e `docs/filoni/sito.md`: il sito spedito non cambia, nessun pacchetto. Assegnati dal committente al Sito.
+- **S130** (fusione `a000b3b8`): `NoaaWeatherClientTests.Richieste_Concorrenti_Sullo_Stesso_Icao_Fanno_Una_Sola_Fetch`
+  cadeva sotto carico (19 e 23 ottobre): il banco usava il tetto di produzione della sorgente (5 s), la risposta finta
+  arrivava dopo e il fetch condiviso finiva vuoto per tutti. Il client è giusto; il banco ora alza il tetto a 120 s,
+  asserzioni invariate.
+- **S131** (fusione `59dd450b`): E2E `RegistroAvviiTests.Lhost_vero_conta_la_richiesta_e_la_scrive_nella_riga_darresto`
+  segnava il punto di partenza col NUMERO di righe di `avvii.txt`; oltre 2 000 righe il primo avvio pota il file alle
+  ultime 1 000 (`RegistroAvvii.Pota`, voluto) e lo `Skip(n)` saltava tutto. Ora parte dall'ultima riga di prima del
+  giro. Rosso riprodotto col file a 2 010 righe.
+- Build 0 avvisi, suite intera verde, conteggi identici; CI di `main` ✅ su tutte e due le fusioni.
+
+### ✅ A167 — 1.74.0 ONLINE: l'API aeroporti dice la torre radar e le regole piste (S129) (23 ottobre 2026)
+
+✅ Online dal 23 ottobre 2026: il committente conferma la 1.74 e `Schema 0`. Da fuori, da anonimo, alle 15:34Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti senza chiave 401, `vipi-theme.css?v=e393251a` (invariato),
+`/vsop/health` e `/vsop/health/ready` Healthy (prima lettura di health 6,4 s subito dopo il riavvio, poi 0,2 s). Non
+guardata da qui: la scheda dell'API con una chiave vera. Dopo il pacchetto, in `main` solo test (S130, S131: §A168).
+
+MINOR **senza migrazioni**, misurata dalla **1.73.0** (`f7baf05`) che gira. Timbro **`1.74.0 · 4fdc3ac`**.
+Fusa da `sito/lavori` @ `d548e1f9` (cartellino 🟢, CI run 39960683665), fusione `7e223676` senza conflitti.
+- **S129**: la scheda `GET /vsop/api/v1/airports/{icao}` porta `radarTower` (null = non indicato) e `runwayRules`
+  (testo del documento e soglie una per una; release di prima del 12-set: soglie null), dalla vista derivata: segue
+  la release. Campi in più, nessuno tolto. Carta `2026-09-30-api-aeroporti.md` §6, storia in `docs/filoni/sito.md`.
+  Codice comune: no (Hosting e una frase della pagina delle chiavi).
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone`). `lab/f3` non toccato.
+
+**7 file** (`solo-7-file-1.74.0`): Hosting, Ui, Host (dll + pdb) ed `en/Vipi.Ui.resources.dll`, confrontati col
+publish della **1.73.0** (`publish_old/20261022b`): 482 file, 19 con impronta diversa, `wwwroot` invariato. Nessuna
+`const` cambiata; Application invariato dalla 1.73.0, quindi i tipi che l'API legge sono già online. Zip 3,19 MB, sha256
+`7c6ff4bf4958ede6114cfd1b0cab7ad0dfb19eb6affe0139e89683a0f0b254e6`. Build Release senza avvisi; `dotnet test`: 17
+riepiloghi `Passed!` e Infrastructure net10 rosso su `NoaaWeatherClientTests.Richieste_Concorrenti_Sullo_Stesso_Icao_Fanno_Una_Sola_Fetch`
+(8 s sotto carico; da solo 3/3 verde, l'assieme rilanciato 2250/2250). ⚠️ È il **secondo episodio** dopo il 19-ott: test
+instabile, non toccato da S129. Prova sul publish win-x64 (copia del database di sviluppo, cancellata a fine prova):
+`pacchetto-verifica.js` tutto verde (`TERMINE=LIBB`); con una chiave di prova creata nella copia, la scheda di LIBC ha
+`radarTower` `null` e poi `true` (torre messa a «sì» nella copia) e una regola con piste e soglie; LIML e LIRN
+`runwayRules` vuoto. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.74.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`. Rollback: le rinomine.
+
 ### ✅ A166 — 1.73.0 ONLINE: il testo comune delle torri radar nel pannello Traduzione (S128) (22 ottobre 2026)
 
 ✅ Online dal 22 ottobre 2026: il committente conferma la 1.73 e `Schema 0`. Da fuori, da anonimo, alle 21:23Z: `/` 302,

@@ -4,7 +4,18 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 20 ottobre 2026
+## Dove siamo — 23 ottobre 2026
+
+> **In una riga, al 23 ottobre**: tutto il lavoro del filone è **online o fuso**, fino a **S128**. Il «Radar di torre» è
+> cresciuto in giorni successivi: S115 (sezione, 1.68.0), S118–S120 (tecnica a blocchi, via la colonna del testo),
+> S124 (la tecnica nasce aperta), S127 (testo comune a tutte le torri, **1.72.0**, §A165) e **S128** (il testo comune si
+> rilegge e si corregge nel pannello «Traduzione», solo admin: **online in 1.73.0** dal 22 ottobre, §A166). S121–S126
+> (allegati nei callout, link, via le note, conta-test, test instabile) sono online in 1.71.0 (§A164); S116–S117 fusi
+> senza pacchetto (§A161). **Niente in corso.**
+> **Resta al committente**: scrivere il testo comune vero (da admin) e ripubblicare gli scali che «Da fare» elenca;
+> guardare col login le frasi «testo comune» nel pannello «Traduzione» (mai viste online); riscrivere le due frasi di
+> Milano dei trasferimenti (S123c). S96 (tabellone) resta in pausa su `fix/tabellone`.
+> Le note qui sotto sono quelle dei giorni prima.
 
 > **Aggiornamento del 20 ottobre**: **S114** e **S115** (il «Radar di torre») sono **online in 1.68.0** (§A160; Schema 0
 > confermato dal committente; la migrazione `TorreRadar` è passata; da fuori CSS e health Healthy). **S116** e **S117**
@@ -2926,7 +2937,7 @@
   catalogo non cambia. Carta `docs/feature/2026-10-22-testo-comune.md`. Provato a schermo su DB nuovo (LIRQ): la prova
   ha trovato il paragrafo dello scalo fra i due callout comuni (`SectionBody` leggeva gli ordini negativi come
   «sconosciuti»), corretto con test rosso prima. Non visti: vSOP militare, pagina inglese, unione, allegato nel callout.
-- 🟢 **S128** (22-ott, committente: «la parte comune di torre radar non sapevo dove si traducesse»): le frasi del
+- ✅ **S128** (**online in 1.73.0** dal 22-ott, §A166; committente: «la parte comune di torre radar non sapevo dove si traducesse»): le frasi del
   **testo comune** delle torri radar nel pannello **«Traduzione»** dell'editor di ogni vIPI/vSOP con la «Tecnica
   operativa», in coda e segnate «testo comune»; le corregge **solo un admin** (servizio e pannello), e la correzione
   vale per tutte le torri. Prima le traduceva la macchina senza nessun posto dove rileggerle. Carta
@@ -2938,6 +2949,47 @@
     come umana, anteprima inglese tradotta.
   - Nello stesso giro il committente aveva segnalato la sezione che non si vedeva sui vSOP senza vIPI: riprodotto su
     dati inventati (LIPI) e invece si vede — era un suo errore, chiuso senza modifiche.
+- 🟢 **S129** (23-ott, committente: «vorrei le regole di scelta della pista e se la torre è radarizzata o no»): la
+  scheda dell'API aeroporti (`GET /vsop/api/v1/airports/{icao}`) porta `radarTower` (`null` = non indicato) e
+  `runwayRules`. Ogni regola ha il testo del documento e accanto le soglie una per una: coda, traverso, superficie,
+  orario locale, giorni, parità, stagione. Si leggono dalla vista derivata, quindi seguono la release come la pagina.
+  Le release di prima del 12 settembre hanno il solo testo: lì le soglie escono `null`. Niente nota per regola: è
+  in pensione da S123a, e un campo nato per sparire non si dà a chi integra. Carta `2026-09-30-api-aeroporti.md` §6.
+  - Nessuna migrazione, niente `deploy/`, niente codice comune (solo `Vipi.Hosting` e i due `.resx`: la descrizione
+    della rotta nella pagina chiavi).
+  - Test: Hosting 102 → 107; E2E `ChiaviApiTests` verdi. Dal vivo con curl su una copia del DB: 401 senza chiave,
+    LIBD sì, LIRS (solo vSOP) no, LIBC non indicato con una regola completa, LIBR da release vecchia col testo e le
+    soglie `null`.
+- 🟢 **S130** (23-ott, assegnato dal committente tramite il Master): `NoaaWeatherClientTests.
+  Richieste_Concorrenti_Sullo_Stesso_Icao_Fanno_Una_Sola_Fetch` reso stabile. Nella suite intera sotto carico era
+  caduto due volte (19-ott net8 dopo 6 s, 23-ott net10 dopo 8 s), con tutti e 16 i report vuoti.
+  - **Causa, riprodotta**: il banco costruiva il client col tetto di produzione della sorgente principale (5 s).
+    Quando la risposta del gate arrivava oltre quel tetto, il fetch condiviso finiva vuoto e tutti i chiamanti
+    accodati ricevevano quel report. Rosso riprodotto aprendo il gate 1,5 s dopo un tetto di 1 s: 16 report vuoti su
+    16, con le 2 chiamate giuste. Era il sintomo esatto.
+  - **Il client è giusto e non si tocca**: un NOAA che non risponde entro il tetto dà un report vuoto a TTL corto, ed
+    è voluto. Lo sbaglio era del banco, che provava la coalescenza misurando anche il tempo vero.
+  - **Correzione**: le opzioni del banco (`Opzioni()`) alzano quel tetto a 120 s per tutta la classe. Nessun banco
+    prova quel tetto: lo prova `La_Scorta_Aspetta_Meno_Della_Principale` direttamente su `WeatherOptions`. Le
+    asserzioni restano le stesse (2 chiamate, METAR per tutti). Ricontrollato con un carico finto di 6 s: verde su
+    net8 e net10.
+  - Solo `tests/`: niente `src/`, niente pacchetto. Conteggi invariati.
+- 🟢 **S131** (23-ott, assegnato dal committente tramite il Master): E2E `RegistroAvviiTests.
+  Lhost_vero_conta_la_richiesta_e_la_scrive_nella_riga_darresto` reso stabile. Era caduto nella suite intera con
+  `Assert.NotNull(arresto)` alla riga 450, e da solo passava.
+  - **Causa, riprodotta, e non era il carico**: il test segnava dove finiva `diagnostica/avvii.txt` col NUMERO di
+    righe, e dopo il giro faceva `Skip(n)`. Il file della cartella `bin` cresce di corsa in corsa: oltre le 2 000
+    righe il primo AVVIO lo pota alle ultime 1 000 (`RegistroAvvii.Pota`). Quando quell'AVVIO era l'host del test,
+    lo `Skip` saltava tutto il file potato. Nel file della corsa caduta la riga d'ARRESTO del test c'era, giusta
+    («richieste 1, svegliato da /vsop/health»), subito dopo la potatura delle 14:11:39Z. Rosso riprodotto portando
+    il file a 2 010 righe e lanciando il test da solo, con la stessa asserzione.
+  - **Il registro è giusto e non si tocca**: potare all'avvio è voluto. Gli E2E girano in fila, quindi non c'erano
+    altri host in mezzo.
+  - **Correzione**: il punto di partenza si segna con l'ULTIMA RIGA di prima del giro, che la potatura tiene, e si
+    legge da lì in poi. Se quel segno sparisse il test lo dice, invece di leggere l'arresto di un altro giro. Le
+    asserzioni restano le stesse (riga ARRESTO, richieste non 0, svegliato da /vsop/health). Verde col file sopra il
+    tetto, da solo e con la classe intera.
+  - Solo `tests/`: niente `src/`, niente pacchetto. Conteggi invariati.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
