@@ -2960,6 +2960,20 @@
   - Test: Hosting 102 → 107; E2E `ChiaviApiTests` verdi. Dal vivo con curl su una copia del DB: 401 senza chiave,
     LIBD sì, LIRS (solo vSOP) no, LIBC non indicato con una regola completa, LIBR da release vecchia col testo e le
     soglie `null`.
+- 🟢 **S130** (23-ott, assegnato dal committente tramite il Master): `NoaaWeatherClientTests.
+  Richieste_Concorrenti_Sullo_Stesso_Icao_Fanno_Una_Sola_Fetch` reso stabile. Nella suite intera sotto carico era
+  caduto due volte (19-ott net8 dopo 6 s, 23-ott net10 dopo 8 s), con tutti e 16 i report vuoti.
+  - **Causa, riprodotta**: il banco costruiva il client col tetto di produzione della sorgente principale (5 s).
+    Quando la risposta del gate arrivava oltre quel tetto, il fetch condiviso finiva vuoto e tutti i chiamanti
+    accodati ricevevano quel report. Rosso riprodotto aprendo il gate 1,5 s dopo un tetto di 1 s: 16 report vuoti su
+    16, con le 2 chiamate giuste. Era il sintomo esatto.
+  - **Il client è giusto e non si tocca**: un NOAA che non risponde entro il tetto dà un report vuoto a TTL corto, ed
+    è voluto. Lo sbaglio era del banco, che provava la coalescenza misurando anche il tempo vero.
+  - **Correzione**: le opzioni del banco (`Opzioni()`) alzano quel tetto a 120 s per tutta la classe. Nessun banco
+    prova quel tetto: lo prova `La_Scorta_Aspetta_Meno_Della_Principale` direttamente su `WeatherOptions`. Le
+    asserzioni restano le stesse (2 chiamate, METAR per tutti). Ricontrollato con un carico finto di 6 s: verde su
+    net8 e net10.
+  - Solo `tests/`: niente `src/`, niente pacchetto. Conteggi invariati.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
