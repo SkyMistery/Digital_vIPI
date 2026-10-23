@@ -51,7 +51,7 @@ public static partial class ItalianAd2Prose
         if (testo is null) return ([], "senza testo", []);
         // Una STAR che non dice da dove comincia («Proceed on TR 119° … bound to TAQ VOR/DME») parte dal punto del suo nome.
         var inizio = procedure.Kind == ProcedureKind.Star ? procedure.Designator.Split(' ')[0] : null;
-        var lettore = new Lettore(testo, point, station, runway);
+        var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind == ProcedureKind.Sid);
         var (tratti, problema) = lettore.Leggi(inizio);
         return (tratti, problema, problema is null ? lettore.Avvisi : []);
     }
@@ -206,7 +206,7 @@ public static partial class ItalianAd2Prose
         return RxSpazi().Replace(t, " ").Trim();
     }
 
-    private sealed class Lettore(string testo, Func<string, Position?> punto, Func<string, Station?> stazione, Runway? pista)
+    private sealed class Lettore(string testo, Func<string, Position?> punto, Func<string, Station?> stazione, Runway? pista, bool dallaPista = false)
     {
         private readonly List<ProcedureLeg> _tratti = [];
         private Position? _qui;
@@ -217,6 +217,12 @@ public static partial class ItalianAd2Prose
         private double? _declinazione;
         private string? _problema;
         private readonly List<string> _avvisi = [];
+
+        /// <summary>
+        /// Una virata dopo che la rotta corrente è stata presa: la rotta non vale più per intercettare («RWY heading until 1 NM
+        /// OST DME then turn left to join RDL 278»: dopo la virata non si è più sulla pista). Una rotta nuova la rimette a posto.
+        /// </summary>
+        private bool _virataDopoLaRotta;
 
         /// <summary>Le approssimazioni fatte leggendo (una prua come rotta): si dicono anche se la procedura si legge.</summary>
         public IReadOnlyList<string> Avvisi => _avvisi;
@@ -253,6 +259,7 @@ public static partial class ItalianAd2Prose
             {
                 // Il pezzo è «turn left»: conta la parola dopo «turn» (prima si guardava la prima lettera, sempre «t»: tutte a destra).
                 _virata = g["virata"].Value.EndsWith("left", StringComparison.OrdinalIgnoreCase) ? "L" : "R";
+                _virataDopoLaRotta = true;
                 return;
             }
             if (g["loc"].Success)
@@ -273,6 +280,7 @@ public static partial class ItalianAd2Prose
                     return;
                 }
                 _linea = Linea.DallaPista(pista);
+                _virataDopoLaRotta = false;
                 return;
             }
             if (g["lasciaR"].Success)
@@ -358,7 +366,14 @@ public static partial class ItalianAd2Prose
                     ChiudiLArco(Sphere.Destination(s.Position, radiale + s.Variation, arco.Raggio), $"RDL {radiale:000}/{Dist(arco.Raggio)} NM {nome}");
                 var tr = g["lineaT"].Success ? Numero(g["lineaT"]) : g["lineaT2"].Success ? Numero(g["lineaT2"]) : (double?)null;
                 bool? fuori = tr is { } t ? Math.Abs(Sphere.Normalize(t - radiale + 180) - 180) < 90 : null;
-                _linea = Linea.SuRadiale(nome, s, radiale, fuori, tr);
+                var nuova = Linea.SuRadiale(nome, s, radiale, fuori, tr);
+                // B6: da una rotta («on TR 073° until joining RDL 103 CRN VOR», o dalla pista) la radiale si intercetta: il
+                // punto dove la si prende, se è davanti, vicino (100 NM) e le due linee non sono quasi parallele. Da un'altra
+                // radiale no: due radiali della stessa stazione si incrociano sulla stazione.
+                if (_arco is null && !_virataDopoLaRotta && _linea is { Stazione: null } corrente && corrente.Intercetta(nuova, _qui) is { } presa)
+                    Calcolato(presa, $"INT {corrente.Nome}/RDL {radiale:000} {nome}", corrente.Rotta);
+                _linea = nuova;
+                _virataDopoLaRotta = false;
                 return;
             }
             if (g["rotta"].Success || g["prua"].Success)
@@ -366,12 +381,23 @@ public static partial class ItalianAd2Prose
                 // «on TR 224°» da dove si è; prima del primo punto (una SID appena decollata) non disegna niente.
                 // «turn right heading 025°»: una prua; si disegna come la rotta, senza vento, e si dice (committente, 23 ottobre).
                 var tr = Numero(g["rotta"].Success ? g["rotta"] : g["prua"]);
+                _virataDopoLaRotta = false;
                 if (g["prua"].Success)
                     _avvisi.Add($"prua {tr:000}° disegnata come rotta, senza vento");
                 if (_qui is { } qui)
                 {
                     if ((_declinazione ?? DeclinazioneDelTesto()) is not { } v) return;
                     _linea = Linea.DaUnPunto(qui, tr, v);
+                }
+                else if (dallaPista && pista is not null && _tratti.Count == 0 && (_declinazione ?? DeclinazioneSenzaProblema()) is { } v)
+                {
+                    // B6: una SID che comincia con una rotta («Proceed on TR 263° until intercepting …»): dalla soglia della
+                    // pista, come «RWY heading». Se la rotta si scosta dalla pista c'è una virata dopo il decollo che non si
+                    // disegna: si dice.
+                    _linea = Linea.DaUnPunto(pista.Threshold, tr, v);
+                    var scarto = Math.Abs(Sphere.Normalize(tr + v - pista.TrueBearing + 180) - 180);
+                    if (scarto > 15)
+                        _avvisi.Add($"il primo tratto parte dalla soglia della pista su TR {tr:000}°: la virata dopo il decollo ({scarto:0}°) non è disegnata");
                 }
                 else
                 {
@@ -504,6 +530,15 @@ public static partial class ItalianAd2Prose
             return null;
         }
 
+        /// <summary>Come <see cref="DeclinazioneDelTesto"/>, ma senza fermare la lettura se non c'è una stazione.</summary>
+        private double? DeclinazioneSenzaProblema()
+        {
+            foreach (Match m in RxStazioneNelTesto().Matches(testo))
+                if (stazione(m.Groups[1].Value) is { } s)
+                    return s.Variation;
+            return null;
+        }
+
         private double? DeclinazioneDelTesto()
         {
             foreach (Match m in RxStazioneNelTesto().Matches(testo))
@@ -561,6 +596,30 @@ public static partial class ItalianAd2Prose
             if (Math.Abs(det) < 1e-6) return null;
             var t = (ox * -ey - oy * -ex) / det;
             if (Radiale is not null && !VersoNoto && t < 0) t = -t; // una radiale si legge dalla stazione in fuori
+            return DalPiano(t * dx, t * dy);
+        }
+
+        /// <summary>
+        /// Dove questa rotta prende <paramref name="altra"/>: davanti a <paramref name="qui"/> (o all'origine), entro 100 NM, con
+        /// almeno 10° fra le due direzioni; se no null (e il tratto resta come prima: dritto al punto dopo).
+        /// </summary>
+        public Position? Intercetta(Linea altra, Position? qui)
+        {
+            var angolo = Math.Abs(Sphere.Normalize(Direzione - altra.Direzione + 180) - 180);
+            if (angolo < 10 || angolo > 170) return null;
+            var (dx, dy) = Versore;
+            var (ox, oy) = Piano(altra.Origine);
+            var (ex, ey) = altra.Versore;
+            var det = dx * -ey - dy * -ex;
+            if (Math.Abs(det) < 1e-6) return null;
+            var t = (ox * -ey - oy * -ex) / det;
+            var tQui = 0.0;
+            if (qui is { } q)
+            {
+                var (qx, qy) = Piano(q);
+                tQui = qx * dx + qy * dy;
+            }
+            if (t <= tQui + 0.1 || t - tQui > 100) return null;
             return DalPiano(t * dx, t * dy);
         }
 

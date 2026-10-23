@@ -199,6 +199,39 @@ public sealed class Ad2ProseTests
             n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n)).Warnings);
     }
 
+    // Segnalazioni 2611, B6: «on TR 073° until joining RDL …» — il punto dove la rotta prende la radiale (prima si andava dritti
+    // al punto dopo). Non dopo una virata («then turn left to join RDL …»: lì la rotta di prima non vale più).
+    [Fact]
+    public void LaRadialeSiIntercetta_DaUnaRottaPresaDopoLaVirata()
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1J",
+            "DELIK – TR 310° (RDL 130 LMT VOR) until 14 NM LMT DME, then turn right on TR 300° until joining RDL 250 LMT VOR bound to SUGEP."));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF DELIK", "CF RDL 130/14 NM LMT", "CF INT TR 300°/RDL 250 LMT", "TF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        // L'incrocio sta sulla radiale 250 (magnetica, 3° E) di LMT.
+        Assert.Equal(253, Rotta(Stazioni["LMT"].Position, tratti[2].Position!.Value), 0);
+    }
+
+    // B6: una SID che comincia con una rotta parte dalla soglia della pista; se la rotta si scosta dalla pista, si dice.
+    // (TF verso NENIG: la radiale non ha una rotta scritta.)
+    [Theory]
+    [InlineData(250, null)]
+    [InlineData(200, "la virata dopo il decollo")]
+    public void UnaSidDallaPista_ConUnaRotta(double pista, string? avvisoAtteso)
+    {
+        var soglia = new Position(41.81, 12.29);
+        var p = P(ProcedureKind.Sid, "NENIG 6Z", "Proceed on TR 247° until joining RDL 278 OST VOR bound to NENIG.", "25");
+
+        var (tratti, problema, avvisi) = ItalianAd2Prose.DecodeWithWarnings(p, n => Punti.TryGetValue(n, out var x) ? x : null,
+            n => Stazioni.GetValueOrDefault(n), new ItalianAd2Prose.Runway(soglia, pista));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF INT TR 247°/RDL 278 OST", "TF NENIG"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        if (avvisoAtteso is null) Assert.Empty(avvisi);
+        else Assert.Contains(avvisoAtteso, Assert.Single(avvisi), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void DueRadialiCheSiIncrociano()
     {
