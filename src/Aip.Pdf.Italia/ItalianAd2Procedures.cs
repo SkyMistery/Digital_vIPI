@@ -582,7 +582,13 @@ public static partial class ItalianAd2Procedures
                 a = y;
                 var testoDelPunto = string.Join(' ', parole).Trim();
                 var dove = latitudine is not null && Gradi(latitudine) is { } la && Gradi(lon) is { } lo ? new Position(la, lo) : (Position?)null;
-                if (dove is null)
+                // Revisione 5: «014°024’13.45”E» (LIRN 5): stampate male, lette lo stesso, e si dice come.
+                if (dove is null && ItalianCoordinateStampate.Leggi($"{latitudine?.Value} {lon.Value}") is { } tollerante)
+                {
+                    dove = tollerante.Posizione;
+                    problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, testoDelPunto, pagina.Number, $"FIX/POINT: {latitudine?.Value} {lon.Value}: errore di stampa, letto come {tollerante.Letto}"));
+                }
+                else if (dove is null)
                     problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, testoDelPunto, pagina.Number, $"FIX/POINT: {latitudine?.Value} {lon.Value}"));
                 fissi.Add(new ApproachFix(testoDelPunto, dove));
                 latitudine = null;
@@ -830,24 +836,32 @@ public static partial class ItalianAd2Procedures
         if (!punto.Success || !nellaLista && !GeometryText.HasCoordinate(coordinate)) return false;
         var id = punto.Groups["id"].Value;
         // La lista si ripete sotto più procedure: un punto una volta sola, e due coordinate diverse si dicono.
-        if ((Arinc(coordinate) ?? GeometryText.ReadPoint(coordinate) ?? Gms(coordinate)) is not { } dove)
+        var dove = Arinc(coordinate) ?? GeometryText.ReadPoint(coordinate) ?? Gms(coordinate);
+        // Revisione 5: stampate male, lette lo stesso, e si dice come (la prima volta che il punto si trova).
+        if (dove is null && ItalianCoordinateStampate.Leggi(coordinate) is { } tollerante)
+        {
+            dove = tollerante.Posizione;
+            if (punti.All(x => x.Designator != id))
+                problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, id, pagina.Number, $"{riga}: errore di stampa, letto come {tollerante.Letto}"));
+        }
+        if (dove is not { } posizione)
             problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, id, pagina.Number, riga));
         else if (punti.FindIndex(x => x.Designator == id) is var k and >= 0)
         {
             // La stessa lista su più pagine, una coi secondi a un decimale e una a due (LIRF 6 p.20 e p.32): un punto entro 0,36"
             // è lo stesso, e vale la scrittura più precisa. Oltre, due coordinate: si dice.
             var gia = punti[k];
-            if (Math.Abs(gia.Position.Lat - dove.Lat) > 1e-4 || Math.Abs(gia.Position.Lon - dove.Lon) > 1e-4)
+            if (Math.Abs(gia.Position.Lat - posizione.Lat) > 1e-4 || Math.Abs(gia.Position.Lon - posizione.Lon) > 1e-4)
                 problemi.Add(new ImportIssue(ImportIssueKind.SignificantPoint, id, pagina.Number, $"due coordinate: {riga}"));
             else if (Decimali(coordinate!) > decimali.GetValueOrDefault(id))
             {
-                punti[k] = gia with { Position = dove, Page = Pagina(pagina) };
+                punti[k] = gia with { Position = posizione, Page = Pagina(pagina) };
                 decimali[id] = Decimali(coordinate!);
             }
         }
         else
         {
-            punti.Add(new SignificantPoint { Section = sezione, Designator = id, Position = dove, Page = Pagina(pagina) });
+            punti.Add(new SignificantPoint { Section = sezione, Designator = id, Position = posizione, Page = Pagina(pagina) });
             decimali[id] = Decimali(coordinate!);
         }
         return true;
