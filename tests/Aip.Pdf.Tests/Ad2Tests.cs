@@ -101,6 +101,30 @@ public sealed class Ad2Tests
         Assert.Empty(r.Issues);
     }
 
+    // Segnalazioni 2611, B7: in AD 2.17 il nome va a capo col tipo dello spazio («TORINO/Aeritalia» / «ATZ Sector 3»,
+    // «Albenga/Riviera» / «Airport ATZ»): è nome, non geometria; e l'area è un'ATZ.
+    [Fact]
+    public void AD217_IlNomeCheVaACapoColTipo()
+    {
+        double[] c = [52, 160, 250, 320, 400, 470, 565];
+        var pagina = new Pagina(c, [100, 130, 145, 215],
+        [
+            .. Testa("AD 2 LIXX 1 - 9"), (60, 80, "LIXX AD 2.17 SPAZI AEREI ATS"),
+            (56, 110, "Designazione"),
+            .. Enumerable.Range(0, 6).Select(i => (c[i] + 4, 132.0, (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture))),
+            (56, 150, "PROVA/Aeritalia"), (56, 160, "ATZ Sector 3"),
+            (56, 170, "45°06'47\"N 007°35'30\"E;"), (56, 180, "45°08'00\"N 007°36'00\"E;"), (56, 190, "45°07'00\"N 007°38'00\"E;"),
+            (56, 200, "45°06'47\"N 007°35'30\"E"),
+            (164, 150, "3000 FT AMSL"), (164, 160, "SFC"), (254, 150, "G"), (324, 150, "Aeritalia Radio"), (404, 150, "6000 FT"), (474, 150, "NIL"),
+        ]);
+
+        var r = ItalianAd2.Read(PdfText.Read(Enr4Tests.Pdf(pagina)), "LIXX", "PROVA");
+
+        var atz = Assert.Single(r.Airspaces);
+        Assert.Equal(("PROVA/Aeritalia ATZ Sector 3", AirspaceType.Atz), (atz.Designator, atz.Type));
+        Assert.DoesNotContain(r.Issues, i => i.Kind == ImportIssueKind.Geometry);
+    }
+
     /// <summary>
     /// AD 2.19 (slice 5d): un VORTAC coi due apparati, un ILS — la riga «ILS RWY 28 LOC», sotto il DME-P con la sua sigla, il
     /// GP e l'OM senza —, e un DME da solo con un'altra sigla, che chiude l'ILS.

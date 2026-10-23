@@ -80,6 +80,8 @@ public static partial class GeometryText
         ("AL PUNTO DI ORIGINE", Senso.PuntoDiOrigine),
         ("PUNTO DI ORIGINE", Senso.PuntoDiOrigine),
         ("FINO AL PUNTO", Senso.FinoAlPunto),
+        // «fino a/till point» (le quote minime radar di LIRP, segnalazioni 2611 B7).
+        ("FINO A", Senso.FinoAlPunto),
         ("AREA CIRCOLARE", Senso.AreaCircolare),
         ("QUINDI LINEA CONGIUNGENTE I PUNTI", Senso.Connettivo),
         ("POI LINEA CONGIUNGENTE I PUNTI", Senso.Connettivo),
@@ -116,11 +118,12 @@ public static partial class GeometryText
     /// <summary>
     /// La coordinata dell'AIP, latitudine e longitudine insieme: <c>44°50'06"N 007°09'12"E</c> (gradi, primi, secondi
     /// coi decimali facoltativi, i simboli che i PDF scrivono in più modi — ENR 4.5 chiude i secondi con due apici
-    /// tipografici, <c>17’’N</c>) o compatta <c>445006N 0070912E</c>.
+    /// tipografici, <c>17’’N</c>) o compatta <c>445006N 0070912E</c>. La longitudine coi gradi può avere due cifre:
+    /// <c>09° 55' 03'' E</c>, <c>13°28'53" E</c> (LIRP, LIPZ: lo zero davanti dimenticato; segnalazioni 2611 B7).
     /// </summary>
     [GeneratedRegex(
         @"(?<la>\d{2})\s*[°º˚]\s*(?<lm>\d{2})\s*['’´′]\s*(?<ls>\d{2}(?:[.,]\d+)?)\s*(?:''|’’|[""”″])?\s*(?<lh>[NS])(?![A-Z])[\s,;]*" +
-        @"(?<oa>\d{3})\s*[°º˚]\s*(?<om>\d{2})\s*['’´′]\s*(?<os>\d{2}(?:[.,]\d+)?)\s*(?:''|’’|[""”″])?\s*(?<oh>[EW])(?![A-Z])" +
+        @"(?<oa>\d{2,3})\s*[°º˚]\s*(?<om>\d{2})\s*['’´′]\s*(?<os>\d{2}(?:[.,]\d+)?)\s*(?:''|’’|[""”″])?\s*(?<oh>[EW])(?![A-Z])" +
         @"|\b(?<la>\d{2})(?<lm>\d{2})(?<ls>\d{2}(?:[.,]\d+)?)\s?(?<lh>[NS])[\s,;/]*(?<oa>\d{3})(?<om>\d{2})(?<os>\d{2}(?:[.,]\d+)?)\s?(?<oh>[EW])(?![A-Z])",
         Opzioni)]
     private static partial Regex RxCoordinata();
@@ -338,8 +341,13 @@ public static partial class GeometryText
         void Vertice(Position p)
         {
             if (tratti.Count > 0 && Stesso(tratti[^1].From, p)) return;
-            // Il primo vertice ripetuto in fondo è la chiusura dell'anello, scritta coi numeri.
-            if (tratti.Count >= 3 && Stesso(tratti[0].From, p)) { ChiudiAnello(dichiarato: true); return; }
+            // Il primo vertice ripetuto in fondo è la chiusura dell'anello, scritta coi numeri. Con un arco bastano due tratti
+            // (l'arco e la linea che torna: LIRP 2000 FT, segnalazioni 2611 B7; prima diceva «non si chiude»).
+            if ((tratti.Count >= 3 || (tratti.Count == 2 && tratti.Any(t => t is ArcSegment))) && Stesso(tratti[0].From, p))
+            {
+                ChiudiAnello(dichiarato: true);
+                return;
+            }
             tratti.Add(new LineSegment(p));
         }
 

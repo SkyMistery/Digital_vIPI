@@ -11,6 +11,45 @@ public sealed class GeometryTextTests
         Assert.Equal(atteso.Lon, letto.Lon, 9);
     }
 
+    // Segnalazioni 2611, B7 (le quote minime radar di LIRP e LIPZ): «fino a/till point» in due lingue; la longitudine con
+    // due cifre («09°», lo zero dimenticato); l'arco e la linea che torna al primo punto chiudono l'anello.
+    [Fact]
+    public void FinoA_LaLongitudineADueCifre_EIlRitornoDopoUnArco()
+    {
+        var letto = GeometryText.Read("""
+            43° 29' 01'' N, 09° 48' 35'' E
+            then arc of circle in clockwise direction radius 5 NM centred on:
+            43° 25' 36'' N, 009° 53' 36'' E
+            fino a/till point
+            43° 20' 43'' N, 09° 55' 03'' E
+            then line joining following points:
+            43° 29' 01'' N, 09° 48' 35'' E
+            """);
+
+        Assert.Empty(letto.Issues);
+        var anello = Assert.IsType<RingGeometry>(Assert.Single(letto.Geometries));
+        Assert.Equal(2, anello.Segments.Count);
+        var arco = Assert.IsType<ArcSegment>(anello.Segments[0]);
+        Vicino(P(43 + 29 / 60.0 + 1 / 3600.0, 9 + 48 / 60.0 + 35 / 3600.0), arco.From);
+        Vicino(P(43 + 20 / 60.0 + 43 / 3600.0, 9 + 55 / 60.0 + 3 / 3600.0), anello.Segments[1].From);
+    }
+
+    // B7: ma un anello che NON torna al primo punto si dice ancora (LIBD FL100 è stampato così).
+    [Fact]
+    public void UnAnelloCheNonTorna_SiDiceAncora()
+    {
+        var letto = GeometryText.Read("""
+            Line joining following points:
+            41°23'49" N 016°20'46" E
+            41°19'20" N 015°36'55" E
+            40°54'29" N 016°01'26" E
+            41°17'57" N 016°27'52" E
+            """);
+
+        Assert.Equal(GeometryIssueKind.NotClosed, Assert.Single(letto.Issues).Kind);
+        Assert.Single(letto.Geometries);
+    }
+
     [Fact]
     public void UnPoligonoAlPuntoDiOrigine()
     {

@@ -31,6 +31,10 @@ public static partial class ItalianAd2
     [GeneratedRegex(@"(['’""″])\s+(?=[NSEW]\b)")]
     private static partial Regex RxSpazioPrimaDellEmisfero();
 
+    // Una riga che continua il nome dello spazio in AD 2.17: solo il tipo, col settore («ATZ Sector 3», «Airport ATZ»).
+    [GeneratedRegex(@"^(?:Airport\s+)?(?:ATZ|CTR|RMZ|TMZ)(?:\s+Sector\s+\w+)?$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxSeguitoDelNome();
+
     [GeneratedRegex(@"([NS])\s*-\s*(?=\d)")]
     private static partial Regex RxTrattinoFraLeCoordinate();
 
@@ -311,7 +315,12 @@ public static partial class ItalianAd2
             var designatore = c[0][0];
             // Uno scalo senza spazio aereo suo: la tabella dice solo «NIL» (passo 5).
             if (designatore == "NIL") continue;
-            var letta = GeometryText.Read(string.Join('\n', c[0].Skip(1)));
+            // Il nome può andare a capo con il tipo dello spazio: «TORINO/Aeritalia» / «ATZ Sector 3», «Albenga/Riviera» /
+            // «Airport ATZ» (segnalazioni 2611 B7: prima finivano nella geometria, e le tre ATZ di Aeritalia avevano lo stesso nome).
+            var dopo = 1;
+            while (dopo < c[0].Count && RxSeguitoDelNome().IsMatch(c[0][dopo].Trim()))
+                designatore = $"{designatore} {c[0][dopo++].Trim()}";
+            var letta = GeometryText.Read(string.Join('\n', c[0].Skip(dopo)));
             foreach (var g in letta.Issues)
                 problemi.Add(new ImportIssue(ImportIssueKind.Geometry, designatore, r.Pagina.Number, g.Detail is null ? $"{g.Kind}" : $"{g.Kind}: {g.Detail}"));
             if (letta.Geometries.Count == 0)
