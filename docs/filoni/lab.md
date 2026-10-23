@@ -4,15 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 23 ottobre 2026: le segnalazioni del 2611, B1-B3, B5 e B7 fatte
+## Dove siamo — 23 ottobre 2026: le segnalazioni del 2611, B1-B3, B5, B7 e B6 fatte
 
 Letti gli 851 PDF del 2611, il Lab dava 542 segnalazioni: divise per causa nella carta
 [`2026-10-23-segnalazioni-2611.md`](../feature/2026-10-23-segnalazioni-2611.md); ordine approvato dal committente
 B2+B1+B3 → B5 → B7 → B6. **B1-B3 e B5 fatte** nel lettore della prosa (`ItalianAd2Prose`), in quattro giri misurati sul
-2611 intero: **542 → 256 segnalazioni, procedure lette dalla prosa 449 → 732**; B7 (geometrie degli scali): «fino a», longitudini a due cifre, il nome delle ATZ andato a capo, la chiusura dopo un arco, nessuna persa senza un motivo detto.
+2611 intero: **542 → 301 segnalazioni (61 sono approssimazioni dette: prue e SID dalla soglia), procedure lette dalla prosa 449 → 742**; B7 (geometrie degli scali): «fino a», longitudini a due cifre, il nome delle ATZ andato a capo, la chiusura dopo un arco, nessuna persa senza un motivo detto.
 Trovati e corretti strada facendo due difetti veri: ogni virata della prosa usciva a destra (101 procedure) e l'incrocio
 «Crossing RDL …» con la maiuscola non si riconosceva (archi rimasti aperti). «heading» (una prua): deciso dal committente, si disegna senza vento e si segnala.
-**Prossimo**: B6. Il 22 ottobre la chat di prima si era fermata (crediti finiti): nessun codice a metà;
+B6 primo giro: il punto dove si intercetta una radiale, le SID dalla soglia della pista. **Prossimo**: lo sceglie il committente (resta la carta §5: SID senza pista, «until leaving», localizzatori, B8). Il 22 ottobre la chat di prima si era fermata (crediti finiti): nessun codice a metà;
 l'ambiente di prova del committente (`SectorLabProva`) è quello delle sue prove, da non azzerare.
 
 ## 22 ottobre 2026: la carta «L'AIP intero e gli emendamenti», finita
