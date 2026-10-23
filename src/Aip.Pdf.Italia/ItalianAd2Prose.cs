@@ -41,7 +41,7 @@ public static partial class ItalianAd2Prose
     /// </summary>
     public static (IReadOnlyList<ProcedureLeg> Legs, string? Problem, IReadOnlyList<string> Warnings) DecodeWithWarnings(
         Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway = null, double? aerodromeVariation = null,
-        string? initialClimb = null)
+        string? initialClimb = null, Departure? departure = null)
     {
         ArgumentNullException.ThrowIfNull(procedure);
         ArgumentNullException.ThrowIfNull(point);
@@ -66,7 +66,7 @@ public static partial class ItalianAd2Prose
             ricuciture = [.. ricucitureDellaSalita, .. ricuciture];
         }
         var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind is ProcedureKind.Sid or ProcedureKind.InitialClimb,
-            declinazioneDelloScalo: aerodromeVariation);
+            declinazioneDelloScalo: aerodromeVariation, decollo: departure, quoteMinime: procedure.Minimums + "\n" + procedure.Description);
         var (tratti, problema) = lettore.Leggi(inizio, procedure.Kind == ProcedureKind.Sid ? procedure.Designator.Split(' ')[0] : null);
         return (tratti, problema, problema is null ? [.. ricuciture, .. lettore.Avvisi] : []);
     }
@@ -212,7 +212,7 @@ public static partial class ItalianAd2Prose
             var scalo = scali.FirstOrDefault(a => a.Icao == p.Aerodrome);
             var declinazione = DeclinazioneDelloScalo(scalo, scali);
             (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) Decodifica(Procedure q, string? pista, string? salita) =>
-                DecodeWithWarnings(q, Punto, Stazione, Pista(scalo, pista), declinazione, salita);
+                DecodeWithWarnings(q, Punto, Stazione, Pista(scalo, pista), declinazione, salita, DecolloDi(q, scalo, pista));
             IReadOnlyList<string> PisteDi(Procedure q) =>
                 q.Runways.Count > 0 ? q.Runways : PistaDallaRotta(q, scalo, declinazione, null) is { } r ? [r] : [];
             // Passo 5: le pendenze delle salite iniziali valgono anche per le SID — quelle che le nominano («For LAKOX 7W, GITOD
@@ -234,7 +234,7 @@ public static partial class ItalianAd2Prose
             if (p.Legs.Count > 0) return [p];
             Procedure Letta(Procedure q, (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) esito, params string[] dette)
             {
-                var avvisi = esito.Avvisi.Concat(dette).Concat(QuoteFuoriDalPercorso(q, esito.Tratti, n => punti.ContainsKey(n))).ToList();
+                var avvisi = esito.Avvisi.Concat(dette).Concat(QuoteFuoriDalPercorso(q, esito.Tratti, n => Punto(n) ?? Stazione(n)?.Position)).ToList();
                 approssimate.AddRange(avvisi.Select(a => (q, a)));
                 return q with { Legs = esito.Tratti, LegsFromDescription = true };
             }
@@ -339,21 +339,82 @@ public static partial class ItalianAd2Prose
     private static partial Regex RxPrimaRotta();
 
     /// <summary>
-    /// N2 della revisione col committente (LIPH ADOSA 1A): le righe delle quote sotto il percorso nominano un punto che nel
-    /// percorso letto non c'è («PH006 – VIC VOR/DME: 5500 FT» dove il testo dice «PH005 – VIC»): si dice.
+    /// Passo 5 (gruppo 6, committente): da dove sale una SID o una salita iniziale. La fine della pista è la soglia opposta, alla sua
+    /// quota (AD 2.12); se la pista non si sa, lo scalo (ARP, quota dello scalo). La pendenza degli ostacoli, o la sola senza motivo
+    /// (<see cref="ItalianClimbGradients.PerDisegnare"/>); se no il 3,3% (200 ft/NM), e si dice.
     /// </summary>
-    private static IEnumerable<string> QuoteFuoriDalPercorso(Procedure p, IReadOnlyList<ProcedureLeg> tratti, Func<string, bool> eUnPunto)
+    internal static Departure? DecolloDi(Procedure p, Aerodrome? scalo, string? pista)
     {
-        if (p.Description is null) yield break;
+        if (scalo is null || p.Kind is not (ProcedureKind.Sid or ProcedureKind.InitialClimb)) return null;
+        var (piedi, detta) = ItalianClimbGradients.PerDisegnare(p.ClimbGradients) is { } g && ItalianClimbGradients.PiediPerMiglio(g) is { } ft
+            ? (ft, $"{ft:0} ft/NM{(g.Percent is { } pc ? $" ({pc:0.#}%)" : "")}{(g.Reason == ClimbGradientReason.Obstacles ? ", la pendenza degli ostacoli" : ", la pendenza stampata")}")
+            : (200.0, "il 3,3% (200 ft/NM): la procedura non stampa una pendenza degli ostacoli");
+        if (pista is not null && PistaOpposta(pista) is { } opposta && scalo.Runways.FirstOrDefault(r => r.Designator == opposta) is { Threshold: { } fine } altra
+            && QuotaInPiedi(altra.ThresholdElevation) is { } quota)
+            return new Departure(fine, quota, piedi, detta, false);
+        return scalo.Arp is { } arp && QuotaInPiedi(scalo.Elevation) is { } dello ? new Departure(arp, dello, piedi, detta, true) : null;
+    }
+
+    /// <summary>Una quota stampata in piedi: «611.3 FT / 611.3 FT» → 611,3; «43 M AMSL» → 141; «NIL» → null.</summary>
+    internal static double? QuotaInPiedi(string? stampata)
+    {
+        if (stampata is null || RxQuotaStampata().Match(stampata) is not { Success: true } m) return null;
+        var valore = double.Parse(m.Groups["v"].Value, CultureInfo.InvariantCulture);
+        return m.Groups["u"].Value.Equals("M", StringComparison.OrdinalIgnoreCase) ? valore * 3.28084 : valore;
+    }
+
+    [GeneratedRegex(@"(?<v>\d+(?:\.\d+)?)\s*(?<u>FT|ft|M|m)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxQuotaStampata();
+
+    /// <summary>
+    /// N2 della revisione col committente (LIPH ADOSA 1A): le righe delle quote sotto il percorso nominano un punto che nel
+    /// percorso letto non c'è («PH006 – VIC VOR/DME: 5500 FT» dove il testo dice «PH005 – VIC»): si dice. Un punto che sta sul
+    /// percorso disegnato (entro un miglio) va bene anche se il testo non lo nomina (AKILI di LIRA, il punto di una radiale); le
+    /// salite iniziali nominano le SID, e non si guardano.
+    /// </summary>
+    private static IEnumerable<string> QuoteFuoriDalPercorso(Procedure p, IReadOnlyList<ProcedureLeg> tratti, Func<string, Position?> dove)
+    {
+        if (p.Description is null || p.Kind == ProcedureKind.InitialClimb) yield break;
+        var percorso = tratti.Select(t => t.Position ?? (t.Fix is { } f ? dove(f) : null)).OfType<Position>().ToList();
         var nelPercorso = tratti.Select(t => t.Fix).OfType<string>().ToHashSet(StringComparer.Ordinal);
         var detti = new HashSet<string>(StringComparer.Ordinal);
         foreach (var riga in p.Description.Split('\n').Skip(1))
         {
             if (!RxRigaDopo().IsMatch(riga) || RxVerbo().IsMatch(riga)) continue;
             foreach (Match m in RxNomeDiPunto().Matches(riga))
-                if (eUnPunto(m.Value) && !nelPercorso.Contains(m.Value) && detti.Add(m.Value))
-                    yield return $"le quote sotto il percorso nominano {m.Value}, che nel percorso non c'è";
+            {
+                if (dove(m.Value) is not { } punto || nelPercorso.Contains(m.Value)) continue;
+                // Sul percorso disegnato: si dice solo se le quote ne fanno un tratto («PH005 – PH006: FL 90; PH006 – VIC», ADOSA 1A).
+                var lontano = DalPercorso(punto, percorso) > 1;
+                if ((lontano || RxNomeInUnTratto(m.Value).IsMatch(riga)) && detti.Add(m.Value))
+                    yield return lontano
+                        ? $"le quote sotto il percorso nominano {m.Value}, che nel percorso non c'è"
+                        : $"le quote sotto il percorso fanno un tratto da {m.Value}, che il testo del percorso non nomina (sta sul percorso disegnato)";
+            }
         }
+    }
+
+    private static Regex RxNomeInUnTratto(string nome) =>
+        new($@"(?:[–-]\s*{Regex.Escape(nome)}\b|\b{Regex.Escape(nome)}\s*[–-])", RegexOptions.CultureInvariant);
+
+    /// <summary>Quanto <paramref name="p"/> sta lontano dalla spezzata <paramref name="percorso"/> (NM, nel piano attorno a lui).</summary>
+    private static double DalPercorso(Position p, IReadOnlyList<Position> percorso)
+    {
+        if (percorso.Count == 0) return double.MaxValue;
+        var k = Math.Cos(p.Lat * Math.PI / 180);
+        (double X, double Y) Piano(Position q) => ((q.Lon - p.Lon) * 60 * k, (q.Lat - p.Lat) * 60);
+        var minimo = percorso.Min(q => Sphere.DistanceNm(p, q));
+        for (var i = 1; i < percorso.Count; i++)
+        {
+            var (ax, ay) = Piano(percorso[i - 1]);
+            var (bx, by) = Piano(percorso[i]);
+            var (dx, dy) = (bx - ax, by - ay);
+            var l2 = dx * dx + dy * dy;
+            if (l2 < 1e-9) continue;
+            var t = Math.Clamp(-(ax * dx + ay * dy) / l2, 0, 1);
+            minimo = Math.Min(minimo, Math.Sqrt(Math.Pow(ax + t * dx, 2) + Math.Pow(ay + t * dy, 2)));
+        }
+        return minimo;
     }
 
     [GeneratedRegex(@"\b(?:[A-Z]{2}\d{3}|[A-Z]{5})\b", RegexOptions.CultureInvariant)]
@@ -560,6 +621,13 @@ public static partial class ItalianAd2Prose
         t = RxRottaSuggerita().Replace(t, m => Marca('A', $"«suggested Track {m.Groups[1].Value}°» è una rotta suggerita: disegnata come TR {m.Groups[1].Value}°") + $"TR {m.Groups[1].Value}°");
         // Q4: «Crossing RDL 166 BSM VOR (in any case within 7NM BSM DME) turn left»: la carta segna la virata sul punto R166
         // BSM / D7 BSM, la radiale alla distanza (LIPO OSKOR 6X, 7W).
+        // Passo 5: «at 500ft AGL (850ft AMSL)» è la virata a 850 ft; «anyway not further than point RDL 180/14NM CSL VOR/DME (or …)»
+        // e «(to be reached not further than 10NM ALG TACAN …)» la fermano (⟦M…⟧); «not before LIN VOR/DME», «not before DER»
+        // senza parentesi come «(not before …)».
+        t = RxAglAmsl().Replace(t, m => $"passing {m.Groups[2].Value} ft " + Marca('N', m.Value));
+        t = RxNonOltre().Replace(t, m => Marca('M', m.Value.Trim().Trim(',').Trim()));
+        t = RxNonOltreFraParentesi().Replace(t, m => Marca('M', m.Groups[1].Value));
+        t = RxNonPrimaSenzaParentesi().Replace(t, m => Marca('N', m.Value.Trim().Trim(',').Trim()));
         t = RxInOgniCasoEntro().Replace(t, m => $"RDL {m.Groups[1].Value}/{m.Groups[3].Value} NM {m.Groups[2].Value} VOR/DME "
             + Marca('N', $"crossing RDL {m.Groups[1].Value} {m.Groups[2].Value} VOR (in any case within {m.Groups[3].Value} NM {m.Groups[2].Value} DME)"));
         t = RxParentesiDiNota().Replace(t, " ");
@@ -572,10 +640,25 @@ public static partial class ItalianAd2Prose
     /// <summary>La quota come nelle tabelle: «FL 110» → FL110, «2100 ft» → 2100.</summary>
     private static string Quota(string scritta) => RxSpazi().Replace(scritta, "").Replace("ft", "", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Da dove si sale, per le virate a una quota (passo 5, gruppo 6): la fine della pista (la soglia opposta) e la sua quota, o
+    /// lo scalo se la pista non si sa; la pendenza in piedi per miglio e come si dice.
+    /// </summary>
+    public sealed record Departure(Position End, double Elevation, double FeetPerNm, string Gradient, bool FromAerodrome);
+
     private sealed class Lettore(string testo, Func<string, Position?> punto, Func<string, Station?> stazione, Runway? pista, bool dallaPista = false,
-        double? declinazioneDelloScalo = null)
+        double? declinazioneDelloScalo = null, Departure? decollo = null, string? quoteMinime = null)
     {
         private readonly List<ProcedureLeg> _tratti = [];
+
+        /// <summary>Il percorso fatto dalla fine della pista fino al punto dove si è (NM): la quota stimata è la sua più la pendenza.</summary>
+        private double _percorso;
+
+        /// <summary>Si è usciti dalla stazione dove si era, su una sua radiale (passo 5: l'anello di ASPIR 8G se poi ci si torna).</summary>
+        private string? _uscitaDa;
+
+        /// <summary>L'ultimo punto è una virata a una quota: «not before …» e «not further than …» lo spostano lungo questa linea.</summary>
+        private (Linea Linea, Position Base, double Quota)? _allaQuota;
         private Position? _qui;
         private string? _quiNome;
         private Linea? _linea;
@@ -614,13 +697,17 @@ public static partial class ItalianAd2Prose
             }
             if (tipo == 'B')
             {
+                // Passo 5: «Proceed on TR 078°, not below 1500 ft, turn left»: senza un punto prima è la virata a una quota.
                 if (!_puntoAppena)
                 {
-                    _problema = $"«not below {testo.TrimStart('+')} ft» senza un punto: la virata è a una quota, il punto dove si fa non si calcola";
+                    AllaQuota(double.Parse(testo.TrimStart('+'), CultureInfo.InvariantCulture), $"not below {testo.TrimStart('+')} ft");
                     return;
                 }
                 tipo = 'Q';
             }
+            // Passo 5: i vincoli sulla virata a una quota. «not before …» la porta avanti; «not further than …» (M) indietro.
+            if ((tipo is 'N' or 'M') && LimiteDelVincolo(testo) is { } limite) Vincolo(limite, nonPrima: tipo == 'N', testo);
+            if (tipo == 'M') tipo = 'N';
             Func<ProcedureLeg, ProcedureLeg> cosa = tipo switch
             {
                 'Q' => t => t with { Altitude = t.Altitude is null ? testo : $"{t.Altitude} {testo}" },
@@ -689,7 +776,7 @@ public static partial class ItalianAd2Prose
             }
             if (g["lascia"].Success)
             {
-                _problema = $"«{g["lascia"].Value.Trim()}»: il punto dove si lascia una quota non si calcola";
+                AllaQuota(Numero(g["quota"]), g["lascia"].Value.Trim());
                 return;
             }
             if (g["ctrlR"].Success)
@@ -804,6 +891,8 @@ public static partial class ItalianAd2Prose
                 var tr = g["lineaT"].Success ? Numero(g["lineaT"]) : g["lineaT2"].Success ? Numero(g["lineaT2"]) : (double?)null;
                 bool? fuori = tr is { } t ? Math.Abs(Sphere.Normalize(t - radiale + 180) - 180) < 90 : null;
                 var nuova = Linea.SuRadiale(nome, s, radiale, fuori, tr);
+                // Fuori dalla stazione dove si è, sulla sua radiale: se poi si vira e ci si torna, è un anello (ASPIR 8G).
+                if (fuori == true && _quiNome == nome) _uscitaDa = nome;
                 // B6: da una rotta («on TR 073° until joining RDL 103 CRN VOR», o dalla pista) la radiale si intercetta: il
                 // punto dove la si prende, se è davanti, vicino (100 NM) e le due linee non sono quasi parallele. Da un'altra
                 // radiale no: due radiali della stessa stazione si incrociano sulla stazione.
@@ -910,6 +999,8 @@ public static partial class ItalianAd2Prose
                     PathTerminator = "AF", Fix = fix, Computed = fix is null ? definizione : null, Position = fine,
                     ArcCenter = arco.Stazione, ArcRadiusNm = arco.Raggio, Turn = delta < 180 ? "R" : "L",
                 });
+                // Lungo l'arco: il raggio per l'angolo.
+                Avanza(fine, arco.Raggio * Math.Min(delta, 360 - delta) * Math.PI / 180);
                 _qui = fine;
                 _quiNome = fix;
                 _puntoAppena = true;
@@ -925,9 +1016,102 @@ public static partial class ItalianAd2Prose
             }
         }
 
+        /// <summary>
+        /// Il punto di un vincolo, sulla linea della virata a una quota: «not before 0.8 NM BRL DME», «not further than 10 NM ALG DME»
+        /// (la distanza davanti), «RDL 180/14 NM CSL» (il punto), «not before LIN VOR/DME» (dove la linea passa più vicina).
+        /// «not before DER» non sposta niente: la virata è già dopo la fine della pista.
+        /// </summary>
+        private Position? LimiteDelVincolo(string testo)
+        {
+            if (_allaQuota is not { } q || !RxVincolo().IsMatch(testo)) return null;
+            if (RxPuntoDelVincolo().Match(testo) is { Success: true } r && stazione(r.Groups["s"].Value) is { } sr)
+                return Sphere.Destination(sr.Position, Numero(r.Groups["r"]) + sr.Variation, Numero(r.Groups["d"]));
+            if (RxDistanzaDelVincolo().Match(testo) is { Success: true } d && stazione(d.Groups["s"].Value) is { } sd)
+                return q.Linea.Distanza(sd.Position, Numero(d.Groups["d"]), q.Base);
+            if (RxStazioneDelVincolo().Match(testo) is { Success: true } s && stazione(s.Groups["s"].Value) is { } ss)
+                return q.Linea.Proiezione(ss.Position);
+            return null;
+        }
+
+        /// <summary>Il percorso fatto (passo 5): dalla fine della pista al primo punto, poi di punto in punto.</summary>
+        private void Avanza(Position p, double? quanto = null)
+        {
+            _percorso = _qui is { } qui ? _percorso + (quanto ?? Sphere.DistanceNm(qui, p)) : decollo is { } d ? Sphere.DistanceNm(d.End, p) : 0;
+            _allaQuota = null;
+            _uscitaDa = null;
+        }
+
+        /// <summary>
+        /// Passo 5, gruppo 6 (committente): la virata «a <paramref name="quota"/> ft» si disegna dove l'aereo ci arriva salendo con la
+        /// pendenza della procedura, contando dalla fine della pista lungo il percorso; se non si è ancora a un punto, dal punto
+        /// della rotta più vicino alla fine della pista. Si dice com'è stata disegnata.
+        /// </summary>
+        private void AllaQuota(double quota, string detto)
+        {
+            if (_linea is not { } linea)
+            {
+                _problema = $"«{detto}» senza una rotta: il punto dove si arriva a {quota:0} ft non si calcola";
+                return;
+            }
+            if (decollo is not { } d)
+            {
+                _problema = $"«{detto}»: la virata è a una quota, e la pista da cui si sale non si sa";
+                return;
+            }
+            var (partenza, avanti) = _qui is { } qui
+                ? (qui, (quota - (d.Elevation + d.FeetPerNm * _percorso)) / d.FeetPerNm)
+                : (linea.Proiezione(d.End), (quota - d.Elevation) / d.FeetPerNm);
+            var gia = avanti <= 0;
+            var p = Sphere.Destination(partenza, linea.Direzione, Math.Max(avanti, 0));
+            var percorsoPrima = _percorso;
+            var quiPrima = _qui;
+            Calcolato(p, $"{quota:0} ft", linea.Rotta);
+            _allaQuota = (linea, partenza, quota);
+            var dove = quiPrima is null ? $"a {_percorso:0.0} NM dalla fine della pista" : $"{Math.Max(avanti, 0):0.0} NM dopo il punto prima";
+            _avvisi.Add(gia
+                ? $"virata a {quota:0} ft disegnata sul punto prima: con {d.Gradient} lì si è già a {d.Elevation + d.FeetPerNm * percorsoPrima:0} ft"
+                : $"virata a {quota:0} ft disegnata {dove}, salendo con {d.Gradient}{(d.FromAerodrome ? " (la pista non si sa: dalla quota dello scalo)" : "")}");
+        }
+
+        /// <summary>
+        /// Passo 5: un vincolo sulla virata a una quota appena disegnata. «not before 0.8 NM BRL DME» la porta avanti se cade prima,
+        /// «anyway not further than RDL 180/14NM CSL» e «to be reached not further than 10NM ALG TACAN» la portano indietro se cade
+        /// dopo. Lungo la stessa linea.
+        /// </summary>
+        private void Vincolo(Position limite, bool nonPrima, string detto)
+        {
+            if (_allaQuota is not { } q || _tratti.Count == 0 || _tratti[^1].Position is not { } p) return;
+            var oltre = q.Linea.Avanti(q.Base, limite) - q.Linea.Avanti(q.Base, p);
+            if (nonPrima ? oltre <= 0 : oltre >= 0) return;
+            var spostato = Sphere.Destination(q.Base, q.Linea.Direzione, Math.Max(q.Linea.Avanti(q.Base, limite), 0));
+            _tratti[^1] = _tratti[^1] with { Position = spostato, Computed = $"{q.Quota:0} ft ({detto})" };
+            _percorso += oltre;
+            _qui = spostato;
+            _avvisi.Add($"la virata a {q.Quota:0} ft è spostata per «{detto}»");
+        }
+
         private void VersoUnNome(string nome, Position posizione)
         {
             _puntoAppena = true;
+            // ASPIR 8G (committente): «Leave PES VOR on RDL 083 (TR 083°), then turn left bound to PES VOR to leave on RDL 230»:
+            // fuori sulla radiale e di nuovo sulla stazione, per salire. L'anello è lungo quanto serve per arrivare alla quota delle
+            // quote minime della procedura («PES VOR: 5000 FT») dalla quota stimata al primo passaggio.
+            if (_quiNome == nome && _uscitaDa == nome && _virata is not null && _linea is { Stazione: { } della } uscita && della == nome && decollo is { } d
+                && quoteMinime is not null && Regex.Match(quoteMinime, $@"\b{Regex.Escape(nome)}(?:\s+VOR(?:/DME)?|\s+NDB)?\s*:\s*(\d{{3,5}})\s*FT\b") is { Success: true } mca)
+            {
+                var stimata = d.Elevation + d.FeetPerNm * _percorso;
+                var serve = (Numero(mca.Groups[1]) - stimata) / d.FeetPerNm;
+                if (serve > 0)
+                {
+                    var virata = _virata;
+                    _virata = null;
+                    var fuori = serve / 2;
+                    Calcolato(Sphere.Destination(posizione, uscita.Direzione, fuori), $"RDL {uscita.Radiale:000}/{Dist(Math.Round(fuori, 1))} NM {nome}", uscita.Rotta);
+                    _virata = virata;
+                    _linea = null;
+                    _avvisi.Add($"anello sulla RDL {uscita.Radiale:000} {nome} per salire da {stimata:0} ft (stimata, con {d.Gradient}) a {mca.Groups[1].Value} ft: fuori {fuori:0.0} NM e ritorno");
+                }
+            }
             if (_quiNome == nome) return;
             // B5: «until joining ARC 20 NM BAR DME bound to LUXIL»: l'arco finisce sul punto, se il punto sta sull'arco
             // (mezzo miglio); se no l'arco resta aperto e si dice.
@@ -950,6 +1134,7 @@ public static partial class ItalianAd2Prose
                 Turn = primo ? null : _virata,
             });
             _virata = null;
+            Avanza(posizione);
             _qui = posizione;
             _quiNome = nome;
             if (_linea is { Stazione: null }) _linea = null;
@@ -971,6 +1156,7 @@ public static partial class ItalianAd2Prose
                 Course = primo ? null : rotta, Turn = primo ? null : _virata,
             });
             _virata = null;
+            Avanza(p);
             _qui = p;
             _quiNome = null;
             _puntoAppena = true;
@@ -1016,8 +1202,26 @@ public static partial class ItalianAd2Prose
         public double? Radiale { get; private init; }
         public required string Nome { get; init; }
         public string? Rotta { get; private init; }
-        private Position Origine { get; init; }
-        private double Direzione { get; init; } // vera, nel verso del volo se noto
+        public Position Origine { get; private init; }
+        public double Direzione { get; private init; } // vera, nel verso del volo se noto
+
+        /// <summary>Il punto della linea più vicino a <paramref name="p"/> (passo 5: dove la fine della pista cade sulla rotta).</summary>
+        public Position Proiezione(Position p)
+        {
+            var (dx, dy) = Versore;
+            var (px, py) = Piano(p);
+            var t = px * dx + py * dy;
+            return DalPiano(t * dx, t * dy);
+        }
+
+        /// <summary>Quanto <paramref name="p"/> sta avanti a <paramref name="da"/> lungo la linea (NM, negativo se dietro).</summary>
+        public double Avanti(Position da, Position p)
+        {
+            var (dx, dy) = Versore;
+            var (ax, ay) = Piano(da);
+            var (px, py) = Piano(p);
+            return (px - ax) * dx + (py - ay) * dy;
+        }
         private bool VersoNoto { get; init; }
 
         public static Linea SuRadiale(string stazione, Station s, double radiale, bool? versoFuori, double? tr = null) => new()
@@ -1122,8 +1326,10 @@ public static partial class ItalianAd2Prose
 
     // I pezzi, in ordine di precedenza: chi comincia prima vince, a parità vince il primo dell'alternativa.
     [GeneratedRegex(
-        @"⟦(?<marcaK>[QVNAB])(?<marcaT>[^⟧]*)⟧"
-        + @"|(?<lascia>\b(?:[Ll]eaving|until\s+leaving)\s+\d+\s*(?:FT|ft)\b)"
+        @"⟦(?<marcaK>[QVNABM])(?<marcaT>[^⟧]*)⟧"
+        // Passo 5: la virata a una quota («until leaving 1350 ft», «Passing 4000 ft», «reaching 800ft», «crossing 500 ft», «climbing
+        // to 2500 ft»): dove l'aereo ci arriva salendo dalla fine della pista.
+        + @"|(?<lascia>\b(?:(?:until\s+|till\s+)?(?:[Ll]eaving|[Pp]assing|[Rr]eaching)|[Cc]rossing|climbing\s+to)\s+(?<quota>\d{3,5})\s*(?:FT|ft)\b)"
         + @"|(?<pistaH>\b(?:RWY|runway|RUNWAY)\s+heading\b(?:\s*\(\s*TR\s+\d{3}°\s*\))?)"
         // V6: «at 17 NM CMP DME (intersection RDL 073 OST VOR)»: lo stesso punto detto in un altro modo, da controllare.
         + @"|\(\s*intersection\s+RDL\s+(?<ctrlR>\d{3})\s+(?<ctrlN>" + Nav + @")(?:\s+VOR)?\s*\)"
@@ -1152,7 +1358,7 @@ public static partial class ItalianAd2Prose
     // VOR proceed …» = «da TOP VOR».
     [GeneratedRegex(@"\b(?:then|and|proceed|on|to|bound|direct|until|till|point|via|join|joining|intercept|follow|at|from|after|take-off|continue|the|be|or|turn|left|right|crossing|maintain|From|Proceed|Turn|Join|At|Then|And|After|Crossing"
         // «Cross EKTOL» a fine riga, con la quota andata sulla riga delle quote (LIBF EKTOL 6A): passare sul punto.
-        + @"|intercepting|following|Intercept|Intercepting|inbound|Inbound|Over|over|overflying|cross|climb)\b|[,;.\-()]",
+        + @"|intercepting|following|Intercept|Intercepting|inbound|Inbound|Over|over|overflying|cross|climb|mantain)\b|[,;.\-()]",
         RegexOptions.CultureInvariant)]
     private static partial Regex RxRiempitivo();
 
@@ -1317,11 +1523,37 @@ public static partial class ItalianAd2Prose
     // Il percorso finisce dove comincia una nota sulla stessa riga («bound to URIPI. Minimum climb gradient: …», LIBF URIPI 6A).
     // Passo 4, nelle salite iniziali: anche «. Turn and climb parameters: …», «. Turn as IAS MAX 220 kt», «… (or 7 NM FAL TACAN)
     // Remark: Minimum climb gradient …» senza il punto.
-    [GeneratedRegex(@"(?:\.\s+(?:REMARKS?\b|Minimum\s+climb\s+gradient\b|Turn\s+and\s+climb\s+parameters\b|Turns?\s+as\s+IAS\b)|\s+Remarks?\s*:).*$", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
+    // «bound to URIPI. Minimum» e sotto «climb gradient: 6.8% …» (LIBF URIPI 6A): la riga dopo è già fuori dal percorso.
+    [GeneratedRegex(@"(?:\.\s+(?:REMARKS?\b|Minimum\b|Turn\s+and\s+climb\s+parameters\b|Turns?\s+as\s+IAS\b)|\s+Remarks?\s*:).*$", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
     private static partial Regex RxNotaInCoda();
 
     [GeneratedRegex(@"(\b\d+(?:\.\d+)?\s+NM\s+[A-Z]{2,3}\s+(?:DME|TACAN))\s+or\s+\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,4}\s+(?:DME|TACAN)\b", RegexOptions.CultureInvariant)]
     private static partial Regex RxDistanzaAlternativaSenzaParentesi();
+
+    // Passo 5: le quote e i vincoli delle virate a una quota.
+    [GeneratedRegex(@"\bat\s+(\d{3,5})\s*ft\s+AGL\s*\(\s*(\d{3,5})\s*ft\s+AMSL\s*\)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxAglAmsl();
+
+    [GeneratedRegex(@",?\s*\b(?:anyway\s+)?not\s+further\s+than\s+(?:point\s+)?RDL\s+\d{3}\s*/\s*\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,3}\s+VOR(?:/DME)?(?:\s*\([^)]*\))?", RegexOptions.CultureInvariant)]
+    private static partial Regex RxNonOltre();
+
+    [GeneratedRegex(@"\(\s*(to\s+be\s+(?:reached|crossed)\s+not\s+further\s+than\s+\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,3}\s+DME[^)]*)\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxNonOltreFraParentesi();
+
+    [GeneratedRegex(@",?\s*\bnot\s+before\s+(?:than\s+)?(?:DER(?:\s+\d{2}[LRC]?)?|RDL\s+\d{3}\s*/\s*\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,3}\s+VOR(?:/DME)?|\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,3}\s+DME|[A-Z]{2,3}\s+VOR(?:/DME)?)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxNonPrimaSenzaParentesi();
+
+    [GeneratedRegex(@"\bnot\s+(?:before|further\s+than)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxVincolo();
+
+    [GeneratedRegex(@"\bRDL\s+(?<r>\d{3})\s*/\s*(?<d>\d+(?:\.\d+)?)\s*NM\s+(?<s>[A-Z]{2,3})\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxPuntoDelVincolo();
+
+    [GeneratedRegex(@"\b(?<d>\d+(?:\.\d+)?)\s*NM\s+(?<s>[A-Z]{2,3})\s+DME\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDistanzaDelVincolo();
+
+    [GeneratedRegex(@"\bnot\s+before\s+(?:than\s+)?(?<s>(?!DER\b)[A-Z]{2,3})\s+VOR", RegexOptions.CultureInvariant)]
+    private static partial Regex RxStazioneDelVincolo();
 
     [GeneratedRegex(@"\s*\(([^()]*\bSIDs?\s+[A-Z][^()]*)\)", RegexOptions.CultureInvariant)]
     private static partial Regex RxParentesiPerUnaSid();

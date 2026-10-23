@@ -805,4 +805,105 @@ public sealed class Ad2ProseTests
         Assert.Equal(["RDL 130/8 NM LMT", "RDL 130/10 NM LMT", "SUGEP"], unoB[0].Legs.Select(t => t.Fix ?? t.Computed));
         Assert.Empty(nonLette);
     }
+
+    // Passo 5 della revisione col committente (gruppo 6): la virata «a una quota» si disegna dove l'aereo ci arriva salendo
+    // dalla fine della pista con la pendenza della procedura; «not before … DME» la porta avanti, «not further than …» indietro.
+    private static (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) LeggiDecollando(
+        string prosa, ItalianAd2Prose.Runway pista, ItalianAd2Prose.Departure decollo, string? minimi = null) =>
+        ItalianAd2Prose.DecodeWithWarnings(new Procedure
+        {
+            Aerodrome = "LIXX", Kind = ProcedureKind.Sid, Designator = "SUGEP 1A", Description = prosa, Minimums = minimi,
+        }, n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n), pista, departure: decollo);
+
+    private static Position Verso(Position da, double rotta, double nm)
+    {
+        const double r = Math.PI / 180, raggio = 6371008.8 / 1852;
+        var d = nm / raggio;
+        var lat = Math.Asin(Math.Sin(da.Lat * r) * Math.Cos(d) + Math.Cos(da.Lat * r) * Math.Sin(d) * Math.Cos(rotta * r));
+        var lon = da.Lon * r + Math.Atan2(Math.Sin(rotta * r) * Math.Sin(d) * Math.Cos(da.Lat * r), Math.Cos(d) - Math.Sin(da.Lat * r) * Math.Sin(lat));
+        return new Position(lat / r, lon / r);
+    }
+
+    [Fact]
+    public void LaVirataAUnaQuota_DallaFineDellaPista()
+    {
+        var soglia = Verso(Stazioni["LMT"].Position, 270, 20);
+        var fine = Verso(soglia, 90, 1.6);
+        var (tratti, problema, avvisi) = LeggiDecollando("After take-off proceed on RWY heading until leaving 1350 ft, then turn left bound to SUGEP.",
+            new ItalianAd2Prose.Runway(soglia, 90), new ItalianAd2Prose.Departure(fine, 782, 500, "500 ft/NM (8.3%)", false));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF 1350 ft", "TF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        // (1350 − 782) / 500 = 1,14 NM dopo la fine della pista.
+        Assert.Equal(1.6 + 568.0 / 500, Distanza(soglia, tratti[0].Position!.Value), 2);
+        Assert.Contains(avvisi, a => a.Contains("virata a 1350 ft", StringComparison.Ordinal) && a.Contains("500 ft/NM", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void LaVirataAUnaQuota_NonPrimaDiUnaDistanzaDme()
+    {
+        // La fine della pista a 2 NM da LMT, verso LMT: a 1350 ft si arriva a 0,86 NM da LMT, ma «not before 0.8 NM LMT DME».
+        var soglia = Verso(Stazioni["LMT"].Position, 270, 3);
+        var fine = Verso(soglia, 90, 1);
+        var (tratti, problema, avvisi) = LeggiDecollando("After take-off proceed on RWY heading until leaving 1350 ft, then turn left (not before 0.8 NM LMT DME) bound to SUGEP.",
+            new ItalianAd2Prose.Runway(soglia, 90), new ItalianAd2Prose.Departure(fine, 782, 500, "500 ft/NM", false));
+
+        Assert.Null(problema);
+        Assert.Equal(0.8, Distanza(Stazioni["LMT"].Position, tratti[0].Position!.Value), 2);
+        Assert.Contains(avvisi, a => a.Contains("spostata", StringComparison.Ordinal));
+        Assert.Contains("not before 0.8 NM LMT DME", tratti[0].Notes, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LaVirataAUnaQuota_NonOltreUnPunto()
+    {
+        // A 4000 ft col 3,3% si arriva dopo 20 NM; «anyway not further than point RDL 090/5 NM LMT» la ferma lì.
+        var soglia = Verso(Stazioni["LMT"].Position, 270, 3);
+        var (tratti, problema, _) = LeggiDecollando("After take-off proceed on RWY heading. Passing 4000 ft, anyway not further than point RDL 090/5NM LMT VOR/DME (or RDL 288 RCA VOR) turn left bound to SUGEP.",
+            new ItalianAd2Prose.Runway(soglia, 93), new ItalianAd2Prose.Departure(Verso(soglia, 93, 1), 0, 200, "il 3,3%", false));
+
+        Assert.Null(problema);
+        Assert.Equal(5, Distanza(Stazioni["LMT"].Position, tratti[0].Position!.Value), 1);
+    }
+
+    // ASPIR 8G (committente): fuori sulla radiale e di nuovo sulla stazione per salire alla quota delle quote minime, dalla quota
+    // stimata al primo passaggio.
+    [Fact]
+    public void LAnelloPerSalire_LungoQuantoServe()
+    {
+        var lmt = Stazioni["LMT"].Position;
+        var (tratti, problema, avvisi) = LeggiDecollando("Leave LMT VOR on RDL 083 (TR 083°), then turn left bound to LMT VOR to leave on RDL 230 (TR 230°) bound to SUGEP.",
+            new ItalianAd2Prose.Runway(Verso(lmt, 270, 11), 90), new ItalianAd2Prose.Departure(Verso(lmt, 270, 10), 0, 200, "il 3,3%", false), "MCA/MCL: LMT VOR: 5000 FT");
+
+        Assert.Null(problema);
+        // A LMT si è a 10 NM × 200 = 2000 ft; per 5000 ne servono 15 NM: 7,5 fuori e 7,5 indietro.
+        Assert.Equal(["IF LMT", "CF RDL 083/7.5 NM LMT", "TF LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal("L", tratti[2].Turn);
+        Assert.Contains(avvisi, a => a.Contains("anello sulla RDL 083 LMT", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("611.3 FT / 611.3 FT", 611.3)]
+    [InlineData("43 M AMSL", 141.08)]
+    [InlineData("NIL / NIL", null)]
+    public void LaQuotaInPiedi(string stampata, double? piedi)
+    {
+        var letta = ItalianAd2Prose.QuotaInPiedi(stampata);
+        if (piedi is null) Assert.Null(letta);
+        else Assert.Equal(piedi.Value, letta!.Value, 1);
+    }
+
+    // L'anello c'è solo se si esce dalla stazione su una radiale, si vira e ci si torna: passarci due volte di fila non è un
+    // anello (LIBP ASPIR 8F, LIPE LOMED 6V).
+    [Fact]
+    public void PassareDueVolteSullaStazione_NonEUnAnello()
+    {
+        var lmt = Stazioni["LMT"].Position;
+        var (tratti, problema, avvisi) = LeggiDecollando("Turn right bound to LMT VOR. Leave LMT VOR on RDL 230 (TR 230°) bound to SUGEP.",
+            new ItalianAd2Prose.Runway(Verso(lmt, 270, 11), 90), new ItalianAd2Prose.Departure(Verso(lmt, 270, 10), 0, 200, "il 3,3%", false), "MCA/MCL: LMT VOR: 5000 FT");
+
+        Assert.Null(problema);
+        Assert.Equal(["IF LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.DoesNotContain(avvisi, a => a.Contains("anello", StringComparison.Ordinal));
+    }
 }
