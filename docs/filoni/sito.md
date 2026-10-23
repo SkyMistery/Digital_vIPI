@@ -4,7 +4,18 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 20 ottobre 2026
+## Dove siamo — 23 ottobre 2026
+
+> **In una riga, al 23 ottobre**: tutto il lavoro del filone è **online o fuso**, fino a **S128**. Il «Radar di torre» è
+> cresciuto in giorni successivi: S115 (sezione, 1.68.0), S118–S120 (tecnica a blocchi, via la colonna del testo),
+> S124 (la tecnica nasce aperta), S127 (testo comune a tutte le torri, **1.72.0**, §A165) e **S128** (il testo comune si
+> rilegge e si corregge nel pannello «Traduzione», solo admin: **online in 1.73.0** dal 22 ottobre, §A166). S121–S126
+> (allegati nei callout, link, via le note, conta-test, test instabile) sono online in 1.71.0 (§A164); S116–S117 fusi
+> senza pacchetto (§A161). **Niente in corso.**
+> **Resta al committente**: scrivere il testo comune vero (da admin) e ripubblicare gli scali che «Da fare» elenca;
+> guardare col login le frasi «testo comune» nel pannello «Traduzione» (mai viste online); riscrivere le due frasi di
+> Milano dei trasferimenti (S123c). S96 (tabellone) resta in pausa su `fix/tabellone`.
+> Le note qui sotto sono quelle dei giorni prima.
 
 > **Aggiornamento del 20 ottobre**: **S114** e **S115** (il «Radar di torre») sono **online in 1.68.0** (§A160; Schema 0
 > confermato dal committente; la migrazione `TorreRadar` è passata; da fuori CSS e health Healthy). **S116** e **S117**
@@ -2926,7 +2937,7 @@
   catalogo non cambia. Carta `docs/feature/2026-10-22-testo-comune.md`. Provato a schermo su DB nuovo (LIRQ): la prova
   ha trovato il paragrafo dello scalo fra i due callout comuni (`SectionBody` leggeva gli ordini negativi come
   «sconosciuti»), corretto con test rosso prima. Non visti: vSOP militare, pagina inglese, unione, allegato nel callout.
-- 🟢 **S128** (22-ott, committente: «la parte comune di torre radar non sapevo dove si traducesse»): le frasi del
+- ✅ **S128** (**online in 1.73.0** dal 22-ott, §A166; committente: «la parte comune di torre radar non sapevo dove si traducesse»): le frasi del
   **testo comune** delle torri radar nel pannello **«Traduzione»** dell'editor di ogni vIPI/vSOP con la «Tecnica
   operativa», in coda e segnate «testo comune»; le corregge **solo un admin** (servizio e pannello), e la correzione
   vale per tutte le torri. Prima le traduceva la macchina senza nessun posto dove rileggerle. Carta
