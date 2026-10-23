@@ -142,6 +142,8 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"^\s*Initial\s+climb\s+description\s*", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxTitoloDellaSalita();
 
-    [GeneratedRegex(@"^(?:\s*⟦[^⟧]*⟧)*\s*(?:At\s+\d|[Tt]urn\s|[Cc]rossing\s)", RegexOptions.CultureInvariant)]
+    // Anche da un punto (passo 5, committente: LIBP ASPIR 8G «Leave PES VOR on RDL 083…», che diventa «PES VOR - RDL 083…»;
+    // «Proceed via BOA VOR/DME – LOMED», LIPE): la SID comincia dove la salita iniziale l'ha portata.
+    [GeneratedRegex(@"^(?:\s*⟦[^⟧]*⟧)*\s*(?:At\s+\d|[Tt]urn\s|[Cc]rossing\s|[A-Z]{2,3}\s+(?:VOR|NDB)\b|Proceed\s+via\s+[A-Z]{2,5}\b)", RegexOptions.CultureInvariant)]
     private static partial Regex RxComincaAMeta();
 }

@@ -221,7 +221,10 @@ public static partial class ItalianAd2Prose
             Procedure ConLePendenzeDelleSalite(Procedure q)
             {
                 var lette = salite[q.Aerodrome].Select(s => (Salita: s, Lette: ItalianClimbGradients.Read(s.Description))).ToList();
-                var dellaPista = lette.Where(x => PisteDi(x.Salita).Intersect(q.Runways, StringComparer.Ordinal).Any()).ToList();
+                // Una SID senza la pista nel nome: le salite della sua pagina (ASPIR 8G sotto la salita della RWY 22).
+                var dellaPista = q.Runways.Count > 0
+                    ? lette.Where(x => PisteDi(x.Salita).Intersect(q.Runways, StringComparer.Ordinal).Any()).ToList()
+                    : lette.Where(x => x.Salita.Page?.Reference is { } pag && pag == q.Page?.Reference).ToList();
                 if (dellaPista.Count > 1 && dellaPista.Where(x => x.Salita.Page?.Reference == q.Page?.Reference).ToList() is [var stessa])
                     dellaPista = [stessa];
                 var pendenze = (q.ClimbGradients ?? [])
@@ -254,12 +257,17 @@ public static partial class ItalianAd2Prose
             // 043°», LIBP RWY 22): la SID le continua, comunque cominci il suo testo, e la pista è la loro.
             var nominanti = p.Kind != ProcedureKind.Sid ? []
                 : salite[p.Aerodrome].Where(s => s.Description is { } d && Dividi(d).Rami.Any(r => Nomina(r.Condizione, p.Designator))).ToList();
-            // La pista: quella del nome; se la SID non la dice, quella della salita che la nomina, o della prima rotta del testo
-            // (entro 15°); se ne dice due, quella della prima rotta.
+            // La pista: quella del nome; se la SID non la dice, quella della salita che la nomina, o della salita stampata sulla
+            // stessa pagina (committente, 24 ottobre: LIBP ASPIR 8G sta sotto «INITIAL CLIMB PROCEDURE RWY 22», le «F» sotto la 04),
+            // o della prima rotta del testo (entro 15°); se ne dice due, quella della prima rotta.
+            var dellaPagina = p.Kind == ProcedureKind.Sid && p.Runways.Count == 0
+                && salite[p.Aerodrome].Where(s => s.Page?.Reference is { } pag && pag == p.Page?.Reference).SelectMany(PisteDi).Distinct(StringComparer.Ordinal).ToList() is [var unica]
+                ? unica : null;
             var pistaDellaSid = p.Kind != ProcedureKind.Sid ? p.Runways.FirstOrDefault()
                 : p.Runways.Count == 1 ? p.Runways[0]
                 : p.Runways.Count == 0 && nominanti.SelectMany(PisteDi).FirstOrDefault() is { } dallaSalita ? dallaSalita
-                : PistaDallaRotta(p, scalo, declinazione, p.Runways.Count > 0 ? p.Runways : null) ?? p.Runways.FirstOrDefault();
+                : dellaPagina
+                ?? PistaDallaRotta(p, scalo, declinazione, p.Runways.Count > 0 ? p.Runways : null) ?? p.Runways.FirstOrDefault();
             var da = Decodifica(p, pistaDellaSid, null);
             if (p.Kind != ProcedureKind.Sid || !(ContinuaLaSalita(p.Description) || nominanti.Count > 0))
             {
@@ -393,6 +401,9 @@ public static partial class ItalianAd2Prose
             }
         }
     }
+
+    [GeneratedRegex(@"^\+(\d{3,5})$", RegexOptions.CultureInvariant)]
+    private static partial Regex RxQuotaMinima();
 
     private static Regex RxNomeInUnTratto(string nome) =>
         new($@"(?:[–-]\s*{Regex.Escape(nome)}\b|\b{Regex.Escape(nome)}\s*[–-])", RegexOptions.CultureInvariant);
@@ -1099,7 +1110,12 @@ public static partial class ItalianAd2Prose
             if (_quiNome == nome && _uscitaDa == nome && _virata is not null && _linea is { Stazione: { } della } uscita && della == nome && decollo is { } d
                 && quoteMinime is not null && Regex.Match(quoteMinime, $@"\b{Regex.Escape(nome)}(?:\s+VOR(?:/DME)?|\s+NDB)?\s*:\s*(\d{{3,5}})\s*FT\b") is { Success: true } mca)
             {
-                var stimata = d.Elevation + d.FeetPerNm * _percorso;
+                // La quota sulla stazione: la stimata, o la MCA stampata lì se è più alta («turn right bound to PES VOR/DME (MCA
+                // 2500 ft)», nel ramo della salita iniziale della RWY 22 di LIBP: è la MCA della carta).
+                var stampata = _tratti.LastOrDefault(t => t.Fix == nome)?.Altitude is { } quotaLi && RxQuotaMinima().Match(quotaLi) is { Success: true } qm
+                    ? double.Parse(qm.Groups[1].Value, CultureInfo.InvariantCulture) : 0;
+                var dallaMca = stampata > d.Elevation + d.FeetPerNm * _percorso;
+                var stimata = Math.Max(d.Elevation + d.FeetPerNm * _percorso, stampata);
                 var serve = (Numero(mca.Groups[1]) - stimata) / d.FeetPerNm;
                 if (serve > 0)
                 {
@@ -1109,7 +1125,7 @@ public static partial class ItalianAd2Prose
                     Calcolato(Sphere.Destination(posizione, uscita.Direzione, fuori), $"RDL {uscita.Radiale:000}/{Dist(Math.Round(fuori, 1))} NM {nome}", uscita.Rotta);
                     _virata = virata;
                     _linea = null;
-                    _avvisi.Add($"anello sulla RDL {uscita.Radiale:000} {nome} per salire da {stimata:0} ft (stimata, con {d.Gradient}) a {mca.Groups[1].Value} ft: fuori {fuori:0.0} NM e ritorno");
+                    _avvisi.Add($"anello sulla RDL {uscita.Radiale:000} {nome} per salire da {stimata:0} ft ({(dallaMca ? "la MCA stampata su " + nome : "stimata, con " + d.Gradient)}) a {mca.Groups[1].Value} ft: fuori {fuori:0.0} NM e ritorno");
                 }
             }
             if (_quiNome == nome) return;

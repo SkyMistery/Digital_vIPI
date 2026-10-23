@@ -906,4 +906,39 @@ public sealed class Ad2ProseTests
         Assert.Equal(["IF LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
         Assert.DoesNotContain(avvisi, a => a.Contains("anello", StringComparison.Ordinal));
     }
+
+    // Una SID senza la pista nel nome prende quella della salita iniziale stampata sulla sua stessa pagina (committente, 24
+    // ottobre: LIBP ASPIR 8G sta sotto «INITIAL CLIMB PROCEDURE RWY 22»).
+    [Fact]
+    public void LaPistaDallaSalitaDellaStessaPagina()
+    {
+        var soglia13 = new Position(38.95, 15.90);
+        var soglia31 = new Position(38.90, 15.97);
+        Procedure Pagina(Procedure p, string pagina) => p with { Page = new AipPage(pagina) };
+        var documento = new AipDocument
+        {
+            State = "LI", Airac = "2611", Airspaces = [],
+            Points = [new SignificantPoint { Section = "ENR 4.4", Designator = "SUGEP", Position = Punti["SUGEP"] }],
+            Aerodromes =
+            [
+                new Aerodrome
+                {
+                    Icao = "LIXX", Name = "Prova", MagneticVariation = "3° E (2020.0)",
+                    NavigationAids = [new Navaid { Section = "AD 2.19", Designator = "LMT", Name = "LAMEZIA", Type = "DVOR/DME", MagneticVariation = "3° E-2010.0", Position = Stazioni["LMT"].Position, Components = [] }],
+                    Runways = [new() { Designator = "13", TrueBearing = "133°", Threshold = soglia13 }, new() { Designator = "31", TrueBearing = "313°", Threshold = soglia31 }],
+                },
+            ],
+            Procedures =
+            [
+                Pagina(new Procedure { Aerodrome = "LIXX", Kind = ProcedureKind.InitialClimb, Designator = "RWY 13", Runways = ["13"], Description = "After take-off proceed on RWY heading." }, "AD 2 LIXX 6-3"),
+                Pagina(new Procedure { Aerodrome = "LIXX", Kind = ProcedureKind.InitialClimb, Designator = "RWY 31", Runways = ["31"], Description = "After take-off proceed on RWY heading." }, "AD 2 LIXX 6-7"),
+                Pagina(P(ProcedureKind.Sid, "SUGEP 1C", "After take-off proceed on RWY heading until 8 NM LMT DME, then turn right bound to SUGEP."), "AD 2 LIXX 6-7"),
+            ],
+        };
+
+        var (letto, _, _) = ItalianAd2Prose.DecodeAll(documento);
+
+        var primo = letto.Procedures!.Single(p => p.Designator == "SUGEP 1C").Legs[0].Position!.Value;
+        Assert.Equal(313, Rotta(soglia31, primo), 0);
+    }
 }
